@@ -251,6 +251,21 @@ XkbSetRulesDflts(XkbRMLVOSet * rmlvo)
 }
 
 void
+XkbDeleteRulesUsed(void)
+{
+    free(XkbRulesUsed);
+    XkbRulesUsed = NULL;
+    free(XkbModelUsed);
+    XkbModelUsed = NULL;
+    free(XkbLayoutUsed);
+    XkbLayoutUsed = NULL;
+    free(XkbVariantUsed);
+    XkbVariantUsed = NULL;
+    free(XkbOptionsUsed);
+    XkbOptionsUsed = NULL;
+}
+
+void
 XkbDeleteRulesDflts(void)
 {
     free(XkbRulesDflt);
@@ -488,8 +503,9 @@ InitKeyboardDeviceStruct(DeviceIntPtr dev, XkbRMLVOSet * rmlvo,
     XkbEventCauseRec cause;
     XkbRMLVOSet rmlvo_dflts = { NULL };
 
-    if (dev->key || dev->kbdfeed)
-        return FALSE;
+    BUG_RETURN_VAL(dev == NULL, FALSE);
+    BUG_RETURN_VAL(dev->key != NULL, FALSE);
+    BUG_RETURN_VAL(dev->kbdfeed != NULL, FALSE);
 
     if (!rmlvo) {
         rmlvo = &rmlvo_dflts;
@@ -574,7 +590,8 @@ InitKeyboardDeviceStruct(DeviceIntPtr dev, XkbRMLVOSet * rmlvo,
     XkbUpdateActions(dev, xkb->min_key_code, XkbNumKeys(xkb), &changes,
                      &check, &cause);
 
-    InitFocusClassDeviceStruct(dev);
+    if (!dev->focus)
+        InitFocusClassDeviceStruct(dev);
 
     xkbi->kbdProc = ctrl_func;
     dev->kbdfeed->BellProc = bell_func;

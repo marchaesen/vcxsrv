@@ -1063,6 +1063,7 @@ FreeOsBuffers(OsCommPtr oc)
             oci->bufptr = oci->buffer;
             oci->bufcnt = 0;
             oci->lenLastReq = 0;
+            oci->ignoreBytes = 0;
         }
     }
     if ((oco = oc->output)) {

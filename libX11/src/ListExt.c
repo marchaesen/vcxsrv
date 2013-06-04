@@ -28,18 +28,21 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "Xlibint.h"
+#include <limits.h>
 
 char **XListExtensions(
     register Display *dpy,
     int *nextensions)	/* RETURN */
 {
 	xListExtensionsReply rep;
-	char **list;
-	char *ch;
+	char **list = NULL;
+	char *ch = NULL;
+	char *chend;
+	int count = 0;
 	register unsigned i;
 	register int length;
 	register xReq *req;
-	register long rlen;
+	unsigned long rlen;
 
 	LockDisplay(dpy);
 	GetEmptyReq (ListExtensions, req);
@@ -51,16 +54,17 @@ char **XListExtensions(
 	}
 
 	if (rep.nExtensions) {
-	    list = (char **) Xmalloc (
-                (unsigned)(rep.nExtensions * sizeof (char *)));
-	    rlen = rep.length << 2;
-	    ch = (char *) Xmalloc ((unsigned) rlen + 1);
+	    list = Xmalloc (rep.nExtensions * sizeof (char *));
+	    if (rep.length < (LONG_MAX >> 2)) {
+		rlen = rep.length << 2;
+		ch = Xmalloc (rlen + 1);
                 /* +1 to leave room for last null-terminator */
+	    }
 
 	    if ((!list) || (!ch)) {
 		if (list) Xfree((char *) list);
 		if (ch)   Xfree((char *) ch);
-		_XEatData(dpy, (unsigned long) rlen);
+		_XEatDataWords(dpy, rep.length);
 		UnlockDisplay(dpy);
 		SyncHandle();
 		return (char **) NULL;
@@ -70,17 +74,21 @@ char **XListExtensions(
 	    /*
 	     * unpack into null terminated strings.
 	     */
+	    chend = ch + (rlen + 1);
 	    length = *ch;
 	    for (i = 0; i < rep.nExtensions; i++) {
-		list[i] = ch+1;  /* skip over length */
-		ch += length + 1; /* find next length ... */
-		length = *ch;
-		*ch = '\0'; /* and replace with null-termination */
+		if (ch + length < chend) {
+		    list[i] = ch+1;  /* skip over length */
+		    ch += length + 1; /* find next length ... */
+		    length = *ch;
+		    *ch = '\0'; /* and replace with null-termination */
+		    count++;
+		} else
+		    list[i] = NULL;
 	    }
 	}
-	else list = (char **) NULL;
 
-	*nextensions = rep.nExtensions;
+	*nextensions = count;
 	UnlockDisplay(dpy);
 	SyncHandle();
 	return (list);

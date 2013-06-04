@@ -1444,6 +1444,10 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
    case ir_unop_unpack_half_2x16_split_x:
    case ir_unop_unpack_half_2x16_split_y:
    case ir_binop_pack_half_2x16_split:
+   case ir_unop_bitfield_reverse:
+   case ir_unop_bit_count:
+   case ir_unop_find_msb:
+   case ir_unop_find_lsb:
       assert(!"not supported");
       break;
    case ir_binop_min:
@@ -1483,6 +1487,15 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
        * OPCODE_LRP operands are (a, y, x) to match ARB_fragment_program.
        */
       emit(ir, OPCODE_LRP, result_dst, op[2], op[1], op[0]);
+      break;
+
+   case ir_binop_vector_extract:
+   case ir_binop_bfm:
+   case ir_triop_bfi:
+   case ir_triop_bitfield_extract:
+   case ir_triop_vector_insert:
+   case ir_quadop_bitfield_insert:
+      assert(!"not supported");
       break;
 
    case ir_quadop_vector:
@@ -2391,8 +2404,10 @@ print_program(struct prog_instruction *mesa_instructions,
 class add_uniform_to_shader : public program_resource_visitor {
 public:
    add_uniform_to_shader(struct gl_shader_program *shader_program,
-			 struct gl_program_parameter_list *params)
-      : shader_program(shader_program), params(params), idx(-1)
+			 struct gl_program_parameter_list *params,
+                         gl_shader_type shader_type)
+      : shader_program(shader_program), params(params), idx(-1),
+        shader_type(shader_type)
    {
       /* empty */
    }
@@ -2412,6 +2427,7 @@ private:
    struct gl_shader_program *shader_program;
    struct gl_program_parameter_list *params;
    int idx;
+   gl_shader_type shader_type;
 };
 
 void
@@ -2458,8 +2474,11 @@ add_uniform_to_shader::visit_field(const glsl_type *type, const char *name,
 	 struct gl_uniform_storage *storage =
 	    &this->shader_program->UniformStorage[location];
 
+         assert(storage->sampler[shader_type].active);
+
 	 for (unsigned int j = 0; j < size / 4; j++)
-	    params->ParameterValues[index + j][0].f = storage->sampler + j;
+            params->ParameterValues[index + j][0].f =
+               storage->sampler[shader_type].index + j;
       }
    }
 
@@ -2485,7 +2504,8 @@ _mesa_generate_parameters_list_for_uniforms(struct gl_shader_program
 					    struct gl_program_parameter_list
 					    *params)
 {
-   add_uniform_to_shader add(shader_program, params);
+   add_uniform_to_shader add(shader_program, params,
+                             _mesa_shader_type_to_index(sh->Type));
 
    foreach_list(node, sh->ir) {
       ir_variable *var = ((ir_instruction *) node)->as_variable();
@@ -2757,6 +2777,8 @@ ir_to_mesa_visitor::copy_propagate(void)
       /* If this is a copy, add it to the ACP. */
       if (inst->op == OPCODE_MOV &&
 	  inst->dst.file == PROGRAM_TEMPORARY &&
+	  !(inst->dst.file == inst->src[0].file &&
+	    inst->dst.index == inst->src[0].index) &&
 	  !inst->dst.reladdr &&
 	  !inst->saturate &&
 	  !inst->src[0].reladdr &&
@@ -3012,7 +3034,8 @@ _mesa_ir_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 	 progress = do_lower_jumps(ir, true, true, options->EmitNoMainReturn, options->EmitNoCont, options->EmitNoLoops) || progress;
 
 	 progress = do_common_optimization(ir, true, true,
-					   options->MaxUnrollIterations)
+					   options->MaxUnrollIterations,
+                                           options)
 	   || progress;
 
 	 progress = lower_quadop_vector(ir, true) || progress;
@@ -3039,6 +3062,7 @@ _mesa_ir_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 	     || progress;
 
 	 progress = do_vec_index_to_cond_assign(ir) || progress;
+         progress = lower_vector_insert(ir, true) || progress;
       } while (progress);
 
       validate_ir_tree(ir);
@@ -3118,11 +3142,13 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader)
 
    if (!state->error && !shader->ir->is_empty()) {
       validate_ir_tree(shader->ir);
+      struct gl_shader_compiler_options *options =
+         &ctx->ShaderCompilerOptions[_mesa_shader_type_to_index(shader->Type)];
 
       /* Do some optimization at compile time to reduce shader IR size
        * and reduce later work if the same shader is linked multiple times
        */
-      while (do_common_optimization(shader->ir, false, false, 32))
+      while (do_common_optimization(shader->ir, false, false, 32, options))
 	 ;
 
       validate_ir_tree(shader->ir);

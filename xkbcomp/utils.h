@@ -35,7 +35,9 @@
 #include	<X11/Xfuncs.h>
 
 #include <stddef.h>
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 
 #ifndef NUL
 #define	NUL	'\0'
@@ -247,7 +249,7 @@ extern
      extern int uDebugIndentSize;
 #define	uDebugIndent(l)		(uDebugIndentLevel+=(l))
 #define	uDebugOutdent(l)	(uDebugIndentLevel-=(l))
-#ifdef DEBUG_ON
+#ifdef DEBUG
 #define	uDEBUG(f,s)		{ if (DEBUG_VAR&(f)) uDebug(s);}
 #define	uDEBUG1(f,s,a)		{ if (DEBUG_VAR&(f)) uDebug(s,a);}
 #define	uDEBUG2(f,s,a,b)	{ if (DEBUG_VAR&(f)) uDebug(s,a,b);}

@@ -431,7 +431,6 @@ winChangeDepthDlgProc(HWND hwndDialog, UINT message,
 {
     static winPrivScreenPtr s_pScreenPriv = NULL;
     static winScreenInfo *s_pScreenInfo = NULL;
-    static ScreenPtr s_pScreen = NULL;
 
 #if CYGDEBUG
     winDebug("winChangeDepthDlgProc\n");
@@ -447,12 +446,11 @@ winChangeDepthDlgProc(HWND hwndDialog, UINT message,
         /* Store pointers to private structures for future use */
         s_pScreenPriv = (winPrivScreenPtr) lParam;
         s_pScreenInfo = s_pScreenPriv->pScreenInfo;
-        s_pScreen = s_pScreenInfo->pScreen;
 
 #if CYGDEBUG
         winDebug("winChangeDepthDlgProc - WM_INITDIALOG - s_pScreenPriv: %08x, "
-                 "s_pScreenInfo: %08x, s_pScreen: %08x\n",
-                 s_pScreenPriv, s_pScreenInfo, s_pScreen);
+                 "s_pScreenInfo: %08x\n",
+                 s_pScreenPriv, s_pScreenInfo);
 #endif
 
 #if CYGDEBUG
@@ -562,8 +560,6 @@ static wBOOL CALLBACK
 winAboutDlgProc(HWND hwndDialog, UINT message, WPARAM wParam, LPARAM lParam)
 {
     static winPrivScreenPtr s_pScreenPriv = NULL;
-    static winScreenInfo *s_pScreenInfo = NULL;
-    static ScreenPtr s_pScreen = NULL;
 
 #if CYGDEBUG
     winDebug("winAboutDlgProc\n");
@@ -576,10 +572,8 @@ winAboutDlgProc(HWND hwndDialog, UINT message, WPARAM wParam, LPARAM lParam)
         winDebug("winAboutDlgProc - WM_INITDIALOG\n");
 #endif
 
-        /* Store pointers to private structures for future use */
+        /* Store pointer to private structure for future use */
         s_pScreenPriv = (winPrivScreenPtr) lParam;
-        s_pScreenInfo = s_pScreenPriv->pScreenInfo;
-        s_pScreen = s_pScreenInfo->pScreen;
 
         winInitDialog(hwndDialog);
 

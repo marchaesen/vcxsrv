@@ -152,7 +152,7 @@ Bool _XPollfdCacheInit(
 #ifdef USE_POLL
     struct pollfd *pfp;
 
-    pfp = (struct pollfd *)Xmalloc(POLLFD_CACHE_SIZE * sizeof(struct pollfd));
+    pfp = Xmalloc(POLLFD_CACHE_SIZE * sizeof(struct pollfd));
     if (!pfp)
 	return False;
     pfp[0].fd = dpy->fd;
@@ -374,10 +374,10 @@ _XRegisterInternalConnection(
     struct _XConnWatchInfo *watchers;
     XPointer *wd;
 
-    new_conni = (struct _XConnectionInfo*)Xmalloc(sizeof(struct _XConnectionInfo));
+    new_conni = Xmalloc(sizeof(struct _XConnectionInfo));
     if (!new_conni)
 	return 0;
-    new_conni->watch_data = (XPointer *)Xmalloc(dpy->watcher_count * sizeof(XPointer));
+    new_conni->watch_data = Xmalloc(dpy->watcher_count * sizeof(XPointer));
     if (!new_conni->watch_data) {
 	Xfree(new_conni);
 	return 0;
@@ -464,7 +464,7 @@ XInternalConnectionNumbers(
     count = 0;
     for (info_list=dpy->im_fd_info; info_list; info_list=info_list->next)
 	count++;
-    fd_list = (int*) Xmalloc (count * sizeof(int));
+    fd_list = Xmalloc (count * sizeof(int));
     if (!fd_list) {
 	UnlockDisplay(dpy);
 	return 0;
@@ -537,9 +537,8 @@ XAddConnectionWatch(
 
     /* allocate new watch data */
     for (info_list=dpy->im_fd_info; info_list; info_list=info_list->next) {
-	wd_array = (XPointer *)Xrealloc((char *)info_list->watch_data,
-					(dpy->watcher_count + 1) *
-					sizeof(XPointer));
+	wd_array = Xrealloc(info_list->watch_data,
+			    (dpy->watcher_count + 1) * sizeof(XPointer));
 	if (!wd_array) {
 	    UnlockDisplay(dpy);
 	    return 0;
@@ -548,7 +547,7 @@ XAddConnectionWatch(
 	wd_array[dpy->watcher_count] = NULL;	/* for cleanliness */
     }
 
-    new_watcher = (struct _XConnWatchInfo*)Xmalloc(sizeof(struct _XConnWatchInfo));
+    new_watcher = Xmalloc(sizeof(struct _XConnWatchInfo));
     if (!new_watcher) {
 	UnlockDisplay(dpy);
 	return 0;
@@ -756,8 +755,7 @@ void _XEnq(
 		/* If dpy->qfree is non-NULL do this, else malloc a new one. */
 		dpy->qfree = qelt->next;
 	}
-	else if ((qelt =
-	    (_XQEvent *) Xmalloc((unsigned)sizeof(_XQEvent))) == NULL) {
+	else if ((qelt = Xmalloc(sizeof(_XQEvent))) == NULL) {
 		/* Malloc call failed! */
 		ESET(ENOMEM);
 		_XIOError(dpy);
@@ -1518,7 +1516,7 @@ char *_XAllocScratch(
 {
 	if (nbytes > dpy->scratch_length) {
 	    if (dpy->scratch_buffer) Xfree (dpy->scratch_buffer);
-	    if ((dpy->scratch_buffer = Xmalloc((unsigned) nbytes)))
+	    if ((dpy->scratch_buffer = Xmalloc(nbytes)))
 		dpy->scratch_length = nbytes;
 	    else dpy->scratch_length = 0;
 	}

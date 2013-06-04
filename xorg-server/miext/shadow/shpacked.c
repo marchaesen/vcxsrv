@@ -98,7 +98,6 @@ shadowUpdatePacked(ScreenPtr pScreen, shadowBufPtr pBuf)
                     i = width;
                 width -= i;
                 scr += i;
-#define PickBit(a,i)	(((a) >> (i)) & 1)
                 memcpy(win, sha, i * sizeof(FbBits));
                 sha += i;
             }

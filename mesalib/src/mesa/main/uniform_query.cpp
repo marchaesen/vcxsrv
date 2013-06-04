@@ -18,9 +18,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 #include <stdlib.h>
@@ -777,24 +778,24 @@ _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
    if (uni->type->is_sampler()) {
       int i;
 
-      for (i = 0; i < count; i++) {
-	 shProg->SamplerUnits[uni->sampler + offset + i] =
-	    ((unsigned *) values)[i];
-      }
-
       bool flushed = false;
       for (i = 0; i < MESA_SHADER_TYPES; i++) {
 	 struct gl_shader *const sh = shProg->_LinkedShaders[i];
+         int j;
 
-	 /* If the shader stage doesn't use any samplers, don't bother
-	  * checking if any samplers have changed.
+	 /* If the shader stage doesn't use the sampler uniform, skip this.
 	  */
-	 if (sh == NULL || sh->active_samplers == 0)
+	 if (sh == NULL || !uni->sampler[i].active)
 	    continue;
+
+         for (j = 0; j < count; j++) {
+            sh->SamplerUnits[uni->sampler[i].index + offset + j] =
+               ((unsigned *) values)[j];
+         }
 
 	 struct gl_program *const prog = sh->Program;
 
-	 assert(sizeof(prog->SamplerUnits) == sizeof(shProg->SamplerUnits));
+	 assert(sizeof(prog->SamplerUnits) == sizeof(sh->SamplerUnits));
 
 	 /* Determine if any of the samplers used by this shader stage have
 	  * been modified.
@@ -802,7 +803,7 @@ _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
 	 bool changed = false;
 	 for (unsigned j = 0; j < Elements(prog->SamplerUnits); j++) {
 	    if ((sh->active_samplers & (1U << j)) != 0
-		&& (prog->SamplerUnits[j] != shProg->SamplerUnits[j])) {
+		&& (prog->SamplerUnits[j] != sh->SamplerUnits[j])) {
 	       changed = true;
 	       break;
 	    }
@@ -815,8 +816,8 @@ _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
 	    }
 
 	    memcpy(prog->SamplerUnits,
-		   shProg->SamplerUnits,
-		   sizeof(shProg->SamplerUnits));
+		   sh->SamplerUnits,
+		   sizeof(sh->SamplerUnits));
 
 	    _mesa_update_shader_textures_used(shProg, prog);
             if (ctx->Driver.SamplerUniformChange)

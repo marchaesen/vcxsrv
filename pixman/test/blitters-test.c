@@ -46,7 +46,16 @@ create_random_image (pixman_format_code_t *allowed_formats,
     /* do the allocation */
     buf = aligned_malloc (64, stride * height);
 
-    prng_randmemset (buf, stride * height, RANDMEMSET_MORE_00_AND_FF);
+    if (prng_rand_n (4) == 0)
+    {
+	/* uniform distribution */
+	prng_randmemset (buf, stride * height, 0);
+    }
+    else
+    {
+	/* significantly increased probability for 0x00 and 0xFF */
+	prng_randmemset (buf, stride * height, RANDMEMSET_MORE_00_AND_FF);
+    }
 
     img = pixman_image_create_bits (fmt, width, height, buf, stride);
 
@@ -393,6 +402,6 @@ main (int argc, const char *argv[])
     }
 
     return fuzzer_test_main("blitters", 2000000,
-			    0xD8265D5E,
+			    0x0CF3283B,
 			    test_composite, argc, argv);
 }

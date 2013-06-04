@@ -93,8 +93,9 @@ static void remove_finished_readers(reader_list **prev_reader, uint64_t complete
 static int read_packet(xcb_connection_t *c)
 {
     xcb_generic_reply_t genrep;
-    int length = 32;
-    int eventlength = 0; /* length after first 32 bytes for GenericEvents */
+    uint64_t length = 32;
+    uint64_t eventlength = 0; /* length after first 32 bytes for GenericEvents */
+    uint64_t bufsize;
     void *buf;
     pending_reply *pend = 0;
     struct event_list *event;
@@ -169,8 +170,12 @@ static int read_packet(xcb_connection_t *c)
     if ((genrep.response_type & 0x7f) == XCB_XGE_EVENT)
         eventlength = genrep.length * 4;
 
-    buf = malloc(length + eventlength +
-            (genrep.response_type == XCB_REPLY ? 0 : sizeof(uint32_t)));
+    bufsize = length + eventlength +
+        (genrep.response_type == XCB_REPLY ? 0 : sizeof(uint32_t));
+    if (bufsize < INT32_MAX)
+        buf = malloc((size_t) bufsize);
+    else
+        buf = NULL;
     if(!buf)
     {
         _xcb_conn_shutdown(c, XCB_CONN_CLOSED_MEM_INSUFFICIENT);

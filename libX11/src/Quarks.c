@@ -186,15 +186,14 @@ ExpandQuarkTable(void)
 	newmask = (oldmask << 1) + 1;
     else {
 	if (!stringTable) {
-	    stringTable = (XrmString **)Xmalloc(sizeof(XrmString *) *
-						CHUNKPER);
+	    stringTable = Xmalloc(sizeof(XrmString *) * CHUNKPER);
 	    if (!stringTable)
 		return False;
 	    stringTable[0] = (XrmString *)NULL;
 	}
 #ifdef PERMQ
 	if (!permTable)
-	    permTable = (Bits **)Xmalloc(sizeof(Bits *) * CHUNKPER);
+	    permTable = Xmalloc(sizeof(Bits *) * CHUNKPER);
 	if (!permTable)
 	    return False;
 #endif
@@ -289,13 +288,13 @@ nomatch:    if (!rehash)
     q = nextQuark;
     if (!(q & QUANTUMMASK)) {
 	if (!(q & CHUNKMASK)) {
-	    if (!(new = Xrealloc((char *)stringTable,
+	    if (!(new = Xrealloc(stringTable,
 				 sizeof(XrmString *) *
 				 ((q >> QUANTUMSHIFT) + CHUNKPER))))
 		goto fail;
 	    stringTable = (XrmString **)new;
 #ifdef PERMQ
-	    if (!(new = Xrealloc((char *)permTable,
+	    if (!(new = Xrealloc(permTable,
 				 sizeof(Bits *) *
 				 ((q >> QUANTUMSHIFT) + CHUNKPER))))
 		goto fail;

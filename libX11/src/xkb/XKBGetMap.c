@@ -151,9 +151,12 @@ XkbClientMapPtr	map;
     map= xkb->map;
     if (map->key_sym_map==NULL) {
 	register int offset;
+	int size = xkb->max_key_code + 1;
 	XkbSymMapPtr	oldMap;
 	xkbSymMapWireDesc *newMap;
-	map->key_sym_map= _XkbTypedCalloc((xkb->max_key_code+1),XkbSymMapRec);
+	if (((unsigned short)rep->firstKeySym + rep->nKeySyms) > size)
+	    return BadLength;
+	map->key_sym_map= _XkbTypedCalloc(size,XkbSymMapRec);
 	if (map->key_sym_map==NULL)
 	    return BadAlloc;
 	if (map->syms==NULL) {
@@ -209,6 +212,8 @@ XkbClientMapPtr	map;
 	KeySym *		newSyms;
 	int			tmp;
 
+	if (((unsigned short)rep->firstKeySym + rep->nKeySyms) > map->num_syms)
+	    return BadLength;
 	oldMap = &map->key_sym_map[rep->firstKeySym];
 	for (i=0;i<(int)rep->nKeySyms;i++,oldMap++) {
 	    newMap= (xkbSymMapWireDesc *)
@@ -264,6 +269,10 @@ Status		ret = Success;
 	symMap = &info->map->key_sym_map[rep->firstKeyAct];
 	for (i=0;i<(int)rep->nKeyActs;i++,symMap++) {
 	    if (numDesc[i]==0) {
+		if ((i + rep->firstKeyAct) > (info->max_key_code + 1)) {
+		    ret = BadLength;
+		    goto done;
+		}
 		info->server->key_acts[i+rep->firstKeyAct]= 0;
 	    }
 	    else {
@@ -296,8 +305,10 @@ register int i;
 xkbBehaviorWireDesc	*wire;
 
     if ( rep->totalKeyBehaviors>0 ) {
+	int size = xkb->max_key_code + 1;
+	if ( ((int) rep->firstKeyBehavior + rep->nKeyBehaviors) > size)
+	    return BadLength;
 	if ( xkb->server->behaviors == NULL ) {
-	    int size = xkb->max_key_code+1;
 	    xkb->server->behaviors = _XkbTypedCalloc(size,XkbBehavior);
 	    if (xkb->server->behaviors==NULL)
 		return BadAlloc;
@@ -309,7 +320,7 @@ xkbBehaviorWireDesc	*wire;
 	for (i=0;i<rep->totalKeyBehaviors;i++) {
 	    wire= (xkbBehaviorWireDesc *)_XkbGetReadBufferPtr(buf,
 						SIZEOF(xkbBehaviorWireDesc));
-	    if (wire==NULL)
+	    if (wire==NULL || wire->key >= size)
 		return BadLength;
 	    xkb->server->behaviors[wire->key].type= wire->type;
 	    xkb->server->behaviors[wire->key].data= wire->data;
@@ -351,8 +362,10 @@ register int i;
 unsigned char *wire;
 
     if ( rep->totalKeyExplicit>0 ) {
+	int size = xkb->max_key_code + 1;
+	if ( ((int) rep->firstKeyExplicit + rep->nKeyExplicit) > size)
+	    return BadLength;
 	if ( xkb->server->explicit == NULL ) {
-	    int size = xkb->max_key_code+1;
 	    xkb->server->explicit = _XkbTypedCalloc(size,unsigned char);
 	    if (xkb->server->explicit==NULL)
 		return BadAlloc;
@@ -366,6 +379,8 @@ unsigned char *wire;
 	if (!wire)
 	    return BadLength;
 	for (i=0;i<rep->totalKeyExplicit;i++,wire+=2) {
+	    if (wire[0] > xkb->max_key_code || wire[1] > xkb->max_key_code)
+		return BadLength;
 	    xkb->server->explicit[wire[0]]= wire[1];
 	}
     }
@@ -379,6 +394,9 @@ register int i;
 unsigned char *wire;
 
     if ( rep->totalModMapKeys>0 ) {
+	if ( ((int)rep->firstModMapKey + rep->nModMapKeys) >
+	     (xkb->max_key_code + 1))
+	    return BadLength;
 	if ((xkb->map->modmap==NULL)&&
 	    (XkbAllocClientMap(xkb,XkbModifierMapMask,0)!=Success)) {
 	    return BadAlloc;
@@ -391,6 +409,8 @@ unsigned char *wire;
 	if (!wire)
 	    return BadLength;
 	for (i=0;i<rep->totalModMapKeys;i++,wire+=2) {
+	    if (wire[0] > xkb->max_key_code || wire[1] > xkb->max_key_code)
+		return BadLength;
 	    xkb->map->modmap[wire[0]]= wire[1];
 	}
     }
@@ -405,6 +425,9 @@ xkbVModMapWireDesc *	wire;
 XkbServerMapPtr		srv;
 
     if ( rep->totalVModMapKeys>0 ) {
+	if (((int) rep->firstVModMapKey + rep->nVModMapKeys)
+	     > xkb->max_key_code + 1)
+	    return BadLength;
 	if (((xkb->server==NULL)||(xkb->server->vmodmap==NULL))&&
 	    (XkbAllocServerMap(xkb,XkbVirtualModMapMask,0)!=Success)) {
 	    return BadAlloc;
@@ -461,6 +484,8 @@ unsigned	mask;
 
     if ( xkb->device_spec == XkbUseCoreKbd )
 	xkb->device_spec= rep->deviceID;
+    if ( rep->maxKeyCode < rep->minKeyCode )
+	return BadImplementation;
     xkb->min_key_code = rep->minKeyCode;
     xkb->max_key_code = rep->maxKeyCode;
 

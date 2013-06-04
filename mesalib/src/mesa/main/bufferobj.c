@@ -18,9 +18,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 
@@ -39,7 +40,6 @@
 #include "context.h"
 #include "bufferobj.h"
 #include "fbobject.h"
-#include "mfeatures.h"
 #include "mtypes.h"
 #include "texobj.h"
 #include "transformfeedback.h"
@@ -619,13 +619,10 @@ _mesa_init_buffer_objects( struct gl_context *ctx )
    _mesa_reference_buffer_object(ctx, &ctx->CopyWriteBuffer,
                                  ctx->Shared->NullBufferObj);
 
-   ctx->UniformBufferBindings = calloc(ctx->Const.MaxUniformBufferBindings,
-				      sizeof(*ctx->UniformBufferBindings));
-
    _mesa_reference_buffer_object(ctx, &ctx->UniformBuffer,
 				 ctx->Shared->NullBufferObj);
 
-   for (i = 0; i < ctx->Const.MaxUniformBufferBindings; i++) {
+   for (i = 0; i < MAX_COMBINED_UNIFORM_BUFFERS; i++) {
       _mesa_reference_buffer_object(ctx,
 				    &ctx->UniformBufferBindings[i].BufferObject,
 				    ctx->Shared->NullBufferObj);
@@ -647,14 +644,11 @@ _mesa_free_buffer_objects( struct gl_context *ctx )
 
    _mesa_reference_buffer_object(ctx, &ctx->UniformBuffer, NULL);
 
-   for (i = 0; i < ctx->Const.MaxUniformBufferBindings; i++) {
+   for (i = 0; i < MAX_COMBINED_UNIFORM_BUFFERS; i++) {
       _mesa_reference_buffer_object(ctx,
 				    &ctx->UniformBufferBindings[i].BufferObject,
 				    NULL);
    }
-
-   free(ctx->UniformBufferBindings);
-   ctx->UniformBufferBindings = NULL;
 }
 
 static bool
@@ -2060,7 +2054,8 @@ set_ubo_binding(struct gl_context *ctx,
       return;
    }
 
-   FLUSH_VERTICES(ctx, _NEW_BUFFER_OBJECT);
+   FLUSH_VERTICES(ctx, 0);
+   ctx->NewDriverState |= ctx->DriverFlags.NewUniformBuffer;
 
    _mesa_reference_buffer_object(ctx, &binding->BufferObject, bufObj);
    binding->Offset = offset;

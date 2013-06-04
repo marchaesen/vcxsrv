@@ -49,7 +49,7 @@ int *XListDepths (
 	register Depth *dp;
 	register int i;
 
-	depths = (int *) Xmalloc (count * sizeof(int));
+	depths = Xmalloc (count * sizeof(int));
 	if (!depths) return NULL;
 	for (i = 0, dp = scr->depths; i < count; i++, dp++)
 	  depths[i] = dp->depth;

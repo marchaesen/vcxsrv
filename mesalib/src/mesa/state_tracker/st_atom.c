@@ -55,10 +55,10 @@ static const struct st_tracked_state *atoms[] =
    &st_update_viewport,
    &st_update_scissor,
    &st_update_blend,
-   &st_update_sampler,
    &st_update_vertex_texture,
    &st_update_fragment_texture,
    &st_update_geometry_texture,
+   &st_update_sampler, /* depends on update_*_texture for swizzle */
    &st_update_framebuffer,
    &st_update_msaa,
    &st_update_vs_constants,
@@ -160,11 +160,7 @@ void st_validate_state( struct st_context *st )
 
    check_attrib_edgeflag(st);
 
-   /* The bitmap cache is immune to pixel unpack changes.
-    * Note that GLUT makes several calls to glPixelStore for each
-    * bitmap char it draws so this is an important check.
-    */
-   if (state->mesa & ~_NEW_PACKUNPACK)
+   if (state->mesa)
       st_flush_bitmap_cache(st);
 
    check_program_state( st );

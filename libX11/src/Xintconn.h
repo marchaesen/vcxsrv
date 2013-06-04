@@ -3,6 +3,7 @@
 #define _XINTCONN_H_ 1
 
 #include <X11/Xfuncproto.h>
+#include <X11/Xlib.h>
 
 _XFUNCPROTOBEGIN
 

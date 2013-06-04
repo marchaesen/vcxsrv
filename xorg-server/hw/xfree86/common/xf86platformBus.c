@@ -47,6 +47,7 @@
 #include "Pci.h"
 #include "xf86platformBus.h"
 
+#include "randrstr.h"
 int platformSlotClaimed;
 
 int xf86_num_platform_devices;
@@ -113,6 +114,11 @@ xf86_get_platform_device_attrib(struct xf86_platform_device *device, int attrib_
     return NULL;
 }
 
+Bool
+xf86_get_platform_device_unowned(int index)
+{
+    return xf86_platform_devices[index].attribs->unowned;
+}
 
 /*
  * xf86IsPrimaryPlatform() -- return TRUE if primary device
@@ -449,6 +455,14 @@ xf86platformAddDevice(int index)
 
    CreateScratchPixmapsForScreen(xf86GPUScreens[i]->pScreen);
 
+   if (xf86GPUScreens[i]->pScreen->CreateScreenResources &&
+       !(*xf86GPUScreens[i]->pScreen->CreateScreenResources) (xf86GPUScreens[i]->pScreen)) {
+       RemoveGPUScreen(xf86GPUScreens[i]->pScreen);
+       xf86DeleteScreen(xf86GPUScreens[i]);
+       xf86UnclaimPlatformSlot(&xf86_platform_devices[index], NULL);
+       xf86NumGPUScreens = old_screens;
+       return -1;
+   }
    /* attach unbound to 0 protocol screen */
    AttachUnboundGPU(xf86Screens[0]->pScreen, xf86GPUScreens[i]->pScreen);
 
@@ -494,8 +508,22 @@ xf86platformRemoveDevice(int index)
     xf86UnclaimPlatformSlot(&xf86_platform_devices[index], NULL);
 
     xf86_remove_platform_device(index);
-
+    RRTellChanged(xf86Screens[0]->pScreen);
  out:
     return;
+}
+
+/* called on return from VT switch to find any new devices */
+void xf86platformVTProbe(void)
+{
+    int i;
+
+    for (i = 0; i < xf86_num_platform_devices; i++) {
+        if (xf86_platform_devices[i].attribs->unowned == FALSE)
+            continue;
+
+        xf86_platform_devices[i].attribs->unowned = FALSE;
+        xf86PlatformReprobeDevice(i, xf86_platform_devices[i].attribs);
+    }
 }
 #endif

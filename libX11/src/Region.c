@@ -139,9 +139,9 @@ XCreateRegion(void)
 {
     Region temp;
 
-    if (! (temp = ( Region )Xmalloc( (unsigned) sizeof( REGION ))))
+    if (! (temp = Xmalloc(sizeof( REGION ))))
 	return (Region) NULL;
-    if (! (temp->rects = ( BOX * )Xmalloc( (unsigned) sizeof( BOX )))) {
+    if (! (temp->rects = Xmalloc(sizeof( BOX )))) {
 	Xfree((char *) temp);
 	return (Region) NULL;
     }
@@ -521,9 +521,9 @@ miRegionCopy(
             {
 		BOX *prevRects = dstrgn->rects;
 
-                if (! (dstrgn->rects = (BOX *)
-		       Xrealloc((char *) dstrgn->rects,
-				(unsigned) rgn->numRects * (sizeof(BOX))))) {
+		dstrgn->rects = Xrealloc(dstrgn->rects,
+					 rgn->numRects * (sizeof(BOX)));
+		if (! dstrgn->rects) {
 		    Xfree(prevRects);
 		    return;
 		}
@@ -788,8 +788,7 @@ miRegionOp(
      */
     newReg->size = max(reg1->numRects,reg2->numRects) * 2;
 
-    if (! (newReg->rects = (BoxPtr)
-	   Xmalloc ((unsigned) (sizeof(BoxRec) * newReg->size)))) {
+    if (! (newReg->rects = Xmalloc (sizeof(BoxRec) * newReg->size))) {
 	newReg->size = 0;
 	return;
     }
@@ -980,8 +979,8 @@ miRegionOp(
 	{
 	    BoxPtr prev_rects = newReg->rects;
 	    newReg->size = newReg->numRects;
-	    newReg->rects = (BoxPtr) Xrealloc ((char *) newReg->rects,
-				   (unsigned) (sizeof(BoxRec) * newReg->size));
+	    newReg->rects = Xrealloc (newReg->rects,
+				      sizeof(BoxRec) * newReg->size);
 	    if (! newReg->rects)
 		newReg->rects = prev_rects;
 	}
@@ -993,7 +992,7 @@ miRegionOp(
 	     */
 	    newReg->size = 1;
 	    Xfree((char *) newReg->rects);
-	    newReg->rects = (BoxPtr) Xmalloc(sizeof(BoxRec));
+	    newReg->rects = Xmalloc(sizeof(BoxRec));
 	}
     }
     Xfree ((char *) oldRects);

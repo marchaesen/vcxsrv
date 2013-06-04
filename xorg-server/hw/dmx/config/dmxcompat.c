@@ -228,5 +228,9 @@ dmxVDLRead(const char *filename)
             break;
         }
     }
+
+    if (str != stdin)
+        fclose(str);
+
     return entry;
 }

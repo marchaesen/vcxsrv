@@ -239,7 +239,8 @@ update_single_texture(struct st_context *st,
          st_mesa_format_to_pipe_format(stObj->base._BufferObjectFormat);
    }
    else {
-      view_format = stObj->pt->format;
+      view_format =
+         stObj->surface_based ? stObj->surface_format : stObj->pt->format;
 
       /* If sRGB decoding is off, use the linear format */
       if (samp->sRGBDecode == GL_SKIP_DECODE_EXT) {
@@ -325,11 +326,11 @@ update_vertex_textures(struct st_context *st)
 {
    const struct gl_context *ctx = st->ctx;
 
-   if (ctx->Const.MaxVertexTextureImageUnits > 0) {
+   if (ctx->Const.VertexProgram.MaxTextureImageUnits > 0) {
       update_textures(st,
                       PIPE_SHADER_VERTEX,
                       &ctx->VertexProgram._Current->Base,
-                      ctx->Const.MaxVertexTextureImageUnits,
+                      ctx->Const.VertexProgram.MaxTextureImageUnits,
                       st->state.sampler_views[PIPE_SHADER_VERTEX],
                       &st->state.num_sampler_views[PIPE_SHADER_VERTEX]);
    }
@@ -344,7 +345,7 @@ update_fragment_textures(struct st_context *st)
    update_textures(st,
                    PIPE_SHADER_FRAGMENT,
                    &ctx->FragmentProgram._Current->Base,
-                   ctx->Const.MaxTextureImageUnits,
+                   ctx->Const.FragmentProgram.MaxTextureImageUnits,
                    st->state.sampler_views[PIPE_SHADER_FRAGMENT],
                    &st->state.num_sampler_views[PIPE_SHADER_FRAGMENT]);
 }
@@ -359,7 +360,7 @@ update_geometry_textures(struct st_context *st)
       update_textures(st,
                       PIPE_SHADER_GEOMETRY,
                       &ctx->GeometryProgram._Current->Base,
-                      ctx->Const.MaxTextureImageUnits,
+                      ctx->Const.FragmentProgram.MaxTextureImageUnits,
                       st->state.sampler_views[PIPE_SHADER_GEOMETRY],
                       &st->state.num_sampler_views[PIPE_SHADER_GEOMETRY]);
    }

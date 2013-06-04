@@ -849,7 +849,7 @@ DeleteCallbackList(CallbackListPtr *pcbl)
 }
 
 void
-InitCallbackManager(void)
+DeleteCallbackManager(void)
 {
     int i;
 
@@ -860,4 +860,10 @@ InitCallbackManager(void)
 
     numCallbackListsToCleanup = 0;
     listsToCleanup = NULL;
+}
+
+void
+InitCallbackManager(void)
+{
+    DeleteCallbackManager();
 }

@@ -31,7 +31,6 @@ if env['platform'] == 'windows':
         env.Append(CPPDEFINES = ['_GLAPI_NO_EXPORTS'])
 else:
     env.Append(CPPDEFINES = [
-        'IN_DRI_DRIVER', # enable the remap table (for DRI drivers)
         ('HAVE_DLOPEN', '1'),
     ])
 
@@ -263,6 +262,7 @@ statetracker_sources = [
     'state_tracker/st_cb_eglimage.c',
     'state_tracker/st_cb_fbo.c',
     'state_tracker/st_cb_feedback.c',
+    'state_tracker/st_cb_msaa.c',
     'state_tracker/st_cb_program.c',
     'state_tracker/st_cb_queryobj.c',
     'state_tracker/st_cb_rasterpos.c',
@@ -340,22 +340,18 @@ if env['gles']:
 
     enabled_apis += ['ES1', 'ES2']
 
-env.Append(CPPDEFINES = ["FEATURE_%s=1" % api for api in enabled_apis])
-
-get_hash_gen_opts = ' '.join(["-a %s" % api for api in enabled_apis])
-
 get_hash_header = env.CodeGenerate(
       target = 'main/get_hash.h',
       script = 'main/get_hash_generator.py',
       source = GLAPI + 'gen/gl_and_es_API.xml',
-      command = python_cmd + ' $SCRIPT ' + get_hash_gen_opts +
-                ' -f $SOURCE > $TARGET'
+      command = python_cmd + ' $SCRIPT ' + ' -f $SOURCE > $TARGET'
 )
 
 #
 # Assembly sources
 #
-if env['gcc'] and env['platform'] not in ('cygwin', 'darwin', 'windows', 'haiku'):
+if (env['gcc'] or env['clang']) and \
+   env['platform'] not in ('cygwin', 'darwin', 'windows', 'haiku'):
     if env['machine'] == 'x86':
         env.Append(CPPDEFINES = [
             'USE_X86_ASM',

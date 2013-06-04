@@ -45,8 +45,6 @@ extern _X_EXPORT void
 
 extern _X_EXPORT Bool xf86SetDDCproperties(ScrnInfoPtr pScreen, xf86MonPtr DDC);
 
-extern _X_EXPORT DisplayModePtr xf86DDCGetModes(int scrnIndex, xf86MonPtr DDC);
-
 extern _X_EXPORT Bool
  xf86MonitorIsHDMI(xf86MonPtr mon);
 

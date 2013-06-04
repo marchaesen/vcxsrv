@@ -547,8 +547,7 @@ InitRootWindow(WindowPtr pWin)
     (*pScreen->PositionWindow) (pWin, 0, 0);
 
     pWin->cursorIsNone = FALSE;
-    pWin->optional->cursor = rootCursor;
-    rootCursor->refcnt++;
+    pWin->optional->cursor = RefCursor(rootCursor);
 
     if (party_like_its_1989) {
         MakeRootTile(pWin);
@@ -1416,8 +1415,7 @@ ChangeWindowAttributes(WindowPtr pWin, Mask vmask, XID *vlist, ClientPtr client)
                     else if (pWin->parent && pCursor == wCursor(pWin->parent))
                         checkOptional = TRUE;
                     pOldCursor = pWin->optional->cursor;
-                    pWin->optional->cursor = pCursor;
-                    pCursor->refcnt++;
+                    pWin->optional->cursor = RefCursor(pCursor);
                     pWin->cursorIsNone = FALSE;
                     /*
                      * check on any children now matching the new cursor
@@ -3323,8 +3321,7 @@ MakeWindowOptional(WindowPtr pWin)
     parentOptional = FindWindowWithOptional(pWin)->optional;
     optional->visual = parentOptional->visual;
     if (!pWin->cursorIsNone) {
-        optional->cursor = parentOptional->cursor;
-        optional->cursor->refcnt++;
+        optional->cursor = RefCursor(parentOptional->cursor);
     }
     else {
         optional->cursor = None;
@@ -3412,8 +3409,7 @@ ChangeWindowDeviceCursor(WindowPtr pWin, DeviceIntPtr pDev, CursorPtr pCursor)
     if (pCursor && WindowParentHasDeviceCursor(pWin, pDev, pCursor))
         pNode->cursor = None;
     else {
-        pNode->cursor = pCursor;
-        pCursor->refcnt++;
+        pNode->cursor = RefCursor(pCursor);
     }
 
     pNode = pPrev = NULL;
@@ -3421,8 +3417,7 @@ ChangeWindowDeviceCursor(WindowPtr pWin, DeviceIntPtr pDev, CursorPtr pCursor)
     for (pChild = pWin->firstChild; pChild; pChild = pChild->nextSib) {
         if (WindowSeekDeviceCursor(pChild, pDev, &pNode, &pPrev)) {
             if (pNode->cursor == None) {        /* inherited from parent */
-                pNode->cursor = pOldCursor;
-                pOldCursor->refcnt++;
+                pNode->cursor = RefCursor(pOldCursor);
             }
             else if (pNode->cursor == pCursor) {
                 pNode->cursor = None;

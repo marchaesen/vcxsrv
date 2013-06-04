@@ -75,8 +75,7 @@ XVisualInfo *XGetVisualInfo(
 
   count = 0;
   total = 10;
-  if (! (vip_base = vip = (XVisualInfo *)
-	 Xmalloc((unsigned) (sizeof(XVisualInfo) * total)))) {
+  if (! (vip_base = vip = Xmalloc(sizeof(XVisualInfo) * total))) {
       UnlockDisplay(dpy);
       return (XVisualInfo *) NULL;
   }
@@ -132,9 +131,8 @@ XVisualInfo *XGetVisualInfo(
                 {
 		  XVisualInfo *old_vip_base = vip_base;
                   total += 10;
-                  if (! (vip_base = (XVisualInfo *)
-			 Xrealloc((char *) vip_base,
-				  (unsigned) (sizeof(XVisualInfo) * total)))) {
+                  if (! (vip_base = Xrealloc(vip_base,
+					     sizeof(XVisualInfo) * total))) {
 		      Xfree((char *) old_vip_base);
 		      UnlockDisplay(dpy);
 		      return (XVisualInfo *) NULL;

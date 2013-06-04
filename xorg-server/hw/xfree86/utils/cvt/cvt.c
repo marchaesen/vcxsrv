@@ -24,6 +24,7 @@
 /* Standalone VESA CVT standard timing modelines generator. */
 
 #include "xf86.h"
+#include "xf86Modes.h"
 
 /* FatalError implementation used by the server code we built in */
 void

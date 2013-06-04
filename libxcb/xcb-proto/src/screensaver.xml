@@ -75,14 +75,14 @@ Draft Standard Version 1.1
       <field type="CARD32" name="ms_until_server"/>
       <field type="CARD32" name="ms_since_user_input"/>
       <field type="CARD32" name="event_mask" />
-      <field type="BYTE" name="kind"/>  <!-- enum Kind -->
+      <field type="BYTE" name="kind" enum="Kind"/>
       <pad bytes="7"/>
     </reply>
   </request>
 
   <request name="SelectInput" opcode="2">
     <field type="DRAWABLE" name="drawable"/>
-    <field type="CARD32" name="event_mask" />   <!-- enum Event -->
+    <field type="CARD32" name="event_mask" mask="Event"/>
   </request>
 
   <request name="SetAttributes" opcode="3">
@@ -92,7 +92,7 @@ Draft Standard Version 1.1
     <field type="CARD16" name="width"/>
     <field type="CARD16" name="height"/>
     <field type="CARD16" name="border_width"/>
-    <field type="BYTE" name="class"/>   <!-- enum XCBWindowClass -->
+    <field type="BYTE" name="class" enum="WindowClass"/>
     <field type="CARD8" name="depth"/>
     <field type="VISUALID" name="visual"/>
     <valueparam value-mask-type="CARD32"
@@ -113,14 +113,11 @@ Draft Standard Version 1.1
   <!-- Events -->
 
   <event name="Notify" number="0">
-    <field type="CARD8" name="code"/>
-    <field type="BYTE" name="state"/>    <!-- enum State -->
-    <pad bytes="1" />
-    <field type="CARD16" name="sequence_number"/>
+    <field type="BYTE" name="state" enum="State"/>
     <field type="TIMESTAMP" name="time"/>
     <field type="WINDOW" name="root"/>
     <field type="WINDOW" name="window"/>
-    <field type="BYTE" name="kind"/>     <!-- enum Kind -->
+    <field type="BYTE" name="kind" enum="Kind"/>
     <field type="BOOL" name="forced"/>
     <pad bytes="14"/>
   </event>

@@ -186,7 +186,6 @@ winMWExtWMUpdateWindowDecoration(win32RootlessWindowPtr pRLWinPriv,
 {
     Bool fDecorate = FALSE;
     DWORD dwExStyle = 0;
-    DWORD dwStyle = 0;
     WINDOWPLACEMENT wndPlace;
     UINT showCmd = 0;
 
@@ -217,9 +216,8 @@ winMWExtWMUpdateWindowDecoration(win32RootlessWindowPtr pRLWinPriv,
     winDebug("winMWExtWMUpdateWindowDecoration %08x %s\n",
              (int) pRLWinPriv, fDecorate ? "Decorate" : "Bare");
 
-    /* Get the standard and extended window style information */
+    /* Get the extended window style information */
     dwExStyle = GetWindowLongPtr(pRLWinPriv->hWnd, GWL_EXSTYLE);
-    dwStyle = GetWindowLongPtr(pRLWinPriv->hWnd, GWL_STYLE);
 
     if (fDecorate) {
         RECT rcNew;

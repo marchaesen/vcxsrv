@@ -465,6 +465,7 @@ Dispatch(void)
     free(clientReady);
     dispatchException &= ~DE_RESET;
     SmartScheduleLatencyLimited = 0;
+    ResetOsBuffers();
 }
 
 static int VendorRelease = VENDOR_RELEASE;
@@ -3398,6 +3399,7 @@ CloseDownClient(ClientPtr client)
             clientinfo.setup = (xConnSetup *) NULL;
             CallCallbacks((&ClientStateCallback), (pointer) &clientinfo);
         }
+        TouchListenerGone(client->clientAsMask);
         FreeClientResources(client);
         /* Disable client ID tracking. This must be done after
          * ClientStateCallback. */
@@ -3942,7 +3944,6 @@ void
 AttachOutputGPU(ScreenPtr pScreen, ScreenPtr new)
 {
     assert(new->isGPU);
-    assert(!new->current_master);
     xorg_list_add(&new->output_head, &pScreen->output_slave_list);
     new->current_master = pScreen;
 }
@@ -3959,7 +3960,6 @@ void
 AttachOffloadGPU(ScreenPtr pScreen, ScreenPtr new)
 {
     assert(new->isGPU);
-    assert(!new->current_master);
     xorg_list_add(&new->offload_head, &pScreen->offload_slave_list);
     new->current_master = pScreen;
 }

@@ -832,6 +832,15 @@ typedef struct _XExten {		/* private to extension mechanism */
 	struct _XExten *next_flush;	/* next in list of those with flushes */
 } _XExtension;
 
+/* Temporary definition until we can depend on an xproto release with it */
+#ifdef _X_COLD
+# define _XLIB_COLD _X_COLD
+#elif defined(__GNUC__) && ((__GNUC__ * 100 + __GNUC_MINOR__) >= 403) /* 4.3+ */
+# define _XLIB_COLD __attribute__((__cold__))
+#else
+# define _XLIB_COLD /* nothing */
+#endif
+
 /* extension hooks */
 
 #ifdef DataRoutineIsProcedure
@@ -854,7 +863,14 @@ extern int (*_XErrorFunction)(
 extern void _XEatData(
     Display*		/* dpy */,
     unsigned long	/* n */
-);
+) _XLIB_COLD;
+extern void _XEatDataWords(
+    Display*		/* dpy */,
+    unsigned long	/* n */
+) _XLIB_COLD;
+#if defined(__SUNPRO_C) /* Studio compiler alternative to "cold" attribute */
+# pragma rarely_called(_XEatData, _XEatDataWords)
+#endif
 extern char *_XAllocScratch(
     Display*		/* dpy */,
     unsigned long	/* nbytes */

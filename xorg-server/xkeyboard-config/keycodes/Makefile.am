@@ -12,6 +12,7 @@ fujitsu \
 hp \
 ibm \
 macintosh \
+olpc \
 sony \
 sun \
 xfree86 \

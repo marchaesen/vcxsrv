@@ -1104,7 +1104,10 @@ FcFreeTypeQueryFace (const FT_Face  face,
     char	    psname[256];
     const char	    *tmp;
 
-    FcChar8	    *hashstr;
+    FcChar8	    *hashstr = NULL;
+    char	    *fontdata = NULL;
+    FT_Error	    err;
+    FT_ULong	    len = 0, alen;
 
     pat = FcPatternCreate ();
     if (!pat)
@@ -1662,12 +1665,36 @@ FcFreeTypeQueryFace (const FT_Face  face,
     if (!FcPatternAddBool (pat, FC_DECORATIVE, decorative))
 	goto bail1;
 
-    hashstr = FcHashGetSHA256DigestFromFile (file);
-    if (!hashstr)
-	goto bail1;
-    if (!FcPatternAddString (pat, FC_HASH, hashstr))
-	goto bail1;
-    free (hashstr);
+    err = FT_Load_Sfnt_Table (face, 0, 0, NULL, &len);
+    if (err == FT_Err_Ok)
+    {
+	alen = (len + 63) & ~63;
+	fontdata = malloc (alen);
+	if (!fontdata)
+	    goto bail3;
+	err = FT_Load_Sfnt_Table (face, 0, 0, (FT_Byte *)fontdata, &len);
+	if (err != FT_Err_Ok)
+	    goto bail3;
+	memset (&fontdata[len], 0, alen - len);
+	hashstr = FcHashGetSHA256DigestFromMemory (fontdata, len);
+    }
+    else if (err == FT_Err_Invalid_Face_Handle)
+    {
+	/* font may not support SFNT. falling back to
+	 * read the font data from file directly
+	 */
+	hashstr = FcHashGetSHA256DigestFromFile (file);
+    }
+    else
+    {
+	goto bail3;
+    }
+    if (hashstr)
+    {
+	if (!FcPatternAddString (pat, FC_HASH, hashstr))
+	    goto bail1;
+    }
+bail3:
 
     /*
      * Compute the unicode coverage for the font
@@ -1756,6 +1783,10 @@ FcFreeTypeQueryFace (const FT_Face  face,
 bail2:
     FcCharSetDestroy (cs);
 bail1:
+    if (hashstr)
+	free (hashstr);
+    if (fontdata)
+	free (fontdata);
     FcPatternDestroy (pat);
 bail0:
     return NULL;

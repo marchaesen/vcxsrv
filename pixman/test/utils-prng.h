@@ -153,7 +153,10 @@ typedef enum
 {
     RANDMEMSET_MORE_00        = 1, /* ~25% chance for 0x00 bytes */
     RANDMEMSET_MORE_FF        = 2, /* ~25% chance for 0xFF bytes */
-    RANDMEMSET_MORE_00_AND_FF = (RANDMEMSET_MORE_00 | RANDMEMSET_MORE_FF)
+    RANDMEMSET_MORE_00000000  = 4, /* ~25% chance for 0x00000000 clusters */
+    RANDMEMSET_MORE_FFFFFFFF  = 8, /* ~25% chance for 0xFFFFFFFF clusters */
+    RANDMEMSET_MORE_00_AND_FF = (RANDMEMSET_MORE_00 | RANDMEMSET_MORE_00000000 |
+                                 RANDMEMSET_MORE_FF | RANDMEMSET_MORE_FFFFFFFF)
 } prng_randmemset_flags_t;
 
 /* Set the 32-bit seed for PRNG */

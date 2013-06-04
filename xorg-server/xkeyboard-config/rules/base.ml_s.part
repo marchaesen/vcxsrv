@@ -24,6 +24,8 @@
   nokiasu8w	*			=	nokia_vndr/su-8w(%l)
   olpc		$olpclayouts		=	olpc+%l%(m)
   olpc		*			=	olpc+%l%(v)
+  olpcm		$olpclayouts		=	olpc+%l%(m)
+  olpcm		*			=	olpc+%l%(v)
  $thinkpads   	br			=	pc+br(thinkpad)
   sl-c3x00	*			=	pc+sharp_vndr/sl-c3x00(basic)
   ws003sh	*			=	pc+sharp_vndr/ws003sh(basic)

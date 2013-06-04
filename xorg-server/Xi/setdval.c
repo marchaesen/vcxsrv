@@ -110,6 +110,9 @@ ProcXSetDeviceValuators(ClientPtr client)
     if (dev->valuator == NULL)
         return BadMatch;
 
+    if (IsXTestDevice(dev, NULL))
+        return BadMatch;
+
     if (stuff->first_valuator + stuff->num_valuators > dev->valuator->numAxes)
         return BadValue;
 

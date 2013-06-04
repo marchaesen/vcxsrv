@@ -17,9 +17,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 
@@ -109,10 +110,6 @@ _mesa_ClearStencil( GLint s )
 {
    GET_CURRENT_CONTEXT(ctx);
 
-   if (ctx->Stencil.Clear == (GLuint) s)
-      return;
-
-   FLUSH_VERTICES(ctx, _NEW_STENCIL);
    ctx->Stencil.Clear = (GLuint) s;
 }
 
@@ -135,7 +132,6 @@ void GLAPIENTRY
 _mesa_StencilFuncSeparateATI( GLenum frontfunc, GLenum backfunc, GLint ref, GLuint mask )
 {
    GET_CURRENT_CONTEXT(ctx);
-   const GLint stencilMax = (1 << ctx->DrawBuffer->Visual.stencilBits) - 1;
 
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glStencilFuncSeparateATI()\n");
@@ -150,8 +146,6 @@ _mesa_StencilFuncSeparateATI( GLenum frontfunc, GLenum backfunc, GLint ref, GLui
                   "glStencilFuncSeparateATI(backfunc)");
       return;
    }
-
-   ref = CLAMP( ref, 0, stencilMax );
 
    /* set both front and back state */
    if (ctx->Stencil.Function[0] == frontfunc &&
@@ -192,7 +186,6 @@ void GLAPIENTRY
 _mesa_StencilFunc( GLenum func, GLint ref, GLuint mask )
 {
    GET_CURRENT_CONTEXT(ctx);
-   const GLint stencilMax = (1 << ctx->DrawBuffer->Visual.stencilBits) - 1;
    const GLint face = ctx->Stencil.ActiveFace;
 
    if (MESA_VERBOSE & VERBOSE_API)
@@ -202,8 +195,6 @@ _mesa_StencilFunc( GLenum func, GLint ref, GLuint mask )
       _mesa_error(ctx, GL_INVALID_ENUM, "glStencilFunc(func)");
       return;
    }
-
-   ref = CLAMP( ref, 0, stencilMax );
 
    if (face != 0) {
       if (ctx->Stencil.Function[face] == func &&
@@ -390,7 +381,6 @@ _mesa_ActiveStencilFaceEXT(GLenum face)
    }
 
    if (face == GL_FRONT || face == GL_BACK) {
-      FLUSH_VERTICES(ctx, _NEW_STENCIL);
       ctx->Stencil.ActiveFace = (face == GL_FRONT) ? 0 : 2;
    }
    else {
@@ -467,7 +457,6 @@ void GLAPIENTRY
 _mesa_StencilFuncSeparate(GLenum face, GLenum func, GLint ref, GLuint mask)
 {
    GET_CURRENT_CONTEXT(ctx);
-   const GLint stencilMax = (1 << ctx->DrawBuffer->Visual.stencilBits) - 1;
 
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glStencilFuncSeparate()\n");
@@ -480,8 +469,6 @@ _mesa_StencilFuncSeparate(GLenum face, GLenum func, GLint ref, GLuint mask)
       _mesa_error(ctx, GL_INVALID_ENUM, "glStencilFuncSeparate(func)");
       return;
    }
-
-   ref = CLAMP(ref, 0, stencilMax);
 
    FLUSH_VERTICES(ctx, _NEW_STENCIL);
 

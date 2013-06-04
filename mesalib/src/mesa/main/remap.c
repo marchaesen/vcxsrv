@@ -36,10 +36,6 @@
  * a dynamic entry, or the corresponding static entry, in glapi.
  */
 
-#include "mfeatures.h"
-
-#if FEATURE_remap_table
-
 #include "remap.h"
 #include "imports.h"
 #include "glapi/glapi.h"
@@ -223,6 +219,3 @@ _mesa_init_remap_table(void)
 			     driDispatchRemapTable_size,
 			     MESA_remap_table_functions);
 }
-
-
-#endif /* FEATURE_remap_table */

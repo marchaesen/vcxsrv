@@ -1945,8 +1945,6 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
 
       if (ir->type->base_type == GLSL_TYPE_BOOL) {
          emit(ir, TGSI_OPCODE_USNE, result_dst, cbuf, st_src_reg_for_int(0));
-         result_src.negate = 1;
-         emit(ir, TGSI_OPCODE_UCMP, result_dst, result_src, st_src_reg_for_int(~0), st_src_reg_for_int(0));
       } else {
          emit(ir, TGSI_OPCODE_MOV, result_dst, cbuf);
       }
@@ -1969,7 +1967,17 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
    case ir_unop_unpack_snorm_4x8:
    case ir_unop_unpack_unorm_4x8:
    case ir_binop_pack_half_2x16_split:
+   case ir_unop_bitfield_reverse:
+   case ir_unop_bit_count:
+   case ir_unop_find_msb:
+   case ir_unop_find_lsb:
+   case ir_binop_bfm:
+   case ir_triop_bfi:
+   case ir_triop_bitfield_extract:
+   case ir_quadop_bitfield_insert:
    case ir_quadop_vector:
+   case ir_binop_vector_extract:
+   case ir_triop_vector_insert:
       /* This operation is not supported, or should have already been handled.
        */
       assert(!"Invalid ir opcode in glsl_to_tgsi_visitor::visit()");
@@ -2388,8 +2396,8 @@ glsl_to_tgsi_visitor::visit(ir_assignment *ir)
          if (native_integers) {
             /* This is necessary because TGSI's CMP instruction expects the
              * condition to be a float, and we store booleans as integers.
-             * If TGSI had a UCMP instruction or similar, this extra
-             * instruction would not be necessary.
+             * TODO: really want to avoid i2f path and use UCMP. Requires
+             * changes to process_move_condition though too.
              */
             condition_temp = get_temp(glsl_type::vec4_type);
             condition.negate = 0;
@@ -2683,7 +2691,7 @@ glsl_to_tgsi_visitor::visit(ir_call *ir)
 void
 glsl_to_tgsi_visitor::visit(ir_texture *ir)
 {
-   st_src_reg result_src, coord, cube_sc, lod_info, projector, dx, dy, offset;
+   st_src_reg result_src, coord, cube_sc, lod_info, projector, dx, dy, offset, sample_index;
    st_dst_reg result_dst, coord_dst, cube_sc_dst;
    glsl_to_tgsi_instruction *inst = NULL;
    unsigned opcode = TGSI_OPCODE_NOP;
@@ -2706,6 +2714,7 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
        */
       coord = get_temp(glsl_type::vec4_type);
       coord_dst = st_dst_reg(coord);
+      coord_dst.writemask = (1 << ir->coordinate->type->vector_elements) - 1;
       emit(ir, TGSI_OPCODE_MOV, coord_dst, this->result);
    }
 
@@ -2772,7 +2781,9 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
       }
       break;
    case ir_txf_ms:
-      assert(!"Unexpected ir_txf_ms opcode");
+      opcode = TGSI_OPCODE_TXF;
+      ir->lod_info.sample_index->accept(this);
+      sample_index = this->result;
       break;
    case ir_lod:
       assert(!"Unexpected ir_lod opcode");
@@ -2859,7 +2870,11 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
       }
    }
 
-   if (opcode == TGSI_OPCODE_TXL || opcode == TGSI_OPCODE_TXB ||
+   if (ir->op == ir_txf_ms) {
+      coord_dst.writemask = WRITEMASK_W;
+      emit(ir, TGSI_OPCODE_MOV, coord_dst, sample_index);
+      coord_dst.writemask = WRITEMASK_XYZW;
+   } else if (opcode == TGSI_OPCODE_TXL || opcode == TGSI_OPCODE_TXB ||
        opcode == TGSI_OPCODE_TXF) {
       /* TGSI stores LOD or LOD bias in the last channel of the coords. */
       coord_dst.writemask = WRITEMASK_W;
@@ -2921,6 +2936,10 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
    case GLSL_SAMPLER_DIM_EXTERNAL:
       inst->tex_target = TEXTURE_EXTERNAL_INDEX;
       break;
+   case GLSL_SAMPLER_DIM_MS:
+      inst->tex_target = (sampler_type->sampler_array)
+         ? TEXTURE_2D_MULTISAMPLE_ARRAY_INDEX : TEXTURE_2D_MULTISAMPLE_INDEX;
+      break;
    default:
       assert(!"Should not get here.");
    }
@@ -2967,12 +2986,15 @@ glsl_to_tgsi_visitor::visit(ir_discard *ir)
 void
 glsl_to_tgsi_visitor::visit(ir_if *ir)
 {
+   unsigned if_opcode;
    glsl_to_tgsi_instruction *if_inst;
 
    ir->condition->accept(this);
    assert(this->result.file != PROGRAM_UNDEFINED);
 
-   if_inst = emit(ir->condition, TGSI_OPCODE_IF, undef_dst, this->result);
+   if_opcode = native_integers ? TGSI_OPCODE_UIF : TGSI_OPCODE_IF;
+
+   if_inst = emit(ir->condition, if_opcode, undef_dst, this->result);
 
    this->instructions.push_tail(if_inst);
 
@@ -3451,6 +3473,7 @@ glsl_to_tgsi_visitor::copy_propagate(void)
          break;
 
       case TGSI_OPCODE_IF:
+      case TGSI_OPCODE_UIF:
          ++level;
          break;
 
@@ -3529,6 +3552,8 @@ glsl_to_tgsi_visitor::copy_propagate(void)
       /* If this is a copy, add it to the ACP. */
       if (inst->op == TGSI_OPCODE_MOV &&
           inst->dst.file == PROGRAM_TEMPORARY &&
+          !(inst->dst.file == inst->src[0].file &&
+             inst->dst.index == inst->src[0].index) &&
           !inst->dst.reladdr &&
           !inst->saturate &&
           !inst->src[0].reladdr &&
@@ -3653,6 +3678,7 @@ glsl_to_tgsi_visitor::eliminate_dead_code_advanced(void)
          break;
 
       case TGSI_OPCODE_IF:
+      case TGSI_OPCODE_UIF:
          ++level;
          /* fallthrough to default case to mark the condition as read */
       
@@ -4378,6 +4404,7 @@ compile_tgsi_instruction(struct st_translate *t,
    case TGSI_OPCODE_ELSE:
    case TGSI_OPCODE_ENDLOOP:
    case TGSI_OPCODE_IF:
+   case TGSI_OPCODE_UIF:
       assert(num_dst == 0);
       ureg_label_insn(ureg,
                       inst->op,
@@ -4903,7 +4930,7 @@ st_translate_program(
    assert(i == program->num_immediates);
 
    /* texture samplers */
-   for (i = 0; i < ctx->Const.MaxTextureImageUnits; i++) {
+   for (i = 0; i < ctx->Const.FragmentProgram.MaxTextureImageUnits; i++) {
       if (program->samplers_used & (1 << i)) {
          t->samplers[i] = ureg_DECL_sampler(ureg, i);
       }
@@ -5216,6 +5243,7 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 
       lower_ubo_reference(prog->_LinkedShaders[i], ir);
       do_vec_index_to_cond_assign(ir);
+      lower_vector_insert(ir, true);
       lower_quadop_vector(ir, false);
       lower_noise(ir);
       if (options->MaxIfDepth == 0) {
@@ -5228,7 +5256,7 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
          progress = do_lower_jumps(ir, true, true, options->EmitNoMainReturn, options->EmitNoCont, options->EmitNoLoops) || progress;
 
          progress = do_common_optimization(ir, true, true,
-					   options->MaxUnrollIterations)
+					   options->MaxUnrollIterations, options)
 	   || progress;
 
          progress = lower_if_to_cond_assign(ir, options->MaxIfDepth) || progress;

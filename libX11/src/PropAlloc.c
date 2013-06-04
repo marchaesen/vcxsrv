@@ -39,20 +39,19 @@ in this Software without prior written authorization from The Open Group.
 
 XSizeHints *XAllocSizeHints (void)
 {
-    return ((XSizeHints *) Xcalloc (1, (unsigned) sizeof (XSizeHints)));
+    return Xcalloc (1, sizeof (XSizeHints));
 }
 
 
 XStandardColormap *XAllocStandardColormap (void)
 {
-    return ((XStandardColormap *)
-	    Xcalloc (1, (unsigned) sizeof (XStandardColormap)));
+    return Xcalloc (1, sizeof (XStandardColormap));
 }
 
 
 XWMHints *XAllocWMHints (void)
 {
-    return ((XWMHints *) Xcalloc (1, (unsigned) sizeof (XWMHints)));
+    return Xcalloc (1, sizeof (XWMHints));
 }
 
 
@@ -64,7 +63,7 @@ XClassHint *XAllocClassHint (void)
 
 XIconSize *XAllocIconSize (void)
 {
-    return ((XIconSize *) Xcalloc (1, (unsigned) sizeof (XIconSize)));
+    return Xcalloc (1, sizeof (XIconSize));
 }
 
 

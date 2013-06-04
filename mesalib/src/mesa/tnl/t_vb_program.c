@@ -18,9 +18,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 
@@ -259,7 +260,7 @@ map_textures(struct gl_context *ctx, const struct gl_vertex_program *vp)
 {
    GLuint u;
 
-   for (u = 0; u < ctx->Const.MaxVertexTextureImageUnits; u++) {
+   for (u = 0; u < ctx->Const.VertexProgram.MaxTextureImageUnits; u++) {
       if (vp->Base.TexturesUsed[u]) {
          /* Note: _Current *should* correspond to the target indicated
           * in TexturesUsed[u].
@@ -278,7 +279,7 @@ unmap_textures(struct gl_context *ctx, const struct gl_vertex_program *vp)
 {
    GLuint u;
 
-   for (u = 0; u < ctx->Const.MaxVertexTextureImageUnits; u++) {
+   for (u = 0; u < ctx->Const.VertexProgram.MaxTextureImageUnits; u++) {
       if (vp->Base.TexturesUsed[u]) {
          /* Note: _Current *should* correspond to the target indicated
           * in TexturesUsed[u].

@@ -196,6 +196,9 @@ convenience for the application's rendering mechanism.
                                                   default value of familylang,
                                                   stylelang and fullnamelang
     prgname        FC_PRGNAME             String  Name of the running program
+    hash           FC_HASH                String  SHA256 hash value of the font data
+                                                  with "sha256:" prefix.
+    postscriptname FC_POSTSCRIPT_NAME     String  Font name in PostScript
     </programlisting>
   </sect2>
 </sect1>

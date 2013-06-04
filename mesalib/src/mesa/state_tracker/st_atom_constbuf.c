@@ -194,12 +194,25 @@ static void st_bind_ubos(struct st_context *st,
 
       binding = &st->ctx->UniformBufferBindings[shader->UniformBlocks[i].Binding];
       st_obj = st_buffer_object(binding->BufferObject);
-      pipe_resource_reference(&cb.buffer, st_obj->buffer);
 
-      cb.buffer_size = st_obj->buffer->width0 - binding->Offset;
+      cb.buffer = st_obj->buffer;
+
+      if (cb.buffer) {
+         cb.buffer_offset = binding->Offset;
+         cb.buffer_size = cb.buffer->width0 - binding->Offset;
+
+         /* AutomaticSize is FALSE if the buffer was set with BindBufferRange.
+          * Take the minimum just to be sure.
+          */
+         if (!binding->AutomaticSize)
+            cb.buffer_size = MIN2(cb.buffer_size, binding->Size);
+      }
+      else {
+         cb.buffer_offset = 0;
+         cb.buffer_size = 0;
+      }
 
       cso_set_constant_buffer(st->cso_context, shader_type, 1 + i, &cb);
-      pipe_resource_reference(&cb.buffer, NULL);
    }
 }
 
@@ -216,8 +229,8 @@ static void bind_vs_ubos(struct st_context *st)
 const struct st_tracked_state st_bind_vs_ubos = {
    "st_bind_vs_ubos",
    {
-      (_NEW_PROGRAM | _NEW_BUFFER_OBJECT),
-      ST_NEW_VERTEX_PROGRAM,
+      0,
+      ST_NEW_VERTEX_PROGRAM | ST_NEW_UNIFORM_BUFFER,
    },
    bind_vs_ubos
 };
@@ -230,14 +243,13 @@ static void bind_fs_ubos(struct st_context *st)
       return;
 
    st_bind_ubos(st, prog->_LinkedShaders[MESA_SHADER_FRAGMENT], PIPE_SHADER_FRAGMENT);
-
 }
 
 const struct st_tracked_state st_bind_fs_ubos = {
    "st_bind_fs_ubos",
    {
-      (_NEW_PROGRAM | _NEW_BUFFER_OBJECT),
-      ST_NEW_FRAGMENT_PROGRAM,
+      0,
+      ST_NEW_FRAGMENT_PROGRAM | ST_NEW_UNIFORM_BUFFER,
    },
    bind_fs_ubos
 };

@@ -72,7 +72,7 @@ GC XCreateGC (
     register _XExtension *ext;
 
     LockDisplay(dpy);
-    if ((gc = (GC)Xmalloc (sizeof(struct _XGC))) == NULL) {
+    if ((gc = Xmalloc (sizeof(struct _XGC))) == NULL) {
 	UnlockDisplay(dpy);
 	SyncHandle();
 	return (NULL);

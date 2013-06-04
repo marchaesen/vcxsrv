@@ -111,7 +111,7 @@ static void ResizeTable(DB db)
     otable = db->table;
     for (i = INITHASHMASK+1; (i + i) < db->numentries; )
 	i += i;
-    db->table = (TableEntry *) Xcalloc((unsigned)i, sizeof(TableEntry));
+    db->table = Xcalloc(i, sizeof(TableEntry));
     if (!db->table) {
 	db->table = otable;
 	return;
@@ -180,11 +180,11 @@ int XSaveContext(
 	UnlockDisplay(display);
     }
     if (!db) {
-	db = (DB) Xmalloc(sizeof(DBRec));
+	db = Xmalloc(sizeof(DBRec));
 	if (!db)
 	    return XCNOMEM;
 	db->mask = INITHASHMASK;
-	db->table = (TableEntry *)Xcalloc(db->mask + 1, sizeof(TableEntry));
+	db->table = Xcalloc(db->mask + 1, sizeof(TableEntry));
 	if (!db->table) {
 	    Xfree((char *)db);
 	    return XCNOMEM;
@@ -210,7 +210,7 @@ int XSaveContext(
 	    return 0;
 	}
     }
-    entry = (TableEntry) Xmalloc(sizeof(TableEntryRec));
+    entry = Xmalloc(sizeof(TableEntryRec));
     if (!entry)
 	return XCNOMEM;
     entry->rid = rid;

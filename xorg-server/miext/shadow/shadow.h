@@ -96,6 +96,18 @@ shadowInit(ScreenPtr pScreen, ShadowUpdateProc update, ShadowWindowProc window);
 extern _X_EXPORT void *shadowAlloc(int width, int height, int bpp);
 
 extern _X_EXPORT void
+ shadowUpdateAfb4(ScreenPtr pScreen, shadowBufPtr pBuf);
+
+extern _X_EXPORT void
+ shadowUpdateAfb8(ScreenPtr pScreen, shadowBufPtr pBuf);
+
+extern _X_EXPORT void
+ shadowUpdateIplan2p4(ScreenPtr pScreen, shadowBufPtr pBuf);
+
+extern _X_EXPORT void
+ shadowUpdateIplan2p8(ScreenPtr pScreen, shadowBufPtr pBuf);
+
+extern _X_EXPORT void
  shadowUpdatePacked(ScreenPtr pScreen, shadowBufPtr pBuf);
 
 extern _X_EXPORT void

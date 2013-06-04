@@ -104,6 +104,10 @@ ProcXSetDeviceMode(ClientPtr client)
         return rc;
     if (dev->valuator == NULL)
         return BadMatch;
+
+    if (IsXTestDevice(dev, NULL))
+        return BadMatch;
+
     if ((dev->deviceGrab.grab) && !SameClient(dev->deviceGrab.grab, client))
         rep.status = AlreadyGrabbed;
     else

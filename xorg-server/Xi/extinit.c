@@ -848,24 +848,24 @@ SBarrierEvent(xXIBarrierEvent * from,
 
     *to = *from;
 
-    swaps(&from->sequenceNumber);
-    swapl(&from->length);
-    swaps(&from->evtype);
-    swapl(&from->time);
-    swaps(&from->deviceid);
-    swaps(&from->sourceid);
-    swapl(&from->event);
-    swapl(&from->root);
-    swapl(&from->root_x);
-    swapl(&from->root_y);
+    swaps(&to->sequenceNumber);
+    swapl(&to->length);
+    swaps(&to->evtype);
+    swapl(&to->time);
+    swaps(&to->deviceid);
+    swaps(&to->sourceid);
+    swapl(&to->event);
+    swapl(&to->root);
+    swapl(&to->root_x);
+    swapl(&to->root_y);
 
-    swapl(&from->dx.integral);
-    swapl(&from->dx.frac);
-    swapl(&from->dy.integral);
-    swapl(&from->dy.frac);
-    swapl(&from->dtime);
-    swapl(&from->barrier);
-    swapl(&from->eventid);
+    swapl(&to->dx.integral);
+    swapl(&to->dx.frac);
+    swapl(&to->dy.integral);
+    swapl(&to->dy.frac);
+    swapl(&to->dtime);
+    swapl(&to->barrier);
+    swapl(&to->eventid);
 }
 
 /** Event swapping function for XI2 events. */
@@ -1171,6 +1171,8 @@ IResetProc(ExtensionEntry * unused)
 
     free(xi_all_devices.name);
     free(xi_all_master_devices.name);
+
+    XIBarrierReset();
 }
 
 /***********************************************************************

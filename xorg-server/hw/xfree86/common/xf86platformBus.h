@@ -46,6 +46,8 @@ extern int
 xf86_remove_platform_device(int dev_index);
 extern Bool
 xf86_add_platform_device_attrib(int index, int attrib_id, char *attrib_str);
+extern Bool
+xf86_get_platform_device_unowned(int index);
 
 extern int
 xf86platformAddDevice(int index);
@@ -59,6 +61,8 @@ xf86PlatformDeviceCheckBusID(struct xf86_platform_device *device, const char *bu
 
 extern _X_EXPORT int
 xf86PlatformMatchDriver(char *matches[], int nmatches);
+
+extern void xf86platformVTProbe(void);
 #endif
 
 #endif

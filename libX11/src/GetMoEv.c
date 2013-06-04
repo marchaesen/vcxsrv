@@ -28,6 +28,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "Xlibint.h"
+#include <limits.h>
 
 XTimeCoord *XGetMotionEvents(
     register Display *dpy,
@@ -39,7 +40,6 @@ XTimeCoord *XGetMotionEvents(
     xGetMotionEventsReply rep;
     register xGetMotionEventsReq *req;
     XTimeCoord *tc = NULL;
-    long nbytes;
     LockDisplay(dpy);
     GetReq(GetMotionEvents, req);
     req->window = w;
@@ -52,26 +52,22 @@ XTimeCoord *XGetMotionEvents(
 	return (NULL);
 	}
 
-    if (rep.nEvents) {
-	if (! (tc = (XTimeCoord *)
-	       Xmalloc( (unsigned)
-		       (nbytes = (long) rep.nEvents * sizeof(XTimeCoord))))) {
-	    _XEatData (dpy, (unsigned long) nbytes);
-	    UnlockDisplay(dpy);
-	    SyncHandle();
-	    return (NULL);
-	}
+    if (rep.nEvents && (rep.nEvents < (INT_MAX / sizeof(XTimeCoord))))
+	tc = Xmalloc(rep.nEvents * sizeof(XTimeCoord));
+    if (tc == NULL) {
+	/* server returned either no events or a bad event count */
+	*nEvents = 0;
+	_XEatDataWords (dpy, rep.length);
     }
-
-    *nEvents = rep.nEvents;
-    nbytes = SIZEOF (xTimecoord);
+    else
     {
 	register XTimeCoord *tcptr;
-	register int i;
+	unsigned int i;
 	xTimecoord xtc;
 
+	*nEvents = (int) rep.nEvents;
 	for (i = rep.nEvents, tcptr = tc; i > 0; i--, tcptr++) {
-	    _XRead (dpy, (char *) &xtc, nbytes);
+	    _XRead (dpy, (char *) &xtc, SIZEOF (xTimecoord));
 	    tcptr->time = xtc.time;
 	    tcptr->x    = cvtINT16toShort (xtc.x);
 	    tcptr->y    = cvtINT16toShort (xtc.y);

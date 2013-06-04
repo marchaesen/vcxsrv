@@ -79,7 +79,7 @@ static void yyerror(YYLTYPE *loc, _mesa_glsl_parse_state *st, const char *msg)
    ast_case_label_list *case_label_list;
    ast_case_statement *case_statement;
    ast_case_statement_list *case_statement_list;
-   ast_uniform_block *uniform_block;
+   ast_interface_block *interface_block;
 
    struct {
       ast_node *cond;
@@ -115,7 +115,7 @@ static void yyerror(YYLTYPE *loc, _mesa_glsl_parse_state *st, const char *msg)
 %token STRUCT VOID_TOK WHILE
 %token <identifier> IDENTIFIER TYPE_IDENTIFIER NEW_IDENTIFIER
 %type <identifier> any_identifier
-%type <uniform_block> instance_name_opt
+%type <interface_block> instance_name_opt
 %token <real> FLOATCONSTANT
 %token <n> INTCONSTANT UINTCONSTANT BOOLCONSTANT
 %token <identifier> FIELD_SELECTION
@@ -164,7 +164,8 @@ static void yyerror(YYLTYPE *loc, _mesa_glsl_parse_state *st, const char *msg)
 %type <type_qualifier> interpolation_qualifier
 %type <type_qualifier> layout_qualifier
 %type <type_qualifier> layout_qualifier_id_list layout_qualifier_id
-%type <type_qualifier> uniform_block_layout_qualifier
+%type <type_qualifier> interface_block_layout_qualifier
+%type <type_qualifier> interface_qualifier
 %type <type_specifier> type_specifier
 %type <type_specifier> type_specifier_no_prec
 %type <type_specifier> type_specifier_nonarray
@@ -223,8 +224,8 @@ static void yyerror(YYLTYPE *loc, _mesa_glsl_parse_state *st, const char *msg)
 %type <node> declaration
 %type <node> declaration_statement
 %type <node> jump_statement
-%type <node> uniform_block
-%type <uniform_block> basic_uniform_block
+%type <node> interface_block
+%type <interface_block> basic_interface_block
 %type <struct_specifier> struct_specifier
 %type <declarator_list> struct_declaration_list
 %type <declarator_list> struct_declaration
@@ -784,7 +785,7 @@ declaration:
 	   $3->is_precision_statement = true;
 	   $$ = $3;
 	}
-	| uniform_block
+	| interface_block
 	{
 	   $$ = $1;
 	}
@@ -1140,7 +1141,7 @@ layout_qualifier_id:
 	      }
 	   }
 
-	   /* See also uniform_block_layout_qualifier. */
+	   /* See also interface_block_layout_qualifier. */
 	   if (!$$.flags.i && state->ARB_uniform_buffer_object_enable) {
 	      if (strcmp($1, "std140") == 0) {
 	         $$.flags.q.std140 = 1;
@@ -1211,15 +1212,15 @@ layout_qualifier_id:
 				 "identifier `%s' used\n", $1);
 	   }
 	}
-	| uniform_block_layout_qualifier
+	| interface_block_layout_qualifier
 	{
 	   $$ = $1;
 	   /* Layout qualifiers for ARB_uniform_buffer_object. */
-	   if (!state->ARB_uniform_buffer_object_enable) {
+	   if ($$.flags.q.uniform && !state->ARB_uniform_buffer_object_enable) {
 	      _mesa_glsl_error(& @1, state,
 			       "#version 140 / GL_ARB_uniform_buffer_object "
 			       "layout qualifier `%s' is used\n", $1);
-	   } else if (state->ARB_uniform_buffer_object_warn) {
+	   } else if ($$.flags.q.uniform && state->ARB_uniform_buffer_object_warn) {
 	      _mesa_glsl_warning(& @1, state,
 				 "#version 140 / GL_ARB_uniform_buffer_object "
 				 "layout qualifier `%s' is used\n", $1);
@@ -1232,7 +1233,7 @@ layout_qualifier_id:
  * most qualifiers.  See the any_identifier path of
  * layout_qualifier_id for the others.
  */
-uniform_block_layout_qualifier:
+interface_block_layout_qualifier:
 	ROW_MAJOR
 	{
 	   memset(& $$, 0, sizeof($$));
@@ -1893,14 +1894,14 @@ function_definition:
 	;
 
 /* layout_qualifieropt is packed into this rule */
-uniform_block:
-	basic_uniform_block
+interface_block:
+	basic_interface_block
 	{
 	   $$ = $1;
 	}
-	| layout_qualifier basic_uniform_block
+	| layout_qualifier basic_interface_block
 	{
-	   ast_uniform_block *block = $2;
+	   ast_interface_block *block = $2;
 	   if (!block->layout.merge_qualifier(& @1, state, $1)) {
 	      YYERROR;
 	   }
@@ -1908,55 +1909,137 @@ uniform_block:
 	}
 	;
 
-basic_uniform_block:
-	UNIFORM NEW_IDENTIFIER '{' member_list '}' instance_name_opt ';'
+basic_interface_block:
+	interface_qualifier NEW_IDENTIFIER '{' member_list '}' instance_name_opt ';'
 	{
-	   ast_uniform_block *const block = $6;
+	   ast_interface_block *const block = $6;
 
 	   block->block_name = $2;
 	   block->declarations.push_degenerate_list_at_head(& $4->link);
 
-	   if (!state->ARB_uniform_buffer_object_enable) {
+	   if ($1.flags.q.uniform) {
+	      if (!state->ARB_uniform_buffer_object_enable) {
+	         _mesa_glsl_error(& @1, state,
+	                          "#version 140 / GL_ARB_uniform_buffer_object "
+	                          "required for defining uniform blocks\n");
+	      } else if (state->ARB_uniform_buffer_object_warn) {
+	         _mesa_glsl_warning(& @1, state,
+	                            "#version 140 / GL_ARB_uniform_buffer_object "
+	                            "required for defining uniform blocks\n");
+	      }
+	   } else {
+	      if (state->es_shader || state->language_version < 150) {
+	         _mesa_glsl_error(& @1, state,
+	                         "#version 150 required for using "
+	                         "interface blocks.\n");
+	      }
+	   }
+
+	   /* From the GLSL 1.50.11 spec, section 4.3.7 ("Interface Blocks"):
+	    * "It is illegal to have an input block in a vertex shader
+	    *  or an output block in a fragment shader"
+	    */
+	   if ((state->target == vertex_shader) && $1.flags.q.in) {
 	      _mesa_glsl_error(& @1, state,
-			       "#version 140 / GL_ARB_uniform_buffer_object "
-			       "required for defining uniform blocks\n");
-	   } else if (state->ARB_uniform_buffer_object_warn) {
-	      _mesa_glsl_warning(& @1, state,
-				 "#version 140 / GL_ARB_uniform_buffer_object "
-				 "required for defining uniform blocks\n");
+	                       "`in' interface block is not allowed for "
+	                       "a vertex shader\n");
+	   } else if ((state->target == fragment_shader) && $1.flags.q.out) {
+	      _mesa_glsl_error(& @1, state,
+	                       "`out' interface block is not allowed for "
+	                       "a fragment shader\n");
 	   }
 
 	   /* Since block arrays require names, and both features are added in
 	    * the same language versions, we don't have to explicitly
 	    * version-check both things.
 	    */
-	   if (block->instance_name != NULL
-	       && !(state->language_version == 300 && state->es_shader)) {
-	      _mesa_glsl_error(& @1, state,
-			       "#version 300 es required for using uniform "
-			       "blocks with an instance name\n");
+	   if (block->instance_name != NULL) {
+	      state->check_version(150, 300, & @1, "interface blocks with "
+	                "an instance name are not allowed");
+	   }
+
+	   unsigned interface_type_mask;
+	   struct ast_type_qualifier temp_type_qualifier;
+
+       /* Get a bitmask containing only the in/out/uniform flags, allowing us
+        * to ignore other irrelevant flags like interpolation qualifiers.
+        */
+	   temp_type_qualifier.flags.i = 0;
+	   temp_type_qualifier.flags.q.uniform = true;
+	   temp_type_qualifier.flags.q.in = true;
+	   temp_type_qualifier.flags.q.out = true;
+	   interface_type_mask = temp_type_qualifier.flags.i;
+
+       /* Get the block's interface qualifier.  The interface_qualifier
+        * production rule guarantees that only one bit will be set (and
+        * it will be in/out/uniform).
+        */
+       unsigned block_interface_qualifier = $1.flags.i;
+
+	   block->layout.flags.i |= block_interface_qualifier;
+
+	   foreach_list_typed (ast_declarator_list, member, link, &block->declarations) {
+	      ast_type_qualifier& qualifier = member->type->qualifier;
+	      if ((qualifier.flags.i & interface_type_mask) == 0) {
+             /* GLSLangSpec.1.50.11, 4.3.7 (Interface Blocks):
+              * "If no optional qualifier is used in a member declaration, the
+              *  qualifier of the variable is just in, out, or uniform as declared
+              *  by interface-qualifier."
+              */
+	         qualifier.flags.i |= block_interface_qualifier;
+	      } else if ((qualifier.flags.i & interface_type_mask) !=
+	                 block_interface_qualifier) {
+	         /* GLSLangSpec.1.50.11, 4.3.7 (Interface Blocks):
+              * "If optional qualifiers are used, they can include interpolation
+              *  and storage qualifiers and they must declare an input, output,
+              *  or uniform variable consistent with the interface qualifier of
+              *  the block."
+	          */
+	         _mesa_glsl_error(& @1, state,
+	                          "uniform/in/out qualifier on "
+	                          "interface block member does not match "
+	                          "the interface block\n");
+	      }
 	   }
 
 	   $$ = block;
 	}
 	;
 
+interface_qualifier:
+	IN_TOK
+	{
+	   memset(& $$, 0, sizeof($$));
+	   $$.flags.q.in = 1;
+	}
+	| OUT_TOK
+	{
+	   memset(& $$, 0, sizeof($$));
+	   $$.flags.q.out = 1;
+	}
+	| UNIFORM
+	{
+	   memset(& $$, 0, sizeof($$));
+	   $$.flags.q.uniform = 1;
+	}
+	;
+
 instance_name_opt:
 	/* empty */
 	{
-	   $$ = new(state) ast_uniform_block(*state->default_uniform_qualifier,
+	   $$ = new(state) ast_interface_block(*state->default_uniform_qualifier,
 					     NULL,
 					     NULL);
 	}
 	| NEW_IDENTIFIER
 	{
-	   $$ = new(state) ast_uniform_block(*state->default_uniform_qualifier,
+	   $$ = new(state) ast_interface_block(*state->default_uniform_qualifier,
 					     $1,
 					     NULL);
 	}
 	| NEW_IDENTIFIER '[' constant_expression ']'
 	{
-	   $$ = new(state) ast_uniform_block(*state->default_uniform_qualifier,
+	   $$ = new(state) ast_interface_block(*state->default_uniform_qualifier,
 					     $1,
 					     $3);
 	}
@@ -1965,7 +2048,7 @@ instance_name_opt:
 	   _mesa_glsl_error(& @1, state,
 			    "instance block arrays must be explicitly sized\n");
 
-	   $$ = new(state) ast_uniform_block(*state->default_uniform_qualifier,
+	   $$ = new(state) ast_interface_block(*state->default_uniform_qualifier,
 					     $1,
 					     NULL);
 	}
@@ -1984,41 +2067,28 @@ member_list:
 	}
 	;
 
-/* Specifying "uniform" inside of a uniform block is redundant. */
-uniformopt:
-	/* nothing */
-	| UNIFORM
-	;
-
 member_declaration:
-	layout_qualifier uniformopt type_specifier struct_declarator_list ';'
+	fully_specified_type struct_declarator_list ';'
 	{
 	   void *ctx = state;
-	   ast_fully_specified_type *type = new(ctx) ast_fully_specified_type();
+	   ast_fully_specified_type *type = $1;
 	   type->set_location(yylloc);
 
-	   type->qualifier = $1;
-	   type->qualifier.flags.q.uniform = true;
-	   type->specifier = $3;
+	   if (type->qualifier.flags.q.attribute) {
+	      _mesa_glsl_error(& @1, state,
+	                      "keyword 'attribute' cannot be used with "
+	                      "interface block member\n");
+	   } else if (type->qualifier.flags.q.varying) {
+	      _mesa_glsl_error(& @1, state,
+	                      "keyword 'varying' cannot be used with "
+	                      "interface block member\n");
+	   }
+
 	   $$ = new(ctx) ast_declarator_list(type);
 	   $$->set_location(yylloc);
 	   $$->ubo_qualifiers_valid = true;
 
-	   $$->declarations.push_degenerate_list_at_head(& $4->link);
-	}
-	| uniformopt type_specifier struct_declarator_list ';'
-	{
-	   void *ctx = state;
-	   ast_fully_specified_type *type = new(ctx) ast_fully_specified_type();
-	   type->set_location(yylloc);
-
-	   type->qualifier.flags.q.uniform = true;
-	   type->specifier = $2;
-	   $$ = new(ctx) ast_declarator_list(type);
-	   $$->set_location(yylloc);
-	   $$->ubo_qualifiers_valid = true;
-
-	   $$->declarations.push_degenerate_list_at_head(& $3->link);
+	   $$->declarations.push_degenerate_list_at_head(& $2->link);
 	}
 	;
 

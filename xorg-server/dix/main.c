@@ -211,6 +211,9 @@ main(int argc, char *argv[], char *envp[])
             ScreenPtr pScreen = screenInfo.gpuscreens[i];
             if (!CreateScratchPixmapsForScreen(pScreen))
                 FatalError("failed to create scratch pixmaps");
+            if (pScreen->CreateScreenResources &&
+                !(*pScreen->CreateScreenResources) (pScreen))
+                FatalError("failed to create screen resources");
         }
 
         for (i = 0; i < screenInfo.numScreens; i++) {
@@ -355,11 +358,15 @@ main(int argc, char *argv[], char *envp[])
         dixFreePrivates(serverClient->devPrivates, PRIVATE_CLIENT);
         serverClient->devPrivates = NULL;
 
+	dixFreeRegistry();
+
         FreeFonts();
 
         FreeAllAtoms();
 
         FreeAuditTimer();
+
+        DeleteCallbackManager();
 
         if (dispatchException & DE_TERMINATE) {
             CloseWellKnownConnections();

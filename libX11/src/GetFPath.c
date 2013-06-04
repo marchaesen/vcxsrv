@@ -28,15 +28,18 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "Xlibint.h"
+#include <limits.h>
 
 char **XGetFontPath(
     register Display *dpy,
     int *npaths)	/* RETURN */
 {
 	xGetFontPathReply rep;
-	register long nbytes;
-	char **flist;
-	char *ch;
+	unsigned long nbytes;
+	char **flist = NULL;
+	char *ch = NULL;
+	char *chend;
+	int count = 0;
 	register unsigned i;
 	register int length;
 	register xReq *req;
@@ -46,16 +49,17 @@ char **XGetFontPath(
 	(void) _XReply (dpy, (xReply *) &rep, 0, xFalse);
 
 	if (rep.nPaths) {
-	    flist = (char **)
-		Xmalloc((unsigned) rep.nPaths * sizeof (char *));
-	    nbytes = (long)rep.length << 2;
-	    ch = (char *) Xmalloc ((unsigned) (nbytes + 1));
+	    flist = Xmalloc(rep.nPaths * sizeof (char *));
+	    if (rep.length < (LONG_MAX >> 2)) {
+		nbytes = (unsigned long) rep.length << 2;
+		ch = Xmalloc (nbytes + 1);
                 /* +1 to leave room for last null-terminator */
+	    }
 
 	    if ((! flist) || (! ch)) {
 		if (flist) Xfree((char *) flist);
 		if (ch) Xfree(ch);
-		_XEatData(dpy, (unsigned long) nbytes);
+		_XEatDataWords(dpy, rep.length);
 		UnlockDisplay(dpy);
 		SyncHandle();
 		return (char **) NULL;
@@ -65,16 +69,20 @@ char **XGetFontPath(
 	    /*
 	     * unpack into null terminated strings.
 	     */
+	    chend = ch + (nbytes + 1);
 	    length = *ch;
 	    for (i = 0; i < rep.nPaths; i++) {
-		flist[i] = ch+1;  /* skip over length */
-		ch += length + 1; /* find next length ... */
-		length = *ch;
-		*ch = '\0'; /* and replace with null-termination */
+		if (ch + length < chend) {
+		    flist[i] = ch+1;  /* skip over length */
+		    ch += length + 1; /* find next length ... */
+		    length = *ch;
+		    *ch = '\0'; /* and replace with null-termination */
+		    count++;
+		} else
+		    flist[i] = NULL;
 	    }
 	}
-	else flist = NULL;
-	*npaths = rep.nPaths;
+	*npaths = count;
 	UnlockDisplay(dpy);
 	SyncHandle();
 	return (flist);

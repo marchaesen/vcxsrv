@@ -62,7 +62,6 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     static winScreenInfo *s_pScreenInfo = NULL;
     static ScreenPtr s_pScreen = NULL;
     static HWND s_hwndLastPrivates = NULL;
-    static HINSTANCE s_hInstance;
     static Bool s_fTracking = FALSE;
     static unsigned long s_ulServerGeneration = 0;
     static UINT s_uTaskbarRestart = 0;
@@ -117,7 +116,6 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
          * areas of our display window.
          */
         s_pScreenPriv = ((LPCREATESTRUCT) lParam)->lpCreateParams;
-        s_hInstance = ((LPCREATESTRUCT) lParam)->hInstance;
         s_pScreenInfo = s_pScreenPriv->pScreenInfo;
         s_pScreen = s_pScreenInfo->pScreen;
         s_hwndLastPrivates = hwnd;

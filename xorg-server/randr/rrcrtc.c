@@ -39,7 +39,7 @@ RRCrtcChanged(RRCrtcPtr crtc, Bool layoutChanged)
     if (pScreen) {
         rrScrPriv(pScreen);
 
-        pScrPriv->changed = TRUE;
+        RRSetChanged(pScreen);
         /*
          * Send ConfigureNotify on any layout change
          */

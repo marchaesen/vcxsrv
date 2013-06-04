@@ -191,7 +191,7 @@ XReadBitmapFileData (
 	bytes_per_line = (ww+7)/8 + padding;
 
 	size = bytes_per_line * hh;
-	bits = (unsigned char *) Xmalloc ((unsigned int) size);
+	bits = Xmalloc (size);
 	if (!bits)
 	  RETURN (BitmapNoMemory);
 

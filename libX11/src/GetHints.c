@@ -128,7 +128,7 @@ XWMHints *XGetWMHints (
                 return(NULL);
 		}
 	/* static copies not allowed in library, due to reentrancy constraint*/
-	if ((hints = (XWMHints *) Xcalloc (1, (unsigned) sizeof(XWMHints)))) {
+	if ((hints = Xcalloc (1, sizeof(XWMHints)))) {
 	    hints->flags = prop->flags;
 	    hints->input = (prop->input ? True : False);
 	    hints->initial_state = cvtINT32toInt (prop->initialState);
@@ -203,8 +203,7 @@ Status XGetIconSizes (
 	/* static copies not allowed in library, due to reentrancy constraint*/
 
 	nitems /= NumPropIconSizeElements;
-	if (! (hp = hints = (XIconSize *)
-	  Xcalloc ((unsigned) nitems, (unsigned) sizeof(XIconSize)))) {
+	if (! (hp = hints = Xcalloc (nitems, sizeof(XIconSize)))) {
 	    if (prop) Xfree ((char *) prop);
 	    return 0;
 	}
@@ -317,14 +316,14 @@ XGetClassHint(
 
    if ( (actual_type == XA_STRING) && (actual_format == 8) ) {
 	len_name = strlen((char *) data);
-	if (! (classhint->res_name = Xmalloc((unsigned) (len_name+1)))) {
+	if (! (classhint->res_name = Xmalloc(len_name + 1))) {
 	    Xfree((char *) data);
 	    return (0);
 	}
 	strcpy(classhint->res_name, (char *) data);
 	if (len_name == nitems) len_name--;
 	len_class = strlen((char *) (data+len_name+1));
-	if (! (classhint->res_class = Xmalloc((unsigned) (len_class+1)))) {
+	if (! (classhint->res_class = Xmalloc(len_class + 1))) {
 	    Xfree(classhint->res_name);
 	    classhint->res_name = (char *) NULL;
 	    Xfree((char *) data);

@@ -37,6 +37,7 @@
 #define MOD_TO_FRACT       0x20
 #define INT_DIV_TO_MUL_RCP 0x40
 #define LRP_TO_ARITH       0x80
+#define BITFIELD_INSERT_TO_BFM_BFI 0x100
 
 /**
  * \see class lower_packing_builtins_visitor
@@ -65,7 +66,8 @@ enum lower_packing_builtins_op {
 
 bool do_common_optimization(exec_list *ir, bool linked,
 			    bool uniform_locations_assigned,
-			    unsigned max_unroll_iterations);
+			    unsigned max_unroll_iterations,
+                            const struct gl_shader_compiler_options *options);
 
 bool do_algebraic(exec_list *instructions);
 bool do_constant_folding(exec_list *instructions);
@@ -78,6 +80,7 @@ bool do_dead_code(exec_list *instructions, bool uniform_locations_assigned);
 bool do_dead_code_local(exec_list *instructions);
 bool do_dead_code_unlinked(exec_list *instructions);
 bool do_dead_functions(exec_list *instructions);
+bool opt_flip_matrices(exec_list *instructions);
 bool do_function_inlining(exec_list *instructions);
 bool do_lower_jumps(exec_list *instructions, bool pull_out_jumps = true, bool lower_sub_return = true, bool lower_main_return = false, bool lower_continue = false, bool lower_break = false);
 bool do_lower_texture_projection(exec_list *instructions);
@@ -106,6 +109,8 @@ void lower_ubo_reference(struct gl_shader *shader, exec_list *instructions);
 void lower_packed_varyings(void *mem_ctx, unsigned location_base,
                            unsigned locations_used, ir_variable_mode mode,
                            gl_shader *shader);
+bool lower_vector_insert(exec_list *instructions, bool lower_nonconstant_index);
+void lower_named_interface_blocks(void *mem_ctx, gl_shader *shader);
 bool optimize_redundant_jumps(exec_list *instructions);
 bool optimize_split_arrays(exec_list *instructions, bool linked);
 

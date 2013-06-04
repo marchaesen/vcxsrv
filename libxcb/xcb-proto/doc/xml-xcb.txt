@@ -229,13 +229,18 @@ enum; the value is restricted to one of the constants named in the enum.
   <switch> instead for new protocol definitions.
 
 <switch name="identifier"> switch expression
-    <bitcase> bitcase expression, fields </bitcase> </switch>
+    <bitcase> bitcase expression(s), fields </bitcase> </switch>
 
   This element represents conditional inclusion of fields. It can be viewed
   as sequence of multiple ifs: if ( switch expression & bitcase expression )
-  is equal to bitcase expression, bitcase fields are included in structure.
-  It can be used only as the last field of structure. New protocol definitions
-  should prefer to use this instead of <valueparam>.
+  is non-zero, bitcase fields are included in structure.  It can be used only
+  as the last field of a structure.
+
+  When a bitcase includes multiple <enumref> clauses, the contents of the
+  bitcase are only present once regardless of the number of bitcase expressions
+  that match.
+
+  New protocol definitions should prefer to use this instead of <valueparam>.
 
 Expressions
 -----------

@@ -17,9 +17,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 
@@ -154,11 +155,6 @@ extern struct _glapi_table *
 _mesa_get_dispatch(struct gl_context *ctx);
 
 
-void
-_mesa_set_mvp_with_dp4( struct gl_context *ctx,
-                        GLboolean flag );
-
-
 extern GLboolean
 _mesa_valid_to_render(struct gl_context *ctx, const char *where);
 
@@ -187,6 +183,28 @@ extern void GLAPIENTRY
 _mesa_Flush( void );
 
 /*@}*/
+
+
+/**
+ * Are we currently between glBegin and glEnd?
+ * During execution, not display list compilation.
+ */
+static inline GLboolean
+_mesa_inside_begin_end(const struct gl_context *ctx)
+{
+   return ctx->Driver.CurrentExecPrimitive != PRIM_OUTSIDE_BEGIN_END;
+}
+
+
+/**
+ * Are we currently between glBegin and glEnd in a display list?
+ */
+static inline GLboolean
+_mesa_inside_dlist_begin_end(const struct gl_context *ctx)
+{
+   return ctx->Driver.CurrentSavePrimitive <= PRIM_MAX;
+}
+
 
 
 /**
@@ -242,7 +260,7 @@ do {								\
  */
 #define ASSERT_OUTSIDE_BEGIN_END_WITH_RETVAL(ctx, retval)		\
 do {									\
-   if (ctx->Driver.CurrentExecPrimitive != PRIM_OUTSIDE_BEGIN_END) {	\
+   if (_mesa_inside_begin_end(ctx)) {					\
       _mesa_error(ctx, GL_INVALID_OPERATION, "Inside glBegin/glEnd");	\
       return retval;							\
    }									\
@@ -256,7 +274,7 @@ do {									\
  */
 #define ASSERT_OUTSIDE_BEGIN_END(ctx)					\
 do {									\
-   if (ctx->Driver.CurrentExecPrimitive != PRIM_OUTSIDE_BEGIN_END) {	\
+   if (_mesa_inside_begin_end(ctx)) {					\
       _mesa_error(ctx, GL_INVALID_OPERATION, "Inside glBegin/glEnd");	\
       return;								\
    }									\

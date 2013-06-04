@@ -421,7 +421,8 @@ xf86FlushInput(int fd)
 {
     fd_set fds;
     struct timeval timeout;
-    char c[4];
+    /* this needs to be big enough to flush an evdev event. */
+    char c[256];
 
     DebugF("FlushingSerial\n");
     if (tcflush(fd, TCIFLUSH) == 0)

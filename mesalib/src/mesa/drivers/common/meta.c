@@ -17,9 +17,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 /**
@@ -3048,16 +3049,33 @@ _mesa_meta_check_generate_mipmap_fallback(struct gl_context *ctx, GLenum target,
    GLenum status;
 
    /* check for fallbacks */
-   if (!ctx->Extensions.EXT_framebuffer_object ||
-       target == GL_TEXTURE_3D ||
+   if (!ctx->Extensions.EXT_framebuffer_object) {
+      _mesa_perf_debug(ctx, MESA_DEBUG_SEVERITY_HIGH,
+                       "glGenerateMipmap() without FBOs\n");
+      return GL_TRUE;
+   }
+
+   if (target == GL_TEXTURE_3D ||
        target == GL_TEXTURE_1D_ARRAY ||
        target == GL_TEXTURE_2D_ARRAY) {
+      _mesa_perf_debug(ctx, MESA_DEBUG_SEVERITY_HIGH,
+                       "glGenerateMipmap() to %s target\n",
+                       _mesa_lookup_enum_by_nr(target));
       return GL_TRUE;
    }
 
    srcLevel = texObj->BaseLevel;
    baseImage = _mesa_select_tex_image(ctx, texObj, target, srcLevel);
-   if (!baseImage || _mesa_is_format_compressed(baseImage->TexFormat)) {
+   if (!baseImage) {
+      _mesa_perf_debug(ctx, MESA_DEBUG_SEVERITY_HIGH,
+                       "glGenerateMipmap() couldn't find base teximage\n");
+      return GL_TRUE;
+   }
+
+   if (_mesa_is_format_compressed(baseImage->TexFormat)) {
+      _mesa_perf_debug(ctx, MESA_DEBUG_SEVERITY_HIGH,
+                       "glGenerateMipmap() with %s format\n",
+                       _mesa_get_format_name(baseImage->TexFormat));
       return GL_TRUE;
    }
 
@@ -3067,6 +3085,9 @@ _mesa_meta_check_generate_mipmap_fallback(struct gl_context *ctx, GLenum target,
        * texture sample conversion.  So we won't be able to generate the
        * right colors when rendering.  Need to use a fallback.
        */
+      _mesa_perf_debug(ctx, MESA_DEBUG_SEVERITY_HIGH,
+                       "glGenerateMipmap() of sRGB texture without "
+                       "sRGB decode\n");
       return GL_TRUE;
    }
 
@@ -3103,6 +3124,8 @@ _mesa_meta_check_generate_mipmap_fallback(struct gl_context *ctx, GLenum target,
    _mesa_BindFramebuffer(GL_FRAMEBUFFER_EXT, fboSave);
 
    if (status != GL_FRAMEBUFFER_COMPLETE_EXT) {
+      _mesa_perf_debug(ctx, MESA_DEBUG_SEVERITY_HIGH,
+                       "glGenerateMipmap() got incomplete FBO\n");
       return GL_TRUE;
    }
 
@@ -3374,6 +3397,8 @@ setup_glsl_generate_mipmap(struct gl_context *ctx,
                                    sizeof(struct vertex), OFFSET(x));
       _mesa_VertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
                                    sizeof(struct vertex), OFFSET(tex));
+      _mesa_EnableVertexAttribArray(0);
+      _mesa_EnableVertexAttribArray(1);
    }
 
    /* Generate a fragment shader program appropriate for the texture target */
@@ -3445,8 +3470,6 @@ setup_glsl_generate_mipmap(struct gl_context *ctx,
    _mesa_DeleteObjectARB(vs);
    _mesa_BindAttribLocation(mipmap->ShaderProg, 0, "position");
    _mesa_BindAttribLocation(mipmap->ShaderProg, 1, "texcoords");
-   _mesa_EnableVertexAttribArray(0);
-   _mesa_EnableVertexAttribArray(1);
    link_program_with_debug(ctx, mipmap->ShaderProg);
    sampler->shader_prog = mipmap->ShaderProg;
    ralloc_free(mem_ctx);
@@ -3741,10 +3764,20 @@ get_temp_image_type(struct gl_context *ctx, gl_format format)
             return datatype;
          return GL_FLOAT;
       }
-   case GL_DEPTH_COMPONENT:
-      return GL_UNSIGNED_INT;
-   case GL_DEPTH_STENCIL:
-      return GL_UNSIGNED_INT_24_8;
+   case GL_DEPTH_COMPONENT: {
+      GLenum datatype = _mesa_get_format_datatype(format);
+      if (datatype == GL_FLOAT)
+         return GL_FLOAT;
+      else
+         return GL_UNSIGNED_INT;
+   }
+   case GL_DEPTH_STENCIL: {
+      GLenum datatype = _mesa_get_format_datatype(format);
+      if (datatype == GL_FLOAT)
+         return GL_FLOAT_32_UNSIGNED_INT_24_8_REV;
+      else
+         return GL_UNSIGNED_INT_24_8;
+   }
    default:
       _mesa_problem(ctx, "Unexpected format %d in get_temp_image_type()",
 		    baseFormat);

@@ -53,7 +53,7 @@ static char *Format_Image(
   bytes_per_line = (width+7)/8;
   *resultsize = bytes_per_line * height;           /* Calculate size of data */
 
-  data = (char *) Xmalloc( *resultsize );           /* Get space for data */
+  data = Xmalloc( *resultsize );                   /* Get space for data */
   if (!data)
     return(ERR_RETURN);
 

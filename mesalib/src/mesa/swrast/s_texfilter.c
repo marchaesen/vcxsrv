@@ -17,9 +17,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 
@@ -1435,7 +1436,7 @@ opt_sample_rgb_2d(struct gl_context *ctx,
       GLint i = IFLOOR(texcoords[k][0] * width) & colMask;
       GLint j = IFLOOR(texcoords[k][1] * height) & rowMask;
       GLint pos = (j << shift) | i;
-      GLubyte *texel = swImg->Map + 3 * pos;
+      GLubyte *texel = (GLubyte *) swImg->ImageSlices[0] + 3 * pos;
       rgba[k][RCOMP] = UBYTE_TO_FLOAT(texel[2]);
       rgba[k][GCOMP] = UBYTE_TO_FLOAT(texel[1]);
       rgba[k][BCOMP] = UBYTE_TO_FLOAT(texel[0]);
@@ -1480,7 +1481,7 @@ opt_sample_rgba_2d(struct gl_context *ctx,
       const GLint col = IFLOOR(texcoords[i][0] * width) & colMask;
       const GLint row = IFLOOR(texcoords[i][1] * height) & rowMask;
       const GLint pos = (row << shift) | col;
-      const GLuint texel = *((GLuint *) swImg->Map + pos);
+      const GLuint texel = *((GLuint *) swImg->ImageSlices[0] + pos);
       rgba[i][RCOMP] = UBYTE_TO_FLOAT( (texel >> 24)        );
       rgba[i][GCOMP] = UBYTE_TO_FLOAT( (texel >> 16) & 0xff );
       rgba[i][BCOMP] = UBYTE_TO_FLOAT( (texel >>  8) & 0xff );
@@ -1504,7 +1505,9 @@ sample_lambda_2d(struct gl_context *ctx,
 
    const GLboolean repeatNoBorderPOT = (samp->WrapS == GL_REPEAT)
       && (samp->WrapT == GL_REPEAT)
-      && (tImg->Border == 0 && (tImg->Width == swImg->RowStride))
+      && (tImg->Border == 0)
+      && (_mesa_format_row_stride(tImg->TexFormat, tImg->Width) ==
+          swImg->RowStride)
       && swImg->_IsPowerOfTwo;
 
    ASSERT(lambda != NULL);

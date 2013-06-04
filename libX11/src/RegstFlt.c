@@ -85,7 +85,7 @@ _XRegisterFilterByMask(
 {
     XFilterEventRec		*rec;
 
-    rec = (XFilterEventList)Xmalloc(sizeof(XFilterEventRec));
+    rec = Xmalloc(sizeof(XFilterEventRec));
     if (!rec)
 	return;
     rec->window = window;
@@ -117,7 +117,7 @@ _XRegisterFilterByType(
 {
     XFilterEventRec		*rec;
 
-    rec = (XFilterEventList)Xmalloc(sizeof(XFilterEventRec));
+    rec = Xmalloc(sizeof(XFilterEventRec));
     if (!rec)
 	return;
     rec->window = window;

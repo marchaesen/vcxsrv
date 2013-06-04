@@ -17,9 +17,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 
@@ -147,7 +148,6 @@ typedef enum prog_opcode {
    OPCODE_NOP = 0,   /*                                      X   */
    OPCODE_ABS,       /*   X        X       1.1               X   */
    OPCODE_ADD,       /*   X        X       X       X         X   */
-   OPCODE_AND,       /*                                          */
    OPCODE_ARL,       /*   X                X                 X   */
    OPCODE_BGNLOOP,   /*                                     opt  */
    OPCODE_BGNSUB,    /*                                     opt  */
@@ -159,7 +159,6 @@ typedef enum prog_opcode {
    OPCODE_DDX,       /*                            X         X   */
    OPCODE_DDY,       /*                            X         X   */
    OPCODE_DP2,       /*                            2         X   */
-   OPCODE_DP2A,      /*                            2             */
    OPCODE_DP3,       /*   X        X       X       X         X   */
    OPCODE_DP4,       /*   X        X       X       X         X   */
    OPCODE_DPH,       /*   X        X       1.1                   */
@@ -189,16 +188,11 @@ typedef enum prog_opcode {
    OPCODE_NOISE2,    /*                                      X   */
    OPCODE_NOISE3,    /*                                      X   */
    OPCODE_NOISE4,    /*                                      X   */
-   OPCODE_NOT,       /*                                          */
-   OPCODE_NRM3,      /*                                          */
-   OPCODE_NRM4,      /*                                          */
-   OPCODE_OR,        /*                                          */
    OPCODE_PK2H,      /*                            X             */
    OPCODE_PK2US,     /*                            X             */
    OPCODE_PK4B,      /*                            X             */
    OPCODE_PK4UB,     /*                            X             */
    OPCODE_POW,       /*   X        X               X         X   */
-   OPCODE_PRINT,     /*                    X       X             */
    OPCODE_RCP,       /*   X        X       X       X         X   */
    OPCODE_RET,       /*                    2       2        opt  */
    OPCODE_RFL,       /*                            X             */
@@ -228,7 +222,6 @@ typedef enum prog_opcode {
    OPCODE_UP4B,      /*                            X             */
    OPCODE_UP4UB,     /*                            X             */
    OPCODE_X2D,       /*                            X             */
-   OPCODE_XOR,       /*                                          */
    OPCODE_XPD,       /*   X        X                             */
    MAX_OPCODE
 } gl_inst_opcode;
@@ -388,9 +381,6 @@ struct prog_instruction
 
    /** for debugging purposes */
    const char *Comment;
-
-   /** Arbitrary data.  Used for OPCODE_PRINT and some drivers */
-   void *Data;
 
    /** for driver use (try to remove someday) */
    GLint Aux;

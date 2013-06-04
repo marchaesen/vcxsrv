@@ -17,9 +17,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 
@@ -877,18 +878,29 @@ _mesa_dest_buffer_exists(struct gl_context *ctx, GLenum format)
 GLenum
 _mesa_get_color_read_format(struct gl_context *ctx)
 {
-   const GLenum data_type = _mesa_get_format_datatype(
-                               ctx->ReadBuffer->_ColorReadBuffer->Format);
+   if (!ctx->ReadBuffer || !ctx->ReadBuffer->_ColorReadBuffer) {
+      /* The spec is unclear how to handle this case, but NVIDIA's
+       * driver generates GL_INVALID_OPERATION.
+       */
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glGetIntegerv(GL_IMPLEMENTATION_COLOR_READ_FORMAT: "
+                  "no GL_READ_BUFFER)");
+      return GL_NONE;
+   }
+   else {
+      const GLenum format = ctx->ReadBuffer->_ColorReadBuffer->Format;
+      const GLenum data_type = _mesa_get_format_datatype(format);
 
-   switch (ctx->ReadBuffer->_ColorReadBuffer->Format) {
-   case MESA_FORMAT_ARGB8888:
-      return GL_BGRA;
-   case MESA_FORMAT_RGB565:
-      return GL_BGR;
-   default:
-      if (data_type == GL_UNSIGNED_INT || data_type == GL_INT) {
+      if (format == MESA_FORMAT_ARGB8888)
+         return GL_BGRA;
+      else if (format == MESA_FORMAT_RGB565)
+         return GL_BGR;
+
+      switch (data_type) {
+      case GL_UNSIGNED_INT:
+      case GL_INT:
          return GL_RGBA_INTEGER;
-      } else {
+      default:
          return GL_RGBA;
       }
    }
@@ -901,26 +913,33 @@ _mesa_get_color_read_format(struct gl_context *ctx)
 GLenum
 _mesa_get_color_read_type(struct gl_context *ctx)
 {
-   const GLenum data_type = _mesa_get_format_datatype(
-                               ctx->ReadBuffer->_ColorReadBuffer->Format);
-
-   switch (ctx->ReadBuffer->_ColorReadBuffer->Format) {
-   case MESA_FORMAT_RGB565:
-      return GL_UNSIGNED_SHORT_5_6_5_REV;
-   default:
-      break;
+   if (!ctx->ReadBuffer || !ctx->ReadBuffer->_ColorReadBuffer) {
+      /* The spec is unclear how to handle this case, but NVIDIA's
+       * driver generates GL_INVALID_OPERATION.
+       */
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glGetIntegerv(GL_IMPLEMENTATION_COLOR_READ_TYPE: "
+                  "no GL_READ_BUFFER)");
+      return GL_NONE;
    }
+   else {
+      const GLenum format = ctx->ReadBuffer->_ColorReadBuffer->Format;
+      const GLenum data_type = _mesa_get_format_datatype(format);
 
-   switch (data_type) {
-   case GL_SIGNED_NORMALIZED:
-      return GL_BYTE;
-   case GL_UNSIGNED_INT:
-   case GL_INT:
-   case GL_FLOAT:
-      return data_type;
-   case GL_UNSIGNED_NORMALIZED:
-   default:
-      return GL_UNSIGNED_BYTE;
+      if (format == MESA_FORMAT_RGB565)
+         return GL_UNSIGNED_SHORT_5_6_5_REV;
+
+      switch (data_type) {
+      case GL_SIGNED_NORMALIZED:
+         return GL_BYTE;
+      case GL_UNSIGNED_INT:
+      case GL_INT:
+      case GL_FLOAT:
+         return data_type;
+      case GL_UNSIGNED_NORMALIZED:
+      default:
+         return GL_UNSIGNED_BYTE;
+      }
    }
 }
 
@@ -961,8 +980,7 @@ _mesa_print_framebuffer(const struct gl_framebuffer *fb)
    for (i = 0; i < BUFFER_COUNT; i++) {
       const struct gl_renderbuffer_attachment *att = &fb->Attachment[i];
       if (att->Type == GL_TEXTURE) {
-         const struct gl_texture_image *texImage =
-            _mesa_get_attachment_teximage_const(att);
+         const struct gl_texture_image *texImage = att->Renderbuffer->TexImage;
          fprintf(stderr,
                  "  %2d: Texture %u, level %u, face %u, slice %u, complete %d\n",
                  i, att->Texture->Name, att->TextureLevel, att->CubeMapFace,

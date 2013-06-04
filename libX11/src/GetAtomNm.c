@@ -46,7 +46,7 @@ char *_XGetAtomName(
 	for (idx = TABLESIZE; --idx >= 0; ) {
 	    if ((e = *table++) && (e->atom == atom)) {
 		idx = strlen(EntryName(e)) + 1;
-		if ((name = (char *)Xmalloc(idx)))
+		if ((name = Xmalloc(idx)))
 		    strcpy(name, EntryName(e));
 		return name;
 	    }
@@ -73,12 +73,12 @@ char *XGetAtomName(
 	SyncHandle();
 	return(NULL);
     }
-    if ((name = (char *) Xmalloc(rep.nameLength+1))) {
+    if ((name = Xmalloc(rep.nameLength + 1))) {
 	_XReadPad(dpy, name, (long)rep.nameLength);
 	name[rep.nameLength] = '\0';
 	_XUpdateAtomCache(dpy, name, atom, 0, -1, 0);
     } else {
-	_XEatData(dpy, (unsigned long) (rep.nameLength + 3) & ~3);
+	_XEatDataWords(dpy, rep.length);
 	name = (char *) NULL;
     }
     UnlockDisplay(dpy);
@@ -124,7 +124,7 @@ Bool _XGetAtomNameHandler(
 	_XGetAsyncReply(dpy, (char *)&replbuf, rep, buf, len,
 			(SIZEOF(xGetAtomNameReply) - SIZEOF(xReply)) >> 2,
 			False);
-    state->names[state->idx] = (char *) Xmalloc(repl->nameLength+1);
+    state->names[state->idx] = Xmalloc(repl->nameLength + 1);
     _XGetAsyncData(dpy, state->names[state->idx], buf, len,
 		   SIZEOF(xGetAtomNameReply), repl->nameLength,
 		   repl->length << 2);
@@ -170,13 +170,13 @@ XGetAtomNames (
     }
     if (missed >= 0) {
 	if (_XReply(dpy, (xReply *)&rep, 0, xFalse)) {
-	    if ((names_return[missed] = (char *) Xmalloc(rep.nameLength+1))) {
+	    if ((names_return[missed] = Xmalloc(rep.nameLength + 1))) {
 		_XReadPad(dpy, names_return[missed], (long)rep.nameLength);
 		names_return[missed][rep.nameLength] = '\0';
 		_XUpdateAtomCache(dpy, names_return[missed], atoms[missed],
 				  0, -1, 0);
 	    } else {
-		_XEatData(dpy, (unsigned long) (rep.nameLength + 3) & ~3);
+		_XEatDataWords(dpy, rep.length);
 		async_state.status = 0;
 	    }
 	}

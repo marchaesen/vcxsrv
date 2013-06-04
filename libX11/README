@@ -1,9 +1,10 @@
 libX11 - Core X11 protocol client library
 
 Documentation for this library can be found in the included man pages,
-the xlib spec from the doc/xorg-docs module, also available at:
+and in the Xlib spec from the specs subdirectory, also available at:
 
-	http://xorg.freedesktop.org/releases/X11R7.0/doc/PDF/xlib.pdf
+    http://www.x.org/releases/current/doc/libX11/libX11/libX11.html
+    http://www.x.org/releases/current/doc/libX11/libX11/libX11.pdf
 
 and the O'Reilly Xlib books, which they have made freely available online,
 though only for older versions of X11:

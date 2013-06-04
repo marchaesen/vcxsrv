@@ -50,6 +50,8 @@ struct u_upload_mgr;
 #define ST_NEW_EDGEFLAGS_DATA          (1 << 4)
 #define ST_NEW_GEOMETRY_PROGRAM        (1 << 5)
 #define ST_NEW_VERTEX_ARRAYS           (1 << 6)
+#define ST_NEW_RASTERIZER              (1 << 7)
+#define ST_NEW_UNIFORM_BUFFER          (1 << 8)
 
 
 struct st_state_flags {
@@ -87,6 +89,7 @@ struct st_context
    boolean prefer_blit_based_texture_transfer;
 
    boolean needs_texcoord_semantic;
+   boolean apply_texture_swizzle_to_border_color;
 
    /* On old libGL's for linux we need to invalidate the drawables
     * on glViewpport calls, this is set via a option.

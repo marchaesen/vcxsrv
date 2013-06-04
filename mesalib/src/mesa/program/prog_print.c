@@ -18,9 +18,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 /**
@@ -663,20 +664,6 @@ _mesa_fprint_instruction_opt(FILE *f,
    }
 
    switch (inst->Opcode) {
-   case OPCODE_PRINT:
-      fprintf(f, "PRINT '%s'", (char *) inst->Data);
-      if (inst->SrcReg[0].File != PROGRAM_UNDEFINED) {
-         fprintf(f, ", ");
-         fprintf(f, "%s[%d]%s",
-                 _mesa_register_file_name((gl_register_file) inst->SrcReg[0].File),
-		 inst->SrcReg[0].Index,
-		 _mesa_swizzle_string(inst->SrcReg[0].Swizzle,
-				      inst->SrcReg[0].Negate, GL_FALSE));
-      }
-      if (inst->Comment)
-         fprintf(f, "  # %s", inst->Comment);
-      fprint_comment(f, inst);
-      break;
    case OPCODE_SWZ:
       fprintf(f, "SWZ");
       if (inst->SaturateMode == SATURATE_ZERO_ONE)

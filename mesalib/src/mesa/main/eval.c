@@ -18,9 +18,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 
@@ -43,7 +44,6 @@
 #include "context.h"
 #include "eval.h"
 #include "macros.h"
-#include "mfeatures.h"
 #include "mtypes.h"
 #include "main/dispatch.h"
 
@@ -824,8 +824,7 @@ _mesa_MapGrid2d( GLint un, GLdouble u1, GLdouble u2,
 
 void
 _mesa_install_eval_vtxfmt(struct _glapi_table *disp,
-                          const GLvertexformat *vfmt,
-                          bool beginend)
+                          const GLvertexformat *vfmt)
 {
    SET_EvalCoord1f(disp, vfmt->EvalCoord1f);
    SET_EvalCoord1fv(disp, vfmt->EvalCoord1fv);
@@ -833,13 +832,6 @@ _mesa_install_eval_vtxfmt(struct _glapi_table *disp,
    SET_EvalCoord2fv(disp, vfmt->EvalCoord2fv);
    SET_EvalPoint1(disp, vfmt->EvalPoint1);
    SET_EvalPoint2(disp, vfmt->EvalPoint2);
-
-   /* glEvalMesh1 and glEvalMesh2 are not allowed between glBegin and glEnd.
-    */
-   if (!beginend) {
-      SET_EvalMesh1(disp, vfmt->EvalMesh1);
-      SET_EvalMesh2(disp, vfmt->EvalMesh2);
-   }
 }
 
 

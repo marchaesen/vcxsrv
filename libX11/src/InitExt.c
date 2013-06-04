@@ -49,7 +49,7 @@ XExtCodes *XInitExtension (
 		&codes.first_error)) return (NULL);
 
 	LockDisplay (dpy);
-	if (! (ext = (_XExtension *) Xcalloc (1, sizeof (_XExtension))) ||
+	if (! (ext = Xcalloc (1, sizeof (_XExtension))) ||
 	    ! (ext->name = strdup(name))) {
 	    if (ext) Xfree((char *) ext);
 	    UnlockDisplay(dpy);
@@ -71,7 +71,7 @@ XExtCodes *XAddExtension (Display *dpy)
     register _XExtension *ext;
 
     LockDisplay (dpy);
-    if (! (ext = (_XExtension *) Xcalloc (1, sizeof (_XExtension)))) {
+    if (! (ext = Xcalloc (1, sizeof (_XExtension)))) {
 	UnlockDisplay(dpy);
 	return (XExtCodes *) NULL;
     }

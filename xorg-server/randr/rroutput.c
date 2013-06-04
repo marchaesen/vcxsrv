@@ -36,7 +36,7 @@ RROutputChanged(RROutputPtr output, Bool configChanged)
     output->changed = TRUE;
     if (pScreen) {
         rrScrPriv(pScreen);
-        pScrPriv->changed = TRUE;
+        RRSetChanged(pScreen);
         if (configChanged)
             pScrPriv->configChanged = TRUE;
     }

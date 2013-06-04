@@ -18,9 +18,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 /** 
@@ -879,7 +880,7 @@ _mesa_GetTexBumpParameterivATI( GLenum pname, GLint *param )
    }
    else if (pname == GL_BUMP_NUM_TEX_UNITS_ATI) {
       GLint count = 0;
-      for (i = 0; i < ctx->Const.MaxTextureImageUnits; i++) {
+      for (i = 0; i < ctx->Const.FragmentProgram.MaxTextureImageUnits; i++) {
          if (ctx->Const.SupportedBumpUnits & (1 << i)) {
             count++;
          }
@@ -887,7 +888,7 @@ _mesa_GetTexBumpParameterivATI( GLenum pname, GLint *param )
       *param = count;
    }
    else if (pname == GL_BUMP_TEX_UNITS_ATI) {
-      for (i = 0; i < ctx->Const.MaxTextureImageUnits; i++) {
+      for (i = 0; i < ctx->Const.FragmentProgram.MaxTextureImageUnits; i++) {
          if (ctx->Const.SupportedBumpUnits & (1 << i)) {
             *param++ = i + GL_TEXTURE0;
          }
@@ -928,7 +929,7 @@ _mesa_GetTexBumpParameterfvATI( GLenum pname, GLfloat *param )
    }
    else if (pname == GL_BUMP_NUM_TEX_UNITS_ATI) {
       GLint count = 0;
-      for (i = 0; i < ctx->Const.MaxTextureImageUnits; i++) {
+      for (i = 0; i < ctx->Const.FragmentProgram.MaxTextureImageUnits; i++) {
          if (ctx->Const.SupportedBumpUnits & (1 << i)) {
             count++;
          }
@@ -936,7 +937,7 @@ _mesa_GetTexBumpParameterfvATI( GLenum pname, GLfloat *param )
       *param = (GLfloat) count;
    }
    else if (pname == GL_BUMP_TEX_UNITS_ATI) {
-      for (i = 0; i < ctx->Const.MaxTextureImageUnits; i++) {
+      for (i = 0; i < ctx->Const.FragmentProgram.MaxTextureImageUnits; i++) {
          if (ctx->Const.SupportedBumpUnits & (1 << i)) {
             *param++ = (GLfloat) (i + GL_TEXTURE0);
          }

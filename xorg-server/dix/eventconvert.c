@@ -501,9 +501,7 @@ appendValuatorInfo(DeviceChangedEvent *dce, xXIValuatorInfo * info,
     info->min.frac = 0;
     info->max.integral = dce->valuators[axisnumber].max;
     info->max.frac = 0;
-    /* FIXME: value */
-    info->value.integral = 0;
-    info->value.frac = 0;
+    info->value = double_to_fp3232(dce->valuators[axisnumber].value);
     info->resolution = dce->valuators[axisnumber].resolution;
     info->number = axisnumber;
     info->mode = dce->valuators[axisnumber].mode;
@@ -684,17 +682,18 @@ eventToDeviceEvent(DeviceEvent *ev, xEvent **xi)
     xde->root_x = double_to_fp1616(ev->root_x + ev->root_x_frac);
     xde->root_y = double_to_fp1616(ev->root_y + ev->root_y_frac);
 
-    if (ev->type == ET_TouchUpdate)
-        xde->flags |= (ev->flags & TOUCH_PENDING_END) ? XITouchPendingEnd : 0;
-    else
+    if (IsTouchEvent((InternalEvent *)ev)) {
+        if (ev->type == ET_TouchUpdate)
+            xde->flags |= (ev->flags & TOUCH_PENDING_END) ? XITouchPendingEnd : 0;
+
+        if (ev->flags & TOUCH_POINTER_EMULATED)
+            xde->flags |= XITouchEmulatingPointer;
+    } else {
         xde->flags = ev->flags;
 
-    if (IsTouchEvent((InternalEvent *) ev) &&
-        ev->flags & TOUCH_POINTER_EMULATED)
-        xde->flags |= XITouchEmulatingPointer;
-
-    if (ev->key_repeat)
-        xde->flags |= XIKeyRepeat;
+        if (ev->key_repeat)
+            xde->flags |= XIKeyRepeat;
+    }
 
     xde->mods.base_mods = ev->mods.base;
     xde->mods.latched_mods = ev->mods.latched;

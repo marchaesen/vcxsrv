@@ -35,7 +35,6 @@
 #include "main/bufferobj.h"
 #include "main/format_pack.h"
 #include "main/macros.h"
-#include "main/mfeatures.h"
 #include "main/mtypes.h"
 #include "main/pack.h"
 #include "main/pbo.h"
@@ -466,7 +465,7 @@ alloc_texture(struct st_context *st, GLsizei width, GLsizei height,
    struct pipe_resource *pt;
 
    pt = st_texture_create(st, st->internal_target, texFormat, 0,
-                          width, height, 1, 1, PIPE_BIND_SAMPLER_VIEW);
+                          width, height, 1, 1, 0, PIPE_BIND_SAMPLER_VIEW);
 
    return pt;
 }
@@ -711,7 +710,8 @@ draw_textured_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
       memset(&rasterizer, 0, sizeof(rasterizer));
       rasterizer.clamp_fragment_color = !st->clamp_frag_color_in_shader &&
                                         ctx->Color._ClampFragmentColor;
-      rasterizer.gl_rasterization_rules = 1;
+      rasterizer.half_pixel_center = 1;
+      rasterizer.bottom_edge_rule = 1;
       rasterizer.depth_clip = !ctx->Transform.DepthClamp;
       rasterizer.scissor = ctx->Scissor.Enabled;
       cso_set_rasterizer(cso, &rasterizer);

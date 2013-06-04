@@ -917,3 +917,15 @@ XIBarrierInit(void)
 
     return PointerBarrierType;
 }
+
+void
+XIBarrierReset(void)
+{
+    int i;
+    for (i = 0; i < screenInfo.numScreens; i++) {
+        ScreenPtr pScreen = screenInfo.screens[i];
+        BarrierScreenPtr cs = GetBarrierScreen(pScreen);
+        free(cs);
+        SetBarrierScreen(pScreen, NULL);
+    }
+}

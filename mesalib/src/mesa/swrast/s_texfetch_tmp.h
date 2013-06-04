@@ -18,9 +18,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 
@@ -43,23 +44,24 @@
 #if DIM == 1
 
 #define TEXEL_ADDR( type, image, i, j, k, size ) \
-	((void) (j), (void) (k), ((type *)(image)->Map + (i) * (size)))
+	((void) (j), (void) (k), ((type *)(image)->ImageSlices[0] + (i) * (size)))
 
 #define FETCH(x) fetch_texel_1d_##x
 
 #elif DIM == 2
 
 #define TEXEL_ADDR( type, image, i, j, k, size )			\
-	((void) (k),							\
-	 ((type *)(image)->Map + ((image)->RowStride * (j) + (i)) * (size)))
+       ((void) (k),							\
+        ((type *)((GLubyte *) (image)->ImageSlices[0] + (image)->RowStride * (j)) + \
+          (i) * (size)))
 
 #define FETCH(x) fetch_texel_2d_##x
 
 #elif DIM == 3
 
 #define TEXEL_ADDR( type, image, i, j, k, size )			\
-	((type *)(image)->Map + ((image)->ImageOffsets[k]		\
-             + (image)->RowStride * (j) + (i)) * (size))
+        ((type *)((GLubyte *) (image)->ImageSlices[k] +                      \
+                  (image)->RowStride * (j)) + (i) * (size))
 
 #define FETCH(x) fetch_texel_3d_##x
 

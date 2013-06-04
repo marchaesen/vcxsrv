@@ -1,3 +1,5 @@
   pc98		=	evdev(pc98)
   applealu_jis	=	evdev+macintosh(jisevdev)
+  olpc          =       evdev+olpc(olpc)
+  olpcm         =       evdev+olpc(olpcm)
   *		=	evdev

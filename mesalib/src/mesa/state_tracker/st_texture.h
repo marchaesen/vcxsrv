@@ -87,10 +87,16 @@ struct st_texture_object
     */
    struct pipe_sampler_view *sampler_view;
 
-   /* True if there is/was a surface bound to this texture object.  It helps
-    * track whether the texture object is surface based or not.
+   /* True if this texture comes from the window system. Such a texture
+    * cannot be reallocated and the format can only be changed with a sampler
+    * view or a surface.
     */
    GLboolean surface_based;
+
+   /* If surface_based is true, this format should be used for all sampler
+    * views and surfaces instead of pt->format.
+    */
+   enum pipe_format surface_format;
 };
 
 
@@ -153,6 +159,7 @@ st_texture_create(struct st_context *st,
                   GLuint height0,
                   GLuint depth0,
                   GLuint layers,
+                  GLuint nr_samples,
                   GLuint tex_usage );
 
 

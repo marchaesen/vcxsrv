@@ -30,6 +30,9 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <X11/extensions/Xext.h>
 #include <X11/extensions/extutil.h>
 #include <X11/Xutil.h>
+#include <limits.h>
+#include "eat.h"
+
 static XExtensionInfo *xevi_info;/* needs to move to globals.c */
 static const char *xevi_extension_name = EVINAME;
 #define XeviCheckExtension(dpy,i,val) \
@@ -163,15 +166,22 @@ Status XeviGetVisualInfo(
 	return BadAccess;
     }
     Xfree(temp_visual);
-    sz_info = rep.n_info * sizeof(ExtendedVisualInfo);
-    sz_xInfo = rep.n_info * sz_xExtendedVisualInfo;
-    sz_conflict = rep.n_conflicts * sizeof(VisualID);
-    sz_xConflict = rep.n_conflicts * sz_VisualID32;
-    infoPtr = *evi_return = (ExtendedVisualInfo *)Xmalloc(sz_info + sz_conflict);
-    xInfoPtr = temp_xInfo = (xExtendedVisualInfo *)Xmalloc(sz_xInfo);
-    xConflictPtr = temp_conflict = (VisualID32 *)Xmalloc(sz_xConflict);
+    if ((rep.n_info < 65536) && (rep.n_conflicts < 65536)) {
+	sz_info = rep.n_info * sizeof(ExtendedVisualInfo);
+	sz_xInfo = rep.n_info * sz_xExtendedVisualInfo;
+	sz_conflict = rep.n_conflicts * sizeof(VisualID);
+	sz_xConflict = rep.n_conflicts * sz_VisualID32;
+	*evi_return = Xmalloc(sz_info + sz_conflict);
+	temp_xInfo = Xmalloc(sz_xInfo);
+	temp_conflict = Xmalloc(sz_xConflict);
+    } else {
+	sz_xInfo = sz_xConflict = 0;
+	*evi_return = NULL;
+	temp_xInfo = NULL;
+	temp_conflict = NULL;
+    }
     if (!*evi_return || !temp_xInfo || !temp_conflict) {
-        _XEatData(dpy, (sz_xInfo + sz_xConflict + 3) & ~3);
+	_XEatDataWords(dpy, rep.length);
 	UnlockDisplay(dpy);
 	SyncHandle();
 	if (evi_return)
@@ -186,6 +196,9 @@ Status XeviGetVisualInfo(
     _XRead(dpy, (char *)temp_conflict, sz_xConflict);
     UnlockDisplay(dpy);
     SyncHandle();
+    infoPtr = *evi_return;
+    xInfoPtr = temp_xInfo;
+    xConflictPtr = temp_conflict;
     n_data = rep.n_info;
     conflict = (VisualID *)(infoPtr + n_data);
     while (n_data-- > 0) {

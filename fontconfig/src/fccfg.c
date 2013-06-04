@@ -2211,57 +2211,13 @@ FcConfigGlobAdd (FcConfig	*config,
 }
 
 static FcBool
-FcConfigGlobMatch (const FcChar8    *glob,
-		   const FcChar8    *string)
-{
-    FcChar8	c;
-
-    while ((c = *glob++))
-    {
-	switch (c) {
-	case '*':
-	    /* short circuit common case */
-	    if (!*glob)
-		return FcTrue;
-	    /* short circuit another common case */
-	    if (strchr ((char *) glob, '*') == 0)
-	    {
-		size_t l1, l2;
-
-		l1 = strlen ((char *) string);
-		l2 = strlen ((char *) glob);
-		if (l1 < l2)
-		    return FcFalse;
-		string += (l1 - l2);
-	    }
-	    while (*string)
-	    {
-		if (FcConfigGlobMatch (glob, string))
-		    return FcTrue;
-		string++;
-	    }
-	    return FcFalse;
-	case '?':
-	    if (*string++ == '\0')
-		return FcFalse;
-	    break;
-	default:
-	    if (*string++ != c)
-		return FcFalse;
-	    break;
-	}
-    }
-    return *string == '\0';
-}
-
-static FcBool
 FcConfigGlobsMatch (const FcStrSet	*globs,
 		    const FcChar8	*string)
 {
     int	i;
 
     for (i = 0; i < globs->num; i++)
-	if (FcConfigGlobMatch (globs->strs[i], string))
+	if (FcStrGlobMatch (globs->strs[i], string))
 	    return FcTrue;
     return FcFalse;
 }

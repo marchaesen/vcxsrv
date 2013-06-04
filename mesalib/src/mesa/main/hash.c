@@ -29,9 +29,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 #include "glheader.h"
@@ -114,9 +115,9 @@ _mesa_NewHashTable(void)
 {
    struct _mesa_HashTable *table = CALLOC_STRUCT(_mesa_HashTable);
 
-   table->ht = _mesa_hash_table_create(NULL, uint_key_compare);
-   _mesa_hash_table_set_deleted_key(table->ht, uint_key(DELETED_KEY_VALUE));
    if (table) {
+      table->ht = _mesa_hash_table_create(NULL, uint_key_compare);
+      _mesa_hash_table_set_deleted_key(table->ht, uint_key(DELETED_KEY_VALUE));
       _glthread_INIT_MUTEX(table->Mutex);
       _glthread_INIT_MUTEX(table->WalkMutex);
    }

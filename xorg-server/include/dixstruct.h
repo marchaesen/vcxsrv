@@ -96,7 +96,7 @@ typedef struct _Client {
     unsigned int clientGone:1;
     unsigned int closeDownMode:2;
     unsigned int clientState:2;
-    char smart_priority;
+    signed char smart_priority;
     short noClientException;      /* this client died or needs to be killed */
     int priority;
     ReplySwapPtr pSwapReplyFunc;

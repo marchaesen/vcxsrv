@@ -805,9 +805,9 @@ public:
    ast_compound_statement *body;
 };
 
-class ast_uniform_block : public ast_node {
+class ast_interface_block : public ast_node {
 public:
-   ast_uniform_block(ast_type_qualifier layout,
+   ast_interface_block(ast_type_qualifier layout,
                      const char *instance_name,
 		     ast_expression *array_size)
    : layout(layout), block_name(NULL), instance_name(instance_name),
@@ -854,7 +854,17 @@ _mesa_ast_field_selection_to_hir(const ast_expression *expr,
 				 exec_list *instructions,
 				 struct _mesa_glsl_parse_state *state);
 
+extern ir_rvalue *
+_mesa_ast_array_index_to_hir(void *mem_ctx,
+			     struct _mesa_glsl_parse_state *state,
+			     ir_rvalue *array, ir_rvalue *idx,
+			     YYLTYPE &loc, YYLTYPE &idx_loc);
+
 void
 emit_function(_mesa_glsl_parse_state *state, ir_function *f);
+
+extern void
+check_builtin_array_max_size(const char *name, unsigned size,
+                             YYLTYPE loc, struct _mesa_glsl_parse_state *state);
 
 #endif /* AST_H */

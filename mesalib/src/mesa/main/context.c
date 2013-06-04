@@ -18,9 +18,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 /**
@@ -77,7 +78,6 @@
 
 
 #include "glheader.h"
-#include "mfeatures.h"
 #include "imports.h"
 #include "accum.h"
 #include "api_exec.h"
@@ -552,9 +552,9 @@ _mesa_init_constants(struct gl_context *ctx)
    ctx->Const.MaxTextureRectSize = MAX_TEXTURE_RECT_SIZE;
    ctx->Const.MaxArrayTextureLayers = MAX_ARRAY_TEXTURE_LAYERS;
    ctx->Const.MaxTextureCoordUnits = MAX_TEXTURE_COORD_UNITS;
-   ctx->Const.MaxTextureImageUnits = MAX_TEXTURE_IMAGE_UNITS;
+   ctx->Const.FragmentProgram.MaxTextureImageUnits = MAX_TEXTURE_IMAGE_UNITS;
    ctx->Const.MaxTextureUnits = MIN2(ctx->Const.MaxTextureCoordUnits,
-                                     ctx->Const.MaxTextureImageUnits);
+                                     ctx->Const.FragmentProgram.MaxTextureImageUnits);
    ctx->Const.MaxTextureMaxAnisotropy = MAX_TEXTURE_MAX_ANISOTROPY;
    ctx->Const.MaxTextureLodBias = MAX_TEXTURE_LOD_BIAS;
    ctx->Const.MaxTextureBufferSize = 65536;
@@ -571,7 +571,6 @@ _mesa_init_constants(struct gl_context *ctx)
    ctx->Const.MinLineWidthAA = MIN_LINE_WIDTH;
    ctx->Const.MaxLineWidthAA = MAX_LINE_WIDTH;
    ctx->Const.LineWidthGranularity = (GLfloat) LINE_WIDTH_GRANULARITY;
-   ctx->Const.MaxColorTableSize = MAX_COLOR_TABLE_SIZE;
    ctx->Const.MaxClipPlanes = 6;
    ctx->Const.MaxLights = MAX_LIGHTS;
    ctx->Const.MaxShininess = 128.0;
@@ -601,12 +600,10 @@ _mesa_init_constants(struct gl_context *ctx)
    ctx->Const.MaxColorAttachments = MAX_COLOR_ATTACHMENTS;
    ctx->Const.MaxRenderbufferSize = MAX_RENDERBUFFER_SIZE;
 
-   ctx->Const.MaxVertexTextureImageUnits = MAX_VERTEX_TEXTURE_IMAGE_UNITS;
+   ctx->Const.VertexProgram.MaxTextureImageUnits = MAX_TEXTURE_IMAGE_UNITS;
    ctx->Const.MaxCombinedTextureImageUnits = MAX_COMBINED_TEXTURE_IMAGE_UNITS;
    ctx->Const.MaxVarying = 16; /* old limit not to break tnl and swrast */
-   ctx->Const.MaxGeometryTextureImageUnits = MAX_GEOMETRY_TEXTURE_IMAGE_UNITS;
-   ctx->Const.MaxVertexVaryingComponents = MAX_VERTEX_VARYING_COMPONENTS;
-   ctx->Const.MaxGeometryVaryingComponents = MAX_GEOMETRY_VARYING_COMPONENTS;
+   ctx->Const.GeometryProgram.MaxTextureImageUnits = MAX_TEXTURE_IMAGE_UNITS;
    ctx->Const.MaxGeometryOutputVertices = MAX_GEOMETRY_OUTPUT_VERTICES;
    ctx->Const.MaxGeometryTotalOutputComponents = MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS;
 
@@ -676,27 +673,25 @@ check_context_limits(struct gl_context *ctx)
    assert(VARYING_SLOT_MAX <=
 	  (8 * sizeof(ctx->FragmentProgram._Current->Base.InputsRead)));
 
-   assert(MAX_COMBINED_TEXTURE_IMAGE_UNITS <= 8 * sizeof(GLbitfield));
-
    /* shader-related checks */
    assert(ctx->Const.FragmentProgram.MaxLocalParams <= MAX_PROGRAM_LOCAL_PARAMS);
    assert(ctx->Const.VertexProgram.MaxLocalParams <= MAX_PROGRAM_LOCAL_PARAMS);
 
    /* Texture unit checks */
-   assert(ctx->Const.MaxTextureImageUnits > 0);
-   assert(ctx->Const.MaxTextureImageUnits <= MAX_TEXTURE_IMAGE_UNITS);
+   assert(ctx->Const.FragmentProgram.MaxTextureImageUnits > 0);
+   assert(ctx->Const.FragmentProgram.MaxTextureImageUnits <= MAX_TEXTURE_IMAGE_UNITS);
    assert(ctx->Const.MaxTextureCoordUnits > 0);
    assert(ctx->Const.MaxTextureCoordUnits <= MAX_TEXTURE_COORD_UNITS);
    assert(ctx->Const.MaxTextureUnits > 0);
    assert(ctx->Const.MaxTextureUnits <= MAX_TEXTURE_IMAGE_UNITS);
    assert(ctx->Const.MaxTextureUnits <= MAX_TEXTURE_COORD_UNITS);
-   assert(ctx->Const.MaxTextureUnits == MIN2(ctx->Const.MaxTextureImageUnits,
+   assert(ctx->Const.MaxTextureUnits == MIN2(ctx->Const.FragmentProgram.MaxTextureImageUnits,
                                              ctx->Const.MaxTextureCoordUnits));
    assert(ctx->Const.MaxCombinedTextureImageUnits > 0);
    assert(ctx->Const.MaxCombinedTextureImageUnits <= MAX_COMBINED_TEXTURE_IMAGE_UNITS);
    assert(ctx->Const.MaxTextureCoordUnits <= MAX_COMBINED_TEXTURE_IMAGE_UNITS);
    /* number of coord units cannot be greater than number of image units */
-   assert(ctx->Const.MaxTextureCoordUnits <= ctx->Const.MaxTextureImageUnits);
+   assert(ctx->Const.MaxTextureCoordUnits <= ctx->Const.FragmentProgram.MaxTextureImageUnits);
 
 
    /* Texture size checks */
@@ -924,7 +919,6 @@ create_beginend_table(const struct gl_context *ctx)
    COPY_DISPATCH(MapBuffer);
    COPY_DISPATCH(UnmapBuffer);
    COPY_DISPATCH(MapBufferRange);
-   COPY_DISPATCH(MapBufferRange);
    COPY_DISPATCH(ObjectPurgeableAPPLE);
    COPY_DISPATCH(ObjectUnpurgeableAPPLE);
 
@@ -1080,6 +1074,7 @@ _mesa_initialize_context(struct gl_context *ctx,
    return GL_TRUE;
 
 fail:
+   _mesa_reference_shared_state(ctx, &ctx->Shared, NULL);
    free(ctx->BeginEnd);
    free(ctx->Exec);
    free(ctx->Save);
@@ -1180,6 +1175,7 @@ _mesa_free_context_data( struct gl_context *ctx )
    _mesa_reference_buffer_object(ctx, &ctx->Array.ArrayBufferObj, NULL);
 
    /* free dispatch tables */
+   free(ctx->BeginEnd);
    free(ctx->Exec);
    free(ctx->Save);
 
@@ -1723,18 +1719,6 @@ _mesa_Flush(void)
    _mesa_flush(ctx);
 }
 
-
-/**
- * Set mvp_with_dp4 flag.  If a driver has a preference for DP4 over
- * MUL/MAD, or vice versa, call this function to register that.
- * Otherwise we default to MUL/MAD.
- */
-void
-_mesa_set_mvp_with_dp4( struct gl_context *ctx,
-                        GLboolean flag )
-{
-   ctx->mvp_with_dp4 = flag;
-}
 
 /*
  * ARB_blend_func_extended - ERRORS section

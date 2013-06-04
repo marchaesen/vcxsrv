@@ -86,5 +86,6 @@ CallCallbacks(CallbackListPtr *pcbl, pointer call_data)
 extern _X_EXPORT void DeleteCallbackList(CallbackListPtr * /*pcbl */ );
 
 extern _X_EXPORT void InitCallbackManager(void);
+extern _X_EXPORT void DeleteCallbackManager(void);
 
 #endif                          /* CALLBACK_H */

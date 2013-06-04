@@ -17,9 +17,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 
@@ -226,8 +227,8 @@ read_buffer_enum_to_index(GLenum buffer)
  * \param buffer  buffer token such as GL_LEFT or GL_FRONT_AND_BACK, etc.
  *
  * Note that the behaviour of this function depends on whether the
- * current ctx->DrawBuffer is a window-system framebuffer (Name=0) or
- * a user-created framebuffer object (Name!=0).
+ * current ctx->DrawBuffer is a window-system framebuffer or a user-created
+ * framebuffer object.
  *   In the former case, we update the per-context ctx->Color.DrawBuffer
  *   state var _and_ the FB's ColorDrawBuffer state.
  *   In the later case, we update the FB's ColorDrawBuffer state only.
@@ -645,7 +646,6 @@ _mesa_ReadBuffer(GLenum buffer)
    /* OK, all error checking has been completed now */
 
    _mesa_readbuffer(ctx, buffer, srcBuffer);
-   ctx->NewState |= _NEW_BUFFERS;
 
    /*
     * Call device driver function.

@@ -52,6 +52,7 @@
 #endif
 
 #include "xf86.h"
+#include "xf86Modes.h"
 #include "xf86Parser.h"
 #include "xf86tokens.h"
 #include "xf86Config.h"

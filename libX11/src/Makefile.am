@@ -210,6 +210,7 @@ libX11_la_SOURCES = \
                   ParseCmd.c \
                   ParseCol.c \
                   ParseGeom.c \
+                  pathmax.h \
                   PeekEvent.c \
                   PeekIfEv.c \
                   Pending.c \

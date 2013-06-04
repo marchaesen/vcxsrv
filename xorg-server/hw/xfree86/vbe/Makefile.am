@@ -10,4 +10,5 @@ sdk_HEADERS = vbe.h vbeModes.h
 AM_CFLAGS = $(DIX_CFLAGS) $(XORG_CFLAGS)
 
 INCLUDES = $(XORG_INCS) -I$(srcdir)/../ddc -I$(srcdir)/../i2c \
+           -I$(srcdir)/../modes -I$(srcdir)/../parser \
            -I$(srcdir)/../int10

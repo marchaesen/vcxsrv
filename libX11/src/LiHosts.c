@@ -62,6 +62,8 @@ X Window System is a trademark of The Open Group.
 #include <config.h>
 #endif
 #include "Xlibint.h"
+#include <limits.h>
+
 /*
  * can be freed using XFree.
  */
@@ -73,7 +75,6 @@ XHostAddress *XListHosts (
 {
     register XHostAddress *outbuf = NULL, *op;
     xListHostsReply reply;
-    long nbytes;
     unsigned char *buf, *bp;
     register unsigned i;
     register xListHostsReq *req;
@@ -90,19 +91,26 @@ XHostAddress *XListHosts (
     }
 
     if (reply.nHosts) {
-	nbytes = reply.length << 2;	/* compute number of bytes in reply */
+	unsigned long nbytes = reply.length << 2; /* number of bytes in reply */
+	const unsigned long max_hosts = INT_MAX /
+	    (sizeof(XHostAddress) + sizeof(XServerInterpretedAddress));
 
-	op = outbuf = (XHostAddress *)
-	    Xmalloc((unsigned) (nbytes +
-	      (reply.nHosts * sizeof(XHostAddress)) +
-	      (reply.nHosts * sizeof(XServerInterpretedAddress))));
+	if (reply.nHosts < max_hosts) {
+	    unsigned long hostbytes = reply.nHosts *
+		(sizeof(XHostAddress) + sizeof(XServerInterpretedAddress));
+
+	    if (reply.length < (INT_MAX >> 2) &&
+		(hostbytes >> 2) < ((INT_MAX >> 2) - reply.length))
+		outbuf = Xmalloc(nbytes + hostbytes);
+	}
 
 	if (! outbuf) {
-	    _XEatData(dpy, (unsigned long) nbytes);
+	    _XEatDataWords(dpy, reply.length);
 	    UnlockDisplay(dpy);
 	    SyncHandle();
 	    return (XHostAddress *) NULL;
 	}
+	op = outbuf;
 	sip = (XServerInterpretedAddress *)
 	 (((unsigned char  *) outbuf) + (reply.nHosts * sizeof(XHostAddress)));
 	bp = buf = ((unsigned char  *) sip)

@@ -541,7 +541,7 @@ store_tfeedback_info(struct gl_context *ctx, struct gl_shader_program *prog,
 class varying_matches
 {
 public:
-   varying_matches(bool disable_varying_packing);
+   varying_matches(bool disable_varying_packing, bool consumer_is_fs);
    ~varying_matches();
    void record(ir_variable *producer_var, ir_variable *consumer_var);
    unsigned assign_locations();
@@ -621,11 +621,15 @@ private:
     * it was allocated.
     */
    unsigned matches_capacity;
+
+   const bool consumer_is_fs;
 };
 
 
-varying_matches::varying_matches(bool disable_varying_packing)
-   : disable_varying_packing(disable_varying_packing)
+varying_matches::varying_matches(bool disable_varying_packing,
+                                 bool consumer_is_fs)
+   : disable_varying_packing(disable_varying_packing),
+     consumer_is_fs(consumer_is_fs)
 {
    /* Note: this initial capacity is rather arbitrarily chosen to be large
     * enough for many cases without wasting an unreasonable amount of space.
@@ -656,6 +660,10 @@ varying_matches::~varying_matches()
  * If \c producer_var has already been paired up with a consumer_var, or
  * producer_var is part of fixed pipeline functionality (and hence already has
  * a location assigned), this function has no effect.
+ *
+ * Note: as a side effect this function may change the interpolation type of
+ * \c producer_var, but only when the change couldn't possibly affect
+ * rendering.
  */
 void
 varying_matches::record(ir_variable *producer_var, ir_variable *consumer_var)
@@ -666,6 +674,25 @@ varying_matches::record(ir_variable *producer_var, ir_variable *consumer_var)
        * previous match.
        */
       return;
+   }
+
+   if ((consumer_var == NULL && producer_var->type->contains_integer()) ||
+       !consumer_is_fs) {
+      /* Since this varying is not being consumed by the fragment shader, its
+       * interpolation type varying cannot possibly affect rendering.  Also,
+       * this variable is non-flat and is (or contains) an integer.
+       *
+       * lower_packed_varyings requires all integer varyings to flat,
+       * regardless of where they appear.  We can trivially satisfy that
+       * requirement by changing the interpolation type to flat here.
+       */
+      producer_var->centroid = false;
+      producer_var->interpolation = INTERP_QUALIFIER_FLAT;
+
+      if (consumer_var) {
+         consumer_var->centroid = false;
+         consumer_var->interpolation = INTERP_QUALIFIER_FLAT;
+      }
    }
 
    if (this->num_matches == this->matches_capacity) {
@@ -960,10 +987,13 @@ assign_varying_locations(struct gl_context *ctx,
 {
    const unsigned producer_base = VARYING_SLOT_VAR0;
    const unsigned consumer_base = VARYING_SLOT_VAR0;
-   varying_matches matches(ctx->Const.DisableVaryingPacking);
+   varying_matches matches(ctx->Const.DisableVaryingPacking,
+                           consumer && consumer->Type == GL_FRAGMENT_SHADER);
    hash_table *tfeedback_candidates
       = hash_table_ctor(0, hash_table_string_hash, hash_table_string_compare);
    hash_table *consumer_inputs
+      = hash_table_ctor(0, hash_table_string_hash, hash_table_string_compare);
+   hash_table *consumer_interface_inputs
       = hash_table_ctor(0, hash_table_string_hash, hash_table_string_compare);
 
    /* Operate in a total of three passes.
@@ -983,8 +1013,17 @@ assign_varying_locations(struct gl_context *ctx,
             ((ir_instruction *) node)->as_variable();
 
          if ((input_var != NULL) && (input_var->mode == ir_var_shader_in)) {
-            hash_table_insert(consumer_inputs, input_var,
-                              ralloc_strdup(mem_ctx, input_var->name));
+            if (input_var->interface_type != NULL) {
+               char *const iface_field_name =
+                  ralloc_asprintf(mem_ctx, "%s.%s",
+                                  input_var->interface_type->name,
+                                  input_var->name);
+               hash_table_insert(consumer_interface_inputs, input_var,
+                                 iface_field_name);
+            } else {
+               hash_table_insert(consumer_inputs, input_var,
+                                 ralloc_strdup(mem_ctx, input_var->name));
+            }
          }
       }
    }
@@ -998,8 +1037,19 @@ assign_varying_locations(struct gl_context *ctx,
       tfeedback_candidate_generator g(mem_ctx, tfeedback_candidates);
       g.process(output_var);
 
-      ir_variable *input_var =
-         (ir_variable *) hash_table_find(consumer_inputs, output_var->name);
+      ir_variable *input_var;
+      if (output_var->interface_type != NULL) {
+         char *const iface_field_name =
+            ralloc_asprintf(mem_ctx, "%s.%s",
+                            output_var->interface_type->name,
+                            output_var->name);
+         input_var =
+            (ir_variable *) hash_table_find(consumer_interface_inputs,
+                                            iface_field_name);
+      } else {
+         input_var =
+            (ir_variable *) hash_table_find(consumer_inputs, output_var->name);
+      }
 
       if (input_var && input_var->mode != ir_var_shader_in)
          input_var = NULL;
@@ -1019,6 +1069,7 @@ assign_varying_locations(struct gl_context *ctx,
       if (matched_candidate == NULL) {
          hash_table_dtor(tfeedback_candidates);
          hash_table_dtor(consumer_inputs);
+         hash_table_dtor(consumer_interface_inputs);
          return false;
       }
 
@@ -1036,12 +1087,14 @@ assign_varying_locations(struct gl_context *ctx,
       if (!tfeedback_decls[i].assign_location(ctx, prog)) {
          hash_table_dtor(tfeedback_candidates);
          hash_table_dtor(consumer_inputs);
+         hash_table_dtor(consumer_interface_inputs);
          return false;
       }
    }
 
    hash_table_dtor(tfeedback_candidates);
    hash_table_dtor(consumer_inputs);
+   hash_table_dtor(consumer_interface_inputs);
 
    if (ctx->Const.DisableVaryingPacking) {
       /* Transform feedback code assumes varyings are packed, so if the driver

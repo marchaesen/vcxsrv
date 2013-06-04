@@ -938,6 +938,12 @@ link_intrastage_shaders(void *mem_ctx,
    if (!cross_validate_globals(prog, shader_list, num_shaders, false))
       return NULL;
 
+   /* Check that interface blocks defined in multiple shaders are consistent.
+    */
+   if (!validate_intrastage_interface_blocks((const gl_shader **)shader_list,
+                                             num_shaders))
+      return NULL;
+
    /* Check that uniform blocks between shaders for a stage agree. */
    const int num_uniform_blocks =
       link_uniform_blocks(mem_ctx, prog, shader_list, num_shaders,
@@ -1512,15 +1518,15 @@ check_resources(struct gl_context *ctx, struct gl_shader_program *prog)
    };
 
    const unsigned max_samplers[MESA_SHADER_TYPES] = {
-      ctx->Const.MaxVertexTextureImageUnits,
-      ctx->Const.MaxTextureImageUnits,
-      ctx->Const.MaxGeometryTextureImageUnits
+      ctx->Const.VertexProgram.MaxTextureImageUnits,
+      ctx->Const.FragmentProgram.MaxTextureImageUnits,
+      ctx->Const.GeometryProgram.MaxTextureImageUnits
    };
 
    const unsigned max_uniform_components[MESA_SHADER_TYPES] = {
       ctx->Const.VertexProgram.MaxUniformComponents,
       ctx->Const.FragmentProgram.MaxUniformComponents,
-      0          /* FINISHME: Geometry shaders. */
+      ctx->Const.GeometryProgram.MaxUniformComponents
    };
 
    const unsigned max_uniform_blocks[MESA_SHADER_TYPES] = {
@@ -1722,6 +1728,12 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
 	 if (prog->_LinkedShaders[i] == NULL)
 	    continue;
 
+         if (!validate_interstage_interface_blocks(prog->_LinkedShaders[prev],
+                                                   prog->_LinkedShaders[i])) {
+            linker_error(prog, "interface block mismatch between shader stages\n");
+            goto done;
+         }
+
 	 if (!cross_validate_outputs_to_inputs(prog,
 					       prog->_LinkedShaders[prev],
 					       prog->_LinkedShaders[i]))
@@ -1731,6 +1743,12 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       }
 
       prog->LinkStatus = true;
+   }
+
+
+   for (unsigned int i = 0; i < MESA_SHADER_TYPES; i++) {
+      if (prog->_LinkedShaders[i] != NULL)
+         lower_named_interface_blocks(mem_ctx, prog->_LinkedShaders[i]);
    }
 
    /* Implement the GLSL 1.30+ rule for discard vs infinite loops Do
@@ -1767,7 +1785,7 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
 
       unsigned max_unroll = ctx->ShaderCompilerOptions[i].MaxUnrollIterations;
 
-      while (do_common_optimization(prog->_LinkedShaders[i]->ir, true, false, max_unroll))
+      while (do_common_optimization(prog->_LinkedShaders[i]->ir, true, false, max_unroll, &ctx->ShaderCompilerOptions[i]))
 	 ;
    }
 

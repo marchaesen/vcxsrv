@@ -22,9 +22,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 
@@ -122,11 +123,6 @@ _mesa_PointParameterfv( GLenum pname, const GLfloat *params)
          ctx->Point._Attenuated = (ctx->Point.Params[0] != 1.0 ||
                                    ctx->Point.Params[1] != 0.0 ||
                                    ctx->Point.Params[2] != 0.0);
-
-         if (ctx->Point._Attenuated)
-            ctx->_TriangleCaps |= DD_POINT_ATTEN;
-         else
-            ctx->_TriangleCaps &= ~DD_POINT_ATTEN;
          break;
       case GL_POINT_SIZE_MIN_EXT:
          if (params[0] < 0.0F) {

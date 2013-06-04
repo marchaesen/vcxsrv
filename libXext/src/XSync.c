@@ -59,6 +59,8 @@ PERFORMANCE OF THIS SOFTWARE.
 #include <X11/extensions/extutil.h>
 #include <X11/extensions/sync.h>
 #include <X11/extensions/syncproto.h>
+#include <limits.h>
+#include "eat.h"
 
 static XExtensionInfo _sync_info_data;
 static XExtensionInfo *sync_info = &_sync_info_data;
@@ -351,20 +353,29 @@ XSyncListSystemCounters(Display *dpy, int *n_counters_return)
     if (rep.nCounters > 0)
     {
 	xSyncSystemCounter *pWireSysCounter, *pNextWireSysCounter;
+	xSyncSystemCounter *pLastWireSysCounter;
 	XSyncCounter counter;
-	int replylen;
+	unsigned int replylen;
 	int i;
 
-	list = Xmalloc(rep.nCounters * sizeof(XSyncSystemCounter));
-	replylen = rep.length << 2;
-	pWireSysCounter = Xmalloc ((unsigned) replylen + sizeof(XSyncCounter));
-        /* +1 to leave room for last counter read-ahead */
+	if (rep.nCounters < (INT_MAX / sizeof(XSyncSystemCounter)))
+	    list = Xmalloc(rep.nCounters * sizeof(XSyncSystemCounter));
+	if (rep.length < (INT_MAX >> 2)) {
+	    replylen = rep.length << 2;
+	    pWireSysCounter = Xmalloc (replylen + sizeof(XSyncCounter));
+	    /* +1 to leave room for last counter read-ahead */
+	    pLastWireSysCounter = (xSyncSystemCounter *)
+		((char *)pWireSysCounter) + replylen;
+	} else {
+	    replylen = 0;
+	    pWireSysCounter = NULL;
+	}
 
 	if ((!list) || (!pWireSysCounter))
 	{
-	    if (list) Xfree((char *) list);
-	    if (pWireSysCounter)   Xfree((char *) pWireSysCounter);
-	    _XEatData(dpy, (unsigned long) replylen);
+	    Xfree(list);
+	    Xfree(pWireSysCounter);
+	    _XEatDataWords(dpy, rep.length);
 	    list = NULL;
 	    goto bail;
 	}
@@ -387,6 +398,14 @@ XSyncListSystemCounters(Display *dpy, int *n_counters_return)
 	    pNextWireSysCounter = (xSyncSystemCounter *)
 		(((char *)pWireSysCounter) + ((SIZEOF(xSyncSystemCounter) +
 				     pWireSysCounter->name_length + 3) & ~3));
+	    /* Make sure we haven't gone too far */
+	    if (pNextWireSysCounter > pLastWireSysCounter) {
+		Xfree(list);
+		Xfree(pWireSysCounter);
+		list = NULL;
+		goto bail;
+	    }
+
 	    counter = pNextWireSysCounter->counter;
 
 	    list[i].name = ((char *)pWireSysCounter) +

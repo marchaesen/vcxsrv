@@ -645,8 +645,10 @@ __glXDRIscreenCreateContext(__GLXscreen * baseScreen,
     for (i = 0; i < pScreen->numVisuals; i++, visual++)
         if (visual->vid == glxConfig->visualID)
             break;
-    if (i == pScreen->numVisuals)
+    if (i == pScreen->numVisuals) {
+        free(context);
         return NULL;
+    }
 
     context->hwContextID = FakeClientID(0);
 
@@ -655,8 +657,10 @@ __glXDRIscreenCreateContext(__GLXscreen * baseScreen,
                               context->hwContextID, &hwContext);
     __glXleaveServer(GL_FALSE);
 
-    if (!retval)
+    if (!retval) {
+        free(context);
         return NULL;
+    }
 
     context->driContext = screen->legacy->createNewContext(screen->driScreen, config->driConfig, 0,     /* render type */
                                                            driShare,
@@ -885,7 +889,7 @@ glxDRILeaveVT(ScrnInfoPtr scrn)
     __GLXDRIscreen *screen = (__GLXDRIscreen *)
         glxGetScreen(xf86ScrnToScreen(scrn));
 
-    LogMessage(X_INFO, "AIGLX: Suspending AIGLX clients for VT switch\n");
+    LogMessageVerbSigSafe(X_INFO, -1, "AIGLX: Suspending AIGLX clients for VT switch\n");
 
     glxSuspendClients();
 

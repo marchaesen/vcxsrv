@@ -95,8 +95,7 @@ InsertEdgeInET(
     {
         if (*iSLLBlock > SLLSPERBLOCK-1)
         {
-            tmpSLLBlock =
-		  (ScanLineListBlock *)Xmalloc(sizeof(ScanLineListBlock));
+            tmpSLLBlock = Xmalloc(sizeof(ScanLineListBlock));
             (*SLLBlock)->next = tmpSLLBlock;
             tmpSLLBlock->next = (ScanLineListBlock *)NULL;
             *SLLBlock = tmpSLLBlock;
@@ -410,8 +409,7 @@ static int PtsToRegion(
 
     numRects = ((numFullPtBlocks * NUMPTSTOBUFFER) + iCurPtBlock) >> 1;
 
-    if (!(reg->rects = (BOX *)Xrealloc((char *)reg->rects,
-	    (unsigned) (sizeof(BOX) * numRects))))  {
+    if (!(reg->rects = Xrealloc(reg->rects, sizeof(BOX) * numRects))) {
 	Xfree(prevRects);
 	return(0);
     }
@@ -521,8 +519,7 @@ XPolygonRegion(
 
     if (Count < 2) return region;
 
-    if (! (pETEs = (EdgeTableEntry *)
-	   Xmalloc((unsigned) (sizeof(EdgeTableEntry) * Count)))) {
+    if (! (pETEs = Xmalloc(sizeof(EdgeTableEntry) * Count))) {
 	XDestroyRegion(region);
 	return (Region) NULL;
     }
@@ -559,7 +556,7 @@ XPolygonRegion(
                  *  send out the buffer
                  */
                 if (iPts == NUMPTSTOBUFFER) {
-                    tmpPtBlock = (POINTBLOCK *)Xmalloc(sizeof(POINTBLOCK));
+                    tmpPtBlock = Xmalloc(sizeof(POINTBLOCK));
                     curPtBlock->next = tmpPtBlock;
                     curPtBlock = tmpPtBlock;
                     pts = curPtBlock->pts;
@@ -605,7 +602,7 @@ XPolygonRegion(
                      *  send out the buffer
                      */
                     if (iPts == NUMPTSTOBUFFER) {
-                        tmpPtBlock = (POINTBLOCK *)Xmalloc(sizeof(POINTBLOCK));
+                        tmpPtBlock = Xmalloc(sizeof(POINTBLOCK));
                         curPtBlock->next = tmpPtBlock;
                         curPtBlock = tmpPtBlock;
                         pts = curPtBlock->pts;

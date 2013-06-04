@@ -128,7 +128,6 @@ winCopyWindowNativeGDI(WindowPtr pWin, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
     BoxPtr pBox;
     int dx, dy;
     int i, nbox;
-    WindowPtr pwinRoot;
     BoxPtr pBoxDst;
     ScreenPtr pScreen = pWin->drawable.pScreen;
 
@@ -137,9 +136,6 @@ winCopyWindowNativeGDI(WindowPtr pWin, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
 #if 0
     ErrorF("winCopyWindow\n");
 #endif
-
-    /* Get a pointer to the root window */
-    pwinRoot = pWin->drawable.pScreen->root;
 
     /* Create a region for the destination */
     prgnDst = RegionCreate(NULL, 1);

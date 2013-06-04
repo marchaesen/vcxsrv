@@ -17,9 +17,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 
@@ -46,10 +47,6 @@ _mesa_ClearIndex( GLfloat c )
 {
    GET_CURRENT_CONTEXT(ctx);
 
-   if (ctx->Color.ClearIndex == (GLuint) c)
-      return;
-
-   FLUSH_VERTICES(ctx, _NEW_COLOR);
    ctx->Color.ClearIndex = (GLuint) c;
 }
 
@@ -71,19 +68,12 @@ _mesa_ClearIndex( GLfloat c )
 void GLAPIENTRY
 _mesa_ClearColor( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha )
 {
-   GLfloat tmp[4];
    GET_CURRENT_CONTEXT(ctx);
 
-   tmp[0] = red;
-   tmp[1] = green;
-   tmp[2] = blue;
-   tmp[3] = alpha;
-
-   if (TEST_EQ_4V(tmp, ctx->Color.ClearColor.f))
-      return; /* no change */
-
-   FLUSH_VERTICES(ctx, _NEW_COLOR);
-   COPY_4V(ctx->Color.ClearColor.f, tmp);
+   ctx->Color.ClearColor.f[0] = red;
+   ctx->Color.ClearColor.f[1] = green;
+   ctx->Color.ClearColor.f[2] = blue;
+   ctx->Color.ClearColor.f[3] = alpha;
 }
 
 
@@ -93,19 +83,12 @@ _mesa_ClearColor( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha )
 void GLAPIENTRY
 _mesa_ClearColorIiEXT(GLint r, GLint g, GLint b, GLint a)
 {
-   GLint tmp[4];
    GET_CURRENT_CONTEXT(ctx);
 
-   tmp[0] = r;
-   tmp[1] = g;
-   tmp[2] = b;
-   tmp[3] = a;
-
-   if (TEST_EQ_4V(tmp, ctx->Color.ClearColor.i))
-      return; /* no change */
-
-   FLUSH_VERTICES(ctx, _NEW_COLOR);
-   COPY_4V(ctx->Color.ClearColor.i, tmp);
+   ctx->Color.ClearColor.i[0] = r;
+   ctx->Color.ClearColor.i[1] = g;
+   ctx->Color.ClearColor.i[2] = b;
+   ctx->Color.ClearColor.i[3] = a;
 }
 
 
@@ -115,19 +98,12 @@ _mesa_ClearColorIiEXT(GLint r, GLint g, GLint b, GLint a)
 void GLAPIENTRY
 _mesa_ClearColorIuiEXT(GLuint r, GLuint g, GLuint b, GLuint a)
 {
-   GLuint tmp[4];
    GET_CURRENT_CONTEXT(ctx);
 
-   tmp[0] = r;
-   tmp[1] = g;
-   tmp[2] = b;
-   tmp[3] = a;
-
-   if (TEST_EQ_4V(tmp, ctx->Color.ClearColor.ui))
-      return; /* no change */
-
-   FLUSH_VERTICES(ctx, _NEW_COLOR);
-   COPY_4V(ctx->Color.ClearColor.ui, tmp);
+   ctx->Color.ClearColor.ui[0] = r;
+   ctx->Color.ClearColor.ui[1] = g;
+   ctx->Color.ClearColor.ui[2] = b;
+   ctx->Color.ClearColor.ui[3] = a;
 }
 
 

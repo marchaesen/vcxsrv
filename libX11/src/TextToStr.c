@@ -72,10 +72,10 @@ Status XTextPropertyToStringList (
     /*
      * allocate list and duplicate
      */
-    list = (char **) Xmalloc (nelements * sizeof (char *));
+    list = Xmalloc (nelements * sizeof (char *));
     if (!list) return False;
 
-    start = (char *) Xmalloc ((datalen + 1) * sizeof (char));	/* for <NUL> */
+    start = Xmalloc ((datalen + 1) * sizeof (char));	/* for <NUL> */
     if (!start) {
 	Xfree ((char *) list);
 	return False;

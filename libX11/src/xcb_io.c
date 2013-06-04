@@ -19,6 +19,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #endif
@@ -755,5 +756,21 @@ void _XReadPad(Display *dpy, char *data, long size)
 void _XEatData(Display *dpy, unsigned long n)
 {
 	dpy->xcb->reply_consumed += n;
+	_XFreeReplyData(dpy, False);
+}
+
+/*
+ * Read and discard "n" 32-bit words of data
+ * Matches the units of the length field in X protocol replies, and provides
+ * a single implementation of overflow checking to avoid having to replicate
+ * those checks in every caller.
+ */
+void _XEatDataWords(Display *dpy, unsigned long n)
+{
+	if (n < ((INT_MAX - dpy->xcb->reply_consumed) >> 2))
+		dpy->xcb->reply_consumed += (n << 2);
+	else
+		/* Overflow would happen, so just eat the rest of the reply */
+		dpy->xcb->reply_consumed = dpy->xcb->reply_length;
 	_XFreeReplyData(dpy, False);
 }

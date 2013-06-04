@@ -17,9 +17,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 
@@ -40,6 +41,7 @@
 #include "main/texgetimage.h"
 #include "main/teximage.h"
 #include "main/texobj.h"
+#include "main/texstorage.h"
 #include "main/texstore.h"
 #include "main/bufferobj.h"
 #include "main/fbobject.h"
@@ -209,7 +211,7 @@ _mesa_init_driver_functions(struct dd_function_table *driver)
    driver->EndCallList = NULL;
 
    /* GL_ARB_texture_storage */
-   driver->AllocTextureStorage = _swrast_AllocTextureStorage;
+   driver->AllocTextureStorage = _mesa_alloc_texture_storage;
 
    /* GL_ARB_texture_multisample */
    driver->GetSamplePosition = NULL;

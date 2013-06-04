@@ -156,8 +156,8 @@ XvExtensionInit(void)
     if (!dixRegisterPrivateKey(&XvScreenKeyRec, PRIVATE_SCREEN, 0))
         return;
 
-    /* LOOK TO SEE IF ANY SCREENS WERE INITIALIZED; IF NOT THEN
-       INIT GLOBAL VARIABLES SO THE EXTENSION CAN FUNCTION */
+    /* Look to see if any screens were initialized; if not then
+       init global variables so the extension can function */
     if (XvScreenGeneration != serverGeneration) {
         if (!CreateResourceTypes()) {
             ErrorF("XvExtensionInit: Unable to allocate resource types\n");

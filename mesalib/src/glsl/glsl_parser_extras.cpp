@@ -93,9 +93,9 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    this->Const.MaxVertexAttribs = ctx->Const.VertexProgram.MaxAttribs;
    this->Const.MaxVertexUniformComponents = ctx->Const.VertexProgram.MaxUniformComponents;
    this->Const.MaxVaryingFloats = ctx->Const.MaxVarying * 4;
-   this->Const.MaxVertexTextureImageUnits = ctx->Const.MaxVertexTextureImageUnits;
+   this->Const.MaxVertexTextureImageUnits = ctx->Const.VertexProgram.MaxTextureImageUnits;
    this->Const.MaxCombinedTextureImageUnits = ctx->Const.MaxCombinedTextureImageUnits;
-   this->Const.MaxTextureImageUnits = ctx->Const.MaxTextureImageUnits;
+   this->Const.MaxTextureImageUnits = ctx->Const.FragmentProgram.MaxTextureImageUnits;
    this->Const.MaxFragmentUniformComponents = ctx->Const.FragmentProgram.MaxUniformComponents;
    this->Const.MinProgramTexelOffset = ctx->Const.MinProgramTexelOffset;
    this->Const.MaxProgramTexelOffset = ctx->Const.MaxProgramTexelOffset;
@@ -468,6 +468,8 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(ARB_shading_language_packing,   true,  false, true,  true,  false,     ARB_shading_language_packing),
    EXT(ARB_texture_multisample,        true,  false, true,  true,  false,     ARB_texture_multisample),
    EXT(ARB_texture_query_lod,          false, false, true,  true,  false,     ARB_texture_query_lod),
+   EXT(ARB_gpu_shader5,                true,  true,  true,  true,  false,     ARB_gpu_shader5),
+   EXT(AMD_vertex_shader_layer,        true,  false, false, true,  false,     AMD_vertex_shader_layer),
 };
 
 #undef EXT
@@ -1202,11 +1204,13 @@ ast_struct_specifier::ast_struct_specifier(const char *identifier,
  * \param max_unroll_iterations       Maximum number of loop iterations to be
  *                                    unrolled.  Setting to 0 disables loop
  *                                    unrolling.
+ * \param options                     The driver's preferred shader options.
  */
 bool
 do_common_optimization(exec_list *ir, bool linked,
 		       bool uniform_locations_assigned,
-		       unsigned max_unroll_iterations)
+		       unsigned max_unroll_iterations,
+                       const struct gl_shader_compiler_options *options)
 {
    GLboolean progress = GL_FALSE;
 
@@ -1221,6 +1225,10 @@ do_common_optimization(exec_list *ir, bool linked,
    progress = opt_flatten_nested_if_blocks(ir) || progress;
    progress = do_copy_propagation(ir) || progress;
    progress = do_copy_propagation_elements(ir) || progress;
+
+   if (options->PreferDP4 && !linked)
+      progress = opt_flip_matrices(ir) || progress;
+
    if (linked)
       progress = do_dead_code(ir, uniform_locations_assigned) || progress;
    else
@@ -1236,6 +1244,7 @@ do_common_optimization(exec_list *ir, bool linked,
    progress = do_algebraic(ir) || progress;
    progress = do_lower_jumps(ir) || progress;
    progress = do_vec_index_to_swizzle(ir) || progress;
+   progress = lower_vector_insert(ir, false) || progress;
    progress = do_swizzle_swizzle(ir) || progress;
    progress = do_noop_swizzle(ir) || progress;
 

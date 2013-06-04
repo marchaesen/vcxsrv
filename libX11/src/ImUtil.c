@@ -332,7 +332,7 @@ XImage *XCreateImage (
 	    (xpad != 8 && xpad != 16 && xpad != 32) ||
 	    offset < 0)
 	    return (XImage *) NULL;
-	if ((image = (XImage *) Xcalloc(1, (unsigned) sizeof(XImage))) == NULL)
+	if ((image = Xcalloc(1, sizeof(XImage))) == NULL)
 	    return (XImage *) NULL;
 
 	image->width = width;
@@ -842,7 +842,7 @@ static XImage *_XSubImage (
 	register unsigned long pixel;
 	char *data;
 
-	if ((subimage = (XImage *) Xcalloc (1, sizeof (XImage))) == NULL)
+	if ((subimage = Xcalloc (1, sizeof (XImage))) == NULL)
 	    return (XImage *) NULL;
 	subimage->width = width;
 	subimage->height = height;
@@ -868,7 +868,7 @@ static XImage *_XSubImage (
 	_XInitImageFuncPtrs (subimage);
 	dsize = subimage->bytes_per_line * height;
 	if (subimage->format == XYPixmap) dsize = dsize * subimage->depth;
-	if (((data = Xcalloc (1, (unsigned) dsize)) == NULL) && (dsize > 0)) {
+	if (((data = Xcalloc (1, dsize)) == NULL) && (dsize > 0)) {
 	    Xfree((char *) subimage);
 	    return (XImage *) NULL;
 	}

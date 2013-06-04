@@ -818,8 +818,13 @@ FcFontSetSerialize (FcSerialize *serialize, const FcFontSet * s);
 FcPrivate FcChar8 *
 FcHashGetSHA256Digest (const FcChar8 *input_strings,
 		       size_t         len);
+
 FcPrivate FcChar8 *
 FcHashGetSHA256DigestFromFile (const FcChar8 *filename);
+
+FcPrivate FcChar8 *
+FcHashGetSHA256DigestFromMemory (const char *fontdata,
+				 size_t      length);
 
 /* fcinit.c */
 FcPrivate FcConfig *
@@ -1083,6 +1088,10 @@ FcStrContainsWord (const FcChar8 *s1, const FcChar8 *s2);
 
 FcPrivate int
 FcStrMatchIgnoreCaseAndDelims (const FcChar8 *s1, const FcChar8 *s2, const FcChar8 *delims);
+
+FcPrivate FcBool
+FcStrGlobMatch (const FcChar8 *glob,
+		const FcChar8 *string);
 
 FcPrivate FcBool
 FcStrUsesHome (const FcChar8 *s);

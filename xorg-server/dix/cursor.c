@@ -114,8 +114,12 @@ FreeCursor(pointer value, XID cid)
     ScreenPtr pscr;
     DeviceIntPtr pDev = NULL;   /* unused anyway */
 
-    if (--pCurs->refcnt != 0)
+
+    UnrefCursor(pCurs);
+    if (CursorRefCount(pCurs) != 0)
         return Success;
+
+    BUG_WARN(CursorRefCount(pCurs) < 0);
 
     for (nscr = 0; nscr < screenInfo.numScreens; nscr++) {
         pscr = screenInfo.screens[nscr];
@@ -126,6 +130,29 @@ FreeCursor(pointer value, XID cid)
     free(pCurs);
     return Success;
 }
+
+CursorPtr
+RefCursor(CursorPtr cursor)
+{
+    if (cursor)
+        cursor->refcnt++;
+    return cursor;
+}
+
+CursorPtr
+UnrefCursor(CursorPtr cursor)
+{
+    if (cursor)
+        cursor->refcnt--;
+    return cursor;
+}
+
+int
+CursorRefCount(const CursorPtr cursor)
+{
+    return cursor ? cursor->refcnt : 0;
+}
+
 
 /*
  * We check for empty cursors so that we won't have to display them

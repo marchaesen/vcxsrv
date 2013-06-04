@@ -60,6 +60,14 @@ link_uniform_blocks(void *mem_ctx,
                     unsigned num_shaders,
                     struct gl_uniform_block **blocks_ret);
 
+bool
+validate_intrastage_interface_blocks(const gl_shader **shader_list,
+                                     unsigned num_shaders);
+
+bool
+validate_interstage_interface_blocks(const gl_shader *producer,
+                                     const gl_shader *consumer);
+
 /**
  * Class for processing all of the leaf fields of a variable that corresponds
  * to a program resource.

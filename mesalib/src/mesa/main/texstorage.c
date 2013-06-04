@@ -16,9 +16,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
- * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 
@@ -34,7 +35,6 @@
 #include "enums.h"
 #include "imports.h"
 #include "macros.h"
-#include "mfeatures.h"
 #include "teximage.h"
 #include "texobj.h"
 #include "texstorage.h"
@@ -243,6 +243,36 @@ _mesa_is_legal_tex_storage_format(struct gl_context *ctx, GLenum internalformat)
    default:
       return _mesa_base_tex_format(ctx, internalformat) > 0;
    }
+}
+
+/**
+ * Default ctx->Driver.AllocTextureStorage() handler.
+ *
+ * The driver can override this with a more specific implementation if it
+ * desires, but this can be used to get the texture images allocated using the
+ * usual texture image handling code.  The immutability of
+ * GL_ARB_texture_storage texture layouts is handled by texObj->Immutable
+ * checks at glTexImage* time.
+ */
+GLboolean
+_mesa_alloc_texture_storage(struct gl_context *ctx,
+                            struct gl_texture_object *texObj,
+                            GLsizei levels, GLsizei width,
+                            GLsizei height, GLsizei depth)
+{
+   const int numFaces = _mesa_num_tex_faces(texObj->Target);
+   int face;
+   int level;
+
+   for (face = 0; face < numFaces; face++) {
+      for (level = 0; level < levels; level++) {
+         struct gl_texture_image *const texImage = texObj->Image[face][level];
+         if (!ctx->Driver.AllocTextureImageBuffer(ctx, texImage))
+            return GL_FALSE;
+      }
+   }
+
+   return GL_TRUE;
 }
 
 

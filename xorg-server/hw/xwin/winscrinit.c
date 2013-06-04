@@ -259,7 +259,6 @@ winFinishScreenInitFB(int i, ScreenPtr pScreen, int argc, char **argv)
     winScreenPriv(pScreen);
     winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
     VisualPtr pVisual = NULL;
-    char *pbits = NULL;
 
 #if defined(XWIN_CLIPBOARD) || defined(XWIN_MULTIWINDOW)
     int iReturn;
@@ -292,9 +291,6 @@ winFinishScreenInitFB(int i, ScreenPtr pScreen, int argc, char **argv)
         ErrorF("winFinishScreenInitFB - winInitVisuals failed\n");
         return FALSE;
     }
-
-    /* Setup a local variable to point to the framebuffer */
-    pbits = pScreenInfo->pfb;
 
     /* Apparently we need this for the render extension */
     miSetPixmapDepths();

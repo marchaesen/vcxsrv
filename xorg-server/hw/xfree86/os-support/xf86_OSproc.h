@@ -223,6 +223,9 @@ extern _X_EXPORT void xf86InitVidMem(void);
 #include "hotplug.h"
 void
 xf86PlatformDeviceProbe(struct OdevAttributes *attribs);
+
+void
+xf86PlatformReprobeDevice(int index, struct OdevAttributes *attribs);
 #endif
 
 _XFUNCPROTOEND

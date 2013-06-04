@@ -43,6 +43,6 @@ FC_OBJECT (LCD_FILTER,		FcTypeInteger,	NULL)
 FC_OBJECT (NAMELANG,		FcTypeString,	NULL)
 FC_OBJECT (FONT_FEATURES,	FcTypeString,	NULL)
 FC_OBJECT (PRGNAME,		FcTypeString,	NULL)
-FC_OBJECT (HASH,		FcTypeString,	FcCompareString)
+FC_OBJECT (HASH,		FcTypeString,	FcCompareHash)
 FC_OBJECT (POSTSCRIPT_NAME,	FcTypeString,	FcComparePostScript)
 /* ^-------------- Add new objects here. */

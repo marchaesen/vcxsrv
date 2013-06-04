@@ -280,14 +280,9 @@ LookupResourceName(RESTYPE resource)
     return resources[resource] ? resources[resource] : XREGISTRY_UNKNOWN;
 }
 
-/*
- * Setup and teardown
- */
 void
-dixResetRegistry(void)
+dixFreeRegistry(void)
 {
-    ExtensionEntry extEntry = { .name = CORE };
-
     /* Free all memory */
     while (nmajor--) {
         while (nminor[nmajor])
@@ -315,9 +310,23 @@ dixResetRegistry(void)
 
     nmajor = nevent = nerror = nresource = 0;
 
+    if (fh) {
+	fclose(fh);
+        fh = NULL;
+    }
+}
+
+/*
+ * Setup and teardown
+ */
+void
+dixResetRegistry(void)
+{
+    ExtensionEntry extEntry = { .name = CORE };
+
+    dixFreeRegistry();
+
     /* Open the protocol file */
-    if (fh)
-        fclose(fh);
     fh = fopen(FILENAME, "r");
     if (!fh)
         LogMessage(X_WARNING,

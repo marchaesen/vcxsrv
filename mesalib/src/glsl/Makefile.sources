@@ -16,6 +16,7 @@ LIBGLCPP_GENERATED_FILES = \
 # libglsl
 
 LIBGLSL_FILES = \
+	$(GLSL_SRCDIR)/ast_array_index.cpp \
 	$(GLSL_SRCDIR)/ast_expr.cpp \
 	$(GLSL_SRCDIR)/ast_function.cpp \
 	$(GLSL_SRCDIR)/ast_to_hir.cpp \
@@ -45,6 +46,7 @@ LIBGLSL_FILES = \
 	$(GLSL_SRCDIR)/ir_variable_refcount.cpp \
 	$(GLSL_SRCDIR)/linker.cpp \
 	$(GLSL_SRCDIR)/link_functions.cpp \
+	$(GLSL_SRCDIR)/link_interface_blocks.cpp \
 	$(GLSL_SRCDIR)/link_uniforms.cpp \
 	$(GLSL_SRCDIR)/link_uniform_initializers.cpp \
 	$(GLSL_SRCDIR)/link_uniform_block_active_visitor.cpp \
@@ -62,12 +64,14 @@ LIBGLSL_FILES = \
 	$(GLSL_SRCDIR)/lower_mat_op_to_vec.cpp \
 	$(GLSL_SRCDIR)/lower_noise.cpp \
 	$(GLSL_SRCDIR)/lower_packed_varyings.cpp \
+	$(GLSL_SRCDIR)/lower_named_interface_blocks.cpp \
 	$(GLSL_SRCDIR)/lower_packing_builtins.cpp \
 	$(GLSL_SRCDIR)/lower_texture_projection.cpp \
 	$(GLSL_SRCDIR)/lower_variable_index_to_cond_assign.cpp \
 	$(GLSL_SRCDIR)/lower_vec_index_to_cond_assign.cpp \
 	$(GLSL_SRCDIR)/lower_vec_index_to_swizzle.cpp \
 	$(GLSL_SRCDIR)/lower_vector.cpp \
+	$(GLSL_SRCDIR)/lower_vector_insert.cpp \
 	$(GLSL_SRCDIR)/lower_output_reads.cpp \
 	$(GLSL_SRCDIR)/lower_ubo_reference.cpp \
 	$(GLSL_SRCDIR)/opt_algebraic.cpp \
@@ -81,6 +85,7 @@ LIBGLSL_FILES = \
 	$(GLSL_SRCDIR)/opt_dead_code_local.cpp \
 	$(GLSL_SRCDIR)/opt_dead_functions.cpp \
 	$(GLSL_SRCDIR)/opt_flatten_nested_if_blocks.cpp \
+	$(GLSL_SRCDIR)/opt_flip_matrices.cpp \
 	$(GLSL_SRCDIR)/opt_function_inlining.cpp \
 	$(GLSL_SRCDIR)/opt_if_simplification.cpp \
 	$(GLSL_SRCDIR)/opt_noop_swizzle.cpp \

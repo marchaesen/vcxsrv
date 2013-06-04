@@ -62,8 +62,11 @@ XdmcpAllocARRAY8 (ARRAY8Ptr array, int length)
 	return FALSE;
 
     newData = (CARD8Ptr) xmalloc(length * sizeof (CARD8));
-    if (!newData)
+    if (!newData) {
+	array->length = 0;
+	array->data = NULL;
 	return FALSE;
+    }
     array->length = (CARD16) length;
     array->data = newData;
     return TRUE;
@@ -79,8 +82,11 @@ XdmcpAllocARRAY16 (ARRAY16Ptr array, int length)
 	return FALSE;
 
     newData = (CARD16Ptr) xmalloc(length * sizeof (CARD16));
-    if (!newData)
+    if (!newData) {
+	array->length = 0;
+	array->data = NULL;
 	return FALSE;
+    }
     array->length = (CARD8) length;
     array->data = newData;
     return TRUE;
@@ -96,8 +102,11 @@ XdmcpAllocARRAY32 (ARRAY32Ptr array, int length)
 	return FALSE;
 
     newData = (CARD32Ptr) xmalloc(length * sizeof (CARD32));
-    if (!newData)
+    if (!newData) {
+	array->length = 0;
+	array->data = NULL;
 	return FALSE;
+    }
     array->length = (CARD8) length;
     array->data = newData;
     return TRUE;
@@ -113,8 +122,11 @@ XdmcpAllocARRAYofARRAY8 (ARRAYofARRAY8Ptr array, int length)
 	return FALSE;
 
     newData = (ARRAY8Ptr) xmalloc(length * sizeof (ARRAY8));
-    if (!newData)
+    if (!newData) {
+	array->length = 0;
+	array->data = NULL;
 	return FALSE;
+    }
     array->length = (CARD8) length;
     array->data = newData;
     return TRUE;
@@ -133,9 +145,7 @@ XdmcpARRAY8Equal (const ARRAY8Ptr array1, const ARRAY8Ptr array2)
 int
 XdmcpCopyARRAY8 (const ARRAY8Ptr src, ARRAY8Ptr dst)
 {
-    dst->length = src->length;
-    dst->data = (CARD8 *) xmalloc(dst->length * sizeof (CARD8));
-    if (!dst->data)
+    if (!XdmcpAllocARRAY8(dst, src->length))
 	return FALSE;
     memmove (dst->data, src->data, src->length * sizeof (CARD8));
     return TRUE;

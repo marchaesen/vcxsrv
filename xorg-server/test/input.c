@@ -1384,7 +1384,7 @@ dix_valuator_alloc(void)
 
         assert(v);
         assert(v->numAxes == num_axes);
-#if !defined(__i386__) && !defined(__sh__)
+#if !defined(__i386__) && !defined(__m68k__) && !defined(__sh__)
         /* must be double-aligned on 64 bit */
         assert(((void *) v->axisVal - (void *) v) % sizeof(double) == 0);
         assert(((void *) v->axes - (void *) v) % sizeof(double) == 0);

@@ -808,7 +808,6 @@ winMinimizeWindow(Window id)
     HWND hWnd;
     ScreenPtr pScreen = NULL;
     winPrivScreenPtr pScreenPriv = NULL;
-    winScreenInfo *pScreenInfo = NULL;
 
 #if CYGWINDOWING_DEBUG
     ErrorF("winMinimizeWindow\n");
@@ -824,11 +823,9 @@ winMinimizeWindow(Window id)
     pScreen = pWin->drawable.pScreen;
     if (pScreen)
         pScreenPriv = winGetScreenPriv(pScreen);
-    if (pScreenPriv)
-        pScreenInfo = pScreenPriv->pScreenInfo;
 
 #ifdef XWIN_MULTIWINDOWEXTWM
-    if (pScreenPriv && pScreenInfo->fInternalWM) {
+    if (pScreenPriv && pScreenPriv->pScreenInfo->fInternalWM) {
         pRLWinPriv =
             (win32RootlessWindowPtr) RootlessFrameForWindow(pWin, FALSE);
         hWnd = pRLWinPriv->hWnd;

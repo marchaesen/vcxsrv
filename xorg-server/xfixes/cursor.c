@@ -613,12 +613,12 @@ ReplaceCursorLookup(pointer value, XID id, pointer closure)
     }
     if (pCursor && pCursor != rcl->pNew) {
         if ((*rcl->testCursor) (pCursor, rcl->closure)) {
-            rcl->pNew->refcnt++;
+            CursorPtr curs = RefCursor(rcl->pNew);
             /* either redirect reference or update resource database */
             if (pCursorRef)
-                *pCursorRef = rcl->pNew;
+                *pCursorRef = curs;
             else
-                ChangeResourceValue(id, RT_CURSOR, rcl->pNew);
+                ChangeResourceValue(id, RT_CURSOR, curs);
             FreeCursor(pCursor, cursor);
         }
     }

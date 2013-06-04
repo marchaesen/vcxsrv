@@ -943,7 +943,8 @@ KdInitScreen(ScreenInfo * pScreenInfo,
 {
     KdCardInfo *card = screen->card;
 
-    (*card->cfuncs->scrinit) (screen);
+    if (!(*card->cfuncs->scrinit) (screen))
+        FatalError("Screen initialization failed!\n");
 
     if (!card->cfuncs->initAccel)
         screen->dumb = TRUE;

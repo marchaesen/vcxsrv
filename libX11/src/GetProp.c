@@ -28,6 +28,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "Xlibint.h"
+#include <limits.h>
 
 int
 XGetWindowProperty(
@@ -48,6 +49,13 @@ XGetWindowProperty(
     register xGetPropertyReq *req;
     xError error = {0};
 
+    /* Always initialize return values, in case callers fail to initialize
+       them and fail to check the return code for an error. */
+    *actual_type = None;
+    *actual_format = 0;
+    *nitems = *bytesafter = 0L;
+    *prop = (unsigned char *) NULL;
+
     LockDisplay(dpy);
     GetReq (GetProperty, req);
     req->window = w;
@@ -64,10 +72,18 @@ XGetWindowProperty(
 	return (1);	/* not Success */
 	}
 
-    *prop = (unsigned char *) NULL;
     if (reply.propertyType != None) {
-	long nbytes, netbytes;
-	switch (reply.format) {
+	unsigned long nbytes, netbytes;
+	int format = reply.format;
+
+      /*
+       * Protect against both integer overflow and just plain oversized
+       * memory allocation - no server should ever return this many props.
+       */
+	if (reply.nItems >= (INT_MAX >> 4))
+	    format = -1;	/* fall through to default error case */
+
+	switch (format) {
       /*
        * One extra byte is malloced than is needed to contain the property
        * data, but this last byte is null terminated and convenient for
@@ -76,24 +92,21 @@ XGetWindowProperty(
        */
 	  case 8:
 	    nbytes = netbytes = reply.nItems;
-	    if (nbytes + 1 > 0 &&
-		(*prop = (unsigned char *) Xmalloc ((unsigned)nbytes + 1)))
+	    if (nbytes + 1 > 0 && (*prop = Xmalloc (nbytes + 1)))
 		_XReadPad (dpy, (char *) *prop, netbytes);
 	    break;
 
 	  case 16:
 	    nbytes = reply.nItems * sizeof (short);
 	    netbytes = reply.nItems << 1;
-	    if (nbytes + 1 > 0 &&
-		(*prop = (unsigned char *) Xmalloc ((unsigned)nbytes + 1)))
+	    if (nbytes + 1 > 0 && (*prop = Xmalloc (nbytes + 1)))
 		_XRead16Pad (dpy, (short *) *prop, netbytes);
 	    break;
 
 	  case 32:
 	    nbytes = reply.nItems * sizeof (long);
 	    netbytes = reply.nItems << 2;
-	    if (nbytes + 1 > 0 &&
-		(*prop = (unsigned char *) Xmalloc ((unsigned)nbytes + 1)))
+	    if (nbytes + 1 > 0 && (*prop = Xmalloc (nbytes + 1)))
 		_XRead32 (dpy, (long *) *prop, netbytes);
 	    break;
 
@@ -115,7 +128,7 @@ XGetWindowProperty(
 	    break;
 	}
 	if (! *prop) {
-	    _XEatData(dpy, (unsigned long) netbytes);
+	    _XEatDataWords(dpy, reply.length);
 	    UnlockDisplay(dpy);
 	    SyncHandle();
 	    return(BadAlloc);	/* not Success */

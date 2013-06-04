@@ -385,6 +385,7 @@ bench_composite (char * testname,
     double                          t1, t2, t3, pix_cnt;
     int64_t                         n, l1test_width, nlines;
     double                             bytes_per_pix = 0;
+    pixman_bool_t                   bench_pixbuf = FALSE;
 
     pixman_composite_func_t func = pixman_image_composite_wrapper;
 
@@ -422,16 +423,20 @@ bench_composite (char * testname,
 
     mask_img = NULL;
     xmask_img = NULL;
+    if (strcmp (testname, "pixbuf") == 0 || strcmp (testname, "rpixbuf") == 0)
+    {
+        bench_pixbuf = TRUE;
+    }
     if (!(mask_flags & SOLID_FLAG) && mask_fmt != PIXMAN_null)
     {
         bytes_per_pix += (mask_fmt >> 24) / ((op == PIXMAN_OP_SRC) ? 8.0 : 4.0);
         mask_img = pixman_image_create_bits (mask_fmt,
                                              WIDTH, HEIGHT,
-                                             mask,
+                                             bench_pixbuf ? src : mask,
                                              WIDTH * 4);
         xmask_img = pixman_image_create_bits (mask_fmt,
                                              XWIDTH, XHEIGHT,
-                                             mask,
+                                             bench_pixbuf ? src : mask,
                                              XWIDTH * 4);
     }
     else if (mask_fmt != PIXMAN_null)
@@ -643,6 +648,8 @@ tests_tbl[] =
     { "src_0888_0565",         PIXMAN_r8g8b8,      0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_r5g6b5 },
     { "src_0888_8888",         PIXMAN_r8g8b8,      0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_a8r8g8b8 },
     { "src_0888_x888",         PIXMAN_r8g8b8,      0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_x8r8g8b8 },
+    { "src_0888_8888_rev",     PIXMAN_b8g8r8,      0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_x8r8g8b8 },
+    { "src_0888_0565_rev",     PIXMAN_b8g8r8,      0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_r5g6b5 },
     { "src_x888_x888",         PIXMAN_x8r8g8b8,    0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_x8r8g8b8 },
     { "src_x888_8888",         PIXMAN_x8r8g8b8,    0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_a8r8g8b8 },
     { "src_8888_8888",         PIXMAN_a8r8g8b8,    0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_a8r8g8b8 },
@@ -707,6 +714,8 @@ tests_tbl[] =
     { "outrev_n_8888_x888_ca", PIXMAN_a8r8g8b8,    1, PIXMAN_OP_OUT_REV, PIXMAN_a8r8g8b8, 2, PIXMAN_x8r8g8b8 },
     { "outrev_n_8888_8888_ca", PIXMAN_a8r8g8b8,    1, PIXMAN_OP_OUT_REV, PIXMAN_a8r8g8b8, 2, PIXMAN_a8r8g8b8 },
     { "over_reverse_n_8888",   PIXMAN_a8r8g8b8,    0, PIXMAN_OP_OVER_REVERSE, PIXMAN_null, 0, PIXMAN_a8r8g8b8 },
+    { "pixbuf",                PIXMAN_x8b8g8r8,    0, PIXMAN_OP_SRC,     PIXMAN_a8b8g8r8, 0, PIXMAN_a8r8g8b8 },
+    { "rpixbuf",               PIXMAN_x8b8g8r8,    0, PIXMAN_OP_SRC,     PIXMAN_a8b8g8r8, 0, PIXMAN_a8b8g8r8 },
 };
 
 int

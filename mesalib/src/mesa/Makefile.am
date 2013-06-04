@@ -23,7 +23,19 @@ if NEED_LIBDRICORE
 DRICORE_SUBDIR = libdricore
 endif
 
-SUBDIRS = program x86 x86-64 . $(DRICORE_SUBDIR) drivers
+SUBDIRS = program x86 x86-64 . $(DRICORE_SUBDIR)
+
+if HAVE_X11_DRIVER
+SUBDIRS += drivers/x11
+endif
+
+if HAVE_DRI
+SUBDIRS += drivers/dri
+endif
+
+if HAVE_OSMESA
+SUBDIRS += drivers/osmesa
+endif
 
 gldir = $(includedir)/GL
 gl_HEADERS = $(top_srcdir)/include/GL/*.h
@@ -59,14 +71,12 @@ CLEANFILES = \
 	git_sha1.h.tmp
 
 GET_HASH_GEN = main/get_hash_generator.py
-GET_HASH_GEN_FLAGS := $(patsubst -DFEATURE_%=1,-a %, \
-			$(patsubst -DFEATURE_%=0,,$(API_DEFINES)))
 
 main/get_hash.h: $(GLAPI)/gl_and_es_API.xml main/get_hash_params.py 	\
 		 $(GET_HASH_GEN) Makefile
 	$(AM_V_GEN)set -e;						\
-	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/$(GET_HASH_GEN) 		\
-		$(GET_HASH_GEN_FLAGS) -f $< > $@.tmp;			\
+	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/$(GET_HASH_GEN)		\
+		-f $< > $@.tmp;						\
 	mv $@.tmp $@;
 
 noinst_LTLIBRARIES =
@@ -81,9 +91,9 @@ endif
 
 SRCDIR = $(top_srcdir)/src/mesa/
 BUILDDIR = $(top_builddir)/src/mesa/
-include sources.mak
+include Makefile.sources
 
-AM_CPPFLAGS = $(API_DEFINES) $(DEFINES) $(INCLUDE_DIRS)
+AM_CPPFLAGS = $(DEFINES) $(INCLUDE_DIRS)
 AM_CFLAGS = $(LLVM_CFLAGS) $(VISIBILITY_CFLAGS)
 AM_CXXFLAGS = $(LLVM_CFLAGS) $(VISIBILITY_CXXFLAGS)
 
