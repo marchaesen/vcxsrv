@@ -704,6 +704,8 @@ class CMyWizard : public CWizard
                 buffer += "-noclipboardprimary ";
             if (config.wgl)
                 buffer += "-wgl ";
+            else
+                buffer += "-nowgl ";
             if (config.disableac)
                 buffer += "-ac ";
             if (!config.extra_params.empty())
