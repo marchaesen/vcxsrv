@@ -179,6 +179,7 @@ _glapi_set_dispatch(struct _glapi_table *dispatch)
 #else /*THREADS*/
         _glapi_Dispatch = dispatch;
 #endif /*THREADS*/
+   _mesa_init_remap_table();
 }
 
 /**

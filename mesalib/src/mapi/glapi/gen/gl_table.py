@@ -157,7 +157,7 @@ class PrintRemapTable(gl_XML.gl_print_base):
             remap_table = "driDispatchRemapTable"
 
             print '#define %s_size %u' % (remap_table, count)
-            print 'extern int %s[ %s_size ];' % (remap_table, remap_table)
+            print 'SERVEXTERN int %s[ %s_size ];' % (remap_table, remap_table)
             print ''
 
         for f, index in functions:

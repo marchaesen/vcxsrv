@@ -11,6 +11,7 @@ glapi_sources =					\
 	indirect_table.c			\
 	glapi.c					\
 	glthread.c				\
+	remap.c
 
 
 CSRCS = \

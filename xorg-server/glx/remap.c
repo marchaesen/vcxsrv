@@ -36,20 +36,27 @@
  * a dynamic entry, or the corresponding static entry, in glapi.
  */
 
-#include "glapi/glapi.h"
+#ifdef HAVE_DIX_CONFIG_H
+#include <dix-config.h>
+#endif
+
+#include "glheader.h"
+
+#include "glapi.h"
+#include "glapitable.h"
+
 #include "remap.h"
-#include "imports.h"
 
 #define MAX_ENTRY_POINTS 16
 
 #define need_MESA_remap_table
-#include "main/remap_helper.h"
+#include "remap_helper.h"
 
 
 /* this is global for quick access */
 SERVEXTERN int driDispatchRemapTable[driDispatchRemapTable_size];
 
-
+#if 0
 /**
  * Return the spec string associated with the given function index.
  * The index is available from including remap_helper.h.
@@ -66,7 +73,7 @@ _mesa_get_function_spec(GLint func_index)
    else
       return NULL;
 }
-
+#endif
 
 /**
  * Map a function by its spec.  The function will be added to glapi,
@@ -110,7 +117,7 @@ _mesa_map_function_spec(const char *spec)
    return _glapi_add_dispatch(names, signature);
 }
 
-
+#if 0
 /**
  * Map an array of functions.  This is a convenient function for
  * use with arrays available from including remap_helper.h.
@@ -173,7 +180,10 @@ _mesa_map_static_functions(void)
     */
    _mesa_map_function_array(MESA_alt_functions);
 }
-
+#else
+#define ASSERT(a)
+#define _mesa_warning(a, ...) ErrorF(__VA_ARGS__)
+#endif
 
 /**
  * Initialize the remap table.  This is called in one_time_init().

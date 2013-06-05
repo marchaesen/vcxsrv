@@ -64,8 +64,8 @@ class PrintGlRemap(gl_XML.gl_print_base):
 
 
     def printRealHeader(self):
-        print '#include "main/dispatch.h"'
-        print '#include "main/remap.h"'
+        print '#include "dispatch.h"'
+        print '#include "remap.h"'
         print ''
         return
 
