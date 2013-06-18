@@ -106,7 +106,7 @@ Boolean
 XmuCvtGravityToString(Display *dpy, XrmValue *args, Cardinal *num_args,
 		      XrmValue *fromVal, XrmValue *toVal, XtPointer *data)
 {
-  static char *buffer;
+  static const char *buffer;
   Cardinal size;
   struct _namepair *np;
   XtGravity gravity;

@@ -832,7 +832,6 @@ To create a colormap for a screen, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Wi on whose screen you want to create a colormap -->
       </para>
     </listitem>
   </varlistentry>
@@ -842,7 +841,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the window (Wi.
+Specifies the window on whose screen you want to create a colormap.
       </para>
     </listitem>
   </varlistentry>
@@ -1056,7 +1055,6 @@ To destroy a colormap, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Cm that you want to destroy -->
       </para>
     </listitem>
   </varlistentry>
@@ -1066,7 +1064,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the colormap (Cm.
+Specifies the colormap that you want to destroy.
     </para>
   </listitem>
   </varlistentry>
@@ -1792,7 +1790,6 @@ Specifies the connection to the X server.
     <listitem>
       <para>
 Specifies the colormap.
-<!-- .ds St \ whose color definition structure is to be returned -->
       </para>
     </listitem>
   </varlistentry>
@@ -1802,7 +1799,8 @@ Specifies the colormap.
     </term>
     <listitem>
       <para>
-Specifies the color string(St.
+Specifies the color string whose color definition structure is to be
+returned.
       </para>
     </listitem>
   </varlistentry>
@@ -2296,7 +2294,6 @@ Specifies the connection to the X server.
     <listitem>
       <para>
 Specifies the colormap.
-<!-- .ds Pi that map to the cells in the specified colormap -->
       </para>
     </listitem>
   </varlistentry>
@@ -2306,7 +2303,8 @@ Specifies the colormap.
     </term>
     <listitem>
       <para>
-Specifies an array of pixel values (Pi. 
+Specifies an array of pixel values that map to the cells in the specified
+colormap.
       </para>
     </listitem>
   </varlistentry>
@@ -3811,7 +3809,6 @@ To set the Client White Point in the CCC, use
     <listitem>
       <para>
 Specifies the CCC.
-<!-- .ds Co new Client White Point -->
       </para>
     </listitem>
   </varlistentry>
@@ -3899,7 +3896,6 @@ a color specification to a device-dependent format and encounters a color
 that lies outside the screen's color gamut, 
 that function will return
 <symbol>XcmsFailure</symbol>.
-<!-- .ds Cd the gamut compression procedure -->
       </para>
     </listitem>
   </varlistentry>
@@ -3962,7 +3958,6 @@ Specifies the CCC.
     <listitem>
       <para>
 Specifies the white point adjustment procedure.
-<!-- .ds Cd the white point adjustment procedure -->
       </para>
     </listitem>
   </varlistentry>
@@ -5049,7 +5044,6 @@ are ignored.
     <listitem>
       <para>
 Specifies the target color specification format.
-<!-- .ds Cs zero-intensity red, green, and blue -->
       </para>
     </listitem>
   </varlistentry>
@@ -5060,7 +5054,7 @@ Specifies the target color specification format.
     <listitem>
       <para>
 Returns the color specification in the specified target format
-for (Cs.
+for zero-intensity red, green, and blue.
 The white point associated with the returned
 color specification is the Screen White Point.
 The value returned in the pixel member is undefined.
@@ -5115,7 +5109,6 @@ are ignored.
     <listitem>
       <para>
 Specifies the target color specification format.
-<!-- .ds Cs full-intensity blue while red and green are zero -->
       </para>
     </listitem>
   </varlistentry>
@@ -5126,7 +5119,7 @@ Specifies the target color specification format.
     <listitem>
       <para>
 Returns the color specification in the specified target format
-for (Cs.
+for full-intensity blue while red and green are zero.
 The white point associated with the returned
 color specification is the Screen White Point.
 The value returned in the pixel member is undefined.
@@ -5181,7 +5174,6 @@ are ignored.
     <listitem>
       <para>
 Specifies the target color specification format.
-<!-- .ds Cs full-intensity green while red and blue are zero -->
       </para>
     </listitem>
   </varlistentry>
@@ -5192,7 +5184,7 @@ Specifies the target color specification format.
     <listitem>
       <para>
 Returns the color specification in the specified target format
-for (Cs.
+for full-intensity green while red and blue are zero.
 The white point associated with the returned
 color specification is the Screen White Point.
 The value returned in the pixel member is undefined.
@@ -5247,7 +5239,6 @@ are ignored.
     <listitem>
       <para>
 Specifies the target color specification format.
-<!-- .ds Cs full-intensity red while green and blue are zero -->
       </para>
     </listitem>
   </varlistentry>
@@ -5258,7 +5249,7 @@ Specifies the target color specification format.
     <listitem>
       <para>
 Returns the color specification in the specified target format
-for (Cs.
+for full-intensity red while green and blue are zero.
 The white point associated with the returned
 color specification is the Screen White Point.
 The value returned in the pixel member is undefined.
@@ -5313,7 +5304,6 @@ are ignored.
     <listitem>
       <para>
 Specifies the target color specification format.
-<!-- .ds Cs full-intensity red, green, and blue -->
       </para>
     </listitem>
   </varlistentry>
@@ -5324,7 +5314,7 @@ Specifies the target color specification format.
     <listitem>
       <para>
 Returns the color specification in the specified target format
-for (Cs.
+for full-intensity red, green, and blue.
 The white point associated with the returned
 color specification is the Screen White Point.
 The value returned in the pixel member is undefined.
@@ -5392,7 +5382,6 @@ for a given Psychometric Hue Angle and <acronym>CIE</acronym> metric lightness (
 Specifies the CCC.
 The CCC's Client White Point and white point adjustment procedures
 are ignored.
-<!-- .ds Ha maximum chroma -->
       </para>
     </listitem>
   </varlistentry>
@@ -5402,8 +5391,7 @@ are ignored.
     </term>
     <listitem>
       <para>
-Specifies the hue angle (in degrees) at which to find (Ha.
-<!-- .ds Ls maximum chroma -->
+Specifies the hue angle (in degrees) at which to find maximum chroma.
       </para>
     </listitem>
   </varlistentry>
@@ -5413,9 +5401,7 @@ Specifies the hue angle (in degrees) at which to find (Ha.
     </term>
     <listitem>
       <para>
-Specifies the lightness (L*) at which to find (Ls.
-<!-- .ds Lc maximum chroma -->
-<!-- .ds lC hue angle and lightness -->
+Specifies the lightness (L*) at which to find maximum chroma.
       </para>
     </listitem>
   </varlistentry>
@@ -5425,8 +5411,8 @@ Specifies the lightness (L*) at which to find (Ls.
     </term>
     <listitem>
       <para>
-Returns the <acronym>CIE</acronym> L*a*b* coordinates of (Lc
-displayable by the screen for the given (lC.
+Returns the <acronym>CIE</acronym> L*a*b* coordinates of maximum chroma
+displayable by the screen for the given hue angle and lightness.
 The white point associated with the returned
 color specification is the Screen White Point.
 The value returned in the pixel member is undefined.
@@ -5476,7 +5462,6 @@ for a given Psychometric Hue Angle and Psychometric Chroma, use
 Specifies the CCC.
 The CCC's Client White Point and white point adjustment procedures
 are ignored.
-<!-- .ds Ha maximum lightness -->
       </para>
     </listitem>
   </varlistentry>
@@ -5486,8 +5471,7 @@ are ignored.
     </term>
     <listitem>
       <para>
-Specifies the hue angle (in degrees) at which to find (Ha.
-<!-- .ds Ch maximum lightness -->
+Specifies the hue angle (in degrees) at which to find maximum lightness.
       </para>
     </listitem>
   </varlistentry>
@@ -5497,9 +5481,7 @@ Specifies the hue angle (in degrees) at which to find (Ha.
     </term>
     <listitem>
       <para>
-Specifies the chroma at which to find (Ch.
-<!-- .ds Lc maximum lightness -->
-<!-- .ds lC hue angle and chroma -->
+Specifies the chroma at which to find maximum lightness.
       </para>
     </listitem>
   </varlistentry>
@@ -5509,8 +5491,8 @@ Specifies the chroma at which to find (Ch.
     </term>
     <listitem>
       <para>
-Returns the <acronym>CIE</acronym> L*a*b* coordinates of (Lc
-displayable by the screen for the given (lC.
+Returns the <acronym>CIE</acronym> L*a*b* coordinates of maximum lightness
+displayable by the screen for the given hue angle and chroma.
 The white point associated with the returned
 color specification is the Screen White Point.
 The value returned in the pixel member is undefined.
@@ -5566,7 +5548,6 @@ for a given Psychometric Hue Angle, use
 Specifies the CCC.
 The CCC's Client White Point and white point adjustment procedures
 are ignored.
-<!-- .ds Ha maximum chroma -->
       </para>
     </listitem>
   </varlistentry>
@@ -5576,9 +5557,7 @@ are ignored.
     </term>
     <listitem>
       <para>
-Specifies the hue angle (in degrees) at which to find (Ha.
-<!-- .ds Lc maximum chroma -->
-<!-- .ds lC hue angle -->
+Specifies the hue angle (in degrees) at which to find maximum chroma.
       </para>
     </listitem>
   </varlistentry>
@@ -5588,8 +5567,8 @@ Specifies the hue angle (in degrees) at which to find (Ha.
     </term>
     <listitem>
       <para>
-Returns the <acronym>CIE</acronym> L*a*b* coordinates of (Lc
-displayable by the screen for the given (lC.
+Returns the <acronym>CIE</acronym> L*a*b* coordinates of maximum chroma
+displayable by the screen for the given hue angle.
 The white point associated with the returned
 color specification is the Screen White Point.
 The value returned in the pixel member is undefined.
@@ -5639,7 +5618,6 @@ for a given Psychometric Hue Angle and Psychometric Chroma, use
 Specifies the CCC.
 The CCC's Client White Point and white point adjustment procedures
 are ignored.
-<!-- .ds Ha minimum lightness -->
       </para>
     </listitem>
   </varlistentry>
@@ -5649,8 +5627,7 @@ are ignored.
     </term>
     <listitem>
       <para>
-Specifies the hue angle (in degrees) at which to find (Ha.
-<!-- .ds Ch minimum lightness -->
+Specifies the hue angle (in degrees) at which to find minimum lightness.
       </para>
     </listitem>
   </varlistentry>
@@ -5660,9 +5637,7 @@ Specifies the hue angle (in degrees) at which to find (Ha.
     </term>
     <listitem>
       <para>
-Specifies the chroma at which to find (Ch.
-<!-- .ds Lc minimum lightness -->
-<!-- .ds lC hue angle and chroma -->
+Specifies the chroma at which to find minimum lightness.
       </para>
     </listitem>
   </varlistentry>
@@ -5672,8 +5647,8 @@ Specifies the chroma at which to find (Ch.
     </term>
     <listitem>
       <para>
-Returns the <acronym>CIE</acronym> L*a*b* coordinates of (Lc
-displayable by the screen for the given (lC.
+Returns the <acronym>CIE</acronym> L*a*b* coordinates of minimum lightness
+displayable by the screen for the given hue angle and chroma.
 The white point associated with the returned
 color specification is the Screen White Point.
 The value returned in the pixel member is undefined.
@@ -5749,7 +5724,6 @@ for a given Psychometric Hue Angle and <acronym>CIE</acronym> metric lightness (
 Specifies the CCC.
 The CCC's Client White Point and white point adjustment procedures
 are ignored.
-<!-- .ds Ha maximum chroma -->
       </para>
     </listitem>
   </varlistentry>
@@ -5759,8 +5733,7 @@ are ignored.
     </term>
     <listitem>
       <para>
-Specifies the hue angle (in degrees) at which to find (Ha.
-<!-- .ds Ls maximum chroma -->
+Specifies the hue angle (in degrees) at which to find maximum chroma.
       </para>
     </listitem>
   </varlistentry>
@@ -5770,9 +5743,7 @@ Specifies the hue angle (in degrees) at which to find (Ha.
     </term>
     <listitem>
       <para>
-Specifies the lightness (L*) at which to find (Ls.
-<!-- .ds Lc maximum chroma -->
-<!-- .ds lC hue angle and lightness -->
+Specifies the lightness (L*) at which to find maximum chroma.
       </para>
     </listitem>
   </varlistentry>
@@ -5782,8 +5753,8 @@ Specifies the lightness (L*) at which to find (Ls.
     </term>
     <listitem>
       <para>
-Returns the <acronym>CIE</acronym> L*u*v* coordinates of (Lc
-displayable by the screen for the given (lC.
+Returns the <acronym>CIE</acronym> L*u*v* coordinates of maximum chroma
+displayable by the screen for the given hue angle and lightness.
 The white point associated with the returned
 color specification is the Screen White Point.
 The value returned in the pixel member is undefined.
@@ -5833,7 +5804,6 @@ for a given Psychometric Hue Angle and Psychometric Chroma, use
 Specifies the CCC.
 The CCC's Client White Point and white point adjustment procedures
 are ignored.
-<!-- .ds Ha maximum lightness -->
       </para>
     </listitem>
   </varlistentry>
@@ -5843,8 +5813,7 @@ are ignored.
     </term>
     <listitem>
       <para>
-Specifies the hue angle (in degrees) at which to find (Ha.
-<!-- .ds Ls maximum lightness -->
+Specifies the hue angle (in degrees) at which to find maximum lightness.
       </para>
     </listitem>
   </varlistentry>
@@ -5854,9 +5823,7 @@ Specifies the hue angle (in degrees) at which to find (Ha.
     </term>
     <listitem>
       <para>
-Specifies the lightness (L*) at which to find (Ls.
-<!-- .ds Lc maximum lightness -->
-<!-- .ds lC hue angle and chroma -->
+Specifies the lightness (L*) at which to find maximum lightness.
       </para>
     </listitem>
   </varlistentry>
@@ -5866,8 +5833,8 @@ Specifies the lightness (L*) at which to find (Ls.
     </term>
     <listitem>
       <para>
-Returns the <acronym>CIE</acronym> L*u*v* coordinates of (Lc
-displayable by the screen for the given (lC.
+Returns the <acronym>CIE</acronym> L*u*v* coordinates of maximum lightness
+displayable by the screen for the given hue angle and chroma.
 The white point associated with the returned
 color specification is the Screen White Point.
 The value returned in the pixel member is undefined.
@@ -5923,7 +5890,6 @@ for a given Psychometric Hue Angle, use
 Specifies the CCC.
 The CCC's Client White Point and white point adjustment procedures
 are ignored.
-<!-- .ds Ha maximum chroma -->
       </para>
     </listitem>
   </varlistentry>
@@ -5933,9 +5899,7 @@ are ignored.
     </term>
     <listitem>
       <para>
-Specifies the hue angle (in degrees) at which to find (Ha.
-<!-- .ds Lc maximum chroma -->
-<!-- .ds lC hue angle -->
+Specifies the hue angle (in degrees) at which to find maximum chroma.
       </para>
     </listitem>
   </varlistentry>
@@ -5945,8 +5909,8 @@ Specifies the hue angle (in degrees) at which to find (Ha.
     </term>
     <listitem>
       <para>
-Returns the <acronym>CIE</acronym> L*u*v* coordinates of (Lc
-displayable by the screen for the given (lC.
+Returns the <acronym>CIE</acronym> L*u*v* coordinates of maximum chroma
+displayable by the screen for the given hue angle.
 The white point associated with the returned
 color specification is the Screen White Point.
 The value returned in the pixel member is undefined.
@@ -5996,7 +5960,6 @@ for a given Psychometric Hue Angle and Psychometric Chroma, use
 Specifies the CCC.
 The CCC's Client White Point and white point adjustment procedures
 are ignored.
-<!-- .ds Ha minimum lightness -->
       </para>
     </listitem>
   </varlistentry>
@@ -6006,8 +5969,7 @@ are ignored.
     </term>
     <listitem>
       <para>
-Specifies the hue angle (in degrees) at which to find (Ha.
-<!-- .ds Ch minimum lightness -->
+Specifies the hue angle (in degrees) at which to find minimum lightness.
       </para>
     </listitem>
   </varlistentry>
@@ -6017,9 +5979,7 @@ Specifies the hue angle (in degrees) at which to find (Ha.
     </term>
     <listitem>
       <para>
-Specifies the chroma at which to find (Ch.
-<!-- .ds Lc minimum lightness -->
-<!-- .ds lC hue angle and chroma -->
+Specifies the chroma at which to find minimum lightness.
       </para>
     </listitem>
   </varlistentry>
@@ -6029,8 +5989,8 @@ Specifies the chroma at which to find (Ch.
     </term>
     <listitem>
       <para>
-Returns the <acronym>CIE</acronym> L*u*v* coordinates of (Lc
-displayable by the screen for the given (lC.
+Returns the <acronym>CIE</acronym> L*u*v* coordinates of minimum lightness
+displayable by the screen for the given hue angle and chroma.
 The white point associated with the returned
 color specification is the Screen White Point.
 The value returned in the pixel member is undefined.
@@ -6087,7 +6047,6 @@ To obtain the maximum Chroma for a given Hue and Value, use
 Specifies the CCC.
 The CCC's Client White Point and white point adjustment procedures
 are ignored.
-<!-- .ds Hu in which to find the maximum Chroma -->
       </para>
     </listitem>
   </varlistentry>
@@ -6097,8 +6056,7 @@ are ignored.
     </term>
     <listitem>
       <para>
-Specifies the Hue (Hu.
-<!-- .ds Va maximum Chroma -->
+Specifies the Hue in which to find the maximum Chroma.
       </para>
     </listitem>
   </varlistentry>
@@ -6108,9 +6066,7 @@ Specifies the Hue (Hu.
     </term>
     <listitem>
       <para>
-Specifies the Value in which to find the (Va.
-<!-- .ds Lc maximum Chroma along with the actual Hue and Value  -->
-<!-- .ds lC maximum Chroma -->
+Specifies the Value in which to find the maximum Chroma.
       </para>
     </listitem>
   </varlistentry>
@@ -6120,7 +6076,8 @@ Specifies the Value in which to find the (Va.
     </term>
     <listitem>
       <para>
-Returns the (Lc at which the (lC was found.
+Returns the maximum Chroma along with the actual Hue and Value	at which
+the maximum Chroma was found.
 The white point associated with the returned
 color specification is the Screen White Point.
 The value returned in the pixel member is undefined.
@@ -6170,7 +6127,6 @@ To obtain the maximum Value for a given Hue and Chroma, use
 Specifies the CCC.
 The CCC's Client White Point and white point adjustment procedures
 are ignored.
-<!-- .ds Hu in which to find the maximum Value -->
       </para>
     </listitem>
   </varlistentry>
@@ -6180,8 +6136,7 @@ are ignored.
     </term>
     <listitem>
       <para>
-Specifies the Hue (Hu.
-<!-- .ds Ch maximum Value -->
+Specifies the Hue in which to find the maximum Value.
       </para>
     </listitem>
   </varlistentry>
@@ -6191,9 +6146,7 @@ Specifies the Hue (Hu.
     </term>
     <listitem>
       <para>
-Specifies the chroma at which to find (Ch.
-<!-- .ds Lc maximum Value along with the Hue and Chroma -->
-<!-- .ds lC maximum Value -->
+Specifies the chroma at which to find maximum Value.
       </para>
     </listitem>
   </varlistentry>
@@ -6203,7 +6156,9 @@ Specifies the chroma at which to find (Ch.
     </term>
     <listitem>
       <para>
-Returns the (Lc at which the (lC was found.
+Returns the maximum Value along with the Hue and Chroma at which the
+maximum Value
+was found.
 The white point associated with the returned
 color specification is the Screen White Point.
 The value returned in the pixel member is undefined.
@@ -6256,7 +6211,6 @@ for a specified Hue, use
 Specifies the CCC.
 The CCC's Client White Point and white point adjustment procedures
 are ignored.
-<!-- .ds Hu in which to find the maximum Chroma -->
       </para>
     </listitem>
   </varlistentry>
@@ -6266,11 +6220,7 @@ are ignored.
     </term>
     <listitem>
       <para>
-Specifies the Hue (Hu.
-<!-- .ds Lc color specification in \ -->
-XcmsTekHVC for the maximum Chroma, the Value at which \
-that maximum Chroma is reached, and the actual Hue
-<!-- .ds lC maximum Chroma -->
+Specifies the Hue in which to find the maximum Chroma.
       </para>
     </listitem>
   </varlistentry>
@@ -6280,7 +6230,9 @@ that maximum Chroma is reached, and the actual Hue
     </term>
     <listitem>
       <para>
-Returns the (Lc at which the (lC was found.
+Returns the color specification in XcmsTekHVC for the maximum Chroma, the
+Value at which that maximum Chroma is reached, and the actual Hue at which
+the maximum Chroma was found.
 The white point associated with the returned
 color specification is the Screen White Point.
 The value returned in the pixel member is undefined.
@@ -6335,7 +6287,6 @@ Chroma at which the maximum Values are reached, use
 Specifies the CCC.
 The CCC's Client White Point and white point adjustment procedures
 are ignored.
-<!-- .ds Hu for maximum Chroma/Value samples -->
       </para>
     </listitem>
   </varlistentry>
@@ -6345,7 +6296,7 @@ are ignored.
     </term>
     <listitem>
       <para>
-Specifies the Hue (Hu.
+Specifies the Hue for maximum Chroma/Value samples.
       </para>
     </listitem>
   </varlistentry>
@@ -6416,7 +6367,6 @@ To obtain the minimum Value for a given Hue and Chroma, use
 Specifies the CCC.
 The CCC's Client White Point and white point adjustment procedures
 are ignored.
-<!-- .ds Hu in which to find the minimum Value -->
       </para>
     </listitem>
   </varlistentry>
@@ -6426,8 +6376,7 @@ are ignored.
     </term>
     <listitem>
       <para>
-Specifies the Hue (Hu.
-<!-- .ds Va minimum Value -->
+Specifies the Hue in which to find the minimum Value.
       </para>
     </listitem>
   </varlistentry>
@@ -6437,9 +6386,7 @@ Specifies the Hue (Hu.
     </term>
     <listitem>
       <para>
-Specifies the Value in which to find the (Va.
-<!-- .ds Lc minimum Value and the actual Hue and Chroma -->
-<!-- .ds lC minimum Value -->
+Specifies the Value in which to find the minimum Value.
       </para>
     </listitem>
   </varlistentry>
@@ -6449,7 +6396,9 @@ Specifies the Value in which to find the (Va.
     </term>
     <listitem>
       <para>
-Returns the (Lc at which the (lC was found.
+Returns the minimum Value and the actual Hue and Chroma at which the
+minimum Value
+was found.
 The white point associated with the returned
 color specification is the Screen White Point.
 The value returned in the pixel member is undefined.

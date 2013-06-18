@@ -42,7 +42,6 @@ call the XCB event-handling functions.
 XCB owns the event queue.  Use the XCB event-handling functions.  Do not call
 the Xlib event-handling functions.
 .RE
-.IN "Environment" "DISPLAY"
 .SH DESCRIPTION
 While a client using Xlib/XCB can issue requests and handle their replies or
 errors with either Xlib or XCB, only one can own and handle the event queue.

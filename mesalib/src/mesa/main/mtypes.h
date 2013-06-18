@@ -1,6 +1,5 @@
 /*
  * Mesa 3-D graphics library
- * Version:  7.7
  *
  * Copyright (C) 1999-2008  Brian Paul   All Rights Reserved.
  * Copyright (C) 2009  VMware, Inc.  All Rights Reserved.
@@ -2141,11 +2140,19 @@ struct gl_shader
    gl_texture_index SamplerTargets[MAX_SAMPLERS];
 
    /**
-    * Number of uniform components used by this shader.
+    * Number of default uniform block components used by this shader.
     *
     * This field is only set post-linking.
     */
    unsigned num_uniform_components;
+
+   /**
+    * Number of combined uniform components used by this shader.
+    *
+    * This field is only set post-linking.  It is the sum of the uniform block
+    * sizes divided by sizeof(float), and num_uniform_compoennts.
+    */
+   unsigned num_combined_uniform_components;
 
    /**
     * This shader's uniform block information.
@@ -2324,6 +2331,21 @@ struct gl_shader_program
 
    struct gl_uniform_block *UniformBlocks;
    unsigned NumUniformBlocks;
+
+   /**
+    * Scale factor for the uniform base location
+    *
+    * This is used to generate locations (returned by \c glGetUniformLocation)
+    * of uniforms.  The base location of the uniform is multiplied by this
+    * value, and the array index is added.
+    *
+    * \note
+    * Must be >= 1.
+    *
+    * \sa
+    * _mesa_uniform_merge_location_offset, _mesa_uniform_split_location_offset
+    */
+   unsigned UniformLocationBaseScale;
 
    /**
     * Indices into the _LinkedShaders's UniformBlocks[] array for each stage
@@ -3000,6 +3022,7 @@ struct gl_extensions
    GLboolean ARB_shader_texture_lod;
    GLboolean ARB_shading_language_100;
    GLboolean ARB_shading_language_packing;
+   GLboolean ARB_shading_language_420pack;
    GLboolean ARB_shadow;
    GLboolean ARB_sync;
    GLboolean ARB_texture_border_clamp;

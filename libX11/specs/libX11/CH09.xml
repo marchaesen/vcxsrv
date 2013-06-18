@@ -74,7 +74,6 @@ Specifies the window.
     <listitem>
       <para>
 Specifies the parent window.
-<!-- .ds Xy \ of the position in the new parent window -->
       </para>
     </listitem>
   </varlistentry>
@@ -95,7 +94,7 @@ Specifies the parent window.
     </term>
     <listitem>
       <para>
-Specify the x and y coordinates(Xy.
+Specify the x and y coordinates of the position in the new parent window.
     </para>
   </listitem>
   </varlistentry>
@@ -237,7 +236,6 @@ To add or remove a window from the client's save-set, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Wi that you want to add to or delete from the client's save-set -->
       </para>
     </listitem>
   </varlistentry>
@@ -247,7 +245,8 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the window (Wi.
+Specifies the window that you want to add to or delete from the client's
+save-set.
       </para>
     </listitem>
   </varlistentry>
@@ -311,7 +310,6 @@ To add a window to the client's save-set, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Wi that you want to add to the client's save-set -->
       </para>
     </listitem>
   </varlistentry>
@@ -321,7 +319,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the window (Wi.
+Specifies the window that you want to add to the client's save-set.
     </para>
   </listitem>
   </varlistentry>
@@ -370,7 +368,6 @@ To remove a window from the client's save-set, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Wi that you want to delete from the client's save-set -->
       </para>
     </listitem>
   </varlistentry>
@@ -380,7 +377,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the window (Wi.
+Specifies the window that you want to delete from the client's save-set.
     </para>
   </listitem>
   </varlistentry>
@@ -612,7 +609,6 @@ To obtain a list of the currently installed colormaps for a given screen, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Wi that determines the screen -->
       </para>
     </listitem>
   </varlistentry>
@@ -622,7 +618,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the window (Wi.
+Specifies the window that determines the screen.
       </para>
     </listitem>
   </varlistentry>
@@ -1549,7 +1545,6 @@ To add a single host, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Ho added -->
       </para>
     </listitem>
   </varlistentry>
@@ -1559,7 +1554,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the host that is to be (Ho.
+Specifies the host that is to be added.
     </para>
   </listitem>
   </varlistentry>
@@ -1608,7 +1603,6 @@ To add multiple hosts at one time, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Ho added -->
       </para>
     </listitem>
   </varlistentry>
@@ -1618,7 +1612,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies each host that is to be (Ho.
+Specifies each host that is to be added.
       </para>
     </listitem>
   </varlistentry>
@@ -1740,7 +1734,6 @@ To remove a single host, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Ho removed -->
       </para>
     </listitem>
   </varlistentry>
@@ -1750,7 +1743,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the host that is to be (Ho.
+Specifies the host that is to be removed.
     </para>
   </listitem>
   </varlistentry>
@@ -1803,7 +1796,6 @@ To remove multiple hosts at one time, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Ho removed -->
       </para>
     </listitem>
   </varlistentry>
@@ -1813,7 +1805,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies each host that is to be (Ho.
+Specifies each host that is to be removed.
       </para>
     </listitem>
   </varlistentry>

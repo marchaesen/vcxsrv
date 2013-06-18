@@ -1,6 +1,5 @@
 /*
  * Mesa 3-D graphics library
- * Version:  7.5
  *
  * Copyright (C) 1999-2007  Brian Paul   All Rights Reserved.
  * Copyright (C) 2008  VMware, Inc.  All Rights Reserved.
@@ -187,7 +186,7 @@
 #define MAX_PROGRAM_MATRIX_STACK_DEPTH 4
 #define MAX_PROGRAM_CALL_DEPTH         8
 #define MAX_PROGRAM_TEMPS              256
-#define MAX_PROGRAM_ADDRESS_REGS       2
+#define MAX_PROGRAM_ADDRESS_REGS       1
 #define MAX_VARYING                    32    /**< number of float[4] vectors */
 #define MAX_SAMPLERS                   MAX_TEXTURE_IMAGE_UNITS
 #define MAX_PROGRAM_INPUTS             32

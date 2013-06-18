@@ -41,15 +41,20 @@ authorization from the authors.
     </struct>
 
     <!-- v1.2 -->
+    <enum name="ClientIdMask">
+        <item name="ClientXID">      <bit>0</bit> </item>
+        <item name="LocalClientPID"> <bit>1</bit> </item>
+    </enum>
+
     <struct name="ClientIdSpec">
         <field type="CARD32" name="client" />
-        <field type="CARD32" name="mask" />
+        <field type="CARD32" name="mask" mask="ClientIdMask" />
     </struct>
 
     <struct name="ClientIdValue">
         <field type="ClientIdSpec" name="spec" />
         <field type="CARD32" name="length" />
-        <list type="CARD8" name="client_ids">
+        <list type="CARD32" name="value">
             <fieldref>length</fieldref>
         </list>
     </struct>

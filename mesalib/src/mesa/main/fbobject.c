@@ -1,6 +1,5 @@
 /*
  * Mesa 3-D graphics library
- * Version:  7.1
  *
  * Copyright (C) 1999-2008  Brian Paul   All Rights Reserved.
  * Copyright (C) 1999-2009  VMware, Inc.  All Rights Reserved.
@@ -569,8 +568,15 @@ att_incomplete(const char *msg)
  * For debug only.
  */
 static void
-fbo_incomplete(const char *msg, int index)
+fbo_incomplete(struct gl_context *ctx, const char *msg, int index)
 {
+   static GLuint msg_id;
+
+   _mesa_gl_debug(ctx, &msg_id,
+                  MESA_DEBUG_TYPE_OTHER,
+                  MESA_DEBUG_SEVERITY_MEDIUM,
+                  "FBO incomplete: %s [%d]\n", msg, index);
+
    if (MESA_DEBUG_FLAGS & DEBUG_INCOMPLETE_FBO) {
       _mesa_debug(NULL, "FBO Incomplete: %s [%d]\n", msg, index);
    }
@@ -864,7 +870,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
          test_attachment_completeness(ctx, GL_DEPTH, att);
          if (!att->Complete) {
             fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT;
-            fbo_incomplete("depth attachment incomplete", -1);
+            fbo_incomplete(ctx, "depth attachment incomplete", -1);
             return;
          }
       }
@@ -873,7 +879,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
          test_attachment_completeness(ctx, GL_STENCIL, att);
          if (!att->Complete) {
             fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT;
-            fbo_incomplete("stencil attachment incomplete", -1);
+            fbo_incomplete(ctx, "stencil attachment incomplete", -1);
             return;
          }
       }
@@ -882,7 +888,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
          test_attachment_completeness(ctx, GL_COLOR, att);
          if (!att->Complete) {
             fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT;
-            fbo_incomplete("color attachment incomplete", i);
+            fbo_incomplete(ctx, "color attachment incomplete", i);
             return;
          }
       }
@@ -902,7 +908,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
          if (!is_format_color_renderable(ctx, attFormat, texImg->InternalFormat) &&
              !is_legal_depth_format(ctx, f)) {
             fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT;
-            fbo_incomplete("texture attachment incomplete", -1);
+            fbo_incomplete(ctx, "texture attachment incomplete", -1);
             return;
          }
 
@@ -910,7 +916,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
             numSamples = texImg->NumSamples;
          else if (numSamples != texImg->NumSamples) {
             fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE;
-            fbo_incomplete("inconsistent sample count", -1);
+            fbo_incomplete(ctx, "inconsistent sample count", -1);
             return;
          }
 
@@ -918,7 +924,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
             fixedSampleLocations = texImg->FixedSampleLocations;
          else if (fixedSampleLocations != texImg->FixedSampleLocations) {
             fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE;
-            fbo_incomplete("inconsistent fixed sample locations", -1);
+            fbo_incomplete(ctx, "inconsistent fixed sample locations", -1);
             return;
          }
       }
@@ -935,7 +941,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
             numSamples = att->Renderbuffer->NumSamples;
          else if (numSamples != att->Renderbuffer->NumSamples) {
             fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE;
-            fbo_incomplete("inconsistent sample count", -1);
+            fbo_incomplete(ctx, "inconsistent sample count", -1);
             return;
          }
 
@@ -944,7 +950,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
             fixedSampleLocations = GL_TRUE;
          else if (fixedSampleLocations != GL_TRUE) {
             fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE;
-            fbo_incomplete("inconsistent fixed sample locations", -1);
+            fbo_incomplete(ctx, "inconsistent fixed sample locations", -1);
             return;
          }
       }
@@ -981,13 +987,13 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
             /* check that width, height, format are same */
             if (minWidth != maxWidth || minHeight != maxHeight) {
                fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT;
-               fbo_incomplete("width or height mismatch", -1);
+               fbo_incomplete(ctx, "width or height mismatch", -1);
                return;
             }
             /* check that all color buffers are the same format */
             if (intFormat != GL_NONE && f != intFormat) {
                fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT;
-               fbo_incomplete("format mismatch", -1);
+               fbo_incomplete(ctx, "format mismatch", -1);
                return;
             }
          }
@@ -998,7 +1004,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
       if (att->Type == GL_RENDERBUFFER &&
           att->Renderbuffer->Format == MESA_FORMAT_NONE) {
          fb->_Status = GL_FRAMEBUFFER_UNSUPPORTED;
-         fbo_incomplete("unsupported renderbuffer format", i);
+         fbo_incomplete(ctx, "unsupported renderbuffer format", i);
          return;
       }
 
@@ -1010,10 +1016,10 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
       } else if (layer_count != att_layer_count) {
          if (layer_count == 0 || att_layer_count == 0) {
             fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS;
-            fbo_incomplete("framebuffer attachment layer mode is inconsistent", i);
+            fbo_incomplete(ctx, "framebuffer attachment layer mode is inconsistent", i);
          } else {
             fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_LAYER_COUNT_ARB;
-            fbo_incomplete("framebuffer attachment layer count is inconsistent", i);
+            fbo_incomplete(ctx, "framebuffer attachment layer count is inconsistent", i);
          }
          return;
       }
@@ -1030,7 +1036,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
 	    assert(att);
 	    if (att->Type == GL_NONE) {
 	       fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER_EXT;
-	       fbo_incomplete("missing drawbuffer", j);
+	       fbo_incomplete(ctx, "missing drawbuffer", j);
 	       return;
 	    }
 	 }
@@ -1043,7 +1049,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
 	 assert(att);
 	 if (att->Type == GL_NONE) {
 	    fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT;
-            fbo_incomplete("missing readbuffer", -1);
+            fbo_incomplete(ctx, "missing readbuffer", -1);
 	    return;
 	 }
       }
@@ -1051,7 +1057,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
 
    if (numImages == 0) {
       fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT;
-      fbo_incomplete("no attachments", -1);
+      fbo_incomplete(ctx, "no attachments", -1);
       return;
    }
 
@@ -1065,7 +1071,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
    if (ctx->Driver.ValidateFramebuffer) {
       ctx->Driver.ValidateFramebuffer(ctx, fb);
       if (fb->_Status != GL_FRAMEBUFFER_COMPLETE_EXT) {
-         fbo_incomplete("driver marked FBO as incomplete", -1);
+         fbo_incomplete(ctx, "driver marked FBO as incomplete", -1);
       }
    }
 

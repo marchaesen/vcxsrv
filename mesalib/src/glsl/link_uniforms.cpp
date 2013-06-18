@@ -170,6 +170,7 @@ public:
 
    void process(ir_variable *var)
    {
+      this->is_ubo_var = var->is_in_uniform_block();
       if (var->is_interface_instance())
          program_resource_visitor::process(var->interface_type,
                                            var->interface_type->name);
@@ -197,6 +198,8 @@ public:
     */
    unsigned num_shader_uniform_components;
 
+   bool is_ubo_var;
+
 private:
    virtual void visit_field(const glsl_type *type, const char *name,
                             bool row_major)
@@ -222,7 +225,8 @@ private:
 	  * Note that samplers do not count against this limit because they
 	  * don't use any storage on current hardware.
 	  */
-	 this->num_shader_uniform_components += values;
+	 if (!is_ubo_var)
+	    this->num_shader_uniform_components += values;
       }
 
       /* If the uniform is already in the map, there's nothing more to do.
@@ -640,7 +644,9 @@ link_assign_uniform_locations(struct gl_shader_program *prog)
     */
    count_uniform_size uniform_size(prog->UniformHash);
    for (unsigned i = 0; i < MESA_SHADER_TYPES; i++) {
-      if (prog->_LinkedShaders[i] == NULL)
+      struct gl_shader *sh = prog->_LinkedShaders[i];
+
+      if (sh == NULL)
 	 continue;
 
       /* Uniforms that lack an initializer in the shader code have an initial
@@ -652,16 +658,15 @@ link_assign_uniform_locations(struct gl_shader_program *prog)
        *     initializer, if present, or 0 if no initializer is present. Sampler
        *     types cannot have initializers."
        */
-      memset(prog->_LinkedShaders[i]->SamplerUnits, 0,
-             sizeof(prog->_LinkedShaders[i]->SamplerUnits));
+      memset(sh->SamplerUnits, 0, sizeof(sh->SamplerUnits));
 
-      link_update_uniform_buffer_variables(prog->_LinkedShaders[i]);
+      link_update_uniform_buffer_variables(sh);
 
       /* Reset various per-shader target counts.
        */
       uniform_size.start_shader();
 
-      foreach_list(node, prog->_LinkedShaders[i]->ir) {
+      foreach_list(node, sh->ir) {
 	 ir_variable *const var = ((ir_instruction *) node)->as_variable();
 
 	 if ((var == NULL) || (var->mode != ir_var_uniform))
@@ -678,9 +683,14 @@ link_assign_uniform_locations(struct gl_shader_program *prog)
 	 uniform_size.process(var);
       }
 
-      prog->_LinkedShaders[i]->num_samplers = uniform_size.num_shader_samplers;
-      prog->_LinkedShaders[i]->num_uniform_components =
-	 uniform_size.num_shader_uniform_components;
+      sh->num_samplers = uniform_size.num_shader_samplers;
+      sh->num_uniform_components = uniform_size.num_shader_uniform_components;
+
+      sh->num_combined_uniform_components = sh->num_uniform_components;
+      for (unsigned i = 0; i < sh->NumUniformBlocks; i++) {
+	 sh->num_combined_uniform_components +=
+	    sh->UniformBlocks[i].UniformBufferSize / 4;
+      }
    }
 
    const unsigned num_user_uniforms = uniform_size.num_active_uniforms;
@@ -728,6 +738,20 @@ link_assign_uniform_locations(struct gl_shader_program *prog)
       memcpy(prog->_LinkedShaders[i]->SamplerTargets, parcel.targets,
              sizeof(prog->_LinkedShaders[i]->SamplerTargets));
    }
+
+   /* Determine the size of the largest uniform array queryable via
+    * glGetUniformLocation.  Using this as the location scale guarantees that
+    * there is enough "room" for the array index to be stored in the low order
+    * part of the uniform location.  It also makes the locations be more
+    * tightly packed.
+    */
+   unsigned max_array_size = 1;
+   for (unsigned i = 0; i < num_user_uniforms; i++) {
+      if (uniforms[i].array_elements > max_array_size)
+         max_array_size = uniforms[i].array_elements;
+   }
+
+   prog->UniformLocationBaseScale = max_array_size;
 
 #ifndef NDEBUG
    for (unsigned i = 0; i < num_user_uniforms; i++) {

@@ -994,7 +994,6 @@ Specifies the connection to the X server.
     <listitem>
       <para>
 Specifies the drawable. 
-<!-- .ds Vm set using the information in the specified values structure -->
       </para>
     </listitem>
   </varlistentry>
@@ -1004,7 +1003,8 @@ Specifies the drawable.
     </term>
     <listitem>
       <para>
-Specifies which components in the GC are to be (Vm. 
+Specifies which components in the GC are to be set using the information in
+the specified values structure.
 This argument is the bitwise inclusive OR of zero or more of the valid
 GC component mask bits.
       </para>
@@ -1081,7 +1081,6 @@ Specifies the connection to the X server.
     <listitem>
       <para>
 Specifies the components of the source GC.
-<!-- .ds Vm copied to the destination GC -->
       </para>
     </listitem>
   </varlistentry>
@@ -1091,7 +1090,8 @@ Specifies the components of the source GC.
     </term>
     <listitem>
       <para>
-Specifies which components in the GC are to be (Vm. 
+Specifies which components in the GC are to be copied to the destination
+GC.
 This argument is the bitwise inclusive OR of zero or more of the valid
 GC component mask bits.
       </para>
@@ -1168,7 +1168,6 @@ Specifies the connection to the X server.
     <listitem>
       <para>
 Specifies the GC.
-<!-- .ds Vm changed using information in the specified values structure -->
       </para>
     </listitem>
   </varlistentry>
@@ -1178,7 +1177,8 @@ Specifies the GC.
     </term>
     <listitem>
       <para>
-Specifies which components in the GC are to be (Vm. 
+Specifies which components in the GC are to be changed using information in
+the specified values structure.
 This argument is the bitwise inclusive OR of zero or more of the valid
 GC component mask bits.
       </para>
@@ -1264,7 +1264,6 @@ Specifies the connection to the X server.
     <listitem>
       <para>
 Specifies the GC.
-<!-- .ds Vm returned in the values_return argument -->
       </para>
     </listitem>
   </varlistentry>
@@ -1274,7 +1273,8 @@ Specifies the GC.
     </term>
     <listitem>
       <para>
-Specifies which components in the GC are to be (Vm. 
+Specifies which components in the GC are to be returned in the
+values_return argument.
 This argument is the bitwise inclusive OR of zero or more of the valid
 GC component mask bits.
       </para>
@@ -1409,7 +1409,6 @@ resource ID for a given GC, use
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
-<!-- .ds Gc for which you want the resource ID -->
 <variablelist>
   <varlistentry>
     <term>
@@ -1417,7 +1416,7 @@ resource ID for a given GC, use
     </term>
     <listitem>
       <para>
-Specifies the GC (Gc.
+Specifies the GC for which you want the resource ID.
     </para>
   </listitem>
   </varlistentry>

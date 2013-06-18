@@ -532,7 +532,6 @@ To convert a string with one or more components to a quark list, use
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
-<!-- .ds Ql \ list -->
 <variablelist>
   <varlistentry>
     <term>
@@ -540,7 +539,7 @@ To convert a string with one or more components to a quark list, use
     </term>
     <listitem>
       <para>
-Specifies the string for which a quark(Ql is to be allocated.
+Specifies the string for which a quark list is to be allocated.
       </para>
     </listitem>
   </varlistentry>
@@ -608,7 +607,6 @@ and a quark list, use
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
-<!-- .ds Ql \ list -->
 <variablelist>
   <varlistentry>
     <term>
@@ -616,7 +614,7 @@ and a quark list, use
     </term>
     <listitem>
       <para>
-Specifies the string for which a quark(Ql is to be allocated.
+Specifies the string for which a quark list is to be allocated.
       </para>
     </listitem>
   </varlistentry>

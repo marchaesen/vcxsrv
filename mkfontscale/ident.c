@@ -47,7 +47,9 @@
    and 0 if it should be processed normally.  identifyBitmap is
    much faster than parsing the whole font. */
 
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 
 #include <stdlib.h>
 #include <string.h>

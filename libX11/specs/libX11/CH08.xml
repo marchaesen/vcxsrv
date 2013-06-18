@@ -73,8 +73,6 @@ Specifies the connection to the X server.
     <listitem>
       <para>
 Specifies the window.
-<!-- .ds Xy , which are relative to the origin of the window \ -->
-and specify the upper-left corner of the rectangle
       </para>
     </listitem>
   </varlistentry>
@@ -95,8 +93,8 @@ and specify the upper-left corner of the rectangle
     </term>
     <listitem>
       <para>
-Specify the x and y coordinates(Xy.
-<!-- .ds Wh , which are the dimensions of the rectangle -->
+Specify the x and y coordinates, which are relative to the origin of the
+window and specify the upper-left corner of the rectangle.
       </para>
     </listitem>
   </varlistentry>
@@ -117,7 +115,7 @@ Specify the x and y coordinates(Xy.
     </term>
     <listitem>
       <para>
-Specify the width and height(Wh.
+Specify the width and height, which are the dimensions of the rectangle.
       </para>
     </listitem>
   </varlistentry>
@@ -344,8 +342,6 @@ Specifies the GC.
 Specify the x and y coordinates, 
 which are relative to the origin of the source rectangle
 and specify its upper-left corner.
-<!-- .ds Wh , which are the dimensions of both the source \ -->
-and destination rectangles
       </para>
     </listitem>
   </varlistentry>
@@ -366,9 +362,8 @@ and destination rectangles
     </term>
     <listitem>
       <para>
-Specify the width and height(Wh.
-<!-- .ds Dx , which are relative to the origin of the destination rectangle \ -->
-and specify its upper-left corner
+Specify the width and height, which are the dimensions of both the source
+and destination rectangles.
       </para>
     </listitem>
   </varlistentry>
@@ -389,7 +384,8 @@ and specify its upper-left corner
     </term>
     <listitem>
       <para>
-Specify the x and y coordinates(Dx. 
+Specify the x and y coordinates, which are relative to the origin of the
+destination rectangle and specify its upper-left corner.
     </para>
   </listitem>
   </varlistentry>
@@ -540,7 +536,6 @@ Specifies the GC.
 Specify the x and y coordinates, 
 which are relative to the origin of the source rectangle
 and specify its upper-left corner.
-<!-- .ds Wh , which are the dimensions of both the source and destination rectangles -->
       </para>
     </listitem>
   </varlistentry>
@@ -561,9 +556,8 @@ and specify its upper-left corner.
     </term>
     <listitem>
       <para>
-Specify the width and height(Wh.
-<!-- .ds Dx , which are relative to the origin of the destination rectangle \ -->
-and specify its upper-left corner
+Specify the width and height, which are the dimensions of both the source
+and destination rectangles.
       </para>
     </listitem>
   </varlistentry>
@@ -584,7 +578,8 @@ and specify its upper-left corner
     </term>
     <listitem>
       <para>
-Specify the x and y coordinates(Dx. 
+Specify the x and y coordinates, which are relative to the origin of the
+destination rectangle and specify its upper-left corner.
       </para>
     </listitem>
   </varlistentry>
@@ -1373,7 +1368,6 @@ Specifies the drawable.
     <listitem>
       <para>
 Specifies the GC.
-<!-- .ds Xy , which specify the upper-left corner of the rectangle -->
       </para>
     </listitem>
   </varlistentry>
@@ -1394,8 +1388,8 @@ Specifies the GC.
     </term>
     <listitem>
       <para>
-Specify the x and y coordinates(Xy.
-<!-- .ds Wh , which specify the dimensions of the rectangle -->
+Specify the x and y coordinates, which specify the upper-left corner of the
+rectangle.
       </para>
     </listitem>
   </varlistentry>
@@ -1416,7 +1410,8 @@ Specify the x and y coordinates(Xy.
     </term>
     <listitem>
       <para>
-Specify the width and height(Wh.
+Specify the width and height, which specify the dimensions of the
+rectangle.
     </para>
   </listitem>
   </varlistentry>
@@ -1605,8 +1600,6 @@ Specifies the drawable.
     <listitem>
       <para>
 Specifies the GC.
-<!-- .ds Xy , which are relative to the origin of the drawable \ -->
-and specify the upper-left corner of the bounding rectangle
       </para>
     </listitem>
   </varlistentry>
@@ -1627,8 +1620,8 @@ and specify the upper-left corner of the bounding rectangle
     </term>
     <listitem>
       <para>
-Specify the x and y coordinates(Xy.
-<!-- .ds Wh , which are the major and minor axes of the arc -->
+Specify the x and y coordinates, which are relative to the origin of the
+drawable and specify the upper-left corner of the bounding rectangle.
       </para>
     </listitem>
   </varlistentry>
@@ -1649,7 +1642,8 @@ Specify the x and y coordinates(Xy.
     </term>
     <listitem>
       <para>
-Specify the width and height(Wh.
+Specify the width and height, which are the major and minor axes of the
+arc.
       </para>
     </listitem>
   </varlistentry>
@@ -1962,8 +1956,6 @@ Specifies the drawable.
     <listitem>
       <para>
 Specifies the GC.
-<!-- .ds Xy , which are relative to the origin of the drawable \ -->
-and specify the upper-left corner of the rectangle
       </para>
     </listitem>
   </varlistentry>
@@ -1984,8 +1976,8 @@ and specify the upper-left corner of the rectangle
     </term>
     <listitem>
       <para>
-Specify the x and y coordinates(Xy.
-<!-- .ds Wh , which are the dimensions of the rectangle to be filled -->
+Specify the x and y coordinates, which are relative to the origin of the
+drawable and specify the upper-left corner of the rectangle.
       </para>
     </listitem>
   </varlistentry>
@@ -2006,7 +1998,8 @@ Specify the x and y coordinates(Xy.
     </term>
     <listitem>
       <para>
-Specify the width and height(Wh.
+Specify the width and height, which are the dimensions of the rectangle to
+be filled.
     </para>
   </listitem>
   </varlistentry>
@@ -2394,8 +2387,6 @@ Specifies the drawable.
     <listitem>
       <para>
 Specifies the GC.
-<!-- .ds Xy , which are relative to the origin of the drawable \ -->
-and specify the upper-left corner of the bounding rectangle
       </para>
     </listitem>
   </varlistentry>
@@ -2416,8 +2407,8 @@ and specify the upper-left corner of the bounding rectangle
     </term>
     <listitem>
       <para>
-Specify the x and y coordinates(Xy.
-<!-- .ds Wh , which are the major and minor axes of the arc -->
+Specify the x and y coordinates, which are relative to the origin of the
+drawable and specify the upper-left corner of the bounding rectangle.
       </para>
     </listitem>
   </varlistentry>
@@ -2438,7 +2429,8 @@ Specify the x and y coordinates(Xy.
     </term>
     <listitem>
       <para>
-Specify the width and height(Wh.
+Specify the width and height, which are the major and minor axes of the
+arc.
       </para>
     </listitem>
   </varlistentry>
@@ -4523,8 +4515,6 @@ Specifies the drawable.
     <listitem>
       <para>
 Specifies the GC.
-<!-- .ds Xy , which are relative to the origin of the specified drawable \ -->
-and define the origin of the first character
       </para>
     </listitem>
   </varlistentry>
@@ -4545,7 +4535,8 @@ and define the origin of the first character
     </term>
     <listitem>
       <para>
-Specify the x and y coordinates(Xy.
+Specify the x and y coordinates, which are relative to the origin of the
+specified drawable and define the origin of the first character.
       </para>
     </listitem>
   </varlistentry>
@@ -4619,8 +4610,6 @@ Specifies the drawable.
     <listitem>
       <para>
 Specifies the GC.
-<!-- .ds Xy , which are relative to the origin of the specified drawable \ -->
-and define the origin of the first character
       </para>
     </listitem>
   </varlistentry>
@@ -4641,7 +4630,8 @@ and define the origin of the first character
     </term>
     <listitem>
       <para>
-Specify the x and y coordinates(Xy.
+Specify the x and y coordinates, which are relative to the origin of the
+specified drawable and define the origin of the first character.
       </para>
     </listitem>
   </varlistentry>
@@ -4780,8 +4770,6 @@ Specifies the drawable.
     <listitem>
       <para>
 Specifies the GC.
-<!-- .ds Xy , which are relative to the origin of the specified drawable \ -->
-and define the origin of the first character
       </para>
     </listitem>
   </varlistentry>
@@ -4802,7 +4790,8 @@ and define the origin of the first character
     </term>
     <listitem>
       <para>
-Specify the x and y coordinates(Xy.
+Specify the x and y coordinates, which are relative to the origin of the
+specified drawable and define the origin of the first character.
       </para>
     </listitem>
   </varlistentry>
@@ -4876,8 +4865,6 @@ Specifies the drawable.
     <listitem>
       <para>
 Specifies the GC.
-<!-- .ds Xy , which are relative to the origin of the specified drawable \ -->
-and define the origin of the first character
       </para>
     </listitem>
   </varlistentry>
@@ -4898,7 +4885,8 @@ and define the origin of the first character
     </term>
     <listitem>
       <para>
-Specify the x and y coordinates(Xy.
+Specify the x and y coordinates, which are relative to the origin of the
+specified drawable and define the origin of the first character.
       </para>
     </listitem>
   </varlistentry>
@@ -5020,8 +5008,6 @@ Specifies the drawable.
     <listitem>
       <para>
 Specifies the GC.
-<!-- .ds Xy , which are relative to the origin of the specified drawable \ -->
-and define the origin of the first character
       </para>
     </listitem>
   </varlistentry>
@@ -5042,7 +5028,8 @@ and define the origin of the first character
     </term>
     <listitem>
       <para>
-Specify the x and y coordinates(Xy.
+Specify the x and y coordinates, which are relative to the origin of the
+specified drawable and define the origin of the first character.
       </para>
     </listitem>
   </varlistentry>
@@ -5116,8 +5103,6 @@ Specifies the drawable.
     <listitem>
       <para>
 Specifies the GC.
-<!-- .ds Xy , which are relative to the origin of the specified drawable \ -->
-and define the origin of the first character
       </para>
     </listitem>
   </varlistentry>
@@ -5138,7 +5123,8 @@ and define the origin of the first character
     </term>
     <listitem>
       <para>
-Specify the x and y coordinates(Xy.
+Specify the x and y coordinates, which are relative to the origin of the
+specified drawable and define the origin of the first character.
       </para>
     </listitem>
   </varlistentry>
@@ -5456,8 +5442,6 @@ Specifies the offset in Y from the top edge of the image defined
 by the 
 <structname>XImage</structname>
 structure.
-<!-- .ds Dx , which are relative to the origin of the drawable \ -->
-and are the coordinates of the subimage
       </para>
     </listitem>
   </varlistentry>
@@ -5478,8 +5462,8 @@ and are the coordinates of the subimage
     </term>
     <listitem>
       <para>
-Specify the x and y coordinates(Dx. 
-<!-- .ds Wh \ of the subimage, which define the dimensions of the rectangle -->
+Specify the x and y coordinates, which are relative to the origin of the
+drawable and are the coordinates of the subimage.
       </para>
     </listitem>
   </varlistentry>
@@ -5500,7 +5484,8 @@ Specify the x and y coordinates(Dx.
     </term>
     <listitem>
       <para>
-Specify the width and height(Wh.
+Specify the width and height of the subimage, which define the dimensions
+of the rectangle.
     </para>
   </listitem>
   </varlistentry>
@@ -5598,8 +5583,6 @@ Specifies the connection to the X server.
     <listitem>
       <para>
 Specifies the drawable. 
-<!-- .ds Xy , which are relative to the origin of the drawable \ -->
-and define the upper-left corner of the rectangle
       </para>
     </listitem>
   </varlistentry>
@@ -5620,8 +5603,8 @@ and define the upper-left corner of the rectangle
     </term>
     <listitem>
       <para>
-Specify the x and y coordinates(Xy.
-<!-- .ds Wh \ of the subimage, which define the dimensions of the rectangle -->
+Specify the x and y coordinates, which are relative to the origin of the
+drawable and define the upper-left corner of the rectangle.
       </para>
     </listitem>
   </varlistentry>
@@ -5642,7 +5625,8 @@ Specify the x and y coordinates(Xy.
     </term>
     <listitem>
       <para>
-Specify the width and height(Wh.
+Specify the width and height of the subimage, which define the dimensions
+of the rectangle.
       </para>
     </listitem>
   </varlistentry>
@@ -5787,8 +5771,6 @@ Specifies the connection to the X server.
     <listitem>
       <para>
 Specifies the drawable. 
-<!-- .ds Xy , which are relative to the origin of the drawable \ -->
-and define the upper-left corner of the rectangle
       </para>
     </listitem>
   </varlistentry>
@@ -5809,8 +5791,8 @@ and define the upper-left corner of the rectangle
     </term>
     <listitem>
       <para>
-Specify the x and y coordinates(Xy.
-<!-- .ds Wh \ of the subimage, which define the dimensions of the rectangle -->
+Specify the x and y coordinates, which are relative to the origin of the
+drawable and define the upper-left corner of the rectangle.
       </para>
     </listitem>
   </varlistentry>
@@ -5831,7 +5813,8 @@ Specify the x and y coordinates(Xy.
     </term>
     <listitem>
       <para>
-Specify the width and height(Wh.
+Specify the width and height of the subimage, which define the dimensions
+of the rectangle.
       </para>
     </listitem>
   </varlistentry>
@@ -5867,9 +5850,6 @@ or
     <listitem>
       <para>
 Specifies the destination image.
-<!-- .ds Dx , which are relative to the origin of the destination rectangle, \ -->
-specify its upper-left corner, and determine where the subimage \
-is placed in the destination image
       </para>
     </listitem>
   </varlistentry>
@@ -5890,7 +5870,9 @@ is placed in the destination image
     </term>
     <listitem>
       <para>
-Specify the x and y coordinates(Dx. 
+Specify the x and y coordinates, which are relative to the origin of the
+destination rectangle, specify its upper-left corner, and determine where
+the subimage is placed in the destination image.
     </para>
   </listitem>
   </varlistentry>

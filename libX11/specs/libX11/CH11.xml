@@ -63,7 +63,6 @@ Another way is to use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Wi whose events you are interested in -->
       </para>
     </listitem>
   </varlistentry>
@@ -73,7 +72,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the window (Wi.
+Specifies the window whose events you are interested in.
       </para>
     </listitem>
   </varlistentry>
@@ -926,7 +925,6 @@ To remove the next event that matches both a window and an event mask, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Wi whose events you are interested in -->
       </para>
     </listitem>
   </varlistentry>
@@ -936,7 +934,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the window (Wi.
+Specifies the window whose events you are interested in.
       </para>
     </listitem>
   </varlistentry>
@@ -1011,7 +1009,6 @@ indicating if the event was returned.
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Wi whose events you are interested in -->
       </para>
     </listitem>
   </varlistentry>
@@ -1021,7 +1018,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the window (Wi.
+Specifies the window whose events you are interested in.
       </para>
     </listitem>
   </varlistentry>

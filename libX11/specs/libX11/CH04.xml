@@ -61,8 +61,6 @@ a given window, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Wi whose list of children, root, parent, and number of children \ -->
-you want to obtain
       </para>
     </listitem>
   </varlistentry>
@@ -72,7 +70,8 @@ you want to obtain
     </term>
     <listitem>
       <para>
-Specifies the window (Wi.
+Specifies the window whose list of children, root, parent, and number of
+children you want to obtain.
       </para>
     </listitem>
   </varlistentry>
@@ -165,7 +164,6 @@ To obtain the current attributes of a given window, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Wi whose current attributes you want to obtain -->
       </para>
     </listitem>
   </varlistentry>
@@ -175,7 +173,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the window (Wi.
+Specifies the window whose current attributes you want to obtain.
       </para>
     </listitem>
   </varlistentry>
@@ -394,7 +392,6 @@ To obtain the current geometry of a given drawable, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Dr , which can be a window or a pixmap -->
       </para>
     </listitem>
   </varlistentry>
@@ -404,7 +401,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the drawable(Dr. 
+Specifies the drawable, which can be a window or a pixmap.
       </para>
     </listitem>
   </varlistentry>
@@ -698,7 +695,6 @@ Specifies the connection to the X server.
     <listitem>
       <para>
 Specifies the window.
-<!-- .ds Ro that the pointer is in -->
       </para>
     </listitem>
   </varlistentry>
@@ -708,7 +704,7 @@ Specifies the window.
     </term>
     <listitem>
       <para>
-Returns the root window (Ro.
+Returns the root window that the pointer is in.
       </para>
     </listitem>
   </varlistentry>
@@ -1162,7 +1158,6 @@ Specifies the connection to the X server.
     <listitem>
       <para>
 Specifies the array of atom names.
-<!-- .ds Cn atom names in the array -->
       </para>
     </listitem>
   </varlistentry>
@@ -1172,7 +1167,7 @@ Specifies the array of atom names.
     </term>
     <listitem>
       <para>
-Specifies the number of (Cn.
+Specifies the number of atom names in the array.
       </para>
     </listitem>
   </varlistentry>
@@ -1321,7 +1316,6 @@ Specifies the connection to the X server.
     <listitem>
       <para>
 Specifies the array of atoms.
-<!-- .ds Cn atoms in the array -->
       </para>
     </listitem>
   </varlistentry>
@@ -1331,7 +1325,7 @@ Specifies the array of atoms.
     </term>
     <listitem>
       <para>
-Specifies the number of (Cn.
+Specifies the number of atoms in the array.
       </para>
     </listitem>
   </varlistentry>
@@ -1436,7 +1430,6 @@ To obtain the type, format, and value of a property of a given window, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Wi whose property you want to obtain -->
       </para>
     </listitem>
   </varlistentry>
@@ -1446,7 +1439,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the window (Wi.
+Specifies the window whose property you want to obtain.
       </para>
     </listitem>
   </varlistentry>
@@ -1707,7 +1700,6 @@ To obtain a given window's property list, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Wi whose property list you want to obtain -->
       </para>
     </listitem>
   </varlistentry>
@@ -1717,7 +1709,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the window (Wi.
+Specifies the window whose property list you want to obtain.
       </para>
     </listitem>
   </varlistentry>
@@ -1784,7 +1776,6 @@ To change a property of a given window, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Wi whose property you want to change -->
       </para>
     </listitem>
   </varlistentry>
@@ -1794,7 +1785,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the window (Wi.
+Specifies the window whose property you want to change.
       </para>
     </listitem>
   </varlistentry>
@@ -2093,7 +2084,6 @@ To delete a property on a given window, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Wi whose property you want to delete -->
       </para>
     </listitem>
   </varlistentry>
@@ -2103,7 +2093,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the window (Wi.
+Specifies the window whose property you want to delete.
       </para>
     </listitem>
   </varlistentry>
@@ -2338,7 +2328,6 @@ To return the selection owner, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Se whose owner you want returned -->
       </para>
     </listitem>
   </varlistentry>
@@ -2348,7 +2337,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the selection atom (Se.
+Specifies the selection atom whose owner you want returned.
     </para>
   </listitem>
   </varlistentry>
