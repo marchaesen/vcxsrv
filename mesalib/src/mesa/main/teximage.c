@@ -798,7 +798,7 @@ _mesa_select_tex_object(struct gl_context *ctx,
                 ctx->Extensions.ARB_texture_buffer_object ?
                 texUnit->CurrentTex[TEXTURE_BUFFER_INDEX] : NULL;
       case GL_TEXTURE_EXTERNAL_OES:
-         return ctx->Extensions.OES_EGL_image_external
+         return _mesa_is_gles(ctx) && ctx->Extensions.OES_EGL_image_external
             ? texUnit->CurrentTex[TEXTURE_EXTERNAL_INDEX] : NULL;
       case GL_TEXTURE_2D_MULTISAMPLE:
          return ctx->Extensions.ARB_texture_multisample
@@ -3243,7 +3243,8 @@ _mesa_EGLImageTargetTexture2DOES (GLenum target, GLeglImageOES image)
       valid_target = ctx->Extensions.OES_EGL_image;
       break;
    case GL_TEXTURE_EXTERNAL_OES:
-      valid_target = ctx->Extensions.OES_EGL_image_external;
+      valid_target =
+         _mesa_is_gles(ctx) ? ctx->Extensions.OES_EGL_image_external : false;
       break;
    default:
       valid_target = false;
@@ -3428,6 +3429,35 @@ get_copy_tex_image_source(struct gl_context *ctx, gl_format texFormat)
    }
 }
 
+static void
+copytexsubimage_by_slice(struct gl_context *ctx,
+                         struct gl_texture_image *texImage,
+                         GLuint dims,
+                         GLint xoffset, GLint yoffset, GLint zoffset,
+                         struct gl_renderbuffer *rb,
+                         GLint x, GLint y,
+                         GLsizei width, GLsizei height)
+{
+   if (texImage->TexObject->Target == GL_TEXTURE_1D_ARRAY) {
+      int slice;
+
+      /* For 1D arrays, we copy each scanline of the source rectangle into the
+       * next array slice.
+       */
+      assert(zoffset == 0);
+
+      for (slice = 0; slice < height; slice++) {
+         assert(yoffset + slice < texImage->Height);
+         ctx->Driver.CopyTexSubImage(ctx, 2, texImage,
+                                     xoffset, 0, yoffset + slice,
+                                     rb, x, y + slice, width, 1);
+      }
+   } else {
+      ctx->Driver.CopyTexSubImage(ctx, dims, texImage,
+                                  xoffset, yoffset, zoffset,
+                                  rb, x, y, width, height);
+   }
+}
 
 
 /**
@@ -3516,8 +3546,9 @@ copyteximage(struct gl_context *ctx, GLuint dims,
                struct gl_renderbuffer *srcRb =
                   get_copy_tex_image_source(ctx, texImage->TexFormat);
 
-               ctx->Driver.CopyTexSubImage(ctx, dims, texImage, dstX, dstY, dstZ,
-                                           srcRb, srcX, srcY, width, height);
+               copytexsubimage_by_slice(ctx, texImage, dims,
+                                        dstX, dstY, dstZ,
+                                        srcRb, srcX, srcY, width, height);
             }
 
             check_gen_mipmap(ctx, target, texObj, level);
@@ -3609,9 +3640,9 @@ copytexsubimage(struct gl_context *ctx, GLuint dims, GLenum target, GLint level,
          struct gl_renderbuffer *srcRb =
             get_copy_tex_image_source(ctx, texImage->TexFormat);
 
-         ctx->Driver.CopyTexSubImage(ctx, dims, texImage,
-                                     xoffset, yoffset, zoffset,
-                                     srcRb, x, y, width, height);
+         copytexsubimage_by_slice(ctx, texImage, dims,
+                                  xoffset, yoffset, zoffset,
+                                  srcRb, x, y, width, height);
 
          check_gen_mipmap(ctx, target, texObj, level);
 

@@ -799,7 +799,6 @@ structure to be used.
     <listitem>
       <para>
 Returns a list of null-terminated character strings.
-<!-- .ds Cn strings -->
       </para>
     </listitem>
   </varlistentry>
@@ -809,7 +808,7 @@ Returns a list of null-terminated character strings.
     </term>
     <listitem>
       <para>
-Returns the number of (Cn.
+Returns the number of strings.
     </para>
   </listitem>
   </varlistentry>
@@ -1008,7 +1007,6 @@ structure, use
     <listitem>
       <para>
 Specifies a list of null-terminated character strings.
-<!-- .ds Cn strings -->
       </para>
     </listitem>
   </varlistentry>
@@ -1018,7 +1016,7 @@ Specifies a list of null-terminated character strings.
     </term>
     <listitem>
       <para>
-Specifies the number of (Cn.
+Specifies the number of strings.
       </para>
     </listitem>
   </varlistentry>
@@ -1095,7 +1093,6 @@ structure to be used.
     <listitem>
       <para>
 Returns a list of null-terminated character strings.
-<!-- .ds Cn strings -->
       </para>
     </listitem>
   </varlistentry>
@@ -1105,7 +1102,7 @@ Returns a list of null-terminated character strings.
     </term>
     <listitem>
       <para>
-Returns the number of (Cn.
+Returns the number of strings.
     </para>
   </listitem>
   </varlistentry>
@@ -3221,7 +3218,6 @@ Specifies the window.
     <listitem>
       <para>
 Specifies the list of protocols.
-<!-- .ds Cn protocols in the list -->
       </para>
     </listitem>
   </varlistentry>
@@ -3231,7 +3227,7 @@ Specifies the list of protocols.
     </term>
     <listitem>
       <para>
-Specifies the number of (Cn.
+Specifies the number of protocols in the list.
     </para>
   </listitem>
   </varlistentry>
@@ -3308,7 +3304,6 @@ Specifies the window.
     <listitem>
       <para>
 Returns the list of protocols.
-<!-- .ds Cn protocols in the list -->
       </para>
     </listitem>
   </varlistentry>
@@ -3318,7 +3313,7 @@ Returns the list of protocols.
     </term>
     <listitem>
       <para>
-Returns the number of (Cn.
+Returns the number of protocols in the list.
     </para>
   </listitem>
   </varlistentry>
@@ -3407,7 +3402,6 @@ Specifies the window.
     <listitem>
       <para>
 Specifies the list of windows.
-<!-- .ds Cn windows in the list -->
       </para>
     </listitem>
   </varlistentry>
@@ -3417,7 +3411,7 @@ Specifies the list of windows.
     </term>
     <listitem>
       <para>
-Specifies the number of (Cn.
+Specifies the number of windows in the list.
     </para>
   </listitem>
   </varlistentry>
@@ -3494,7 +3488,6 @@ Specifies the window.
     <listitem>
       <para>
 Returns the list of windows.
-<!-- .ds Cn windows in the list -->
       </para>
     </listitem>
   </varlistentry>
@@ -3504,7 +3497,7 @@ Returns the list of windows.
     </term>
     <listitem>
       <para>
-Returns the number of (Cn.
+Returns the number of windows in the list.
     </para>
   </listitem>
   </varlistentry>
@@ -4980,7 +4973,6 @@ Specifies the window.
 Specifies the
 <structname>XStandardColormap</structname>
 structure to be used.
-<!-- .ds Cn colormaps -->
       </para>
     </listitem>
   </varlistentry>
@@ -4990,7 +4982,7 @@ structure to be used.
     </term>
     <listitem>
       <para>
-Specifies the number of (Cn.
+Specifies the number of colormaps.
       </para>
     </listitem>
   </varlistentry>
@@ -5160,7 +5152,6 @@ Specifies the window.
 Returns the
 <structname>XStandardColormap</structname>
 structure.
-<!-- .ds Cn colormaps -->
       </para>
     </listitem>
   </varlistentry>
@@ -5170,7 +5161,7 @@ structure.
     </term>
     <listitem>
       <para>
-Returns the number of (Cn.
+Returns the number of colormaps.
       </para>
     </listitem>
   </varlistentry>

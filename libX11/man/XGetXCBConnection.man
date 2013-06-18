@@ -30,7 +30,6 @@ xcb_connection_t *XGetXCBConnection(Display *\fIdpy\fP);
 .SH ARGUMENTS
 .IP \fIdpy\fP 1i
 Specifies the connection to the X server.
-.IN "Environment" "DISPLAY"
 .SH DESCRIPTION
 The \fIXGetXCBConnection\fP function returns the XCB connection associated with
 an Xlib Display.  Clients can use this XCB connection with functions from the

@@ -295,8 +295,9 @@ static const int extra_EXT_texture_integer_and_new_buffers[] = {
    EXTRA_END
 };
 
-static const int extra_GLSL_130[] = {
+static const int extra_GLSL_130_es3[] = {
    EXTRA_GLSL_130,
+   EXTRA_API_ES3,
    EXTRA_END
 };
 
@@ -333,6 +334,12 @@ static const int extra_ARB_ES3_compatibility_api_es3[] = {
 static const int extra_EXT_framebuffer_sRGB_and_new_buffers[] = {
    EXT(EXT_framebuffer_sRGB),
    EXTRA_NEW_BUFFERS,
+   EXTRA_END
+};
+
+static const int extra_MESA_texture_array_es3[] = {
+   EXT(MESA_texture_array),
+   EXTRA_API_ES3,
    EXTRA_END
 };
 
@@ -396,6 +403,12 @@ static const int extra_version_32[] = { EXTRA_VERSION_32, EXTRA_END };
 
 static const int extra_gl30_es3[] = {
     EXTRA_VERSION_30,
+    EXTRA_API_ES3,
+    EXTRA_END,
+};
+
+static const int extra_gl32_es3[] = {
+    EXTRA_VERSION_32,
     EXTRA_API_ES3,
     EXTRA_END,
 };
@@ -717,6 +730,7 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
       break;
 
    case GL_MAX_VARYING_FLOATS_ARB:
+   case GL_MAX_FRAGMENT_INPUT_COMPONENTS:
       v->value_int = ctx->Const.MaxVarying * 4;
       break;
 

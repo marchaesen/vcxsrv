@@ -616,7 +616,7 @@ AC_ARG_ENABLE(arm-iwmmxt2,
 if test "x$IWMMXT_CFLAGS" = "x" ; then
    IWMMXT_CFLAGS="-flax-vector-conversions -Winline -march=iwmmxt"
    if test $enable_iwmmxt2 != no ; then
-      IWMMXT_CFLAGS+="2"
+      IWMMXT_CFLAGS="${IWMMXT_CFLAGS}2"
    fi
 fi
 
@@ -778,7 +778,7 @@ PKG_PROG_PKG_CONFIG
 
 if test $enable_gtk = yes ; then
    AC_CHECK_LIB([pixman-1], [pixman_version_string])
-   PKG_CHECK_MODULES(GTK, [gtk+-2.0 pixman-1])
+   PKG_CHECK_MODULES(GTK, [gtk+-2.0 >= 2.16 pixman-1])
 fi
 
 if test $enable_gtk = auto ; then
@@ -786,7 +786,7 @@ if test $enable_gtk = auto ; then
 fi
 
 if test $enable_gtk = auto ; then
-   PKG_CHECK_MODULES(GTK, [gtk+-2.0 pixman-1], [enable_gtk=yes], [enable_gtk=no])
+   PKG_CHECK_MODULES(GTK, [gtk+-2.0 >= 2.16 pixman-1], [enable_gtk=yes], [enable_gtk=no])
 fi
 
 AM_CONDITIONAL(HAVE_GTK, [test "x$enable_gtk" = xyes])

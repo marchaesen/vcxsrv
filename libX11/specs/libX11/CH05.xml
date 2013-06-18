@@ -53,7 +53,6 @@ Specifies the connection to the X server.
     <listitem>
       <para>
 Specifies which screen the pixmap is created on. 
-<!-- .ds Wh , which define the dimensions of the pixmap -->
       </para>
     </listitem>
   </varlistentry>
@@ -74,7 +73,7 @@ Specifies which screen the pixmap is created on.
     </term>
     <listitem>
       <para>
-Specify the width and height(Wh.
+Specify the width and height, which define the dimensions of the pixmap.
       </para>
     </listitem>
   </varlistentry>
@@ -497,7 +496,6 @@ Specifies the <acronym>RGB</acronym> values for the foreground of the source.
     <listitem>
       <para>
 Specifies the <acronym>RGB</acronym> values for the background of the source.
-<!-- .ds Xy , which indicate the hotspot relative to the source's origin -->
       </para>
     </listitem>
   </varlistentry>
@@ -518,7 +516,8 @@ Specifies the <acronym>RGB</acronym> values for the background of the source.
     </term>
     <listitem>
       <para>
-Specify the x and y coordinates(Xy.
+Specify the x and y coordinates, which indicate the hotspot relative to the
+source's origin.
     </para>
   </listitem>
   </varlistentry>
@@ -600,7 +599,6 @@ To determine useful cursor sizes, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Dr , which indicates the screen -->
       </para>
     </listitem>
   </varlistentry>
@@ -610,8 +608,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the drawable(Dr. 
-<!-- .ds Wh \ of the cursor that you want the size information for -->
+Specifies the drawable, which indicates the screen.
       </para>
     </listitem>
   </varlistentry>
@@ -632,7 +629,8 @@ Specifies the drawable(Dr.
     </term>
     <listitem>
       <para>
-Specify the width and height(Wh.
+Specify the width and height of the cursor that you want the size
+information for.
       </para>
     </listitem>
   </varlistentry>

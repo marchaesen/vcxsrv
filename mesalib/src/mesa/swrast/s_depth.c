@@ -1,6 +1,5 @@
 /*
  * Mesa 3-D graphics library
- * Version:  7.2.1
  *
  * Copyright (C) 1999-2008  Brian Paul   All Rights Reserved.
  *
@@ -311,6 +310,12 @@ _swrast_depth_test_span(struct gl_context *ctx, SWspan *span)
       zBufferVals = zStart;
    }
    else {
+      if (_mesa_get_format_datatype(rb->Format) != GL_UNSIGNED_NORMALIZED) {
+         _mesa_problem(ctx, "Incorrectly writing swrast's integer depth "
+                       "values to %s depth buffer",
+                       _mesa_get_format_name(rb->Format));
+      }
+
       /* copy Z buffer values into temp buffer (32-bit Z values) */
       zBufferTemp = malloc(count * sizeof(GLuint));
       if (!zBufferTemp)

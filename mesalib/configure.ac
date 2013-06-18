@@ -6,7 +6,7 @@ dnl Tell the user about autoconf.html in the --help output
 m4_divert_once([HELP_END], [
 See docs/autoconf.html for more details on the options for Mesa.])
 
-AC_INIT([Mesa], [9.2.0],
+AC_INIT([Mesa], [9.2.0-devel],
     [https://bugs.freedesktop.org/enter_bug.cgi?product=Mesa])
 AC_CONFIG_AUX_DIR([bin])
 AC_CONFIG_MACRO_DIR([m4])
@@ -1812,6 +1812,7 @@ if test "x$with_gallium_drivers" != x; then
 
             if test "x$enable_dri" = xyes; then
                 GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS dri-swrast"
+                HAVE_COMMON_DRI=yes
             fi
             if test "x$enable_vdpau" = xyes; then
                 GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS vdpau-softpipe"
@@ -1983,6 +1984,8 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/auxiliary/pipe-loader/Makefile
 		src/gallium/drivers/Makefile
 		src/gallium/drivers/freedreno/Makefile
+		src/gallium/drivers/freedreno/a2xx/Makefile
+		src/gallium/drivers/freedreno/a3xx/Makefile
 		src/gallium/drivers/i915/Makefile
 		src/gallium/drivers/ilo/Makefile
 		src/gallium/drivers/llvmpipe/Makefile

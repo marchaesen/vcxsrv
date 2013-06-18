@@ -605,7 +605,6 @@ To grab a pointer button, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Bu grabbed -->
       </para>
     </listitem>
   </varlistentry>
@@ -615,7 +614,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the pointer button that is to be (Bu or
+Specifies the pointer button that is to be grabbed or
 <symbol>AnyButton</symbol>.
       </para>
     </listitem>
@@ -844,7 +843,6 @@ To ungrab a pointer button, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Bu released -->
       </para>
     </listitem>
   </varlistentry>
@@ -854,7 +852,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the pointer button that is to be (Bu or
+Specifies the pointer button that is to be released or
 <symbol>AnyButton</symbol>.
       </para>
     </listitem>
@@ -3303,7 +3301,6 @@ To obtain the symbols for the specified KeyCodes, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Kc returned -->
       </para>
     </listitem>
   </varlistentry>
@@ -3313,7 +3310,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the first KeyCode that is to be (Kc.
+Specifies the first KeyCode that is to be returned.
       </para>
     </listitem>
   </varlistentry>
@@ -3429,7 +3426,6 @@ To change the keyboard mapping, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Kc changed -->
       </para>
     </listitem>
   </varlistentry>
@@ -3439,7 +3435,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the first KeyCode that is to be (Kc.
+Specifies the first KeyCode that is to be changed.
       </para>
     </listitem>
   </varlistentry>

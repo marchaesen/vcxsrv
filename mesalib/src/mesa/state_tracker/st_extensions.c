@@ -187,7 +187,8 @@ void st_init_limits(struct st_context *st)
       pc->MaxTemps           = pc->MaxNativeTemps           =
          screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_TEMPS);
       pc->MaxAddressRegs     = pc->MaxNativeAddressRegs     =
-         screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_ADDRS);
+         _min(screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_ADDRS),
+              MAX_PROGRAM_ADDRESS_REGS);
       pc->MaxParameters      = pc->MaxNativeParameters      =
          screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_CONSTS);
 
@@ -572,8 +573,7 @@ void st_init_extensions(struct st_context *st)
    ctx->Extensions.NV_texture_rectangle = GL_TRUE;
 
    ctx->Extensions.OES_EGL_image = GL_TRUE;
-   if (ctx->API != API_OPENGL_COMPAT)
-      ctx->Extensions.OES_EGL_image_external = GL_TRUE;
+   ctx->Extensions.OES_EGL_image_external = GL_TRUE;
    ctx->Extensions.OES_draw_texture = GL_TRUE;
 
    /* Expose the extensions which directly correspond to gallium caps. */

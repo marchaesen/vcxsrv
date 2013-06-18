@@ -45,8 +45,7 @@ The patch that fixed this server bug in X.org CVS is here:
 -->
 
 <xcb header="glx" extension-xname="GLX" extension-name="Glx"
-    major-version="1" minor-version="3">
-	<!-- target support: 1.3 -->
+    major-version="1" minor-version="4">
 
 	<import>xproto</import>
 
@@ -105,6 +104,18 @@ The patch that fixed this server bug in X.org CVS is here:
 		<field type="CARD16" name="height" />
 		<field type="CARD16" name="count" />
 		<pad bytes="4" />
+	</event>
+
+	<event name="BufferSwapComplete" number="1">
+		<pad bytes="1" />
+		<field type="CARD16" name="event_type" />
+		<pad bytes="2" />
+		<field type="glx:DRAWABLE" name="drawable" />
+		<field type="CARD32" name="ust_hi" />
+		<field type="CARD32" name="ust_lo" />
+		<field type="CARD32" name="msc_hi" />
+		<field type="CARD32" name="msc_lo" />
+		<field type="CARD32" name="sbc" />
 	</event>
 
 	<!-- enums for PbufferClobber event/draw type -->

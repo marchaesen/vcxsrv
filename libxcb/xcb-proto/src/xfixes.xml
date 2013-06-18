@@ -336,7 +336,7 @@ authorization from the authors.
 
   <xidtype name="BARRIER" />
 
-  <enum name="DirectionMask">
+  <enum name="BarrierDirections">
     <item name="PositiveX"><bit>0</bit></item>
     <item name="PositiveY"><bit>1</bit></item>
     <item name="NegativeX"><bit>2</bit></item>
@@ -350,7 +350,7 @@ authorization from the authors.
     <field type="CARD16" name="y1" />
     <field type="CARD16" name="x2" />
     <field type="CARD16" name="y2" />
-    <field type="CARD32" name="directions" mask="DirectionMask" />
+    <field type="CARD32" name="directions" mask="BarrierDirections" />
     <pad bytes="2" />
     <field type="CARD16" name="num_devices" />
     <list type="CARD16" name="devices"><fieldref>num_devices</fieldref></list>

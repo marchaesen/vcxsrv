@@ -320,7 +320,6 @@ To obtain the uppercase and lowercase forms of a KeySym, use
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
-<!-- .ds Fn converted -->
 <variablelist>
   <varlistentry>
     <term>
@@ -328,7 +327,7 @@ To obtain the uppercase and lowercase forms of a KeySym, use
     </term>
     <listitem>
       <para>
-Specifies the KeySym that is to be (Fn.
+Specifies the KeySym that is to be converted.
       </para>
     </listitem>
   </varlistentry>
@@ -431,7 +430,6 @@ To convert a KeySym code to the name of the KeySym, use
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
-<!-- .ds Fn converted -->
 <variablelist>
   <varlistentry>
     <term>
@@ -439,7 +437,7 @@ To convert a KeySym code to the name of the KeySym, use
     </term>
     <listitem>
       <para>
-Specifies the KeySym that is to be (Fn.
+Specifies the KeySym that is to be converted.
     </para>
   </listitem>
   </varlistentry>
@@ -466,7 +464,6 @@ You can use KeySym macros to perform the following tests.
 </para>
 <para>IsCursorKey(<emphasis remap='I'>keysym</emphasis>)</para>
 <!-- .FN -->
-<!-- .ds Fn tested -->
 <variablelist>
   <varlistentry>
     <term>
@@ -493,7 +490,6 @@ if the specified KeySym is a cursor key.
 <!-- .sM -->
 <para>IsFunctionKey(<emphasis remap='I'>keysym</emphasis>)</para>
 <!-- .FN -->
-<!-- .ds Fn tested -->
 <variablelist>
   <varlistentry>
     <term>
@@ -520,7 +516,6 @@ if the specified KeySym is a function key.
 <!-- .sM -->
 <para>IsKeypadKey(<emphasis remap='I'>keysym</emphasis>)</para>
 <!-- .FN -->
-<!-- .ds Fn tested -->
 <variablelist>
   <varlistentry>
     <term>
@@ -528,7 +523,7 @@ if the specified KeySym is a function key.
     </term>
     <listitem>
       <para>
-Specifies the KeySym that is to be (Fn.
+Specifies the KeySym that is to be tested.
     </para>
   </listitem>
   </varlistentry>
@@ -554,7 +549,7 @@ if the specified KeySym is a standard keypad key.
     </term>
     <listitem>
       <para>
-Specifies the KeySym that is to be (Fn.
+Specifies the KeySym that is to be tested.
     </para>
   </listitem>
   </varlistentry>
@@ -574,7 +569,6 @@ if the specified KeySym is a vendor-private keypad key.
 <!-- .sM -->
 <para>IsMiscFunctionKey(<emphasis remap='I'>keysym</emphasis>)</para>
 <!-- .FN -->
-<!-- .ds Fn tested -->
 <variablelist>
   <varlistentry>
     <term>
@@ -582,7 +576,7 @@ if the specified KeySym is a vendor-private keypad key.
     </term>
     <listitem>
       <para>
-Specifies the KeySym that is to be (Fn.
+Specifies the KeySym that is to be tested.
     </para>
   </listitem>
   </varlistentry>
@@ -815,7 +809,6 @@ use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Fn rebound -->
       </para>
     </listitem>
   </varlistentry>
@@ -825,7 +818,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the KeySym that is to be (Fn.
+Specifies the KeySym that is to be rebound.
       </para>
     </listitem>
   </varlistentry>
@@ -1480,7 +1473,6 @@ To move a region by a specified amount, use
     <listitem>
       <para>
 Specifies the region.
-<!-- .ds Dy move -->
       </para>
     </listitem>
   </varlistentry>
@@ -1502,7 +1494,7 @@ Specifies the region.
     <listitem>
       <para>
 Specify the x and y coordinates,
-which define the amount you want to (Dy the specified region.
+which define the amount you want to move the specified region.
     </para>
   </listitem>
   </varlistentry>
@@ -1532,7 +1524,6 @@ To reduce a region by a specified amount, use
     <listitem>
       <para>
 Specifies the region.
-<!-- .ds Dy shrink -->
       </para>
     </listitem>
   </varlistentry>
@@ -1554,7 +1545,7 @@ Specifies the region.
     <listitem>
       <para>
 Specify the x and y coordinates,
-which define the amount you want to (Dy the specified region.
+which define the amount you want to shrink the specified region.
     </para>
   </listitem>
   </varlistentry>
@@ -1996,7 +1987,6 @@ To determine if a specified point resides in a specified region, use
     <listitem>
       <para>
 Specifies the region.
-<!-- .ds Xy , which define the point -->
       </para>
     </listitem>
   </varlistentry>
@@ -2017,7 +2007,7 @@ Specifies the region.
     </term>
     <listitem>
       <para>
-Specify the x and y coordinates(Xy.
+Specify the x and y coordinates, which define the point.
     </para>
   </listitem>
   </varlistentry>
@@ -2056,7 +2046,6 @@ To determine if a specified rectangle is inside a region, use
     <listitem>
       <para>
 Specifies the region.
-<!-- .ds Xy , which define the coordinates of the upper-left corner of the rectangle -->
       </para>
     </listitem>
   </varlistentry>
@@ -2077,8 +2066,8 @@ Specifies the region.
     </term>
     <listitem>
       <para>
-Specify the x and y coordinates(Xy.
-<!-- .ds Wh , which define the rectangle -->
+Specify the x and y coordinates, which define the coordinates of the
+upper-left corner of the rectangle.
       </para>
     </listitem>
   </varlistentry>
@@ -2099,7 +2088,7 @@ Specify the x and y coordinates(Xy.
     </term>
     <listitem>
       <para>
-Specify the width and height(Wh.
+Specify the width and height, which define the rectangle.
     </para>
   </listitem>
   </varlistentry>
@@ -2255,7 +2244,6 @@ Specifies the bytes, which are not necessarily ASCII or null-terminated.
     <listitem>
       <para>
 Specifies the number of bytes to be stored.
-<!-- .ds Fn in which you want to store the bytes -->
       </para>
     </listitem>
   </varlistentry>
@@ -2265,7 +2253,7 @@ Specifies the number of bytes to be stored.
     </term>
     <listitem>
       <para>
-Specifies the buffer (Fn.
+Specifies the buffer in which you want to store the bytes.
     </para>
   </listitem>
   </varlistentry>
@@ -2371,7 +2359,6 @@ Specifies the connection to the X server.
     <listitem>
       <para>
 Returns the number of bytes in the buffer.
-<!-- .ds Fn from which you want the stored data returned -->
       </para>
     </listitem>
   </varlistentry>
@@ -2381,7 +2368,7 @@ Returns the number of bytes in the buffer.
     </term>
     <listitem>
       <para>
-Specifies the buffer (Fn.
+Specifies the buffer from which you want the stored data returned.
     </para>
   </listitem>
   </varlistentry>
@@ -3306,7 +3293,6 @@ To read a bitmap from a file and store it in a pixmap, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Dr \ that indicates the screen -->
       </para>
     </listitem>
   </varlistentry>
@@ -3316,7 +3302,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the drawable(Dr. 
+Specifies the drawable that indicates the screen.
       </para>
     </listitem>
   </varlistentry>
@@ -3685,7 +3671,6 @@ To create a pixmap and then store bitmap-format data into it, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Dr \ that indicates the screen -->
       </para>
     </listitem>
   </varlistentry>
@@ -3695,7 +3680,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the drawable(Dr. 
+Specifies the drawable that indicates the screen.
       </para>
     </listitem>
   </varlistentry>
@@ -3815,7 +3800,6 @@ in a program directly, as opposed to reading it in every time at run time, use
     <listitem>
       <para>
 Specifies the connection to the X server.
-<!-- .ds Dr \ that indicates the screen -->
       </para>
     </listitem>
   </varlistentry>
@@ -3825,7 +3809,7 @@ Specifies the connection to the X server.
     </term>
     <listitem>
       <para>
-Specifies the drawable(Dr. 
+Specifies the drawable that indicates the screen.
       </para>
     </listitem>
   </varlistentry>

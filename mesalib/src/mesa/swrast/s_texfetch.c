@@ -1,6 +1,5 @@
 /*
  * Mesa 3-D graphics library
- * Version:  7.7
  *
  * Copyright (C) 1999-2008  Brian Paul   All Rights Reserved.
  * Copyright (c) 2009  VMware, Inc.
@@ -1241,9 +1240,9 @@ texfetch_funcs[] =
    },
    {
       MESA_FORMAT_XBGR16161616_UNORM,
-      NULL,
-      NULL,
-      NULL
+      fetch_texel_1d_xbgr16161616_unorm,
+      fetch_texel_2d_xbgr16161616_unorm,
+      fetch_texel_3d_xbgr16161616_unorm
    },
    {
       MESA_FORMAT_XBGR16161616_SNORM,
@@ -1253,9 +1252,9 @@ texfetch_funcs[] =
    },
    {
       MESA_FORMAT_XBGR16161616_FLOAT,
-      NULL,
-      NULL,
-      NULL
+      fetch_texel_1d_xbgr16161616_float,
+      fetch_texel_2d_xbgr16161616_float,
+      fetch_texel_3d_xbgr16161616_float
    },
    {
       MESA_FORMAT_XBGR16161616_UINT,
@@ -1271,9 +1270,9 @@ texfetch_funcs[] =
    },
    {
       MESA_FORMAT_XBGR32323232_FLOAT,
-      NULL,
-      NULL,
-      NULL
+      fetch_texel_1d_xbgr32323232_float,
+      fetch_texel_2d_xbgr32323232_float,
+      fetch_texel_3d_xbgr32323232_float
    },
    {
       MESA_FORMAT_XBGR32323232_UINT,

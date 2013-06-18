@@ -1,6 +1,5 @@
 /*
  * Mesa 3-D graphics library
- * Version:  7.6
  *
  * Copyright (C) 2009  VMware, Inc.  All Rights Reserved.
  *
@@ -655,7 +654,8 @@ _mesa_meta_begin(struct gl_context *ctx, GLbitfield state)
                _mesa_set_enable(ctx, GL_TEXTURE_2D, GL_FALSE);
                if (ctx->Extensions.ARB_texture_cube_map)
                   _mesa_set_enable(ctx, GL_TEXTURE_CUBE_MAP, GL_FALSE);
-               if (ctx->Extensions.OES_EGL_image_external)
+               if (_mesa_is_gles(ctx) &&
+                   ctx->Extensions.OES_EGL_image_external)
                   _mesa_set_enable(ctx, GL_TEXTURE_EXTERNAL_OES, GL_FALSE);
 
                if (ctx->API == API_OPENGL_COMPAT) {
@@ -3851,9 +3851,16 @@ _mesa_meta_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
     */
    _mesa_meta_begin(ctx, MESA_META_PIXEL_STORE);
 
-   ctx->Driver.TexSubImage(ctx, dims, texImage,
-                           xoffset, yoffset, zoffset, width, height, 1,
-                           format, type, buf, &ctx->Unpack);
+   if (texImage->TexObject->Target == GL_TEXTURE_1D_ARRAY) {
+      assert(yoffset == 0);
+      ctx->Driver.TexSubImage(ctx, dims, texImage,
+                              xoffset, zoffset, 0, width, 1, 1,
+                              format, type, buf, &ctx->Unpack);
+   } else {
+      ctx->Driver.TexSubImage(ctx, dims, texImage,
+                              xoffset, yoffset, zoffset, width, height, 1,
+                              format, type, buf, &ctx->Unpack);
+   }
 
    _mesa_meta_end(ctx);
 

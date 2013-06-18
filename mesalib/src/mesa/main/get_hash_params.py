@@ -329,6 +329,9 @@ descriptor=[
   [ "MAJOR_VERSION", "LOC_CUSTOM, TYPE_INT, 0, extra_gl30_es3" ],
   [ "MINOR_VERSION", "LOC_CUSTOM, TYPE_INT, 0, extra_gl30_es3" ],
 
+  # GL 3.0 / GLES3
+  [ "MAX_FRAGMENT_INPUT_COMPONENTS", "LOC_CUSTOM, TYPE_INT, 0, extra_gl32_es3" ],
+
 # GL_ARB_ES3_compatibility
   [ "MAX_ELEMENT_INDEX", "CONTEXT_INT64(Const.MaxElementIndex), extra_ARB_ES3_compatibility_api_es3"],
 
@@ -365,9 +368,17 @@ descriptor=[
 # NOTE: GL_DRAW_FRAMEBUFFER_BINDING_EXT == GL_FRAMEBUFFER_BINDING_EXT
   [ "READ_FRAMEBUFFER_BINDING_EXT", "LOC_CUSTOM, TYPE_INT, 0, extra_EXT_framebuffer_blit" ],
 
+# GL_EXT_gpu_shader4 / GLSL 1.30
+  [ "MIN_PROGRAM_TEXEL_OFFSET", "CONTEXT_INT(Const.MinProgramTexelOffset), extra_GLSL_130_es3" ],
+  [ "MAX_PROGRAM_TEXEL_OFFSET", "CONTEXT_INT(Const.MaxProgramTexelOffset), extra_GLSL_130_es3" ],
+
 # GL_EXT_pixel_buffer_object
   [ "PIXEL_PACK_BUFFER_BINDING_EXT", "LOC_CUSTOM, TYPE_INT, 0, extra_EXT_pixel_buffer_object" ],
   [ "PIXEL_UNPACK_BUFFER_BINDING_EXT", "LOC_CUSTOM, TYPE_INT, 0, extra_EXT_pixel_buffer_object" ],
+
+  # GL_EXT_texture_array
+  [ "TEXTURE_BINDING_2D_ARRAY", "LOC_CUSTOM, TYPE_INT, TEXTURE_2D_ARRAY_INDEX, extra_MESA_texture_array_es3" ],
+  [ "MAX_ARRAY_TEXTURE_LAYERS_EXT", "CONTEXT_INT(Const.MaxArrayTextureLayers), extra_MESA_texture_array_es3" ],
 
 # GL_EXT_transform_feedback
   [ "TRANSFORM_FEEDBACK_BUFFER_BINDING", "LOC_CUSTOM, TYPE_INT, 0, extra_EXT_transform_feedback" ],
@@ -498,8 +509,6 @@ descriptor=[
   [ "TEXTURE_2D_ARRAY_EXT", "LOC_CUSTOM, TYPE_BOOLEAN, NO_OFFSET, NO_EXTRA" ],
   [ "TEXTURE_BINDING_1D", "LOC_CUSTOM, TYPE_INT, TEXTURE_1D_INDEX, NO_EXTRA" ],
   [ "TEXTURE_BINDING_1D_ARRAY", "LOC_CUSTOM, TYPE_INT, TEXTURE_1D_ARRAY_INDEX, extra_MESA_texture_array" ],
-  [ "TEXTURE_BINDING_2D_ARRAY", "LOC_CUSTOM, TYPE_INT, TEXTURE_1D_ARRAY_INDEX, extra_MESA_texture_array" ],
-  [ "MAX_ARRAY_TEXTURE_LAYERS_EXT", "CONTEXT_INT(Const.MaxArrayTextureLayers), extra_MESA_texture_array" ],
   [ "TEXTURE_GEN_S", "LOC_TEXUNIT, TYPE_BIT_0, offsetof(struct gl_texture_unit, TexGenEnabled), NO_EXTRA" ],
   [ "TEXTURE_GEN_T", "LOC_TEXUNIT, TYPE_BIT_1, offsetof(struct gl_texture_unit, TexGenEnabled), NO_EXTRA" ],
   [ "TEXTURE_GEN_R", "LOC_TEXUNIT, TYPE_BIT_2, offsetof(struct gl_texture_unit, TexGenEnabled), NO_EXTRA" ],
@@ -646,10 +655,6 @@ descriptor=[
 
 # GL_ARB_color_buffer_float
   [ "RGBA_FLOAT_MODE_ARB", "BUFFER_FIELD(Visual.floatMode, TYPE_BOOLEAN), extra_core_ARB_color_buffer_float_and_new_buffers" ],
-
-# GL_EXT_gpu_shader4 / GLSL 1.30
-  [ "MIN_PROGRAM_TEXEL_OFFSET", "CONTEXT_INT(Const.MinProgramTexelOffset), extra_GLSL_130" ],
-  [ "MAX_PROGRAM_TEXEL_OFFSET", "CONTEXT_INT(Const.MaxProgramTexelOffset), extra_GLSL_130" ],
 
 # GL_ARB_texture_buffer_object
   [ "MAX_TEXTURE_BUFFER_SIZE_ARB", "CONTEXT_INT(Const.MaxTextureBufferSize), extra_texture_buffer_object" ],
