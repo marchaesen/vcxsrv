@@ -1469,7 +1469,7 @@ FreeTypeRasteriseGlyph(unsigned idx, int flags, CharInfoPtr tgp,
 		    current_raster[j]|=current_buffer[jj]>>mod_dx0;
 		    j++; prev_jj++; jj++;
 		    for( ; j<bpr ; j++,prev_jj++,jj++ ){
-			current_raster[j]|=current_buffer[prev_jj]<<mod_dx1;
+			current_raster[j]|=(current_buffer[prev_jj]<<mod_dx1)&0xff;
 			if( bitmap->pitch <= jj ) break;
 			current_raster[j]|=current_buffer[jj]>>mod_dx0;
 		    }
