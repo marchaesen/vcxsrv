@@ -79,18 +79,18 @@ winGetWindowInfo(WindowPtr pWin)
                   offsetx=0;
                   offsety=0;
                 }
-                pWinPriv->hWnd=CreateWindowExA(WS_EX_TRANSPARENT,
+                pWinPriv->hWnd=CreateWindowExA(0,
                              WIN_GL_WINDOW_CLASS,
                              "",
-                             WS_CHILD |WS_CLIPSIBLINGS | WS_CLIPCHILDREN  | ExtraClass,
+                             WS_CHILD |WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_DISABLED | ExtraClass,
                              pWin->drawable.x-offsetx,
                              pWin->drawable.y-offsety,
                              pWin->drawable.width,
                              pWin->drawable.height,
                              hWndParent,
                              NULL,
-                             GetModuleHandle(NULL),
-                             NULL);
+                             g_hInstance,
+                             pWin);
                 winDebug("Window created %x %x %d %d %d %d\n",pWinPriv->hWnd,hWndParent,pWin->drawable.x-offsetx,pWin->drawable.y-offsety,pWin->drawable.width, pWin->drawable.height);
                 pWinPriv->fWglUsed=TRUE;
               }
@@ -124,18 +124,18 @@ winGetWindowInfo(WindowPtr pWin)
                   )
               {
                 int ExtraClass=(pWin->realized)?WS_VISIBLE:0;
-                pWinPriv->hWnd=CreateWindowExA(WS_EX_TRANSPARENT,
+                pWinPriv->hWnd=CreateWindowExA(0,
                              WIN_GL_WINDOW_CLASS,
                              "",
-                             WS_CHILD |WS_CLIPSIBLINGS | WS_CLIPCHILDREN  | ExtraClass,
+                             WS_CHILD |WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_DISABLED | ExtraClass,
                              pWin->drawable.x,
                              pWin->drawable.y,
                              pWin->drawable.width,
                              pWin->drawable.height,
                              pWinScreen->hwndScreen,
                              NULL,
-                             GetModuleHandle(NULL),
-                             NULL);
+                             g_hInstance,
+                             pWin);
                 pWinPriv->fWglUsed=TRUE;
                 /* copy size and window handle */
                 hwnd = pWinPriv->hWnd;

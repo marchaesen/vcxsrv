@@ -103,6 +103,11 @@ Window g_iClipboardWindow = None;
 Atom g_atomLastOwnedSelection = None;
 #endif
 
+const char WIN_WINDOW_PROP[]=     "vcxsrv_window_prop_rl";
+const char WIN_WID_PROP[]=        "vcxsrv_wid_prop_rl";
+const char WIN_NEEDMANAGE_PROP[]= "vcxsrv_override_redirect_prop_rl";
+const char WIN_SCR_PROP[]=        "vcxsrv_screen_prop_rl";
+
 /*
  * Re-initialize global variables that are invalidated
  * by a server reset.

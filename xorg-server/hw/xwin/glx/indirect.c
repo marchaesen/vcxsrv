@@ -608,7 +608,7 @@ glxWinScreenProbe(ScreenPtr pScreen)
             WNDCLASSEX wc;
             glTestWndClass=1;
             wc.cbSize = sizeof(WNDCLASSEX);
-            wc.style = CS_OWNDC ;
+            wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC ;
             wc.lpfnWndProc = GlxWindowProc;
             wc.cbClsExtra = 0;
             wc.cbWndExtra = 0;
@@ -627,7 +627,7 @@ glxWinScreenProbe(ScreenPtr pScreen)
     hwnd = CreateWindowExA(0,
                            WIN_GL_WINDOW_CLASS,
                            "XWin GL Renderer Capabilities Test Window",
-                           0, 0, 0, 0, 0, NULL, NULL, GetModuleHandle(NULL),
+                           0, 0, 0, 0, 0, NULL, NULL, g_hInstance,
                            NULL);
     if (hwnd == NULL)
         LogMessage(X_ERROR,

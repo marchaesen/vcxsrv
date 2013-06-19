@@ -47,15 +47,15 @@
 #define WINDOW_CLASS		"VcXsrv/x"
 #define WINDOW_TITLE		PROJECT_NAME " Server - Display %s:%s.%d"
 #define WINDOW_TITLE_XDMCP	PROJECT_NAME " Server - %s - Display %s:%s.%d"
-#define WIN_SCR_PROP		"vcxsrv_screen_prop rl"
+extern const char WIN_SCR_PROP[];
 #define WINDOW_CLASS_X		"vcxsrv/x X rl"
 #define WINDOW_TITLE_X		PROJECT_NAME " X"
-#define WIN_WINDOW_PROP		"vcxsrv_window_prop_rl"
+extern const char WIN_WINDOW_PROP[];
 #ifdef HAS_DEVWINDOWS
 #define WIN_MSG_QUEUE_FNAME	"/dev/windows"
 #endif
-#define WIN_WID_PROP		"vcxsrv_wid_prop_rl"
-#define WIN_NEEDMANAGE_PROP	"vcxsrv_override_redirect_prop_rl"
+extern const char WIN_WID_PROP[];
+extern const char WIN_NEEDMANAGE_PROP[];
 
 #define VCXSRV_SIGNATURE		0xdeaddeadL
 
