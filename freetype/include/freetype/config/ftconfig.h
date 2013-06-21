@@ -39,8 +39,8 @@
 #define __FTCONFIG_H__
 
 #include <ft2build.h>
-#include FT_CONFIG_OPTIONS_H
-#include FT_CONFIG_STANDARD_LIBRARY_H
+#include <freetype/config/ftoption.h>
+#include <freetype/config/ftstdlib.h>
 
 
 FT_BEGIN_HEADER
