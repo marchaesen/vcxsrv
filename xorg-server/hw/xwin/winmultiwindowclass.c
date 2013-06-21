@@ -246,8 +246,8 @@ winMultiWindowGetTransientFor(WindowPtr pWin, Window *pDaddyId)
         if (prop->propertyName == XA_WM_TRANSIENT_FOR
             && prop->format == 32
             && prop->data) {
-            if (ppDaddy)
-                memcpy (pDaddy, prop->data, 4*(int)prop->size); /* format/8 = 4 */
+            if (pDaddyId)
+                memcpy (pDaddyId, prop->data, 4*(int)prop->size); /* format/8 = 4 */
             return 1;
         }
         else
