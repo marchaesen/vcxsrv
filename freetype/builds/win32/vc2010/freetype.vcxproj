@@ -95,12 +95,12 @@
     <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
     <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
     <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">freetype2411_D</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug Multithreaded|Win32'">freetype2411MT_D</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug Singlethreaded|Win32'">freetype2411ST_D</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">freetype2411</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release Multithreaded|Win32'">freetype2411MT</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release Singlethreaded|Win32'">freetype2411ST</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">freetype250_D</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug Multithreaded|Win32'">freetype250MT_D</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug Singlethreaded|Win32'">freetype250ST_D</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">freetype250</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release Multithreaded|Win32'">freetype250MT</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release Singlethreaded|Win32'">freetype250ST</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
