@@ -624,7 +624,7 @@ winDestroyIcon(HICON hIcon)
     /* Delete the icon if its not one of the application defaults or an override */
     if (hIcon &&
         hIcon != g_hIconX &&
-        hIcon != g_hSmallIconX && !winIconIsOverride((unsigned long) hIcon))
+        hIcon != g_hSmallIconX && !winIconIsOverride(hIcon))
         DestroyIcon(hIcon);
 }
 #endif

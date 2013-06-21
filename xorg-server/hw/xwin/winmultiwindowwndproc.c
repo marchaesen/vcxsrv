@@ -343,7 +343,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         /* */
         wmMsg.msg = 0;
         wmMsg.hwndWindow = hwnd;
-        wmMsg.iWindow = (Window) GetProp(hwnd, WIN_WID_PROP);
+        wmMsg.iWindow = (Window) (INT_PTR) GetProp(hwnd, WIN_WID_PROP);
 
         wmMsg.iX = pDraw->x;
         wmMsg.iY = pDraw->y;
@@ -391,8 +391,8 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         /* */
         SetProp(hwnd,
                 WIN_WID_PROP,
-                (HANDLE) winGetWindowID(((LPCREATESTRUCT) lParam)->
-                                        lpCreateParams));
+                (HANDLE) (INT_PTR) winGetWindowID(((LPCREATESTRUCT) lParam)->
+                                                  lpCreateParams));
 
         /*
          * Make X windows' Z orders sync with Windows windows because

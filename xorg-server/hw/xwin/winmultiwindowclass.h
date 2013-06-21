@@ -118,6 +118,6 @@ int
  winMultiWindowGetWMName(WindowPtr pWin, char **wmName);
 
 int
- winMultiWindowGetTransientFor(WindowPtr pWin, WindowPtr *ppDaddy);
+ winMultiWindowGetTransientFor(WindowPtr pWin, Window *ppDaddy);
 
 #endif

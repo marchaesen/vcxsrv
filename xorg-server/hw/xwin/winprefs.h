@@ -162,7 +162,7 @@ Bool
  HandleCustomWM_COMMAND(unsigned long hwndIn, int command);
 
 int
- winIconIsOverride(unsigned hiconIn);
+ winIconIsOverride(HICON hicon);
 
 HICON winOverrideIcon(char *res_name, char *res_class, char *wmName);
 

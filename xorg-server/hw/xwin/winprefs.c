@@ -181,7 +181,7 @@ ReloadEnumWindowsProc(HWND hwnd, LPARAM lParam)
 
                 wmMsg.msg = WM_WM_ICON_EVENT;
                 wmMsg.hwndWindow = hwnd;
-                wmMsg.iWindow = (Window) GetProp(hwnd, WIN_WID_PROP);
+                wmMsg.iWindow = (Window) (INT_PTR) GetProp(hwnd, WIN_WID_PROP);
 
                 winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
             }
@@ -617,12 +617,9 @@ winOverrideIcon(char *res_name, char *res_class, char *wmName)
  * ICONS{} overrides)?
  */
 int
-winIconIsOverride(unsigned hiconIn)
+winIconIsOverride(HICON hicon)
 {
-    HICON hicon;
     int i;
-
-    hicon = (HICON) hiconIn;
 
     if (!hicon)
         return 0;

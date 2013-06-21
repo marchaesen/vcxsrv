@@ -160,6 +160,8 @@ XWin_LDFLAGS = -mwindows -static
 .rc.o:
 	$(AM_V_GEN)$(WINDRES) --use-temp-file -i $< --input-format=rc -o $@ -O coff -I $(top_builddir)/include
 
+XWin.o: XWin.rc XWin.exe.manifest X.ico
+
 winprefsyacc.h: winprefsyacc.c
 winprefslex.c: winprefslex.l winprefsyacc.c winprefsyacc.h
 
