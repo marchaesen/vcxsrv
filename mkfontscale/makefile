@@ -20,9 +20,9 @@ CSRCS = hash.c \
 	mkfontscale.c
 
 ifeq ($(DEBUG),1)
-LINKLIBS += $(MHMAKECONF)\freetype\lib\freetype2411MT_D.lib
+LINKLIBS += $(MHMAKECONF)\freetype\lib\freetype2501MT_D.lib
 else
-LINKLIBS += $(MHMAKECONF)\freetype\lib\freetype2411MT.lib
+LINKLIBS += $(MHMAKECONF)\freetype\lib\freetype2501MT.lib
 endif
 
 
