@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    PSNames module implementation (body).                                */
 /*                                                                         */
-/*  Copyright 1996-2003, 2005-2008, 2012 by                                */
+/*  Copyright 1996-2003, 2005-2008, 2012, 2013 by                          */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -17,8 +17,9 @@
 
 
 #include <ft2build.h>
+#include <freetype/internal/ftdebug.h>
 #include <freetype/internal/ftobjs.h>
-#include FT_SERVICE_POSTSCRIPT_CMAPS_H
+#include <freetype/internal/services/svpscmap.h>
 
 #include "psmodule.h"
 #include "pstables.h"
@@ -369,7 +370,7 @@
         /* No unicode chars here! */
         FT_FREE( table->maps );
         if ( !error )
-          error = PSnames_Err_No_Unicode_Glyph_Name;
+          error = FT_THROW( No_Unicode_Glyph_Name );
       }
       else
       {
@@ -377,7 +378,7 @@
         if ( count < num_glyphs / 2 )
         {
           (void)FT_RENEW_ARRAY( table->maps, num_glyphs, count );
-          error = PSnames_Err_Ok;
+          error = FT_Err_Ok;
         }
 
         /* Sort the table in increasing order of unicode values, */

@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    FreeType API for accessing PFR-specific data (body).                 */
 /*                                                                         */
-/*  Copyright 2002, 2003, 2004, 2008, 2010 by                              */
+/*  Copyright 2002-2004, 2008, 2010, 2013 by                               */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -16,8 +16,9 @@
 /***************************************************************************/
 
 #include <ft2build.h>
+#include <freetype/internal/ftdebug.h>
 #include <freetype/internal/ftobjs.h>
-#include FT_SERVICE_PFR_H
+#include <freetype/internal/services/svpfr.h>
 
 
   /* check the format */
@@ -48,7 +49,7 @@
 
 
     if ( !face )
-      return FT_Err_Invalid_Argument;
+      return FT_THROW( Invalid_Argument );
 
     service = ft_pfr_check( face );
     if ( service )
@@ -84,7 +85,7 @@
       if ( ametrics_y_scale )
         *ametrics_y_scale = y_scale;
 
-      error = FT_Err_Unknown_File_Format;
+      error = FT_THROW( Unknown_File_Format );
     }
 
     return error;
@@ -104,7 +105,7 @@
 
 
     if ( !face )
-      return FT_Err_Invalid_Argument;
+      return FT_THROW( Invalid_Argument );
 
     service = ft_pfr_check( face );
     if ( service )
@@ -135,7 +136,7 @@
     }
     else
       /* XXX: TODO: PROVIDE ADVANCE-LOADING METHOD TO ALL FONT DRIVERS */
-      error = FT_Err_Invalid_Argument;
+      error = FT_THROW( Invalid_Argument );
 
     return error;
   }
