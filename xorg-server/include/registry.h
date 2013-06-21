@@ -60,6 +60,7 @@ extern _X_EXPORT void dixFreeRegistry(void);
 #define LookupResourceName(a) XREGISTRY_UNKNOWN
 
 #define dixResetRegistry() { ; }
+#define dixFreeRegistry() { ; }
 
 #endif                          /* XREGISTRY */
 #endif                          /* DIX_REGISTRY_H */

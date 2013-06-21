@@ -11,7 +11,7 @@ libconfig_la_LIBADD = $(UDEV_LIBS)
 
 if XORG
 xorgconfddir = $(datadir)/X11/$(XF86CONFIGDIR)
-xorgconfd_DATA = 10-evdev.conf
+xorgconfd_DATA = 10-evdev.conf 10-quirks.conf
 endif
 
 else
@@ -44,4 +44,4 @@ endif # CONFIG_NEED_DBUS
 
 endif # !CONFIG_UDEV
 
-EXTRA_DIST = xorg-server.conf x11-input.fdi 10-evdev.conf fdi2iclass.py
+EXTRA_DIST = xorg-server.conf x11-input.fdi 10-evdev.conf fdi2iclass.py 10-quirks.conf
