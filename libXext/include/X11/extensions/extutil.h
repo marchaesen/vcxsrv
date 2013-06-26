@@ -178,7 +178,7 @@ char *proc (Display *dpy, int code, XExtCodes *codes, char *buf, int n) \
     code -= codes->first_error;  \
     if (code >= 0 && code < nerr) { \
 	char tmp[256]; \
-	sprintf (tmp, "%s.%d", extname, code); \
+	snprintf (tmp, sizeof(tmp), "%s.%d", extname, code);            \
 	XGetErrorDatabaseText (dpy, "XProtoError", tmp, errl[code], buf, n); \
 	return buf; \
     } \
