@@ -48,8 +48,9 @@
 	__o__ = va_arg (va, const char *);			    \
 	if (!__o__)		    				    \
 	    break;		    				    \
-	__v__.type = va_arg (va, FcType);			    \
+	__v__.type = va_arg (va, int);				    \
 	switch (__v__.type) {	    				    \
+	case FcTypeUnknown:					    \
 	case FcTypeVoid:					    \
 	    goto _FcPatternVapBuild_bail1;       		    \
 	case FcTypeInteger:	    				    \

@@ -705,7 +705,7 @@ FcTestCreate (FcConfigParse *parse,
 	      FcMatchKind   kind,
 	      FcQual	    qual,
 	      const FcChar8 *field,
-	      FcOp	    compare,
+	      unsigned int  compare,
 	      FcExpr	    *expr)
 {
     FcTest	*test = (FcTest *) malloc (sizeof (FcTest));

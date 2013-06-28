@@ -721,7 +721,7 @@ FcConfigPromote (FcValue v, FcValue u, FcValuePromotionBuffer *buf)
 
 FcBool
 FcConfigCompareValue (const FcValue	*left_o,
-		      FcOp		op_,
+		      unsigned int      op_,
 		      const FcValue	*right_o)
 {
     FcValue	left = FcValueCanonicalize(left_o);
@@ -736,6 +736,8 @@ FcConfigCompareValue (const FcValue	*left_o,
     if (left.type == right.type)
     {
 	switch (left.type) {
+	case FcTypeUnknown:
+	    break;	/* No way to guess how to compare for this object */
 	case FcTypeInteger:
 	    break;	/* FcConfigPromote prevents this from happening */
 	case FcTypeDouble:

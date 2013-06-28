@@ -76,6 +76,8 @@ FcObjectValidType (FcObject object, FcType type)
 
     if (t) {
 	switch ((int) t->type) {
+	case FcTypeUnknown:
+	    return FcTrue;
 	case FcTypeDouble:
 	case FcTypeInteger:
 	    if (type == FcTypeDouble || type == FcTypeInteger)
@@ -86,7 +88,7 @@ FcObjectValidType (FcObject object, FcType type)
 		return FcTrue;
 	    break;
 	default:
-	    if (t->type == (unsigned int) -1 || type == t->type)
+	    if (type == t->type)
 		return FcTrue;
 	    break;
 	}
@@ -474,6 +476,7 @@ FcNameUnparseValue (FcStrBuf	*buf,
     FcValue v = FcValueCanonicalize(v0);
 
     switch (v.type) {
+    case FcTypeUnknown:
     case FcTypeVoid:
 	return FcTrue;
     case FcTypeInteger:

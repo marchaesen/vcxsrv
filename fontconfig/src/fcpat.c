@@ -246,6 +246,8 @@ FcValueEqual (FcValue va, FcValue vb)
 	    return FcFalse;
     }
     switch (va.type) {
+    case FcTypeUnknown:
+	return FcFalse;	/* don't know how to compare this object */
     case FcTypeVoid:
 	return FcTrue;
     case FcTypeInteger:
@@ -294,6 +296,7 @@ static FcChar32
 FcValueHash (const FcValue *v)
 {
     switch (v->type) {
+    case FcTypeUnknown:
     case FcTypeVoid:
 	return 0;
     case FcTypeInteger:
@@ -317,7 +320,7 @@ FcValueHash (const FcValue *v)
     case FcTypeLangSet:
 	return FcLangSetHash (FcValueLangSet(v));
     }
-    return FcFalse;
+    return 0;
 }
 
 static FcBool

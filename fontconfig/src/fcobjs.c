@@ -63,7 +63,7 @@ retry:
 	    return NULL;
 
 	ot->object.object = (const char *) FcStrdup (str);
-	ot->object.type = -1;
+	ot->object.type = FcTypeUnknown;
 	ot->id = fc_atomic_int_add (next_id, +1);
 	ot->next = ots;
 

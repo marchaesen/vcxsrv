@@ -252,6 +252,7 @@ FcListValueHash (FcValue    *value)
 {
     FcValue v = FcValueCanonicalize(value);
     switch (v.type) {
+    case FcTypeUnknown:
     case FcTypeVoid:
 	return 0;
     case FcTypeInteger:

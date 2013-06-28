@@ -30,6 +30,9 @@ static void
 _FcValuePrintFile (FILE *f, const FcValue v)
 {
     switch (v.type) {
+    case FcTypeUnknown:
+	fprintf (f, "<unknown>");
+	break;
     case FcTypeVoid:
 	fprintf (f, "<void>");
 	break;
@@ -97,6 +100,10 @@ FcValueBindingPrint (const FcValueListPtr l)
 	break;
     case FcValueBindingSame:
 	printf ("(=)");
+	break;
+    default:
+	/* shouldn't be reached */
+	printf ("(?)");
 	break;
     }
 }
