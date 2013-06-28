@@ -107,7 +107,9 @@ extern pfnSHGetFolderPathA pSHGetFolderPathA;
 FC_ASSERT_STATIC (sizeof (FcRef) == sizeof (int));
 
 typedef enum _FcValueBinding {
-    FcValueBindingWeak, FcValueBindingStrong, FcValueBindingSame
+    FcValueBindingWeak, FcValueBindingStrong, FcValueBindingSame,
+    /* to make sure sizeof (FcValueBinding) == 4 even with -fshort-enums */
+    FcValueBindingEnd = 0xffffffff
 } FcValueBinding;
 
 #define FcStrdup(s) ((FcChar8 *) strdup ((const char *) (s)))
@@ -623,7 +625,7 @@ FcConfigSetFonts (FcConfig	*config,
 
 FcPrivate FcBool
 FcConfigCompareValue (const FcValue *m,
-		      FcOp	    op,
+		      unsigned int   op_,
 		      const FcValue *v);
 
 FcPrivate FcBool

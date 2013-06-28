@@ -52,12 +52,18 @@ query_fps(struct hud_graph *gr)
          info->frames = 0;
          info->last_time = now;
 
-         hud_graph_add_value(gr, fps);
+         hud_graph_add_value(gr, (uint64_t) fps);
       }
    }
    else {
       info->last_time = now;
    }
+}
+
+static void
+free_query_data(void *p)
+{
+   FREE(p);
 }
 
 void
@@ -76,7 +82,11 @@ hud_fps_graph_install(struct hud_pane *pane)
    }
 
    gr->query_new_value = query_fps;
-   gr->free_query_data = free;
+
+   /* Don't use free() as our callback as that messes up Gallium's
+    * memory debugger.  Use simple free_query_data() wrapper.
+    */
+   gr->free_query_data = free_query_data;
 
    hud_pane_add_graph(pane, gr);
 }

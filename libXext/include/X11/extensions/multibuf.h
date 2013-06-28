@@ -30,15 +30,9 @@ in this Software without prior written authorization from The Open Group.
 
 #include <X11/extensions/multibufconst.h>
 
-#if !defined(UNIXCPP) || defined(ANSICPP)
 #define MbufGetReq(name,req,info) GetReq (name, req); \
 	req->reqType = info->codes->major_opcode; \
 	req->mbufReqType = X_##name;
-#else
-#define MbufGetReq(name,req,info) GetReq (name, req); \
-	req->reqType = info->codes->major_opcode; \
-	req->mbufReqType = X_/**/name;
-#endif
 
 /*
  * Extra definitions that will only be needed in the client

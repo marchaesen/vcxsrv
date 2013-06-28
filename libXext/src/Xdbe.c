@@ -51,15 +51,9 @@ static const char *dbe_extension_name = DBE_PROTOCOL_NAME;
 #define DbeSimpleCheckExtension(dpy,i) \
   XextSimpleCheckExtension (dpy, i, dbe_extension_name)
 
-#if !defined(UNIXCPP)
 #define DbeGetReq(name,req,info) GetReq (name, req); \
         req->reqType = info->codes->major_opcode; \
         req->dbeReqType = X_##name;
-#else
-#define DbeGetReq(name,req,info) GetReq (name, req); \
-        req->reqType = info->codes->major_opcode; \
-        req->dbeReqType = X_/**/name;
-#endif
 
 
 /*****************************************************************************

@@ -190,14 +190,14 @@ FcHashGetSHA256Digest (const FcChar8 *input_strings,
     }
     /* set input size at the end */
     len *= 8;
-    block[63 - 0] =  len        & 0xff;
-    block[63 - 1] = (len >>  8) & 0xff;
-    block[63 - 2] = (len >> 16) & 0xff;
-    block[63 - 3] = (len >> 24) & 0xff;
-    block[63 - 4] = (len >> 32) & 0xff;
-    block[63 - 5] = (len >> 40) & 0xff;
-    block[63 - 6] = (len >> 48) & 0xff;
-    block[63 - 7] = (len >> 56) & 0xff;
+    block[63 - 0] =  (uint64_t)len        & 0xff;
+    block[63 - 1] = ((uint64_t)len >>  8) & 0xff;
+    block[63 - 2] = ((uint64_t)len >> 16) & 0xff;
+    block[63 - 3] = ((uint64_t)len >> 24) & 0xff;
+    block[63 - 4] = ((uint64_t)len >> 32) & 0xff;
+    block[63 - 5] = ((uint64_t)len >> 40) & 0xff;
+    block[63 - 6] = ((uint64_t)len >> 48) & 0xff;
+    block[63 - 7] = ((uint64_t)len >> 56) & 0xff;
     FcHashComputeSHA256Digest (ret, block);
 
     return FcHashSHA256ToString (ret);
@@ -226,7 +226,7 @@ FcHashGetSHA256DigestFromFile (const FcChar8 *filename)
     {
 	if ((len = fread (ibuf, sizeof (char), 64, fp)) < 64)
 	{
-	    long v;
+	    uint64_t v;
 
 	    /* add a padding */
 	    memset (&ibuf[len], 0, 64 - len);
@@ -281,7 +281,7 @@ FcHashGetSHA256DigestFromMemory (const char *fontdata,
     {
 	if ((length - i) < 64)
 	{
-	    long v;
+	    uint64_t v;
 	    size_t n;
 
 	    /* add a padding */

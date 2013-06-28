@@ -36,6 +36,8 @@
 #include "ir_hierarchical_visitor.h"
 #include "main/mtypes.h"
 
+#ifdef __cplusplus
+
 /**
  * \defgroup IR Intermediate representation nodes
  *
@@ -2049,5 +2051,15 @@ do_set_program_inouts(exec_list *instructions, struct gl_program *prog,
 extern char *
 prototype_string(const glsl_type *return_type, const char *name,
 		 exec_list *parameters);
+
+extern "C" {
+#endif /* __cplusplus */
+
+extern void _mesa_print_ir(struct exec_list *instructions,
+                           struct _mesa_glsl_parse_state *state);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* IR_H */
