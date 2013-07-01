@@ -176,12 +176,12 @@ get_texobj(struct gl_context *ctx, GLenum target, GLboolean get)
       }
       break;
    case GL_TEXTURE_2D_MULTISAMPLE:
-      if (ctx->Extensions.ARB_texture_storage_multisample) {
+      if (ctx->Extensions.ARB_texture_multisample) {
          return texUnit->CurrentTex[TEXTURE_2D_MULTISAMPLE_INDEX];
       }
       break;
    case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
-      if (ctx->Extensions.ARB_texture_storage_multisample) {
+      if (ctx->Extensions.ARB_texture_multisample) {
          return texUnit->CurrentTex[TEXTURE_2D_MULTISAMPLE_ARRAY_INDEX];
       }
       break;
@@ -446,21 +446,15 @@ set_tex_parameteri(struct gl_context *ctx,
          switch (params[0]) {
          case GL_LEQUAL:
          case GL_GEQUAL:
-            flush(ctx);
-            texObj->Sampler.CompareFunc = params[0];
-            return GL_TRUE;
          case GL_EQUAL:
          case GL_NOTEQUAL:
          case GL_LESS:
          case GL_GREATER:
          case GL_ALWAYS:
          case GL_NEVER:
-            if (ctx->Extensions.EXT_shadow_funcs) {
-               flush(ctx);
-               texObj->Sampler.CompareFunc = params[0];
-               return GL_TRUE;
-            }
-            /* fall-through */
+            flush(ctx);
+            texObj->Sampler.CompareFunc = params[0];
+            return GL_TRUE;
          default:
             goto invalid_param;
          }
@@ -1541,8 +1535,6 @@ _mesa_GetTexParameterfv( GLenum target, GLenum pname, GLfloat *params )
          break;
 
       case GL_TEXTURE_IMMUTABLE_FORMAT:
-         if (!ctx->Extensions.ARB_texture_storage)
-            goto invalid_pname;
          *params = (GLfloat) obj->Immutable;
          break;
 
@@ -1724,8 +1716,6 @@ _mesa_GetTexParameteriv( GLenum target, GLenum pname, GLint *params )
          break;
 
       case GL_TEXTURE_IMMUTABLE_FORMAT:
-         if (!ctx->Extensions.ARB_texture_storage)
-            goto invalid_pname;
          *params = (GLint) obj->Immutable;
          break;
 

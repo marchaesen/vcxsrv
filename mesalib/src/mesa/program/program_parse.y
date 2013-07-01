@@ -1145,20 +1145,10 @@ vtxAttribItem: POSITION
 	}
 	| COLOR optColorType
 	{
-	   if (!state->ctx->Extensions.EXT_secondary_color) {
-	      yyerror(& @2, state, "GL_EXT_secondary_color not supported");
-	      YYERROR;
-	   }
-
 	   $$ = VERT_ATTRIB_COLOR0 + $2;
 	}
 	| FOGCOORD
 	{
-	   if (!state->ctx->Extensions.EXT_fog_coord) {
-	      yyerror(& @1, state, "GL_EXT_fog_coord not supported");
-	      YYERROR;
-	   }
-
 	   $$ = VERT_ATTRIB_FOG;
 	}
 	| TEXCOORD optTexCoordUnitNum
