@@ -3014,10 +3014,8 @@ struct gl_extensions
    GLboolean ARB_point_sprite;
    GLboolean ARB_seamless_cube_map;
    GLboolean ARB_shader_bit_encoding;
-   GLboolean ARB_shader_objects;
    GLboolean ARB_shader_stencil_export;
    GLboolean ARB_shader_texture_lod;
-   GLboolean ARB_shading_language_100;
    GLboolean ARB_shading_language_packing;
    GLboolean ARB_shading_language_420pack;
    GLboolean ARB_shadow;
@@ -3038,8 +3036,6 @@ struct gl_extensions
    GLboolean ARB_texture_query_lod;
    GLboolean ARB_texture_rg;
    GLboolean ARB_texture_rgb10_a2ui;
-   GLboolean ARB_texture_storage;
-   GLboolean ARB_texture_storage_multisample;
    GLboolean ARB_timer_query;
    GLboolean ARB_transform_feedback2;
    GLboolean ARB_transform_feedback3;
@@ -3054,11 +3050,9 @@ struct gl_extensions
    GLboolean EXT_blend_minmax;
    GLboolean EXT_depth_bounds_test;
    GLboolean EXT_draw_buffers2;
-   GLboolean EXT_fog_coord;
    GLboolean EXT_framebuffer_blit;
    GLboolean EXT_framebuffer_multisample;
    GLboolean EXT_framebuffer_multisample_blit_scaled;
-   GLboolean EXT_framebuffer_object;
    GLboolean EXT_framebuffer_sRGB;
    GLboolean EXT_gpu_program_parameters;
    GLboolean EXT_gpu_shader4;
@@ -3067,8 +3061,6 @@ struct gl_extensions
    GLboolean EXT_pixel_buffer_object;
    GLboolean EXT_point_parameters;
    GLboolean EXT_provoking_vertex;
-   GLboolean EXT_shadow_funcs;
-   GLboolean EXT_secondary_color;
    GLboolean EXT_separate_shader_objects;
    GLboolean EXT_stencil_two_side;
    GLboolean EXT_texture3D;
@@ -3099,10 +3091,8 @@ struct gl_extensions
    GLboolean ATI_fragment_shader;
    GLboolean ATI_separate_stencil;
    GLboolean MESA_pack_invert;
-   GLboolean MESA_resize_buffers;
    GLboolean MESA_ycbcr_texture;
    GLboolean MESA_texture_array;
-   GLboolean NV_blend_square;
    GLboolean NV_conditional_render;
    GLboolean NV_fog_distance;
    GLboolean NV_fragment_program_option;

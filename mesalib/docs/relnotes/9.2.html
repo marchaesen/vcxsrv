@@ -48,6 +48,7 @@ Note: some of the new features are only available with certain drivers.
 <li>GL_ARB_texture_multisample</li>
 <li>GL_ARB_texture_storage_multisample</li>
 <li>GL_ARB_texture_query_lod</li>
+<li>Enable GL_ARB_texture_storage on radeon, r200, and nouveau</li>
 <li>Added new freedreno gallium driver</li>
 <li>OSMesa interface for gallium llvmpipe/softpipe drivers</li>
 <li>Gallium Heads-Up Display (HUD) feature for performance monitoring</li>
@@ -65,6 +66,8 @@ Note: some of the new features are only available with certain drivers.
 <li>Removed d3d1x state tracker (unused, unmaintained and broken)</li>
 <li>Removed GL_EXT_clip_volume_hint because no driver had enabled it since
 2007.</li>
+<li>Removed GL_MESA_resize_buffers because it was only really implemented by
+the (unsupported) GDI driver.</li>
 </ul>
 
 </div>

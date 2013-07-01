@@ -397,7 +397,6 @@ void st_init_extensions(struct st_context *st)
 
       { o(EXT_blend_equation_separate),      PIPE_CAP_BLEND_EQUATION_SEPARATE          },
       { o(EXT_draw_buffers2),                PIPE_CAP_INDEP_BLEND_ENABLE               },
-      { o(EXT_shadow_funcs),                 PIPE_CAP_TEXTURE_SHADOW_MAP               },
       { o(EXT_stencil_two_side),             PIPE_CAP_TWO_SIDED_STENCIL                },
       { o(EXT_texture_array),                PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS         },
       { o(EXT_texture_filter_anisotropic),   PIPE_CAP_ANISOTROPIC_FILTER               },
@@ -537,14 +536,11 @@ void st_init_extensions(struct st_context *st)
    ctx->Extensions.ARB_half_float_vertex = GL_TRUE;
    ctx->Extensions.ARB_internalformat_query = GL_TRUE;
    ctx->Extensions.ARB_map_buffer_range = GL_TRUE;
-   ctx->Extensions.ARB_shader_objects = GL_TRUE;
-   ctx->Extensions.ARB_shading_language_100 = GL_TRUE;
    ctx->Extensions.ARB_texture_border_clamp = GL_TRUE; /* XXX temp */
    ctx->Extensions.ARB_texture_cube_map = GL_TRUE;
    ctx->Extensions.ARB_texture_env_combine = GL_TRUE;
    ctx->Extensions.ARB_texture_env_crossbar = GL_TRUE;
    ctx->Extensions.ARB_texture_env_dot3 = GL_TRUE;
-   ctx->Extensions.ARB_texture_storage = GL_TRUE;
    ctx->Extensions.ARB_vertex_program = GL_TRUE;
    ctx->Extensions.ARB_vertex_shader = GL_TRUE;
 
@@ -552,13 +548,10 @@ void st_init_extensions(struct st_context *st)
    ctx->Extensions.EXT_blend_func_separate = GL_TRUE;
    ctx->Extensions.EXT_blend_minmax = GL_TRUE;
    ctx->Extensions.EXT_framebuffer_blit = GL_TRUE;
-   ctx->Extensions.EXT_framebuffer_object = GL_TRUE;
-   ctx->Extensions.EXT_fog_coord = GL_TRUE;
    ctx->Extensions.EXT_gpu_program_parameters = GL_TRUE;
    ctx->Extensions.EXT_pixel_buffer_object = GL_TRUE;
    ctx->Extensions.EXT_point_parameters = GL_TRUE;
    ctx->Extensions.EXT_provoking_vertex = GL_TRUE;
-   ctx->Extensions.EXT_secondary_color = GL_TRUE;
    ctx->Extensions.EXT_separate_shader_objects = GL_TRUE;
    ctx->Extensions.EXT_texture_env_dot3 = GL_TRUE;
    ctx->Extensions.EXT_vertex_array_bgra = GL_TRUE;
@@ -567,7 +560,6 @@ void st_init_extensions(struct st_context *st)
 
    ctx->Extensions.MESA_pack_invert = GL_TRUE;
 
-   ctx->Extensions.NV_blend_square = GL_TRUE;
    ctx->Extensions.NV_fog_distance = GL_TRUE;
    ctx->Extensions.NV_texture_env_combine4 = GL_TRUE;
    ctx->Extensions.NV_texture_rectangle = GL_TRUE;
