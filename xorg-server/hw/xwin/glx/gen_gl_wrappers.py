@@ -100,6 +100,8 @@ for line in tm :
                 continue
 
         l = line.split(',')
+        if len(l)<4:
+          continue
         typemap[l[0]] = l[3].strip()
 
 # interestingly, * is not a C type

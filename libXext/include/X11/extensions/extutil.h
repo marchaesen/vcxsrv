@@ -34,6 +34,7 @@ in this Software without prior written authorization from The Open Group.
 #ifndef _EXTUTIL_H_
 #define _EXTUTIL_H_
 
+#include <unistd.h>
 #include <X11/extensions/Xext.h>
 
 /*

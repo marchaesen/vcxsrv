@@ -10420,14 +10420,14 @@ static INLINE void SET_ProgramParameteri(struct _glapi_table *disp, void (GLAPIE
    SET_by_offset(disp, _gloffset_ProgramParameteri, fn);
 }
 
-typedef void (GLAPIENTRYP _glptr_DebugMessageCallbackARB)(GLDEBUGPROCARB, const GLvoid *);
+typedef void (GLAPIENTRYP _glptr_DebugMessageCallbackARB)(GLDEBUGPROCARB, GLvoid *);
 #define CALL_DebugMessageCallbackARB(disp, parameters) \
     (* GET_DebugMessageCallbackARB(disp)) parameters
 static INLINE _glptr_DebugMessageCallbackARB GET_DebugMessageCallbackARB(struct _glapi_table *disp) {
    return (_glptr_DebugMessageCallbackARB) (GET_by_offset(disp, _gloffset_DebugMessageCallbackARB));
 }
 
-static INLINE void SET_DebugMessageCallbackARB(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLDEBUGPROCARB, const GLvoid *)) {
+static INLINE void SET_DebugMessageCallbackARB(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLDEBUGPROCARB, GLvoid *)) {
    SET_by_offset(disp, _gloffset_DebugMessageCallbackARB, fn);
 }
 
@@ -11179,14 +11179,14 @@ static INLINE void SET_SecondaryColor3fvEXT(struct _glapi_table *disp, void (GLA
    SET_by_offset(disp, _gloffset_SecondaryColor3fvEXT, fn);
 }
 
-typedef void (GLAPIENTRYP _glptr_MultiDrawElementsEXT)(GLenum, const GLsizei *, GLenum, const GLvoid **, GLsizei);
+typedef void (GLAPIENTRYP _glptr_MultiDrawElementsEXT)(GLenum, const GLsizei *, GLenum, const GLvoid * const *, GLsizei);
 #define CALL_MultiDrawElementsEXT(disp, parameters) \
     (* GET_MultiDrawElementsEXT(disp)) parameters
 static INLINE _glptr_MultiDrawElementsEXT GET_MultiDrawElementsEXT(struct _glapi_table *disp) {
    return (_glptr_MultiDrawElementsEXT) (GET_by_offset(disp, _gloffset_MultiDrawElementsEXT));
 }
 
-static INLINE void SET_MultiDrawElementsEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, const GLsizei *, GLenum, const GLvoid **, GLsizei)) {
+static INLINE void SET_MultiDrawElementsEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, const GLsizei *, GLenum, const GLvoid * const *, GLsizei)) {
    SET_by_offset(disp, _gloffset_MultiDrawElementsEXT, fn);
 }
 
