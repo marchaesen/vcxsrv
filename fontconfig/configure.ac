@@ -161,35 +161,37 @@ AC_LINK_IFELSE([AC_LANG_SOURCE([[
 		AC_MSG_RESULT([yes])
 		AC_DEFINE([HAVE_POSIX_FADVISE], [1], [Define to 1 if you have the 'posix_fadvise' function.])
 	],[AC_MSG_RESULT([no])])
-AC_MSG_CHECKING([for scandir])
-AC_LINK_IFELSE([AC_LANG_SOURCE([[
-	#include <dirent.h>
-	int comp(const struct dirent **, const struct dirent **);
-	int comp(const struct dirent **a, const struct dirent **b) { return 0; }
-	int main(void) {
-	    struct dirent **d;
-	    return scandir(".", &d, 0, &comp) >= 0;
-	}
-	]])],[
-		AC_MSG_RESULT([yes])
-		AC_DEFINE([HAVE_SCANDIR], [1], [Define to 1 if you have the 'scandir' function.])
-	],[
-		AC_LINK_IFELSE([AC_LANG_SOURCE([[
-			#include <dirent.h>
-			int comp(const void *, const void *);
-			int comp(const void *a, const void *b) { return 0; }
-			int main(void) {
-			    struct dirent **d;
-			    return scandir(".", &d, 0, &comp) >= 0;
-			}
+if test "$os_win32" = "no"; then
+	AC_MSG_CHECKING([for scandir])
+	AC_LINK_IFELSE([AC_LANG_SOURCE([[
+		#include <dirent.h>
+		int comp(const struct dirent **, const struct dirent **);
+		int comp(const struct dirent **a, const struct dirent **b) { return 0; }
+		int main(void) {
+		    struct dirent **d;
+		    return scandir(".", &d, 0, &comp) >= 0;
+		}
 		]])],[
 			AC_MSG_RESULT([yes])
-			AC_DEFINE([HAVE_SCANDIR_VOID_P], [1], [Define to 1 if you have the 'scandir' function with int (* compar)(const void *, const void *)])
+			AC_DEFINE([HAVE_SCANDIR], [1], [Define to 1 if you have the 'scandir' function.])
 		],[
-			AC_MSG_ERROR([
+			AC_LINK_IFELSE([AC_LANG_SOURCE([[
+				#include <dirent.h>
+				int comp(const void *, const void *);
+				int comp(const void *a, const void *b) { return 0; }
+				int main(void) {
+				    struct dirent **d;
+				    return scandir(".", &d, 0, &comp) >= 0;
+				}
+			]])],[
+				AC_MSG_RESULT([yes])
+				AC_DEFINE([HAVE_SCANDIR_VOID_P], [1], [Define to 1 if you have the 'scandir' function with int (* compar)(const void *, const void *)])
+			],[
+				AC_MSG_ERROR([
 *** No scandir function available.])
+			])
 		])
-	])
+fi
 CFLAGS="$fc_saved_CFLAGS"
 
 #

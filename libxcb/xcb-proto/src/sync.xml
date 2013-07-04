@@ -134,16 +134,66 @@ for licensing information.
 
   <request name="CreateAlarm" opcode="8">
     <field type="ALARM" name="id" />
-    <valueparam value-mask-type="CARD32"
-                value-mask-name="value_mask"
-                value-list-name="value_list" />
+    <field type="CARD32" name="value_mask" mask="CA" />
+    <switch name="value_list">
+      <fieldref>value_mask</fieldref>
+      <bitcase>
+        <enumref ref="CA">Counter</enumref>
+        <field type="COUNTER" name="counter" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CA">ValueType</enumref>
+        <field type="CARD32" name="valueType" mask="VALUETYPE" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CA">Value</enumref>
+        <field type="INT64" name="value" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CA">TestType</enumref>
+        <field type="CARD32" name="testType" mask="TESTTYPE" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CA">Delta</enumref>
+        <field type="INT64" name="delta" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CA">Events</enumref>
+        <field type="CARD32" name="events" />
+      </bitcase>
+    </switch>
   </request>
 
   <request name="ChangeAlarm" opcode="9">
     <field type="ALARM" name="id" />
-    <valueparam value-mask-type="CARD32"
-                value-mask-name="value_mask"
-                value-list-name="value_list" />
+    <field type="CARD32" name="value_mask" mask="CA" />
+    <switch name="value_list">
+      <fieldref>value_mask</fieldref>
+      <bitcase>
+        <enumref ref="CA">Counter</enumref>
+        <field type="COUNTER" name="counter" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CA">ValueType</enumref>
+        <field type="CARD32" name="valueType" mask="VALUETYPE" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CA">Value</enumref>
+        <field type="INT64" name="value" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CA">TestType</enumref>
+        <field type="CARD32" name="testType" mask="TESTTYPE" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CA">Delta</enumref>
+        <field type="INT64" name="delta" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CA">Events</enumref>
+        <field type="CARD32" name="events" />
+      </bitcase>
+    </switch>
   </request>
 
   <request name="DestroyAlarm" opcode="11">

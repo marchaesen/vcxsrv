@@ -68,7 +68,7 @@ void st_init_limits(struct st_context *st)
 {
    struct pipe_screen *screen = st->pipe->screen;
    struct gl_constants *c = &st->ctx->Const;
-   gl_shader_type sh;
+   unsigned sh;
    boolean can_ubo = TRUE;
 
    c->MaxTextureLevels
@@ -149,23 +149,25 @@ void st_init_limits(struct st_context *st)
       can_ubo = FALSE;
    }
 
-   for (sh = 0; sh < MESA_SHADER_TYPES; ++sh) {
-      struct gl_shader_compiler_options *options =
-         &st->ctx->ShaderCompilerOptions[sh];
+   for (sh = 0; sh < PIPE_SHADER_TYPES; ++sh) {
+      struct gl_shader_compiler_options *options;
       struct gl_program_constants *pc;
 
       switch (sh) {
       case PIPE_SHADER_FRAGMENT:
          pc = &c->FragmentProgram;
+         options = &st->ctx->ShaderCompilerOptions[MESA_SHADER_FRAGMENT];
          break;
       case PIPE_SHADER_VERTEX:
          pc = &c->VertexProgram;
+         options = &st->ctx->ShaderCompilerOptions[MESA_SHADER_VERTEX];
          break;
       case PIPE_SHADER_GEOMETRY:
          pc = &c->GeometryProgram;
+         options = &st->ctx->ShaderCompilerOptions[MESA_SHADER_GEOMETRY];
          break;
       default:
-         assert(0);
+         /* compute shader, etc. */
          continue;
       }
 
@@ -273,9 +275,6 @@ void st_init_limits(struct st_context *st)
 
    c->GLSLSkipStrictMaxUniformLimitCheck =
       screen->get_param(screen, PIPE_CAP_TGSI_CAN_COMPACT_CONSTANTS);
-
-   c->GLSLSkipStrictMaxVaryingLimitCheck =
-      screen->get_param(screen, PIPE_CAP_TGSI_CAN_COMPACT_VARYINGS);
 
    if (can_ubo) {
       st->ctx->Extensions.ARB_uniform_buffer_object = GL_TRUE;
@@ -552,7 +551,14 @@ void st_init_extensions(struct st_context *st)
    ctx->Extensions.EXT_pixel_buffer_object = GL_TRUE;
    ctx->Extensions.EXT_point_parameters = GL_TRUE;
    ctx->Extensions.EXT_provoking_vertex = GL_TRUE;
-   ctx->Extensions.EXT_separate_shader_objects = GL_TRUE;
+
+   /* IMPORTANT:
+    *    Don't enable EXT_separate_shader_objects. It disallows a certain
+    *    optimization in the GLSL compiler and therefore is considered
+    *    harmful.
+    */
+   ctx->Extensions.EXT_separate_shader_objects = GL_FALSE;
+
    ctx->Extensions.EXT_texture_env_dot3 = GL_TRUE;
    ctx->Extensions.EXT_vertex_array_bgra = GL_TRUE;
 

@@ -37,6 +37,7 @@
 #include <ctype.h>
 #include <assert.h>
 #include <errno.h>
+#include <limits.h>
 #include <unistd.h>
 #include <stddef.h>
 #include <sys/types.h>
@@ -85,7 +86,7 @@ extern pfnSHGetFolderPathA pSHGetFolderPathA;
 #define FC_DBG_CONFIG	1024
 #define FC_DBG_LANGSET	2048
 
-#define _FC_ASSERT_STATIC1(_line, _cond) typedef int _static_assert_on_line_##_line##_failed[(_cond)?1:-1]
+#define _FC_ASSERT_STATIC1(_line, _cond) typedef int _static_assert_on_line_##_line##_failed[(_cond)?1:-1] FC_UNUSED
 #define _FC_ASSERT_STATIC0(_line, _cond) _FC_ASSERT_STATIC1 (_line, (_cond))
 #define FC_ASSERT_STATIC(_cond) _FC_ASSERT_STATIC0 (__LINE__, (_cond))
 
@@ -109,7 +110,7 @@ FC_ASSERT_STATIC (sizeof (FcRef) == sizeof (int));
 typedef enum _FcValueBinding {
     FcValueBindingWeak, FcValueBindingStrong, FcValueBindingSame,
     /* to make sure sizeof (FcValueBinding) == 4 even with -fshort-enums */
-    FcValueBindingEnd = 0xffffffff
+    FcValueBindingEnd = INT_MAX
 } FcValueBinding;
 
 #define FcStrdup(s) ((FcChar8 *) strdup ((const char *) (s)))
@@ -273,7 +274,6 @@ typedef enum _FcQual {
 #define FcMatchDefault	((FcMatchKind) -1)
 
 typedef struct _FcTest {
-    struct _FcTest	*next;
     FcMatchKind		kind;
     FcQual		qual;
     FcObject		object;
@@ -282,17 +282,28 @@ typedef struct _FcTest {
 } FcTest;
 
 typedef struct _FcEdit {
-    struct _FcEdit *next;
     FcObject	    object;
     FcOp	    op;
     FcExpr	    *expr;
     FcValueBinding  binding;
 } FcEdit;
 
+typedef enum _FcRuleType {
+    FcRuleUnknown, FcRuleTest, FcRuleEdit
+} FcRuleType;
+
+typedef struct _FcRule {
+    struct _FcRule *next;
+    FcRuleType      type;
+    union {
+	FcTest *test;
+	FcEdit *edit;
+    } u;
+} FcRule;
+
 typedef struct _FcSubst {
     struct _FcSubst	*next;
-    FcTest		*test;
-    FcEdit		*edit;
+    FcRule		*rule;
 } FcSubst;
 
 typedef struct _FcCharLeaf {
@@ -612,10 +623,9 @@ FcPrivate FcBool
 FcConfigAddBlank (FcConfig	*config,
 		  FcChar32    	blank);
 
-FcPrivate FcBool
-FcConfigAddEdit (FcConfig	*config,
-		 FcTest		*test,
-		 FcEdit		*edit,
+FcBool
+FcConfigAddRule (FcConfig	*config,
+		 FcRule		*rule,
 		 FcMatchKind	kind);
 
 FcPrivate void
@@ -841,6 +851,9 @@ FcTestDestroy (FcTest *test);
 
 FcPrivate void
 FcEditDestroy (FcEdit *e);
+
+void
+FcRuleDestroy (FcRule *rule);
 
 /* fclang.c */
 FcPrivate FcLangSet *
