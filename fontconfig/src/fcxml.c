@@ -62,10 +62,26 @@ FcExprDestroy (FcExpr *e);
 void
 FcTestDestroy (FcTest *test)
 {
-    if (test->next)
-	FcTestDestroy (test->next);
     FcExprDestroy (test->expr);
     free (test);
+}
+
+void
+FcRuleDestroy (FcRule *rule)
+{
+    if (rule->next)
+	FcRuleDestroy (rule->next);
+    switch (rule->type) {
+    case FcRuleTest:
+	FcTestDestroy (rule->u.test);
+	break;
+    case FcRuleEdit:
+	FcEditDestroy (rule->u.edit);
+	break;
+    default:
+	break;
+    }
+    free (rule);
 }
 
 static FcExpr *
@@ -300,8 +316,6 @@ FcExprDestroy (FcExpr *e)
 void
 FcEditDestroy (FcEdit *e)
 {
-    if (e->next)
-	FcEditDestroy (e->next);
     if (e->expr)
 	FcExprDestroy (e->expr);
     free (e);
@@ -714,7 +728,6 @@ FcTestCreate (FcConfigParse *parse,
     {
 	const FcObjectType	*o;
 	
-	test->next = 0;
 	test->kind = kind;
 	test->qual = qual;
 	test->object = FcObjectFromName ((const char *) field);
@@ -740,7 +753,6 @@ FcEditCreate (FcConfigParse	*parse,
     {
 	const FcObjectType	*o;
 
-	e->next = 0;
 	e->object = object;
 	e->op = op;
 	e->expr = expr;
@@ -750,6 +762,34 @@ FcEditCreate (FcConfigParse	*parse,
 	    FcTypecheckExpr (parse, expr, o->type);
     }
     return e;
+}
+
+static FcRule *
+FcRuleCreate (FcRuleType type,
+	      void       *p)
+{
+    FcRule *r = (FcRule *) malloc (sizeof (FcRule));
+
+    if (!r)
+	return NULL;
+
+    r->next = NULL;
+    r->type = type;
+    switch (type)
+    {
+    case FcRuleTest:
+	r->u.test = (FcTest *) p;
+	break;
+    case FcRuleEdit:
+	r->u.edit = (FcEdit *) p;
+	break;
+    default:
+	free (r);
+	r = NULL;
+	break;
+    }
+
+    return r;
 }
 
 static FcVStack *
@@ -1657,9 +1697,9 @@ static void
 FcParseAlias (FcConfigParse *parse)
 {
     FcExpr	*family = 0, *accept = 0, *prefer = 0, *def = 0, *new = 0;
-    FcEdit	*edit = 0, *next;
+    FcEdit	*edit = 0;
     FcVStack	*vstack;
-    FcTest	*test = NULL;
+    FcRule	*rule = NULL, *r;
     FcValueBinding  binding;
 
     if (!FcConfigLexBinding (parse, FcConfigGetAttribute (parse, "binding"), &binding))
@@ -1704,8 +1744,14 @@ FcParseAlias (FcConfigParse *parse)
 	    vstack->tag = FcVStackNone;
 	    break;
 	case FcVStackTest:
-	    vstack->u.test->next = test;
-	    test = vstack->u.test;
+	    if (rule)
+	    {
+		r = FcRuleCreate (FcRuleTest, vstack->u.test);
+		r->next = rule;
+		rule = r;
+	    }
+	    else
+		rule = FcRuleCreate (FcRuleTest, vstack->u.test);
 	    vstack->tag = FcVStackNone;
 	    break;
 	default:
@@ -1723,7 +1769,34 @@ FcParseAlias (FcConfigParse *parse)
 	    FcExprDestroy (accept);
 	if (def)
 	    FcExprDestroy (def);
+	if (rule)
+	    FcRuleDestroy (rule);
 	return;
+    }
+    if (!prefer &&
+	!accept &&
+	!def)
+    {
+	FcExprDestroy (family);
+	return;
+    }
+    else
+    {
+	FcTest *t = FcTestCreate (parse, FcMatchPattern,
+				  FcQualAny,
+				  (FcChar8 *) FC_FAMILY,
+				  FC_OP (FcOpEqual, FcOpFlagIgnoreBlanks),
+				  family);
+	if (rule)
+	{
+	    for (r = rule; r->next; r = r->next);
+	    r->next = FcRuleCreate (FcRuleTest, t);
+	    r = r->next;
+	}
+	else
+	{
+	    r = rule = FcRuleCreate (FcRuleTest, t);
+	}
     }
     if (prefer)
     {
@@ -1732,60 +1805,46 @@ FcParseAlias (FcConfigParse *parse)
 			     FcOpPrepend,
 			     prefer,
 			     binding);
-	if (edit)
-	    edit->next = 0;
-	else
+	if (!edit)
 	    FcExprDestroy (prefer);
+	else
+	{
+	    r->next = FcRuleCreate (FcRuleEdit, edit);
+	    r = r->next;
+	}
     }
     if (accept)
     {
-	next = edit;
 	edit = FcEditCreate (parse,
 			     FC_FAMILY_OBJECT,
 			     FcOpAppend,
 			     accept,
 			     binding);
-	if (edit)
-	    edit->next = next;
-	else
+	if (!edit)
 	    FcExprDestroy (accept);
+	else
+	{
+	    r->next = FcRuleCreate (FcRuleEdit, edit);
+	    r = r->next;
+	}
     }
     if (def)
     {
-	next = edit;
 	edit = FcEditCreate (parse,
 			     FC_FAMILY_OBJECT,
 			     FcOpAppendLast,
 			     def,
 			     binding);
-	if (edit)
-	    edit->next = next;
-	else
+	if (!edit)
 	    FcExprDestroy (def);
-    }
-    if (edit)
-    {
-	FcTest *t = FcTestCreate (parse, FcMatchPattern,
-				  FcQualAny,
-				  (FcChar8 *) FC_FAMILY,
-				  FC_OP (FcOpEqual, FcOpFlagIgnoreBlanks),
-				  family);
-	if (test)
-	{
-	    FcTest *p = test;
-
-	    while (p->next)
-		p = p->next;
-	    p->next = t;
-	}
 	else
-	    test = t;
-	if (test)
-	    if (!FcConfigAddEdit (parse->config, test, edit, FcMatchPattern))
-		FcTestDestroy (test);
+	{
+	    r->next = FcRuleCreate (FcRuleEdit, edit);
+	    r = r->next;
+	}
     }
-    else
-	FcExprDestroy (family);
+    if (!FcConfigAddRule (parse->config, rule, FcMatchPattern))
+	FcRuleDestroy (rule);
 }
 
 static FcExpr *
@@ -2387,22 +2446,14 @@ FcParseEdit (FcConfigParse *parse)
 	FcEditDestroy (edit);
 }
 
-typedef struct FcSubstStack {
-    FcTest *test;
-    FcEdit *edit;
-} FcSubstStack;
-
 static void
 FcParseMatch (FcConfigParse *parse)
 {
     const FcChar8   *kind_name;
     FcMatchKind	    kind;
-    FcTest	    *test = 0;
     FcEdit	    *edit = 0;
     FcVStack	    *vstack;
-    FcBool           tested = FcFalse;
-    FcSubstStack    *sstack = NULL;
-    int              len, pos = 0;
+    FcRule	    *rule = NULL, *r;
 
     kind_name = FcConfigGetAttribute (parse, "target");
     if (!kind_name)
@@ -2421,48 +2472,29 @@ FcParseMatch (FcConfigParse *parse)
 	    return;
 	}
     }
-    len = FcVStackElements(parse);
-    if (len > 0)
-    {
-	sstack = malloc (sizeof (FcSubstStack) * (len + 1));
-	if (!sstack)
-	{
-	    FcConfigMessage (parse, FcSevereError, "out of memory");
-	    return;
-	}
-    }
     while ((vstack = FcVStackPeek (parse)))
     {
 	switch ((int) vstack->tag) {
 	case FcVStackTest:
-	    vstack->u.test->next = test;
-	    test = vstack->u.test;
+	    r = FcRuleCreate (FcRuleTest, vstack->u.test);
+	    if (rule)
+		r->next = rule;
+	    rule = r;
 	    vstack->tag = FcVStackNone;
-	    tested = FcTrue;
 	    break;
 	case FcVStackEdit:
-	    /* due to the reverse traversal, <edit> node appears faster than
-	     * <test> node if any. so we have to deal with it here rather than
-	     * the above in FcVStackTest, and put recipes in reverse order.
-	     */
-	    if (tested)
-	    {
-		sstack[pos].test = test;
-		sstack[pos].edit = edit;
-		pos++;
-		test = NULL;
-		edit = NULL;
-		tested = FcFalse;
-	    }
-	    vstack->u.edit->next = edit;
-	    edit = vstack->u.edit;
-	    vstack->tag = FcVStackNone;
-	    if (kind == FcMatchScan && edit->object > FC_MAX_BASE_OBJECT)
+	    if (kind == FcMatchScan && vstack->u.edit->object > FC_MAX_BASE_OBJECT)
 	    {
 		FcConfigMessage (parse, FcSevereError,
 				 "<match target=\"scan\"> cannot edit user-defined object \"%s\"",
 				 FcObjectName(edit->object));
+		break;
 	    }
+	    r = FcRuleCreate (FcRuleEdit, vstack->u.edit);
+	    if (rule)
+		r->next = rule;
+	    rule = r;
+	    vstack->tag = FcVStackNone;
 	    break;
 	default:
 	    FcConfigMessage (parse, FcSevereWarning, "invalid match element");
@@ -2470,22 +2502,8 @@ FcParseMatch (FcConfigParse *parse)
 	}
 	FcVStackPopAndDestroy (parse);
     }
-    if (!FcConfigAddEdit (parse->config, test, edit, kind))
+    if (!FcConfigAddRule (parse->config, rule, kind))
 	FcConfigMessage (parse, FcSevereError, "out of memory");
-    if (sstack)
-    {
-	int i;
-
-	for (i = 0; i < pos; i++)
-	{
-	    if (!FcConfigAddEdit (parse->config, sstack[pos - i - 1].test, sstack[pos - i - 1].edit, kind))
-	    {
-		FcConfigMessage (parse, FcSevereError, "out of memory");
-		return;
-	    }
-	}
-	free (sstack);
-    }
 }
 
 static void

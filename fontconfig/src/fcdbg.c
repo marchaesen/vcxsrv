@@ -427,21 +427,38 @@ FcEditPrint (const FcEdit *edit)
 void
 FcSubstPrint (const FcSubst *subst)
 {
-    FcEdit	*e;
-    FcTest	*t;
+    FcRule *r;
+    FcRuleType last_type = FcRuleUnknown;
 
     printf ("match\n");
-    for (t = subst->test; t; t = t->next)
+    for (r = subst->rule; r; r = r->next)
     {
+	if (last_type != r->type)
+	{
+	    switch (r->type) {
+	    case FcRuleTest:
+		printf ("[test]\n");
+		break;
+	    case FcRuleEdit:
+		printf ("[edit]\n");
+		break;
+	    default:
+		break;
+	    }
+	    last_type = r->type;
+	}
 	printf ("\t");
-	FcTestPrint (t);
-    }
-    printf ("edit\n");
-    for (e = subst->edit; e; e = e->next)
-    {
-	printf ("\t");
-	FcEditPrint (e);
-	printf (";\n");
+	switch (r->type) {
+	case FcRuleTest:
+	    FcTestPrint (r->u.test);
+	    break;
+	case FcRuleEdit:
+	    FcEditPrint (r->u.edit);
+	    printf (";\n");
+	    break;
+	default:
+	    break;
+	}
     }
     printf ("\n");
 }
