@@ -420,14 +420,8 @@ extern void *_XGetRequest(Display *dpy, CARD8 type, size_t len);
 /* GetReqSized is the same as GetReq but allows the caller to specify the
  * size in bytes. 'sz' must be a multiple of 4! */
 
-#if !defined(UNIXCPP) || defined(ANSICPP)
 #define GetReqSized(name, sz, req) \
 	req = (x##name##Req *) _XGetRequest(dpy, X_##name, sz)
-#else
-#define GetReqSized(name, sz, req) \
-	req = (x/**/name/**/Req *) _XGetRequest(dpy, X_/**/name, sz)
-#endif
-
 
 /*
  * GetReq - Get the next available X request packet in the buffer and
@@ -438,25 +432,14 @@ extern void *_XGetRequest(Display *dpy, CARD8 type, size_t len);
  *
  */
 
-#if !defined(UNIXCPP) || defined(ANSICPP)
 #define GetReq(name, req) \
 	GetReqSized(name, SIZEOF(x##name##Req), req)
-#else  /* non-ANSI C uses empty comment instead of "##" for token concatenation */
-#define GetReq(name, req) \
-	GetReqSized(name, SIZEOF(x/**/name/**/Req), req)
-#endif
 
 /* GetReqExtra is the same as GetReq, but allocates "n" additional
    bytes after the request. "n" must be a multiple of 4!  */
 
-#if !defined(UNIXCPP) || defined(ANSICPP)
 #define GetReqExtra(name, n, req) \
         GetReqSized(name, SIZEOF(x##name##Req) + n, req)
-#else
-#define GetReqExtra(name, n, req) \
-        GetReqSized(name, SIZEOF(x/**/name/**/Req) + n, req)
-#endif
-
 
 /*
  * GetResReq is for those requests that have a resource ID
@@ -464,27 +447,17 @@ extern void *_XGetRequest(Display *dpy, CARD8 type, size_t len);
  * "rid" is the name of the resource.
  */
 
-#if !defined(UNIXCPP) || defined(ANSICPP)
 #define GetResReq(name, rid, req) \
 	req = (xResourceReq *) _XGetRequest(dpy, X_##name, SIZEOF(xResourceReq)); \
 	req->id = (rid)
-#else
-#define GetResReq(name, rid, req) \
-	req = (xResourceReq *) _XGetRequest(dpy, X_/**/name, SIZEOF(xResourceReq)); \
-	req->id = (rid)
-#endif
 
 /*
  * GetEmptyReq is for those requests that have no arguments
  * at all.
  */
-#if !defined(UNIXCPP) || defined(ANSICPP)
+
 #define GetEmptyReq(name, req) \
 	req = (xReq *) _XGetRequest(dpy, X_##name, SIZEOF(xReq))
-#else
-#define GetEmptyReq(name, req) \
-	req = (xReq *) _XGetRequest(dpy, X_/**/name, SIZEOF(xReq))
-#endif
 
 /*
  * MakeBigReq sets the CARD16 "req->length" to 0 and inserts a new CARD32

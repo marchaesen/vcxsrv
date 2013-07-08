@@ -600,15 +600,9 @@ static int const HalfOrderWord[12] = {
 
 /* Cancel a GetReq operation, before doing _XSend or Data */
 
-#if (defined(__STDC__) && !defined(UNIXCPP)) || defined(ANSICPP)
 #define UnGetReq(name)\
     dpy->bufptr -= SIZEOF(x##name##Req);\
     dpy->request--
-#else
-#define UnGetReq(name)\
-    dpy->bufptr -= SIZEOF(x/**/name/**/Req);\
-    dpy->request--
-#endif
 
 static void
 SendXYImage(
