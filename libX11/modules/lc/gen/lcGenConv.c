@@ -764,9 +764,6 @@ mbstowcs_org(
         return( 0 );
     }
 
-    if (*from_left > *to_left)
-        *from_left = *to_left;
-
     while (*from_left && *to_left) {
 
 	ch = *inbufptr++;
@@ -920,9 +917,6 @@ wcstombs_org(
     const char *default_string = XLC_PUBLIC(lcd, default_string);
     int defstr_len = strlen(default_string);
 
-
-    if (*from_left > *to_left)
-        *from_left = *to_left;
 
     while (*from_left && *to_left) {
 
@@ -1079,9 +1073,6 @@ wcstocts(
     char *outbufptr = *to;
     int from_size = *from_left;
     char *ext_seg_len = NULL;
-
-    if (*from_left > *to_left)
-        *from_left = *to_left;
 
     while (*from_left && *to_left) {
 
@@ -1271,9 +1262,6 @@ ctstowcs(
 	_XlcResetConverter(conv);
         return( 0 );
     }
-
-    if (*from_left > *to_left)
-        *from_left = *to_left;
 
     while (*from_left && *to_left) {
 
@@ -1666,9 +1654,6 @@ mbstostr(
         return( 0 );
     }
 
-    if (*from_left > *to_left)
-        *from_left = *to_left;
-
     while (*from_left && *to_left) {
 
 	ch = *inbufptr++;
@@ -1956,10 +1941,6 @@ wcstostr(
     const char *default_string = XLC_PUBLIC(lcd, default_string);
     int defstr_len = strlen(default_string);
 
-
-    if (*from_left > *to_left)
-        *from_left = *to_left;
-
     while (*from_left && *to_left) {
 
         wc = *inbufptr++;
@@ -2113,9 +2094,6 @@ wctocs(
     const wchar_t *inbufptr = (const wchar_t *) *from;
     char *outbufptr = *to;
     int from_size = *from_left;
-
-    if (*from_left > *to_left)
-        *from_left = *to_left;
 
     if (*from_left && *to_left) {
 
@@ -2427,9 +2405,6 @@ strtombs(
     char *outbufptr = *to;
     int from_size = *from_left;
 
-    if (*from_left > *to_left)
-        *from_left = *to_left;
-
     while (*from_left && *to_left) {
 
         ch = *inbufptr++;
@@ -2536,9 +2511,6 @@ strtowcs(
     const char *inbufptr = *from;
     wchar_t *outbufptr = (wchar_t *)*to;
     int from_size = *from_left;
-
-    if (*from_left > *to_left)
-        *from_left = *to_left;
 
     while (*from_left && *to_left) {
 

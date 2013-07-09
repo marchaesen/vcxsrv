@@ -69,8 +69,8 @@ FcTestDestroy (FcTest *test)
 void
 FcRuleDestroy (FcRule *rule)
 {
-    if (rule->next)
-	FcRuleDestroy (rule->next);
+    FcRule *n = rule->next;
+
     switch (rule->type) {
     case FcRuleTest:
 	FcTestDestroy (rule->u.test);
@@ -82,6 +82,8 @@ FcRuleDestroy (FcRule *rule)
 	break;
     }
     free (rule);
+    if (n)
+	FcRuleDestroy (n);
 }
 
 static FcExpr *

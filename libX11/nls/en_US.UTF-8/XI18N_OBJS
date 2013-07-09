@@ -3,6 +3,5 @@
 #	XI18N objects table for euro locales
 #
 XLC	common/xlcUTF8Load	_XlcUtf8Loader	        # XLC_open
-XOM	common/xomLTRTTB	_XomGenericOpenOM	# XOM_open
-XIM	common/xiiimp		_SwitchOpenIM		# XIM_open
-XIM	common/xiiimp		_XimpLocalOpenIM	# XIM_open
+XOM	common/xomGeneric	_XomGenericOpenOM	# XOM_open
+XIM	common/ximcp	_XimOpenIM _XimRegisterIMInstantiateCallback  _XimUnRegisterIMInstantiateCallback # XIM_open	XIM_register XIM_unregister
