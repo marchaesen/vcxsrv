@@ -239,7 +239,7 @@ void _XSeqSyncFunction(
 static int
 _XPrivSyncFunction (Display *dpy)
 {
-#if XTHREADS
+#ifdef XTHREADS
     assert(!dpy->lock_fns);
 #endif
     assert(dpy->synchandler == _XPrivSyncFunction);
