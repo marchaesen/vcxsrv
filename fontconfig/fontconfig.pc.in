@@ -11,6 +11,8 @@ cachedir=@fc_cachedir@
 Name: Fontconfig
 Description: Font configuration and customization library
 Version: @VERSION@
+Requires: @PKGCONFIG_REQUIRES@
+Requires.private: @PKGCONFIG_REQUIRES_PRIVATELY@
 Libs: -L${libdir} -lfontconfig
-Libs.private: @LIBXML2_LIBS@ @EXPAT_LIBS@ @FREETYPE_LIBS@ @ICONV_LIBS@
-Cflags: -I${includedir}
+Libs.private: @EXPAT_LIBS@ @FREETYPE_LIBS@ @ICONV_LIBS@ @LIBXML2_LIBS@
+Cflags: -I${includedir} @EXPAT_CFLAGS@ @FREETYPE_CFLAGS@ @ICONV_CFLAGS@ @LIBXML2_CFLAGS@

@@ -27,7 +27,16 @@
 
 
 
+#include "pipe/p_config.h"
 #include "util/u_math.h"
+#include "util/u_cpu_detect.h"
+
+#if defined(PIPE_ARCH_SSE)
+#include <xmmintrin.h>
+/* This is defined in pmmintrin.h, but it can only be included when -msse3 is
+ * used, so just define it here to avoid further. */
+#define _MM_DENORMALS_ZERO_MASK	0x0040
+#endif
 
 
 /** 2^x, for x in [-1.0, 1.0) */
@@ -70,4 +79,59 @@ util_init_math(void)
    }
 }
 
+/**
+ * Fetches the contents of the fpstate (mxcsr on x86) register.
+ *
+ * On platforms without support for it just returns 0.
+ */
+unsigned
+util_fpstate_get(void)
+{
+   unsigned mxcsr = 0;
 
+#if defined(PIPE_ARCH_SSE)
+   if (util_cpu_caps.has_sse) {
+      mxcsr = _mm_getcsr();
+   }
+#endif
+
+   return mxcsr;
+}
+
+/**
+ * Make sure that the fp treats the denormalized floating
+ * point numbers as zero.
+ *
+ * This is the behavior required by D3D10. OpenGL doesn't care.
+ */
+unsigned
+util_fpstate_set_denorms_to_zero(unsigned current_mxcsr)
+{
+#if defined(PIPE_ARCH_SSE)
+   if (util_cpu_caps.has_sse) {
+      /* Enable flush to zero mode */
+      current_mxcsr |= _MM_FLUSH_ZERO_MASK;
+      if (util_cpu_caps.has_sse3) {
+         /* Enable denormals are zero mode */
+         current_mxcsr |= _MM_DENORMALS_ZERO_MASK;
+      }
+      util_fpstate_set(current_mxcsr);
+   }
+#endif
+   return current_mxcsr;
+}
+
+/**
+ * Set the state of the fpstate (mxcsr on x86) register.
+ *
+ * On platforms without support for it's a noop.
+ */
+void
+util_fpstate_set(unsigned mxcsr)
+{
+#if defined(PIPE_ARCH_SSE)
+   if (util_cpu_caps.has_sse) {
+      _mm_setcsr(mxcsr);
+   }
+#endif
+}

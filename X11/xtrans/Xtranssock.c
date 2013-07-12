@@ -2445,7 +2445,7 @@ Xtransport	TRANS(SocketLocalFuncs) = {
 #endif /* !LOCALCONN */
 # ifdef TRANS_SERVER
 #  if !defined(LOCALCONN)
-static char* unix_nolisten[] = { "local" , NULL };
+static const char* unix_nolisten[] = { "local" , NULL };
 #  endif
 # endif
 
