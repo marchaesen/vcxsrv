@@ -759,13 +759,15 @@ XkbProcessArguments(int argc, char *argv[], int i)
     if ((strcmp(argv[i], "-ardelay") == 0) || (strcmp(argv[i], "-ar1") == 0)) { /* -ardelay int */
         if (++i >= argc)
             UseMsg();
-        XkbDfltRepeatDelay = (long) atoi(argv[i]);
+        else
+            XkbDfltRepeatDelay = (long) atoi(argv[i]);
         return 2;
     }
     if ((strcmp(argv[i], "-arinterval") == 0) || (strcmp(argv[i], "-ar2") == 0)) {      /* -arinterval int */
         if (++i >= argc)
             UseMsg();
-        XkbDfltRepeatInterval = (long) atoi(argv[i]);
+        else
+            XkbDfltRepeatInterval = (long) atoi(argv[i]);
         return 2;
     }
     return 0;

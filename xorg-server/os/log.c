@@ -216,6 +216,9 @@ LogInit(const char *fname, const char *backup)
                 free(oldLog);
             }
         }
+        else {
+            unlink(logFileName);
+        }
         if ((logFile = fopen(logFileName, "w")) == NULL)
             FatalError("Cannot open log file \"%s\"\n", logFileName);
         setvbuf(logFile, NULL, _IONBF, 0);

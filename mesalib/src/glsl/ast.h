@@ -189,7 +189,8 @@ enum ast_operators {
    ast_float_constant,
    ast_bool_constant,
 
-   ast_sequence
+   ast_sequence,
+   ast_aggregate
 };
 
 /**
@@ -292,6 +293,29 @@ private:
    bool cons;
 };
 
+/**
+ * C-style aggregate initialization class
+ *
+ * Represents C-style initializers of vectors, matrices, arrays, and
+ * structures. E.g., vec3 pos = {1.0, 0.0, -1.0} is equivalent to
+ * vec3 pos = vec3(1.0, 0.0, -1.0).
+ *
+ * Specified in GLSL 4.20 and GL_ARB_shading_language_420pack.
+ *
+ * \sa _mesa_ast_set_aggregate_type
+ */
+class ast_aggregate_initializer : public ast_expression {
+public:
+   ast_aggregate_initializer()
+      : ast_expression(ast_aggregate, NULL, NULL, NULL)
+   {
+      /* empty */
+   }
+
+   ast_type_specifier *constructor_type;
+   virtual ir_rvalue *hir(exec_list *instructions,
+                          struct _mesa_glsl_parse_state *state);
+};
 
 /**
  * Number of possible operators for an ast_expression
@@ -317,13 +341,13 @@ public:
 
 class ast_declaration : public ast_node {
 public:
-   ast_declaration(const char *identifier, int is_array, ast_expression *array_size,
+   ast_declaration(const char *identifier, bool is_array, ast_expression *array_size,
 		   ast_expression *initializer);
    virtual void print(void) const;
 
    const char *identifier;
    
-   int is_array;
+   bool is_array;
    ast_expression *array_size;
 
    ast_expression *initializer;
@@ -453,6 +477,19 @@ class ast_declarator_list;
 
 class ast_struct_specifier : public ast_node {
 public:
+   /**
+    * \brief Make a shallow copy of an ast_struct_specifier.
+    *
+    * Use only if the objects are allocated from the same context and will not
+    * be modified. Zeros the inherited ast_node's fields.
+    */
+   ast_struct_specifier(const ast_struct_specifier& that):
+      ast_node(), name(that.name), declarations(that.declarations),
+      is_declaration(that.is_declaration)
+   {
+      /* empty */
+   }
+
    ast_struct_specifier(const char *identifier,
 			ast_declarator_list *declarator_list);
    virtual void print(void) const;
@@ -463,12 +500,29 @@ public:
    const char *name;
    /* List of ast_declarator_list * */
    exec_list declarations;
+   bool is_declaration;
 };
 
 
 
 class ast_type_specifier : public ast_node {
 public:
+   /**
+    * \brief Make a shallow copy of an ast_type_specifier, specifying array
+    *        fields.
+    *
+    * Use only if the objects are allocated from the same context and will not
+    * be modified. Zeros the inherited ast_node's fields.
+    */
+   ast_type_specifier(const ast_type_specifier *that, bool is_array,
+                      ast_expression *array_size)
+      : ast_node(), type_name(that->type_name), structure(that->structure),
+        is_array(is_array), array_size(array_size), precision(that->precision),
+        is_precision_statement(that->is_precision_statement)
+   {
+      /* empty */
+   }
+
    /** Construct a type specifier from a type name */
    ast_type_specifier(const char *name) 
       : type_name(name), structure(NULL),
@@ -498,7 +552,7 @@ public:
    const char *type_name;
    ast_struct_specifier *structure;
 
-   int is_array;
+   bool is_array;
    ast_expression *array_size;
 
    unsigned precision:2;
@@ -526,6 +580,7 @@ public:
 			  struct _mesa_glsl_parse_state *state);
 
    ast_fully_specified_type *type;
+   /** List of 'ast_declaration *' */
    exec_list declarations;
 
    /**
@@ -565,7 +620,7 @@ public:
 
    ast_fully_specified_type *type;
    const char *identifier;
-   int is_array;
+   bool is_array;
    ast_expression *array_size;
 
    static void parameters_to_hir(exec_list *ast_parameters,
@@ -859,6 +914,11 @@ _mesa_ast_array_index_to_hir(void *mem_ctx,
 			     struct _mesa_glsl_parse_state *state,
 			     ir_rvalue *array, ir_rvalue *idx,
 			     YYLTYPE &loc, YYLTYPE &idx_loc);
+
+extern void
+_mesa_ast_set_aggregate_type(const ast_type_specifier *type,
+                             ast_expression *expr,
+                             _mesa_glsl_parse_state *state);
 
 void
 emit_function(_mesa_glsl_parse_state *state, ir_function *f);

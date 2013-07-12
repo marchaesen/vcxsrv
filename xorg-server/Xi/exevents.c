@@ -1223,9 +1223,13 @@ ProcessTouchOwnershipEvent(TouchOwnershipEvent *ev,
     else if (ev->reason == XIAcceptTouch) {
         int i;
 
-        /* Go through the motions of ending the touch if the listener has
+
+        /* For pointer-emulated listeners that ungrabbed the active grab,
+         * the state was forced to LISTENER_HAS_END. Still go
+         * through the motions of ending the touch if the listener has
          * already seen the end. This ensures that the touch record is ended in
-         * the server. */
+         * the server.
+         */
         if (ti->listeners[0].state == LISTENER_HAS_END)
             TouchEmitTouchEnd(dev, ti, TOUCH_ACCEPT, ti->listeners[0].listener);
 
@@ -1883,16 +1887,23 @@ DeliverTouchEndEvent(DeviceIntPtr dev, TouchPointInfoPtr ti, InternalEvent *ev,
 
     if (listener->type == LISTENER_POINTER_REGULAR ||
         listener->type == LISTENER_POINTER_GRAB) {
-        rc = DeliverTouchEmulatedEvent(dev, ti, ev, listener, client, win,
-                                       grab, xi2mask);
+        /* Note: If the active grab was ungrabbed, we already changed the
+         * state to LISTENER_HAS_END but still get here. So we mustn't
+         * actually send the event.
+         * This is part two of the hack in DeactivatePointerGrab
+         */
+        if (listener->state != LISTENER_HAS_END) {
+            rc = DeliverTouchEmulatedEvent(dev, ti, ev, listener, client, win,
+                                           grab, xi2mask);
 
-         /* Once we send a TouchEnd to a legacy listener, we're already well
-          * past the accepting/rejecting stage (can only happen on
-          * GrabModeSync + replay. This listener now gets the end event,
-          * and we can continue.
-          */
-        if (rc == Success)
-            listener->state = LISTENER_HAS_END;
+             /* Once we send a TouchEnd to a legacy listener, we're already well
+              * past the accepting/rejecting stage (can only happen on
+              * GrabModeSync + replay. This listener now gets the end event,
+              * and we can continue.
+              */
+            if (rc == Success)
+                listener->state = LISTENER_HAS_END;
+        }
         goto out;
     }
 

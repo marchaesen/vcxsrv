@@ -54,6 +54,9 @@ AC_SUBST(LIBT_VERSION_INFO)
 LIBT_CURRENT_MINUS_AGE=`expr $LIBT_CURRENT - $LIBT_AGE`
 AC_SUBST(LIBT_CURRENT_MINUS_AGE)
 
+PKGCONFIG_REQUIRES=
+PKGCONFIG_REQUIRES_PRIVATELY=
+
 dnl ==========================================================================
 
 AC_CONFIG_HEADERS(config.h)
@@ -282,13 +285,14 @@ if test "x$enable_iconv" != "xno"; then
 		AC_TRY_LINK([#include <iconv.h>],
 			[iconv_open ("from", "to");],
 			[iconv_type="libiconv"
-			 use_iconv=1],
+			 use_iconv=1
+			 ICONV_CFLAGS="$libiconv_cflags"
+			 ICONV_LIBS="$libiconv_libs"
+			 ],
 			[use_iconv=0])
 
 		CFLAGS="$iconvsaved_CFLAGS"
 		LIBS="$iconvsaved_LIBS"
-		ICONV_CFLAGS="$libiconv_cflags"
-		ICONV_LIBS="$libiconv_libs"
 	fi
 	if test "x$use_iconv" = "x0"; then
 		AC_TRY_LINK([#include <iconv.h>],
@@ -308,6 +312,7 @@ AC_DEFINE_UNQUOTED(USE_ICONV,$use_iconv,[Use iconv.])
 # Checks for FreeType
 #
 PKG_CHECK_MODULES(FREETYPE, freetype2)
+PKGCONFIG_REQUIRES="$PKGCONFIG_REQUIRES freetype2"
 
 AC_SUBST(FREETYPE_LIBS)
 AC_SUBST(FREETYPE_CFLAGS)
@@ -367,6 +372,8 @@ if test "$enable_libxml2" != "yes"; then
 		else
 			EXPAT_LIBS="-lexpat"
 		fi
+	else
+		PKGCONFIG_REQUIRES_PRIVATELY="$PKGCONFIG_REQUIRES_PRIVATELY expat"
 	fi
 
 	expatsaved_CPPFLAGS="$CPPFLAGS"
@@ -408,6 +415,7 @@ AC_ARG_ENABLE(libxml2,
 
 if test "$enable_libxml2" = "yes"; then
     PKG_CHECK_MODULES([LIBXML2], [libxml-2.0 >= 2.6])
+    PKGCONFIG_REQUIRES_PRIVATELY="$PKGCONFIG_REQUIRES_PRIVATELY libxml-2.0"
     AC_DEFINE_UNQUOTED(ENABLE_LIBXML2,1,[Use libxml2 instead of Expat])
 
     AC_SUBST(LIBXML2_CFLAGS)
@@ -715,6 +723,12 @@ dnl include the header file for workaround of miscalculating size on autoconf
 dnl particularly for fat binaries
 AH_BOTTOM([#include "config-fixups.h"])
 
+dnl
+dnl
+AC_SUBST(PKGCONFIG_REQUIRES)
+AC_SUBST(PKGCONFIG_REQUIRES_PRIVATELY)
+
+dnl
 AC_CONFIG_FILES([
 Makefile
 fontconfig/Makefile

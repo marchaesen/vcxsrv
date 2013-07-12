@@ -1068,6 +1068,10 @@ ast_expression::hir(exec_list *instructions,
    loc = this->get_location();
 
    switch (this->oper) {
+   case ast_aggregate:
+         assert(!"ast_aggregate: Should never get here.");
+         break;
+
    case ast_assign: {
       op[0] = this->subexpressions[0]->hir(instructions, state);
       op[1] = this->subexpressions[1]->hir(instructions, state);
@@ -4001,7 +4005,19 @@ ast_type_specifier::hir(exec_list *instructions,
       return NULL;
    }
 
-   if (this->structure != NULL)
+   /* _mesa_ast_set_aggregate_type() sets the <structure> field so that
+    * process_record_constructor() can do type-checking on C-style initializer
+    * expressions of structs, but ast_struct_specifier should only be translated
+    * to HIR if it is declaring the type of a structure.
+    *
+    * The ->is_declaration field is false for initializers of variables
+    * declared separately from the struct's type definition.
+    *
+    *    struct S { ... };              (is_declaration = true)
+    *    struct T { ... } t = { ... };  (is_declaration = true)
+    *    S s = { ... };                 (is_declaration = false)
+    */
+   if (this->structure != NULL && this->structure->is_declaration)
       return this->structure->hir(instructions, state);
 
    return NULL;
@@ -4229,6 +4245,8 @@ ast_interface_block::hir(exec_list *instructions,
       var_mode = ir_var_uniform;
       iface_type_name = "uniform";
    } else {
+      var_mode = ir_var_auto;
+      iface_type_name = "UNKNOWN";
       assert(!"interface block layout qualifier not found!");
    }
 

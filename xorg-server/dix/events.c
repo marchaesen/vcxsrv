@@ -1522,13 +1522,20 @@ DeactivatePointerGrab(DeviceIntPtr mouse)
     for (i = 0; !wasPassive && mouse->touch && i < mouse->touch->num_touches; i++) {
         TouchPointInfoPtr ti = mouse->touch->touches + i;
         if (ti->active && TouchResourceIsOwner(ti, grab_resource)) {
+            int mode = XIRejectTouch;
             /* Rejecting will generate a TouchEnd, but we must not
                emulate a ButtonRelease here. So pretend the listener
                already has the end event */
             if (grab->grabtype == CORE || grab->grabtype == XI ||
-                    !xi2mask_isset(mouse->deviceGrab.grab->xi2mask, mouse, XI_TouchBegin))
+                    !xi2mask_isset(mouse->deviceGrab.grab->xi2mask, mouse, XI_TouchBegin)) {
+                mode = XIAcceptTouch;
+                /* NOTE: we set the state here, but
+                 * ProcessTouchOwnershipEvent() will still call
+                 * TouchEmitTouchEnd for this listener. The other half of
+                 * this hack is in DeliverTouchEndEvent */
                 ti->listeners[0].state = LISTENER_HAS_END;
-            TouchListenerAcceptReject(mouse, ti, 0, XIRejectTouch);
+            }
+            TouchListenerAcceptReject(mouse, ti, 0, mode);
         }
     }
 

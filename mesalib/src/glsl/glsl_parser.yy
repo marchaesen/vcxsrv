@@ -221,6 +221,7 @@ static void yyerror(YYLTYPE *loc, _mesa_glsl_parse_state *st, const char *msg)
 %type <declarator_list> init_declarator_list
 %type <declarator_list> single_declaration
 %type <expression> initializer
+%type <expression> initializer_list
 %type <node> declaration
 %type <node> declaration_statement
 %type <node> jump_statement
@@ -961,6 +962,11 @@ init_declarator_list:
 	   $$ = $1;
 	   $$->declarations.push_tail(&decl->link);
 	   state->symbols->add_variable(new(state) ir_variable(NULL, $3, ir_var_auto));
+	   if ($7->oper == ast_aggregate) {
+	      ast_aggregate_initializer *ai = (ast_aggregate_initializer *)$7;
+	      ast_type_specifier *type = new(ctx) ast_type_specifier($1->type->specifier, true, NULL);
+	      _mesa_ast_set_aggregate_type(type, ai, state);
+	   }
 	}
 	| init_declarator_list ',' any_identifier '[' constant_expression ']' '=' initializer
 	{
@@ -971,6 +977,11 @@ init_declarator_list:
 	   $$ = $1;
 	   $$->declarations.push_tail(&decl->link);
 	   state->symbols->add_variable(new(state) ir_variable(NULL, $3, ir_var_auto));
+	   if ($8->oper == ast_aggregate) {
+	      ast_aggregate_initializer *ai = (ast_aggregate_initializer *)$8;
+	      ast_type_specifier *type = new(ctx) ast_type_specifier($1->type->specifier, true, $5);
+	      _mesa_ast_set_aggregate_type(type, ai, state);
+	   }
 	}
 	| init_declarator_list ',' any_identifier '=' initializer
 	{
@@ -981,6 +992,10 @@ init_declarator_list:
 	   $$ = $1;
 	   $$->declarations.push_tail(&decl->link);
 	   state->symbols->add_variable(new(state) ir_variable(NULL, $3, ir_var_auto));
+	   if ($5->oper == ast_aggregate) {
+	      ast_aggregate_initializer *ai = (ast_aggregate_initializer *)$5;
+	      _mesa_ast_set_aggregate_type($1->type->specifier, ai, state);
+	   }
 	}
 	;
 
@@ -1028,6 +1043,11 @@ single_declaration:
 	   $$ = new(ctx) ast_declarator_list($1);
 	   $$->set_location(yylloc);
 	   $$->declarations.push_tail(&decl->link);
+	   if ($6->oper == ast_aggregate) {
+	      ast_aggregate_initializer *ai = (ast_aggregate_initializer *)$6;
+	      ast_type_specifier *type = new(ctx) ast_type_specifier($1->specifier, true, NULL);
+	      _mesa_ast_set_aggregate_type(type, ai, state);
+	   }
 	}
 	| fully_specified_type any_identifier '[' constant_expression ']' '=' initializer
 	{
@@ -1037,6 +1057,11 @@ single_declaration:
 	   $$ = new(ctx) ast_declarator_list($1);
 	   $$->set_location(yylloc);
 	   $$->declarations.push_tail(&decl->link);
+	   if ($7->oper == ast_aggregate) {
+	      ast_aggregate_initializer *ai = (ast_aggregate_initializer *)$7;
+	      ast_type_specifier *type = new(ctx) ast_type_specifier($1->specifier, true, $4);
+	      _mesa_ast_set_aggregate_type(type, ai, state);
+	   }
 	}
 	| fully_specified_type any_identifier '=' initializer
 	{
@@ -1046,6 +1071,9 @@ single_declaration:
 	   $$ = new(ctx) ast_declarator_list($1);
 	   $$->set_location(yylloc);
 	   $$->declarations.push_tail(&decl->link);
+	   if ($4->oper == ast_aggregate) {
+              _mesa_ast_set_aggregate_type($1->specifier, $4, state);
+	   }
 	}
 	| INVARIANT variable_identifier // Vertex only.
 	{
@@ -1155,6 +1183,12 @@ layout_qualifier_id:
 	         $$.flags.q.shared = 1;
 	      } else if (strcmp($1, "column_major") == 0) {
 	         $$.flags.q.column_major = 1;
+	      /* "row_major" is a reserved word in GLSL 1.30+. Its token is parsed
+	       * below in the interface_block_layout_qualifier rule.
+	       *
+	       * It is not a reserved word in GLSL ES 3.00, so it's handled here as
+	       * an identifier.
+	       */
 	      } else if (strcmp($1, "row_major") == 0) {
 	         $$.flags.q.row_major = 1;
 	      }
@@ -1177,9 +1211,6 @@ layout_qualifier_id:
 	   memset(& $$, 0, sizeof($$));
 
 	   if (state->ARB_explicit_attrib_location_enable) {
-	      /* FINISHME: Handle 'index' once GL_ARB_blend_func_exteneded and
-	       * FINISHME: GLSL 1.30 (or later) are supported.
-	       */
 	      if (strcmp("location", $1) == 0) {
 		 $$.flags.q.explicit_location = 1;
 
@@ -1503,6 +1534,7 @@ struct_specifier:
 	   $$ = new(ctx) ast_struct_specifier($2, $4);
 	   $$->set_location(yylloc);
 	   state->symbols->add_type($2, glsl_type::void_type);
+           state->symbols->add_type_ast($2, new(ctx) ast_type_specifier($$));
 	}
 	| STRUCT '{' struct_declaration_list '}'
 	{
@@ -1570,6 +1602,28 @@ struct_declarator:
 
 initializer:
 	assignment_expression
+	| '{' initializer_list '}'
+	{
+	   $$ = $2;
+	}
+	| '{' initializer_list ',' '}'
+	{
+	   $$ = $2;
+	}
+	;
+
+initializer_list:
+	initializer
+	{
+	   void *ctx = state;
+	   $$ = new(ctx) ast_aggregate_initializer();
+	   $$->set_location(yylloc);
+	   $$->expressions.push_tail(& $1->link);
+	}
+	| initializer_list ',' initializer
+	{
+	   $1->expressions.push_tail(& $3->link);
+	}
 	;
 
 declaration_statement:
