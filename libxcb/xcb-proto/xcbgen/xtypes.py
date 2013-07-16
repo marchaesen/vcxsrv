@@ -602,25 +602,41 @@ class Event(ComplexType):
 
         self.has_seq = not bool(elt.get('no-sequence-number'))
 
+        self.is_ge_event = bool(elt.get('xge'))
+
         self.doc = None
         for item in list(elt):
             if item.tag == 'doc':
                 self.doc = Doc(name, item)
-            
+
     def add_opcode(self, opcode, name, main):
         self.opcodes[name] = opcode
         if main:
             self.name = name
 
     def resolve(self, module):
+        def add_event_header():
+            self.fields.append(Field(tcard8, tcard8.name, 'response_type', False, True, True))
+            if self.has_seq:
+                self.fields.append(_placeholder_byte)
+                self.fields.append(Field(tcard16, tcard16.name, 'sequence', False, True, True))
+
+        def add_ge_event_header():
+            self.fields.append(Field(tcard8,  tcard8.name,  'response_type', False, True, True))
+            self.fields.append(Field(tcard8,  tcard8.name,  'extension', False, True, True))
+            self.fields.append(Field(tcard16, tcard16.name, 'sequence', False, True, True))
+            self.fields.append(Field(tcard32, tcard32.name, 'length', False, True, True))
+            self.fields.append(Field(tcard16, tcard16.name, 'event_type', False, True, True))
+
         if self.resolved:
             return
 
         # Add the automatic protocol fields
-        self.fields.append(Field(tcard8, tcard8.name, 'response_type', False, True, True))
-        if self.has_seq:
-            self.fields.append(_placeholder_byte)
-            self.fields.append(Field(tcard16, tcard16.name, 'sequence', False, True, True))
+        if self.is_ge_event:
+            add_ge_event_header()
+        else:
+            add_event_header()
+
         ComplexType.resolve(self, module)
 
     out = __main__.output['event']

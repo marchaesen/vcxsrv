@@ -128,7 +128,8 @@ Top-Level Elements
   requests of the same type may be combined into a single request without
   affecting the semantics of the requests.
 
-<event name="identifier" number="integer" [no-sequence-number="true"]>
+<event name="identifier" number="integer"
+       [[no-sequence-number="true"] | [xge="true"]]>
   structure contents
 </event>
 
@@ -141,6 +142,11 @@ Top-Level Elements
   If the optional no-sequence-number attribute is true, the event does not
   include a sequence number.  This is a special-case for the KeymapNotify
   event in the core protocol, and should not be used in any other event.
+
+  If the optional xge attribute is true, the event is an X Generic Event and
+  will be treated as such.
+
+  The no-sequence-number and xge attribute can not be combined.
 
 <error name="identifier" number="integer">
   structure contents

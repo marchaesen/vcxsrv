@@ -2838,6 +2838,23 @@ def c_event(self, name):
     '''
     Exported function that handles event declarations.
     '''
+
+    # The generic event structure xcb_ge_event_t has the full_sequence field
+    # at the 32byte boundary. That's why we've to inject this field into GE
+    # events while generating the structure for them. Otherwise we would read
+    # garbage (the internal full_sequence) when accessing normal event fields
+    # there.
+    if hasattr(self, 'is_ge_event') and self.is_ge_event and self.name == name:
+        event_size = 0
+        for field in self.fields:
+            if field.type.size != None and field.type.nmemb != None:
+                event_size += field.type.size * field.type.nmemb
+            if event_size == 32:
+                full_sequence = Field(tcard32, tcard32.name, 'full_sequence', False, True, True)
+                idx = self.fields.index(field)
+                self.fields.insert(idx + 1, full_sequence)
+                break
+
     _c_type_setup(self, name, ('event',))
 
     # Opcode define
