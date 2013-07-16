@@ -1584,8 +1584,26 @@ if test "x$enable_gallium_llvm" = xyes; then
     fi
 
     if test "x$LLVM_CONFIG" != xno; then
-	LLVM_VERSION=`$LLVM_CONFIG --version | sed 's/svn.*//g'`
-	LLVM_VERSION_INT=`echo $LLVM_VERSION | sed -e 's/\([[0-9]]\)\.\([[0-9]]\)/\10\2/g'`
+        LLVM_VERSION=`$LLVM_CONFIG --version | sed 's/svn.*//g'`
+        LLVM_LDFLAGS=`$LLVM_CONFIG --ldflags`
+        LLVM_BINDIR=`$LLVM_CONFIG --bindir`
+        LLVM_CPPFLAGS=`strip_unwanted_llvm_flags "$LLVM_CONFIG --cppflags"`
+        LLVM_CFLAGS=$LLVM_CPPFLAGS   # CPPFLAGS seem to be sufficient
+        LLVM_CXXFLAGS=`strip_unwanted_llvm_flags "$LLVM_CONFIG --cxxflags"`
+        LLVM_INCLUDEDIR=`$LLVM_CONFIG --includedir`
+        LLVM_LIBDIR=`$LLVM_CONFIG --libdir`
+
+        AC_COMPUTE_INT([LLVM_VERSION_MAJOR], [LLVM_VERSION_MAJOR],
+            [#include "${LLVM_INCLUDEDIR}/llvm/Config/llvm-config.h"])
+        AC_COMPUTE_INT([LLVM_VERSION_MINOR], [LLVM_VERSION_MINOR],
+            [#include "${LLVM_INCLUDEDIR}/llvm/Config/llvm-config.h"])
+
+        if test "x${LLVM_VERSION_MAJOR}" != x; then
+            LLVM_VERSION_INT="${LLVM_VERSION_MAJOR}0${LLVM_VERSION_MINOR}"
+        else
+            LLVM_VERSION_INT=`echo $LLVM_VERSION | sed -e 's/\([[0-9]]\)\.\([[0-9]]\)/\10\2/g'`
+        fi
+
         LLVM_COMPONENTS="engine bitwriter"
         if $LLVM_CONFIG --components | grep -q '\<mcjit\>'; then
             LLVM_COMPONENTS="${LLVM_COMPONENTS} mcjit"
@@ -1598,28 +1616,21 @@ if test "x$enable_gallium_llvm" = xyes; then
                 LLVM_COMPONENTS="${LLVM_COMPONENTS} irreader"
             fi
         fi
-	LLVM_LDFLAGS=`$LLVM_CONFIG --ldflags`
-	LLVM_BINDIR=`$LLVM_CONFIG --bindir`
-	LLVM_CPPFLAGS=`strip_unwanted_llvm_flags "$LLVM_CONFIG --cppflags"`
-	LLVM_CFLAGS=$LLVM_CPPFLAGS   # CPPFLAGS seem to be sufficient
-	LLVM_CXXFLAGS=`strip_unwanted_llvm_flags "$LLVM_CONFIG --cxxflags"`
-	LLVM_INCLUDEDIR=`$LLVM_CONFIG --includedir`
-	LLVM_LIBDIR=`$LLVM_CONFIG --libdir`
-	DEFINES="${DEFINES} -DHAVE_LLVM=0x0$LLVM_VERSION_INT"
-	MESA_LLVM=1
+        DEFINES="${DEFINES} -DHAVE_LLVM=0x0$LLVM_VERSION_INT"
+        MESA_LLVM=1
 
-	dnl Check for Clang interanl headers
+        dnl Check for Clang internal headers
         if test "x$enable_opencl" = xyes; then
             if test "x$CLANG_LIBDIR" = x; then
                 CLANG_LIBDIR=${LLVM_LIBDIR}
             fi
             CLANG_RESOURCE_DIR=$CLANG_LIBDIR/clang/${LLVM_VERSION}
-            AC_CHECK_FILE("$CLANG_RESOURCE_DIR/include/stddef.h",,
-                AC_MSG_ERROR([Could not find clang internal header stddef.h in $CLANG_RESOURCE_DIR Use --with-clang-libdir to specify the correct path to the clang libraries.]))
+            AS_IF([test ! -f "$CLANG_RESOURCE_DIR/include/stddef.h"],
+                [AC_MSG_ERROR([Could not find clang internal header stddef.h in $CLANG_RESOURCE_DIR Use --with-clang-libdir to specify the correct path to the clang libraries.])])
         fi
     else
-	MESA_LLVM=0
-	LLVM_VERSION_INT=0
+        MESA_LLVM=0
+        LLVM_VERSION_INT=0
     fi
 else
     MESA_LLVM=0
@@ -1853,7 +1864,7 @@ if test "x$MESA_LLVM" != x0; then
     if test "x$with_llvm_shared_libs" = xyes; then
         dnl We can't use $LLVM_VERSION because it has 'svn' stripped out,
         LLVM_SO_NAME=LLVM-`$LLVM_CONFIG --version`
-        AC_CHECK_FILE("$LLVM_LIBDIR/lib$LLVM_SO_NAME.so", llvm_have_one_so=yes,)
+        AS_IF([test -f "$LLVM_LIBDIR/lib$LLVM_SO_NAME.so"], [llvm_have_one_so=yes])
 
         if test "x$llvm_have_one_so" = xyes; then
             dnl LLVM was built using auto*, so there is only one shared object.
@@ -1861,8 +1872,8 @@ if test "x$MESA_LLVM" != x0; then
         else
             dnl If LLVM was built with CMake, there will be one shared object per
             dnl component.
-            AC_CHECK_FILE("$LLVM_LIBDIR/libLLVMTarget.so",,
-                    AC_MSG_ERROR([Could not find llvm shared libraries:
+            AS_IF([test ! -f "$LLVM_LIBDIR/libLLVMTarget.so"],
+                    [AC_MSG_ERROR([Could not find llvm shared libraries:
 	Please make sure you have built llvm with the --enable-shared option
 	and that your llvm libraries are installed in $LLVM_LIBDIR
 	If you have installed your llvm libraries to a different directory you
@@ -1873,7 +1884,7 @@ if test "x$MESA_LLVM" != x0; then
 		--enable-opencl
 	If you do not want to build with llvm shared libraries and instead want to
 	use llvm static libraries then remove these options from your configure
-	invocation and reconfigure.]))
+	invocation and reconfigure.])])
 
            dnl We don't need to update LLVM_LIBS in this case because the LLVM
            dnl install uses a shared object for each compoenent and we have

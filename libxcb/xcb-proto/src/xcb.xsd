@@ -324,6 +324,7 @@ authorization from the authors.
               </xsd:sequence>
               <xsd:attribute name="no-sequence-number" type="xsd:boolean"
                              use="optional" />
+              <xsd:attribute name="xge" type="xsd:boolean" use="optional" />
             </xsd:extension>
           </xsd:complexContent>
         </xsd:complexType>

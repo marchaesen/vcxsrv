@@ -24,6 +24,7 @@
 
  ********************************************************/
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <X11/Xos.h>
