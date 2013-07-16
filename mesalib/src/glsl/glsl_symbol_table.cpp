@@ -182,7 +182,7 @@ bool glsl_symbol_table::add_type(const char *name, const glsl_type *t)
 bool glsl_symbol_table::add_type_ast(const char *name, const class ast_type_specifier *a)
 {
    symbol_table_entry *entry = new(mem_ctx) symbol_table_entry(a);
-   char ast_name[strlen("#ast.") + strlen(name) + 1];
+   char *ast_name=(char*)alloca(strlen("#ast.") + strlen(name) + 1);
    strcpy(ast_name, "#ast.");
    strcat(ast_name + strlen("#ast."), name);
    return _mesa_symbol_table_add_symbol(table, -1, ast_name, entry) == 0;
@@ -241,7 +241,7 @@ const glsl_type *glsl_symbol_table::get_type(const char *name)
 
 const class ast_type_specifier *glsl_symbol_table::get_type_ast(const char *name)
 {
-   char ast_name[strlen("#ast.") + strlen(name) + 1];
+   char *ast_name=(char*)alloca(strlen("#ast.") + strlen(name) + 1);
    strcpy(ast_name, "#ast.");
    strcat(ast_name + strlen("#ast."), name);
    symbol_table_entry *entry = get_entry(ast_name);
