@@ -245,11 +245,10 @@ AccelSetDecelProperty(DeviceIntPtr dev, Atom atom,
     if (checkOnly) {
         if (rc)
             return rc;
-        return (v >= 1.0f) ? Success : BadValue;
+        return (v > 0) ? Success : BadValue;
     }
 
-    if (v >= 1.0f)
-        vel->const_acceleration = 1 / v;
+    vel->const_acceleration = 1 / v;
 
     return Success;
 }

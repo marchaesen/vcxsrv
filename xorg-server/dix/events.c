@@ -1441,7 +1441,8 @@ UpdateTouchesForGrab(DeviceIntPtr mouse)
                 listener->type = LISTENER_POINTER_GRAB;
             else
                 listener->type = LISTENER_GRAB;
-            FreeGrab(listener->grab);
+            if (listener->grab)
+                FreeGrab(listener->grab);
             listener->grab = AllocGrab(grab);
         }
     }
