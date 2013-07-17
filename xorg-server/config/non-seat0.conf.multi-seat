@@ -1,0 +1,18 @@
+# This is the default configuration for servers on seat-1 and above.
+#
+# Start the server with -config non-seat0.conf.multi-seat, or alternatively
+# rename the file to end in .conf and put it in the standard config
+# directory (though it will apply to _all_ seats!).
+#
+# * Disable VT switching with Ctrl-Alt-F1
+# * Force a grab on all input devices to detach them from the VT subsystem
+#   to avoid event leakage.
+
+Section "ServerFlags"
+        Option "DontVTSwitch" "on"
+EndSection
+
+Section "InputClass"
+        Identifier "Force input devices to seat"
+        Option "GrabDevice" "on"
+EndSection

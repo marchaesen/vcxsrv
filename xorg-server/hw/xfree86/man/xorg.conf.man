@@ -972,7 +972,8 @@ is constructed. This is mainly a matter of personal preference.
 .BI "Option \*qConstantDeceleration\*q  \*q" real \*q
 Makes the pointer go
 .B deceleration
-times slower than normal. Most useful for high-resolution devices.
+times slower than normal. Most useful for high-resolution devices. A value
+between 0 and 1 will speed up the pointer.
 .TP 7
 .BI "Option \*qAdaptiveDeceleration\*q  \*q" real \*q
 Allows to actually decelerate the pointer when going slow. At most, it will be
