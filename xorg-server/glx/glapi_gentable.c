@@ -7103,13 +7103,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
 
     if(!disp->BindFramebuffer) {
         void ** procp = (void **) &disp->BindFramebuffer;
-        snprintf(symboln, sizeof(symboln), "%sBindFramebufferEXT", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BindFramebuffer) {
-        void ** procp = (void **) &disp->BindFramebuffer;
         snprintf(symboln, sizeof(symboln), "%sBindFramebufferOES", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
@@ -7118,13 +7111,6 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->BindRenderbuffer) {
         void ** procp = (void **) &disp->BindRenderbuffer;
         snprintf(symboln, sizeof(symboln), "%sBindRenderbuffer", symbol_prefix);
-        *procp = dlsym(handle, symboln);
-    }
-
-
-    if(!disp->BindRenderbuffer) {
-        void ** procp = (void **) &disp->BindRenderbuffer;
-        snprintf(symboln, sizeof(symboln), "%sBindRenderbufferEXT", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 
@@ -9645,6 +9631,20 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     if(!disp->DepthBoundsEXT) {
         void ** procp = (void **) &disp->DepthBoundsEXT;
         snprintf(symboln, sizeof(symboln), "%sDepthBoundsEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BindFramebufferEXT) {
+        void ** procp = (void **) &disp->BindFramebufferEXT;
+        snprintf(symboln, sizeof(symboln), "%sBindFramebufferEXT", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->BindRenderbufferEXT) {
+        void ** procp = (void **) &disp->BindRenderbufferEXT;
+        snprintf(symboln, sizeof(symboln), "%sBindRenderbufferEXT", symbol_prefix);
         *procp = dlsym(handle, symboln);
     }
 

@@ -5933,3 +5933,19 @@ void __glXDisp_ProgramNamedParameter4fvNV(GLbyte * pc)
     ) );
 }
 
+void __glXDisp_BindFramebufferEXT(GLbyte * pc)
+{
+    CALL_BindFramebufferEXT( GET_DISPATCH(), (
+        *(GLenum   *)(pc +  0),
+        *(GLuint   *)(pc +  4)
+    ) );
+}
+
+void __glXDisp_BindRenderbufferEXT(GLbyte * pc)
+{
+    CALL_BindRenderbufferEXT( GET_DISPATCH(), (
+        *(GLenum   *)(pc +  0),
+        *(GLuint   *)(pc +  4)
+    ) );
+}
+

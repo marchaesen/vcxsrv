@@ -6105,3 +6105,19 @@ void __glXDispSwap_ProgramNamedParameter4fvNV(GLbyte * pc)
     ) );
 }
 
+void __glXDispSwap_BindFramebufferEXT(GLbyte * pc)
+{
+    CALL_BindFramebufferEXT( GET_DISPATCH(), (
+         (GLenum  )bswap_ENUM   ( pc +  0 ),
+         (GLuint  )bswap_CARD32 ( pc +  4 )
+    ) );
+}
+
+void __glXDispSwap_BindRenderbufferEXT(GLbyte * pc)
+{
+    CALL_BindRenderbufferEXT( GET_DISPATCH(), (
+         (GLenum  )bswap_ENUM   ( pc +  0 ),
+         (GLuint  )bswap_CARD32 ( pc +  4 )
+    ) );
+}
+
