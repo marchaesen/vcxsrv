@@ -541,6 +541,25 @@ cross_validate_globals(struct gl_shader_program *prog,
 	       existing->explicit_location = true;
 	    }
 
+            /* From the GLSL 4.20 specification:
+             * "A link error will result if two compilation units in a program
+             *  specify different integer-constant bindings for the same
+             *  opaque-uniform name.  However, it is not an error to specify a
+             *  binding on some but not all declarations for the same name"
+             */
+            if (var->explicit_binding) {
+               if (existing->explicit_binding &&
+                   var->binding != existing->binding) {
+                  linker_error(prog, "explicit bindings for %s "
+                               "`%s' have differing values\n",
+                               mode_string(var), var->name);
+                  return false;
+               }
+
+               existing->binding = var->binding;
+               existing->explicit_binding = true;
+            }
+
 	    /* Validate layout qualifiers for gl_FragDepth.
 	     *
 	     * From the AMD/ARB_conservative_depth specs:
@@ -1147,7 +1166,7 @@ update_array_sizes(struct gl_shader_program *prog)
 	    }
 	 }
 
-	 if (size + 1 != var->type->fields.array->length) {
+	 if (size + 1 != var->type->length) {
 	    /* If this is a built-in uniform (i.e., it's backed by some
 	     * fixed-function state), adjust the number of state slots to
 	     * match the new array size.  The number of slots per array entry

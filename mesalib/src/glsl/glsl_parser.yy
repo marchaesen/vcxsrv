@@ -162,6 +162,7 @@ static void yyerror(YYLTYPE *loc, _mesa_glsl_parse_state *st, const char *msg)
 %type <node> simple_statement
 %type <n> precision_qualifier
 %type <type_qualifier> type_qualifier
+%type <type_qualifier> auxiliary_storage_qualifier
 %type <type_qualifier> storage_qualifier
 %type <type_qualifier> interpolation_qualifier
 %type <type_qualifier> layout_qualifier
@@ -169,7 +170,6 @@ static void yyerror(YYLTYPE *loc, _mesa_glsl_parse_state *st, const char *msg)
 %type <type_qualifier> interface_block_layout_qualifier
 %type <type_qualifier> interface_qualifier
 %type <type_specifier> type_specifier
-%type <type_specifier> type_specifier_no_prec
 %type <type_specifier> type_specifier_nonarray
 %type <identifier> basic_type_specifier_nonarray
 %type <fully_specified_type> fully_specified_type
@@ -180,7 +180,7 @@ static void yyerror(YYLTYPE *loc, _mesa_glsl_parse_state *st, const char *msg)
 %type <parameter_declarator> parameter_declarator
 %type <parameter_declarator> parameter_declaration
 %type <type_qualifier> parameter_qualifier
-%type <type_qualifier> parameter_type_qualifier
+%type <type_qualifier> parameter_direction_qualifier
 %type <type_specifier> parameter_type_specifier
 %type <function_definition> function_definition
 %type <compound_statement> compound_statement_no_new_scope
@@ -790,10 +790,9 @@ declaration:
    {
       $$ = $1;
    }
-   | PRECISION precision_qualifier type_specifier_no_prec ';'
+   | PRECISION precision_qualifier type_specifier ';'
    {
-      $3->precision = $2;
-      $3->is_precision_statement = true;
+      $3->default_precision = $2;
       $$ = $3;
    }
    | interface_block
@@ -864,28 +863,10 @@ parameter_declarator:
    ;
 
 parameter_declaration:
-   parameter_type_qualifier parameter_qualifier parameter_declarator
-   {
-      $1.flags.i |= $2.flags.i;
-
-      $$ = $3;
-      $$->type->qualifier = $1;
-   }
-   | parameter_qualifier parameter_declarator
+   parameter_qualifier parameter_declarator
    {
       $$ = $2;
       $$->type->qualifier = $1;
-   }
-   | parameter_type_qualifier parameter_qualifier parameter_type_specifier
-   {
-      void *ctx = state;
-      $1.flags.i |= $2.flags.i;
-
-      $$ = new(ctx) ast_parameter_declarator();
-      $$->set_location(yylloc);
-      $$->type = new(ctx) ast_fully_specified_type();
-      $$->type->qualifier = $1;
-      $$->type->specifier = $3;
    }
    | parameter_qualifier parameter_type_specifier
    {
@@ -903,7 +884,40 @@ parameter_qualifier:
    {
       memset(& $$, 0, sizeof($$));
    }
-   | IN_TOK
+   | CONST_TOK parameter_qualifier
+   {
+      if ($2.flags.q.constant)
+         _mesa_glsl_error(&@1, state, "duplicate const qualifier.\n");
+
+      $$ = $2;
+      $$.flags.q.constant = 1;
+   }
+   | parameter_direction_qualifier parameter_qualifier
+   {
+      if (($1.flags.q.in || $1.flags.q.out) && ($2.flags.q.in || $2.flags.q.out))
+         _mesa_glsl_error(&@1, state, "duplicate in/out/inout qualifier\n");
+
+      if (!state->ARB_shading_language_420pack_enable && $2.flags.q.constant)
+         _mesa_glsl_error(&@1, state, "const must be specified before "
+                          "in/out/inout.\n");
+
+      $$ = $1;
+      $$.merge_qualifier(&@1, state, $2);
+   }
+   | precision_qualifier parameter_qualifier
+   {
+      if ($2.precision != ast_precision_none)
+         _mesa_glsl_error(&@1, state, "Duplicate precision qualifier.\n");
+
+      if (!state->ARB_shading_language_420pack_enable && $2.flags.i != 0)
+         _mesa_glsl_error(&@1, state, "Precision qualifiers must come last.\n");
+
+      $$ = $2;
+      $$.precision = $1;
+   }
+
+parameter_direction_qualifier:
+   IN_TOK
    {
       memset(& $$, 0, sizeof($$));
       $$.flags.q.in = 1;
@@ -1240,6 +1254,12 @@ layout_qualifier_id:
          }
       }
 
+      if (state->ARB_shading_language_420pack_enable &&
+          strcmp("binding", $1) == 0) {
+         $$.flags.q.explicit_binding = 1;
+         $$.binding = $3;
+      }
+
       /* If the identifier didn't match any known layout identifiers,
        * emit an error.
        */
@@ -1305,45 +1325,154 @@ interpolation_qualifier:
    }
    ;
 
-parameter_type_qualifier:
-   CONST_TOK
+type_qualifier:
+   /* Single qualifiers */
+   INVARIANT
    {
       memset(& $$, 0, sizeof($$));
-      $$.flags.q.constant = 1;
+      $$.flags.q.invariant = 1;
+   }
+   | auxiliary_storage_qualifier
+   | storage_qualifier
+   | interpolation_qualifier
+   | layout_qualifier
+   | precision_qualifier
+   {
+      memset(&$$, 0, sizeof($$));
+      $$.precision = $1;
+   }
+
+   /* Multiple qualifiers:
+    * In GLSL 4.20, these can be specified in any order.  In earlier versions,
+    * they appear in this order (see GLSL 1.50 section 4.7 & comments below):
+    *
+    *    invariant interpolation auxiliary storage precision  ...or...
+    *    layout storage precision
+    *
+    * Each qualifier's rule ensures that the accumulated qualifiers on the right
+    * side don't contain any that must appear on the left hand side.
+    * For example, when processing a storage qualifier, we check that there are
+    * no auxiliary, interpolation, layout, or invariant qualifiers to the right.
+    */
+   | INVARIANT type_qualifier
+   {
+      if ($2.flags.q.invariant)
+         _mesa_glsl_error(&@1, state, "Duplicate \"invariant\" qualifier.\n");
+
+      if ($2.has_layout()) {
+         _mesa_glsl_error(&@1, state,
+                          "\"invariant\" cannot be used with layout(...).\n");
+      }
+
+      $$ = $2;
+      $$.flags.q.invariant = 1;
+   }
+   | interpolation_qualifier type_qualifier
+   {
+      /* Section 4.3 of the GLSL 1.40 specification states:
+       * "...qualified with one of these interpolation qualifiers"
+       *
+       * GLSL 1.30 claims to allow "one or more", but insists that:
+       * "These interpolation qualifiers may only precede the qualifiers in,
+       *  centroid in, out, or centroid out in a declaration."
+       *
+       * ...which means that e.g. smooth can't precede smooth, so there can be
+       * only one after all, and the 1.40 text is a clarification, not a change.
+       */
+      if ($2.has_interpolation())
+         _mesa_glsl_error(&@1, state, "Duplicate interpolation qualifier.\n");
+
+      if ($2.has_layout()) {
+         _mesa_glsl_error(&@1, state, "Interpolation qualifiers cannot be used "
+                          "with layout(...).\n");
+      }
+
+      if (!state->ARB_shading_language_420pack_enable && $2.flags.q.invariant) {
+         _mesa_glsl_error(&@1, state, "Interpolation qualifiers must come "
+                          "after \"invariant\".\n");
+      }
+
+      $$ = $1;
+      $$.merge_qualifier(&@1, state, $2);
+   }
+   | layout_qualifier type_qualifier
+   {
+      /* The GLSL 1.50 grammar indicates that a layout(...) declaration can be
+       * used standalone or immediately before a storage qualifier.  It cannot
+       * be used with interpolation qualifiers or invariant.  There does not
+       * appear to be any text indicating that it must come before the storage
+       * qualifier, but always seems to in examples.
+       */
+      if (!state->ARB_shading_language_420pack_enable && $2.has_layout())
+         _mesa_glsl_error(&@1, state, "Duplicate layout(...) qualifiers.\n");
+
+      if ($2.flags.q.invariant)
+         _mesa_glsl_error(&@1, state, "layout(...) cannot be used with "
+                          "the \"invariant\" qualifier\n");
+
+      if ($2.has_interpolation()) {
+         _mesa_glsl_error(&@1, state, "layout(...) cannot be used with "
+                          "interpolation qualifiers.\n");
+      }
+
+      $$ = $1;
+      $$.merge_qualifier(&@1, state, $2);
+   }
+   | auxiliary_storage_qualifier type_qualifier
+   {
+      if ($2.has_auxiliary_storage()) {
+         _mesa_glsl_error(&@1, state,
+                          "Duplicate auxiliary storage qualifier (centroid).\n");
+      }
+
+      if (!state->ARB_shading_language_420pack_enable &&
+          ($2.flags.q.invariant || $2.has_interpolation() || $2.has_layout())) {
+         _mesa_glsl_error(&@1, state, "Auxiliary storage qualifiers must come "
+                          "just before storage qualifiers.\n");
+      }
+      $$ = $1;
+      $$.flags.i |= $2.flags.i;
+   }
+   | storage_qualifier type_qualifier
+   {
+      /* Section 4.3 of the GLSL 1.20 specification states:
+       * "Variable declarations may have a storage qualifier specified..."
+       *  1.30 clarifies this to "may have one storage qualifier".
+       */
+      if ($2.has_storage())
+         _mesa_glsl_error(&@1, state, "Duplicate storage qualifier.\n");
+
+      if (!state->ARB_shading_language_420pack_enable &&
+          ($2.flags.q.invariant || $2.has_interpolation() || $2.has_layout() ||
+           $2.has_auxiliary_storage())) {
+         _mesa_glsl_error(&@1, state, "Storage qualifiers must come after "
+                          "invariant, interpolation, layout and auxiliary "
+                          "storage qualifiers.\n");
+      }
+
+      $$ = $1;
+      $$.merge_qualifier(&@1, state, $2);
+   }
+   | precision_qualifier type_qualifier
+   {
+      if ($2.precision != ast_precision_none)
+         _mesa_glsl_error(&@1, state, "Duplicate precision qualifier.\n");
+
+      if (!state->ARB_shading_language_420pack_enable && $2.flags.i != 0)
+         _mesa_glsl_error(&@1, state, "Precision qualifiers must come last.\n");
+
+      $$ = $2;
+      $$.precision = $1;
    }
    ;
 
-type_qualifier:
-   storage_qualifier
-   | layout_qualifier
-   | layout_qualifier storage_qualifier
-   {
-      $$ = $1;
-      $$.flags.i |= $2.flags.i;
-   }
-   | interpolation_qualifier
-   | interpolation_qualifier storage_qualifier
-   {
-      $$ = $1;
-      $$.flags.i |= $2.flags.i;
-   }
-   | INVARIANT storage_qualifier
-   {
-      $$ = $2;
-      $$.flags.q.invariant = 1;
-   }
-   | INVARIANT interpolation_qualifier storage_qualifier
-   {
-      $$ = $2;
-      $$.flags.i |= $3.flags.i;
-      $$.flags.q.invariant = 1;
-   }
-   | INVARIANT
+auxiliary_storage_qualifier:
+   CENTROID
    {
       memset(& $$, 0, sizeof($$));
-      $$.flags.q.invariant = 1;
+      $$.flags.q.centroid = 1;
    }
-   ;
+   /* TODO: "sample" and "patch" also go here someday. */
 
 storage_qualifier:
    CONST_TOK
@@ -1361,12 +1490,6 @@ storage_qualifier:
       memset(& $$, 0, sizeof($$));
       $$.flags.q.varying = 1;
    }
-   | CENTROID VARYING
-   {
-      memset(& $$, 0, sizeof($$));
-      $$.flags.q.centroid = 1;
-      $$.flags.q.varying = 1;
-   }
    | IN_TOK
    {
       memset(& $$, 0, sizeof($$));
@@ -1377,16 +1500,6 @@ storage_qualifier:
       memset(& $$, 0, sizeof($$));
       $$.flags.q.out = 1;
    }
-   | CENTROID IN_TOK
-   {
-      memset(& $$, 0, sizeof($$));
-      $$.flags.q.centroid = 1; $$.flags.q.in = 1;
-   }
-   | CENTROID OUT_TOK
-   {
-      memset(& $$, 0, sizeof($$));
-      $$.flags.q.centroid = 1; $$.flags.q.out = 1;
-   }
    | UNIFORM
    {
       memset(& $$, 0, sizeof($$));
@@ -1395,18 +1508,6 @@ storage_qualifier:
    ;
 
 type_specifier:
-   type_specifier_no_prec
-   {
-      $$ = $1;
-   }
-   | precision_qualifier type_specifier_no_prec
-   {
-      $$ = $2;
-      $$->precision = $1;
-   }
-   ;
-
-type_specifier_no_prec:
    type_specifier_nonarray
    | type_specifier_nonarray '[' ']'
    {

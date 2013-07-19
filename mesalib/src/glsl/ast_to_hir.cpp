@@ -1850,6 +1850,84 @@ validate_matrix_layout_for_type(struct _mesa_glsl_parse_state *state,
    }
 }
 
+static bool
+validate_binding_qualifier(struct _mesa_glsl_parse_state *state,
+                           YYLTYPE *loc,
+                           ir_variable *var,
+                           const ast_type_qualifier *qual)
+{
+   if (var->mode != ir_var_uniform) {
+      _mesa_glsl_error(loc, state,
+                       "the \"binding\" qualifier only applies to uniforms.\n");
+      return false;
+   }
+
+   if (qual->binding < 0) {
+      _mesa_glsl_error(loc, state, "binding values must be >= 0.\n");
+      return false;
+   }
+
+   const struct gl_context *const ctx = state->ctx;
+   unsigned elements = var->type->is_array() ? var->type->length : 1;
+   unsigned max_index = qual->binding + elements - 1;
+
+   if (var->type->is_interface()) {
+      /* UBOs.  From page 60 of the GLSL 4.20 specification:
+       * "If the binding point for any uniform block instance is less than zero,
+       *  or greater than or equal to the implementation-dependent maximum
+       *  number of uniform buffer bindings, a compilation error will occur.
+       *  When the binding identifier is used with a uniform block instanced as
+       *  an array of size N, all elements of the array from binding through
+       *  binding + N – 1 must be within this range."
+       *
+       * The implementation-dependent maximum is GL_MAX_UNIFORM_BUFFER_BINDINGS.
+       */
+      if (max_index >= ctx->Const.MaxUniformBufferBindings) {
+         _mesa_glsl_error(loc, state, "layout(binding = %d) for %d UBOs exceeds "
+                          "the maximum number of UBO binding points (%d).\n",
+                          qual->binding, elements,
+                          ctx->Const.MaxUniformBufferBindings);
+         return false;
+      }
+   } else if (var->type->is_sampler() ||
+              (var->type->is_array() && var->type->fields.array->is_sampler())) {
+      /* Samplers.  From page 63 of the GLSL 4.20 specification:
+       * "If the binding is less than zero, or greater than or equal to the
+       *  implementation-dependent maximum supported number of units, a
+       *  compilation error will occur. When the binding identifier is used
+       *  with an array of size N, all elements of the array from binding
+       *  through binding + N - 1 must be within this range."
+       */
+      unsigned limit;
+      switch (state->target) {
+      case vertex_shader:
+         limit = ctx->Const.VertexProgram.MaxTextureImageUnits;
+         break;
+      case geometry_shader:
+         limit = ctx->Const.GeometryProgram.MaxTextureImageUnits;
+         break;
+      case fragment_shader:
+         limit = ctx->Const.FragmentProgram.MaxTextureImageUnits;
+         break;
+      }
+
+      if (max_index >= limit) {
+         _mesa_glsl_error(loc, state, "layout(binding = %d) for %d samplers "
+                          "exceeds the maximum number of texture image units "
+                          "(%d).\n", qual->binding, elements, limit);
+
+         return false;
+      }
+   } else {
+      _mesa_glsl_error(loc, state,
+                       "the \"binding\" qualifier only applies to uniform "
+                       "blocks, samplers, or arrays of samplers.\n");
+      return false;
+   }
+
+   return true;
+}
+
 static void
 apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
 				 ir_variable *var,
@@ -2080,11 +2158,11 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
 			  "explicit index requires explicit location\n");
    }
 
-   /* Does the declaration use the 'layout' keyword?
-    */
-   const bool uses_layout = qual->flags.q.pixel_center_integer
-      || qual->flags.q.origin_upper_left
-      || qual->flags.q.explicit_location; /* no need for index since it relies on location */
+   if (qual->flags.q.explicit_binding &&
+       validate_binding_qualifier(state, loc, var, qual)) {
+      var->explicit_binding = true;
+      var->binding = qual->binding;
+   }
 
    /* Does the declaration use the deprecated 'attribute' or 'varying'
     * keywords?
@@ -2115,7 +2193,7 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
    const bool relaxed_layout_qualifier_checking =
       state->ARB_fragment_coord_conventions_enable;
 
-   if (uses_layout && uses_deprecated_qualifier) {
+   if (qual->has_layout() && uses_deprecated_qualifier) {
       if (relaxed_layout_qualifier_checking) {
 	 _mesa_glsl_warning(loc, state,
 			    "`layout' qualifier may not be used with "
@@ -2544,6 +2622,12 @@ ast_declarator_list::hir(exec_list *instructions,
 			     type_name);
 	 }
       }
+
+      if (this->type->qualifier.precision != ast_precision_none &&
+          this->type->specifier->structure != NULL) {
+         _mesa_glsl_error(&loc, state, "Precision qualifiers can't be applied "
+                          "to structures.\n");
+      }
    }
 
    foreach_list_typed (ast_declaration, decl, link, &this->declarations) {
@@ -2846,7 +2930,7 @@ ast_declarator_list::hir(exec_list *instructions,
 
       /* Precision qualifiers exists only in GLSL versions 1.00 and >= 1.30.
        */
-      if (this->type->specifier->precision != ast_precision_none) {
+      if (this->type->qualifier.precision != ast_precision_none) {
          state->check_precision_qualifiers_allowed(&loc);
       }
 
@@ -2864,9 +2948,10 @@ ast_declarator_list::hir(exec_list *instructions,
        * From page 87 of the GLSL ES spec:
        *    "RESOLUTION: Allow sampler types to take a precision qualifier."
        */
-      if (this->type->specifier->precision != ast_precision_none
+      if (this->type->qualifier.precision != ast_precision_none
           && !var->type->is_float()
           && !var->type->is_integer()
+          && !var->type->is_record()
           && !(var->type->is_sampler() && state->es_shader)
           && !(var->type->is_array()
                && (var->type->fields.array->is_float()
@@ -3958,21 +4043,10 @@ ir_rvalue *
 ast_type_specifier::hir(exec_list *instructions,
 			  struct _mesa_glsl_parse_state *state)
 {
-   if (!this->is_precision_statement && this->structure == NULL)
+   if (this->default_precision == ast_precision_none && this->structure == NULL)
       return NULL;
 
    YYLTYPE loc = this->get_location();
-
-   if (this->precision != ast_precision_none
-       && !state->check_precision_qualifiers_allowed(&loc)) {
-      return NULL;
-   }
-   if (this->precision != ast_precision_none
-       && this->structure != NULL) {
-      _mesa_glsl_error(&loc, state,
-                       "precision qualifiers do not apply to structures");
-      return NULL;
-   }
 
    /* If this is a precision statement, check that the type to which it is
     * applied is either float or int.
@@ -3984,10 +4058,16 @@ ast_type_specifier::hir(exec_list *instructions,
     *    field can be either int or float [...].  Any other types or
     *    qualifiers will result in an error.
     */
-   if (this->is_precision_statement) {
-      assert(this->precision != ast_precision_none);
-      assert(this->structure == NULL); /* The check for structures was
-                                        * performed above. */
+   if (this->default_precision != ast_precision_none) {
+      if (!state->check_precision_qualifiers_allowed(&loc))
+         return NULL;
+
+      if (this->structure != NULL) {
+         _mesa_glsl_error(&loc, state,
+                          "precision qualifiers do not apply to structures");
+         return NULL;
+      }
+
       if (this->is_array) {
          _mesa_glsl_error(&loc, state,
                           "default precision statements do not apply to "
@@ -4306,6 +4386,13 @@ ast_interface_block::hir(exec_list *instructions,
                                    ralloc_strdup(state, fields[i].name),
                                    var_mode);
          var->interface_type = block_type;
+
+         /* Propagate the "binding" keyword into this UBO's fields;
+          * the UBO declaration itself doesn't get an ir_variable unless it
+          * has an instance name.  This is ugly.
+          */
+         var->explicit_binding = this->layout.flags.q.explicit_binding;
+         var->binding = this->layout.binding;
 
          state->symbols->add_variable(var);
          instructions->push_tail(var);

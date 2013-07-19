@@ -417,6 +417,12 @@ struct ast_type_qualifier {
 	  */
 	 unsigned explicit_index:1;
 
+         /**
+          * Flag set if GL_ARB_shading_language_420pack "binding" layout
+          * qualifier is used.
+          */
+         unsigned explicit_binding:1;
+
          /** \name Layout qualifiers for GL_AMD_conservative_depth */
          /** \{ */
          unsigned depth_any:1;
@@ -441,6 +447,9 @@ struct ast_type_qualifier {
       unsigned i;
    } flags;
 
+   /** Precision of the type (highp/medium/lowp). */
+   unsigned precision:2;
+
    /**
     * Location specified via GL_ARB_explicit_attrib_location layout
     *
@@ -457,9 +466,32 @@ struct ast_type_qualifier {
    int index;
 
    /**
+    * Binding specified via GL_ARB_shading_language_420pack's "binding" keyword.
+    *
+    * \note
+    * This field is only valid if \c explicit_binding is set.
+    */
+   int binding;
+
+   /**
     * Return true if and only if an interpolation qualifier is present.
     */
    bool has_interpolation() const;
+
+   /**
+    * Return whether a layout qualifier is present.
+    */
+   bool has_layout() const;
+
+   /**
+    * Return whether a storage qualifier is present.
+    */
+   bool has_storage() const;
+
+   /**
+    * Return whether an auxiliary storage qualifier is present.
+    */
+   bool has_auxiliary_storage() const;
 
    /**
     * \brief Return string representation of interpolation qualifier.
@@ -522,8 +554,8 @@ public:
    ast_type_specifier(const ast_type_specifier *that, bool is_array,
                       ast_expression *array_size)
       : ast_node(), type_name(that->type_name), structure(that->structure),
-        is_array(is_array), array_size(array_size), precision(that->precision),
-        is_precision_statement(that->is_precision_statement)
+        is_array(is_array), array_size(array_size),
+        default_precision(that->default_precision)
    {
       /* empty */
    }
@@ -531,8 +563,8 @@ public:
    /** Construct a type specifier from a type name */
    ast_type_specifier(const char *name) 
       : type_name(name), structure(NULL),
-	is_array(false), array_size(NULL), precision(ast_precision_none),
-	is_precision_statement(false)
+	is_array(false), array_size(NULL),
+	default_precision(ast_precision_none)
    {
       /* empty */
    }
@@ -540,8 +572,8 @@ public:
    /** Construct a type specifier from a structure definition */
    ast_type_specifier(ast_struct_specifier *s)
       : type_name(s->name), structure(s),
-	is_array(false), array_size(NULL), precision(ast_precision_none),
-	is_precision_statement(false)
+	is_array(false), array_size(NULL),
+	default_precision(ast_precision_none)
    {
       /* empty */
    }
@@ -560,9 +592,8 @@ public:
    bool is_array;
    ast_expression *array_size;
 
-   unsigned precision:2;
-
-   bool is_precision_statement;
+   /** For precision statements, this is the given precision; otherwise none. */
+   unsigned default_precision:2;
 };
 
 
