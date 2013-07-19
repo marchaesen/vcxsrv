@@ -579,8 +579,8 @@ parseArgs(int argc, char *argv[])
             if ((i >= (argc - 1)) || (!isdigit(argv[i + 1][0])))
             {
                 warningLevel = 0;
-                if (isdigit(argv[i][1]))
-                    if (sscanf(&argv[i][1], "%i", &itmp) == 1)
+                if (isdigit(argv[i][2]))
+                    if (sscanf(&argv[i][2], "%i", &itmp) == 1)
                         warningLevel = itmp;
             }
             else
