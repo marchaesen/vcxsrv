@@ -588,7 +588,7 @@ _XF86BigfontQueryFont (
 	    if (!(extcodes->serverCapabilities & CAP_VerifiedLocal)) {
 		struct shmid_ds buf;
 		if (!(shmctl(reply.shmid, IPC_STAT, &buf) >= 0
-		      && reply.nCharInfos < (LONG_MAX / sizeof(XCharStruct))
+		      && reply.nCharInfos < (INT_MAX / sizeof(XCharStruct))
 		      && buf.shm_segsz >= reply.shmsegoffset + reply.nCharInfos * sizeof(XCharStruct) + sizeof(CARD32)
 		      && *(CARD32 *)(addr + reply.shmsegoffset + reply.nCharInfos * sizeof(XCharStruct)) == extcodes->serverSignature)) {
 		    shmdt(addr);

@@ -50,7 +50,7 @@ char **XGetFontPath(
 
 	if (rep.nPaths) {
 	    flist = Xmalloc(rep.nPaths * sizeof (char *));
-	    if (rep.length < (LONG_MAX >> 2)) {
+	    if (rep.length < (INT_MAX >> 2)) {
 		nbytes = (unsigned long) rep.length << 2;
 		ch = Xmalloc (nbytes + 1);
                 /* +1 to leave room for last null-terminator */
