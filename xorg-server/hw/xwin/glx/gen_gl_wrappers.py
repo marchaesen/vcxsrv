@@ -1,60 +1,217 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
-# Comedy python script to generate cdecl to stdcall wrappers for GL functions
-#
-# This is designed to operate on OpenGL spec files from
-# http://www.opengl.org/registry/api/
-#
-#
-# Copyright (c) Jon TURNEY 2009
+# Copyright (c) 2013 The Khronos Group Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
-# copy of this software and associated documentation files (the "Software"),
-# to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the
-# Software is furnished to do so, subject to the following conditions:
+# copy of this software and/or associated documentation files (the
+# "Materials"), to deal in the Materials without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Materials, and to
+# permit persons to whom the Materials are furnished to do so, subject to
+# the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Materials.
 #
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE ABOVE LISTED COPYRIGHT HOLDER(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR
-# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-#
-# Except as contained in this notice, the name(s) of the above copyright
-# holders shall not be used in advertising or otherwise to promote the sale,
-# use or other dealings in this Software without prior written authorization.
-#
+# THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
 
-import sys
-import re
-import getopt
+import sys, time, pdb, string, cProfile
+from reg import *
 
-dispatchheader = ''
-prefix = 'gl'
-preresolve = False
-staticwrappers = False
+# debug - start header generation in debugger
+# dump - dump registry after loading
+# profile - enable Python profiling
+# protect - whether to use #ifndef protections
+# registry <filename> - use specified XML registry instead of gl.xml
+# timeit - time length of registry loading & header generation
+# validate - validate return & parameter group tags against <group>
+debug   = False
+dump    = False
+profile = False
+protect = True
+timeit  = False
+validate= False
+# Default input / log files
+errFilename = None
+diagFilename = 'diag.txt'
+regFilename = 'gl.xml'
+outFilename = 'gen_gl_wrappers.c'
+dispatchheader=None
+prefix="gl"
+preresolve=False
+staticwrappers=False
+nodebugcallcounting=False
 
-opts, args = getopt.getopt(sys.argv[1:], "", ['spec=', 'typemap=', 'dispatch-header=', 'prefix=', 'preresolve', 'staticwrappers' ])
+WinGDI={key: 1 for key in [
+     "wglCopyContext"
+    ,"wglCreateContext"
+    ,"wglCreateLayerContext"
+    ,"wglDeleteContext"
+    ,"wglGetCurrentContext"
+    ,"wglGetCurrentDC"
+    ,"wglGetProcAddress"
+    ,"wglMakeCurrent"
+    ,"wglShareLists"
+    ,"wglUseFontBitmapsA"
+    ,"wglUseFontBitmapsW"
+    ,"wglUseFontBitmaps"
+    ,"SwapBuffers"
+    ,"wglUseFontOutlinesA"
+    ,"wglUseFontOutlinesW"
+    ,"wglUseFontOutlines"
+    ,"wglDescribeLayerPlane"
+    ,"wglSetLayerPaletteEntries"
+    ,"wglGetLayerPaletteEntries"
+    ,"wglRealizeLayerPalette"
+    ,"wglSwapLayerBuffers"
+    ,"wglSwapMultipleBuffers"
+    ,"ChoosePixelFormat"
+    ,"DescribePixelFormat"
+    ,"GetEnhMetaFilePixelFormat"
+    ,"GetPixelFormat"
+    ,"SetPixelFormat"
+]}
 
-for o,a in opts:
-        if o == '--typemap' :
-                typemapfile = a
-        elif o == '--dispatch-header' :
-                dispatchheader = a
-        elif o == '--spec' :
-                specfile = a
-        elif o == '--prefix' :
-                prefix = a
-        elif o == '--preresolve' :
-                preresolve = True
-        elif o == '--staticwrappers' :
-                staticwrappers = True
+if __name__ == '__main__':
+    i = 1
+    while (i < len(sys.argv)):
+        arg = sys.argv[i]
+        i = i + 1
+        if (arg == '-debug'):
+            print('Enabling debug (-debug)', file=sys.stderr)
+            debug = True
+        elif (arg == '-dump'):
+            print('Enabling dump (-dump)', file=sys.stderr)
+            dump = True
+        elif (arg == '-noprotect'):
+            print('Disabling inclusion protection in output headers', file=sys.stderr)
+            protect = False
+        elif (arg == '-profile'):
+            print('Enabling profiling (-profile)', file=sys.stderr)
+            profile = True
+        elif (arg == '-registry'):
+            regFilename = sys.argv[i]
+            i = i+1
+            print('Using registry ', regFilename, file=sys.stderr)
+        elif (arg == '-time'):
+            print('Enabling timing (-time)', file=sys.stderr)
+            timeit = True
+        elif (arg == '-validate'):
+            print('Enabling group validation (-validate)', file=sys.stderr)
+            validate = True
+        elif (arg == '-outfile'):
+            outFilename = sys.argv[i]
+            i = i+1
+        elif (arg == '-preresolve'):
+            preresolve=True
+        elif (arg == '-staticwrappers'):
+            staticwrappers=True
+        elif (arg == '-dispatchheader'):
+            dispatchheader = sys.argv[i]
+            i = i+1
+        elif (arg == '-prefix'):
+            prefix = sys.argv[i]
+            i = i+1
+        elif (arg == '-nodbgcount'):
+            nodebugcallcounting = True
+        elif (arg[0:1] == '-'):
+            print('Unrecognized argument:', arg, file=sys.stderr)
+            exit(1)
+print('Generating ', outFilename, file=sys.stderr)
+
+# Simple timer functions
+startTime = None
+def startTimer():
+    global startTime
+    startTime = time.clock()
+def endTimer(msg):
+    global startTime
+    endTime = time.clock()
+    if (timeit):
+        print(msg, endTime - startTime)
+        startTime = None
+
+# Load & parse registry
+reg = Registry()
+
+startTimer()
+tree = etree.parse(regFilename)
+endTimer('Time to make ElementTree =')
+
+startTimer()
+reg.loadElementTree(tree)
+endTimer('Time to parse ElementTree =')
+
+if (validate):
+    reg.validateGroups()
+
+if (dump):
+    print('***************************************')
+    print('Performing Registry dump to regdump.txt')
+    print('***************************************')
+    reg.dumpReg(filehandle = open('regdump.txt','w'))
+
+# Turn a list of strings into a regexp string matching exactly those strings
+def makeREstring(list):
+    return '^(' + '|'.join(list) + ')$'
+
+# These are "mandatory" OpenGL ES 1 extensions, to
+# be included in the core GLES/gl.h header.
+es1CoreList = [
+    'GL_OES_read_format',
+    'GL_OES_compressed_paletted_texture',
+    'GL_OES_point_size_array',
+    'GL_OES_point_sprite'
+]
+
+# Descriptive names for various regexp patterns used to select
+# versions and extensions
+
+allVersions     = allExtensions = '.*'
+noVersions      = noExtensions = None
+gl12andLaterPat = '1\.[2-9]|[234]\.[0-9]'
+gles2onlyPat    = '2\.[0-9]'
+gles2and3Pat    = '[23]\.[0-9]'
+es1CorePat      = makeREstring(es1CoreList)
+# Extensions in old glcorearb.h but not yet tagged accordingly in gl.xml
+glCoreARBPat    = None
+glx13andLaterPat = '1\.[3-9]'
+
+# Defaults for generating re-inclusion protection wrappers (or not)
+protectFile = protect
+protectFeature = protect
+protectProto = protect
+
+genOpts = CGeneratorOptions(
+        apiname           = prefix,
+        profile           = 'compatibility',
+        versions          = allVersions,
+        emitversions      = allVersions,
+        defaultExtensions = prefix,                   # Default extensions for GL
+#        addExtensions     = None,
+#        removeExtensions  = None,
+#        prefixText        = prefixStrings + glExtPlatformStrings + glextVersionStrings,
+#        genFuncPointers   = True,
+#        protectFile       = protectFile,
+#        protectFeature    = protectFeature,
+#        protectProto      = protectProto,
+#        apicall           = 'GLAPI ',
+#        apientry          = 'APIENTRY ',
+#        apientryp         = 'APIENTRYP '),
+        )
+
+# create error/warning & diagnostic files
+if (errFilename):
+    errWarn = open(errFilename,'w')
+else:
+    errWarn = sys.stderr
+diag = open(diagFilename, 'w')
 
 #
 # look for all the SET_ macros in dispatch.h, this is the set of functions
@@ -64,264 +221,197 @@ for o,a in opts:
 dispatch = {}
 
 if dispatchheader :
-        fh = open(dispatchheader)
-        dispatchh = fh.readlines()
+    fh = open(dispatchheader)
+    dispatchh = fh.readlines()
 
-        dispatch_regex = re.compile(r'(?:#define|static\s+INLINE\s+void)\s+SET_([^\()]+)\(')
+    dispatch_regex = re.compile(r'(?:#define|static\s+INLINE\s+void)\s+SET_([^\()]+)\(')
 
-        for line in dispatchh :
-                line = line.strip()
-                m1 = dispatch_regex.search(line)
+    for line in dispatchh :
+        line = line.strip()
+        m1 = dispatch_regex.search(line)
 
-                if m1 :
-                        dispatch[m1.group(1)] = 1
+        if m1 :
+            dispatch[prefix+m1.group(1)] = 1
 
-        del dispatch['by_offset']
+    del dispatch['glby_offset']
 
-#
-# read the typemap .tm file
-#
+class PreResolveOutputGenerator(OutputGenerator):
+    def __init__(self,
+                 errFile = sys.stderr,
+                 warnFile = sys.stderr,
+                 diagFile = sys.stdout):
+        OutputGenerator.__init__(self, errFile, warnFile, diagFile)
+        self.wrappers={}
+    def beginFile(self, genOpts):
+        pass
+    def endFile(self):
+        self.outFile.write('\nvoid ' + prefix + 'ResolveExtensionProcs(void)\n{\n')
+        for funcname in self.wrappers.keys():
+            self.outFile.write( '  PRERESOLVE(PFN' + funcname.upper() + 'PROC, "' + funcname + '");\n')
+        self.outFile.write('}\n\n')
+    def beginFeature(self, interface, emit):
+        OutputGenerator.beginFeature(self, interface, emit)
+        self.OldVersion = self.featureName.startswith('GL_VERSION_1_0') or self.featureName.startswith('GL_VERSION_1_1')
+    def endFeature(self):
+        OutputGenerator.endFeature(self)
+    def genType(self, typeinfo, name):
+        OutputGenerator.genType(self, typeinfo, name)
+    def genEnum(self, enuminfo, name):
+        OutputGenerator.genEnum(self, enuminfo, name)
+    def genCmd(self, cmd, name):
+        OutputGenerator.genCmd(self, cmd, name)
+        if name in WinGDI:
+            return
 
-typemap = {}
+        self.outFile.write('RESOLVE_DECL(PFN' + name.upper() + 'PROC);\n')
+        self.wrappers[name]=1
 
-fh = open(typemapfile)
-tm = fh.readlines()
-
-typemap_regex = re.compile(r'#define\sSET_(\S*)\(')
-
-for line in tm :
-        # ignore everything after a '#' as a comment
-        hash = line.find('#')
-        if hash != -1 :
-                line = line[:hash-1]
-
-        # ignore blank lines
-        if line.startswith('#') or len(line) == 0 :
-                continue
-
-        l = line.split(',')
-        if len(l)<4:
-          continue
-        typemap[l[0]] = l[3].strip()
-
-# interestingly, * is not a C type
-if typemap['void'] == '*' :
-        typemap['void'] = 'void'
-
-#
-# crudely parse the .spec file
-#
-
-r1 = re.compile(r'\t(\S*)\s+(\S*.*)')
-r2 = re.compile(r'(.*)\((.*)\)')
-r3 = re.compile(r'glWindowPos.*MESA')
-r4 = re.compile(r'gl.*Program(s|)NV')
-r5 = re.compile(r'glGetVertexAttribfvNV')
-
-wrappers = {}
-
-fh = open(specfile)
-glspec = fh.readlines()
-param_count = 0
-
-for line in glspec :
-        line = line.rstrip()
-
-        # ignore everything after a '#' as a comment
-        hash = line.find('#')
-        if hash != -1 :
-                line = line[:hash-1]
-
-        # ignore blank lines
-        if line.startswith('#') or len(line) == 0 :
-                continue
-
-        # lines containing ':' aren't intersting to us
-        if line.count(':') != 0 :
-                continue
-
-        # attributes of each function follow the name, indented by a tab
-        if not line.startswith('\t') :
-                m1 = r2.search(line)
-                if m1 :
-                        function = m1.group(1)
-                        arglist_use = m1.group(2)
-                        wrappers[function] = {}
-
-                        # ensure formal parameter names don't collide with reserved names or shadow global declarations
-                        arglist_use = ',' .join([i.rstrip() + '_' for i in arglist_use.split(",")])
-
-                        wrappers[function]['arglist_use'] = arglist_use
-                        param_count = 0
-        else :
-                m1 = r1.search(line)
-                if m1 :
-                        attribute = m1.group(1)
-                        value = m1.group(2)
-
-                        # make param attributes unique and ordered
-                        if attribute == 'param' :
-                                attribute = 'param' + '%02d' % param_count
-                                param_count += 1
-
-                        wrappers[function][attribute] = value
-
-#
-# now emit code
-#
-
-print '/* Automatically generated by ' + sys.argv[0] + ' DO NOT EDIT */'
-print '/* from ' + specfile + ' and typemap ' + typemapfile + ' */'
-print ''
-
-#
-# if required, emit code for non-lazy function resolving
-#
-
-if preresolve :
-        for w in sorted(wrappers.keys()) :
-                funcname = prefix + w
-                print 'RESOLVE_DECL(PFN' + funcname.upper() + 'PROC);'
-
-        print ''
-        print 'void ' + prefix + 'ResolveExtensionProcs(void)'
-        print '{'
-
-        for w in sorted(wrappers.keys()) :
-                funcname = prefix + w
-                print '  PRERESOLVE(PFN' + funcname.upper() + 'PROC, "' + funcname + '");'
-
-        print '}\n'
-
-#
-# now emit the wrappers
-# for GL 1.0 and 1.1 functions, generate stdcall wrappers which call the function directly
-# for GL 1.2+ functions, generate wrappers which use wglGetProcAddress()
-#
-
-for w in sorted(wrappers.keys()) :
-
-        funcname = prefix + w
-        returntype = wrappers[w]['return']
-        if returntype != 'void' :
-                returntype = typemap[returntype]
-
+class MyOutputGenerator(OutputGenerator):
+    def __init__(self,
+                 errFile = sys.stderr,
+                 warnFile = sys.stderr,
+                 diagFile = sys.stdout):
+        OutputGenerator.__init__(self, errFile, warnFile, diagFile)
+        self.wrappers={}
+    def beginFile(self, genOpts):
+        pass
+    def endFile(self):
+        pass
+    def beginFeature(self, interface, emit):
+        OutputGenerator.beginFeature(self, interface, emit)
+        self.OldVersion = self.featureName.startswith('GL_VERSION_1_0') or self.featureName.startswith('GL_VERSION_1_1')
+    def endFeature(self):
+        OutputGenerator.endFeature(self)
+    def genType(self, typeinfo, name):
+        OutputGenerator.genType(self, typeinfo, name)
+    def genEnum(self, enuminfo, name):
+        OutputGenerator.genEnum(self, enuminfo, name)
+    def genCmd(self, cmd, name):
+        OutputGenerator.genCmd(self, cmd, name)
         # Avoid generating wrappers which aren't referenced by the dispatch table
-        if dispatchheader and not dispatch.has_key(w) :
-                print '/* No wrapper for ' + funcname + ', not in dispatch table */'
-                continue
+        if dispatchheader and not name in dispatch :
+            self.outFile.write('/* No wrapper for ' + name + ', not in dispatch table */\n')
+            return
 
-        # manufacture arglist
-        # if no param attributes were found, it should be 'void'
-        al = []
-        for k in sorted(wrappers[w].keys()) :
-                if k.startswith('param') :
-                        l = wrappers[w][k].split()
+        if name in WinGDI:
+            return
 
-                        # ensure formal parameter names don't collide with reserved names or shadow global declarations
-                        l[0] = l[0] + '_'
+        self.wrappers[name]=1
 
-                        if l[2] == 'in' :
-                                if l[3] == 'array' :
-                                        arg = 'const ' + typemap[l[1]] + ' *' + l[0]
-                                elif l[3] == 'reference' :
-                                        arg = 'const ' + typemap[l[1]] + ' *' + l[0]
-                                else :
-                                        arg = typemap[l[1]] + ' ' + l[0]
-                        elif l[2] == 'out' :
-                                arg = typemap[l[1]] + ' *' + l[0]
-
-                        al.append(arg)
-
-        if len(al) == 0 :
-                arglist = 'void'
+        proto=noneStr(cmd.elem.find('proto'))
+        rettype=noneStr(proto.text)
+        if rettype.lower()!="void ":
+            plist = ([t for t in proto.itertext()])
+            rettype = ''.join(plist[:-1])
+            #ptype=proto.find("ptype")
+            #if ptype!=None:
+            #    rettype = (noneStr(ptype.text))+" "
+        if staticwrappers: self.outFile.write("static ")
+        self.outFile.write("%s__stdcall %sWrapper("%(rettype, name))
+        params = cmd.elem.findall('param')
+        plist=[]
+        for param in params:
+            paramlist = ([t for t in param.itertext()])
+            paramtype = ''.join(paramlist[:-1])
+            paramname = paramlist[-1]
+            plist.append((paramtype, paramname))
+        Comma=""
+        if len(plist):
+            for ptype, pname in plist:
+                self.outFile.write("%s%s%s_"%(Comma, ptype, pname))
+                Comma=", "
         else:
-                arglist  = ', '.join(al)
-
-        if wrappers[w]['category'].startswith('VERSION_1_0') or wrappers[w]['category'].startswith('VERSION_1_1') :
-                if staticwrappers :
-                        print 'static',
-                print returntype + ' __stdcall ' + funcname + 'Wrapper(' + arglist + ')'
-                print '{'
-                print '#ifdef _DEBUG'
-                print '  if (glxWinDebugSettings.enable' + prefix.upper() + 'callTrace) ErrorF("'+ funcname + '\\n");'
-                print '  glWinDirectProcCalls++;'
-                print '#endif'
-                if returntype.lower() == 'void' :
-                        print '  ' +  funcname + '(',
-                else :
-                        print ' /* returntype was ' + returntype.lower() + '*/'
-                        print '  return ' +  funcname + '(',
-
-                if arglist != 'void' :
-                        print wrappers[w]['arglist_use'],
-
-                print ');'
-                print "}\n"
+            self.outFile.write("void")
+        if self.OldVersion:
+            if nodebugcallcounting:
+                self.outFile.write(")\n{\n")
+            else:
+                self.outFile.write( """)
+{
+#ifdef _DEBUG
+  if (glxWinDebugSettings.enable%scallTrace) ErrorF("%s\\n");
+  glWinDirectProcCalls++;
+#endif
+"""%(prefix.upper(), name))
+            if rettype.lower()=="void ":
+                self.outFile.write("  %s( "%(name))
+            else:
+                self.outFile.write("  return %s( "%(name))
+            Comma=""
+            for ptype, pname in plist:
+                self.outFile.write("%s%s_"%(Comma, pname))
+                Comma=", "
         else:
-                if staticwrappers :
-                        print 'static',
-                print returntype + ' __stdcall ' + funcname + 'Wrapper(' + arglist + ')'
-                print '{'
+            if rettype.lower()=="void ":
+                self.outFile.write(""")
+{
+  RESOLVE(PFN%sPROC, "%s");"""%(name.upper(), name))
+                if not nodebugcallcounting: self.outFile.write("""
+#ifdef _DEBUG
+  if (glxWinDebugSettings.enable%scallTrace) ErrorF("%s\\n");
+#endif"""%(prefix.upper(), name))
+                self.outFile.write("""
+  RESOLVED_PROC(PFN%sPROC)( """%(name.upper()))
+            else:
+                self.outFile.write(""")
+{
+  RESOLVE_RET(PFN%sPROC, "%s", FALSE);"""%(name.upper(), name))
+                if not nodebugcallcounting: self.outFile.write("""
+#ifdef _DEBUG
+  if (glxWinDebugSettings.enable%scallTrace) ErrorF("%s\\n");
+#endif"""%(prefix.upper(), name))
+                self.outFile.write("""
+  return RESOLVED_PROC(PFN%sPROC)( """%(name.upper()))
+            Comma=""
+            for ptype, pname in plist:
+                self.outFile.write("%s%s_"%(Comma, pname))
+                Comma=", "
+        self.outFile.write(" );\n}\n\n")
 
-                stringname = funcname
+def genHeaders():
+    startTimer()
+    outFile = open(outFilename,"w")
+    if preresolve:
+        gen = PreResolveOutputGenerator(errFile=errWarn,
+                                        warnFile=errWarn,
+                                        diagFile=diag)
+        gen.outFile=outFile
+        reg.setGenerator(gen)
+        reg.apiGen(genOpts)
+    gen = MyOutputGenerator(errFile=errWarn,
+                            warnFile=errWarn,
+                            diagFile=diag)
+    gen.outFile=outFile
+    reg.setGenerator(gen)
+    reg.apiGen(genOpts)
 
-#
-# special case: Windows OpenGL implementations are far more likely to have GL_ARB_window_pos than GL_MESA_window_pos,
-# so arrange for the wrapper to use the ARB strings to find functions...
-#
+    # generate function to setup the dispatch table, which sets each
+    # dispatch table entry to point to it's wrapper function
+    # (assuming we were able to make one)
 
-                m2 = r3.search(funcname)
-                if m2 :
-                        stringname = stringname.replace('MESA','ARB')
-
-#
-# special case: likewise, implementations are more likely to have GL_ARB_vertex_program than GL_NV_vertex_program,
-# especially if they are not NV implementations, so arrange for the wrapper to use ARB strings to find functions
-#
-
-                m3 = r4.search(funcname)
-                if m3 :
-                        stringname = stringname.replace('NV','ARB')
-                m4 = r5.search(funcname)
-                if m4 :
-                        stringname = stringname.replace('NV','ARB')
-
-                pfntypename = 'PFN' + funcname.upper() + 'PROC'
-
-                if returntype.lower() == 'void' :
-                        print '  RESOLVE(' + pfntypename + ', "' + stringname + '");'
-                        print '#ifdef _DEBUG'
-                        print '  if (glxWinDebugSettings.enable' + prefix.upper() + 'callTrace) ErrorF("'+ funcname + '\\n");'
-                        print '#endif'
-                        print '  RESOLVED_PROC(' + pfntypename + ')(',
-                else :
-                        print '  RESOLVE_RET(' + pfntypename + ', "' + stringname + '", FALSE);'
-                        print '#ifdef _DEBUG'
-                        print '  if (glxWinDebugSettings.enable' + prefix.upper() + 'callTrace) ErrorF("'+ funcname + '\\n");'
-                        print '#endif'
-                        print '  return RESOLVED_PROC(' + pfntypename + ')(',
-
-                if arglist != 'void' :
-                        print wrappers[w]['arglist_use'],
-
-                print ');'
-                print "}\n"
-
-
-# generate function to setup the dispatch table, which sets each
-# dispatch table entry to point to it's wrapper function
-# (assuming we were able to make one)
-
-if dispatchheader :
-        print 'void glWinSetupDispatchTable(void)'
-        print '{'
-        print '  struct _glapi_table *disp = _glapi_get_dispatch();'
+    if dispatchheader :
+        outFile.write( 'void glWinSetupDispatchTable(void)\n')
+        outFile.write( '{\n')
+        outFile.write( '  struct _glapi_table *disp = _glapi_get_dispatch();\n')
 
         for d in sorted(dispatch.keys()) :
-                if wrappers.has_key(d) :
-                        print '      SET_'+ d + '(disp, (void *)' + prefix + d + 'Wrapper);'
+                if d in gen.wrappers :
+                        outFile.write('  SET_'+ d[len(prefix):] + '(disp, (void *)' + d + 'Wrapper);\n')
                 else :
-                        print '#pragma message("No wrapper for ' + prefix + d + ' !")'
+                        outFile.write('#pragma message("No wrapper for ' + d + ' !")\n')
 
-        print '}'
+        outFile.write('}\n')
+
+
+
+    outFile.close()
+
+if (debug):
+    pdb.run('genHeaders()')
+elif (profile):
+    import cProfile, pstats
+    cProfile.run('genHeaders()', 'profile.txt')
+    p = pstats.Stats('profile.txt')
+    p.strip_dirs().sort_stats('time').print_stats(50)
+else:
+    genHeaders()

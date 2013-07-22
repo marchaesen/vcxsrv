@@ -20,27 +20,24 @@ CSRCS = \
 .PHONY: getspecfiles
 
 getspecfiles:
-	wget http://www.opengl.org/registry/api/gl.spec
-	wget http://www.opengl.org/registry/api/gl.tm
+	-del wglext.h
+	wget http://www.opengl.org/registry/api/GL/wglext.h
+	-del glxext.h
+	wget http://www.opengl.org/registry/api/GL/glxext.h
+	-del glext.h
+	wget http://www.opengl.org/registry/api/GL/glext.h
+	-del genheaders.py
+	wget --no-check-certificate https://cvs.khronos.org/svn/repos/ogl/trunk/doc/registry/public/api/genheaders.py
+	-del reg.py
+	wget --no-check-certificate https://cvs.khronos.org/svn/repos/ogl/trunk/doc/registry/public/api/reg.py
+	-del gl.xml
+	wget --no-check-certificate https://cvs.khronos.org/svn/repos/ogl/trunk/doc/registry/public/api/gl.xml
+	-del wgl.xml
+	wget --no-check-certificate https://cvs.khronos.org/svn/repos/ogl/trunk/doc/registry/public/api/wgl.xml
 
-	wget http://www.opengl.org/registry/api/glxenum.spec
-	wget http://www.opengl.org/registry/api/glxenumext.spec
-	wget http://www.opengl.org/registry/api/glx.spec
-	wget http://www.opengl.org/registry/api/glxext.spec
-	wget http://www.opengl.org/registry/api/glx.tm
+$(OBJDIR)\generated_gl_wrappers.c: gen_gl_wrappers.py gl.xml gen_gl_wrappers.py reg.py
+	$(PYTHON3) gen_gl_wrappers.py -outfile $@ -staticwrappers -dispatchheader ../../../glx/dispatch.h
 
-	wget http://www.opengl.org/registry/api/wglenum.spec
-	wget http://www.opengl.org/registry/api/wglenumext.spec
-	wget http://www.opengl.org/registry/api/wgl.spec
-	wget http://www.opengl.org/registry/api/wglext.spec
-	wget http://www.opengl.org/registry/api/wgl.tm
-	wget http://www.opengl.org/registry/api/wglext.h
-	wget http://www.opengl.org/registry/api/glext.h
-	wget http://www.opengl.org/registry/api/glxext.h
-
-$(OBJDIR)\generated_gl_wrappers.c: gen_gl_wrappers.py gl.spec gl.tm
-	gen_gl_wrappers --spec=gl.spec --typemap=gl.tm --dispatch-header=../../../glx/dispatch.h --staticwrappers > $@
-
-$(OBJDIR)\generated_wgl_wrappers.c: gen_gl_wrappers.py wglext.spec wgl.tm
-	gen_gl_wrappers --spec=wglext.spec --typemap=wgl.tm --prefix=wgl --preresolve > $@
+$(OBJDIR)\generated_wgl_wrappers.c: gen_gl_wrappers.py wgl.xml gen_gl_wrappers.py reg.py
+	$(PYTHON3) gen_gl_wrappers.py -outfile $@ -registry wgl.xml -prefix wgl -preresolve
 
