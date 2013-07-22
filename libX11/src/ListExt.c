@@ -55,7 +55,7 @@ char **XListExtensions(
 
 	if (rep.nExtensions) {
 	    list = Xmalloc (rep.nExtensions * sizeof (char *));
-	    if (rep.length < (LONG_MAX >> 2)) {
+	    if (rep.length < (INT_MAX >> 2)) {
 		rlen = rep.length << 2;
 		ch = Xmalloc (rlen + 1);
                 /* +1 to leave room for last null-terminator */
