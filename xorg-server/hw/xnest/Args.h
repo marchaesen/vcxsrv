@@ -12,7 +12,7 @@ is" without express or implied warranty.
 
 */
 
-#ifndef XNESTARGC_H
+#ifndef XNESTARGS_H
 #define XNESTARGS_H
 
 extern char *xnestDisplayName;

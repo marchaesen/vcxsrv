@@ -150,7 +150,7 @@ XmuLocatePixmapFile(Screen *screen, _Xconst char *name,
      */
 
     for (i = 1; i <= 4; i++) {
-	char *fn = filename;
+	const char *fn = filename;
 	Pixmap pixmap;
 	unsigned char *data;
 
@@ -158,7 +158,7 @@ XmuLocatePixmapFile(Screen *screen, _Xconst char *name,
 	  case 1:
 	    if (!(name[0] == '/' || ((name[0] == '.') && name[1] == '/')))
 	      continue;
-	    fn = (char *) name;
+	    fn = name;
 	    try_plain_name = False;
 	    break;
 	  case 2:
@@ -175,7 +175,7 @@ XmuLocatePixmapFile(Screen *screen, _Xconst char *name,
 	    break;
 	  case 4:
 	    if (!try_plain_name) continue;
-	    fn = (char *) name;
+	    fn = name;
 	    break;
 	}
 

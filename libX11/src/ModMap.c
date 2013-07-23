@@ -65,9 +65,9 @@ XGetModifierMapping(register Display *dpy)
 
 /*
  *	Returns:
- *	0	Success
- *	1	Busy - one or more old or new modifiers are down
- *	2	Failed - one or more new modifiers unacceptable
+ *	MappingSuccess (0)	Success
+ *	MappingBusy (1) 	Busy - one or more old or new modifiers are down
+ *	MappingFailed (2)	Failed - one or more new modifiers unacceptable
  */
 int
 XSetModifierMapping(
@@ -80,6 +80,10 @@ XSetModifierMapping(
 
     LockDisplay(dpy);
     GetReqExtra(SetModifierMapping, mapSize, req);
+    if (!req) {
+	UnlockDisplay(dpy);
+	return MappingFailed;
+    }
 
     req->numKeyPerModifier = modifier_map->max_keypermod;
 

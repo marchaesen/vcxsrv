@@ -773,7 +773,7 @@ add_to_scroll_valuator(DeviceIntPtr dev, ValuatorMask *mask, int valuator, doubl
 static void
 scale_for_device_resolution(DeviceIntPtr dev, ValuatorMask *mask)
 {
-    double x;
+    double y;
     ValuatorClassPtr v = dev->valuator;
     int xrange = v->axes[0].max_value - v->axes[0].min_value + 1;
     int yrange = v->axes[1].max_value - v->axes[1].min_value + 1;
@@ -783,14 +783,14 @@ scale_for_device_resolution(DeviceIntPtr dev, ValuatorMask *mask)
     double resolution_ratio = 1.0;
     double ratio;
 
-    if (!valuator_mask_fetch_double(mask, 0, &x))
+    if (!valuator_mask_fetch_double(mask, 1, &y))
         return;
 
     if (v->axes[0].resolution != 0 && v->axes[1].resolution != 0)
         resolution_ratio = 1.0 * v->axes[0].resolution/v->axes[1].resolution;
 
     ratio = device_ratio/resolution_ratio/screen_ratio;
-    valuator_mask_set_double(mask, 0, x * ratio);
+    valuator_mask_set_double(mask, 1, y / ratio);
 }
 
 /**

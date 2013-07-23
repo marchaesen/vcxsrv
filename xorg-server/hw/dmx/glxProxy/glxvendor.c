@@ -246,7 +246,7 @@ __glXVForwardPipe0WithReply(__GLXclientState * cl, GLbyte * pc)
         }
         else {
             /* Throw data on the floor */
-            _XEatData(dpy, be_buf_size);
+            _XEatDataWords(dpy, be_reply.length);
             return BadAlloc;
         }
     }
@@ -340,7 +340,7 @@ __glXVForwardAllWithReply(__GLXclientState * cl, GLbyte * pc)
             }
             else {
                 /* Throw data on the floor */
-                _XEatData(dpy, be_buf_size);
+                _XEatDataWords(dpy, be_reply.length);
                 return BadAlloc;
             }
         }

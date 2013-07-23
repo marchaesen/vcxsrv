@@ -1733,6 +1733,14 @@ void *_XGetRequest(Display *dpy, CARD8 type, size_t len)
 
     if (dpy->bufptr + len > dpy->bufmax)
 	_XFlush(dpy);
+    /* Request still too large, so do not allow it to overflow. */
+    if (dpy->bufptr + len > dpy->bufmax) {
+	fprintf(stderr,
+		"Xlib: request %d length %zd would exceed buffer size.\n",
+		type, len);
+	/* Changes failure condition from overflow to NULL dereference. */
+	return NULL;
+    }
 
     if (len % 4)
 	fprintf(stderr,

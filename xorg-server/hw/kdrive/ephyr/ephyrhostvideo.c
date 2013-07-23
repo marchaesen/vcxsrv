@@ -677,7 +677,7 @@ ephyrHostXVQueryImageAttributes(int a_port_id,
         _XRead(dpy, (char *) a_offsets, rep.num_planes << 2);
     }
     else {
-        _XEatData(dpy, rep.length << 2);
+        _XEatDataWords(dpy, rep.length);
     }
     *a_width = rep.width;
     *a_height = rep.height;

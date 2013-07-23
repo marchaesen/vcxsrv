@@ -618,19 +618,19 @@ AC_ARG_ENABLE([opencl],
           @<:@default=no@:>@])],
    [],
    [enable_opencl=no])
-AC_ARG_ENABLE([xlib_glx],
+AC_ARG_ENABLE([xlib-glx],
     [AS_HELP_STRING([--enable-xlib-glx],
         [make GLX library Xlib-based instead of DRI-based @<:@default=disabled@:>@])],
     [enable_xlib_glx="$enableval"],
     [enable_xlib_glx=no])
-AC_ARG_ENABLE([gallium_egl],
+AC_ARG_ENABLE([gallium-egl],
     [AS_HELP_STRING([--enable-gallium-egl],
         [enable optional EGL state tracker (not required
          for EGL support in Gallium with OpenGL and OpenGL ES)
          @<:@default=disable@:>@])],
     [enable_gallium_egl="$enableval"],
     [enable_gallium_egl=no])
-AC_ARG_ENABLE([gallium_gbm],
+AC_ARG_ENABLE([gallium-gbm],
     [AS_HELP_STRING([--enable-gallium-gbm],
         [enable optional gbm state tracker (not required for
          gbm support in Gallium)
@@ -644,7 +644,7 @@ AC_ARG_ENABLE([r600-llvm-compiler],
     [enable_r600_llvm="$enableval"],
     [enable_r600_llvm=no])
 
-AC_ARG_ENABLE([gallium_tests],
+AC_ARG_ENABLE([gallium-tests],
     [AS_HELP_STRING([--enable-gallium-tests],
         [Enable optional Gallium tests) @<:@default=disable@:>@])],
     [enable_gallium_tests="$enableval"],
@@ -1423,8 +1423,6 @@ AC_ARG_WITH([egl-platforms],
 	with_egl_platforms=""
     fi])
 
-EGL_PLATFORMS=""
-
 if test "x$with_egl_platforms" != "x" -a "x$enable_egl" != xyes; then
     AC_MSG_ERROR([cannot build egl state tracker without EGL library])
 fi
@@ -1478,8 +1476,6 @@ else
     EGL_NATIVE_PLATFORM="_EGL_INVALID_PLATFORM"
 fi
 
-EGL_PLATFORMS="$egl_platforms"
-
 if echo "$egl_platforms" | grep 'x11' >/dev/null 2>&1; then
     NEED_WINSYS_XLIB=yes
 fi
@@ -1493,7 +1489,6 @@ AM_CONDITIONAL(HAVE_EGL_DRIVER_DRI2, test "x$HAVE_EGL_DRIVER_DRI2" != "x")
 AM_CONDITIONAL(HAVE_EGL_DRIVER_GLX, test "x$HAVE_EGL_DRIVER_GLX" != "x")
 
 AC_SUBST([EGL_NATIVE_PLATFORM])
-AC_SUBST([EGL_PLATFORMS])
 AC_SUBST([EGL_CFLAGS])
 
 # If we don't have the X11 platform, set this define so we don't try to include
@@ -2184,7 +2179,7 @@ dnl EGL
 echo ""
 echo "        EGL:             $enable_egl"
 if test "$enable_egl" = yes; then
-    echo "        EGL platforms:   $EGL_PLATFORMS"
+    echo "        EGL platforms:   $egl_platforms"
 
     egl_drivers=""
     if test "x$HAVE_EGL_DRIVER_GLX" != "x"; then

@@ -83,6 +83,10 @@ XAddHost (
 
     LockDisplay(dpy);
     GetReqExtra (ChangeHosts, length, req);
+    if (!req) {
+	UnlockDisplay(dpy);
+	return 0;
+    }
     req->mode = HostInsert;
     req->hostFamily = host->family;
     req->hostLength = addrlen;
@@ -118,6 +122,10 @@ XRemoveHost (
 
     LockDisplay(dpy);
     GetReqExtra (ChangeHosts, length, req);
+    if (!req) {
+	UnlockDisplay(dpy);
+	return 0;
+    }
     req->mode = HostDelete;
     req->hostFamily = host->family;
     req->hostLength = addrlen;

@@ -2468,7 +2468,9 @@ which is the same as
 <function>GetReq</function>
 except that it takes an additional argument (the number of
 extra bytes to allocate in the output buffer after the request structure).  
-This number should always be a multiple of four.
+This number should always be a multiple of four. Note that it is possible
+for req to be set to NULL as a defensive measure if the requested length
+exceeds the Xlib's buffer size (normally 16K).
 </para>
 </sect2>
 <sect2 id="Variable_Length_Arguments">
