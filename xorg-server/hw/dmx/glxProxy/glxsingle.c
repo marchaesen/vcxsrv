@@ -258,7 +258,7 @@ __glXForwardPipe0WithReply(__GLXclientState * cl, GLbyte * pc)
         }
         else {
             /* Throw data on the floor */
-            _XEatData(dpy, be_buf_size);
+            _XEatDataWords(dpy, be_reply.length);
             return BadAlloc;
         }
     }
@@ -357,7 +357,7 @@ __glXForwardAllWithReply(__GLXclientState * cl, GLbyte * pc)
             }
             else {
                 /* Throw data on the floor */
-                _XEatData(dpy, be_buf_size);
+                _XEatDataWords(dpy, be_reply.length);
                 return BadAlloc;
             }
         }
@@ -993,7 +993,7 @@ __glXDisp_ReadPixels(__GLXclientState * cl, GLbyte * pc)
                     }
                     else {
                         /* Throw data on the floor */
-                        _XEatData(dpy, be_buf_size);
+                        _XEatDataWords(dpy, be_reply.length);
                         free(buf);
                         return BadAlloc;
                     }

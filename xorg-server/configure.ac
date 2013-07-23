@@ -2003,7 +2003,7 @@ AM_CONDITIONAL(STANDALONE_XPBPROXY, [test "x$STANDALONE_XPBPROXY" = xyes])
 dnl DMX DDX
 PKG_CHECK_MODULES(
 	[DMXMODULES],
-	[xmuu $LIBXEXT x11 xrender xfixes $LIBXI $DMXPROTO xau $XDMCP_MODULES],
+	[xmuu $LIBXEXT x11 >= 1.6 xrender xfixes $LIBXI $DMXPROTO xau $XDMCP_MODULES],
 	[PKG_CHECK_MODULES(
 		[XDMXCONFIG_DEP],
 		[xaw7 xmu xt xpm x11],
@@ -2112,7 +2112,7 @@ if test "$KDRIVE" = yes; then
        AC_DEFINE(KDRIVE_MOUSE, 1, [Enable KDrive mouse driver])
     fi
 
-    XEPHYR_REQUIRED_LIBS="x11 $LIBXEXT xau xdmcp"
+    XEPHYR_REQUIRED_LIBS="x11 >= 1.6 $LIBXEXT xau xdmcp"
     if test "x$XV" = xyes; then
         XEPHYR_REQUIRED_LIBS="$XEPHYR_REQUIRED_LIBS xv"
     fi

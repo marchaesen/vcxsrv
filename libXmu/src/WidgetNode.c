@@ -86,8 +86,8 @@ static int
 compare_resource_entries(register _Xconst void *a,
 			 register _Xconst void *b)
 {
-    return strcmp (((XtResourceList)a)->resource_name,
-		   ((XtResourceList)b)->resource_name);
+    return strcmp (((_Xconst XtResource *)a)->resource_name,
+		   ((_Xconst XtResource *)b)->resource_name);
 }
 
 

@@ -138,7 +138,7 @@ CalcServerVersionAndExtensions(void)
         Display *dpy = dmxScreen->beDisplay;
         xGLXQueryServerStringReq *req;
         xGLXQueryServerStringReply reply;
-        int length, numbytes, slop;
+        int length, numbytes;
 
         /* Send the glXQueryServerString request */
         LockDisplay(dpy);
@@ -151,16 +151,13 @@ CalcServerVersionAndExtensions(void)
 
         length = (int) reply.length;
         numbytes = (int) reply.n;
-        slop = numbytes * __GLX_SIZE_INT8 & 3;
         be_extensions[s] = (char *) malloc(numbytes);
         if (!be_extensions[s]) {
             /* Throw data on the floor */
-            _XEatData(dpy, length);
+            _XEatDataWords(dpy, length);
         }
         else {
-            _XRead(dpy, (char *) be_extensions[s], numbytes);
-            if (slop)
-                _XEatData(dpy, 4 - slop);
+            _XReadPad(dpy, (char *) be_extensions[s], numbytes);
         }
         UnlockDisplay(dpy);
         SyncHandle();

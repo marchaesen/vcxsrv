@@ -496,7 +496,7 @@ RWcell(Display *dpy, Colormap cmap, XColor *color, XColor *request,
 static int
 compare(_Xconst void *e1, _Xconst void *e2)
 {
-  return ((int)(*(long *)e1 - *(long *)e2));
+  return ((int)(*(_Xconst long *)e1 - *(_Xconst long *)e2));
 }
 
 

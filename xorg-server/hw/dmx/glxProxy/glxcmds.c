@@ -2582,7 +2582,6 @@ __glXQueryExtensionsString(__GLXclientState * cl, GLbyte * pc)
     xGLXQueryExtensionsStringReply be_reply;
     DMXScreenInfo *dmxScreen;
     Display *dpy;
-    int slop;
 #endif
 
     screen = req->screen;
@@ -2608,16 +2607,13 @@ __glXQueryExtensionsString(__GLXclientState * cl, GLbyte * pc)
     _XReply(dpy, (xReply *) &be_reply, 0, False);
     len = (int) be_reply.length;
     numbytes = (int) be_reply.n;
-    slop = numbytes * __GLX_SIZE_INT8 & 3;
     be_buf = (char *) malloc(numbytes);
     if (!be_buf) {
         /* Throw data on the floor */
-        _XEatData(dpy, len);
+        _XEatDataWords(dpy, len);
     }
     else {
-        _XRead(dpy, (char *) be_buf, numbytes);
-        if (slop)
-            _XEatData(dpy, 4 - slop);
+        _XReadPad(dpy, (char *) be_buf, numbytes);
     }
     UnlockDisplay(dpy);
     SyncHandle();
@@ -2666,7 +2662,6 @@ __glXQueryServerString(__GLXclientState * cl, GLbyte * pc)
     xGLXQueryServerStringReply be_reply;
     DMXScreenInfo *dmxScreen;
     Display *dpy;
-    int slop;
 #endif
 
     name = req->name;
@@ -2693,16 +2688,13 @@ __glXQueryServerString(__GLXclientState * cl, GLbyte * pc)
     _XReply(dpy, (xReply *) &be_reply, 0, False);
     len = (int) be_reply.length;
     numbytes = (int) be_reply.n;
-    slop = numbytes * __GLX_SIZE_INT8 & 3;
     be_buf = (char *) malloc(numbytes);
     if (!be_buf) {
         /* Throw data on the floor */
-        _XEatData(dpy, len);
+        _XEatDataWords(dpy, len);
     }
     else {
-        _XRead(dpy, (char *) be_buf, numbytes);
-        if (slop)
-            _XEatData(dpy, 4 - slop);
+        _XReadPad(dpy, (char *) be_buf, numbytes);
     }
     UnlockDisplay(dpy);
     SyncHandle();

@@ -60,9 +60,10 @@ in this Software without prior written authorization from The Open Group.
 void
 XmuCopyISOLatin1Lowered(char *dst, _Xconst char *src)
 {
-  register unsigned char *dest, *source;
+  unsigned char *dest;
+  _Xconst unsigned char *source;
 
-  for (dest = (unsigned char *)dst, source = (unsigned char *)src;
+  for (dest = (unsigned char *)dst, source = (_Xconst unsigned char *)src;
        *source;
        source++, dest++)
     *dest = XmuTolower(*source);
@@ -72,9 +73,10 @@ XmuCopyISOLatin1Lowered(char *dst, _Xconst char *src)
 void
 XmuCopyISOLatin1Uppered(char *dst, _Xconst char *src)
 {
-  register unsigned char *dest, *source;
+  unsigned char *dest;
+  _Xconst unsigned char *source;
 
-  for (dest = (unsigned char *)dst, source = (unsigned char *)src;
+  for (dest = (unsigned char *)dst, source = (_Xconst unsigned char *)src;
        *source;
        source++, dest++)
     *dest = XmuToupper(*source);
@@ -84,9 +86,9 @@ XmuCopyISOLatin1Uppered(char *dst, _Xconst char *src)
 int
 XmuCompareISOLatin1(_Xconst char *first, _Xconst char *second)
 {
-  register unsigned char *ap, *bp;
+  _Xconst unsigned char *ap, *bp;
 
-  for (ap = (unsigned char *)first, bp = (unsigned char *)second;
+  for (ap = (_Xconst unsigned char *)first, bp = (_Xconst unsigned char *)second;
        *ap && *bp && XmuTolower(*ap) == XmuTolower(*bp);
        ap++, bp++)
     ;
@@ -97,11 +99,12 @@ XmuCompareISOLatin1(_Xconst char *first, _Xconst char *second)
 void
 XmuNCopyISOLatin1Lowered(char *dst, _Xconst char *src, register int size)
 {
-  register unsigned char *dest, *source;
+  unsigned char *dest;
+  _Xconst unsigned char *source;
 
   if (size > 0)
     {
-      for (dest = (unsigned char *)dst, source = (unsigned char *)src;
+      for (dest = (unsigned char *)dst, source = (_Xconst unsigned char *)src;
 	   *source && size > 1;
 	   source++, dest++, size--)
 	*dest = XmuTolower(*source);
@@ -112,11 +115,12 @@ XmuNCopyISOLatin1Lowered(char *dst, _Xconst char *src, register int size)
 void
 XmuNCopyISOLatin1Uppered(char *dst, _Xconst char *src, register int size)
 {
-  register unsigned char *dest, *source;
+  unsigned char *dest;
+  _Xconst unsigned char *source;
 
   if (size > 0)
     {
-      for (dest = (unsigned char *)dst, source = (unsigned char *)src;
+      for (dest = (unsigned char *)dst, source = ( _Xconst unsigned char *)src;
 	   *source && size > 1;
 	   source++, dest++, size--)
 	*dest = XmuToupper(*source);

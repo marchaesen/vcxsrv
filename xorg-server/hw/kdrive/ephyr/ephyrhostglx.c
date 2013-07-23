@@ -137,7 +137,7 @@ ephyrHostGLXQueryVersion(int *a_major, int *a_minor)
 }
 
 /**
- * GLX protocol structure for the ficticious "GXLGenericGetString" request.
+ * GLX protocol structure for the ficticious "GLXGenericGetString" request.
  * 
  * This is a non-existant protocol packet.  It just so happens that all of
  * the real protocol packets used to request a string from the server have
@@ -169,7 +169,8 @@ ephyrHostGLXGetStringFromServer(int a_screen_number,
     int default_screen = DefaultScreen(dpy);
     xGLXGenericGetStringReq *req = NULL;
     xGLXSingleReply reply;
-    int length = 0, numbytes = 0, major_opcode = 0, get_string_op = 0;
+    unsigned long length = 0, numbytes = 0;
+    int major_opcode = 0, get_string_op = 0;
 
     EPHYR_RETURN_VAL_IF_FAIL(dpy && a_string, FALSE);
 
@@ -209,36 +210,48 @@ ephyrHostGLXGetStringFromServer(int a_screen_number,
 
     _XReply(dpy, (xReply *) &reply, 0, False);
 
-    length = reply.length * 4;
-    if (!length) {
-        numbytes = 0;
+#if UINT32_MAX >= (ULONG_MAX / 4)
+    if (reply.length >= (ULONG_MAX / 4)) {
+        _XEatDataWords(dpy, reply.length);
+        goto eat_out;
     }
-    else {
+#endif
+    if (reply.length > 0) {
+        length = (unsigned long) reply.length * 4;
         numbytes = reply.size;
+        if (numbytes > length) {
+            EPHYR_LOG_ERROR("string length %d longer than reply length %d\n",
+                            numbytes, length);
+            goto eat_out;
+        }
     }
     EPHYR_LOG("going to get a string of size:%d\n", numbytes);
 
-    *a_string = (char *) Xmalloc(numbytes + 1);
-    if (!a_string) {
+    if (numbytes < INT_MAX)
+        *a_string = Xcalloc(numbytes + 1, 1);
+    else
+        *a_string = NULL;
+    if (*a_string == NULL) {
         EPHYR_LOG_ERROR("allocation failed\n");
-        goto out;
+        goto eat_out;
     }
 
-    memset(*a_string, 0, numbytes + 1);
     if (_XRead(dpy, *a_string, numbytes)) {
-        UnlockDisplay(dpy);
-        SyncHandle();
         EPHYR_LOG_ERROR("read failed\n");
-        goto out;
+        length = 0; /* if read failed, no idea how much to eat */
     }
-    length -= numbytes;
+    else {
+        length -= numbytes;
+        EPHYR_LOG("strname:%#x, strvalue:'%s', strlen:%d\n",
+                  a_string_name, *a_string, numbytes);
+        is_ok = TRUE;
+    }
+
+ eat_out:
     _XEatData(dpy, length);
     UnlockDisplay(dpy);
     SyncHandle();
-    EPHYR_LOG("strname:%#x, strvalue:'%s', strlen:%d\n",
-              a_string_name, *a_string, numbytes);
 
-    is_ok = TRUE;
  out:
     EPHYR_LOG("leave\n");
     return is_ok;
