@@ -88,7 +88,7 @@ hash (const void *font_key, const void *glyph_key)
     key = key + (key << 3) + (key << 11);
     key = key ^ (key >> 16);
 
-    return key;
+    return key&0xffffffff;
 }
 
 static glyph_t *

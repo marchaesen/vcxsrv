@@ -4,3 +4,5 @@ nt.mak
 ntdll.mak
 ssleay32.def
 version32.rc
+uptable.asm
+uptable.obj

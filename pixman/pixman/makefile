@@ -35,8 +35,12 @@ CSRCS =			\
 	$(NULL)
 
 ## mmx code
+ifndef IS64
 CSRCS += pixman-mmx.c
+DEFINES+=USE_X86_MMX
+endif
 
 # sse2 code
 CSRCS += pixman-sse2.c
+DEFINES+=USE_SSE2
 

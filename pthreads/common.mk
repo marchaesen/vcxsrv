@@ -1,8 +1,14 @@
 # Common makefile definitions
-!ifdef DEBUG
-OUTDIR=obj_d
+!ifdef IS64
+SUFFIX=64
 !else
-OUTDIR=obj
+SUFFIX=
+!endif
+
+!ifdef DEBUG
+OUTDIR=obj$(SUFFIX)_d
+!else
+OUTDIR=obj$(SUFFIX)
 !endif
 
 RESOURCE_OBJS	= \

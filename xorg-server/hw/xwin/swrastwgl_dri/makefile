@@ -1,3 +1,7 @@
+ifndef PYTHON3
+$(error Please define PYTHON3 environment variable)
+endif
+
 SHAREDLIB = swrastwgl_dri
 
 INCLUDES += $(OBJDIR) ..\..\.. .. ..\glx
@@ -10,8 +14,8 @@ CSRCS = swrastwgl_dri.c glwrap.c wgl_ext_api.c
 
 vpath %.c ../glx
 
-$(OBJDIR)\generated_gl_wrappers.c: gen_gl_wrappers.py ../glx/gl.xml ../glx/gen_gl_wrappers.py ../glx/reg.py ../../../glx/dispatch.h
+$(OBJDIR)\generated_gl_wrappers.c: ../glx/gen_gl_wrappers.py ../glx/gl.xml ../glx/gen_gl_wrappers.py ../glx/reg.py ../../../glx/dispatch.h
 	$(PYTHON3) ../glx/gen_gl_wrappers.py -outfile $@ -nodbgcount -registry ../glx/gl.xml -staticwrappers -dispatchheader ../../../glx/dispatch.h
 
-$(OBJDIR)\generated_wgl_wrappers.c: gen_gl_wrappers.py ../glx/wgl.xml ../glx/gen_gl_wrappers.py ../glx/reg.py
+$(OBJDIR)\generated_wgl_wrappers.c: ../glx/gen_gl_wrappers.py ../glx/wgl.xml ../glx/gen_gl_wrappers.py ../glx/reg.py
 	$(PYTHON3) ../glx/gen_gl_wrappers.py -outfile $@ -nodbgcount -registry ../glx/wgl.xml -prefix wgl -preresolve

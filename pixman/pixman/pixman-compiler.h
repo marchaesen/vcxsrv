@@ -118,22 +118,13 @@
 #   define PIXMAN_GET_THREAD_LOCAL(name)				\
     (&name)
 
-#elif defined(__MINGW32__) && !defined(__WIN64)
+#elif defined(__MINGW32__)
 
-/* We can't include <windows.h> as it causes carious clashes with
- * identifiers in pixman, sigh. So just declare the functions we need
- * here.
- */
-extern long __stdcall InterlockedCompareExchange(long volatile *, long, long);
-#define InterlockedCompareExchangePointer(d,e,c)			\
-    (void *)InterlockedCompareExchange((long volatile *)(d),(long)(e),(long)(c))
-extern int __stdcall TlsAlloc (void);
-extern void * __stdcall TlsGetValue (unsigned);
-extern int __stdcall TlsSetValue (unsigned, void *);
-extern void * __stdcall CreateMutexA(void *, int, char *);
-extern int __stdcall CloseHandle(void *);
-extern unsigned __stdcall WaitForSingleObject (void *, unsigned);
-extern int __stdcall ReleaseMutex (void *);
+#   define _NO_W32_PSEUDO_MODIFIERS
+#   include <windows.h>
+#ifdef IN
+#undef IN
+#endif
 
 #   define PIXMAN_DEFINE_THREAD_LOCAL(type, name)			\
     static volatile int tls_ ## name ## _initialized = 0;		\

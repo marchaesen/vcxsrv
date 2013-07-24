@@ -12,11 +12,7 @@ LIBDIRS=$(dir $(INCLUDELIBFILES))
 
 load_makefile $(LIBDIRS:%$(OBJDIR)\=%makefile MAKESERVER=0 DEBUG=$(DEBUG);)
 
-ifeq ($(DEBUG),1)
-LINKLIBS += $(MHMAKECONF)\pthreads\pthreadVC2d.lib
-else
-LINKLIBS += $(MHMAKECONF)\pthreads\pthreadVC2.lib
-endif
+LINKLIBS += $(PTHREADLIB)
 
 CSRCS =	\
         gethost.c \

@@ -37,15 +37,7 @@ CSRCS = action.c \
         xkbpath.c \
         xkbscan.c
 
-LINKLIBS += $(MHMAKECONF)\openssl\out32\libeay32.lib
-
-ifeq ($(DEBUG),1)
-LINKLIBS += $(MHMAKECONF)\freetype\lib\freetype2501MT_D.lib \
-            $(MHMAKECONF)\pthreads\pthreadVC2d.lib
-else
-LINKLIBS += $(MHMAKECONF)\freetype\lib\freetype2501MT.lib \
-            $(MHMAKECONF)\pthreads\pthreadVC2.lib
-endif
+LINKLIBS += $(PTHREADLIB) $(FREETYPELIB) $(OPENSSLLIB)
 
 $(OBJDIR)\xkbparse.c $(OBJDIR)\xkbparse.h: xkbparse.y
 	bison.bat -d -o$(OBJDIR)\xkbparse.c $<

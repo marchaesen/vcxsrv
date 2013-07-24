@@ -806,7 +806,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         /* Prevent the mouse wheel from stalling when another window is minimized */
         if (HIWORD(wParam) == 0 && LOWORD(wParam) == WA_ACTIVE &&
-            (HWND) lParam != NULL && (HWND) lParam != (HWND) GetParent(hwnd))
+            (HWND) lParam != NULL && (HWND) lParam != GetParent(hwnd))
             SetFocus(hwnd);
         return 0;
 

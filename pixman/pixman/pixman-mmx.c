@@ -59,7 +59,7 @@ _mm_empty (void)
 }
 #endif
 
-#if defined __GNUC__ && defined USE_X86_MMX
+#ifdef USE_X86_MMX
 # if (defined(__SUNPRO_C) || defined(_MSC_VER) || defined(_WIN64))
 #  include <xmmintrin.h>
 # else
@@ -116,15 +116,11 @@ _mm_shuffle_pi16 (__m64 __A, int8_t const __N)
     })
 #  endif
 # endif
+#endif
 
 #ifndef _MSC_VER
 #define _MM_SHUFFLE(fp3,fp2,fp1,fp0) \
  (((fp3) << 6) | ((fp2) << 4) | ((fp1) << 2) | (fp0))
-#endif
-
-#else
-#include <xmmintrin.h> /* for _mm_shuffle_pi16 and _MM_SHUFFLE */
-#include <emmintrin.h> /* for SSE2 intrinsics */
 #endif
 
 /* Notes about writing mmx code
@@ -272,9 +268,6 @@ to_m64 (uint64_t x)
 #endif
 }
 
-#ifdef _MSC_VER
-#define to_uint64(arg)  arg.M64_MEMBER
-#else
 static force_inline uint64_t
 to_uint64 (__m64 x)
 {
@@ -289,7 +282,6 @@ to_uint64 (__m64 x)
     return (uint64_t)x;
 #endif
 }
-#endif
 
 static force_inline __m64
 shift (__m64 v,
@@ -476,11 +468,6 @@ pack8888 (__m64 lo, __m64 hi)
     return _mm_packs_pu16 (lo, hi);
 }
 
-#ifdef _MSC_VER
-#define store8888(dest,v) *(dest)=_mm_cvtsi64_si32 (pack8888 (v, _mm_setzero_si64 ()))
-#define store(dest,v) *(dest) = _mm_cvtsi64_si32 (v)
-#else
-
 static force_inline void
 store (uint32_t *dest, __m64 v)
 {
@@ -501,7 +488,6 @@ store8888 (uint32_t *dest, __m64 v)
     v = pack8888 (v, _mm_setzero_si64 ());
     store (dest, v);
 }
-#endif
 
 static force_inline pixman_bool_t
 is_equal (__m64 a, __m64 b)
@@ -510,9 +496,7 @@ is_equal (__m64 a, __m64 b)
     /* __m64 is double, we can compare directly. */
     return a == b;
 #else
-    pixman_bool_t ret = _mm_movemask_pi8 (_mm_cmpeq_pi8 (a, b)) == 0xff;
-    _mm_empty();
-    return ret;
+    return _mm_movemask_pi8 (_mm_cmpeq_pi8 (a, b)) == 0xff;
 #endif
 }
 
@@ -523,21 +507,15 @@ is_opaque (__m64 v)
     return is_equal (_mm_and_si64 (v, MC (full_alpha)), MC (full_alpha));
 #else
     __m64 ffs = _mm_cmpeq_pi8 (v, v);
-    pixman_bool_t ret = (_mm_movemask_pi8 (_mm_cmpeq_pi8 (v, ffs)) & 0x40);
-    _mm_empty();
-    return ret;
+    return (_mm_movemask_pi8 (_mm_cmpeq_pi8 (v, ffs)) & 0x40);
 #endif
 }
 
-#ifdef _MSC_VER
-#define is_zero(v) is_equal (v, _mm_setzero_si64 ())
-#else
 static force_inline pixman_bool_t
 is_zero (__m64 v)
 {
     return is_equal (v, _mm_setzero_si64 ());
 }
-#endif
 
 /* Expand 16 bits positioned at @pos (0-3) of a mmx register into
  *
@@ -605,7 +583,6 @@ expand_4xpacked565 (__m64 vin, __m64 *vout0, __m64 *vout1, int full_alpha)
 
     *vout0 = _mm_unpacklo_pi16 (t0, t1);		/* A1 R1 G1 B1 A0 R0 G0 B0 */
     *vout1 = _mm_unpackhi_pi16 (t0, t1);		/* A3 R3 G3 B3 A2 R2 G2 B2 */
-    _mm_empty();
 }
 
 static force_inline __m64
@@ -632,7 +609,6 @@ expand_4x565 (__m64 vin, __m64 *vout0, __m64 *vout1, __m64 *vout2, __m64 *vout3,
     *vout1 = expand8888 (v0, 1);
     *vout2 = expand8888 (v1, 0);
     *vout3 = expand8888 (v1, 1);
-    _mm_empty();
 }
 
 static force_inline __m64
@@ -3594,44 +3570,41 @@ mmx_composite_over_reverse_n_8888 (pixman_implementation_t *imp,
 
 #define BILINEAR_INTERPOLATE_ONE_PIXEL(pix)					\
 do {										\
-    __m64 t_hi, t_lo, b_hi, b_lo, hi, lo;					\
     /* fetch 2x2 pixel block into 2 mmx registers */				\
     __m64 t = ldq_u ((__m64 *)&src_top [pixman_fixed_to_int (vx)]);		\
     __m64 b = ldq_u ((__m64 *)&src_bottom [pixman_fixed_to_int (vx)]);		\
     /* vertical interpolation */						\
-    t_hi = _mm_mullo_pi16 (_mm_unpackhi_pi8 (t, mm_zero), mm_wt);		\
-    t_lo = _mm_mullo_pi16 (_mm_unpacklo_pi8 (t, mm_zero), mm_wt);		\
-    b_hi = _mm_mullo_pi16 (_mm_unpackhi_pi8 (b, mm_zero), mm_wb);		\
-    b_lo = _mm_mullo_pi16 (_mm_unpacklo_pi8 (b, mm_zero), mm_wb);		\
-    hi = _mm_add_pi16 (t_hi, b_hi);						\
-    lo = _mm_add_pi16 (t_lo, b_lo);						\
+    __m64 t_hi = _mm_mullo_pi16 (_mm_unpackhi_pi8 (t, mm_zero), mm_wt);		\
+    __m64 t_lo = _mm_mullo_pi16 (_mm_unpacklo_pi8 (t, mm_zero), mm_wt);		\
+    __m64 b_hi = _mm_mullo_pi16 (_mm_unpackhi_pi8 (b, mm_zero), mm_wb);		\
+    __m64 b_lo = _mm_mullo_pi16 (_mm_unpacklo_pi8 (b, mm_zero), mm_wb);		\
+    __m64 hi = _mm_add_pi16 (t_hi, b_hi);					\
+    __m64 lo = _mm_add_pi16 (t_lo, b_lo);					\
     vx += unit_x;								\
     if (BILINEAR_INTERPOLATION_BITS < 8)					\
     {										\
-	__m64 p, q;								\
 	/* calculate horizontal weights */					\
 	__m64 mm_wh = _mm_add_pi16 (mm_addc7, _mm_xor_si64 (mm_xorc7,		\
 			  _mm_srli_pi16 (mm_x,					\
 					 16 - BILINEAR_INTERPOLATION_BITS)));	\
 	/* horizontal interpolation */						\
-	p = _mm_unpacklo_pi16 (lo, hi);						\
-	q = _mm_unpackhi_pi16 (lo, hi);						\
+	__m64 p = _mm_unpacklo_pi16 (lo, hi);					\
+	__m64 q = _mm_unpackhi_pi16 (lo, hi);					\
 	lo = _mm_madd_pi16 (p, mm_wh);						\
 	hi = _mm_madd_pi16 (q, mm_wh);						\
     }										\
     else									\
     {										\
-	__m64 mm_lo_lo, mm_lo_hi, mm_hi_lo, mm_hi_hi;				\
 	/* calculate horizontal weights */					\
 	__m64 mm_wh_lo = _mm_sub_pi16 (mm_BSHIFT, _mm_srli_pi16 (mm_x,		\
 					16 - BILINEAR_INTERPOLATION_BITS));	\
 	__m64 mm_wh_hi = _mm_srli_pi16 (mm_x,					\
 					16 - BILINEAR_INTERPOLATION_BITS);	\
 	/* horizontal interpolation */						\
-	mm_lo_lo = _mm_mullo_pi16 (lo, mm_wh_lo);				\
-	mm_lo_hi = _mm_mullo_pi16 (hi, mm_wh_hi);				\
-	mm_hi_lo = _mm_mulhi_pu16 (lo, mm_wh_lo);				\
-	mm_hi_hi = _mm_mulhi_pu16 (hi, mm_wh_hi);				\
+	__m64 mm_lo_lo = _mm_mullo_pi16 (lo, mm_wh_lo);				\
+	__m64 mm_lo_hi = _mm_mullo_pi16 (hi, mm_wh_hi);				\
+	__m64 mm_hi_lo = _mm_mulhi_pu16 (lo, mm_wh_lo);				\
+	__m64 mm_hi_hi = _mm_mulhi_pu16 (hi, mm_wh_hi);				\
 	lo = _mm_add_pi32 (_mm_unpacklo_pi16 (mm_lo_lo, mm_hi_lo),		\
 			   _mm_unpacklo_pi16 (mm_lo_hi, mm_hi_hi));		\
 	hi = _mm_add_pi32 (_mm_unpackhi_pi16 (mm_lo_lo, mm_hi_lo),		\

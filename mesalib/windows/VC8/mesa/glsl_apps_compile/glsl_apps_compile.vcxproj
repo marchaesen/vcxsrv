@@ -5,9 +5,17 @@
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Release|Win32">
       <Configuration>Release</Configuration>
       <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -21,7 +29,16 @@
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -31,20 +48,34 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">compile</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">compile</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">compile</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">compile</TargetName>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Platform)\$(Configuration)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Platform)\$(Configuration)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(Platform)\$(Configuration)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -68,6 +99,26 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;_CRT_SECURE_NO_WARNINGS;INSERVER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\src\mesa;..\..\..\..\src\glsl;..\..\..\..\src\mapi;..\..\..\..\..\include;..\..\..\..\..</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention>
+      </DataExecutionPrevention>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;_CRT_SECURE_NO_WARNINGS;INSERVER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -87,6 +138,26 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;_CRT_SECURE_NO_WARNINGS;INSERVER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\src\mesa;..\..\..\..\src\glsl;..\..\..\..\src\mapi;..\..\..\..\..\include;..\..\..\..\..</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention>
+      </DataExecutionPrevention>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -190,17 +261,27 @@
     <CustomBuild Include="..\..\..\..\src\glsl\glsl_lexer.ll">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\glsl\doflexbison.bat</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\glsl\doflexbison.bat</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\glsl\glsl_lexer.cpp;..\..\..\..\src\glsl\glcpp\glcpp-lex.c;..\..\..\..\src\glsl\glsl_parser.cpp;..\..\..\..\src\glsl\glsl_parser.h;..\..\..\..\src\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\glsl\glcpp\glcpp-parse.h</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\glsl\glsl_lexer.cpp;..\..\..\..\src\glsl\glcpp\glcpp-lex.c;..\..\..\..\src\glsl\glsl_parser.cpp;..\..\..\..\src\glsl\glsl_parser.h;..\..\..\..\src\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\glsl\glcpp\glcpp-parse.h</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\glsl\doflexbison.bat</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\glsl\doflexbison.bat</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\glsl\glsl_lexer.cpp;..\..\..\..\src\glsl\glcpp\glcpp-lex.c;..\..\..\..\src\glsl\glsl_parser.cpp;..\..\..\..\src\glsl\glsl_parser.h;..\..\..\..\src\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\glsl\glcpp\glcpp-parse.h</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\glsl\glsl_lexer.cpp;..\..\..\..\src\glsl\glcpp\glcpp-lex.c;..\..\..\..\src\glsl\glsl_parser.cpp;..\..\..\..\src\glsl\glsl_parser.h;..\..\..\..\src\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\glsl\glcpp\glcpp-parse.h</Outputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\glsl\glsl_parser.yy;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\glsl\glsl_parser.yy;%(AdditionalInputs)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\glsl\glsl_parser.yy;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\glsl\glsl_parser.yy;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
     <None Include="..\..\..\..\src\glsl\glsl_parser.yy">
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\glsl\dobison.bat</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\glsl\dobison.bat</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\..\..\..\src\glsl\glsl_parser.cpp;..\..\..\..\src\glsl\glsl_parser.h;..\..\..\..\src\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\glsl\glcpp\glcpp-parse.h</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\..\..\..\src\glsl\glsl_parser.cpp;..\..\..\..\src\glsl\glsl_parser.h;..\..\..\..\src\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\glsl\glcpp\glcpp-parse.h</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\glsl\dobison.bat</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\glsl\dobison.bat</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">..\..\..\..\src\glsl\glsl_parser.cpp;..\..\..\..\src\glsl\glsl_parser.h;..\..\..\..\src\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\glsl\glcpp\glcpp-parse.h</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\..\..\..\src\glsl\glsl_parser.cpp;..\..\..\..\src\glsl\glsl_parser.h;..\..\..\..\src\glsl\glcpp\glcpp-parse.c;..\..\..\..\src\glsl\glcpp\glcpp-parse.h</Outputs>
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

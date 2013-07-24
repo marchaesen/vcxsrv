@@ -24,11 +24,11 @@ Name "VcXsrv"
 OutFile "vcxsrv.1.14.2.0.installer.exe"
 
 ; The default installation directory
-InstallDir $PROGRAMFILES\VcXsrv
+InstallDir $PROGRAMFILES32\VcXsrv
 
 ; Registry key to check for directory (so if you install again, it will 
 ; overwrite the old one automatically)
-InstallDirRegKey HKLM "Software\VcXsrv" "Install_Dir"
+InstallDirRegKey HKLM SOFTWARE\VcXsrv "Install_Dir"
 
 ; Request application privileges for Windows Vista
 RequestExecutionLevel admin
@@ -88,17 +88,19 @@ Section "VcXsrv (required)"
   File "..\.Xdefaults"
   File "..\hw\xwin\xlaunch\obj\release\xlaunch.exe"
   File "..\..\tools\plink\obj\release\plink.exe"
-  File "..\..\mesalib\windows\VC8\mesa\Release\swrast_dri.dll"
+  File "..\..\mesalib\windows\VC8\mesa\Win32\Release\swrast_dri.dll"
   File "..\hw\xwin\swrastwgl_dri\obj\release\swrastwgl_dri.dll"
   File "..\..\dxtn\obj\release\dxtn.dll"
-  File "..\..\libxml2\bin\libxml2.dll"
+  File "..\..\libxml2\bin\libxml2-2.dll"
+  File "..\..\libxml2\bin\libgcc_s_sjlj-1.dll"
+  File "..\..\libxml2\bin\libiconv-2.dll"
+  File "..\..\libxml2\bin\libwinpthread-1.dll"
   File "..\..\zlib\obj\release\zlib1.dll"
   File "..\..\libxcb\src\obj\release\libxcb.dll"
   File "..\..\libXau\obj\release\libXau.dll"
   File "..\..\libX11\obj\release\libX11.dll"
   File "..\..\libXext\src\obj\release\libXext.dll"
   File "..\..\libXmu\src\obj\release\libXmu.dll"
-  File "..\..\libxml2\bin\iconv.dll"
   File "msvcr100.dll"
   File "msvcp100.dll"
   SetOutPath $INSTDIR\xkbdata

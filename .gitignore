@@ -2,6 +2,8 @@
 *.orig
 obj
 obj_d
+obj64
+obj64_d
 objs
 *.exe
 *.dll
@@ -21,3 +23,4 @@ GPATH
 GRTAGS
 GTAGS
 TAGS
+cscope*

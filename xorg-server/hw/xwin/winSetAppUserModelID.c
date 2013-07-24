@@ -34,6 +34,7 @@
 #include "winmsg.h"
 
 #include <shlwapi.h>
+#include <propvarutil.h>
 
 #define INITGUID
 #include "initguid.h"
@@ -95,7 +96,7 @@ winSetAppUserModelID(HWND hWnd, const char *AppID)
     hr = g_pSHGetPropertyStoreForWindow(hWnd, &IID_IPropertyStore,
                                         (void **) &pps);
     if (SUCCEEDED(hr) && pps) {
-        memset(&pv, 0, sizeof(PROPVARIANT));
+        PropVariantInit(&pv);
         if (AppID) {
             pv.vt = VT_LPWSTR;
             hr = SHStrDupA(AppID, &pv.pwszVal);

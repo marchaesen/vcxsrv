@@ -3,13 +3,18 @@
 
 #include <stdio.h>
 
+#ifdef __cplusplus
+extern "C"
+#endif
+__declspec(dllimport) void __stdcall DebugBreak(void);
+
 static __inline void __assert(int Cond)
 {
 #ifdef _DEBUG
   if (!Cond)
   {
     printf("assertion occured.\n");
-    __asm int 3;
+    DebugBreak();
     while (1);
   }
 #endif

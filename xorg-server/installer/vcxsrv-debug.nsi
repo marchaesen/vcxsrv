@@ -24,11 +24,11 @@ Name "VcXsrv"
 OutFile "vcxsrv-debug.1.14.2.0.installer.exe"
 
 ; The default installation directory
-InstallDir $PROGRAMFILES\VcXsrv
+InstallDir $PROGRAMFILES32\VcXsrv
 
 ; Registry key to check for directory (so if you install again, it will 
 ; overwrite the old one automatically)
-InstallDirRegKey HKLM "Software\VcXsrv" "Install_Dir"
+InstallDirRegKey HKLM SOFTWARE\VcXsrv "Install_Dir"
 
 ; Request application privileges for Windows Vista
 RequestExecutionLevel admin
@@ -72,7 +72,7 @@ Section "VcXsrv debug exe and dlls"
   File "..\..\apps\xwininfo\obj\debug\xwininfo.exe"
   File "..\hw\xwin\xlaunch\obj\debug\xlaunch.exe"
   File "..\..\tools\plink\obj\debug\plink.exe"
-  File "..\..\mesalib\windows\VC8\mesa\Debug\swrast_dri.dll"
+  File "..\..\mesalib\windows\VC8\mesa\Win32\Debug\swrast_dri.dll"
   File "..\hw\xwin\swrastwgl_dri\obj\debug\swrastwgl_dri.dll"
   File "..\..\dxtn\obj\debug\dxtn.dll"
   File "..\..\zlib\obj\debug\zlib1.dll"
@@ -84,4 +84,5 @@ Section "VcXsrv debug exe and dlls"
   File "msvcr100d.dll"
   File "msvcp100d.dll"
 
+  WriteRegStr HKLM SOFTWARE\VcXsrv "Install_Dir" "$INSTDIR"
 SectionEnd

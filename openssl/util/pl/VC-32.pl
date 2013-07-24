@@ -16,7 +16,7 @@ else
 	$crypto="libeay32";
 	}
 
-$o='\\';
+$o='/';
 $cp='$(PERL) util/copy.pl';
 $mkdir='$(PERL) util/mkdir-p.pl';
 $rm='del /Q';
@@ -43,10 +43,10 @@ if ($FLAVOR =~ /WIN64/)
     # considered safe to ignore.
     # 
     $base_cflags= " $mf_cflag";
-    my $f = $shlib || $fips ?' /MD':' /MT';
+    my $f = ' /MD';
     $lib_cflag='/Zl' if (!$shlib);	# remove /DEFAULTLIBs from static lib
-    $opt_cflags=$f.' /Ox';
-    $dbg_cflags=$f.'d /Od -DDEBUG -D_DEBUG';
+    $opt_cflags=$f.' /O2 /Ob2 /Oi /Ox /Oy /Ot /GL /Gy /GF /Zi';     
+    $dbg_cflags=$f.'d /RTCc /RTC1 /Od /GS /GR /Gy /GF /Zi';   
     $lflags="/NOLOGO /SUBSYSTEM:CONSOLE /OPT:REF /OPT:ICF /LTCG:STATUS";
     $lflagsd="/NOLOGO /SUBSYSTEM:CONSOLE";
 
@@ -244,7 +244,11 @@ if (!$no_asm)
 	win32_import_asm($mf_wp_asm, "whrlpool", \$whirlpool_asm_obj, \$whirlpool_asm_src);
 	win32_import_asm($mf_cpuid_asm, "", \$cpuid_asm_obj, \$cpuid_asm_src);
 	$perl_asm = 1;
-	$cdflags.=" -DOPENSSL_CPUID_OBJ -DOPENSSL_IA32_SSE2 -DAES_ASM -DBN_ASM -DOPENSSL_BN_ASM_PART_WORDS -DOPENSSL_BN_ASM_MONT -DMD5_ASM -DSHA1_ASM -DRMD160_ASM";
+	if ($FLAVOR =~ /WIN64A/) {
+	  $cdflags.=" -DOPENSSL_CPUID_OBJ -DOPENSSL_IA32_SSE2 -DAES_ASM -DBN_ASM -DOPENSSL_BN_ASM_MONT -DMD5_ASM -DSHA1_ASM -DRMD160_ASM";
+	} else {
+	  $cdflags.=" -DOPENSSL_CPUID_OBJ -DOPENSSL_IA32_SSE2 -DAES_ASM -DBN_ASM -DOPENSSL_BN_ASM_PART_WORDS -DOPENSSL_BN_ASM_MONT -DMD5_ASM -DSHA1_ASM -DRMD160_ASM";
+	}
 	}
 
 if ($shlib && $FLAVOR !~ /CE/)

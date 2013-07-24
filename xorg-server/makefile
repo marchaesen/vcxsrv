@@ -51,22 +51,14 @@ load_makefile $(NOSERVLIBDIRS:%$(NOSERVOBJDIR)\=%makefile MAKESERVER=0 DEBUG=$(D
 
 OBJS = dix\$(OBJDIR)\main.obj
 
+LINKLIBS += $(PTHREADLIB) $(FREETYPELIB) $(OPENSSLLIB)
+
 ifeq ($(DEBUG),1)
 TTYAPP=vcxsrv
 APP:=$(TTYAPP)
-
-LINKLIBS += $(MHMAKECONF)\openssl\out32_d\libeay32.lib \
-            $(MHMAKECONF)\freetype\lib\freetype2501MT_D.lib \
-            $(MHMAKECONF)\pthreads\pthreadVC2d.lib
-
 else
 WINAPP=vcxsrv
 APP:=$(WINAPP)
-
-LINKLIBS += $(MHMAKECONF)\openssl\out32\libeay32.lib \
-            $(MHMAKECONF)\freetype\lib\freetype2501MT.lib \
-            $(MHMAKECONF)\pthreads\pthreadVC2.lib
-
 endif
 
 RCINCLUDES += include hw\xwin $(MHMAKECONF)\include $(MHMAKECONF)
@@ -100,10 +92,16 @@ load_makefile $(EXTRASTOBUILDDIRS:%$(NOSERVOBJDIR)\=%makefile MAKESERVER=0 DEBUG
 all: $(EXTRASTOBUILD)
 
 load_makefile ..\mesalib\windows\VC8\mesa\makefile MAKESERVER=0 DEBUG=$(DEBUG)
-ifeq ($(DEBUG),1)
-all: ..\mesalib\windows\VC8\mesa\Debug\swrast_dri.dll
+ifdef IS64
+TARGETDIR=x64
 else
-all: ..\mesalib\windows\VC8\mesa\Release\swrast_dri.dll
+TARGETDIR=Win32
+endif
+
+ifeq ($(DEBUG),1)
+all: ..\mesalib\windows\VC8\mesa\$(TARGETDIR)\Debug\swrast_dri.dll
+else
+all: ..\mesalib\windows\VC8\mesa\$(TARGETDIR)\Release\swrast_dri.dll
 endif
 
 all: fonts.src\all xkeyboard-config\all

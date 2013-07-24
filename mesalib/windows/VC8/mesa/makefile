@@ -6,6 +6,17 @@ MHMAKESLNFILE=mesavc10.sln
 BUILDCMD=devenv.com $(MHMAKESLNFILE) /build
 endif
 
+ifdef IS64
+DBGBUILDCMD=$(BUILDCMD) "Debug|x64"
+RELBUILDCMD=$(BUILDCMD) "Release|x64"
+TARGETDIR=x64
+else
+DBGBUILDCMD=$(BUILDCMD) "Debug|Win32"
+RELBUILDCMD=$(BUILDCMD) "Release|Win32"
+TARGETDIR=Win32
+endif
+
+
 DEPS:=$(wildcard ..\..\..\src\mesa\swrast\*.c) \
       $(wildcard ..\..\..\src\mesa\swrast\*.h) \
       $(wildcard ..\..\..\src\mesa\swrast_setup\*.c) \
@@ -49,7 +60,7 @@ DEPS:=$(wildcard ..\..\..\src\mesa\swrast\*.c) \
       ..\..\..\src\mesa\main\get_hash.h \
       ..\..\..\src\mesa\main\remap_helper.h
 
-all: Release\swrast_dri.dll Debug\swrast_dri.dll
+all: $(TARGETDIR)\Release\swrast_dri.dll $(TARGETDIR)\Debug\swrast_dri.dll
 
 ..\..\..\src\mesa\main\dispatch.h: $(wildcard ..\..\..\src\mapi\glapi\gen\*.xml) ..\..\..\src\mapi\glapi\gen\gl_table.py
 	cd ..\..\..\src\mapi\glapi\gen & python gl_table.py -f gl_and_es_API.xml -m remap_table > ..\..\..\mesa\main\dispatch.h
@@ -71,11 +82,11 @@ REMAP_HELPER = ..\..\..\src\mapi\glapi\gen\remap_helper.py
 ..\..\..\src\mesa\main\remap_helper.h: ..\..\..\src\mapi\glapi\gen\gl_and_es_API.xml $(REMAP_HELPER)
 	python $(REMAP_HELPER) -f $< > $@
 
-Debug\swrast_dri.dll: $(DEPS)
-	$(BUILDCMD) "Debug|Win32"
+$(TARGETDIR)\Debug\swrast_dri.dll: $(DEPS)
+	$(DBGBUILDCMD)
 
-Release\swrast_dri.dll: $(DEPS)
-	$(BUILDCMD) "Release|Win32"
+$(TARGETDIR)\Release\swrast_dri.dll: $(DEPS)
+	$(RELBUILDCMD)
 
 clean: cleanthis
 

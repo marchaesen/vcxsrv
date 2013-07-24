@@ -21,7 +21,15 @@ CCFLAGS   += -c -GF -Gy #-Wall
 
 #CCFLAGS   += -wd4996 -wd4738
 LINK      ?= link /nologo
-LINKFLAGS += /INCREMENTAL:NO /MACHINE:X86
+LINKFLAGS += /INCREMENTAL:NO
+ifdef IS64
+LINKFLAGS += /MACHINE:X64
+OBJDIREXTRA=64
+SSLSUFFIX=64
+else
+LINKFLAGS += /MACHINE:X86
+SSLSUFFIX=32
+endif
 AR        ?= lib /nologo
 RC        ?= rc
 RCFLAGS   ?= /l 0x409
@@ -37,7 +45,7 @@ endif
 
 ifeq ($(NORELDBG),1)
 # This all is here to avoid unnecessary rebuilds when switching between release and debug and MAKESERVER
-OBJDIR?=obj
+OBJDIR?=obj$(OBJDIREXTRA)
 DEBUG=0
 MAKESERVER=0
 endif
@@ -45,18 +53,18 @@ endif
 ifeq ($(DEBUG),1)
 CCFLAGS   += -MDd -RTCc -RTC1 -Od -GS -GR -Zi
 LINKFLAGS += /DEBUG
-OBJDIR ?= obj\$(OBJDIRPREFIX)debug
-NOSERVOBJDIR ?= obj\debug
-SERVOBJDIR ?= obj\servdebug
+OBJDIR ?= obj$(OBJDIREXTRA)\$(OBJDIRPREFIX)debug
+NOSERVOBJDIR ?= obj$(OBJDIREXTRA)\debug
+SERVOBJDIR ?= obj$(OBJDIREXTRA)\servdebug
 DEFINES += _DEBUG DEBUG
 RCFLAGS += -d "_DEBUG"
 else
 CCFLAGS   += -MD -O2 -Ob2 -Oi -Ox -Oy -Ot -Zi -GL
 DEFINES   +=  NDEBUG
 LINKFLAGS += /OPT:REF /OPT:ICF /DEBUG /LTCG:STATUS
-OBJDIR ?= obj\$(OBJDIRPREFIX)release
-NOSERVOBJDIR ?= obj\release
-SERVOBJDIR ?= obj\servrelease
+OBJDIR ?= obj$(OBJDIREXTRA)\$(OBJDIRPREFIX)release
+NOSERVOBJDIR ?= obj$(OBJDIREXTRA)\release
+SERVOBJDIR ?= obj$(OBJDIREXTRA)\servrelease
 RCFLAGS += -d "NDEBUG"
 AR += /LTCG
 endif
@@ -84,3 +92,13 @@ MKFONTSCALE=$(MHMAKECONF)\mkfontscale\$(OBJDIR)\mkfontscale.exe
 
 all: $(OBJDIR)
 
+ifeq ($(DEBUG),1)
+PTHREADLIB:=$(MHMAKECONF)\pthreads\pthreadVC2d$(OBJDIREXTRA).lib
+FREETYPELIB:=$(MHMAKECONF)\freetype\lib$(OBJDIREXTRA)\freetype2501MT_D.lib
+OPENSSLLIB:=$(MHMAKECONF)\openssl\out$(SSLSUFFIX)_d\libeay32.lib
+else
+PTHREADLIB:=$(MHMAKECONF)\pthreads\pthreadVC2$(OBJDIREXTRA).lib
+FREETYPELIB:=$(MHMAKECONF)\freetype\lib$(OBJDIREXTRA)\freetype2501MT.lib
+OPENSSLLIB:=$(MHMAKECONF)\openssl\out$(SSLSUFFIX)\libeay32.lib
+endif
+LIBXMLLIB:=$(MHMAKECONF)\libxml2\lib$(OBJDIREXTRA)\libxml2-2.lib

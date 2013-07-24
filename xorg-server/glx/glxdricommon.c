@@ -57,7 +57,7 @@ getUST(int64_t * ust)
         return -EFAULT;
 
 #ifdef _MSC_VER
-    __asm int 3;
+    DebugBreak();
 #else
     if (gettimeofday(&tv, NULL) == 0) {
         ust[0] = (tv.tv_sec * 1000000) + tv.tv_usec;

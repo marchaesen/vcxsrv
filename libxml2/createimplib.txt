@@ -1,0 +1,19 @@
+echo LIBRARY libxml2-2 > lib64/libxml2-2.def
+echo EXPORTS >> lib64/libxml2-2.def
+dumpbin /exports bin64/libxml2-2.dll >> lib64/libxml2-2.def
+dos2unix lib64/libxml2-2.def
+
+# edit def file to remove unnecessary balast
+
+lib /def:lib64/libxml2-2.def /out:lib64/libxml2-2.lib /machine:X64
+
+# for the 32-bit version
+
+echo LIBRARY libxml2-2 > lib/libxml2-2.def
+echo EXPORTS >> lib/libxml2-2.def
+dumpbin /exports bin/libxml2-2.dll >> lib/libxml2-2.def
+dos2unix lib/libxml2-2.def
+
+# edit def file to remove unnecessary balast
+
+lib /def:lib/libxml2-2.def /out:lib/libxml2-2.lib /machine:X86

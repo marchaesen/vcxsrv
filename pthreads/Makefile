@@ -222,12 +222,12 @@ $(DLLS): $(DLL_OBJS)
 
 $(INLINED_STATIC_STAMPS): $(OUTDIR) $(DLL_OBJS)
 	if exist $*.lib del $*.lib
-	lib /LTCG $(DLL_OBJS) /out:$*.lib
+	lib /LTCG $(DLL_OBJS) /out:$*$(SUFFIX).lib
 	echo. >$@
 
 $(SMALL_STATIC_STAMPS): $(OUTDIR) $(STATIC_OBJS)
 	if exist $*.lib del $*.lib
-	lib /LTCG $(STATIC_OBJS) /out:$*.lib
+	lib /LTCG $(STATIC_OBJS) /out:$*$(SUFFIX).lib
 	echo. >$@
 
 $(OUTDIR):

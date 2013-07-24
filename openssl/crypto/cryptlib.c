@@ -710,7 +710,7 @@ void OPENSSL_cpuid_setup(void)
      * was initialized already... This is to avoid interference
      * with cpuid snippets in ELF .init segment.
      */
-    OPENSSL_ia32cap_P[0] = (unsigned int)vec|(1<<10);
+    OPENSSL_ia32cap_P[0] = (unsigned int)((vec|(1<<10))&0xffffffff);
     OPENSSL_ia32cap_P[1] = (unsigned int)(vec>>32);
 }
 #endif

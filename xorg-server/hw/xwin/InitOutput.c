@@ -975,11 +975,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
     winPropertyStoreInit();
 #endif
 
-#ifdef XWIN_MULTIWINDOW
-  /* Load libraries for taskbar grouping */
-  winTaskbarInit ();
-#endif
-
     /* Store the instance handle */
     g_hInstance = GetModuleHandle(NULL);
 

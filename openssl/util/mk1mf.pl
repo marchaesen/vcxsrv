@@ -486,6 +486,22 @@ $defs.= <<"EOF";
 INSTALLTOP=$INSTALLTOP
 OPENSSLDIR=$OPENSSLDIR
 
+!ifdef IS64
+
+!ifdef DEBUG
+# The output directory for everything intersting
+OUT_D=out64_d
+# The output directory for all the temporary muck
+TMP_D=tmp64_d
+!else
+# The output directory for everything intersting
+OUT_D=out64
+# The output directory for all the temporary muck
+TMP_D=tmp64
+!endif
+
+!else
+
 !ifdef DEBUG
 # The output directory for everything intersting
 OUT_D=out32_d
@@ -496,6 +512,8 @@ TMP_D=tmp32_d
 OUT_D=out32
 # The output directory for all the temporary muck
 TMP_D=tmp32
+!endif
+
 !endif
 
 # Set your compiler options

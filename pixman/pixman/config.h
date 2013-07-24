@@ -122,7 +122,7 @@
 /* #undef TRANS_REOPEN */
 
 /* use MMX compiler intrinsics */
-#define USE_X86_MMX 1
+/*#define USE_X86_MMX 1*/
 
 /* Support UNIX socket connections */
 #define UNIXCONN 1
@@ -134,7 +134,7 @@
 #define USE_DYNAMIC_XCURSOR 1
 
 /* use SSE2 compiler intrinsics */
-#define USE_SSE2 1
+/*#define USE_SSE2 1*/
 
 /* use VMX compiler intrinsics */
 #undef USE_VMX

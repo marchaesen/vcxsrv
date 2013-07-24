@@ -16,19 +16,33 @@ check-error 'Please install/set environment for visual studio 2010'
 # echo script lines from now one
 #set -v
 
-devenv.com freetype/freetypevc10.sln /build "Release Multithreaded|Win32"
+if [[ "$IS64" == "" ]]; then
+FREETYPERELCONF="Release Multithreaded|Win32"
+FREETYPEDBGCONF="Debug Multithreaded|Win32"
+else
+FREETYPERELCONF="Release Multithreaded|x64"
+FREETYPEDBGCONF="Debug Multithreaded|x64"
+fi
+
+devenv.com freetype/freetypevc10.sln /build "$FREETYPERELCONF"
 check-error 'Error compiling freetype'
 
-devenv.com freetype/freetypevc10.sln /build "Debug Multithreaded|Win32"
+devenv.com freetype/freetypevc10.sln /build "$FREETYPEDBGCONF"
 check-error 'Error compiling freetype'
 
 cd openssl
 
+if [[ "$IS64" == "" ]]; then
 perl Configure VC-WIN32
 check-error 'Error executing perl'
-
 ms/do_nasm.bat
 check-error 'Error configuring openssl for nasm'
+else
+perl Configure VC-WIN64A
+check-error 'Error executing perl'
+ms/do_win64a.bat
+check-error 'Error configuring openssl for nasm'
+fi
 
 nmake -f ms/nt.mak
 check-error 'Error compiling openssl for release'
