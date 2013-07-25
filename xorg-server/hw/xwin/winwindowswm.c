@@ -242,7 +242,7 @@ winWindowsWMSendEvent(int type, unsigned int mask, int which, int arg,
         return;
     for (pEvent = *pHead; pEvent; pEvent = pEvent->next) {
         client = pEvent->client;
-        winDebug ("winWindowsWMSendEvent - x%08x\n", (int) client);
+        winDebug ("winWindowsWMSendEvent - %p\n", client);
         if ((pEvent->mask & mask) == 0) {
             continue;
         }
@@ -366,8 +366,8 @@ ProcWindowsWMFrameDraw(ClientPtr client)
     if (pRLWinPriv == 0)
         return BadWindow;
 
-    winDebug ("ProcWindowsWMFrameDraw - HWND 0x%08x 0x%08x 0x%08x\n",
-              (int) pRLWinPriv->hWnd, (int) stuff->frame_style,
+    winDebug ("ProcWindowsWMFrameDraw - HWND %p 0x%08x 0x%08x\n",
+              pRLWinPriv->hWnd, (int) stuff->frame_style,
               (int) stuff->frame_style_ex);
     winDebug ("ProcWindowsWMFrameDraw - %d %d %d %d\n",
               stuff->ix, stuff->iy, stuff->iw, stuff->ih);

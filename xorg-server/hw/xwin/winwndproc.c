@@ -889,7 +889,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 #endif
             )
             SetCapture(hwnd);
-        return winMouseButtonsHandle(s_pScreen, ButtonPress, HIWORD(wParam) + 5,
+        return winMouseButtonsHandle(s_pScreen, ButtonPress, HIWORD(wParam) + 7,
                                      wParam);
     case WM_XBUTTONUP:
         if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
@@ -901,7 +901,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             )
             ReleaseCapture();
         return winMouseButtonsHandle(s_pScreen, ButtonRelease,
-                                     HIWORD(wParam) + 5, wParam);
+                                     HIWORD(wParam) + 7, wParam);
 
     case WM_TIMER:
         if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
@@ -969,7 +969,18 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
             break;
         winDebug("winWindowProc - WM_MOUSEWHEEL\n");
-        winMouseWheel(s_pScreen, GET_WHEEL_DELTA_WPARAM(wParam));
+        /* Button4 = WheelUp */
+        /* Button5 = WheelDown */
+        winMouseWheel(&(s_pScreenPriv->iDeltaZ), GET_WHEEL_DELTA_WPARAM(wParam), Button4, Button5);
+        break;
+
+    case WM_MOUSEHWHEEL:
+        if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
+            break;
+        winDebug("winWindowProc - WM_MOUSEHWHEEL\n");
+        /* Button7 = TiltRight */
+        /* Button6 = TiltLeft */
+        winMouseWheel(&(s_pScreenPriv->iDeltaV), GET_WHEEL_DELTA_WPARAM(wParam), 7, 6);
         break;
 
     case WM_SETFOCUS:
@@ -1049,7 +1060,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
 
         /* Translate Windows key code to X scan code */
-        winTranslateKey(wParam, lParam, &iScanCode);
+        iScanCode = winTranslateKey(wParam, lParam);
 
         /* Ignore repeats for CapsLock */
         if (wParam == VK_CAPITAL)
@@ -1070,7 +1081,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             return 0;
 
         /* Enqueue a keyup event */
-        winTranslateKey(wParam, lParam, &iScanCode);
+        iScanCode = winTranslateKey(wParam, lParam);
         winSendKeyEvent(iScanCode, FALSE);
 
         /* Release all pressed shift keys */
@@ -1122,6 +1133,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         /* Clear any lingering wheel delta */
         s_pScreenPriv->iDeltaZ = 0;
+        s_pScreenPriv->iDeltaV = 0;
 
         /* Reshow the Windows mouse cursor if we are being deactivated */
         if (g_fSoftwareCursor && LOWORD(wParam) == WA_INACTIVE && !g_fCursor) {
@@ -1194,7 +1206,6 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
 
-    case WM_ENDSESSION:
     case WM_GIVEUP:
         /* Tell X that we are giving up */
 #ifdef XWIN_MULTIWINDOW

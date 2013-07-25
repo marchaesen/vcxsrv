@@ -4,7 +4,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/include
 AM_CFLAGS = $(DIX_CFLAGS)
 
 libmain_la_SOURCES =    \
-	main.c
+	stubmain.c
 
 libdix_la_SOURCES = 	\
 	atom.c		\
@@ -14,6 +14,7 @@ libdix_la_SOURCES = 	\
 	dispatch.c	\
 	dispatch.h	\
 	dixfonts.c	\
+	main.c		\
 	dixutils.c	\
 	enterleave.c	\
 	enterleave.h	\

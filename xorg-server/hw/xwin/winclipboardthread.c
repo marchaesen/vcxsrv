@@ -53,11 +53,11 @@
 
 extern Bool g_fUnicodeClipboard;
 extern Bool g_fClipboardStarted;
-extern Bool	g_fClipboardLaunched;
+extern Bool g_fClipboardLaunched;
 extern HWND g_hwndClipboard;
 extern void *g_pClipboardDisplay;
 extern Window g_iClipboardWindow;
-extern Bool		g_fClipboardPrimary;
+extern Bool g_fClipboardPrimary;
 
 /*
  * Global variables
@@ -199,7 +199,7 @@ winClipboardProc(void *pvNotUsed)
     fdMessageQueue = open (WIN_MSG_QUEUE_FNAME, _O_RDONLY);
     if (fdMessageQueue == -1) {
         ErrorF("winClipboardProc - Failed opening %s\n", WIN_MSG_QUEUE_FNAME);
-      goto thread_errorexit;
+        goto thread_errorexit;
     }
 
     /* Find max of our file descriptors */
@@ -240,27 +240,27 @@ winClipboardProc(void *pvNotUsed)
 
     /* Assert ownership of selections if Win32 clipboard is owned */
     if (NULL != GetClipboardOwner()) {
-      if (g_fClipboardPrimary)
-      {
-	      /* PRIMARY */
-        winDebug("winClipboardProc - asserted ownership.\n");
-        iReturn = XSetSelectionOwner (pDisplay, XA_PRIMARY,
-				                              iWindow, CurrentTime);
-        if (iReturn == BadAtom || iReturn == BadWindow /*||
-	          XGetSelectionOwner (pDisplay, XA_PRIMARY) != iWindow*/)
-	      {
-	          ErrorF ("winClipboardProc - Could not set PRIMARY owner\n");
-            goto thread_errorexit;
-	      }
-      }
+        if (g_fClipboardPrimary)
+        {
+            /* PRIMARY */
+            winDebug("winClipboardProc - asserted ownership.\n");
+            iReturn = XSetSelectionOwner (pDisplay, XA_PRIMARY,
+                                          iWindow, CurrentTime);
+            if (iReturn == BadAtom || iReturn == BadWindow /*||
+                XGetSelectionOwner (pDisplay, XA_PRIMARY) != iWindow*/)
+            {
+                ErrorF ("winClipboardProc - Could not set PRIMARY owner\n");
+                goto thread_errorexit;
+            }
+        }
 
         /* CLIPBOARD */
         iReturn = XSetSelectionOwner(pDisplay, atomClipboard,
                                      iWindow, CurrentTime);
-      if (iReturn == BadAtom || iReturn == BadWindow /*||
-	        XGetSelectionOwner (pDisplay, atomClipboard) != iWindow*/)
-	      {
-	          ErrorF ("winClipboardProc - Could not set CLIPBOARD owner\n");
+        if (iReturn == BadAtom || iReturn == BadWindow /*||
+            XGetSelectionOwner (pDisplay, atomClipboard) != iWindow*/)
+        {
+            ErrorF ("winClipboardProc - Could not set CLIPBOARD owner\n");
             goto thread_errorexit;
         }
     }
@@ -334,19 +334,12 @@ winClipboardProc(void *pvNotUsed)
         }
 
         /* Branch on which descriptor became active */
-//      if (FD_ISSET (iConnectionNumber, &fdsRead))
-//	{ Also do it when no read since winClipboardFlushXEvents
-//    is sending the output.
+//        if (FD_ISSET (iConnectionNumber, &fdsRead)) {
+//            Also do it when no read since winClipboardFlushXEvents
+//            is sending the output.
             /* Process X events */
-            /* Exit when we see that server is shutting down */
-            iReturn = winClipboardFlushXEvents(hwnd,
-                                               iWindow, pDisplay, fUseUnicode, FALSE);
-            if (WIN_XEVENTS_SHUTDOWN == iReturn) {
-                ErrorF("winClipboardProc - winClipboardFlushXEvents "
-                       "trapped shutdown event, exiting main loop.\n");
-                break;
-            }
-//	}
+            winClipboardFlushXEvents(hwnd, iWindow, pDisplay, fUseUnicode, FALSE);
+//        }
 
 #ifdef HAS_DEVWINDOWS
         /* Check for Windows event ready */
@@ -403,25 +396,25 @@ winClipboardProc(void *pvNotUsed)
   goto commonexit;
 
 thread_errorexit:
-  if (g_pClipboardDisplay && g_iClipboardWindow)
-  {
-    iReturn = XDestroyWindow (g_pClipboardDisplay, g_iClipboardWindow);
-    if (iReturn == BadWindow)
-	    ErrorF ("winClipboardProc - XDestroyWindow returned BadWindow.\n");
+    if (g_pClipboardDisplay && g_iClipboardWindow)
+    {
+        iReturn = XDestroyWindow (g_pClipboardDisplay, g_iClipboardWindow);
+        if (iReturn == BadWindow)
+            ErrorF ("winClipboardProc - XDestroyWindow returned BadWindow.\n");
 #ifdef WINDBG
-    else
-	    winDebug ("winClipboardProc - XDestroyWindow succeeded.\n");
+        else
+            winDebug ("winClipboardProc - XDestroyWindow succeeded.\n");
 #endif
-  }
-  winDebug ("Clipboard thread died.\n");
+    }
+    winDebug ("Clipboard thread died.\n");
 
 commonexit:
-  g_iClipboardWindow = None;
-  g_pClipboardDisplay = NULL;
-  g_fClipboardLaunched = FALSE;
-  g_fClipboardStarted = FALSE;
+    g_iClipboardWindow = None;
+    g_pClipboardDisplay = NULL;
+    g_fClipboardLaunched = FALSE;
+    g_fClipboardStarted = FALSE;
 
-  pthread_cleanup_pop(0);
+    pthread_cleanup_pop(0);
 
     return NULL;
 }
@@ -458,7 +451,7 @@ winClipboardErrorHandler(Display * pDisplay, XErrorEvent * pErr)
 static int
 winClipboardIOErrorHandler(Display * pDisplay)
 {
-    ErrorF("winClipboardIOErrorHandler!\n\n");
+    ErrorF("winClipboardIOErrorHandler!\n");
 
     if (pthread_equal(pthread_self(), g_winClipboardProcThread)) {
         /* Restart at the main entry point */

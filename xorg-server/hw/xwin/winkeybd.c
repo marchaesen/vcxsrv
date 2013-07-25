@@ -65,13 +65,14 @@ static void
  * like AltGr on European keyboards.
  */
 
-void
-winTranslateKey(WPARAM wParam, LPARAM lParam, int *piScanCode)
+int
+winTranslateKey(WPARAM wParam, LPARAM lParam)
 {
     int iKeyFixup = g_iKeyMap[wParam * WIN_KEYMAP_COLS + 1];
     int iKeyFixupEx = g_iKeyMap[wParam * WIN_KEYMAP_COLS + 2];
     int iParam = HIWORD(lParam);
     int iParamScanCode = LOBYTE(iParam);
+    int iScanCode;
 
     winDebug("winTranslateKey: wParam %08x lParam %08x\n", wParam, lParam);
 
@@ -96,23 +97,25 @@ winTranslateKey(WPARAM wParam, LPARAM lParam, int *piScanCode)
 
     /* Branch on special extended, special non-extended, or normal key */
     if ((iParam & KF_EXTENDED) && iKeyFixupEx)
-        *piScanCode = iKeyFixupEx;
+        iScanCode = iKeyFixupEx;
     else if (iKeyFixup)
-        *piScanCode = iKeyFixup;
+        iScanCode = iKeyFixup;
     else if (wParam == 0 && iParamScanCode == 0x70)
-        *piScanCode = KEY_HKTG;
+        iScanCode = KEY_HKTG;
     else
         switch (iParamScanCode) {
         case 0x70:
-            *piScanCode = KEY_HKTG;
+            iScanCode = KEY_HKTG;
             break;
         case 0x73:
-            *piScanCode = KEY_BSlash2;
+            iScanCode = KEY_BSlash2;
             break;
         default:
-            *piScanCode = iParamScanCode;
+            iScanCode = iParamScanCode;
             break;
         }
+
+    return iScanCode;
 }
 
 /* Ring the keyboard bell (system speaker on PCs) */
@@ -278,25 +281,38 @@ winRestoreModeKeyStates(void)
 
     /* Check if modifier keys are pressed, and if so, fake a press */
     {
-        BOOL ctrl = (GetAsyncKeyState(VK_CONTROL) < 0);
-        BOOL shift = (GetAsyncKeyState(VK_SHIFT) < 0);
+
+        BOOL lctrl = (GetAsyncKeyState(VK_LCONTROL) < 0);
+        BOOL rctrl = (GetAsyncKeyState(VK_RCONTROL) < 0);
+        BOOL lshift = (GetAsyncKeyState(VK_LSHIFT) < 0);
+        BOOL rshift = (GetAsyncKeyState(VK_RSHIFT) < 0);
         BOOL alt = (GetAsyncKeyState(VK_LMENU) < 0);
         BOOL altgr = (GetAsyncKeyState(VK_RMENU) < 0);
 
-        if (ctrl && altgr)
-            ctrl = FALSE;
+        /*
+           If AltGr and CtrlL appear to be pressed, assume the
+           CtrL is a fake one
+         */
+        if (lctrl && altgr)
+            lctrl = FALSE;
 
-        if (LOGICAL_XOR(internalKeyStates & ControlMask, ctrl))
-            winSendKeyEvent(KEY_LCtrl, ctrl);
+        if (lctrl)
+            winSendKeyEvent(KEY_LCtrl, TRUE);
 
-        if (LOGICAL_XOR(internalKeyStates & ShiftMask, shift))
-            winSendKeyEvent(KEY_ShiftL, shift);
+        if (rctrl)
+            winSendKeyEvent(KEY_RCtrl, TRUE);
 
-        if (LOGICAL_XOR(internalKeyStates & Mod1Mask, alt))
-            winSendKeyEvent(KEY_Alt, alt);
+        if (lshift)
+            winSendKeyEvent(KEY_ShiftL, TRUE);
 
-        if (LOGICAL_XOR(internalKeyStates & Mod5Mask, altgr))
-            winSendKeyEvent(KEY_AltLang, altgr);
+        if (rshift)
+            winSendKeyEvent(KEY_ShiftL, TRUE);
+
+        if (alt)
+            winSendKeyEvent(KEY_Alt, TRUE);
+
+        if (altgr)
+            winSendKeyEvent(KEY_AltLang, TRUE);
     }
 
     /*
@@ -327,6 +343,12 @@ winRestoreModeKeyStates(void)
         winSendKeyEvent(KEY_HKTG, TRUE);
         winSendKeyEvent(KEY_HKTG, FALSE);
     }
+
+    /*
+       For strict correctness, we should also press any non-modifier keys
+       which are already down when we gain focus, but nobody has complained
+       yet :-)
+     */
 }
 
 /*

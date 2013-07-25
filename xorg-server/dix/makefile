@@ -5,6 +5,8 @@ endif
 INCLUDES += ..\composite ..\miext\sync
 
 LIBRARY=libdix
+libmain_la_SOURCES =    \
+	stubmain.c
 
 libdix_la_SOURCES = 	\
 	atom.c		\
@@ -14,6 +16,7 @@ libdix_la_SOURCES = 	\
 	dispatch.c	\
 	dispatch.h	\
 	dixfonts.c	\
+	main.c		\
 	dixutils.c	\
 	enterleave.c	\
 	enterleave.h	\
@@ -42,4 +45,4 @@ libdix_la_SOURCES = 	\
 	touch.c		\
 	window.c
 
-CSRCS = $(filter %.c,$(libdix_la_SOURCES))
+CSRCS = $(filter %.c,$(libdix_la_SOURCES)) $(filter %.c,$(libmain_la_SOURCES))

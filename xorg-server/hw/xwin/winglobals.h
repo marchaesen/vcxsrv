@@ -90,4 +90,6 @@ extern Bool g_fButton[3];
 extern Bool g_fNoConfigureWindow;
 #endif
 
+extern pthread_mutex_t g_pmTerminating;
+
 #endif                          /* WINGLOBALS_H */

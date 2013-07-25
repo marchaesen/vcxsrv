@@ -70,7 +70,6 @@ typedef int pid_t;
 #define WIN_JMP_ERROR_IO			2
 #define WIN_LOCAL_PROPERTY			"CYGX_CUT_BUFFER"
 #define WIN_XEVENTS_SUCCESS			0
-#define WIN_XEVENTS_SHUTDOWN			1
 #define WIN_XEVENTS_CONVERT			2
 #define WIN_XEVENTS_NOTIFY			3
 

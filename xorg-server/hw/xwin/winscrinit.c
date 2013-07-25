@@ -690,7 +690,7 @@ winFinishScreenInitNativeGDI(int i,
     pScreenPriv->fEnabled = TRUE;
 
     winDebug ("winFinishScreenInitNativeGDI - Successful addition of "
-              "screen %08x\n", (unsigned int) pScreen);
+              "screen %p\n", pScreen);
 
     return TRUE;
 }
