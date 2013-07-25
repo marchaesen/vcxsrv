@@ -1944,6 +1944,10 @@ if test "x$XWIN" = xyes; then
 
 dnl XWin with AIGLX requires OpenGL spec files in order to generate wrapper code for native GL functions
 	if [test "x$XWIN" = xyes && test "x$AIGLX" = xyes] ; then
+           AC_CHECK_PROG(PYTHON, python, python)
+           if test -z "$PYTHON"; then
+                AC_MSG_ERROR([python not found])
+           fi
            if test "x$KHRONOS_SPEC_DIR" = "xauto" ; then
 		PKG_CHECK_MODULES([KHRONOS_OPENGL_REGISTRY], [khronos-opengl-registry])
 		KHRONOS_SPEC_DIR=`pkg-config khronos-opengl-registry --variable=specdir`
@@ -1967,7 +1971,7 @@ if test "x$XQUARTZ" = xyes; then
 	AC_DEFINE(XQUARTZ,1,[Have Quartz])
 	AC_DEFINE(ROOTLESS,1,[Build Rootless code])
 
-	XQUARTZ_LIBS="$MAIN_LIB $FB_LIB $FIXES_LIB $XEXT_LIB $DBE_LIB $RECORD_LIB $RANDR_LIB $RENDER_LIB $DAMAGE_LIB $MIEXT_SYNC_LIB $MIEXT_DAMAGE_LIB $MIEXT_SHADOW_LIB $XI_LIB $XKB_LIB $XKB_STUB_LIB $XPSTUBS_LIB"
+	XQUARTZ_LIBS="$FB_LIB $FIXES_LIB $XEXT_LIB $DBE_LIB $RECORD_LIB $RANDR_LIB $RENDER_LIB $DAMAGE_LIB $MIEXT_SYNC_LIB $MIEXT_DAMAGE_LIB $MIEXT_SHADOW_LIB $XI_LIB $XKB_LIB $XKB_STUB_LIB $XPSTUBS_LIB"
 	AC_SUBST([XQUARTZ_LIBS])
 
 	AC_CHECK_LIB([Xplugin],[xp_init],[:])

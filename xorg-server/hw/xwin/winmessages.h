@@ -529,7 +529,7 @@ static const char *MESSAGE_NAMES[1024] = {
     "WM_XBUTTONDOWN",
     "WM_XBUTTONUP",
     "WM_XBUTTONDBLCLK",
-    "526",
+    "WM_MOUSEHWHEEL",
     "527",
     "WM_PARENTNOTIFY",
     "WM_ENTERMENULOOP",

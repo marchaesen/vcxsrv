@@ -65,10 +65,10 @@ int
 winMouseProc(DeviceIntPtr pDeviceInt, int iState)
 {
     int lngMouseButtons, i;
-    int lngWheelEvents = 2;
+    int lngWheelEvents = 4;
     CARD8 *map;
     DevicePtr pDevice = (DevicePtr) pDeviceInt;
-    Atom *btn_labels;
+    Atom btn_labels[9];
     Atom axes_labels[2];
 
     switch (iState) {
@@ -80,15 +80,23 @@ winMouseProc(DeviceIntPtr pDeviceInt, int iState)
         /* Mapping of windows events to X events:
          * LEFT:1 MIDDLE:2 RIGHT:3
          * SCROLL_UP:4 SCROLL_DOWN:5
-         * XBUTTON 1:6 XBUTTON 2:7 ...
+         * TILT_LEFT:6 TILT_RIGHT:7
+         * XBUTTON 1:8 XBUTTON 2:9 (most commonly 'back' and 'forward')
+         * ...
          *
+         * The current Windows API only defines 2 extra buttons, so we don't
+         * expect more than 5 buttons to be reported, but more than that
+         * should be handled correctly
+         */
+
+        /*
          * To map scroll wheel correctly we need at least the 3 normal buttons
          */
         if (lngMouseButtons < 3)
             lngMouseButtons = 3;
 
-        /* allocate memory: 
-         * number of buttons + 2x mouse wheel event + 1 extra (offset for map) 
+        /* allocate memory:
+         * number of buttons + 4 x mouse wheel event + 1 extra (offset for map)
          */
         map = malloc(sizeof(CARD8) * (lngMouseButtons + lngWheelEvents + 1));
 
@@ -97,12 +105,15 @@ winMouseProc(DeviceIntPtr pDeviceInt, int iState)
         for (i = 1; i <= lngMouseButtons + lngWheelEvents; i++)
             map[i] = i;
 
-        btn_labels = calloc((lngMouseButtons + lngWheelEvents), sizeof(Atom));
         btn_labels[0] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_LEFT);
         btn_labels[1] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_MIDDLE);
         btn_labels[2] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_RIGHT);
         btn_labels[3] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_WHEEL_UP);
         btn_labels[4] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_WHEEL_DOWN);
+        btn_labels[5] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_HWHEEL_LEFT);
+        btn_labels[6] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_HWHEEL_RIGHT);
+        btn_labels[7] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_BACK);
+        btn_labels[8] = XIGetKnownProperty(BTN_LABEL_PROP_BTN_FORWARD);
 
         axes_labels[0] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_X);
         axes_labels[1] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_Y);
@@ -114,7 +125,6 @@ winMouseProc(DeviceIntPtr pDeviceInt, int iState)
                                 winMouseCtrl,
                                 GetMotionHistorySize(), 2, axes_labels);
         free(map);
-        free(btn_labels);
 
         g_winMouseButtonMap = pDeviceInt->button->map;
         break;
@@ -135,20 +145,16 @@ winMouseProc(DeviceIntPtr pDeviceInt, int iState)
 
 /* Handle the mouse wheel */
 int
-winMouseWheel(ScreenPtr pScreen, int iDeltaZ)
+winMouseWheel(int *iTotalDeltaZ, int iDeltaZ, int iButtonUp, int iButtonDown)
 {
-    winScreenPriv(pScreen);
-    int button;                 /* Button4 or Button5 */
-
-    /* Button4 = WheelUp */
-    /* Button5 = WheelDown */
+    int button;
 
     /* Do we have any previous delta stored? */
-    if ((pScreenPriv->iDeltaZ > 0 && iDeltaZ > 0)
-        || (pScreenPriv->iDeltaZ < 0 && iDeltaZ < 0)) {
+    if ((*iTotalDeltaZ > 0 && iDeltaZ > 0)
+        || (*iTotalDeltaZ < 0 && iDeltaZ < 0)) {
         /* Previous delta and of same sign as current delta */
-        iDeltaZ += pScreenPriv->iDeltaZ;
-        pScreenPriv->iDeltaZ = 0;
+        iDeltaZ += *iTotalDeltaZ;
+        *iTotalDeltaZ = 0;
     }
     else {
         /*
@@ -157,7 +163,7 @@ winMouseWheel(ScreenPtr pScreen, int iDeltaZ)
          * as blindly setting takes just as much time
          * as checking, then setting if necessary :)
          */
-        pScreenPriv->iDeltaZ = 0;
+        *iTotalDeltaZ = 0;
     }
 
     /*
@@ -165,7 +171,7 @@ winMouseWheel(ScreenPtr pScreen, int iDeltaZ)
      * WHEEL_DELTA
      */
     if (iDeltaZ >= WHEEL_DELTA || (-1 * iDeltaZ) >= WHEEL_DELTA) {
-        pScreenPriv->iDeltaZ = 0;
+        *iTotalDeltaZ = 0;
 
         /* Figure out how many whole deltas of the wheel we have */
         iDeltaZ /= WHEEL_DELTA;
@@ -176,16 +182,16 @@ winMouseWheel(ScreenPtr pScreen, int iDeltaZ)
          * we will store the wheel delta until the threshold
          * has been reached.
          */
-        pScreenPriv->iDeltaZ = iDeltaZ;
+        *iTotalDeltaZ = iDeltaZ;
         return 0;
     }
 
     /* Set the button to indicate up or down wheel delta */
     if (iDeltaZ > 0) {
-        button = Button4;
+        button = iButtonUp;
     }
     else {
-        button = Button5;
+        button = iButtonDown;
     }
 
     /*

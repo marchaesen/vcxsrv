@@ -42,20 +42,14 @@
 #define YES					1
 #endif
 
+/* We can handle WM_MOUSEHWHEEL even though _WIN32_WINNT < 0x0600 */
+#ifndef WM_MOUSEHWHEEL
+#define WM_MOUSEHWHEEL 0x020E
+#endif
+
 /* Turn debug messages on or off */
 #ifndef CYGDEBUG
 #define CYGDEBUG				NO
-#endif
-
-/* WM_XBUTTON Messages. They should go into w32api. */
-#ifndef WM_XBUTTONDOWN
-#define WM_XBUTTONDOWN 523
-#endif
-#ifndef WM_XBUTTONUP
-#define WM_XBUTTONUP 524
-#endif
-#ifndef WM_XBUTTONDBLCLK
-#define WM_XBUTTONDBLCLK 525
 #endif
 
 #define WIN_DEFAULT_BPP				0
@@ -460,6 +454,7 @@ typedef struct _winPrivScreenRec {
     Bool fBadDepth;
 
     int iDeltaZ;
+    int iDeltaV;
 
     int iConnectedClients;
 
@@ -921,8 +916,8 @@ void
  * winkeybd.c
  */
 
-void
- winTranslateKey(WPARAM wParam, LPARAM lParam, int *piScanCode);
+int
+ winTranslateKey(WPARAM wParam, LPARAM lParam);
 
 int
  winKeybdProc(DeviceIntPtr pDeviceInt, int iState);
@@ -986,7 +981,7 @@ int
  winMouseProc(DeviceIntPtr pDeviceInt, int iState);
 
 int
- winMouseWheel(ScreenPtr pScreen, int iDeltaZ);
+ winMouseWheel(int *iTotalDeltaZ, int iDeltaZ, int iButtonUp, int iButtonDown);
 
 void
  winMouseButtonsSendEvent(int iEventType, int iButton);
@@ -1401,6 +1396,12 @@ void
 winDoRandRScreenSetSize(ScreenPtr pScreen,
                         CARD16 width,
                         CARD16 height, CARD32 mmWidth, CARD32 mmHeight);
+
+/*
+ * winmsgwindow.c
+ */
+Bool
+winCreateMsgWindowThread(void);
 
 /*
  * END DDX and DIX Function Prototypes

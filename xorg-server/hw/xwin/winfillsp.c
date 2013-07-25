@@ -118,7 +118,7 @@ winFillSpansNativeGDI(DrawablePtr pDrawable,
         if (hbmpOrig == NULL)
             FatalError("winFillSpans - DRAWABLE_PIXMAP - "
                        "SelectObject () failed on\n\tpPixmapPriv->hBitmap: "
-                       "%08x\n", (unsigned int) pPixmapPriv->hBitmap);
+                       "%p\n", pPixmapPriv->hBitmap);
 
         /* Branch on the fill type */
         switch (pGC->fillStyle) {

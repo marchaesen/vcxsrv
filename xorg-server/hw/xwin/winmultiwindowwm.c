@@ -1470,7 +1470,7 @@ winMultiWindowWMErrorHandler(Display * pDisplay, XErrorEvent * pErr)
 static int
 winMultiWindowWMIOErrorHandler(Display * pDisplay)
 {
-    ErrorF("winMultiWindowWMIOErrorHandler!\n\n");
+    ErrorF("winMultiWindowWMIOErrorHandler!\n");
 
     if (pthread_equal(pthread_self(), g_winMultiWindowWMThread)) {
         if (g_shutdown)
@@ -1510,7 +1510,7 @@ winMultiWindowXMsgProcErrorHandler(Display * pDisplay, XErrorEvent * pErr)
 static int
 winMultiWindowXMsgProcIOErrorHandler(Display * pDisplay)
 {
-    ErrorF("winMultiWindowXMsgProcIOErrorHandler!\n\n");
+    ErrorF("winMultiWindowXMsgProcIOErrorHandler!\n");
 
     if (pthread_equal(pthread_self(), g_winMultiWindowXMsgProcThread)) {
         /* Restart at the main entry point */
@@ -1626,23 +1626,27 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
     }
 
     if (XGetWindowProperty(pDisplay, iWindow, windowState, 0L,
-                           1L, False, XA_ATOM, &type, &format,
+                           MAXINT, False, XA_ATOM, &type, &format,
                            &nitems, &left,
                            (unsigned char **) &pAtom) == Success) {
-        if (pAtom && nitems == 1) {
-            if (*pAtom == skiptaskbarState)
-                hint |= HINT_SKIPTASKBAR;
-            if (*pAtom == hiddenState)
-                maxmin |= HINT_MIN;
-            else if (*pAtom == fullscreenState)
-                maxmin |= HINT_MAX;
-            if (*pAtom == belowState)
-                *zstyle = HWND_BOTTOM;
-            else if (*pAtom == aboveState)
-                *zstyle = HWND_TOPMOST;
-        }
-        if (pAtom)
+        if (pAtom ) {
+            unsigned long i;
+
+            for (i = 0; i < nitems; i++) {
+                if (pAtom[i] == skiptaskbarState)
+                    hint |= HINT_SKIPTASKBAR;
+                if (pAtom[i] == hiddenState)
+                    maxmin |= HINT_MIN;
+                else if (pAtom[i] == fullscreenState)
+                    maxmin |= HINT_MAX;
+                if (pAtom[i] == belowState)
+                    *zstyle = HWND_BOTTOM;
+                else if (pAtom[i] == aboveState)
+                    *zstyle = HWND_TOPMOST;
+            }
+
             XFree(pAtom);
+        }
     }
 
     nitems = left = 0;

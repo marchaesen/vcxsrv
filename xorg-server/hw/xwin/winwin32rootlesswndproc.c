@@ -649,18 +649,27 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (pScreenPriv == NULL || pScreenInfo->fIgnoreInput)
             break;
         SetCapture(hwnd);
-        return winMouseButtonsHandle(pScreen, ButtonPress, HIWORD(wParam) + 5,
+        return winMouseButtonsHandle(pScreen, ButtonPress, HIWORD(wParam) + 7,
                                      wParam);
     case WM_XBUTTONUP:
         if (pScreenPriv == NULL || pScreenInfo->fIgnoreInput)
             break;
         ReleaseCapture();
-        return winMouseButtonsHandle(pScreen, ButtonRelease, HIWORD(wParam) + 5,
+        return winMouseButtonsHandle(pScreen, ButtonRelease, HIWORD(wParam) + 7,
                                      wParam);
 
     case WM_MOUSEWHEEL:
 #if CYGMULTIWINDOW_DEBUG
         winDebug("winMWExtWMWindowProc - WM_MOUSEWHEEL\n");
+#endif
+
+        /* Pass the message to the root window */
+        SendMessage(hwndScreen, message, wParam, lParam);
+        return 0;
+
+    case WM_MOUSEHWHEEL:
+#if CYGMULTIWINDOW_DEBUG
+        winDebug("winMWExtWMWindowProc - WM_MOUSEHWHEEL\n");
 #endif
 
         /* Pass the message to the root window */
@@ -823,24 +832,24 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (!(pWinPos->flags & SWP_NOZORDER)) {
             if (pRLWinPriv->fRestackingNow || pScreenPriv->fRestacking) {
 #if CYGMULTIWINDOW_DEBUG
-                winDebug("Win %08x is now restacking.\n",
-                         (unsigned int) pRLWinPriv);
+                winDebug("Win %p is now restacking.\n",
+                         pRLWinPriv);
 #endif
                 break;
             }
 
             if (winIsInternalWMRunning(pScreenInfo) || IsRaiseOnClick(pWin)) {
 #if CYGMULTIWINDOW_DEBUG
-                winDebug("Win %08x has WINDOWSWM_RAISE_ON_CLICK.\n",
-                         (unsigned int) pRLWinPriv);
+                winDebug("Win %p has WINDOWSWM_RAISE_ON_CLICK.\n",
+                         pRLWinPriv);
 #endif
                 break;
             }
 
 #if CYGMULTIWINDOW_DEBUG
-            winDebug("Win %08x forbid to change z order (%08x).\n",
-                     (unsigned int) pRLWinPriv,
-                     (unsigned int) pWinPos->hwndInsertAfter);
+            winDebug("Win %p forbid to change z order (%p).\n",
+                     pRLWinPriv,
+                     pWinPos->hwndInsertAfter);
 #endif
             pWinPos->flags |= SWP_NOZORDER;
         }

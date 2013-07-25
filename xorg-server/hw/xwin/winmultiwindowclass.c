@@ -68,7 +68,12 @@ winMultiWindowGetClassHint(WindowPtr pWin, char **res_name, char **res_class)
     while (prop) {
         if (prop->propertyName == XA_WM_CLASS
             && prop->type == XA_STRING && prop->format == 8 && prop->data) {
+            /*
+              WM_CLASS property should consist of 2 null terminated strings, but we
+              must handle the cases when one or both is absent or not null terminated
+            */
             len_name = strlen((char *) prop->data);
+            if (len_name > prop->size) len_name = prop->size;
 
             (*res_name) = malloc(len_name + 1);
 
@@ -77,13 +82,13 @@ winMultiWindowGetClassHint(WindowPtr pWin, char **res_name, char **res_class)
                 return 0;
             }
 
-            /* Add one to len_name to allow copying of trailing 0 */
-            strncpy((*res_name), prop->data, len_name + 1);
+            /* Copy name and ensure null terminated */
+            strncpy((*res_name), prop->data, len_name);
+            (*res_name)[len_name] = '\0';
 
-            if (len_name == prop->size)
-                len_name--;
-
-            len_class = strlen(((char *) prop->data) + 1 + len_name);
+            /* Compute length of class name, it could be that it is absent or not null terminated */
+            len_class = (len_name >= prop->size) ? 0 : (strlen(((char *) prop->data) + 1 + len_name));
+            if (len_class > prop->size - 1 - len_name) len_class = prop->size - 1 - len_name;
 
             (*res_class) = malloc(len_class + 1);
 
@@ -95,7 +100,9 @@ winMultiWindowGetClassHint(WindowPtr pWin, char **res_name, char **res_class)
                 return 0;
             }
 
-            strcpy((*res_class), ((char *) prop->data) + 1 + len_name);
+            /* Copy class name and ensure null terminated */
+            strncpy((*res_class), ((char *) prop->data) + 1 + len_name, len_class);
+            (*res_class)[len_class] = '\0';
 
             return 1;
         }
