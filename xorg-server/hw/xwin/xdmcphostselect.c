@@ -44,7 +44,7 @@ static void SelectHost(int Index)
  * Process messages for the about dialog.
  */
 
-static wBOOL CALLBACK DisplayXdmcpHostsDlgProc (HWND hwndDialog, UINT message, WPARAM wParam, LPARAM lParam)
+static INT_PTR CALLBACK DisplayXdmcpHostsDlgProc (HWND hwndDialog, UINT message, WPARAM wParam, LPARAM lParam)
 {
   /* Branch on message type */
   switch (message)

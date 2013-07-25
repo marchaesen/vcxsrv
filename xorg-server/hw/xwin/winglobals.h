@@ -30,6 +30,8 @@
 #include <xwin-config.h>
 #endif
 
+#include <pthread.h>
+
 /*
  * References to external symbols
  */

@@ -259,9 +259,11 @@ ddxGiveUp(enum ExitCode error)
     PostQuitMessage(0);
 
     {
+        int iReturn;
+
         winDebug("ddxGiveUp - Releasing termination mutex\n");
 
-        int iReturn = pthread_mutex_unlock(&g_pmTerminating);
+        iReturn = pthread_mutex_unlock(&g_pmTerminating);
 
         if (iReturn != 0) {
             ErrorF("winMsgWindowProc - pthread_mutex_unlock () failed: %d\n",
