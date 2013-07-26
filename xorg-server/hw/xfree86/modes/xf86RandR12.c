@@ -1771,6 +1771,19 @@ xf86RandR12EnterVT(ScrnInfoPtr pScrn)
     return RRGetInfo(pScreen, TRUE);    /* force a re-probe of outputs and notify clients about changes */
 }
 
+static void
+xf86DetachOutputGPU(ScreenPtr pScreen)
+{
+    rrScrPrivPtr rp = rrGetScrPriv(pScreen);
+    int i;
+
+    /* make sure there are no attached shared scanout pixmaps first */
+    for (i = 0; i < rp->numCrtcs; i++)
+        RRCrtcDetachScanoutPixmap(rp->crtcs[i]);
+
+    DetachOutputGPU(pScreen);
+}
+
 static Bool
 xf86RandR14ProviderSetOutputSource(ScreenPtr pScreen,
                                    RRProviderPtr provider,
@@ -1780,7 +1793,7 @@ xf86RandR14ProviderSetOutputSource(ScreenPtr pScreen,
         if (provider->output_source) {
             ScreenPtr cmScreen = pScreen->current_master;
 
-            DetachOutputGPU(pScreen);
+            xf86DetachOutputGPU(pScreen);
             AttachUnboundGPU(cmScreen, pScreen);
         }
         provider->output_source = NULL;
@@ -1808,7 +1821,7 @@ xf86RandR14ProviderSetOffloadSink(ScreenPtr pScreen,
     if (!sink_provider) {
         if (provider->offload_sink) {
             ScreenPtr cmScreen = pScreen->current_master;
-            DetachOutputGPU(pScreen);
+            xf86DetachOutputGPU(pScreen);
             AttachUnboundGPU(cmScreen, pScreen);
         }
 
@@ -1899,7 +1912,7 @@ xf86RandR14ProviderDestroy(ScreenPtr screen, RRProviderPtr provider)
             RRSetChanged(screen);
         }
         else if (config->randr_provider->output_source) {
-            DetachOutputGPU(screen);
+            xf86DetachOutputGPU(screen);
             config->randr_provider->output_source = NULL;
             RRSetChanged(screen);
         }
