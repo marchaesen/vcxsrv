@@ -153,7 +153,7 @@ typedef char*		XtArgVal;
 typedef long		XtEnum;
 #else
 typedef char		Boolean;
-typedef long		XtArgVal;
+typedef intptr_t	XtArgVal;
 typedef unsigned char	XtEnum;
 #endif
 

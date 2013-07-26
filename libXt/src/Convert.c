@@ -640,7 +640,7 @@ void XtDirectConvert(
 
     LOCK_PROCESS;
     /* Try to find cache entry for conversion */
-    hash = ((long) converter >> 2) + from->size + *((char *) from->addr);
+    hash = (long)((( ((long)((intptr_t)converter&0xffffffff)) >> 2) + from->size + *((char *) from->addr))&0xffffffff);
     if (from->size > 1) hash += ((char *) from->addr)[1];
 
     for (p = cacheHashTable[hash & CACHEHASHMASK]; p; p = p->next) {
@@ -737,7 +737,7 @@ CallConverter(
 
     LOCK_PROCESS;
     /* Try to find cache entry for conversion */
-    hash = ((long)(converter) >> 2) + from->size + *((char *) from->addr);
+    hash = (long)(((((long)( (intptr_t)converter&0xffffffff)) >> 2) + from->size + *((char *) from->addr))&0xffffffff);
     if (from->size > 1) hash += ((char *) from->addr)[1];
 
     if (cP->cache_type != XtCacheNone) {
