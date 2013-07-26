@@ -21,12 +21,12 @@
 Name "VcXsrv"
 
 ; The file to write
-OutFile "vcxsrv-64-debug.1.14.2.0.installer.exe"
+OutFile "vcxsrv-64-debug.1.14.2.1.installer.exe"
 
 ; The default installation directory
 InstallDir $PROGRAMFILES64\VcXsrv
 
-; Registry key to check for directory (so if you install again, it will 
+; Registry key to check for directory (so if you install again, it will
 ; overwrite the old one automatically)
 InstallDirRegKey HKLM SOFTWARE\VcXsrv "Install_Dir_64"
 

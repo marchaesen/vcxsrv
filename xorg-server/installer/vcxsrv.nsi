@@ -21,12 +21,12 @@
 Name "VcXsrv"
 
 ; The file to write
-OutFile "vcxsrv.1.14.2.0.installer.exe"
+OutFile "vcxsrv.1.14.2.1.installer.exe"
 
 ; The default installation directory
 InstallDir $PROGRAMFILES32\VcXsrv
 
-; Registry key to check for directory (so if you install again, it will 
+; Registry key to check for directory (so if you install again, it will
 ; overwrite the old one automatically)
 InstallDirRegKey HKLM SOFTWARE\VcXsrv "Install_Dir"
 
@@ -185,7 +185,7 @@ SectionEnd
 ; Uninstaller
 
 Section "Uninstall"
-  
+
   ; Remove registry keys
   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv"
   DeleteRegKey HKLM SOFTWARE\VcXsrv
@@ -245,4 +245,3 @@ Section "Uninstall"
   RMDir "$INSTDIR"
 
 SectionEnd
-

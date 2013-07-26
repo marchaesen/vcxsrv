@@ -2,3 +2,5 @@ e include/dix-config.h
 e xorg-server/hw/xwin/XWin.rc
 e xorg-server/installer/vcxsrv.nsi
 e xorg-server/installer/vcxsrv-debug.nsi
+e xorg-server/installer/vcxsrv-64.nsi
+e xorg-server/installer/vcxsrv-64-debug.nsi
