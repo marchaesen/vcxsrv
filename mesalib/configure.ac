@@ -6,7 +6,7 @@ dnl Tell the user about autoconf.html in the --help output
 m4_divert_once([HELP_END], [
 See docs/autoconf.html for more details on the options for Mesa.])
 
-AC_INIT([Mesa], [9.2.0-devel],
+AC_INIT([Mesa], [9.3.0-devel],
     [https://bugs.freedesktop.org/enter_bug.cgi?product=Mesa])
 AC_CONFIG_AUX_DIR([bin])
 AC_CONFIG_MACRO_DIR([m4])
@@ -1973,7 +1973,7 @@ AC_SUBST([VDPAU_MINOR], 0)
 AC_SUBST([XVMC_MAJOR], 1)
 AC_SUBST([XVMC_MINOR], 0)
 
-AC_SUBST([XA_MAJOR], 1)
+AC_SUBST([XA_MAJOR], 2)
 AC_SUBST([XA_MINOR], 0)
 AC_SUBST([XA_TINY], 0)
 AC_SUBST([XA_VERSION], "$XA_MAJOR.$XA_MINOR.$XA_TINY")
