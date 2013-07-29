@@ -77,7 +77,7 @@ static int classify_identifier(struct _mesa_glsl_parse_state *, const char *);
       } else if (yyextra->is_version(reserved_glsl,			\
                                      reserved_glsl_es)) {		\
 	 _mesa_glsl_error(yylloc, yyextra,				\
-			  "Illegal use of reserved word `%s'", yytext);	\
+			  "illegal use of reserved word `%s'", yytext);	\
 	 return ERROR_TOK;						\
       } else {								\
 	 yylval->identifier = strdup(yytext);				\
@@ -93,7 +93,7 @@ static int classify_identifier(struct _mesa_glsl_parse_state *, const char *);
    do {									\
       if (yyextra->is_version(0, 300)) {				\
 	 _mesa_glsl_error(yylloc, yyextra,				\
-			  "Illegal use of reserved word `%s'", yytext);	\
+			  "illegal use of reserved word `%s'", yytext);	\
 	 return ERROR_TOK;						\
       } else {								\
          return token;							\
@@ -124,10 +124,10 @@ literal_integer(char *text, int len, struct _mesa_glsl_parse_state *state,
       /* Note that signed 0xffffffff is valid, not out of range! */
       if (state->is_version(130, 300)) {
 	 _mesa_glsl_error(lloc, state,
-			  "Literal value `%s' out of range", text);
+			  "literal value `%s' out of range", text);
       } else {
 	 _mesa_glsl_warning(lloc, state,
-			    "Literal value `%s' out of range", text);
+			    "literal value `%s' out of range", text);
       }
    } else if (base == 10 && !is_uint && (unsigned)value > (unsigned)INT_MAX + 1) {
       /* Tries to catch unintentionally providing a negative value.
@@ -135,7 +135,7 @@ literal_integer(char *text, int len, struct _mesa_glsl_parse_state *state,
        * want to warn for INT_MAX.
        */
       _mesa_glsl_warning(lloc, state,
-			 "Signed literal value `%s' is interpreted as %d",
+			 "signed literal value `%s' is interpreted as %d",
 			 text, lval->n);
    }
    return is_uint ? UINTCONSTANT : INTCONSTANT;
@@ -324,30 +324,11 @@ sampler2DMSArray   KEYWORD_WITH_ALT(150, 300, 150, 0, yyextra->ARB_texture_multi
 isampler2DMSArray  KEYWORD_WITH_ALT(150, 300, 150, 0, yyextra->ARB_texture_multisample_enable, ISAMPLER2DMSARRAY);
 usampler2DMSArray  KEYWORD_WITH_ALT(150, 300, 150, 0, yyextra->ARB_texture_multisample_enable, USAMPLER2DMSARRAY);
 
-samplerCubeArray	{
-			  if (yyextra->ARB_texture_cube_map_array_enable)
-			     return SAMPLERCUBEARRAY;
-			  else
-			     return IDENTIFIER;
-		}
-isamplerCubeArray	{
-			  if (yyextra->ARB_texture_cube_map_array_enable)
-			     return ISAMPLERCUBEARRAY;
-			  else
-			     return IDENTIFIER;
-		}
-usamplerCubeArray	{
-			  if (yyextra->ARB_texture_cube_map_array_enable)
-			     return USAMPLERCUBEARRAY;
-			  else
-			     return IDENTIFIER;
-		}
-samplerCubeArrayShadow	{
-			  if (yyextra->ARB_texture_cube_map_array_enable)
-			     return SAMPLERCUBEARRAYSHADOW;
-			  else
-			     return IDENTIFIER;
-		}
+   /* keywords available with ARB_texture_cube_map_array_enable extension on desktop GLSL */
+samplerCubeArray   KEYWORD_WITH_ALT(400, 0, 400, 0, yyextra->ARB_texture_cube_map_array_enable, SAMPLERCUBEARRAY);
+isamplerCubeArray KEYWORD_WITH_ALT(400, 0, 400, 0, yyextra->ARB_texture_cube_map_array_enable, ISAMPLERCUBEARRAY);
+usamplerCubeArray KEYWORD_WITH_ALT(400, 0, 400, 0, yyextra->ARB_texture_cube_map_array_enable, USAMPLERCUBEARRAY);
+samplerCubeArrayShadow   KEYWORD_WITH_ALT(400, 0, 400, 0, yyextra->ARB_texture_cube_map_array_enable, SAMPLERCUBEARRAYSHADOW);
 
 samplerExternalOES		{
 			  if (yyextra->OES_EGL_image_external_enable)
@@ -371,7 +352,7 @@ layout		{
 		      return LAYOUT_TOK;
 		   } else {
 		      yylval->identifier = strdup(yytext);
-		      return IDENTIFIER;
+		      return classify_identifier(yyextra, yytext);
 		   }
 		}
 

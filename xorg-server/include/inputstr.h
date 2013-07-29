@@ -195,7 +195,7 @@ typedef struct _GrabRec {
     unsigned keyboardMode:1;
     unsigned pointerMode:1;
     enum InputLevel grabtype;
-    CARD8 type;                 /* event type */
+    CARD8 type;                 /* event type for passive grabs, 0 for active grabs */
     DetailRec modifiersDetail;
     DeviceIntPtr modifierDevice;
     DetailRec detail;           /* key or button */
