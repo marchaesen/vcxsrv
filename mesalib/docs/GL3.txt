@@ -124,7 +124,7 @@ GL_ARB_transform_feedback_instanced                  DONE
 GL_ARB_base_instance                                 DONE (i965, nv50, nvc0, r600, radeonsi)
 GL_ARB_shader_image_load_store                       not started
 GL_ARB_conservative_depth                            DONE (softpipe)
-GL_ARB_shading_language_420pack                      started (Todd)
+GL_ARB_shading_language_420pack                      DONE (i965, gallium)
 GL_ARB_internalformat_query                          DONE (i965, gallium)
 GL_ARB_map_buffer_alignment                          DONE (r300, r600, radeonsi)
 
@@ -153,7 +153,7 @@ ARB_texture_buffer_range                             DONE (nv50, nvc0)
 ARB_texture_query_levels                             not started
 ARB_texture_storage_multisample                      DONE (i965)
 ARB_texture_view                                     not started
-ARB_vertex_attrib_binding                            not started
+ARB_vertex_attrib_binding                            started (Fredrik)
 
 
 GL 4.4:

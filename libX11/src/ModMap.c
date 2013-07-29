@@ -79,17 +79,11 @@ XSetModifierMapping(
     int         mapSize = modifier_map->max_keypermod << 3;	/* 8 modifiers */
 
     LockDisplay(dpy);
-    GetReqExtra(SetModifierMapping, mapSize, req);
-    if (!req) {
-	UnlockDisplay(dpy);
-	return MappingFailed;
-    }
-
+    GetReq(SetModifierMapping, req);
+    req->length += mapSize >> 2;
     req->numKeyPerModifier = modifier_map->max_keypermod;
 
-    memcpy((char *) NEXTPTR(req,xSetModifierMappingReq),
-	   (char *) modifier_map->modifiermap,
-	   mapSize);
+    Data(dpy, modifier_map->modifiermap, mapSize);
 
     (void) _XReply(dpy, (xReply *) & rep,
 	(SIZEOF(xSetModifierMappingReply) - SIZEOF(xReply)) >> 2, xTrue);

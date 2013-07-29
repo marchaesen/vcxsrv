@@ -1163,7 +1163,7 @@ parse_fontname(
 	    * a "missing_charset" will be reported to the client
 	    * for this CharSet.
 	    */
-	    font_data_return. xlfd_name = NULL;
+	    font_data_return.xlfd_name  = NULL;
 	    font_data_return.side       = XlcUnknown;
 
 	    ret = parse_fontdata(oc, font_set, font_set->font_data,

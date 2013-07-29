@@ -895,8 +895,7 @@ TouchAddActiveGrabListener(DeviceIntPtr dev, TouchPointInfoPtr ti,
 
     if (!ti->emulate_pointer &&
         grab->grabtype == XI2 &&
-        (grab->type != XI_TouchBegin && grab->type != XI_TouchEnd &&
-         grab->type != XI_TouchUpdate))
+        !xi2mask_isset(grab->xi2mask, dev, XI_TouchBegin))
         return;
 
     TouchAddGrabListener(dev, ti, ev, grab);

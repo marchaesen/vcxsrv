@@ -239,7 +239,7 @@ set_valuators(DeviceIntPtr dev, DeviceEvent *event, ValuatorMask *mask)
                 SetBit(event->valuators.mode, i);
             event->valuators.data[i] = valuator_mask_get_double(mask, i);
         }
-        else if (valuator_get_mode(dev, i) == Absolute)
+        else
             event->valuators.data[i] = dev->valuator->axisVal[i];
     }
 }
