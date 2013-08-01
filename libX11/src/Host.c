@@ -64,6 +64,10 @@ X Window System is a trademark of The Open Group.
 #endif
 #include "Xlibint.h"
 
+#ifdef _MSC_VER
+#define inline __inline
+#endif
+
 static inline int
 changehost (Display *dpy, XHostAddress *host, BYTE mode)
 {
