@@ -668,6 +668,10 @@ DevicePresenceNotify event sent), but not enabled, thus leaving policy up
 to the client.
 Enabled by default.
 .TP 7
+.BI "Option \*qAutoAddGPU\*q \*q" boolean \*q
+If this option is disabled, then no GPU devices will be added from the udev
+backend. Enabled by default. (May need to be disabled to setup Xinerama).
+.TP 7
 .BI "Option \*qLog\*q \*q" string \*q
 This option controls whether the log is flushed and/or synced to disk after
 each message.
