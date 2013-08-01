@@ -70,12 +70,21 @@ ProcXIQueryVersion(ClientPtr client)
 
     pXIClient = dixLookupPrivate(&client->devPrivates, XIClientPrivateKey);
 
+    if (version_compare(XIVersion.major_version, XIVersion.minor_version,
+                stuff->major_version, stuff->minor_version) > 0) {
+        major = stuff->major_version;
+        minor = stuff->minor_version;
+    } else {
+        major = XIVersion.major_version;
+        minor = XIVersion.minor_version;
+    }
+
     if (pXIClient->major_version) {
 
         /* Check to see if the client has only ever asked
          * for version 2.2 or higher
          */
-        if (version_compare(stuff->major_version, stuff->minor_version, 2, 2) >= 0 &&
+        if (version_compare(major, minor, 2, 2) >= 0 &&
             version_compare(pXIClient->major_version, pXIClient->minor_version, 2, 2) >= 0)
         {
 
@@ -84,16 +93,14 @@ ProcXIQueryVersion(ClientPtr client)
              * version to the client but leave the server internal
              * version set to the highest requested value
              */
-            major = stuff->major_version;
-            minor = stuff->minor_version;
-            if (version_compare(stuff->major_version, stuff->minor_version,
+            if (version_compare(major, minor,
                                 pXIClient->major_version, pXIClient->minor_version) > 0)
             {
-                pXIClient->major_version = stuff->major_version;
-                pXIClient->minor_version = stuff->minor_version;
+                pXIClient->major_version = major;
+                pXIClient->minor_version = minor;
             }
         } else {
-            if (version_compare(stuff->major_version, stuff->minor_version,
+            if (version_compare(major, minor,
                                 pXIClient->major_version, pXIClient->minor_version) < 0) {
 
                 client->errorValue = stuff->major_version;
@@ -103,16 +110,6 @@ ProcXIQueryVersion(ClientPtr client)
             minor = pXIClient->minor_version;
         }
     } else {
-        if (version_compare(XIVersion.major_version, XIVersion.minor_version,
-                    stuff->major_version, stuff->minor_version) > 0) {
-            major = stuff->major_version;
-            minor = stuff->minor_version;
-        }
-        else {
-            major = XIVersion.major_version;
-            minor = XIVersion.minor_version;
-        }
-
         pXIClient->major_version = major;
         pXIClient->minor_version = minor;
     }

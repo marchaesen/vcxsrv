@@ -2402,6 +2402,7 @@ struct gl_shader_program
 #define GLSL_NOP_FRAG 0x40  /**< Force no-op fragment shaders */
 #define GLSL_USE_PROG 0x80  /**< Log glUseProgram calls */
 #define GLSL_REPORT_ERRORS 0x100  /**< Print compilation errors */
+#define GLSL_DUMP_ON_ERROR 0x200 /**< Dump shaders to stderr on compile error */
 
 
 /**
@@ -2871,6 +2872,12 @@ struct gl_constants
     * of spec, but it can make some apps work that otherwise wouldn't.
     */
    GLboolean ForceGLSLExtensionsWarn;
+
+   /**
+    * If non-zero, forces GLSL shaders without the #version directive to behave
+    * as if they began with "#version ForceGLSLVersion".
+    */
+   GLuint ForceGLSLVersion;
 
    /**
     * Does the driver support real 32-bit integers?  (Otherwise, integers are

@@ -98,7 +98,7 @@ static struct asm_instruction *asm_instruction_copy_ctor(
 
 #define YYLLOC_DEFAULT(Current, Rhs, N)					\
    do {									\
-      if (YYID(N)) {							\
+      if (N) {							\
 	 (Current).first_line = YYRHSLOC(Rhs, 1).first_line;		\
 	 (Current).first_column = YYRHSLOC(Rhs, 1).first_column;	\
 	 (Current).position = YYRHSLOC(Rhs, 1).position;		\
@@ -112,16 +112,14 @@ static struct asm_instruction *asm_instruction_copy_ctor(
 	 (Current).position = YYRHSLOC(Rhs, 0).position			\
 	    + (Current).first_column;					\
       }									\
-   } while(YYID(0))
-
-#define YYLEX_PARAM state->scanner
+   } while(0)
 %}
 
 %pure-parser
 %locations
+%lex-param   { struct asm_parser_state *state }
 %parse-param { struct asm_parser_state *state }
 %error-verbose
-%lex-param { void *scanner }
 
 %union {
    struct asm_instruction *inst;
@@ -269,8 +267,16 @@ static struct asm_instruction *asm_instruction_copy_ctor(
 %type <negate> optionalSign
 
 %{
-extern int yylex(YYSTYPE *yylval_param, YYLTYPE *yylloc_param,
-    void *yyscanner);
+extern int
+_mesa_program_lexer_lex(YYSTYPE *yylval_param, YYLTYPE *yylloc_param,
+                        void *yyscanner);
+
+static int
+yylex(YYSTYPE *yylval_param, YYLTYPE *yylloc_param,
+      struct asm_parser_state *state)
+{
+   return _mesa_program_lexer_lex(yylval_param, yylloc_param, state->scanner);
+}
 %}
 
 %%

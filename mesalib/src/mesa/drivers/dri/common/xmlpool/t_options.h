@@ -95,6 +95,16 @@ DRI_CONF_OPT_BEGIN_B(disable_glsl_line_continuations, def) \
         DRI_CONF_DESC(en,gettext("Disable backslash-based line continuations in GLSL source")) \
 DRI_CONF_OPT_END
 
+#define DRI_CONF_DISABLE_SHADER_BIT_ENCODING(def) \
+DRI_CONF_OPT_BEGIN_B(disable_shader_bit_encoding, def) \
+        DRI_CONF_DESC(en,gettext("Disable GL_ARB_shader_bit_encoding")) \
+DRI_CONF_OPT_END
+
+#define DRI_CONF_FORCE_GLSL_VERSION(def) \
+DRI_CONF_OPT_BEGIN_V(force_glsl_version, int, def, "0:999") \
+        DRI_CONF_DESC(en,gettext("Force a default GLSL version for shaders that lack an explicit #version line")) \
+DRI_CONF_OPT_END
+
 
 
 /**
@@ -264,15 +274,6 @@ DRI_CONF_OPT_END
 #define DRI_CONF_MAX_TEXTURE_UNITS(def,min,max) \
 DRI_CONF_OPT_BEGIN_V(texture_units,int,def, # min ":" # max ) \
         DRI_CONF_DESC(en,gettext("Number of texture units used")) \
-DRI_CONF_OPT_END
-
-#define DRI_CONF_ALLOW_LARGE_TEXTURES(def) \
-DRI_CONF_OPT_BEGIN_V(allow_large_textures,enum,def,"0:2") \
-	DRI_CONF_DESC_BEGIN(en,gettext("Support larger textures not guaranteed to fit into graphics memory")) \
-		DRI_CONF_ENUM(0,gettext("No")) \
-		DRI_CONF_ENUM(1,gettext("At least 1 texture must fit under worst-case assumptions")) \
-		DRI_CONF_ENUM(2,gettext("Announce hardware limits")) \
-	DRI_CONF_DESC_END \
 DRI_CONF_OPT_END
 
 #define DRI_CONF_TEXTURE_BLEND_QUALITY(def,range) \
