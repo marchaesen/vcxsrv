@@ -221,7 +221,7 @@ FcRandom(void)
 }
 
 #ifdef _WIN32
-#include <direct.h>
+#undef mkdir
 #define mkdir(path,mode) _mkdir(path)
 #endif
 

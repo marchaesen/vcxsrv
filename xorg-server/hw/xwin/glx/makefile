@@ -20,19 +20,19 @@ CSRCS = \
 .PHONY: getspecfiles
 
 getspecfiles:
-	-del wglext.h
+	del -e wglext.h
 	wget http://www.opengl.org/registry/api/GL/wglext.h
-	-del glxext.h
+	del -e glxext.h
 	wget http://www.opengl.org/registry/api/GL/glxext.h
-	-del glext.h
+	del -e glext.h
 	wget http://www.opengl.org/registry/api/GL/glext.h
-	-del genheaders.py
+	del -e genheaders.py
 	wget --no-check-certificate https://cvs.khronos.org/svn/repos/ogl/trunk/doc/registry/public/api/genheaders.py
-	-del reg.py
+	del -e reg.py
 	wget --no-check-certificate https://cvs.khronos.org/svn/repos/ogl/trunk/doc/registry/public/api/reg.py
-	-del gl.xml
+	del -e gl.xml
 	wget --no-check-certificate https://cvs.khronos.org/svn/repos/ogl/trunk/doc/registry/public/api/gl.xml
-	-del wgl.xml
+	del -e wgl.xml
 	wget --no-check-certificate https://cvs.khronos.org/svn/repos/ogl/trunk/doc/registry/public/api/wgl.xml
 
 $(OBJDIR)\generated_gl_wrappers.c: gen_gl_wrappers.py gl.xml gen_gl_wrappers.py reg.py

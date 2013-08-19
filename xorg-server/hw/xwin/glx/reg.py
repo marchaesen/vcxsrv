@@ -269,8 +269,10 @@ class GeneratorOptions:
 #     generated around a feature interface in the header file.
 #   genFuncPointers - True if function pointer typedefs should be
 #     generated
-#   protectProto - True if #ifndef..#endif protection should be
+#   protectProto - True if #ifdef..#endif protection should be
 #     generated around prototype declarations
+#   protectProtoStr - #ifdef symbol to use around prototype
+#     declarations, if protected
 #   apicall - string to use for the function declaration prefix,
 #     such as APICALL on Windows.
 #   apientry - string to use for the calling convention macro,
@@ -294,6 +296,7 @@ class CGeneratorOptions(GeneratorOptions):
                  protectFile = True,
                  protectFeature = True,
                  protectProto = True,
+                 protectProtoStr = True,
                  apicall = '',
                  apientry = '',
                  apientryp = ''):
@@ -305,6 +308,7 @@ class CGeneratorOptions(GeneratorOptions):
         self.protectFile     = protectFile
         self.protectFeature  = protectFeature
         self.protectProto    = protectProto
+        self.protectProtoStr = protectProtoStr
         self.apicall         = apicall
         self.apientry        = apientry
         self.apientryp       = apientryp
@@ -579,7 +583,7 @@ class COutputGenerator(OutputGenerator):
                 print(self.cmdPointerBody, end='', file=self.outFile)
             if (self.cmdBody != ''):
                 if (self.genOpts.protectProto):
-                    print('#ifdef GL_GLEXT_PROTOTYPES', file=self.outFile)
+                    print('#ifdef', self.genOpts.protectProtoStr, file=self.outFile)
                 print(self.cmdBody, end='', file=self.outFile)
                 if (self.genOpts.protectProto):
                     print('#endif', file=self.outFile)
