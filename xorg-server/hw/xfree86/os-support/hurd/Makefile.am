@@ -12,4 +12,4 @@ libhurd_la_SOURCES = hurd_bell.c hurd_init.c hurd_mmap.c \
 
 AM_CFLAGS = -DUSESTDRES -DHAVE_SYSV_IPC $(XORG_CFLAGS) $(DIX_CFLAGS)
 
-INCLUDES = $(XORG_INCS)
+AM_CPPFLAGS = $(XORG_INCS)

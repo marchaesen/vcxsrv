@@ -12,7 +12,7 @@ multimedia_LTLIBRARIES =	\
 
 libi2c_la_SOURCES = xf86i2c.c
 
-INCLUDES = $(XORG_INCS)
+AM_CPPFLAGS = $(XORG_INCS)
 
 AM_CFLAGS = $(DIX_CFLAGS) $(XORG_CFLAGS)
 

@@ -126,6 +126,7 @@ Equipment Corporation.
 #ifdef COMPOSITE
 #include "compint.h"
 #endif
+#include "selection.h"
 
 #include "privates.h"
 #include "xace.h"

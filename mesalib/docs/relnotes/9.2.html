@@ -53,6 +53,7 @@ Note: some of the new features are only available with certain drivers.
 <li>Added new freedreno gallium driver</li>
 <li>OSMesa interface for gallium llvmpipe/softpipe drivers</li>
 <li>Gallium Heads-Up Display (HUD) feature for performance monitoring</li>
+<li>Added support for UVD (2.2 and 3.0) video decoding on r600g and radeonsi through VDPAU (requires Kernel 3.10 or later)</li>
 </ul>
 
 
@@ -71,7 +72,8 @@ Note: some of the new features are only available with certain drivers.
 the (unsupported) GDI driver.</li>
 <li>GL_EXT_separate_shader_objects has been removed from all Gallium drivers,
     because it disallows a critical GLSL shader optimization.
-    GL_ARB_separate_shader_objects doesn't have this issue.
+    GL_ARB_separate_shader_objects doesn't have this issue.</li>
+<li>i965 Gen6+ requires Kernel 3.6 or later. (92d2f5a)</li>
 </ul>
 
 </div>

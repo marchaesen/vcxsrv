@@ -139,4 +139,7 @@
 /* Have X server platform bus support */
 #undef XSERVER_PLATFORM_BUS
 
+/* Define to 1 if you have the `seteuid' function. */
+#undef HAVE_SETEUID
+
 #endif /* _XORG_CONFIG_H_ */

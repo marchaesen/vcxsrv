@@ -15,7 +15,7 @@ AM_CFLAGS = \
 # none yet
 #sdk_HEADERS =
 
-INCLUDES = \
+AM_CPPFLAGS = \
 	-I$(top_srcdir)/hw/xfree86/os-support \
 	-I$(top_srcdir)/hw/xfree86/os-support/bus \
 	-I$(top_srcdir)/hw/xfree86/common \
@@ -23,7 +23,7 @@ INCLUDES = \
 	-I$(top_srcdir)/mi
 
 if DRI2_AIGLX
-INCLUDES += -I$(top_srcdir)/hw/xfree86/dri2
+AM_CPPFLAGS += -I$(top_srcdir)/hw/xfree86/dri2
 endif
 
 glapi_sources =					\

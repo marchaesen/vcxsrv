@@ -174,6 +174,11 @@ typedef struct _FcValueList {
 			
 typedef int FcObject;
 
+/* The 1000 is to leave some room for future added internal objects, such
+ * that caches from newer fontconfig can still be used with older fontconfig
+ * without getting confused. */
+#define FC_EXT_OBJ_INDEX	1000
+
 typedef struct _FcPatternElt *FcPatternEltPtr;
 
 /*
@@ -742,6 +747,9 @@ FcMakeTempfile (char *template);
 FcPrivate int32_t
 FcRandom (void);
 
+FcPrivate FcBool
+FcMakeDirectory (const FcChar8 *dir);
+
 /* fcdbg.c */
 
 FcPrivate void
@@ -798,6 +806,9 @@ FcDefaultFini (void);
 
 FcPrivate FcBool
 FcFileIsLink (const FcChar8 *file);
+
+FcPrivate FcBool
+FcFileIsFile (const FcChar8 *file);
 
 FcPrivate FcBool
 FcFileScanConfig (FcFontSet	*set,

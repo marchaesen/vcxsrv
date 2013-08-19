@@ -269,6 +269,8 @@ _XimForwardEventCore(
     int		 ret_code;
     INT16	 len;
 
+    bzero(buf32, sizeof(buf32)); /* valgrind noticed uninitialized memory use! */
+
     if (!(len = _XimSetEventToWire(ev, (xEvent *)&buf_s[4])))
 	return False;				/* X event */
 
@@ -704,7 +706,11 @@ _XimCommitRecv(
 
     (void)_XimRespSyncReply(ic, flag);
 
-    MARK_FABRICATED(im);
+    if (ic->private.proto.registed_filter_event
+	& (KEYPRESS_MASK | KEYRELEASE_MASK))
+	    MARK_FABRICATED(im);
+
+    bzero(&ev, sizeof(ev));	/* uninitialized : found when running kterm under valgrind */
 
     ev.type = KeyPress;
     ev.send_event = False;
@@ -712,6 +718,15 @@ _XimCommitRecv(
     ev.window = ic->core.focus_window;
     ev.keycode = 0;
     ev.state = 0;
+
+    ev.time = 0L;
+    ev.serial = LastKnownRequestProcessed(im->core.display);
+    /* FIXME :
+       I wish there were COMMENTs (!) about the data passed around.
+    */
+#if 0
+    fprintf(stderr,"%s,%d: putback k press   FIXED ev.time=0 ev.serial=%lu\n", __FILE__, __LINE__, ev.serial);
+#endif
 
     XPutBackEvent(im->core.display, (XEvent *)&ev);
 

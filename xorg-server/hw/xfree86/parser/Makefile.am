@@ -51,4 +51,4 @@ sdk_HEADERS = \
 	xf86Parser.h \
 	xf86Optrec.h
 
-INCLUDES = -I$(srcdir)/../common
+AM_CPPFLAGS = -I$(srcdir)/../common

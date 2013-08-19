@@ -4,7 +4,7 @@ module_LTLIBRARIES = libexa.la
 
 libexa_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
 
-INCLUDES = \
+AM_CPPFLAGS = \
 	$(XORG_INCS) \
 	-I$(srcdir)/../../../exa \
 	-I$(srcdir)/../../../miext/cw

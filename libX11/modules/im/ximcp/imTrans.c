@@ -222,12 +222,20 @@ _XimTransInternalConnection(
 
     if (spec->is_putback)
 	return;
+
+    bzero(&ev, sizeof(ev));	/* FIXME: other fields may be accessed, too. */
     kev = (XKeyEvent *)&ev;
     kev->type = KeyPress;
     kev->send_event = False;
     kev->display = im->core.display;
     kev->window = spec->window;
     kev->keycode = 0;
+    kev->time = 0L;
+    kev->serial = LastKnownRequestProcessed(im->core.display);
+#if 0
+    fprintf(stderr,"%s,%d: putback FIXED kev->time=0 kev->serial=%lu\n", __FILE__, __LINE__, kev->serial);
+#endif
+
     XPutBackEvent(im->core.display, &ev);
     XFlush(im->core.display);
     spec->is_putback = True;

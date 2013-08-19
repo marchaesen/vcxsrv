@@ -343,6 +343,28 @@ _mesa_remove_attachment(struct gl_context *ctx,
 }
 
 /**
+ * Verify a couple error conditions that will lead to an incomplete FBO and
+ * may cause problems for the driver's RenderTexture path.
+ */
+static bool
+driver_RenderTexture_is_safe(const struct gl_renderbuffer_attachment *att)
+{
+   const struct gl_texture_image *const texImage =
+      att->Texture->Image[att->CubeMapFace][att->TextureLevel];
+
+   if (texImage->Width == 0 || texImage->Height == 0 || texImage->Depth == 0)
+      return false;
+
+   if ((texImage->TexObject->Target == GL_TEXTURE_1D_ARRAY
+        && att->Zoffset >= texImage->Height)
+       || (texImage->TexObject->Target != GL_TEXTURE_1D_ARRAY
+           && att->Zoffset >= texImage->Depth))
+      return false;
+
+   return true;
+}
+
+/**
  * Create a renderbuffer which will be set up by the driver to wrap the
  * texture image slice.
  *
@@ -363,8 +385,6 @@ _mesa_update_texture_renderbuffer(struct gl_context *ctx,
    struct gl_renderbuffer *rb;
 
    texImage = att->Texture->Image[att->CubeMapFace][att->TextureLevel];
-   if (!texImage)
-      return;
 
    rb = att->Renderbuffer;
    if (!rb) {
@@ -383,6 +403,9 @@ _mesa_update_texture_renderbuffer(struct gl_context *ctx,
       rb->NeedsFinishRenderTexture = ctx->Driver.FinishRenderTexture != NULL;
    }
 
+   if (!texImage)
+      return;
+
    rb->_BaseFormat = texImage->_BaseFormat;
    rb->Format = texImage->TexFormat;
    rb->InternalFormat = texImage->InternalFormat;
@@ -391,7 +414,8 @@ _mesa_update_texture_renderbuffer(struct gl_context *ctx,
    rb->NumSamples = texImage->NumSamples;
    rb->TexImage = texImage;
 
-   ctx->Driver.RenderTexture(ctx, fb, att);
+   if (driver_RenderTexture_is_safe(att))
+      ctx->Driver.RenderTexture(ctx, fb, att);
 }
 
 /**
@@ -703,15 +727,39 @@ test_attachment_completeness(const struct gl_context *ctx, GLenum format,
       }
       if (texImage->Width < 1 || texImage->Height < 1) {
          att_incomplete("teximage width/height=0");
-         printf("texobj = %u\n", texObj->Name);
-         printf("level = %d\n", att->TextureLevel);
          att->Complete = GL_FALSE;
          return;
       }
-      if (texObj->Target == GL_TEXTURE_3D && att->Zoffset >= texImage->Depth) {
-         att_incomplete("bad z offset");
-         att->Complete = GL_FALSE;
-         return;
+
+      switch (texObj->Target) {
+      case GL_TEXTURE_3D:
+         if (att->Zoffset >= texImage->Depth) {
+            att_incomplete("bad z offset");
+            att->Complete = GL_FALSE;
+            return;
+         }
+         break;
+      case GL_TEXTURE_1D_ARRAY:
+         if (att->Zoffset >= texImage->Height) {
+            att_incomplete("bad 1D-array layer");
+            att->Complete = GL_FALSE;
+            return;
+         }
+         break;
+      case GL_TEXTURE_2D_ARRAY:
+         if (att->Zoffset >= texImage->Depth) {
+            att_incomplete("bad 2D-array layer");
+            att->Complete = GL_FALSE;
+            return;
+         }
+         break;
+      case GL_TEXTURE_CUBE_MAP_ARRAY:
+         if (att->Zoffset >= texImage->Depth) {
+            att_incomplete("bad cube-array layer");
+            att->Complete = GL_FALSE;
+            return;
+         }
+         break;
       }
 
       baseFormat = _mesa_get_format_base_format(texImage->TexFormat);
@@ -1104,8 +1152,8 @@ _mesa_IsRenderbuffer(GLuint renderbuffer)
 }
 
 
-void GLAPIENTRY
-_mesa_BindRenderbuffer(GLenum target, GLuint renderbuffer)
+static void
+bind_renderbuffer(GLenum target, GLuint renderbuffer, bool allow_user_names)
 {
    struct gl_renderbuffer *newRb;
    GET_CURRENT_CONTEXT(ctx);
@@ -1125,9 +1173,7 @@ _mesa_BindRenderbuffer(GLenum target, GLuint renderbuffer)
          /* ID was reserved, but no real renderbuffer object made yet */
          newRb = NULL;
       }
-      else if (!newRb
-               && _mesa_is_desktop_gl(ctx)
-               && ctx->Extensions.ARB_framebuffer_object) {
+      else if (!newRb && !allow_user_names) {
          /* All RB IDs must be Gen'd */
          _mesa_error(ctx, GL_INVALID_OPERATION, "glBindRenderbuffer(buffer)");
          return;
@@ -1154,32 +1200,68 @@ _mesa_BindRenderbuffer(GLenum target, GLuint renderbuffer)
    _mesa_reference_renderbuffer(&ctx->CurrentRenderbuffer, newRb);
 }
 
+void GLAPIENTRY
+_mesa_BindRenderbuffer(GLenum target, GLuint renderbuffer)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   /* OpenGL ES glBindRenderbuffer and glBindRenderbufferOES use this same
+    * entry point, but they allow the use of user-generated names.
+    */
+   bind_renderbuffer(target, renderbuffer, _mesa_is_gles(ctx));
+}
 
 void GLAPIENTRY
 _mesa_BindRenderbufferEXT(GLenum target, GLuint renderbuffer)
 {
-    _mesa_BindRenderbuffer(target, renderbuffer);
+   /* This function should not be in the dispatch table for core profile /
+    * OpenGL 3.1, so execution should never get here in those cases -- no
+    * need for an explicit test.
+    */
+   bind_renderbuffer(target, renderbuffer, true);
 }
 
 
 /**
- * If the given renderbuffer is anywhere attached to the framebuffer, detach
- * the renderbuffer.
- * This is used when a renderbuffer object is deleted.
- * The spec calls for unbinding.
+ * Remove the specified renderbuffer or texture from any attachment point in
+ * the framebuffer.
+ *
+ * \returns
+ * \c true if the renderbuffer was detached from an attachment point.  \c
+ * false otherwise.
  */
-static void
-detach_renderbuffer(struct gl_context *ctx,
-                    struct gl_framebuffer *fb,
-                    struct gl_renderbuffer *rb)
+bool
+_mesa_detach_renderbuffer(struct gl_context *ctx,
+                          struct gl_framebuffer *fb,
+                          const void *att)
 {
-   GLuint i;
+   unsigned i;
+   bool progress = false;
+
    for (i = 0; i < BUFFER_COUNT; i++) {
-      if (fb->Attachment[i].Renderbuffer == rb) {
+      if (fb->Attachment[i].Texture == att
+          || fb->Attachment[i].Renderbuffer == att) {
          _mesa_remove_attachment(ctx, &fb->Attachment[i]);
+         progress = true;
       }
    }
-   invalidate_framebuffer(fb);
+
+   /* Section 4.4.4 (Framebuffer Completeness), subsection "Whole Framebuffer
+    * Completeness," of the OpenGL 3.1 spec says:
+    *
+    *     "Performing any of the following actions may change whether the
+    *     framebuffer is considered complete or incomplete:
+    *
+    *     ...
+    *
+    *        - Deleting, with DeleteTextures or DeleteRenderbuffers, an object
+    *          containing an image that is attached to a framebuffer object
+    *          that is bound to the framebuffer."
+    */
+   if (progress)
+      invalidate_framebuffer(fb);
+
+   return progress;
 }
 
 
@@ -1203,12 +1285,29 @@ _mesa_DeleteRenderbuffers(GLsizei n, const GLuint *renderbuffers)
                _mesa_BindRenderbuffer(GL_RENDERBUFFER_EXT, 0);
             }
 
+            /* Section 4.4.2 (Attaching Images to Framebuffer Objects),
+             * subsection "Attaching Renderbuffer Images to a Framebuffer," of
+             * the OpenGL 3.1 spec says:
+             *
+             *     "If a renderbuffer object is deleted while its image is
+             *     attached to one or more attachment points in the currently
+             *     bound framebuffer, then it is as if FramebufferRenderbuffer
+             *     had been called, with a renderbuffer of 0, for each
+             *     attachment point to which this image was attached in the
+             *     currently bound framebuffer. In other words, this
+             *     renderbuffer image is first detached from all attachment
+             *     points in the currently bound framebuffer. Note that the
+             *     renderbuffer image is specifically not detached from any
+             *     non-bound framebuffers. Detaching the image from any
+             *     non-bound framebuffers is the responsibility of the
+             *     application.
+             */
             if (_mesa_is_user_fbo(ctx->DrawBuffer)) {
-               detach_renderbuffer(ctx, ctx->DrawBuffer, rb);
+               _mesa_detach_renderbuffer(ctx, ctx->DrawBuffer, rb);
             }
             if (_mesa_is_user_fbo(ctx->ReadBuffer)
                 && ctx->ReadBuffer != ctx->DrawBuffer) {
-               detach_renderbuffer(ctx, ctx->ReadBuffer, rb);
+               _mesa_detach_renderbuffer(ctx, ctx->ReadBuffer, rb);
             }
 
 	    /* Remove from hash table immediately, to free the ID.
@@ -1875,7 +1974,8 @@ check_begin_texture_render(struct gl_context *ctx, struct gl_framebuffer *fb)
 
    for (i = 0; i < BUFFER_COUNT; i++) {
       struct gl_renderbuffer_attachment *att = fb->Attachment + i;
-      if (att->Texture && att->Renderbuffer->TexImage) {
+      if (att->Texture && att->Renderbuffer->TexImage
+          && driver_RenderTexture_is_safe(att)) {
          ctx->Driver.RenderTexture(ctx, fb, att);
       }
    }
@@ -1906,8 +2006,8 @@ check_end_texture_render(struct gl_context *ctx, struct gl_framebuffer *fb)
 }
 
 
-void GLAPIENTRY
-_mesa_BindFramebuffer(GLenum target, GLuint framebuffer)
+static void
+bind_framebuffer(GLenum target, GLuint framebuffer, bool allow_user_names)
 {
    struct gl_framebuffer *newDrawFb, *newReadFb;
    struct gl_framebuffer *oldDrawFb, *oldReadFb;
@@ -1953,9 +2053,7 @@ _mesa_BindFramebuffer(GLenum target, GLuint framebuffer)
          /* ID was reserved, but no real framebuffer object made yet */
          newDrawFb = NULL;
       }
-      else if (!newDrawFb
-               && _mesa_is_desktop_gl(ctx)
-               && ctx->Extensions.ARB_framebuffer_object) {
+      else if (!newDrawFb && !allow_user_names) {
          /* All FBO IDs must be Gen'd */
          _mesa_error(ctx, GL_INVALID_OPERATION, "glBindFramebuffer(buffer)");
          return;
@@ -2033,12 +2131,25 @@ _mesa_BindFramebuffer(GLenum target, GLuint framebuffer)
 }
 
 void GLAPIENTRY
-_mesa_BindFramebufferEXT(GLenum target, GLuint framebuffer)
+_mesa_BindFramebuffer(GLenum target, GLuint framebuffer)
 {
-    _mesa_BindFramebuffer(target, framebuffer);
+   GET_CURRENT_CONTEXT(ctx);
+
+   /* OpenGL ES glBindFramebuffer and glBindFramebufferOES use this same entry
+    * point, but they allow the use of user-generated names.
+    */
+   bind_framebuffer(target, framebuffer, _mesa_is_gles(ctx));
 }
 
-
+void GLAPIENTRY
+_mesa_BindFramebufferEXT(GLenum target, GLuint framebuffer)
+{
+   /* This function should not be in the dispatch table for core profile /
+    * OpenGL 3.1, so execution should never get here in those cases -- no
+    * need for an explicit test.
+    */
+   bind_framebuffer(target, framebuffer, true);
+}
 
 void GLAPIENTRY
 _mesa_DeleteFramebuffers(GLsizei n, const GLuint *framebuffers)
@@ -2476,7 +2587,7 @@ _mesa_FramebufferTexture(GLenum target, GLenum attachment,
 {
    GET_CURRENT_CONTEXT(ctx);
 
-   if (ctx->Version >= 32 || ctx->Extensions.ARB_geometry_shader4) {
+   if (_mesa_has_geometry_shaders(ctx)) {
       framebuffer_texture(ctx, "Layer", target, attachment, 0, texture,
                           level, 0, GL_TRUE);
    } else {

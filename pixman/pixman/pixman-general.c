@@ -208,6 +208,13 @@ general_composite_rect  (pixman_implementation_t *imp,
 	dest_iter.write_back (&dest_iter);
     }
 
+    if (src_iter.fini)
+	src_iter.fini (&src_iter);
+    if (mask_iter.fini)
+	mask_iter.fini (&mask_iter);
+    if (dest_iter.fini)
+	dest_iter.fini (&dest_iter);
+    
     if (scanline_buffer != (uint8_t *) stack_scanline_buffer)
 	free (scanline_buffer);
 }

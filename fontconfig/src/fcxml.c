@@ -2182,6 +2182,8 @@ FcParseInclude (FcConfigParse *parse)
     FcBool	    ignore_missing = FcFalse;
     FcBool	    deprecated = FcFalse;
     FcChar8	    *prefix = NULL, *p;
+    static FcChar8  *userdir = NULL;
+    static FcChar8  *userconf = NULL;
 
     s = FcStrBufDoneStatic (&parse->pstack->str);
     if (!s)
@@ -2214,23 +2216,78 @@ FcParseInclude (FcConfigParse *parse)
 	memcpy (&prefix[plen + 1], s, dlen);
 	prefix[plen + 1 + dlen] = 0;
 	s = prefix;
+	if (FcFileIsDir (s))
+	{
+	userdir:
+	    if (!userdir)
+		userdir = FcStrdup (s);
+	}
+	else if (FcFileIsFile (s))
+	{
+	userconf:
+	    if (!userconf)
+		userconf = FcStrdup (s);
+	}
+	else
+	{
+	    /* No config dir nor file on the XDG directory spec compliant place
+	     * so need to guess what it is supposed to be.
+	     */
+	    FcChar8 *parent = FcStrDirname (s);
+
+	    if (!FcFileIsDir (parent))
+		FcMakeDirectory (parent);
+	    FcStrFree (parent);
+	    if (FcStrStr (s, (const FcChar8 *)"conf.d") != NULL)
+		goto userdir;
+	    else
+		goto userconf;
+	}
     }
     if (!FcConfigParseAndLoad (parse->config, s, !ignore_missing))
 	parse->error = FcTrue;
+#ifndef _WIN32
     else
     {
         FcChar8 *filename;
+	static FcBool warn_conf = FcFalse, warn_confd = FcFalse;
 
         filename = FcConfigFilename(s);
 	if (deprecated == FcTrue &&
 	    filename != NULL &&
 	    !FcFileIsLink (filename))
 	{
-            FcConfigMessage (parse, FcSevereWarning, "reading configurations from %s is deprecated.", s);
+	    if (FcFileIsDir (filename))
+	    {
+		if (FcFileIsDir (userdir) ||
+		    rename ((const char *)filename, (const char *)userdir) != 0 ||
+		    symlink ((const char *)userdir, (const char *)filename) != 0)
+		{
+		    if (!warn_confd)
+		    {
+			FcConfigMessage (parse, FcSevereWarning, "reading configurations from %s is deprecated. please move it to %s manually", s, userdir);
+			warn_confd = FcTrue;
+		    }
+		}
+	    }
+	    else
+	    {
+		if (FcFileIsFile (userconf) ||
+		    rename ((const char *)filename, (const char *)userconf) != 0 ||
+		    symlink ((const char *)userconf, (const char *)filename) != 0)
+		{
+		    if (!warn_conf)
+		    {
+			FcConfigMessage (parse, FcSevereWarning, "reading configurations from %s is deprecated. please move it to %s manually", s, userconf);
+			warn_conf = FcTrue;
+		    }
+		}
+	    }
         }
         if(filename)
             FcStrFree(filename);
     }
+#endif
     FcStrBufDestroy (&parse->pstack->str);
 
   bail:

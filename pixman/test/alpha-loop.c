@@ -8,6 +8,7 @@
 int
 main (int argc, char **argv)
 {
+    pixman_image_t *a, *d, *s;
     uint8_t *alpha;
     uint32_t *src, *dest;
 
@@ -17,9 +18,9 @@ main (int argc, char **argv)
     src = (uint32_t *)make_random_bytes (WIDTH * HEIGHT * 4);
     dest = (uint32_t *)make_random_bytes (WIDTH * HEIGHT * 4);
 
-    pixman_image_t *a = pixman_image_create_bits (PIXMAN_a8, WIDTH, HEIGHT, (uint32_t *)alpha, WIDTH);
-    pixman_image_t *d = pixman_image_create_bits (PIXMAN_a8r8g8b8, WIDTH, HEIGHT, dest, WIDTH * 4);
-    pixman_image_t *s = pixman_image_create_bits (PIXMAN_a2r10g10b10, WIDTH, HEIGHT, src, WIDTH * 4);
+    a = pixman_image_create_bits (PIXMAN_a8, WIDTH, HEIGHT, (uint32_t *)alpha, WIDTH);
+    d = pixman_image_create_bits (PIXMAN_a8r8g8b8, WIDTH, HEIGHT, dest, WIDTH * 4);
+    s = pixman_image_create_bits (PIXMAN_a2r10g10b10, WIDTH, HEIGHT, src, WIDTH * 4);
 
     fail_after (5, "Infinite loop detected: 5 seconds without progress\n");
 

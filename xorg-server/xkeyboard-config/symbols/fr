@@ -200,7 +200,7 @@ xkb_symbols "oss_latin9" {
     include "fr(oss)"
     include "keypad(oss_latin9)"
 
-    name[Group1]="French (alternative, latin-9 only)";
+    name[Group1]="French (alternative, Latin-9 only)";
 
     // First row
     key <AE01>	{ [        ampersand,                1,           dead_caron,          dead_cedilla ] }; // & 1 ˇ ¸
@@ -547,7 +547,7 @@ xkb_symbols "bepo_latin9" {
     include "fr(bepo)"
     include "keypad(oss_latin9)"
 
-    name[Group1]="French (Bepo, ergonomic, Dvorak way, latin-9 only)";
+    name[Group1]="French (Bepo, ergonomic, Dvorak way, Latin-9 only)";
 
     key <TLDE> { [          dollar,   numbersign,        dollar,       paragraph ] }; // $ # $ ¶
 

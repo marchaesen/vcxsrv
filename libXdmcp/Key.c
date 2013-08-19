@@ -32,6 +32,11 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/Xmd.h>
 #include <X11/Xdmcp.h>
 
+#ifdef HAVE_LIBBSD
+#include <bsd/stdlib.h> /* for arc4random_buf() */
+#endif
+
+#ifndef HAVE_ARC4RANDOM_BUF
 static void
 getbits (long data, unsigned char *dst)
 {
@@ -40,6 +45,7 @@ getbits (long data, unsigned char *dst)
     dst[2] = (data >> 16) & 0xff;
     dst[3] = (data >> 24) & 0xff;
 }
+#endif
 
 #define Time_t time_t
 
@@ -59,6 +65,7 @@ getbits (long data, unsigned char *dst)
 void
 XdmcpGenerateKey (XdmAuthKeyPtr key)
 {
+#ifndef HAVE_ARC4RANDOM_BUF
     long    lowbits, highbits;
 
     srandom ((int)getpid() ^ time((Time_t *)0));
@@ -66,6 +73,9 @@ XdmcpGenerateKey (XdmAuthKeyPtr key)
     highbits = random ();
     getbits (lowbits, key->data);
     getbits (highbits, key->data + 4);
+#else
+    arc4random_buf(key->data, 8);
+#endif
 }
 
 int

@@ -13,9 +13,9 @@ TESTS=$(noinst_PROGRAMS)
 TESTS_ENVIRONMENT = $(XORG_MALLOC_DEBUG_ENV)
 
 AM_CFLAGS = $(DIX_CFLAGS) @XORG_CFLAGS@
-INCLUDES = $(XORG_INCS) -I$(top_srcdir)/miext/cw
+AM_CPPFLAGS = $(XORG_INCS) -I$(top_srcdir)/miext/cw
 if XORG
-INCLUDES += -I$(top_srcdir)/hw/xfree86/parser \
+AM_CPPFLAGS += -I$(top_srcdir)/hw/xfree86/parser \
 	-I$(top_srcdir)/hw/xfree86/ddc \
 	-I$(top_srcdir)/hw/xfree86/i2c -I$(top_srcdir)/hw/xfree86/modes \
 	-I$(top_srcdir)/hw/xfree86/ramdac -I$(top_srcdir)/hw/xfree86/dri \

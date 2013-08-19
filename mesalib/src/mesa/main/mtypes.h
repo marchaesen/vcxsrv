@@ -1152,31 +1152,32 @@ struct gl_sampler_object
  */
 struct gl_texture_object
 {
-   _glthread_Mutex Mutex;	/**< for thread safety */
-   GLint RefCount;		/**< reference count */
-   GLuint Name;			/**< the user-visible texture object ID */
-   GLenum Target;               /**< GL_TEXTURE_1D, GL_TEXTURE_2D, etc. */
+   _glthread_Mutex Mutex;      /**< for thread safety */
+   GLint RefCount;             /**< reference count */
+   GLuint Name;                /**< the user-visible texture object ID */
+   GLenum Target;              /**< GL_TEXTURE_1D, GL_TEXTURE_2D, etc. */
 
    struct gl_sampler_object Sampler;
 
-   GLenum DepthMode;		/**< GL_ARB_depth_texture */
+   GLenum DepthMode;           /**< GL_ARB_depth_texture */
 
-   GLfloat Priority;		/**< in [0,1] */
-   GLint BaseLevel;		/**< min mipmap level, OpenGL 1.2 */
-   GLint MaxLevel;		/**< max mipmap level, OpenGL 1.2 */
-   GLint ImmutableLevels;       /**< ES 3.0 / ARB_texture_view */
-   GLint _MaxLevel;		/**< actual max mipmap level (q in the spec) */
-   GLfloat _MaxLambda;		/**< = _MaxLevel - BaseLevel (q - b in spec) */
-   GLint CropRect[4];           /**< GL_OES_draw_texture */
-   GLenum Swizzle[4];           /**< GL_EXT_texture_swizzle */
-   GLuint _Swizzle;             /**< same as Swizzle, but SWIZZLE_* format */
-   GLboolean GenerateMipmap;    /**< GL_SGIS_generate_mipmap */
-   GLboolean _BaseComplete;     /**< Is the base texture level valid? */
-   GLboolean _MipmapComplete;   /**< Is the whole mipmap valid? */
-   GLboolean _IsIntegerFormat;  /**< Does the texture store integer values? */
-   GLboolean _RenderToTexture;  /**< Any rendering to this texture? */
-   GLboolean Purgeable;         /**< Is the buffer purgeable under memory pressure? */
-   GLboolean Immutable;         /**< GL_ARB_texture_storage */
+   GLfloat Priority;           /**< in [0,1] */
+   GLint BaseLevel;            /**< min mipmap level, OpenGL 1.2 */
+   GLint MaxLevel;             /**< max mipmap level, OpenGL 1.2 */
+   GLint ImmutableLevels;      /**< ES 3.0 / ARB_texture_view */
+   GLint _MaxLevel;            /**< actual max mipmap level (q in the spec) */
+   GLfloat _MaxLambda;         /**< = _MaxLevel - BaseLevel (q - p in spec) */
+   GLint CropRect[4];          /**< GL_OES_draw_texture */
+   GLenum Swizzle[4];          /**< GL_EXT_texture_swizzle */
+   GLuint _Swizzle;            /**< same as Swizzle, but SWIZZLE_* format */
+   GLboolean GenerateMipmap;   /**< GL_SGIS_generate_mipmap */
+   GLboolean _BaseComplete;    /**< Is the base texture level valid? */
+   GLboolean _MipmapComplete;  /**< Is the whole mipmap valid? */
+   GLboolean _IsIntegerFormat; /**< Does the texture store integer values? */
+   GLboolean _RenderToTexture; /**< Any rendering to this texture? */
+   GLboolean Purgeable;        /**< Is the buffer purgeable under memory
+                                    pressure? */
+   GLboolean Immutable;        /**< GL_ARB_texture_storage */
 
    /** Actual texture images, indexed by [cube face] and [mipmap level] */
    struct gl_texture_image *Image[MAX_FACES][MAX_TEXTURE_LEVELS];
@@ -1851,7 +1852,7 @@ struct gl_program
    GLuint Id;
    GLubyte *String;  /**< Null-terminated program text */
    GLint RefCount;
-   GLenum Target;    /**< GL_VERTEX/FRAGMENT_PROGRAM_ARB */
+   GLenum Target;    /**< GL_VERTEX/FRAGMENT_PROGRAM_ARB, GL_GEOMETRY_PROGRAM_NV */
    GLenum Format;    /**< String encoding format */
 
    struct prog_instruction *Instructions;
@@ -1918,6 +1919,7 @@ struct gl_geometry_program
 {
    struct gl_program Base;   /**< base class */
 
+   GLint VerticesIn;
    GLint VerticesOut;
    GLenum InputType;  /**< GL_POINTS, GL_LINES, GL_LINES_ADJACENCY_ARB,
                            GL_TRIANGLES, or GL_TRIANGLES_ADJACENCY_ARB */
@@ -2169,6 +2171,24 @@ struct gl_shader
    /** Shaders containing built-in functions that are used for linking. */
    struct gl_shader *builtins_to_link[16];
    unsigned num_builtins_to_link;
+
+   /**
+    * Geometry shader state from GLSL 1.50 layout qualifiers.
+    */
+   struct {
+      GLint VerticesOut;
+      /**
+       * GL_POINTS, GL_LINES, GL_LINES_ADJACENCY, GL_TRIANGLES, or
+       * GL_TRIANGLES_ADJACENCY, or PRIM_UNKNOWN if it's not set in this
+       * shader.
+       */
+      GLenum InputType;
+       /**
+        * GL_POINTS, GL_LINE_STRIP or GL_TRIANGLE_STRIP, or PRIM_UNKNOWN if
+        * it's not set in this shader.
+        */
+      GLenum OutputType;
+   } Geom;
 };
 
 
@@ -2318,17 +2338,25 @@ struct gl_shader_program
    /** Post-link gl_FragDepth layout for ARB_conservative_depth. */
    enum gl_frag_depth_layout FragDepthLayout;
 
-   /** Geometry shader state - copied into gl_geometry_program at link time */
+   /**
+    * Geometry shader state - copied into gl_geometry_program by
+    * _mesa_copy_linked_program_data().
+    */
    struct {
+      GLint VerticesIn;
       GLint VerticesOut;
       GLenum InputType;  /**< GL_POINTS, GL_LINES, GL_LINES_ADJACENCY_ARB,
                               GL_TRIANGLES, or GL_TRIANGLES_ADJACENCY_ARB */
       GLenum OutputType; /**< GL_POINTS, GL_LINE_STRIP or GL_TRIANGLE_STRIP */
    } Geom;
 
-   /** Vertex shader state - copied into gl_vertex_program at link time */
+   /** Vertex shader state */
    struct {
-      GLboolean UsesClipDistance; /**< True if gl_ClipDistance is written to. */
+      /**
+       * True if gl_ClipDistance is written to.  Copied into gl_vertex_program
+       * by _mesa_copy_linked_program_data().
+       */
+      GLboolean UsesClipDistance;
       GLuint ClipDistanceArraySize; /**< Size of the gl_ClipDistance array, or
                                          0 if not present. */
    } Vert;

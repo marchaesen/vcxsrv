@@ -128,12 +128,12 @@ xcbincludedir='${includedir}/xcb'
 AC_SUBST(xcbincludedir)
 
 if  test "x$GCC" = xyes ; then
-    CWARNFLAGS="-Wall -pedantic -Wpointer-arith \
+    CWARNFLAGS="-Wall -pedantic -Wpointer-arith -Wold-style-definition \
 		-Wstrict-prototypes -Wmissing-declarations -Wnested-externs"
 else
     AC_CHECK_DECL([__SUNPRO_C], [SUNCC="yes"], [SUNCC="no"])
     if test "x$SUNCC" = "xyes"; then
-	CWARNFLAGS="-v"
+	CWARNFLAGS="-v -fd"
     fi
 fi
 AC_SUBST(CWARNFLAGS)
@@ -192,7 +192,7 @@ XCB_EXTENSION(XFixes, "yes")
 XCB_EXTENSION(XFree86-DRI, "yes")
 XCB_EXTENSION(Xinerama, "yes")
 XCB_EXTENSION(XInput, "no")
-XCB_EXTENSION(XKB, "no")
+XCB_EXTENSION(XKB, "yes")
 XCB_EXTENSION(Xprint, "yes")
 XCB_EXTENSION(SELinux, "no")
 XCB_EXTENSION(XTest, "yes")

@@ -19,7 +19,7 @@ libxf86modes_la_SOURCES = \
 	xf86Rotate.c \
         $(DGA_SRCS)
 
-INCLUDES = $(XORG_INCS) -I$(srcdir)/../ddc -I$(srcdir)/../i2c \
+AM_CPPFLAGS = $(XORG_INCS) -I$(srcdir)/../ddc -I$(srcdir)/../i2c \
 	   -I$(srcdir)/../loader -I$(srcdir)/../rac -I$(srcdir)/../parser \
 	   -I$(srcdir)/../vbe -I$(srcdir)/../int10 \
 	   -I$(srcdir)/../vgahw -I$(srcdir)/../ramdac \

@@ -830,34 +830,6 @@ bail1:
     return NULL;
 }
 
-
-#ifdef _WIN32
-#include <direct.h>
-#define mkdir(path,mode) _mkdir(path)
-#endif
-
-static FcBool
-FcMakeDirectory (const FcChar8 *dir)
-{
-    FcChar8 *parent;
-    FcBool  ret;
-
-    if (strlen ((char *) dir) == 0)
-	return FcFalse;
-
-    parent = FcStrDirname (dir);
-    if (!parent)
-	return FcFalse;
-    if (access ((char *) parent, F_OK) == 0)
-	ret = mkdir ((char *) dir, 0755) == 0 && chmod ((char *) dir, 0755) == 0;
-    else if (access ((char *) parent, F_OK) == -1)
-	ret = FcMakeDirectory (parent) && (mkdir ((char *) dir, 0755) == 0) && chmod ((char *) dir, 0755) == 0;
-    else
-	ret = FcFalse;
-    FcStrFree (parent);
-    return ret;
-}
-
 /* write serialized state to the cache file */
 FcBool
 FcDirCacheWrite (FcCache *cache, FcConfig *config)

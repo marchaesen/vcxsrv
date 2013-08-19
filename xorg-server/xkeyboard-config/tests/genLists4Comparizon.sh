@@ -13,7 +13,9 @@ F1b=${F1}base
 F1e=${F1}extras
 
 xsltproc $ROOT/xslt/reg2ll.xsl $ROOT/rules/base.xml > $F1b
-xsltproc $ROOT/xslt/reg2ll.xsl $ROOT/rules/base.extras.xml > $F1e
+xsltproc $ROOT/xslt/reg2ll.xsl $ROOT/rules/base.extras.xml | \
+  grep -v "sun_type" > $F1e
+
 cat $F1b $F1e | sort | uniq > $F1
 rm -f $F1e $F1e
 
@@ -39,7 +41,7 @@ for i in $ROOT/symbols/*; do
   } else
   {
     name=$2;
-    if (variant == "olpc" || variant == "htcdream")
+    if (variant == "olpc" || variant == "htcdream" || variant == "olpcm" || variant == "classmate")
       printf "%s:\"%s\"\n", id, name;
     else
       printf "%s(%s):\"%s\"\n", id, variant, name;

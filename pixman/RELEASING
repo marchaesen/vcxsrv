@@ -55,3 +55,5 @@ Here are the steps to follow to create a new pixman release:
    You must use "--tags" here; otherwise the new tag will not
    be pushed out.
 
+8) Change the topic of the #cairo IRC channel on freenode to advertise
+   the new version.

@@ -927,6 +927,30 @@ _XimProtoDestroyIC(
     return;
 }
 
+/*
+ * Some functions require the request queue from the server to be flushed
+ * so that the ordering of client initiated status changes and those requested
+ * by the server is well defined.
+ * _XimSync() would be the function of choice here as it should get a
+ * XIM_SYNC_REPLY back from the server.
+ * This however isn't implemented in the piece of junk that is used by most
+ * input servers as the server side protocol if to XIM.
+ * Since this code is not shipped as a library together with the client side
+ * XIM code but is duplicated by every input server around the world there
+ * is no easy fix to this but this ugly hack below.
+ * Obtaining an IC value from the server sends a request and empties out the
+ * event/server request queue until the answer to this request is found.
+ * Thus it is guaranteed that any pending server side request gets processed.
+ * This is what the hack below is doing.
+ */
+
+static void
+BrokenSyncWithServer(XIC xic)
+{
+    CARD32 dummy;
+    XGetICValues(xic, XNFilterEvents, &dummy, NULL);
+}
+
 static void
 _XimProtoSetFocus(
     XIC		 xic)
@@ -957,6 +981,7 @@ _XimProtoSetFocus(
 	}
     }
 #endif /* XIM_CONNECTABLE */
+    BrokenSyncWithServer(xic);
 
     buf_s[0] = im->private.proto.imid;		/* imid */
     buf_s[1] = ic->private.proto.icid;		/* icid */
@@ -1002,6 +1027,8 @@ _XimProtoUnsetFocus(
 	}
     }
 #endif /* XIM_CONNECTABLE */
+
+    BrokenSyncWithServer(xic);
 
     buf_s[0] = im->private.proto.imid;		/* imid */
     buf_s[1] = ic->private.proto.icid;		/* icid */

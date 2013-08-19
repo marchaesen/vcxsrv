@@ -1,6 +1,6 @@
 SUBDIRS = man
 
-INCLUDES = 			\
+AM_CPPFLAGS = 			\
 	@KDRIVE_INCS@		\
 	@KDRIVE_CFLAGS@		\
 	@XEPHYR_INCS@		\

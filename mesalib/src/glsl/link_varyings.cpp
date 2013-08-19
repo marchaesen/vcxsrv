@@ -68,6 +68,10 @@ cross_validate_outputs_to_inputs(struct gl_shader_program *prog,
    /* Find all shader inputs in the "consumer" stage.  Any variables that have
     * matching outputs already in the symbol table must have the same type and
     * qualifiers.
+    *
+    * Exception: if the consumer is the geometry shader, then the inputs
+    * should be arrays and the type of the array element should match the type
+    * of the corresponding producer output.
     */
    foreach_list(node, consumer->ir) {
       ir_variable *const input = ((ir_instruction *) node)->as_variable();
@@ -79,7 +83,12 @@ cross_validate_outputs_to_inputs(struct gl_shader_program *prog,
       if (output != NULL) {
 	 /* Check that the types match between stages.
 	  */
-	 if (input->type != output->type) {
+         const glsl_type *type_to_match = input->type;
+         if (consumer->Type == GL_GEOMETRY_SHADER) {
+            assert(type_to_match->is_array()); /* Enforced by ast_to_hir */
+            type_to_match = type_to_match->element_type();
+         }
+	 if (type_to_match != output->type) {
 	    /* There is a bit of a special case for gl_TexCoord.  This
 	     * built-in is unsized by default.  Applications that variable
 	     * access it must redeclare it with a size.  There is some
@@ -973,6 +982,9 @@ private:
  *        each of these objects that matches one of the outputs of the
  *        producer.
  *
+ * \param gs_input_vertices: if \c consumer is a geometry shader, this is the
+ *        number of input vertices it accepts.  Otherwise zero.
+ *
  * When num_tfeedback_decls is nonzero, it is permissible for the consumer to
  * be NULL.  In this case, varying locations are assigned solely based on the
  * requirements of transform feedback.
@@ -983,7 +995,8 @@ assign_varying_locations(struct gl_context *ctx,
 			 struct gl_shader_program *prog,
 			 gl_shader *producer, gl_shader *consumer,
                          unsigned num_tfeedback_decls,
-                         tfeedback_decl *tfeedback_decls)
+                         tfeedback_decl *tfeedback_decls,
+                         unsigned gs_input_vertices)
 {
    const unsigned producer_base = VARYING_SLOT_VAR0;
    const unsigned consumer_base = VARYING_SLOT_VAR0;
@@ -1104,10 +1117,10 @@ assign_varying_locations(struct gl_context *ctx,
       assert(!ctx->Extensions.EXT_transform_feedback);
    } else {
       lower_packed_varyings(mem_ctx, producer_base, slots_used,
-                            ir_var_shader_out, producer);
+                            ir_var_shader_out, 0, producer);
       if (consumer) {
          lower_packed_varyings(mem_ctx, consumer_base, slots_used,
-                               ir_var_shader_in, consumer);
+                               ir_var_shader_in, gs_input_vertices, consumer);
       }
    }
 
@@ -1164,7 +1177,7 @@ check_against_varying_limit(struct gl_context *ctx,
          /* The packing rules used for vertex shader inputs are also
           * used for fragment shader inputs.
           */
-         varying_vectors += count_attribute_slots(var->type);
+         varying_vectors += var->type->count_attribute_slots();
       }
    }
 

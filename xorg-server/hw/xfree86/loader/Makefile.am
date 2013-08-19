@@ -1,6 +1,6 @@
 noinst_LTLIBRARIES = libloader.la
 
-INCLUDES = $(XORG_INCS) -I$(srcdir)/../parser -I$(top_srcdir)/miext/cw \
+AM_CPPFLAGS = $(XORG_INCS) -I$(srcdir)/../parser -I$(top_srcdir)/miext/cw \
 	   -I$(srcdir)/../ddc -I$(srcdir)/../i2c -I$(srcdir)/../modes \
 	   -I$(srcdir)/../ramdac -I$(srcdir)/../dri -I$(srcdir)/../dri2
 

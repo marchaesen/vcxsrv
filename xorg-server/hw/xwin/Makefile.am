@@ -150,7 +150,7 @@ SRCS =	InitInput.c \
 
 XWin_SOURCES = $(SRCS)
 
-INCLUDES = -I$(top_srcdir)/miext/rootless
+AM_CPPFLAGS = -I$(top_srcdir)/miext/rootless
 
 XWIN_SYS_LIBS += -ldxguid
 

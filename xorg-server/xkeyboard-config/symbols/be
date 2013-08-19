@@ -110,7 +110,7 @@ xkb_symbols "oss_latin9" {
     include "be(oss_frbe)"
     include "keypad(oss_latin9)"
 
-    name[Group1]="Belgian (alternative, latin-9 only)";
+    name[Group1]="Belgian (alternative, Latin-9 only)";
 
     // First row
     key <TLDE>	{ [      twosuperior,    threesuperior,          onesuperior,                  less ] }; // ² ³ ¹ < 

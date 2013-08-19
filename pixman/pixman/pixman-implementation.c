@@ -313,6 +313,7 @@ _pixman_implementation_iter_init (pixman_implementation_t *imp,
     iter->height = height;
     iter->iter_flags = iter_flags;
     iter->image_flags = image_flags;
+    iter->fini = NULL;
 
     if (!iter->image)
     {
