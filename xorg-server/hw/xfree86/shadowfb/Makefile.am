@@ -5,6 +5,6 @@ libshadowfb_la_LIBADD = $(PIXMAN_LIBS)
 
 sdk_HEADERS = shadowfb.h
 
-INCLUDES = $(XORG_INCS)
+AM_CPPFLAGS = $(XORG_INCS)
 
 AM_CFLAGS = $(DIX_CFLAGS) $(XORG_CFLAGS)

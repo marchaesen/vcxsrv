@@ -49,6 +49,16 @@ FcFileIsLink (const FcChar8 *file)
 #endif
 }
 
+FcBool
+FcFileIsFile (const FcChar8 *file)
+{
+    struct stat statb;
+
+    if (FcStat (file, &statb) != 0)
+	return FcFalse;
+    return S_ISREG (statb.st_mode);
+}
+
 static FcBool
 FcFileScanFontConfig (FcFontSet		*set,
 		      FcBlanks		*blanks,

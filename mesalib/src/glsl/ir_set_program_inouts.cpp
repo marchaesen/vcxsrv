@@ -44,11 +44,10 @@
 
 class ir_set_program_inouts_visitor : public ir_hierarchical_visitor {
 public:
-   ir_set_program_inouts_visitor(struct gl_program *prog,
-                                 bool is_fragment_shader)
+   ir_set_program_inouts_visitor(struct gl_program *prog, GLenum shader_type)
    {
       this->prog = prog;
-      this->is_fragment_shader = is_fragment_shader;
+      this->shader_type = shader_type;
    }
    ~ir_set_program_inouts_visitor()
    {
@@ -60,8 +59,12 @@ public:
    virtual ir_visitor_status visit_enter(ir_discard *);
    virtual ir_visitor_status visit(ir_dereference_variable *);
 
+private:
+   void mark_whole_variable(ir_variable *var);
+   bool try_mark_partial_variable(ir_variable *var, ir_rvalue *index);
+
    struct gl_program *prog;
-   bool is_fragment_shader;
+   GLenum shader_type;
 };
 
 static inline bool
@@ -104,6 +107,23 @@ mark(struct gl_program *prog, ir_variable *var, int offset, int len,
    }
 }
 
+/**
+ * Mark an entire variable as used.  Caller must ensure that the variable
+ * represents a shader input or output.
+ */
+void
+ir_set_program_inouts_visitor::mark_whole_variable(ir_variable *var)
+{
+   const glsl_type *type = var->type;
+   if (this->shader_type == GL_GEOMETRY_SHADER &&
+       var->mode == ir_var_shader_in && type->is_array()) {
+      type = type->fields.array;
+   }
+
+   mark(this->prog, var, 0, type->count_attribute_slots(),
+        this->shader_type == GL_FRAGMENT_SHADER);
+}
+
 /* Default handler: Mark all the locations in the variable as used. */
 ir_visitor_status
 ir_set_program_inouts_visitor::visit(ir_dereference_variable *ir)
@@ -111,43 +131,154 @@ ir_set_program_inouts_visitor::visit(ir_dereference_variable *ir)
    if (!is_shader_inout(ir->var))
       return visit_continue;
 
-   if (ir->type->is_array()) {
-      mark(this->prog, ir->var, 0,
-	   ir->type->length * ir->type->fields.array->matrix_columns,
-           this->is_fragment_shader);
-   } else {
-      mark(this->prog, ir->var, 0, ir->type->matrix_columns,
-           this->is_fragment_shader);
-   }
+   mark_whole_variable(ir->var);
 
    return visit_continue;
+}
+
+/**
+ * Try to mark a portion of the given variable as used.  Caller must ensure
+ * that the variable represents a shader input or output which can be indexed
+ * into in array fashion (an array or matrix).  For the purpose of geometry
+ * shader inputs (which are always arrays*), this means that the array element
+ * must be something that can be indexed into in array fashion.
+ *
+ * *Except gl_PrimitiveIDIn, as noted below.
+ *
+ * If the index can't be interpreted as a constant, or some other problem
+ * occurs, then nothing will be marked and false will be returned.
+ */
+bool
+ir_set_program_inouts_visitor::try_mark_partial_variable(ir_variable *var,
+                                                         ir_rvalue *index)
+{
+   const glsl_type *type = var->type;
+
+   if (this->shader_type == GL_GEOMETRY_SHADER &&
+       var->mode == ir_var_shader_in) {
+      /* The only geometry shader input that is not an array is
+       * gl_PrimitiveIDIn, and in that case, this code will never be reached,
+       * because gl_PrimitiveIDIn can't be indexed into in array fashion.
+       */
+      assert(type->is_array());
+      type = type->fields.array;
+   }
+
+   /* The code below only handles:
+    *
+    * - Indexing into matrices
+    * - Indexing into arrays of (matrices, vectors, or scalars)
+    *
+    * All other possibilities are either prohibited by GLSL (vertex inputs and
+    * fragment outputs can't be structs) or should have been eliminated by
+    * lowering passes (do_vec_index_to_swizzle() gets rid of indexing into
+    * vectors, and lower_packed_varyings() gets rid of structs that occur in
+    * varyings).
+    */
+   if (!(type->is_matrix() ||
+        (type->is_array() &&
+         (type->fields.array->is_numeric() ||
+          type->fields.array->is_boolean())))) {
+      assert(!"Unexpected indexing in ir_set_program_inouts");
+
+      /* For safety in release builds, in case we ever encounter unexpected
+       * indexing, give up and let the caller mark the whole variable as used.
+       */
+      return false;
+   }
+
+   ir_constant *index_as_constant = index->as_constant();
+   if (!index_as_constant)
+      return false;
+
+   unsigned elem_width;
+   unsigned num_elems;
+   if (type->is_array()) {
+      num_elems = type->length;
+      if (type->fields.array->is_matrix())
+         elem_width = type->fields.array->matrix_columns;
+      else
+         elem_width = 1;
+   } else {
+      num_elems = type->matrix_columns;
+      elem_width = 1;
+   }
+
+   if (index_as_constant->value.u[0] >= num_elems) {
+      /* Constant index outside the bounds of the matrix/array.  This could
+       * arise as a result of constant folding of a legal GLSL program.
+       *
+       * Even though the spec says that indexing outside the bounds of a
+       * matrix/array results in undefined behaviour, we don't want to pass
+       * out-of-range values to mark() (since this could result in slots that
+       * don't exist being marked as used), so just let the caller mark the
+       * whole variable as used.
+       */
+      return false;
+   }
+
+   mark(this->prog, var, index_as_constant->value.u[0] * elem_width,
+        elem_width, this->shader_type == GL_FRAGMENT_SHADER);
+   return true;
 }
 
 ir_visitor_status
 ir_set_program_inouts_visitor::visit_enter(ir_dereference_array *ir)
 {
-   ir_dereference_variable *deref_var;
-   ir_constant *index = ir->array_index->as_constant();
-   deref_var = ir->array->as_dereference_variable();
-   ir_variable *var = deref_var ? deref_var->var : NULL;
-
-   /* Check that we're dereferencing a shader in or out */
-   if (!var || !is_shader_inout(var))
-      return visit_continue;
-
-   if (index) {
-      int width = 1;
-
-      if (deref_var->type->is_array() &&
-	  deref_var->type->fields.array->is_matrix()) {
-	 width = deref_var->type->fields.array->matrix_columns;
+   /* Note: for geometry shader inputs, lower_named_interface_blocks may
+    * create 2D arrays, so we need to be able to handle those.  2D arrays
+    * shouldn't be able to crop up for any other reason.
+    */
+   if (ir_dereference_array * const inner_array =
+       ir->array->as_dereference_array()) {
+      /*          ir => foo[i][j]
+       * inner_array => foo[i]
+       */
+      if (ir_dereference_variable * const deref_var =
+          inner_array->array->as_dereference_variable()) {
+         if (this->shader_type == GL_GEOMETRY_SHADER &&
+             deref_var->var->mode == ir_var_shader_in) {
+            /* foo is a geometry shader input, so i is the vertex, and j the
+             * part of the input we're accessing.
+             */
+            if (try_mark_partial_variable(deref_var->var, ir->array_index))
+            {
+               /* We've now taken care of foo and j, but i might contain a
+                * subexpression that accesses shader inputs.  So manually
+                * visit i and then continue with the parent.
+                */
+               inner_array->array_index->accept(this);
+               return visit_continue_with_parent;
+            }
+         }
       }
-
-      mark(this->prog, var, index->value.i[0] * width, width,
-           this->is_fragment_shader);
-      return visit_continue_with_parent;
+   } else if (ir_dereference_variable * const deref_var =
+              ir->array->as_dereference_variable()) {
+      /* ir => foo[i], where foo is a variable. */
+      if (this->shader_type == GL_GEOMETRY_SHADER &&
+          deref_var->var->mode == ir_var_shader_in) {
+         /* foo is a geometry shader input, so i is the vertex, and we're
+          * accessing the entire input.
+          */
+         mark_whole_variable(deref_var->var);
+         /* We've now taken care of foo, but i might contain a subexpression
+          * that accesses shader inputs.  So manually visit i and then
+          * continue with the parent.
+          */
+         ir->array_index->accept(this);
+         return visit_continue_with_parent;
+      } else if (is_shader_inout(deref_var->var)) {
+         /* foo is a shader input/output, but not a geometry shader input,
+          * so i is the part of the input we're accessing.
+          */
+         if (try_mark_partial_variable(deref_var->var, ir->array_index))
+            return visit_continue_with_parent;
+      }
    }
 
+   /* The expression is something we don't recognize.  Just visit its
+    * subexpressions.
+    */
    return visit_continue;
 }
 
@@ -164,7 +295,8 @@ ir_set_program_inouts_visitor::visit_enter(ir_function_signature *ir)
 ir_visitor_status
 ir_set_program_inouts_visitor::visit_enter(ir_expression *ir)
 {
-   if (is_fragment_shader && ir->operation == ir_unop_dFdy) {
+   if (this->shader_type == GL_FRAGMENT_SHADER &&
+       ir->operation == ir_unop_dFdy) {
       gl_fragment_program *fprog = (gl_fragment_program *) prog;
       fprog->UsesDFdy = true;
    }
@@ -175,7 +307,7 @@ ir_visitor_status
 ir_set_program_inouts_visitor::visit_enter(ir_discard *)
 {
    /* discards are only allowed in fragment shaders. */
-   assert(is_fragment_shader);
+   assert(this->shader_type == GL_FRAGMENT_SHADER);
 
    gl_fragment_program *fprog = (gl_fragment_program *) prog;
    fprog->UsesKill = true;
@@ -185,14 +317,14 @@ ir_set_program_inouts_visitor::visit_enter(ir_discard *)
 
 void
 do_set_program_inouts(exec_list *instructions, struct gl_program *prog,
-                      bool is_fragment_shader)
+                      GLenum shader_type)
 {
-   ir_set_program_inouts_visitor v(prog, is_fragment_shader);
+   ir_set_program_inouts_visitor v(prog, shader_type);
 
    prog->InputsRead = 0;
    prog->OutputsWritten = 0;
    prog->SystemValuesRead = 0;
-   if (is_fragment_shader) {
+   if (shader_type == GL_FRAGMENT_SHADER) {
       gl_fragment_program *fprog = (gl_fragment_program *) prog;
       memset(fprog->InterpQualifier, 0, sizeof(fprog->InterpQualifier));
       fprog->IsCentroid = 0;

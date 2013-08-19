@@ -926,6 +926,9 @@ _pixman_image_get_solid (pixman_implementation_t *imp,
 	    ITER_NARROW | ITER_SRC, image->common.flags);
 	
 	result = *iter.get_scanline (&iter, NULL);
+
+	if (iter.fini)
+	    iter.fini (&iter);
     }
 
     /* If necessary, convert RGB <--> BGR. */

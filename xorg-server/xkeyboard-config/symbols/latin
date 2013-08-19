@@ -105,7 +105,7 @@ xkb_symbols "type3" {
     key <AC05>	{ [         g,          G, bracketright,          ENG ]	};
     key <AC08>	{ [         k,          K,      lstroke,    ampersand ]	};
 
-    key <AB01>	{ [         y,          Y, guillemotleft,         less ]	};
+    key <AB01>	{ [         y,          Y, guillemotleft,        less ]	};
     key <AB04>	{ [         v,          V,           at,        grave ]	};
     key <AB05>	{ [         b,          B,    braceleft,   apostrophe ]	};
     key <AB06>	{ [         n,          N,   braceright,   braceright ]	};
@@ -114,9 +114,9 @@ xkb_symbols "type3" {
     key <AB09>	{ [    period,      colon,      greater,     division ]	};
 };
 
-// Another one Latin common layout
+// Another common Latin layout
 // (German, Estonian, Spanish, Icelandic, Italian, Latin American, Portuguese)
- 
+
 partial
 xkb_symbols "type4" {
 
@@ -150,7 +150,7 @@ xkb_symbols "nodeadkeys" {
 
 partial
 xkb_symbols "type2_nodeadkeys" {
- 
+
     include "latin(nodeadkeys)"
 
     key <AD11>	{ [     aring,      Aring,   diaeresis,        degree ]	};
@@ -162,13 +162,13 @@ xkb_symbols "type2_nodeadkeys" {
 
 partial
 xkb_symbols "type3_nodeadkeys" {
- 
+
     include "latin(nodeadkeys)"
 };
 
 partial
 xkb_symbols "type4_nodeadkeys" {
- 
+
     include "latin(nodeadkeys)"
 
     key <AB10>	{ [   minus, underscore, dead_belowdot,      abovedot ]	};
@@ -178,12 +178,12 @@ xkb_symbols "type4_nodeadkeys" {
 // See http://marcinwolinski.pl/keyboard/ for a description.
 // Used by pl(intl)
 //
-// ┌────┐
-// │ 2 4│   2 = Shift,  4 = Level3 + Shift
-// │ 1 3│   1 = Normal, 3 = Level3
-// └────┘
+// ┌─────┐
+// │ 2 4 │   2 = Shift,  4 = Level3 + Shift
+// │ 1 3 │   1 = Normal, 3 = Level3
+// └─────┘
 // ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┲━━━━━━━━━┓
-// │ ~ ~ │ ! ' │ @ " │ # ˝ │ $ ¸ │ % ˇ │ ^ ^ │ & ˘ │ * ˙ │ ( ̣ │ ) ° │ _ ¯ │ + ˛ ┃ ⌫ Back  ┃
+// │ ~ ~ │ ! ' │ @ " │ # ˝ │ $ ¸ │ % ˇ │ ^ ^ │ & ˘ │ * ̇  │ ( ̣  │ ) ° │ _ ¯ │ + ˛ ┃ ⌫ Back- ┃
 // │ ` ` │ 1 ¡ │ 2 © │ 3 • │ 4 § │ 5 € │ 6 ¢ │ 7 − │ 8 × │ 9 ÷ │ 0 ° │ - – │ = — ┃  space  ┃
 // ┢━━━━━┷━┱───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┺━┳━━━━━━━┫
 // ┃       ┃ Q   │ W   │ E   │ R   │ T   │ Y   │ U   │ I   │ O   │ P   │ { « │ } » ┃ Enter ┃
@@ -198,7 +198,7 @@ xkb_symbols "type4_nodeadkeys" {
 // ┃       ┃       ┃       ┃ ␣                               ⍽ ┃       ┃       ┃       ┃
 // ┃Ctrl   ┃Meta   ┃Alt    ┃ ␣           Space               ⍽ ┃AltGr ⇮┃Menu   ┃Ctrl   ┃
 // ┗━━━━━━━┻━━━━━━━┻━━━━━━━┹───────────────────────────────────┺━━━━━━━┻━━━━━━━┻━━━━━━━┛
- 
+
 partial
 xkb_symbols "intl" {
 

@@ -12,7 +12,7 @@ extsmoduledir = $(moduledir)/extensions
 extsmodule_LTLIBRARIES = $(GLXMODS)
 
 AM_CFLAGS = @XORG_CFLAGS@ @DIX_CFLAGS@
-INCLUDES = @XORG_INCS@ \
+AM_CPPFLAGS = @XORG_INCS@ \
            -I$(top_srcdir)/hw/xfree86/loader \
            -I$(top_srcdir)/miext/shadow \
            -I$(top_srcdir)/glx

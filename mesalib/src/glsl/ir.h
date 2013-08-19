@@ -81,6 +81,8 @@ enum ir_node_type {
    ir_type_return,
    ir_type_swizzle,
    ir_type_texture,
+   ir_type_emit_vertex,
+   ir_type_end_primitive,
    ir_type_max /**< maximum ir_type enum number, for validation */
 };
 
@@ -519,6 +521,8 @@ public:
     *
     *   - Vertex shader input: one of the values from \c gl_vert_attrib.
     *   - Vertex shader output: one of the values from \c gl_varying_slot.
+    *   - Geometry shader input: one of the values from \c gl_varying_slot.
+    *   - Geometry shader output: one of the values from \c gl_varying_slot.
     *   - Fragment shader input: one of the values from \c gl_varying_slot.
     *   - Fragment shader output: one of the values from \c gl_frag_result.
     *   - Uniforms: Per-stage uniform slot number for default uniform block.
@@ -1992,6 +1996,53 @@ private:
 /*@}*/
 
 /**
+ * IR instruction to emit a vertex in a geometry shader.
+ */
+class ir_emit_vertex : public ir_instruction {
+public:
+   ir_emit_vertex()
+   {
+      ir_type = ir_type_emit_vertex;
+   }
+
+   virtual void accept(ir_visitor *v)
+   {
+      v->visit(this);
+   }
+
+   virtual ir_emit_vertex *clone(void *mem_ctx, struct hash_table *) const
+   {
+      return new(mem_ctx) ir_emit_vertex();
+   }
+
+   virtual ir_visitor_status accept(ir_hierarchical_visitor *);
+};
+
+/**
+ * IR instruction to complete the current primitive and start a new one in a
+ * geometry shader.
+ */
+class ir_end_primitive : public ir_instruction {
+public:
+   ir_end_primitive()
+   {
+      ir_type = ir_type_end_primitive;
+   }
+
+   virtual void accept(ir_visitor *v)
+   {
+      v->visit(this);
+   }
+
+   virtual ir_end_primitive *clone(void *mem_ctx, struct hash_table *) const
+   {
+      return new(mem_ctx) ir_end_primitive();
+   }
+
+   virtual ir_visitor_status accept(ir_hierarchical_visitor *);
+};
+
+/**
  * Apply a visitor to each IR node in a list
  */
 void
@@ -2061,7 +2112,7 @@ ir_has_call(ir_instruction *ir);
 
 extern void
 do_set_program_inouts(exec_list *instructions, struct gl_program *prog,
-                      bool is_fragment_shader);
+                      GLenum shader_type);
 
 extern char *
 prototype_string(const glsl_type *return_type, const char *name,
@@ -2076,5 +2127,8 @@ extern void _mesa_print_ir(struct exec_list *instructions,
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
+
+unsigned
+vertices_per_prim(GLenum prim);
 
 #endif /* IR_H */

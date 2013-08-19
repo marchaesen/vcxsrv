@@ -37,7 +37,7 @@ FcObjectTypeLookup (register const char *str, register unsigned int len);
 /* The 1000 is to leave some room for future added internal objects, such
  * that caches from newer fontconfig can still be used with older fontconfig
  * without getting confused. */
-static fc_atomic_int_t next_id = FC_MAX_BASE_OBJECT + 1000;
+static fc_atomic_int_t next_id = FC_MAX_BASE_OBJECT + FC_EXT_OBJ_INDEX;
 struct FcObjectOtherTypeInfo {
     struct FcObjectOtherTypeInfo *next;
     FcObjectType object;

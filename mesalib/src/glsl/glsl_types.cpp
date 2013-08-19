@@ -828,3 +828,58 @@ glsl_type::std140_size(bool row_major) const
    assert(!"not reached");
    return -1;
 }
+
+
+unsigned
+glsl_type::count_attribute_slots() const
+{
+   /* From page 31 (page 37 of the PDF) of the GLSL 1.50 spec:
+    *
+    *     "A scalar input counts the same amount against this limit as a vec4,
+    *     so applications may want to consider packing groups of four
+    *     unrelated float inputs together into a vector to better utilize the
+    *     capabilities of the underlying hardware. A matrix input will use up
+    *     multiple locations.  The number of locations used will equal the
+    *     number of columns in the matrix."
+    *
+    * The spec does not explicitly say how arrays are counted.  However, it
+    * should be safe to assume the total number of slots consumed by an array
+    * is the number of entries in the array multiplied by the number of slots
+    * consumed by a single element of the array.
+    *
+    * The spec says nothing about how structs are counted, because vertex
+    * attributes are not allowed to be (or contain) structs.  However, Mesa
+    * allows varying structs, the number of varying slots taken up by a
+    * varying struct is simply equal to the sum of the number of slots taken
+    * up by each element.
+    */
+   switch (this->base_type) {
+   case GLSL_TYPE_UINT:
+   case GLSL_TYPE_INT:
+   case GLSL_TYPE_FLOAT:
+   case GLSL_TYPE_BOOL:
+      return this->matrix_columns;
+
+   case GLSL_TYPE_STRUCT:
+   case GLSL_TYPE_INTERFACE: {
+      unsigned size = 0;
+
+      for (unsigned i = 0; i < this->length; i++)
+         size += this->fields.structure[i].type->count_attribute_slots();
+
+      return size;
+   }
+
+   case GLSL_TYPE_ARRAY:
+      return this->length * this->fields.array->count_attribute_slots();
+
+   case GLSL_TYPE_SAMPLER:
+   case GLSL_TYPE_VOID:
+   case GLSL_TYPE_ERROR:
+      break;
+   }
+
+   assert(!"Unexpected type in count_attribute_slots()");
+
+   return 0;
+}

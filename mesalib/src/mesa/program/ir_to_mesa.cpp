@@ -265,6 +265,8 @@ public:
    virtual void visit(ir_discard *);
    virtual void visit(ir_texture *);
    virtual void visit(ir_if *);
+   virtual void visit(ir_emit_vertex *);
+   virtual void visit(ir_end_primitive *);
    /*@}*/
 
    src_reg result;
@@ -2252,6 +2254,18 @@ ir_to_mesa_visitor::visit(ir_if *ir)
    if_inst = emit(ir->condition, OPCODE_ENDIF);
 }
 
+void
+ir_to_mesa_visitor::visit(ir_emit_vertex *ir)
+{
+   assert(!"Geometry shaders not supported.");
+}
+
+void
+ir_to_mesa_visitor::visit(ir_end_primitive *ir)
+{
+   assert(!"Geometry shaders not supported.");
+}
+
 ir_to_mesa_visitor::ir_to_mesa_visitor()
 {
    result.file = PROGRAM_UNDEFINED;
@@ -2961,7 +2975,7 @@ get_mesa_program(struct gl_context *ctx,
     */
    mesa_instructions = NULL;
 
-   do_set_program_inouts(shader->ir, prog, shader->Type == GL_FRAGMENT_SHADER);
+   do_set_program_inouts(shader->ir, prog, shader->Type);
 
    prog->SamplersUsed = shader->active_samplers;
    prog->ShadowSamplers = shader->shadow_samplers;
@@ -3073,10 +3087,7 @@ _mesa_ir_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
       linked_prog = get_mesa_program(ctx, prog, prog->_LinkedShaders[i]);
 
       if (linked_prog) {
-	 if (i == MESA_SHADER_VERTEX) {
-            ((struct gl_vertex_program *)linked_prog)->UsesClipDistance
-               = prog->Vert.UsesClipDistance;
-	 }
+         _mesa_copy_linked_program_data((gl_shader_type) i, prog, linked_prog);
 
 	 _mesa_reference_program(ctx, &prog->_LinkedShaders[i]->Program,
 				 linked_prog);

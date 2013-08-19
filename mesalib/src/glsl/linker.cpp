@@ -73,10 +73,14 @@
 #include "linker.h"
 #include "link_varyings.h"
 #include "ir_optimization.h"
+#include "ir_rvalue_visitor.h"
 
 extern "C" {
 #include "main/shaderobj.h"
+#include "main/enums.h"
 }
+
+void linker_error(gl_shader_program *, const char *, ...);
 
 /**
  * Visitor that determines whether or not a variable is ever written.
@@ -171,6 +175,77 @@ public:
 private:
    const char *name;       /**< Find writes to a variable with this name. */
    bool found;             /**< Was a write to the variable found? */
+};
+
+
+class geom_array_resize_visitor : public ir_hierarchical_visitor {
+public:
+   unsigned num_vertices;
+   gl_shader_program *prog;
+
+   geom_array_resize_visitor(unsigned num_vertices, gl_shader_program *prog)
+   {
+      this->num_vertices = num_vertices;
+      this->prog = prog;
+   }
+
+   virtual ~geom_array_resize_visitor()
+   {
+      /* empty */
+   }
+
+   virtual ir_visitor_status visit(ir_variable *var)
+   {
+      if (!var->type->is_array() || var->mode != ir_var_shader_in)
+         return visit_continue;
+
+      unsigned size = var->type->length;
+
+      /* Generate a link error if the shader has declared this array with an
+       * incorrect size.
+       */
+      if (size && size != this->num_vertices) {
+         linker_error(this->prog, "size of array %s declared as %u, "
+                      "but number of input vertices is %u\n",
+                      var->name, size, this->num_vertices);
+         return visit_continue;
+      }
+
+      /* Generate a link error if the shader attempts to access an input
+       * array using an index too large for its actual size assigned at link
+       * time.
+       */
+      if (var->max_array_access >= this->num_vertices) {
+         linker_error(this->prog, "geometry shader accesses element %i of "
+                      "%s, but only %i input vertices\n",
+                      var->max_array_access, var->name, this->num_vertices);
+         return visit_continue;
+      }
+
+      var->type = glsl_type::get_array_instance(var->type->element_type(),
+                                                this->num_vertices);
+      var->max_array_access = this->num_vertices - 1;
+
+      return visit_continue;
+   }
+
+   /* Dereferences of input variables need to be updated so that their type
+    * matches the newly assigned type of the variable they are accessing. */
+   virtual ir_visitor_status visit(ir_dereference_variable *ir)
+   {
+      ir->type = ir->var->type;
+      return visit_continue;
+   }
+
+   /* Dereferences of 2D input arrays need to be updated so that their type
+    * matches the newly assigned type of the array they are accessing. */
+   virtual ir_visitor_status visit_leave(ir_dereference_array *ir)
+   {
+      const glsl_type *const vt = ir->array->type;
+      if (vt->is_array())
+         ir->type = vt->element_type();
+      return visit_continue;
+   }
 };
 
 
@@ -298,41 +373,6 @@ link_invalidate_variable_locations(gl_shader *sh, int input_base,
 
 
 /**
- * Determine the number of attribute slots required for a particular type
- *
- * This code is here because it implements the language rules of a specific
- * GLSL version.  Since it's a property of the language and not a property of
- * types in general, it doesn't really belong in glsl_type.
- */
-unsigned
-count_attribute_slots(const glsl_type *t)
-{
-   /* From page 31 (page 37 of the PDF) of the GLSL 1.50 spec:
-    *
-    *     "A scalar input counts the same amount against this limit as a vec4,
-    *     so applications may want to consider packing groups of four
-    *     unrelated float inputs together into a vector to better utilize the
-    *     capabilities of the underlying hardware. A matrix input will use up
-    *     multiple locations.  The number of locations used will equal the
-    *     number of columns in the matrix."
-    *
-    * The spec does not explicitly say how arrays are counted.  However, it
-    * should be safe to assume the total number of slots consumed by an array
-    * is the number of entries in the array multiplied by the number of slots
-    * consumed by a single element of the array.
-    */
-
-   if (t->is_array())
-      return t->array_size() * count_attribute_slots(t->element_type());
-
-   if (t->is_matrix())
-      return t->matrix_columns;
-
-   return 1;
-}
-
-
-/**
  * Verify that a vertex shader executable meets all semantic requirements.
  *
  * Also sets prog->Vert.UsesClipDistance and prog->Vert.ClipDistanceArraySize
@@ -435,6 +475,24 @@ validate_fragment_shader_executable(struct gl_shader_program *prog,
       linker_error(prog,  "fragment shader writes to both "
 		   "`gl_FragColor' and `gl_FragData'\n");
    }
+}
+
+/**
+ * Verify that a geometry shader executable meets all semantic requirements
+ *
+ * Also sets prog->Geom.VerticesIn as a side effect.
+ *
+ * \param shader Geometry shader executable to be verified
+ */
+void
+validate_geometry_shader_executable(struct gl_shader_program *prog,
+				    struct gl_shader *shader)
+{
+   if (shader == NULL)
+      return;
+
+   unsigned num_vertices = vertices_per_prim(prog->Geom.InputType);
+   prog->Geom.VerticesIn = num_vertices;
 }
 
 
@@ -931,6 +989,99 @@ public:
 };
 
 /**
+ * Performs the cross-validation of geometry shader max_vertices and
+ * primitive type layout qualifiers for the attached geometry shaders,
+ * and propagates them to the linked GS and linked shader program.
+ */
+static void
+link_gs_inout_layout_qualifiers(struct gl_shader_program *prog,
+				struct gl_shader *linked_shader,
+				struct gl_shader **shader_list,
+				unsigned num_shaders)
+{
+   linked_shader->Geom.VerticesOut = 0;
+   linked_shader->Geom.InputType = PRIM_UNKNOWN;
+   linked_shader->Geom.OutputType = PRIM_UNKNOWN;
+
+   /* No in/out qualifiers defined for anything but GLSL 1.50+
+    * geometry shaders so far.
+    */
+   if (linked_shader->Type != GL_GEOMETRY_SHADER || prog->Version < 150)
+      return;
+
+   /* From the GLSL 1.50 spec, page 46:
+    *
+    *     "All geometry shader output layout declarations in a program
+    *      must declare the same layout and same value for
+    *      max_vertices. There must be at least one geometry output
+    *      layout declaration somewhere in a program, but not all
+    *      geometry shaders (compilation units) are required to
+    *      declare it."
+    */
+
+   for (unsigned i = 0; i < num_shaders; i++) {
+      struct gl_shader *shader = shader_list[i];
+
+      if (shader->Geom.InputType != PRIM_UNKNOWN) {
+	 if (linked_shader->Geom.InputType != PRIM_UNKNOWN &&
+	     linked_shader->Geom.InputType != shader->Geom.InputType) {
+	    linker_error(prog, "geometry shader defined with conflicting "
+			 "input types\n");
+	    return;
+	 }
+	 linked_shader->Geom.InputType = shader->Geom.InputType;
+      }
+
+      if (shader->Geom.OutputType != PRIM_UNKNOWN) {
+	 if (linked_shader->Geom.OutputType != PRIM_UNKNOWN &&
+	     linked_shader->Geom.OutputType != shader->Geom.OutputType) {
+	    linker_error(prog, "geometry shader defined with conflicting "
+			 "output types\n");
+	    return;
+	 }
+	 linked_shader->Geom.OutputType = shader->Geom.OutputType;
+      }
+
+      if (shader->Geom.VerticesOut != 0) {
+	 if (linked_shader->Geom.VerticesOut != 0 &&
+	     linked_shader->Geom.VerticesOut != shader->Geom.VerticesOut) {
+	    linker_error(prog, "geometry shader defined with conflicting "
+			 "output vertex count (%d and %d)\n",
+			 linked_shader->Geom.VerticesOut,
+			 shader->Geom.VerticesOut);
+	    return;
+	 }
+	 linked_shader->Geom.VerticesOut = shader->Geom.VerticesOut;
+      }
+   }
+
+   /* Just do the intrastage -> interstage propagation right now,
+    * since we already know we're in the right type of shader program
+    * for doing it.
+    */
+   if (linked_shader->Geom.InputType == PRIM_UNKNOWN) {
+      linker_error(prog,
+		   "geometry shader didn't declare primitive input type\n");
+      return;
+   }
+   prog->Geom.InputType = linked_shader->Geom.InputType;
+
+   if (linked_shader->Geom.OutputType == PRIM_UNKNOWN) {
+      linker_error(prog,
+		   "geometry shader didn't declare primitive output type\n");
+      return;
+   }
+   prog->Geom.OutputType = linked_shader->Geom.OutputType;
+
+   if (linked_shader->Geom.VerticesOut == 0) {
+      linker_error(prog,
+		   "geometry shader didn't declare max_vertices\n");
+      return;
+   }
+   prog->Geom.VerticesOut = linked_shader->Geom.VerticesOut;
+}
+
+/**
  * Combine a group of shaders for a single stage to generate a linked shader
  *
  * \note
@@ -1034,6 +1185,8 @@ link_intrastage_shaders(void *mem_ctx,
    linked->NumUniformBlocks = num_uniform_blocks;
    ralloc_steal(linked, linked->UniformBlocks);
 
+   link_gs_inout_layout_qualifiers(prog, linked, shader_list, num_shaders);
+
    populate_symbol_table(linked);
 
    /* The a pointer to the main function in the final linked shader (i.e., the
@@ -1080,7 +1233,8 @@ link_intrastage_shaders(void *mem_ctx,
    if (!link_function_calls(prog, linked, linking_shaders,
 			    num_linking_shaders)) {
       ctx->Driver.DeleteShader(ctx, linked);
-      linked = NULL;
+      free(linking_shaders);
+      return NULL;
    }
 
    free(linking_shaders);
@@ -1088,18 +1242,24 @@ link_intrastage_shaders(void *mem_ctx,
    /* At this point linked should contain all of the linked IR, so
     * validate it to make sure nothing went wrong.
     */
-   if (linked)
-      validate_ir_tree(linked->ir);
+   validate_ir_tree(linked->ir);
+
+   /* Set the size of geometry shader input arrays */
+   if (linked->Type == GL_GEOMETRY_SHADER) {
+      unsigned num_vertices = vertices_per_prim(prog->Geom.InputType);
+      geom_array_resize_visitor input_resize_visitor(num_vertices, prog);
+      foreach_iter(exec_list_iterator, iter, *linked->ir) {
+         ir_instruction *ir = (ir_instruction *)iter.get();
+         ir->accept(&input_resize_visitor);
+      }
+   }
 
    /* Make a pass over all variable declarations to ensure that arrays with
     * unspecified sizes have a size specified.  The size is inferred from the
     * max_array_access field.
     */
-   if (linked != NULL) {
-      array_sizing_visitor v;
-
-      v.run(linked->ir);
-   }
+   array_sizing_visitor v;
+   v.run(linked->ir);
 
    return linked;
 }
@@ -1129,9 +1289,7 @@ update_array_sizes(struct gl_shader_program *prog)
       foreach_list(node, prog->_LinkedShaders[i]->ir) {
 	 ir_variable *const var = ((ir_instruction *) node)->as_variable();
 
-	 if ((var == NULL) || (var->mode != ir_var_uniform &&
-			       var->mode != ir_var_shader_in &&
-			       var->mode != ir_var_shader_out) ||
+	 if ((var == NULL) || (var->mode != ir_var_uniform) ||
 	     !var->type->is_array())
 	    continue;
 
@@ -1334,7 +1492,7 @@ assign_attribute_or_color_locations(gl_shader_program *prog,
        * that it doesn't collide with other assigned locations.  Otherwise,
        * add it to the list of variables that need linker-assigned locations.
        */
-      const unsigned slots = count_attribute_slots(var->type);
+      const unsigned slots = var->type->count_attribute_slots();
       if (var->location != -1) {
 	 if (var->location >= generic_base && var->index < 1) {
 	    /* From page 61 of the OpenGL 4.0 spec:
@@ -1650,10 +1808,15 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
    unsigned num_vert_shaders = 0;
    struct gl_shader **frag_shader_list;
    unsigned num_frag_shaders = 0;
+   struct gl_shader **geom_shader_list;
+   unsigned num_geom_shaders = 0;
 
    vert_shader_list = (struct gl_shader **)
-      calloc(2 * prog->NumShaders, sizeof(struct gl_shader *));
-   frag_shader_list =  &vert_shader_list[prog->NumShaders];
+      calloc(prog->NumShaders, sizeof(struct gl_shader *));
+   frag_shader_list = (struct gl_shader **)
+      calloc(prog->NumShaders, sizeof(struct gl_shader *));
+   geom_shader_list = (struct gl_shader **)
+      calloc(prog->NumShaders, sizeof(struct gl_shader *));
 
    unsigned min_version = UINT_MAX;
    unsigned max_version = 0;
@@ -1679,8 +1842,8 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
 	 num_frag_shaders++;
 	 break;
       case GL_GEOMETRY_SHADER:
-	 /* FINISHME: Support geometry shaders. */
-	 assert(prog->Shaders[i]->Type != GL_GEOMETRY_SHADER);
+	 geom_shader_list[num_geom_shaders] = prog->Shaders[i];
+	 num_geom_shaders++;
 	 break;
       }
    }
@@ -1700,6 +1863,14 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
 
    prog->Version = max_version;
    prog->IsES = is_es_prog;
+
+   /* Geometry shaders have to be linked with vertex shaders.
+    */
+   if (num_geom_shaders > 0 && num_vert_shaders == 0) {
+      linker_error(prog, "Geometry shader must be linked with "
+		   "vertex shader\n");
+      goto done;
+   }
 
    for (unsigned int i = 0; i < MESA_SHADER_TYPES; i++) {
       if (prog->_LinkedShaders[i] != NULL)
@@ -1739,6 +1910,22 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
 	 goto done;
 
       _mesa_reference_shader(ctx, &prog->_LinkedShaders[MESA_SHADER_FRAGMENT],
+			     sh);
+   }
+
+   if (num_geom_shaders > 0) {
+      gl_shader *const sh =
+	 link_intrastage_shaders(mem_ctx, ctx, prog, geom_shader_list,
+				 num_geom_shaders);
+
+      if (!prog->LinkStatus)
+	 goto done;
+
+      validate_geometry_shader_executable(prog, sh);
+      if (!prog->LinkStatus)
+	 goto done;
+
+      _mesa_reference_shader(ctx, &prog->_LinkedShaders[MESA_SHADER_GEOMETRY],
 			     sh);
    }
 
@@ -1828,7 +2015,11 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
             prog->_LinkedShaders[MESA_SHADER_VERTEX],
             VERT_ATTRIB_GENERIC0, VARYING_SLOT_VAR0);
    }
-   /* FINISHME: Geometry shaders not implemented yet */
+   if (prog->_LinkedShaders[MESA_SHADER_GEOMETRY] != NULL) {
+      link_invalidate_variable_locations(
+            prog->_LinkedShaders[MESA_SHADER_GEOMETRY],
+            VARYING_SLOT_VAR0, VARYING_SLOT_VAR0);
+   }
    if (prog->_LinkedShaders[MESA_SHADER_FRAGMENT] != NULL) {
       link_invalidate_variable_locations(
             prog->_LinkedShaders[MESA_SHADER_FRAGMENT],
@@ -1862,7 +2053,7 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
        *     non-zero, but the program object has no vertex or geometry
        *     shader;
        */
-      if (first >= MESA_SHADER_FRAGMENT) {
+      if (first == MESA_SHADER_FRAGMENT) {
          linker_error(prog, "Transform feedback varyings specified, but "
                       "no vertex or geometry shader is present.");
          goto done;
@@ -1895,11 +2086,12 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
           */
          if (!assign_varying_locations(ctx, mem_ctx, prog,
                                        sh, NULL,
-                                       num_tfeedback_decls, tfeedback_decls))
+                                       num_tfeedback_decls, tfeedback_decls,
+                                       0))
             goto done;
       }
 
-      do_dead_builtin_varyings(ctx, sh->ir, NULL,
+      do_dead_builtin_varyings(ctx, sh, NULL,
                                num_tfeedback_decls, tfeedback_decls);
 
       demote_shader_inputs_and_outputs(sh, ir_var_shader_out);
@@ -1914,7 +2106,7 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
        */
       gl_shader *const sh = prog->_LinkedShaders[first];
 
-      do_dead_builtin_varyings(ctx, NULL, sh->ir,
+      do_dead_builtin_varyings(ctx, NULL, sh,
                                num_tfeedback_decls, tfeedback_decls);
 
       demote_shader_inputs_and_outputs(sh, ir_var_shader_in);
@@ -1930,13 +2122,15 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
 
       gl_shader *const sh_i = prog->_LinkedShaders[i];
       gl_shader *const sh_next = prog->_LinkedShaders[next];
+      unsigned gs_input_vertices =
+         next == MESA_SHADER_GEOMETRY ? prog->Geom.VerticesIn : 0;
 
       if (!assign_varying_locations(ctx, mem_ctx, prog, sh_i, sh_next,
                 next == MESA_SHADER_FRAGMENT ? num_tfeedback_decls : 0,
-                tfeedback_decls))
+                tfeedback_decls, gs_input_vertices))
          goto done;
 
-      do_dead_builtin_varyings(ctx, sh_i->ir, sh_next->ir,
+      do_dead_builtin_varyings(ctx, sh_i, sh_next,
                 next == MESA_SHADER_FRAGMENT ? num_tfeedback_decls : 0,
                 tfeedback_decls);
 
@@ -1985,6 +2179,8 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
 
 done:
    free(vert_shader_list);
+   free(frag_shader_list);
+   free(geom_shader_list);
 
    for (unsigned i = 0; i < MESA_SHADER_TYPES; i++) {
       if (prog->_LinkedShaders[i] == NULL)

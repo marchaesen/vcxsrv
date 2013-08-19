@@ -5,7 +5,7 @@ libmisc_la_SOURCES = SlowBcopy.c
 
 #AM_LDFLAGS = -r
 
-INCLUDES = $(XORG_INCS)
+AM_CPPFLAGS = $(XORG_INCS)
 
 AM_CFLAGS = $(XORG_CFLAGS) $(DIX_CFLAGS)
 

@@ -70,6 +70,53 @@ pixman_bool_t does_it_fit_fixed_48_16 (__float128 x)
 
 #endif
 
+static inline uint32_t
+byteswap32 (uint32_t x)
+{
+    return ((x & ((uint32_t)0xFF << 24)) >> 24) |
+           ((x & ((uint32_t)0xFF << 16)) >>  8) |
+           ((x & ((uint32_t)0xFF <<  8)) <<  8) |
+           ((x & ((uint32_t)0xFF <<  0)) << 24);
+}
+
+static inline uint64_t
+byteswap64 (uint64_t x)
+{
+    return ((x & ((uint64_t)0xFF << 56)) >> 56) |
+           ((x & ((uint64_t)0xFF << 48)) >> 40) |
+           ((x & ((uint64_t)0xFF << 40)) >> 24) |
+           ((x & ((uint64_t)0xFF << 32)) >>  8) |
+           ((x & ((uint64_t)0xFF << 24)) <<  8) |
+           ((x & ((uint64_t)0xFF << 16)) << 24) |
+           ((x & ((uint64_t)0xFF <<  8)) << 40) |
+           ((x & ((uint64_t)0xFF <<  0)) << 56);
+}
+
+static void
+byteswap_transform (pixman_transform_t *t)
+{
+    int i, j;
+
+    if (is_little_endian ())
+        return;
+
+    for (i = 0; i < 3; i++)
+        for (j = 0; j < 3; j++)
+            t->matrix[i][j] = byteswap32 (t->matrix[i][j]);
+}
+
+static void
+byteswap_vector_48_16 (pixman_vector_48_16_t *v)
+{
+    int i;
+
+    if (is_little_endian ())
+        return;
+
+    for (i = 0; i < 3; i++)
+        v->v[i] = byteswap64 (v->v[i]);
+}
+
 uint32_t
 test_matrix (int testnum, int verbose)
 {
@@ -90,6 +137,8 @@ test_matrix (int testnum, int verbose)
 #endif
         prng_randmemset (&ti, sizeof(ti), 0);
         prng_randmemset (&vi, sizeof(vi), 0);
+        byteswap_transform (&ti);
+        byteswap_vector_48_16 (&vi);
 
         for (j = 0; j < 3; j++)
         {
@@ -132,8 +181,6 @@ test_matrix (int testnum, int verbose)
         else
             transform_ok = pixman_transform_point_31_16 (&ti, &vi, &result_i);
 
-        crc32 = compute_crc32 (crc32, &result_i, sizeof(result_i));
-
 #ifdef HAVE_FLOAT128
         /* compare with a reference 128-bit floating point implementation */
         for (j = 0; j < 3; j++)
@@ -173,6 +220,8 @@ test_matrix (int testnum, int verbose)
             }
         }
 #endif
+        byteswap_vector_48_16 (&result_i);
+        crc32 = compute_crc32 (crc32, &result_i, sizeof (result_i));
     }
     return crc32;
 }

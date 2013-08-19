@@ -2261,6 +2261,237 @@ fast_write_back_r5g6b5 (pixman_iter_t *iter)
     }
 }
 
+typedef struct
+{
+    int		y;
+    uint64_t *	buffer;
+} line_t;
+
+typedef struct
+{
+    line_t		line0;
+    line_t		line1;
+    pixman_fixed_t	y;
+    pixman_fixed_t	x;
+    uint64_t		data[1];
+} bilinear_info_t;
+
+static void
+fetch_horizontal (bits_image_t *image, line_t *line,
+		  int y, pixman_fixed_t x, pixman_fixed_t ux, int n)
+{
+    uint32_t *bits = image->bits + y * image->rowstride;
+    int i;
+
+    for (i = 0; i < n; ++i)
+    {
+	int x0 = pixman_fixed_to_int (x);
+	int x1 = x0 + 1;
+	int32_t dist_x;
+
+	uint32_t left = *(bits + x0);
+	uint32_t right = *(bits + x1);
+
+	dist_x = pixman_fixed_to_bilinear_weight (x);
+	dist_x <<= (8 - BILINEAR_INTERPOLATION_BITS);
+
+#if SIZEOF_LONG <= 4
+	{
+	    uint32_t lag, rag, ag;
+	    uint32_t lrb, rrb, rb;
+
+	    lag = (left & 0xff00ff00) >> 8;
+	    rag = (right & 0xff00ff00) >> 8;
+	    ag = (lag << 8) + dist_x * (rag - lag);
+
+	    lrb = (left & 0x00ff00ff);
+	    rrb = (right & 0x00ff00ff);
+	    rb = (lrb << 8) + dist_x * (rrb - lrb);
+
+	    *((uint32_t *)(line->buffer + i)) = ag;
+	    *((uint32_t *)(line->buffer + i) + 1) = rb;
+	}
+#else
+	{
+	    uint64_t lagrb, ragrb;
+	    uint32_t lag, rag;
+	    uint32_t lrb, rrb;
+
+	    lag = (left & 0xff00ff00);
+	    lrb = (left & 0x00ff00ff);
+	    rag = (right & 0xff00ff00);
+	    rrb = (right & 0x00ff00ff);
+	    lagrb = (((uint64_t)lag) << 24) | lrb;
+	    ragrb = (((uint64_t)rag) << 24) | rrb;
+
+	    line->buffer[i] = (lagrb << 8) + dist_x * (ragrb - lagrb);
+	}
+#endif
+
+	x += ux;
+    }
+
+    line->y = y;
+}
+
+static uint32_t *
+fast_fetch_bilinear_cover (pixman_iter_t *iter, const uint32_t *mask)
+{
+    pixman_fixed_t fx, ux;
+    bilinear_info_t *info = iter->data;
+    line_t *line0, *line1;
+    int y0, y1;
+    int32_t dist_y;
+    int i;
+
+    fx = info->x;
+    ux = iter->image->common.transform->matrix[0][0];
+
+    y0 = pixman_fixed_to_int (info->y);
+    y1 = y0 + 1;
+    dist_y = pixman_fixed_to_bilinear_weight (info->y);
+    dist_y <<= (8 - BILINEAR_INTERPOLATION_BITS);
+
+    line0 = &info->line0;
+    line1 = &info->line1;
+
+    if (line0->y != y0 || line1->y != y1)
+    {
+	if (line0->y == y1 || line1->y == y0)
+	{
+	    line_t tmp = *line0;
+	    *line0 = *line1;
+	    *line1 = tmp;
+	}
+
+	if (line0->y != y0)
+	{
+	    fetch_horizontal (
+		&iter->image->bits, line0, y0, fx, ux, iter->width);
+	}
+
+	if (line1->y != y1)
+	{
+	    fetch_horizontal (
+		&iter->image->bits, line1, y1, fx, ux, iter->width);
+	}
+    }
+
+    for (i = 0; i < iter->width; ++i)
+    {
+#if SIZEOF_LONG <= 4
+	uint32_t ta, tr, tg, tb;
+	uint32_t ba, br, bg, bb;
+	uint32_t tag, trb;
+	uint32_t bag, brb;
+	uint32_t a, r, g, b;
+
+	tag = *((uint32_t *)(line0->buffer + i));
+	trb = *((uint32_t *)(line0->buffer + i) + 1);
+	bag = *((uint32_t *)(line1->buffer + i));
+	brb = *((uint32_t *)(line1->buffer + i) + 1);
+
+	ta = tag >> 16;
+	ba = bag >> 16;
+	a = (ta << 8) + dist_y * (ba - ta);
+
+	tr = trb >> 16;
+	br = brb >> 16;
+	r = (tr << 8) + dist_y * (br - tr);
+
+	tg = tag & 0xffff;
+	bg = bag & 0xffff;
+	g = (tg << 8) + dist_y * (bg - tg);
+	
+	tb = trb & 0xffff;
+	bb = brb & 0xffff;
+	b = (tb << 8) + dist_y * (bb - tb);
+
+	a = (a <<  8) & 0xff000000;
+	r = (r <<  0) & 0x00ff0000;
+	g = (g >>  8) & 0x0000ff00;
+	b = (b >> 16) & 0x000000ff;
+#else
+	uint64_t top = line0->buffer[i];
+	uint64_t bot = line1->buffer[i];
+	uint64_t tar = (top & 0xffff0000ffff0000ULL) >> 16;
+	uint64_t bar = (bot & 0xffff0000ffff0000ULL) >> 16;
+	uint64_t tgb = (top & 0x0000ffff0000ffffULL);
+	uint64_t bgb = (bot & 0x0000ffff0000ffffULL);
+	uint64_t ar, gb;
+	uint32_t a, r, g, b;
+
+	ar = (tar << 8) + dist_y * (bar - tar);
+	gb = (tgb << 8) + dist_y * (bgb - tgb);
+
+	a = ((ar >> 24) & 0xff000000);
+	r = ((ar >>  0) & 0x00ff0000);
+	g = ((gb >> 40) & 0x0000ff00);
+	b = ((gb >> 16) & 0x000000ff);
+#endif
+
+	iter->buffer[i] = a | r | g | b;
+    }
+
+    info->y += iter->image->common.transform->matrix[1][1];
+
+    return iter->buffer;
+}
+
+static void
+bilinear_cover_iter_fini (pixman_iter_t *iter)
+{
+    free (iter->data);
+}
+
+static void
+fast_bilinear_cover_iter_init (pixman_iter_t *iter, const pixman_iter_info_t *iter_info)
+{
+    int width = iter->width;
+    bilinear_info_t *info;
+    pixman_vector_t v;
+
+    /* Reference point is the center of the pixel */
+    v.vector[0] = pixman_int_to_fixed (iter->x) + pixman_fixed_1 / 2;
+    v.vector[1] = pixman_int_to_fixed (iter->y) + pixman_fixed_1 / 2;
+    v.vector[2] = pixman_fixed_1;
+
+    if (!pixman_transform_point_3d (iter->image->common.transform, &v))
+	goto fail;
+
+    info = malloc (sizeof (*info) + (2 * width - 1) * sizeof (uint64_t));
+    if (!info)
+	goto fail;
+
+    info->x = v.vector[0] - pixman_fixed_1 / 2;
+    info->y = v.vector[1] - pixman_fixed_1 / 2;
+
+    /* It is safe to set the y coordinates to -1 initially
+     * because COVER_CLIP_BILINEAR ensures that we will only
+     * be asked to fetch lines in the [0, height) interval
+     */
+    info->line0.y = -1;
+    info->line0.buffer = &(info->data[0]);
+    info->line1.y = -1;
+    info->line1.buffer = &(info->data[width]);
+
+    iter->get_scanline = fast_fetch_bilinear_cover;
+    iter->fini = bilinear_cover_iter_fini;
+
+    iter->data = info;
+    return;
+
+fail:
+    /* Something went wrong, either a bad matrix or OOM; in such cases,
+     * we don't guarantee any particular rendering.
+     */
+    _pixman_log_error (
+	FUNC, "Allocation failure or bad matrix, skipping rendering\n");
+    
+    iter->get_scanline = _pixman_iter_get_scanline_noop;
+    iter->fini = bilinear_cover_iter_fini;
+}
+
 #define IMAGE_FLAGS							\
     (FAST_PATH_STANDARD_FLAGS | FAST_PATH_ID_TRANSFORM |		\
      FAST_PATH_BITS_IMAGE | FAST_PATH_SAMPLES_COVER_CLIP_NEAREST)
@@ -2279,6 +2510,16 @@ static const pixman_iter_info_t fast_iters[] =
       ITER_NARROW | ITER_DEST | ITER_IGNORE_RGB | ITER_IGNORE_ALPHA,
       _pixman_iter_init_bits_stride,
       fast_dest_fetch_noop, fast_write_back_r5g6b5 },
+
+    { PIXMAN_a8r8g8b8,
+      (FAST_PATH_STANDARD_FLAGS			|
+       FAST_PATH_SCALE_TRANSFORM		|
+       FAST_PATH_BILINEAR_FILTER		|
+       FAST_PATH_SAMPLES_COVER_CLIP_BILINEAR),
+      ITER_NARROW | ITER_SRC,
+      fast_bilinear_cover_iter_init,
+      NULL, NULL
+    },
 
     { PIXMAN_null },
 };

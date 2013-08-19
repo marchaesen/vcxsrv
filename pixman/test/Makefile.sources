@@ -33,6 +33,7 @@ OTHERPROGRAMS =                 \
 	lowlevel-blt-bench	\
 	radial-perf-test	\
         check-formats           \
+	scaling-bench		\
 	$(NULL)
 
 # Utility functions

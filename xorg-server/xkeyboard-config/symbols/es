@@ -200,7 +200,7 @@ xkb_symbols "olpcm" {
     // See: http://wiki.laptop.org/go/OLPC_Spanish_Non-membrane_Keyboard
 
     include "us(basic)"
-    name[Group1]="Spain";
+    name[Group1]="Spanish";
 
     key <AE00> { [    questiondown,    exclamdown, backslash      ] };
     key <AE01> { [            1,         exclam,             bar ] };

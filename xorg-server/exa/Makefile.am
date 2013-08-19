@@ -8,7 +8,7 @@ if XORG
 sdk_HEADERS = exa.h
 endif
 
-INCLUDES = \
+AM_CPPFLAGS = \
 	$(XORG_INCS) \
 	-I$(srcdir)/../miext/cw
 

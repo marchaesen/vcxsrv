@@ -31,7 +31,7 @@ nodist_sdk_HEADERS = solaris-@SOLARIS_INOUT_ARCH@.il
 
 AM_CFLAGS = -DUSESTDRES -DHAVE_SYSV_IPC $(XORG_CFLAGS) $(DIX_CFLAGS)
 
-INCLUDES = $(XORG_INCS) 
+AM_CPPFLAGS = $(XORG_INCS) 
 
 EXTRA_DIST = solaris-amd64.S solaris-ia32.S solaris-sparcv8plus.S \
 	apSolaris.shar sun_inout.s

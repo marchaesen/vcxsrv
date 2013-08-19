@@ -39,7 +39,7 @@ bin_PROGRAMS = Xorg
 nodist_Xorg_SOURCES = sdksyms.c
 
 AM_CFLAGS = $(DIX_CFLAGS) @XORG_CFLAGS@
-INCLUDES = $(XORG_INCS) -I$(srcdir)/parser -I$(top_srcdir)/miext/cw \
+AM_CPPFLAGS = $(XORG_INCS) -I$(srcdir)/parser -I$(top_srcdir)/miext/cw \
 	-I$(srcdir)/ddc -I$(srcdir)/i2c -I$(srcdir)/modes -I$(srcdir)/ramdac \
 	-I$(srcdir)/dri -I$(srcdir)/dri2
 
@@ -115,7 +115,7 @@ CLEANFILES = sdksyms.c sdksyms.dep
 EXTRA_DIST += sdksyms.sh
 
 sdksyms.dep sdksyms.c: sdksyms.sh
-	$(AM_V_GEN)CPP='$(CPP)' AWK='$(AWK)' $(SHELL) $(srcdir)/sdksyms.sh $(top_srcdir) $(CFLAGS) $(AM_CFLAGS) $(INCLUDES)
+	$(AM_V_GEN)CPP='$(CPP)' AWK='$(AWK)' $(SHELL) $(srcdir)/sdksyms.sh $(top_srcdir) $(CFLAGS) $(AM_CFLAGS) $(AM_CPPFLAGS)
 
 SDKSYMS_DEP = sdksyms.dep
 include $(SDKSYMS_DEP)

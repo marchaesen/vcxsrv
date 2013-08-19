@@ -47,7 +47,7 @@ struct _xcb_map {
 
 /* Private interface */
 
-_xcb_map *_xcb_map_new()
+_xcb_map *_xcb_map_new(void)
 {
     _xcb_map *list;
     list = malloc(sizeof(_xcb_map));

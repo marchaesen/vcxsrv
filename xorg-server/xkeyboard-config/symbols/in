@@ -1,9 +1,10 @@
 // This layout includes all Indian layouts, including:
+//     - Devanagari (Hindi, Marathi, Sanskrit)
 //     - Bengali
-//     - Gujarati 
-//     - Kannada 
+//     - Gujarati
+//     - Kannada
 //     - Malayalam
-//     - Oriya 
+//     - Oriya
 //     - Tamil
 //     - Telugu
 //     - Urdu
@@ -1753,3 +1754,266 @@ xkb_symbols "mal_enhanced" {
 
 };
 
+
+// ---- BEGIN Hindi KaGaPa phonetic ----
+// Name:        KaGaPa phonetic
+// Brief:       Devanagari layout (Hindi, Sanskrit, Nepali, Marathi, etc.)
+// Diagram:     (Original)[http://baraha.com/help/Keyboards/dev_brhkbd.htm]
+//              (This layout)[http://bdsatish.in/lang/dev-kagapa.png]
+//
+// Description: Based on KaGaPa layout (also called Baraha layout or Nudi layout)
+//              which is a modified layout of the specification by Dr. K. P. Rao.
+//              This is a phonetic layout with the following features:
+//              [1] All letters are mapped to phonetically-similar English keys
+//                  as much as possible.
+//              [2] The independent vowel (svara) and its dependent vowel (maatra)
+//                  use the same key (depending upon SHIFT, ALTGR or ALTGR + SHIFT).
+//              [3] Consonant conjuncts are produced by explicitly invoking the
+//                  'viraama' (key f). The 'short a' maatra is implicit in all
+//                  consonants.
+//              [4] Zero width non-joiner and joiner are on keys 6 and 7
+//                  respectively. These are absolutely essential for alternative
+//                  glyph renderings of consonant half-forms.
+//              [5] Rigvedic accent marks, visarga variants.
+//
+// Author:      Satish BD <bdsatish@gmail.com>
+//
+partial alphanumeric_keys
+xkb_symbols "hin-kagapa" {
+     name[Group1] = "Hindi (KaGaPa phonetic)";
+     key.type="FOUR_LEVEL";
+
+    //Top Alphanumeric row
+    // Roman digits
+    key <TLDE>  { [   apostrophe,   asciitilde,   U201C          ] };  // U201C: left double quotation mark
+    key <AE01>  { [   1,            exclam,       U0967          ] };
+    key <AE02>  { [   2,            at,           U0968,  U20A8  ] };  // U20A8: generic rupee sign (Rs)
+    key <AE03>  { [   3,            numbersign,   U0969          ] };
+    key <AE04>  { [   4,            dollar,       U096A,  U20B9  ] };  // U20B9: new Indian Rupee sign
+    key <AE05>  { [   5,            percent,      U096B          ] };
+    key <AE06>  { [   6,            asciicircum,  U096C,  U200C  ] };  // ZWNJ
+    key <AE07>  { [   7,            ampersand,    U096D,  U200D  ] };  // ZWJ
+    key <AE08>  { [   8,            asterisk,     U096E,  U0901  ] };  // U0901: Devanagari candrabindu
+    key <AE09>  { [   9,            parenleft,    U096F          ] };
+    key <AE10>  { [   0,            parenright,   U0966,  U0970  ] };  // U0970: Devanagari abbreviation sign
+    key <AE11>  { [   minus,        underscore,   U0952          ] };  // U0952: Devanagari stress sign anudatta
+    key <AE12>  { [   equal,        plus                         ] };
+    key <BKSL>  { [   U005C,        U007C,        U0964,  U0965  ] };  // backslash, pipe, danda, double danda
+
+    //Q Row
+    key <AD01>  { [   U091F,         U0920                       ] };  // Q: retroflex Ta, Tha
+    key <AD02>  { [   U0921,         U0922,      U095C,  U095D   ] };  // W: retroflex Da, Dha, Da-nukta, Dha-nukta
+    key <AD03>  { [   U0946,         U0947,      U090E,  U090F   ] };  // E: matras, short E, long E
+    key <AD04>  { [   U0930,         U0943,      U090B,  U0931   ] };  // R: ra, vocalic R matra, vocalic R, ra-nukta
+    key <AD05>  { [   U0924,         U0925                       ] };  // T: dental ta, tha
+    key <AD06>  { [   U092F,         U0948,      U0910,  U095F   ] };  // Y: ya, ai matra, ai, ya-nukta
+    key <AD07>  { [   U0941,         U0942,      U0909,  U090A   ] };  // U: matras, u, uu
+    key <AD08>  { [   U093F,         U0940,      U0907,  U0908   ] };  // I: matras, i, ii
+    key <AD09>  { [   U094A,         U094B,      U0912,  U0913   ] };  // O: matras, short o, long o
+    key <AD10>  { [   U092A,         U092B,      U095E           ] };  // P: pa, pha, pha-nukta
+    key <AD11>  { [   bracketleft,   braceleft                   ] };
+    key <AD12>  { [   bracketright,  braceright                  ] };
+
+    //A Row
+    key <AC01>  { [   U093E,        U0906,     U0905,    U0972   ] };  // A: aa matra, aa, short a, candra a
+    key <AC02>  { [   U0938,        U0936                        ] };  // S: sa, sha
+    key <AC03>  { [   U0926,        U0927                        ] };  // D: dental da, dha
+    key <AC04>  { [   U094D,        U0944,     U0960             ] };  // F: virama, vocalic RR matra, vocalic RR
+    key <AC05>  { [   U0917,        U0918,     U095A             ] };  // G: ga, gha, ga-nukta
+    key <AC06>  { [   U0939,        U0903,     U1CF5,    U1CF6   ] };  // H: ha, visarga, jihvamuliya, upadhmaniya
+    key <AC07>  { [   U091C,        U091D,     U095B             ] };  // J: ja, jha, ja-nukta
+    key <AC08>  { [   U0915,        U0916,     U0958,    U0959   ] };  // K: ka, kha, ka-nukta, kha-nukta
+    key <AC09>  { [   U0932,        U0933,     U0962,    U090C   ] };  // L: la, lla, vocalic L matra, vocalic L
+    key <AC10>  { [   semicolon,    colon,     U1CF2,    U1CF3   ] };  // U1CF2/3: ardhavisarga/rotated ardhavisarga
+    key <AC11>  { [   apostrophe,   quotedbl,  U0951,    U201D   ] };  // U0951: Devanagari stress sign udatta
+                                                                       // U201D: Right double quotation mark
+
+    //Z Row
+    key <AB01>  { [   U091E,   U0919                   ] };  // Z: nya, nga
+    key <AB02>  { [   U0937,   U093C,  U0934           ] };  // X: ssa, nukta below, lla-nukta
+    key <AB03>  { [   U091A,   U091B                   ] };  // C: ca, cha
+    key <AB04>  { [   U0935,   U094C,  U0914           ] };  // V: va, matra au, au
+    key <AB05>  { [   U092C,   U092D                   ] };  // B: ba, bha
+    key <AB06>  { [   U0928,   U0923,  U0929           ] };  // N: na, nna, nnna
+    key <AB07>  { [   U092E,   U0902,  U093D,  U0950   ] };  // M: ma, anusvara, avagraha, Devanagari OM
+    key <AB08>  { [   comma,   U003C,  U0945,  U090D   ] };  // comma: comma, less than, matra, candra e
+    key <AB09>  { [   period,  U003E,  U0949,  U0911   ] };  // period: period, greater than, matra, candra o
+    key <AB10>  { [   slash,   question                ] };
+
+    include "level3(ralt_switch)"
+};
+// ---- END Hindi KaGaPa ----
+
+// Sanskrit uses Devanagari layout of Hindi
+partial alphanumeric_keys
+xkb_symbols "san-kagapa" {
+  name[Group1] = "Sanskrit (KaGaPa phonetic)";
+  include "in(hin-kagapa)"
+
+};
+
+// Marathi uses Devanagari layout of Hindi
+partial alphanumeric_keys
+xkb_symbols "mar-kagapa" {
+  name[Group1] = "Marathi (KaGaPa phonetic)";
+  include "in(hin-kagapa)"
+
+};
+
+
+// ---- BEGIN Kannada KaGaPa phonetic ----
+// Name:        Kannada KaGaPa phonetic
+// Diagram:     (Original)[http://www.baraha.com/help/Keyboards/kan_brhkbd.htm]
+//              (This layout)[http://bdsatish.in/lang/kan-kagapa.png]
+//
+// Description: Based on KaGaPa layout (also called Baraha layout or Nudi layout).
+//              See the description to "hin-kagapa" above.
+//              Certain punctuation characters from Devanagari block are
+//              retained for compatibility.
+//
+// Author:      Satish BD <bdsatish@gmail.com>
+//
+partial alphanumeric_keys
+xkb_symbols "kan-kagapa" {
+    name[Group1] = "Kannada (KaGaPa phonetic)";
+    key.type="FOUR_LEVEL";
+
+    //Top Alphanumeric row
+    // Roman digits
+    key <TLDE>  { [   apostrophe,   asciitilde,   U201C          ] };  // U201C: left double quotation mark
+    key <AE01>  { [   1,            exclam,       U0CE7          ] };
+    key <AE02>  { [   2,            at,           U0CE8,  U20A8  ] };  // U20A8: generic rupee sign (Rs)
+    key <AE03>  { [   3,            numbersign,   U0CE9          ] };
+    key <AE04>  { [   4,            dollar,       U0CEA,  U20B9  ] };  // U20B9: new Indian Rupee sign
+    key <AE05>  { [   5,            percent,      U0CEB          ] };
+    key <AE06>  { [   6,            asciicircum,  U0CEC,  U200C  ] };  // ZWNJ
+    key <AE07>  { [   7,            ampersand,    U0CED,  U200D  ] };  // ZWJ
+    key <AE08>  { [   8,            asterisk,     U0CEE,  U0901  ] };  // U0901: Devanagari candrabindu
+    key <AE09>  { [   9,            parenleft,    U0CEF          ] };
+    key <AE10>  { [   0,            parenright,   U0CE6          ] };
+    key <AE11>  { [   minus,        underscore,   U0952          ] };  // U0952: Devanagari stress sign anudatta
+    key <AE12>  { [   equal,        plus                         ] };
+    key <BKSL>  { [   U005C,        U007C,        U0964,  U0965  ] };  // backslash, pipe, danda, double danda
+
+    //Q Row
+    key <AD01>  { [   U0C9F,         U0CA0                       ] };  // Q: retroflex Ta, Tha
+    key <AD02>  { [   U0CA1,         U0CA2                       ] };  // W: retroflex Da, Dha
+    key <AD03>  { [   U0CC6,         U0CC7,      U0C8E,  U0C8F   ] };  // E: matras, short E, long E
+    key <AD04>  { [   U0CB0,         U0CC3,      U0C8B,  U0CB1   ] };  // R: ra, vocalic R matra, vocalic R, RRA
+    key <AD05>  { [   U0CA4,         U0CA5                       ] };  // T: dental ta, tha
+    key <AD06>  { [   U0CAF,         U0CC8,      U0C90           ] };  // Y: ya, ai matra, ai
+    key <AD07>  { [   U0CC1,         U0CC2,      U0C89,  U0C8A   ] };  // U: matras, u, uu
+    key <AD08>  { [   U0CBF,         U0CC0,      U0C87,  U0C88   ] };  // I: matras, i, ii
+    key <AD09>  { [   U0CCA,         U0CCB,      U0C92,  U0C93   ] };  // O: matras, short o, long o
+    key <AD10>  { [   U0CAA,         U0CAB                       ] };  // P: pa, pha
+    key <AD11>  { [   bracketleft,   braceleft                   ] };
+    key <AD12>  { [   bracketright,  braceright                  ] };
+
+    //A Row
+    key <AC01>  { [   U0CBE,        U0C86,     U0C85             ] };  // A: aa matra, aa, short a
+    key <AC02>  { [   U0CB8,        U0CB6                        ] };  // S: sa, sha
+    key <AC03>  { [   U0CA6,        U0CA7                        ] };  // D: dental da, dha
+    key <AC04>  { [   U0CCD,        U0CC4,     U0CE0             ] };  // F: virama, vocalic RR matra, vocalic RR
+    key <AC05>  { [   U0C97,        U0C98                        ] };  // G: ga, gha
+    key <AC06>  { [   U0CB9,        U0C83,     U0CF1,    U0CF2   ] };  // H: ha, visarga, jihvanuliya, upadhmaniya
+    key <AC07>  { [   U0C9C,        U0C9D                        ] };  // J: ja, jha
+    key <AC08>  { [   U0C95,        U0C96                        ] };  // K: ka, kha
+    key <AC09>  { [   U0CB2,        U0CB3,     U0CE2,    U0C8C   ] };  // L: la, lla, vocalic L matra, vocalic L
+    key <AC10>  { [   semicolon,    colon                        ] };
+    key <AC11>  { [   apostrophe,   quotedbl,  U0951,    U201D   ] };  // U0951: Devanagari stress sign udatta
+                                                                       // U201D: Right double quotation mark
+
+    //Z Row
+    key <AB01>  { [   U0C9E,   U0C99                   ] };  // Z: nya, nga
+    key <AB02>  { [   U0CB7,   U0CBC,  U0CDE           ] };  // X: ssa, nukta below, LLLA
+    key <AB03>  { [   U0C9A,   U0C9B                   ] };  // C: ca, cha
+    key <AB04>  { [   U0CB5,   U0CCC,  U0C94           ] };  // V: va, matra au, au
+    key <AB05>  { [   U0CAC,   U0CAD                   ] };  // B: ba, bha
+    key <AB06>  { [   U0CA8,   U0CA3                   ] };  // N: na, nna
+    key <AB07>  { [   U0CAE,   U0C82,  U0CBD,  U0950   ] };  // M: ma, anusvara, avagraha, Devanagari OM
+    key <AB08>  { [   comma,   U003C,  U0CB1           ] };  // comma: comma, less than, RRA
+    key <AB09>  { [   period,  U003E,  U0CDE           ] };  // period: period, greater than, LLLA
+    key <AB10>  { [   slash,   question                ] };
+
+    include "level3(ralt_switch)"
+};
+// ---- END Kannada KaGaPa ----
+
+
+// ---- BEGIN Telugu KaGaPa phonetic ----
+// Name:        Telugu KaGaPa phonetic
+// Diagram:     (Original)[http://www.baraha.com/help/Keyboards/tel_brhkbd.htm]
+//              (This layout)[http://bdsatish.in/lang/tel-kagapa.png]
+//
+// Description: Based on KaGaPa layout (also called Baraha layout or Nudi layout).
+//              See the description to "hin-kagapa" above.
+//              Certain punctuation characters from Devanagari block are
+//              retained for compatibility.
+//
+// Author:      Satish BD <bdsatish@gmail.com>
+//
+partial alphanumeric_keys
+xkb_symbols "tel-kagapa" {
+    name[Group1] = "Telugu (KaGaPa phonetic)";
+    key.type="FOUR_LEVEL";
+
+    //Top Alphanumeric row
+    // Roman digits
+    key <TLDE>  { [   apostrophe,   asciitilde,   U201C          ] };  // U201C: left double quotation mark
+    key <AE01>  { [   1,            exclam,       U0C67          ] };
+    key <AE02>  { [   2,            at,           U0C68,  U20A8  ] };  // U20A8: generic rupee sign (Rs)
+    key <AE03>  { [   3,            numbersign,   U0C69          ] };
+    key <AE04>  { [   4,            dollar,       U0C6A,  U20B9  ] };  // U20B9: new Indian Rupee sign
+    key <AE05>  { [   5,            percent,      U0C6B          ] };
+    key <AE06>  { [   6,            asciicircum,  U0C6C,  U200C  ] };  // ZWNJ
+    key <AE07>  { [   7,            ampersand,    U0C6D,  U200D  ] };  // ZWJ
+    key <AE08>  { [   8,            asterisk,     U0C6E,  U0C01  ] };  // U0C01: Telugu arasunna
+    key <AE09>  { [   9,            parenleft,    U0C6F          ] };
+    key <AE10>  { [   0,            parenright,   U0C66          ] };
+    key <AE11>  { [   minus,        underscore,   U0952          ] };  // U0952: Devanagari stress sign anudatta
+    key <AE12>  { [   equal,        plus                         ] };
+    key <BKSL>  { [   U005C,        U007C,        U0964,  U0965  ] };  // backslash, pipe, danda, double danda
+
+    //Q Row
+    key <AD01>  { [   U0C1F,         U0C20                       ] };  // Q: retroflex Ta, Tha
+    key <AD02>  { [   U0C21,         U0C22                       ] };  // W: retroflex Da, Dha
+    key <AD03>  { [   U0C46,         U0C47,      U0C0E,  U0C0F   ] };  // E: matras, short E, long E
+    key <AD04>  { [   U0C30,         U0C43,      U0C0B,  U0C31   ] };  // R: ra, vocalic R matra, vocalic R, RRA
+    key <AD05>  { [   U0C24,         U0C25                       ] };  // T: dental ta, tha
+    key <AD06>  { [   U0C2F,         U0C48,      U0C10           ] };  // Y: ya, ai matra, ai
+    key <AD07>  { [   U0C41,         U0C42,      U0C09,  U0C0A   ] };  // U: matras, u, uu
+    key <AD08>  { [   U0C3F,         U0C40,      U0C07,  U0C08   ] };  // I: matras, i, ii
+    key <AD09>  { [   U0C4A,         U0C4B,      U0C12,  U0C13   ] };  // O: matras, short o, long o
+    key <AD10>  { [   U0C2A,         U0C2B                       ] };  // P: pa, pha
+    key <AD11>  { [   bracketleft,   braceleft                   ] };
+    key <AD12>  { [   bracketright,  braceright                  ] };
+
+    //A Row
+    key <AC01>  { [   U0C3E,        U0C06,     U0C05             ] };  // A: aa matra, aa, short a
+    key <AC02>  { [   U0C38,        U0C36                        ] };  // S: sa, sha
+    key <AC03>  { [   U0C26,        U0C27                        ] };  // D: dental da, dha
+    key <AC04>  { [   U0C4D,        U0C44,     U0C60             ] };  // F: virama, vocalic RR matra, vocalic RR
+    key <AC05>  { [   U0C17,        U0C18                        ] };  // G: ga, gha
+    key <AC06>  { [   U0C39,        U0C03                        ] };  // H: ha, visarga
+    key <AC07>  { [   U0C1C,        U0C1D                        ] };  // J: ja, jha
+    key <AC08>  { [   U0C15,        U0C16                        ] };  // K: ka, kha
+    key <AC09>  { [   U0C32,        U0C33,     U0C62,    U0C0C   ] };  // L: la, lla, vocalic L matra, vocalic L
+    key <AC10>  { [   semicolon,    colon                        ] };
+    key <AC11>  { [   apostrophe,   quotedbl,  U0951,    U201D   ] };  // U0951: Devanagari stress sign udatta
+                                                                       // U201D: Right double quotation mark
+
+    //Z Row
+    key <AB01>  { [   U0C1E,   U0C19                   ] };  // Z: nya, nga
+    key <AB02>  { [   U0C37                            ] };  // X: ssa
+    key <AB03>  { [   U0C1A,   U0C1B                   ] };  // C: ca, cha
+    key <AB04>  { [   U0C35,   U0C4C,  U0C14           ] };  // V: va, matra au, au
+    key <AB05>  { [   U0C2C,   U0C2D                   ] };  // B: ba, bha
+    key <AB06>  { [   U0C28,   U0C23                   ] };  // N: na, nna
+    key <AB07>  { [   U0C2E,   U0C02,  U0C3D,  U0950   ] };  // M: ma, anusvara, avagraha, Devanagari OM
+    key <AB08>  { [   comma,   U003C,  U0C58           ] };  // comma: comma, less than, TSA
+    key <AB09>  { [   period,  U003E,  U0C59           ] };  // period: period, greater than, DZA
+    key <AB10>  { [   slash,   question                ] };
+
+    include "level3(ralt_switch)"
+};
+// ---- END Telugu KaGaPa ----

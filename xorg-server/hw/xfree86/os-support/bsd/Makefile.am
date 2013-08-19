@@ -54,7 +54,7 @@ endif
 # FIXME: NetBSD Aperture defines (configure.ac)
 AM_CFLAGS = -DUSESTDRES $(XORG_CFLAGS) $(DIX_CFLAGS)
 
-INCLUDES = $(XORG_INCS)
+AM_CPPFLAGS = $(XORG_INCS)
 
 libbsd_la_SOURCES = \
 	$(srcdir)/../shared/posix_tty.c \

@@ -77,7 +77,7 @@ bool do_copy_propagation(exec_list *instructions);
 bool do_copy_propagation_elements(exec_list *instructions);
 bool do_constant_propagation(exec_list *instructions);
 void do_dead_builtin_varyings(struct gl_context *ctx,
-                              exec_list *producer, exec_list *consumer,
+                              gl_shader *producer, gl_shader *consumer,
                               unsigned num_tfeedback_decls,
                               class tfeedback_decl *tfeedback_decls);
 bool do_dead_code(exec_list *instructions, bool uniform_locations_assigned);
@@ -112,7 +112,7 @@ bool lower_packing_builtins(exec_list *instructions, int op_mask);
 void lower_ubo_reference(struct gl_shader *shader, exec_list *instructions);
 void lower_packed_varyings(void *mem_ctx, unsigned location_base,
                            unsigned locations_used, ir_variable_mode mode,
-                           gl_shader *shader);
+                           unsigned gs_input_vertices, gl_shader *shader);
 bool lower_vector_insert(exec_list *instructions, bool lower_nonconstant_index);
 void lower_named_interface_blocks(void *mem_ctx, gl_shader *shader);
 bool optimize_redundant_jumps(exec_list *instructions);

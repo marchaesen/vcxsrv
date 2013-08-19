@@ -1,4 +1,4 @@
-INCLUDES = 					\
+AM_CPPFLAGS = 					\
 	@KDRIVE_INCS@				\
 	@KDRIVE_CFLAGS@
 

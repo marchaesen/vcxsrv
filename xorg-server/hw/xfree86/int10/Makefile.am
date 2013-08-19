@@ -17,9 +17,10 @@ if I386_VIDEO
 I386_VIDEO_CFLAGS = -D_PC
 endif
 
+AM_CPPFLAGS = $(XORG_INCS)
+
 if INT10_VM86
 AM_CFLAGS = $(I386_VIDEO_CFLAGS) -D_VM86_LINUX $(DIX_CFLAGS) $(XORG_CFLAGS) $(EXTRA_CFLAGS)
-INCLUDES = $(XORG_INCS)
 libint10_la_SOURCES = \
 	$(COMMON_SOURCES) \
 	$(srcdir)/../os-support/linux/int10/vm86/linux_vm86.c \
@@ -29,7 +30,7 @@ endif
 if INT10_X86EMU
 AM_CFLAGS = $(I386_VIDEO_CFLAGS) -D_X86EMU -DNO_SYS_HEADERS \
            $(XORG_CFLAGS) $(EXTRA_CFLAGS) $(DIX_CFLAGS)
-INCLUDES = $(XORG_INCS) -I$(srcdir)/../x86emu
+AM_CPPFLAGS += -I$(srcdir)/../x86emu
 libint10_la_SOURCES = \
 	$(COMMON_SOURCES) \
 	xf86x86emu.c \
@@ -39,7 +40,6 @@ endif
 
 if INT10_STUB
 AM_CFLAGS = $(I386_VIDEO_CFLAGS) -D_VM86_LINUX $(DIX_CFLAGS) $(XORG_CFLAGS) $(EXTRA_CFLAGS)
-INCLUDES = $(XORG_INCS)
 libint10_la_SOURCES = stub.c xf86int10module.c
 endif
 

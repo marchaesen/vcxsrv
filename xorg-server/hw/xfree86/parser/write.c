@@ -55,6 +55,7 @@
 #include <xorg-config.h>
 #endif
 
+#include "os.h"
 #include "xf86Parser.h"
 #include "xf86tokens.h"
 #include "Configint.h"
@@ -65,7 +66,7 @@
 #include <signal.h>
 #include <errno.h>
 
-#if defined(SVR4) || defined(__linux__) || defined(CSRG_BASED)
+#if defined(HAVE_SETEUID) && defined(_POSIX_SAVED_IDS) && _POSIX_SAVED_IDS > 0
 #define HAS_SAVED_IDS_AND_SETEUID
 #endif
 #if defined(WIN32)

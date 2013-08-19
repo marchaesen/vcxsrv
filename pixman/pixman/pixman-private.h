@@ -209,6 +209,7 @@ union pixman_image
 typedef struct pixman_iter_t pixman_iter_t;
 typedef uint32_t *(* pixman_iter_get_scanline_t) (pixman_iter_t *iter, const uint32_t *mask);
 typedef void      (* pixman_iter_write_back_t)   (pixman_iter_t *iter);
+typedef void	  (* pixman_iter_fini_t)	 (pixman_iter_t *iter);
 
 typedef enum
 {
@@ -255,6 +256,7 @@ struct pixman_iter_t
     /* These function pointers are initialized by the implementation */
     pixman_iter_get_scanline_t	get_scanline;
     pixman_iter_write_back_t	write_back;
+    pixman_iter_fini_t          fini;
 
     /* These fields are scratch data that implementations can use */
     void *			data;
