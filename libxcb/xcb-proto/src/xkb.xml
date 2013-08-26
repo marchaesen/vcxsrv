@@ -161,8 +161,10 @@ authorization from the authors.
 	</enum>
 
 	<enum name="LedClass">
-		<item name="DfltXIClass">  <value>768</value> </item>	<!--0x300-->
-		<item name="AllXIClasses"> <value>1280</value> </item>	<!--0x500-->
+		<item name="KbdFeedbackClass"> <value>0</value> </item>
+		<item name="LedFeedbackClass"> <value>4</value> </item>
+		<item name="DfltXIClass">      <value>768</value> </item>	<!--0x300-->
+		<item name="AllXIClasses">     <value>1280</value> </item>	<!--0x500-->
 	</enum>
 	<typedef oldname="CARD16" newname="LedClassSpec" />
 
@@ -172,7 +174,9 @@ authorization from the authors.
 	</enum>
 
 	<enum name="BellClass">
-		<item name="DfltXIClass"> <value>768</value> </item>	<!--0x300-->
+		<item name="KbdFeedbackClass">  <value>0</value> </item>
+		<item name="BellFeedbackClass"> <value>5</value> </item>
+		<item name="DfltXIClass">       <value>768</value> </item>	<!--0x300-->
 	</enum>
 	<typedef oldname="CARD16" newname="BellClassSpec" />
 
@@ -410,12 +414,8 @@ authorization from the authors.
 
 	<struct name="KTMapEntry">
 		<field name="active" type="BOOL" />
-		<!-- Xlib uses a different arrangement of fields
 		<field name="mods_mask" type="CARD8" mask="ModMask" />
 		<field name="level" type="CARD8" />
-		-->
-		<field name="level" type="CARD8" />
-		<field name="mods_mask" type="CARD8" mask="ModMask" />
 		<field name="mods_mods" type="CARD8" mask="ModMask" />
 		<field name="mods_vmods" type="CARD16" mask="VMod" />
 		<pad bytes="2" />
@@ -471,32 +471,26 @@ authorization from the authors.
 		<field name="group" type="CARD8" />
 	</struct>
 
-	<struct name="Overlay1Behavior">
+	<struct name="OverlayBehavior">
 		<field name="type" type="CARD8" />
 		<field name="key" type="KEYCODE" />
 	</struct>
 
-	<struct name="Overlay2Behavior">
-		<field name="type" type="CARD8" />
-		<field name="key" type="CARD8" />
-	</struct>
-
 	<typedef oldname="LockBehavior" newname="PermamentLockBehavior" />
 	<typedef oldname="RadioGroupBehavior" newname="PermamentRadioGroupBehavior" />
-	<typedef oldname="Overlay1Behavior" newname="PermamentOverlay1Behavior" />
-	<typedef oldname="Overlay2Behavior" newname="PermamentOverlay2Behavior" />
+	<typedef oldname="OverlayBehavior" newname="PermamentOverlayBehavior" />
 
 	<union name="Behavior">
 		<field name="common" type="CommonBehavior" />
 		<field name="default" type="DefaultBehavior" />
 		<field name="lock" type="LockBehavior" />
 		<field name="radioGroup" type="RadioGroupBehavior" />
-		<field name="overlay1" type="Overlay1Behavior" />
-		<field name="overlay2" type="Overlay2Behavior" />
+		<field name="overlay1" type="OverlayBehavior" />
+		<field name="overlay2" type="OverlayBehavior" />
 		<field name="permamentLock" type="PermamentLockBehavior" />
 		<field name="permamentRadioGroup" type="PermamentRadioGroupBehavior" />
-		<field name="permamentOverlay1" type="PermamentOverlay1Behavior" />
-		<field name="permamentOverlay2" type="PermamentOverlay2Behavior" />
+		<field name="permamentOverlay1" type="PermamentOverlayBehavior" />
+		<field name="permamentOverlay2" type="PermamentOverlayBehavior" />
 		<field name="type" type="CARD8" />
 	</union>
 
@@ -878,7 +872,8 @@ authorization from the authors.
 	</struct>
 
 	<enum name="SASetPtrDfltFlag">
-		<item name="DfltBtnAbsolute">  <bit>1</bit> </item>
+		<!-- The spec says 0x02 but Xlib uses 0x04. -->
+		<item name="DfltBtnAbsolute">  <bit>2</bit> </item>
 		<item name="AffectDfltButton"> <bit>0</bit> </item>
 	</enum>
 
@@ -1350,6 +1345,20 @@ authorization from the authors.
 					<list name="acts_rtrn_count" type="CARD8">
 						<fieldref>nKeyActions</fieldref>
 					</list>
+					<list type="CARD8" name="alignment_pad">
+					    <op op="-">
+						<op op="&amp;">
+						    <op op="+">
+							<fieldref>nKeyActions</fieldref>
+							<value>3</value>
+						    </op>
+						    <unop op="~">
+							<value>3</value>
+						    </unop>
+						</op>
+						<fieldref>nKeyActions</fieldref>
+					    </op>
+					</list>
 					<list name="acts_rtrn_acts" type="Action">
 						<fieldref>totalActions</fieldref>
 					</list>
@@ -1365,17 +1374,59 @@ authorization from the authors.
 					<list name="vmods_rtrn" type="CARD8" mask="ModMask">
 						<popcount><fieldref>virtualMods</fieldref></popcount>
 					</list>
+					<list type="CARD8" name="alignment_pad2">
+					    <op op="-">
+						<op op="&amp;">
+						    <op op="+">
+							<popcount><fieldref>virtualMods</fieldref></popcount>
+							<value>3</value>
+						    </op>
+						    <unop op="~">
+							<value>3</value>
+						    </unop>
+						</op>
+						<popcount><fieldref>virtualMods</fieldref></popcount>
+					    </op>
+					</list>
 				</bitcase>
 				<bitcase>
 					<enumref ref="MapPart">ExplicitComponents</enumref>
 					<list name="explicit_rtrn" type="SetExplicit">
 						<fieldref>totalKeyExplicit</fieldref>
 					</list>
+					<list type="CARD16" name="alignment_pad3">
+					    <op op="-">
+						<op op="&amp;">
+						    <op op="+">
+							<fieldref>totalKeyExplicit</fieldref>
+							<value>1</value>
+						    </op>
+						    <unop op="~">
+							<value>1</value>
+						    </unop>
+						</op>
+						<fieldref>totalKeyExplicit</fieldref>
+					    </op>
+					</list>
 				</bitcase>
 				<bitcase>
 					<enumref ref="MapPart">ModifierMap</enumref>
 					<list name="modmap_rtrn" type="KeyModMap">
 						<fieldref>totalModMapKeys</fieldref>
+					</list>
+					<list type="CARD16" name="alignment_pad4">
+					    <op op="-">
+						<op op="&amp;">
+						    <op op="+">
+							<fieldref>totalModMapKeys</fieldref>
+							<value>1</value>
+						    </op>
+						    <unop op="~">
+							<value>1</value>
+						    </unop>
+						</op>
+						<fieldref>totalModMapKeys</fieldref>
+					    </op>
 					</list>
 				</bitcase>
 				<bitcase>
@@ -1573,6 +1624,7 @@ authorization from the authors.
 			<field name="map_realMods" type="CARD8" mask="ModMask" />
 			<field name="map_vmod" type="CARD16" mask="VMod" />
 			<field name="map_ctrls" type="CARD32" mask="BoolCtrl" />
+			<field name="supported" type="BOOL" />
 			<pad bytes="3" />
 		</reply>
 	</request>
@@ -1656,6 +1708,20 @@ authorization from the authors.
 					       it does not work in reality
 					       <fieldref>nKTLevels</fieldref> -->
 					        <fieldref>nTypes</fieldref>
+					</list>
+					<list type="CARD8" name="alignment_pad">
+					    <op op="-">
+						<op op="&amp;">
+						    <op op="+">
+							<fieldref>nTypes</fieldref>
+							<value>3</value>
+						    </op>
+						    <unop op="~">
+							<value>3</value>
+						    </unop>
+						</op>
+						<fieldref>nTypes</fieldref>
+					    </op>
 					</list>
 					<list name="ktLevelNames" type="ATOM">
 						<sumof ref="nLevelsPerType" />

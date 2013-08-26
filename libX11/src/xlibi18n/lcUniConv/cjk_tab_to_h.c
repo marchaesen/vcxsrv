@@ -70,9 +70,9 @@ static void read_table (Encoding* enc)
 {
   int row, col, i, i1, i2, c, j;
 
-  enc->charset2uni = (int**) malloc(enc->rows*sizeof(int*));
+  enc->charset2uni = malloc(enc->rows*sizeof(int*));
   for (row = 0; row < enc->rows; row++)
-    enc->charset2uni[row] = (int*) malloc(enc->cols*sizeof(int));
+    enc->charset2uni[row] = malloc(enc->cols*sizeof(int));
 
   for (row = 0; row < enc->rows; row++)
     for (col = 0; col < enc->cols; col++)
@@ -136,7 +136,7 @@ static void find_charset2uni_pages (Encoding* enc)
 {
   int row, col;
 
-  enc->charsetpage = (int*) malloc((enc->rows+1)*sizeof(int));
+  enc->charsetpage = malloc((enc->rows+1)*sizeof(int));
 
   for (row = 0; row <= enc->rows; row++)
     enc->charsetpage[row] = 0;
@@ -157,7 +157,7 @@ static void find_charset2uni_blocks (Encoding* enc)
 {
   int n, row, lastrow;
 
-  enc->charsetblocks = (Block*) malloc(enc->rows*sizeof(Block));
+  enc->charsetblocks = malloc(enc->rows*sizeof(Block));
 
   n = 0;
   for (row = 0; row < enc->rows; row++)
@@ -266,7 +266,7 @@ static void invert (Encoding* enc)
 {
   int row, col, j;
 
-  enc->uni2charset = (int*) malloc(0x10000*sizeof(int));
+  enc->uni2charset = malloc(0x10000*sizeof(int));
 
   for (j = 0; j < 0x10000; j++)
     enc->uni2charset[j] = 0;
@@ -764,9 +764,9 @@ static void read_table_ksc5601 (Encoding* enc)
 {
   int row, col, i, i1, i2, c, j;
 
-  enc->charset2uni = (int**) malloc(enc->rows*sizeof(int*));
+  enc->charset2uni = malloc(enc->rows*sizeof(int*));
   for (row = 0; row < enc->rows; row++)
-    enc->charset2uni[row] = (int*) malloc(enc->cols*sizeof(int));
+    enc->charset2uni[row] = malloc(enc->cols*sizeof(int));
 
   for (row = 0; row < enc->rows; row++)
     for (col = 0; col < enc->cols; col++)

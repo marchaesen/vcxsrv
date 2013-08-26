@@ -128,7 +128,7 @@ _XIMVaToNestedList(va_list var, int max_count, XIMArg **args_return)
 	return;
     }
 
-    args = (XIMArg *)Xmalloc((unsigned)(max_count + 1) * sizeof(XIMArg));
+    args = Xmalloc(((unsigned)max_count + 1) * sizeof(XIMArg));
     *args_return = args;
     if (!args) return;
 
@@ -186,7 +186,7 @@ XSetIMValues(XIM im, ...)
     va_end(var);
 
     ret = (*im->methods->set_values) (im, args);
-    if (args) Xfree((char *)args);
+    if (args) Xfree(args);
     return ret;
 }
 
@@ -213,7 +213,7 @@ XGetIMValues(XIM im, ...)
     va_end(var);
 
     ret = (*im->methods->get_values) (im, args);
-    if (args) Xfree((char *)args);
+    if (args) Xfree(args);
     return ret;
 }
 
@@ -245,7 +245,7 @@ XCreateIC(XIM im, ...)
     va_end(var);
 
     ic = (XIC) (*im->methods->create_ic) (im, args);
-    if (args) Xfree((char *)args);
+    if (args) Xfree(args);
     if (ic) {
 	ic->core.next = im->core.ic_chain;
 	im->core.ic_chain = ic;
@@ -271,7 +271,7 @@ XDestroyIC(XIC ic)
 	    }
 	}
     }
-    Xfree ((char *) ic);
+    Xfree (ic);
 }
 
 char *
@@ -300,7 +300,7 @@ XGetICValues(XIC ic, ...)
     va_end(var);
 
     ret = (*ic->methods->get_values) (ic, args);
-    if (args) Xfree((char *)args);
+    if (args) Xfree(args);
     return ret;
 }
 
@@ -330,7 +330,7 @@ XSetICValues(XIC ic, ...)
     va_end(var);
 
     ret = (*ic->methods->set_values) (ic, args);
-    if (args) Xfree((char *)args);
+    if (args) Xfree(args);
     return ret;
 }
 

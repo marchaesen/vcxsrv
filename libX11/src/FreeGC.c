@@ -44,7 +44,7 @@ XFreeGC (
     UnlockDisplay(dpy);
     SyncHandle();
     _XFreeExtData(gc->ext_data);
-    Xfree ((char *) gc);
+    Xfree (gc);
     return 1;
     }
 

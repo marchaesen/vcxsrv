@@ -47,9 +47,9 @@ _XFreeAtomTable(Display *dpy)
 	table = dpy->atoms->table;
 	for (i = TABLESIZE; --i >= 0; ) {
 	    if ((e = *table++) && (e != RESERVED))
-		Xfree((char *)e);
+		Xfree(e);
 	}
-	Xfree((char *)dpy->atoms);
+	Xfree(dpy->atoms);
     }
 }
 
@@ -153,7 +153,7 @@ _XUpdateAtomCache(
 	e->atom = atom;
 	strcpy(EntryName(e), name);
 	if ((oe = dpy->atoms->table[idx]) && (oe != RESERVED))
-	    Xfree((char *)oe);
+	    Xfree(oe);
 	dpy->atoms->table[idx] = e;
     }
 }

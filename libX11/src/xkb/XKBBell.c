@@ -34,145 +34,146 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
 Bool
-XkbDeviceBell(	Display *	dpy,
-		Window 		window,
-		int 		deviceID,
-		int 		bellClass,
-		int 		bellID,
-		int 		percent,
-		Atom 		name)
+XkbDeviceBell(Display *dpy,
+              Window window,
+              int deviceID,
+              int bellClass,
+              int bellID,
+              int percent,
+              Atom name)
 {
     register xkbBellReq *req;
     XkbInfoPtr xkbi;
 
     if ((dpy->flags & XlibDisplayNoXkb) ||
-	(!dpy->xkb_info && !XkbUseExtension(dpy,NULL,NULL)))
-	return False;
+        (!dpy->xkb_info && !XkbUseExtension(dpy, NULL, NULL)))
+        return False;
     LockDisplay(dpy);
     xkbi = dpy->xkb_info;
-    GetReq(kbBell,req);
+    GetReq(kbBell, req);
     req->reqType = xkbi->codes->major_opcode;
     req->xkbReqType = X_kbBell;
     req->deviceSpec = deviceID;
-    req->window = (CARD32)window;
-    req->bellClass = (CARD16)bellClass;
-    req->bellID = (CARD16)bellID;
+    req->window = (CARD32) window;
+    req->bellClass = (CARD16) bellClass;
+    req->bellID = (CARD16) bellID;
     req->percent = percent;
     req->forceSound = False;
     req->eventOnly = False;
     req->pitch = 0;
     req->duration = 0;
-    req->name = (CARD32)name;
-    req->pad1= 0; req->pad2= 0;
+    req->name = (CARD32) name;
+    req->pad1 = 0;
+    req->pad2 = 0;
     UnlockDisplay(dpy);
     SyncHandle();
     return True;
 }
 
 Bool
-XkbForceDeviceBell(	Display *	dpy,
-			int 		deviceID,
-			int 		bellClass,
-			int 		bellID,
-			int 		percent)
+XkbForceDeviceBell(Display *dpy,
+                   int deviceID,
+                   int bellClass,
+                   int bellID,
+                   int percent)
 {
     register xkbBellReq *req;
     XkbInfoPtr xkbi;
 
     if ((dpy->flags & XlibDisplayNoXkb) ||
-	(!dpy->xkb_info && !XkbUseExtension(dpy,NULL,NULL)))
-	return False;
+        (!dpy->xkb_info && !XkbUseExtension(dpy, NULL, NULL)))
+        return False;
     LockDisplay(dpy);
     xkbi = dpy->xkb_info;
-    GetReq(kbBell,req);
+    GetReq(kbBell, req);
     req->reqType = xkbi->codes->major_opcode;
     req->xkbReqType = X_kbBell;
     req->deviceSpec = deviceID;
-    req->window = (CARD32)None;
-    req->bellClass = (CARD16)bellClass;
-    req->bellID = (CARD16)bellID;
+    req->window = (CARD32) None;
+    req->bellClass = (CARD16) bellClass;
+    req->bellID = (CARD16) bellID;
     req->percent = percent;
     req->forceSound = True;
     req->eventOnly = False;
     req->pitch = 0;
     req->duration = 0;
     req->name = None;
-    req->pad1= 0; req->pad2= 0;
+    req->pad1 = 0;
+    req->pad2 = 0;
     UnlockDisplay(dpy);
     SyncHandle();
     return True;
 }
 
 Bool
-XkbDeviceBellEvent(	Display *	dpy,
-			Window 		window,
-			int		deviceID,
-			int		bellClass,
-			int		bellID,
-			int		percent,
-			Atom 		name)
+XkbDeviceBellEvent(Display *dpy,
+                   Window window,
+                   int deviceID,
+                   int bellClass,
+                   int bellID,
+                   int percent,
+                   Atom name)
 {
     register xkbBellReq *req;
     XkbInfoPtr xkbi;
 
     if ((dpy->flags & XlibDisplayNoXkb) ||
-	(!dpy->xkb_info && !XkbUseExtension(dpy,NULL,NULL)))
-	return False;
+        (!dpy->xkb_info && !XkbUseExtension(dpy, NULL, NULL)))
+        return False;
     LockDisplay(dpy);
     xkbi = dpy->xkb_info;
-    GetReq(kbBell,req);
+    GetReq(kbBell, req);
     req->reqType = xkbi->codes->major_opcode;
     req->xkbReqType = X_kbBell;
     req->deviceSpec = deviceID;
-    req->window = (CARD32)window;
-    req->bellClass = (CARD16)bellClass;
-    req->bellID = (CARD16)bellID;
+    req->window = (CARD32) window;
+    req->bellClass = (CARD16) bellClass;
+    req->bellID = (CARD16) bellID;
     req->percent = percent;
     req->forceSound = False;
     req->eventOnly = True;
     req->pitch = 0;
     req->duration = 0;
-    req->name = (CARD32)name;
-    req->pad1= 0; req->pad2= 0;
+    req->name = (CARD32) name;
+    req->pad1 = 0;
+    req->pad2 = 0;
     UnlockDisplay(dpy);
     SyncHandle();
     return True;
 }
 
 Bool
-XkbBell(Display *dpy,Window window,int percent,Atom name)
+XkbBell(Display *dpy, Window window, int percent, Atom name)
 {
     if ((dpy->flags & XlibDisplayNoXkb) ||
-	(!dpy->xkb_info && !XkbUseExtension(dpy,NULL,NULL))) {
-	XBell(dpy,percent);
-	return False;
+        (!dpy->xkb_info && !XkbUseExtension(dpy, NULL, NULL))) {
+        XBell(dpy, percent);
+        return False;
     }
-    return XkbDeviceBell(dpy,window,XkbUseCoreKbd,XkbDfltXIClass,XkbDfltXIId,
-								percent,name);
+    return XkbDeviceBell(dpy, window, XkbUseCoreKbd,
+                         XkbDfltXIClass, XkbDfltXIId, percent, name);
 }
 
 Bool
-XkbForceBell(Display *dpy,int percent)
+XkbForceBell(Display *dpy, int percent)
 {
     if ((dpy->flags & XlibDisplayNoXkb) ||
-	(!dpy->xkb_info && !XkbUseExtension(dpy,NULL,NULL))) {
-	XBell(dpy,percent);
-	return False;
+        (!dpy->xkb_info && !XkbUseExtension(dpy, NULL, NULL))) {
+        XBell(dpy, percent);
+        return False;
     }
-    return XkbForceDeviceBell(dpy,XkbUseCoreKbd,XkbDfltXIClass,XkbDfltXIId,
-								percent);
+    return XkbForceDeviceBell(dpy, XkbUseCoreKbd, XkbDfltXIClass, XkbDfltXIId,
+                              percent);
 }
 
 Bool
-XkbBellEvent(Display *dpy,Window window,int percent,Atom name)
+XkbBellEvent(Display *dpy, Window window, int percent, Atom name)
 {
     if ((dpy->flags & XlibDisplayNoXkb) ||
-	(!dpy->xkb_info && !XkbUseExtension(dpy,NULL,NULL))) {
-	return False;
+        (!dpy->xkb_info && !XkbUseExtension(dpy, NULL, NULL))) {
+        return False;
     }
     /* class 0 = KbdFeedbackClass (X Input Extension) */
-    return XkbDeviceBellEvent(dpy,window,XkbUseCoreKbd,
-					XkbDfltXIClass,XkbDfltXIId,
-					percent,name);
+    return XkbDeviceBellEvent(dpy, window, XkbUseCoreKbd,
+                              XkbDfltXIClass, XkbDfltXIId, percent, name);
 }
-

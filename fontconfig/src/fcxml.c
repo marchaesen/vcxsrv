@@ -2509,7 +2509,6 @@ FcParseMatch (FcConfigParse *parse)
 {
     const FcChar8   *kind_name;
     FcMatchKind	    kind;
-    FcEdit	    *edit = 0;
     FcVStack	    *vstack;
     FcRule	    *rule = NULL, *r;
 
@@ -2545,8 +2544,10 @@ FcParseMatch (FcConfigParse *parse)
 	    {
 		FcConfigMessage (parse, FcSevereError,
 				 "<match target=\"scan\"> cannot edit user-defined object \"%s\"",
-				 FcObjectName(edit->object));
-		break;
+				 FcObjectName(vstack->u.edit->object));
+		if (rule)
+		    FcRuleDestroy (rule);
+		return;
 	    }
 	    r = FcRuleCreate (FcRuleEdit, vstack->u.edit);
 	    if (rule)

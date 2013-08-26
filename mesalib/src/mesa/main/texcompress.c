@@ -264,20 +264,16 @@ _mesa_get_compressed_formats(struct gl_context *ctx, GLint *formats)
          n += 3;
       }
    }
-   if (_mesa_is_desktop_gl(ctx)
-       && ctx->Extensions.ANGLE_texture_compression_dxt) {
-      if (formats) {
-         formats[n++] = GL_RGB_S3TC;
-         formats[n++] = GL_RGB4_S3TC;
-         formats[n++] = GL_RGBA_S3TC;
-         formats[n++] = GL_RGBA4_S3TC;
-      }
-      else {
-         n += 4;
-      }
-   }
 
-   if (ctx->Extensions.OES_compressed_ETC1_RGB8_texture) {
+   /* The GL_OES_compressed_ETC1_RGB8_texture spec says:
+    *
+    *     "New State
+    *
+    *         The queries for NUM_COMPRESSED_TEXTURE_FORMATS and
+    *         COMPRESSED_TEXTURE_FORMATS include ETC1_RGB8_OES."
+    */
+   if (_mesa_is_gles(ctx)
+       && ctx->Extensions.OES_compressed_ETC1_RGB8_texture) {
       if (formats) {
          formats[n++] = GL_ETC1_RGB8_OES;
       }

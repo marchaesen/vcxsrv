@@ -230,9 +230,9 @@ _XimCbDispatch(Xim xim,
 	/* queue the protocol
 	 */
 	XimPendingCallback pcb;
-	char *proto_buf = (proto_len > 0) ? (char*)Xmalloc(proto_len) : NULL;
+	char *proto_buf = (proto_len > 0) ? Xmalloc(proto_len) : NULL;
 
-	pcb = (XimPendingCallback)Xmalloc(sizeof(XimPendingCallbackRec));
+	pcb = Xmalloc(sizeof(XimPendingCallbackRec));
 	if (pcb && (proto_len <= 0 || proto_buf)) {
 	    if (proto_len > 0)
 		memcpy(proto_buf, proto, proto_len);
@@ -339,7 +339,7 @@ _XimStrConversionCallback(Xim im,
 		2 + length_in_bytes +
 		XIM_PAD(2 + length_in_bytes) +
 		2 + 2 + sz_CARD32 * cbrec.text->length;
-	    buf = (CARD8*)Xmalloc(buf_len);
+	    buf = Xmalloc(buf_len);
 	}
 	_XimSetHeader((XPointer)buf, XIM_STR_CONVERSION_REPLY, 0, &buf_len);
 	buf_len -= XIM_HEADER_SIZE; /* added by _XimSetHeader (HACK) */
@@ -461,12 +461,12 @@ _read_text_from_packet(Xim im,
 	return;
     }
 
-    *text_ptr = text = (XIMText*)Xmalloc(sizeof(XIMText));
+    *text_ptr = text = Xmalloc(sizeof(XIMText));
     if (text == (XIMText*)NULL) return;
 
 	tmp_len = (int)*(CARD16*)buf;
 	buf += sz_CARD16;
-	if ((tmp_buf = (char*)Xmalloc(tmp_len + 1))) {
+	if ((tmp_buf = Xmalloc(tmp_len + 1))) {
 	    memcpy(tmp_buf, buf, tmp_len);
 	    tmp_buf[tmp_len] = '\0';
 
@@ -477,11 +477,10 @@ _read_text_from_packet(Xim im,
 	    if (s != XLookupNone) {
 #ifndef NO_DEC_I18N_FIX
                 /* Allow for NULL-terminated */
-                if ((text->string.multi_byte =
-                    (char*)Xmalloc(text->length *
+                if ((text->string.multi_byte = Xmalloc(text->length *
                       XLC_PUBLIC(im->core.lcd,mb_cur_max) + 1))) {
 #else
-		if (text->string.multi_byte = (char*)Xmalloc(text->length+1)) {
+		if (text->string.multi_byte = Xmalloc(text->length+1)) {
 #endif
 			int tmp;
 #ifndef NO_DEC_I18N_FIX
@@ -530,7 +529,7 @@ _read_text_from_packet(Xim im,
 
 	i = (int)*(CARD16*)buf; buf += sz_CARD16;
 	buf += sz_CARD16; /* skip `unused' */
-	text->feedback = (XIMFeedback*)Xmalloc(i*(sizeof(XIMFeedback)/sizeof(CARD32)));
+	text->feedback = Xmalloc(i*(sizeof(XIMFeedback)/sizeof(CARD32)));
 	j = 0;
 	while (i > 0) {
 	    text->feedback[j] = (XIMFeedback)*(CARD32*)buf;

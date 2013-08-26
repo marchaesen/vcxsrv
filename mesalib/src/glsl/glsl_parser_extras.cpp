@@ -71,6 +71,7 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    this->loop_nesting_ast = NULL;
    this->switch_state.switch_nesting_ast = NULL;
 
+   this->struct_specifier_depth = 0;
    this->num_builtins_to_link = 0;
 
    /* Set default language version and extensions */
@@ -1170,7 +1171,6 @@ ast_declarator_list::ast_declarator_list(ast_fully_specified_type *type)
 {
    this->type = type;
    this->invariant = false;
-   this->ubo_qualifiers_valid = false;
 }
 
 void

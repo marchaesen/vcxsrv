@@ -511,7 +511,7 @@ LINEAR_RGB_InitSCCData(
 	    *pValue++ = (long)_XcmsGetElement(format_return, &pChar,
 		    &nitems) / (XcmsFloat)XDCCC_NUMBER;
 	}
-	Xfree ((char *)property_return);
+	Xfree (property_return);
 	pPerScrnInfo->screenWhitePt.spec.CIEXYZ.X =
 		pScreenData->RGBtoXYZmatrix[0][0] +
 		pScreenData->RGBtoXYZmatrix[0][1] +
@@ -662,7 +662,7 @@ LINEAR_RGB_InitSCCData(
 	    /* Create, initialize, and add map */
 	    if (!(pNewMap = (XcmsIntensityMap *)
 			      Xcalloc (1, sizeof(XcmsIntensityMap)))) {
-		Xfree((char *)pScreenData);
+		Xfree(pScreenData);
 		goto Free_property_return;
 	    }
 	    pNewMap->visualID = visualID;
@@ -782,7 +782,7 @@ LINEAR_RGB_InitSCCData(
 #endif /* ALLDEBUG */
     }
 
-    Xfree ((char *)property_return);
+    Xfree (property_return);
 
     /* Free the old memory and use the new structure created. */
     LINEAR_RGB_FreeSCCData(pPerScrnInfo->screenData);
@@ -796,28 +796,28 @@ LINEAR_RGB_InitSCCData(
     return(XcmsSuccess);
 
 FreeBlueTblElements:
-    Xfree((char *)pScreenData->pBlueTbl->pBase);
+    Xfree(pScreenData->pBlueTbl->pBase);
 
 FreeBlueTbl:
-    Xfree((char *)pScreenData->pBlueTbl);
+    Xfree(pScreenData->pBlueTbl);
 
 FreeGreenTblElements:
-    Xfree((char *)pScreenData->pGreenTbl->pBase);
+    Xfree(pScreenData->pGreenTbl->pBase);
 
 FreeGreenTbl:
-    Xfree((char *)pScreenData->pGreenTbl);
+    Xfree(pScreenData->pGreenTbl);
 
 FreeRedTblElements:
-    Xfree((char *)pScreenData->pRedTbl->pBase);
+    Xfree(pScreenData->pRedTbl->pBase);
 
 FreeRedTbl:
-    Xfree((char *)pScreenData->pRedTbl);
+    Xfree(pScreenData->pRedTbl);
 
 Free_property_return:
-    Xfree ((char *)property_return);
+    Xfree (property_return);
 
 FreeSCCData:
-    Xfree((char *)pScreenDefaultData);
+    Xfree(pScreenDefaultData);
     pPerScrnInfo->state = XcmsInitNone;
     return(XcmsFailure);
 }
@@ -849,30 +849,30 @@ LINEAR_RGB_FreeSCCData(
 		if (pScreenData->pRedTbl->pBase !=
 		    pScreenData->pGreenTbl->pBase) {
 		    if (pScreenData->pGreenTbl->pBase) {
-			Xfree ((char *)pScreenData->pGreenTbl->pBase);
+			Xfree (pScreenData->pGreenTbl->pBase);
 		    }
 		}
 		if (pScreenData->pGreenTbl != pScreenData->pRedTbl) {
-		    Xfree ((char *)pScreenData->pGreenTbl);
+		    Xfree (pScreenData->pGreenTbl);
 		}
 	    }
 	    if (pScreenData->pBlueTbl) {
 		if (pScreenData->pRedTbl->pBase !=
 		    pScreenData->pBlueTbl->pBase) {
 		    if (pScreenData->pBlueTbl->pBase) {
-			Xfree ((char *)pScreenData->pBlueTbl->pBase);
+			Xfree (pScreenData->pBlueTbl->pBase);
 		    }
 		}
 		if (pScreenData->pBlueTbl != pScreenData->pRedTbl) {
-		    Xfree ((char *)pScreenData->pBlueTbl);
+		    Xfree (pScreenData->pBlueTbl);
 		}
 	    }
 	    if (pScreenData->pRedTbl->pBase) {
-		Xfree ((char *)pScreenData->pRedTbl->pBase);
+		Xfree (pScreenData->pRedTbl->pBase);
 	    }
-	    Xfree ((char *)pScreenData->pRedTbl);
+	    Xfree (pScreenData->pRedTbl);
 	}
-	Xfree ((char *)pScreenData);
+	Xfree (pScreenData);
     }
 }
 

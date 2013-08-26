@@ -207,13 +207,13 @@ extern int _XlcResolveI18NPath(
 extern char *_XlcLocaleLibDirName(
      char*             /* dir_name */,
      size_t,	       /* dir_len */
-     char*             /* lc_name */
+     const char*       /* lc_name */
 );
 
 extern char *_XlcLocaleDirName(
      char*             /* dir_name */,
      size_t,	       /* dir_len */
-     char*             /* lc_name */
+     const char*       /* lc_name */
 );
 
 extern XPointer _XlcCreateLocaleDataBase(

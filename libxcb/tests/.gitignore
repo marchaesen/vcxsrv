@@ -1,3 +1,6 @@
 CheckLog.html
 CheckLog_xcb.xml
 check_all
+check_all.log
+check_all.trs
+test-suite.log

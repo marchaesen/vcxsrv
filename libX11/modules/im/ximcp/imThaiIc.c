@@ -165,13 +165,13 @@ _XimThaiCreateIC(
     ic->core.im = im;
     ic->core.filter_events = KeyPressMask;
 
-    if (! (ic->private.local.base.tree = tree = (DefTree *)Xmalloc(sizeof(DefTree)*3)) )
+    if (! (ic->private.local.base.tree = tree = Xmalloc(sizeof(DefTree)*3)) )
 	goto Set_Error;
-    if (! (ic->private.local.base.mb = (char *)Xmalloc(21)) )
+    if (! (ic->private.local.base.mb = Xmalloc(21)) )
 	goto Set_Error;
-    if (! (ic->private.local.base.wc = (wchar_t*)Xmalloc(sizeof(wchar_t)*21)) )
+    if (! (ic->private.local.base.wc = Xmalloc(sizeof(wchar_t)*21)) )
 	goto Set_Error;
-    if (! (ic->private.local.base.utf8 = (char *)Xmalloc(21)) )
+    if (! (ic->private.local.base.utf8 = Xmalloc(21)) )
 	goto Set_Error;
     ic->private.local.context = 1;
     tree[1].mb   = 1;
@@ -188,7 +188,7 @@ _XimThaiCreateIC(
 
     num = im->core.ic_num_resources;
     len = sizeof(XIMResource) * num;
-    if((res = (XIMResourceList)Xmalloc(len)) == (XIMResourceList)NULL) {
+    if((res = Xmalloc(len)) == (XIMResourceList)NULL) {
 	goto Set_Error;
     }
     (void)memcpy((char *)res, (char *)im->core.ic_resources, len);

@@ -107,7 +107,7 @@ XFontStruct **info)	/* RETURN */
 		if (! (finfo = Xmalloc(sizeof(XFontStruct) * size)))
 		    goto clearwire;
 		if (! (flist = Xmalloc(sizeof(char *) * (size+1)))) {
-		    Xfree((char *) finfo);
+		    Xfree(finfo);
 		    goto clearwire;
 		}
 	    }
@@ -152,7 +152,7 @@ XFontStruct **info)	/* RETURN */
 	    nbytes++; /* make first string 1 byte longer, to match XListFonts */
 	flist[i] = Xmalloc (nbytes);
 	if (! flist[i]) {
-	    if (finfo[i].properties) Xfree((char *) finfo[i].properties);
+	    if (finfo[i].properties) Xfree(finfo[i].properties);
 	    goto badmem;
 	}
 	if (!i) {
@@ -177,10 +177,10 @@ XFontStruct **info)	/* RETURN */
         if (j == 0)
             flist[j]--;         /* was incremented above */
         Xfree(flist[j]);
-        if (finfo[j].properties) Xfree((char *) finfo[j].properties);
+        if (finfo[j].properties) Xfree(finfo[j].properties);
     }
-    if (flist) Xfree((char *) flist);
-    if (finfo) Xfree((char *) finfo);
+    if (flist) Xfree(flist);
+    if (finfo) Xfree(finfo);
 
   clearwire:
     /* Clear the wire. */
@@ -208,7 +208,7 @@ XFreeFontInfo (
 		for (i = 1; i < actualCount; i++) {
 			Xfree (names[i]);
 		}
-		Xfree((char *) names);
+		Xfree(names);
 	}
 	if (info) {
 		for (i = 0; i < actualCount; i++) {
@@ -216,12 +216,12 @@ XFreeFontInfo (
 #ifdef USE_XF86BIGFONT
 				_XF86BigfontFreeFontMetrics(&info[i]);
 #else
-				Xfree ((char *) info[i].per_char);
+				Xfree (info[i].per_char);
 #endif
 			if (info[i].properties)
-				Xfree ((char *) info[i].properties);
+				Xfree (info[i].properties);
 			}
-		Xfree((char *) info);
+		Xfree(info);
 	}
 	return 1;
 }

@@ -76,7 +76,7 @@ Sun Microsystems, Inc. or its licensors is granted.
 #define XOC_GENERIC(font_set)	(&((XOCGeneric) font_set)->gen)
 
 #define DefineLocalBuf		char local_buf[BUFSIZ]
-#define AllocLocalBuf(length)	(length > BUFSIZ ? (char *)Xmalloc(length) : local_buf)
+#define AllocLocalBuf(length)	(length > BUFSIZ ? Xmalloc(length) : local_buf)
 #define FreeLocalBuf(ptr)	if (ptr != local_buf) Xfree(ptr)
 
 typedef struct _FontDataRec {
@@ -332,15 +332,15 @@ init_core_part(
     if (count == 0)
         return False;
 
-    font_struct_list = (XFontStruct **) Xmalloc(sizeof(XFontStruct *));
+    font_struct_list = Xmalloc(sizeof(XFontStruct *));
     if (font_struct_list == NULL)
 	return False;
 
-    font_name_list = (char **) Xmalloc(sizeof(char *));
+    font_name_list = Xmalloc(sizeof(char *));
     if (font_name_list == NULL)
 	goto err;
 
-    font_name_buf = (char *) Xmalloc(length);
+    font_name_buf = Xmalloc(length);
     if (font_name_buf == NULL)
 	goto err;
 
@@ -578,11 +578,11 @@ set_missing_list(
     if (count == 0)
 	return True;
 
-    charset_list = (char **) Xmalloc(sizeof(char *));
+    charset_list = Xmalloc(sizeof(char *));
     if (charset_list == NULL)
 	return False;
 
-    charset_buf = (char *) Xmalloc(length);
+    charset_buf = Xmalloc(length);
     if (charset_buf == NULL) {
 	Xfree(charset_list);
 	return False;
@@ -1148,10 +1148,9 @@ init_om(
     FontData font_data;
     char **required_list;
     XOrientation *orientation;
-    char **value, buf[BUFSIZ], *bufptr;
-    int count, length = 0;
+    char *bufptr;
+    int i, count, length = 0;
 
-    value = (char**)supported_charset_list;
     count = XlcNumber(supported_charset_list);
 
     data = add_data(om);
@@ -1164,14 +1163,8 @@ init_om(
     data->font_data = font_data;
     data->font_data_count = count;
 
-    for ( ; count-- > 0; font_data++) {
-/*
-1266793
-This one is fine.  *value points to one of the local strings in
-supported_charset_list[].
-*/
-	strcpy(buf, *value++);
-	font_data->name = strdup(buf);
+    for (i = 0; i < count; i++, font_data++) {
+	font_data->name = strdup(supported_charset_list[i]);
 	if (font_data->name == NULL)
 	    return False;
     }
@@ -1179,11 +1172,11 @@ supported_charset_list[].
     length += strlen(data->font_data->name) + 1;
 
     /* required charset list */
-    required_list = (char **) Xmalloc(sizeof(char *));
+    required_list = Xmalloc(sizeof(char *));
     if (required_list == NULL)
 	return False;
 
-    bufptr = (char *) Xmalloc(length);
+    bufptr = Xmalloc(length);
     if (bufptr == NULL) {
 	Xfree(required_list);
 	return False;
@@ -1199,7 +1192,7 @@ supported_charset_list[].
     bufptr += strlen(bufptr) + 1;
 
     /* orientation list */
-    orientation = (XOrientation *) Xmalloc(sizeof(XOrientation));
+    orientation = Xmalloc(sizeof(XOrientation));
     if (orientation == NULL)
 	return False;
 

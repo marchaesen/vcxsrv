@@ -610,6 +610,10 @@ public:
    virtual void print(void) const;
    bool has_qualifiers() const;
 
+   const struct glsl_type *glsl_type(const char **name,
+				     struct _mesa_glsl_parse_state *state)
+      const;
+
    ast_type_qualifier qualifier;
    ast_type_specifier *specifier;
 };
@@ -635,12 +639,6 @@ public:
     * is used to note these cases when no type is specified.
     */
    int invariant;
-
-   /**
-    * Flag indicating that these declarators are in a uniform block,
-    * allowing UBO type qualifiers.
-    */
-   bool ubo_qualifiers_valid;
 };
 
 

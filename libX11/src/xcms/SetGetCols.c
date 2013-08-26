@@ -237,7 +237,7 @@ _XcmsSetGetColors(
     /*
      * Allocate space for XColors
      */
-    if ((pXColors_in_out = (XColor *)Xcalloc(nColors, sizeof(XColor))) ==
+    if ((pXColors_in_out = Xcalloc(nColors, sizeof(XColor))) ==
 	    NULL) {
 	return(XcmsFailure);
     }
@@ -251,7 +251,7 @@ _XcmsSetGetColors(
      */
     if ((retval = XcmsConvertColors(ccc, pColors_in_out, nColors, XcmsRGBFormat,
 	    pCompressed)) == XcmsFailure) {
-        Xfree((char *)pXColors_in_out);
+        Xfree(pXColors_in_out);
 	return(XcmsFailure);
     }
 
@@ -268,12 +268,12 @@ Query:
 	/* Note: XQueryColors and XStoreColors do not return any Status */
 	(*xColorProc)(ccc->dpy, cmap, pXColors_in_out, nColors);
     } else {
-	Xfree((char *)pXColors_in_out);
+	Xfree(pXColors_in_out);
 	return(XcmsFailure);
     }
 
     if (*xColorProc == XStoreColors) {
-	Xfree((char *)pXColors_in_out);
+	Xfree(pXColors_in_out);
 	return(retval);
     }
 
@@ -281,7 +281,7 @@ Query:
      * Now, convert the returned XColor (i.e., rgb) to XcmsColor structures
      */
     _XColor_to_XcmsRGB(ccc, pXColors_in_out, pColors_in_out, nColors);
-    Xfree((char *)pXColors_in_out);
+    Xfree(pXColors_in_out);
 
     /*
      * Then, convert XcmsColor structures to the original specification

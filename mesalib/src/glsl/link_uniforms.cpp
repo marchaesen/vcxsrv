@@ -60,7 +60,7 @@ program_resource_visitor::process(const glsl_type *type, const char *name)
           || (type->is_array() && type->fields.array->is_interface()));
 
    char *name_copy = ralloc_strdup(NULL, name);
-   recursion(type, &name_copy, strlen(name), false);
+   recursion(type, &name_copy, strlen(name), false, NULL);
    ralloc_free(name_copy);
 }
 
@@ -77,24 +77,25 @@ program_resource_visitor::process(ir_variable *var)
    /* Only strdup the name if we actually will need to modify it. */
    if (t->is_record() || (t->is_array() && t->fields.array->is_record())) {
       char *name = ralloc_strdup(NULL, var->name);
-      recursion(var->type, &name, strlen(name), false);
+      recursion(var->type, &name, strlen(name), false, NULL);
       ralloc_free(name);
    } else if (t->is_interface()) {
       char *name = ralloc_strdup(NULL, var->type->name);
-      recursion(var->type, &name, strlen(name), false);
+      recursion(var->type, &name, strlen(name), false, NULL);
       ralloc_free(name);
    } else if (t->is_array() && t->fields.array->is_interface()) {
       char *name = ralloc_strdup(NULL, var->type->fields.array->name);
-      recursion(var->type, &name, strlen(name), false);
+      recursion(var->type, &name, strlen(name), false, NULL);
       ralloc_free(name);
    } else {
-      this->visit_field(t, var->name, false);
+      this->visit_field(t, var->name, false, NULL);
    }
 }
 
 void
 program_resource_visitor::recursion(const glsl_type *t, char **name,
-                                    size_t name_length, bool row_major)
+                                    size_t name_length, bool row_major,
+                                    const glsl_type *record_type)
 {
    /* Records need to have each field processed individually.
     *
@@ -103,6 +104,9 @@ program_resource_visitor::recursion(const glsl_type *t, char **name,
     * individually.
     */
    if (t->is_record() || t->is_interface()) {
+      if (record_type == NULL && t->is_record())
+         record_type = t;
+
       for (unsigned i = 0; i < t->length; i++) {
 	 const char *field = t->fields.structure[i].name;
 	 size_t new_length = name_length;
@@ -118,10 +122,18 @@ program_resource_visitor::recursion(const glsl_type *t, char **name,
          }
 
          recursion(t->fields.structure[i].type, name, new_length,
-                   t->fields.structure[i].row_major);
+                   t->fields.structure[i].row_major, record_type);
+
+         /* Only the first leaf-field of the record gets called with the
+          * record type pointer.
+          */
+         record_type = NULL;
       }
    } else if (t->is_array() && (t->fields.array->is_record()
                                 || t->fields.array->is_interface())) {
+      if (record_type == NULL && t->fields.array->is_record())
+         record_type = t->fields.array;
+
       for (unsigned i = 0; i < t->length; i++) {
 	 size_t new_length = name_length;
 
@@ -129,11 +141,24 @@ program_resource_visitor::recursion(const glsl_type *t, char **name,
 	 ralloc_asprintf_rewrite_tail(name, &new_length, "[%u]", i);
 
          recursion(t->fields.array, name, new_length,
-                   t->fields.structure[i].row_major);
+                   t->fields.structure[i].row_major, record_type);
+
+         /* Only the first leaf-field of the record gets called with the
+          * record type pointer.
+          */
+         record_type = NULL;
       }
    } else {
-      this->visit_field(t, *name, row_major);
+      this->visit_field(t, *name, row_major, record_type);
    }
+}
+
+void
+program_resource_visitor::visit_field(const glsl_type *type, const char *name,
+                                      bool row_major,
+                                      const glsl_type *record_type)
+{
+   visit_field(type, name, row_major);
 }
 
 void
@@ -377,6 +402,15 @@ private:
    virtual void visit_field(const glsl_type *type, const char *name,
                             bool row_major)
    {
+      (void) type;
+      (void) name;
+      (void) row_major;
+      assert(!"Should not get here.");
+   }
+
+   virtual void visit_field(const glsl_type *type, const char *name,
+                            bool row_major, const glsl_type *record_type)
+   {
       assert(!type->is_record());
       assert(!(type->is_array() && type->fields.array->is_record()));
       assert(!type->is_interface());
@@ -421,7 +455,9 @@ private:
       if (this->ubo_block_index != -1) {
 	 this->uniforms[id].block_index = this->ubo_block_index;
 
-	 unsigned alignment = type->std140_base_alignment(ubo_row_major);
+	 const unsigned alignment = record_type
+	    ? record_type->std140_base_alignment(ubo_row_major)
+	    : type->std140_base_alignment(ubo_row_major);
 	 this->ubo_byte_offset = glsl_align(this->ubo_byte_offset, alignment);
 	 this->uniforms[id].offset = this->ubo_byte_offset;
 	 this->ubo_byte_offset += type->std140_size(ubo_row_major);

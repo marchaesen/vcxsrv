@@ -4,7 +4,6 @@ xkb_symbols "basic" {
 
     name[Group1]= "English (US)";
 
-    // Alphanumeric section
     key <TLDE> {	[     grave,	asciitilde	]	};
     key <AE01> {	[	  1,	exclam 		]	};
     key <AE02> {	[	  2,	at		]	};
@@ -56,7 +55,6 @@ xkb_symbols "basic" {
     key <AB10> {	[     slash,	question	]	};
 
     key <BKSL> {	[ backslash,         bar	]	};
-    // End alphanumeric section
 };
 
 partial alphanumeric_keys
@@ -79,7 +77,6 @@ xkb_symbols "intl" {
 
     include "us(basic)"
 
-    // Alphanumeric section
     key <TLDE> { [dead_grave, dead_tilde,         grave,       asciitilde ] };
     key <AE01> { [	   1,     exclam,    exclamdown,      onesuperior ] };
     key <AE02> { [	   2,         at,   twosuperior, dead_doubleacute ] };
@@ -195,8 +192,6 @@ partial alphanumeric_keys
 xkb_symbols "dvorak" {
 
     name[Group1]= "English (Dvorak)";
-
-    // Alphanumeric section
 
     key <TLDE> { [       grave,	asciitilde, dead_grave, dead_tilde	] };
 
@@ -490,8 +485,6 @@ xkb_symbols "dvorak-classic" {
 
     name[Group1]= "English (classic Dvorak)";
 
-    // Alphanumeric section
-
     key <TLDE> { [       grave,	asciitilde, dead_grave, dead_tilde	] };
 
     key <AE01> { [ bracketleft,	braceleft	]	};
@@ -738,7 +731,6 @@ xkb_symbols "colemak" {
     include "us"
     name[Group1]= "English (Colemak)";
 
-    // Alphanumeric section
     key <TLDE> { [        grave,   asciitilde,      dead_tilde,       asciitilde ] };
     key <AE01> { [            1,       exclam,      exclamdown,      onesuperior ] };
     key <AE02> { [            2,           at,       masculine,      twosuperior ] };
@@ -1122,7 +1114,6 @@ xkb_symbols "chr" {
     name[Group1]= "Cherokee";
     key.type[group1]="ALPHABETIC";
 
-    // Alphanumeric section
     key <TLDE> { [      grave,      U13CA ] };
     key <AE01> { [          1,      U13B1 ] };
     key <AE02> { [          2,      U13C7 ] };
@@ -1173,8 +1164,6 @@ xkb_symbols "chr" {
     key <AB08> { [      comma,      U13E2 ] };
     key <AB09> { [     period,      U13B4 ] };
     key <AB10> { [      U13C2,      U13C9 ] };
-
-    // End alphanumeric section
 };
 
 // Serbian charecters added as third level symbols to US keyboard layout.
@@ -1258,7 +1247,6 @@ xkb_symbols "workman" {
 
     include "us(basic)"
 
-    // Alphanumeric section
     key <AD01> {  [   q,  Q   ] };
     key <AD02> {  [   d,  D   ] };
     key <AD03> {  [   r,  R   ] };
@@ -1288,7 +1276,6 @@ xkb_symbols "workman" {
     key <AB05> {  [   v,  V   ] };
     key <AB06> {  [   k,  K   ] };
     key <AB07> {  [   l,  L   ] };
-    // End alphanumeric section
 
     key <CAPS> { [    BackSpace,       Escape,       BackSpace,        BackSpace ] };
 
@@ -1302,7 +1289,6 @@ xkb_symbols "workman-intl" {
 
     include "us(intl)"
 
-    // Alphanumeric section
     key <AD01> { [     q,          Q,    adiaeresis,       Adiaeresis ] };
     key <AD02> { [     d,          D,           eth,              ETH ] };
     key <AD03> { [     r,          R,    registered,       registered ] };
@@ -1332,7 +1318,6 @@ xkb_symbols "workman-intl" {
     key <AB05> { [     v,          V,             v,                V ] };
     key <AB06> { [     k,          K,            oe,               OE ] };
     key <AB07> { [     l,          L,        oslash,         Ooblique ] };
-    // End alphanumeric section
 
     key <CAPS> { [ BackSpace, Escape,     BackSpace,        BackSpace ] };
 
@@ -1496,7 +1481,6 @@ xkb_symbols "ats" {
 
     key <AC01> { [ a, A, aacute, Aacute  ] };
 
-
     //Small letter Open use compose to key get acute accent
     key <AB03> { [ c,	C, U0254, U0186		  ] };
     key <AB08> { [ comma,     less, U0313 ] };
@@ -1511,9 +1495,8 @@ xkb_symbols "crd" {
 
   include "us"
 
-  name[Group1]= "Couer D'alene Salish";
+  name[Group1]= "Coeur d'Alene Salish";
 
-  // Alphanumeric section
   key <AD02> { [         w,           W, U02B7, U02B7 ] }; 
   key <AE07> { [         7,   ampersand, U0294        ] }; 
   key <AD01> { [         q,           Q, U221A        ] }; 
@@ -1530,8 +1513,6 @@ xkb_symbols "crd" {
 
   include "level3(ralt_switch)"
   include "compose(rctrl)"
-
-  // End alphanumeric section
 };
 
 

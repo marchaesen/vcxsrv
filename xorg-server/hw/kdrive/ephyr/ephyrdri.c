@@ -137,18 +137,19 @@ ephyrDRIGetClientDriverName(int a_screen,
 Bool
 ephyrDRICreateContext(int a_screen,
                       int a_visual_id,
-                      XID *a_returned_ctxt_id, drm_context_t * a_hw_ctxt)
+                      CARD32 ctxt_id, drm_context_t * a_hw_ctxt)
 {
     Display *dpy = hostx_get_display();
     Bool is_ok = FALSE;
     Visual v;
+    XID returned_ctxt_id = ctxt_id;
 
     EPHYR_LOG("enter. screen:%d, visual:%d\n", a_screen, a_visual_id);
     memset(&v, 0, sizeof(v));
     v.visualid = a_visual_id;
     is_ok = XF86DRICreateContext(dpy,
                                  DefaultScreen(dpy),
-                                 &v, a_returned_ctxt_id, a_hw_ctxt);
+                                 &v, &returned_ctxt_id, a_hw_ctxt);
     EPHYR_LOG("leave:%d\n", is_ok);
     return is_ok;
 }

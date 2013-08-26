@@ -83,9 +83,9 @@ Xutf8SetWMProperties (
     XSetWMProperties(dpy, w, wprop, iprop, argv, argc,
 		     sizeHints, wmHints, classHints);
     if (wprop)
-	Xfree((char *)wname.value);
+	Xfree(wname.value);
     if (iprop)
-	Xfree((char *)iname.value);
+	Xfree(iname.value);
 
     /* Note: The WM_LOCALE_NAME property is set by XSetWMProperties. */
 }

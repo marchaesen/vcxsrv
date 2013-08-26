@@ -193,7 +193,7 @@ MouseWriteBytes(int fd, unsigned char *c, int n, int timeout)
 #define MAX_VALID   4           /* number of valid packets before accepting */
 
 typedef struct _kmouseProt {
-    char *name;
+    const char *name;
     Bool (*Complete) (KdPointerInfo * pi, unsigned char *ev, int ne);
     int (*Valid) (KdPointerInfo * pi, unsigned char *ev, int ne);
     Bool (*Parse) (KdPointerInfo * pi, unsigned char *ev, int ne);
@@ -738,7 +738,7 @@ MouseInitProtocol(Kmouse * km)
 }
 
 static void
-MouseFirstProtocol(Kmouse * km, char *prot)
+MouseFirstProtocol(Kmouse * km, const char *prot)
 {
     if (prot) {
         for (km->i_prot = 0; km->i_prot < NUM_PROT; km->i_prot++)
@@ -887,7 +887,7 @@ MouseRead(int mousePort, void *closure)
 
 int MouseInputType;
 
-char *kdefaultMouse[] = {
+const char *kdefaultMouse[] = {
     "/dev/input/mice",
     "/dev/mouse",
     "/dev/psaux",

@@ -1086,7 +1086,7 @@ KdParseKbdOptions(KdKeyboardInfo * ki)
 }
 
 KdKeyboardInfo *
-KdParseKeyboard(char *arg)
+KdParseKeyboard(const char *arg)
 {
     char save[1024];
     char delim;
@@ -1178,7 +1178,7 @@ KdParsePointerOptions(KdPointerInfo * pi)
 }
 
 KdPointerInfo *
-KdParsePointer(char *arg)
+KdParsePointer(const char *arg)
 {
     char save[1024];
     char delim;
@@ -1674,13 +1674,6 @@ char *kdActionNames[] = {
     "gen_up_2",
 };
 #endif                          /* DEBUG */
-
-static void
-KdQueueEvent(DeviceIntPtr pDev, InternalEvent *ev)
-{
-    KdAssertSigioBlocked("KdQueueEvent");
-    mieqEnqueue(pDev, ev);
-}
 
 /* We return true if we're stealing the event. */
 static Bool

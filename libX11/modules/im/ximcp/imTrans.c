@@ -153,7 +153,7 @@ _XimTransRegisterDispatcher(
     TransSpecRec		*spec = (TransSpecRec *)im->private.proto.spec;
     TransIntrCallbackPtr	 rec;
 
-    if (!(rec = (TransIntrCallbackPtr)Xmalloc(sizeof(TransIntrCallbackRec))))
+    if (!(rec = Xmalloc(sizeof(TransIntrCallbackRec))))
         return False;
 
     rec->func       = callback;

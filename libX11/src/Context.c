@@ -126,7 +126,7 @@ static void ResizeTable(DB db)
 	    *head = entry;
 	}
     }
-    Xfree((char *) otable);
+    Xfree(otable);
 }
 
 static void _XFreeContextDB(Display *display)
@@ -140,12 +140,12 @@ static void _XFreeContextDB(Display *display)
 	for (i = db->mask + 1, pentry = db->table ; --i >= 0; pentry++) {
 	    for (entry = *pentry; entry; entry = next) {
 		next = entry->next;
-		Xfree((char *)entry);
+		Xfree(entry);
 	    }
 	}
-	Xfree((char *) db->table);
+	Xfree(db->table);
 	_XFreeMutex(&db->linfo);
-	Xfree((char *) db);
+	Xfree(db);
     }
 }
 
@@ -186,7 +186,7 @@ int XSaveContext(
 	db->mask = INITHASHMASK;
 	db->table = Xcalloc(db->mask + 1, sizeof(TableEntry));
 	if (!db->table) {
-	    Xfree((char *)db);
+	    Xfree(db);
 	    return XCNOMEM;
 	}
 	db->numentries = 0;
@@ -289,7 +289,7 @@ int XDeleteContext(Display *display, XID rid, XContext context)
 	 prev = &entry->next) {
 	if (entry->rid == rid && entry->context == context) {
 	    *prev = entry->next;
-	    Xfree((char *) entry);
+	    Xfree(entry);
 	    db->numentries--;
 	    if (db->numentries < db->mask && db->mask > INITHASHMASK)
 		ResizeTable(db);

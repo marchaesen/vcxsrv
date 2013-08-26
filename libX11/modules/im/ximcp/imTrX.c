@@ -71,7 +71,7 @@ _XimXRegisterDispatcher(
     XIntrCallbackPtr	 rec;
     XSpecRec		*spec = (XSpecRec *)im->private.proto.spec;
 
-    if (!(rec = (XIntrCallbackPtr)Xmalloc(sizeof(XIntrCallbackRec))))
+    if (!(rec = Xmalloc(sizeof(XIntrCallbackRec))))
         return False;
 
     rec->func       = callback;

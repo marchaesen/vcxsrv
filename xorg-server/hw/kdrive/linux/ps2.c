@@ -58,7 +58,7 @@ Ps2ReadBytes(int fd, char *buf, int len, int min)
     return tot;
 }
 
-char *Ps2Names[] = {
+const char *Ps2Names[] = {
     "/dev/psaux",
 /*    "/dev/mouse", */
     "/dev/input/mice",

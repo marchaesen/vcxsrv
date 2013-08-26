@@ -95,6 +95,6 @@ void XSetRGBColormaps (
 	XChangeProperty (dpy, w, property, XA_RGB_COLOR_MAP, 32,
 			 PropModeReplace, (unsigned char *) data,
 			 (int) (count * NumPropStandardColormapElements));
-	Xfree ((char *) data);
+	Xfree (data);
     }
 }

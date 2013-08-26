@@ -85,7 +85,7 @@ ub_destroy(
     XPointer state)
 {
     _XCloseLC(((UbState) state)->lcd);
-    Xfree((char *) state);
+    Xfree(state);
 }
 
 static const XrmMethodsRec ub_methods = {
@@ -177,7 +177,7 @@ mb_destroy(
 {
     _XlcCloseConverter(((MbState) state)->conv);
     _XCloseLC(((MbState) state)->lcd);
-    Xfree((char *) state);
+    Xfree(state);
 }
 
 static const XrmMethodsRec mb_methods = {
@@ -197,7 +197,7 @@ _XrmDefaultInitParseInfo(
 {
     if (XLC_PUBLIC(lcd, mb_cur_max) == 1) {
 	/* Unibyte case. */
-	UbState state = (UbState) Xmalloc(sizeof(UbStateRec));
+	UbState state = Xmalloc(sizeof(UbStateRec));
 	if (state == NULL)
 	    return (XrmMethods) NULL;
 
@@ -207,14 +207,14 @@ _XrmDefaultInitParseInfo(
 	return &ub_methods;
     } else {
 	/* Multibyte case. */
-	MbState state = (MbState) Xmalloc(sizeof(MbStateRec));
+	MbState state = Xmalloc(sizeof(MbStateRec));
 	if (state == NULL)
 	    return (XrmMethods) NULL;
 
 	state->lcd = lcd;
 	state->conv = _XlcOpenConverter(lcd, XlcNMultiByte, lcd, XlcNWideChar);
 	if (state->conv == NULL) {
-	    Xfree((char *) state);
+	    Xfree(state);
 	    return (XrmMethods) NULL;
 	}
 

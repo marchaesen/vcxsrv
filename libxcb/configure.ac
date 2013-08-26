@@ -2,19 +2,22 @@
 # Process this file with autoconf to produce a configure script.
 
 # Initialize Autoconf
-AC_PREREQ(2.57)
+AC_PREREQ([2.60])
 AC_INIT([libxcb],
         1.9,
         [xcb@lists.freedesktop.org])
+AC_CONFIG_AUX_DIR([build-aux])
+AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([xcb.pc.in])
-# Set common system defines for POSIX extensions, such as _GNU_SOURCE
-# Must be called before any macros that run the compiler (like AC_PROG_LIBTOOL)
-# to avoid autoconf errors.
-AC_USE_SYSTEM_EXTENSIONS
 
 # Initialize Automake
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+
+# Set common system defines for POSIX extensions, such as _GNU_SOURCE
+# Must be called before any macros that run the compiler (like AC_PROG_LIBTOOL)
+# to avoid autoconf errors.
+AC_USE_SYSTEM_EXTENSIONS
 
 AM_PATH_PYTHON([2.6])
 
@@ -27,15 +30,12 @@ AC_LIBTOOL_WIN32_DLL
 AC_PROG_LIBTOOL
 AC_PROG_CC
 
-AC_PATH_PROG(XSLTPROC, xsltproc, no)
-if test "$XSLTPROC" = "no"; then
-   AC_MSG_ERROR([XCB requires xsltproc.])
-fi
-
-HTML_CHECK_RESULT=false
+XSLTPROC=no
+HTML_CHECK_RESULT=no
 if test x"$HAVE_CHECK" = xyes; then
+	AC_PATH_PROG(XSLTPROC, xsltproc, no)
 	if test x"$XSLTPROC" != xno; then
-		HTML_CHECK_RESULT=true
+		HTML_CHECK_RESULT=yes
 	fi
 fi
 AC_SUBST(HTML_CHECK_RESULT)
@@ -139,13 +139,6 @@ fi
 AC_SUBST(CWARNFLAGS)
 
 XCB_CHECK_VISIBILITY()
-
-# htmldir is not defined prior to autoconf 2.59c, so on earlier versions
-# set an equivalent value.
-AC_PREREQ([2.59c], [], [AC_SUBST([htmldir], [m4_ifset([AC_PACKAGE_TARNAME],
-	  ['${datadir}/doc/${PACKAGE_TARNAME}'],
-	  ['${datadir}/doc/${PACKAGE}'])
-])])
 
 XCB_CHECK_DOXYGEN()
 
@@ -258,6 +251,7 @@ echo ""
 echo "  Configuration"
 echo "    XDM support.........: ${have_xdmcp}"
 echo "    Build unit tests....: ${HAVE_CHECK}"
+echo "      with html results.: ${HTML_CHECK_RESULT}"
 echo "    XCB buffer size.....: ${xcb_queue_buffer_size}"
 echo ""
 echo "  X11 extensions"

@@ -111,7 +111,7 @@ XcmsCreateCCC(
     XcmsPerScrnInfo *pNewScrnInfo;
 
     if (pDefaultCCC == NULL ||
-	    !(newccc = (XcmsCCC) Xcalloc(1, (unsigned) sizeof(XcmsCCCRec)))) {
+	    !(newccc = Xcalloc(1, sizeof(XcmsCCCRec)))) {
 	return(NULL);
     }
 
@@ -144,8 +144,7 @@ XcmsCreateCCC(
      * If one exists replace the pPerScrnInfo.
      */
     if ((pIMap = _XcmsGetIntensityMap(dpy, visual)) != NULL) {
-	if (!(pNewScrnInfo = (XcmsPerScrnInfo *)
-		Xcalloc(1, (unsigned) sizeof(XcmsPerScrnInfo)))) {
+	if (!(pNewScrnInfo = Xcalloc(1, sizeof(XcmsPerScrnInfo)))) {
 	    Xfree(newccc);
 	    return(NULL);
 	}

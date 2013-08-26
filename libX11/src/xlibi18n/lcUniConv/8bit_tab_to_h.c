@@ -65,7 +65,7 @@ int main (int argc, char *argv[])
   if (argc > 3) {
     filename = argv[3];
   } else {
-    char* s = (char*) malloc(strlen(c_charsetname)+strlen(".h")+1);
+    char* s = malloc(strlen(c_charsetname)+strlen(".h")+1);
     strcpy(s,c_charsetname); strcat(s,".h");
     filename = s;
   }
@@ -361,11 +361,11 @@ int main (int argc, char *argv[])
         if (tables[t].usecount > 1) {
           char* s;
           if (p == tables[t].minline >> 5) {
-            s = (char*) malloc(5+1);
+            s = malloc(5+1);
             sprintf(s, "%02x_%d", p, ++i);
           } else {
             p = tables[t].minline >> 5;
-            s = (char*) malloc(2+1);
+            s = malloc(2+1);
             sprintf(s, "%02x", p);
           }
           tables[t].suffix = s;

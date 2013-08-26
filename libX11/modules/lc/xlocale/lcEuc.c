@@ -671,7 +671,7 @@ create_conv(
 {
     XlcConv conv;
 
-    conv = (XlcConv) Xmalloc(sizeof(XlcConvRec));
+    conv = Xmalloc(sizeof(XlcConvRec));
     if (conv == NULL)
 	return (XlcConv) NULL;
 
@@ -1363,7 +1363,7 @@ static void
 close_converter(
     XlcConv conv)
 {
-	Xfree((char *) conv);
+	Xfree(conv);
 }
 
 enum { MBSTOCS, WCSTOCS, MBTOCS, CSTOMBS, CSTOWCS, MBSTOWCS, WCSTOMBS,

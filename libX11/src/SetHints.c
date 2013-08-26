@@ -198,7 +198,7 @@ XSetIconSizes (
 	    XChangeProperty (dpy, w, XA_WM_ICON_SIZE, XA_WM_ICON_SIZE, 32,
 			     PropModeReplace, (unsigned char *) prop,
 			     count * NumPropIconSizeElements);
-	    Xfree ((char *)prop);
+	    Xfree (prop);
 	}
 	return 1;
 }

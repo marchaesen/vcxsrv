@@ -25,216 +25,210 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ********************************************************/
 
 #ifndef _XKBLIBINT_H_
-#define	_XKBLIBINT_H_
+#define _XKBLIBINT_H_
 
 #include <X11/Xutil.h>
 #include <X11/XKBlib.h>
 
-#define	XkbMapPending		(1<<0)
-#define	XkbXlibNewKeyboard	(1<<1)
+#define XkbMapPending           (1<<0)
+#define XkbXlibNewKeyboard      (1<<1)
 
-typedef int	(*XkbKSToMBFunc)(
-	XPointer	/* priv */,
-	KeySym		/* sym */,
-	char *		/* buf */,
-	int		/* len */,
-	int *		/* extra_rtrn */
+typedef int     (*XkbKSToMBFunc)(
+        XPointer        /* priv */,
+        KeySym          /* sym */,
+        char *          /* buf */,
+        int             /* len */,
+        int *           /* extra_rtrn */
 );
 
-typedef KeySym	(*XkbMBToKSFunc)(
-	XPointer	/* priv */,
-	char *		/* buf */,
-	int		/* len */,
-	Status *	/* status */
+typedef KeySym  (*XkbMBToKSFunc)(
+        XPointer        /* priv */,
+        char *          /* buf */,
+        int             /* len */,
+        Status *        /* status */
 );
 
-typedef KeySym	(*XkbToUpperFunc)(
-	KeySym		/* sym */
+typedef KeySym  (*XkbToUpperFunc)(
+        KeySym          /* sym */
 );
 
 typedef struct _XkbConverters {
-	XkbKSToMBFunc	 KSToMB;
-	XPointer	 KSToMBPriv;
-	XkbMBToKSFunc	 MBToKS;
-	XPointer	 MBToKSPriv;
-	XkbToUpperFunc	 KSToUpper;
+        XkbKSToMBFunc    KSToMB;
+        XPointer         KSToMBPriv;
+        XkbMBToKSFunc    MBToKS;
+        XPointer         MBToKSPriv;
+        XkbToUpperFunc   KSToUpper;
 } XkbConverters;
 
-extern	XkbInternAtomFunc	_XkbInternAtomFunc;
-extern	XkbGetAtomNameFunc	_XkbGetAtomNameFunc;
+extern  XkbInternAtomFunc       _XkbInternAtomFunc;
+extern  XkbGetAtomNameFunc      _XkbGetAtomNameFunc;
 
 typedef struct _XkbInfoRec {
-	unsigned	 flags;
-	unsigned	 xlib_ctrls;
-	XExtCodes	 *codes;
-	int		 srv_major;
-	int		 srv_minor;
-	unsigned	 selected_events;
-	unsigned short	 selected_nkn_details;
-	unsigned short	 selected_map_details;
-	XkbDescRec	*desc;
-	XkbMapChangesRec changes;
-	Atom		 composeLED;
-	XkbConverters	 cvt;
-	XkbConverters	 latin1cvt;
+        unsigned         flags;
+        unsigned         xlib_ctrls;
+        XExtCodes        *codes;
+        int              srv_major;
+        int              srv_minor;
+        unsigned         selected_events;
+        unsigned short   selected_nkn_details;
+        unsigned short   selected_map_details;
+        XkbDescRec      *desc;
+        XkbMapChangesRec changes;
+        Atom             composeLED;
+        XkbConverters    cvt;
+        XkbConverters    latin1cvt;
 } XkbInfoRec, *XkbInfoPtr;
 
 
-#define	_XkbUnavailable(d) \
-	(((d)->flags&XlibDisplayNoXkb) ||\
-	 ((!(d)->xkb_info || (!(d)->xkb_info->desc)) && !_XkbLoadDpy(d)))
+#define _XkbUnavailable(d) \
+        (((d)->flags&XlibDisplayNoXkb) || \
+         ((!(d)->xkb_info || (!(d)->xkb_info->desc)) && !_XkbLoadDpy(d)))
 
-#define	_XkbCheckPendingRefresh(d,xi) {\
-    if ((xi)->flags&XkbXlibNewKeyboard)\
-	_XkbReloadDpy((d));\
-    else if ((xi)->flags&XkbMapPending) {\
-	if (XkbGetMapChanges((d),(xi)->desc, &(xi)->changes)==Success) {\
-	    LockDisplay((d));\
-	    (xi)->changes.changed= 0;\
-	    UnlockDisplay((d));\
-	}\
-    }\
+#define _XkbCheckPendingRefresh(d,xi) { \
+    if ((xi)->flags&XkbXlibNewKeyboard) \
+        _XkbReloadDpy((d)); \
+    else if ((xi)->flags&XkbMapPending) { \
+        if (XkbGetMapChanges((d),(xi)->desc, &(xi)->changes)==Success) { \
+            LockDisplay((d)); \
+            (xi)->changes.changed= 0; \
+            UnlockDisplay((d)); \
+        } \
+    } \
 }
 
-#define	_XkbNeedModmap(i)    ((!(i)->desc->map)||(!(i)->desc->map->modmap))
+#define _XkbNeedModmap(i)    ((!(i)->desc->map)||(!(i)->desc->map->modmap))
 
-	/*
-	 * mask of the events that the "invisible" XKB support in Xlib needs
-	 */
+        /*
+         * mask of the events that the "invisible" XKB support in Xlib needs
+         */
 #define XKB_XLIB_MAP_MASK (XkbAllClientInfoMask)
 
-	/*
-	 * Handy helper macros
-	 */
-#define	XKB_INSURE_SIZE(f,t,nNum,oNum)	{\
-	if ((f)==NULL)	\
-	     (f)=(t *)Xmalloc(sizeof(t)*(nNum));\
-	else if ((nNum)<(oNum))\
-	     (f)=(t *)Xrealloc((f),sizeof(t)*(nNum));\
-	}
+        /*
+         * Handy helper macros
+         */
 
 typedef struct _XkbReadBuffer {
-	int	 error;
-	int	 size;
-	char	*start;
-	char	*data;
-} XkbReadBufferRec,*XkbReadBufferPtr;
+        int      error;
+        int      size;
+        char    *start;
+        char    *data;
+} XkbReadBufferRec, *XkbReadBufferPtr;
 
-#define	_XkbAlloc(s)		Xmalloc((s))
-#define	_XkbCalloc(n,s)		Xcalloc((n),(s))
-#define	_XkbRealloc(o,s)	Xrealloc((o),(s))
-#define	_XkbTypedAlloc(t)	((t *)Xmalloc(sizeof(t)))
-#define	_XkbTypedCalloc(n,t)	((t *)Xcalloc((n),sizeof(t)))
-#define	_XkbTypedRealloc(o,n,t) \
-	((o)?(t *)Xrealloc((o),(n)*sizeof(t)):_XkbTypedCalloc(n,t))
-#define	_XkbClearElems(a,f,l,t)	bzero(&(a)[f],((l)-(f)+1)*sizeof(t))
-#define	_XkbFree(p)		Xfree(p)
+#define _XkbAlloc(s)            Xmalloc((s))
+#define _XkbCalloc(n,s)         Xcalloc((n),(s))
+#define _XkbRealloc(o,s)        Xrealloc((o),(s))
+#define _XkbTypedAlloc(t)       ((t *)Xmalloc(sizeof(t)))
+#define _XkbTypedCalloc(n,t)    ((t *)Xcalloc((n),sizeof(t)))
+#define _XkbTypedRealloc(o,n,t) \
+        ((o) ? (t *)Xrealloc((o), (n)*sizeof(t)) : _XkbTypedCalloc(n,t))
+#define _XkbClearElems(a,f,l,t) bzero(&(a)[f], ((l)-(f)+1) * sizeof(t))
+#define _XkbFree(p)             Xfree(p)
 
 _XFUNCPROTOBEGIN
 
-extern	void _XkbReloadDpy(
-    Display *		/* dpy */
+extern  void _XkbReloadDpy(
+    Display *           /* dpy */
 );
 
 extern KeySym _XKeycodeToKeysym(
-    Display*		/* display */,
+    Display *           /* display */,
 #if NeedWidePrototypes
-    unsigned int	/* keycode */,
+    unsigned int        /* keycode */,
 #else
-    KeyCode		/* keycode */,
+    KeyCode             /* keycode */,
 #endif
-    int			/* index */
+    int                 /* index */
 );
 
 extern KeyCode _XKeysymToKeycode(
-    Display*		/* display */,
-    KeySym		/* keysym */
+    Display *           /* display */,
+    KeySym              /* keysym */
 );
 
 extern KeySym _XLookupKeysym(
-    XKeyEvent*		/* key_event */,
-    int			/* index */
+    XKeyEvent *         /* key_event */,
+    int                 /* index */
 );
 
 extern int _XRefreshKeyboardMapping(
-    XMappingEvent*	/* event_map */
+    XMappingEvent *     /* event_map */
 );
 
-extern unsigned	_XKeysymToModifiers(
-    Display *		/* dpy */,
-    KeySym 		/* ks */
+extern unsigned _XKeysymToModifiers(
+    Display *           /* dpy */,
+    KeySym              /* ks */
 );
 
 extern int _XTranslateKey(
-    register Display *	/* dpy */,
-    KeyCode 		/* keycode */,
+    register Display *  /* dpy */,
+    KeyCode             /* keycode */,
     register unsigned int /* modifiers */,
-    unsigned int *	/* modifiers_return */,
-    KeySym *		/* keysym_return */
+    unsigned int *      /* modifiers_return */,
+    KeySym *            /* keysym_return */
 );
 
-extern int	_XTranslateKeySym(
-    Display *		/* dpy */,
-    register KeySym 	/* symbol */,
-    unsigned int 	/* modifiers */,
-    char *		/* buffer */,
-    int 		/* nbytes */
+extern int      _XTranslateKeySym(
+    Display *           /* dpy */,
+    register KeySym     /* symbol */,
+    unsigned int        /* modifiers */,
+    char *              /* buffer */,
+    int                 /* nbytes */
 );
 
-extern	int _XLookupString(
-    register XKeyEvent *	/* event */,
-    char *			/* buffer */,
-    int 			/* nbytes */,
-    KeySym *			/* keysym */,
-    XComposeStatus *		/* status */
+extern  int _XLookupString(
+    register XKeyEvent *        /* event */,
+    char *                      /* buffer */,
+    int                         /* nbytes */,
+    KeySym *                    /* keysym */,
+    XComposeStatus *            /* status */
 );
 
 extern void _XkbNoteCoreMapChanges(
-    XkbMapChangesRec * 		/* old */,
-    XMappingEvent * 		/* new */,
-    unsigned int 		/* wanted */
+    XkbMapChangesRec *          /* old */,
+    XMappingEvent *             /* new */,
+    unsigned int                /* wanted */
 );
 
-extern	int _XkbInitReadBuffer(
-    Display *		/* dpy */,
-    XkbReadBufferPtr	/* buf */,
-    int			/* size */
+extern  int _XkbInitReadBuffer(
+    Display *           /* dpy */,
+    XkbReadBufferPtr    /* buf */,
+    int                 /* size */
 );
 
 extern int _XkbSkipReadBufferData(
-    XkbReadBufferPtr	/* from */,
-    int			/* size */
+    XkbReadBufferPtr    /* from */,
+    int                 /* size */
 );
 
 extern int _XkbCopyFromReadBuffer(
-    XkbReadBufferPtr	/* from */,
-    char *		/* to */,
-    int			/* size */
+    XkbReadBufferPtr    /* from */,
+    char *              /* to */,
+    int                 /* size */
 );
 
 
 #ifdef LONG64
-extern	int _XkbReadCopyData32(
-    int *		/* from */,
-    long *		/* to */,
-    int			/* num_words */
+extern  int _XkbReadCopyData32(
+    int *               /* from */,
+    long *              /* to */,
+    int                 /* num_words */
 );
 
-extern	int _XkbWriteCopyData32(
-    unsigned long *	/* from */,
-    CARD32 *		/* to */,
-    int			/* num_words */
+extern  int _XkbWriteCopyData32(
+    unsigned long *     /* from */,
+    CARD32 *            /* to */,
+    int                 /* num_words */
 );
 
 extern int _XkbReadBufferCopy32(
-    XkbReadBufferPtr	/* from */,
-    long *		/* to */,
-    int			/* size */
+    XkbReadBufferPtr    /* from */,
+    long *              /* to */,
+    int                 /* size */
 );
 #else
-#define	_XkbReadCopyData32(f,t,s)    memcpy((char *)(t),(char *)(f),(s)*4)
-#define	_XkbWriteCopyData32(f,t,s)   memcpy((char *)(t),(char *)(f),(s)*4)
-#define	_XkbReadBufferCopy32(f,t,s) _XkbCopyFromReadBuffer(f,(char *)t,(s)*4)
+#define _XkbReadCopyData32(f,t,s)    memcpy((char *)(t), (char *)(f), (s)*4)
+#define _XkbWriteCopyData32(f,t,s)   memcpy((char *)(t), (char *)(f), (s)*4)
+#define _XkbReadBufferCopy32(f,t,s) _XkbCopyFromReadBuffer(f, (char *)t, (s)*4)
 #endif
 
 #ifndef NO_DEC_BINARY_COMPATIBILITY
@@ -243,97 +237,97 @@ extern int _XkbReadBufferCopy32(
 
 #ifdef XKB_FORCE_INT_KEYSYM
 extern int _XkbReadCopyKeySyms(
-    int *		/* from */,
-    KeySym *		/* to */,
-    int			/* num_words */
+    int *               /* from */,
+    KeySym *            /* to */,
+    int                 /* num_words */
 );
 
-extern	int _XkbWriteCopyKeySyms(
-    KeySym *		/* from */,
-    CARD32 *		/* to */,
-    int			/* num_words */
+extern  int _XkbWriteCopyKeySyms(
+    KeySym *            /* from */,
+    CARD32 *            /* to */,
+    int                 /* num_words */
 );
 
 extern int _XkbReadBufferCopyKeySyms(
-    XkbReadBufferPtr	/* from */,
+    XkbReadBufferPtr    /* from */,
 #ifndef NO_DEC_BUG_FIX
-    KeySym *		/* to */,
+    KeySym *            /* to */,
 #else
-    long *		/* to */,
+    long *              /* to */,
 #endif
-    int			/* size */
+    int                 /* size */
 );
 #else
-#define	_XkbReadCopyKeySyms(f,t,n)		_XkbReadCopyData32(f,t,n)
-#define	_XkbWriteCopyKeySyms(f,t,n)		_XkbWriteCopyData32(f,t,n)
-#define	_XkbReadBufferCopyKeySyms(f,t,s)	_XkbReadBufferCopy32(f,t,s)
+#define _XkbReadCopyKeySyms(f,t,n)              _XkbReadCopyData32(f,t,n)
+#define _XkbWriteCopyKeySyms(f,t,n)             _XkbWriteCopyData32(f,t,n)
+#define _XkbReadBufferCopyKeySyms(f,t,s)        _XkbReadBufferCopy32(f,t,s)
 #endif
 
 extern char *_XkbPeekAtReadBuffer(
-    XkbReadBufferPtr	/* from */,
-    int			/*  size */
+    XkbReadBufferPtr    /* from */,
+    int                 /*  size */
 );
 
 extern char *_XkbGetReadBufferPtr(
-    XkbReadBufferPtr	/* from */,
-    int			/* size */
+    XkbReadBufferPtr    /* from */,
+    int                 /* size */
 );
-#define	_XkbGetTypedRdBufPtr(b,n,t) ((t *)_XkbGetReadBufferPtr(b,(n)*SIZEOF(t)))
+#define _XkbGetTypedRdBufPtr(b,n,t) ((t *)_XkbGetReadBufferPtr(b,(n)*SIZEOF(t)))
 
 extern int _XkbFreeReadBuffer(
-    XkbReadBufferPtr	/* buf */
+    XkbReadBufferPtr    /* buf */
 );
 
 extern Bool
 _XkbGetReadBufferCountedString(
-    XkbReadBufferPtr	/* buf */,
-    char **		/* rtrn */
+    XkbReadBufferPtr    /* buf */,
+    char **             /* rtrn */
 );
 
-extern char	*_XkbGetCharset(
+extern char *_XkbGetCharset(
     void
 );
 
-extern int	 _XkbGetConverters(
+extern int       _XkbGetConverters(
     const char *       /* encoding_name */,
     XkbConverters *    /* cvt_rtrn */
 );
 
-#ifdef	NEED_MAP_READERS
+#ifdef  NEED_MAP_READERS
 
-extern	Status	_XkbReadGetMapReply(
-    Display *		/* dpy */,
-    xkbGetMapReply * 	/* rep */,
-    XkbDescRec *	/* xkb */,
-    int *		/* nread_rtrn */
+extern  Status  _XkbReadGetMapReply(
+    Display *           /* dpy */,
+    xkbGetMapReply *    /* rep */,
+    XkbDescRec *        /* xkb */,
+    int *               /* nread_rtrn */
 );
 
-extern	Status	_XkbReadGetCompatMapReply(
-    Display *			/* dpy */,
-    xkbGetCompatMapReply *	/* rep */,
-    XkbDescPtr			/* xkb */,
-    int	*			/* nread_rtrn */
+extern  Status  _XkbReadGetCompatMapReply(
+    Display *                   /* dpy */,
+    xkbGetCompatMapReply *      /* rep */,
+    XkbDescPtr                  /* xkb */,
+    int *                       /* nread_rtrn */
 );
 
-extern	Status	_XkbReadGetIndicatorMapReply(
-    Display *			/* dpy */,
-    xkbGetIndicatorMapReply *	/* rep */,
-    XkbDescPtr			/* xkb */,
-    int	*			/* nread_rtrn */
+extern  Status  _XkbReadGetIndicatorMapReply(
+    Display *                   /* dpy */,
+    xkbGetIndicatorMapReply *   /* rep */,
+    XkbDescPtr                  /* xkb */,
+    int *                       /* nread_rtrn */
 );
 
-extern	Status	_XkbReadGetNamesReply(
-    Display *			/* dpy */,
-    xkbGetNamesReply *		/* rep */,
-    XkbDescPtr 			/* xkb */,
-    int *			/* nread_rtrn */
+extern  Status  _XkbReadGetNamesReply(
+    Display *                   /* dpy */,
+    xkbGetNamesReply *          /* rep */,
+    XkbDescPtr                  /* xkb */,
+    int *                       /* nread_rtrn */
 );
 
-extern	Status	_XkbReadGetGeometryReply(
-    Display *			/* dpy */,
-    xkbGetGeometryReply *	/* rep */,
-    XkbDescPtr 			/* xkb */,
-    int *			/* nread_rtrn */
+extern  Status  _XkbReadGetGeometryReply(
+    Display *                   /* dpy */,
+    xkbGetGeometryReply *       /* rep */,
+    XkbDescPtr                  /* xkb */,
+    int *                       /* nread_rtrn */
 );
 
 #endif

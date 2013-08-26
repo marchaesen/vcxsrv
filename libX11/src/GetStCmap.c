@@ -81,7 +81,7 @@ Status XGetStandardColormap (
 	    int i;
 
 	    if (!sp) {
-		if (stdcmaps) Xfree ((char *) stdcmaps);
+		if (stdcmaps) Xfree (stdcmaps);
 		return False;
 	    }
 	    vid = sp->root_visual->visualid;
@@ -91,7 +91,7 @@ Status XGetStandardColormap (
 	    }
 
 	    if (i == nstdcmaps) {	/* not found */
-		Xfree ((char *) stdcmaps);
+		Xfree (stdcmaps);
 		return False;
 	    }
 	    use = &stdcmaps[i];
@@ -111,7 +111,7 @@ Status XGetStandardColormap (
 	cmap->blue_mult	 = use->blue_mult;
 	cmap->base_pixel = use->base_pixel;
 
-	Xfree ((char *) stdcmaps);	/* don't need alloced memory */
+	Xfree (stdcmaps);	/* don't need alloced memory */
     }
     return stat;
 }

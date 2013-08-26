@@ -184,10 +184,10 @@ _XDefaultOpenIM(
 	return((XIM)NULL);
     }
 
-    if ((im = (StaticXIM)Xmalloc(sizeof(StaticXIMRec))) == (StaticXIM)NULL) {
+    if ((im = Xmalloc(sizeof(StaticXIMRec))) == (StaticXIM)NULL) {
 	return((XIM)NULL);
     }
-    if ((local_impart = (XIMStaticXIMRec*)Xmalloc(sizeof(XIMStaticXIMRec)))
+    if ((local_impart = Xmalloc(sizeof(XIMStaticXIMRec)))
 	== (XIMStaticXIMRec *)NULL) {
 	Xfree(im);
 	return((XIM)NULL);
@@ -273,11 +273,11 @@ _GetIMValues(
 
     for (p = values; p->name != NULL; p++) {
 	if (strcmp(p->name, XNQueryInputStyle) == 0) {
-	    styles = (XIMStyles *)Xmalloc(sizeof(XIMStyles));
+	    styles = Xmalloc(sizeof(XIMStyles));
 	    *(XIMStyles **)p->value = styles;
 	    styles->count_styles = 1;
 	    styles->supported_styles =
-		(XIMStyle*)Xmalloc(styles->count_styles * sizeof(XIMStyle));
+		Xmalloc(styles->count_styles * sizeof(XIMStyle));
 	    styles->supported_styles[0] = (XIMPreeditNone | XIMStatusNone);
 	} else {
 	    break;
@@ -344,7 +344,7 @@ _CreateIC(XIM im, XIMArg *arg)
 {
     XIC ic;
 
-    if ((ic = (XIC)Xmalloc(sizeof(XICRec))) == (XIC)NULL) {
+    if ((ic = Xmalloc(sizeof(XICRec))) == (XIC)NULL) {
 	return ((XIC)NULL);
     }
     memset(ic, 0, sizeof(XICRec));
@@ -452,7 +452,7 @@ _WcLookupString(
     XComposeStatus NotSupportedYet ;
     int length;
     /* In single-byte, mb_len = wc_len */
-    char *mb_buf = (char *)Xmalloc(wlen);
+    char *mb_buf = Xmalloc(wlen);
 
     length = XLookupString(ev, mb_buf, wlen, keysym, &NotSupportedYet);
 

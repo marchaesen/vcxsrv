@@ -794,7 +794,7 @@ SendZImage(
 	 ((req_yoffset + req->height) < (unsigned)image->height))) {
 	Data(dpy, (char *)src, length);
 	if (shifted_src)
-	    Xfree((char *)shifted_src);
+	    Xfree(shifted_src);
 	return;
     }
 
@@ -804,7 +804,7 @@ SendZImage(
     else
 	if ((dest = (unsigned char *)
 	     _XAllocScratch(dpy, length)) == NULL) {
-	    if (shifted_src) Xfree((char *) shifted_src);
+	    if (shifted_src) Xfree(shifted_src);
 	    UnGetReq(PutImage);
 	    return;
 	}
@@ -832,7 +832,7 @@ SendZImage(
 	_XSend(dpy, (char *)dest, length);
 
     if (shifted_src)
-        Xfree((char *)shifted_src);
+        Xfree(shifted_src);
 }
 
 static void

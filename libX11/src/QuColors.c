@@ -64,7 +64,7 @@ _XQueryColors(
 		def->blue = rgb->blue;
 		def->flags = DoRed | DoGreen | DoBlue;
 	    }
-	    Xfree((char *)color);
+	    Xfree(color);
 	}
 	else
 	    _XEatDataWords(dpy, rep.length);

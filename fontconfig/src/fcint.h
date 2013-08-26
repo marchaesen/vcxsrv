@@ -174,10 +174,11 @@ typedef struct _FcValueList {
 			
 typedef int FcObject;
 
-/* The 1000 is to leave some room for future added internal objects, such
+/* The 1024 is to leave some room for future added internal objects, such
  * that caches from newer fontconfig can still be used with older fontconfig
  * without getting confused. */
-#define FC_EXT_OBJ_INDEX	1000
+#define FC_EXT_OBJ_INDEX	1024
+#define FC_OBJ_ID(_n_)	((_n_) & (~FC_EXT_OBJ_INDEX))
 
 typedef struct _FcPatternElt *FcPatternEltPtr;
 

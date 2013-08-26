@@ -133,7 +133,7 @@ XVisualInfo *XGetVisualInfo(
                   total += 10;
                   if (! (vip_base = Xrealloc(vip_base,
 					     sizeof(XVisualInfo) * total))) {
-		      Xfree((char *) old_vip_base);
+		      Xfree(old_vip_base);
 		      UnlockDisplay(dpy);
 		      return (XVisualInfo *) NULL;
 		  }
@@ -170,7 +170,7 @@ XVisualInfo *XGetVisualInfo(
       return vip_base;
     }
 
-  Xfree((char *) vip_base);
+  Xfree(vip_base);
   *nitems = 0;
   return NULL;
 }

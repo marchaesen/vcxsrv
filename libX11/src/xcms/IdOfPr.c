@@ -67,7 +67,7 @@ XcmsFormatOfPrefix(char *prefix)
      * While copying prefix to string_lowered, convert to lowercase
      */
     if ((len = strlen(prefix)) >= sizeof(string_buf)) {
-	string_lowered = (char *) Xmalloc(len+1);
+	string_lowered = Xmalloc(len+1);
     } else {
 	string_lowered = string_buf;
     }

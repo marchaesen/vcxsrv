@@ -77,7 +77,7 @@ Status XGetWMColormapWindows (
       return False;
 
     if (actual_type != XA_WINDOW || actual_format != 32) {
-	if (data) Xfree ((char *) data);
+	if (data) Xfree (data);
 	return False;
     }
 

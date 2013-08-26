@@ -92,7 +92,7 @@ _XlcAddCharSet(
     if (_XlcGetCharSet(charset->name))
 	return False;
 
-    list = (XlcCharSetList) Xmalloc(sizeof(XlcCharSetListRec));
+    list = Xmalloc(sizeof(XlcCharSetListRec));
     if (list == NULL)
 	return False;
 
@@ -184,9 +184,9 @@ _XlcCreateDefaultCharSet(
     ct_sequence_len = strlen(ct_sequence);
 
     /* Fill in name and xrm_name.  */
-    tmp = (char *) Xmalloc(name_len + 1 + ct_sequence_len + 1);
+    tmp = Xmalloc(name_len + 1 + ct_sequence_len + 1);
     if (tmp == NULL) {
-	Xfree((char *) charset);
+	Xfree(charset);
 	return (XlcCharSet) NULL;
     }
     memcpy(tmp, name, name_len+1);
@@ -196,10 +196,10 @@ _XlcCreateDefaultCharSet(
     /* Fill in encoding_name and xrm_encoding_name.  */
     if ((colon = strchr(charset->name, ':')) != NULL) {
         unsigned int length = colon - charset->name;
-        char *encoding_tmp = (char *) Xmalloc(length + 1);
+        char *encoding_tmp = Xmalloc(length + 1);
         if (encoding_tmp == NULL) {
             Xfree((char *) charset->name);
-            Xfree((char *) charset);
+            Xfree(charset);
             return (XlcCharSet) NULL;
         }
         memcpy(encoding_tmp, charset->name, length);

@@ -73,7 +73,7 @@ int *actualCount)	/* RETURN */
 	}
 
 	if ((! flist) || (! ch)) {
-	    if (flist) Xfree((char *) flist);
+	    if (flist) Xfree(flist);
 	    if (ch) Xfree(ch);
 	    _XEatDataWords(dpy, rep.length);
 	    *actualCount = 0;
@@ -116,7 +116,7 @@ XFreeFontNames(char **list)
 				Xfree (*names);
 		}
 		Xfree (list[0]-1);
-		Xfree ((char *)list);
+		Xfree (list);
 	}
 	return 1;
 }

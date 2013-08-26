@@ -171,7 +171,7 @@ void
  hostx_set_screen_number(EphyrScreenInfo screen, int number);
 
 void
- hostx_set_win_title(EphyrScreenInfo screen, char *extra_text);
+ hostx_set_win_title(EphyrScreenInfo screen, const char *extra_text);
 
 int
  hostx_get_depth(void);

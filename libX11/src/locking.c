@@ -312,8 +312,8 @@ static void _XPopReader(
 	    dpy->lock->num_free_cvls++;
 	} else {
 	    xcondition_clear(front->cv);
-	    Xfree((char *)front->cv);
-	    Xfree((char *)front);
+	    Xfree(front->cv);
+	    Xfree(front);
 	}
     }
 
@@ -419,14 +419,14 @@ static void _XFreeDisplayLock(
 	while ((cvl = dpy->lock->free_cvls)) {
 	    dpy->lock->free_cvls = cvl->next;
 	    xcondition_clear(cvl->cv);
-	    Xfree((char *)cvl->cv);
-	    Xfree((char *)cvl);
+	    Xfree(cvl->cv);
+	    Xfree(cvl);
 	}
-	Xfree((char *)dpy->lock);
+	Xfree(dpy->lock);
 	dpy->lock = NULL;
     }
     if (dpy->lock_fns != NULL) {
-	Xfree((char *)dpy->lock_fns);
+	Xfree(dpy->lock_fns);
 	dpy->lock_fns = NULL;
     }
 }

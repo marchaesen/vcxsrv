@@ -174,7 +174,7 @@ typedef enum _kdPointerState {
 typedef struct _KdPointerInfo KdPointerInfo;
 
 typedef struct _KdPointerDriver {
-    char *name;
+    const char *name;
      Status(*Init) (KdPointerInfo *);
      Status(*Enable) (KdPointerInfo *);
     void (*Disable) (KdPointerInfo *);
@@ -243,7 +243,7 @@ typedef struct {
 typedef struct _KdKeyboardInfo KdKeyboardInfo;
 
 typedef struct _KdKeyboardDriver {
-    char *name;
+    const char *name;
     Bool (*Init) (KdKeyboardInfo *);
     Bool (*Enable) (KdKeyboardInfo *);
     void (*Leds) (KdKeyboardInfo *, int);
@@ -411,13 +411,14 @@ Rotation KdAddRotation(Rotation a, Rotation b);
 Rotation KdSubRotation(Rotation a, Rotation b);
 
 void
- KdParseScreen(KdScreenInfo * screen, char *arg);
+ KdParseScreen(KdScreenInfo * screen, const char *arg);
 
-KdPointerInfo *KdParsePointer(char *arg);
+KdPointerInfo *KdParsePointer(const char *arg);
 
-KdKeyboardInfo *KdParseKeyboard(char *arg);
+KdKeyboardInfo *KdParseKeyboard(const char *arg);
 
-char *KdParseFindNext(char *cur, const char *delim, char *save, char *last);
+const char *
+KdParseFindNext(const char *cur, const char *delim, char *save, char *last);
 
 void
  KdParseRgba(char *rgba);

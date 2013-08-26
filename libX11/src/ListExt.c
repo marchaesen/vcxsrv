@@ -62,8 +62,8 @@ char **XListExtensions(
 	    }
 
 	    if ((!list) || (!ch)) {
-		if (list) Xfree((char *) list);
-		if (ch)   Xfree((char *) ch);
+		if (list) Xfree(list);
+		if (ch)   Xfree(ch);
 		_XEatDataWords(dpy, rep.length);
 		UnlockDisplay(dpy);
 		SyncHandle();
@@ -99,7 +99,7 @@ XFreeExtensionList (char **list)
 {
 	if (list != NULL) {
 	    Xfree (list[0]-1);
-	    Xfree ((char *)list);
+	    Xfree (list);
 	}
 	return 1;
 }

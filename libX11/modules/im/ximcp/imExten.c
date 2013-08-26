@@ -271,7 +271,7 @@ _XimExtForwardKeyEvent(
     		preply = reply;
     	    } else {
     		buf_sizex = len;
-    		preply = (XPointer)Xmalloc(buf_size);
+		preply = Xmalloc(buf_size);
     		ret_code = _XimRead(im, &len, preply, buf_size,
     				_XimExtForwardKeyEventCheck, (XPointer)ic);
     		if(ret_code != XIM_TRUE) {
@@ -436,7 +436,7 @@ _XimExtension(
 	    + len
 	    + XIM_PAD(len);
 
-    if (!(buf = (CARD8 *)Xmalloc(buf_len)))
+    if (!(buf = Xmalloc(buf_len)))
 	return False;
     buf_s = (CARD16 *)&buf[XIM_HEADER_SIZE];
 
@@ -465,7 +465,7 @@ _XimExtension(
     	    preply = reply;
     	} else {
     	    buf_size = len;
-    	    preply = (XPointer)Xmalloc(buf_size);
+	    preply = Xmalloc(buf_size);
     	    ret_code = _XimRead(im, &len, reply, buf_size,
     					_XimQueryExtensionCheck, 0);
     	    if(ret_code != XIM_TRUE) {

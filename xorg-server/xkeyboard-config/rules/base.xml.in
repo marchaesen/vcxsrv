@@ -5659,7 +5659,7 @@
       <!-- The key combination used to switch between groups -->
       <configItem>
         <name>grp</name>
-        <_description>Key(s) to change layout</_description>
+        <_description>Switching to another layout</_description>
       </configItem>
       <option>
         <configItem>
@@ -6060,7 +6060,7 @@
       <!-- Select a keypad type -->
       <configItem>
         <name>keypad</name>
-        <_description>Numeric keypad layout selection</_description>
+        <_description>Layout of numeric keypad</_description>
       </configItem>
       <option>
         <configItem>
@@ -6077,7 +6077,7 @@
       <option>
         <configItem>
           <name>keypad:future</name>
-          <_description>Unicode additions (arrows and math operators). Math operators on default level</_description>
+          <_description>Unicode additions (arrows and math operators; math operators on default level)</_description>
        </configItem>
       </option>
       <option>
@@ -6095,7 +6095,7 @@
       <option>
         <configItem>
           <name>keypad:future_wang</name>
-          <_description>Wang 724 keypad with Unicode additions (arrows and math operators). Math operators on default level</_description>
+          <_description>Wang 724 keypad with Unicode additions (arrows and math operators; math operators on default level)</_description>
        </configItem>
       </option>
       <option>
@@ -6182,25 +6182,25 @@
       <option>
         <configItem>
           <name>caps:internal</name>
-          <_description>Caps Lock uses internal capitalization. Shift "pauses" Caps Lock</_description>
+          <_description>Caps Lock uses internal capitalization; Shift "pauses" Caps Lock</_description>
         </configItem>
       </option>
       <option>
         <configItem>
           <name>caps:internal_nocancel</name>
-          <_description>Caps Lock uses internal capitalization. Shift doesn't affect Caps Lock</_description>
+          <_description>Caps Lock uses internal capitalization; Shift doesn't affect Caps Lock</_description>
         </configItem>
       </option>
       <option>
         <configItem>
           <name>caps:shift</name>
-          <_description>Caps Lock acts as Shift with locking. Shift "pauses" Caps Lock</_description>
+          <_description>Caps Lock acts as Shift with locking; Shift "pauses" Caps Lock</_description>
         </configItem>
       </option>
       <option>
         <configItem>
           <name>caps:shift_nocancel</name>
-          <_description>Caps Lock acts as Shift with locking. Shift doesn't affect Caps Lock</_description>
+          <_description>Caps Lock acts as Shift with locking; Shift doesn't affect Caps Lock</_description>
         </configItem>
       </option>
       <option>
@@ -6260,7 +6260,7 @@
       <option>
         <configItem>
           <name>caps:ctrl_modifier</name>
-          <_description>Make Caps Lock an additional Control but keep the Caps_Lock keysym</_description>
+          <_description>Make Caps Lock an additional Ctrl</_description>
         </configItem>
       </option>
     </group>
@@ -6291,13 +6291,13 @@
       <option>
         <configItem>
           <name>altwin:ctrl_win</name>
-          <_description>Control is mapped to Win keys (and the usual Ctrl keys)</_description>
+          <_description>Ctrl is mapped to Win keys (and the usual Ctrl keys)</_description>
         </configItem>
       </option>
       <option>
         <configItem>
           <name>altwin:ctrl_alt_win</name>
-          <_description>Control is mapped to Alt keys, Alt is mapped to Win keys</_description>
+          <_description>Ctrl is mapped to Alt keys, Alt is mapped to Win keys</_description>
         </configItem>
       </option>
       <option>
@@ -6335,7 +6335,7 @@
       <!-- Tweaking the position of the "Compose" key: mapping to existing PC keys -->
       <configItem>
         <name>Compose key</name>
-        <_description>Compose key position</_description>
+        <_description>Position of Compose key</_description>
       </configItem>
       <option>
         <configItem>
@@ -6779,6 +6779,12 @@
           <_description>To the corresponding key in a Dvorak layout</_description>
        </configItem>
       </option>
+      <option>
+        <configItem>
+          <name>esperanto:colemak</name>
+          <_description>To the corresponding key in a Colemak layout</_description>
+       </configItem>
+      </option>
     </group>
     <group allowMultipleSelection="true">
       <configItem>
@@ -6800,7 +6806,7 @@
       <option>
         <configItem>
           <name>terminate:ctrl_alt_bksp</name>
-          <_description>Control + Alt + Backspace</_description>
+          <_description>Ctrl + Alt + Backspace</_description>
         </configItem>
       </option>
     </group>

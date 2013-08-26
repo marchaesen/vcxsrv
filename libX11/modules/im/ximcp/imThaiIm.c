@@ -227,7 +227,7 @@ _XimThaiCloseIM(XIM xim)
     while (ic) {
 	(*ic->methods->destroy) (ic);
 	next = ic->core.next;
-	Xfree ((char *) ic);
+	Xfree (ic);
 	ic = next;
     }
     _XimThaiIMFree(im);

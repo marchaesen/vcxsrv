@@ -186,7 +186,7 @@ EvdevPtrRead(int evdevPort, void *closure)
     }
 }
 
-char *kdefaultEvdev[] = {
+const char *kdefaultEvdev[] = {
     "/dev/input/event0",
     "/dev/input/event1",
     "/dev/input/event2",

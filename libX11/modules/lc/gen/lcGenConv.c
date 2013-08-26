@@ -342,7 +342,7 @@ byteM_parse_codeset(
 	    continue;
 
         for (j = 0; j < codeset->length; j++) {
-	    ch = *((unsigned char *)(inbufptr + j));
+	    ch = *((const unsigned char *)(inbufptr + j));
 	    byteM_rec = byteM[j];
 	    byteinfo = byteM_rec.byteinfo;
 
@@ -1224,7 +1224,7 @@ stdc_wcstocts(
 
 ret:
     if (buf)
-	Xfree((char *)buf);
+	Xfree(buf);
 
     return (unconv_num1 + unconv_num2);
 }
@@ -1544,7 +1544,7 @@ stdc_ctstowcs(
 
 ret:
     if (buf)
-	Xfree((char *)buf);
+	Xfree(buf);
 
     return (unconv_num1 + unconv_num2);
 }
@@ -1580,7 +1580,7 @@ stdc_cstowcs(
 
 ret:
     if (buf)
-	Xfree((char *)buf);
+	Xfree(buf);
 
     return (unconv_num1 + unconv_num2);
 }
@@ -1616,7 +1616,7 @@ mbstocts(
 
 ret:
     if (buf)
-	Xfree((char *)buf);
+	Xfree(buf);
 
     return (unconv_num1 + unconv_num2);
 }
@@ -2063,7 +2063,7 @@ stdc_wcstostr(
 
 ret:
     if (buf)
-	Xfree((char *)buf);
+	Xfree(buf);
 
     return (unconv_num1 + unconv_num2);
 }
@@ -2338,7 +2338,7 @@ ctstombs(
 
 ret:
     if (buf)
-	Xfree((char *)buf);
+	Xfree(buf);
 
     return (unconv_num1 + unconv_num2);
 }
@@ -2374,7 +2374,7 @@ cstombs(
 
 ret:
     if (buf)
-	Xfree((char *)buf);
+	Xfree(buf);
 
     return (unconv_num1 + unconv_num2);
 }
@@ -2583,7 +2583,7 @@ stdc_strtowcs(
 
 ret:
     if (buf)
-	Xfree((char *)buf);
+	Xfree(buf);
 
     return (unconv_num1 + unconv_num2);
 }
@@ -2597,14 +2597,14 @@ close_converter(
     XlcConv conv)
 {
     if (conv->state) {
-	Xfree((char *) conv->state);
+	Xfree(conv->state);
     }
 
     if (conv->methods) {
-	Xfree((char *) conv->methods);
+	Xfree(conv->methods);
     }
 
-    Xfree((char *) conv);
+    Xfree(conv);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -2619,11 +2619,11 @@ create_conv(
     XlcConv conv;
     State state;
 
-    conv = (XlcConv) Xcalloc(1, sizeof(XlcConvRec));
+    conv = Xcalloc(1, sizeof(XlcConvRec));
     if (conv == NULL)
 	return (XlcConv) NULL;
 
-    conv->methods = (XlcConvMethods) Xmalloc(sizeof(XlcConvMethodsRec));
+    conv->methods = Xmalloc(sizeof(XlcConvMethodsRec));
     if (conv->methods == NULL)
 	goto err;
     *conv->methods = *methods;

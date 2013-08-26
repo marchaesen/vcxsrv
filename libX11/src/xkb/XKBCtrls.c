@@ -34,32 +34,32 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
 static xkbSetControlsReq *
-_XkbGetSetControlsReq(Display *dpy,XkbInfoPtr xkbi,unsigned int deviceSpec)
+_XkbGetSetControlsReq(Display *dpy, XkbInfoPtr xkbi, unsigned int deviceSpec)
 {
-xkbSetControlsReq *req;
+    xkbSetControlsReq *req;
 
-    GetReq(kbSetControls,req);
-    bzero(req,SIZEOF(xkbSetControlsReq));
+    GetReq(kbSetControls, req);
+    bzero(req, SIZEOF(xkbSetControlsReq));
     req->reqType = xkbi->codes->major_opcode;
-    req->length = (SIZEOF(xkbSetControlsReq)>>2);
+    req->length = (SIZEOF(xkbSetControlsReq) >> 2);
     req->xkbReqType = X_kbSetControls;
     req->deviceSpec = deviceSpec;
     return req;
 }
 
 Bool
-XkbSetAutoRepeatRate(	Display *dpy,
-			unsigned int deviceSpec,
-			unsigned int timeout,
-			unsigned int interval)
+XkbSetAutoRepeatRate(Display *dpy,
+                     unsigned int deviceSpec,
+                     unsigned int timeout,
+                     unsigned int interval)
 {
     register xkbSetControlsReq *req;
 
     if ((dpy->flags & XlibDisplayNoXkb) ||
-	(!dpy->xkb_info && !XkbUseExtension(dpy,NULL,NULL)))
-	return False;
+        (!dpy->xkb_info && !XkbUseExtension(dpy, NULL, NULL)))
+        return False;
     LockDisplay(dpy);
-    req= _XkbGetSetControlsReq(dpy,dpy->xkb_info,deviceSpec);
+    req = _XkbGetSetControlsReq(dpy, dpy->xkb_info, deviceSpec);
     req->changeCtrls = XkbRepeatKeysMask;
     req->repeatDelay = timeout;
     req->repeatInterval = interval;
@@ -69,29 +69,29 @@ XkbSetAutoRepeatRate(	Display *dpy,
 }
 
 Bool
-XkbGetAutoRepeatRate(	Display *	dpy,
-			unsigned int 	deviceSpec,
-			unsigned int *	timeoutp,
-			unsigned int *	intervalp)
+XkbGetAutoRepeatRate(Display *dpy,
+                     unsigned int deviceSpec,
+                     unsigned int *timeoutp,
+                     unsigned int *intervalp)
 {
     register xkbGetControlsReq *req;
     xkbGetControlsReply rep;
     XkbInfoPtr xkbi;
 
     if ((dpy->flags & XlibDisplayNoXkb) ||
-	(!dpy->xkb_info && !XkbUseExtension(dpy,NULL,NULL)))
-	return False;
+        (!dpy->xkb_info && !XkbUseExtension(dpy, NULL, NULL)))
+        return False;
     LockDisplay(dpy);
     xkbi = dpy->xkb_info;
     GetReq(kbGetControls, req);
     req->reqType = xkbi->codes->major_opcode;
     req->xkbReqType = X_kbGetControls;
     req->deviceSpec = deviceSpec;
-    if (!_XReply(dpy, (xReply *)&rep,
-		(SIZEOF(xkbGetControlsReply)-SIZEOF(xReply))>>2, xFalse)) {
-	UnlockDisplay(dpy);
-	SyncHandle();
-	return False;
+    if (!_XReply(dpy, (xReply *) &rep,
+                 (SIZEOF(xkbGetControlsReply) - SIZEOF(xReply)) >> 2, xFalse)) {
+        UnlockDisplay(dpy);
+        SyncHandle();
+        return False;
     }
     UnlockDisplay(dpy);
     SyncHandle();
@@ -101,24 +101,24 @@ XkbGetAutoRepeatRate(	Display *	dpy,
 }
 
 Bool
-XkbSetServerInternalMods(	Display *	dpy,
-				unsigned 	deviceSpec,
-				unsigned 	affectReal,
-				unsigned 	realValues,
-				unsigned 	affectVirtual,
-				unsigned 	virtualValues)
+XkbSetServerInternalMods(Display *dpy,
+                         unsigned deviceSpec,
+                         unsigned affectReal,
+                         unsigned realValues,
+                         unsigned affectVirtual,
+                         unsigned virtualValues)
 {
     register xkbSetControlsReq *req;
 
     if ((dpy->flags & XlibDisplayNoXkb) ||
-	(!dpy->xkb_info && !XkbUseExtension(dpy,NULL,NULL)))
-	return False;
+        (!dpy->xkb_info && !XkbUseExtension(dpy, NULL, NULL)))
+        return False;
     LockDisplay(dpy);
-    req= _XkbGetSetControlsReq(dpy,dpy->xkb_info,deviceSpec);
+    req = _XkbGetSetControlsReq(dpy, dpy->xkb_info, deviceSpec);
     req->affectInternalMods = affectReal;
     req->internalMods = realValues;
-    req->affectInternalVMods= affectVirtual;
-    req->internalVMods= virtualValues;
+    req->affectInternalVMods = affectVirtual;
+    req->internalVMods = virtualValues;
     req->changeCtrls = XkbInternalModsMask;
     UnlockDisplay(dpy);
     SyncHandle();
@@ -126,24 +126,24 @@ XkbSetServerInternalMods(	Display *	dpy,
 }
 
 Bool
-XkbSetIgnoreLockMods(	Display *	dpy,
-			unsigned int 	deviceSpec,
-			unsigned 	affectReal,
-			unsigned 	realValues,
-			unsigned 	affectVirtual,
-			unsigned 	virtualValues)
+XkbSetIgnoreLockMods(Display *dpy,
+                     unsigned int deviceSpec,
+                     unsigned affectReal,
+                     unsigned realValues,
+                     unsigned affectVirtual,
+                     unsigned virtualValues)
 {
     register xkbSetControlsReq *req;
 
     if ((dpy->flags & XlibDisplayNoXkb) ||
-	(!dpy->xkb_info && !XkbUseExtension(dpy,NULL,NULL)))
-	return False;
+        (!dpy->xkb_info && !XkbUseExtension(dpy, NULL, NULL)))
+        return False;
     LockDisplay(dpy);
-    req= _XkbGetSetControlsReq(dpy,dpy->xkb_info,deviceSpec);
-    req->affectIgnoreLockMods= affectReal;
+    req = _XkbGetSetControlsReq(dpy, dpy->xkb_info, deviceSpec);
+    req->affectIgnoreLockMods = affectReal;
     req->ignoreLockMods = realValues;
-    req->affectIgnoreLockVMods= affectVirtual;
-    req->ignoreLockVMods= virtualValues;
+    req->affectIgnoreLockVMods = affectVirtual;
+    req->ignoreLockVMods = virtualValues;
     req->changeCtrls = XkbIgnoreLockModsMask;
     UnlockDisplay(dpy);
     SyncHandle();
@@ -151,20 +151,20 @@ XkbSetIgnoreLockMods(	Display *	dpy,
 }
 
 Bool
-XkbChangeEnabledControls(	Display *	dpy,
-				unsigned	deviceSpec,
-				unsigned	affect,
-				unsigned	values)
+XkbChangeEnabledControls(Display *dpy,
+                         unsigned deviceSpec,
+                         unsigned affect,
+                         unsigned values)
 {
     register xkbSetControlsReq *req;
 
     if ((dpy->flags & XlibDisplayNoXkb) ||
-	(!dpy->xkb_info && !XkbUseExtension(dpy,NULL,NULL)))
-	return False;
+        (!dpy->xkb_info && !XkbUseExtension(dpy, NULL, NULL)))
+        return False;
     LockDisplay(dpy);
-    req= _XkbGetSetControlsReq(dpy,dpy->xkb_info,deviceSpec);
-    req->affectEnabledCtrls= affect;
-    req->enabledCtrls= (affect&values);
+    req = _XkbGetSetControlsReq(dpy, dpy->xkb_info, deviceSpec);
+    req->affectEnabledCtrls = affect;
+    req->enabledCtrls = (affect & values);
     req->changeCtrls = XkbControlsEnabledMask;
     UnlockDisplay(dpy);
     SyncHandle();
@@ -176,91 +176,90 @@ XkbGetControls(Display *dpy, unsigned long which, XkbDescPtr xkb)
 {
     register xkbGetControlsReq *req;
     xkbGetControlsReply rep;
-    XkbControlsPtr	ctrls;
+    XkbControlsPtr ctrls;
     XkbInfoPtr xkbi;
 
     if ((dpy->flags & XlibDisplayNoXkb) ||
-	(!dpy->xkb_info && !XkbUseExtension(dpy,NULL,NULL)))
-	return BadAccess;
+        (!dpy->xkb_info && !XkbUseExtension(dpy, NULL, NULL)))
+        return BadAccess;
     if ((!xkb) || (!which))
-	return BadMatch;
+        return BadMatch;
 
     LockDisplay(dpy);
     xkbi = dpy->xkb_info;
     GetReq(kbGetControls, req);
-    if (!xkb->ctrls)  {
-	xkb->ctrls = _XkbTypedCalloc(1,XkbControlsRec);
-	if (!xkb->ctrls) {
-	    UnlockDisplay(dpy);
-	    SyncHandle();
-	    return BadAlloc;
-	}
+    if (!xkb->ctrls) {
+        xkb->ctrls = _XkbTypedCalloc(1, XkbControlsRec);
+        if (!xkb->ctrls) {
+            UnlockDisplay(dpy);
+            SyncHandle();
+            return BadAlloc;
+        }
     }
     req->reqType = xkbi->codes->major_opcode;
     req->xkbReqType = X_kbGetControls;
     req->deviceSpec = xkb->device_spec;
-    if (!_XReply(dpy, (xReply *)&rep,
-		(SIZEOF(xkbGetControlsReply)-SIZEOF(xReply))>>2, xFalse)) {
-	UnlockDisplay(dpy);
-	SyncHandle();
-	return BadImplementation;
+    if (!_XReply(dpy, (xReply *) &rep,
+                 (SIZEOF(xkbGetControlsReply) - SIZEOF(xReply)) >> 2, xFalse)) {
+        UnlockDisplay(dpy);
+        SyncHandle();
+        return BadImplementation;
     }
-    if (xkb->device_spec==XkbUseCoreKbd)
-	xkb->device_spec= rep.deviceID;
-    ctrls= xkb->ctrls;
-    if (which&XkbControlsEnabledMask)
-	ctrls->enabled_ctrls = rep.enabledCtrls;
-    ctrls->num_groups= rep.numGroups;
-    if (which&XkbGroupsWrapMask)
-	ctrls->groups_wrap= rep.groupsWrap;
-    if (which&XkbInternalModsMask) {
-	ctrls->internal.mask = rep.internalMods;
-	ctrls->internal.real_mods = rep.internalRealMods;
-	ctrls->internal.vmods = rep.internalVMods;
+    if (xkb->device_spec == XkbUseCoreKbd)
+        xkb->device_spec = rep.deviceID;
+    ctrls = xkb->ctrls;
+    if (which & XkbControlsEnabledMask)
+        ctrls->enabled_ctrls = rep.enabledCtrls;
+    ctrls->num_groups = rep.numGroups;
+    if (which & XkbGroupsWrapMask)
+        ctrls->groups_wrap = rep.groupsWrap;
+    if (which & XkbInternalModsMask) {
+        ctrls->internal.mask = rep.internalMods;
+        ctrls->internal.real_mods = rep.internalRealMods;
+        ctrls->internal.vmods = rep.internalVMods;
     }
-    if (which&XkbIgnoreLockModsMask) {
-	ctrls->ignore_lock.mask = rep.ignoreLockMods;
-	ctrls->ignore_lock.real_mods = rep.ignoreLockRealMods;
-	ctrls->ignore_lock.vmods = rep.ignoreLockVMods;
+    if (which & XkbIgnoreLockModsMask) {
+        ctrls->ignore_lock.mask = rep.ignoreLockMods;
+        ctrls->ignore_lock.real_mods = rep.ignoreLockRealMods;
+        ctrls->ignore_lock.vmods = rep.ignoreLockVMods;
     }
-    if (which&XkbRepeatKeysMask) {
-	ctrls->repeat_delay = rep.repeatDelay;
-	ctrls->repeat_interval = rep.repeatInterval;
+    if (which & XkbRepeatKeysMask) {
+        ctrls->repeat_delay = rep.repeatDelay;
+        ctrls->repeat_interval = rep.repeatInterval;
     }
-    if (which&XkbSlowKeysMask)
-	ctrls->slow_keys_delay = rep.slowKeysDelay;
-    if (which&XkbBounceKeysMask)
-	ctrls->debounce_delay = rep.debounceDelay;
-    if (which&XkbMouseKeysMask) {
-	ctrls->mk_dflt_btn = rep.mkDfltBtn;
+    if (which & XkbSlowKeysMask)
+        ctrls->slow_keys_delay = rep.slowKeysDelay;
+    if (which & XkbBounceKeysMask)
+        ctrls->debounce_delay = rep.debounceDelay;
+    if (which & XkbMouseKeysMask) {
+        ctrls->mk_dflt_btn = rep.mkDfltBtn;
     }
-    if (which&XkbMouseKeysAccelMask) {
-	ctrls->mk_delay = rep.mkDelay;
-	ctrls->mk_interval = rep.mkInterval;
-	ctrls->mk_time_to_max = rep.mkTimeToMax;
-	ctrls->mk_max_speed = rep.mkMaxSpeed;
-	ctrls->mk_curve = rep.mkCurve;
+    if (which & XkbMouseKeysAccelMask) {
+        ctrls->mk_delay = rep.mkDelay;
+        ctrls->mk_interval = rep.mkInterval;
+        ctrls->mk_time_to_max = rep.mkTimeToMax;
+        ctrls->mk_max_speed = rep.mkMaxSpeed;
+        ctrls->mk_curve = rep.mkCurve;
     }
-    if (which&XkbAccessXKeysMask)
-	ctrls->ax_options= rep.axOptions;
-    if (which&XkbStickyKeysMask) {
-	ctrls->ax_options &= ~XkbAX_SKOptionsMask;
-	ctrls->ax_options |= rep.axOptions & XkbAX_SKOptionsMask;
+    if (which & XkbAccessXKeysMask)
+        ctrls->ax_options = rep.axOptions;
+    if (which & XkbStickyKeysMask) {
+        ctrls->ax_options &= ~XkbAX_SKOptionsMask;
+        ctrls->ax_options |= rep.axOptions & XkbAX_SKOptionsMask;
     }
-    if (which&XkbAccessXFeedbackMask) {
-	ctrls->ax_options &= ~XkbAX_FBOptionsMask;
-	ctrls->ax_options |= rep.axOptions & XkbAX_FBOptionsMask;
+    if (which & XkbAccessXFeedbackMask) {
+        ctrls->ax_options &= ~XkbAX_FBOptionsMask;
+        ctrls->ax_options |= rep.axOptions & XkbAX_FBOptionsMask;
     }
-    if (which&XkbAccessXTimeoutMask) {
-	ctrls->ax_timeout = rep.axTimeout;
-	ctrls->axt_ctrls_mask = rep.axtCtrlsMask;
-	ctrls->axt_ctrls_values = rep.axtCtrlsValues;
-	ctrls->axt_opts_mask = rep.axtOptsMask;
-	ctrls->axt_opts_values= rep.axtOptsValues;
+    if (which & XkbAccessXTimeoutMask) {
+        ctrls->ax_timeout = rep.axTimeout;
+        ctrls->axt_ctrls_mask = rep.axtCtrlsMask;
+        ctrls->axt_ctrls_values = rep.axtCtrlsValues;
+        ctrls->axt_opts_mask = rep.axtOptsMask;
+        ctrls->axt_opts_values = rep.axtOptsValues;
     }
-    if (which&XkbPerKeyRepeatMask) {
-   	memcpy(ctrls->per_key_repeat,rep.perKeyRepeat,
-					  XkbPerKeyBitArraySize);
+    if (which & XkbPerKeyRepeatMask) {
+        memcpy(ctrls->per_key_repeat, rep.perKeyRepeat, XkbPerKeyBitArraySize);
     }
     UnlockDisplay(dpy);
     SyncHandle();
@@ -271,66 +270,66 @@ Bool
 XkbSetControls(Display *dpy, unsigned long which, XkbDescPtr xkb)
 {
     register xkbSetControlsReq *req;
-    XkbControlsPtr	ctrls;
+    XkbControlsPtr ctrls;
 
     if ((dpy->flags & XlibDisplayNoXkb) ||
-	(!dpy->xkb_info && !XkbUseExtension(dpy,NULL,NULL)))
-	return False;
-    if ((!xkb)||(!xkb->ctrls))
-	return False;
+        (!dpy->xkb_info && !XkbUseExtension(dpy, NULL, NULL)))
+        return False;
+    if ((!xkb) || (!xkb->ctrls))
+        return False;
 
-    ctrls= xkb->ctrls;
+    ctrls = xkb->ctrls;
     LockDisplay(dpy);
-    req= _XkbGetSetControlsReq(dpy,dpy->xkb_info,xkb->device_spec);
-    req->changeCtrls = (CARD32)which;
-    if (which&XkbInternalModsMask) {
-	req->affectInternalMods= ~0;
-	req->internalMods= ctrls->internal.real_mods;
-	req->affectInternalVMods = ~0;
-	req->internalVMods= ctrls->internal.vmods;
+    req = _XkbGetSetControlsReq(dpy, dpy->xkb_info, xkb->device_spec);
+    req->changeCtrls = (CARD32) which;
+    if (which & XkbInternalModsMask) {
+        req->affectInternalMods = ~0;
+        req->internalMods = ctrls->internal.real_mods;
+        req->affectInternalVMods = ~0;
+        req->internalVMods = ctrls->internal.vmods;
     }
-    if (which&XkbIgnoreLockModsMask) {
-	req->affectIgnoreLockMods= ~0;
-	req->ignoreLockMods= ctrls->ignore_lock.real_mods;
-	req->affectIgnoreLockVMods= ~0;
-	req->ignoreLockVMods= ctrls->ignore_lock.vmods;
+    if (which & XkbIgnoreLockModsMask) {
+        req->affectIgnoreLockMods = ~0;
+        req->ignoreLockMods = ctrls->ignore_lock.real_mods;
+        req->affectIgnoreLockVMods = ~0;
+        req->ignoreLockVMods = ctrls->ignore_lock.vmods;
     }
-    if (which&XkbControlsEnabledMask) {
-	req->affectEnabledCtrls= XkbAllBooleanCtrlsMask;
-	req->enabledCtrls= ctrls->enabled_ctrls;
+    if (which & XkbControlsEnabledMask) {
+        req->affectEnabledCtrls = XkbAllBooleanCtrlsMask;
+        req->enabledCtrls = ctrls->enabled_ctrls;
     }
-    if (which&XkbRepeatKeysMask) {
-	req->repeatDelay = ctrls->repeat_delay;
-	req->repeatInterval = ctrls->repeat_interval;
+    if (which & XkbRepeatKeysMask) {
+        req->repeatDelay = ctrls->repeat_delay;
+        req->repeatInterval = ctrls->repeat_interval;
     }
-    if (which&XkbSlowKeysMask)
-	 req->slowKeysDelay = ctrls->slow_keys_delay;
-    if (which&XkbBounceKeysMask)
-	 req->debounceDelay = ctrls->debounce_delay;
-    if (which&XkbMouseKeysMask) {
-	req->mkDfltBtn = ctrls->mk_dflt_btn;
+    if (which & XkbSlowKeysMask)
+        req->slowKeysDelay = ctrls->slow_keys_delay;
+    if (which & XkbBounceKeysMask)
+        req->debounceDelay = ctrls->debounce_delay;
+    if (which & XkbMouseKeysMask) {
+        req->mkDfltBtn = ctrls->mk_dflt_btn;
     }
-    if (which&XkbGroupsWrapMask)
-	req->groupsWrap= ctrls->groups_wrap;
-    if (which&(XkbAccessXKeysMask|XkbStickyKeysMask|XkbAccessXFeedbackMask))
-	req->axOptions= ctrls->ax_options;
-    if (which&XkbMouseKeysAccelMask) {
-	req->mkDelay = ctrls->mk_delay;
-	req->mkInterval = ctrls->mk_interval;
-	req->mkTimeToMax = ctrls->mk_time_to_max;
-	req->mkMaxSpeed = ctrls->mk_max_speed;
-	req->mkCurve = ctrls->mk_curve;
+    if (which & XkbGroupsWrapMask)
+        req->groupsWrap = ctrls->groups_wrap;
+    if (which &
+        (XkbAccessXKeysMask | XkbStickyKeysMask | XkbAccessXFeedbackMask))
+        req->axOptions = ctrls->ax_options;
+    if (which & XkbMouseKeysAccelMask) {
+        req->mkDelay = ctrls->mk_delay;
+        req->mkInterval = ctrls->mk_interval;
+        req->mkTimeToMax = ctrls->mk_time_to_max;
+        req->mkMaxSpeed = ctrls->mk_max_speed;
+        req->mkCurve = ctrls->mk_curve;
     }
-    if (which&XkbAccessXTimeoutMask) {
-	 req->axTimeout = ctrls->ax_timeout;
-	 req->axtCtrlsMask = ctrls->axt_ctrls_mask;
-	 req->axtCtrlsValues = ctrls->axt_ctrls_values;
-	 req->axtOptsMask = ctrls->axt_opts_mask;
-	 req->axtOptsValues=ctrls->axt_opts_values;
+    if (which & XkbAccessXTimeoutMask) {
+        req->axTimeout = ctrls->ax_timeout;
+        req->axtCtrlsMask = ctrls->axt_ctrls_mask;
+        req->axtCtrlsValues = ctrls->axt_ctrls_values;
+        req->axtOptsMask = ctrls->axt_opts_mask;
+        req->axtOptsValues = ctrls->axt_opts_values;
     }
-    if (which&XkbPerKeyRepeatMask) {
-	memcpy(req->perKeyRepeat,ctrls->per_key_repeat,
-					XkbPerKeyBitArraySize);
+    if (which & XkbPerKeyRepeatMask) {
+        memcpy(req->perKeyRepeat, ctrls->per_key_repeat, XkbPerKeyBitArraySize);
     }
     UnlockDisplay(dpy);
     SyncHandle();
@@ -340,13 +339,13 @@ XkbSetControls(Display *dpy, unsigned long which, XkbDescPtr xkb)
 /***====================================================================***/
 
 void
-XkbNoteControlsChanges(	XkbControlsChangesPtr		old,
-			XkbControlsNotifyEvent *	new,
-			unsigned int	 		wanted)
+XkbNoteControlsChanges(XkbControlsChangesPtr old,
+                       XkbControlsNotifyEvent *new,
+                       unsigned int wanted)
 {
-    old->changed_ctrls|= (new->changed_ctrls&wanted);
-    if (new->changed_ctrls&XkbControlsEnabledMask&wanted)
-	old->enabled_ctrls_changes^= new->enabled_ctrl_changes;
+    old->changed_ctrls |= (new->changed_ctrls & wanted);
+    if (new->changed_ctrls & XkbControlsEnabledMask & wanted)
+        old->enabled_ctrls_changes ^= new->enabled_ctrl_changes;
     /* num_groups_changed?? */
     return;
 }

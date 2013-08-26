@@ -112,10 +112,11 @@ typedef struct _XRegion {
  */
 #define MEMCHECK(reg, rect, firstrect){\
         if ((reg)->numRects >= ((reg)->size - 1)){\
-          (firstrect) = (BOX *) Xrealloc \
-          ((char *)(firstrect), (unsigned) (2 * (sizeof(BOX)) * ((reg)->size)));\
-          if ((firstrect) == 0)\
+          BoxPtr tmpRect = Xrealloc ((firstrect), \
+                                     (2 * (sizeof(BOX)) * ((reg)->size))); \
+          if (tmpRect == NULL) \
             return(0);\
+          (firstrect) = tmpRect; \
           (reg)->size *= 2;\
           (rect) = &(firstrect)[(reg)->numRects];\
          }\

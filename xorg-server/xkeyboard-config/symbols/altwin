@@ -15,7 +15,7 @@ xkb_symbols "alt_win" {
     modifier_map Mod1 { <LWIN>, <RWIN> };
 };
 
-// Control is mapped to the Win-keys (and the usual Ctrl keys).
+// Ctrl is mapped to the Win-keys (and the usual Ctrl keys).
 partial modifier_keys 
 xkb_symbols "ctrl_win" {
     key <LWIN> {	[ 	Control_L		]	};
@@ -23,7 +23,7 @@ xkb_symbols "ctrl_win" {
     modifier_map Control { <LWIN>, <RWIN> };
 };
 
-// Ctrl is mapped to the Alt-keys, Alt is mapped to the Win-keys,  Win is mapped to the Ctrl-keys.
+// Ctrl is mapped to the Alt-keys, Alt is mapped to the Win-keys, Win is mapped to the Ctrl-keys.
 partial modifier_keys 
 xkb_symbols "ctrl_alt_win" {
     key <LALT> {	[ 	Control_L, Control_L		]	};

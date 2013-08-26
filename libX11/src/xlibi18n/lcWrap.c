@@ -77,20 +77,20 @@ XSetLocaleModifiers(
 {
     XLCd lcd = _XlcCurrentLC();
     char *user_mods;
+    char *mapped_mods;
 
     if (!lcd)
 	return (char *) NULL;
     if (!modifiers)
 	return lcd->core->modifiers;
     user_mods = getenv("XMODIFIERS");
-    modifiers = (*lcd->methods->map_modifiers) (lcd,
-						user_mods, (char *)modifiers);
-    if (modifiers) {
+    mapped_mods = (*lcd->methods->map_modifiers) (lcd, user_mods, modifiers);
+    if (mapped_mods) {
 	if (lcd->core->modifiers)
 	    Xfree(lcd->core->modifiers);
-	lcd->core->modifiers = (char *)modifiers;
+	lcd->core->modifiers = mapped_mods;
     }
-    return (char *)modifiers;
+    return mapped_mods;
 }
 
 Bool
@@ -218,7 +218,7 @@ _XlcAddLoader(
 
     _XlcRemoveLoader(proc);		/* remove old loader, if exist */
 
-    loader = (XlcLoaderList) Xmalloc(sizeof(XlcLoaderListRec));
+    loader = Xmalloc(sizeof(XlcLoaderListRec));
     if (loader == NULL)
 	return False;
 
@@ -293,7 +293,7 @@ _XOpenLC(
     for (loader = loader_list; loader; loader = loader->next) {
 	lcd = (*loader->proc)(name);
 	if (lcd) {
-	    cur = (XLCdList) Xmalloc (sizeof(XLCdListRec));
+	    cur = Xmalloc (sizeof(XLCdListRec));
 	    if (cur) {
 		cur->lcd = lcd;
 		cur->ref_count = 1;
@@ -565,7 +565,7 @@ _XlcVaToArgList(
 {
     XlcArgList args;
 
-    *args_ret = args = (XlcArgList) Xmalloc(sizeof(XlcArg) * count);
+    *args_ret = args = Xmalloc(sizeof(XlcArg) * count);
     if (args == (XlcArgList) NULL)
 	return;
 

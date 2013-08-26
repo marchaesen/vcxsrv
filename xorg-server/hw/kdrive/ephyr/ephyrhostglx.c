@@ -274,7 +274,6 @@ ephyrHostGLXGetVisualConfigsInternal(enum VisualConfRequestType a_type,
     xGLXGetVisualConfigsReply reply;
     char *server_glx_version = NULL, *server_glx_extensions = NULL;
     int j = 0,
-        screens = 0,
         major_opcode = 0,
         num_props = 0,
         num_visuals = 0, props_buf_size = 0, props_per_visual_size = 0;
@@ -282,7 +281,6 @@ ephyrHostGLXGetVisualConfigsInternal(enum VisualConfRequestType a_type,
 
     EPHYR_RETURN_VAL_IF_FAIL(dpy, FALSE);
 
-    screens = ScreenCount(dpy);
     if (!ephyrHostGLXGetMajorOpcode(&major_opcode)) {
         EPHYR_LOG_ERROR("failed to get opcode\n");
         goto out;
