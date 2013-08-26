@@ -158,7 +158,7 @@ _XimLocalCreateIC(
 
     num = im->core.ic_num_resources;
     len = sizeof(XIMResource) * num;
-    if((res = (XIMResourceList)Xmalloc(len)) == (XIMResourceList)NULL) {
+    if((res = Xmalloc(len)) == (XIMResourceList)NULL) {
 	goto Set_Error;
     }
     (void)memcpy((char *)res, (char *)im->core.ic_resources, len);

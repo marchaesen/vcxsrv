@@ -257,7 +257,7 @@
         <variant>
           <configItem>
             <name>crd</name>
-            <_description>Couer D'alene Salish</_description>
+            <_description>Coeur d'Alene Salish</_description>
             <languageList><iso639Id>crd</iso639Id></languageList>
           </configItem>
         </variant>

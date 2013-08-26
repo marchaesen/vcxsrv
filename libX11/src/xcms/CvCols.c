@@ -796,7 +796,7 @@ XcmsConvertColors(
      * Make copy of array of color specifications
      */
     if (nColors > 1) {
-	pColors_tmp = (XcmsColor *) Xmalloc(nColors * sizeof(XcmsColor));
+	pColors_tmp = Xmalloc(nColors * sizeof(XcmsColor));
     } else {
 	pColors_tmp = &Color1;
     }
@@ -987,13 +987,13 @@ XcmsConvertColors(
 	       nColors * sizeof(XcmsColor));
     }
     if (nColors > 1) {
-	Xfree((char *)pColors_tmp);
+	Xfree(pColors_tmp);
     }
     return(retval);
 
 Failure:
     if (nColors > 1) {
-	Xfree((char *)pColors_tmp);
+	Xfree(pColors_tmp);
     }
     return(XcmsFailure);
 }

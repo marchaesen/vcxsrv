@@ -130,6 +130,7 @@
   shift:breaks_caps     =	+shift(breaks_caps)
   esperanto:qwerty      =	+epo(qwerty)
   esperanto:dvorak      =	+epo(dvorak)
+  esperanto:colemak     =	+epo(colemak)
   terminate:ctrl_alt_bksp =	+terminate(ctrl_alt_bksp)
   keypad:pointerkeys	=	+keypad(pointerkeys)
   apple:alupckeys	=	+macintosh_vndr/apple(alupckeys)

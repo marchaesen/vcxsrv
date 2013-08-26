@@ -574,9 +574,12 @@ parseline(
     if (token == STRING) {
 	l = strlen(tokenbuf) + 1;
 	while (b->mbused + l > b->mbsize) {
-	    b->mbsize = b->mbsize ? b->mbsize * 1.5 : 1024;
-	    if (! (b->mb = Xrealloc (b->mb, b->mbsize)) )
+	    DTCharIndex newsize = b->mbsize ? b->mbsize * 1.5 : 1024;
+	    char *newmb = Xrealloc (b->mb, newsize);
+	    if (newmb == NULL)
 		goto error;
+	    b->mb = newmb;
+	    b->mbsize = newsize;
 	}
 	rhs_string_mb = &b->mb[b->mbused];
 	b->mbused    += l;
@@ -604,9 +607,12 @@ parseline(
 
         l = get_mb_string(im, local_mb_buf, rhs_keysym);
 	while (b->mbused + l + 1 > b->mbsize) {
-	    b->mbsize = b->mbsize ? b->mbsize * 1.5 : 1024;
-	    if (! (b->mb = Xrealloc (b->mb, b->mbsize)) )
+	    DTCharIndex newsize = b->mbsize ? b->mbsize * 1.5 : 1024;
+	    char *newmb = Xrealloc (b->mb, newsize);
+	    if (newmb == NULL)
 		goto error;
+	    b->mb = newmb;
+	    b->mbsize = newsize;
 	}
 	rhs_string_mb = &b->mb[b->mbused];
 	b->mbused    += l + 1;
@@ -621,9 +627,12 @@ parseline(
 	local_wc_buf[l] = (wchar_t)'\0';
     }
     while (b->wcused + l + 1 > b->wcsize) {
-	b->wcsize = b->wcsize ? b->wcsize * 1.5 : 512;
-	if (! (b->wc = Xrealloc (b->wc, sizeof(wchar_t) * b->wcsize)) )
+	DTCharIndex newsize = b->wcsize ? b->wcsize * 1.5 : 512;
+	wchar_t *newwc = Xrealloc (b->wc, sizeof(wchar_t) * newsize);
+	if (newwc == NULL)
 	    goto error;
+	b->wc = newwc;
+	b->wcsize = newsize;
     }
     rhs_string_wc = &b->wc[b->wcused];
     b->wcused    += l + 1;
@@ -634,9 +643,12 @@ parseline(
 	local_utf8_buf[l] = '\0';
     }
     while (b->utf8used + l + 1 > b->utf8size) {
-	b->utf8size = b->utf8size ? b->utf8size * 1.5 : 1024;
-	if (! (b->utf8 = Xrealloc (b->utf8, b->utf8size)) )
+	DTCharIndex newsize = b->utf8size ? b->utf8size * 1.5 : 1024;
+	char *newutf8 = Xrealloc (b->utf8, newsize);
+	if (newutf8 == NULL)
 	    goto error;
+	b->utf8 = newutf8;
+	b->utf8size = newsize;
     }
     rhs_string_utf8 = &b->utf8[b->utf8used];
     b->utf8used    += l + 1;
@@ -657,9 +669,12 @@ parseline(
 	    while (b->treeused >= b->treesize) {
 		DefTree *old     = b->tree;
 		int      oldsize = b->treesize;
-		b->treesize = b->treesize ? b->treesize * 1.5 : 256;
-		if (! (b->tree = Xrealloc (b->tree, sizeof(DefTree) * b->treesize)) )
+		int      newsize = b->treesize ? b->treesize * 1.5 : 256;
+		DefTree *new     = Xrealloc (b->tree, sizeof(DefTree) * newsize);
+		if (new == NULL)
 		    goto error;
+		b->tree = new;
+		b->treesize = newsize;
 		if (top >= (DTIndex *) old && top < (DTIndex *) &old[oldsize])
 		    top = (DTIndex *) (((char *) top) + (((char *)b->tree)-(char *)old));
 	    }

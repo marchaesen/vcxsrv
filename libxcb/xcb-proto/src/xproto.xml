@@ -3404,7 +3404,7 @@ The number of characters in `string`.
       <field name="string"><![CDATA[
 The text to get text extents for.
       ]]></field>
-      <error type="GC"><![CDATA[
+      <error type="GContext"><![CDATA[
 The specified graphics context does not exist.
       ]]></error>
       <error type="Font"><![CDATA[
@@ -3953,7 +3953,7 @@ example.
       <error type="Font"><![CDATA[
 TODO: reasons?
       ]]></error>
-      <error type="GC"><![CDATA[
+      <error type="GContext"><![CDATA[
 TODO: reasons?
       ]]></error>
       <error type="Match"><![CDATA[
@@ -4012,7 +4012,7 @@ The X server could not allocate the requested resources (no memory?).
 Destroys the specified `gc` and all associated storage.
       ]]></description>
       <field name="gc"><![CDATA[The graphics context to destroy.]]></field>
-      <error type="GC"><![CDATA[
+      <error type="GContext"><![CDATA[
 The specified graphics context does not exist.
       ]]></error>
     </doc>
@@ -4073,7 +4073,7 @@ The height of the area to copy (in pixels).
       <error type="Drawable"><![CDATA[
 The specified `drawable` (Window or Pixmap) does not exist.
       ]]></error>
-      <error type="GC"><![CDATA[
+      <error type="GContext"><![CDATA[
 The specified graphics context does not exist.
       ]]></error>
       <error type="Match"><![CDATA[
@@ -4162,7 +4162,7 @@ An array of points.
       <error type="Drawable"><![CDATA[
 TODO: reasons?
       ]]></error>
-      <error type="GC"><![CDATA[
+      <error type="GContext"><![CDATA[
 TODO: reasons?
       ]]></error>
       <error type="Match"><![CDATA[
@@ -4216,7 +4216,7 @@ An array of `xcb_segment_t` structures.
       <error type="Drawable"><![CDATA[
 The specified `drawable` does not exist.
       ]]></error>
-      <error type="GC"><![CDATA[
+      <error type="GContext"><![CDATA[
 The specified `gc` does not exist.
       ]]></error>
       <error type="Match"><![CDATA[
@@ -4294,7 +4294,7 @@ The rectangles to fill.
       <error type="Drawable"><![CDATA[
 The specified `drawable` (Window or Pixmap) does not exist.
       ]]></error>
-      <error type="GC"><![CDATA[
+      <error type="GContext"><![CDATA[
 The specified graphics context does not exist.
       ]]></error>
       <error type="Match"><![CDATA[
@@ -4417,7 +4417,7 @@ background, font, subwindow-mode, clip-x-origin, clip-y-origin, and clip-mask.
       <error type="Drawable"><![CDATA[
 The specified `drawable` (Window or Pixmap) does not exist.
       ]]></error>
-      <error type="GC"><![CDATA[
+      <error type="GContext"><![CDATA[
 The specified graphics context does not exist.
       ]]></error>
       <error type="Match"><![CDATA[
@@ -4475,7 +4475,7 @@ background, font, subwindow-mode, clip-x-origin, clip-y-origin, and clip-mask.
       <error type="Drawable"><![CDATA[
 The specified `drawable` (Window or Pixmap) does not exist.
       ]]></error>
-      <error type="GC"><![CDATA[
+      <error type="GContext"><![CDATA[
 The specified graphics context does not exist.
       ]]></error>
       <error type="Match"><![CDATA[

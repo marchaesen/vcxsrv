@@ -45,7 +45,7 @@ extern KdPointerDriver LinuxEvdevMouseDriver;
 extern KdKeyboardDriver LinuxEvdevKeyboardDriver;
 #endif
 
-void processScreenArg(char *screen_size, char *parent_id);
+void processScreenArg(const char *screen_size, char *parent_id);
 
 void
 InitCard(char *name)
@@ -136,7 +136,7 @@ ddxUseMsg(void)
 #endif
 
 void
-processScreenArg(char *screen_size, char *parent_id)
+processScreenArg(const char *screen_size, char *parent_id)
 {
     KdCardInfo *card;
 

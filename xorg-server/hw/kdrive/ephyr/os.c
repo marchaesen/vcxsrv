@@ -28,7 +28,7 @@
 #endif
 #include "ephyr.h"
 
-extern void processScreenArg(char *screen_size, char *parent_id);
+extern void processScreenArg(const char *screen_size, char *parent_id);
 
 static int
 EphyrInit(void)

@@ -112,10 +112,10 @@ xkb_symbols "legacy" {
   include "level3(ralt_switch)"
 };
 
-// Add Esperanto supersignos to the corresponding key in a Qwerty keyboard.
-// This is a generic "component" that is not used to the other layouts in this
-// file but it is meant to be applied to any layout. If you have any questions
-// ask J. Pablo Fernández <pupeno@pupeno.com>.
+// Add the Esperanto supersigned letters to their related keys on a Qwerty keyboard.
+// This is a generic "component" that is not used by the other layouts in this file,
+// but is meant to be applied to any Qwerty layout.  If you have any questions, ask
+// J. Pablo Fernández <pupeno@pupeno.com>.
 partial
 xkb_symbols "qwerty" {
     key <AB03> { [ NoSymbol, NoSymbol, ccircumflex, Ccircumflex ] };
@@ -126,8 +126,8 @@ xkb_symbols "qwerty" {
     key <AD07> { [ NoSymbol, NoSymbol,      ubreve,      Ubreve ] };
 };
 
-// Add Esperanto supersignos to the corresponding key in a Dvorak keyboard.
-// Same comment as the Qwerty one above applies.
+// Add the Esperanto supersigned letters to their related keys in a
+// Dvorak layout.  Similar comment as above applies.
 partial
 xkb_symbols "dvorak" {
     key <AD08> { [ NoSymbol, NoSymbol, ccircumflex, Ccircumflex ] };
@@ -136,4 +136,16 @@ xkb_symbols "dvorak" {
     key <AB03> { [ NoSymbol, NoSymbol, jcircumflex, Jcircumflex ] };
     key <AC10> { [ NoSymbol, NoSymbol, scircumflex, Scircumflex ] };
     key <AC04> { [ NoSymbol, NoSymbol,      ubreve,      Ubreve ] };
+};
+
+// Add the Esperanto supersigned letters to their related keys in a
+// Colemak layout.  Similar comment as above applies.
+partial
+xkb_symbols "colemak" {
+    key <AB03> { [ NoSymbol, NoSymbol, ccircumflex, Ccircumflex ] };
+    key <AD05> { [ NoSymbol, NoSymbol, gcircumflex, Gcircumflex ] };
+    key <AC06> { [ NoSymbol, NoSymbol, hcircumflex, Hcircumflex ] };
+    key <AD06> { [ NoSymbol, NoSymbol, jcircumflex, Jcircumflex ] };
+    key <AC03> { [ NoSymbol, NoSymbol, scircumflex, Scircumflex ] };
+    key <AD08> { [ NoSymbol, NoSymbol,      ubreve,      Ubreve ] };
 };

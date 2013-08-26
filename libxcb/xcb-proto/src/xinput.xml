@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-Copyright (C) 2006 Peter Hutterer 
+Copyright (C) 2006 Peter Hutterer
+Copyright (C) 2013 Daniel Martin
 All Rights Reserved.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -26,995 +27,2179 @@ sale, use or other dealings in this Software without prior written
 authorization from the authors.
 -->
 
-<!-- Spec: http://refspecs.freestandards.org/X11/Xinput.pdf -->
+<!-- Specifications:
+     http://cgit.freedesktop.org/xorg/proto/inputproto/tree/specs/XIproto.txt
+     http://cgit.freedesktop.org/xorg/proto/inputproto/tree/specs/XI2proto.txt
+-->
 
 <xcb header="xinput" extension-xname="XInputExtension" extension-name="Input"
-     major-version="1" minor-version="4">
+     major-version="2" minor-version="3">
+    <import>xfixes</import>
     <import>xproto</import>
 
-    <typedef oldname="CARD8" newname="KeyCode" />
+    <!-- ⋅⋅⋅ Types (v1.0) ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ -->
+
     <typedef oldname="CARD32" newname="EventClass" />
+    <typedef oldname="CARD8"  newname="KeyCode" />
 
-    <enum name="ValuatorMode">
-	<item name="Relative"> <value>0</value></item>
-	<item name="Absolute"> <value>1</value></item>
-    </enum>
+    <!-- ⋅⋅⋅ Types (v2.0) ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ -->
 
-    <enum name="PropagateMode">
-	<item name="AddToList"> <value>0</value></item>
-	<item name="DeleteFromList"> <value>1</value></item>
-    </enum>
+    <typedef oldname="CARD16" newname="DeviceId" />
+    <typedef oldname="INT32"  newname="FP1616" />
+
+    <struct name="FP3232">
+        <field type="INT32"  name="integral" />
+        <field type="CARD32" name="frac" />
+    </struct>
+
+    <!-- ⋅⋅⋅ Requests (v1.0) ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ -->
 
     <!-- GetExtensionVersion -->
 
     <request name="GetExtensionVersion" opcode="1">
-	<field type="CARD16" name="name_len" />
-	<pad bytes="2" />
-	<list type="char" name="name">
-	    <fieldref>name_len</fieldref>
-	</list>
-	<reply>
-	    <pad bytes="1" />
-	    <field type="CARD16" name="server_major" />
-	    <field type="CARD16" name="server_minor" />
-	    <field type="BOOL" name="present" />
-	    <pad bytes="19" />
-	</reply>
+        <field type="CARD16" name="name_len" />
+        <pad bytes="2" />
+        <list type="char" name="name">
+            <fieldref>name_len</fieldref>
+        </list>
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD16" name="server_major" />
+            <field type="CARD16" name="server_minor" />
+            <field type="BOOL"   name="present" />
+            <pad bytes="19" />
+        </reply>
     </request>
 
     <!-- ListInputDevices -->
 
     <enum name="DeviceUse">
-	<item name="IsXPointer"><value>0</value></item>
-	<item name="IsXKeyboard"><value>1</value></item>
-	<item name="IsXExtensionDevice"><value>2</value></item>
-	<item name="IsXExtensionKeyboard"><value>3</value></item>
-	<item name="IsXExtensionPointer"><value>4</value></item>
+        <item name="IsXPointer">           <value>0</value> </item>
+        <item name="IsXKeyboard">          <value>1</value> </item>
+        <item name="IsXExtensionDevice">   <value>2</value> </item>
+        <item name="IsXExtensionKeyboard"> <value>3</value> </item>
+        <item name="IsXExtensionPointer">  <value>4</value> </item>
+    </enum>
+
+    <enum name="InputClass">
+        <item name="Key">       <value>0</value> </item>
+        <item name="Button">    <value>1</value> </item>
+        <item name="Valuator">  <value>2</value> </item>
+        <item name="Feedback">  <value>3</value> </item>
+        <item name="Proximity"> <value>4</value> </item>
+        <item name="Focus">     <value>5</value> </item>
+        <item name="Other">     <value>6</value> </item>
+    </enum>
+
+    <enum name="ValuatorMode">
+        <item name="Relative"> <value>0</value> </item>
+        <item name="Absolute"> <value>1</value> </item>
     </enum>
 
     <struct name="DeviceInfo">
-	<field type="ATOM" name="device_type" />
-	<field type="CARD8" name="device_id" />
-	<field type="CARD8" name="num_class_info" />
-	<field type="CARD8" name="device_use" enum="DeviceUse" />
-	<pad bytes="1" />
-    </struct>
-
-    <request name="ListInputDevices" opcode="2">
-	<reply>
-	    <pad bytes="1" />
-	    <field type="CARD8" name="devices_len" />
-	    <pad bytes="23" />
-	    <list type="DeviceInfo" name="devices">
-		<fieldref>devices_len</fieldref>
-	    </list>
-	    <!-- Uninterpreted: list of deviceinfo structs of 3 the subtypes -->
-	    <!-- Uninterpreted: list of null-terminated strings -->
-	</reply>
-    </request>
-
-    <enum name="InputClass">
-	<item name="Key"><value>0</value></item>
-	<item name="Button"><value>1</value></item>
-	<item name="Valuator"><value>2</value></item>
-	<item name="Feedback"><value>3</value></item>
-	<item name="Proximity"><value>4</value></item>
-	<item name="Focus"><value>5</value></item>
-	<item name="Other"><value>6</value></item>
-    </enum>
-
-    <struct name="InputInfo">
-	<field type="CARD8" name="class_id" enum="InputClass" />
-	<field type="CARD8" name="len" />
+        <field type="ATOM"  name="device_type" />
+        <field type="CARD8" name="device_id" />
+        <field type="CARD8" name="num_class_info" />
+        <field type="CARD8" name="device_use" enum="DeviceUse" />
+        <pad bytes="1" />
     </struct>
 
     <struct name="KeyInfo">
-	<field type="CARD8" name="class_id" enum="InputClass" />
-	<field type="CARD8" name="len" />
-	<field type="KeyCode" name="min_keycode" />
-	<field type="KeyCode" name="max_keycode" />
-	<field type="CARD16" name="num_keys" />
-	<pad bytes="2" />
+        <field type="CARD8"   name="class_id" enum="InputClass" />
+        <field type="CARD8"   name="len" />
+        <field type="KeyCode" name="min_keycode" />
+        <field type="KeyCode" name="max_keycode" />
+        <field type="CARD16"  name="num_keys" />
+        <pad bytes="2" />
     </struct>
 
     <struct name="ButtonInfo">
-	<field type="CARD8" name="class_id" enum="InputClass" />
-	<field type="CARD8" name="len" />
-	<field type="CARD16" name="num_buttons" />
+        <field type="CARD8"  name="class_id" enum="InputClass" />
+        <field type="CARD8"  name="len" />
+        <field type="CARD16" name="num_buttons" />
     </struct>
 
     <struct name="AxisInfo">
-	<field type="CARD32" name="resolution" />
-	<field type="INT32" name="minimum" />
-	<field type="INT32" name="maximum" />
+        <field type="CARD32" name="resolution" />
+        <field type="INT32"  name="minimum" />
+        <field type="INT32"  name="maximum" />
     </struct>
 
     <struct name="ValuatorInfo">
-	<field type="CARD8" name="class_id" enum="InputClass" />
-	<field type="CARD8" name="len" />
-	<field type="CARD8" name="axes_len" />
-	<field type="CARD8" name="mode" enum="ValuatorMode" />
-	<field type="CARD32" name="motion_size" />
-	<list type="AxisInfo" name="axes">
-	    <fieldref>axes_len</fieldref>
-	</list>
+        <field type="CARD8"   name="class_id" enum="InputClass" />
+        <field type="CARD8"   name="len" />
+        <field type="CARD8"   name="axes_len" />
+        <field type="CARD8"   name="mode" enum="ValuatorMode" />
+        <field type="CARD32"  name="motion_size" />
+        <list type="AxisInfo" name="axes">
+            <fieldref>axes_len</fieldref>
+        </list>
     </struct>
+
+    <struct name="InputInfo">
+        <field type="CARD8" name="class_id" enum="InputClass" />
+        <field type="CARD8" name="len" />
+    </struct>
+
+    <struct name="DeviceName">
+        <field type="CARD8" name="len" />
+        <list type="char"  name="string">
+            <fieldref>len</fieldref>
+        </list>
+    </struct>
+
+    <request name="ListInputDevices" opcode="2">
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD8" name="devices_len" />
+            <pad bytes="23" />
+            <list type="DeviceInfo" name="devices">
+                <fieldref>devices_len</fieldref>
+            </list>
+            <!-- Uninterpreted: list (infos) of InputInfo structures,
+                                length is <sumof> all devices.num_class_info -->
+            <!-- Uninterpreted: list (name) of DeviceName structures -->
+        </reply>
+    </request>
 
     <!-- OpenDevice -->
 
     <struct name="InputClassInfo">
-	<field type="CARD8" name="class_id" enum="InputClass" />
-	<field type="CARD8" name="event_type_base" />
+        <field type="CARD8" name="class_id" enum="InputClass" />
+        <field type="CARD8" name="event_type_base" />
     </struct>
 
     <request name="OpenDevice" opcode="3">
-	<field type="CARD8" name="device_id" />
-	<pad bytes="3" />
-	<reply>
-	    <pad bytes="1" />
-	    <field type="CARD8" name="num_classes" />
-	    <pad bytes="23" />
-	    <list type="InputClassInfo" name="class_info">
-		<fieldref>num_classes</fieldref>
-	    </list>
-	</reply>
+        <field type="CARD8" name="device_id" />
+        <pad bytes="3" />
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD8" name="num_classes" />
+            <pad bytes="23" />
+            <list type="InputClassInfo" name="class_info">
+                <fieldref>num_classes</fieldref>
+            </list>
+        </reply>
     </request>
 
     <!-- CloseDevice -->
 
     <request name="CloseDevice" opcode="4">
-	<field type="CARD8" name="device_id" />
-	<pad bytes="3" />
+        <field type="CARD8" name="device_id" />
+        <pad bytes="3" />
     </request>
 
     <!-- SetDeviceMode -->
 
     <request name="SetDeviceMode" opcode="5">
-	<field type="CARD8" name="device_id" />
-	<field type="CARD8" name="mode" enum="ValuatorMode" />
-	<pad bytes="2" />
-	<reply>
-	    <pad bytes="1" />
-	    <field type="CARD8" name="status" altenum="GrabStatus" />
-	    <pad bytes="23" />
-	</reply>
+        <field type="CARD8" name="device_id" />
+        <field type="CARD8" name="mode" enum="ValuatorMode" />
+        <pad bytes="2" />
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD8" name="status" altenum="GrabStatus" />
+            <pad bytes="23" />
+        </reply>
     </request>
 
     <!-- SelectExtensionEvent -->
 
     <request name="SelectExtensionEvent" opcode="6">
-	<field type="WINDOW" name="window" />
-	<field type="CARD16" name="num_classes" />
-	<pad bytes="2" />
-	<list type="EventClass" name="classes">
-	    <fieldref>num_classes</fieldref>
-	</list>
+        <field type="WINDOW" name="window" />
+        <field type="CARD16" name="num_classes" />
+        <pad bytes="2" />
+        <list type="EventClass" name="classes">
+            <fieldref>num_classes</fieldref>
+        </list>
     </request>
 
     <!-- GetSelectedExtensionEvents -->
 
     <request name="GetSelectedExtensionEvents" opcode="7">
-	<field type="WINDOW" name="window" />
-	<reply>
-	    <pad bytes="1" />
-	    <field type="CARD16" name="num_this_classes" />
-	    <field type="CARD16" name="num_all_classes" />
-	    <pad bytes="20" />
-	    <list type="EventClass" name="this_classes">
-		<fieldref>num_this_classes</fieldref>
-	    </list>
-	    <list type="EventClass" name="all_classes">
-		<fieldref>num_all_classes</fieldref>
-	    </list>
-	</reply>
+        <field type="WINDOW" name="window" />
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD16" name="num_this_classes" />
+            <field type="CARD16" name="num_all_classes" />
+            <pad bytes="20" />
+            <list type="EventClass" name="this_classes">
+                <fieldref>num_this_classes</fieldref>
+            </list>
+            <list type="EventClass" name="all_classes">
+                <fieldref>num_all_classes</fieldref>
+            </list>
+        </reply>
     </request>
 
     <!-- ChangeDeviceDontPropagateList -->
 
+    <enum name="PropagateMode">
+        <item name="AddToList">      <value>0</value> </item>
+        <item name="DeleteFromList"> <value>1</value> </item>
+    </enum>
+
     <request name="ChangeDeviceDontPropagateList" opcode="8">
-	<field type="WINDOW" name="window" />
-	<field type="CARD16" name="num_classes" />
-	<field type="CARD8" name="mode" enum="PropagateMode" />
-	<pad bytes="1" />
-	<list type="EventClass" name="classes">
-	    <fieldref>num_classes</fieldref>
-	</list>
+        <field type="WINDOW" name="window" />
+        <field type="CARD16" name="num_classes" />
+        <field type="CARD8"  name="mode" enum="PropagateMode" />
+        <pad bytes="1" />
+        <list type="EventClass" name="classes">
+            <fieldref>num_classes</fieldref>
+        </list>
     </request>
 
     <!-- GetDeviceDontPropagateList -->
 
     <request name="GetDeviceDontPropagateList" opcode="9">
-	<field type="WINDOW" name="window" />
-	<reply>
-	    <pad bytes="1" />
-	    <field type="CARD16" name="num_classes" />
-	    <pad bytes="22" />
-	    <list type="EventClass" name="classes">
-		<fieldref>num_classes</fieldref>
-	    </list>
-	</reply>
+        <field type="WINDOW" name="window" />
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD16" name="num_classes" />
+            <pad bytes="22" />
+            <list type="EventClass" name="classes">
+                <fieldref>num_classes</fieldref>
+            </list>
+        </reply>
     </request>
 
     <!-- GetDeviceMotionEvents -->
 
-    <request name="GetDeviceMotionEvents" opcode="10">
-	<field type="TIMESTAMP" name="start" />
-	<field type="TIMESTAMP" name="stop" altenum="Time" />
-	<field type="CARD8" name="device_id" />
-	<reply>
-	    <pad bytes="1" />
-	    <field type="CARD32" name="num_coords" />
-	    <field type="CARD8" name="num_axes" />
-	    <field type="CARD8" name="device_mode" enum="ValuatorMode" />
-	    <pad bytes="18" />
-	    <!-- Uninterpreted: list of DeviceTimeCoord structures -->
-	</reply>
-    </request>
-
     <struct name="DeviceTimeCoord">
-	<field type="TIMESTAMP" name="time" />
-	<!-- Uninterpreted: list of CARD16 -->
+        <field type="TIMESTAMP" name="time" />
+        <!-- Uninterpreted: list (axisvalues) of CARD32,
+                            length is num_axes from GetDeviceMotionEvents -->
     </struct>
 
+    <request name="GetDeviceMotionEvents" opcode="10">
+        <field type="TIMESTAMP" name="start" />
+        <field type="TIMESTAMP" name="stop" altenum="Time" />
+        <field type="CARD8"     name="device_id" />
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD32" name="num_events" />
+            <field type="CARD8"  name="num_axes" />
+            <field type="CARD8"  name="device_mode" enum="ValuatorMode" />
+            <pad bytes="18" />
+            <!-- Uninterpreted: list (events) of DeviceTimeCoord structures -->
+        </reply>
+    </request>
+
     <!-- ChangeKeyboardDevice -->
+
     <request name="ChangeKeyboardDevice" opcode="11">
-	<field type="CARD8" name="device_id" />
-	<pad bytes="3" />
-	<reply>
-	    <pad bytes="1" />
-	    <field type="CARD8" name="status" altenum="GrabStatus" />
-	    <pad bytes="23" />
-	</reply>
+        <field type="CARD8" name="device_id" />
+        <pad bytes="3" />
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD8" name="status" altenum="GrabStatus" />
+            <pad bytes="23" />
+        </reply>
     </request>
 
     <!-- ChangePointerDevice -->
 
     <request name="ChangePointerDevice" opcode="12">
-	<field type="CARD8" name="x_axis" />
-	<field type="CARD8" name="y_axis" />
-	<field type="CARD8" name="device_id" />
-	<pad bytes="1" />
-	<reply>
-	    <pad bytes="1" />
-	    <field type="CARD8" name="status" altenum="GrabStatus" />
-	    <pad bytes="23" />
-	</reply>
+        <field type="CARD8" name="x_axis" />
+        <field type="CARD8" name="y_axis" />
+        <field type="CARD8" name="device_id" />
+        <pad bytes="1" />
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD8" name="status" altenum="GrabStatus" />
+            <pad bytes="23" />
+        </reply>
     </request>
 
     <!-- GrabDevice -->
 
     <request name="GrabDevice" opcode="13">
-	<field type="WINDOW" name="grab_window" />
-	<field type="TIMESTAMP" name="time" altenum="Time" />
-	<field type="CARD16" name="num_classes" />
-	<field type="CARD8" name="this_device_mode" enum="GrabMode" />
-	<field type="CARD8" name="other_device_mode" enum="GrabMode" />
-	<field type="BOOL" name="owner_events" />
-	<field type="CARD8" name="device_id" />
-	<pad bytes="2" />
-	<list type="EventClass" name="classes">
-	    <fieldref>num_classes</fieldref>
-	</list>
-	<reply>
-	    <pad bytes="1" />
-	    <field type="CARD8" name="status" enum="GrabStatus" />
-	    <pad bytes="23" />
-	</reply>
+        <field type="WINDOW"    name="grab_window" />
+        <field type="TIMESTAMP" name="time" altenum="Time" />
+        <field type="CARD16"    name="num_classes" />
+        <field type="CARD8"     name="this_device_mode" enum="GrabMode" />
+        <field type="CARD8"     name="other_device_mode" enum="GrabMode" />
+        <field type="BOOL"      name="owner_events" />
+        <field type="CARD8"     name="device_id" />
+        <pad bytes="2" />
+        <list type="EventClass" name="classes">
+            <fieldref>num_classes</fieldref>
+        </list>
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD8" name="status" enum="GrabStatus" />
+            <pad bytes="23" />
+        </reply>
     </request>
 
     <!-- UngrabDevice -->
 
     <request name="UngrabDevice" opcode="14">
-	<field type="TIMESTAMP" name="time" altenum="Time" />
-	<field type="CARD8" name="device_id" />
+        <field type="TIMESTAMP" name="time" altenum="Time" />
+        <field type="CARD8"     name="device_id" />
     </request>
 
     <!-- GrabDeviceKey -->
 
     <request name="GrabDeviceKey" opcode="15">
-	<field type="WINDOW" name="grab_window" />
-	<field type="CARD16" name="num_classes" />
-	<field type="CARD16" name="modifiers" mask="ModMask" />
-	<field type="CARD8" name="modifier_device" />
-	<field type="CARD8" name="grabbed_device" />
-	<field type="CARD8" name="key" altenum="Grab" />
-	<field type="CARD8" name="this_device_mode" enum="GrabMode" />
-	<field type="CARD8" name="other_device_mode" enum="GrabMode" />
-	<field type="BOOL" name="owner_events" />
-	<pad bytes="2" />
-	<list type="EventClass" name="classes">
-	    <fieldref>num_classes</fieldref>
-	</list>
+        <field type="WINDOW" name="grab_window" />
+        <field type="CARD16" name="num_classes" />
+        <field type="CARD16" name="modifiers" mask="ModMask" />
+        <field type="CARD8"  name="modifier_device" />
+        <field type="CARD8"  name="grabbed_device" />
+        <field type="CARD8"  name="key" altenum="Grab" />
+        <field type="CARD8"  name="this_device_mode" enum="GrabMode" />
+        <field type="CARD8"  name="other_device_mode" enum="GrabMode" />
+        <field type="BOOL"   name="owner_events" />
+        <pad bytes="2" />
+        <list type="EventClass" name="classes">
+            <fieldref>num_classes</fieldref>
+        </list>
     </request>
 
     <!-- UngrabDeviceKey -->
 
     <request name="UngrabDeviceKey" opcode="16">
-	<field type="WINDOW" name="grabWindow" />
-	<field type="CARD16" name="modifiers" mask="ModMask" />
-	<field type="CARD8" name="modifier_device" />
-	<field type="CARD8" name="key" altenum="Grab" />
-	<field type="CARD8" name="grabbed_device" />
+        <field type="WINDOW" name="grabWindow" />
+        <field type="CARD16" name="modifiers" mask="ModMask" />
+        <field type="CARD8"  name="modifier_device" />
+        <field type="CARD8"  name="key" altenum="Grab" />
+        <field type="CARD8"  name="grabbed_device" />
     </request>
 
     <!-- GrabDeviceButton -->
 
     <request name="GrabDeviceButton" opcode="17">
-	<field type="WINDOW" name="grab_window" />
-	<field type="CARD8" name="grabbed_device" />
-	<field type="CARD8" name="modifier_device" />
-	<field type="CARD16" name="num_classes" />
-	<field type="CARD16" name="modifiers" mask="ModMask" />
-	<field type="CARD8" name="this_device_mode" enum="GrabMode" />
-	<field type="CARD8" name="other_device_mode" enum="GrabMode" />
-	<field type="CARD8" name="button" altenum="Grab" />
-	<field type="CARD8" name="owner_events" />
-	<pad bytes="2" />
-	<list type="EventClass" name="classes">
-	    <fieldref>num_classes</fieldref>
-	</list>
+        <field type="WINDOW" name="grab_window" />
+        <field type="CARD8"  name="grabbed_device" />
+        <field type="CARD8"  name="modifier_device" />
+        <field type="CARD16" name="num_classes" />
+        <field type="CARD16" name="modifiers" mask="ModMask" />
+        <field type="CARD8"  name="this_device_mode" enum="GrabMode" />
+        <field type="CARD8"  name="other_device_mode" enum="GrabMode" />
+        <field type="CARD8"  name="button" altenum="Grab" />
+        <field type="CARD8"  name="owner_events" />
+        <pad bytes="2" />
+        <list type="EventClass" name="classes">
+            <fieldref>num_classes</fieldref>
+        </list>
     </request>
 
     <!-- UngrabDeviceButton -->
 
     <request name="UngrabDeviceButton" opcode="18">
-	<field type="WINDOW" name="grab_window" />
-	<field type="CARD16" name="modifiers" mask="ModMask" />
-	<field type="CARD8" name="modifier_device" />
-	<field type="CARD8" name="button" altenum="Grab" />
-	<field type="CARD8" name="grabbed_device" />
+        <field type="WINDOW" name="grab_window" />
+        <field type="CARD16" name="modifiers" mask="ModMask" />
+        <field type="CARD8"  name="modifier_device" />
+        <field type="CARD8"  name="button" altenum="Grab" />
+        <field type="CARD8"  name="grabbed_device" />
     </request>
 
     <!-- AllowDeviceEvents -->
 
     <enum name="DeviceInputMode">
-	<item name="AsyncThisDevice" />
-	<item name="SyncThisDevice" />
-	<item name="ReplayThisDevice" />
-	<item name="AsyncOtherDevices" />
-	<item name="AsyncAll" />
-	<item name="SyncAll" />
+        <item name="AsyncThisDevice" />
+        <item name="SyncThisDevice" />
+        <item name="ReplayThisDevice" />
+        <item name="AsyncOtherDevices" />
+        <item name="AsyncAll" />
+        <item name="SyncAll" />
     </enum>
 
     <request name="AllowDeviceEvents" opcode="19">
-	<field type="TIMESTAMP" name="time" altenum="Time" />
-	<field type="CARD8" name="mode" enum="DeviceInputMode" />
-	<field type="CARD8" name="device_id" />
+        <field type="TIMESTAMP" name="time" altenum="Time" />
+        <field type="CARD8"     name="mode" enum="DeviceInputMode" />
+        <field type="CARD8"     name="device_id" />
     </request>
 
     <!-- GetDeviceFocus -->
 
     <request name="GetDeviceFocus" opcode="20">
-	<field type="CARD8" name="device_id" />
-	<pad bytes="3" />
-	<reply>
-	    <pad bytes="1" />
-	    <field type="WINDOW" name="focus" altenum="InputFocus" />
-	    <field type="TIMESTAMP" name="time" />
-	    <field type="CARD8" name="revert_to" enum="InputFocus" />
-	    <pad bytes="15" />
-	</reply>
+        <field type="CARD8" name="device_id" />
+        <pad bytes="3" />
+        <reply>
+            <pad bytes="1" />
+            <field type="WINDOW"    name="focus" altenum="InputFocus" />
+            <field type="TIMESTAMP" name="time" />
+            <field type="CARD8"     name="revert_to" enum="InputFocus" />
+            <pad bytes="15" />
+        </reply>
     </request>
 
     <!-- SetDeviceFocus -->
 
     <request name="SetDeviceFocus" opcode="21">
-	<field type="WINDOW" name="focus" altenum="InputFocus" />
-	<field type="TIMESTAMP" name="time" altenum="Time" />
-	<field type="CARD8" name="revert_to" enum="InputFocus" />
-	<field type="CARD8" name="device_id" />
+        <field type="WINDOW"    name="focus" altenum="InputFocus" />
+        <field type="TIMESTAMP" name="time" altenum="Time" />
+        <field type="CARD8"     name="revert_to" enum="InputFocus" />
+        <field type="CARD8"     name="device_id" />
     </request>
 
     <!-- GetFeedbackControl -->
 
-    <request name="GetFeedbackControl" opcode="22">
-	<field type="CARD8" name="device_id" />
-	<pad bytes="3" />
-	<reply>
-	    <pad bytes="1" />
-	    <field type="CARD16" name="num_feedback" />
-	    <pad bytes="22" />
-	    <!-- Uninterpreted: list of FeedbackState structures -->
-	</reply>
-    </request>
-
     <enum name="FeedbackClass">
-	<item name="Keyboard" />
-	<item name="Pointer" />
-	<item name="String" />
-	<item name="Integer" />
-	<item name="Led" />
-	<item name="Bell" />
+        <item name="Keyboard" />
+        <item name="Pointer" />
+        <item name="String" />
+        <item name="Integer" />
+        <item name="Led" />
+        <item name="Bell" />
     </enum>
 
-    <struct name="FeedbackState">
-	<field type="CARD8" name="class_id" enum="FeedbackClass" />
-	<field type="CARD8" name="id" />
-	<field type="CARD16" name="len" />
-    </struct>
-    
     <struct name="KbdFeedbackState">
-	<field type="CARD8" name="class_id" enum="FeedbackClass" />
-	<field type="CARD8" name="id" />
-	<field type="CARD16" name="len" />
-	<field type="CARD16" name="pitch" />
-	<field type="CARD16" name="duration" />
-	<field type="CARD32" name="led_mask" />
-	<field type="CARD32" name="led_values" />
-	<field type="BOOL" name="global_auto_repeat" />
-	<field type="CARD8" name="click" />
-	<field type="CARD8" name="percent" />
-	<pad bytes="1" />
-	<list type="CARD8" name="auto_repeats"><value>32</value></list>
+        <field type="CARD8"  name="class_id" enum="FeedbackClass" />
+        <field type="CARD8"  name="feedback_id" />
+        <field type="CARD16" name="len" />
+        <field type="CARD16" name="pitch" />
+        <field type="CARD16" name="duration" />
+        <field type="CARD32" name="led_mask" />
+        <field type="CARD32" name="led_values" />
+        <field type="BOOL"   name="global_auto_repeat" />
+        <field type="CARD8"  name="click" />
+        <field type="CARD8"  name="percent" />
+        <pad bytes="1" />
+        <list type="CARD8" name="auto_repeats">
+            <value>32</value>
+        </list>
     </struct>
 
     <struct name="PtrFeedbackState">
-	<field type="CARD8" name="class_id" enum="FeedbackClass" />
-	<field type="CARD8" name="id" />
-	<field type="CARD16" name="len" />
-	<pad bytes="2" />
-	<field type="CARD16" name="accel_num" />
-	<field type="CARD16" name="accel_denom" />
-	<field type="CARD16" name="threshold" />
+        <field type="CARD8"  name="class_id" enum="FeedbackClass" />
+        <field type="CARD8"  name="feedback_id" />
+        <field type="CARD16" name="len" />
+        <pad bytes="2" />
+        <field type="CARD16" name="accel_num" />
+        <field type="CARD16" name="accel_denom" />
+        <field type="CARD16" name="threshold" />
     </struct>
 
     <struct name="IntegerFeedbackState">
-	<field type="CARD8" name="class_id" enum="FeedbackClass" />
-	<field type="CARD8" name="id" />
-	<field type="CARD16" name="len" />
-	<field type="CARD32" name="resolution" />
-	<field type="INT32" name="min_value" />
-	<field type="INT32" name="max_value" />
+        <field type="CARD8"  name="class_id" enum="FeedbackClass" />
+        <field type="CARD8"  name="feedback_id" />
+        <field type="CARD16" name="len" />
+        <field type="CARD32" name="resolution" />
+        <field type="INT32"  name="min_value" />
+        <field type="INT32"  name="max_value" />
     </struct>
 
     <struct name="StringFeedbackState">
-	<field type="CARD8" name="class_id" enum="FeedbackClass" />
-	<field type="CARD8" name="id" />
-	<field type="CARD16" name="len" />
-	<field type="CARD16" name="max_symbols" />
-	<field type="CARD16" name="num_keysyms" />
-	<list type="KEYSYM" name="keysyms">
-	    <fieldref>num_keysyms</fieldref>
-	</list>
+        <field type="CARD8"  name="class_id" enum="FeedbackClass" />
+        <field type="CARD8"  name="feedback_id" />
+        <field type="CARD16" name="len" />
+        <field type="CARD16" name="max_symbols" />
+        <field type="CARD16" name="num_keysyms" />
+        <list type="KEYSYM"  name="keysyms">
+            <fieldref>num_keysyms</fieldref>
+        </list>
     </struct>
 
     <struct name="BellFeedbackState">
-	<field type="CARD8" name="class_id" enum="FeedbackClass" />
-	<field type="CARD8" name="id" />
-	<field type="CARD16" name="len" />
-	<field type="CARD8" name="percent" />
-	<pad bytes="3" />
-	<field type="CARD16" name="pitch" />
-	<field type="CARD16" name="duration" />
+        <field type="CARD8"  name="class_id" enum="FeedbackClass" />
+        <field type="CARD8"  name="feedback_id" />
+        <field type="CARD16" name="len" />
+        <field type="CARD8"  name="percent" />
+        <pad bytes="3" />
+        <field type="CARD16" name="pitch" />
+        <field type="CARD16" name="duration" />
     </struct>
 
     <struct name="LedFeedbackState">
-	<field type="CARD8" name="class_id" enum="FeedbackClass" />
-	<field type="CARD8" name="id" />
-	<field type="CARD16" name="len" />
-	<field type="CARD32" name="led_mask" />
-	<field type="CARD32" name="led_values" />
+        <field type="CARD8"  name="class_id" enum="FeedbackClass" />
+        <field type="CARD8"  name="feedback_id" />
+        <field type="CARD16" name="len" />
+        <field type="CARD32" name="led_mask" />
+        <field type="CARD32" name="led_values" />
     </struct>
 
-    <!-- ChangeFeedbackControl
+    <struct name="FeedbackState">
+        <field type="CARD8"  name="class_id" enum="FeedbackClass" />
+        <field type="CARD8"  name="feedback_id" />
+        <field type="CARD16" name="len" />
+        <list type="CARD8" name="uninterpreted_data">
+            <op op="-">
+                <fieldref>len</fieldref>
+                <value>4</value>
+            </op>
+        </list>
+    </struct>
 
-    <request name="ChangeFeedbackControl" opcode="23">
-	<field type="CARD32" name="mask" />
-	<field type="CARD8" name="device_id" />
-	<field type="CARD8" name="feedback_id" />
-	Uninterpreted: list of FeedbackCtl structures
+    <request name="GetFeedbackControl" opcode="22">
+        <field type="CARD8" name="device_id" />
+        <pad bytes="3" />
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD16" name="num_feedbacks" />
+            <pad bytes="22" />
+            <list type="FeedbackState" name="feedbacks">
+                <fieldref>num_feedbacks</fieldref>
+            </list>
+        </reply>
     </request>
 
-    -->
-
-    <struct name="FeedbackCtl">
-	<field type="CARD8" name="class_id" enum="FeedbackClass" />
-	<field type="CARD8" name="id" />
-	<field type="CARD16" name="len" />
-    </struct>
+    <!-- ChangeFeedbackControl -->
 
     <struct name="KbdFeedbackCtl">
-	<field type="CARD8" name="class_id" enum="FeedbackClass" />
-	<field type="CARD8" name="id" />
-	<field type="CARD16" name="len" />
-	<field type="KeyCode" name="key" />
-	<field type="CARD8" name="auto_repeat_mode" />
-	<field type="INT8" name="key_click_percent" />
-	<field type="INT8" name="bell_percent" />
-	<field type="INT16" name="bell_pitch" />
-	<field type="INT16" name="bell_duration" />
-	<field type="CARD32" name="led_mask" />
-	<field type="CARD32" name="led_values" />
+        <field type="CARD8"   name="class_id" enum="FeedbackClass" />
+        <field type="CARD8"   name="feedback_id" />
+        <field type="CARD16"  name="len" />
+        <field type="KeyCode" name="key" />
+        <field type="CARD8"   name="auto_repeat_mode" />
+        <field type="INT8"    name="key_click_percent" />
+        <field type="INT8"    name="bell_percent" />
+        <field type="INT16"   name="bell_pitch" />
+        <field type="INT16"   name="bell_duration" />
+        <field type="CARD32"  name="led_mask" />
+        <field type="CARD32"  name="led_values" />
     </struct>
 
     <struct name="PtrFeedbackCtl">
-	<field type="CARD8" name="class_id" enum="FeedbackClass" />
-	<field type="CARD8" name="id" />
-	<field type="CARD16" name="len" />
-	<pad bytes="2" />
-	<field type="INT16" name="num" />
-	<field type="INT16" name="denom" />
-	<field type="INT16" name="threshold" />
+        <field type="CARD8"  name="class_id" enum="FeedbackClass" />
+        <field type="CARD8"  name="feedback_id" />
+        <field type="CARD16" name="len" />
+        <pad bytes="2" />
+        <field type="INT16"  name="num" />
+        <field type="INT16"  name="denom" />
+        <field type="INT16"  name="threshold" />
     </struct>
 
     <struct name="IntegerFeedbackCtl">
-	<field type="CARD8" name="class_id" enum="FeedbackClass" />
-	<field type="CARD8" name="id" />
-	<field type="CARD16" name="len" />
-	<field type="INT32" name="int_to_display" />
+        <field type="CARD8"  name="class_id" enum="FeedbackClass" />
+        <field type="CARD8"  name="feedback_id" />
+        <field type="CARD16" name="len" />
+        <field type="INT32"  name="int_to_display" />
     </struct>
 
     <struct name="StringFeedbackCtl">
-	<field type="CARD8" name="class_id" enum="FeedbackClass" />
-	<field type="CARD8" name="id" />
-	<field type="CARD16" name="len" />
-	<pad bytes="2" />
-	<field type="CARD16" name="num_keysyms" />
-	<list type="KEYSYM" name="keysyms">
-	    <fieldref>num_keysyms</fieldref>
-	</list>
+        <field type="CARD8"  name="class_id" enum="FeedbackClass" />
+        <field type="CARD8"  name="feedback_id" />
+        <field type="CARD16" name="len" />
+        <pad bytes="2" />
+        <field type="CARD16" name="num_keysyms" />
+        <list type="KEYSYM"  name="keysyms">
+            <fieldref>num_keysyms</fieldref>
+        </list>
     </struct>
 
     <struct name="BellFeedbackCtl">
-	<field type="CARD8" name="class_id" enum="FeedbackClass" />
-	<field type="CARD8" name="id" />
-	<field type="CARD16" name="len" />
-	<field type="INT8" name="percent" />
-	<pad bytes="3" />
-	<field type="INT16" name="pitch" />
-	<field type="INT16" name="duration" />
+        <field type="CARD8"  name="class_id" enum="FeedbackClass" />
+        <field type="CARD8"  name="feedback_id" />
+        <field type="CARD16" name="len" />
+        <field type="INT8"   name="percent" />
+        <pad bytes="3" />
+        <field type="INT16"  name="pitch" />
+        <field type="INT16"  name="duration" />
     </struct>
 
     <struct name="LedFeedbackCtl">
-	<field type="CARD8" name="class_id" enum="FeedbackClass" />
-	<field type="CARD8" name="id" />
-	<field type="CARD16" name="len" />
-	<field type="CARD32" name="led_mask" />
-	<field type="CARD32" name="led_values" />
+        <field type="CARD8"  name="class_id" enum="FeedbackClass" />
+        <field type="CARD8"  name="feedback_id" />
+        <field type="CARD16" name="len" />
+        <field type="CARD32" name="led_mask" />
+        <field type="CARD32" name="led_values" />
     </struct>
+
+    <struct name="FeedbackCtl">
+        <field type="CARD8"  name="class_id" enum="FeedbackClass" />
+        <field type="CARD8"  name="feedback_id" />
+        <field type="CARD16" name="len" />
+        <list type="CARD8" name="uninterpreted_data">
+            <op op="-">
+                <fieldref>len</fieldref>
+                <value>4</value>
+            </op>
+        </list>
+    </struct>
+
+    <request name="ChangeFeedbackControl" opcode="23">
+        <field type="CARD32"      name="mask" />
+        <field type="CARD8"       name="device_id" />
+        <field type="CARD8"       name="feedback_id" />
+        <field type="FeedbackCtl" name="feedback" />
+    </request>
 
     <!-- GetDeviceKeyMapping -->
 
     <request name="GetDeviceKeyMapping" opcode="24">
-	<field type="CARD8" name="device_id" />
-	<field type="KeyCode" name="first_keycode" />
-	<field type="CARD8" name="count" />
-	<reply>
-	    <pad bytes="1" />
-	    <field type="CARD8" name="keysyms_per_keycode" />
-	    <pad bytes="23" />
-	    <list type="KEYSYM" name="keysyms">
-		<fieldref>length</fieldref>
-	    </list>
-	</reply>
+        <field type="CARD8"   name="device_id" />
+        <field type="KeyCode" name="first_keycode" />
+        <field type="CARD8"   name="count" />
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD8" name="keysyms_per_keycode" />
+            <pad bytes="23" />
+            <list type="KEYSYM" name="keysyms">
+                <!-- 'length' is a field in the header -->
+                <fieldref>length</fieldref>
+            </list>
+        </reply>
     </request>
 
     <!-- ChangeDeviceKeyMapping -->
 
     <request name="ChangeDeviceKeyMapping" opcode="25">
-	<field type="CARD8" name="device_id" />
-	<field type="KeyCode" name="first_keycode" />
-	<field type="CARD8" name="keysyms_per_keycode" />
-	<field type="CARD8" name="keycode_count" />
-	<list type="KEYSYM" name="keysyms">
-	    <op op="*">
-		<fieldref>keycode_count</fieldref>
-		<fieldref>keysyms_per_keycode</fieldref>
-	    </op>
-	</list>
+        <field type="CARD8"   name="device_id" />
+        <field type="KeyCode" name="first_keycode" />
+        <field type="CARD8"   name="keysyms_per_keycode" />
+        <field type="CARD8"   name="keycode_count" />
+        <list type="KEYSYM"   name="keysyms">
+            <op op="*">
+                <fieldref>keycode_count</fieldref>
+                <fieldref>keysyms_per_keycode</fieldref>
+            </op>
+        </list>
     </request>
 
     <!-- GetDeviceModifierMapping -->
 
     <request name="GetDeviceModifierMapping" opcode="26">
-	<field type="CARD8" name="device_id" />
-	<pad bytes="3" />
-	<reply>
-	    <pad bytes="1" />
-	    <field type="CARD8" name="keycodes_per_modifier" />
-	    <pad bytes="23" />
-	    <list type="CARD8" name="keymaps">
-		<op op="*">
-		    <fieldref>keycodes_per_modifier</fieldref>
-		    <value>8</value>
-		</op>
-	    </list>
-	</reply>
+        <field type="CARD8" name="device_id" />
+        <pad bytes="3" />
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD8" name="keycodes_per_modifier" />
+            <pad bytes="23" />
+            <list type="CARD8"  name="keymaps">
+                <op op="*">
+                    <fieldref>keycodes_per_modifier</fieldref>
+                    <value>8</value>
+                </op>
+            </list>
+        </reply>
     </request>
 
     <!-- SetDeviceModifierMapping -->
 
     <request name="SetDeviceModifierMapping" opcode="27">
-	<field type="CARD8" name="device_id" />
-	<field type="CARD8" name="keycodes_per_modifier" />
-	<pad bytes="1" />
-	<list type="CARD8" name="keymaps">
-	    <op op="*">
-		<fieldref>keycodes_per_modifier</fieldref>
-		<value>8</value>
-	    </op>
-	</list>
-	<reply>
-	    <pad bytes="1" />
-	    <field type="CARD8" name="status" enum="MappingStatus" />
-	    <pad bytes="23" />
-	</reply>
+        <field type="CARD8" name="device_id" />
+        <field type="CARD8" name="keycodes_per_modifier" />
+        <pad bytes="1" />
+        <list type="CARD8" name="keymaps">
+            <op op="*">
+                <fieldref>keycodes_per_modifier</fieldref>
+                <value>8</value>
+            </op>
+        </list>
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD8" name="status" enum="MappingStatus" />
+            <pad bytes="23" />
+        </reply>
     </request>
 
     <!-- GetDeviceButtonMapping -->
 
     <request name="GetDeviceButtonMapping" opcode="28">
-	<field type="CARD8" name="device_id" />
-	<pad bytes="3" />
-	<reply>
-	    <pad bytes="1" />
-	    <field type="CARD8" name="map_size" />
-	    <pad bytes="23" />
-	    <list type="CARD8" name="map">
-		<fieldref>map_size</fieldref>
-	    </list>
-	</reply>
+        <field type="CARD8" name="device_id" />
+        <pad bytes="3" />
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD8" name="map_size" />
+            <pad bytes="23" />
+            <list type="CARD8" name="map">
+                <fieldref>map_size</fieldref>
+            </list>
+        </reply>
     </request>
 
     <!-- SetDeviceButtonMapping -->
 
     <request name="SetDeviceButtonMapping" opcode="29">
-	<field type="CARD8" name="device_id" />
-	<field type="CARD8" name="map_size" />
-	<pad bytes="2" />
-	<list type="CARD8" name="map">
-	    <fieldref>map_size</fieldref>
-	</list>
-	<reply>
-	    <pad bytes="1" />
-	    <field type="CARD8" name="status" enum="MappingStatus" />
-	    <pad bytes="23" />
-	</reply>
+        <field type="CARD8" name="device_id" />
+        <field type="CARD8" name="map_size" />
+        <pad bytes="2" />
+        <list type="CARD8" name="map">
+            <fieldref>map_size</fieldref>
+        </list>
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD8" name="status" enum="MappingStatus" />
+            <pad bytes="23" />
+        </reply>
     </request>
 
     <!-- QueryDeviceState -->
 
-    <request name="QueryDeviceState" opcode="30">
-	<field type="CARD8" name="device_id" />
-	<pad bytes="3" />
-	<reply>
-	    <pad bytes="1" />
-	    <field type="CARD8" name="num_classes" />
-	    <pad bytes="23" />
-	    <!-- Uninterpreted: list of InputState structures -->
-	</reply>
-    </request>
-
-    <struct name="InputState">
-	<field type="CARD8" name="class_id" enum="InputClass" />
-	<field type="CARD8" name="len" />
-	<field type="CARD8" name="num_items" />
-    </struct>
-
     <struct name="KeyState">
-	<field type="CARD8" name="class_id" enum="InputClass" />
-	<field type="CARD8" name="len" />
-	<field type="CARD8" name="num_keys" />
-	<pad bytes="1" />
-	<list type="CARD8" name="keys">
-	    <value>32</value>
-	</list>
+        <field type="CARD8" name="class_id" enum="InputClass" />
+        <field type="CARD8" name="len" />
+        <field type="CARD8" name="num_keys" />
+        <pad bytes="1" />
+        <list type="CARD8" name="keys">
+            <value>32</value>
+        </list>
     </struct>
 
     <struct name="ButtonState">
-	<field type="CARD8" name="class_id" enum="InputClass" />
-	<field type="CARD8" name="len" />
-	<field type="CARD8" name="num_buttons" />
-	<pad bytes="1" />
-	<list type="CARD8" name="buttons">
-	    <value>32</value>
-	</list>
+        <field type="CARD8" name="class_id" enum="InputClass" />
+        <field type="CARD8" name="len" />
+        <field type="CARD8" name="num_buttons" />
+        <pad bytes="1" />
+        <list type="CARD8" name="buttons">
+            <value>32</value>
+        </list>
     </struct>
 
     <struct name="ValuatorState">
-	<field type="CARD8" name="class_id" enum="InputClass" />
-	<field type="CARD8" name="len" />
-	<field type="CARD8" name="num_valuators" />
-	<field type="CARD8" name="mode" />
-	<list type="CARD32" name="valuators">
-	    <fieldref>num_valuators</fieldref>
-	</list>
+        <field type="CARD8" name="class_id" enum="InputClass" />
+        <field type="CARD8" name="len" />
+        <field type="CARD8" name="num_valuators" />
+        <field type="CARD8" name="mode" />
+        <list type="CARD32" name="valuators">
+            <fieldref>num_valuators</fieldref>
+        </list>
     </struct>
+
+    <struct name="InputState">
+        <field type="CARD8" name="class_id" enum="InputClass" />
+        <field type="CARD8" name="len" />
+        <field type="CARD8" name="num_items" />
+        <pad bytes="1" />
+        <list type="CARD8" name="uninterpreted_data">
+            <op op="-">
+                <fieldref>len</fieldref>
+                <value>4</value>
+            </op>
+        </list>
+    </struct>
+
+    <request name="QueryDeviceState" opcode="30">
+        <field type="CARD8" name="device_id" />
+        <pad bytes="3" />
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD8" name="num_classes" />
+            <pad bytes="23" />
+            <list type="InputState" name="classes">
+                <fieldref>num_classes</fieldref>
+            </list>
+        </reply>
+    </request>
 
     <!-- SendExtensionEvent -->
 
     <request name="SendExtensionEvent" opcode="31">
-	<field type="WINDOW" name="destination" />
-	<field type="CARD8" name="device_id" />
-	<field type="BOOL" name="propagate" />
-	<field type="CARD16" name="num_classes" />
-	<field type="CARD8" name="num_events" />
-	<pad bytes="3" />
-	<list type="char" name="events">
-	    <op op="*">
-		<fieldref>num_events</fieldref>
-		<value>32</value>
-	    </op>
-	</list>
-	<list type="EventClass" name="classes">
-	    <fieldref>num_classes</fieldref>
-	</list>
+        <field type="WINDOW" name="destination" />
+        <field type="CARD8"  name="device_id" />
+        <field type="BOOL"   name="propagate" />
+        <field type="CARD16" name="num_classes" />
+        <field type="CARD8"  name="num_events" />
+        <pad bytes="3" />
+        <list type="CARD8" name="events">
+            <op op="*">
+                <fieldref>num_events</fieldref>
+                <value>32</value>
+            </op>
+        </list>
+        <list type="EventClass" name="classes">
+            <fieldref>num_classes</fieldref>
+        </list>
     </request>
 
     <!-- DeviceBell -->
 
     <request name="DeviceBell" opcode="32">
-	<field type="CARD8" name="device_id" />
-	<field type="CARD8" name="feedback_id" />
-	<field type="CARD8" name="feedback_class" />
-	<field type="INT8" name="percent" />
+        <field type="CARD8" name="device_id" />
+        <field type="CARD8" name="feedback_id" />
+        <field type="CARD8" name="feedback_class" />
+        <field type="INT8"  name="percent" />
     </request>
 
     <!-- SetDeviceValuators -->
 
     <request name="SetDeviceValuators" opcode="33">
-	<field type="CARD8" name="device_id" />
-	<field type="CARD8" name="first_valuator" />
-	<field type="CARD8" name="num_valuators" />
-	<pad bytes="1" />
-	<list type="INT32" name="valuators">
-	    <fieldref>num_valuators</fieldref>
-	</list>
-	<reply>
-	    <pad bytes="1" />
-	    <field type="CARD8" name="status" enum="GrabStatus" />
-	    <pad bytes="23" />
-	</reply>
+        <field type="CARD8" name="device_id" />
+        <field type="CARD8" name="first_valuator" />
+        <field type="CARD8" name="num_valuators" />
+        <pad bytes="1" />
+        <list type="INT32" name="valuators">
+            <fieldref>num_valuators</fieldref>
+        </list>
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD8" name="status" enum="GrabStatus" />
+            <pad bytes="23" />
+        </reply>
     </request>
 
     <!-- GetDeviceControl -->
 
-    <request name="GetDeviceControl" opcode="34">
-	<field type="CARD16" name="control_id" />
-	<field type="CARD8" name="device_id" />
-	<pad bytes="1" />
-	<reply>
-	    <pad bytes="1" />
-	    <field type="CARD8" name="status" altenum="GrabStatus" />
-	    <pad bytes="23" />
-	    <!-- Uninterpreted: list of DeviceState structures -->
-	</reply>
-    </request>
-
-    <struct name="DeviceState">
-	<field type="CARD16" name="control_id" />
-	<field type="CARD16" name="len" />
-    </struct>
+    <enum name="DeviceControl">
+        <item name="resolution"> <value>1</value> </item>
+        <item name="abs_calib">  <value>2</value> </item>
+        <item name="core">       <value>3</value> </item>
+        <item name="enable">     <value>4</value> </item>
+        <item name="abs_area">   <value>5</value> </item>
+    </enum>
 
     <struct name="DeviceResolutionState">
-	<field type="CARD16" name="control_id" />
-	<field type="CARD16" name="len" />
-	<field type="CARD32" name="num_valuators" />
-	<list type="CARD32" name="resolution_values">
-	    <fieldref>num_valuators</fieldref>
-	</list>
-	<list type="CARD32" name="resolution_min">
-	    <fieldref>num_valuators</fieldref>
-	</list>
-	<list type="CARD32" name="resolution_max">
-	    <fieldref>num_valuators</fieldref>
-	</list>
+        <field type="CARD16" name="control_id" enum="DeviceControl" />
+        <field type="CARD16" name="len" />
+        <field type="CARD32" name="num_valuators" />
+        <list type="CARD32"  name="resolution_values">
+            <fieldref>num_valuators</fieldref>
+        </list>
+        <list type="CARD32" name="resolution_min">
+            <fieldref>num_valuators</fieldref>
+        </list>
+        <list type="CARD32" name="resolution_max">
+            <fieldref>num_valuators</fieldref>
+        </list>
     </struct>
 
     <struct name="DeviceAbsCalibState">
-	<field type="CARD16" name="control_id" />
-	<field type="CARD16" name="len" />
-	<field type="INT32" name="min_x" />
-	<field type="INT32" name="max_x" />
-	<field type="INT32" name="min_y" />
-	<field type="INT32" name="max_y" />
-	<field type="CARD32" name="flip_x" />
-	<field type="CARD32" name="flip_y" />
-	<field type="CARD32" name="rotation" />
-	<field type="CARD32" name="button_threshold" />
+        <field type="CARD16" name="control_id" enum="DeviceControl" />
+        <field type="CARD16" name="len" />
+        <field type="INT32"  name="min_x" />
+        <field type="INT32"  name="max_x" />
+        <field type="INT32"  name="min_y" />
+        <field type="INT32"  name="max_y" />
+        <field type="CARD32" name="flip_x" />
+        <field type="CARD32" name="flip_y" />
+        <field type="CARD32" name="rotation" />
+        <field type="CARD32" name="button_threshold" />
     </struct>
 
     <struct name="DeviceAbsAreaState">
-	<field type="CARD16" name="control_id" />
-	<field type="CARD16" name="len" />
-	<field type="CARD32" name="offset_x" />
-	<field type="CARD32" name="offset_y" />
-	<field type="CARD32" name="width" />
-	<field type="CARD32" name="height" />
-	<field type="CARD32" name="screen" />
-	<field type="CARD32" name="following" />
+        <field type="CARD16" name="control_id" enum="DeviceControl" />
+        <field type="CARD16" name="len" />
+        <field type="CARD32" name="offset_x" />
+        <field type="CARD32" name="offset_y" />
+        <field type="CARD32" name="width" />
+        <field type="CARD32" name="height" />
+        <field type="CARD32" name="screen" />
+        <field type="CARD32" name="following" />
     </struct>
 
     <struct name="DeviceCoreState">
-	<field type="CARD16" name="control_id" />
-	<field type="CARD16" name="len" />
-	<field type="CARD8" name="status" />
-	<field type="CARD8" name="iscore" />
-	<pad bytes="2" />
+        <field type="CARD16" name="control_id" enum="DeviceControl" />
+        <field type="CARD16" name="len" />
+        <field type="CARD8"  name="status" />
+        <field type="CARD8"  name="iscore" />
+        <pad bytes="2" />
     </struct>
 
     <struct name="DeviceEnableState">
-	<field type="CARD16" name="control_id" />
-	<field type="CARD16" name="len" />
-	<field type="CARD8" name="enable" />
-	<pad bytes="3" />
+        <field type="CARD16" name="control_id" enum="DeviceControl" />
+        <field type="CARD16" name="len" />
+        <field type="CARD8"  name="enable" />
+        <pad bytes="3" />
     </struct>
 
-    <!-- ChangeDeviceControl
+    <struct name="DeviceState">
+        <field type="CARD16" name="control_id" enum="DeviceControl" />
+        <field type="CARD16" name="len" />
+        <list type="CARD8" name="uninterpreted_data">
+            <op op="-">
+                <fieldref>len</fieldref>
+                <value>4</value>
+            </op>
+        </list>
+    </struct>
 
-    <request name="ChangeDeviceControl" opcode="35">
-	<field type="CARD16" name="control_id" />
-	<field type="CARD8" name="device_id" />
-	<pad bytes="1" />
-	Uninterpreted: list of DeviceCtl structures
-	<reply>
-            <pad byte="1" />
+    <request name="GetDeviceControl" opcode="34">
+        <field type="CARD16" name="control_id" enum="DeviceControl" />
+        <field type="CARD8"  name="device_id" />
+        <pad bytes="1" />
+        <reply>
+            <pad bytes="1" />
             <field type="CARD8" name="status" altenum="GrabStatus" />
             <pad bytes="23" />
-	</reply>
+            <field type="DeviceState" name="control" />
+        </reply>
     </request>
 
-    -->
-
-    <struct name="DeviceCtl">
-	<field type="CARD16" name="control_id" />
-	<field type="CARD16" name="len" />
-    </struct>
+    <!-- ChangeDeviceControl -->
 
     <struct name="DeviceResolutionCtl">
-	<field type="CARD16" name="control_id" />
-	<field type="CARD16" name="len" />
-	<field type="CARD8" name="first_valuator" />
-	<field type="CARD8" name="num_valuators" />
-	<list type="CARD32" name="resolution_values">
-	    <fieldref>num_valuators</fieldref>
-	</list>
+        <field type="CARD16" name="control_id" enum="DeviceControl" />
+        <field type="CARD16" name="len" />
+        <field type="CARD8"  name="first_valuator" />
+        <field type="CARD8"  name="num_valuators" />
+        <list type="CARD32"  name="resolution_values">
+            <fieldref>num_valuators</fieldref>
+        </list>
     </struct>
 
     <struct name="DeviceAbsCalibCtl">
-	<field type="CARD16" name="control_id" />
-	<field type="CARD16" name="len" />
-	<field type="INT32" name="min_x" />
-	<field type="INT32" name="max_x" />
-	<field type="INT32" name="min_y" />
-	<field type="INT32" name="max_y" />
-	<field type="CARD32" name="flip_x" />
-	<field type="CARD32" name="flip_y" />
-	<field type="CARD32" name="rotation" />
-	<field type="CARD32" name="button_threshold" />
+        <field type="CARD16" name="control_id" enum="DeviceControl" />
+        <field type="CARD16" name="len" />
+        <field type="INT32"  name="min_x" />
+        <field type="INT32"  name="max_x" />
+        <field type="INT32"  name="min_y" />
+        <field type="INT32"  name="max_y" />
+        <field type="CARD32" name="flip_x" />
+        <field type="CARD32" name="flip_y" />
+        <field type="CARD32" name="rotation" />
+        <field type="CARD32" name="button_threshold" />
     </struct>
 
     <struct name="DeviceAbsAreaCtrl">
-	<field type="CARD16" name="control_id" />
-	<field type="CARD16" name="len" />
-	<field type="CARD32" name="offset_x" />
-	<field type="CARD32" name="offset_y" />
-	<field type="INT32" name="width" />
-	<field type="INT32" name="height" />
-	<field type="INT32" name="screen" />
-	<field type="CARD32" name="following" />
+        <field type="CARD16" name="control_id" enum="DeviceControl" />
+        <field type="CARD16" name="len" />
+        <field type="CARD32" name="offset_x" />
+        <field type="CARD32" name="offset_y" />
+        <field type="INT32"  name="width" />
+        <field type="INT32"  name="height" />
+        <field type="INT32"  name="screen" />
+        <field type="CARD32" name="following" />
     </struct>
 
     <struct name="DeviceCoreCtrl">
-	<field type="CARD16" name="control_id" />
-	<field type="CARD16" name="len" />
-	<field type="CARD8" name="status" />
-	<pad bytes="3" />
+        <field type="CARD16" name="control_id" enum="DeviceControl" />
+        <field type="CARD16" name="len" />
+        <field type="CARD8"  name="status" />
+        <pad bytes="3" />
     </struct>
 
     <struct name="DeviceEnableCtrl">
-	<field type="CARD16" name="control_id" />
-	<field type="CARD16" name="len" />
-	<field type="CARD8" name="enable" />
-	<pad bytes="3" />
+        <field type="CARD16" name="control_id" enum="DeviceControl" />
+        <field type="CARD16" name="len" />
+        <field type="CARD8"  name="enable" />
+        <pad bytes="3" />
     </struct>
 
-    <!-- EVENTS --> 
+    <struct name="DeviceCtl">
+        <field type="CARD16" name="control_id" enum="DeviceControl" />
+        <field type="CARD16" name="len" />
+        <list type="CARD8" name="uninterpreted_data">
+            <op op="-">
+                <fieldref>len</fieldref>
+                <value>4</value>
+            </op>
+        </list>
+    </struct>
+
+    <request name="ChangeDeviceControl" opcode="35">
+        <field type="CARD16" name="control_id" enum="DeviceControl" />
+        <field type="CARD8"  name="device_id" />
+        <pad bytes="1" />
+        <field type="DeviceCtl" name="control" />
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD8" name="status" altenum="GrabStatus" />
+            <pad bytes="23" />
+        </reply>
+    </request>
+
+    <!-- ⋅⋅⋅ Requests (v1.5) ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ -->
+
+    <!-- ListDeviceProperties -->
+
+    <request name="ListDeviceProperties" opcode="36">
+        <field type="CARD8"  name="device_id" />
+        <pad bytes="3" />
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD16" name="num_atoms" />
+            <pad bytes="22" />
+            <list type="ATOM" name="atoms">
+                <fieldref>num_atoms</fieldref>
+            </list>
+        </reply>
+    </request>
+
+    <!-- ChangeDeviceProperty -->
+
+    <enum name="PropertyFormat">
+        <item name="8Bits">  <value> 8</value> </item>
+        <item name="16Bits"> <value>16</value> </item>
+        <item name="32Bits"> <value>32</value> </item>
+    </enum>
+
+    <request name="ChangeDeviceProperty" opcode="37">
+        <field type="ATOM"  name="property" />
+        <field type="ATOM"  name="type" />
+        <field type="CARD8" name="device_id" />
+        <field type="CARD8" name="format" enum="PropertyFormat" />
+        <field type="CARD8" name="mode" enum="PropMode" />
+        <pad bytes="1" />
+        <field type="CARD32" name="num_items" />
+        <switch name="items">
+            <fieldref>format</fieldref>
+            <!-- <bitcase> is not correct, this would need <cases>s.
+                 It works in that case, because PropertyFormat items can be
+                 distinguished exactly as their values don't have equal bits.
+            -->
+            <bitcase>
+                <enumref ref="PropertyFormat">8Bits</enumref>
+                <list type="CARD8" name="data8">
+                    <fieldref>num_items</fieldref>
+                </list>
+            </bitcase>
+            <bitcase>
+                <enumref ref="PropertyFormat">16Bits</enumref>
+                <list type="CARD16" name="data16">
+                    <fieldref>num_items</fieldref>
+                </list>
+            </bitcase>
+            <bitcase>
+                <enumref ref="PropertyFormat">32Bits</enumref>
+                <list type="CARD32" name="data32">
+                    <fieldref>num_items</fieldref>
+                </list>
+            </bitcase>
+        </switch>
+    </request>
+
+    <!-- DeleteDeviceProperty -->
+
+    <request name="DeleteDeviceProperty" opcode="38">
+        <field type="ATOM"  name="property" />
+        <field type="CARD8" name="device_id" />
+        <pad bytes="3" />
+    </request>
+
+    <!-- GetDeviceProperty -->
+
+    <request name="GetDeviceProperty" opcode="39">
+        <field type="ATOM"   name="property" />
+        <field type="ATOM"   name="type" />
+        <field type="CARD32" name="offset" />
+        <field type="CARD32" name="len" />
+        <field type="CARD8"  name="device_id" />
+        <field type="BOOL"   name="delete" />
+        <pad bytes="2" />
+        <reply>
+            <pad bytes="1" />
+            <field type="ATOM"   name="type" />
+            <field type="CARD32" name="bytes_after" />
+            <field type="CARD32" name="num_items" />
+            <field type="CARD8"  name="format" enum="PropertyFormat" />
+            <field type="CARD8"  name="device_id" />
+            <pad bytes="10" />
+            <switch name="items">
+                <fieldref>format</fieldref>
+                <!-- <bitcase> is not correct, this would need <cases>s.
+                     It works in that case, because PropertyFormat items can be
+                     distinguished exactly as their values don't have equal bits.
+                -->
+                <bitcase>
+                    <enumref ref="PropertyFormat">8Bits</enumref>
+                    <list type="CARD8" name="data8">
+                        <fieldref>num_items</fieldref>
+                    </list>
+                </bitcase>
+                <bitcase>
+                    <enumref ref="PropertyFormat">16Bits</enumref>
+                    <list type="CARD16" name="data16">
+                        <fieldref>num_items</fieldref>
+                    </list>
+                </bitcase>
+                <bitcase>
+                    <enumref ref="PropertyFormat">32Bits</enumref>
+                    <list type="CARD32" name="data32">
+                        <fieldref>num_items</fieldref>
+                    </list>
+                </bitcase>
+            </switch>
+        </reply>
+    </request>
+
+    <!-- ⋅⋅⋅ Requests (v2.0) ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ -->
+
+    <!-- XIQueryPointer -->
+
+    <enum name="Device">
+        <item name="All" />
+        <item name="AllMaster" />
+    </enum>
+
+    <struct name="GroupInfo">
+        <field type="CARD8" name="base" />
+        <field type="CARD8" name="latched" />
+        <field type="CARD8" name="locked" />
+        <field type="CARD8" name="effective" />
+    </struct>
+
+    <struct name="ModifierInfo">
+        <field type="CARD32" name="base" />
+        <field type="CARD32" name="latched" />
+        <field type="CARD32" name="locked" />
+        <field type="CARD32" name="effective" />
+    </struct>
+
+    <request name="XIQueryPointer" opcode="40">
+        <field type="WINDOW"   name="window" />
+        <field type="DeviceId" name="deviceid" altenum="Device" />
+        <pad bytes="2" />
+        <reply>
+            <pad bytes="1" />
+            <field type="WINDOW"       name="root" />
+            <field type="WINDOW"       name="child" />
+            <field type="FP1616"       name="root_x" />
+            <field type="FP1616"       name="root_y" />
+            <field type="FP1616"       name="win_x" />
+            <field type="FP1616"       name="win_y" />
+            <field type="CARD8"        name="same_screen" />
+            <pad bytes="1" />
+            <field type="CARD16"       name="buttons_len" />
+            <field type="ModifierInfo" name="mods" />
+            <field type="GroupInfo"    name="group" />
+            <list type="CARD32" name="buttons">
+                <fieldref>buttons_len</fieldref>
+            </list>
+        </reply>
+    </request>
+
+    <!-- XIWarpPointer -->
+
+    <request name="XIWarpPointer" opcode="41">
+        <field type="WINDOW"   name="src_win" />
+        <field type="WINDOW"   name="dst_win" />
+        <field type="FP1616"   name="src_x" />
+        <field type="FP1616"   name="src_y" />
+        <field type="CARD16"   name="src_width" />
+        <field type="CARD16"   name="src_height" />
+        <field type="FP1616"   name="dst_x" />
+        <field type="FP1616"   name="dst_y" />
+        <field type="DeviceId" name="deviceid" altenum="Device" />
+        <pad bytes="2" />
+    </request>
+
+    <!-- XIChangeCursor -->
+
+    <request name="XIChangeCursor" opcode="42">
+        <field type="WINDOW"   name="window" />
+        <field type="CURSOR"   name="cursor" />
+        <field type="DeviceId" name="deviceid" altenum="Device" />
+        <pad bytes="2" />
+    </request>
+
+    <!-- XIChangeHierarchy -->
+
+    <enum name="HierarchyChangeType">
+        <item name="AddMaster">    <value>1</value> </item>
+        <item name="RemoveMaster"> <value>2</value> </item>
+        <item name="AttachSlave">  <value>3</value> </item>
+        <item name="DetachSlave">  <value>4</value> </item>
+    </enum>
+
+    <enum name="ChangeMode">
+        <item name="Attach"> <value>1</value> </item>
+        <item name="Float">  <value>2</value> </item>
+    </enum>
+
+    <struct name="AddMaster">
+        <field type="CARD16" name="type" enum="HierarchyChangeType" />
+        <field type="CARD16" name="len" />
+        <field type="CARD16" name="name_len" />
+        <field type="CARD8"  name="send_core" />
+        <field type="CARD8"  name="enable" />
+        <list type="char" name="name">
+            <fieldref>name_len</fieldref>
+        </list>
+    </struct>
+
+    <struct name="RemoveMaster">
+        <field type="CARD16"   name="type" enum="HierarchyChangeType" />
+        <field type="CARD16"   name="len" />
+        <field type="DeviceId" name="deviceid" altenum="Device" />
+        <field type="CARD8"    name="return_mode" enum="ChangeMode" />
+        <pad bytes="1" />
+        <field type="DeviceId" name="return_pointer" altenum="Device" />
+        <field type="DeviceId" name="return_keyboard" altenum="Device" />
+    </struct>
+
+    <struct name="AttachSlave">
+        <field type="CARD16"   name="type" enum="HierarchyChangeType" />
+        <field type="CARD16"   name="len" />
+        <field type="DeviceId" name="deviceid" altenum="Device" />
+        <field type="DeviceId" name="master" altenum="Device" />
+    </struct>
+
+    <struct name="DetachSlave">
+        <field type="CARD16"   name="type" enum="HierarchyChangeType" />
+        <field type="CARD16"   name="len" />
+        <field type="DeviceId" name="deviceid" altenum="Device" />
+        <pad bytes="2" />
+    </struct>
+
+    <struct name="HierarchyChange">
+        <field type="CARD16" name="type" enum="HierarchyChangeType" />
+        <field type="CARD16" name="len" />
+        <list type="CARD8" name="uninterpreted_data">
+            <op op="-">
+                <op op="*">
+                    <fieldref>len</fieldref>
+                    <value>4</value>
+                </op>
+                <value>4</value>
+            </op>
+        </list>
+    </struct>
+
+    <request name="XIChangeHierarchy" opcode="43">
+        <field type="CARD8" name="num_changes" />
+        <list type="HierarchyChange" name="changes">
+            <fieldref>num_changes</fieldref>
+        </list>
+    </request>
+
+    <!-- XISetClientPointer -->
+
+    <request name="XISetClientPointer" opcode="44">
+        <field type="WINDOW"   name="window" />
+        <field type="DeviceId" name="deviceid" altenum="Device" />
+        <pad bytes="2" />
+    </request>
+
+    <!-- XIGetClientPointer -->
+
+    <request name="XIGetClientPointer" opcode="45">
+        <field type="WINDOW" name="window" />
+        <reply>
+            <pad bytes="1" />
+            <field type="BOOL"     name="set" />
+            <pad bytes="1" />
+            <field type="DeviceId" name="deviceid" altenum="Device" />
+            <pad bytes="20" />
+        </reply>
+    </request>
+
+    <!-- XISelectEvents -->
+
+    <struct name="EventMask">
+        <field type="DeviceId" name="deviceid" altenum="Device" />
+        <field type="CARD16"   name="mask_len" />
+        <list type="CARD32" name="mask"> <!-- set of EventMaskBit -->
+            <fieldref>mask_len</fieldref>
+        </list>
+    </struct>
+
+    <request name="XISelectEvents" opcode="46">
+        <field type="WINDOW" name="window" />
+        <field type="CARD16" name="num_mask" />
+        <pad bytes="2" />
+        <list type="EventMask" name="masks">
+            <fieldref>num_mask</fieldref>
+        </list>
+    </request>
+
+    <!-- XIQueryVersion -->
+
+    <request name="XIQueryVersion" opcode="47">
+        <field type="CARD16" name="major_version" />
+        <field type="CARD16" name="minor_version" />
+
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD16" name="major_version" />
+            <field type="CARD16" name="minor_version" />
+            <pad bytes="20" />
+        </reply>
+    </request>
+
+    <!-- XIQueryDevice -->
+
+    <enum name="DeviceClassType">
+        <item name="Key">      <value>0</value> </item>
+        <item name="Button">   <value>1</value> </item>
+        <item name="Valuator"> <value>2</value> </item>
+        <item name="Scroll">   <value>3</value> </item>
+        <item name="Touch">    <value>8</value> </item>
+    </enum>
+
+    <enum name="DeviceType">
+        <item name="MasterPointer">  <value>1</value> </item>
+        <item name="MasterKeyboard"> <value>2</value> </item>
+        <item name="SlavePointer">   <value>3</value> </item>
+        <item name="SlaveKeyboard">  <value>4</value> </item>
+        <item name="FloatingSlave">  <value>5</value> </item>
+    </enum>
+
+    <enum name="ScrollFlags">
+        <item name="NoEmulation"> <bit>0</bit> </item>
+        <item name="Preferred">   <bit>1</bit> </item>
+    </enum>
+
+    <enum name="ScrollType">
+        <item name="Vertical">   <value>1</value> </item>
+        <item name="Horizontal"> <value>2</value> </item>
+    </enum>
+
+    <enum name="TouchMode">
+        <item name="Direct">    <value>1</value> </item>
+        <item name="Dependent"> <value>2</value> </item>
+    </enum>
+
+    <struct name="ButtonClass">
+        <field type="CARD16"   name="type" enum="DeviceClassType" />
+        <field type="CARD16"   name="len" />
+        <field type="DeviceId" name="sourceid" />
+        <field type="CARD16"   name="num_buttons" />
+        <list type="CARD32"    name="state">
+            <op op="/">
+                <op op="+">
+                    <fieldref>num_buttons</fieldref>
+                    <value>31</value>
+                </op>
+                <value>32</value>
+            </op>
+        </list>
+        <list type="ATOM" name="labels">
+            <fieldref>num_buttons</fieldref>
+        </list>
+    </struct>
+
+    <struct name="KeyClass">
+        <field type="CARD16"   name="type" enum="DeviceClassType" />
+        <field type="CARD16"   name="len" />
+        <field type="DeviceId" name="sourceid" />
+        <field type="CARD16"   name="num_keys" />
+        <list type="CARD32" name="keys">
+            <fieldref>num_keys</fieldref>
+        </list>
+    </struct>
+
+    <struct name="ScrollClass">
+        <field type="CARD16"   name="type" enum="DeviceClassType" />
+        <field type="CARD16"   name="len" />
+        <field type="DeviceId" name="sourceid" />
+        <field type="CARD16"   name="number" />
+        <field type="CARD16"   name="scroll_type" enum="ScrollType" />
+        <pad bytes="2" />
+        <field type="CARD32"   name="flags" enum="ScrollFlags" />
+        <field type="FP3232"   name="increment" />
+    </struct>
+
+    <struct name="TouchClass">
+        <field type="CARD16"   name="type" enum="DeviceClassType" />
+        <field type="CARD16"   name="len" />
+        <field type="DeviceId" name="sourceid" />
+        <field type="CARD8"    name="mode" enum="TouchMode" />
+        <field type="CARD8"    name="num_touches" />
+    </struct>
+
+    <struct name="ValuatorClass">
+        <field type="CARD16"   name="type" enum="DeviceClassType" />
+        <field type="CARD16"   name="len" />
+        <field type="DeviceId" name="sourceid" />
+        <field type="CARD16"   name="number" />
+        <field type="ATOM"     name="label" />
+        <field type="FP3232"   name="min" />
+        <field type="FP3232"   name="max" />
+        <field type="FP3232"   name="value" />
+        <field type="CARD32"   name="resolution" />
+        <field type="CARD8"    name="mode" enum="ValuatorMode" />
+        <pad bytes="3" />
+    </struct>
+
+    <struct name="DeviceClass">
+        <field type="CARD16"   name="type" enum="DeviceClassType" />
+        <field type="CARD16"   name="len" />
+        <field type="DeviceId" name="sourceid" />
+        <pad bytes="2" />
+        <list type="CARD8" name="uninterpreted_data">
+            <op op="-">
+                <op op="*">
+                    <fieldref>len</fieldref>
+                    <value>4</value>
+                </op>
+                <value>8</value>
+            </op>
+        </list>
+    </struct>
+
+    <struct name="XIDeviceInfo">
+        <field type="DeviceId" name="deviceid" altenum="Device" />
+        <field type="CARD16"   name="type" altenum="DeviceType" />
+        <field type="DeviceId" name="attachment" altenum="Device" />
+        <field type="CARD16"   name="num_classes" />
+        <field type="CARD16"   name="name_len" />
+        <field type="BOOL"     name="enabled" />
+        <pad bytes="1" />
+        <list type="char" name="name">
+            <!-- name_len is without padding, so we've to pad on our own,
+                 auto align pad after the list would be helpfull -->
+            <op op="*">
+                <op op="/">
+                    <op op="+">
+                        <fieldref>name_len</fieldref>
+                        <value>3</value>
+                    </op>
+                    <value>4</value>
+                </op>
+                <value>4</value>
+            </op>
+        </list>
+        <list type="DeviceClass" name="classes">
+            <fieldref>num_classes</fieldref>
+        </list>
+    </struct>
+
+    <request name="XIQueryDevice" opcode="48">
+        <field type="DeviceId" name="deviceid" altenum="Device" />
+        <pad bytes="2" />
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD16" name="num_infos" />
+            <pad bytes="22" />
+            <list type="XIDeviceInfo" name="infos">
+                <fieldref>num_infos</fieldref>
+            </list>
+        </reply>
+    </request>
+
+    <!-- XISetFocus -->
+
+    <request name="XISetFocus" opcode="49">
+        <field type="WINDOW"    name="window" />
+        <field type="TIMESTAMP" name="time" altenum="Time" />
+        <field type="DeviceId"  name="deviceid" altenum="Device" />
+        <pad bytes="2" />
+    </request>
+
+    <!-- XIGetFocus -->
+
+    <request name="XIGetFocus" opcode="50">
+        <field type="DeviceId" name="deviceid" altenum="Device" />
+        <pad bytes="2" />
+        <reply>
+            <pad bytes="1" />
+            <field type="WINDOW" name="focus" />
+            <pad bytes="20" />
+        </reply>
+    </request>
+
+    <!-- XIGrabDevice -->
+
+    <enum name="GrabOwner">
+        <item name="NoOwner" />
+        <item name="Owner" />
+    </enum>
+
+    <request name="XIGrabDevice" opcode="51">
+        <field type="WINDOW"    name="window" />
+        <field type="TIMESTAMP" name="time" altenum="Time" />
+        <field type="CURSOR"    name="cursor" />
+        <field type="DeviceId"  name="deviceid" altenum="Device" />
+        <field type="CARD8"     name="mode" enum="GrabMode" />
+        <field type="CARD8"     name="paired_device_mode" enum="GrabMode" />
+        <field type="BOOL"      name="owner_events" enum="GrabOwner" />
+        <pad bytes="1" />
+        <field type="CARD16"    name="mask_len" />
+        <list type="CARD32" name="mask">
+            <fieldref>mask_len</fieldref>
+        </list>
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD8" name="status" enum="GrabStatus" />
+            <pad bytes="23" />
+        </reply>
+    </request>
+
+    <!-- XIUngrabDevice -->
+
+    <request name="XIUngrabDevice" opcode="52">
+        <field type="TIMESTAMP" name="time" altenum="Time" />
+        <field type="DeviceId" name="deviceid" altenum="Device" />
+        <pad bytes="2" />
+    </request>
+
+    <!-- XIAllowEvents -->
+
+    <enum name="EventMode">
+        <item name="AsyncDevice" />
+        <item name="SyncDevice" />
+        <item name="ReplayDevice" />
+        <item name="AsyncPairedDevice" />
+        <item name="AsyncPair" />
+        <item name="SyncPair" />
+        <item name="AcceptTouch" />
+        <item name="RejectTouch" />
+    </enum>
+
+    <request name="XIAllowEvents" opcode="53">
+        <field type="TIMESTAMP" name="time" altenum="Time" />
+        <field type="DeviceId"  name="deviceid" altenum="Device" />
+        <field type="CARD8"     name="event_mode" enum="EventMode" />
+        <pad bytes="1" />
+        <field type="CARD32"    name="touchid" />
+        <field type="WINDOW"    name="grab_window" />
+    </request>
+
+    <!-- XIPassiveGrabDevice -->
+
+    <enum name="GrabMode22">
+        <item name="Sync" />
+        <item name="Async" />
+        <item name="Touch" />
+    </enum>
+
+    <enum name="GrabType">
+        <item name="Button" />
+        <item name="Keycode" />
+        <item name="Enter" />
+        <item name="FocusIn" />
+        <item name="TouchBegin" />
+    </enum>
+
+    <enum name="ModifierMask">
+        <item name="Any"> <bit>31</bit> </item>
+    </enum>
+
+    <struct name="GrabModifierInfo">
+        <field type="CARD32" name="modifiers" altenum="ModifierMask" />
+        <field type="CARD8"  name="status" enum="GrabStatus" />
+        <pad bytes="3" />
+    </struct>
+
+    <request name="XIPassiveGrabDevice" opcode="54">
+        <field type="TIMESTAMP" name="time" altenum="Time" />
+        <field type="WINDOW"    name="grab_window" />
+        <field type="CURSOR"    name="cursor" />
+        <field type="CARD32"    name="detail" />
+        <field type="DeviceId"  name="deviceid" altenum="Device" />
+        <field type="CARD16"    name="num_modifiers" />
+        <field type="CARD16"    name="mask_len" />
+        <field type="CARD8"     name="grab_type" enum="GrabType" />
+        <field type="CARD8"     name="grab_mode" enum="GrabMode22" />
+        <field type="CARD8"     name="paired_device_mode" enum="GrabMode" />
+        <field type="BOOL"      name="owner_events" enum="GrabOwner" />
+        <pad bytes="2" />
+        <list type="CARD32" name="mask">
+            <fieldref>mask_len</fieldref>
+        </list>
+        <list type="CARD32" name="modifiers">
+            <fieldref>num_modifiers</fieldref>
+        </list>
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD16" name="num_modifiers" />
+            <pad bytes="22" />
+            <list type="GrabModifierInfo" name="modifiers">
+                <fieldref>num_modifiers</fieldref>
+            </list>
+        </reply>
+    </request>
+
+    <!-- XIPassiveUngrabDevice -->
+
+    <request name="XIPassiveUngrabDevice" opcode="55">
+        <field type="WINDOW"   name="grab_window" />
+        <field type="CARD32"   name="detail" />
+        <field type="DeviceId" name="deviceid" altenum="Device" />
+        <field type="CARD16"   name="num_modifiers" />
+        <field type="CARD8"    name="grab_type" enum="GrabType" />
+        <pad bytes="3" />
+        <list type="CARD32" name="modifiers">
+            <fieldref>num_modifiers</fieldref>
+        </list>
+    </request>
+
+    <!-- XIListProperties -->
+
+    <request name="XIListProperties" opcode="56">
+        <field type="DeviceId" name="deviceid" altenum="Device" />
+        <pad bytes="2" />
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD16" name="num_properties" />
+            <pad bytes="22" />
+            <list type="ATOM" name="properties">
+                <fieldref>num_properties</fieldref>
+            </list>
+        </reply>
+    </request>
+
+    <!-- XIChangeProperty -->
+
+    <request name="XIChangeProperty" opcode="57">
+        <field type="DeviceId" name="deviceid" altenum="Device" />
+        <field type="CARD8"    name="mode" enum="PropMode" />
+        <field type="CARD8"    name="format" enum="PropertyFormat" />
+        <field type="ATOM"     name="property" />
+        <field type="ATOM"     name="type" />
+        <field type="CARD32"   name="num_items" />
+        <switch name="items">
+            <fieldref>format</fieldref>
+            <!-- <bitcase> is not correct, this would need <cases>s.
+                 It works in that case, because PropertyFormat items can be
+                 distinguished exactly as their values don't have equal bits.
+            -->
+            <bitcase>
+                <enumref ref="PropertyFormat">8Bits</enumref>
+                <list type="CARD8" name="data8">
+                    <fieldref>num_items</fieldref>
+                </list>
+            </bitcase>
+            <bitcase>
+                <enumref ref="PropertyFormat">16Bits</enumref>
+                <list type="CARD16" name="data16">
+                    <fieldref>num_items</fieldref>
+                </list>
+            </bitcase>
+            <bitcase>
+                <enumref ref="PropertyFormat">32Bits</enumref>
+                <list type="CARD32" name="data32">
+                    <fieldref>num_items</fieldref>
+                </list>
+            </bitcase>
+        </switch>
+    </request>
+
+    <!-- XIDeleteProperty -->
+
+    <request name="XIDeleteProperty" opcode="58">
+        <field type="DeviceId" name="deviceid" altenum="Device" />
+        <pad bytes="2" />
+        <field type="ATOM"     name="property" />
+    </request>
+
+    <!-- XIGetProperty -->
+
+    <request name="XIGetProperty" opcode="59">
+        <field type="DeviceId" name="deviceid" altenum="Device" />
+        <field type="BOOL"     name="delete" />
+        <pad bytes="1" />
+        <field type="ATOM"     name="property" />
+        <field type="ATOM"     name="type" />
+        <field type="CARD32"   name="offset" />
+        <field type="CARD32"   name="len" />
+        <reply>
+            <pad bytes="1" />
+            <field type="ATOM"   name="type" />
+            <field type="CARD32" name="bytes_after" />
+            <field type="CARD32" name="num_items" />
+            <field type="CARD8"  name="format" enum="PropertyFormat" />
+            <pad bytes="11" />
+            <switch name="items">
+                <fieldref>format</fieldref>
+                <!-- <bitcase> is not correct, this would need <cases>s.
+                     It works in that case, because PropertyFormat items can be
+                     distinguished exactly as their values don't have equal bits.
+                -->
+                <bitcase>
+                    <enumref ref="PropertyFormat">8Bits</enumref>
+                    <list type="CARD8" name="data8">
+                        <fieldref>num_items</fieldref>
+                    </list>
+                </bitcase>
+                <bitcase>
+                    <enumref ref="PropertyFormat">16Bits</enumref>
+                    <list type="CARD16" name="data16">
+                        <fieldref>num_items</fieldref>
+                    </list>
+                </bitcase>
+                <bitcase>
+                    <enumref ref="PropertyFormat">32Bits</enumref>
+                    <list type="CARD32" name="data32">
+                        <fieldref>num_items</fieldref>
+                    </list>
+                </bitcase>
+            </switch>
+        </reply>
+    </request>
+
+    <!-- XIGetSelectedEvents -->
+
+    <request name="XIGetSelectedEvents" opcode="60">
+        <field type="WINDOW" name="window" />
+        <reply>
+            <pad bytes="1" />
+            <field type="CARD16" name="num_masks" />
+            <pad bytes="22" />
+            <list type="EventMask" name="masks">
+                <fieldref>num_masks</fieldref>
+            </list>
+        </reply>
+    </request>
+
+    <!-- ⋅⋅⋅ Requests (v2.3) ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ -->
+
+    <!-- XIBarrierReleasePointer -->
+
+    <struct name="BarrierReleasePointerInfo">
+        <field type="DeviceId" name="deviceid" />
+        <pad bytes="2" />
+        <field type="BARRIER"  name="barrier" />
+        <field type="CARD32"   name="eventid" />
+    </struct>
+
+    <request name="XIBarrierReleasePointer" opcode="61">
+        <field type="CARD32" name="num_barriers" />
+        <list type="BarrierReleasePointerInfo" name="barriers">
+            <fieldref>num_barriers</fieldref>
+        </list>
+    </request>
+
+    <!-- ⋅⋅⋅ Events (v1.0) ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ -->
+    <!-- Notes:
+         - A 'len' field in a v1++ structure is in bytes.
+    -->
 
     <event name="DeviceValuator" number="0">
-	<field type="CARD8" name="device_id" />
-	<field type="CARD16" name="device_state" />
-	<field type="CARD8" name="num_valuators" />
-	<field type="CARD8" name="first_valuator" />
-	<list type="INT32" name="valuators"><value>6</value></list>
+        <field type="CARD8"  name="device_id" />
+        <field type="CARD16" name="device_state" />
+        <field type="CARD8"  name="num_valuators" />
+        <field type="CARD8"  name="first_valuator" />
+        <list type="INT32"   name="valuators">
+            <value>6</value>
+        </list>
     </event>
 
     <event name="DeviceKeyPress" number="1">
-	<field type="BYTE" name="detail" />
-	<field type="TIMESTAMP" name="time" />
-	<field type="WINDOW" name="root" />
-	<field type="WINDOW" name="event" />
-	<field type="WINDOW" name="child" altenum="Window" />
-	<field type="INT16" name="root_x" />
-	<field type="INT16" name="root_y" />
-	<field type="INT16" name="event_x" />
-	<field type="INT16" name="event_y" />
-	<field type="CARD16" name="state" />
-	<field type="BOOL" name="same_screen" />
-	<field type="CARD8" name="device_id" />
+        <field type="BYTE"      name="detail" />
+        <field type="TIMESTAMP" name="time" />
+        <field type="WINDOW"    name="root" />
+        <field type="WINDOW"    name="event" />
+        <field type="WINDOW"    name="child" altenum="Window" />
+        <field type="INT16"     name="root_x" />
+        <field type="INT16"     name="root_y" />
+        <field type="INT16"     name="event_x" />
+        <field type="INT16"     name="event_y" />
+        <field type="CARD16"    name="state" />
+        <field type="BOOL"      name="same_screen" />
+        <field type="CARD8"     name="device_id" />
     </event>
 
-    <eventcopy name="DeviceKeyRelease" number="2" ref="DeviceKeyPress" />
-    <eventcopy name="DeviceButtonPress" number="3" ref="DeviceKeyPress" />
+    <eventcopy name="DeviceKeyRelease"    number="2" ref="DeviceKeyPress" />
+    <eventcopy name="DeviceButtonPress"   number="3" ref="DeviceKeyPress" />
     <eventcopy name="DeviceButtonRelease" number="4" ref="DeviceKeyPress" />
-    <eventcopy name="DeviceMotionNotify" number="5" ref="DeviceKeyPress" />
-    <eventcopy name="ProximityIn" number="8" ref="DeviceKeyPress" />
-    <eventcopy name="ProximityOut" number="9" ref="DeviceKeyPress" />
+    <eventcopy name="DeviceMotionNotify"  number="5" ref="DeviceKeyPress" />
 
-    <event name="FocusIn" number="6">
-	<field type="BYTE" name="detail" enum="NotifyDetail" />
-	<field type="TIMESTAMP" name="time" />
-	<field type="WINDOW" name="window" />
-	<field type="BYTE" name="mode" enum="NotifyMode" />
-	<field type="CARD8" name="device_id" />
-	<pad bytes="18" />
+    <event name="DeviceFocusIn" number="6">
+        <field type="BYTE"      name="detail" enum="NotifyDetail" />
+        <field type="TIMESTAMP" name="time" />
+        <field type="WINDOW"    name="window" />
+        <field type="BYTE"      name="mode" enum="NotifyMode" />
+        <field type="CARD8"     name="device_id" />
+        <pad bytes="18" />
     </event>
 
-    <eventcopy name="FocusOut" number="7" ref="FocusIn" />
+    <eventcopy name="DeviceFocusOut" number="7" ref="DeviceFocusIn" />
+    <eventcopy name="ProximityIn"    number="8" ref="DeviceKeyPress" />
+    <eventcopy name="ProximityOut"   number="9" ref="DeviceKeyPress" />
 
     <event name="DeviceStateNotify" number="10">
-	<field type="BYTE" name="device_id" />
-	<field type="TIMESTAMP" name="time" />
-	<field type="CARD8" name="num_keys" />
-	<field type="CARD8" name="num_buttons" />
-	<field type="CARD8" name="num_valuators" />
-	<field type="CARD8" name="classes_reported" />
-	<list type="CARD8" name="buttons">
+        <field type="BYTE"      name="device_id" />
+        <field type="TIMESTAMP" name="time" />
+        <field type="CARD8"     name="num_keys" />
+        <field type="CARD8"     name="num_buttons" />
+        <field type="CARD8"     name="num_valuators" />
+        <field type="CARD8"     name="classes_reported" />
+        <list type="CARD8"      name="buttons">
             <value>4</value>
-	</list>
-	<list type="CARD8" name="keys">
+        </list>
+        <list type="CARD8" name="keys">
             <value>4</value>
-	</list>
-	<list type="CARD32" name="valuators">
-	    <value>3</value>
-	</list>
+        </list>
+        <list type="CARD32" name="valuators">
+            <value>3</value>
+        </list>
     </event>
 
     <event name="DeviceMappingNotify" number="11">
-	<field type="BYTE" name="device_id" />
-	<field type="CARD8" name="request" />
-	<field type="KeyCode" name="first_keycode" />
-	<field type="CARD8" name="count" />
-	<pad bytes="1" />
-	<field type="TIMESTAMP" name="time" />
-	<pad bytes="20" />
+        <field type="BYTE"    name="device_id" />
+        <field type="CARD8"   name="request" />
+        <field type="KeyCode" name="first_keycode" />
+        <field type="CARD8"   name="count" />
+        <pad bytes="1" />
+        <field type="TIMESTAMP" name="time" />
+        <pad bytes="20" />
     </event>
 
     <event name="ChangeDeviceNotify" number="12">
-	<field type="BYTE" name="device_id" />
-	<field type="TIMESTAMP" name="time" />
-	<field type="CARD8" name="request" />
-	<pad bytes="23" />
+        <field type="BYTE"      name="device_id" />
+        <field type="TIMESTAMP" name="time" />
+        <field type="CARD8"     name="request" />
+        <pad bytes="23" />
     </event>
 
     <event name="DeviceKeyStateNotify" number="13">
-	<field type="BYTE" name="device_id" />
-	<list type="CARD8" name="keys">
+        <field type="BYTE" name="device_id" />
+        <list type="CARD8" name="keys">
             <value>28</value>
-	</list>
+        </list>
     </event>
 
     <event name="DeviceButtonStateNotify" number="14">
-	<field type="BYTE" name="device_id" />
-	<list type="CARD8" name="buttons">
+        <field type="BYTE" name="device_id" />
+        <list type="CARD8" name="buttons">
             <value>28</value>
-	</list>
+        </list>
     </event>
+
+    <!-- ⋅⋅⋅ Events (v1.4) ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ -->
+
+    <enum name="DeviceChange">
+        <item name="Added" />
+        <item name="Removed" />
+        <item name="Enabled" />
+        <item name="Disabled" />
+        <item name="Unrecoverable" />
+        <item name="ControlChanged" />
+    </enum>
 
     <event name="DevicePresenceNotify" number="15">
         <pad bytes="1" />
         <field type="TIMESTAMP" name="time" />
-        <field type="BYTE" name="devchange" />
-        <field type="BYTE" name="device_id" />
-        <field type="CARD16" name="control" />
-	<pad bytes="20" />
+        <field type="BYTE"      name="devchange" enum="DeviceChange" />
+        <field type="BYTE"      name="device_id" />
+        <field type="CARD16"    name="control" />
+        <pad bytes="20" />
     </event>
 
-    <!-- ERRORS -->
-    <error name="Device" number="0" />
-    <error name="Event" number="1" />
-    <error name="Mode" number="2" />
+    <!-- ⋅⋅⋅ Events (v1.5) ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ -->
+
+    <event name="DevicePropertyNotify" number="16">
+        <field type="BYTE"      name="state" enum="Property" />
+        <field type="TIMESTAMP" name="time" />
+        <field type="ATOM"      name="property" />
+        <pad bytes="19" />
+        <field type="CARD8"     name="device_id" />
+    </event>
+
+    <!-- ⋅⋅⋅ Events (v2.0) ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ -->
+    <!-- Notes:
+         - A 'len' field in a v2++ structure is in 4 byte units.
+    -->
+
+    <enum name="ChangeReason">
+        <item name="SlaveSwitch">  <value>1</value> </item>
+        <item name="DeviceChange"> <value>2</value> </item>
+    </enum>
+
+    <event name="DeviceChanged" number="1" xge="true">
+        <field type="DeviceId"  name="deviceid" altenum="Device" />
+        <field type="TIMESTAMP" name="time" altenum="Time" />
+        <!-- event specific fields -->
+        <field type="CARD16"    name="num_classes" />
+        <field type="DeviceId"  name="sourceid" altenum="Device" />
+        <field type="CARD8"     name="reason" enum="ChangeReason" />
+        <pad bytes="11" />
+        <!-- 32 byte boundary -->
+        <list type="DeviceClass" name="classes">
+            <fieldref>num_classes</fieldref>
+        </list>
+    </event>
+
+    <enum name="KeyEventFlags">
+        <item name="KeyRepeat"> <bit>16</bit> </item>
+    </enum>
+
+    <event name="KeyPress" number="2" xge="true">
+        <field type="DeviceId"  name="deviceid" altenum="Device" />
+        <field type="TIMESTAMP" name="time" altenum="Time" />
+        <!-- event specific fields -->
+        <field type="CARD32"    name="detail" />
+        <field type="WINDOW"    name="root" />
+        <field type="WINDOW"    name="event" />
+        <field type="WINDOW"    name="child" />
+        <!-- 32 byte boundary -->
+        <field type="FP1616"    name="root_x" />
+        <field type="FP1616"    name="root_y" />
+        <field type="FP1616"    name="event_x" />
+        <field type="FP1616"    name="event_y" />
+        <field type="CARD16"    name="buttons_len" />
+        <field type="CARD16"    name="valuators_len" />
+        <field type="DeviceId"  name="sourceid" altenum="Device" />
+        <pad bytes="2" />
+        <field type="CARD32"       name="flags" mask="KeyEventFlags" />
+        <field type="ModifierInfo" name="mods" />
+        <field type="GroupInfo"    name="group" />
+        <list type="CARD32" name="button_mask">
+            <fieldref>buttons_len</fieldref>
+        </list>
+        <list type="CARD32" name="valuator_mask">
+            <fieldref>valuators_len</fieldref>
+        </list>
+        <!-- Uninterpreted: list (axisvalues) of FP3232,
+                            length is <popcount> on valuator_mask list -->
+    </event>
+
+    <eventcopy name="KeyRelease" number="3" ref="KeyPress" />
+
+    <enum name="PointerEventFlags">
+        <item name="PointerEmulated"> <bit>16</bit> </item>
+    </enum>
+
+    <event name="ButtonPress" number="4" xge="true">
+        <field type="DeviceId"  name="deviceid" altenum="Device" />
+        <field type="TIMESTAMP" name="time" altenum="Time" />
+        <!-- event specific fields -->
+        <field type="CARD32"    name="detail" />
+        <field type="WINDOW"    name="root" />
+        <field type="WINDOW"    name="event" />
+        <field type="WINDOW"    name="child" />
+        <!-- 32 byte boundary -->
+        <field type="FP1616"    name="root_x" />
+        <field type="FP1616"    name="root_y" />
+        <field type="FP1616"    name="event_x" />
+        <field type="FP1616"    name="event_y" />
+        <field type="CARD16"    name="buttons_len" />
+        <field type="CARD16"    name="valuators_len" />
+        <field type="DeviceId"  name="sourceid" altenum="Device" />
+        <pad bytes="2" />
+        <field type="CARD32"       name="flags" mask="PointerEventFlags" />
+        <field type="ModifierInfo" name="mods" />
+        <field type="GroupInfo"    name="group" />
+        <list type="CARD32" name="button_mask">
+            <fieldref>buttons_len</fieldref>
+        </list>
+        <list type="CARD32" name="valuator_mask">
+            <fieldref>valuators_len</fieldref>
+        </list>
+        <!-- Uninterpreted: list (axisvalues) of FP3232,
+                            length is <popcount> on valuator_mask list -->
+    </event>
+
+    <eventcopy name="ButtonRelease" number="5" ref="ButtonPress" />
+    <eventcopy name="Motion"        number="6" ref="ButtonPress" />
+
+    <enum name="NotifyMode">
+        <item name="Normal" />
+        <item name="Grab" />
+        <item name="Ungrab" />
+        <item name="WhileGrabbed" />
+        <item name="PassiveGrab" />
+        <item name="PassiveUngrab" />
+    </enum>
+
+    <enum name="NotifyDetail">
+        <item name="Ancestor" />
+        <item name="Virtual" />
+        <item name="Inferior" />
+        <item name="Nonlinear" />
+        <item name="NonlinearVirtual" />
+        <item name="Pointer" />
+        <item name="PointerRoot" />
+        <item name="None" />
+    </enum>
+
+    <event name="Enter" number="7" xge="true">
+        <field type="DeviceId"  name="deviceid" altenum="Device" />
+        <field type="TIMESTAMP" name="time" altenum="Time" />
+        <!-- event specific fields -->
+        <field type="DeviceId"  name="sourceid" altenum="Device" />
+        <field type="CARD8"     name="mode" enum="NotifyMode" />
+        <field type="CARD8"     name="detail" enum="NotifyDetail" />
+        <field type="WINDOW"    name="root" />
+        <field type="WINDOW"    name="event" />
+        <field type="WINDOW"    name="child" />
+        <!-- 32 byte boundary -->
+        <field type="FP1616"       name="root_x" />
+        <field type="FP1616"       name="root_y" />
+        <field type="FP1616"       name="event_x" />
+        <field type="FP1616"       name="event_y" />
+        <field type="CARD8"        name="same_screen" />
+        <field type="CARD8"        name="focus" />
+        <field type="CARD16"       name="buttons_len" />
+        <field type="ModifierInfo" name="mods" />
+        <field type="GroupInfo"    name="group" />
+        <list type="CARD32" name="buttons">
+            <fieldref>buttons_len</fieldref>
+        </list>
+    </event>
+
+    <eventcopy name="Leave"    number="8" ref="Enter" />
+    <eventcopy name="FocusIn"  number="9" ref="Enter" />
+    <eventcopy name="FocusOut" number="10" ref="Enter" />
+
+    <enum name="HierarchyMask">
+        <item name="MasterAdded">    <bit>0</bit> </item>
+        <item name="MasterRemoved">  <bit>1</bit> </item>
+        <item name="SlaveAdded">     <bit>2</bit> </item>
+        <item name="SlaveRemoved">   <bit>3</bit> </item>
+        <item name="SlaveAttached">  <bit>4</bit> </item>
+        <item name="SlaveDetached">  <bit>5</bit> </item>
+        <item name="DeviceEnabled">  <bit>6</bit> </item>
+        <item name="DeviceDisabled"> <bit>7</bit> </item>
+    </enum>
+
+    <struct name="HierarchyInfo">
+        <field type="DeviceId" name="deviceid" altenum="Device" />
+        <field type="DeviceId" name="attachment" altenum="Device" />
+        <field type="CARD8"    name="type" enum="DeviceType"/>
+        <field type="BOOL"     name="enabled" />
+        <pad bytes="2" />
+        <field type="CARD32"   name="flags" mask="HierarchyMask" />
+    </struct>
+
+    <event name="Hierarchy" number="11" xge="true">
+        <field type="DeviceId"  name="deviceid" altenum="Device" />
+        <field type="TIMESTAMP" name="time" altenum="Time" />
+        <!-- event specific fields -->
+        <field type="CARD32"    name="flags" mask="HierarchyMask" />
+        <field type="CARD16"    name="num_infos" />
+        <pad bytes="10" />
+        <!-- 32 byte boundary -->
+        <list type="HierarchyInfo" name="infos">
+            <fieldref>num_infos</fieldref>
+        </list>
+    </event>
+
+    <enum name="PropertyFlag">
+        <item name="Deleted" />
+        <item name="Created" />
+        <item name="Modified" />
+    </enum>
+
+    <event name="Property" number="12" xge="true">
+        <field type="DeviceId"  name="deviceid" altenum="Device" />
+        <field type="TIMESTAMP" name="time" altenum="Time" />
+        <!-- event specific fields -->
+        <field type="ATOM"      name="property" />
+        <field type="CARD8"     name="what" enum="PropertyFlag" />
+        <pad bytes="11" />
+        <!-- 32 byte boundary -->
+    </event>
+
+    <!-- ⋅⋅⋅ Events (v2.1) ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ -->
+
+    <event name="RawKeyPress" number="13" xge="true">
+        <field type="DeviceId"  name="deviceid" altenum="Device" />
+        <field type="TIMESTAMP" name="time" altenum="Time" />
+        <!-- event specific fields -->
+        <field type="CARD32"    name="detail" />
+        <field type="DeviceId"  name="sourceid" />
+        <field type="CARD16"    name="valuators_len" />
+        <field type="CARD32"    name="flags" mask="KeyEventFlags"/>
+        <pad bytes="4" />
+        <!-- 32 byte boundary -->
+        <list type="CARD32" name="valuator_mask">
+            <fieldref>valuators_len</fieldref>
+        </list>
+        <!-- Uninterpreted: list (axisvalues) of FP3232,
+                            length is <popcount> on valuator_mask list -->
+        <!-- Uninterpreted: list (axisvalues_raw) of FP3232,
+                            length is <popcount> on valuator_mask list -->
+    </event>
+
+    <eventcopy name="RawKeyRelease" number="14" ref="RawKeyPress" />
+
+    <event name="RawButtonPress" number="15" xge="true">
+        <field type="DeviceId"  name="deviceid" altenum="Device" />
+        <field type="TIMESTAMP" name="time" altenum="Time" />
+        <!-- event specific fields -->
+        <field type="CARD32"    name="detail" />
+        <field type="DeviceId"  name="sourceid" />
+        <field type="CARD16"    name="valuators_len" />
+        <field type="CARD32"    name="flags" mask="PointerEventFlags"/>
+        <pad bytes="4" />
+        <!-- 32 byte boundary -->
+        <list type="CARD32" name="valuator_mask">
+            <fieldref>valuators_len</fieldref>
+        </list>
+        <!-- Uninterpreted: list (axisvalues) of FP3232,
+                            length is <popcount> on valuator_mask list -->
+        <!-- Uninterpreted: list (axisvalues_raw) of FP3232,
+                            length is <popcount> on valuator_mask list -->
+    </event>
+
+    <eventcopy name="RawButtonRelease" number="16" ref="RawButtonPress" />
+    <eventcopy name="RawMotion"        number="17" ref="RawButtonPress" />
+
+    <!-- ⋅⋅⋅ Events (v2.2) ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ -->
+
+    <enum name="TouchEventFlags">
+        <item name="TouchPendingEnd">       <bit>16</bit> </item>
+        <item name="TouchEmulatingPointer"> <bit>17</bit> </item>
+    </enum>
+
+    <event name="TouchBegin" number="18" xge="true">
+        <field type="DeviceId"  name="deviceid" altenum="Device" />
+        <field type="TIMESTAMP" name="time" altenum="Time" />
+        <!-- event specific fields -->
+        <field type="CARD32"    name="detail" />
+        <field type="WINDOW"    name="root" />
+        <field type="WINDOW"    name="event" />
+        <field type="WINDOW"    name="child" />
+        <!-- 32 byte boundary -->
+        <field type="FP1616"    name="root_x" />
+        <field type="FP1616"    name="root_y" />
+        <field type="FP1616"    name="event_x" />
+        <field type="FP1616"    name="event_y" />
+        <field type="CARD16"    name="buttons_len" />
+        <field type="CARD16"    name="valuators_len" />
+        <field type="DeviceId"  name="sourceid" altenum="Device" />
+        <pad bytes="2" />
+        <field type="CARD32"       name="flags" mask="TouchEventFlags" />
+        <field type="ModifierInfo" name="mods" />
+        <field type="GroupInfo"    name="group" />
+        <list type="CARD32" name="button_mask">
+            <fieldref>buttons_len</fieldref>
+        </list>
+        <list type="CARD32" name="valuator_mask">
+            <fieldref>valuators_len</fieldref>
+        </list>
+        <!-- Uninterpreted: list (axisvalues) of FP3232,
+                            length is <popcount> on valuator_mask list -->
+    </event>
+
+    <eventcopy name="TouchUpdate" number="19" ref="TouchBegin" />
+    <eventcopy name="TouchEnd"    number="20" ref="TouchBegin" />
+
+    <enum name="TouchOwnershipFlags">
+        <!-- XXX: Remove this enum? Currently, no flag is defined. -->
+        <item name="None" />
+    </enum>
+
+    <event name="TouchOwnership" number="21" xge="true">
+        <field type="DeviceId"  name="deviceid" altenum="Device" />
+        <field type="TIMESTAMP" name="time" altenum="Time" />
+        <!-- event specific fields -->
+        <field type="CARD32"    name="touchid" />
+        <field type="WINDOW"    name="root" />
+        <field type="WINDOW"    name="event" />
+        <field type="WINDOW"    name="child" />
+        <!-- 32 byte boundary -->
+        <field type="DeviceId"  name="sourceid" altenum="Device" />
+        <pad bytes="2" />
+        <field type="CARD32"    name="flags" enum="TouchOwnershipFlags" />
+        <pad bytes="8" />
+    </event>
+
+    <event name="RawTouchBegin" number="22" xge="true">
+        <field type="DeviceId"  name="deviceid" altenum="Device" />
+        <field type="TIMESTAMP" name="time" altenum="Time" />
+        <!-- event specific fields -->
+        <field type="CARD32"    name="detail" />
+        <field type="DeviceId"  name="sourceid" />
+        <field type="CARD16"    name="valuators_len" />
+        <field type="CARD32"    name="flags" mask="TouchEventFlags"/>
+        <pad bytes="4" />
+        <!-- 32 byte boundary -->
+        <list type="CARD32" name="valuator_mask">
+            <fieldref>valuators_len</fieldref>
+        </list>
+        <!-- Uninterpreted: list (axisvalues) of FP3232,
+                            length is <popcount> on valuator_mask list -->
+        <!-- Uninterpreted: list (axisvalues_raw) of FP3232,
+                            length is <popcount> on valuator_mask list -->
+    </event>
+
+    <eventcopy name="RawTouchUpdate" number="23" ref="RawTouchBegin" />
+    <eventcopy name="RawTouchEnd"    number="24" ref="RawTouchBegin" />
+
+    <!-- ⋅⋅⋅ Events (v2.3) ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ -->
+
+    <event name="BarrierHit" number="25" xge="true">
+        <field type="DeviceId"  name="deviceid" altenum="Device" />
+        <field type="TIMESTAMP" name="time" altenum="Time" />
+        <!-- event specific fields -->
+        <field type="CARD32"    name="eventid" />
+        <field type="WINDOW"    name="root" />
+        <field type="WINDOW"    name="event" />
+        <field type="BARRIER"   name="barrier" />
+        <!-- 32 byte boundary -->
+        <field type="CARD32"    name="dtime" />
+        <field type="CARD32"    name="flags" />
+        <field type="DeviceId"  name="sourceid" altenum="Device" />
+        <pad bytes="2" />
+        <field type="FP1616"    name="root_x" />
+        <field type="FP1616"    name="root_y" />
+        <field type="FP3232"    name="dx" />
+        <field type="FP3232"    name="dy" />
+    </event>
+
+    <eventcopy name="BarrierLeave" number="26" ref="BarrierHit" />
+
+    <!-- ⋅⋅⋅ Errors (v1.0) ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ -->
+
+    <error name="Device"     number="0" />
+    <error name="Event"      number="1" />
+    <error name="Mode"       number="2" />
     <error name="DeviceBusy" number="3" />
-    <error name="Class" number="4" />
+    <error name="Class"      number="4" />
 
 </xcb>

@@ -531,7 +531,7 @@ static void MoveValues(
 	    fentry->next = tentry;
 	}
     }
-    Xfree((char *)ftable->buckets);
+    Xfree(ftable->buckets);
 }
 
 /* move all tables from ftable to ttable, and free ftable.
@@ -558,7 +558,7 @@ static void MoveTables(
 	    fentry->next = tentry;
 	}
     }
-    Xfree((char *)ftable);
+    Xfree(ftable);
 }
 
 /* grow the table, based on current number of entries */
@@ -649,7 +649,7 @@ static void MergeValues(
 		    fentry = *prev;
 		    *prev = tentry->next;
 		    /* free the overridden entry */
-		    Xfree((char *)tentry);
+		    Xfree(tentry);
 		    /* get next tentry */
 		    tentry = *prev;
 		} else {
@@ -658,7 +658,7 @@ static void MergeValues(
 		    tentry = fentry; /* use as a temp var */
 		    fentry = fentry->next;
 		    /* free the overpowered entry */
-		    Xfree((char *)tentry);
+		    Xfree(tentry);
 		    /* get next tentry */
 		    tentry = *prev;
 		}
@@ -676,8 +676,8 @@ static void MergeValues(
 	    }
 	}
     }
-    Xfree((char *)ftable->buckets);
-    Xfree((char *)ftable);
+    Xfree(ftable->buckets);
+    Xfree(ftable);
     /* resize if necessary, now that we're all done */
     GROW(pprev);
 }
@@ -751,7 +751,7 @@ static void MergeTables(
 	    }
 	}
     }
-    Xfree((char *)ftable);
+    Xfree(ftable);
     /* resize if necessary, now that we're all done */
     GROW(pprev);
 }
@@ -801,7 +801,7 @@ void XrmCombineDatabase(
 	(from->methods->destroy)(from->mbstate);
 	_XUnlockMutex(&from->linfo);
 	_XFreeMutex(&from->linfo);
-	Xfree((char *)from);
+	Xfree(from);
 	_XUnlockMutex(&(*into)->linfo);
     }
 }
@@ -929,7 +929,7 @@ static void PutEntry(
 		}
 		/* splice out and free old entry */
 		*vprev = entry->next;
-		Xfree((char *)entry);
+		Xfree(entry);
 		(*pprev)->entries--;
 	    }
 	    /* this is where to insert */
@@ -2605,11 +2605,11 @@ static void DestroyLTable(
     for (i = table->table.mask; i >= 0; i--, buckets++) {
 	for (next = *buckets; (entry = next); ) {
 	    next = entry->next;
-	    Xfree((char *)entry);
+	    Xfree(entry);
 	}
     }
-    Xfree((char *)table->buckets);
-    Xfree((char *)table);
+    Xfree(table->buckets);
+    Xfree(table);
 }
 
 /* destroy all contained tables, plus table itself */
@@ -2630,7 +2630,7 @@ static void DestroyNTable(
 		DestroyNTable(entry);
 	}
     }
-    Xfree((char *)table);
+    Xfree(table);
 }
 
 const char *
@@ -2661,6 +2661,6 @@ void XrmDestroyDatabase(
 	_XUnlockMutex(&db->linfo);
 	_XFreeMutex(&db->linfo);
 	(*db->methods->destroy)(db->mbstate);
-	Xfree((char *)db);
+	Xfree(db);
     }
 }

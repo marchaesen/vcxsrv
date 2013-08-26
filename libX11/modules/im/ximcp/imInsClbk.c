@@ -168,7 +168,7 @@ _XimRegisterIMInstantiateCallback(
     if( lock )
 	return( False );
 
-    icb = (XimInstCallback)Xmalloc(sizeof(XimInstCallbackRec));
+    icb = Xmalloc(sizeof(XimInstCallbackRec));
     if( !icb )
 	return( False );
     icb->call = icb->destroy = False;

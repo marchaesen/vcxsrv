@@ -378,7 +378,7 @@ FreeStorage(
     while (pSLLBlock)
     {
         tmpSLLBlock = pSLLBlock->next;
-        Xfree((char *)pSLLBlock);
+        Xfree(pSLLBlock);
         pSLLBlock = tmpSLLBlock;
     }
 }
@@ -627,9 +627,9 @@ XPolygonRegion(
     (void) PtsToRegion(numFullPtBlocks, iPts, &FirstPtBlock, region);
     for (curPtBlock = FirstPtBlock.next; --numFullPtBlocks >= 0;) {
 	tmpPtBlock = curPtBlock->next;
-	Xfree((char *)curPtBlock);
+	Xfree(curPtBlock);
 	curPtBlock = tmpPtBlock;
     }
-    Xfree((char *)pETEs);
+    Xfree(pETEs);
     return(region);
 }

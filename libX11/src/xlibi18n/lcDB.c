@@ -168,7 +168,7 @@ init_parse_info (void)
     int size;
     if (!allocated) {
 	bzero(&parse_info, sizeof(DBParseInfo));
-	parse_info.buf = (char *)Xmalloc(BUFSIZE);
+	parse_info.buf = Xmalloc(BUFSIZE);
 	parse_info.bufMaxSize = BUFSIZE;
 	allocated = 1;
 	return;
@@ -199,7 +199,7 @@ clear_parse_info (void)
 	if (*parse_info.value) {
 	    Xfree(*parse_info.value);
 	}
-	Xfree((char *)parse_info.value);
+	Xfree(parse_info.value);
     }
     ptr = parse_info.buf;
     size = parse_info.bufMaxSize;
@@ -213,11 +213,12 @@ realloc_parse_info(
     int len)
 {
     char *p;
+    int newsize = BUFSIZE * ((parse_info.bufsize + len)/BUFSIZE + 1);
 
-    parse_info.bufMaxSize = BUFSIZE * ((parse_info.bufsize + len)/BUFSIZE + 1);
-    p = (char *)Xrealloc(parse_info.buf, parse_info.bufMaxSize);
+    p = Xrealloc(parse_info.buf, newsize);
     if (p == NULL)
         return False;
+    parse_info.bufMaxSize = newsize;
     parse_info.buf = p;
 
     return True;
@@ -250,9 +251,9 @@ realloc_line(
     char *str = line->str;
 
     if (str != NULL) {
-	str = (char *)Xrealloc(str, size);
+	str = Xrealloc(str, size);
     } else {
-	str = (char *)Xmalloc(size);
+	str = Xmalloc(size);
     }
     if (str == NULL) {
 	/* malloc error */
@@ -488,7 +489,7 @@ append_value_list (void)
     }
 
     if (value_list == (char **)NULL) {
-	value_list = (char **)Xmalloc(sizeof(char *) * 2);
+	value_list = Xmalloc(sizeof(char *) * 2);
 	*value_list = NULL;
     } else {
 	char **prev_list = value_list;
@@ -504,11 +505,11 @@ append_value_list (void)
 
     value = *value_list;
     if (value == NULL) {
-	value = (char *)Xmalloc(value_len + len + 1);
+	value = Xmalloc(value_len + len + 1);
     } else {
 	char *prev_value = value;
 
-	value = (char *)Xrealloc(value, value_len + len + 1);
+	value = Xrealloc(value, value_len + len + 1);
 	if (value == NULL) {
 	    Xfree(prev_value);
 	}
@@ -1035,10 +1036,10 @@ DestroyDatabase(
 	    if (*p->value != NULL) {
 		Xfree(*p->value);
 	    }
-	    Xfree((char *)p->value);
+	    Xfree(p->value);
 	}
 	db = p->next;
-	Xfree((char *)p);
+	Xfree(p);
 	p = db;
     }
 }
@@ -1251,7 +1252,7 @@ _XlcDestroyLocaleDataBase(
 	if (p->lc_db == lc_db) {
 	    if ((-- p->ref_count) < 1) {
 		if (p->lc_db != (XlcDatabase)NULL) {
-		    Xfree((char *)p->lc_db);
+		    Xfree(p->lc_db);
 		}
 		DestroyDatabase(p->database);
 		if (prev == (XlcDatabaseList)NULL) {
@@ -1316,7 +1317,7 @@ _XlcCreateLocaleDataBase(
 	lc_db[i].db = p;
     }
 
-    new = (XlcDatabaseList)Xmalloc(sizeof(XlcDatabaseListRec));
+    new = Xmalloc(sizeof(XlcDatabaseListRec));
     if (new == (XlcDatabaseList)NULL) {
 	goto err;
     }
@@ -1333,7 +1334,7 @@ _XlcCreateLocaleDataBase(
  err:
     DestroyDatabase(database);
     if (lc_db != (XlcDatabase)NULL) {
-	Xfree((char *)lc_db);
+	Xfree(lc_db);
     }
     Xfree (name);
     return (XPointer)NULL;

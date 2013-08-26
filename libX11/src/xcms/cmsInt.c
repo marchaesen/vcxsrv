@@ -82,7 +82,7 @@ _XcmsCopyPointerArray(
     for (tmp = pap, n = 0; *tmp != NULL; tmp++, n++);
     n++; /* add 1 to include the NULL pointer */
 
-    if ((newArray = (XPointer *)Xmalloc(n * sizeof(XPointer)))) {
+    if ((newArray = Xmalloc(n * sizeof(XPointer)))) {
 	memcpy((char *)newArray, (char *)pap,
 	       (unsigned)(n * sizeof(XPointer)));
     }
@@ -141,7 +141,7 @@ _XcmsPushPointerArray(
     /* add 2: 1 for the new pointer and another for the NULL pointer */
     n += 2;
 
-    if ((newArray = (XPointer *)Xmalloc(n * sizeof(XPointer)))) {
+    if ((newArray = Xmalloc(n * sizeof(XPointer)))) {
 	memcpy((char *)(newArray+1),(char *)pap,
 	       (unsigned)((n-1) * sizeof(XPointer)));
 	*newArray = p;
@@ -183,8 +183,7 @@ _XcmsInitDefaultCCCs(
      * Create an array of XcmsCCC structures, one for each screen.
      * They serve as the screen's default CCC.
      */
-    if (!(ccc = (XcmsCCC)
-	    Xcalloc((unsigned)nScrn, (unsigned) sizeof(XcmsCCCRec)))) {
+    if (!(ccc = Xcalloc((unsigned)nScrn, sizeof(XcmsCCCRec)))) {
 	return(0);
     }
     dpy->cms.defaultCCCs = (XPointer)ccc;
@@ -322,8 +321,8 @@ _XcmsInitScrnInfo(
 	 * for the latter (see XcmsCreateCCC).  The ones created
 	 * here are referenced by the default CCC.
 	 */
-	if (!(defaultccc->pPerScrnInfo = (XcmsPerScrnInfo *)
-		Xcalloc(1, (unsigned) sizeof(XcmsPerScrnInfo)))) {
+	if (!(defaultccc->pPerScrnInfo =
+		Xcalloc(1, sizeof(XcmsPerScrnInfo)))) {
 	    return(0);
 	}
 	defaultccc->pPerScrnInfo->state = XcmsInitNone;

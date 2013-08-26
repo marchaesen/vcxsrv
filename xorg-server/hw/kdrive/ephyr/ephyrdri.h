@@ -43,7 +43,7 @@ Bool ephyrDRIGetClientDriverName(int a_screen,
                                  char **a_client_driver_name);
 Bool ephyrDRICreateContext(int a_screen,
                            int a_visual_id,
-                           XID *a_returned_ctx_id, drm_context_t * a_hw_ctx);
+                           CARD32 ctx_id, drm_context_t * a_hw_ctx);
 Bool ephyrDRIDestroyContext(int a_screen, int a_context_id);
 Bool ephyrDRICreateDrawable(int a_screen,
                             int a_drawable, drm_drawable_t * a_hw_drawable);

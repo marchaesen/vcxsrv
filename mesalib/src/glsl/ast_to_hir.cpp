@@ -1797,6 +1797,28 @@ ast_type_specifier::glsl_type(const char **name,
    return type;
 }
 
+const glsl_type *
+ast_fully_specified_type::glsl_type(const char **name,
+                                    struct _mesa_glsl_parse_state *state) const
+{
+   const struct glsl_type *type = this->specifier->glsl_type(name, state);
+
+   if (type == NULL)
+      return NULL;
+
+   if (type->base_type == GLSL_TYPE_FLOAT
+       && state->es_shader
+       && state->target == fragment_shader
+       && this->qualifier.precision == ast_precision_none
+       && state->symbols->get_variable("#default precision") == NULL) {
+      YYLTYPE loc = this->get_location();
+      _mesa_glsl_error(&loc, state,
+                       "no precision specified this scope for type `%s'",
+                       type->name);
+   }
+
+   return type;
+}
 
 /**
  * Determine whether a toplevel variable declaration declares a varying.  This
@@ -1829,11 +1851,17 @@ validate_matrix_layout_for_type(struct _mesa_glsl_parse_state *state,
 				YYLTYPE *loc,
 				const glsl_type *type)
 {
-   if (!type->is_matrix() && !type->is_record()) {
-      _mesa_glsl_error(loc, state,
-                       "uniform block layout qualifiers row_major and "
-                       "column_major can only be applied to matrix and "
-                       "structure types");
+   if (!type->is_matrix()) {
+      /* The OpenGL ES 3.0 conformance tests did not originally allow
+       * matrix layout qualifiers on non-matrices.  However, the OpenGL
+       * 4.4 and OpenGL ES 3.0 (revision TBD) specifications were
+       * amended to specifically allow these layouts on all types.  Emit
+       * a warning so that people know their code may not be portable.
+       */
+      _mesa_glsl_warning(loc, state,
+                         "uniform block layout qualifiers row_major and "
+                         "column_major applied to non-matrix types may "
+                         "be rejected by older compilers");
    } else if (type->is_record()) {
       /* We allow 'layout(row_major)' on structure types because it's the only
        * way to get row-major layouts on matrices contained in structures.
@@ -1841,7 +1869,7 @@ validate_matrix_layout_for_type(struct _mesa_glsl_parse_state *state,
       _mesa_glsl_warning(loc, state,
                          "uniform block layout qualifiers row_major and "
                          "column_major applied to structure types is not "
-                         "strictly conformant and my be rejected by other "
+                         "strictly conformant and may be rejected by other "
                          "compilers");
    }
 }
@@ -1929,7 +1957,6 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
 				 ir_variable *var,
 				 struct _mesa_glsl_parse_state *state,
 				 YYLTYPE *loc,
-				 bool ubo_qualifiers_valid,
                                  bool is_parameter)
 {
    STATIC_ASSERT(sizeof(qual->flags.q) <= sizeof(qual->flags.i));
@@ -2275,13 +2302,7 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
    }
 
    if (qual->flags.q.row_major || qual->flags.q.column_major) {
-      if (!ubo_qualifiers_valid) {
-	 _mesa_glsl_error(loc, state,
-			  "uniform block layout qualifiers row_major and "
-			  "column_major can only be applied to uniform block "
-			  "members");
-      } else
-	 validate_matrix_layout_for_type(state, loc, var->type);
+      validate_matrix_layout_for_type(state, loc, var->type);
    }
 }
 
@@ -2693,7 +2714,7 @@ ast_declarator_list::hir(exec_list *instructions,
     */
    (void) this->type->specifier->hir(instructions, state);
 
-   decl_type = this->type->specifier->glsl_type(& type_name, state);
+   decl_type = this->type->glsl_type(& type_name, state);
    if (this->declarations.is_empty()) {
       /* If there is no structure involved in the program text, there are two
        * possible scenarios:
@@ -2830,7 +2851,7 @@ ast_declarator_list::hir(exec_list *instructions,
       }
 
       apply_type_qualifier_to_variable(& this->type->qualifier, var, state,
-				       & loc, this->ubo_qualifiers_valid, false);
+				       & loc, false);
 
       if (this->type->qualifier.flags.q.invariant) {
 	 if ((state->target == vertex_shader) &&
@@ -3277,7 +3298,7 @@ ast_parameter_declarator::hir(exec_list *instructions,
    const char *name = NULL;
    YYLTYPE loc = this->get_location();
 
-   type = this->type->specifier->glsl_type(& name, state);
+   type = this->type->glsl_type(& name, state);
 
    if (type == NULL) {
       if (name != NULL) {
@@ -3340,7 +3361,7 @@ ast_parameter_declarator::hir(exec_list *instructions,
     * for function parameters the default mode is 'in'.
     */
    apply_type_qualifier_to_variable(& this->type->qualifier, var, state, & loc,
-				    false, true);
+				    true);
 
    /* From page 17 (page 23 of the PDF) of the GLSL 1.20 spec:
     *
@@ -3484,7 +3505,7 @@ ast_function::hir(exec_list *instructions,
 
    const char *return_type_name;
    const glsl_type *return_type =
-      this->return_type->specifier->glsl_type(& return_type_name, state);
+      this->return_type->glsl_type(& return_type_name, state);
 
    if (!return_type) {
       YYLTYPE loc = this->get_location();
@@ -4225,10 +4246,8 @@ ast_iteration_statement::hir(exec_list *instructions,
  * version.
  */
 static bool
-is_valid_default_precision_type(const struct _mesa_glsl_parse_state *state,
-                                const char *type_name)
+is_valid_default_precision_type(const struct glsl_type *const type)
 {
-   const struct glsl_type *type = state->symbols->get_type(type_name);
    if (type == NULL)
       return false;
 
@@ -4280,11 +4299,52 @@ ast_type_specifier::hir(exec_list *instructions,
                           "arrays");
          return NULL;
       }
-      if (!is_valid_default_precision_type(state, this->type_name)) {
+
+      const struct glsl_type *const type =
+         state->symbols->get_type(this->type_name);
+      if (!is_valid_default_precision_type(type)) {
          _mesa_glsl_error(&loc, state,
-                          "default precision statements apply only to types "
+                          "default precision statements apply only to "
                           "float, int, and sampler types");
          return NULL;
+      }
+
+      if (type->base_type == GLSL_TYPE_FLOAT
+          && state->es_shader
+          && state->target == fragment_shader) {
+         /* Section 4.5.3 (Default Precision Qualifiers) of the GLSL ES 1.00
+          * spec says:
+          *
+          *     "The fragment language has no default precision qualifier for
+          *     floating point types."
+          *
+          * As a result, we have to track whether or not default precision has
+          * been specified for float in GLSL ES fragment shaders.
+          *
+          * Earlier in that same section, the spec says:
+          *
+          *     "Non-precision qualified declarations will use the precision
+          *     qualifier specified in the most recent precision statement
+          *     that is still in scope. The precision statement has the same
+          *     scoping rules as variable declarations. If it is declared
+          *     inside a compound statement, its effect stops at the end of
+          *     the innermost statement it was declared in. Precision
+          *     statements in nested scopes override precision statements in
+          *     outer scopes. Multiple precision statements for the same basic
+          *     type can appear inside the same scope, with later statements
+          *     overriding earlier statements within that scope."
+          *
+          * Default precision specifications follow the same scope rules as
+          * variables.  So, we can track the state of the default float
+          * precision in the symbol table, and the rules will just work.  This
+          * is a slight abuse of the symbol table, but it has the semantics
+          * that we want.
+          */
+         ir_variable *const junk =
+            new(state) ir_variable(type, "#default precision",
+                                   ir_var_temporary);
+
+         state->symbols->add_variable(junk);
       }
 
       /* FINISHME: Translate precision statements into IR. */
@@ -4367,7 +4427,7 @@ ast_process_structure_or_interface_block(exec_list *instructions,
       }
 
       const glsl_type *decl_type =
-	 decl_list->type->specifier->glsl_type(& type_name, state);
+         decl_list->type->glsl_type(& type_name, state);
 
       foreach_list_typed (ast_declaration, decl, link,
 			  &decl_list->declarations) {
@@ -4415,11 +4475,6 @@ ast_process_structure_or_interface_block(exec_list *instructions,
                _mesa_glsl_error(&loc, state,
                                 "row_major and column_major can only be "
                                 "applied to uniform interface blocks");
-            } else if (!field_type->is_matrix() && !field_type->is_record()) {
-               _mesa_glsl_error(&loc, state,
-                                "uniform block layout qualifiers row_major and "
-                                "column_major can only be applied to matrix and "
-                                "structure types");
             } else
                validate_matrix_layout_for_type(state, &loc, field_type);
          }
@@ -4455,6 +4510,34 @@ ast_struct_specifier::hir(exec_list *instructions,
 			  struct _mesa_glsl_parse_state *state)
 {
    YYLTYPE loc = this->get_location();
+
+   /* Section 4.1.8 (Structures) of the GLSL 1.10 spec says:
+    *
+    *     "Anonymous structures are not supported; so embedded structures must
+    *     have a declarator. A name given to an embedded struct is scoped at
+    *     the same level as the struct it is embedded in."
+    *
+    * The same section of the  GLSL 1.20 spec says:
+    *
+    *     "Anonymous structures are not supported. Embedded structures are not
+    *     supported.
+    *
+    *         struct S { float f; };
+    *         struct T {
+    *             S;              // Error: anonymous structures disallowed
+    *             struct { ... }; // Error: embedded structures disallowed
+    *             S s;            // Okay: nested structures with name are allowed
+    *         };"
+    *
+    * The GLSL ES 1.00 and 3.00 specs have similar langauge and examples.  So,
+    * we allow embedded structures in 1.10 only.
+    */
+   if (state->language_version != 110 && state->struct_specifier_depth != 0)
+      _mesa_glsl_error(&loc, state,
+		       "embedded structure declartions are not allowed");
+
+   state->struct_specifier_depth++;
+
    glsl_struct_field *fields;
    unsigned decl_count =
       ast_process_structure_or_interface_block(instructions,
@@ -4480,6 +4563,8 @@ ast_struct_specifier::hir(exec_list *instructions,
 	 state->num_user_structures++;
       }
    }
+
+   state->struct_specifier_depth--;
 
    /* Structure type definitions do not have r-values.
     */

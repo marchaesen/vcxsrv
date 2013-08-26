@@ -102,7 +102,7 @@ init_fontdata(
     FontData	fd;
     int		i;
 
-    fd = (FontData)Xmalloc(sizeof(FontDataRec) * font_data_count);
+    fd = Xmalloc(sizeof(FontDataRec) * font_data_count);
     if(fd == (FontData) NULL)
 	return False;
 
@@ -127,7 +127,7 @@ init_vrotate(
     if(type == VROTATE_NONE)
 	return (VRotate)NULL;
 
-    vrotate = (VRotate)Xmalloc(sizeof(VRotateRec) * font_data_count);
+    vrotate = Xmalloc(sizeof(VRotateRec) * font_data_count);
     if(vrotate == (VRotate) NULL)
 	return False;
 
@@ -156,7 +156,7 @@ init_fontset(
     count = XOM_GENERIC(oc->core.om)->data_num;
     data = XOM_GENERIC(oc->core.om)->data;
 
-    font_set = (FontSet) Xmalloc(sizeof(FontSetRec) * count);
+    font_set = Xmalloc(sizeof(FontSetRec) * count);
     if (font_set == NULL)
 	return False;
     memset((char *) font_set, 0x00, sizeof(FontSetRec) * count);
@@ -464,15 +464,15 @@ init_core_part(
     if (count == 0)
         return False;
 
-    font_struct_list = (XFontStruct **) Xmalloc(sizeof(XFontStruct *) * count);
+    font_struct_list = Xmalloc(sizeof(XFontStruct *) * count);
     if (font_struct_list == NULL)
 	return False;
 
-    font_name_list = (char **) Xmalloc(sizeof(char *) * count);
+    font_name_list = Xmalloc(sizeof(char *) * count);
     if (font_name_list == NULL)
 	goto err;
 
-    font_name_buf = (char *) Xmalloc(length);
+    font_name_buf = Xmalloc(length);
     if (font_name_buf == NULL)
 	goto err;
 
@@ -586,7 +586,8 @@ get_rotate_fontname(
 	}
     }
     pixel_size = atoi(fields[PIXEL_SIZE_FIELD - 1]);
-    sprintf(str_pixel, "[ 0 ~%d %d 0 ]", pixel_size, pixel_size);
+    snprintf(str_pixel, sizeof(str_pixel),
+	     "[ 0 ~%d %d 0 ]", pixel_size, pixel_size);
     fields[6] = str_pixel;
 
     /* Point Size field : fields[7] */
@@ -603,7 +604,7 @@ get_rotate_fontname(
     if (len > XLFD_MAX_LEN)
 	goto free_pattern;
 
-    rotate_font_ptr = (char *)Xmalloc(len + 1);
+    rotate_font_ptr = Xmalloc(len + 1);
     if(!rotate_font_ptr)
 	goto free_pattern;
 
@@ -1098,7 +1099,7 @@ parse_vw(
 	    Xfree(vrotate);
 
 	    if(sub_num > 0) {
-		vrotate = font_set->vrotate = (VRotate)Xmalloc
+		vrotate = font_set->vrotate = Xmalloc
 						(sizeof(VRotateRec) * sub_num);
 		if(font_set->vrotate == (VRotate)NULL)
 		    return (-1);
@@ -1288,12 +1289,12 @@ set_missing_list(
 	return True;
     }
 
-    charset_list = (char **) Xmalloc(sizeof(char *) * count);
+    charset_list = Xmalloc(sizeof(char *) * count);
     if (charset_list == NULL) {
 	return False;
     }
 
-    charset_buf = (char *) Xmalloc(length);
+    charset_buf = Xmalloc(length);
     if (charset_buf == NULL) {
 	Xfree(charset_list);
 	return False;
@@ -1869,9 +1870,9 @@ add_data(
     int num;
 
     if ((num = gen->data_num))
-        new = (OMData) Xrealloc(gen->data, (num + 1) * sizeof(OMDataRec));
+        new = Xrealloc(gen->data, (num + 1) * sizeof(OMDataRec));
     else
-        new = (OMData) Xmalloc(sizeof(OMDataRec));
+        new = Xmalloc(sizeof(OMDataRec));
 
     if (new == NULL)
         return NULL;
@@ -1910,7 +1911,7 @@ read_EncodingInfo(
             bufptr++ ;
 	} else
             len = strlen(buf);
-        font_data->name = (char *) Xmalloc(len + 1);
+        font_data->name = Xmalloc(len + 1);
         if (font_data->name == NULL) {
             Xfree(font_data);
             return NULL;
@@ -1961,7 +1962,7 @@ static void read_vw(
     char **value, buf[BUFSIZ];
     int count;
 
-    sprintf(buf, "fs%d.font.vertical_map", num);
+    snprintf(buf, sizeof(buf), "fs%d.font.vertical_map", num);
     _XlcGetResource(lcd, "XLC_FONTSET", buf, &value, &count);
     if (count > 0){
         _XlcDbg_printValue(buf,value,count);
@@ -1969,7 +1970,7 @@ static void read_vw(
         font_set->vmap = read_EncodingInfo(count,value);
     }
 
-    sprintf(buf, "fs%d.font.vertical_rotate", num);
+    snprintf(buf, sizeof(buf), "fs%d.font.vertical_rotate", num);
     _XlcGetResource(lcd, "XLC_FONTSET", buf, &value, &count);
     if (count > 0){
         _XlcDbg_printValue(buf,value,count);
@@ -2005,11 +2006,11 @@ init_om(
 
     for (num = 0; ; num++) {
 
-        sprintf(buf, "fs%d.charset.name", num);
+        snprintf(buf, sizeof(buf), "fs%d.charset.name", num);
         _XlcGetResource(lcd, "XLC_FONTSET", buf, &value, &count);
 
         if( count < 1){
-            sprintf(buf, "fs%d.charset", num);
+            snprintf(buf, sizeof(buf), "fs%d.charset", num);
             _XlcGetResource(lcd, "XLC_FONTSET", buf, &value, &count);
             if (count < 1)
                 break;
@@ -2019,7 +2020,7 @@ init_om(
 	if (data == NULL)
 	    return False;
 
-	charset_list = (XlcCharSet *) Xmalloc(sizeof(XlcCharSet) * count);
+	charset_list = Xmalloc(sizeof(XlcCharSet) * count);
 	if (charset_list == NULL)
 	    return False;
 	data->charset_list = charset_list;
@@ -2028,12 +2029,12 @@ init_om(
 	while (count-- > 0){
 	    *charset_list++ = _XlcGetCharSet(*value++);
         }
-        sprintf(buf, "fs%d.charset.udc_area", num);
+        snprintf(buf, sizeof(buf), "fs%d.charset.udc_area", num);
         _XlcGetResource(lcd, "XLC_FONTSET", buf, &value, &count);
         if( count > 0){
             UDCArea udc;
             int i,flag = 0;
-            udc = (UDCArea)Xmalloc(count * sizeof(UDCAreaRec));
+            udc = Xmalloc(count * sizeof(UDCAreaRec));
 	    if (udc == NULL)
 	        return False;
             for(i=0;i<count;i++){
@@ -2052,10 +2053,10 @@ init_om(
 	    }
         }
 
-        sprintf(buf, "fs%d.font.primary", num);
+        snprintf(buf, sizeof(buf), "fs%d.font.primary", num);
         _XlcGetResource(lcd, "XLC_FONTSET", buf, &value, &count);
         if (count < 1){
-            sprintf(buf, "fs%d.font", num);
+            snprintf(buf, sizeof(buf), "fs%d.font", num);
             _XlcGetResource(lcd, "XLC_FONTSET", buf, &value, &count);
             if (count < 1)
                 return False;
@@ -2068,7 +2069,7 @@ init_om(
 	data->font_data = font_data;
 	data->font_data_count = count;
 
-        sprintf(buf, "fs%d.font.substitute", num);
+        snprintf(buf, sizeof(buf), "fs%d.font.substitute", num);
         _XlcGetResource(lcd, "XLC_FONTSET", buf, &value, &count);
         if (count > 0){
             font_data = read_EncodingInfo(count,value);
@@ -2077,7 +2078,7 @@ init_om(
             data->substitute      = font_data;
             data->substitute_num = count;
         } else {
-            sprintf(buf, "fs%d.font", num);
+            snprintf(buf, sizeof(buf), "fs%d.font", num);
             _XlcGetResource(lcd, "XLC_FONTSET", buf, &value, &count);
             if (count < 1) {
                 data->substitute      = NULL;
@@ -2093,7 +2094,7 @@ init_om(
     }
 
     /* required charset list */
-    required_list = (char **) Xmalloc(sizeof(char *) * gen->data_num);
+    required_list = Xmalloc(sizeof(char *) * gen->data_num);
     if (required_list == NULL)
 	return False;
 
@@ -2104,7 +2105,7 @@ init_om(
     data = gen->data;
 
     if (count > 0) {
-	bufptr = (char *) Xmalloc(length);
+	bufptr = Xmalloc(length);
 	if (bufptr == NULL) {
 	    Xfree(required_list);
 	    return False;
@@ -2118,7 +2119,7 @@ init_om(
     }
 
     /* orientation list */
-    orientation = (XOrientation *) Xmalloc(sizeof(XOrientation) * 2);
+    orientation = Xmalloc(sizeof(XOrientation) * 2);
     if (orientation == NULL)
 	return False;
 

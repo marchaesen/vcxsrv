@@ -189,7 +189,6 @@ static void
 ephyrDRIMoveWindow(WindowPtr a_win,
                    int a_x, int a_y, WindowPtr a_siblings, VTKind a_kind)
 {
-    Bool is_ok = FALSE;
     ScreenPtr screen = NULL;
     EphyrDRIScreenPrivPtr screen_priv = NULL;
     EphyrDRIWindowPrivPtr win_priv = NULL;
@@ -214,18 +213,16 @@ ephyrDRIMoveWindow(WindowPtr a_win,
     EPHYR_LOG("window: %p\n", a_win);
     if (!a_win->parent) {
         EPHYR_LOG("cannot move root window\n");
-        is_ok = TRUE;
-        goto out;
+        return;
     }
     win_priv = GET_EPHYR_DRI_WINDOW_PRIV(a_win);
     if (!win_priv) {
         EPHYR_LOG("not a DRI peered window\n");
-        is_ok = TRUE;
-        goto out;
+        return;
     }
     if (!findWindowPairFromLocal(a_win, &pair) || !pair) {
         EPHYR_LOG_ERROR("failed to get window pair\n");
-        goto out;
+        return;
     }
     /*compute position relative to parent window */
     x = a_win->drawable.x - a_win->parent->drawable.x;
@@ -237,11 +234,6 @@ ephyrDRIMoveWindow(WindowPtr a_win,
     geo.width = a_win->drawable.width;
     geo.height = a_win->drawable.height;
     hostx_set_window_geometry(pair->remote, &geo);
-    is_ok = TRUE;
-
- out:
-    EPHYR_LOG("leave. is_ok:%d\n", is_ok);
-    /*do cleanup here */
 }
 
 static Bool
@@ -297,7 +289,6 @@ ephyrDRIPositionWindow(WindowPtr a_win, int a_x, int a_y)
 static void
 ephyrDRIClipNotify(WindowPtr a_win, int a_x, int a_y)
 {
-    Bool is_ok = FALSE;
     ScreenPtr screen = NULL;
     EphyrDRIScreenPrivPtr screen_priv = NULL;
     EphyrDRIWindowPrivPtr win_priv = NULL;
@@ -323,7 +314,6 @@ ephyrDRIClipNotify(WindowPtr a_win, int a_x, int a_y)
     win_priv = GET_EPHYR_DRI_WINDOW_PRIV(a_win);
     if (!win_priv) {
         EPHYR_LOG("not a DRI peered window\n");
-        is_ok = TRUE;
         goto out;
     }
     if (!findWindowPairFromLocal(a_win, &pair) || !pair) {
@@ -343,9 +333,8 @@ ephyrDRIClipNotify(WindowPtr a_win, int a_x, int a_y)
      * push the clipping region of this window
      * to the peer window in the host
      */
-    is_ok = hostx_set_window_bounding_rectangles
+    hostx_set_window_bounding_rectangles
         (pair->remote, rects, RegionNumRects(&a_win->clipList));
-    is_ok = TRUE;
 
  out:
     free(rects);
@@ -727,7 +716,6 @@ ProcXF86DRICreateContext(register ClientPtr client)
     ScreenPtr pScreen;
     VisualPtr visual;
     int i = 0;
-    unsigned long context_id = 0;
 
     REQUEST(xXF86DRICreateContextReq);
     REQUEST_SIZE_MATCH(xXF86DRICreateContextReq);
@@ -750,10 +738,9 @@ ProcXF86DRICreateContext(register ClientPtr client)
         return BadValue;
     }
 
-    context_id = stuff->context;
     if (!ephyrDRICreateContext(stuff->screen,
                                stuff->visual,
-                               &context_id,
+                               stuff->context,
                                (drm_context_t *) &rep.hHWContext)) {
         return BadValue;
     }

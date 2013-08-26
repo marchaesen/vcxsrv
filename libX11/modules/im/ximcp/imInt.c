@@ -49,7 +49,7 @@ _XimSetIMStructureList(
     Xim		 *xim;
 
     if(!(_XimCurrentIMlist)) {
-	if(!(_XimCurrentIMlist = (Xim *)Xmalloc(sizeof(Xim))))
+	if(!(_XimCurrentIMlist = Xmalloc(sizeof(Xim))))
 	    return False;
 	_XimCurrentIMlist[0] = im;
 	_XimCurrentIMcount   = 1;
@@ -62,7 +62,7 @@ _XimSetIMStructureList(
 	    }
 	}
 	if(i >= _XimCurrentIMcount) {
-	    if(!(xim = (Xim *)Xrealloc(_XimCurrentIMlist,
+	    if(!(xim = Xrealloc(_XimCurrentIMlist,
 					 ((i + 1) * sizeof(Xim)))))
 		return False;
 	    _XimCurrentIMlist			  = xim;

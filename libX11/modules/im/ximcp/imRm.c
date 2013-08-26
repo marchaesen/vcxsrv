@@ -76,8 +76,10 @@ _XimSetProtoResource(im)
 {
     char	res_name_buf[256];
     char*	res_name;
+    size_t	res_name_len;
     char	res_class_buf[256];
     char*	res_class;
+    size_t	res_class_len;
     char*	str_type;
     XrmValue	value;
     XIMStyle	preedit_style = 0;
@@ -91,17 +93,31 @@ _XimSetProtoResource(im)
     if (!im->core.rdb)
 	return;
 
-    if (strlen (im->core.res_name) < 200) res_name = res_name_buf;
-    else res_name = Xmalloc (strlen (im->core.res_name) + 50);
-    if (strlen (im->core.res_class) < 200) res_class = res_class_buf;
-    else res_class = Xmalloc (strlen (im->core.res_class) + 50);
+    res_name_len = strlen (im->core.res_name);
+    if (res_name_len < 200) {
+	res_name = res_name_buf;
+	res_name_len = sizeof(res_name_buf);
+    }
+    else {
+	res_name_len += 50;
+	res_name = Xmalloc (res_name_len);
+    }
+    res_class_len = strlen (im->core.res_class);
+    if (res_class_len < 200) {
+	res_class = res_class_buf;
+	res_class_len = sizeof(res_class_buf);
+    }
+    else {
+	res_class_len += 50;
+	res_class = Xmalloc (res_class_len);
+    }
     /* pretend malloc always works */
 
-    (void) sprintf (res_name, "%s%s%s",
+    (void) snprintf (res_name, res_name_len, "%s%s%s",
 	im->core.res_name != NULL ? im->core.res_name : "*",
 	im->core.res_name != NULL ? dotximdot : ximdot,
 	"useAuth");
-    (void) sprintf (res_class, "%s%s%s",
+    (void) snprintf (res_class, res_class_len, "%s%s%s",
 	im->core.res_class != NULL ? im->core.res_class : "*",
 	im->core.res_class != NULL ? dotXimdot : Ximdot,
 	"UseAuth");
@@ -112,11 +128,11 @@ _XimSetProtoResource(im)
 	}
     }
 
-    (void) sprintf (res_name, "%s%s%s",
+    (void) snprintf (res_name, res_name_len, "%s%s%s",
 	im->core.res_name != NULL ? im->core.res_name : "*",
 	im->core.res_name != NULL ? dotximdot : ximdot,
 	"delaybinding");
-    (void) sprintf (res_class, "%s%s%s",
+    (void) snprintf (res_class, res_class_len, "%s%s%s",
 	im->core.res_class != NULL ? im->core.res_class : "*",
 	im->core.res_class != NULL ? dotXimdot : Ximdot,
 	"Delaybinding");
@@ -127,11 +143,11 @@ _XimSetProtoResource(im)
 	}
     }
 
-    (void) sprintf (res_name, "%s%s%s",
+    (void) snprintf (res_name, res_name_len, "%s%s%s",
 	im->core.res_name != NULL ? im->core.res_name : "*",
 	im->core.res_name != NULL ? dotximdot : ximdot,
 	"reconnect");
-    (void) sprintf (res_class, "%s%s%s",
+    (void) snprintf (res_class, res_class_len, "%s%s%s",
 	im->core.res_class != NULL ? im->core.res_class : "*",
 	im->core.res_class != NULL ? dotXimdot : Ximdot,
 	"Reconnect");
@@ -148,11 +164,11 @@ _XimSetProtoResource(im)
 	return;
     }
 
-    (void) sprintf (res_name, "%s%s%s",
+    (void) snprintf (res_name, res_name_len, "%s%s%s",
 	im->core.res_name != NULL ? im->core.res_name : "*",
 	im->core.res_name != NULL ? dotximdot : ximdot,
 	"preeditDefaultStyle");
-    (void) sprintf (res_class, "%s%s%s",
+    (void) snprintf (res_class, res_class_len, "%s%s%s",
 	im->core.res_class != NULL ? im->core.res_class : "*",
 	im->core.res_class != NULL ? dotXimdot : Ximdot,
 	"PreeditDefaultStyle");
@@ -171,11 +187,11 @@ _XimSetProtoResource(im)
     if(!preedit_style)
 	preedit_style = XIMPreeditNothing;
 
-    (void) sprintf (res_name, "%s%s%s",
+    (void) snprintf (res_name, res_name_len, "%s%s%s",
 	im->core.res_name != NULL ? im->core.res_name : "*",
 	im->core.res_name != NULL ? dotximdot : ximdot,
 	"statusDefaultStyle");
-    (void) sprintf (res_class, "%s%s%s",
+    (void) snprintf (res_class, res_class_len, "%s%s%s",
 	im->core.res_class != NULL ? im->core.res_class : "*",
 	im->core.res_class != NULL ? dotXimdot : Ximdot,
 	"StatusDefaultStyle");
@@ -192,7 +208,7 @@ _XimSetProtoResource(im)
     if(!status_style)
 	status_style = XIMStatusNothing;
 
-    if(!(imstyles = (XIMStyles *)Xmalloc(sizeof(XIMStyles) + sizeof(XIMStyle)))){
+    if(!(imstyles = Xmalloc(sizeof(XIMStyles) + sizeof(XIMStyle)))){
 	if (res_name != res_name_buf) Xfree (res_name);
 	if (res_class != res_class_buf) Xfree (res_class);
 	return;
@@ -887,7 +903,7 @@ _XimEncodeHotKey(
     }
 
     len = sizeof(XIMHotKeyTriggers) + sizeof(XIMHotKeyTrigger) * num;
-    if(!(tmp = (XPointer)Xmalloc(len))) {
+    if(!(tmp = Xmalloc(len))) {
 	return False;
     }
 
@@ -1144,7 +1160,7 @@ _XimDecodeCallback(
     XIMCallback		*callback;
 
     in = (XIMCallback *)((char *)top + info->offset);
-    if(!(callback = (XIMCallback *)Xmalloc(sizeof(XIMCallback)))) {
+    if(!(callback = Xmalloc(sizeof(XIMCallback)))) {
 	return False;
     }
     callback->client_data = in->client_data;
@@ -1257,7 +1273,7 @@ _XimDecodeHotKey(
     in = *((XIMHotKeyTriggers **)((char *)top + info->offset));
     num = in->num_hot_key;
     len = sizeof(XIMHotKeyTriggers) + sizeof(XIMHotKeyTrigger) * num;
-    if(!(tmp = (XPointer)Xmalloc(len))) {
+    if(!(tmp = Xmalloc(len))) {
 	return False;
     }
 
@@ -1297,7 +1313,7 @@ _XimDecodeRectangle(
     XRectangle		*rect;
 
     in = (XRectangle *)((char *)top + info->offset);
-    if(!(rect = (XRectangle *)Xmalloc(sizeof(XRectangle)))) {
+    if(!(rect = Xmalloc(sizeof(XRectangle)))) {
 	return False;
     }
     *rect = *in;
@@ -1315,7 +1331,7 @@ _XimDecodeSpot(
     XPoint		*spot;
 
     in = (XPoint *)((char *)top + info->offset);
-    if(!(spot = (XPoint *)Xmalloc(sizeof(XPoint)))) {
+    if(!(spot = Xmalloc(sizeof(XPoint)))) {
 	return False;
     }
     *spot = *in;
@@ -2401,8 +2417,8 @@ _XimSetICMode(XIMResourceList res_list, unsigned int list_num, XIMStyle style)
 						list_num, ic_mode_quark[i]))) {
 	    continue;
 	}
-	res->mode = ( (*(unsigned short *)((char *)&ic_mode[i] + pre_offset))
-		    | (*(unsigned short *)((char *)&ic_mode[i] + sts_offset)));
+	res->mode = ( (*(const unsigned short *)((const char *)&ic_mode[i] + pre_offset))
+		    | (*(const unsigned short *)((const char *)&ic_mode[i] + sts_offset)));
     }
     return;
 }

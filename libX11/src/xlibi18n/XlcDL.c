@@ -185,16 +185,10 @@ resolve_object(char *path, const char *lc_name)
 
     if (lc_len == 0) { /* True only for the 1st time */
       lc_len = OBJECT_INIT_LEN;
-      xi18n_objects_list = (XI18NObjectsList)
-	  Xmalloc(sizeof(XI18NObjectsListRec) * lc_len);
+      xi18n_objects_list = Xmalloc(sizeof(XI18NObjectsListRec) * lc_len);
       if (!xi18n_objects_list) return;
     }
-/*
-1266793
-Limit the length of path to prevent stack buffer corruption.
-    sprintf(filename, "%s/%s", path, "XI18N_OBJS");
-*/
-    sprintf(filename, "%.*s/%s", BUFSIZ - 12, path, "XI18N_OBJS");
+    snprintf(filename, sizeof(filename), "%s/%s", path, "XI18N_OBJS");
     fp = fopen(filename, "r");
     if (fp == (FILE *)NULL){
 	return;
@@ -212,11 +206,13 @@ Limit the length of path to prevent stack buffer corruption.
 	}
 
 	if (lc_count == lc_len) {
-	  lc_len += OBJECT_INC_LEN;
-	  xi18n_objects_list = (XI18NObjectsList)
-	    Xrealloc(xi18n_objects_list,
-		     sizeof(XI18NObjectsListRec) * lc_len);
-	  if (!xi18n_objects_list) return;
+	  int new_len = lc_len + OBJECT_INC_LEN;
+	  XI18NObjectsListRec *tmp = Xrealloc(xi18n_objects_list,
+	      sizeof(XI18NObjectsListRec) * new_len);
+	  if (tmp == NULL)
+	      goto done;
+	  xi18n_objects_list = tmp;
+	  lc_len = new_len;
 	}
 	n = parse_line(p, args, 6);
 
@@ -244,6 +240,7 @@ Limit the length of path to prevent stack buffer corruption.
 	  lc_count++;
 	}
     }
+  done:
     fclose(fp);
 }
 
@@ -383,9 +380,9 @@ _XlcDynamicLoad(const char *lc_name)
 
     if (lc_name == NULL) return (XLCd)NULL;
 
-    if (_XlcLocaleDirName(lc_dir, BUFSIZE, (char *)lc_name) == (char *)NULL)
+    if (_XlcLocaleDirName(lc_dir, BUFSIZE, lc_name) == NULL)
         return (XLCd)NULL;
-    if (_XlcLocaleLibDirName(lc_lib_dir, BUFSIZE, (char *)lc_name) == (char*)NULL)
+    if (_XlcLocaleLibDirName(lc_lib_dir, BUFSIZE, lc_name) == NULL)
 	return (XLCd)NULL;
 
     resolve_object(lc_dir, lc_name);
@@ -512,7 +509,7 @@ _XDynamicUnRegisterIMInstantiateCallback(
     XPointer	 client_data)
 {
   char lc_dir[BUFSIZE];
-  char *lc_name;
+  const char *lc_name;
   dynamicUnregisterProcp im_unregisterIM = (dynamicUnregisterProcp)NULL;
   Bool ret_flag = False;
   int count;

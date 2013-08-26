@@ -69,7 +69,7 @@ create(
     if (lcd->core == NULL)
 	goto err;
 
-    new = (XLCdPublicMethods) Xmalloc(sizeof(XLCdPublicMethodsRec));
+    new = Xmalloc(sizeof(XLCdPublicMethodsRec));
     if (new == NULL)
 	goto err;
     memcpy(new,methods,sizeof(XLCdPublicMethodsRec));
@@ -157,10 +157,10 @@ add_charset(
     int num;
 
     if ((num = codeset->num_charsets))
-        new_list = (XlcCharSet *) Xrealloc(codeset->charset_list,
+        new_list = Xrealloc(codeset->charset_list,
                                         (num + 1) * sizeof(XlcCharSet));
     else
-        new_list = (XlcCharSet *) Xmalloc(sizeof(XlcCharSet));
+        new_list = Xmalloc(sizeof(XlcCharSet));
 
     if (new_list == NULL)
 	return False;
@@ -184,10 +184,10 @@ add_codeset(
         return NULL;
 
     if ((num = gen->codeset_num))
-        new_list = (CodeSet *) Xrealloc(gen->codeset_list,
+        new_list = Xrealloc(gen->codeset_list,
                                         (num + 1) * sizeof(CodeSet));
     else
-        new_list = (CodeSet *) Xmalloc(sizeof(CodeSet));
+        new_list = Xmalloc(sizeof(CodeSet));
 
     if (new_list == NULL)
         goto err;
@@ -231,10 +231,10 @@ add_parse_list(
     }
 
     if ((num = gen->mb_parse_list_num))
-        new_list = (ParseInfo *) Xrealloc(gen->mb_parse_list,
+        new_list = Xrealloc(gen->mb_parse_list,
                                           (num + 2) * sizeof(ParseInfo));
     else {
-        new_list = (ParseInfo *) Xmalloc(2 * sizeof(ParseInfo));
+        new_list = Xmalloc(2 * sizeof(ParseInfo));
     }
 
     if (new_list == NULL)
@@ -352,7 +352,7 @@ _XlcParse_scopemaps(
     const char *str_sc;
 
     num = count_scopemap(str);
-    scope = (FontScope) Xmalloc(num * sizeof(FontScopeRec));
+    scope = Xmalloc(num * sizeof(FontScopeRec));
     if (scope == NULL)
 	return NULL;
 
@@ -429,17 +429,17 @@ read_charset_define(
 
     for (i=0; ; i++) { /* loop start */
         charsetd = 0;
-        sprintf(csd, "csd%d", i);
+        snprintf(csd, sizeof(csd), "csd%d", i);
 
         /* charset_name  */
-        sprintf(name, "%s.%s", csd, "charset_name");
+        snprintf(name, sizeof(name), "%s.%s", csd, "charset_name");
         _XlcGetResource(lcd, "XLC_CHARSET_DEFINE", name, &value, &num);
         _XlcDbg_printValue(name,value,num);
         if (num > 0) {
 	    /* hackers will get truncated -- C'est la vie */
             strncpy(cset_name,value[0], sizeof cset_name - 1);
 	    cset_name[(sizeof cset_name) - 1] = '\0';
-            sprintf(name, "%s.%s", csd , "side");
+            snprintf(name, sizeof(name), "%s.%s", csd , "side");
             _XlcGetResource(lcd, "XLC_CHARSET_DEFINE", name, &value, &num);
             if (num > 0) {
                 _XlcDbg_printValue(name,value,num);
@@ -471,21 +471,21 @@ read_charset_define(
         /* side   */
         charsetd->side = side ;
         /* length */
-        sprintf(name, "%s.%s", csd, "length");
+        snprintf(name, sizeof(name), "%s.%s", csd, "length");
         _XlcGetResource(lcd, "XLC_CHARSET_DEFINE", name, &value, &num);
         if (num > 0) {
             _XlcDbg_printValue(name,value,num);
             charsetd->char_size = atoi(value[0]);
         }
         /* gc_number */
-        sprintf(name, "%s.%s", csd, "gc_number");
+        snprintf(name, sizeof(name), "%s.%s", csd, "gc_number");
         _XlcGetResource(lcd, "XLC_CHARSET_DEFINE", name, &value, &num);
         if (num > 0) {
             _XlcDbg_printValue(name,value,num);
             charsetd->set_size = atoi(value[0]);
         }
         /* string_encoding */
-        sprintf(name, "%s.%s", csd, "string_encoding");
+        snprintf(name, sizeof(name), "%s.%s", csd, "string_encoding");
         _XlcGetResource(lcd, "XLC_CHARSET_DEFINE", name, &value, &num);
         if (num > 0) {
             _XlcDbg_printValue(name,value,num);
@@ -496,7 +496,7 @@ read_charset_define(
             }
         }
         /* sequence */
-        sprintf(name, "%s.%s", csd, "sequence");
+        snprintf(name, sizeof(name), "%s.%s", csd, "sequence");
         _XlcGetResource(lcd, "XLC_CHARSET_DEFINE", name, &value, &num);
         if (num > 0) {
             _XlcDbg_printValue(name,value,num);
@@ -505,14 +505,14 @@ read_charset_define(
                 Xfree(charsetd->ct_sequence);
             }
 */
-            tmp = (char *)Xmalloc(strlen(value[0])+1);
+            tmp = Xmalloc(strlen(value[0])+1);
             if (tmp == NULL)
                 return;
             charsetd->ct_sequence = tmp;
             string_to_encoding(value[0],tmp);
         }
         /* encoding_name */
-        sprintf(name, "%s.%s", csd, "encoding_name");
+        snprintf(name, sizeof(name), "%s.%s", csd, "encoding_name");
         _XlcGetResource(lcd, "XLC_CHARSET_DEFINE", name, &value, &num);
         if (num > 0) {
             _XlcDbg_printValue(name,value,num);
@@ -537,10 +537,10 @@ add_conversion(
     int num;
 
     if ((num = gen->segment_conv_num) > 0) {
-        new_list = (SegConv) Xrealloc(gen->segment_conv,
+        new_list = Xrealloc(gen->segment_conv,
                                         (num + 1) * sizeof(SegConvRec));
     } else {
-        new_list = (SegConv) Xmalloc(sizeof(SegConvRec));
+        new_list = Xmalloc(sizeof(SegConvRec));
     }
 
     if (new_list == NULL)
@@ -566,10 +566,10 @@ read_segmentconversion(
     SegConv conversion;
     for (i=0 ; ; i++) { /* loop start */
         conversion = 0;
-        sprintf(conv, "conv%d", i);
+        snprintf(conv, sizeof(conv), "conv%d", i);
 
         /* length                */
-        sprintf(name, "%s.%s", conv, "length");
+        snprintf(name, sizeof(name), "%s.%s", conv, "length");
         _XlcGetResource(lcd, "XLC_SEGMENTCONVERSION", name, &value, &num);
         if (num > 0) {
             if (conversion == NULL &&
@@ -586,7 +586,7 @@ read_segmentconversion(
         conversion->length = atoi(value[0]);
 
         /* source_encoding       */
-        sprintf(name, "%s.%s", conv, "source_encoding");
+        snprintf(name, sizeof(name), "%s.%s", conv, "source_encoding");
         _XlcGetResource(lcd, "XLC_SEGMENTCONVERSION", name, &value, &num);
         if (num > 0) {
             char *tmp;
@@ -598,7 +598,7 @@ read_segmentconversion(
             conversion->source = srch_charset_define(tmp,&new);
         }
         /* destination_encoding  */
-        sprintf(name, "%s.%s", conv, "destination_encoding");
+        snprintf(name, sizeof(name), "%s.%s", conv, "destination_encoding");
         _XlcGetResource(lcd, "XLC_SEGMENTCONVERSION", name, &value, &num);
         if (num > 0) {
             char *tmp;
@@ -610,7 +610,7 @@ read_segmentconversion(
             conversion->dest = srch_charset_define(tmp,&new);
         }
         /* range                 */
-        sprintf(name, "%s.%s", conv, "range");
+        snprintf(name, sizeof(name), "%s.%s", conv, "range");
         _XlcGetResource(lcd, "XLC_SEGMENTCONVERSION", name, &value, &num);
         if (num > 0) {
             _XlcDbg_printValue(name,value,num);
@@ -618,7 +618,7 @@ read_segmentconversion(
                    &(conversion->range.start), &(conversion->range.end));
         }
         /* conversion            */
-        sprintf(name, "%s.%s", conv, "conversion");
+        snprintf(name, sizeof(name), "%s.%s", conv, "conversion");
         _XlcGetResource(lcd, "XLC_SEGMENTCONVERSION", name, &value, &num);
         if (num > 0) {
             _XlcDbg_printValue(name,value,num);
@@ -636,9 +636,10 @@ create_ctextseg(
     ExtdSegment ret;
     char* ptr;
     char* cset_name = NULL;
+    size_t cset_len;
     int i,new;
     FontScope scope;
-    ret = (ExtdSegment)Xmalloc(sizeof(ExtdSegmentRec));
+    ret = Xmalloc(sizeof(ExtdSegmentRec));
     if (ret == NULL)
         return NULL;
     ret->name = strdup(value[0]);
@@ -646,7 +647,8 @@ create_ctextseg(
         Xfree (ret);
         return NULL;
     }
-    cset_name = (char*) Xmalloc (strlen(ret->name) + 1);
+    cset_len = strlen(ret->name) + 1;
+    cset_name = Xmalloc (cset_len);
     if (cset_name == NULL) {
         Xfree (ret->name);
         Xfree (ret);
@@ -658,16 +660,16 @@ create_ctextseg(
         ptr++;
         if (!_XlcNCompareISOLatin1(ptr, "GL", 2)) {
             ret->side =  XlcGL;
-            sprintf(cset_name,"%s:%s",ret->name,"GL");
+            snprintf(cset_name, cset_len, "%s:%s", ret->name, "GL");
         } else {
             ret->side =  XlcGR;
-            sprintf(cset_name,"%s:%s",ret->name,"GR");
+            snprintf(cset_name, cset_len, "%s:%s", ret->name, "GR");
         }
     } else {
         ret->side =  XlcGLGR;
         strcpy(cset_name,ret->name);
     }
-    ret->area = (FontScope)Xmalloc((num - 1)*sizeof(FontScopeRec));
+    ret->area = Xmalloc((num - 1)*sizeof(FontScopeRec));
     if (ret->area == NULL) {
 	Xfree (cset_name);
 	Xfree (ret->name);
@@ -732,10 +734,10 @@ load_generic(
 	char cs[16];
 	char name[BUFSIZ];
 
-	sprintf(cs, "cs%d", i);
+	snprintf(cs, sizeof(cs), "cs%d", i);
 
 	/***** codeset.side *****/
-	sprintf(name, "%s.%s", cs , "side");
+	snprintf(name, sizeof(name), "%s.%s", cs , "side");
 	_XlcGetResource(lcd, "XLC_XLOCALE", name, &value, &num);
 	if (num > 0) {
 	    char *tmp;
@@ -762,7 +764,7 @@ load_generic(
 	}
 
 	/***** codeset.length *****/
-	sprintf(name, "%s.%s", cs , "length");
+	snprintf(name, sizeof(name), "%s.%s", cs , "length");
 	_XlcGetResource(lcd, "XLC_XLOCALE", name, &value, &num);
 	if (num > 0) {
 	    if (codeset == NULL && (codeset = add_codeset(gen)) == NULL)
@@ -773,7 +775,7 @@ load_generic(
 	}
 
 	/***** codeset.mb_encoding *****/
-	sprintf(name, "%s.%s", cs, "mb_encoding");
+	snprintf(name, sizeof(name), "%s.%s", cs, "mb_encoding");
 	_XlcGetResource(lcd, "XLC_XLOCALE", name, &value, &num);
 	if (num > 0) {
 	    static struct {
@@ -809,7 +811,7 @@ load_generic(
 	}
 
 	/***** codeset.wc_encoding *****/
-	sprintf(name, "%s.%s", cs, "wc_encoding");
+	snprintf(name, sizeof(name), "%s.%s", cs, "wc_encoding");
 	_XlcGetResource(lcd, "XLC_XLOCALE", name, &value, &num);
 	if (num > 0) {
 	    if (codeset == NULL && (codeset = add_codeset(gen)) == NULL)
@@ -820,7 +822,7 @@ load_generic(
 	}
 
 	/***** codeset.ct_encoding *****/
-	sprintf(name, "%s.%s", cs, "ct_encoding");
+	snprintf(name, sizeof(name), "%s.%s", cs, "ct_encoding");
 	_XlcGetResource(lcd, "XLC_XLOCALE", name, &value, &num);
 	if (num > 0) {
 	    char *encoding;
@@ -862,7 +864,7 @@ load_generic(
             unsigned long start,end;
             ByteInfo tmpb;
 
-            sprintf(name,"%s.%s%d",cs,"byte",M);
+            snprintf(name, sizeof(name),"%s.%s%d",cs,"byte",M);
             _XlcGetResource(lcd, "XLC_XLOCALE", name, &value, &num);
 
             if (M == 1) {
@@ -870,8 +872,7 @@ load_generic(
                     codeset->byteM = NULL;
                     break ;
                 }
-                codeset->byteM =
-                    (ByteInfoListRec *)Xmalloc(
+                codeset->byteM = Xmalloc(
                          (codeset->length)*sizeof(ByteInfoListRec));
                 if (codeset->byteM == NULL) {
                     goto err;
@@ -883,7 +884,7 @@ load_generic(
                 (codeset->byteM)[M-1].M = M;
                 (codeset->byteM)[M-1].byteinfo_num = num;
                 (codeset->byteM)[M-1].byteinfo =
-                    (ByteInfo)Xmalloc( num * sizeof(ByteInfoRec));
+		    Xmalloc(num * sizeof(ByteInfoRec));
                 for (ii = 0 ; ii < num ; ii++) {
                     tmpb = (codeset->byteM)[M-1].byteinfo ;
                     /* default 0x00 - 0xff */
@@ -897,7 +898,7 @@ load_generic(
 
 
         /***** codeset.mb_conversion *****/
-        sprintf(name, "%s.%s", cs, "mb_conversion");
+        snprintf(name, sizeof(name), "%s.%s", cs, "mb_conversion");
         _XlcGetResource(lcd, "XLC_XLOCALE", name, &value, &num);
         if (num > 0) {
                 _XlcDbg_printValue(name,value,num);
@@ -909,7 +910,7 @@ load_generic(
                 /* [\x%x,\x%x]->\x%x,... */
         }
         /***** codeset.ct_conversion *****/
-        sprintf(name, "%s.%s", cs, "ct_conversion");
+        snprintf(name, sizeof(name), "%s.%s", cs, "ct_conversion");
         _XlcGetResource(lcd, "XLC_XLOCALE", name, &value, &num);
         if (num > 0) {
                 _XlcDbg_printValue(name,value,num);
@@ -921,14 +922,14 @@ load_generic(
                 /* [\x%x,\x%x]->\x%x,... */
         }
         /***** codeset.ct_conversion_file *****/
-        sprintf(name, "%s.%s", cs, "ct_conversion_file");
+        snprintf(name, sizeof(name), "%s.%s", cs, "ct_conversion_file");
         _XlcGetResource(lcd, "XLC_XLOCALE", name, &value, &num);
         if (num > 0) {
                 _XlcDbg_printValue(name,value,num);
                 /* [\x%x,\x%x]->\x%x,... */
         }
         /***** codeset.ct_extended_segment *****/
-        sprintf(name, "%s.%s", cs, "ct_extended_segment");
+        snprintf(name, sizeof(name), "%s.%s", cs, "ct_extended_segment");
         _XlcGetResource(lcd, "XLC_XLOCALE", name, &value, &num);
         if (num > 0) {
                 _XlcDbg_printValue(name,value,num);

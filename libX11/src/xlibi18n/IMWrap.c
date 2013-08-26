@@ -134,7 +134,7 @@ XCloseIM(XIM im)
     s = (im->methods->close) (im);
     for (ic = im->core.ic_chain; ic; ic = ic->core.next)
 	ic->core.im = (XIM)NULL;
-    Xfree ((char *) im);
+    Xfree (im);
     _XCloseLC (lcd);
     return (s);
 }

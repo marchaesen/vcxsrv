@@ -248,8 +248,8 @@ ddxGiveUp(enum ExitCode error)
 Bool kdDumbDriver;
 Bool kdSoftCursor;
 
-char *
-KdParseFindNext(char *cur, const char *delim, char *save, char *last)
+const char *
+KdParseFindNext(const char *cur, const char *delim, char *save, char *last)
 {
     while (*cur && !strchr(delim, *cur)) {
         *save++ = *cur++;
@@ -284,7 +284,7 @@ KdSubRotation(Rotation a, Rotation b)
 }
 
 void
-KdParseScreen(KdScreenInfo * screen, char *arg)
+KdParseScreen(KdScreenInfo * screen, const char *arg)
 {
     char delim;
     char save[1024];

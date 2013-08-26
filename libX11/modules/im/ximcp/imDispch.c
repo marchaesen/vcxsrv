@@ -49,7 +49,7 @@ _XimRegProtoIntrCallback(
 {
     XimProtoIntrRec    *rec;
 
-    if (!(rec = (XimProtoIntrRec *)Xmalloc(sizeof(XimProtoIntrRec))))
+    if (!(rec = Xmalloc(sizeof(XimProtoIntrRec))))
         return False;
     rec->func       = proc;
     rec->major_code = major_code;

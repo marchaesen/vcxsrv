@@ -85,7 +85,7 @@ XcmsStoreColors(
      * overwrite the contents.
      */
     if (nColors > 1) {
-	pColors_tmp = (XcmsColor *) Xmalloc(nColors * sizeof(XcmsColor));
+	pColors_tmp = Xmalloc(nColors * sizeof(XcmsColor));
     } else {
 	pColors_tmp = &Color1;
     }
@@ -102,7 +102,7 @@ XcmsStoreColors(
      * Free copies as needed.
      */
     if (nColors > 1) {
-	Xfree((char *)pColors_tmp);
+	Xfree(pColors_tmp);
     }
 
     /*

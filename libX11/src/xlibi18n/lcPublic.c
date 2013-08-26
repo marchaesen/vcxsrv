@@ -89,7 +89,7 @@ create(
     if (lcd->core == NULL)
 	goto err;
 
-    new = (XLCdPublicMethods) Xmalloc(sizeof(XLCdPublicMethodsRec));
+    new = Xmalloc(sizeof(XLCdPublicMethodsRec));
     if (new == NULL)
 	goto err;
     memcpy(new,methods,sizeof(XLCdPublicMethodsRec));
@@ -107,7 +107,8 @@ load_public(
     XLCd lcd)
 {
     XLCdPublicPart *pub = XLC_PUBLIC_PART(lcd);
-    char **values, *str;
+    char **values;
+    const char *str;
     int num;
 
     if(_XlcCreateLocaleDataBase(lcd) == NULL)

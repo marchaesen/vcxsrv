@@ -83,7 +83,7 @@ Status XGetWMSizeHints (
 
     if ((actual_type != XA_WM_SIZE_HINTS) ||
 	(nitems < OldNumPropSizeElements) || (actual_format != 32)) {
-	if (prop != NULL) Xfree ((char *)prop);
+	if (prop != NULL) Xfree (prop);
 	return False;
     }
 
@@ -112,7 +112,7 @@ Status XGetWMSizeHints (
 	*supplied |= (PBaseSize | PWinGravity);
     }
     hints->flags &= (*supplied);	/* get rid of unwanted bits */
-    Xfree((char *)prop);
+    Xfree(prop);
     return True;
 }
 

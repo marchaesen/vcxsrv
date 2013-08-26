@@ -231,7 +231,7 @@ _XimLocalCloseIM(
     while (ic) {
 	(*ic->methods->destroy) (ic);
 	next = ic->core.next;
-	Xfree ((char *) ic);
+	Xfree (ic);
 	ic = next;
     }
     _XimLocalIMFree(im);

@@ -36,9 +36,9 @@ _XFreeExtData (XExtData *extension)
 	while (extension) {
 		if (extension->free_private)
 		    (*extension->free_private)(extension);
-		else Xfree ((char *)extension->private_data);
+		else Xfree (extension->private_data);
 		temp = extension->next;
-		Xfree ((char *)extension);
+		Xfree (extension);
 		extension = temp;
 	}
 	return 0;

@@ -434,9 +434,9 @@ Status XInitImage (XImage *image)
 
 static int _XDestroyImage (XImage *ximage)
 {
-	if (ximage->data != NULL) Xfree((char *)ximage->data);
-	if (ximage->obdata != NULL) Xfree((char *)ximage->obdata);
-	Xfree((char *)ximage);
+	if (ximage->data != NULL) Xfree(ximage->data);
+	if (ximage->obdata != NULL) Xfree(ximage->obdata);
+	Xfree(ximage);
 	return 1;
 }
 
@@ -869,7 +869,7 @@ static XImage *_XSubImage (
 	dsize = subimage->bytes_per_line * height;
 	if (subimage->format == XYPixmap) dsize = dsize * subimage->depth;
 	if (((data = Xcalloc (1, dsize)) == NULL) && (dsize > 0)) {
-	    Xfree((char *) subimage);
+	    Xfree(subimage);
 	    return (XImage *) NULL;
 	}
 	subimage->data = data;

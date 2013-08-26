@@ -89,7 +89,7 @@ _XTextListToTextProperty(
 	is_wide_char = True;
 
     buf_len = get_buf_size(is_wide_char, list, count);
-    if ((buf = (char *) Xmalloc(buf_len)) == NULL)
+    if ((buf = Xmalloc(buf_len)) == NULL)
 	return XNoMemory;
 
     switch (style) {
@@ -194,7 +194,7 @@ retry:
 done:
     if (nitems <= 0)
 	nitems = 1;
-    value = (char *) Xmalloc(nitems);
+    value = Xmalloc(nitems);
     if (value == NULL) {
 	Xfree(buf);
 	return XNoMemory;

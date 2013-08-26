@@ -65,8 +65,8 @@ _XlcDynamicLoader(
     XLCd lcd;
     void *nlshandler;
 
-    sprintf(libpath,"%s/%s/%s",
-		XLOCALEDIR,name,LCLIBNAME);
+    snprintf(libpath, sizeof(libpath), "%s/%s/%s",
+	     XLOCALEDIR, name, LCLIBNAME);
     nlshandler = dlopen(libpath,LAZY);
     _XlcGenericMethods = (XLCdMethods)dlsym(nlshandler,"genericMethods");
     lcd = _XlcCreateLC(name,_XlcGenericMethods);

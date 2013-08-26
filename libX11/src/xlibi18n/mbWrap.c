@@ -101,7 +101,7 @@ XmbDrawString(
     int                 text_len)
 {
     (void)(*font_set->methods->mb_draw_string) (dpy, d, font_set, gc, x, y,
-						(char *)text, text_len);
+						text, text_len);
 }
 
 
@@ -117,7 +117,7 @@ XmbDrawImageString(
     int                 text_len)
 {
     (*font_set->methods->mb_draw_image_string) (dpy, d, font_set, gc, x, y,
-						(char *)text, text_len);
+						text, text_len);
 }
 
 int
@@ -126,8 +126,7 @@ XmbTextEscapement(
     _Xconst char   *text,
     int             text_len)
 {
-    return (*font_set->methods->mb_escapement) (font_set,
-						(char *)text, text_len);
+    return (*font_set->methods->mb_escapement) (font_set, text, text_len);
 }
 
 int
@@ -138,8 +137,7 @@ XmbTextExtents(
     XRectangle     *overall_ink_extents,
     XRectangle     *overall_logical_extents)
 {
-    return (*font_set->methods->mb_extents) (font_set,
-					     (char *)text, text_len,
+    return (*font_set->methods->mb_extents) (font_set, text, text_len,
 					     overall_ink_extents,
 					     overall_logical_extents);
 }
@@ -157,7 +155,7 @@ XmbTextPerCharExtents(
     XRectangle     *max_logical_extents)
 {
     return (*font_set->methods->mb_extents_per_char)
-	     (font_set, (char *)text, text_len,
+	     (font_set, text, text_len,
 	      ink_extents_buffer, logical_extents_buffer,
 	      buffer_size, num_chars, max_ink_extents, max_logical_extents);
 }

@@ -65,7 +65,7 @@ XSetFontPath (
 			p += length + 1;
 		}
 		Data (dpy, tmp, nbytes);
-		Xfree ((char *) tmp);
+		Xfree (tmp);
 		retCode = 1;
 	}
 	else

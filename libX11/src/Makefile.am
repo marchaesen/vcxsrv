@@ -332,10 +332,6 @@ if OS2
 libX11_la_SOURCES+=os2Stubs.c
 endif OS2
 
-if UDC
-libX11_la_SOURCES+=udcInf.c
-endif
-
 if THRSTUBS
 libX11_la_SOURCES+=UIThrStubs.c
 endif
@@ -346,7 +342,6 @@ x11data_DATA = XErrorDB
 EXTRA_DIST = \
 	$(x11data_DATA) \
 	os2Stubs.c \
-	udcInf.c \
 	UIThrStubs.c 
 
 libX11_xcb_la_SOURCES = x11_xcb.c Xxcbint.h

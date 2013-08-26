@@ -162,7 +162,7 @@ _XimSync(
 	    preply = reply;
 	} else {
 	    buf_size = len;
-	    preply = (XPointer)Xmalloc(len);
+	    preply = Xmalloc(len);
 	    ret_code = _XimRead(im, &len, preply, buf_size,
 					_XimSyncCheck, (XPointer)ic);
 	    if(ret_code != XIM_TRUE) {
@@ -302,7 +302,7 @@ _XimForwardEventCore(
 		preply = reply;
 	    } else {
 		buf_size = len;
-		preply = (XPointer)Xmalloc(len);
+		preply = Xmalloc(len);
 		ret_code = _XimRead(im, &len, preply, buf_size,
 					_XimSyncCheck, (XPointer)ic);
 		if(ret_code != XIM_TRUE) {
@@ -417,7 +417,7 @@ _XimRegisterTriggerkey(
     len = buf_l[0];				/* length of on-keys */
     len += sizeof(INT32);			/* sizeof length of on-keys */
 
-    if (!(key = (CARD32 *)Xmalloc(len))) {
+    if (!(key = Xmalloc(len))) {
 	_XimError(im, 0, XIM_BadAlloc, (INT16)0, (CARD16)0, (char *)NULL);
 	return False;
     }
@@ -434,7 +434,7 @@ _XimRegisterTriggerkey(
     len = buf_l[0];				/* length of off-keys */
     len += sizeof(INT32);			/* sizeof length of off-keys */
 
-    if (!(key = (CARD32 *)Xmalloc(len))) {
+    if (!(key = Xmalloc(len))) {
 	_XimError(im, 0, XIM_BadAlloc, (INT16)0, (CARD16)0, (char *)NULL);
 	return False;
     }
@@ -546,7 +546,7 @@ _XimTriggerNotify(
 	    preply = reply;
 	} else {
 	    buf_size = len;
-	    preply = (XPointer)Xmalloc(len);
+	    preply = Xmalloc(len);
 	    ret_code = _XimRead(im, &len, (XPointer)reply, buf_size,
 				_XimTriggerNotifyCheck, (XPointer)ic);
 	    if(ret_code != XIM_TRUE) {
@@ -579,7 +579,7 @@ _XimRegCommitInfo(
 {
     XimCommitInfo	info;
 
-    if (!(info = (XimCommitInfo)Xmalloc(sizeof(XimCommitInfoRec))))
+    if (!(info = Xmalloc(sizeof(XimCommitInfoRec))))
 	return False;
     info->string	= string;
     info->string_len	= string_len;
@@ -626,7 +626,7 @@ _XimProcKeySym(
 {
     Xim			 im = (Xim)ic->core.im;
 
-    if (!(*xim_keysym = (KeySym *)Xmalloc(sizeof(KeySym)))) {
+    if (!(*xim_keysym = Xmalloc(sizeof(KeySym)))) {
 	_XimError(im, ic, XIM_BadAlloc, (INT16)0, (CARD16)0, (char *)NULL);
 	return False;
     }
@@ -648,7 +648,7 @@ _XimProcCommit(
     Xim		 im = (Xim)ic->core.im;
     char	*string;
 
-    if (!(string = (char *)Xmalloc(len + 1))) {
+    if (!(string = Xmalloc(len + 1))) {
 	_XimError(im, ic, XIM_BadAlloc, (INT16)0, (CARD16)0, (char *)NULL);
 	return False;
     }

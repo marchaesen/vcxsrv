@@ -77,7 +77,7 @@ Status XGetWMProtocols (
       return False;
 
     if (actual_type != XA_ATOM || actual_format != 32) {
-	if (data) Xfree ((char *) data);
+	if (data) Xfree (data);
 	return False;
     }
 

@@ -138,7 +138,7 @@ _XimReadData(
 		data_len -= i;
 
 		if (data_len) {
-		    if (!(tmp = (char *)Xmalloc(data_len))) {
+		    if (!(tmp = Xmalloc(data_len))) {
 			return XIM_FALSE;
 		    }
 		    memcpy(tmp, &hold_buf[i], data_len);
@@ -173,7 +173,7 @@ _XimReadData(
     }
 
     if (packet_size > buf_size) {
-	if (!(tmp = (char *)Xmalloc(data_len))) {
+	if (!(tmp = Xmalloc(data_len))) {
 	    return XIM_FALSE;
 	}
 	memcpy(tmp, buf, data_len);
@@ -200,7 +200,7 @@ _XimReadData(
     data_len -= i;
 
     if (data_len) {
-	if (!(tmp = (char *)Xmalloc(data_len))) {
+	if (!(tmp = Xmalloc(data_len))) {
 	    return XIM_FALSE;
 	}
 	memcpy(tmp, &buf[i], data_len);
@@ -283,7 +283,7 @@ _XimFilterWaitEvent(Xim im)
 	    preply = reply;
 	} else {
 	    buf_size = (int)read_len;
-	    preply = (XPointer)Xmalloc(buf_size);
+	    preply = Xmalloc(buf_size);
 	    ret_code = _XimReadData(im, &read_len, preply, buf_size);
 	    if(ret_code != XIM_TRUE) {
 		if (preply != reply)

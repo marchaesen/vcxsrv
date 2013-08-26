@@ -616,7 +616,7 @@ _XimConnection(
 		preply = reply;
 	    } else {
 		buf_size = len;
-		preply = (XPointer)Xmalloc(buf_size);
+		preply = Xmalloc(buf_size);
 		ret_code = _XimRead(im, &len, preply, buf_size, _XimAllRecv, 0);
 		if(ret_code != XIM_TRUE) {
 		    Xfree(preply);
@@ -759,7 +759,7 @@ _XimDisconnect(
 	if(ret_code == XIM_OVERFLOW) {
 	    if(len > 0) {
 		buf_size = len;
-		preply = (XPointer)Xmalloc(buf_size);
+		preply = Xmalloc(buf_size);
 		ret_code = _XimRead(im, &len, preply, buf_size,
 						 _XimDisconnectCheck, 0);
 		Xfree(preply);
@@ -831,7 +831,7 @@ _XimOpen(
 	    preply = reply;
 	} else {
 	    buf_size = len;
-	    preply = (XPointer)Xmalloc(buf_size);
+	    preply = Xmalloc(buf_size);
 	    ret_code = _XimRead(im, &len, preply, buf_size,
 					_XimOpenCheck, 0);
 	    if(ret_code != XIM_TRUE) {
@@ -950,7 +950,7 @@ _XimClose(
 	    preply = reply;
 	} else {
 	    buf_size = len;
-	    preply = (XPointer)Xmalloc(buf_size);
+	    preply = Xmalloc(buf_size);
 	    ret_code = _XimRead(im, &len, preply, buf_size, _XimCloseCheck, 0);
 	    if(ret_code != XIM_TRUE) {
 		Xfree(preply);
@@ -1105,10 +1105,10 @@ _XimProtoCloseIM(
 	next = ic->core.next;
 #ifdef XIM_CONNECTABLE
 	if (!(!IS_SERVER_CONNECTED(im) && IS_RECONNECTABLE(im))) {
-	    Xfree ((char *) ic);
+	    Xfree (ic);
 	}
 #else
-	Xfree ((char *) ic);
+	Xfree (ic);
 #endif /* XIM_CONNECTABLE */
 	ic = next;
     }
@@ -1173,7 +1173,7 @@ _XimSaveIMValues(
 	    if (_XimCheckIMQuarkList(quark_list, num_quark, quark)) {
 		continue;
 	    }
-	    if (!(tmp = (XrmQuark *)Xrealloc(quark_list,
+	    if (!(tmp = Xrealloc(quark_list,
 				(sizeof(XrmQuark) * (num_quark + 1))))) {
 		im->private.proto.saved_imvalues = quark_list;
 		im->private.proto.num_saved_imvalues = num_quark;
@@ -1190,7 +1190,7 @@ _XimSaveIMValues(
 
     for (p = arg, n = 0; p && p->name; p++, n++);
 
-    if (!(quark_list = (XrmQuark *)Xmalloc(sizeof(XrmQuark) * n))) {
+    if (!(quark_list = Xmalloc(sizeof(XrmQuark) * n))) {
 	return False;
     }
 
@@ -1311,13 +1311,13 @@ _XimProtoSetIMValues(
 
 	buf_size += ret_len;
 	if (buf == tmp_buf) {
-	    if (!(tmp = (char *)Xmalloc(buf_size + data_len))) {
+	    if (!(tmp = Xmalloc(buf_size + data_len))) {
 		return arg->name;
 	    }
 	    memcpy(tmp, buf, buf_size);
 	    buf = tmp;
 	} else {
-	    if (!(tmp = (char *)Xrealloc(buf, (buf_size + data_len)))) {
+	    if (!(tmp = Xrealloc(buf, (buf_size + data_len)))) {
 		Xfree(buf);
 		return arg->name;
 	    }
@@ -1353,7 +1353,7 @@ _XimProtoSetIMValues(
 	    preply = reply;
 	} else {
 	    buf_size = (int)len;
-	    preply = (XPointer)Xmalloc(buf_size);
+	    preply = Xmalloc(buf_size);
 	    ret_code = _XimRead(im, &len, reply, buf_size,
 					_XimSetIMValuesCheck, 0);
 	    if(ret_code != XIM_TRUE) {
@@ -1462,7 +1462,7 @@ _XimProtoGetIMValues(
 	     + sizeof(INT16)
 	     + XIM_PAD(buf_size);
 
-    if (!(buf = (CARD8 *)Xmalloc(buf_size)))
+    if (!(buf = Xmalloc(buf_size)))
 	return arg->name;
     buf_s = (CARD16 *)&buf[XIM_HEADER_SIZE];
 
@@ -1494,7 +1494,7 @@ _XimProtoGetIMValues(
 		preply = reply;
 	    } else {
 		buf_size = len;
-		preply = (XPointer)Xmalloc(buf_size);
+		preply = Xmalloc(buf_size);
 		ret_code = _XimRead(im, &len, preply, buf_size,
 						_XimGetIMValuesCheck, 0);
 		if(ret_code != XIM_TRUE) {
@@ -1556,7 +1556,7 @@ _XimSetEncodingByName(
     encoding_len = strlen(encoding);
     compound_len = strlen("COMPOUND_TEXT");
     *len = encoding_len + sizeof(BYTE) + compound_len + sizeof(BYTE);
-    if (!(ret = (BYTE *)Xmalloc(*len))) {
+    if (!(ret = Xmalloc(*len))) {
 	return False;
     }
     *buf = (char *)ret;
@@ -1724,7 +1724,7 @@ _XimEncodingNegotiation(
 	+ sizeof(CARD16)
 	+ detail_len;
 
-    if (!(buf = (CARD8 *)Xmalloc(XIM_HEADER_SIZE + len)))
+    if (!(buf = Xmalloc(XIM_HEADER_SIZE + len)))
 	goto free_detail_ptr;
 
     buf_s = (CARD16 *)&buf[XIM_HEADER_SIZE];
@@ -1757,7 +1757,7 @@ _XimEncodingNegotiation(
 	    preply = reply;
 	} else {
 	    buf_size = len;
-	    preply = (XPointer)Xmalloc(buf_size);
+	    preply = Xmalloc(buf_size);
 	    ret_code = _XimRead(im, &len, preply, buf_size,
 					_XimEncodingNegoCheck, 0);
 	    if(ret_code != XIM_TRUE)
@@ -1844,13 +1844,13 @@ _XimSendSavedIMValues(
 
 	buf_size += ret_len;
 	if (buf == tmp_buf) {
-	    if (!(tmp = (char *)Xmalloc(buf_size + data_len))) {
+	    if (!(tmp = Xmalloc(buf_size + data_len))) {
 		return False;
 	    }
 	    memcpy(tmp, buf, buf_size);
 	    buf = tmp;
 	} else {
-	    if (!(tmp = (char *)Xrealloc(buf, (buf_size + data_len)))) {
+	    if (!(tmp = Xrealloc(buf, (buf_size + data_len)))) {
 		Xfree(buf);
 		return False;
 	    }
@@ -1885,7 +1885,7 @@ _XimSendSavedIMValues(
 	    preply = reply;
 	} else {
 	    buf_size = (int)len;
-	    preply = (XPointer)Xmalloc(buf_size);
+	    preply = Xmalloc(buf_size);
 	    ret_code = _XimRead(im, &len, reply, buf_size,
 					_XimSetIMValuesCheck, 0);
     	    if(ret_code != XIM_TRUE) {
@@ -1938,7 +1938,7 @@ _XimConnectServer(
 {
     Xim		 save_im;
 
-    if (!(save_im = (Xim)Xmalloc(sizeof(XimRec))))
+    if (!(save_im = Xmalloc(sizeof(XimRec))))
 	return False;
     memcpy((char *)save_im, (char *)im, sizeof(XimRec));
 

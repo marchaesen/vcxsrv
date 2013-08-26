@@ -325,8 +325,6 @@ done
 AC_MSG_RESULT([$KEYSYMDEFS])
 AC_SUBST(KEYSYMDEFS)
 
-AM_CONDITIONAL(UDC, test xfalse = xtrue)
-
 AC_ARG_ENABLE(xcms,
               AS_HELP_STRING([--disable-xcms],
                 [Disable Xlib support for CMS *EXPERIMENTAL*]),

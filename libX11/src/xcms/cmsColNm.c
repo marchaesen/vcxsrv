@@ -209,7 +209,7 @@ _XcmsParseColorString(
      * While copying color_string to string_lowered, convert to lowercase
      */
     if ((len = strlen(color_string)) >= sizeof(string_buf)) {
-	string_lowered = (char *) Xmalloc(len+1);
+	string_lowered = Xmalloc(len+1);
     } else {
 	string_lowered = string_buf;
     }
@@ -418,7 +418,7 @@ _XcmsLookupColorName(
 
 Retry:
     if ((len = strlen(tmpName)) > 63) {
-	name_lowered = (char *) Xmalloc(len+1);
+	name_lowered = Xmalloc(len+1);
     } else {
 	name_lowered = name_lowered_64;
     }
@@ -760,8 +760,8 @@ LoadColornameDB(void)
     }
     rewind(stream);
 
-    strings = (char *) Xmalloc(size);
-    pairs = (XcmsPair *)Xcalloc(nEntries, sizeof(XcmsPair));
+    strings = Xmalloc(size);
+    pairs = Xcalloc(nEntries, sizeof(XcmsPair));
 
     ReadColornameDB(stream, pairs, strings);
     (void) fclose(stream);

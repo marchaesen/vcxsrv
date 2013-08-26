@@ -33,7 +33,7 @@
  * and on 32bit ones, whether double is aligned to one word or two words.
  * Those result in the 6 formats listed below.
  *
- * If any of the assertion errors in fccache.c fail, you need to add a new
+ * If any of the assertion errors in fcarch.c fail, you need to add a new
  * architecture.  Contact the fontconfig mailing list in that case.
  *
  * name		endianness	pointer-size	double-alignment

@@ -63,7 +63,7 @@ LinuxVTRequest(int sig)
 
 /* Check before chowning -- this avoids touching the file system */
 static void
-LinuxCheckChown(char *file)
+LinuxCheckChown(const char *file)
 {
     struct stat st;
     __uid_t u;

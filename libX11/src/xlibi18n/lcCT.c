@@ -478,7 +478,7 @@ _XlcAddCT(
 
     /* Allocate a CTinfo record. */
     length = strlen(ct_sequence);
-    ct_info = (CTInfo) Xmalloc(sizeof(CTInfoRec) + length+1);
+    ct_info = Xmalloc(sizeof(CTInfoRec) + length+1);
     if (ct_info == NULL)
 	return charset;
 
@@ -514,7 +514,7 @@ _XlcAddCT(
                 Xfree(ct_info);
                 return charset;
             }
-            p = (char *) Xmalloc(n+1);
+            p = Xmalloc(n+1);
             if (p == NULL) {
                 Xfree(ct_info);
                 return charset;
@@ -970,7 +970,7 @@ cstoct(
 		/* The CompoundText specification says that the only
 		   control characters allowed are 0x09, 0x0a, 0x1b, 0x9b.
 		   Therefore here we eliminate other control characters. */
-		unsigned char ch = *((unsigned char *) csptr) & 0x7f;
+		unsigned char ch = *((const unsigned char *) csptr) & 0x7f;
 		if (!((ch >= min_ch && ch <= max_ch)
 		      || (side == XlcGL
 			  && (ch == 0x00 || ch == 0x09 || ch == 0x0a))
@@ -1020,7 +1020,7 @@ cstoct(
 #endif
            ) {
             while (csstr_len > 0 && ct_len > 0) {
-                unsigned char ch = * (unsigned char *) csptr;
+                unsigned char ch = * (const unsigned char *) csptr;
                 int char_size = (ch < 0xc0 ? 1 :
                                  ch < 0xe0 ? 2 :
                                  ch < 0xf0 ? 3 :
@@ -1093,9 +1093,9 @@ strtocs(
     dst = (char *) *to;
 
     length = min(*from_left, *to_left);
-    side = *((unsigned char *) src) & 0x80;
+    side = *((const unsigned char *) src) & 0x80;
 
-    while (side == (*((unsigned char *) src) & 0x80) && length-- > 0)
+    while (side == (*((const unsigned char *) src) & 0x80) && length-- > 0)
 	*dst++ = *src++;
 
     *from_left -= src - (const char *) *from;
@@ -1140,7 +1140,7 @@ cstostr(
     str_len = *to_left;
 
     while (csstr_len > 0 && str_len > 0) {
-	ch = *((unsigned char *) csptr++);
+	ch = *((const unsigned char *) csptr++);
 	csstr_len--;
 	/* Citing ICCCM: "STRING as a type specifies the ISO Latin-1 character
 	   set plus the control characters TAB and NEWLINE." */
@@ -1169,7 +1169,7 @@ create_conv(
 {
     XlcConv conv;
 
-    conv = (XlcConv) Xmalloc(sizeof(XlcConvRec) + sizeof(StateRec));
+    conv = Xmalloc(sizeof(XlcConvRec) + sizeof(StateRec));
     if (conv == NULL)
 	return (XlcConv) NULL;
 
@@ -1187,7 +1187,7 @@ close_converter(
     XlcConv conv)
 {
     /* conv->state is allocated together with conv, free both at once.  */
-    Xfree((char *) conv);
+    Xfree(conv);
 }
 
 

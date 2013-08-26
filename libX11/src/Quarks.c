@@ -230,7 +230,7 @@ ExpandQuarkTable(void)
 	}
     }
     if (oldmask)
-	Xfree((char *)oldentries);
+	Xfree(oldentries);
     return True;
 }
 

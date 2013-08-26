@@ -75,7 +75,7 @@ Status XGetSizeHints (
 
         if ((actual_type != XA_WM_SIZE_HINTS) ||
 	    (nitems < OldNumPropSizeElements) || (actual_format != 32)) {
-		if (prop != NULL) Xfree ((char *)prop);
+		if (prop != NULL) Xfree (prop);
                 return(0);
 		}
 	hints->flags	  = (prop->flags & (USPosition|USSize|PAllHints));
@@ -93,7 +93,7 @@ Status XGetSizeHints (
 	hints->min_aspect.y = cvtINT32toInt (prop->minAspectY);
 	hints->max_aspect.x = cvtINT32toInt (prop->maxAspectX);
 	hints->max_aspect.y = cvtINT32toInt (prop->maxAspectY);
-	Xfree((char *)prop);
+	Xfree(prop);
 	return(1);
 }
 
@@ -124,7 +124,7 @@ XWMHints *XGetWMHints (
 
         if ((actual_type != XA_WM_HINTS) ||
 	    (nitems < (NumPropWMHintsElements - 1)) || (actual_format != 32)) {
-		if (prop != NULL) Xfree ((char *)prop);
+		if (prop != NULL) Xfree (prop);
                 return(NULL);
 		}
 	/* static copies not allowed in library, due to reentrancy constraint*/
@@ -142,7 +142,7 @@ XWMHints *XGetWMHints (
 	    else
 		hints->window_group = 0;
 	}
-	Xfree ((char *)prop);
+	Xfree (prop);
 	return(hints);
 }
 
@@ -196,7 +196,7 @@ Status XGetIconSizes (
 	    (nitems < NumPropIconSizeElements) ||
 	    (nitems % NumPropIconSizeElements != 0) ||
 	    (actual_format != 32)) {
-		if (prop != NULL) Xfree ((char *)prop);
+		if (prop != NULL) Xfree (prop);
                 return(0);
 		}
 
@@ -204,7 +204,7 @@ Status XGetIconSizes (
 
 	nitems /= NumPropIconSizeElements;
 	if (! (hp = hints = Xcalloc (nitems, sizeof(XIconSize)))) {
-	    if (prop) Xfree ((char *) prop);
+	    if (prop) Xfree (prop);
 	    return 0;
 	}
 
@@ -221,7 +221,7 @@ Status XGetIconSizes (
 	}
 	*count = nitems;
 	*size_list = hints;
-	Xfree ((char *)prop);
+	Xfree (prop);
 	return(1);
 }
 
@@ -239,7 +239,7 @@ Status XGetCommand (
     if (!XGetTextProperty (dpy, w, &tp, XA_WM_COMMAND)) return 0;
 
     if (tp.encoding != XA_STRING || tp.format != 8) {
-	if (tp.value) Xfree ((char *) tp.value);
+	if (tp.value) Xfree (tp.value);
 	return 0;
     }
 
@@ -254,11 +254,11 @@ Status XGetCommand (
      * create a string list and return if successful
      */
     if (!XTextPropertyToStringList (&tp, &argv, &argc)) {
-	if (tp.value) Xfree ((char *) tp.value);
+	if (tp.value) Xfree (tp.value);
 	return (0);
     }
 
-    if (tp.value) Xfree ((char *) tp.value);
+    if (tp.value) Xfree (tp.value);
     *argvp = argv;
     *argcp = argc;
     return 1;
@@ -317,7 +317,7 @@ XGetClassHint(
    if ( (actual_type == XA_STRING) && (actual_format == 8) ) {
 	len_name = strlen((char *) data);
 	if (! (classhint->res_name = Xmalloc(len_name + 1))) {
-	    Xfree((char *) data);
+	    Xfree(data);
 	    return (0);
 	}
 	strcpy(classhint->res_name, (char *) data);
@@ -326,7 +326,7 @@ XGetClassHint(
 	if (! (classhint->res_class = Xmalloc(len_class + 1))) {
 	    Xfree(classhint->res_name);
 	    classhint->res_name = (char *) NULL;
-	    Xfree((char *) data);
+	    Xfree(data);
 	    return (0);
 	}
 	strcpy(classhint->res_class, (char *) (data+len_name+1));
