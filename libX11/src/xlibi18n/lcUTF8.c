@@ -75,6 +75,7 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <config.h>
 #endif
 #include <stdio.h>
+#include <unistd.h>
 #include "Xlibint.h"
 #include "XlcPubI.h"
 #include "XlcGeneric.h"
