@@ -1,11 +1,44 @@
                               Fontconfig
              Font configuration and customization library
-                      Version 2.10.93 (2.11 RC3)
-                              2013-05-20
+                      Version 2.10.94 (2.11 RC4)
+                              2013-08-29
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://bugs.freedesktop.org in the fontconfig module.
+
+2.10.94 (2.11 RC4)
+
+Akira TAGOH (25):
+      Bug 64906 - FcNameParse() should ignore leading whitespace in parameters
+      Fix a comparison of constant warning with clang
+      Fix a shift count overflow on 32bit box
+      Fix a incompatible pointer warning on NetBSD
+      Add FcTypeUnknown to FcType to avoid comparison of constant -1
+      Fix the behavior of intermixed tests end edits in match
+      Ignore scandir() check on mingw
+      Use INT_MAX instead of unreliable hardcoding value
+      Add FC_UNUSED to FC_ASSERT_STATIC macro to avoid compiler warning
+      Rework to apply the intermixed test and edit elements in one-pass
+      trivial code optimization
+      Correct fontconfig.pc to add certain dependencies for build
+      Correct fontconfig.pc to add certain dependencies for static build
+      Fix wrong edit position
+      Bug 67809 - Invalid read/write with valgrind when assigning something twice
+      warn deprecated only when migration failed
+      Bug 67845 - Match on FC_SCALABLE
+      Bug 16818 - fontformat in match pattern is not respected?
+      Bug 68340 - More metric compat fonts
+      Bug 63399 - Add default aliases for Georgia, Garamond, Palatino Linotype, Trebuchet MS
+      Fix a typo
+      Fix a crash when non-builtin objects are edited
+      Fix a wrong edit position when 'kind' is different
+      Bug 68587 - copy qu.orth to quz.orth
+      Add quz.orth to Makefile.am
+
+Behdad Esfahbod (2):
+      Minor
+      Fix assertion
 
 2.10.93 (2.11 RC3)
 

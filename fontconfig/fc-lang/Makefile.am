@@ -263,6 +263,7 @@ ORTH = \
 	pap_an.orth \
 	pap_aw.orth \
 	qu.orth \
+	quz.orth \
 	rn.orth \
 	rw.orth \
 	sc.orth \

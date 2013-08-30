@@ -388,9 +388,9 @@ yyGetString(void)
         if (i < sizeof(scanBuf) - 1)
             scanBuf[i++] = ch;
     }
+    scanBuf[i] = '\0';
     if (ch == '"')
     {
-        scanBuf[i++] = '\0';
         scanStrLine = lineNum;
         return STRING;
     }
@@ -401,7 +401,6 @@ static int
 yyGetKeyName(void)
 {
     int ch, i;
-    int last;
 
     i = 0;
     while (((ch = scanchar()) != EOF) && (ch != '>'))
@@ -463,24 +462,15 @@ yyGetKeyName(void)
             else
                 return ERROR_TOK;
         }
-
         if (i < sizeof(scanBuf) - 1)
             scanBuf[i++] = ch;
     }
-
-    if (i < sizeof(scanBuf) - i)
-        last = i;
-    else
-        last = sizeof(scanBuf) - 1;
-
-    scanBuf[last] = '\0';
-
+    scanBuf[i] = '\0';
     if ((ch == '>') && (i < 5))
     {
         scanStrLine = lineNum;
         return KEYNAME;
     }
-
     return ERROR_TOK;
 }
 

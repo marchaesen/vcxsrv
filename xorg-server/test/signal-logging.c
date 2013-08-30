@@ -150,6 +150,7 @@ number_formatting(void)
         assert(check_float_format_test(float_tests[i]));
 }
 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-security"
 static void logging_format(void)
 {
@@ -378,7 +379,7 @@ static void logging_format(void)
 
 #undef read_log_msg
 }
-#pragma GCC diagnostic pop "-Wformat-security"
+#pragma GCC diagnostic pop /* "-Wformat-security" */
 
 int
 main(int argc, char **argv)

@@ -129,6 +129,8 @@ xkb_symbols "intl" {
     key <AB10> { [     slash,   question,  questiondown,        dead_hook ] };
     key <BKSL> { [ backslash,        bar,       notsign,        brokenbar ] };
 
+    key <LSGT> { [ backslash,   bar,            backslash,      bar ] };
+
     include "level3(ralt_switch)"
 };
 
@@ -182,6 +184,8 @@ xkb_symbols "alt-intl" {
   key <AB08> { [      comma, less,	     dead_cedilla,  dead_caron	    ] };
   key <AB09> { [     period, greater,	     dead_abovedot, dead_circumflex ] };
   key <AB10> { [      slash, question,	     dead_hook,	    dead_hook	    ] };
+
+  key <LSGT> { [ backslash,   bar,            backslash,      bar ] };
 
   include "level3(ralt_switch)"
 };

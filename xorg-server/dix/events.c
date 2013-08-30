@@ -2105,6 +2105,7 @@ DeliverEventToInputClients(DeviceIntPtr dev, InputClients * inputclients,
 {
     int attempt;
     enum EventDeliveryState rc = EVENT_NOT_DELIVERED;
+    Bool have_device_button_grab_class_client = FALSE;
 
     for (; inputclients; inputclients = inputclients->next) {
         Mask mask;
@@ -2124,13 +2125,21 @@ DeliverEventToInputClients(DeviceIntPtr dev, InputClients * inputclients,
                                             events, count,
                                             mask, filter, grab))) {
             if (attempt > 0) {
-                rc = EVENT_DELIVERED;
-                *client_return = client;
-                *mask_return = mask;
-                /* Success overrides non-success, so if we've been
-                 * successful on one client, return that */
-            }
-            else if (rc == EVENT_NOT_DELIVERED)
+                /*
+                 * The order of clients is arbitrary therefore if one
+                 * client belongs to DeviceButtonGrabClass make sure to
+                 * catch it.
+                 */
+                if (!have_device_button_grab_class_client) {
+                    rc = EVENT_DELIVERED;
+                    *client_return = client;
+                    *mask_return = mask;
+                    /* Success overrides non-success, so if we've been
+                     * successful on one client, return that */
+                    if (mask & DeviceButtonGrabMask)
+                        have_device_button_grab_class_client = TRUE;
+                }
+            } else if (rc == EVENT_NOT_DELIVERED)
                 rc = EVENT_REJECTED;
         }
     }
@@ -4644,7 +4653,7 @@ DeviceEnterLeaveEvent(DeviceIntPtr mouse,
 
     filter = GetEventFilter(mouse, (xEvent *) event);
 
-    if (grab) {
+    if (grab && grab->type == XI2) {
         Mask mask;
 
         mask = xi2mask_isset(grab->xi2mask, mouse, type);
