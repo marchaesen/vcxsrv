@@ -81,7 +81,7 @@ ProcXIAllowEvents(ClientPtr client)
         have_xi22 = TRUE;
     }
     else {
-        REQUEST_SIZE_MATCH(xXIAllowEventsReq);
+        REQUEST_AT_LEAST_SIZE(xXIAllowEventsReq);
     }
 
     ret = dixLookupDevice(&dev, stuff->deviceid, client, DixGetAttrAccess);

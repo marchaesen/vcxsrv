@@ -100,6 +100,27 @@ xkb_symbols "azerty" {
 };
 
 partial alphanumeric_keys
+xkb_symbols "digits_KP" {
+    name[Group1]= "Arabic (digits_KP)";
+
+       // use arabic script digits on KP
+
+    key <KP7>  {  [   KP_Home,       0x1000667 ] }; //
+    key <KP8>  {  [     KP_Up,       0x1000668 ] }; //
+    key <KP9>  {  [  KP_Prior,       0x1000669 ] }; //
+
+    key <KP4>  {  [   KP_Left,       0x1000664 ] }; //
+    key <KP5>  {  [  KP_Begin,       0x1000665 ] }; //
+    key <KP6>  {  [  KP_Right,       0x1000666 ] }; //
+
+    key <KP1>  {  [    KP_End,       0x1000661 ] }; //
+    key <KP2>  {  [   KP_Down,       0x1000662 ] }; //
+    key <KP3>  {  [   KP_Next,       0x1000663 ] }; //
+
+    key <KP0>  { [ KP_Insert,       0x1000660 ] }; //
+};
+
+partial alphanumeric_keys
 xkb_symbols "digits" {
     include "ara(basic)"
     name[Group1]= "Arabic (digits)";
@@ -116,6 +137,8 @@ xkb_symbols "digits" {
     key <AE08> {  [       0x1000668,        asterisk      ]       };
     key <AE09> {  [       0x1000669,      parenright      ]       };
     key <AE10> {  [       0x1000660,       parenleft      ]       };
+
+    include "ara(digits_KP)"
 };
 
 partial alphanumeric_keys

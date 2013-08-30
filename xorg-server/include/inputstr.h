@@ -65,7 +65,7 @@ extern _X_EXPORT int CountBits(const uint8_t * mask, int len);
 #define SameClient(obj,client) \
 	(CLIENT_BITS((obj)->resource) == (client)->clientAsMask)
 
-#define EMASKSIZE	MAXDEVICES + 2
+#define EMASKSIZE	(MAXDEVICES + 2)
 
 /* This is the last XI2 event supported by the server. If you add
  * events to the protocol, the server will not support these events until
