@@ -33,7 +33,7 @@ dnl This is the package version number, not the shared library
 dnl version.  This same version number must appear in fontconfig/fontconfig.h
 dnl Yes, it is a pain to synchronize version numbers.  Unfortunately, it's
 dnl not possible to extract the version number here from fontconfig.h
-AC_INIT([fontconfig], [2.10.94], [https://bugs.freedesktop.org/enter_bug.cgi?product=fontconfig])
+AC_INIT([fontconfig], [2.10.95], [https://bugs.freedesktop.org/enter_bug.cgi?product=fontconfig])
 AM_INIT_AUTOMAKE([1.11 parallel-tests dist-bzip2])
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 
