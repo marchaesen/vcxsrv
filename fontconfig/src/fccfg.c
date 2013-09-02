@@ -1500,6 +1500,7 @@ FcConfigSubstituteWithPat (FcConfig    *config,
     FcPatternElt    **elt = NULL, *e;
     int		    i, nobjs;
     FcBool	    retval = FcTrue;
+    FcTest	    **tst = NULL;
 
     if (!config)
     {
@@ -1557,6 +1558,12 @@ FcConfigSubstituteWithPat (FcConfig    *config,
 	retval = FcFalse;
 	goto bail1;
     }
+    tst = (FcTest **) malloc (SIZEOF_VOID_P * nobjs);
+    if (!tst)
+    {
+	retval = FcFalse;
+	goto bail1;
+    }
 
     if (FcDebug () & FC_DBG_EDIT)
     {
@@ -1570,6 +1577,7 @@ FcConfigSubstituteWithPat (FcConfig    *config,
 	{
 	    elt[i] = NULL;
 	    value[i] = NULL;
+	    tst[i] = NULL;
 	}
 	for (; r; r = r->next)
 	{
@@ -1598,7 +1606,10 @@ FcConfigSubstituteWithPat (FcConfig    *config,
 		    e = NULL;
 		/* different 'kind' won't be the target of edit */
 		if (!elt[object] && kind == r->u.test->kind)
+		{
 		    elt[object] = e;
+		    tst[object] = r->u.test;
+		}
 		/*
 		 * If there's no such field in the font,
 		 * then FcQualAll matches while FcQualAny does not
@@ -1646,6 +1657,8 @@ FcConfigSubstituteWithPat (FcConfig    *config,
 		 * Evaluate the list of expressions
 		 */
 		l = FcConfigValues (p, p_pat,kind,  r->u.edit->expr, r->u.edit->binding);
+		if (tst[object] && (tst[object]->kind == FcMatchFont || kind == FcMatchPattern))
+		    elt[object] = FcPatternObjectFindElt (p, tst[object]->object);
 
 		switch (FC_OP_GET_OP (r->u.edit->op)) {
 		case FcOpAssign:
@@ -1748,6 +1761,8 @@ bail1:
 	free (elt);
     if (value)
 	free (value);
+    if (tst)
+	free (tst);
 
     return retval;
 }

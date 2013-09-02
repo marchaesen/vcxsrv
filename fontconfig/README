@@ -1,11 +1,17 @@
                               Fontconfig
              Font configuration and customization library
-                      Version 2.10.94 (2.11 RC4)
-                              2013-08-29
+                      Version 2.10.95 (2.11 RC5)
+                              2013-08-31
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://bugs.freedesktop.org in the fontconfig module.
+
+2.10.95 (2.11 RC5)
+
+Akira TAGOH (2):
+      Fix a typo
+      Fix a crash
 
 2.10.94 (2.11 RC4)
 

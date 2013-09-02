@@ -2489,7 +2489,7 @@ fail:
 	FUNC, "Allocation failure or bad matrix, skipping rendering\n");
     
     iter->get_scanline = _pixman_iter_get_scanline_noop;
-    iter->fini = bilinear_cover_iter_fini;
+    iter->fini = NULL;
 }
 
 #define IMAGE_FLAGS							\
