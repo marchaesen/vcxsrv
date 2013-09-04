@@ -83,6 +83,7 @@ static void
 _mesa_delete_sync_object(struct gl_context *ctx, struct gl_sync_object *syncObj)
 {
    (void) ctx;
+   free(syncObj->Label);
    free(syncObj);
 }
 
@@ -160,7 +161,7 @@ _mesa_free_sync_data(struct gl_context *ctx)
 }
 
 
-static int
+int
 _mesa_validate_sync(struct gl_context *ctx, struct gl_sync_object *syncObj)
 {
    return (syncObj != NULL)

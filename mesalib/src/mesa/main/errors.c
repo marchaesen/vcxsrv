@@ -39,6 +39,9 @@
 #include "hash_table.h"
 #include "glapi/glthread.h"
 
+#define MESSAGE_LOG 1
+#define MESSAGE_LOG_ARB 2
+
 _glthread_DECLARE_STATIC_MUTEX(DynamicIDMutex);
 static GLuint NextDynamicID = 1;
 
@@ -66,12 +69,16 @@ static const GLenum debug_type_enums[] = {
    GL_DEBUG_TYPE_PORTABILITY,
    GL_DEBUG_TYPE_PERFORMANCE,
    GL_DEBUG_TYPE_OTHER,
+   GL_DEBUG_TYPE_MARKER,
+   GL_DEBUG_TYPE_PUSH_GROUP,
+   GL_DEBUG_TYPE_POP_GROUP,
 };
 
 static const GLenum debug_severity_enums[] = {
    GL_DEBUG_SEVERITY_LOW,
    GL_DEBUG_SEVERITY_MEDIUM,
    GL_DEBUG_SEVERITY_HIGH,
+   GL_DEBUG_SEVERITY_NOTIFICATION,
 };
 
 static enum mesa_debug_source
@@ -185,9 +192,13 @@ should_log(struct gl_context *ctx,
            GLuint id,
            enum mesa_debug_severity severity)
 {
+   GLint gstack = ctx->Debug.GroupStackDepth;
    struct gl_debug_namespace *nspace =
-         &ctx->Debug.Namespaces[source][type];
+         &ctx->Debug.Namespaces[gstack][source][type];
    uintptr_t state;
+
+   if (!ctx->Debug.DebugOutput)
+      return GL_FALSE;
 
    /* In addition to not being able to store zero as a value, HashTable also
       can't use zero as a key. */
@@ -202,7 +213,7 @@ should_log(struct gl_context *ctx,
       struct gl_debug_severity *entry;
 
       if (state == NOT_FOUND) {
-         if (ctx->Debug.Defaults[severity][source][type])
+         if (ctx->Debug.Defaults[gstack][severity][source][type])
             state = ENABLED;
          else
             state = DISABLED;
@@ -236,8 +247,9 @@ set_message_state(struct gl_context *ctx,
                   enum mesa_debug_type type,
                   GLuint id, GLboolean enabled)
 {
+   GLint gstack = ctx->Debug.GroupStackDepth;
    struct gl_debug_namespace *nspace =
-         &ctx->Debug.Namespaces[source][type];
+         &ctx->Debug.Namespaces[gstack][source][type];
    uintptr_t state;
 
    /* In addition to not being able to store zero as a value, HashTable also
@@ -262,41 +274,13 @@ set_message_state(struct gl_context *ctx,
       nspace->ZeroID = state;
 }
 
-/**
- * 'buf' is not necessarily a null-terminated string. When logging, copy
- * 'len' characters from it, store them in a new, null-terminated string,
- * and remember the number of bytes used by that string, *including*
- * the null terminator this time.
- */
 static void
-_mesa_log_msg(struct gl_context *ctx, enum mesa_debug_source source,
-              enum mesa_debug_type type, GLuint id,
-              enum mesa_debug_severity severity, GLint len, const char *buf)
+store_message_details(struct gl_debug_msg *emptySlot,
+                      enum mesa_debug_source source,
+                      enum mesa_debug_type type, GLuint id,
+                      enum mesa_debug_severity severity, GLint len,
+                      const char *buf)
 {
-   GLint nextEmpty;
-   struct gl_debug_msg *emptySlot;
-
-   assert(len >= 0 && len < MAX_DEBUG_MESSAGE_LENGTH);
-
-   if (!should_log(ctx, source, type, id, severity))
-      return;
-
-   if (ctx->Debug.Callback) {
-      ctx->Debug.Callback(debug_source_enums[source],
-                          debug_type_enums[type],
-                          id,
-                          debug_severity_enums[severity],
-                          len, buf, ctx->Debug.CallbackData);
-      return;
-   }
-
-   if (ctx->Debug.NumMessages == MAX_DEBUG_LOGGED_MESSAGES)
-      return;
-
-   nextEmpty = (ctx->Debug.NextMsg + ctx->Debug.NumMessages)
-                          % MAX_DEBUG_LOGGED_MESSAGES;
-   emptySlot = &ctx->Debug.Log[nextEmpty];
-
    assert(!emptySlot->message && !emptySlot->length);
 
    emptySlot->message = malloc(len+1);
@@ -321,6 +305,83 @@ _mesa_log_msg(struct gl_context *ctx, enum mesa_debug_source source,
       emptySlot->id = oom_msg_id;
       emptySlot->severity = MESA_DEBUG_SEVERITY_HIGH;
    }
+}
+
+ /**
+ * Remap any type exclusive to KHR_debug to something suitable
+ * for ARB_debug_output
+ */
+inline static int
+remap_type(GLenum type) {
+
+   switch(type) {
+   case GL_DEBUG_TYPE_MARKER:
+   case GL_DEBUG_TYPE_PUSH_GROUP:
+   case GL_DEBUG_TYPE_POP_GROUP:
+      type = GL_DEBUG_TYPE_OTHER;
+   default:
+      ;
+   }
+
+  return type;
+}
+
+/**
+ * Remap severity exclusive to KHR_debug to something suitable
+ * for ARB_debug_output
+ */
+inline static int
+remap_severity(GLenum severity) {
+
+   if (GL_DEBUG_SEVERITY_NOTIFICATION == severity)
+      severity = GL_DEBUG_SEVERITY_LOW;
+
+   return severity;
+}
+
+/**
+ * 'buf' is not necessarily a null-terminated string. When logging, copy
+ * 'len' characters from it, store them in a new, null-terminated string,
+ * and remember the number of bytes used by that string, *including*
+ * the null terminator this time.
+ */
+static void
+_mesa_log_msg(struct gl_context *ctx, enum mesa_debug_source source,
+              enum mesa_debug_type type, GLuint id,
+              enum mesa_debug_severity severity, GLint len, const char *buf)
+{
+   GLint nextEmpty;
+   struct gl_debug_msg *emptySlot;
+
+   assert(len >= 0 && len < MAX_DEBUG_MESSAGE_LENGTH);
+
+   if (!should_log(ctx, source, type, id, severity))
+      return;
+
+   if (ctx->Debug.Callback) {
+       GLenum gl_type = debug_type_enums[type];
+       GLenum gl_severity = debug_severity_enums[severity];
+
+       if (ctx->Debug.ARBCallback) {
+          gl_severity = remap_severity(gl_severity);
+          gl_type = remap_type(gl_type);
+      }
+      ctx->Debug.Callback(debug_source_enums[source],
+                          gl_type,
+                          id,
+                          gl_severity,
+                          len, buf, ctx->Debug.CallbackData);
+      return;
+   }
+
+   if (ctx->Debug.NumMessages == MAX_DEBUG_LOGGED_MESSAGES)
+      return;
+
+   nextEmpty = (ctx->Debug.NextMsg + ctx->Debug.NumMessages)
+                          % MAX_DEBUG_LOGGED_MESSAGES;
+   emptySlot = &ctx->Debug.Log[nextEmpty];
+
+   store_message_details(emptySlot, source, type, id, severity, len, buf);
 
    if (ctx->Debug.NumMessages == 0)
       ctx->Debug.NextMsgLength = ctx->Debug.Log[ctx->Debug.NextMsg].length;
@@ -340,7 +401,8 @@ _mesa_log_msg(struct gl_context *ctx, enum mesa_debug_source source,
  */
 static GLsizei
 _mesa_get_msg(struct gl_context *ctx, GLenum *source, GLenum *type,
-              GLuint *id, GLenum *severity, GLsizei bufSize, char *buf)
+              GLuint *id, GLenum *severity, GLsizei bufSize, char *buf,
+              unsigned caller)
 {
    struct gl_debug_msg *msg;
    GLsizei length;
@@ -356,12 +418,18 @@ _mesa_get_msg(struct gl_context *ctx, GLenum *source, GLenum *type,
    if (bufSize < length && buf != NULL)
       return 0;
 
-   if (severity)
+   if (severity) {
       *severity = debug_severity_enums[msg->severity];
+      if (caller == MESSAGE_LOG_ARB)
+         *severity = remap_severity(*severity);
+   }
    if (source)
       *source = debug_source_enums[msg->source];
-   if (type)
+   if (type) {
       *type = debug_type_enums[msg->type];
+      if (caller == MESSAGE_LOG_ARB)
+         *type = remap_type(*type);
+   }
    if (id)
       *id = msg->id;
 
@@ -388,13 +456,19 @@ _mesa_get_msg(struct gl_context *ctx, GLenum *source, GLenum *type,
  * glDebugMessageInsertARB only accepts two values for 'source',
  * and glDebugMessageControlARB will additionally accept GL_DONT_CARE
  * in any parameter, so handle those cases specially.
+ *
+ * There is also special cases for handling values available in
+ * GL_KHR_debug that are not avaliable in GL_ARB_debug_output
  */
 static GLboolean
 validate_params(struct gl_context *ctx, unsigned caller,
-                GLenum source, GLenum type, GLenum severity)
+                const char *callerstr, GLenum source, GLenum type,
+                GLenum severity)
 {
 #define INSERT 1
 #define CONTROL 2
+#define INSERT_ARB 3
+#define CONTROL_ARB 4
    switch(source) {
    case GL_DEBUG_SOURCE_APPLICATION_ARB:
    case GL_DEBUG_SOURCE_THIRD_PARTY_ARB:
@@ -403,10 +477,10 @@ validate_params(struct gl_context *ctx, unsigned caller,
    case GL_DEBUG_SOURCE_SHADER_COMPILER_ARB:
    case GL_DEBUG_SOURCE_WINDOW_SYSTEM_ARB:
    case GL_DEBUG_SOURCE_OTHER_ARB:
-      if (caller != INSERT)
+      if (caller != INSERT || caller == INSERT_ARB)
          break;
    case GL_DONT_CARE:
-      if (caller == CONTROL)
+      if (caller == CONTROL || caller == CONTROL_ARB)
          break;
    default:
       goto error;
@@ -420,8 +494,12 @@ validate_params(struct gl_context *ctx, unsigned caller,
    case GL_DEBUG_TYPE_PORTABILITY_ARB:
    case GL_DEBUG_TYPE_OTHER_ARB:
       break;
+   case GL_DEBUG_TYPE_MARKER:
+      /* this value is only valid for GL_KHR_debug functions */
+      if (caller == CONTROL || caller == INSERT)
+         break;
    case GL_DONT_CARE:
-      if (caller == CONTROL)
+      if (caller == CONTROL || caller == CONTROL_ARB)
          break;
    default:
       goto error;
@@ -432,8 +510,12 @@ validate_params(struct gl_context *ctx, unsigned caller,
    case GL_DEBUG_SEVERITY_MEDIUM_ARB:
    case GL_DEBUG_SEVERITY_LOW_ARB:
       break;
+   case GL_DEBUG_SEVERITY_NOTIFICATION:
+      /* this value is only valid for GL_KHR_debug functions */
+      if (caller == CONTROL || caller == INSERT)
+         break;
    case GL_DONT_CARE:
-      if (caller == CONTROL)
+      if (caller == CONTROL || caller == CONTROL_ARB)
          break;
    default:
       goto error;
@@ -442,91 +524,11 @@ validate_params(struct gl_context *ctx, unsigned caller,
 
 error:
    {
-      const char *callerstr;
-      if (caller == INSERT)
-         callerstr = "glDebugMessageInsertARB";
-      else if (caller == CONTROL)
-         callerstr = "glDebugMessageControlARB";
-      else
-         return GL_FALSE;
-
-      _mesa_error( ctx, GL_INVALID_ENUM, "bad values passed to %s"
+      _mesa_error(ctx, GL_INVALID_ENUM, "bad values passed to %s"
                   "(source=0x%x, type=0x%x, severity=0x%x)", callerstr,
                   source, type, severity);
    }
    return GL_FALSE;
-}
-
-void GLAPIENTRY
-_mesa_DebugMessageInsertARB(GLenum source, GLenum type, GLuint id,
-                            GLenum severity, GLint length,
-                            const GLcharARB* buf)
-{
-   GET_CURRENT_CONTEXT(ctx);
-
-   if (!validate_params(ctx, INSERT, source, type, severity))
-      return; /* GL_INVALID_ENUM */
-
-   if (length < 0)
-      length = strlen(buf);
-
-   if (length >= MAX_DEBUG_MESSAGE_LENGTH) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glDebugMessageInsertARB"
-                 "(length=%d, which is not less than "
-                 "GL_MAX_DEBUG_MESSAGE_LENGTH_ARB=%d)", length,
-                 MAX_DEBUG_MESSAGE_LENGTH);
-      return;
-   }
-
-   _mesa_log_msg(ctx,
-                 gl_enum_to_debug_source(source),
-                 gl_enum_to_debug_type(type), id,
-                 gl_enum_to_debug_severity(severity), length, buf);
-}
-
-GLuint GLAPIENTRY
-_mesa_GetDebugMessageLogARB(GLuint count, GLsizei logSize, GLenum* sources,
-                            GLenum* types, GLenum* ids, GLenum* severities,
-                            GLsizei* lengths, GLcharARB* messageLog)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   GLuint ret;
-
-   if (!messageLog)
-      logSize = 0;
-
-   if (logSize < 0) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glGetDebugMessageLogARB"
-                 "(logSize=%d : logSize must not be negative)", logSize);
-      return 0;
-   }
-
-   for (ret = 0; ret < count; ret++) {
-      GLsizei written = _mesa_get_msg(ctx, sources, types, ids, severities,
-                                      logSize, messageLog);
-      if (!written)
-         break;
-
-      if (messageLog) {
-         messageLog += written;
-         logSize -= written;
-      }
-      if (lengths) {
-         *lengths = written;
-         lengths++;
-      }
-
-      if (severities)
-         severities++;
-      if (sources)
-         sources++;
-      if (types)
-         types++;
-      if (ids)
-         ids++;
-   }
-
-   return ret;
 }
 
 /**
@@ -548,6 +550,7 @@ control_messages(struct gl_context *ctx,
                  GLboolean enabled)
 {
    int s, t, sev, smax, tmax, sevmax;
+   GLint gstack = ctx->Debug.GroupStackDepth;
 
    if (source == MESA_DEBUG_SOURCE_COUNT) {
       source = 0;
@@ -577,10 +580,10 @@ control_messages(struct gl_context *ctx,
             struct gl_debug_severity *entry;
 
             /* change the default for IDs we've never seen before. */
-            ctx->Debug.Defaults[sev][s][t] = enabled;
+            ctx->Debug.Defaults[gstack][sev][s][t] = enabled;
 
             /* Now change the state of IDs we *have* seen... */
-            foreach(node, &ctx->Debug.Namespaces[s][t].Severity[sev]) {
+            foreach(node, &ctx->Debug.Namespaces[gstack][s][t].Severity[sev]) {
                entry = (struct gl_debug_severity *)node;
                set_message_state(ctx, s, t, entry->ID, enabled);
             }
@@ -618,33 +621,350 @@ control_app_messages(struct gl_context *ctx, GLenum esource, GLenum etype,
    control_messages(ctx, source, type, severity, enabled);
 }
 
+/**
+ * This is a generic message control function for use by both
+ * glDebugMessageControlARB and glDebugMessageControl.
+ */
+static void
+message_control(GLenum gl_source, GLenum gl_type,
+                GLenum gl_severity,
+                GLsizei count, const GLuint *ids,
+                GLboolean enabled,
+                unsigned caller, const char *callerstr)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (count < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "%s(count=%d : count must not be negative)", callerstr,
+                  count);
+      return;
+   }
+
+   if (!validate_params(ctx, caller, callerstr, gl_source, gl_type,
+                        gl_severity))
+      return; /* GL_INVALID_ENUM */
+
+   if (count && (gl_severity != GL_DONT_CARE || gl_type == GL_DONT_CARE
+                 || gl_source == GL_DONT_CARE)) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(When passing an array of ids, severity must be"
+         " GL_DONT_CARE, and source and type must not be GL_DONT_CARE.",
+                  callerstr);
+      return;
+   }
+
+   control_app_messages(ctx, gl_source, gl_type, gl_severity,
+                        count, ids, enabled);
+}
+
+/**
+ * This is a generic message insert function.
+ * Validation of source, type and severity parameters should be done
+ * before calling this funtion.
+ */
+static void
+message_insert(GLenum source, GLenum type, GLuint id,
+               GLenum severity, GLint length, const GLchar* buf,
+               const char *callerstr)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (length < 0)
+      length = strlen(buf);
+
+   if (length >= MAX_DEBUG_MESSAGE_LENGTH) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                 "%s(length=%d, which is not less than "
+                 "GL_MAX_DEBUG_MESSAGE_LENGTH=%d)", callerstr, length,
+                 MAX_DEBUG_MESSAGE_LENGTH);
+      return;
+   }
+
+   _mesa_log_msg(ctx,
+                 gl_enum_to_debug_source(source),
+                 gl_enum_to_debug_type(type), id,
+                 gl_enum_to_debug_severity(severity), length, buf);
+}
+
+/**
+ * This is a generic message insert function for use by both
+ * glGetDebugMessageLogARB and glGetDebugMessageLog.
+ */
+static GLuint
+get_message_log(GLuint count, GLsizei logSize, GLenum* sources,
+                GLenum* types, GLenum* ids, GLenum* severities,
+                GLsizei* lengths, GLchar* messageLog,
+                unsigned caller, const char *callerstr)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   GLuint ret;
+
+   if (!messageLog)
+      logSize = 0;
+
+   if (logSize < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "%s(logSize=%d : logSize must not be negative)", callerstr,
+                  logSize);
+      return 0;
+   }
+
+   for (ret = 0; ret < count; ret++) {
+      GLsizei written = _mesa_get_msg(ctx, sources, types, ids, severities,
+                                      logSize, messageLog, caller);
+      if (!written)
+         break;
+
+      if (messageLog) {
+         messageLog += written;
+         logSize -= written;
+      }
+      if (lengths) {
+         *lengths = written;
+         lengths++;
+      }
+
+      if (severities)
+         severities++;
+      if (sources)
+         sources++;
+      if (types)
+         types++;
+      if (ids)
+         ids++;
+   }
+
+   return ret;
+}
+
+static void
+do_nothing(GLuint key, void *data, void *userData)
+{
+}
+
+static void
+free_errors_data(struct gl_context *ctx, GLint gstack)
+{
+   enum mesa_debug_type t;
+   enum mesa_debug_source s;
+   enum mesa_debug_severity sev;
+
+   /* Tear down state for filtering debug messages. */
+   for (s = 0; s < MESA_DEBUG_SOURCE_COUNT; s++)
+      for (t = 0; t < MESA_DEBUG_TYPE_COUNT; t++) {
+         _mesa_HashDeleteAll(ctx->Debug.Namespaces[gstack][s][t].IDs,
+                             do_nothing, NULL);
+         _mesa_DeleteHashTable(ctx->Debug.Namespaces[gstack][s][t].IDs);
+         for (sev = 0; sev < MESA_DEBUG_SEVERITY_COUNT; sev++) {
+            struct simple_node *node, *tmp;
+            struct gl_debug_severity *entry;
+
+            foreach_s(node, tmp,
+                      &ctx->Debug.Namespaces[gstack][s][t].Severity[sev]) {
+               entry = (struct gl_debug_severity *)node;
+               free(entry);
+            }
+         }
+      }
+}
+
+void GLAPIENTRY
+_mesa_DebugMessageInsert(GLenum source, GLenum type, GLuint id,
+                         GLenum severity, GLint length,
+                         const GLchar* buf)
+{
+   const char *callerstr = "glDebugMessageInsert";
+
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (!validate_params(ctx, INSERT, callerstr, source, type, severity))
+      return; /* GL_INVALID_ENUM */
+
+   message_insert(source, type, id, severity, length, buf,
+                  callerstr);
+}
+
+GLuint GLAPIENTRY
+_mesa_GetDebugMessageLog(GLuint count, GLsizei logSize, GLenum* sources,
+                         GLenum* types, GLenum* ids, GLenum* severities,
+                         GLsizei* lengths, GLchar* messageLog)
+{
+   const char *callerstr = "glGetDebugMessageLog";
+
+   return get_message_log(count, logSize, sources, types, ids, severities,
+                          lengths, messageLog, MESSAGE_LOG, callerstr);
+}
+
+void GLAPIENTRY
+_mesa_DebugMessageControl(GLenum source, GLenum type, GLenum severity,
+                          GLsizei count, const GLuint *ids,
+                          GLboolean enabled)
+{
+   const char *callerstr = "glDebugMessageControl";
+
+   message_control(source, type, severity, count, ids,
+                   enabled, CONTROL, callerstr);
+}
+
+void GLAPIENTRY
+_mesa_DebugMessageCallback(GLDEBUGPROC callback, const void *userParam)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   ctx->Debug.Callback = callback;
+   ctx->Debug.CallbackData = userParam;
+   ctx->Debug.ARBCallback = GL_FALSE;
+}
+
+void GLAPIENTRY
+_mesa_PushDebugGroup(GLenum source, GLuint id, GLsizei length,
+                     const GLchar *message)
+{
+   const char *callerstr = "glPushDebugGroup";
+   int s, t, sev;
+   GLint prevStackDepth;
+   GLint currStackDepth;
+   struct gl_debug_msg *emptySlot;
+
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (ctx->Debug.GroupStackDepth >= MAX_DEBUG_GROUP_STACK_DEPTH-1) {
+      _mesa_error(ctx, GL_STACK_OVERFLOW, "%s", callerstr);
+      return;
+   }
+
+   switch(source) {
+   case GL_DEBUG_SOURCE_APPLICATION:
+   case GL_DEBUG_SOURCE_THIRD_PARTY:
+      break;
+   default:
+      _mesa_error(ctx, GL_INVALID_ENUM, "bad value passed to %s"
+                  "(source=0x%x)", callerstr, source);
+      return;
+   }
+
+   message_insert(source, GL_DEBUG_TYPE_PUSH_GROUP, id,
+                  GL_DEBUG_SEVERITY_NOTIFICATION, length,
+                  message, callerstr);
+
+   prevStackDepth = ctx->Debug.GroupStackDepth;
+   ctx->Debug.GroupStackDepth++;
+   currStackDepth = ctx->Debug.GroupStackDepth;
+
+   /* pop reuses the message details from push so we store this */
+   if (length < 0)
+      length = strlen(message);
+   emptySlot = &ctx->Debug.DebugGroupMsgs[ctx->Debug.GroupStackDepth];
+   store_message_details(emptySlot, gl_enum_to_debug_source(source),
+                         gl_enum_to_debug_source(GL_DEBUG_TYPE_PUSH_GROUP),
+                         id,
+                   gl_enum_to_debug_severity(GL_DEBUG_SEVERITY_NOTIFICATION),
+                         length, message);
+
+   /* inherit the control volume of the debug group previously residing on
+    * the top of the debug group stack
+    */
+   for (s = 0; s < MESA_DEBUG_SOURCE_COUNT; s++)
+      for (t = 0; t < MESA_DEBUG_TYPE_COUNT; t++) {
+         /* copy id settings */
+         ctx->Debug.Namespaces[currStackDepth][s][t].IDs =
+            _mesa_HashClone(ctx->Debug.Namespaces[prevStackDepth][s][t].IDs);
+
+         for (sev = 0; sev < MESA_DEBUG_SEVERITY_COUNT; sev++) {
+            struct gl_debug_severity *entry, *prevEntry;
+            struct simple_node *node;
+
+            /* copy default settings for unknown ids */
+            ctx->Debug.Defaults[currStackDepth][sev][s][t] = ctx->Debug.Defaults[prevStackDepth][sev][s][t];
+
+            /* copy known id severity settings */
+            make_empty_list(&ctx->Debug.Namespaces[currStackDepth][s][t].Severity[sev]);
+            foreach(node, &ctx->Debug.Namespaces[prevStackDepth][s][t].Severity[sev]) {
+               prevEntry = (struct gl_debug_severity *)node;
+               entry = malloc(sizeof *entry);
+               if (!entry)
+                  return;
+
+               entry->ID = prevEntry->ID;
+               insert_at_tail(&ctx->Debug.Namespaces[currStackDepth][s][t].Severity[sev], &entry->link);
+            }
+         }
+      }
+}
+
+void GLAPIENTRY
+_mesa_PopDebugGroup()
+{
+   const char *callerstr = "glPopDebugGroup";
+   struct gl_debug_msg *gdmessage;
+   GLint prevStackDepth;
+
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (ctx->Debug.GroupStackDepth <= 0) {
+      _mesa_error(ctx, GL_STACK_UNDERFLOW, "%s", callerstr);
+      return;
+   }
+
+   prevStackDepth = ctx->Debug.GroupStackDepth;
+   ctx->Debug.GroupStackDepth--;
+
+   gdmessage = &ctx->Debug.DebugGroupMsgs[prevStackDepth];
+   /* using _mesa_log_msg() directly here as verification of parameters
+    * already done in push
+    */
+   _mesa_log_msg(ctx, gdmessage->source,
+                 gl_enum_to_debug_type(GL_DEBUG_TYPE_POP_GROUP),
+                 gdmessage->id,
+                 gl_enum_to_debug_severity(GL_DEBUG_SEVERITY_NOTIFICATION),
+                 gdmessage->length, gdmessage->message);
+
+   if (gdmessage->message != (char*)out_of_memory)
+      free(gdmessage->message);
+   gdmessage->message = NULL;
+   gdmessage->length = 0;
+
+   /* free popped debug group data */
+   free_errors_data(ctx, prevStackDepth);
+}
+
+void GLAPIENTRY
+_mesa_DebugMessageInsertARB(GLenum source, GLenum type, GLuint id,
+                            GLenum severity, GLint length,
+                            const GLcharARB* buf)
+{
+   const char *callerstr = "glDebugMessageInsertARB";
+
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (!validate_params(ctx, INSERT_ARB, callerstr, source, type, severity))
+      return; /* GL_INVALID_ENUM */
+
+   message_insert(source, type, id, severity, length, buf,
+                  callerstr);
+}
+
+GLuint GLAPIENTRY
+_mesa_GetDebugMessageLogARB(GLuint count, GLsizei logSize, GLenum* sources,
+                            GLenum* types, GLenum* ids, GLenum* severities,
+                            GLsizei* lengths, GLcharARB* messageLog)
+{
+   const char *callerstr = "glGetDebugMessageLogARB";
+
+   return get_message_log(count, logSize, sources, types, ids, severities,
+                          lengths, messageLog, MESSAGE_LOG_ARB, callerstr);
+}
+
 void GLAPIENTRY
 _mesa_DebugMessageControlARB(GLenum gl_source, GLenum gl_type,
                              GLenum gl_severity,
                              GLsizei count, const GLuint *ids,
                              GLboolean enabled)
 {
-   GET_CURRENT_CONTEXT(ctx);
+   const char *callerstr = "glDebugMessageControlARB";
 
-   if (count < 0) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glDebugMessageControlARB"
-                 "(count=%d : count must not be negative)", count);
-      return;
-   }
-
-   if (!validate_params(ctx, CONTROL, gl_source, gl_type, gl_severity))
-      return; /* GL_INVALID_ENUM */
-
-   if (count && (gl_severity != GL_DONT_CARE || gl_type == GL_DONT_CARE
-                 || gl_source == GL_DONT_CARE)) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glDebugMessageControlARB"
-                 "(When passing an array of ids, severity must be"
-         " GL_DONT_CARE, and source and type must not be GL_DONT_CARE.");
-      return;
-   }
-
-   control_app_messages(ctx, gl_source, gl_type, gl_severity,
-                        count, ids, enabled);
+   message_control(gl_source, gl_type, gl_severity, count, ids,
+                   enabled, CONTROL_ARB, callerstr);
 }
 
 void GLAPIENTRY
@@ -653,6 +973,7 @@ _mesa_DebugMessageCallbackARB(GLDEBUGPROCARB callback, const void *userParam)
    GET_CURRENT_CONTEXT(ctx);
    ctx->Debug.Callback = callback;
    ctx->Debug.CallbackData = userParam;
+   ctx->Debug.ARBCallback = GL_TRUE;
 }
 
 void
@@ -666,53 +987,39 @@ _mesa_init_errors(struct gl_context *ctx)
    ctx->Debug.NumMessages = 0;
    ctx->Debug.NextMsg = 0;
    ctx->Debug.NextMsgLength = 0;
+   ctx->Debug.GroupStackDepth = 0;
 
    /* Enable all the messages with severity HIGH or MEDIUM by default. */
-   memset(ctx->Debug.Defaults[MESA_DEBUG_SEVERITY_HIGH], GL_TRUE,
-          sizeof ctx->Debug.Defaults[MESA_DEBUG_SEVERITY_HIGH]);
-   memset(ctx->Debug.Defaults[MESA_DEBUG_SEVERITY_MEDIUM], GL_TRUE,
-          sizeof ctx->Debug.Defaults[MESA_DEBUG_SEVERITY_MEDIUM]);
-   memset(ctx->Debug.Defaults[MESA_DEBUG_SEVERITY_LOW], GL_FALSE,
-          sizeof ctx->Debug.Defaults[MESA_DEBUG_SEVERITY_LOW]);
+   memset(ctx->Debug.Defaults[0][MESA_DEBUG_SEVERITY_HIGH], GL_TRUE,
+          sizeof ctx->Debug.Defaults[0][MESA_DEBUG_SEVERITY_HIGH]);
+   memset(ctx->Debug.Defaults[0][MESA_DEBUG_SEVERITY_MEDIUM], GL_TRUE,
+          sizeof ctx->Debug.Defaults[0][MESA_DEBUG_SEVERITY_MEDIUM]);
+   memset(ctx->Debug.Defaults[0][MESA_DEBUG_SEVERITY_LOW], GL_FALSE,
+          sizeof ctx->Debug.Defaults[0][MESA_DEBUG_SEVERITY_LOW]);
 
    /* Initialize state for filtering known debug messages. */
    for (s = 0; s < MESA_DEBUG_SOURCE_COUNT; s++)
       for (t = 0; t < MESA_DEBUG_TYPE_COUNT; t++) {
-         ctx->Debug.Namespaces[s][t].IDs = _mesa_NewHashTable();
-         assert(ctx->Debug.Namespaces[s][t].IDs);
+         ctx->Debug.Namespaces[0][s][t].IDs = _mesa_NewHashTable();
+         assert(ctx->Debug.Namespaces[0][s][t].IDs);
 
          for (sev = 0; sev < MESA_DEBUG_SEVERITY_COUNT; sev++)
-            make_empty_list(&ctx->Debug.Namespaces[s][t].Severity[sev]);
+            make_empty_list(&ctx->Debug.Namespaces[0][s][t].Severity[sev]);
       }
 }
 
-static void
-do_nothing(GLuint key, void *data, void *userData)
-{
-}
-
+/**
+ * Loop through debug group stack tearing down states for
+ * filtering debug messages.
+ */
 void
 _mesa_free_errors_data(struct gl_context *ctx)
 {
-   enum mesa_debug_type t;
-   enum mesa_debug_source s;
-   enum mesa_debug_severity sev;
+   GLint i;
 
-   /* Tear down state for filtering debug messages. */
-   for (s = 0; s < MESA_DEBUG_SOURCE_COUNT; s++)
-      for (t = 0; t < MESA_DEBUG_TYPE_COUNT; t++) {
-         _mesa_HashDeleteAll(ctx->Debug.Namespaces[s][t].IDs, do_nothing, NULL);
-         _mesa_DeleteHashTable(ctx->Debug.Namespaces[s][t].IDs);
-         for (sev = 0; sev < MESA_DEBUG_SEVERITY_COUNT; sev++) {
-            struct simple_node *node, *tmp;
-            struct gl_debug_severity *entry;
-
-            foreach_s(node, tmp, &ctx->Debug.Namespaces[s][t].Severity[sev]) {
-               entry = (struct gl_debug_severity *)node;
-               free(entry);
-            }
-         }
-      }
+   for (i = 0; i <= ctx->Debug.GroupStackDepth; i++) {
+      free_errors_data(ctx, i);
+   }
 }
 
 /**********************************************************************/

@@ -2233,11 +2233,6 @@ FcParseInclude (FcConfigParse *parse)
 	    /* No config dir nor file on the XDG directory spec compliant place
 	     * so need to guess what it is supposed to be.
 	     */
-	    FcChar8 *parent = FcStrDirname (s);
-
-	    if (!FcFileIsDir (parent))
-		FcMakeDirectory (parent);
-	    FcStrFree (parent);
 	    if (FcStrStr (s, (const FcChar8 *)"conf.d") != NULL)
 		goto userdir;
 	    else
@@ -2259,6 +2254,11 @@ FcParseInclude (FcConfigParse *parse)
 	{
 	    if (FcFileIsDir (filename))
 	    {
+		FcChar8 *parent = FcStrDirname (userdir);
+
+		if (!FcFileIsDir (parent))
+		    FcMakeDirectory (parent);
+		FcStrFree (parent);
 		if (FcFileIsDir (userdir) ||
 		    rename ((const char *)filename, (const char *)userdir) != 0 ||
 		    symlink ((const char *)userdir, (const char *)filename) != 0)
@@ -2272,6 +2272,11 @@ FcParseInclude (FcConfigParse *parse)
 	    }
 	    else
 	    {
+		FcChar8 *parent = FcStrDirname (userconf);
+
+		if (!FcFileIsDir (parent))
+		    FcMakeDirectory (parent);
+		FcStrFree (parent);
 		if (FcFileIsFile (userconf) ||
 		    rename ((const char *)filename, (const char *)userconf) != 0 ||
 		    symlink ((const char *)userconf, (const char *)filename) != 0)

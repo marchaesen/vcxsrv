@@ -60,8 +60,8 @@
  * non-existent.
  */
 
-static inline struct gl_array_object *
-lookup_arrayobj(struct gl_context *ctx, GLuint id)
+struct gl_array_object *
+_mesa_lookup_arrayobj(struct gl_context *ctx, GLuint id)
 {
    if (id == 0)
       return NULL;
@@ -115,6 +115,7 @@ _mesa_delete_array_object( struct gl_context *ctx, struct gl_array_object *obj )
    unbind_array_object_vbos(ctx, obj);
    _mesa_reference_buffer_object(ctx, &obj->ElementArrayBufferObj, NULL);
    _glthread_DESTROY_MUTEX(obj->Mutex);
+   free(obj->Label);
    free(obj);
 }
 
@@ -353,7 +354,7 @@ bind_vertex_array(struct gl_context *ctx, GLuint id, GLboolean genRequired)
    }
    else {
       /* non-default array object */
-      newObj = lookup_arrayobj(ctx, id);
+      newObj = _mesa_lookup_arrayobj(ctx, id);
       if (!newObj) {
          if (genRequired) {
             _mesa_error(ctx, GL_INVALID_OPERATION, "glBindVertexArray(non-gen name)");
@@ -439,7 +440,7 @@ _mesa_DeleteVertexArrays(GLsizei n, const GLuint *ids)
    }
 
    for (i = 0; i < n; i++) {
-      struct gl_array_object *obj = lookup_arrayobj(ctx, ids[i]);
+      struct gl_array_object *obj = _mesa_lookup_arrayobj(ctx, ids[i]);
 
       if ( obj != NULL ) {
 	 ASSERT( obj->Name == ids[i] );
@@ -545,7 +546,7 @@ _mesa_IsVertexArray( GLuint id )
    if (id == 0)
       return GL_FALSE;
 
-   obj = lookup_arrayobj(ctx, id);
+   obj = _mesa_lookup_arrayobj(ctx, id);
    if (obj == NULL)
       return GL_FALSE;
 
