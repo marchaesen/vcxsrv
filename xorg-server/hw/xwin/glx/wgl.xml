@@ -661,6 +661,11 @@
             <param>const int *<name>piAttribList</name></param>
         </command>
         <command>
+            <proto><ptype>BOOL</ptype> <name>wglDelayBeforeSwapNV</name></proto>
+            <param><ptype>HDC</ptype> <name>hDC</name></param>
+            <param><ptype>GLfloat</ptype> <name>seconds</name></param>
+        </command>
+        <command>
             <proto><ptype>BOOL</ptype> <name>wglDeleteAssociatedContextAMD</name></proto>
             <param><ptype>HGLRC</ptype> <name>hglrc</name></param>
         </command>
@@ -1941,6 +1946,11 @@
         </extension>
         <extension name="WGL_EXT_swap_control_tear" supported="wgl">
             <require>
+            </require>
+        </extension>
+        <extension name="WGL_NV_delay_before_swap" supported="wgl">
+            <require>
+                <command name="wglDelayBeforeSwapNV"/>
             </require>
         </extension>
     </extensions>

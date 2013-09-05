@@ -12701,7 +12701,7 @@ typedef unsigned int GLhandleARB;
             <param len="1"><ptype>GLsizei</ptype> *<name>length</name></param>
             <param len="1"><ptype>GLint</ptype> *<name>size</name></param>
             <param len="1"><ptype>GLenum</ptype> *<name>type</name></param>
-            <param><ptype>GLchar</ptype> *<name>name</name></param>
+            <param len="bufSize"><ptype>GLchar</ptype> *<name>name</name></param>
         </command>
         <command>
             <proto>void <name>glGetActiveAttribARB</name></proto>
@@ -12711,7 +12711,7 @@ typedef unsigned int GLhandleARB;
             <param len="1"><ptype>GLsizei</ptype> *<name>length</name></param>
             <param len="1"><ptype>GLint</ptype> *<name>size</name></param>
             <param len="1"><ptype>GLenum</ptype> *<name>type</name></param>
-            <param><ptype>GLcharARB</ptype> *<name>name</name></param>
+            <param len="maxLength"><ptype>GLcharARB</ptype> *<name>name</name></param>
             <alias name="glGetActiveAttrib"/>
         </command>
         <command>
@@ -12748,7 +12748,7 @@ typedef unsigned int GLhandleARB;
             <param len="1"><ptype>GLsizei</ptype> *<name>length</name></param>
             <param len="1"><ptype>GLint</ptype> *<name>size</name></param>
             <param len="1"><ptype>GLenum</ptype> *<name>type</name></param>
-            <param><ptype>GLchar</ptype> *<name>name</name></param>
+            <param len="bufSize"><ptype>GLchar</ptype> *<name>name</name></param>
         </command>
         <command>
             <proto>void <name>glGetActiveUniformARB</name></proto>
@@ -12758,7 +12758,7 @@ typedef unsigned int GLhandleARB;
             <param len="1"><ptype>GLsizei</ptype> *<name>length</name></param>
             <param len="1"><ptype>GLint</ptype> *<name>size</name></param>
             <param len="1"><ptype>GLenum</ptype> *<name>type</name></param>
-            <param><ptype>GLcharARB</ptype> *<name>name</name></param>
+            <param len="maxLength"><ptype>GLcharARB</ptype> *<name>name</name></param>
             <alias name="glGetActiveUniform"/>
         </command>
         <command>
@@ -13136,13 +13136,13 @@ typedef unsigned int GLhandleARB;
         <command>
             <proto><ptype>GLuint</ptype> <name>glGetDebugMessageLog</name></proto>
             <param><ptype>GLuint</ptype> <name>count</name></param>
-            <param><ptype>GLsizei</ptype> <name>bufsize</name></param>
-            <param len="COMPSIZE(count)"><ptype>GLenum</ptype> *<name>sources</name></param>
-            <param len="COMPSIZE(count)"><ptype>GLenum</ptype> *<name>types</name></param>
-            <param len="COMPSIZE(count)"><ptype>GLuint</ptype> *<name>ids</name></param>
-            <param len="COMPSIZE(count)"><ptype>GLenum</ptype> *<name>severities</name></param>
-            <param len="COMPSIZE(count)"><ptype>GLsizei</ptype> *<name>lengths</name></param>
-            <param len="COMPSIZE(bufsize)"><ptype>GLchar</ptype> *<name>messageLog</name></param>
+            <param><ptype>GLsizei</ptype> <name>bufSize</name></param>
+            <param len="count"><ptype>GLenum</ptype> *<name>sources</name></param>
+            <param len="count"><ptype>GLenum</ptype> *<name>types</name></param>
+            <param len="count"><ptype>GLuint</ptype> *<name>ids</name></param>
+            <param len="count"><ptype>GLenum</ptype> *<name>severities</name></param>
+            <param len="count"><ptype>GLsizei</ptype> *<name>lengths</name></param>
+            <param len="bufSize"><ptype>GLchar</ptype> *<name>messageLog</name></param>
         </command>
         <command>
             <proto><ptype>GLuint</ptype> <name>glGetDebugMessageLogAMD</name></proto>
@@ -13157,25 +13157,25 @@ typedef unsigned int GLhandleARB;
         <command>
             <proto><ptype>GLuint</ptype> <name>glGetDebugMessageLogARB</name></proto>
             <param><ptype>GLuint</ptype> <name>count</name></param>
-            <param><ptype>GLsizei</ptype> <name>bufsize</name></param>
+            <param><ptype>GLsizei</ptype> <name>bufSize</name></param>
             <param len="count"><ptype>GLenum</ptype> *<name>sources</name></param>
             <param len="count"><ptype>GLenum</ptype> *<name>types</name></param>
             <param len="count"><ptype>GLuint</ptype> *<name>ids</name></param>
             <param len="count"><ptype>GLenum</ptype> *<name>severities</name></param>
             <param len="count"><ptype>GLsizei</ptype> *<name>lengths</name></param>
-            <param len="COMPSIZE(lengths)"><ptype>GLchar</ptype> *<name>messageLog</name></param>
+            <param len="bufSize"><ptype>GLchar</ptype> *<name>messageLog</name></param>
             <alias name="glGetDebugMessageLog"/>
         </command>
         <command>
             <proto><ptype>GLuint</ptype> <name>glGetDebugMessageLogKHR</name></proto>
             <param><ptype>GLuint</ptype> <name>count</name></param>
-            <param><ptype>GLsizei</ptype> <name>bufsize</name></param>
-            <param><ptype>GLenum</ptype> *<name>sources</name></param>
-            <param><ptype>GLenum</ptype> *<name>types</name></param>
-            <param><ptype>GLuint</ptype> *<name>ids</name></param>
-            <param><ptype>GLenum</ptype> *<name>severities</name></param>
-            <param><ptype>GLsizei</ptype> *<name>lengths</name></param>
-            <param><ptype>GLchar</ptype> *<name>messageLog</name></param>
+            <param><ptype>GLsizei</ptype> <name>bufSize</name></param>
+            <param len="count"><ptype>GLenum</ptype> *<name>sources</name></param>
+            <param len="count"><ptype>GLenum</ptype> *<name>types</name></param>
+            <param len="count"><ptype>GLuint</ptype> *<name>ids</name></param>
+            <param len="count"><ptype>GLenum</ptype> *<name>severities</name></param>
+            <param len="count"><ptype>GLsizei</ptype> *<name>lengths</name></param>
+            <param len="bufSize"><ptype>GLchar</ptype> *<name>messageLog</name></param>
             <alias name="glGetDebugMessageLog"/>
         </command>
         <command>
@@ -13215,13 +13215,13 @@ typedef unsigned int GLhandleARB;
             <param><ptype>GLuint</ptype> <name>driverControl</name></param>
             <param><ptype>GLsizei</ptype> <name>bufSize</name></param>
             <param><ptype>GLsizei</ptype> *<name>length</name></param>
-            <param><ptype>GLchar</ptype> *<name>driverControlString</name></param>
+            <param len="bufSize"><ptype>GLchar</ptype> *<name>driverControlString</name></param>
         </command>
         <command>
             <proto>void <name>glGetDriverControlsQCOM</name></proto>
             <param><ptype>GLint</ptype> *<name>num</name></param>
             <param><ptype>GLsizei</ptype> <name>size</name></param>
-            <param><ptype>GLuint</ptype> *<name>driverControls</name></param>
+            <param len="size"><ptype>GLuint</ptype> *<name>driverControls</name></param>
         </command>
         <command>
             <proto group="ErrorCode"><ptype>GLenum</ptype> <name>glGetError</name></proto>
@@ -13460,7 +13460,7 @@ typedef unsigned int GLhandleARB;
             <param group="handleARB"><ptype>GLhandleARB</ptype> <name>obj</name></param>
             <param><ptype>GLsizei</ptype> <name>maxLength</name></param>
             <param len="1"><ptype>GLsizei</ptype> *<name>length</name></param>
-            <param len="length"><ptype>GLcharARB</ptype> *<name>infoLog</name></param>
+            <param len="maxLength"><ptype>GLcharARB</ptype> *<name>infoLog</name></param>
         </command>
         <command>
             <proto><ptype>GLint</ptype> <name>glGetInstrumentsSGIX</name></proto>
@@ -13996,7 +13996,7 @@ typedef unsigned int GLhandleARB;
             <param><ptype>GLuint</ptype> <name>object</name></param>
             <param><ptype>GLsizei</ptype> <name>bufSize</name></param>
             <param><ptype>GLsizei</ptype> *<name>length</name></param>
-            <param><ptype>GLchar</ptype> *<name>label</name></param>
+            <param len="bufSize"><ptype>GLchar</ptype> *<name>label</name></param>
         </command>
         <command>
             <proto>void <name>glGetObjectLabelKHR</name></proto>
@@ -14004,7 +14004,7 @@ typedef unsigned int GLhandleARB;
             <param><ptype>GLuint</ptype> <name>name</name></param>
             <param><ptype>GLsizei</ptype> <name>bufSize</name></param>
             <param><ptype>GLsizei</ptype> *<name>length</name></param>
-            <param><ptype>GLchar</ptype> *<name>label</name></param>
+            <param len="bufSize"><ptype>GLchar</ptype> *<name>label</name></param>
             <alias name="glGetObjectLabel"/>
         </command>
         <command>
@@ -14038,7 +14038,7 @@ typedef unsigned int GLhandleARB;
             <param>const void *<name>ptr</name></param>
             <param><ptype>GLsizei</ptype> <name>bufSize</name></param>
             <param><ptype>GLsizei</ptype> *<name>length</name></param>
-            <param><ptype>GLchar</ptype> *<name>label</name></param>
+            <param len="bufSize"><ptype>GLchar</ptype> *<name>label</name></param>
             <alias name="glGetObjectPtrLabel"/>
         </command>
         <command>
@@ -14277,7 +14277,7 @@ typedef unsigned int GLhandleARB;
             <param><ptype>GLsizei</ptype> <name>bufSize</name></param>
             <param len="1"><ptype>GLsizei</ptype> *<name>length</name></param>
             <param len="1"><ptype>GLenum</ptype> *<name>binaryFormat</name></param>
-            <param len="COMPSIZE(length)"><ptype>GLvoid</ptype> *<name>binary</name></param>
+            <param len="bufSize"><ptype>GLvoid</ptype> *<name>binary</name></param>
         </command>
         <command>
             <proto>void <name>glGetProgramBinaryOES</name></proto>
@@ -14285,7 +14285,7 @@ typedef unsigned int GLhandleARB;
             <param><ptype>GLsizei</ptype> <name>bufSize</name></param>
             <param><ptype>GLsizei</ptype> *<name>length</name></param>
             <param><ptype>GLenum</ptype> *<name>binaryFormat</name></param>
-            <param><ptype>GLvoid</ptype> *<name>binary</name></param>
+            <param len="bufSize"><ptype>GLvoid</ptype> *<name>binary</name></param>
         </command>
         <command>
             <proto>void <name>glGetProgramEnvParameterIivNV</name></proto>
@@ -14316,7 +14316,7 @@ typedef unsigned int GLhandleARB;
             <param><ptype>GLuint</ptype> <name>program</name></param>
             <param><ptype>GLsizei</ptype> <name>bufSize</name></param>
             <param len="1"><ptype>GLsizei</ptype> *<name>length</name></param>
-            <param len="length"><ptype>GLchar</ptype> *<name>infoLog</name></param>
+            <param len="bufSize"><ptype>GLchar</ptype> *<name>infoLog</name></param>
             <glx type="single" opcode="201"/>
         </command>
         <command>
@@ -14387,14 +14387,14 @@ typedef unsigned int GLhandleARB;
             <param><ptype>GLuint</ptype> <name>pipeline</name></param>
             <param><ptype>GLsizei</ptype> <name>bufSize</name></param>
             <param len="1"><ptype>GLsizei</ptype> *<name>length</name></param>
-            <param len="COMPSIZE(length)"><ptype>GLchar</ptype> *<name>infoLog</name></param>
+            <param len="bufSize"><ptype>GLchar</ptype> *<name>infoLog</name></param>
         </command>
         <command>
             <proto>void <name>glGetProgramPipelineInfoLogEXT</name></proto>
             <param><ptype>GLuint</ptype> <name>pipeline</name></param>
             <param><ptype>GLsizei</ptype> <name>bufSize</name></param>
             <param><ptype>GLsizei</ptype> *<name>length</name></param>
-            <param><ptype>GLchar</ptype> *<name>infoLog</name></param>
+            <param len="bufSize"><ptype>GLchar</ptype> *<name>infoLog</name></param>
         </command>
         <command>
             <proto>void <name>glGetProgramPipelineiv</name></proto>
@@ -14659,7 +14659,7 @@ typedef unsigned int GLhandleARB;
             <param><ptype>GLuint</ptype> <name>shader</name></param>
             <param><ptype>GLsizei</ptype> <name>bufSize</name></param>
             <param len="1"><ptype>GLsizei</ptype> *<name>length</name></param>
-            <param len="length"><ptype>GLchar</ptype> *<name>infoLog</name></param>
+            <param len="bufSize"><ptype>GLchar</ptype> *<name>infoLog</name></param>
             <glx type="single" opcode="200"/>
         </command>
         <command>
@@ -14674,14 +14674,14 @@ typedef unsigned int GLhandleARB;
             <param><ptype>GLuint</ptype> <name>shader</name></param>
             <param><ptype>GLsizei</ptype> <name>bufSize</name></param>
             <param len="1"><ptype>GLsizei</ptype> *<name>length</name></param>
-            <param len="length"><ptype>GLchar</ptype> *<name>source</name></param>
+            <param len="bufSize"><ptype>GLchar</ptype> *<name>source</name></param>
         </command>
         <command>
             <proto>void <name>glGetShaderSourceARB</name></proto>
             <param group="handleARB"><ptype>GLhandleARB</ptype> <name>obj</name></param>
             <param><ptype>GLsizei</ptype> <name>maxLength</name></param>
             <param len="1"><ptype>GLsizei</ptype> *<name>length</name></param>
-            <param len="length"><ptype>GLcharARB</ptype> *<name>source</name></param>
+            <param len="maxLength"><ptype>GLcharARB</ptype> *<name>source</name></param>
             <alias name="glGetShaderSource"/>
         </command>
         <command>
@@ -14725,7 +14725,7 @@ typedef unsigned int GLhandleARB;
             <param><ptype>GLenum</ptype> <name>pname</name></param>
             <param><ptype>GLsizei</ptype> <name>bufSize</name></param>
             <param len="1"><ptype>GLsizei</ptype> *<name>length</name></param>
-            <param len="length"><ptype>GLint</ptype> *<name>values</name></param>
+            <param len="bufSize"><ptype>GLint</ptype> *<name>values</name></param>
         </command>
         <command>
             <proto>void <name>glGetSyncivAPPLE</name></proto>
@@ -14733,7 +14733,7 @@ typedef unsigned int GLhandleARB;
             <param><ptype>GLenum</ptype> <name>pname</name></param>
             <param><ptype>GLsizei</ptype> <name>bufSize</name></param>
             <param><ptype>GLsizei</ptype> *<name>length</name></param>
-            <param><ptype>GLint</ptype> *<name>values</name></param>
+            <param len="bufSize"><ptype>GLint</ptype> *<name>values</name></param>
         </command>
         <command>
             <proto>void <name>glGetTexBumpParameterfvATI</name></proto>
@@ -14997,7 +14997,7 @@ typedef unsigned int GLhandleARB;
             <param len="1"><ptype>GLsizei</ptype> *<name>length</name></param>
             <param len="1"><ptype>GLsizei</ptype> *<name>size</name></param>
             <param len="1"><ptype>GLenum</ptype> *<name>type</name></param>
-            <param len="COMPSIZE(length)"><ptype>GLchar</ptype> *<name>name</name></param>
+            <param len="bufSize"><ptype>GLchar</ptype> *<name>name</name></param>
         </command>
         <command>
             <proto>void <name>glGetTransformFeedbackVaryingEXT</name></proto>
@@ -15007,7 +15007,7 @@ typedef unsigned int GLhandleARB;
             <param len="1"><ptype>GLsizei</ptype> *<name>length</name></param>
             <param len="1"><ptype>GLsizei</ptype> *<name>size</name></param>
             <param len="1"><ptype>GLenum</ptype> *<name>type</name></param>
-            <param len="COMPSIZE(length)"><ptype>GLchar</ptype> *<name>name</name></param>
+            <param len="bufSize"><ptype>GLchar</ptype> *<name>name</name></param>
             <alias name="glGetTransformFeedbackVarying"/>
         </command>
         <command>
@@ -15520,7 +15520,7 @@ typedef unsigned int GLhandleARB;
             <param><ptype>GLuint</ptype> <name>program</name></param>
             <param><ptype>GLint</ptype> <name>location</name></param>
             <param><ptype>GLsizei</ptype> <name>bufSize</name></param>
-            <param><ptype>GLfloat</ptype> *<name>params</name></param>
+            <param len="bufSize"><ptype>GLfloat</ptype> *<name>params</name></param>
         </command>
         <command>
             <proto>void <name>glGetnUniformivARB</name></proto>
@@ -15534,7 +15534,7 @@ typedef unsigned int GLhandleARB;
             <param><ptype>GLuint</ptype> <name>program</name></param>
             <param><ptype>GLint</ptype> <name>location</name></param>
             <param><ptype>GLsizei</ptype> <name>bufSize</name></param>
-            <param><ptype>GLint</ptype> *<name>params</name></param>
+            <param len="bufSize"><ptype>GLint</ptype> *<name>params</name></param>
         </command>
         <command>
             <proto>void <name>glGetnUniformuivARB</name></proto>
@@ -20541,7 +20541,7 @@ typedef unsigned int GLhandleARB;
             <param><ptype>GLenum</ptype> <name>format</name></param>
             <param><ptype>GLenum</ptype> <name>type</name></param>
             <param><ptype>GLsizei</ptype> <name>bufSize</name></param>
-            <param><ptype>GLvoid</ptype> *<name>data</name></param>
+            <param len="bufSize"><ptype>GLvoid</ptype> *<name>data</name></param>
         </command>
         <command>
             <proto>void <name>glRectd</name></proto>
@@ -22970,7 +22970,6 @@ typedef unsigned int GLhandleARB;
         <command>
             <proto>void <name>glTexturePageCommitmentEXT</name></proto>
             <param><ptype>GLuint</ptype> <name>texture</name></param>
-            <param><ptype>GLenum</ptype> <name>target</name></param>
             <param><ptype>GLint</ptype> <name>level</name></param>
             <param><ptype>GLint</ptype> <name>xoffset</name></param>
             <param><ptype>GLint</ptype> <name>yoffset</name></param>
@@ -23975,7 +23974,7 @@ typedef unsigned int GLhandleARB;
             <param><ptype>GLenum</ptype> <name>pname</name></param>
             <param><ptype>GLsizei</ptype> <name>bufSize</name></param>
             <param><ptype>GLsizei</ptype> *<name>length</name></param>
-            <param len="length"><ptype>GLint</ptype> *<name>values</name></param>
+            <param len="bufSize"><ptype>GLint</ptype> *<name>values</name></param>
         </command>
         <command>
             <proto>void <name>glVDPAUInitNV</name></proto>
@@ -24421,6 +24420,12 @@ typedef unsigned int GLhandleARB;
             <param><ptype>GLuint</ptype> <name>vaobj</name></param>
             <param><ptype>GLuint</ptype> <name>attribindex</name></param>
             <param><ptype>GLuint</ptype> <name>bindingindex</name></param>
+        </command>
+        <command>
+            <proto>void <name>glVertexArrayVertexAttribDivisorEXT</name></proto>
+            <param><ptype>GLuint</ptype> <name>vaobj</name></param>
+            <param><ptype>GLuint</ptype> <name>index</name></param>
+            <param><ptype>GLuint</ptype> <name>divisor</name></param>
         </command>
         <command>
             <proto>void <name>glVertexArrayVertexAttribFormatEXT</name></proto>
@@ -35963,6 +35968,9 @@ typedef unsigned int GLhandleARB;
                 <command name="glMapNamedBufferRangeEXT"/>
                 <command name="glFlushMappedNamedBufferRangeEXT"/>
             </require>
+            <require comment="Extended by GL_ARB_buffer_storage">
+                <command name="glNamedBufferStorageEXT"/>
+            </require>
             <require comment="Extended by GL_ARB_clear_buffer_object">
                 <command name="glClearNamedBufferDataEXT"/>
                 <command name="glClearNamedBufferSubDataEXT"/>
@@ -36015,6 +36023,9 @@ typedef unsigned int GLhandleARB;
             </require>
             <require comment="Extended by GL_ARB_sparse_texture">
                 <command name="glTexturePageCommitmentEXT"/>
+            </require>
+            <require comment="Extended by GL_ARB_instanced_arrays">
+                <command name="glVertexArrayVertexAttribDivisorEXT"/>
             </require>
         </extension>
         <extension name="GL_EXT_discard_framebuffer" supported="gles1|gles2">
@@ -36594,6 +36605,11 @@ typedef unsigned int GLhandleARB;
                 <enum name="GL_FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING_EXT"/>
             </require>
         </extension>
+        <extension name="GL_EXT_sRGB_write_control" supported="gles2">
+            <require>
+                <enum name="GL_FRAMEBUFFER_SRGB_EXT"/>
+            </require>
+        </extension>
         <extension name="GL_EXT_secondary_color" supported="gl">
             <require>
                 <enum name="GL_COLOR_SUM_EXT"/>
@@ -37086,7 +37102,7 @@ typedef unsigned int GLhandleARB;
                 <enum name="GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT"/>
             </require>
         </extension>
-        <extension name="GL_EXT_texture_sRGB_decode" supported="gl">
+        <extension name="GL_EXT_texture_sRGB_decode" supported="gl|gles2">
             <require>
                 <enum name="GL_TEXTURE_SRGB_DECODE_EXT"/>
                 <enum name="GL_DECODE_EXT"/>
@@ -37157,6 +37173,8 @@ typedef unsigned int GLhandleARB;
                 <command name="glTexStorage1DEXT"/>
                 <command name="glTexStorage2DEXT"/>
                 <command name="glTexStorage3DEXT"/>
+            </require>
+            <require comment="Supported only if GL_EXT_direct_state_access is supported">
                 <command name="glTextureStorage1DEXT"/>
                 <command name="glTextureStorage2DEXT"/>
                 <command name="glTextureStorage3DEXT"/>

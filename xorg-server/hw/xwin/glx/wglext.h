@@ -41,7 +41,7 @@ extern "C" {
 #include <windows.h>
 #endif
 
-#define WGL_WGLEXT_VERSION 20130710
+#define WGL_WGLEXT_VERSION 20130819
 
 /* Generated C header for:
  * API: wgl
@@ -644,6 +644,14 @@ typedef BOOL (WINAPI * PFNWGLCOPYIMAGESUBDATANVPROC) (HGLRC hSrcRC, GLuint srcNa
 BOOL WINAPI wglCopyImageSubDataNV (HGLRC hSrcRC, GLuint srcName, GLenum srcTarget, GLint srcLevel, GLint srcX, GLint srcY, GLint srcZ, HGLRC hDstRC, GLuint dstName, GLenum dstTarget, GLint dstLevel, GLint dstX, GLint dstY, GLint dstZ, GLsizei width, GLsizei height, GLsizei depth);
 #endif
 #endif /* WGL_NV_copy_image */
+
+#ifndef WGL_NV_delay_before_swap
+#define WGL_NV_delay_before_swap 1
+typedef BOOL (WINAPI * PFNWGLDELAYBEFORESWAPNVPROC) (HDC hDC, GLfloat seconds);
+#ifdef WGL_WGLEXT_PROTOTYPES
+BOOL WINAPI wglDelayBeforeSwapNV (HDC hDC, GLfloat seconds);
+#endif
+#endif /* WGL_NV_delay_before_swap */
 
 #ifndef WGL_NV_float_buffer
 #define WGL_NV_float_buffer 1
