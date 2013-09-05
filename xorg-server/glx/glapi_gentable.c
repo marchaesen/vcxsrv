@@ -8879,6 +8879,76 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->DebugMessageCallback) {
+        void ** procp = (void **) &disp->DebugMessageCallback;
+        snprintf(symboln, sizeof(symboln), "%sDebugMessageCallback", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DebugMessageControl) {
+        void ** procp = (void **) &disp->DebugMessageControl;
+        snprintf(symboln, sizeof(symboln), "%sDebugMessageControl", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DebugMessageInsert) {
+        void ** procp = (void **) &disp->DebugMessageInsert;
+        snprintf(symboln, sizeof(symboln), "%sDebugMessageInsert", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetDebugMessageLog) {
+        void ** procp = (void **) &disp->GetDebugMessageLog;
+        snprintf(symboln, sizeof(symboln), "%sGetDebugMessageLog", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetObjectLabel) {
+        void ** procp = (void **) &disp->GetObjectLabel;
+        snprintf(symboln, sizeof(symboln), "%sGetObjectLabel", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetObjectPtrLabel) {
+        void ** procp = (void **) &disp->GetObjectPtrLabel;
+        snprintf(symboln, sizeof(symboln), "%sGetObjectPtrLabel", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ObjectLabel) {
+        void ** procp = (void **) &disp->ObjectLabel;
+        snprintf(symboln, sizeof(symboln), "%sObjectLabel", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->ObjectPtrLabel) {
+        void ** procp = (void **) &disp->ObjectPtrLabel;
+        snprintf(symboln, sizeof(symboln), "%sObjectPtrLabel", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PopDebugGroup) {
+        void ** procp = (void **) &disp->PopDebugGroup;
+        snprintf(symboln, sizeof(symboln), "%sPopDebugGroup", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->PushDebugGroup) {
+        void ** procp = (void **) &disp->PushDebugGroup;
+        snprintf(symboln, sizeof(symboln), "%sPushDebugGroup", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->SecondaryColor3fEXT) {
         void ** procp = (void **) &disp->SecondaryColor3fEXT;
         snprintf(symboln, sizeof(symboln), "%sSecondaryColor3f", symbol_prefix);
