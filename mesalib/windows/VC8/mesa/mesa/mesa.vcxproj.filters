@@ -752,6 +752,9 @@
     <ClCompile Include="..\..\..\..\src\glsl\opt_dead_builtin_varyings.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\mesa\main\objectlabel.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\src\glsl\strtod.h">
