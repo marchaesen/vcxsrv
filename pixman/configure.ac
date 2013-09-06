@@ -631,8 +631,8 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 #ifndef __IWMMXT__
 #error "IWMMXT not enabled (with -march=iwmmxt)"
 #endif
-#if defined(__GNUC__) && (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 5))
-#error "Need GCC >= 4.5 for IWMMXT intrinsics"
+#if defined(__GNUC__) && (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 8))
+#error "Need GCC >= 4.8 for IWMMXT intrinsics"
 #endif
 #include <mmintrin.h>
 int main () {

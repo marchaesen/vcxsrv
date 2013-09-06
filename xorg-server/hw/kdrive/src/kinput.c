@@ -221,7 +221,7 @@ KdUnregisterFd(void *closure, int fd, Bool do_close)
             if (do_close)
                 close(kdInputFds[i].fd);
             kdNumInputFds--;
-            for (j = i; j < kdNumInputFds; j++)
+            for (j = i; j < (kdNumInputFds - 1); j++)
                 kdInputFds[j] = kdInputFds[j + 1];
             break;
         }

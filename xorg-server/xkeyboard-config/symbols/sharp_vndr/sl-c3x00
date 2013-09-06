@@ -12,7 +12,7 @@ xkb_symbols "basic" {
 	key <AE04> { [ 4, dollar ] };
 	key <AE05> { [ 5, percent ] };
 	key <AE06> { [ 6, ampersand ] };
-	key <AE07> { [ 7, quoteright ] };
+	key <AE07> { [ 7, apostrophe ] };
 	key <AE08> { [ 8, parenleft ] };
 	key <AE09> { [ 9, parenright ] };
 	key <AE10> { [ 0, asciitilde ] };
@@ -34,7 +34,7 @@ xkb_symbols "basic" {
 
 	key <AC01> { [ a, A ] };
 	key <AC02> { [ s, S ] };
-	key <AC03> { [ d, D, quoteleft ] };
+	key <AC03> { [ d, D, grave ] };
 	key <AC04> { [ f, F, backslash ] };
 	key <AC05> { [ g, G, semicolon ] };
 	key <AC06> { [ h, H, colon ] };

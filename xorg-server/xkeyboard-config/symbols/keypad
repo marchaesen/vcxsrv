@@ -6,8 +6,6 @@ xkb_symbols "overlay" {
 partial hidden keypad_keys
 xkb_symbols "overlay1" {
 
-    // Begin "Keypad" section
-
     key  <KP7> {	[  KP_Home	],	overlay1=<KO7>	};
     key  <KP8> {	[  KP_Up	],	overlay1=<KO8>	};
     key  <KP9> {	[  KP_Prior	],	overlay1=<KO9>	};
@@ -21,7 +19,7 @@ xkb_symbols "overlay1" {
     key  <KP3> {	[  KP_Next	],	overlay1=<KO3>	};
 
     key  <KP0> {	[  KP_Insert	],	overlay1=<KO0>	};
-    key <KPDL> {  	[  KP_Delete	],	overlay1=<KODL>	};
+    key <KPDL> {	[  KP_Delete	],	overlay1=<KODL>	};
 
     key  <KO7> {	[  KP_7	]	};
     key  <KO8> {	[  KP_8	]	};
@@ -36,15 +34,11 @@ xkb_symbols "overlay1" {
     key  <KO3> {	[  KP_3	]	};
 
     key  <KO0> {	[  KP_0	]	};
-    key <KODL> {  	[  KP_Decimal ]	};
-
-    // End "Keypad" section
+    key <KODL> {	[  KP_Decimal ]	};
 };
 
 partial hidden keypad_keys
 xkb_symbols "overlay2" {
-
-    // Begin "Keypad" section
 
     key  <KP7> {	[  KP_Home	],	overlay2=<KO7>	};
     key  <KP8> {	[  KP_Up	],	overlay2=<KO8>	};
@@ -59,7 +53,7 @@ xkb_symbols "overlay2" {
     key  <KP3> {	[  KP_Next	],	overlay2=<KO3>	};
 
     key  <KP0> {	[  KP_Insert	],	overlay2=<KO0>	};
-    key <KPDL> {  	[  KP_Delete	],	overlay2=<KODL>	};
+    key <KPDL> {	[  KP_Delete	],	overlay2=<KODL>	};
 
     key  <KO7> {	[  KP_7	]	};
     key  <KO8> {	[  KP_8	]	};
@@ -74,40 +68,39 @@ xkb_symbols "overlay2" {
     key  <KO3> {	[  KP_3	]	};
 
     key  <KO0> {	[  KP_0	]	};
-    key <KODL> {  	[  KP_Decimal ]	};
+    key <KODL> {	[  KP_Decimal ]	};
+};
 
-    // End "Keypad" section
+partial hidden keypad_keys
+xkb_symbols "operators" {
+    // Puts some commands to control the X server on
+    // the fifth level of the keypad's operator keys.
+    key <KPDV> {
+        type="CTRL+ALT",	// Ungrab cancels server/keyboard/pointer grabs
+        symbols[Group1]= [ KP_Divide, KP_Divide, KP_Divide, KP_Divide, XF86_Ungrab ]
+    };
+    key <KPMU> {
+        type="CTRL+ALT",	// ClsGrb kills whichever client has a grab in effect
+        symbols[Group1]= [ KP_Multiply,	KP_Multiply, KP_Multiply, KP_Multiply, XF86_ClearGrab ]
+    };
+    key <KPSU> {
+        type="CTRL+ALT",	// -VMode switches to the previous video mode
+        symbols[Group1]= [ KP_Subtract, KP_Subtract, KP_Subtract, KP_Subtract, XF86_Prev_VMode ]
+    };
+    key <KPAD> {
+        type="CTRL+ALT",	// +VMode switches to the next video mode
+        symbols[Group1]= [ KP_Add, KP_Add, KP_Add, KP_Add, XF86_Next_VMode ]
+    };
 };
 
 partial hidden default keypad_keys
 xkb_symbols "x11" {
-// Ungrab cancels server/keyboard/pointer grabs
-    key <KPDV> {
-        type="CTRL+ALT",
-        symbols[Group1]= [ KP_Divide, KP_Divide, KP_Divide, KP_Divide, XF86_Ungrab ]
-    };
 
-// ClsGrb kills whichever client has a grab in effect
-    key <KPMU> {
-        type="CTRL+ALT",
-        symbols[Group1]= [ KP_Multiply,	KP_Multiply, KP_Multiply, KP_Multiply, XF86_ClearGrab ]
-    };
-
-// -VMode switches to the previous video mode
-    key <KPSU> {
-        type="CTRL+ALT",
-        symbols[Group1]= [ KP_Subtract, KP_Subtract, KP_Subtract, KP_Subtract, XF86_Prev_VMode ]
-    };
+    include "keypad(operators)"
 
     key  <KP7> {	[  KP_Home,	KP_7	]	};
     key  <KP8> {	[  KP_Up,	KP_8	]	};
     key  <KP9> {	[  KP_Prior,	KP_9	]	};
-
-// +VMode switches to the next video mode
-    key <KPAD> {
-        type="CTRL+ALT",
-        symbols[Group1]= [ KP_Add, KP_Add, KP_Add, KP_Add, XF86_Next_VMode ]
-    };
 
     key  <KP4> {	[  KP_Left,	KP_4	]	};
     key  <KP5> {	[  KP_Begin,	KP_5	]	};
@@ -116,12 +109,12 @@ xkb_symbols "x11" {
     key  <KP1> {	[  KP_End,	KP_1	]	};
     key  <KP2> {	[  KP_Down,	KP_2	]	};
     key  <KP3> {	[  KP_Next,	KP_3	]	};
-    key <KPEN> {	[  	KP_Enter	]	};
-    key <KPEQ> {	[  	KP_Equal	]	};
+    key <KPEN> {	[	KP_Enter	]	};
+    key <KPEQ> {	[	KP_Equal	]	};
 
     key  <KP0> {	[  KP_Insert,	KP_0	]	};
-    key <KPDL> {  	[  KP_Delete,	KP_Decimal ]	};
-    key <KPPT> {  	[  KP_Decimal,	KP_Decimal ]	};
+    key <KPDL> {	[  KP_Delete,	KP_Decimal ]	};
+    key <KPPT> {	[  KP_Decimal,	KP_Decimal ]	};
 };
 
 
@@ -247,7 +240,6 @@ xkb_symbols "legacymath" {
     key <KPSU> { [ KP_Subtract, KP_Subtract, KP_Subtract, KP_Subtract, XF86_Prev_VMode ] }; // - <XF86_Prev_VMode>
 
     key <KPAD> { [      KP_Add, KP_Add, KP_Add, KP_Add, XF86_Next_VMode ] }; // + <XF86_Next_VMode>
-
 };
 
 
@@ -272,8 +264,8 @@ xkb_symbols "ossmath" {
     key <KPDV> { [   KP_Divide, 0x1002215, 0x10000F7, VoidSymbol,     XF86_Ungrab ] }; // / ∕ ÷     <XF86_Ungrab>
     key <KPMU> { [ KP_Multiply, 0x10022C5, 0x10000D7, VoidSymbol,  XF86_ClearGrab ] }; // * ⋅ ×  <XF86_ClearGrab>
     key <KPSU> { [ KP_Subtract, 0x1002212, 0x1002212, VoidSymbol, XF86_Prev_VMode ] }; // - − − <XF86_Prev_VMode>
-    key <KPAD> { [      KP_Add, 0x100002B, 0x100002B, VoidSymbol, XF86_Next_VMode ] }; // + + + <XF86_Next_VMode>
 
+    key <KPAD> { [      KP_Add, 0x100002B, 0x100002B, VoidSymbol, XF86_Next_VMode ] }; // + + + <XF86_Next_VMode>
 };
 
 
@@ -333,19 +325,19 @@ xkb_symbols "ossmath_latin9" {
 // Legacy keypad number area
 // Copyright © 2006 Nicolas Mailhot <nicolas.mailhot @ laposte.net>
 //
-// ┏━━━━━┱                   ⇱ Home
-// ┃Num  ┃                   ⇲ End
-// ┃Lock⇭┃                   ⇞ Page up
-// ┡━━━━━╃─────┼─────┼       ⇟ Page down
-// │ 7   │ 8   │ 9   │       ⇞ Page up
+// ┏━━━━━┱
+// ┃Num  ┃                   ⇱ Home
+// ┃Lock⇭┃                   ⇲ End
+// ┡━━━━━╃─────┼─────┼       ⇞ Page up
+// │ 7   │ 8   │ 9   │       ⇟ Page down
 // │ ⇱   │ ⇧   │ ⇞   │       ⎀ Insert
 // ├─────┼─────┼─────┤       ␥ Delete
 // │ 4   │ 5   │ 6   │       ⇦⇧⇨⇩ Directions
 // │ ⇦   │     │ ⇨   │
 // ├─────┼─────┼─────╆
 // │ 1   │ 2   │ 3   ┃
-// │ ⇲   │ ⇩   │ ⇟   ┃        1 None
-// ├─────┴─────┼─────┨        2 Num Lock ⇭
+// │ ⇲   │ ⇩   │ ⇟   ┃       1 None
+// ├─────┴─────┼─────┨       2 Num Lock ⇭
 // │ 0         │
 // │ ⎀         │
 // └───────────┴
@@ -375,11 +367,11 @@ xkb_symbols "legacynumber" {
 // This is actually a three-level keypad, declared as four-level
 // to avoid defining a new type
 //
-// ┏━━━━━┱                   ⇱ Home
-// ┃Num  ┃                   ⇲ End
-// ┃Lock⇭┃                   ⇞ Page up
-// ┡━━━━━╃─────┼─────┼       ⇟ Page down
-// │ 7   │ 8   │ 9   │       ⇞ Page up
+// ┏━━━━━┱
+// ┃Num  ┃                   ⇱ Home
+// ┃Lock⇭┃                   ⇲ End
+// ┡━━━━━╃─────┼─────┼       ⇞ Page up
+// │ 7   │ 8   │ 9   │       ⇟ Page down
 // │ ⇱ < │ ⇧ > │ ⇞ ^ │       ⎀ Insert
 // ├─────┼─────┼─────┤       ␥ Delete
 // │ 4   │ 5   │ 6   │       ⇦⇧⇨⇩ Directions
@@ -415,15 +407,15 @@ xkb_symbols "legacynumber_wang" {
 // Keypad number area with arrow symbols
 // Copyright © 2006 Nicolas Mailhot <nicolas.mailhot @ laposte.net>
 //
-// ┏━━━━━┱                   ⇱ Home
-// ┃Num  ┃                   ⇲ End
-// ┃Lock⇭┃                   ⇞ Page up
-// ┡━━━━━╃─────┼─────┼       ⇟ Page down
-// │ 7 ⇖ │ 8 ⇑ │ 9 ⇗ │       ⇞ Page up
+// ┏━━━━━┱
+// ┃Num  ┃                   ⇱ Home
+// ┃Lock⇭┃                   ⇲ End
+// ┡━━━━━╃─────┼─────┼       ⇞ Page up
+// │ 7 ⇖ │ 8 ⇑ │ 9 ⇗ │       ⇟ Page down
 // │ ⇱ ↖ │ ⇧ ↑ │ ⇞ ↗ │       ⎀ Insert
 // ├─────┼─────┼─────┤       ␥ Delete
-// │ 4 ⇐ │ 5 ⇔ │ 6 ⇗ │       ⇦⇧⇨⇩ Directions
-// │ ⇦ ← │   ↔ │ ⇨ ↗ │       ⍽ narrow no-break space
+// │ 4 ⇐ │ 5 ⇔ │ 6 ⇒ │       ⇦⇧⇨⇩ Directions
+// │ ⇦ ← │   ↔ │ ⇨ → │       ⍽ narrow no-break space
 // ├─────┼─────┼─────╆
 // │ 1 ⇙ │ 2 ⇓ │ 3 ⇘ ┃
 // │ ⇲ ↙ │ ⇩ ↓ │ ⇟ ↘ ┃       1 None
@@ -455,11 +447,11 @@ xkb_symbols "ossnumber" {
 // Wang 725-3771-ae and 725-3771-uk keypad number area with additional arrow symbols
 // Copyright © 2007 Nicolas Mailhot <nicolas.mailhot @ laposte.net>
 //
-// ┏━━━━━┱                   ⇱ Home
-// ┃Num  ┃                   ⇲ End
-// ┃Lock⇭┃                   ⇞ Page up
-// ┡━━━━━╃─────┼─────┼       ⇟ Page down
-// │ 7 ↖ │ 8 ↑ │ 9 ↗ │       ⇞ Page up
+// ┏━━━━━┱
+// ┃Num  ┃                   ⇱ Home
+// ┃Lock⇭┃                   ⇲ End
+// ┡━━━━━╃─────┼─────┼       ⇞ Page up
+// │ 7 ↖ │ 8 ↑ │ 9 ↗ │       ⇟ Page down
 // │ ⇱ < │ ⇧ > │ ⇞ ^ │       ⎀ Insert
 // ├─────┼─────┼─────┤       ␥ Delete
 // │ 4 ← │ 5 ↔ │ 6 → │       ⇦⇧⇨⇩ Directions
@@ -530,7 +522,7 @@ partial keypad_keys
 xkb_symbols "hex" {
     key.type[Group1]="FOUR_LEVEL_MIXED_KEYPAD" ;
 
-    //             None       NumLock      AltGr
+    //             None       NumLock    AltGr
     // symbol row
     key <KPDV> { [ NoSymbol,  NoSymbol,  parenleft  ] };
     key <KPMU> { [ NoSymbol,  NoSymbol,  parenright ] };
@@ -579,8 +571,9 @@ xkb_symbols "atm" {
 
 partial modifier_keys
 xkb_symbols "pointerkeys" {
-    key <NMLK> {	[ Num_Lock,	Pointer_EnableKeys 	]	};
+    key <NMLK> { [ Num_Lock, Pointer_EnableKeys ] };
 };
+
 
 // Only numbers, operators and decimal separator,
 // as seen on keypad overlay on Japanese keyboard.

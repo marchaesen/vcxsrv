@@ -16,7 +16,7 @@ default xkb_symbols "us" {
     key <AE10> {	[	  0,	parenright	]	};
     key <AE11> {	[ minus,	underscore	]	};
     key <AE12> {	[ equal,	plus		]	};
-    key <TLDE> {	[ quoteleft,	asciitilde	]	};
+    key <TLDE> {	[ grave,	asciitilde	]	};
     key <BKSP> {	[	BackSpace		]	};
 
     key  <TAB> {	[	Tab,	ISO_Left_Tab	]	};
@@ -46,7 +46,7 @@ default xkb_symbols "us" {
     key <AC08> {	[	  k,	K		]	};
     key <AC09> {	[	  l,	L		]	};
     key <AC10> {	[ semicolon,	colon		]	};
-    key <AC11> {	[ quoteright,	quotedbl	]	};
+    key <AC11> {	[ apostrophe,	quotedbl	]	};
     key <BKSL> {	[ backslash,	bar		]	};
 
     key <LFSH> {	[ 	 Shift_L		]	};
@@ -133,7 +133,7 @@ xkb_symbols "de" {
     key <AE09> {	[	  9,	parenright	]	};
     key <AE10> {	[	  0,	equal		]	};
     key <AE11> {	[    ssharp,	question	]	};
-    key <AE12> {	[ quoteright,	quoteleft	]	};
+    key <AE12> {	[ apostrophe,	grave		]	};
     key <TLDE> {	[ numbersign,	asciicircum	]	};
 
     key <AD06> {	[	  z,	Z		]	};

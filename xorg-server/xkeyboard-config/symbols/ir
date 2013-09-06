@@ -39,7 +39,7 @@ partial hidden alphanumeric_keys
 xkb_symbols "pes_part_basic" {
 
     // Persian digits
-    key <AE01> { [ Farsi_1,	exclam,		quoteleft		] };
+    key <AE01> { [ Farsi_1,	exclam,		grave			] };
     key <AE02> { [ Farsi_2,	0x100066c,	at			] };
     key <AE03> { [ Farsi_3,	0x100066b,	numbersign		] };
     key <AE04> { [ Farsi_4,	0x100fdfc,	dollar			] };
@@ -99,7 +99,7 @@ partial hidden alphanumeric_keys
 xkb_symbols "pes_part_ext" {
 
     // Persian and ASCII digits
-    key <AE01> { [ 0x10006f1,	exclam,		quoteleft,		1	] };
+    key <AE01> { [ 0x10006f1,	exclam,		grave,			1	] };
     key <AE02> { [ 0x10006f2,	0x100066c,	at,			2	] };
     key <AE03> { [ 0x10006f3,	0x100066b,	numbersign,		3	] };
     key <AE04> { [ 0x10006f4,	0x100fdfc,	dollar,			4	] };
@@ -186,7 +186,7 @@ xkb_symbols "ku_ara" {
     key <BKSL> { [ backslash,		bar,			ccedilla, Ccedilla	] };
 
     // Digits
-    key <AE01> { [ 1,	exclam,		0x10006f1,	quoteleft	] };
+    key <AE01> { [ 1,	exclam,		0x10006f1,	grave		] };
     key <AE02> { [ 2,	at, 		0x10006f2,	at		] };
     key <AE03> { [ 3,	numbersign,	0x10006f3,	0x100066b	] };
     key <AE04> { [ 4,	dollar,		0x10006f4, 	0x100fdfc	] };

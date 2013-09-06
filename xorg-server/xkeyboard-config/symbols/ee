@@ -90,7 +90,7 @@ xkb_symbols "us" {
     // š, Š
     key <AC02>	{ [           s,  S,          scaron,     Scaron     ]	};
     key <AC10>	{ [ semicolon,    colon,      odiaeresis, Odiaeresis ]	};
-    key <AC11>	{ [ quoteright,   quotedbl,   adiaeresis, Adiaeresis ]	};
+    key <AC11>	{ [ apostrophe,   quotedbl,   adiaeresis, Adiaeresis ]	};
     key <AD11>	{ [ bracketleft,  braceleft,  udiaeresis, Udiaeresis ]	};
     key <AD12>	{ [ bracketright, braceright, otilde,     Otilde     ]	};
     // £

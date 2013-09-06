@@ -8,9 +8,7 @@ xkb_symbols "basic" {
 
     name[Group1]="Dhivehi";
 
-// The key <TLDE> should have the same values as US_en keyboard
-
-    key <TLDE> { [	quoteleft,        asciitilde   ]       };
+    key <TLDE> { [           grave,      asciitilde      ]       };
     key <AE01> { [               1,          exclam      ]       };
     key <AE02> { [               2,              at      ]       };
     key <AE03> { [               3,      numbersign      ]       };
@@ -50,9 +48,7 @@ xkb_symbols "basic" {
     key <AC08> { [	0x1000786,       0x100079A     ]       };
     key <AC09> { [	0x100078D,       0x1000785     ]       };
     key <AC10> { [	semicolon,       colon         ]       };
-//I used singleloquotemark- if this is the wrong name, please replace with the name for the 
-//standard US_en keyboard format- its the same in the Thaana phonetic keyboard
-    key <AC11> { [      quoteright,        quotedbl      ]       };
+    key <AC11> { [	apostrophe,      quotedbl      ]       };
     key <BKSL> { [ 	backslash,	 bar           ]       };
 
     key <LSGT> { [        bar,      	brokenbar	]       };

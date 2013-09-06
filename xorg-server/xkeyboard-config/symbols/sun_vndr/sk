@@ -34,7 +34,7 @@ xkb_symbols "sun_type6" {
 
 	include "sun_vndr/us(sun_type6)"
 
-    key <TLDE>  { 	[       semicolon, dead_abovering, quoteleft,         asciitilde  ]	};
+    key <TLDE>  { 	[       semicolon, dead_abovering, grave              asciitilde  ]	};
     key <AE01>  { 	[	     plus,         1,	exclam,               asciitilde  ]	};
     key <AE02>  {	[	   lcaron,         2,	at,                   dead_caron  ]	};
     key <AE03>  {	[	   scaron,         3,	numbersign,      dead_circumflex  ]	};

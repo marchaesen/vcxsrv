@@ -191,7 +191,7 @@ xkb_geometry "jp4" {
 	};
 };
 
-// Basic layout for non-swictchable keys
+// Basic layout for non-switchable keys
 partial hidden xkb_geometry "basic" {
 
 	description = "Happy Hacking Keyboard";

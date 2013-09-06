@@ -372,8 +372,8 @@ xkb_symbols "latin9" {
     key <AD07>	{ [               u,               U,         ucircumflex,           udiaeresis ] };
     key <AD08>	{ [               i,               I,         icircumflex,           idiaeresis ] };
     key <AD09>	{ [               o,               O,         ocircumflex,           odiaeresis ] };
-    key <AD10>	{ [               p,               P,           paragraph,            quoteleft ] };
-    key <AD11>	{ [ dead_circumflex,  dead_diaeresis,          dead_tilde,           quoteright ] };
+    key <AD10>	{ [               p,               P,           paragraph,                grave ] };
+    key <AD11>	{ [ dead_circumflex,  dead_diaeresis,          dead_tilde,           apostrophe ] };
     key <AD12>	{ [          dollar,	    sterling,         ecircumflex,           ediaeresis ] };
 
     key <AC01>	{ [               q,               Q,         Acircumflex,           Adiaeresis ] };
@@ -417,7 +417,7 @@ xkb_symbols "latin9_Sundeadkeys" {
 
     key <AE01>	{ [       ampersand,               1,         dead_acute,       periodcentered ] };
     key <AE07>	{ [          egrave,               7,         dead_grave,               Egrave ] };
-    key <AD11>	{ [    dead_circumflex, dead_diaeresis,         dead_tilde,           quoteright ] };
+    key <AD11>	{ [ dead_circumflex,  dead_diaeresis,         dead_tilde,           apostrophe ] };
 
 };
 
@@ -441,7 +441,7 @@ xkb_symbols "latin9_nodeadkeys" {
     key <AE01>	{ [       ampersand,               1,          apostrophe,       periodcentered ] };
     key <AE07>	{ [          egrave,               7,               grave,               Egrave ] };
     key <AE12>	{ [           equal,            plus,          braceright         	        ] };
-    key <AD11>	{ [	asciicircum,  	   diaeresis,          asciitilde,           quoteright ] };
+    key <AD11>	{ [	asciicircum,  	   diaeresis,          asciitilde,           apostrophe ] };
 };
 
 // Bépo : Improved ergonomic french keymap using Dvorak method.

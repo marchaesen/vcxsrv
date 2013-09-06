@@ -2864,18 +2864,25 @@ ProcCreateCursor(ClientPtr client)
         return rc;
     }
 
-    rc = dixLookupResourceByType((pointer *) &msk, stuff->mask, RT_PIXMAP,
-                                 client, DixReadAccess);
-    if (rc != Success) {
-        if (stuff->mask != None) {
+    if (src->drawable.depth != 1)
+        return (BadMatch);
+
+    /* Find and validate cursor mask pixmap, if one is provided */
+    if (stuff->mask != None) {
+        rc = dixLookupResourceByType((pointer *) &msk, stuff->mask, RT_PIXMAP,
+                                     client, DixReadAccess);
+        if (rc != Success) {
             client->errorValue = stuff->mask;
             return rc;
         }
+
+        if (src->drawable.width != msk->drawable.width
+            || src->drawable.height != msk->drawable.height
+            || src->drawable.depth != 1 || msk->drawable.depth != 1)
+            return BadMatch;
     }
-    else if (src->drawable.width != msk->drawable.width
-             || src->drawable.height != msk->drawable.height
-             || src->drawable.depth != 1 || msk->drawable.depth != 1)
-        return BadMatch;
+    else
+        msk = NULL;
 
     width = src->drawable.width;
     height = src->drawable.height;

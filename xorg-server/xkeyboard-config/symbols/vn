@@ -16,7 +16,7 @@ xkb_symbols "basic" {
     name[Group1]= "Vietnamese";
 
     // Alphanumeric section
-    key <TLDE> { [ quoteleft, asciitilde  ]	};
+    key <TLDE> { [	   grave, 	asciitilde	] };
     key <AE01> { [	   abreve,	Abreve		] };
     key <AE02> { [	   acircumflex,  Acircumflex	] };
     key <AE03> { [	   ecircumflex,	Ecircumflex	] };

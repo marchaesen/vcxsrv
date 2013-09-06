@@ -20,7 +20,7 @@ xkb_symbols "basic" {
    key <ESC>  { [ Escape ] };
 
 // numbers
-   key <TLDE> { [ quoteleft,	asciitilde,	voidsymbol,	voidsymbol ] };
+   key <TLDE> { [ grave,	asciitilde,	voidsymbol,	voidsymbol ] };
    key <AE01> { [ 0x10009E7,	exclam,		0x10009F4,	voidsymbol ] };
    key <AE02> { [ 0x10009E8,	at,		0x10009F5,	voidsymbol ] };
    key <AE03> { [ 0x10009E9,	numbersign,	0x10009F6,	voidsymbol ] };
@@ -63,7 +63,7 @@ xkb_symbols "basic" {
    key <AC08> { [ 0x10009A4,	0x10009A5,	0x10009CE,	voidsymbol ] };
    key <AC09> { [ 0x10009A6,	0x10009A7,	0x100098C,	0x10009E1  ] };
    key <AC10> { [ semicolon,	colon,		voidsymbol,	voidsymbol ] };
-   key <AC11> { [ quoteright,	quotedbl,	voidsymbol,	voidsymbol ] };
+   key <AC11> { [ apostrophe,	quotedbl,	voidsymbol,	voidsymbol ] };
 
 // shift, z to /
 // key <LFSH> { [ Shift_L ] };

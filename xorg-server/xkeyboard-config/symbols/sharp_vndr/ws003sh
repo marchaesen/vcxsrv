@@ -11,7 +11,7 @@ xkb_symbols "basic" {
 	key <AE04> { [ 4, dollar ] };
 	key <AE05> { [ 5, percent ] };
 	key <AE06> { [ 6, ampersand ] };
-	key <AE07> { [ 7, quoteright, quoteleft ] };
+	key <AE07> { [ 7, apostrophe, grave ] };
 	key <AE08> { [ 8, parenleft, braceleft ] };
 	key <AE09> { [ 9, parenright, braceright ] };
 	key <AE10> { [ 0 ] };

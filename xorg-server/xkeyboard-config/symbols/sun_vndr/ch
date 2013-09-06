@@ -44,8 +44,8 @@ xkb_symbols "sun_type6_de" {
     key <AE07> { [          7,      slash,    brokenbar             ] };
     key <AE08> { [          8,  parenleft,         cent             ] };
     key <AE09> { [          9, parenright                           ] };
-    key <AE10> { [          0,      equal,    quoteleft             ] };
-    key <AE11> { [ quoteright,   question,   dead_acute             ] };
+    key <AE10> { [          0,      equal,        grave             ] };
+    key <AE11> { [ apostrophe,   question,   dead_acute             ] };
     key <AE12> { [ dead_circumflex, dead_grave, dead_tilde          ] };
 
     key <AD03> { [          e,          E,     EuroSign             ] };
@@ -84,8 +84,8 @@ xkb_symbols "sun_type6_fr" {
     key <AE07> { [          7,      slash,    brokenbar             ] };
     key <AE08> { [          8,  parenleft,         cent             ] };
     key <AE09> { [          9, parenright                           ] };
-    key <AE10> { [          0,      equal,    quoteleft             ] };
-    key <AE11> { [ quoteright,   question,   dead_acute             ] };
+    key <AE10> { [          0,      equal,        grave             ] };
+    key <AE11> { [ apostrophe,   question,   dead_acute             ] };
     key <AE12> { [ dead_circumflex, dead_grave, dead_tilde          ] };
 
     key <AD03> { [          e,          E,     EuroSign             ] };
