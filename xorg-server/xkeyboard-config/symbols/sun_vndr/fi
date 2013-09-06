@@ -52,7 +52,7 @@ xkb_symbols "sun_type6" {
     key <AD12> { [  dead_diaeresis,  asciicircum,      asciitilde             ] };
     key <AC10> { [  odiaeresis,      Odiaeresis                               ] };
     key <AC11> { [  adiaeresis,      Adiaeresis                               ] };
-    key <BKSL> { [  apostrophe,      asterisk,         quoteleft              ] };
+    key <BKSL> { [  apostrophe,      asterisk,         grave                  ] };
     key <LSGT> { [  less,            greater,          bar                    ] };
     key <AB08> { [  comma,           semicolon                                ] };
     key <AB09> { [  period,          colon                                    ] };

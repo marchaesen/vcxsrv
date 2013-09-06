@@ -619,7 +619,7 @@ xkb_geometry "latitude" {
 	section "Arrows" {key.color="grey"; priority=110; top=112; left=240; width=43; height=31;
 		row {top=0; left=18; keys {{<UP>, "ARROW", 0}};};	
 		row {top=16; left=0; keys {{<LEFT>, "ARROW", 0}, {<DOWN>, "ARROW", 1}, {<RGHT>, "ARROW", 1}};};
-		}; // End of "Arrows" section
+	}; // End of "Arrows" section
 
 	shape "LEDS" {corner=3, {[25,7]}};
 	solid "leds" {shape="LEDS"; top=5.7; left=69; color="grey"; priority=10;};
@@ -640,5 +640,5 @@ xkb_geometry "latitude" {
 	section "Topbuttons" {key.color="grey"; priority=110; top=2; left=100;
 		row {top=2; left=0; keys {{<VLUP>, "ROUND", 0}, {<VLDN>, "ROUND", 3}, {<MUTE>, "ROUND", 3}};};	
 		row {top=0; left=45; keys {{<POWR>, "POWER", 0}};};
-		}; // End of "TopButtons" section
+	}; // End of "TopButtons" section
 };

@@ -5,7 +5,7 @@
 //
 // Original authors:
 //  Danilo Segan (Данило Шеган) <danilo@kvota.net>
-//  Chusslove Illich (Часлав Илић) <chaslav@sezampro.yu>
+//  Chusslove Illich (Часлав Илић) <caslav.ilic@gmx.net>
 //
 // Danilo Segan <danilo@kvota.net>:
 // - Modified for inclusion in XFree86
@@ -56,7 +56,7 @@ xkb_symbols "common" {
 
   key.type[Group1] = "FOUR_LEVEL";
 
-  key <TLDE> {   [ quoteleft,           asciitilde,    any,any ]   }; //
+  key <TLDE> {   [ grave,               asciitilde,    any,any ]   }; //
   key <AE01> {   [ 1,                   exclam,        any,any ]   }; //
   key <AE02> {   [ 2,                   quotedbl,      any,any ]   }; //
   key <AE03> {   [ 3,                   numbersign,    any,any ]   }; //

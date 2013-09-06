@@ -20,11 +20,11 @@ xkb_geometry "tm2020" {
     // Keyboard total size :
     width  = 308;
     height = 152;
-    // background / foreground colours :
+    // Background / foreground colours
     baseColor  = "white";
     labelColor = "black";
 
-    // Key shapes : base key = 16 mm each side
+    // Key shapes: base key = 16 mm each side
     shape "NORM" { cornerRadius=1, { [16,    16]   }, { [1,   1], [15,   15] }};
     shape "ALPL" { cornerRadius=1, { [24.25, 16]   }, { [1,   1], [23,   15] }};
     shape "DHAL" { cornerRadius=1, { [24.25, 32.5] }, { [1,   1], [23, 31.5] }};
@@ -35,7 +35,6 @@ xkb_geometry "tm2020" {
     shape "LED"  { cornerRadius=2, { [4,      4]   }};
     shape "DECO" { cornerRadius=1, { [3,     18]   }};
 
-    // Function keys row
     section "Function" {
         left = 4;
         top  = 24;
@@ -58,7 +57,6 @@ xkb_geometry "tm2020" {
         };
     };
 
-    // Alpha-numeric keys rows
     section "Alpha" {
         left = 4;
         top  = 36.5;
@@ -119,7 +117,6 @@ xkb_geometry "tm2020" {
         };
     };
 
-    // Control keys rows
     section "Control" {
         left = 4;
         top  = 102.5;
@@ -152,7 +149,7 @@ xkb_geometry "tm2020" {
         };
     };
 
-    // Diods
+    // Leds
     indicator.top      = 12;
     indicator.onColor  = "green";
     indicator.offColor = "grey10";
@@ -168,7 +165,7 @@ xkb_geometry "tm2020" {
 
     text "Logo" { left = 29; top = 10; text="TypeMatrix™"; };
 
-    // other decorations : drawings
+    // Other decorations: drawings
     solid "rainure1"  { shape = "DECO"; top = 1; left = 110; color = "grey10";};
     solid "rainure2"  { shape = "DECO"; top = 1; left = 115; color = "grey10";};
     solid "rainure3"  { shape = "DECO"; top = 1; left = 120; color = "grey10";};
@@ -189,11 +186,11 @@ xkb_geometry "tm2030_shape" {
     // Keyboard total size
     width  = 320;
     height = 130;
-    // background / foreground colours :
+    // Background / foreground colours
     baseColor  = "white";
     labelColor = "black";
 
-    // Key shapes : base key = 20 mm each side
+    // Key shapes: base key = 20 mm each side
     shape "NORM" { cornerRadius=1, { [18,   18] }, { [1.5, 1.5], [16.5, 14] } };
     shape "FUNC" { cornerRadius=1, { [18,   12] }, { [2.5,   0], [15.5, 10] } };
     shape "LFSH" { cornerRadius=1, { [18, 36.5] }, { [2.5,   0], [15.5, 30] } };
@@ -204,7 +201,7 @@ xkb_geometry "tm2030_shape" {
     shape "PAN1" { cornerRadius=1, { [27, 126.5] } };
     shape "PAN2" { cornerRadius=1, { [92,   13] } };
 
-    // other decorations : panels
+    // Other decorations: panels
     solid "panneau1" {
         shape = "PAN1";
         left  = 0;
@@ -218,8 +215,7 @@ xkb_geometry "tm2030_shape" {
         color = "grey40";
     };
 
-    // Diods (Indicators) : they have to be put after panels, either the panels
-    // overwrites them.
+    // Leds: they must be put after panels, otherwise the panels overwrite them
     indicator.left     = 6;
     indicator.onColor  = "green";
     indicator.offColor = "grey10";
@@ -236,31 +232,31 @@ xkb_geometry "tm2030_shape" {
     text "SrollLockLabel"	{ top = 44;   text="scroll";        };
 }; // geometry tm2030_shape
 
+
 xkb_geometry "tm2030_MiscDiod_dvk" {
     text "ModeLabel" { left = 12; top = 58; color = "black";  text="Dvorak"; };
-}; // geometry tm2030_MiscDiod_dvk
+};
 
 xkb_geometry "tm2030_MiscDiod_102" {
     text "ModeLabel" { left = 12; top = 58; color = "black";  text="102"; };
-}; // geometry tm2030_MiscDiod_102
+};
 
 xkb_geometry "tm2030_MiscDiod_106" {
     text "ModeLabel" { left = 12; top = 58; color = "black";  text="106"; };
-}; // geometry tm2030_MiscDiod_106
+};
 
 xkb_geometry "tm2030_MiscDiod_off" {
     indicator "Misc" { left = 6; top = 60.5; shape = "LED";
                        offColor = "grey10"; onColor = "grey10"; };
-}; // geometry tm2030_MiscDiod_off
+};
 
 xkb_geometry "tm2030_MiscDiod_on" {
     indicator "Misc" { left = 6; top = 60.5; shape = "LED";
                        offColor = "green"; onColor = "green"; };
-}; // geometry tm2030_MiscDiod_on
+};
 
 
 xkb_geometry "tm2030USB_func" {
-    // Function keys rows
     section "Function" {
         left      = 27;
         top       = 1.5;
@@ -280,7 +276,6 @@ xkb_geometry "tm2030USB_func" {
 
 
 xkb_geometry "tm2030USB_alpha" {
-    // Alpha-numeric keys rows
     section "Alpha" {
         left = 27;
         top  = 14;
@@ -340,7 +335,6 @@ xkb_geometry "tm2030USB_alpha" {
 
 
 xkb_geometry "tm2030USB_ctrl" {
-    // Control keys rows
     section "Control" {
         left = 27;
         top  = 0;
@@ -387,7 +381,6 @@ xkb_geometry "tm2030PS2" {
 
     description = "TypeMatrix EZ-Reach 2030 PS2";
 
-    // Function keys row
     section "Function" {
         left = 27;
         top  = 1.5;
@@ -423,7 +416,6 @@ xkb_geometry "tm2030PS2" {
         };
     };
 
-    // Alpha-numeric keys rows
     section "Alpha" {
         left = 27;
         top  = 14;
@@ -502,9 +494,8 @@ xkb_geometry "tm2030PS2" {
             left = 74;
             keys { { <SPCE>, "SPCE" } };
         };
-    }; // end section "Alpha"
+    };
 
-    // Control keys rows
     section "Control" {
         left = 27;
         top  = 0;
@@ -558,7 +549,7 @@ xkb_geometry "tm2030PS2" {
             vertical = true;
             keys { <CAPS>, { <BKSP>, "BKSP" }, { <RTRN>, "LFSH" } };
         };
-    }; // end section "Control"
+    };
 }; // geometry tm2030PS2
 
 
@@ -575,8 +566,8 @@ xkb_geometry "tm2030USB" {
 }; // geometry tm2030USB
 
 
-// European 102/105 keys mode :
-// Same as the standard keyboard, except for one key, Play becomes LSGT
+// European 102/105 keys mode.
+// Same as the standard keyboard, except for one key: Play becomes LSGT.
 xkb_geometry "tm2030USB-102" {
     include "typematrix(tm2030_shape)"
     include "typematrix(tm2030_MiscDiod_102)"
@@ -587,7 +578,6 @@ xkb_geometry "tm2030USB-102" {
     include "typematrix(tm2030USB_func)"
     include "typematrix(tm2030USB_alpha)"
 
-    // Control keys rows
     section "Control" {
         left = 27;
         top  = 0;
@@ -627,17 +617,17 @@ xkb_geometry "tm2030USB-102" {
 }; // geometry tm2030USB-102
 
 
-// Japan / Korean 106 keys mode :
-// Same as the standard keyboard, except for following keys :
+// Japan / Korean 106 keys mode.
+// Same as the standard keyboard, except for the following keys:
 // – <TLDE> is replaced by <HZTG>
 // – WWW key becomes <HKTG>
 // — Calc key becomes <AE13>
-// — Mail key becomes <BKSL>, and <BKSL> key becomes <AB11>
+// — <BKSL> key becomes <AB11>
+// — and Mail key becomes <BKSL>
 
-// about Controls:
-// NFER/MEHU and XFER/KANJ : TMx keeps LWIN (and RWIN if it happend to exist)
-// HKTG/HIRA : TMx keeps MENU/COMP, but locates this key in alpha section
-// (see upper).
+// About control keys:
+// NFER/MEHU and XFER/KANJ: TMx keeps LWIN (and RWIN if it happens to exist).
+// HKTG/HIRA: TMx keeps MENU/COMP, but locates this key in alpha section (see above).
 
 xkb_geometry "tm2030USB-106" {
     include "typematrix(tm2030_shape)"
@@ -648,7 +638,6 @@ xkb_geometry "tm2030USB-106" {
 
     include "typematrix(tm2030USB_func)"
 
-    // Alpha-numeric keys rows
     section "Alpha" {
         left = 27;
         top  = 14;
@@ -705,7 +694,6 @@ xkb_geometry "tm2030USB-106" {
         };
     };
 
-    // Control keys rows
     section "Control" {
         left = 27;
         top  = 0;

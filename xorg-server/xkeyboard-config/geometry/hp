@@ -273,7 +273,7 @@ xkb_geometry "hil" {
 	};
     }; // End of "Keypad" section
 
-}; // End of "default" geometry
+};
 
 
 // Created by Alexander Pohoyda <alexander.pohoyda@gmx.net>
@@ -563,7 +563,7 @@ xkb_geometry "dv5" {
 	height=118.4;
 	width=310.6;
 
-    description = "HP Pavilion dv5";
+	description = "HP Pavilion dv5";
 
 	shape.cornerRadius = 1;
 
@@ -610,10 +610,10 @@ xkb_geometry "dv5" {
 		};
 	};
 
-    section "Alpha" {
+	section "Alpha" {
 		top = 17.9;
 		key.shape = "NORM";
-	    left = 3;
+		left = 3;
 
 		row {
 		    top = 0;
@@ -646,29 +646,28 @@ xkb_geometry "dv5" {
 			   { <RTSH>, "RTSH" }
 		    };
 		};
-    }; // End of "Alpha" section
+	}; // End of "Alpha" section
 
-    section "Controls" {
+	section "Controls" {
 		top = 95.9;
 		key.shape = "CTLS";
-	    left = 3;
-
+		left = 3;
 		row {
 		    top = 0;
 		    keys { {<LCTL>, "LCTL"}, <FN>, <LWIN>, <LALT>, {<SPCE>, "SPCE"},
 			   <RALT>, <MENU>, {<RCTL>, "RCTL"}
 		    };
 		};
-    };
+	};
 
-	section "Edition" {
+	section "Editing" {
 		top = 16.5;
-	    left = 289.9;
+		left = 289.9;
 		key.shape = "EDIT";
 		key.gap = 1.4;
 		row {
 		    top = 0;
-			vertical = true;
+		    vertical = true;
 		    keys {
 				<HOME>, <PGUP>, <PGDN>, <END>
 		    };

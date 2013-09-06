@@ -212,8 +212,8 @@ xkb_symbols "nodeadkeys" {
     key <AD11>	{ [asciicircum,  diaeresis,  bracketleft,  bracketleft]	};
     key <AD12>	{ [    dollar,   asterisk, bracketright,       macron ]	};
     key <AC10>	{ [         m,          M,        acute,  doubleacute ]	};
-    key <AC11>	{ [    ugrave,    percent,   quoteright,   quoteright ]	};
-    key <BKSL>	{ [        mu,   sterling,    quoteleft,    quoteleft ]	};
+    key <AC11>	{ [    ugrave,    percent,   apostrophe,   apostrophe ]	};
+    key <BKSL>	{ [        mu,   sterling,        grave,        grave ]	};
     key <AB07>	{ [     comma,   question,      cedilla,    masculine ]	};
     key <AB10>	{ [     equal,       plus,   asciitilde,   asciitilde ]	};
 };

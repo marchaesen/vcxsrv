@@ -63,9 +63,9 @@ xkb_symbols "sun_type6" {
    key <AB01> { [               z, Z,               guillemotleft              ]};
    key <AB02> { [               x, X,               guillemotright             ]};
    key <AB07> { [               m, M,               mu                         ]};
-   key <AB08> { [           comma, quoteright,      less                       ]};
+   key <AB08> { [           comma, apostrophe,      less                       ]};
    key <AB09> { [          period, quotedbl,        greater                    ]};
-   key <AB10> { [          eacute, Eacute,          quoteleft                  ]};
+   key <AB10> { [          eacute, Eacute,          grave                      ]};
    
 	include "level3(ralt_switch)"
 

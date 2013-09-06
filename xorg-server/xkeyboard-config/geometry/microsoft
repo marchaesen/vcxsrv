@@ -255,11 +255,11 @@ default xkb_geometry "natural" {
 // 
 // Modified by Pavel Kurashov <pavell@mail.ru> Mon Oct  8 22:08:20 NOVST 2007
 //
-// * Function, editing and navigation keys are reduced height
-// * Navigation keys are repositioned in two column
+// * Function, editing and navigation keys are reduced in height
+// * Navigation keys are repositioned in two columns
 // * Leds are enlarged for better look
-// * "BKSP"  alligned with "BKSL" and "RTRN"
-// * Ouline Edges slightly modified
+// * "BKSP" is aligned with "BKSL" and "RTRN"
+// * Outline edges are slightly modified
 //
 xkb_geometry "elite" {
 

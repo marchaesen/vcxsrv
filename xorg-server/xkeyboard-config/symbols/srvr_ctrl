@@ -2,37 +2,8 @@
 
 partial keypad_keys function_keys
 xkb_symbols "xfree86" {
-    include "srvr_ctrl(stdkeypad)"
+    include "keypad(operators)"
     include "srvr_ctrl(fkey2vt)"
-};
-
-partial keypad_keys 
-xkb_symbols "stdkeypad" {
-
-// Ungrab cancels server/keyboard/pointer grabs
-    key <KPDV> {
-	type="CTRL+ALT",
-	symbols[Group1]= [ KP_Divide, KP_Divide, KP_Divide, KP_Divide, XF86_Ungrab ]
-    };
-
-// ClsGrb kills whichever client has a grab in effect
-    key <KPMU> {
-	type="CTRL+ALT",
-	symbols[Group1]= [ KP_Multiply, KP_Multiply, KP_Multiply, KP_Multiply, XF86_ClearGrab ]
-    };
-
-// -VMode switches to the previous video mode
-    key <KPSU> {
-	type="CTRL+ALT",
-	symbols[Group1]= [ KP_Subtract, KP_Subtract, KP_Subtract, KP_Subtract, XF86_Prev_VMode ]
-    };
-
-// +VMode switches to the next video mode
-    key <KPAD> {
-	type="CTRL+ALT",
-	symbols[Group1]= [ KP_Add, KP_Add, KP_Add, KP_Add, XF86_Next_VMode]
-    };
-
 };
 
 partial function_keys 

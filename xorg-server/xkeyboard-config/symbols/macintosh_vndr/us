@@ -6,7 +6,7 @@ xkb_symbols "extended" {
     key <ESC>  {	[ Escape			]	};
 
     // Alphanumeric section
-    key <TLDE> {	[ quoteleft,	asciitilde	]	};
+    key <TLDE> {	[     grave,	asciitilde	]	};
     key <AE01> {	[	  1,	exclam 		]	};
     key <AE02> {	[	  2,	at		]	};
     key <AE03> {	[	  3,	numbersign	]	};
@@ -44,7 +44,7 @@ xkb_symbols "extended" {
     key <AC08> {	[	  k,	K		]	};
     key <AC09> {	[	  l,	L		]	};
     key <AC10> {	[ semicolon,	colon		]	};
-    key <AC11> {	[ quoteright,	quotedbl	]	};
+    key <AC11> {	[ apostrophe,	quotedbl	]	};
 
     key <AB01> {	[	  z,	Z 		]	};
     key <AB02> {	[	  x,	X		]	};

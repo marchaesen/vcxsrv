@@ -17,7 +17,7 @@ default xkb_symbols "usa1" {
     // End "Function" section
 
     // Alphanumeric section
-    key <TLDE> {	[ quoteleft,	asciitilde	]	};
+    key <TLDE> {	[     grave,	asciitilde	]	};
     key <AE01> {	[	  1,	exclam 		]	};
     key <AE02> {	[	  2,	at		]	};
     key <AE03> {	[	  3,	numbersign	]	};
@@ -60,7 +60,7 @@ default xkb_symbols "usa1" {
     key <AC08> {	[	  k,	K		]	};
     key <AC09> {	[	  l,	L		]	};
     key <AC10> {	[ semicolon,	colon		]	};
-    key <AC11> {	[ quoteright,	quotedbl	]	};
+    key <AC11> {	[ apostrophe,	quotedbl	]	};
 
     key <LFSH> {	[ 	 Shift_L		]	};
     key <AB01> {	[	  z,	Z 		]	};

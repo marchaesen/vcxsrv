@@ -45,7 +45,7 @@ xkb_symbols "sun_type6" {
     key <AE08> { [               8,        parenleft,     bracketleft ] };
     key <AE09> { [               9,       parenright,    bracketright ] };
     key <AE10> { [               0,            equal,      braceright ] };
-    key <AE11> { [      quoteright,         question,       quoteleft ] };
+    key <AE11> { [      apostrophe,         question,           grave ] };
     key <AE12> { [   guillemotleft,   guillemotright                  ] };
     key <AD03> { [               e,                E,        EuroSign ] };
     key <AD11> { [            plus,         asterisk,  dead_diaeresis ] }; 

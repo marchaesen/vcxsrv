@@ -149,7 +149,7 @@ xkb_symbols "mess" {
 
     name[Group1]= "Georgian (MESS)";
 
-    key <TLDE> { [ 0x010010ed, backslash, quoteleft ] };
+    key <TLDE> { [ 0x010010ed, backslash, grave ] };
     key <AE01> { [ 1, exclam, apostrophe ] };
     key <AE02> { [ 2, at, asciitilde ] };
     key <AE03> { [ 3, 0x01002116, numbersign ]	};

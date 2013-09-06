@@ -665,8 +665,7 @@ xkb_geometry "pc105" {
 }; // End of "pc105" geometry
 
 
-// Added for japanese 106 keyboard
-//                     by tsuka@kawalab.dnj.ynu.ac.jp .
+// Added for Japanese 106 keyboard by <tsuka(at)kawalab.dnj.ynu.ac.jp>.
 xkb_geometry "jp106" {
 
     description= "Japanese 106";
@@ -828,7 +827,7 @@ xkb_geometry "jp106" {
 
 }; // End of "jp106" geometry
 
-// Added for brazilian ABNT2 by Ricardo Y. Igarashi(iga@that.com.br)
+// Added for Brazilian ABNT2 by Ricardo Y. Igarashi <iga(at)that.com.br>.
 xkb_geometry "abnt2" {
     include "pc(pc105)"
 
@@ -1565,4 +1564,4 @@ xkb_geometry "pc104alt" {
     alias <AC00> = <CAPS>;
     alias <AA00> = <LCTL>;
 
-}; // End of "pc104" geometry
+}; // End of "pc104alt" geometry

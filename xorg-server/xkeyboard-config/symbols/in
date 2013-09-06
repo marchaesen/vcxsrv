@@ -292,7 +292,7 @@ xkb_symbols "ben_probhat" {
    key <AC08> { [   U0995,  U0996  ] };
    key <AC09> { [   U09B2,  U0982  ] };
    key <AC10> { [   semicolon,  colon      ] };
-   key <AC11> { [   quoteright, quotedbl   ] };
+   key <AC11> { [   apostrophe, quotedbl   ] };
 
 // shift, z to /
 //   key <LFSH> { [   Shift_L                ] };
@@ -369,7 +369,7 @@ xkb_symbols "ben_baishakhi" {
    key <AC08> { [   0x1000995,  0x1000996  	] };
   key <AC09> { [   0x10009B2,  0x1000964, 0x100098C  ] };
    key <AC10> { [   semicolon,  colon  	] };
-   key <AC11> { [   quoteright, quotedbl   	] };
+   key <AC11> { [   apostrophe, quotedbl   	] };
 
 // shift, z to /
 // key <LFSH> { [   Shift_L              			] };
@@ -471,7 +471,7 @@ xkb_symbols "ben_gitanjali" {
 // numbers
    key <TLDE> { [ colon, question	] };
    key <AE01> { [ 0x10009E7, 0x10009CE	] };
-   key <AE02> { [ 0x10009E8, quoteright	] };
+   key <AE02> { [ 0x10009E8, apostrophe	] };
    key <AE03> { [ 0x10009E9, numbersign	] };
    key <AE04> { [ 0x10009EA, 0x10009F3	] };
    key <AE05> { [ 0x10009EB, slash	] };
@@ -590,7 +590,7 @@ xkb_symbols "ben_bornona" {
    key <AC08> { [   0x1000995,  0x1000996	] };
    key <AC09> { [   0x10009B2,  0x1000964  ] };
    key <AC10> { [   semicolon,  0x100003A	] };
-   key <AC11> { [   quoteright, quotedbl   	] };
+   key <AC11> { [   apostrophe, quotedbl   	] };
 
 // shift, z to /
 // key <LFSH> { [   Shift_L              			] };
@@ -1643,7 +1643,7 @@ xkb_symbols "hin-wx" {
       key <AC08> {	 [      0x1000915,  0x1000916 		]	};
       key <AC09> {	 [      0x1000932,  0x1000962, 0x1000933, 0x100090C]	};
       key <AC10> {	 [      semicolon, colon  		]	};
-      key <AC11> {	 [      quoteright, quotedbl 		]	};
+      key <AC11> {	 [      apostrophe, quotedbl 		]	};
 
       key <AB01> {	 [      0x1000901,   0x100093C, 0x100093D, 0x1000950]   };
       key <AB02> {       [      0x1000926,   0x1000927      ]       };

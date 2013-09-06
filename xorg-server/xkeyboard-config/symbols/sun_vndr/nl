@@ -44,7 +44,7 @@ xkb_symbols "sun_type6" {
     key <AE07>  { [         7, underscore,     sterling ] };
     key <AE08>  { [         8,  parenleft,    braceleft ] };
     key <AE09>  { [         9, parenright,   braceright ] };
-    key <AE10>  { [         0, quoteright,   quoteleft ] };
+    key <AE10>  { [         0, apostrophe,        grave ] };
     key <AE11>  { [     slash,   question,    backslash ] };
     key <AE12>  { [    degree, dead_tilde, dead_cedilla ] };
 

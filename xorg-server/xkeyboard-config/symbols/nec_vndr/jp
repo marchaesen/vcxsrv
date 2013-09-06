@@ -40,7 +40,7 @@ default xkb_symbols "pc98" {
     key <AE09> { [ 9, parenright	], [ kana_YO, kana_yo	]	};
     key <AE10> { [ 0 			], [ kana_WA, kana_WO	]	};
     key <AE11> { [ minus, equal		], [ kana_HO		]	};
-    key <AE12> { [ asciicircum,	quoteleft ], [ kana_HE		]	};
+    key <AE12> { [ asciicircum, grave 	], [ kana_HE		]	};
     key <BKSL> { [ backslash, bar 	], [ prolongedsound	]	};
     key <BKSP> { [ BackSpace		]	};
 

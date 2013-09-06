@@ -47,7 +47,7 @@ xkb_symbols "basic" {
       key <AC08> { [      0x1000915,  0x1000916 	]	};
       key <AC09> { [      0x1000932,  0x1000933 	]	};
       key <AC10> { [      semicolon,  colon 		]	};
-      key <AC11> { [      quoteright, quotedbl 		]	};
+      key <AC11> { [      apostrophe, quotedbl		]	};
       key <BKSL> { [      0x1000950,  0x1000903 	]	};
 
 

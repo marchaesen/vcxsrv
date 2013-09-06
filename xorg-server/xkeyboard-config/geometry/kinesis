@@ -159,7 +159,7 @@ default xkb_geometry "model100" {
 	    left= 39;
 	    keys { <LALT>, <HOME>, <END> };
 	};
-    }; // End of "RightEdit" section
+    }; // End of "LeftEdit" section
 
     section "RightEdit" {
 	top= 109;
@@ -182,7 +182,7 @@ default xkb_geometry "model100" {
 	overlay "KPAD" {
 	    <SPCE>= <KP0>
 	};
-    }; // End of "Keypad" section
+    }; // End of "RightEdit" section
 
     alias <AC00> = <CAPS>;
     alias <AA00> = <LCTL>;

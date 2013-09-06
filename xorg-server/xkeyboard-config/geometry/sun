@@ -194,7 +194,6 @@ xkb_geometry "t6" {
     text "ScrollLockLabel"	{ left= 262; text="Scroll\nLock"; };
     text "NumLockLabel"		{ left= 224; text="Num\nLock"; };
 
-
 };
 
 xkb_geometry "t6tuv" {

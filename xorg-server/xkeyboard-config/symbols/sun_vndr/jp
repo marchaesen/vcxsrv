@@ -57,7 +57,7 @@ xkb_symbols "sun_type6_suncompat" {
     key <AD08> { [ i, I            ], [ kana_NI        ]   };
     key <AD09> { [ o, O            ], [ kana_RA        ]   };
     key <AD10> { [ p, P            ], [ kana_SE        ]   };
-    key <AD11> { [ at, quoteleft   ], [ voicedsound    ]   };
+    key <AD11> { [ at, grave       ], [ voicedsound    ]   };
     key <AD12> { [ bracketleft,    braceleft ], [ semivoicedsound, kana_openingbracket ] };
 
     key <AC01> { [ a, A            ], [ kana_CHI       ]   };
