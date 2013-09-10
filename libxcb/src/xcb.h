@@ -279,7 +279,6 @@ xcb_generic_event_t *xcb_wait_for_event(xcb_connection_t *c);
 /**
  * @brief Returns the next event or error from the server.
  * @param c: The connection to the X server.
- * error status of the operation.
  * @return The next event from the server.
  *
  * Returns the next event or error from the server, if one is

@@ -471,14 +471,14 @@ int _xcb_conn_wait(xcb_connection_t *c, pthread_cond_t *cond, struct iovec **vec
          */
         int may_read = c->in.reading == 1 || !count;
 #if USE_POLL
-        if(may_read && (fd.revents & POLLIN) == POLLIN)
+        if(may_read && (fd.revents & POLLIN) != 0)
 #else
         if(may_read && FD_ISSET(c->fd, &rfds))
 #endif
             ret = ret && _xcb_in_read(c);
 
 #if USE_POLL
-        if((fd.revents & POLLOUT) == POLLOUT)
+        if((fd.revents & POLLOUT) != 0)
 #else
         if(FD_ISSET(c->fd, &wfds))
 #endif

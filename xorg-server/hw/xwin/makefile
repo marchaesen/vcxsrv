@@ -156,7 +156,7 @@ CSRCS := $(CSRCS:%.l=%.c)
 
 DEFINES += $(DEFS:-D%=%) HAVE_XWIN_CONFIG_H PTW32_STATIC_LIB RELOCATE_PROJECTROOT
 
-INCLUDES += ..\..\miext\rootless
+INCLUDES += ..\.. ..\..\miext\rootless
 
 INCLUDES += $(OBJDIR)
 

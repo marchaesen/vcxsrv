@@ -250,6 +250,7 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
    case ir_unop_cos_reduced:
    case ir_unop_dFdx:
    case ir_unop_dFdy:
+   case ir_unop_bitfield_reverse:
       this->type = op0->type;
       break;
 
@@ -257,6 +258,9 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
    case ir_unop_b2i:
    case ir_unop_u2i:
    case ir_unop_bitcast_f2i:
+   case ir_unop_bit_count:
+   case ir_unop_find_msb:
+   case ir_unop_find_lsb:
       this->type = glsl_type::get_instance(GLSL_TYPE_INT,
 					   op0->type->vector_elements, 1);
       break;
@@ -396,11 +400,44 @@ ir_expression::ir_expression(int op, ir_rvalue *op0, ir_rvalue *op1)
 
    case ir_binop_lshift:
    case ir_binop_rshift:
+   case ir_binop_bfm:
       this->type = op0->type;
       break;
 
    case ir_binop_vector_extract:
       this->type = op0->type->get_scalar_type();
+      break;
+
+   default:
+      assert(!"not reached: missing automatic type setup for ir_expression");
+      this->type = glsl_type::float_type;
+   }
+}
+
+ir_expression::ir_expression(int op, ir_rvalue *op0, ir_rvalue *op1,
+                             ir_rvalue *op2)
+{
+   this->ir_type = ir_type_expression;
+
+   this->operation = ir_expression_operation(op);
+   this->operands[0] = op0;
+   this->operands[1] = op1;
+   this->operands[2] = op2;
+   this->operands[3] = NULL;
+
+   assert(op > ir_last_binop && op <= ir_last_triop);
+
+   switch (this->operation) {
+   case ir_triop_fma:
+   case ir_triop_lrp:
+   case ir_triop_bitfield_extract:
+   case ir_triop_vector_insert:
+      this->type = op0->type;
+      break;
+
+   case ir_triop_bfi:
+   case ir_triop_csel:
+      this->type = op1->type;
       break;
 
    default:
@@ -517,6 +554,7 @@ static const char *const operator_strs[] = {
    "vector_extract",
    "fma",
    "lrp",
+   "csel",
    "bfi",
    "bitfield_extract",
    "vector_insert",
@@ -1579,12 +1617,37 @@ ir_variable::determine_interpolation_mode(bool flat_shade)
 }
 
 
-ir_function_signature::ir_function_signature(const glsl_type *return_type)
-   : return_type(return_type), is_defined(false), _function(NULL)
+ir_function_signature::ir_function_signature(const glsl_type *return_type,
+                                             builtin_available_predicate b)
+   : return_type(return_type), is_defined(false), builtin_avail(b),
+     _function(NULL)
 {
    this->ir_type = ir_type_function_signature;
-   this->is_builtin = false;
    this->origin = NULL;
+}
+
+
+bool
+ir_function_signature::is_builtin() const
+{
+   return builtin_avail != NULL;
+}
+
+
+bool
+ir_function_signature::is_builtin_available(const _mesa_glsl_parse_state *state) const
+{
+   /* We can't call the predicate without a state pointer, so just say that
+    * the signature is available.  At compile time, we need the filtering,
+    * but also receive a valid state pointer.  At link time, we're resolving
+    * imported built-in prototypes to their definitions, which will always
+    * be an exact match.  So we can skip the filtering.
+    */
+   if (state == NULL)
+      return true;
+
+   assert(builtin_avail != NULL);
+   return builtin_avail(state);
 }
 
 
@@ -1659,7 +1722,7 @@ ir_function::has_user_signature()
 {
    foreach_list(n, &this->signatures) {
       ir_function_signature *const sig = (ir_function_signature *) n;
-      if (!sig->is_builtin)
+      if (!sig->is_builtin())
 	 return true;
    }
    return false;

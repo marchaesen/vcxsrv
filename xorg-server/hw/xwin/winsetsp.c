@@ -51,7 +51,7 @@ winSetSpansNativeGDI(DrawablePtr pDrawable,
     PixmapPtr pPixmap = NULL;
     winPrivPixmapPtr pPixmapPriv = NULL;
     HBITMAP hbmpOrig = NULL;
-    mybitmap_t		bmi;
+    mybitmap_t bmi;
     HRGN hrgn = NULL, combined = NULL;
     int nbox;
     BoxPtr pbox;

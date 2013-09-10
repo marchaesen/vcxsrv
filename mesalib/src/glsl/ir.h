@@ -591,6 +591,11 @@ public:
    const glsl_type *interface_type;
 };
 
+/**
+ * A function that returns whether a built-in function is available in the
+ * current shading language (based on version, ES or desktop, and extensions).
+ */
+typedef bool (*builtin_available_predicate)(const _mesa_glsl_parse_state *);
 
 /*@{*/
 /**
@@ -602,7 +607,8 @@ class ir_function_signature : public ir_instruction {
     * an ir_function.
     */
 public:
-   ir_function_signature(const glsl_type *return_type);
+   ir_function_signature(const glsl_type *return_type,
+                         builtin_available_predicate builtin_avail = NULL);
 
    virtual ir_function_signature *clone(void *mem_ctx,
 					struct hash_table *ht) const;
@@ -678,12 +684,21 @@ public:
    unsigned is_defined:1;
 
    /** Whether or not this function signature is a built-in. */
-   unsigned is_builtin:1;
+   bool is_builtin() const;
+
+   /** Whether or not a built-in is available for this shader. */
+   bool is_builtin_available(const _mesa_glsl_parse_state *state) const;
 
    /** Body of instructions in the function. */
    struct exec_list body;
 
 private:
+   /**
+    * A function pointer to a predicate that answers whether a built-in
+    * function is available in the current shader.  NULL if not a built-in.
+    */
+   builtin_available_predicate builtin_avail;
+
    /** Function of which this signature is one overload. */
    class ir_function *_function;
 
@@ -750,20 +765,23 @@ public:
     * Find a signature that matches a set of actual parameters, taking implicit
     * conversions into account.  Also flags whether the match was exact.
     */
-   ir_function_signature *matching_signature(const exec_list *actual_param,
+   ir_function_signature *matching_signature(_mesa_glsl_parse_state *state,
+                                             const exec_list *actual_param,
 					     bool *match_is_exact);
 
    /**
     * Find a signature that matches a set of actual parameters, taking implicit
     * conversions into account.
     */
-   ir_function_signature *matching_signature(const exec_list *actual_param);
+   ir_function_signature *matching_signature(_mesa_glsl_parse_state *state,
+                                             const exec_list *actual_param);
 
    /**
     * Find a signature that exactly matches a set of actual parameters without
     * any implicit type conversions.
     */
-   ir_function_signature *exact_matching_signature(const exec_list *actual_ps);
+   ir_function_signature *exact_matching_signature(_mesa_glsl_parse_state *state,
+                                                   const exec_list *actual_ps);
 
    /**
     * Name of the function.
@@ -1179,6 +1197,18 @@ enum ir_expression_operation {
    ir_triop_lrp,
 
    /**
+    * \name Conditional Select
+    *
+    * A vector conditional select instruction (like ?:, but operating per-
+    * component on vectors).
+    *
+    * \see lower_instructions_visitor::ldexp_to_arith
+    */
+   /*@{*/
+   ir_triop_csel,
+   /*@}*/
+
+   /**
     * \name Second half of a lowered bitfieldInsert() operation.
     *
     * \see lower_instructions::bitfield_insert_to_bfm_bfi
@@ -1233,6 +1263,11 @@ public:
     * Constructor for binary operation expressions
     */
    ir_expression(int op, ir_rvalue *op0, ir_rvalue *op1);
+
+   /**
+    * Constructor for ternary operation expressions
+    */
+   ir_expression(int op, ir_rvalue *op0, ir_rvalue *op1, ir_rvalue *op2);
 
    virtual ir_expression *as_expression()
    {
@@ -1309,7 +1344,7 @@ public:
       ir_type = ir_type_call;
       assert(callee->return_type != NULL);
       actual_parameters->move_nodes_to(& this->actual_parameters);
-      this->use_builtin = callee->is_builtin;
+      this->use_builtin = callee->is_builtin();
    }
 
    virtual ir_call *clone(void *mem_ctx, struct hash_table *ht) const;
@@ -1550,6 +1585,7 @@ public:
         shadow_comparitor(NULL), offset(NULL)
    {
       this->ir_type = ir_type_texture;
+      memset(&lod_info, 0, sizeof(lod_info));
    }
 
    virtual ir_texture *clone(void *mem_ctx, struct hash_table *) const;
@@ -2103,7 +2139,17 @@ extern void
 _mesa_glsl_initialize_functions(_mesa_glsl_parse_state *state);
 
 extern void
+_mesa_glsl_initialize_builtin_functions();
+
+extern ir_function_signature *
+_mesa_glsl_find_builtin_function(_mesa_glsl_parse_state *state,
+                                 const char *name, exec_list *actual_parameters);
+
+extern void
 _mesa_glsl_release_functions(void);
+
+extern void
+_mesa_glsl_release_builtin_functions(void);
 
 extern void
 reparent_ir(exec_list *list, void *mem_ctx);

@@ -125,7 +125,7 @@ winClipboardShutdown(void)
     if (g_fClipboard && g_fClipboardLaunched && g_fClipboardStarted) {
         /* Synchronously destroy the clipboard window */
         if (g_hwndClipboard != NULL) {
-	  g_fClipboardStarted=FALSE; /* This is to avoid dead-locls caused by the clipboard thread still doing some stuff */
+            g_fClipboardStarted=FALSE; /* This is to avoid dead-locls caused by the clipboard thread still doing some stuff */
             SendMessage(g_hwndClipboard, WM_DESTROY, 0, 0);
             /* NOTE: g_hwndClipboard is set to NULL in winclipboardthread.c */
         }
@@ -417,7 +417,8 @@ winFixupPaths(void)
     {
         /* Open fontpath configuration file */
 #if defined WIN32 && defined __MINGW32__
-        static Bool once = False;
+qsdf qsdf qsdf qsdf
+                static Bool once = False;
         char buffer[MAX_PATH];
         snprintf(buffer, sizeof(buffer), "%s\\font-dirs", basedir);
         buffer[sizeof(buffer)-1] = 0;
@@ -425,6 +426,7 @@ winFixupPaths(void)
         if (once) fontdirs = NULL;
         else once = True;
 #else
+qsdfqsdf qsdf qsdf
         FILE *fontdirs = fopen(ETCX11DIR "/font-dirs", "rt");
 #endif
         if (fontdirs != NULL) {

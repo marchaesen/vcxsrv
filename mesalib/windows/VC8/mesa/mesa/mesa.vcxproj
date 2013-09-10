@@ -189,7 +189,7 @@
     <ClCompile Include="..\..\..\..\src\glsl\ast_function.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\ast_to_hir.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\ast_type.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\builtin_compiler\builtin_stubs.cpp" />
+    <ClCompile Include="..\..\..\..\src\glsl\builtin_functions.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\builtin_types.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\glcpp\glcpp-lex.c" />
     <ClCompile Include="..\..\..\..\src\glsl\glcpp\glcpp-parse.c" />

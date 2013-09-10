@@ -40,6 +40,7 @@
 
 /* Includes for authorization */
 #include "securitysrv.h"
+#include "os/osdep.h"
 
 /*
  * Constants
@@ -62,8 +63,7 @@ static char *g_pAuthData = NULL;
 
 
 #ifndef XCSECURITY
-static
-    void
+void
 GenerateRandomData(int len, char *buf)
 {
     int fd;
@@ -87,9 +87,8 @@ GenerateRandomData(int len, char *buf)
 static char cookie[16];         /* 128 bits */
 
 XID
-    static
 MitGenerateCookie(unsigned data_length,
-                  char *data,
+                  const char *data,
                   XID id, unsigned *data_length_return, char **data_return)
 {
     int i = 0;

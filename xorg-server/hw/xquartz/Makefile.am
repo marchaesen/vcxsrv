@@ -28,13 +28,14 @@ libXquartz_la_SOURCES = \
 	darwinEvents.c \
 	darwinXinput.c \
 	keysym2ucs.c \
-	pseudoramiX.c \
 	quartz.c \
 	quartzCocoa.m \
 	quartzKeyboard.c \
 	quartzStartup.c \
 	quartzRandR.c \
 	console_redirect.c
+
+libXquartz_la_LIBADD = $(top_builddir)/pseudoramiX/libPseudoramiX.la
 
 EXTRA_DIST = \
 	X11Application.h \
@@ -44,7 +45,6 @@ EXTRA_DIST = \
 	darwinfb.h \
 	darwinEvents.h \
 	keysym2ucs.h \
-	pseudoramiX.h \
 	quartz.h \
 	quartzCommon.h \
 	quartzKeyboard.h \

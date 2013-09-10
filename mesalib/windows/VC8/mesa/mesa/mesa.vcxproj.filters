@@ -692,9 +692,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\texcompress_cpal.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\builtin_compiler\builtin_stubs.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\main\es1_conversion.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -753,6 +750,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\main\objectlabel.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\glsl\builtin_functions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

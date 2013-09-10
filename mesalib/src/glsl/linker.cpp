@@ -982,7 +982,7 @@ get_main_function_signature(gl_shader *sh)
        * We don't have to check for multiple definitions of main (in multiple
        * shaders) because that would have already been caught above.
        */
-      ir_function_signature *sig = f->matching_signature(&void_parameters);
+      ir_function_signature *sig = f->matching_signature(NULL, &void_parameters);
       if ((sig != NULL) && sig->is_defined) {
 	 return sig;
       }
@@ -1163,14 +1163,14 @@ link_intrastage_shaders(void *mem_ctx,
 	       ir_function_signature *sig =
 		  (ir_function_signature *) iter.get();
 
-	       if (!sig->is_defined || sig->is_builtin)
+	       if (!sig->is_defined || sig->is_builtin())
 		  continue;
 
 	       ir_function_signature *other_sig =
-		  other->exact_matching_signature(& sig->parameters);
+		  other->exact_matching_signature(NULL, &sig->parameters);
 
 	       if ((other_sig != NULL) && other_sig->is_defined
-		   && !other_sig->is_builtin) {
+		   && !other_sig->is_builtin()) {
 		  linker_error(prog, "function `%s' is multiply defined",
 			       f->name);
 		  return NULL;

@@ -46,7 +46,6 @@ EXPORTS
   xcb_screen_next
   xcb_setup_roots_iterator
   xcb_setup_roots_length
-  xcb_shape_id
   xcb_shape_query_extents
   xcb_shape_query_extents_reply
   xcb_take_socket

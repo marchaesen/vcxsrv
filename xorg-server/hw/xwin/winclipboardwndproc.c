@@ -52,22 +52,12 @@
  * References to external symbols
  */
 
-extern Bool g_fUseUnicode;
 extern void *g_pClipboardDisplay;
 extern Window g_iClipboardWindow;
 extern Atom g_atomLastOwnedSelection;
 extern Bool g_fClipboardStarted;
 extern HWND g_hwndClipboard;
 extern Bool g_fClipboardPrimary;
-/*
- * Local function prototypes
- */
-
-static int
-
-
-winProcessXEventsTimeout(HWND hwnd, int iWindow, Display * pDisplay,
-                         Bool fUseUnicode, int iTimeoutSec);
 
 /*
  * Process X events up to specified timeout

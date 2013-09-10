@@ -243,9 +243,6 @@
     <ClCompile Include="..\..\..\..\src\glsl\link_uniform_initializers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\builtin_compiler\builtin_stubs.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\program\prog_hash_table.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -289,6 +286,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\glsl\opt_dead_builtin_varyings.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\glsl\builtin_functions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

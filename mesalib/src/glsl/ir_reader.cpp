@@ -211,6 +211,12 @@ ir_reader::read_function(s_expression *expr, bool skip_body)
    return added ? f : NULL;
 }
 
+static bool
+always_available(const _mesa_glsl_parse_state *)
+{
+   return true;
+}
+
 void
 ir_reader::read_function_sig(ir_function *f, s_expression *expr, bool skip_body)
 {
@@ -248,11 +254,15 @@ ir_reader::read_function_sig(ir_function *f, s_expression *expr, bool skip_body)
       hir_parameters.push_tail(var);
    }
 
-   ir_function_signature *sig = f->exact_matching_signature(&hir_parameters);
+   ir_function_signature *sig =
+      f->exact_matching_signature(state, &hir_parameters);
    if (sig == NULL && skip_body) {
       /* If scanning for prototypes, generate a new signature. */
-      sig = new(mem_ctx) ir_function_signature(return_type);
-      sig->is_builtin = true;
+      /* ir_reader doesn't know what languages support a given built-in, so
+       * just say that they're always available.  For now, other mechanisms
+       * guarantee the right built-ins are available.
+       */
+      sig = new(mem_ctx) ir_function_signature(return_type, always_available);
       f->add_signature(sig);
    } else if (sig != NULL) {
       const char *badvar = sig->qualifiers_match(&hir_parameters);
@@ -659,7 +669,7 @@ ir_reader::read_call(s_expression *expr)
       return NULL;
    }
 
-   ir_function_signature *callee = f->matching_signature(&parameters);
+   ir_function_signature *callee = f->matching_signature(state, &parameters);
    if (callee == NULL) {
       ir_read_error(expr, "couldn't find matching signature for function "
                     "%s", name->value());

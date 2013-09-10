@@ -691,7 +691,7 @@ winMultiWindowWMProc(void *pArg)
         case WM_WM_MAP:
             winDebug ("\tWM_WM_MAP\n");
             /* Put a note as to the HWND associated with this Window */
-            XChangeProperty(pWMInfo->pDisplay, pNode->msg.iWindow, pWMInfo->atmPrivMap, XA_INTEGER,     //pWMInfo->atmPrivMap,
+            XChangeProperty(pWMInfo->pDisplay, pNode->msg.iWindow, pWMInfo->atmPrivMap, XA_INTEGER,
                             32,
                             PropModeReplace,
                             (unsigned char *) &(pNode->msg.hwndWindow), sizeof(HWND)/4);
@@ -702,7 +702,7 @@ winMultiWindowWMProc(void *pArg)
         case WM_WM_MAP2:
             winDebug ("\tWM_WM_MAP2\n");
 
-            XChangeProperty(pWMInfo->pDisplay, pNode->msg.iWindow, pWMInfo->atmPrivMap, XA_INTEGER,     //pWMInfo->atmPrivMap,
+            XChangeProperty(pWMInfo->pDisplay, pNode->msg.iWindow, pWMInfo->atmPrivMap, XA_INTEGER,
                             32,
                             PropModeReplace,
                             (unsigned char *) &(pNode->msg.hwndWindow), sizeof(HWND)/4);
@@ -712,7 +712,7 @@ winMultiWindowWMProc(void *pArg)
             winDebug ("\tWM_WM_MAP3\n");
 
             /* Put a note as to the HWND associated with this Window */
-            XChangeProperty(pWMInfo->pDisplay, pNode->msg.iWindow, pWMInfo->atmPrivMap, XA_INTEGER,     //pWMInfo->atmPrivMap,
+            XChangeProperty(pWMInfo->pDisplay, pNode->msg.iWindow, pWMInfo->atmPrivMap, XA_INTEGER,
                             32,
                             PropModeReplace,
                             (unsigned char *) &(pNode->msg.hwndWindow), sizeof(HWND)/4);
@@ -999,15 +999,13 @@ winMultiWindowXMsgProc(void *pArg)
                 (pProcArg->pDisplay, pProcArg->dwScreen, TRUE)) {
                 if (!g_fAnotherWMRunning) {
                     g_fAnotherWMRunning = TRUE;
-                    SendMessage(pProcArg->hwndScreen, WM_UNMANAGE, 0,
-                                0);
+                    SendMessage(pProcArg->hwndScreen, WM_UNMANAGE, 0, 0);
                 }
             }
             else {
                 if (g_fAnotherWMRunning) {
                     g_fAnotherWMRunning = FALSE;
-                    SendMessage(pProcArg->hwndScreen, WM_MANAGE, 0,
-                                0);
+                    SendMessage(pProcArg->hwndScreen, WM_MANAGE, 0, 0);
                 }
             }
             Sleep(500);

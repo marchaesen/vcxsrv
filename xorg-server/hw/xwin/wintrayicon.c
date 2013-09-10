@@ -193,7 +193,7 @@ winHandleIconMessage(HWND hwnd, UINT message,
             RemoveMenu(hmenuTray, ID_APP_HIDE_ROOT, MF_BYCOMMAND);
         }
 
-        SetupRootMenu((unsigned long) hmenuTray);
+        SetupRootMenu(hmenuTray);
 
         /*
          * NOTE: This three-step procedure is required for
