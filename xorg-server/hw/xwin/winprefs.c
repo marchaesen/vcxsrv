@@ -188,7 +188,7 @@ ReloadEnumWindowsProc(HWND hwnd, LPARAM lParam)
         }
 
         /* Update the system menu for this window */
-        SetupSysMenu((unsigned long) hwnd);
+        SetupSysMenu(hwnd);
 
         /* That was easy... */
     }
@@ -275,15 +275,11 @@ ReloadPrefs(void)
  * Check/uncheck the ALWAYSONTOP items in this menu
  */
 void
-HandleCustomWM_INITMENU(unsigned long hwndIn, unsigned long hmenuIn)
+HandleCustomWM_INITMENU(HWND hwnd, HMENU hmenu)
 {
-    HWND hwnd;
-    HMENU hmenu;
     DWORD dwExStyle;
     int i, j;
 
-    hwnd = (HWND) hwndIn;
-    hmenu = (HMENU) hmenuIn;
     if (!hwnd || !hmenu)
         return;
 
@@ -305,14 +301,11 @@ HandleCustomWM_INITMENU(unsigned long hwndIn, unsigned long hmenuIn)
  * Return TRUE if command is proccessed, FALSE otherwise.
  */
 Bool
-HandleCustomWM_COMMAND(unsigned long hwndIn, int command)
+HandleCustomWM_COMMAND(HWND hwnd, int command)
 {
-    HWND hwnd;
     int i, j;
     MENUPARSED *m;
     DWORD dwExStyle;
-
-    hwnd = (HWND) hwndIn;
 
     if (!command)
         return FALSE;
@@ -412,15 +405,13 @@ HandleCustomWM_COMMAND(unsigned long hwndIn, int command)
  * Add the default or a custom menu depending on the class match
  */
 void
-SetupSysMenu(unsigned long hwndIn)
+SetupSysMenu(HWND hwnd)
 {
-    HWND hwnd;
     HMENU sys;
     int i;
     WindowPtr pWin;
     char *res_name, *res_class;
 
-    hwnd = (HWND) hwndIn;
     if (!hwnd)
         return;
 
@@ -465,11 +456,8 @@ SetupSysMenu(unsigned long hwndIn)
  * Possibly add a menu to the toolbar icon
  */
 void
-SetupRootMenu(unsigned long hmenuRoot)
+SetupRootMenu(HMENU root)
 {
-    HMENU root;
-
-    root = (HMENU) hmenuRoot;
     if (!root)
         return;
 

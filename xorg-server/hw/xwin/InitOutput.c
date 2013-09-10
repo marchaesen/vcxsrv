@@ -48,7 +48,11 @@ from The Open Group.
 #include "xkbsrv.h"
 #endif
 #ifdef RELOCATE_PROJECTROOT
+#pragma push_macro("Status")
+#undef Status
+#define Status wStatus
 #include <shlobj.h>
+#pragma pop_macro("Status")
 typedef WINAPI HRESULT(*SHGETFOLDERPATHPROC) (HWND hwndOwner,
                                               int nFolder,
                                               HANDLE hToken,

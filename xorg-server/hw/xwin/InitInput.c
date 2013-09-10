@@ -39,7 +39,6 @@
 
 #ifdef XWIN_CLIPBOARD
 int winProcEstablishConnection(ClientPtr /* client */ );
-int winProcQueryTree(ClientPtr /* client */ );
 int winProcSetSelectionOwner(ClientPtr /* client */ );
 #endif
 

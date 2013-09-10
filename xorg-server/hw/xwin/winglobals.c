@@ -85,7 +85,6 @@ pthread_mutex_t g_pmTerminating = PTHREAD_MUTEX_INITIALIZER;
  * Wrapped DIX functions
  */
 winDispatchProcPtr winProcEstablishConnectionOrig = NULL;
-winDispatchProcPtr winProcQueryTreeOrig = NULL;
 winDispatchProcPtr winProcSetSelectionOwnerOrig = NULL;
 
 /*

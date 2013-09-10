@@ -1,4 +1,4 @@
-Copyright 1989, 1998  The Open Group
+Copyright 1988, 1989, 1990, 1991, 1994, 1998  The Open Group
 
 Permission to use, copy, modify, distribute, and sell this software and its
 documentation for any purpose is hereby granted without fee, provided that
@@ -46,9 +46,10 @@ SOFTWARE.
 
 -----------
 
-And Xmu/Clip.c has:
+Xmu/Clip.c and Xmu/Lookup.h have:
 
 Copyright (c) 1998 by The XFree86 Project, Inc.
+Copyright 1999 by Thomas E. Dickey <dickey@clark.net>
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),

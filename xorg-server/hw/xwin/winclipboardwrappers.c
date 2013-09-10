@@ -56,8 +56,6 @@ DISPATCH_PROC(winProcSetSelectionOwner);
  * References to external symbols
  */
 
-extern unsigned int g_uiAuthDataLen;
-extern char *g_pAuthData;
 extern Bool g_fClipboardLaunched;
 extern Bool g_fClipboardStarted;
 extern Bool g_fClipboard;

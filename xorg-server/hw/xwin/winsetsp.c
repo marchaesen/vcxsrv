@@ -46,7 +46,7 @@ winSetSpansNativeGDI(DrawablePtr pDrawable,
     PixmapPtr pPixmap = NULL;
     winPrivPixmapPtr pPixmapPriv = NULL;
     HBITMAP hbmpOrig = NULL;
-    BITMAPINFO bmi;
+    BITMAPINFO *pbmi;
     HRGN hrgn = NULL, combined = NULL;
     int nbox;
     BoxPtr pbox;
@@ -56,6 +56,8 @@ winSetSpansNativeGDI(DrawablePtr pDrawable,
 
     if (!nbox)
         return;
+
+    pbmi = malloc(sizeof(BITMAPINFO) + sizeof(RGBQUAD));
 
     combined = CreateRectRgn(pbox->x1, pbox->y1, pbox->x2, pbox->y2);
     nbox--;
@@ -86,19 +88,20 @@ winSetSpansNativeGDI(DrawablePtr pDrawable,
                        "failed on pPixmapPriv->hBitmap\n");
 
         while (iSpans--) {
-            ZeroMemory(&bmi, sizeof(BITMAPINFO));
-            bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-            bmi.bmiHeader.biWidth = *piWidths;
-            bmi.bmiHeader.biHeight = 1;
-            bmi.bmiHeader.biPlanes = 1;
-            bmi.bmiHeader.biBitCount = pDrawable->depth;
-            bmi.bmiHeader.biCompression = BI_RGB;
+            ZeroMemory(pbmi, sizeof(BITMAPINFO));
+            pbmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+            pbmi->bmiHeader.biWidth = *piWidths;
+            pbmi->bmiHeader.biHeight = 1;
+            pbmi->bmiHeader.biPlanes = 1;
+            pbmi->bmiHeader.biBitCount = pDrawable->depth;
+            pbmi->bmiHeader.biCompression = BI_RGB;
 
             /* Setup color table for mono DIBs */
             if (pDrawable->depth == 1) {
-                bmi.bmiColors[1].rgbBlue = 255;
-                bmi.bmiColors[1].rgbGreen = 255;
-                bmi.bmiColors[1].rgbRed = 255;
+                RGBQUAD *bmiColors = &(pbmi->bmiColors[0]);
+                bmiColors[1].rgbBlue = 255;
+                bmiColors[1].rgbGreen = 255;
+                bmiColors[1].rgbRed = 255;
             }
 
             StretchDIBits(pGCPriv->hdcMem,
@@ -107,7 +110,7 @@ winSetSpansNativeGDI(DrawablePtr pDrawable,
                           0, 0,
                           *piWidths, 1,
                           pSrcs,
-                          (BITMAPINFO *) &bmi,
+                          (BITMAPINFO *) pbmi,
                           DIB_RGB_COLORS, g_copyROP[pGC->alu]);
 
             pSrcs += PixmapBytePad(*piWidths, pDrawable->depth);
@@ -129,19 +132,20 @@ winSetSpansNativeGDI(DrawablePtr pDrawable,
         combined = NULL;
 
         while (iSpans--) {
-            ZeroMemory(&bmi, sizeof(BITMAPINFO));
-            bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-            bmi.bmiHeader.biWidth = *piWidths;
-            bmi.bmiHeader.biHeight = 1;
-            bmi.bmiHeader.biPlanes = 1;
-            bmi.bmiHeader.biBitCount = pDrawable->depth;
-            bmi.bmiHeader.biCompression = BI_RGB;
+            ZeroMemory(pbmi, sizeof(BITMAPINFO));
+            pbmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+            pbmi->bmiHeader.biWidth = *piWidths;
+            pbmi->bmiHeader.biHeight = 1;
+            pbmi->bmiHeader.biPlanes = 1;
+            pbmi->bmiHeader.biBitCount = pDrawable->depth;
+            pbmi->bmiHeader.biCompression = BI_RGB;
 
             /* Setup color table for mono DIBs */
             if (pDrawable->depth == 1) {
-                bmi.bmiColors[1].rgbBlue = 255;
-                bmi.bmiColors[1].rgbGreen = 255;
-                bmi.bmiColors[1].rgbRed = 255;
+                RGBQUAD *bmiColors = &(pbmi->bmiColors[0]);
+                bmiColors[1].rgbBlue = 255;
+                bmiColors[1].rgbGreen = 255;
+                bmiColors[1].rgbRed = 255;
             }
 
             StretchDIBits(pGCPriv->hdc,
@@ -150,7 +154,7 @@ winSetSpansNativeGDI(DrawablePtr pDrawable,
                           0, 0,
                           *piWidths, 1,
                           pSrcs,
-                          (BITMAPINFO *) &bmi,
+                          (BITMAPINFO *) pbmi,
                           DIB_RGB_COLORS, g_copyROP[pGC->alu]);
 
             pSrcs += PixmapBytePad(*piWidths, pDrawable->depth);
@@ -166,4 +170,6 @@ winSetSpansNativeGDI(DrawablePtr pDrawable,
         FatalError("\nwinSetSpansNativeGDI - Unknown drawable type\n\n");
         break;
     }
+
+    free(pbmi);
 }

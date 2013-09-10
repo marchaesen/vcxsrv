@@ -420,14 +420,14 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         /*
          * Add whatever the setup file wants to for this window
          */
-        SetupSysMenu((unsigned long) hwnd);
+        SetupSysMenu(hwnd);
         return 0;
 
     case WM_SYSCOMMAND:
         /*
          * Any window menu items go through here
          */
-        if (HandleCustomWM_COMMAND((unsigned long) hwnd, LOWORD(wParam))) {
+        if (HandleCustomWM_COMMAND(hwnd, LOWORD(wParam))) {
             /* Don't pass customized menus to DefWindowProc */
             return 0;
         }
@@ -443,7 +443,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_INITMENU:
         /* Checks/Unchecks any menu items before they are displayed */
-        HandleCustomWM_INITMENU((unsigned long) hwnd, wParam);
+        HandleCustomWM_INITMENU(hwnd, (HMENU)wParam);
         break;
 
     case WM_ERASEBKGND:
@@ -825,7 +825,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         /* Prevent the mouse wheel from stalling when another window is minimized */
         if (HIWORD(wParam) == 0 && LOWORD(wParam) == WA_ACTIVE &&
-            (HWND) lParam != NULL && (HWND) lParam != (HWND) GetParent(hwnd))
+            (HWND) lParam != NULL && (HWND) lParam != GetParent(hwnd))
             SetFocus(hwnd);
         return 0;
 

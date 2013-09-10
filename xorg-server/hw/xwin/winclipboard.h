@@ -106,9 +106,6 @@ void
 
 void *winClipboardProc(void *);
 
-void
- winDeinitClipboard(void);
-
 /*
  * winclipboardwndproc.c
  */

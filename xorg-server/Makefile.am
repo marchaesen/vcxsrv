@@ -27,6 +27,7 @@ SUBDIRS = \
 	Xext \
 	miext \
 	os \
+	pseudoramiX \
 	randr \
 	render  \
 	Xi \
@@ -77,6 +78,7 @@ DIST_SUBDIRS = \
 	Xext \
 	miext \
 	os \
+	pseudoramiX \
 	randr \
 	render  \
 	Xi \

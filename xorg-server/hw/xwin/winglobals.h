@@ -30,6 +30,8 @@
 #include <xwin-config.h>
 #endif
 
+#include <pthread.h>
+
 /*
  * References to external symbols
  */
@@ -69,7 +71,6 @@ typedef int (*winDispatchProcPtr) (ClientPtr);
  * Wrapped DIX functions
  */
 extern winDispatchProcPtr winProcEstablishConnectionOrig;
-extern winDispatchProcPtr winProcQueryTreeOrig;
 extern winDispatchProcPtr winProcSetSelectionOwnerOrig;
 #endif
 
