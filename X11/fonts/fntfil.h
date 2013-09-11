@@ -141,7 +141,7 @@ extern void FontFileFreeDir ( FontDirectoryPtr dir );
 extern void FontFileFreeEntry ( FontEntryPtr entry );
 extern void FontFileFreeTable ( FontTablePtr table );
 extern Bool FontFileInitTable ( FontTablePtr table, int size );
-extern FontDirectoryPtr FontFileMakeDir ( char *dirName, int size );
+extern FontDirectoryPtr FontFileMakeDir ( const char *dirName, int size );
 extern Bool FontFileMatchName ( char *name, int length, FontNamePtr pat );
 extern char * FontFileSaveString ( char *s );
 extern void FontFileSortDir ( FontDirectoryPtr dir );

@@ -58,6 +58,7 @@ getUST(int64_t * ust)
 
 #ifdef _MSC_VER
     DebugBreak();
+    return -EFAULT;
 #else
     if (gettimeofday(&tv, NULL) == 0) {
         ust[0] = (tv.tv_sec * 1000000) + tv.tv_usec;
@@ -66,7 +67,7 @@ getUST(int64_t * ust)
     else {
         return -errno;
     }
-    #endif
+#endif
 }
 
 const __DRIsystemTimeExtension systemTimeExtension = {

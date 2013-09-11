@@ -55,7 +55,6 @@
 typedef long off_t;
 #define stat _stat
 #define fstat _fstat
-#define fdopen _fdopen
 #define O_RDONLY _O_RDONLY
 #endif
 

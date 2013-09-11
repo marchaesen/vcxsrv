@@ -64,7 +64,7 @@ extern int close();
 #define FALSE 0
 #endif
 
-extern Atom MakeAtom ( char *string, unsigned len, int makeit );
+extern Atom MakeAtom ( const char *string, unsigned len, int makeit );
 extern int ValidAtom ( Atom atom );
 extern char *NameForAtom (Atom atom);
 

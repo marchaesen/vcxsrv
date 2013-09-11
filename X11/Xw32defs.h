@@ -27,7 +27,6 @@ typedef char *caddr_t;
 #  define execve	 _execve
 #  define execvp	 _execvp
 #  define execvpe  _execvpe
-#  define fdopen	  _fdopen
 #  define fileno	  _fileno
 #  define fstat	 _fstat
 #  define getcwd	_getcwd

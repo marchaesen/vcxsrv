@@ -55,7 +55,7 @@ static int readBufPos = 0;
 static int readBufLen = 0;
 
 #ifdef DEBUG
-extern int debugFlags;
+extern unsigned int debugFlags;
 
 static char *
 tokText(int tok)

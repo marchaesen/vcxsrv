@@ -337,7 +337,7 @@ Bool
 XagCreateAssociation(Display* dpy, Window* window_return, void* system_window)
 {
 #ifdef WIN32
-    long tmp = *(HWND*) system_window;
+    HWND tmp = *(HWND*) system_window;
     XExtDisplayInfo *info = find_display (dpy);
     xXagCreateAssocReq *req;
 
@@ -350,7 +350,7 @@ XagCreateAssociation(Display* dpy, Window* window_return, void* system_window)
     *window_return = req->window = XAllocID(dpy);
     req->window_type = XagWindowTypeWin32;
     req->system_window_len = sizeof(HWND);
-    Data32 (dpy, (long*) tmp, 1L);
+    Data32 (dpy, (HWND*) tmp, sizeof(HWND)/4);
     req->length++;
     UnlockDisplay(dpy);
     SyncHandle();

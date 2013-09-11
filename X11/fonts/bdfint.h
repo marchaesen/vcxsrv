@@ -68,11 +68,11 @@ typedef struct BDFSTAT {
     BOOL        haveDefaultCh;
 }           bdfFileState;
 
-extern void bdfError ( char * message, ... );
-extern void bdfWarning ( char *message, ... );
+extern void bdfError ( const char * message, ... );
+extern void bdfWarning ( const char *message, ... );
 extern unsigned char * bdfGetLine ( FontFilePtr file, unsigned char *buf, 
 				    int len );
-extern Atom bdfForceMakeAtom ( char *str, int *size );
+extern Atom bdfForceMakeAtom ( const char *str, int *size );
 extern Atom bdfGetPropertyValue ( char *s );
 extern int bdfIsInteger ( char *str );
 extern unsigned char bdfHexByte ( unsigned char *s );

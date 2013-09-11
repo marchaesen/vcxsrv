@@ -80,7 +80,7 @@ FcObjectSetAdd (FcObjectSet *os, const char *object)
     }
     if (c < 0)
 	mid++;
-    memmove (os->objects + mid + 1, os->objects + mid,
+    memmove ((void*)(os->objects + mid + 1), os->objects + mid,
 	     (os->nobject - mid) * sizeof (const char *));
     os->objects[mid] = object;
     os->nobject++;
