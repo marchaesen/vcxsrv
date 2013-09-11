@@ -525,6 +525,9 @@ private:
  *  @{
  */
 builtin_builder::builtin_builder()
+   : shader(NULL),
+     gl_ModelViewProjectionMatrix(NULL),
+     gl_Vertex(NULL)
 {
    mem_ctx = NULL;
 }
@@ -1850,6 +1853,7 @@ builtin_builder::add_function(const char *name, ...)
 
       f->add_signature(sig);
    }
+   va_end(ap);
 
    shader->symbols->add_function(f);
 }

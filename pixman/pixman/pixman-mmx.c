@@ -3561,7 +3561,6 @@ mmx_composite_over_reverse_n_8888 (pixman_implementation_t *imp,
 #define BILINEAR_DECLARE_VARIABLES						\
     const __m64 mm_wt = _mm_set_pi16 (wt, wt, wt, wt);				\
     const __m64 mm_wb = _mm_set_pi16 (wb, wb, wb, wb);				\
-    const __m64 mm_BSHIFT = _mm_set_pi16 (BSHIFT, BSHIFT, BSHIFT, BSHIFT);	\
     const __m64 mm_addc7 = _mm_set_pi16 (0, 1, 0, 1);				\
     const __m64 mm_xorc7 = _mm_set_pi16 (0, BMSK, 0, BMSK);			\
     const __m64 mm_ux = _mm_set_pi16 (unit_x, unit_x, unit_x, unit_x);		\
@@ -3581,35 +3580,15 @@ do {										\
     __m64 hi = _mm_add_pi16 (t_hi, b_hi);					\
     __m64 lo = _mm_add_pi16 (t_lo, b_lo);					\
     vx += unit_x;								\
-    if (BILINEAR_INTERPOLATION_BITS < 8)					\
-    {										\
-	/* calculate horizontal weights */					\
-	__m64 mm_wh = _mm_add_pi16 (mm_addc7, _mm_xor_si64 (mm_xorc7,		\
+    /* calculate horizontal weights */						\
+    __m64 mm_wh = _mm_add_pi16 (mm_addc7, _mm_xor_si64 (mm_xorc7,		\
 			  _mm_srli_pi16 (mm_x,					\
 					 16 - BILINEAR_INTERPOLATION_BITS)));	\
-	/* horizontal interpolation */						\
-	__m64 p = _mm_unpacklo_pi16 (lo, hi);					\
-	__m64 q = _mm_unpackhi_pi16 (lo, hi);					\
-	lo = _mm_madd_pi16 (p, mm_wh);						\
-	hi = _mm_madd_pi16 (q, mm_wh);						\
-    }										\
-    else									\
-    {										\
-	/* calculate horizontal weights */					\
-	__m64 mm_wh_lo = _mm_sub_pi16 (mm_BSHIFT, _mm_srli_pi16 (mm_x,		\
-					16 - BILINEAR_INTERPOLATION_BITS));	\
-	__m64 mm_wh_hi = _mm_srli_pi16 (mm_x,					\
-					16 - BILINEAR_INTERPOLATION_BITS);	\
-	/* horizontal interpolation */						\
-	__m64 mm_lo_lo = _mm_mullo_pi16 (lo, mm_wh_lo);				\
-	__m64 mm_lo_hi = _mm_mullo_pi16 (hi, mm_wh_hi);				\
-	__m64 mm_hi_lo = _mm_mulhi_pu16 (lo, mm_wh_lo);				\
-	__m64 mm_hi_hi = _mm_mulhi_pu16 (hi, mm_wh_hi);				\
-	lo = _mm_add_pi32 (_mm_unpacklo_pi16 (mm_lo_lo, mm_hi_lo),		\
-			   _mm_unpacklo_pi16 (mm_lo_hi, mm_hi_hi));		\
-	hi = _mm_add_pi32 (_mm_unpackhi_pi16 (mm_lo_lo, mm_hi_lo),		\
-			   _mm_unpackhi_pi16 (mm_lo_hi, mm_hi_hi));		\
-    }										\
+    /* horizontal interpolation */						\
+    __m64 p = _mm_unpacklo_pi16 (lo, hi);					\
+    __m64 q = _mm_unpackhi_pi16 (lo, hi);					\
+    lo = _mm_madd_pi16 (p, mm_wh);						\
+    hi = _mm_madd_pi16 (q, mm_wh);						\
     mm_x = _mm_add_pi16 (mm_x, mm_ux);						\
     /* shift and pack the result */						\
     hi = _mm_srli_pi32 (hi, BILINEAR_INTERPOLATION_BITS * 2);			\

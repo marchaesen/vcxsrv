@@ -116,7 +116,7 @@ convenience for the applications' rendering mechanism.
   file            String  The filename holding the font
   index           Int     The index of the font within the file
   ftface          FT_Face Use the specified FreeType face object
-  rasterizer      String  Which rasterizer is in use
+  rasterizer      String  Which rasterizer is in use (deprecated)
   outline         Bool    Whether the glyphs are outlines
   scalable        Bool    Whether glyphs can be scaled
   scale           Double  Scale factor for point->pixel conversions

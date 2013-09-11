@@ -170,7 +170,7 @@ convenience for the application's rendering mechanism.
                                                   the file
     ftface         FC_FT_FACE             FT_Face Use the specified FreeType
                                                   face object
-    rasterizer     FC_RASTERIZER          String  Which rasterizer is in use
+    rasterizer     FC_RASTERIZER          String  Which rasterizer is in use (deprecated)
     outline        FC_OUTLINE             Bool    Whether the glyphs are outlines
     scalable       FC_SCALABLE            Bool    Whether glyphs can be scaled
     scale          FC_SCALE               Double  Scale factor for point->pixel

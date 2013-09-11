@@ -57,7 +57,7 @@ struct argb_t
     float b;
 };
 
-typedef void (*fetch_scanline_t) (pixman_image_t *image,
+typedef void (*fetch_scanline_t) (bits_image_t   *image,
 				  int             x,
 				  int             y,
 				  int             width,

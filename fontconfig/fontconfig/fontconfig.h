@@ -91,7 +91,7 @@ typedef int		FcBool;
 #define FC_FILE		    "file"		/* String */
 #define FC_INDEX	    "index"		/* Int */
 #define FC_FT_FACE	    "ftface"		/* FT_Face */
-#define FC_RASTERIZER	    "rasterizer"	/* String */
+#define FC_RASTERIZER	    "rasterizer"	/* String (deprecated) */
 #define FC_OUTLINE	    "outline"		/* Bool */
 #define FC_SCALABLE	    "scalable"		/* Bool */
 #define FC_SCALE	    "scale"		/* double */
