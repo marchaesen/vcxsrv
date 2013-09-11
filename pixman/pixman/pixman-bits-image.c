@@ -1253,9 +1253,9 @@ bits_image_fetch_untransformed_repeat_none (bits_image_t *image,
 	w = MIN (width, image->width - x);
 
 	if (wide)
-	    image->fetch_scanline_float ((pixman_image_t *)image, x, y, w, buffer, NULL);
+	    image->fetch_scanline_float (image, x, y, w, buffer, NULL);
 	else
-	    image->fetch_scanline_32 ((pixman_image_t *)image, x, y, w, buffer, NULL);
+	    image->fetch_scanline_32 (image, x, y, w, buffer, NULL);
 
 	width -= w;
 	buffer += w * (wide? 4 : 1);
@@ -1301,9 +1301,9 @@ bits_image_fetch_untransformed_repeat_normal (bits_image_t *image,
 	w = MIN (width, image->width - x);
 
 	if (wide)
-	    image->fetch_scanline_float ((pixman_image_t *)image, x, y, w, buffer, NULL);
+	    image->fetch_scanline_float (image, x, y, w, buffer, NULL);
 	else
-	    image->fetch_scanline_32 ((pixman_image_t *)image, x, y, w, buffer, NULL);
+	    image->fetch_scanline_32 (image, x, y, w, buffer, NULL);
 
 	buffer += w * (wide? 4 : 1);
 	x += w;
@@ -1528,7 +1528,7 @@ dest_get_scanline_narrow (pixman_iter_t *iter, const uint32_t *mask)
     int             width  = iter->width;
     uint32_t *	    buffer = iter->buffer;
 
-    image->bits.fetch_scanline_32 (image, x, y, width, buffer, mask);
+    image->bits.fetch_scanline_32 (&image->bits, x, y, width, buffer, mask);
     if (image->common.alpha_map)
     {
 	uint32_t *alpha;
@@ -1541,8 +1541,7 @@ dest_get_scanline_narrow (pixman_iter_t *iter, const uint32_t *mask)
 	    y -= image->common.alpha_origin_y;
 
 	    image->common.alpha_map->fetch_scanline_32 (
-		(pixman_image_t *)image->common.alpha_map,
-		x, y, width, alpha, mask);
+		image->common.alpha_map, x, y, width, alpha, mask);
 
 	    for (i = 0; i < width; ++i)
 	    {
@@ -1567,7 +1566,7 @@ dest_get_scanline_wide (pixman_iter_t *iter, const uint32_t *mask)
     argb_t *	    buffer = (argb_t *)iter->buffer;
 
     image->fetch_scanline_float (
-	(pixman_image_t *)image, x, y, width, (uint32_t *)buffer, mask);
+	image, x, y, width, (uint32_t *)buffer, mask);
     if (image->common.alpha_map)
     {
 	argb_t *alpha;
@@ -1580,8 +1579,7 @@ dest_get_scanline_wide (pixman_iter_t *iter, const uint32_t *mask)
 	    y -= image->common.alpha_origin_y;
 
 	    image->common.alpha_map->fetch_scanline_float (
-		(pixman_image_t *)image->common.alpha_map,
-		x, y, width, (uint32_t *)alpha, mask);
+		image->common.alpha_map, x, y, width, (uint32_t *)alpha, mask);
 
 	    for (i = 0; i < width; ++i)
 		buffer[i].a = alpha[i].a;
