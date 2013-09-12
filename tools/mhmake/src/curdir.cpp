@@ -23,9 +23,12 @@
 #include "fileinfo.h"
 #include "curdir.h"
 #include "util.h"
+#include "mhmakeparser.hpp"
 
 fileinfos g_FileInfos;  // declare here since it is important that it is constructed before m_pcurrentdir
 curdir::initcurdir curdir::m_pCurrentDir;
+loadedmakefile::loadedmakefile_statics loadedmakefile::sm_Statics;  // Declare this here because this constructor is using g_FileInfos and m_pCurrentDir
+LOADEDMAKEFILES g_LoadedMakefiles;  // Declare it here otherwize problems in the destructor (still using items from g_FileInfos)
 
 ///////////////////////////////////////////////////////////////////////////////
 curdir::initcurdir::initcurdir()

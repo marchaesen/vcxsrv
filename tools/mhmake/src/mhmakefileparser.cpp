@@ -379,7 +379,7 @@ void mhmakefileparser::SplitToItems(const string &String,vector<fileinfo*> &Item
   {
     string Item;
     pTmp=NextItem(pTmp,Item);
-    if (!Item.empty())
+    if (!Item.empty() && Item!="|")
     {
       Items.push_back(GetFileInfo(Item,m_MakeDir));
     }

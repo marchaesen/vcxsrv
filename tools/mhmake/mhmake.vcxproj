@@ -153,8 +153,6 @@
     </ResourceCompile>
     <Link>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <ProgramDatabaseFile>
-      </ProgramDatabaseFile>
       <SubSystem>Console</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
@@ -194,6 +192,7 @@
       <CallingConvention>FastCall</CallingConvention>
       <CompileAs>Default</CompileAs>
       <DisableSpecificWarnings>4267;4996;4244;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <ProgramDataBaseFileName>$(TargetDir)$(TargetName).pdb</ProgramDataBaseFileName>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -268,6 +267,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
       <DisableSpecificWarnings>4267;4996;4244;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <ProgramDataBaseFileName>$(TargetDir)$(TargetName).pdb</ProgramDataBaseFileName>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -277,7 +277,6 @@
       <OutputFile>$(OutDir)\mhmake_dbg.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ProgramDatabaseFile>.\Debug/mhmake.pdb</ProgramDatabaseFile>
       <SubSystem>Console</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
@@ -307,7 +306,6 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(Configuration)/mhmake.pch</PrecompiledHeaderOutputFile>
-      <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -322,7 +320,6 @@
     <Link>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ProgramDatabaseFile>$(OutDir)\$(ProjectName).pdb</ProgramDatabaseFile>
       <GenerateMapFile>true</GenerateMapFile>
       <MapExports>true</MapExports>
       <SubSystem>Console</SubSystem>
@@ -360,13 +357,13 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(Configuration)/mhmake.pch</PrecompiledHeaderOutputFile>
-      <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CallingConvention>FastCall</CallingConvention>
       <CompileAs>Default</CompileAs>
       <DisableSpecificWarnings>4267;4996;4244;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <ProgramDataBaseFileName>$(TargetDir)$(TargetName).pdb</ProgramDataBaseFileName>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -376,7 +373,6 @@
       <OutputFile>$(Configuration)/mhmake.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ProgramDatabaseFile>$(OutDir)\$(ProjectName).pdb</ProgramDatabaseFile>
       <GenerateMapFile>true</GenerateMapFile>
       <MapExports>true</MapExports>
       <SubSystem>Console</SubSystem>
@@ -455,21 +451,18 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename).cpp;$(IntDir)%(Filename).hpp;$(IntDir)location.hh;$(IntDir)position.hh;$(IntDir)stack.hh</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">cmd.exe /c makebison.bat Debug64
 </Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.\src\bison.cc;.\src\bison.h;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)%(Filename).cpp;$(OutDir)%(Filename).h;%(Outputs)</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">cmd.exe /c makebison.bat Profile
 </Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">%(RelativeDir)bisondata/bison.m4;%(RelativeDir)bisondata/lalr1.cc;%(RelativeDir)bisondata/c++.m4;%(RelativeDir)bisondata/c.m4;%(RelativeDir)bisondata/location.cc</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">$(IntDir)%(Filename).cpp;$(IntDir)%(Filename).hpp;$(IntDir)location.hh;$(IntDir)position.hh;$(IntDir)stack.hh</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">cmd.exe /c makebison.bat Profile64</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">.\src\bison.cc;.\src\bison.h;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">$(OutDir)%(Filename).cpp;$(OutDir)%(Filename).h;%(Outputs)</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd.exe /c makebison.bat Release
 </Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(RelativeDir)bisondata/bison.m4;%(RelativeDir)bisondata/lalr1.cc;%(RelativeDir)bisondata/c++.m4;%(RelativeDir)bisondata/c.m4;%(RelativeDir)bisondata/location.cc</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)%(Filename).cpp;$(IntDir)%(Filename).hpp;$(IntDir)location.hh;$(IntDir)position.hh;$(IntDir)stack.hh</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">cmd.exe /c makebison.bat Release64</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\src\bison.cc;.\src\bison.h;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)%(Filename).cpp;$(OutDir)%(Filename).h;%(Outputs)</Outputs>
     </CustomBuild>
   </ItemGroup>

@@ -335,7 +335,79 @@ refptr<loadedmakefile> LOADEDMAKEFILES::find(const loadedmakefile &ToSearch)
   return refptr<loadedmakefile>();
 }
 
-LOADEDMAKEFILES g_LoadedMakefiles;
+///////////////////////////////////////////////////////////////////////////////
+bool loadedmakefile::loadedmakefile_statics::GetSvnRevision(void)
+{
+  // Get the revision of the working copy
+  // We do it with the svn info command (do it without path arguments, only current directory, to avoid problems with path names and junctions/links
+
+  string Output;
+  try
+  {
+    mhmakefileparser Dummy(m_MhMakeConf);
+    string SvnCommand=Dummy.SearchCommand("svn",EXEEXT);
+    Dummy.OsExeCommand(SvnCommand,string(" info"),false,&Output);
+  }
+  catch (string Message)
+  {
+    #ifdef _DEBUG
+    cerr << "Exception: " << Message << endl;
+    #endif
+  }
+
+  char *pTok=strtok((char*)Output.c_str(),"\n");   // doing this is changing string, so this is very dangerous !!!
+  while (pTok)
+  {
+    if (!strncmp(pTok,"URL: ",5))
+    {
+      m_GlobalCommandLineVars[WC_URL]=pTok+5+7;
+    }
+    else if (!strncmp(pTok,"Revision: ",10))
+    {
+      m_GlobalCommandLineVars[WC_REVISION]=pTok+10;
+      return true;
+    }
+    pTok=strtok(NULL,"\n");
+  }
+  return false;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+bool loadedmakefile::loadedmakefile_statics::GetGitSvnRevision(void)
+{
+  // Get the revision of the working copy
+  // We do it with the svn info command
+
+  string Output;
+  try
+  {
+    mhmakefileparser Dummy(m_MhMakeConf);
+    string GitCommand=Dummy.SearchCommand("git",EXEEXT);
+    Dummy.OsExeCommand(GitCommand,string(" svn info ."), false, &Output);
+  }
+  catch (string Message)
+  {
+    #ifdef _DEBUG
+    cerr << "Exception: " << Message << endl;
+    #endif
+  }
+
+  char *pTok=strtok((char*)Output.c_str(),"\n");   // doing this is changing string, so this is very dangerous !!!
+  while (pTok)
+  {
+    if (!strncmp(pTok,"URL: ",5))
+    {
+      m_GlobalCommandLineVars[WC_URL]=pTok+5+7;
+    }
+    else if (!strncmp(pTok,"Revision: ",10))
+    {
+      m_GlobalCommandLineVars[WC_REVISION]=pTok+10;
+      return true;
+    }
+    pTok=strtok(NULL,"\n");
+  }
+  return false;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 loadedmakefile::loadedmakefile_statics::loadedmakefile_statics()
@@ -347,80 +419,8 @@ loadedmakefile::loadedmakefile_statics::loadedmakefile_statics()
     m_MhMakeConf=GetAbsFileInfo(pEnv);
     m_GlobalCommandLineVars[MHMAKECONF]=QuoteFileName(m_MhMakeConf->GetFullFileName());
 
-    // Get the revision of the working copy
-    // We do it with the svn info command
-
-    string Output;
-    try
-    {
-      mhmakefileparser Dummy(curdir::GetCurDir());
-      string SvnCommand=Dummy.SearchCommand("svn",EXEEXT);
-      #ifdef WIN32
-      if (GetFileAttributes(m_MhMakeConf->GetFullFileName().c_str())&FILE_ATTRIBUTE_REPARSE_POINT)
-      {
-        WIN32_FIND_DATA FindData;
-        HANDLE hFind=FindFirstFile(m_MhMakeConf->GetFullFileName().c_str(),&FindData);
-        if (hFind!=INVALID_HANDLE_VALUE)
-        {
-          if (FindData.dwReserved0==IO_REPARSE_TAG_MOUNT_POINT)
-          {
-            HANDLE hDir = ::CreateFile(m_MhMakeConf->GetFullFileName().c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, NULL);
-
-            BYTE buf[MAXIMUM_REPARSE_DATA_BUFFER_SIZE];  // We need a large buffer
-            REPARSE_MOUNTPOINT_DATA_BUFFER& ReparseBuffer = (REPARSE_MOUNTPOINT_DATA_BUFFER&)buf;
-            DWORD dwRet;
-
-            if (::DeviceIoControl(hDir, FSCTL_GET_REPARSE_POINT, NULL, 0, &ReparseBuffer, MAXIMUM_REPARSE_DATA_BUFFER_SIZE, &dwRet, NULL))
-            {
-              // Success
-              ::CloseHandle(hDir);
-
-              LPCWSTR pPath = ReparseBuffer.ReparseTarget;
-              if (wcsncmp(pPath, L"\\??\\", 4) == 0) pPath += 4;  // Skip 'non-parsed' prefix
-              char szPath[MAX_PATH];
-              ::WideCharToMultiByte(CP_ACP, 0, pPath, -1, szPath, MAX_PATH, NULL, NULL);
-              Dummy.OsExeCommand(SvnCommand,string(" info ")+GetFileInfo(szPath,m_MhMakeConf->GetDir())->GetQuotedFullFileName(),false,&Output);
-            }
-            else
-            {  // Error
-              ::CloseHandle(hDir);
-            }
-          }
-          FindClose(hFind);
-        }
-      }
-      #else
-      struct stat Stat;
-      lstat(m_MhMakeConf->GetFullFileName().c_str(),&Stat);
-      if (S_ISLNK(Stat.st_mode))
-      {
-        char FileName[1024];
-        int len=readlink(m_MhMakeConf->GetFullFileName().c_str(),FileName,sizeof(FileName));
-        FileName[len]=0;
-        Dummy.OsExeCommand(SvnCommand,string(" info ")+GetFileInfo(FileName,m_MhMakeConf->GetDir())->GetQuotedFullFileName(),false,&Output);
-      }
-      #endif
-      else
-        Dummy.OsExeCommand(SvnCommand,string(" info ")+m_MhMakeConf->GetQuotedFullFileName(),false,&Output);
-    }
-    catch (string Message)
-    {
-    }
-
-    char *pTok=strtok((char*)Output.c_str(),"\n");   // doing this is changing string, so this is very dangerous !!!
-    while (pTok)
-    {
-      if (!strncmp(pTok,"URL: ",5))
-      {
-        m_GlobalCommandLineVars[WC_URL]=pTok+5+7;
-      }
-      else if (!strncmp(pTok,"Revision: ",10))
-      {
-        m_GlobalCommandLineVars[WC_REVISION]=pTok+10;
-        break;
-      }
-      pTok=strtok(NULL,"\n");
-    }
+    if (!GetSvnRevision())
+      GetGitSvnRevision();
   }
 }
 

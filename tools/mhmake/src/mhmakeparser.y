@@ -52,7 +52,7 @@ const char Test[]="dit is een test";
 %token END      0 "end of file"
 %token <theString> COMMAND
 %token <theString> COMMA
-%token <theString> STRING DOLLAREXPR EQUAL COLON DOUBLECOLON VARDEF VARVAL
+%token <theString> STRING DOLLAREXPR PIPE EQUAL COLON DOUBLECOLON VARDEF VARVAL
 %token IMEQUAL PEQUAL OPTEQUAL PHONY AUTODEPS EXPORT NEWLINE INCLUDEMAK SPACE VPATH ENVVARS_TOIGNORE
 
 %type <theString> expression nonspaceexpression simpleexpression
@@ -136,8 +136,8 @@ ruledef: expression_nocolorequal rulecolon maybeemptyexpression
              throw string("Empty left hand side in rule: ") + $1 + " : " + $3;
            }
            #endif
-           m_pMakefile->SplitToItems(m_pMakefile->ExpandExpression($1),*m_pMakefile->m_pCurrentItems);
-           m_pMakefile->SplitToItems(m_pMakefile->ExpandExpression($3),*m_pMakefile->m_pCurrentDeps);
+           m_pMakefile->SplitToItems(m_pMakefile->ExpandExpression($1), *m_pMakefile->m_pCurrentItems);
+           m_pMakefile->SplitToItems(m_pMakefile->ExpandExpression($3), *m_pMakefile->m_pCurrentDeps);
            m_pMakefile->m_DoubleColonRule= ($2==1) ;
            PRINTF(("Defining rule %s : %s\n",$1.c_str(),$3.c_str()));
            PRINTF(("  Expanded to %s : %s\n",m_pMakefile->ExpandExpression($1).c_str(),m_pMakefile->ExpandExpression($3).c_str()));
@@ -286,6 +286,7 @@ nonspaceexpression_nocolorequal: simpleexpression_nocolorequal |
 ;
 
 simpleexpression: simpleexpression_nocolorequal |
+                  PIPE |
                   EQUAL |
                   COLON |
                   DOUBLECOLON |

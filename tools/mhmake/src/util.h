@@ -50,7 +50,7 @@
 #define PLATFORM     "linux"
 #endif
 
-#define MHMAKEVER    "3.0.21"
+#define MHMAKEVER    "3.0.25"
 
 class makecommand
 {
@@ -64,6 +64,24 @@ public:
 };
 
 extern makecommand g_MakeCommand;
+
+///////////////////////////////////////////////////////////////////////////////
+inline string unescapeString(const string &InStr)
+{
+  string OutStr;
+  string::const_iterator It=InStr.cbegin();
+  string::const_iterator ItEnd=InStr.cend();
+  while (It!=ItEnd)
+  {
+    char Ch=*It++;
+    if (Ch=='\\' && It!=ItEnd)
+    {
+      Ch=*It++;
+    }
+    OutStr+=Ch;
+  }
+  return OutStr;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 inline const char *NextItem(const char *pTmp,string &Output, const char *pToks=" \t")
@@ -202,6 +220,9 @@ struct loadedmakefile : public refbase
     fileinfo            *m_MhMakeConf;
 
     loadedmakefile_statics();
+
+    bool GetSvnRevision(void);
+    bool GetGitSvnRevision(void);
   };
   static loadedmakefile_statics sm_Statics;
 
@@ -211,6 +232,11 @@ struct loadedmakefile : public refbase
 
   vector<string>       m_CommandLineTargets;
   refptr<mhmakefileparser> m_pMakefileParser;
+
+  loadedmakefile()
+  {
+    // Dummy, only used below
+  }
 
   loadedmakefile(const fileinfo *pDir, vector<string> &Args,const string &Makefile=g_EmptyString);
 
@@ -261,11 +287,22 @@ struct loadedmakefile : public refbase
     }
     return 1;
   }
+public:
+  fileinfo *GetMhMakeConf()
+  {
+    return sm_Statics.m_MhMakeConf;
+  }
+
 };
 
 class LOADEDMAKEFILES : public vector<refptr<loadedmakefile> >
 {
 public:
+  LOADEDMAKEFILES()
+  {
+    loadedmakefile temp;
+    temp.GetMhMakeConf();  // Just to be here to control the order of destruction (sm_Statics may not be destructed before g_LoadedMakefiles)
+  }
   refptr<loadedmakefile> find(const loadedmakefile &pToSearch);
   typedef vector<refptr<loadedmakefile> >::iterator iterator;
 };

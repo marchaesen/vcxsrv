@@ -32,7 +32,6 @@ vector<implicitrule_t> IMPLICITRULE::m_ImplicitRules;
 
 makecommand g_MakeCommand;  // Order is important since sm_Statics is using g_MakeCommand
 const string g_QuoteString("\""); // Order is important since sm_Statics is using g_QuoteString
-loadedmakefile::loadedmakefile_statics loadedmakefile::sm_Statics;
 
 ///////////////////////////////////////////////////////////////////////////////
 static bool FindDep(fileinfo *pTarget, implicitruledep_t *pImplicitRule,refptr<rule> &Rule)

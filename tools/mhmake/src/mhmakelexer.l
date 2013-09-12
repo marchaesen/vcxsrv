@@ -255,6 +255,20 @@ load_makefile {
 }
 
  /*---------------------------------------------------------------------------*/
+[ \t]*\|[ \t]*\\[ \t\r]*\n[ \t]* {
+  PRINTF(("%s %d: EQUAL: %s\n",m_InputFileName.c_str(),lineno(),yytext));
+  inclineno();
+  yylval->theString=" | ";
+  return yy::mhmakeparser::token::PIPE;
+}
+
+[ \t]*\|[ \t]* {
+  PRINTF(("%s %d: EQUAL: %s\n",m_InputFileName.c_str(),lineno(),yytext));
+  yylval->theString=" | ";
+  return yy::mhmakeparser::token::PIPE;
+}
+
+ /*---------------------------------------------------------------------------*/
 [ \t]*=[ \t]*\\[ \t\r]*\n[ \t]* {
   PRINTF(("%s %d: EQUAL: %s\n",m_InputFileName.c_str(),lineno(),yytext));
   inclineno();
@@ -680,7 +694,7 @@ export {
 }
 
  /*---------------------------------------------------------------------------*/
-([a-zA-Z0-9\\\._\~\-\+%\@<&;/\*\|]|\\\ |\\#|\\\")+\\[ \t\r]*\n  {
+([a-zA-Z0-9\\\._\~\-\+%\@<&;/\*]|\\\ |\\#|\\\"|\|)+\\[ \t\r]*\n  {
   size_t EndIndex=yyleng;
   while (strchr(" \t\r\n\\",yytext[--EndIndex]));
   yyless(EndIndex+1);
@@ -690,14 +704,14 @@ export {
   return yy::mhmakeparser::token::STRING;
 }
 
-([a-zA-Z0-9\\\._\~\-\+%\@<&;/\*\|]|\\\ |\\#|\\\")+\+=  {
+([a-zA-Z0-9\\\._\~\-\+%\@<&;/\*]|\\\ |\\#|\\\"|\|)+\+=  {
   PRINTF(("%s %d: STRING: %s\n",m_InputFileName.c_str(),lineno(),yytext));
   yyless(yyleng-2);
   yylval->theString=(const char *)yytext;
   return yy::mhmakeparser::token::STRING;
 }
 
-([a-zA-Z0-9\\\._\~\-\+%\@<&;/\*\|\[\]]|\\\ |\\#|\\\")+  {
+([a-zA-Z0-9\\\._\~\-\+%\@<&;/\*\[\]]|\\\ |\\#|\\\"|\|)+  {
   PRINTF(("%s %d: STRING: %s\n",m_InputFileName.c_str(),lineno(),yytext));
   yylval->theString=(const char *)yytext;
   return yy::mhmakeparser::token::STRING;
@@ -841,8 +855,8 @@ export {
  /*---------------------------------------------------------------------------*/
 <QUOTE>\r /* skip */
 
-<QUOTE>[^\\\"\r\n$]+  |
-<QUOTE>[\\\$]    |
+<QUOTE>[^\\\"\r\n$]+ |
+<QUOTE>[\\\$]        |
 <QUOTE>\\\"          |
 <QUOTE>\\#  {
   yymore();
@@ -860,8 +874,8 @@ export {
 <SINGLEQUOTE>\r /* skip */
 
 <SINGLEQUOTE>[^\\\'\r\n$]+ |
-<SINGLEQUOTE>[\\\$]      |
-<SINGLEQUOTE>\\\'            |
+<SINGLEQUOTE>[\\\$]        |
+<SINGLEQUOTE>\\\'          |
 <SINGLEQUOTE>\\# {
   yymore();
 }
