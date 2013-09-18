@@ -437,6 +437,50 @@ fi
 AM_CONDITIONAL(USE_SSE2, test $have_sse2_intrinsics = yes)
 
 dnl ===========================================================================
+dnl Check for SSSE3
+
+if test "x$SSSE3_CFLAGS" = "x" ; then
+    SSSE3_CFLAGS="-mssse3 -Winline"
+fi
+
+have_ssse3_intrinsics=no
+AC_MSG_CHECKING(whether to use SSSE3 intrinsics)
+xserver_save_CFLAGS=$CFLAGS
+CFLAGS="$SSSE3_CFLAGS $CFLAGS"
+
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+#include <mmintrin.h>
+#include <xmmintrin.h>
+#include <emmintrin.h>
+#include <tmmintrin.h>
+int main () {
+    __m128i a = _mm_set1_epi32 (0), b = _mm_set1_epi32 (0), c;
+    c = _mm_maddubs_epi16 (a, b);
+    return 0;
+}]])], have_ssse3_intrinsics=yes)
+CFLAGS=$xserver_save_CFLAGS
+
+AC_ARG_ENABLE(ssse3,
+   [AC_HELP_STRING([--disable-ssse3],
+                   [disable SSSE3 fast paths])],
+   [enable_ssse3=$enableval], [enable_ssse3=auto])
+
+if test $enable_ssse3 = no ; then
+   have_ssse3_intrinsics=disabled
+fi
+
+if test $have_ssse3_intrinsics = yes ; then
+   AC_DEFINE(USE_SSSE3, 1, [use SSSE3 compiler intrinsics])
+fi
+
+AC_MSG_RESULT($have_ssse3_intrinsics)
+if test $enable_ssse3 = yes && test $have_ssse3_intrinsics = no ; then
+   AC_MSG_ERROR([SSSE3 intrinsics not detected])
+fi
+
+AM_CONDITIONAL(USE_SSSE3, test $have_ssse3_intrinsics = yes)
+
+dnl ===========================================================================
 dnl Other special flags needed when building code using MMX or SSE instructions
 case $host_os in
    solaris*)
@@ -471,6 +515,7 @@ AC_SUBST(MMX_CFLAGS)
 AC_SUBST(MMX_LDFLAGS)
 AC_SUBST(SSE2_CFLAGS)
 AC_SUBST(SSE2_LDFLAGS)
+AC_SUBST(SSSE3_CFLAGS)
 
 dnl ===========================================================================
 dnl Check for VMX/Altivec
