@@ -8,6 +8,7 @@ AM_CPPFLAGS = \
 	-DUSE_NEW_CLUT \
 	-DXFree86Server \
 	-I$(top_srcdir)/miext/rootless \
+	-I$(top_builddir)/pseudoramiX \
 	-DX11LIBDIR=\"$(libdir)\"
 
 if GLX

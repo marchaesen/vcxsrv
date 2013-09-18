@@ -85,8 +85,7 @@ static struct propdata null_propdata = {
 static void
 dump_prefs()
 {
-    ErrorF(fp,
-           "pbproxy preferences:\n"
+    ErrorF("pbproxy preferences:\n"
            "\tactive %u\n"
            "\tprimary_on_grab %u\n"
            "\tclipboard_to_pasteboard %u\n"

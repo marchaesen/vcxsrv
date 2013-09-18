@@ -516,6 +516,14 @@ ir_validate::visit_leave(ir_expression *ir)
       assert(ir->operands[1]->type == glsl_type::uint_type);
       break;
 
+   case ir_binop_ldexp:
+      assert(ir->operands[0]->type == ir->type);
+      assert(ir->operands[0]->type->is_float());
+      assert(ir->operands[1]->type->base_type == GLSL_TYPE_INT);
+      assert(ir->operands[0]->type->components() ==
+             ir->operands[1]->type->components());
+      break;
+
    case ir_binop_vector_extract:
       assert(ir->operands[0]->type->is_vector());
       assert(ir->operands[1]->type->is_scalar()
@@ -523,6 +531,12 @@ ir_validate::visit_leave(ir_expression *ir)
       break;
 
    case ir_triop_fma:
+      assert(ir->type->base_type == GLSL_TYPE_FLOAT);
+      assert(ir->type == ir->operands[0]->type);
+      assert(ir->type == ir->operands[1]->type);
+      assert(ir->type == ir->operands[2]->type);
+      break;
+
    case ir_triop_lrp:
       assert(ir->operands[0]->type->base_type == GLSL_TYPE_FLOAT);
       assert(ir->operands[0]->type == ir->operands[1]->type);

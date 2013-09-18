@@ -743,7 +743,7 @@ XCOMM Part 3
 <Multi_key> <i> <quotedbl> 		: "ï"   idiaeresis # LATIN SMALL LETTER I WITH DIAERESIS
 <Multi_key> <diaeresis> <i> 		: "ï"   idiaeresis # LATIN SMALL LETTER I WITH DIAERESIS
 <Multi_key> <i> <diaeresis> 		: "ï"   idiaeresis # LATIN SMALL LETTER I WITH DIAERESIS
-<dead_actute> <j>	 		: "j́"    # LATIN SMALL LETTER J U006A with COMBINING ACUTE ACCENT U0301
+<dead_acute> <j>	 		: "j́"    # LATIN SMALL LETTER J U006A with COMBINING ACUTE ACCENT U0301
 <Multi_key> <apostrophe> <j> 		: "j́"    # LATIN SMALL LETTER J U006A with COMBINING ACUTE ACCENT U0301
 <Multi_key> <j> <apostrophe> 		: "j́"    # LATIN SMALL LETTER J U006A with COMBINING ACUTE ACCENT U0301
 <Multi_key> <acute> <j> 		: "j́"    # LATIN SMALL LETTER J U006A with COMBINING ACUTE ACCENT U0301

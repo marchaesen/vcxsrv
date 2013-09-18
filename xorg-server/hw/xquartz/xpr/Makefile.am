@@ -3,6 +3,7 @@ noinst_LTLIBRARIES = libXquartzXpr.la
 AM_CFLAGS =  $(DIX_CFLAGS)
 AM_CPPFLAGS = \
 	-I$(srcdir) -I$(srcdir)/.. \
+	-I$(top_builddir)/pseudoramiX \
 	-I$(top_srcdir)/miext \
 	-I$(top_srcdir)/miext/rootless
 

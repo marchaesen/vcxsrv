@@ -1718,6 +1718,12 @@ struct gl_transform_feedback_object
    GLboolean EverBound; /**< Has this object been bound? */
 
    /**
+    * The shader program active when BeginTransformFeedback() was called.
+    * When active and unpaused, this equals ctx->Shader.CurrentVertexProgram.
+    */
+   struct gl_shader_program *shader_program;
+
+   /**
     * GLES: if Active is true, remaining number of primitives which can be
     * rendered without overflow.  This is necessary to track because GLES
     * requires us to generate INVALID_OPERATION if a call to glDrawArrays or
@@ -1931,6 +1937,7 @@ struct gl_geometry_program
                            GL_TRIANGLES, or GL_TRIANGLES_ADJACENCY_ARB */
    GLenum OutputType; /**< GL_POINTS, GL_LINE_STRIP or GL_TRIANGLE_STRIP */
    GLboolean UsesClipDistance;
+   GLboolean UsesEndPrimitive;
 };
 
 
@@ -2364,6 +2371,7 @@ struct gl_shader_program
       GLboolean UsesClipDistance;
       GLuint ClipDistanceArraySize; /**< Size of the gl_ClipDistance array, or
                                          0 if not present. */
+      GLboolean UsesEndPrimitive;
    } Geom;
 
    /** Vertex shader state */
@@ -3125,6 +3133,7 @@ struct gl_extensions
    GLboolean EXT_point_parameters;
    GLboolean EXT_provoking_vertex;
    GLboolean EXT_separate_shader_objects;
+   GLboolean EXT_shader_integer_mix;
    GLboolean EXT_stencil_two_side;
    GLboolean EXT_texture3D;
    GLboolean EXT_texture_array;
@@ -3154,7 +3163,6 @@ struct gl_extensions
    GLboolean ATI_fragment_shader;
    GLboolean ATI_separate_stencil;
    GLboolean MESA_pack_invert;
-   GLboolean MESA_shader_integer_mix;
    GLboolean MESA_texture_array;
    GLboolean MESA_ycbcr_texture;
    GLboolean NV_conditional_render;
