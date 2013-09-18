@@ -86,6 +86,8 @@ gl/glx_mangle.h                                   mesalib/include/gl/glx_mangle.
 gl/gl_mangle.h                                    mesalib/include/gl/gl_mangle.h
 gl/internal/dri_interface.h                       mesalib/include/gl/internal/dri_interface.h
 
+xorg-server/hw/xwin/glx/wglext.h                  mesalib/include/GL/wglext.h
+
 mesalib/src/mapi/glapi/glapi.h                      xorg-server/glx/glapi.h
 mesalib/src/mapi/glapi/gen/glapitable.h             mesalib/src/mesa/main/glapitable.h
 mesalib/src/mesa/main/glapitable.h                  xorg-server/glx/glapitable.h

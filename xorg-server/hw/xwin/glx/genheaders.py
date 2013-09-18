@@ -259,7 +259,7 @@ protectFeature = protect
 protectProto = protect
 
 buildList = [
-    # GL API 1.2+ + extensions - glext.h
+    # GL API 1.2+ + extensions - GL/glext.h
     CGeneratorOptions(
         filename          = 'GL/glext.h',
         apiname           = 'gl',
@@ -278,7 +278,7 @@ buildList = [
         apicall           = 'GLAPI ',
         apientry          = 'APIENTRY ',
         apientryp         = 'APIENTRYP '),
-    # GL core profile + extensions - glcorearb.h
+    # GL core profile + extensions - GL/glcorearb.h
     CGeneratorOptions(
         filename          = 'GL/glcorearb.h',
         apiname           = 'gl',
@@ -297,7 +297,7 @@ buildList = [
         apicall           = 'GLAPI ',
         apientry          = 'APIENTRY ',
         apientryp         = 'APIENTRYP '),
-    # GLES 1.x API + mandatory extensions - es1.h (no function pointers)
+    # GLES 1.x API + mandatory extensions - GLES/gl.h (no function pointers)
     CGeneratorOptions(
         filename          = 'GLES/gl.h',
         apiname           = 'gles1',
@@ -311,12 +311,12 @@ buildList = [
         genFuncPointers   = False,
         protectFile       = protectFile,
         protectFeature    = protectFeature,
-        protectProto      = protectProto,
+        protectProto      = False,                  # Core ES API functions are in the static link libraries
         protectProtoStr   = 'GL_GLEXT_PROTOTYPES',
         apicall           = 'GL_API ',
         apientry          = 'GL_APIENTRY ',
         apientryp         = 'GL_APIENTRYP '),
-    # GLES 1.x extensions - es1ext.h
+    # GLES 1.x extensions - GLES/glext.h
     CGeneratorOptions(
         filename          = 'GLES/glext.h',
         apiname           = 'gles1',
@@ -335,7 +335,7 @@ buildList = [
         apicall           = 'GL_API ',
         apientry          = 'GL_APIENTRY ',
         apientryp         = 'GL_APIENTRYP '),
-    # GLES 2.0 API - es2.h (no function pointers)
+    # GLES 2.0 API - GLES2/gl2.h (no function pointers)
     CGeneratorOptions(
         filename          = 'GLES2/gl2.h',
         apiname           = 'gles2',
@@ -349,12 +349,12 @@ buildList = [
         genFuncPointers   = False,
         protectFile       = protectFile,
         protectFeature    = protectFeature,
-        protectProto      = protectProto,
+        protectProto      = False,                  # Core ES API functions are in the static link libraries
         protectProtoStr   = 'GL_GLEXT_PROTOTYPES',
         apicall           = 'GL_APICALL ',
         apientry          = 'GL_APIENTRY ',
         apientryp         = 'GL_APIENTRYP '),
-    # GLES 2.0 extensions - es2ext.h
+    # GLES 2.0 extensions - GLES2/gl2ext.h
     CGeneratorOptions(
         filename          = 'GLES2/gl2ext.h',
         apiname           = 'gles2',
@@ -373,7 +373,7 @@ buildList = [
         apicall           = 'GL_APICALL ',
         apientry          = 'GL_APIENTRY ',
         apientryp         = 'GL_APIENTRYP '),
-    # GLES 3.0 API - es3.h (no function pointers)
+    # GLES 3.0 API - GLES3/gl3.h (no function pointers)
     CGeneratorOptions(
         filename          = 'GLES3/gl3.h',
         apiname           = 'gles2',
@@ -387,12 +387,12 @@ buildList = [
         genFuncPointers   = False,
         protectFile       = protectFile,
         protectFeature    = protectFeature,
-        protectProto      = protectProto,
+        protectProto      = False,                  # Core ES API functions are in the static link libraries
         protectProtoStr   = 'GL_GLEXT_PROTOTYPES',
         apicall           = 'GL_APICALL ',
         apientry          = 'GL_APIENTRY ',
         apientryp         = 'GL_APIENTRYP '),
-    # EGL API - egl.h (no function pointers, yet @@@)
+    # EGL API - EGL/egl.h (no function pointers, yet @@@)
     CGeneratorOptions(
         filename          = 'EGL/egl.h',
         apiname           = 'egl',
@@ -411,7 +411,7 @@ buildList = [
         apicall           = 'EGLAPI ',
         apientry          = 'EGLAPIENTRY ',
         apientryp         = 'EGLAPIENTRYP '),
-    # EGL extensions - eglext.h (no function pointers, yet @@@)
+    # EGL extensions - EGL/eglext.h (no function pointers, yet @@@)
     CGeneratorOptions(
         filename          = 'EGL/eglext.h',
         apiname           = 'egl',
@@ -430,7 +430,7 @@ buildList = [
         apicall           = 'EGLAPI ',
         apientry          = 'EGLAPIENTRY ',
         apientryp         = 'EGLAPIENTRYP '),
-    # GLX 1.* API - glx.h
+    # GLX 1.* API - GL/glx.h
     CGeneratorOptions(
         filename          = 'GL/glx.h',
         apiname           = 'glx',
@@ -450,7 +450,7 @@ buildList = [
         apicall           = '',
         apientry          = '',
         apientryp         = ' *'),
-    # GLX 1.3+ API + extensions - glxext.h (no function pointers, yet @@@)
+    # GLX 1.3+ API + extensions - GL/glxext.h (no function pointers, yet @@@)
     CGeneratorOptions(
         filename          = 'GL/glxext.h',
         apiname           = 'glx',
@@ -470,7 +470,7 @@ buildList = [
         apicall           = '',
         apientry          = '',
         apientryp         = ' *'),
-    # WGL API + extensions - wgl.h (no function pointers, yet @@@)
+    # WGL API + extensions - GL/wgl.h (no function pointers, yet @@@)
     CGeneratorOptions(
         filename          = 'GL/wgl.h',
         apiname           = 'wgl',
@@ -489,7 +489,7 @@ buildList = [
         apicall           = '',
         apientry          = 'WINAPI ',
         apientryp         = 'WINAPI * '),
-    # WGL extensions - wglext.h (no function pointers, yet @@@)
+    # WGL extensions - GL/wglext.h (no function pointers, yet @@@)
     CGeneratorOptions(
         filename          = 'GL/wglext.h',
         apiname           = 'wgl',

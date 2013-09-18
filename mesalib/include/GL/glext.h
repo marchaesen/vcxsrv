@@ -53,7 +53,7 @@ extern "C" {
 #define GLAPI extern
 #endif
 
-#define GL_GLEXT_VERSION 20130828
+#define GL_GLEXT_VERSION 20130917
 
 /* Generated C header for:
  * API: gl
@@ -2526,6 +2526,8 @@ GLAPI void APIENTRY glGetObjectPtrLabel (const void *ptr, GLsizei bufSize, GLsiz
 #ifndef GL_VERSION_4_4
 #define GL_VERSION_4_4 1
 #define GL_MAX_VERTEX_ATTRIB_STRIDE       0x82E5
+#define GL_PRIMITIVE_RESTART_FOR_PATCHES_SUPPORTED 0x8221
+#define GL_TEXTURE_BUFFER_BINDING         0x8C2A
 #define GL_MAP_PERSISTENT_BIT             0x0040
 #define GL_MAP_COHERENT_BIT               0x0080
 #define GL_DYNAMIC_STORAGE_BIT            0x0100
@@ -5072,6 +5074,7 @@ GLAPI void APIENTRY glGetObjectParameterivAPPLE (GLenum objectType, GLuint name,
 #define GL_RGB_422_APPLE                  0x8A1F
 #define GL_UNSIGNED_SHORT_8_8_APPLE       0x85BA
 #define GL_UNSIGNED_SHORT_8_8_REV_APPLE   0x85BB
+#define GL_RGB_RAW_422_APPLE              0x8A51
 #endif /* GL_APPLE_rgb_422 */
 
 #ifndef GL_APPLE_row_bytes
