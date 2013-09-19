@@ -21,7 +21,7 @@
 Name "VcXsrv"
 
 ; The file to write
-OutFile "vcxsrv.1.14.2.1.installer.exe"
+OutFile "vcxsrv.1.14.3.installer.exe"
 
 ; The default installation directory
 InstallDir $PROGRAMFILES32\VcXsrv
@@ -65,6 +65,10 @@ Section "VcXsrv (required)"
   ; Remove old opengl32.dll file if it extits
   IfFileExists "$INSTDIR\opengl32.dll" 0 +2
     Delete "$INSTDIR\opengl32.dll"
+  IfFileExists "$INSTDIR\msvcr100.dll" 0 +2
+    Delete "$INSTDIR\msvcr100.dll"
+  IfFileExists "$INSTDIR\msvcp100.dll" 0 +2
+    Delete "$INSTDIR\msvcp100.dll"
 
   ; Put files there
   File "..\obj\servrelease\vcxsrv.exe"
@@ -101,8 +105,8 @@ Section "VcXsrv (required)"
   File "..\..\libX11\obj\release\libX11.dll"
   File "..\..\libXext\src\obj\release\libXext.dll"
   File "..\..\libXmu\src\obj\release\libXmu.dll"
-  File "msvcr100.dll"
-  File "msvcp100.dll"
+  File "msvcr110.dll"
+  File "msvcp110.dll"
   SetOutPath $INSTDIR\xkbdata
   File /r "..\xkbdata\*.*"
   SetOutPath $INSTDIR\locale
@@ -226,10 +230,10 @@ Section "Uninstall"
   Delete "$INSTDIR\libxml2.dll"
   Delete "$INSTDIR\zlib1.dll"
   Delete "$INSTDIR\iconv.dll"
-  Delete "$INSTDIR\msvcr100.dll"
-  Delete "$INSTDIR\msvcp100.dll"
-  Delete "$INSTDIR\msvcr100d.dll"
-  Delete "$INSTDIR\msvcp100d.dll"
+  Delete "$INSTDIR\msvcr110.dll"
+  Delete "$INSTDIR\msvcp110.dll"
+  Delete "$INSTDIR\msvcr110d.dll"
+  Delete "$INSTDIR\msvcp110d.dll"
 
   RMDir /r "$INSTDIR\fonts"
   RMDir /r "$INSTDIR\xkbdata"

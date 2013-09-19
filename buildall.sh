@@ -10,25 +10,25 @@ function check-error {
 which nasm > /dev/null 2>&1
 check-error 'Please install nasm'
 
-which devenv.com > /dev/null 2>&1
+which MSBuild.exe > /dev/null 2>&1
 check-error 'Please install/set environment for visual studio 2010'
 
 # echo script lines from now one
 #set -v
 
 if [[ "$IS64" == "" ]]; then
-FREETYPERELCONF="Release Multithreaded|Win32"
-FREETYPEDBGCONF="Debug Multithreaded|Win32"
+MSBuild.exe freetype/freetypevc10.sln /t:Build /p:Configuration="Release Multithreaded" /p:Platform=Win32
+check-error 'Error compiling freetype'
+MSBuild.exe freetype/freetypevc10.sln /t:Build /p:Configuration="Debug Multithreaded" /p:Platform=Win32
+check-error 'Error compiling freetype'
 else
-FREETYPERELCONF="Release Multithreaded|x64"
-FREETYPEDBGCONF="Debug Multithreaded|x64"
+MSBuild.exe freetype/freetypevc10.sln /t:Build /p:Configuration="Release Multithreaded" /p:Platform=x64
+check-error 'Error compiling freetype'
+MSBuild.exe freetype/freetypevc10.sln /t:Build /p:Configuration="Debug Multithreaded" /p:Platform=x64
+check-error 'Error compiling freetype'
 fi
 
-devenv.com freetype/freetypevc10.sln /build "$FREETYPERELCONF"
-check-error 'Error compiling freetype'
 
-devenv.com freetype/freetypevc10.sln /build "$FREETYPEDBGCONF"
-check-error 'Error compiling freetype'
 
 cd openssl
 
@@ -59,10 +59,10 @@ check-error 'Error compiling pthreads for debug'
 
 cd ..
 
-devenv.com tools/mhmake/mhmakevc10.sln /build "Release|Win32"
+MSBuild.exe tools/mhmake/mhmakevc10.sln /t:Build /p:Configuration=Release /p:Platform=Win32
 check-error 'Error compiling mhmake for release'
 
-devenv.com tools/mhmake/mhmakevc10.sln /build "Debug|Win32"
+MSBuild.exe tools/mhmake/mhmakevc10.sln /t:Build /p:Configuration=Debug /p:Platform=Win32
 check-error 'Error compiling mhmake for debug'
 
 export MHMAKECONF=`cygpath -da .`

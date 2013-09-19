@@ -21,7 +21,7 @@
 Name "VcXsrv"
 
 ; The file to write
-OutFile "vcxsrv-64-debug.1.14.2.1.installer.exe"
+OutFile "vcxsrv-64-debug.1.14.3.installer.exe"
 
 ; The default installation directory
 InstallDir $PROGRAMFILES64\VcXsrv
@@ -61,6 +61,11 @@ Section "VcXsrv debug exe and dlls"
   ; Set output path to the installation directory.
   SetOutPath $INSTDIR
 
+  IfFileExists "$INSTDIR\msvcr100d.dll" 0 +2
+    Delete "$INSTDIR\msvcr100d.dll"
+  IfFileExists "$INSTDIR\msvcp100d.dll" 0 +2
+    Delete "$INSTDIR\msvcp100d.dll"
+
   ; Put files there
   File "..\obj64\servdebug\vcxsrv.exe"
   File "..\..\xkbcomp\obj64\debug\xkbcomp.exe"
@@ -81,8 +86,8 @@ Section "VcXsrv debug exe and dlls"
   File "..\..\libX11\obj64\debug\libX11.dll"
   File "..\..\libXext\src\obj64\debug\libXext.dll"
   File "..\..\libXmu\src\obj64\debug\libXmu.dll"
-  File "msvcr100d.dll"
-  File "msvcp100d.dll"
+  File "msvcr110d.dll"
+  File "msvcp110d.dll"
 
   WriteRegStr HKLM SOFTWARE\VcXsrv "Install_Dir_64" $INSTDIR
 SectionEnd

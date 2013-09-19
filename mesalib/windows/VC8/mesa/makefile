@@ -1,20 +1,13 @@
-ifdef VS2008
-MHMAKESLNFILE=mesa.sln
-BUILDCMD=vcbuild $(MHMAKESLNFILE)
-else
 MHMAKESLNFILE=mesavc10.sln
-BUILDCMD=devenv.com $(MHMAKESLNFILE) /build
-endif
+BUILDCMD=MSBuild.exe $(MHMAKESLNFILE) /t:Build
 
 ifdef IS64
-DBGBUILDCMD=$(BUILDCMD) "Debug|x64"
-RELBUILDCMD=$(BUILDCMD) "Release|x64"
 TARGETDIR=x64
 else
-DBGBUILDCMD=$(BUILDCMD) "Debug|Win32"
-RELBUILDCMD=$(BUILDCMD) "Release|Win32"
 TARGETDIR=Win32
 endif
+DBGBUILDCMD=$(BUILDCMD) /p:Configuration=Debug /p:Platform=$(TARGETDIR)
+RELBUILDCMD=$(BUILDCMD) /p:Configuration=Release /p:Platform=$(TARGETDIR)
 
 
 DEPS:=$(wildcard ..\..\..\src\mesa\swrast\*.c) \
