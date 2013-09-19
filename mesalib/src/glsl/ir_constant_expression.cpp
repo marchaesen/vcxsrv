@@ -40,6 +40,21 @@
 #include "glsl_types.h"
 #include "program/hash_table.h"
 
+#ifdef _MSC_VER
+#include <limits>
+
+inline bool isnormal(float x)
+{
+    if(x < 0) x = -x;
+    return x >= (std::numeric_limits<float>::min)()
+        && x <= (std::numeric_limits<float>::max)();
+}
+inline float copysign(const float& x, const float& y)
+{
+   return fabs(x) * ((y<0) ? -1 : 1);
+}
+#endif
+
 static float
 dot(ir_constant *op0, ir_constant *op1)
 {
@@ -1382,7 +1397,7 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
          data.f[c] = ldexp(op[0]->value.f[c], op[1]->value.i[c]);
          /* Flush subnormal values to zero. */
          if (!isnormal(data.f[c]))
-            data.f[c] = copysign(0.0, op[0]->value.f[c]);
+            data.f[c] = copysign(0.0f, op[0]->value.f[c]);
       }
       break;
 
