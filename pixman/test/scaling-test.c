@@ -147,6 +147,24 @@ test_composite (int      testnum,
     src_fmt = get_format (src_bpp);
     dst_fmt = get_format (dst_bpp);
 
+    if (prng_rand_n (2))
+    {
+	srcbuf += (src_stride / 4) * (src_height - 1);
+	src_stride = - src_stride;
+    }
+
+    if (prng_rand_n (2))
+    {
+	maskbuf += (mask_stride / 4) * (mask_height - 1);
+	mask_stride = - mask_stride;
+    }
+
+    if (prng_rand_n (2))
+    {
+	dstbuf += (dst_stride / 4) * (dst_height - 1);
+	dst_stride = - dst_stride;
+    }
+
     src_img = pixman_image_create_bits (
         src_fmt, src_width, src_height, srcbuf, src_stride);
 
@@ -340,33 +358,24 @@ test_composite (int      testnum,
 	pixman_image_composite (op, src_img, mask_img, dst_img,
                             src_x, src_y, mask_x, mask_y, dst_x, dst_y, w, h);
 
-    if (dst_fmt == PIXMAN_x8r8g8b8 || dst_fmt == PIXMAN_x8b8g8r8)
-    {
-	/* ignore unused part */
-	for (i = 0; i < dst_stride * dst_height / 4; i++)
-	    dstbuf[i] &= 0xFFFFFF;
-    }
-
-    image_endian_swap (dst_img);
-
+    crc32 = compute_crc32_for_image (0, dst_img);
+    
     if (verbose)
-    {
-	int j;
-	
-	for (i = 0; i < dst_height; i++)
-	{
-	    for (j = 0; j < dst_stride; j++)
-		printf ("%02X ", *((uint8_t *)dstbuf + i * dst_stride + j));
-
-	    printf ("\n");
-	}
-    }
+	print_image (dst_img);
 
     pixman_image_unref (src_img);
     pixman_image_unref (mask_img);
     pixman_image_unref (dst_img);
 
-    crc32 = compute_crc32 (0, dstbuf, dst_stride * dst_height);
+    if (src_stride < 0)
+	srcbuf += (src_stride / 4) * (src_height - 1);
+
+    if (mask_stride < 0)
+	maskbuf += (mask_stride / 4) * (mask_height - 1);
+
+    if (dst_stride < 0)
+	dstbuf += (dst_stride / 4) * (dst_height - 1);
+
     free (srcbuf);
     free (maskbuf);
     free (dstbuf);
@@ -376,9 +385,9 @@ test_composite (int      testnum,
 }
 
 #if BILINEAR_INTERPOLATION_BITS == 7
-#define CHECKSUM 0xCE8EC6BA
+#define CHECKSUM 0x92E0F068
 #elif BILINEAR_INTERPOLATION_BITS == 4
-#define CHECKSUM 0xAB1D39BE
+#define CHECKSUM 0x8EFFA1E5
 #else
 #define CHECKSUM 0x00000000
 #endif

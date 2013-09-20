@@ -275,7 +275,7 @@ create_1d_filter (int             *width,
 	    }
 
 	    total += c;
-            *p++ = (pixman_fixed_t)(c * 65535.0 + 0.5);
+            *p++ = (pixman_fixed_t)(c * 65536.0 + 0.5);
         }
 
 	/* Normalize */

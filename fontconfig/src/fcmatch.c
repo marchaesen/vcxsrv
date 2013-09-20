@@ -552,14 +552,16 @@ FcFontRenderPrepare (FcConfig	    *config,
 
 		continue;
 	    }
+	    FcPatternObjectAdd (new, fe->object, v, FcFalse);
 	}
 	else
 	{
 	    if (fel)
 		goto copy_lang;
-	    v = FcValueCanonicalize(&FcPatternEltValues (fe)->value);
+	    FcPatternObjectListAdd (new, fe->object,
+				    FcValueListDuplicate (FcPatternEltValues (fe)),
+				    FcTrue);
 	}
-	FcPatternObjectAdd (new, fe->object, v, FcFalse);
     }
     for (i = 0; i < pat->num; i++)
     {

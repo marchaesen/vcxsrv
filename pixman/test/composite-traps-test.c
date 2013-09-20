@@ -97,19 +97,25 @@ test_composite (int      testnum,
 	int src_width = prng_rand_n (MAX_SRC_WIDTH) + 1;
 	int src_height = prng_rand_n (MAX_SRC_HEIGHT) + 1;
 	int src_stride = src_width * src_bpp + prng_rand_n (MAX_STRIDE) * src_bpp;
-	uint32_t *bits;
+	uint32_t *bits, *orig;
 
 	src_x = -(src_width / 4) + prng_rand_n (src_width * 3 / 2);
 	src_y = -(src_height / 4) + prng_rand_n (src_height * 3 / 2);
 
 	src_stride = (src_stride + 3) & ~3;
 	
-	bits = (uint32_t *)make_random_bytes (src_stride * src_height);
+	orig = bits = (uint32_t *)make_random_bytes (src_stride * src_height);
 
+	if (prng_rand_n (2) == 0)
+	{
+	    bits += (src_stride / 4) * (src_height - 1);
+	    src_stride = - src_stride;
+	}
+	
 	src_img = pixman_image_create_bits (
 	    src_format, src_width, src_height, bits, src_stride);
 
-	pixman_image_set_destroy_function (src_img, destroy_bits, bits);
+	pixman_image_set_destroy_function (src_img, destroy_bits, orig);
 
 	if (prng_rand_n (8) == 0)
 	{
@@ -153,6 +159,12 @@ test_composite (int      testnum,
 	
 	dst_bits = (uint32_t *)make_random_bytes (dst_stride * dst_height);
 
+	if (prng_rand_n (2) == 0)
+	{
+	    dst_bits += (dst_stride / 4) * (dst_height - 1);
+	    dst_stride = - dst_stride;
+	}
+	
 	dst_x = -(dst_width / 4) + prng_rand_n (dst_width * 3 / 2);
 	dst_y = -(dst_height / 4) + prng_rand_n (dst_height * 3 / 2);
 	
@@ -214,30 +226,14 @@ test_composite (int      testnum,
     pixman_composite_trapezoids (op, src_img, dst_img, mask_format,
 				 src_x, src_y, dst_x, dst_y, n_traps, traps);
 
-    if (dst_format == PIXMAN_x8r8g8b8)
-    {
-	/* ignore unused part */
-	for (i = 0; i < dst_stride * dst_height / 4; i++)
-	    dst_bits[i] &= 0xFFFFFF;
-    }
-
-    image_endian_swap (dst_img);
+    crc32 = compute_crc32_for_image (0, dst_img);
 
     if (verbose)
-    {
-	int j;
-	
-	for (i = 0; i < dst_height; i++)
-	{
-	    for (j = 0; j < dst_stride; j++)
-		printf ("%02X ", *((uint8_t *)dst_bits + i * dst_stride + j));
+	print_image (dst_img);
 
-	    printf ("\n");
-	}
-    }
-
-    crc32 = compute_crc32 (0, dst_bits, dst_stride * dst_height);
-
+    if (dst_stride < 0)
+	dst_bits += (dst_stride / 4) * (dst_height - 1);
+    
     fence_free (dst_bits);
     
     pixman_image_unref (src_img);
@@ -251,6 +247,6 @@ test_composite (int      testnum,
 int
 main (int argc, const char *argv[])
 {
-    return fuzzer_test_main("composite traps", 40000, 0x749BCC57,
+    return fuzzer_test_main("composite traps", 40000, 0xAF41D210,
 			    test_composite, argc, argv);
 }
