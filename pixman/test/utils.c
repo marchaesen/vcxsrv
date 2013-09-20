@@ -150,6 +150,12 @@ compute_crc32_for_image_internal (uint32_t        crc32,
     uint32_t mask = 0xffffffff;
     int i;
 
+    if (stride < 0)
+    {
+	data += (stride / 4) * (height - 1);
+	stride = - stride;
+    }
+
     /* mask unused 'x' part */
     if (PIXMAN_FORMAT_BPP (fmt) - PIXMAN_FORMAT_DEPTH (fmt) &&
 	PIXMAN_FORMAT_DEPTH (fmt) != 0)
@@ -236,6 +242,38 @@ compute_crc32_for_image (uint32_t        crc32,
     }
 
     return crc32;
+}
+
+void
+print_image (pixman_image_t *image)
+{
+    int i, j;
+    int width, height, stride;
+    pixman_format_code_t format;
+    uint8_t *buffer;
+
+    width = pixman_image_get_width (image);
+    height = pixman_image_get_height (image);
+    stride = pixman_image_get_stride (image);
+    format = pixman_image_get_format (image);
+    buffer = (uint8_t *)pixman_image_get_data (image);
+
+    if (stride < 0)
+	stride = - stride;
+    
+    printf ("---\n");
+    for (i = 0; i < height; i++)
+    {
+	for (j = 0; j < stride; j++)
+	{
+	    if (j == (width * PIXMAN_FORMAT_BPP (format) + 7) / 8)
+		printf ("| ");
+
+	    printf ("%02X ", *((uint8_t *)buffer + i * stride + j));
+	}
+	printf ("\n");
+    }
+    printf ("---\n");
 }
 
 /* perform endian conversion of pixel data

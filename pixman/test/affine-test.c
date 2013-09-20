@@ -80,6 +80,18 @@ test_composite (int      testnum,
     prng_randmemset (srcbuf, src_stride * src_height, 0);
     prng_randmemset (dstbuf, dst_stride * dst_height, 0);
 
+    if (prng_rand_n (2) == 0)
+    {
+	srcbuf += (src_stride / 4) * (src_height - 1);
+	src_stride = - src_stride;
+    }
+
+    if (prng_rand_n (2) == 0)
+    {
+	dstbuf += (dst_stride / 4) * (dst_height - 1);
+	dst_stride = - dst_stride;
+    }
+    
     src_fmt = src_bpp == 4 ? (prng_rand_n (2) == 0 ?
                               PIXMAN_a8r8g8b8 : PIXMAN_x8r8g8b8) : PIXMAN_r5g6b5;
 
@@ -273,32 +285,20 @@ test_composite (int      testnum,
     pixman_image_composite (op, src_img, NULL, dst_img,
                             src_x, src_y, 0, 0, dst_x, dst_y, w, h);
 
-    if (dst_fmt == PIXMAN_x8r8g8b8)
-    {
-	/* ignore unused part */
-	for (i = 0; i < dst_stride * dst_height / 4; i++)
-	    dstbuf[i] &= 0xFFFFFF;
-    }
-
-    image_endian_swap (dst_img);
-
+    crc32 = compute_crc32_for_image (0, dst_img);
+    
     if (verbose)
-    {
-	int j;
-
-	for (i = 0; i < dst_height; i++)
-	{
-	    for (j = 0; j < dst_stride; j++)
-		printf ("%02X ", *((uint8_t *)dstbuf + i * dst_stride + j));
-
-	    printf ("\n");
-	}
-    }
+	print_image (dst_img);
 
     pixman_image_unref (src_img);
     pixman_image_unref (dst_img);
 
-    crc32 = compute_crc32 (0, dstbuf, dst_stride * dst_height);
+    if (src_stride < 0)
+	srcbuf += (src_stride / 4) * (src_height - 1);
+
+    if (dst_stride < 0)
+	dstbuf += (dst_stride / 4) * (dst_height - 1);
+    
     free (srcbuf);
     free (dstbuf);
 
@@ -307,9 +307,9 @@ test_composite (int      testnum,
 }
 
 #if BILINEAR_INTERPOLATION_BITS == 7
-#define CHECKSUM 0xBC00B1DF
+#define CHECKSUM 0xBE724CFE
 #elif BILINEAR_INTERPOLATION_BITS == 4
-#define CHECKSUM 0xA227306B
+#define CHECKSUM 0x79BBE501
 #else
 #define CHECKSUM 0x00000000
 #endif

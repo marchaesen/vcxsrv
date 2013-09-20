@@ -63,6 +63,10 @@ uint32_t
 compute_crc32_for_image (uint32_t        in_crc32,
 			 pixman_image_t *image);
 
+/* Print the image in hexadecimal */
+void
+print_image (pixman_image_t *image);
+
 /* Returns TRUE if running on a little endian system
  */
 static force_inline pixman_bool_t

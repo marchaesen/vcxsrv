@@ -396,6 +396,12 @@ static const int extra_gl32_es3[] = {
     EXTRA_END,
 };
 
+static const int extra_gl32_ARB_geometry_shader4[] = {
+    EXTRA_VERSION_32,
+    EXT(ARB_geometry_shader4),
+    EXTRA_END
+};
+
 static const int
 extra_ARB_vertex_program_api_es2[] = {
    EXT(ARB_vertex_program),
@@ -502,7 +508,9 @@ print_table_stats(int api)
 void _mesa_init_get_hash(struct gl_context *ctx)
 {
 #ifdef GET_DEBUG
-   print_table_stats();
+   print_table_stats(ctx->API);
+#else
+   (void) ctx;
 #endif
 }
 
@@ -709,11 +717,10 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
    case GL_COMPRESSED_TEXTURE_FORMATS_ARB:
       v->value_int_n.n = 
 	 _mesa_get_compressed_formats(ctx, v->value_int_n.ints);
-      ASSERT(v->value_int_n.n <= ARRAY_SIZE(v->value_int_n.ints));
+      ASSERT(v->value_int_n.n <= (int) ARRAY_SIZE(v->value_int_n.ints));
       break;
 
    case GL_MAX_VARYING_FLOATS_ARB:
-   case GL_MAX_FRAGMENT_INPUT_COMPONENTS:
       v->value_int = ctx->Const.MaxVarying * 4;
       break;
 

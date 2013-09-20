@@ -61,16 +61,25 @@ static pixman_image_t *
 make_image (void)
 {
     pixman_format_code_t format = RANDOM_FORMAT();
-    uint32_t *bytes = malloc (WIDTH * HEIGHT * 4);
+    uint32_t *bytes, *orig;
     pixman_image_t *image;
+    int stride;
 
+    orig = bytes = malloc (WIDTH * HEIGHT * 4);
     prng_randmemset (bytes, WIDTH * HEIGHT * 4, 0);
 
+    stride = WIDTH * 4;
+    if (prng_rand_n (2) == 0)
+    {
+	bytes += (stride / 4) * (HEIGHT - 1);
+	stride = - stride;
+    }
+
     image = pixman_image_create_bits (
-	format, WIDTH, HEIGHT, bytes, WIDTH * 4);
+	format, WIDTH, HEIGHT, bytes, stride);
 
     pixman_image_set_transform (image, RANDOM_TRANSFORM());
-    pixman_image_set_destroy_function (image, on_destroy, bytes);
+    pixman_image_set_destroy_function (image, on_destroy, orig);
     pixman_image_set_repeat (image, PIXMAN_REPEAT_NORMAL);
 
     image_endian_swap (image);
@@ -106,6 +115,6 @@ int
 main (int argc, const char *argv[])
 {
     return fuzzer_test_main ("rotate", 15000,
-			     0xECF5E426,
+			     0x81E9EC2F,
 			     test_transform, argc, argv);
 }
