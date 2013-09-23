@@ -73,23 +73,8 @@ struct _mesa_glsl_parse_state {
    _mesa_glsl_parse_state(struct gl_context *_ctx, GLenum target,
 			  void *mem_ctx);
 
-   /* Callers of this ralloc-based new need not call delete. It's
-    * easier to just ralloc_free 'ctx' (or any of its ancestors). */
-   static void* operator new(size_t size, void *ctx)
-   {
-      void *mem = rzalloc_size(ctx, size);
-      assert(mem != NULL);
-
-      return mem;
-   }
-
-   /* If the user *does* call delete, that's OK, we will just
-    * ralloc_free in that case. */
+   DECLARE_RZALLOC_CXX_OPERATORS(_mesa_glsl_parse_state);
    static void operator delete(void *mem, void *ctx)
-   {
-      ralloc_free(mem);
-   }
-   static void operator delete(void *mem)
    {
       ralloc_free(mem);
    }

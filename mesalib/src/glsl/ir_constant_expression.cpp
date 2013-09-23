@@ -40,18 +40,17 @@
 #include "glsl_types.h"
 #include "program/hash_table.h"
 
-#ifdef _MSC_VER
-#include <limits>
-
-inline bool isnormal(float x)
+#if defined(_MSC_VER) && (_MSC_VER < 1800)
+static int isnormal(double x)
 {
-    if(x < 0) x = -x;
-    return x >= (std::numeric_limits<float>::min)()
-        && x <= (std::numeric_limits<float>::max)();
+   return _fpclass(x) == _FPCLASS_NN || _fpclass(x) == _FPCLASS_PN;
 }
-inline float copysign(const float& x, const float& y)
+#endif
+
+#if defined(_MSC_VER)
+static double copysign(double x, double y)
 {
-   return fabs(x) * ((y<0) ? -1 : 1);
+   return _copysign(x, y);
 }
 #endif
 

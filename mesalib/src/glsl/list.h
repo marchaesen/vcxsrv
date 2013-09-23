@@ -76,25 +76,8 @@ struct exec_node {
    struct exec_node *prev;
 
 #ifdef __cplusplus
-   /* Callers of this ralloc-based new need not call delete. It's
-    * easier to just ralloc_free 'ctx' (or any of its ancestors). */
-   static void* operator new(size_t size, void *ctx)
-   {
-      void *node;
-
-      node = ralloc_size(ctx, size);
-      assert(node != NULL);
-
-      return node;
-   }
-
-   /* If the user *does* call delete, that's OK, we will just
-    * ralloc_free in that case. */
+   DECLARE_RALLOC_CXX_OPERATORS(exec_node)
    static void operator delete(void *node, void *ctx)
-   {
-      ralloc_free(node);
-   }
-   static void operator delete(void *node)
    {
       ralloc_free(node);
    }
@@ -289,25 +272,8 @@ struct exec_list {
    struct exec_node *tail_pred;
 
 #ifdef __cplusplus
-   /* Callers of this ralloc-based new need not call delete. It's
-    * easier to just ralloc_free 'ctx' (or any of its ancestors). */
-   static void* operator new(size_t size, void *ctx)
-   {
-      void *node;
-
-      node = ralloc_size(ctx, size);
-      assert(node != NULL);
-
-      return node;
-   }
-
-   /* If the user *does* call delete, that's OK, we will just
-    * ralloc_free in that case. */
+   DECLARE_RALLOC_CXX_OPERATORS(exec_list)
    static void operator delete(void *node, void *ctx)
-   {
-      ralloc_free(node);
-   }
-   static void operator delete(void *node)
    {
       ralloc_free(node);
    }

@@ -49,25 +49,8 @@ struct YYLTYPE;
  */
 class ast_node {
 public:
-   /* Callers of this ralloc-based new need not call delete. It's
-    * easier to just ralloc_free 'ctx' (or any of its ancestors). */
-   static void* operator new(size_t size, void *ctx)
-   {
-      void *node;
-
-      node = rzalloc_size(ctx, size);
-      assert(node != NULL);
-
-      return node;
-   }
-
-   /* If the user *does* call delete, that's OK, we will just
-    * ralloc_free in that case. */
+   DECLARE_RZALLOC_CXX_OPERATORS(ast_node);
    static void operator delete(void *table, void *ctx)
-   {
-      ralloc_free(table);
-   }
-   static void operator delete(void *table)
    {
       ralloc_free(table);
    }
@@ -367,24 +350,7 @@ enum {
 };
 
 struct ast_type_qualifier {
-   /* Callers of this ralloc-based new need not call delete. It's
-    * easier to just ralloc_free 'ctx' (or any of its ancestors). */
-   static void* operator new(size_t size, void *ctx)
-   {
-      void *node;
-
-      node = rzalloc_size(ctx, size);
-      assert(node != NULL);
-
-      return node;
-   }
-
-   /* If the user *does* call delete, that's OK, we will just
-    * ralloc_free in that case. */
-   static void operator delete(void *table)
-   {
-      ralloc_free(table);
-   }
+   DECLARE_RZALLOC_CXX_OPERATORS(ast_type_qualifier);
 
    union {
       struct {
