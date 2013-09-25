@@ -175,9 +175,27 @@ Returns whether <parameter>a</parameter> is a subset of <parameter>b</parameter>
 @TYPE3@		FcChar32 *		@ARG3@		next
 @PURPOSE@	Start enumerating charset contents
 @DESC@
-Builds an array of bits marking the first page of Unicode coverage of
-<parameter>a</parameter>. Returns the base of the array. <parameter>next</parameter> contains the next page in the
-font.
+Builds an array of bits in <parameter>map</parameter> marking the
+first page of Unicode coverage of <parameter>a</parameter>.
+<parameter>*next</parameter> is set to contains the base code point
+for the next page in <parameter>a</parameter>.  Returns the base code
+point for the page, or <constant>FC_CHARSET_DONE</constant> if
+<parameter>a</parameter> contains no pages.  As an example, if
+<function>FcCharSetFirstPage</function> returns
+<literal>0x300</literal> and fills <parameter>map</parameter> with
+<literallayout class="monospaced">
+0xffffffff 0xffffffff 0x01000008 0x44300002 0xffffd7f0 0xfffffffb 0xffff7fff 0xffff0003
+</literallayout>
+Then the page contains code points <literal>0x300</literal> through
+<literal>0x33f</literal> (the first 64 code points on the page)
+because <parameter>map[0]</parameter> and
+<parameter>map[1]</parameter> both have all their bits set.  It also
+contains code points <literal>0x343</literal> (<parameter>0x300 + 32*2
++ (4-1)</parameter>) and <literal>0x35e</literal> (<parameter>0x300 +
+32*2 + (31-1)</parameter>) because <parameter>map[2]</parameter> has
+the 4th and 31st bits set.  The code points represented by
+<literal>map[3]</literal> and later are left as an excercise for the
+reader ;).
 @@
 
 @RET@		FcChar32
@@ -187,9 +205,15 @@ font.
 @TYPE3@		FcChar32 *		@ARG3@		next
 @PURPOSE@	Continue enumerating charset contents
 @DESC@
-Builds an array of bits marking the Unicode coverage of <parameter>a</parameter> for page
-<parameter>*next</parameter>. Returns the base of the array. <parameter>next</parameter> contains the next page in
-the font. 
+Builds an array of bits in <parameter>map</parameter> marking the
+Unicode coverage of <parameter>a</parameter> for page containing
+<parameter>*next</parameter> (see the
+<function>FcCharSetFirstPage</function> description for details).
+<parameter>*next</parameter> is set to contains the base code point
+for the next page in <parameter>a</parameter>.  Returns the base of
+code point for the page, or <constant>FC_CHARSET_DONE</constant> if
+<parameter>a</parameter> does not contain
+<parameter>*next</parameter>.
 @@
 
 @RET@		FcChar32

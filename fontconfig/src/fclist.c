@@ -212,6 +212,8 @@ FcListPatternMatchAny (const FcPattern *p,
 {
     int		    i;
 
+    if (!p)
+	return FcFalse;
     for (i = 0; i < p->num; i++)
     {
 	FcPatternElt	*pe = &FcPatternElts(p)[i];
