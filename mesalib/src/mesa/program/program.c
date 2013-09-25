@@ -72,10 +72,10 @@ _mesa_init_program(struct gl_context *ctx)
    ASSERT(ctx->Const.FragmentProgram.MaxAddressOffset <= (1 << INST_INDEX_BITS));
 
    /* If this fails, increase prog_instruction::TexSrcUnit size */
-   ASSERT(MAX_TEXTURE_UNITS <= (1 << 5));
+   STATIC_ASSERT(MAX_TEXTURE_UNITS <= (1 << 5));
 
    /* If this fails, increase prog_instruction::TexSrcTarget size */
-   ASSERT(NUM_TEXTURE_TARGETS <= (1 << 4));
+   STATIC_ASSERT(NUM_TEXTURE_TARGETS <= (1 << 4));
 
    ctx->Program.ErrorPos = -1;
    ctx->Program.ErrorString = _mesa_strdup("");
@@ -476,7 +476,6 @@ _mesa_clone_program(struct gl_context *ctx, const struct gl_program *prog)
 
    if (prog->Parameters)
       clone->Parameters = _mesa_clone_parameter_list(prog->Parameters);
-   memcpy(clone->LocalParams, prog->LocalParams, sizeof(clone->LocalParams));
    memcpy(clone->LocalParams, prog->LocalParams, sizeof(clone->LocalParams));
    clone->IndirectRegisterFiles = prog->IndirectRegisterFiles;
    clone->NumInstructions = prog->NumInstructions;

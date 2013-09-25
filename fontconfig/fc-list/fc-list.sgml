@@ -69,6 +69,10 @@ manpage.1: manpage.sgml
         <arg><option>-f</option> <option><replaceable>format</replaceable></option></arg>
         <arg><option>--format</option> <option><replaceable>format</replaceable></option></arg>
       </group>
+      <group>
+	<arg><option>-q</option></arg>
+	<arg><option>--quiet</option></arg>
+      </group>
       <arg><option>--version</option></arg>
       <arg><option>--help</option></arg>
       <sbr>
@@ -112,6 +116,14 @@ manpage.1: manpage.sgml
           <para>Format output according to the format specifier
 	  <replaceable>format</replaceable>.</para>
         </listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><option>-q</option>
+	  <option>--quiet</option>
+	</term>
+	<listitem>
+	  <para>Suppress all normal output. returns 1 as the error code if no fonts matched.</para>
+	</listitem>
       </varlistentry>
       <varlistentry>
         <term><option>-V</option>
