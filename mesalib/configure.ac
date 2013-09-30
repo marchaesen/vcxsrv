@@ -1344,10 +1344,7 @@ AC_ARG_WITH([clang-libdir],
    [CLANG_LIBDIR="$withval"],
    [CLANG_LIBDIR=""])
 
-LIBCLC_INCLUDEDIR=`pkg-config --variable=includedir libclc`
-LIBCLC_LIBEXECDIR=`pkg-config --variable=libexecdir libclc`
-AC_SUBST([LIBCLC_INCLUDEDIR])
-AC_SUBST([LIBCLC_LIBEXECDIR])
+PKG_CHECK_EXISTS([libclc], [have_libclc=yes], [have_libclc=no])
 
 if test "x$enable_opencl" = xyes; then
     if test "x$with_gallium_drivers" = x; then
@@ -1358,8 +1355,16 @@ if test "x$enable_opencl" = xyes; then
         AC_MSG_ERROR([gcc >= 4.6 is required to build clover])
     fi
 
-    if test "x$LIBCLC_INCLUDEDIR" == x || test "x$LIBCLC_LIBEXECDIR" == x; then
-        AC_MSG_ERROR([pkg-config cannot use libclc.pc which is required to build clover])
+    if test "x$have_libclc" = xno; then
+        AC_MSG_ERROR([pkg-config cannot find libclc.pc which is required to build clover.
+                    Make sure the directory containing libclc.pc is specified in your
+                    PKG_CONFIG_PATH environment variable.
+                    By default libclc.pc is installed to /usr/local/share/pkgconfig/])
+    else
+        LIBCLC_INCLUDEDIR=`pkg-config --variable=includedir libclc`
+        LIBCLC_LIBEXECDIR=`pkg-config --variable=libexecdir libclc`
+        AC_SUBST([LIBCLC_INCLUDEDIR])
+        AC_SUBST([LIBCLC_LIBEXECDIR])
     fi
 
     GALLIUM_STATE_TRACKERS_DIRS="$GALLIUM_STATE_TRACKERS_DIRS clover"
@@ -1767,7 +1772,7 @@ if test "x$with_gallium_drivers" != x; then
             PKG_CHECK_MODULES([RADEON], [libdrm_radeon >= $LIBDRM_RADEON_REQUIRED])
             gallium_require_llvm "Gallium R300"
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS r300"
-            gallium_check_st "radeon/drm" "dri-r300" "" "" "xvmc-r300" "vdpau-r300"
+            gallium_check_st "radeon/drm" "r300/dri" "" "" "r300/xvmc" "r300/vdpau"
             ;;
         xr600)
             HAVE_GALLIUM_R600=yes
@@ -1785,7 +1790,7 @@ if test "x$with_gallium_drivers" != x; then
             if test "x$enable_opencl" = xyes; then
                 LLVM_COMPONENTS="${LLVM_COMPONENTS} bitreader asmparser"
             fi
-            gallium_check_st "radeon/drm" "dri-r600" "xorg-r600" "" "xvmc-r600" "vdpau-r600"
+            gallium_check_st "radeon/drm" "r600/dri" "r600/xorg" "" "r600/xvmc" "r600/vdpau"
             ;;
         xradeonsi)
             HAVE_GALLIUM_RADEONSI=yes
@@ -1793,7 +1798,7 @@ if test "x$with_gallium_drivers" != x; then
             gallium_require_drm_loader
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS radeonsi"
             radeon_llvm_check
-            gallium_check_st "radeon/drm" "dri-radeonsi" "xorg-radeonsi" "" "" "vdpau-radeonsi" ""
+            gallium_check_st "radeon/drm" "radeonsi/dri" "radeonsi/xorg" "" "" "radeonsi/vdpau" ""
             ;;
         xnouveau)
             HAVE_GALLIUM_NOUVEAU=yes
@@ -2032,9 +2037,6 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/targets/dri-i915/Makefile
 		src/gallium/targets/dri-ilo/Makefile
 		src/gallium/targets/dri-nouveau/Makefile
-		src/gallium/targets/dri-r300/Makefile
-		src/gallium/targets/dri-r600/Makefile
-		src/gallium/targets/dri-radeonsi/Makefile
 		src/gallium/targets/dri-swrast/Makefile
 		src/gallium/targets/dri-vmwgfx/Makefile
 		src/gallium/targets/egl-static/Makefile
@@ -2043,21 +2045,24 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/targets/osmesa/Makefile
 		src/gallium/targets/osmesa/osmesa.pc
 		src/gallium/targets/pipe-loader/Makefile
+		src/gallium/targets/radeonsi/dri/Makefile
+		src/gallium/targets/radeonsi/vdpau/Makefile
+		src/gallium/targets/radeonsi/xorg/Makefile
+		src/gallium/targets/r300/dri/Makefile
+		src/gallium/targets/r300/vdpau/Makefile
+		src/gallium/targets/r300/xvmc/Makefile
+		src/gallium/targets/r600/dri/Makefile
+		src/gallium/targets/r600/vdpau/Makefile
+		src/gallium/targets/r600/xorg/Makefile
+		src/gallium/targets/r600/xvmc/Makefile
 		src/gallium/targets/libgl-xlib/Makefile
 		src/gallium/targets/vdpau-nouveau/Makefile
-		src/gallium/targets/vdpau-r300/Makefile
-		src/gallium/targets/vdpau-r600/Makefile
-		src/gallium/targets/vdpau-radeonsi/Makefile
 		src/gallium/targets/vdpau-softpipe/Makefile
 		src/gallium/targets/xa-vmwgfx/Makefile
 		src/gallium/targets/xa-vmwgfx/xatracker.pc
 		src/gallium/targets/xorg-i915/Makefile
 		src/gallium/targets/xorg-nouveau/Makefile
-		src/gallium/targets/xorg-r600/Makefile
-		src/gallium/targets/xorg-radeonsi/Makefile
 		src/gallium/targets/xvmc-nouveau/Makefile
-		src/gallium/targets/xvmc-r300/Makefile
-		src/gallium/targets/xvmc-r600/Makefile
 		src/gallium/targets/xvmc-softpipe/Makefile
 		src/gallium/tests/trivial/Makefile
 		src/gallium/tests/unit/Makefile

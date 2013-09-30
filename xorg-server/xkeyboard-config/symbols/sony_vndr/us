@@ -27,7 +27,7 @@
 xkb_symbols "nwp5461" {
     include "us(basic)"
 
-    key <LALT> { [ Alt_L, Meta_L	]	};
+    key <LALT> { [ Alt_L, Meta_L ]	};
     key <RTSH> { [ Shift_R	]	};
     key <AB11> { [ NoSymbol	]	};
 
@@ -84,8 +84,6 @@ xkb_symbols "nwp5461" {
     key <KPTB> { [ KP_Tab	]	};
     // End "Keypad" section
 
-
-    // begin modifier mappings
     modifier_map Shift  	{ Shift_R };
     modifier_map Mod3   	{ Alt_L };
 };

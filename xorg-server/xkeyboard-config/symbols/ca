@@ -323,8 +323,6 @@ xkb_symbols "ike" {
     key	<TLDE> { [ 0x0100157b, 0x01001575	]	};
     key	<LSGT> { [ 0x01001579, 0x01001577	]	};
     key	<BKSL> { [ backslash,  bar		]	};
-
-// End alphanumeric section
 };
 
 partial
@@ -477,12 +475,10 @@ xkb_symbols "eng" {
 partial alphanumeric_keys 
 xkb_symbols "kut" {
 
-    //Ejective U0313  and compose accents are from shs layout
+    // Ejective U0313 and acute accents are taken from shs layout.
     include "ca(shs)"
 
     name[Group1]= "Kutenai";
-
-    // Alphanumeric section
 
     // Alveolar Click
     key <AD05> {	[ t,	T,U01C2	,U01C2	]	};
@@ -505,7 +501,6 @@ xkb_symbols "kut" {
 
 // Secwepemctsin keyboard for X11
 // written by Neskie Manuel <neskiem@gmail.com>
-
 partial alphanumeric_keys  
 xkb_symbols "shs" {
 
@@ -513,9 +508,9 @@ xkb_symbols "shs" {
 
     name[Group1]= "Secwepemctsin";
 
-    //Using Dead key to get COMBINING COMMA ABOVE for ejectives on
-    //q, l, t, s, m, g, k, p, w, y, r
-    //XCompose key is used for the other accute and grave.
+    // Using a "dead key" to get a COMBINING COMMA ABOVE
+    // for ejectives on q, l, t, s, m, g, k, p, w, y, r.
+    // The Compose key is used for the other acutes and grave.
 
     key <AB08>	{ [ comma, less, U0313    ]	};
     key <AC01>	{ [ a, A, aacute, Aacute  ]	};

@@ -120,8 +120,8 @@ xkb_symbols "std" {
 
 partial alphanumeric_keys
 xkb_symbols "std_cedilla" {
-    // Variant of the "std" layout with cedillas.
-    // Implements S and T with cedillas as in ISO-8859-2.
+    // Variant of the "std" layout using cedillas instead of commas.
+    // It implements S and T with cedillas as in ISO-8859-2.
     // Included for compatibility reasons.
 
     include "ro(std)"
@@ -136,14 +136,13 @@ xkb_symbols "std_cedilla" {
 partial alphanumeric_keys
 xkb_symbols "winkeys" {
     // Describes the differences between a very simple US/ASCII
-    // keyboard and a very simple Romanian keybaord
+    // keyboard and a simple Romanian keyboard.
     // Created by Manfred Pohler, <Manfred.Pohler@t-online.de> (C) 2003
 
     include "latin"
 
     name[Group1]="Romanian (WinKeys)";
 
-    // Alphanumeric section
     key <TLDE> { [ bracketright, bracketleft            ]       };
 
     key <AE01> { [            1,      exclam,  asciitilde, asciitilde   ] };
@@ -184,12 +183,9 @@ xkb_symbols "winkeys" {
 
     key <BKSL> { [ acircumflex, Acircumflex             ]       };
 
-    // End alphanumeric section, begin "Keypad"
     include "kpdl(comma)"
-    // End "Keypad" section
 
     include "level3(ralt_switch)"
-
 };
 
 partial

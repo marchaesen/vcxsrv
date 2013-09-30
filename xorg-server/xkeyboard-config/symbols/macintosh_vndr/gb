@@ -12,8 +12,6 @@ xkb_symbols "basic" {
     key <AE03> {	[               3,        sterling,       numbersign	]	};
     key <TLDE> {	[         section,       plusminus ]	};
     key <LSGT> {	[           grave,      asciitilde ]	};
-
-    // End alphanumeric section
     
     include "level3(ralt_switch)"
 };

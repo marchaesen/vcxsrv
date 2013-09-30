@@ -15,7 +15,6 @@ xkb_symbols "basic" {
 
     name[Group1]= "Vietnamese";
 
-    // Alphanumeric section
     key <TLDE> { [	   grave, 	asciitilde	] };
     key <AE01> { [	   abreve,	Abreve		] };
     key <AE02> { [	   acircumflex,  Acircumflex	] };
@@ -32,8 +31,6 @@ xkb_symbols "basic" {
 
     key <AD11> { [ uhorn,	Uhorn	] };
     key <AD12> { [ ohorn,	Ohorn	] };
-
-    // End alphanumeric section
 
     include "level3(ralt_switch)"
 };

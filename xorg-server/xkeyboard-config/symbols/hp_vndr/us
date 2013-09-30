@@ -69,8 +69,9 @@ xkb_symbols "hil" {
     key <DOWN> { [ Down	]	};
     key <UP>   { [ Up	]	};
     key <RGHT> { [ Right	]};
+    // End "Editing" section
 
-    // End "Editing" section, begin "Keypad"
+    // Begin "Keypad" section
     key <KPMU> { [ KP_Multiply	]};
     key <KPDV> { [ KP_Divide	]};
     key <KPAD> { [ KP_Add	]};
@@ -95,8 +96,6 @@ xkb_symbols "hil" {
     key <KPDL> { [ KP_Decimal ]	};
     // End "Keypad" section
 
-
-    // begin modifier mappings
     modifier_map Shift  	{ Shift_R };
     modifier_map Mod1   	{ Meta_L, Meta_R };
     modifier_map Mod2   	{ Alt_L };

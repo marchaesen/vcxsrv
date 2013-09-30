@@ -428,13 +428,13 @@ xkb_symbols "base" {
     key <FK11> { [ F10 ] };
     key <FK12> { [ F12 ] };
 
-    // begin modifier mappings
+    // Begin modifier mappings
     modifier_map Shift  { Shift_L, Shift_R };
     modifier_map Lock   { Caps_Lock };
     modifier_map Control{ Control_L, Control_R };
     modifier_map Mod2   { Num_Lock };
 
-    //  Fake keys for virtual<->real modifiers mapping 
+    // Fake keys for virtual<->real modifiers mapping:
     key <LVL3> {	[ ISO_Level3_Shift	]	};
     key <MDSW> {	[ Mode_switch 		]	};
     modifier_map Mod5   { <LVL3>, <MDSW> };
@@ -450,6 +450,7 @@ xkb_symbols "base" {
 
     key <HYPR> {	[ NoSymbol, Hyper_L	]	};
     modifier_map Mod4   { <HYPR> };
+    // End modifier mappings
 
     key  <INS> {        [  Insert               ]       };
     key <DELE> {        [  Delete               ]       };

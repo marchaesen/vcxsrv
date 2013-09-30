@@ -1,7 +1,4 @@
-//
-// NOTES:
-//
-//Keymap for thaana/divehi script (divehi language)
+// Keymap for Thaana/Dhivehi script (Dhivehi language).
 
 partial default alphanumeric_keys
 xkb_symbols "basic" {
@@ -32,11 +29,8 @@ xkb_symbols "basic" {
     key <AD08> { [	0x10007A8,      0x10007A9      ]       };
     key <AD09> { [	0x10007AE,      0x10007AF      ]       };
     key <AD10> { [	0x1000795,    	division       ]       };
-// The following brackets are as they appear on the US_en keyboard. 
-//Please verify whether the names used are correct. I referred to keysymdef.h
     key <AD11> {	[ 	bracketleft,	braceleft      ]	};
     key <AD12> {	[ 	bracketright,	braceright     ]	};
-
 
     key <AC01> { [	0x10007A6,       0x10007A7     ]       };
     key <AC02> { [	0x1000790,       0x1000781     ]       };
@@ -53,7 +47,6 @@ xkb_symbols "basic" {
 
     key <LSGT> { [        bar,      	brokenbar	]       };
     key <AB01> { [ 	0x1000792,    	0x10007A1       ]       };
-//multiply sign is the same as the algebraic symbol which looks like an italicized x. I am presuming its the same thing here. If not, please substitute an 'x' instead
     key <AB02> { [	multiply,      	0x1000798	  ]       };
     key <AB03> { [	0x1000797,     	0x100079D	  ]       };
     key <AB04> { [	0x1000788,      0x10007A5	  ]       };
@@ -63,10 +56,6 @@ xkb_symbols "basic" {
     key <AB08> { [	Arabic_comma,   less              ]       };
     key <AB09> { [	period,         greater           ]       };
     key <AB10> { [	slash, 		Arabic_question_mark ]       };
-
-    // End alphanumeric section
-    
-    // Begin modifier mappings 
 
     modifier_map Shift  { Shift_L };
     modifier_map Lock   { Caps_Lock };

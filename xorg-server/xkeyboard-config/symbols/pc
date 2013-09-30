@@ -1,14 +1,14 @@
 default partial alphanumeric_keys modifier_keys 
 xkb_symbols "pc105" {
 
-    key <ESC>  {	[ Escape			]	};
+    key <ESC>  {	[ Escape		]	};
 
-    // the extra key on most European keyboards
-    key <LSGT> {	[      less,    greater,          bar,    brokenbar ]	};
+    // The extra key on many European keyboards:
+    key <LSGT> {	[ less, greater, bar, brokenbar ] };
 
-    // these keys are common to all layouts
-    key <BKSL> {	[ backslash,	bar		]	};
-    key <SPCE> {	[ 	 space			]	};
+    // The following keys are common to all layouts.
+    key <BKSL> {	[ backslash,	bar	]	};
+    key <SPCE> {	[ 	 space		]	};
 
     include "srvr_ctrl(fkey2vt)"
     include "pc(editing)"
@@ -17,32 +17,28 @@ xkb_symbols "pc105" {
     key <BKSP> {	[ BackSpace, BackSpace	]	};
 
     key  <TAB> {	[ Tab,	ISO_Left_Tab	]	};
-    key <RTRN> {	[ Return	]	};
+    key <RTRN> {	[ Return		]	};
 
-    key <CAPS> {	[ Caps_Lock	]	};
+    key <CAPS> {	[ Caps_Lock		]	};
+    key <NMLK> {	[ Num_Lock 		]	};
 
-    key <NMLK> {	[ Num_Lock 	]	};
+    key <LFSH> {	[ Shift_L		]	};
+    key <LCTL> {	[ Control_L		]	};
+    key <LWIN> {	[ Super_L		]	};
 
-    key <LFSH> {	[ Shift_L	]	};
-    key <LCTL> {	[ Control_L	]	};
-
-    key <LWIN> {	[ Super_L			]	};
-
-    key <RTSH> {	[ Shift_R	]	};
-    key <RCTL> {	[ Control_R	]	};
-
-    key <RWIN> {	[ Super_R			]	};
-
+    key <RTSH> {	[ Shift_R		]	};
+    key <RCTL> {	[ Control_R		]	};
+    key <RWIN> {	[ Super_R		]	};
     key <MENU> {	[ Menu			]	};
 
-    // begin modifier mappings
+    // Beginning of modifier mappings.
     modifier_map Shift  { Shift_L, Shift_R };
     modifier_map Lock   { Caps_Lock };
     modifier_map Control{ Control_L, Control_R };
     modifier_map Mod2   { Num_Lock };
     modifier_map Mod4   { Super_L, Super_R };
 
-    //  Fake keys for virtual<->real modifiers mapping 
+    // Fake keys for virtual<->real modifiers mapping:
     key <LVL3> {	[ ISO_Level3_Shift	]	};
     key <MDSW> {	[ Mode_switch 		]	};
     modifier_map Mod5   { <LVL3>, <MDSW> };
@@ -58,6 +54,7 @@ xkb_symbols "pc105" {
 
     key <HYPR> {	[ NoSymbol, Hyper_L	]	};
     modifier_map Mod4   { <HYPR> };
+    // End of modifier mappings.
 
     key <OUTP> { [ XF86Display ] };
     key <KITG> { [ XF86KbdLightOnOff ] };
@@ -71,7 +68,7 @@ xkb_symbols "editing" {
 	type= "PC_ALT_LEVEL2",
 	symbols[Group1]= [ Print, Sys_Req ]
     };
-    key <SCLK> {  [  Scroll_Lock	]	};
+    key <SCLK> {	[  Scroll_Lock		]	};
     key <PAUS> {
 	type= "PC_CONTROL_LEVEL2",
 	symbols[Group1]= [ Pause, Break ]

@@ -2,10 +2,9 @@
 // Developed by:
 // Zaeem Arshad <zaeem@linux.net.pk>
 // Last update: 2004-03-12
-//Notice:
-//Alt key combinations are yet to be put in. The unavailable keys are those which do not have a corresponding //glyph in unicode.
-
-// based on a keyboard map from an 'xkb/symbols/ur' file
+// Notice:
+// Alt-key combinations are yet to be put in. The unavailable keys are
+// those which do not have a corresponding glyph in Unicode.
 
 partial default alphanumeric_keys
 xkb_symbols "urd-phonetic" {
@@ -38,27 +37,27 @@ xkb_symbols "urd-phonetic" {
    key <AD11> {  [     0x100005d  ,       0x100007D      ]     };
    key <AD12> {  [     0x100005b  ,       0x100007B      ]     };
 
-   key <AC01> {  [     0x1000627  ,       0x1000622    ]     };
+   key <AC01> {  [     0x1000627  ,       0x1000622      ]     };
    key <AC02> {  [     0x1000633  ,       0x1000635      ]     };
    key <AC03> {  [     0x100062f  ,       0x1000688      ]     };
-   key <AC04> {  [     0x1000641  ,       0x1000651  ]     };
+   key <AC04> {  [     0x1000641  ,       0x1000651      ]     };
    key <AC05> {  [     0x10006af  ,       0x100063a      ]     };
-   key <AC06> {  [     0x100062D,       0x10006BE      ]     };
+   key <AC06> {  [     0x100062D  ,       0x10006BE      ]     };
    key <AC07> {  [     0x100062c  ,       0x1000636      ]     };
    key <AC08> {  [     0x10006a9  ,       0x100062e      ]     };
-   key <AC09> {  [     0x1000644  ,       0x1000654 ]     };
+   key <AC09> {  [     0x1000644  ,       0x1000654      ]     };
    key <AC10> {  [     0x100061b  ,       0x100003a      ]     };
-   key <AC11> {  [     0x1000027  ,       0x1000022       ]     };
-   key <BKSL> {  [     0x100005C,        0x100007C      ]     };
+   key <AC11> {  [     0x1000027  ,       0x1000022      ]     };
+   key <BKSL> {  [     0x100005C  ,       0x100007C      ]     };
 
-   key <LSGT> {  [            bar ,       brokenbar      ]     };
-   key <AB01> {  [     0x1000632  ,       0x1000630, 0x100200E    ]     };
+   key <LSGT> {  [           bar  ,       brokenbar      ]     };
+   key <AB01> {  [     0x1000632  ,       0x1000630, 0x100200E      ]     };
    key <AB02> {  [     0x1000634  ,       0x1000698, 0x100202A      ]     };
-   key <AB03> {  [     0x1000686  ,       0x100062b, 0x100202D     ]     };
+   key <AB03> {  [     0x1000686  ,       0x100062b, 0x100202D      ]     };
    key <AB04> {  [     0x1000637  ,       0x1000638, 0x100202C      ]     };
    key <AB05> {  [     0x1000628  ,       0x100002e, 0x100202E      ]     };
    key <AB06> {  [     0x1000646  ,       0x10006ba, 0x100202B      ]     };
-   key <AB07> {  [     0x1000645  ,       0x1000658, 0x100200F     ]     };
+   key <AB07> {  [     0x1000645  ,       0x1000658, 0x100200F      ]     };
    key <AB08> {  [     0x100060c  ,       0x100003c      ]     };
    key <AB09> {  [     0x10006d4  ,       0x100003E      ]     };
    key <AB10> {  [     0x100002f  ,       0x100061f      ]     };
@@ -66,8 +65,6 @@ xkb_symbols "urd-phonetic" {
 //   key <RALT> {  [ Mode_switch, Multi_key ] };
 
    include "level3(ralt_switch)"
-
-   // End alphanumeric section
 };
 
 partial alphanumeric_keys
@@ -77,61 +74,60 @@ xkb_symbols "urd-crulp" {
 // www.crulp.org phonetic v1.1
 
    key <TLDE> {  [     0x100007E  ,       0x100064B      ]     };
-   key <AE01> {  [     0x10006F1  ,       0x1000031, 0x1000021   ]     };
+   key <AE01> {  [     0x10006F1  ,       0x1000031, 0x1000021      ]     };
    key <AE02> {  [     0x10006F2  ,       0x1000032, 0x1000040      ]     };
    key <AE03> {  [     0x10006F3  ,       0x1000033, 0x1000023      ]     };
    key <AE04> {  [     0x10006F4  ,       0x1000034      ]     };
    key <AE05> {  [     0x10006F5  ,       0x1000035, 0x100066A      ]     };
-   key <AE06> {  [     0x10006F6  ,       0x1000036     ]     };
-   key <AE07> {  [     0x10006F7  ,       0x1000037, 0x1000026       ]     };
+   key <AE06> {  [     0x10006F6  ,       0x1000036      ]     };
+   key <AE07> {  [     0x10006F7  ,       0x1000037, 0x1000026      ]     };
    key <AE08> {  [     0x10006F8  ,       0x1000038, 0x100002A      ]     };
    key <AE09> {  [     0x10006F9  ,       0x1000039, 0x1000029      ]     };
    key <AE10> {  [     0x10006F0  ,       0x1000030, 0x1000028      ]     };
-   key <AE11> {  [     0x100002D  ,       0x100005F 	     ]     };
+
+   key <AE11> {  [     0x100002D  ,       0x100005F      ]     };
    key <AE12> {  [     0x100003D  ,       0x100002B      ]     };   
-   key <AD01> {  [     0x1000642  ,       0x1000652  ]     };
-   key <AD02> {  [     0x1000648  ,       0x1000651, 0x1000602    ]     };
+   key <AD01> {  [     0x1000642  ,       0x1000652      ]     };
+   key <AD02> {  [     0x1000648  ,       0x1000651, 0x1000602      ]     };
    key <AD03> {  [     0x1000639  ,       0x1000670, 0x1000656      ]     };
    key <AD04> {  [     0x1000631  ,       0x1000691, 0x1000613      ]     };
    key <AD05> {  [     0x100062a  ,       0x1000679, 0x1000614      ]     };
    key <AD06> {  [     0x10006d2  ,       0x100064E, 0x1000601      ]     };
    key <AD07> {  [     0x1000621  ,       0x1000626, 0x1000654      ]     };
-   key <AD08> {  [     0x10006cc  ,       0x1000650,  0x1000611      ]     };
+   key <AD08> {  [     0x10006cc  ,       0x1000650, 0x1000611      ]     };
    key <AD09> {  [     0x10006c1  ,       0x10006c3      ]     };
-   key <AD10> {  [     0x100067e  ,       0x100064f,  0x1000657      ]     };
+   key <AD10> {  [     0x100067e  ,       0x100064f, 0x1000657      ]     };
    key <AD11> {  [     0x100005d  ,       0x100007D      ]     };
    key <AD12> {  [     0x100005b  ,       0x100007B      ]     };
 
-   key <AC01> {  [     0x1000627  ,       0x1000622, 0x100FDF2    ]     };
-   key <AC02> {  [     0x1000633  ,       0x1000635, 0x1000610    ]     };
-   key <AC03> {  [     0x100062f  ,       0x1000688, 0x100FDFA     ]     };
-   key <AC04> {  [     0x1000641  ,       0x1000651  ]     };
+   key <AC01> {  [     0x1000627  ,       0x1000622, 0x100FDF2      ]     };
+   key <AC02> {  [     0x1000633  ,       0x1000635, 0x1000610      ]     };
+   key <AC03> {  [     0x100062f  ,       0x1000688, 0x100FDFA      ]     };
+   key <AC04> {  [     0x1000641  ,       0x1000651      ]     };
    key <AC05> {  [     0x10006af  ,       0x100063a      ]     };
-   key <AC06> {  [     0x100062D,       0x10006BE, 0x1000612      ]     };
+   key <AC06> {  [     0x100062D  ,       0x10006BE, 0x1000612      ]     };
    key <AC07> {  [     0x100062c  ,       0x1000636, 0x100FDFB      ]     };
    key <AC08> {  [     0x10006a9  ,       0x100062e      ]     };
-   key <AC09> {  [     0x1000644  ,       0x1000654 ]     };
+   key <AC09> {  [     0x1000644  ,       0x1000654      ]     };
    key <AC10> {  [     0x100061b  ,       0x100003a      ]     };
-   key <AC11> {  [     0x1000027  ,       0x1000022       ]     };
-   key <BKSL> {  [     0x100005C,        0x100007C      ]     };
+   key <AC11> {  [     0x1000027  ,       0x1000022      ]     };
+   key <BKSL> {  [     0x100005C  ,       0x100007C      ]     };
 
-   key <LSGT> {  [            bar ,       brokenbar      ]     };
-   key <AB01> {  [     0x1000632  ,       0x1000630, 0x100060F    ]     };
+   key <LSGT> {  [           bar  ,       brokenbar      ]     };
+   key <AB01> {  [     0x1000632  ,       0x1000630, 0x100060F      ]     };
    key <AB02> {  [     0x1000634  ,       0x1000698, 0x100060E      ]     };
-   key <AB03> {  [     0x1000686  ,       0x100062b, 0x1000603	     ]     };
+   key <AB03> {  [     0x1000686  ,       0x100062b, 0x1000603      ]     };
    key <AB04> {  [     0x1000637  ,       0x1000638      ]     };
-   key <AB05> {  [     0x1000628  ,       0x100002e, 0x100FDFD	      ]     };
-   key <AB06> {  [     0x1000646  ,       0x10006ba, 0x1000600	      ]     };
-   key <AB07> {  [     0x1000645  ,       0x1000658    ]     };
+   key <AB05> {  [     0x1000628  ,       0x100002e, 0x100FDFD      ]     };
+   key <AB06> {  [     0x1000646  ,       0x10006ba, 0x1000600      ]     };
+   key <AB07> {  [     0x1000645  ,       0x1000658      ]     };
    key <AB08> {  [     0x100060c  ,       0x100003c, 0x100003C      ]     };
    key <AB09> {  [     0x10006d4  ,       0x100066B, 0x100003E      ]     };
-   key <AB10> {  [     0x100002f   ,       0x100061F      ]     };
+   key <AB10> {  [     0x100002f  ,       0x100061F      ]     };
 
 //   key <RALT> {  [ Mode_switch, Multi_key ] };
 
    include "level3(ralt_switch)"
-
-   // End alphanumeric section
 };
 
 
@@ -151,12 +147,12 @@ xkb_symbols "urd-nla" {
    key <AE08> {  [     0x1000038  ,       0x100066D      ]     };
    key <AE09> {  [     0x1000039  ,       0x1000029      ]     };
    key <AE10> {  [     0x1000030  ,       0x1000028      ]     };
-   key <AE11> {  [     0x100002D ,        0x100005F      ]     };
+   key <AE11> {  [     0x100002D  ,       0x100005F      ]     };
    key <AE12> {  [     0x100003D  ,       0x100002B      ]     };
    key <AD01> {  [     0x1000637  ,       0x1000638, 0x100200D      ]     };
-   key <AD02> {  [     0x1000635  ,       0x1000636, 0x100200C     ]     };
+   key <AD02> {  [     0x1000635  ,       0x1000636, 0x100200C      ]     };
    key <AD03> {  [     0x10006BE  ,       0x1000630      ]     };
-   key <AD04> {  [     0x100062F ,        0x1000688     ]     };
+   key <AD04> {  [     0x100062F  ,       0x1000688      ]     };
    key <AD05> {  [     0x1000679  ,       0x100062B      ]     };
    key <AD06> {  [     0x100067E  ,       0x1000651      ]     };
    key <AD07> {  [     0x100062A  ,       0x10006C3      ]     };
@@ -176,13 +172,13 @@ xkb_symbols "urd-nla" {
    key <AC08> {  [     0x10006a9  ,       0x10006AF      ]     };
    key <AC09> {  [     0x10006CC  ,       0x100064A      ]     };
    key <AC10> {  [     0x100061b  ,       0x100003a      ]     };
-   key <AC11> {  [     0x1000027  ,       0x1000022       ]     };
-   key <BKSL> {  [     0x100005C ,        0x100007C      ]     };
+   key <AC11> {  [     0x1000027  ,       0x1000022      ]     };
+   key <BKSL> {  [     0x100005C  ,       0x100007C      ]     };
 
    key <LSGT> {  [            bar ,       brokenbar      ]     };
-   key <AB01> {  [     0x1000642  ,       0x100200D, 0x100200E     ]     };
+   key <AB01> {  [     0x1000642  ,       0x100200D, 0x100200E      ]     };
    key <AB02> {  [     0x1000641  ,       0x100200C, 0x100202A      ]     };
-   key <AB03> {  [     0x10006D2  ,       0x10006D3, 0x100202D     ]     };
+   key <AB03> {  [     0x10006D2  ,       0x10006D3, 0x100202D      ]     };
    key <AB04> {  [     0x1000633  ,       0x100200E, 0x100202C      ]     };
    key <AB05> {  [     0x1000634  ,       0x1000624, 0x100202E      ]     };
    key <AB06> {  [     0x100063A  ,       0x1000626, 0x100202B      ]     };
@@ -191,10 +187,7 @@ xkb_symbols "urd-nla" {
    key <AB09> {  [     0x10006d4  ,       0x100003C      ]     };
    key <AB10> {  [     0x100002F  ,       0x100061f      ]     };
 
-   
    include "level3(ralt_switch)"
-
-   // End alphanumeric section
 };
 
 partial alphanumeric_keys
@@ -202,7 +195,7 @@ xkb_symbols "snd" {
    name[Group1]= "Sindhi";
 // www.bhurgri.com
 
-     key <TLDE> {  [       0x1002019,       0x1002018                 ]       };
+    key <TLDE> {  [       0x1002019,       0x1002018                 ]       };
     key <AE01> {  [               1,          exclam, 0x1000610      ]       };
     key <AE02> {  [               2,       0x1000670, 0x1000611      ]       };
     key <AE03> {  [               3,       0x1000621, 0x1000613      ]       };
@@ -253,9 +246,7 @@ xkb_symbols "snd" {
     key <AB09> {  [          period,       0x100201D, 0x10006D4      ]       };
     key <AB10> {  [       0x1000626, Arabic_question_mark, 0x100002F ]       };
 
-   include "level3(ralt_switch)"
-
-   // End alphanumeric section
+    include "level3(ralt_switch)"
 };
 
 partial alphanumeric_keys
@@ -306,10 +297,10 @@ xkb_symbols "ara" {
    key <AC08> {  [     0x10006a9  ,       0x100062e      ]     };
    key <AC09> {  [     0x1000644  ,       0x1000613      ]     };
    key <AC10> {  [     0x100061b  ,       0x100003a      ]     };
-   key <AC11> {  [     0x1000670  ,       0x1000022       ]     };
-   key <BKSL> {  [     0x100060e ,        0x1000614      ]     };
+   key <AC11> {  [     0x1000670  ,       0x1000022      ]     };
+   key <BKSL> {  [     0x100060e  ,       0x1000614      ]     };
 
-   key <LSGT> {  [            bar ,       brokenbar      ]     };
+   key <LSGT> {  [           bar  ,       brokenbar      ]     };
    key <AB01> {  [     0x1000632  ,       0x1000630      ]     };
    key <AB02> {  [     0x1000634  ,       0x1000698      ]     };
    key <AB03> {  [     0x1000686  ,       0x100062b      ]     };
@@ -320,8 +311,6 @@ xkb_symbols "ara" {
    key <AB08> {  [     0x100060c  ,       0x1000650      ]     };
    key <AB09> {  [     0x10006d4  ,       0x100064e      ]     };
    key <AB10> {  [     0x1000003  ,       0x100061f      ]     };
-
-   // End alphanumeric section
 };
 
 partial alphanumeric_keys

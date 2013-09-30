@@ -5,7 +5,6 @@ xkb_symbols "extended" {
     name[Group1]= "USA";
     key <ESC>  {	[ Escape			]	};
 
-    // Alphanumeric section
     key <TLDE> {	[     grave,	asciitilde	]	};
     key <AE01> {	[	  1,	exclam 		]	};
     key <AE02> {	[	  2,	at		]	};
@@ -58,13 +57,11 @@ xkb_symbols "extended" {
     key <AB10> {	[     slash,	question	]	};
 
     key <SPCE> {	[  space			]	};
-    // End alphanumeric section
-
 
     include "eurosign(e)"
     include "keypad"
 
-    key <KPEQ> {	[  equal				]	};
+    key <KPEQ> {	[  equal			]	};
 };
 
 hidden
@@ -104,11 +101,11 @@ xkb_symbols "oldmac" {
     key <RGHT> {	[  Right	]	};
     // End "Editing" section
 
-    key <BKSP> {	[ BackSpace			]	};
-    key  <TAB> {	[ Tab,	ISO_Left_Tab	]	};
+    key <BKSP> {	[ BackSpace	]	};
+    key  <TAB> {	[ Tab,	ISO_Left_Tab ]	};
     key <RTRN> {	[ Return	]	};
     key <CAPS> {	[ Caps_Lock	]	};
-    key <NMLK> {	[ Num_Lock, Pointer_EnableKeys		]	};
+    key <NMLK> {	[ Num_Lock, Pointer_EnableKeys ] };
 
     // Begin "Modifier" section
     key <LFSH> {	[  Shift_L	]	};

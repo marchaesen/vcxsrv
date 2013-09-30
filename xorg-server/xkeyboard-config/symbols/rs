@@ -108,7 +108,7 @@ xkb_symbols "cyralpha" {
   key <AC11> {   [ Serbian_tshe,        Serbian_TSHE,   any,any ]   }; // ' "
   key <BKSL> {   [ Cyrillic_zhe,        Cyrillic_ZHE,   any,any ]   }; // \ |
 
-  key <AB01> {   [ U0455,               U0405,          any,any ]   }; // z
+  key <AB01> {   [ Cyrillic_zhe,        Cyrillic_ZHE,   any,any ]   }; // z
   key <AB02> {   [ Cyrillic_dzhe,       Cyrillic_DZHE,  any,any ]   }; // x
   key <AB03> {   [ Cyrillic_tse,        Cyrillic_TSE,   any,any ]   }; // c
   key <AB04> {   [ Cyrillic_ve,         Cyrillic_VE,    any,any ]   }; // v

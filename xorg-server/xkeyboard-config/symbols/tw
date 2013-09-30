@@ -1,5 +1,3 @@
-// $XKeyboardConfig$
-
 partial default alphanumeric_keys
 xkb_symbols "tw" {
 
@@ -7,7 +5,6 @@ xkb_symbols "tw" {
 
     include "us(basic)"
 
-    // Alphanumeric section
     key <TLDE> { [     grave, asciitilde,    dead_grave,       dead_tilde ] };
     key <AE01> { [	   1,     exclam,         U030D,       exclamdown ] };
     key <AE02> { [	   2,         at,         U0358,      twosuperior ] };
@@ -52,25 +49,25 @@ xkb_symbols "tw" {
 partial alphanumeric_keys
 xkb_symbols "indigenous" {
 
-  name[Group1]= "Taiwanese (indigenous)";
+    name[Group1]= "Taiwanese (indigenous)";
 
-  include "tw(tw)"
+    include "tw(tw)"
 
-  key <AC11> { [      U02BC,    quotedbl,      apostrophe, dead_doubleacute ] };
+    key <AC11> { [     U02BC,   quotedbl,    apostrophe, dead_doubleacute ] };
 
-  include "level3(ralt_switch)"
+    include "level3(ralt_switch)"
 };
 
 partial alphanumeric_keys
 xkb_symbols "saisiyat" {
 
-  name[Group1]= "Saisiyat (Taiwan)";
+    name[Group1]= "Saisiyat (Taiwan)";
 
-  include "tw(indigenous)"
+    include "tw(indigenous)"
 
-  key <AC10> { [ U02D0,      colon,         semicolon,   dead_diaeresis ] };
+    key <AC10> { [     U02D0,      colon,     semicolon,   dead_diaeresis ] };
 
-  include "level3(ralt_switch)"
+    include "level3(ralt_switch)"
 };
 
 // EXTRAS:

@@ -42,7 +42,6 @@ xkb_symbols "basic" {
 
 	name[Group1]="English (Cameroon)";
 
-	// Alphanumeric section
 	key <TLDE> { [ grave, asciitilde ] };
 	key <AE01> { [ 1, exclam ] };
 	key <AE02> { [ 2, at ] };
@@ -93,7 +92,6 @@ xkb_symbols "basic" {
 	key <AB10> { [ slash, U003F ] };
 
 	key <BKSL> { [ backslash, bar ] };
-	// End alphanumeric section
 };
 
 partial alphanumeric_keys

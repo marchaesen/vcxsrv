@@ -42,7 +42,6 @@ xkb_symbols "nodeadkeys" {
     name[Group1]="Swedish (eliminate dead keys)";
 
     key <AE12>	{ [     acute,      grave,    plusminus,      notsign ]	};
-
 };
 
 // Swedish Dvorak
@@ -158,14 +157,7 @@ xkb_symbols "rus_nodeadkeys" {
 };
 
 xkb_symbols "smi" {
-
-    // Describes the differences between a Norwegian Northern Sami
-    // (keyboard with dead key support) and a Swedish/Finnish Sami
-    // keyboard according to the specs at:
-    // http://www.hum.uit.no/a/trond/se-lat9-sefi-keys.html
-
     include "fi(smi)"
-
     name[Group1]= "Northern Saami (Sweden)";
 };
 
@@ -174,7 +166,7 @@ partial alphanumeric_keys
 xkb_symbols "mac" {
 
     // Describes the differences between a very simple en_US
-    // keyboard and a very simple Swedish(Sweden) keybaord
+    // keyboard and a very simple Swedish(Sweden) keyboard.
 
     include "latin"
     name[Group1]= "Swedish (Macintosh)";
@@ -188,17 +180,17 @@ xkb_symbols "mac" {
     key <AE07> {	[               7,           slash, 	      bar,       backslash	]	};
     key <AE08> {	[               8,       parenleft,      bracketleft,       braceleft	]	};
     key <AE09> {	[               9,      parenright,     bracketright,      braceright	]	};
-    key <AB08> {	[           comma,       semicolon     	]	};
     key <AE10> {	[               0,           equal     	]	};
+    key <AE11> {	[            plus,        question      ]	};
+    key <AE12> {	[           acute,           grave	]	};
+    key <AD11> {	[	    aring,           Aring     	]	};
+    key <AD12> {	[       diaeresis,     asciicircum, 	asciitilde			]	};
+    key <AC10> {	[      odiaeresis,      Odiaeresis, 	   oslash,	    Ooblique	]	};
+    key <AC11> {	[      adiaeresis,      Adiaeresis,               ae,		AE	]	};
+    key <BKSL> {	[      apostrophe,        asterisk,               at			]	};
+    key <AB08> {	[           comma,       semicolon     	]	};
     key <AB09> {	[          period,           colon     	]	};
     key <AB10> {	[           minus,      underscore     	]	};
-    key	<AC10> {	[      odiaeresis,      Odiaeresis, 	   oslash,	    Ooblique	]	};
-    key <AE11> {	[            plus,        question      ]	};
-    key <AC11> {	[      adiaeresis,      Adiaeresis,               ae,		AE	]	};
-    key <AD11> {	[	    aring,           Aring     	]	};
-    key <AE12> {	[           acute,           grave	]	};
-    key <AD12> {	[       diaeresis,     asciicircum, 	asciitilde			]	};
-    key <BKSL> {	[      apostrophe,        asterisk,               at			]	};
 
     include "kpdl(comma)"
     include "level3(ralt_switch)"

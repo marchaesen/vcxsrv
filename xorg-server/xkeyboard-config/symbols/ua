@@ -99,8 +99,7 @@ xkb_symbols "legacy" {
     key	<AB09> {	[     Cyrillic_yu,     Cyrillic_YU	]	};
     key	<AB10> {	[	    slash,	  question	]	};
 
-    key <LSGT> {        [           slash,             bar      ]       };
-    // End alphanumeric section
+    key	<LSGT> {        [           slash,             bar      ]       };
 };
 
 partial alphanumeric_keys

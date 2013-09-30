@@ -59,12 +59,8 @@ xkb_symbols "syc" {
     key <AB09> {  [  	0x1000719,	Arabic_semicolon			]     };
     key <AB10> {  [  	0x1000707,	Arabic_question_mark			]     };
 
-    // End Alphanumeric Section
-
-    // Space
+    // Space plus zero-width non-joiner:
     include "nbsp(zwnj2)"
-    
-    // Begin Modifier Mappings
     
     modifier_map Shift  { Shift_L, Shift_R };
     modifier_map Lock   { Caps_Lock };
@@ -130,11 +126,6 @@ xkb_symbols "syc_phonetic" {
     key <AB09> {  [  	0x100002E,	Arabic_semicolon			]     };
     key <AB10> {  [  	0x1000707,	Arabic_question_mark			]     };
 
-    // End Alphanumeric Section
-
-    
-    // Begin Modifier Mappings
-    
     modifier_map Shift  { Shift_L, Shift_R };
     modifier_map Lock   { Caps_Lock };
     modifier_map Control{ Control_L, Control_R };

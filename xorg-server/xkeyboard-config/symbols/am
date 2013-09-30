@@ -5,10 +5,9 @@ xkb_symbols "basic" {
 
     name[Group1]= "Armenian";
 
-    // Alphanumeric section
-    key <TLDE> {	[ 0x100055d, 0x100055c	]	};
-    key	<LSGT> {	[  question,  0x100058a	]	};
-    key <BKSL> {        [ guillemotright, guillemotleft ] };
+    key <TLDE> {	[ 0x100055d,  0x100055c	]	};
+    key <LSGT> {	[  question,  0x100058a	]	};
+    key <BKSL> {	[ guillemotright, guillemotleft]};
 
     key <AE01> {	[ 0x1000586,  0x1000556	]	};
     key <AE02> {	[ 0x1000571,  0x1000541	]	};
@@ -22,7 +21,6 @@ xkb_symbols "basic" {
     key <AE10> {	[ 0x1000585,  0x1000555	]	};
     key <AE11> {	[ 0x1000567,  0x1000537	]	};
     key <AE12> {	[ 0x1000572,  0x1000542	]	};
-
 
     key <AD01> {	[ 0x1000573, 0x1000543	]       };
     key <AD02> {	[ 0x1000583, 0x1000553	]	};
@@ -152,23 +150,22 @@ xkb_symbols "eastern" {
 
     // This is the closer phonetic transliteration for Eastern Armenian
     // than the Windows XP layout for Eastern Armenian, which seems
-    // to have contained a bug, with the reversal of 'g' for keh and 'c' for gim
-    // Also, AE01 (the colon) has been replaced with the Armenian_full_stop and
-    // capital AE07 (ken) with the Armenian ligature ew
+    // to have contained a bug, with the reversal of 'g' for keh and 'c' for gim.
+    // Also, AE01 (the colon) has been replaced with the Armenian_full_stop,
+    // and capital AE07 (ken) with the Armenian ligature ew.
 
     key <TLDE> {	[ Armenian_separation_mark,  Armenian_exclam ]	};
-//  key <AE01> {	[ colon,  		KP_1 ]	};
-    key <AE01> {	[ Armenian_full_stop,  	KP_1 ]	};
+    key <AE01> {	[ Armenian_full_stop,  	KP_1 ]		};
     key <AE02> {	[ Armenian_dza,  	Armenian_DZA ]	};
     key <AE03> {	[ Armenian_hi,  	Armenian_HI ]	};
-    key <AE04> {	[ Armenian_accent,  	KP_3 ]       };
-    key <AE05> {	[ comma,  		KP_4 ]	};
-    key <AE06> {	[ minus,  		KP_9 ]	};
+    key <AE04> {	[ Armenian_accent,  	KP_3 ]		};
+    key <AE05> {	[ comma,  		KP_4 ]		};
+    key <AE06> {	[ minus,  		KP_9 ]		};
     key <AE07> {	[ period,  		Armenian_ligature_ew ]	};
     key <AE08> {	[ guillemotleft,  	parenleft ]	};
     key <AE09> {	[ guillemotright,  	parenright ]	};
     key <AE10> {	[ Armenian_o,  		Armenian_O ]	};
-    key <AE11> {	[ Armenian_ra,  	Armenian_RA ]       };
+    key <AE11> {	[ Armenian_ra,  	Armenian_RA ]	};
     key <AE12> {	[ Armenian_zhe,  	Armenian_ZHE ]	};
 
     key <LatQ> {	[ Armenian_khe,  	Armenian_KHE ]	};
@@ -204,8 +201,8 @@ xkb_symbols "eastern" {
     key <LatB> {	[ Armenian_ben,  	Armenian_BEN ]	};
     key <LatN> {	[ Armenian_nu,  	Armenian_NU ]	};
     key <LatM> {	[ Armenian_men,  	Armenian_MEN ]	};
-    key <AB08> {	[ Armenian_sha,  	Armenian_SHA ]       };
-    key <AB09> {	[ Armenian_ghat,  	Armenian_GHAT ]       };
+    key <AB08> {	[ Armenian_sha,  	Armenian_SHA ]	};
+    key <AB09> {	[ Armenian_ghat,  	Armenian_GHAT ]	};
     key <AB10> {	[ Armenian_tsa,  	Armenian_TSA ]	};
 
 };

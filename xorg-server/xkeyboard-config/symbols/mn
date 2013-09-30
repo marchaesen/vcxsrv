@@ -60,8 +60,6 @@ xkb_symbols "basic" {
   key <AB09> { [ Cyrillic_ve,       Cyrillic_VE,       	guillemotright  ] };
   key <AB10> { [ Cyrillic_yu,       Cyrillic_YU,       	backslash       ] };
 
-  // End alphanumeric section
-
   key <SPCE> { [ space,             space,             	nobreakspace    ] };
 
   include "level3(ralt_switch)"

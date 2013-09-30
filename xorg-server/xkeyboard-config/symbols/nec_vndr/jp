@@ -93,7 +93,6 @@ default xkb_symbols "pc98" {
     key <NFER> { [ Muhenkan		]	};
     key <SPCE> { [ space		]	};
     key <XFER> { [ Henkan, Kanji	]	};
-
     // End alphanumeric section
 
     // Begin "Function" section
@@ -154,7 +153,6 @@ default xkb_symbols "pc98" {
 //    key <KPEN> { [ KP_Enter		]	}; 
     // End "Keypad" section
 
-    // begin modifier mappings
     modifier_map Shift  { Shift_L };
     modifier_map Lock   { Caps_Lock };
     modifier_map Control{ Control_L };

@@ -244,7 +244,7 @@ test_composite (int testnum, int verbose)
     int w, h;
     pixman_op_t op;
     pixman_format_code_t src_fmt, dst_fmt, mask_fmt;
-    uint32_t *dstbuf, *srcbuf, *maskbuf;
+    uint32_t *srcbuf, *maskbuf;
     uint32_t crc32;
     int max_width, max_height, max_extra_stride;
     FLOAT_REGS_CORRUPTION_DETECTOR_START ();
@@ -291,7 +291,6 @@ test_composite (int testnum, int verbose)
     dst_height = pixman_image_get_height (dst_img);
     dst_stride = pixman_image_get_stride (dst_img);
 
-    dstbuf = pixman_image_get_data (dst_img);
     srcbuf = pixman_image_get_data (src_img);
 
     src_x = prng_rand_n (src_width);

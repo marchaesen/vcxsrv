@@ -45,7 +45,7 @@ CONF_LINKS = \
 EXTRA_DIST = $(template_DATA) $(DOC_SOURCES)
 CLEANFILES = $(DOC_FILES)
 
-configdir=$(CONFIGDIR)
+configdir = $(CONFIGDIR)
 config_DATA = $(DOC_FILES)
 
 templatedir = $(TEMPLATEDIR)

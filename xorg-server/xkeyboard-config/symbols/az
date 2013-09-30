@@ -1,5 +1,4 @@
-// based on:
-// symbols definition for a very simple Azerbaidjani keyboard layout.
+// Symbols definition for a very simple Azerbaidjani keyboard layout.
 // 2001 - Pablo Saratxaga <pablo@mandrakesoft.com>
 
 partial default alphanumeric_keys
@@ -32,9 +31,8 @@ xkb_symbols "latin" {
   key <AB08> { [ ccedilla,   Ccedilla    ] };
   key <AB09> { [ scedilla,   Scedilla    ] };
   key <AB10> { [ period,     comma       ] };
-  // End alphanumeric section
 
-    include "level3(ralt_switch)"
+  include "level3(ralt_switch)"
 };
 
 partial alphanumeric_keys
@@ -87,6 +85,4 @@ xkb_symbols "cyrillic" {
   key <AB08> {[ Cyrillic_be,       Cyrillic_BE        ] };
   key <AB09> {[ Cyrillic_o_bar,    Cyrillic_O_bar     ] };
   key <AB10> {[ period,            comma              ] };
-
-  // End alphanumeric section
 };

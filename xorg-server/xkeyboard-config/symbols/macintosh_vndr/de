@@ -4,12 +4,11 @@ default partial alphanumeric_keys
 xkb_symbols "basic" {
 
     // Describes the differences between a very simple US/ASCII
-    // keyboard and a very simple German keybaord
+    // keyboard and a simple German keyboard.
 
     include "latin"
     name[Group1]= "Germany - Mac";
 
-    // Alphanumeric section
     key <TLDE> {	[ dead_circumflex,	degree,    notsign 		]	};
     key <AE01> {	[         1,    exclam,  exclamdown,   at		]	};
     key <AE02> {	[	  2,	quotedbl,  twosuperior			]	};
@@ -53,7 +52,6 @@ xkb_symbols "basic" {
 
     include "kpdl(comma)"
     include "level3(ralt_switch)"
-
 };
 
 partial alphanumeric_keys 
@@ -62,14 +60,14 @@ xkb_symbols "Sundeadkeys" {
     include "macintosh_vndr/de(basic)"
     name[Group1]= "Germany - Mac, Sun dead keys";
 
-    key <TLDE> {	[ SunFA_Circum,	degree,    notsign 			]	};
-    key <AE12> {	[ SunFA_Acute,	SunFA_Grave,  SunFA_Cedilla			]	};
+    key <TLDE> {	[ SunFA_Circum,	degree,      notsign 			]	};
+    key <AE12> {	[ SunFA_Acute,	SunFA_Grave, SunFA_Cedilla		]	};
     key <AD11> {	[ udiaeresis,	Udiaeresis,  SunFA_Diaeresis		]	};
-    key <AD12> {	[      plus,	asterisk,  SunFA_Tilde,	dead_macron	]	};
-    key <AC10> {	[ odiaeresis,	Odiaeresis,  SunFA_Acute			]	};
-    key <AC11> {	[ adiaeresis,	Adiaeresis,  SunFA_Circum			]	};
+    key <AD12> {	[       plus,	asterisk,    SunFA_Tilde,  dead_macron	]	};
+    key <AC10> {	[ odiaeresis,	Odiaeresis,  SunFA_Acute		]	};
+    key <AC11> {	[ adiaeresis,	Adiaeresis,  SunFA_Circum		]	};
 
-    key <BKSL> {	[ numbersign,	acute,  SunFA_Grave			]	};
+    key <BKSL> {	[ numbersign,	acute,       SunFA_Grave		]	};
 };
 
 partial alphanumeric_keys 

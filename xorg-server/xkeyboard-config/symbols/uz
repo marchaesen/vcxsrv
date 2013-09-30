@@ -47,9 +47,9 @@ xkb_symbols "cyrillic" {
     key	<AE10> {	[		0,	parenright	]	};
     key	<BKSL> {	[	backslash,             bar	]	};
     key	<AB10> {	[	   period,	     comma	]	};
-    key <LSGT> {        [           slash,             bar      ]       };
+    key	<LSGT> {        [           slash,             bar      ]       };
 
-key.type[group1]="ALPHABETIC";
+    key.type[group1]="ALPHABETIC";
 
     key	<AE11> {	[Cyrillic_ghe_bar, Cyrillic_GHE_bar     ]	};
     key	<AE12> {	[Cyrillic_ha_descender, Cyrillic_HA_descender ]	};
@@ -86,8 +86,6 @@ key.type[group1]="ALPHABETIC";
     key	<AB07> {	[Cyrillic_softsign,Cyrillic_SOFTSIGN	]	};
     key	<AB08> {	[     Cyrillic_be,     Cyrillic_BE	]	};
     key	<AB09> {	[     Cyrillic_yu,     Cyrillic_YU	]	};
-
-    // End alphanumeric section
 };
 
 partial alphanumeric_keys

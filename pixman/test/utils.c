@@ -251,6 +251,7 @@ print_image (pixman_image_t *image)
     int width, height, stride;
     pixman_format_code_t format;
     uint8_t *buffer;
+    int s;
 
     width = pixman_image_get_width (image);
     height = pixman_image_get_height (image);
@@ -258,13 +259,12 @@ print_image (pixman_image_t *image)
     format = pixman_image_get_format (image);
     buffer = (uint8_t *)pixman_image_get_data (image);
 
-    if (stride < 0)
-	stride = - stride;
+    s = (stride >= 0)? stride : - stride;
     
     printf ("---\n");
     for (i = 0; i < height; i++)
     {
-	for (j = 0; j < stride; j++)
+	for (j = 0; j < s; j++)
 	{
 	    if (j == (width * PIXMAN_FORMAT_BPP (format) + 7) / 8)
 		printf ("| ");
@@ -297,11 +297,12 @@ image_endian_swap (pixman_image_t *img)
     for (i = 0; i < height; i++)
     {
 	uint8_t *line_data = (uint8_t *)data + stride * i;
-	
+	int s = (stride >= 0)? stride : - stride;
+    	
 	switch (bpp)
 	{
 	case 1:
-	    for (j = 0; j < stride; j++)
+	    for (j = 0; j < s; j++)
 	    {
 		line_data[j] =
 		    ((line_data[j] & 0x80) >> 7) |
@@ -315,13 +316,13 @@ image_endian_swap (pixman_image_t *img)
 	    }
 	    break;
 	case 4:
-	    for (j = 0; j < stride; j++)
+	    for (j = 0; j < s; j++)
 	    {
 		line_data[j] = (line_data[j] >> 4) | (line_data[j] << 4);
 	    }
 	    break;
 	case 16:
-	    for (j = 0; j + 2 <= stride; j += 2)
+	    for (j = 0; j + 2 <= s; j += 2)
 	    {
 		char t1 = line_data[j + 0];
 		char t2 = line_data[j + 1];
@@ -331,7 +332,7 @@ image_endian_swap (pixman_image_t *img)
 	    }
 	    break;
 	case 24:
-	    for (j = 0; j + 3 <= stride; j += 3)
+	    for (j = 0; j + 3 <= s; j += 3)
 	    {
 		char t1 = line_data[j + 0];
 		char t2 = line_data[j + 1];
@@ -343,7 +344,7 @@ image_endian_swap (pixman_image_t *img)
 	    }
 	    break;
 	case 32:
-	    for (j = 0; j + 4 <= stride; j += 4)
+	    for (j = 0; j + 4 <= s; j += 4)
 	    {
 		char t1 = line_data[j + 0];
 		char t2 = line_data[j + 1];

@@ -8,9 +8,8 @@ xkb_symbols "basic" {
 
     key.type[Group1] = "FOUR_LEVEL";
 
-    // Alphanumeric section
-    // TILDE, COMBINING TILDE
-    key <TLDE> { [     grave, asciitilde, 0x01000303] };
+    // GRAVE, TILDE, COMBINING TILDE
+    key <TLDE> { [     grave, asciitilde, 0x01000303                      ] };
     key <AE01> { [ ampersand,          1, numbersign                      ] };
     key <AE02> { [0x01000301,          2, at                              ] };
     key <AE03> { [0x01000300,          3, guillemotleft                   ] };
@@ -34,8 +33,8 @@ xkb_symbols "basic" {
     key <AD08> { [	   i,          I,    0x01000268,       0x01000197 ] };
     key <AD09> { [	   o,          O,        oslash,         Ooblique ] };
     key <AD10> { [	   p,          P                                  ] };
-    key <AD11> { [0x0100025B,      0x01000190,     asciicircum ] };
-    key <AD12> { [ asterisk, asciicircum, dollar                ] };
+    key <AD11> { [0x0100025B, 0x01000190,   asciicircum                   ] };
+    key <AD12> { [ asterisk, asciicircum,        dollar                   ] };
 
     key <AC01> { [	   q,          Q                                  ] };
     key <AC02> { [	   s,          S                                  ] };
@@ -47,22 +46,22 @@ xkb_symbols "basic" {
     key <AC08> { [	   k,          K                                  ] };
     key <AC09> { [	   l,          L                                  ] };
     key <AC10> { [	   m,          M                                  ] };
-    key <AC11> { [0x01000254, 0x01000186                              ] };
-    key <LSGT> { [    backslash,     bar                              ] };
+    key <AC11> { [0x01000254, 0x01000186                                  ] };
+    key <LSGT> { [    backslash,     bar                                  ] };
 
     key <AB01> { [	   w,          W                                  ] };
     key <AB02> { [	   x,          X                                  ] };
     key <AB03> { [	   c,          C                                  ] };
     key <AB04> { [	   v,          V                                  ] };
     key <AB05> { [	   b,          B                                  ] };
-    key <AB06> { [	   n,          N,    0x0100014B,      0x0100014A ] };
-    key <AB07> { [     comma,   question,      0x01000327                 ] };
+    key <AB06> { [	   n,          N,    0x0100014B,       0x0100014A ] };
+    key <AB07> { [     comma,   question,    0x01000327                   ] };
     key <AB08> { [ semicolon,     period                                  ] };
     key <AB09> { [     colon,      slash                                  ] };
-    key <AB10> { [    exclam,   apostrophe,    0x01002019                 ] };
-    key <BKSL> { [  quotedbl,  backslash,            bar                  ] };
+    key <AB10> { [    exclam,   apostrophe,  0x01002019                   ] };
+    key <BKSL> { [  quotedbl,  backslash,           bar                   ] };
 
-    // SPACE, SPACE, SPACE, NO-BREAK SPACE, SPACE
+    // SPACE, SPACE, NO-BREAK SPACE, NARROW NO_BREAK SPACE
     key <SPCE> { [ space,          space,    nobreakspace,     0x0100202F ] };
 
     include "level3(ralt_switch)"
