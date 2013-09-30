@@ -2,7 +2,7 @@ partial default alphanumeric_keys
 xkb_symbols "basic" {
 
     // Describes the differences between a very simple mac_US
-    // keyboard and a very simple Spanish keybaord
+    // keyboard and a very simple Spanish keyboard.
 
     include "latin"
     name[Group1]= "Latin American - Mac";
@@ -30,8 +30,6 @@ xkb_symbols "basic" {
     key	<AC10> {	[	   ntilde,          Ntilde,       asciitilde, dead_doubleacute	]	};
     key <AC11> {	[       semicolon,    	     colon 	]	};
     key <BKSL> {	[      apostrophe,        quotedbl	]	};
-
-    // End alphanumeric section
 
     include "level3(ralt_switch)"
 };

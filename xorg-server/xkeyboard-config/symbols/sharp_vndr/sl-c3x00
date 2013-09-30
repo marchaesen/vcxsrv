@@ -5,7 +5,6 @@ partial default alphanumeric_keys
 xkb_symbols "basic" {
 	name[Group1]= "Sharp SL-C3x00";
 
-	// Upper row
 	key <AE01> { [ 1, exclam ] };
 	key <AE02> { [ 2, quotedbl ] };
 	key <AE03> { [ 3, numbersign ] };
@@ -60,9 +59,7 @@ xkb_symbols "basic" {
 	key <SPCE> { [ space ] };
 	key <AB08> { [ comma, slash, less ] };
 	key <AB09> { [ period, question, greater ] };
-	// End alphanumeric section
 	
-	// keypad
 	key <UP> { [ Up, Up, Prior ] };
 	key <LEFT> { [ Left, Left, Home ] };
 	key <DOWN> { [ Down, Down, Next ] };

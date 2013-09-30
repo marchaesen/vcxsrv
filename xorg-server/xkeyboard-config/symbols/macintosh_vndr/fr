@@ -33,7 +33,6 @@ xkb_symbols "extended" {
 
     key <ESC>  {	[ Escape			]	};
 
-    // Alphanumeric section
     key <TLDE> {	[	   at,	  numbersign,	periodcentered,  	Ydiaeresis	]	};
     key <ENTR> {        [    KP_Enter                   ]       };
     key <AE01> {	[   ampersand,	  1,	  	VoidSymbol,	  	dead_acute	]	}; // MISSING: Apple
@@ -91,7 +90,6 @@ xkb_symbols "extended" {
     key <AB10> {	[     equal,	plus,		notequal,		plusminus	]	};
 
     key <SPCE> {	[     space,	space,		nobreakspace,		nobreakspace	]	};
-    // End alphanumeric section
 
     include "level3(ralt_switch)"
 };

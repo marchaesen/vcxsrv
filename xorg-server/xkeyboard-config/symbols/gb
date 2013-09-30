@@ -74,7 +74,6 @@ xkb_symbols "extd" {
 
     name[Group1]="English (UK, extended WinKeys)";
     
-    // Alphanumeric section
     key <TLDE> { [ dead_grave,    notsign,       brokenbar,    NoSymbol ] };
     
     key <AE02> { [     2,        quotedbl,  dead_diaeresis,     onehalf ] };
@@ -96,7 +95,6 @@ xkb_symbols "extd" {
 
     key <BKSL>  { [ numbersign, asciitilde,     dead_tilde,    NoSymbol ] };
     key <LSGT>  { [  backslash,        bar,       NoSymbol,    NoSymbol ] };
-    // End alphanumeric section
 
     include "level3(ralt_switch)"
 };
@@ -172,8 +170,6 @@ xkb_symbols "mac" {
     key <TLDE> {	[         section,       plusminus ]	};
     key <LSGT> {	[           grave,      asciitilde ]	};
 
-    // End alphanumeric section
-    
     include "level3(ralt_switch)"
     include "level3(enter_switch)"
 };

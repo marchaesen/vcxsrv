@@ -4,7 +4,7 @@ partial default alphanumeric_keys
 xkb_symbols "basic" {
 
     // Describes the differences between a very simple en_US
-    // keyboard and a very simple Portuguese keybaord
+    // keyboard and a very simple Portuguese keyboard.
 
     include "latin"
 
@@ -12,8 +12,8 @@ xkb_symbols "basic" {
 
     key <LSGT> {	[	     less,	   greater, 	      bar,       brokenbar	]	};
     key <AE02> {	[               2,	  quotedbl, 	       at,       oneeighth	]	};
-    key <AE04> {	[               4,	    dollar,          section,          dollar	]	};
-    key <AE03> {	[               3,	numbersign,         sterling,        sterling     	]	};
+    key <AE03> {	[               3,	numbersign,      sterling,        sterling     	]	};
+    key <AE04> {	[               4,	    dollar,       section,          dollar	]	};
     key <AE06> {	[               6,       ampersand     	]	};
     key <AE07> {	[               7,           slash     	]	};
     key <AE08> {	[               8,       parenleft,      bracketleft,       braceleft     	]	};
@@ -29,7 +29,6 @@ xkb_symbols "basic" {
     key <AC12> {	[       backslash,	       bar     	]	};
     key <AD11> {	[       masculine,     ordfeminine      ]	};
     key <AD12> {	[      dead_acute,      dead_grave 	]	};
-    // End alphanumeric section
 
     include "eurosign(e)"
     include "level3(ralt_switch)"

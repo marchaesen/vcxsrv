@@ -63,9 +63,6 @@ xkb_symbols "nodeadkeys" {
 partial alphanumeric_keys 
 xkb_symbols "mac" {
 
-    // Describes the differences between a very simple en_US
-    // keyboard and a very simple Portuguese keybaord
-
     include "pt"
     name[Group1]= "Portuguese (Macintosh)";
 

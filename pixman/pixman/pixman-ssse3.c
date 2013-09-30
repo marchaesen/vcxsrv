@@ -43,8 +43,7 @@ typedef struct
 
 typedef struct
 {
-    line_t		line0;
-    line_t		line1;
+    line_t		lines[2];
     pixman_fixed_t	y;
     pixman_fixed_t	x;
     uint64_t		data[1];
@@ -172,29 +171,19 @@ ssse3_fetch_bilinear_cover (pixman_iter_t *iter, const uint32_t *mask)
     y0 = pixman_fixed_to_int (info->y);
     y1 = y0 + 1;
 
-    line0 = &info->line0;
-    line1 = &info->line1;
+    line0 = &info->lines[y0 & 0x01];
+    line1 = &info->lines[y1 & 0x01];
 
-    if (line0->y != y0 || line1->y != y1)
+    if (line0->y != y0)
     {
-	if (line0->y == y1 || line1->y == y0)
-	{
-	    line_t tmp = *line0;
-	    *line0 = *line1;
-	    *line1 = tmp;
-	}
+	ssse3_fetch_horizontal (
+	    &iter->image->bits, line0, y0, fx, ux, iter->width);
+    }
 
-	if (line0->y != y0)
-	{
-	    ssse3_fetch_horizontal (
-		&iter->image->bits, line0, y0, fx, ux, iter->width);
-	}
-
-	if (line1->y != y1)
-	{
-	    ssse3_fetch_horizontal (
-		&iter->image->bits, line1, y1, fx, ux, iter->width);
-	}
+    if (line1->y != y1)
+    {
+	ssse3_fetch_horizontal (
+	    &iter->image->bits, line1, y1, fx, ux, iter->width);
     }
 
     dist_y = pixman_fixed_to_bilinear_weight (info->y);
@@ -308,10 +297,10 @@ ssse3_bilinear_cover_iter_init (pixman_iter_t *iter, const pixman_iter_info_t *i
      * because COVER_CLIP_BILINEAR ensures that we will only
      * be asked to fetch lines in the [0, height) interval
      */
-    info->line0.y = -1;
-    info->line0.buffer = ALIGN (&(info->data[0]));
-    info->line1.y = -1;
-    info->line1.buffer = ALIGN (info->line0.buffer + width);
+    info->lines[0].y = -1;
+    info->lines[0].buffer = ALIGN (&(info->data[0]));
+    info->lines[1].y = -1;
+    info->lines[1].buffer = ALIGN (info->lines[0].buffer + width);
 
     iter->get_scanline = ssse3_fetch_bilinear_cover;
     iter->fini = ssse3_bilinear_cover_iter_fini;

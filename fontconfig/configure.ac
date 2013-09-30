@@ -588,7 +588,7 @@ no|yes)
 esac
 case "$configdir" in
 no|yes)
-	configdir='${baseconfigdir}'/conf.d
+	configdir='${BASECONFIGDIR}'/conf.d
 	;;
 *)
 	;;
@@ -605,13 +605,9 @@ TEMPLATEDIR=${templatedir}
 BASECONFIGDIR=${baseconfigdir}
 CONFIGDIR=${configdir}
 XMLDIR=${xmldir}
-AC_SUBST(templatedir)
 AC_SUBST(TEMPLATEDIR)
-AC_SUBST(baseconfigdir)
 AC_SUBST(BASECONFIGDIR)
-AC_SUBST(configdir)
 AC_SUBST(CONFIGDIR)
-AC_SUBST(xmldir)
 AC_SUBST(XMLDIR)
 
 

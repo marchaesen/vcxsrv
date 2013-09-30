@@ -69,12 +69,14 @@ XauFileName (void)
 	return NULL;
     }
     size = strlen (name) + strlen(&slashDotXauthority[1]) + 2;
-    if (size > bsize) {
+    if ((size > bsize) || (buf == NULL)) {
 	if (buf)
 	    free (buf);
 	buf = malloc (size);
-	if (!buf)
+	if (!buf) {
+	    bsize = 0;
 	    return NULL;
+	}
 
         if (!atexit_registered) {
             atexit(free_filename_buffer);

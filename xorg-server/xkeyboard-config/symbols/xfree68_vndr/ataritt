@@ -1,6 +1,7 @@
 default xkb_symbols "us" {
 
     name[Group1]= "US/ASCII";
+
     key <ESC>  {	[	Escape			]	};
 
     // Alphanumeric section
@@ -112,7 +113,6 @@ default xkb_symbols "us" {
     key <KPEN> {	[	KP_Enter	]	};
     // End "Keypad" section
 
-    // begin modifier mappings
     modifier_map Shift  { Shift_L, Shift_R };
     modifier_map Lock   { Caps_Lock };
     modifier_map Control{ Control_L };
@@ -124,7 +124,6 @@ xkb_symbols "de" {
 
     name[Group1]= "German";
 
-    // Alphanumeric section
     key <AE02> {	[	  2,	quotedbl	]	};
     key <AE03> {	[	  3,	section		]	};
     key <AE06> {	[	  6,	ampersand	]	};

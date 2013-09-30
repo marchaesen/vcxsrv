@@ -4,7 +4,6 @@ partial default alphanumeric_keys
 xkb_symbols "basic" {
 	name[Group1]= "Sharp WS011SH";
 
-	// Upper row
 	key <HZTG> {
 		type[Group1] = "THREE_LEVEL",
 		symbols[Group1] = [ Zenkaku_Hankaku, Zenkaku_Hankaku, exclam ]
@@ -53,7 +52,6 @@ xkb_symbols "basic" {
 
 	key <LCTL> { [ Control_L ] };
 	key <SPCE> { [ space ] };
-	// End alphanumeric section
 	
 	key <UP> { [ Up, Up, Prior ] };
 	key <LEFT> { [ Left, Left, Home ] };
@@ -62,7 +60,6 @@ xkb_symbols "basic" {
 
 	key <ESC> { [ Escape ] };
 
-	// keypad
 	key <KP1> { [ 1 ] };
 	key <KP2> { [ 2 ] };
 	key <KP3> { [ 3 ] };

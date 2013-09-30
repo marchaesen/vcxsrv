@@ -485,7 +485,6 @@ xkb_symbols "mac" {
     include "de"
     name[Group1]= "German (Macintosh)";
 
-    // Alphanumeric section
     key <AE01>	{ [         1,     exclam,   exclamdown,           at ]	};
     key <AE05>	{ [         5,    percent,  bracketleft       ]	};
     key <AE06>	{ [         6,  ampersand, bracketright       ]	};
@@ -512,9 +511,9 @@ xkb_symbols "mac_nodeadkeys" {
     // modify the standard German mac layout to not have any dead keys
     include "de(mac)"
     name[Group1]= "German (Macintosh, eliminate dead keys)";
-    key <AE04>	{ [         4,     dollar,   onequarter,     currency ]	};
 
     key <TLDE>	{ [ asciicircum,    degree,     notsign       ]	};
+    key <AE04>	{ [          4,     dollar,  onequarter,     currency ]	};
     key <AE12>	{ [      acute,      grave,     cedilla       ]	};
     key <AD11>	{ [ udiaeresis, Udiaeresis,   diaeresis       ]	};
     key <AD12>	{ [       plus,   asterisk,  asciitilde,       macron ]	};
@@ -598,7 +597,7 @@ xkb_symbols "ru" {
  
     name[Group1]= "Russian (Germany, phonetic)";
 
-key.type[group1]="FOUR_LEVEL_ALPHABETIC";
+    key.type[group1]="FOUR_LEVEL_ALPHABETIC";
 
     key <LatA> { [        Cyrillic_a,        Cyrillic_A ] };
     key <LatB> { [       Cyrillic_be,       Cyrillic_BE ] };
@@ -725,8 +724,6 @@ xkb_symbols "hu" {
     key <AE12> { [     acute,      grave,        oacute,      Oacute ] };
     key <BKSL> { [numbersign, apostrophe,         grave,       grave ] };
     key <TLDE> { [asciicircum,    degree,       notsign,     notsign ] };
-    
-    
 };
 
 partial alphanumeric_keys

@@ -133,7 +133,6 @@ xkb_symbols {
     key <KP00> { [  KP_0	]	};
     // End "Keypad" section
 
-    // begin modifier mappings
     modifier_map Shift  	{ Shift_R };
     modifier_map Mod1   	{ Meta_L, Meta_R };
     modifier_map Mod2   	{ Mode_switch };

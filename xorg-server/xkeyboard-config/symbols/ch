@@ -2,9 +2,8 @@ partial default alphanumeric_keys
 xkb_symbols "basic" {
 
     include "latin"
-
-    // Alphanumeric section
     name[Group1]= "German (Switzerland)";
+
     key <TLDE> { [    section,     degree                           ] };
     key <AE01> { [          1,       plus,          bar, exclamdown ] };
     key <AE02> { [          2,   quotedbl,           at, oneeighth  ] };
@@ -78,9 +77,6 @@ xkb_symbols "de_nodeadkeys" {
 partial alphanumeric_keys 
 xkb_symbols "fr" {
 
-    // Describes the differences between a very simple US/ASCII
-    // keyboard and a very simple Swiss/French keybaord
-
     include "ch(basic)"
     name[Group1]= "French (Switzerland)";
 
@@ -129,8 +125,6 @@ partial alphanumeric_keys
 xkb_symbols "de_mac" {
     
     name[Group1]= "German (Switzerland, Macintosh)";
-
-    // Alphanumeric section
 
     key <AE01> { [	1,	plus, 	plusminus,	infinity		]	};
     key <AE02> { [	2,	quotedbl, leftdoublequotemark, rightdoublequotemark 	]	};
@@ -194,9 +188,6 @@ xkb_symbols "de_mac" {
 
 partial alphanumeric_keys 
 xkb_symbols "fr_mac" {
-
-    // Describes the differences between a very simple US/ASCII
-    // keyboard and a very simple Swiss/French keybaord
 
     include "ch(de_mac)"
     name[Group1]= "French (Switzerland, Macintosh)";

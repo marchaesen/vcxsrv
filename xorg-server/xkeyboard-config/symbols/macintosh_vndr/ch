@@ -8,21 +8,19 @@ xkb_symbols "extended" {
     
     name[Group1]= "Switzerland - German, Mac";
 
-    // Alphanumeric section
-
-    key <AE01> { [	1,	plus, 	plusminus,	infinity		]	};
-    key <AE02> { [	2,	quotedbl, leftdoublequotemark, rightdoublequotemark 	]	};
+    key <AE01> { [	1,	plus, 		plusminus,	infinity	]	};
+    key <AE02> { [	2,	quotedbl, leftdoublequotemark,  rightdoublequotemark ]	};
     key <AE03> { [	3,	asterisk, 	numbersign,	leftcaret	]	};
 					// not displayed here
     key <AE04> { [	4,	ccedilla, 	Ccedilla,	slash		]	};
     key <AE05> { [	5,	percent, 	bracketleft			]	};
     key <AE06> { [	6,	ampersand, 	bracketright			]	};
-    key <AE07> { [	7,	slash, 	bar,		backslash		]	};
+    key <AE07> { [	7,	slash, 		bar,		backslash	]	};
     key <AE08> { [	8,	parenleft, 	braceleft,	Ograve		]	};
     key <AE09> { [	9,	parenright, 	braceright,	Ocircumflex	]	};
     key <AE10> { [	0,	equal, 	notequal,	Uacute			]	};
-    key <AE11> { [	apostrophe,	question, 	questiondown, 	NoSymbol		]	};
-    key <AE12> { [	dead_circumflex,dead_grave, 	dead_acute,	asciicircum		]	};
+    key <AE11> { [	apostrophe,	question, 	questiondown, 	NoSymbol ]	};
+    key <AE12> { [	dead_circumflex,dead_grave, 	dead_acute,	asciicircum ]	};
     key <AD01> { [	q,	Q, 	oe,		OE			]	};
     key <AD02> { [	w,	W, 	Greek_SIGMA,	Aacute			]	};
     key <AD03> { [ 	e,	E, 	EuroSign,	Ediaeresis		]	};
@@ -33,8 +31,8 @@ xkb_symbols "extended" {
     key <AD08> { [ 	i,	I, 	exclamdown,	idotless		]	};
     key <AD09> { [ 	o,	O, 	oslash,		Ooblique		]	};
     key <AD10> { [ 	p,	P, 	Greek_pi,	Greek_PI		]	};
-    key <AD11> { [	udiaeresis,	egrave, 	section,	ydiaeresis		]	};
-    key <AD12> { [	dead_diaeresis,	exclam, 	grave,		apostrophe		]	};
+    key <AD11> { [	udiaeresis,	egrave, 	section,	ydiaeresis ]	};
+    key <AD12> { [	dead_diaeresis,	exclam, 	grave,		apostrophe ]	};
     key <AC01> { [ 	a,	A, 	aring,		Aring			]	};
     key <AC02> { [ 	s,	S, 	ssharp, 	NoSymbol		]	}; 
 					// ligature fl
@@ -60,11 +58,11 @@ xkb_symbols "extended" {
     key <AB08> { [	comma,	semicolon, 	guillemotleft,	guillemotright	]	};
     key <AB09> { [	period,	colon, 	ellipsis,	division		]	};
     key <AB10> { [	minus,	underscore, 	hyphen,		emdash		]	};
-    key <TLDE> { [	section,	degree,   	NoSymbol, 	NoSymbol		]	};
+    key <TLDE> { [	section,	degree,   	NoSymbol, 	NoSymbol ]	};
 			// ligature fi	// per mille
     key <SPCE> { [	space, 	nobreakspace,	nobreakspace		]	};
-    key <LSGT> { [	less,	greater, 	lessthanequal,	greaterthanequal	]  	};
-    key <BKSL> { [	dollar,	sterling, 	paragraph,	enfilledcircbullet	]	};
+    key <LSGT> { [	less,	greater, 	lessthanequal,	greaterthanequal ]  	};
+    key <BKSL> { [	dollar,	sterling, 	paragraph,	enfilledcircbullet ]	};
 
     include "kpdl(comma)"
     include "level3(ralt_switch)"
@@ -77,9 +75,6 @@ xkb_symbols "de" {
 
 partial alphanumeric_keys 
 xkb_symbols "fr" {
-
-    // Describes the differences between a very simple US/ASCII
-    // keyboard and a very simple Swiss/French keybaord
 
     include "macintosh_vndr/ch(extended)"
     name[Group1]= "Switzerland - French, Mac";

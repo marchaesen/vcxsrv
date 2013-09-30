@@ -113,10 +113,9 @@ default xkb_symbols "usa1" {
 
     key <KP0>  {	[ KP_0,		KP_Insert	]	};
     key <KPDC> {	[ KP_Decimal,	KP_Delete	]	};
-    key <KPEN> {	[	 KP_Enter	]	};
+    key <KPEN> {	[	 KP_Enter		]	};
     // End "Keypad" section
 
-    // begin modifier mappings
     modifier_map Shift  { Shift_L, Shift_R };
     modifier_map Lock   { Caps_Lock };
     modifier_map Control{ Control_L };

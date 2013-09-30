@@ -61,8 +61,6 @@ xkb_symbols "basic" {
     key <AB08> {  [      Arabic_waw,         comma        ]     };
     key <AB09> {  [     Arabic_zain,         period       ]     };
     key <AB10> {  [      Arabic_zah, Arabic_question_mark ]     };
-
-    // End alphanumeric section
 };
 
 partial alphanumeric_keys
@@ -117,7 +115,7 @@ xkb_symbols "digits_KP" {
     key <KP2>  {  [   KP_Down,       0x1000662 ] }; //
     key <KP3>  {  [   KP_Next,       0x1000663 ] }; //
 
-    key <KP0>  { [ KP_Insert,       0x1000660 ] }; //
+    key <KP0>  {  [ KP_Insert,       0x1000660 ] }; //
 };
 
 partial alphanumeric_keys
@@ -235,8 +233,6 @@ xkb_symbols "buckwalter" {
     // ARABIC FULL STOP (Urdu)
     key <AB09> {  [    0x10006d4,      Arabic_hamzaonalef ]       };
     key <AB10> {  [    VoidSymbol,     Arabic_question_mark ]     };
-
-    // End alphanumeric section
 };
 
 partial alphanumeric_keys
@@ -244,21 +240,21 @@ xkb_symbols "olpc" {
 
     include "ara(basic)"
 
-    // As part of the olpc design some changes were made to the Arabic
+    // As part of the OLPC design, some changes were made to the Arabic
     // keyboard design. Major changes are:
     //
-    //  * Removed the lam-alef single character. Poeple type as they
+    //  * Removed the lam-alef single character. People type as they
     //    pronounce, and lam-alef is just a visual formatting of the
     //    sequence and is not often used on the keyboard. It is
     //    similar to the Allah single character, which is also not on
     //    the keyboard.
     //  * Moved the following keys:
-    //     o Thal from TLDE to AB05: Due to space limitation on the
-    //       keybaord, but also accessibility
-    //     o Shadda from TLDE to AD05
+    //     o Thal from TLDE to AB05: due to space limitation on the
+    //       keyboard, but also accessibility.
+    //     o Shadda from TLDE to AD05.
     //  * Placed currency letters on number keys and moved the ^ and &
-    //    characters to lower keys (This change is worth revisiting
-    //    before end of test period)
+    //    characters to lower keys. (This change is worth revisiting
+    //    before end of test period).
 
     key <TLDE> {  [           grave,      asciitilde  ] };
 
@@ -286,7 +282,6 @@ xkb_symbols "olpc" {
     key <AC11> {  [      Arabic_tah                   ] };
 
     key <BKSL> {  [       backslash,             bar  ] };
-
 
     // REH isolated form?
     key <AB03> {  [ Arabic_hamzaonwaw,   Arabic_kasra ] };

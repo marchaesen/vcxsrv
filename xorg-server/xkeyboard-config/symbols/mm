@@ -2,7 +2,6 @@ partial default alphanumeric_keys
 xkb_symbols "basic" {
     name[Group1]= "Burmese";
 
-    // Alphanumeric section
     key <TLDE> { [      U1050,      U100E,        grave,  asciitilde ] };
     key <AE01> { [      U1041,      U100D,            1,      exclam ] };
     key <AE02> { [      U1042,      U1052,            2,          at ] };
@@ -54,5 +53,4 @@ xkb_symbols "basic" {
     key <AB10> { [      slash,    question                           ] };
 
     key <BKSL> { [      U104F,       U1051,   backslash,         bar ] };
-    // End alphanumeric section
 };

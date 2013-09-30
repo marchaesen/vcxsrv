@@ -163,7 +163,6 @@ xkb_symbols "bolnagri" {
     key <AB09>   { [   period,   U093C 	 ] };  // period: period, nukta
     key <AB10>	 { [   slash,   question ] };
 
-   // begin modifier mappings
 //    modifier_map Shift  { Shift_L };
 //    modifier_map Lock   { Caps_Lock };
 //    modifier_map Control{ Control_L };
@@ -911,7 +910,6 @@ xkb_symbols "mal_lalitha" {
     key <AB09>   { [   period, 	 U003E ] };  // period: period
     key <AB10>	 { [   slash,   question ] };
 
-   // begin modifier mappings
 //    modifier_map Shift  { Shift_L };
 //    modifier_map Lock   { Caps_Lock };
 //    modifier_map Control{ Control_L };
@@ -1518,9 +1516,8 @@ xkb_symbols "jhelum" {
      key <AB07>   { [   U0A2E, U0A2E       ] };  // M: ma
      key <AB08>   { [   comma,    U262C	 ] };// comma: comma, dev abbreviation sign
      key <AB09>   { [   period,   U0A74 	 ] };  // period: period, nukta
-     key <AB10>	 { [   slash,   question ] };
+     key <AB10>   { [   slash,   question ] };
  
-// begin modifier mappings
 //    modifier_map Shift  { Shift_L };
 //    modifier_map Lock   { Caps_Lock };
 //    modifier_map Control{ Control_L };

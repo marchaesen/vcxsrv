@@ -80,9 +80,6 @@ xkb_symbols "legacy" {
 partial alphanumeric_keys
 xkb_symbols "qwertz" {
 
-    // Describes the differences between a very simple en_US
-    // keyboard and a very simple QWERTZ Polish keybaord
-
     include "latin(type3)"
 
     name[Group1]="Polish (qwertz)";
@@ -152,11 +149,7 @@ xkb_symbols "dvorak" {
     
     include "kpdl(comma)"
 
-    // this to allow writing ALL CAPS with a Shift key
     include "level3(ralt_switch)"
-
-    // use one of compose:* options to choose Multi_key, if you will,
-    // or layout +level3(ralt_switch_multikey) to revert standard behaviour
 };
 
 // Default Polish keymap with Polish quotes on quotemark key
@@ -222,7 +215,7 @@ xkb_symbols "dvp" {
 
     // upper row, left side
 
-    // // upper row, right side
+    // upper row, right side
     key <AD08> { [ c,            C,              cacute,          Cacute     ] };
     key <AD10> { [ l,            L,              lstroke,         Lstroke    ] };
 
@@ -247,11 +240,7 @@ xkb_symbols "dvp" {
 
     include "kpdl(comma)"
 
-    // this to allow writing ALL CAPS with a Shift key
     include "level3(ralt_switch)"
-
-    // use one of compose:* options to choose Multi_key, if you will,
-    // or layout +level3(ralt_switch_multikey) to revert standard behaviour
 };
 
 // Silesian keyboard layout by Grzegorz Kulik <poslunsku@gmail.com>
