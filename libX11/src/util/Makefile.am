@@ -1,11 +1,11 @@
 
 noinst_PROGRAMS=makekeys
 
-makekeys_CFLAGS = \
+AM_CFLAGS = \
 	$(X11_CFLAGS) \
 	$(CWARNFLAGS)
 
-makekeys_CPPFLAGS = \
+AM_CPPFLAGS = \
 	-I$(top_srcdir)/include
 
 CC = @CC_FOR_BUILD@
