@@ -307,6 +307,7 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\hash_table.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\objectlabel.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\pack.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\main\performance_monitor.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\pixeltransfer.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\querymatrix.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\remap.c" />

@@ -63,7 +63,7 @@
     } while(0)
 
 /* total number of offsets below */
-#define _gloffset_COUNT 1046
+#define _gloffset_COUNT 1057
 
 #define _gloffset_NewList 0
 #define _gloffset_EndList 1
@@ -473,7 +473,7 @@
 #define _gloffset_MultiTexCoord4iv 405
 #define _gloffset_MultiTexCoord4s 406
 #define _gloffset_MultiTexCoord4sv 407
-#define driDispatchRemapTable_size 638
+#define driDispatchRemapTable_size 649
 SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 
 #define CompressedTexImage1D_remap_index 0
@@ -1059,61 +1059,72 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define ClearColorIiEXT_remap_index 580
 #define ClearColorIuiEXT_remap_index 581
 #define BindBufferOffsetEXT_remap_index 582
-#define GetObjectParameterivAPPLE_remap_index 583
-#define ObjectPurgeableAPPLE_remap_index 584
-#define ObjectUnpurgeableAPPLE_remap_index 585
-#define ActiveProgramEXT_remap_index 586
-#define CreateShaderProgramEXT_remap_index 587
-#define UseShaderProgramEXT_remap_index 588
-#define TextureBarrierNV_remap_index 589
-#define StencilFuncSeparateATI_remap_index 590
-#define ProgramEnvParameters4fvEXT_remap_index 591
-#define ProgramLocalParameters4fvEXT_remap_index 592
-#define EGLImageTargetRenderbufferStorageOES_remap_index 593
-#define EGLImageTargetTexture2DOES_remap_index 594
-#define AlphaFuncx_remap_index 595
-#define ClearColorx_remap_index 596
-#define ClearDepthx_remap_index 597
-#define Color4x_remap_index 598
-#define DepthRangex_remap_index 599
-#define Fogx_remap_index 600
-#define Fogxv_remap_index 601
-#define Frustumf_remap_index 602
-#define Frustumx_remap_index 603
-#define LightModelx_remap_index 604
-#define LightModelxv_remap_index 605
-#define Lightx_remap_index 606
-#define Lightxv_remap_index 607
-#define LineWidthx_remap_index 608
-#define LoadMatrixx_remap_index 609
-#define Materialx_remap_index 610
-#define Materialxv_remap_index 611
-#define MultMatrixx_remap_index 612
-#define MultiTexCoord4x_remap_index 613
-#define Normal3x_remap_index 614
-#define Orthof_remap_index 615
-#define Orthox_remap_index 616
-#define PointSizex_remap_index 617
-#define PolygonOffsetx_remap_index 618
-#define Rotatex_remap_index 619
-#define SampleCoveragex_remap_index 620
-#define Scalex_remap_index 621
-#define TexEnvx_remap_index 622
-#define TexEnvxv_remap_index 623
-#define TexParameterx_remap_index 624
-#define Translatex_remap_index 625
-#define ClipPlanef_remap_index 626
-#define ClipPlanex_remap_index 627
-#define GetClipPlanef_remap_index 628
-#define GetClipPlanex_remap_index 629
-#define GetFixedv_remap_index 630
-#define GetLightxv_remap_index 631
-#define GetMaterialxv_remap_index 632
-#define GetTexEnvxv_remap_index 633
-#define GetTexParameterxv_remap_index 634
-#define PointParameterx_remap_index 635
-#define PointParameterxv_remap_index 636
-#define TexParameterxv_remap_index 637
+#define BeginPerfMonitorAMD_remap_index 583
+#define DeletePerfMonitorsAMD_remap_index 584
+#define EndPerfMonitorAMD_remap_index 585
+#define GenPerfMonitorsAMD_remap_index 586
+#define GetPerfMonitorCounterDataAMD_remap_index 587
+#define GetPerfMonitorCounterInfoAMD_remap_index 588
+#define GetPerfMonitorCounterStringAMD_remap_index 589
+#define GetPerfMonitorCountersAMD_remap_index 590
+#define GetPerfMonitorGroupStringAMD_remap_index 591
+#define GetPerfMonitorGroupsAMD_remap_index 592
+#define SelectPerfMonitorCountersAMD_remap_index 593
+#define GetObjectParameterivAPPLE_remap_index 594
+#define ObjectPurgeableAPPLE_remap_index 595
+#define ObjectUnpurgeableAPPLE_remap_index 596
+#define ActiveProgramEXT_remap_index 597
+#define CreateShaderProgramEXT_remap_index 598
+#define UseShaderProgramEXT_remap_index 599
+#define TextureBarrierNV_remap_index 600
+#define StencilFuncSeparateATI_remap_index 601
+#define ProgramEnvParameters4fvEXT_remap_index 602
+#define ProgramLocalParameters4fvEXT_remap_index 603
+#define EGLImageTargetRenderbufferStorageOES_remap_index 604
+#define EGLImageTargetTexture2DOES_remap_index 605
+#define AlphaFuncx_remap_index 606
+#define ClearColorx_remap_index 607
+#define ClearDepthx_remap_index 608
+#define Color4x_remap_index 609
+#define DepthRangex_remap_index 610
+#define Fogx_remap_index 611
+#define Fogxv_remap_index 612
+#define Frustumf_remap_index 613
+#define Frustumx_remap_index 614
+#define LightModelx_remap_index 615
+#define LightModelxv_remap_index 616
+#define Lightx_remap_index 617
+#define Lightxv_remap_index 618
+#define LineWidthx_remap_index 619
+#define LoadMatrixx_remap_index 620
+#define Materialx_remap_index 621
+#define Materialxv_remap_index 622
+#define MultMatrixx_remap_index 623
+#define MultiTexCoord4x_remap_index 624
+#define Normal3x_remap_index 625
+#define Orthof_remap_index 626
+#define Orthox_remap_index 627
+#define PointSizex_remap_index 628
+#define PolygonOffsetx_remap_index 629
+#define Rotatex_remap_index 630
+#define SampleCoveragex_remap_index 631
+#define Scalex_remap_index 632
+#define TexEnvx_remap_index 633
+#define TexEnvxv_remap_index 634
+#define TexParameterx_remap_index 635
+#define Translatex_remap_index 636
+#define ClipPlanef_remap_index 637
+#define ClipPlanex_remap_index 638
+#define GetClipPlanef_remap_index 639
+#define GetClipPlanex_remap_index 640
+#define GetFixedv_remap_index 641
+#define GetLightxv_remap_index 642
+#define GetMaterialxv_remap_index 643
+#define GetTexEnvxv_remap_index 644
+#define GetTexParameterxv_remap_index 645
+#define PointParameterx_remap_index 646
+#define PointParameterxv_remap_index 647
+#define TexParameterxv_remap_index 648
 
 #define _gloffset_CompressedTexImage1D driDispatchRemapTable[CompressedTexImage1D_remap_index]
 #define _gloffset_CompressedTexImage2D driDispatchRemapTable[CompressedTexImage2D_remap_index]
@@ -1698,6 +1709,17 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define _gloffset_ClearColorIiEXT driDispatchRemapTable[ClearColorIiEXT_remap_index]
 #define _gloffset_ClearColorIuiEXT driDispatchRemapTable[ClearColorIuiEXT_remap_index]
 #define _gloffset_BindBufferOffsetEXT driDispatchRemapTable[BindBufferOffsetEXT_remap_index]
+#define _gloffset_BeginPerfMonitorAMD driDispatchRemapTable[BeginPerfMonitorAMD_remap_index]
+#define _gloffset_DeletePerfMonitorsAMD driDispatchRemapTable[DeletePerfMonitorsAMD_remap_index]
+#define _gloffset_EndPerfMonitorAMD driDispatchRemapTable[EndPerfMonitorAMD_remap_index]
+#define _gloffset_GenPerfMonitorsAMD driDispatchRemapTable[GenPerfMonitorsAMD_remap_index]
+#define _gloffset_GetPerfMonitorCounterDataAMD driDispatchRemapTable[GetPerfMonitorCounterDataAMD_remap_index]
+#define _gloffset_GetPerfMonitorCounterInfoAMD driDispatchRemapTable[GetPerfMonitorCounterInfoAMD_remap_index]
+#define _gloffset_GetPerfMonitorCounterStringAMD driDispatchRemapTable[GetPerfMonitorCounterStringAMD_remap_index]
+#define _gloffset_GetPerfMonitorCountersAMD driDispatchRemapTable[GetPerfMonitorCountersAMD_remap_index]
+#define _gloffset_GetPerfMonitorGroupStringAMD driDispatchRemapTable[GetPerfMonitorGroupStringAMD_remap_index]
+#define _gloffset_GetPerfMonitorGroupsAMD driDispatchRemapTable[GetPerfMonitorGroupsAMD_remap_index]
+#define _gloffset_SelectPerfMonitorCountersAMD driDispatchRemapTable[SelectPerfMonitorCountersAMD_remap_index]
 #define _gloffset_GetObjectParameterivAPPLE driDispatchRemapTable[GetObjectParameterivAPPLE_remap_index]
 #define _gloffset_ObjectPurgeableAPPLE driDispatchRemapTable[ObjectPurgeableAPPLE_remap_index]
 #define _gloffset_ObjectUnpurgeableAPPLE driDispatchRemapTable[ObjectUnpurgeableAPPLE_remap_index]
@@ -12653,6 +12675,127 @@ static INLINE _glptr_BindBufferOffsetEXT GET_BindBufferOffsetEXT(struct _glapi_t
 
 static INLINE void SET_BindBufferOffsetEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLuint, GLuint, GLintptr)) {
    SET_by_offset(disp, _gloffset_BindBufferOffsetEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_BeginPerfMonitorAMD)(GLuint);
+#define CALL_BeginPerfMonitorAMD(disp, parameters) \
+    (* GET_BeginPerfMonitorAMD(disp)) parameters
+static INLINE _glptr_BeginPerfMonitorAMD GET_BeginPerfMonitorAMD(struct _glapi_table *disp) {
+   return (_glptr_BeginPerfMonitorAMD) (GET_by_offset(disp, _gloffset_BeginPerfMonitorAMD));
+}
+
+static INLINE void SET_BeginPerfMonitorAMD(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint)) {
+   SET_by_offset(disp, _gloffset_BeginPerfMonitorAMD, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_DeletePerfMonitorsAMD)(GLsizei, GLuint *);
+#define CALL_DeletePerfMonitorsAMD(disp, parameters) \
+    (* GET_DeletePerfMonitorsAMD(disp)) parameters
+static INLINE _glptr_DeletePerfMonitorsAMD GET_DeletePerfMonitorsAMD(struct _glapi_table *disp) {
+   return (_glptr_DeletePerfMonitorsAMD) (GET_by_offset(disp, _gloffset_DeletePerfMonitorsAMD));
+}
+
+static INLINE void SET_DeletePerfMonitorsAMD(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLsizei, GLuint *)) {
+   SET_by_offset(disp, _gloffset_DeletePerfMonitorsAMD, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_EndPerfMonitorAMD)(GLuint);
+#define CALL_EndPerfMonitorAMD(disp, parameters) \
+    (* GET_EndPerfMonitorAMD(disp)) parameters
+static INLINE _glptr_EndPerfMonitorAMD GET_EndPerfMonitorAMD(struct _glapi_table *disp) {
+   return (_glptr_EndPerfMonitorAMD) (GET_by_offset(disp, _gloffset_EndPerfMonitorAMD));
+}
+
+static INLINE void SET_EndPerfMonitorAMD(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint)) {
+   SET_by_offset(disp, _gloffset_EndPerfMonitorAMD, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GenPerfMonitorsAMD)(GLsizei, GLuint *);
+#define CALL_GenPerfMonitorsAMD(disp, parameters) \
+    (* GET_GenPerfMonitorsAMD(disp)) parameters
+static INLINE _glptr_GenPerfMonitorsAMD GET_GenPerfMonitorsAMD(struct _glapi_table *disp) {
+   return (_glptr_GenPerfMonitorsAMD) (GET_by_offset(disp, _gloffset_GenPerfMonitorsAMD));
+}
+
+static INLINE void SET_GenPerfMonitorsAMD(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLsizei, GLuint *)) {
+   SET_by_offset(disp, _gloffset_GenPerfMonitorsAMD, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetPerfMonitorCounterDataAMD)(GLuint, GLenum, GLsizei, GLuint *, GLint *);
+#define CALL_GetPerfMonitorCounterDataAMD(disp, parameters) \
+    (* GET_GetPerfMonitorCounterDataAMD(disp)) parameters
+static INLINE _glptr_GetPerfMonitorCounterDataAMD GET_GetPerfMonitorCounterDataAMD(struct _glapi_table *disp) {
+   return (_glptr_GetPerfMonitorCounterDataAMD) (GET_by_offset(disp, _gloffset_GetPerfMonitorCounterDataAMD));
+}
+
+static INLINE void SET_GetPerfMonitorCounterDataAMD(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLsizei, GLuint *, GLint *)) {
+   SET_by_offset(disp, _gloffset_GetPerfMonitorCounterDataAMD, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetPerfMonitorCounterInfoAMD)(GLuint, GLuint, GLenum, GLvoid *);
+#define CALL_GetPerfMonitorCounterInfoAMD(disp, parameters) \
+    (* GET_GetPerfMonitorCounterInfoAMD(disp)) parameters
+static INLINE _glptr_GetPerfMonitorCounterInfoAMD GET_GetPerfMonitorCounterInfoAMD(struct _glapi_table *disp) {
+   return (_glptr_GetPerfMonitorCounterInfoAMD) (GET_by_offset(disp, _gloffset_GetPerfMonitorCounterInfoAMD));
+}
+
+static INLINE void SET_GetPerfMonitorCounterInfoAMD(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLuint, GLenum, GLvoid *)) {
+   SET_by_offset(disp, _gloffset_GetPerfMonitorCounterInfoAMD, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetPerfMonitorCounterStringAMD)(GLuint, GLuint, GLsizei, GLsizei *, GLchar *);
+#define CALL_GetPerfMonitorCounterStringAMD(disp, parameters) \
+    (* GET_GetPerfMonitorCounterStringAMD(disp)) parameters
+static INLINE _glptr_GetPerfMonitorCounterStringAMD GET_GetPerfMonitorCounterStringAMD(struct _glapi_table *disp) {
+   return (_glptr_GetPerfMonitorCounterStringAMD) (GET_by_offset(disp, _gloffset_GetPerfMonitorCounterStringAMD));
+}
+
+static INLINE void SET_GetPerfMonitorCounterStringAMD(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLuint, GLsizei, GLsizei *, GLchar *)) {
+   SET_by_offset(disp, _gloffset_GetPerfMonitorCounterStringAMD, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetPerfMonitorCountersAMD)(GLuint, GLint *, GLint *, GLsizei, GLuint *);
+#define CALL_GetPerfMonitorCountersAMD(disp, parameters) \
+    (* GET_GetPerfMonitorCountersAMD(disp)) parameters
+static INLINE _glptr_GetPerfMonitorCountersAMD GET_GetPerfMonitorCountersAMD(struct _glapi_table *disp) {
+   return (_glptr_GetPerfMonitorCountersAMD) (GET_by_offset(disp, _gloffset_GetPerfMonitorCountersAMD));
+}
+
+static INLINE void SET_GetPerfMonitorCountersAMD(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLint *, GLint *, GLsizei, GLuint *)) {
+   SET_by_offset(disp, _gloffset_GetPerfMonitorCountersAMD, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetPerfMonitorGroupStringAMD)(GLuint, GLsizei, GLsizei *, GLchar *);
+#define CALL_GetPerfMonitorGroupStringAMD(disp, parameters) \
+    (* GET_GetPerfMonitorGroupStringAMD(disp)) parameters
+static INLINE _glptr_GetPerfMonitorGroupStringAMD GET_GetPerfMonitorGroupStringAMD(struct _glapi_table *disp) {
+   return (_glptr_GetPerfMonitorGroupStringAMD) (GET_by_offset(disp, _gloffset_GetPerfMonitorGroupStringAMD));
+}
+
+static INLINE void SET_GetPerfMonitorGroupStringAMD(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLsizei, GLsizei *, GLchar *)) {
+   SET_by_offset(disp, _gloffset_GetPerfMonitorGroupStringAMD, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetPerfMonitorGroupsAMD)(GLint *, GLsizei, GLuint *);
+#define CALL_GetPerfMonitorGroupsAMD(disp, parameters) \
+    (* GET_GetPerfMonitorGroupsAMD(disp)) parameters
+static INLINE _glptr_GetPerfMonitorGroupsAMD GET_GetPerfMonitorGroupsAMD(struct _glapi_table *disp) {
+   return (_glptr_GetPerfMonitorGroupsAMD) (GET_by_offset(disp, _gloffset_GetPerfMonitorGroupsAMD));
+}
+
+static INLINE void SET_GetPerfMonitorGroupsAMD(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLint *, GLsizei, GLuint *)) {
+   SET_by_offset(disp, _gloffset_GetPerfMonitorGroupsAMD, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_SelectPerfMonitorCountersAMD)(GLuint, GLboolean, GLuint, GLint, GLuint *);
+#define CALL_SelectPerfMonitorCountersAMD(disp, parameters) \
+    (* GET_SelectPerfMonitorCountersAMD(disp)) parameters
+static INLINE _glptr_SelectPerfMonitorCountersAMD GET_SelectPerfMonitorCountersAMD(struct _glapi_table *disp) {
+   return (_glptr_SelectPerfMonitorCountersAMD) (GET_by_offset(disp, _gloffset_SelectPerfMonitorCountersAMD));
+}
+
+static INLINE void SET_SelectPerfMonitorCountersAMD(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLboolean, GLuint, GLint, GLuint *)) {
+   SET_by_offset(disp, _gloffset_SelectPerfMonitorCountersAMD, fn);
 }
 
 typedef void (GLAPIENTRYP _glptr_GetObjectParameterivAPPLE)(GLenum, GLuint, GLenum, GLint *);

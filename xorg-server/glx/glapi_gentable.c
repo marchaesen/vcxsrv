@@ -9950,6 +9950,83 @@ _glapi_create_table_from_handle(void *handle, const char *symbol_prefix) {
     }
 
 
+    if(!disp->BeginPerfMonitorAMD) {
+        void ** procp = (void **) &disp->BeginPerfMonitorAMD;
+        snprintf(symboln, sizeof(symboln), "%sBeginPerfMonitorAMD", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->DeletePerfMonitorsAMD) {
+        void ** procp = (void **) &disp->DeletePerfMonitorsAMD;
+        snprintf(symboln, sizeof(symboln), "%sDeletePerfMonitorsAMD", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->EndPerfMonitorAMD) {
+        void ** procp = (void **) &disp->EndPerfMonitorAMD;
+        snprintf(symboln, sizeof(symboln), "%sEndPerfMonitorAMD", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GenPerfMonitorsAMD) {
+        void ** procp = (void **) &disp->GenPerfMonitorsAMD;
+        snprintf(symboln, sizeof(symboln), "%sGenPerfMonitorsAMD", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetPerfMonitorCounterDataAMD) {
+        void ** procp = (void **) &disp->GetPerfMonitorCounterDataAMD;
+        snprintf(symboln, sizeof(symboln), "%sGetPerfMonitorCounterDataAMD", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetPerfMonitorCounterInfoAMD) {
+        void ** procp = (void **) &disp->GetPerfMonitorCounterInfoAMD;
+        snprintf(symboln, sizeof(symboln), "%sGetPerfMonitorCounterInfoAMD", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetPerfMonitorCounterStringAMD) {
+        void ** procp = (void **) &disp->GetPerfMonitorCounterStringAMD;
+        snprintf(symboln, sizeof(symboln), "%sGetPerfMonitorCounterStringAMD", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetPerfMonitorCountersAMD) {
+        void ** procp = (void **) &disp->GetPerfMonitorCountersAMD;
+        snprintf(symboln, sizeof(symboln), "%sGetPerfMonitorCountersAMD", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetPerfMonitorGroupStringAMD) {
+        void ** procp = (void **) &disp->GetPerfMonitorGroupStringAMD;
+        snprintf(symboln, sizeof(symboln), "%sGetPerfMonitorGroupStringAMD", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->GetPerfMonitorGroupsAMD) {
+        void ** procp = (void **) &disp->GetPerfMonitorGroupsAMD;
+        snprintf(symboln, sizeof(symboln), "%sGetPerfMonitorGroupsAMD", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
+    if(!disp->SelectPerfMonitorCountersAMD) {
+        void ** procp = (void **) &disp->SelectPerfMonitorCountersAMD;
+        snprintf(symboln, sizeof(symboln), "%sSelectPerfMonitorCountersAMD", symbol_prefix);
+        *procp = dlsym(handle, symboln);
+    }
+
+
     if(!disp->GetObjectParameterivAPPLE) {
         void ** procp = (void **) &disp->GetObjectParameterivAPPLE;
         snprintf(symboln, sizeof(symboln), "%sGetObjectParameterivAPPLE", symbol_prefix);
