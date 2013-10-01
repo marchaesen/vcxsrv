@@ -1,16 +1,6 @@
 // These partial variants assign ISO_Level3_Shift to various XKB keycodes
 // so that the third shift level can be reached.
 
-// Ensure a mapping to a real modifier for LevelThree.
-partial modifier_keys
-xkb_symbols "modifier_mapping" {
-  key.type[Group1] = "ONE_LEVEL";
-  replace key <LVL3> {
-    symbols[Group1] = [ ISO_Level3_Shift ]
-  };
-  modifier_map Mod5 { <LVL3> };
-};
-
 // The default behaviour:
 // the right Alt key (AltGr) chooses the third symbol engraved on a key.
 default partial modifier_keys
@@ -18,8 +8,18 @@ xkb_symbols "ralt_switch" {
   key <RALT> {
     type[Group1]="ONE_LEVEL",
     symbols[Group1] = [ ISO_Level3_Shift ]
-    };
+  };
   include "level3(modifier_mapping)"
+};
+
+// Ensure a mapping to a real modifier for LevelThree.
+partial modifier_keys
+xkb_symbols "modifier_mapping" {
+  replace key <LVL3> {
+    type[Group1] = "ONE_LEVEL";
+    symbols[Group1] = [ ISO_Level3_Shift ]
+  };
+  modifier_map Mod5 { <LVL3> };
 };
 
 // The right Alt key never chooses the third level.
@@ -28,16 +28,16 @@ xkb_symbols "ralt_switch" {
 // to map the level3 shift to some other key.
 partial modifier_keys
 xkb_symbols "ralt_alt" {
-  key <RALT> { 
+  key <RALT> {
     type[Group1]="TWO_LEVEL",
     type[Group2]="TWO_LEVEL",
     type[Group3]="TWO_LEVEL",
     type[Group4]="TWO_LEVEL",
-    symbols[Group1] = [ Alt_R, Meta_R ], 
-    symbols[Group2] = [ Alt_R, Meta_R ], 
-    symbols[Group3] = [ Alt_R, Meta_R ], 
+    symbols[Group1] = [ Alt_R, Meta_R ],
+    symbols[Group2] = [ Alt_R, Meta_R ],
+    symbols[Group3] = [ Alt_R, Meta_R ],
     symbols[Group4] = [ Alt_R, Meta_R ]
-    };
+  };
   modifier_map Mod1 { <RALT> };
 };
 
@@ -48,7 +48,7 @@ xkb_symbols "ralt_switch_multikey" {
   key <RALT> {
     type[Group1]="TWO_LEVEL",
     symbols[Group1] = [ ISO_Level3_Shift, Multi_key ]
-    };
+  };
   include "level3(modifier_mapping)"
 };
 
@@ -83,7 +83,7 @@ xkb_symbols "lalt_switch" {
   key <LALT> {
     type[Group1]="ONE_LEVEL",
     symbols[Group1] = [ ISO_Level3_Shift ]
-    };
+  };
   include "level3(modifier_mapping)"
 };
 
@@ -93,7 +93,7 @@ xkb_symbols "switch" {
   key <RCTL> {
     type[Group1]="ONE_LEVEL",
     symbols[Group1] = [ ISO_Level3_Shift ]
-    };
+  };
   include "level3(modifier_mapping)"
 };
 
@@ -103,7 +103,7 @@ xkb_symbols "menu_switch" {
   key <MENU> {
     type[Group1]="ONE_LEVEL",
     symbols[Group1] = [ ISO_Level3_Shift ]
-    };
+  };
   include "level3(modifier_mapping)"
 };
 
@@ -120,7 +120,7 @@ xkb_symbols "lwin_switch" {
   key <LWIN> {
     type[Group1]="ONE_LEVEL",
     symbols[Group1] = [ ISO_Level3_Shift ]
-    };
+  };
   include "level3(modifier_mapping)"
 };
 
@@ -132,7 +132,7 @@ xkb_symbols "rwin_switch" {
   key <RWIN> {
     type[Group1]="ONE_LEVEL",
     symbols[Group1] = [ ISO_Level3_Shift ]
-    };
+  };
   include "level3(modifier_mapping)"
 };
 
@@ -143,7 +143,7 @@ xkb_symbols "enter_switch" {
   key <KPEN> {
     type[Group1]="ONE_LEVEL",
     symbols[Group1] = [ ISO_Level3_Shift ]
-    };
+  };
   include "level3(modifier_mapping)"
 };
 
