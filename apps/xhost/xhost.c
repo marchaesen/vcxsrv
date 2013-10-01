@@ -92,6 +92,10 @@ X Window System is a trademark of The Open Group.
 #include <arpa/inet.h>
 #endif
 
+#ifdef _MSC_VER
+#define _X_UNUSED
+#endif
+
 
 #ifdef SECURE_RPC
 #include <pwd.h>

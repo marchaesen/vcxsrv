@@ -111,13 +111,12 @@ static XtResource resources[] = {
  *
  ***************************************************************************/
 
-#if defined(__CYGWIN__) || defined(__MINGW32__)
+#if defined(__CYGWIN__) || defined(__MINGW32__) && !defined(_MSC_VER)
 /* to fix the EditRes problem because of wrong linker semantics */
 extern WidgetClass vendorShellWidgetClass; /* from Xt/Vendor.c */
 extern VendorShellClassRec _XawVendorShellClassRec;
 extern void _XawFixupVendorShell();
 
-#if defined(__CYGWIN__) || defined(__MINGW32__) && !defined(_MSC_VER)
 int __stdcall
 DllMain(unsigned long mod_handle, unsigned long flag, void *routine)
 {
