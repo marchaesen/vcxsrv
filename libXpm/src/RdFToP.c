@@ -41,7 +41,7 @@ int
 XpmReadFileToPixmap(
     Display		*display,
     Drawable		 d,
-    char		*filename,
+    const char		*filename,
     Pixmap		*pixmap_return,
     Pixmap		*shapemask_return,
     XpmAttributes	*attributes)

@@ -100,23 +100,24 @@ static Atom wm_delete_window;
 /*
  * Report the syntax for calling xclock.
  */
-static void
-Syntax(char *call)
+static void _X_NORETURN
+Syntax(const char *call)
 {
-	(void) printf ("Usage: %s [-analog] [-bw <pixels>] [-digital] [-brief]\n", call);
-	(void) printf ("       [-utime] [-strftime <fmt-str>]\n");
-	(void) printf ("       [-fg <color>] [-bg <color>] [-hd <color>]\n");
-	(void) printf ("       [-hl <color>] [-bd <color>]\n");
-	(void) printf ("       [-fn <font_name>] [-help] [-padding <pixels>]\n");
-	(void) printf ("       [-rv] [-update <seconds>] [-display displayname]\n");
+    fprintf (stderr, "Usage: %s %s", call,
+	    "[-analog] [-bw <pixels>] [-digital] [-brief]\n"
+	    "       [-utime] [-strftime <fmt-str>]\n"
+	    "       [-fg <color>] [-bg <color>] [-hd <color>]\n"
+	    "       [-hl <color>] [-bd <color>]\n"
+	    "       [-fn <font_name>] [-help] [-padding <pixels>]\n"
+	    "       [-rv] [-update <seconds>] [-display displayname]\n"
 #ifdef XRENDER
-	(void) printf ("       [-[no]render] [-face <face name>] [-sharp]\n");
+	    "       [-[no]render] [-face <face name>] [-sharp]\n"
 #endif
-	(void) printf ("       [-geometry geom] [-twelve] [-twentyfour]\n\n");
-	exit(1);
+	    "       [-geometry geom] [-twelve] [-twentyfour]\n\n");
+    exit(1);
 }
 
-static void
+static void _X_NORETURN
 die(Widget w, XtPointer client_data, XtPointer call_data)
 {
     XCloseDisplay(XtDisplayOfObject(w));

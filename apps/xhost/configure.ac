@@ -2,7 +2,7 @@ dnl Process this file with autoconf to create configure.
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([xhost], [1.0.5],
+AC_INIT([xhost], [1.0.6],
         [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [xhost])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
@@ -17,11 +17,9 @@ m4_ifndef([XORG_MACROS_VERSION],
 XORG_MACROS_VERSION(1.8)
 XORG_DEFAULT_OPTIONS
 
-AC_TYPE_SIGNAL
-
 # Checks for pkg-config packages
 # - Both CFLAGS & LIBS needed:
-PKG_CHECK_MODULES(XHOST, x11 xmuu)
+PKG_CHECK_MODULES(XHOST, [xproto >= 7.0.22 x11 xmuu])
 # - Only CFLAGS needed, not libs:
 PKG_CHECK_MODULES(XAU, xau)
 
@@ -30,6 +28,15 @@ XTRANS_CONNECTION_FLAGS
 
 # Secure RPC detection macro from xtrans.m4
 XTRANS_SECURE_RPC_FLAGS
+
+# Link with winsock if mingw target
+case $host_os in
+ *mingw*)
+  AC_CHECK_LIB([ws2_32],[main])
+  ;;
+ *)
+  ;;
+esac
 
 AC_CONFIG_FILES([
 	Makefile

@@ -76,69 +76,69 @@ extern int FontFileNameCheck ( char *name );
 extern int FontFileInitFPE ( FontPathElementPtr fpe );
 extern int FontFileResetFPE ( FontPathElementPtr fpe );
 extern int FontFileFreeFPE ( FontPathElementPtr fpe );
-extern int FontFileOpenFont ( pointer client, FontPathElementPtr fpe, 
-			      Mask flags, char *name, int namelen, 
-			      fsBitmapFormat format, fsBitmapFormatMask fmask, 
-			      XID id, FontPtr *pFont, char **aliasName, 
+extern int FontFileOpenFont ( pointer client, FontPathElementPtr fpe,
+			      Mask flags, char *name, int namelen,
+			      fsBitmapFormat format, fsBitmapFormatMask fmask,
+			      XID id, FontPtr *pFont, char **aliasName,
 			      FontPtr non_cachable_font );
 extern void FontFileCloseFont ( FontPathElementPtr fpe, FontPtr pFont );
-extern int FontFileOpenBitmap ( FontPathElementPtr fpe, FontPtr *pFont, 
-				int flags, FontEntryPtr entry, 
-				fsBitmapFormat format, 
+extern int FontFileOpenBitmap ( FontPathElementPtr fpe, FontPtr *pFont,
+				int flags, FontEntryPtr entry,
+				fsBitmapFormat format,
 				fsBitmapFormatMask fmask );
-extern int FontFileListFonts ( pointer client, FontPathElementPtr fpe, 
-			       char *pat, int len, int max, 
+extern int FontFileListFonts ( pointer client, FontPathElementPtr fpe,
+			       char *pat, int len, int max,
 			       FontNamesPtr names );
-extern int FontFileStartListFonts ( pointer client, FontPathElementPtr fpe, 
-				    char *pat, int len, int max, 
+extern int FontFileStartListFonts ( pointer client, FontPathElementPtr fpe,
+				    char *pat, int len, int max,
 				    pointer *privatep, int mark_aliases );
-extern int FontFileStartListFontsWithInfo ( pointer client, 
-					    FontPathElementPtr fpe, 
-					    char *pat, int len, int max, 
+extern int FontFileStartListFontsWithInfo ( pointer client,
+					    FontPathElementPtr fpe,
+					    char *pat, int len, int max,
 					    pointer *privatep );
-extern int FontFileListNextFontWithInfo ( pointer client, 
-					  FontPathElementPtr fpe, 
-					  char **namep, int *namelenp, 
-					  FontInfoPtr *pFontInfo, 
+extern int FontFileListNextFontWithInfo ( pointer client,
+					  FontPathElementPtr fpe,
+					  char **namep, int *namelenp,
+					  FontInfoPtr *pFontInfo,
 					  int *numFonts, pointer private );
-extern int FontFileStartListFontsAndAliases ( pointer client, 
-					      FontPathElementPtr fpe, 
-					      char *pat, int len, int max, 
+extern int FontFileStartListFontsAndAliases ( pointer client,
+					      FontPathElementPtr fpe,
+					      char *pat, int len, int max,
 					      pointer *privatep );
-extern int FontFileListNextFontOrAlias ( pointer client, 
-					 FontPathElementPtr fpe, 
-					 char **namep, int *namelenp, 
-					 char **resolvedp, int *resolvedlenp, 
+extern int FontFileListNextFontOrAlias ( pointer client,
+					 FontPathElementPtr fpe,
+					 char **namep, int *namelenp,
+					 char **resolvedp, int *resolvedlenp,
 					 pointer private );
 extern void FontFileRegisterLocalFpeFunctions ( void );
 extern void CatalogueRegisterLocalFpeFunctions ( void );
 
 
-extern FontEntryPtr FontFileAddEntry ( FontTablePtr table, 
+extern FontEntryPtr FontFileAddEntry ( FontTablePtr table,
 				       FontEntryPtr prototype );
-extern Bool FontFileAddFontAlias ( FontDirectoryPtr dir, char *aliasName, 
+extern Bool FontFileAddFontAlias ( FontDirectoryPtr dir, char *aliasName,
 				   char *fontName );
-extern Bool FontFileAddFontFile ( FontDirectoryPtr dir, char *fontName, 
+extern Bool FontFileAddFontFile ( FontDirectoryPtr dir, char *fontName,
 				  char *fileName );
 extern int FontFileCountDashes ( char *name, int namelen );
-extern FontEntryPtr FontFileFindNameInDir ( FontTablePtr table, 
+extern FontEntryPtr FontFileFindNameInDir ( FontTablePtr table,
 					    FontNamePtr pat );
 extern FontEntryPtr FontFileFindNameInScalableDir ( FontTablePtr table,
-						    FontNamePtr pat, 
+						    FontNamePtr pat,
 						    FontScalablePtr vals );
-extern int FontFileFindNamesInDir ( FontTablePtr table, FontNamePtr pat, 
+extern int FontFileFindNamesInDir ( FontTablePtr table, FontNamePtr pat,
 				    int max, FontNamesPtr names );
-extern int FontFileFindNamesInScalableDir ( FontTablePtr table, 
-					    FontNamePtr pat, int max, 
-					    FontNamesPtr names, 
-					    FontScalablePtr vals, 
+extern int FontFileFindNamesInScalableDir ( FontTablePtr table,
+					    FontNamePtr pat, int max,
+					    FontNamesPtr names,
+					    FontScalablePtr vals,
 					    int alias_behavior, int *newmax );
 
 extern void FontFileFreeDir ( FontDirectoryPtr dir );
 extern void FontFileFreeEntry ( FontEntryPtr entry );
 extern void FontFileFreeTable ( FontTablePtr table );
 extern Bool FontFileInitTable ( FontTablePtr table, int size );
-extern FontDirectoryPtr FontFileMakeDir ( char *dirName, int size );
+extern FontDirectoryPtr FontFileMakeDir ( const char *dirName, int size );
 extern Bool FontFileMatchName ( char *name, int length, FontNamePtr pat );
 extern char * FontFileSaveString ( char *s );
 extern void FontFileSortDir ( FontDirectoryPtr dir );
@@ -151,26 +151,26 @@ extern Bool FontFilePriorityRegisterRenderer ( FontRendererPtr renderer,
                                                int priority );
 extern FontRendererPtr FontFileMatchRenderer ( char *fileName );
 
-extern Bool FontFileAddScaledInstance ( FontEntryPtr entry, 
-					FontScalablePtr vals, FontPtr pFont, 
+extern Bool FontFileAddScaledInstance ( FontEntryPtr entry,
+					FontScalablePtr vals, FontPtr pFont,
 					char *bitmapName );
 extern void FontFileSwitchStringsToBitmapPointers ( FontDirectoryPtr dir );
 extern void FontFileRemoveScaledInstance ( FontEntryPtr entry, FontPtr pFont );
 extern Bool FontFileCompleteXLFD ( FontScalablePtr vals, FontScalablePtr def );
-extern FontScaledPtr FontFileFindScaledInstance ( FontEntryPtr entry, 
-						  FontScalablePtr vals, 
+extern FontScaledPtr FontFileFindScaledInstance ( FontEntryPtr entry,
+						  FontScalablePtr vals,
 						  int noSpecificSize );
 
 extern Bool FontFileRegisterBitmapSource ( FontPathElementPtr fpe );
 extern void FontFileUnregisterBitmapSource ( FontPathElementPtr fpe );
 extern void FontFileEmptyBitmapSource ( void );
-extern int FontFileMatchBitmapSource ( FontPathElementPtr fpe, 
-				       FontPtr *pFont, int flags, 
-				       FontEntryPtr entry, 
-				       FontNamePtr zeroPat, 
-				       FontScalablePtr vals, 
-				       fsBitmapFormat format, 
-				       fsBitmapFormatMask fmask, 
+extern int FontFileMatchBitmapSource ( FontPathElementPtr fpe,
+				       FontPtr *pFont, int flags,
+				       FontEntryPtr entry,
+				       FontNamePtr zeroPat,
+				       FontScalablePtr vals,
+				       fsBitmapFormat format,
+				       fsBitmapFormatMask fmask,
 				       Bool noSpecificSize );
 
 extern int FontFileReadDirectory ( char *directory, FontDirectoryPtr *pdir );

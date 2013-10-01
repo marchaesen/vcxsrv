@@ -40,7 +40,7 @@
 int
 XpmWriteFileFromPixmap(
     Display		*display,
-    char		*filename,
+    const char		*filename,
     Pixmap		 pixmap,
     Pixmap		 shapemask,
     XpmAttributes	*attributes)

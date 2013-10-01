@@ -52,7 +52,7 @@ in this Software without prior written authorization from The Open Group.
 #define FALSE 0
 #endif
 
-extern Atom MakeAtom ( char *string, unsigned len, int makeit );
+extern Atom MakeAtom ( const char *string, unsigned len, int makeit );
 extern int ValidAtom ( Atom atom );
 extern char *NameForAtom (Atom atom);
 
@@ -81,11 +81,11 @@ FourByteSwap(
 
 extern int
 RepadBitmap (
-    char*, 
     char*,
-    unsigned, 
+    char*,
     unsigned,
-    int, 
+    unsigned,
+    int,
     int
 );
 

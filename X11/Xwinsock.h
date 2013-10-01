@@ -39,7 +39,13 @@ The Open Group.
 # undef XFree86Server
 #endif
 
-#define BOOL wBOOL
+/*
+ * mingw-w64 headers define BOOL as a typedef, protecting against macros
+ * mingw.org headers define BOOL in terms of WINBOOL
+ * ... so try to come up with something which works with both :-)
+ */
+#define _NO_BOOL_TYPEDEF
+#define BOOL WINBOOL
 #define INT32 wINT32
 #undef Status
 #define Status wStatus
@@ -57,6 +63,12 @@ The Open Group.
 #undef CreateWindowA
 #undef RT_FONT
 #undef RT_CURSOR
+
+/*
+ * Older version of this header used to name the windows API bool type wBOOL,
+ * rather than more standard name WINBOOL
+ */
+#define wBOOL WINBOOL
 
 #ifdef _XFree86Server
 # define XFree86Server

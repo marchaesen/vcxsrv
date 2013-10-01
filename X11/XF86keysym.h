@@ -210,6 +210,8 @@
 #define XF86XK_TouchpadOn	0x1008FFB0   /* The touchpad got switched on */
 #define XF86XK_TouchpadOff	0x1008FFB1   /* The touchpad got switched off */
 
+#define XF86XK_AudioMicMute	0x1008FFB2   /* Mute the Mic from the system */
+
 /* Keys for special action keys (hot keys) */
 /* Virtual terminals on some operating systems */
 #define XF86XK_Switch_VT_1	0x1008FE01

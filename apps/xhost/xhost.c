@@ -59,13 +59,10 @@ X Window System is a trademark of The Open Group.
 #include "config.h"
 #endif
 
-#if defined(TCPCONN) || defined(STREAMSCONN)
+#ifdef TCPCONN
 #define NEEDSOCKETS
 #endif
 #ifdef UNIXCONN
-#define NEEDSOCKETS
-#endif
-#ifdef DNETCONN
 #define NEEDSOCKETS
 #endif
 
@@ -76,45 +73,25 @@ X Window System is a trademark of The Open Group.
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
-#ifdef X_NOT_POSIX
-#include <setjmp.h>
-#endif
 #include <ctype.h>
 #include <X11/Xauth.h>
 #include <X11/Xmu/Error.h>
 #include <stdlib.h>
 
 #ifdef NEEDSOCKETS
-#ifdef att
-typedef unsigned short unsign16;
-typedef unsigned long unsign32;
-typedef short sign16;
-typedef long sign32;
-#include <interlan/socket.h>
-#include <interlan/netdb.h>
-#include <interlan/in.h>
+#ifdef WIN32
+#include <X11/Xwinsock.h>
 #else
-#ifndef Lynx
 #include <sys/socket.h>
-#else
-#include <socket.h>
-#endif
 #include <netdb.h>
 #include <netinet/in.h>
 #endif
 #endif /* NEEDSOCKETS */
 
-#ifndef BAD_ARPAINET
+#ifndef WIN32
 #include <arpa/inet.h>
-#else
-/* bogus definition of inet_makeaddr() in BSD 4.2 and Ultrix */
-extern unsigned long inet_makeaddr();
 #endif
 
-#ifdef DNETCONN
-#include <netdnet/dn.h>
-#include <netdnet/dnetdb.h>
-#endif
 
 #ifdef SECURE_RPC
 #include <pwd.h>
@@ -124,7 +101,7 @@ extern unsigned long inet_makeaddr();
 #include <limits.h>
 #undef _POSIX_C_SOURCE
 #else
-#if defined(X_NOT_POSIX) || defined(_POSIX_SOURCE)
+#ifdef _POSIX_SOURCE
 #include <limits.h>
 #else
 #define _POSIX_SOURCE
@@ -145,17 +122,7 @@ extern int getdomainname(char *name, size_t len);
 static int change_host(Display *dpy, char *name, Bool add);
 static const char *get_hostname(XHostAddress *ha);
 static int local_xerror(Display *dpy, XErrorEvent *rep);
-
-#ifdef RETSIGTYPE /* autoconf AC_TYPE_SIGNAL */
-# define signal_t RETSIGTYPE
-#else /* Imake */
-#ifdef SIGNALRETURNSINT
-#define signal_t int
-#else
-#define signal_t void
-#endif
-#endif /* RETSIGTYPE */
-static signal_t nameserver_lost(int sig);
+static void nameserver_lost(int sig);
 
 #define NAMESERVER_TIMEOUT 5	/* time to wait for nameserver */
 
@@ -167,7 +134,7 @@ static char *ProgramName;
 static int 
 XFamily(int af)
 {
-    int i;
+    unsigned int i;
     static struct _familyMap {
 	int af, xf;
     } familyMap[] = {
@@ -193,8 +160,6 @@ XFamily(int af)
 }
 #endif /* NEEDSOCKETS */
 
-static Display *dpy;
-
 int
 main(int argc, char *argv[])
 {
@@ -204,12 +169,7 @@ main(int argc, char *argv[])
     int nfailed = 0;
     XHostAddress *list;
     Bool enabled = False;
-#ifdef DNETCONN
-    char *dnet_htoa();
-    struct nodeent *np;
-    struct dn_naddr *nlist, dnaddr, *dnaddrp, *dnet_addr();
-    char *cp;
-#endif
+    Display *dpy;
  
     ProgramName = argv[0];
 
@@ -228,9 +188,6 @@ main(int argc, char *argv[])
  
  
     if (argc == 1) {
-#ifdef DNETCONN
-	setnodeent(1);		/* keep the database accessed */
-#endif
 	sethostent(1);		/* don't close the data base each time */
 	list = XListHosts(dpy, &nhosts, &enabled);
 	if (enabled)
@@ -336,7 +293,8 @@ change_host(Display *dpy, char *name, Bool add)
 {
     XHostAddress ha;
     char *lname;
-    int namelen, i, family = FamilyWild;
+    size_t namelen, i;
+    int family = FamilyWild;
 #ifdef K5AUTH
     krb5_principal princ;
     krb5_data kbuf;
@@ -350,11 +308,6 @@ change_host(Display *dpy, char *name, Bool add)
 #endif
 #endif
     char *cp;
-#ifdef DNETCONN
-    struct dn_naddr *dnaddrp;
-    struct nodeent *np;
-    static struct dn_naddr dnaddr;
-#endif				/* DNETCONN */
     static const char *add_msg = "being added to access control list";
     static const char *remove_msg = "being removed from access control list";
 
@@ -368,7 +321,7 @@ change_host(Display *dpy, char *name, Bool add)
     }
     lname[namelen] = '\0';
     if (!strncmp("inet:", lname, 5)) {
-#if defined(TCPCONN) || defined(STREAMSCONN)
+#ifdef TCPCONN
 	family = FamilyInternet;
 	name += 5;
 #else
@@ -378,8 +331,7 @@ change_host(Display *dpy, char *name, Bool add)
 #endif
     }
     else if (!strncmp("inet6:", lname, 6)) {
-#if (defined(TCPCONN) || defined(STREAMSCONN)) && \
-    defined(IPv6) && defined(AF_INET6)
+#if defined(TCPCONN) && defined(IPv6) && defined(AF_INET6)
 	family = FamilyInternet6;
 	name += 6;
 #else
@@ -391,8 +343,7 @@ change_host(Display *dpy, char *name, Bool add)
 #ifdef ACCEPT_INETV6 /* Allow inetv6 as an alias for inet6 for compatibility
 			with original X11 over IPv6 draft. */
     else if (!strncmp("inetv6:", lname, 7)) {
-#if (defined(TCPCONN) || defined(STREAMSCONN)) && \
-    defined(IPv6) && defined(AF_INET6)
+#if defined(TCPCONN) && defined(IPv6) && defined(AF_INET6)
 	family = FamilyInternet6;
 	name += 7;
 #else
@@ -403,14 +354,9 @@ change_host(Display *dpy, char *name, Bool add)
     }
 #endif /* ACCEPT_INETV6 */
     else if (!strncmp("dnet:", lname, 5)) {
-#ifdef DNETCONN
-	family = FamilyDECnet;
-	name += 5;
-#else
 	fprintf (stderr, "%s: not compiled for DECnet\n", ProgramName);
 	free(lname);
 	return 0;
-#endif
     }
     else if (!strncmp("nis:", lname, 4)) {
 #ifdef SECURE_RPC
@@ -476,34 +422,6 @@ change_host(Display *dpy, char *name, Bool add)
 	return 1;
     }
 
-#ifdef DNETCONN
-    if (family == FamilyDECnet || ((family == FamilyWild) &&
-	(cp = strchr(name, ':')) && (*(cp + 1) == ':') &&
-	!(*cp = '\0'))) {
-	ha.family = FamilyDECnet;
-	if (dnaddrp = dnet_addr(name)) {
-	    dnaddr = *dnaddrp;
-	} else {
-	    if ((np = getnodebyname (name)) == NULL) {
-		fprintf (stderr, "%s:  unable to get node name for \"%s::\"\n",
-			 ProgramName, name);
-		return 0;
-	    }
-	    dnaddr.a_len = np->n_length;
-	    memmove( dnaddr.a_addr, np->n_addr, np->n_length);
-	}
-	ha.length = sizeof(struct dn_naddr);
-	ha.address = (char *)&dnaddr;
-	if (add) {
-	    XAddHost (dpy, &ha);
-	    printf ("%s:: %s\n", name, add_msg);
-	} else {
-	    XRemoveHost (dpy, &ha);
-	    printf ("%s:: %s\n", name, remove_msg);
-	}
-	return 1;
-    }
-#endif				/* DNETCONN */
 #ifdef K5AUTH
     if (family == FamilyKrb5Principal) {
 	krb5_error_code retval;
@@ -530,8 +448,9 @@ change_host(Display *dpy, char *name, Bool add)
     }
 #endif
     if (family == FamilyLocalHost) {
+	char empty[] = "";
 	ha.length = 0;
-	ha.address = "";
+	ha.address = empty;
 	ha.family = family;
 	if (add)
 	    XAddHost(dpy, &ha);
@@ -722,37 +641,29 @@ change_host(Display *dpy, char *name, Bool add)
  * be found.
  */
 
-#ifdef X_NOT_POSIX
-jmp_buf env;
-#endif
 
 static const char *
 get_hostname(XHostAddress *ha)
 {
-#if (defined(TCPCONN) || defined(STREAMSCONN)) &&	\
-     (!defined(IPv6) || !defined(AF_INET6))
+#if defined(TCPCONN) && (!defined(IPv6) || !defined(AF_INET6))
     static struct hostent *hp = NULL;
 #endif
-#ifdef DNETCONN
-    struct nodeent *np;
-    static char nodeaddr[5 + 2 * DN_MAXADDL];
-#endif				/* DNETCONN */
 #ifdef K5AUTH
     krb5_principal princ;
     krb5_data kbuf;
     char *kname;
     static char kname_out[255];
 #endif
-#ifndef X_NOT_POSIX
+#ifdef SIGALRM
     struct sigaction sa;
 #endif
 
-#if defined(TCPCONN) || defined(STREAMSCONN)
+#ifdef TCPCONN
 #if defined(IPv6) && defined(AF_INET6)
     if ((ha->family == FamilyInternet) || (ha->family == FamilyInternet6)) {
 	struct sockaddr_storage saddr;
 	static char inetname[NI_MAXHOST];
-	int saddrlen;
+	unsigned int saddrlen;
 
 	inetname[0] = '\0';
 	memset(&saddr, 0, sizeof saddr);
@@ -782,23 +693,18 @@ get_hostname(XHostAddress *ha)
 	   gethostbyaddr will continue after a signal, so we have to
 	   jump out of it. 
 	   */
-#ifndef X_NOT_POSIX
+#ifdef SIGALRM
 	memset(&sa, 0, sizeof sa);
 	sa.sa_handler = nameserver_lost;
 	sa.sa_flags = 0;	/* don't restart syscalls */
 	sigaction(SIGALRM, &sa, NULL);
-#else
-	signal(SIGALRM, nameserver_lost);
-#endif
 	alarm(NAMESERVER_TIMEOUT);
-#ifdef X_NOT_POSIX
-	if (setjmp(env) == 0) 
 #endif
-	{ 
-	    getnameinfo((struct sockaddr *) &saddr, saddrlen, inetname,
-	      sizeof(inetname), NULL, 0, 0);
-	}
+	getnameinfo((struct sockaddr *) &saddr, saddrlen, inetname,
+		    sizeof(inetname), NULL, 0, 0);
+#ifdef SIGALRM
 	alarm(0);
+#endif
 	if (nameserver_timedout || inetname[0] == '\0')
 	    inet_ntop(((struct sockaddr *)&saddr)->sa_family, ha->address,
 		inetname, sizeof(inetname));
@@ -806,35 +712,23 @@ get_hostname(XHostAddress *ha)
     }
 #else
     if (ha->family == FamilyInternet) {
-#ifdef CRAY
-	struct in_addr t_addr;
-	bzero((char *)&t_addr, sizeof(t_addr));
-	bcopy(ha->address, (char *)&t_addr, 4);
-	ha->address = (char *)&t_addr;
-#endif
 	/* gethostbyaddr can take a LONG time if the host does not exist.
 	   Assume that if it does not respond in NAMESERVER_TIMEOUT seconds
 	   that something is wrong and do not make the user wait.
 	   gethostbyaddr will continue after a signal, so we have to
 	   jump out of it. 
 	   */
-#ifndef X_NOT_POSIX
+#ifdef SIGALRM
 	memset(&sa, 0, sizeof sa);
 	sa.sa_handler = nameserver_lost;
 	sa.sa_flags = 0;	/* don't restart syscalls */
 	sigaction(SIGALRM, &sa, NULL);
-#else
-	signal(SIGALRM, nameserver_lost);
-#endif
 	alarm(4);
-#ifdef X_NOT_POSIX
-	if (setjmp(env) == 0) {
 #endif
-	    hp = gethostbyaddr (ha->address, ha->length, AF_INET);
-#ifdef X_NOT_POSIX
-	}
-#endif
+	hp = gethostbyaddr (ha->address, ha->length, AF_INET);
+#ifdef SIGALRM
 	alarm(0);
+#endif
 	if (hp)
 	    return (hp->h_name);
 	else return (inet_ntoa(*((struct in_addr *)(ha->address))));
@@ -862,24 +756,12 @@ get_hostname(XHostAddress *ha)
 
 	    pwd = getpwuid(uid);
 	    if (pwd)
-		sprintf(netname, "%s@ (%*.*s)", pwd->pw_name,
-			ha->length, ha->length, ha->address);
+		snprintf(netname, sizeof(netname), "%s@ (%*.*s)",
+			 pwd->pw_name, ha->length, ha->length, ha->address);
 	}
 #endif
 	return (netname);
     }
-#ifdef DNETCONN
-    if (ha->family == FamilyDECnet) {
-	struct dn_naddr *addr_ptr = (struct dn_naddr *) ha->address;
-
-	if (np = getnodebyaddr(addr_ptr->a_addr, addr_ptr->a_len, AF_DECnet)) {
-	    sprintf(nodeaddr, "%s", np->n_name);
-	} else {
-	    sprintf(nodeaddr, "%s", dnet_htoa(ha->address));
-	}
-	return(nodeaddr);
-    }
-#endif
 #ifdef K5AUTH
     if (ha->family == FamilyKrb5Principal) {
 	kbuf.data = ha->address;
@@ -927,15 +809,10 @@ get_hostname(XHostAddress *ha)
 }
 
 /*ARGUSED*/
-static signal_t 
-nameserver_lost(int sig)
+static void
+nameserver_lost(_X_UNUSED int sig)
 {
     nameserver_timedout = 1;
-#ifdef X_NOT_POSIX
-    /* not needed with POSIX signals - stuck syscalls will not 
-       be restarted after signal delivery */
-    longjmp(env, -1);
-#endif
 }
 
 /*
@@ -966,7 +843,7 @@ local_xerror(Display *dpy, XErrorEvent *rep)
     return 0;
 }
 
-#ifdef __CYGWIN__
+#if defined(__CYGWIN__) || defined(WIN32)
 void sethostent(int x)
 {}
 

@@ -111,30 +111,12 @@ static XtResource resources[] = {
  *
  ***************************************************************************/
 
-#if defined(__UNIXOS2__) || defined(__CYGWIN__) || defined(__MINGW32__)
+#if defined(__CYGWIN__) || defined(__MINGW32__)
 /* to fix the EditRes problem because of wrong linker semantics */
 extern WidgetClass vendorShellWidgetClass; /* from Xt/Vendor.c */
 extern VendorShellClassRec _XawVendorShellClassRec;
 extern void _XawFixupVendorShell();
 
-#if defined(__UNIXOS2__)
-unsigned long _DLL_InitTerm(unsigned long mod,unsigned long flag)
-{
-	switch (flag) {
-	case 0: /*called on init*/
-		_CRT_init();
-		vendorShellWidgetClass = (WidgetClass)(&_XawVendorShellClassRec);
-		_XawFixupVendorShell();
-		return 1;
-	case 1: /*called on exit*/
-		return 1;
-	default:
-		return 0;
-	}
-}
-#endif
-
-#if defined(__CYGWIN__) || defined(__MINGW32__)
 int __stdcall
 DllMain(unsigned long mod_handle, unsigned long flag, void *routine)
 {
@@ -149,7 +131,6 @@ DllMain(unsigned long mod_handle, unsigned long flag, void *routine)
     }
   return 1;
 }
-#endif
 
 #define vendorShellClassRec _XawVendorShellClassRec
 

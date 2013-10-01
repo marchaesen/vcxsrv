@@ -41,7 +41,7 @@
 
 int
 XpmWriteFileFromBuffer(
-    char	*filename,
+    const char	*filename,
     char	*buffer)
 {
     int fcheck, len;

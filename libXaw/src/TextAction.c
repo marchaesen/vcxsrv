@@ -47,6 +47,10 @@ in this Software without prior written authorization from The Open Group.
 #include "Private.h"
 #include "XawI18n.h"
 
+#ifdef _WIN32
+#include <X11/Xwinsock.h>
+#endif
+
 #define SrcScan			XawTextSourceScan
 #define FindDist		XawTextSinkFindDistance
 #define FindPos			XawTextSinkFindPosition

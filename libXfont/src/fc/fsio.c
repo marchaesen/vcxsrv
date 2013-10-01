@@ -184,8 +184,11 @@ _fs_fill (FSFpePtr conn)
 		    continue;
 		}
 	    }
-	    _fs_connection_died (conn);
-	    return FSIO_ERROR;
+	    if (!ECHECK(EINTR))
+	    {
+	        _fs_connection_died (conn);
+	        return FSIO_ERROR;
+	    }
 	}
     }
     return FSIO_READY;

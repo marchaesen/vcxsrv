@@ -124,34 +124,34 @@ typedef struct _FontDirectory {
 #define CAP_CHARSUBSETTING	0x2
 
 typedef struct _FontRenderer {
-    char    *fileSuffix;
+    const char    *fileSuffix;
     int	    fileSuffixLen;
-    int	    (*OpenBitmap)(FontPathElementPtr /* fpe */, 
+    int	    (*OpenBitmap)(FontPathElementPtr /* fpe */,
 			  FontPtr * /* pFont */,
-			  int /* flags */, 
-			  FontEntryPtr /* entry */, 
-			  char * /* fileName */, 
-			  fsBitmapFormat /* format */, 
+			  int /* flags */,
+			  FontEntryPtr /* entry */,
+			  char * /* fileName */,
+			  fsBitmapFormat /* format */,
 			  fsBitmapFormatMask /* mask */,
 			  FontPtr /* non_cachable_font */);
-    int	    (*OpenScalable)(FontPathElementPtr /* fpe */, 
-			    FontPtr * /* pFont */, 
-			    int /* flags */, 
-			    FontEntryPtr /* entry */, 
-			    char * /* fileName */, 
-			    FontScalablePtr /* vals */, 
-			    fsBitmapFormat /* format */, 
+    int	    (*OpenScalable)(FontPathElementPtr /* fpe */,
+			    FontPtr * /* pFont */,
+			    int /* flags */,
+			    FontEntryPtr /* entry */,
+			    char * /* fileName */,
+			    FontScalablePtr /* vals */,
+			    fsBitmapFormat /* format */,
 			    fsBitmapFormatMask /* fmask */,
 			    FontPtr /* non_cachable_font */);
-    int	    (*GetInfoBitmap)(FontPathElementPtr /* fpe */, 
-			     FontInfoPtr /* pFontInfo */, 
-			     FontEntryPtr /* entry */, 
+    int	    (*GetInfoBitmap)(FontPathElementPtr /* fpe */,
+			     FontInfoPtr /* pFontInfo */,
+			     FontEntryPtr /* entry */,
 			     char * /*fileName */);
-    int	    (*GetInfoScalable)(FontPathElementPtr /* fpe */, 
-			       FontInfoPtr /* pFontInfo */, 
-			       FontEntryPtr /* entry */, 
+    int	    (*GetInfoScalable)(FontPathElementPtr /* fpe */,
+			       FontInfoPtr /* pFontInfo */,
+			       FontEntryPtr /* entry */,
 			       FontNamePtr /* fontName */,
-			       char * /* fileName */, 
+			       char * /* fileName */,
 			       FontScalablePtr /* vals */);
     int	    number;
     int     capabilities;	/* Bitmap components defined above */

@@ -39,7 +39,7 @@
 
 int
 XpmWriteFileFromData(
-    char	 *filename,
+    const char	 *filename,
     char	**data)
 {
     XpmImage image;

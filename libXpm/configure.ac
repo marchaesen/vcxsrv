@@ -1,7 +1,7 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([libXpm], [3.5.10],
+AC_INIT([libXpm], [3.5.11],
         [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [libXpm])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
@@ -9,7 +9,6 @@ AC_CONFIG_MACRO_DIR([m4])
 
 # Initialize Automake
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
-AM_MAINTAINER_MODE
 
 # Initialize libtool
 AC_PROG_LIBTOOL
@@ -25,7 +24,8 @@ AC_CHECK_FUNCS([strlcat])
 
 # Obtain compiler/linker options for dependencies
 PKG_CHECK_MODULES(XPM, xproto x11)
-PKG_CHECK_MODULES(SXPM, x11 xt xext xextproto, build_sxpm=true, build_sxpm=false)
+PKG_CHECK_MODULES(SXPM, [x11 xt xext xextproto xproto >= 7.0.17],
+                  [build_sxpm=true], [build_sxpm=false])
 AM_CONDITIONAL(BUILD_SXPM, test x$build_sxpm = xtrue)
 
 # Internationalization & localization support
@@ -57,6 +57,15 @@ AC_ARG_ENABLE(stat-zfile,
 if test x$STAT_ZFILE = xyes ; then
 	AC_DEFINE(STAT_ZFILE, 1, [Define to 1 to automatically look for files with .Z & .gz extensions])
 fi
+
+
+case $host_os in
+	*mingw*)
+                AC_DEFINE(NO_ZPIPE, 1, [Define to 1 to disable decompression via pipes])
+	;;
+	*)
+	;;
+esac
 
 AC_CONFIG_FILES([Makefile
                  doc/Makefile

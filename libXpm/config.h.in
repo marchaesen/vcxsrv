@@ -40,6 +40,9 @@
    */
 #undef LT_OBJDIR
 
+/* Define to 1 to disable decompression via pipes */
+#undef NO_ZPIPE
+
 /* Name of package */
 #undef PACKAGE
 

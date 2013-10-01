@@ -109,9 +109,9 @@ static char *plaid[] = {
 #define xrdb XtDatabase(dpy)
 static Colormap colormap;
 
-void Usage(void);
+void Usage(void) _X_NORETURN;
 void ErrorMessage(int ErrorStatus, const char *tag);
-void Punt(int i);
+void Punt(int i) _X_NORETURN;
 void VersionInfo(void);
 void kinput(Widget widget, char *tag, XEvent *xe, Boolean *b);
 void GetNumbers(int num, int *format_return,
@@ -569,9 +569,6 @@ main(
 	XtMainLoop();
     }
     Punt(0);
-
-    /* Muffle gcc */
-    return 0;
 }
 
 void

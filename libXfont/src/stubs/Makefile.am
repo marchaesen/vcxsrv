@@ -1,4 +1,4 @@
-INCLUDES =			\
+AM_CPPFLAGS =			\
 	-I${top_srcdir}/include
 
 AM_CFLAGS = $(XFONT_CFLAGS) $(OS_CFLAGS) $(CWARNFLAGS)
@@ -22,4 +22,4 @@ libstubs_la_SOURCES = 		\
 	servclient.c		\
 	setfntauth.c		\
 	stfntcfnt.c		\
-	stubs.h	
+	stubs.h

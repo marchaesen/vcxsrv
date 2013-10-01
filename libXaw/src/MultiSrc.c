@@ -1092,15 +1092,18 @@ static Bool
 WriteToFile(String string, String name)
 {
     int fd;
+    Bool result = True;
 
-    if (((fd = creat(name, 0666)) == -1)
-	|| (write(fd, string, strlen(string)) == -1))
+    if ((fd = creat(name, 0666)) == -1)
 	return (False);
+
+    if (write(fd, string, strlen(string)) == -1)
+        result = False;
 
     if (close(fd) == -1)
 	return (False);
 
-    return (True);
+    return (result);
 }
 
 
@@ -1260,6 +1263,8 @@ InitStringOrFile(MultiSrcObject src, Bool newString)
 		src->multi_src.length = (XawTextPosition)ftell(file);
 		return(file);
 	    }
+	    else
+		close(fd);
 	}
 	{
 	    String params[2];

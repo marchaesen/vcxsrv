@@ -1,3 +1,97 @@
+commit 8b289e10c5013cdcbf817c06bd929e3ea8339987
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Jul 21 16:53:47 2013 -0700
+
+    libXfont 1.4.6
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 7447029974415641a7a8a85918edcc20cfd9d461
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Jun 24 22:40:39 2013 -0700
+
+    Require ANSI C89 pre-processor, drop pre-C89 token pasting support
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit c21d25de05d82a761a3225b685e9adcb7bb374bd
+Author: Thomas Klausner <wiz@NetBSD.org>
+Date:   Sun Jun 2 21:03:27 2013 +0200
+
+    Protect config.h inclusion with ifdef HAVE_CONFIG_H, like usual.
+    
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit b8dd42dce868f9c16a59790ce51f0542b59cb79d
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Jan 15 18:30:32 2013 -0800
+
+    Replace deprecated Automake INCLUDES variable with AM_CPPFLAGS
+    
+    Excerpt https://lists.gnu.org/archive/html/automake/2012-12/msg00038.html
+    
+      - Support for the long-deprecated INCLUDES variable will be removed
+        altogether in Automake 1.14.  The AM_CPPFLAGS variable should be
+        used instead.
+    
+    This variable was deprecated in Automake releases prior to 1.10, which is
+    the current minimum level required to build X.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit 8d946d2606b3a349b2a54d602e027a09ae330e88
+Author: Colin Walters <walters@verbum.org>
+Date:   Wed Jan 4 17:37:06 2012 -0500
+
+    autogen.sh: Implement GNOME Build API
+    
+    http://people.gnome.org/~walters/docs/build-api.txt
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
+commit 9d8936879b2fe1ca6460354ef68cd5e824d6748c
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Tue Jan 15 14:28:48 2013 -0500
+
+    configure: Remove AM_MAINTAINER_MODE
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
+commit a756da1844f63a2f2162eb8e53a883f496e4faad
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Fri Dec 7 10:30:38 2012 -0500
+
+    catalogue: Fix obvious thinko
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
+commit 5680e4c3d76cd5c64175d88d0685ee6962aa1e46
+Author: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+Date:   Mon Oct 29 09:59:30 2012 -0500
+
+    Omit catalogue support on systems without symlinks
+    
+    Signed-off-by: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+    Reviewed-by: Colin Harrison <colin.harrison@virgin.net>
+    Reviewed-by: Jon TURNEY <jon.turney@dronecode.org.uk>
+
+commit 3c534f72d6d4327926474a5f8fa53cbcf19de3cf
+Author: Arvind Umrao <arvind.umrao@oracle.com>
+Date:   Thu Aug 23 16:15:04 2012 +0530
+
+    If socket is interrupted with signal EINTR, re-attempt read.
+    
+    If socket is getting interrupted with signal EINTR, we should keep
+    socket in progress state. I have borrowed following code from socket
+    write _fs_flush():line274 . I have done exactly same at _fs_fill().
+    Socket write will not close the connection and re attempt to read buffer.
+    
+    Signed-off-by: Arvind Umrao <arvind.umrao@oracle.com>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
 commit 4b67ad5486c322c01a2ca86b0b4af0a74228f813
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Fri Mar 2 10:05:21 2012 -0800

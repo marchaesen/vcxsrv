@@ -83,7 +83,7 @@ in this Software without prior written authorization from The Open Group.
 #endif /* GNUC >= 4 */
 
 /* Added in X11R6.9, so available in any version of modular xproto */
-#if defined(__GNUC__) && (__GNUC__ >= 4) && !defined(__CYGWIN__)
+#if defined(__GNUC__) && (__GNUC__ >= 4) && !defined(__CYGWIN__) && !defined(__MINGW32__)
 # define _X_EXPORT      __attribute__((visibility("default")))
 # define _X_HIDDEN      __attribute__((visibility("hidden")))
 # define _X_INTERNAL    __attribute__((visibility("internal")))
@@ -161,7 +161,8 @@ in this Software without prior written authorization from The Open Group.
 /* requires xproto >= 7.0.21 */
 #ifndef _X_RESTRICT_KYWD
 # if defined(restrict) /* assume autoconf set it correctly */ || \
-   (defined(__STDC_VERSION__) && (__STDC_VERSION__ - 0 >= 199901L)) /* C99 */
+    (defined(__STDC_VERSION__) && (__STDC_VERSION__ - 0 >= 199901L) /* C99 */ \
+     && !defined(__cplusplus)) /* Workaround g++ issue on Solaris */
 #  define _X_RESTRICT_KYWD  restrict
 # elif defined(__GNUC__) && !defined(__STRICT_ANSI__) /* gcc w/C89+extensions */
 #  define _X_RESTRICT_KYWD __restrict__

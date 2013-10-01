@@ -23,7 +23,7 @@ dnl Process this file with autoconf to create configure.
 
 AC_PREREQ([2.60])
 AC_INIT([xclock],
-	[1.0.6],
+	[1.0.7],
 	[https://bugs.freedesktop.org/enter_bug.cgi?product=xorg],
 	[xclock])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
@@ -44,7 +44,7 @@ AC_CHECK_FUNCS([strlcpy getpid])
 AM_ICONV
 
 dnl Required dependencies
-PKG_CHECK_MODULES(XCLOCK, xaw7 xmu x11)
+PKG_CHECK_MODULES(XCLOCK, [xaw7 xmu x11 xproto >= 7.0.17])
 XCLOCK_LIBS="$XCLOCK_LIBS $LIBICONV"
 
 dnl Optional dependencies
