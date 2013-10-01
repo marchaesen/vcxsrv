@@ -1,3 +1,202 @@
+commit 6c3d341467acd10eafc1462ee94c3efd3a4788ef
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Jul 16 23:10:37 2013 -0700
+
+    xhost 1.0.6
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 4ffd1c45709bf8aa41e57d23a5241c4b4817d318
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Jun 14 00:02:21 2013 -0700
+
+    Fix const warning for FamilyLocalHost empty address string
+    
+    xhost.c: In function ‘change_host’:
+    xhost.c:452:13: warning: assignment discards ‘const’ qualifier from pointer target type [enabled by default]
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit e100ad533203fdc0d80078835c557f1bc47954bd
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Mar 2 08:49:40 2013 -0800
+
+    Mark argument to nameserver_lost signal handler as unused
+    
+    Quiets clang warning:
+    xhost.c:812:21: warning: unused parameter 'sig' [-Wunused-parameter]
+    nameserver_lost(int sig)
+                        ^
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 214c90d6b01017fe02675e133129cf389e740533
+Author: Jon TURNEY <jon.turney@dronecode.org.uk>
+Date:   Fri Oct 26 14:48:03 2012 +0100
+
+    If SIGALRM isn't available, don't use alarm() to timeout gethostaddr(), just wait
+    
+    Win32 has neither SIGALRM nor sigaction(), so don't use SIGALRM to timeout
+    gethostaddr(), just wait
+    
+    Signed-off-by: Jon TURNEY <jon.turney@dronecode.org.uk>
+    Reviewed-by: Colin Harrison <colin.harrison@virgin.net>
+
+commit 19250c1aed852e151bf66819e75f8d796018223b
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Feb 23 09:47:42 2013 -0800
+
+    Drop pre-POSIX signal handling support in favor of sigaction()
+    
+    X_NOT_POSIX has never been defined by our autoconf scripts, only for a few
+    platforms in <X11/Xosdefs.h>, of which MinGW seems to be the most relevant
+    today, and since that doesn't have alarm() it doesn't need this code either.
+    
+    First pass was done with 'unifdef -UX_NOT_POSIX', followed by
+    manual tweaking to adjust indent levels, etc.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Jon TURNEY <jon.turney@dronecode.org.uk>
+
+commit 618eebf5aa99138f6ab3b8a96f93eb422f1a138e
+Author: Jon TURNEY <jon.turney@dronecode.org.uk>
+Date:   Fri Oct 26 14:46:51 2012 +0100
+
+    Provide dummy sethostent(),endhostent() for Win32 also
+    
+    Signed-off-by: Jon TURNEY <jon.turney@dronecode.org.uk>
+    Reviewed-by: Colin Harrison <colin.harrison@virgin.net>
+
+commit 4dc834b5d98a6b07bee7ec8d06ed63efe03d1076
+Author: Jon TURNEY <jon.turney@dronecode.org.uk>
+Date:   Fri Oct 26 14:52:45 2012 +0100
+
+    Link with winsock for MinGW
+    
+    Signed-off-by: Jon TURNEY <jon.turney@dronecode.org.uk>
+    Reviewed-by: Colin Harrison <colin.harrison@virgin.net>
+
+commit 9316e88c68c2a2189cf90c55e9850d7428bcd356
+Author: Jon TURNEY <jon.turney@dronecode.org.uk>
+Date:   Wed Jan 4 18:25:26 2012 +0000
+
+    Use Xwinsock.h on WIN32
+    
+    Signed-off-by: Jon TURNEY <jon.turney@dronecode.org.uk>
+    Reviewed-by: Colin Harrison <colin.harrison@virgin.net>
+
+commit 01433c7bdd169ae8a59ffe79842de55e318bc3b8
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Feb 23 09:40:22 2013 -0800
+
+    Fix some integer sign/size conversion warnings flagged by clang
+    
+    xhost.c:154:19: warning: comparison of integers of different signs: 'int' and 'unsigned long' [-Wsign-compare]
+        for (i = 0; i < FAMILIES; i++)
+                    ~ ^ ~~~~~~~~
+    xhost.c:310:15: warning: implicit conversion loses integer precision: 'size_t' (aka 'unsigned long') to 'int' [-Wshorten-64-to-32]
+        namelen = strlen(name);
+                ~ ^~~~~~~~~~~~
+    xhost.c:311:40: warning: implicit conversion changes signedness: 'int' to 'size_t' (aka 'unsigned long') [-Wsign-conversion]
+        if ((lname = (char *)malloc(namelen+1)) == NULL) {
+                             ~~~~~~ ~~~~~~~^~
+    xhost.c:707:46: warning: implicit conversion changes signedness: 'int' to 'socklen_t' (aka 'unsigned int') [-Wsign-conversion]
+                getnameinfo((struct sockaddr *) &saddr, saddrlen, inetname,
+                ~~~~~~~~~~~                             ^~~~~~~~
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 59da6b7438ab624593fe4ce52a402755cce25b12
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Feb 23 08:50:29 2013 -0800
+
+    Convert sprintf to snprintf in SECURE_RPC code
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit a9218c958e992adb727ea5fe45cb04f9ba611de1
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Feb 23 08:45:48 2013 -0800
+
+    Move dpy declaration from static to main() function
+    
+    Fixes gcc warnings:
+    xhost.c:290: warning: declaration of 'dpy' shadows a global declaration
+    xhost.c:160: warning: shadowed declaration is here
+    xhost.c:839: warning: declaration of 'dpy' shadows a global declaration
+    xhost.c:160: warning: shadowed declaration is here
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit a3f0c2a060f30259dc3830ea8165be15f2aeae75
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Feb 23 08:38:57 2013 -0800
+
+    Assume signal handlers return void, as C89 requires
+    
+    Drops use of autoconf's obsolete AC_TYPE_SIGNAL and the even more
+    obsolete Imake SIGNALRETURNSINT.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 3911e16aa570ca0709b50727c82df421f1401bd7
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Feb 23 08:35:24 2013 -0800
+
+    unifdef -UBAD_ARPAINET
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 0a09ff485babcf0d3087b1710f1151bb60ed9263
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Feb 23 08:34:29 2013 -0800
+
+    unifdef -Uatt
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit f4ba8fcd272878dcc4a0994640a9457624d899ea
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Feb 23 08:33:55 2013 -0800
+
+    unifdef -ULynx
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 830ce053ff5e4f3175bfa59539536b72a847739c
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Feb 23 08:33:04 2013 -0800
+
+    unifdef -UCRAY
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit a06b486b62d35ac6aca7ecad92226da5d34196a5
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Dec 26 23:24:52 2012 -0800
+
+    Remove unused TLI ("STREAMSCONN") code from xhost
+    
+    Has never been converted to build in modular builds, so has been unusable
+    since X11R7.0 release in 2005.  All known platforms with TLI/XTI support
+    that X11R7 & later releases run on also have (and mostly prefer) BSD
+    socket support for their networking API.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit c902d69987a893cdf66a83fc7cad9dfd4bc72da0
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Dec 26 23:20:58 2012 -0800
+
+    Remove unused DECnet ("DNETCONN") code from xhost
+    
+    Has never been converted to build in modular builds, so has been unusable
+    since X11R7.0 release in 2005.  DNETCONN support was removed from xtrans
+    back in 2008.
+    
+    Performed via "unifdef -UDNETCONN".
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
 commit 497ea5c9d998385c4b877ff4e7995d85aefd066b
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Thu Mar 22 21:57:16 2012 -0700

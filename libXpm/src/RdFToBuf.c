@@ -60,7 +60,7 @@ typedef long off_t;
 
 int
 XpmReadFileToBuffer(
-    char	 *filename,
+    const char	 *filename,
     char	**buffer_return)
 {
     int fd, fcheck;
@@ -98,12 +98,12 @@ XpmReadFileToBuffer(
     fclose(fp);
 #ifdef VMS
     /* VMS often stores text files in a variable-length record format,
-       where there are two bytes of size followed by the record.  fread	
-       converts this so it looks like a record followed by a newline.	
-       Unfortunately, the size reported by fstat() (and fseek/ftell)	
-       counts the two bytes for the record terminator, while fread()	
-       counts only one.  So, fread() sees fewer bytes in the file (size	
-       minus # of records) and thus when asked to read the amount	
+       where there are two bytes of size followed by the record.  fread
+       converts this so it looks like a record followed by a newline.
+       Unfortunately, the size reported by fstat() (and fseek/ftell)
+       counts the two bytes for the record terminator, while fread()
+       counts only one.  So, fread() sees fewer bytes in the file (size
+       minus # of records) and thus when asked to read the amount
        returned by stat(), it fails.
        The best solution, suggested by DEC, seems to consider the length
        returned from fstat() as an upper bound and call fread() with

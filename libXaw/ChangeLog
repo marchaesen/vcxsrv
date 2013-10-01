@@ -1,3 +1,82 @@
+commit a2d573ad309b4e717c5aef4635daa51e60a46db7
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Sep 7 20:57:47 2013 -0700
+
+    libXaw 1.0.12
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit c68047934774bf0a96bc2ee84c36bf59eabf9dfb
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Jul 6 00:21:19 2013 -0700
+
+    Replace TXT16 with XChar2b inline
+    
+    No longer need #define to substitute it now that we no longer set
+    it to a different type on CRAY systems.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 93c88707e017274eaeb6df6a6b9f3bf2da6af06b
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Jul 6 00:20:24 2013 -0700
+
+    Remove CRAY/WORD64 support (unifdef -UCRAY -UWORD64)
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit a30892ed9b6d193f6eb2bab5b37180ac8f63b0b1
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Apr 21 15:55:33 2013 -0700
+
+    Fix fd leak when write() fails in WriteToFile()
+    
+    Reported by parfait 1.1 bug checking tool:
+       File Descriptor Leak: Leaked File Descriptor fd
+            at line 1098 of src/MultiSrc.c in function 'WriteToFile'.
+              fd initialized at line 1096 with creat
+              fd leaks when creat(name, 438) != -1 at line 1096.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 26fb314644fd01928fc881e72e36b2c6bdda5b3b
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Apr 21 15:49:33 2013 -0700
+
+    Fix fd leak when fdopen() fails in InitStringOrFile()
+    
+    Found by parfait 1.1p2 bug checking tool:
+       File Descriptor Leak: Leaked File Descriptor fd
+            at line 1507 of src/AsciiSrc.c in function 'InitStringOrFile'.
+              fd initialized at line 1488 with open
+              fd leaks when open(src->ascii_src.string, open_mode, 438) != -1 at line 1488.
+            at line 1276 of src/MultiSrc.c in function 'InitStringOrFile'.
+              fd initialized at line 1257 with open
+              fd leaks when open(src->multi_src.string, open_mode, 438) != -1 at line 1257.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit a5630e166921b5b5322b30fb152df01bb6536e42
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Jan 4 19:42:05 2013 -0800
+
+    unifdef -U__UNIXOS2__
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit e360c7c86b9229ee9fe24b97aba2bfee5df05748
+Author: Ryan Pavlik <rpavlik@iastate.edu>
+Date:   Mon Jan 2 03:11:59 2012 +0000
+
+    Include winsock header on WIN32 to provide fd_set etc.
+    
+    v2: also link with ws2_32 on MinGW
+    
+    Signed-off-by: Ryan Pavlik <rpavlik@iastate.edu>
+    Reviewed-by: Jon TURNEY <jon.turney@dronecode.org.uk>
+    Reviewed-by: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+
 commit ffaad7ee2ef6e06b4585567df04f6b64356fb6fe
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Fri Jun 1 20:31:30 2012 -0700

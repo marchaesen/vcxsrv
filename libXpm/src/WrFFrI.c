@@ -45,10 +45,11 @@
 #ifndef NO_ZPIPE
 #include "sys/wait.h"
 #include "sys/types.h"
-#include "fcntl.h"
 #include "unistd.h"
 #include "errno.h"
 #endif
+
+#include "fcntl.h"
 
 /* MS Windows define a function called WriteFile @#%#&!!! */
 LFUNC(xpmWriteFile, int, (FILE *file, XpmImage *image, const char *name,
@@ -63,13 +64,13 @@ LFUNC(WritePixels, int, (FILE *file, unsigned int width, unsigned int height,
 LFUNC(WriteExtensions, void, (FILE *file, XpmExtension *ext,
 			      unsigned int num));
 
-LFUNC(OpenWriteFile, int, (char *filename, xpmData *mdata));
+LFUNC(OpenWriteFile, int, (const char *filename, xpmData *mdata));
 LFUNC(xpmDataClose, void, (xpmData *mdata));
 
 int
 XpmWriteFileFromImage(
     Display		*display,
-    char		*filename,
+    const char		*filename,
     XImage		*image,
     XImage		*shapeimage,
     XpmAttributes	*attributes)
@@ -99,7 +100,7 @@ XpmWriteFileFromImage(
 
 int
 XpmWriteFileFromXpmImage(
-    char	*filename,
+    const char	*filename,
     XpmImage	*image,
     XpmInfo	*info)
 {
@@ -319,7 +320,7 @@ FUNC(xpmPipeThrough, FILE*, (int fd,
  */
 static int
 OpenWriteFile(
-    char	*filename,
+    const char	*filename,
     xpmData	*mdata)
 {
     if (!filename) {
@@ -346,8 +347,10 @@ OpenWriteFile(
 	    mdata->stream.file = fdopen(fd, "w");
 	    mdata->type = XPMFILE;
 	}
-	if (!mdata->stream.file)
+	if (!mdata->stream.file) {
+	    close(fd);
 	    return (XpmOpenFailed);
+	}
     }
     return (XpmSuccess);
 }

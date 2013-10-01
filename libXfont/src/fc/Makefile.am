@@ -1,4 +1,4 @@
-INCLUDES =                      \
+AM_CPPFLAGS = 			\
 	-I${top_srcdir}/include
 
 AM_CFLAGS = $(XFONT_CFLAGS) $(OS_CFLAGS) $(CWARNFLAGS)

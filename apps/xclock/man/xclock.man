@@ -29,7 +29,6 @@
 .SH NAME
 xclock \- analog / digital clock for X
 .SH SYNOPSIS
-.ta 8n
 \fBxclock\fP [ \fB\-help\fP ] [ \fB\-analog\fP | \fB\-digital\fP ]
 [ \fB\-brief\fP ] [ \fB\-chime\fP ] [ \fB\-hd\fP \fIcolor\fP ]
 [ \fB\-hl\fP \fIcolor\fP ] [ \fB\-update\fP \fIseconds\fP ]
@@ -237,12 +236,12 @@ the widgets which compose \fIxclock\fR.  In the notation below,
 indentation indicates hierarchical structure.  The widget class name
 is given first, followed by the widget instance name.
 .sp
+.ft CW
 .nf
-.\".TA .5i
-.ta .5i
 XClock  xclock
-	Clock  clock
+        Clock  clock
 .fi
+.ft
 .sp
 .SH ENVIRONMENT
 .PP

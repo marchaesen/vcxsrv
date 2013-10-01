@@ -39,7 +39,7 @@
 
 int
 XpmReadFileToData(
-    char	  *filename,
+    const char	  *filename,
     char	***data_return)
 {
     XpmImage image;

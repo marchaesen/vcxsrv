@@ -1491,6 +1491,8 @@ InitStringOrFile(AsciiSrcObject src, Bool newString)
 		src->ascii_src.length = (XawTextPosition)ftell(file);
 		return (file);
 	    }
+	    else
+		close(fd);
 	}
 	{
 	    String params[2];

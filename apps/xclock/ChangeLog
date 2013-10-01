@@ -1,3 +1,55 @@
+commit 66a2f29e7c649d1eb4079910b0211ffdf7dbbd4d
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Sep 7 23:33:09 2013 -0700
+
+    xclock 1.0.7
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 1ac04613b566ba0dde29a16f3ac409832f32d74e
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Jul 18 21:02:55 2013 -0700
+
+    Combine usage message strings & print them to stderr, not stdout
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 61f95e11eef3fbfb9060a32233df13c35115a6f3
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Jul 18 20:59:01 2013 -0700
+
+    Add noreturn attributes suggested by -Wmissing-noreturn
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 52bbd1ce31f1adf2b7145b9d6183f6b866fa9301
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Jul 18 20:50:17 2013 -0700
+
+    Store sine & cosine tables as doubles instead of floats
+    
+    Since they're used as doubles in the calculations, might as well store them
+    that way instead of converting when read from the table at runtime.
+    
+    Costs about 4k more storage in the binary for the doubled tables.
+    
+    Also gets rid of 900 clang warnings, of the form:
+    
+    Clock.c:1708:11: warning: implicit conversion loses floating-point precision:
+          'double' to 'float' [-Wconversion]
+    0.000000, 0.001745, 0.003490, 0.005235, 0.006981, 0.008726, 0.010471, 0.012217,
+    
+    (one for each table entry)
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 69de4eaa3be6cc177eb53a4754cb6bd35340c585
+Author: Eric S. Raymond <esr@thyrsus.com>
+Date:   Thu Aug 23 06:15:01 2012 -0400
+
+    Don't rely on being able to set tab stops.
+    Signed-off-by: Eric S. Raymond <esr@thyrsus.com>
+
 commit cd184e2f1a6f8f4f9178d29e43dc08d1534504e3
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Fri Feb 10 22:03:24 2012 -0800

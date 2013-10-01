@@ -1,3 +1,126 @@
+commit 3425cbb0e6086f74783eafbe23df1121b655e006
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Sep 7 21:40:17 2013 -0700
+
+    libXpm 3.5.11
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 4bab3b62a47996ee77b8ddebcd92f0ebe9679c28
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Sep 7 21:36:51 2013 -0700
+
+    Fix typo in COPYING (matches src/amigax.h)
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 9e38750da16c6e5bd8bb26b00d74041ddf9be3e8
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Aug 2 22:22:09 2013 -0700
+
+    Add noreturn attributes suggested by gcc
+    
+    Remove extra bogus return added to avoid warnings when calling Punt()
+    since gcc didn't know it would never return.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 93f900ceac7ac899e00998adc8782ed02b352930
+Author: Eric S. Raymond <esr@thyrsus.com>
+Date:   Wed Jun 19 06:19:18 2013 -0400
+
+    doclifter can't handle more than one dash in a name line.
+
+commit 22734e4439b3609a6b621d8e7ef8465f0a2ac0d5
+Author: Claudio Bley <cbley@av-test.de>
+Date:   Mon May 27 09:32:05 2013 +0200
+
+    Fix libXpm build with NO_ZPIPE
+    
+    When NO_ZPIPE is defined, fcntl.h is not included in WrFFrI.c
+    although OpenWriteFile uses open, O_WRONLY, O_CREAT and O_TRUNC.
+    
+        * src/WrFFrI.c: unconditionally include fcntl.h regardless
+         of NO_ZPIPE being defined or not.
+    
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit e439f6e7163e3259f11f3363fa319e8a29085a92
+Author: Christophe CURIS <christophe.curis@free.fr>
+Date:   Wed May 1 10:39:38 2013 +0200
+
+    Added 'const' attribute to all filename arguments in the API
+    
+    The filename is always a read-only argument, so it is a good idea
+    to let the caller now about it.
+    
+    This patch does not change active code; the place where the attribute
+    is added will not break source-level compatibility because it adds
+    no restriction on caller side, just adds information; because the
+    lib code behaved the same way it will not break the binary interface
+    either.
+    
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 01ee6b9c500cd9c67f167e68c8383e8c58db5ddf
+Author: Christophe CURIS <christophe.curis@free.fr>
+Date:   Wed May 1 10:39:37 2013 +0200
+
+    Added 'const' qualifier to the filename argument to internal functions
+    
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 980e9f851e47d31eed9635a6399a23d1456548d0
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Apr 22 13:23:09 2013 -0700
+
+    Close fd if fdopen() or xpmPipeThrough() fails in OpenWriteFile()
+    
+    Fixes leak found by parfait 1.1 bug checking tool:
+       File Descriptor Leak: Leaked File Descriptor fd
+            at line 350 of lib/libXpm/src/WrFFrI.c in function 'OpenWriteFile'.
+              fd initialized at line 332 with open
+              fd leaks when strcmp(".Z", (filename + (len - 2))) != 0 at line 337
+                  and strcmp(".gz", (filename + (len - 3))) != 0 at line 340.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Mark Kettenis <kettenis@openbsd.org>
+
+commit 81608285e11f2455800001a965dfece878861162
+Author: Colin Walters <walters@verbum.org>
+Date:   Wed Jan 4 17:37:06 2012 -0500
+
+    autogen.sh: Implement GNOME Build API
+    
+    http://people.gnome.org/~walters/docs/build-api.txt
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
+commit 4c3e0ff63a7c71daaafdcdaa1d619063e0cf4a63
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Tue Jan 15 14:28:48 2013 -0500
+
+    configure: Remove AM_MAINTAINER_MODE
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
+commit 4ca8014afbb66f0b65cdcd8ea12e469f52c8c70c
+Author: Jon TURNEY <jon.turney@dronecode.org.uk>
+Date:   Mon Jan 2 22:45:53 2012 +0000
+
+    Define NO_ZPIPE when building for MinGW
+    
+    Define NO_ZPIPE when building for MinGW, decompressing via a pipe isn't implemented.
+    (since xpmPipeThrough() is only written in terms of fork() currently...)
+    
+    Signed-off-by: Jon TURNEY <jon.turney@dronecode.org.uk>
+    Reviewed-by: Colin Harrison <colin.harrison@virgin.net>
+    Reviewed-by: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+    Reviewed-by: Ángel González <ingenit@zoho.com>
+
 commit acaaea96776b36c097d5413040c5ce85d3ae6cb9
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Wed Mar 7 20:39:55 2012 -0800
@@ -846,6 +969,9 @@ Date:   Tue Sep 21 17:57:35 2004 +0000
     Added new libs to the bindist control files.
     Removed inclusion of unnecessary kernel header on Linux. This may fail in
         an -ansi environment.
+
+Notes:
+    Fixes CVE-2004-0687 (integer overflows) and CVE-2004-0688 (stack overflows)
 
 commit 2773a7214e282f6f673483f5233b880505947c3f
 Author: Egbert Eich <eich@suse.de>

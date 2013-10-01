@@ -1,3 +1,115 @@
+commit d103af8068fb90494cbd6e1ff950850369bbf95f
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Mar 29 16:20:49 2013 -0700
+
+    xproto 7.0.24
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit f8c43d587e43fee2c22bd7b5f35a9d4dc8bdb580
+Author: Colin Walters <walters@verbum.org>
+Date:   Wed Jan 4 17:37:06 2012 -0500
+
+    autogen.sh: Implement GNOME Build API
+    
+    http://people.gnome.org/~walters/docs/build-api.txt
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
+commit 3707c6e71c01758b0ac5b2c29c8600b6ff6b73ee
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Tue Jan 15 14:01:10 2013 -0500
+
+    configure: Remove AM_MAINTAINER_MODE
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
+commit c0dd615fddb6fa487d1a914c6928f3843489725e
+Author: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+Date:   Mon Oct 22 02:52:44 2012 -0500
+
+    Adjust wrapping to work with MinGW-w64 headers
+    
+    Adjust <windows.h> wrapping to work with MinGW-w64 as well MinGW.org
+    headers, which define BOOL in a different way.
+    Add some more comments on what we doing here.
+    v2: Make similar changes to Xwinsock.h, used for MinGW but not Cygwin.
+    
+    Signed-off-by: Jon TURNEY <jon.turney@dronecode.org.uk>
+    Signed-off-by: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+    Reviewed-by: Colin Harrison <colin.harrison@virgin.net>
+
+commit c0d697ffddf14117541e7021c3b80b25c4536f6f
+Author: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+Date:   Mon Oct 15 02:16:46 2012 -0500
+
+    Do not use visibility attributes on MinGW
+    
+    Signed-off-by: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+    Reviewed-by: Colin Harrison <colin.harrison@virgin.net>
+    Tested-by: Colin Harrison <colin.harrison@virgin.net>
+
+commit c76d51423d6a6afe4f0c8fc6f863ba97d202184b
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Aug 26 14:36:50 2012 -0700
+
+    Bug 51009: _X_RESTRICT_KYWD fix for g++ 4.6 & later on Solaris
+    
+    g++ 4.6 & later on Solaris set the __STDC_VERSION__ define to indicate
+    C99 mode to expose C99/Unix03 functions in the system headers, even
+    though they don't recognize the C99 restrict keyword, as explained in
+    http://gcc.gnu.org/ml/gcc-patches/2010-05/msg01308.html
+    
+    Thus we avoid using the restrict keyword here if __cplusplus is also
+    defined, falling back to the __GNUC__ case using __restrict__ instead.
+    
+    Fixes https://bugs.freedesktop.org/show_bug.cgi?id=51009
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Tested-by: Jonathan Perkin
+
+commit f1b8b4dd5e798b7e91da95eca997ec7236fcbc27
+Author: James M Leddy <james.leddy@canonical.com>
+Date:   Wed May 9 12:45:01 2012 -0700
+
+    Add XF86XK_AudioMicMute
+    
+    Lenovo Thinkpad machines have a microphone mute in addition to the
+    standard audio output mute.
+    
+    Signed-off-by: James M. Leddy <james.leddy@canonical.com>
+    Signed-off-by: James Cloos <cloos@jhcloos.com>
+
+commit a06fa7fc98b66652df8bbc4734b5010d43744373
+Author: Sergei Trofimovich <slyfox@gentoo.org>
+Date:   Tue Dec 20 16:43:44 2011 +0300
+
+    Xmd.h: Treat __ILP32__ targets as LONG32 ones
+    
+    amd64-x32 ABI defines sizeof(long) == sizeof (void*) == 4
+    
+    Noticed on build failure of libXmu:
+      libXmu-1.1.0/work/libXmu-1.1.0/src/EditresCom.c: In function '_XEditresGetStringValues':
+      libXmu-1.1.0/work/libXmu-1.1.0/src/EditresCom.c:2198:6: error: duplicate case value
+      libXmu-1.1.0/work/libXmu-1.1.0/src/EditresCom.c:2194:6: error: previously used here
+    
+    More info about x32: https://sites.google.com/site/x32abi/
+    
+    Signed-off-by: Sergei Trofimovich <slyfox@gentoo.org>
+    Signed-off-by: James Cloos <cloos@jhcloos.com>
+
+commit a6651a8d812d224a9e74205bdefb7081f743af11
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Tue May 1 16:38:14 2012 -0400
+
+    config: replace obsolete AC_CONFIG_HEADER with with AC_CONFIG_HEADERS
+    
+    The former is an obsolete alias to the latter.
+    It may get removed in the future.
+    
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
 commit 20202784b9700d973d5301f0cb3243eba99fc349
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Thu Mar 15 23:11:19 2012 -0700

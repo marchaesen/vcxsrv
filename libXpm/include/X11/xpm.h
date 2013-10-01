@@ -304,13 +304,13 @@ _XFUNCPROTOBEGIN
 
     FUNC(XpmReadFileToPixmap, int, (Display *display,
 				    Drawable d,
-				    char *filename,
+				    const char *filename,
 				    Pixmap *pixmap_return,
 				    Pixmap *shapemask_return,
 				    XpmAttributes *attributes));
 
     FUNC(XpmWriteFileFromPixmap, int, (Display *display,
-				       char *filename,
+				       const char *filename,
 				       Pixmap pixmap,
 				       Pixmap shapemask,
 				       XpmAttributes *attributes));
@@ -329,13 +329,13 @@ _XFUNCPROTOBEGIN
 				       XpmAttributes *attributes));
 
     FUNC(XpmReadFileToImage, int, (Display *display,
-				   char *filename,
+				   const char *filename,
 				   XImage **image_return,
 				   XImage **shapeimage_return,
 				   XpmAttributes *attributes));
 
     FUNC(XpmWriteFileFromImage, int, (Display *display,
-				      char *filename,
+				      const char *filename,
 				      XImage *image,
 				      XImage *shapeimage,
 				      XpmAttributes *attributes));
@@ -365,11 +365,11 @@ _XFUNCPROTOBEGIN
 					  Pixmap shapemask,
 					  XpmAttributes *attributes));
 #endif
-    FUNC(XpmReadFileToBuffer, int, (char *filename, char **buffer_return));
-    FUNC(XpmWriteFileFromBuffer, int, (char *filename, char *buffer));
+    FUNC(XpmReadFileToBuffer, int, (const char *filename, char **buffer_return));
+    FUNC(XpmWriteFileFromBuffer, int, (const char *filename, char *buffer));
 
-    FUNC(XpmReadFileToData, int, (char *filename, char ***data_return));
-    FUNC(XpmWriteFileFromData, int, (char *filename, char **data));
+    FUNC(XpmReadFileToData, int, (const char *filename, char ***data_return));
+    FUNC(XpmWriteFileFromData, int, (const char *filename, char **data));
 
     FUNC(XpmAttributesSize, int, (void));
     FUNC(XpmFreeAttributes, void, (XpmAttributes *attributes));
@@ -382,11 +382,11 @@ _XFUNCPROTOBEGIN
     FUNC(XpmLibraryVersion, int, (void));
 
     /* XpmImage functions */
-    FUNC(XpmReadFileToXpmImage, int, (char *filename,
+    FUNC(XpmReadFileToXpmImage, int, (const char *filename,
 				      XpmImage *image,
 				      XpmInfo *info));
 
-    FUNC(XpmWriteFileFromXpmImage, int, (char *filename,
+    FUNC(XpmWriteFileFromXpmImage, int, (const char *filename,
 					 XpmImage *image,
 					 XpmInfo *info));
 #if !defined(FOR_MSW) && !defined(AMIGA)

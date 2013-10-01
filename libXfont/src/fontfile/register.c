@@ -55,8 +55,10 @@ FontFileRegisterFpeFunctions(void)
 #ifdef XFONT_FREETYPE
     FreeTypeRegisterFontFileFunctions();
 #endif
-    
+
     FontFileRegisterLocalFpeFunctions ();
+#ifdef HAVE_READLINK
     CatalogueRegisterLocalFpeFunctions ();
+#endif
 }
 

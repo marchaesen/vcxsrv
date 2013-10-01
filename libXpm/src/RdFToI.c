@@ -50,7 +50,7 @@ typedef int pid_t;
 #endif
 #endif
 
-LFUNC(OpenReadFile, int, (char *filename, xpmData *mdata));
+LFUNC(OpenReadFile, int, (const char *filename, xpmData *mdata));
 LFUNC(xpmDataClose, void, (xpmData *mdata));
 
 FUNC(xpmPipeThrough, FILE*, (int fd,
@@ -62,7 +62,7 @@ FUNC(xpmPipeThrough, FILE*, (int fd,
 int
 XpmReadFileToImage(
     Display		 *display,
-    char		 *filename,
+    const char		 *filename,
     XImage		**image_return,
     XImage		**shapeimage_return,
     XpmAttributes	 *attributes)
@@ -105,7 +105,7 @@ XpmReadFileToImage(
 
 int
 XpmReadFileToXpmImage(
-    char	*filename,
+    const char	*filename,
     XpmImage	*image,
     XpmInfo	*info)
 {
@@ -195,7 +195,7 @@ fail2:
  */
 static int
 OpenReadFile(
-    char	*filename,
+    const char	*filename,
     xpmData	*mdata)
 {
     if (!filename) {

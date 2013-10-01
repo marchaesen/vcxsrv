@@ -41,9 +41,6 @@
 #include <X11/Xfuncs.h>
 #include "Private.h"
 
-#ifdef __UNIXOS2__
-static char dummy;
-#endif
 
 #ifndef OLDXAW
 

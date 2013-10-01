@@ -1,0 +1,603 @@
+commit 61236e831f8cc0761b26b49e37a4df9c187aa0ba
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Jun 13 22:41:00 2013 -0700
+
+    libXrender 0.9.8
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 786f78fd8df6d165ccbc81f306fd9f22b5c1551c
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Apr 12 23:02:11 2013 -0700
+
+    integer overflow in XRenderQueryPictIndexValues() [CVE-2013-1987 3/3]
+    
+    The length and numIndexValues members of the reply are both CARD32 and
+    need to be bounds checked before multiplying by sizeof (XIndexValue) to
+    avoid integer overflow leading to underallocation and writing data from
+    the network past the end of the allocated buffer.
+    
+    Reported-by: Ilja Van Sprundel <ivansprundel@ioactive.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 9e577d40322b9e3d8bdefec0eefa44d8ead451a4
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Apr 12 23:02:11 2013 -0700
+
+    integer overflow in XRenderQueryFormats() [CVE-2013-1987 2/3]
+    
+    The length, numFormats, numScreens, numDepths, and numVisuals members of
+    the reply are all CARD32 and need to be bounds checked before multiplying
+    and adding them together to come up with the total size to allocate, to
+    avoid integer overflow leading to underallocation and writing data from
+    the network past the end of the allocated buffer.
+    
+    Reported-by: Ilja Van Sprundel <ivansprundel@ioactive.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit e52853974664289fe42a92909667ed77cfa1cec5
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Apr 12 22:45:20 2013 -0700
+
+    integer overflow in XRenderQueryFilters() [CVE-2013-1987 1/3]
+    
+    The length, numFilters & numAliases members of the reply are all CARD32
+    and need to be bounds checked before multiplying & adding them together
+    to come up with the total size to allocate, to avoid integer overflow
+    leading to underallocation and writing data from the network past the
+    end of the allocated buffer.
+    
+    Reported-by: Ilja Van Sprundel <ivansprundel@ioactive.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 73e77eb21d649edc1ce1746739f9358e337b2935
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri May 3 22:48:11 2013 -0700
+
+    Use _XEatDataWords to avoid overflow of rep.length bit shifting
+    
+    rep.length is a CARD32, so rep.length << 2 could overflow in 32-bit builds
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 1af52cb334377611233d7dc156bc1e6f7923756d
+Author: Colin Walters <walters@verbum.org>
+Date:   Wed Jan 4 17:37:06 2012 -0500
+
+    autogen.sh: Implement GNOME Build API
+    
+    http://people.gnome.org/~walters/docs/build-api.txt
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
+commit a4265cd7a69349f1697f81e18303a77358e27f33
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Tue Jan 15 14:28:48 2013 -0500
+
+    configure: Remove AM_MAINTAINER_MODE
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
+commit bf1aa4e05997ab97be4413ccdb6d0d1eb45aeefe
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Mar 7 20:46:50 2012 -0800
+
+    libXrender 0.9.7
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit bb6568cbec24ae2c84bb5d9fe418f0021291a0af
+Author: Emanuele Giaquinta <emanuele.giaquinta@gmail.com>
+Date:   Mon Jan 2 19:58:15 2012 +0000
+
+    Fix alpha premultiplication in XRenderParseColor.
+    
+    Due to C arithmetic conversion rules we must use an unsigned constant (or a
+    cast) to perform the multiplication using unsigned arithmetic.
+    
+    Reviewed-by: Jeremy Huddleston <jeremyhu@apple.com>
+
+commit b3cfeecf2bddbbb120a9c796a4c9fb8fd08e15fc
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Sep 16 22:51:39 2011 -0700
+
+    Strip trailing whitespace
+    
+    Performed with: find * -type f | xargs perl -i -p -e 's{[ \t]+$}{}'
+    git diff -w & git diff -b show no diffs from this change
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit eaae07c9c9690228e16ab8dc537a8a0c2ae175bf
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun May 22 12:47:10 2011 -0700
+
+    Make DEPTH_MASK generate unsigned ints
+    
+    Clears Sun compiler warning:
+    "Xrender.c", line 127: warning: integer overflow detected: op "<<"
+    since 1 << 31 overflows a signed 32-bit int.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 1025ca2d9a00bc60639689fba177d186dace5483
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Feb 2 11:43:44 2011 -0500
+
+    config: comment, minor upgrade, quote and layout configure.ac
+    
+    Group statements per section as per Autoconf standard layout
+    Quote statements where appropriate.
+    Autoconf recommends not using dnl instead of # for comments
+    
+    Use AC_CONFIG_FILES to replace the deprecated AC_OUTPUT with parameters.
+    Add AC_CONFIG_SRCDIR([Makefile.am])
+    Remove redundant AC_SUBST(*_CFLAGS) and/or *_LIBS
+    Update minimum version of util-macros to at least 1.8.
+    No functional configuration changes
+    
+    This helps automated maintenance and release activities.
+    Details can be found in http://wiki.x.org/wiki/NewModuleGuidelines
+
+commit d3258bb910de98836f01be320ff59bb841eef825
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Fri Jan 28 19:41:37 2011 -0500
+
+    config: replace deprecated AM_CONFIG_HEADER with AC_CONFIG_HEADERS
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit ba0036d984787dc2da74ef3d8ffb9b81ca13c19c
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Thu Jan 27 18:50:15 2011 -0500
+
+    config: remove AC_PROG_CC as it overrides AC_PROG_C_C99
+    
+    XORG_STRICT_OPTION from XORG_DEFAULT_OPTIONS calls
+    AC_PROG_C_C99. This sets gcc with -std=gnu99.
+    If AC_PROG_CC macro is called afterwards, it resets CC to gcc.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 5fb74888fd77843c81de038365791f29c799bbec
+Author: Aaron Plattner <aplattner@nvidia.com>
+Date:   Thu Nov 4 09:13:49 2010 -0700
+
+    Fix some minor typos
+    
+    Signed-off-by: Aaron Plattner <aplattner@nvidia.com>
+
+commit b1c60edb6b6a965e58fed3b613c266364a5ec0ce
+Author: Fernando Carrijo <fcarrijo@yahoo.com.br>
+Date:   Thu Jul 1 07:02:41 2010 -0300
+
+    Purge macros NEED_EVENTS and NEED_REPLIES
+    
+    Signed-off-by: Fernando Carrijo <fcarrijo@yahoo.com.br>
+    Acked-by: Tiago Vignatti <tiago.vignatti@nokia.com>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit d3d20437ceee1c225cd189fdeb6378552e206337
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Jun 8 19:23:04 2010 -0700
+
+    libXrender 0.9.6
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 0dcf5c152a6463342897375c71e4f76476d285d2
+Author: Jamey Sharp <jamey@minilop.net>
+Date:   Fri Apr 9 17:26:52 2010 -0700
+
+    Always call SyncHandle after issuing an X request.
+
+commit b138debfd03e096a0af998495441ac262733dfc9
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Mon Mar 29 14:53:49 2010 -0400
+
+    config: remove the pkgconfig pc.in file from EXTRA_DIST
+    
+    Automake always includes it in the tarball.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 1380d975d1b85decd2b0a6e8a7e629b1bdd1d1ad
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Thu Jan 14 09:43:56 2010 -0500
+
+    COPYING: add missing copyright notices
+    
+    Refer to: Composite.c
+    Copyright © 2000 SuSE, Inc.
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit fc8b02894452ad93101b35fec41cb1baf72e746a
+Author: Rémi Cardona <remi@gentoo.org>
+Date:   Thu Dec 17 08:30:04 2009 +0100
+
+    require autoconf 2.60 because of $(docdir) use
+    
+    Signed-off-by: Rémi Cardona <remi@gentoo.org>
+    Reviewed-by: Gaetan Nadon <memsize@videotron.ca>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@sun.com>
+    Reviewed-by: Dan Nicholson <dbn.lists@gmail.com>
+
+commit f662ae0e47a6f8fe47457a0b38f72f9598f37c96
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Fri Nov 27 20:56:04 2009 -0500
+
+    Makefile.am: add ChangeLog and INSTALL on MAINTAINERCLEANFILES
+    
+    Now that the INSTALL file is generated.
+    Allows running make maintainer-clean.
+
+commit 83a3fd787f3058284d8b903ac190de54ba1f0e6d
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Wed Oct 28 14:09:10 2009 -0400
+
+    INSTALL, NEWS, README or AUTHORS files are missing/incorrect #24206
+    
+    Add missing INSTALL file. Use standard GNU file on building tarball
+    README may have been updated
+    Remove AUTHORS file as it is empty and no content available yet.
+    Remove NEWS file as it is empty and no content available yet.
+
+commit cf8a7c4463eba5ef3c63186ad539c201df3770f9
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Tue Oct 27 15:07:26 2009 -0400
+
+    Deploy the new XORG_DEFAULT_OPTIONS #24242
+    
+    This macro aggregate a number of existing macros that sets commmon
+    X.Org components configuration options. It shields the configuration file from
+    future changes.
+
+commit f58f2bf44c35ca82ecd9f022a494af0fbcd0a537
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Mon Oct 26 22:08:43 2009 -0400
+
+    Makefile.am: ChangeLog not required: EXTRA_DIST or *CLEANFILES #24432
+    
+    ChangeLog filename is known to Automake and requires no further
+    coding in the makefile.
+
+commit 47051786b209039488dfca6b644db3f67ca96426
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Thu Oct 22 12:34:19 2009 -0400
+
+    .gitignore: use common defaults with custom section # 24239
+    
+    Using common defaults will reduce errors and maintenance.
+    Only the very small or inexistent custom section need periodic maintenance
+    when the structure of the component changes. Do not edit defaults.
+
+commit 1da8c1bfbb17750e5ba51321961aaf39b8cf98f7
+Author: Tomáš Chvátal <scarabeus@gentoo.org>
+Date:   Sun Nov 29 13:38:42 2009 +0100
+
+    Make libXrender use docdir for documentation placement.
+    
+    Signed-off-by: Tomáš Chvátal <scarabeus@gentoo.org>
+    Signed-off-by: Julien Cristau <jcristau@debian.org>
+
+commit a5ab173b0b19e6acefc897492b21fc6e6c296282
+Author: Jeremy Huddleston <jeremyhu@freedesktop.org>
+Date:   Wed Oct 21 12:47:26 2009 -0700
+
+    This is not a GNU project, so declare it foreign.
+    
+    On Wed, 2009-10-21 at 13:36 +1000, Peter Hutterer wrote:
+    > On Tue, Oct 20, 2009 at 08:23:55PM -0700, Jeremy Huddleston wrote:
+    > > I noticed an INSTALL file in xlsclients and libXvMC today, and it
+    > > was quite annoying to work around since 'autoreconf -fvi' replaces
+    > > it and git wants to commit it.  Should these files even be in git?
+    > > Can I nuke them for the betterment of humanity and since they get
+    > > created by autoreconf anyways?
+    >
+    > See https://bugs.freedesktop.org/show_bug.cgi?id=24206
+    
+    As an interim measure, replace AM_INIT_AUTOMAKE([dist-bzip2]) with
+    AM_INIT_AUTOMAKE([foreign dist-bzip2]). This will prevent the generation
+    of the INSTALL file. It is also part of the 24206 solution.
+    
+    Signed-off-by: Jeremy Huddleston <jeremyhu@freedesktop.org>
+
+commit 5865c457191da7f7357b7c7cdfb1a6e695e630df
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Thu Oct 1 22:34:19 2009 -0700
+
+    libXrender 0.9.5
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit cb8df63ef0a8a70dfff21eef02f9d50095854ec0
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Thu Oct 1 22:28:05 2009 -0700
+
+    Migrate to xorg macros 1.3 & XORG_DEFAULT_OPTIONS
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit 394342d73472c3921eb941bf5f07c24237d89b1a
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Thu Oct 1 22:15:30 2009 -0700
+
+    Move libXrender documentation from xorg-docs
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit cc94fadacb4be63f8577c3c4de65dacaee531776
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Mon Feb 2 20:34:36 2009 -0800
+
+    Add README with pointers to mailing list, bugzilla & git repos
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@sun.com>
+
+commit 3747f97f133b5fe8dea0d1991d68c4693d488aae
+Author: Paulo Cesar Pereira de Andrade <pcpa@mandriva.com.br>
+Date:   Fri Jan 30 16:49:59 2009 -0200
+
+    Janitor: make distcheck, compiler warnings, .gitignore.
+
+commit f6f784c0f98c28915bd26d04e4d8839806e29877
+Author: Pierre-Loup Griffais <pgriffais@nvidia.com>
+Date:   Fri Apr 18 17:32:32 2008 -0700
+
+    Use Data instead of Data32 to avoid truncating the filter parameters on 64-bit systems.
+    
+    Signed-off-by: Aaron Plattner <aplattner@nvidia.com>
+
+commit 5653231fcde636e4215c70b1e436554e1ffe07a7
+Author: Matthieu Herrb <matthieu.herrb@laas.fr>
+Date:   Sun Mar 9 08:39:12 2008 +0100
+
+    nuke RCS Ids
+
+commit e1333b82c0f6e7b9acdbae19d18377a0ed65bddb
+Author: James Cloos <cloos@jhcloos.com>
+Date:   Thu Dec 6 16:38:43 2007 -0500
+
+    Replace static ChangeLog with dist-hook to generate from git log
+
+commit e10d5cbe4c5ed98ae1856e20a0e9d31321330d53
+Merge: 497dda5 9d3f9fd
+Author: Eric Anholt <eric@anholt.net>
+Date:   Wed Sep 5 08:25:12 2007 -0700
+
+    Merge branch 'master' of git+ssh://git.freedesktop.org/git/xorg/lib/libXrender
+
+commit 497dda5615d0484d34f3a0a580353ac10ceaced5
+Author: Eric Anholt <eric@anholt.net>
+Date:   Wed Sep 5 08:20:33 2007 -0700
+
+    Bump version to 0.9.4.
+
+commit 89bc96e2c10c3902b82d74da95608bb48319ad29
+Author: Paul Bender <pebender@san.rr.com>
+Date:   Wed Sep 5 08:19:55 2007 -0700
+
+    Reorder render.h include so that XID has been picked up by then.
+    
+    While libXrender built fine. some software requiring libXrender didn't include
+    Xlib.h beforehand.
+
+commit 9d3f9fd3f6f37112fecb2e96e9b25eb860a4b67d
+Author: James Cloos <cloos@jhcloos.com>
+Date:   Mon Sep 3 05:53:49 2007 -0400
+
+    Add *~ to .gitignore to skip patch/emacs droppings
+
+commit 3fcca95b2628167be4c908a9a315f070eb195660
+Author: David Reveman <davidr@novell.com>
+Date:   Mon Aug 20 14:40:44 2007 -0400
+
+    Bump to 0.9.3
+
+commit 5b38b2d9b981d425587a4eb440acb2f0d6b0db13
+Author: David Reveman <davidr@novell.com>
+Date:   Mon Aug 20 14:38:33 2007 -0400
+
+    Properly set length field in gradient requests (bug 9526).
+
+commit 9fc870a4b68c2e7f5a7bcaca72d96fe105737bb5
+Author: Adam Jackson <ajax@benzedrine.nwnk.net>
+Date:   Fri Oct 13 16:26:35 2006 -0400
+
+    Bump to 0.9.2
+
+commit f7f2d491eff707d6087dcdec1d8a1bbd733b5f14
+Author: Tilman Sauerbeck <tilman@code-monkey.de>
+Date:   Sat Sep 16 20:26:02 2006 +0200
+
+    Const-ified the filter argument to XRenderSetPictureFilter().
+
+commit 28600498df66dd0d7cc25cb1dd48648ae8ba0d30
+Author: Alan Coopersmith <alan.coopersmith@sun.com>
+Date:   Thu Jul 13 14:59:06 2006 -0700
+
+    renamed: .cvsignore -> .gitignore
+
+commit c4bfb815c36911e7b7b752fd3273b09ab246068d
+Author: Adam Jackson <ajax@nwnk.net>
+Date:   Thu Apr 27 00:21:27 2006 +0000
+
+    Bump to 0.9.1
+
+commit 9779025f33c917b74349200e6018d0c94d6ff0ab
+Author: Adam Jackson <ajax@nwnk.net>
+Date:   Mon Apr 3 01:10:02 2006 +0000
+
+    Coverity #428: Fix a potential NULL chase. Coverity #930: Verify that a
+        malloc succeeds.
+
+commit ab1b6bdbce1c83c53ef9ea610466a7c813ab643d
+Author: Kevin E Martin <kem@kem.org>
+Date:   Thu Dec 15 00:24:34 2005 +0000
+
+    Update package version number for final X11R7 release candidate.
+
+commit 94a90971fed66cf636f466b6fdd08a485042c38f
+Author: Kevin E Martin <kem@kem.org>
+Date:   Sat Dec 3 05:49:45 2005 +0000
+
+    Update package version number for X11R7 RC3 release.
+
+commit 874af611e76e4edadfb53479b80ddbd021052aae
+Author: Kevin E Martin <kem@kem.org>
+Date:   Sat Dec 3 04:41:50 2005 +0000
+
+    Add check and cflags for malloc(0) returning NULL.
+
+commit c2874804715f99c6c735079cc018db77494ba0cd
+Author: Kevin E Martin <kem@kem.org>
+Date:   Sat Nov 19 07:15:43 2005 +0000
+
+    Update pkgconfig files to separate library build-time dependencies from
+        application build-time dependencies, and update package deps to work
+        with separate build roots.
+
+commit 438e7bc5783ae00c200ef239cb0ebbe828cdb900
+Author: Kevin E Martin <kem@kem.org>
+Date:   Fri Jul 29 21:22:52 2005 +0000
+
+    Various changes preparing packages for RC0:
+    - Verify and update package version numbers as needed
+    - Implement versioning scheme
+    - Change bug address to point to bugzilla bug entry form
+    - Disable loadable i18n in libX11 by default (use --enable-loadable-i18n to
+        reenable it)
+    - Fix makedepend to use pkgconfig and pass distcheck
+    - Update build script to build macros first
+    - Update modular Xorg version
+
+commit bd4ccfc68aba1bfd75350311b70c0c84c20f3137
+Author: Kevin E Martin <kem@kem.org>
+Date:   Sat Jul 23 18:09:40 2005 +0000
+
+    Modify modular libs to use Xregion.h instead of region.h
+
+commit 9fc7ab9a00f99088432529af9129c5e4702e7c6f
+Author: Kevin E Martin <kem@kem.org>
+Date:   Sat Jul 23 18:06:16 2005 +0000
+
+    lib/Xrender/Picture.c Change region.h to Xregion.h and modify internal
+        references to include <X11/Xregion.h>.
+
+commit 27962f426c54ee19d648601825485c2ca2b50832
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Tue Jul 19 04:53:20 2005 +0000
+
+    Use correct path to region.h.
+
+commit 62c6d0bf4b5d5e27f586bb8a1beccc27bab4ef4c
+Author: Keith Packard <keithp@keithp.com>
+Date:   Sat Jul 9 06:48:50 2005 +0000
+
+    Add .cvsignore files
+
+commit b1051c48a51a9731bce10dd4951485f5554ca605
+Author: Daniel Stone <daniel@fooishbar.org>
+Date:   Sun Jul 3 07:00:57 2005 +0000
+
+    Add Xtrans definitions (FONT_t, TRANS_CLIENT) to clean up warnings.
+    Add XSERV_t, TRANS_SERVER, TRANS_REOPEN to quash warnings.
+    Add #include <dix-config.h> or <xorg-config.h>, as appropriate, to all
+        source files in the xserver/xorg tree, predicated on defines of
+        HAVE_{DIX,XORG}_CONFIG_H. Change all Xfont includes to
+        <X11/fonts/foo.h>.
+
+commit 9359b40d8c41901844924060a864a854dac4adbf
+Author: Lars Knoll <lars@trolltech.com>
+Date:   Fri Jul 1 10:04:51 2005 +0000
+
+    Add support for gradients and solid fills to Render.
+
+commit 60cc17fd8fac9b28363e0979d6b0443be6838613
+Author: Alexander Gottwald <alexander.gottwald@s1999.tu-chemnitz.de>
+Date:   Thu Jun 9 13:49:06 2005 +0000
+
+    Use $(top_srcdir)/... instead of $(top_builddir)/... in INCLUDES Added
+        $(top_srcdir) to INCLUDES
+
+commit 8f765c413911d355dd95a312e31deaf1166206f9
+Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Date:   Thu May 19 20:33:55 2005 +0000
+
+    Add forgotten region.h
+
+commit 65cb00ad3da0cdaad1429ac5cb01e12d7f4a6d0d
+Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Date:   Thu May 19 19:58:24 2005 +0000
+
+    - Add Xrender build system
+
+commit 99a8286d49152c45ebead33df9f32bf6b7799bee
+Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Date:   Thu May 19 19:26:35 2005 +0000
+
+    - Conditionally include config.h in xc/lib/Xrender/*.c
+    - Add Xrender to symlink.sh
+
+commit f11802cdcd65d4e50c7ed8eadf5c907af40b544c
+Author: Markus Kuhn <Markus.Kuhn@cl.cam.ac.uk>
+Date:   Sat Dec 4 00:42:48 2004 +0000
+
+    Encoding of numerous files changed to UTF-8
+
+commit 87e1ae59ec19eeeee70978c922c43e1b219699d5
+Author: Keith Packard <keithp@keithp.com>
+Date:   Sat Aug 7 00:40:40 2004 +0000
+
+    Update to version 0.9 of Xrender (includes XRenderAddTraps)
+
+commit a8302c03f1810fe30aea90f3d42a77663e5cd8a0
+Author: Egbert Eich <eich@suse.de>
+Date:   Mon May 24 19:05:01 2004 +0000
+
+    Muffle compiler warnings.
+    fix option name in log message.
+    improve debugging messages.
+
+commit 7faeec0e653838dc78d8df0c1eb10b833ff0c816
+Author: Egbert Eich <eich@suse.de>
+Date:   Fri Apr 23 18:43:50 2004 +0000
+
+    Merging XORG-CURRENT into trunk
+
+commit 3cdb1c4406d51f671f60f530c557ebfca81bfd3c
+Author: Egbert Eich <eich@suse.de>
+Date:   Sun Mar 14 08:32:25 2004 +0000
+
+    Importing vendor version xf86-4_4_99_1 on Sun Mar 14 00:26:39 PST 2004
+
+commit cb66a1ca643b1756d61bc8bfe6cfef2885791d66
+Author: Egbert Eich <eich@suse.de>
+Date:   Wed Mar 3 12:11:30 2004 +0000
+
+    Importing vendor version xf86-4_4_0 on Wed Mar 3 04:09:24 PST 2004
+
+commit 88d1d0b4e14be414a5afb16bcf83ac2e6b5ea7a6
+Author: Egbert Eich <eich@suse.de>
+Date:   Thu Feb 26 13:35:33 2004 +0000
+
+    readding XFree86's cvs IDs
+
+commit 48b8124dfef71e9302e9b1404870c23a07d799ae
+Author: Egbert Eich <eich@suse.de>
+Date:   Thu Feb 26 09:22:44 2004 +0000
+
+    Importing vendor version xf86-4_3_99_903 on Wed Feb 26 01:21:00 PST 2004
+
+commit 4d0650c66361abac955cf0583291fa12f61137ac
+Author: Kaleb Keithley <kaleb@freedesktop.org>
+Date:   Fri Nov 14 16:48:49 2003 +0000
+
+    XFree86 4.3.0.1
+
+commit 35a608915a0512ca419fb0d4f3116fd68d2d8bc5
+Author: Kaleb Keithley <kaleb@freedesktop.org>
+Date:   Fri Nov 14 16:48:49 2003 +0000
+
+    Initial revision

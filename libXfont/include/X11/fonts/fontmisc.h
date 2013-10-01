@@ -81,11 +81,11 @@ FourByteSwap(
 
 extern int
 RepadBitmap (
-    char*, 
     char*,
-    unsigned, 
+    char*,
     unsigned,
-    int, 
+    unsigned,
+    int,
     int
 );
 
