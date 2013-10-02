@@ -961,37 +961,38 @@ main ()
 ]]))
 
 AC_DEFUN([PIXMAN_CHECK_PTHREAD],[dnl
-    if test "z$support_for_pthread_setspecific" != "zyes"; then
+    if test "z$support_for_pthreads" != "zyes"; then
 	PIXMAN_LINK_WITH_ENV(
 		[$1], [pthread_test_program],
 		[PTHREAD_CFLAGS="$CFLAGS"
 		 PTHREAD_LIBS="$LIBS"
 		 PTHREAD_LDFLAGS="$LDFLAGS"
-		 support_for_pthread_setspecific=yes])
+		 support_for_pthreads=yes])
     fi
 ])
 
-if test $ac_cv_tls = none ; then
-    support_for_pthread_setspecific=no
+support_for_pthreads=no
 
-    AC_MSG_CHECKING(for pthread_setspecific)
+AC_MSG_CHECKING(for pthreads)
 
-    PIXMAN_CHECK_PTHREAD([CFLAGS="-pthread"; LDFLAGS="-pthread"])
-    PIXMAN_CHECK_PTHREAD([CFLAGS="-D_REENTRANT"; LIBS="-lpthread"])
-    PIXMAN_CHECK_PTHREAD([CFLAGS="-D_REENTRANT"; LDFLAGS="-lroot"])
+PIXMAN_CHECK_PTHREAD([CFLAGS="-pthread"; LDFLAGS="-pthread"])
+PIXMAN_CHECK_PTHREAD([CFLAGS="-D_REENTRANT"; LIBS="-lpthread"])
+PIXMAN_CHECK_PTHREAD([CFLAGS="-D_REENTRANT"; LDFLAGS="-lroot"])
     
-    if test $support_for_pthread_setspecific = yes; then
-	CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
-	AC_DEFINE([HAVE_PTHREAD_SETSPECIFIC], [], [Whether pthread_setspecific() is supported])
+if test $support_for_pthreads = yes; then
+    AC_DEFINE([HAVE_PTHREADS], [], [Whether pthreads is supported])
+    if test $ac_cv_tls = none ; then
+        CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
     fi
-
-    AC_MSG_RESULT($support_for_pthread_setspecific);
 fi
 
+AC_MSG_RESULT($support_for_pthreads)
+
 AC_SUBST(TOOLCHAIN_SUPPORTS__THREAD)
-AC_SUBST(HAVE_PTHREAD_SETSPECIFIC)
+AC_SUBST(HAVE_PTHREADS)
 AC_SUBST(PTHREAD_LDFLAGS)
 AC_SUBST(PTHREAD_LIBS)
+AC_SUBST(PTHREAD_CFLAGS)
 
 dnl =====================================
 dnl __attribute__((constructor))

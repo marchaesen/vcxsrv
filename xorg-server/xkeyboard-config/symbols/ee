@@ -2,7 +2,7 @@
 // Estonian XKB-keymap by Ville Hallik <ville@linux.ee>
 //
 
-partial default alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
     // Describes the differences between a very simple en_US

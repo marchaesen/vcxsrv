@@ -13,6 +13,7 @@ TESTPROGRAMS =			\
 	infinite-loop		\
 	trap-crasher		\
 	alpha-loop		\
+	thread-test		\
 	scaling-crash-test	\
 	scaling-helpers-test	\
 	gradient-crash-test	\

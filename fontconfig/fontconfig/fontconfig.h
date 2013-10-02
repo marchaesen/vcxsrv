@@ -974,6 +974,9 @@ FcStrSetDestroy (FcStrSet *set);
 FcPublic FcStrList *
 FcStrListCreate (FcStrSet *set);
 
+FcPublic void
+FcStrListFirst (FcStrList *list);
+
 FcPublic FcChar8 *
 FcStrListNext (FcStrList *list);
 

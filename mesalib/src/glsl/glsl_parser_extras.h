@@ -73,7 +73,7 @@ struct _mesa_glsl_parse_state {
    _mesa_glsl_parse_state(struct gl_context *_ctx, GLenum target,
 			  void *mem_ctx);
 
-   DECLARE_RZALLOC_CXX_OPERATORS(_mesa_glsl_parse_state);
+   DECLARE_RALLOC_CXX_OPERATORS(_mesa_glsl_parse_state);
    static void operator delete(void *mem, void *ctx)
    {
       ralloc_free(mem);
