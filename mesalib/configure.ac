@@ -1781,7 +1781,6 @@ if test "x$with_gallium_drivers" != x; then
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS r600"
             if test "x$enable_r600_llvm" = xyes -o "x$enable_opencl" = xyes; then
                 radeon_llvm_check
-                R600_NEED_RADEON_GALLIUM=yes;
                 LLVM_COMPONENTS="${LLVM_COMPONENTS} bitreader asmparser"
             fi
             if test "x$enable_r600_llvm" = xyes; then
@@ -1824,7 +1823,6 @@ if test "x$with_gallium_drivers" != x; then
 
             if test "x$enable_dri" = xyes; then
                 GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS dri-swrast"
-                HAVE_COMMON_DRI=yes
             fi
             if test "x$enable_vdpau" = xyes; then
                 GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS vdpau-softpipe"
@@ -1938,7 +1936,6 @@ AM_CONDITIONAL(NEED_WINSYS_WRAPPER, test "x$HAVE_GALLIUM_I915" = xyes -o \
                                          "x$HAVE_GALLIUM_SVGA" = xyes)
 AM_CONDITIONAL(NEED_WINSYS_XLIB, test "x$NEED_WINSYS_XLIB" = xyes)
 AM_CONDITIONAL(NEED_RADEON_LLVM, test x$NEED_RADEON_LLVM = xyes)
-AM_CONDITIONAL(R600_NEED_RADEON_GALLIUM, test x$R600_NEED_RADEON_GALLIUM = xyes)
 AM_CONDITIONAL(USE_R600_LLVM_COMPILER, test x$USE_R600_LLVM_COMPILER = xyes)
 AM_CONDITIONAL(HAVE_LOADER_GALLIUM, test x$enable_gallium_loader = xyes)
 AM_CONDITIONAL(HAVE_DRM_LOADER_GALLIUM, test x$enable_gallium_drm_loader = xyes)
@@ -2006,9 +2003,12 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/drivers/freedreno/Makefile
 		src/gallium/drivers/freedreno/a2xx/Makefile
 		src/gallium/drivers/freedreno/a3xx/Makefile
+		src/gallium/drivers/galahad/Makefile
 		src/gallium/drivers/i915/Makefile
+		src/gallium/drivers/identity/Makefile
 		src/gallium/drivers/ilo/Makefile
 		src/gallium/drivers/llvmpipe/Makefile
+		src/gallium/drivers/noop/Makefile
 		src/gallium/drivers/nouveau/Makefile
 		src/gallium/drivers/r300/Makefile
 		src/gallium/drivers/r600/Makefile
@@ -2025,7 +2025,7 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/state_trackers/dri/sw/Makefile
 		src/gallium/state_trackers/egl/Makefile
 		src/gallium/state_trackers/gbm/Makefile
-		src/gallium/state_trackers/glx/Makefile
+		src/gallium/state_trackers/glx/xlib/Makefile
 		src/gallium/state_trackers/osmesa/Makefile
 		src/gallium/state_trackers/vdpau/Makefile
 		src/gallium/state_trackers/vega/Makefile

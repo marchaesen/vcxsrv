@@ -93,7 +93,7 @@ xkb_symbols "operators" {
     };
 };
 
-partial hidden default keypad_keys
+default partial hidden keypad_keys
 xkb_symbols "x11" {
 
     include "keypad(operators)"

@@ -1,7 +1,7 @@
 //
 // Default Chinese is the same as American
 //
-partial default alphanumeric_keys 
+default partial alphanumeric_keys
 xkb_symbols "basic" {
     include "us(basic)"
 

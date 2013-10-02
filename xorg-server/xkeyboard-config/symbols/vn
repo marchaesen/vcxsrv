@@ -8,7 +8,7 @@
 // July 2009
 
 
-partial default alphanumeric_keys  
+default partial alphanumeric_keys
 xkb_symbols "basic" {
 
     include "us"

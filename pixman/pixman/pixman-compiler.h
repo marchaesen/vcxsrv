@@ -178,7 +178,7 @@
 #   define PIXMAN_GET_THREAD_LOCAL(name)				\
     (&name)
 
-#elif defined(HAVE_PTHREAD_SETSPECIFIC)
+#elif defined(HAVE_PTHREADS)
 
 #include <pthread.h>
 

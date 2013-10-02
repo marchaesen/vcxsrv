@@ -86,21 +86,38 @@ set_label(struct gl_context *ctx, char **labelPtr, const char *label,
 
 /**
  * Helper for _mesa_GetObjectLabel() and _mesa_GetObjectPtrLabel().
+ * \param src  the src label (may be null)
+ * \param dst  pointer to dest buffer (may be null)
+ * \param length  returns length of label (may be null)
+ * \param bufsize  size of dst buffer
  */
 static void
-copy_label(char **labelPtr, char *label, int *length, int bufSize)
+copy_label(const GLchar *src, GLchar *dst, GLsizei *length, GLsizei bufSize)
 {
    int labelLen = 0;
 
-   if (*labelPtr)
-      labelLen = strlen(*labelPtr);
+   /* From http://www.opengl.org/registry/specs/KHR/debug.txt:
+    * "If <length> is NULL, no length is returned. The maximum number of
+    * characters that may be written into <label>, including the null
+    * terminator, is specified by <bufSize>. If no debug label was specified
+    * for the object then <label> will contain a null-terminated empty string,
+    * and zero will be returned in <length>. If <label> is NULL and <length>
+    * is non-NULL then no string will be returned and the length of the label
+    * will be returned in <length>."
+    */
 
-   if (label) {
-      if (bufSize <= labelLen)
-         labelLen =  bufSize-1;
+   if (src)
+      labelLen = strlen(src);
 
-      memcpy(label, *labelPtr, labelLen);
-      label[labelLen] = '\0';
+   if (dst) {
+      if (src) {
+         if (bufSize <= labelLen)
+            labelLen = bufSize - 1;
+
+         memcpy(dst, src, labelLen);
+      }
+
+      dst[labelLen] = '\0';
    }
 
    if (length)
@@ -207,7 +224,7 @@ get_label_pointer(struct gl_context *ctx, GLenum identifier, GLuint name,
    }
 
    if (NULL == labelPtr) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glObjectLabel(name = %u)", name);
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(name = %u)", caller, name);
    }
 
    return labelPtr;
@@ -239,11 +256,17 @@ _mesa_GetObjectLabel(GLenum identifier, GLuint name, GLsizei bufSize,
    GET_CURRENT_CONTEXT(ctx);
    char **labelPtr;
 
+   if (bufSize < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glGetObjectLabel(bufSize = %d)",
+                  bufSize);
+      return;
+   }
+
    labelPtr = get_label_pointer(ctx, identifier, name, "glGetObjectLabel");
    if (!labelPtr)
       return;
 
-   copy_label(labelPtr, label, length, bufSize);
+   copy_label(*labelPtr, label, length, bufSize);
 }
 
 void GLAPIENTRY
@@ -271,6 +294,12 @@ _mesa_GetObjectPtrLabel(const void *ptr, GLsizei bufSize, GLsizei *length,
    char **labelPtr;
    struct gl_sync_object *const syncObj = (struct gl_sync_object *) ptr;
 
+   if (bufSize < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glGetObjectPtrLabel(bufSize = %d)",
+                  bufSize);
+      return;
+   }
+
    if (!_mesa_validate_sync(ctx, syncObj)) {
       _mesa_error(ctx, GL_INVALID_VALUE, "glGetObjectPtrLabel (not a valid sync object)");
       return;
@@ -278,5 +307,5 @@ _mesa_GetObjectPtrLabel(const void *ptr, GLsizei bufSize, GLsizei *length,
 
    labelPtr = &syncObj->Label;
 
-   copy_label(labelPtr, label, length, bufSize);
+   copy_label(*labelPtr, label, length, bufSize);
 }

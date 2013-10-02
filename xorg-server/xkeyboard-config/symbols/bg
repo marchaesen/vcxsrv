@@ -44,7 +44,7 @@
 // Describes Bulgarian keyboard "BDS" modified according to the
 // the new state standard BDS 5237:2006 and extended with symbols in
 // levels 3 and 4.
-partial default alphanumeric_keys
+default partial alphanumeric_keys
 xkb_symbols "bds" {
 
   name[Group1]= "Bulgarian";

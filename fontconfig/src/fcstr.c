@@ -1374,6 +1374,12 @@ FcStrListCreate (FcStrSet *set)
     return list;
 }
 
+void
+FcStrListFirst (FcStrList *list)
+{
+    list->n = 0;
+}
+
 FcChar8 *
 FcStrListNext (FcStrList *list)
 {

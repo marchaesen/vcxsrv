@@ -44,7 +44,7 @@
 // Latvian QWERTY layout
 // http://en.wikipedia.org/wiki/QWERTY
 //
-partial default alphanumeric_keys modifier_keys
+default partial alphanumeric_keys modifier_keys
 xkb_symbols "basic" {
 
 	name[Group1]= "Latvian";

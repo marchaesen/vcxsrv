@@ -44,11 +44,11 @@
 
 #include "main/mtypes.h"
 #include "main/shaderobj.h"
+#include "main/uniforms.h"
 #include "program/hash_table.h"
 
 extern "C" {
 #include "main/shaderapi.h"
-#include "main/uniforms.h"
 #include "program/prog_instruction.h"
 #include "program/prog_optimize.h"
 #include "program/prog_print.h"
@@ -155,7 +155,7 @@ namespace {
 
 class ir_to_mesa_instruction : public exec_node {
 public:
-   DECLARE_RZALLOC_CXX_OPERATORS(ir_to_mesa_instruction)
+   DECLARE_RALLOC_CXX_OPERATORS(ir_to_mesa_instruction)
 
    enum prog_opcode op;
    dst_reg dst;

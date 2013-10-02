@@ -30,7 +30,7 @@
 // apostrophe is replaced with U02BB.
 // 
 
-partial default alphanumeric_keys 
+default partial alphanumeric_keys
 xkb_symbols "cyrillic" {
 
     name[Group1]= "Uzbek";
