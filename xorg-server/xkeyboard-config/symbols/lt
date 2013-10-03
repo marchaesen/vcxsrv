@@ -7,7 +7,7 @@
 //
 // If you want two layouts, use:
 // Option "XkbLayout" "lt,lt(us)"
-default partial alphanumeric_keys modifier_keys
+default  partial alphanumeric_keys modifier_keys
 xkb_symbols "basic" {
 
     include "latin"

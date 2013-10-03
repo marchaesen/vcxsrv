@@ -1,7 +1,7 @@
 // Symbols definition for a very simple Azerbaidjani keyboard layout.
 // 2001 - Pablo Saratxaga <pablo@mandrakesoft.com>
 
-default partial alphanumeric_keys
+default  partial alphanumeric_keys
 xkb_symbols "latin" {
 
   include "us"

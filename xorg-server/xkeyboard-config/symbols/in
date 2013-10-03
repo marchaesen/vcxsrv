@@ -25,7 +25,7 @@
 // based on a keyboard map from an 'xkb/symbols/dev' file
 
 // Devangari is the default. Kill me if I am wrong:)
-default partial alphanumeric_keys
+default  partial alphanumeric_keys
 xkb_symbols "deva" {
 	// March 2004 -- David Holl <smyrph+dev_xkb@ece.wpi.edu>
 	name[Group1]="Indian";

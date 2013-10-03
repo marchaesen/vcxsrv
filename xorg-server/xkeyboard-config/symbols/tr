@@ -4,7 +4,7 @@
 // Nilgün Belma Bugüner <nilgun@belgeler.org>, 2005
 
 //Default Layout (Turkish Q)
-default partial
+default  partial
 xkb_symbols "basic" {
 
     include "latin"

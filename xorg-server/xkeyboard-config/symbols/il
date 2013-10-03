@@ -4,7 +4,7 @@
 // It does not implement changes to the English layout ("Alt-English"), 
 // as I believe that it is not the job of this layout to modify the English
 // layout.
-default partial alphanumeric_keys
+default  partial alphanumeric_keys
 xkb_symbols "basic" {
     // uses the kbd layout in use in Israel.
 

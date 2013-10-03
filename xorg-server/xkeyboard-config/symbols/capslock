@@ -1,4 +1,4 @@
-default partial hidden modifier_keys
+default  partial hidden modifier_keys
 xkb_symbols "capslock" {
     replace key <CAPS> { [ Caps_Lock ] };
     modifier_map Lock { Caps_Lock };

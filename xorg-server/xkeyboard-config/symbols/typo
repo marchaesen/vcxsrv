@@ -8,7 +8,7 @@
 // http://ilyabirman.ru/projects/typography-layout/
 
 // default layout
-default partial
+default  partial
 xkb_symbols "base" {
 // 1st keyboard row
     key <TLDE> { [NoSymbol, NoSymbol, NoSymbol, approxeq] };

@@ -6,7 +6,7 @@
 // Eliminate deadkeys alternative sent by Linus Torvalds
 //
 
-default partial alphanumeric_keys
+default  partial alphanumeric_keys
 xkb_symbols "kotoistus" {
 
     // Official keymap for Finland based on SFS 5966 standard
