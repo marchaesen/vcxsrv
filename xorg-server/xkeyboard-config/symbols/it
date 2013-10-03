@@ -1,7 +1,7 @@
 // based on a keyboard map from an 'xkb/symbols/it' file
 // 17 May 2003 Modified by Sebastiano Vigna (vigna@dsi.unimi.it)
 
-default partial alphanumeric_keys
+default  partial alphanumeric_keys
 xkb_symbols "basic" {
 
     include "latin(type4)"

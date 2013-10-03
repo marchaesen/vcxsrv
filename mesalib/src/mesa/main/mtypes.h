@@ -1963,6 +1963,8 @@ struct gl_program
    GLbitfield SamplersUsed;   /**< Bitfield of which samplers are used */
    GLbitfield ShadowSamplers; /**< Texture units used for shadow sampling. */
 
+   GLboolean UsesGather; /**< Does this program use gather4 at all? */
+
 
    /** Named parameters, constants, etc. from program text */
    struct gl_program_parameter_list *Parameters;
@@ -3081,6 +3083,11 @@ struct gl_constants
    /** GL_EXT_gpu_shader4 */
    GLint MinProgramTexelOffset, MaxProgramTexelOffset;
 
+   /** GL_ARB_texture_gather */
+   GLuint MinProgramTextureGatherOffset;
+   GLuint MaxProgramTextureGatherOffset;
+   GLuint MaxProgramTextureGatherComponents;
+
    /* GL_ARB_robustness */
    GLenum ResetStrategy;
 
@@ -3210,6 +3217,7 @@ struct gl_extensions
    GLboolean ARB_texture_env_crossbar;
    GLboolean ARB_texture_env_dot3;
    GLboolean ARB_texture_float;
+   GLboolean ARB_texture_gather;
    GLboolean ARB_texture_multisample;
    GLboolean ARB_texture_non_power_of_two;
    GLboolean ARB_texture_query_lod;

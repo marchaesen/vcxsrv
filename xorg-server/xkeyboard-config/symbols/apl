@@ -38,7 +38,7 @@
 // better than using the "common" one. Choosing the complete Dyalog layout is not useful to non-Dyalog
 // users.
 
-default partial alphanumeric_keys
+default  partial alphanumeric_keys
 xkb_symbols "basic" {
 	include "apl(dyalog_base)"	// forward reference good APL keyboard without Dyalogs extras
 

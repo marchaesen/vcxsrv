@@ -25,7 +25,7 @@
 
 
 // Default layout
-default partial
+default  partial
 xkb_symbols "basic" {
     include "hu(102_qwertz_comma_dead)"
     name[Group1] = "Hungarian";

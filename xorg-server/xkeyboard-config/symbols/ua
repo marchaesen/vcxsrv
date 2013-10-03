@@ -5,7 +5,7 @@
 
 // Unicode - 3d level added with some Unicode symbols (typographic quotes, m-dash, n-dash etc), 
 // some often used cyrillics from other slavic languages and some ASCII symbols used often (slash, brackets...)
-default partial alphanumeric_keys
+default  partial alphanumeric_keys
 xkb_symbols "unicode" {
     include "ua(winkeys)"
  

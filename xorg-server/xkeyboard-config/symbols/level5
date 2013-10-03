@@ -35,7 +35,7 @@ xkb_symbols "ralt_switch" {
 partial modifier_keys
 xkb_symbols "modifier_mapping" {
   replace key <MDSW> {
-    type[Group1] = "ONE_LEVEL";
+    type[Group1] = "ONE_LEVEL",
     symbols[Group1] = [ ISO_Level5_Shift ]
   };
   modifier_map Mod3 { <MDSW> };

@@ -1,5 +1,5 @@
 // Arabic AZERTY with modern Latin digits 
-default partial alphanumeric_keys
+default  partial alphanumeric_keys
 xkb_symbols "arabic" {
     include "ara(azerty)"
 

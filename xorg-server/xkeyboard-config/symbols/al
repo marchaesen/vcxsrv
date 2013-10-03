@@ -3,7 +3,7 @@
 // done by Pablo Saratxaga <pablo@mandrakesoft.com>
 //
 
-default partial alphanumeric_keys
+default  partial alphanumeric_keys
 xkb_symbols "basic" {
 
     include "latin(type3)"

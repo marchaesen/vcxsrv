@@ -3,7 +3,7 @@
 // Initially, a copy of Serbian variants
 //
 
-default partial alphanumeric_keys
+default  partial alphanumeric_keys
 xkb_symbols "basic" {
   include "rs(latin)"
   name[Group1]= "Montenegrin";
