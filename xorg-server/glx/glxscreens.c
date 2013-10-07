@@ -128,7 +128,6 @@ static const char GLServerExtensions[] =
     "GL_NV_blend_square "
     "GL_NV_depth_clamp "
     "GL_NV_fog_distance "
-    "GL_NV_fragment_program "
     "GL_NV_fragment_program_option "
     "GL_NV_fragment_program2 "
     "GL_NV_light_max_exponent "
@@ -139,9 +138,6 @@ static const char GLServerExtensions[] =
     "GL_NV_texture_env_combine4 "
     "GL_NV_texture_expand_normal "
     "GL_NV_texture_rectangle "
-    "GL_NV_vertex_program "
-    "GL_NV_vertex_program1_1 "
-    "GL_NV_vertex_program2 "
     "GL_NV_vertex_program2_option "
     "GL_NV_vertex_program3 "
     "GL_OES_compressed_paletted_texture "
@@ -154,13 +150,14 @@ static const char GLServerExtensions[] =
     "GL_SGIS_texture_edge_clamp "
     "GL_SGIS_texture_lod "
     "GL_SGIX_depth_texture "
-    "GL_SGIX_shadow " "GL_SGIX_shadow_ambient " "GL_SUN_slice_accum ";
+    "GL_SGIX_shadow "
+    "GL_SGIX_shadow_ambient "
+    "GL_SUN_slice_accum ";
 
 /*
 ** We have made the simplifying assuption that the same extensions are 
 ** supported across all screens in a multi-screen system.
 */
-static char GLXServerVendorName[] = "SGI";
 unsigned glxMajorVersion = SERVER_GLX_MAJOR_VERSION;
 unsigned glxMinorVersion = SERVER_GLX_MINOR_VERSION;
 static char GLXServerExtensions[] =
@@ -169,12 +166,14 @@ static char GLXServerExtensions[] =
     "GLX_EXT_visual_rating "
     "GLX_EXT_import_context "
     "GLX_EXT_texture_from_pixmap "
-    "GLX_OML_swap_method " "GLX_SGI_make_current_read "
+    "GLX_OML_swap_method "
+    "GLX_SGI_make_current_read "
 #ifndef __APPLE__
     "GLX_SGIS_multisample "
 #endif
     "GLX_SGIX_fbconfig "
-    "GLX_SGIX_pbuffer " "GLX_MESA_copy_sub_buffer ";
+    "GLX_SGIX_pbuffer "
+    "GLX_MESA_copy_sub_buffer ";
 
 static Bool
 glxCloseScreen(ScreenPtr pScreen)
@@ -330,7 +329,6 @@ __glXScreenInit(__GLXscreen * pGlxScreen, ScreenPtr pScreen)
 
     pGlxScreen->pScreen = pScreen;
     pGlxScreen->GLextensions = strdup(GLServerExtensions);
-    pGlxScreen->GLXvendor = strdup(GLXServerVendorName);
     pGlxScreen->GLXextensions = strdup(GLXServerExtensions);
 
     /* All GLX providers must support all of the functionality required for at
@@ -420,7 +418,6 @@ __glXScreenInit(__GLXscreen * pGlxScreen, ScreenPtr pScreen)
 void
 __glXScreenDestroy(__GLXscreen * screen)
 {
-    free(screen->GLXvendor);
     free(screen->GLXextensions);
     free(screen->GLextensions);
     free(screen->visuals);

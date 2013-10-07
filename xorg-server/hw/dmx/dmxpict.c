@@ -141,10 +141,6 @@ dmxPictureInit(ScreenPtr pScreen, PictFormatPtr formats, int nformats)
     DMXScreenInfo *dmxScreen = &dmxScreens[pScreen->myNum];
     PictureScreenPtr ps;
 
-    /* The shadow framebuffer only relies on FB to be initialized */
-    if (dmxShadowFB)
-        return fbPictureInit(pScreen, formats, nformats);
-
     if (!miPictureInit(pScreen, formats, nformats))
         return FALSE;
 

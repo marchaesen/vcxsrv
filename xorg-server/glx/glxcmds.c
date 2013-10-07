@@ -50,6 +50,8 @@
 #include "indirect_table.h"
 #include "indirect_util.h"
 
+static char GLXServerVendorName[] = "SGI";
+
 _X_HIDDEN int
 validGlxScreen(ClientPtr client, int screen, __GLXscreen ** pGlxScreen,
                int *err)
@@ -513,6 +515,10 @@ __glXGetDrawable(__GLXcontext * glxc, GLXDrawable drawId, ClientPtr client,
                                                 pDraw, drawId,
                                                 GLX_DRAWABLE_WINDOW,
                                                 drawId, glxc->config);
+    if (!pGlxDraw) {
+	*error = BadAlloc;
+	return NULL;
+    }
 
     /* since we are creating the drawablePrivate, drawId should be new */
     if (!AddResource(drawId, __glXDrawableRes, pGlxDraw)) {
@@ -1026,7 +1032,7 @@ __glXDisp_GetVisualConfigs(__GLXclientState * cl, GLbyte * pc)
     return Success;
 }
 
-#define __GLX_TOTAL_FBCONFIG_ATTRIBS (37)
+#define __GLX_TOTAL_FBCONFIG_ATTRIBS (44)
 #define __GLX_FBCONFIG_ATTRIBS_LENGTH (__GLX_TOTAL_FBCONFIG_ATTRIBS * 2)
 /**
  * Send the set of GLXFBConfigs to the client.  There is not currently
@@ -1111,13 +1117,23 @@ DoGetFBConfigs(__GLXclientState * cl, unsigned screen)
         WRITE_PAIR(GLX_SWAP_METHOD_OML, modes->swapMethod);
         WRITE_PAIR(GLX_SAMPLES_SGIS, modes->samples);
         WRITE_PAIR(GLX_SAMPLE_BUFFERS_SGIS, modes->sampleBuffers);
-        /* GLX_VISUAL_SELECT_GROUP_SGIX ? */
+        WRITE_PAIR(GLX_VISUAL_SELECT_GROUP_SGIX, modes->visualSelectGroup);
         WRITE_PAIR(GLX_DRAWABLE_TYPE, modes->drawableType);
         WRITE_PAIR(GLX_BIND_TO_TEXTURE_RGB_EXT, modes->bindToTextureRgb);
         WRITE_PAIR(GLX_BIND_TO_TEXTURE_RGBA_EXT, modes->bindToTextureRgba);
         WRITE_PAIR(GLX_BIND_TO_MIPMAP_TEXTURE_EXT, modes->bindToMipmapTexture);
         WRITE_PAIR(GLX_BIND_TO_TEXTURE_TARGETS_EXT,
                    modes->bindToTextureTargets);
+	WRITE_PAIR(GLX_Y_INVERTED_EXT, modes->yInverted);
+	if (modes->drawableType & GLX_PBUFFER_BIT) {
+	    WRITE_PAIR(GLX_MAX_PBUFFER_WIDTH, modes->maxPbufferWidth);
+	    WRITE_PAIR(GLX_MAX_PBUFFER_HEIGHT, modes->maxPbufferHeight);
+	    WRITE_PAIR(GLX_MAX_PBUFFER_PIXELS, modes->maxPbufferPixels);
+	    WRITE_PAIR(GLX_OPTIMAL_PBUFFER_WIDTH_SGIX,
+		       modes->optimalPbufferWidth);
+	    WRITE_PAIR(GLX_OPTIMAL_PBUFFER_HEIGHT_SGIX,
+		       modes->optimalPbufferHeight);
+	}
         /* Add attribute only if its value is not default. */
         if (modes->sRGBCapable != GL_FALSE) {
             WRITE_PAIR(GLX_FRAMEBUFFER_SRGB_CAPABLE_EXT, modes->sRGBCapable);
@@ -1414,6 +1430,8 @@ DoCreatePbuffer(ClientPtr client, int screenNum, XID fbconfigId,
                                                     width, height,
                                                     config->rgbBits, 0);
     __glXleaveServer(GL_FALSE);
+    if (!pPixmap)
+        return BadAlloc;
 
     /* Assign the pixmap the same id as the pbuffer and add it as a
      * resource so it and the DRI2 drawable will be reclaimed when the
@@ -1455,7 +1473,6 @@ __glXDisp_CreatePbuffer(__GLXclientState * cl, GLbyte * pc)
             height = attrs[i * 2 + 1];
             break;
         case GLX_LARGEST_PBUFFER:
-        case GLX_PRESERVED_CONTENTS:
             /* FIXME: huh... */
             break;
         }
@@ -1473,6 +1490,10 @@ __glXDisp_CreateGLXPbufferSGIX(__GLXclientState * cl, GLbyte * pc)
 
     REQUEST_AT_LEAST_SIZE(xGLXCreateGLXPbufferSGIXReq);
 
+    /*
+     * We should really handle attributes correctly, but this extension
+     * is so rare I have difficulty caring.
+     */
     return DoCreatePbuffer(cl->client, req->screen, req->fbconfig,
                            req->width, req->height, req->pbuffer);
 }
@@ -1680,15 +1701,14 @@ DoQueryContext(__GLXclientState * cl, GLXContextID gcId)
     ClientPtr client = cl->client;
     __GLXcontext *ctx;
     xGLXQueryContextInfoEXTReply reply;
-    int nProps;
-    int *sendBuf, *pSendBuf;
+    int nProps = 3;
+    int sendBuf[nProps * 2];
     int nReplyBytes;
     int err;
 
     if (!validGlxContext(cl->client, gcId, DixReadAccess, &ctx, &err))
         return err;
 
-    nProps = 3;
     reply = (xGLXQueryContextInfoEXTReply) {
         .type = X_Reply,
         .sequenceNumber = client->sequence,
@@ -1697,17 +1717,12 @@ DoQueryContext(__GLXclientState * cl, GLXContextID gcId)
     };
 
     nReplyBytes = reply.length << 2;
-    sendBuf = (int *) malloc((size_t) nReplyBytes);
-    if (sendBuf == NULL) {
-        return __glXError(GLXBadContext);       /* XXX: Is this correct? */
-    }
-    pSendBuf = sendBuf;
-    *pSendBuf++ = GLX_SHARE_CONTEXT_EXT;
-    *pSendBuf++ = (int) (ctx->share_id);
-    *pSendBuf++ = GLX_VISUAL_ID_EXT;
-    *pSendBuf++ = (int) (ctx->config->visualID);
-    *pSendBuf++ = GLX_SCREEN_EXT;
-    *pSendBuf++ = (int) (ctx->pGlxScreen->pScreen->myNum);
+    sendBuf[0] = GLX_SHARE_CONTEXT_EXT;
+    sendBuf[1] = (int) (ctx->share_id);
+    sendBuf[2] = GLX_VISUAL_ID_EXT;
+    sendBuf[3] = (int) (ctx->config->visualID);
+    sendBuf[4] = GLX_SCREEN_EXT;
+    sendBuf[5] = (int) (ctx->pGlxScreen->pScreen->myNum);
 
     if (client->swapped) {
         __glXSwapQueryContextInfoEXTReply(client, &reply, sendBuf);
@@ -1716,7 +1731,6 @@ DoQueryContext(__GLXclientState * cl, GLXContextID gcId)
         WriteToClient(client, sz_xGLXQueryContextInfoEXTReply, &reply);
         WriteToClient(client, nReplyBytes, sendBuf);
     }
-    free((char *) sendBuf);
 
     return Success;
 }
@@ -1890,28 +1904,44 @@ DoGetDrawableAttributes(__GLXclientState * cl, XID drawId)
     ClientPtr client = cl->client;
     xGLXGetDrawableAttributesReply reply;
     __GLXdrawable *pGlxDraw;
-    CARD32 attributes[6];
-    int numAttribs, error;
+    CARD32 attributes[14];
+    int numAttribs = 0, error;
 
     if (!validGlxDrawable(client, drawId, GLX_DRAWABLE_ANY,
                           DixGetAttrAccess, &pGlxDraw, &error))
         return error;
 
-    numAttribs = 3;
+    attributes[0] = GLX_TEXTURE_TARGET_EXT;
+    attributes[1] = pGlxDraw->target == GL_TEXTURE_2D ? GLX_TEXTURE_2D_EXT :
+        GLX_TEXTURE_RECTANGLE_EXT;
+    numAttribs++;
+    attributes[2] = GLX_Y_INVERTED_EXT;
+    attributes[3] = GL_FALSE;
+    numAttribs++;
+    attributes[4] = GLX_EVENT_MASK;
+    attributes[5] = pGlxDraw->eventMask;
+    numAttribs++;
+    attributes[6] = GLX_WIDTH;
+    attributes[7] = pGlxDraw->pDraw->width;
+    numAttribs++;
+    attributes[8] = GLX_HEIGHT;
+    attributes[9] = pGlxDraw->pDraw->height;
+    numAttribs++;
+    attributes[10] = GLX_FBCONFIG_ID;
+    attributes[11] = pGlxDraw->config->fbconfigID;
+    numAttribs++;
+    if (pGlxDraw->type == GLX_DRAWABLE_PBUFFER) {
+        attributes[12] = GLX_PRESERVED_CONTENTS;
+        attributes[13] = GL_TRUE;
+        numAttribs++;
+    }
+
     reply = (xGLXGetDrawableAttributesReply) {
         .type = X_Reply,
         .sequenceNumber = client->sequence,
         .length = numAttribs << 1,
         .numAttribs = numAttribs
     };
-
-    attributes[0] = GLX_TEXTURE_TARGET_EXT;
-    attributes[1] = pGlxDraw->target == GL_TEXTURE_2D ? GLX_TEXTURE_2D_EXT :
-        GLX_TEXTURE_RECTANGLE_EXT;
-    attributes[2] = GLX_Y_INVERTED_EXT;
-    attributes[3] = GL_FALSE;
-    attributes[4] = GLX_EVENT_MASK;
-    attributes[5] = pGlxDraw->eventMask;
 
     if (client->swapped) {
         __glXSwapGetDrawableAttributesReply(client, &reply, attributes);
@@ -2160,15 +2190,12 @@ __glXDisp_RenderLarge(__GLXclientState * cl, GLbyte * pc)
          ** Make enough space in the buffer, then copy the entire request.
          */
         if (cl->largeCmdBufSize < cmdlen) {
-            if (!cl->largeCmdBuf) {
-                cl->largeCmdBuf = (GLbyte *) malloc(cmdlen);
-            }
-            else {
-                cl->largeCmdBuf = (GLbyte *) realloc(cl->largeCmdBuf, cmdlen);
-            }
-            if (!cl->largeCmdBuf) {
-                return BadAlloc;
-            }
+	    GLbyte *newbuf = cl->largeCmdBuf;
+
+	    if (!(newbuf = realloc(newbuf, cmdlen)))
+		return BadAlloc;
+
+	    cl->largeCmdBuf = newbuf;
             cl->largeCmdBufSize = cmdlen;
         }
         memcpy(cl->largeCmdBuf, pc, dataBytes);
@@ -2384,7 +2411,7 @@ __glXDisp_QueryServerString(__GLXclientState * cl, GLbyte * pc)
 
     switch (req->name) {
     case GLX_VENDOR:
-        ptr = pGlxScreen->GLXvendor;
+        ptr = GLXServerVendorName;
         break;
     case GLX_VERSION:
         /* Return to the server version rather than the screen version

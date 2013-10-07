@@ -934,6 +934,7 @@ ir_reader::read_texture(s_expression *expr)
    s_list *s_shadow = NULL;
    s_expression *s_lod = NULL;
    s_expression *s_sample_index = NULL;
+   s_expression *s_component = NULL;
 
    ir_texture_opcode op = ir_tex; /* silence warning */
 
@@ -948,7 +949,9 @@ ir_reader::read_texture(s_expression *expr)
    s_pattern txs_pattern[] =
       { "txs", s_type, s_sampler, s_lod };
    s_pattern tg4_pattern[] =
-      { "tg4", s_type, s_sampler, s_coord, s_offset };
+      { "tg4", s_type, s_sampler, s_coord, s_offset, s_component };
+   s_pattern query_levels_pattern[] =
+      { "query_levels", s_type, s_sampler };
    s_pattern other_pattern[] =
       { tag, s_type, s_sampler, s_coord, s_offset, s_proj, s_shadow, s_lod };
 
@@ -964,6 +967,8 @@ ir_reader::read_texture(s_expression *expr)
       op = ir_txs;
    } else if (MATCH(expr, tg4_pattern)) {
       op = ir_tg4;
+   } else if (MATCH(expr, query_levels_pattern)) {
+      op = ir_query_levels;
    } else if (MATCH(expr, other_pattern)) {
       op = ir_texture::get_opcode(tag->value());
       if (op == -1)
@@ -1014,7 +1019,9 @@ ir_reader::read_texture(s_expression *expr)
       }
    }
 
-   if (op != ir_txf && op != ir_txf_ms && op != ir_txs && op != ir_lod && op != ir_tg4) {
+   if (op != ir_txf && op != ir_txf_ms &&
+       op != ir_txs && op != ir_lod && op != ir_tg4 &&
+       op != ir_query_levels) {
       s_int *proj_as_int = SX_AS_INT(s_proj);
       if (proj_as_int && proj_as_int->value() == 1) {
 	 tex->projector = NULL;
@@ -1083,6 +1090,13 @@ ir_reader::read_texture(s_expression *expr)
       }
       break;
    }
+   case ir_tg4:
+      tex->lod_info.component = read_rvalue(s_component);
+      if (tex->lod_info.component == NULL) {
+         ir_read_error(NULL, "when reading component in (tg4 ...)");
+         return NULL;
+      }
+      break;
    default:
       // tex and lod don't have any extra parameters.
       break;

@@ -3236,22 +3236,22 @@ static const pixman_iter_info_t fast_iters[] =
     
 #define SEPARABLE_CONVOLUTION_AFFINE_FAST_PATH(name, format, repeat)   \
     { PIXMAN_ ## format,						\
-      ITER_NARROW | ITER_SRC,						\
       GENERAL_SEPARABLE_CONVOLUTION_FLAGS | FAST_PATH_ ## repeat ## _REPEAT, \
+      ITER_NARROW | ITER_SRC,						\
       NULL, bits_image_fetch_separable_convolution_affine_ ## name, NULL \
     },
 
 #define BILINEAR_AFFINE_FAST_PATH(name, format, repeat)			\
     { PIXMAN_ ## format,						\
-      ITER_NARROW | ITER_SRC,						\
       GENERAL_BILINEAR_FLAGS | FAST_PATH_ ## repeat ## _REPEAT,		\
+      ITER_NARROW | ITER_SRC,						\
       NULL, bits_image_fetch_bilinear_affine_ ## name, NULL,		\
     },
 
 #define NEAREST_AFFINE_FAST_PATH(name, format, repeat)			\
     { PIXMAN_ ## format,						\
-      ITER_NARROW | ITER_SRC,						\
       GENERAL_NEAREST_FLAGS | FAST_PATH_ ## repeat ## _REPEAT,		\
+      ITER_NARROW | ITER_SRC,						\
       NULL, bits_image_fetch_nearest_affine_ ## name, NULL		\
     },
 

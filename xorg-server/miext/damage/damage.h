@@ -41,12 +41,6 @@ typedef void (*DamageReportFunc) (DamagePtr pDamage, RegionPtr pRegion,
                                   void *closure);
 typedef void (*DamageDestroyFunc) (DamagePtr pDamage, void *closure);
 
-/* It's the responsibility of the driver to duplicate both regions. */
-/* At some point DamageRegionRendered() must be called. */
-typedef void (*DamageMarkerFunc) (DrawablePtr pDrawable, DamagePtr pDamage,
-                                  RegionPtr pOldDamage, RegionPtr pRegion,
-                                  void *closure);
-
 typedef void (*DamageScreenCreateFunc) (DamagePtr);
 typedef void (*DamageScreenRegisterFunc) (DrawablePtr, DamagePtr);
 typedef void (*DamageScreenUnregisterFunc) (DrawablePtr, DamagePtr);
@@ -80,7 +74,7 @@ extern _X_EXPORT void
  DamageRegister(DrawablePtr pDrawable, DamagePtr pDamage);
 
 extern _X_EXPORT void
- DamageUnregister(DrawablePtr pDrawable, DamagePtr pDamage);
+ DamageUnregister(DamagePtr pDamage);
 
 extern _X_EXPORT void
  DamageDestroy(DamagePtr pDamage);
@@ -105,12 +99,6 @@ extern _X_EXPORT void
 extern _X_EXPORT void
  DamageRegionProcessPending(DrawablePtr pDrawable);
 
-/* Call this some time after rendering is done, only relevant when a damageMarker is provided. */
-extern _X_EXPORT void
-
-DamageRegionRendered(DrawablePtr pDrawable, DamagePtr pDamage,
-                     RegionPtr pOldDamage, RegionPtr pRegion);
-
 /* Call this when you create a new Damage and you wish to send an initial damage message (to it). */
 extern _X_EXPORT void
  DamageReportDamage(DamagePtr pDamage, RegionPtr pDamageRegion);
@@ -121,12 +109,6 @@ extern _X_EXPORT void
 
 extern _X_EXPORT void
  DamageSetReportAfterOp(DamagePtr pDamage, Bool reportAfter);
-
-extern _X_EXPORT void
-
-DamageSetPostRenderingFunctions(DamagePtr pDamage,
-                                DamageReportFunc damageReportPostRendering,
-                                DamageMarkerFunc damageMarker);
 
 extern _X_EXPORT DamageScreenFuncsPtr DamageGetScreenFuncs(ScreenPtr);
 

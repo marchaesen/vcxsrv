@@ -41,7 +41,6 @@
 
 #include "dmx.h"
 #include "dmxsync.h"
-#include "dmxshadow.h"
 #include "dmxscrinit.h"
 #include "dmxcursor.h"
 #include "dmxgc.h"
@@ -159,37 +158,18 @@ dmxBEScreenInit(ScreenPtr pScreen)
 
     XMapWindow(dmxScreen->beDisplay, dmxScreen->scrnWin);
 
-    if (dmxShadowFB) {
-        mask = (GCFunction | GCPlaneMask | GCClipMask);
-        gcvals.function = GXcopy;
-        gcvals.plane_mask = AllPlanes;
-        gcvals.clip_mask = None;
-
-        dmxScreen->shadowGC = XCreateGC(dmxScreen->beDisplay,
-                                        dmxScreen->scrnWin, mask, &gcvals);
-
-        dmxScreen->shadowFBImage =
-            XCreateImage(dmxScreen->beDisplay,
-                         dmxScreen->beVisuals[dmxScreen->beDefVisualIndex].
-                         visual, dmxScreen->beDepth, ZPixmap, 0,
-                         (char *) dmxScreen->shadow, dmxScreen->scrnWidth,
-                         dmxScreen->scrnHeight, dmxScreen->beBPP,
-                         PixmapBytePad(dmxScreen->scrnWidth, dmxScreen->beBPP));
-    }
-    else {
-        /* Create default drawables (used during GC creation) */
-        for (i = 0; i < dmxScreen->beNumPixmapFormats; i++)
-            for (j = 0; j < dmxScreen->beNumDepths; j++)
-                if ((dmxScreen->bePixmapFormats[i].depth == 1) ||
-                    (dmxScreen->bePixmapFormats[i].depth ==
-                     dmxScreen->beDepths[j])) {
-                    dmxScreen->scrnDefDrawables[i] = (Drawable)
-                        XCreatePixmap(dmxScreen->beDisplay, dmxScreen->scrnWin,
-                                      1, 1,
-                                      dmxScreen->bePixmapFormats[i].depth);
-                    break;
-                }
-    }
+    /* Create default drawables (used during GC creation) */
+    for (i = 0; i < dmxScreen->beNumPixmapFormats; i++)
+	for (j = 0; j < dmxScreen->beNumDepths; j++)
+	    if ((dmxScreen->bePixmapFormats[i].depth == 1) ||
+		(dmxScreen->bePixmapFormats[i].depth ==
+		 dmxScreen->beDepths[j])) {
+		dmxScreen->scrnDefDrawables[i] = (Drawable)
+		    XCreatePixmap(dmxScreen->beDisplay, dmxScreen->scrnWin,
+				  1, 1,
+				  dmxScreen->bePixmapFormats[i].depth);
+		break;
+	    }
 }
 
 /** Initialize screen number \a pScreen->myNum. */
@@ -215,19 +195,12 @@ dmxScreenInit(ScreenPtr pScreen, int argc, char *argv[])
         dmxGeneration = serverGeneration;
     }
 
-    if (dmxShadowFB) {
-        dmxScreen->shadow = shadowAlloc(dmxScreen->scrnWidth,
-                                        dmxScreen->scrnHeight,
-                                        dmxScreen->beBPP);
-    }
-    else {
-        if (!dmxInitGC(pScreen))
-            return FALSE;
-        if (!dmxInitWindow(pScreen))
-            return FALSE;
-        if (!dmxInitPixmap(pScreen))
-            return FALSE;
-    }
+    if (!dmxInitGC(pScreen))
+	return FALSE;
+    if (!dmxInitWindow(pScreen))
+	return FALSE;
+    if (!dmxInitPixmap(pScreen))
+	return FALSE;
 
     /*
      * Initalise the visual types.  miSetVisualTypesAndMasks() requires
@@ -267,7 +240,7 @@ dmxScreenInit(ScreenPtr pScreen, int argc, char *argv[])
     }
 
     fbScreenInit(pScreen,
-                 dmxShadowFB ? dmxScreen->shadow : NULL,
+                 NULL,
                  dmxScreen->scrnWidth,
                  dmxScreen->scrnHeight,
                  dmxScreen->beXDPI,
@@ -278,22 +251,14 @@ dmxScreenInit(ScreenPtr pScreen, int argc, char *argv[])
     pScreen->GetWindowPixmap = NULL;
     pScreen->SetWindowPixmap = NULL;
 
-    if (dmxShadowFB && !shadowInit(pScreen, dmxShadowUpdateProc, NULL))
-        return FALSE;
+    MAXSCREENSALLOC(dmxCursorGeneration);
+    if (dmxCursorGeneration[pScreen->myNum] != serverGeneration) {
+	if (!(miPointerInitialize(pScreen,
+				  &dmxPointerSpriteFuncs,
+				  &dmxPointerCursorFuncs, FALSE)))
+	    return FALSE;
 
-    if (dmxShadowFB) {
-        miDCInitialize(pScreen, &dmxPointerCursorFuncs);
-    }
-    else {
-        MAXSCREENSALLOC(dmxCursorGeneration);
-        if (dmxCursorGeneration[pScreen->myNum] != serverGeneration) {
-            if (!(miPointerInitialize(pScreen,
-                                      &dmxPointerSpriteFuncs,
-                                      &dmxPointerCursorFuncs, FALSE)))
-                return FALSE;
-
-            dmxCursorGeneration[pScreen->myNum] = serverGeneration;
-        }
+	dmxCursorGeneration[pScreen->myNum] = serverGeneration;
     }
 
     DMX_WRAP(CloseScreen, dmxCloseScreen, dmxScreen, pScreen);
@@ -301,49 +266,47 @@ dmxScreenInit(ScreenPtr pScreen, int argc, char *argv[])
 
     dmxBEScreenInit(pScreen);
 
-    if (!dmxShadowFB) {
-        /* Wrap GC functions */
-        DMX_WRAP(CreateGC, dmxCreateGC, dmxScreen, pScreen);
+    /* Wrap GC functions */
+    DMX_WRAP(CreateGC, dmxCreateGC, dmxScreen, pScreen);
 
-        /* Wrap Window functions */
-        DMX_WRAP(CreateWindow, dmxCreateWindow, dmxScreen, pScreen);
-        DMX_WRAP(DestroyWindow, dmxDestroyWindow, dmxScreen, pScreen);
-        DMX_WRAP(PositionWindow, dmxPositionWindow, dmxScreen, pScreen);
-        DMX_WRAP(ChangeWindowAttributes, dmxChangeWindowAttributes, dmxScreen,
-                 pScreen);
-        DMX_WRAP(RealizeWindow, dmxRealizeWindow, dmxScreen, pScreen);
-        DMX_WRAP(UnrealizeWindow, dmxUnrealizeWindow, dmxScreen, pScreen);
-        DMX_WRAP(RestackWindow, dmxRestackWindow, dmxScreen, pScreen);
-        DMX_WRAP(WindowExposures, dmxWindowExposures, dmxScreen, pScreen);
-        DMX_WRAP(CopyWindow, dmxCopyWindow, dmxScreen, pScreen);
+    /* Wrap Window functions */
+    DMX_WRAP(CreateWindow, dmxCreateWindow, dmxScreen, pScreen);
+    DMX_WRAP(DestroyWindow, dmxDestroyWindow, dmxScreen, pScreen);
+    DMX_WRAP(PositionWindow, dmxPositionWindow, dmxScreen, pScreen);
+    DMX_WRAP(ChangeWindowAttributes, dmxChangeWindowAttributes, dmxScreen,
+	     pScreen);
+    DMX_WRAP(RealizeWindow, dmxRealizeWindow, dmxScreen, pScreen);
+    DMX_WRAP(UnrealizeWindow, dmxUnrealizeWindow, dmxScreen, pScreen);
+    DMX_WRAP(RestackWindow, dmxRestackWindow, dmxScreen, pScreen);
+    DMX_WRAP(WindowExposures, dmxWindowExposures, dmxScreen, pScreen);
+    DMX_WRAP(CopyWindow, dmxCopyWindow, dmxScreen, pScreen);
 
-        DMX_WRAP(ResizeWindow, dmxResizeWindow, dmxScreen, pScreen);
-        DMX_WRAP(ReparentWindow, dmxReparentWindow, dmxScreen, pScreen);
+    DMX_WRAP(ResizeWindow, dmxResizeWindow, dmxScreen, pScreen);
+    DMX_WRAP(ReparentWindow, dmxReparentWindow, dmxScreen, pScreen);
 
-        DMX_WRAP(ChangeBorderWidth, dmxChangeBorderWidth, dmxScreen, pScreen);
+    DMX_WRAP(ChangeBorderWidth, dmxChangeBorderWidth, dmxScreen, pScreen);
 
-        /* Wrap Image functions */
-        DMX_WRAP(GetImage, dmxGetImage, dmxScreen, pScreen);
-        DMX_WRAP(GetSpans, dmxGetSpans, dmxScreen, pScreen);
+    /* Wrap Image functions */
+    DMX_WRAP(GetImage, dmxGetImage, dmxScreen, pScreen);
+    DMX_WRAP(GetSpans, dmxGetSpans, dmxScreen, pScreen);
 
-        /* Wrap Pixmap functions */
-        DMX_WRAP(CreatePixmap, dmxCreatePixmap, dmxScreen, pScreen);
-        DMX_WRAP(DestroyPixmap, dmxDestroyPixmap, dmxScreen, pScreen);
-        DMX_WRAP(BitmapToRegion, dmxBitmapToRegion, dmxScreen, pScreen);
+    /* Wrap Pixmap functions */
+    DMX_WRAP(CreatePixmap, dmxCreatePixmap, dmxScreen, pScreen);
+    DMX_WRAP(DestroyPixmap, dmxDestroyPixmap, dmxScreen, pScreen);
+    DMX_WRAP(BitmapToRegion, dmxBitmapToRegion, dmxScreen, pScreen);
 
-        /* Wrap Font functions */
-        DMX_WRAP(RealizeFont, dmxRealizeFont, dmxScreen, pScreen);
-        DMX_WRAP(UnrealizeFont, dmxUnrealizeFont, dmxScreen, pScreen);
+    /* Wrap Font functions */
+    DMX_WRAP(RealizeFont, dmxRealizeFont, dmxScreen, pScreen);
+    DMX_WRAP(UnrealizeFont, dmxUnrealizeFont, dmxScreen, pScreen);
 
-        /* Wrap Colormap functions */
-        DMX_WRAP(CreateColormap, dmxCreateColormap, dmxScreen, pScreen);
-        DMX_WRAP(DestroyColormap, dmxDestroyColormap, dmxScreen, pScreen);
-        DMX_WRAP(InstallColormap, dmxInstallColormap, dmxScreen, pScreen);
-        DMX_WRAP(StoreColors, dmxStoreColors, dmxScreen, pScreen);
+    /* Wrap Colormap functions */
+    DMX_WRAP(CreateColormap, dmxCreateColormap, dmxScreen, pScreen);
+    DMX_WRAP(DestroyColormap, dmxDestroyColormap, dmxScreen, pScreen);
+    DMX_WRAP(InstallColormap, dmxInstallColormap, dmxScreen, pScreen);
+    DMX_WRAP(StoreColors, dmxStoreColors, dmxScreen, pScreen);
 
-        /* Wrap Shape functions */
-        DMX_WRAP(SetShape, dmxSetShape, dmxScreen, pScreen);
-    }
+    /* Wrap Shape functions */
+    DMX_WRAP(SetShape, dmxSetShape, dmxScreen, pScreen);
 
     if (!dmxCreateDefColormap(pScreen))
         return FALSE;
@@ -370,22 +333,13 @@ dmxBECloseScreen(ScreenPtr pScreen)
     XDestroyWindow(dmxScreen->beDisplay, dmxScreen->scrnWin);
     dmxScreen->scrnWin = (Window) 0;
 
-    if (dmxShadowFB) {
-        /* Free the shadow GC and image assocated with the back-end server */
-        XFreeGC(dmxScreen->beDisplay, dmxScreen->shadowGC);
-        dmxScreen->shadowGC = NULL;
-        XFree(dmxScreen->shadowFBImage);
-        dmxScreen->shadowFBImage = NULL;
-    }
-    else {
-        /* Free the default drawables */
-        for (i = 0; i < dmxScreen->beNumPixmapFormats; i++) {
-            if (dmxScreen->scrnDefDrawables[i]) {
-                XFreePixmap(dmxScreen->beDisplay,
-                            dmxScreen->scrnDefDrawables[i]);
-                dmxScreen->scrnDefDrawables[i] = (Drawable) 0;
-            }
-        }
+    /* Free the default drawables */
+    for (i = 0; i < dmxScreen->beNumPixmapFormats; i++) {
+	if (dmxScreen->scrnDefDrawables[i]) {
+	    XFreePixmap(dmxScreen->beDisplay,
+			dmxScreen->scrnDefDrawables[i]);
+	    dmxScreen->scrnDefDrawables[i] = (Drawable) 0;
+	}
     }
 
     /* Free resources allocated during initialization (in dmxinit.c) */
@@ -432,48 +386,41 @@ dmxCloseScreen(ScreenPtr pScreen)
         dmxResetFonts();
     }
 
-    if (dmxShadowFB) {
-        /* Free the shadow framebuffer */
-        free(dmxScreen->shadow);
-    }
-    else {
+    /* Unwrap Shape functions */
+    DMX_UNWRAP(SetShape, dmxScreen, pScreen);
 
-        /* Unwrap Shape functions */
-        DMX_UNWRAP(SetShape, dmxScreen, pScreen);
+    /* Unwrap the pScreen functions */
+    DMX_UNWRAP(CreateGC, dmxScreen, pScreen);
 
-        /* Unwrap the pScreen functions */
-        DMX_UNWRAP(CreateGC, dmxScreen, pScreen);
+    DMX_UNWRAP(CreateWindow, dmxScreen, pScreen);
+    DMX_UNWRAP(DestroyWindow, dmxScreen, pScreen);
+    DMX_UNWRAP(PositionWindow, dmxScreen, pScreen);
+    DMX_UNWRAP(ChangeWindowAttributes, dmxScreen, pScreen);
+    DMX_UNWRAP(RealizeWindow, dmxScreen, pScreen);
+    DMX_UNWRAP(UnrealizeWindow, dmxScreen, pScreen);
+    DMX_UNWRAP(RestackWindow, dmxScreen, pScreen);
+    DMX_UNWRAP(WindowExposures, dmxScreen, pScreen);
+    DMX_UNWRAP(CopyWindow, dmxScreen, pScreen);
 
-        DMX_UNWRAP(CreateWindow, dmxScreen, pScreen);
-        DMX_UNWRAP(DestroyWindow, dmxScreen, pScreen);
-        DMX_UNWRAP(PositionWindow, dmxScreen, pScreen);
-        DMX_UNWRAP(ChangeWindowAttributes, dmxScreen, pScreen);
-        DMX_UNWRAP(RealizeWindow, dmxScreen, pScreen);
-        DMX_UNWRAP(UnrealizeWindow, dmxScreen, pScreen);
-        DMX_UNWRAP(RestackWindow, dmxScreen, pScreen);
-        DMX_UNWRAP(WindowExposures, dmxScreen, pScreen);
-        DMX_UNWRAP(CopyWindow, dmxScreen, pScreen);
+    DMX_UNWRAP(ResizeWindow, dmxScreen, pScreen);
+    DMX_UNWRAP(ReparentWindow, dmxScreen, pScreen);
 
-        DMX_UNWRAP(ResizeWindow, dmxScreen, pScreen);
-        DMX_UNWRAP(ReparentWindow, dmxScreen, pScreen);
+    DMX_UNWRAP(ChangeBorderWidth, dmxScreen, pScreen);
 
-        DMX_UNWRAP(ChangeBorderWidth, dmxScreen, pScreen);
+    DMX_UNWRAP(GetImage, dmxScreen, pScreen);
+    DMX_UNWRAP(GetSpans, dmxScreen, pScreen);
 
-        DMX_UNWRAP(GetImage, dmxScreen, pScreen);
-        DMX_UNWRAP(GetSpans, dmxScreen, pScreen);
+    DMX_UNWRAP(CreatePixmap, dmxScreen, pScreen);
+    DMX_UNWRAP(DestroyPixmap, dmxScreen, pScreen);
+    DMX_UNWRAP(BitmapToRegion, dmxScreen, pScreen);
 
-        DMX_UNWRAP(CreatePixmap, dmxScreen, pScreen);
-        DMX_UNWRAP(DestroyPixmap, dmxScreen, pScreen);
-        DMX_UNWRAP(BitmapToRegion, dmxScreen, pScreen);
+    DMX_UNWRAP(RealizeFont, dmxScreen, pScreen);
+    DMX_UNWRAP(UnrealizeFont, dmxScreen, pScreen);
 
-        DMX_UNWRAP(RealizeFont, dmxScreen, pScreen);
-        DMX_UNWRAP(UnrealizeFont, dmxScreen, pScreen);
-
-        DMX_UNWRAP(CreateColormap, dmxScreen, pScreen);
-        DMX_UNWRAP(DestroyColormap, dmxScreen, pScreen);
-        DMX_UNWRAP(InstallColormap, dmxScreen, pScreen);
-        DMX_UNWRAP(StoreColors, dmxScreen, pScreen);
-    }
+    DMX_UNWRAP(CreateColormap, dmxScreen, pScreen);
+    DMX_UNWRAP(DestroyColormap, dmxScreen, pScreen);
+    DMX_UNWRAP(InstallColormap, dmxScreen, pScreen);
+    DMX_UNWRAP(StoreColors, dmxScreen, pScreen);
 
     DMX_UNWRAP(SaveScreen, dmxScreen, pScreen);
 

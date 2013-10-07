@@ -1715,7 +1715,6 @@ fbConfigToPixelFormat(__GLXconfig * mode, PIXELFORMATDESCRIPTOR * pfdret,
     pfd.cAuxBuffers = mode->numAuxBuffers;
 
     /* mode->level ? */
-    /* mode->pixmapMode ? */
 
     *pfdret = pfd;
 
@@ -1925,7 +1924,6 @@ glxWinCreateConfigs(HDC hdc, glxWinScreen * screen)
         // pfd.dwLayerMask; // ignored
         // pfd.dwDamageMask;  // ignored
 
-        c->base.pixmapMode = 0;
         c->base.visualID = -1;  // will be set by __glXScreenInit()
 
         /* EXT_visual_rating / GLX 1.2 */
@@ -2263,7 +2261,6 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen)
         }
         c->base.level = 0;
 
-        c->base.pixmapMode = 0; // ???
         c->base.visualID = -1;  // will be set by __glXScreenInit()
 
         /* EXT_visual_rating / GLX 1.2 */

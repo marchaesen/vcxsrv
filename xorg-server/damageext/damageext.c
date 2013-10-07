@@ -31,7 +31,6 @@
 static unsigned char DamageReqCode;
 static int DamageEventBase;
 static RESTYPE DamageExtType;
-static RESTYPE DamageExtWinType;
 
 static DevPrivateKeyRec DamageClientPrivateKeyRec;
 
@@ -309,11 +308,14 @@ static const int version_requests[] = {
 #define NUM_VERSION_REQUESTS	(sizeof (version_requests) / sizeof (version_requests[0]))
 
 static int (*ProcDamageVector[XDamageNumberRequests]) (ClientPtr) = {
-/*************** Version 1 ******************/
+    /*************** Version 1 ******************/
     ProcDamageQueryVersion,
-        ProcDamageCreate, ProcDamageDestroy, ProcDamageSubtract,
-/*************** Version 1.1 ****************/
-ProcDamageAdd,};
+    ProcDamageCreate,
+    ProcDamageDestroy,
+    ProcDamageSubtract,
+    /*************** Version 1.1 ****************/
+    ProcDamageAdd,
+};
 
 static int
 ProcDamageDispatch(ClientPtr client)
@@ -389,11 +391,14 @@ SProcDamageAdd(ClientPtr client)
 }
 
 static int (*SProcDamageVector[XDamageNumberRequests]) (ClientPtr) = {
-/*************** Version 1 ******************/
+    /*************** Version 1 ******************/
     SProcDamageQueryVersion,
-        SProcDamageCreate, SProcDamageDestroy, SProcDamageSubtract,
-/*************** Version 1.1 ****************/
-SProcDamageAdd,};
+    SProcDamageCreate,
+    SProcDamageDestroy,
+    SProcDamageSubtract,
+    /*************** Version 1.1 ****************/
+    SProcDamageAdd,
+};
 
 static int
 SProcDamageDispatch(ClientPtr client)
@@ -431,23 +436,10 @@ FreeDamageExt(pointer value, XID did)
      * Get rid of the resource table entry hanging from the window id
      */
     pDamageExt->id = 0;
-    if (WindowDrawable(pDamageExt->pDrawable->type))
-        FreeResourceByType(pDamageExt->pDrawable->id, DamageExtWinType, TRUE);
     if (pDamageExt->pDamage) {
-        DamageUnregister(pDamageExt->pDrawable, pDamageExt->pDamage);
         DamageDestroy(pDamageExt->pDamage);
     }
     free(pDamageExt);
-    return Success;
-}
-
-static int
-FreeDamageExtWin(pointer value, XID wid)
-{
-    DamageExtPtr pDamageExt = (DamageExtPtr) value;
-
-    if (pDamageExt->id)
-        FreeResource(pDamageExt->id, RT_NONE);
     return Success;
 }
 
@@ -479,10 +471,6 @@ DamageExtensionInit(void)
 
     DamageExtType = CreateNewResourceType(FreeDamageExt, "DamageExt");
     if (!DamageExtType)
-        return;
-
-    DamageExtWinType = CreateNewResourceType(FreeDamageExtWin, "DamageExtWin");
-    if (!DamageExtWinType)
         return;
 
     if (!dixRegisterPrivateKey

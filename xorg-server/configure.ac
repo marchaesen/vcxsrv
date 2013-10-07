@@ -26,9 +26,9 @@ dnl
 dnl Process this file with autoconf to create configure.
 
 AC_PREREQ(2.60)
-AC_INIT([xorg-server], 1.14.99.1, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
-RELEASE_DATE="2013-04-24"
-RELEASE_NAME="Sweet Tea"
+AC_INIT([xorg-server], 1.14.99.2, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
+RELEASE_DATE="2013-10-04"
+RELEASE_NAME="Chicory Coffee"
 AC_CONFIG_SRCDIR([Makefile.am])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
 
@@ -2116,12 +2116,12 @@ if test "$KDRIVE" = yes; then
        AC_DEFINE(KDRIVE_MOUSE, 1, [Enable KDrive mouse driver])
     fi
 
-    XEPHYR_REQUIRED_LIBS="x11 >= 1.6 $LIBXEXT xau xdmcp"
+    XEPHYR_REQUIRED_LIBS="xau xdmcp xcb xcb-shape xcb-aux xcb-image xcb-icccm xcb-shm xcb-keysyms"
     if test "x$XV" = xyes; then
-        XEPHYR_REQUIRED_LIBS="$XEPHYR_REQUIRED_LIBS xv"
+        XEPHYR_REQUIRED_LIBS="$XEPHYR_REQUIRED_LIBS xcb-xv"
     fi
     if test "x$DRI" = xyes && test "x$GLX" = xyes; then
-        XEPHYR_REQUIRED_LIBS="$XEPHYR_REQUIRED_LIBS $LIBGL libdrm"
+        XEPHYR_REQUIRED_LIBS="$XEPHYR_REQUIRED_LIBS libdrm xcb-glx xcb-xf86dri > 1.6"
     fi
 
     if test "x$XEPHYR" = xauto; then

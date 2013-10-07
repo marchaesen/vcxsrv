@@ -46,7 +46,6 @@ typedef enum {
     PRIVATE_CURSOR_BITS,
 
     /* extension privates */
-    PRIVATE_DBE_WINDOW,
     PRIVATE_DAMAGE,
     PRIVATE_GLYPH,
     PRIVATE_GLYPHSET,

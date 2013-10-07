@@ -35,10 +35,10 @@ AM_MAINTAINER_MODE
 AC_LIBTOOL_WIN32_DLL
 AC_PROG_LIBTOOL
 
-# Require xorg-macros minimum of 1.12 for DocBook external references
+# Require xorg-macros minimum of 1.16 for unit testing with memory checks
 m4_ifndef([XORG_MACROS_VERSION],
-          [m4_fatal([must install xorg-macros 1.12 or later before running autoconf/autogen])])
-XORG_MACROS_VERSION(1.12)
+          [m4_fatal([must install xorg-macros 1.16 or later before running autoconf/autogen])])
+XORG_MACROS_VERSION(1.16)
 XORG_DEFAULT_OPTIONS
 XORG_ENABLE_DOCS
 XORG_WITH_XMLTO(0.0.22)
@@ -72,7 +72,11 @@ AM_CONDITIONAL(HASXDMAUTH,test x$HASXDMAUTH = xyes)
 XORG_WITH_LINT
 XORG_LINT_LIBRARY([Xdmcp])
 
+#  --enable-unit-tests
+XORG_ENABLE_UNIT_TESTS([yes])
+
 AC_CONFIG_FILES([Makefile
 		doc/Makefile
+		test/Makefile
 		xdmcp.pc])
 AC_OUTPUT

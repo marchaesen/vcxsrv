@@ -213,7 +213,7 @@ xorg_list_del(struct xorg_list *entry)
  *
  * @return True if the list contains one or more elements or False otherwise.
  */
-static inline Bool
+static inline int
 xorg_list_is_empty(struct xorg_list *head)
 {
     return head->next == head;

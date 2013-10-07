@@ -555,7 +555,6 @@ _gl_context_modes_are_same(const __GLcontextModes * a,
             (a->stencilBits == b->stencilBits) &&
             (a->numAuxBuffers == b->numAuxBuffers) &&
             (a->level == b->level) &&
-            (a->pixmapMode == b->pixmapMode) &&
             (a->visualRating == b->visualRating) &&
 
             (a->transparentPixel == b->transparentPixel) &&

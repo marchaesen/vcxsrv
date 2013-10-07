@@ -143,6 +143,20 @@ typedef struct _DbeWindowPrivRec {
      */
     XID initIDs[DBE_INIT_MAX_IDS];
 
+    /* Pointer to a drawable that contains the contents of the back buffer.
+     */
+    PixmapPtr pBackBuffer;
+
+    /* Pointer to a drawable that contains the contents of the front buffer.
+     * This pointer is only used for the XdbeUntouched swap action.  For that
+     * swap action, we need to copy the front buffer (window) contents into
+     * this drawable, copy the contents of current back buffer drawable (the
+     * back buffer) into the window, swap the front and back drawable pointers,
+     * and then swap the drawable/resource associations in the resource
+     * database.
+     */
+    PixmapPtr pFrontBuffer;
+
     /* Device-specific private information.
      */
     PrivateRec *devPrivates;
@@ -180,16 +194,9 @@ typedef struct _DbeScreenPrivRec {
                         int * /*pNumWindows */ ,
                         DbeSwapInfoPtr  /*swapInfo */
         );
-    void (*BeginIdiom) (ClientPtr       /*client */
-        );
-    void (*EndIdiom) (ClientPtr /*client */
-        );
     void (*WinPrivDelete) (DbeWindowPrivPtr /*pDbeWindowPriv */ ,
                            XID  /*bufId */
         );
-    void (*ResetProc) (ScreenPtr        /*pScreen */
-        );
-
 } DbeScreenPrivRec, *DbeScreenPrivPtr;
 
 #endif                          /* DBE_STRUCT_H */

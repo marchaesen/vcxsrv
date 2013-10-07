@@ -169,9 +169,7 @@ Bool noXFree86DRIExtension = FALSE;
 #ifdef XF86VIDMODE
 Bool noXFree86VidModeExtension = FALSE;
 #endif
-#ifdef XFIXES
 Bool noXFixesExtension = FALSE;
-#endif
 #ifdef PANORAMIX
 /* Xinerama is disabled by default unless enabled via +xinerama */
 Bool noPanoramiXExtension = TRUE;

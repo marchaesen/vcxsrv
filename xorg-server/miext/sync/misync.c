@@ -182,20 +182,21 @@ miSyncSetup(ScreenPtr pScreen)
         &miSyncScreenDestroyFence
     };
 
-    if (dixPrivateKeyRegistered(syncScreenPrivateKey))
-        return TRUE;
-
-    if (!dixRegisterPrivateKey(syncScreenPrivateKey, PRIVATE_SCREEN,
-                               sizeof(SyncScreenPrivRec)))
-        return FALSE;
+    if (!dixPrivateKeyRegistered(syncScreenPrivateKey)) {
+        if (!dixRegisterPrivateKey(syncScreenPrivateKey, PRIVATE_SCREEN,
+                                   sizeof(SyncScreenPrivRec)))
+            return FALSE;
+    }
 
     pScreenPriv = SYNC_SCREEN_PRIV(pScreen);
 
-    pScreenPriv->funcs = miSyncScreenFuncs;
+    if (pScreenPriv->funcs.CreateFence) {
+        pScreenPriv->funcs = miSyncScreenFuncs;
 
-    /* Wrap CloseScreen to clean up */
-    pScreenPriv->CloseScreen = pScreen->CloseScreen;
-    pScreen->CloseScreen = SyncCloseScreen;
+        /* Wrap CloseScreen to clean up */
+        pScreenPriv->CloseScreen = pScreen->CloseScreen;
+        pScreen->CloseScreen = SyncCloseScreen;
+    }
 
     return TRUE;
 }

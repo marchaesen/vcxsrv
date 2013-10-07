@@ -7,6 +7,7 @@ sdk_HEADERS = shadow.h
 endif
 
 libshadow_la_SOURCES =		\
+	c2p_core.h		\
 	shadow.c		\
 	shadow.h		\
 	shafb4.c		\

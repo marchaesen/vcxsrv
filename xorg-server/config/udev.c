@@ -226,6 +226,10 @@ device_added(struct udev_device *udev_device)
 
     input_options = input_option_new(input_options, "config_info", config_info);
 
+    /* Default setting needed for non-seat0 seats */
+    if (ServerIsNotSeat0())
+        input_options = input_option_new(input_options, "GrabDevice", "on");
+
     LogMessage(X_INFO, "config/udev: Adding input device %s (%s)\n",
                name, path);
     rc = NewInputDeviceRequest(input_options, &attrs, &dev);

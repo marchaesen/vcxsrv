@@ -31,8 +31,6 @@
  * Silicon Graphics, Inc.
  */
 
-extern void __glXNop(void);
-
 /* context helper routines */
 extern __GLXcontext *__glXLookupContextByTag(__GLXclientState *, GLXContextTag);
 extern DrawablePtr __glXLookupDrawableByTag(__GLXclientState * cl,

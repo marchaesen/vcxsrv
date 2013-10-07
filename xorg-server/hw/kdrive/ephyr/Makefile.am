@@ -1,3 +1,24 @@
+# Copyright © 2013 Intel Corporation
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice (including the next
+# paragraph) shall be included in all copies or substantial portions of the
+# Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
+
 SUBDIRS = man
 
 AM_CPPFLAGS = 			\
@@ -9,81 +30,45 @@ AM_CPPFLAGS = 			\
 	-I$(top_srcdir)/exa
 
 if XV
-LIBXEPHYR_HOSTXV=libxephyr-hostxv.la
+XV_SRCS = ephyrvideo.c
 endif
 
 if DRI
-LIBXEPHYR_HOSTDRI=libxephyr-hostdri.la
-endif
-
-noinst_LTLIBRARIES = libxephyr-hostx.la $(LIBXEPHYR_HOSTXV) $(LIBXEPHYR_HOSTDRI) libxephyr.la
-
-bin_PROGRAMS = Xephyr
-
-HOSTX_SRCS =			\
-	hostx.c			\
-	hostx.h
-
-HOSTVIDEO_SRCS =		\
-	ephyrvideo.c		\
-	ephyrhostvideo.c	\
-	ephyrhostvideo.h
-
-HOSTDRI_SRCS =			\
+DRI_SRCS =			\
 	ephyrdriext.c		\
 	ephyrdriext.h		\
 	ephyrdri.c		\
 	ephyrdri.h		\
-	XF86dri.c		\
-	xf86dri.h		\
 	ephyrglxext.c		\
 	ephyrglxext.h		\
 	ephyrhostglx.c		\
-	ephyrhostglx.h
-
-XEPHYR_SRCS =			\
-	ephyr.c			\
-	ephyr.h			\
-	ephyrlog.h		\
-	ephyr_draw.c		\
-	os.c
-
-libxephyr_hostx_la_SOURCES = $(HOSTX_SRCS)
-
-if XV
-libxephyr_hostxv_la_SOURCES = $(HOSTVIDEO_SRCS)
+	ephyrhostglx.h		\
+	$()
 endif
 
-if DRI
-libxephyr_hostdri_la_SOURCES = $(HOSTDRI_SRCS)
-endif
-
-libxephyr_la_SOURCES = $(XEPHYR_SRCS)
+bin_PROGRAMS = Xephyr
 
 Xephyr_SOURCES = \
-	ephyrinit.c
+	ephyr.c \
+	ephyr.h \
+	ephyrlog.h \
+	ephyr_draw.c \
+	os.c \
+	ephyrinit.c \
+	hostx.c \
+	hostx.h \
+	$(XV_SRCS) \
+	$(DRI_SRCS) \
+	$()
 
 Xephyr_LDADD = 						\
-	libxephyr.la					\
-	libxephyr-hostx.la				\
-	$(LIBXEPHYR_HOSTXV)				\
-	$(LIBXEPHYR_HOSTDRI)				\
 	$(top_builddir)/exa/libexa.la			\
 	@KDRIVE_LIBS@					\
 	@XEPHYR_LIBS@
 
-Xephyr_DEPENDENCIES =	\
-	libxephyr.la					\
-	libxephyr-hostx.la				\
-	$(LIBXEPHYR_HOSTXV)				\
-	$(LIBXEPHYR_HOSTDRI)				\
-	@KDRIVE_LOCAL_LIBS@
+Xephyr_DEPENDENCIES = @KDRIVE_LOCAL_LIBS@
 
 Xephyr_LDFLAGS = $(LD_EXPORT_SYMBOLS_FLAG)
 
 relink:
 	$(AM_V_at)rm -f $(bin_PROGRAMS) && $(MAKE) $(bin_PROGRAMS)
-
-EXTRA_DIST = \
-	$(HOSTVIDEO_SRCS) \
-	$(HOSTDRI_SRCS)

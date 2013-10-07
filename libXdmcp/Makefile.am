@@ -1,4 +1,4 @@
-SUBDIRS=doc
+SUBDIRS=doc . test
 
 lib_LTLIBRARIES = libXdmcp.la
 

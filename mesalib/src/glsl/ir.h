@@ -1560,7 +1560,8 @@ enum ir_texture_opcode {
    ir_txf_ms,           /**< Multisample texture fetch */
    ir_txs,		/**< Texture size */
    ir_lod,		/**< Texture lod query */
-   ir_tg4		/**< Texture gather */
+   ir_tg4,		/**< Texture gather */
+   ir_query_levels      /**< Texture levels query */
 };
 
 
@@ -1585,7 +1586,8 @@ enum ir_texture_opcode {
  *      <type> <sampler> <coordinate>         <sample_index>)
  * (txs <type> <sampler> <lod>)
  * (lod <type> <sampler> <coordinate>)
- * (tg4 <type> <sampler> <coordinate> 0)
+ * (tg4 <type> <sampler> <coordinate> <offset> <component>)
+ * (query_levels <type> <sampler>)
  */
 class ir_texture : public ir_rvalue {
 public:
@@ -1653,6 +1655,7 @@ public:
       ir_rvalue *lod;		/**< Floating point LOD */
       ir_rvalue *bias;		/**< Floating point LOD bias */
       ir_rvalue *sample_index;  /**< MSAA sample index */
+      ir_rvalue *component;     /**< Gather component selector */
       struct {
 	 ir_rvalue *dPdx;	/**< Partial derivative of coordinate wrt X */
 	 ir_rvalue *dPdy;	/**< Partial derivative of coordinate wrt Y */

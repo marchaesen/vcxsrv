@@ -419,10 +419,9 @@ dmxBackendCollectEvents(DevicePtr pDev,
             }
             break;
         case MotionNotify:
-            DMXDBG9("dmxBackendCollectEvents: MotionNotify %d/%d (mi %d)"
+            DMXDBG8("dmxBackendCollectEvents: MotionNotify %d/%d"
                     " newscreen=%d: %d %d (e=%d; last=%d,%d)\n",
                     dmxScreen->index, priv->myScreen,
-                    miPointerCurrentScreen()->myNum,
                     priv->newscreen,
                     X.xmotion.x, X.xmotion.y,
                     entered, priv->lastX, priv->lastY);
@@ -578,9 +577,6 @@ dmxBackendLateReInit(DevicePtr pDev)
 {
     GETPRIVFROMPDEV;
     int x, y;
-
-    DMXDBG1("dmxBackendLateReInit miPointerCurrentScreen() = %p\n",
-            miPointerCurrentScreen());
 
     dmxBackendSameDisplay(NULL, 0);     /* Invalidate cache */
     dmxBackendInitPrivate(pDev);

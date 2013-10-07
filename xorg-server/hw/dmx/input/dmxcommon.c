@@ -502,11 +502,6 @@ dmxCommonMouOn(DevicePtr pDev)
     GETDMXINPUTFROMPRIV;
 
     priv->eventMask |= DMX_POINTER_EVENT_MASK;
-    if (dmxShadowFB) {
-        XWarpPointer(priv->display, priv->window, priv->window,
-                     0, 0, 0, 0, priv->initPointerX, priv->initPointerY);
-        dmxSync(&dmxScreens[dmxInput->scrnIdx], TRUE);
-    }
     if (!priv->be) {
         XSelectInput(priv->display, priv->window, priv->eventMask);
         AddEnabledDevice(XConnectionNumber(priv->display));

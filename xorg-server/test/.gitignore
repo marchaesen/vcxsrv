@@ -3,6 +3,7 @@ hashtabletest
 input
 list
 misc
+os
 string
 touch
 xfree86

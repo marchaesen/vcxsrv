@@ -139,7 +139,6 @@ exaModifyPixmapHeader_mixed(PixmapPtr pPixmap, int width, int height, int depth,
     if (pPixData) {
         if (pExaPixmap->driverPriv) {
             if (pExaPixmap->pDamage) {
-                DamageUnregister(&pPixmap->drawable, pExaPixmap->pDamage);
                 DamageDestroy(pExaPixmap->pDamage);
                 pExaPixmap->pDamage = NULL;
             }
@@ -189,7 +188,6 @@ exaModifyPixmapHeader_mixed(PixmapPtr pPixmap, int width, int height, int depth,
             if (pExaPixmap->sys_ptr) {
                 free(pExaPixmap->sys_ptr);
                 pExaPixmap->sys_ptr = NULL;
-                DamageUnregister(&pPixmap->drawable, pExaPixmap->pDamage);
                 DamageDestroy(pExaPixmap->pDamage);
                 pExaPixmap->pDamage = NULL;
                 RegionEmpty(&pExaPixmap->validSys);

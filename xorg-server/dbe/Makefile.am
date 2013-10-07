@@ -9,5 +9,4 @@ endif
 libdbe_la_SOURCES = \
         dbe.c \
         midbe.c \
-        midbe.h \
-        midbestr.h
+        midbe.h

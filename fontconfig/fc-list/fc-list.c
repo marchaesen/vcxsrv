@@ -139,6 +139,11 @@ main (int argc, char **argv)
     if (argv[i])
     {
 	pat = FcNameParse ((FcChar8 *) argv[i]);
+	if (!pat)
+	{
+	    fputs ("Unable to parse the pattern\n", stderr);
+	    return 1;
+	}
 	while (argv[++i])
 	{
 	    if (!os)

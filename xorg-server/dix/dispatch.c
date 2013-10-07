@@ -1974,7 +1974,7 @@ ProcPutImage(ClientPtr client)
 static int
 DoGetImage(ClientPtr client, int format, Drawable drawable,
            int x, int y, int width, int height,
-           Mask planemask, xGetImageReply ** im_return)
+           Mask planemask)
 {
     DrawablePtr pDraw, pBoundingDraw;
     int nlines, linesPerBuf, rc;
@@ -2074,46 +2074,32 @@ DoGetImage(ClientPtr client, int format, Drawable drawable,
 
     xgi.length = length;
 
-    if (im_return) {
-        pBuf = calloc(1, sz_xGetImageReply + length);
-        if (!pBuf)
-            return BadAlloc;
-        if (widthBytesLine == 0)
-            linesPerBuf = 0;
-        else
-            linesPerBuf = height;
-        *im_return = (xGetImageReply *) pBuf;
-        *(xGetImageReply *) pBuf = xgi;
-        pBuf += sz_xGetImageReply;
-    }
+    xgi.length = bytes_to_int32(xgi.length);
+    if (widthBytesLine == 0 || height == 0)
+        linesPerBuf = 0;
+    else if (widthBytesLine >= IMAGE_BUFSIZE)
+        linesPerBuf = 1;
     else {
-        xgi.length = bytes_to_int32(xgi.length);
-        if (widthBytesLine == 0 || height == 0)
-            linesPerBuf = 0;
-        else if (widthBytesLine >= IMAGE_BUFSIZE)
-            linesPerBuf = 1;
-        else {
-            linesPerBuf = IMAGE_BUFSIZE / widthBytesLine;
-            if (linesPerBuf > height)
-                linesPerBuf = height;
-        }
-        length = linesPerBuf * widthBytesLine;
-        if (linesPerBuf < height) {
-            /* we have to make sure intermediate buffers don't need padding */
-            while ((linesPerBuf > 1) &&
-                   (length & ((1L << LOG2_BYTES_PER_SCANLINE_PAD) - 1))) {
-                linesPerBuf--;
-                length -= widthBytesLine;
-            }
-            while (length & ((1L << LOG2_BYTES_PER_SCANLINE_PAD) - 1)) {
-                linesPerBuf++;
-                length += widthBytesLine;
-            }
-        }
-        if (!(pBuf = calloc(1, length)))
-            return BadAlloc;
-        WriteReplyToClient(client, sizeof(xGetImageReply), &xgi);
+        linesPerBuf = IMAGE_BUFSIZE / widthBytesLine;
+        if (linesPerBuf > height)
+            linesPerBuf = height;
     }
+    length = linesPerBuf * widthBytesLine;
+    if (linesPerBuf < height) {
+        /* we have to make sure intermediate buffers don't need padding */
+        while ((linesPerBuf > 1) &&
+               (length & ((1L << LOG2_BYTES_PER_SCANLINE_PAD) - 1))) {
+            linesPerBuf--;
+            length -= widthBytesLine;
+        }
+        while (length & ((1L << LOG2_BYTES_PER_SCANLINE_PAD) - 1)) {
+            linesPerBuf++;
+            length += widthBytesLine;
+        }
+    }
+    if (!(pBuf = calloc(1, length)))
+        return BadAlloc;
+    WriteReplyToClient(client, sizeof(xGetImageReply), &xgi);
 
     if (pDraw->type == DRAWABLE_WINDOW) {
         pVisibleRegion = NotClippedByChildren((WindowPtr) pDraw);
@@ -2142,13 +2128,10 @@ DoGetImage(ClientPtr client, int format, Drawable drawable,
 
             /* Note that this is NOT a call to WriteSwappedDataToClient,
                as we do NOT byte swap */
-            if (!im_return) {
-                ReformatImage(pBuf, (int) (nlines * widthBytesLine),
-                              BitsPerPixel(pDraw->depth), ClientOrder(client));
+            ReformatImage(pBuf, (int) (nlines * widthBytesLine),
+                          BitsPerPixel(pDraw->depth), ClientOrder(client));
 
-/* Don't split me, gcc pukes when you do */
-                WriteToClient(client, (int) (nlines * widthBytesLine), pBuf);
-            }
+            WriteToClient(client, (int) (nlines * widthBytesLine), pBuf);
             linesDone += nlines;
         }
     }
@@ -2173,18 +2156,10 @@ DoGetImage(ClientPtr client, int format, Drawable drawable,
 
                     /* Note: NOT a call to WriteSwappedDataToClient,
                        as we do NOT byte swap */
-                    if (im_return) {
-                        pBuf += nlines * widthBytesLine;
-                    }
-                    else {
-                        ReformatImage(pBuf,
-                                      (int) (nlines * widthBytesLine),
-                                      1, ClientOrder(client));
+                    ReformatImage(pBuf, (int) (nlines * widthBytesLine),
+                                  1, ClientOrder(client));
 
-/* Don't split me, gcc pukes when you do */
-                        WriteToClient(client, (int) (nlines * widthBytesLine),
-				      pBuf);
-                    }
+                    WriteToClient(client, (int)(nlines * widthBytesLine), pBuf);
                     linesDone += nlines;
                 }
             }
@@ -2192,8 +2167,7 @@ DoGetImage(ClientPtr client, int format, Drawable drawable,
     }
     if (pVisibleRegion)
         RegionDestroy(pVisibleRegion);
-    if (!im_return)
-        free(pBuf);
+    free(pBuf);
     return Success;
 }
 
@@ -2207,7 +2181,7 @@ ProcGetImage(ClientPtr client)
     return DoGetImage(client, stuff->format, stuff->drawable,
                       stuff->x, stuff->y,
                       (int) stuff->width, (int) stuff->height,
-                      stuff->planeMask, (xGetImageReply **) NULL);
+                      stuff->planeMask);
 }
 
 int

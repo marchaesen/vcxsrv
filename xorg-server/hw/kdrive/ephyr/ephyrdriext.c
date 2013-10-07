@@ -39,6 +39,9 @@
 #define _XF86DRI_SERVER_
 #include <X11/dri/xf86dri.h>
 #include <X11/dri/xf86driproto.h>
+#include <xcb/xcb.h>
+#include <xcb/shape.h>
+#include <xcb/xf86dri.h>
 #include "misc.h"
 #include "privates.h"
 #include "dixstruct.h"
@@ -1319,12 +1322,12 @@ ephyrDRIExtensionInit(ScreenPtr a_screen)
     EphyrDRIScreenPrivPtr screen_priv = NULL;
 
     EPHYR_LOG("enter\n");
-    if (!hostx_has_dri()) {
+    if (!host_has_extension(&xcb_xf86dri_id)) {
         EPHYR_LOG("host does not have DRI extension\n");
         goto out;
     }
     EPHYR_LOG("host X does have DRI extension\n");
-    if (!hostx_has_xshape()) {
+    if (!host_has_extension(&xcb_shape_id)) {
         EPHYR_LOG("host does not have XShape extension\n");
         goto out;
     }

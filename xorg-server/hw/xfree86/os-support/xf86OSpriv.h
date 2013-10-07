@@ -38,7 +38,6 @@ typedef pointer (*SetWCProcPtr) (int, unsigned long, unsigned long, Bool,
                                  MessageType);
 typedef void (*ProtectMemProcPtr) (int, pointer, unsigned long, Bool);
 typedef void (*UndoWCProcPtr) (int, pointer);
-typedef void (*ReadSideEffectsProcPtr) (int, pointer, unsigned long);
 
 typedef struct {
     Bool initialised;
@@ -47,7 +46,6 @@ typedef struct {
     ProtectMemProcPtr protectMem;
     SetWCProcPtr setWC;
     UndoWCProcPtr undoWC;
-    ReadSideEffectsProcPtr readSideEffects;
     Bool linearSupported;
 } VidMemInfo, *VidMemInfoPtr;
 

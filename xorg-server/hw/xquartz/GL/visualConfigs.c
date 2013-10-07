@@ -144,7 +144,6 @@ __GLXconfig *__glXAquaCreateVisualConfigs(int *numConfigsPtr, int screenNumber) 
 
                                         c->level = 0;
                                         c->indexBits = 0;
-                                        c->pixmapMode = 0; // TODO: What should this be?
 
                                         if(conf->accelerated) {
                                             c->visualRating = GLX_NONE;

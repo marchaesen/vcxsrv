@@ -286,10 +286,6 @@ glxClientCallback(CallbackListPtr *list, pointer closure, pointer data)
 
     switch (pClient->clientState) {
     case ClientStateRunning:
-        /*
-         ** By default, assume that the client supports
-         ** GLX major version 1 minor version 0 protocol.
-         */
         cl->client = pClient;
         break;
 

@@ -163,6 +163,10 @@ SOFTWARE.
 /* #endif */
 #endif
 
+#if defined(IPv6) && defined(AF_INET6)
+#include <arpa/inet.h>
+#endif
+
 #endif                          /* WIN32 */
 
 #define X_INCLUDE_NETDB_H
@@ -458,10 +462,6 @@ DefineSelf(int fd)
 #else
 #define ifr_size(p) (sizeof (ifr_type))
 #define ifraddr_size(a) (sizeof (a))
-#endif
-
-#if defined(IPv6) && defined(AF_INET6)
-#include <arpa/inet.h>
 #endif
 
 #if defined(IPv6) && defined(AF_INET6)
