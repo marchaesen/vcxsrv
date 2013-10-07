@@ -56,8 +56,6 @@ Xdmx_SOURCES = dmx.c \
                dmxprop.h \
                dmxscrinit.c \
                dmxscrinit.h \
-               dmxshadow.c \
-               dmxshadow.h \
                dmxstat.c \
                dmxstat.h \
                dmxsync.c \

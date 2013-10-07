@@ -26,6 +26,10 @@
 #ifdef HAVE_CONFIG_H
 #include <kdrive-config.h>
 #endif
+
+#include <xcb/xcb_keysyms.h>
+#include <X11/keysym.h>
+
 #include "ephyr.h"
 
 #include "inputstr.h"
@@ -33,6 +37,7 @@
 #include "ephyrlog.h"
 
 #ifdef XF86DRI
+#include <xcb/xf86dri.h>
 #include "ephyrdri.h"
 #include "ephyrdriext.h"
 #include "ephyrglxext.h"
@@ -57,6 +62,16 @@ typedef struct _EphyrInputPrivate {
 
 Bool EphyrWantGrayScale = 0;
 Bool EphyrWantResize = 0;
+
+Bool
+host_has_extension(xcb_extension_t *extension)
+{
+    const xcb_query_extension_reply_t *rep;
+
+    rep = xcb_get_extension_data(hostx_get_xcbconn(), extension);
+
+    return rep && rep->present;
+}
 
 Bool
 ephyrInitialize(KdCardInfo * card, EphyrPriv * priv)
@@ -90,8 +105,9 @@ ephyrCardInit(KdCardInfo * card)
 }
 
 Bool
-ephyrScreenInitialize(KdScreenInfo * screen, EphyrScrPriv * scrpriv)
+ephyrScreenInitialize(KdScreenInfo *screen)
 {
+    EphyrScrPriv *scrpriv = screen->driver;
     int width = 640, height = 480;
     CARD32 redMask, greenMask, blueMask;
 
@@ -108,7 +124,7 @@ ephyrScreenInitialize(KdScreenInfo * screen, EphyrScrPriv * scrpriv)
         if (screen->fb.depth < hostx_get_depth()
             && (screen->fb.depth == 24 || screen->fb.depth == 16
                 || screen->fb.depth == 8)) {
-            hostx_set_server_depth(screen, screen->fb.depth);
+            scrpriv->server_depth = screen->fb.depth;
         }
         else
             ErrorF
@@ -169,27 +185,6 @@ ephyrScreenInitialize(KdScreenInfo * screen, EphyrScrPriv * scrpriv)
     scrpriv->randr = screen->randr;
 
     return ephyrMapFramebuffer(screen);
-}
-
-Bool
-ephyrScreenInit(KdScreenInfo * screen)
-{
-    EphyrScrPriv *scrpriv;
-
-    scrpriv = calloc(1, sizeof(EphyrScrPriv));
-
-    if (!scrpriv)
-        return FALSE;
-
-    screen->driver = scrpriv;
-
-    if (!ephyrScreenInitialize(screen, scrpriv)) {
-        screen->driver = 0;
-        free(scrpriv);
-        return FALSE;
-    }
-
-    return TRUE;
 }
 
 void *
@@ -392,10 +387,7 @@ ephyrUnsetInternalDamage(ScreenPtr pScreen)
     KdScreenPriv(pScreen);
     KdScreenInfo *screen = pScreenPriv->screen;
     EphyrScrPriv *scrpriv = screen->driver;
-    PixmapPtr pPixmap = NULL;
 
-    pPixmap = (*pScreen->GetScreenPixmap) (pScreen);
-    DamageUnregister(&pPixmap->drawable, scrpriv->pDamage);
     DamageDestroy(scrpriv->pDamage);
 
     RemoveBlockAndWakeupHandlers(ephyrInternalDamageBlockHandler,
@@ -660,7 +652,7 @@ ephyrInitScreen(ScreenPtr pScreen)
     }
 #endif /*XV*/
 #ifdef XF86DRI
-    if (!ephyrNoDRI && !hostx_has_dri()) {
+    if (!ephyrNoDRI && !host_has_extension(&xcb_xf86dri_id)) {
         EPHYR_LOG("host x does not support DRI. Disabling DRI forwarding\n");
         ephyrNoDRI = TRUE;
     }
@@ -818,13 +810,13 @@ ephyrCrossScreen(ScreenPtr pScreen, Bool entering)
 {
 }
 
-int ephyrCurScreen;             /*current event screen */
+ScreenPtr ephyrCursorScreen; /* screen containing the cursor */
 
 static void
 ephyrWarpCursor(DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y)
 {
     OsBlockSIGIO();
-    ephyrCurScreen = pScreen->myNum;
+    ephyrCursorScreen = pScreen;
     miPointerWarpCursor(inputInfo.pointer, pScreen, x, y);
 
     OsReleaseSIGIO();
@@ -834,8 +826,6 @@ miPointerScreenFuncRec ephyrPointerScreenFuncs = {
     ephyrCursorOffScreen,
     ephyrCrossScreen,
     ephyrWarpCursor,
-    NULL,
-    NULL
 };
 
 #ifdef XF86DRI
@@ -872,123 +862,327 @@ ephyrExposePairedWindow(int a_remote)
 }
 #endif                          /* XF86DRI */
 
+static KdScreenInfo *
+screen_from_window(Window w)
+{
+    int i = 0;
+
+    for (i = 0; i < screenInfo.numScreens; i++) {
+        ScreenPtr pScreen = screenInfo.screens[i];
+        KdPrivScreenPtr kdscrpriv = KdGetScreenPriv(pScreen);
+        KdScreenInfo *screen = kdscrpriv->screen;
+        EphyrScrPriv *scrpriv = screen->driver;
+
+        if (scrpriv->win == w
+            || scrpriv->peer_win == w
+            || scrpriv->win_pre_existing == w) {
+            return screen;
+        }
+    }
+
+    return NULL;
+}
+
+static void
+ephyrProcessErrorEvent(xcb_generic_event_t *xev)
+{
+    xcb_generic_error_t *e = (xcb_generic_error_t *)xev;
+
+    FatalError("X11 error\n"
+               "Error code: %hhu\n"
+               "Sequence number: %hu\n"
+               "Major code: %hhu\tMinor code: %hu\n"
+               "Error value: %u\n",
+               e->error_code,
+               e->sequence,
+               e->major_code, e->minor_code,
+               e->resource_id);
+}
+
+static void
+ephyrProcessExpose(xcb_generic_event_t *xev)
+{
+    xcb_expose_event_t *expose = (xcb_expose_event_t *)xev;
+    KdScreenInfo *screen = screen_from_window(expose->window);
+    EphyrScrPriv *scrpriv = screen->driver;
+
+    /* Wait for the last expose event in a series of cliprects
+     * to actually paint our screen.
+     */
+    if (expose->count != 0)
+        return;
+
+    if (scrpriv) {
+        hostx_paint_rect(scrpriv->screen, 0, 0, 0, 0,
+                         scrpriv->win_width,
+                         scrpriv->win_height);
+    } else {
+        EPHYR_LOG_ERROR("failed to get host screen\n");
+#ifdef XF86DRI
+        /*
+         * We only receive expose events when the expose event
+         * have be generated for a drawable that is a host X
+         * window managed by Xephyr. Host X windows managed by
+         * Xephyr exists for instance when Xephyr is asked to
+         * create a GL drawable in a DRI environment.
+         */
+        ephyrExposePairedWindow(expose->window);
+#endif                          /* XF86DRI */
+    }
+}
+
+static void
+ephyrProcessMouseMotion(xcb_generic_event_t *xev)
+{
+    xcb_motion_notify_event_t *motion = (xcb_motion_notify_event_t *)xev;
+    KdScreenInfo *screen = screen_from_window(motion->event);
+
+    if (!ephyrMouse ||
+        !((EphyrPointerPrivate *) ephyrMouse->driverPrivate)->enabled) {
+        EPHYR_LOG("skipping mouse motion:%d\n", screen->pScreen->myNum);
+        return;
+    }
+
+    if (ephyrCursorScreen != screen->pScreen) {
+        EPHYR_LOG("warping mouse cursor. "
+                  "cur_screen%d, motion_screen:%d\n",
+                  ephyrCursorScreen, screen->pScreen->myNum);
+        ephyrWarpCursor(inputInfo.pointer, screen->pScreen,
+                        motion->event_x, motion->event_y);
+    }
+    else {
+        int x = 0, y = 0;
+
+#ifdef XF86DRI
+        EphyrWindowPair *pair = NULL;
+#endif
+        EPHYR_LOG("enqueuing mouse motion:%d\n", ephyrCurScreen);
+        x = motion->event_x;
+        y = motion->event_y;
+        EPHYR_LOG("initial (x,y):(%d,%d)\n", x, y);
+#ifdef XF86DRI
+        EPHYR_LOG("is this window peered by a gl drawable ?\n");
+        if (findWindowPairFromRemote(motion->event, &pair)) {
+            EPHYR_LOG("yes, it is peered\n");
+            x += pair->local->drawable.x;
+            y += pair->local->drawable.y;
+        }
+        else {
+            EPHYR_LOG("no, it is not peered\n");
+        }
+        EPHYR_LOG("final (x,y):(%d,%d)\n", x, y);
+#endif
+        KdEnqueuePointerEvent(ephyrMouse, mouseState, x, y, 0);
+    }
+}
+
+static void
+ephyrProcessButtonPress(xcb_generic_event_t *xev)
+{
+    xcb_button_press_event_t *button = (xcb_button_press_event_t *)xev;
+
+    if (!ephyrMouse ||
+        !((EphyrPointerPrivate *) ephyrMouse->driverPrivate)->enabled) {
+        EPHYR_LOG("skipping mouse press:%d\n", ephyrCurScreen);
+        return;
+    }
+
+    ephyrUpdateModifierState(button->state);
+    /* This is a bit hacky. will break for button 5 ( defined as 0x10 )
+     * Check KD_BUTTON defines in kdrive.h
+     */
+    mouseState |= 1 << (button->detail - 1);
+
+    EPHYR_LOG("enqueuing mouse press:%d\n", ephyrCurScreen);
+    KdEnqueuePointerEvent(ephyrMouse, mouseState | KD_MOUSE_DELTA, 0, 0, 0);
+}
+
+static void
+ephyrProcessButtonRelease(xcb_generic_event_t *xev)
+{
+    xcb_button_press_event_t *button = (xcb_button_press_event_t *)xev;
+
+    if (!ephyrMouse ||
+        !((EphyrPointerPrivate *) ephyrMouse->driverPrivate)->enabled) {
+        return;
+    }
+
+    ephyrUpdateModifierState(button->state);
+    mouseState &= ~(1 << (button->detail - 1));
+
+    EPHYR_LOG("enqueuing mouse release:%d\n", ephyrCurScreen);
+    KdEnqueuePointerEvent(ephyrMouse, mouseState | KD_MOUSE_DELTA, 0, 0, 0);
+}
+
+static void
+ephyrProcessKeyPress(xcb_generic_event_t *xev)
+{
+    xcb_key_press_event_t *key = (xcb_key_press_event_t *)xev;
+
+    if (!ephyrKbd ||
+        !((EphyrKbdPrivate *) ephyrKbd->driverPrivate)->enabled) {
+        return;
+    }
+
+    ephyrUpdateModifierState(key->state);
+    KdEnqueueKeyboardEvent(ephyrKbd, key->detail, FALSE);
+}
+
+static void
+ephyrProcessKeyRelease(xcb_generic_event_t *xev)
+{
+    xcb_connection_t *conn = hostx_get_xcbconn();
+    xcb_key_release_event_t *key = (xcb_key_release_event_t *)xev;
+    static xcb_key_symbols_t *keysyms;
+    static int grabbed_screen = -1;
+
+    if (!keysyms)
+        keysyms = xcb_key_symbols_alloc(conn);
+
+    if (((xcb_key_symbols_get_keysym(keysyms, key->detail, 0) == XK_Shift_L
+          || xcb_key_symbols_get_keysym(keysyms, key->detail, 0) == XK_Shift_R)
+         && (key->state & XCB_MOD_MASK_CONTROL)) ||
+        ((xcb_key_symbols_get_keysym(keysyms, key->detail, 0) == XK_Control_L
+          || xcb_key_symbols_get_keysym(keysyms, key->detail, 0) == XK_Control_R)
+         && (key->state & XCB_MOD_MASK_SHIFT))) {
+        KdScreenInfo *screen = screen_from_window(key->event);
+        EphyrScrPriv *scrpriv = screen->driver;
+
+        if (grabbed_screen != -1) {
+            xcb_ungrab_keyboard(conn, XCB_TIME_CURRENT_TIME);
+            xcb_ungrab_pointer(conn, XCB_TIME_CURRENT_TIME);
+            grabbed_screen = -1;
+            hostx_set_win_title(screen,
+                                "(ctrl+shift grabs mouse and keyboard)");
+        }
+        else {
+            /* Attempt grab */
+            xcb_grab_keyboard_cookie_t kbgrabc =
+                xcb_grab_keyboard(conn,
+                                  TRUE,
+                                  scrpriv->win,
+                                  XCB_TIME_CURRENT_TIME,
+                                  XCB_GRAB_MODE_ASYNC,
+                                  XCB_GRAB_MODE_ASYNC);
+            xcb_grab_keyboard_reply_t *kbgrabr;
+            xcb_grab_pointer_cookie_t pgrabc =
+                xcb_grab_pointer(conn,
+                                 TRUE,
+                                 scrpriv->win,
+                                 0,
+                                 XCB_GRAB_MODE_ASYNC,
+                                 XCB_GRAB_MODE_ASYNC,
+                                 scrpriv->win,
+                                 XCB_NONE,
+                                 XCB_TIME_CURRENT_TIME);
+            xcb_grab_pointer_reply_t *pgrabr;
+            kbgrabr = xcb_grab_keyboard_reply(conn, kbgrabc, NULL);
+            if (!kbgrabr || kbgrabr->status != XCB_GRAB_STATUS_SUCCESS) {
+                xcb_discard_reply(conn, pgrabc.sequence);
+                xcb_ungrab_pointer(conn, XCB_TIME_CURRENT_TIME);
+            } else {
+                pgrabr = xcb_grab_pointer_reply(conn, pgrabc, NULL);
+                if (!pgrabr || pgrabr->status != XCB_GRAB_STATUS_SUCCESS)
+                    {
+                        xcb_ungrab_keyboard(conn,
+                                            XCB_TIME_CURRENT_TIME);
+                    } else {
+                    grabbed_screen = scrpriv->mynum;
+                    hostx_set_win_title
+                        (screen,
+                         "(ctrl+shift releases mouse and keyboard)");
+                }
+            }
+        }
+    }
+
+    if (!ephyrKbd ||
+        !((EphyrKbdPrivate *) ephyrKbd->driverPrivate)->enabled) {
+        return;
+    }
+
+    /* Still send the release event even if above has happened server
+     * will get confused with just an up event.  Maybe it would be
+     * better to just block shift+ctrls getting to kdrive all
+     * together.
+     */
+    ephyrUpdateModifierState(key->state);
+    KdEnqueueKeyboardEvent(ephyrKbd, key->detail, TRUE);
+}
+
+static void
+ephyrProcessConfigureNotify(xcb_generic_event_t *xev)
+{
+    xcb_configure_notify_event_t *configure =
+        (xcb_configure_notify_event_t *)xev;
+    KdScreenInfo *screen = screen_from_window(configure->window);
+    EphyrScrPriv *scrpriv = screen->driver;
+
+    if (!scrpriv ||
+        (scrpriv->win_pre_existing == None && !EphyrWantResize)) {
+        return;
+    }
+
+#ifdef RANDR
+    ephyrResizeScreen(screen->pScreen, configure->width, configure->height);
+#endif /* RANDR */
+}
+
 void
 ephyrPoll(void)
 {
-    EphyrHostXEvent ev;
+    xcb_connection_t *conn = hostx_get_xcbconn();
 
-    while (hostx_get_event(&ev)) {
-        switch (ev.type) {
-        case EPHYR_EV_MOUSE_MOTION:
-            if (!ephyrMouse ||
-                !((EphyrPointerPrivate *) ephyrMouse->driverPrivate)->enabled) {
-                EPHYR_LOG("skipping mouse motion:%d\n", ephyrCurScreen);
-                continue;
-            }
-            {
-                if (ev.data.mouse_motion.screen >= 0
-                    && (ephyrCurScreen != ev.data.mouse_motion.screen)) {
-                    EPHYR_LOG("warping mouse cursor. "
-                              "cur_screen%d, motion_screen:%d\n",
-                              ephyrCurScreen, ev.data.mouse_motion.screen);
-                    if (ev.data.mouse_motion.screen >= 0) {
-                        ephyrWarpCursor
-                            (inputInfo.pointer,
-                             screenInfo.screens[ev.data.mouse_motion.screen],
-                             ev.data.mouse_motion.x, ev.data.mouse_motion.y);
-                    }
-                }
-                else {
-                    int x = 0, y = 0;
-
-#ifdef XF86DRI
-                    EphyrWindowPair *pair = NULL;
-#endif
-                    EPHYR_LOG("enqueuing mouse motion:%d\n", ephyrCurScreen);
-                    x = ev.data.mouse_motion.x;
-                    y = ev.data.mouse_motion.y;
-                    EPHYR_LOG("initial (x,y):(%d,%d)\n", x, y);
-#ifdef XF86DRI
-                    EPHYR_LOG("is this window peered by a gl drawable ?\n");
-                    if (findWindowPairFromRemote(ev.data.mouse_motion.window,
-                                                 &pair)) {
-                        EPHYR_LOG("yes, it is peered\n");
-                        x += pair->local->drawable.x;
-                        y += pair->local->drawable.y;
-                    }
-                    else {
-                        EPHYR_LOG("no, it is not peered\n");
-                    }
-                    EPHYR_LOG("final (x,y):(%d,%d)\n", x, y);
-#endif
-                    KdEnqueuePointerEvent(ephyrMouse, mouseState, x, y, 0);
-                }
-            }
-            break;
-
-        case EPHYR_EV_MOUSE_PRESS:
-            if (!ephyrMouse ||
-                !((EphyrPointerPrivate *) ephyrMouse->driverPrivate)->enabled) {
-                EPHYR_LOG("skipping mouse press:%d\n", ephyrCurScreen);
-                continue;
-            }
-            EPHYR_LOG("enqueuing mouse press:%d\n", ephyrCurScreen);
-            ephyrUpdateModifierState(ev.key_state);
-            mouseState |= ev.data.mouse_down.button_num;
-            KdEnqueuePointerEvent(ephyrMouse, mouseState | KD_MOUSE_DELTA, 0, 0,
-                                  0);
-            break;
-
-        case EPHYR_EV_MOUSE_RELEASE:
-            if (!ephyrMouse ||
-                !((EphyrPointerPrivate *) ephyrMouse->driverPrivate)->enabled)
-                continue;
-            ephyrUpdateModifierState(ev.key_state);
-            mouseState &= ~ev.data.mouse_up.button_num;
-            EPHYR_LOG("enqueuing mouse release:%d\n", ephyrCurScreen);
-            KdEnqueuePointerEvent(ephyrMouse, mouseState | KD_MOUSE_DELTA, 0, 0,
-                                  0);
-            break;
-
-        case EPHYR_EV_KEY_PRESS:
-            if (!ephyrKbd ||
-                !((EphyrKbdPrivate *) ephyrKbd->driverPrivate)->enabled)
-                continue;
-            ephyrUpdateModifierState(ev.key_state);
-            KdEnqueueKeyboardEvent(ephyrKbd, ev.data.key_down.scancode, FALSE);
-            break;
-
-        case EPHYR_EV_KEY_RELEASE:
-            if (!ephyrKbd ||
-                !((EphyrKbdPrivate *) ephyrKbd->driverPrivate)->enabled)
-                continue;
-            ephyrUpdateModifierState(ev.key_state);
-            KdEnqueueKeyboardEvent(ephyrKbd, ev.data.key_up.scancode, TRUE);
-            break;
-
-#ifdef XF86DRI
-        case EPHYR_EV_EXPOSE:
-            /*
-             * We only receive expose events when the expose event have
-             * be generated for a drawable that is a host X window managed
-             * by Xephyr. Host X windows managed by Xephyr exists for instance
-             * when Xephyr is asked to create a GL drawable in a DRI environment.
+    while (TRUE) {
+        xcb_generic_event_t *xev = xcb_poll_for_event(conn);
+        if (!xev) {
+            /* If our XCB connection has died (for example, our window was
+             * closed), exit now.
              */
-            ephyrExposePairedWindow(ev.data.expose.window);
-            break;
-#endif                          /* XF86DRI */
+            if (xcb_connection_has_error(conn)) {
+                CloseWellKnownConnections();
+                OsCleanup(1);
+                exit(1);
+            }
 
-#ifdef RANDR
-        case EPHYR_EV_CONFIGURE:
-            ephyrResizeScreen(screenInfo.screens[ev.data.configure.screen],
-                              ev.data.configure.width,
-                              ev.data.configure.height);
-            break;
-#endif /* RANDR */
-
-        default:
             break;
         }
+
+        switch (xev->response_type & 0x7f) {
+        case 0:
+            ephyrProcessErrorEvent(xev);
+            break;
+
+        case XCB_EXPOSE:
+            ephyrProcessExpose(xev);
+            break;
+
+        case XCB_MOTION_NOTIFY:
+            ephyrProcessMouseMotion(xev);
+            break;
+
+        case XCB_KEY_PRESS:
+            ephyrProcessKeyPress(xev);
+            break;
+
+        case XCB_KEY_RELEASE:
+            ephyrProcessKeyRelease(xev);
+            break;
+
+        case XCB_BUTTON_PRESS:
+            ephyrProcessButtonPress(xev);
+            break;
+
+        case XCB_BUTTON_RELEASE:
+            ephyrProcessButtonRelease(xev);
+            break;
+
+        case XCB_CONFIGURE_NOTIFY:
+            ephyrProcessConfigureNotify(xev);
+            break;
+        }
+
+        free(xev);
     }
 }
 
@@ -1102,7 +1296,7 @@ EphyrKeyboardInit(KdKeyboardInfo * ki)
     ki->driverPrivate = (EphyrKbdPrivate *)
         calloc(sizeof(EphyrKbdPrivate), 1);
     hostx_load_keymap();
-    if (!ephyrKeySyms.map) {
+    if (!ephyrKeySyms.minKeyCode) {
         ErrorF("Couldn't load keymap from host\n");
         return BadAlloc;
     }

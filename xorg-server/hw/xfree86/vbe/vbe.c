@@ -319,10 +319,8 @@ vbeReadEDID(vbeInfoPtr pVbe)
 }
 
 xf86MonPtr
-vbeDoEDID(vbeInfoPtr pVbe, pointer pDDCModule)
+vbeDoEDID(vbeInfoPtr pVbe, pointer unused)
 {
-    xf86MonPtr pMonitor;
-    pointer pModule;
     unsigned char *DDC_data = NULL;
 
     if (!pVbe)
@@ -330,23 +328,12 @@ vbeDoEDID(vbeInfoPtr pVbe, pointer pDDCModule)
     if (pVbe->version < 0x200)
         return NULL;
 
-    if (!(pModule = pDDCModule)) {
-        pModule =
-            xf86LoadSubModule(pVbe->pInt10->pScrn, "ddc");
-        if (!pModule)
-            return NULL;
-    }
-
     DDC_data = vbeReadEDID(pVbe);
 
     if (!DDC_data)
         return NULL;
 
-    pMonitor = xf86InterpretEDID(pVbe->pInt10->pScrn->scrnIndex, DDC_data);
-
-    if (!pDDCModule)
-        xf86UnloadSubModule(pModule);
-    return pMonitor;
+    return xf86InterpretEDID(pVbe->pInt10->pScrn->scrnIndex, DDC_data);
 }
 
 #define GET_UNALIGNED2(x) \

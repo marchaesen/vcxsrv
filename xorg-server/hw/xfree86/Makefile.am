@@ -84,20 +84,27 @@ os-support/solaris/solaris-@SOLARIS_INOUT_ARCH@.il:
 	 $(MAKE) $(AM_MAKEFLAGS) solaris-@SOLARIS_INOUT_ARCH@.il
 endif
 
-# do not use $(mkdir_p) if you want automake 1.7 to work
+# Without logdir, X will post an error on the terminal and will not start
 install-data-local:
-	mkdir -p $(DESTDIR)$(logdir)
+	$(AM_V_GEN)$(MKDIR_P) $(DESTDIR)$(logdir)
+if CYGWIN
+	$(INSTALL_DATA) libXorg.exe.a $(DESTDIR)$(libdir)/libXorg.exe.a
+endif
 
-
-install-exec-local: install-binPROGRAMS
-	(cd $(DESTDIR)$(bindir) && rm -f X && ln -s Xorg X)
+install-exec-hook:
+	(cd $(DESTDIR)$(bindir) && rm -f X && $(LN_S) Xorg$(EXEEXT) X)
 if INSTALL_SETUID
 	chown root $(DESTDIR)$(bindir)/Xorg
 	chmod u+s $(DESTDIR)$(bindir)/Xorg
 endif
+
+uninstall-local:
 if CYGWIN
-	$(INSTALL_DATA) libXorg.exe.a $(DESTDIR)$(libdir)/libXorg.exe.a
+	$(AM_V_at)rm -f $(DESTDIR)$(libdir)/libXorg.exe.a
 endif
+
+uninstall-hook:
+	$(AM_V_at)rm -f $(DESTDIR)$(bindir)/X
 
 # Use variables from XORG_MANPAGE_SECTIONS and X Server configuration
 # Do not include manpages.am as values are not appropriate for rc files

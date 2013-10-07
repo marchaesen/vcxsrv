@@ -31,6 +31,7 @@
 #include <libgen.h>
 #endif
 #include <signal.h>
+#include <xcb/xcb_image.h>
 
 #include "os.h"                 /* for OsSignal() */
 #include "kdrive.h"
@@ -63,10 +64,24 @@ typedef struct _ephyrFakexaPriv {
 } EphyrFakexaPriv;
 
 typedef struct _ephyrScrPriv {
+    /* ephyr server info */
     Rotation randr;
     Bool shadow;
     DamagePtr pDamage;
     EphyrFakexaPriv *fakexa;
+
+    /* Host X window info */
+    xcb_window_t win;
+    xcb_window_t win_pre_existing;    /* Set via -parent option like xnest */
+    xcb_window_t peer_win;            /* Used for GL; should be at most one */
+    xcb_image_t *ximg;
+    int win_width, win_height;
+    int server_depth;
+    unsigned char *fb_data;     /* only used when host bpp != server bpp */
+    xcb_shm_segment_info_t shminfo;
+
+    KdScreenInfo *screen;
+    int mynum;                  /* Screen number */
 } EphyrScrPriv;
 
 extern KdCardFuncs ephyrFuncs;
@@ -82,10 +97,7 @@ Bool
  ephyrCardInit(KdCardInfo * card);
 
 Bool
- ephyrScreenInit(KdScreenInfo * screen);
-
-Bool
- ephyrScreenInitialize(KdScreenInfo * screen, EphyrScrPriv * scrpriv);
+ephyrScreenInitialize(KdScreenInfo *screen);
 
 Bool
  ephyrInitScreen(ScreenPtr pScreen);

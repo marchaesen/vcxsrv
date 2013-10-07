@@ -1111,17 +1111,6 @@ fbInitVisuals(VisualPtr * visualp,
  * fbcopy.c
  */
 
-/* Compatibility definition, to be removed at next ABI change. */
-typedef void (*fbCopyProc) (DrawablePtr pSrcDrawable,
-                            DrawablePtr pDstDrawable,
-                            GCPtr pGC,
-                            BoxPtr pDstBox,
-                            int nbox,
-                            int dx,
-                            int dy,
-                            Bool reverse,
-                            Bool upsidedown, Pixel bitplane, void *closure);
-
 extern _X_EXPORT void
 
 fbCopyNtoN(DrawablePtr pSrcDrawable,

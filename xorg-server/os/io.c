@@ -206,6 +206,32 @@ YieldControlDeath(void)
     timesThisConnection = 0;
 }
 
+/* If an input buffer was empty, either free it if it is too big or link it
+ * into our list of free input buffers.  This means that different clients can
+ * share the same input buffer (at different times).  This was done to save
+ * memory.
+ */
+static void
+NextAvailableInput(OsCommPtr oc)
+{
+    if (AvailableInput) {
+        if (AvailableInput != oc) {
+            ConnectionInputPtr aci = AvailableInput->input;
+
+            if (aci->size > BUFWATERMARK) {
+                free(aci->buffer);
+                free(aci);
+            }
+            else {
+                aci->next = FreeInputs;
+                FreeInputs = aci;
+            }
+            AvailableInput->input = NULL;
+        }
+        AvailableInput = NULL;
+    }
+}
+
 int
 ReadRequestFromClient(ClientPtr client)
 {
@@ -218,28 +244,7 @@ ReadRequestFromClient(ClientPtr client)
     Bool need_header;
     Bool move_header;
 
-    /* If an input buffer was empty, either free it if it is too big
-     * or link it into our list of free input buffers.  This means that
-     * different clients can share the same input buffer (at different
-     * times).  This was done to save memory.
-     */
-
-    if (AvailableInput) {
-        if (AvailableInput != oc) {
-            register ConnectionInputPtr aci = AvailableInput->input;
-
-            if (aci->size > BUFWATERMARK) {
-                free(aci->buffer);
-                free(aci);
-            }
-            else {
-                aci->next = FreeInputs;
-                FreeInputs = aci;
-            }
-            AvailableInput->input = (ConnectionInputPtr) NULL;
-        }
-        AvailableInput = (OsCommPtr) NULL;
-    }
+    NextAvailableInput(oc);
 
     /* make sure we have an input buffer */
 
@@ -494,22 +499,8 @@ InsertFakeRequest(ClientPtr client, char *data, int count)
     int fd = oc->fd;
     int gotnow, moveup;
 
-    if (AvailableInput) {
-        if (AvailableInput != oc) {
-            ConnectionInputPtr aci = AvailableInput->input;
+    NextAvailableInput(oc);
 
-            if (aci->size > BUFWATERMARK) {
-                free(aci->buffer);
-                free(aci);
-            }
-            else {
-                aci->next = FreeInputs;
-                FreeInputs = aci;
-            }
-            AvailableInput->input = (ConnectionInputPtr) NULL;
-        }
-        AvailableInput = (OsCommPtr) NULL;
-    }
     if (!oci) {
         if ((oci = FreeInputs))
             FreeInputs = oci->next;
@@ -814,7 +805,7 @@ WriteToClient(ClientPtr who, int count, const void *__buf)
         }
     }
 #endif
-    if (oco->count + count + padBytes > oco->size) {
+    if (oco->count == 0 || oco->count + count + padBytes > oco->size) {
         FD_CLR(oc->fd, &OutputPending);
         if (!XFD_ANYSET(&OutputPending)) {
             CriticalOutputPending = FALSE;

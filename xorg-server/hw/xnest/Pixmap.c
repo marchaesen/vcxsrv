@@ -78,6 +78,21 @@ xnestDestroyPixmap(PixmapPtr pPixmap)
     return TRUE;
 }
 
+Bool
+xnestModifyPixmapHeader(PixmapPtr pPixmap, int width, int height, int depth,
+                        int bitsPerPixel, int devKind, pointer pPixData)
+{
+  if(!xnestPixmapPriv(pPixmap)->pixmap && width > 0 && height > 0) {
+    xnestPixmapPriv(pPixmap)->pixmap =
+        XCreatePixmap(xnestDisplay,
+                      xnestDefaultWindows[pPixmap->drawable.pScreen->myNum],
+                      width, height, depth);
+  }
+
+  return miModifyPixmapHeader(pPixmap, width, height, depth,
+                              bitsPerPixel, devKind, pPixData);
+}
+
 RegionPtr
 xnestPixmapToRegion(PixmapPtr pPixmap)
 {

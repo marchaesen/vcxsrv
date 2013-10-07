@@ -2850,11 +2850,9 @@ HandleSaveSet(ClientPtr client)
 
     for (j = 0; j < client->numSaved; j++) {
         pWin = SaveSetWindow(client->saveSet[j]);
-#ifdef XFIXES
         if (SaveSetToRoot(client->saveSet[j]))
             pParent = pWin->drawable.pScreen->root;
         else
-#endif
         {
             pParent = pWin->parent;
             while (pParent && (wClient(pParent) == client))
@@ -2862,11 +2860,9 @@ HandleSaveSet(ClientPtr client)
         }
         if (pParent) {
             if (pParent != pWin->parent) {
-#ifdef XFIXES
                 /* unmap first so that ReparentWindow doesn't remap */
                 if (!SaveSetShouldMap(client->saveSet[j]))
                     UnmapWindow(pWin, FALSE);
-#endif
                 ReparentWindow(pWin, pParent,
                                pWin->drawable.x - wBorderWidth(pWin) -
                                pParent->drawable.x,
@@ -2875,9 +2871,7 @@ HandleSaveSet(ClientPtr client)
                 if (!pWin->realized && pWin->mapped)
                     pWin->mapped = FALSE;
             }
-#ifdef XFIXES
             if (SaveSetShouldMap(client->saveSet[j]))
-#endif
                 MapWindow(pWin, client);
         }
     }

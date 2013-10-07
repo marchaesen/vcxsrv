@@ -29,6 +29,7 @@
 #include <kdrive-config.h>
 #endif
 
+#include <xcb/glx.h>
 #include "extnsionst.h"
 #include "ephyrglxext.h"
 #include "ephyrhostglx.h"
@@ -83,7 +84,7 @@ ephyrHijackGLXExtension(void)
 {
     const void *(*dispatch_functions)[2];
 
-    if (!hostx_has_glx()) {
+    if (!host_has_extension(&xcb_glx_id)) {
         EPHYR_LOG("host X does not have GLX\n");
         return FALSE;
     }
@@ -380,10 +381,9 @@ ephyrGLXQueryServerString(__GLXclientState * a_cl, GLbyte * a_pc)
     int length = 0;
 
     EPHYR_LOG("enter\n");
-    if (!ephyrHostGLXGetStringFromServer(req->screen,
-                                         req->name,
-                                         EPHYR_HOST_GLX_QueryServerString,
-                                         &server_string)) {
+    if (!ephyrHostGLXQueryServerString(req->screen,
+                                       req->name,
+                                       &server_string)) {
         EPHYR_LOG_ERROR("failed to query string from host\n");
         goto out;
     }
@@ -724,9 +724,7 @@ ephyrGLXGetStringReal(__GLXclientState * a_cl, GLbyte * a_pc, Bool a_do_swap)
     a_pc += __GLX_SINGLE_HDR_SIZE;
     name = *(GLenum *) (a_pc + 0);
     EPHYR_LOG("context_tag:%d, name:%d\n", context_tag, name);
-    if (!ephyrHostGLXGetStringFromServer(context_tag,
-                                         name,
-                                         EPHYR_HOST_GLX_GetString, &string)) {
+    if (!ephyrHostGLXGetString(context_tag, name, &string)) {
         EPHYR_LOG_ERROR("failed to get string from server\n");
         goto out;
     }

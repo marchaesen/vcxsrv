@@ -256,6 +256,13 @@ texture_cube_map_array(const _mesa_glsl_parse_state *state)
 }
 
 static bool
+texture_query_levels(const _mesa_glsl_parse_state *state)
+{
+   return state->is_version(430, 0) ||
+          state->ARB_texture_query_levels_enable;
+}
+
+static bool
 texture_query_lod(const _mesa_glsl_parse_state *state)
 {
    return state->target == fragment_shader &&
@@ -266,7 +273,8 @@ static bool
 texture_gather(const _mesa_glsl_parse_state *state)
 {
    return state->is_version(400, 0) ||
-          state->ARB_texture_gather_enable;
+          state->ARB_texture_gather_enable ||
+          state->ARB_gpu_shader5_enable;
 }
 
 /* Desktop GL or OES_standard_derivatives + fragment shader only */
@@ -486,6 +494,7 @@ private:
 /** Flags to _texture() */
 #define TEX_PROJECT 1
 #define TEX_OFFSET  2
+#define TEX_COMPONENT 4
 
    ir_function_signature *_texture(ir_texture_opcode opcode,
                                    builtin_available_predicate avail,
@@ -504,6 +513,7 @@ private:
    B0(EndPrimitive)
 
    B2(textureQueryLod);
+   B1(textureQueryLevels);
    B1(dFdx);
    B1(dFdy);
    B1(fwidth);
@@ -1603,6 +1613,39 @@ builtin_builder::create_builtins()
                 _textureQueryLod(glsl_type::samplerCubeArrayShadow_type, glsl_type::vec3_type),
                 NULL);
 
+   add_function("textureQueryLevels",
+                _textureQueryLevels(glsl_type::sampler1D_type),
+                _textureQueryLevels(glsl_type::sampler2D_type),
+                _textureQueryLevels(glsl_type::sampler3D_type),
+                _textureQueryLevels(glsl_type::samplerCube_type),
+                _textureQueryLevels(glsl_type::sampler1DArray_type),
+                _textureQueryLevels(glsl_type::sampler2DArray_type),
+                _textureQueryLevels(glsl_type::samplerCubeArray_type),
+                _textureQueryLevels(glsl_type::sampler1DShadow_type),
+                _textureQueryLevels(glsl_type::sampler2DShadow_type),
+                _textureQueryLevels(glsl_type::samplerCubeShadow_type),
+                _textureQueryLevels(glsl_type::sampler1DArrayShadow_type),
+                _textureQueryLevels(glsl_type::sampler2DArrayShadow_type),
+                _textureQueryLevels(glsl_type::samplerCubeArrayShadow_type),
+
+                _textureQueryLevels(glsl_type::isampler1D_type),
+                _textureQueryLevels(glsl_type::isampler2D_type),
+                _textureQueryLevels(glsl_type::isampler3D_type),
+                _textureQueryLevels(glsl_type::isamplerCube_type),
+                _textureQueryLevels(glsl_type::isampler1DArray_type),
+                _textureQueryLevels(glsl_type::isampler2DArray_type),
+                _textureQueryLevels(glsl_type::isamplerCubeArray_type),
+
+                _textureQueryLevels(glsl_type::usampler1D_type),
+                _textureQueryLevels(glsl_type::usampler2D_type),
+                _textureQueryLevels(glsl_type::usampler3D_type),
+                _textureQueryLevels(glsl_type::usamplerCube_type),
+                _textureQueryLevels(glsl_type::usampler1DArray_type),
+                _textureQueryLevels(glsl_type::usampler2DArray_type),
+                _textureQueryLevels(glsl_type::usamplerCubeArray_type),
+
+                NULL);
+
    add_function("texture1D",
                 _texture(ir_tex, v110,         glsl_type::vec4_type,  glsl_type::sampler1D_type, glsl_type::float_type),
                 _texture(ir_txb, v110_fs_only, glsl_type::vec4_type,  glsl_type::sampler1D_type, glsl_type::float_type),
@@ -1828,6 +1871,10 @@ builtin_builder::create_builtins()
                 _texture(ir_tg4, texture_gather, glsl_type::ivec4_type, glsl_type::isampler2D_type, glsl_type::vec2_type),
                 _texture(ir_tg4, texture_gather, glsl_type::uvec4_type, glsl_type::usampler2D_type, glsl_type::vec2_type),
 
+                _texture(ir_tg4, gpu_shader5, glsl_type::vec4_type, glsl_type::sampler2DRect_type, glsl_type::vec2_type),
+                _texture(ir_tg4, gpu_shader5, glsl_type::ivec4_type, glsl_type::isampler2DRect_type, glsl_type::vec2_type),
+                _texture(ir_tg4, gpu_shader5, glsl_type::uvec4_type, glsl_type::usampler2DRect_type, glsl_type::vec2_type),
+
                 _texture(ir_tg4, texture_gather, glsl_type::vec4_type, glsl_type::sampler2DArray_type, glsl_type::vec3_type),
                 _texture(ir_tg4, texture_gather, glsl_type::ivec4_type, glsl_type::isampler2DArray_type, glsl_type::vec3_type),
                 _texture(ir_tg4, texture_gather, glsl_type::uvec4_type, glsl_type::usampler2DArray_type, glsl_type::vec3_type),
@@ -1839,6 +1886,26 @@ builtin_builder::create_builtins()
                 _texture(ir_tg4, texture_gather, glsl_type::vec4_type, glsl_type::samplerCubeArray_type, glsl_type::vec4_type),
                 _texture(ir_tg4, texture_gather, glsl_type::ivec4_type, glsl_type::isamplerCubeArray_type, glsl_type::vec4_type),
                 _texture(ir_tg4, texture_gather, glsl_type::uvec4_type, glsl_type::usamplerCubeArray_type, glsl_type::vec4_type),
+
+                _texture(ir_tg4, gpu_shader5, glsl_type::vec4_type, glsl_type::sampler2D_type, glsl_type::vec2_type, TEX_COMPONENT),
+                _texture(ir_tg4, gpu_shader5, glsl_type::ivec4_type, glsl_type::isampler2D_type, glsl_type::vec2_type, TEX_COMPONENT),
+                _texture(ir_tg4, gpu_shader5, glsl_type::uvec4_type, glsl_type::usampler2D_type, glsl_type::vec2_type, TEX_COMPONENT),
+
+                _texture(ir_tg4, gpu_shader5, glsl_type::vec4_type, glsl_type::sampler2DRect_type, glsl_type::vec2_type, TEX_COMPONENT),
+                _texture(ir_tg4, gpu_shader5, glsl_type::ivec4_type, glsl_type::isampler2DRect_type, glsl_type::vec2_type, TEX_COMPONENT),
+                _texture(ir_tg4, gpu_shader5, glsl_type::uvec4_type, glsl_type::usampler2DRect_type, glsl_type::vec2_type, TEX_COMPONENT),
+
+                _texture(ir_tg4, gpu_shader5, glsl_type::vec4_type, glsl_type::sampler2DArray_type, glsl_type::vec3_type, TEX_COMPONENT),
+                _texture(ir_tg4, gpu_shader5, glsl_type::ivec4_type, glsl_type::isampler2DArray_type, glsl_type::vec3_type, TEX_COMPONENT),
+                _texture(ir_tg4, gpu_shader5, glsl_type::uvec4_type, glsl_type::usampler2DArray_type, glsl_type::vec3_type, TEX_COMPONENT),
+
+                _texture(ir_tg4, gpu_shader5, glsl_type::vec4_type, glsl_type::samplerCube_type, glsl_type::vec3_type, TEX_COMPONENT),
+                _texture(ir_tg4, gpu_shader5, glsl_type::ivec4_type, glsl_type::isamplerCube_type, glsl_type::vec3_type, TEX_COMPONENT),
+                _texture(ir_tg4, gpu_shader5, glsl_type::uvec4_type, glsl_type::usamplerCube_type, glsl_type::vec3_type, TEX_COMPONENT),
+
+                _texture(ir_tg4, gpu_shader5, glsl_type::vec4_type, glsl_type::samplerCubeArray_type, glsl_type::vec4_type, TEX_COMPONENT),
+                _texture(ir_tg4, gpu_shader5, glsl_type::ivec4_type, glsl_type::isamplerCubeArray_type, glsl_type::vec4_type, TEX_COMPONENT),
+                _texture(ir_tg4, gpu_shader5, glsl_type::uvec4_type, glsl_type::usamplerCubeArray_type, glsl_type::vec4_type, TEX_COMPONENT),
                 NULL);
 
    add_function("textureGatherOffset",
@@ -3281,6 +3348,18 @@ builtin_builder::_texture(ir_texture_opcode opcode,
       tex->offset = var_ref(offset);
    }
 
+   if (opcode == ir_tg4) {
+      if (flags & TEX_COMPONENT) {
+         ir_variable *component =
+            new(mem_ctx) ir_variable(glsl_type::int_type, "comp", ir_var_const_in);
+         sig->parameters.push_tail(component);
+         tex->lod_info.component = var_ref(component);
+      }
+      else {
+         tex->lod_info.component = imm(0);
+      }
+   }
+
    /* The "bias" parameter comes /after/ the "offset" parameter, which is
     * inconsistent with both textureLodOffset and textureGradOffset.
     */
@@ -3387,6 +3466,21 @@ builtin_builder::_textureQueryLod(const glsl_type *sampler_type,
    ir_texture *tex = new(mem_ctx) ir_texture(ir_lod);
    tex->coordinate = var_ref(coord);
    tex->set_sampler(var_ref(s), glsl_type::vec2_type);
+
+   body.emit(ret(tex));
+
+   return sig;
+}
+
+ir_function_signature *
+builtin_builder::_textureQueryLevels(const glsl_type *sampler_type)
+{
+   ir_variable *s = in_var(sampler_type, "sampler");
+   const glsl_type *return_type = glsl_type::int_type;
+   MAKE_SIG(return_type, texture_query_levels, 1, s);
+
+   ir_texture *tex = new(mem_ctx) ir_texture(ir_query_levels);
+   tex->set_sampler(var_ref(s), return_type);
 
    body.emit(ret(tex));
 

@@ -28,6 +28,7 @@
 #endif
 #include "ephyr.h"
 #include "ephyrlog.h"
+#include "glx_extinit.h"
 
 extern Window EphyrPreExistingHostWin;
 extern Bool EphyrWantGrayScale;
@@ -55,9 +56,28 @@ InitCard(char *name)
 }
 
 #ifndef _MSC_VER
+static const ExtensionModule ephyrExtensions[] = {
+#ifdef GLXEXT
+ { GlxExtensionInit, "GLX", &noGlxExtension },
+#endif
+};
+
+static
+void ephyrExtensionInit(void)
+{
+ int i;
+
+ for (i = 0; i < ARRAY_SIZE(ephyrExtensions); i++)
+ LoadExtension(&ephyrExtensions[i], TRUE);
+}
+
+
 void
 InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
 {
+    if (serverGeneration == 1)
+        ephyrExtensionInit();
+
     KdInitOutput(pScreenInfo, argc, argv);
 }
 
@@ -115,7 +135,7 @@ ddxUseMsg(void)
 
     ErrorF("\nXephyr Option Usage:\n");
     ErrorF("-parent <XID>        Use existing window as Xephyr root win\n");
-    ErrorF("-host-cursor         Re-use exisiting X host server cursor\n");
+    ErrorF("-sw-cursor           Render cursors in software in Xephyr\n");
     ErrorF("-fullscreen          Attempt to run Xephyr fullscreen\n");
     ErrorF("-grayscale           Simulate 8bit grayscale\n");
     ErrorF("-resizeable          Make Xephyr windows resizeable\n");
@@ -149,6 +169,9 @@ processScreenArg(const char *screen_size, char *parent_id)
 
         screen = KdScreenInfoAdd(card);
         KdParseScreen(screen, screen_size);
+        screen->driver = calloc(1, sizeof(EphyrScrPriv));
+        if (!screen->driver)
+            FatalError("Couldn't alloc screen private\n");
 
         if (parent_id) {
             p_id = strtol(parent_id, NULL, 0);
@@ -203,8 +226,12 @@ ddxProcessArgument(int argc, char **argv, int i)
         UseMsg();
         exit(1);
     }
+    else if (!strcmp(argv[i], "-sw-cursor")) {
+        hostx_use_sw_cursor();
+        return 1;
+    }
     else if (!strcmp(argv[i], "-host-cursor")) {
-        hostx_use_host_cursor();
+        /* Compatibility with the old command line argument, now the default. */
         return 1;
     }
     else if (!strcmp(argv[i], "-fullscreen")) {
@@ -381,7 +408,7 @@ ephyrCursorEnable(ScreenPtr pScreen)
 
 KdCardFuncs ephyrFuncs = {
     ephyrCardInit,              /* cardinit */
-    ephyrScreenInit,            /* scrinit */
+    ephyrScreenInitialize,      /* scrinit */
     ephyrInitScreen,            /* initScreen */
     ephyrFinishInitScreen,      /* finishInitScreen */
     ephyrCreateResources,       /* createRes */

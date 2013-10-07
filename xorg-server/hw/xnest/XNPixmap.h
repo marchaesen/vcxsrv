@@ -33,6 +33,8 @@ typedef struct {
 PixmapPtr xnestCreatePixmap(ScreenPtr pScreen, int width, int height,
                             int depth, unsigned usage_hint);
 Bool xnestDestroyPixmap(PixmapPtr pPixmap);
+Bool xnestModifyPixmapHeader(PixmapPtr pPixmap, int width, int height, int depth,
+                             int bitsPerPixel, int devKind, pointer pPixData);
 RegionPtr xnestPixmapToRegion(PixmapPtr pPixmap);
 
 #endif                          /* XNESTPIXMAP_H */

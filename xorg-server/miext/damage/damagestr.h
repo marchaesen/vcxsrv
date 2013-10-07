@@ -44,13 +44,10 @@ typedef struct _damage {
     DrawablePtr pDrawable;
 
     DamageReportFunc damageReport;
-    DamageReportFunc damageReportPostRendering;
     DamageDestroyFunc damageDestroy;
-    DamageMarkerFunc damageMarker;
 
     Bool reportAfter;
     RegionRec pendingDamage;    /* will be flushed post submission at the latest */
-    RegionRec backupDamage;     /* for use with damageMarker */
     ScreenPtr pScreen;
     PrivateRec *devPrivates;
 } DamageRec;

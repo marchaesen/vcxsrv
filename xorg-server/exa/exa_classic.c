@@ -192,7 +192,6 @@ exaModifyPixmapHeader_classic(PixmapPtr pPixmap, int width, int height,
          * gpu memory, so there's no need to track damage.
          */
         if (pExaPixmap->pDamage) {
-            DamageUnregister(&pPixmap->drawable, pExaPixmap->pDamage);
             DamageDestroy(pExaPixmap->pDamage);
             pExaPixmap->pDamage = NULL;
         }

@@ -59,8 +59,9 @@ static DevPrivateKeyRec stateKeyRec;
 
 /* This is what we store as client security state */
 typedef struct {
-    int haveState;
-    unsigned int trustLevel;
+    unsigned int haveState  :1;
+    unsigned int live       :1;
+    unsigned int trustLevel :2;
     XID authId;
 } SecurityStateRec;
 
@@ -143,6 +144,7 @@ SecurityLabelInitial(void)
     state = dixLookupPrivate(&serverClient->devPrivates, stateKey);
     state->trustLevel = XSecurityClientTrusted;
     state->haveState = TRUE;
+    state->live = FALSE;
 }
 
 /*
@@ -952,6 +954,7 @@ SecurityClientState(CallbackListPtr *pcbl, pointer unused, pointer calldata)
         state->trustLevel = XSecurityClientTrusted;
         state->authId = None;
         state->haveState = TRUE;
+        state->live = FALSE;
         break;
 
     case ClientStateRunning:
@@ -962,6 +965,7 @@ SecurityClientState(CallbackListPtr *pcbl, pointer unused, pointer calldata)
         if (rc == Success) {
             /* it is a generated authorization */
             pAuth->refcnt++;
+            state->live = TRUE;
             if (pAuth->refcnt == 1 && pAuth->timer)
                 TimerCancel(pAuth->timer);
 
@@ -974,9 +978,10 @@ SecurityClientState(CallbackListPtr *pcbl, pointer unused, pointer calldata)
         rc = dixLookupResourceByType((pointer *) &pAuth, state->authId,
                                      SecurityAuthorizationResType, serverClient,
                                      DixGetAttrAccess);
-        if (rc == Success) {
+        if (rc == Success && state->live) {
             /* it is a generated authorization */
             pAuth->refcnt--;
+            state->live = FALSE;
             if (pAuth->refcnt == 0)
                 SecurityStartAuthorizationTimer(pAuth);
         }

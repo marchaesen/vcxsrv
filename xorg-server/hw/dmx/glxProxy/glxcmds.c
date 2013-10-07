@@ -2734,8 +2734,6 @@ __glXClientInfo(__GLXclientState * cl, GLbyte * pc)
     int to_screen = 0;
     int s;
 
-    cl->GLClientmajorVersion = req->major;
-    cl->GLClientminorVersion = req->minor;
     free(cl->GLClientextensions);
     buf = (const char *) (req + 1);
     cl->GLClientextensions = strdup(buf);

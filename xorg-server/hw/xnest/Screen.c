@@ -282,6 +282,7 @@ xnestOpenScreen(ScreenPtr pScreen, int argc, char *argv[])
 
     pScreen->CreatePixmap = xnestCreatePixmap;
     pScreen->DestroyPixmap = xnestDestroyPixmap;
+    pScreen->ModifyPixmapHeader = xnestModifyPixmapHeader;
 
     /* Font procedures */
 

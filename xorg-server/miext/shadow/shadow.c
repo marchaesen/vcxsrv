@@ -219,7 +219,7 @@ shadowRemove(ScreenPtr pScreen, PixmapPtr pPixmap)
     shadowBuf(pScreen);
 
     if (pBuf->pPixmap) {
-        DamageUnregister(&pBuf->pPixmap->drawable, pBuf->pDamage);
+        DamageUnregister(pBuf->pDamage);
         pBuf->update = 0;
         pBuf->window = 0;
         pBuf->randr = 0;

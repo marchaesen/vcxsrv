@@ -27,6 +27,7 @@
 #include<mach.h>
 #include<device/device.h>
 #include<mach/machine/mach_i386.h>
+#include <hurd.h>
 
 #include <X11/X.h>
 

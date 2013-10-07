@@ -102,8 +102,8 @@ typedef struct _myPrivate {
     int fd;                                 /**< File descriptor */
     unsigned char mask[EV_MAX / 8 + 1];     /**< Mask */
     int numRel, numAbs, numLeds;            /**< Counts */
-    int relmap[DMX_MAX_AXES];               /**< Relative axis map */
-    int absmap[DMX_MAX_AXES];               /**< Absolute axis map */
+    int relmap[REL_CNT];                    /**< Relative axis map */
+    int absmap[ABS_CNT];                    /**< Absolute axis map */
 
     CARD32 kbdState[NUM_STATE_ENTRIES];         /**< Keyboard state */
     DeviceIntPtr pKeyboard;                     /** Keyboard device */

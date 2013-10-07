@@ -22,7 +22,6 @@ libglxproxy_a_SOURCES = compsize.c \
                         glxsingle.h \
                         glxswap.c \
                         glxswap.h \
-                        glxutil.c \
                         glxutil.h \
                         glxvendor.c \
                         glxvendor.h \

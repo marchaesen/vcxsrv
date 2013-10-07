@@ -80,7 +80,6 @@ static const Bool xselinux_private[PRIVATE_LAST] = {
     /* [PRIVATE_GC] =*/       TRUE,
     /* [PRIVATE_CURSOR] =*/   TRUE,
     /* PRIVATE_CURSOR_BITS,*/ FALSE,
-    /* PRIVATE_DBE_WINDOW,*/  FALSE,
     /* PRIVATE_DAMAGE,*/      FALSE,
     /* PRIVATE_GLYPH,*/       FALSE,
     /* [PRIVATE_GLYPHSET] =*/ TRUE,
@@ -110,7 +109,6 @@ static const char *key_names[PRIVATE_LAST] = {
     /*[PRIVATE_CURSOR_BITS] =*/ "CURSOR_BITS",
 
     /* extension privates */
-    /*[PRIVATE_DBE_WINDOW] =*/ "DBE_WINDOW",
     /*[PRIVATE_DAMAGE] =*/ "DAMAGE",
     /*[PRIVATE_GLYPH] =*/ "GLYPH",
     /*[PRIVATE_GLYPHSET] =*/ "GLYPHSET",
@@ -132,7 +130,6 @@ static const Bool screen_specific_private[PRIVATE_LAST] = {
     /*[PRIVATE_GC] =*/ TRUE,
     /*[PRIVATE_CURSOR] =*/ FALSE,
     /*[PRIVATE_CURSOR_BITS] =*/ FALSE,
-    /*[PRIVATE_DBE_WINDOW] =*/ FALSE,
     /*[PRIVATE_DAMAGE] =*/ FALSE,
     /*[PRIVATE_GLYPH] =*/ FALSE,
     /*[PRIVATE_GLYPHSET] =*/ FALSE,
@@ -313,7 +310,6 @@ static Bool (*const allocated_early[PRIVATE_LAST]) (FixupFunc, unsigned) = {
     /*PRIVATE_GC,*/           NULL,
     /*PRIVATE_CURSOR,*/       NULL,
     /*PRIVATE_CURSOR_BITS,*/  NULL,
-    /*PRIVATE_DBE_WINDOW,*/   NULL,
     /*PRIVATE_DAMAGE,*/       NULL,
     /*PRIVATE_GLYPH,*/        NULL,
     /*PRIVATE_GLYPHSET,*/     NULL,

@@ -53,9 +53,7 @@ Equipment Corporation.
 #include "servermd.h"
 #include "resource.h"
 #include "picturestr.h"
-#ifdef XFIXES
 #include "xfixesint.h"
-#endif
 #ifdef COMPOSITE
 #include "compint.h"
 #endif
@@ -583,9 +581,7 @@ PanoramiXExtensionInit(void)
     ProcVector[X_StoreNamedColor] = PanoramiXStoreNamedColor;
 
     PanoramiXRenderInit();
-#ifdef XFIXES
     PanoramiXFixesInit();
-#endif
 #ifdef COMPOSITE
     PanoramiXCompositeInit();
 #endif
@@ -890,9 +886,7 @@ PanoramiXResetProc(ExtensionEntry * extEntry)
     int i;
 
     PanoramiXRenderReset();
-#ifdef XFIXES
     PanoramiXFixesReset();
-#endif
 #ifdef COMPOSITE
     PanoramiXCompositeReset ();
 #endif

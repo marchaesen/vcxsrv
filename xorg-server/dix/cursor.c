@@ -71,9 +71,7 @@ static GlyphSharePtr sharedGlyphs = (GlyphSharePtr) NULL;
 
 DevScreenPrivateKeyRec cursorScreenDevPriv;
 
-#ifdef XFIXES
 static CARD32 cursorSerial;
-#endif
 
 static void
 FreeCursorBits(CursorBitsPtr bits)
@@ -272,10 +270,8 @@ AllocARGBCursor(unsigned char *psrcbits, unsigned char *pmaskbits,
     bits->refcnt = -1;
     CheckForEmptyMask(bits);
     pCurs->bits = bits;
-#ifdef XFIXES
     pCurs->serialNumber = ++cursorSerial;
     pCurs->name = None;
-#endif
 
     pCurs->foreRed = foreRed;
     pCurs->foreGreen = foreGreen;
@@ -433,10 +429,8 @@ AllocGlyphCursor(Font source, unsigned sourceChar, Font mask, unsigned maskChar,
     CheckForEmptyMask(bits);
     pCurs->bits = bits;
     pCurs->refcnt = 1;
-#ifdef XFIXES
     pCurs->serialNumber = ++cursorSerial;
     pCurs->name = None;
-#endif
 
     pCurs->foreRed = foreRed;
     pCurs->foreGreen = foreGreen;

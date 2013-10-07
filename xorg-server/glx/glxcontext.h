@@ -55,7 +55,6 @@ struct __GLXcontext {
     /*
      ** list of context structs
      */
-    __GLXcontext *last;
     __GLXcontext *next;
 
     /*

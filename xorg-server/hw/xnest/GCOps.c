@@ -94,15 +94,29 @@ xnestPutImage(DrawablePtr pDrawable, GCPtr pGC, int depth, int x, int y,
     }
 }
 
+static int
+xnestIgnoreErrorHandler (Display     *display,
+                         XErrorEvent *event)
+{
+    return False; /* return value is ignored */
+}
+
 void
 xnestGetImage(DrawablePtr pDrawable, int x, int y, int w, int h,
               unsigned int format, unsigned long planeMask, char *pImage)
 {
     XImage *ximage;
     int length;
+    int (*old_handler)(Display*, XErrorEvent*);
+
+    /* we may get BadMatch error when xnest window is minimized */
+    XSync(xnestDisplay, False);
+    old_handler = XSetErrorHandler (xnestIgnoreErrorHandler);
 
     ximage = XGetImage(xnestDisplay, xnestDrawable(pDrawable),
                        x, y, w, h, planeMask, format);
+    XSync(xnestDisplay, False);
+    XSetErrorHandler(old_handler);
 
     if (ximage) {
         length = ximage->bytes_per_line * ximage->height;

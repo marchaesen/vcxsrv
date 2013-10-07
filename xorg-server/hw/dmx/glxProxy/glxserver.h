@@ -119,8 +119,6 @@ struct __GLXclientStateRec {
     /* Back pointer to X client record */
     ClientPtr client;
 
-    int GLClientmajorVersion;
-    int GLClientminorVersion;
     char *GLClientextensions;
 
     GLXContextTag *be_currentCTag;

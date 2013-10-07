@@ -78,10 +78,8 @@ typedef struct _Cursor {
     int refcnt;
     PrivateRec *devPrivates;    /* set by pScr->RealizeCursor */
     XID id;
-#ifdef XFIXES
     CARD32 serialNumber;
     Atom name;
-#endif
 } CursorRec;
 
 #define CURSOR_REC_SIZE (sizeof(CursorRec) + dixPrivatesSize(PRIVATE_CURSOR))

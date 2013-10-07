@@ -257,16 +257,3 @@ xf86LinearVidMem(void)
     xf86InitVidMem();
     return vidMemInfo.linearSupported;
 }
-
-void
-xf86MapReadSideEffects(int ScreenNum, int Flags, pointer base,
-                       unsigned long Size)
-{
-    if (!(Flags & VIDMEM_READSIDEEFFECT))
-        return;
-
-    if (!vidMemInfo.initialised || !vidMemInfo.readSideEffects)
-        return;
-
-    vidMemInfo.readSideEffects(ScreenNum, base, Size);
-}

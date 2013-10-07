@@ -140,10 +140,8 @@ extern void XFree86BigfontExtensionInit(void);
 
 extern void BigReqExtensionInit(void);
 
-#ifdef XFIXES
 extern _X_EXPORT Bool noXFixesExtension;
 extern void XFixesExtensionInit(void);
-#endif
 
 extern void XInputExtensionInit(void);
 extern _X_EXPORT void AssignTypeAndName(DeviceIntPtr dev,

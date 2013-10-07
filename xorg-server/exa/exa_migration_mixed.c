@@ -190,7 +190,6 @@ exaPrepareAccessReg_mixed(PixmapPtr pPixmap, int index, RegionPtr pReg)
              * copy anymore. Drivers that prefer DFS, should fail prepare
              * access.
              */
-            DamageUnregister(&pPixmap->drawable, pExaPixmap->pDamage);
             DamageDestroy(pExaPixmap->pDamage);
             pExaPixmap->pDamage = NULL;
 

@@ -205,7 +205,7 @@ compRedirectWindow(ClientPtr pClient, WindowPtr pWin, int update)
             anyMarked = compMarkWindows(pWin, &pLayerWin);
 
         if (cw->damageRegistered) {
-            DamageUnregister(&pWin->drawable, cw->damage);
+            DamageUnregister(cw->damage);
             cw->damageRegistered = FALSE;
         }
         cw->update = CompositeRedirectManual;
@@ -638,7 +638,7 @@ compSetParentPixmap(WindowPtr pWin)
     CompWindowPtr cw = GetCompWindow(pWin);
 
     if (cw->damageRegistered) {
-        DamageUnregister(&pWin->drawable, cw->damage);
+        DamageUnregister(cw->damage);
         cw->damageRegistered = FALSE;
         DamageEmpty(cw->damage);
     }

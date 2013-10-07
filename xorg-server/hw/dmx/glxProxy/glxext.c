@@ -88,12 +88,6 @@ ResetClientState(int clientIndex)
     memset(cl, 0, sizeof(__GLXclientState));
     cl->be_displays = keep_be_displays;
 
-    /*
-     ** By default, assume that the client supports
-     ** GLX major version 1 minor version 0 protocol.
-     */
-    cl->GLClientmajorVersion = 1;
-    cl->GLClientminorVersion = 0;
     free(cl->GLClientextensions);
 
     memset(cl->be_displays, 0, screenInfo.numScreens * sizeof(Display *));

@@ -1896,7 +1896,6 @@ fbConfigToPixelFormat(__GLXconfig * mode, PIXELFORMATDESCRIPTOR * pfdret,
     pfd.cAuxBuffers = mode->numAuxBuffers;
 
     /* mode->level ? */
-    /* mode->pixmapMode ? */
 
     *pfdret = pfd;
 
@@ -2108,7 +2107,6 @@ glxWinCreateConfigs(HDC hdc, glxWinScreen * screen)
         // pfd.dwLayerMask; // ignored
         // pfd.dwDamageMask;  // ignored
 
-        c->base.pixmapMode = 0;
         c->base.visualID = -1;  // will be set by __glXScreenInit()
 
         /* EXT_visual_rating / GLX 1.2 */
@@ -2198,9 +2196,6 @@ glxWinCreateConfigs(HDC hdc, glxWinScreen * screen)
             c->base.swapMethod = GLX_SWAP_COPY_OML;
         else
             c->base.swapMethod = GLX_SWAP_UNDEFINED_OML;
-
-        /* EXT_import_context */
-        c->base.screen = screen->base.pScreen->myNum;
 
         /* EXT_texture_from_pixmap */
         c->base.bindToTextureRgb = -1;
@@ -2449,7 +2444,6 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen)
         }
         c->base.level = 0;
 
-        c->base.pixmapMode = 0; // ???
         c->base.visualID = -1;  // will be set by __glXScreenInit()
 
         /* EXT_visual_rating / GLX 1.2 */
@@ -2581,9 +2575,6 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen)
         case WGL_SWAP_UNDEFINED_ARB:
             c->base.swapMethod = GLX_SWAP_UNDEFINED_OML;
         }
-
-        /* EXT_import_context */
-        c->base.screen = screen->base.pScreen->myNum;
 
         /* EXT_texture_from_pixmap */
         /*

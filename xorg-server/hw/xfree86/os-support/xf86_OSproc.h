@@ -136,8 +136,6 @@ extern _X_EXPORT _X_DEPRECATED pointer xf86MapVidMem(int, int, unsigned long,
                                                      unsigned long);
 extern _X_EXPORT _X_DEPRECATED void xf86UnMapVidMem(int, pointer,
                                                     unsigned long);
-extern _X_EXPORT _X_DEPRECATED void xf86MapReadSideEffects(int, int, pointer,
-                                                           unsigned long);
 extern _X_EXPORT int xf86ReadBIOS(unsigned long, unsigned long, unsigned char *,
                                   int);
 extern _X_EXPORT Bool xf86EnableIO(void);

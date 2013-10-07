@@ -54,8 +54,6 @@ struct __GLXconfig {
 
     GLint level;
 
-    GLint pixmapMode;
-
     /* GLX */
     GLint visualID;
     GLint visualType;     /**< One of the GLX X visual types. (i.e., 
@@ -93,8 +91,6 @@ struct __GLXconfig {
 
     /* OML_swap_method */
     GLint swapMethod;
-
-    GLint screen;
 
     /* EXT_texture_from_pixmap */
     GLint bindToTextureRgb;
@@ -145,7 +141,6 @@ struct __GLXscreen {
 
     char *GLextensions;
 
-    char *GLXvendor;
     char *GLXextensions;
 
     /**

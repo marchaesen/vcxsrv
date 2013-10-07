@@ -179,16 +179,6 @@ will switch to another VC in local (raw) mode.
 .RE
 .sp
 .TP 8
-.BI "-shadowfb"
-This option turns on (legacy) support for the shadow frame buffer.
-.sp
-.TP 8
-.BI "-noshadowfb"
-This option turns off (legacy) support for the shadow frame buffer.
-Note that this option has been deprecated and will be removed in the
-next release.
-.sp
-.TP 8
 .BI "-nomulticursor"
 This option turns off support for displaying multiple cursors on
 overlapped back-end displays.  This option is available for testing and
