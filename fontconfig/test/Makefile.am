@@ -16,7 +16,7 @@ TESTDATA=4x6.pcf 8x16.pcf out.expected fonts.conf.in
 
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_builddir)
 
-check_PROGRAMS = test-migration
+check_PROGRAMS =
 if HAVE_PTHREAD
 check_PROGRAMS += test-pthread
 test_pthread_LDADD = $(top_builddir)/src/libfontconfig.la
@@ -26,7 +26,10 @@ test_pthread_LDADD = $(top_builddir)/src/libfontconfig.la
 endif
 noinst_PROGRAMS = $(check_PROGRAMS)
 
+if !OS_WIN32
+check_PROGRAMS += test-migration
 test_migration_LDADD = $(top_builddir)/src/libfontconfig.la
+endif
 
 EXTRA_DIST=$(check_SCRIPTS) $(TESTDATA)
 

@@ -18,6 +18,7 @@ typedef struct
 {
     int       thread_no;
     uint32_t *dst_buf;
+    prng_t    prng_state;
 } info_t;
 
 static const pixman_op_t operators[] = 
@@ -90,7 +91,7 @@ static const pixman_format_code_t formats[] =
 #define N_ROUNDS 8192
 
 #define RAND_ELT(arr)							\
-    arr[prng_rand() % ARRAY_LENGTH (arr)]
+    arr[prng_rand_r(&info->prng_state) % ARRAY_LENGTH (arr)]
 
 #define DEST_WIDTH (7)
 
@@ -103,15 +104,17 @@ thread (void *data)
     pixman_image_t *dst_img, *src_img;
     int i;
 
-    prng_srand (info->thread_no);
+    prng_srand_r (&info->prng_state, info->thread_no);
 
     for (i = 0; i < N_ROUNDS; ++i)
     {
 	pixman_op_t op;
 	int rand1, rand2;
 
-	prng_randmemset (info->dst_buf, DEST_WIDTH * sizeof (uint32_t), 0);
-	prng_randmemset (src_buf, sizeof (src_buf), 0);
+	prng_randmemset_r (&info->prng_state, info->dst_buf,
+			   DEST_WIDTH * sizeof (uint32_t), 0);
+	prng_randmemset_r (&info->prng_state, src_buf,
+			   sizeof (src_buf), 0);
 
 	src_img = pixman_image_create_bits (
 	    RAND_ELT (formats), 4, 4, src_buf, 16);
@@ -122,8 +125,8 @@ thread (void *data)
 	image_endian_swap (src_img);
 	image_endian_swap (dst_img);
 	
-	rand2 = prng_rand() % 4;
-	rand1 = prng_rand() % 4;
+	rand2 = prng_rand_r (&info->prng_state) % 4;
+	rand1 = prng_rand_r (&info->prng_state) % 4;
 	op = RAND_ELT (operators);
 
 	pixman_image_composite32 (
@@ -181,7 +184,7 @@ main (void)
 
     crc32 = compute_crc32 (0, crc32s, sizeof crc32s);
 
-#define EXPECTED 0xFD497D8D
+#define EXPECTED 0xE299B18E
 
     if (crc32 != EXPECTED)
     {

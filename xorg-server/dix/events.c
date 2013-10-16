@@ -4146,6 +4146,9 @@ DeliverOneGrabbedEvent(InternalEvent *event, DeviceIntPtr dev,
     GrabPtr grab = grabinfo->grab;
     Mask filter;
 
+    if (grab->grabtype != level)
+        return 0;
+
     switch (level) {
     case XI2:
         rc = EventToXI2(event, &xE);
@@ -4257,22 +4260,17 @@ DeliverGrabbedEvent(InternalEvent *event, DeviceIntPtr thisDev,
 
         sendCore = (IsMaster(thisDev) && thisDev->coreEvents);
         /* try core event */
-        if (sendCore && grab->grabtype == CORE) {
-            deliveries = DeliverOneGrabbedEvent(event, thisDev, CORE);
-        }
-
-        if (!deliveries) {
-            deliveries = DeliverOneGrabbedEvent(event, thisDev, XI2);
-        }
-
-        if (!deliveries) {
-            deliveries = DeliverOneGrabbedEvent(event, thisDev, XI);
-        }
+        if ((sendCore && grab->grabtype == CORE) || grab->grabtype != CORE)
+            deliveries = DeliverOneGrabbedEvent(event, thisDev, grab->grabtype);
 
         if (deliveries && (event->any.type == ET_Motion))
             thisDev->valuator->motionHintWindow = grab->window;
     }
-    if (deliveries && !deactivateGrab && event->any.type != ET_Motion) {
+    if (deliveries && !deactivateGrab &&
+        (event->any.type == ET_KeyPress ||
+         event->any.type == ET_KeyRelease ||
+         event->any.type == ET_ButtonPress ||
+         event->any.type == ET_ButtonRelease)) {
         switch (grabinfo->sync.state) {
         case FREEZE_BOTH_NEXT_EVENT:
             dev = GetPairedDevice(thisDev);

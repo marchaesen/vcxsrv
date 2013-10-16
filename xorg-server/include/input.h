@@ -113,9 +113,9 @@ SOFTWARE.
 #endif
 
 enum InputLevel {
-    CORE,
-    XI,
-    XI2,
+    CORE = 1,
+    XI = 2,
+    XI2 = 3,
 };
 
 typedef unsigned long Leds;

@@ -123,6 +123,12 @@ extern const struct __DriverAPIRec driDriverAPI;
  */
 struct __DRIscreenRec {
     /**
+     * Driver-specific entrypoints provided by the driver's
+     * __DRIDriverVtableExtensionRec.
+     */
+    const struct __DriverAPIRec *driver;
+
+    /**
      * Current screen's number
      */
     int myNum;
@@ -150,6 +156,11 @@ struct __DRIscreenRec {
     void *driverPrivate;
 
     void *loaderPrivate;
+
+    int max_gl_core_version;
+    int max_gl_compat_version;
+    int max_gl_es1_version;
+    int max_gl_es2_version;
 
     const __DRIextension **extensions;
 

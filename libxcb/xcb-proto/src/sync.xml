@@ -11,9 +11,9 @@ for licensing information.
   <xidtype name="ALARM" />
 
   <enum name="ALARMSTATE">
-    <item name="Active" />
-    <item name="Inactive" />
-    <item name="Destroyed" />
+    <item name="Active">    <value>0</value> </item>
+    <item name="Inactive">  <value>1</value> </item>
+    <item name="Destroyed"> <value>2</value> </item>
   </enum>
 
   <xidtype name="COUNTER" />
@@ -21,15 +21,15 @@ for licensing information.
   <xidtype name="FENCE" />
 
   <enum name="TESTTYPE">
-    <item name="PositiveTransition" />
-    <item name="NegativeTransition" />
-    <item name="PositiveComparison" />
-    <item name="NegativeComparison" />
+    <item name="PositiveTransition"> <value>0</value> </item>
+    <item name="NegativeTransition"> <value>1</value> </item>
+    <item name="PositiveComparison"> <value>2</value> </item>
+    <item name="NegativeComparison"> <value>3</value> </item>
   </enum>
 
   <enum name="VALUETYPE">
-    <item name="Absolute" />
-    <item name="Relative" />
+    <item name="Absolute"> <value>0</value> </item>
+    <item name="Relative"> <value>1</value> </item>
   </enum>
 
   <enum name="CA">

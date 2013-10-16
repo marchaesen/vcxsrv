@@ -2326,9 +2326,10 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
  * A pointer to an existing variable in the current scope if the declaration
  * is a redeclaration, \c NULL otherwise.
  */
-ir_variable *
-get_variable_being_redeclared(ir_variable *var, ast_declaration *decl,
-			      struct _mesa_glsl_parse_state *state)
+static ir_variable *
+get_variable_being_redeclared(ir_variable *var, YYLTYPE loc,
+                              struct _mesa_glsl_parse_state *state,
+                              bool allow_all_redeclarations)
 {
    /* Check if this declaration is actually a re-declaration, either to
     * resize an array or add qualifiers to an existing variable.
@@ -2336,15 +2337,13 @@ get_variable_being_redeclared(ir_variable *var, ast_declaration *decl,
     * This is allowed for variables in the current scope, or when at
     * global scope (for built-ins in the implicit outer scope).
     */
-   ir_variable *earlier = state->symbols->get_variable(decl->identifier);
+   ir_variable *earlier = state->symbols->get_variable(var->name);
    if (earlier == NULL ||
        (state->current_function != NULL &&
-	!state->symbols->name_declared_this_scope(decl->identifier))) {
+	!state->symbols->name_declared_this_scope(var->name))) {
       return NULL;
    }
 
-
-   YYLTYPE loc = decl->get_location();
 
    /* From page 24 (page 30 of the PDF) of the GLSL 1.50 spec,
     *
@@ -2433,8 +2432,18 @@ get_variable_being_redeclared(ir_variable *var, ast_declaration *decl,
 
       earlier->depth_layout = var->depth_layout;
 
+   } else if (allow_all_redeclarations) {
+      if (earlier->mode != var->mode) {
+         _mesa_glsl_error(&loc, state,
+                          "redeclaration of `%s' with incorrect qualifiers",
+                          var->name);
+      } else if (earlier->type != var->type) {
+         _mesa_glsl_error(&loc, state,
+                          "redeclaration of `%s' has incorrect type",
+                          var->name);
+      }
    } else {
-      _mesa_glsl_error(&loc, state, "`%s' redeclared", decl->identifier);
+      _mesa_glsl_error(&loc, state, "`%s' redeclared", var->name);
    }
 
    return earlier;
@@ -2648,6 +2657,36 @@ handle_geometry_shader_input_decl(struct _mesa_glsl_parse_state *state,
       }
    }
 }
+
+
+void
+validate_identifier(const char *identifier, YYLTYPE loc,
+                    struct _mesa_glsl_parse_state *state)
+{
+   /* From page 15 (page 21 of the PDF) of the GLSL 1.10 spec,
+    *
+    *   "Identifiers starting with "gl_" are reserved for use by
+    *   OpenGL, and may not be declared in a shader as either a
+    *   variable or a function."
+    */
+   if (strncmp(identifier, "gl_", 3) == 0) {
+      _mesa_glsl_error(&loc, state,
+                       "identifier `%s' uses reserved `gl_' prefix",
+                       identifier);
+   } else if (strstr(identifier, "__")) {
+      /* From page 14 (page 20 of the PDF) of the GLSL 1.10
+       * spec:
+       *
+       *     "In addition, all identifiers containing two
+       *      consecutive underscores (__) are reserved as
+       *      possible future keywords."
+       */
+      _mesa_glsl_error(&loc, state,
+                       "identifier `%s' uses reserved `__' string",
+                       identifier);
+   }
+}
+
 
 ir_rvalue *
 ast_declarator_list::hir(exec_list *instructions,
@@ -3191,7 +3230,9 @@ ast_declarator_list::hir(exec_list *instructions,
        * instruction stream.
        */
       exec_list initializer_instructions;
-      ir_variable *earlier = get_variable_being_redeclared(var, decl, state);
+      ir_variable *earlier =
+         get_variable_being_redeclared(var, decl->get_location(), state,
+                                       false /* allow_all_redeclarations */);
 
       if (decl->initializer != NULL) {
 	 result = process_initializer((earlier == NULL) ? var : earlier,
@@ -3243,28 +3284,7 @@ ast_declarator_list::hir(exec_list *instructions,
        * created for the declaration should be added to the IR stream.
        */
       if (earlier == NULL) {
-	 /* From page 15 (page 21 of the PDF) of the GLSL 1.10 spec,
-	  *
-	  *   "Identifiers starting with "gl_" are reserved for use by
-	  *   OpenGL, and may not be declared in a shader as either a
-	  *   variable or a function."
-	  */
-	 if (strncmp(decl->identifier, "gl_", 3) == 0)
-	    _mesa_glsl_error(& loc, state,
-			     "identifier `%s' uses reserved `gl_' prefix",
-			     decl->identifier);
-	 else if (strstr(decl->identifier, "__")) {
-	    /* From page 14 (page 20 of the PDF) of the GLSL 1.10
-	     * spec:
-	     *
-	     *     "In addition, all identifiers containing two
-	     *      consecutive underscores (__) are reserved as
-	     *      possible future keywords."
-	     */
-	    _mesa_glsl_error(& loc, state,
-			     "identifier `%s' uses reserved `__' string",
-			     decl->identifier);
-	 }
+         validate_identifier(decl->identifier, loc, state);
 
 	 /* Add the variable to the symbol table.  Note that the initializer's
 	  * IR was already processed earlier (though it hasn't been emitted
@@ -3505,17 +3525,7 @@ ast_function::hir(exec_list *instructions,
 		       "function body", name);
    }
 
-   /* From page 15 (page 21 of the PDF) of the GLSL 1.10 spec,
-    *
-    *   "Identifiers starting with "gl_" are reserved for use by
-    *   OpenGL, and may not be declared in a shader as either a
-    *   variable or a function."
-    */
-   if (strncmp(name, "gl_", 3) == 0) {
-      YYLTYPE loc = this->get_location();
-      _mesa_glsl_error(&loc, state,
-		       "identifier `%s' uses reserved `gl_' prefix", name);
-   }
+   validate_identifier(name, this->get_location(), state);
 
    /* Convert the list of function parameters to HIR now so that they can be
     * used below to compare this function's signature with previously seen
@@ -4411,7 +4421,8 @@ ast_process_structure_or_interface_block(exec_list *instructions,
 					 YYLTYPE &loc,
 					 glsl_struct_field **fields_ret,
                                          bool is_interface,
-                                         bool block_row_major)
+                                         bool block_row_major,
+                                         bool allow_reserved_names)
 {
    unsigned decl_count = 0;
 
@@ -4453,6 +4464,9 @@ ast_process_structure_or_interface_block(exec_list *instructions,
 
       foreach_list_typed (ast_declaration, decl, link,
 			  &decl_list->declarations) {
+         if (!allow_reserved_names)
+            validate_identifier(decl->identifier, loc, state);
+
          /* From the GL_ARB_uniform_buffer_object spec:
           *
           *     "Sampler types are not allowed inside of uniform
@@ -4491,6 +4505,7 @@ ast_process_structure_or_interface_block(exec_list *instructions,
 	 }
          fields[i].type = field_type;
 	 fields[i].name = decl->identifier;
+         fields[i].location = -1;
 
          if (qual->flags.q.row_major || qual->flags.q.column_major) {
             if (!qual->flags.q.uniform) {
@@ -4568,7 +4583,10 @@ ast_struct_specifier::hir(exec_list *instructions,
 					       loc,
 					       &fields,
                                                false,
-                                               false);
+                                               false,
+                                               false /* allow_reserved_names */);
+
+   validate_identifier(this->name, loc, state);
 
    const glsl_type *t =
       glsl_type::get_record_instance(fields, decl_count, this->name);
@@ -4593,6 +4611,39 @@ ast_struct_specifier::hir(exec_list *instructions,
    return NULL;
 }
 
+
+/**
+ * Visitor class which detects whether a given interface block has been used.
+ */
+class interface_block_usage_visitor : public ir_hierarchical_visitor
+{
+public:
+   interface_block_usage_visitor(ir_variable_mode mode, const glsl_type *block)
+      : mode(mode), block(block), found(false)
+   {
+   }
+
+   virtual ir_visitor_status visit(ir_dereference_variable *ir)
+   {
+      if (ir->var->mode == mode && ir->var->get_interface_type() == block) {
+         found = true;
+         return visit_stop;
+      }
+      return visit_continue;
+   }
+
+   bool usage_found() const
+   {
+      return this->found;
+   }
+
+private:
+   ir_variable_mode mode;
+   const glsl_type *block;
+   bool found;
+};
+
+
 ir_rvalue *
 ast_interface_block::hir(exec_list *instructions,
 		          struct _mesa_glsl_parse_state *state)
@@ -4614,6 +4665,7 @@ ast_interface_block::hir(exec_list *instructions,
       packing = GLSL_INTERFACE_PACKING_STD140;
    }
 
+   bool redeclaring_per_vertex = strcmp(this->block_name, "gl_PerVertex") == 0;
    bool block_row_major = this->layout.flags.q.row_major;
    exec_list declared_variables;
    glsl_struct_field *fields;
@@ -4624,7 +4676,8 @@ ast_interface_block::hir(exec_list *instructions,
                                                loc,
                                                &fields,
                                                true,
-                                               block_row_major);
+                                               block_row_major,
+                                               redeclaring_per_vertex);
 
    ir_variable_mode var_mode;
    const char *iface_type_name;
@@ -4641,6 +4694,102 @@ ast_interface_block::hir(exec_list *instructions,
       var_mode = ir_var_auto;
       iface_type_name = "UNKNOWN";
       assert(!"interface block layout qualifier not found!");
+   }
+
+   if (!redeclaring_per_vertex)
+      validate_identifier(this->block_name, loc, state);
+
+   const glsl_type *earlier_per_vertex = NULL;
+   if (redeclaring_per_vertex) {
+      /* Find the previous declaration of gl_PerVertex.  If we're redeclaring
+       * the named interface block gl_in, we can find it by looking at the
+       * previous declaration of gl_in.  Otherwise we can find it by looking
+       * at the previous decalartion of any of the built-in outputs,
+       * e.g. gl_Position.
+       *
+       * Also check that the instance name and array-ness of the redeclaration
+       * are correct.
+       */
+      switch (var_mode) {
+      case ir_var_shader_in:
+         if (ir_variable *earlier_gl_in =
+             state->symbols->get_variable("gl_in")) {
+            earlier_per_vertex = earlier_gl_in->get_interface_type();
+         } else {
+            _mesa_glsl_error(&loc, state,
+                             "redeclaration of gl_PerVertex input not allowed "
+                             "in the %s shader",
+                             _mesa_glsl_shader_target_name(state->target));
+         }
+         if (this->instance_name == NULL ||
+             strcmp(this->instance_name, "gl_in") != 0 || !this->is_array) {
+            _mesa_glsl_error(&loc, state,
+                             "gl_PerVertex input must be redeclared as "
+                             "gl_in[]");
+         }
+         break;
+      case ir_var_shader_out:
+         if (ir_variable *earlier_gl_Position =
+             state->symbols->get_variable("gl_Position")) {
+            earlier_per_vertex = earlier_gl_Position->get_interface_type();
+         } else {
+            _mesa_glsl_error(&loc, state,
+                             "redeclaration of gl_PerVertex output not "
+                             "allowed in the %s shader",
+                             _mesa_glsl_shader_target_name(state->target));
+         }
+         if (this->instance_name != NULL) {
+            _mesa_glsl_error(&loc, state,
+                             "gl_PerVertex input may not be redeclared with "
+                             "an instance name");
+         }
+         break;
+      default:
+         _mesa_glsl_error(&loc, state,
+                          "gl_PerVertex must be declared as an input or an "
+                          "output");
+         break;
+      }
+
+      if (earlier_per_vertex == NULL) {
+         /* An error has already been reported.  Bail out to avoid null
+          * dereferences later in this function.
+          */
+         return NULL;
+      }
+
+      /* Copy locations from the old gl_PerVertex interface block. */
+      for (unsigned i = 0; i < num_variables; i++) {
+         int j = earlier_per_vertex->field_index(fields[i].name);
+         if (j == -1) {
+            _mesa_glsl_error(&loc, state,
+                             "redeclaration of gl_PerVertex must be a subset "
+                             "of the built-in members of gl_PerVertex");
+         } else {
+            fields[i].location =
+               earlier_per_vertex->fields.structure[j].location;
+         }
+      }
+
+      /* From section 7.1 ("Built-in Language Variables") of the GLSL 4.10
+       * spec:
+       *
+       *     If a built-in interface block is redeclared, it must appear in
+       *     the shader before any use of any member included in the built-in
+       *     declaration, or a compilation error will result.
+       *
+       * This appears to be a clarification to the behaviour established for
+       * gl_PerVertex by GLSL 1.50, therefore we implement this behaviour
+       * regardless of GLSL version.
+       */
+      interface_block_usage_visitor v(var_mode, earlier_per_vertex);
+      v.run(instructions);
+      if (v.usage_found()) {
+         _mesa_glsl_error(&loc, state,
+                          "redeclaration of a built-in interface block must "
+                          "appear before any use of any member of the "
+                          "interface block");
+      }
    }
 
    const glsl_type *block_type =
@@ -4682,6 +4831,9 @@ ast_interface_block::hir(exec_list *instructions,
     *     field selector ( . ) operator (analogously to structures)."
     */
    if (this->instance_name) {
+      if (!redeclaring_per_vertex)
+         validate_identifier(this->instance_name, loc, state);
+
       ir_variable *var;
 
       if (this->is_array) {
@@ -4724,11 +4876,23 @@ ast_interface_block::hir(exec_list *instructions,
                                       var_mode);
       }
 
-      var->interface_type = block_type;
+      var->init_interface_type(block_type);
       if (state->target == geometry_shader && var_mode == ir_var_shader_in)
          handle_geometry_shader_input_decl(state, loc, var);
-      state->symbols->add_variable(var);
-      instructions->push_tail(var);
+
+      if (ir_variable *earlier =
+          state->symbols->get_variable(this->instance_name)) {
+         if (!redeclaring_per_vertex) {
+            _mesa_glsl_error(&loc, state, "`%s' redeclared",
+                             this->instance_name);
+         }
+         earlier->type = var->type;
+         earlier->reinit_interface_type(block_type);
+         delete var;
+      } else {
+         state->symbols->add_variable(var);
+         instructions->push_tail(var);
+      }
    } else {
       /* In order to have an array size, the block must also be declared with
        * an instane name.
@@ -4740,7 +4904,24 @@ ast_interface_block::hir(exec_list *instructions,
             new(state) ir_variable(fields[i].type,
                                    ralloc_strdup(state, fields[i].name),
                                    var_mode);
-         var->interface_type = block_type;
+         var->init_interface_type(block_type);
+
+         if (redeclaring_per_vertex) {
+            ir_variable *earlier =
+               get_variable_being_redeclared(var, loc, state,
+                                             true /* allow_all_redeclarations */);
+            if (strncmp(var->name, "gl_", 3) != 0 || earlier == NULL) {
+               _mesa_glsl_error(&loc, state,
+                                "redeclaration of gl_PerVertex can only "
+                                "include built-in variables");
+            } else {
+               earlier->reinit_interface_type(block_type);
+            }
+            continue;
+         }
+
+         if (state->symbols->get_variable(var->name) != NULL)
+            _mesa_glsl_error(&loc, state, "`%s' redeclared", var->name);
 
          /* Propagate the "binding" keyword into this UBO's fields;
           * the UBO declaration itself doesn't get an ir_variable unless it
@@ -4751,6 +4932,38 @@ ast_interface_block::hir(exec_list *instructions,
 
          state->symbols->add_variable(var);
          instructions->push_tail(var);
+      }
+
+      if (redeclaring_per_vertex && block_type != earlier_per_vertex) {
+         /* From section 7.1 ("Built-in Language Variables") of the GLSL 4.10 spec:
+          *
+          *     It is also a compilation error ... to redeclare a built-in
+          *     block and then use a member from that built-in block that was
+          *     not included in the redeclaration.
+          *
+          * This appears to be a clarification to the behaviour established
+          * for gl_PerVertex by GLSL 1.50, therefore we implement this
+          * behaviour regardless of GLSL version.
+          *
+          * To prevent the shader from using a member that was not included in
+          * the redeclaration, we disable any ir_variables that are still
+          * associated with the old declaration of gl_PerVertex (since we've
+          * already updated all of the variables contained in the new
+          * gl_PerVertex to point to it).
+          *
+          * As a side effect this will prevent
+          * validate_intrastage_interface_blocks() from getting confused and
+          * thinking there are conflicting definitions of gl_PerVertex in the
+          * shader.
+          */
+         foreach_list_safe(node, instructions) {
+            ir_variable *const var = ((ir_instruction *) node)->as_variable();
+            if (var != NULL &&
+                var->get_interface_type() == earlier_per_vertex) {
+               state->symbols->disable_variable(var->name);
+               var->remove();
+            }
+         }
       }
    }
 

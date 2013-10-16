@@ -429,6 +429,19 @@ ir_validate::visit_leave(ir_expression *ir)
       }
       break;
 
+   case ir_binop_imul_high:
+      assert(ir->type == ir->operands[0]->type);
+      assert(ir->type == ir->operands[1]->type);
+      assert(ir->type->is_integer());
+      break;
+
+   case ir_binop_carry:
+   case ir_binop_borrow:
+      assert(ir->type == ir->operands[0]->type);
+      assert(ir->type == ir->operands[1]->type);
+      assert(ir->type->base_type == GLSL_TYPE_UINT);
+      break;
+
    case ir_binop_less:
    case ir_binop_greater:
    case ir_binop_lequal:
@@ -671,6 +684,26 @@ ir_validate::visit(ir_variable *ir)
 		ir->max_array_access, ir->type->length - 1);
 	 ir->print();
 	 abort();
+      }
+   }
+
+   /* If a variable is an interface block (or an array of interface blocks),
+    * verify that the maximum array index for each interface member is in
+    * bounds.
+    */
+   if (ir->is_interface_instance()) {
+      const glsl_struct_field *fields =
+         ir->get_interface_type()->fields.structure;
+      for (unsigned i = 0; i < ir->get_interface_type()->length; i++) {
+         if (fields[i].type->array_size() > 0) {
+            if (ir->max_ifc_array_access[i] >= fields[i].type->length) {
+               printf("ir_variable has maximum access out of bounds for "
+                      "field %s (%d vs %d)\n", fields[i].name,
+                      ir->max_ifc_array_access[i], fields[i].type->length);
+               ir->print();
+               abort();
+            }
+         }
       }
    }
 

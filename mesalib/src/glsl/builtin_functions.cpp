@@ -531,6 +531,9 @@ private:
    B1(fma)
    B2(ldexp)
    B2(frexp)
+   B1(uaddCarry)
+   B1(usubBorrow)
+   B1(mulExtended)
 #undef B0
 #undef B1
 #undef B2
@@ -1946,6 +1949,30 @@ builtin_builder::create_builtins()
                 _frexp(glsl_type::vec2_type,  glsl_type::ivec2_type),
                 _frexp(glsl_type::vec3_type,  glsl_type::ivec3_type),
                 _frexp(glsl_type::vec4_type,  glsl_type::ivec4_type),
+                NULL);
+   add_function("uaddCarry",
+                _uaddCarry(glsl_type::uint_type),
+                _uaddCarry(glsl_type::uvec2_type),
+                _uaddCarry(glsl_type::uvec3_type),
+                _uaddCarry(glsl_type::uvec4_type),
+                NULL);
+   add_function("usubBorrow",
+                _usubBorrow(glsl_type::uint_type),
+                _usubBorrow(glsl_type::uvec2_type),
+                _usubBorrow(glsl_type::uvec3_type),
+                _usubBorrow(glsl_type::uvec4_type),
+                NULL);
+   add_function("imulExtended",
+                _mulExtended(glsl_type::int_type),
+                _mulExtended(glsl_type::ivec2_type),
+                _mulExtended(glsl_type::ivec3_type),
+                _mulExtended(glsl_type::ivec4_type),
+                NULL);
+   add_function("umulExtended",
+                _mulExtended(glsl_type::uint_type),
+                _mulExtended(glsl_type::uvec2_type),
+                _mulExtended(glsl_type::uvec3_type),
+                _mulExtended(glsl_type::uvec4_type),
                 NULL);
 #undef F
 #undef FI
@@ -3717,6 +3744,52 @@ builtin_builder::_frexp(const glsl_type *x_type, const glsl_type *exp_type)
    body.emit(assign(bits, bit_or(bits, csel(is_not_zero, exponent_value,
                                                 imm(0u, vec_elem)))));
    body.emit(ret(bitcast_u2f(bits)));
+
+   return sig;
+}
+
+ir_function_signature *
+builtin_builder::_uaddCarry(const glsl_type *type)
+{
+   ir_variable *x = in_var(type, "x");
+   ir_variable *y = in_var(type, "y");
+   ir_variable *carry = out_var(type, "carry");
+   MAKE_SIG(type, gpu_shader5, 3, x, y, carry);
+
+   body.emit(assign(carry, ir_builder::carry(x, y)));
+   body.emit(ret(add(x, y)));
+
+   return sig;
+}
+
+ir_function_signature *
+builtin_builder::_usubBorrow(const glsl_type *type)
+{
+   ir_variable *x = in_var(type, "x");
+   ir_variable *y = in_var(type, "y");
+   ir_variable *borrow = out_var(type, "borrow");
+   MAKE_SIG(type, gpu_shader5, 3, x, y, borrow);
+
+   body.emit(assign(borrow, ir_builder::borrow(x, y)));
+   body.emit(ret(sub(x, y)));
+
+   return sig;
+}
+
+/**
+ * For both imulExtended() and umulExtended() built-ins.
+ */
+ir_function_signature *
+builtin_builder::_mulExtended(const glsl_type *type)
+{
+   ir_variable *x = in_var(type, "x");
+   ir_variable *y = in_var(type, "y");
+   ir_variable *msb = out_var(type, "msb");
+   ir_variable *lsb = out_var(type, "lsb");
+   MAKE_SIG(glsl_type::void_type, gpu_shader5, 4, x, y, msb, lsb);
+
+   body.emit(assign(msb, imul_high(x, y)));
+   body.emit(assign(lsb, mul(x, y)));
 
    return sig;
 }

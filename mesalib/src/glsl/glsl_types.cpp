@@ -100,6 +100,7 @@ glsl_type::glsl_type(const glsl_struct_field *fields, unsigned num_fields,
       this->fields.structure[i].type = fields[i].type;
       this->fields.structure[i].name = ralloc_strdup(this->fields.structure,
 						     fields[i].name);
+      this->fields.structure[i].location = fields[i].location;
       this->fields.structure[i].row_major = fields[i].row_major;
    }
 }
@@ -124,6 +125,7 @@ glsl_type::glsl_type(const glsl_struct_field *fields, unsigned num_fields,
       this->fields.structure[i].type = fields[i].type;
       this->fields.structure[i].name = ralloc_strdup(this->fields.structure,
 						     fields[i].name);
+      this->fields.structure[i].location = fields[i].location;
       this->fields.structure[i].row_major = fields[i].row_major;
    }
 }
@@ -450,6 +452,9 @@ glsl_type::record_key_compare(const void *a, const void *b)
       if (key1->fields.structure[i].row_major
          != key2->fields.structure[i].row_major)
         return 1;
+      if (key1->fields.structure[i].location
+          != key2->fields.structure[i].location)
+         return 1;
    }
 
    return 0;
@@ -507,9 +512,9 @@ const glsl_type *
 glsl_type::get_interface_instance(const glsl_struct_field *fields,
 				  unsigned num_fields,
 				  enum glsl_interface_packing packing,
-				  const char *name)
+				  const char *block_name)
 {
-   const glsl_type key(fields, num_fields, packing, name);
+   const glsl_type key(fields, num_fields, packing, block_name);
 
    if (interface_types == NULL) {
       interface_types = hash_table_ctor(64, record_key_hash, record_key_compare);
@@ -517,14 +522,14 @@ glsl_type::get_interface_instance(const glsl_struct_field *fields,
 
    const glsl_type *t = (glsl_type *) hash_table_find(interface_types, & key);
    if (t == NULL) {
-      t = new glsl_type(fields, num_fields, packing, name);
+      t = new glsl_type(fields, num_fields, packing, block_name);
 
       hash_table_insert(interface_types, (void *) t, t);
    }
 
    assert(t->base_type == GLSL_TYPE_INTERFACE);
    assert(t->length == num_fields);
-   assert(strcmp(t->name, name) == 0);
+   assert(strcmp(t->name, block_name) == 0);
 
    return t;
 }

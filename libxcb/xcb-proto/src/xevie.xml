@@ -55,8 +55,8 @@ authorization from the authors.
   </request>
 
   <enum name="Datatype">
-    <item name="Unmodified" />
-    <item name="Modified" />
+    <item name="Unmodified"> <value>0</value> </item>
+    <item name="Modified">   <value>1</value> </item>
   </enum>
 
   <!-- The Send request needs to send an arbitrary Event; this type is used

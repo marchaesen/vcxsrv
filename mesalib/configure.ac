@@ -1025,8 +1025,6 @@ if test "x$enable_dri" = xyes; then
         if test "x$have_libdrm" != xyes; then
             AC_MSG_ERROR([DRI drivers requires libdrm >= $LIBDRM_REQUIRED])
         fi
-        # ... and build dricommon
-        HAVE_COMMON_DRI=yes
     fi
 
     # put all the necessary libs together
@@ -1256,19 +1254,7 @@ dnl
 dnl XA configuration
 dnl
 if test "x$enable_xa" = xyes; then
-AC_PROG_AWK
-AC_PROG_GREP
-AC_CHECK_PROG(NM, nm, "nm")
-if test "x$AWK" = x || test "x$GREP" = x || test "x$NM" = x; then
-AC_MSG_WARN([Missing one of nm, grep or awk. Disabling xa.])
-enable_xa=no
-fi
-fi
-if test "x$enable_xa" = xyes; then
     GALLIUM_STATE_TRACKERS_DIRS="xa $GALLIUM_STATE_TRACKERS_DIRS"
-    AC_SUBST(AWK)
-    AC_SUBST(GREP)
-    AC_SUBST(NM)
 fi
 AM_CONDITIONAL(HAVE_ST_XA, test "x$enable_xa" = xyes)
 
@@ -1532,8 +1518,9 @@ AC_ARG_WITH([llvm-shared-libs],
     [with_llvm_shared_libs=no])
 AS_IF([test x$enable_opencl = xyes],
     [
-        AC_MSG_WARN([OpenCL required, forcing LLVM shared libraries])
-        with_llvm_shared_libs=yes
+        if test "x$with_llvm_shared_libs" != xyes; then
+            AC_MSG_ERROR([OpenCL requires LLVM shared libraries])
+        fi
     ])
 
 AC_ARG_WITH([llvm-prefix],
@@ -1680,7 +1667,6 @@ gallium_check_st() {
     fi
     if test "x$enable_dri" = xyes && test "x$2" != x; then
          GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS $2"
-         HAVE_COMMON_DRI=yes
     fi
     if test "x$enable_xorg" = xyes && test "x$3" != x; then
          GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS $3"
@@ -1823,7 +1809,6 @@ if test "x$with_gallium_drivers" != x; then
 
             if test "x$enable_dri" = xyes; then
                 GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS dri-swrast"
-                HAVE_COMMON_DRI=yes
             fi
             if test "x$enable_vdpau" = xyes; then
                 GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS vdpau-softpipe"
@@ -1927,7 +1912,6 @@ AM_CONDITIONAL(HAVE_NOUVEAU_DRI, test x$HAVE_NOUVEAU_DRI = xyes)
 AM_CONDITIONAL(HAVE_R200_DRI, test x$HAVE_R200_DRI = xyes)
 AM_CONDITIONAL(HAVE_RADEON_DRI, test x$HAVE_RADEON_DRI = xyes)
 AM_CONDITIONAL(HAVE_SWRAST_DRI, test x$HAVE_SWRAST_DRI = xyes)
-AM_CONDITIONAL(HAVE_COMMON_DRI, test x$HAVE_COMMON_DRI = xyes)
 
 AM_CONDITIONAL(NEED_RADEON_DRM_WINSYS, test "x$NEED_NONNULL_WINSYS" = xyes -a \
                                             "x$HAVE_GALLIUM_R300" = xyes -o \
@@ -1942,7 +1926,6 @@ AM_CONDITIONAL(HAVE_LOADER_GALLIUM, test x$enable_gallium_loader = xyes)
 AM_CONDITIONAL(HAVE_DRM_LOADER_GALLIUM, test x$enable_gallium_drm_loader = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_COMPUTE, test x$enable_opencl = xyes)
 AM_CONDITIONAL(HAVE_MESA_LLVM, test x$MESA_LLVM = x1)
-AM_CONDITIONAL(LLVM_NEEDS_FNORTTI, test $LLVM_VERSION_INT -ge 302)
 
 AC_SUBST([ELF_LIB])
 
@@ -1957,8 +1940,6 @@ AM_CONDITIONAL(HAVE_GALLIUM_OSMESA, test "x$enable_gallium_osmesa" = xyes)
 AM_CONDITIONAL(HAVE_X86_ASM, echo "$DEFINES" | grep 'X86_ASM' >/dev/null 2>&1)
 AM_CONDITIONAL(HAVE_X86_64_ASM, echo "$DEFINES" | grep 'X86_64_ASM' >/dev/null 2>&1)
 AM_CONDITIONAL(HAVE_SPARC_ASM, echo "$DEFINES" | grep 'SPARC_ASM' >/dev/null 2>&1)
-
-AM_CONDITIONAL(CROSS_COMPILING, test "x$cross_compiling" = xyes)
 
 AC_SUBST([VDPAU_MAJOR], 1)
 AC_SUBST([VDPAU_MINOR], 0)

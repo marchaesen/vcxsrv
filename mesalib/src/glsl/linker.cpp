@@ -1033,17 +1033,167 @@ get_main_function_signature(gl_shader *sh)
  */
 class array_sizing_visitor : public ir_hierarchical_visitor {
 public:
+   array_sizing_visitor()
+      : mem_ctx(ralloc_context(NULL)),
+        unnamed_interfaces(hash_table_ctor(0, hash_table_pointer_hash,
+                                           hash_table_pointer_compare))
+   {
+   }
+
+   ~array_sizing_visitor()
+   {
+      hash_table_dtor(this->unnamed_interfaces);
+      ralloc_free(this->mem_ctx);
+   }
+
    virtual ir_visitor_status visit(ir_variable *var)
    {
-      if (var->type->is_array() && (var->type->length == 0)) {
-         const glsl_type *type =
-            glsl_type::get_array_instance(var->type->fields.array,
-                                          var->max_array_access + 1);
-         assert(type != NULL);
-         var->type = type;
+      fixup_type(&var->type, var->max_array_access);
+      if (var->type->is_interface()) {
+         if (interface_contains_unsized_arrays(var->type)) {
+            const glsl_type *new_type =
+               resize_interface_members(var->type, var->max_ifc_array_access);
+            var->type = new_type;
+            var->change_interface_type(new_type);
+         }
+      } else if (var->type->is_array() &&
+                 var->type->fields.array->is_interface()) {
+         if (interface_contains_unsized_arrays(var->type->fields.array)) {
+            const glsl_type *new_type =
+               resize_interface_members(var->type->fields.array,
+                                        var->max_ifc_array_access);
+            var->change_interface_type(new_type);
+            var->type =
+               glsl_type::get_array_instance(new_type, var->type->length);
+         }
+      } else if (const glsl_type *ifc_type = var->get_interface_type()) {
+         /* Store a pointer to the variable in the unnamed_interfaces
+          * hashtable.
+          */
+         ir_variable **interface_vars = (ir_variable **)
+            hash_table_find(this->unnamed_interfaces, ifc_type);
+         if (interface_vars == NULL) {
+            interface_vars = rzalloc_array(mem_ctx, ir_variable *,
+                                           ifc_type->length);
+            hash_table_insert(this->unnamed_interfaces, interface_vars,
+                              ifc_type);
+         }
+         unsigned index = ifc_type->field_index(var->name);
+         assert(index < ifc_type->length);
+         assert(interface_vars[index] == NULL);
+         interface_vars[index] = var;
       }
       return visit_continue;
    }
+
+   /**
+    * For each unnamed interface block that was discovered while running the
+    * visitor, adjust the interface type to reflect the newly assigned array
+    * sizes, and fix up the ir_variable nodes to point to the new interface
+    * type.
+    */
+   void fixup_unnamed_interface_types()
+   {
+      hash_table_call_foreach(this->unnamed_interfaces,
+                              fixup_unnamed_interface_type, NULL);
+   }
+
+private:
+   /**
+    * If the type pointed to by \c type represents an unsized array, replace
+    * it with a sized array whose size is determined by max_array_access.
+    */
+   static void fixup_type(const glsl_type **type, unsigned max_array_access)
+   {
+      if ((*type)->is_array() && (*type)->length == 0) {
+         *type = glsl_type::get_array_instance((*type)->fields.array,
+                                               max_array_access + 1);
+         assert(*type != NULL);
+      }
+   }
+
+   /**
+    * Determine whether the given interface type contains unsized arrays (if
+    * it doesn't, array_sizing_visitor doesn't need to process it).
+    */
+   static bool interface_contains_unsized_arrays(const glsl_type *type)
+   {
+      for (unsigned i = 0; i < type->length; i++) {
+         const glsl_type *elem_type = type->fields.structure[i].type;
+         if (elem_type->is_array() && elem_type->length == 0)
+            return true;
+      }
+      return false;
+   }
+
+   /**
+    * Create a new interface type based on the given type, with unsized arrays
+    * replaced by sized arrays whose size is determined by
+    * max_ifc_array_access.
+    */
+   static const glsl_type *
+   resize_interface_members(const glsl_type *type,
+                            const unsigned *max_ifc_array_access)
+   {
+      unsigned num_fields = type->length;
+      glsl_struct_field *fields = new glsl_struct_field[num_fields];
+      memcpy(fields, type->fields.structure,
+             num_fields * sizeof(*fields));
+      for (unsigned i = 0; i < num_fields; i++) {
+         fixup_type(&fields[i].type, max_ifc_array_access[i]);
+      }
+      glsl_interface_packing packing =
+         (glsl_interface_packing) type->interface_packing;
+      const glsl_type *new_ifc_type =
+         glsl_type::get_interface_instance(fields, num_fields,
+                                           packing, type->name);
+      delete [] fields;
+      return new_ifc_type;
+   }
+
+   static void fixup_unnamed_interface_type(const void *key, void *data,
+                                            void *)
+   {
+      const glsl_type *ifc_type = (const glsl_type *) key;
+      ir_variable **interface_vars = (ir_variable **) data;
+      unsigned num_fields = ifc_type->length;
+      glsl_struct_field *fields = new glsl_struct_field[num_fields];
+      memcpy(fields, ifc_type->fields.structure,
+             num_fields * sizeof(*fields));
+      bool interface_type_changed = false;
+      for (unsigned i = 0; i < num_fields; i++) {
+         if (interface_vars[i] != NULL &&
+             fields[i].type != interface_vars[i]->type) {
+            fields[i].type = interface_vars[i]->type;
+            interface_type_changed = true;
+         }
+      }
+      if (!interface_type_changed) {
+         delete [] fields;
+         return;
+      }
+      glsl_interface_packing packing =
+         (glsl_interface_packing) ifc_type->interface_packing;
+      const glsl_type *new_ifc_type =
+         glsl_type::get_interface_instance(fields, num_fields, packing,
+                                           ifc_type->name);
+      delete [] fields;
+      for (unsigned i = 0; i < num_fields; i++) {
+         if (interface_vars[i] != NULL)
+            interface_vars[i]->change_interface_type(new_ifc_type);
+      }
+   }
+
+   /**
+    * Memory context used to allocate the data in \c unnamed_interfaces.
+    */
+   void *mem_ctx;
+
+   /**
+    * Hash table from const glsl_type * to an array of ir_variable *'s
+    * pointing to the ir_variables constituting each unnamed interface block.
+    */
+   hash_table *unnamed_interfaces;
 };
 
 /**
@@ -1318,6 +1468,7 @@ link_intrastage_shaders(void *mem_ctx,
     */
    array_sizing_visitor v;
    v.run(linked->ir);
+   v.fixup_unnamed_interface_types();
 
    return linked;
 }
@@ -2203,7 +2354,9 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
          ;
 
       /* This must be done after all dead varyings are eliminated. */
-      if (!check_against_varying_limit(ctx, prog, sh_next))
+      if (!check_against_output_limit(ctx, prog, sh_i))
+         goto done;
+      if (!check_against_input_limit(ctx, prog, sh_next))
          goto done;
 
       next = i;

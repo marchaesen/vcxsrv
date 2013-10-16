@@ -398,6 +398,9 @@ ir_expression::ir_expression(int op, ir_rvalue *op0, ir_rvalue *op1)
       this->type = glsl_type::uint_type;
       break;
 
+   case ir_binop_imul_high:
+   case ir_binop_carry:
+   case ir_binop_borrow:
    case ir_binop_lshift:
    case ir_binop_rshift:
    case ir_binop_bfm:
@@ -527,7 +530,10 @@ static const char *const operator_strs[] = {
    "+",
    "-",
    "*",
+   "imul_high",
    "/",
+   "carry",
+   "borrow",
    "%",
    "<",
    ">",
@@ -1578,7 +1584,8 @@ ir_swizzle::variable_referenced() const
 
 ir_variable::ir_variable(const struct glsl_type *type, const char *name,
 			 ir_variable_mode mode)
-   : max_array_access(0), read_only(false), centroid(false), invariant(false),
+   : max_array_access(0), max_ifc_array_access(NULL),
+     read_only(false), centroid(false), invariant(false),
      mode(mode), interpolation(INTERP_QUALIFIER_NONE)
 {
    this->ir_type = ir_type_variable;

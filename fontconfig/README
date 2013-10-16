@@ -1,11 +1,36 @@
                               Fontconfig
              Font configuration and customization library
-                      Version 2.10.95 (2.11 RC5)
-                              2013-08-31
+                             Version 2.11
+                              2013-10-11
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://bugs.freedesktop.org in the fontconfig module.
+
+2.11
+
+Akira TAGOH (15):
+      Do not create a config dir for migration when no config files nor dirs
+      Add a test case of the migration for config place
+      Fix memory leaks in FcFreeTypeQueryFace
+      Bug 68955 - Deprecate / remove FC_RASTERIZER
+      Copy all values from the font to the pattern if the pattern doesn't have the element
+      Fix a crash when FcPattern is set to null on FcFontSetList() and FcFontList()
+      Add the description of -q option to the man page
+      avoid reading config.h twice
+      clean up
+      Add the relative path for <include> to fonts.conf if the parent path is same to fonts.conf
+      Workaround the race condition issue on updating cache
+      exit with the error code when FcNameParse() failed
+      Add missing doc for FcStrListFirst and fix a typo
+      Bump libtool revision
+      Update CaseFolding.txt to Unicode 6.3
+
+Jan Alexander Steffens (heftig) (1):
+      Further changes to 30-metric-aliases.conf
+
+W. Trevor King (1):
+      doc/fccharset.fncs: Describe the map format in more detail
 
 2.10.95 (2.11 RC5)
 

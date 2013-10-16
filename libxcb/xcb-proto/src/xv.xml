@@ -44,13 +44,13 @@ authorization from the authors.
     </enum>
 
     <enum name="ImageFormatInfoType">
-        <item name="RGB" />
-        <item name="YUV" />
+        <item name="RGB"> <value>0</value> </item>
+        <item name="YUV"> <value>1</value> </item>
     </enum>
 
     <enum name="ImageFormatInfoFormat">
-        <item name="Packed" />
-        <item name="Planar" />
+        <item name="Packed"> <value>0</value> </item>
+        <item name="Planar"> <value>1</value> </item>
     </enum>
 
     <enum name="AttributeFlag">
@@ -59,25 +59,25 @@ authorization from the authors.
     </enum>
     
     <enum name="VideoNotifyReason">
-	<item name="Started" />
-	<item name="Stopped" />
-	<item name="Busy" />
-	<item name="Preempted" />
-	<item name="HardError" />
+	<item name="Started">   <value>0</value> </item>
+	<item name="Stopped">   <value>1</value> </item>
+	<item name="Busy">      <value>2</value> </item>
+	<item name="Preempted"> <value>3</value> </item>
+	<item name="HardError"> <value>4</value> </item>
     </enum>
 
     <enum name="ScanlineOrder">
-        <item name="TopToBottom" />
-        <item name="BottomToTop" />
+        <item name="TopToBottom"> <value>0</value> </item>
+        <item name="BottomToTop"> <value>1</value> </item>
     </enum>
 
     <enum name="GrabPortStatus">
-        <item name="Success" />
-        <item name="BadExtension" />
-        <item name="AlreadyGrabbed" />
-        <item name="InvalidTime" />
-        <item name="BadReply" />
-        <item name="BadAlloc" />
+        <item name="Success">        <value>0</value> </item>
+        <item name="BadExtension">   <value>1</value> </item>
+        <item name="AlreadyGrabbed"> <value>2</value> </item>
+        <item name="InvalidTime">    <value>3</value> </item>
+        <item name="BadReply">       <value>4</value> </item>
+        <item name="BadAlloc">       <value>5</value> </item>
     </enum>
 
     <struct name="Rational">

@@ -274,7 +274,7 @@ AddGroupCompat(CompatInfo * info, unsigned group, GroupCompatInfo * newGC)
     {
         return True;
     }
-    if (((gc->fileID == newGC->fileID) && (warningLevel > 0))
+    if (((gc->defined && gc->fileID == newGC->fileID) && (warningLevel > 0))
         || (warningLevel > 9))
     {
         WARN1("Compat map for group %d redefined\n", group + 1);

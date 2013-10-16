@@ -32,8 +32,8 @@ authorization from the authors.
   <import>xfixes</import>
 
   <enum name="Redirect">
-    <item name="Automatic" />
-    <item name="Manual" />
+    <item name="Automatic"> <value>0</value> </item>
+    <item name="Manual">    <value>1</value> </item>
   </enum>
 
   <request name="QueryVersion" opcode="0">

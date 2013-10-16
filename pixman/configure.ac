@@ -183,6 +183,7 @@ AC_SUBST(LT_VERSION_INFO)
 # Check for dependencies
 
 PIXMAN_CHECK_CFLAG([-Wall])
+PIXMAN_CHECK_CFLAG([-Wdeclaration-after-statement])
 PIXMAN_CHECK_CFLAG([-fno-strict-aliasing])
 
 dnl =========================================================================
@@ -353,6 +354,12 @@ int main () {
     asm ("pshufw %2, %1, %0\n\t"
         : "=y" (w)
         : "y" (v), "K" (5)
+    );
+
+    /* Some versions of clang will choke on this */
+    asm ("pmulhuw %1, %0\n\t"
+	: "+y" (w)
+	: "y" (v)
     );
 
     return _mm_cvtsi64_si32 (v);

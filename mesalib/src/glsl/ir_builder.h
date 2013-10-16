@@ -133,7 +133,10 @@ ir_expression *expr(ir_expression_operation op, operand a, operand b, operand c)
 ir_expression *add(operand a, operand b);
 ir_expression *sub(operand a, operand b);
 ir_expression *mul(operand a, operand b);
+ir_expression *imul_high(operand a, operand b);
 ir_expression *div(operand a, operand b);
+ir_expression *carry(operand a, operand b);
+ir_expression *borrow(operand a, operand b);
 ir_expression *round_even(operand a);
 ir_expression *dot(operand a, operand b);
 ir_expression *dotlike(operand a, operand b);

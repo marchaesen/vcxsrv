@@ -960,8 +960,15 @@ XI2Mask *
 xi2mask_new_with_size(size_t nmasks, size_t size)
 {
     int i;
+    int alloc_size;
+    unsigned char *cursor;
+    XI2Mask *mask;
 
-    XI2Mask *mask = calloc(1, sizeof(*mask));
+    alloc_size = sizeof(struct _XI2Mask)
+	       + nmasks * sizeof(unsigned char *)
+	       + nmasks * size;
+
+    mask = calloc(1, alloc_size);
 
     if (!mask)
         return NULL;
@@ -969,20 +976,14 @@ xi2mask_new_with_size(size_t nmasks, size_t size)
     mask->nmasks = nmasks;
     mask->mask_size = size;
 
-    mask->masks = calloc(mask->nmasks, sizeof(*mask->masks));
-    if (!mask->masks)
-        goto unwind;
+    mask->masks = (unsigned char **)(mask + 1);
+    cursor = (unsigned char *)(mask + 1) + nmasks * sizeof(unsigned char *);
 
-    for (i = 0; i < mask->nmasks; i++) {
-        mask->masks[i] = calloc(1, mask->mask_size);
-        if (!mask->masks[i])
-            goto unwind;
+    for (i = 0; i < nmasks; i++) {
+        mask->masks[i] = cursor;
+	cursor += size;
     }
     return mask;
-
- unwind:
-    xi2mask_free(&mask);
-    return NULL;
 }
 
 /**
@@ -1003,14 +1004,9 @@ xi2mask_new(void)
 void
 xi2mask_free(XI2Mask **mask)
 {
-    int i;
-
     if (!(*mask))
         return;
 
-    for (i = 0; (*mask)->masks && i < (*mask)->nmasks; i++)
-        free((*mask)->masks[i]);
-    free((*mask)->masks);
     free((*mask));
     *mask = NULL;
 }

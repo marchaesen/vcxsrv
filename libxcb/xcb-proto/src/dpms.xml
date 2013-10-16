@@ -66,10 +66,10 @@ authorization from the authors.
   <request name="Disable" opcode="5" />
 
   <enum name="DPMSMode">
-    <item name="On" />
-    <item name="Standby" />
-    <item name="Suspend" />
-    <item name="Off" />
+    <item name="On">      <value>0</value> </item>
+    <item name="Standby"> <value>1</value> </item>
+    <item name="Suspend"> <value>2</value> </item>
+    <item name="Off">     <value>3</value> </item>
   </enum>
 
   <request name="ForceLevel" opcode="6">

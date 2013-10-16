@@ -11,12 +11,12 @@ TEST_LDADD = \
 
 libutils_OBJECTS = $(patsubst %.c, $(CFG_VAR)/%.obj, $(libutils_sources))
 
-SOURCES = $(patsubst %,   %.c,              $(TESTPROGRAMS) $(BENCHMARKS))
+SOURCES = $(patsubst %,   %.c,              $(TESTPROGRAMS) $(OTHERPROGRAMS))
 OBJECTS = $(patsubst %.c, $(CFG_VAR)/%.obj, $(SOURCES))
 TESTS   = $(patsubst %,   $(CFG_VAR)/%.exe, $(TESTPROGRAMS))
-BENCHS  = $(patsubst %,   $(CFG_VAR)/%.exe, $(BENCHMARKS))
+OTHERS  = $(patsubst %,   $(CFG_VAR)/%.exe, $(OTHERPROGRAMS))
 
-all: pixman inform $(TESTS) $(BENCHS)
+all: pixman inform $(TESTS) $(OTHERS)
 
 check: pixman inform $(TESTS)
 	@failures=0 ; \

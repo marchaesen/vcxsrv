@@ -293,6 +293,51 @@ static const struct gl_builtin_uniform_desc _mesa_builtin_uniform_desc[] = {
 
 namespace {
 
+/**
+ * Data structure that accumulates fields for the gl_PerVertex interface
+ * block.
+ */
+class per_vertex_accumulator
+{
+public:
+   per_vertex_accumulator();
+   void add_field(int slot, const glsl_type *type, const char *name);
+   const glsl_type *construct_interface_instance() const;
+
+private:
+   glsl_struct_field fields[10];
+   unsigned num_fields;
+};
+
+
+per_vertex_accumulator::per_vertex_accumulator()
+   : num_fields(0)
+{
+}
+
+
+void
+per_vertex_accumulator::add_field(int slot, const glsl_type *type,
+                                  const char *name)
+{
+   assert(this->num_fields < ARRAY_SIZE(this->fields));
+   this->fields[this->num_fields].type = type;
+   this->fields[this->num_fields].name = name;
+   this->fields[this->num_fields].row_major = false;
+   this->fields[this->num_fields].location = slot;
+   this->num_fields++;
+}
+
+
+const glsl_type *
+per_vertex_accumulator::construct_interface_instance() const
+{
+   return glsl_type::get_interface_instance(this->fields, this->num_fields,
+                                            GLSL_INTERFACE_PACKING_STD140,
+                                            "gl_PerVertex");
+}
+
+
 class builtin_variable_generator
 {
 public:
@@ -358,6 +403,9 @@ private:
    const glsl_type * const vec4_t;
    const glsl_type * const mat3_t;
    const glsl_type * const mat4_t;
+
+   per_vertex_accumulator per_vertex_in;
+   per_vertex_accumulator per_vertex_out;
 };
 
 
@@ -497,11 +545,12 @@ builtin_variable_generator::generate_constants()
        */
       if (state->is_version(0, 300)) {
          add_const("gl_MaxVertexOutputVectors",
-                   state->Const.MaxVaryingFloats / 4);
+                   state->ctx->Const.VertexProgram.MaxOutputComponents / 4);
          add_const("gl_MaxFragmentInputVectors",
-                   state->Const.MaxVaryingFloats / 4);
+                   state->ctx->Const.FragmentProgram.MaxInputComponents / 4);
       } else {
-         add_const("gl_MaxVaryingVectors", state->Const.MaxVaryingFloats / 4);
+         add_const("gl_MaxVaryingVectors",
+                   state->ctx->Const.MaxVarying);
       }
    } else {
       add_const("gl_MaxVertexUniformComponents",
@@ -510,7 +559,7 @@ builtin_variable_generator::generate_constants()
       /* Note: gl_MaxVaryingFloats was deprecated in GLSL 1.30+, but not
        * removed
        */
-      add_const("gl_MaxVaryingFloats", state->Const.MaxVaryingFloats);
+      add_const("gl_MaxVaryingFloats", state->ctx->Const.MaxVarying * 4);
 
       add_const("gl_MaxFragmentUniformComponents",
                 state->Const.MaxFragmentUniformComponents);
@@ -531,7 +580,38 @@ builtin_variable_generator::generate_constants()
 
    if (state->is_version(130, 0)) {
       add_const("gl_MaxClipDistances", state->Const.MaxClipPlanes);
-      add_const("gl_MaxVaryingComponents", state->Const.MaxVaryingFloats);
+      add_const("gl_MaxVaryingComponents", state->ctx->Const.MaxVarying * 4);
+   }
+
+   if (state->is_version(150, 0)) {
+      add_const("gl_MaxVertexOutputComponents",
+                state->Const.MaxVertexOutputComponents);
+      add_const("gl_MaxGeometryInputComponents",
+                state->Const.MaxGeometryInputComponents);
+      add_const("gl_MaxGeometryOutputComponents",
+                state->Const.MaxGeometryOutputComponents);
+      add_const("gl_MaxFragmentInputComponents",
+                state->Const.MaxFragmentInputComponents);
+      add_const("gl_MaxGeometryTextureImageUnits",
+                state->Const.MaxGeometryTextureImageUnits);
+      add_const("gl_MaxGeometryOutputVertices",
+                state->Const.MaxGeometryOutputVertices);
+      add_const("gl_MaxGeometryTotalOutputComponents",
+                state->Const.MaxGeometryTotalOutputComponents);
+      add_const("gl_MaxGeometryUniformComponents",
+                state->Const.MaxGeometryUniformComponents);
+
+      /* Note: the GLSL 1.50-4.40 specs require
+       * gl_MaxGeometryVaryingComponents to be present, and to be at least 64.
+       * But they do not define what it means (and there does not appear to be
+       * any corresponding constant in the GL specs).  However,
+       * ARB_geometry_shader4 defines MAX_GEOMETRY_VARYING_COMPONENTS_ARB to
+       * be the maximum number of components available for use as geometry
+       * outputs.  So we assume this is a synonym for
+       * gl_MaxGeometryOutputComponents.
+       */
+      add_const("gl_MaxGeometryVaryingComponents",
+                state->Const.MaxGeometryOutputComponents);
    }
 
    if (compatibility) {
@@ -756,10 +836,10 @@ builtin_variable_generator::add_varying(int slot, const glsl_type *type,
 {
    switch (state->target) {
    case geometry_shader:
-      add_input(slot, array(type, 0), name_as_gs_input);
+      this->per_vertex_in.add_field(slot, type, name);
       /* FALLTHROUGH */
    case vertex_shader:
-      add_output(slot, type, name);
+      this->per_vertex_out.add_field(slot, type, name);
       break;
    case fragment_shader:
       add_input(slot, type, name);
@@ -801,6 +881,25 @@ builtin_variable_generator::generate_varyings()
          ADD_VARYING(VARYING_SLOT_BFC0, vec4_t, "gl_BackColor");
          ADD_VARYING(VARYING_SLOT_COL1, vec4_t, "gl_FrontSecondaryColor");
          ADD_VARYING(VARYING_SLOT_BFC1, vec4_t, "gl_BackSecondaryColor");
+      }
+   }
+
+   if (state->target == geometry_shader) {
+      const glsl_type *per_vertex_in_type =
+         this->per_vertex_in.construct_interface_instance();
+      ir_variable *var = add_variable("gl_in", array(per_vertex_in_type, 0),
+                                      ir_var_shader_in, -1);
+      var->init_interface_type(per_vertex_in_type);
+   }
+   if (state->target == vertex_shader || state->target == geometry_shader) {
+      const glsl_type *per_vertex_out_type =
+         this->per_vertex_out.construct_interface_instance();
+      const glsl_struct_field *fields = per_vertex_out_type->fields.structure;
+      for (unsigned i = 0; i < per_vertex_out_type->length; i++) {
+         ir_variable *var =
+            add_variable(fields[i].name, fields[i].type, ir_var_shader_out,
+                         fields[i].location);
+         var->init_interface_type(per_vertex_out_type);
       }
    }
 }
