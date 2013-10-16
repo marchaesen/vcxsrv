@@ -397,12 +397,12 @@ authorization from the authors.
     <!-- AllowDeviceEvents -->
 
     <enum name="DeviceInputMode">
-        <item name="AsyncThisDevice" />
-        <item name="SyncThisDevice" />
-        <item name="ReplayThisDevice" />
-        <item name="AsyncOtherDevices" />
-        <item name="AsyncAll" />
-        <item name="SyncAll" />
+        <item name="AsyncThisDevice">   <value>0</value> </item>
+        <item name="SyncThisDevice">    <value>1</value> </item>
+        <item name="ReplayThisDevice">  <value>2</value> </item>
+        <item name="AsyncOtherDevices"> <value>3</value> </item>
+        <item name="AsyncAll">          <value>4</value> </item>
+        <item name="SyncAll">           <value>5</value> </item>
     </enum>
 
     <request name="AllowDeviceEvents" opcode="19">
@@ -437,12 +437,12 @@ authorization from the authors.
     <!-- GetFeedbackControl -->
 
     <enum name="FeedbackClass">
-        <item name="Keyboard" />
-        <item name="Pointer" />
-        <item name="String" />
-        <item name="Integer" />
-        <item name="Led" />
-        <item name="Bell" />
+        <item name="Keyboard"> <value>0</value> </item>
+        <item name="Pointer">  <value>1</value> </item>
+        <item name="String">   <value>2</value> </item>
+        <item name="Integer">  <value>3</value> </item>
+        <item name="Led">      <value>4</value> </item>
+        <item name="Bell">     <value>5</value> </item>
     </enum>
 
     <struct name="KbdFeedbackState">
@@ -1099,8 +1099,8 @@ authorization from the authors.
     <!-- XIQueryPointer -->
 
     <enum name="Device">
-        <item name="All" />
-        <item name="AllMaster" />
+        <item name="All">       <value>0</value> </item>
+        <item name="AllMaster"> <value>1</value> </item>
     </enum>
 
     <struct name="GroupInfo">
@@ -1463,8 +1463,8 @@ authorization from the authors.
     <!-- XIGrabDevice -->
 
     <enum name="GrabOwner">
-        <item name="NoOwner" />
-        <item name="Owner" />
+        <item name="NoOwner"> <value>0</value> </item>
+        <item name="Owner">   <value>1</value> </item>
     </enum>
 
     <request name="XIGrabDevice" opcode="51">
@@ -1498,14 +1498,14 @@ authorization from the authors.
     <!-- XIAllowEvents -->
 
     <enum name="EventMode">
-        <item name="AsyncDevice" />
-        <item name="SyncDevice" />
-        <item name="ReplayDevice" />
-        <item name="AsyncPairedDevice" />
-        <item name="AsyncPair" />
-        <item name="SyncPair" />
-        <item name="AcceptTouch" />
-        <item name="RejectTouch" />
+        <item name="AsyncDevice">       <value>0</value> </item>
+        <item name="SyncDevice">        <value>1</value> </item>
+        <item name="ReplayDevice">      <value>2</value> </item>
+        <item name="AsyncPairedDevice"> <value>3</value> </item>
+        <item name="AsyncPair">         <value>4</value> </item>
+        <item name="SyncPair">          <value>5</value> </item>
+        <item name="AcceptTouch">       <value>6</value> </item>
+        <item name="RejectTouch">       <value>7</value> </item>
     </enum>
 
     <request name="XIAllowEvents" opcode="53">
@@ -1520,17 +1520,17 @@ authorization from the authors.
     <!-- XIPassiveGrabDevice -->
 
     <enum name="GrabMode22">
-        <item name="Sync" />
-        <item name="Async" />
-        <item name="Touch" />
+        <item name="Sync">  <value>0</value> </item>
+        <item name="Async"> <value>1</value> </item>
+        <item name="Touch"> <value>2</value> </item>
     </enum>
 
     <enum name="GrabType">
-        <item name="Button" />
-        <item name="Keycode" />
-        <item name="Enter" />
-        <item name="FocusIn" />
-        <item name="TouchBegin" />
+        <item name="Button">     <value>0</value> </item>
+        <item name="Keycode">    <value>1</value> </item>
+        <item name="Enter">      <value>2</value> </item>
+        <item name="FocusIn">    <value>3</value> </item>
+        <item name="TouchBegin"> <value>4</value> </item>
     </enum>
 
     <enum name="ModifierMask">
@@ -1822,12 +1822,12 @@ authorization from the authors.
     <!-- ⋅⋅⋅ Events (v1.4) ⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅⋅ -->
 
     <enum name="DeviceChange">
-        <item name="Added" />
-        <item name="Removed" />
-        <item name="Enabled" />
-        <item name="Disabled" />
-        <item name="Unrecoverable" />
-        <item name="ControlChanged" />
+        <item name="Added">          <value>0</value> </item>
+        <item name="Removed">        <value>1</value> </item>
+        <item name="Enabled">        <value>2</value> </item>
+        <item name="Disabled">       <value>3</value> </item>
+        <item name="Unrecoverable">  <value>4</value> </item>
+        <item name="ControlChanged"> <value>5</value> </item>
     </enum>
 
     <event name="DevicePresenceNotify" number="15">
@@ -1947,23 +1947,23 @@ authorization from the authors.
     <eventcopy name="Motion"        number="6" ref="ButtonPress" />
 
     <enum name="NotifyMode">
-        <item name="Normal" />
-        <item name="Grab" />
-        <item name="Ungrab" />
-        <item name="WhileGrabbed" />
-        <item name="PassiveGrab" />
-        <item name="PassiveUngrab" />
+        <item name="Normal">        <value>0</value> </item>
+        <item name="Grab">          <value>1</value> </item>
+        <item name="Ungrab">        <value>2</value> </item>
+        <item name="WhileGrabbed">  <value>3</value> </item>
+        <item name="PassiveGrab">   <value>4</value> </item>
+        <item name="PassiveUngrab"> <value>5</value> </item>
     </enum>
 
     <enum name="NotifyDetail">
-        <item name="Ancestor" />
-        <item name="Virtual" />
-        <item name="Inferior" />
-        <item name="Nonlinear" />
-        <item name="NonlinearVirtual" />
-        <item name="Pointer" />
-        <item name="PointerRoot" />
-        <item name="None" />
+        <item name="Ancestor">         <value>0</value> </item>
+        <item name="Virtual">          <value>1</value> </item>
+        <item name="Inferior">         <value>2</value> </item>
+        <item name="Nonlinear">        <value>3</value> </item>
+        <item name="NonlinearVirtual"> <value>4</value> </item>
+        <item name="Pointer">          <value>5</value> </item>
+        <item name="PointerRoot">      <value>6</value> </item>
+        <item name="None">             <value>7</value> </item>
     </enum>
 
     <event name="Enter" number="7" xge="true">
@@ -2029,9 +2029,9 @@ authorization from the authors.
     </event>
 
     <enum name="PropertyFlag">
-        <item name="Deleted" />
-        <item name="Created" />
-        <item name="Modified" />
+        <item name="Deleted">  <value>0</value> </item>
+        <item name="Created">  <value>1</value> </item>
+        <item name="Modified"> <value>2</value> </item>
     </enum>
 
     <event name="Property" number="12" xge="true">
@@ -2131,7 +2131,7 @@ authorization from the authors.
 
     <enum name="TouchOwnershipFlags">
         <!-- XXX: Remove this enum? Currently, no flag is defined. -->
-        <item name="None" />
+        <item name="None"> <value>0</value> </item>
     </enum>
 
     <event name="TouchOwnership" number="21" xge="true">

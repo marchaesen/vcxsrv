@@ -648,6 +648,7 @@ authorization from the authors.
 		<field name="top" type="INT16" />
 		<field name="left" type="INT16" />
 		<field name="angle" type="INT16" />
+		<pad bytes="8" />
 	</struct>
 
 	<struct name="ShapeDoodad">
@@ -1002,6 +1003,7 @@ authorization from the authors.
 		<pad bytes="1" />
 		<field name="button" type="CARD8" />
 		<field name="device" type="CARD8" />
+		<pad bytes="3" />
 	</struct>
 
 	<enum name="SAValWhat">
@@ -2610,7 +2612,7 @@ authorization from the authors.
 		<pad bytes="1" />
 		<field name="reason" type="CARD16" mask="XIFeature" />
 		<field name="ledClass" type="CARD16" enum="LedClassResult" />
-		<field name="ledID" type="CARD8" />
+		<field name="ledID" type="CARD16" />
 		<field name="ledsDefined" type="CARD32" />
 		<field name="ledState" type="CARD32" />
 		<field name="firstButton" type="CARD8" />

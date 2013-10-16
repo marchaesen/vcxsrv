@@ -168,7 +168,11 @@ static int _xcb_open_abstract(char *protocol, const char *file, size_t filelen);
 static int _xcb_open(const char *host, char *protocol, const int display)
 {
     int fd;
+#ifdef __hpux
+    static const char unix_base[] = "/usr/spool/sockets/X11/";
+#else
     static const char unix_base[] = "/tmp/.X11-unix/X";
+#endif
     const char *base = unix_base;
     size_t filelen;
     char *file = NULL;

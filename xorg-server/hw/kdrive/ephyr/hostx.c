@@ -28,6 +28,7 @@
 #endif
 
 #include "hostx.h"
+#include "input.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -436,6 +437,7 @@ hostx_init(void)
     xcb_change_gc(HostX.conn, HostX.gc, XCB_GC_FOREGROUND, &pixel);
 
     if (!hostx_want_host_cursor ()) {
+        CursorVisible = TRUE;
         /* Ditch the cursor, we provide our 'own' */
         cursor_pxm = xcb_generate_id(HostX.conn);
         xcb_create_pixmap(HostX.conn, 1, cursor_pxm, HostX.winroot, 1, 1);

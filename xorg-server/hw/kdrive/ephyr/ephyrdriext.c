@@ -343,7 +343,7 @@ ephyrDRIClipNotify(WindowPtr a_win, int a_x, int a_y)
     free(rects);
     rects = NULL;
 
-    EPHYR_LOG("leave. is_ok:%d\n", is_ok);
+    EPHYR_LOG("leave.\n");
     /*do cleanup here */
 }
 

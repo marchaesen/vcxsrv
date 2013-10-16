@@ -36,9 +36,9 @@ Draft Standard Version 1.1
   <import>xproto</import>
 
   <enum name="Kind">
-    <item name="Blanked" />
-    <item name="Internal" />
-    <item name="External" />
+    <item name="Blanked">  <value>0</value> </item>
+    <item name="Internal"> <value>1</value> </item>
+    <item name="External"> <value>2</value> </item>
   </enum>
 
   <enum name="Event">
@@ -47,10 +47,10 @@ Draft Standard Version 1.1
   </enum>
 
   <enum name="State">
-    <item name="Off" />
-    <item name="On" />
-    <item name="Cycle" />
-    <item name="Disabled" />
+    <item name="Off">      <value>0</value> </item>
+    <item name="On">       <value>1</value> </item>
+    <item name="Cycle">    <value>2</value> </item>
+    <item name="Disabled"> <value>3</value> </item>
   </enum>
 
   <!-- Errors -->

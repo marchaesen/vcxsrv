@@ -103,8 +103,8 @@ compute_extents (pixman_f_transform_t *trans, double *sx, double *sy)
 
 typedef struct
 {
-    char		name [20];
-    pixman_kernel_t	value;
+    char	name [20];
+    int		value;
 } named_int_t;
 
 static const named_int_t filters[] =
@@ -127,7 +127,7 @@ static const named_int_t repeats[] =
     { "Pad",                    PIXMAN_REPEAT_PAD },
 };
 
-static pixman_kernel_t
+static int
 get_value (app_t *app, const named_int_t table[], const char *box_name)
 {
     GtkComboBox *box = GTK_COMBO_BOX (get_widget (app, box_name));

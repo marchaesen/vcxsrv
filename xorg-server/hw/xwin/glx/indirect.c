@@ -2014,9 +2014,6 @@ glxWinCreateConfigs(HDC hdc, glxWinScreen * screen)
         else
             c->base.swapMethod = GLX_SWAP_UNDEFINED_OML;
 
-        /* EXT_import_context */
-        c->base.screen = screen->base.pScreen->myNum;
-
         /* EXT_texture_from_pixmap */
         c->base.bindToTextureRgb = -1;
         c->base.bindToTextureRgba = -1;
@@ -2392,9 +2389,6 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen)
         case WGL_SWAP_UNDEFINED_ARB:
             c->base.swapMethod = GLX_SWAP_UNDEFINED_OML;
         }
-
-        /* EXT_import_context */
-        c->base.screen = screen->base.pScreen->myNum;
 
         /* EXT_texture_from_pixmap */
         /*

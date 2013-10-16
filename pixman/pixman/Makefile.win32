@@ -14,8 +14,14 @@ ifeq ($(SSE2_VAR),)
 SSE2_VAR=on
 endif
 
+SSSE3_VAR = $(SSSE3)
+ifeq ($(SSSE3_VAR),)
+SSSE3_VAR=on
+endif
+
 MMX_CFLAGS = -DUSE_X86_MMX -w14710 -w14714
 SSE2_CFLAGS = -DUSE_SSE2
+SSSE3_CFLAGS = -DUSE_SSSE3
 
 # MMX compilation flags
 ifeq ($(MMX_VAR),on)
@@ -29,10 +35,16 @@ PIXMAN_CFLAGS += $(SSE2_CFLAGS)
 libpixman_sources += pixman-sse2.c
 endif
 
+# SSSE3 compilation flags
+ifeq ($(SSSE3_VAR),on)
+PIXMAN_CFLAGS += $(SSSE3_CFLAGS)
+libpixman_sources += pixman-ssse3.c
+endif
+
 OBJECTS = $(patsubst %.c, $(CFG_VAR)/%.obj, $(libpixman_sources))
 
 # targets
-all: inform informMMX informSSE2 $(CFG_VAR)/$(LIBRARY).lib
+all: inform informMMX informSSE2 informSSSE3 $(CFG_VAR)/$(LIBRARY).lib
 
 informMMX:
 ifneq ($(MMX),off)
@@ -60,9 +72,22 @@ endif
 endif
 endif
 
+informSSSE3:
+ifneq ($(SSSE3),off)
+ifneq ($(SSSE3),on)
+ifneq ($(SSSE3),)
+	@echo "Invalid specified SSE option : "$(SSSE3)"."
+	@echo
+	@echo "Possible choices for SSSE3 are 'on' or 'off'"
+	@exit 1
+endif
+	@echo "Setting SSSE3 flag to default value 'on'... (use SSSE3=on or SSSE3=off)"
+endif
+endif
+
 
 # pixman linking
 $(CFG_VAR)/$(LIBRARY).lib: $(OBJECTS)
 	@$(AR) $(PIXMAN_ARFLAGS) -OUT:$@ $^
 
-.PHONY: all informMMX informSSE2
+.PHONY: all informMMX informSSE2 informSSSE3

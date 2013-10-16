@@ -11,84 +11,84 @@ for licensing information.
   <import>xproto</import>
 
   <enum name="PictType">
-    <item name="Indexed" />
-    <item name="Direct" />
+    <item name="Indexed"> <value>0</value> </item>
+    <item name="Direct">  <value>1</value> </item>
   </enum>
 
   <enum name="Picture">
-    <item name="None" />
+    <item name="None"> <value>0</value> </item>
   </enum>
 
   <!-- Disjoint* and Conjoint* are new in version 0.2 -->
   <!-- PDF blend modes are new in version 0.11 -->
   <enum name="PictOp">
-    <item name="Clear" />
-    <item name="Src" />
-    <item name="Dst" />
-    <item name="Over" />
-    <item name="OverReverse" />
-    <item name="In" />
-    <item name="InReverse" />
-    <item name="Out" />
-    <item name="OutReverse" />
-    <item name="Atop" />
-    <item name="AtopReverse" />
-    <item name="Xor" />
-    <item name="Add" />
-    <item name="Saturate" />
+    <item name="Clear">               <value>0</value> </item>
+    <item name="Src">                 <value>1</value> </item>
+    <item name="Dst">                 <value>2</value> </item>
+    <item name="Over">                <value>3</value> </item>
+    <item name="OverReverse">         <value>4</value> </item>
+    <item name="In">                  <value>5</value> </item>
+    <item name="InReverse">           <value>6</value> </item>
+    <item name="Out">                 <value>7</value> </item>
+    <item name="OutReverse">          <value>8</value> </item>
+    <item name="Atop">                <value>9</value> </item>
+    <item name="AtopReverse">         <value>10</value> </item>
+    <item name="Xor">                 <value>11</value> </item>
+    <item name="Add">                 <value>12</value> </item>
+    <item name="Saturate">            <value>13</value> </item>
     
-    <item name="DisjointClear"><value>16</value></item>
-    <item name="DisjointSrc" />
-    <item name="DisjointDst" />
-    <item name="DisjointOver" />
-    <item name="DisjointOverReverse" />
-    <item name="DisjointIn" />
-    <item name="DisjointInReverse" />
-    <item name="DisjointOut" />
-    <item name="DisjointOutReverse" />
-    <item name="DisjointAtop" />
-    <item name="DisjointAtopReverse" />
-    <item name="DisjointXor" />
+    <item name="DisjointClear">       <value>16</value></item>
+    <item name="DisjointSrc">         <value>17</value> </item>
+    <item name="DisjointDst">         <value>18</value> </item>
+    <item name="DisjointOver">        <value>19</value> </item>
+    <item name="DisjointOverReverse"> <value>20</value> </item>
+    <item name="DisjointIn">          <value>21</value> </item>
+    <item name="DisjointInReverse">   <value>22</value> </item>
+    <item name="DisjointOut">         <value>23</value> </item>
+    <item name="DisjointOutReverse">  <value>24</value> </item>
+    <item name="DisjointAtop">        <value>25</value> </item>
+    <item name="DisjointAtopReverse"> <value>26</value> </item>
+    <item name="DisjointXor">         <value>27</value> </item>
     
-    <item name="ConjointClear"><value>32</value></item>
-    <item name="ConjointSrc" />
-    <item name="ConjointDst" />
-    <item name="ConjointOver" />
-    <item name="ConjointOverReverse" />
-    <item name="ConjointIn" />
-    <item name="ConjointInReverse" />
-    <item name="ConjointOut" />
-    <item name="ConjointOutReverse" />
-    <item name="ConjointAtop" />
-    <item name="ConjointAtopReverse" />
-    <item name="ConjointXor" />
+    <item name="ConjointClear">       <value>32</value></item>
+    <item name="ConjointSrc">         <value>33</value> </item>
+    <item name="ConjointDst">         <value>34</value> </item>
+    <item name="ConjointOver">        <value>35</value> </item>
+    <item name="ConjointOverReverse"> <value>36</value> </item>
+    <item name="ConjointIn">          <value>37</value> </item>
+    <item name="ConjointInReverse">   <value>38</value> </item>
+    <item name="ConjointOut">         <value>39</value> </item>
+    <item name="ConjointOutReverse">  <value>40</value> </item>
+    <item name="ConjointAtop">        <value>41</value> </item>
+    <item name="ConjointAtopReverse"> <value>42</value> </item>
+    <item name="ConjointXor">         <value>43</value> </item>
 
     <!-- PDF blend modes are new in version 0.11 -->
-    <item name="Multiply"><value>48</value></item>
-    <item name="Screen" />
-    <item name="Overlay" />
-    <item name="Darken" />
-    <item name="Lighten" />
-    <item name="ColorDodge" />
-    <item name="ColorBurn" />
-    <item name="HardLight" />
-    <item name="SoftLight" />
-    <item name="Difference" />
-    <item name="Exclusion" />
-    <item name="HSLHue" />
-    <item name="HSLSaturation" />
-    <item name="HSLColor" />
-    <item name="HSLLuminosity" />
+    <item name="Multiply">            <value>48</value></item>
+    <item name="Screen">              <value>49</value> </item>
+    <item name="Overlay">             <value>50</value> </item>
+    <item name="Darken">              <value>51</value> </item>
+    <item name="Lighten">             <value>52</value> </item>
+    <item name="ColorDodge">          <value>53</value> </item>
+    <item name="ColorBurn">           <value>54</value> </item>
+    <item name="HardLight">           <value>55</value> </item>
+    <item name="SoftLight">           <value>56</value> </item>
+    <item name="Difference">          <value>57</value> </item>
+    <item name="Exclusion">           <value>58</value> </item>
+    <item name="HSLHue">              <value>59</value> </item>
+    <item name="HSLSaturation">       <value>60</value> </item>
+    <item name="HSLColor">            <value>61</value> </item>
+    <item name="HSLLuminosity">       <value>62</value> </item>
   </enum>
 
   <enum name="PolyEdge">
-    <item name="Sharp" />
-    <item name="Smooth" />
+    <item name="Sharp">  <value>0</value> </item>
+    <item name="Smooth"> <value>1</value> </item>
   </enum>
 
   <enum name="PolyMode">
-    <item name="Precise" />
-    <item name="Imprecise" />
+    <item name="Precise">   <value>0</value> </item>
+    <item name="Imprecise"> <value>1</value> </item>
   </enum>
 
   <enum name="CP">
@@ -108,20 +108,20 @@ for licensing information.
   </enum>
 
   <enum name="SubPixel">
-    <item name="Unknown" />
-    <item name="HorizontalRGB" />
-    <item name="HorizontalBGR" />
-    <item name="VerticalRGB" />
-    <item name="VerticalBGR" />
-    <item name="None" />
+    <item name="Unknown">       <value>0</value> </item>
+    <item name="HorizontalRGB"> <value>1</value> </item>
+    <item name="HorizontalBGR"> <value>2</value> </item>
+    <item name="VerticalRGB">   <value>3</value> </item>
+    <item name="VerticalBGR">   <value>4</value> </item>
+    <item name="None">          <value>5</value> </item>
   </enum>
 
   <!-- Extended repeat attributes introduced in 0.10 -->
   <enum name="Repeat">
-    <item name="None" />
-    <item name="Normal" />
-    <item name="Pad" />
-    <item name="Reflect" />
+    <item name="None">    <value>0</value> </item>
+    <item name="Normal">  <value>1</value> </item>
+    <item name="Pad">     <value>2</value> </item>
+    <item name="Reflect"> <value>3</value> </item>
   </enum>
 
   <typedef oldname="CARD32" newname="GLYPH" />

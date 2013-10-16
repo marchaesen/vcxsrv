@@ -99,7 +99,6 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    this->Const.MaxTextureCoords = ctx->Const.MaxTextureCoordUnits;
    this->Const.MaxVertexAttribs = ctx->Const.VertexProgram.MaxAttribs;
    this->Const.MaxVertexUniformComponents = ctx->Const.VertexProgram.MaxUniformComponents;
-   this->Const.MaxVaryingFloats = ctx->Const.MaxVarying * 4;
    this->Const.MaxVertexTextureImageUnits = ctx->Const.VertexProgram.MaxTextureImageUnits;
    this->Const.MaxCombinedTextureImageUnits = ctx->Const.MaxCombinedTextureImageUnits;
    this->Const.MaxTextureImageUnits = ctx->Const.FragmentProgram.MaxTextureImageUnits;
@@ -108,6 +107,16 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    this->Const.MaxProgramTexelOffset = ctx->Const.MaxProgramTexelOffset;
 
    this->Const.MaxDrawBuffers = ctx->Const.MaxDrawBuffers;
+
+   /* 1.50 constants */
+   this->Const.MaxVertexOutputComponents = ctx->Const.VertexProgram.MaxOutputComponents;
+   this->Const.MaxGeometryInputComponents = ctx->Const.GeometryProgram.MaxInputComponents;
+   this->Const.MaxGeometryOutputComponents = ctx->Const.GeometryProgram.MaxOutputComponents;
+   this->Const.MaxFragmentInputComponents = ctx->Const.FragmentProgram.MaxInputComponents;
+   this->Const.MaxGeometryTextureImageUnits = ctx->Const.GeometryProgram.MaxTextureImageUnits;
+   this->Const.MaxGeometryOutputVertices = ctx->Const.MaxGeometryOutputVertices;
+   this->Const.MaxGeometryTotalOutputComponents = ctx->Const.MaxGeometryTotalOutputComponents;
+   this->Const.MaxGeometryUniformComponents = ctx->Const.GeometryProgram.MaxUniformComponents;
 
    this->current_function = NULL;
    this->toplevel_ir = NULL;

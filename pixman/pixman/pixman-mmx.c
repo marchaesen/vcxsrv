@@ -3579,7 +3579,6 @@ do {										\
     __m64 b_lo = _mm_mullo_pi16 (_mm_unpacklo_pi8 (b, mm_zero), mm_wb);		\
     __m64 hi = _mm_add_pi16 (t_hi, b_hi);					\
     __m64 lo = _mm_add_pi16 (t_lo, b_lo);					\
-    vx += unit_x;								\
     /* calculate horizontal weights */						\
     __m64 mm_wh = _mm_add_pi16 (mm_addc7, _mm_xor_si64 (mm_xorc7,		\
 			  _mm_srli_pi16 (mm_x,					\
@@ -3587,6 +3586,7 @@ do {										\
     /* horizontal interpolation */						\
     __m64 p = _mm_unpacklo_pi16 (lo, hi);					\
     __m64 q = _mm_unpackhi_pi16 (lo, hi);					\
+    vx += unit_x;								\
     lo = _mm_madd_pi16 (p, mm_wh);						\
     hi = _mm_madd_pi16 (q, mm_wh);						\
     mm_x = _mm_add_pi16 (mm_x, mm_ux);						\

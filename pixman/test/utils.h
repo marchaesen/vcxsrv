@@ -6,6 +6,11 @@
 #include "pixman-private.h" /* For 'inline' definition */
 #include "utils-prng.h"
 
+#if defined(_MSC_VER)
+#define snprintf _snprintf
+#define strcasecmp _stricmp
+#endif
+
 #define ARRAY_LENGTH(A) ((int) (sizeof (A) / sizeof ((A) [0])))
 
 /* A primitive pseudorandom number generator,

@@ -684,7 +684,7 @@ RootlessResizeCopyWindow(WindowPtr pWin, DDXPointRec ptOldOrg,
     if (gResizeDeathCount == 1) {
         /* Simple case, we only have a single source pixmap. */
 
-        fbCopyRegion(&gResizeDeathPix[0]->drawable,
+        miCopyRegion(&gResizeDeathPix[0]->drawable,
                      &pScreen->GetWindowPixmap(pWin)->drawable, 0,
                      &rgnDst, dx, dy, fbCopyWindowProc, 0, 0);
     }
@@ -700,7 +700,7 @@ RootlessResizeCopyWindow(WindowPtr pWin, DDXPointRec ptOldOrg,
             RegionNull(&clipped);
             RegionIntersect(&rgnDst, &clip, &clipped);
 
-            fbCopyRegion(&gResizeDeathPix[i]->drawable,
+            miCopyRegion(&gResizeDeathPix[i]->drawable,
                          &pScreen->GetWindowPixmap(pWin)->drawable, 0,
                          &clipped, dx, dy, fbCopyWindowProc, 0, 0);
 
@@ -778,7 +778,7 @@ RootlessCopyWindow(WindowPtr pWin, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
     else {
         RootlessStartDrawing(pWin);
 
-        fbCopyRegion((DrawablePtr) pWin, (DrawablePtr) pWin,
+        miCopyRegion((DrawablePtr) pWin, (DrawablePtr) pWin,
                      0, &rgnDst, dx, dy, fbCopyWindowProc, 0, 0);
 
         /* prgnSrc has been translated to dst position */

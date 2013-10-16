@@ -98,12 +98,20 @@ Destroys <parameter>set</parameter>.
 Creates an iterator to list the strings in <parameter>set</parameter>.
 @@
 
+@RET@		void
+@FUNC@		FcStrListFirst
+@TYPE1@		FcStrList *			@ARG1@		list
+@PURPOSE@	get first string in iteration
+@DESC@
+Returns the first string in <parameter>list</parameter>.
+@@
+
 @RET@		FcChar8 *
 @FUNC@		FcStrListNext
 @TYPE1@		FcStrList *			@ARG1@		list	
 @PURPOSE@	get next string in iteration
 @DESC@
-Returns the next string in <parameter>set</parameter>.
+Returns the next string in <parameter>list</parameter>.
 @@
 
 @RET@		void

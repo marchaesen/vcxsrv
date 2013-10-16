@@ -1978,6 +1978,9 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
    case ir_binop_vector_extract:
    case ir_triop_vector_insert:
    case ir_binop_ldexp:
+   case ir_binop_carry:
+   case ir_binop_borrow:
+   case ir_binop_imul_high:
       /* This operation is not supported, or should have already been handled.
        */
       assert(!"Invalid ir opcode in glsl_to_tgsi_visitor::visit()");
@@ -2790,6 +2793,9 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
       break;
    case ir_tg4:
       assert(!"Unexpected ir_tg4 opcode");
+      break;
+   case ir_query_levels:
+      assert(!"Unexpected ir_query_levels opcode");
       break;
    }
 

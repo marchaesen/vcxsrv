@@ -392,6 +392,65 @@ public:
     }
 
    /**
+    * Set this->interface_type on a newly created variable.
+    */
+   void init_interface_type(const struct glsl_type *type)
+   {
+      assert(this->interface_type == NULL);
+      this->interface_type = type;
+      if (this->is_interface_instance()) {
+         this->max_ifc_array_access =
+            rzalloc_array(this, unsigned, type->length);
+      }
+   }
+
+   /**
+    * Change this->interface_type on a variable that previously had a
+    * different, but compatible, interface_type.  This is used during linking
+    * to set the size of arrays in interface blocks.
+    */
+   void change_interface_type(const struct glsl_type *type)
+   {
+      if (this->max_ifc_array_access != NULL) {
+         /* max_ifc_array_access has already been allocated, so make sure the
+          * new interface has the same number of fields as the old one.
+          */
+         assert(this->interface_type->length == type->length);
+      }
+      this->interface_type = type;
+   }
+
+   /**
+    * Change this->interface_type on a variable that previously had a
+    * different, and incompatible, interface_type. This is used during
+    * compilation to handle redeclaration of the built-in gl_PerVertex
+    * interface block.
+    */
+   void reinit_interface_type(const struct glsl_type *type)
+   {
+      if (this->max_ifc_array_access != NULL) {
+#ifndef _NDEBUG
+         /* Redeclaring gl_PerVertex is only allowed if none of the built-ins
+          * it defines have been accessed yet; so it's safe to throw away the
+          * old max_ifc_array_access pointer, since all of its values are
+          * zero.
+          */
+         for (unsigned i = 0; i < this->interface_type->length; i++)
+            assert(this->max_ifc_array_access[i] == 0);
+#endif
+         ralloc_free(this->max_ifc_array_access);
+         this->max_ifc_array_access = NULL;
+      }
+      this->interface_type = NULL;
+      init_interface_type(type);
+   }
+
+   const glsl_type *get_interface_type() const
+   {
+      return this->interface_type;
+   }
+
+   /**
     * Declared type of the variable
     */
    const struct glsl_type *type;
@@ -407,6 +466,19 @@ public:
     * Not used for non-array variables.
     */
    unsigned max_array_access;
+
+   /**
+    * For variables which satisfy the is_interface_instance() predicate, this
+    * points to an array of integers such that if the ith member of the
+    * interface block is an array, max_ifc_array_access[i] is the maximum
+    * array element of that member that has been accessed.  If the ith member
+    * of the interface block is not an array, max_ifc_array_access[i] is
+    * unused.
+    *
+    * For variables whose type is not an interface block, this pointer is
+    * NULL.
+    */
+   unsigned *max_ifc_array_access;
 
    /**
     * Is the variable read-only?
@@ -582,6 +654,7 @@ public:
     */
    ir_constant *constant_initializer;
 
+private:
    /**
     * For variables that are in an interface block or are an instance of an
     * interface block, this is the \c GLSL_TYPE_INTERFACE type for that block.
@@ -1091,8 +1164,24 @@ enum ir_expression_operation {
 
    ir_binop_add,
    ir_binop_sub,
-   ir_binop_mul,
+   ir_binop_mul,       /**< Floating-point or low 32-bit integer multiply. */
+   ir_binop_imul_high, /**< Calculates the high 32-bits of a 64-bit multiply. */
    ir_binop_div,
+
+   /**
+    * Returns the carry resulting from the addition of the two arguments.
+    */
+   /*@{*/
+   ir_binop_carry,
+   /*@}*/
+
+   /**
+    * Returns the borrow resulting from the subtraction of the second argument
+    * from the first argument.
+    */
+   /*@{*/
+   ir_binop_borrow,
+   /*@}*/
 
    /**
     * Takes one of two combinations of arguments:

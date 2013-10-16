@@ -248,9 +248,9 @@ authorization from the authors.
 
 	<!-- for GetOutputInfo.connection -->
 	<enum name="Connection">
-		<item name="Connected" />
-		<item name="Disconnected" />
-		<item name="Unknown" />
+		<item name="Connected">    <value>0</value> </item>
+		<item name="Disconnected"> <value>1</value> </item>
+		<item name="Unknown">      <value>2</value> </item>
 	</enum>
 
 	<request name="GetOutputInfo" opcode="9">
@@ -752,11 +752,10 @@ authorization from the authors.
 		<field type="BOOL" name="pending" />
 		<pad bytes="2" />
 		<reply>
-			<pad bytes="1" />
 			<field type="CARD8" name="format" />
 			<field type="ATOM" name="type" /> <!-- None -->
 			<field type="CARD32" name="bytes_after" />
-			<field type="CARD16" name="num_items" />
+			<field type="CARD32" name="num_items" />
 			<pad bytes="12" />
 			<list type="void" name="data">
 				<op op="*">

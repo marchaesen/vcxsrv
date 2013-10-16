@@ -35,10 +35,10 @@ authorization from the authors.
   <xidtype name="DAMAGE" />
 
   <enum name="ReportLevel">
-    <item name="RawRectangles" />
-    <item name="DeltaRectangles" />
-    <item name="BoundingBox" />
-    <item name="NonEmpty" />
+    <item name="RawRectangles">   <value>0</value> </item>
+    <item name="DeltaRectangles"> <value>1</value> </item>
+    <item name="BoundingBox">     <value>2</value> </item>
+    <item name="NonEmpty">        <value>3</value> </item>
   </enum>
 
   <error name="BadDamage" number="0" />

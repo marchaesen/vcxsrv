@@ -140,8 +140,6 @@ __GLXconfig *__glXAquaCreateVisualConfigs(int *numConfigsPtr, int screenNumber) 
                                         c->visualType = GLX_TRUE_COLOR;
                                         c->next = c + 1;
 
-                                        c->screen = screenNumber;
-
                                         c->level = 0;
                                         c->indexBits = 0;
 
