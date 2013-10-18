@@ -27,9 +27,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\common\utils.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\common\drisw_util.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\swrast_setup\ss_context.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -121,6 +118,21 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_renderbuffer.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\common\dri_util.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\common\xmlconfig.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\expat\lib\xmlparse.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\expat\lib\xmltok.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\expat\lib\xmlrole.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

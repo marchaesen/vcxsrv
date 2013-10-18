@@ -95,6 +95,7 @@ dri2CreateNewScreen(int scrn, int fd,
 {
     static const __DRIextension *emptyExtensionList[] = { NULL };
     __DRIscreen *psp;
+	int gl_version_override;
 
     psp = calloc(1, sizeof(*psp));
     if (!psp)
@@ -128,7 +129,7 @@ dri2CreateNewScreen(int scrn, int fd,
 	return NULL;
     }
 
-    int gl_version_override = _mesa_get_gl_version_override();
+    gl_version_override = _mesa_get_gl_version_override();
     if (gl_version_override >= 31) {
        psp->max_gl_core_version = MAX2(psp->max_gl_core_version,
                                        gl_version_override);
@@ -256,6 +257,8 @@ dri2CreateContextAttribs(__DRIscreen *screen, int api,
     unsigned major_version = 1;
     unsigned minor_version = 0;
     uint32_t flags = 0;
+	unsigned i;
+	struct gl_context *ctx;
 
     assert((num_attribs == 0) || (attribs != NULL));
 
@@ -283,7 +286,7 @@ dri2CreateContextAttribs(__DRIscreen *screen, int api,
 	return NULL;
     }
 
-    for (unsigned i = 0; i < num_attribs; i++) {
+    for (i = 0; i < num_attribs; i++) {
 	switch (attribs[i * 2]) {
 	case __DRI_CTX_ATTRIB_MAJOR_VERSION:
 	    major_version = attribs[i * 2 + 1];
@@ -379,7 +382,7 @@ dri2CreateContextAttribs(__DRIscreen *screen, int api,
         return NULL;
     }
 
-    struct gl_context *ctx = context->driverPrivate;
+    ctx = context->driverPrivate;
     if ((flags & __DRI_CTX_FLAG_FORWARD_COMPATIBLE) != 0)
         ctx->Const.ContextFlags |= GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT;
     if ((flags & __DRI_CTX_FLAG_DEBUG) != 0) {
@@ -669,35 +672,35 @@ driSwapBuffers(__DRIdrawable *pdp)
 
 /** Core interface */
 const __DRIcoreExtension driCoreExtension = {
-    .base = { __DRI_CORE, __DRI_CORE_VERSION },
+    /*.base =*/ { __DRI_CORE, __DRI_CORE_VERSION },
 
-    .createNewScreen            = NULL,
-    .destroyScreen              = driDestroyScreen,
-    .getExtensions              = driGetExtensions,
-    .getConfigAttrib            = driGetConfigAttrib,
-    .indexConfigAttrib          = driIndexConfigAttrib,
-    .createNewDrawable          = NULL,
-    .destroyDrawable            = driDestroyDrawable,
-    .swapBuffers                = driSwapBuffers, /* swrast */
-    .createNewContext           = dri2CreateNewContext, /* swrast */
-    .copyContext                = driCopyContext,
-    .destroyContext             = driDestroyContext,
-    .bindContext                = driBindContext,
-    .unbindContext              = driUnbindContext
+    /*.createNewScreen            =*/ NULL,
+    /*.destroyScreen              =*/ driDestroyScreen,
+    /*.getExtensions              =*/ driGetExtensions,
+    /*.getConfigAttrib            =*/ driGetConfigAttrib,
+    /*.indexConfigAttrib          =*/ driIndexConfigAttrib,
+    /*.createNewDrawable          =*/ NULL,
+    /*.destroyDrawable            =*/ driDestroyDrawable,
+    /*.swapBuffers                =*/ driSwapBuffers, /* swrast */
+    /*.createNewContext           =*/ dri2CreateNewContext, /* swrast */
+    /*.copyContext                =*/ driCopyContext,
+    /*.destroyContext             =*/ driDestroyContext,
+    /*.bindContext                =*/ driBindContext,
+    /*.unbindContext              =*/ driUnbindContext
 };
 
 /** DRI2 interface */
 const __DRIdri2Extension driDRI2Extension = {
-    .base = { __DRI_DRI2, 3 },
+    /*.base =*/ { __DRI_DRI2, 3 },
 
-    .createNewScreen            = dri2CreateNewScreen,
-    .createNewDrawable          = dri2CreateNewDrawable,
-    .createNewContext           = dri2CreateNewContext,
-    .getAPIMask                 = dri2GetAPIMask,
-    .createNewContextForAPI     = dri2CreateNewContextForAPI,
-    .allocateBuffer             = dri2AllocateBuffer,
-    .releaseBuffer              = dri2ReleaseBuffer,
-    .createContextAttribs       = dri2CreateContextAttribs
+    /*.createNewScreen            =*/ dri2CreateNewScreen,
+    /*.createNewDrawable          =*/ dri2CreateNewDrawable,
+    /*.createNewContext           =*/ dri2CreateNewContext,
+    /*.getAPIMask                 =*/ dri2GetAPIMask,
+    /*.createNewContextForAPI     =*/ dri2CreateNewContextForAPI,
+    /*.allocateBuffer             =*/ dri2AllocateBuffer,
+    /*.releaseBuffer              =*/ dri2ReleaseBuffer,
+    /*.createContextAttribs       =*/ dri2CreateContextAttribs
 };
 
 const __DRIswrastExtension driSWRastExtension = {
@@ -709,11 +712,11 @@ const __DRIswrastExtension driSWRastExtension = {
 };
 
 const __DRI2configQueryExtension dri2ConfigQueryExtension = {
-   .base = { __DRI2_CONFIG_QUERY, __DRI2_CONFIG_QUERY_VERSION },
+   /*.base =*/ { __DRI2_CONFIG_QUERY, __DRI2_CONFIG_QUERY_VERSION },
 
-   .configQueryb        = dri2ConfigQueryb,
-   .configQueryi        = dri2ConfigQueryi,
-   .configQueryf        = dri2ConfigQueryf,
+   /*.configQueryb        =*/ dri2ConfigQueryb,
+   /*.configQueryi        =*/ dri2ConfigQueryi,
+   /*.configQueryf        =*/ dri2ConfigQueryf,
 };
 
 void

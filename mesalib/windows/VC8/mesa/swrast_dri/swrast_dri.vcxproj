@@ -127,8 +127,8 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../../../include;../../../../src/mesa;../../../../src/glsl;../../../../src/mapi;../../../../src/mesa/main;../../../../src/mesa/shader;../../../../src/mesa/shader/slang;../../../../../include;../../../../src/mesa/drivers/dri/common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_DEBUG;DEBUG;WIN32;_DLL;SWRAST_DRI_EXPORTS;_GDI32_;BUILD_GL32;WIN32_THREADS;MESA_MINWARN;_CRT_SECURE_NO_DEPRECATE;INSERVER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../../../../include;../../../../src/mesa;../../../../src/glsl;../../../../src/mapi;../../../../src/mesa/main;../../../../src/mesa/shader;../../../../src/mesa/shader/slang;../../../../../include;../../../../src/mesa/drivers/dri/common;../../../../../expat/lib;../../../../..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_DEBUG;DEBUG;WIN32;_DLL;SWRAST_DRI_EXPORTS;_GDI32_;BUILD_GL32;WIN32_THREADS;MESA_MINWARN;_CRT_SECURE_NO_DEPRECATE;INSERVER;__NOT_HAVE_DRM_H;XML_STATIC;COMPILED_FROM_DSP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <BrowseInformation>true</BrowseInformation>
@@ -206,8 +206,8 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <OmitFramePointers>true</OmitFramePointers>
       <WholeProgramOptimization>true</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>../../../../include;../../../../src/mesa;../../../../src/glsl;../../../../src/mapi;../../../../src/mesa/main;../../../../src/mesa/shader;../../../../src/mesa/shader/slang;../../../../../include;../../../../src/mesa/drivers/dri/common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NDEBUG;WIN32;_DLL;SWRAST_DRI_EXPORTS;_GDI32_;BUILD_GL32;WIN32_THREADS;MESA_MINWARN;_CRT_SECURE_NO_DEPRECATE;INSERVER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../../../../include;../../../../src/mesa;../../../../src/glsl;../../../../src/mapi;../../../../src/mesa/main;../../../../src/mesa/shader;../../../../src/mesa/shader/slang;../../../../../include;../../../../src/mesa/drivers/dri/common;../../../../../expat/lib;../../../../..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;WIN32;_DLL;SWRAST_DRI_EXPORTS;_GDI32_;BUILD_GL32;WIN32_THREADS;MESA_MINWARN;_CRT_SECURE_NO_DEPRECATE;INSERVER;__NOT_HAVE_DRM_H;XML_STATIC;COMPILED_FROM_DSP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>
       </ExceptionHandling>
@@ -237,9 +237,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\expat\lib\xmlparse.c" />
+    <ClCompile Include="..\..\..\..\..\expat\lib\xmlrole.c" />
+    <ClCompile Include="..\..\..\..\..\expat\lib\xmltok.c" />
     <ClCompile Include="..\..\..\..\src\mesa\drivers\common\driverfuncs.c" />
     <ClCompile Include="..\..\..\..\src\mesa\drivers\common\meta.c" />
-    <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\common\drisw_util.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\common\dri_util.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\common\xmlconfig.c" />
     <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\swrast\swrast.c" />
     <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\common\utils.c" />
     <ClCompile Include="..\..\..\..\src\mesa\swrast\s_aaline.c" />
