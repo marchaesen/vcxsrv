@@ -190,8 +190,10 @@ def generate(env):
                 pass
             env.MergeFlags(cppflags)
 
-            cxxflags = env.backtick('llvm-config --cxxflags').rstrip()
-            env.Append(LLVM_CXXFLAGS = cxxflags)
+            # Match llvm --fno-rtti flag
+            cxxflags = env.backtick('llvm-config --cxxflags').split()
+            if '-fno-rtti' in cxxflags:
+                env.Append(CXXFLAGS = ['-fno-rtti'])
 
             components = ['engine', 'bitwriter', 'x86asmprinter']
 

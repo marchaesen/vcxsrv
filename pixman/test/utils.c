@@ -641,6 +641,32 @@ draw_checkerboard (pixman_image_t *image,
     }
 }
 
+static uint32_t
+call_test_function (uint32_t    (*test_function)(int testnum, int verbose),
+		    int		testnum,
+		    int		verbose)
+{
+    uint32_t retval;
+
+#if defined (__GNUC__) && (defined (__i386) || defined (__i386__))
+    __asm__ (
+	/* Deliberately avoid aligning the stack to 16 bytes */
+	"pushl	%1\n\t"
+	"pushl	%2\n\t"
+	"call	*%3\n\t"
+	"addl	$8, %%esp\n\t"
+	: "=a" (retval)
+	: "r" (verbose),
+	  "r" (testnum),
+	  "r" (test_function)
+	: "edx", "ecx"); /* caller save registers */
+#else
+    retval = test_function (testnum, verbose);
+#endif
+
+    return retval;
+}
+
 /*
  * A function, which can be used as a core part of the test programs,
  * intended to detect various problems with the help of fuzzing input
@@ -710,7 +736,9 @@ fuzzer_test_main (const char *test_name,
     else if (argc >= 2)
     {
 	n2 = atoi (argv[1]);
-	checksum = test_function (n2, 1);
+
+	checksum = call_test_function (test_function, n2, 1);
+
 	printf ("%d: checksum=%08X\n", n2, checksum);
 	return 0;
     }
@@ -726,7 +754,7 @@ fuzzer_test_main (const char *test_name,
 #endif
     for (i = n1; i <= n2; i++)
     {
-	uint32_t crc = test_function (i, 0);
+	uint32_t crc = call_test_function (test_function, i, 0);
 	if (verbose)
 	    printf ("%d: %08X\n", i, crc);
 	checksum += crc;
