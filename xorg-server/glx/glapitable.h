@@ -749,8 +749,8 @@ struct _glapi_table
    void (GLAPIENTRYP ProvokingVertex)(GLenum mode); /* 705 */
    void (GLAPIENTRYP GetMultisamplefv)(GLenum pname, GLuint index, GLfloat * val); /* 706 */
    void (GLAPIENTRYP SampleMaski)(GLuint index, GLbitfield mask); /* 707 */
-   void (GLAPIENTRYP TexImage2DMultisample)(GLenum target, GLsizei samples, GLint internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations); /* 708 */
-   void (GLAPIENTRYP TexImage3DMultisample)(GLenum target, GLsizei samples, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLboolean fixedsamplelocations); /* 709 */
+   void (GLAPIENTRYP TexImage2DMultisample)(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations); /* 708 */
+   void (GLAPIENTRYP TexImage3DMultisample)(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLboolean fixedsamplelocations); /* 709 */
    void (GLAPIENTRYP BlendEquationSeparateiARB)(GLuint buf, GLenum modeRGB, GLenum modeA); /* 710 */
    void (GLAPIENTRYP BlendEquationiARB)(GLuint buf, GLenum mode); /* 711 */
    void (GLAPIENTRYP BlendFuncSeparateiARB)(GLuint buf, GLenum srcRGB, GLenum dstRGB, GLenum srcA, GLenum dstA); /* 712 */

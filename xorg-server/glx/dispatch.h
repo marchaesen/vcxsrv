@@ -9564,25 +9564,25 @@ static INLINE void SET_SampleMaski(struct _glapi_table *disp, void (GLAPIENTRYP 
    SET_by_offset(disp, _gloffset_SampleMaski, fn);
 }
 
-typedef void (GLAPIENTRYP _glptr_TexImage2DMultisample)(GLenum, GLsizei, GLint, GLsizei, GLsizei, GLboolean);
+typedef void (GLAPIENTRYP _glptr_TexImage2DMultisample)(GLenum, GLsizei, GLenum, GLsizei, GLsizei, GLboolean);
 #define CALL_TexImage2DMultisample(disp, parameters) \
     (* GET_TexImage2DMultisample(disp)) parameters
 static INLINE _glptr_TexImage2DMultisample GET_TexImage2DMultisample(struct _glapi_table *disp) {
    return (_glptr_TexImage2DMultisample) (GET_by_offset(disp, _gloffset_TexImage2DMultisample));
 }
 
-static INLINE void SET_TexImage2DMultisample(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLsizei, GLint, GLsizei, GLsizei, GLboolean)) {
+static INLINE void SET_TexImage2DMultisample(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLsizei, GLenum, GLsizei, GLsizei, GLboolean)) {
    SET_by_offset(disp, _gloffset_TexImage2DMultisample, fn);
 }
 
-typedef void (GLAPIENTRYP _glptr_TexImage3DMultisample)(GLenum, GLsizei, GLint, GLsizei, GLsizei, GLsizei, GLboolean);
+typedef void (GLAPIENTRYP _glptr_TexImage3DMultisample)(GLenum, GLsizei, GLenum, GLsizei, GLsizei, GLsizei, GLboolean);
 #define CALL_TexImage3DMultisample(disp, parameters) \
     (* GET_TexImage3DMultisample(disp)) parameters
 static INLINE _glptr_TexImage3DMultisample GET_TexImage3DMultisample(struct _glapi_table *disp) {
    return (_glptr_TexImage3DMultisample) (GET_by_offset(disp, _gloffset_TexImage3DMultisample));
 }
 
-static INLINE void SET_TexImage3DMultisample(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLsizei, GLint, GLsizei, GLsizei, GLsizei, GLboolean)) {
+static INLINE void SET_TexImage3DMultisample(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLsizei, GLenum, GLsizei, GLsizei, GLsizei, GLboolean)) {
    SET_by_offset(disp, _gloffset_TexImage3DMultisample, fn);
 }
 

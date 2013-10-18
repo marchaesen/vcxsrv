@@ -47,17 +47,17 @@ typedef struct xcb_shape_kind_iterator_t {
 } xcb_shape_kind_iterator_t;
 
 typedef enum xcb_shape_so_t {
-    XCB_SHAPE_SO_SET,
-    XCB_SHAPE_SO_UNION,
-    XCB_SHAPE_SO_INTERSECT,
-    XCB_SHAPE_SO_SUBTRACT,
-    XCB_SHAPE_SO_INVERT
+    XCB_SHAPE_SO_SET = 0,
+    XCB_SHAPE_SO_UNION = 1,
+    XCB_SHAPE_SO_INTERSECT = 2,
+    XCB_SHAPE_SO_SUBTRACT = 3,
+    XCB_SHAPE_SO_INVERT = 4
 } xcb_shape_so_t;
 
 typedef enum xcb_shape_sk_t {
-    XCB_SHAPE_SK_BOUNDING,
-    XCB_SHAPE_SK_CLIP,
-    XCB_SHAPE_SK_INPUT
+    XCB_SHAPE_SK_BOUNDING = 0,
+    XCB_SHAPE_SK_CLIP = 1,
+    XCB_SHAPE_SK_INPUT = 2
 } xcb_shape_sk_t;
 
 /** Opcode for xcb_shape_notify. */

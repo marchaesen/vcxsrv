@@ -28,7 +28,7 @@ from lxml import etree
 # Used in converting lxml Elements into text.
 #   str - string to convert
 def noneStr(str):
-    if (str!=None):
+    if (str):
         return str
     else:
         return ""
