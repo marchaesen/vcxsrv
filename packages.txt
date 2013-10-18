@@ -4,6 +4,7 @@ compositeproto-0.4.2
 damageproto-1.2.1
 encodings-1.0.4
 evieext-1.0.2
+expat-2.1.0
 fixesproto-5.0
 font-adobe-100dpi-1.0.3
 font-adobe-75dpi-1.0.3
