@@ -392,9 +392,7 @@ ScreenSaverFreeSuspend(pointer value, XID id)
             DeviceIntPtr dev;
             UpdateCurrentTimeIf();
             nt_list_for_each_entry(dev, inputInfo.devices, next)
-                lastDeviceEventTime[dev->id] = currentTime;
-            lastDeviceEventTime[XIAllDevices] = currentTime;
-            lastDeviceEventTime[XIAllMasterDevices] = currentTime;
+                NoticeTime(dev, currentTime);
             SetScreenSaverTimer();
         }
     }
@@ -681,7 +679,7 @@ ProcScreenSaverQueryInfo(ClientPtr client)
     pPriv = GetScreenPrivate(pDraw->pScreen);
 
     UpdateCurrentTime();
-    lastInput = GetTimeInMillis() - lastDeviceEventTime[XIAllDevices].milliseconds;
+    lastInput = GetTimeInMillis() - LastEventTime(XIAllDevices).milliseconds;
 
     rep = (xScreenSaverQueryInfoReply) {
         .type = X_Reply,

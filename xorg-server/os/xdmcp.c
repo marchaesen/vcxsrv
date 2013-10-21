@@ -1391,7 +1391,7 @@ recv_alive_msg(unsigned length)
         if (SessionRunning && AliveSessionID == SessionID) {
             /* backoff dormancy period */
             state = XDM_RUN_SESSION;
-            if ((GetTimeInMillis() - lastDeviceEventTime[XIAllDevices].milliseconds) >
+            if ((GetTimeInMillis() - LastEventTime(XIAllDevices).milliseconds) >
                 keepaliveDormancy * 1000) {
                 keepaliveDormancy <<= 1;
                 if (keepaliveDormancy > XDM_MAX_DORMANCY)

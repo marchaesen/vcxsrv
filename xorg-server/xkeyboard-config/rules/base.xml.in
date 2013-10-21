@@ -2528,10 +2528,11 @@
         </variant>
         <variant>
           <configItem>
-            <name>uig</name>
+            <name>ug</name>
+            <_shortDescription>ug</_shortDescription>
             <_description>Uyghur</_description>
             <languageList>
-              <iso639Id>uig</iso639Id>
+              <iso639Id>ug</iso639Id>
             </languageList>
           </configItem>
         </variant>
@@ -4411,7 +4412,7 @@
         <variant>
           <configItem>
             <name>rue</name>
-            <_description>Pannonian Rusyn (homophonic)</_description>
+            <_description>Pannonian Rusyn</_description>
             <languageList>
               <iso639Id>rue</iso639Id>
             </languageList>

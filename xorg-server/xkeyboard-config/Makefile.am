@@ -12,7 +12,7 @@ EXTRA_DIST=config.rpath COPYING README \
 
 DISTCLEANFILES=intltool-extract intltool-merge intltool-update
 
-# ACLOCAL_AMFLAGS = -I m4
+ACLOCAL_AMFLAGS = -I m4
 
 sync-po:
 	rsync -Lrtvz translationproject.org::tp/latest/xkeyboard-config/  po

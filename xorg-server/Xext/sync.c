@@ -699,6 +699,14 @@ SyncAwaitTriggerFired(SyncTrigger * pTrigger)
     FreeResource(pAwaitUnion->header.delete_id, RT_NONE);
 }
 
+static CARD64
+SyncUpdateCounter(SyncCounter *pCounter, CARD64 newval)
+{
+    CARD64 oldval = pCounter->value;
+    pCounter->value = newval;
+    return oldval;
+}
+
 /*  This function should always be used to change a counter's value so that
  *  any triggers depending on the counter will be checked.
  */
@@ -708,8 +716,7 @@ SyncChangeCounter(SyncCounter * pCounter, CARD64 newval)
     SyncTriggerList *ptl, *pnext;
     CARD64 oldval;
 
-    oldval = pCounter->value;
-    pCounter->value = newval;
+    oldval = SyncUpdateCounter(pCounter, newval);
 
     /* run through triggers to see if any become true */
     for (ptl = pCounter->sync.pTriglist; ptl; ptl = pnext) {
@@ -1019,6 +1026,11 @@ SyncComputeBracketValues(SyncCounter * pCounter)
                 psci->bracket_greater = pTrigger->test_value;
                 pnewgtval = &psci->bracket_greater;
             }
+            else if (XSyncValueGreaterThan(pCounter->value, pTrigger->test_value) &&
+                     XSyncValueGreaterThan(pTrigger->test_value, psci->bracket_less)) {
+                    psci->bracket_less = pTrigger->test_value;
+                    pnewltval = &psci->bracket_less;
+            }
         }
         else if (pTrigger->test_type == XSyncNegativeComparison &&
                  ct != XSyncCounterNeverDecreases) {
@@ -1028,52 +1040,53 @@ SyncComputeBracketValues(SyncCounter * pCounter)
                 psci->bracket_less = pTrigger->test_value;
                 pnewltval = &psci->bracket_less;
             }
+            else if (XSyncValueLessThan(pCounter->value, pTrigger->test_value) &&
+                     XSyncValueLessThan(pTrigger->test_value, psci->bracket_greater)) {
+                    psci->bracket_greater = pTrigger->test_value;
+                    pnewgtval = &psci->bracket_greater;
+            }
         }
         else if (pTrigger->test_type == XSyncNegativeTransition &&
                  ct != XSyncCounterNeverIncreases) {
-            if (XSyncValueGreaterThan(pCounter->value, pTrigger->test_value) &&
-                XSyncValueGreaterThan(pTrigger->test_value, psci->bracket_less))
-            {
-                psci->bracket_less = pTrigger->test_value;
-                pnewltval = &psci->bracket_less;
+            if (XSyncValueGreaterOrEqual(pCounter->value, pTrigger->test_value) &&
+                XSyncValueGreaterThan(pTrigger->test_value, psci->bracket_less)) {
+                    /*
+                     * If the value is exactly equal to our threshold, we want one
+                     * more event in the negative direction to ensure we pick up
+                     * when the value is less than this threshold.
+                     */
+                    psci->bracket_less = pTrigger->test_value;
+                    pnewltval = &psci->bracket_less;
             }
-            else if (XSyncValueEqual(pCounter->value, pTrigger->test_value) &&
-                     XSyncValueGreaterThan(pTrigger->test_value,
-                                           psci->bracket_less)) {
-                /*
-                 * The value is exactly equal to our threshold.  We want one
-                 * more event in the negative direction to ensure we pick up
-                 * when the value is less than this threshold.
-                 */
-                psci->bracket_less = pTrigger->test_value;
-                pnewltval = &psci->bracket_less;
+            else if (XSyncValueLessThan(pCounter->value, pTrigger->test_value) &&
+                     XSyncValueLessThan(pTrigger->test_value, psci->bracket_greater)) {
+                    psci->bracket_greater = pTrigger->test_value;
+                    pnewgtval = &psci->bracket_greater;
             }
         }
         else if (pTrigger->test_type == XSyncPositiveTransition &&
                  ct != XSyncCounterNeverDecreases) {
-            if (XSyncValueLessThan(pCounter->value, pTrigger->test_value) &&
-                XSyncValueLessThan(pTrigger->test_value, psci->bracket_greater))
-            {
-                psci->bracket_greater = pTrigger->test_value;
-                pnewgtval = &psci->bracket_greater;
+            if (XSyncValueLessOrEqual(pCounter->value, pTrigger->test_value) &&
+                XSyncValueLessThan(pTrigger->test_value, psci->bracket_greater)) {
+                    /*
+                     * If the value is exactly equal to our threshold, we
+                     * want one more event in the positive direction to
+                     * ensure we pick up when the value *exceeds* this
+                     * threshold.
+                     */
+                    psci->bracket_greater = pTrigger->test_value;
+                    pnewgtval = &psci->bracket_greater;
             }
-            else if (XSyncValueEqual(pCounter->value, pTrigger->test_value) &&
-                     XSyncValueLessThan(pTrigger->test_value,
-                                        psci->bracket_greater)) {
-                /*
-                 * The value is exactly equal to our threshold.  We want one
-                 * more event in the positive direction to ensure we pick up
-                 * when the value *exceeds* this threshold.
-                 */
-                psci->bracket_greater = pTrigger->test_value;
-                pnewgtval = &psci->bracket_greater;
+            else if (XSyncValueGreaterThan(pCounter->value, pTrigger->test_value) &&
+                     XSyncValueGreaterThan(pTrigger->test_value, psci->bracket_less)) {
+                    psci->bracket_less = pTrigger->test_value;
+                    pnewltval = &psci->bracket_less;
             }
         }
     }                           /* end for each trigger */
 
-    if (pnewgtval || pnewltval) {
-        (*psci->BracketValues) ((pointer) pCounter, pnewltval, pnewgtval);
-    }
+    (*psci->BracketValues) ((pointer) pCounter, pnewltval, pnewgtval);
+
 }
 
 /*
@@ -2619,7 +2632,7 @@ IdleTimeQueryValue(pointer pCounter, CARD64 * pValue_return)
     }
     else
         deviceid = XIAllDevices;
-    idle = GetTimeInMillis() - lastDeviceEventTime[deviceid].milliseconds;
+    idle = GetTimeInMillis() - LastEventTime(deviceid).milliseconds;
     XSyncIntsToValue(pValue_return, idle, 0);
 }
 
@@ -2638,7 +2651,7 @@ IdleTimeBlockHandler(pointer pCounter, struct timeval **wt, pointer LastSelectMa
         return;
 
     old_idle = counter->value;
-    IdleTimeQueryValue(NULL, &idle);
+    IdleTimeQueryValue(counter, &idle);
     counter->value = idle;      /* push, so CheckTrigger works */
 
     if (less && XSyncValueLessOrEqual(idle, *less)) {
@@ -2700,6 +2713,17 @@ IdleTimeBlockHandler(pointer pCounter, struct timeval **wt, pointer LastSelectMa
 }
 
 static void
+IdleTimeCheckBrackets(SyncCounter *counter, XSyncValue idle, XSyncValue *less, XSyncValue *greater)
+{
+    if ((greater && XSyncValueGreaterOrEqual(idle, *greater)) ||
+        (less && XSyncValueLessOrEqual(idle, *less))) {
+        SyncChangeCounter(counter, idle);
+    }
+    else
+        SyncUpdateCounter(counter, idle);
+}
+
+static void
 IdleTimeWakeupHandler(pointer pCounter, int rc, pointer LastSelectMask)
 {
     SyncCounter *counter = pCounter;
@@ -2713,10 +2737,24 @@ IdleTimeWakeupHandler(pointer pCounter, int rc, pointer LastSelectMask)
 
     IdleTimeQueryValue(pCounter, &idle);
 
-    if ((greater && XSyncValueGreaterOrEqual(idle, *greater)) ||
-        (less && XSyncValueLessOrEqual(idle, *less))) {
-        SyncChangeCounter(counter, idle);
+    /*
+      There is no guarantee for the WakeupHandler to be called within a specific
+      timeframe. Idletime may go to 0, but by the time we get here, it may be
+      non-zero and alarms for a pos. transition on 0 won't get triggered.
+      https://bugs.freedesktop.org/show_bug.cgi?id=70476
+      */
+    if (LastEventTimeWasReset(priv->deviceid)) {
+        LastEventTimeToggleResetFlag(priv->deviceid, FALSE);
+        if (!XSyncValueIsZero(idle)) {
+            XSyncValue zero;
+            XSyncIntsToValue(&zero, 0, 0);
+            IdleTimeCheckBrackets(counter, zero, less, greater);
+            less = priv->value_less;
+            greater = priv->value_greater;
+        }
     }
+
+    IdleTimeCheckBrackets(counter, idle, less, greater);
 }
 
 static void
@@ -2734,6 +2772,9 @@ IdleTimeBracketValues(pointer pCounter, CARD64 * pbracket_less,
                                      IdleTimeWakeupHandler, pCounter);
     }
     else if (!registered && (pbracket_less || pbracket_greater)) {
+        /* Reset flag must be zero so we don't force a idle timer reset on
+           the first wakeup */
+        LastEventTimeToggleResetAll(FALSE);
         RegisterBlockAndWakeupHandlers(IdleTimeBlockHandler,
                                        IdleTimeWakeupHandler, pCounter);
     }
