@@ -233,10 +233,13 @@ exaPrepareAccessReg_mixed(PixmapPtr pPixmap, int index, RegionPtr pReg)
                                                pPixmap->drawable.pScreen,
                                                pPixmap);
 
-            DamageRegister(&pPixmap->drawable, pExaPixmap->pDamage);
-            /* This ensures that pending damage reflects the current operation. */
-            /* This is used by exa to optimize migration. */
-            DamageSetReportAfterOp(pExaPixmap->pDamage, TRUE);
+            if (pExaPixmap->pDamage) {
+                DamageRegister(&pPixmap->drawable, pExaPixmap->pDamage);
+                /* This ensures that pending damage reflects the current
+                 * operation. This is used by exa to optimize migration.
+                 */
+                DamageSetReportAfterOp(pExaPixmap->pDamage, TRUE);
+            }
 
             if (has_gpu_copy) {
                 exaPixmapDirty(pPixmap, 0, 0, pPixmap->drawable.width,

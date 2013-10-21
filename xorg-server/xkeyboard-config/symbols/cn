@@ -149,32 +149,21 @@ xkb_symbols "tib_asciinum" {
     key <AE10> { [ 0, 0x1000f20, 0x1000f08, 0x1000f12 ] }; # 0 ༠ ༈ ༒
 };
 
-// Uyghur Standard Keyboard map for XKB/X.org
+// Uyghur Standard Keyboard Map for XKB/X.Org
 //
-// xkb version originally created by
-// Abdusalam Abdurahman <Abdusalam.Abdurahman@gmail.com>
-// slightly corrected according to feedback and submitted by
+// XKB version in collaboration by Muhemmed Abdullah <muhammad@yulghun.com>,
+// Abdussalam Abdurrahman <abdusalam.abdurahman@gmail.com>, and
 // Ekrem Tomur <ekrem.tomur@gmail.com>
 
-partial alphanumeric_keys 
-xkb_symbols "uig" {
+partial alphanumeric_keys
+xkb_symbols "ug" {
+    include "us(basic)"
 
     name[Group1]= "Uyghur";
 
-    key <TLDE> { [ grave,            asciitilde           ] };
-
-    key <AE01> { [ 1,                exclam               ] };  // 1 !
-    key <AE02> { [ 2,                at                   ] };  // 2 @
-    key <AE03> { [ 3,                numbersign           ] };  // 3 # 
-    key <AE04> { [ 4,                dollar               ] };  // 4 $
-    key <AE05> { [ 5,                percent              ] };  // 5 %
-    key <AE06> { [ 6,                asciicircum          ] };  // 6 ^
-    key <AE07> { [ 7,                ampersand            ] };  // 7 &
-    key <AE08> { [ 8,                asterisk             ] };  // 8 *
     key <AE09> { [ 9,                parenright           ] };  // 9 )
     key <AE10> { [ 0,                parenleft            ] };  // 0 (
     key <AE11> { [ minus,            0x1002014            ] };  // - —
-    key <AE12> { [ equal,            plus                 ] };  // = +
 
     key <AD01> { [ 0x1000686,        VoidSymbol           ] };  // چ
     key <AD02> { [ 0x10006cb,        VoidSymbol           ] };  // ۋ
@@ -199,7 +188,6 @@ xkb_symbols "uig" {
     key <AC08> { [ 0x1000643,        0x10006c6            ] };  // ك ۆ
     key <AC09> { [ 0x1000644,        VoidSymbol           ] };  // ل
     key <AC10> { [ Arabic_semicolon, colon                ] };  // ؛ :
-    key <AC11> { [ apostrophe,	     quotedbl             ] };  // ' "
 
     key <AB01> { [ 0x1000632,        VoidSymbol           ] };  // ز
     key <AB02> { [ 0x1000634,        VoidSymbol           ] };  // ش
@@ -211,6 +199,4 @@ xkb_symbols "uig" {
     key <AB08> { [ Arabic_comma,     0x100203a            ] };  // ، ›
     key <AB09> { [ period,           0x1002039            ] };  // . ‹
     key <AB10> { [ 0x1000626,        Arabic_question_mark ] };  // ئ ؟
-
-    key <BKSL> { [ backslash,        bar                  ] };  // \ |
 };

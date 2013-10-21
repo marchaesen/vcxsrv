@@ -315,8 +315,19 @@ extern _X_EXPORT WindowPtr
 GetSpriteWindow(DeviceIntPtr pDev);
 
 extern _X_EXPORT void
+NoticeTime(const DeviceIntPtr dev,
+           TimeStamp time);
+extern _X_EXPORT void
 NoticeEventTime(InternalEvent *ev,
                 DeviceIntPtr dev);
+extern _X_EXPORT TimeStamp
+LastEventTime(int deviceid);
+extern _X_EXPORT Bool
+LastEventTimeWasReset(int deviceid);
+extern _X_EXPORT void
+LastEventTimeToggleResetFlag(int deviceid, Bool state);
+extern _X_EXPORT void
+LastEventTimeToggleResetAll(Bool state);
 
 extern void
 EnqueueEvent(InternalEvent * /* ev */ ,

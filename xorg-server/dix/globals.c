@@ -122,7 +122,6 @@ Bool party_like_its_1989 = FALSE;
 Bool whiteRoot = FALSE;
 
 TimeStamp currentTime;
-TimeStamp lastDeviceEventTime[MAXDEVICES];
 
 int defaultColorVisualClass = -1;
 int monitorResolution = 0;

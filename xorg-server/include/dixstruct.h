@@ -144,7 +144,6 @@ typedef struct _WorkQueue {
 } WorkQueueRec;
 
 extern _X_EXPORT TimeStamp currentTime;
-extern _X_EXPORT TimeStamp lastDeviceEventTime[MAXDEVICES];
 
 extern _X_EXPORT int
 CompareTimeStamps(TimeStamp /*a */ ,
