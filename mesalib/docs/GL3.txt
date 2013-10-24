@@ -64,8 +64,8 @@ Signed normalized textures (GL_EXT_texture_snorm)     DONE (i965, r300, r600)
 GL 3.2:
 
 Core/compatibility profiles                           DONE
-GLSL 1.50                                             in progress
-Geometry shaders (GL_ARB_geometry_shader4)            partially done
+GLSL 1.50                                             DONE (i965)
+Geometry shaders                                      DONE (i965)
 BGRA vertex order (GL_ARB_vertex_array_bgra)          DONE (i965, r300, r600, swrast)
 Base vertex offset(GL_ARB_draw_elements_base_vertex)  DONE (i965, r300, r600, swrast)
 Frag shader coord (GL_ARB_fragment_coord_conventions) DONE (i965, r300, r600, swrast)
@@ -79,7 +79,7 @@ GLX_ARB_create_context_profile                        DONE
 
 GL 3.3:
 
-GLSL 3.30                                             new features in this version pretty much done
+GLSL 3.30                                             DONE (i965)
 GL_ARB_blend_func_extended                            DONE (i965, r600, softpipe)
 GL_ARB_explicit_attrib_location                       DONE (i915, i965, r300, r600, swrast)
 GL_ARB_occlusion_query2                               DONE (i965, r300, r600, swrast)
@@ -157,7 +157,7 @@ ARB_robust_buffer_access_behavior                    not started
 ARB_shader_image_size                                not started
 ARB_shader_storage_buffer_object                     not started
 ARB_stencil_texturing                                not started
-ARB_texture_buffer_range                             DONE (nv50, nvc0)
+ARB_texture_buffer_range                             DONE (nv50, nvc0, i965)
 ARB_texture_query_levels                             DONE (i965)
 ARB_texture_storage_multisample                      DONE (i965)
 ARB_texture_view                                     not started
@@ -173,7 +173,7 @@ ARB_clear_texture                                    not started
 ARB_enhanced_layouts                                 not started
 ARB_multi_bind                                       not started
 ARB_query_buffer_object                              not started
-ARB_texture_mirror_clamp_to_edge                     not started
+ARB_texture_mirror_clamp_to_edge                     DONE (i965, nv30, nv50, nvc0, r300, r600, radeonsi, swrast)
 ARB_texture_stencil8                                 not started
 ARB_vertex_type_10f_11f_11f_rev                      not started
 

@@ -210,6 +210,34 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
       this->mem_ctx = ralloc_parent(ir);
 
    switch (ir->operation) {
+   case ir_unop_abs:
+      if (op_expr[0] == NULL)
+	 break;
+
+      switch (op_expr[0]->operation) {
+      case ir_unop_abs:
+      case ir_unop_neg:
+         this->progress = true;
+         temp = new(mem_ctx) ir_expression(ir_unop_abs,
+                                           ir->type,
+                                           op_expr[0]->operands[0],
+                                           NULL);
+         return swizzle_if_required(ir, temp);
+      default:
+         break;
+      }
+      break;
+
+   case ir_unop_neg:
+      if (op_expr[0] == NULL)
+	 break;
+
+      if (op_expr[0]->operation == ir_unop_neg) {
+         this->progress = true;
+         return swizzle_if_required(ir, op_expr[0]->operands[0]);
+      }
+      break;
+
    case ir_unop_logic_not: {
       enum ir_expression_operation new_op = ir_unop_logic_not;
 
@@ -257,11 +285,9 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
        * folding.
        */
       if (op_const[0] && !op_const[1])
-	 reassociate_constant(ir, 0, op_const[0],
-			      ir->operands[1]->as_expression());
+	 reassociate_constant(ir, 0, op_const[0], op_expr[1]);
       if (op_const[1] && !op_const[0])
-	 reassociate_constant(ir, 1, op_const[1],
-			      ir->operands[0]->as_expression());
+	 reassociate_constant(ir, 1, op_const[1], op_expr[0]);
       break;
 
    case ir_binop_sub:
@@ -315,11 +341,9 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
        * constant folding.
        */
       if (op_const[0] && !op_const[1])
-	 reassociate_constant(ir, 0, op_const[0],
-			      ir->operands[1]->as_expression());
+	 reassociate_constant(ir, 0, op_const[0], op_expr[1]);
       if (op_const[1] && !op_const[0])
-	 reassociate_constant(ir, 1, op_const[1],
-			      ir->operands[0]->as_expression());
+	 reassociate_constant(ir, 1, op_const[1], op_expr[0]);
 
       break;
 

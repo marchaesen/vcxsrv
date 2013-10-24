@@ -366,35 +366,38 @@ parse_program_resource_name(const GLchar *name,
 
 
 void
-link_invalidate_variable_locations(gl_shader *sh, int input_base,
-                                   int output_base)
+link_invalidate_variable_locations(exec_list *ir)
 {
-   foreach_list(node, sh->ir) {
+   foreach_list(node, ir) {
       ir_variable *const var = ((ir_instruction *) node)->as_variable();
 
       if (var == NULL)
          continue;
 
-      int base;
-      switch (var->mode) {
-      case ir_var_shader_in:
-         base = input_base;
-         break;
-      case ir_var_shader_out:
-         base = output_base;
-         break;
-      default:
-         continue;
+      /* Only assign locations for variables that lack an explicit location.
+       * Explicit locations are set for all built-in variables, generic vertex
+       * shader inputs (via layout(location=...)), and generic fragment shader
+       * outputs (also via layout(location=...)).
+       */
+      if (!var->explicit_location) {
+         var->location = -1;
+         var->location_frac = 0;
       }
 
-      /* Only assign locations for generic attributes / varyings / etc.
+      /* ir_variable::is_unmatched_generic_inout is used by the linker while
+       * connecting outputs from one stage to inputs of the next stage.
+       *
+       * There are two implicit assumptions here.  First, we assume that any
+       * built-in variable (i.e., non-generic in or out) will have
+       * explicit_location set.  Second, we assume that any generic in or out
+       * will not have explicit_location set.
+       *
+       * This second assumption will only be valid until
+       * GL_ARB_separate_shader_objects is supported.  When that extension is
+       * implemented, this function will need some modifications.
        */
-      if ((var->location >= base) && !var->explicit_location)
-         var->location = -1;
-
-      if ((var->location == -1) && !var->explicit_location) {
+      if (!var->explicit_location) {
          var->is_unmatched_generic_inout = 1;
-         var->location_frac = 0;
       } else {
          var->is_unmatched_generic_inout = 0;
       }
@@ -2057,14 +2060,10 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       }
    }
 
-   /* Previous to GLSL version 1.30, different compilation units could mix and
-    * match shading language versions.  With GLSL 1.30 and later, the versions
-    * of all shaders must match.
-    *
-    * GLSL ES has never allowed mixing of shading language versions.
+   /* In desktop GLSL, different shader versions may be linked together.  In
+    * GLSL ES, all shader versions must be the same.
     */
-   if ((is_es_prog || max_version >= 130)
-       && min_version != max_version) {
+   if (is_es_prog && min_version != max_version) {
       linker_error(prog, "all shaders must use same shading "
 		   "language version\n");
       goto done;
@@ -2221,18 +2220,15 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
    /* Mark all generic shader inputs and outputs as unpaired. */
    if (prog->_LinkedShaders[MESA_SHADER_VERTEX] != NULL) {
       link_invalidate_variable_locations(
-            prog->_LinkedShaders[MESA_SHADER_VERTEX],
-            VERT_ATTRIB_GENERIC0, VARYING_SLOT_VAR0);
+            prog->_LinkedShaders[MESA_SHADER_VERTEX]->ir);
    }
    if (prog->_LinkedShaders[MESA_SHADER_GEOMETRY] != NULL) {
       link_invalidate_variable_locations(
-            prog->_LinkedShaders[MESA_SHADER_GEOMETRY],
-            VARYING_SLOT_VAR0, VARYING_SLOT_VAR0);
+            prog->_LinkedShaders[MESA_SHADER_GEOMETRY]->ir);
    }
    if (prog->_LinkedShaders[MESA_SHADER_FRAGMENT] != NULL) {
       link_invalidate_variable_locations(
-            prog->_LinkedShaders[MESA_SHADER_FRAGMENT],
-            VARYING_SLOT_VAR0, FRAG_RESULT_DATA0);
+            prog->_LinkedShaders[MESA_SHADER_FRAGMENT]->ir);
    }
 
    /* FINISHME: The value of the max_attribute_index parameter is
