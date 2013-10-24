@@ -2742,6 +2742,7 @@ typedef unsigned int GLhandleARB;
         <enum value="0x1504" name="GL_AND_INVERTED"/>
         <enum value="0x1505" name="GL_NOOP"/>
         <enum value="0x1506" name="GL_XOR"/>
+        <enum value="0x1506" name="GL_XOR_NV"/>
         <enum value="0x1507" name="GL_OR"/>
         <enum value="0x1508" name="GL_NOR"/>
         <enum value="0x1509" name="GL_EQUIV"/>
@@ -2775,8 +2776,11 @@ typedef unsigned int GLhandleARB;
         <enum value="0x1902" name="GL_DEPTH_COMPONENT"/>
         <enum value="0x1903" name="GL_RED"/>
         <enum value="0x1903" name="GL_RED_EXT"/>
+        <enum value="0x1903" name="GL_RED_NV"/>
         <enum value="0x1904" name="GL_GREEN"/>
+        <enum value="0x1904" name="GL_GREEN_NV"/>
         <enum value="0x1905" name="GL_BLUE"/>
+        <enum value="0x1905" name="GL_BLUE_NV"/>
         <enum value="0x1906" name="GL_ALPHA"/>
         <enum value="0x1907" name="GL_RGB"/>
         <enum value="0x1908" name="GL_RGBA"/>
@@ -38113,12 +38117,22 @@ typedef unsigned int GLhandleARB;
                 <command name="glIsImageHandleResidentNV"/>
             </require>
         </extension>
-        <extension name="GL_NV_blend_equation_advanced" supported="gl">
+        <extension name="GL_NV_blend_equation_advanced" supported="gl|gles2">
+            <require api="gles2" comment="Really only required for ES 2.0, not ES 3.0">
+                <enum name="GL_BLUE_NV"/>
+                <enum name="GL_GREEN_NV"/>
+                <enum name="GL_RED_NV"/>
+                <enum name="GL_XOR_NV"/>
+            </require>
+            <require api="gl" comment="GL has these enums in core">
+                <enum name="GL_BLUE"/>
+                <enum name="GL_GREEN"/>
+                <enum name="GL_RED"/>
+                <enum name="GL_XOR"/>
+            </require>
             <require>
-                <enum name="GL_BLEND_ADVANCED_COHERENT_NV"/>
                 <enum name="GL_BLEND_OVERLAP_NV"/>
                 <enum name="GL_BLEND_PREMULTIPLIED_SRC_NV"/>
-                <enum name="GL_BLUE"/>
                 <enum name="GL_COLORBURN_NV"/>
                 <enum name="GL_COLORDODGE_NV"/>
                 <enum name="GL_CONJOINT_NV"/>
@@ -38132,7 +38146,6 @@ typedef unsigned int GLhandleARB;
                 <enum name="GL_DST_OUT_NV"/>
                 <enum name="GL_DST_OVER_NV"/>
                 <enum name="GL_EXCLUSION_NV"/>
-                <enum name="GL_GREEN"/>
                 <enum name="GL_HARDLIGHT_NV"/>
                 <enum name="GL_HARDMIX_NV"/>
                 <enum name="GL_HSL_COLOR_NV"/>
@@ -38155,7 +38168,6 @@ typedef unsigned int GLhandleARB;
                 <enum name="GL_PLUS_CLAMPED_NV"/>
                 <enum name="GL_PLUS_DARKER_NV"/>
                 <enum name="GL_PLUS_NV"/>
-                <enum name="GL_RED"/>
                 <enum name="GL_SCREEN_NV"/>
                 <enum name="GL_SOFTLIGHT_NV"/>
                 <enum name="GL_SRC_ATOP_NV"/>
@@ -38165,14 +38177,14 @@ typedef unsigned int GLhandleARB;
                 <enum name="GL_SRC_OVER_NV"/>
                 <enum name="GL_UNCORRELATED_NV"/>
                 <enum name="GL_VIVIDLIGHT_NV"/>
-                <enum name="GL_XOR"/>
                 <enum name="GL_ZERO"/>
                 <command name="glBlendParameteriNV"/>
                 <command name="glBlendBarrierNV"/>
             </require>
         </extension>
-        <extension name="GL_NV_blend_equation_advanced_coherent" supported="gl">
-            <require comment="Identical to GL_NV_blend_equation_advanced, just different semantic behavior">
+        <extension name="GL_NV_blend_equation_advanced_coherent" supported="gl|gles2">
+            <require comment="Otherwise identical to GL_NV_blend_equation_advanced, just different semantic behavior">
+                <enum name="GL_BLEND_ADVANCED_COHERENT_NV"/>
             </require>
         </extension>
         <extension name="GL_NV_blend_square" supported="gl">

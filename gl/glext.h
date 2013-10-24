@@ -33,7 +33,7 @@ extern "C" {
 ** used to make the header, and the header can be found at
 **   http://www.opengl.org/registry/
 **
-** Khronos $Revision: 23422 $ on $Date: 2013-10-08 15:40:45 -0700 (Tue, 08 Oct 2013) $
+** Khronos $Revision: 23652 $ on $Date: 2013-10-23 01:18:54 -0700 (Wed, 23 Oct 2013) $
 */
 
 #if defined(_WIN32) && !defined(APIENTRY) && !defined(__CYGWIN__) && !defined(__SCITECH_SNAP__)
@@ -53,7 +53,7 @@ extern "C" {
 #define GLAPI extern
 #endif
 
-#define GL_GLEXT_VERSION 20131008
+#define GL_GLEXT_VERSION 20131023
 
 /* Generated C header for:
  * API: gl
@@ -8214,7 +8214,6 @@ GLAPI GLboolean APIENTRY glIsImageHandleResidentNV (GLuint64 handle);
 
 #ifndef GL_NV_blend_equation_advanced
 #define GL_NV_blend_equation_advanced 1
-#define GL_BLEND_ADVANCED_COHERENT_NV     0x9285
 #define GL_BLEND_OVERLAP_NV               0x9281
 #define GL_BLEND_PREMULTIPLIED_SRC_NV     0x9280
 #define GL_COLORBURN_NV                   0x929A
@@ -8270,6 +8269,7 @@ GLAPI void APIENTRY glBlendBarrierNV (void);
 
 #ifndef GL_NV_blend_equation_advanced_coherent
 #define GL_NV_blend_equation_advanced_coherent 1
+#define GL_BLEND_ADVANCED_COHERENT_NV     0x9285
 #endif /* GL_NV_blend_equation_advanced_coherent */
 
 #ifndef GL_NV_blend_square
