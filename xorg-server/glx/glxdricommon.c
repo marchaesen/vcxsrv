@@ -266,7 +266,7 @@ glxProbeDriver(const char *driverName,
         const __DRIextension **(*get_extensions)(void);
 
 #ifdef _MSC_VER
-        get_extensions = (const __DRIextension **(*get_extensions)(void))GetProcAddress(driver, get_extensions_name);
+        get_extensions = (const __DRIextension **(*)(void))GetProcAddress(driver, get_extensions_name);
 #else
         get_extensions = dlsym(driver, get_extensions_name);
 #endif
