@@ -148,7 +148,7 @@ AC_TYPE_PID_T
 # Checks for library functions.
 AC_FUNC_VPRINTF
 AC_FUNC_MMAP
-AC_CHECK_FUNCS([link mkstemp mkostemp _mktemp_s getopt getopt_long getprogname getexecname rand random lrand48 random_r rand_r regcomp regerror regexec regfree fstatvfs fstatfs lstat])
+AC_CHECK_FUNCS([link mkstemp mkostemp _mktemp_s mkdtemp getopt getopt_long getprogname getexecname rand random lrand48 random_r rand_r regcomp regerror regexec regfree fstatvfs fstatfs lstat])
 
 dnl AC_CHECK_FUNCS doesn't check for header files.
 dnl posix_fadvise() may be not available in older libc.

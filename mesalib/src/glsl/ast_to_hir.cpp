@@ -60,6 +60,10 @@
 static void
 detect_conflicting_assignments(struct _mesa_glsl_parse_state *state,
 			       exec_list *instructions);
+static void
+remove_per_vertex_blocks(exec_list *instructions,
+                         _mesa_glsl_parse_state *state, ir_variable_mode mode);
+
 
 void
 _mesa_ast_to_hir(exec_list *instructions, struct _mesa_glsl_parse_state *state)
@@ -114,6 +118,40 @@ _mesa_ast_to_hir(exec_list *instructions, struct _mesa_glsl_parse_state *state)
       var->remove();
       instructions->push_head(var);
    }
+
+   /* From section 7.1 (Built-In Language Variables) of the GLSL 4.10 spec:
+    *
+    *     If multiple shaders using members of a built-in block belonging to
+    *     the same interface are linked together in the same program, they
+    *     must all redeclare the built-in block in the same way, as described
+    *     in section 4.3.7 "Interface Blocks" for interface block matching, or
+    *     a link error will result.
+    *
+    * The phrase "using members of a built-in block" implies that if two
+    * shaders are linked together and one of them *does not use* any members
+    * of the built-in block, then that shader does not need to have a matching
+    * redeclaration of the built-in block.
+    *
+    * This appears to be a clarification to the behaviour established for
+    * gl_PerVertex by GLSL 1.50, therefore implement it regardless of GLSL
+    * version.
+    *
+    * The definition of "interface" in section 4.3.7 that applies here is as
+    * follows:
+    *
+    *     The boundary between adjacent programmable pipeline stages: This
+    *     spans all the outputs in all compilation units of the first stage
+    *     and all the inputs in all compilation units of the second stage.
+    *
+    * Therefore this rule applies to both inter- and intra-stage linking.
+    *
+    * The easiest way to implement this is to check whether the shader uses
+    * gl_PerVertex right after ast-to-ir conversion, and if it doesn't, simply
+    * remove all the relevant variable declaration from the IR, so that the
+    * linker won't see them and complain about mismatches.
+    */
+   remove_per_vertex_blocks(instructions, state, ir_var_shader_in);
+   remove_per_vertex_blocks(instructions, state, ir_var_shader_out);
 }
 
 
@@ -1961,6 +1999,45 @@ validate_binding_qualifier(struct _mesa_glsl_parse_state *state,
    return true;
 }
 
+
+static glsl_interp_qualifier
+interpret_interpolation_qualifier(const struct ast_type_qualifier *qual,
+                                  ir_variable_mode mode,
+                                  struct _mesa_glsl_parse_state *state,
+                                  YYLTYPE *loc)
+{
+   glsl_interp_qualifier interpolation;
+   if (qual->flags.q.flat)
+      interpolation = INTERP_QUALIFIER_FLAT;
+   else if (qual->flags.q.noperspective)
+      interpolation = INTERP_QUALIFIER_NOPERSPECTIVE;
+   else if (qual->flags.q.smooth)
+      interpolation = INTERP_QUALIFIER_SMOOTH;
+   else
+      interpolation = INTERP_QUALIFIER_NONE;
+
+   if (interpolation != INTERP_QUALIFIER_NONE) {
+      if (mode != ir_var_shader_in && mode != ir_var_shader_out) {
+         _mesa_glsl_error(loc, state,
+                          "interpolation qualifier `%s' can only be applied to "
+                          "shader inputs or outputs.",
+                          interpolation_string(interpolation));
+
+      }
+
+      if ((state->target == vertex_shader && mode == ir_var_shader_in) ||
+          (state->target == fragment_shader && mode == ir_var_shader_out)) {
+         _mesa_glsl_error(loc, state,
+                          "interpolation qualifier `%s' cannot be applied to "
+                          "vertex shader inputs or fragment shader outputs",
+                          interpolation_string(interpolation));
+      }
+   }
+
+   return interpolation;
+}
+
+
 static void
 apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
 				 ir_variable *var,
@@ -2095,34 +2172,9 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
       }
    }
 
-   if (qual->flags.q.flat)
-      var->interpolation = INTERP_QUALIFIER_FLAT;
-   else if (qual->flags.q.noperspective)
-      var->interpolation = INTERP_QUALIFIER_NOPERSPECTIVE;
-   else if (qual->flags.q.smooth)
-      var->interpolation = INTERP_QUALIFIER_SMOOTH;
-   else
-      var->interpolation = INTERP_QUALIFIER_NONE;
-
-   if (var->interpolation != INTERP_QUALIFIER_NONE) {
-      ir_variable_mode mode = (ir_variable_mode) var->mode;
-
-      if (mode != ir_var_shader_in && mode != ir_var_shader_out) {
-         _mesa_glsl_error(loc, state,
-                          "interpolation qualifier `%s' can only be applied to "
-                          "shader inputs or outputs.",
-                          var->interpolation_string());
-
-      }
-
-      if ((state->target == vertex_shader && mode == ir_var_shader_in) ||
-          (state->target == fragment_shader && mode == ir_var_shader_out)) {
-         _mesa_glsl_error(loc, state,
-                          "interpolation qualifier `%s' cannot be applied to "
-                          "vertex shader inputs or fragment shader outputs",
-                          var->interpolation_string());
-      }
-   }
+   var->interpolation =
+      interpret_interpolation_qualifier(qual, (ir_variable_mode) var->mode,
+                                        state, loc);
 
    var->pixel_center_integer = qual->flags.q.pixel_center_integer;
    var->origin_upper_left = qual->flags.q.origin_upper_left;
@@ -4410,6 +4462,10 @@ ast_type_specifier::hir(exec_list *instructions,
  * AST for each can be processed the same way into a set of
  * \c glsl_struct_field to describe the members.
  *
+ * If we're processing an interface block, var_mode should be the type of the
+ * interface block (ir_var_shader_in, ir_var_shader_out, or ir_var_uniform).
+ * If we're processing a structure, var_mode should be ir_var_auto.
+ *
  * \return
  * The number of fields processed.  A pointer to the array structure fields is
  * stored in \c *fields_ret.
@@ -4422,7 +4478,8 @@ ast_process_structure_or_interface_block(exec_list *instructions,
 					 glsl_struct_field **fields_ret,
                                          bool is_interface,
                                          bool block_row_major,
-                                         bool allow_reserved_names)
+                                         bool allow_reserved_names,
+                                         ir_variable_mode var_mode)
 {
    unsigned decl_count = 0;
 
@@ -4506,6 +4563,9 @@ ast_process_structure_or_interface_block(exec_list *instructions,
          fields[i].type = field_type;
 	 fields[i].name = decl->identifier;
          fields[i].location = -1;
+         fields[i].interpolation =
+            interpret_interpolation_qualifier(qual, var_mode, state, &loc);
+         fields[i].centroid = qual->flags.q.centroid ? 1 : 0;
 
          if (qual->flags.q.row_major || qual->flags.q.column_major) {
             if (!qual->flags.q.uniform) {
@@ -4584,7 +4644,8 @@ ast_struct_specifier::hir(exec_list *instructions,
 					       &fields,
                                                false,
                                                false,
-                                               false /* allow_reserved_names */);
+                                               false /* allow_reserved_names */,
+                                               ir_var_auto);
 
    validate_identifier(this->name, loc, state);
 
@@ -4665,20 +4726,6 @@ ast_interface_block::hir(exec_list *instructions,
       packing = GLSL_INTERFACE_PACKING_STD140;
    }
 
-   bool redeclaring_per_vertex = strcmp(this->block_name, "gl_PerVertex") == 0;
-   bool block_row_major = this->layout.flags.q.row_major;
-   exec_list declared_variables;
-   glsl_struct_field *fields;
-   unsigned int num_variables =
-      ast_process_structure_or_interface_block(&declared_variables,
-                                               state,
-                                               &this->declarations,
-                                               loc,
-                                               &fields,
-                                               true,
-                                               block_row_major,
-                                               redeclaring_per_vertex);
-
    ir_variable_mode var_mode;
    const char *iface_type_name;
    if (this->layout.flags.q.in) {
@@ -4695,6 +4742,21 @@ ast_interface_block::hir(exec_list *instructions,
       iface_type_name = "UNKNOWN";
       assert(!"interface block layout qualifier not found!");
    }
+
+   bool redeclaring_per_vertex = strcmp(this->block_name, "gl_PerVertex") == 0;
+   bool block_row_major = this->layout.flags.q.row_major;
+   exec_list declared_variables;
+   glsl_struct_field *fields;
+   unsigned int num_variables =
+      ast_process_structure_or_interface_block(&declared_variables,
+                                               state,
+                                               &this->declarations,
+                                               loc,
+                                               &fields,
+                                               true,
+                                               block_row_major,
+                                               redeclaring_per_vertex,
+                                               var_mode);
 
    if (!redeclaring_per_vertex)
       validate_identifier(this->block_name, loc, state);
@@ -4768,6 +4830,10 @@ ast_interface_block::hir(exec_list *instructions,
          } else {
             fields[i].location =
                earlier_per_vertex->fields.structure[j].location;
+            fields[i].interpolation =
+               earlier_per_vertex->fields.structure[j].interpolation;
+            fields[i].centroid =
+               earlier_per_vertex->fields.structure[j].centroid;
          }
       }
 
@@ -4831,8 +4897,24 @@ ast_interface_block::hir(exec_list *instructions,
     *     field selector ( . ) operator (analogously to structures)."
     */
    if (this->instance_name) {
-      if (!redeclaring_per_vertex)
+      if (redeclaring_per_vertex) {
+         /* When a built-in in an unnamed interface block is redeclared,
+          * get_variable_being_redeclared() calls
+          * check_builtin_array_max_size() to make sure that built-in array
+          * variables aren't redeclared to illegal sizes.  But we're looking
+          * at a redeclaration of a named built-in interface block.  So we
+          * have to manually call check_builtin_array_max_size() for all parts
+          * of the interface that are arrays.
+          */
+         for (unsigned i = 0; i < num_variables; i++) {
+            if (fields[i].type->is_array()) {
+               const unsigned size = fields[i].type->array_size();
+               check_builtin_array_max_size(fields[i].name, size, loc, state);
+            }
+         }
+      } else {
          validate_identifier(this->instance_name, loc, state);
+      }
 
       ir_variable *var;
 
@@ -4903,6 +4985,8 @@ ast_interface_block::hir(exec_list *instructions,
             new(state) ir_variable(fields[i].type,
                                    ralloc_strdup(state, fields[i].name),
                                    var_mode);
+         var->interpolation = fields[i].interpolation;
+         var->centroid = fields[i].centroid;
          var->init_interface_type(block_type);
 
          if (redeclaring_per_vertex) {
@@ -4958,7 +5042,8 @@ ast_interface_block::hir(exec_list *instructions,
          foreach_list_safe(node, instructions) {
             ir_variable *const var = ((ir_instruction *) node)->as_variable();
             if (var != NULL &&
-                var->get_interface_type() == earlier_per_vertex) {
+                var->get_interface_type() == earlier_per_vertex &&
+                var->mode == var_mode) {
                state->symbols->disable_variable(var->name);
                var->remove();
             }
@@ -5093,5 +5178,57 @@ detect_conflicting_assignments(struct _mesa_glsl_parse_state *state,
       _mesa_glsl_error(&loc, state, "fragment shader writes to both "
 		       "`gl_FragData' and `%s'",
 		       user_defined_fs_output->name);
+   }
+}
+
+
+static void
+remove_per_vertex_blocks(exec_list *instructions,
+                         _mesa_glsl_parse_state *state, ir_variable_mode mode)
+{
+   /* Find the gl_PerVertex interface block of the appropriate (in/out) mode,
+    * if it exists in this shader type.
+    */
+   const glsl_type *per_vertex = NULL;
+   switch (mode) {
+   case ir_var_shader_in:
+      if (ir_variable *gl_in = state->symbols->get_variable("gl_in"))
+         per_vertex = gl_in->get_interface_type();
+      break;
+   case ir_var_shader_out:
+      if (ir_variable *gl_Position =
+          state->symbols->get_variable("gl_Position")) {
+         per_vertex = gl_Position->get_interface_type();
+      }
+      break;
+   default:
+      assert(!"Unexpected mode");
+      break;
+   }
+
+   /* If we didn't find a built-in gl_PerVertex interface block, then we don't
+    * need to do anything.
+    */
+   if (per_vertex == NULL)
+      return;
+
+   /* If the interface block is used by the shader, then we don't need to do
+    * anything.
+    */
+   interface_block_usage_visitor v(mode, per_vertex);
+   v.run(instructions);
+   if (v.usage_found())
+      return;
+
+   /* Remove any ir_variable declarations that refer to the interface block
+    * we're removing.
+    */
+   foreach_list_safe(node, instructions) {
+      ir_variable *const var = ((ir_instruction *) node)->as_variable();
+      if (var != NULL && var->get_interface_type() == per_vertex &&
+          var->mode == mode) {
+         state->symbols->disable_variable(var->name);
+         var->remove();
+      }
    }
 }

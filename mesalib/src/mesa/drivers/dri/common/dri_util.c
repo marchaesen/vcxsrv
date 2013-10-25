@@ -82,6 +82,23 @@ setupLoaderExtensions(__DRIscreen *psp,
 }
 
 /**
+ * This pointer determines which driver API we'll use in the case of the
+ * loader not passing us an explicit driver extensions list (that would,
+ * itself, contain a pointer to a driver API.)
+ *
+ * A driver's driDriverGetExtensions_drivername() can update this pointer to
+ * what it's returning, and a loader that is ignorant of createNewScreen2()
+ * will get the correct driver screen created, as long as no other
+ * driDriverGetExtensions() happened in between the first one and the
+ * createNewScreen().
+ *
+ * This allows the X Server to not require the significant dri_interface.h
+ * updates for doing createNewScreen2(), which would discourage backporting of
+ * the X Server patches to support the new loader interface.
+ */
+const struct __DriverAPIRec *globalDriverAPI = &driDriverAPI;
+
+/**
  * This is the first entrypoint in the driver called by the DRI driver loader
  * after dlopen()ing it.
  *
@@ -89,19 +106,33 @@ setupLoaderExtensions(__DRIscreen *psp,
  * Display.
  */
 static __DRIscreen *
-dri2CreateNewScreen(int scrn, int fd,
-		    const __DRIextension **extensions,
-		    const __DRIconfig ***driver_configs, void *data)
+dri2CreateNewScreen2(int scrn, int fd,
+                     const __DRIextension **extensions,
+                     const __DRIextension **driver_extensions,
+                     const __DRIconfig ***driver_configs, void *data)
 {
     static const __DRIextension *emptyExtensionList[] = { NULL };
     __DRIscreen *psp;
-	int gl_version_override;
+	  int gl_version_override;
 
     psp = calloc(1, sizeof(*psp));
     if (!psp)
 	return NULL;
 
-    psp->driver = &driDriverAPI;
+    /* By default, use the global driDriverAPI symbol (non-megadrivers). */
+    psp->driver = globalDriverAPI;
+
+    /* If the driver exposes its vtable through its extensions list
+     * (megadrivers), use that instead.
+     */
+    if (driver_extensions) {
+       for (int i = 0; driver_extensions[i]; i++) {
+          if (strcmp(driver_extensions[i]->name, __DRI_DRIVER_VTABLE) == 0) {
+             psp->driver =
+                ((__DRIDriverVtableExtension *)driver_extensions[i])->vtable;
+          }
+       }
+    }
 
     setupLoaderExtensions(psp, extensions);
 
@@ -155,12 +186,31 @@ dri2CreateNewScreen(int scrn, int fd,
     return psp;
 }
 
+static __DRIscreen *
+dri2CreateNewScreen(int scrn, int fd,
+		    const __DRIextension **extensions,
+		    const __DRIconfig ***driver_configs, void *data)
+{
+   return dri2CreateNewScreen2(scrn, fd, extensions, NULL,
+                               driver_configs, data);
+}
+
 /** swrast driver createNewScreen entrypoint. */
 static __DRIscreen *
-driCreateNewScreen(int scrn, const __DRIextension **extensions,
-		   const __DRIconfig ***driver_configs, void *data)
+driSWRastCreateNewScreen(int scrn, const __DRIextension **extensions,
+                         const __DRIconfig ***driver_configs, void *data)
 {
-   return dri2CreateNewScreen(scrn, -1, extensions, driver_configs, data);
+   return dri2CreateNewScreen2(scrn, -1, extensions, NULL,
+                               driver_configs, data);
+}
+
+static __DRIscreen *
+driSWRastCreateNewScreen2(int scrn, const __DRIextension **extensions,
+                          const __DRIextension **driver_extensions,
+                          const __DRIconfig ***driver_configs, void *data)
+{
+   return dri2CreateNewScreen2(scrn, -1, extensions, driver_extensions,
+                               driver_configs, data);
 }
 
 /**
@@ -257,8 +307,8 @@ dri2CreateContextAttribs(__DRIscreen *screen, int api,
     unsigned major_version = 1;
     unsigned minor_version = 0;
     uint32_t flags = 0;
-	unsigned i;
-	struct gl_context *ctx;
+    unsigned i;
+    struct gl_context *ctx;
 
     assert((num_attribs == 0) || (attribs != NULL));
 
@@ -691,7 +741,7 @@ const __DRIcoreExtension driCoreExtension = {
 
 /** DRI2 interface */
 const __DRIdri2Extension driDRI2Extension = {
-    /*.base =*/ { __DRI_DRI2, 3 },
+    /*.base =*/ { __DRI_DRI2, 4 },
 
     /*.createNewScreen            =*/ dri2CreateNewScreen,
     /*.createNewDrawable          =*/ dri2CreateNewDrawable,
@@ -700,15 +750,17 @@ const __DRIdri2Extension driDRI2Extension = {
     /*.createNewContextForAPI     =*/ dri2CreateNewContextForAPI,
     /*.allocateBuffer             =*/ dri2AllocateBuffer,
     /*.releaseBuffer              =*/ dri2ReleaseBuffer,
-    /*.createContextAttribs       =*/ dri2CreateContextAttribs
+    /*.createContextAttribs       =*/ dri2CreateContextAttribs,
+    /*.createNewScreen2           =*/ dri2CreateNewScreen2,
 };
 
 const __DRIswrastExtension driSWRastExtension = {
-    { __DRI_SWRAST, __DRI_SWRAST_VERSION },
-    driCreateNewScreen,
+    { __DRI_SWRAST, 4 },
+    driSWRastCreateNewScreen,
     dri2CreateNewDrawable,
     dri2CreateNewContextForAPI,
-    dri2CreateContextAttribs
+    dri2CreateContextAttribs,
+    driSWRastCreateNewScreen2,
 };
 
 const __DRI2configQueryExtension dri2ConfigQueryExtension = {

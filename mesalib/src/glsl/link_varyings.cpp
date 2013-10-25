@@ -125,9 +125,9 @@ cross_validate_types_and_qualifiers(struct gl_shader_program *prog,
                    "interpolation qualifier\n",
                    _mesa_glsl_shader_target_name(producer_type),
                    output->name,
-                   output->interpolation_string(),
+                   interpolation_string(output->interpolation),
                    _mesa_glsl_shader_target_name(consumer_type),
-                   input->interpolation_string());
+                   interpolation_string(input->interpolation));
       return;
    }
 }
@@ -328,7 +328,7 @@ tfeedback_decl::assign_location(struct gl_context *ctx,
       const unsigned vector_elements =
          this->matched_candidate->type->fields.array->vector_elements;
       unsigned actual_array_size = this->is_clip_distance_mesa ?
-         prog->Vert.ClipDistanceArraySize :
+         prog->LastClipDistanceArraySize :
          this->matched_candidate->type->array_size();
 
       if (this->is_subscripted) {

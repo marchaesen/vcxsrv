@@ -11,6 +11,19 @@
 #endif
 #include <fontconfig/fontconfig.h>
 
+#ifdef HAVE_MKDTEMP
+#define fc_mkdtemp	mkdtemp
+#else
+char *
+fc_mkdtemp (char *template)
+{
+    if (!mktemp (template) || mkdir (template, 0700))
+	return NULL;
+
+    return template;
+}
+#endif
+
 FcBool
 mkdir_p(const char *dir)
 {
@@ -107,7 +120,7 @@ int
 main(void)
 {
     char template[32] = "fontconfig-XXXXXXXX";
-    char *tmp = mkdtemp (template);
+    char *tmp = fc_mkdtemp (template);
     size_t len = strlen (tmp), xlen, dlen;
     char xdg[256], confd[256], fn[256], nfn[256], ud[256], nud[256];
     int ret = -1;
