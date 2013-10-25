@@ -326,6 +326,8 @@ per_vertex_accumulator::add_field(int slot, const glsl_type *type,
    this->fields[this->num_fields].name = name;
    this->fields[this->num_fields].row_major = false;
    this->fields[this->num_fields].location = slot;
+   this->fields[this->num_fields].interpolation = INTERP_QUALIFIER_NONE;
+   this->fields[this->num_fields].centroid = 0;
    this->num_fields++;
 }
 
@@ -888,8 +890,8 @@ builtin_variable_generator::generate_varyings()
    if (state->target == geometry_shader) {
       const glsl_type *per_vertex_in_type =
          this->per_vertex_in.construct_interface_instance();
-      ir_variable *var = add_variable("gl_in", array(per_vertex_in_type, 0),
-                                      ir_var_shader_in, -1);
+      add_variable("gl_in", array(per_vertex_in_type, 0),
+                   ir_var_shader_in, -1);
    }
    if (state->target == vertex_shader || state->target == geometry_shader) {
       const glsl_type *per_vertex_out_type =
@@ -899,6 +901,8 @@ builtin_variable_generator::generate_varyings()
          ir_variable *var =
             add_variable(fields[i].name, fields[i].type, ir_var_shader_out,
                          fields[i].location);
+         var->interpolation = fields[i].interpolation;
+         var->centroid = fields[i].centroid;
          var->init_interface_type(per_vertex_out_type);
       }
    }

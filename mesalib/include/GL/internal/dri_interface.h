@@ -330,12 +330,6 @@ struct __DRI2throttleExtensionRec {
 		    enum __DRI2throttleReason reason);
 };
 
-/**
- * XML document describing the configuration options supported by the
- * driver.
- */
-extern const char __driConfigOptions[];
-
 /*@}*/
 
 /**
@@ -492,6 +486,19 @@ struct __DRIuseInvalidateExtensionRec {
  * the extension you need in the array.
  */
 #define __DRI_DRIVER_EXTENSIONS "__driDriverExtensions"
+
+/**
+ * This symbol replaces the __DRI_DRIVER_EXTENSIONS symbol, and will be
+ * suffixed by "_drivername", allowing multiple drivers to be built into one
+ * library, and also giving the driver the chance to return a variable driver
+ * extensions struct depending on the driver name being loaded or any other
+ * system state.
+ *
+ * The function prototype is:
+ *
+ * const __DRIextension **__driDriverGetExtensions_drivername(void);
+ */
+#define __DRI_DRIVER_GET_EXTENSIONS "__driDriverGetExtensions"
 
 /**
  * Tokens for __DRIconfig attribs.  A number of attributes defined by
@@ -706,7 +713,7 @@ struct __DRIlegacyExtensionRec {
  * conjunction with the core extension.
  */
 #define __DRI_SWRAST "DRI_SWRast"
-#define __DRI_SWRAST_VERSION 3
+#define __DRI_SWRAST_VERSION 4
 
 struct __DRIswrastExtensionRec {
     __DRIextension base;
@@ -742,6 +749,18 @@ struct __DRIswrastExtensionRec {
 					 const uint32_t *attribs,
 					 unsigned *error,
 					 void *loaderPrivate);
+
+   /**
+    * createNewScreen() with the driver extensions passed in.
+    *
+    * \since version 4
+    */
+   __DRIscreen *(*createNewScreen2)(int screen,
+                                    const __DRIextension **loader_extensions,
+                                    const __DRIextension **driver_extensions,
+                                    const __DRIconfig ***driver_configs,
+                                    void *loaderPrivate);
+
 };
 
 /**
@@ -824,7 +843,7 @@ struct __DRIdri2LoaderExtensionRec {
  * constructors for DRI2.
  */
 #define __DRI_DRI2 "DRI_DRI2"
-#define __DRI_DRI2_VERSION 3
+#define __DRI_DRI2_VERSION 4
 
 #define __DRI_API_OPENGL	0	/**< OpenGL compatibility profile */
 #define __DRI_API_GLES		1	/**< OpenGL ES 1.x */
@@ -932,6 +951,17 @@ struct __DRIdri2ExtensionRec {
 					 const uint32_t *attribs,
 					 unsigned *error,
 					 void *loaderPrivate);
+
+   /**
+    * createNewScreen with the driver's extension list passed in.
+    *
+    * \since version 4
+    */
+    __DRIscreen *(*createNewScreen2)(int screen, int fd,
+                                     const __DRIextension **loader_extensions,
+                                     const __DRIextension **driver_extensions,
+                                     const __DRIconfig ***driver_configs,
+                                     void *loaderPrivate);
 };
 
 
@@ -1225,5 +1255,36 @@ typedef struct __DRIrobustnessExtensionRec __DRIrobustnessExtension;
 struct __DRIrobustnessExtensionRec {
    __DRIextension base;
 };
+
+/**
+ * DRI config options extension.
+ *
+ * This extension provides the XML string containing driver options for use by
+ * the loader in supporting the driconf application.
+ */
+#define __DRI_CONFIG_OPTIONS "DRI_ConfigOptions"
+#define __DRI_CONFIG_OPTIONS_VERSION 1
+
+typedef struct __DRIconfigOptionsExtensionRec {
+   __DRIextension base;
+   const char *xml;
+} __DRIconfigOptionsExtension;
+
+/**
+ * This extension provides a driver vtable to a set of common driver helper
+ * functions (driCoreExtension, driDRI2Extension) within the driver
+ * implementation, as opposed to having to pass them through a global
+ * variable.
+ *
+ * It is not intended to be public API to the actual loader, and the vtable
+ * layout may change at any time.
+ */
+#define __DRI_DRIVER_VTABLE "DRI_DriverVtable"
+#define __DRI_DRIVER_VTABLE_VERSION 1
+
+typedef struct __DRIDriverVtableExtensionRec {
+    __DRIextension base;
+    const struct __DriverAPIRec *vtable;
+} __DRIDriverVtableExtension;
 
 #endif
