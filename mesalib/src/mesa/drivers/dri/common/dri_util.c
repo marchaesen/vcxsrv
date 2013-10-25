@@ -114,6 +114,7 @@ dri2CreateNewScreen2(int scrn, int fd,
     static const __DRIextension *emptyExtensionList[] = { NULL };
     __DRIscreen *psp;
 	  int gl_version_override;
+	  int i;
 
     psp = calloc(1, sizeof(*psp));
     if (!psp)
@@ -126,7 +127,7 @@ dri2CreateNewScreen2(int scrn, int fd,
      * (megadrivers), use that instead.
      */
     if (driver_extensions) {
-       for (int i = 0; driver_extensions[i]; i++) {
+       for (i = 0; driver_extensions[i]; i++) {
           if (strcmp(driver_extensions[i]->name, __DRI_DRIVER_VTABLE) == 0) {
              psp->driver =
                 ((__DRIDriverVtableExtension *)driver_extensions[i])->vtable;

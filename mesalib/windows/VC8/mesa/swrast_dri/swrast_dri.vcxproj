@@ -243,6 +243,7 @@
     <ClCompile Include="..\..\..\..\src\mesa\drivers\common\driverfuncs.c" />
     <ClCompile Include="..\..\..\..\src\mesa\drivers\common\meta.c" />
     <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\common\dri_util.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\common\megadriver_stub.c" />
     <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\common\xmlconfig.c" />
     <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\swrast\swrast.c" />
     <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\common\utils.c" />

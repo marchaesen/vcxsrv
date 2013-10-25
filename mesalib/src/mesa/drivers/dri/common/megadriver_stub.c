@@ -37,5 +37,5 @@ __DRIconfig **stub_error_init_screen(__DRIscreen *psp)
  * never be used.
  */
 const struct __DriverAPIRec driDriverAPI = {
-   .InitScreen = stub_error_init_screen,
+   /*.InitScreen = */stub_error_init_screen,
 };
