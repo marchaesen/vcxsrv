@@ -448,7 +448,12 @@ GetGLXFBConfigs(Display * dpy, int glxMajorOpcode, int *nconfigs)
         /* Fill in derived values */
         config->screen = screen;
 
-        config->rgbMode = config->renderType & GLX_RGBA_BIT;
+        /* The rgbMode should be true for any mode which has distinguishible
+         * R, G and B components
+         */
+        config->rgbMode = (config->renderType
+                           & (GLX_RGBA_BIT | GLX_RGBA_FLOAT_BIT_ARB
+                              | GLX_RGBA_UNSIGNED_FLOAT_BIT_EXT)) != 0;
         config->colorIndexMode = !config->rgbMode;
 
         config->haveAccumBuffer =

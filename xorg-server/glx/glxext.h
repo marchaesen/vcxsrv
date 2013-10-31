@@ -35,6 +35,22 @@
  * Silicon Graphics, Inc.
  */
 
+/* doing #include <GL/glx.h> & #include <GL/glxext.h> could cause problems
+ * with overlapping definitions, so let's use the easy way
+ */
+#ifndef GLX_RGBA_FLOAT_BIT_ARB
+#define GLX_RGBA_FLOAT_BIT_ARB             0x00000004
+#endif
+#ifndef GLX_RGBA_FLOAT_TYPE_ARB
+#define GLX_RGBA_FLOAT_TYPE_ARB            0x20B9
+#endif
+#ifndef GLX_RGBA_UNSIGNED_FLOAT_BIT_EXT
+#define GLX_RGBA_UNSIGNED_FLOAT_BIT_EXT    0x00000008
+#endif
+#ifndef GLX_RGBA_UNSIGNED_FLOAT_TYPE_EXT
+#define GLX_RGBA_UNSIGNED_FLOAT_TYPE_EXT   0x20B1
+#endif
+
 extern GLboolean __glXFreeContext(__GLXcontext * glxc);
 extern void __glXFlushContextCache(void);
 

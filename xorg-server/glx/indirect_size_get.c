@@ -25,6 +25,7 @@
  * SOFTWARE.
  */
 
+
 #include <X11/Xfuncproto.h>
 #include <GL/gl.h>
 #include "indirect_size_get.h"
@@ -44,6 +45,7 @@
 #define FASTCALL
 #endif
 
+
 #if defined(__CYGWIN__) || defined(__MINGW32__) || defined(GLX_USE_APPLEGL)
 #undef HAVE_ALIAS
 #endif
@@ -57,6 +59,7 @@
     _X_INTERNAL PURE FASTCALL GLint __gl ## from ## _size( GLenum e ) \
     { return __gl ## to ## _size( e ); }
 #endif
+
 
 _X_INTERNAL PURE FASTCALL GLint
 __glCallLists_size(GLenum e)
@@ -599,6 +602,7 @@ __glGetBooleanv_size(GLenum e)
     case GL_OCCLUSION_TEST_HP:
     case GL_OCCLUSION_TEST_RESULT_HP:
     case GL_LIGHT_MODEL_COLOR_CONTROL:
+    case GL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH_ARB:
     case GL_RESET_NOTIFICATION_STRATEGY_ARB:
     case GL_CURRENT_FOG_COORD:
     case GL_FOG_COORDINATE_ARRAY_TYPE:
@@ -664,11 +668,11 @@ __glGetBooleanv_size(GLenum e)
     case GL_STENCIL_BACK_PASS_DEPTH_PASS_ATI:
     case GL_FRAGMENT_PROGRAM_ARB:
     case GL_MAX_DRAW_BUFFERS_ARB:
-/*      case GL_MAX_DRAW_BUFFERS_NV:*/
+/*      case GL_MAX_DRAW_BUFFERS_ATI:*/
     case GL_DRAW_BUFFER0_ARB:
 /*      case GL_DRAW_BUFFER0_ATI:*/
     case GL_DRAW_BUFFER1_ARB:
-/*      case GL_DRAW_BUFFER1_NV:*/
+/*      case GL_DRAW_BUFFER1_ATI:*/
     case GL_DRAW_BUFFER2_ARB:
 /*      case GL_DRAW_BUFFER2_ATI:*/
     case GL_DRAW_BUFFER3_ARB:
@@ -686,15 +690,15 @@ __glGetBooleanv_size(GLenum e)
     case GL_DRAW_BUFFER9_ARB:
 /*      case GL_DRAW_BUFFER9_ATI:*/
     case GL_DRAW_BUFFER10_ARB:
-/*      case GL_DRAW_BUFFER10_NV:*/
+/*      case GL_DRAW_BUFFER10_ATI:*/
     case GL_DRAW_BUFFER11_ARB:
-/*      case GL_DRAW_BUFFER11_NV:*/
+/*      case GL_DRAW_BUFFER11_ATI:*/
     case GL_DRAW_BUFFER12_ARB:
 /*      case GL_DRAW_BUFFER12_ATI:*/
     case GL_DRAW_BUFFER13_ARB:
 /*      case GL_DRAW_BUFFER13_ATI:*/
     case GL_DRAW_BUFFER14_ARB:
-/*      case GL_DRAW_BUFFER14_NV:*/
+/*      case GL_DRAW_BUFFER14_ATI:*/
     case GL_DRAW_BUFFER15_ARB:
 /*      case GL_DRAW_BUFFER15_ATI:*/
     case GL_BLEND_EQUATION_ALPHA_EXT:
@@ -708,6 +712,7 @@ __glGetBooleanv_size(GLenum e)
     case GL_MATRIX_INDEX_ARRAY_TYPE_ARB:
     case GL_MATRIX_INDEX_ARRAY_STRIDE_ARB:
     case GL_COMPARE_REF_DEPTH_TO_TEXTURE_EXT:
+    case GL_TEXTURE_CUBE_MAP_SEAMLESS:
     case GL_POINT_SPRITE_ARB:
 /*      case GL_POINT_SPRITE_NV:*/
     case GL_POINT_SPRITE_R_MODE_NV:
@@ -726,7 +731,6 @@ __glGetBooleanv_size(GLenum e)
     case GL_SECONDARY_COLOR_ARRAY_BUFFER_BINDING_ARB:
     case GL_FOG_COORDINATE_ARRAY_BUFFER_BINDING_ARB:
     case GL_WEIGHT_ARRAY_BUFFER_BINDING_ARB:
-    case GL_TEXTURE_CUBE_MAP_SEAMLESS:
     case GL_MAX_ARRAY_TEXTURE_LAYERS_EXT:
     case GL_STENCIL_TEST_TWO_SIDE_EXT:
     case GL_ACTIVE_STENCIL_FACE_EXT:
@@ -744,6 +748,9 @@ __glGetBooleanv_size(GLenum e)
     case GL_MAX_SAMPLES:
 /*      case GL_MAX_SAMPLES_EXT:*/
     case GL_MAX_SERVER_WAIT_TIMEOUT:
+    case GL_MAX_DEBUG_MESSAGE_LENGTH_ARB:
+    case GL_MAX_DEBUG_LOGGED_MESSAGES_ARB:
+    case GL_DEBUG_LOGGED_MESSAGES_ARB:
     case GL_RASTER_POSITION_UNCLIPPED_IBM:
         return 1;
     case GL_SMOOTH_POINT_SIZE_RANGE:
@@ -917,6 +924,18 @@ __glGetTexLevelParameterfv_size(GLenum e)
 }
 
 _X_INTERNAL PURE FASTCALL GLint
+__glGetPointerv_size(GLenum e)
+{
+    switch (e) {
+    case GL_DEBUG_CALLBACK_FUNCTION_ARB:
+    case GL_DEBUG_CALLBACK_USER_PARAM_ARB:
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+_X_INTERNAL PURE FASTCALL GLint
 __glColorTableParameterfv_size(GLenum e)
 {
     switch (e) {
@@ -1036,6 +1055,56 @@ __glGetMinmaxParameterfv_size(GLenum e)
 }
 
 _X_INTERNAL PURE FASTCALL GLint
+__glPointParameterfv_size(GLenum e)
+{
+    switch (e) {
+    case GL_POINT_SIZE_MIN:
+/*      case GL_POINT_SIZE_MIN_ARB:*/
+/*      case GL_POINT_SIZE_MIN_SGIS:*/
+    case GL_POINT_SIZE_MAX:
+/*      case GL_POINT_SIZE_MAX_ARB:*/
+/*      case GL_POINT_SIZE_MAX_SGIS:*/
+    case GL_POINT_FADE_THRESHOLD_SIZE:
+/*      case GL_POINT_FADE_THRESHOLD_SIZE_ARB:*/
+/*      case GL_POINT_FADE_THRESHOLD_SIZE_SGIS:*/
+    case GL_POINT_SPRITE_R_MODE_NV:
+    case GL_POINT_SPRITE_COORD_ORIGIN:
+        return 1;
+    case GL_POINT_DISTANCE_ATTENUATION:
+/*      case GL_POINT_DISTANCE_ATTENUATION_ARB:*/
+/*      case GL_POINT_DISTANCE_ATTENUATION_SGIS:*/
+        return 3;
+    default:
+        return 0;
+    }
+}
+
+_X_INTERNAL PURE FASTCALL GLint
+__glGetQueryObjectiv_size(GLenum e)
+{
+    switch (e) {
+    case GL_QUERY_RESULT_ARB:
+    case GL_QUERY_RESULT_AVAILABLE_ARB:
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+_X_INTERNAL PURE FASTCALL GLint
+__glGetQueryiv_size(GLenum e)
+{
+    switch (e) {
+    case GL_QUERY_COUNTER_BITS_ARB:
+    case GL_CURRENT_QUERY_ARB:
+    case GL_ANY_SAMPLES_PASSED:
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+_X_INTERNAL PURE FASTCALL GLint
 __glGetProgramivARB_size(GLenum e)
 {
     switch (e) {
@@ -1089,106 +1158,25 @@ __glGetProgramivARB_size(GLenum e)
 }
 
 _X_INTERNAL PURE FASTCALL GLint
-__glGetVertexAttribdvARB_size(GLenum e)
+__glGetFramebufferAttachmentParameteriv_size(GLenum e)
 {
     switch (e) {
-    case GL_VERTEX_PROGRAM_ARB:
-    case GL_VERTEX_ATTRIB_ARRAY_ENABLED_ARB:
-    case GL_VERTEX_ATTRIB_ARRAY_SIZE_ARB:
-    case GL_VERTEX_ATTRIB_ARRAY_STRIDE_ARB:
-    case GL_VERTEX_ATTRIB_ARRAY_TYPE_ARB:
-    case GL_CURRENT_VERTEX_ATTRIB_ARB:
-    case GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING_ARB:
-        return 1;
-    default:
-        return 0;
-    }
-}
-
-_X_INTERNAL PURE FASTCALL GLint
-__glGetQueryObjectivARB_size(GLenum e)
-{
-    switch (e) {
-    case GL_QUERY_RESULT_ARB:
-    case GL_QUERY_RESULT_AVAILABLE_ARB:
-        return 1;
-    default:
-        return 0;
-    }
-}
-
-_X_INTERNAL PURE FASTCALL GLint
-__glGetQueryivARB_size(GLenum e)
-{
-    switch (e) {
-    case GL_QUERY_COUNTER_BITS_ARB:
-    case GL_CURRENT_QUERY_ARB:
-        return 1;
-    default:
-        return 0;
-    }
-}
-
-_X_INTERNAL PURE FASTCALL GLint
-__glPointParameterfvEXT_size(GLenum e)
-{
-    switch (e) {
-    case GL_POINT_SIZE_MIN:
-/*      case GL_POINT_SIZE_MIN_ARB:*/
-/*      case GL_POINT_SIZE_MIN_SGIS:*/
-    case GL_POINT_SIZE_MAX:
-/*      case GL_POINT_SIZE_MAX_ARB:*/
-/*      case GL_POINT_SIZE_MAX_SGIS:*/
-    case GL_POINT_FADE_THRESHOLD_SIZE:
-/*      case GL_POINT_FADE_THRESHOLD_SIZE_ARB:*/
-/*      case GL_POINT_FADE_THRESHOLD_SIZE_SGIS:*/
-    case GL_POINT_SPRITE_R_MODE_NV:
-    case GL_POINT_SPRITE_COORD_ORIGIN:
-        return 1;
-    case GL_POINT_DISTANCE_ATTENUATION:
-/*      case GL_POINT_DISTANCE_ATTENUATION_ARB:*/
-/*      case GL_POINT_DISTANCE_ATTENUATION_SGIS:*/
-        return 3;
-    default:
-        return 0;
-    }
-}
-
-_X_INTERNAL PURE FASTCALL GLint
-__glGetProgramivNV_size(GLenum e)
-{
-    switch (e) {
-    case GL_PROGRAM_LENGTH_NV:
-    case GL_PROGRAM_TARGET_NV:
-    case GL_PROGRAM_RESIDENT_NV:
-        return 1;
-    default:
-        return 0;
-    }
-}
-
-_X_INTERNAL PURE FASTCALL GLint
-__glGetVertexAttribdvNV_size(GLenum e)
-{
-    switch (e) {
-    case GL_ATTRIB_ARRAY_SIZE_NV:
-    case GL_ATTRIB_ARRAY_STRIDE_NV:
-    case GL_ATTRIB_ARRAY_TYPE_NV:
-    case GL_CURRENT_ATTRIB_NV:
-        return 1;
-    default:
-        return 0;
-    }
-}
-
-_X_INTERNAL PURE FASTCALL GLint
-__glGetFramebufferAttachmentParameterivEXT_size(GLenum e)
-{
-    switch (e) {
-    case GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE_EXT:
-    case GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME_EXT:
-    case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL_EXT:
-    case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE_EXT:
+    case GL_FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING:
+    case GL_FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE:
+    case GL_FRAMEBUFFER_ATTACHMENT_RED_SIZE:
+    case GL_FRAMEBUFFER_ATTACHMENT_GREEN_SIZE:
+    case GL_FRAMEBUFFER_ATTACHMENT_BLUE_SIZE:
+    case GL_FRAMEBUFFER_ATTACHMENT_ALPHA_SIZE:
+    case GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE:
+    case GL_FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE:
+    case GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE:
+/*      case GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE_EXT:*/
+    case GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME:
+/*      case GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME_EXT:*/
+    case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL:
+/*      case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL_EXT:*/
+    case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE:
+/*      case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE_EXT:*/
     case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_3D_ZOFFSET_EXT:
         return 1;
     default:
@@ -1226,11 +1214,7 @@ ALIAS(Fogiv, Fogfv)
     ALIAS(GetConvolutionParameteriv, GetConvolutionParameterfv)
     ALIAS(GetHistogramParameteriv, GetHistogramParameterfv)
     ALIAS(GetMinmaxParameteriv, GetMinmaxParameterfv)
-    ALIAS(GetVertexAttribfvARB, GetVertexAttribdvARB)
-    ALIAS(GetVertexAttribivARB, GetVertexAttribdvARB)
-    ALIAS(GetQueryObjectuivARB, GetQueryObjectivARB)
-    ALIAS(GetVertexAttribfvNV, GetVertexAttribdvNV)
-    ALIAS(GetVertexAttribivNV, GetVertexAttribdvNV)
-    ALIAS(PointParameterivNV, PointParameterfvEXT)
+    ALIAS(PointParameteriv, PointParameterfv)
+    ALIAS(GetQueryObjectuiv, GetQueryObjectiv)
 #undef PURE
 #undef FASTCALL

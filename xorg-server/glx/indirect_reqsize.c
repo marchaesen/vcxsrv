@@ -613,7 +613,7 @@ __glXTexSubImage3DReqSize(const GLbyte * pc, Bool swap)
 }
 
 int
-__glXCompressedTexImage1DARBReqSize(const GLbyte * pc, Bool swap)
+__glXCompressedTexImage1DReqSize(const GLbyte * pc, Bool swap)
 {
     GLsizei imageSize = *(GLsizei *) (pc + 20);
 
@@ -625,7 +625,7 @@ __glXCompressedTexImage1DARBReqSize(const GLbyte * pc, Bool swap)
 }
 
 int
-__glXCompressedTexImage2DARBReqSize(const GLbyte * pc, Bool swap)
+__glXCompressedTexImage2DReqSize(const GLbyte * pc, Bool swap)
 {
     GLsizei imageSize = *(GLsizei *) (pc + 24);
 
@@ -637,7 +637,7 @@ __glXCompressedTexImage2DARBReqSize(const GLbyte * pc, Bool swap)
 }
 
 int
-__glXCompressedTexImage3DARBReqSize(const GLbyte * pc, Bool swap)
+__glXCompressedTexImage3DReqSize(const GLbyte * pc, Bool swap)
 {
     GLsizei imageSize = *(GLsizei *) (pc + 28);
 
@@ -649,7 +649,7 @@ __glXCompressedTexImage3DARBReqSize(const GLbyte * pc, Bool swap)
 }
 
 int
-__glXCompressedTexSubImage3DARBReqSize(const GLbyte * pc, Bool swap)
+__glXCompressedTexSubImage3DReqSize(const GLbyte * pc, Bool swap)
 {
     GLsizei imageSize = *(GLsizei *) (pc + 36);
 
@@ -658,6 +658,32 @@ __glXCompressedTexSubImage3DARBReqSize(const GLbyte * pc, Bool swap)
     }
 
     return __GLX_PAD(imageSize);
+}
+
+int
+__glXPointParameterfvReqSize(const GLbyte * pc, Bool swap)
+{
+    GLenum pname = *(GLenum *) (pc + 0);
+    GLsizei compsize;
+
+    if (swap) {
+        pname = bswap_32(pname);
+    }
+
+    compsize = __glPointParameterfv_size(pname);
+    return __GLX_PAD((compsize * 4));
+}
+
+int
+__glXDrawBuffersReqSize(const GLbyte * pc, Bool swap)
+{
+    GLsizei n = *(GLsizei *) (pc + 0);
+
+    if (swap) {
+        n = bswap_32(n);
+    }
+
+    return __GLX_PAD((n * 4));
 }
 
 int
@@ -670,56 +696,6 @@ __glXProgramStringARBReqSize(const GLbyte * pc, Bool swap)
     }
 
     return __GLX_PAD(len);
-}
-
-int
-__glXDrawBuffersARBReqSize(const GLbyte * pc, Bool swap)
-{
-    GLsizei n = *(GLsizei *) (pc + 0);
-
-    if (swap) {
-        n = bswap_32(n);
-    }
-
-    return __GLX_PAD((n * 4));
-}
-
-int
-__glXPointParameterfvEXTReqSize(const GLbyte * pc, Bool swap)
-{
-    GLenum pname = *(GLenum *) (pc + 0);
-    GLsizei compsize;
-
-    if (swap) {
-        pname = bswap_32(pname);
-    }
-
-    compsize = __glPointParameterfvEXT_size(pname);
-    return __GLX_PAD((compsize * 4));
-}
-
-int
-__glXProgramParameters4dvNVReqSize(const GLbyte * pc, Bool swap)
-{
-    GLsizei num = *(GLsizei *) (pc + 8);
-
-    if (swap) {
-        num = bswap_32(num);
-    }
-
-    return __GLX_PAD((num * 32));
-}
-
-int
-__glXProgramParameters4fvNVReqSize(const GLbyte * pc, Bool swap)
-{
-    GLsizei num = *(GLsizei *) (pc + 8);
-
-    if (swap) {
-        num = bswap_32(num);
-    }
-
-    return __GLX_PAD((num * 16));
 }
 
 int
@@ -794,18 +770,6 @@ __glXVertexAttribs4dvNVReqSize(const GLbyte * pc, Bool swap)
     return __GLX_PAD((n * 32));
 }
 
-int
-__glXProgramNamedParameter4fvNVReqSize(const GLbyte * pc, Bool swap)
-{
-    GLsizei len = *(GLsizei *) (pc + 4);
-
-    if (swap) {
-        len = bswap_32(len);
-    }
-
-    return __GLX_PAD(len);
-}
-
 ALIAS(Fogiv, Fogfv)
     ALIAS(Lightiv, Lightfv)
     ALIAS(LightModeliv, LightModelfv)
@@ -816,10 +780,11 @@ ALIAS(Fogiv, Fogfv)
     ALIAS(PixelMapuiv, PixelMapfv)
     ALIAS(ColorTableParameteriv, ColorTableParameterfv)
     ALIAS(ConvolutionParameteriv, ConvolutionParameterfv)
-    ALIAS(CompressedTexSubImage1DARB, CompressedTexImage1DARB)
-    ALIAS(CompressedTexSubImage2DARB, CompressedTexImage3DARB)
-    ALIAS(LoadProgramNV, ProgramStringARB)
-    ALIAS(RequestResidentProgramsNV, DrawBuffersARB)
+    ALIAS(CompressedTexSubImage1D, CompressedTexImage1D)
+    ALIAS(CompressedTexSubImage2D, CompressedTexImage3D)
+    ALIAS(PointParameteriv, PointParameterfv)
+    ALIAS(DeleteFramebuffers, DrawBuffers)
+    ALIAS(DeleteRenderbuffers, DrawBuffers)
     ALIAS(VertexAttribs1fvNV, PixelMapfv)
     ALIAS(VertexAttribs1svNV, PixelMapusv)
     ALIAS(VertexAttribs2fvNV, VertexAttribs1dvNV)
@@ -827,7 +792,3 @@ ALIAS(Fogiv, Fogfv)
     ALIAS(VertexAttribs4fvNV, VertexAttribs2dvNV)
     ALIAS(VertexAttribs4svNV, VertexAttribs1dvNV)
     ALIAS(VertexAttribs4ubvNV, PixelMapfv)
-    ALIAS(PointParameterivNV, PointParameterfvEXT)
-    ALIAS(ProgramNamedParameter4dvNV, CompressedTexSubImage3DARB)
-    ALIAS(DeleteFramebuffersEXT, DrawBuffersARB)
-    ALIAS(DeleteRenderbuffersEXT, DrawBuffersARB)

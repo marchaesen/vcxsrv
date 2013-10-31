@@ -49,10 +49,6 @@
 #include "glxdricommon.h"
 #include <GL/glxtokens.h>
 
-#include "glapitable.h"
-#include "glapi.h"
-#include "glthread.h"
-#include "dispatch.h"
 #include "extension_string.h"
 
 typedef struct __GLXDRIscreen __GLXDRIscreen;
@@ -845,6 +841,11 @@ glxDRILeaveVT(ScrnInfoPtr scrn)
     scrn->LeaveVT = glxDRILeaveVT;
 }
 
+/**
+ * Initialize extension flags in glx_enable_bits when a new screen is created
+ *
+ * @param screen The screen where glx_enable_bits are to be set.
+ */
 static void
 initializeExtensions(__GLXDRIscreen * screen)
 {
@@ -887,6 +888,12 @@ initializeExtensions(__GLXDRIscreen * screen)
         __glXEnableExtension(screen->glx_enable_bits,
                  "GLX_EXT_framebuffer_sRGB");
         LogMessage(X_INFO, "AIGLX: enabled GLX_EXT_framebuffer_sRGB\n");
+    }
+
+    /* enable ARB_fbconfig_float extension (even if there are no float fbconfigs) */
+    {
+        __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_fbconfig_float");
+        LogMessage(X_INFO, "AIGLX: enabled GLX_ARB_fbconfig_float\n");
     }
 
     for (i = 0; extensions[i]; i++) {

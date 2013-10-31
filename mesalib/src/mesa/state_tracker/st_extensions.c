@@ -445,8 +445,7 @@ void st_init_extensions(struct st_context *st)
         { PIPE_FORMAT_Z32_FLOAT,
           PIPE_FORMAT_Z32_FLOAT_S8X24_UINT } },
 
-      { { o(ARB_framebuffer_object),
-          o(EXT_packed_depth_stencil) },
+      { { o(EXT_packed_depth_stencil) },
         { PIPE_FORMAT_S8_UINT_Z24_UNORM,
           PIPE_FORMAT_Z24_UNORM_S8_UINT },
         GL_TRUE }, /* at least one format must be supported */
@@ -565,6 +564,7 @@ void st_init_extensions(struct st_context *st)
    ctx->Extensions.NV_fog_distance = GL_TRUE;
    ctx->Extensions.NV_texture_env_combine4 = GL_TRUE;
    ctx->Extensions.NV_texture_rectangle = GL_TRUE;
+   ctx->Extensions.NV_vdpau_interop = GL_TRUE;
 
    ctx->Extensions.OES_EGL_image = GL_TRUE;
    ctx->Extensions.OES_EGL_image_external = GL_TRUE;
@@ -760,6 +760,10 @@ void st_init_extensions(struct st_context *st)
                              PIPE_BUFFER, PIPE_BIND_SAMPLER_VIEW);
    }
 
+   if (screen->get_param(screen, PIPE_CAP_MIXED_FRAMEBUFFER_SIZES) &&
+       ctx->Extensions.EXT_packed_depth_stencil) {
+      ctx->Extensions.ARB_framebuffer_object = GL_TRUE;
+   }
 
    /* Unpacking a varying in the fragment shader costs 1 texture indirection.
     * If the number of available texture indirections is very limited, then we

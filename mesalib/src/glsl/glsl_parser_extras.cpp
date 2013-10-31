@@ -118,6 +118,12 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    this->Const.MaxGeometryTotalOutputComponents = ctx->Const.MaxGeometryTotalOutputComponents;
    this->Const.MaxGeometryUniformComponents = ctx->Const.GeometryProgram.MaxUniformComponents;
 
+   this->Const.MaxVertexAtomicCounters = ctx->Const.VertexProgram.MaxAtomicCounters;
+   this->Const.MaxGeometryAtomicCounters = ctx->Const.GeometryProgram.MaxAtomicCounters;
+   this->Const.MaxFragmentAtomicCounters = ctx->Const.FragmentProgram.MaxAtomicCounters;
+   this->Const.MaxCombinedAtomicCounters = ctx->Const.MaxCombinedAtomicCounters;
+   this->Const.MaxAtomicBufferBindings = ctx->Const.MaxAtomicBufferBindings;
+
    this->current_function = NULL;
    this->toplevel_ir = NULL;
    this->found_return = false;
@@ -533,6 +539,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(AMD_vertex_shader_layer,        true,  false,     AMD_vertex_shader_layer),
    EXT(EXT_shader_integer_mix,         true,  true,      EXT_shader_integer_mix),
    EXT(ARB_texture_gather,             true,  false,     ARB_texture_gather),
+   EXT(ARB_shader_atomic_counters,     true,  false,     ARB_shader_atomic_counters),
 };
 
 #undef EXT

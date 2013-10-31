@@ -732,8 +732,6 @@ ephyrScreenFini(KdScreenInfo * screen)
     if (scrpriv->shadow) {
         KdShadowFbFree(screen);
     }
-    free(screen->driver);
-    screen->driver = NULL;
 }
 
 /*  

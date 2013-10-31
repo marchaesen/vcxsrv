@@ -308,20 +308,21 @@ KdEnableInput(void)
 
     kdInputEnabled = TRUE;
 
+    ev.any.time = GetTimeInMillis();
+
     for (ki = kdKeyboards; ki; ki = ki->next) {
         if (ki->driver && ki->driver->Enable)
             (*ki->driver->Enable) (ki);
+        /* reset screen saver */
+        NoticeEventTime (&ev, ki->dixdev);
     }
 
     for (pi = kdPointers; pi; pi = pi->next) {
         if (pi->driver && pi->driver->Enable)
             (*pi->driver->Enable) (pi);
+        /* reset screen saver */
+        NoticeEventTime (&ev, pi->dixdev);
     }
-
-    /* reset screen saver */
-    ev.any.time = GetTimeInMillis();
-    NoticeEventTime(&ev, pi->dixdev);
-    NoticeEventTime(&ev, ki->dixdev);
 
     OsReleaseSIGIO();
 }

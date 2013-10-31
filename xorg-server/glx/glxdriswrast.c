@@ -48,10 +48,6 @@
 #include "glxutil.h"
 #include "glxdricommon.h"
 
-#include "glapitable.h"
-#include "glapi.h"
-#include "glthread.h"
-#include "dispatch.h"
 #include "extension_string.h"
 
 /* RTLD_LOCAL is not defined on Cygwin */

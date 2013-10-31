@@ -648,6 +648,12 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname, GLint *param
    case GL_PROGRAM_BINARY_LENGTH:
       *params = 0;
       return;
+   case GL_ACTIVE_ATOMIC_COUNTER_BUFFERS:
+      if (!ctx->Extensions.ARB_shader_atomic_counters)
+         break;
+
+      *params = shProg->NumAtomicBuffers;
+      return;
    default:
       break;
    }
@@ -926,7 +932,7 @@ _mesa_active_program(struct gl_context *ctx, struct gl_shader_program *shProg,
 
 /**
  */
-static bool
+static void
 use_shader_program(struct gl_context *ctx, GLenum type,
 		   struct gl_shader_program *shProg)
 {
@@ -955,7 +961,7 @@ use_shader_program(struct gl_context *ctx, GLenum type,
       }
       break;
    default:
-      return false;
+      return;
    }
 
    if (*target != shProg) {
@@ -982,10 +988,8 @@ use_shader_program(struct gl_context *ctx, GLenum type,
       }
 
       _mesa_reference_shader_program(ctx, target, shProg);
-      return true;
+      return;
    }
-
-   return false;
 }
 
 /**

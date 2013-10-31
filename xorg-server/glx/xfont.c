@@ -35,10 +35,6 @@
 #include "glxserver.h"
 #include "glxutil.h"
 #include "unpack.h"
-#include "glapitable.h"
-#include "glapi.h"
-#include "glthread.h"
-#include "dispatch.h"
 #include "indirect_dispatch.h"
 #include <GL/gl.h>
 #include <pixmapstr.h>
@@ -94,10 +90,8 @@ __glXMakeBitmapFromGlyph(FontPtr font, CharInfoPtr pci)
         pglyph -= widthPadded;
         p += widthPadded;
     }
-    CALL_Bitmap(GET_DISPATCH(), (w, h, -pci->metrics.leftSideBearing,
-                                 pci->metrics.descent,
-                                 pci->metrics.characterWidth, 0,
-                                 allocbuf ? allocbuf : buf));
+    glBitmap(w, h, -pci->metrics.leftSideBearing, pci->metrics.descent,
+             pci->metrics.characterWidth, 0, allocbuf ? allocbuf : buf);
 
     free(allocbuf);
     return Success;
@@ -118,13 +112,12 @@ MakeBitmapsFromFont(FontPtr pFont, int first, int count, int list_base)
     int rv;                     /* return value */
     int encoding = (FONTLASTROW(pFont) == 0) ? Linear16Bit : TwoD16Bit;
 
-    CALL_PixelStorei(GET_DISPATCH(), (GL_UNPACK_SWAP_BYTES, FALSE));
-    CALL_PixelStorei(GET_DISPATCH(),
-                     (GL_UNPACK_LSB_FIRST, BITMAP_BIT_ORDER == LSBFirst));
-    CALL_PixelStorei(GET_DISPATCH(), (GL_UNPACK_ROW_LENGTH, 0));
-    CALL_PixelStorei(GET_DISPATCH(), (GL_UNPACK_SKIP_ROWS, 0));
-    CALL_PixelStorei(GET_DISPATCH(), (GL_UNPACK_SKIP_PIXELS, 0));
-    CALL_PixelStorei(GET_DISPATCH(), (GL_UNPACK_ALIGNMENT, GLYPHPADBYTES));
+    glPixelStorei(GL_UNPACK_SWAP_BYTES, FALSE);
+    glPixelStorei(GL_UNPACK_LSB_FIRST, BITMAP_BIT_ORDER == LSBFirst);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
+    glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, GLYPHPADBYTES);
     for (i = 0; i < count; i++) {
         chs[0] = (first + i) >> 8;      /* high byte is first byte */
         chs[1] = first + i;
@@ -135,14 +128,14 @@ MakeBitmapsFromFont(FontPtr pFont, int first, int count, int list_base)
         /*
          ** Define a display list containing just a glBitmap() call.
          */
-        CALL_NewList(GET_DISPATCH(), (list_base + i, GL_COMPILE));
+        glNewList(list_base + i, GL_COMPILE);
         if (nglyphs) {
             rv = __glXMakeBitmapFromGlyph(pFont, pci);
             if (rv) {
                 return rv;
             }
         }
-        CALL_EndList(GET_DISPATCH(), ());
+        glEndList();
     }
     return Success;
 }
@@ -167,8 +160,7 @@ __glXDisp_UseXFont(__GLXclientState * cl, GLbyte * pc)
         return error;
     }
 
-    CALL_GetIntegerv(GET_DISPATCH(),
-                     (GL_LIST_INDEX, (GLint *) &currentListIndex));
+    glGetIntegerv(GL_LIST_INDEX, (GLint *) &currentListIndex);
     if (currentListIndex != 0) {
         /*
          ** A display list is currently being made.  It is an error

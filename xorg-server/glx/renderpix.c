@@ -35,10 +35,6 @@
 #include "glxserver.h"
 #include "unpack.h"
 #include "indirect_dispatch.h"
-#include "glapitable.h"
-#include "glapi.h"
-#include "glthread.h"
-#include "dispatch.h"
 
 void
 __glXDisp_SeparableFilter2D(GLbyte * pc)
@@ -49,12 +45,12 @@ __glXDisp_SeparableFilter2D(GLbyte * pc)
 
     hdrlen = __GLX_PAD(__GLX_CONV_FILT_CMD_DISPATCH_HDR_SIZE);
 
-    CALL_PixelStorei(GET_DISPATCH(), (GL_UNPACK_SWAP_BYTES, hdr->swapBytes));
-    CALL_PixelStorei(GET_DISPATCH(), (GL_UNPACK_LSB_FIRST, hdr->lsbFirst));
-    CALL_PixelStorei(GET_DISPATCH(), (GL_UNPACK_ROW_LENGTH, hdr->rowLength));
-    CALL_PixelStorei(GET_DISPATCH(), (GL_UNPACK_SKIP_ROWS, hdr->skipRows));
-    CALL_PixelStorei(GET_DISPATCH(), (GL_UNPACK_SKIP_PIXELS, hdr->skipPixels));
-    CALL_PixelStorei(GET_DISPATCH(), (GL_UNPACK_ALIGNMENT, hdr->alignment));
+    glPixelStorei(GL_UNPACK_SWAP_BYTES, hdr->swapBytes);
+    glPixelStorei(GL_UNPACK_LSB_FIRST, hdr->lsbFirst);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, hdr->rowLength);
+    glPixelStorei(GL_UNPACK_SKIP_ROWS, hdr->skipRows);
+    glPixelStorei(GL_UNPACK_SKIP_PIXELS, hdr->skipPixels);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, hdr->alignment);
 
     /* XXX check this usage - internal code called
      ** a version without the packing parameters
@@ -64,10 +60,8 @@ __glXDisp_SeparableFilter2D(GLbyte * pc)
                                hdr->alignment);
     image1len = __GLX_PAD(image1len);
 
-    CALL_SeparableFilter2D(GET_DISPATCH(), (hdr->target, hdr->internalformat,
-                                            hdr->width, hdr->height,
-                                            hdr->format, hdr->type,
-                                            ((GLubyte *) hdr + hdrlen),
-                                            ((GLubyte *) hdr + hdrlen +
-                                             image1len)));
+    glSeparableFilter2D(hdr->target, hdr->internalformat, hdr->width,
+                        hdr->height, hdr->format, hdr->type,
+                        ((GLubyte *) hdr + hdrlen),
+                        ((GLubyte *) hdr + hdrlen + image1len));
 }

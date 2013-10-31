@@ -102,6 +102,8 @@ RRCrtcCreate(ScreenPtr pScreen, void *devPrivate)
     crtc->pScreen = pScreen;
     pScrPriv->crtcs[pScrPriv->numCrtcs++] = crtc;
 
+    RRResourcesChanged(pScreen);
+
     return crtc;
 }
 
@@ -669,6 +671,8 @@ RRCrtcDestroyResource(pointer value, XID pid)
                 break;
             }
         }
+
+        RRResourcesChanged(pScreen);
     }
 
     if (crtc->scanout_pixmap)

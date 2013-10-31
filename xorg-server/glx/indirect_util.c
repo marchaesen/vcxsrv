@@ -39,10 +39,6 @@
 #include "glxserver.h"
 #include "glxbyteorder.h"
 #include "singlesize.h"
-#include "glapitable.h"
-#include "glapi.h"
-#include "glthread.h"
-#include "dispatch.h"
 #include "glxext.h"
 #include "indirect_table.h"
 #include "indirect_util.h"
@@ -57,8 +53,7 @@ __glGetBooleanv_variable_size(GLenum e)
     if (e == GL_COMPRESSED_TEXTURE_FORMATS) {
         GLint temp;
 
-        CALL_GetIntegerv(GET_DISPATCH(),
-                         (GL_NUM_COMPRESSED_TEXTURE_FORMATS, &temp));
+        glGetIntegerv(GL_NUM_COMPRESSED_TEXTURE_FORMATS, &temp);
         return temp;
     }
     else {

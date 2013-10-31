@@ -314,7 +314,7 @@ field2(
 
     /* Find Field 1 */
     while (!isgraph(*pBuf)) {
-	if ((*pBuf != '\n') || (*pBuf != '\0')) {
+	if ((*pBuf == '\n') || (*pBuf == '\0')) {
 	    return(XcmsFailure);
 	}
 	if (isspace(*pBuf) || (*pBuf == delim)) {

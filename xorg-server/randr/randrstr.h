@@ -164,6 +164,7 @@ struct _rrProvider {
     int nameLength;
     RRPropertyPtr properties;
     Bool pendingProperties;
+    Bool changed;
     struct _rrProvider *offload_sink;
     struct _rrProvider *output_source;
 };
@@ -300,6 +301,7 @@ typedef struct _rrScrPriv {
     Bool changed;               /* some config changed */
     Bool configChanged;         /* configuration changed */
     Bool layoutChanged;         /* screen layout changed */
+    Bool resourcesChanged;      /* screen resources change */
 
     CARD16 minWidth, minHeight;
     CARD16 maxWidth, maxHeight;
@@ -484,6 +486,9 @@ extern _X_EXPORT int
  */
 extern _X_EXPORT void
  RRDeliverScreenEvent(ClientPtr client, WindowPtr pWin, ScreenPtr pScreen);
+
+extern _X_EXPORT void
+ RRResourcesChanged(ScreenPtr pScreen);
 
 /* randr.c */
 /* set a screen change on the primary screen */
@@ -922,6 +927,9 @@ RRProviderSetCapabilities(RRProviderPtr provider, uint32_t capabilities);
 
 extern _X_EXPORT Bool
 RRProviderLookup(XID id, RRProviderPtr *provider_p);
+
+extern _X_EXPORT void
+RRDeliverProviderEvent(ClientPtr client, WindowPtr pWin, RRProviderPtr provider);
 
 /* rrproviderproperty.c */
 

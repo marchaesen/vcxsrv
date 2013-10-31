@@ -420,12 +420,40 @@ RRExtensionInit(void)
 #endif
 }
 
+void
+RRResourcesChanged(ScreenPtr pScreen)
+{
+    rrScrPriv(pScreen);
+    pScrPriv->resourcesChanged = TRUE;
+
+    RRSetChanged(pScreen);
+}
+
+static void
+RRDeliverResourceEvent(ClientPtr client, WindowPtr pWin)
+{
+    ScreenPtr pScreen = pWin->drawable.pScreen;
+
+    rrScrPriv(pScreen);
+
+    xRRResourceChangeNotifyEvent re = {
+        .type = RRNotify + RREventBase,
+        .subCode = RRNotify_ResourceChange,
+        .timestamp = pScrPriv->lastSetTime.milliseconds,
+        .window = pWin->drawable.id
+    };
+
+    WriteEventsToClient(client, 1, (xEvent *) &re);
+}
+
 static int
 TellChanged(WindowPtr pWin, pointer value)
 {
     RREventPtr *pHead, pRREvent;
     ClientPtr client;
     ScreenPtr pScreen = pWin->drawable.pScreen;
+    ScreenPtr iter;
+    rrScrPrivPtr pSlaveScrPriv;
 
     rrScrPriv(pScreen);
     int i;
@@ -450,6 +478,16 @@ TellChanged(WindowPtr pWin, pointer value)
                 if (crtc->changed)
                     RRDeliverCrtcEvent(client, pWin, crtc);
             }
+
+            xorg_list_for_each_entry(iter, &pScreen->output_slave_list, output_head) {
+                pSlaveScrPriv = rrGetScrPriv(iter);
+                for (i = 0; i < pSlaveScrPriv->numCrtcs; i++) {
+                    RRCrtcPtr crtc = pSlaveScrPriv->crtcs[i];
+
+                    if (crtc->changed)
+                        RRDeliverCrtcEvent(client, pWin, crtc);
+                }
+            }
         }
 
         if (pRREvent->mask & RROutputChangeNotifyMask) {
@@ -458,6 +496,40 @@ TellChanged(WindowPtr pWin, pointer value)
 
                 if (output->changed)
                     RRDeliverOutputEvent(client, pWin, output);
+            }
+
+            xorg_list_for_each_entry(iter, &pScreen->output_slave_list, output_head) {
+                pSlaveScrPriv = rrGetScrPriv(iter);
+                for (i = 0; i < pSlaveScrPriv->numOutputs; i++) {
+                    RROutputPtr output = pSlaveScrPriv->outputs[i];
+
+                    if (output->changed)
+                        RRDeliverOutputEvent(client, pWin, output);
+                }
+            }
+        }
+
+        if (pRREvent->mask & RRProviderChangeNotifyMask) {
+            xorg_list_for_each_entry(iter, &pScreen->output_slave_list, output_head) {
+                pSlaveScrPriv = rrGetScrPriv(iter);
+                if (pSlaveScrPriv->provider->changed)
+                    RRDeliverProviderEvent(client, pWin, pSlaveScrPriv->provider);
+            }
+            xorg_list_for_each_entry(iter, &pScreen->offload_slave_list, offload_head) {
+                pSlaveScrPriv = rrGetScrPriv(iter);
+                if (pSlaveScrPriv->provider->changed)
+                    RRDeliverProviderEvent(client, pWin, pSlaveScrPriv->provider);
+            }
+            xorg_list_for_each_entry(iter, &pScreen->unattached_list, unattached_head) {
+                pSlaveScrPriv = rrGetScrPriv(iter);
+                if (pSlaveScrPriv->provider->changed)
+                    RRDeliverProviderEvent(client, pWin, pSlaveScrPriv->provider);
+            }
+        }
+
+        if (pRREvent->mask & RRResourceChangeNotifyMask) {
+            if (pScrPriv->resourcesChanged) {
+                RRDeliverResourceEvent(client, pWin);
             }
         }
     }
@@ -496,6 +568,8 @@ RRTellChanged(ScreenPtr pScreen)
     rrScrPriv(pScreen);
     rrScrPrivPtr mastersp;
     int i;
+    ScreenPtr iter;
+    rrScrPrivPtr pSlaveScrPriv;
 
     if (pScreen->isGPU) {
         master = pScreen->current_master;
@@ -514,11 +588,33 @@ RRTellChanged(ScreenPtr pScreen)
         }
         pScrPriv->changed = FALSE;
         mastersp->changed = FALSE;
+
         WalkTree(master, TellChanged, (pointer) master);
+
+        mastersp->resourcesChanged = FALSE;
+
         for (i = 0; i < pScrPriv->numOutputs; i++)
             pScrPriv->outputs[i]->changed = FALSE;
         for (i = 0; i < pScrPriv->numCrtcs; i++)
             pScrPriv->crtcs[i]->changed = FALSE;
+
+        xorg_list_for_each_entry(iter, &master->output_slave_list, output_head) {
+            pSlaveScrPriv = rrGetScrPriv(iter);
+            pSlaveScrPriv->provider->changed = FALSE;
+            for (i = 0; i < pSlaveScrPriv->numOutputs; i++)
+                pSlaveScrPriv->outputs[i]->changed = FALSE;
+            for (i = 0; i < pSlaveScrPriv->numCrtcs; i++)
+                pSlaveScrPriv->crtcs[i]->changed = FALSE;
+        }
+        xorg_list_for_each_entry(iter, &master->offload_slave_list, offload_head) {
+            pSlaveScrPriv = rrGetScrPriv(iter);
+            pSlaveScrPriv->provider->changed = FALSE;
+        }
+        xorg_list_for_each_entry(iter, &master->unattached_list, unattached_head) {
+            pSlaveScrPriv = rrGetScrPriv(iter);
+            pSlaveScrPriv->provider->changed = FALSE;
+        }
+
         if (mastersp->layoutChanged) {
             pScrPriv->layoutChanged = FALSE;
             RRPointerScreenConfigured(master);

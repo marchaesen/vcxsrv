@@ -466,6 +466,9 @@ xf86platformAddDevice(int index)
    /* attach unbound to 0 protocol screen */
    AttachUnboundGPU(xf86Screens[0]->pScreen, xf86GPUScreens[i]->pScreen);
 
+   RRResourcesChanged(xf86Screens[0]->pScreen);
+   RRTellChanged(xf86Screens[0]->pScreen);
+
    return 0;
 }
 
@@ -508,6 +511,8 @@ xf86platformRemoveDevice(int index)
     xf86UnclaimPlatformSlot(&xf86_platform_devices[index], NULL);
 
     xf86_remove_platform_device(index);
+
+    RRResourcesChanged(xf86Screens[0]->pScreen);
     RRTellChanged(xf86Screens[0]->pScreen);
  out:
     return;

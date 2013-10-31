@@ -41,10 +41,6 @@
 #include "glxext.h"
 #include "indirect_dispatch.h"
 #include "unpack.h"
-#include "glapitable.h"
-#include "glapi.h"
-#include "glthread.h"
-#include "dispatch.h"
 
 int
 __glXDisp_FeedbackBuffer(__GLXclientState * cl, GLbyte * pc)
@@ -72,7 +68,7 @@ __glXDisp_FeedbackBuffer(__GLXclientState * cl, GLbyte * pc)
         }
         cx->feedbackBufSize = size;
     }
-    CALL_FeedbackBuffer(GET_DISPATCH(), (size, type, cx->feedbackBuf));
+    glFeedbackBuffer(size, type, cx->feedbackBuf);
     cx->hasUnflushedCommands = GL_TRUE;
     return Success;
 }
@@ -100,7 +96,7 @@ __glXDisp_SelectBuffer(__GLXclientState * cl, GLbyte * pc)
         }
         cx->selectBufSize = size;
     }
-    CALL_SelectBuffer(GET_DISPATCH(), (size, cx->selectBuf));
+    glSelectBuffer(size, cx->selectBuf);
     cx->hasUnflushedCommands = GL_TRUE;
     return Success;
 }
@@ -123,10 +119,10 @@ __glXDisp_RenderMode(__GLXclientState * cl, GLbyte * pc)
 
     pc += __GLX_SINGLE_HDR_SIZE;
     newMode = *(GLenum *) pc;
-    retval = CALL_RenderMode(GET_DISPATCH(), (newMode));
+    retval = glRenderMode(newMode);
 
     /* Check that render mode worked */
-    CALL_GetIntegerv(GET_DISPATCH(), (GL_RENDER_MODE, &newModeCheck));
+    glGetIntegerv(GL_RENDER_MODE, &newModeCheck);
     if (newModeCheck != newMode) {
         /* Render mode change failed.  Bail */
         newMode = newModeCheck;
@@ -219,7 +215,7 @@ __glXDisp_Flush(__GLXclientState * cl, GLbyte * pc)
         return error;
     }
 
-    CALL_Flush(GET_DISPATCH(), ());
+    glFlush();
     cx->hasUnflushedCommands = GL_FALSE;
     return Success;
 }
@@ -237,7 +233,7 @@ __glXDisp_Finish(__GLXclientState * cl, GLbyte * pc)
     }
 
     /* Do a local glFinish */
-    CALL_Finish(GET_DISPATCH(), ());
+    glFinish();
     cx->hasUnflushedCommands = GL_FALSE;
 
     /* Send empty reply packet to indicate finish is finished */
@@ -346,7 +342,7 @@ DoGetString(__GLXclientState * cl, GLbyte * pc, GLboolean need_swap)
 
     pc += __GLX_SINGLE_HDR_SIZE;
     name = *(GLenum *) (pc + 0);
-    string = (const char *) CALL_GetString(GET_DISPATCH(), (name));
+    string = (const char *) glGetString(name);
     client = cl->client;
 
     if (string == NULL)

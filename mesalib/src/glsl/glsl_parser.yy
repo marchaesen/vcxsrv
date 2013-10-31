@@ -66,14 +66,8 @@ static bool match_layout_qualifier(const char *s1, const char *s2,
     */
    if (state->es_shader)
       return strcmp(s1, s2);
-   else {
-#if defined(_MSC_VER)
-      /* MSVC doesn't have a strcasecmp() function; instead it has _stricmp. */
-      return _stricmp(s1, s2);
-#else
+   else
       return strcasecmp(s1, s2);
-#endif
-   }
 }
 %}
 
@@ -1308,29 +1302,25 @@ layout_qualifier_id:
    {
       memset(& $$, 0, sizeof($$));
 
-      if (state->has_explicit_attrib_location()) {
-         if (match_layout_qualifier("location", $1, state) == 0) {
-            $$.flags.q.explicit_location = 1;
+      if (match_layout_qualifier("location", $1, state) == 0) {
+         $$.flags.q.explicit_location = 1;
 
-            if ($3 >= 0) {
-               $$.location = $3;
-            } else {
-               _mesa_glsl_error(& @3, state,
-                                "invalid location %d specified", $3);
-               YYERROR;
-            }
+         if ($3 >= 0) {
+            $$.location = $3;
+         } else {
+             _mesa_glsl_error(& @3, state, "invalid location %d specified", $3);
+             YYERROR;
          }
+      }
 
-         if (match_layout_qualifier("index", $1, state) == 0) {
-            $$.flags.q.explicit_index = 1;
+      if (match_layout_qualifier("index", $1, state) == 0) {
+         $$.flags.q.explicit_index = 1;
 
-            if ($3 >= 0) {
-               $$.index = $3;
-            } else {
-               _mesa_glsl_error(& @3, state,
-                                "invalid index %d specified", $3);
-               YYERROR;
-            }
+         if ($3 >= 0) {
+            $$.index = $3;
+         } else {
+            _mesa_glsl_error(& @3, state, "invalid index %d specified", $3);
+            YYERROR;
          }
       }
 
