@@ -116,6 +116,7 @@ typedef struct x_IHRec {
     InputHandlerProc ihproc;
     pointer data;
     Bool enabled;
+    Bool is_input;
     struct x_IHRec *next;
 } IHRec, *IHPtr;
 
@@ -446,8 +447,12 @@ xf86VTSwitch(void)
          * Keep the order: Disable Device > LeaveVT
          *                        EnterVT > EnableDevice
          */
-        for (ih = InputHandlers; ih; ih = ih->next)
-            xf86DisableInputHandler(ih);
+        for (ih = InputHandlers; ih; ih = ih->next) {
+            if (ih->is_input)
+                xf86DisableInputHandler(ih);
+            else
+                xf86DisableGeneralHandler(ih);
+        }
         for (pInfo = xf86InputDevs; pInfo; pInfo = pInfo->next) {
             if (pInfo->dev) {
                 if (!pInfo->dev->enabled)
@@ -496,9 +501,12 @@ xf86VTSwitch(void)
                 pInfo->flags &= ~XI86_DEVICE_DISABLED;
                 pInfo = pInfo->next;
             }
-            for (ih = InputHandlers; ih; ih = ih->next)
-                xf86EnableInputHandler(ih);
-
+            for (ih = InputHandlers; ih; ih = ih->next) {
+                if (ih->is_input)
+                    xf86EnableInputHandler(ih);
+                else
+                    xf86EnableGeneralHandler(ih);
+            }
             OsReleaseSIGIO();
 
         }
@@ -558,9 +566,12 @@ xf86VTSwitch(void)
             pInfo = pInfo->next;
         }
 
-        for (ih = InputHandlers; ih; ih = ih->next)
-            xf86EnableInputHandler(ih);
-
+        for (ih = InputHandlers; ih; ih = ih->next) {
+            if (ih->is_input)
+                xf86EnableInputHandler(ih);
+            else
+                xf86EnableGeneralHandler(ih);
+        }
 #ifdef XSERVER_PLATFORM_BUS
         /* check for any new output devices */
         xf86platformVTProbe();
@@ -600,8 +611,10 @@ xf86AddInputHandler(int fd, InputHandlerProc proc, pointer data)
 {
     IHPtr ih = addInputHandler(fd, proc, data);
 
-    if (ih)
+    if (ih) {
         AddEnabledDevice(fd);
+        ih->is_input = TRUE;
+    }
     return ih;
 }
 

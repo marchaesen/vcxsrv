@@ -382,10 +382,7 @@ damageValidateGC(GCPtr pGC, unsigned long changes, DrawablePtr pDrawable)
     drawableDamage(pDrawable);
     DAMAGE_GC_FUNC_PROLOGUE(pGC);
     (*pGC->funcs->ValidateGC) (pGC, changes, pDrawable);
-    if (pDamage)
-        pGCPriv->ops = pGC->ops; /* so it's not NULL, so FUNC_EPILOGUE does work */
-    else
-        pGCPriv->ops = NULL;
+    pGCPriv->ops = pGC->ops; /* just so it's not NULL */
     DAMAGE_GC_FUNC_EPILOGUE(pGC);
 }
 

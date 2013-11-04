@@ -745,7 +745,7 @@ parseArgs(int argc, char *argv[])
             ACTION("Exiting\n");
             exit(1);
         }
-        sprintf(outputFile, "stdin.%s", fileTypeExt[outputFormat]);
+        snprintf(outputFile, len, "stdin.%s", fileTypeExt[outputFormat]);
     }
     else if ((outputFile == NULL) && (inputFile != NULL))
     {
@@ -773,7 +773,7 @@ parseArgs(int argc, char *argv[])
         }
         ext = strrchr(base, '.');
         if (ext == NULL)
-            sprintf(outputFile, "%s.%s", base, fileTypeExt[outputFormat]);
+            snprintf(outputFile, len, "%s.%s", base, fileTypeExt[outputFormat]);
         else
         {
             strcpy(outputFile, base);
@@ -881,7 +881,6 @@ main(int argc, char *argv[])
     Status status;
 
     scan_set_file(stdin);
-    uSetEntryFile(NullString);
     uSetDebugFile(NullString);
     uSetErrorFile(NullString);
 

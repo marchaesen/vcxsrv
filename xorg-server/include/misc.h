@@ -305,6 +305,35 @@ __builtin_constant_p(int x)
 }
 #endif
 
+/* byte swap a 64-bit value */
+static inline void
+swap_uint64(uint64_t *x)
+{
+    char n;
+
+    n = ((char *) x)[0];
+    ((char *) x)[0] = ((char *) x)[7];
+    ((char *) x)[7] = n;
+
+    n = ((char *) x)[1];
+    ((char *) x)[1] = ((char *) x)[6];
+    ((char *) x)[6] = n;
+
+    n = ((char *) x)[2];
+    ((char *) x)[2] = ((char *) x)[5];
+    ((char *) x)[5] = n;
+
+    n = ((char *) x)[3];
+    ((char *) x)[3] = ((char *) x)[4];
+    ((char *) x)[4] = n;
+}
+
+#define swapll(x) do { \
+		if (sizeof(*(x)) != 8) \
+			wrong_size(); \
+                swap_uint64((uint64_t *)(x));   \
+	} while (0)
+
 /* byte swap a 32-bit value */
 static inline void
 swap_uint32(uint32_t * x)

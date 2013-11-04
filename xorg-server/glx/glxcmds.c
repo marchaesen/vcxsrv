@@ -1118,7 +1118,8 @@ DoGetFBConfigs(__GLXclientState * cl, unsigned screen)
         WRITE_PAIR(GLX_BIND_TO_MIPMAP_TEXTURE_EXT, modes->bindToMipmapTexture);
         WRITE_PAIR(GLX_BIND_TO_TEXTURE_TARGETS_EXT,
                    modes->bindToTextureTargets);
-	WRITE_PAIR(GLX_Y_INVERTED_EXT, modes->yInverted);
+	/* can't report honestly until mesa is fixed */
+	WRITE_PAIR(GLX_Y_INVERTED_EXT, GLX_DONT_CARE);
 	if (modes->drawableType & GLX_PBUFFER_BIT) {
 	    WRITE_PAIR(GLX_MAX_PBUFFER_WIDTH, modes->maxPbufferWidth);
 	    WRITE_PAIR(GLX_MAX_PBUFFER_HEIGHT, modes->maxPbufferHeight);

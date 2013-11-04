@@ -123,12 +123,14 @@ xf86AddBusDeviceToConfigure(const char *driver, BusType bus, void *busData,
     switch (bus) {
 #ifdef XSERVER_LIBPCIACCESS
     case BUS_PCI:
+	DevToConfig[i].pVideo = busData;
         xf86PciConfigureNewDev(busData, DevToConfig[i].pVideo,
                                &DevToConfig[i].GDev, &chipset);
         break;
 #endif
 #if (defined(__sparc__) || defined(__sparc)) && !defined(__OpenBSD__)
     case BUS_SBUS:
+	DevToConfig[i].sVideo = busData;
         xf86SbusConfigureNewDev(busData, DevToConfig[i].sVideo,
                                 &DevToConfig[i].GDev);
         break;

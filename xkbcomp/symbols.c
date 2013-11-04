@@ -928,7 +928,7 @@ GetGroupIndex(KeyInfo * key,
 static Bool
 AddSymbolsToKey(KeyInfo * key,
                 XkbDescPtr xkb,
-                char *field,
+                const char *field,
                 ExprDef * arrayNdx, ExprDef * value, SymbolsInfo * info)
 {
     unsigned ndx, nSyms;
@@ -982,7 +982,7 @@ AddSymbolsToKey(KeyInfo * key,
 static Bool
 AddActionsToKey(KeyInfo * key,
                 XkbDescPtr xkb,
-                char *field,
+                const char *field,
                 ExprDef * arrayNdx, ExprDef * value, SymbolsInfo * info)
 {
     register int i;
@@ -1118,7 +1118,7 @@ static LookupEntry rgEntries[] = {
 static Bool
 SetSymbolsField(KeyInfo * key,
                 XkbDescPtr xkb,
-                char *field,
+                const char *field,
                 ExprDef * arrayNdx, ExprDef * value, SymbolsInfo * info)
 {
     Bool ok = True;
@@ -1235,7 +1235,7 @@ SetSymbolsField(KeyInfo * key,
              uStrCasePrefix("permanentoverlay", field))
     {
         Bool permanent = False;
-        char *which;
+        const char *which;
         int overlayNdx;
         if (uStrCasePrefix("permanent", field))
         {

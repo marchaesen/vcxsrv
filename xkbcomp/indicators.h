@@ -62,7 +62,7 @@ extern LEDInfo *AddIndicatorMap(LEDInfo * /* oldLEDs */ ,
 
 extern int SetIndicatorMapField(LEDInfo * /* led */ ,
                                 XkbDescPtr /* xkb */ ,
-                                char * /* field */ ,
+                                const char * /* field */ ,
                                 ExprDef * /* arrayNdx */ ,
                                 ExprDef *       /* value */
     );

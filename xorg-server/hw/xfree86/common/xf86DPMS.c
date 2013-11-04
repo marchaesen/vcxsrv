@@ -36,6 +36,7 @@
 #include <X11/X.h>
 #include "os.h"
 #include "globals.h"
+#include "windowstr.h"
 #include "xf86.h"
 #include "xf86Priv.h"
 #ifdef DPMSExtension
@@ -159,7 +160,13 @@ DPMSSet(ClientPtr client, int level)
         return Success;
 
     if (level != DPMSModeOn) {
-        rc = dixSaveScreens(client, SCREEN_SAVER_FORCER, ScreenSaverActive);
+        if (xf86IsUnblank(screenIsSaved)) {
+            rc = dixSaveScreens(client, SCREEN_SAVER_FORCER, ScreenSaverActive);
+            if (rc != Success)
+                return rc;
+        }
+    } else if (!xf86IsUnblank(screenIsSaved)) {
+        rc = dixSaveScreens(client, SCREEN_SAVER_FORCER, ScreenSaverReset);
         if (rc != Success)
             return rc;
     }

@@ -1771,7 +1771,7 @@ if test "x$with_gallium_drivers" != x; then
             PKG_CHECK_MODULES([RADEON], [libdrm_radeon >= $LIBDRM_RADEON_REQUIRED])
             gallium_require_llvm "Gallium R300"
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS r300"
-            gallium_check_st "radeon/drm" "r300/dri" "" "" "r300/xvmc" "r300/vdpau"
+            gallium_check_st "radeon/drm" "r300/dri" "" "" "" ""
             DRICOMMON_NEED_LIBDRM=yes
             ;;
         xr600)
@@ -1789,7 +1789,7 @@ if test "x$with_gallium_drivers" != x; then
             if test "x$enable_opencl" = xyes; then
                 LLVM_COMPONENTS="${LLVM_COMPONENTS} bitreader asmparser"
             fi
-            gallium_check_st "radeon/drm" "r600/dri" "r600/xorg" "" "r600/xvmc" "r600/vdpau"
+            gallium_check_st "radeon/drm" "r600/dri" "" "" "r600/xvmc" "r600/vdpau"
             DRICOMMON_NEED_LIBDRM=yes
             ;;
         xradeonsi)
@@ -1798,7 +1798,7 @@ if test "x$with_gallium_drivers" != x; then
             gallium_require_drm_loader
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS radeonsi"
             radeon_llvm_check
-            gallium_check_st "radeon/drm" "radeonsi/dri" "radeonsi/xorg" "" "" "radeonsi/vdpau" ""
+            gallium_check_st "radeon/drm" "radeonsi/dri" "" "" "" "radeonsi/vdpau" ""
             DRICOMMON_NEED_LIBDRM=yes
             ;;
         xnouveau)
@@ -1827,16 +1827,6 @@ if test "x$with_gallium_drivers" != x; then
 
             if test "x$enable_dri" = xyes; then
                 GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS dri-swrast"
-            fi
-            if test "x$enable_vdpau" = xyes; then
-                GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS vdpau-softpipe"
-            fi
-            if test "x$enable_xvmc" = xyes; then
-                GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS xvmc-softpipe"
-            fi
-            if test "x$enable_vdpau" = xyes -o "x$enable_xvmc" = xyes; then
-                NEED_WINSYS_XLIB=yes
-                GALLIUM_WINSYS_DIRS="$GALLIUM_WINSYS_DIRS sw/xlib"
             fi
             ;;
         *)
@@ -2044,23 +2034,17 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/targets/pipe-loader/Makefile
 		src/gallium/targets/radeonsi/dri/Makefile
 		src/gallium/targets/radeonsi/vdpau/Makefile
-		src/gallium/targets/radeonsi/xorg/Makefile
 		src/gallium/targets/r300/dri/Makefile
-		src/gallium/targets/r300/vdpau/Makefile
-		src/gallium/targets/r300/xvmc/Makefile
 		src/gallium/targets/r600/dri/Makefile
 		src/gallium/targets/r600/vdpau/Makefile
-		src/gallium/targets/r600/xorg/Makefile
 		src/gallium/targets/r600/xvmc/Makefile
 		src/gallium/targets/libgl-xlib/Makefile
 		src/gallium/targets/vdpau-nouveau/Makefile
-		src/gallium/targets/vdpau-softpipe/Makefile
 		src/gallium/targets/xa-vmwgfx/Makefile
 		src/gallium/targets/xa-vmwgfx/xatracker.pc
 		src/gallium/targets/xorg-i915/Makefile
 		src/gallium/targets/xorg-nouveau/Makefile
 		src/gallium/targets/xvmc-nouveau/Makefile
-		src/gallium/targets/xvmc-softpipe/Makefile
 		src/gallium/tests/trivial/Makefile
 		src/gallium/tests/unit/Makefile
 		src/gallium/winsys/Makefile

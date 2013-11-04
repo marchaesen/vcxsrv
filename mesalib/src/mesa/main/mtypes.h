@@ -274,6 +274,11 @@ typedef enum
 #define VARYING_BIT_VAR(V) BITFIELD64_BIT(VARYING_SLOT_VAR0 + (V))
 /*@}*/
 
+/**
+ * Bitflags for system values.
+ */
+#define SYSTEM_BIT_SAMPLE_ID BITFIELD64_BIT(SYSTEM_VALUE_SAMPLE_ID)
+#define SYSTEM_BIT_SAMPLE_POS BITFIELD64_BIT(SYSTEM_VALUE_SAMPLE_POS)
 
 /**
  * Determine if the given gl_varying_slot appears in the fragment shader.
@@ -306,12 +311,13 @@ typedef enum
     * register is written.  No FRAG_RESULT_DATAn will be written.
     */
    FRAG_RESULT_COLOR = 2,
+   FRAG_RESULT_SAMPLE_MASK = 3,
 
    /* FRAG_RESULT_DATAn are the per-render-target (GLSL gl_FragData[n]
     * or ARB_fragment_program fragment.color[n]) color results.  If
     * any are written, FRAG_RESULT_COLOR will not be written.
     */
-   FRAG_RESULT_DATA0 = 3,
+   FRAG_RESULT_DATA0 = 4,
    FRAG_RESULT_MAX = (FRAG_RESULT_DATA0 + MAX_DRAW_BUFFERS)
 } gl_frag_result;
 
@@ -872,6 +878,8 @@ struct gl_multisample_attrib
    GLboolean SampleCoverage;
    GLfloat SampleCoverageValue;
    GLboolean SampleCoverageInvert;
+   GLboolean SampleShading;
+   GLfloat MinSampleShadingValue;
 
    /* ARB_texture_multisample / GL3.2 additions */
    GLboolean SampleMask;
@@ -1902,6 +1910,8 @@ typedef enum
    SYSTEM_VALUE_FRONT_FACE,  /**< Fragment shader only (not done yet) */
    SYSTEM_VALUE_VERTEX_ID,   /**< Vertex shader only */
    SYSTEM_VALUE_INSTANCE_ID, /**< Vertex shader only */
+   SYSTEM_VALUE_SAMPLE_ID,   /**< Fragment shader only */
+   SYSTEM_VALUE_SAMPLE_POS,  /**< Fragment shader only */
    SYSTEM_VALUE_MAX          /**< Number of values */
 } gl_system_value;
 
@@ -3156,6 +3166,12 @@ struct gl_constants
     */
    GLboolean PrimitiveRestartInSoftware;
 
+   /**
+    * Always use the GetTransformFeedbackVertexCount() driver hook, rather
+    * than passing the transform feedback object to the drawing function.
+    */
+   GLboolean AlwaysUseGetTransformFeedbackVertexCount;
+
    /** GL_ARB_map_buffer_alignment */
    GLuint MinMapBufferAlignment;
 
@@ -3239,6 +3255,7 @@ struct gl_extensions
    GLboolean ARB_occlusion_query;
    GLboolean ARB_occlusion_query2;
    GLboolean ARB_point_sprite;
+   GLboolean ARB_sample_shading;
    GLboolean ARB_seamless_cube_map;
    GLboolean ARB_shader_atomic_counters;
    GLboolean ARB_shader_bit_encoding;

@@ -37,7 +37,7 @@
 static force_inline int
 count_leading_zeros (uint32_t x)
 {
-#ifdef __GNUC__
+#ifdef HAVE_BUILTIN_CLZ
     return __builtin_clz (x);
 #else
     int n = 0;

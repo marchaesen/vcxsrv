@@ -3045,10 +3045,22 @@ handle_detailed_physical_size(struct detailed_monitor_section
     if (det_mon->type == DT &&
         det_mon->section.d_timings.h_size != 0 &&
         det_mon->section.d_timings.v_size != 0) {
-
-        p->output->mm_width = det_mon->section.d_timings.h_size;
-        p->output->mm_height = det_mon->section.d_timings.v_size;
-        p->ret = TRUE;
+        /* some sanity checking for aspect ratio:
+           assume any h / v (or v / h) > 2.4 to be bogus.
+           This would even include cinemascope */
+        if (((det_mon->section.d_timings.h_size * 5) <
+             (det_mon->section.d_timings.v_size * 12)) &&
+            ((det_mon->section.d_timings.v_size * 5) <
+             (det_mon->section.d_timings.h_size * 12))) {
+            p->output->mm_width = det_mon->section.d_timings.h_size;
+            p->output->mm_height = det_mon->section.d_timings.v_size;
+            p->ret = TRUE;
+        } else
+            xf86DrvMsg(p->output->scrn->scrnIndex, X_WARNING,
+                       "Output %s: Strange aspect ratio (%i/%i), "
+                       "consider adding a quirk\n", p->output->name,
+                       det_mon->section.d_timings.h_size,
+                       det_mon->section.d_timings.v_size);
     }
 }
 

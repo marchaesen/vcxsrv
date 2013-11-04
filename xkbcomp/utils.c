@@ -88,65 +88,6 @@ uFree(Opaque ptr)
 }
 
 /***====================================================================***/
-/***                  FUNCTION ENTRY TRACKING                           ***/
-/***====================================================================***/
-
-static FILE *entryFile = NULL;
-int uEntryLevel;
-
-Boolean
-uSetEntryFile(char *name)
-{
-    if ((entryFile != NULL) && (entryFile != stderr))
-    {
-        fprintf(entryFile, "switching to %s\n", name ? name : "stderr");
-        fclose(entryFile);
-    }
-    if (name != NullString)
-        entryFile = fopen(name, "w");
-    else
-        entryFile = stderr;
-    if (entryFile == NULL)
-    {
-        entryFile = stderr;
-        return (False);
-    }
-    return (True);
-}
-
-void
-uEntry(int l, char *s, ...)
-{
-    int i;
-    va_list args;
-
-    for (i = 0; i < uEntryLevel; i++)
-    {
-        putc(' ', entryFile);
-    }
-    va_start(args, s);
-    vfprintf(entryFile, s, args);
-    va_end(args);
-    uEntryLevel += l;
-}
-
-void
-uExit(int l, char *rtVal)
-{
-    int i;
-
-    uEntryLevel -= l;
-    if (uEntryLevel < 0)
-        uEntryLevel = 0;
-    for (i = 0; i < uEntryLevel; i++)
-    {
-        putc(' ', entryFile);
-    }
-    fprintf(entryFile, "---> %p\n", rtVal);
-    return;
-}
-
-/***====================================================================***/
 /***			PRINT FUNCTIONS					***/
 /***====================================================================***/
 

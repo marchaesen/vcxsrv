@@ -2566,6 +2566,11 @@ FcParseMatch (FcConfigParse *parse)
 	}
 	FcVStackPopAndDestroy (parse);
     }
+    if (!rule)
+    {
+	FcConfigMessage (parse, FcSevereWarning, "No <test> nor <edit> elements in <match>");
+	return;
+    }
     if (!FcConfigAddRule (parse->config, rule, kind))
 	FcConfigMessage (parse, FcSevereError, "out of memory");
 }

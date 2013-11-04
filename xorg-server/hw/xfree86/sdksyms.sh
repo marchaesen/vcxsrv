@@ -99,6 +99,7 @@ cat > sdksyms.c << EOF
 # include "dri2.h"
 #endif
 
+# include "dri3.h"
 
 /* hw/xfree86/vgahw/Makefile.am -- module */
 /*

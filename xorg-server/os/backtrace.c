@@ -114,14 +114,15 @@ xorg_backtrace(void)
 void
 xorg_backtrace(void)
 {
-    void *array[64];
+    const int BT_SIZE = 64;
+    void *array[BT_SIZE];
     const char *mod;
     int size, i;
     Dl_info info;
 
     ErrorFSigSafe("\n");
     ErrorFSigSafe("Backtrace:\n");
-    size = backtrace(array, 64);
+    size = backtrace(array, BT_SIZE);
     for (i = 0; i < size; i++) {
         int rc = dladdr(array[i], &info);
 

@@ -56,6 +56,16 @@ typedef struct _ShmFuncs {
     void (*PutImage) (XSHM_PUT_IMAGE_ARGS);
 } ShmFuncs, *ShmFuncsPtr;
 
+typedef struct _ShmDesc {
+    struct _ShmDesc *next;
+    int shmid;
+    int refcnt;
+    char *addr;
+    Bool is_fd;
+    Bool writable;
+    unsigned long size;
+} ShmDescRec, *ShmDescPtr;
+
 extern _X_EXPORT void
  ShmRegisterFuncs(ScreenPtr pScreen, ShmFuncsPtr funcs);
 

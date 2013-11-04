@@ -72,8 +72,8 @@ extern int HandleActionDef(ExprDef * /* def */ ,
     );
 
 extern int SetActionField(XkbDescPtr /* xkb */ ,
-                          char * /* elem */ ,
-                          char * /* field */ ,
+                          const char * /* elem */ ,
+                          const char * /* field */ ,
                           ExprDef * /* index */ ,
                           ExprDef * /* value */ ,
                           ActionInfo ** /* info_rtrn */

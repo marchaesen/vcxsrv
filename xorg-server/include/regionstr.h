@@ -213,6 +213,8 @@ extern _X_EXPORT RegionPtr RegionCreate(BoxPtr /*rect */ ,
 
 extern _X_EXPORT void RegionDestroy(RegionPtr /*pReg */ );
 
+extern _X_EXPORT RegionPtr RegionDuplicate(RegionPtr /* pOld */);
+
 static inline Bool
 RegionCopy(RegionPtr dst, RegionPtr src)
 {

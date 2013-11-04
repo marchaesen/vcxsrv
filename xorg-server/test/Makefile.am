@@ -19,7 +19,7 @@ AM_CPPFLAGS += -I$(top_srcdir)/hw/xfree86/parser \
 	-I$(top_srcdir)/hw/xfree86/ddc \
 	-I$(top_srcdir)/hw/xfree86/i2c -I$(top_srcdir)/hw/xfree86/modes \
 	-I$(top_srcdir)/hw/xfree86/ramdac -I$(top_srcdir)/hw/xfree86/dri \
-	-I$(top_srcdir)/hw/xfree86/dri2
+	-I$(top_srcdir)/hw/xfree86/dri2 -I$(top_srcdir)/dri3
 endif
 TEST_LDADD=libxservertest.la $(XORG_SYS_LIBS) $(XSERVER_SYS_LIBS) $(GLX_SYS_LIBS)
 
@@ -64,6 +64,10 @@ if DRI2
 libxservertest_la_LIBADD += $(top_builddir)/hw/xfree86/dri2/libdri2.la
 endif
 
+if DRI3
+libxservertest_la_LIBADD += $(top_builddir)/dri3/libdri3.la
+endif
+
 else
 nodist_libxservertest_la_SOURCES = \
             ddxstubs.c \
@@ -103,6 +107,11 @@ endif
 if RECORD
 libxservertest_la_LIBADD += \
             $(top_builddir)/record/librecord.la
+endif
+
+if DRI3
+libxservertest_la_LIBADD += \
+            $(top_builddir)/dri3/libdri3.la
 endif
 
 if XQUARTZ

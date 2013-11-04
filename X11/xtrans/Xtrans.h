@@ -344,17 +344,15 @@ int TRANS(Write)(
     int			/* size */
 );
 
-int TRANS(Readv)(
-    XtransConnInfo,	/* ciptr */
-    struct iovec *,	/* buf */
-    int			/* size */
-);
-
 int TRANS(Writev)(
     XtransConnInfo,	/* ciptr */
     struct iovec *,	/* buf */
     int			/* size */
 );
+
+int TRANS(SendFd) (XtransConnInfo ciptr, int fd, int do_close);
+
+int TRANS(RecvFd) (XtransConnInfo ciptr);
 
 int TRANS(Disconnect)(
     XtransConnInfo	/* ciptr */

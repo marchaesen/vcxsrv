@@ -430,6 +430,11 @@ GetTimeInMillis(void)
 {
     return GetTickCount();
 }
+CARD64
+GetTimeInMicros(void)
+{
+    return (CARD64) GetTickCount() * 1000;
+}
 #else
 CARD32
 GetTimeInMillis(void)
@@ -459,6 +464,28 @@ GetTimeInMillis(void)
 
     X_GETTIMEOFDAY(&tv);
     return (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
+}
+
+CARD64
+GetTimeInMicros(void)
+{
+    struct timeval tv;
+#ifdef MONOTONIC_CLOCK
+    struct timespec tp;
+    static clockid_t clockid;
+
+    if (!clockid) {
+        if (clock_gettime(CLOCK_MONOTONIC, &tp) == 0)
+            clockid = CLOCK_MONOTONIC;
+        else
+            clockid = ~0L;
+    }
+    if (clock_gettime(CLOCK_MONOTONIC, &tp) == 0)
+        return (CARD64) tp.tv_sec * (CARD64)1000000 + tp.tv_nsec / 1000;
+#endif
+
+    X_GETTIMEOFDAY(&tv);
+    return (CARD64) tv.tv_sec * (CARD64)1000000000 + (CARD64) tv.tv_usec * 1000;
 }
 #endif
 

@@ -879,7 +879,7 @@ SetLevelName(KeyTypeInfo * type, ExprDef * arrayNdx, ExprDef * value)
 static Bool
 SetKeyTypeField(KeyTypeInfo * type,
                 XkbDescPtr xkb,
-                char *field,
+                const char *field,
                 ExprDef * arrayNdx, ExprDef * value, KeyTypesInfo * info)
 {
     ExprResult tmp;

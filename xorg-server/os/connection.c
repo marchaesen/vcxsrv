@@ -923,7 +923,7 @@ ErrorConnMax(XtransConnInfo trans_conn)
         iov[0].iov_len = sz_xConnSetupPrefix;
         iov[0].iov_base = (char *) &csp;
         iov[1].iov_len = csp.lengthReason;
-        iov[1].iov_base = NOROOM;
+        iov[1].iov_base = (void *) NOROOM;
         iov[2].iov_len = (4 - (csp.lengthReason & 3)) & 3;
         iov[2].iov_base = pad;
         (void) _XSERVTransWritev(trans_conn, iov, 3);

@@ -200,7 +200,7 @@ static LookupEntry groupComponentNames[] = {
 int
 SetIndicatorMapField(LEDInfo * led,
                      XkbDescPtr xkb,
-                     char *field, ExprDef * arrayNdx, ExprDef * value)
+                     const char *field, ExprDef *arrayNdx, ExprDef *value)
 {
     ExprResult rtrn;
     Bool ok;

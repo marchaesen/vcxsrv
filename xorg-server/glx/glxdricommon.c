@@ -178,6 +178,7 @@ createModeFromConfig(const __DRIcoreExtension * core,
     config->config.visualType = visualType;
     config->config.renderType = renderType;
     config->config.drawableType = drawableType;
+    config->config.yInverted = GL_TRUE;
 
     return &config->config;
 }

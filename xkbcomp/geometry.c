@@ -258,9 +258,9 @@ ddText(Display * dpy, DoodadInfo * di)
     }
     if (di->section)
     {
-        sprintf(buf, "%s in section %s",
-                XkbAtomText(dpy, di->name, XkbMessage), scText(dpy,
-                                                               di->section));
+        snprintf(buf, sizeof(buf), "%s in section %s",
+                 XkbAtomText(dpy, di->name, XkbMessage),
+                 scText(dpy, di->section));
         return buf;
     }
     return XkbAtomText(dpy, di->name, XkbMessage);
@@ -967,7 +967,7 @@ AddDoodad(SectionInfo * si, GeometryInfo * info, DoodadInfo * new)
 }
 
 static DoodadInfo *
-FindDfltDoodadByTypeName(char *name, SectionInfo * si, GeometryInfo * info)
+FindDfltDoodadByTypeName(const char *name, SectionInfo *si, GeometryInfo *info)
 {
     DoodadInfo *dflt;
     unsigned type;
@@ -1408,7 +1408,7 @@ HandleIncludeGeometry(IncludeStmt * stmt, XkbDescPtr xkb, GeometryInfo * info,
 
 static int
 SetShapeField(ShapeInfo * si,
-              char *field,
+              const char *field,
               ExprDef * arrayNdx, ExprDef * value, GeometryInfo * info)
 {
     ExprResult tmp;
@@ -1440,7 +1440,7 @@ SetShapeField(ShapeInfo * si,
 
 static int
 SetShapeDoodadField(DoodadInfo * di,
-                    char *field,
+                    const char *field,
                     ExprDef * arrayNdx,
                     ExprDef * value, SectionInfo * si, GeometryInfo * info)
 {
@@ -1510,14 +1510,14 @@ SetShapeDoodadField(DoodadInfo * di,
 
 static int
 SetTextDoodadField(DoodadInfo * di,
-                   char *field,
+                   const char *field,
                    ExprDef * arrayNdx,
                    ExprDef * value, SectionInfo * si, GeometryInfo * info)
 {
     ExprResult tmp;
     unsigned def;
     unsigned type;
-    char *typeName = "text doodad";
+    const char *typeName = "text doodad";
     union
     {
         Atom *str;
@@ -1660,7 +1660,7 @@ SetTextDoodadField(DoodadInfo * di,
 
 static int
 SetIndicatorDoodadField(DoodadInfo * di,
-                        char *field,
+                        const char *field,
                         ExprDef * arrayNdx,
                         ExprDef * value,
                         SectionInfo * si, GeometryInfo * info)
@@ -1705,12 +1705,12 @@ SetIndicatorDoodadField(DoodadInfo * di,
 
 static int
 SetLogoDoodadField(DoodadInfo * di,
-                   char *field,
+                   const char *field,
                    ExprDef * arrayNdx,
                    ExprDef * value, SectionInfo * si, GeometryInfo * info)
 {
     ExprResult tmp;
-    char *typeName = "logo doodad";
+    const char *typeName = "logo doodad";
 
     if ((!uStrCaseCmp(field, "corner"))
         || (!uStrCaseCmp(field, "cornerradius")))
@@ -1786,7 +1786,7 @@ SetLogoDoodadField(DoodadInfo * di,
 
 static int
 SetDoodadField(DoodadInfo * di,
-               char *field,
+               const char *field,
                ExprDef * arrayNdx,
                ExprDef * value, SectionInfo * si, GeometryInfo * info)
 {
@@ -1889,7 +1889,7 @@ SetDoodadField(DoodadInfo * di,
 
 static int
 SetSectionField(SectionInfo * si,
-                char *field,
+                const char *field,
                 ExprDef * arrayNdx, ExprDef * value, GeometryInfo * info)
 {
     unsigned short *pField;
@@ -1977,7 +1977,7 @@ SetSectionField(SectionInfo * si,
 
 static int
 SetRowField(RowInfo * row,
-            char *field,
+            const char *field,
             ExprDef * arrayNdx, ExprDef * value, GeometryInfo * info)
 {
     ExprResult tmp;
@@ -2841,7 +2841,7 @@ HandleGeometryFile(XkbFile * file,
                    XkbDescPtr xkb, unsigned merge, GeometryInfo * info)
 {
     ParseCommon *stmt;
-    char *failWhat;
+    const char *failWhat;
 
     if (merge == MergeDefault)
         merge = MergeAugment;
@@ -3273,7 +3273,7 @@ FontFromParts(Atom fontTok,
               Atom setWidthTok, Atom varTok, int size, Atom encodingTok)
 {
     int totalSize;
-    char *font, *weight, *slant, *setWidth, *variant, *encoding;
+    const char *font, *weight, *slant, *setWidth, *variant, *encoding;
     char *rtrn;
 
     font = (fontTok != None ? XkbAtomGetString(NULL, fontTok) : DFLT_FONT);
@@ -3297,8 +3297,8 @@ FontFromParts(Atom fontTok,
     rtrn = uCalloc(totalSize, 1);
     if (rtrn)
     {
-        sprintf(rtrn, FONT_TEMPLATE, font, weight, slant, setWidth, variant,
-                size, encoding);
+        snprintf(rtrn, totalSize, FONT_TEMPLATE, font, weight, slant,
+                 setWidth, variant, size, encoding);
     }
     return rtrn;
 }

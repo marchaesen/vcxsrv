@@ -695,9 +695,6 @@ hostx_screen_init(KdScreenInfo *screen,
             malloc(scrpriv->ximg->stride * buffer_height);
     }
 
-    *bytes_per_line = scrpriv->ximg->stride;
-    *bits_per_pixel = scrpriv->ximg->bpp;
-
     if (scrpriv->win_pre_existing == None && !EphyrWantResize) {
         /* Ask the WM to keep our size static */
         xcb_size_hints_t size_hints = {0};
@@ -717,13 +714,21 @@ hostx_screen_init(KdScreenInfo *screen,
     scrpriv->win_height = height;
 
     if (host_depth_matches_server(scrpriv)) {
+        *bytes_per_line = scrpriv->ximg->stride;
+        *bits_per_pixel = scrpriv->ximg->bpp;
+
         EPHYR_DBG("Host matches server");
         return scrpriv->ximg->data;
     }
     else {
-        EPHYR_DBG("server bpp %i", scrpriv->server_depth >> 3);
-        scrpriv->fb_data =
-            malloc(width * buffer_height * (scrpriv->server_depth >> 3));
+        int bytes_per_pixel = scrpriv->server_depth >> 3;
+        int stride = (width * bytes_per_pixel + 0x3) & ~0x3;
+
+        *bytes_per_line = stride;
+        *bits_per_pixel = scrpriv->server_depth;
+
+        EPHYR_DBG("server bpp %i", bytes_per_pixel);
+        scrpriv->fb_data = malloc (stride * buffer_height);
         return scrpriv->fb_data;
     }
 }
@@ -762,15 +767,14 @@ hostx_paint_rect(KdScreenInfo *screen,
 
     if (!host_depth_matches_server(scrpriv)) {
         int x, y, idx, bytes_per_pixel = (scrpriv->server_depth >> 3);
+        int stride = (scrpriv->win_width * bytes_per_pixel + 0x3) & ~0x3;
         unsigned char r, g, b;
         unsigned long host_pixel;
 
         EPHYR_DBG("Unmatched host depth scrpriv=%p\n", scrpriv);
         for (y = sy; y < sy + height; y++)
             for (x = sx; x < sx + width; x++) {
-                idx =
-                    (scrpriv->win_width * y * bytes_per_pixel) +
-                    (x * bytes_per_pixel);
+                idx = y * stride + x * bytes_per_pixel;
 
                 switch (scrpriv->server_depth) {
                 case 16:
