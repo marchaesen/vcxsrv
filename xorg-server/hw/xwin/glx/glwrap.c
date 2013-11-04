@@ -42,8 +42,6 @@
 #include <glx/glheader.h>
 #include <glx/glxserver.h>
 #include <glx/glxext.h>
-#include <glx/glapi.h>
-#include <glx/dispatch.h>
 #include <glwindows.h>
 #include <winmsg.h>
 

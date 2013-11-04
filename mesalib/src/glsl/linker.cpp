@@ -558,29 +558,6 @@ validate_geometry_shader_executable(struct gl_shader_program *prog,
 
 
 /**
- * Generate a string describing the mode of a variable
- */
-static const char *
-mode_string(const ir_variable *var)
-{
-   switch (var->mode) {
-   case ir_var_auto:
-      return (var->read_only) ? "global constant" : "global variable";
-
-   case ir_var_uniform:    return "uniform";
-   case ir_var_shader_in:  return "shader input";
-   case ir_var_shader_out: return "shader output";
-
-   case ir_var_const_in:
-   case ir_var_temporary:
-   default:
-      assert(!"Should not get here.");
-      return "invalid variable";
-   }
-}
-
-
-/**
  * Perform validation of global variables used across multiple shaders
  */
 void
@@ -1108,7 +1085,7 @@ private:
     */
    static void fixup_type(const glsl_type **type, unsigned max_array_access)
    {
-      if ((*type)->is_array() && (*type)->length == 0) {
+      if ((*type)->is_unsized_array()) {
          *type = glsl_type::get_array_instance((*type)->fields.array,
                                                max_array_access + 1);
          assert(*type != NULL);
@@ -1123,7 +1100,7 @@ private:
    {
       for (unsigned i = 0; i < type->length; i++) {
          const glsl_type *elem_type = type->fields.structure[i].type;
-         if (elem_type->is_array() && elem_type->length == 0)
+         if (elem_type->is_unsized_array())
             return true;
       }
       return false;

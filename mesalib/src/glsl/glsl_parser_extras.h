@@ -69,6 +69,10 @@ typedef struct YYLTYPE {
 # define YYLTYPE_IS_DECLARED 1
 # define YYLTYPE_IS_TRIVIAL 1
 
+extern void _mesa_glsl_error(YYLTYPE *locp, _mesa_glsl_parse_state *state,
+			     const char *fmt, ...);
+
+
 struct _mesa_glsl_parse_state {
    _mesa_glsl_parse_state(struct gl_context *_ctx, GLenum target,
 			  void *mem_ctx);
@@ -123,6 +127,22 @@ struct _mesa_glsl_parse_state {
    bool check_bitwise_operations_allowed(YYLTYPE *locp)
    {
       return check_version(130, 300, locp, "bit-wise operations are forbidden");
+   }
+
+   bool check_explicit_attrib_location_allowed(YYLTYPE *locp,
+                                               const ir_variable *var)
+   {
+      if (!this->has_explicit_attrib_location()) {
+         const char *const requirement = this->es_shader
+            ? "GLSL ES 300"
+            : "GL_ARB_explicit_attrib_location extension or GLSL 330";
+
+         _mesa_glsl_error(locp, this, "%s explicit location requires %s",
+                          mode_string(var), requirement);
+         return false;
+      }
+
+      return true;
    }
 
    bool has_explicit_attrib_location() const
@@ -233,6 +253,13 @@ struct _mesa_glsl_parse_state {
       unsigned MaxGeometryOutputVertices;
       unsigned MaxGeometryTotalOutputComponents;
       unsigned MaxGeometryUniformComponents;
+
+      /* ARB_shader_atomic_counters */
+      unsigned MaxVertexAtomicCounters;
+      unsigned MaxGeometryAtomicCounters;
+      unsigned MaxFragmentAtomicCounters;
+      unsigned MaxCombinedAtomicCounters;
+      unsigned MaxAtomicBufferBindings;
    } Const;
 
    /**
@@ -329,6 +356,8 @@ struct _mesa_glsl_parse_state {
    bool ARB_shading_language_420pack_warn;
    bool EXT_shader_integer_mix_enable;
    bool EXT_shader_integer_mix_warn;
+   bool ARB_shader_atomic_counters_enable;
+   bool ARB_shader_atomic_counters_warn;
    /*@}*/
 
    /** Extensions supported by the OpenGL implementation. */
@@ -366,9 +395,6 @@ do {								\
    }								\
    (Current).source = 0;					\
 } while (0)
-
-extern void _mesa_glsl_error(YYLTYPE *locp, _mesa_glsl_parse_state *state,
-			     const char *fmt, ...);
 
 /**
  * Emit a warning to the shader log

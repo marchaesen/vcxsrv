@@ -143,7 +143,7 @@ _mesa_ast_array_index_to_hir(void *mem_ctx,
 	    bound = array->type->vector_elements;
 	 }
       } else {
-	 /* glsl_type::array_size() returns 0 for non-array types.  This means
+	 /* glsl_type::array_size() returns -1 for non-array types.  This means
 	  * that we don't need to verify that the type is an array before
 	  * doing the bounds checking.
 	  */
@@ -165,7 +165,7 @@ _mesa_ast_array_index_to_hir(void *mem_ctx,
       if (array->type->is_array())
          update_max_array_access(array, idx, &loc, state);
    } else if (const_index == NULL && array->type->is_array()) {
-      if (array->type->array_size() == 0) {
+      if (array->type->is_unsized_array()) {
 	 _mesa_glsl_error(&loc, state, "unsized array index must be constant");
       } else if (array->type->fields.array->is_interface()
                  && array->variable_referenced()->mode == ir_var_uniform) {

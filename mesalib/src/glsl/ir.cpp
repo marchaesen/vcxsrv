@@ -1586,7 +1586,7 @@ ir_variable::ir_variable(const struct glsl_type *type, const char *name,
 			 ir_variable_mode mode)
    : max_array_access(0), max_ifc_array_access(NULL),
      read_only(false), centroid(false), invariant(false),
-     mode(mode), interpolation(INTERP_QUALIFIER_NONE)
+        mode(mode), interpolation(INTERP_QUALIFIER_NONE), atomic()
 {
    this->ir_type = ir_type_variable;
    this->type = type;
@@ -1647,8 +1647,8 @@ ir_variable::determine_interpolation_mode(bool flat_shade)
 
 ir_function_signature::ir_function_signature(const glsl_type *return_type,
                                              builtin_available_predicate b)
-   : return_type(return_type), is_defined(false), builtin_avail(b),
-     _function(NULL)
+   : return_type(return_type), is_defined(false), is_intrinsic(false),
+     builtin_avail(b), _function(NULL)
 {
    this->ir_type = ir_type_function_signature;
    this->origin = NULL;
@@ -1890,4 +1890,47 @@ vertices_per_prim(GLenum prim)
       assert(!"Bad primitive");
       return 3;
    }
+}
+
+/**
+ * Generate a string describing the mode of a variable
+ */
+const char *
+mode_string(const ir_variable *var)
+{
+   switch (var->mode) {
+   case ir_var_auto:
+      return (var->read_only) ? "global constant" : "global variable";
+
+   case ir_var_uniform:
+      return "uniform";
+
+   case ir_var_shader_in:
+      return "shader input";
+
+   case ir_var_shader_out:
+      return "shader output";
+
+   case ir_var_function_in:
+   case ir_var_const_in:
+      return "function input";
+
+   case ir_var_function_out:
+      return "function output";
+
+   case ir_var_function_inout:
+      return "function inout";
+
+   case ir_var_system_value:
+      return "shader input";
+
+   case ir_var_temporary:
+      return "compiler temporary";
+
+   case ir_var_mode_count:
+      break;
+   }
+
+   assert(!"Should not get here.");
+   return "invalid variable";
 }

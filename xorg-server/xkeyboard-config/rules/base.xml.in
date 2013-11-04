@@ -2174,19 +2174,19 @@
         <variant>
           <configItem>
             <name>nativo</name>
-            <_description>Portuguese (Brazil, nativo)</_description>
+            <_description>Portuguese (Brazil, Nativo)</_description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>nativo-us</name>
-            <_description>Portuguese (Brazil, nativo for US keyboards)</_description>
+            <_description>Portuguese (Brazil, Nativo for US keyboards)</_description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>nativo-epo</name>
-            <_description>Portuguese (Brazil, nativo for Esperanto)</_description>
+            <_description>Esperanto (Brazil, Nativo)</_description>
             <languageList>
               <iso639Id>epo</iso639Id>
             </languageList>

@@ -123,6 +123,28 @@ GetBackEndDisplay(__GLXclientState * cl, int s)
     return cl->be_displays[s];
 }
 
+/**
+ * Convert the render type bits from fbconfig into context render type.
+ */
+static int
+renderTypeBitsToRenderTypeEnum(int fbRenderType)
+{
+    if (fbRenderType & GLX_RGBA_BIT)
+        return GLX_RGBA_TYPE;
+
+    if (fbRenderType & GLX_COLOR_INDEX_BIT)
+        return  GLX_COLOR_INDEX_TYPE;
+
+    if (fbRenderType & GLX_RGBA_FLOAT_BIT_ARB)
+        return GLX_RGBA_FLOAT_TYPE_ARB;
+
+    if (fbRenderType & GLX_RGBA_UNSIGNED_FLOAT_BIT_EXT)
+        return GLX_RGBA_UNSIGNED_FLOAT_TYPE_EXT;
+
+    /* There's no recognized renderType in the config */
+    return GLX_RGBA_TYPE;
+}
+
 /*
 ** Create a GL context with the given properties.
 */
@@ -308,12 +330,14 @@ CreateContext(__GLXclientState * cl,
         /* send the create context request to the back-end server */
         dpy = GetBackEndDisplay(cl, screen);
         if (glxc->pFBConfig) {
-            /*Since for a certain visual both RGB and COLOR INDEX
-             *can be on then the only parmeter to choose the renderType
-             * should be the class of the colormap since all 4 first 
-             * classes does not support RGB mode only COLOR INDEX ,
-             * and so TrueColor and DirectColor does not support COLOR INDEX*/
-            int renderType = glxc->pFBConfig->renderType;
+            /* For a specific visual, multiple render types (i.e., both RGB
+             * and COLOR INDEX) can be accessible. The only parameter to
+             * choose the renderType should be the class of the colormap,
+             * since the first classes do not support RGB mode (only COLOR
+             * INDEX), and TrueColor and DirectColor do not support COLOR
+             * INDEX.
+             */
+            int renderType = GLX_RGBA_TYPE;
 
             if (pVisual) {
                 switch (pVisual->class) {
@@ -329,7 +353,11 @@ CreateContext(__GLXclientState * cl,
                     renderType = GLX_RGBA_TYPE;
                     break;
                 }
+            } else {
+                renderType =
+                    renderTypeBitsToRenderTypeEnum(glxc->pFBConfig->renderType);
             }
+
             if (__GLX_IS_VERSION_SUPPORTED(1, 3)) {
                 LockDisplay(dpy);
                 GetReq(GLXCreateNewContext, be_new_req);
@@ -3210,7 +3238,7 @@ __glXQueryContext(__GLXclientState * cl, GLbyte * pc)
     *pSendBuf++ = GLX_FBCONFIG_ID;
     *pSendBuf++ = (int) (ctx->pFBConfig->id);
     *pSendBuf++ = GLX_RENDER_TYPE;
-    *pSendBuf++ = (int) (ctx->pFBConfig->renderType);
+    *pSendBuf++ = renderTypeBitsToRenderTypeEnum(ctx->pFBConfig->renderType);
     *pSendBuf++ = GLX_SCREEN;
     *pSendBuf++ = (int) (ctx->pScreen->myNum);
 

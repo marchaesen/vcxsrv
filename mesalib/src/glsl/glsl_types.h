@@ -53,6 +53,7 @@ enum glsl_base_type {
    GLSL_TYPE_FLOAT,
    GLSL_TYPE_BOOL,
    GLSL_TYPE_SAMPLER,
+   GLSL_TYPE_ATOMIC_UINT,
    GLSL_TYPE_STRUCT,
    GLSL_TYPE_INTERFACE,
    GLSL_TYPE_ARRAY,
@@ -441,6 +442,32 @@ struct glsl_type {
    }
 
    /**
+    * Return the amount of atomic counter storage required for a type.
+    */
+   unsigned atomic_size() const
+   {
+      if (base_type == GLSL_TYPE_ATOMIC_UINT)
+         return ATOMIC_COUNTER_SIZE;
+      else if (is_array())
+         return length * element_type()->atomic_size();
+      else
+         return 0;
+   }
+
+   /**
+    * Return whether a type contains any atomic counters.
+    */
+   bool contains_atomic() const
+   {
+      return atomic_size();
+   }
+
+   /**
+    * Return whether a type contains any opaque types.
+    */
+   bool contains_opaque() const;
+
+   /**
     * Query the full type of a matrix row
     *
     * \return
@@ -468,7 +495,6 @@ struct glsl_type {
 	 : error_type;
    }
 
-
    /**
     * Get the type of a structure field
     *
@@ -478,12 +504,10 @@ struct glsl_type {
     */
    const glsl_type *field_type(const char *name) const;
 
-
    /**
     * Get the location of a filed within a record type
     */
    int field_index(const char *name) const;
-
 
    /**
     * Query the number of elements in an array type
@@ -496,6 +520,14 @@ struct glsl_type {
    int array_size() const
    {
       return is_array() ? length : -1;
+   }
+
+   /**
+    * Query whether the array size for all dimensions has been declared.
+    */
+   bool is_unsized_array() const
+   {
+      return is_array() && length == 0;
    }
 
    /**

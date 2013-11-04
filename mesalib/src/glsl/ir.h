@@ -639,6 +639,14 @@ public:
    int binding;
 
    /**
+    * Location an atomic counter is stored at.
+    */
+   struct {
+      unsigned buffer_index;
+      unsigned offset;
+   } atomic;
+
+   /**
     * Built-in state that backs this uniform
     *
     * Once set at variable creation, \c state_slots must remain invariant.
@@ -778,6 +786,12 @@ public:
 
    /** Whether or not this function signature is a built-in. */
    bool is_builtin() const;
+
+   /**
+    * Whether or not this function is an intrinsic to be implemented
+    * by the driver.
+    */
+   bool is_intrinsic;
 
    /** Whether or not a built-in is available for this shader. */
    bool is_builtin_available(const _mesa_glsl_parse_state *state) const;
@@ -2291,6 +2305,9 @@ do_set_program_inouts(exec_list *instructions, struct gl_program *prog,
 extern char *
 prototype_string(const glsl_type *return_type, const char *name,
 		 exec_list *parameters);
+
+const char *
+mode_string(const ir_variable *var);
 
 extern "C" {
 #endif /* __cplusplus */

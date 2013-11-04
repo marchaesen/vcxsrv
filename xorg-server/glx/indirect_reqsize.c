@@ -43,25 +43,24 @@
 #define __GLX_PAD(x)  (((x) + 3) & ~3)
 
 #if defined(__CYGWIN__) || defined(__MINGW32__)
-#  undef HAVE_ALIAS
+#undef HAVE_ALIAS
 #endif
 #ifdef HAVE_ALIAS
-#  define ALIAS2(from,to) \
+#define ALIAS2(from,to) \
     GLint __glX ## from ## ReqSize( const GLbyte * pc, Bool swap ) \
         __attribute__ ((alias( # to )));
-#  define ALIAS(from,to) ALIAS2( from, __glX ## to ## ReqSize )
+#define ALIAS(from,to) ALIAS2( from, __glX ## to ## ReqSize )
 #else
-#  define ALIAS(from,to) \
+#define ALIAS(from,to) \
     GLint __glX ## from ## ReqSize( const GLbyte * pc, Bool swap ) \
     { return __glX ## to ## ReqSize( pc, swap ); }
 #endif
 
-
 int
-__glXCallListsReqSize( const GLbyte * pc, Bool swap )
+__glXCallListsReqSize(const GLbyte * pc, Bool swap)
 {
-GLsizei n          = *(GLsizei *)(pc + 0);
-GLenum type        = * (GLenum *)(pc + 4);
+    GLsizei n = *(GLsizei *) (pc + 0);
+    GLenum type = *(GLenum *) (pc + 4);
     GLsizei compsize;
 
     if (swap) {
@@ -74,15 +73,15 @@ GLenum type        = * (GLenum *)(pc + 4);
 }
 
 int
-__glXBitmapReqSize( const GLbyte * pc, Bool swap )
+__glXBitmapReqSize(const GLbyte * pc, Bool swap)
 {
-    GLint row_length   = *  (GLint *)(pc +  4);
+    GLint row_length = *(GLint *) (pc + 4);
     GLint image_height = 0;
-    GLint skip_images  = 0;
-    GLint skip_rows    = *  (GLint *)(pc +  8);
-    GLint alignment    = *  (GLint *)(pc + 16);
-GLsizei width      = *(GLsizei *)(pc + 20);
-GLsizei height     = *(GLsizei *)(pc + 24);
+    GLint skip_images = 0;
+    GLint skip_rows = *(GLint *) (pc + 8);
+    GLint alignment = *(GLint *) (pc + 16);
+    GLsizei width = *(GLsizei *) (pc + 20);
+    GLsizei height = *(GLsizei *) (pc + 24);
 
     if (swap) {
         row_length = bswap_32(row_length);
@@ -98,9 +97,9 @@ GLsizei height     = *(GLsizei *)(pc + 24);
 }
 
 int
-__glXFogfvReqSize( const GLbyte * pc, Bool swap )
+__glXFogfvReqSize(const GLbyte * pc, Bool swap)
 {
-GLenum pname       = * (GLenum *)(pc + 0);
+    GLenum pname = *(GLenum *) (pc + 0);
     GLsizei compsize;
 
     if (swap) {
@@ -112,9 +111,9 @@ GLenum pname       = * (GLenum *)(pc + 0);
 }
 
 int
-__glXLightfvReqSize( const GLbyte * pc, Bool swap )
+__glXLightfvReqSize(const GLbyte * pc, Bool swap)
 {
-GLenum pname       = * (GLenum *)(pc + 4);
+    GLenum pname = *(GLenum *) (pc + 4);
     GLsizei compsize;
 
     if (swap) {
@@ -126,9 +125,9 @@ GLenum pname       = * (GLenum *)(pc + 4);
 }
 
 int
-__glXLightModelfvReqSize( const GLbyte * pc, Bool swap )
+__glXLightModelfvReqSize(const GLbyte * pc, Bool swap)
 {
-GLenum pname       = * (GLenum *)(pc + 0);
+    GLenum pname = *(GLenum *) (pc + 0);
     GLsizei compsize;
 
     if (swap) {
@@ -140,9 +139,9 @@ GLenum pname       = * (GLenum *)(pc + 0);
 }
 
 int
-__glXMaterialfvReqSize( const GLbyte * pc, Bool swap )
+__glXMaterialfvReqSize(const GLbyte * pc, Bool swap)
 {
-GLenum pname       = * (GLenum *)(pc + 4);
+    GLenum pname = *(GLenum *) (pc + 4);
     GLsizei compsize;
 
     if (swap) {
@@ -154,13 +153,13 @@ GLenum pname       = * (GLenum *)(pc + 4);
 }
 
 int
-__glXPolygonStippleReqSize( const GLbyte * pc, Bool swap )
+__glXPolygonStippleReqSize(const GLbyte * pc, Bool swap)
 {
-    GLint row_length   = *  (GLint *)(pc +  4);
+    GLint row_length = *(GLint *) (pc + 4);
     GLint image_height = 0;
-    GLint skip_images  = 0;
-    GLint skip_rows    = *  (GLint *)(pc +  8);
-    GLint alignment    = *  (GLint *)(pc + 16);
+    GLint skip_images = 0;
+    GLint skip_rows = *(GLint *) (pc + 8);
+    GLint alignment = *(GLint *) (pc + 16);
 
     if (swap) {
         row_length = bswap_32(row_length);
@@ -174,9 +173,9 @@ __glXPolygonStippleReqSize( const GLbyte * pc, Bool swap )
 }
 
 int
-__glXTexParameterfvReqSize( const GLbyte * pc, Bool swap )
+__glXTexParameterfvReqSize(const GLbyte * pc, Bool swap)
 {
-GLenum pname       = * (GLenum *)(pc + 4);
+    GLenum pname = *(GLenum *) (pc + 4);
     GLsizei compsize;
 
     if (swap) {
@@ -188,17 +187,17 @@ GLenum pname       = * (GLenum *)(pc + 4);
 }
 
 int
-__glXTexImage1DReqSize( const GLbyte * pc, Bool swap )
+__glXTexImage1DReqSize(const GLbyte * pc, Bool swap)
 {
-    GLint row_length   = *  (GLint *)(pc +  4);
+    GLint row_length = *(GLint *) (pc + 4);
     GLint image_height = 0;
-    GLint skip_images  = 0;
-    GLint skip_rows    = *  (GLint *)(pc +  8);
-    GLint alignment    = *  (GLint *)(pc + 16);
-GLenum target      = * (GLenum *)(pc + 20);
-GLsizei width      = *(GLsizei *)(pc + 32);
-GLenum format      = * (GLenum *)(pc + 44);
-GLenum type        = * (GLenum *)(pc + 48);
+    GLint skip_images = 0;
+    GLint skip_rows = *(GLint *) (pc + 8);
+    GLint alignment = *(GLint *) (pc + 16);
+    GLenum target = *(GLenum *) (pc + 20);
+    GLsizei width = *(GLsizei *) (pc + 32);
+    GLenum format = *(GLenum *) (pc + 44);
+    GLenum type = *(GLenum *) (pc + 48);
 
     if (swap) {
         row_length = bswap_32(row_length);
@@ -216,18 +215,18 @@ GLenum type        = * (GLenum *)(pc + 48);
 }
 
 int
-__glXTexImage2DReqSize( const GLbyte * pc, Bool swap )
+__glXTexImage2DReqSize(const GLbyte * pc, Bool swap)
 {
-    GLint row_length   = *  (GLint *)(pc +  4);
+    GLint row_length = *(GLint *) (pc + 4);
     GLint image_height = 0;
-    GLint skip_images  = 0;
-    GLint skip_rows    = *  (GLint *)(pc +  8);
-    GLint alignment    = *  (GLint *)(pc + 16);
-GLenum target      = * (GLenum *)(pc + 20);
-GLsizei width      = *(GLsizei *)(pc + 32);
-GLsizei height     = *(GLsizei *)(pc + 36);
-GLenum format      = * (GLenum *)(pc + 44);
-GLenum type        = * (GLenum *)(pc + 48);
+    GLint skip_images = 0;
+    GLint skip_rows = *(GLint *) (pc + 8);
+    GLint alignment = *(GLint *) (pc + 16);
+    GLenum target = *(GLenum *) (pc + 20);
+    GLsizei width = *(GLsizei *) (pc + 32);
+    GLsizei height = *(GLsizei *) (pc + 36);
+    GLenum format = *(GLenum *) (pc + 44);
+    GLenum type = *(GLenum *) (pc + 48);
 
     if (swap) {
         row_length = bswap_32(row_length);
@@ -246,9 +245,9 @@ GLenum type        = * (GLenum *)(pc + 48);
 }
 
 int
-__glXTexEnvfvReqSize( const GLbyte * pc, Bool swap )
+__glXTexEnvfvReqSize(const GLbyte * pc, Bool swap)
 {
-GLenum pname       = * (GLenum *)(pc + 4);
+    GLenum pname = *(GLenum *) (pc + 4);
     GLsizei compsize;
 
     if (swap) {
@@ -260,9 +259,9 @@ GLenum pname       = * (GLenum *)(pc + 4);
 }
 
 int
-__glXTexGendvReqSize( const GLbyte * pc, Bool swap )
+__glXTexGendvReqSize(const GLbyte * pc, Bool swap)
 {
-GLenum pname       = * (GLenum *)(pc + 4);
+    GLenum pname = *(GLenum *) (pc + 4);
     GLsizei compsize;
 
     if (swap) {
@@ -274,9 +273,9 @@ GLenum pname       = * (GLenum *)(pc + 4);
 }
 
 int
-__glXTexGenfvReqSize( const GLbyte * pc, Bool swap )
+__glXTexGenfvReqSize(const GLbyte * pc, Bool swap)
 {
-GLenum pname       = * (GLenum *)(pc + 4);
+    GLenum pname = *(GLenum *) (pc + 4);
     GLsizei compsize;
 
     if (swap) {
@@ -288,9 +287,9 @@ GLenum pname       = * (GLenum *)(pc + 4);
 }
 
 int
-__glXPixelMapfvReqSize( const GLbyte * pc, Bool swap )
+__glXPixelMapfvReqSize(const GLbyte * pc, Bool swap)
 {
-GLsizei mapsize    = *(GLsizei *)(pc + 4);
+    GLsizei mapsize = *(GLsizei *) (pc + 4);
 
     if (swap) {
         mapsize = bswap_32(mapsize);
@@ -300,9 +299,9 @@ GLsizei mapsize    = *(GLsizei *)(pc + 4);
 }
 
 int
-__glXPixelMapusvReqSize( const GLbyte * pc, Bool swap )
+__glXPixelMapusvReqSize(const GLbyte * pc, Bool swap)
 {
-GLsizei mapsize    = *(GLsizei *)(pc + 4);
+    GLsizei mapsize = *(GLsizei *) (pc + 4);
 
     if (swap) {
         mapsize = bswap_32(mapsize);
@@ -312,17 +311,17 @@ GLsizei mapsize    = *(GLsizei *)(pc + 4);
 }
 
 int
-__glXDrawPixelsReqSize( const GLbyte * pc, Bool swap )
+__glXDrawPixelsReqSize(const GLbyte * pc, Bool swap)
 {
-    GLint row_length   = *  (GLint *)(pc +  4);
+    GLint row_length = *(GLint *) (pc + 4);
     GLint image_height = 0;
-    GLint skip_images  = 0;
-    GLint skip_rows    = *  (GLint *)(pc +  8);
-    GLint alignment    = *  (GLint *)(pc + 16);
-GLsizei width      = *(GLsizei *)(pc + 20);
-GLsizei height     = *(GLsizei *)(pc + 24);
-GLenum format      = * (GLenum *)(pc + 28);
-GLenum type        = * (GLenum *)(pc + 32);
+    GLint skip_images = 0;
+    GLint skip_rows = *(GLint *) (pc + 8);
+    GLint alignment = *(GLint *) (pc + 16);
+    GLsizei width = *(GLsizei *) (pc + 20);
+    GLsizei height = *(GLsizei *) (pc + 24);
+    GLenum format = *(GLenum *) (pc + 28);
+    GLenum type = *(GLenum *) (pc + 32);
 
     if (swap) {
         row_length = bswap_32(row_length);
@@ -340,9 +339,9 @@ GLenum type        = * (GLenum *)(pc + 32);
 }
 
 int
-__glXPrioritizeTexturesReqSize( const GLbyte * pc, Bool swap )
+__glXPrioritizeTexturesReqSize(const GLbyte * pc, Bool swap)
 {
-GLsizei n          = *(GLsizei *)(pc + 0);
+    GLsizei n = *(GLsizei *) (pc + 0);
 
     if (swap) {
         n = bswap_32(n);
@@ -352,17 +351,17 @@ GLsizei n          = *(GLsizei *)(pc + 0);
 }
 
 int
-__glXTexSubImage1DReqSize( const GLbyte * pc, Bool swap )
+__glXTexSubImage1DReqSize(const GLbyte * pc, Bool swap)
 {
-    GLint row_length   = *  (GLint *)(pc +  4);
+    GLint row_length = *(GLint *) (pc + 4);
     GLint image_height = 0;
-    GLint skip_images  = 0;
-    GLint skip_rows    = *  (GLint *)(pc +  8);
-    GLint alignment    = *  (GLint *)(pc + 16);
-GLenum target      = * (GLenum *)(pc + 20);
-GLsizei width      = *(GLsizei *)(pc + 36);
-GLenum format      = * (GLenum *)(pc + 44);
-GLenum type        = * (GLenum *)(pc + 48);
+    GLint skip_images = 0;
+    GLint skip_rows = *(GLint *) (pc + 8);
+    GLint alignment = *(GLint *) (pc + 16);
+    GLenum target = *(GLenum *) (pc + 20);
+    GLsizei width = *(GLsizei *) (pc + 36);
+    GLenum format = *(GLenum *) (pc + 44);
+    GLenum type = *(GLenum *) (pc + 48);
 
     if (swap) {
         row_length = bswap_32(row_length);
@@ -380,18 +379,18 @@ GLenum type        = * (GLenum *)(pc + 48);
 }
 
 int
-__glXTexSubImage2DReqSize( const GLbyte * pc, Bool swap )
+__glXTexSubImage2DReqSize(const GLbyte * pc, Bool swap)
 {
-    GLint row_length   = *  (GLint *)(pc +  4);
+    GLint row_length = *(GLint *) (pc + 4);
     GLint image_height = 0;
-    GLint skip_images  = 0;
-    GLint skip_rows    = *  (GLint *)(pc +  8);
-    GLint alignment    = *  (GLint *)(pc + 16);
-GLenum target      = * (GLenum *)(pc + 20);
-GLsizei width      = *(GLsizei *)(pc + 36);
-GLsizei height     = *(GLsizei *)(pc + 40);
-GLenum format      = * (GLenum *)(pc + 44);
-GLenum type        = * (GLenum *)(pc + 48);
+    GLint skip_images = 0;
+    GLint skip_rows = *(GLint *) (pc + 8);
+    GLint alignment = *(GLint *) (pc + 16);
+    GLenum target = *(GLenum *) (pc + 20);
+    GLsizei width = *(GLsizei *) (pc + 36);
+    GLsizei height = *(GLsizei *) (pc + 40);
+    GLenum format = *(GLenum *) (pc + 44);
+    GLenum type = *(GLenum *) (pc + 48);
 
     if (swap) {
         row_length = bswap_32(row_length);
@@ -410,17 +409,17 @@ GLenum type        = * (GLenum *)(pc + 48);
 }
 
 int
-__glXColorTableReqSize( const GLbyte * pc, Bool swap )
+__glXColorTableReqSize(const GLbyte * pc, Bool swap)
 {
-    GLint row_length   = *  (GLint *)(pc +  4);
+    GLint row_length = *(GLint *) (pc + 4);
     GLint image_height = 0;
-    GLint skip_images  = 0;
-    GLint skip_rows    = *  (GLint *)(pc +  8);
-    GLint alignment    = *  (GLint *)(pc + 16);
-GLenum target      = * (GLenum *)(pc + 20);
-GLsizei width      = *(GLsizei *)(pc + 28);
-GLenum format      = * (GLenum *)(pc + 32);
-GLenum type        = * (GLenum *)(pc + 36);
+    GLint skip_images = 0;
+    GLint skip_rows = *(GLint *) (pc + 8);
+    GLint alignment = *(GLint *) (pc + 16);
+    GLenum target = *(GLenum *) (pc + 20);
+    GLsizei width = *(GLsizei *) (pc + 28);
+    GLenum format = *(GLenum *) (pc + 32);
+    GLenum type = *(GLenum *) (pc + 36);
 
     if (swap) {
         row_length = bswap_32(row_length);
@@ -438,9 +437,9 @@ GLenum type        = * (GLenum *)(pc + 36);
 }
 
 int
-__glXColorTableParameterfvReqSize( const GLbyte * pc, Bool swap )
+__glXColorTableParameterfvReqSize(const GLbyte * pc, Bool swap)
 {
-GLenum pname       = * (GLenum *)(pc + 4);
+    GLenum pname = *(GLenum *) (pc + 4);
     GLsizei compsize;
 
     if (swap) {
@@ -452,17 +451,17 @@ GLenum pname       = * (GLenum *)(pc + 4);
 }
 
 int
-__glXColorSubTableReqSize( const GLbyte * pc, Bool swap )
+__glXColorSubTableReqSize(const GLbyte * pc, Bool swap)
 {
-    GLint row_length   = *  (GLint *)(pc +  4);
+    GLint row_length = *(GLint *) (pc + 4);
     GLint image_height = 0;
-    GLint skip_images  = 0;
-    GLint skip_rows    = *  (GLint *)(pc +  8);
-    GLint alignment    = *  (GLint *)(pc + 16);
-GLenum target      = * (GLenum *)(pc + 20);
-GLsizei count      = *(GLsizei *)(pc + 28);
-GLenum format      = * (GLenum *)(pc + 32);
-GLenum type        = * (GLenum *)(pc + 36);
+    GLint skip_images = 0;
+    GLint skip_rows = *(GLint *) (pc + 8);
+    GLint alignment = *(GLint *) (pc + 16);
+    GLenum target = *(GLenum *) (pc + 20);
+    GLsizei count = *(GLsizei *) (pc + 28);
+    GLenum format = *(GLenum *) (pc + 32);
+    GLenum type = *(GLenum *) (pc + 36);
 
     if (swap) {
         row_length = bswap_32(row_length);
@@ -480,17 +479,17 @@ GLenum type        = * (GLenum *)(pc + 36);
 }
 
 int
-__glXConvolutionFilter1DReqSize( const GLbyte * pc, Bool swap )
+__glXConvolutionFilter1DReqSize(const GLbyte * pc, Bool swap)
 {
-    GLint row_length   = *  (GLint *)(pc +  4);
+    GLint row_length = *(GLint *) (pc + 4);
     GLint image_height = 0;
-    GLint skip_images  = 0;
-    GLint skip_rows    = *  (GLint *)(pc +  8);
-    GLint alignment    = *  (GLint *)(pc + 16);
-GLenum target      = * (GLenum *)(pc + 20);
-GLsizei width      = *(GLsizei *)(pc + 28);
-GLenum format      = * (GLenum *)(pc + 36);
-GLenum type        = * (GLenum *)(pc + 40);
+    GLint skip_images = 0;
+    GLint skip_rows = *(GLint *) (pc + 8);
+    GLint alignment = *(GLint *) (pc + 16);
+    GLenum target = *(GLenum *) (pc + 20);
+    GLsizei width = *(GLsizei *) (pc + 28);
+    GLenum format = *(GLenum *) (pc + 36);
+    GLenum type = *(GLenum *) (pc + 40);
 
     if (swap) {
         row_length = bswap_32(row_length);
@@ -508,18 +507,18 @@ GLenum type        = * (GLenum *)(pc + 40);
 }
 
 int
-__glXConvolutionFilter2DReqSize( const GLbyte * pc, Bool swap )
+__glXConvolutionFilter2DReqSize(const GLbyte * pc, Bool swap)
 {
-    GLint row_length   = *  (GLint *)(pc +  4);
+    GLint row_length = *(GLint *) (pc + 4);
     GLint image_height = 0;
-    GLint skip_images  = 0;
-    GLint skip_rows    = *  (GLint *)(pc +  8);
-    GLint alignment    = *  (GLint *)(pc + 16);
-GLenum target      = * (GLenum *)(pc + 20);
-GLsizei width      = *(GLsizei *)(pc + 28);
-GLsizei height     = *(GLsizei *)(pc + 32);
-GLenum format      = * (GLenum *)(pc + 36);
-GLenum type        = * (GLenum *)(pc + 40);
+    GLint skip_images = 0;
+    GLint skip_rows = *(GLint *) (pc + 8);
+    GLint alignment = *(GLint *) (pc + 16);
+    GLenum target = *(GLenum *) (pc + 20);
+    GLsizei width = *(GLsizei *) (pc + 28);
+    GLsizei height = *(GLsizei *) (pc + 32);
+    GLenum format = *(GLenum *) (pc + 36);
+    GLenum type = *(GLenum *) (pc + 40);
 
     if (swap) {
         row_length = bswap_32(row_length);
@@ -538,9 +537,9 @@ GLenum type        = * (GLenum *)(pc + 40);
 }
 
 int
-__glXConvolutionParameterfvReqSize( const GLbyte * pc, Bool swap )
+__glXConvolutionParameterfvReqSize(const GLbyte * pc, Bool swap)
 {
-GLenum pname       = * (GLenum *)(pc + 4);
+    GLenum pname = *(GLenum *) (pc + 4);
     GLsizei compsize;
 
     if (swap) {
@@ -552,19 +551,19 @@ GLenum pname       = * (GLenum *)(pc + 4);
 }
 
 int
-__glXTexImage3DReqSize( const GLbyte * pc, Bool swap )
+__glXTexImage3DReqSize(const GLbyte * pc, Bool swap)
 {
-    GLint row_length   = *  (GLint *)(pc +  4);
-    GLint image_height = *  (GLint *)(pc +  8);
-    GLint skip_rows    = *  (GLint *)(pc + 16);
-    GLint skip_images  = *  (GLint *)(pc + 20);
-    GLint alignment    = *  (GLint *)(pc + 32);
-GLenum target      = * (GLenum *)(pc + 36);
-GLsizei width      = *(GLsizei *)(pc + 48);
-GLsizei height     = *(GLsizei *)(pc + 52);
-GLsizei depth      = *(GLsizei *)(pc + 56);
-GLenum format      = * (GLenum *)(pc + 68);
-GLenum type        = * (GLenum *)(pc + 72);
+    GLint row_length = *(GLint *) (pc + 4);
+    GLint image_height = *(GLint *) (pc + 8);
+    GLint skip_rows = *(GLint *) (pc + 16);
+    GLint skip_images = *(GLint *) (pc + 20);
+    GLint alignment = *(GLint *) (pc + 32);
+    GLenum target = *(GLenum *) (pc + 36);
+    GLsizei width = *(GLsizei *) (pc + 48);
+    GLsizei height = *(GLsizei *) (pc + 52);
+    GLsizei depth = *(GLsizei *) (pc + 56);
+    GLenum format = *(GLenum *) (pc + 68);
+    GLenum type = *(GLenum *) (pc + 72);
 
     if (swap) {
         row_length = bswap_32(row_length);
@@ -580,8 +579,8 @@ GLenum type        = * (GLenum *)(pc + 72);
         type = bswap_32(type);
     }
 
-	   if (*(CARD32 *) (pc + 76))
-	       return 0;
+    if (*(CARD32 *) (pc + 76))
+        return 0;
 
     return __glXImageSize(format, type, target, width, height, depth,
                           image_height, row_length, skip_images,
@@ -589,19 +588,19 @@ GLenum type        = * (GLenum *)(pc + 72);
 }
 
 int
-__glXTexSubImage3DReqSize( const GLbyte * pc, Bool swap )
+__glXTexSubImage3DReqSize(const GLbyte * pc, Bool swap)
 {
-    GLint row_length   = *  (GLint *)(pc +  4);
-    GLint image_height = *  (GLint *)(pc +  8);
-    GLint skip_rows    = *  (GLint *)(pc + 16);
-    GLint skip_images  = *  (GLint *)(pc + 20);
-    GLint alignment    = *  (GLint *)(pc + 32);
-GLenum target      = * (GLenum *)(pc + 36);
-GLsizei width      = *(GLsizei *)(pc + 60);
-GLsizei height     = *(GLsizei *)(pc + 64);
-GLsizei depth      = *(GLsizei *)(pc + 68);
-GLenum format      = * (GLenum *)(pc + 76);
-GLenum type        = * (GLenum *)(pc + 80);
+    GLint row_length = *(GLint *) (pc + 4);
+    GLint image_height = *(GLint *) (pc + 8);
+    GLint skip_rows = *(GLint *) (pc + 16);
+    GLint skip_images = *(GLint *) (pc + 20);
+    GLint alignment = *(GLint *) (pc + 32);
+    GLenum target = *(GLenum *) (pc + 36);
+    GLsizei width = *(GLsizei *) (pc + 60);
+    GLsizei height = *(GLsizei *) (pc + 64);
+    GLsizei depth = *(GLsizei *) (pc + 68);
+    GLenum format = *(GLenum *) (pc + 76);
+    GLenum type = *(GLenum *) (pc + 80);
 
     if (swap) {
         row_length = bswap_32(row_length);
@@ -623,9 +622,9 @@ GLenum type        = * (GLenum *)(pc + 80);
 }
 
 int
-__glXCompressedTexImage1DReqSize( const GLbyte * pc, Bool swap )
+__glXCompressedTexImage1DReqSize(const GLbyte * pc, Bool swap)
 {
-GLsizei imageSize  = *(GLsizei *)(pc + 20);
+    GLsizei imageSize = *(GLsizei *) (pc + 20);
 
     if (swap) {
         imageSize = bswap_32(imageSize);
@@ -635,9 +634,9 @@ GLsizei imageSize  = *(GLsizei *)(pc + 20);
 }
 
 int
-__glXCompressedTexImage2DReqSize( const GLbyte * pc, Bool swap )
+__glXCompressedTexImage2DReqSize(const GLbyte * pc, Bool swap)
 {
-GLsizei imageSize  = *(GLsizei *)(pc + 24);
+    GLsizei imageSize = *(GLsizei *) (pc + 24);
 
     if (swap) {
         imageSize = bswap_32(imageSize);
@@ -647,9 +646,9 @@ GLsizei imageSize  = *(GLsizei *)(pc + 24);
 }
 
 int
-__glXCompressedTexImage3DReqSize( const GLbyte * pc, Bool swap )
+__glXCompressedTexImage3DReqSize(const GLbyte * pc, Bool swap)
 {
-GLsizei imageSize  = *(GLsizei *)(pc + 28);
+    GLsizei imageSize = *(GLsizei *) (pc + 28);
 
     if (swap) {
         imageSize = bswap_32(imageSize);
@@ -659,9 +658,9 @@ GLsizei imageSize  = *(GLsizei *)(pc + 28);
 }
 
 int
-__glXCompressedTexSubImage3DReqSize( const GLbyte * pc, Bool swap )
+__glXCompressedTexSubImage3DReqSize(const GLbyte * pc, Bool swap)
 {
-GLsizei imageSize  = *(GLsizei *)(pc + 36);
+    GLsizei imageSize = *(GLsizei *) (pc + 36);
 
     if (swap) {
         imageSize = bswap_32(imageSize);
@@ -671,9 +670,9 @@ GLsizei imageSize  = *(GLsizei *)(pc + 36);
 }
 
 int
-__glXPointParameterfvReqSize( const GLbyte * pc, Bool swap )
+__glXPointParameterfvReqSize(const GLbyte * pc, Bool swap)
 {
-GLenum pname       = * (GLenum *)(pc + 0);
+    GLenum pname = *(GLenum *) (pc + 0);
     GLsizei compsize;
 
     if (swap) {
@@ -685,9 +684,9 @@ GLenum pname       = * (GLenum *)(pc + 0);
 }
 
 int
-__glXDrawBuffersReqSize( const GLbyte * pc, Bool swap )
+__glXDrawBuffersReqSize(const GLbyte * pc, Bool swap)
 {
-GLsizei n          = *(GLsizei *)(pc + 0);
+    GLsizei n = *(GLsizei *) (pc + 0);
 
     if (swap) {
         n = bswap_32(n);
@@ -697,9 +696,9 @@ GLsizei n          = *(GLsizei *)(pc + 0);
 }
 
 int
-__glXProgramStringARBReqSize( const GLbyte * pc, Bool swap )
+__glXProgramStringARBReqSize(const GLbyte * pc, Bool swap)
 {
-GLsizei len        = *(GLsizei *)(pc + 8);
+    GLsizei len = *(GLsizei *) (pc + 8);
 
     if (swap) {
         len = bswap_32(len);
@@ -709,33 +708,9 @@ GLsizei len        = *(GLsizei *)(pc + 8);
 }
 
 int
-__glXProgramParameters4dvNVReqSize( const GLbyte * pc, Bool swap )
+__glXVertexAttribs1dvNVReqSize(const GLbyte * pc, Bool swap)
 {
-GLsizei num        = *(GLsizei *)(pc + 8);
-
-    if (swap) {
-        num = bswap_32(num);
-    }
-
-    return __GLX_PAD((num * 32));
-}
-
-int
-__glXProgramParameters4fvNVReqSize( const GLbyte * pc, Bool swap )
-{
-GLsizei num        = *(GLsizei *)(pc + 8);
-
-    if (swap) {
-        num = bswap_32(num);
-    }
-
-    return __GLX_PAD((num * 16));
-}
-
-int
-__glXVertexAttribs1dvNVReqSize( const GLbyte * pc, Bool swap )
-{
-GLsizei n          = *(GLsizei *)(pc + 4);
+    GLsizei n = *(GLsizei *) (pc + 4);
 
     if (swap) {
         n = bswap_32(n);
@@ -745,9 +720,9 @@ GLsizei n          = *(GLsizei *)(pc + 4);
 }
 
 int
-__glXVertexAttribs2dvNVReqSize( const GLbyte * pc, Bool swap )
+__glXVertexAttribs2dvNVReqSize(const GLbyte * pc, Bool swap)
 {
-GLsizei n          = *(GLsizei *)(pc + 4);
+    GLsizei n = *(GLsizei *) (pc + 4);
 
     if (swap) {
         n = bswap_32(n);
@@ -757,9 +732,9 @@ GLsizei n          = *(GLsizei *)(pc + 4);
 }
 
 int
-__glXVertexAttribs3dvNVReqSize( const GLbyte * pc, Bool swap )
+__glXVertexAttribs3dvNVReqSize(const GLbyte * pc, Bool swap)
 {
-GLsizei n          = *(GLsizei *)(pc + 4);
+    GLsizei n = *(GLsizei *) (pc + 4);
 
     if (swap) {
         n = bswap_32(n);
@@ -769,9 +744,9 @@ GLsizei n          = *(GLsizei *)(pc + 4);
 }
 
 int
-__glXVertexAttribs3fvNVReqSize( const GLbyte * pc, Bool swap )
+__glXVertexAttribs3fvNVReqSize(const GLbyte * pc, Bool swap)
 {
-GLsizei n          = *(GLsizei *)(pc + 4);
+    GLsizei n = *(GLsizei *) (pc + 4);
 
     if (swap) {
         n = bswap_32(n);
@@ -781,9 +756,9 @@ GLsizei n          = *(GLsizei *)(pc + 4);
 }
 
 int
-__glXVertexAttribs3svNVReqSize( const GLbyte * pc, Bool swap )
+__glXVertexAttribs3svNVReqSize(const GLbyte * pc, Bool swap)
 {
-GLsizei n          = *(GLsizei *)(pc + 4);
+    GLsizei n = *(GLsizei *) (pc + 4);
 
     if (swap) {
         n = bswap_32(n);
@@ -793,9 +768,9 @@ GLsizei n          = *(GLsizei *)(pc + 4);
 }
 
 int
-__glXVertexAttribs4dvNVReqSize( const GLbyte * pc, Bool swap )
+__glXVertexAttribs4dvNVReqSize(const GLbyte * pc, Bool swap)
 {
-GLsizei n          = *(GLsizei *)(pc + 4);
+    GLsizei n = *(GLsizei *) (pc + 4);
 
     if (swap) {
         n = bswap_32(n);
@@ -804,40 +779,25 @@ GLsizei n          = *(GLsizei *)(pc + 4);
     return __GLX_PAD((n * 32));
 }
 
-int
-__glXProgramNamedParameter4fvNVReqSize( const GLbyte * pc, Bool swap )
-{
-GLsizei len        = *(GLsizei *)(pc + 4);
-
-    if (swap) {
-        len = bswap_32(len);
-    }
-
-    return __GLX_PAD(len);
-}
-
-ALIAS( Fogiv, Fogfv )
-ALIAS( Lightiv, Lightfv )
-ALIAS( LightModeliv, LightModelfv )
-ALIAS( Materialiv, Materialfv )
-ALIAS( TexParameteriv, TexParameterfv )
-ALIAS( TexEnviv, TexEnvfv )
-ALIAS( TexGeniv, TexGenfv )
-ALIAS( PixelMapuiv, PixelMapfv )
-ALIAS( ColorTableParameteriv, ColorTableParameterfv )
-ALIAS( ConvolutionParameteriv, ConvolutionParameterfv )
-ALIAS( CompressedTexSubImage1D, CompressedTexImage1D )
-ALIAS( CompressedTexSubImage2D, CompressedTexImage3D )
-ALIAS( PointParameteriv, PointParameterfv )
-ALIAS( DeleteFramebuffers, DrawBuffers )
-ALIAS( DeleteRenderbuffers, DrawBuffers )
-ALIAS( LoadProgramNV, ProgramStringARB )
-ALIAS( RequestResidentProgramsNV, DrawBuffers )
-ALIAS( VertexAttribs1fvNV, PixelMapfv )
-ALIAS( VertexAttribs1svNV, PixelMapusv )
-ALIAS( VertexAttribs2fvNV, VertexAttribs1dvNV )
-ALIAS( VertexAttribs2svNV, PixelMapfv )
-ALIAS( VertexAttribs4fvNV, VertexAttribs2dvNV )
-ALIAS( VertexAttribs4svNV, VertexAttribs1dvNV )
-ALIAS( VertexAttribs4ubvNV, PixelMapfv )
-ALIAS( ProgramNamedParameter4dvNV, CompressedTexSubImage3D )
+ALIAS(Fogiv, Fogfv)
+    ALIAS(Lightiv, Lightfv)
+    ALIAS(LightModeliv, LightModelfv)
+    ALIAS(Materialiv, Materialfv)
+    ALIAS(TexParameteriv, TexParameterfv)
+    ALIAS(TexEnviv, TexEnvfv)
+    ALIAS(TexGeniv, TexGenfv)
+    ALIAS(PixelMapuiv, PixelMapfv)
+    ALIAS(ColorTableParameteriv, ColorTableParameterfv)
+    ALIAS(ConvolutionParameteriv, ConvolutionParameterfv)
+    ALIAS(CompressedTexSubImage1D, CompressedTexImage1D)
+    ALIAS(CompressedTexSubImage2D, CompressedTexImage3D)
+    ALIAS(PointParameteriv, PointParameterfv)
+    ALIAS(DeleteFramebuffers, DrawBuffers)
+    ALIAS(DeleteRenderbuffers, DrawBuffers)
+    ALIAS(VertexAttribs1fvNV, PixelMapfv)
+    ALIAS(VertexAttribs1svNV, PixelMapusv)
+    ALIAS(VertexAttribs2fvNV, VertexAttribs1dvNV)
+    ALIAS(VertexAttribs2svNV, PixelMapfv)
+    ALIAS(VertexAttribs4fvNV, VertexAttribs2dvNV)
+    ALIAS(VertexAttribs4svNV, VertexAttribs1dvNV)
+    ALIAS(VertexAttribs4ubvNV, PixelMapfv)

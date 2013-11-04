@@ -43,10 +43,6 @@
 #include <windowstr.h>
 #include "glxutil.h"
 #include "glxext.h"
-#include "glapitable.h"
-#include "glapi.h"
-#include "glthread.h"
-#include "dispatch.h"
 #include "indirect_dispatch.h"
 #include "indirect_table.h"
 #include "indirect_util.h"
@@ -218,12 +214,6 @@ __glXdirectContextCreate(__GLXscreen * screen,
     return context;
 }
 
-void FlushContext(__GLXcontext *cx)
-{
-    CALL_Flush( GET_DISPATCH(), () );
-    cx->hasUnflushedCommands = GL_FALSE;
-}
-
 /**
  * Create a GL context with the given properties.  This routine is used
  * to implement \c glXCreateContext, \c glXCreateNewContext, and
@@ -306,7 +296,7 @@ DoCreateContext(__GLXclientState * cl, GLXContextID gcId,
     glxc->id = gcId;
     glxc->share_id = shareList;
     glxc->idExists = GL_TRUE;
-    glxc->isCurrent = GL_FALSE;
+    glxc->currentClient = NULL;
     glxc->isDirect = isDirect;
     glxc->hasUnflushedCommands = GL_FALSE;
     glxc->renderMode = GL_RENDER;
@@ -413,9 +403,7 @@ __glXDisp_DestroyContext(__GLXclientState * cl, GLbyte * pc)
                          &glxc, &err))
         return err;
 
-    glxc->idExists = GL_FALSE;
-    if (!glxc->isCurrent)
-        FreeResourceByType(req->context, __glXContextRes, FALSE);
+    FreeResourceByType(req->context, __glXContextRes, FALSE);
 
     return Success;
 }
@@ -451,7 +439,7 @@ StopUsingContext(__GLXcontext * glxc)
             /* Tell server GL library */
             __glXLastContext = 0;
         }
-        glxc->isCurrent = GL_FALSE;
+        glxc->currentClient = NULL;
         if (!glxc->idExists) {
             FreeResourceByType(glxc->id, __glXContextRes, FALSE);
         }
@@ -461,8 +449,8 @@ StopUsingContext(__GLXcontext * glxc)
 static void
 StartUsingContext(__GLXclientState * cl, __GLXcontext * glxc)
 {
-    glxc->isCurrent = GL_TRUE;
     __glXLastContext = glxc;
+    glxc->currentClient = cl->client;
 }
 
 /**
@@ -598,7 +586,7 @@ DoMakeCurrent(__GLXclientState * cl,
 
         if (!validGlxContext(client, contextId, DixUseAccess, &glxc, &error))
             return error;
-        if ((glxc != prevglxc) && glxc->isCurrent) {
+        if ((glxc != prevglxc) && glxc->currentClient) {
             /* Context is current to somebody else */
             return BadAccess;
         }
@@ -628,7 +616,7 @@ DoMakeCurrent(__GLXclientState * cl,
          */
         if (prevglxc->hasUnflushedCommands) {
             if (__glXForceCurrent(cl, tag, (int *) &error)) {
-                CALL_Flush(GET_DISPATCH(), ());
+                glFlush();
                 prevglxc->hasUnflushedCommands = GL_FALSE;
             }
             else {
@@ -661,7 +649,7 @@ DoMakeCurrent(__GLXclientState * cl,
             return __glXError(GLXBadContext);
         }
 
-        glxc->isCurrent = GL_TRUE;
+        glxc->currentClient = client;
     }
 
     StopUsingContext(prevglxc);
@@ -811,7 +799,7 @@ __glXDisp_WaitGL(__GLXclientState * cl, GLbyte * pc)
         if (!__glXForceCurrent(cl, req->contextTag, &error))
             return error;
 
-        CALL_Finish(GET_DISPATCH(), ());
+        glFinish();
     }
 
     if (glxc && glxc->drawPriv->waitGL)
@@ -882,7 +870,7 @@ __glXDisp_CopyContext(__GLXclientState * cl, GLbyte * pc)
     /*
      ** The destination context must not be current for any client.
      */
-    if (dst->isCurrent) {
+    if (dst->currentClient) {
         client->errorValue = dest;
         return BadAccess;
     }
@@ -909,7 +897,7 @@ __glXDisp_CopyContext(__GLXclientState * cl, GLbyte * pc)
              ** Do whatever is needed to make sure that all preceding requests
              ** in both streams are completed before the copy is executed.
              */
-            CALL_Finish(GET_DISPATCH(), ());
+            glFinish();
             tagcx->hasUnflushedCommands = GL_FALSE;
         }
         else {
@@ -1258,7 +1246,8 @@ DoCreateGLXPixmap(ClientPtr client, __GLXscreen * pGlxScreen,
     err = DoCreateGLXDrawable(client, pGlxScreen, config, pDraw, drawableId,
                               glxDrawableId, GLX_DRAWABLE_PIXMAP);
 
-    ((PixmapPtr) pDraw)->refcnt++;
+    if (err == Success)
+        ((PixmapPtr) pDraw)->refcnt++;
 
     return err;
 }
@@ -1685,7 +1674,7 @@ __glXDisp_SwapBuffers(__GLXclientState * cl, GLbyte * pc)
              ** Do whatever is needed to make sure that all preceding requests
              ** in both streams are completed before the swap is executed.
              */
-            CALL_Finish(GET_DISPATCH(), ());
+            glFinish();
             glxc->hasUnflushedCommands = GL_FALSE;
         }
         else {
@@ -1882,7 +1871,7 @@ __glXDisp_CopySubBufferMESA(__GLXclientState * cl, GLbyte * pc)
              ** Do whatever is needed to make sure that all preceding requests
              ** in both streams are completed before the swap is executed.
              */
-            CALL_Finish(GET_DISPATCH(), ());
+            glFinish();
             glxc->hasUnflushedCommands = GL_FALSE;
         }
         else {

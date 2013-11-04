@@ -83,9 +83,8 @@
 #include <glx/glxserver.h>
 #include <glx/glxutil.h>
 #include <glx/extension_string.h>
+#include <glx/glxext.h>
 #include <GL/glxtokens.h>
-#include <glx/glapitable.h>
-#include <glx/glapi.h>
 
 #include <winpriv.h>
 #include <wgl_ext_api.h>
@@ -420,7 +419,9 @@ fbConfigsDump(unsigned int n, __GLXconfig * c)
                c->accumAlphaBits, c->sampleBuffers, c->samples,
                (c->drawableType & GLX_WINDOW_BIT) ? "y" : ".",
                (c->drawableType & GLX_PIXMAP_BIT) ? "y" : ".",
-               (c->drawableType & GLX_PBUFFER_BIT) ? "y" : ".", ".",
+               (c->drawableType & GLX_PBUFFER_BIT) ? "y" : ".",
+               (c->renderType & (GLX_RGBA_FLOAT_BIT_ARB |
+                   GLX_RGBA_UNSIGNED_FLOAT_BIT_EXT)) ? "y" : ".",
                (c->transparentPixel != GLX_NONE_EXT) ? "y" : ".",
                c->visualSelectGroup,
                (c->visualRating == GLX_SLOW_VISUAL_EXT) ? "*" : " ");
@@ -1706,7 +1707,7 @@ glxWinContextLoseCurrent(__GLXcontext * base)
       return FALSE;
     }
 
-    base->isCurrent=FALSE;  /* It looks like glx is not doing this */
+    base->currentClient=NULL;  /* It looks like glx is not doing this */
     _glapi_set_dispatch(NULL);
 
     return ret;
@@ -1799,8 +1800,10 @@ glxWinCreateContext(__GLXscreen * screen,
     //context->ctx = NULL; already done with memset
     context->shareContext = shareContext;
 
+/* TODO how to handle the unknown type glapi_table???
     context->Dispatch=calloc(sizeof(void*), (sizeof(struct _glapi_table) / sizeof(void *) + MAX_EXTENSION_FUNCS));
     _glapi_set_dispatch(context->Dispatch);
+*/
 
     glWinSetupDispatchTable();
 

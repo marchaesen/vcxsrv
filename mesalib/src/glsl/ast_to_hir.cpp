@@ -675,8 +675,8 @@ shift_result_type(const struct glsl_type *type_a,
  */
 ir_rvalue *
 validate_assignment(struct _mesa_glsl_parse_state *state,
-		    const glsl_type *lhs_type, ir_rvalue *rhs,
-		    bool is_initializer)
+                    YYLTYPE loc, const glsl_type *lhs_type,
+                    ir_rvalue *rhs, bool is_initializer)
 {
    /* If there is already some error in the RHS, just return it.  Anything
     * else will lead to an avalanche of error message back to the user.
@@ -689,16 +689,15 @@ validate_assignment(struct _mesa_glsl_parse_state *state,
    if (rhs->type == lhs_type)
       return rhs;
 
-   /* If the array element types are the same and the size of the LHS is zero,
+   /* If the array element types are the same and the LHS is unsized,
     * the assignment is okay for initializers embedded in variable
     * declarations.
     *
     * Note: Whole-array assignments are not permitted in GLSL 1.10, but this
     * is handled by ir_dereference::is_lvalue.
     */
-   if (is_initializer && lhs_type->is_array() && rhs->type->is_array()
-       && (lhs_type->element_type() == rhs->type->element_type())
-       && (lhs_type->array_size() == 0)) {
+   if (is_initializer && lhs_type->is_unsized_array() && rhs->type->is_array()
+       && (lhs_type->element_type() == rhs->type->element_type())) {
       return rhs;
    }
 
@@ -707,6 +706,12 @@ validate_assignment(struct _mesa_glsl_parse_state *state,
       if (rhs->type == lhs_type)
 	 return rhs;
    }
+
+   _mesa_glsl_error(&loc, state,
+                    "%s of type %s cannot be assigned to "
+                    "variable of type %s",
+                    is_initializer ? "initializer" : "value",
+                    rhs->type->name, lhs_type->name);
 
    return NULL;
 }
@@ -738,10 +743,10 @@ do_assignment(exec_list *instructions, struct _mesa_glsl_parse_state *state,
 
       if (unlikely(expr->operation == ir_binop_vector_extract)) {
          ir_rvalue *new_rhs =
-            validate_assignment(state, lhs->type, rhs, is_initializer);
+            validate_assignment(state, lhs_loc, lhs->type,
+                                rhs, is_initializer);
 
          if (new_rhs == NULL) {
-            _mesa_glsl_error(& lhs_loc, state, "type mismatch");
             return lhs;
          } else {
             rhs = new(ctx) ir_expression(ir_triop_vector_insert,
@@ -790,10 +795,8 @@ do_assignment(exec_list *instructions, struct _mesa_glsl_parse_state *state,
    }
 
    ir_rvalue *new_rhs =
-      validate_assignment(state, lhs->type, rhs, is_initializer);
-   if (new_rhs == NULL) {
-      _mesa_glsl_error(& lhs_loc, state, "type mismatch");
-   } else {
+      validate_assignment(state, lhs_loc, lhs->type, rhs, is_initializer);
+   if (new_rhs != NULL) {
       rhs = new_rhs;
 
       /* If the LHS array was not declared with a size, it takes it size from
@@ -801,7 +804,7 @@ do_assignment(exec_list *instructions, struct _mesa_glsl_parse_state *state,
        * dereference of a variable.  Any other case would require that the LHS
        * is either not an l-value or not a whole array.
        */
-      if (lhs->type->array_size() == 0) {
+      if (lhs->type->is_unsized_array()) {
 	 ir_dereference *const d = lhs->as_dereference();
 
 	 assert(d != NULL);
@@ -940,6 +943,7 @@ do_comparison(void *mem_ctx, int operation, ir_rvalue *op0, ir_rvalue *op1)
    case GLSL_TYPE_VOID:
    case GLSL_TYPE_SAMPLER:
    case GLSL_TYPE_INTERFACE:
+   case GLSL_TYPE_ATOMIC_UINT:
       /* I assume a comparison of a struct containing a sampler just
        * ignores the sampler present in the type.
        */
@@ -1234,6 +1238,10 @@ ast_expression::hir(exec_list *instructions,
                  !state->check_version(120, 300, &loc,
                                        "array comparisons forbidden")) {
 	 error_emitted = true;
+      } else if ((op[0]->type->contains_opaque() ||
+                  op[1]->type->contains_opaque())) {
+         _mesa_glsl_error(&loc, state, "opaque type comparisons forbidden");
+         error_emitted = true;
       }
 
       if (error_emitted) {
@@ -2039,6 +2047,96 @@ interpret_interpolation_qualifier(const struct ast_type_qualifier *qual,
 
 
 static void
+validate_explicit_location(const struct ast_type_qualifier *qual,
+                           ir_variable *var,
+                           struct _mesa_glsl_parse_state *state,
+                           YYLTYPE *loc)
+{
+   bool fail = false;
+
+   /* In the vertex shader only shader inputs can be given explicit
+    * locations.
+    *
+    * In the fragment shader only shader outputs can be given explicit
+    * locations.
+    */
+   switch (state->target) {
+   case vertex_shader:
+      if (var->mode == ir_var_shader_in) {
+         if (!state->check_explicit_attrib_location_allowed(loc, var))
+            return;
+
+         break;
+      }
+
+      fail = true;
+      break;
+
+   case geometry_shader:
+      _mesa_glsl_error(loc, state,
+                       "geometry shader variables cannot be given "
+                       "explicit locations");
+      return;
+
+   case fragment_shader:
+      if (var->mode == ir_var_shader_out) {
+         if (!state->check_explicit_attrib_location_allowed(loc, var))
+            return;
+
+         break;
+      }
+
+      fail = true;
+      break;
+   };
+
+   if (fail) {
+      _mesa_glsl_error(loc, state,
+                       "%s cannot be given an explicit location in %s shader",
+                       mode_string(var),
+		       _mesa_glsl_shader_target_name(state->target));
+   } else {
+      var->explicit_location = true;
+
+      /* This bit of silliness is needed because invalid explicit locations
+       * are supposed to be flagged during linking.  Small negative values
+       * biased by VERT_ATTRIB_GENERIC0 or FRAG_RESULT_DATA0 could alias
+       * built-in values (e.g., -16+VERT_ATTRIB_GENERIC0 = VERT_ATTRIB_POS).
+       * The linker needs to be able to differentiate these cases.  This
+       * ensures that negative values stay negative.
+       */
+      if (qual->location >= 0) {
+         var->location = (state->target == vertex_shader)
+            ? (qual->location + VERT_ATTRIB_GENERIC0)
+            : (qual->location + FRAG_RESULT_DATA0);
+      } else {
+         var->location = qual->location;
+      }
+
+      if (qual->flags.q.explicit_index) {
+         /* From the GLSL 4.30 specification, section 4.4.2 (Output
+          * Layout Qualifiers):
+          *
+          * "It is also a compile-time error if a fragment shader
+          *  sets a layout index to less than 0 or greater than 1."
+          *
+          * Older specifications don't mandate a behavior; we take
+          * this as a clarification and always generate the error.
+          */
+         if (qual->index < 0 || qual->index > 1) {
+            _mesa_glsl_error(loc, state,
+                             "explicit index may only be 0 or 1");
+         } else {
+            var->explicit_index = true;
+            var->index = qual->index;
+         }
+      }
+   }
+
+   return;
+}
+
+static void
 apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
 				 ir_variable *var,
 				 struct _mesa_glsl_parse_state *state,
@@ -2190,81 +2288,7 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
    }
 
    if (qual->flags.q.explicit_location) {
-      const bool global_scope = (state->current_function == NULL);
-      bool fail = false;
-      const char *string = "";
-
-      /* In the vertex shader only shader inputs can be given explicit
-       * locations.
-       *
-       * In the fragment shader only shader outputs can be given explicit
-       * locations.
-       */
-      switch (state->target) {
-      case vertex_shader:
-	 if (!global_scope || (var->mode != ir_var_shader_in)) {
-	    fail = true;
-	    string = "input";
-	 }
-	 break;
-
-      case geometry_shader:
-	 _mesa_glsl_error(loc, state,
-			  "geometry shader variables cannot be given "
-			  "explicit locations");
-	 break;
-
-      case fragment_shader:
-	 if (!global_scope || (var->mode != ir_var_shader_out)) {
-	    fail = true;
-	    string = "output";
-	 }
-	 break;
-      };
-
-      if (fail) {
-	 _mesa_glsl_error(loc, state,
-			  "only %s shader %s variables can be given an "
-			  "explicit location",
-			  _mesa_glsl_shader_target_name(state->target),
-			  string);
-      } else {
-	 var->explicit_location = true;
-
-	 /* This bit of silliness is needed because invalid explicit locations
-	  * are supposed to be flagged during linking.  Small negative values
-	  * biased by VERT_ATTRIB_GENERIC0 or FRAG_RESULT_DATA0 could alias
-	  * built-in values (e.g., -16+VERT_ATTRIB_GENERIC0 = VERT_ATTRIB_POS).
-	  * The linker needs to be able to differentiate these cases.  This
-	  * ensures that negative values stay negative.
-	  */
-	 if (qual->location >= 0) {
-	    var->location = (state->target == vertex_shader)
-	       ? (qual->location + VERT_ATTRIB_GENERIC0)
-	       : (qual->location + FRAG_RESULT_DATA0);
-	 } else {
-	    var->location = qual->location;
-	 }
-
-	 if (qual->flags.q.explicit_index) {
-            /* From the GLSL 4.30 specification, section 4.4.2 (Output
-             * Layout Qualifiers):
-             *
-             * "It is also a compile-time error if a fragment shader
-             *  sets a layout index to less than 0 or greater than 1."
-             *
-             * Older specifications don't mandate a behavior; we take
-             * this as a clarification and always generate the error.
-             */
-            if (qual->index < 0 || qual->index > 1) {
-               _mesa_glsl_error(loc, state,
-                                "explicit index may only be 0 or 1");
-            } else {
-               var->explicit_index = true;
-               var->index = qual->index;
-            }
-	 }
-      }
+      validate_explicit_location(qual, var, state, loc);
    } else if (qual->flags.q.explicit_index) {
 	 _mesa_glsl_error(loc, state,
 			  "explicit index requires explicit location");
@@ -2403,8 +2427,7 @@ get_variable_being_redeclared(ir_variable *var, YYLTYPE loc,
     *  later re-declare the same name as an array of the same
     *  type and specify a size."
     */
-   if ((earlier->type->array_size() == 0)
-       && var->type->is_array()
+   if (earlier->type->is_unsized_array() && var->type->is_array()
        && (var->type->element_type() == earlier->type->element_type())) {
       /* FINISHME: This doesn't match the qualifiers on the two
        * FINISHME: declarations.  It's not 100% clear whether this is
@@ -2547,7 +2570,8 @@ process_initializer(ir_variable *var, ast_declaration *decl,
     */
    if (type->qualifier.flags.q.constant
        || type->qualifier.flags.q.uniform) {
-      ir_rvalue *new_rhs = validate_assignment(state, var->type, rhs, true);
+      ir_rvalue *new_rhs = validate_assignment(state, initializer_loc,
+                                               var->type, rhs, true);
       if (new_rhs != NULL) {
 	 rhs = new_rhs;
 
@@ -2576,10 +2600,6 @@ process_initializer(ir_variable *var, ast_declaration *decl,
 	    var->constant_value = constant_value;
 	 }
       } else {
-	 _mesa_glsl_error(&initializer_loc, state,
-			  "initializer of type %s cannot be assigned to "
-			  "variable of type %s",
-			  rhs->type->name, var->type->name);
 	 if (var->type->is_numeric()) {
 	    /* Reduce cascading errors. */
 	    var->constant_value = ir_constant::zero(state, var->type);
@@ -2659,7 +2679,7 @@ handle_geometry_shader_input_decl(struct _mesa_glsl_parse_state *state,
       return;
    }
 
-   if (var->type->length == 0) {
+   if (var->type->is_unsized_array()) {
       /* Section 4.3.8.1 (Input Layout Qualifiers) of the GLSL 1.50 spec says:
        *
        *   All geometry shader input unsized array declarations will be
@@ -3308,7 +3328,7 @@ ast_declarator_list::hir(exec_list *instructions,
 	 const glsl_type *const t = (earlier == NULL)
 	    ? var->type : earlier->type;
 
-         if (t->is_array() && t->length == 0)
+         if (t->is_unsized_array())
             /* Section 10.17 of the GLSL ES 1.00 specification states that
              * unsized array declarations have been removed from the language.
              * Arrays that are sized using an initializer are still explicitly
@@ -3441,7 +3461,7 @@ ast_parameter_declarator::hir(exec_list *instructions,
       type = process_array_type(&loc, type, this->array_size, state);
    }
 
-   if (!type->is_error() && type->array_size() == 0) {
+   if (!type->is_error() && type->is_unsized_array()) {
       _mesa_glsl_error(&loc, state, "arrays passed as parameters must have "
 		       "a declared size");
       type = glsl_type::error_type;
@@ -3613,7 +3633,7 @@ ast_function::hir(exec_list *instructions,
     *     "Arrays are allowed as arguments and as the return type. In both
     *     cases, the array must be explicitly sized."
     */
-   if (return_type->is_array() && return_type->length == 0) {
+   if (return_type->is_unsized_array()) {
       YYLTYPE loc = this->get_location();
       _mesa_glsl_error(& loc, state,
 		       "function `%s' return type array must be explicitly "
@@ -5099,10 +5119,8 @@ ast_gs_input_layout::hir(exec_list *instructions,
       /* Note: gl_PrimitiveIDIn has mode ir_var_shader_in, but it's not an
        * array; skip it.
        */
-      if (!var->type->is_array())
-         continue;
 
-      if (var->type->length == 0) {
+      if (var->type->is_unsized_array()) {
          if (var->max_array_access >= num_vertices) {
             _mesa_glsl_error(&loc, state,
                              "this geometry shader input layout implies %u"

@@ -809,7 +809,7 @@ LIBAPPLEWM="applewm >= 1.4"
 LIBDMX="dmx >= 1.0.99.1"
 LIBDRI="dri >= 7.8.0"
 LIBDRM="libdrm >= 2.3.0"
-LIBGL="gl >= 7.1.0"
+LIBGL="gl >= 9.2.0"
 LIBXEXT="xext >= 1.0.99.4"
 LIBXFONT="xfont >= 1.4.2"
 LIBXI="xi >= 1.2.99.1"
@@ -1070,7 +1070,7 @@ if test "x$GLX" = xyes; then
 	AC_SUBST(XLIB_CFLAGS)
 	AC_DEFINE(GLXEXT, 1, [Build GLX extension])
 	GLX_LIBS='$(top_builddir)/glx/libglx.la'
-	GLX_SYS_LIBS="$GLX_SYS_LIBS"
+	GLX_SYS_LIBS="$GLX_SYS_LIBS -lGL"
 else
         GLX=no
 fi
@@ -1080,10 +1080,10 @@ if test "x$GLX" = xno; then
         AIGLX=no
 fi
 
-if test "x$AIGLX" = xyes -a \( "x$DRI" = xyes -o "x$DRI2" = xyes \); then
+if test "x$AIGLX" = xyes -a \( "x$DRI2" = xyes \); then
 	AC_DEFINE(AIGLX, 1, [Build AIGLX loader])
 fi
-AM_CONDITIONAL(AIGLX_DRI_LOADER, { test "x$DRI" = xyes || test "x$DRI2" = xyes; } && test "x$AIGLX" = xyes)
+AM_CONDITIONAL(AIGLX_DRI_LOADER, { test "x$DRI2" = xyes; } && test "x$AIGLX" = xyes)
 
 if test "x$GLX_USE_TLS" = xyes ; then
 	GLX_DEFINES="-DGLX_USE_TLS -DPTHREADS"
@@ -2238,7 +2238,7 @@ if test "x$CONFIG_HAL" = xno && test "x$CONFIG_UDEV" = xno; then
              ***********************************************])
 fi
 
-AC_OUTPUT([
+AC_CONFIG_FILES([
 Makefile
 glx/Makefile
 include/Makefile
@@ -2339,3 +2339,4 @@ test/xi2/Makefile
 xserver.ent
 xorg-server.pc
 ])
+AC_OUTPUT

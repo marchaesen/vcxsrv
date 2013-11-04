@@ -46,6 +46,7 @@
 #include <resource.h>
 #include <scrnintstr.h>
 
+#define GL_GLEXT_PROTOTYPES     /* we want prototypes */
 #include <GL/gl.h>
 #include <GL/glext.h>
 #include <GL/glxproto.h>
@@ -115,6 +116,9 @@ void __glXleaveServer(GLboolean rendering);
 
 void glxSuspendClients(void);
 void glxResumeClients(void);
+
+void __glXsetGetProcAddress(void (*(*get_proc_address) (const char *)) (void));
+void *__glGetProcAddress(const char *);
 
 /*
 ** State kept per client.

@@ -1478,7 +1478,7 @@ DeliverEmulatedMotionEvent(DeviceIntPtr dev, TouchPointInfoPtr ti,
         GrabPtr grab;
         XI2Mask *mask;
 
-        if (ti->listeners[0].type != LISTENER_POINTER_REGULAR ||
+        if (ti->listeners[0].type != LISTENER_POINTER_REGULAR &&
             ti->listeners[0].type != LISTENER_POINTER_GRAB)
             return;
 

@@ -26,7 +26,7 @@ if DRI2_AIGLX
 AM_CPPFLAGS += -I$(top_srcdir)/hw/xfree86/dri2
 endif
 
-glapi_sources =					\
+indirect_sources =				\
 	indirect_dispatch.c			\
 	indirect_dispatch.h			\
 	indirect_dispatch_swap.c		\
@@ -35,21 +35,9 @@ glapi_sources =					\
 	indirect_size.h				\
 	indirect_size_get.c			\
 	indirect_size_get.h			\
-	indirect_table.c			\
-	dispatch.h				\
-	glapitable.h				\
-	glapi.c					\
-	glapi.h					\
-	glapi_gentable.c			\
-	glprocs.h				\
-	glthread.c				\
-	glthread.h
+	indirect_table.c
 
 libglxdri_la_SOURCES =
-
-if DRI
-libglxdri_la_SOURCES += glxdri.c
-endif
 
 if DRI2_AIGLX
 libglxdri_la_SOURCES += glxdri2.c
@@ -59,7 +47,6 @@ libglxdri_la_LIBADD = $(DLOPEN_LIBS)
 
 libglx_la_SOURCES = \
 	$(indirect_sources) \
-	$(glapi_sources) \
 	clientinfo.c \
 	createcontext.c \
 	extension_string.c \
@@ -82,6 +69,7 @@ libglx_la_SOURCES = \
         glxscreens.c \
         glxscreens.h \
         glxserver.h \
+        glxstubs.c \
         glxutil.h \
         render2.c \
         render2swap.c \

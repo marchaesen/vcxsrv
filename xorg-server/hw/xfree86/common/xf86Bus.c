@@ -266,7 +266,9 @@ xf86IsEntityPrimary(int entityIndex)
 {
     EntityPtr pEnt = xf86Entities[entityIndex];
 
-    if (primaryBus.type != pEnt->bus.type)
+    if (primaryBus.type == BUS_PLATFORM && pEnt->bus.type == BUS_PCI)
+	return MATCH_PCI_DEVICES(pEnt->bus.id.pci, primaryBus.id.plat->pdev);
+    else if (primaryBus.type != pEnt->bus.type)
         return FALSE;
 
     switch (pEnt->bus.type) {

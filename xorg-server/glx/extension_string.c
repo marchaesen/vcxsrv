@@ -65,12 +65,17 @@ struct extension_info {
     unsigned char driver_support;
 };
 
+/**
+ * List of known GLX Extensions.
+ * The last Y/N switch informs whether the support of this extension is always enabled.
+ */
 static const struct extension_info known_glx_extensions[] = {
 /*   GLX_ARB_get_proc_address is implemented on the client. */
     /* *INDENT-OFF* */
     { GLX(ARB_create_context),          VER(0,0), N, },
     { GLX(ARB_create_context_profile),  VER(0,0), N, },
     { GLX(ARB_create_context_robustness), VER(0,0), N, },
+    { GLX(ARB_fbconfig_float),          VER(0,0), N, },
     { GLX(ARB_framebuffer_sRGB),        VER(0,0), N, },
     { GLX(ARB_multisample),             VER(1,4), Y, },
 
