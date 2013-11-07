@@ -43,6 +43,7 @@ SOFTWARE.
 #include "xvdix.h"
 #ifdef MITSHM
 #include <X11/extensions/shmproto.h>
+#include "shmint.h"
 #endif
 
 #include "xvdisp.h"
@@ -949,18 +950,6 @@ ProcXvPutImage(ClientPtr client)
 }
 
 #ifdef MITSHM
-/* redefined here since it's not in any header file */
-typedef struct _ShmDesc {
-    struct _ShmDesc *next;
-    int shmid;
-    int refcnt;
-    char *addr;
-    Bool writable;
-    unsigned long size;
-} ShmDescRec, *ShmDescPtr;
-
-extern RESTYPE ShmSegType;
-extern int ShmCompletionCode;
 
 static int
 ProcXvShmPutImage(ClientPtr client)

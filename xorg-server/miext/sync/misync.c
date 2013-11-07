@@ -29,20 +29,7 @@
 #include "misync.h"
 #include "misyncstr.h"
 
-static DevPrivateKeyRec syncScreenPrivateKeyRec;
-static DevPrivateKey syncScreenPrivateKey = &syncScreenPrivateKeyRec;
-
-#define SYNC_SCREEN_PRIV(pScreen) 				\
-    (SyncScreenPrivPtr) dixLookupPrivate(&pScreen->devPrivates,	\
-					 syncScreenPrivateKey)
-
-typedef struct _syncScreenPriv {
-    /* Wrappable sync-specific screen functions */
-    SyncScreenFuncsRec funcs;
-
-    /* Wrapped screen functions */
-    CloseScreenProcPtr CloseScreen;
-} SyncScreenPrivRec, *SyncScreenPrivPtr;
+DevPrivateKeyRec miSyncScreenPrivateKey;
 
 /* Default implementations of the sync screen functions */
 void
@@ -62,25 +49,25 @@ miSyncScreenDestroyFence(ScreenPtr pScreen, SyncFence * pFence)
 }
 
 /* Default implementations of the per-object functions */
-static void
+void
 miSyncFenceSetTriggered(SyncFence * pFence)
 {
     pFence->triggered = TRUE;
 }
 
-static void
+void
 miSyncFenceReset(SyncFence * pFence)
 {
     pFence->triggered = FALSE;
 }
 
-static Bool
+Bool
 miSyncFenceCheckTriggered(SyncFence * pFence)
 {
     return pFence->triggered;
 }
 
-static void
+void
 miSyncFenceAddTrigger(SyncTrigger * pTrigger)
 {
     (void) pTrigger;
@@ -88,7 +75,7 @@ miSyncFenceAddTrigger(SyncTrigger * pTrigger)
     return;
 }
 
-static void
+void
 miSyncFenceDeleteTrigger(SyncTrigger * pTrigger)
 {
     (void) pTrigger;
@@ -182,15 +169,15 @@ miSyncSetup(ScreenPtr pScreen)
         &miSyncScreenDestroyFence
     };
 
-    if (!dixPrivateKeyRegistered(syncScreenPrivateKey)) {
-        if (!dixRegisterPrivateKey(syncScreenPrivateKey, PRIVATE_SCREEN,
+    if (!dixPrivateKeyRegistered(&miSyncScreenPrivateKey)) {
+        if (!dixRegisterPrivateKey(&miSyncScreenPrivateKey, PRIVATE_SCREEN,
                                    sizeof(SyncScreenPrivRec)))
             return FALSE;
     }
 
     pScreenPriv = SYNC_SCREEN_PRIV(pScreen);
 
-    if (pScreenPriv->funcs.CreateFence) {
+    if (!pScreenPriv->funcs.CreateFence) {
         pScreenPriv->funcs = miSyncScreenFuncs;
 
         /* Wrap CloseScreen to clean up */

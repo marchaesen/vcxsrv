@@ -292,7 +292,7 @@ ExprResolveModIndex(ExprDef * expr,
                     IdentLookupFunc lookup, XPointer lookupPriv)
 {
     int ok = 0;
-    char *bogus = NULL;
+    const char *bogus = NULL;
 
     switch (expr->op)
     {
@@ -382,7 +382,7 @@ ExprResolveBoolean(ExprDef * expr,
                    IdentLookupFunc lookup, XPointer lookupPriv)
 {
     int ok = 0;
-    char *bogus = NULL;
+    const char *bogus = NULL;
 
     switch (expr->op)
     {
@@ -715,7 +715,7 @@ ExprResolveString(ExprDef * expr,
     ExprResult leftRtrn, rightRtrn;
     ExprDef *left;
     ExprDef *right;
-    char *bogus = NULL;
+    const char *bogus = NULL;
 
     switch (expr->op)
     {
@@ -729,7 +729,7 @@ ExprResolveString(ExprDef * expr,
         val_rtrn->str = XkbAtomGetString(NULL, expr->value.str);
         if (val_rtrn->str == NULL)
         {
-            static char *empty = "";
+            static const char *empty = "";
             val_rtrn->str = empty;
         }
         return True;
@@ -767,7 +767,7 @@ ExprResolveString(ExprDef * expr,
             new = (char *) uAlloc(len);
             if (new)
             {
-                sprintf(new, "%s%s", leftRtrn.str, rightRtrn.str);
+                snprintf(new, len, "%s%s", leftRtrn.str, rightRtrn.str);
                 val_rtrn->str = new;
                 return True;
             }
@@ -822,7 +822,7 @@ ExprResolveKeyName(ExprDef * expr,
     int ok = 0;
     ExprDef *left;
     ExprResult leftRtrn;
-    char *bogus = NULL;
+    const char *bogus = NULL;
 
     switch (expr->op)
     {
@@ -941,7 +941,7 @@ ExprResolveMask(ExprDef * expr,
     int ok = 0;
     ExprResult leftRtrn, rightRtrn;
     ExprDef *left, *right;
-    char *bogus = NULL;
+    const char *bogus = NULL;
 
     switch (expr->op)
     {

@@ -72,6 +72,8 @@ from The Open Group.
 #  define XTRANSDEBUG 1
 #endif
 
+#define XTRANS_SEND_FDS       1
+
 #ifdef WIN32
 # define _WILLWINSOCK_
 #endif
@@ -123,6 +125,16 @@ from The Open Group.
 #define X_TCP_PORT	6000
 #endif
 
+#if XTRANS_SEND_FDS
+
+struct _XtransConnFd {
+    struct _XtransConnFd   *next;
+    int                    fd;
+    int                    do_close;
+};
+
+#endif
+
 struct _XtransConnInfo {
     struct _Xtransport     *transptr;
     int		index;
@@ -135,6 +147,8 @@ struct _XtransConnInfo {
     int		addrlen;
     char	*peeraddr;
     int		peeraddrlen;
+    struct _XtransConnFd        *recv_fds;
+    struct _XtransConnFd        *send_fds;
 };
 
 #define XTRANS_OPEN_COTS_CLIENT       1
@@ -273,6 +287,16 @@ typedef struct _Xtransport {
 	XtransConnInfo,		/* connection */
 	struct iovec *,		/* buf */
 	int			/* size */
+    );
+
+    int (*SendFd)(
+	XtransConnInfo,		/* connection */
+        int,                    /* fd */
+        int                     /* do_close */
+    );
+
+    int (*RecvFd)(
+	XtransConnInfo		/* connection */
     );
 
     int	(*Disconnect)(

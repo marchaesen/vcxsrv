@@ -223,15 +223,6 @@ uInformation(const char * /* s */ , ...
 
 /***====================================================================***/
 
-#ifdef	ASSERTIONS_ON
-#define	uASSERT(where,why) \
-	{if (!(why)) uFatalError("assertion botched in %s ( why )\n",where);}
-#else
-#define	uASSERT(where,why)
-#endif
-
-/***====================================================================***/
-
 #ifndef DEBUG_VAR
 #define	DEBUG_VAR	debugFlags
 #endif
@@ -280,65 +271,5 @@ extern
 #define	uDEBUG_NOI4(f,s,a,b,c,d)
 #define	uDEBUG_NOI5(f,s,a,b,c,d,e)
 #endif
-
-     extern Boolean uSetEntryFile(char *name);
-     extern void uEntry(int /* l */ ,
-                        char * /* s  */ , ...
-    ) _X_ATTRIBUTE_PRINTF(2, 3);
-
-     extern void uExit(int l, char *rtVal);
-#ifdef ENTRY_TRACKING_ON
-#define	ENTRY_BIT	0x10
-#define	LOW_ENTRY_BIT	0x1000
-#define	ENTER	(DEBUG_VAR&ENTRY_BIT)
-#define	FLAG(fLag)	(DEBUG_VAR&(fLag))
-
-     extern int uEntryLevel;
-
-#define	uENTRY(s)			{ if (ENTER) uEntry(1,s);}
-#define	uENTRY1(s,a)			{ if (ENTER) uEntry(1,s,a);}
-#define	uENTRY2(s,a,b)			{ if (ENTER) uEntry(1,s,a,b);}
-#define	uENTRY3(s,a,b,c)		{ if (ENTER) uEntry(1,s,a,b,c);}
-#define	uENTRY4(s,a,b,c,d)		{ if (ENTER) uEntry(1,s,a,b,c,d);}
-#define	uENTRY5(s,a,b,c,d,e)		{ if (ENTER) uEntry(1,s,a,b,c,d,e);}
-#define	uENTRY6(s,a,b,c,d,e,f)		{ if (ENTER) uEntry(1,s,a,b,c,d,e,f);}
-#define	uENTRY7(s,a,b,c,d,e,f,g)	{ if (ENTER) uEntry(1,s,a,b,c,d,e,f,g);}
-#define	uRETURN(v)			{ if (ENTER) uEntryLevel--; return(v); }
-#define	uVOIDRETURN			{ if (ENTER) uEntryLevel--; return; }
-
-#define	uFLAG_ENTRY(w,s)		{ if (FLAG(w)) uEntry(0,s);}
-#define	uFLAG_ENTRY1(w,s,a)		{ if (FLAG(w)) uEntry(0,s,a);}
-#define	uFLAG_ENTRY2(w,s,a,b)		{ if (FLAG(w)) uEntry(0,s,a,b);}
-#define	uFLAG_ENTRY3(w,s,a,b,c)		{ if (FLAG(w)) uEntry(0,s,a,b,c);}
-#define	uFLAG_ENTRY4(w,s,a,b,c,d)	{ if (FLAG(w)) uEntry(0,s,a,b,c,d);}
-#define	uFLAG_ENTRY5(w,s,a,b,c,d,e)	{ if (FLAG(w)) uEntry(0,s,a,b,c,d,e);}
-#define	uFLAG_ENTRY6(w,s,a,b,c,d,e,f)	{ if (FLAG(w)) uEntry(0,s,a,b,c,d,e,f);}
-#define	uFLAG_ENTRY7(w,s,a,b,c,d,e,f,g)	{ if(FLAG(w))uEntry(0,s,a,b,c,d,e,f,g);}
-#define	uFLAG_RETURN(v)			{ return(v);}
-#define	uFLAG_VOIDRETURN		{ return; }
-#else
-#define	uENTRY(s)
-#define	uENTRY1(s,a)
-#define	uENTRY2(s,a1,a2)
-#define	uENTRY3(s,a1,a2,a3)
-#define	uENTRY4(s,a1,a2,a3,a4)
-#define	uENTRY5(s,a1,a2,a3,a4,a5)
-#define	uENTRY6(s,a1,a2,a3,a4,a5,a6)
-#define	uENTRY7(s,a1,a2,a3,a4,a5,a6,a7)
-#define	uRETURN(v)	{ return(v); }
-#define	uVOIDRETURN	{ return; }
-
-#define	uFLAG_ENTRY(f,s)
-#define	uFLAG_ENTRY1(f,s,a)
-#define	uFLAG_ENTRY2(f,s,a,b)
-#define	uFLAG_ENTRY3(f,s,a,b,c)
-#define	uFLAG_ENTRY4(f,s,a,b,c,d)
-#define	uFLAG_ENTRY5(f,s,a,b,c,d,e)
-#define	uFLAG_ENTRY6(f,s,a,b,c,d,e,g)
-#define	uFLAG_ENTRY7(f,s,a,b,c,d,e,g,h)
-#define	uFLAG_RETURN(v)			{ return(v);}
-#define	uFLAG_VOIDRETURN		{ return; }
-#endif
-
 
 #endif /* UTILS_H */

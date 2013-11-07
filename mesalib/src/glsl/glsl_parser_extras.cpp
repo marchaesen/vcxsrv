@@ -540,6 +540,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(EXT_shader_integer_mix,         true,  true,      EXT_shader_integer_mix),
    EXT(ARB_texture_gather,             true,  false,     ARB_texture_gather),
    EXT(ARB_shader_atomic_counters,     true,  false,     ARB_shader_atomic_counters),
+   EXT(ARB_sample_shading,             true,  false,     ARB_sample_shading),
 };
 
 #undef EXT
@@ -1604,6 +1605,7 @@ do_common_optimization(exec_list *ir, bool linked,
    else
       progress = do_constant_variable_unlinked(ir) || progress;
    progress = do_constant_folding(ir) || progress;
+   progress = do_cse(ir) || progress;
    progress = do_algebraic(ir) || progress;
    progress = do_lower_jumps(ir) || progress;
    progress = do_vec_index_to_swizzle(ir) || progress;

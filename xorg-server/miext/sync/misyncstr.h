@@ -29,6 +29,7 @@
 #define _MISYNCSTR_H_
 
 #include "dix.h"
+#include "scrnintstr.h"
 #include <X11/extensions/syncconst.h>
 
 #define CARD64 XSyncValue       /* XXX temporary! need real 64 bit values for Alpha */
@@ -78,5 +79,19 @@ typedef struct _SyncTriggerList {
     SyncTrigger *pTrigger;
     struct _SyncTriggerList *next;
 } SyncTriggerList;
+
+extern DevPrivateKeyRec miSyncScreenPrivateKey;
+
+#define SYNC_SCREEN_PRIV(pScreen) 				\
+    (SyncScreenPrivPtr) dixLookupPrivate(&pScreen->devPrivates,	\
+					 &miSyncScreenPrivateKey)
+
+typedef struct _syncScreenPriv {
+    /* Wrappable sync-specific screen functions */
+    SyncScreenFuncsRec funcs;
+
+    /* Wrapped screen functions */
+    CloseScreenProcPtr CloseScreen;
+} SyncScreenPrivRec, *SyncScreenPrivPtr;
 
 #endif                          /* _MISYNCSTR_H_ */

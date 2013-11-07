@@ -140,7 +140,7 @@
     if 'target' is 'font', execute the match on the result of a font
     selection.
 -->
-<!ELEMENT match (test*, edit*)+>
+<!ELEMENT match (test|edit)+>
 <!ATTLIST match
 	  target (pattern|font|scan) "pattern">
 

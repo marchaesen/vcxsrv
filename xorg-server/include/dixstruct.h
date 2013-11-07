@@ -110,7 +110,15 @@ typedef struct _Client {
 
     DeviceIntPtr clientPtr;
     ClientIdPtr clientIds;
+    int req_fds;
 } ClientRec;
+
+static inline void
+SetReqFds(ClientPtr client, int req_fds) {
+    if (client->req_fds != 0 && req_fds != client->req_fds)
+        LogMessage(X_ERROR, "Mismatching number of request fds %d != %d\n", req_fds, client->req_fds);
+    client->req_fds = req_fds;
+}
 
 /*
  * Scheduling interface

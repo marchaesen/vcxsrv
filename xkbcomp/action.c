@@ -41,7 +41,7 @@ static ExprDef constFalse;
 /***====================================================================***/
 
 static Bool
-stringToAction(char *str, unsigned *type_rtrn)
+stringToAction(const char *str, unsigned *type_rtrn)
 {
     if (str == NULL)
         return False;
@@ -134,7 +134,7 @@ stringToAction(char *str, unsigned *type_rtrn)
 }
 
 static Bool
-stringToField(char *str, unsigned *field_rtrn)
+stringToField(const char *str, unsigned *field_rtrn)
 {
 
     if (str == NULL)
@@ -1397,8 +1397,8 @@ HandleActionDef(ExprDef * def,
 
 int
 SetActionField(XkbDescPtr xkb,
-               char *elem,
-               char *field,
+               const char *elem,
+               const char *field,
                ExprDef * array_ndx, ExprDef * value, ActionInfo ** info_rtrn)
 {
     ActionInfo *new, *old;

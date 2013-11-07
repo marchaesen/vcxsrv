@@ -255,6 +255,21 @@ RegionDestroy(RegionPtr pReg)
         free(pReg);
 }
 
+RegionPtr
+RegionDuplicate(RegionPtr pOld)
+{
+    RegionPtr   pNew;
+
+    pNew = RegionCreate(&pOld->extents, 0);
+    if (!pNew)
+        return NULL;
+    if (!RegionCopy(pNew, pOld)) {
+        RegionDestroy(pNew);
+        return NULL;
+    }
+    return pNew;
+}
+
 void
 RegionPrint(RegionPtr rgn)
 {

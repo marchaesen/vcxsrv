@@ -494,7 +494,7 @@ static LookupEntry useModMapValues[] = {
 static int
 SetInterpField(SymInterpInfo * si,
                XkbDescPtr xkb,
-               char *field,
+               const char *field,
                ExprDef * arrayNdx, ExprDef * value, CompatInfo * info)
 {
     int ok = 1;

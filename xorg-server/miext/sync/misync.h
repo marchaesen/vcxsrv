@@ -76,4 +76,25 @@ extern _X_EXPORT SyncScreenFuncsPtr miSyncGetScreenFuncs(ScreenPtr pScreen);
 extern _X_EXPORT Bool
  miSyncSetup(ScreenPtr pScreen);
 
+Bool
+miSyncFenceCheckTriggered(SyncFence * pFence);
+
+void
+miSyncFenceSetTriggered(SyncFence * pFence);
+
+void
+miSyncFenceReset(SyncFence * pFence);
+
+void
+miSyncFenceAddTrigger(SyncTrigger * pTrigger);
+
+void
+miSyncFenceDeleteTrigger(SyncTrigger * pTrigger);
+
+int
+miSyncInitFenceFromFD(DrawablePtr pDraw, SyncFence *pFence, int fd, BOOL initially_triggered);
+
+int
+miSyncFDFromFence(DrawablePtr pDraw, SyncFence *pFence);
+
 #endif                          /* _MISYNC_H_ */

@@ -39,6 +39,9 @@
 /* Build DPMS extension */
 #undef DPMSExtension
 
+/* Build DRI3 extension */
+#undef DRI3
+
 /* Build GLX extension */
 #undef GLXEXT
 
@@ -251,6 +254,9 @@
 
 /* Internal define for Xinerama */
 #undef PANORAMIX
+
+/* Support Present extension */
+#undef PRESENT
 
 /* Overall prefix */
 #undef PROJECTROOT

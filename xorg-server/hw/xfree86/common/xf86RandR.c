@@ -214,13 +214,15 @@ xf86RandRSetMode(ScreenPtr pScreen,
      */
     xf86ReconfigureLayout();
 
-    /*
-     * Make sure the whole screen is visible
-     */
-    xf86SetViewport(pScreen, pScreen->width, pScreen->height);
-    xf86SetViewport(pScreen, 0, 0);
-    if (pRoot && scrp->vtSema)
-        (*scrp->EnableDisableFBAccess) (scrp, TRUE);
+    if (scrp->vtSema) {
+        /*
+         * Make sure the whole screen is visible
+         */
+        xf86SetViewport (pScreen, pScreen->width, pScreen->height);
+        xf86SetViewport (pScreen, 0, 0);
+        if (pRoot)
+            (*scrp->EnableDisableFBAccess) (scrp, TRUE);
+    }
     return ret;
 }
 
