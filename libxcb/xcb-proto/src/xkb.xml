@@ -130,28 +130,20 @@ authorization from the authors.
 		<item name="ControlsEnabled"> <bit>31</bit> </item>
 	</enum>
 
-	<enum name="AXFBOpt">
+	<enum name="AXOption">
 		<item name="SKPressFB">     <bit>0</bit> </item>
 		<item name="SKAcceptFB">    <bit>1</bit> </item>
 		<item name="FeatureFB">     <bit>2</bit> </item>
 		<item name="SlowWarnFB">    <bit>3</bit> </item>
 		<item name="IndicatorFB">   <bit>4</bit> </item>
 		<item name="StickyKeysFB">  <bit>5</bit> </item>
-		<item name="SKReleaseFB">   <bit>6</bit> </item>
-		<item name="SKRejectFB">    <bit>7</bit> </item>
-		<item name="BKRejectFB">    <bit>8</bit> </item>
-		<item name="DumbBell">      <bit>9</bit> </item>
+		<item name="TwoKeys">       <bit>6</bit> </item>
+		<item name="LatchToLock">   <bit>7</bit> </item>
+		<item name="SKReleaseFB">   <bit>8</bit> </item>
+		<item name="SKRejectFB">    <bit>9</bit> </item>
+		<item name="BKRejectFB">    <bit>10</bit> </item>
+		<item name="DumbBell">      <bit>11</bit> </item>
 	</enum>
-
-	<enum name="AXSKOpt">
-		<item name="TwoKeys">     <bit>6</bit> </item>
-		<item name="LatchToLock"> <bit>7</bit> </item>
-	</enum>
-
-	<union name="AXOption">
-		<field name="fbopt" type="CARD16" enum="AXFBOpt" />
-		<field name="skopt" type="CARD16" enum="AXSKOpt" />
-	</union>
 
 	<typedef oldname="CARD16" newname="DeviceSpec" />
 
@@ -1229,10 +1221,10 @@ authorization from the authors.
 			<field name="mouseKeysTimeToMax" type="CARD16" />
 			<field name="mouseKeysMaxSpeed" type="CARD16" />
 			<field name="mouseKeysCurve" type="INT16" />
-			<field name="accessXOption" type="AXOption" />
+			<field name="accessXOption" type="CARD16" mask="AXOption" />
 			<field name="accessXTimeout" type="CARD16" />
-			<field name="accessXTimeoutOptionsMask" type="AXOption" />
-			<field name="accessXTimeoutOptionsValues" type="AXOption" />
+			<field name="accessXTimeoutOptionsMask" type="CARD16" mask="AXOption" />
+			<field name="accessXTimeoutOptionsValues" type="CARD16" mask="AXOption" />
 			<pad bytes="2" />
 			<field name="accessXTimeoutMask" type="CARD32" mask="BoolCtrl" />
 			<field name="accessXTimeoutValues" type="CARD32" mask="BoolCtrl" />
@@ -1255,7 +1247,7 @@ authorization from the authors.
 		<field name="ignoreLockVirtualMods" type="CARD16" mask="VMod" />
 		<field name="mouseKeysDfltBtn" type="CARD8" />
 		<field name="groupsWrap" type="CARD8" />
-		<field name="accessXOptions" type="AXOption" />
+		<field name="accessXOptions" type="CARD16" mask="AXOption" />
 		<pad bytes="2" />
 		<field name="affectEnabledControls" type="CARD32" mask="BoolCtrl" />
 		<field name="enabledControls" type="CARD32" mask="BoolCtrl" />
@@ -1272,8 +1264,8 @@ authorization from the authors.
 		<field name="accessXTimeout" type="CARD16" />
 		<field name="accessXTimeoutMask" type="CARD32" mask="BoolCtrl" />
 		<field name="accessXTimeoutValues" type="CARD32" mask="BoolCtrl" />
-		<field name="accessXTimeoutOptionsMask" type="AXOption" />
-		<field name="accessXTimeoutOptionsValues" type="AXOption" />
+		<field name="accessXTimeoutOptionsMask" type="CARD16" mask="AXOption" />
+		<field name="accessXTimeoutOptionsValues" type="CARD16" mask="AXOption" />
 		<list name="perKeyRepeat" type="CARD8">
 			<value>32</value>
 		</list>

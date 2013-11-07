@@ -43,6 +43,8 @@ in this Software without prior written authorization from The Open Group.
 #define X_ShmPutImage			3
 #define X_ShmGetImage			4
 #define X_ShmCreatePixmap		5
+#define X_ShmAttachFd                   6
+#define X_ShmCreateSegment              7
 
 typedef struct _ShmQueryVersion {
     CARD8	reqType;		/* always ShmReqCode */
@@ -177,6 +179,46 @@ typedef struct _ShmCompletion {
     CARD32	pad2 B32;
 } xShmCompletionEvent;
 #define sz_xShmCompletionEvent	32
+
+/* Version 1.2 additions */
+typedef struct _ShmAttachFd {
+    CARD8	reqType;	/* always ShmReqCode */
+    CARD8	shmReqType;	/* always X_ShmAttachFd */
+    CARD16	length B16;
+    ShmSeg	shmseg B32;
+    BOOL	readOnly;
+    BYTE	pad0;
+    CARD16	pad1 B16;
+} xShmAttachFdReq;
+/* File descriptor is passed with this request */
+#define sz_xShmAttachFdReq	12
+
+typedef struct _ShmCreateSegment {
+    CARD8	reqType;	/* always ShmReqCode */
+    CARD8	shmReqType;	/* always X_ShmAttachFd */
+    CARD16	length B16;
+    ShmSeg	shmseg B32;
+    CARD32      size B32;
+    BOOL	readOnly;
+    BYTE	pad0;
+    CARD16	pad1 B16;
+} xShmCreateSegmentReq;
+#define sz_xShmCreateSegmentReq 16
+
+typedef struct {
+    CARD8	type;			/* must be X_Reply */
+    CARD8	nfd;			/* must be 1	*/
+    CARD16	sequenceNumber  B16;	/* last sequence number */
+    CARD32	length  B32;		/* 0 */
+    CARD32	pad2	B32;		/* unused */
+    CARD32	pad3	B32;		/* unused */
+    CARD32	pad4	B32;		/* unused */
+    CARD32	pad5	B32;		/* unused */
+    CARD32	pad6	B32;		/* unused */
+    CARD32	pad7	B32;		/* unused */
+} xShmCreateSegmentReply;
+/* File descriptor is passed with this reply */
+#define sz_xShmCreateSegmentReply	32
 
 #undef ShmSeg
 #undef Drawable

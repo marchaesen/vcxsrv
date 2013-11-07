@@ -26,7 +26,7 @@ sale, use or other dealings in this Software without prior written
 authorization from the authors.
 -->
 <xcb header="shm" extension-xname="MIT-SHM" extension-name="Shm"
-    major-version="1" minor-version="1">
+    major-version="1" minor-version="2">
   <import>xproto</import>
 
   <xidtype name="SEG" />
@@ -112,5 +112,24 @@ authorization from the authors.
     <pad bytes="3" />
     <field type="SEG" name="shmseg" />
     <field type="CARD32" name="offset" />
+  </request>
+
+  <request name="AttachFd" opcode="6">
+    <field type="SEG" name="shmseg" />
+    <fd name="shm_fd" />
+    <field type="BOOL" name="read_only" />
+    <pad bytes="3" />
+  </request>
+
+  <request name="CreateSegment" opcode="7">
+    <field type="SEG" name="shmseg" />
+    <field type="CARD32" name="size" />
+    <field type="BOOL" name="read_only" />
+    <pad bytes="3" />
+    <reply>
+      <field type="CARD8" name="nfd" />
+      <fd name="shm_fd" />
+      <pad bytes="24" />
+    </reply>
   </request>
 </xcb>

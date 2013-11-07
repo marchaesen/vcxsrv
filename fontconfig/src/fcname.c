@@ -420,6 +420,8 @@ FcNameParse (const FcChar8 *name)
 		if ((c = FcNameGetConstant (save)))
 		{
 		    t = FcNameGetObjectType ((char *) c->object);
+		    if (t == NULL)
+			goto bail2;
 		    switch ((int) t->type) {
 		    case FcTypeInteger:
 		    case FcTypeDouble:

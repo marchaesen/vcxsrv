@@ -286,6 +286,20 @@ SOFTWARE.
 #define GLYPHPADBYTES		4
 #endif                          /* linux/s390 */
 
+#ifdef __aarch64__
+
+#ifdef __AARCH64EL__
+#define IMAGE_BYTE_ORDER        LSBFirst
+#define BITMAP_BIT_ORDER        LSBFirst
+#endif
+#ifdef __AARCH64EB__
+#define IMAGE_BYTE_ORDER        MSBFirst
+#define BITMAP_BIT_ORDER        MSBFirst
+#endif
+#define GLYPHPADBYTES           4
+
+#endif                          /* __aarch64__ */
+
 #ifdef WIN32
 #define IMAGE_BYTE_ORDER	LSBFirst
 #define BITMAP_BIT_ORDER	LSBFirst

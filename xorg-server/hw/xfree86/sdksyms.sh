@@ -44,6 +44,9 @@ cat > sdksyms.c << EOF
 /* miext/sync/Makefile.am */
 #include "misync.h"
 #include "misyncstr.h"
+#if HAVE_XSHMFENCE
+#include "misyncshm.h"
+#endif
 
 /* Xext/Makefile.am -- half is module, half is builtin */
 #ifdef XV

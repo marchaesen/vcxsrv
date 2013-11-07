@@ -118,7 +118,7 @@ usage (char *program, int error)
 static FcStrSet *processed_dirs;
 
 static int
-scanDirs (FcStrList *list, FcConfig *config, FcBool force, FcBool really_force, FcBool verbose, FcBool recursive, int *changed)
+scanDirs (FcStrList *list, FcConfig *config, FcBool force, FcBool really_force, FcBool verbose, FcBool recursive, int *changed, FcStrSet *updateDirs)
 {
     int		    ret = 0;
     const FcChar8   *dir;
@@ -137,7 +137,10 @@ scanDirs (FcStrList *list, FcConfig *config, FcBool force, FcBool really_force, 
     {
 	if (verbose)
 	{
-	    printf ("%s: ", dir);
+	    if (!recursive)
+		printf ("Re-scanning %s: ", dir);
+	    else
+		printf ("%s: ", dir);
 	    fflush (stdout);
 	}
 	
@@ -226,6 +229,8 @@ scanDirs (FcStrList *list, FcConfig *config, FcBool force, FcBool really_force, 
 	    }
 	    for (i = 0; i < FcCacheNumSubdir (cache); i++)
 		FcStrSetAdd (subdirs, FcCacheSubdir (cache, i));
+	    if (updateDirs && FcCacheNumSubdir (cache) > 0)
+		FcStrSetAdd (updateDirs, dir);
 	
 	    FcDirCacheUnload (cache);
 	
@@ -238,7 +243,7 @@ scanDirs (FcStrList *list, FcConfig *config, FcBool force, FcBool really_force, 
 		continue;
 	    }
 	    FcStrSetAdd (processed_dirs, dir);
-	    ret += scanDirs (sublist, config, force, really_force, verbose, recursive, changed);
+	    ret += scanDirs (sublist, config, force, really_force, verbose, recursive, changed, updateDirs);
 	    FcStrListDone (sublist);
 	}
 	else
@@ -271,7 +276,7 @@ cleanCacheDirectories (FcConfig *config, FcBool verbose)
 int
 main (int argc, char **argv)
 {
-    FcStrSet	*dirs;
+    FcStrSet	*dirs, *updateDirs;
     FcStrList	*list;
     FcBool    	verbose = FcFalse;
     FcBool	force = FcFalse;
@@ -369,13 +374,18 @@ main (int argc, char **argv)
 	fprintf(stderr, "Cannot malloc\n");
 	return 1;
     }
-	
+
+    updateDirs = FcStrSetCreate ();
     changed = 0;
-    ret = scanDirs (list, config, force, really_force, verbose, FcTrue, &changed);
+    ret = scanDirs (list, config, force, really_force, verbose, FcTrue, &changed, updateDirs);
     /* Update the directory cache again to avoid the race condition as much as possible */
-    FcStrListFirst (list);
-    ret += scanDirs (list, config, FcTrue, really_force, verbose, FcFalse, &changed);
     FcStrListDone (list);
+    list = FcStrListCreate (updateDirs);
+    if (list)
+    {
+	ret += scanDirs (list, config, FcTrue, really_force, verbose, FcFalse, &changed, NULL);
+	FcStrListDone (list);
+    }
 
     /*
      * Try to create CACHEDIR.TAG anyway.

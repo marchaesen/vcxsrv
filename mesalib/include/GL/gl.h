@@ -33,25 +33,14 @@
 
 
 /**********************************************************************
- * Begin system-specific stuff. Do not do any of this when building
- * for SciTech SNAP, as this is all done before this header file is
- * included. 
+ * Begin system-specific stuff.
  */
-#if !defined(__SCITECH_SNAP__)
-
-#if defined(__BEOS__)
-#include <stdlib.h>     /* to get some BeOS-isms */
-#endif
-
-#if !defined(OPENSTEP) && (defined(NeXT) || defined(NeXT_PDO))
-#define OPENSTEP
-#endif
 
 #if defined(_WIN32) && !defined(__WIN32__) && !defined(__CYGWIN__)
 #define __WIN32__
 #endif
 
-#if !defined(OPENSTEP) && (defined(__WIN32__) && !defined(__CYGWIN__))
+#if defined(__WIN32__) && !defined(__CYGWIN__)
 #  if (defined(_MSC_VER) || defined(__MINGW32__)) && defined(BUILD_GL32) /* tag specify we're building mesa as a DLL */
 #    define GLAPI __declspec(dllexport)
 #  elif (defined(_MSC_VER) || defined(__MINGW32__)) && defined(_DLL) /* tag specifying we're building for DLL runtime support */
@@ -72,10 +61,6 @@
 #  define GLAPIENTRY
 #endif /* WIN32 && !CYGWIN */
 
-#if (defined(__BEOS__) && defined(__POWERPC__)) || defined(__QUICKDRAW__)
-#  define PRAGMA_EXPORT_SUPPORTED		1
-#endif
-
 /*
  * WINDOWS: Include windows.h here to define APIENTRY.
  * It is also useful when applications include this file by
@@ -89,10 +74,6 @@
 #define WIN32_LEAN_AND_MEAN 1
 #endif
 #include <windows.h>
-#endif
-
-#if defined(macintosh) && PRAGMA_IMPORT_SUPPORTED
-#pragma import on
 #endif
 
 #ifndef GLAPI
@@ -116,15 +97,10 @@
 #define GLAPIENTRYP GLAPIENTRY *
 #endif
 
-#ifdef CENTERLINE_CLPP
-#define signed
-#endif
-
 #if defined(PRAGMA_EXPORT_SUPPORTED)
 #pragma export on
 #endif
 
-#endif /* !__SCITECH_SNAP__ */
 /*
  * End system-specific stuff.
  **********************************************************************/
@@ -2177,9 +2153,6 @@ typedef void (APIENTRYP PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC) (GLenum t
 #pragma export off
 #endif
 
-#if defined(macintosh) && PRAGMA_IMPORT_SUPPORTED
-#pragma import off
-#endif
 /*
  * End system-specific stuff
  **********************************************************************/
