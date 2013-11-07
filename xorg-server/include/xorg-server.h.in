@@ -218,4 +218,7 @@
 #define _XSERVER64 1
 #endif
 
+/* Have support for X shared memory fence library (xshmfence) */
+#undef HAVE_XSHMFENCE
+
 #endif /* _XORG_SERVER_H_ */

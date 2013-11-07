@@ -1351,7 +1351,7 @@ stl_u(unsigned long val, unsigned int *p)
 #else                           /* ix86 */
 
 #if !defined(__SUNPRO_C)
-#if !defined(FAKEIT) && !defined(__mc68000__) && !defined(__arm__) && !defined(__sh__) && !defined(__hppa__) && !defined(__s390__) && !defined(__m32r__)
+#if !defined(FAKEIT) && !defined(__mc68000__) && !defined(__arm__) && !defined(__sh__) && !defined(__hppa__) && !defined(__s390__) && !defined(__m32r__) && !defined(__aarch64__)
 #ifdef GCCUSESGAS
 
 /*

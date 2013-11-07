@@ -233,7 +233,7 @@ dump (FcGlyphName * const *table, const char *name)
 int
 main (int argc FC_UNUSED, char **argv)
 {
-    char	*files[MAX_GLYPHFILE];
+    char	*files[MAX_GLYPHFILE + 1];
     char	line[1024];
     FILE	*f;
     int		i;

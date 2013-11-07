@@ -254,7 +254,7 @@ static int compare (const void *a, const void *b)
 int
 main (int argc FC_UNUSED, char **argv)
 {
-    static Entry	entries[MAX_LANG];
+    static Entry	entries[MAX_LANG + 1];
     static FcCharSet	*sets[MAX_LANG];
     static int		duplicate[MAX_LANG];
     static int		country[MAX_LANG];

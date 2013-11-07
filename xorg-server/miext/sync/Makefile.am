@@ -8,8 +8,13 @@ if XORG
 sdk_HEADERS = misync.h misyncstr.h misyncshm.h
 endif
 
+XSHMFENCE_SRCS = misyncshm.c
+
 libsync_la_SOURCES =	\
 	misync.c	\
 	misync.h	\
-	misyncshm.c	\
 	misyncstr.h
+
+if XSHMFENCE
+libsync_la_SOURCES += $(XSHMFENCE_SRCS)
+endif

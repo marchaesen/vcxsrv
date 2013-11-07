@@ -919,6 +919,7 @@ SyncCreate(ClientPtr client, XID id, unsigned char type)
 int
 SyncCreateFenceFromFD(ClientPtr client, DrawablePtr pDraw, XID id, int fd, BOOL initially_triggered)
 {
+#if HAVE_XSHMFENCE
     SyncFence  *pFence;
     int         status;
 
@@ -936,12 +937,19 @@ SyncCreateFenceFromFD(ClientPtr client, DrawablePtr pDraw, XID id, int fd, BOOL 
         return BadAlloc;
 
     return Success;
+#else
+    return BadImplementation;
+#endif
 }
 
 int
 SyncFDFromFence(ClientPtr client, DrawablePtr pDraw, SyncFence *pFence)
 {
+#if HAVE_XSHMFENCE
     return miSyncFDFromFence(pDraw, pFence);
+#else
+    return BadImplementation;
+#endif
 }
 
 static SyncCounter *

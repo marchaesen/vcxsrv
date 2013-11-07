@@ -13,7 +13,7 @@ class Field(object):
     auto is true iff the field is on the wire but not in the request API (e.g. opcode)
     enum is the enum name this field refers to, if any.
     '''
-    def __init__(self, type, field_type, field_name, visible, wire, auto, enum=None):
+    def __init__(self, type, field_type, field_name, visible, wire, auto, enum=None, isfd=False):
         self.type = type
         self.field_type = field_type
         self.field_name = field_name
@@ -21,6 +21,7 @@ class Field(object):
         self.visible = visible
         self.wire = wire
         self.auto = auto
+        self.isfd = isfd
 
 
 class Expression(object):

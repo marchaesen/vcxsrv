@@ -14,10 +14,6 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_SYSTEM
 AM_INIT_AUTOMAKE([foreign])
 
-dnl http://people.gnome.org/~walters/docs/build-api.txt
-dnl We don't support srcdir != builddir.
-echo \#buildapi-variable-no-builddir >/dev/null
-
 # Support silent build rules, requires at least automake-1.11. Disable
 # by either passing --disable-silent-rules to configure or passing V=1
 # to make
@@ -974,7 +970,7 @@ if test "x$enable_dri" = xyes; then
             ;;
         esac
         ;;
-    freebsd* | dragonfly* | *netbsd* | openbsd*)
+    *freebsd* | dragonfly* | *netbsd* | openbsd*)
         DEFINES="$DEFINES -DHAVE_PTHREAD -DUSE_EXTERNAL_DXTN_LIB=1"
         DEFINES="$DEFINES -DHAVE_ALIAS"
 
@@ -2096,7 +2092,6 @@ AC_CONFIG_FILES([Makefile
 		src/mesa/drivers/x11/Makefile
 		src/mesa/main/tests/Makefile
 		src/mesa/main/tests/hash_table/Makefile
-		src/mesa/program/Makefile
 		src/mesa/x86-64/Makefile
 		src/mesa/x86/Makefile])
 

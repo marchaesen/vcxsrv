@@ -924,12 +924,16 @@ FcStrBuildFilename (const FcChar8 *path,
 		    ...)
 {
     va_list ap;
-    FcStrSet *sset = FcStrSetCreate ();
+    FcStrSet *sset;
     FcStrList *list;
     FcChar8 *s, *ret = NULL, *p;
     size_t len = 0;
 
-    if (!sset || !path)
+    if (!path)
+	return NULL;
+
+    sset = FcStrSetCreate ();
+    if (!sset)
 	return NULL;
 
     if (!FcStrSetAdd (sset, path))

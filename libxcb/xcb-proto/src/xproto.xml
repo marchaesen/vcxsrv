@@ -1080,7 +1080,21 @@ The number of keycodes altered.
     </doc>
   </event>
 
-
+  <event name="ge" number="35" xge="true">
+    <pad bytes="22" />
+    <doc>
+      <brief>generic event (with length)</brief>
+      <field name="extension"><![CDATA[
+The major opcode of the extension creating this event
+      ]]></field>
+      <field name="length"><![CDATA[
+The amount (in 4-byte units) of data beyond 32 bytes
+      ]]></field>
+      <field name="evtype"><![CDATA[
+The extension-specific event type
+      ]]></field>
+    </doc>
+  </event>
 
   <!-- Core error types -->
 

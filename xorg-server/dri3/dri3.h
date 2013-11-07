@@ -23,6 +23,10 @@
 #ifndef _DRI3_H_
 #define _DRI3_H_
 
+#include <xorg-server.h>
+
+#ifdef DRI3
+
 #include <X11/extensions/dri3proto.h>
 #include <randrstr.h>
 
@@ -55,5 +59,7 @@ typedef struct dri3_screen_info {
 
 extern _X_EXPORT Bool
 dri3_screen_init(ScreenPtr screen, dri3_screen_info_ptr info);
+
+#endif
 
 #endif /* _DRI3_H_ */

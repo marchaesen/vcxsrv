@@ -792,6 +792,7 @@ DMXPROTO="dmxproto >= 2.2.99.1"
 VIDMODEPROTO="xf86vidmodeproto >= 2.2.99.1"
 WINDOWSWMPROTO="windowswmproto"
 APPLEWMPROTO="applewmproto >= 1.4"
+XSHMFENCE="xshmfence"
 
 dnl Required modules
 XPROTO="xproto >= 7.0.22"
@@ -1074,7 +1075,7 @@ if test "x$GLX" = xyes; then
 	AC_SUBST(XLIB_CFLAGS)
 	AC_DEFINE(GLXEXT, 1, [Build GLX extension])
 	GLX_LIBS='$(top_builddir)/glx/libglx.la'
-	GLX_SYS_LIBS="$GLX_SYS_LIBS -lGL"
+	GLX_SYS_LIBS="$GLX_SYS_LIBS $GL_LIBS"
 else
         GLX=no
 fi
@@ -1119,17 +1120,60 @@ AM_CONDITIONAL(DRI2, test "x$DRI2" = xyes)
 
 PKG_CHECK_MODULES([DRI3PROTO], $DRI3PROTO,
                   [HAVE_DRI3PROTO=yes], [HAVE_DRI3PROTO=no])
+
 case "$DRI3,$HAVE_DRI3PROTO" in
+	yes,yes | auto,yes)
+		;;
 	yes,no)
 		AC_MSG_ERROR([DRI3 requested, but dri3proto not found.])
+		DRI3=no
 		;;
-	yes,yes | auto,yes)
-		AC_DEFINE(DRI3, 1, [Build DRI3 extension])
-		DRI3=yes
-		DRI3_LIB='$(top_builddir)/dri3/libdri3.la'
-		SDK_REQUIRED_MODULES="$SDK_REQUIRED_MODULES $DRI3PROTO"
+	no,*)
+		;;
+	*)
+		AC_MSG_NOTICE([DRI3 disabled because dri3proto not found.])
+		DRI3=no
 		;;
 esac
+
+PKG_CHECK_MODULES([XSHMFENCE], $XSHMFENCE,
+		  [HAVE_XSHMFENCE=yes], [HAVE_XSHMFENCE=no])
+
+AM_CONDITIONAL(XSHMFENCE, test "x$HAVE_XSHMFENCE" = xyes)
+
+case x"$HAVE_XSHMFENCE" in
+	xyes)
+		AC_DEFINE(HAVE_XSHMFENCE, 1, [Have X Shared Memory Fence library])
+		REQUIRED_LIBS="$REQUIRED_LIBS xshmfence"
+		;;
+esac
+
+
+case "$DRI3,$HAVE_XSHMFENCE" in
+	yes,yes | auto,yes)
+		;;
+	yes,no)
+		AC_MSG_ERROR("DRI3 requested, but xshmfence not found.])
+		DRI3=no
+		;;
+	no,*)
+		;;
+	*)
+		AC_MSG_NOTICE([DRI3 disabled because xshmfence not found.])
+		DRI3=no
+		;;
+esac
+
+case x"$DRI3" in
+	xyes|xauto)
+		DRI3=yes
+		AC_DEFINE(DRI3, 1, [Build DRI3 extension])
+		DRI3_LIB='$(top_builddir)/dri3/libdri3.la'
+		SDK_REQUIRED_MODULES="$SDK_REQUIRED_MODULES $DRI3PROTO"
+		AC_MSG_NOTICE([DRI3 enabled]);
+		;;
+esac
+
 AM_CONDITIONAL(DRI3, test "x$DRI3" = xyes)
 
 if test "x$DRI" = xyes || test "x$DRI2" = xyes || test "x$DRI3" = xyes || test "x$CONFIG_UDEV_KMS" = xyes; then
@@ -1333,7 +1377,6 @@ if test "x$XDMAUTH" = xyes; then
 		XDMCP_MODULES="xdmcp"
 	fi
 fi
-REQUIRED_LIBS="$REQUIRED_LIBS xshmfence"
 
 AC_DEFINE_DIR(COMPILEDDEFAULTFONTPATH, FONTPATH, [Default font path])
 AC_DEFINE_DIR(SERVER_MISC_CONFIG_PATH, SERVERCONFIG, [Server miscellaneous config path])

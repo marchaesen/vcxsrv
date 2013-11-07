@@ -480,7 +480,7 @@ GetTimeInMicros(void)
         else
             clockid = ~0L;
     }
-    if (clock_gettime(CLOCK_MONOTONIC, &tp) == 0)
+    if (clockid != ~0L && clock_gettime(clockid, &tp) == 0)
         return (CARD64) tp.tv_sec * (CARD64)1000000 + tp.tv_nsec / 1000;
 #endif
 

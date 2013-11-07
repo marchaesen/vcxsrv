@@ -75,6 +75,18 @@ class Type(object):
 
         complex_type.fields.append(new_field)
 
+    def make_fd_of(self, module, complex_type, fd_name):
+    	'''
+        Method for making a fd member of a structure.
+        '''
+        new_fd = Field(self, module.get_type_name('INT32'), fd_name, True, False, False, None, True)
+        # We dump the _placeholder_byte if any fields are added.
+        for (idx, field) in enumerate(complex_type.fields):
+            if field == _placeholder_byte:
+                complex_type.fields[idx] = new_fd
+                return
+
+        complex_type.fields.append(new_fd)
 
 class SimpleType(Type):
     '''
@@ -103,9 +115,11 @@ class SimpleType(Type):
 tcard8 = SimpleType(('uint8_t',), 1)
 tcard16 = SimpleType(('uint16_t',), 2)
 tcard32 = SimpleType(('uint32_t',), 4)
+tcard64 = SimpleType(('uint64_t',), 8)
 tint8 =  SimpleType(('int8_t',), 1)
 tint16 = SimpleType(('int16_t',), 2)
 tint32 = SimpleType(('int32_t',), 4)
+tint64 = SimpleType(('int64_t',), 8)
 tchar =  SimpleType(('char',), 1)
 tfloat = SimpleType(('float',), 4)
 tdouble = SimpleType(('double',), 8)
@@ -150,6 +164,44 @@ class Enum(SimpleType):
     out = __main__.output['enum']
 
 
+class FileDescriptor(SimpleType):
+    '''
+    Derived class which represents a file descriptor. Passed via magic kernel stuff
+
+    Public fields added:
+    values contains a list of (name, value) tuples.  value is empty, or a number.
+    bits contains a list of (name, bitnum) tuples.  items only appear if specified as a bit. bitnum is a number.
+    '''
+    def __init__(self, name, elt):
+        SimpleType.__init__(self, name, 4)
+        self.values = []
+        self.bits = []
+        self.doc = None
+        for item in list(elt):
+            if item.tag == 'doc':
+                self.doc = Doc(name, item)
+
+            # First check if we're using a default value
+            if len(list(item)) == 0:
+                self.values.append((item.get('name'), ''))
+                continue
+
+            # An explicit value or bit was specified.
+            value = list(item)[0]
+            if value.tag == 'value':
+                self.values.append((item.get('name'), value.text))
+            elif value.tag == 'bit':
+                self.values.append((item.get('name'), '%u' % (1 << int(value.text, 0))))
+                self.bits.append((item.get('name'), value.text))
+
+    def resolve(self, module):
+        self.resolved = True
+
+    def fixed_size(self):
+        return True
+
+    out = __main__.output['enum']
+    
 class ListType(Type):
     '''
     Derived class which represents a list of some other datatype.  Fixed- or variable-sized.
@@ -277,6 +329,7 @@ class ComplexType(Type):
         self.nmemb = 1
         self.size = 0
         self.lenfield_parent = [self]
+        self.fds = []
 
     def resolve(self, module):
         if self.resolved:
@@ -322,9 +375,14 @@ class ComplexType(Type):
                 type.make_member_of(module, self, field_type, field_name, visible, True, False)
                 type.resolve(module)
                 continue
+            elif child.tag == 'fd':
+                fd_name = child.get('name')
+                type = module.get_type('INT32')
+                type.make_fd_of(module, self, fd_name)
+                continue
             else:
                 # Hit this on Reply
-                continue 
+                continue
 
             # Get the full type name for the field
             field_type = module.get_type_name(fkey)

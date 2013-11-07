@@ -32,7 +32,7 @@ in this Software without prior written authorization from The Open Group.
 #define SHMNAME "MIT-SHM"
 
 #define SHM_MAJOR_VERSION	1	/* current version numbers */
-#define SHM_MINOR_VERSION	1
+#define SHM_MINOR_VERSION	2
 
 #define ShmCompletion			0
 #define ShmNumberEvents			(ShmCompletion + 1)
