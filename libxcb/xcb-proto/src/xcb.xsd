@@ -89,6 +89,9 @@ authorization from the authors.
   <!-- field replaces FIELD, PARAM, and REPLY. -->
   <xsd:element name="field" type="var" />
 
+  <!-- fd passing parameter -->
+  <xsd:element name="fd" />
+
   <!-- list replaces ARRAYFIELD, LISTPARAM, and ARRAYREPLY.  The name and type
        are specified as attributes.  The content is an expression giving the
        length. -->
@@ -185,6 +188,7 @@ authorization from the authors.
       <xsd:element ref="pad" />
       <xsd:element ref="field" />
       <xsd:element ref="list" />
+      <xsd:element ref="fd" />
     </xsd:choice>
   </xsd:group>
 

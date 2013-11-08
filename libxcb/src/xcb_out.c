@@ -263,6 +263,24 @@ unsigned int xcb_send_request(xcb_connection_t *c, int flags, struct iovec *vect
     return request;
 }
 
+void
+xcb_send_fd(xcb_connection_t *c, int fd)
+{
+#if HAVE_SENDMSG
+    if (c->has_error)
+        return;
+    pthread_mutex_lock(&c->iolock);
+    while (c->out.out_fd.nfd == XCB_MAX_PASS_FD) {
+        _xcb_out_flush_to(c, c->out.request);
+        if (c->has_error)
+            break;
+    }
+    if (!c->has_error)
+        c->out.out_fd.fd[c->out.out_fd.nfd++] = fd;
+    pthread_mutex_unlock(&c->iolock);
+#endif
+}
+
 int xcb_take_socket(xcb_connection_t *c, void (*return_socket)(void *closure), void *closure, int flags, uint64_t *sent)
 {
     int ret;

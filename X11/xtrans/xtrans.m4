@@ -57,6 +57,41 @@ AC_DEFUN([XTRANS_TCP_FLAGS],[
 AC_INCLUDES_DEFAULT
 #include <sys/socket.h>])
 
+ # XPG4v2/UNIX95 added msg_control - check to see if we need to define
+ # _XOPEN_SOURCE to get it (such as on Solaris)
+ AC_CHECK_MEMBER([struct msghdr.msg_control], [], [],
+                 [
+AC_INCLUDES_DEFAULT
+#include <sys/socket.h>
+                 ])
+ # First try for Solaris in C99 compliant mode, which requires XPG6/UNIX03
+ if test "x$ac_cv_member_struct_msghdr_msg_control" = xno; then
+     unset ac_cv_member_struct_msghdr_msg_control
+     AC_MSG_NOTICE([trying again with _XOPEN_SOURCE=600])
+     AC_CHECK_MEMBER([struct msghdr.msg_control],
+                     [AC_DEFINE([_XOPEN_SOURCE], [600],
+                       [Defined if needed to expose struct msghdr.msg_control])
+                     ], [], [
+#define _XOPEN_SOURCE 600
+AC_INCLUDES_DEFAULT
+#include <sys/socket.h>
+                     ])
+ fi
+ # If that didn't work, fall back to XPG5/UNIX98 with C89
+ if test "x$ac_cv_member_struct_msghdr_msg_control" = xno; then
+     unset ac_cv_member_struct_msghdr_msg_control
+     AC_MSG_NOTICE([trying again with _XOPEN_SOURCE=500])
+     AC_CHECK_MEMBER([struct msghdr.msg_control],
+                     [AC_DEFINE([_XOPEN_SOURCE], [500],
+                       [Defined if needed to expose struct msghdr.msg_control])
+                     ], [], [
+#define _XOPEN_SOURCE 500
+AC_INCLUDES_DEFAULT
+#include <sys/socket.h>
+                     ])
+ fi
+
+
 ]) # XTRANS_TCP_FLAGS
 
 # XTRANS_CONNECTION_FLAGS()

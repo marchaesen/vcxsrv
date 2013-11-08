@@ -57,6 +57,7 @@
 #include <GL/internal/dri_interface.h>
 #include "main/mtypes.h"
 #include "xmlconfig.h"
+#include <stdbool.h>
 
 /**
  * Extensions.
@@ -87,6 +88,7 @@ struct __DriverAPIRec {
 			       unsigned major_version,
 			       unsigned minor_version,
 			       uint32_t flags,
+                               bool notify_reset,
 			       unsigned *error,
                                void *sharedContextPrivate);
 
@@ -173,6 +175,10 @@ struct __DRIscreenRec {
 	__DRIimageLookupExtension *image;
 	__DRIuseInvalidateExtension *useInvalidate;
     } dri2;
+
+    struct {
+        __DRIimageLoaderExtension *loader;
+    } image;
 
     driOptionCache optionInfo;
     driOptionCache optionCache;
@@ -271,10 +277,18 @@ struct __DRIdrawableRec {
     } dri2;
 };
 
+extern uint32_t
+driGLFormatToImageFormat(gl_format format);
+
+extern gl_format
+driImageFormatToGLFormat(uint32_t image_format);
+
 extern void
 dri2InvalidateDrawable(__DRIdrawable *drawable);
 
 extern void
 driUpdateFramebufferSize(struct gl_context *ctx, const __DRIdrawable *dPriv);
+
+extern const __DRIimageDriverExtension driImageDriverExtension;
 
 #endif /* _DRI_UTIL_H_ */

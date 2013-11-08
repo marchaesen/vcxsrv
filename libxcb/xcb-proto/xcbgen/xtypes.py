@@ -164,44 +164,6 @@ class Enum(SimpleType):
     out = __main__.output['enum']
 
 
-class FileDescriptor(SimpleType):
-    '''
-    Derived class which represents a file descriptor. Passed via magic kernel stuff
-
-    Public fields added:
-    values contains a list of (name, value) tuples.  value is empty, or a number.
-    bits contains a list of (name, bitnum) tuples.  items only appear if specified as a bit. bitnum is a number.
-    '''
-    def __init__(self, name, elt):
-        SimpleType.__init__(self, name, 4)
-        self.values = []
-        self.bits = []
-        self.doc = None
-        for item in list(elt):
-            if item.tag == 'doc':
-                self.doc = Doc(name, item)
-
-            # First check if we're using a default value
-            if len(list(item)) == 0:
-                self.values.append((item.get('name'), ''))
-                continue
-
-            # An explicit value or bit was specified.
-            value = list(item)[0]
-            if value.tag == 'value':
-                self.values.append((item.get('name'), value.text))
-            elif value.tag == 'bit':
-                self.values.append((item.get('name'), '%u' % (1 << int(value.text, 0))))
-                self.bits.append((item.get('name'), value.text))
-
-    def resolve(self, module):
-        self.resolved = True
-
-    def fixed_size(self):
-        return True
-
-    out = __main__.output['enum']
-    
 class ListType(Type):
     '''
     Derived class which represents a list of some other datatype.  Fixed- or variable-sized.

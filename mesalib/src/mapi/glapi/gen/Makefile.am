@@ -32,11 +32,11 @@ MESA_GLAPI_OUTPUTS = \
 
 MESA_GLAPI_ASM_OUTPUTS =
 if HAVE_X86_ASM
-MESA_GLAPI_ASM_OUTPUTS += $(MESA_GLAPI_DIR)/glapi_x86.S
-endif
-
 if HAVE_X86_64_ASM
 MESA_GLAPI_ASM_OUTPUTS += $(MESA_GLAPI_DIR)/glapi_x86-64.S
+else
+MESA_GLAPI_ASM_OUTPUTS += $(MESA_GLAPI_DIR)/glapi_x86.S
+endif
 endif
 
 if HAVE_SPARC_ASM
@@ -125,6 +125,7 @@ API_XML = \
 	ARB_texture_storage_multisample.xml \
 	ARB_texture_storage.xml \
 	ARB_vertex_array_object.xml \
+	ARB_vertex_attrib_binding.xml \
 	AMD_draw_buffers_blend.xml \
 	AMD_performance_monitor.xml \
 	ARB_vertex_type_2_10_10_10_rev.xml \

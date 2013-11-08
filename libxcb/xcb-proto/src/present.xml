@@ -133,7 +133,7 @@ OF THIS SOFTWARE.
 
   <!-- Events -->
 
-  <event name="Generic">
+  <event name="Generic" number="0">
     <field type="CARD8" name="extension" />
     <field type="CARD32" name="length" />
     <field type="CARD16" name="evtype" enum="EventType" />

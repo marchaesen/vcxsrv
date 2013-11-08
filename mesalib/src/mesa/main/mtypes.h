@@ -35,6 +35,7 @@
 
 
 #include <stdint.h>             /* uint32_t */
+#include <stdbool.h>
 
 #include "main/glheader.h"
 #include "main/config.h"
@@ -1474,6 +1475,44 @@ struct gl_client_array
 
 
 /**
+ * Vertex attribute array as seen by the client.
+ *
+ * Contains the size, type, format and normalization flag,
+ * along with the index of a vertex buffer binding point.
+ *
+ * Note that the Stride field corresponds to VERTEX_ATTRIB_ARRAY_STRIDE
+ * and is only present for backwards compatibility reasons.
+ * Rendering always uses VERTEX_BINDING_STRIDE.
+ * The gl*Pointer() functions will set VERTEX_ATTRIB_ARRAY_STRIDE
+ * and VERTEX_BINDING_STRIDE to the same value, while
+ * glBindVertexBuffer() will only set VERTEX_BINDING_STRIDE.
+ */
+struct gl_vertex_attrib_array
+{
+   GLint Size;              /**< Components per element (1,2,3,4) */
+   GLenum Type;             /**< Datatype: GL_FLOAT, GL_INT, etc */
+   GLenum Format;           /**< Default: GL_RGBA, but may be GL_BGRA */
+   GLsizei Stride;          /**< Stride as specified with gl*Pointer() */
+   const GLubyte *Ptr;      /**< Points to client array data. Not used when a VBO is bound */
+   GLintptr RelativeOffset; /**< Offset of the first element relative to the binding offset */
+   GLboolean Enabled;       /**< Whether the array is enabled */
+   GLboolean Normalized;    /**< Fixed-point values are normalized when converted to floats */
+   GLboolean Integer;       /**< Fixed-point values are not converted to floats */
+   GLuint _ElementSize;     /**< Size of each element in bytes */
+   GLuint VertexBinding;    /**< Vertex buffer binding */
+};
+
+struct gl_vertex_buffer_binding
+{
+   GLintptr Offset;                    /**< User-specified offset */
+   GLsizei Stride;                     /**< User-specified stride */
+   GLuint InstanceDivisor;             /**< GL_ARB_instanced_arrays */
+   struct gl_buffer_object *BufferObj; /**< GL_ARB_vertex_buffer_object */
+   GLbitfield64 _BoundArrays;          /**< Arrays bound to this binding point */
+};
+
+
+/**
  * Collection of vertex arrays.  Defined by the GL_APPLE_vertex_array_object
  * extension, but a nice encapsulation in any case.
  */
@@ -1507,11 +1546,20 @@ struct gl_array_object
     */
    GLboolean EverBound;
 
+   /** Derived vertex attribute arrays */
+   struct gl_client_array _VertexAttrib[VERT_ATTRIB_MAX];
+
    /** Vertex attribute arrays */
-   struct gl_client_array VertexAttrib[VERT_ATTRIB_MAX];
+   struct gl_vertex_attrib_array VertexAttrib[VERT_ATTRIB_MAX];
+
+   /** Vertex buffer bindings */
+   struct gl_vertex_buffer_binding VertexBinding[VERT_ATTRIB_MAX];
 
    /** Mask of VERT_BIT_* values indicating which arrays are enabled */
    GLbitfield64 _Enabled;
+
+   /** Mask of VERT_BIT_* values indicating changed/dirty arrays */
+   GLbitfield64 NewArrays;
 
    /**
     * Min of all enabled arrays' _MaxElement.  When arrays reside inside VBOs
@@ -2765,6 +2813,17 @@ struct gl_shared_state
 
    /** GL_ARB_sampler_objects */
    struct _mesa_HashTable *SamplerObjects;
+
+   /**
+    * Some context in this share group was affected by a GPU reset
+    *
+    * On the next call to \c glGetGraphicsResetStatus, contexts that have not
+    * been affected by a GPU reset must also return
+    * \c GL_INNOCENT_CONTEXT_RESET_ARB.
+    *
+    * Once this field becomes true, it is never reset to false.
+    */
+   bool ShareGroupReset;
 };
 
 
@@ -3213,6 +3272,10 @@ struct gl_constants
    GLuint MaxAtomicBufferSize;
    GLuint MaxCombinedAtomicBuffers;
    GLuint MaxCombinedAtomicCounters;
+
+   /** GL_ARB_vertex_attrib_binding */
+   GLint MaxVertexAttribRelativeOffset;
+   GLint MaxVertexAttribBindings;
 };
 
 
@@ -3291,6 +3354,7 @@ struct gl_extensions
    GLboolean ARB_uniform_buffer_object;
    GLboolean ARB_vertex_program;
    GLboolean ARB_vertex_shader;
+   GLboolean ARB_vertex_type_10f_11f_11f_rev;
    GLboolean ARB_vertex_type_2_10_10_10_rev;
    GLboolean EXT_blend_color;
    GLboolean EXT_blend_equation_separate;
@@ -3851,9 +3915,6 @@ struct gl_context
 
    GLenum ErrorValue;        /**< Last error code */
 
-   /* GL_ARB_robustness */
-   GLenum ResetStatus;
-
    /**
     * Recognize and silence repeated error debug messages in buggy apps.
     */
@@ -3918,6 +3979,13 @@ struct gl_context
    const void *vdpGetProcAddress;
    struct set *vdpSurfaces;
    /*@}*/
+
+   /**
+    * Has this context observed a GPU reset in any context in the share group?
+    *
+    * Once this field becomes true, it is never reset to false.
+    */
+   GLboolean ShareGroupReset;
 };
 
 
