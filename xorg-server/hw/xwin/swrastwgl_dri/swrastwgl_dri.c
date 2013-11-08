@@ -852,6 +852,10 @@ __DRIconfig **driConcatConfigs(__DRIconfig **a, __DRIconfig **b)
   return all;
 }
 
+/**
+ * Return the value of a configuration attribute.  The attribute is
+ * indicated by the index.
+ */
 static int driGetConfigAttribIndex(const __DRIconfig *config, unsigned int index, unsigned int *value)
 {
   switch (attribMap[index].attrib) {
@@ -886,6 +890,31 @@ static int driGetConfigAttribIndex(const __DRIconfig *config, unsigned int index
     return GL_TRUE;
 }
 
+/**
+ * Get the value of a configuration attribute.
+ * \param attrib  the attribute (one of the _DRI_ATTRIB_x tokens)
+ * \param value  returns the attribute's value
+ * \return 1 for success, 0 for failure
+ */
+int
+driGetConfigAttrib(const __DRIconfig *config, unsigned int attrib, unsigned int *value)
+{
+  int i;
+
+  for (i = 0; i < ARRAY_SIZE(attribMap); i++)
+    if (attribMap[i].attrib == attrib)
+      return driGetConfigAttribIndex(config, i, value);
+
+  return GL_FALSE;
+}
+
+/**
+ * Get a configuration attribute name and value, given an index.
+ * \param index  which field of the __DRIconfig to query
+ * \param attrib  returns the attribute name (one of the _DRI_ATTRIB_x tokens)
+ * \param value  returns the attribute's value
+ * \return 1 for success, 0 for failure
+ */
 int driIndexConfigAttrib(const __DRIconfig *config, int index, unsigned int *attrib, unsigned int *value)
 {
   if (index >= 0 && index < ARRAY_SIZE(attribMap))
@@ -1188,7 +1217,7 @@ const __DRIcoreExtension driCoreExtension = {
   NULL, /* driCreateNewScreen */
   driDestroyScreen,
   driGetExtensions,
-  NULL,//    driGetConfigAttrib,
+  driGetConfigAttrib,
   driIndexConfigAttrib,
   NULL, /* driCreateNewDrawable */
   driDestroyDrawable,

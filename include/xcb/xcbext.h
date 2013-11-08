@@ -54,10 +54,13 @@ typedef struct {
 enum xcb_send_request_flags_t {
     XCB_REQUEST_CHECKED = 1 << 0,
     XCB_REQUEST_RAW = 1 << 1,
-    XCB_REQUEST_DISCARD_REPLY = 1 << 2
+    XCB_REQUEST_DISCARD_REPLY = 1 << 2,
+    XCB_REQUEST_REPLY_FDS = 1 << 3
 };
 
 unsigned int xcb_send_request(xcb_connection_t *c, int flags, struct iovec *vector, const xcb_protocol_request_t *request);
+
+void xcb_send_fd(xcb_connection_t *c, int fd);
 
 /* xcb_take_socket allows external code to ask XCB for permission to
  * take over the write side of the socket and send raw data with
@@ -89,6 +92,7 @@ int xcb_writev(xcb_connection_t *c, struct iovec *vector, int count, uint64_t re
 
 void *xcb_wait_for_reply(xcb_connection_t *c, unsigned int request, xcb_generic_error_t **e);
 int xcb_poll_for_reply(xcb_connection_t *c, unsigned int request, void **reply, xcb_generic_error_t **error);
+int *xcb_get_reply_fds(xcb_connection_t *c, void *reply, size_t replylen);
 
 
 /* xcb_util.c */

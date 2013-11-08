@@ -2200,20 +2200,6 @@ TRANS(SocketSendFd) (XtransConnInfo ciptr, int fd, int do_close)
     return 0;
 }
 
-static int
-TRANS(SocketRecvFdInvalid)(XtransConnInfo ciptr)
-{
-    errno = EINVAL;
-    return -1;
-}
-
-static int
-TRANS(SocketSendFdInvalid)(XtransConnInfo ciptr, int fd, int do_close)
-{
-    errno = EINVAL;
-    return -1;
-}
-
 #define MAX_FDS		128
 
 struct fd_pass {
@@ -2238,6 +2224,20 @@ static inline void init_msg_send(struct msghdr *msg, struct iovec *iov, int niov
 }
 
 #endif /* XTRANS_SEND_FDS */
+
+static int
+TRANS(SocketRecvFdInvalid)(XtransConnInfo ciptr)
+{
+    errno = EINVAL;
+    return -1;
+}
+
+static int
+TRANS(SocketSendFdInvalid)(XtransConnInfo ciptr, int fd, int do_close)
+{
+    errno = EINVAL;
+    return -1;
+}
 
 static int
 TRANS(SocketRead) (XtransConnInfo ciptr, char *buf, int size)
@@ -2549,10 +2549,8 @@ Xtransport	TRANS(SocketTCPFuncs) = {
 	TRANS(SocketWrite),
 	TRANS(SocketReadv),
 	TRANS(SocketWritev),
-#if XTRANS_SEND_FDS
 	TRANS(SocketSendFdInvalid),
 	TRANS(SocketRecvFdInvalid),
-#endif
 	TRANS(SocketDisconnect),
 	TRANS(SocketINETClose),
 	TRANS(SocketINETClose),
@@ -2593,10 +2591,8 @@ Xtransport	TRANS(SocketINETFuncs) = {
 	TRANS(SocketWrite),
 	TRANS(SocketReadv),
 	TRANS(SocketWritev),
-#if XTRANS_SEND_FDS
 	TRANS(SocketSendFdInvalid),
 	TRANS(SocketRecvFdInvalid),
-#endif
 	TRANS(SocketDisconnect),
 	TRANS(SocketINETClose),
 	TRANS(SocketINETClose),
@@ -2638,10 +2634,8 @@ Xtransport     TRANS(SocketINET6Funcs) = {
 	TRANS(SocketWrite),
 	TRANS(SocketReadv),
 	TRANS(SocketWritev),
-#if XTRANS_SEND_FDS
 	TRANS(SocketSendFdInvalid),
 	TRANS(SocketRecvFdInvalid),
-#endif
 	TRANS(SocketDisconnect),
 	TRANS(SocketINETClose),
 	TRANS(SocketINETClose),

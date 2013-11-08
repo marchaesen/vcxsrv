@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python
 #
 # Copyright (c) 2013 The Khronos Group Inc.
 #
@@ -50,33 +50,33 @@ if __name__ == '__main__':
         arg = sys.argv[i]
         i = i + 1
         if (arg == '-debug'):
-            print('Enabling debug (-debug)', file=sys.stderr)
+            write('Enabling debug (-debug)', file=sys.stderr)
             debug = True
         elif (arg == '-dump'):
-            print('Enabling dump (-dump)', file=sys.stderr)
+            write('Enabling dump (-dump)', file=sys.stderr)
             dump = True
         elif (arg == '-noprotect'):
-            print('Disabling inclusion protection in output headers', file=sys.stderr)
+            write('Disabling inclusion protection in output headers', file=sys.stderr)
             protect = False
         elif (arg == '-profile'):
-            print('Enabling profiling (-profile)', file=sys.stderr)
+            write('Enabling profiling (-profile)', file=sys.stderr)
             profile = True
         elif (arg == '-registry'):
             regFilename = sys.argv[i]
             i = i+1
-            print('Using registry ', regFilename, file=sys.stderr)
+            write('Using registry ', regFilename, file=sys.stderr)
         elif (arg == '-time'):
-            print('Enabling timing (-time)', file=sys.stderr)
+            write('Enabling timing (-time)', file=sys.stderr)
             timeit = True
         elif (arg == '-validate'):
-            print('Enabling group validation (-validate)', file=sys.stderr)
+            write('Enabling group validation (-validate)', file=sys.stderr)
             validate = True
         elif (arg[0:1] == '-'):
-            print('Unrecognized argument:', arg, file=sys.stderr)
+            write('Unrecognized argument:', arg, file=sys.stderr)
             exit(1)
         else:
             target = arg
-            print('Using target', target, file=sys.stderr)
+            write('Using target', target, file=sys.stderr)
 
 # Simple timer functions
 startTime = None
@@ -87,7 +87,7 @@ def endTimer(msg):
     global startTime
     endTime = time.clock()
     if (timeit):
-        print(msg, endTime - startTime)
+        write(msg, endTime - startTime)
         startTime = None
 
 # Load & parse registry
@@ -105,9 +105,9 @@ if (validate):
     reg.validateGroups()
 
 if (dump):
-    print('***************************************')
-    print('Performing Registry dump to regdump.txt')
-    print('***************************************')
+    write('***************************************')
+    write('Performing Registry dump to regdump.txt')
+    write('***************************************')
     reg.dumpReg(filehandle = open('regdump.txt','w'))
 
 # Turn a list of strings into a regexp string matching exactly those strings
@@ -526,9 +526,9 @@ def genHeaders():
         if (genOpts == None):
             break
         if (target and target != genOpts.filename):
-            # print('*** Skipping', genOpts.filename)
+            # write('*** Skipping', genOpts.filename)
             continue
-        print('*** Building', genOpts.filename)
+        write('*** Building', genOpts.filename)
         generated = generated + 1
         startTimer()
         gen = COutputGenerator(errFile=errWarn,
@@ -536,10 +536,10 @@ def genHeaders():
                                diagFile=diag)
         reg.setGenerator(gen)
         reg.apiGen(genOpts)
-        print('** Generated', genOpts.filename)
+        write('** Generated', genOpts.filename)
         endTimer('Time to generate ' + genOpts.filename + ' =')
     if (target and generated == 0):
-        print('Failed to generate target:', target)
+        write('Failed to generate target:', target)
 
 if (debug):
     pdb.run('genHeaders()')

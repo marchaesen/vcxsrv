@@ -93,7 +93,6 @@ mesalib/src/mapi/glapi/gen/glapitable.h             mesalib/src/mesa/main/glapit
 mesalib/src/mesa/main/glapitable.h                  xorg-server/glx/glapitable.h
 mesalib/src/mapi/glapi/gen/glprocs.h                xorg-server/glx/glprocs.h
 mesalib/src/mapi/glapi/gen/dispatch.h               xorg-server/glx/dispatch.h
-mesalib/src/mapi/glapi/gen/glapi_gentable.c         xorg-server/glx/glapi_gentable.c
 mesalib/src/mapi/glapi/gen/indirect_dispatch.c      xorg-server/glx/indirect_dispatch.c
 mesalib/src/mapi/glapi/gen/indirect_dispatch.h      xorg-server/glx/indirect_dispatch.h
 mesalib/src/mapi/glapi/gen/indirect_dispatch_swap.c xorg-server/glx/indirect_dispatch_swap.c

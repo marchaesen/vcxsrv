@@ -202,6 +202,7 @@
     <ClCompile Include="..\..\..\..\src\glsl\builtin_variables.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\ir_variable_refcount.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\linker.cpp" />
+    <ClCompile Include="..\..\..\..\src\glsl\link_atomics.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\link_functions.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\link_interface_blocks.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\link_uniforms.cpp" />
