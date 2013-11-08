@@ -1,4 +1,3 @@
-/* include/kdrive-config.h.  Generated from kdrive-config.h.in by configure.  */
 /* kdrive-config.h.in: not at all generated.                      -*- c -*-
  */
 
@@ -14,14 +13,20 @@
 /* Include framebuffer support in X servers */
 /* #undef KDRIVEFBDEV */
 
-/* Include vesa support in X servers */
-/* #undef KDRIVEVESA */
-
 /* Enable touchscreen support */
 /* #undef TOUCHSCREEN */
 
 /* Support tslib touchscreen abstraction library */
 /* #undef TSLIB */
+
+/* Support KDrive kbd driver */
+/* #undef KDRIVE_KBD */
+
+/* Support KDrive mouse driver */
+/* #undef KDRIVE_MOUSE */
+
+/* Support KDrive evdev driver */
+/* #undef KDRIVE_EVDEV */
 
 /* Verbose debugging output hilarity */
 /* #undef DEBUG */

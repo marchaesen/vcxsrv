@@ -31,3 +31,6 @@
 
 /* Default log location */
 #define DEFAULT_LOGDIR "."
+
+/* Whether we should re-locate the root to where the executable lives */
+/* #undef RELOCATE_PROJECTROOT */

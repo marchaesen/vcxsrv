@@ -72,7 +72,9 @@ from The Open Group.
 #  define XTRANSDEBUG 1
 #endif
 
+#ifndef _MSC_VER
 #define XTRANS_SEND_FDS       1
+#endif
 
 #ifdef WIN32
 # define _WILLWINSOCK_

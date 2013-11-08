@@ -275,6 +275,7 @@
     <ClCompile Include="..\..\..\..\src\glsl\opt_constant_variable.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_copy_propagation.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_copy_propagation_elements.cpp" />
+    <ClCompile Include="..\..\..\..\src\glsl\opt_cse.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_dead_builtin_varyings.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_dead_code.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_dead_code_local.cpp" />
@@ -320,6 +321,7 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\uniform_query.cpp" />
     <ClCompile Include="..\..\..\..\src\mesa\main\transformfeedback.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\uniforms.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\main\vdpau.c" />
     <ClCompile Include="..\..\..\..\src\mesa\program\arbprogparse.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\arrayobj.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\attrib.c" />

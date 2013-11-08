@@ -85,6 +85,8 @@
 #include <glx/extension_string.h>
 #include <glx/glxext.h>
 #include <GL/glxtokens.h>
+#include <glx/glapitable.h>
+#include <glx/glapi.h>
 
 #include <winpriv.h>
 #include <wgl_ext_api.h>
@@ -1800,10 +1802,8 @@ glxWinCreateContext(__GLXscreen * screen,
     //context->ctx = NULL; already done with memset
     context->shareContext = shareContext;
 
-/* TODO how to handle the unknown type glapi_table???
     context->Dispatch=calloc(sizeof(void*), (sizeof(struct _glapi_table) / sizeof(void *) + MAX_EXTENSION_FUNCS));
     _glapi_set_dispatch(context->Dispatch);
-*/
 
     glWinSetupDispatchTable();
 

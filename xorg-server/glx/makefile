@@ -10,7 +10,6 @@ glapi_sources =					\
 	indirect_size_get.c			\
 	indirect_table.c			\
 	glapi.c					\
-	glthread.c				\
 	remap.c
 
 

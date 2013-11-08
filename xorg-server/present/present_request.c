@@ -20,8 +20,8 @@
  * OF THIS SOFTWARE.
  */
 
-#ifdef HAVE_XORG_CONFIG_H
-#include <xorg-config.h>
+#ifdef HAVE_DIX_CONFIG_H
+#include <dix-config.h>
 #endif
 
 #include "present_priv.h"
@@ -30,14 +30,14 @@
 static int
 proc_present_query_version(ClientPtr client)
 {
+    xPresentQueryVersionReply rep;
     REQUEST(xPresentQueryVersionReq);
-    xPresentQueryVersionReply rep = {
-        .type = X_Reply,
-        .sequenceNumber = client->sequence,
-        .length = 0,
-        .majorVersion = PRESENT_MAJOR,
-        .minorVersion = PRESENT_MINOR
-    };
+        rep.type = X_Reply;
+        rep.sequenceNumber = client->sequence;
+        rep.length = 0;
+        rep.majorVersion = PRESENT_MAJOR;
+        rep.minorVersion = PRESENT_MINOR;
+
 
     REQUEST_SIZE_MATCH(xPresentQueryVersionReq);
     (void) stuff;
@@ -199,15 +199,14 @@ proc_present_select_input (ClientPtr client)
 static int
 proc_present_query_capabilities (ClientPtr client)
 {
-    REQUEST(xPresentQueryCapabilitiesReq);
-    xPresentQueryCapabilitiesReply rep = {
-        .type = X_Reply,
-        .sequenceNumber = client->sequence,
-        .length = 0,
-    };
     WindowPtr   window;
     RRCrtcPtr   crtc = NULL;
     int         r;
+    xPresentQueryCapabilitiesReply rep;
+    REQUEST(xPresentQueryCapabilitiesReq);
+        rep.type = X_Reply;
+        rep.sequenceNumber = client->sequence;
+        rep.length = 0;
 
     r = dixLookupWindow(&window, stuff->target, client, DixGetAttrAccess);
     switch (r) {

@@ -38,6 +38,10 @@
 #include "glxext.h"
 #include "indirect_dispatch.h"
 #include "unpack.h"
+#include "glapitable.h"
+#include "glapi.h"
+#include "glthread.h"
+#include "dispatch.h"
 
 int
 __glXDispSwap_FeedbackBuffer(__GLXclientState * cl, GLbyte * pc)
@@ -70,7 +74,7 @@ __glXDispSwap_FeedbackBuffer(__GLXclientState * cl, GLbyte * pc)
         }
         cx->feedbackBufSize = size;
     }
-    glFeedbackBuffer(size, type, cx->feedbackBuf);
+    CALL_FeedbackBuffer(GET_DISPATCH(), (size, type, cx->feedbackBuf));
     cx->hasUnflushedCommands = GL_TRUE;
     return Success;
 }
@@ -102,7 +106,7 @@ __glXDispSwap_SelectBuffer(__GLXclientState * cl, GLbyte * pc)
         }
         cx->selectBufSize = size;
     }
-    glSelectBuffer(size, cx->selectBuf);
+    CALL_SelectBuffer(GET_DISPATCH(), (size, cx->selectBuf));
     cx->hasUnflushedCommands = GL_TRUE;
     return Success;
 }
@@ -130,10 +134,10 @@ __glXDispSwap_RenderMode(__GLXclientState * cl, GLbyte * pc)
     pc += __GLX_SINGLE_HDR_SIZE;
     __GLX_SWAP_INT(pc);
     newMode = *(GLenum *) pc;
-    retval = glRenderMode(newMode);
+    retval = CALL_RenderMode(GET_DISPATCH(), (newMode));
 
     /* Check that render mode worked */
-    glGetIntegerv(GL_RENDER_MODE, &newModeCheck);
+    CALL_GetIntegerv(GET_DISPATCH(), (GL_RENDER_MODE, &newModeCheck));
     if (newModeCheck != newMode) {
         /* Render mode change failed.  Bail */
         newMode = newModeCheck;
@@ -234,7 +238,7 @@ __glXDispSwap_Flush(__GLXclientState * cl, GLbyte * pc)
         return error;
     }
 
-    glFlush();
+    CALL_Flush(GET_DISPATCH(), ());
     cx->hasUnflushedCommands = GL_FALSE;
     return Success;
 }
@@ -255,7 +259,7 @@ __glXDispSwap_Finish(__GLXclientState * cl, GLbyte * pc)
     }
 
     /* Do a local glFinish */
-    glFinish();
+    CALL_Finish(GET_DISPATCH(), ());
     cx->hasUnflushedCommands = GL_FALSE;
 
     /* Send empty reply packet to indicate finish is finished */

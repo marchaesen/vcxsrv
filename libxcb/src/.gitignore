@@ -1,3 +1,7 @@
+dri3.c
+dri3.h
+present.c
+present.h
 bigreq.c
 bigreq.h
 composite.c

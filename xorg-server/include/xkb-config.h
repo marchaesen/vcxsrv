@@ -30,7 +30,4 @@
 /* XKB output dir for compiled keymaps. */
 #define XKM_OUTPUT_DIR "xkbdata/compiled/"
 
-/* Do not have `strcasecmp'. */
-/* #undef NEED_STRCASECMP */
-
 #endif /* _XKB_CONFIG_H_ */

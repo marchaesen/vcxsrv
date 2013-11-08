@@ -20,8 +20,8 @@
  * OF THIS SOFTWARE.
  */
 
-#ifdef HAVE_XORG_CONFIG_H
-#include <xorg-config.h>
+#ifdef HAVE_DIX_CONFIG_H
+#include <dix-config.h>
 #endif
 
 #include "present_priv.h"
@@ -111,24 +111,23 @@ present_send_config_notify(WindowPtr window, int x, int y, int w, int h, int bw,
     present_window_priv_ptr window_priv = present_window_priv(window);
 
     if (window_priv) {
-        xPresentConfigureNotify cn = {
-            .type = GenericEvent,
-            .extension = present_request,
-            .length = (sizeof(xPresentConfigureNotify) - 32) >> 2,
-            .evtype = PresentConfigureNotify,
-            .eid = 0,
-            .window = window->drawable.id,
-            .x = x,
-            .y = y,
-            .width = w,
-            .height = h,
-            .off_x = 0,
-            .off_y = 0,
-            .pixmap_width = w,
-            .pixmap_height = h,
-            .pixmap_flags = 0
-        };
         present_event_ptr event;
+        xPresentConfigureNotify cn;
+            cn.type = GenericEvent;
+            cn.extension = present_request;
+            cn.length = (sizeof(xPresentConfigureNotify) - 32) >> 2;
+            cn.evtype = PresentConfigureNotify;
+            cn.eid = 0;
+            cn.window = window->drawable.id;
+            cn.x = x;
+            cn.y = y;
+            cn.width = w;
+            cn.height = h;
+            cn.off_x = 0;
+            cn.off_y = 0;
+            cn.pixmap_width = w;
+            cn.pixmap_height = h;
+            cn.pixmap_flags = 0;
 
         for (event = window_priv->events; event; event = event->next) {
             if (event->mask & (1 << PresentConfigureNotify)) {
@@ -145,20 +144,19 @@ present_send_complete_notify(WindowPtr window, CARD8 kind, CARD8 mode, CARD32 se
     present_window_priv_ptr window_priv = present_window_priv(window);
 
     if (window_priv) {
-        xPresentCompleteNotify cn = {
-            .type = GenericEvent,
-            .extension = present_request,
-            .length = (sizeof(xPresentCompleteNotify) - 32) >> 2,
-            .evtype = PresentCompleteNotify,
-            .kind = kind,
-            .mode = mode,
-            .eid = 0,
-            .window = window->drawable.id,
-            .serial = serial,
-            .ust = ust,
-            .msc = msc,
-        };
         present_event_ptr event;
+        xPresentCompleteNotify cn;
+            cn.type = GenericEvent;
+            cn.extension = present_request;
+            cn.length = (sizeof(xPresentCompleteNotify) - 32) >> 2;
+            cn.evtype = PresentCompleteNotify;
+            cn.kind = kind;
+            cn.mode = mode;
+            cn.eid = 0;
+            cn.window = window->drawable.id;
+            cn.serial = serial;
+            cn.ust = ust;
+            cn.msc = msc;
 
         for (event = window_priv->events; event; event = event->next) {
             if (event->mask & PresentCompleteNotifyMask) {
@@ -175,18 +173,17 @@ present_send_idle_notify(WindowPtr window, CARD32 serial, PixmapPtr pixmap, stru
     present_window_priv_ptr window_priv = present_window_priv(window);
 
     if (window_priv) {
-        xPresentIdleNotify in = {
-            .type = GenericEvent,
-            .extension = present_request,
-            .length = (sizeof(xPresentIdleNotify) - 32) >> 2,
-            .evtype = PresentIdleNotify,
-            .eid = 0,
-            .window = window->drawable.id,
-            .serial = serial,
-            .pixmap = pixmap->drawable.id,
-            .idle_fence = present_fence_id(idle_fence)
-        };
         present_event_ptr event;
+        xPresentIdleNotify in;
+            in.type = GenericEvent;
+            in.extension = present_request;
+            in.length = (sizeof(xPresentIdleNotify) - 32) >> 2;
+            in.evtype = PresentIdleNotify;
+            in.eid = 0;
+            in.window = window->drawable.id;
+            in.serial = serial;
+            in.pixmap = pixmap->drawable.id;
+            in.idle_fence = present_fence_id(idle_fence);
 
         for (event = window_priv->events; event; event = event->next) {
             if (event->mask & PresentIdleNotifyMask) {

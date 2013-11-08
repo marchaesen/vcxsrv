@@ -139,23 +139,6 @@ typedef struct {
 } xcb_generic_event_t;
 
 /**
- * @brief GE event
- *
- * An event as sent by the XGE extension. The length field specifies the
- * number of 4-byte blocks trailing the struct.
- */
-typedef struct {
-    uint8_t  response_type;  /**< Type of the response */
-    uint8_t  pad0;           /**< Padding */
-    uint16_t sequence;       /**< Sequence number */
-    uint32_t length;
-    uint16_t event_type;
-    uint16_t pad1;
-    uint32_t pad[5];         /**< Padding */
-    uint32_t full_sequence;  /**< full sequence */
-} xcb_ge_event_t;
-
-/**
  * @brief Generic error.
  *
  * A generic error structure.

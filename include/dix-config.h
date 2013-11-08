@@ -46,6 +46,9 @@
 /* Build DPMS extension */
 #define DPMSExtension 1
 
+/* Build DRI3 extension */
+/* #undef DRI3 */
+
 /* Build GLX extension */
 #define GLXEXT
 
@@ -70,6 +73,9 @@
 
 /* Has backtrace support */
 #undef HAVE_BACKTRACE
+
+/* Has libunwind support */
+/* #undef HAVE_LIBUNWIND */
 
 /* Define to 1 if you have the <byteswap.h> header file. */
 #define HAVE_BYTESWAP_H 1
@@ -265,6 +271,9 @@
 
 /* Internal define for Xinerama */
 #define PANORAMIX 1
+
+/* Support Present extension */
+#define PRESENT 1
 
 /* Overall prefix */
 #define PROJECTROOT "."
@@ -478,6 +487,9 @@
 #ifdef __APPLE__
 #include "dix-config-apple-verbatim.h"
 #endif
+
+/* Have support for X shared memory fence library (xshmfence) */
+/* #undef HAVE_XSHMFENCE */
 
 #undef HAVE_AVC_NETLINK_ACQUIRE_FD
 

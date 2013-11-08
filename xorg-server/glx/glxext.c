@@ -50,6 +50,7 @@
 #include "glxext.h"
 #include "indirect_table.h"
 #include "indirect_util.h"
+#include "glapi.h"
 
 /*
 ** The last context used by the server.  It is the context that is current
