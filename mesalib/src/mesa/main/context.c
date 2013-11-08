@@ -678,6 +678,10 @@ _mesa_init_constants(struct gl_context *ctx)
    ctx->Const.MaxAtomicBufferSize = MAX_ATOMIC_COUNTERS * ATOMIC_COUNTER_SIZE;
    ctx->Const.MaxCombinedAtomicBuffers = MAX_COMBINED_ATOMIC_BUFFERS;
    ctx->Const.MaxCombinedAtomicCounters = MAX_ATOMIC_COUNTERS;
+
+   /* GL_ARB_vertex_attrib_binding */
+   ctx->Const.MaxVertexAttribRelativeOffset = 2047;
+   ctx->Const.MaxVertexAttribBindings = MAX_VERTEX_GENERIC_ATTRIBS;
 }
 
 
@@ -804,7 +808,7 @@ init_attrib_groups(struct gl_context *ctx)
    ctx->NewState = _NEW_ALL;
    ctx->NewDriverState = ~0;
    ctx->ErrorValue = GL_NO_ERROR;
-   ctx->ResetStatus = GL_NO_ERROR;
+   ctx->ShareGroupReset = false;
    ctx->varying_vp_inputs = VERT_BIT_ALL;
 
    return GL_TRUE;

@@ -146,6 +146,21 @@ TRANS(ReopenFail)(XtransConnInfo ciptr _X_UNUSED, int fd _X_UNUSED, char *port _
 
 #endif /* TRANS_REOPEN */
 
+#if XTRANS_SEND_FDS
+static int
+TRANS(LocalRecvFdInvalid)(XtransConnInfo ciptr)
+{
+    errno = EINVAL;
+    return -1;
+}
+
+static int
+TRANS(LocalSendFdInvalid)(XtransConnInfo ciptr, int fd, int do_close)
+{
+    errno = EINVAL;
+    return -1;
+}
+#endif
 
 
 static int
@@ -2374,6 +2389,10 @@ Xtransport	TRANS(LocalFuncs) = {
 	TRANS(LocalWrite),
 	TRANS(LocalReadv),
 	TRANS(LocalWritev),
+#if XTRANS_SEND_FDS
+	TRANS(LocalSendFdInvalid),
+	TRANS(LocalRecvFdInvalid),
+#endif
 	TRANS(LocalDisconnect),
 	TRANS(LocalClose),
 	TRANS(LocalCloseForCloning),
@@ -2416,6 +2435,10 @@ Xtransport	TRANS(PTSFuncs) = {
 	TRANS(LocalWrite),
 	TRANS(LocalReadv),
 	TRANS(LocalWritev),
+#if XTRANS_SEND_FDS
+	TRANS(LocalSendFdInvalid),
+	TRANS(LocalRecvFdInvalid),
+#endif
 	TRANS(LocalDisconnect),
 	TRANS(LocalClose),
 	TRANS(LocalCloseForCloning),
@@ -2460,6 +2483,10 @@ Xtransport	TRANS(NAMEDFuncs) = {
 	TRANS(LocalWrite),
 	TRANS(LocalReadv),
 	TRANS(LocalWritev),
+#if XTRANS_SEND_FDS
+	TRANS(LocalSendFdInvalid),
+	TRANS(LocalRecvFdInvalid),
+#endif
 	TRANS(LocalDisconnect),
 	TRANS(LocalClose),
 	TRANS(LocalCloseForCloning),
@@ -2501,6 +2528,10 @@ Xtransport	TRANS(PIPEFuncs) = {
 	TRANS(LocalWrite),
 	TRANS(LocalReadv),
 	TRANS(LocalWritev),
+#if XTRANS_SEND_FDS
+	TRANS(LocalSendFdInvalid),
+	TRANS(LocalRecvFdInvalid),
+#endif
 	TRANS(LocalDisconnect),
 	TRANS(LocalClose),
 	TRANS(LocalCloseForCloning),
@@ -2545,6 +2576,10 @@ Xtransport	TRANS(SCOFuncs) = {
 	TRANS(LocalWrite),
 	TRANS(LocalReadv),
 	TRANS(LocalWritev),
+#if XTRANS_SEND_FDS
+	TRANS(LocalSendFdInvalid),
+	TRANS(LocalRecvFdInvalid),
+#endif
 	TRANS(LocalDisconnect),
 	TRANS(LocalClose),
 	TRANS(LocalCloseForCloning),

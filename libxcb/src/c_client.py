@@ -304,6 +304,7 @@ def _c_type_setup(self, name, postfix):
     self.c_reply_name = _n(name + ('reply',))
     self.c_reply_type = _t(name + ('reply',))
     self.c_cookie_type = _t(name + ('cookie',))
+    self.c_reply_fds_name = _n(name + ('reply_fds',))
 
     self.need_aux = False
     self.need_serialize = False
@@ -1836,7 +1837,7 @@ def c_union(self, name):
     _c_complex(self)
     _c_iterator(self, name)
 
-def _c_request_helper(self, name, cookie_type, void, regular, aux=False):
+def _c_request_helper(self, name, cookie_type, void, regular, aux=False, reply_fds=False):
     '''
     Declares a request function.
     '''
@@ -1864,6 +1865,12 @@ def _c_request_helper(self, name, cookie_type, void, regular, aux=False):
 
     # What flag is passed to xcb_request
     func_flags = '0' if (void and regular) or (not void and not regular) else 'XCB_REQUEST_CHECKED'
+
+    if reply_fds:
+        if func_flags == '0':
+            func_flags = 'XCB_REQUEST_REPLY_FDS'
+        else:
+            func_flags = func_flags + '|XCB_REQUEST_REPLY_FDS'
 
     # Global extension id variable or NULL for xproto
     func_ext_global = '&' + _ns.c_ext_global_name if _ns.is_ext else '0'
@@ -2150,6 +2157,10 @@ def _c_request_helper(self, name, cookie_type, void, regular, aux=False):
         # no padding necessary - _serialize() keeps track of padding automatically
 
     _c('    ')
+    for field in param_fields:
+        if field.isfd:
+            _c('    xcb_send_fd(c, %s);', field.c_field_name)
+    
     _c('    xcb_ret.sequence = xcb_send_request(c, %s, xcb_parts + 2, &xcb_req);', func_flags)
     
     # free dyn. all. data, if any
@@ -2252,6 +2263,51 @@ def _c_reply(self, name):
         _c('    return (%s *) xcb_wait_for_reply(c, cookie.sequence, e);', self.c_reply_type)
 
     _c('}')
+
+def _c_reply_has_fds(self):
+    for field in self.fields:
+        if field.isfd:
+            return True
+    return False
+
+def _c_reply_fds(self, name):
+    '''
+    Declares the function that returns fds related to the reply.
+    '''
+    spacing1 = ' ' * (len(self.c_reply_type) - len('xcb_connection_t'))
+    spacing3 = ' ' * (len(self.c_reply_fds_name) + 2)
+    _h('')
+    _h('/**')
+    _h(' * Return the reply fds')
+    _h(' * @param c      The connection')
+    _h(' * @param reply  The reply')
+    _h(' *')
+    _h(' * Returns the array of reply fds of the request asked by')
+    _h(' * ')
+    _h(' * The returned value must be freed by the caller using free().')
+    _h(' */')
+    _c('')
+    _hc('')
+    _hc('/*****************************************************************************')
+    _hc(' **')
+    _hc(' ** int * %s', self.c_reply_fds_name)
+    _hc(' ** ')
+    _hc(' ** @param xcb_connection_t%s  *c', spacing1)
+    _hc(' ** @param %s  *reply', self.c_reply_type)
+    _hc(' ** @returns int *')
+    _hc(' **')
+    _hc(' *****************************************************************************/')
+    _hc(' ')
+    _hc('int *')
+    _hc('%s (xcb_connection_t%s  *c  /**< */,', self.c_reply_fds_name, spacing1)
+    _h('%s%s  *reply  /**< */);', spacing3, self.c_reply_type)
+    _c('%s%s  *reply  /**< */)', spacing3, self.c_reply_type)
+    _c('{')
+    
+    _c('    return xcb_get_reply_fds(c, reply, sizeof(%s) + 4 * reply->length);', self.c_reply_type)
+
+    _c('}')
+    
 
 def _c_opcode(name, opcode):
     '''
@@ -2813,14 +2869,17 @@ def c_request(self, name):
         # Reply structure definition
         _c_complex(self.reply)
         # Request prototypes
-        _c_request_helper(self, name, self.c_cookie_type, False, True)
-        _c_request_helper(self, name, self.c_cookie_type, False, False)
+        has_fds = _c_reply_has_fds(self.reply)
+        _c_request_helper(self, name, self.c_cookie_type, False, True, False, has_fds)
+        _c_request_helper(self, name, self.c_cookie_type, False, False, False, has_fds)
         if self.need_aux:
-            _c_request_helper(self, name, self.c_cookie_type, False, True, True)
-            _c_request_helper(self, name, self.c_cookie_type, False, False, True)
+            _c_request_helper(self, name, self.c_cookie_type, False, True, True, has_fds)
+            _c_request_helper(self, name, self.c_cookie_type, False, False, True, has_fds)
         # Reply accessors
         _c_accessors(self.reply, name + ('reply',), name)
         _c_reply(self, name)
+        if has_fds:
+            _c_reply_fds(self, name)
     else:
         # Request prototypes
         _c_request_helper(self, name, 'xcb_void_cookie_t', True, False)

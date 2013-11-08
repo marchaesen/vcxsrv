@@ -550,7 +550,7 @@ static void
 find_custom_value(struct gl_context *ctx, const struct value_desc *d, union value *v)
 {
    struct gl_buffer_object **buffer_obj;
-   struct gl_client_array *array;
+   struct gl_vertex_attrib_array *array;
    GLuint unit, *p;
 
    switch (d->pname) {
@@ -775,7 +775,7 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
       break;
    case GL_TEXTURE_COORD_ARRAY_BUFFER_BINDING_ARB:
       v->value_int =
-	 ctx->Array.ArrayObj->VertexAttrib[VERT_ATTRIB_TEX(ctx->Array.ActiveTexture)].BufferObj->Name;
+	 ctx->Array.ArrayObj->VertexBinding[VERT_ATTRIB_TEX(ctx->Array.ActiveTexture)].BufferObj->Name;
       break;
    case GL_ELEMENT_ARRAY_BUFFER_BINDING_ARB:
       v->value_int = ctx->Array.ArrayObj->ElementArrayBufferObj->Name;
@@ -819,7 +819,7 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
 	 ctx->CurrentRenderbuffer ? ctx->CurrentRenderbuffer->Name : 0;
       break;
    case GL_POINT_SIZE_ARRAY_BUFFER_BINDING_OES:
-      v->value_int = ctx->Array.ArrayObj->VertexAttrib[VERT_ATTRIB_POINT_SIZE].BufferObj->Name;
+      v->value_int = ctx->Array.ArrayObj->VertexBinding[VERT_ATTRIB_POINT_SIZE].BufferObj->Name;
       break;
 
    case GL_FOG_COLOR:
@@ -1740,6 +1740,30 @@ find_value_indexed(const char *func, GLenum pname, GLuint index, union value *v)
          goto invalid_value;
       v->value_int64 = ctx->AtomicBufferBindings[index].Size;
       return TYPE_INT64;
+
+   case GL_VERTEX_BINDING_DIVISOR:
+      if (!_mesa_is_desktop_gl(ctx) || !ctx->Extensions.ARB_instanced_arrays)
+          goto invalid_enum;
+      if (index >= ctx->Const.VertexProgram.MaxAttribs)
+          goto invalid_value;
+      v->value_int = ctx->Array.ArrayObj->VertexBinding[VERT_ATTRIB_GENERIC(index)].InstanceDivisor;
+      return TYPE_INT;
+
+   case GL_VERTEX_BINDING_OFFSET:
+      if (!_mesa_is_desktop_gl(ctx))
+          goto invalid_enum;
+      if (index >= ctx->Const.VertexProgram.MaxAttribs)
+          goto invalid_value;
+      v->value_int = ctx->Array.ArrayObj->VertexBinding[VERT_ATTRIB_GENERIC(index)].Offset;
+      return TYPE_INT;
+
+   case GL_VERTEX_BINDING_STRIDE:
+      if (!_mesa_is_desktop_gl(ctx))
+          goto invalid_enum;
+      if (index >= ctx->Const.VertexProgram.MaxAttribs)
+          goto invalid_value;
+      v->value_int = ctx->Array.ArrayObj->VertexBinding[VERT_ATTRIB_GENERIC(index)].Stride;
+      return TYPE_INT;
    }
 
  invalid_enum:

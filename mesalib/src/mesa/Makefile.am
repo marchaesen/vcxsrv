@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-SUBDIRS = x86 x86-64 . main/tests
+SUBDIRS = . main/tests
 
 if HAVE_X11_DRIVER
 SUBDIRS += drivers/x11
@@ -81,7 +81,7 @@ main/get_hash.h: $(GLAPI)/gl_and_es_API.xml main/get_hash_params.py 	\
 		-f $< > $@.tmp;						\
 	mv $@.tmp $@;
 
-noinst_LTLIBRARIES =
+noinst_LTLIBRARIES = $(ARCH_LIBS)
 if NEED_LIBMESA
 noinst_LTLIBRARIES += libmesa.la
 else
@@ -98,12 +98,20 @@ AM_CXXFLAGS = $(LLVM_CFLAGS) $(VISIBILITY_CXXFLAGS)
 MESA_ASM_FILES_FOR_ARCH =
 
 if HAVE_X86_ASM
-MESA_ASM_FILES_FOR_ARCH += $(X86_FILES)
-AM_CPPFLAGS += -I$(builddir)/x86 -I$(srcdir)/x86
-endif
+noinst_PROGRAMS = gen_matypes
+
+gen_matypes_SOURCES = x86/gen_matypes.c
+BUILT_SOURCES += matypes.h
+
+ARCH_LIBS = libmesa_sse41.la
+
 if HAVE_X86_64_ASM
 MESA_ASM_FILES_FOR_ARCH += $(X86_64_FILES)
 AM_CPPFLAGS += -I$(builddir)/x86-64 -I$(srcdir)/x86-64
+else
+MESA_ASM_FILES_FOR_ARCH += $(X86_FILES)
+AM_CPPFLAGS += -I$(builddir)/x86 -I$(srcdir)/x86
+endif
 endif
 if HAVE_SPARC_ASM
 MESA_ASM_FILES_FOR_ARCH += $(SPARC_FILES)
@@ -117,6 +125,7 @@ libmesa_la_SOURCES = \
 
 libmesa_la_LIBADD = \
         $(top_builddir)/src/glsl/libglsl.la \
+	$(ARCH_LIBS) \
         $()
 
 libmesagallium_la_SOURCES = \
@@ -126,7 +135,12 @@ libmesagallium_la_SOURCES = \
 
 libmesagallium_la_LIBADD = \
         $(top_builddir)/src/glsl/libglsl.la \
+	$(ARCH_LIBS) \
         $()
+
+libmesa_sse41_la_SOURCES = \
+	main/streaming-load-memcpy.c
+libmesa_sse41_la_CFLAGS = $(AM_CFLAGS) -msse4.1
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = gl.pc
@@ -138,6 +152,15 @@ $(BUILDDIR)program/lex.yy.c: program/program_lexer.l
 $(BUILDDIR)program/program_parse.tab.c $(BUILDDIR)program/program_parse.tab.h: program/program_parse.y
 	$(MKDIR_P) $(builddir)/program
 	$(AM_V_GEN) $(YACC) -p "_mesa_program_" -v -d --output=$(BUILDDIR)program/program_parse.tab.c $<
+
+if GEN_ASM_OFFSETS
+matypes.h: $(gen_matypes_SOURCES)
+	$(AM_V_GEN)$(COMPILE) $< -DASM_OFFSETS -S -o - | \
+		sed -n '/^->/{s:^->::;/[$$]/{s:^:#define :;s:[$$]::};p}' > $@
+else
+matypes.h: gen_matypes
+	$(AM_V_GEN)./gen_matypes > $@
+endif
 
 # Emacs tags
 tags:

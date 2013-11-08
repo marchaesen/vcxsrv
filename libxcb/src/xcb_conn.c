@@ -235,9 +235,39 @@ static int write_vec(xcb_connection_t *c, struct iovec **vector, int *count)
     if (n > IOV_MAX)
 	n = IOV_MAX;
 
-    n = writev(c->fd, *vector, n);
-    if(n < 0 && errno == EAGAIN)
-        return 1;
+#if HAVE_SENDMSG
+    if (c->out.out_fd.nfd) {
+        char cmsgbuf[CMSG_SPACE(sizeof(int) * XCB_MAX_PASS_FD)];
+        struct msghdr msg = {
+            .msg_name = NULL,
+            .msg_namelen = 0,
+            .msg_iov = *vector,
+            .msg_iovlen = n,
+            .msg_control = cmsgbuf,
+            .msg_controllen = CMSG_LEN(c->out.out_fd.nfd * sizeof (int)),
+        };
+        int i;
+        struct cmsghdr *hdr = CMSG_FIRSTHDR(&msg);
+
+        hdr->cmsg_len = msg.msg_controllen;
+        hdr->cmsg_level = SOL_SOCKET;
+        hdr->cmsg_type = SCM_RIGHTS;
+        memcpy(CMSG_DATA(hdr), c->out.out_fd.fd, c->out.out_fd.nfd * sizeof (int));
+
+        n = sendmsg(c->fd, &msg, 0);
+        if(n < 0 && errno == EAGAIN)
+            return 1;
+        for (i = 0; i < c->out.out_fd.nfd; i++)
+            close(c->out.out_fd.fd[i]);
+        c->out.out_fd.nfd = 0;
+    } else
+#endif
+    {
+        n = writev(c->fd, *vector, n);
+        if(n < 0 && errno == EAGAIN)
+            return 1;
+    }
+
 #endif /* _WIN32 */    
 
     if(n <= 0)

@@ -34,9 +34,10 @@ LIBDRM_NVVIEUX_REQUIRED=2.4.33
 LIBDRM_NOUVEAU_REQUIRED="2.4.33 libdrm >= 2.4.41"
 LIBDRM_FREEDRENO_REQUIRED=2.4.39
 DRI2PROTO_REQUIRED=2.6
+DRI3PROTO_REQUIRED=1.0
+PRESENTPROTO_REQUIRED=1.0
+LIBUDEV_REQUIRED=151
 GLPROTO_REQUIRED=1.4.14
-LIBDRM_XORG_REQUIRED=2.4.24
-LIBKMS_XORG_REQUIRED=1.0.0
 
 dnl Check for progs
 AC_PROG_CPP
@@ -556,11 +557,6 @@ AC_ARG_ENABLE([egl],
     [enable_egl="$enableval"],
     [enable_egl=yes])
 
-AC_ARG_ENABLE([xorg],
-    [AS_HELP_STRING([--enable-xorg],
-        [enable support for X.Org DDX API @<:@default=no@:>@])],
-    [enable_xorg="$enableval"],
-    [enable_xorg=no])
 AC_ARG_ENABLE([xa],
     [AS_HELP_STRING([--enable-xa],
         [enable build of the XA X Acceleration API @<:@default=no@:>@])],
@@ -651,7 +647,6 @@ if test "x$enable_opengl" = xno -a \
         "x$enable_gles1" = xno -a \
         "x$enable_gles2" = xno -a \
         "x$enable_openvg" = xno -a \
-        "x$enable_xorg" = xno -a \
         "x$enable_xa" = xno -a \
         "x$enable_xvmc" = xno -a \
         "x$enable_vdpau" = xno -a \
@@ -816,10 +811,13 @@ xyesno)
         fi
         PKG_CHECK_MODULES([DRI2PROTO], [dri2proto >= $DRI2PROTO_REQUIRED])
         GL_PC_REQ_PRIV="$GL_PC_REQ_PRIV libdrm >= $LIBDRM_REQUIRED"
+        PKG_CHECK_MODULES([DRI3PROTO], [dri3proto >= $DRI3PROTO_REQUIRED])
+        PKG_CHECK_MODULES([PRESENTPROTO], [presentproto >= $PRESENTPROTO_REQUIRED])
+        PKG_CHECK_MODULES([LIBUDEV], [libudev >= $LIBUDEV_REQUIRED])
     fi
 
     # find the DRI deps for libGL
-    dri_modules="x11 xext xdamage xfixes x11-xcb xcb-glx >= 1.8.1 xcb-dri2 >= 1.8"
+    dri_modules="x11 xext xdamage xfixes x11-xcb xcb-glx >= 1.8.1 xcb-dri2 >= 1.8 xcb-dri3 xcb-present xcb-sync xshmfence"
 
     # add xf86vidmode if available
     PKG_CHECK_MODULES([XF86VIDMODE], [xxf86vm], HAVE_XF86VIDMODE=yes, HAVE_XF86VIDMODE=no)
@@ -829,8 +827,8 @@ xyesno)
 
     PKG_CHECK_MODULES([DRIGL], [$dri_modules])
     GL_PC_REQ_PRIV="$GL_PC_REQ_PRIV $dri_modules"
-    X11_INCLUDES="$X11_INCLUDES $DRIGL_CFLAGS"
-    GL_LIB_DEPS="$DRIGL_LIBS"
+    X11_INCLUDES="$X11_INCLUDES $DRIGL_CFLAGS $LIBUDEV_CFLAGS"
+    GL_LIB_DEPS="$DRIGL_LIBS $LIBUDEV_LIBS"
 
     # need DRM libs, $PTHREAD_LIBS, etc.
     GL_LIB_DEPS="$GL_LIB_DEPS $LIBDRM_LIBS -lm $PTHREAD_LIBS $DLOPEN_LIBS"
@@ -1236,20 +1234,6 @@ fi
 AM_CONDITIONAL(HAVE_GALLIUM_GBM, test "x$enable_gallium_gbm" = xyes)
 
 dnl
-dnl X.Org DDX configuration
-dnl
-if test "x$enable_xorg" = xyes; then
-    PKG_CHECK_MODULES([XORG], [xorg-server >= 1.6.0])
-    PKG_CHECK_MODULES([LIBDRM_XORG], [libdrm >= $LIBDRM_XORG_REQUIRED])
-    PKG_CHECK_MODULES([LIBKMS_XORG], [libkms >= $LIBKMS_XORG_REQUIRED])
-    PKG_CHECK_MODULES(XEXT, [xextproto >= 7.0.99.1],
-        HAVE_XEXTPROTO_71="yes"; DEFINES="$DEFINES -DHAVE_XEXTPROTO_71",
-        HAVE_XEXTPROTO_71="no")
-    GALLIUM_STATE_TRACKERS_DIRS="xorg $GALLIUM_STATE_TRACKERS_DIRS"
-fi
-AM_CONDITIONAL(HAVE_ST_XORG, test "x$enable_xorg" = xyes)
-
-dnl
 dnl XA configuration
 dnl
 if test "x$enable_xa" = xyes; then
@@ -1487,13 +1471,6 @@ AC_ARG_WITH([egl-driver-dir],
     [EGL_DRIVER_INSTALL_DIR='${libdir}/egl'])
 AC_SUBST([EGL_DRIVER_INSTALL_DIR])
 
-AC_ARG_WITH([xorg-driver-dir],
-    [AS_HELP_STRING([--with-xorg-driver-dir=DIR],
-                    [Default xorg driver directory[[default=${libdir}/xorg/modules/drivers]]])],
-    [XORG_DRIVER_INSTALL_DIR="$withval"],
-    [XORG_DRIVER_INSTALL_DIR="${libdir}/xorg/modules/drivers"])
-AC_SUBST([XORG_DRIVER_INSTALL_DIR])
-
 AC_ARG_WITH([max-width],
     [AS_HELP_STRING([--with-max-width=N],
                     [Maximum framebuffer width (4096)])],
@@ -1675,17 +1652,14 @@ gallium_check_st() {
     if test "x$enable_dri" = xyes && test "x$2" != x; then
          GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS $2"
     fi
-    if test "x$enable_xorg" = xyes && test "x$3" != x; then
+    if test "x$enable_xa" = xyes && test "x$3" != x; then
          GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS $3"
     fi
-    if test "x$enable_xa" = xyes && test "x$4" != x; then
+    if test "x$enable_xvmc" = xyes && test "x$4" != x; then
          GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS $4"
     fi
-    if test "x$enable_xvmc" = xyes && test "x$5" != x; then
+    if test "x$enable_vdpau" = xyes && test "x$5" != x; then
          GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS $5"
-    fi
-    if test "x$enable_vdpau" = xyes && test "x$6" != x; then
-         GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS $6"
     fi
 }
 
@@ -1726,9 +1700,8 @@ radeon_llvm_check() {
 }
 
 dnl Gallium drivers
-if test "x$enable_dri" = xyes -o "x$enable_xorg" = xyes -o \
-        "x$enable_xa" = xyes -o "x$enable_xvmc" = xyes -o \
-        "x$enable_vdpau" = xyes; then
+if test "x$enable_dri" = xyes -o "x$enable_xa" = xyes -o \
+        "x$enable_xvmc" = xyes -o "x$enable_vdpau" = xyes; then
     NEED_NONNULL_WINSYS=yes
 fi
 AM_CONDITIONAL(NEED_NONNULL_WINSYS, test "x$NEED_NONNULL_WINSYS" = xyes)
@@ -1741,7 +1714,7 @@ if test "x$with_gallium_drivers" != x; then
         xsvga)
             HAVE_GALLIUM_SVGA=yes
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS svga softpipe"
-            gallium_check_st "svga/drm" "dri-vmwgfx" "" "xa-vmwgfx"
+            gallium_check_st "svga/drm" "dri-vmwgfx" "xa-vmwgfx"
             ;;
         xi915)
             HAVE_GALLIUM_I915=yes
@@ -1751,7 +1724,7 @@ if test "x$with_gallium_drivers" != x; then
                 GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS llvmpipe"
             fi
             GALLIUM_WINSYS_DIRS="$GALLIUM_WINSYS_DIRS i915/sw"
-            gallium_check_st "i915/drm" "dri-i915" "xorg-i915"
+            gallium_check_st "i915/drm" "dri-i915"
             DRICOMMON_NEED_LIBDRM=yes
             ;;
         xilo)
@@ -1767,7 +1740,7 @@ if test "x$with_gallium_drivers" != x; then
             PKG_CHECK_MODULES([RADEON], [libdrm_radeon >= $LIBDRM_RADEON_REQUIRED])
             gallium_require_llvm "Gallium R300"
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS r300"
-            gallium_check_st "radeon/drm" "r300/dri" "" "" "" ""
+            gallium_check_st "radeon/drm" "r300/dri" "" "" ""
             DRICOMMON_NEED_LIBDRM=yes
             ;;
         xr600)
@@ -1785,7 +1758,7 @@ if test "x$with_gallium_drivers" != x; then
             if test "x$enable_opencl" = xyes; then
                 LLVM_COMPONENTS="${LLVM_COMPONENTS} bitreader asmparser"
             fi
-            gallium_check_st "radeon/drm" "r600/dri" "" "" "r600/xvmc" "r600/vdpau"
+            gallium_check_st "radeon/drm" "r600/dri" "" "r600/xvmc" "r600/vdpau"
             DRICOMMON_NEED_LIBDRM=yes
             ;;
         xradeonsi)
@@ -1794,7 +1767,7 @@ if test "x$with_gallium_drivers" != x; then
             gallium_require_drm_loader
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS radeonsi"
             radeon_llvm_check
-            gallium_check_st "radeon/drm" "radeonsi/dri" "" "" "" "radeonsi/vdpau" ""
+            gallium_check_st "radeon/drm" "radeonsi/dri" "" "" "radeonsi/vdpau"
             DRICOMMON_NEED_LIBDRM=yes
             ;;
         xnouveau)
@@ -1802,7 +1775,7 @@ if test "x$with_gallium_drivers" != x; then
             PKG_CHECK_MODULES([NOUVEAU], [libdrm_nouveau >= $LIBDRM_NOUVEAU_REQUIRED])
             gallium_require_drm_loader
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS nouveau"
-            gallium_check_st "nouveau/drm" "dri-nouveau" "xorg-nouveau" "" "xvmc-nouveau" "vdpau-nouveau"
+            gallium_check_st "nouveau/drm" "dri-nouveau" "" "xvmc-nouveau" "vdpau-nouveau"
             DRICOMMON_NEED_LIBDRM=yes
             ;;
         xfreedreno)
@@ -1810,7 +1783,7 @@ if test "x$with_gallium_drivers" != x; then
             PKG_CHECK_MODULES([FREEDRENO], [libdrm_freedreno >= $LIBDRM_FREEDRENO_REQUIRED])
             gallium_require_drm_loader
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS freedreno"
-            gallium_check_st "freedreno/drm" "dri-freedreno" "" "" "" ""
+            gallium_check_st "freedreno/drm" "dri-freedreno" "" "" ""
             DRICOMMON_NEED_LIBDRM=yes
             ;;
         xswrast)
@@ -1938,9 +1911,9 @@ AM_CONDITIONAL(HAVE_X11_DRIVER, test "x$enable_xlib_glx" = xyes)
 AM_CONDITIONAL(HAVE_OSMESA, test "x$enable_osmesa" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_OSMESA, test "x$enable_gallium_osmesa" = xyes)
 
-AM_CONDITIONAL(HAVE_X86_ASM, echo "$DEFINES" | grep 'X86_ASM' >/dev/null 2>&1)
-AM_CONDITIONAL(HAVE_X86_64_ASM, echo "$DEFINES" | grep 'X86_64_ASM' >/dev/null 2>&1)
-AM_CONDITIONAL(HAVE_SPARC_ASM, echo "$DEFINES" | grep 'SPARC_ASM' >/dev/null 2>&1)
+AM_CONDITIONAL(HAVE_X86_ASM, test "x$asm_arch" = xx86 -o "x$asm_arch" = xx86_64)
+AM_CONDITIONAL(HAVE_X86_64_ASM, test "x$asm_arch" = xx86_64)
+AM_CONDITIONAL(HAVE_SPARC_ASM, test "x$asm_arch" = xsparc)
 
 AC_SUBST([VDPAU_MAJOR], 1)
 AC_SUBST([VDPAU_MINOR], 0)
@@ -2013,7 +1986,6 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/state_trackers/vdpau/Makefile
 		src/gallium/state_trackers/vega/Makefile
 		src/gallium/state_trackers/xa/Makefile
-		src/gallium/state_trackers/xorg/Makefile
 		src/gallium/state_trackers/xvmc/Makefile
 		src/gallium/targets/Makefile
 		src/gallium/targets/dri-freedreno/Makefile
@@ -2038,8 +2010,6 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/targets/vdpau-nouveau/Makefile
 		src/gallium/targets/xa-vmwgfx/Makefile
 		src/gallium/targets/xa-vmwgfx/xatracker.pc
-		src/gallium/targets/xorg-i915/Makefile
-		src/gallium/targets/xorg-nouveau/Makefile
 		src/gallium/targets/xvmc-nouveau/Makefile
 		src/gallium/tests/trivial/Makefile
 		src/gallium/tests/unit/Makefile
@@ -2091,9 +2061,7 @@ AC_CONFIG_FILES([Makefile
 		src/mesa/drivers/osmesa/osmesa.pc
 		src/mesa/drivers/x11/Makefile
 		src/mesa/main/tests/Makefile
-		src/mesa/main/tests/hash_table/Makefile
-		src/mesa/x86-64/Makefile
-		src/mesa/x86/Makefile])
+		src/mesa/main/tests/hash_table/Makefile])
 
 dnl Sort the dirs alphabetically
 GALLIUM_TARGET_DIRS=`echo $GALLIUM_TARGET_DIRS|tr " " "\n"|sort -u|tr "\n" " "`

@@ -72,8 +72,8 @@ from The Open Group.
 #  define XTRANSDEBUG 1
 #endif
 
-#ifndef _MSC_VER
-#define XTRANS_SEND_FDS       1
+#if XTRANS_SEND_FDS && !(defined(linux) || defined(__sun))
+#error "FD passing support only on Linux & Solaris"
 #endif
 
 #ifdef WIN32
@@ -291,6 +291,7 @@ typedef struct _Xtransport {
 	int			/* size */
     );
 
+#if XTRANS_SEND_FDS
     int (*SendFd)(
 	XtransConnInfo,		/* connection */
         int,                    /* fd */
@@ -300,6 +301,7 @@ typedef struct _Xtransport {
     int (*RecvFd)(
 	XtransConnInfo		/* connection */
     );
+#endif
 
     int	(*Disconnect)(
 	XtransConnInfo		/* connection */

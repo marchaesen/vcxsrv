@@ -81,6 +81,16 @@ void *_xcb_map_remove(_xcb_map *q, unsigned int key);
 
 typedef void (*xcb_return_socket_func_t)(void *closure);
 
+#if HAVE_SENDMSG
+#define XCB_MAX_PASS_FD	16
+
+typedef struct _xcb_fd {
+    int fd[XCB_MAX_PASS_FD];
+    int nfd;
+    int ifd;
+} _xcb_fd;
+#endif
+
 typedef struct _xcb_out {
     pthread_cond_t cond;
     int writing;
@@ -101,6 +111,9 @@ typedef struct _xcb_out {
         xcb_big_requests_enable_cookie_t cookie;
         uint32_t value;
     } maximum_request_length;
+#if HAVE_SENDMSG
+    _xcb_fd out_fd;
+#endif
 } _xcb_out;
 
 int _xcb_out_init(_xcb_out *out);
@@ -133,6 +146,10 @@ typedef struct _xcb_in {
 
     struct pending_reply *pending_replies;
     struct pending_reply **pending_replies_tail;
+#if HAVE_SENDMSG
+    _xcb_fd in_fd;
+#endif
+    struct xcb_special_event *special_events;
 } _xcb_in;
 
 int _xcb_in_init(_xcb_in *in);

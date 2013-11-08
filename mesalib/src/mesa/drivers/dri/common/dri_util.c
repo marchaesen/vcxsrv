@@ -78,6 +78,8 @@ setupLoaderExtensions(__DRIscreen *psp,
 	    psp->dri2.useInvalidate = (__DRIuseInvalidateExtension *) extensions[i];
 	if (strcmp(extensions[i]->name, __DRI_SWRAST_LOADER) == 0)
 	    psp->swrast_loader = (__DRIswrastLoaderExtension *) extensions[i];
+        if (strcmp(extensions[i]->name, __DRI_IMAGE_LOADER) == 0)
+           psp->image.loader = (__DRIimageLoaderExtension *) extensions[i];
     }
 }
 
@@ -106,10 +108,10 @@ const struct __DriverAPIRec *globalDriverAPI = &driDriverAPI;
  * Display.
  */
 static __DRIscreen *
-dri2CreateNewScreen2(int scrn, int fd,
-                     const __DRIextension **extensions,
-                     const __DRIextension **driver_extensions,
-                     const __DRIconfig ***driver_configs, void *data)
+driCreateNewScreen2(int scrn, int fd,
+                    const __DRIextension **extensions,
+                    const __DRIextension **driver_extensions,
+                    const __DRIconfig ***driver_configs, void *data)
 {
     static const __DRIextension *emptyExtensionList[] = { NULL };
     __DRIscreen *psp;
@@ -192,7 +194,7 @@ dri2CreateNewScreen(int scrn, int fd,
 		    const __DRIextension **extensions,
 		    const __DRIconfig ***driver_configs, void *data)
 {
-   return dri2CreateNewScreen2(scrn, fd, extensions, NULL,
+   return driCreateNewScreen2(scrn, fd, extensions, NULL,
                                driver_configs, data);
 }
 
@@ -201,7 +203,7 @@ static __DRIscreen *
 driSWRastCreateNewScreen(int scrn, const __DRIextension **extensions,
                          const __DRIconfig ***driver_configs, void *data)
 {
-   return dri2CreateNewScreen2(scrn, -1, extensions, NULL,
+   return driCreateNewScreen2(scrn, -1, extensions, NULL,
                                driver_configs, data);
 }
 
@@ -210,7 +212,7 @@ driSWRastCreateNewScreen2(int scrn, const __DRIextension **extensions,
                           const __DRIextension **driver_extensions,
                           const __DRIconfig ***driver_configs, void *data)
 {
-   return dri2CreateNewScreen2(scrn, -1, extensions, driver_extensions,
+   return driCreateNewScreen2(scrn, -1, extensions, driver_extensions,
                                driver_configs, data);
 }
 
@@ -293,13 +295,13 @@ validate_context_version(__DRIscreen *screen,
 /*@{*/
 
 static __DRIcontext *
-dri2CreateContextAttribs(__DRIscreen *screen, int api,
-			 const __DRIconfig *config,
-			 __DRIcontext *shared,
-			 unsigned num_attribs,
-			 const uint32_t *attribs,
-			 unsigned *error,
-			 void *data)
+driCreateContextAttribs(__DRIscreen *screen, int api,
+                        const __DRIconfig *config,
+                        __DRIcontext *shared,
+                        unsigned num_attribs,
+                        const uint32_t *attribs,
+                        unsigned *error,
+                        void *data)
 {
     __DRIcontext *context;
     const struct gl_config *modes = (config != NULL) ? &config->modes : NULL;
@@ -308,6 +310,7 @@ dri2CreateContextAttribs(__DRIscreen *screen, int api,
     unsigned major_version = 1;
     unsigned minor_version = 0;
     uint32_t flags = 0;
+    bool notify_reset = false;
     unsigned i;
     struct gl_context *ctx;
 
@@ -348,6 +351,10 @@ dri2CreateContextAttribs(__DRIscreen *screen, int api,
 	case __DRI_CTX_ATTRIB_FLAGS:
 	    flags = attribs[i * 2 + 1];
 	    break;
+        case __DRI_CTX_ATTRIB_RESET_STRATEGY:
+            notify_reset = (attribs[i * 2 + 1]
+                            != __DRI_CTX_RESET_NO_NOTIFICATION);
+            break;
 	default:
 	    /* We can't create a context that satisfies the requirements of an
 	     * attribute that we don't understand.  Return failure.
@@ -428,7 +435,7 @@ dri2CreateContextAttribs(__DRIscreen *screen, int api,
 
     if (!screen->driver->CreateContext(mesa_api, modes, context,
                                        major_version, minor_version,
-                                       flags, error, shareCtx) ) {
+                                       flags, notify_reset, error, shareCtx)) {
         free(context);
         return NULL;
     }
@@ -446,22 +453,22 @@ dri2CreateContextAttribs(__DRIscreen *screen, int api,
 }
 
 static __DRIcontext *
-dri2CreateNewContextForAPI(__DRIscreen *screen, int api,
-			   const __DRIconfig *config,
-			   __DRIcontext *shared, void *data)
+driCreateNewContextForAPI(__DRIscreen *screen, int api,
+                          const __DRIconfig *config,
+                          __DRIcontext *shared, void *data)
 {
     unsigned error;
 
-    return dri2CreateContextAttribs(screen, api, config, shared, 0, NULL,
-				    &error, data);
+    return driCreateContextAttribs(screen, api, config, shared, 0, NULL,
+                                   &error, data);
 }
 
 static __DRIcontext *
-dri2CreateNewContext(__DRIscreen *screen, const __DRIconfig *config,
-		      __DRIcontext *shared, void *data)
+driCreateNewContext(__DRIscreen *screen, const __DRIconfig *config,
+                    __DRIcontext *shared, void *data)
 {
-    return dri2CreateNewContextForAPI(screen, __DRI_API_OPENGL,
-				      config, shared, data);
+    return driCreateNewContextForAPI(screen, __DRI_API_OPENGL,
+                                     config, shared, data);
 }
 
 /**
@@ -613,9 +620,9 @@ static void dri_put_drawable(__DRIdrawable *pdp)
 }
 
 static __DRIdrawable *
-dri2CreateNewDrawable(__DRIscreen *screen,
-		      const __DRIconfig *config,
-		      void *data)
+driCreateNewDrawable(__DRIscreen *screen,
+                     const __DRIconfig *config,
+                     void *data)
 {
     __DRIdrawable *pdraw;
 
@@ -702,7 +709,7 @@ dri2ConfigQueryf(__DRIscreen *screen, const char *var, GLfloat *val)
 }
 
 static unsigned int
-dri2GetAPIMask(__DRIscreen *screen)
+driGetAPIMask(__DRIscreen *screen)
 {
     return screen->api_mask;
 }
@@ -733,7 +740,7 @@ const __DRIcoreExtension driCoreExtension = {
     /*.createNewDrawable          =*/ NULL,
     /*.destroyDrawable            =*/ driDestroyDrawable,
     /*.swapBuffers                =*/ driSwapBuffers, /* swrast */
-    /*.createNewContext           =*/ dri2CreateNewContext, /* swrast */
+    /*.createNewContext           =*/ driCreateNewContext, /* swrast */
     /*.copyContext                =*/ driCopyContext,
     /*.destroyContext             =*/ driDestroyContext,
     /*.bindContext                =*/ driBindContext,
@@ -745,22 +752,22 @@ const __DRIdri2Extension driDRI2Extension = {
     /*.base =*/ { __DRI_DRI2, 4 },
 
     /*.createNewScreen            =*/ dri2CreateNewScreen,
-    /*.createNewDrawable          =*/ dri2CreateNewDrawable,
-    /*.createNewContext           =*/ dri2CreateNewContext,
-    /*.getAPIMask                 =*/ dri2GetAPIMask,
-    /*.createNewContextForAPI     =*/ dri2CreateNewContextForAPI,
+    /*.createNewDrawable          =*/ driCreateNewDrawable,
+    /*.createNewContext           =*/ driCreateNewContext,
+    /*.getAPIMask                 =*/ driGetAPIMask,
+    /*.createNewContextForAPI     =*/ driCreateNewContextForAPI,
     /*.allocateBuffer             =*/ dri2AllocateBuffer,
     /*.releaseBuffer              =*/ dri2ReleaseBuffer,
-    /*.createContextAttribs       =*/ dri2CreateContextAttribs,
-    /*.createNewScreen2           =*/ dri2CreateNewScreen2,
+    /*.createContextAttribs       =*/ driCreateContextAttribs,
+    /*.createNewScreen2           =*/ driCreateNewScreen2,
 };
 
 const __DRIswrastExtension driSWRastExtension = {
     { __DRI_SWRAST, 4 },
     driSWRastCreateNewScreen,
-    dri2CreateNewDrawable,
-    dri2CreateNewContextForAPI,
-    dri2CreateContextAttribs,
+    driCreateNewDrawable,
+    driCreateNewContextForAPI,
+    driCreateContextAttribs,
     driSWRastCreateNewScreen2,
 };
 
@@ -796,3 +803,76 @@ driUpdateFramebufferSize(struct gl_context *ctx, const __DRIdrawable *dPriv)
       assert(fb->Height == dPriv->h);
    }
 }
+
+uint32_t
+driGLFormatToImageFormat(gl_format format)
+{
+   switch (format) {
+   case MESA_FORMAT_RGB565:
+      return __DRI_IMAGE_FORMAT_RGB565;
+   case MESA_FORMAT_XRGB8888:
+      return __DRI_IMAGE_FORMAT_XRGB8888;
+   case MESA_FORMAT_ARGB2101010:
+      return __DRI_IMAGE_FORMAT_ARGB2101010;
+   case MESA_FORMAT_XRGB2101010_UNORM:
+      return __DRI_IMAGE_FORMAT_XRGB2101010;
+   case MESA_FORMAT_ARGB8888:
+      return __DRI_IMAGE_FORMAT_ARGB8888;
+   case MESA_FORMAT_RGBA8888_REV:
+      return __DRI_IMAGE_FORMAT_ABGR8888;
+   case MESA_FORMAT_RGBX8888_REV:
+      return __DRI_IMAGE_FORMAT_XBGR8888;
+   case MESA_FORMAT_R8:
+      return __DRI_IMAGE_FORMAT_R8;
+   case MESA_FORMAT_GR88:
+      return __DRI_IMAGE_FORMAT_GR88;
+   case MESA_FORMAT_NONE:
+      return __DRI_IMAGE_FORMAT_NONE;
+   case MESA_FORMAT_SARGB8:
+      return __DRI_IMAGE_FORMAT_SARGB8;
+   default:
+      return 0;
+   }
+}
+
+gl_format
+driImageFormatToGLFormat(uint32_t image_format)
+{
+   switch (image_format) {
+   case __DRI_IMAGE_FORMAT_RGB565:
+      return MESA_FORMAT_RGB565;
+   case __DRI_IMAGE_FORMAT_XRGB8888:
+      return MESA_FORMAT_XRGB8888;
+   case __DRI_IMAGE_FORMAT_ARGB2101010:
+      return MESA_FORMAT_ARGB2101010;
+   case __DRI_IMAGE_FORMAT_XRGB2101010:
+      return MESA_FORMAT_XRGB2101010_UNORM;
+   case __DRI_IMAGE_FORMAT_ARGB8888:
+      return MESA_FORMAT_ARGB8888;
+   case __DRI_IMAGE_FORMAT_ABGR8888:
+      return MESA_FORMAT_RGBA8888_REV;
+   case __DRI_IMAGE_FORMAT_XBGR8888:
+      return MESA_FORMAT_RGBX8888_REV;
+   case __DRI_IMAGE_FORMAT_R8:
+      return MESA_FORMAT_R8;
+   case __DRI_IMAGE_FORMAT_GR88:
+      return MESA_FORMAT_GR88;
+   case __DRI_IMAGE_FORMAT_SARGB8:
+      return MESA_FORMAT_SARGB8;
+   case __DRI_IMAGE_FORMAT_NONE:
+      return MESA_FORMAT_NONE;
+   default:
+      return MESA_FORMAT_NONE;
+   }
+}
+
+/** Image driver interface */
+const __DRIimageDriverExtension driImageDriverExtension = {
+    .base = { __DRI_IMAGE_DRIVER, __DRI_IMAGE_DRIVER_VERSION },
+
+    .createNewScreen2           = driCreateNewScreen2,
+    .createNewDrawable          = driCreateNewDrawable,
+    .createNewContext           = driCreateNewContext,
+    .getAPIMask                 = driGetAPIMask,
+    .createContextAttribs       = driCreateContextAttribs,
+};

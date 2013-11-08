@@ -88,6 +88,10 @@ typedef struct __DRIdri2LoaderExtensionRec	__DRIdri2LoaderExtension;
 typedef struct __DRI2flushExtensionRec	__DRI2flushExtension;
 typedef struct __DRI2throttleExtensionRec	__DRI2throttleExtension;
 
+
+typedef struct __DRIimageLoaderExtensionRec     __DRIimageLoaderExtension;
+typedef struct __DRIimageDriverExtensionRec     __DRIimageDriverExtension;
+
 /*@}*/
 
 
@@ -767,6 +771,40 @@ struct __DRIswrastExtensionRec {
 
 };
 
+/** Common DRI function definitions, shared among DRI2 and Image extensions
+ */
+
+typedef __DRIscreen *
+(*__DRIcreateNewScreen2Func)(int screen, int fd,
+                             const __DRIextension **extensions,
+                             const __DRIextension **driver_extensions,
+                             const __DRIconfig ***driver_configs,
+                             void *loaderPrivate);
+
+typedef __DRIdrawable *
+(*__DRIcreateNewDrawableFunc)(__DRIscreen *screen,
+                              const __DRIconfig *config,
+                              void *loaderPrivate);
+
+typedef __DRIcontext *
+(*__DRIcreateNewContextFunc)(__DRIscreen *screen,
+                             const __DRIconfig *config,
+                             __DRIcontext *shared,
+                             void *loaderPrivate);
+
+typedef __DRIcontext *
+(*__DRIcreateContextAttribsFunc)(__DRIscreen *screen,
+                                 int api,
+                                 const __DRIconfig *config,
+                                 __DRIcontext *shared,
+                                 unsigned num_attribs,
+                                 const uint32_t *attribs,
+                                 unsigned *error,
+                                 void *loaderPrivate);
+
+typedef unsigned int
+(*__DRIgetAPIMaskFunc)(__DRIscreen *screen);
+
 /**
  * DRI2 Loader extension.
  */
@@ -914,17 +952,11 @@ struct __DRIdri2ExtensionRec {
 				    const __DRIconfig ***driver_configs,
 				    void *loaderPrivate);
 
-    __DRIdrawable *(*createNewDrawable)(__DRIscreen *screen,
-					const __DRIconfig *config,
-					void *loaderPrivate);
-
-    __DRIcontext *(*createNewContext)(__DRIscreen *screen,
-				      const __DRIconfig *config,
-				      __DRIcontext *shared,
-				      void *loaderPrivate);
+   __DRIcreateNewDrawableFunc   createNewDrawable;
+   __DRIcreateNewContextFunc    createNewContext;
 
    /* Since version 2 */
-   unsigned int (*getAPIMask)(__DRIscreen *screen);
+   __DRIgetAPIMaskFunc          getAPIMask;
 
    __DRIcontext *(*createNewContextForAPI)(__DRIscreen *screen,
 					   int api,
@@ -947,25 +979,14 @@ struct __DRIdri2ExtensionRec {
     *
     * \sa __DRIswrastExtensionRec::createContextAttribs
     */
-   __DRIcontext *(*createContextAttribs)(__DRIscreen *screen,
-					 int api,
-					 const __DRIconfig *config,
-					 __DRIcontext *shared,
-					 unsigned num_attribs,
-					 const uint32_t *attribs,
-					 unsigned *error,
-					 void *loaderPrivate);
+   __DRIcreateContextAttribsFunc        createContextAttribs;
 
    /**
     * createNewScreen with the driver's extension list passed in.
     *
     * \since version 4
     */
-    __DRIscreen *(*createNewScreen2)(int screen, int fd,
-                                     const __DRIextension **loader_extensions,
-                                     const __DRIextension **driver_extensions,
-                                     const __DRIconfig ***driver_configs,
-                                     void *loaderPrivate);
+   __DRIcreateNewScreen2Func            createNewScreen2;
 };
 
 
@@ -1000,6 +1021,7 @@ struct __DRIdri2ExtensionRec {
 #define __DRI_IMAGE_FORMAT_NONE         0x1008
 #define __DRI_IMAGE_FORMAT_XRGB2101010  0x1009
 #define __DRI_IMAGE_FORMAT_ARGB2101010  0x100a
+#define __DRI_IMAGE_FORMAT_SARGB8       0x100b
 
 #define __DRI_IMAGE_USE_SHARE		0x0001
 #define __DRI_IMAGE_USE_SCANOUT		0x0002
@@ -1290,5 +1312,106 @@ typedef struct __DRIDriverVtableExtensionRec {
     __DRIextension base;
     const struct __DriverAPIRec *vtable;
 } __DRIDriverVtableExtension;
+
+/**
+ * Query renderer driver extension
+ *
+ * This allows the window system layer (either EGL or GLX) to query aspects of
+ * hardware and driver support without creating a context.
+ */
+#define __DRI2_RENDERER_QUERY "DRI_RENDERER_QUERY"
+#define __DRI2_RENDERER_QUERY_VERSION 1
+
+#define __DRI2_RENDERER_VENDOR_ID                             0x0000
+#define __DRI2_RENDERER_DEVICE_ID                             0x0001
+#define __DRI2_RENDERER_VERSION                               0x0002
+#define __DRI2_RENDERER_ACCELERATED                           0x0003
+#define __DRI2_RENDERER_VIDEO_MEMORY                          0x0004
+#define __DRI2_RENDERER_UNIFIED_MEMORY_ARCHITECTURE           0x0005
+#define __DRI2_RENDERER_PREFERRED_PROFILE                     0x0006
+#define __DRI2_RENDERER_OPENGL_CORE_PROFILE_VERSION           0x0007
+#define __DRI2_RENDERER_OPENGL_COMPATIBILITY_PROFILE_VERSION  0x0008
+#define __DRI2_RENDERER_OPENGL_ES_PROFILE_VERSION             0x0009
+#define __DRI2_RENDERER_OPENGL_ES2_PROFILE_VERSION            0x000a
+
+typedef struct __DRI2rendererQueryExtensionRec __DRI2rendererQueryExtension;
+struct __DRI2rendererQueryExtensionRec {
+   __DRIextension base;
+
+   int (*queryInteger)(__DRIscreen *screen, int attribute, unsigned int *val);
+   int (*queryString)(__DRIscreen *screen, int attribute, const char **val);
+};
+
+/**
+ * Image Loader extension. Drivers use this to allocate color buffers
+ */
+
+enum __DRIimageBufferMask {
+   __DRI_IMAGE_BUFFER_BACK = (1 << 0),
+   __DRI_IMAGE_BUFFER_FRONT = (1 << 1)
+};
+
+struct __DRIimageList {
+   uint32_t image_mask;
+   __DRIimage *back;
+   __DRIimage *front;
+};
+
+#define __DRI_IMAGE_LOADER "DRI_IMAGE_LOADER"
+#define __DRI_IMAGE_LOADER_VERSION 1
+
+struct __DRIimageLoaderExtensionRec {
+    __DRIextension base;
+
+   /**
+    * Allocate color buffers.
+    *
+    * \param driDrawable
+    * \param width              Width of allocated buffers
+    * \param height             Height of allocated buffers
+    * \param format             one of __DRI_IMAGE_FORMAT_*
+    * \param stamp              Address of variable to be updated when
+    *                           getBuffers must be called again
+    * \param loaderPrivate      The loaderPrivate for driDrawable
+    * \param buffer_mask        Set of buffers to allocate
+    * \param buffers            Returned buffers
+    */
+   int (*getBuffers)(__DRIdrawable *driDrawable,
+                     unsigned int format,
+                     uint32_t *stamp,
+                     void *loaderPrivate,
+                     uint32_t buffer_mask,
+                     struct __DRIimageList *buffers);
+
+    /**
+     * Flush pending front-buffer rendering
+     *
+     * Any rendering that has been performed to the
+     * fake front will be flushed to the front
+     *
+     * \param driDrawable    Drawable whose front-buffer is to be flushed
+     * \param loaderPrivate  Loader's private data that was previously passed
+     *                       into __DRIdri2ExtensionRec::createNewDrawable
+     */
+    void (*flushFrontBuffer)(__DRIdrawable *driDrawable, void *loaderPrivate);
+};
+
+/**
+ * DRI extension.
+ */
+
+#define __DRI_IMAGE_DRIVER           "DRI_IMAGE_DRIVER"
+#define __DRI_IMAGE_DRIVER_VERSION   1
+
+struct __DRIimageDriverExtensionRec {
+   __DRIextension               base;
+
+   /* Common DRI functions, shared with DRI2 */
+   __DRIcreateNewScreen2Func            createNewScreen2;
+   __DRIcreateNewDrawableFunc           createNewDrawable;
+   __DRIcreateNewContextFunc            createNewContext;
+   __DRIcreateContextAttribsFunc        createContextAttribs;
+   __DRIgetAPIMaskFunc                  getAPIMask;
+};
 
 #endif

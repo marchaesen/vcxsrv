@@ -88,6 +88,9 @@ extern "C" {
 /** Connection closed because the server does not have a screen matching the display. */
 #define XCB_CONN_CLOSED_INVALID_SCREEN 6
 
+/** Connection closed because some FD passing operation failed */
+#define XCB_CONN_CLOSED_FDPASSING_FAILED 7
+
 #define XCB_TYPE_PAD(T,I) (-(I) & (sizeof(T) > 4 ? 3 : sizeof(T) - 1))
 
 /* Opaque structures */
@@ -288,6 +291,39 @@ xcb_generic_event_t *xcb_poll_for_event(xcb_connection_t *c);
  */
 xcb_generic_event_t *xcb_poll_for_queued_event(xcb_connection_t *c);
 
+typedef struct xcb_special_event xcb_special_event_t;
+
+/**
+ * @brief Returns the next event from a special queue
+ */
+xcb_generic_event_t *xcb_poll_for_special_event(xcb_connection_t *c,
+                                                xcb_special_event_t *se);
+ 
+/**
+ * @brief Returns the next event from a special queue, blocking until one arrives
+ */
+xcb_generic_event_t *xcb_wait_for_special_event(xcb_connection_t *c,
+                                                xcb_special_event_t *se);
+/**
+ * @typedef typedef struct xcb_extension_t xcb_extension_t
+ */
+typedef struct xcb_extension_t xcb_extension_t;  /**< Opaque structure used as key for xcb_get_extension_data_t. */
+
+ 
+/**
+ * @brief Listen for a special event
+ */
+xcb_special_event_t *xcb_register_for_special_xge(xcb_connection_t *c,
+                                                  xcb_extension_t *ext,
+                                                  uint32_t eid,
+                                                  uint32_t *stamp);
+
+/**
+ * @brief Stop listening for a special event
+ */
+void xcb_unregister_for_special_event(xcb_connection_t *c,
+                                      xcb_special_event_t *se);
+
 /**
  * @brief Return the error for a request, or NULL if none can ever arrive.
  * @param c: The connection to the X server.
@@ -324,11 +360,6 @@ void xcb_discard_reply(xcb_connection_t *c, unsigned int sequence);
 
 
 /* xcb_ext.c */
-
-/**
- * @typedef typedef struct xcb_extension_t xcb_extension_t
- */
-typedef struct xcb_extension_t xcb_extension_t;  /**< Opaque structure used as key for xcb_get_extension_data_t. */
 
 /**
  * @brief Caches reply information from QueryExtension requests.

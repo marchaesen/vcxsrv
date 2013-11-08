@@ -41,7 +41,7 @@ fi
 AC_SUBST(HTML_CHECK_RESULT)
 
 # Checks for pkg-config packages
-PKG_CHECK_MODULES(XCBPROTO, xcb-proto >= 1.7)
+PKG_CHECK_MODULES(XCBPROTO, xcb-proto >= 1.9)
 NEEDED="pthread-stubs xau >= 0.99.2"
 PKG_CHECK_MODULES(NEEDED, $NEEDED)
 
@@ -80,6 +80,55 @@ AC_SUBST(XCBPROTO_XCBPYTHONDIR)
 AC_HEADER_STDC
 AC_SEARCH_LIBS(getaddrinfo, socket)
 AC_SEARCH_LIBS(connect, socket)
+
+AC_ARG_ENABLE(sendfds, AS_HELP_STRING([--disable-sendfds], [Support FD passing (default: auto)]),
+	      [sendfds=$enableval], [sendfds=auto])
+
+case x$sendfds in
+xauto)
+	AC_SEARCH_LIBS(sendmsg, socket, [sendfds="yes"], [sendfds="no"])
+	;;
+esac
+
+# XPG4v2/UNIX95 added msg_control - check to see if we need to define
+# _XOPEN_SOURCE to get it (such as on Solaris)
+AC_CHECK_MEMBER([struct msghdr.msg_control], [], [],
+                 [
+AC_INCLUDES_DEFAULT
+#include <sys/socket.h>
+                 ])
+# First try for Solaris in C99 compliant mode, which requires XPG6/UNIX03
+if test "x$ac_cv_member_struct_msghdr_msg_control" = xno; then
+    unset ac_cv_member_struct_msghdr_msg_control
+    AC_MSG_NOTICE([trying again with _XOPEN_SOURCE=600])
+    AC_CHECK_MEMBER([struct msghdr.msg_control],
+                    [AC_DEFINE([_XOPEN_SOURCE], [600],
+                       [Defined if needed to expose struct msghdr.msg_control])
+                    ], [], [
+#define _XOPEN_SOURCE 600
+AC_INCLUDES_DEFAULT
+#include <sys/socket.h>
+                     ])
+fi
+# If that didn't work, fall back to XPG5/UNIX98 with C89
+if test "x$ac_cv_member_struct_msghdr_msg_control" = xno; then
+    unset ac_cv_member_struct_msghdr_msg_control
+    AC_MSG_NOTICE([trying again with _XOPEN_SOURCE=500])
+    AC_CHECK_MEMBER([struct msghdr.msg_control],
+                    [AC_DEFINE([_XOPEN_SOURCE], [500],
+                       [Defined if needed to expose struct msghdr.msg_control])
+                    ], [sendfds="no"], [
+#define _XOPEN_SOURCE 500
+AC_INCLUDES_DEFAULT
+#include <sys/socket.h>
+                     ])
+fi
+
+case x$sendfds in
+xyes)
+        AC_DEFINE([HAVE_SENDMSG],1,[Define if your platform supports sendmsg])
+        ;;
+esac
 
 have_win32="no"
 lt_enable_auto_import=""
@@ -128,7 +177,7 @@ xcbincludedir='${includedir}/xcb'
 AC_SUBST(xcbincludedir)
 
 if  test "x$GCC" = xyes ; then
-    CWARNFLAGS="-Wall -pedantic -Wpointer-arith -Wold-style-definition \
+    CWARNFLAGS="-Wall -Wpointer-arith -Wold-style-definition \
 		-Wstrict-prototypes -Wmissing-declarations -Wnested-externs"
 else
     AC_CHECK_DECL([__SUNPRO_C], [SUNCC="yes"], [SUNCC="no"])
@@ -171,7 +220,9 @@ XCB_EXTENSION(Composite, "yes")
 XCB_EXTENSION(Damage, "yes")
 XCB_EXTENSION(DPMS, "yes")
 XCB_EXTENSION(DRI2, "yes")
+XCB_EXTENSION(DRI3, "$sendfds")
 XCB_EXTENSION(GLX, "yes")
+XCB_EXTENSION(Present, "yes")
 XCB_EXTENSION(RandR, "yes")
 XCB_EXTENSION(Record, "yes")
 XCB_EXTENSION(Render, "yes")
@@ -215,7 +266,9 @@ xcb-composite.pc
 xcb-damage.pc
 xcb-dpms.pc
 xcb-dri2.pc
+xcb-dri3.pc
 xcb-glx.pc
+xcb-present.pc
 xcb-randr.pc
 xcb-record.pc
 xcb-render.pc
@@ -250,6 +303,7 @@ echo "  Package: ${PACKAGE_NAME} ${PACKAGE_VERSION}"
 echo ""
 echo "  Configuration"
 echo "    XDM support.........: ${have_xdmcp}"
+echo "    sendmsg fd passing..: ${sendfds}"
 echo "    Build unit tests....: ${HAVE_CHECK}"
 echo "      with html results.: ${HTML_CHECK_RESULT}"
 echo "    XCB buffer size.....: ${xcb_queue_buffer_size}"
@@ -259,6 +313,7 @@ echo "    Composite...........: ${BUILD_COMPOSITE}"
 echo "    Damage..............: ${BUILD_DAMAGE}"
 echo "    Dpms................: ${BUILD_DPMS}"
 echo "    Dri2................: ${BUILD_DRI2}"
+echo "    Dri3................: ${BUILD_DRI3}"
 echo "    Glx.................: ${BUILD_GLX}"
 echo "    Randr...............: ${BUILD_RANDR}"
 echo "    Record..............: ${BUILD_RECORD}"
