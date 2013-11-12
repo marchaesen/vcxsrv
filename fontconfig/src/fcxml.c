@@ -610,11 +610,11 @@ FcTypecheckValue (FcConfigParse *parse, FcType value, FcType type)
 	if ((value == FcTypeLangSet && type == FcTypeString) ||
 	    (value == FcTypeString && type == FcTypeLangSet))
 	    return;
-	if (type == (FcType) -1)
+	if (type ==  FcTypeUnknown)
 	    return;
 	/* It's perfectly fine to use user-define elements in expressions,
 	 * so don't warn in that case. */
-	if (value == (FcType) -1)
+	if (value == FcTypeUnknown)
 	    return;
 	FcConfigMessage (parse, FcSevereWarning, "saw %s, expected %s",
 			 FcTypeName (value), FcTypeName (type));

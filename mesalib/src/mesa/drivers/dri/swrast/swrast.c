@@ -669,7 +669,7 @@ dri_create_context(gl_api api,
 		   unsigned major_version,
 		   unsigned minor_version,
 		   uint32_t flags,
-           bool notify_reset,
+		   bool notify_reset,
 		   unsigned *error,
 		   void *sharedContextPrivate)
 {
@@ -836,7 +836,7 @@ static const struct __DriverAPIRec swrast_driver_api = {
     /*.SwapBuffers = */dri_swap_buffers,
     /*.MakeCurrent = */dri_make_current,
     /*.UnbindContext = */dri_unbind_context,
-	/*.AllocateBuffer = */NULL,
+    /*.AllocateBuffer = */NULL,
     /*.ReleaseBuffer = */NULL
 };
 
