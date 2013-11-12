@@ -1,3 +1,5 @@
+EXTRA_DIST = parrot.c parrot.jpg scale.ui
+
 if HAVE_GTK
 
 AM_CFLAGS = $(OPENMP_CFLAGS)
@@ -27,8 +29,6 @@ DEMOS =				\
 	srgb-trap-test		\
 	srgb-test		\
 	scale
-
-EXTRA_DIST = parrot.c parrot.jpg scale.ui
 
 gradient_test_SOURCES = gradient-test.c $(GTK_UTILS)
 alpha_test_SOURCES = alpha-test.c $(GTK_UTILS)
