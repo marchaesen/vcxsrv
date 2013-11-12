@@ -51,9 +51,13 @@ DEPS:=$(wildcard ..\..\..\src\mesa\swrast\*.c) \
       ..\..\..\src\mesa\main\enums.c \
       ..\..\..\src\mesa\main\api_exec.c \
       ..\..\..\src\mesa\main\get_hash.h \
-      ..\..\..\src\mesa\main\remap_helper.h
+      ..\..\..\src\mesa\main\remap_helper.h \
+      ..\..\..\src\mesa\drivers\dri\common\xmlpool\options.h
 
 all: $(TARGETDIR)\Release\swrast_dri.dll $(TARGETDIR)\Debug\swrast_dri.dll
+
+..\..\..\src\mesa\drivers\dri\common\xmlpool\options.h: ..\..\..\src\mesa\drivers\dri\common\xmlpool\t_options.h ..\..\..\src\mesa\drivers\dri\common\xmlpool\gen_xmlpool.py
+	cd ..\..\..\src\mesa\drivers\dri\common\xmlpool & python gen_xmlpool.py t_options.h . > options.h
 
 ..\..\..\src\mesa\main\dispatch.h: $(wildcard ..\..\..\src\mapi\glapi\gen\*.xml) ..\..\..\src\mapi\glapi\gen\gl_table.py
 	cd ..\..\..\src\mapi\glapi\gen & python gl_table.py -f gl_and_es_API.xml -m remap_table > ..\..\..\mesa\main\dispatch.h

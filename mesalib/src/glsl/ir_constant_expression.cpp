@@ -53,13 +53,6 @@ static int isnormal(double x)
 }
 #endif
 
-#if defined(_MSC_VER)
-static double copysign(double x, double y)
-{
-   return _copysign(x, y);
-}
-#endif
-
 static float
 dot(ir_constant *op0, ir_constant *op1)
 {

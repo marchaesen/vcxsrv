@@ -99,7 +99,7 @@ local gzFile gz_open(path, fd, mode)
 #ifdef O_CLOEXEC
     int cloexec = 0;
 #endif
-#ifdef O_EXCL
+#ifdef _O_EXCL
     int exclusive = 0;
 #endif
 
@@ -228,14 +228,14 @@ local gzFile gz_open(path, fd, mode)
         (cloexec ? O_CLOEXEC : 0) |
 #endif
         (state->mode == GZ_READ ?
-         O_RDONLY :
-         (O_WRONLY | O_CREAT |
-#ifdef O_EXCL
-          (exclusive ? O_EXCL : 0) |
+         _O_RDONLY :
+         (_O_WRONLY | _O_CREAT |
+#ifdef _O_EXCL
+          (exclusive ? _O_EXCL : 0) |
 #endif
           (state->mode == GZ_WRITE ?
-           O_TRUNC :
-           O_APPEND)));
+           _O_TRUNC :
+           _O_APPEND)));
 
     /* open the file with the appropriate flags (or just use fd) */
     state->fd = fd > -1 ? fd : (

@@ -86,10 +86,6 @@ SOFTWARE.
 #include "xichangehierarchy.h"  /* For XISendDeviceHierarchyEvent */
 #include "syncsrv.h"
 
-#ifdef _MSC_VER
-#define isfinite(val) _finite(val)
-#endif
-
 /** @file
  * This file handles input device-related stuff.
  */

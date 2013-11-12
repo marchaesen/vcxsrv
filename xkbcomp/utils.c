@@ -352,7 +352,7 @@ uStrCaseCmp(const char *str1, const char *str2)
 }
 
 int
-uStrCasePrefix(const char *my_prefix, char *str)
+uStrCasePrefix(const char *my_prefix, const char *str)
 {
     char c1;
     char c2;

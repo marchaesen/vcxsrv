@@ -83,7 +83,7 @@ XpmReadFileToBuffer(
 	close(fd);
 	return XpmOpenFailed;
     }
-    fp = fdopen(fd, "r");
+    fp = _fdopen(fd, "r");
     if (!fp) {
 	close(fd);
 	return XpmOpenFailed;

@@ -78,10 +78,6 @@ typedef const char *string;
 #ifdef _MSC_VER
 #include <math.h>
 
-float roundf(float f)
-{
-  return ((f<0.0f) ? ceil(f-.5)  : floor (f+.5));
-}
 double roundd(double f)
 {
   return ((f<0.0) ? ceil(f-.5)  : floor (f+.5));

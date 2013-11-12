@@ -65,6 +65,7 @@ SOFTWARE.
 
 #ifdef _MSC_VER
 #define hypot _hypot
+#define HAVE_CBRT
 #endif
 
 static double miDsin(double a);

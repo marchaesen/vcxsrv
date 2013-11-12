@@ -1258,7 +1258,7 @@ InitStringOrFile(MultiSrcObject src, Bool newString)
 
     if (!src->multi_src.is_tempfile) {
 	if ((fd = open((char *)src->multi_src.string, open_mode, 0666)) != -1) {
-	    if ((file = fdopen(fd, fdopen_mode)) != NULL) {
+	    if ((file = _fdopen(fd, fdopen_mode)) != NULL) {
 		(void)fseek(file, 0, SEEK_END);
 		src->multi_src.length = (XawTextPosition)ftell(file);
 		return(file);

@@ -43,24 +43,24 @@ static void CreateConsole(void)
 
     // redirect unbuffered STDOUT to the console
     lStdHandle = GetStdHandle(STD_OUTPUT_HANDLE);
-    hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
+    hConHandle = _open_osfhandle((intptr_t)lStdHandle, _O_TEXT);
     if (hConHandle==-1) // error occured, so return
       return;
-    fp = fdopen( hConHandle, "w" );
+    fp = _fdopen( hConHandle, "w" );
     *stdout = *fp;
     setvbuf( stdout, NULL, _IONBF, 0 );
 
     // redirect unbuffered STDIN to the console
     lStdHandle = GetStdHandle(STD_INPUT_HANDLE);
-    hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
-    fp = fdopen( hConHandle, "r" );
+    hConHandle = _open_osfhandle((intptr_t)lStdHandle, _O_TEXT);
+    fp = _fdopen( hConHandle, "r" );
     *stdin = *fp;
     setvbuf( stdin, NULL, _IONBF, 0 );
 
     // redirect unbuffered STDERR to the console
     lStdHandle = GetStdHandle(STD_ERROR_HANDLE);
-    hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
-    fp = fdopen( hConHandle, "w" );
+    hConHandle = _open_osfhandle((intptr_t)lStdHandle, _O_TEXT);
+    fp = _fdopen( hConHandle, "w" );
     *stderr = *fp;
     setvbuf( stderr, NULL, _IONBF, 0 );
   }

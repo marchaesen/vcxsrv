@@ -30,9 +30,9 @@ const char * MessageDebug::notify_names[NOTIFY_NAMES_LEN];
 std::string win32_error::message(DWORD errorcode)
 {
     LPVOID lpMsgBuf;
-    if (!FormatMessage( 
-                FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-                FORMAT_MESSAGE_FROM_SYSTEM | 
+    if (!FormatMessage(
+                FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                FORMAT_MESSAGE_FROM_SYSTEM |
                 FORMAT_MESSAGE_IGNORE_INSERTS,
                 NULL,
                 errorcode,
@@ -68,19 +68,19 @@ void MessageDebug::debug(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam, con
         LPNMHDR pnmh = (LPNMHDR)lParam;
         int psn_index = -(int)pnmh->code - 200;
         if (psn_index >= 0 && psn_index < 10 && psn_notify[psn_index])
-            printf("%s: %08x %04x WM_NOTIFY (%s)\n", prefix, hwnd, wParam, psn_notify[psn_index]);
+            printf("%s: %p %04x WM_NOTIFY (%s)\n", prefix, hwnd, wParam, psn_notify[psn_index]);
         else if (pnmh->code < NOTIFY_NAMES_LEN && notify_names[pnmh->code])
-            printf("%s: %08x %04x WM_NOTIFY (%s)\n", prefix, hwnd, wParam, notify_names[pnmh->code]);
+            printf("%s: %p %04x WM_NOTIFY (%s)\n", prefix, hwnd, wParam, notify_names[pnmh->code]);
         else
-            printf("%s: %08x %04x WM_NOTIFY (%u)\n", prefix, hwnd, wParam, pnmh->code);
-    }   
+            printf("%s: %p %04x WM_NOTIFY (%u)\n", prefix, hwnd, wParam, pnmh->code);
+    }
     else if (uMsg >= MESSAGE_NAMES_LEN)
         if (uMsg >= WM_USER)
-            printf("%s: %08x %04x %08x WM_USER + %d\n", prefix, hwnd, wParam, lParam, uMsg - WM_USER); 
+            printf("%s: %p %04x %08x WM_USER + %d\n", prefix, hwnd, wParam, lParam, uMsg - WM_USER);
         else
-            printf("%s: %08x %04x %08x %d\n", prefix, hwnd, wParam, lParam, uMsg);
+            printf("%s: %p %04x %08x %d\n", prefix, hwnd, wParam, lParam, uMsg);
     else if (uMsg >= 0 && uMsg < MESSAGE_NAMES_LEN && message_names[uMsg])
-        printf("%s: %08x %04x %08x %s\n", prefix, hwnd, wParam, lParam, message_names[uMsg]);
+        printf("%s: %p %04x %08x %s\n", prefix, hwnd, wParam, lParam, message_names[uMsg]);
 #endif
 }
 
@@ -1111,4 +1111,3 @@ const char * MessageDebug::message_names[MESSAGE_NAMES_LEN] = {
 	"1022",
 	"1023"
 };
-

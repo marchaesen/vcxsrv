@@ -560,7 +560,7 @@ static const char *const operator_strs[] = {
    "ubo_load",
    "ldexp",
    "vector_extract",
-   "fma",
+   "fma_mesa",
    "lrp",
    "csel",
    "bfi",

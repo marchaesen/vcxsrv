@@ -729,7 +729,7 @@ ExprResolveString(ExprDef * expr,
         val_rtrn->str = XkbAtomGetString(NULL, expr->value.str);
         if (val_rtrn->str == NULL)
         {
-            static const char *empty = "";
+            static char *empty = "";
             val_rtrn->str = empty;
         }
         return True;

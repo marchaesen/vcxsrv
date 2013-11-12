@@ -65,6 +65,10 @@ Section "VcXsrv debug exe and dlls"
     Delete "$INSTDIR\msvcr100d.dll"
   IfFileExists "$INSTDIR\msvcp100d.dll" 0 +2
     Delete "$INSTDIR\msvcp100d.dll"
+  IfFileExists "$INSTDIR\msvcr110d.dll" 0 +2
+    Delete "$INSTDIR\msvcr110d.dll"
+  IfFileExists "$INSTDIR\msvcp110d.dll" 0 +2
+    Delete "$INSTDIR\msvcp110d.dll"
 
   ; Put files there
   File "..\obj\servdebug\vcxsrv.exe"
@@ -86,8 +90,8 @@ Section "VcXsrv debug exe and dlls"
   File "..\..\libX11\obj\debug\libX11.dll"
   File "..\..\libXext\src\obj\debug\libXext.dll"
   File "..\..\libXmu\src\obj\debug\libXmu.dll"
-  File "msvcr110d.dll"
-  File "msvcp110d.dll"
+  File "msvcr120d.dll"
+  File "msvcp120d.dll"
 
   WriteRegStr HKLM SOFTWARE\VcXsrv "Install_Dir" "$INSTDIR"
 SectionEnd

@@ -17,7 +17,7 @@ NOT=$(if $(findstring 0,$(1)),1,0)
 
 CC        ?= cl /nologo
 CPP       ?= $(CC)
-CCFLAGS   += -c -GF -Gy #-Wall
+CCFLAGS   += -c -GF -Gy -FS #-Wall
 
 #CCFLAGS   += -wd4996 -wd4738
 LINK      ?= link /nologo

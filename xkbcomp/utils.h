@@ -210,7 +210,7 @@ uInformation(const char * /* s */ , ...
                             const char *        /* s2 */
     );
      extern int uStrCasePrefix(const char * /* p */ ,
-                               char *   /* str */
+                               const char * /* str */
     );
 #endif
 #ifdef HAVE_STRDUP

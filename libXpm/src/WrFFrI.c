@@ -344,7 +344,7 @@ OpenWriteFile(
 	} else
 #endif
 	{
-	    mdata->stream.file = fdopen(fd, "w");
+	    mdata->stream.file = _fdopen(fd, "w");
 	    mdata->type = XPMFILE;
 	}
 	if (!mdata->stream.file) {

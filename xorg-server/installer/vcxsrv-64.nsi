@@ -69,6 +69,10 @@ Section "VcXsrv (required)"
     Delete "$INSTDIR\msvcr100.dll"
   IfFileExists "$INSTDIR\msvcp100.dll" 0 +2
     Delete "$INSTDIR\msvcp100.dll"
+  IfFileExists "$INSTDIR\msvcr110.dll" 0 +2
+    Delete "$INSTDIR\msvcr110.dll"
+  IfFileExists "$INSTDIR\msvcp110.dll" 0 +2
+    Delete "$INSTDIR\msvcp110.dll"
 
   ; Put files there
   File "..\obj64\servrelease\vcxsrv.exe"
@@ -105,8 +109,8 @@ Section "VcXsrv (required)"
   File "..\..\libX11\obj64\release\libX11.dll"
   File "..\..\libXext\src\obj64\release\libXext.dll"
   File "..\..\libXmu\src\obj64\release\libXmu.dll"
-  File "msvcr110.dll"
-  File "msvcp110.dll"
+  File "msvcr120.dll"
+  File "msvcp120.dll"
   SetOutPath $INSTDIR\xkbdata
   File /r "..\xkbdata\*.*"
   SetOutPath $INSTDIR\locale
@@ -230,10 +234,10 @@ Section "Uninstall"
   Delete "$INSTDIR\libxml2.dll"
   Delete "$INSTDIR\zlib1.dll"
   Delete "$INSTDIR\iconv.dll"
-  Delete "$INSTDIR\msvcr110.dll"
-  Delete "$INSTDIR\msvcp110.dll"
-  Delete "$INSTDIR\msvcr110d.dll"
-  Delete "$INSTDIR\msvcp110d.dll"
+  Delete "$INSTDIR\msvcr120.dll"
+  Delete "$INSTDIR\msvcp120.dll"
+  Delete "$INSTDIR\msvcr120d.dll"
+  Delete "$INSTDIR\msvcp120d.dll"
 
   RMDir /r "$INSTDIR\fonts"
   RMDir /r "$INSTDIR\xkbdata"

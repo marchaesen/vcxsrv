@@ -558,7 +558,7 @@ private:
    B1(bitCount)
    B1(findLSB)
    B1(findMSB)
-   B1(fma)
+   B1(fma_mesa)
    B2(ldexp)
    B2(frexp)
    B1(uaddCarry)
@@ -2053,7 +2053,7 @@ builtin_builder::create_builtins()
    IU(bitCount)
    IU(findLSB)
    IU(findMSB)
-   F(fma)
+   F(fma_mesa)
 
    add_function("ldexp",
                 _ldexp(glsl_type::float_type, glsl_type::int_type),
@@ -3857,14 +3857,14 @@ builtin_builder::_findMSB(const glsl_type *type)
 }
 
 ir_function_signature *
-builtin_builder::_fma(const glsl_type *type)
+builtin_builder::_fma_mesa(const glsl_type *type)
 {
    ir_variable *a = in_var(type, "a");
    ir_variable *b = in_var(type, "b");
    ir_variable *c = in_var(type, "c");
    MAKE_SIG(type, gpu_shader5, 3, a, b, c);
 
-   body.emit(ret(fma(a, b, c)));
+   body.emit(ret(fma_mesa(a, b, c)));
 
    return sig;
 }

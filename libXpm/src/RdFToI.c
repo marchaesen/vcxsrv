@@ -247,7 +247,7 @@ OpenReadFile(
 #endif /* z-files */
 	{
 	    mdata->type = XPMFILE;
-	    mdata->stream.file = fdopen(fd, "r");
+	    mdata->stream.file = _fdopen(fd, "r");
 	}
 	if (!mdata->stream.file)
 	{

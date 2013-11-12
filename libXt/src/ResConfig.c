@@ -913,7 +913,7 @@ _XtResourceConfigurationEH (
 	fprintf (stderr, "in _XtResourceConfiguationEH atom = %d\n",event->xproperty.atom);
 	fprintf (stderr, "    window = %x\n", XtWindow (w));
 	if (XtIsWidget (w))
-		fprintf (stderr, "    widget = %x   name = %s\n", w, w->core.name);
+		fprintf (stderr, "    widget = %p   name = %s\n", w, w->core.name);
 #endif
 
 	pd = _XtGetPerDisplay (XtDisplay (w));
