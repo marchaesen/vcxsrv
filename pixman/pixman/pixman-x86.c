@@ -170,7 +170,7 @@ detect_cpu_features (void)
 	features |= X86_SSE;
     if (d & (1 << 26))
 	features |= X86_SSE2;
-    if (d & (1 << 9))
+    if (c & (1 << 9))
 	features |= X86_SSSE3;
 
     /* Check for AMD specific features */

@@ -112,6 +112,15 @@ struct i386_special_regs {
  * CS, DS, ES, SS.
  */
 
+#if defined(__sun) && defined(CS) /* avoid conflicts with Solaris sys/regset.h */
+# undef CS
+# undef DS
+# undef SS
+# undef ES
+# undef FS
+# undef GS
+#endif
+
 struct i386_segment_regs {
     u16 CS, DS, SS, ES, FS, GS;
 };

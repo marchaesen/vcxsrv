@@ -72,6 +72,7 @@ SOFTWARE.
 #ifdef DPMSExtension
 #include "dpmsproc.h"
 #endif
+#include "busfault.h"
 
 #ifdef WIN32
 /* Error codes from windows sockets differ from fileio error codes  */
@@ -161,6 +162,10 @@ WaitForSomething(int *pClientsReady)
     if (nready)
         SmartScheduleStopTimer();
     nready = 0;
+
+#ifdef BUSFAULT
+    busfault_check();
+#endif
 
     /* We need a while loop here to handle 
        crashed connections and the screen saver timeout */

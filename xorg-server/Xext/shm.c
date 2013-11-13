@@ -384,7 +384,7 @@ ProcShmAttach(ClientPtr client)
         return BadValue;
     }
     for (shmdesc = Shmsegs; shmdesc; shmdesc = shmdesc->next) {
-        if (!shmdesc->is_fd && shmdesc->shmid == stuff->shmid)
+        if (!SHMDESC_IS_FD(shmdesc) && shmdesc->shmid == stuff->shmid)
             break;
     }
     if (shmdesc) {
@@ -396,7 +396,9 @@ ProcShmAttach(ClientPtr client)
         shmdesc = malloc(sizeof(ShmDescRec));
         if (!shmdesc)
             return BadAlloc;
+#ifdef SHM_FD_PASSING
         shmdesc->is_fd = FALSE;
+#endif
         shmdesc->addr = shmat(stuff->shmid, 0,
                               stuff->readOnly ? SHM_RDONLY : 0);
         if ((shmdesc->addr == ((char *) -1)) || SHMSTAT(stuff->shmid, &buf)) {
@@ -435,9 +437,13 @@ ShmDetachSegment(pointer value, /* must conform to DeleteType */
 
     if (--shmdesc->refcnt)
         return TRUE;
-    if (shmdesc->is_fd)
+#if SHM_FD_PASSING
+    if (shmdesc->is_fd) {
+        if (shmdesc->busfault)
+            busfault_unregister(shmdesc->busfault);
         munmap(shmdesc->addr, shmdesc->size);
-    else
+    } else
+#endif
         shmdt(shmdesc->addr);
     for (prev = &Shmsegs; *prev != shmdesc; prev = &(*prev)->next);
     *prev = shmdesc->next;
@@ -1094,6 +1100,20 @@ ProcShmCreatePixmap(ClientPtr client)
     return BadAlloc;
 }
 
+#ifdef SHM_FD_PASSING
+
+static void
+ShmBusfaultNotify(void *context)
+{
+    ShmDescPtr shmdesc = context;
+
+    ErrorF("shared memory 0x%x truncated by client\n",
+           (unsigned int) shmdesc->resource);
+    busfault_unregister(shmdesc->busfault);
+    shmdesc->busfault = NULL;
+    FreeResource (shmdesc->resource, RT_NONE);
+}
+
 static int
 ProcShmAttachFd(ClientPtr client)
 {
@@ -1138,6 +1158,15 @@ ProcShmAttachFd(ClientPtr client)
     shmdesc->refcnt = 1;
     shmdesc->writable = !stuff->readOnly;
     shmdesc->size = statb.st_size;
+    shmdesc->resource = stuff->shmseg;
+
+    shmdesc->busfault = busfault_register_mmap(shmdesc->addr, shmdesc->size, ShmBusfaultNotify, shmdesc);
+    if (!shmdesc->busfault) {
+        munmap(shmdesc->addr, shmdesc->size);
+        free(shmdesc);
+        return BadAlloc;
+    }
+
     shmdesc->next = Shmsegs;
     Shmsegs = shmdesc;
 
@@ -1193,6 +1222,15 @@ ProcShmCreateSegment(ClientPtr client)
     shmdesc->refcnt = 1;
     shmdesc->writable = !stuff->readOnly;
     shmdesc->size = stuff->size;
+
+    shmdesc->busfault = busfault_register_mmap(shmdesc->addr, shmdesc->size, ShmBusfaultNotify, shmdesc);
+    if (!shmdesc->busfault) {
+        close(fd);
+        munmap(shmdesc->addr, shmdesc->size);
+        free(shmdesc);
+        return BadAlloc;
+    }
+
     shmdesc->next = Shmsegs;
     Shmsegs = shmdesc;
 
@@ -1209,6 +1247,7 @@ ProcShmCreateSegment(ClientPtr client)
     WriteToClient(client, sizeof (xShmCreateSegmentReply), &rep);
     return Success;
 }
+#endif /* SHM_FD_PASSING */
 
 static int
 ProcShmDispatch(ClientPtr client)
@@ -1239,10 +1278,12 @@ ProcShmDispatch(ClientPtr client)
             return ProcPanoramiXShmCreatePixmap(client);
 #endif
         return ProcShmCreatePixmap(client);
+#ifdef SHM_FD_PASSING
     case X_ShmAttachFd:
         return ProcShmAttachFd(client);
     case X_ShmCreateSegment:
         return ProcShmCreateSegment(client);
+#endif
     default:
         return BadRequest;
     }
@@ -1343,6 +1384,7 @@ SProcShmCreatePixmap(ClientPtr client)
     return ProcShmCreatePixmap(client);
 }
 
+#ifdef SHM_FD_PASSING
 static int
 SProcShmAttachFd(ClientPtr client)
 {
@@ -1364,6 +1406,7 @@ SProcShmCreateSegment(ClientPtr client)
     swapl(&stuff->size);
     return ProcShmCreateSegment(client);
 }
+#endif  /* SHM_FD_PASSING */
 
 static int
 SProcShmDispatch(ClientPtr client)
@@ -1382,10 +1425,12 @@ SProcShmDispatch(ClientPtr client)
         return SProcShmGetImage(client);
     case X_ShmCreatePixmap:
         return SProcShmCreatePixmap(client);
+#ifdef SHM_FD_PASSING
     case X_ShmAttachFd:
         return SProcShmAttachFd(client);
     case X_ShmCreateSegment:
         return SProcShmCreateSegment(client);
+#endif
     default:
         return BadRequest;
     }

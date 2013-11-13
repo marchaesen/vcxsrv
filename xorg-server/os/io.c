@@ -259,12 +259,14 @@ ReadRequestFromClient(ClientPtr client)
         oc->input = oci;
     }
 
+#if XTRANS_SEND_FDS
     /* Discard any unused file descriptors */
     while (client->req_fds > 0) {
         int req_fd = ReadFdFromClient(client);
         if (req_fd >= 0)
             close(req_fd);
     }
+#endif
     /* advance to start of next request */
 
     oci->bufptr += oci->lenLastReq;
@@ -491,6 +493,7 @@ ReadRequestFromClient(ClientPtr client)
     return needed;
 }
 
+#if XTRANS_SEND_FDS
 int
 ReadFdFromClient(ClientPtr client)
 {
@@ -513,6 +516,7 @@ WriteFdToClient(ClientPtr client, int fd, Bool do_close)
 
     return _XSERVTransSendFd(oc->trans_conn, fd, do_close);
 }
+#endif
 
 /*****************************************************************
  * InsertFakeRequest

@@ -149,6 +149,8 @@ OsSigHandler(int signo)
 }
 #endif /* !WIN32 || __CYGWIN__ */
 
+#include "busfault.h"
+
 void
 OsInit(void)
 {
@@ -185,6 +187,9 @@ OsInit(void)
             }
         }
 #endif /* !WIN32 || __CYGWIN__ */
+#ifdef BUSFAULT
+        busfault_init();
+#endif
 
 #ifdef HAVE_BACKTRACE
         /*

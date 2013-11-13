@@ -2,6 +2,7 @@ if XORG
 sdk_HEADERS =		\
 	XIstubs.h	\
 	Xprintf.h	\
+	busfault.h	\
 	callback.h	\
 	client.h	\
 	closestr.h	\

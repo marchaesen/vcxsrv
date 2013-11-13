@@ -145,7 +145,4 @@
 /* Support APM/ACPI power management in the server */
 #undef XF86PM
 
-/* Have support for X shared memory fence library (xshmfence) */
-#undef HAVE_XSHMFENCE
-
 #endif /* _XORG_CONFIG_H_ */

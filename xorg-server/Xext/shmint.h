@@ -56,15 +56,35 @@ typedef struct _ShmFuncs {
     void (*PutImage) (XSHM_PUT_IMAGE_ARGS);
 } ShmFuncs, *ShmFuncsPtr;
 
+#include <protocol-versions.h>
+
+#if SERVER_SHM_MAJOR_VERSION == 1 && SERVER_SHM_MINOR_VERSION >= 2
+#define SHM_FD_PASSING  1
+#endif
+
+#ifdef SHM_FD_PASSING
+#include "busfault.h"
+#endif
+
 typedef struct _ShmDesc {
     struct _ShmDesc *next;
     int shmid;
     int refcnt;
     char *addr;
-    Bool is_fd;
     Bool writable;
     unsigned long size;
+#ifdef SHM_FD_PASSING
+    Bool is_fd;
+    struct busfault *busfault;
+    XID resource;
+#endif
 } ShmDescRec, *ShmDescPtr;
+
+#ifdef SHM_FD_PASSING
+#define SHMDESC_IS_FD(shmdesc)  ((shmdesc)->is_fd)
+#else
+#define SHMDESC_IS_FD(shmdesc)  (0)
+#endif
 
 extern _X_EXPORT void
  ShmRegisterFuncs(ScreenPtr pScreen, ShmFuncsPtr funcs);

@@ -38,6 +38,16 @@
 ****************************************************************************/
 
 #include <stdlib.h>
+
+#if defined(__sun) && defined(CS) /* avoid conflicts with Solaris sys/regset.h */
+# undef CS
+# undef DS
+# undef SS
+# undef ES
+# undef FS
+# undef GS
+#endif
+
 #include "x86emu/x86emui.h"
 
 /*----------------------------- Implementation ----------------------------*/

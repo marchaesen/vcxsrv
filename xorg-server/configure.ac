@@ -31,6 +31,7 @@ RELEASE_DATE="2013-10-31"
 RELEASE_NAME="Bom Retiro"
 AC_CONFIG_SRCDIR([Makefile.am])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
+AC_USE_SYSTEM_EXTENSIONS
 
 # Require xorg-macros minimum of 1.14 for XORG_COMPILER_BRAND in XORG_DEFAULT_OPTIONS
 m4_ifndef([XORG_MACROS_VERSION],
@@ -798,7 +799,7 @@ dnl Required modules
 XPROTO="xproto >= 7.0.22"
 RANDRPROTO="randrproto >= 1.4.0"
 RENDERPROTO="renderproto >= 0.11"
-XEXTPROTO="xextproto >= 7.1.99"
+XEXTPROTO="xextproto >= 7.2.99.901"
 INPUTPROTO="inputproto >= 2.3"
 KBPROTO="kbproto >= 1.0.3"
 FONTSPROTO="fontsproto"
@@ -806,7 +807,7 @@ FIXESPROTO="fixesproto >= 5.0"
 DAMAGEPROTO="damageproto >= 1.1"
 XCMISCPROTO="xcmiscproto >= 1.2.0"
 BIGREQSPROTO="bigreqsproto >= 1.1.0"
-XTRANS="xtrans >= 1.2.2"
+XTRANS="xtrans >= 1.3.2"
 PRESENTPROTO="presentproto >= 1.0"
 
 dnl List of libraries that require a specific version
@@ -814,7 +815,7 @@ LIBAPPLEWM="applewm >= 1.4"
 LIBDMX="dmx >= 1.0.99.1"
 LIBDRI="dri >= 7.8.0"
 LIBDRM="libdrm >= 2.3.0"
-LIBGL="gl >= 9.2.0"
+LIBGL="gl >= 7.1.0"
 LIBXEXT="xext >= 1.0.99.4"
 LIBXFONT="xfont >= 1.4.2"
 LIBXI="xi >= 1.2.99.1"
@@ -1069,34 +1070,6 @@ fi
 AC_MSG_RESULT([$CLIENTIDS])
 AM_CONDITIONAL(CLIENTIDS, [test "x$CLIENTIDS" = xyes])
 
-if test "x$GLX" = xyes; then
-	PKG_CHECK_MODULES([XLIB], [x11])
-	PKG_CHECK_MODULES([GL], $GLPROTO $LIBGL)
-	AC_SUBST(XLIB_CFLAGS)
-	AC_DEFINE(GLXEXT, 1, [Build GLX extension])
-	GLX_LIBS='$(top_builddir)/glx/libglx.la'
-	GLX_SYS_LIBS="$GLX_SYS_LIBS $GL_LIBS"
-else
-        GLX=no
-fi
-AM_CONDITIONAL(GLX, test "x$GLX" = xyes)
-
-if test "x$GLX" = xno; then
-        AIGLX=no
-fi
-
-if test "x$AIGLX" = xyes -a \( "x$DRI2" = xyes \); then
-	AC_DEFINE(AIGLX, 1, [Build AIGLX loader])
-fi
-AM_CONDITIONAL(AIGLX_DRI_LOADER, { test "x$DRI2" = xyes; } && test "x$AIGLX" = xyes)
-
-if test "x$GLX_USE_TLS" = xyes ; then
-	GLX_DEFINES="-DGLX_USE_TLS -DPTHREADS"
-	GLX_SYS_LIBS="$GLX_SYS_LIBS -lpthread"
-fi
-AC_SUBST([GLX_DEFINES])
-AC_SUBST([GLX_SYS_LIBS])
-
 AM_CONDITIONAL(DRI, test "x$DRI" = xyes)
 if test "x$DRI" = xyes; then
 	AC_DEFINE(XF86DRI, 1, [Build DRI extension])
@@ -1113,10 +1086,46 @@ case "$DRI2,$HAVE_DRI2PROTO" in
 	yes,yes | auto,yes)
 		AC_DEFINE(DRI2, 1, [Build DRI2 extension])
 		DRI2=yes
+		LIBGL="gl >= 9.2.0"
 		SDK_REQUIRED_MODULES="$SDK_REQUIRED_MODULES $DRI2PROTO"
 		;;
 esac
 AM_CONDITIONAL(DRI2, test "x$DRI2" = xyes)
+
+AC_ARG_ENABLE(xtrans-send-fds,	AS_HELP_STRING([--disable-xtrans-send-fds], [Use Xtrans support for fd passing (default: auto)]), [XTRANS_SEND_FDS=$enableval], [XTRANS_SEND_FDS=auto])
+
+case "x$XTRANS_SEND_FDS" in
+xauto)
+	case "$host_os" in
+	linux*|solaris*)
+		XTRANS_SEND_FDS=yes
+		;;
+	*)
+		XTRANS_SEND_FDS=no
+		;;
+	esac
+esac
+
+case "x$XTRANS_SEND_FDS" in
+xyes)
+	AC_DEFINE(XTRANS_SEND_FDS, 1, [Enable xtrans fd passing support])
+	;;
+esac
+
+case "$DRI3,$XTRANS_SEND_FDS" in
+	yes,yes | auto,yes)
+		;;
+	yes,no)
+		AC_MSG_ERROR([DRI3 requested, but xtrans fd passing support not found.])
+		DRI3=no
+		;;
+	no,*)
+		;;
+	*)
+		AC_MSG_NOTICE([DRI3 disabled because xtrans fd passing support not found.])
+		DRI3=no
+		;;
+esac
 
 PKG_CHECK_MODULES([DRI3PROTO], $DRI3PROTO,
                   [HAVE_DRI3PROTO=yes], [HAVE_DRI3PROTO=no])
@@ -1135,6 +1144,25 @@ case "$DRI3,$HAVE_DRI3PROTO" in
 		DRI3=no
 		;;
 esac
+
+AC_CHECK_FUNCS([sigaction])
+
+BUSFAULT=no
+
+case x"$ac_cv_func_sigaction" in
+	xyes)
+		AC_DEFINE(HAVE_SIGACTION, 1, [Have sigaction function])
+		BUSFAULT=yes
+		;;
+esac
+
+case x"$BUSFAULT" in
+	xyes)
+		AC_DEFINE(BUSFAULT, 1, [Include busfault OS API])
+		;;
+esac
+
+AM_CONDITIONAL(BUSFAULT, test x"$BUSFAULT" = xyes)
 
 PKG_CHECK_MODULES([XSHMFENCE], $XSHMFENCE,
 		  [HAVE_XSHMFENCE=yes], [HAVE_XSHMFENCE=no])
@@ -1203,6 +1231,34 @@ if test "x$DRI2" = xyes; then
 	fi
 fi
 AM_CONDITIONAL(DRI2_AIGLX, test "x$DRI2_AIGLX" = xyes)
+
+if test "x$GLX" = xyes; then
+	PKG_CHECK_MODULES([XLIB], [x11])
+	PKG_CHECK_MODULES([GL], $GLPROTO $LIBGL)
+	AC_SUBST(XLIB_CFLAGS)
+	AC_DEFINE(GLXEXT, 1, [Build GLX extension])
+	GLX_LIBS='$(top_builddir)/glx/libglx.la'
+	GLX_SYS_LIBS="$GLX_SYS_LIBS $GL_LIBS"
+else
+        GLX=no
+fi
+AM_CONDITIONAL(GLX, test "x$GLX" = xyes)
+
+if test "x$GLX" = xno; then
+        AIGLX=no
+fi
+
+if test "x$AIGLX" = xyes -a \( "x$DRI2" = xyes \); then
+	AC_DEFINE(AIGLX, 1, [Build AIGLX loader])
+fi
+AM_CONDITIONAL(AIGLX_DRI_LOADER, { test "x$DRI2" = xyes; } && test "x$AIGLX" = xyes)
+
+if test "x$GLX_USE_TLS" = xyes ; then
+	GLX_DEFINES="-DGLX_USE_TLS -DPTHREADS"
+	GLX_SYS_LIBS="$GLX_SYS_LIBS -lpthread"
+fi
+AC_SUBST([GLX_DEFINES])
+AC_SUBST([GLX_SYS_LIBS])
 
 AM_CONDITIONAL(PRESENT, [test "x$PRESENT" = xyes])
 if test "x$PRESENT" = xyes; then
