@@ -55,6 +55,7 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/Xfuncproto.h>
 #include <sys/mman.h>
 #include "protocol-versions.h"
+#include "busfault.h"
 
 /* Needed for Solaris cross-zone shared memory extension */
 #ifdef HAVE_SHMCTL64

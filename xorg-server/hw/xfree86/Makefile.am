@@ -80,17 +80,6 @@ BUILT_SOURCES = xorg.conf.example
 DISTCLEANFILES = xorg.conf.example
 EXTRA_DIST = xorgconf.cpp
 
-if SOLARIS_ASM_INLINE
-# Needs to be built before any files are compiled when using Sun compilers
-# so in*/out* inline definitions are properly processed.
-
-BUILT_SOURCES += os-support/solaris/solaris-@SOLARIS_INOUT_ARCH@.il
-
-os-support/solaris/solaris-@SOLARIS_INOUT_ARCH@.il:
-	cd os-support/solaris ; \
-	 $(MAKE) $(AM_MAKEFLAGS) solaris-@SOLARIS_INOUT_ARCH@.il
-endif
-
 # Without logdir, X will post an error on the terminal and will not start
 install-data-local:
 	$(AM_V_GEN)$(MKDIR_P) $(DESTDIR)$(logdir)
