@@ -936,7 +936,7 @@ extern char *bundle_id_prefix;
 
 - (void) applicationWillTerminate:(NSNotification *)aNotification
 {
-    unsigned remain;
+    int remain;
     [X11App prefs_synchronize];
 
     /* shutdown the X server, it will exit () for us. */

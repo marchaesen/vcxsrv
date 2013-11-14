@@ -5,6 +5,7 @@ AM_CFLAGS = $(DIX_CFLAGS) $(SHA1_CFLAGS)
 SECURERPC_SRCS = rpcauth.c
 XDMCP_SRCS = xdmcp.c
 XORG_SRCS = log.c
+BUSFAULT_SRCS = busfault.c
 
 libos_la_SOURCES = 	\
 	WaitFor.c	\
@@ -37,6 +38,10 @@ endif
 if HAVE_LIBUNWIND
 AM_CFLAGS += $(LIBUNWIND_CFLAGS)
 libos_la_LIBADD += $(LIBUNWIND_LIBS)
+endif
+
+if BUSFAULT
+libos_la_SOURCES += $(BUSFAULT_SRCS)
 endif
 
 EXTRA_DIST = $(SECURERPC_SRCS) $(XDMCP_SRCS)

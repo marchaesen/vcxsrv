@@ -1393,6 +1393,10 @@ typedef struct {
     short first, last;          /* if for extension, major opcode interval */
 } SetInfoRec, *SetInfoPtr;
 
+#if defined(ERR) && defined(__sun)
+#undef ERR /* Avoid conflict with Solaris <sys/regset.h> */
+#endif
+
 /* These constant are used to index into an array of SetInfoRec. */
 enum { REQ,                     /* set info for requests */
     REP,                        /* set info for replies */
