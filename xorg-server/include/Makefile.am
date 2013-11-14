@@ -2,7 +2,6 @@ if XORG
 sdk_HEADERS =		\
 	XIstubs.h	\
 	Xprintf.h	\
-	busfault.h	\
 	callback.h	\
 	client.h	\
 	closestr.h	\
@@ -69,6 +68,7 @@ endif
 AM_CFLAGS = $(DIX_CFLAGS)
 
 EXTRA_DIST = 	\
+	busfault.h	\
 	dix-config-apple-verbatim.h \
 	dixfontstubs.h eventconvert.h eventstr.h inpututils.h \
 	protocol-versions.h \

@@ -56,14 +56,8 @@ typedef struct _ShmFuncs {
     void (*PutImage) (XSHM_PUT_IMAGE_ARGS);
 } ShmFuncs, *ShmFuncsPtr;
 
-#include <protocol-versions.h>
-
-#if SERVER_SHM_MAJOR_VERSION == 1 && SERVER_SHM_MINOR_VERSION >= 2
+#if XTRANS_SEND_FDS
 #define SHM_FD_PASSING  1
-#endif
-
-#ifdef SHM_FD_PASSING
-#include "busfault.h"
 #endif
 
 typedef struct _ShmDesc {
