@@ -304,8 +304,8 @@ hostx_init(void)
         | XCB_EVENT_MASK_STRUCTURE_NOTIFY;
 
     EPHYR_DBG("mark");
-
-    if ((HostX.conn = xcb_connect(NULL, &HostX.screen)) == NULL) {
+    HostX.conn = xcb_connect(NULL, &HostX.screen);
+    if (xcb_connection_has_error(HostX.conn)) {
         fprintf(stderr, "\nXephyr cannot open host display. Is DISPLAY set?\n");
         exit(1);
     }

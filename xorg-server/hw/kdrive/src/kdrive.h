@@ -506,6 +506,7 @@ KdEnqueueKeyboardEvent(KdKeyboardInfo * ki, unsigned char scan_code,
 #define KD_BUTTON_4	0x08
 #define KD_BUTTON_5	0x10
 #define KD_BUTTON_8	0x80
+#define KD_POINTER_DESKTOP 0x40000000
 #define KD_MOUSE_DELTA	0x80000000
 
 void

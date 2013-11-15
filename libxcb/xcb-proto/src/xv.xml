@@ -112,10 +112,6 @@ authorization from the authors.
         <field type="CARD16" name="name_size" />
         <field type="CARD16" name="width" />
         <field type="CARD16" name="height" />
-        <!--
-        Some versions of Xvproto.h incorrectly have
-        this padding after "rate".
-        -->
         <pad bytes="2" />
         <field type="Rational" name="rate" />
         <list type="char" name="name">
@@ -234,10 +230,6 @@ authorization from the authors.
         <reply>
             <pad bytes="1" />
             <field type="CARD16" name="num_encodings" />
-            <!--
-            In Xvproto.h this padding is 24 bytes
-            in actuality it is 22 bytes
-            -->
             <pad bytes="22" />
             <list type="EncodingInfo" name="info">
                 <fieldref>num_encodings</fieldref>

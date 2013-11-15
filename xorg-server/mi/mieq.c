@@ -60,7 +60,7 @@ in this Software without prior written authorization from The Open Group.
 #endif
 
 /* Maximum size should be initial size multiplied by a power of 2 */
-#define QUEUE_INITIAL_SIZE                 256
+#define QUEUE_INITIAL_SIZE                 512
 #define QUEUE_RESERVED_SIZE                 64
 #define QUEUE_MAXIMUM_SIZE                4096
 #define QUEUE_DROP_BACKTRACE_FREQUENCY     100

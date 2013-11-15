@@ -959,7 +959,14 @@ ephyrProcessMouseMotion(xcb_generic_event_t *xev)
         }
         EPHYR_LOG("final (x,y):(%d,%d)\n", x, y);
 #endif
-        KdEnqueuePointerEvent(ephyrMouse, mouseState, x, y, 0);
+
+        /* convert coords into desktop-wide coordinates.
+         * fill_pointer_events will convert that back to
+         * per-screen coordinates where needed */
+        x += screen->pScreen->x;
+        y += screen->pScreen->y;
+
+        KdEnqueuePointerEvent(ephyrMouse, mouseState | KD_POINTER_DESKTOP, x, y, 0);
     }
 }
 

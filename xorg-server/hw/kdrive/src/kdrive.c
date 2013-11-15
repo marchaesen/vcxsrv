@@ -328,7 +328,8 @@ KdParseScreen(KdScreenInfo * screen, const char *arg)
             screen->height = pixels;
             screen->height_mm = mm;
         }
-        if (delim != 'x' && delim != '@' && delim != 'X' && delim != 'Y')
+        if (delim != 'x' && delim != '@' && delim != 'X' && delim != 'Y' &&
+            (delim != '\0' || i == 0))
             return;
     }
 

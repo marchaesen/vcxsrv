@@ -76,7 +76,7 @@ class Type(object):
         complex_type.fields.append(new_field)
 
     def make_fd_of(self, module, complex_type, fd_name):
-    	'''
+        '''
         Method for making a fd member of a structure.
         '''
         new_fd = Field(self, module.get_type_name('INT32'), fd_name, True, False, False, None, True)

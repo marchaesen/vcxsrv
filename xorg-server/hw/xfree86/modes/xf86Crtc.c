@@ -1863,6 +1863,9 @@ SetCompatOutput(xf86CrtcConfigPtr config)
     DisplayModePtr maxmode = NULL, testmode, mode;
     int o, compat = -1, count, mincount = 0;
 
+    if (config->num_output == 0)
+        return NULL;
+
     /* Look for one that's definitely connected */
     for (o = 0; o < config->num_output; o++) {
         test = config->output[o];
