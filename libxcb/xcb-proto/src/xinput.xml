@@ -1257,10 +1257,42 @@ authorization from the authors.
 
     <!-- XISelectEvents -->
 
+    <enum name="XIEventMask">
+        <item name="DeviceChanged">    <bit>1</bit> </item>
+        <item name="KeyPress">         <bit>2</bit> </item>
+        <item name="KeyRelease">       <bit>3</bit> </item>
+        <item name="ButtonPress">      <bit>4</bit> </item>
+        <item name="ButtonRelease">    <bit>5</bit> </item>
+        <item name="Motion">           <bit>6</bit> </item>
+        <item name="Enter">            <bit>7</bit> </item>
+        <item name="Leave">            <bit>8</bit> </item>
+        <item name="FocusIn">          <bit>9</bit> </item>
+        <item name="FocusOut">         <bit>10</bit> </item>
+        <item name="Hierarchy">        <bit>11</bit> </item>
+        <item name="Property">         <bit>12</bit> </item>
+        <!-- ⋅⋅⋅ Events (v2.1) ⋅⋅⋅ -->
+        <item name="RawKeyPress">      <bit>13</bit> </item>
+        <item name="RawKeyRelease">    <bit>14</bit> </item>
+        <item name="RawButtonPress">   <bit>15</bit> </item>
+        <item name="RawButtonRelease"> <bit>16</bit> </item>
+        <item name="RawMotion">        <bit>17</bit> </item>
+        <!-- ⋅⋅⋅ Events (v2.2) ⋅⋅⋅ -->
+        <item name="TouchBegin">       <bit>18</bit> </item>
+        <item name="TouchUpdate">      <bit>19</bit> </item>
+        <item name="TouchEnd">         <bit>20</bit> </item>
+        <item name="TouchOwnership">   <bit>21</bit> </item>
+        <item name="RawTouchBegin">    <bit>22</bit> </item>
+        <item name="RawTouchUpdate">   <bit>23</bit> </item>
+        <item name="RawTouchEnd">      <bit>24</bit> </item>
+        <!-- ⋅⋅⋅ Events (v2.3) ⋅⋅⋅ -->
+        <item name="BarrierHit">       <bit>25</bit> </item>
+        <item name="BarrierLeave">     <bit>26</bit> </item>
+    </enum>
+
     <struct name="EventMask">
         <field type="DeviceId" name="deviceid" altenum="Device" />
         <field type="CARD16"   name="mask_len" />
-        <list type="CARD32" name="mask"> <!-- set of EventMaskBit -->
+        <list type="CARD32" name="mask" mask="XIEventMask">
             <fieldref>mask_len</fieldref>
         </list>
     </struct>

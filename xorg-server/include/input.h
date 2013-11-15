@@ -244,12 +244,12 @@ typedef struct _InputAttributes {
 #define KEY_POSTED 2
 #define BUTTON_POSTED 2
 
-extern void set_key_down(DeviceIntPtr pDev, int key_code, int type);
-extern void set_key_up(DeviceIntPtr pDev, int key_code, int type);
-extern int key_is_down(DeviceIntPtr pDev, int key_code, int type);
-extern void set_button_down(DeviceIntPtr pDev, int button, int type);
-extern void set_button_up(DeviceIntPtr pDev, int button, int type);
-extern int button_is_down(DeviceIntPtr pDev, int button, int type);
+extern _X_EXPORT void set_key_down(DeviceIntPtr pDev, int key_code, int type);
+extern _X_EXPORT void set_key_up(DeviceIntPtr pDev, int key_code, int type);
+extern _X_EXPORT int key_is_down(DeviceIntPtr pDev, int key_code, int type);
+extern _X_EXPORT void set_button_down(DeviceIntPtr pDev, int button, int type);
+extern _X_EXPORT void set_button_up(DeviceIntPtr pDev, int button, int type);
+extern _X_EXPORT int button_is_down(DeviceIntPtr pDev, int button, int type);
 
 extern void InitCoreDevices(void);
 extern void InitXTestDevices(void);
