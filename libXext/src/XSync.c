@@ -60,7 +60,6 @@ PERFORMANCE OF THIS SOFTWARE.
 #include <X11/extensions/sync.h>
 #include <X11/extensions/syncproto.h>
 #include <limits.h>
-#include "eat.h"
 
 static XExtensionInfo _sync_info_data;
 static XExtensionInfo *sync_info = &_sync_info_data;

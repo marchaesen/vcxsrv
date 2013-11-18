@@ -1846,7 +1846,17 @@ struct gl_transform_feedback_state
  */
 struct gl_perf_monitor_object
 {
+   GLuint Name;
+
+   /** True if the monitor is currently active (Begin called but not End). */
    GLboolean Active;
+
+   /**
+    * True if the monitor has ended.
+    *
+    * This is distinct from !Active because it may never have began.
+    */
+   GLboolean Ended;
 
    /**
     * A list of groups with currently active counters.
@@ -1930,10 +1940,9 @@ struct gl_perf_monitor_state
  * NOTE: first four tokens must fit into 2 bits (see t_vb_arbprogram.c)
  * All values should fit in a 4-bit field.
  *
- * NOTE: PROGRAM_ENV_PARAM, PROGRAM_STATE_VAR,
- * PROGRAM_CONSTANT, and PROGRAM_UNIFORM can all be considered to
- * be "uniform" variables since they can only be set outside glBegin/End.
- * They're also all stored in the same Parameters array.
+ * NOTE: PROGRAM_STATE_VAR, PROGRAM_CONSTANT, and PROGRAM_UNIFORM can all be
+ * considered to be "uniform" variables since they can only be set outside
+ * glBegin/End.  They're also all stored in the same Parameters array.
  */
 typedef enum
 {
@@ -1941,8 +1950,6 @@ typedef enum
    PROGRAM_ARRAY,       /**< Arrays & Matrixes */
    PROGRAM_INPUT,       /**< machine->Inputs[] */
    PROGRAM_OUTPUT,      /**< machine->Outputs[] */
-   PROGRAM_LOCAL_PARAM, /**< gl_program->LocalParams[] */
-   PROGRAM_ENV_PARAM,   /**< gl_program->Parameters[] */
    PROGRAM_STATE_VAR,   /**< gl_program->Parameters[] */
    PROGRAM_CONSTANT,    /**< gl_program->Parameters[] */
    PROGRAM_UNIFORM,     /**< gl_program->Parameters[] */
@@ -2038,8 +2045,15 @@ struct gl_program
 
    /** Named parameters, constants, etc. from program text */
    struct gl_program_parameter_list *Parameters;
-   /** Numbered local parameters */
-   GLfloat LocalParams[MAX_PROGRAM_LOCAL_PARAMS][4];
+
+   /**
+    * Local parameters used by the program.
+    *
+    * It's dynamically allocated because it is rarely used (just
+    * assembly-style programs), and MAX_PROGRAM_LOCAL_PARAMS entries once it's
+    * allocated.
+    */
+   GLfloat (*LocalParams)[4];
 
    /** Map from sampler unit to texture unit (set by glUniform1i()) */
    GLubyte SamplerUnits[MAX_SAMPLERS];

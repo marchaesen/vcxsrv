@@ -567,13 +567,13 @@ xkb_symbols "dvp" {
     key <AE08> { [ parenright,      2,              onehalf                     ], type[Group1] = "FOUR_LEVEL_ALPHABETIC" };
     key <AE09> { [ plus,            4                                           ], type[Group1] = "FOUR_LEVEL_ALPHABETIC" };
     key <AE10> { [ bracketright,    6                                           ], type[Group1] = "FOUR_LEVEL_ALPHABETIC" };
-    key <AE11> { [ exclam,          8,              exclamdown                  ], type[Group1] = "FOUR_LEVEL_ALPHABETIC" };
+    key <AE11> { [ exclam,          8,              exclamdown,      U2E18      ], type[Group1] = "FOUR_LEVEL_ALPHABETIC" };  // reversed interrobang
     key <AE12> { [ numbersign,      grave,          dead_grave                  ] };
     key <BKSP> { [ BackSpace,       BackSpace                                   ] };
 
     // upper row, left side
     key <AD01> { [ semicolon,       colon,          dead_diaeresis              ] };
-    key <AD02> { [ comma,           less,           guillemotleft               ] };
+    key <AD02> { [ comma,           less,           guillemotleft,   ellipsis   ] };
     key <AD03> { [ period,          greater,        guillemotright              ] };
     key <AD04> { [ p,               P,              paragraph,       section    ] };
     key <AD05> { [ y,               Y,              udiaeresis,      Udiaeresis ] };
@@ -581,7 +581,7 @@ xkb_symbols "dvp" {
     // upper row, right side
     key <AD08> { [ c,               C,              ccedilla,        Ccedilla   ] };
     key <AD09> { [ r,               R,              registered,      trademark  ] };
-    key <AD11> { [ slash,           question,       questiondown                ] };
+    key <AD11> { [ slash,           question,       questiondown,    U203D      ] };  // interrobang
     key <AD12> { [ at,              asciicircum,    dead_circumflex, dead_caron ] };
 
     // home row, left side
@@ -596,11 +596,12 @@ xkb_symbols "dvp" {
     key <AC08> { [ t,               T,              thorn,           THORN      ] };
     key <AC09> { [ n,               N,              ntilde,          Ntilde     ] };
     key <AC10> { [ s,               S,              ssharp                      ] };
-    key <AC11> { [ minus,           underscore,     hyphen                      ], type[Group1] = "FOUR_LEVEL_ALPHABETIC" };
+    key <AC11> { [ minus,           underscore,     hyphen,          endash     ], type[Group1] = "FOUR_LEVEL_ALPHABETIC" };
     key <BKSL> { [ backslash,       bar                                         ] };
 
     // lower row, left side
     key <AB01> { [ apostrophe,      quotedbl,       dead_acute                  ] };
+    key <AB07> { [ m,               M,              mu                          ], type[Group1] = "FOUR_LEVEL_ALPHABETIC" };
 
     include "level3(ralt_switch)"
 };
@@ -1323,6 +1324,56 @@ xkb_symbols "workman-intl" {
     key <AB07> { [     l,          L,        oslash,         Ooblique ] };
 
     key <CAPS> { [ BackSpace, Escape,     BackSpace,        BackSpace ] };
+
+    include "level3(ralt_switch)"
+};
+
+// Norman keyboard layout symbols for xkb on X.Org Server 7.x
+// Written 11/23/2012, revised 3/7/2013 by David Norman http://normanlayout.info
+// To the extent possible under law, the author(s) have dedicated all
+// copyright and related and neighboring rights to this software to the
+// public domain worldwide. This software is distributed without any warranty.
+
+partial alphanumeric_keys
+xkb_symbols "norman" {
+
+    name[Group1]= "English (Norman)";
+
+    include "us(basic)"
+
+    // Alphanumeric section
+    key <AD01> { [ q, Q ] };
+    key <AD02> { [ w, W ] };
+    key <AD03> { [ d, D ] };
+    key <AD04> { [ f, F ] };
+    key <AD05> { [ k, K ] };
+    key <AD06> { [ j, J ] };
+    key <AD07> { [ u, U ] };
+    key <AD08> { [ r, R ] };
+    key <AD09> { [ l, L ] };
+    key <AD10> { [ semicolon, colon ] };
+
+    key <AC01> { [ a, A ] };
+    key <AC02> { [ s, S ] };
+    key <AC03> { [ e, E ] };
+    key <AC04> { [ t, T ] };
+    key <AC05> { [ g, G ] };
+    key <AC06> { [ y, Y ] };
+    key <AC07> { [ n, N ] };
+    key <AC08> { [ i, I ] };
+    key <AC09> { [ o, O ] };
+    key <AC10> { [ h, H ] };
+
+    key <AB01> { [ z, Z ] };
+    key <AB02> { [ x, X ] };
+    key <AB03> { [ c, C ] };
+    key <AB04> { [ v, V ] };
+    key <AB05> { [ b, B ] };
+    key <AB06> { [ p, P ] };
+    key <AB07> { [ m, M ] };
+    // End alphanumeric section
+
+    key <CAPS> { [ BackSpace ] };
 
     include "level3(ralt_switch)"
 };

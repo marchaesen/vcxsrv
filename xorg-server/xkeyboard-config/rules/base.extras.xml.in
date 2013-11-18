@@ -277,6 +277,12 @@
             <_description>English (US, Sun Type 6/7)</_description>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>norman</name>
+            <_description>English (Norman)</_description>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>
