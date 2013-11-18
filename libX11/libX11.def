@@ -4,6 +4,7 @@ EXPORTS
   _XAllocTemp
   _XDeqAsyncHandler
   _XEatData
+  _XEatDataWords
   _XFlushGCCache
   _XFlushIt
   _XFreeTemp
