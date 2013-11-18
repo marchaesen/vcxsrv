@@ -50,10 +50,6 @@ _mesa_register_file_name(gl_register_file f)
    switch (f) {
    case PROGRAM_TEMPORARY:
       return "TEMP";
-   case PROGRAM_LOCAL_PARAM:
-      return "LOCAL";
-   case PROGRAM_ENV_PARAM:
-      return "ENV";
    case PROGRAM_STATE_VAR:
       return "STATE";
    case PROGRAM_INPUT:
@@ -381,12 +377,6 @@ reg_string(gl_register_file f, GLint index, gl_prog_print_mode mode,
          break;
       case PROGRAM_TEMPORARY:
          sprintf(str, "temp%d", index);
-         break;
-      case PROGRAM_ENV_PARAM:
-         sprintf(str, "program.env[%s%d]", addr, index);
-         break;
-      case PROGRAM_LOCAL_PARAM:
-         sprintf(str, "program.local[%s%d]", addr, index);
          break;
       case PROGRAM_CONSTANT: /* extension */
          sprintf(str, "constant[%s%d]", addr, index);

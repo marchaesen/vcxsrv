@@ -37,7 +37,6 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/extensions/Xext.h>
 #include <X11/extensions/extutil.h>
 #include <limits.h>
-#include "eat.h"
 
 static XExtensionInfo _xcup_info_data;
 static XExtensionInfo *xcup_info = &_xcup_info_data;

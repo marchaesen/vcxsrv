@@ -70,9 +70,7 @@ extern "C" {
 }
 
 #define PROGRAM_IMMEDIATE PROGRAM_FILE_MAX
-#define PROGRAM_ANY_CONST ((1 << PROGRAM_LOCAL_PARAM) |  \
-                           (1 << PROGRAM_ENV_PARAM) |    \
-                           (1 << PROGRAM_STATE_VAR) |    \
+#define PROGRAM_ANY_CONST ((1 << PROGRAM_STATE_VAR) |    \
                            (1 << PROGRAM_CONSTANT) |     \
                            (1 << PROGRAM_UNIFORM))
 
@@ -565,8 +563,6 @@ glsl_to_tgsi_visitor::emit(ir_instruction *ir, unsigned op,
    /* Update indirect addressing status used by TGSI */
    if (dst.reladdr) {
       switch(dst.file) {
-      case PROGRAM_LOCAL_PARAM:
-      case PROGRAM_ENV_PARAM:
       case PROGRAM_STATE_VAR:
       case PROGRAM_CONSTANT:
       case PROGRAM_UNIFORM:
@@ -583,8 +579,6 @@ glsl_to_tgsi_visitor::emit(ir_instruction *ir, unsigned op,
       for (i=0; i<3; i++) {
          if(inst->src[i].reladdr) {
             switch(inst->src[i].file) {
-            case PROGRAM_LOCAL_PARAM:
-            case PROGRAM_ENV_PARAM:
             case PROGRAM_STATE_VAR:
             case PROGRAM_CONSTANT:
             case PROGRAM_UNIFORM:
@@ -4311,8 +4305,6 @@ src_register(struct st_translate *t,
    case PROGRAM_ARRAY:
       return ureg_src(dst_register(t, file, index));
 
-   case PROGRAM_ENV_PARAM:
-   case PROGRAM_LOCAL_PARAM:
    case PROGRAM_UNIFORM:
       assert(index >= 0);
       return t->constants[index];
@@ -4962,8 +4954,6 @@ st_translate_program(
 
       for (i = 0; i < proginfo->Parameters->NumParameters; i++) {
          switch (proginfo->Parameters->Parameters[i].Type) {
-         case PROGRAM_ENV_PARAM:
-         case PROGRAM_LOCAL_PARAM:
          case PROGRAM_STATE_VAR:
          case PROGRAM_UNIFORM:
             t->constants[i] = ureg_DECL_constant(ureg, i);

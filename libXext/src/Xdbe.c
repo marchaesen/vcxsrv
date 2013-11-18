@@ -40,7 +40,6 @@
 #include <X11/extensions/Xdbe.h>
 #include <X11/extensions/dbeproto.h>
 #include <limits.h>
-#include "eat.h"
 
 static XExtensionInfo _dbe_info_data;
 static XExtensionInfo *dbe_info = &_dbe_info_data;

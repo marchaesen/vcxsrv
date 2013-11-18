@@ -36,7 +36,6 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/extensions/shape.h>
 #include <X11/extensions/shapeproto.h>
 #include <limits.h>
-#include "eat.h"
 
 static XExtensionInfo _shape_info_data;
 static XExtensionInfo *shape_info = &_shape_info_data;

@@ -12,7 +12,6 @@ libXext_la_LDFLAGS = -version-number $(XEXT_SOREV) -no-undefined
 libXext_la_LIBADD = $(XEXT_LIBS)
 
 libXext_la_SOURCES = \
-	eat.h \
 	DPMS.c \
 	MITMisc.c \
 	XAppgroup.c \

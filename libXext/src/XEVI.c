@@ -31,7 +31,6 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <X11/extensions/extutil.h>
 #include <X11/Xutil.h>
 #include <limits.h>
-#include "eat.h"
 
 static XExtensionInfo *xevi_info;/* needs to move to globals.c */
 static const char *xevi_extension_name = EVINAME;

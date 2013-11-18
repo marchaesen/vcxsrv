@@ -648,7 +648,7 @@ call_test_function (uint32_t    (*test_function)(int testnum, int verbose),
 {
     uint32_t retval;
 
-#if defined (__GNUC__) && (defined (__i386) || defined (__i386__))
+#if defined (__GNUC__) && defined (_WIN32) && (defined (__i386) || defined (__i386__))
     __asm__ (
 	/* Deliberately avoid aligning the stack to 16 bytes */
 	"pushl	%1\n\t"

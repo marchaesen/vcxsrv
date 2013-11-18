@@ -36,13 +36,7 @@ fi
 AC_SUBST(XEXT_SOREV)
 
 # Obtain compiler/linker options for depedencies
-PKG_CHECK_MODULES(XEXT, [xproto >= 7.0.13] [x11 >= 1.1.99.1] [xextproto >= 7.1.99])
-
-# Check for _XEatDataWords function that may be patched into older Xlib releases
-SAVE_LIBS="$LIBS"
-LIBS="$XEXT_LIBS"
-AC_CHECK_FUNCS([_XEatDataWords])
-LIBS="$SAVE_LIBS"
+PKG_CHECK_MODULES(XEXT, [xproto >= 7.0.13] [x11 >= 1.6] [xextproto >= 7.1.99])
 
 # Allow checking code with lint, sparse, etc.
 XORG_WITH_LINT

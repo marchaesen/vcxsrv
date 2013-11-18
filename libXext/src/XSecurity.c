@@ -33,7 +33,6 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/extensions/extutil.h>
 #include <X11/extensions/securproto.h>
 #include <X11/extensions/security.h>
-#include "eat.h"
 
 static XExtensionInfo _Security_info_data;
 static XExtensionInfo *Security_info = &_Security_info_data;
