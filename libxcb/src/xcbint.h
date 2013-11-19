@@ -79,8 +79,6 @@ void *_xcb_map_remove(_xcb_map *q, unsigned int key);
 
 /* xcb_out.c */
 
-typedef void (*xcb_return_socket_func_t)(void *closure);
-
 #if HAVE_SENDMSG
 #define XCB_MAX_PASS_FD	16
 
@@ -95,9 +93,10 @@ typedef struct _xcb_out {
     pthread_cond_t cond;
     int writing;
 
-    xcb_return_socket_func_t return_socket;
+    pthread_cond_t socket_cond;
+    void (*return_socket)(void *closure);
     void *socket_closure;
-    unsigned int socket_seq;
+    int socket_moving;
 
     char queue[XCB_QUEUE_BUFFER_SIZE];
     int queue_len;

@@ -69,7 +69,6 @@ void xcb_send_fd(xcb_connection_t *c, int fd);
  * callback which XCB can call when it wants the write side of the
  * socket back to make a request. This callback synchronizes with the
  * external socket owner and flushes any output queues if appropriate.
- * The callback might be called from different threads at the same time.
  * If you are sending requests which won't cause a reply, please note the
  * comment for xcb_writev which explains some sequence number wrap issues.
  * */

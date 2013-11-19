@@ -237,13 +237,16 @@ static int write_vec(xcb_connection_t *c, struct iovec **vector, int *count)
 
 #if HAVE_SENDMSG
     if (c->out.out_fd.nfd) {
-        char cmsgbuf[CMSG_SPACE(sizeof(int) * XCB_MAX_PASS_FD)];
+        union {
+            struct cmsghdr cmsghdr;
+            char buf[CMSG_SPACE(XCB_MAX_PASS_FD * sizeof(int))];
+        } cmsgbuf;
         struct msghdr msg = {
             .msg_name = NULL,
             .msg_namelen = 0,
             .msg_iov = *vector,
             .msg_iovlen = n,
-            .msg_control = cmsgbuf,
+            .msg_control = cmsgbuf.buf,
             .msg_controllen = CMSG_LEN(c->out.out_fd.nfd * sizeof (int)),
         };
         int i;
