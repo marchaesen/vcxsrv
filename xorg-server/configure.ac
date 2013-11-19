@@ -305,13 +305,6 @@ AC_CHECK_HEADER([execinfo.h],[
     ])]
 )
 
-PKG_CHECK_MODULES(LIBUNWIND, libunwind, [HAVE_LIBUNWIND=yes], [HAVE_LIBUNWIND=no])
-if test "x$HAVE_LIBUNWIND" = xyes; then
-	AC_DEFINE(HAVE_LIBUNWIND, 1, [Have libunwind support])
-fi
-AM_CONDITIONAL(HAVE_LIBUNWIND, [test "x$HAVE_LIBUNWIND" = xyes])
-
-
 dnl ---------------------------------------------------------------------------
 dnl Bus options and CPU capabilities.  Replaces logic in
 dnl hw/xfree86/os-support/bus/Makefile.am, among others.
@@ -654,6 +647,7 @@ dnl kdrive options
 AC_ARG_ENABLE(kdrive-kbd,     AS_HELP_STRING([--enable-kdrive-kbd], [Build kbd driver for kdrive (default: auto)]), [KDRIVE_KBD=$enableval], [KDRIVE_KBD=auto])
 AC_ARG_ENABLE(kdrive-mouse,   AC_HELP_STRING([--enable-kdrive-mouse], [Build mouse driver for kdrive (default: auto)]), [KDRIVE_MOUSE=$enableval], [KDRIVE_MOUSE=auto])
 AC_ARG_ENABLE(kdrive-evdev,   AC_HELP_STRING([--enable-kdrive-evdev], [Build evdev driver for kdrive (default: auto)]), [KDRIVE_EVDEV=$enableval], [KDRIVE_EVDEV=auto])
+AC_ARG_ENABLE(libunwind,      AS_HELP_STRING([--enable-libunwind], [Use libunwind for backtracing (default: auto)]), [LIBUNWIND="$enableval"], [LIBUNWIND="auto"])
 
 
 dnl chown/chmod to be setuid root as part of build
@@ -1615,6 +1609,20 @@ AC_SUBST(SHA1_CFLAGS)
 
 PKG_CHECK_MODULES([XSERVERCFLAGS], [$REQUIRED_MODULES $REQUIRED_LIBS])
 PKG_CHECK_MODULES([XSERVERLIBS], [$REQUIRED_LIBS])
+
+PKG_CHECK_MODULES(LIBUNWIND, libunwind, [HAVE_LIBUNWIND=yes], [HAVE_LIBUNWIND=no])
+if test "x$LIBUNWIND" = "xauto"; then
+    LIBUNWIND="$HAVE_LIBUNWIND"
+fi
+
+if test "x$LIBUNWIND" = "xyes"; then
+    if test "x$HAVE_LIBUNWIND" != "xyes"; then
+        AC_MSG_ERROR([libunwind requested but not installed.])
+    fi
+    AC_DEFINE(HAVE_LIBUNWIND, 1, [Have libunwind support])
+fi
+
+AM_CONDITIONAL(HAVE_LIBUNWIND, [test "x$LIBUNWIND" = xyes])
 
 # Autotools has some unfortunate issues with library handling.  In order to
 # get a server to rebuild when a dependency in the tree is changed, it must

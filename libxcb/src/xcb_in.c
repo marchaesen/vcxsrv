@@ -888,13 +888,16 @@ int _xcb_in_read(xcb_connection_t *c)
         .iov_base = c->in.queue + c->in.queue_len,
         .iov_len = sizeof(c->in.queue) - c->in.queue_len,
     };
-    char cmsgbuf[CMSG_SPACE(sizeof(int) * XCB_MAX_PASS_FD)];
+    union {
+        struct cmsghdr cmsghdr;
+        char buf[CMSG_SPACE(XCB_MAX_PASS_FD * sizeof(int))];
+    } cmsgbuf;
     struct msghdr msg = {
         .msg_name = NULL,
         .msg_namelen = 0,
         .msg_iov = &iov,
         .msg_iovlen = 1,
-        .msg_control = cmsgbuf,
+        .msg_control = cmsgbuf.buf,
         .msg_controllen = CMSG_SPACE(sizeof(int) * (XCB_MAX_PASS_FD - c->in.in_fd.nfd)),
     };
     n = recvmsg(c->fd, &msg, 0);
