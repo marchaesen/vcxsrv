@@ -92,7 +92,7 @@ present_clear_window_flip(WindowPtr window)
 
     if (flip_pending && flip_pending->window == window) {
         assert (flip_pending->abort_flip);
-        flip_pending->window_destroyed = TRUE;
+        flip_pending->window = NULL;
     }
     if (screen_priv->flip_window == window)
         screen_priv->flip_window = NULL;
