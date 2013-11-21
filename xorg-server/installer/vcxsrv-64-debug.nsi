@@ -21,7 +21,7 @@
 Name "VcXsrv"
 
 ; The file to write
-OutFile "vcxsrv-64-debug.1.14.3.installer.exe"
+OutFile "vcxsrv-64-debug.1.14.4.installer.exe"
 
 ; The default installation directory
 InstallDir $PROGRAMFILES64\VcXsrv
