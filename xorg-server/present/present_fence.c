@@ -37,6 +37,8 @@
 struct present_fence {
     SyncTrigger         trigger;
     SyncFence           *fence;
+    void                (*callback)(void *param);
+    void                *param;
 };
 
 /*
@@ -45,12 +47,18 @@ struct present_fence {
 static Bool
 present_fence_sync_check_trigger(SyncTrigger *trigger, XSyncValue oldval)
 {
-    return FALSE;
+    struct present_fence        *present_fence = container_of(trigger, struct present_fence, trigger);
+
+    return present_fence->callback != NULL;
 }
 
 static void
 present_fence_sync_trigger_fired(SyncTrigger *trigger)
 {
+    struct present_fence        *present_fence = container_of(trigger, struct present_fence, trigger);
+
+    if (present_fence->callback)
+        (*present_fence->callback)(present_fence->param);
 }
 
 static void
@@ -99,6 +107,25 @@ present_fence_set_triggered(struct present_fence *present_fence)
     if (present_fence)
         if (present_fence->fence)
             (*present_fence->fence->funcs.SetTriggered) (present_fence->fence);
+}
+
+Bool
+present_fence_check_triggered(struct present_fence *present_fence)
+{
+    if (!present_fence)
+        return TRUE;
+    if (!present_fence->fence)
+        return TRUE;
+    return (*present_fence->fence->funcs.CheckTriggered)(present_fence->fence);
+}
+
+void
+present_fence_set_callback(struct present_fence *present_fence,
+                           void (*callback) (void *param),
+                           void *param)
+{
+    present_fence->callback = callback;
+    present_fence->param = param;
 }
 
 XID

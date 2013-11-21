@@ -26,8 +26,6 @@
 
 #include "present_priv.h"
 
-#include "present_priv.h"
-
 RESTYPE present_event_type;
 
 static int

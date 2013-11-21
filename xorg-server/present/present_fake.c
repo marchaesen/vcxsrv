@@ -42,7 +42,7 @@ present_fake_get_ust_msc(ScreenPtr screen, uint64_t *ust, uint64_t *msc)
     present_screen_priv_ptr screen_priv = present_screen_priv(screen);
 
     *ust = GetTimeInMicros();
-    *msc = *ust / screen_priv->fake_interval;
+    *msc = (*ust + screen_priv->fake_interval / 2) / screen_priv->fake_interval;
     return Success;
 }
 
