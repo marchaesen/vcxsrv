@@ -20,8 +20,8 @@
  * OF THIS SOFTWARE.
  */
 
-#ifdef HAVE_XORG_CONFIG_H
-#include <xorg-config.h>
+#ifdef HAVE_DIX_CONFIG_H
+#include <dix-config.h>
 #endif
 
 #include "present_priv.h"
