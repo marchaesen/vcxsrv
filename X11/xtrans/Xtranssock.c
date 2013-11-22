@@ -2197,26 +2197,10 @@ TRANS(SocketSendFdInvalid)(XtransConnInfo ciptr, int fd, int do_close)
 
 #define MAX_FDS		128
 
-struct fd_pass {
+union fd_pass {
 	struct cmsghdr	cmsghdr;
-	int		fd[MAX_FDS];
+	char		buf[CMSG_SPACE(MAX_FDS * sizeof(int))];
 };
-
-static inline void init_msg_recv(struct msghdr *msg, struct iovec *iov, int niov, struct fd_pass *pass, int nfd) {
-    msg->msg_name = NULL;
-    msg->msg_namelen = 0;
-    msg->msg_iov = iov;
-    msg->msg_iovlen = niov;
-    msg->msg_control = pass;
-    msg->msg_controllen = sizeof (struct cmsghdr) + nfd * sizeof (int);
-}
-
-static inline void init_msg_send(struct msghdr *msg, struct iovec *iov, int niov, struct fd_pass *pass, int nfd) {
-    init_msg_recv(msg, iov, niov, pass, nfd);
-    pass->cmsghdr.cmsg_len = msg->msg_controllen;
-    pass->cmsghdr.cmsg_level = SOL_SOCKET;
-    pass->cmsghdr.cmsg_type = SCM_RIGHTS;
-}
 
 #endif /* XTRANS_SEND_FDS */
 
@@ -2241,13 +2225,13 @@ TRANS(SocketRead) (XtransConnInfo ciptr, char *buf, int size)
             .iov_base = buf,
             .iov_len = size
         };
-        char            cmsgbuf[CMSG_SPACE(sizeof(int) * MAX_FDS)];
+        union fd_pass   cmsgbuf;
         struct msghdr   msg = {
             .msg_name = NULL,
             .msg_namelen = 0,
             .msg_iov = &iov,
             .msg_iovlen = 1,
-            .msg_control = cmsgbuf,
+            .msg_control = cmsgbuf.buf,
             .msg_controllen = CMSG_LEN(MAX_FDS * sizeof(int))
         };
 
@@ -2282,13 +2266,13 @@ TRANS(SocketReadv) (XtransConnInfo ciptr, struct iovec *buf, int size)
 
 #if XTRANS_SEND_FDS
     {
-        char            cmsgbuf[CMSG_SPACE(sizeof(int) * MAX_FDS)];
+        union fd_pass   cmsgbuf;
         struct msghdr   msg = {
             .msg_name = NULL,
             .msg_namelen = 0,
             .msg_iov = buf,
             .msg_iovlen = size,
-            .msg_control = cmsgbuf,
+            .msg_control = cmsgbuf.buf,
             .msg_controllen = CMSG_LEN(MAX_FDS * sizeof(int))
         };
 
@@ -2324,7 +2308,7 @@ TRANS(SocketWritev) (XtransConnInfo ciptr, struct iovec *buf, int size)
 #if XTRANS_SEND_FDS
     if (ciptr->send_fds)
     {
-        char                    cmsgbuf[CMSG_SPACE(sizeof(int) * MAX_FDS)];
+        union fd_pass           cmsgbuf;
         int                     nfd = nFd(&ciptr->send_fds);
         struct _XtransConnFd    *cf = ciptr->send_fds;
         struct msghdr           msg = {
@@ -2332,7 +2316,7 @@ TRANS(SocketWritev) (XtransConnInfo ciptr, struct iovec *buf, int size)
             .msg_namelen = 0,
             .msg_iov = buf,
             .msg_iovlen = size,
-            .msg_control = cmsgbuf,
+            .msg_control = cmsgbuf.buf,
             .msg_controllen = CMSG_LEN(nfd * sizeof(int))
         };
         struct cmsghdr          *hdr = CMSG_FIRSTHDR(&msg);
