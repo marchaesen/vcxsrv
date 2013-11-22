@@ -905,6 +905,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
       struct gl_renderbuffer_attachment *att;
       GLenum f;
       gl_format attFormat;
+      GLenum att_tex_target = GL_NONE;
 
       /*
        * XXX for ARB_fbo, only check color buffers that are named by
@@ -945,6 +946,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
        */
       if (att->Type == GL_TEXTURE) {
          const struct gl_texture_image *texImg = att->Renderbuffer->TexImage;
+         att_tex_target = att->Texture->Target;
          minWidth = MIN2(minWidth, texImg->Width);
          maxWidth = MAX2(maxWidth, texImg->Width);
          minHeight = MIN2(minHeight, texImg->Height);
@@ -1057,7 +1059,14 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
       }
 
       /* Check that layered rendering is consistent. */
-      att_layer_count = att->Layered ? att->Renderbuffer->Depth : 0;
+      if (att->Layered) {
+         if (att_tex_target == GL_TEXTURE_CUBE_MAP)
+            att_layer_count = 6;
+         else
+            att_layer_count = att->Renderbuffer->Depth;
+      } else {
+         att_layer_count = 0;
+      }
       if (!layer_count_valid) {
          layer_count = att_layer_count;
          layer_count_valid = true;
@@ -1073,7 +1082,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
       }
    }
 
-   fb->Layered = layer_count > 0;
+   fb->NumLayers = layer_count;
 
    if (_mesa_is_desktop_gl(ctx) && !ctx->Extensions.ARB_ES2_compatibility) {
       /* Check that all DrawBuffers are present */
@@ -2298,8 +2307,13 @@ reuse_framebuffer_texture_attachment(struct gl_framebuffer *fb,
 /**
  * Common code called by glFramebufferTexture1D/2D/3DEXT() and
  * glFramebufferTextureLayerEXT().
- * Note: glFramebufferTextureLayerEXT() has no textarget parameter so we'll
- * get textarget=0 in that case.
+ *
+ * \param textarget is the textarget that was passed to the
+ * glFramebufferTexture...() function, or 0 if the corresponding function
+ * doesn't have a textarget parameter.
+ *
+ * \param layered is true if this function was called from
+ * glFramebufferTexture(), false otherwise.
  */
 static void
 framebuffer_texture(struct gl_context *ctx, const char *caller, GLenum target, 
@@ -2334,16 +2348,46 @@ framebuffer_texture(struct gl_context *ctx, const char *caller, GLenum target,
       texObj = _mesa_lookup_texture(ctx, texture);
       if (texObj != NULL) {
          if (textarget == 0) {
-            /* If textarget == 0 it means we're being called by
-             * glFramebufferTextureLayer() and textarget is not used.
-             * The only legal texture types for that function are 3D and
-             * 1D/2D arrays textures.
-             */
-            err = (texObj->Target != GL_TEXTURE_3D) &&
-                (texObj->Target != GL_TEXTURE_1D_ARRAY_EXT) &&
-                (texObj->Target != GL_TEXTURE_2D_ARRAY_EXT) &&
-                (texObj->Target != GL_TEXTURE_CUBE_MAP_ARRAY) &&
-                (texObj->Target != GL_TEXTURE_2D_MULTISAMPLE_ARRAY);
+            if (layered) {
+               /* We're being called by glFramebufferTexture() and textarget
+                * is not used.
+                */
+               switch (texObj->Target) {
+               case GL_TEXTURE_3D:
+               case GL_TEXTURE_1D_ARRAY_EXT:
+               case GL_TEXTURE_2D_ARRAY_EXT:
+               case GL_TEXTURE_CUBE_MAP:
+               case GL_TEXTURE_CUBE_MAP_ARRAY:
+               case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+                  err = false;
+                  break;
+               case GL_TEXTURE_1D:
+               case GL_TEXTURE_2D:
+               case GL_TEXTURE_RECTANGLE:
+               case GL_TEXTURE_2D_MULTISAMPLE:
+                  /* These texture types are valid to pass to
+                   * glFramebufferTexture(), but since they aren't layered, it
+                   * is equivalent to calling glFramebufferTexture{1D,2D}().
+                   */
+                  err = false;
+                  layered = false;
+                  textarget = texObj->Target;
+                  break;
+               default:
+                  err = true;
+                  break;
+               }
+            } else {
+               /* We're being called by glFramebufferTextureLayer() and
+                * textarget is not used.  The only legal texture types for
+                * that function are 3D and 1D/2D arrays textures.
+                */
+               err = (texObj->Target != GL_TEXTURE_3D) &&
+                  (texObj->Target != GL_TEXTURE_1D_ARRAY_EXT) &&
+                  (texObj->Target != GL_TEXTURE_2D_ARRAY_EXT) &&
+                  (texObj->Target != GL_TEXTURE_CUBE_MAP_ARRAY) &&
+                  (texObj->Target != GL_TEXTURE_2D_MULTISAMPLE_ARRAY);
+            }
          }
          else {
             /* Make sure textarget is consistent with the texture's type */
@@ -2918,6 +2962,18 @@ _mesa_GetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment,
       else {
          _mesa_problem(ctx, "glGetFramebufferAttachmentParameterivEXT:"
                        " invalid FBO attachment structure");
+      }
+      return;
+   case GL_FRAMEBUFFER_ATTACHMENT_LAYERED:
+      if (!_mesa_has_geometry_shaders(ctx)) {
+         goto invalid_pname_enum;
+      } else if (att->Type == GL_TEXTURE) {
+         *params = att->Layered;
+      } else if (att->Type == GL_NONE) {
+         _mesa_error(ctx, err,
+                     "glGetFramebufferAttachmentParameteriv(pname)");
+      } else {
+         goto invalid_pname_enum;
       }
       return;
    default:
