@@ -12,3 +12,5 @@ load_makefile $(LIBDIRS:%$(OBJDIR)\=%makefile MAKESERVER=0 DEBUG=$(DEBUG);)
 
 CSRCS = bdftopcf.c
 
+LINKLIBS += $(FREETYPELIB)
+

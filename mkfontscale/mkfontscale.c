@@ -24,7 +24,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
+#ifdef _MSC_VER
+#include <direct.h>
+#endif
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -34,6 +38,7 @@
 #include <ctype.h>
 
 #include <X11/Xos.h>
+#include <X11/Xfuncproto.h>
 #include <X11/fonts/fontenc.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -112,15 +117,24 @@ static ListPtr encodingsToDo;
 static int reencodeLegacy;
 static char *encodingPrefix;
 static char *exclusionSuffix;
+static char *ProgramName;
 
 static void
 usage(void)
 {
-    fprintf(stderr,
+    fprintf(stderr, "Usage:\n"
             "mkfontscale [ -b ] [ -s ] [ -o filename ] [-x suffix ]\n"
-            "            [ -a encoding ] [ -f fuzz ] [ -l ] "
+            "            [ -a encoding ] [ -f fuzz ] [ -l ]\n"
             "            [ -e directory ] [ -p prefix ] [ -n ] [ -r ] \n"
-            "            [-u] [-U] [ directory ]...\n");
+            "            [-u] [-U] [-v] [ directory ]...\n");
+    exit(1);
+}
+
+static void
+missing_arg (const char *option)
+{
+    fprintf(stderr, "%s: %s requires an argument\n", ProgramName, option);
+    usage();
 }
 
 int
@@ -131,6 +145,7 @@ main(int argc, char **argv)
     int rc, ll = 0;
     char prefix[NPREFIX];
 
+    ProgramName = argv[0];
     encodingPrefix = NULL;
     exclusionSuffix = NULL;
 
@@ -144,9 +159,9 @@ main(int argc, char **argv)
 
     outfilename = NULL;
 
-    encodings = makeList(encodings_array, countof(encodings_array), NULL, 0);
+    encodings = makeList((char **)encodings_array, countof(encodings_array), NULL, 0);
 
-    extra_encodings = makeList(extra_encodings_array,
+    extra_encodings = makeList((char**)extra_encodings_array,
                                countof(extra_encodings_array),
                                NULL, 0);
     doBitmaps = 0;
@@ -166,34 +181,31 @@ main(int argc, char **argv)
             break;
         } else if (strcmp(argv[argn], "-x") == 0) {
             if(argn >= argc - 1) {
-                usage();
-                exit(1);
+                missing_arg("-x");
             }
             exclusionSuffix = argv[argn + 1];
             argn += 2;
         } else if(strcmp(argv[argn], "-a") == 0) {
             if(argn >= argc - 1) {
-                usage();
-                exit(1);
+                missing_arg("-a");
             }
             makeList(&argv[argn + 1], 1, encodings, 0);
             argn += 2;
         } else if(strcmp(argv[argn], "-p") == 0) {
             if(argn >= argc - 1) {
-                usage();
-                exit(1);
+                missing_arg("-p");
             }
             if(strlen(argv[argn + 1]) > NPREFIX - 1) {
+                fprintf(stderr, "%s: argument to -p cannot be longer than "
+                        "%d characters\n", ProgramName, NPREFIX - 1);
                 usage();
-                exit(1);
             }
             free(encodingPrefix);
             encodingPrefix = dsprintf("%s", argv[argn + 1]);
             argn += 2;
         } else if(strcmp(argv[argn], "-e") == 0) {
             if(argn >= argc - 1) {
-                usage();
-                exit(1);
+                missing_arg("-e");
             }
             rc = readEncodings(encodingsToDo, argv[argn + 1]);
             if(rc < 0)
@@ -222,15 +234,13 @@ main(int argc, char **argv)
             argn++;
         } else if(strcmp(argv[argn], "-o") == 0) {
             if(argn >= argc - 1) {
-                usage();
-                exit(1);
+                missing_arg("-o");
             }
             outfilename = argv[argn + 1];
             argn += 2;
         } else if(strcmp(argv[argn], "-f") == 0) {
             if(argn >= argc - 1) {
-                usage();
-                exit(1);
+                missing_arg("-f");
             }
             bigEncodingFuzz = atof(argv[argn + 1]) / 100.0;
             argn += 2;
@@ -238,9 +248,11 @@ main(int argc, char **argv)
 	    argn++;
 	} else if (strcmp(argv[argn], "-n") == 0) {
 	    argn++;
+	} else if (strcmp(argv[argn], "-v") == 0) {
+	    printf("%s\n", PACKAGE_STRING);
+	    exit(0);
 	} else {
             usage();
-            exit(1);
         }
     }
 

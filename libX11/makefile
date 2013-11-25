@@ -10,7 +10,6 @@ INCLUDELIBFILES =  \
  modules\lc\utf8\$(OBJDIR)\libxlcUTF8Load.lib \
  modules\lc\def\$(OBJDIR)\libxlcDef.lib \
  modules\lc\gen\$(OBJDIR)\liblcGenConvLoad.lib \
- modules\lc\xlocale\$(OBJDIR)\libxlocale.lib \
  $(MHMAKECONF)\libXau\$(OBJDIR)\libXau.lib \
  $(MHMAKECONF)\libxcb\src\$(OBJDIR)\libxcb.lib
 

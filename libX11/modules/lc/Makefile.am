@@ -1,1 +1,1 @@
-SUBDIRS=Utf8 def gen xlocale
+SUBDIRS=Utf8 def gen

@@ -1,4 +1,6 @@
 LIBRARY = libsync
 
 CSRCS =	\
-	misync.c
+	misync.c	\
+	misyncfd.c	\
+

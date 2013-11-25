@@ -42,8 +42,8 @@ typedef struct _syncScreenFuncs {
     SyncScreenDestroyFenceFunc DestroyFence;
 } SyncScreenFuncsRec, *SyncScreenFuncsPtr;
 
-extern _X_EXPORT void
 
+extern _X_EXPORT void
 miSyncScreenCreateFence(ScreenPtr pScreen, SyncFence * pFence,
                         Bool initially_triggered);
 extern _X_EXPORT void

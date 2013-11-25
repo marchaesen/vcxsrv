@@ -197,6 +197,9 @@
     <ClCompile Include="src\base\ftbitmap.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\pcf\pcfutil.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\freetype\freetype.h">

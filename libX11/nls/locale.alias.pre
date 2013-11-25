@@ -732,8 +732,8 @@ kl_GL.iso88591:					kl_GL.ISO8859-1
 kl_GL.ISO-8859-1:				kl_GL.ISO8859-1
 kl_GL.iso885915:				kl_GL.ISO8859-15
 kl_GL.utf8:					kl_GL.UTF-8
-km_KH:						mk_KH.UTF-8
-km_KH.utf8:					mk_KH.UTF-8
+km_KH:						km_KH.UTF-8
+km_KH.utf8:					km_KH.UTF-8
 kn:						kn_IN.UTF-8
 kn_IN:						kn_IN.UTF-8
 kn_IN.utf8:					kn_IN.UTF-8

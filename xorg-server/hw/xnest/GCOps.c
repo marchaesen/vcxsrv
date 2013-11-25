@@ -115,7 +115,6 @@ xnestGetImage(DrawablePtr pDrawable, int x, int y, int w, int h,
 
     ximage = XGetImage(xnestDisplay, xnestDrawable(pDrawable),
                        x, y, w, h, planeMask, format);
-    XSync(xnestDisplay, False);
     XSetErrorHandler(old_handler);
 
     if (ximage) {

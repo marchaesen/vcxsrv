@@ -62,8 +62,7 @@ libXmu_la_SOURCES = \
 	UpdMapHint.c \
 	VisCmap.c \
 	WidgetNode.c \
-	Xct.c \
-	sharedlib.c
+	Xct.c
 
 
 if LINT

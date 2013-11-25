@@ -35,24 +35,6 @@ Equipment Corporation.
 #include <X11/extensions/panoramiXproto.h>
 #include <X11/extensions/Xinerama.h>
 
-#ifndef HAVE__XEATDATAWORDS
-#include <X11/Xmd.h>  /* for LONG64 on 64-bit platforms */
-#include <limits.h>
-
-#ifdef _MSC_VER
-#define inline __inline
-#endif
-
-static inline void _XEatDataWords(Display *dpy, unsigned long n)
-{
-# ifndef LONG64
-    if (n >= (ULONG_MAX >> 2))
-        _XIOError(dpy);
-# endif
-    _XEatData (dpy, n << 2);
-}
-#endif
-
 static XExtensionInfo _panoramiX_ext_info_data;
 static XExtensionInfo *panoramiX_ext_info = &_panoramiX_ext_info_data;
 static const char *panoramiX_extension_name = PANORAMIX_PROTOCOL_NAME;

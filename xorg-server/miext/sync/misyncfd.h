@@ -20,9 +20,26 @@
  * OF THIS SOFTWARE.
  */
 
-#ifndef _MISYNCSHM_H_
-#define _MISYNCSHM_H_
+#ifndef _MISYNCFD_H_
+#define _MISYNCFD_H_
 
-extern _X_EXPORT Bool miSyncShmScreenInit(ScreenPtr pScreen);
+typedef int (*SyncScreenCreateFenceFromFdFunc) (ScreenPtr screen,
+                                                SyncFence *fence,
+                                                int fd,
+                                                Bool initially_triggered);
 
-#endif /* _MISYNCSHM_H_ */
+typedef int (*SyncScreenGetFenceFdFunc) (ScreenPtr screen,
+                                      SyncFence *fence);
+
+#define SYNC_FD_SCREEN_FUNCS_VERSION    1
+
+typedef struct _syncFdScreenFuncs {
+    int                                 version;
+    SyncScreenCreateFenceFromFdFunc     CreateFenceFromFd;
+    SyncScreenGetFenceFdFunc            GetFenceFd;
+} SyncFdScreenFuncsRec, *SyncFdScreenFuncsPtr;
+
+extern _X_EXPORT Bool miSyncFdScreenInit(ScreenPtr pScreen,
+                                         const SyncFdScreenFuncsRec *funcs);
+
+#endif /* _MISYNCFD_H_ */

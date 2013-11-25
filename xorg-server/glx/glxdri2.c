@@ -371,6 +371,7 @@ __glXDRIscreenDestroy(__GLXscreen * baseScreen)
 {
     int i;
 
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(baseScreen->pScreen);
     __GLXDRIscreen *screen = (__GLXDRIscreen *) baseScreen;
 
     (*screen->core->destroyScreen) (screen->driScreen);
@@ -384,6 +385,9 @@ __glXDRIscreenDestroy(__GLXscreen * baseScreen)
             free((__DRIconfig **) screen->driConfigs[i]);
         free(screen->driConfigs);
     }
+
+    pScrn->EnterVT = screen->enterVT;
+    pScrn->LeaveVT = screen->leaveVT;
 
     free(screen);
 }

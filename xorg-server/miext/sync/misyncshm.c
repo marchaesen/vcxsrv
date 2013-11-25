@@ -28,6 +28,7 @@
 #include "misync.h"
 #include "misyncstr.h"
 #include "misyncshm.h"
+#include "misyncfd.h"
 #include "pixmapstr.h"
 #include <sys/mman.h>
 #include <unistd.h>
@@ -118,13 +119,12 @@ miSyncShmScreenDestroyFence(ScreenPtr pScreen, SyncFence * pFence)
     miSyncScreenDestroyFence(pScreen, pFence);
 }
 
-int
-miSyncInitFenceFromFD(DrawablePtr pDraw, SyncFence *pFence, int fd, BOOL initially_triggered)
-
+static int
+miSyncShmCreateFenceFromFd(ScreenPtr pScreen, SyncFence *pFence, int fd, Bool initially_triggered)
 {
     SyncShmFencePrivatePtr      pPriv = SYNC_FENCE_PRIV(pFence);
 
-    miSyncInitFence(pDraw->pScreen, pFence, initially_triggered);
+    miSyncInitFence(pScreen, pFence, initially_triggered);
 
     pPriv->fence = xshmfence_map_shm(fd);
     if (pPriv->fence) {
@@ -136,8 +136,8 @@ miSyncInitFenceFromFD(DrawablePtr pDraw, SyncFence *pFence, int fd, BOOL initial
     return BadValue;
 }
 
-int
-miSyncFDFromFence(DrawablePtr pDraw, SyncFence *pFence)
+static int
+miSyncShmGetFenceFd(ScreenPtr pScreen, SyncFence *pFence)
 {
     SyncShmFencePrivatePtr      pPriv = SYNC_FENCE_PRIV(pFence);
 
@@ -154,11 +154,17 @@ miSyncFDFromFence(DrawablePtr pDraw, SyncFence *pFence)
     return pPriv->fd;
 }
 
+static const SyncFdScreenFuncsRec miSyncShmScreenFuncs = {
+    .version = SYNC_FD_SCREEN_FUNCS_VERSION,
+    .CreateFenceFromFd = miSyncShmCreateFenceFromFd,
+    .GetFenceFd = miSyncShmGetFenceFd
+};
+
 _X_EXPORT Bool miSyncShmScreenInit(ScreenPtr pScreen)
 {
     SyncScreenFuncsPtr  funcs;
 
-    if (!miSyncSetup(pScreen))
+    if (!miSyncFdScreenInit(pScreen, &miSyncShmScreenFuncs))
         return FALSE;
 
     if (!dixPrivateKeyRegistered(&syncShmFencePrivateKey)) {
@@ -171,6 +177,7 @@ _X_EXPORT Bool miSyncShmScreenInit(ScreenPtr pScreen)
 
     funcs->CreateFence = miSyncShmScreenCreateFence;
     funcs->DestroyFence = miSyncShmScreenDestroyFence;
+
     return TRUE;
 }
 

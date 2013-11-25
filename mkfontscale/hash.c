@@ -23,6 +23,7 @@
 #include "config.h"
 
 #include <stdlib.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -150,7 +151,8 @@ hashElements(HashTablePtr table)
 static int
 key_first_cmp(const void *v1, const void *v2)
 {
-    const HashBucketPtr *b1 = v1, *b2 = v2;
+    const HashBucketPtr *b1 = (const HashBucketPtr *)v1;
+    const HashBucketPtr *b2 = (const HashBucketPtr *)v2;
     int c1 = strcasecmp((*b1)->key, (*b2)->key);
     if(c1 != 0) return c1;
     return strcmp((*b1)->value, (*b2)->value);
@@ -159,7 +161,8 @@ key_first_cmp(const void *v1, const void *v2)
 static int
 value_first_cmp(const void *v1, const void *v2)
 {
-    const HashBucketPtr *b1 = v1, *b2 = v2;
+    const HashBucketPtr *b1 = (const HashBucketPtr *)v1;
+    const HashBucketPtr *b2 = (const HashBucketPtr *)v2;
     int c1 = strcmp((*b1)->value, (*b2)->value);
     if(c1 != 0) return c1;
     return strcasecmp((*b1)->key, (*b2)->key);

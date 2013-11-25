@@ -35,8 +35,7 @@ IM_LIBS = \
 LC_LIBS = \
 	${top_builddir}/modules/lc/def/libxlcDef.la \
 	${top_builddir}/modules/lc/gen/libxlibi18n.la \
-	${top_builddir}/modules/lc/Utf8/libxlcUTF8Load.la \
-	${top_builddir}/modules/lc/xlocale/libxlocale.la
+	${top_builddir}/modules/lc/Utf8/libxlcUTF8Load.la
 
 OM_LIBS = \
 	${top_builddir}/modules/om/generic/libxomGeneric.la

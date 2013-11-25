@@ -467,7 +467,6 @@ AC_CONFIG_FILES([Makefile
 		modules/lc/def/Makefile
 		modules/lc/gen/Makefile
 		modules/lc/Utf8/Makefile
-		modules/lc/xlocale/Makefile
 		modules/om/Makefile
 		modules/om/generic/Makefile
 		src/xkb/Makefile

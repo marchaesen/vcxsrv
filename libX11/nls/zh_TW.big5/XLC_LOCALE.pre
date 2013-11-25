@@ -41,10 +41,8 @@ state_depend_encoding	False
 wc_encoding_mask	\x00038000
 wc_shift_bits		8
 
-#ifndef X_LOCALE
 use_stdc_env		True
 force_convert_to_mb	True
-#endif
 
 XCOMM	cs0 class
 cs0	{

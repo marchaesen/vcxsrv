@@ -394,6 +394,7 @@
     <ClCompile Include="src\base\ftbitmap.c" />
     <ClCompile Include="src\base\ftlcdfil.c" />
     <ClCompile Include="src\base\ftsynth.c" />
+    <ClCompile Include="src\pcf\pcfutil.c" />
     <ClCompile Include="src\psaux\afmparse.c" />
     <ClCompile Include="src\bdf\bdfdrivr.c" />
     <ClCompile Include="src\bdf\bdflib.c" />
