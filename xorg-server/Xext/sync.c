@@ -929,7 +929,7 @@ SyncCreateFenceFromFD(ClientPtr client, DrawablePtr pDraw, XID id, int fd, BOOL 
 
     status = miSyncInitFenceFromFD(pDraw, pFence, fd, initially_triggered);
     if (status != Success) {
-        miSyncDestroyFence(pFence);
+        dixFreeObjectWithPrivates(pFence, PRIVATE_SYNC_FENCE);
         return status;
     }
 

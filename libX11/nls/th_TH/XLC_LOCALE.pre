@@ -36,10 +36,8 @@ wc_encoding_mask	\x00008080
 wc_shift_bits		8
 #endif
 
-#ifndef X_LOCALE
 use_stdc_env            True
 force_convert_to_mb     True
-#endif
 
 XCOMM 	cs0 class
 cs0	{

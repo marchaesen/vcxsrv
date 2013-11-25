@@ -54,7 +54,7 @@ fi
 
 # Checks for pkg-config packages
 PKG_CHECK_MODULES(MKFONTSCALE, fontenc freetype2)
-PKG_CHECK_MODULES(X11, xproto)
+PKG_CHECK_MODULES(X11, [xproto >= 7.0.25])
 
 dnl Allow checking code with lint, sparse, etc.
 XORG_WITH_LINT

@@ -932,21 +932,6 @@ extern XLCd _XlcUtf8Loader(
     const char*		name
 );
 
-/* The old EUC locale loader. */
-extern XLCd _XlcEucLoader(
-    const char*		name
-);
-
-/* The old SJIS locale loader. */
-extern XLCd _XlcSjisLoader(
-    const char*		name
-);
-
-/* The old ISO-2022-JP locale loader. */
-extern XLCd _XlcJisLoader(
-    const char*		name
-);
-
 extern XLCd _XlcDynamicLoad(
     const char*		name
 );

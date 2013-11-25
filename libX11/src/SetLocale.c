@@ -66,56 +66,6 @@ from The Open Group.
 
 #define MAXLOCALE	64	/* buffer size of locale name */
 
-#ifdef X_LOCALE
-
-/* alternative setlocale() for when the OS does not provide one */
-
-char *
-_Xsetlocale(
-    int		  category,
-    _Xconst char  *name
-)
-{
-    static char *xsl_name;
-    char *old_name;
-    XrmMethods methods;
-    XPointer state;
-
-    if (category != LC_CTYPE && category != LC_ALL)
-	return NULL;
-    if (!name) {
-	if (xsl_name)
-	    return xsl_name;
-	return "C";
-    }
-    if (!*name)
-	name = getenv("LC_CTYPE");
-    if (!name || !*name)
-	name = getenv("LANG");
-    if (name && strlen(name) >= MAXLOCALE)
-	name = NULL;
-    if (!name || !*name || !_XOpenLC((char *) name))
-	name = "C";
-    old_name = xsl_name;
-    xsl_name = (char *)name;
-    methods = _XrmInitParseInfo(&state);
-    xsl_name = old_name;
-    if (!methods)
-	return NULL;
-    name = (*methods->lcname)(state);
-    xsl_name = strdup(name);
-    if (!xsl_name) {
-	xsl_name = old_name;
-	(*methods->destroy)(state);
-	return NULL;
-    }
-    if (old_name)
-	Xfree(old_name);
-    (*methods->destroy)(state);
-    return xsl_name;
-}
-
-#else /* X_LOCALE */
 
 #if defined(__APPLE__) || defined(__CYGWIN__)
 char *
@@ -250,4 +200,3 @@ _XlcMapOSLocaleName(
     return osname;
 }
 
-#endif  /* X_LOCALE */

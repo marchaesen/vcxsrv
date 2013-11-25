@@ -248,8 +248,6 @@ Current implementation provides following locale loaders;
 <literallayout>
 <function>_XlcDefaultLoader</function>
 <function>_XlcGenericLoader</function>
-<function>_XlcEucLoader</function>
-<function>_XlcSjisLoader</function>
 <function>_XlcUtfLoader</function>
 <function>_XaixOsDynamicLoad</function>
 </literallayout>

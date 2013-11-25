@@ -39,10 +39,6 @@ PERFORMANCE OF THIS SOFTWARE.
 #include "Xlcint.h"
 #include "Ximint.h"
 #include "XlcPubI.h"
-#ifdef X_LOCALE
-#define mblen(a,b)	_Xmblen(a,b)
-extern int _Xmblen ();
-#endif
 
 #define sz_CARD8                 1
 #define sz_INT8                  1

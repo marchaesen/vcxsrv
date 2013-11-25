@@ -38,6 +38,8 @@ mkfontscale \- create an index of scalable font files for X
 ] [
 .B \-u | \-U
 ] [
+.B \-v
+] [
 .B \-\-
 ] [
 .I directory
@@ -131,6 +133,9 @@ is useful when generating encoding directories only.
 .B \-u, \-U
 disable (\fI-u\fP) or enable (\fI-U\fP) indexing of ISO 10646:1 font
 encodings (default: enabled).
+.TP
+.B \-v
+print program version and exit.
 .TP
 .B \-\-
 end of options.

@@ -54,14 +54,8 @@ struct _AtomRec {
     DisplayRec* head;
 };
 
-#ifdef SUNSHLIB
-#define STATIC
-#else
-#define STATIC static
-#endif
-
 #define DeclareAtom(atom,text) \
-STATIC struct _AtomRec __##atom = { text, NULL }; \
+static struct _AtomRec __##atom = { text, NULL }; \
 AtomPtr _##atom = &__##atom;
 
 DeclareAtom(XA_ATOM_PAIR,		"ATOM_PAIR"		)
