@@ -375,6 +375,7 @@ EXTRA_EXT(ARB_texture_buffer_range);
 EXTRA_EXT(ARB_texture_multisample);
 EXTRA_EXT(ARB_texture_gather);
 EXTRA_EXT(ARB_shader_atomic_counters);
+EXTRA_EXT(ARB_draw_indirect);
 
 static const int
 extra_ARB_color_buffer_float_or_glcore[] = {
@@ -912,6 +913,10 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
    /* GL_ARB_shader_atomic_counters */
    case GL_ATOMIC_COUNTER_BUFFER_BINDING:
       v->value_int = ctx->AtomicBuffer->Name;
+      break;
+   /* GL_ARB_draw_indirect */
+   case GL_DRAW_INDIRECT_BUFFER_BINDING:
+      v->value_int = ctx->DrawIndirectBuffer->Name;
       break;
    }
 }

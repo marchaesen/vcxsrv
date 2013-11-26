@@ -3964,6 +3964,8 @@
         <_description>Norwegian</_description>
         <languageList>
           <iso639Id>nor</iso639Id>
+          <iso639Id>nob</iso639Id>
+          <iso639Id>nno</iso639Id>
         </languageList>
       </configItem>
       <variantList>
