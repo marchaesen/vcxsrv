@@ -612,6 +612,8 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
 
 #ifdef GLXEXT
     static Bool glxSupported = TRUE;
+#else
+    const Bool glxSupported = FALSE;
 #endif
 
     if (dmxGeneration != serverGeneration) {
@@ -740,10 +742,10 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
     /* Check if GLX extension exists on all back-end servers */
     for (i = 0; i < dmxNumScreens; i++)
         glxSupported &= (dmxScreens[i].glxMajorOpcode > 0);
+#endif
 
     if (serverGeneration == 1)
         dmxAddExtensions(glxSupported);
-#endif
 
     /* Tell dix layer about the backend displays */
     for (i = 0; i < dmxNumScreens; i++) {
