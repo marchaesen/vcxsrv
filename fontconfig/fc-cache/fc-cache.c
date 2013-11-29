@@ -67,7 +67,7 @@
 const struct option longopts[] = {
     {"force", 0, 0, 'f'},
     {"really-force", 0, 0, 'r'},
-    {"sysroot", 0, 0, 'y'},
+    {"sysroot", required_argument, 0, 'y'},
     {"system-only", 0, 0, 's'},
     {"version", 0, 0, 'V'},
     {"verbose", 0, 0, 'v'},
