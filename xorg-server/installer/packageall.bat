@@ -8,9 +8,9 @@ copy "C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\redist\x86\Microsof
 copy "C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\redist\Debug_NonRedist\x86\Microsoft.VC120.DebugCRT\msvcp120d.dll"
 copy "C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\redist\Debug_NonRedist\x86\Microsoft.VC120.DebugCRT\msvcr120d.dll"
 
-if exist "C:\Program Files (x86)\NSIS\Unicode\makensis.exe" (
-  "C:\Program Files (x86)\NSIS\Unicode\makensis.exe" vcxsrv.nsi
-  "C:\Program Files (x86)\NSIS\Unicode\makensis.exe" vcxsrv-debug.nsi
+if exist "C:\Program Files (x86)\NSIS\makensis.exe" (
+  "C:\Program Files (x86)\NSIS\makensis.exe" vcxsrv.nsi
+  "C:\Program Files (x86)\NSIS\makensis.exe" vcxsrv-debug.nsi
 ) else (
   "C:\Program Files\NSIS\makensis.exe" vcxsrv.nsi
   "C:\Program Files\NSIS\makensis.exe" vcxsrv-debug.nsi
@@ -24,9 +24,9 @@ copy "C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\redist\x64\Microsof
 copy "C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\redist\Debug_NonRedist\x64\Microsoft.VC120.DebugCRT\msvcp120d.dll"
 copy "C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\redist\Debug_NonRedist\x64\Microsoft.VC120.DebugCRT\msvcr120d.dll"
 
-if exist "C:\Program Files (x86)\NSIS\Unicode\makensis.exe" (
-  "C:\Program Files (x86)\NSIS\Unicode\makensis.exe" vcxsrv-64.nsi
-  "C:\Program Files (x86)\NSIS\Unicode\makensis.exe" vcxsrv-64-debug.nsi
+if exist "C:\Program Files (x86)\NSIS\makensis.exe" (
+  "C:\Program Files (x86)\NSIS\makensis.exe" vcxsrv-64.nsi
+  "C:\Program Files (x86)\NSIS\makensis.exe" vcxsrv-64-debug.nsi
 ) else (
   "C:\Program Files\NSIS\makensis.exe" vcxsrv-64.nsi
   "C:\Program Files\NSIS\makensis.exe" vcxsrv-64-debug.nsi
