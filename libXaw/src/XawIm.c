@@ -196,7 +196,7 @@ SetExtPart(VendorShellWidget w, XawVendorShellExtWidget vew)
     contextData = XtNew(contextDataRec);
     contextData->parent = (Widget)w;
     contextData->ve = (Widget)vew;
-    if (XSaveContext(XtDisplay(w), (Window)w, extContext, (char *)contextData)) {
+    if (XSaveContext(XtDisplay(w), (Window)(((intptr_t)w)&0xffffffff), extContext, (char *)contextData)) {
 	return(NULL);
     }
     return(&(vew->vendor_ext));
@@ -208,7 +208,7 @@ GetExtPart(VendorShellWidget w)
     contextDataRec *contextData;
     XawVendorShellExtWidget vew;
 
-    if (XFindContext(XtDisplay(w), (Window)w, extContext,
+	if (XFindContext(XtDisplay(w), (Window)(((intptr_t)w)& 0xffffffff), extContext,
 		      (XPointer*)&contextData)) {
 	return(NULL);
     }

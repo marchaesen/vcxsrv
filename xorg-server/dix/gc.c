@@ -127,7 +127,7 @@ ChangeGC(ClientPtr client, GC * pGC, BITS32 mask, ChangeGCValPtr pUnion)
     PixmapPtr pPixmap;
     BITS32 maskQ;
 
-    assert(pUnion);
+    assert(pUnion!=NULL);
     pGC->serialNumber |= GC_CHANGE_SERIAL_BIT;
 
     maskQ = mask;               /* save these for when we walk the GCque */

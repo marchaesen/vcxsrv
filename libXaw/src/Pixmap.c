@@ -47,7 +47,7 @@
  * Types
  */
 typedef struct _XawCache {
-  long value;
+  intptr_t value;
   XtPointer *elems;
   unsigned int num_elems;
 } XawCache;
@@ -415,7 +415,7 @@ qcmp_string(register _Xconst void *left, register _Xconst void *right)
 static int
 bcmp_long(register _Xconst void *value, register _Xconst void *cache)
 {
-  return ((long)value - (long)((*(XawCache **)cache)->value));
+  return ((intptr_t)value - (intptr_t)((*(XawCache **)cache)->value));
 }
 
 static int
@@ -492,7 +492,7 @@ _XawGetCache(XawCache *xaw, Screen *screen, Colormap colormap, int depth)
 		XtRealloc((char *)xaw->elems,
 			  sizeof(XtPointer) * xaw->num_elems);
 	    }
-	  pcache->value = (long)screen;
+	  pcache->value = (intptr_t)screen;
 	  pcache->elems = NULL;
 	  pcache->num_elems = 0;
 	  xaw->elems[xaw->num_elems - 1] = (XtPointer)pcache;

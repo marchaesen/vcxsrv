@@ -2734,7 +2734,7 @@ RecordAClientStateChange(CallbackListPtr *pcbl, pointer nulldata,
         /* RecordDisableContext modifies contents of ppAllContexts. */
         numContextsCopy = numContexts;
         ppAllContextsCopy = malloc(numContextsCopy * sizeof(RecordContextPtr));
-        assert(ppAllContextsCopy);
+        assert(ppAllContextsCopy!=NULL);
         memcpy(ppAllContextsCopy, ppAllContexts,
                numContextsCopy * sizeof(RecordContextPtr));
 

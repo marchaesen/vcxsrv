@@ -243,6 +243,6 @@ typedef uint64_t  uintmax_t;
 
 #endif // __STDC_CONSTANT_MACROS ]
 
-typedef int ssize_t;
+typedef intptr_t ssize_t;
 
 #endif // _MSC_STDINT_H_ ]

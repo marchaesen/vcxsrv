@@ -151,7 +151,7 @@ static void check_internal_connections(Display *dpy)
 static PendingRequest *append_pending_request(Display *dpy, unsigned long sequence)
 {
 	PendingRequest *node = malloc(sizeof(PendingRequest));
-	assert(node);
+	assert(node!=NULL);
 	node->next = NULL;
 	node->sequence = sequence;
 	node->reply_waiter = 0;

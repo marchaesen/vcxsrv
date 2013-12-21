@@ -111,7 +111,7 @@ XtPerWidgetInput _XtGetPerWidgetInput(
       perWidgetInputContext = XUniqueContext();
 
     if (XFindContext(dpy,
-		     (Window)widget,
+		     (Window)(((intptr_t)widget)&0xffffffff),
 		     perWidgetInputContext,
 		     (XPointer *)&pwi) &&
 	create)
@@ -134,7 +134,7 @@ XtPerWidgetInput _XtGetPerWidgetInput(
 			_XtDestroyServerGrabs, (XtPointer)pwi);
 
 	  (void) XSaveContext(dpy,
-			      (Window)widget,
+			      (Window)(((intptr_t)widget)&0xffffffff),
 			      perWidgetInputContext,
 			      (char *) pwi);
       }
