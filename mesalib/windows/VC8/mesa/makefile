@@ -71,13 +71,13 @@ all: $(TARGETDIR)\Release\swrast_dri.dll $(TARGETDIR)\Debug\swrast_dri.dll
 ..\..\..\src\mesa\main\api_exec.c: $(wildcard ..\..\..\src\mapi\glapi\gen\*.xml) ..\..\..\src\mapi\glapi\gen\gl_genexec.py
 	cd ..\..\..\src\mapi\glapi\gen & python gl_genexec.py -f gl_and_es_API.xml > ..\..\..\mesa\main\api_exec.c
 
-GET_HASH_GEN = ..\..\..\src\mesa\main\get_hash_generator.py
+GET_HASH_GEN = ../../../src/mesa/main/get_hash_generator.py
 ..\..\..\src\mesa\main\get_hash.h: ..\..\..\src\mapi\glapi\gen\gl_and_es_API.xml ..\..\..\src\mesa\main\get_hash_params.py $(GET_HASH_GEN)
-	python $(GET_HASH_GEN) -f $< > $@
+	python $(GET_HASH_GEN) -f $(subst $/,/,$<) > $@
 
-REMAP_HELPER = ..\..\..\src\mapi\glapi\gen\remap_helper.py
+REMAP_HELPER = ../../../src/mapi/glapi/gen/remap_helper.py
 ..\..\..\src\mesa\main\remap_helper.h: ..\..\..\src\mapi\glapi\gen\gl_and_es_API.xml $(REMAP_HELPER)
-	python $(REMAP_HELPER) -f $< > $@
+	python $(REMAP_HELPER) -f $(subst $/,/,$<) > $@
 
 $(TARGETDIR)\Debug\swrast_dri.dll: $(DEPS)
 	$(DBGBUILDCMD)

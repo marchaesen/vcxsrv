@@ -2,14 +2,14 @@ ifneq ($(NORELDBG),1)
 $(error NORELDBG should have been set to 1)
 endif
 
-XCBPROTO_XCBPYTHONDIR = ..\xcb-proto
-XCBPROTO_XCBINCLUDEDIR = ..\xcb-proto\src
+XCBPROTO_XCBPYTHONDIR = ../xcb-proto
+XCBPROTO_XCBINCLUDEDIR = ../xcb-proto/src
 
 %.h: $(XCBPROTO_XCBINCLUDEDIR)\%.xml
-	python c_client.py -p $(XCBPROTO_XCBPYTHONDIR) $<
+	python c_client.py -p $(XCBPROTO_XCBPYTHONDIR) $(subst $/,/,$<)
 
 %.c: $(XCBPROTO_XCBINCLUDEDIR)\%.xml
-	python c_client.py -p $(XCBPROTO_XCBPYTHONDIR) $<
+	python c_client.py -p $(XCBPROTO_XCBPYTHONDIR) $(subst $/,/,$<)
 
 CLEANRULEPOSTFIX=noobjs
 
