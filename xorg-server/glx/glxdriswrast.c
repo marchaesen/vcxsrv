@@ -51,6 +51,13 @@
 
 #include "extension_string.h"
 
+/* RTLD_LOCAL is not defined on Cygwin */
+#ifdef __CYGWIN__
+#ifndef RTLD_LOCAL
+#define RTLD_LOCAL 0
+#endif
+#endif
+
 typedef struct __GLXDRIscreen __GLXDRIscreen;
 typedef struct __GLXDRIcontext __GLXDRIcontext;
 typedef struct __GLXDRIdrawable __GLXDRIdrawable;
@@ -391,7 +398,7 @@ swrastGetImage(__DRIdrawable * draw,
 }
 
 static const __DRIswrastLoaderExtension swrastLoaderExtension = {
-    {__DRI_SWRAST_LOADER, 1},
+    {__DRI_SWRAST_LOADER, __DRI_SWRAST_LOADER_VERSION},
     swrastGetDrawableInfo,
     swrastPutImage,
     swrastGetImage
@@ -432,9 +439,6 @@ initializeExtensions(__GLXDRIscreen * screen)
 
 extern Bool g_fswrastwgl;
 
-/* white lie */
-extern glx_func_ptr glXGetProcAddressARB(const char *);
-
 static __GLXscreen *
 __glXDRIscreenProbe(ScreenPtr pScreen)
 {
@@ -458,9 +462,9 @@ __glXDRIscreenProbe(ScreenPtr pScreen)
 
     screen->driver = glxProbeDriver(driverName,
                                     (void **) &screen->core,
-                                    __DRI_CORE, 1,
+                                    __DRI_CORE, __DRI_CORE_VERSION,
                                     (void **) &screen->swrast,
-                                    __DRI_SWRAST, 1);
+                                    __DRI_SWRAST, __DRI_SWRAST_VERSION);
     if (screen->driver == NULL) {
         goto handle_error;
     }
@@ -486,8 +490,6 @@ __glXDRIscreenProbe(ScreenPtr pScreen)
 
     screen->base.GLXmajor = 1;
     screen->base.GLXminor = 4;
-
-    __glXsetGetProcAddress(glXGetProcAddressARB);
 
     LogMessage(X_INFO, "AIGLX: Loaded and initialized %s\n", driverName);
 

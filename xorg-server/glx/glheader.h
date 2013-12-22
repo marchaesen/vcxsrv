@@ -27,7 +27,6 @@ extern "C" {
 /**
  * GL_FIXED is defined in glext.h version 64 but these typedefs aren't (yet).
  */
-typedef int GLfixed;
 typedef int GLclampx;
 
 #ifdef __cplusplus

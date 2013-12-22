@@ -230,14 +230,12 @@ __glXImageSize(GLenum format, GLenum type, GLenum target,
         case GL_INTENSITY:
             elementsPerGroup = 1;
             break;
-        case GL_RG:
         case GL_422_EXT:
         case GL_422_REV_EXT:
         case GL_422_AVERAGE_EXT:
         case GL_422_REV_AVERAGE_EXT:
         case GL_DEPTH_STENCIL_NV:
         case GL_DEPTH_STENCIL_MESA:
-        case GL_YCBCR_422_APPLE:
         case GL_YCBCR_MESA:
         case GL_LUMINANCE_ALPHA:
             elementsPerGroup = 2;

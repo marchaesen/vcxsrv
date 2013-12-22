@@ -35,11 +35,10 @@
 #include "unpack.h"
 #include "indirect_size_get.h"
 #include "indirect_dispatch.h"
-#include "GL/gl.h"
-#include "glapitable.h"
-#include "glapi.h"
-#include "glthread.h"
-#include "dispatch.h"
+
+#include "glfunctions.h"
+#define glGetCompressedTexImageARB glGetCompressedTexImage
+
 
 int
 __glXDisp_GetCompressedTexImage(struct __GLXclientStateRec *cl, GLbyte * pc)
@@ -56,16 +55,13 @@ __glXDisp_GetCompressedTexImage(struct __GLXclientStateRec *cl, GLbyte * pc)
         GLint compsize = 0;
         char *answer = NULL, answerBuffer[200];
 
-        CALL_GetTexLevelParameteriv(GET_DISPATCH(),
-                                    (target, level,
-                                     GL_TEXTURE_COMPRESSED_IMAGE_SIZE,
-                                     &compsize));
+        glGetTexLevelParameteriv(target, level, GL_TEXTURE_COMPRESSED_IMAGE_SIZE,
+                                 &compsize);
 
         if (compsize != 0) {
             __GLX_GET_ANSWER_BUFFER(answer, cl, compsize, 1);
             __glXClearErrorOccured();
-            CALL_GetCompressedTexImage(GET_DISPATCH(),
-                                          (target, level, answer));
+            glGetCompressedTexImageARB(target, level, answer);
         }
 
         if (__glXErrorOccured()) {
@@ -86,8 +82,7 @@ __glXDisp_GetCompressedTexImage(struct __GLXclientStateRec *cl, GLbyte * pc)
 }
 
 int
-__glXDispSwap_GetCompressedTexImage(struct __GLXclientStateRec *cl,
-                                       GLbyte * pc)
+__glXDispSwap_GetCompressedTexImage(struct __GLXclientStateRec *cl, GLbyte * pc)
 {
     xGLXSingleReq *const req = (xGLXSingleReq *) pc;
     int error;
@@ -102,16 +97,13 @@ __glXDispSwap_GetCompressedTexImage(struct __GLXclientStateRec *cl,
         GLint compsize = 0;
         char *answer = NULL, answerBuffer[200];
 
-        CALL_GetTexLevelParameteriv(GET_DISPATCH(),
-                                    (target, level,
-                                     GL_TEXTURE_COMPRESSED_IMAGE_SIZE,
-                                     &compsize));
+        glGetTexLevelParameteriv(target, level, GL_TEXTURE_COMPRESSED_IMAGE_SIZE,
+                                 &compsize);
 
         if (compsize != 0) {
             __GLX_GET_ANSWER_BUFFER(answer, cl, compsize, 1);
             __glXClearErrorOccured();
-            CALL_GetCompressedTexImage(GET_DISPATCH(),
-                                          (target, level, answer));
+            glGetCompressedTexImageARB(target, level, answer);
         }
 
         if (__glXErrorOccured()) {

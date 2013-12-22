@@ -320,6 +320,7 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\shader_query.cpp" />
     <ClCompile Include="..\..\..\..\src\mesa\main\texcompress_cpal.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\texstorage.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\main\textureview.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\uniform_query.cpp" />
     <ClCompile Include="..\..\..\..\src\mesa\main\transformfeedback.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\uniforms.c" />

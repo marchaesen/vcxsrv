@@ -104,6 +104,7 @@ mesalib/src/mapi/glapi/gen/indirect_size_get.h      xorg-server/glx/indirect_siz
 mesalib/src/mapi/glapi/gen/indirect_table.c         xorg-server/glx/indirect_table.c
 mesalib/src/mapi/glapi/gen/remap_helper.h           mesalib/src/mesa/main/remap_helper.h
 mesalib/src/mapi/glapi/gen/remap_helper.h           xorg-server/glx/remap_helper.h
+mesalib/src/mapi/glapi/gen/glfunctions.h            xorg-server/glx/glfunctions.h
 
 libXaw/include/X11/Xaw/AllWidgets.h               X11/Xaw/AllWidgets.h
 libXaw/include/X11/Xaw/AsciiSink.h                X11/Xaw/AsciiSink.h

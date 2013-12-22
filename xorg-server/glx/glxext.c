@@ -338,7 +338,7 @@ GlxExtensionInit(void)
     int i;
     __GLXprovider *p, **stack;
     Bool glx_provided = False;
-    
+
     if (serverGeneration == 1) {
         for (stack = &__glXProviderStack; *stack; stack = &(*stack)->next)
             ;

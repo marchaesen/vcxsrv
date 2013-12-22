@@ -58,23 +58,11 @@ typedef unsigned long wchar_t;
 #endif
 #endif
 
-#if defined(ISC) && defined(USE_XMBTOWC)
-#define wctomb(a,b)	_Xwctomb(a,b)
-#define mblen(a,b)	_Xmblen(a,b)
-#ifndef USE_XWCHAR_STRING
-#define mbtowc(a,b,c)	_Xmbtowc(a,b,c)
-#endif
-#endif
 
 extern int
 _Xmblen(
-#ifdef ISC
-    char const *str,
-    size_t len
-#else
     char *str,
     int len
-#endif
     );
 
 /* API mentioning "UTF8" or "utf8" is an XFree86 extension, introduced in
@@ -3999,13 +3987,8 @@ extern void XSetAuthorization(
 
 extern int _Xmbtowc(
     wchar_t *			/* wstr */,
-#ifdef ISC
-    char const *		/* str */,
-    size_t			/* len */
-#else
     char *			/* str */,
     int				/* len */
-#endif
 );
 
 extern int _Xwctomb(

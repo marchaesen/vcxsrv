@@ -11,6 +11,7 @@
 ./gl_table.py -f gl_and_es_API.xml > glapitable.h
 ./gl_gentable.py -f gl_and_es_API.xml > glapi_gentable.c
 ./gl_table.py -f gl_and_es_API.xml -m remap_table > dispatch.h
+./gl_functions.py -f gl_and_es_API.xml > glfunctions.h
 # ./gl_offsets.py > glapioffsets.h
 ./gl_apitemp.py -f gl_and_es_API.xml > glapitemp.h
 ./gl_procs.py -f gl_and_es_API.xml > glprocs.h

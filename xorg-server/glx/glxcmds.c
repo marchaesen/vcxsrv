@@ -47,6 +47,8 @@
 #include "indirect_table.h"
 #include "indirect_util.h"
 
+#include "glfunctions.h"
+
 static char GLXServerVendorName[] = "SGI";
 
 _X_HIDDEN int

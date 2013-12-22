@@ -37,10 +37,8 @@
 #include "unpack.h"
 #include "indirect_size.h"
 #include "indirect_dispatch.h"
-#include "glapitable.h"
-#include "glapi.h"
-#include "glthread.h"
-#include "dispatch.h"
+
+#include "glfunctions.h"
 
 void
 __glXDisp_Map1f(GLbyte * pc)

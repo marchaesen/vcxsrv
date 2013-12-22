@@ -1200,13 +1200,13 @@ typedef struct xcb_mapping_notify_event_t {
     uint8_t       pad1; /**<  */
 } xcb_mapping_notify_event_t;
 
-/** Opcode for xcb_ge. */
-#define XCB_GE 35
+/** Opcode for xcb_ge_generic. */
+#define XCB_GE_GENERIC 35
 
 /**
- * @brief xcb_ge_event_t
+ * @brief xcb_ge_generic_event_t
  **/
-typedef struct xcb_ge_event_t {
+typedef struct xcb_ge_generic_event_t {
     uint8_t  response_type; /**<  */
     uint8_t  extension; /**<  */
     uint16_t sequence; /**<  */
@@ -1214,7 +1214,7 @@ typedef struct xcb_ge_event_t {
     uint16_t event_type; /**<  */
     uint8_t  pad0[22]; /**<  */
     uint32_t full_sequence; /**<  */
-} xcb_ge_event_t;
+} xcb_ge_generic_event_t;
 
 /** Opcode for xcb_request. */
 #define XCB_REQUEST 1

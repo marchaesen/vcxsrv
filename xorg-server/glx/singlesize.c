@@ -33,18 +33,12 @@
 #endif
 #include "glheader.h"
 
-#include "glxserver.h"
-#include "glxext.h"
-#include "singlesize.h"
-#include "unpack.h"
-#include "indirect_dispatch.h"
-#include "indirect_size_get.h"
-#include "glapitable.h"
-#include "glapi.h"
-#include "glthread.h"
-#include "dispatch.h"
-
 #include <GL/gl.h>
+#include "glxserver.h"
+#include "singlesize.h"
+#include "indirect_size_get.h"
+
+#include "glfunctions.h"
 
 /*
 ** These routines compute the size of variable-size returned parameters.
@@ -80,7 +74,7 @@ __glGetMap_size(GLenum target, GLenum query)
         switch (query) {
         case GL_COEFF:
             k = __glMap1d_size(target);
-            CALL_GetMapiv(GET_DISPATCH(), (target, GL_ORDER, &order));
+            glGetMapiv(target, GL_ORDER, &order);
             /*
              ** The query above might fail, but then order will be zero anyway.
              */
@@ -104,7 +98,7 @@ __glGetMap_size(GLenum target, GLenum query)
         case GL_COEFF:
             k = __glMap2d_size(target);
             majorMinor[0] = majorMinor[1] = 0;
-            CALL_GetMapiv(GET_DISPATCH(), (target, GL_ORDER, majorMinor));
+            glGetMapiv(target, GL_ORDER, majorMinor);
             /*
              ** The query above might fail, but then majorMinor will be zeroes
              */
@@ -177,7 +171,7 @@ __glGetPixelMap_size(GLenum map)
     default:
         return -1;
     }
-    CALL_GetIntegerv(GET_DISPATCH(), (query, &size));
+    glGetIntegerv(query, &size);
     return size;
 }
 

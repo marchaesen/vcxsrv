@@ -42,9 +42,12 @@ typedef struct {
 
 extern glxWinDebugSettingsRec glxWinDebugSettings;
 
+void glWinCallDelta(void);
 void glxWinPushNativeProvider(void);
-void glAddSwapHintRectWINWrapper(GLint x, GLint y, GLsizei width, GLsizei height);
-int glWinSelectImplementation(int native);
+const GLubyte *glGetStringWrapperNonstatic(GLenum name);
+void glAddSwapHintRectWINWrapperNonstatic(GLint x, GLint y, GLsizei width,
+                                          GLsizei height);
+void glWinSetupDispatchTable(void);
 
 #ifdef _DEBUG
 #ifdef _MSC_VER

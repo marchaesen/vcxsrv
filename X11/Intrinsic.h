@@ -113,7 +113,7 @@ typedef struct _XtEventRec *XtEventTable;
 
 typedef struct _XtAppStruct *XtAppContext;
 typedef unsigned long	XtValueMask;
-typedef unsigned long	XtIntervalId;
+typedef uintptr_t	XtIntervalId;
 typedef unsigned long	XtInputId;
 typedef unsigned long	XtWorkProcId;
 typedef unsigned long	XtSignalId;

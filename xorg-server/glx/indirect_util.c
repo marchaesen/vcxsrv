@@ -44,6 +44,8 @@
 #include "indirect_table.h"
 #include "indirect_util.h"
 
+#include "glfunctions.h"
+
 #define __GLX_PAD(a) (((a)+3)&~3)
 
 extern xGLXSingleReply __glXReply;

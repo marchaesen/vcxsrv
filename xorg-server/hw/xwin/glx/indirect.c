@@ -601,9 +601,7 @@ glxWinScreenProbe(ScreenPtr pScreen)
     if (NULL == screen)
         return NULL;
 
-    // Select the native GL implementation (WGL)
-    if (glWinSelectImplementation(1))
-        return NULL;
+    /* Dump out some useful information about the native renderer */
 
     // create window class
     {
@@ -652,12 +650,11 @@ glxWinScreenProbe(ScreenPtr pScreen)
     // (but we need to have a current context for them to be resolvable)
     wglResolveExtensionProcs();
 
-    /* Dump out some useful information about the native renderer */
-    winDebug("GL_VERSION:     %s\n", glGetString(GL_VERSION));
-    winDebug("GL_VENDOR:      %s\n", glGetString(GL_VENDOR));
-    gl_renderer = (const char *) glGetString(GL_RENDERER);
+    winDebug("GL_VERSION:     %s\n", glGetStringWrapperNonstatic(GL_VERSION));
+    winDebug("GL_VENDOR:      %s\n", glGetStringWrapperNonstatic(GL_VENDOR));
+    gl_renderer = (const char *) glGetStringWrapperNonstatic(GL_RENDERER);
     winDebug("GL_RENDERER:    %s\n", gl_renderer);
-    gl_extensions = (const char *) glGetString(GL_EXTENSIONS);
+    gl_extensions = (const char *) glGetStringWrapperNonstatic(GL_EXTENSIONS);
     wgl_extensions = wglGetExtensionsStringARBWrapper(hdc);
     if (!wgl_extensions)
         wgl_extensions = "";
@@ -671,7 +668,7 @@ glxWinScreenProbe(ScreenPtr pScreen)
         free(screen);
         LogMessage(X_ERROR,
                    "AIGLX: Won't use generic native renderer as it is not accelerated\n");
-        goto error;
+        return NULL;
     }
 
     // Can you see the problem here?  The extensions string is DC specific
@@ -782,7 +779,7 @@ glxWinScreenProbe(ScreenPtr pScreen)
             free(screen);
             LogMessage(X_ERROR,
                        "AIGLX: No fbConfigs could be made from native OpenGL pixel formats\n");
-            goto error;
+            return NULL;
         }
 
         /* These will be set by __glXScreenInit */
@@ -851,13 +848,6 @@ glxWinScreenProbe(ScreenPtr pScreen)
     pScreen->DestroyWindow = glxWinDestroyWindow;
 
     return &screen->base;
-
- error:
-    // Something went wrong and we can't use the native GL implementation
-    // so make sure the mesa GL implementation is selected instead
-    glWinSelectImplementation(0);
-
-    return NULL;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -1047,7 +1037,7 @@ static void
 glxWinDrawableCopySubBuffer(__GLXdrawable * drawable,
                             int x, int y, int w, int h)
 {
-    glAddSwapHintRectWINWrapper(x, y, w, h);
+    glAddSwapHintRectWINWrapperNonstatic(x, y, w, h);
     glxWinDrawableSwapBuffers(NULL, drawable);
 }
 
@@ -1629,6 +1619,7 @@ glxWinContextMakeCurrent(__GLXcontext * base)
 
 #ifdef _DEBUG
     GLWIN_TRACE_MSG("glxWinContextMakeCurrent context %p (native ctx %p)", gc, gc->ctx);
+    glWinCallDelta();
 #endif
 
     /* Keep a note of the last active context in the drawable */
@@ -1700,6 +1691,7 @@ glxWinContextLoseCurrent(__GLXcontext * base)
 
 #ifdef _DEBUG
     GLWIN_TRACE_MSG("glxWinContextLoseCurrent context %p (native ctx %p)", gc, gc->ctx);
+    glWinCallDelta();
 #endif
 
      /* Clear the last active context in the drawable */
@@ -1812,6 +1804,8 @@ glxWinCreateContext(__GLXscreen * screen,
 
     context->Dispatch=calloc(sizeof(void*), (sizeof(struct _glapi_table) / sizeof(void *) + MAX_EXTENSION_FUNCS));
     _glapi_set_dispatch(context->Dispatch);
+
+    glWinSetupDispatchTable();
 
     GLWIN_DEBUG_MSG("GLXcontext %p created", context);
 
