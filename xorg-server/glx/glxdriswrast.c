@@ -386,7 +386,7 @@ swrastGetImage(__DRIdrawable * draw,
 }
 
 static const __DRIswrastLoaderExtension swrastLoaderExtension = {
-    {__DRI_SWRAST_LOADER, __DRI_SWRAST_LOADER_VERSION},
+    {__DRI_SWRAST_LOADER, 1},
     swrastGetDrawableInfo,
     swrastPutImage,
     swrastGetImage
@@ -425,6 +425,9 @@ initializeExtensions(__GLXDRIscreen * screen)
     }
 }
 
+/* white lie */
+extern glx_func_ptr glXGetProcAddressARB(const char *);
+
 static __GLXscreen *
 __glXDRIscreenProbe(ScreenPtr pScreen)
 {
@@ -443,9 +446,9 @@ __glXDRIscreenProbe(ScreenPtr pScreen)
 
     screen->driver = glxProbeDriver(driverName,
                                     (void **) &screen->core,
-                                    __DRI_CORE, __DRI_CORE_VERSION,
+                                    __DRI_CORE, 1,
                                     (void **) &screen->swrast,
-                                    __DRI_SWRAST, __DRI_SWRAST_VERSION);
+                                    __DRI_SWRAST, 1);
     if (screen->driver == NULL) {
         goto handle_error;
     }
@@ -471,6 +474,8 @@ __glXDRIscreenProbe(ScreenPtr pScreen)
 
     screen->base.GLXmajor = 1;
     screen->base.GLXminor = 4;
+
+    __glXsetGetProcAddress(glXGetProcAddressARB);
 
     LogMessage(X_INFO, "AIGLX: Loaded and initialized %s\n", driverName);
 

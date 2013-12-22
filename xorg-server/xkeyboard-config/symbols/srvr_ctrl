@@ -1,4 +1,4 @@
-// Actions which control the server's behavior
+// Actions which control the server's behavior.
 
 partial keypad_keys function_keys
 xkb_symbols "xfree86" {
@@ -6,7 +6,7 @@ xkb_symbols "xfree86" {
     include "srvr_ctrl(fkey2vt)"
 };
 
-partial function_keys 
+partial function_keys
 xkb_symbols "fkey2vt" {
 
     key <FK01> {
@@ -68,7 +68,6 @@ xkb_symbols "fkey2vt" {
 	type="CTRL+ALT",
 	symbols[Group1]= [ F12, F12, F12, F12, XF86_Switch_VT_12 ]
     };
-
 };
 
 partial function_keys keypad_keys
@@ -93,4 +92,19 @@ xkb_symbols "no_srvr_keys" {
     key <KPMU> { [ KP_Multiply,	KP_Multiply	] };
     key <KPSU> { [ KP_Subtract,	KP_Subtract	] };
     key <KPAD> { [ KP_Add,	KP_Add		] };
+};
+
+partial function_keys
+xkb_symbols "grab_debug" {
+
+    key <FK11> {
+	type="CTRL+ALT",
+	symbols[Group1]= [ F11, F11, F11, F11, XF86LogGrabInfo ]
+    };
+
+    key <FK12> {
+	type="CTRL+ALT",
+	symbols[Group1]= [ F12, F12, F12, F12, XF86LogWindowTree ]
+    };
+
 };

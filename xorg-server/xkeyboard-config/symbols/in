@@ -1,6 +1,6 @@
 // This layout includes all Indian layouts, including:
 //     - Devanagari (Hindi, Marathi, Sanskrit)
-//     - Bengali
+//     - Bangla
 //     - Gujarati
 //     - Kannada
 //     - Malayalam
@@ -12,12 +12,12 @@
 // Links:
 // - Indic INSCRIPT keyboard layout diagrams:
 //     http://java.sun.com/products/jfc/tsc/articles/InputMethod/indiclayout.html
-// - Bengali Baishakhi (Bengali layouts):
-// - Bengali Baishakhi Inscript (Bengali layouts):
-// - Bengali Bornona (Bengali layouts):
-// - Uni Gitanjali (Bengali layouts):
+// - Bangla Baishakhi (Bangla layouts):
+// - Bangla Baishakhi Inscript (Bangla layouts):
+// - Bangla Bornona (Bangla layouts):
+// - Uni Gitanjali (Bangla layouts):
 //     http://nltr.org
-// - Ekusheyr Shadhinota (Bengali layouts):
+// - Ekusheyr Shadhinota (Bangla layouts):
 //     http://ekushey.org/projects/shadhinota/index.html
 // - Microsoft Windows XP SP2: Indic Language Standards - an Introduction:
 //     http://www.bhashaindia.com/MSProducts/XpSp2/Articles/IndicLanguageStandards.aspx
@@ -135,9 +135,9 @@ xkb_symbols "bolnagri" {
     key <AD08>   { [   U093F,   U0940,	U0907,	U0908   ] };  // I: i, ii matras
     key <AD09>   { [   U094B,   U094C,	U0913,	U0914   ] };  // O: o, au matras
     key <AD10>   { [   U092A,   U092B   ] };  // P: pa, pha
-    key <AD11>   { [   bracketleft,   braceleft   ] };  
+    key <AD11>   { [   bracketleft,   braceleft   ] };
     key <AD12>	 { [   bracketright, braceright   ] };
-    
+
     //A Row
     key <AC01>   { [   U093E,	 U0906,	U0905,	U0906  ] };   // A: aa, full A, AA
     key <AC02>   { [   U0938,    U0937   ] };  // S: sa, ssa
@@ -148,7 +148,7 @@ xkb_symbols "bolnagri" {
     key <AC07>   { [   U091C,    U091D   ] };  // J: ja, jha
     key <AC08>   { [   U0915,    U0916   ] };  // K: ka, kha
     key <AC09>   { [   U0932,	 U0933,	U0962,   U090C   ] };  // L: la, vocalic L or lru matra
-    key <AC10>   { [   semicolon, colon  ] }; 
+    key <AC10>   { [   semicolon, colon  ] };
     key <AC11>   { [apostrophe, quotedbl ] };
 
     //Z Row
@@ -176,7 +176,7 @@ xkb_symbols "bolnagri" {
 
 partial alphanumeric_keys
 xkb_symbols "ben" {
-    name[Group1]= "Bengali (India)";
+    name[Group1]= "Bangla (India)";
 
       // Mainly numbers.
       key <AE01> { [      U09E7 		]	};
@@ -244,7 +244,7 @@ xkb_symbols "ben" {
 };
 
 xkb_symbols "ben_probhat" {
- name[Group1]= "Bengali (India, Probhat)";
+ name[Group1]= "Bangla (India, Probhat)";
    key <ESC>  { [ Escape ] };
 
 // numbers
@@ -318,10 +318,10 @@ xkb_symbols "ben_probhat" {
     include "rupeesign(4)"
 };
 
-// Bengali Baishakhi, Bengali Baishakhi Inscript, Bengali Bornona, Uni Gitanjali Layouts are added by Promathesh Mandal <promathesh812004@gmail.com>
+// Bangla Baishakhi, Bangla Baishakhi Inscript, Bangla Bornona, Uni Gitanjali Layouts are added by Promathesh Mandal <promathesh812004@gmail.com>
 
 xkb_symbols "ben_baishakhi" {
- name[Group1]= "Bengali (India, Baishakhi)";
+ name[Group1]= "Bangla (India, Baishakhi)";
    key <ESC>   { [ Escape 					] };
 
 // numbers
@@ -398,7 +398,7 @@ xkb_symbols "ben_baishakhi" {
 };
 
 xkb_symbols "ben_inscript" {
-    name[Group1]= "Bengali (India, Baishakhi Inscript)";
+    name[Group1]= "Bangla (India, Baishakhi Inscript)";
 
       // Mainly numbers.
       key <TLDE> { [      0x100200D, 0x100200C	] 	};
@@ -464,7 +464,7 @@ xkb_symbols "ben_inscript" {
 };
 
 xkb_symbols "ben_gitanjali" {
- name[Group1]= "Bengali (India, Uni Gitanjali)";
+ name[Group1]= "Bangla (India, Uni Gitanjali)";
    key <ESC>   { [ Escape			] };
 
 // numbers
@@ -542,7 +542,7 @@ xkb_symbols "ben_gitanjali" {
 
 
 xkb_symbols "ben_bornona" {
- name[Group1]= "Bengali (India, Bornona)";
+ name[Group1]= "Bangla (India, Bornona)";
    key <ESC>  { [ Escape 					] };
 
 // numbers
@@ -616,7 +616,7 @@ xkb_symbols "ben_bornona" {
 
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "guj" {
       name[Group1]= "Gujarati";
 
@@ -683,7 +683,7 @@ xkb_symbols "guj" {
       include "level3(ralt_switch)"
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "kan" {
 
     // Inscript layout for Kannada  
@@ -719,7 +719,7 @@ xkb_symbols "kan" {
     key <AD10> { [  U0c9c, U0c9d	] };
     key <AD11> { [  U0ca1, U0ca2	] };
     key <AD12> { [  U0cbc, U0c9e	] };
- 
+
     key <AC01> { [  U0ccb, U0c93	] };
     key <AC02> { [  U0cc7, U0c8f	] };
     key <AC03> { [  U0ccd, U0c85	] };
@@ -757,13 +757,13 @@ xkb_symbols "kan" {
 // Date        : Sat Aug  17 21:10:48 IST 2002
 // Mapping:
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "mal" {
 
     name[Group1] = "Malayalam";
 
     //From grave to backslash (\)
-    
+
     key <TLDE> { [ U0d4a , U0d12           ] };
 
 // svu: 
@@ -771,7 +771,7 @@ xkb_symbols "mal" {
 // but the digits are replaced with the ones from 'mal_plusnum' -
 // for the integrity of all Indian layouts
 //
-//    key <AE01> { [1           ,     exclam           ] }; 
+//    key <AE01> { [1           ,     exclam           ] };
 //    key <AE02> { [2           ,         at           ] };
 //    key <AE03> { [3           , numbersign           ] };
 //    key <AE04> { [4           ,     dollar           ] };
@@ -797,9 +797,9 @@ xkb_symbols "mal" {
     key <AE12> { [ U0d43 , U0d0b           ] };
     key <BKSL>  { [U0200c, U05C ]};//bksl: ZWNJ 
 
-  
+
     // From 'q' to right bracket (])
-    
+
     key <AD01> { [ U0d4c , U0d14 ] };
     key <AD02> { [ U0d48 , U0d10 ] };
     key <AD03> { [ U0d3e , U0d06 ] };
@@ -814,7 +814,7 @@ xkb_symbols "mal" {
     key <AD12> { [ U0200d , U0d1e ] };
 
     // From 'a' to apostrophe (')
-    
+
     key <AC01> { [ U0d4b , U0d13 ] };
     key <AC02> { [ U0d47 , U0d0f ] };
     key <AC03> { [ U0d4d , U0d05 ] };
@@ -826,9 +826,9 @@ xkb_symbols "mal" {
     key <AC09> { [ U0d24 , U0d25 ] };
     key <AC10> { [ U0d1a , U0d1b ] };
     key <AC11> { [ U0d1f , U0d20 ] };
-    
+
     // From 'z' to slash (/)
-    
+
     key <AB01> { [ U0d46 , U0d0e ] };
     key <AB02> { [ U0d02 , U200b ] };//X:ZWSP
     key <AB03> { [ U0d2e , U0d23 ] };
@@ -884,7 +884,7 @@ xkb_symbols "mal_lalitha" {
     key <AD10>   { [   U0D2A   ] };  // P: pa
     key <AD11>   { [   bracketleft,   braceleft   ] };//braceleft:   
     key <AD12>	 { [   bracketright, braceright   ] };//braceright:
-    
+
     //A Row
     key <AC01>   { [   U0D3E,	 U0D05,	U0D06,	U0D05  ] };   // A: a,aa
     key <AC02>   { [   U0D38,    U0D37   ] };  // S: sa, ssa
@@ -895,7 +895,7 @@ xkb_symbols "mal_lalitha" {
     key <AC07>   { [   U0D1C,    U0D1D   ] };  // J: ja, jha
     key <AC08>   { [   U0D15,    U0D16   ] };  // K: ka, kha
     key <AC09>   { [   U0D32,	 U0D33   ] };  // L: la, vocalic L or lru matra`
-    key <AC10>   { [   semicolon, colon  ] }; 
+    key <AC10>   { [   semicolon, colon  ] };
     key <AC11>   { [apostrophe, quotedbl ] };
 
     //Z Row
@@ -919,14 +919,14 @@ xkb_symbols "mal_lalitha" {
 };
 
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "ori" {
     // Inscript layout for Oriya  
     // Author: G Karunakar <karunakar@freedomink.org>
     // Date: Wed Nov 13 18:16:19 IST 2002
 
     name[Group1]= "Oriya";
-    
+
     key <AE01> { [  U0b67			] };
     key <AE02> { [  U0b68			] };
     key <AE03> { [  U0b69			] };
@@ -952,7 +952,7 @@ xkb_symbols "ori" {
     key <AD10> { [  U0b1c, U0b1d	] };
     key <AD11> { [  U0b21, U0b22	] };
     key <AD12> { [  U0b3c, U0b1e	] };
- 
+
     key <AC01> { [  U0b4b, U0b13	] };
     key <AC02> { [  U0b47, U0b0f	] };
     key <AC03> { [  U0b4d, U0b05	] };
@@ -964,7 +964,7 @@ xkb_symbols "ori" {
     key <AC09> { [  U0b24, U0b25	] };
     key <AC10> { [  U0b1a, U0b1b	] };
     key <AC11> { [  U0b1f, U0b20	] };
- 
+
     key <AB02> { [  U0b02, U0b01	] };
     key <AB03> { [  U0b2e, U0b23	] };
     key <AB04> { [  U0b28			] };
@@ -985,7 +985,7 @@ xkb_symbols "ori" {
 
 // based on a keyboard map from an 'xkb/symbols/tml' file
 // INSCRIPT
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "tam" {
       name[Group1]= "Tamil";
 
@@ -1016,7 +1016,7 @@ xkb_symbols "tam" {
 // Mainly voiced consonants
 
       key <AD07> { [      U0BB9, U0B99	]	};
-      key <AD10> { [      U0B9c 	]	}; 
+      key <AD10> { [      U0B9c 	]	};
       key <AD12> { [      U0B9E				]	};
 
 // Mainly short vowels
@@ -1051,7 +1051,7 @@ xkb_symbols "tam" {
       include "rupeesign(4)"
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "tam_unicode" {
 
 // Description: A keymap based on the TamilNet'99 typewriter keyboard 
@@ -1061,7 +1061,7 @@ xkb_symbols "tam_unicode" {
 // Secondary contact: Sri Ramadoss M <amachu@au-kbc.org>
 // Date  : Fri Sep 4 11:32:00 CST 2009
 // Mapping:
-  
+
     name[Group1]= "Tamil (Unicode)";
 
     // granthas
@@ -1105,7 +1105,7 @@ xkb_symbols "tam_unicode" {
     key <AC09> { [ U0B9F ] };
     key <AC10> { [ U0BCD, U0B83 ] };
     key <AC11> { [ U0B99 ] };
-    
+
     // Zrow
     key <AB01> { [ U0BA3 ]  };
     key <AB02> { [ U0B92, U0B93 ]  };
@@ -1182,7 +1182,7 @@ xkb_symbols "tam_keyboard_with_numerals" {
     key <AB08> { [ U0B87, U0B88 ]  };
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "tam_TSCII" {
 
 // Description	: A Tamil typewrite-style keymap 
@@ -1200,7 +1200,7 @@ xkb_symbols "tam_TSCII" {
     key <AE05> {  [ 0x1000085, 0x100008a ] }; // sa
     key <AE06> {  [ 0x1000086, 0x100008b ] }; // ha
     key <AE07> {  [ 0x1000087, 0x100008c ] }; // ksha
-	
+
     // Qrow
     key <AD01> {  [ 0x10000bb, 0x100009a ] }; // nja
     key <AD02> {  [ 0x10000c8, 0x10000da ] }; // Ra
@@ -1226,7 +1226,7 @@ xkb_symbols "tam_TSCII" {
     key <AC09> { [ 0x10000bc, 0x10000ce ] }; // da
     key <AC10> { [ 0x10000c6, 0x10000d8 ] }; // zha
     key <AC11> { [ 0x10000b9, 0x1000099 ] }; // nga
-    
+
     // Zrow
     key <AB01> { [ 0x10000bd, 0x10000cf ] }; // Na
     key <AB02> { [ 0x10000b4, 0x10000b5 ] }; // o, O
@@ -1239,7 +1239,7 @@ xkb_symbols "tam_TSCII" {
 
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "tam_TAB" {
 
 // Description: A keymap based on the TamilNet'99 typewriter keyboard 
@@ -1257,7 +1257,7 @@ xkb_symbols "tam_TAB" {
     key <AE05> {  [ 0x10000fd ] } ;
     key <AE06> {  [ 0x10000fe ] } ;
     key <AE07> {  [ 0x10000ff ] } ;
-	
+
     // q-row
     key <AD01> {  [ 0x10000eb, 0x10000b3 ] };
     key <AD02> {  [ 0x10000f8, 0x10000c1 ] };
@@ -1283,7 +1283,7 @@ xkb_symbols "tam_TAB" {
     key <AC09> {  [ 0x10000ec, 0x10000b4 ] };
     key <AC10> {  [ 0x10000f6, 0x10000bf ] };
     key <AC11> {  [ 0x10000e9, 0x10000b1 ] };
-    
+
     // z-row
     key <AB01> {  [ 0x10000ed, 0x10000b5 ] };
     key <AB02> {  [ 0x10000e5, 0x10000e6 ] };
@@ -1295,7 +1295,7 @@ xkb_symbols "tam_TAB" {
     key <AB08> {  [ 0x10000de, 0x10000df ] };
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "tel" {
 
     // Inscript layout for Telugu using Unicode 
@@ -1318,8 +1318,8 @@ xkb_symbols "tel" {
     key <AE10> { [  U0c66, parenright	] };
     key <AE11> { [  U0c03, underscore	] };
     key <AE12> { [  U0c43, U0c0b	] };
-    key <BKSP> { [  BackSpace			] };    
- 
+    key <BKSP> { [  BackSpace			] };
+
     key <AD01> { [  U0c4c, U0c14	] };
     key <AD02> { [  U0c48, U0c10	] };
     key <AD03> { [  U0c3e, U0c06	] };
@@ -1332,7 +1332,7 @@ xkb_symbols "tel" {
     key <AD10> { [  U0c1c, U0c1d	] };
     key <AD11> { [  U0c21, U0c22	] };
     key <AD12> { [  U0c1e			] };
-  
+
     key <AC01> { [  U0c4b, U0c13	] };
     key <AC02> { [  U0c47, U0c0f	] };
     key <AC03> { [  U0c4d, U0c05	] };
@@ -1344,7 +1344,7 @@ xkb_symbols "tel" {
     key <AC09> { [  U0c24, U0c25	] };
     key <AC10> { [  U0c1a, U0c1b	] };
     key <AC11> { [  U0c1f, U0c20	] };
- 
+
     key <AB01> { [  U0c46, U0c0e	] };
     key <AB02> { [  U0c02, U0c01	] };
     key <AB03> { [  U0c2e, U0c23	] };
@@ -1364,19 +1364,19 @@ xkb_symbols "tel" {
     include "level3(ralt_switch)"
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "urd-phonetic" {
     include "pk(urd-phonetic)"
     name[Group1]= "Urdu (phonetic)";
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "urd-phonetic3" {
     include "pk(urd-crulp)"
     name[Group1]= "Urdu (alternative phonetic)";
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "urd-winkeys" {
     include "pk(urd-nla)"
     name[Group1]= "Urdu (WinKeys)";
@@ -1457,7 +1457,7 @@ xkb_symbols "guru" {
 //			http://www.satluj.org/Jhelum.html
 //Modified for Inscript to make
 //Original Author :	Amanpreet Singh Alam <apreet.alam@gmail.com
- 
+
 partial alphanumeric_keys
 xkb_symbols "jhelum" {
       name[Group1] = "Punjabi (Gurmukhi Jhelum)";
@@ -1478,7 +1478,7 @@ xkb_symbols "jhelum" {
      key <AE11>	{ [   minus,underscore] };
      key <AE12>	{ [   equal,plus] };
      key <BKSL>  { [   U0964,U0965,U007C,U005C] }; //pipe : danda, double danda
- 
+
      //Q Row	
      key <AD01>   { [   U0A4C, 	U0A14   ] };  // Q: oo, ooh
      key <AD02>   { [   U0A48,  	U0A10	] };  // W: ee, ae
@@ -1490,9 +1490,9 @@ xkb_symbols "jhelum" {
      key <AD08>   { [   U0A17,   U0A18, U0A5A   ] };  // I:ga, gha
      key <AD09>   { [   U0A24,   U0A1F   ] };  // O: ta, tha
      key <AD10>   { [   U0A2A,   U0A5E, VoidSymbol,U0A5E  ] };  // P: pa, pha
-     key <AD11>   { [   U0A21,   U0A22,   bracketleft,   braceleft   ] };  
+     key <AD11>   { [   U0A21,   U0A22,   bracketleft,   braceleft   ] };
      key <AD12>	 { [   U0A19,   U0A1E,   bracketright, braceright   ] };
-     
+
      //A Row
      key <AC01>   { [   U0A4B,	 U0A13  ] };   // A: o, oo
      key <AC02>   { [   U0A47,    U0A0F   ] };  // S: e, ee
@@ -1505,7 +1505,7 @@ xkb_symbols "jhelum" {
      key <AC09>   { [   U0A32,	 U0A25, U0A33   ] };  // L: la, tha
      key <AC10>   { [   U0A38,   colon, U0A36  ] }; //; sa
      key <AC11>   { [apostrophe, quotedbl ] };
- 
+
      //Z Row
      key <AB01>   { [   U0A71,	 U0A3C 	 ] };  // Z: addak, par bindi
      key <AB02>   { [   U0A02,    U0A70	 ] };  // X: bindi, tippi
@@ -1517,7 +1517,7 @@ xkb_symbols "jhelum" {
      key <AB08>   { [   comma,    U262C	 ] };// comma: comma, dev abbreviation sign
      key <AB09>   { [   period,   U0A74 	 ] };  // period: period, nukta
      key <AB10>   { [   slash,   question ] };
- 
+
 //    modifier_map Shift  { Shift_L };
 //    modifier_map Lock   { Caps_Lock };
 //    modifier_map Control{ Control_L };
@@ -1534,15 +1534,15 @@ xkb_symbols "olpc" {
   key <TLDE> { [	U094A,	U0912 ] }; // DEVANAGARI VOWEL SIGN SHORT O; DEVANAGARI LETTER SHORT O
   key <AE01> { [	U0967,	U090D ] }; // DEVANAGARI DIGIT ONE; DEVANAGARI LETTER CANDRA E
   key <AE02> { [	U0968,	U0945 ] }; // DEVANAGARI DIGIT TWO; DEVANAGARI VOWEL SIGN CANDRA E
-  key <AE03> { [	U0969	 ] }; // DEVANAGARI DIGIT THREE; 
-  key <AE04> { [	U096A	 ] }; // DEVANAGARI DIGIT FOUR; 
-  key <AE05> { [	U096B	 ] }; // DEVANAGARI DIGIT FIVE; 
-  key <AE06> { [	U096C	 ] }; // DEVANAGARI DIGIT SIX; 
-  key <AE07> { [	U096D	 ] }; // DEVANAGARI DIGIT SEVEN; 
-  key <AE08> { [	U096E	 ] }; // DEVANAGARI DIGIT EIGHT; 
-  key <AE09> { [	U096F,	parenleft ] }; // DEVANAGARI DIGIT NINE; 
-  key <AE10> { [	U0966,	parenright ] }; // DEVANAGARI DIGIT ZERO; 
-  key <AE11> { [	minus,		U0903 ] }; // DEVANAGARI SIGN VISARGA; 
+  key <AE03> { [	U0969	 ] }; // DEVANAGARI DIGIT THREE;
+  key <AE04> { [	U096A	 ] }; // DEVANAGARI DIGIT FOUR;
+  key <AE05> { [	U096B	 ] }; // DEVANAGARI DIGIT FIVE;
+  key <AE06> { [	U096C	 ] }; // DEVANAGARI DIGIT SIX;
+  key <AE07> { [	U096D	 ] }; // DEVANAGARI DIGIT SEVEN;
+  key <AE08> { [	U096E	 ] }; // DEVANAGARI DIGIT EIGHT;
+  key <AE09> { [	U096F,	parenleft ] }; // DEVANAGARI DIGIT NINE;
+  key <AE10> { [	U0966,	parenright ] }; // DEVANAGARI DIGIT ZERO;
+  key <AE11> { [	minus,		U0903 ] }; // DEVANAGARI SIGN VISARGA;
   key <AE12> { [	U0943,	U090B ] }; // DEVANAGARI VOWEL SIGN VOCALIC R; DEVANAGARI LETTER VOCALIC R
 
   key <AD01> { [	U094C,	U0914 ] }; // DEVANAGARI VOWEL SIGN AU; DEVANAGARI LETTER AU
@@ -1591,7 +1591,7 @@ xkb_symbols "olpc" {
   include "level3(ralt_switch)"
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "hin-wx" {
 
     name[Group1]= "Hindi (Wx)";
@@ -1678,13 +1678,13 @@ xkb_symbols "eng" {
 // Comment     : Based on the Inscript Keyboard created by M Baiju
 // Mapping:
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "mal_enhanced" {
 
     name[Group1] = "Malayalam (enhanced Inscript with Rupee Sign)";
 
    //From grave to backslash (\)
-    
+
       key <TLDE> { [ U0d4a ,       U0d12 ] };
       key <AE01> { [ U0d67 ,      exclam ] };
       key <AE02> { [ U0d68 ,          at ] };
@@ -1703,7 +1703,7 @@ xkb_symbols "mal_enhanced" {
 
 
   // From 'q' to right bracket (])
-    
+
     key <AD01> { [ U0d57 , U0d14 ] };
     key <AD02> { [ U0d48 , U0d10 ] };
     key <AD03> { [ U0d3e , U0d06 ] };
@@ -1718,7 +1718,7 @@ xkb_symbols "mal_enhanced" {
     key <AD12> { [ U0200d , U0d1e ] };
 
     // From 'a' to apostrophe (')
-    
+
     key <AC01> { [ U0d4b , U0d13 ] };
     key <AC02> { [ U0d47 , U0d0f ] };
     key <AC03> { [ U0d4d , U0d05 ] };
@@ -1730,9 +1730,9 @@ xkb_symbols "mal_enhanced" {
     key <AC09> { [ U0d24 , U0d25 ] };
     key <AC10> { [ U0d1a , U0d1b ] };
     key <AC11> { [ U0d1f , U0d20 ] };
-    
+
     // From 'z' to slash (/)
-    
+
     key <AB01> { [ U0d46 , U0d0e ] };
     key <AB02> { [ U0d02 , U0d7a ] };
     key <AB03> { [ U0d2e , U0d23 ] };

@@ -16,7 +16,7 @@ xkb_symbols "nodeadkeys" {
     name[Group1]="German (Austria, eliminate dead keys)";
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "mac" {
 
     include "de(mac)"

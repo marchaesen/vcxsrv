@@ -857,6 +857,7 @@ PanoramiXFixesSetWindowShapeRegion(ClientPtr client)
 {
     int result = Success, j;
     PanoramiXRes *win;
+    RegionPtr reg = NULL;
 
     REQUEST(xXFixesSetWindowShapeRegionReq);
 
@@ -869,10 +870,22 @@ PanoramiXFixesSetWindowShapeRegion(ClientPtr client)
         return result;
     }
 
+    if (win->u.win.root)
+        VERIFY_REGION_OR_NONE(reg, stuff->region, client, DixReadAccess);
+
     FOR_NSCREENS_FORWARD(j) {
+        ScreenPtr screen = screenInfo.screens[j];
         stuff->dest = win->info[j].id;
+
+        if (reg)
+            RegionTranslate(reg, -screen->x, -screen->y);
+
         result =
             (*PanoramiXSaveXFixesVector[X_XFixesSetWindowShapeRegion]) (client);
+
+        if (reg)
+            RegionTranslate(reg, screen->x, screen->y);
+
         if (result != Success)
             break;
     }
@@ -886,6 +899,7 @@ PanoramiXFixesSetPictureClipRegion(ClientPtr client)
     REQUEST(xXFixesSetPictureClipRegionReq);
     int result = Success, j;
     PanoramiXRes *pict;
+    RegionPtr reg = NULL;
 
     REQUEST_SIZE_MATCH(xXFixesSetPictureClipRegionReq);
 
@@ -896,10 +910,22 @@ PanoramiXFixesSetPictureClipRegion(ClientPtr client)
         return result;
     }
 
+    if (pict->u.pict.root)
+        VERIFY_REGION_OR_NONE(reg, stuff->region, client, DixReadAccess);
+
     FOR_NSCREENS_BACKWARD(j) {
+        ScreenPtr screen = screenInfo.screens[j];
         stuff->picture = pict->info[j].id;
+
+        if (reg)
+            RegionTranslate(reg, -screen->x, -screen->y);
+
         result =
             (*PanoramiXSaveXFixesVector[X_XFixesSetPictureClipRegion]) (client);
+
+        if (reg)
+            RegionTranslate(reg, screen->x, screen->y);
+
         if (result != Success)
             break;
     }

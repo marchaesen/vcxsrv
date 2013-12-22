@@ -1521,7 +1521,7 @@ type_qualifier:
    {
       if ($2.has_auxiliary_storage()) {
          _mesa_glsl_error(&@1, state,
-                          "duplicate auxiliary storage qualifier (centroid)");
+                          "duplicate auxiliary storage qualifier (centroid or sample)");
       }
 
       if (!state->ARB_shading_language_420pack_enable &&
@@ -1571,7 +1571,12 @@ auxiliary_storage_qualifier:
       memset(& $$, 0, sizeof($$));
       $$.flags.q.centroid = 1;
    }
-   /* TODO: "sample" and "patch" also go here someday. */
+   | SAMPLE
+   {
+      memset(& $$, 0, sizeof($$));
+      $$.flags.q.sample = 1;
+   }
+   /* TODO: "patch" also goes here someday. */
 
 storage_qualifier:
    CONST_TOK
@@ -2214,11 +2219,11 @@ basic_interface_block:
        * "It is illegal to have an input block in a vertex shader
        *  or an output block in a fragment shader"
        */
-      if ((state->target == vertex_shader) && $1.flags.q.in) {
+      if ((state->target == MESA_SHADER_VERTEX) && $1.flags.q.in) {
          _mesa_glsl_error(& @1, state,
                           "`in' interface block is not allowed for "
                           "a vertex shader");
-      } else if ((state->target == fragment_shader) && $1.flags.q.out) {
+      } else if ((state->target == MESA_SHADER_FRAGMENT) && $1.flags.q.out) {
          _mesa_glsl_error(& @1, state,
                           "`out' interface block is not allowed for "
                           "a fragment shader");
@@ -2372,7 +2377,7 @@ layout_defaults:
    {
       void *ctx = state;
       $$ = NULL;
-      if (state->target != geometry_shader) {
+      if (state->target != MESA_SHADER_GEOMETRY) {
          _mesa_glsl_error(& @1, state,
                           "input layout qualifiers only valid in "
                           "geometry shaders");
@@ -2400,7 +2405,7 @@ layout_defaults:
 
    | layout_qualifier OUT_TOK ';'
    {
-      if (state->target != geometry_shader) {
+      if (state->target != MESA_SHADER_GEOMETRY) {
          _mesa_glsl_error(& @1, state,
                           "out layout qualifiers only valid in "
                           "geometry shaders");

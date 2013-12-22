@@ -3821,7 +3821,7 @@ __glXDispSwap_CopyTexSubImage3D(GLbyte * pc)
 void
 __glXDispSwap_ActiveTexture(GLbyte * pc)
 {
-    glActiveTexture((GLenum) bswap_ENUM(pc + 0));
+    glActiveTextureARB((GLenum) bswap_ENUM(pc + 0));
 }
 
 void
@@ -3834,8 +3834,8 @@ __glXDispSwap_MultiTexCoord1dv(GLbyte * pc)
     }
 #endif
 
-    glMultiTexCoord1dv((GLenum) bswap_ENUM(pc + 8),
-                       (const GLdouble *) bswap_64_array((uint64_t *) (pc + 0),
+    glMultiTexCoord1dvARB((GLenum) bswap_ENUM(pc + 8),
+                          (const GLdouble *) bswap_64_array((uint64_t *) (pc + 0),
                                                          1));
 }
 
@@ -3850,17 +3850,17 @@ __glXDispSwap_MultiTexCoord1fvARB(GLbyte * pc)
 void
 __glXDispSwap_MultiTexCoord1iv(GLbyte * pc)
 {
-    glMultiTexCoord1iv((GLenum) bswap_ENUM(pc + 0),
-                       (const GLint *) bswap_32_array((uint32_t *) (pc + 4),
-                                                      1));
+    glMultiTexCoord1ivARB((GLenum) bswap_ENUM(pc + 0),
+                          (const GLint *) bswap_32_array((uint32_t *) (pc + 4),
+                                                         1));
 }
 
 void
 __glXDispSwap_MultiTexCoord1sv(GLbyte * pc)
 {
-    glMultiTexCoord1sv((GLenum) bswap_ENUM(pc + 0),
-                       (const GLshort *) bswap_16_array((uint16_t *) (pc + 4),
-                                                        1));
+    glMultiTexCoord1svARB((GLenum) bswap_ENUM(pc + 0),
+                          (const GLshort *) bswap_16_array((uint16_t *) (pc + 4),
+                                                           1));
 }
 
 void
@@ -3873,9 +3873,9 @@ __glXDispSwap_MultiTexCoord2dv(GLbyte * pc)
     }
 #endif
 
-    glMultiTexCoord2dv((GLenum) bswap_ENUM(pc + 16),
-                       (const GLdouble *) bswap_64_array((uint64_t *) (pc + 0),
-                                                         2));
+    glMultiTexCoord2dvARB((GLenum) bswap_ENUM(pc + 16),
+                          (const GLdouble *) bswap_64_array((uint64_t *) (pc + 0),
+                                                            2));
 }
 
 void
@@ -3889,17 +3889,17 @@ __glXDispSwap_MultiTexCoord2fvARB(GLbyte * pc)
 void
 __glXDispSwap_MultiTexCoord2iv(GLbyte * pc)
 {
-    glMultiTexCoord2iv((GLenum) bswap_ENUM(pc + 0),
-                       (const GLint *) bswap_32_array((uint32_t *) (pc + 4),
-                                                      2));
+    glMultiTexCoord2ivARB((GLenum) bswap_ENUM(pc + 0),
+                          (const GLint *) bswap_32_array((uint32_t *) (pc + 4),
+                                                         2));
 }
 
 void
 __glXDispSwap_MultiTexCoord2sv(GLbyte * pc)
 {
-    glMultiTexCoord2sv((GLenum) bswap_ENUM(pc + 0),
-                       (const GLshort *) bswap_16_array((uint16_t *) (pc + 4),
-                                                        2));
+    glMultiTexCoord2svARB((GLenum) bswap_ENUM(pc + 0),
+                          (const GLshort *) bswap_16_array((uint16_t *) (pc + 4),
+                                                           2));
 }
 
 void
@@ -3912,9 +3912,9 @@ __glXDispSwap_MultiTexCoord3dv(GLbyte * pc)
     }
 #endif
 
-    glMultiTexCoord3dv((GLenum) bswap_ENUM(pc + 24),
-                       (const GLdouble *) bswap_64_array((uint64_t *) (pc + 0),
-                                                         3));
+    glMultiTexCoord3dvARB((GLenum) bswap_ENUM(pc + 24),
+                          (const GLdouble *) bswap_64_array((uint64_t *) (pc + 0),
+                                                            3));
 }
 
 void
@@ -3928,17 +3928,17 @@ __glXDispSwap_MultiTexCoord3fvARB(GLbyte * pc)
 void
 __glXDispSwap_MultiTexCoord3iv(GLbyte * pc)
 {
-    glMultiTexCoord3iv((GLenum) bswap_ENUM(pc + 0),
-                       (const GLint *) bswap_32_array((uint32_t *) (pc + 4),
-                                                      3));
+    glMultiTexCoord3ivARB((GLenum) bswap_ENUM(pc + 0),
+                          (const GLint *) bswap_32_array((uint32_t *) (pc + 4),
+                                                         3));
 }
 
 void
 __glXDispSwap_MultiTexCoord3sv(GLbyte * pc)
 {
-    glMultiTexCoord3sv((GLenum) bswap_ENUM(pc + 0),
-                       (const GLshort *) bswap_16_array((uint16_t *) (pc + 4),
-                                                        3));
+    glMultiTexCoord3svARB((GLenum) bswap_ENUM(pc + 0),
+                          (const GLshort *) bswap_16_array((uint16_t *) (pc + 4),
+                                                           3));
 }
 
 void
@@ -3951,9 +3951,9 @@ __glXDispSwap_MultiTexCoord4dv(GLbyte * pc)
     }
 #endif
 
-    glMultiTexCoord4dv((GLenum) bswap_ENUM(pc + 32),
-                       (const GLdouble *) bswap_64_array((uint64_t *) (pc + 0),
-                                                         4));
+    glMultiTexCoord4dvARB((GLenum) bswap_ENUM(pc + 32),
+                          (const GLdouble *) bswap_64_array((uint64_t *) (pc + 0),
+                                                            4));
 }
 
 void
@@ -3967,124 +3967,141 @@ __glXDispSwap_MultiTexCoord4fvARB(GLbyte * pc)
 void
 __glXDispSwap_MultiTexCoord4iv(GLbyte * pc)
 {
-    glMultiTexCoord4iv((GLenum) bswap_ENUM(pc + 0),
-                       (const GLint *) bswap_32_array((uint32_t *) (pc + 4),
-                                                      4));
+    glMultiTexCoord4ivARB((GLenum) bswap_ENUM(pc + 0),
+                          (const GLint *) bswap_32_array((uint32_t *) (pc + 4),
+                                                         4));
 }
 
 void
 __glXDispSwap_MultiTexCoord4sv(GLbyte * pc)
 {
-    glMultiTexCoord4sv((GLenum) bswap_ENUM(pc + 0),
-                       (const GLshort *) bswap_16_array((uint16_t *) (pc + 4),
-                                                        4));
+    glMultiTexCoord4svARB((GLenum) bswap_ENUM(pc + 0),
+                          (const GLshort *) bswap_16_array((uint16_t *) (pc + 4),
+                                                           4));
 }
 
 void
 __glXDispSwap_CompressedTexImage1D(GLbyte * pc)
 {
+    PFNGLCOMPRESSEDTEXIMAGE1DPROC CompressedTexImage1D =
+        __glGetProcAddress("glCompressedTexImage1D");
     const GLsizei imageSize = (GLsizei) bswap_CARD32(pc + 20);
 
-    glCompressedTexImage1D((GLenum) bswap_ENUM(pc + 0),
-                           (GLint) bswap_CARD32(pc + 4),
-                           (GLenum) bswap_ENUM(pc + 8),
-                           (GLsizei) bswap_CARD32(pc + 12),
-                           (GLint) bswap_CARD32(pc + 16),
-                           imageSize, (const GLvoid *) (pc + 24));
+    CompressedTexImage1D((GLenum) bswap_ENUM(pc + 0),
+                         (GLint) bswap_CARD32(pc + 4),
+                         (GLenum) bswap_ENUM(pc + 8),
+                         (GLsizei) bswap_CARD32(pc + 12),
+                         (GLint) bswap_CARD32(pc + 16),
+                         imageSize, (const GLvoid *) (pc + 24));
 }
 
 void
 __glXDispSwap_CompressedTexImage2D(GLbyte * pc)
 {
+    PFNGLCOMPRESSEDTEXIMAGE2DPROC CompressedTexImage2D =
+        __glGetProcAddress("glCompressedTexImage2D");
     const GLsizei imageSize = (GLsizei) bswap_CARD32(pc + 24);
 
-    glCompressedTexImage2D((GLenum) bswap_ENUM(pc + 0),
-                           (GLint) bswap_CARD32(pc + 4),
-                           (GLenum) bswap_ENUM(pc + 8),
-                           (GLsizei) bswap_CARD32(pc + 12),
-                           (GLsizei) bswap_CARD32(pc + 16),
-                           (GLint) bswap_CARD32(pc + 20),
-                           imageSize, (const GLvoid *) (pc + 28));
+    CompressedTexImage2D((GLenum) bswap_ENUM(pc + 0),
+                         (GLint) bswap_CARD32(pc + 4),
+                         (GLenum) bswap_ENUM(pc + 8),
+                         (GLsizei) bswap_CARD32(pc + 12),
+                         (GLsizei) bswap_CARD32(pc + 16),
+                         (GLint) bswap_CARD32(pc + 20),
+                         imageSize, (const GLvoid *) (pc + 28));
 }
 
 void
 __glXDispSwap_CompressedTexImage3D(GLbyte * pc)
 {
+    PFNGLCOMPRESSEDTEXIMAGE3DPROC CompressedTexImage3D =
+        __glGetProcAddress("glCompressedTexImage3D");
     const GLsizei imageSize = (GLsizei) bswap_CARD32(pc + 28);
 
-    glCompressedTexImage3D((GLenum) bswap_ENUM(pc + 0),
-                           (GLint) bswap_CARD32(pc + 4),
-                           (GLenum) bswap_ENUM(pc + 8),
-                           (GLsizei) bswap_CARD32(pc + 12),
-                           (GLsizei) bswap_CARD32(pc + 16),
-                           (GLsizei) bswap_CARD32(pc + 20),
-                           (GLint) bswap_CARD32(pc + 24),
-                           imageSize, (const GLvoid *) (pc + 32));
+    CompressedTexImage3D((GLenum) bswap_ENUM(pc + 0),
+                         (GLint) bswap_CARD32(pc + 4),
+                         (GLenum) bswap_ENUM(pc + 8),
+                         (GLsizei) bswap_CARD32(pc + 12),
+                         (GLsizei) bswap_CARD32(pc + 16),
+                         (GLsizei) bswap_CARD32(pc + 20),
+                         (GLint) bswap_CARD32(pc + 24),
+                         imageSize, (const GLvoid *) (pc + 32));
 }
 
 void
 __glXDispSwap_CompressedTexSubImage1D(GLbyte * pc)
 {
+    PFNGLCOMPRESSEDTEXSUBIMAGE1DPROC CompressedTexSubImage1D =
+        __glGetProcAddress("glCompressedTexSubImage1D");
     const GLsizei imageSize = (GLsizei) bswap_CARD32(pc + 20);
 
-    glCompressedTexSubImage1D((GLenum) bswap_ENUM(pc + 0),
-                              (GLint) bswap_CARD32(pc + 4),
-                              (GLint) bswap_CARD32(pc + 8),
-                              (GLsizei) bswap_CARD32(pc + 12),
-                              (GLenum) bswap_ENUM(pc + 16),
-                              imageSize, (const GLvoid *) (pc + 24));
+    CompressedTexSubImage1D((GLenum) bswap_ENUM(pc + 0),
+                            (GLint) bswap_CARD32(pc + 4),
+                            (GLint) bswap_CARD32(pc + 8),
+                            (GLsizei) bswap_CARD32(pc + 12),
+                            (GLenum) bswap_ENUM(pc + 16),
+                            imageSize, (const GLvoid *) (pc + 24));
 }
 
 void
 __glXDispSwap_CompressedTexSubImage2D(GLbyte * pc)
 {
+    PFNGLCOMPRESSEDTEXSUBIMAGE2DPROC CompressedTexSubImage2D =
+        __glGetProcAddress("glCompressedTexSubImage2D");
     const GLsizei imageSize = (GLsizei) bswap_CARD32(pc + 28);
 
-    glCompressedTexSubImage2D((GLenum) bswap_ENUM(pc + 0),
-                              (GLint) bswap_CARD32(pc + 4),
-                              (GLint) bswap_CARD32(pc + 8),
-                              (GLint) bswap_CARD32(pc + 12),
-                              (GLsizei) bswap_CARD32(pc + 16),
-                              (GLsizei) bswap_CARD32(pc + 20),
-                              (GLenum) bswap_ENUM(pc + 24),
-                              imageSize, (const GLvoid *) (pc + 32));
+    CompressedTexSubImage2D((GLenum) bswap_ENUM(pc + 0),
+                            (GLint) bswap_CARD32(pc + 4),
+                            (GLint) bswap_CARD32(pc + 8),
+                            (GLint) bswap_CARD32(pc + 12),
+                            (GLsizei) bswap_CARD32(pc + 16),
+                            (GLsizei) bswap_CARD32(pc + 20),
+                            (GLenum) bswap_ENUM(pc + 24),
+                            imageSize, (const GLvoid *) (pc + 32));
 }
 
 void
 __glXDispSwap_CompressedTexSubImage3D(GLbyte * pc)
 {
+    PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC CompressedTexSubImage3D =
+        __glGetProcAddress("glCompressedTexSubImage3D");
     const GLsizei imageSize = (GLsizei) bswap_CARD32(pc + 36);
 
-    glCompressedTexSubImage3D((GLenum) bswap_ENUM(pc + 0),
-                              (GLint) bswap_CARD32(pc + 4),
-                              (GLint) bswap_CARD32(pc + 8),
-                              (GLint) bswap_CARD32(pc + 12),
-                              (GLint) bswap_CARD32(pc + 16),
-                              (GLsizei) bswap_CARD32(pc + 20),
-                              (GLsizei) bswap_CARD32(pc + 24),
-                              (GLsizei) bswap_CARD32(pc + 28),
-                              (GLenum) bswap_ENUM(pc + 32),
-                              imageSize, (const GLvoid *) (pc + 40));
+    CompressedTexSubImage3D((GLenum) bswap_ENUM(pc + 0),
+                            (GLint) bswap_CARD32(pc + 4),
+                            (GLint) bswap_CARD32(pc + 8),
+                            (GLint) bswap_CARD32(pc + 12),
+                            (GLint) bswap_CARD32(pc + 16),
+                            (GLsizei) bswap_CARD32(pc + 20),
+                            (GLsizei) bswap_CARD32(pc + 24),
+                            (GLsizei) bswap_CARD32(pc + 28),
+                            (GLenum) bswap_ENUM(pc + 32),
+                            imageSize, (const GLvoid *) (pc + 40));
 }
 
 void
 __glXDispSwap_SampleCoverage(GLbyte * pc)
 {
-    glSampleCoverage((GLclampf) bswap_FLOAT32(pc + 0), *(GLboolean *) (pc + 4));
+    PFNGLSAMPLECOVERAGEPROC SampleCoverage =
+        __glGetProcAddress("glSampleCoverage");
+    SampleCoverage((GLclampf) bswap_FLOAT32(pc + 0), *(GLboolean *) (pc + 4));
 }
 
 void
 __glXDispSwap_BlendFuncSeparate(GLbyte * pc)
 {
-    glBlendFuncSeparate((GLenum) bswap_ENUM(pc + 0),
-                        (GLenum) bswap_ENUM(pc + 4),
-                        (GLenum) bswap_ENUM(pc + 8),
-                        (GLenum) bswap_ENUM(pc + 12));
+    PFNGLBLENDFUNCSEPARATEPROC BlendFuncSeparate =
+        __glGetProcAddress("glBlendFuncSeparate");
+    BlendFuncSeparate((GLenum) bswap_ENUM(pc + 0), (GLenum) bswap_ENUM(pc + 4),
+                      (GLenum) bswap_ENUM(pc + 8),
+                      (GLenum) bswap_ENUM(pc + 12));
 }
 
 void
 __glXDispSwap_FogCoorddv(GLbyte * pc)
 {
+    PFNGLFOGCOORDDVPROC FogCoorddv = __glGetProcAddress("glFogCoorddv");
+
 #ifdef __GLX_ALIGN64
     if ((unsigned long) (pc) & 7) {
         (void) memmove(pc - 4, pc, 8);
@@ -4092,19 +4109,23 @@ __glXDispSwap_FogCoorddv(GLbyte * pc)
     }
 #endif
 
-    glFogCoorddv((const GLdouble *) bswap_64_array((uint64_t *) (pc + 0), 1));
+    FogCoorddv((const GLdouble *) bswap_64_array((uint64_t *) (pc + 0), 1));
 }
 
 void
 __glXDispSwap_PointParameterf(GLbyte * pc)
 {
-    glPointParameterf((GLenum) bswap_ENUM(pc + 0),
-                      (GLfloat) bswap_FLOAT32(pc + 4));
+    PFNGLPOINTPARAMETERFPROC PointParameterf =
+        __glGetProcAddress("glPointParameterf");
+    PointParameterf((GLenum) bswap_ENUM(pc + 0),
+                    (GLfloat) bswap_FLOAT32(pc + 4));
 }
 
 void
 __glXDispSwap_PointParameterfv(GLbyte * pc)
 {
+    PFNGLPOINTPARAMETERFVPROC PointParameterfv =
+        __glGetProcAddress("glPointParameterfv");
     const GLenum pname = (GLenum) bswap_ENUM(pc + 0);
     const GLfloat *params;
 
@@ -4112,19 +4133,22 @@ __glXDispSwap_PointParameterfv(GLbyte * pc)
         (const GLfloat *) bswap_32_array((uint32_t *) (pc + 4),
                                          __glPointParameterfv_size(pname));
 
-    glPointParameterfv(pname, params);
+    PointParameterfv(pname, params);
 }
 
 void
 __glXDispSwap_PointParameteri(GLbyte * pc)
 {
-    glPointParameteri((GLenum) bswap_ENUM(pc + 0),
-                      (GLint) bswap_CARD32(pc + 4));
+    PFNGLPOINTPARAMETERIPROC PointParameteri =
+        __glGetProcAddress("glPointParameteri");
+    PointParameteri((GLenum) bswap_ENUM(pc + 0), (GLint) bswap_CARD32(pc + 4));
 }
 
 void
 __glXDispSwap_PointParameteriv(GLbyte * pc)
 {
+    PFNGLPOINTPARAMETERIVPROC PointParameteriv =
+        __glGetProcAddress("glPointParameteriv");
     const GLenum pname = (GLenum) bswap_ENUM(pc + 0);
     const GLint *params;
 
@@ -4132,18 +4156,22 @@ __glXDispSwap_PointParameteriv(GLbyte * pc)
         (const GLint *) bswap_32_array((uint32_t *) (pc + 4),
                                        __glPointParameteriv_size(pname));
 
-    glPointParameteriv(pname, params);
+    PointParameteriv(pname, params);
 }
 
 void
 __glXDispSwap_SecondaryColor3bv(GLbyte * pc)
 {
-    glSecondaryColor3bv((const GLbyte *) (pc + 0));
+    PFNGLSECONDARYCOLOR3BVPROC SecondaryColor3bv =
+        __glGetProcAddress("glSecondaryColor3bv");
+    SecondaryColor3bv((const GLbyte *) (pc + 0));
 }
 
 void
 __glXDispSwap_SecondaryColor3dv(GLbyte * pc)
 {
+    PFNGLSECONDARYCOLOR3DVPROC SecondaryColor3dv =
+        __glGetProcAddress("glSecondaryColor3dv");
 #ifdef __GLX_ALIGN64
     if ((unsigned long) (pc) & 7) {
         (void) memmove(pc - 4, pc, 24);
@@ -4151,59 +4179,74 @@ __glXDispSwap_SecondaryColor3dv(GLbyte * pc)
     }
 #endif
 
-    glSecondaryColor3dv((const GLdouble *)
-                        bswap_64_array((uint64_t *) (pc + 0), 3));
+    SecondaryColor3dv((const GLdouble *)
+                      bswap_64_array((uint64_t *) (pc + 0), 3));
 }
 
 void
 __glXDispSwap_SecondaryColor3iv(GLbyte * pc)
 {
-    glSecondaryColor3iv((const GLint *)
-                        bswap_32_array((uint32_t *) (pc + 0), 3));
+    PFNGLSECONDARYCOLOR3IVPROC SecondaryColor3iv =
+        __glGetProcAddress("glSecondaryColor3iv");
+    SecondaryColor3iv((const GLint *) bswap_32_array((uint32_t *) (pc + 0), 3));
 }
 
 void
 __glXDispSwap_SecondaryColor3sv(GLbyte * pc)
 {
-    glSecondaryColor3sv((const GLshort *)
-                        bswap_16_array((uint16_t *) (pc + 0), 3));
+    PFNGLSECONDARYCOLOR3SVPROC SecondaryColor3sv =
+        __glGetProcAddress("glSecondaryColor3sv");
+    SecondaryColor3sv((const GLshort *)
+                      bswap_16_array((uint16_t *) (pc + 0), 3));
 }
 
 void
 __glXDispSwap_SecondaryColor3ubv(GLbyte * pc)
 {
-    glSecondaryColor3ubv((const GLubyte *) (pc + 0));
+    PFNGLSECONDARYCOLOR3UBVPROC SecondaryColor3ubv =
+        __glGetProcAddress("glSecondaryColor3ubv");
+    SecondaryColor3ubv((const GLubyte *) (pc + 0));
 }
 
 void
 __glXDispSwap_SecondaryColor3uiv(GLbyte * pc)
 {
-    glSecondaryColor3uiv((const GLuint *)
-                         bswap_32_array((uint32_t *) (pc + 0), 3));
+    PFNGLSECONDARYCOLOR3UIVPROC SecondaryColor3uiv =
+        __glGetProcAddress("glSecondaryColor3uiv");
+    SecondaryColor3uiv((const GLuint *)
+                       bswap_32_array((uint32_t *) (pc + 0), 3));
 }
 
 void
 __glXDispSwap_SecondaryColor3usv(GLbyte * pc)
 {
-    glSecondaryColor3usv((const GLushort *)
-                         bswap_16_array((uint16_t *) (pc + 0), 3));
+    PFNGLSECONDARYCOLOR3USVPROC SecondaryColor3usv =
+        __glGetProcAddress("glSecondaryColor3usv");
+    SecondaryColor3usv((const GLushort *)
+                       bswap_16_array((uint16_t *) (pc + 0), 3));
 }
 
 void
 __glXDispSwap_WindowPos3fv(GLbyte * pc)
 {
-    glWindowPos3fv((const GLfloat *) bswap_32_array((uint32_t *) (pc + 0), 3));
+    PFNGLWINDOWPOS3FVPROC WindowPos3fv = __glGetProcAddress("glWindowPos3fv");
+
+    WindowPos3fv((const GLfloat *) bswap_32_array((uint32_t *) (pc + 0), 3));
 }
 
 void
 __glXDispSwap_BeginQuery(GLbyte * pc)
 {
-    glBeginQuery((GLenum) bswap_ENUM(pc + 0), (GLuint) bswap_CARD32(pc + 4));
+    PFNGLBEGINQUERYPROC BeginQuery = __glGetProcAddress("glBeginQuery");
+
+    BeginQuery((GLenum) bswap_ENUM(pc + 0), (GLuint) bswap_CARD32(pc + 4));
 }
 
 int
 __glXDispSwap_DeleteQueries(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLDELETEQUERIESPROC DeleteQueries =
+        __glGetProcAddress("glDeleteQueries");
     xGLXSingleReq *const req = (xGLXSingleReq *) pc;
     int error;
     __GLXcontext *const cx =
@@ -4213,9 +4256,9 @@ __glXDispSwap_DeleteQueries(__GLXclientState * cl, GLbyte * pc)
     if (cx != NULL) {
         const GLsizei n = (GLsizei) bswap_CARD32(pc + 0);
 
-        glDeleteQueries(n,
-                        (const GLuint *) bswap_32_array((uint32_t *) (pc + 4),
-                                                        0));
+        DeleteQueries(n,
+                      (const GLuint *) bswap_32_array((uint32_t *) (pc + 4),
+                                                      0));
         error = Success;
     }
 
@@ -4225,12 +4268,15 @@ __glXDispSwap_DeleteQueries(__GLXclientState * cl, GLbyte * pc)
 void
 __glXDispSwap_EndQuery(GLbyte * pc)
 {
-    glEndQuery((GLenum) bswap_ENUM(pc + 0));
+    PFNGLENDQUERYPROC EndQuery = __glGetProcAddress("glEndQuery");
+
+    EndQuery((GLenum) bswap_ENUM(pc + 0));
 }
 
 int
 __glXDispSwap_GenQueries(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGENQUERIESPROC GenQueries = __glGetProcAddress("glGenQueries");
     xGLXSingleReq *const req = (xGLXSingleReq *) pc;
     int error;
     __GLXcontext *const cx =
@@ -4244,7 +4290,7 @@ __glXDispSwap_GenQueries(__GLXclientState * cl, GLbyte * pc)
         GLuint *ids =
             __glXGetAnswerBuffer(cl, n * 4, answerBuffer, sizeof(answerBuffer),
                                  4);
-        glGenQueries(n, ids);
+        GenQueries(n, ids);
         (void) bswap_32_array((uint32_t *) ids, n);
         __glXSendReplySwap(cl->client, ids, n, 4, GL_TRUE, 0);
         error = Success;
@@ -4256,6 +4302,8 @@ __glXDispSwap_GenQueries(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDispSwap_GetQueryObjectiv(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGETQUERYOBJECTIVPROC GetQueryObjectiv =
+        __glGetProcAddress("glGetQueryObjectiv");
     xGLXSingleReq *const req = (xGLXSingleReq *) pc;
     int error;
     __GLXcontext *const cx =
@@ -4275,7 +4323,7 @@ __glXDispSwap_GetQueryObjectiv(__GLXclientState * cl, GLbyte * pc)
             return BadAlloc;
         __glXClearErrorOccured();
 
-        glGetQueryObjectiv((GLuint) bswap_CARD32(pc + 0), pname, params);
+        GetQueryObjectiv((GLuint) bswap_CARD32(pc + 0), pname, params);
         (void) bswap_32_array((uint32_t *) params, compsize);
         __glXSendReplySwap(cl->client, params, compsize, 4, GL_FALSE, 0);
         error = Success;
@@ -4287,6 +4335,8 @@ __glXDispSwap_GetQueryObjectiv(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDispSwap_GetQueryObjectuiv(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGETQUERYOBJECTUIVPROC GetQueryObjectuiv =
+        __glGetProcAddress("glGetQueryObjectuiv");
     xGLXSingleReq *const req = (xGLXSingleReq *) pc;
     int error;
     __GLXcontext *const cx =
@@ -4306,7 +4356,7 @@ __glXDispSwap_GetQueryObjectuiv(__GLXclientState * cl, GLbyte * pc)
             return BadAlloc;
         __glXClearErrorOccured();
 
-        glGetQueryObjectuiv((GLuint) bswap_CARD32(pc + 0), pname, params);
+        GetQueryObjectuiv((GLuint) bswap_CARD32(pc + 0), pname, params);
         (void) bswap_32_array((uint32_t *) params, compsize);
         __glXSendReplySwap(cl->client, params, compsize, 4, GL_FALSE, 0);
         error = Success;
@@ -4318,6 +4368,7 @@ __glXDispSwap_GetQueryObjectuiv(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDispSwap_GetQueryiv(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGETQUERYIVPROC GetQueryiv = __glGetProcAddress("glGetQueryiv");
     xGLXSingleReq *const req = (xGLXSingleReq *) pc;
     int error;
     __GLXcontext *const cx =
@@ -4337,7 +4388,7 @@ __glXDispSwap_GetQueryiv(__GLXclientState * cl, GLbyte * pc)
             return BadAlloc;
         __glXClearErrorOccured();
 
-        glGetQueryiv((GLenum) bswap_ENUM(pc + 0), pname, params);
+        GetQueryiv((GLenum) bswap_ENUM(pc + 0), pname, params);
         (void) bswap_32_array((uint32_t *) params, compsize);
         __glXSendReplySwap(cl->client, params, compsize, 4, GL_FALSE, 0);
         error = Success;
@@ -4349,6 +4400,7 @@ __glXDispSwap_GetQueryiv(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDispSwap_IsQuery(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLISQUERYPROC IsQuery = __glGetProcAddress("glIsQuery");
     xGLXSingleReq *const req = (xGLXSingleReq *) pc;
     int error;
     __GLXcontext *const cx =
@@ -4358,7 +4410,7 @@ __glXDispSwap_IsQuery(__GLXclientState * cl, GLbyte * pc)
     if (cx != NULL) {
         GLboolean retval;
 
-        retval = glIsQuery((GLuint) bswap_CARD32(pc + 0));
+        retval = IsQuery((GLuint) bswap_CARD32(pc + 0));
         __glXSendReplySwap(cl->client, dummy_answer, 0, 0, GL_FALSE, retval);
         error = Success;
     }
@@ -4369,21 +4421,26 @@ __glXDispSwap_IsQuery(__GLXclientState * cl, GLbyte * pc)
 void
 __glXDispSwap_BlendEquationSeparate(GLbyte * pc)
 {
-    glBlendEquationSeparate((GLenum) bswap_ENUM(pc + 0),
-                            (GLenum) bswap_ENUM(pc + 4));
+    PFNGLBLENDEQUATIONSEPARATEPROC BlendEquationSeparate =
+        __glGetProcAddress("glBlendEquationSeparate");
+    BlendEquationSeparate((GLenum) bswap_ENUM(pc + 0),
+                          (GLenum) bswap_ENUM(pc + 4));
 }
 
 void
 __glXDispSwap_DrawBuffers(GLbyte * pc)
 {
+    PFNGLDRAWBUFFERSPROC DrawBuffers = __glGetProcAddress("glDrawBuffers");
     const GLsizei n = (GLsizei) bswap_CARD32(pc + 0);
 
-    glDrawBuffers(n, (const GLenum *) bswap_32_array((uint32_t *) (pc + 4), 0));
+    DrawBuffers(n, (const GLenum *) bswap_32_array((uint32_t *) (pc + 4), 0));
 }
 
 void
 __glXDispSwap_VertexAttrib1dv(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIB1DVPROC VertexAttrib1dv =
+        __glGetProcAddress("glVertexAttrib1dv");
 #ifdef __GLX_ALIGN64
     if ((unsigned long) (pc) & 7) {
         (void) memmove(pc - 4, pc, 12);
@@ -4391,22 +4448,25 @@ __glXDispSwap_VertexAttrib1dv(GLbyte * pc)
     }
 #endif
 
-    glVertexAttrib1dv((GLuint) bswap_CARD32(pc + 0),
-                      (const GLdouble *) bswap_64_array((uint64_t *) (pc + 4),
-                                                        1));
+    VertexAttrib1dv((GLuint) bswap_CARD32(pc + 0),
+                    (const GLdouble *) bswap_64_array((uint64_t *) (pc + 4),
+                                                      1));
 }
 
 void
 __glXDispSwap_VertexAttrib1sv(GLbyte * pc)
 {
-    glVertexAttrib1sv((GLuint) bswap_CARD32(pc + 0),
-                      (const GLshort *) bswap_16_array((uint16_t *) (pc + 4),
-                                                       1));
+    PFNGLVERTEXATTRIB1SVPROC VertexAttrib1sv =
+        __glGetProcAddress("glVertexAttrib1sv");
+    VertexAttrib1sv((GLuint) bswap_CARD32(pc + 0),
+                    (const GLshort *) bswap_16_array((uint16_t *) (pc + 4), 1));
 }
 
 void
 __glXDispSwap_VertexAttrib2dv(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIB2DVPROC VertexAttrib2dv =
+        __glGetProcAddress("glVertexAttrib2dv");
 #ifdef __GLX_ALIGN64
     if ((unsigned long) (pc) & 7) {
         (void) memmove(pc - 4, pc, 20);
@@ -4414,22 +4474,25 @@ __glXDispSwap_VertexAttrib2dv(GLbyte * pc)
     }
 #endif
 
-    glVertexAttrib2dv((GLuint) bswap_CARD32(pc + 0),
-                      (const GLdouble *) bswap_64_array((uint64_t *) (pc + 4),
-                                                        2));
+    VertexAttrib2dv((GLuint) bswap_CARD32(pc + 0),
+                    (const GLdouble *) bswap_64_array((uint64_t *) (pc + 4),
+                                                      2));
 }
 
 void
 __glXDispSwap_VertexAttrib2sv(GLbyte * pc)
 {
-    glVertexAttrib2sv((GLuint) bswap_CARD32(pc + 0),
-                      (const GLshort *) bswap_16_array((uint16_t *) (pc + 4),
-                                                       2));
+    PFNGLVERTEXATTRIB2SVPROC VertexAttrib2sv =
+        __glGetProcAddress("glVertexAttrib2sv");
+    VertexAttrib2sv((GLuint) bswap_CARD32(pc + 0),
+                    (const GLshort *) bswap_16_array((uint16_t *) (pc + 4), 2));
 }
 
 void
 __glXDispSwap_VertexAttrib3dv(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIB3DVPROC VertexAttrib3dv =
+        __glGetProcAddress("glVertexAttrib3dv");
 #ifdef __GLX_ALIGN64
     if ((unsigned long) (pc) & 7) {
         (void) memmove(pc - 4, pc, 28);
@@ -4437,74 +4500,89 @@ __glXDispSwap_VertexAttrib3dv(GLbyte * pc)
     }
 #endif
 
-    glVertexAttrib3dv((GLuint) bswap_CARD32(pc + 0),
-                      (const GLdouble *) bswap_64_array((uint64_t *) (pc + 4),
-                                                        3));
+    VertexAttrib3dv((GLuint) bswap_CARD32(pc + 0),
+                    (const GLdouble *) bswap_64_array((uint64_t *) (pc + 4),
+                                                      3));
 }
 
 void
 __glXDispSwap_VertexAttrib3sv(GLbyte * pc)
 {
-    glVertexAttrib3sv((GLuint) bswap_CARD32(pc + 0),
-                      (const GLshort *) bswap_16_array((uint16_t *) (pc + 4),
-                                                       3));
+    PFNGLVERTEXATTRIB3SVPROC VertexAttrib3sv =
+        __glGetProcAddress("glVertexAttrib3sv");
+    VertexAttrib3sv((GLuint) bswap_CARD32(pc + 0),
+                    (const GLshort *) bswap_16_array((uint16_t *) (pc + 4), 3));
 }
 
 void
 __glXDispSwap_VertexAttrib4Nbv(GLbyte * pc)
 {
-    glVertexAttrib4Nbv((GLuint) bswap_CARD32(pc + 0),
-                       (const GLbyte *) (pc + 4));
+    PFNGLVERTEXATTRIB4NBVPROC VertexAttrib4Nbv =
+        __glGetProcAddress("glVertexAttrib4Nbv");
+    VertexAttrib4Nbv((GLuint) bswap_CARD32(pc + 0), (const GLbyte *) (pc + 4));
 }
 
 void
 __glXDispSwap_VertexAttrib4Niv(GLbyte * pc)
 {
-    glVertexAttrib4Niv((GLuint) bswap_CARD32(pc + 0),
-                       (const GLint *) bswap_32_array((uint32_t *) (pc + 4),
-                                                      4));
+    PFNGLVERTEXATTRIB4NIVPROC VertexAttrib4Niv =
+        __glGetProcAddress("glVertexAttrib4Niv");
+    VertexAttrib4Niv((GLuint) bswap_CARD32(pc + 0),
+                     (const GLint *) bswap_32_array((uint32_t *) (pc + 4), 4));
 }
 
 void
 __glXDispSwap_VertexAttrib4Nsv(GLbyte * pc)
 {
-    glVertexAttrib4Nsv((GLuint) bswap_CARD32(pc + 0),
-                       (const GLshort *) bswap_16_array((uint16_t *) (pc + 4),
-                                                        4));
+    PFNGLVERTEXATTRIB4NSVPROC VertexAttrib4Nsv =
+        __glGetProcAddress("glVertexAttrib4Nsv");
+    VertexAttrib4Nsv((GLuint) bswap_CARD32(pc + 0),
+                     (const GLshort *) bswap_16_array((uint16_t *) (pc + 4),
+                                                      4));
 }
 
 void
 __glXDispSwap_VertexAttrib4Nubv(GLbyte * pc)
 {
-    glVertexAttrib4Nubv((GLuint) bswap_CARD32(pc + 0),
-                        (const GLubyte *) (pc + 4));
+    PFNGLVERTEXATTRIB4NUBVPROC VertexAttrib4Nubv =
+        __glGetProcAddress("glVertexAttrib4Nubv");
+    VertexAttrib4Nubv((GLuint) bswap_CARD32(pc + 0),
+                      (const GLubyte *) (pc + 4));
 }
 
 void
 __glXDispSwap_VertexAttrib4Nuiv(GLbyte * pc)
 {
-    glVertexAttrib4Nuiv((GLuint) bswap_CARD32(pc + 0),
-                        (const GLuint *) bswap_32_array((uint32_t *) (pc + 4),
-                                                        4));
+    PFNGLVERTEXATTRIB4NUIVPROC VertexAttrib4Nuiv =
+        __glGetProcAddress("glVertexAttrib4Nuiv");
+    VertexAttrib4Nuiv((GLuint) bswap_CARD32(pc + 0),
+                      (const GLuint *) bswap_32_array((uint32_t *) (pc + 4),
+                                                      4));
 }
 
 void
 __glXDispSwap_VertexAttrib4Nusv(GLbyte * pc)
 {
-    glVertexAttrib4Nusv((GLuint) bswap_CARD32(pc + 0),
-                        (const GLushort *) bswap_16_array((uint16_t *) (pc + 4),
-                                                          4));
+    PFNGLVERTEXATTRIB4NUSVPROC VertexAttrib4Nusv =
+        __glGetProcAddress("glVertexAttrib4Nusv");
+    VertexAttrib4Nusv((GLuint) bswap_CARD32(pc + 0),
+                      (const GLushort *) bswap_16_array((uint16_t *) (pc + 4),
+                                                        4));
 }
 
 void
 __glXDispSwap_VertexAttrib4bv(GLbyte * pc)
 {
-    glVertexAttrib4bv((GLuint) bswap_CARD32(pc + 0), (const GLbyte *) (pc + 4));
+    PFNGLVERTEXATTRIB4BVPROC VertexAttrib4bv =
+        __glGetProcAddress("glVertexAttrib4bv");
+    VertexAttrib4bv((GLuint) bswap_CARD32(pc + 0), (const GLbyte *) (pc + 4));
 }
 
 void
 __glXDispSwap_VertexAttrib4dv(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIB4DVPROC VertexAttrib4dv =
+        __glGetProcAddress("glVertexAttrib4dv");
 #ifdef __GLX_ALIGN64
     if ((unsigned long) (pc) & 7) {
         (void) memmove(pc - 4, pc, 36);
@@ -4512,65 +4590,77 @@ __glXDispSwap_VertexAttrib4dv(GLbyte * pc)
     }
 #endif
 
-    glVertexAttrib4dv((GLuint) bswap_CARD32(pc + 0),
-                      (const GLdouble *) bswap_64_array((uint64_t *) (pc + 4),
-                                                        4));
+    VertexAttrib4dv((GLuint) bswap_CARD32(pc + 0),
+                    (const GLdouble *) bswap_64_array((uint64_t *) (pc + 4),
+                                                      4));
 }
 
 void
 __glXDispSwap_VertexAttrib4iv(GLbyte * pc)
 {
-    glVertexAttrib4iv((GLuint) bswap_CARD32(pc + 0),
-                      (const GLint *) bswap_32_array((uint32_t *) (pc + 4), 4));
+    PFNGLVERTEXATTRIB4IVPROC VertexAttrib4iv =
+        __glGetProcAddress("glVertexAttrib4iv");
+    VertexAttrib4iv((GLuint) bswap_CARD32(pc + 0),
+                    (const GLint *) bswap_32_array((uint32_t *) (pc + 4), 4));
 }
 
 void
 __glXDispSwap_VertexAttrib4sv(GLbyte * pc)
 {
-    glVertexAttrib4sv((GLuint) bswap_CARD32(pc + 0),
-                      (const GLshort *) bswap_16_array((uint16_t *) (pc + 4),
-                                                       4));
+    PFNGLVERTEXATTRIB4SVPROC VertexAttrib4sv =
+        __glGetProcAddress("glVertexAttrib4sv");
+    VertexAttrib4sv((GLuint) bswap_CARD32(pc + 0),
+                    (const GLshort *) bswap_16_array((uint16_t *) (pc + 4), 4));
 }
 
 void
 __glXDispSwap_VertexAttrib4ubv(GLbyte * pc)
 {
-    glVertexAttrib4ubv((GLuint) bswap_CARD32(pc + 0),
-                       (const GLubyte *) (pc + 4));
+    PFNGLVERTEXATTRIB4UBVPROC VertexAttrib4ubv =
+        __glGetProcAddress("glVertexAttrib4ubv");
+    VertexAttrib4ubv((GLuint) bswap_CARD32(pc + 0), (const GLubyte *) (pc + 4));
 }
 
 void
 __glXDispSwap_VertexAttrib4uiv(GLbyte * pc)
 {
-    glVertexAttrib4uiv((GLuint) bswap_CARD32(pc + 0),
-                       (const GLuint *) bswap_32_array((uint32_t *) (pc + 4),
-                                                       4));
+    PFNGLVERTEXATTRIB4UIVPROC VertexAttrib4uiv =
+        __glGetProcAddress("glVertexAttrib4uiv");
+    VertexAttrib4uiv((GLuint) bswap_CARD32(pc + 0),
+                     (const GLuint *) bswap_32_array((uint32_t *) (pc + 4), 4));
 }
 
 void
 __glXDispSwap_VertexAttrib4usv(GLbyte * pc)
 {
-    glVertexAttrib4usv((GLuint) bswap_CARD32(pc + 0),
-                       (const GLushort *) bswap_16_array((uint16_t *) (pc + 4),
-                                                         4));
+    PFNGLVERTEXATTRIB4USVPROC VertexAttrib4usv =
+        __glGetProcAddress("glVertexAttrib4usv");
+    VertexAttrib4usv((GLuint) bswap_CARD32(pc + 0),
+                     (const GLushort *) bswap_16_array((uint16_t *) (pc + 4),
+                                                       4));
 }
 
 void
 __glXDispSwap_ClampColor(GLbyte * pc)
 {
-    glClampColor((GLenum) bswap_ENUM(pc + 0), (GLenum) bswap_ENUM(pc + 4));
+    PFNGLCLAMPCOLORPROC ClampColor = __glGetProcAddress("glClampColor");
+
+    ClampColor((GLenum) bswap_ENUM(pc + 0), (GLenum) bswap_ENUM(pc + 4));
 }
 
 void
 __glXDispSwap_BindProgramARB(GLbyte * pc)
 {
-    glBindProgramARB((GLenum) bswap_ENUM(pc + 0),
-                     (GLuint) bswap_CARD32(pc + 4));
+    PFNGLBINDPROGRAMARBPROC BindProgramARB =
+        __glGetProcAddress("glBindProgramARB");
+    BindProgramARB((GLenum) bswap_ENUM(pc + 0), (GLuint) bswap_CARD32(pc + 4));
 }
 
 int
 __glXDispSwap_DeleteProgramsARB(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLDELETEPROGRAMSARBPROC DeleteProgramsARB =
+        __glGetProcAddress("glDeleteProgramsARB");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx =
@@ -4580,9 +4670,9 @@ __glXDispSwap_DeleteProgramsARB(__GLXclientState * cl, GLbyte * pc)
     if (cx != NULL) {
         const GLsizei n = (GLsizei) bswap_CARD32(pc + 0);
 
-        glDeleteProgramsARB(n,
-                            (const GLuint *)
-                            bswap_32_array((uint32_t *) (pc + 4), 0));
+        DeleteProgramsARB(n,
+                          (const GLuint *) bswap_32_array((uint32_t *) (pc + 4),
+                                                          0));
         error = Success;
     }
 
@@ -4592,6 +4682,8 @@ __glXDispSwap_DeleteProgramsARB(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDispSwap_GenProgramsARB(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGENPROGRAMSARBPROC GenProgramsARB =
+        __glGetProcAddress("glGenProgramsARB");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx =
@@ -4605,7 +4697,7 @@ __glXDispSwap_GenProgramsARB(__GLXclientState * cl, GLbyte * pc)
         GLuint *programs =
             __glXGetAnswerBuffer(cl, n * 4, answerBuffer, sizeof(answerBuffer),
                                  4);
-        glGenProgramsARB(n, programs);
+        GenProgramsARB(n, programs);
         (void) bswap_32_array((uint32_t *) programs, n);
         __glXSendReplySwap(cl->client, programs, n, 4, GL_TRUE, 0);
         error = Success;
@@ -4617,6 +4709,8 @@ __glXDispSwap_GenProgramsARB(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDispSwap_GetProgramEnvParameterdvARB(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGETPROGRAMENVPARAMETERDVARBPROC GetProgramEnvParameterdvARB =
+        __glGetProcAddress("glGetProgramEnvParameterdvARB");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx =
@@ -4626,8 +4720,8 @@ __glXDispSwap_GetProgramEnvParameterdvARB(__GLXclientState * cl, GLbyte * pc)
     if (cx != NULL) {
         GLdouble params[4];
 
-        glGetProgramEnvParameterdvARB((GLenum) bswap_ENUM(pc + 0),
-                                      (GLuint) bswap_CARD32(pc + 4), params);
+        GetProgramEnvParameterdvARB((GLenum) bswap_ENUM(pc + 0),
+                                    (GLuint) bswap_CARD32(pc + 4), params);
         (void) bswap_64_array((uint64_t *) params, 4);
         __glXSendReplySwap(cl->client, params, 4, 8, GL_FALSE, 0);
         error = Success;
@@ -4639,6 +4733,8 @@ __glXDispSwap_GetProgramEnvParameterdvARB(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDispSwap_GetProgramEnvParameterfvARB(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGETPROGRAMENVPARAMETERFVARBPROC GetProgramEnvParameterfvARB =
+        __glGetProcAddress("glGetProgramEnvParameterfvARB");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx =
@@ -4648,8 +4744,8 @@ __glXDispSwap_GetProgramEnvParameterfvARB(__GLXclientState * cl, GLbyte * pc)
     if (cx != NULL) {
         GLfloat params[4];
 
-        glGetProgramEnvParameterfvARB((GLenum) bswap_ENUM(pc + 0),
-                                      (GLuint) bswap_CARD32(pc + 4), params);
+        GetProgramEnvParameterfvARB((GLenum) bswap_ENUM(pc + 0),
+                                    (GLuint) bswap_CARD32(pc + 4), params);
         (void) bswap_32_array((uint32_t *) params, 4);
         __glXSendReplySwap(cl->client, params, 4, 4, GL_FALSE, 0);
         error = Success;
@@ -4661,6 +4757,8 @@ __glXDispSwap_GetProgramEnvParameterfvARB(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDispSwap_GetProgramLocalParameterdvARB(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGETPROGRAMLOCALPARAMETERDVARBPROC GetProgramLocalParameterdvARB =
+        __glGetProcAddress("glGetProgramLocalParameterdvARB");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx =
@@ -4670,8 +4768,8 @@ __glXDispSwap_GetProgramLocalParameterdvARB(__GLXclientState * cl, GLbyte * pc)
     if (cx != NULL) {
         GLdouble params[4];
 
-        glGetProgramLocalParameterdvARB((GLenum) bswap_ENUM(pc + 0),
-                                        (GLuint) bswap_CARD32(pc + 4), params);
+        GetProgramLocalParameterdvARB((GLenum) bswap_ENUM(pc + 0),
+                                      (GLuint) bswap_CARD32(pc + 4), params);
         (void) bswap_64_array((uint64_t *) params, 4);
         __glXSendReplySwap(cl->client, params, 4, 8, GL_FALSE, 0);
         error = Success;
@@ -4683,6 +4781,8 @@ __glXDispSwap_GetProgramLocalParameterdvARB(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDispSwap_GetProgramLocalParameterfvARB(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGETPROGRAMLOCALPARAMETERFVARBPROC GetProgramLocalParameterfvARB =
+        __glGetProcAddress("glGetProgramLocalParameterfvARB");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx =
@@ -4692,8 +4792,8 @@ __glXDispSwap_GetProgramLocalParameterfvARB(__GLXclientState * cl, GLbyte * pc)
     if (cx != NULL) {
         GLfloat params[4];
 
-        glGetProgramLocalParameterfvARB((GLenum) bswap_ENUM(pc + 0),
-                                        (GLuint) bswap_CARD32(pc + 4), params);
+        GetProgramLocalParameterfvARB((GLenum) bswap_ENUM(pc + 0),
+                                      (GLuint) bswap_CARD32(pc + 4), params);
         (void) bswap_32_array((uint32_t *) params, 4);
         __glXSendReplySwap(cl->client, params, 4, 4, GL_FALSE, 0);
         error = Success;
@@ -4705,6 +4805,8 @@ __glXDispSwap_GetProgramLocalParameterfvARB(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDispSwap_GetProgramivARB(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGETPROGRAMIVARBPROC GetProgramivARB =
+        __glGetProcAddress("glGetProgramivARB");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx =
@@ -4724,7 +4826,7 @@ __glXDispSwap_GetProgramivARB(__GLXclientState * cl, GLbyte * pc)
             return BadAlloc;
         __glXClearErrorOccured();
 
-        glGetProgramivARB((GLenum) bswap_ENUM(pc + 0), pname, params);
+        GetProgramivARB((GLenum) bswap_ENUM(pc + 0), pname, params);
         (void) bswap_32_array((uint32_t *) params, compsize);
         __glXSendReplySwap(cl->client, params, compsize, 4, GL_FALSE, 0);
         error = Success;
@@ -4736,6 +4838,7 @@ __glXDispSwap_GetProgramivARB(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDispSwap_IsProgramARB(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLISPROGRAMARBPROC IsProgramARB = __glGetProcAddress("glIsProgramARB");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx =
@@ -4745,7 +4848,7 @@ __glXDispSwap_IsProgramARB(__GLXclientState * cl, GLbyte * pc)
     if (cx != NULL) {
         GLboolean retval;
 
-        retval = glIsProgramARB((GLuint) bswap_CARD32(pc + 0));
+        retval = IsProgramARB((GLuint) bswap_CARD32(pc + 0));
         __glXSendReplySwap(cl->client, dummy_answer, 0, 0, GL_FALSE, retval);
         error = Success;
     }
@@ -4756,6 +4859,8 @@ __glXDispSwap_IsProgramARB(__GLXclientState * cl, GLbyte * pc)
 void
 __glXDispSwap_ProgramEnvParameter4dvARB(GLbyte * pc)
 {
+    PFNGLPROGRAMENVPARAMETER4DVARBPROC ProgramEnvParameter4dvARB =
+        __glGetProcAddress("glProgramEnvParameter4dvARB");
 #ifdef __GLX_ALIGN64
     if ((unsigned long) (pc) & 7) {
         (void) memmove(pc - 4, pc, 40);
@@ -4763,120 +4868,141 @@ __glXDispSwap_ProgramEnvParameter4dvARB(GLbyte * pc)
     }
 #endif
 
-    glProgramEnvParameter4dvARB((GLenum) bswap_ENUM(pc + 0),
+    ProgramEnvParameter4dvARB((GLenum) bswap_ENUM(pc + 0),
+                              (GLuint) bswap_CARD32(pc + 4),
+                              (const GLdouble *)
+                              bswap_64_array((uint64_t *) (pc + 8), 4));
+}
+
+void
+__glXDispSwap_ProgramEnvParameter4fvARB(GLbyte * pc)
+{
+    PFNGLPROGRAMENVPARAMETER4FVARBPROC ProgramEnvParameter4fvARB =
+        __glGetProcAddress("glProgramEnvParameter4fvARB");
+    ProgramEnvParameter4fvARB((GLenum) bswap_ENUM(pc + 0),
+                              (GLuint) bswap_CARD32(pc + 4),
+                              (const GLfloat *)
+                              bswap_32_array((uint32_t *) (pc + 8), 4));
+}
+
+void
+__glXDispSwap_ProgramLocalParameter4dvARB(GLbyte * pc)
+{
+    PFNGLPROGRAMLOCALPARAMETER4DVARBPROC ProgramLocalParameter4dvARB =
+        __glGetProcAddress("glProgramLocalParameter4dvARB");
+#ifdef __GLX_ALIGN64
+    if ((unsigned long) (pc) & 7) {
+        (void) memmove(pc - 4, pc, 40);
+        pc -= 4;
+    }
+#endif
+
+    ProgramLocalParameter4dvARB((GLenum) bswap_ENUM(pc + 0),
                                 (GLuint) bswap_CARD32(pc + 4),
                                 (const GLdouble *)
                                 bswap_64_array((uint64_t *) (pc + 8), 4));
 }
 
 void
-__glXDispSwap_ProgramEnvParameter4fvARB(GLbyte * pc)
+__glXDispSwap_ProgramLocalParameter4fvARB(GLbyte * pc)
 {
-    glProgramEnvParameter4fvARB((GLenum) bswap_ENUM(pc + 0),
+    PFNGLPROGRAMLOCALPARAMETER4FVARBPROC ProgramLocalParameter4fvARB =
+        __glGetProcAddress("glProgramLocalParameter4fvARB");
+    ProgramLocalParameter4fvARB((GLenum) bswap_ENUM(pc + 0),
                                 (GLuint) bswap_CARD32(pc + 4),
                                 (const GLfloat *)
                                 bswap_32_array((uint32_t *) (pc + 8), 4));
 }
 
 void
-__glXDispSwap_ProgramLocalParameter4dvARB(GLbyte * pc)
-{
-#ifdef __GLX_ALIGN64
-    if ((unsigned long) (pc) & 7) {
-        (void) memmove(pc - 4, pc, 40);
-        pc -= 4;
-    }
-#endif
-
-    glProgramLocalParameter4dvARB((GLenum) bswap_ENUM(pc + 0),
-                                  (GLuint) bswap_CARD32(pc + 4),
-                                  (const GLdouble *)
-                                  bswap_64_array((uint64_t *) (pc + 8), 4));
-}
-
-void
-__glXDispSwap_ProgramLocalParameter4fvARB(GLbyte * pc)
-{
-    glProgramLocalParameter4fvARB((GLenum) bswap_ENUM(pc + 0),
-                                  (GLuint) bswap_CARD32(pc + 4),
-                                  (const GLfloat *)
-                                  bswap_32_array((uint32_t *) (pc + 8), 4));
-}
-
-void
 __glXDispSwap_ProgramStringARB(GLbyte * pc)
 {
+    PFNGLPROGRAMSTRINGARBPROC ProgramStringARB =
+        __glGetProcAddress("glProgramStringARB");
     const GLsizei len = (GLsizei) bswap_CARD32(pc + 8);
 
-    glProgramStringARB((GLenum) bswap_ENUM(pc + 0),
-                       (GLenum) bswap_ENUM(pc + 4),
-                       len, (const GLvoid *) (pc + 12));
+    ProgramStringARB((GLenum) bswap_ENUM(pc + 0),
+                     (GLenum) bswap_ENUM(pc + 4),
+                     len, (const GLvoid *) (pc + 12));
 }
 
 void
 __glXDispSwap_VertexAttrib1fvARB(GLbyte * pc)
 {
-    glVertexAttrib1fvARB((GLuint) bswap_CARD32(pc + 0),
-                         (const GLfloat *) bswap_32_array((uint32_t *) (pc + 4),
-                                                          1));
+    PFNGLVERTEXATTRIB1FVARBPROC VertexAttrib1fvARB =
+        __glGetProcAddress("glVertexAttrib1fvARB");
+    VertexAttrib1fvARB((GLuint) bswap_CARD32(pc + 0),
+                       (const GLfloat *) bswap_32_array((uint32_t *) (pc + 4),
+                                                        1));
 }
 
 void
 __glXDispSwap_VertexAttrib2fvARB(GLbyte * pc)
 {
-    glVertexAttrib2fvARB((GLuint) bswap_CARD32(pc + 0),
-                         (const GLfloat *) bswap_32_array((uint32_t *) (pc + 4),
-                                                          2));
+    PFNGLVERTEXATTRIB2FVARBPROC VertexAttrib2fvARB =
+        __glGetProcAddress("glVertexAttrib2fvARB");
+    VertexAttrib2fvARB((GLuint) bswap_CARD32(pc + 0),
+                       (const GLfloat *) bswap_32_array((uint32_t *) (pc + 4),
+                                                        2));
 }
 
 void
 __glXDispSwap_VertexAttrib3fvARB(GLbyte * pc)
 {
-    glVertexAttrib3fvARB((GLuint) bswap_CARD32(pc + 0),
-                         (const GLfloat *) bswap_32_array((uint32_t *) (pc + 4),
-                                                          3));
+    PFNGLVERTEXATTRIB3FVARBPROC VertexAttrib3fvARB =
+        __glGetProcAddress("glVertexAttrib3fvARB");
+    VertexAttrib3fvARB((GLuint) bswap_CARD32(pc + 0),
+                       (const GLfloat *) bswap_32_array((uint32_t *) (pc + 4),
+                                                        3));
 }
 
 void
 __glXDispSwap_VertexAttrib4fvARB(GLbyte * pc)
 {
-    glVertexAttrib4fvARB((GLuint) bswap_CARD32(pc + 0),
-                         (const GLfloat *) bswap_32_array((uint32_t *) (pc + 4),
-                                                          4));
+    PFNGLVERTEXATTRIB4FVARBPROC VertexAttrib4fvARB =
+        __glGetProcAddress("glVertexAttrib4fvARB");
+    VertexAttrib4fvARB((GLuint) bswap_CARD32(pc + 0),
+                       (const GLfloat *) bswap_32_array((uint32_t *) (pc + 4),
+                                                        4));
 }
 
 void
 __glXDispSwap_BindFramebuffer(GLbyte * pc)
 {
-    glBindFramebuffer((GLenum) bswap_ENUM(pc + 0),
-                      (GLuint) bswap_CARD32(pc + 4));
+    PFNGLBINDFRAMEBUFFERPROC BindFramebuffer =
+        __glGetProcAddress("glBindFramebuffer");
+    BindFramebuffer((GLenum) bswap_ENUM(pc + 0), (GLuint) bswap_CARD32(pc + 4));
 }
 
 void
 __glXDispSwap_BindRenderbuffer(GLbyte * pc)
 {
-    glBindRenderbuffer((GLenum) bswap_ENUM(pc + 0),
-                       (GLuint) bswap_CARD32(pc + 4));
+    PFNGLBINDRENDERBUFFERPROC BindRenderbuffer =
+        __glGetProcAddress("glBindRenderbuffer");
+    BindRenderbuffer((GLenum) bswap_ENUM(pc + 0),
+                     (GLuint) bswap_CARD32(pc + 4));
 }
 
 void
 __glXDispSwap_BlitFramebuffer(GLbyte * pc)
 {
-    glBlitFramebuffer((GLint) bswap_CARD32(pc + 0),
-                      (GLint) bswap_CARD32(pc + 4),
-                      (GLint) bswap_CARD32(pc + 8),
-                      (GLint) bswap_CARD32(pc + 12),
-                      (GLint) bswap_CARD32(pc + 16),
-                      (GLint) bswap_CARD32(pc + 20),
-                      (GLint) bswap_CARD32(pc + 24),
-                      (GLint) bswap_CARD32(pc + 28),
-                      (GLbitfield) bswap_CARD32(pc + 32),
-                      (GLenum) bswap_ENUM(pc + 36));
+    PFNGLBLITFRAMEBUFFERPROC BlitFramebuffer =
+        __glGetProcAddress("glBlitFramebuffer");
+    BlitFramebuffer((GLint) bswap_CARD32(pc + 0), (GLint) bswap_CARD32(pc + 4),
+                    (GLint) bswap_CARD32(pc + 8), (GLint) bswap_CARD32(pc + 12),
+                    (GLint) bswap_CARD32(pc + 16),
+                    (GLint) bswap_CARD32(pc + 20),
+                    (GLint) bswap_CARD32(pc + 24),
+                    (GLint) bswap_CARD32(pc + 28),
+                    (GLbitfield) bswap_CARD32(pc + 32),
+                    (GLenum) bswap_ENUM(pc + 36));
 }
 
 int
 __glXDispSwap_CheckFramebufferStatus(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLCHECKFRAMEBUFFERSTATUSPROC CheckFramebufferStatus =
+        __glGetProcAddress("glCheckFramebufferStatus");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx =
@@ -4886,7 +5012,7 @@ __glXDispSwap_CheckFramebufferStatus(__GLXclientState * cl, GLbyte * pc)
     if (cx != NULL) {
         GLenum retval;
 
-        retval = glCheckFramebufferStatus((GLenum) bswap_ENUM(pc + 0));
+        retval = CheckFramebufferStatus((GLenum) bswap_ENUM(pc + 0));
         __glXSendReplySwap(cl->client, dummy_answer, 0, 0, GL_FALSE, retval);
         error = Success;
     }
@@ -4897,76 +5023,92 @@ __glXDispSwap_CheckFramebufferStatus(__GLXclientState * cl, GLbyte * pc)
 void
 __glXDispSwap_DeleteFramebuffers(GLbyte * pc)
 {
+    PFNGLDELETEFRAMEBUFFERSPROC DeleteFramebuffers =
+        __glGetProcAddress("glDeleteFramebuffers");
     const GLsizei n = (GLsizei) bswap_CARD32(pc + 0);
 
-    glDeleteFramebuffers(n,
-                         (const GLuint *) bswap_32_array((uint32_t *) (pc + 4),
-                                                         0));
+    DeleteFramebuffers(n,
+                       (const GLuint *) bswap_32_array((uint32_t *) (pc + 4),
+                                                       0));
 }
 
 void
 __glXDispSwap_DeleteRenderbuffers(GLbyte * pc)
 {
+    PFNGLDELETERENDERBUFFERSPROC DeleteRenderbuffers =
+        __glGetProcAddress("glDeleteRenderbuffers");
     const GLsizei n = (GLsizei) bswap_CARD32(pc + 0);
 
-    glDeleteRenderbuffers(n,
-                          (const GLuint *) bswap_32_array((uint32_t *) (pc + 4),
-                                                          0));
+    DeleteRenderbuffers(n,
+                        (const GLuint *) bswap_32_array((uint32_t *) (pc + 4),
+                                                        0));
 }
 
 void
 __glXDispSwap_FramebufferRenderbuffer(GLbyte * pc)
 {
-    glFramebufferRenderbuffer((GLenum) bswap_ENUM(pc + 0),
-                              (GLenum) bswap_ENUM(pc + 4),
-                              (GLenum) bswap_ENUM(pc + 8),
-                              (GLuint) bswap_CARD32(pc + 12));
+    PFNGLFRAMEBUFFERRENDERBUFFERPROC FramebufferRenderbuffer =
+        __glGetProcAddress("glFramebufferRenderbuffer");
+    FramebufferRenderbuffer((GLenum) bswap_ENUM(pc + 0),
+                            (GLenum) bswap_ENUM(pc + 4),
+                            (GLenum) bswap_ENUM(pc + 8),
+                            (GLuint) bswap_CARD32(pc + 12));
 }
 
 void
 __glXDispSwap_FramebufferTexture1D(GLbyte * pc)
 {
-    glFramebufferTexture1D((GLenum) bswap_ENUM(pc + 0),
-                           (GLenum) bswap_ENUM(pc + 4),
-                           (GLenum) bswap_ENUM(pc + 8),
-                           (GLuint) bswap_CARD32(pc + 12),
-                           (GLint) bswap_CARD32(pc + 16));
+    PFNGLFRAMEBUFFERTEXTURE1DPROC FramebufferTexture1D =
+        __glGetProcAddress("glFramebufferTexture1D");
+    FramebufferTexture1D((GLenum) bswap_ENUM(pc + 0),
+                         (GLenum) bswap_ENUM(pc + 4),
+                         (GLenum) bswap_ENUM(pc + 8),
+                         (GLuint) bswap_CARD32(pc + 12),
+                         (GLint) bswap_CARD32(pc + 16));
 }
 
 void
 __glXDispSwap_FramebufferTexture2D(GLbyte * pc)
 {
-    glFramebufferTexture2D((GLenum) bswap_ENUM(pc + 0),
-                           (GLenum) bswap_ENUM(pc + 4),
-                           (GLenum) bswap_ENUM(pc + 8),
-                           (GLuint) bswap_CARD32(pc + 12),
-                           (GLint) bswap_CARD32(pc + 16));
+    PFNGLFRAMEBUFFERTEXTURE2DPROC FramebufferTexture2D =
+        __glGetProcAddress("glFramebufferTexture2D");
+    FramebufferTexture2D((GLenum) bswap_ENUM(pc + 0),
+                         (GLenum) bswap_ENUM(pc + 4),
+                         (GLenum) bswap_ENUM(pc + 8),
+                         (GLuint) bswap_CARD32(pc + 12),
+                         (GLint) bswap_CARD32(pc + 16));
 }
 
 void
 __glXDispSwap_FramebufferTexture3D(GLbyte * pc)
 {
-    glFramebufferTexture3D((GLenum) bswap_ENUM(pc + 0),
-                           (GLenum) bswap_ENUM(pc + 4),
-                           (GLenum) bswap_ENUM(pc + 8),
-                           (GLuint) bswap_CARD32(pc + 12),
-                           (GLint) bswap_CARD32(pc + 16),
-                           (GLint) bswap_CARD32(pc + 20));
+    PFNGLFRAMEBUFFERTEXTURE3DPROC FramebufferTexture3D =
+        __glGetProcAddress("glFramebufferTexture3D");
+    FramebufferTexture3D((GLenum) bswap_ENUM(pc + 0),
+                         (GLenum) bswap_ENUM(pc + 4),
+                         (GLenum) bswap_ENUM(pc + 8),
+                         (GLuint) bswap_CARD32(pc + 12),
+                         (GLint) bswap_CARD32(pc + 16),
+                         (GLint) bswap_CARD32(pc + 20));
 }
 
 void
 __glXDispSwap_FramebufferTextureLayer(GLbyte * pc)
 {
-    glFramebufferTextureLayer((GLenum) bswap_ENUM(pc + 0),
-                              (GLenum) bswap_ENUM(pc + 4),
-                              (GLuint) bswap_CARD32(pc + 8),
-                              (GLint) bswap_CARD32(pc + 12),
-                              (GLint) bswap_CARD32(pc + 16));
+    PFNGLFRAMEBUFFERTEXTURELAYERPROC FramebufferTextureLayer =
+        __glGetProcAddress("glFramebufferTextureLayer");
+    FramebufferTextureLayer((GLenum) bswap_ENUM(pc + 0),
+                            (GLenum) bswap_ENUM(pc + 4),
+                            (GLuint) bswap_CARD32(pc + 8),
+                            (GLint) bswap_CARD32(pc + 12),
+                            (GLint) bswap_CARD32(pc + 16));
 }
 
 int
 __glXDispSwap_GenFramebuffers(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGENFRAMEBUFFERSPROC GenFramebuffers =
+        __glGetProcAddress("glGenFramebuffers");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx =
@@ -4980,7 +5122,7 @@ __glXDispSwap_GenFramebuffers(__GLXclientState * cl, GLbyte * pc)
         GLuint *framebuffers =
             __glXGetAnswerBuffer(cl, n * 4, answerBuffer, sizeof(answerBuffer),
                                  4);
-        glGenFramebuffers(n, framebuffers);
+        GenFramebuffers(n, framebuffers);
         (void) bswap_32_array((uint32_t *) framebuffers, n);
         __glXSendReplySwap(cl->client, framebuffers, n, 4, GL_TRUE, 0);
         error = Success;
@@ -4992,6 +5134,8 @@ __glXDispSwap_GenFramebuffers(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDispSwap_GenRenderbuffers(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGENRENDERBUFFERSPROC GenRenderbuffers =
+        __glGetProcAddress("glGenRenderbuffers");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx =
@@ -5005,7 +5149,7 @@ __glXDispSwap_GenRenderbuffers(__GLXclientState * cl, GLbyte * pc)
         GLuint *renderbuffers =
             __glXGetAnswerBuffer(cl, n * 4, answerBuffer, sizeof(answerBuffer),
                                  4);
-        glGenRenderbuffers(n, renderbuffers);
+        GenRenderbuffers(n, renderbuffers);
         (void) bswap_32_array((uint32_t *) renderbuffers, n);
         __glXSendReplySwap(cl->client, renderbuffers, n, 4, GL_TRUE, 0);
         error = Success;
@@ -5017,13 +5161,18 @@ __glXDispSwap_GenRenderbuffers(__GLXclientState * cl, GLbyte * pc)
 void
 __glXDispSwap_GenerateMipmap(GLbyte * pc)
 {
-    glGenerateMipmap((GLenum) bswap_ENUM(pc + 0));
+    PFNGLGENERATEMIPMAPPROC GenerateMipmap =
+        __glGetProcAddress("glGenerateMipmap");
+    GenerateMipmap((GLenum) bswap_ENUM(pc + 0));
 }
 
 int
 __glXDispSwap_GetFramebufferAttachmentParameteriv(__GLXclientState * cl,
                                                   GLbyte * pc)
 {
+    PFNGLGETFRAMEBUFFERATTACHMENTPARAMETERIVPROC
+        GetFramebufferAttachmentParameteriv =
+        __glGetProcAddress("glGetFramebufferAttachmentParameteriv");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx =
@@ -5033,10 +5182,10 @@ __glXDispSwap_GetFramebufferAttachmentParameteriv(__GLXclientState * cl,
     if (cx != NULL) {
         GLint params[1];
 
-        glGetFramebufferAttachmentParameteriv((GLenum) bswap_ENUM(pc + 0),
-                                              (GLenum) bswap_ENUM(pc + 4),
-                                              (GLenum) bswap_ENUM(pc + 8),
-                                              params);
+        GetFramebufferAttachmentParameteriv((GLenum) bswap_ENUM(pc + 0),
+                                            (GLenum) bswap_ENUM(pc + 4),
+                                            (GLenum) bswap_ENUM(pc + 8),
+                                            params);
         (void) bswap_32_array((uint32_t *) params, 1);
         __glXSendReplySwap(cl->client, params, 1, 4, GL_FALSE, 0);
         error = Success;
@@ -5048,6 +5197,8 @@ __glXDispSwap_GetFramebufferAttachmentParameteriv(__GLXclientState * cl,
 int
 __glXDispSwap_GetRenderbufferParameteriv(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGETRENDERBUFFERPARAMETERIVPROC GetRenderbufferParameteriv =
+        __glGetProcAddress("glGetRenderbufferParameteriv");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx =
@@ -5057,8 +5208,8 @@ __glXDispSwap_GetRenderbufferParameteriv(__GLXclientState * cl, GLbyte * pc)
     if (cx != NULL) {
         GLint params[1];
 
-        glGetRenderbufferParameteriv((GLenum) bswap_ENUM(pc + 0),
-                                     (GLenum) bswap_ENUM(pc + 4), params);
+        GetRenderbufferParameteriv((GLenum) bswap_ENUM(pc + 0),
+                                   (GLenum) bswap_ENUM(pc + 4), params);
         (void) bswap_32_array((uint32_t *) params, 1);
         __glXSendReplySwap(cl->client, params, 1, 4, GL_FALSE, 0);
         error = Success;
@@ -5070,6 +5221,8 @@ __glXDispSwap_GetRenderbufferParameteriv(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDispSwap_IsFramebuffer(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLISFRAMEBUFFERPROC IsFramebuffer =
+        __glGetProcAddress("glIsFramebuffer");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx =
@@ -5079,7 +5232,7 @@ __glXDispSwap_IsFramebuffer(__GLXclientState * cl, GLbyte * pc)
     if (cx != NULL) {
         GLboolean retval;
 
-        retval = glIsFramebuffer((GLuint) bswap_CARD32(pc + 0));
+        retval = IsFramebuffer((GLuint) bswap_CARD32(pc + 0));
         __glXSendReplySwap(cl->client, dummy_answer, 0, 0, GL_FALSE, retval);
         error = Success;
     }
@@ -5090,6 +5243,8 @@ __glXDispSwap_IsFramebuffer(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDispSwap_IsRenderbuffer(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLISRENDERBUFFERPROC IsRenderbuffer =
+        __glGetProcAddress("glIsRenderbuffer");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx =
@@ -5099,7 +5254,7 @@ __glXDispSwap_IsRenderbuffer(__GLXclientState * cl, GLbyte * pc)
     if (cx != NULL) {
         GLboolean retval;
 
-        retval = glIsRenderbuffer((GLuint) bswap_CARD32(pc + 0));
+        retval = IsRenderbuffer((GLuint) bswap_CARD32(pc + 0));
         __glXSendReplySwap(cl->client, dummy_answer, 0, 0, GL_FALSE, retval);
         error = Success;
     }
@@ -5110,38 +5265,48 @@ __glXDispSwap_IsRenderbuffer(__GLXclientState * cl, GLbyte * pc)
 void
 __glXDispSwap_RenderbufferStorage(GLbyte * pc)
 {
-    glRenderbufferStorage((GLenum) bswap_ENUM(pc + 0),
-                          (GLenum) bswap_ENUM(pc + 4),
-                          (GLsizei) bswap_CARD32(pc + 8),
-                          (GLsizei) bswap_CARD32(pc + 12));
+    PFNGLRENDERBUFFERSTORAGEPROC RenderbufferStorage =
+        __glGetProcAddress("glRenderbufferStorage");
+    RenderbufferStorage((GLenum) bswap_ENUM(pc + 0),
+                        (GLenum) bswap_ENUM(pc + 4),
+                        (GLsizei) bswap_CARD32(pc + 8),
+                        (GLsizei) bswap_CARD32(pc + 12));
 }
 
 void
 __glXDispSwap_RenderbufferStorageMultisample(GLbyte * pc)
 {
-    glRenderbufferStorageMultisample((GLenum) bswap_ENUM(pc + 0),
-                                     (GLsizei) bswap_CARD32(pc + 4),
-                                     (GLenum) bswap_ENUM(pc + 8),
-                                     (GLsizei) bswap_CARD32(pc + 12),
-                                     (GLsizei) bswap_CARD32(pc + 16));
+    PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC RenderbufferStorageMultisample =
+        __glGetProcAddress("glRenderbufferStorageMultisample");
+    RenderbufferStorageMultisample((GLenum) bswap_ENUM(pc + 0),
+                                   (GLsizei) bswap_CARD32(pc + 4),
+                                   (GLenum) bswap_ENUM(pc + 8),
+                                   (GLsizei) bswap_CARD32(pc + 12),
+                                   (GLsizei) bswap_CARD32(pc + 16));
 }
 
 void
 __glXDispSwap_SecondaryColor3fvEXT(GLbyte * pc)
 {
-    glSecondaryColor3fvEXT((const GLfloat *)
-                           bswap_32_array((uint32_t *) (pc + 0), 3));
+    PFNGLSECONDARYCOLOR3FVEXTPROC SecondaryColor3fvEXT =
+        __glGetProcAddress("glSecondaryColor3fvEXT");
+    SecondaryColor3fvEXT((const GLfloat *)
+                         bswap_32_array((uint32_t *) (pc + 0), 3));
 }
 
 void
 __glXDispSwap_FogCoordfvEXT(GLbyte * pc)
 {
-    glFogCoordfvEXT((const GLfloat *) bswap_32_array((uint32_t *) (pc + 0), 1));
+    PFNGLFOGCOORDFVEXTPROC FogCoordfvEXT =
+        __glGetProcAddress("glFogCoordfvEXT");
+    FogCoordfvEXT((const GLfloat *) bswap_32_array((uint32_t *) (pc + 0), 1));
 }
 
 void
 __glXDispSwap_VertexAttrib1dvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIB1DVNVPROC VertexAttrib1dvNV =
+        __glGetProcAddress("glVertexAttrib1dvNV");
 #ifdef __GLX_ALIGN64
     if ((unsigned long) (pc) & 7) {
         (void) memmove(pc - 4, pc, 12);
@@ -5149,30 +5314,36 @@ __glXDispSwap_VertexAttrib1dvNV(GLbyte * pc)
     }
 #endif
 
-    glVertexAttrib1dvNV((GLuint) bswap_CARD32(pc + 0),
-                        (const GLdouble *) bswap_64_array((uint64_t *) (pc + 4),
-                                                          1));
+    VertexAttrib1dvNV((GLuint) bswap_CARD32(pc + 0),
+                      (const GLdouble *) bswap_64_array((uint64_t *) (pc + 4),
+                                                        1));
 }
 
 void
 __glXDispSwap_VertexAttrib1fvNV(GLbyte * pc)
 {
-    glVertexAttrib1fvNV((GLuint) bswap_CARD32(pc + 0),
-                        (const GLfloat *) bswap_32_array((uint32_t *) (pc + 4),
-                                                         1));
+    PFNGLVERTEXATTRIB1FVNVPROC VertexAttrib1fvNV =
+        __glGetProcAddress("glVertexAttrib1fvNV");
+    VertexAttrib1fvNV((GLuint) bswap_CARD32(pc + 0),
+                      (const GLfloat *) bswap_32_array((uint32_t *) (pc + 4),
+                                                       1));
 }
 
 void
 __glXDispSwap_VertexAttrib1svNV(GLbyte * pc)
 {
-    glVertexAttrib1svNV((GLuint) bswap_CARD32(pc + 0),
-                        (const GLshort *) bswap_16_array((uint16_t *) (pc + 4),
-                                                         1));
+    PFNGLVERTEXATTRIB1SVNVPROC VertexAttrib1svNV =
+        __glGetProcAddress("glVertexAttrib1svNV");
+    VertexAttrib1svNV((GLuint) bswap_CARD32(pc + 0),
+                      (const GLshort *) bswap_16_array((uint16_t *) (pc + 4),
+                                                       1));
 }
 
 void
 __glXDispSwap_VertexAttrib2dvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIB2DVNVPROC VertexAttrib2dvNV =
+        __glGetProcAddress("glVertexAttrib2dvNV");
 #ifdef __GLX_ALIGN64
     if ((unsigned long) (pc) & 7) {
         (void) memmove(pc - 4, pc, 20);
@@ -5180,30 +5351,36 @@ __glXDispSwap_VertexAttrib2dvNV(GLbyte * pc)
     }
 #endif
 
-    glVertexAttrib2dvNV((GLuint) bswap_CARD32(pc + 0),
-                        (const GLdouble *) bswap_64_array((uint64_t *) (pc + 4),
-                                                          2));
+    VertexAttrib2dvNV((GLuint) bswap_CARD32(pc + 0),
+                      (const GLdouble *) bswap_64_array((uint64_t *) (pc + 4),
+                                                        2));
 }
 
 void
 __glXDispSwap_VertexAttrib2fvNV(GLbyte * pc)
 {
-    glVertexAttrib2fvNV((GLuint) bswap_CARD32(pc + 0),
-                        (const GLfloat *) bswap_32_array((uint32_t *) (pc + 4),
-                                                         2));
+    PFNGLVERTEXATTRIB2FVNVPROC VertexAttrib2fvNV =
+        __glGetProcAddress("glVertexAttrib2fvNV");
+    VertexAttrib2fvNV((GLuint) bswap_CARD32(pc + 0),
+                      (const GLfloat *) bswap_32_array((uint32_t *) (pc + 4),
+                                                       2));
 }
 
 void
 __glXDispSwap_VertexAttrib2svNV(GLbyte * pc)
 {
-    glVertexAttrib2svNV((GLuint) bswap_CARD32(pc + 0),
-                        (const GLshort *) bswap_16_array((uint16_t *) (pc + 4),
-                                                         2));
+    PFNGLVERTEXATTRIB2SVNVPROC VertexAttrib2svNV =
+        __glGetProcAddress("glVertexAttrib2svNV");
+    VertexAttrib2svNV((GLuint) bswap_CARD32(pc + 0),
+                      (const GLshort *) bswap_16_array((uint16_t *) (pc + 4),
+                                                       2));
 }
 
 void
 __glXDispSwap_VertexAttrib3dvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIB3DVNVPROC VertexAttrib3dvNV =
+        __glGetProcAddress("glVertexAttrib3dvNV");
 #ifdef __GLX_ALIGN64
     if ((unsigned long) (pc) & 7) {
         (void) memmove(pc - 4, pc, 28);
@@ -5211,30 +5388,36 @@ __glXDispSwap_VertexAttrib3dvNV(GLbyte * pc)
     }
 #endif
 
-    glVertexAttrib3dvNV((GLuint) bswap_CARD32(pc + 0),
-                        (const GLdouble *) bswap_64_array((uint64_t *) (pc + 4),
-                                                          3));
+    VertexAttrib3dvNV((GLuint) bswap_CARD32(pc + 0),
+                      (const GLdouble *) bswap_64_array((uint64_t *) (pc + 4),
+                                                        3));
 }
 
 void
 __glXDispSwap_VertexAttrib3fvNV(GLbyte * pc)
 {
-    glVertexAttrib3fvNV((GLuint) bswap_CARD32(pc + 0),
-                        (const GLfloat *) bswap_32_array((uint32_t *) (pc + 4),
-                                                         3));
+    PFNGLVERTEXATTRIB3FVNVPROC VertexAttrib3fvNV =
+        __glGetProcAddress("glVertexAttrib3fvNV");
+    VertexAttrib3fvNV((GLuint) bswap_CARD32(pc + 0),
+                      (const GLfloat *) bswap_32_array((uint32_t *) (pc + 4),
+                                                       3));
 }
 
 void
 __glXDispSwap_VertexAttrib3svNV(GLbyte * pc)
 {
-    glVertexAttrib3svNV((GLuint) bswap_CARD32(pc + 0),
-                        (const GLshort *) bswap_16_array((uint16_t *) (pc + 4),
-                                                         3));
+    PFNGLVERTEXATTRIB3SVNVPROC VertexAttrib3svNV =
+        __glGetProcAddress("glVertexAttrib3svNV");
+    VertexAttrib3svNV((GLuint) bswap_CARD32(pc + 0),
+                      (const GLshort *) bswap_16_array((uint16_t *) (pc + 4),
+                                                       3));
 }
 
 void
 __glXDispSwap_VertexAttrib4dvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIB4DVNVPROC VertexAttrib4dvNV =
+        __glGetProcAddress("glVertexAttrib4dvNV");
 #ifdef __GLX_ALIGN64
     if ((unsigned long) (pc) & 7) {
         (void) memmove(pc - 4, pc, 36);
@@ -5242,37 +5425,45 @@ __glXDispSwap_VertexAttrib4dvNV(GLbyte * pc)
     }
 #endif
 
-    glVertexAttrib4dvNV((GLuint) bswap_CARD32(pc + 0),
-                        (const GLdouble *) bswap_64_array((uint64_t *) (pc + 4),
-                                                          4));
+    VertexAttrib4dvNV((GLuint) bswap_CARD32(pc + 0),
+                      (const GLdouble *) bswap_64_array((uint64_t *) (pc + 4),
+                                                        4));
 }
 
 void
 __glXDispSwap_VertexAttrib4fvNV(GLbyte * pc)
 {
-    glVertexAttrib4fvNV((GLuint) bswap_CARD32(pc + 0),
-                        (const GLfloat *) bswap_32_array((uint32_t *) (pc + 4),
-                                                         4));
+    PFNGLVERTEXATTRIB4FVNVPROC VertexAttrib4fvNV =
+        __glGetProcAddress("glVertexAttrib4fvNV");
+    VertexAttrib4fvNV((GLuint) bswap_CARD32(pc + 0),
+                      (const GLfloat *) bswap_32_array((uint32_t *) (pc + 4),
+                                                       4));
 }
 
 void
 __glXDispSwap_VertexAttrib4svNV(GLbyte * pc)
 {
-    glVertexAttrib4svNV((GLuint) bswap_CARD32(pc + 0),
-                        (const GLshort *) bswap_16_array((uint16_t *) (pc + 4),
-                                                         4));
+    PFNGLVERTEXATTRIB4SVNVPROC VertexAttrib4svNV =
+        __glGetProcAddress("glVertexAttrib4svNV");
+    VertexAttrib4svNV((GLuint) bswap_CARD32(pc + 0),
+                      (const GLshort *) bswap_16_array((uint16_t *) (pc + 4),
+                                                       4));
 }
 
 void
 __glXDispSwap_VertexAttrib4ubvNV(GLbyte * pc)
 {
-    glVertexAttrib4ubvNV((GLuint) bswap_CARD32(pc + 0),
-                         (const GLubyte *) (pc + 4));
+    PFNGLVERTEXATTRIB4UBVNVPROC VertexAttrib4ubvNV =
+        __glGetProcAddress("glVertexAttrib4ubvNV");
+    VertexAttrib4ubvNV((GLuint) bswap_CARD32(pc + 0),
+                       (const GLubyte *) (pc + 4));
 }
 
 void
 __glXDispSwap_VertexAttribs1dvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS1DVNVPROC VertexAttribs1dvNV =
+        __glGetProcAddress("glVertexAttribs1dvNV");
     const GLsizei n = (GLsizei) bswap_CARD32(pc + 4);
 
 #ifdef __GLX_ALIGN64
@@ -5284,37 +5475,43 @@ __glXDispSwap_VertexAttribs1dvNV(GLbyte * pc)
     }
 #endif
 
-    glVertexAttribs1dvNV((GLuint) bswap_CARD32(pc + 0),
-                         n,
-                         (const GLdouble *)
-                         bswap_64_array((uint64_t *) (pc + 8), 0));
+    VertexAttribs1dvNV((GLuint) bswap_CARD32(pc + 0),
+                       n,
+                       (const GLdouble *) bswap_64_array((uint64_t *) (pc + 8),
+                                                         0));
 }
 
 void
 __glXDispSwap_VertexAttribs1fvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS1FVNVPROC VertexAttribs1fvNV =
+        __glGetProcAddress("glVertexAttribs1fvNV");
     const GLsizei n = (GLsizei) bswap_CARD32(pc + 4);
 
-    glVertexAttribs1fvNV((GLuint) bswap_CARD32(pc + 0),
-                         n,
-                         (const GLfloat *) bswap_32_array((uint32_t *) (pc + 8),
-                                                          0));
+    VertexAttribs1fvNV((GLuint) bswap_CARD32(pc + 0),
+                       n,
+                       (const GLfloat *) bswap_32_array((uint32_t *) (pc + 8),
+                                                        0));
 }
 
 void
 __glXDispSwap_VertexAttribs1svNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS1SVNVPROC VertexAttribs1svNV =
+        __glGetProcAddress("glVertexAttribs1svNV");
     const GLsizei n = (GLsizei) bswap_CARD32(pc + 4);
 
-    glVertexAttribs1svNV((GLuint) bswap_CARD32(pc + 0),
-                         n,
-                         (const GLshort *) bswap_16_array((uint16_t *) (pc + 8),
-                                                          0));
+    VertexAttribs1svNV((GLuint) bswap_CARD32(pc + 0),
+                       n,
+                       (const GLshort *) bswap_16_array((uint16_t *) (pc + 8),
+                                                        0));
 }
 
 void
 __glXDispSwap_VertexAttribs2dvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS2DVNVPROC VertexAttribs2dvNV =
+        __glGetProcAddress("glVertexAttribs2dvNV");
     const GLsizei n = (GLsizei) bswap_CARD32(pc + 4);
 
 #ifdef __GLX_ALIGN64
@@ -5326,37 +5523,43 @@ __glXDispSwap_VertexAttribs2dvNV(GLbyte * pc)
     }
 #endif
 
-    glVertexAttribs2dvNV((GLuint) bswap_CARD32(pc + 0),
-                         n,
-                         (const GLdouble *)
-                         bswap_64_array((uint64_t *) (pc + 8), 0));
+    VertexAttribs2dvNV((GLuint) bswap_CARD32(pc + 0),
+                       n,
+                       (const GLdouble *) bswap_64_array((uint64_t *) (pc + 8),
+                                                         0));
 }
 
 void
 __glXDispSwap_VertexAttribs2fvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS2FVNVPROC VertexAttribs2fvNV =
+        __glGetProcAddress("glVertexAttribs2fvNV");
     const GLsizei n = (GLsizei) bswap_CARD32(pc + 4);
 
-    glVertexAttribs2fvNV((GLuint) bswap_CARD32(pc + 0),
-                         n,
-                         (const GLfloat *) bswap_32_array((uint32_t *) (pc + 8),
-                                                          0));
+    VertexAttribs2fvNV((GLuint) bswap_CARD32(pc + 0),
+                       n,
+                       (const GLfloat *) bswap_32_array((uint32_t *) (pc + 8),
+                                                        0));
 }
 
 void
 __glXDispSwap_VertexAttribs2svNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS2SVNVPROC VertexAttribs2svNV =
+        __glGetProcAddress("glVertexAttribs2svNV");
     const GLsizei n = (GLsizei) bswap_CARD32(pc + 4);
 
-    glVertexAttribs2svNV((GLuint) bswap_CARD32(pc + 0),
-                         n,
-                         (const GLshort *) bswap_16_array((uint16_t *) (pc + 8),
-                                                          0));
+    VertexAttribs2svNV((GLuint) bswap_CARD32(pc + 0),
+                       n,
+                       (const GLshort *) bswap_16_array((uint16_t *) (pc + 8),
+                                                        0));
 }
 
 void
 __glXDispSwap_VertexAttribs3dvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS3DVNVPROC VertexAttribs3dvNV =
+        __glGetProcAddress("glVertexAttribs3dvNV");
     const GLsizei n = (GLsizei) bswap_CARD32(pc + 4);
 
 #ifdef __GLX_ALIGN64
@@ -5368,37 +5571,43 @@ __glXDispSwap_VertexAttribs3dvNV(GLbyte * pc)
     }
 #endif
 
-    glVertexAttribs3dvNV((GLuint) bswap_CARD32(pc + 0),
-                         n,
-                         (const GLdouble *)
-                         bswap_64_array((uint64_t *) (pc + 8), 0));
+    VertexAttribs3dvNV((GLuint) bswap_CARD32(pc + 0),
+                       n,
+                       (const GLdouble *) bswap_64_array((uint64_t *) (pc + 8),
+                                                         0));
 }
 
 void
 __glXDispSwap_VertexAttribs3fvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS3FVNVPROC VertexAttribs3fvNV =
+        __glGetProcAddress("glVertexAttribs3fvNV");
     const GLsizei n = (GLsizei) bswap_CARD32(pc + 4);
 
-    glVertexAttribs3fvNV((GLuint) bswap_CARD32(pc + 0),
-                         n,
-                         (const GLfloat *) bswap_32_array((uint32_t *) (pc + 8),
-                                                          0));
+    VertexAttribs3fvNV((GLuint) bswap_CARD32(pc + 0),
+                       n,
+                       (const GLfloat *) bswap_32_array((uint32_t *) (pc + 8),
+                                                        0));
 }
 
 void
 __glXDispSwap_VertexAttribs3svNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS3SVNVPROC VertexAttribs3svNV =
+        __glGetProcAddress("glVertexAttribs3svNV");
     const GLsizei n = (GLsizei) bswap_CARD32(pc + 4);
 
-    glVertexAttribs3svNV((GLuint) bswap_CARD32(pc + 0),
-                         n,
-                         (const GLshort *) bswap_16_array((uint16_t *) (pc + 8),
-                                                          0));
+    VertexAttribs3svNV((GLuint) bswap_CARD32(pc + 0),
+                       n,
+                       (const GLshort *) bswap_16_array((uint16_t *) (pc + 8),
+                                                        0));
 }
 
 void
 __glXDispSwap_VertexAttribs4dvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS4DVNVPROC VertexAttribs4dvNV =
+        __glGetProcAddress("glVertexAttribs4dvNV");
     const GLsizei n = (GLsizei) bswap_CARD32(pc + 4);
 
 #ifdef __GLX_ALIGN64
@@ -5410,45 +5619,53 @@ __glXDispSwap_VertexAttribs4dvNV(GLbyte * pc)
     }
 #endif
 
-    glVertexAttribs4dvNV((GLuint) bswap_CARD32(pc + 0),
-                         n,
-                         (const GLdouble *)
-                         bswap_64_array((uint64_t *) (pc + 8), 0));
+    VertexAttribs4dvNV((GLuint) bswap_CARD32(pc + 0),
+                       n,
+                       (const GLdouble *) bswap_64_array((uint64_t *) (pc + 8),
+                                                         0));
 }
 
 void
 __glXDispSwap_VertexAttribs4fvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS4FVNVPROC VertexAttribs4fvNV =
+        __glGetProcAddress("glVertexAttribs4fvNV");
     const GLsizei n = (GLsizei) bswap_CARD32(pc + 4);
 
-    glVertexAttribs4fvNV((GLuint) bswap_CARD32(pc + 0),
-                         n,
-                         (const GLfloat *) bswap_32_array((uint32_t *) (pc + 8),
-                                                          0));
+    VertexAttribs4fvNV((GLuint) bswap_CARD32(pc + 0),
+                       n,
+                       (const GLfloat *) bswap_32_array((uint32_t *) (pc + 8),
+                                                        0));
 }
 
 void
 __glXDispSwap_VertexAttribs4svNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS4SVNVPROC VertexAttribs4svNV =
+        __glGetProcAddress("glVertexAttribs4svNV");
     const GLsizei n = (GLsizei) bswap_CARD32(pc + 4);
 
-    glVertexAttribs4svNV((GLuint) bswap_CARD32(pc + 0),
-                         n,
-                         (const GLshort *) bswap_16_array((uint16_t *) (pc + 8),
-                                                          0));
+    VertexAttribs4svNV((GLuint) bswap_CARD32(pc + 0),
+                       n,
+                       (const GLshort *) bswap_16_array((uint16_t *) (pc + 8),
+                                                        0));
 }
 
 void
 __glXDispSwap_VertexAttribs4ubvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS4UBVNVPROC VertexAttribs4ubvNV =
+        __glGetProcAddress("glVertexAttribs4ubvNV");
     const GLsizei n = (GLsizei) bswap_CARD32(pc + 4);
 
-    glVertexAttribs4ubvNV((GLuint) bswap_CARD32(pc + 0),
-                          n, (const GLubyte *) (pc + 8));
+    VertexAttribs4ubvNV((GLuint) bswap_CARD32(pc + 0),
+                        n, (const GLubyte *) (pc + 8));
 }
 
 void
 __glXDispSwap_ActiveStencilFaceEXT(GLbyte * pc)
 {
-    glActiveStencilFaceEXT((GLenum) bswap_ENUM(pc + 0));
+    PFNGLACTIVESTENCILFACEEXTPROC ActiveStencilFaceEXT =
+        __glGetProcAddress("glActiveStencilFaceEXT");
+    ActiveStencilFaceEXT((GLenum) bswap_ENUM(pc + 0));
 }

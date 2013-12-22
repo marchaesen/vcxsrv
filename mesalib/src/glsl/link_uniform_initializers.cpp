@@ -224,15 +224,15 @@ link_set_uniform_initializers(struct gl_shader_program *prog)
       foreach_list(node, shader->ir) {
 	 ir_variable *const var = ((ir_instruction *) node)->as_variable();
 
-	 if (!var || var->mode != ir_var_uniform)
+	 if (!var || var->data.mode != ir_var_uniform)
 	    continue;
 
 	 if (!mem_ctx)
 	    mem_ctx = ralloc_context(NULL);
 
-         if (var->explicit_binding) {
+         if (var->data.explicit_binding) {
             linker::set_uniform_binding(mem_ctx, prog, var->name,
-                                        var->type, var->binding);
+                                        var->type, var->data.binding);
          } else if (var->constant_value) {
             linker::set_uniform_initializer(mem_ctx, prog, var->name,
                                             var->type, var->constant_value);

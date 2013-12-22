@@ -27,7 +27,7 @@
  * Sets the InputsRead and OutputsWritten of Mesa programs.
  *
  * Additionally, for fragment shaders, sets the InterpQualifier array, the
- * IsCentroid bitfield, and the UsesDFdy flag.
+ * IsCentroid and IsSample bitfields, and the UsesDFdy flag.
  *
  * Mesa programs (gl_program, not gl_shader_program) have a set of
  * flags indicating which varyings are read and written.  Computing
@@ -75,9 +75,9 @@ private:
 static inline bool
 is_shader_inout(ir_variable *var)
 {
-   return var->mode == ir_var_shader_in ||
-          var->mode == ir_var_shader_out ||
-          var->mode == ir_var_system_value;
+   return var->data.mode == ir_var_shader_in ||
+          var->data.mode == ir_var_shader_out ||
+          var->data.mode == ir_var_system_value;
 }
 
 static void
@@ -93,20 +93,24 @@ mark(struct gl_program *prog, ir_variable *var, int offset, int len,
     */
 
    for (int i = 0; i < len; i++) {
-      GLbitfield64 bitfield = BITFIELD64_BIT(var->location + var->index + offset + i);
-      if (var->mode == ir_var_shader_in) {
+      GLbitfield64 bitfield =
+         BITFIELD64_BIT(var->data.location + var->data.index + offset + i);
+      if (var->data.mode == ir_var_shader_in) {
 	 prog->InputsRead |= bitfield;
          if (is_fragment_shader) {
             gl_fragment_program *fprog = (gl_fragment_program *) prog;
-            fprog->InterpQualifier[var->location + var->index + offset + i] =
-               (glsl_interp_qualifier) var->interpolation;
-            if (var->centroid)
+            fprog->InterpQualifier[var->data.location +
+                                   var->data.index + offset + i] =
+               (glsl_interp_qualifier) var->data.interpolation;
+            if (var->data.centroid)
                fprog->IsCentroid |= bitfield;
+            if (var->data.sample)
+               fprog->IsSample |= bitfield;
          }
-      } else if (var->mode == ir_var_system_value) {
+      } else if (var->data.mode == ir_var_system_value) {
          prog->SystemValuesRead |= bitfield;
       } else {
-         assert(var->mode == ir_var_shader_out);
+         assert(var->data.mode == ir_var_shader_out);
 	 prog->OutputsWritten |= bitfield;
       }
    }
@@ -121,7 +125,7 @@ ir_set_program_inouts_visitor::mark_whole_variable(ir_variable *var)
 {
    const glsl_type *type = var->type;
    if (this->shader_type == GL_GEOMETRY_SHADER &&
-       var->mode == ir_var_shader_in && type->is_array()) {
+       var->data.mode == ir_var_shader_in && type->is_array()) {
       type = type->fields.array;
    }
 
@@ -160,7 +164,7 @@ ir_set_program_inouts_visitor::try_mark_partial_variable(ir_variable *var,
    const glsl_type *type = var->type;
 
    if (this->shader_type == GL_GEOMETRY_SHADER &&
-       var->mode == ir_var_shader_in) {
+       var->data.mode == ir_var_shader_in) {
       /* The only geometry shader input that is not an array is
        * gl_PrimitiveIDIn, and in that case, this code will never be reached,
        * because gl_PrimitiveIDIn can't be indexed into in array fashion.
@@ -242,7 +246,7 @@ ir_set_program_inouts_visitor::visit_enter(ir_dereference_array *ir)
       if (ir_dereference_variable * const deref_var =
           inner_array->array->as_dereference_variable()) {
          if (this->shader_type == GL_GEOMETRY_SHADER &&
-             deref_var->var->mode == ir_var_shader_in) {
+             deref_var->var->data.mode == ir_var_shader_in) {
             /* foo is a geometry shader input, so i is the vertex, and j the
              * part of the input we're accessing.
              */
@@ -261,7 +265,7 @@ ir_set_program_inouts_visitor::visit_enter(ir_dereference_array *ir)
               ir->array->as_dereference_variable()) {
       /* ir => foo[i], where foo is a variable. */
       if (this->shader_type == GL_GEOMETRY_SHADER &&
-          deref_var->var->mode == ir_var_shader_in) {
+          deref_var->var->data.mode == ir_var_shader_in) {
          /* foo is a geometry shader input, so i is the vertex, and we're
           * accessing the entire input.
           */
@@ -341,6 +345,7 @@ do_set_program_inouts(exec_list *instructions, struct gl_program *prog,
       gl_fragment_program *fprog = (gl_fragment_program *) prog;
       memset(fprog->InterpQualifier, 0, sizeof(fprog->InterpQualifier));
       fprog->IsCentroid = 0;
+      fprog->IsSample = 0;
       fprog->UsesDFdy = false;
       fprog->UsesKill = false;
    }

@@ -182,7 +182,7 @@ struct texture_state
  * Allocate new attribute node of given type/kind.  Attach payload data.
  * Insert it into the linked list named by 'head'.
  */
-static void
+static bool
 save_attrib_data(struct gl_attrib_node **head,
                  GLbitfield kind, void *payload)
 {
@@ -196,7 +196,42 @@ save_attrib_data(struct gl_attrib_node **head,
    }
    else {
       /* out of memory! */
+      return false;
    }
+   return true;
+}
+
+
+/**
+ * Helper function for_mesa_PushAttrib for simple attributes.
+ * Allocates memory for attribute data and copies the given attribute data.
+ * \param head  head of linked list to insert attribute data into
+ * \param attr_bit  one of the GL_<attrib>_BIT flags
+ * \param attr_size  number of bytes to allocate for attribute data
+ * \param attr_data  the attribute data to copy
+ * \return true for success, false for out of memory
+ */
+static bool
+push_attrib(struct gl_context *ctx, struct gl_attrib_node **head,
+            GLbitfield attr_bit, GLuint attr_size, const void *attr_data)
+{
+   void *attribute;
+
+   attribute = MALLOC(attr_size);
+   if (attribute == NULL) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glPushAttrib");
+      return false;
+   }
+
+   if (save_attrib_data(head, attr_bit, attribute)) {
+      memcpy(attribute, attr_data, attr_size);
+   }
+   else {
+      FREE(attribute);
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glPushAttrib");
+      return false;
+   }
+   return true;
 }
 
 
@@ -220,42 +255,58 @@ _mesa_PushAttrib(GLbitfield mask)
    head = NULL;
 
    if (mask & GL_ACCUM_BUFFER_BIT) {
-      struct gl_accum_attrib *attr;
-      attr = MALLOC_STRUCT( gl_accum_attrib );
-      memcpy( attr, &ctx->Accum, sizeof(struct gl_accum_attrib) );
-      save_attrib_data(&head, GL_ACCUM_BUFFER_BIT, attr);
+      if (!push_attrib(ctx, &head, GL_ACCUM_BUFFER_BIT,
+                       sizeof(struct gl_accum_attrib),
+                       (void*)&ctx->Accum))
+         goto end;
    }
 
    if (mask & GL_COLOR_BUFFER_BIT) {
       GLuint i;
       struct gl_colorbuffer_attrib *attr;
       attr = MALLOC_STRUCT( gl_colorbuffer_attrib );
-      memcpy( attr, &ctx->Color, sizeof(struct gl_colorbuffer_attrib) );
-      /* push the Draw FBO's DrawBuffer[] state, not ctx->Color.DrawBuffer[] */
-      for (i = 0; i < ctx->Const.MaxDrawBuffers; i ++)
-         attr->DrawBuffer[i] = ctx->DrawBuffer->ColorDrawBuffer[i];
-      save_attrib_data(&head, GL_COLOR_BUFFER_BIT, attr);
+      if (attr == NULL) {
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glPushAttrib");
+         goto end;
+      }
+
+    if (save_attrib_data(&head, GL_COLOR_BUFFER_BIT, attr)) {
+         memcpy(attr, &ctx->Color, sizeof(struct gl_colorbuffer_attrib));
+         /* push the Draw FBO's DrawBuffer[] state, not ctx->Color.DrawBuffer[] */
+         for (i = 0; i < ctx->Const.MaxDrawBuffers; i ++)
+            attr->DrawBuffer[i] = ctx->DrawBuffer->ColorDrawBuffer[i];
+      }
+      else {
+         FREE(attr);
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glPushAttrib");
+         goto end;
+      }
    }
 
    if (mask & GL_CURRENT_BIT) {
-      struct gl_current_attrib *attr;
-      FLUSH_CURRENT( ctx, 0 );
-      attr = MALLOC_STRUCT( gl_current_attrib );
-      memcpy( attr, &ctx->Current, sizeof(struct gl_current_attrib) );
-      save_attrib_data(&head, GL_CURRENT_BIT, attr);
+      FLUSH_CURRENT(ctx, 0);
+      if (!push_attrib(ctx, &head, GL_CURRENT_BIT,
+                       sizeof(struct gl_current_attrib),
+                       (void*)&ctx->Current))
+         goto end;
    }
 
    if (mask & GL_DEPTH_BUFFER_BIT) {
-      struct gl_depthbuffer_attrib *attr;
-      attr = MALLOC_STRUCT( gl_depthbuffer_attrib );
-      memcpy( attr, &ctx->Depth, sizeof(struct gl_depthbuffer_attrib) );
-      save_attrib_data(&head, GL_DEPTH_BUFFER_BIT, attr);
+      if (!push_attrib(ctx, &head, GL_DEPTH_BUFFER_BIT,
+                       sizeof(struct gl_depthbuffer_attrib),
+                       (void*)&ctx->Depth))
+         goto end;
    }
 
    if (mask & GL_ENABLE_BIT) {
       struct gl_enable_attrib *attr;
       GLuint i;
       attr = MALLOC_STRUCT( gl_enable_attrib );
+      if (attr == NULL) {
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glPushAttrib");
+         goto end;
+      }
+
       /* Copy enable flags from all other attributes into the enable struct. */
       attr->AlphaTest = ctx->Color.AlphaEnabled;
       attr->AutoNormal = ctx->Eval.AutoNormal;
@@ -322,97 +373,112 @@ _mesa_PushAttrib(GLbitfield mask)
       /* GL_ARB_fragment_program */
       attr->FragmentProgram = ctx->FragmentProgram.Enabled;
 
-      save_attrib_data(&head, GL_ENABLE_BIT, attr);
+      if (!save_attrib_data(&head, GL_ENABLE_BIT, attr)) {
+         FREE(attr);
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glPushAttrib");
+         goto end;
+      }
 
       /* GL_ARB_framebuffer_sRGB / GL_EXT_framebuffer_sRGB */
       attr->sRGBEnabled = ctx->Color.sRGBEnabled;
    }
 
    if (mask & GL_EVAL_BIT) {
-      struct gl_eval_attrib *attr;
-      attr = MALLOC_STRUCT( gl_eval_attrib );
-      memcpy( attr, &ctx->Eval, sizeof(struct gl_eval_attrib) );
-      save_attrib_data(&head, GL_EVAL_BIT, attr);
+      if (!push_attrib(ctx, &head, GL_EVAL_BIT,
+                       sizeof(struct gl_eval_attrib),
+                       (void*)&ctx->Eval))
+         goto end;
    }
 
    if (mask & GL_FOG_BIT) {
-      struct gl_fog_attrib *attr;
-      attr = MALLOC_STRUCT( gl_fog_attrib );
-      memcpy( attr, &ctx->Fog, sizeof(struct gl_fog_attrib) );
-      save_attrib_data(&head, GL_FOG_BIT, attr);
+      if (!push_attrib(ctx, &head, GL_FOG_BIT,
+                       sizeof(struct gl_fog_attrib),
+                       (void*)&ctx->Fog))
+         goto end;
    }
 
    if (mask & GL_HINT_BIT) {
-      struct gl_hint_attrib *attr;
-      attr = MALLOC_STRUCT( gl_hint_attrib );
-      memcpy( attr, &ctx->Hint, sizeof(struct gl_hint_attrib) );
-      save_attrib_data(&head, GL_HINT_BIT, attr);
+      if (!push_attrib(ctx, &head, GL_HINT_BIT,
+                       sizeof(struct gl_hint_attrib),
+                       (void*)&ctx->Hint))
+         goto end;
    }
 
    if (mask & GL_LIGHTING_BIT) {
-      struct gl_light_attrib *attr;
-      FLUSH_CURRENT(ctx, 0);	/* flush material changes */
-      attr = MALLOC_STRUCT( gl_light_attrib );
-      memcpy( attr, &ctx->Light, sizeof(struct gl_light_attrib) );
-      save_attrib_data(&head, GL_LIGHTING_BIT, attr);
+      FLUSH_CURRENT(ctx, 0);   /* flush material changes */
+      if (!push_attrib(ctx, &head, GL_LIGHTING_BIT,
+                       sizeof(struct gl_light_attrib),
+                       (void*)&ctx->Light))
+         goto end;
    }
 
    if (mask & GL_LINE_BIT) {
-      struct gl_line_attrib *attr;
-      attr = MALLOC_STRUCT( gl_line_attrib );
-      memcpy( attr, &ctx->Line, sizeof(struct gl_line_attrib) );
-      save_attrib_data(&head, GL_LINE_BIT, attr);
+      if (!push_attrib(ctx, &head, GL_LINE_BIT,
+                       sizeof(struct gl_line_attrib),
+                       (void*)&ctx->Line))
+         goto end;
    }
 
    if (mask & GL_LIST_BIT) {
-      struct gl_list_attrib *attr;
-      attr = MALLOC_STRUCT( gl_list_attrib );
-      memcpy( attr, &ctx->List, sizeof(struct gl_list_attrib) );
-      save_attrib_data(&head, GL_LIST_BIT, attr);
+      if (!push_attrib(ctx, &head, GL_LIST_BIT,
+                       sizeof(struct gl_list_attrib),
+                       (void*)&ctx->List))
+         goto end;
    }
 
    if (mask & GL_PIXEL_MODE_BIT) {
       struct gl_pixel_attrib *attr;
       attr = MALLOC_STRUCT( gl_pixel_attrib );
-      memcpy( attr, &ctx->Pixel, sizeof(struct gl_pixel_attrib) );
-      /* push the Read FBO's ReadBuffer state, not ctx->Pixel.ReadBuffer */
-      attr->ReadBuffer = ctx->ReadBuffer->ColorReadBuffer;
-      save_attrib_data(&head, GL_PIXEL_MODE_BIT, attr);
+      if (attr == NULL) {
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glPushAttrib");
+         goto end;
+      }
+
+      if (save_attrib_data(&head, GL_PIXEL_MODE_BIT, attr)) {
+         memcpy(attr, &ctx->Pixel, sizeof(struct gl_pixel_attrib));
+         /* push the Read FBO's ReadBuffer state, not ctx->Pixel.ReadBuffer */
+         attr->ReadBuffer = ctx->ReadBuffer->ColorReadBuffer;
+      }
+      else {
+         FREE(attr);
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glPushAttrib");
+         goto end;
+      }
    }
 
    if (mask & GL_POINT_BIT) {
-      struct gl_point_attrib *attr;
-      attr = MALLOC_STRUCT( gl_point_attrib );
-      memcpy( attr, &ctx->Point, sizeof(struct gl_point_attrib) );
-      save_attrib_data(&head, GL_POINT_BIT, attr);
+      if (!push_attrib(ctx, &head, GL_POINT_BIT,
+                       sizeof(struct gl_point_attrib),
+                       (void*)&ctx->Point))
+         goto end;
    }
 
    if (mask & GL_POLYGON_BIT) {
-      struct gl_polygon_attrib *attr;
-      attr = MALLOC_STRUCT( gl_polygon_attrib );
-      memcpy( attr, &ctx->Polygon, sizeof(struct gl_polygon_attrib) );
-      save_attrib_data(&head, GL_POLYGON_BIT, attr);
+      if (!push_attrib(ctx, &head, GL_POLYGON_BIT,
+                       sizeof(struct gl_polygon_attrib),
+                       (void*)&ctx->Polygon))
+         goto end;
    }
 
    if (mask & GL_POLYGON_STIPPLE_BIT) {
-      GLuint *stipple;
-      stipple = malloc( 32*sizeof(GLuint) );
-      memcpy( stipple, ctx->PolygonStipple, 32*sizeof(GLuint) );
-      save_attrib_data(&head, GL_POLYGON_STIPPLE_BIT, stipple);
+      if (!push_attrib(ctx, &head, GL_POLYGON_STIPPLE_BIT,
+                       sizeof(ctx->PolygonStipple),
+                       (void*)&ctx->PolygonStipple))
+         goto end;
    }
 
    if (mask & GL_SCISSOR_BIT) {
-      struct gl_scissor_attrib *attr;
-      attr = MALLOC_STRUCT( gl_scissor_attrib );
-      memcpy( attr, &ctx->Scissor, sizeof(struct gl_scissor_attrib) );
-      save_attrib_data(&head, GL_SCISSOR_BIT, attr);
+      if (!push_attrib(ctx, &head, GL_SCISSOR_BIT,
+                       sizeof(struct gl_scissor_attrib),
+                       (void*)&ctx->Scissor))
+         goto end;
    }
 
    if (mask & GL_STENCIL_BUFFER_BIT) {
-      struct gl_stencil_attrib *attr;
-      attr = MALLOC_STRUCT( gl_stencil_attrib );
-      memcpy( attr, &ctx->Stencil, sizeof(struct gl_stencil_attrib) );
-      save_attrib_data(&head, GL_STENCIL_BUFFER_BIT, attr);
+      if (!push_attrib(ctx, &head, GL_STENCIL_BUFFER_BIT,
+                       sizeof(struct gl_stencil_attrib),
+                       (void*)&ctx->Stencil))
+         goto end;
    }
 
    if (mask & GL_TEXTURE_BIT) {
@@ -420,6 +486,12 @@ _mesa_PushAttrib(GLbitfield mask)
       GLuint u, tex;
 
       if (!texstate) {
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glPushAttrib(GL_TEXTURE_BIT)");
+         goto end;
+      }
+
+      if (!save_attrib_data(&head, GL_TEXTURE_BIT, texstate)) {
+         FREE(texstate);
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "glPushAttrib(GL_TEXTURE_BIT)");
          goto end;
       }
@@ -450,35 +522,35 @@ _mesa_PushAttrib(GLbitfield mask)
       _mesa_reference_shared_state(ctx, &texstate->SharedRef, ctx->Shared);
 
       _mesa_unlock_context_textures(ctx);
-
-      save_attrib_data(&head, GL_TEXTURE_BIT, texstate);
    }
 
    if (mask & GL_TRANSFORM_BIT) {
-      struct gl_transform_attrib *attr;
-      attr = MALLOC_STRUCT( gl_transform_attrib );
-      memcpy( attr, &ctx->Transform, sizeof(struct gl_transform_attrib) );
-      save_attrib_data(&head, GL_TRANSFORM_BIT, attr);
+      if (!push_attrib(ctx, &head, GL_TRANSFORM_BIT,
+                       sizeof(struct gl_transform_attrib),
+                       (void*)&ctx->Transform))
+         goto end;
    }
 
    if (mask & GL_VIEWPORT_BIT) {
-      struct gl_viewport_attrib *attr;
-      attr = MALLOC_STRUCT( gl_viewport_attrib );
-      memcpy( attr, &ctx->Viewport, sizeof(struct gl_viewport_attrib) );
-      save_attrib_data(&head, GL_VIEWPORT_BIT, attr);
+      if (!push_attrib(ctx, &head, GL_VIEWPORT_BIT,
+                       sizeof(struct gl_viewport_attrib),
+                       (void*)&ctx->Viewport))
+         goto end;
    }
 
    /* GL_ARB_multisample */
    if (mask & GL_MULTISAMPLE_BIT_ARB) {
-      struct gl_multisample_attrib *attr;
-      attr = MALLOC_STRUCT( gl_multisample_attrib );
-      memcpy( attr, &ctx->Multisample, sizeof(struct gl_multisample_attrib) );
-      save_attrib_data(&head, GL_MULTISAMPLE_BIT_ARB, attr);
+      if (!push_attrib(ctx, &head, GL_MULTISAMPLE_BIT_ARB,
+                       sizeof(struct gl_multisample_attrib),
+                       (void*)&ctx->Multisample))
+         goto end;
    }
 
 end:
-   ctx->AttribStack[ctx->AttribStackDepth] = head;
-   ctx->AttribStackDepth++;
+   if (head != NULL) {
+       ctx->AttribStack[ctx->AttribStackDepth] = head;
+       ctx->AttribStackDepth++;
+   }
 }
 
 
@@ -641,12 +713,6 @@ pop_enable_group(struct gl_context *ctx, const struct gl_enable_attrib *enable)
             _mesa_set_enable(ctx, GL_TEXTURE_CUBE_MAP,
                              !!(enabled & TEXTURE_CUBE_BIT));
          }
-         if (ctx->Extensions.MESA_texture_array) {
-            _mesa_set_enable(ctx, GL_TEXTURE_1D_ARRAY_EXT,
-                             !!(enabled & TEXTURE_1D_ARRAY_BIT));
-            _mesa_set_enable(ctx, GL_TEXTURE_2D_ARRAY_EXT,
-                             !!(enabled & TEXTURE_2D_ARRAY_BIT));
-         }
       }
 
       if (ctx->Texture.Unit[i].TexGenEnabled != genEnabled) {
@@ -687,12 +753,6 @@ pop_texture_group(struct gl_context *ctx, struct texture_state *texstate)
       if (ctx->Extensions.NV_texture_rectangle) {
          _mesa_set_enable(ctx, GL_TEXTURE_RECTANGLE_NV,
                           !!(unit->Enabled & TEXTURE_RECT_BIT));
-      }
-      if (ctx->Extensions.MESA_texture_array) {
-         _mesa_set_enable(ctx, GL_TEXTURE_1D_ARRAY_EXT,
-                          !!(unit->Enabled & TEXTURE_1D_ARRAY_BIT));
-         _mesa_set_enable(ctx, GL_TEXTURE_2D_ARRAY_EXT,
-                          !!(unit->Enabled & TEXTURE_2D_ARRAY_BIT));
       }
       _mesa_TexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, unit->EnvMode);
       _mesa_TexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, unit->EnvColor);
@@ -768,7 +828,7 @@ pop_texture_group(struct gl_context *ctx, struct texture_state *texstate)
          }
          else if ((obj->Target == GL_TEXTURE_1D_ARRAY_EXT ||
                    obj->Target == GL_TEXTURE_2D_ARRAY_EXT) &&
-                  !ctx->Extensions.MESA_texture_array) {
+                  !ctx->Extensions.EXT_texture_array) {
             continue;
          }
          else if (obj->Target == GL_TEXTURE_CUBE_MAP_ARRAY &&
@@ -1482,13 +1542,20 @@ restore_array_attrib(struct gl_context *ctx,
  * init/alloc the fields of 'attrib'.
  * Needs to the init part matching free_array_attrib_data below.
  */
-static void
+static bool
 init_array_attrib_data(struct gl_context *ctx,
                        struct gl_array_attrib *attrib)
 {
    /* Get a non driver gl_array_object. */
    attrib->ArrayObj = CALLOC_STRUCT( gl_array_object );
+
+   if (attrib->ArrayObj == NULL) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glPushClientAttrib");
+      return false;
+   }
+
    _mesa_initialize_array_object(ctx, attrib->ArrayObj, 0);
+   return true;
 }
 
 /**
@@ -1529,24 +1596,65 @@ _mesa_PushClientAttrib(GLbitfield mask)
       struct gl_pixelstore_attrib *attr;
       /* packing attribs */
       attr = CALLOC_STRUCT( gl_pixelstore_attrib );
-      copy_pixelstore(ctx, attr, &ctx->Pack);
-      save_attrib_data(&head, GL_CLIENT_PACK_BIT, attr);
+      if (attr == NULL) {
+         _mesa_error( ctx, GL_OUT_OF_MEMORY, "glPushClientAttrib" );
+         goto end;
+      }
+      if (save_attrib_data(&head, GL_CLIENT_PACK_BIT, attr)) {
+         copy_pixelstore(ctx, attr, &ctx->Pack);
+      }
+      else {
+         _mesa_error( ctx, GL_OUT_OF_MEMORY, "glPushClientAttrib" );
+         FREE(attr);
+         goto end;
+      }
+
       /* unpacking attribs */
       attr = CALLOC_STRUCT( gl_pixelstore_attrib );
-      copy_pixelstore(ctx, attr, &ctx->Unpack);
-      save_attrib_data(&head, GL_CLIENT_UNPACK_BIT, attr);
+      if (attr == NULL) {
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glPushClientAttrib");
+         goto end;
+      }
+
+      if (save_attrib_data(&head, GL_CLIENT_UNPACK_BIT, attr)) {
+         copy_pixelstore(ctx, attr, &ctx->Unpack);
+      }
+      else {
+         _mesa_error( ctx, GL_OUT_OF_MEMORY, "glPushClientAttrib" );
+         FREE(attr);
+         goto end;
+       }
    }
 
    if (mask & GL_CLIENT_VERTEX_ARRAY_BIT) {
       struct gl_array_attrib *attr;
       attr = CALLOC_STRUCT( gl_array_attrib );
-      init_array_attrib_data(ctx, attr);
-      save_array_attrib(ctx, attr, &ctx->Array);
-      save_attrib_data(&head, GL_CLIENT_VERTEX_ARRAY_BIT, attr);
-   }
+      if (attr == NULL) {
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glPushClientAttrib");
+         goto end;
+      }
 
-   ctx->ClientAttribStack[ctx->ClientAttribStackDepth] = head;
-   ctx->ClientAttribStackDepth++;
+      if (!init_array_attrib_data(ctx, attr)) {
+         FREE(attr);
+         goto end;
+      }
+
+      if (save_attrib_data(&head, GL_CLIENT_VERTEX_ARRAY_BIT, attr)) {
+         save_array_attrib(ctx, attr, &ctx->Array);
+      }
+      else {
+         free_array_attrib_data(ctx, attr);
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glPushClientAttrib");
+         FREE(attr);
+         /* goto to keep safe from possible later changes */
+         goto end;
+      }
+   }
+end:
+   if (head != NULL) {
+       ctx->ClientAttribStack[ctx->ClientAttribStackDepth] = head;
+       ctx->ClientAttribStackDepth++;
+   }
 }
 
 

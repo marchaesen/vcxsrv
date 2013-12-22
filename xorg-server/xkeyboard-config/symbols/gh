@@ -16,7 +16,7 @@ xkb_symbols "akan" {
     name[Group1]= "Akan";
 
     key <AD01> { [ 0x0100025B, 0x01000190,          q,          Q ] };
-    key <AB02> { [ 0x01000254, 0x01000186,          x,          X ] }; 
+    key <AB02> { [ 0x01000254, 0x01000186,          x,          X ] };
 };
 
 partial alphanumeric_keys
@@ -26,8 +26,8 @@ xkb_symbols "ga" {
     name[Group1]= "Ga";
 
     key <AD01> { [ 0x0100025B, 0x01000190,          q,          Q ] };
-    key <AB02> { [ 0x01000254, 0x01000186,          x,          X ] }; 
-    key <AB03> { [ 0x0100014B, 0x0100014A,          c,          C ] }; 
+    key <AB02> { [ 0x01000254, 0x01000186,          x,          X ] };
+    key <AB03> { [ 0x0100014B, 0x0100014A,          c,          C ] };
 };
 
 partial alphanumeric_keys
@@ -37,13 +37,13 @@ xkb_symbols "ewe" {
     name[Group1]= "Ewe";
 
     key <AD01> { [ 0x0100025B, 0x01000190,          q,          Q ] };
-    key <AB03> { [ 0x0100014B, 0x0100014A,          c,          C ] }; 
-    key <AD11> { [ 0x01000254, 0x01000186,  braceleft,  braceleft ] }; 
-    key <AD12> { [ 0x0100028B, 0x010001B2, braceright, braceright ] }; 
+    key <AB03> { [ 0x0100014B, 0x0100014A,          c,          C ] };
+    key <AD11> { [ 0x01000254, 0x01000186,  braceleft,  braceleft ] };
+    key <AD12> { [ 0x0100028B, 0x010001B2, braceright, braceright ] };
     key <BKSL> { [ 0x01000256, 0x01000189,  backslash,  backslash ] };
     key <AC07> { [ 0x01000192, 0x01000191,          j,          J ] };
     key <AC05> { [          g,          G, 0x01000263, 0x01000194 ] };
- 
+
 };
 
 partial alphanumeric_keys
@@ -113,7 +113,7 @@ xkb_symbols "avn" {
     key <AB03> { [ 0x01000254,      0x01000186                           ] }; // ɔ, Ɔ
 
     include "level3(ralt_switch)"
- 
+
 };
 
 // This keyboard layout fully imitates the 'Ghana Unicode' layout which is used in GILLBT on Windows with Keyman.
@@ -146,6 +146,6 @@ xkb_symbols "gillbt" {
     key <AB01> { [ z,          Z,           0x01000292,   0x010001B7  ] }; // ʒ, Ʒ
     key <AB02> { [ 0x01000269, 0x01000196,  x,            X           ] }; // ɩ, Ɩ
     key <AB03> { [ c,          C,           0x010000E7,   0x010000C7  ] }; // ç, Ç
-    
+
     include "level3(ralt_switch)"
 };

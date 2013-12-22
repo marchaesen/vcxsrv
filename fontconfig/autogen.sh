@@ -24,9 +24,18 @@ LIBTOOLIZE=${LIBTOOLIZE-libtoolize}
 AUTOMAKE=${AUTOMAKE-automake}
 AUTOHEADER=${AUTOHEADER-autoheader}
 AUTOCONF=${AUTOCONF-autoconf}
+GPERF=${GPERF-gperf}
 LIBTOOLIZE_FLAGS="--copy --force"
 
 DIE=0
+
+($GPERF --version) < /dev/null > /dev/null 2>&1 || {
+	echo
+	echo "You must have gperf installed to compile $PROJECT."
+	echo "Install the appropriate package for your distribution."
+	echo "or get the source tarball at ftp://ftp.gnu.org/pub/gnu/"
+	DIE=1
+}
 
 have_libtool=false
 if $LIBTOOLIZE --version < /dev/null > /dev/null 2>&1 ; then

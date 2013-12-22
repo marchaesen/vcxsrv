@@ -1413,7 +1413,8 @@ DeliverTouchEmulatedEvent(DeviceIntPtr dev, TouchPointInfoPtr ti,
                 !(ev->device_event.flags & TOUCH_CLIENT_ID))
                 TouchListenerAcceptReject(dev, ti, 0, XIAcceptTouch);
 
-            if (deliveries && ev->any.type == ET_TouchEnd &&
+            if (ev->any.type == ET_TouchEnd &&
+                ti->num_listeners == 1 &&
                 !dev->button->buttonsDown &&
                 dev->deviceGrab.fromPassiveGrab && GrabIsPointerGrab(grab)) {
                 (*dev->deviceGrab.DeactivateGrab) (dev);
@@ -1845,7 +1846,8 @@ DeliverTouchBeginEvent(DeviceIntPtr dev, TouchPointInfoPtr ti,
         if (rc == Success) {
             listener->state = LISTENER_IS_OWNER;
             /* async grabs cannot replay, so automatically accept this touch */
-            if (dev->deviceGrab.grab &&
+            if (listener->type == LISTENER_POINTER_GRAB &&
+                dev->deviceGrab.grab &&
                 dev->deviceGrab.fromPassiveGrab &&
                 dev->deviceGrab.grab->pointerMode == GrabModeAsync)
                 ActivateEarlyAccept(dev, ti);

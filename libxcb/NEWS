@@ -1,6 +1,43 @@
+Release 1.10 (2013-12-XX)
+=========================
+* Bump libxcb-xkb SONAME due to ABI break introduced in 1.9.2
+* Enable libxcb-xkb by default
+* Bump libxcb-sync SONAME
+* c_client.py: Fix _sizeof() functions
+* c_client.py: Do not create pointers in unions
+* c_client.py: Always initialize xcb_align_to
+* Re-introduce xcb_ge_event_t (deprecated, xcb_ge_generic_event_t should be
+  used instead)
+* Fix alignment issues in FD passing code
+* Fix poll() if POLLIN == ROLLRDNORM|POLLRDBAND
+* Use /usr/spool/sockets/X11/ on HP-UX for UNIX sockets
+* Make xsltproc optional
+
+Release 1.9.3 (2013-11-07)
+==========================
+* Check if we need to define _XOPEN_SOURCE for struct msghdr.msg_control
+* Add configure option to enable or disable fd passing with sendmsg
+* Switch to using the CMSG_* macros for FD passing
+* Initialize automake earlier (bugfix for #66413)
+
+Release 1.9.2 (2013-11-07)
+==========================
+* Add Present extension
+* Add DRI3 library
+* Add event queue splitting
+* Add support for receiving fds in replies
+* Add xcb_send_fd API
+* Remove xcb_ge_event_t from xcb.h
+* c_client.py: Inject full_sequence into GE events
+* c_client.py: Handle multiple expr. in a bitcase
+
+Release 1.9.1 (2013-05-30)
+==========================
+* Fix python code to work with python-3
+* Security fix for integer overflow in read_packet() [CVE-2013-2064]
+
 Release 1.9 (2012-10-05)
 ========================
-
 * Always include "config.h" at the start of all C source files.
 * Add AC_USE_SYSTEM_EXTENSIONS to allow use of more system functionality
 * Return connection failure if display string specifies non-existent screen

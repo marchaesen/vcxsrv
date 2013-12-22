@@ -833,7 +833,7 @@ parse_omit_name(
 	return True;
 
     /* This may mot be needed anymore as XListFonts() takes care of this */
-    while (num_fields < 12) {
+    if (num_fields < 12) {
 	if ((last - buf) > (XLFD_MAX_LEN - 2))
 	    return -1;
 	*last = '*';

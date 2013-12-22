@@ -918,11 +918,13 @@ int _xcb_in_read(xcb_connection_t *c)
 #if HAVE_SENDMSG
         struct cmsghdr *hdr;
 
-        for (hdr = CMSG_FIRSTHDR(&msg); hdr; hdr = CMSG_NXTHDR(&msg, hdr)) {
-            if (hdr->cmsg_level == SOL_SOCKET && hdr->cmsg_type == SCM_RIGHTS) {
-                int nfd = (hdr->cmsg_len - CMSG_LEN(0)) / sizeof (int);
-                memcpy(&c->in.in_fd.fd[c->in.in_fd.nfd], CMSG_DATA(hdr), nfd * sizeof (int));
-                c->in.in_fd.nfd += nfd;
+        if (msg.msg_controllen >= sizeof (struct cmsghdr)) {
+            for (hdr = CMSG_FIRSTHDR(&msg); hdr; hdr = CMSG_NXTHDR(&msg, hdr)) {
+                if (hdr->cmsg_level == SOL_SOCKET && hdr->cmsg_type == SCM_RIGHTS) {
+                    int nfd = (hdr->cmsg_len - CMSG_LEN(0)) / sizeof (int);
+                    memcpy(&c->in.in_fd.fd[c->in.in_fd.nfd], CMSG_DATA(hdr), nfd * sizeof (int));
+                    c->in.in_fd.nfd += nfd;
+                }
             }
         }
 #endif

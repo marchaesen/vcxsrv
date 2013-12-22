@@ -115,4 +115,13 @@ present_event_abandon(RRCrtcPtr crtc);
 extern _X_EXPORT Bool
 present_screen_init(ScreenPtr screen, present_screen_info_ptr info);
 
+typedef void (*present_complete_notify_proc)(WindowPtr window,
+                                             CARD8 mode,
+                                             CARD32 serial,
+                                             uint64_t ust,
+                                             uint64_t msc);
+
+extern _X_EXPORT void
+present_register_complete_notify(present_complete_notify_proc proc);
+
 #endif /* _PRESENT_H_ */

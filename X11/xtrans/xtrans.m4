@@ -29,12 +29,12 @@ AC_DEFUN([XTRANS_TCP_FLAGS],[
  AC_SEARCH_LIBS(socket, [socket])
  AC_SEARCH_LIBS(gethostbyname, [nsl])
  if test "$ac_cv_search_socket$ac_cv_search_gethostbyname" = "nono"; then
-   AC_HAVE_LIBRARY([ws2_32])
+   AC_CHECK_LIB([ws2_32],[main])
  fi
 
  # Needs to come after above checks for libsocket & libnsl for SVR4 systems
  AC_ARG_ENABLE(ipv6,
-	AC_HELP_STRING([--enable-ipv6],[Enable IPv6 support]),
+	AS_HELP_STRING([--enable-ipv6],[Enable IPv6 support]),
 	[IPV6CONN=$enableval],
 	[AC_CHECK_FUNC(getaddrinfo,[IPV6CONN=yes],[IPV6CONN=no])])
  AC_MSG_CHECKING([if IPv6 support should be built])
@@ -100,13 +100,12 @@ AC_INCLUDES_DEFAULT
 # that use Xtrans functions
 AC_DEFUN([XTRANS_CONNECTION_FLAGS],[
  AC_REQUIRE([AC_CANONICAL_HOST])
- AC_REQUIRE([AC_TYPE_SIGNAL])
  [case $host_os in
 	mingw*)	unixdef="no"   ;;
 	*)	unixdef="yes"  ;;
  esac]
  AC_ARG_ENABLE(unix-transport,
-	AC_HELP_STRING([--enable-unix-transport],[Enable UNIX domain socket transport]),
+	AS_HELP_STRING([--enable-unix-transport],[Enable UNIX domain socket transport]),
 	[UNIXCONN=$enableval], [UNIXCONN=$unixdef])
  AC_MSG_CHECKING([if Xtrans should support UNIX socket connections])
  if test "$UNIXCONN" = "yes"; then
@@ -114,7 +113,7 @@ AC_DEFUN([XTRANS_CONNECTION_FLAGS],[
  fi
  AC_MSG_RESULT($UNIXCONN)
  AC_ARG_ENABLE(tcp-transport,
-	AC_HELP_STRING([--enable-tcp-transport],[Enable TCP socket transport]),
+	AS_HELP_STRING([--enable-tcp-transport],[Enable TCP socket transport]),
 	[TCPCONN=$enableval], [TCPCONN=yes])
  AC_MSG_CHECKING([if Xtrans should support TCP socket connections])
  AC_MSG_RESULT($TCPCONN)
@@ -127,7 +126,7 @@ AC_DEFUN([XTRANS_CONNECTION_FLAGS],[
 	*)			localdef="no"  ;;
  esac]
  AC_ARG_ENABLE(local-transport,
-	AC_HELP_STRING([--enable-local-transport],[Enable os-specific local transport]),
+	AS_HELP_STRING([--enable-local-transport],[Enable os-specific local transport]),
 	[LOCALCONN=$enableval], [LOCALCONN=$localdef])
  AC_MSG_CHECKING([if Xtrans should support os-specific local connections])
  AC_MSG_RESULT($LOCALCONN)
@@ -145,7 +144,7 @@ AC_DEFUN([XTRANS_CONNECTION_FLAGS],[
 AC_DEFUN([XTRANS_SECURE_RPC_FLAGS],
 [AC_REQUIRE([XTRANS_TCP_FLAGS])
  AC_ARG_ENABLE(secure-rpc,
-	AC_HELP_STRING([--enable-secure-rpc],[Enable Secure RPC]),
+	AS_HELP_STRING([--enable-secure-rpc],[Enable Secure RPC]),
         [SECURE_RPC=$enableval], [SECURE_RPC="try"])
 
  if test "x$SECURE_RPC" = "xyes" -o "x$SECURE_RPC" = "xtry" ; then

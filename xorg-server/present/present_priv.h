@@ -69,9 +69,10 @@ struct present_vblank {
     present_fence_ptr   wait_fence;
     present_notify_ptr  notifies;
     int                 num_notifies;
-    Bool                flip;
-    Bool                sync_flip;
-    Bool                abort_flip;
+    Bool                queued;         /* on present_exec_queue */
+    Bool                flip;           /* planning on using flip */
+    Bool                sync_flip;      /* do flip synchronous to vblank */
+    Bool                abort_flip;     /* aborting this flip */
 };
 
 typedef struct present_screen_priv {

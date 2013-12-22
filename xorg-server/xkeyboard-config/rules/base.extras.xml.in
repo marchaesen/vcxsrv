@@ -685,8 +685,16 @@
         <name>se</name>
         <_shortDescription>sv</_shortDescription>
         <_description>Swedish</_description>
-	  </configItem>
-	  <variantList>
+      </configItem>
+      <variantList>
+        <variant>
+          <configItem>
+            <name>dvorak_a5</name>
+            <_description>Swedish (Dvorak A5)</_description>
+          </configItem>
+        </variant>
+      </variantList>
+      <variantList>
         <variant>
           <configItem>
             <name>sun_type6</name>

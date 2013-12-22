@@ -158,16 +158,13 @@ get_texobj(struct gl_context *ctx, GLenum target, GLboolean get)
       }
       break;
    case GL_TEXTURE_1D_ARRAY_EXT:
-      if (_mesa_is_desktop_gl(ctx)
-          && (ctx->Extensions.MESA_texture_array ||
-              ctx->Extensions.EXT_texture_array)) {
+      if (_mesa_is_desktop_gl(ctx) && ctx->Extensions.EXT_texture_array) {
          return texUnit->CurrentTex[TEXTURE_1D_ARRAY_INDEX];
       }
       break;
    case GL_TEXTURE_2D_ARRAY_EXT:
       if ((_mesa_is_desktop_gl(ctx) || _mesa_is_gles3(ctx))
-          && (ctx->Extensions.MESA_texture_array ||
-              ctx->Extensions.EXT_texture_array)) {
+          && ctx->Extensions.EXT_texture_array) {
          return texUnit->CurrentTex[TEXTURE_2D_ARRAY_INDEX];
       }
       break;
@@ -1046,8 +1043,7 @@ legal_get_tex_level_parameter_target(struct gl_context *ctx, GLenum target)
    case GL_PROXY_TEXTURE_1D_ARRAY_EXT:
    case GL_TEXTURE_2D_ARRAY_EXT:
    case GL_PROXY_TEXTURE_2D_ARRAY_EXT:
-      return (ctx->Extensions.MESA_texture_array ||
-              ctx->Extensions.EXT_texture_array);
+      return ctx->Extensions.EXT_texture_array;
    case GL_TEXTURE_BUFFER:
       /* GetTexLevelParameter accepts GL_TEXTURE_BUFFER in GL 3.1+ contexts,
        * but not in earlier versions that expose ARB_texture_buffer_object.
@@ -1166,10 +1162,7 @@ get_tex_level_parameter_image(struct gl_context *ctx,
             goto invalid_pname;
          *params = _mesa_get_format_bits(texFormat, pname);
          break;
-      case GL_TEXTURE_STENCIL_SIZE_EXT:
-         if (!ctx->Extensions.EXT_packed_depth_stencil &&
-             !ctx->Extensions.ARB_framebuffer_object)
-            goto invalid_pname;
+      case GL_TEXTURE_STENCIL_SIZE:
          *params = _mesa_get_format_bits(texFormat, pname);
          break;
       case GL_TEXTURE_SHARED_SIZE:
@@ -1562,9 +1555,35 @@ _mesa_GetTexParameterfv( GLenum target, GLenum pname, GLfloat *params )
          break;
 
       case GL_TEXTURE_IMMUTABLE_LEVELS:
-         if (!_mesa_is_gles3(ctx))
+         if (_mesa_is_gles3(ctx) ||
+             (_mesa_is_desktop_gl(ctx) && ctx->Extensions.ARB_texture_view))
+            *params = (GLfloat) obj->ImmutableLevels;
+         else
             goto invalid_pname;
-         *params = (GLfloat) obj->ImmutableLevels;
+         break;
+
+      case GL_TEXTURE_VIEW_MIN_LEVEL:
+         if (!ctx->Extensions.ARB_texture_view)
+            goto invalid_pname;
+         *params = (GLfloat) obj->MinLevel;
+         break;
+
+      case GL_TEXTURE_VIEW_NUM_LEVELS:
+         if (!ctx->Extensions.ARB_texture_view)
+            goto invalid_pname;
+         *params = (GLfloat) obj->NumLevels;
+         break;
+
+      case GL_TEXTURE_VIEW_MIN_LAYER:
+         if (!ctx->Extensions.ARB_texture_view)
+            goto invalid_pname;
+         *params = (GLfloat) obj->MinLayer;
+         break;
+
+      case GL_TEXTURE_VIEW_NUM_LAYERS:
+         if (!ctx->Extensions.ARB_texture_view)
+            goto invalid_pname;
+         *params = (GLfloat) obj->NumLayers;
          break;
 
       case GL_REQUIRED_TEXTURE_IMAGE_UNITS_OES:
@@ -1746,9 +1765,35 @@ _mesa_GetTexParameteriv( GLenum target, GLenum pname, GLint *params )
          break;
 
       case GL_TEXTURE_IMMUTABLE_LEVELS:
-         if (!_mesa_is_gles3(ctx))
+         if (_mesa_is_gles3(ctx) ||
+             (_mesa_is_desktop_gl(ctx) && ctx->Extensions.ARB_texture_view))
+            *params = obj->ImmutableLevels;
+         else
             goto invalid_pname;
-         *params = obj->ImmutableLevels;
+         break;
+
+      case GL_TEXTURE_VIEW_MIN_LEVEL:
+         if (!ctx->Extensions.ARB_texture_view)
+            goto invalid_pname;
+         *params = (GLint) obj->MinLevel;
+         break;
+
+      case GL_TEXTURE_VIEW_NUM_LEVELS:
+         if (!ctx->Extensions.ARB_texture_view)
+            goto invalid_pname;
+         *params = (GLint) obj->NumLevels;
+         break;
+
+      case GL_TEXTURE_VIEW_MIN_LAYER:
+         if (!ctx->Extensions.ARB_texture_view)
+            goto invalid_pname;
+         *params = (GLint) obj->MinLayer;
+         break;
+
+      case GL_TEXTURE_VIEW_NUM_LAYERS:
+         if (!ctx->Extensions.ARB_texture_view)
+            goto invalid_pname;
+         *params = (GLint) obj->NumLayers;
          break;
 
       case GL_REQUIRED_TEXTURE_IMAGE_UNITS_OES:

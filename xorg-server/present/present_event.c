@@ -137,6 +137,14 @@ present_send_config_notify(WindowPtr window, int x, int y, int w, int h, int bw,
     }
 }
 
+static present_complete_notify_proc complete_notify;
+
+void
+present_register_complete_notify(present_complete_notify_proc proc)
+{
+    complete_notify = proc;
+}
+
 void
 present_send_complete_notify(WindowPtr window, CARD8 kind, CARD8 mode, CARD32 serial, uint64_t ust, uint64_t msc)
 {
@@ -165,6 +173,8 @@ present_send_complete_notify(WindowPtr window, CARD8 kind, CARD8 mode, CARD32 se
             }
         }
     }
+    if (complete_notify)
+        (*complete_notify)(window, mode, serial, ust, msc);
 }
 
 void

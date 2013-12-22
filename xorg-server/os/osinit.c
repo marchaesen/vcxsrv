@@ -213,10 +213,18 @@ OsInit(void)
         dlinfo(RTLD_SELF, RTLD_DI_SETSIGNAL, &failure_signal);
 #endif
 
-#if !defined(__CYGWIN__)
+#if !defined(XQUARTZ)    /* STDIN is already /dev/null and STDOUT/STDERR is managed by console_redirect.c */
+# if defined(__APPLE__)
+        int devnullfd = open(devnull, O_RDWR, 0);
+        assert(devnullfd > 2);
+
+        dup2(devnullfd, STDIN_FILENO);
+        dup2(devnullfd, STDOUT_FILENO);
+        close(devnullfd);
+# elif !defined(__CYGWIN__)
         fclose(stdin);
         fclose(stdout);
-#endif
+# endif
         /* 
          * If a write of zero bytes to stderr returns non-zero, i.e. -1, 
          * then writing to stderr failed, and we'll write somewhere else 
@@ -250,6 +258,7 @@ OsInit(void)
             setlinebuf(stderr);
 #endif
         }
+#endif /* !XQUARTZ */
 
 #if !defined(WIN32) || defined(__CYGWIN__)
         if (getpgrp() == 0)

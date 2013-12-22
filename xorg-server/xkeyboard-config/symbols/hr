@@ -13,7 +13,7 @@ xkb_symbols "basic" {
     key <AB10> { [     minus, underscore, dead_belowdot, dead_abovedot ] };
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "us" {
 
     name[Group1]= "Croatian (US keyboard with Croatian letters)";
@@ -48,7 +48,7 @@ xkb_symbols "us" {
 };
 
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "alternatequotes" {
 
     name[Group1]= "Croatian (use guillemets for quotes)";
@@ -56,7 +56,7 @@ xkb_symbols "alternatequotes" {
     include "rs(latinalternatequotes)"
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "unicode" {
 
     name[Group1]= "Croatian (use Croatian digraphs)";
@@ -64,7 +64,7 @@ xkb_symbols "unicode" {
     include "rs(latinunicode)"
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "unicodeus" {
 
     name[Group1]= "Croatian (US keyboard with Croatian digraphs)";

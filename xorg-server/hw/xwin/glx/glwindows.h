@@ -42,12 +42,9 @@ typedef struct {
 
 extern glxWinDebugSettingsRec glxWinDebugSettings;
 
-void glWinCallDelta(void);
 void glxWinPushNativeProvider(void);
-const GLubyte *glGetStringWrapperNonstatic(GLenum name);
-void glAddSwapHintRectWINWrapperNonstatic(GLint x, GLint y, GLsizei width,
-                                          GLsizei height);
-void glWinSetupDispatchTable(void);
+void glAddSwapHintRectWINWrapper(GLint x, GLint y, GLsizei width, GLsizei height);
+int glWinSelectImplementation(int native);
 
 #if 1
 #define GLWIN_TRACE_MSG(msg, args...) if (glxWinDebugSettings.enableTrace) ErrorF(msg " [%s:%d]\n" , ##args , __FUNCTION__, __LINE__ )

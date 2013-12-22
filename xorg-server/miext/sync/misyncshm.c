@@ -32,12 +32,13 @@
 #include "pixmapstr.h"
 #include <sys/mman.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <X11/xshmfence.h>
 
 static DevPrivateKeyRec syncShmFencePrivateKey;
 
 typedef struct _SyncShmFencePrivate {
-    int32_t             *fence;
+    struct xshmfence    *fence;
     int                 fd;
 } SyncShmFencePrivateRec, *SyncShmFencePrivatePtr;
 
@@ -126,6 +127,7 @@ miSyncShmCreateFenceFromFd(ScreenPtr pScreen, SyncFence *pFence, int fd, Bool in
 
     miSyncInitFence(pScreen, pFence, initially_triggered);
 
+    fd = os_move_fd(fd);
     pPriv->fence = xshmfence_map_shm(fd);
     if (pPriv->fence) {
         pPriv->fd = fd;
@@ -145,6 +147,7 @@ miSyncShmGetFenceFd(ScreenPtr pScreen, SyncFence *pFence)
         pPriv->fd = xshmfence_alloc_shm();
         if (pPriv->fd < 0)
             return -1;
+        pPriv->fd = os_move_fd(pPriv->fd);
         pPriv->fence = xshmfence_map_shm(pPriv->fd);
         if (!pPriv->fence) {
             close (pPriv->fd);

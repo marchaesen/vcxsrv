@@ -37,6 +37,7 @@ in this Software without prior written authorization from The Open Group.
 #include <sys/shm.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <X11/X.h>
 #include <X11/Xproto.h>
 #include "misc.h"
@@ -1177,6 +1178,35 @@ ProcShmAttachFd(ClientPtr client)
 }
 
 static int
+shm_tmpfile(void)
+{
+#ifdef SHMDIR
+	int	fd;
+	int	flags;
+	char	template[] = SHMDIR "/shmfd-XXXXXX";
+#ifdef O_TMPFILE
+	fd = open(SHMDIR, O_TMPFILE|O_RDWR|O_CLOEXEC|O_EXCL, 0666);
+	if (fd >= 0) {
+		ErrorF ("Using O_TMPFILE\n");
+		return fd;
+	}
+	ErrorF ("Not using O_TMPFILE\n");
+#endif
+	fd = mkstemp(template);
+	if (fd < 0)
+		return -1;
+	unlink(template);
+	if (fcntl(fd, F_GETFD, &flags) >= 0) {
+		flags |= FD_CLOEXEC;
+		(void) fcntl(fd, F_SETFD, &flags);
+	}
+	return fd;
+#else
+        return -1;
+#endif
+}
+
+static int
 ProcShmCreateSegment(ClientPtr client)
 {
     int fd;
@@ -1188,17 +1218,15 @@ ProcShmCreateSegment(ClientPtr client)
         .sequenceNumber = client->sequence,
         .length = 0,
     };
-    char template[] = "/tmp/shm-XXXXXX";
 
     REQUEST_SIZE_MATCH(xShmCreateSegmentReq);
     if ((stuff->readOnly != xTrue) && (stuff->readOnly != xFalse)) {
         client->errorValue = stuff->readOnly;
         return BadValue;
     }
-    fd = mkstemp(template);
+    fd = shm_tmpfile();
     if (fd < 0)
         return BadAlloc;
-    unlink(template);
     if (ftruncate(fd, stuff->size) < 0) {
         close(fd);
         return BadAlloc;

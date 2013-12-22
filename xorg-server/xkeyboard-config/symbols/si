@@ -8,7 +8,7 @@ xkb_symbols "basic" {
     key <TLDE> { type[Group1]="TWO_LEVEL", [ cedilla, diaeresis ] };
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "us" {
 
     name[Group1]= "Slovenian (US keyboard with Slovenian letters)";
@@ -19,7 +19,7 @@ xkb_symbols "us" {
 };
 
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "alternatequotes" {
 
     name[Group1]= "Slovenian (use guillemets for quotes)";

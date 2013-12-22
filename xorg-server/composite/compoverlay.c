@@ -133,16 +133,19 @@ compCreateOverlayWindow(ScreenPtr pScreen)
     int result;
     int w = pScreen->width;
     int h = pScreen->height;
+    int x = 0, y = 0;
 
 #ifdef PANORAMIX
     if (!noPanoramiXExtension) {
+        x = -pScreen->x;
+        y = -pScreen->y;
         w = PanoramiXPixWidth;
         h = PanoramiXPixHeight;
     }
 #endif
 
     pWin = cs->pOverlayWin =
-        CreateWindow(cs->overlayWid, pRoot, 0, 0, w, h, 0,
+        CreateWindow(cs->overlayWid, pRoot, x, y, w, h, 0,
                      InputOutput, CWBackPixmap | CWOverrideRedirect, &attrs[0],
                      pRoot->drawable.depth,
                      serverClient, pScreen->rootVisual, &result);

@@ -48,6 +48,7 @@
 #include "texobj.h"
 #include "texstate.h"
 #include "texstorage.h"
+#include "textureview.h"
 #include "mtypes.h"
 #include "glformats.h"
 
@@ -300,14 +301,12 @@ _mesa_base_tex_format( struct gl_context *ctx, GLint internalFormat )
       }
    }
 
-   if (ctx->Extensions.EXT_packed_depth_stencil) {
-      switch (internalFormat) {
-         case GL_DEPTH_STENCIL_EXT:
-         case GL_DEPTH24_STENCIL8_EXT:
-            return GL_DEPTH_STENCIL_EXT;
-         default:
-            ; /* fallthrough */
-      }
+   switch (internalFormat) {
+   case GL_DEPTH_STENCIL:
+   case GL_DEPTH24_STENCIL8:
+      return GL_DEPTH_STENCIL;
+   default:
+      ; /* fallthrough */
    }
 
    if (ctx->Extensions.EXT_texture_sRGB) {
@@ -752,8 +751,7 @@ _mesa_select_tex_object(struct gl_context *ctx,
                         const struct gl_texture_unit *texUnit,
                         GLenum target)
 {
-   const GLboolean arrayTex = (ctx->Extensions.MESA_texture_array ||
-                               ctx->Extensions.EXT_texture_array);
+   const GLboolean arrayTex = ctx->Extensions.EXT_texture_array;
 
    switch (target) {
       case GL_TEXTURE_1D:
@@ -1018,8 +1016,7 @@ _mesa_max_texture_levels(struct gl_context *ctx, GLenum target)
    case GL_PROXY_TEXTURE_1D_ARRAY_EXT:
    case GL_TEXTURE_2D_ARRAY_EXT:
    case GL_PROXY_TEXTURE_2D_ARRAY_EXT:
-      return (ctx->Extensions.MESA_texture_array ||
-              ctx->Extensions.EXT_texture_array)
+      return ctx->Extensions.EXT_texture_array
          ? ctx->Const.MaxTextureLevels : 0;
    case GL_TEXTURE_CUBE_MAP_ARRAY:
    case GL_PROXY_TEXTURE_CUBE_MAP_ARRAY:
@@ -1726,8 +1723,7 @@ target_can_be_compressed(const struct gl_context *ctx, GLenum target,
       return ctx->Extensions.ARB_texture_cube_map;
    case GL_PROXY_TEXTURE_2D_ARRAY_EXT:
    case GL_TEXTURE_2D_ARRAY_EXT:
-      return (ctx->Extensions.MESA_texture_array ||
-              ctx->Extensions.EXT_texture_array);
+      return ctx->Extensions.EXT_texture_array;
    case GL_PROXY_TEXTURE_CUBE_MAP_ARRAY:
    case GL_TEXTURE_CUBE_MAP_ARRAY:
       return ctx->Extensions.ARB_texture_cube_map_array;
@@ -1775,9 +1771,7 @@ legal_teximage_target(struct gl_context *ctx, GLuint dims, GLenum target)
             && ctx->Extensions.NV_texture_rectangle;
       case GL_TEXTURE_1D_ARRAY_EXT:
       case GL_PROXY_TEXTURE_1D_ARRAY_EXT:
-         return _mesa_is_desktop_gl(ctx)
-            && (ctx->Extensions.MESA_texture_array ||
-                ctx->Extensions.EXT_texture_array);
+         return _mesa_is_desktop_gl(ctx) && ctx->Extensions.EXT_texture_array;
       default:
          return GL_FALSE;
       }
@@ -1788,14 +1782,10 @@ legal_teximage_target(struct gl_context *ctx, GLuint dims, GLenum target)
       case GL_PROXY_TEXTURE_3D:
          return _mesa_is_desktop_gl(ctx);
       case GL_TEXTURE_2D_ARRAY_EXT:
-         return (_mesa_is_desktop_gl(ctx)
-                 && (ctx->Extensions.MESA_texture_array ||
-                     ctx->Extensions.EXT_texture_array))
+         return (_mesa_is_desktop_gl(ctx) && ctx->Extensions.EXT_texture_array)
             || _mesa_is_gles3(ctx);
       case GL_PROXY_TEXTURE_2D_ARRAY_EXT:
-         return _mesa_is_desktop_gl(ctx)
-            && (ctx->Extensions.MESA_texture_array ||
-                ctx->Extensions.EXT_texture_array);
+         return _mesa_is_desktop_gl(ctx) && ctx->Extensions.EXT_texture_array;
       case GL_TEXTURE_CUBE_MAP_ARRAY:
       case GL_PROXY_TEXTURE_CUBE_MAP_ARRAY:
          return ctx->Extensions.ARB_texture_cube_map_array;
@@ -1836,9 +1826,7 @@ legal_texsubimage_target(struct gl_context *ctx, GLuint dims, GLenum target)
          return _mesa_is_desktop_gl(ctx)
             && ctx->Extensions.NV_texture_rectangle;
       case GL_TEXTURE_1D_ARRAY_EXT:
-         return _mesa_is_desktop_gl(ctx)
-            && (ctx->Extensions.MESA_texture_array ||
-                ctx->Extensions.EXT_texture_array);
+         return _mesa_is_desktop_gl(ctx) && ctx->Extensions.EXT_texture_array;
       default:
          return GL_FALSE;
       }
@@ -1847,9 +1835,7 @@ legal_texsubimage_target(struct gl_context *ctx, GLuint dims, GLenum target)
       case GL_TEXTURE_3D:
          return GL_TRUE;
       case GL_TEXTURE_2D_ARRAY_EXT:
-         return (_mesa_is_desktop_gl(ctx)
-                 && (ctx->Extensions.MESA_texture_array ||
-                     ctx->Extensions.EXT_texture_array))
+         return (_mesa_is_desktop_gl(ctx) && ctx->Extensions.EXT_texture_array)
             || _mesa_is_gles3(ctx);
       case GL_TEXTURE_CUBE_MAP_ARRAY:
       case GL_PROXY_TEXTURE_CUBE_MAP_ARRAY:
@@ -2870,7 +2856,7 @@ _mesa_choose_texture_format(struct gl_context *ctx,
    }
 
    /* If the application requested compression to an S3TC format but we don't
-    * have the DTXn library, force a generic compressed format instead.
+    * have the DXTn library, force a generic compressed format instead.
     */
    if (internalFormat != format && format != GL_NONE) {
       const GLenum before = internalFormat;
@@ -3892,87 +3878,108 @@ _mesa_CompressedTexSubImage3D(GLenum target, GLint level, GLint xoffset,
 static gl_format
 get_texbuffer_format(const struct gl_context *ctx, GLenum internalFormat)
 {
+   if (ctx->API != API_OPENGL_CORE) {
+      switch (internalFormat) {
+      case GL_ALPHA8:
+         return MESA_FORMAT_A8;
+      case GL_ALPHA16:
+         return MESA_FORMAT_A16;
+      case GL_ALPHA16F_ARB:
+         return MESA_FORMAT_ALPHA_FLOAT16;
+      case GL_ALPHA32F_ARB:
+         return MESA_FORMAT_ALPHA_FLOAT32;
+      case GL_ALPHA8I_EXT:
+         return MESA_FORMAT_ALPHA_INT8;
+      case GL_ALPHA16I_EXT:
+         return MESA_FORMAT_ALPHA_INT16;
+      case GL_ALPHA32I_EXT:
+         return MESA_FORMAT_ALPHA_INT32;
+      case GL_ALPHA8UI_EXT:
+         return MESA_FORMAT_ALPHA_UINT8;
+      case GL_ALPHA16UI_EXT:
+         return MESA_FORMAT_ALPHA_UINT16;
+      case GL_ALPHA32UI_EXT:
+         return MESA_FORMAT_ALPHA_UINT32;
+      case GL_LUMINANCE8:
+         return MESA_FORMAT_L8;
+      case GL_LUMINANCE16:
+         return MESA_FORMAT_L16;
+      case GL_LUMINANCE16F_ARB:
+         return MESA_FORMAT_LUMINANCE_FLOAT16;
+      case GL_LUMINANCE32F_ARB:
+         return MESA_FORMAT_LUMINANCE_FLOAT32;
+      case GL_LUMINANCE8I_EXT:
+         return MESA_FORMAT_LUMINANCE_INT8;
+      case GL_LUMINANCE16I_EXT:
+         return MESA_FORMAT_LUMINANCE_INT16;
+      case GL_LUMINANCE32I_EXT:
+         return MESA_FORMAT_LUMINANCE_INT32;
+      case GL_LUMINANCE8UI_EXT:
+         return MESA_FORMAT_LUMINANCE_UINT8;
+      case GL_LUMINANCE16UI_EXT:
+         return MESA_FORMAT_LUMINANCE_UINT16;
+      case GL_LUMINANCE32UI_EXT:
+         return MESA_FORMAT_LUMINANCE_UINT32;
+      case GL_LUMINANCE8_ALPHA8:
+         return MESA_FORMAT_AL88;
+      case GL_LUMINANCE16_ALPHA16:
+         return MESA_FORMAT_AL1616;
+      case GL_LUMINANCE_ALPHA16F_ARB:
+         return MESA_FORMAT_LUMINANCE_ALPHA_FLOAT16;
+      case GL_LUMINANCE_ALPHA32F_ARB:
+         return MESA_FORMAT_LUMINANCE_ALPHA_FLOAT32;
+      case GL_LUMINANCE_ALPHA8I_EXT:
+         return MESA_FORMAT_LUMINANCE_ALPHA_INT8;
+      case GL_LUMINANCE_ALPHA16I_EXT:
+         return MESA_FORMAT_LUMINANCE_ALPHA_INT8;
+      case GL_LUMINANCE_ALPHA32I_EXT:
+         return MESA_FORMAT_LUMINANCE_ALPHA_INT16;
+      case GL_LUMINANCE_ALPHA8UI_EXT:
+         return MESA_FORMAT_LUMINANCE_ALPHA_UINT8;
+      case GL_LUMINANCE_ALPHA16UI_EXT:
+         return MESA_FORMAT_LUMINANCE_ALPHA_UINT16;
+      case GL_LUMINANCE_ALPHA32UI_EXT:
+         return MESA_FORMAT_LUMINANCE_ALPHA_UINT32;
+      case GL_INTENSITY8:
+         return MESA_FORMAT_I8;
+      case GL_INTENSITY16:
+         return MESA_FORMAT_I16;
+      case GL_INTENSITY16F_ARB:
+         return MESA_FORMAT_INTENSITY_FLOAT16;
+      case GL_INTENSITY32F_ARB:
+         return MESA_FORMAT_INTENSITY_FLOAT32;
+      case GL_INTENSITY8I_EXT:
+         return MESA_FORMAT_INTENSITY_INT8;
+      case GL_INTENSITY16I_EXT:
+         return MESA_FORMAT_INTENSITY_INT16;
+      case GL_INTENSITY32I_EXT:
+         return MESA_FORMAT_INTENSITY_INT32;
+      case GL_INTENSITY8UI_EXT:
+         return MESA_FORMAT_INTENSITY_UINT8;
+      case GL_INTENSITY16UI_EXT:
+         return MESA_FORMAT_INTENSITY_UINT16;
+      case GL_INTENSITY32UI_EXT:
+         return MESA_FORMAT_INTENSITY_UINT32;
+      default:
+         break;
+      }
+   }
+
+   if (ctx->API == API_OPENGL_CORE &&
+       ctx->Extensions.ARB_texture_buffer_object_rgb32) {
+      switch (internalFormat) {
+      case GL_RGB32F:
+         return MESA_FORMAT_RGB_FLOAT32;
+      case GL_RGB32UI:
+         return MESA_FORMAT_RGB_UINT32;
+      case GL_RGB32I:
+         return MESA_FORMAT_RGB_INT32;
+      default:
+         break;
+      }
+   }
+
    switch (internalFormat) {
-   case GL_ALPHA8:
-      return MESA_FORMAT_A8;
-   case GL_ALPHA16:
-      return MESA_FORMAT_A16;
-   case GL_ALPHA16F_ARB:
-      return MESA_FORMAT_ALPHA_FLOAT16;
-   case GL_ALPHA32F_ARB:
-      return MESA_FORMAT_ALPHA_FLOAT32;
-   case GL_ALPHA8I_EXT:
-      return MESA_FORMAT_ALPHA_INT8;
-   case GL_ALPHA16I_EXT:
-      return MESA_FORMAT_ALPHA_INT16;
-   case GL_ALPHA32I_EXT:
-      return MESA_FORMAT_ALPHA_INT32;
-   case GL_ALPHA8UI_EXT:
-      return MESA_FORMAT_ALPHA_UINT8;
-   case GL_ALPHA16UI_EXT:
-      return MESA_FORMAT_ALPHA_UINT16;
-   case GL_ALPHA32UI_EXT:
-      return MESA_FORMAT_ALPHA_UINT32;
-   case GL_LUMINANCE8:
-      return MESA_FORMAT_L8;
-   case GL_LUMINANCE16:
-      return MESA_FORMAT_L16;
-   case GL_LUMINANCE16F_ARB:
-      return MESA_FORMAT_LUMINANCE_FLOAT16;
-   case GL_LUMINANCE32F_ARB:
-      return MESA_FORMAT_LUMINANCE_FLOAT32;
-   case GL_LUMINANCE8I_EXT:
-      return MESA_FORMAT_LUMINANCE_INT8;
-   case GL_LUMINANCE16I_EXT:
-      return MESA_FORMAT_LUMINANCE_INT16;
-   case GL_LUMINANCE32I_EXT:
-      return MESA_FORMAT_LUMINANCE_INT32;
-   case GL_LUMINANCE8UI_EXT:
-      return MESA_FORMAT_LUMINANCE_UINT8;
-   case GL_LUMINANCE16UI_EXT:
-      return MESA_FORMAT_LUMINANCE_UINT16;
-   case GL_LUMINANCE32UI_EXT:
-      return MESA_FORMAT_LUMINANCE_UINT32;
-   case GL_LUMINANCE8_ALPHA8:
-      return MESA_FORMAT_AL88;
-   case GL_LUMINANCE16_ALPHA16:
-      return MESA_FORMAT_AL1616;
-   case GL_LUMINANCE_ALPHA16F_ARB:
-      return MESA_FORMAT_LUMINANCE_ALPHA_FLOAT16;
-   case GL_LUMINANCE_ALPHA32F_ARB:
-      return MESA_FORMAT_LUMINANCE_ALPHA_FLOAT32;
-   case GL_LUMINANCE_ALPHA8I_EXT:
-      return MESA_FORMAT_LUMINANCE_ALPHA_INT8;
-   case GL_LUMINANCE_ALPHA16I_EXT:
-      return MESA_FORMAT_LUMINANCE_ALPHA_INT8;
-   case GL_LUMINANCE_ALPHA32I_EXT:
-      return MESA_FORMAT_LUMINANCE_ALPHA_INT16;
-   case GL_LUMINANCE_ALPHA8UI_EXT:
-      return MESA_FORMAT_LUMINANCE_ALPHA_UINT8;
-   case GL_LUMINANCE_ALPHA16UI_EXT:
-      return MESA_FORMAT_LUMINANCE_ALPHA_UINT16;
-   case GL_LUMINANCE_ALPHA32UI_EXT:
-      return MESA_FORMAT_LUMINANCE_ALPHA_UINT32;
-   case GL_INTENSITY8:
-      return MESA_FORMAT_I8;
-   case GL_INTENSITY16:
-      return MESA_FORMAT_I16;
-   case GL_INTENSITY16F_ARB:
-      return MESA_FORMAT_INTENSITY_FLOAT16;
-   case GL_INTENSITY32F_ARB:
-      return MESA_FORMAT_INTENSITY_FLOAT32;
-   case GL_INTENSITY8I_EXT:
-      return MESA_FORMAT_INTENSITY_INT8;
-   case GL_INTENSITY16I_EXT:
-      return MESA_FORMAT_INTENSITY_INT16;
-   case GL_INTENSITY32I_EXT:
-      return MESA_FORMAT_INTENSITY_INT32;
-   case GL_INTENSITY8UI_EXT:
-      return MESA_FORMAT_INTENSITY_UINT8;
-   case GL_INTENSITY16UI_EXT:
-      return MESA_FORMAT_INTENSITY_UINT16;
-   case GL_INTENSITY32UI_EXT:
-      return MESA_FORMAT_INTENSITY_UINT32;
    case GL_RGBA8:
       return MESA_FORMAT_RGBA8888_REV;
    case GL_RGBA16:
@@ -4036,21 +4043,15 @@ get_texbuffer_format(const struct gl_context *ctx, GLenum internalFormat)
    case GL_R32UI:
       return MESA_FORMAT_R_UINT32;
 
-   case GL_RGB32F:
-      return MESA_FORMAT_RGB_FLOAT32;
-   case GL_RGB32UI:
-      return MESA_FORMAT_RGB_UINT32;
-   case GL_RGB32I:
-      return MESA_FORMAT_RGB_INT32;
-
    default:
       return MESA_FORMAT_NONE;
    }
 }
 
 
-static gl_format
-validate_texbuffer_format(const struct gl_context *ctx, GLenum internalFormat)
+gl_format
+_mesa_validate_texbuffer_format(const struct gl_context *ctx,
+                                GLenum internalFormat)
 {
    gl_format format = get_texbuffer_format(ctx, internalFormat);
    GLenum datatype;
@@ -4065,15 +4066,10 @@ validate_texbuffer_format(const struct gl_context *ctx, GLenum internalFormat)
    if (datatype == GL_HALF_FLOAT && !ctx->Extensions.ARB_half_float_pixel)
       return MESA_FORMAT_NONE;
 
-   /* The GL_ARB_texture_rg and GL_ARB_texture_buffer_object specs don't make
-    * any mention of R/RG formats, but they appear in the GL 3.1 core
-    * specification.
-    */
-   if (ctx->Version <= 30) {
+   if (!ctx->Extensions.ARB_texture_rg) {
       GLenum base_format = _mesa_get_format_base_format(format);
-
       if (base_format == GL_R || base_format == GL_RG)
-	 return MESA_FORMAT_NONE;
+         return MESA_FORMAT_NONE;
    }
 
    if (!ctx->Extensions.ARB_texture_buffer_object_rgb32) {
@@ -4100,7 +4096,7 @@ texbufferrange(struct gl_context *ctx, GLenum target, GLenum internalFormat,
       return;
    }
 
-   format = validate_texbuffer_format(ctx, internalFormat);
+   format = _mesa_validate_texbuffer_format(ctx, internalFormat);
    if (format == MESA_FORMAT_NONE) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glTexBuffer(internalFormat 0x%x)",
                   internalFormat);
@@ -4348,6 +4344,11 @@ teximagemultisample(GLuint dims, GLenum target, GLsizei samples,
       }
 
       texObj->Immutable = immutable;
+
+      if (immutable) {
+         _mesa_set_texture_view_state(ctx, texObj, target, 1);
+      }
+
       _mesa_update_fbo_texture(ctx, texObj, 0, 0);
    }
 }

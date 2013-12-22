@@ -781,9 +781,8 @@ test_attachment_completeness(const struct gl_context *ctx, GLenum format,
          if (baseFormat == GL_DEPTH_COMPONENT) {
             /* OK */
          }
-         else if (ctx->Extensions.EXT_packed_depth_stencil &&
-                  ctx->Extensions.ARB_depth_texture &&
-                  baseFormat == GL_DEPTH_STENCIL_EXT) {
+         else if (ctx->Extensions.ARB_depth_texture &&
+                  baseFormat == GL_DEPTH_STENCIL) {
             /* OK */
          }
          else {
@@ -794,9 +793,8 @@ test_attachment_completeness(const struct gl_context *ctx, GLenum format,
       }
       else {
          ASSERT(format == GL_STENCIL);
-         if (ctx->Extensions.EXT_packed_depth_stencil &&
-             ctx->Extensions.ARB_depth_texture &&
-             baseFormat == GL_DEPTH_STENCIL_EXT) {
+         if (ctx->Extensions.ARB_depth_texture &&
+             baseFormat == GL_DEPTH_STENCIL) {
             /* OK */
          }
          else {
@@ -830,8 +828,7 @@ test_attachment_completeness(const struct gl_context *ctx, GLenum format,
          if (baseFormat == GL_DEPTH_COMPONENT) {
             /* OK */
          }
-         else if (ctx->Extensions.EXT_packed_depth_stencil &&
-                  baseFormat == GL_DEPTH_STENCIL_EXT) {
+         else if (baseFormat == GL_DEPTH_STENCIL) {
             /* OK */
          }
          else {
@@ -842,11 +839,8 @@ test_attachment_completeness(const struct gl_context *ctx, GLenum format,
       }
       else {
          assert(format == GL_STENCIL);
-         if (baseFormat == GL_STENCIL_INDEX) {
-            /* OK */
-         }
-         else if (ctx->Extensions.EXT_packed_depth_stencil &&
-                  baseFormat == GL_DEPTH_STENCIL_EXT) {
+         if (baseFormat == GL_STENCIL_INDEX ||
+             baseFormat == GL_DEPTH_STENCIL) {
             /* OK */
          }
          else {
@@ -1457,13 +1451,10 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
    case GL_DEPTH_COMPONENT16:
    case GL_DEPTH_COMPONENT24:
       return GL_DEPTH_COMPONENT;
-   case GL_DEPTH_STENCIL_EXT:
-      return _mesa_is_desktop_gl(ctx)
-         && ctx->Extensions.EXT_packed_depth_stencil
-         ? GL_DEPTH_STENCIL_EXT : 0;
-   case GL_DEPTH24_STENCIL8_EXT:
-      return ctx->Extensions.EXT_packed_depth_stencil
-         ? GL_DEPTH_STENCIL_EXT : 0;
+   case GL_DEPTH_STENCIL:
+      return _mesa_is_desktop_gl(ctx) ? GL_DEPTH_STENCIL : 0;
+   case GL_DEPTH24_STENCIL8:
+      return GL_DEPTH_STENCIL;
    case GL_DEPTH_COMPONENT32F:
       return ctx->Version >= 30
          || (ctx->API == API_OPENGL_COMPAT && ctx->Extensions.ARB_depth_buffer_float)

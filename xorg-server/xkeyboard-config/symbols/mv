@@ -18,7 +18,7 @@ xkb_symbols "basic" {
     key <AE10> { [               0,      parenright      ]       };
     key <AE11> { [           minus,      underscore      ]       };
     key <AE12> { [           equal,            plus      ]       };
-						
+
     key <AD01> { [	0x10007B0,	0x10007A4      ]       };
     key <AD02> { [	0x1000787,	0x10007A2      ]       };
     key <AD03> { [	0x10007AC,     	0x10007AD      ]       };

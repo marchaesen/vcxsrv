@@ -2468,3 +2468,64 @@ __glXDisp_ClientInfo(__GLXclientState * cl, GLbyte * pc)
 
     return Success;
 }
+
+#include <GL/glxtokens.h>
+
+void
+__glXsendSwapEvent(__GLXdrawable *drawable, int type, CARD64 ust,
+                   CARD64 msc, CARD32 sbc)
+{
+    ClientPtr client = clients[CLIENT_ID(drawable->drawId)];
+
+    xGLXBufferSwapComplete2 wire =  {
+        .type = __glXEventBase + GLX_BufferSwapComplete
+    };
+
+    if (!client)
+        return;
+
+    if (!(drawable->eventMask & GLX_BUFFER_SWAP_COMPLETE_INTEL_MASK))
+        return;
+
+    wire.event_type = type;
+    wire.drawable = drawable->drawId;
+    wire.ust_hi = ust >> 32;
+    wire.ust_lo = ust & 0xffffffff;
+    wire.msc_hi = msc >> 32;
+    wire.msc_lo = msc & 0xffffffff;
+    wire.sbc = sbc;
+
+    WriteEventsToClient(client, 1, (xEvent *) &wire);
+}
+
+#if PRESENT
+static void
+__glXpresentCompleteNotify(WindowPtr window, CARD8 present_mode, CARD32 serial,
+                           uint64_t ust, uint64_t msc)
+{
+    __GLXdrawable *drawable;
+    int glx_type;
+    int rc;
+
+    rc = dixLookupResourceByType((pointer *) &drawable, window->drawable.id,
+                                 __glXDrawableRes, serverClient, DixGetAttrAccess);
+
+    if (rc != Success)
+        return;
+
+    if (present_mode == PresentCompleteModeFlip)
+        glx_type = GLX_FLIP_COMPLETE_INTEL;
+    else
+        glx_type = GLX_BLIT_COMPLETE_INTEL;
+        
+    __glXsendSwapEvent(drawable, glx_type, ust, msc, serial);
+}
+
+#include <present.h>
+
+void
+__glXregisterPresentCompleteNotify(void)
+{
+    present_register_complete_notify(__glXpresentCompleteNotify);
+}
+#endif

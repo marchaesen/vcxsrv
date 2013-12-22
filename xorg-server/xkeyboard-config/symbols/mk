@@ -53,7 +53,7 @@ xkb_symbols "basic" {
     key <AB08> { [           comma,       semicolon	]	};
     key <AB09> { [          period,           colon	]	};
     key <AB10> { [           slash,        question	]	};
- 
+
     include "kpdl(comma)"
 };
 

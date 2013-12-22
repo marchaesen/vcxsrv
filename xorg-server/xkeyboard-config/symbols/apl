@@ -5,7 +5,7 @@
 // This file supports:
 // -	The Sharp APL for Unix (SAX) layout
 // -	The IBM APL2 layout
-// -	The Manugistics APL*PLUS II (Version 5.1, 1993) keyboard layout
+// -	The Manugistics APL*PLUS II layout (version 5.1, 1993)
 // -	The Dyalog APL layout - with additions for box drawing and commands
 
 // Unicode APL table: http://aplwiki.com/UnicodeAplTable
@@ -16,27 +16,27 @@
 
 // This file doesn't deal with all the combining stuff -- I'm not an APL programmer,
 // and am not quite sure what's needed here.  However, it may be possible to get this
-// working with dead keys and the like.  Patches gratefully accepted.  
+// working with dead keys and the like.  Patches gratefully accepted.
 
 // Some of the shift-key assignments may differ from the APL tradition.  If
-// that's not considered acceptable, it should be possible to remap the 
+// that's not considered acceptable, it should be possible to remap the
 // shift keys.  I have striven, however, to ensure that the use of shift keys
-// in these maps is at least self-consistent.  
+// in these maps is at least self-consistent.
 
-// I'm assuming that this will be used with another keyboard layout (ie. for 
-// your language), with a special shift key to use these maps.  
+// I'm assuming that this will be used with another keyboard layout (i.e. for
+// your language), with a special shift key to use these maps.
 
-// 2011-12-22 Geoff Streeter: geoff@dyalog.com
-// Added the Dyalog support.
-// Corrected (what he thinks) are some errors.
-// 	Resolving the confusion between APL's and Unicode's concept of Left and Right tacks.
-// 	Unsure about some of the inheritance from APL2 into APLPLUS. Patches welcome.
-// Complied with freedesktop.org requirement that the keycodes be in sorted order. Which
-// leads to the bottom to top (roughly) definitions.
+// 2011-12-22 Geoff Streeter <geoff@dyalog.com>,
+// added the Dyalog support;
+// corrected (what he thinks) are some errors:
+//   resolving the confusion between APL's and Unicode's concept of Left and Right tacks;
+//   unsure about some of the inheritance from APL2 into APLPLUS -- patches welcome;
+// complied with freedesktop.org requirement that the keycodes be in sorted order,
+// which leads to the bottom to top (roughly) definitions.
 
-// default layout seems to have to be the first one. Choosing the basic Dyalog layout is definitely
-// better than using the "common" one. Choosing the complete Dyalog layout is not useful to non-Dyalog
-// users.
+// The default layout still has to be the first one. Choosing the basic Dyalog layout is
+// definitely better than using the "common" one. Choosing the complete Dyalog layout is
+// not useful to non-Dyalog users.
 
 default  partial alphanumeric_keys
 xkb_symbols "basic" {
@@ -235,7 +235,7 @@ xkb_symbols "apl2" {
 	key <AB10> { [	slash,		backslash,	U233F	] }; // /: ⌿ -- AFS Slash Bar
 
 	key <AC10> { [	bracketleft, 	parenleft,	U234E	] }; // ;: ⍎ -- [See B key in SAX layout]
-	key <AC11> { [	bracketright, 	parenright, 	U2355	] }; // ': ⍕ -- [See N key in SAX layout] 
+	key <AC11> { [	bracketright, 	parenright, 	U2355	] }; // ': ⍕ -- [See N key in SAX layout]
 
 	key <AD11> { [	NoSymbol,	U2192,		U235E	] }; // [: (←) → ⍞ -- Rightwards Arrow / AFS Quote Quad
 	key <AD12> { [	U2337,		U2378,		U2359	] }; // ]: ⌷ ⍸ ⍙ -- AFS Squish Quad / AFS Iota Underbar / AFS Delta Underbar
@@ -255,7 +255,7 @@ xkb_symbols "apl2" {
 
 	key <BKSL> { [	U2261,		U2377,		U2364	] }; // \: ≡ ⍷ ⍤ -- Identical To / AFS Epsilon Underbar / AFS Jot Diaeresis
 
-	key <TLDE> { [	NoSymbol,	U233B,		U2342	] }; // `: ⌻ ⍂ -- 
+	key <TLDE> { [	NoSymbol,	U233B,		U2342	] }; // `: ⌻ ⍂ --
 
 	include "level3(ralt_switch)"
 };
@@ -289,7 +289,7 @@ xkb_symbols "aplplusII" {
 	name[Group1]= "APL keyboard symbols (Manugistics APL*PLUS II)";
 
 	key <AC10> { [	bracketleft,	parenleft,	U234E	] }; // ;: ⍎ -- [See B key in SAX layout]
-	key <AC11> { [	bracketright,	parenright,	U2355	] }; // ': ⍕ -- [See N key in SAX layout] 
+	key <AC11> { [	bracketright,	parenright,	U2355	] }; // ': ⍕ -- [See N key in SAX layout]
 	key <AD11> { [	U2190,		NoSymbol,	U235E	] }; // [: ← ⍞ -- Leftwards Arrow / AFS Quote Quad
 	key <AD12> { [	U2192,		NoSymbol,	U236C	] }; // ]: → ⍬ -- Rightwards Arrow / AFS Zilde
 	key <AE01> { [	NoSymbol, 	NoSymbol, 	U2261	] }; // 1: ≡ -- Identical To
@@ -350,21 +350,19 @@ xkb_symbols "aplx" {
 };
 
 // APL language support for the Dyalog keyboard.
-// Dyalog Ltd sell this keyboard with APL engravings. The current model is 
-// engraved on a Cherry G80. Base languages for US, UK and DK are availible.
+// Dyalog Ltd sells this keyboard with APL engravings. The current model is
+// engraved on a Cherry G80. Base languages for US, UK and DK are available.
 
-// Geoff Streeter, Dyalog Ltd. 2007-09-03
-// geoff@dyalog.com
+// Geoff Streeter, Dyalog Ltd. 2007-09-03  <geoff@dyalog.com>
 // extended for APL special actions 2008-09-09
-// add variant 2010-11-26
+// added a variant 2010-11-26
 
-// The intention is that this keyboard layout overlays a base keyboard that provides 
+// The intention is that this keyboard layout overlays a base keyboard that provides
 // the alphabet and similar. If this keyboard is placed as the 2nd layout then it can
 // be reached with a latching shift to increase group by one.
 
 partial hidden alphanumeric_keys
 xkb_symbols "dyalog_base" {
-
 
 // ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┲━━━━━━━━━┓
 // │     │ ⌶   │ ⍫   │ ⍒   │ ⍋   │ ⌽   │ ⍉   │ ⊖   │ ⍟   │ ⍱   │ ⍲   │ !   │ ⌹   ┃         ┃
@@ -382,7 +380,6 @@ xkb_symbols "dyalog_base" {
 // ┃       ┃       ┃       ┃                                   ┃       ┃       ┃       ┃
 // ┃       ┃       ┃       ┃                                   ┃       ┃       ┃       ┃
 // ┗━━━━━━━┻━━━━━━━┻━━━━━━━┹───────────────────────────────────┺━━━━━━━┻━━━━━━━┻━━━━━━━┛
-
 
 	key <AB01> { [ U2282			] };	// subset of
 	key <AB02> { [ U2283			] };	// superset of
@@ -460,14 +457,14 @@ xkb_symbols "dyalog_box" {
 	key <KP9>  { [ U2510 ] };	// box drawing light down and left
 	key <KPDL> { [ U2502 ] };	// box drawing light vertical
 
-}; 
+};
 
 partial hidden
 xkb_symbols "dyalog_codes" {
 
 //	Layout of private use area for this. In the style of the Unicode book
 //
-//				APL special actions		F800-F88F
+//		APL special actions		F800-F88F
 //
 //	│F800 F810 F820 F830 F840 F850 F860 F870 F880
 //	├────┬────┬────┬────┬────┬────┬────┬────┬────┐
@@ -504,7 +501,7 @@ xkb_symbols "dyalog_codes" {
 //     F│RL  │FD  │HK  │Lc  │BH  │PU  │    │    │OS  │
 //	└────┴────┴────┴────┴────┴────┴────┴────┴────┘
 //
-//				APL Function Keys		F700-F7FF
+//		APL Function Keys		F700-F7FF
 //
 //	│F700 ...                           ...  F7F0
 //	├────┬────┬────┬────┬....┬────┬────┬────┬────┐
@@ -514,9 +511,9 @@ xkb_symbols "dyalog_codes" {
 //	.
 //     F│F15 │F31 │F47 │F63 │    │F207│F223│F239│F255│
 //	└────┴────┴────┴────┴....┴────┴────┴────┴────┘
-//	
+//
 //	whilst these locations are defined. Dyalog's "aplkeys/xterm" file copes with
-//	normal function keys from the base keyboard rather than this overlay
+//	normal function keys from the base keyboard rather than this overlay.
 
 // ┌─────┐                                                                       ┌───┐
 // │     │                                                                       │ZM │
@@ -540,7 +537,6 @@ xkb_symbols "dyalog_codes" {
 // ┃       ┃       ┃       ┃              TO                   ┃       ┃       ┃       ┃
 // ┗━━━━━━━┻━━━━━━━┻━━━━━━━┹───────────────────────────────────┺━━━━━━━┻━━━━━━━┻━━━━━━━┛
 
-
 	key <BKSP> { [ Uf850,	Uf855	] };	// BP CB
 	key <ESC>  { [ Uf800		] };	// QT
 	key <FK11> { [ Uf821,	Uf821	] };	// ZM, ZM put this on both, the unshifted one sometimes gets lost
@@ -560,7 +556,6 @@ xkb_symbols "dyalog_codes" {
 	key <LEFT> { [ Uf825,	Uf84f	] };	// PV, BH
 	key <RGHT> { [ Uf824,	Uf854	] };	// NX, RM
 	key <UP>   { [ Uf820		] };	// BK
-
 
 // ┌───┬───┬───┐
 // │PT │LL │UL │
@@ -589,7 +584,6 @@ xkb_symbols "dyalog_codes" {
 // │       │   │   │
 // └───────┴───┴───┘
 
-
 	key <KPAD> { [ Uf859 ] };	// TL
 	key <KPDV> { [ Uf819 ] };	// RD
 	key <KPMU> { [ Uf81a ] };	// TG
@@ -602,4 +596,3 @@ xkb_symbols "dyalog" {
 	include "apl(dyalog_codes)"
 	name[Group1] = "APL keyboard symbols (Dyalog)";
 };
-

@@ -267,14 +267,6 @@ listPossibleVideoDrivers(char *matches[], int nmatches)
     if (i < (nmatches - 1))
         i = xf86PciMatchDriver(matches, nmatches);
 #endif
-    /* Fallback to platform default hardware */
-    if (i < (nmatches - 1)) {
-#if defined(__i386__) || defined(__amd64__) || defined(__hurd__)
-        matches[i++] = xnfstrdup("vesa");
-#elif defined(__sparc__) && !defined(sun)
-        matches[i++] = xnfstrdup("sunffb");
-#endif
-    }
 
 #if defined(__linux__)
     matches[i++] = xnfstrdup("modesetting");
@@ -290,6 +282,15 @@ listPossibleVideoDrivers(char *matches[], int nmatches)
 #endif
     }
 #endif                          /* !sun */
+
+    /* Fallback to platform default hardware */
+    if (i < (nmatches - 1)) {
+#if defined(__i386__) || defined(__amd64__) || defined(__hurd__)
+        matches[i++] = xnfstrdup("vesa");
+#elif defined(__sparc__) && !defined(sun)
+        matches[i++] = xnfstrdup("sunffb");
+#endif
+    }
 }
 
 /* copy a screen section and enter the desired driver

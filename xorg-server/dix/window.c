@@ -530,7 +530,11 @@ CreateRootWindow(ScreenPtr pScreen)
     if (disableBackingStore)
         pScreen->backingStoreSupport = NotUseful;
     if (enableBackingStore)
-        pScreen->backingStoreSupport = Always;
+        pScreen->backingStoreSupport = WhenMapped;
+#ifdef COMPOSITE
+    if (noCompositeExtension)
+        pScreen->backingStoreSupport = NotUseful;
+#endif
 
     pScreen->saveUnderSupport = NotUseful;
 

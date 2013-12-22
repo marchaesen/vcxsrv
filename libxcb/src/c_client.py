@@ -1061,8 +1061,8 @@ def _c_serialize_helper(context, complex_type,
         if context in ('unserialize', 'unpack', 'sizeof') and not self.var_followed_by_fixed_fields:
             code_lines.append('%s    xcb_block_len += sizeof(%s);' % (space, self.c_type))
             code_lines.append('%s    xcb_tmp += xcb_block_len;' % space)
-            # probably not needed
-            #_c_serialize_helper_insert_padding(context, code_lines, space, False)
+            code_lines.append('%s    xcb_buffer_len += xcb_block_len;' % space)
+            code_lines.append('%s    xcb_block_len = 0;' % space)
 
         count += _c_serialize_helper_fields(context, self, 
                                             code_lines, temp_vars, 

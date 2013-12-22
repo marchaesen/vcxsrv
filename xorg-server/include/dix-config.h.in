@@ -466,4 +466,7 @@
 /* Wrap SIGBUS to catch MIT-SHM faults */
 #undef BUSFAULT
 
+/* Directory for shared memory temp files */
+#undef SHMDIR
+
 #endif /* _DIX_CONFIG_H_ */

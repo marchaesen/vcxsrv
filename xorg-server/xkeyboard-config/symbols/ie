@@ -86,7 +86,7 @@ xkb_symbols "basic" {
     key <AC10> { [  semicolon,         colon,             ellipsis,         doubledagger ] };
     key <AC11> { [ apostrophe,            at,                   ae,                   AE ] };
     key <BKSL> { [ numbersign,    asciitilde,        guillemotleft,       guillemotright ] };
-                                                                  
+
 
     //
     // \ZXCVBNM,./
@@ -401,7 +401,7 @@ xkb_symbols "ogam_is434" {
     // Also overcomes annoying use of Scroll Lock LED inherited from
     // US symbols but not relevant here since we're not changing group.
     key <SCLK> {type[Group1] = "ONE_LEVEL", [ Shift_Lock ] };
-    modifier_map Shift { Shift_Lock }; 
+    modifier_map Shift { Shift_Lock };
 
     include "compose(rwin)"
 };

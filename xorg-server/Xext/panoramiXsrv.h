@@ -11,6 +11,7 @@
 extern _X_EXPORT int PanoramiXNumScreens;
 extern _X_EXPORT int PanoramiXPixWidth;
 extern _X_EXPORT int PanoramiXPixHeight;
+extern _X_EXPORT RegionRec PanoramiXScreenRegion;
 
 extern _X_EXPORT VisualID PanoramiXTranslateVisualID(int screen, VisualID orig);
 extern _X_EXPORT void PanoramiXConsolidate(void);

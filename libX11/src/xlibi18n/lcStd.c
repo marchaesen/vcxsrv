@@ -199,13 +199,8 @@ _Xlcwcstombs(
 int
 _Xmbtowc(
     wchar_t *wstr,
-#ifdef ISC
-    char const *str,
-    size_t len
-#else
     char *str,
     int len
-#endif
     )
 {
     return _Xlcmbtowc((XLCd) NULL, wstr, str, len);
@@ -213,13 +208,8 @@ _Xmbtowc(
 
 int
 _Xmblen(
-#ifdef ISC
-    char const *str,
-    size_t len
-#else
     char *str,
     int len
-#endif
     )
 {
     return _Xmbtowc((wchar_t *) NULL, str, len);

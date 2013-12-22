@@ -68,7 +68,7 @@ xkb_symbols "us" {
 //
 // Made by Gediminas Paulauskas <menesis@delfi.lt>
 // Minor modifications by Ričardas Čepas and Rimas Kudelis
- 
+
 partial alphanumeric_keys modifier_keys
 xkb_symbols "std" {
 
@@ -121,7 +121,7 @@ xkb_symbols "std" {
 //
 // Made by Piter PUNK <piterpk@terra.com.br>
 // Minor modifications and cleanup by Rimas Kudelis, 2010
- 
+
 partial alphanumeric_keys modifier_keys
 xkb_symbols "ibm" {
 
@@ -169,12 +169,12 @@ xkb_symbols "ibm" {
 
 partial alphanumeric_keys modifier_keys
 xkb_symbols "lekp" {
-    
+
     include "capslock(backspace)"
     include "level3(ralt_switch)"
-    
+
     name[Group1]="Lithuanian (LEKP)";
-    
+
     key <TLDE> {[        grave,          asciitilde,         acute ]};
     key <AE01> {[        slash,          numbersign,           bar ]};
     key <AE02> {[    backslash,                  at,       section ]};

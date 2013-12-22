@@ -353,13 +353,21 @@ __glXDispSwap_DrawArrays(GLbyte * pc)
             glEdgeFlagPointer(stride, (const GLboolean *) pc);
             break;
         case GL_SECONDARY_COLOR_ARRAY:
+        {
+            PFNGLSECONDARYCOLORPOINTERPROC SecondaryColorPointerEXT =
+                __glGetProcAddress("glSecondaryColorPointerEXT");
             glEnableClientState(GL_SECONDARY_COLOR_ARRAY);
-            glSecondaryColorPointerEXT(numVals, datatype, stride, pc);
+            SecondaryColorPointerEXT(numVals, datatype, stride, pc);
             break;
+        }
         case GL_FOG_COORD_ARRAY:
+        {
+            PFNGLFOGCOORDPOINTERPROC FogCoordPointerEXT =
+                __glGetProcAddress("glFogCoordPointerEXT");
             glEnableClientState(GL_FOG_COORD_ARRAY);
-            glFogCoordPointerEXT(datatype, stride, pc);
+            FogCoordPointerEXT(datatype, stride, pc);
             break;
+        }
         default:
             break;
         }

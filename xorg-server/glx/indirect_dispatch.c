@@ -3460,7 +3460,7 @@ __glXDisp_CopyTexSubImage3D(GLbyte * pc)
 void
 __glXDisp_ActiveTexture(GLbyte * pc)
 {
-    glActiveTexture(*(GLenum *) (pc + 0));
+    glActiveTextureARB(*(GLenum *) (pc + 0));
 }
 
 void
@@ -3473,7 +3473,7 @@ __glXDisp_MultiTexCoord1dv(GLbyte * pc)
     }
 #endif
 
-    glMultiTexCoord1dv(*(GLenum *) (pc + 8), (const GLdouble *) (pc + 0));
+    glMultiTexCoord1dvARB(*(GLenum *) (pc + 8), (const GLdouble *) (pc + 0));
 }
 
 void
@@ -3485,13 +3485,13 @@ __glXDisp_MultiTexCoord1fvARB(GLbyte * pc)
 void
 __glXDisp_MultiTexCoord1iv(GLbyte * pc)
 {
-    glMultiTexCoord1iv(*(GLenum *) (pc + 0), (const GLint *) (pc + 4));
+    glMultiTexCoord1ivARB(*(GLenum *) (pc + 0), (const GLint *) (pc + 4));
 }
 
 void
 __glXDisp_MultiTexCoord1sv(GLbyte * pc)
 {
-    glMultiTexCoord1sv(*(GLenum *) (pc + 0), (const GLshort *) (pc + 4));
+    glMultiTexCoord1svARB(*(GLenum *) (pc + 0), (const GLshort *) (pc + 4));
 }
 
 void
@@ -3504,7 +3504,7 @@ __glXDisp_MultiTexCoord2dv(GLbyte * pc)
     }
 #endif
 
-    glMultiTexCoord2dv(*(GLenum *) (pc + 16), (const GLdouble *) (pc + 0));
+    glMultiTexCoord2dvARB(*(GLenum *) (pc + 16), (const GLdouble *) (pc + 0));
 }
 
 void
@@ -3516,13 +3516,13 @@ __glXDisp_MultiTexCoord2fvARB(GLbyte * pc)
 void
 __glXDisp_MultiTexCoord2iv(GLbyte * pc)
 {
-    glMultiTexCoord2iv(*(GLenum *) (pc + 0), (const GLint *) (pc + 4));
+    glMultiTexCoord2ivARB(*(GLenum *) (pc + 0), (const GLint *) (pc + 4));
 }
 
 void
 __glXDisp_MultiTexCoord2sv(GLbyte * pc)
 {
-    glMultiTexCoord2sv(*(GLenum *) (pc + 0), (const GLshort *) (pc + 4));
+    glMultiTexCoord2svARB(*(GLenum *) (pc + 0), (const GLshort *) (pc + 4));
 }
 
 void
@@ -3535,7 +3535,7 @@ __glXDisp_MultiTexCoord3dv(GLbyte * pc)
     }
 #endif
 
-    glMultiTexCoord3dv(*(GLenum *) (pc + 24), (const GLdouble *) (pc + 0));
+    glMultiTexCoord3dvARB(*(GLenum *) (pc + 24), (const GLdouble *) (pc + 0));
 }
 
 void
@@ -3547,13 +3547,13 @@ __glXDisp_MultiTexCoord3fvARB(GLbyte * pc)
 void
 __glXDisp_MultiTexCoord3iv(GLbyte * pc)
 {
-    glMultiTexCoord3iv(*(GLenum *) (pc + 0), (const GLint *) (pc + 4));
+    glMultiTexCoord3ivARB(*(GLenum *) (pc + 0), (const GLint *) (pc + 4));
 }
 
 void
 __glXDisp_MultiTexCoord3sv(GLbyte * pc)
 {
-    glMultiTexCoord3sv(*(GLenum *) (pc + 0), (const GLshort *) (pc + 4));
+    glMultiTexCoord3svARB(*(GLenum *) (pc + 0), (const GLshort *) (pc + 4));
 }
 
 void
@@ -3566,7 +3566,7 @@ __glXDisp_MultiTexCoord4dv(GLbyte * pc)
     }
 #endif
 
-    glMultiTexCoord4dv(*(GLenum *) (pc + 32), (const GLdouble *) (pc + 0));
+    glMultiTexCoord4dvARB(*(GLenum *) (pc + 32), (const GLdouble *) (pc + 0));
 }
 
 void
@@ -3578,119 +3578,136 @@ __glXDisp_MultiTexCoord4fvARB(GLbyte * pc)
 void
 __glXDisp_MultiTexCoord4iv(GLbyte * pc)
 {
-    glMultiTexCoord4iv(*(GLenum *) (pc + 0), (const GLint *) (pc + 4));
+    glMultiTexCoord4ivARB(*(GLenum *) (pc + 0), (const GLint *) (pc + 4));
 }
 
 void
 __glXDisp_MultiTexCoord4sv(GLbyte * pc)
 {
-    glMultiTexCoord4sv(*(GLenum *) (pc + 0), (const GLshort *) (pc + 4));
+    glMultiTexCoord4svARB(*(GLenum *) (pc + 0), (const GLshort *) (pc + 4));
 }
 
 void
 __glXDisp_CompressedTexImage1D(GLbyte * pc)
 {
+    PFNGLCOMPRESSEDTEXIMAGE1DPROC CompressedTexImage1D =
+        __glGetProcAddress("glCompressedTexImage1D");
     const GLsizei imageSize = *(GLsizei *) (pc + 20);
 
-    glCompressedTexImage1D(*(GLenum *) (pc + 0),
-                           *(GLint *) (pc + 4),
-                           *(GLenum *) (pc + 8),
-                           *(GLsizei *) (pc + 12),
-                           *(GLint *) (pc + 16),
-                           imageSize, (const GLvoid *) (pc + 24));
+    CompressedTexImage1D(*(GLenum *) (pc + 0),
+                         *(GLint *) (pc + 4),
+                         *(GLenum *) (pc + 8),
+                         *(GLsizei *) (pc + 12),
+                         *(GLint *) (pc + 16),
+                         imageSize, (const GLvoid *) (pc + 24));
 }
 
 void
 __glXDisp_CompressedTexImage2D(GLbyte * pc)
 {
+    PFNGLCOMPRESSEDTEXIMAGE2DPROC CompressedTexImage2D =
+        __glGetProcAddress("glCompressedTexImage2D");
     const GLsizei imageSize = *(GLsizei *) (pc + 24);
 
-    glCompressedTexImage2D(*(GLenum *) (pc + 0),
-                           *(GLint *) (pc + 4),
-                           *(GLenum *) (pc + 8),
-                           *(GLsizei *) (pc + 12),
-                           *(GLsizei *) (pc + 16),
-                           *(GLint *) (pc + 20),
-                           imageSize, (const GLvoid *) (pc + 28));
+    CompressedTexImage2D(*(GLenum *) (pc + 0),
+                         *(GLint *) (pc + 4),
+                         *(GLenum *) (pc + 8),
+                         *(GLsizei *) (pc + 12),
+                         *(GLsizei *) (pc + 16),
+                         *(GLint *) (pc + 20),
+                         imageSize, (const GLvoid *) (pc + 28));
 }
 
 void
 __glXDisp_CompressedTexImage3D(GLbyte * pc)
 {
+    PFNGLCOMPRESSEDTEXIMAGE3DPROC CompressedTexImage3D =
+        __glGetProcAddress("glCompressedTexImage3D");
     const GLsizei imageSize = *(GLsizei *) (pc + 28);
 
-    glCompressedTexImage3D(*(GLenum *) (pc + 0),
-                           *(GLint *) (pc + 4),
-                           *(GLenum *) (pc + 8),
-                           *(GLsizei *) (pc + 12),
-                           *(GLsizei *) (pc + 16),
-                           *(GLsizei *) (pc + 20),
-                           *(GLint *) (pc + 24),
-                           imageSize, (const GLvoid *) (pc + 32));
+    CompressedTexImage3D(*(GLenum *) (pc + 0),
+                         *(GLint *) (pc + 4),
+                         *(GLenum *) (pc + 8),
+                         *(GLsizei *) (pc + 12),
+                         *(GLsizei *) (pc + 16),
+                         *(GLsizei *) (pc + 20),
+                         *(GLint *) (pc + 24),
+                         imageSize, (const GLvoid *) (pc + 32));
 }
 
 void
 __glXDisp_CompressedTexSubImage1D(GLbyte * pc)
 {
+    PFNGLCOMPRESSEDTEXSUBIMAGE1DPROC CompressedTexSubImage1D =
+        __glGetProcAddress("glCompressedTexSubImage1D");
     const GLsizei imageSize = *(GLsizei *) (pc + 20);
 
-    glCompressedTexSubImage1D(*(GLenum *) (pc + 0),
-                              *(GLint *) (pc + 4),
-                              *(GLint *) (pc + 8),
-                              *(GLsizei *) (pc + 12),
-                              *(GLenum *) (pc + 16),
-                              imageSize, (const GLvoid *) (pc + 24));
+    CompressedTexSubImage1D(*(GLenum *) (pc + 0),
+                            *(GLint *) (pc + 4),
+                            *(GLint *) (pc + 8),
+                            *(GLsizei *) (pc + 12),
+                            *(GLenum *) (pc + 16),
+                            imageSize, (const GLvoid *) (pc + 24));
 }
 
 void
 __glXDisp_CompressedTexSubImage2D(GLbyte * pc)
 {
+    PFNGLCOMPRESSEDTEXSUBIMAGE2DPROC CompressedTexSubImage2D =
+        __glGetProcAddress("glCompressedTexSubImage2D");
     const GLsizei imageSize = *(GLsizei *) (pc + 28);
 
-    glCompressedTexSubImage2D(*(GLenum *) (pc + 0),
-                              *(GLint *) (pc + 4),
-                              *(GLint *) (pc + 8),
-                              *(GLint *) (pc + 12),
-                              *(GLsizei *) (pc + 16),
-                              *(GLsizei *) (pc + 20),
-                              *(GLenum *) (pc + 24),
-                              imageSize, (const GLvoid *) (pc + 32));
+    CompressedTexSubImage2D(*(GLenum *) (pc + 0),
+                            *(GLint *) (pc + 4),
+                            *(GLint *) (pc + 8),
+                            *(GLint *) (pc + 12),
+                            *(GLsizei *) (pc + 16),
+                            *(GLsizei *) (pc + 20),
+                            *(GLenum *) (pc + 24),
+                            imageSize, (const GLvoid *) (pc + 32));
 }
 
 void
 __glXDisp_CompressedTexSubImage3D(GLbyte * pc)
 {
+    PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC CompressedTexSubImage3D =
+        __glGetProcAddress("glCompressedTexSubImage3D");
     const GLsizei imageSize = *(GLsizei *) (pc + 36);
 
-    glCompressedTexSubImage3D(*(GLenum *) (pc + 0),
-                              *(GLint *) (pc + 4),
-                              *(GLint *) (pc + 8),
-                              *(GLint *) (pc + 12),
-                              *(GLint *) (pc + 16),
-                              *(GLsizei *) (pc + 20),
-                              *(GLsizei *) (pc + 24),
-                              *(GLsizei *) (pc + 28),
-                              *(GLenum *) (pc + 32),
-                              imageSize, (const GLvoid *) (pc + 40));
+    CompressedTexSubImage3D(*(GLenum *) (pc + 0),
+                            *(GLint *) (pc + 4),
+                            *(GLint *) (pc + 8),
+                            *(GLint *) (pc + 12),
+                            *(GLint *) (pc + 16),
+                            *(GLsizei *) (pc + 20),
+                            *(GLsizei *) (pc + 24),
+                            *(GLsizei *) (pc + 28),
+                            *(GLenum *) (pc + 32),
+                            imageSize, (const GLvoid *) (pc + 40));
 }
 
 void
 __glXDisp_SampleCoverage(GLbyte * pc)
 {
-    glSampleCoverage(*(GLclampf *) (pc + 0), *(GLboolean *) (pc + 4));
+    PFNGLSAMPLECOVERAGEPROC SampleCoverage =
+        __glGetProcAddress("glSampleCoverage");
+    SampleCoverage(*(GLclampf *) (pc + 0), *(GLboolean *) (pc + 4));
 }
 
 void
 __glXDisp_BlendFuncSeparate(GLbyte * pc)
 {
-    glBlendFuncSeparate(*(GLenum *) (pc + 0),
-                        *(GLenum *) (pc + 4),
-                        *(GLenum *) (pc + 8), *(GLenum *) (pc + 12));
+    PFNGLBLENDFUNCSEPARATEPROC BlendFuncSeparate =
+        __glGetProcAddress("glBlendFuncSeparate");
+    BlendFuncSeparate(*(GLenum *) (pc + 0), *(GLenum *) (pc + 4),
+                      *(GLenum *) (pc + 8), *(GLenum *) (pc + 12));
 }
 
 void
 __glXDisp_FogCoorddv(GLbyte * pc)
 {
+    PFNGLFOGCOORDDVPROC FogCoorddv = __glGetProcAddress("glFogCoorddv");
+
 #ifdef __GLX_ALIGN64
     if ((unsigned long) (pc) & 7) {
         (void) memmove(pc - 4, pc, 8);
@@ -3698,52 +3715,64 @@ __glXDisp_FogCoorddv(GLbyte * pc)
     }
 #endif
 
-    glFogCoorddv((const GLdouble *) (pc + 0));
+    FogCoorddv((const GLdouble *) (pc + 0));
 }
 
 void
 __glXDisp_PointParameterf(GLbyte * pc)
 {
-    glPointParameterf(*(GLenum *) (pc + 0), *(GLfloat *) (pc + 4));
+    PFNGLPOINTPARAMETERFPROC PointParameterf =
+        __glGetProcAddress("glPointParameterf");
+    PointParameterf(*(GLenum *) (pc + 0), *(GLfloat *) (pc + 4));
 }
 
 void
 __glXDisp_PointParameterfv(GLbyte * pc)
 {
+    PFNGLPOINTPARAMETERFVPROC PointParameterfv =
+        __glGetProcAddress("glPointParameterfv");
     const GLenum pname = *(GLenum *) (pc + 0);
     const GLfloat *params;
 
     params = (const GLfloat *) (pc + 4);
 
-    glPointParameterfv(pname, params);
+    PointParameterfv(pname, params);
 }
 
 void
 __glXDisp_PointParameteri(GLbyte * pc)
 {
-    glPointParameteri(*(GLenum *) (pc + 0), *(GLint *) (pc + 4));
+    PFNGLPOINTPARAMETERIPROC PointParameteri =
+        __glGetProcAddress("glPointParameteri");
+    PointParameteri(*(GLenum *) (pc + 0), *(GLint *) (pc + 4));
 }
 
 void
 __glXDisp_PointParameteriv(GLbyte * pc)
 {
+    PFNGLPOINTPARAMETERIVPROC PointParameteriv =
+        __glGetProcAddress("glPointParameteriv");
     const GLenum pname = *(GLenum *) (pc + 0);
     const GLint *params;
 
     params = (const GLint *) (pc + 4);
 
-    glPointParameteriv(pname, params);
+    PointParameteriv(pname, params);
 }
 
 void
 __glXDisp_SecondaryColor3bv(GLbyte * pc)
 {
-    glSecondaryColor3bv((const GLbyte *) (pc + 0));
+    PFNGLSECONDARYCOLOR3BVPROC SecondaryColor3bv =
+        __glGetProcAddress("glSecondaryColor3bv");
+    SecondaryColor3bv((const GLbyte *) (pc + 0));
 }
 
 void
 __glXDisp_SecondaryColor3dv(GLbyte * pc)
 {
+    PFNGLSECONDARYCOLOR3DVPROC SecondaryColor3dv =
+        __glGetProcAddress("glSecondaryColor3dv");
 #ifdef __GLX_ALIGN64
     if ((unsigned long) (pc) & 7) {
         (void) memmove(pc - 4, pc, 24);
@@ -3751,54 +3780,70 @@ __glXDisp_SecondaryColor3dv(GLbyte * pc)
     }
 #endif
 
-    glSecondaryColor3dv((const GLdouble *) (pc + 0));
+    SecondaryColor3dv((const GLdouble *) (pc + 0));
 }
 
 void
 __glXDisp_SecondaryColor3iv(GLbyte * pc)
 {
-    glSecondaryColor3iv((const GLint *) (pc + 0));
+    PFNGLSECONDARYCOLOR3IVPROC SecondaryColor3iv =
+        __glGetProcAddress("glSecondaryColor3iv");
+    SecondaryColor3iv((const GLint *) (pc + 0));
 }
 
 void
 __glXDisp_SecondaryColor3sv(GLbyte * pc)
 {
-    glSecondaryColor3sv((const GLshort *) (pc + 0));
+    PFNGLSECONDARYCOLOR3SVPROC SecondaryColor3sv =
+        __glGetProcAddress("glSecondaryColor3sv");
+    SecondaryColor3sv((const GLshort *) (pc + 0));
 }
 
 void
 __glXDisp_SecondaryColor3ubv(GLbyte * pc)
 {
-    glSecondaryColor3ubv((const GLubyte *) (pc + 0));
+    PFNGLSECONDARYCOLOR3UBVPROC SecondaryColor3ubv =
+        __glGetProcAddress("glSecondaryColor3ubv");
+    SecondaryColor3ubv((const GLubyte *) (pc + 0));
 }
 
 void
 __glXDisp_SecondaryColor3uiv(GLbyte * pc)
 {
-    glSecondaryColor3uiv((const GLuint *) (pc + 0));
+    PFNGLSECONDARYCOLOR3UIVPROC SecondaryColor3uiv =
+        __glGetProcAddress("glSecondaryColor3uiv");
+    SecondaryColor3uiv((const GLuint *) (pc + 0));
 }
 
 void
 __glXDisp_SecondaryColor3usv(GLbyte * pc)
 {
-    glSecondaryColor3usv((const GLushort *) (pc + 0));
+    PFNGLSECONDARYCOLOR3USVPROC SecondaryColor3usv =
+        __glGetProcAddress("glSecondaryColor3usv");
+    SecondaryColor3usv((const GLushort *) (pc + 0));
 }
 
 void
 __glXDisp_WindowPos3fv(GLbyte * pc)
 {
-    glWindowPos3fv((const GLfloat *) (pc + 0));
+    PFNGLWINDOWPOS3FVPROC WindowPos3fv = __glGetProcAddress("glWindowPos3fv");
+
+    WindowPos3fv((const GLfloat *) (pc + 0));
 }
 
 void
 __glXDisp_BeginQuery(GLbyte * pc)
 {
-    glBeginQuery(*(GLenum *) (pc + 0), *(GLuint *) (pc + 4));
+    PFNGLBEGINQUERYPROC BeginQuery = __glGetProcAddress("glBeginQuery");
+
+    BeginQuery(*(GLenum *) (pc + 0), *(GLuint *) (pc + 4));
 }
 
 int
 __glXDisp_DeleteQueries(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLDELETEQUERIESPROC DeleteQueries =
+        __glGetProcAddress("glDeleteQueries");
     xGLXSingleReq *const req = (xGLXSingleReq *) pc;
     int error;
     __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
@@ -3807,7 +3852,7 @@ __glXDisp_DeleteQueries(__GLXclientState * cl, GLbyte * pc)
     if (cx != NULL) {
         const GLsizei n = *(GLsizei *) (pc + 0);
 
-        glDeleteQueries(n, (const GLuint *) (pc + 4));
+        DeleteQueries(n, (const GLuint *) (pc + 4));
         error = Success;
     }
 
@@ -3817,12 +3862,15 @@ __glXDisp_DeleteQueries(__GLXclientState * cl, GLbyte * pc)
 void
 __glXDisp_EndQuery(GLbyte * pc)
 {
-    glEndQuery(*(GLenum *) (pc + 0));
+    PFNGLENDQUERYPROC EndQuery = __glGetProcAddress("glEndQuery");
+
+    EndQuery(*(GLenum *) (pc + 0));
 }
 
 int
 __glXDisp_GenQueries(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGENQUERIESPROC GenQueries = __glGetProcAddress("glGenQueries");
     xGLXSingleReq *const req = (xGLXSingleReq *) pc;
     int error;
     __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
@@ -3835,7 +3883,7 @@ __glXDisp_GenQueries(__GLXclientState * cl, GLbyte * pc)
         GLuint *ids =
             __glXGetAnswerBuffer(cl, n * 4, answerBuffer, sizeof(answerBuffer),
                                  4);
-        glGenQueries(n, ids);
+        GenQueries(n, ids);
         __glXSendReply(cl->client, ids, n, 4, GL_TRUE, 0);
         error = Success;
     }
@@ -3846,6 +3894,8 @@ __glXDisp_GenQueries(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDisp_GetQueryObjectiv(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGETQUERYOBJECTIVPROC GetQueryObjectiv =
+        __glGetProcAddress("glGetQueryObjectiv");
     xGLXSingleReq *const req = (xGLXSingleReq *) pc;
     int error;
     __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
@@ -3864,7 +3914,7 @@ __glXDisp_GetQueryObjectiv(__GLXclientState * cl, GLbyte * pc)
             return BadAlloc;
         __glXClearErrorOccured();
 
-        glGetQueryObjectiv(*(GLuint *) (pc + 0), pname, params);
+        GetQueryObjectiv(*(GLuint *) (pc + 0), pname, params);
         __glXSendReply(cl->client, params, compsize, 4, GL_FALSE, 0);
         error = Success;
     }
@@ -3875,6 +3925,8 @@ __glXDisp_GetQueryObjectiv(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDisp_GetQueryObjectuiv(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGETQUERYOBJECTUIVPROC GetQueryObjectuiv =
+        __glGetProcAddress("glGetQueryObjectuiv");
     xGLXSingleReq *const req = (xGLXSingleReq *) pc;
     int error;
     __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
@@ -3893,7 +3945,7 @@ __glXDisp_GetQueryObjectuiv(__GLXclientState * cl, GLbyte * pc)
             return BadAlloc;
         __glXClearErrorOccured();
 
-        glGetQueryObjectuiv(*(GLuint *) (pc + 0), pname, params);
+        GetQueryObjectuiv(*(GLuint *) (pc + 0), pname, params);
         __glXSendReply(cl->client, params, compsize, 4, GL_FALSE, 0);
         error = Success;
     }
@@ -3904,6 +3956,7 @@ __glXDisp_GetQueryObjectuiv(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDisp_GetQueryiv(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGETQUERYIVPROC GetQueryiv = __glGetProcAddress("glGetQueryiv");
     xGLXSingleReq *const req = (xGLXSingleReq *) pc;
     int error;
     __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
@@ -3922,7 +3975,7 @@ __glXDisp_GetQueryiv(__GLXclientState * cl, GLbyte * pc)
             return BadAlloc;
         __glXClearErrorOccured();
 
-        glGetQueryiv(*(GLenum *) (pc + 0), pname, params);
+        GetQueryiv(*(GLenum *) (pc + 0), pname, params);
         __glXSendReply(cl->client, params, compsize, 4, GL_FALSE, 0);
         error = Success;
     }
@@ -3933,6 +3986,7 @@ __glXDisp_GetQueryiv(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDisp_IsQuery(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLISQUERYPROC IsQuery = __glGetProcAddress("glIsQuery");
     xGLXSingleReq *const req = (xGLXSingleReq *) pc;
     int error;
     __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
@@ -3941,7 +3995,7 @@ __glXDisp_IsQuery(__GLXclientState * cl, GLbyte * pc)
     if (cx != NULL) {
         GLboolean retval;
 
-        retval = glIsQuery(*(GLuint *) (pc + 0));
+        retval = IsQuery(*(GLuint *) (pc + 0));
         __glXSendReply(cl->client, dummy_answer, 0, 0, GL_FALSE, retval);
         error = Success;
     }
@@ -3952,20 +4006,25 @@ __glXDisp_IsQuery(__GLXclientState * cl, GLbyte * pc)
 void
 __glXDisp_BlendEquationSeparate(GLbyte * pc)
 {
-    glBlendEquationSeparate(*(GLenum *) (pc + 0), *(GLenum *) (pc + 4));
+    PFNGLBLENDEQUATIONSEPARATEPROC BlendEquationSeparate =
+        __glGetProcAddress("glBlendEquationSeparate");
+    BlendEquationSeparate(*(GLenum *) (pc + 0), *(GLenum *) (pc + 4));
 }
 
 void
 __glXDisp_DrawBuffers(GLbyte * pc)
 {
+    PFNGLDRAWBUFFERSPROC DrawBuffers = __glGetProcAddress("glDrawBuffers");
     const GLsizei n = *(GLsizei *) (pc + 0);
 
-    glDrawBuffers(n, (const GLenum *) (pc + 4));
+    DrawBuffers(n, (const GLenum *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib1dv(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIB1DVPROC VertexAttrib1dv =
+        __glGetProcAddress("glVertexAttrib1dv");
 #ifdef __GLX_ALIGN64
     if ((unsigned long) (pc) & 7) {
         (void) memmove(pc - 4, pc, 12);
@@ -3973,18 +4032,22 @@ __glXDisp_VertexAttrib1dv(GLbyte * pc)
     }
 #endif
 
-    glVertexAttrib1dv(*(GLuint *) (pc + 0), (const GLdouble *) (pc + 4));
+    VertexAttrib1dv(*(GLuint *) (pc + 0), (const GLdouble *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib1sv(GLbyte * pc)
 {
-    glVertexAttrib1sv(*(GLuint *) (pc + 0), (const GLshort *) (pc + 4));
+    PFNGLVERTEXATTRIB1SVPROC VertexAttrib1sv =
+        __glGetProcAddress("glVertexAttrib1sv");
+    VertexAttrib1sv(*(GLuint *) (pc + 0), (const GLshort *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib2dv(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIB2DVPROC VertexAttrib2dv =
+        __glGetProcAddress("glVertexAttrib2dv");
 #ifdef __GLX_ALIGN64
     if ((unsigned long) (pc) & 7) {
         (void) memmove(pc - 4, pc, 20);
@@ -3992,18 +4055,22 @@ __glXDisp_VertexAttrib2dv(GLbyte * pc)
     }
 #endif
 
-    glVertexAttrib2dv(*(GLuint *) (pc + 0), (const GLdouble *) (pc + 4));
+    VertexAttrib2dv(*(GLuint *) (pc + 0), (const GLdouble *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib2sv(GLbyte * pc)
 {
-    glVertexAttrib2sv(*(GLuint *) (pc + 0), (const GLshort *) (pc + 4));
+    PFNGLVERTEXATTRIB2SVPROC VertexAttrib2sv =
+        __glGetProcAddress("glVertexAttrib2sv");
+    VertexAttrib2sv(*(GLuint *) (pc + 0), (const GLshort *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib3dv(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIB3DVPROC VertexAttrib3dv =
+        __glGetProcAddress("glVertexAttrib3dv");
 #ifdef __GLX_ALIGN64
     if ((unsigned long) (pc) & 7) {
         (void) memmove(pc - 4, pc, 28);
@@ -4011,60 +4078,78 @@ __glXDisp_VertexAttrib3dv(GLbyte * pc)
     }
 #endif
 
-    glVertexAttrib3dv(*(GLuint *) (pc + 0), (const GLdouble *) (pc + 4));
+    VertexAttrib3dv(*(GLuint *) (pc + 0), (const GLdouble *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib3sv(GLbyte * pc)
 {
-    glVertexAttrib3sv(*(GLuint *) (pc + 0), (const GLshort *) (pc + 4));
+    PFNGLVERTEXATTRIB3SVPROC VertexAttrib3sv =
+        __glGetProcAddress("glVertexAttrib3sv");
+    VertexAttrib3sv(*(GLuint *) (pc + 0), (const GLshort *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib4Nbv(GLbyte * pc)
 {
-    glVertexAttrib4Nbv(*(GLuint *) (pc + 0), (const GLbyte *) (pc + 4));
+    PFNGLVERTEXATTRIB4NBVPROC VertexAttrib4Nbv =
+        __glGetProcAddress("glVertexAttrib4Nbv");
+    VertexAttrib4Nbv(*(GLuint *) (pc + 0), (const GLbyte *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib4Niv(GLbyte * pc)
 {
-    glVertexAttrib4Niv(*(GLuint *) (pc + 0), (const GLint *) (pc + 4));
+    PFNGLVERTEXATTRIB4NIVPROC VertexAttrib4Niv =
+        __glGetProcAddress("glVertexAttrib4Niv");
+    VertexAttrib4Niv(*(GLuint *) (pc + 0), (const GLint *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib4Nsv(GLbyte * pc)
 {
-    glVertexAttrib4Nsv(*(GLuint *) (pc + 0), (const GLshort *) (pc + 4));
+    PFNGLVERTEXATTRIB4NSVPROC VertexAttrib4Nsv =
+        __glGetProcAddress("glVertexAttrib4Nsv");
+    VertexAttrib4Nsv(*(GLuint *) (pc + 0), (const GLshort *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib4Nubv(GLbyte * pc)
 {
-    glVertexAttrib4Nubv(*(GLuint *) (pc + 0), (const GLubyte *) (pc + 4));
+    PFNGLVERTEXATTRIB4NUBVPROC VertexAttrib4Nubv =
+        __glGetProcAddress("glVertexAttrib4Nubv");
+    VertexAttrib4Nubv(*(GLuint *) (pc + 0), (const GLubyte *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib4Nuiv(GLbyte * pc)
 {
-    glVertexAttrib4Nuiv(*(GLuint *) (pc + 0), (const GLuint *) (pc + 4));
+    PFNGLVERTEXATTRIB4NUIVPROC VertexAttrib4Nuiv =
+        __glGetProcAddress("glVertexAttrib4Nuiv");
+    VertexAttrib4Nuiv(*(GLuint *) (pc + 0), (const GLuint *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib4Nusv(GLbyte * pc)
 {
-    glVertexAttrib4Nusv(*(GLuint *) (pc + 0), (const GLushort *) (pc + 4));
+    PFNGLVERTEXATTRIB4NUSVPROC VertexAttrib4Nusv =
+        __glGetProcAddress("glVertexAttrib4Nusv");
+    VertexAttrib4Nusv(*(GLuint *) (pc + 0), (const GLushort *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib4bv(GLbyte * pc)
 {
-    glVertexAttrib4bv(*(GLuint *) (pc + 0), (const GLbyte *) (pc + 4));
+    PFNGLVERTEXATTRIB4BVPROC VertexAttrib4bv =
+        __glGetProcAddress("glVertexAttrib4bv");
+    VertexAttrib4bv(*(GLuint *) (pc + 0), (const GLbyte *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib4dv(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIB4DVPROC VertexAttrib4dv =
+        __glGetProcAddress("glVertexAttrib4dv");
 #ifdef __GLX_ALIGN64
     if ((unsigned long) (pc) & 7) {
         (void) memmove(pc - 4, pc, 36);
@@ -4072,54 +4157,70 @@ __glXDisp_VertexAttrib4dv(GLbyte * pc)
     }
 #endif
 
-    glVertexAttrib4dv(*(GLuint *) (pc + 0), (const GLdouble *) (pc + 4));
+    VertexAttrib4dv(*(GLuint *) (pc + 0), (const GLdouble *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib4iv(GLbyte * pc)
 {
-    glVertexAttrib4iv(*(GLuint *) (pc + 0), (const GLint *) (pc + 4));
+    PFNGLVERTEXATTRIB4IVPROC VertexAttrib4iv =
+        __glGetProcAddress("glVertexAttrib4iv");
+    VertexAttrib4iv(*(GLuint *) (pc + 0), (const GLint *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib4sv(GLbyte * pc)
 {
-    glVertexAttrib4sv(*(GLuint *) (pc + 0), (const GLshort *) (pc + 4));
+    PFNGLVERTEXATTRIB4SVPROC VertexAttrib4sv =
+        __glGetProcAddress("glVertexAttrib4sv");
+    VertexAttrib4sv(*(GLuint *) (pc + 0), (const GLshort *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib4ubv(GLbyte * pc)
 {
-    glVertexAttrib4ubv(*(GLuint *) (pc + 0), (const GLubyte *) (pc + 4));
+    PFNGLVERTEXATTRIB4UBVPROC VertexAttrib4ubv =
+        __glGetProcAddress("glVertexAttrib4ubv");
+    VertexAttrib4ubv(*(GLuint *) (pc + 0), (const GLubyte *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib4uiv(GLbyte * pc)
 {
-    glVertexAttrib4uiv(*(GLuint *) (pc + 0), (const GLuint *) (pc + 4));
+    PFNGLVERTEXATTRIB4UIVPROC VertexAttrib4uiv =
+        __glGetProcAddress("glVertexAttrib4uiv");
+    VertexAttrib4uiv(*(GLuint *) (pc + 0), (const GLuint *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib4usv(GLbyte * pc)
 {
-    glVertexAttrib4usv(*(GLuint *) (pc + 0), (const GLushort *) (pc + 4));
+    PFNGLVERTEXATTRIB4USVPROC VertexAttrib4usv =
+        __glGetProcAddress("glVertexAttrib4usv");
+    VertexAttrib4usv(*(GLuint *) (pc + 0), (const GLushort *) (pc + 4));
 }
 
 void
 __glXDisp_ClampColor(GLbyte * pc)
 {
-    glClampColor(*(GLenum *) (pc + 0), *(GLenum *) (pc + 4));
+    PFNGLCLAMPCOLORPROC ClampColor = __glGetProcAddress("glClampColor");
+
+    ClampColor(*(GLenum *) (pc + 0), *(GLenum *) (pc + 4));
 }
 
 void
 __glXDisp_BindProgramARB(GLbyte * pc)
 {
-    glBindProgramARB(*(GLenum *) (pc + 0), *(GLuint *) (pc + 4));
+    PFNGLBINDPROGRAMARBPROC BindProgramARB =
+        __glGetProcAddress("glBindProgramARB");
+    BindProgramARB(*(GLenum *) (pc + 0), *(GLuint *) (pc + 4));
 }
 
 int
 __glXDisp_DeleteProgramsARB(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLDELETEPROGRAMSARBPROC DeleteProgramsARB =
+        __glGetProcAddress("glDeleteProgramsARB");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
@@ -4128,7 +4229,7 @@ __glXDisp_DeleteProgramsARB(__GLXclientState * cl, GLbyte * pc)
     if (cx != NULL) {
         const GLsizei n = *(GLsizei *) (pc + 0);
 
-        glDeleteProgramsARB(n, (const GLuint *) (pc + 4));
+        DeleteProgramsARB(n, (const GLuint *) (pc + 4));
         error = Success;
     }
 
@@ -4138,6 +4239,8 @@ __glXDisp_DeleteProgramsARB(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDisp_GenProgramsARB(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGENPROGRAMSARBPROC GenProgramsARB =
+        __glGetProcAddress("glGenProgramsARB");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
@@ -4150,7 +4253,7 @@ __glXDisp_GenProgramsARB(__GLXclientState * cl, GLbyte * pc)
         GLuint *programs =
             __glXGetAnswerBuffer(cl, n * 4, answerBuffer, sizeof(answerBuffer),
                                  4);
-        glGenProgramsARB(n, programs);
+        GenProgramsARB(n, programs);
         __glXSendReply(cl->client, programs, n, 4, GL_TRUE, 0);
         error = Success;
     }
@@ -4161,6 +4264,8 @@ __glXDisp_GenProgramsARB(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDisp_GetProgramEnvParameterdvARB(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGETPROGRAMENVPARAMETERDVARBPROC GetProgramEnvParameterdvARB =
+        __glGetProcAddress("glGetProgramEnvParameterdvARB");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
@@ -4169,8 +4274,8 @@ __glXDisp_GetProgramEnvParameterdvARB(__GLXclientState * cl, GLbyte * pc)
     if (cx != NULL) {
         GLdouble params[4];
 
-        glGetProgramEnvParameterdvARB(*(GLenum *) (pc + 0),
-                                      *(GLuint *) (pc + 4), params);
+        GetProgramEnvParameterdvARB(*(GLenum *) (pc + 0),
+                                    *(GLuint *) (pc + 4), params);
         __glXSendReply(cl->client, params, 4, 8, GL_FALSE, 0);
         error = Success;
     }
@@ -4181,6 +4286,8 @@ __glXDisp_GetProgramEnvParameterdvARB(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDisp_GetProgramEnvParameterfvARB(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGETPROGRAMENVPARAMETERFVARBPROC GetProgramEnvParameterfvARB =
+        __glGetProcAddress("glGetProgramEnvParameterfvARB");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
@@ -4189,8 +4296,8 @@ __glXDisp_GetProgramEnvParameterfvARB(__GLXclientState * cl, GLbyte * pc)
     if (cx != NULL) {
         GLfloat params[4];
 
-        glGetProgramEnvParameterfvARB(*(GLenum *) (pc + 0),
-                                      *(GLuint *) (pc + 4), params);
+        GetProgramEnvParameterfvARB(*(GLenum *) (pc + 0),
+                                    *(GLuint *) (pc + 4), params);
         __glXSendReply(cl->client, params, 4, 4, GL_FALSE, 0);
         error = Success;
     }
@@ -4201,6 +4308,8 @@ __glXDisp_GetProgramEnvParameterfvARB(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDisp_GetProgramLocalParameterdvARB(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGETPROGRAMLOCALPARAMETERDVARBPROC GetProgramLocalParameterdvARB =
+        __glGetProcAddress("glGetProgramLocalParameterdvARB");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
@@ -4209,8 +4318,8 @@ __glXDisp_GetProgramLocalParameterdvARB(__GLXclientState * cl, GLbyte * pc)
     if (cx != NULL) {
         GLdouble params[4];
 
-        glGetProgramLocalParameterdvARB(*(GLenum *) (pc + 0),
-                                        *(GLuint *) (pc + 4), params);
+        GetProgramLocalParameterdvARB(*(GLenum *) (pc + 0),
+                                      *(GLuint *) (pc + 4), params);
         __glXSendReply(cl->client, params, 4, 8, GL_FALSE, 0);
         error = Success;
     }
@@ -4221,6 +4330,8 @@ __glXDisp_GetProgramLocalParameterdvARB(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDisp_GetProgramLocalParameterfvARB(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGETPROGRAMLOCALPARAMETERFVARBPROC GetProgramLocalParameterfvARB =
+        __glGetProcAddress("glGetProgramLocalParameterfvARB");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
@@ -4229,8 +4340,8 @@ __glXDisp_GetProgramLocalParameterfvARB(__GLXclientState * cl, GLbyte * pc)
     if (cx != NULL) {
         GLfloat params[4];
 
-        glGetProgramLocalParameterfvARB(*(GLenum *) (pc + 0),
-                                        *(GLuint *) (pc + 4), params);
+        GetProgramLocalParameterfvARB(*(GLenum *) (pc + 0),
+                                      *(GLuint *) (pc + 4), params);
         __glXSendReply(cl->client, params, 4, 4, GL_FALSE, 0);
         error = Success;
     }
@@ -4241,6 +4352,8 @@ __glXDisp_GetProgramLocalParameterfvARB(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDisp_GetProgramivARB(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGETPROGRAMIVARBPROC GetProgramivARB =
+        __glGetProcAddress("glGetProgramivARB");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
@@ -4259,7 +4372,7 @@ __glXDisp_GetProgramivARB(__GLXclientState * cl, GLbyte * pc)
             return BadAlloc;
         __glXClearErrorOccured();
 
-        glGetProgramivARB(*(GLenum *) (pc + 0), pname, params);
+        GetProgramivARB(*(GLenum *) (pc + 0), pname, params);
         __glXSendReply(cl->client, params, compsize, 4, GL_FALSE, 0);
         error = Success;
     }
@@ -4270,6 +4383,7 @@ __glXDisp_GetProgramivARB(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDisp_IsProgramARB(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLISPROGRAMARBPROC IsProgramARB = __glGetProcAddress("glIsProgramARB");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
@@ -4278,7 +4392,7 @@ __glXDisp_IsProgramARB(__GLXclientState * cl, GLbyte * pc)
     if (cx != NULL) {
         GLboolean retval;
 
-        retval = glIsProgramARB(*(GLuint *) (pc + 0));
+        retval = IsProgramARB(*(GLuint *) (pc + 0));
         __glXSendReply(cl->client, dummy_answer, 0, 0, GL_FALSE, retval);
         error = Success;
     }
@@ -4289,6 +4403,8 @@ __glXDisp_IsProgramARB(__GLXclientState * cl, GLbyte * pc)
 void
 __glXDisp_ProgramEnvParameter4dvARB(GLbyte * pc)
 {
+    PFNGLPROGRAMENVPARAMETER4DVARBPROC ProgramEnvParameter4dvARB =
+        __glGetProcAddress("glProgramEnvParameter4dvARB");
 #ifdef __GLX_ALIGN64
     if ((unsigned long) (pc) & 7) {
         (void) memmove(pc - 4, pc, 40);
@@ -4296,22 +4412,25 @@ __glXDisp_ProgramEnvParameter4dvARB(GLbyte * pc)
     }
 #endif
 
-    glProgramEnvParameter4dvARB(*(GLenum *) (pc + 0),
-                                *(GLuint *) (pc + 4),
-                                (const GLdouble *) (pc + 8));
+    ProgramEnvParameter4dvARB(*(GLenum *) (pc + 0),
+                              *(GLuint *) (pc + 4),
+                              (const GLdouble *) (pc + 8));
 }
 
 void
 __glXDisp_ProgramEnvParameter4fvARB(GLbyte * pc)
 {
-    glProgramEnvParameter4fvARB(*(GLenum *) (pc + 0),
-                                *(GLuint *) (pc + 4),
-                                (const GLfloat *) (pc + 8));
+    PFNGLPROGRAMENVPARAMETER4FVARBPROC ProgramEnvParameter4fvARB =
+        __glGetProcAddress("glProgramEnvParameter4fvARB");
+    ProgramEnvParameter4fvARB(*(GLenum *) (pc + 0), *(GLuint *) (pc + 4),
+                              (const GLfloat *) (pc + 8));
 }
 
 void
 __glXDisp_ProgramLocalParameter4dvARB(GLbyte * pc)
 {
+    PFNGLPROGRAMLOCALPARAMETER4DVARBPROC ProgramLocalParameter4dvARB =
+        __glGetProcAddress("glProgramLocalParameter4dvARB");
 #ifdef __GLX_ALIGN64
     if ((unsigned long) (pc) & 7) {
         (void) memmove(pc - 4, pc, 40);
@@ -4319,81 +4438,96 @@ __glXDisp_ProgramLocalParameter4dvARB(GLbyte * pc)
     }
 #endif
 
-    glProgramLocalParameter4dvARB(*(GLenum *) (pc + 0),
-                                  *(GLuint *) (pc + 4),
-                                  (const GLdouble *) (pc + 8));
+    ProgramLocalParameter4dvARB(*(GLenum *) (pc + 0),
+                                *(GLuint *) (pc + 4),
+                                (const GLdouble *) (pc + 8));
 }
 
 void
 __glXDisp_ProgramLocalParameter4fvARB(GLbyte * pc)
 {
-    glProgramLocalParameter4fvARB(*(GLenum *) (pc + 0),
-                                  *(GLuint *) (pc + 4),
-                                  (const GLfloat *) (pc + 8));
+    PFNGLPROGRAMLOCALPARAMETER4FVARBPROC ProgramLocalParameter4fvARB =
+        __glGetProcAddress("glProgramLocalParameter4fvARB");
+    ProgramLocalParameter4fvARB(*(GLenum *) (pc + 0), *(GLuint *) (pc + 4),
+                                (const GLfloat *) (pc + 8));
 }
 
 void
 __glXDisp_ProgramStringARB(GLbyte * pc)
 {
+    PFNGLPROGRAMSTRINGARBPROC ProgramStringARB =
+        __glGetProcAddress("glProgramStringARB");
     const GLsizei len = *(GLsizei *) (pc + 8);
 
-    glProgramStringARB(*(GLenum *) (pc + 0),
-                       *(GLenum *) (pc + 4), len, (const GLvoid *) (pc + 12));
+    ProgramStringARB(*(GLenum *) (pc + 0),
+                     *(GLenum *) (pc + 4), len, (const GLvoid *) (pc + 12));
 }
 
 void
 __glXDisp_VertexAttrib1fvARB(GLbyte * pc)
 {
-    glVertexAttrib1fvARB(*(GLuint *) (pc + 0), (const GLfloat *) (pc + 4));
+    PFNGLVERTEXATTRIB1FVARBPROC VertexAttrib1fvARB =
+        __glGetProcAddress("glVertexAttrib1fvARB");
+    VertexAttrib1fvARB(*(GLuint *) (pc + 0), (const GLfloat *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib2fvARB(GLbyte * pc)
 {
-    glVertexAttrib2fvARB(*(GLuint *) (pc + 0), (const GLfloat *) (pc + 4));
+    PFNGLVERTEXATTRIB2FVARBPROC VertexAttrib2fvARB =
+        __glGetProcAddress("glVertexAttrib2fvARB");
+    VertexAttrib2fvARB(*(GLuint *) (pc + 0), (const GLfloat *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib3fvARB(GLbyte * pc)
 {
-    glVertexAttrib3fvARB(*(GLuint *) (pc + 0), (const GLfloat *) (pc + 4));
+    PFNGLVERTEXATTRIB3FVARBPROC VertexAttrib3fvARB =
+        __glGetProcAddress("glVertexAttrib3fvARB");
+    VertexAttrib3fvARB(*(GLuint *) (pc + 0), (const GLfloat *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib4fvARB(GLbyte * pc)
 {
-    glVertexAttrib4fvARB(*(GLuint *) (pc + 0), (const GLfloat *) (pc + 4));
+    PFNGLVERTEXATTRIB4FVARBPROC VertexAttrib4fvARB =
+        __glGetProcAddress("glVertexAttrib4fvARB");
+    VertexAttrib4fvARB(*(GLuint *) (pc + 0), (const GLfloat *) (pc + 4));
 }
 
 void
 __glXDisp_BindFramebuffer(GLbyte * pc)
 {
-    glBindFramebuffer(*(GLenum *) (pc + 0), *(GLuint *) (pc + 4));
+    PFNGLBINDFRAMEBUFFERPROC BindFramebuffer =
+        __glGetProcAddress("glBindFramebuffer");
+    BindFramebuffer(*(GLenum *) (pc + 0), *(GLuint *) (pc + 4));
 }
 
 void
 __glXDisp_BindRenderbuffer(GLbyte * pc)
 {
-    glBindRenderbuffer(*(GLenum *) (pc + 0), *(GLuint *) (pc + 4));
+    PFNGLBINDRENDERBUFFERPROC BindRenderbuffer =
+        __glGetProcAddress("glBindRenderbuffer");
+    BindRenderbuffer(*(GLenum *) (pc + 0), *(GLuint *) (pc + 4));
 }
 
 void
 __glXDisp_BlitFramebuffer(GLbyte * pc)
 {
-    glBlitFramebuffer(*(GLint *) (pc + 0),
-                      *(GLint *) (pc + 4),
-                      *(GLint *) (pc + 8),
-                      *(GLint *) (pc + 12),
-                      *(GLint *) (pc + 16),
-                      *(GLint *) (pc + 20),
-                      *(GLint *) (pc + 24),
-                      *(GLint *) (pc + 28),
-                      *(GLbitfield *) (pc + 32), *(GLenum *) (pc + 36));
+    PFNGLBLITFRAMEBUFFERPROC BlitFramebuffer =
+        __glGetProcAddress("glBlitFramebuffer");
+    BlitFramebuffer(*(GLint *) (pc + 0), *(GLint *) (pc + 4),
+                    *(GLint *) (pc + 8), *(GLint *) (pc + 12),
+                    *(GLint *) (pc + 16), *(GLint *) (pc + 20),
+                    *(GLint *) (pc + 24), *(GLint *) (pc + 28),
+                    *(GLbitfield *) (pc + 32), *(GLenum *) (pc + 36));
 }
 
 int
 __glXDisp_CheckFramebufferStatus(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLCHECKFRAMEBUFFERSTATUSPROC CheckFramebufferStatus =
+        __glGetProcAddress("glCheckFramebufferStatus");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
@@ -4402,7 +4536,7 @@ __glXDisp_CheckFramebufferStatus(__GLXclientState * cl, GLbyte * pc)
     if (cx != NULL) {
         GLenum retval;
 
-        retval = glCheckFramebufferStatus(*(GLenum *) (pc + 0));
+        retval = CheckFramebufferStatus(*(GLenum *) (pc + 0));
         __glXSendReply(cl->client, dummy_answer, 0, 0, GL_FALSE, retval);
         error = Success;
     }
@@ -4413,67 +4547,77 @@ __glXDisp_CheckFramebufferStatus(__GLXclientState * cl, GLbyte * pc)
 void
 __glXDisp_DeleteFramebuffers(GLbyte * pc)
 {
+    PFNGLDELETEFRAMEBUFFERSPROC DeleteFramebuffers =
+        __glGetProcAddress("glDeleteFramebuffers");
     const GLsizei n = *(GLsizei *) (pc + 0);
 
-    glDeleteFramebuffers(n, (const GLuint *) (pc + 4));
+    DeleteFramebuffers(n, (const GLuint *) (pc + 4));
 }
 
 void
 __glXDisp_DeleteRenderbuffers(GLbyte * pc)
 {
+    PFNGLDELETERENDERBUFFERSPROC DeleteRenderbuffers =
+        __glGetProcAddress("glDeleteRenderbuffers");
     const GLsizei n = *(GLsizei *) (pc + 0);
 
-    glDeleteRenderbuffers(n, (const GLuint *) (pc + 4));
+    DeleteRenderbuffers(n, (const GLuint *) (pc + 4));
 }
 
 void
 __glXDisp_FramebufferRenderbuffer(GLbyte * pc)
 {
-    glFramebufferRenderbuffer(*(GLenum *) (pc + 0),
-                              *(GLenum *) (pc + 4),
-                              *(GLenum *) (pc + 8), *(GLuint *) (pc + 12));
+    PFNGLFRAMEBUFFERRENDERBUFFERPROC FramebufferRenderbuffer =
+        __glGetProcAddress("glFramebufferRenderbuffer");
+    FramebufferRenderbuffer(*(GLenum *) (pc + 0), *(GLenum *) (pc + 4),
+                            *(GLenum *) (pc + 8), *(GLuint *) (pc + 12));
 }
 
 void
 __glXDisp_FramebufferTexture1D(GLbyte * pc)
 {
-    glFramebufferTexture1D(*(GLenum *) (pc + 0),
-                           *(GLenum *) (pc + 4),
-                           *(GLenum *) (pc + 8),
-                           *(GLuint *) (pc + 12), *(GLint *) (pc + 16));
+    PFNGLFRAMEBUFFERTEXTURE1DPROC FramebufferTexture1D =
+        __glGetProcAddress("glFramebufferTexture1D");
+    FramebufferTexture1D(*(GLenum *) (pc + 0), *(GLenum *) (pc + 4),
+                         *(GLenum *) (pc + 8), *(GLuint *) (pc + 12),
+                         *(GLint *) (pc + 16));
 }
 
 void
 __glXDisp_FramebufferTexture2D(GLbyte * pc)
 {
-    glFramebufferTexture2D(*(GLenum *) (pc + 0),
-                           *(GLenum *) (pc + 4),
-                           *(GLenum *) (pc + 8),
-                           *(GLuint *) (pc + 12), *(GLint *) (pc + 16));
+    PFNGLFRAMEBUFFERTEXTURE2DPROC FramebufferTexture2D =
+        __glGetProcAddress("glFramebufferTexture2D");
+    FramebufferTexture2D(*(GLenum *) (pc + 0), *(GLenum *) (pc + 4),
+                         *(GLenum *) (pc + 8), *(GLuint *) (pc + 12),
+                         *(GLint *) (pc + 16));
 }
 
 void
 __glXDisp_FramebufferTexture3D(GLbyte * pc)
 {
-    glFramebufferTexture3D(*(GLenum *) (pc + 0),
-                           *(GLenum *) (pc + 4),
-                           *(GLenum *) (pc + 8),
-                           *(GLuint *) (pc + 12),
-                           *(GLint *) (pc + 16), *(GLint *) (pc + 20));
+    PFNGLFRAMEBUFFERTEXTURE3DPROC FramebufferTexture3D =
+        __glGetProcAddress("glFramebufferTexture3D");
+    FramebufferTexture3D(*(GLenum *) (pc + 0), *(GLenum *) (pc + 4),
+                         *(GLenum *) (pc + 8), *(GLuint *) (pc + 12),
+                         *(GLint *) (pc + 16), *(GLint *) (pc + 20));
 }
 
 void
 __glXDisp_FramebufferTextureLayer(GLbyte * pc)
 {
-    glFramebufferTextureLayer(*(GLenum *) (pc + 0),
-                              *(GLenum *) (pc + 4),
-                              *(GLuint *) (pc + 8),
-                              *(GLint *) (pc + 12), *(GLint *) (pc + 16));
+    PFNGLFRAMEBUFFERTEXTURELAYERPROC FramebufferTextureLayer =
+        __glGetProcAddress("glFramebufferTextureLayer");
+    FramebufferTextureLayer(*(GLenum *) (pc + 0), *(GLenum *) (pc + 4),
+                            *(GLuint *) (pc + 8), *(GLint *) (pc + 12),
+                            *(GLint *) (pc + 16));
 }
 
 int
 __glXDisp_GenFramebuffers(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGENFRAMEBUFFERSPROC GenFramebuffers =
+        __glGetProcAddress("glGenFramebuffers");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
@@ -4486,7 +4630,7 @@ __glXDisp_GenFramebuffers(__GLXclientState * cl, GLbyte * pc)
         GLuint *framebuffers =
             __glXGetAnswerBuffer(cl, n * 4, answerBuffer, sizeof(answerBuffer),
                                  4);
-        glGenFramebuffers(n, framebuffers);
+        GenFramebuffers(n, framebuffers);
         __glXSendReply(cl->client, framebuffers, n, 4, GL_TRUE, 0);
         error = Success;
     }
@@ -4497,6 +4641,8 @@ __glXDisp_GenFramebuffers(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDisp_GenRenderbuffers(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGENRENDERBUFFERSPROC GenRenderbuffers =
+        __glGetProcAddress("glGenRenderbuffers");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
@@ -4509,7 +4655,7 @@ __glXDisp_GenRenderbuffers(__GLXclientState * cl, GLbyte * pc)
         GLuint *renderbuffers =
             __glXGetAnswerBuffer(cl, n * 4, answerBuffer, sizeof(answerBuffer),
                                  4);
-        glGenRenderbuffers(n, renderbuffers);
+        GenRenderbuffers(n, renderbuffers);
         __glXSendReply(cl->client, renderbuffers, n, 4, GL_TRUE, 0);
         error = Success;
     }
@@ -4520,13 +4666,18 @@ __glXDisp_GenRenderbuffers(__GLXclientState * cl, GLbyte * pc)
 void
 __glXDisp_GenerateMipmap(GLbyte * pc)
 {
-    glGenerateMipmap(*(GLenum *) (pc + 0));
+    PFNGLGENERATEMIPMAPPROC GenerateMipmap =
+        __glGetProcAddress("glGenerateMipmap");
+    GenerateMipmap(*(GLenum *) (pc + 0));
 }
 
 int
 __glXDisp_GetFramebufferAttachmentParameteriv(__GLXclientState * cl,
                                               GLbyte * pc)
 {
+    PFNGLGETFRAMEBUFFERATTACHMENTPARAMETERIVPROC
+        GetFramebufferAttachmentParameteriv =
+        __glGetProcAddress("glGetFramebufferAttachmentParameteriv");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
@@ -4535,9 +4686,9 @@ __glXDisp_GetFramebufferAttachmentParameteriv(__GLXclientState * cl,
     if (cx != NULL) {
         GLint params[1];
 
-        glGetFramebufferAttachmentParameteriv(*(GLenum *) (pc + 0),
-                                              *(GLenum *) (pc + 4),
-                                              *(GLenum *) (pc + 8), params);
+        GetFramebufferAttachmentParameteriv(*(GLenum *) (pc + 0),
+                                            *(GLenum *) (pc + 4),
+                                            *(GLenum *) (pc + 8), params);
         __glXSendReply(cl->client, params, 1, 4, GL_FALSE, 0);
         error = Success;
     }
@@ -4548,6 +4699,8 @@ __glXDisp_GetFramebufferAttachmentParameteriv(__GLXclientState * cl,
 int
 __glXDisp_GetRenderbufferParameteriv(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLGETRENDERBUFFERPARAMETERIVPROC GetRenderbufferParameteriv =
+        __glGetProcAddress("glGetRenderbufferParameteriv");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
@@ -4556,8 +4709,8 @@ __glXDisp_GetRenderbufferParameteriv(__GLXclientState * cl, GLbyte * pc)
     if (cx != NULL) {
         GLint params[1];
 
-        glGetRenderbufferParameteriv(*(GLenum *) (pc + 0),
-                                     *(GLenum *) (pc + 4), params);
+        GetRenderbufferParameteriv(*(GLenum *) (pc + 0),
+                                   *(GLenum *) (pc + 4), params);
         __glXSendReply(cl->client, params, 1, 4, GL_FALSE, 0);
         error = Success;
     }
@@ -4568,6 +4721,8 @@ __glXDisp_GetRenderbufferParameteriv(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDisp_IsFramebuffer(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLISFRAMEBUFFERPROC IsFramebuffer =
+        __glGetProcAddress("glIsFramebuffer");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
@@ -4576,7 +4731,7 @@ __glXDisp_IsFramebuffer(__GLXclientState * cl, GLbyte * pc)
     if (cx != NULL) {
         GLboolean retval;
 
-        retval = glIsFramebuffer(*(GLuint *) (pc + 0));
+        retval = IsFramebuffer(*(GLuint *) (pc + 0));
         __glXSendReply(cl->client, dummy_answer, 0, 0, GL_FALSE, retval);
         error = Success;
     }
@@ -4587,6 +4742,8 @@ __glXDisp_IsFramebuffer(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDisp_IsRenderbuffer(__GLXclientState * cl, GLbyte * pc)
 {
+    PFNGLISRENDERBUFFERPROC IsRenderbuffer =
+        __glGetProcAddress("glIsRenderbuffer");
     xGLXVendorPrivateReq *const req = (xGLXVendorPrivateReq *) pc;
     int error;
     __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
@@ -4595,7 +4752,7 @@ __glXDisp_IsRenderbuffer(__GLXclientState * cl, GLbyte * pc)
     if (cx != NULL) {
         GLboolean retval;
 
-        retval = glIsRenderbuffer(*(GLuint *) (pc + 0));
+        retval = IsRenderbuffer(*(GLuint *) (pc + 0));
         __glXSendReply(cl->client, dummy_answer, 0, 0, GL_FALSE, retval);
         error = Success;
     }
@@ -4606,36 +4763,43 @@ __glXDisp_IsRenderbuffer(__GLXclientState * cl, GLbyte * pc)
 void
 __glXDisp_RenderbufferStorage(GLbyte * pc)
 {
-    glRenderbufferStorage(*(GLenum *) (pc + 0),
-                          *(GLenum *) (pc + 4),
-                          *(GLsizei *) (pc + 8), *(GLsizei *) (pc + 12));
+    PFNGLRENDERBUFFERSTORAGEPROC RenderbufferStorage =
+        __glGetProcAddress("glRenderbufferStorage");
+    RenderbufferStorage(*(GLenum *) (pc + 0), *(GLenum *) (pc + 4),
+                        *(GLsizei *) (pc + 8), *(GLsizei *) (pc + 12));
 }
 
 void
 __glXDisp_RenderbufferStorageMultisample(GLbyte * pc)
 {
-    glRenderbufferStorageMultisample(*(GLenum *) (pc + 0),
-                                     *(GLsizei *) (pc + 4),
-                                     *(GLenum *) (pc + 8),
-                                     *(GLsizei *) (pc + 12),
-                                     *(GLsizei *) (pc + 16));
+    PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC RenderbufferStorageMultisample =
+        __glGetProcAddress("glRenderbufferStorageMultisample");
+    RenderbufferStorageMultisample(*(GLenum *) (pc + 0), *(GLsizei *) (pc + 4),
+                                   *(GLenum *) (pc + 8), *(GLsizei *) (pc + 12),
+                                   *(GLsizei *) (pc + 16));
 }
 
 void
 __glXDisp_SecondaryColor3fvEXT(GLbyte * pc)
 {
-    glSecondaryColor3fvEXT((const GLfloat *) (pc + 0));
+    PFNGLSECONDARYCOLOR3FVEXTPROC SecondaryColor3fvEXT =
+        __glGetProcAddress("glSecondaryColor3fvEXT");
+    SecondaryColor3fvEXT((const GLfloat *) (pc + 0));
 }
 
 void
 __glXDisp_FogCoordfvEXT(GLbyte * pc)
 {
-    glFogCoordfvEXT((const GLfloat *) (pc + 0));
+    PFNGLFOGCOORDFVEXTPROC FogCoordfvEXT =
+        __glGetProcAddress("glFogCoordfvEXT");
+    FogCoordfvEXT((const GLfloat *) (pc + 0));
 }
 
 void
 __glXDisp_VertexAttrib1dvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIB1DVNVPROC VertexAttrib1dvNV =
+        __glGetProcAddress("glVertexAttrib1dvNV");
 #ifdef __GLX_ALIGN64
     if ((unsigned long) (pc) & 7) {
         (void) memmove(pc - 4, pc, 12);
@@ -4643,24 +4807,30 @@ __glXDisp_VertexAttrib1dvNV(GLbyte * pc)
     }
 #endif
 
-    glVertexAttrib1dvNV(*(GLuint *) (pc + 0), (const GLdouble *) (pc + 4));
+    VertexAttrib1dvNV(*(GLuint *) (pc + 0), (const GLdouble *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib1fvNV(GLbyte * pc)
 {
-    glVertexAttrib1fvNV(*(GLuint *) (pc + 0), (const GLfloat *) (pc + 4));
+    PFNGLVERTEXATTRIB1FVNVPROC VertexAttrib1fvNV =
+        __glGetProcAddress("glVertexAttrib1fvNV");
+    VertexAttrib1fvNV(*(GLuint *) (pc + 0), (const GLfloat *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib1svNV(GLbyte * pc)
 {
-    glVertexAttrib1svNV(*(GLuint *) (pc + 0), (const GLshort *) (pc + 4));
+    PFNGLVERTEXATTRIB1SVNVPROC VertexAttrib1svNV =
+        __glGetProcAddress("glVertexAttrib1svNV");
+    VertexAttrib1svNV(*(GLuint *) (pc + 0), (const GLshort *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib2dvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIB2DVNVPROC VertexAttrib2dvNV =
+        __glGetProcAddress("glVertexAttrib2dvNV");
 #ifdef __GLX_ALIGN64
     if ((unsigned long) (pc) & 7) {
         (void) memmove(pc - 4, pc, 20);
@@ -4668,24 +4838,30 @@ __glXDisp_VertexAttrib2dvNV(GLbyte * pc)
     }
 #endif
 
-    glVertexAttrib2dvNV(*(GLuint *) (pc + 0), (const GLdouble *) (pc + 4));
+    VertexAttrib2dvNV(*(GLuint *) (pc + 0), (const GLdouble *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib2fvNV(GLbyte * pc)
 {
-    glVertexAttrib2fvNV(*(GLuint *) (pc + 0), (const GLfloat *) (pc + 4));
+    PFNGLVERTEXATTRIB2FVNVPROC VertexAttrib2fvNV =
+        __glGetProcAddress("glVertexAttrib2fvNV");
+    VertexAttrib2fvNV(*(GLuint *) (pc + 0), (const GLfloat *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib2svNV(GLbyte * pc)
 {
-    glVertexAttrib2svNV(*(GLuint *) (pc + 0), (const GLshort *) (pc + 4));
+    PFNGLVERTEXATTRIB2SVNVPROC VertexAttrib2svNV =
+        __glGetProcAddress("glVertexAttrib2svNV");
+    VertexAttrib2svNV(*(GLuint *) (pc + 0), (const GLshort *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib3dvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIB3DVNVPROC VertexAttrib3dvNV =
+        __glGetProcAddress("glVertexAttrib3dvNV");
 #ifdef __GLX_ALIGN64
     if ((unsigned long) (pc) & 7) {
         (void) memmove(pc - 4, pc, 28);
@@ -4693,24 +4869,30 @@ __glXDisp_VertexAttrib3dvNV(GLbyte * pc)
     }
 #endif
 
-    glVertexAttrib3dvNV(*(GLuint *) (pc + 0), (const GLdouble *) (pc + 4));
+    VertexAttrib3dvNV(*(GLuint *) (pc + 0), (const GLdouble *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib3fvNV(GLbyte * pc)
 {
-    glVertexAttrib3fvNV(*(GLuint *) (pc + 0), (const GLfloat *) (pc + 4));
+    PFNGLVERTEXATTRIB3FVNVPROC VertexAttrib3fvNV =
+        __glGetProcAddress("glVertexAttrib3fvNV");
+    VertexAttrib3fvNV(*(GLuint *) (pc + 0), (const GLfloat *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib3svNV(GLbyte * pc)
 {
-    glVertexAttrib3svNV(*(GLuint *) (pc + 0), (const GLshort *) (pc + 4));
+    PFNGLVERTEXATTRIB3SVNVPROC VertexAttrib3svNV =
+        __glGetProcAddress("glVertexAttrib3svNV");
+    VertexAttrib3svNV(*(GLuint *) (pc + 0), (const GLshort *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib4dvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIB4DVNVPROC VertexAttrib4dvNV =
+        __glGetProcAddress("glVertexAttrib4dvNV");
 #ifdef __GLX_ALIGN64
     if ((unsigned long) (pc) & 7) {
         (void) memmove(pc - 4, pc, 36);
@@ -4718,30 +4900,38 @@ __glXDisp_VertexAttrib4dvNV(GLbyte * pc)
     }
 #endif
 
-    glVertexAttrib4dvNV(*(GLuint *) (pc + 0), (const GLdouble *) (pc + 4));
+    VertexAttrib4dvNV(*(GLuint *) (pc + 0), (const GLdouble *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib4fvNV(GLbyte * pc)
 {
-    glVertexAttrib4fvNV(*(GLuint *) (pc + 0), (const GLfloat *) (pc + 4));
+    PFNGLVERTEXATTRIB4FVNVPROC VertexAttrib4fvNV =
+        __glGetProcAddress("glVertexAttrib4fvNV");
+    VertexAttrib4fvNV(*(GLuint *) (pc + 0), (const GLfloat *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib4svNV(GLbyte * pc)
 {
-    glVertexAttrib4svNV(*(GLuint *) (pc + 0), (const GLshort *) (pc + 4));
+    PFNGLVERTEXATTRIB4SVNVPROC VertexAttrib4svNV =
+        __glGetProcAddress("glVertexAttrib4svNV");
+    VertexAttrib4svNV(*(GLuint *) (pc + 0), (const GLshort *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttrib4ubvNV(GLbyte * pc)
 {
-    glVertexAttrib4ubvNV(*(GLuint *) (pc + 0), (const GLubyte *) (pc + 4));
+    PFNGLVERTEXATTRIB4UBVNVPROC VertexAttrib4ubvNV =
+        __glGetProcAddress("glVertexAttrib4ubvNV");
+    VertexAttrib4ubvNV(*(GLuint *) (pc + 0), (const GLubyte *) (pc + 4));
 }
 
 void
 __glXDisp_VertexAttribs1dvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS1DVNVPROC VertexAttribs1dvNV =
+        __glGetProcAddress("glVertexAttribs1dvNV");
     const GLsizei n = *(GLsizei *) (pc + 4);
 
 #ifdef __GLX_ALIGN64
@@ -4753,28 +4943,34 @@ __glXDisp_VertexAttribs1dvNV(GLbyte * pc)
     }
 #endif
 
-    glVertexAttribs1dvNV(*(GLuint *) (pc + 0), n, (const GLdouble *) (pc + 8));
+    VertexAttribs1dvNV(*(GLuint *) (pc + 0), n, (const GLdouble *) (pc + 8));
 }
 
 void
 __glXDisp_VertexAttribs1fvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS1FVNVPROC VertexAttribs1fvNV =
+        __glGetProcAddress("glVertexAttribs1fvNV");
     const GLsizei n = *(GLsizei *) (pc + 4);
 
-    glVertexAttribs1fvNV(*(GLuint *) (pc + 0), n, (const GLfloat *) (pc + 8));
+    VertexAttribs1fvNV(*(GLuint *) (pc + 0), n, (const GLfloat *) (pc + 8));
 }
 
 void
 __glXDisp_VertexAttribs1svNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS1SVNVPROC VertexAttribs1svNV =
+        __glGetProcAddress("glVertexAttribs1svNV");
     const GLsizei n = *(GLsizei *) (pc + 4);
 
-    glVertexAttribs1svNV(*(GLuint *) (pc + 0), n, (const GLshort *) (pc + 8));
+    VertexAttribs1svNV(*(GLuint *) (pc + 0), n, (const GLshort *) (pc + 8));
 }
 
 void
 __glXDisp_VertexAttribs2dvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS2DVNVPROC VertexAttribs2dvNV =
+        __glGetProcAddress("glVertexAttribs2dvNV");
     const GLsizei n = *(GLsizei *) (pc + 4);
 
 #ifdef __GLX_ALIGN64
@@ -4786,28 +4982,34 @@ __glXDisp_VertexAttribs2dvNV(GLbyte * pc)
     }
 #endif
 
-    glVertexAttribs2dvNV(*(GLuint *) (pc + 0), n, (const GLdouble *) (pc + 8));
+    VertexAttribs2dvNV(*(GLuint *) (pc + 0), n, (const GLdouble *) (pc + 8));
 }
 
 void
 __glXDisp_VertexAttribs2fvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS2FVNVPROC VertexAttribs2fvNV =
+        __glGetProcAddress("glVertexAttribs2fvNV");
     const GLsizei n = *(GLsizei *) (pc + 4);
 
-    glVertexAttribs2fvNV(*(GLuint *) (pc + 0), n, (const GLfloat *) (pc + 8));
+    VertexAttribs2fvNV(*(GLuint *) (pc + 0), n, (const GLfloat *) (pc + 8));
 }
 
 void
 __glXDisp_VertexAttribs2svNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS2SVNVPROC VertexAttribs2svNV =
+        __glGetProcAddress("glVertexAttribs2svNV");
     const GLsizei n = *(GLsizei *) (pc + 4);
 
-    glVertexAttribs2svNV(*(GLuint *) (pc + 0), n, (const GLshort *) (pc + 8));
+    VertexAttribs2svNV(*(GLuint *) (pc + 0), n, (const GLshort *) (pc + 8));
 }
 
 void
 __glXDisp_VertexAttribs3dvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS3DVNVPROC VertexAttribs3dvNV =
+        __glGetProcAddress("glVertexAttribs3dvNV");
     const GLsizei n = *(GLsizei *) (pc + 4);
 
 #ifdef __GLX_ALIGN64
@@ -4819,28 +5021,34 @@ __glXDisp_VertexAttribs3dvNV(GLbyte * pc)
     }
 #endif
 
-    glVertexAttribs3dvNV(*(GLuint *) (pc + 0), n, (const GLdouble *) (pc + 8));
+    VertexAttribs3dvNV(*(GLuint *) (pc + 0), n, (const GLdouble *) (pc + 8));
 }
 
 void
 __glXDisp_VertexAttribs3fvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS3FVNVPROC VertexAttribs3fvNV =
+        __glGetProcAddress("glVertexAttribs3fvNV");
     const GLsizei n = *(GLsizei *) (pc + 4);
 
-    glVertexAttribs3fvNV(*(GLuint *) (pc + 0), n, (const GLfloat *) (pc + 8));
+    VertexAttribs3fvNV(*(GLuint *) (pc + 0), n, (const GLfloat *) (pc + 8));
 }
 
 void
 __glXDisp_VertexAttribs3svNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS3SVNVPROC VertexAttribs3svNV =
+        __glGetProcAddress("glVertexAttribs3svNV");
     const GLsizei n = *(GLsizei *) (pc + 4);
 
-    glVertexAttribs3svNV(*(GLuint *) (pc + 0), n, (const GLshort *) (pc + 8));
+    VertexAttribs3svNV(*(GLuint *) (pc + 0), n, (const GLshort *) (pc + 8));
 }
 
 void
 __glXDisp_VertexAttribs4dvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS4DVNVPROC VertexAttribs4dvNV =
+        __glGetProcAddress("glVertexAttribs4dvNV");
     const GLsizei n = *(GLsizei *) (pc + 4);
 
 #ifdef __GLX_ALIGN64
@@ -4852,35 +5060,43 @@ __glXDisp_VertexAttribs4dvNV(GLbyte * pc)
     }
 #endif
 
-    glVertexAttribs4dvNV(*(GLuint *) (pc + 0), n, (const GLdouble *) (pc + 8));
+    VertexAttribs4dvNV(*(GLuint *) (pc + 0), n, (const GLdouble *) (pc + 8));
 }
 
 void
 __glXDisp_VertexAttribs4fvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS4FVNVPROC VertexAttribs4fvNV =
+        __glGetProcAddress("glVertexAttribs4fvNV");
     const GLsizei n = *(GLsizei *) (pc + 4);
 
-    glVertexAttribs4fvNV(*(GLuint *) (pc + 0), n, (const GLfloat *) (pc + 8));
+    VertexAttribs4fvNV(*(GLuint *) (pc + 0), n, (const GLfloat *) (pc + 8));
 }
 
 void
 __glXDisp_VertexAttribs4svNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS4SVNVPROC VertexAttribs4svNV =
+        __glGetProcAddress("glVertexAttribs4svNV");
     const GLsizei n = *(GLsizei *) (pc + 4);
 
-    glVertexAttribs4svNV(*(GLuint *) (pc + 0), n, (const GLshort *) (pc + 8));
+    VertexAttribs4svNV(*(GLuint *) (pc + 0), n, (const GLshort *) (pc + 8));
 }
 
 void
 __glXDisp_VertexAttribs4ubvNV(GLbyte * pc)
 {
+    PFNGLVERTEXATTRIBS4UBVNVPROC VertexAttribs4ubvNV =
+        __glGetProcAddress("glVertexAttribs4ubvNV");
     const GLsizei n = *(GLsizei *) (pc + 4);
 
-    glVertexAttribs4ubvNV(*(GLuint *) (pc + 0), n, (const GLubyte *) (pc + 8));
+    VertexAttribs4ubvNV(*(GLuint *) (pc + 0), n, (const GLubyte *) (pc + 8));
 }
 
 void
 __glXDisp_ActiveStencilFaceEXT(GLbyte * pc)
 {
-    glActiveStencilFaceEXT(*(GLenum *) (pc + 0));
+    PFNGLACTIVESTENCILFACEEXTPROC ActiveStencilFaceEXT =
+        __glGetProcAddress("glActiveStencilFaceEXT");
+    ActiveStencilFaceEXT(*(GLenum *) (pc + 0));
 }

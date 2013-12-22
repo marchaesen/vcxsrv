@@ -1277,11 +1277,6 @@ ir_constant::is_basis() const
 ir_loop::ir_loop()
 {
    this->ir_type = ir_type_loop;
-   this->cmp = ir_unop_neg;
-   this->from = NULL;
-   this->to = NULL;
-   this->increment = NULL;
-   this->counter = NULL;
 }
 
 
@@ -1364,7 +1359,7 @@ ir_dereference::is_lvalue() const
 
    /* Every l-value derference chain eventually ends in a variable.
     */
-   if ((var == NULL) || var->read_only)
+   if ((var == NULL) || var->data.read_only)
       return false;
 
    /* From page 17 (page 23 of the PDF) of the GLSL 1.20 spec:
@@ -1584,29 +1579,36 @@ ir_swizzle::variable_referenced() const
 
 ir_variable::ir_variable(const struct glsl_type *type, const char *name,
 			 ir_variable_mode mode)
-   : max_array_access(0), max_ifc_array_access(NULL),
-     read_only(false), centroid(false), invariant(false),
-     how_declared(ir_var_declared_normally), mode(mode),
-     interpolation(INTERP_QUALIFIER_NONE), atomic()
+   : max_ifc_array_access(NULL)
 {
    this->ir_type = ir_type_variable;
    this->type = type;
    this->name = ralloc_strdup(this, name);
-   this->explicit_location = false;
-   this->has_initializer = false;
-   this->location = -1;
-   this->location_frac = 0;
+   this->data.explicit_location = false;
+   this->data.has_initializer = false;
+   this->data.location = -1;
+   this->data.location_frac = 0;
    this->warn_extension = NULL;
    this->constant_value = NULL;
    this->constant_initializer = NULL;
-   this->origin_upper_left = false;
-   this->pixel_center_integer = false;
-   this->depth_layout = ir_depth_layout_none;
-   this->used = false;
+   this->data.origin_upper_left = false;
+   this->data.pixel_center_integer = false;
+   this->data.depth_layout = ir_depth_layout_none;
+   this->data.used = false;
+   this->data.read_only = false;
+   this->data.centroid = false;
+   this->data.sample = false;
+   this->data.invariant = false;
+   this->data.how_declared = ir_var_declared_normally;
+   this->data.mode = mode;
+   this->data.interpolation = INTERP_QUALIFIER_NONE;
+   this->data.max_array_access = 0;
+   this->data.atomic.buffer_index = 0;
+   this->data.atomic.offset = 0;
 
    if (type != NULL) {
       if (type->base_type == GLSL_TYPE_SAMPLER)
-         this->read_only = true;
+         this->data.read_only = true;
 
       if (type->is_interface())
          this->init_interface_type(type);
@@ -1634,9 +1636,9 @@ interpolation_string(unsigned interpolation)
 glsl_interp_qualifier
 ir_variable::determine_interpolation_mode(bool flat_shade)
 {
-   if (this->interpolation != INTERP_QUALIFIER_NONE)
-      return (glsl_interp_qualifier) this->interpolation;
-   int location = this->location;
+   if (this->data.interpolation != INTERP_QUALIFIER_NONE)
+      return (glsl_interp_qualifier) this->data.interpolation;
+   int location = this->data.location;
    bool is_gl_Color =
       location == VARYING_SLOT_COL0 || location == VARYING_SLOT_COL1;
    if (flat_shade && is_gl_Color)
@@ -1706,10 +1708,11 @@ ir_function_signature::qualifiers_match(exec_list *params)
       ir_variable *a = (ir_variable *)iter_a.get();
       ir_variable *b = (ir_variable *)iter_b.get();
 
-      if (a->read_only != b->read_only ||
-	  !modes_match(a->mode, b->mode) ||
-	  a->interpolation != b->interpolation ||
-	  a->centroid != b->centroid) {
+      if (a->data.read_only != b->data.read_only ||
+	  !modes_match(a->data.mode, b->data.mode) ||
+	  a->data.interpolation != b->data.interpolation ||
+	  a->data.centroid != b->data.centroid ||
+         a->data.sample != b->data.sample) {
 
 	 /* parameter a's qualifiers don't match */
 	 return a->name;
@@ -1729,12 +1732,6 @@ ir_function_signature::replace_parameters(exec_list *new_params)
     * parameter information comes from the function prototype, it may either
     * specify incorrect parameter names or not have names at all.
     */
-   foreach_iter(exec_list_iterator, iter, parameters) {
-      assert(((ir_instruction *) iter.get())->as_variable() != NULL);
-
-      iter.remove();
-   }
-
    new_params->move_nodes_to(&parameters);
 }
 
@@ -1899,9 +1896,9 @@ vertices_per_prim(GLenum prim)
 const char *
 mode_string(const ir_variable *var)
 {
-   switch (var->mode) {
+   switch (var->data.mode) {
    case ir_var_auto:
-      return (var->read_only) ? "global constant" : "global variable";
+      return (var->data.read_only) ? "global constant" : "global variable";
 
    case ir_var_uniform:
       return "uniform";

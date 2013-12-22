@@ -36,7 +36,6 @@ PACKAGE_NAME = MesaLib-$(PACKAGE_VERSION)
 EXTRA_FILES = \
 	aclocal.m4					\
 	configure					\
-	VERSION					\
 	bin/ar-lib					\
 	bin/compile					\
 	bin/config.sub					\
@@ -46,6 +45,7 @@ EXTRA_FILES = \
 	bin/ltmain.sh					\
 	bin/missing					\
 	bin/ylwrap					\
+        bin/test-driver					\
 	src/glsl/glsl_parser.cpp			\
 	src/glsl/glsl_parser.h				\
 	src/glsl/glsl_lexer.cpp				\

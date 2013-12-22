@@ -59,7 +59,7 @@ getUST(int64_t * ust)
 }
 
 const __DRIsystemTimeExtension systemTimeExtension = {
-    {__DRI_SYSTEM_TIME, __DRI_SYSTEM_TIME_VERSION},
+    {__DRI_SYSTEM_TIME, 1},
     getUST,
     NULL,
 };

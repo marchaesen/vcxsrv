@@ -62,7 +62,7 @@ xkb_symbols "pes_part_basic" {
     key <AD09> { [ Arabic_khah,		bracketright,		0x100202e	] };
     key <AD10> { [ Arabic_hah,		bracketleft,		0x100202c	] };
     key <AD11> { [ Arabic_jeem,		braceright,		0x100202a	] };
-    key <AD12> { [ Arabic_tcheh,		braceleft,		0x100202b	] };
+    key <AD12> { [ Arabic_tcheh,	braceleft,		0x100202b	] };
 
     key <AC01> { [ Arabic_sheen,	Arabic_hamzaonwaw,	VoidSymbol	] };
     key <AC02> { [ Arabic_seen,		Arabic_hamzaonyeh,	VoidSymbol	] };
@@ -73,17 +73,15 @@ xkb_symbols "pes_part_basic" {
     key <AC07> { [ Arabic_teh,		Arabic_tehmarbuta,	VoidSymbol	] };
     key <AC08> { [ Arabic_noon,		guillemotright,		0x100fd3e	] };
     key <AC09> { [ Arabic_meem,		guillemotleft,		0x100fd3f	] };
-    key <AC10> { [ Arabic_keheh,		colon,			semicolon	] };
+    key <AC10> { [ Arabic_keheh,	colon,			semicolon	] };
     key <AC11> { [ Arabic_gaf,		Arabic_semicolon,	quotedbl	] };
 
     key <AB01> { [ Arabic_zah,		Arabic_kaf,		VoidSymbol	] };
     key <AB02> { [ Arabic_tah,		0x1000653,		VoidSymbol	] };
     key <AB03> { [ Arabic_zain,		Arabic_jeh,		VoidSymbol	] };
-    key <AB04> { [ Arabic_ra,		Arabic_superscript_alef
-,		0x1000656	] };
+    key <AB04> { [ Arabic_ra,		Arabic_superscript_alef,0x1000656	] };
     key <AB05> { [ Arabic_thal,		0x100200c,		0x100200d	] };
-    key <AB06> { [ Arabic_dal,		Arabic_hamza_above
-,		Arabic_hamza_below	] };
+    key <AB06> { [ Arabic_dal,		Arabic_hamza_above,	Arabic_hamza_below	] };
     key <AB07> { [ Arabic_peh,		Arabic_hamza,		ellipsis	] };
     key <AB08> { [ Arabic_waw,		greater,		comma		] };
     key <AB09> { [ period,		less,			apostrophe	] };
@@ -169,7 +167,7 @@ xkb_symbols "ku_alt" {
 //
 // Copyright (C) 2006 Erdal Ronahî, published under the GPL v2
 //
-// Special copyright note: author explicitly permitted to license this 
+// Special copyright note: author explicitly permitted to license this
 // layout under MIT/X11 license, for details see
 // https://bugs.freedesktop.org/show_bug.cgi?id=9541
 //
@@ -256,51 +254,51 @@ xkb_symbols "ave"
 {
 	name[Group1] = "Avestan";
 
-	key <AB01> { [ U10B30,         U10B32 ] }; // 𐬰 𐬲 
-	key <AB02> { [ U10B11,         U10B12 ] }; // 𐬑 𐬒 
-	key <AB03> { [ U10B17,          UE102 ] }; // 𐬗  
-	key <AB04> { [ U10B2C,         U10B13 ] }; // 𐬬 𐬓 
-	key <AB05> { [ U10B20,         U10B21 ] }; // 𐬠 𐬡 
-	key <AB06> { [ U10B25,         U10B27 ] }; // 𐬥 𐬧 
-	key <AB07> { [ U10B28,         U10B29 ] }; // 𐬨 𐬩 
-	key <AB08> { [ U10B3C,         U10B39 ] }; // 𐬼 𐬹 
-	key <AB09> { [ U10B3E,         U10B3D ] }; // 𐬾 𐬽 
-	key <AB10> { [ U10B3F, periodcentered ] }; // 𐬿 · 
+	key <AB01> { [ U10B30,         U10B32 ] }; // 𐬰 𐬲
+	key <AB02> { [ U10B11,         U10B12 ] }; // 𐬑 𐬒
+	key <AB03> { [ U10B17,          UE102 ] }; // 𐬗 
+	key <AB04> { [ U10B2C,         U10B13 ] }; // 𐬬 𐬓
+	key <AB05> { [ U10B20,         U10B21 ] }; // 𐬠 𐬡
+	key <AB06> { [ U10B25,         U10B27 ] }; // 𐬥 𐬧
+	key <AB07> { [ U10B28,         U10B29 ] }; // 𐬨 𐬩
+	key <AB08> { [ U10B3C,         U10B39 ] }; // 𐬼 𐬹
+	key <AB09> { [ U10B3E,         U10B3D ] }; // 𐬾 𐬽
+	key <AB10> { [ U10B3F, periodcentered ] }; // 𐬿 ·
 
-	key <AC01> { [ U10B00,         U10B01 ] }; // 𐬀 𐬁 
-	key <AC02> { [ U10B2F,         U10B31 ] }; // 𐬯 𐬱 
-	key <AC03> { [ U10B1B,         U10B1C ] }; // 𐬛 𐬜 
-	key <AC04> { [ U10B1F,         U10B16 ] }; // 𐬟 𐬖 
-	key <AC05> { [ U10B14,         U10B15 ] }; // 𐬔 𐬕 
-	key <AC06> { [ U10B35,          UE100 ] }; // 𐬵  
-	key <AC07> { [ U10B18,         U10B24 ] }; // 𐬘 𐬤 
-	key <AC08> { [ U10B10,          UE101 ] }; // 𐬐  
-	key <AC09> { [ U10B2E,          UE103 ] }; // 𐬮  
-	key <AC10> { [ U10B3B,         U10B3A ] }; // 𐬻 𐬺 
-	key <AC11> { [ U10B1D                 ] }; // 𐬝 
+	key <AC01> { [ U10B00,         U10B01 ] }; // 𐬀 𐬁
+	key <AC02> { [ U10B2F,         U10B31 ] }; // 𐬯 𐬱
+	key <AC03> { [ U10B1B,         U10B1C ] }; // 𐬛 𐬜
+	key <AC04> { [ U10B1F,         U10B16 ] }; // 𐬟 𐬖
+	key <AC05> { [ U10B14,         U10B15 ] }; // 𐬔 𐬕
+	key <AC06> { [ U10B35,          UE100 ] }; // 𐬵 
+	key <AC07> { [ U10B18,         U10B24 ] }; // 𐬘 𐬤
+	key <AC08> { [ U10B10,          UE101 ] }; // 𐬐 
+	key <AC09> { [ U10B2E,          UE103 ] }; // 𐬮 
+	key <AC10> { [ U10B3B,         U10B3A ] }; // 𐬻 𐬺
+	key <AC11> { [ U10B1D                 ] }; // 𐬝
 
-	key <AD01> { [ U10B22,         U10B23 ] }; // 𐬢 𐬣 
-	key <AD02> { [ U10B33,         U10B34 ] }; // 𐬳 𐬴 
-	key <AD03> { [ U10B08,         U10B09 ] }; // 𐬈 𐬉 
-	key <AD04> { [ U10B2D,         U10B26 ] }; // 𐬭 𐬦 
-	key <AD05> { [ U10B19,         U10B1A ] }; // 𐬙 𐬚 
-	key <AD06> { [ U10B2B,         U10B2A ] }; // 𐬫 𐬪 
-	key <AD07> { [ U10B0E,         U10B0F ] }; // 𐬎 𐬏 
-	key <AD08> { [ U10B0C,         U10B0D ] }; // 𐬌 𐬍 
+	key <AD01> { [ U10B22,         U10B23 ] }; // 𐬢 𐬣
+	key <AD02> { [ U10B33,         U10B34 ] }; // 𐬳 𐬴
+	key <AD03> { [ U10B08,         U10B09 ] }; // 𐬈 𐬉
+	key <AD04> { [ U10B2D,         U10B26 ] }; // 𐬭 𐬦
+	key <AD05> { [ U10B19,         U10B1A ] }; // 𐬙 𐬚
+	key <AD06> { [ U10B2B,         U10B2A ] }; // 𐬫 𐬪
+	key <AD07> { [ U10B0E,         U10B0F ] }; // 𐬎 𐬏
+	key <AD08> { [ U10B0C,         U10B0D ] }; // 𐬌 𐬍
 	key <AD09> { [ U10B0A,         U10B0B ] }; // 𐬊 𐬋
-	key <AD10> { [ U10B1E                 ] }; // 𐬞 
-	key <AD11> { [ U10B06,         U10B07 ] }; // 𐬆 𐬇 
-	key <AD12> { [ U10B02,         U10B03 ] }; // 𐬂 𐬃 
+	key <AD10> { [ U10B1E                 ] }; // 𐬞
+	key <AD11> { [ U10B06,         U10B07 ] }; // 𐬆 𐬇
+	key <AD12> { [ U10B02,         U10B03 ] }; // 𐬂 𐬃
 
-	key <AE01> { [ U10B78                 ] }; // 𐭸 
-	key <AE02> { [ U10B79                 ] }; // 𐭹 
-	key <AE03> { [ U10B7A                 ] }; // 𐭺 
-	key <AE04> { [ U10B7B                 ] }; // 𐭻 
-	key <AE05> { [ U10B7C                 ] }; // 𐭼 
-	key <AE06> { [ U10B7D                 ] }; // 𐭽 
-	key <AE07> { [ U10B7E                 ] }; // 𐭾 
-	key <AE08> { [ U10B7F                 ] }; // 𐭿 
+	key <AE01> { [ U10B78                 ] }; // 𐭸
+	key <AE02> { [ U10B79                 ] }; // 𐭹
+	key <AE03> { [ U10B7A                 ] }; // 𐭺
+	key <AE04> { [ U10B7B                 ] }; // 𐭻
+	key <AE05> { [ U10B7C                 ] }; // 𐭼
+	key <AE06> { [ U10B7D                 ] }; // 𐭽
+	key <AE07> { [ U10B7E                 ] }; // 𐭾
+	key <AE08> { [ U10B7F                 ] }; // 𐭿
 
-	key <BKSL> { [ U10B04,         U10B05 ] }; // 𐬄 𐬅 
-	key <LSGT> { [ U10B04,         U10B05 ] }; // 𐬄 𐬅 
+	key <BKSL> { [ U10B04,         U10B05 ] }; // 𐬄 𐬅
+	key <LSGT> { [ U10B04,         U10B05 ] }; // 𐬄 𐬅
 };

@@ -149,7 +149,7 @@ retry:
 #else
 # if defined (HAVE_GETEXECNAME)
 	const char *p = getexecname ();
-# else
+# elif defined (HAVE_READLINK)
 	char buf[PATH_MAX + 1];
 	int len;
 	char *p = NULL;
@@ -160,6 +160,8 @@ retry:
 	    buf[len] = '\0';
 	    p = buf;
 	}
+# else
+	char *p = NULL;
 # endif
 	if (p)
 	{

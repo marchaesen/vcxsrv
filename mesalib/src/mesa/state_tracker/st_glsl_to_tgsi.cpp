@@ -1056,11 +1056,11 @@ glsl_to_tgsi_visitor::visit(ir_variable *ir)
    if (strcmp(ir->name, "gl_FragCoord") == 0) {
       struct gl_fragment_program *fp = (struct gl_fragment_program *)this->prog;
 
-      fp->OriginUpperLeft = ir->origin_upper_left;
-      fp->PixelCenterInteger = ir->pixel_center_integer;
+      fp->OriginUpperLeft = ir->data.origin_upper_left;
+      fp->PixelCenterInteger = ir->data.pixel_center_integer;
    }
 
-   if (ir->mode == ir_var_uniform && strncmp(ir->name, "gl_", 3) == 0) {
+   if (ir->data.mode == ir_var_uniform && strncmp(ir->name, "gl_", 3) == 0) {
       unsigned int i;
       const ir_state_slot *const slots = ir->state_slots;
       assert(ir->state_slots != NULL);
@@ -1137,52 +1137,9 @@ glsl_to_tgsi_visitor::visit(ir_variable *ir)
 void
 glsl_to_tgsi_visitor::visit(ir_loop *ir)
 {
-   ir_dereference_variable *counter = NULL;
-
-   if (ir->counter != NULL)
-      counter = new(ir) ir_dereference_variable(ir->counter);
-
-   if (ir->from != NULL) {
-      assert(ir->counter != NULL);
-
-      ir_assignment *a = new(ir) ir_assignment(counter, ir->from, NULL);
-
-      a->accept(this);
-      delete a;
-   }
-
    emit(NULL, TGSI_OPCODE_BGNLOOP);
 
-   if (ir->to) {
-      ir_expression *e =
-         new(ir) ir_expression(ir->cmp, glsl_type::bool_type,
-        		       counter, ir->to);
-      ir_if *if_stmt =  new(ir) ir_if(e);
-
-      ir_loop_jump *brk = new(ir) ir_loop_jump(ir_loop_jump::jump_break);
-
-      if_stmt->then_instructions.push_tail(brk);
-
-      if_stmt->accept(this);
-
-      delete if_stmt;
-      delete e;
-      delete brk;
-   }
-
    visit_exec_list(&ir->body_instructions, this);
-
-   if (ir->increment) {
-      ir_expression *e =
-         new(ir) ir_expression(ir_binop_add, counter->type,
-        		       counter, ir->increment);
-
-      ir_assignment *a = new(ir) ir_assignment(counter, e, NULL);
-
-      a->accept(this);
-      delete a;
-      delete e;
-   }
 
    emit(NULL, TGSI_OPCODE_ENDLOOP);
 }
@@ -2063,10 +2020,10 @@ glsl_to_tgsi_visitor::visit(ir_dereference_variable *ir)
    ir_variable *var = ir->var;
 
    if (!entry) {
-      switch (var->mode) {
+      switch (var->data.mode) {
       case ir_var_uniform:
          entry = new(mem_ctx) variable_storage(var, PROGRAM_UNIFORM,
-        				       var->location);
+        				       var->data.location);
          this->variables.push_tail(entry);
          break;
       case ir_var_shader_in:
@@ -2075,21 +2032,22 @@ glsl_to_tgsi_visitor::visit(ir_dereference_variable *ir)
           * generic attributes (glBindVertexLocation), and
           * user-defined varyings.
           */
-         assert(var->location != -1);
+         assert(var->data.location != -1);
          entry = new(mem_ctx) variable_storage(var,
                                                PROGRAM_INPUT,
-                                               var->location);
+                                               var->data.location);
          break;
       case ir_var_shader_out:
-         assert(var->location != -1);
+         assert(var->data.location != -1);
          entry = new(mem_ctx) variable_storage(var,
                                                PROGRAM_OUTPUT,
-                                               var->location + var->index);
+                                               var->data.location
+                                               + var->data.index);
          break;
       case ir_var_system_value:
          entry = new(mem_ctx) variable_storage(var,
                                                PROGRAM_SYSTEM_VALUE,
-                                               var->location);
+                                               var->data.location);
          break;
       case ir_var_auto:
       case ir_var_temporary:
@@ -2388,7 +2346,7 @@ glsl_to_tgsi_visitor::visit(ir_assignment *ir)
       assert(!ir->lhs->type->is_scalar() && !ir->lhs->type->is_vector());
       l.writemask = WRITEMASK_XYZW;
    } else if (ir->lhs->type->is_scalar() &&
-              ir->lhs->variable_referenced()->mode == ir_var_shader_out) {
+              ir->lhs->variable_referenced()->data.mode == ir_var_shader_out) {
       /* FINISHME: This hack makes writing to gl_FragDepth, which lives in the
        * FINISHME: W component of fragment shader output zero, work correctly.
        */
@@ -2664,8 +2622,8 @@ glsl_to_tgsi_visitor::visit(ir_call *ir)
       ir_rvalue *param_rval = (ir_rvalue *)iter.get();
       ir_variable *param = (ir_variable *)sig_iter.get();
 
-      if (param->mode == ir_var_function_in ||
-          param->mode == ir_var_function_inout) {
+      if (param->data.mode == ir_var_function_in ||
+          param->data.mode == ir_var_function_inout) {
          variable_storage *storage = find_variable_storage(param);
          assert(storage);
 
@@ -2700,8 +2658,8 @@ glsl_to_tgsi_visitor::visit(ir_call *ir)
       ir_rvalue *param_rval = (ir_rvalue *)iter.get();
       ir_variable *param = (ir_variable *)sig_iter.get();
 
-      if (param->mode == ir_var_function_out ||
-          param->mode == ir_var_function_inout) {
+      if (param->data.mode == ir_var_function_out ||
+          param->data.mode == ir_var_function_inout) {
          variable_storage *storage = find_variable_storage(param);
          assert(storage);
 

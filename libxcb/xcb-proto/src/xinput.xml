@@ -1790,10 +1790,10 @@ authorization from the authors.
     <eventcopy name="DeviceMotionNotify"  number="5" ref="DeviceKeyPress" />
 
     <event name="DeviceFocusIn" number="6">
-        <field type="BYTE"      name="detail" enum="NotifyDetail" />
+        <field type="BYTE"      name="detail" enum="xproto:NotifyDetail" />
         <field type="TIMESTAMP" name="time" />
         <field type="WINDOW"    name="window" />
-        <field type="BYTE"      name="mode" enum="NotifyMode" />
+        <field type="BYTE"      name="mode" enum="xproto:NotifyMode" />
         <field type="CARD8"     name="device_id" />
         <pad bytes="18" />
     </event>
@@ -2003,8 +2003,8 @@ authorization from the authors.
         <field type="TIMESTAMP" name="time" altenum="Time" />
         <!-- event specific fields -->
         <field type="DeviceId"  name="sourceid" altenum="Device" />
-        <field type="CARD8"     name="mode" enum="NotifyMode" />
-        <field type="CARD8"     name="detail" enum="NotifyDetail" />
+        <field type="CARD8"     name="mode" enum="xinput:NotifyMode" />
+        <field type="CARD8"     name="detail" enum="xinput:NotifyDetail" />
         <field type="WINDOW"    name="root" />
         <field type="WINDOW"    name="event" />
         <field type="WINDOW"    name="child" />

@@ -33,6 +33,8 @@ xkb_symbols "basic" {
 
     key <LSGT>	{ [      less,    greater,guillemotleft,guillemotright] };
 
+    include "kpdl(comma)"
+
     include "level3(ralt_switch)"
 };
 
@@ -175,7 +177,7 @@ xkb_symbols "us" {
     include "us(euro)"
 
     name[Group1]= "Italian (US keyboard with Italian letters)";
-    
+
     key <TLDE> { [     grave, asciitilde,    dead_grave,       dead_tilde ] };
     key <AE01> { [         1,     exclam,   onesuperior                   ] };
     key <AE02> { [         2,         at,   twosuperior                   ] };

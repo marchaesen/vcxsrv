@@ -543,7 +543,8 @@ get_current_attrib(texenv_fragment_program *p, GLuint attrib)
    ir_rvalue *val;
 
    current = p->shader->symbols->get_variable("gl_CurrentAttribFragMESA");
-   current->max_array_access = MAX2(current->max_array_access, attrib);
+   assert(current);
+   current->data.max_array_access = MAX2(current->data.max_array_access, attrib);
    val = new(p->mem_ctx) ir_dereference_variable(current);
    ir_rvalue *index = new(p->mem_ctx) ir_constant(attrib);
    return new(p->mem_ctx) ir_dereference_array(val, index);
@@ -587,7 +588,7 @@ get_source(texenv_fragment_program *p,
       var = p->shader->symbols->get_variable("gl_TextureEnvColor");
       assert(var);
       deref = new(p->mem_ctx) ir_dereference_variable(var);
-      var->max_array_access = MAX2(var->max_array_access, unit);
+      var->data.max_array_access = MAX2(var->data.max_array_access, unit);
       return new(p->mem_ctx) ir_dereference_array(deref,
 						  new(p->mem_ctx) ir_constant(unit));
 
@@ -927,7 +928,7 @@ static void load_texture( texenv_fragment_program *p, GLuint unit )
       texcoord = new(p->mem_ctx) ir_dereference_variable(tc_array);
       ir_rvalue *index = new(p->mem_ctx) ir_constant(unit);
       texcoord = new(p->mem_ctx) ir_dereference_array(texcoord, index);
-      tc_array->max_array_access = MAX2(tc_array->max_array_access, unit);
+      tc_array->data.max_array_access = MAX2(tc_array->data.max_array_access, unit);
    }
 
    if (!p->state->unit[unit].enabled) {
@@ -1096,14 +1097,16 @@ load_texunit_bumpmap( texenv_fragment_program *p, GLuint unit )
    ir_variable *rot_mat_0, *rot_mat_1;
 
    rot_mat_0 = p->shader->symbols->get_variable("gl_BumpRotMatrix0MESA");
+   assert(rot_mat_0);
    rot_mat_1 = p->shader->symbols->get_variable("gl_BumpRotMatrix1MESA");
+   assert(rot_mat_1);
 
    ir_variable *tc_array = p->shader->symbols->get_variable("gl_TexCoord");
    assert(tc_array);
    texcoord = new(p->mem_ctx) ir_dereference_variable(tc_array);
    ir_rvalue *index = new(p->mem_ctx) ir_constant(bumpedUnitNr);
    texcoord = new(p->mem_ctx) ir_dereference_array(texcoord, index);
-   tc_array->max_array_access = MAX2(tc_array->max_array_access, unit);
+   tc_array->data.max_array_access = MAX2(tc_array->data.max_array_access, unit);
 
    load_texenv_source( p, unit + SRC_TEXTURE0, unit );
 
@@ -1157,8 +1160,11 @@ emit_fog_instructions(texenv_fragment_program *p,
    fragcolor = swizzle_xyz(fog_result);
 
    oparams = p->shader->symbols->get_variable("gl_FogParamsOptimizedMESA");
+   assert(oparams);
    fogcoord = p->shader->symbols->get_variable("gl_FogFragCoord");
+   assert(fogcoord);
    params = p->shader->symbols->get_variable("gl_Fog");
+   assert(params);
    f = new(p->mem_ctx) ir_dereference_variable(fogcoord);
 
    ir_variable *f_var = p->make_temp(glsl_type::float_type, "fog_factor");
@@ -1344,7 +1350,7 @@ create_new_program(struct gl_context *ctx, struct state_key *key)
 
    p.shader->CompileStatus = true;
    p.shader->Version = state->language_version;
-   p.shader->num_builtins_to_link = state->num_builtins_to_link;
+   p.shader->uses_builtin_functions = state->uses_builtin_functions;
    p.shader_program->Shaders =
       (gl_shader **)malloc(sizeof(*p.shader_program->Shaders));
    p.shader_program->Shaders[0] = p.shader;

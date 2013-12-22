@@ -71,9 +71,9 @@ xkb_symbols "olpc" {
 xkb_symbols "phonetic" {
     include "am(basic)"
     name[Group1]= "Armenian (phonetic)";
-	
+
     key <BKSL> {	[ 0x1000577,  0x1000547 ]	};
-	
+
     key <AE01> {	[ 0x1000567,  0x1000537 ]	};
     key <AE02> {	[ 0x1000569,  0x1000539 ]	};
     key <AE03> {	[ 0x1000583,  0x1000553 ]	};

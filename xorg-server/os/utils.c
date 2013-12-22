@@ -2071,3 +2071,27 @@ FormatUInt64Hex(uint64_t num, char *string)
 
     string[len] = '\0';
 }
+
+/* Move a file descriptor out of the way of our select mask; this
+ * is useful for file descriptors which will never appear in the
+ * select mask to avoid reducing the number of clients that can
+ * connect to the server
+ */
+int
+os_move_fd(int fd)
+{
+    int newfd;
+
+#ifdef F_DUPFD_CLOEXEC
+    newfd = fcntl(fd, F_DUPFD_CLOEXEC, MAXCLIENTS);
+#else
+    newfd = fcntl(fd, F_DUPFD, MAXCLIENTS);
+#endif
+    if (newfd < 0)
+        return fd;
+#ifndef F_DUPFD_CLOEXEC
+    fcntl(newfd, F_SETFD, FD_CLOEXEC);
+#endif
+    close(fd);
+    return newfd;
+}

@@ -16,57 +16,57 @@ xkb_symbols "basic"
 {
 	name[Group1] = "Tajik";
 
-    	include "kpdl(comma)"
+	include "kpdl(comma)"
 	include "level3(ralt_switch)"
 
-	key <AB01> { [    Cyrillic_ya,    Cyrillic_YA                                 ] }; // я Я 
-	key <AB02> { [   Cyrillic_che,   Cyrillic_CHE                                 ] }; // ч Ч 
-	key <AB03> { [    Cyrillic_es,    Cyrillic_ES                                 ] }; // с С 
-	key <AB04> { [    Cyrillic_em,    Cyrillic_EM                                 ] }; // м М 
-	key <AB05> { [     Cyrillic_i,     Cyrillic_I                                 ] }; // и И 
-	key <AB06> { [    Cyrillic_te,    Cyrillic_TE                                 ] }; // т Т 
-	key <AB07> { [      0x10004e3,      0x10004e2                                 ] }; // ӣ Ӣ 
-	key <AB08> { [    Cyrillic_be,    Cyrillic_BE                                 ] }; // б Б 
-	key <AB09> { [    Cyrillic_yu,    Cyrillic_YU                                 ] }; // ю Ю 
-	key <AB10> { [         period,          comma                                 ] }; // . , 
-	key <AC01> { [    Cyrillic_ef,    Cyrillic_EF                                 ] }; // ф Ф 
-	key <AC02> { [      0x10004b7,      0x10004b6                                 ] }; // ҷ Ҷ 
-	key <AC03> { [    Cyrillic_ve,    Cyrillic_VE                                 ] }; // в В 
-	key <AC04> { [     Cyrillic_a,     Cyrillic_A                                 ] }; // а А 
-	key <AC05> { [    Cyrillic_pe,    Cyrillic_PE                                 ] }; // п П 
-	key <AC06> { [    Cyrillic_er,    Cyrillic_ER                                 ] }; // р Р 
-	key <AC07> { [     Cyrillic_o,     Cyrillic_O                                 ] }; // о О 
-	key <AC08> { [    Cyrillic_el,    Cyrillic_EL                                 ] }; // л Л 
-	key <AC09> { [    Cyrillic_de,    Cyrillic_DE                                 ] }; // д Д 
-	key <AC10> { [   Cyrillic_zhe,   Cyrillic_ZHE                                 ] }; // ж Ж 
-	key <AC11> { [     Cyrillic_e,     Cyrillic_E                                 ] }; // э Э 
-	key <AD01> { [ Cyrillic_shorti, Cyrillic_SHORTI                               ] }; // й Й 
-	key <AD02> { [      0x100049b,      0x100049a                                 ] }; // қ Қ 
-	key <AD03> { [     Cyrillic_u,     Cyrillic_U                                 ] }; // у У 
-	key <AD04> { [    Cyrillic_ka,    Cyrillic_KA                                 ] }; // к К 
-	key <AD05> { [    Cyrillic_ie,    Cyrillic_IE                                 ] }; // е Е 
-	key <AD06> { [    Cyrillic_en,    Cyrillic_EN                                 ] }; // н Н 
-	key <AD07> { [   Cyrillic_ghe,   Cyrillic_GHE                                 ] }; // г Г 
-	key <AD08> { [   Cyrillic_sha,   Cyrillic_SHA                                 ] }; // ш Ш 
-	key <AD09> { [      0x10004b3,      0x10004b2                                 ] }; // ҳ Ҳ 
-	key <AD10> { [    Cyrillic_ze,    Cyrillic_ZE                                 ] }; // з З 
-	key <AD11> { [    Cyrillic_ha,    Cyrillic_HA                                 ] }; // х Х 
-	key <AD12> { [ Cyrillic_hardsign, Cyrillic_HARDSIGN                           ] }; // ъ Ъ 
-	key <AE01> { [              1,         exclam,      0x10000a7                 ] }; // 1 ! § 
-	key <AE02> { [              2,       quotedbl,      0x10000ab,      0x10000bb ] }; // 2 " « » 
-	key <AE03> { [              3,     numerosign                                 ] }; // 3 № 
-	key <AE04> { [              4,      semicolon                                 ] }; // 4 ; 
-	key <AE05> { [              5,        percent                                 ] }; // 5 % 
-	key <AE06> { [              6,          colon,      0x1002013                 ] }; // 6 : – 
-	key <AE07> { [              7,       question,      ampersand                 ] }; // 7 ? & 
-	key <AE08> { [              8,       asterisk                                 ] }; // 8 * 
-	key <AE09> { [              9,      parenleft                                 ] }; // 9 ( 
-	key <AE10> { [              0,     parenright,      0x10000b0                 ] }; // 0 ) ° 
-	key <AE11> { [      0x1000493,      0x1000492,          minus,     underscore ] }; // ғ Ғ - _ 
-	key <AE12> { [      0x10004ef,      0x10004ee,          equal,           plus ] }; // ӯ Ӯ = + 
-	key <BKSL> { [      backslash,          slash                                 ] }; // \ / 
-	key <LSGT> { [          slash,            bar                                 ] }; // / | 
-	key <TLDE> { [    Cyrillic_io,    Cyrillic_IO                                 ] }; // ё Ё 
+	key <AB01> { [    Cyrillic_ya,    Cyrillic_YA                                 ] }; // я Я
+	key <AB02> { [   Cyrillic_che,   Cyrillic_CHE                                 ] }; // ч Ч
+	key <AB03> { [    Cyrillic_es,    Cyrillic_ES                                 ] }; // с С
+	key <AB04> { [    Cyrillic_em,    Cyrillic_EM                                 ] }; // м М
+	key <AB05> { [     Cyrillic_i,     Cyrillic_I                                 ] }; // и И
+	key <AB06> { [    Cyrillic_te,    Cyrillic_TE                                 ] }; // т Т
+	key <AB07> { [      0x10004e3,      0x10004e2                                 ] }; // ӣ Ӣ
+	key <AB08> { [    Cyrillic_be,    Cyrillic_BE                                 ] }; // б Б
+	key <AB09> { [    Cyrillic_yu,    Cyrillic_YU                                 ] }; // ю Ю
+	key <AB10> { [         period,          comma                                 ] }; // . ,
+	key <AC01> { [    Cyrillic_ef,    Cyrillic_EF                                 ] }; // ф Ф
+	key <AC02> { [      0x10004b7,      0x10004b6                                 ] }; // ҷ Ҷ
+	key <AC03> { [    Cyrillic_ve,    Cyrillic_VE                                 ] }; // в В
+	key <AC04> { [     Cyrillic_a,     Cyrillic_A                                 ] }; // а А
+	key <AC05> { [    Cyrillic_pe,    Cyrillic_PE                                 ] }; // п П
+	key <AC06> { [    Cyrillic_er,    Cyrillic_ER                                 ] }; // р Р
+	key <AC07> { [     Cyrillic_o,     Cyrillic_O                                 ] }; // о О
+	key <AC08> { [    Cyrillic_el,    Cyrillic_EL                                 ] }; // л Л
+	key <AC09> { [    Cyrillic_de,    Cyrillic_DE                                 ] }; // д Д
+	key <AC10> { [   Cyrillic_zhe,   Cyrillic_ZHE                                 ] }; // ж Ж
+	key <AC11> { [     Cyrillic_e,     Cyrillic_E                                 ] }; // э Э
+	key <AD01> { [ Cyrillic_shorti, Cyrillic_SHORTI                               ] }; // й Й
+	key <AD02> { [      0x100049b,      0x100049a                                 ] }; // қ Қ
+	key <AD03> { [     Cyrillic_u,     Cyrillic_U                                 ] }; // у У
+	key <AD04> { [    Cyrillic_ka,    Cyrillic_KA                                 ] }; // к К
+	key <AD05> { [    Cyrillic_ie,    Cyrillic_IE                                 ] }; // е Е
+	key <AD06> { [    Cyrillic_en,    Cyrillic_EN                                 ] }; // н Н
+	key <AD07> { [   Cyrillic_ghe,   Cyrillic_GHE                                 ] }; // г Г
+	key <AD08> { [   Cyrillic_sha,   Cyrillic_SHA                                 ] }; // ш Ш
+	key <AD09> { [      0x10004b3,      0x10004b2                                 ] }; // ҳ Ҳ
+	key <AD10> { [    Cyrillic_ze,    Cyrillic_ZE                                 ] }; // з З
+	key <AD11> { [    Cyrillic_ha,    Cyrillic_HA                                 ] }; // х Х
+	key <AD12> { [ Cyrillic_hardsign, Cyrillic_HARDSIGN                           ] }; // ъ Ъ
+	key <AE01> { [              1,         exclam,      0x10000a7                 ] }; // 1 ! §
+	key <AE02> { [              2,       quotedbl,      0x10000ab,      0x10000bb ] }; // 2 " « »
+	key <AE03> { [              3,     numerosign                                 ] }; // 3 №
+	key <AE04> { [              4,      semicolon                                 ] }; // 4 ;
+	key <AE05> { [              5,        percent                                 ] }; // 5 %
+	key <AE06> { [              6,          colon,      0x1002013                 ] }; // 6 : –
+	key <AE07> { [              7,       question,      ampersand                 ] }; // 7 ? &
+	key <AE08> { [              8,       asterisk                                 ] }; // 8 *
+	key <AE09> { [              9,      parenleft                                 ] }; // 9 (
+	key <AE10> { [              0,     parenright,      0x10000b0                 ] }; // 0 ) °
+	key <AE11> { [      0x1000493,      0x1000492,          minus,     underscore ] }; // ғ Ғ - _
+	key <AE12> { [      0x10004ef,      0x10004ee,          equal,           plus ] }; // ӯ Ӯ = +
+	key <BKSL> { [      backslash,          slash                                 ] }; // \ /
+	key <LSGT> { [          slash,            bar                                 ] }; // / |
+	key <TLDE> { [    Cyrillic_io,    Cyrillic_IO                                 ] }; // ё Ё
 };
 
 // --------------------------------------------------------------------
@@ -85,52 +85,52 @@ xkb_symbols "legacy"
 	include "kpdl(comma)"
 	include "level3(ralt_switch)"
 
-	key <AB01> { [    Cyrillic_ya,    Cyrillic_YA                                 ] }; // я Я 
-	key <AB02> { [   Cyrillic_che,   Cyrillic_CHE,      0x10004b7,      0x10004b6 ] }; // ч Ч ҷ Ҷ 
-	key <AB03> { [    Cyrillic_es,    Cyrillic_ES                                 ] }; // с С 
-	key <AB04> { [    Cyrillic_em,    Cyrillic_EM                                 ] }; // м М 
-	key <AB05> { [     Cyrillic_i,     Cyrillic_I,      0x10004e3,      0x10004e2 ] }; // и И ӣ Ӣ 
-	key <AB06> { [    Cyrillic_te,    Cyrillic_TE                                 ] }; // т Т 
-	key <AB07> { [ Cyrillic_softsign, Cyrillic_SOFTSIGN                           ] }; // ь Ь 
-	key <AB08> { [    Cyrillic_be,    Cyrillic_BE                                 ] }; // б Б 
-	key <AB09> { [    Cyrillic_yu,    Cyrillic_YU                                 ] }; // ю Ю 
-	key <AB10> { [         period,          comma                                 ] }; // . , 
-	key <AC01> { [    Cyrillic_ef,    Cyrillic_EF                                 ] }; // ф Ф 
-	key <AC02> { [  Cyrillic_yeru,  Cyrillic_YERU                                 ] }; // ы Ы 
-	key <AC03> { [    Cyrillic_ve,    Cyrillic_VE                                 ] }; // в В 
-	key <AC04> { [     Cyrillic_a,     Cyrillic_A                                 ] }; // а А 
-	key <AC05> { [    Cyrillic_pe,    Cyrillic_PE                                 ] }; // п П 
-	key <AC06> { [    Cyrillic_er,    Cyrillic_ER                                 ] }; // р Р 
-	key <AC07> { [     Cyrillic_o,     Cyrillic_O                                 ] }; // о О 
-	key <AC08> { [    Cyrillic_el,    Cyrillic_EL                                 ] }; // л Л 
-	key <AC09> { [    Cyrillic_de,    Cyrillic_DE                                 ] }; // д Д 
-	key <AC10> { [   Cyrillic_zhe,   Cyrillic_ZHE                                 ] }; // ж Ж 
-	key <AC11> { [     Cyrillic_e,     Cyrillic_E                                 ] }; // э Э 
-	key <AD01> { [ Cyrillic_shorti, Cyrillic_SHORTI                               ] }; // й Й 
-	key <AD02> { [   Cyrillic_tse,   Cyrillic_TSE                                 ] }; // ц Ц 
-	key <AD03> { [     Cyrillic_u,     Cyrillic_U,      0x10004ef,      0x10004ee ] }; // у У ӯ Ӯ 
-	key <AD04> { [    Cyrillic_ka,    Cyrillic_KA,      0x100049b,      0x100049a ] }; // к К қ Қ 
-	key <AD05> { [    Cyrillic_ie,    Cyrillic_IE                                 ] }; // е Е 
-	key <AD06> { [    Cyrillic_en,    Cyrillic_EN                                 ] }; // н Н 
-	key <AD07> { [   Cyrillic_ghe,   Cyrillic_GHE,      0x1000493,      0x1000492 ] }; // г Г ғ Ғ 
-	key <AD08> { [   Cyrillic_sha,   Cyrillic_SHA                                 ] }; // ш Ш 
-	key <AD09> { [ Cyrillic_shcha, Cyrillic_SHCHA                                 ] }; // щ Щ 
-	key <AD10> { [    Cyrillic_ze,    Cyrillic_ZE                                 ] }; // з З 
-	key <AD11> { [    Cyrillic_ha,    Cyrillic_HA,      0x10004b3,      0x10004b2 ] }; // х Х ҳ Ҳ 
-	key <AD12> { [ Cyrillic_hardsign, Cyrillic_HARDSIGN                           ] }; // ъ Ъ 
-	key <AE01> { [              1,         exclam,      0x10000a7                 ] }; // 1 ! § 
-	key <AE02> { [              2,       quotedbl,      0x10000ab,      0x10000bb ] }; // 2 " « » 
-	key <AE03> { [              3,     numerosign                                 ] }; // 3 № 
-	key <AE04> { [              4,      semicolon                                 ] }; // 4 ; 
-	key <AE05> { [              5,        percent                                 ] }; // 5 % 
-	key <AE06> { [              6,          colon,      0x1002013                 ] }; // 6 : – 
-	key <AE07> { [              7,       question,      ampersand                 ] }; // 7 ? & 
-	key <AE08> { [              8,       asterisk                                 ] }; // 8 * 
-	key <AE09> { [              9,      parenleft                                 ] }; // 9 ( 
-	key <AE10> { [              0,     parenright                                 ] }; // 0 ) 
-	key <AE11> { [          minus,     underscore                                 ] }; // - _ 
-	key <AE12> { [          equal,           plus                                 ] }; // = + 
-	key <BKSL> { [      backslash,          slash                                 ] }; // \ / 
-	key <LSGT> { [          slash,            bar                                 ] }; // / | 
-	key <TLDE> { [    Cyrillic_io,    Cyrillic_IO                                 ] }; // ё Ё 
+	key <AB01> { [    Cyrillic_ya,    Cyrillic_YA                                 ] }; // я Я
+	key <AB02> { [   Cyrillic_che,   Cyrillic_CHE,      0x10004b7,      0x10004b6 ] }; // ч Ч ҷ Ҷ
+	key <AB03> { [    Cyrillic_es,    Cyrillic_ES                                 ] }; // с С
+	key <AB04> { [    Cyrillic_em,    Cyrillic_EM                                 ] }; // м М
+	key <AB05> { [     Cyrillic_i,     Cyrillic_I,      0x10004e3,      0x10004e2 ] }; // и И ӣ Ӣ
+	key <AB06> { [    Cyrillic_te,    Cyrillic_TE                                 ] }; // т Т
+	key <AB07> { [ Cyrillic_softsign, Cyrillic_SOFTSIGN                           ] }; // ь Ь
+	key <AB08> { [    Cyrillic_be,    Cyrillic_BE                                 ] }; // б Б
+	key <AB09> { [    Cyrillic_yu,    Cyrillic_YU                                 ] }; // ю Ю
+	key <AB10> { [         period,          comma                                 ] }; // . ,
+	key <AC01> { [    Cyrillic_ef,    Cyrillic_EF                                 ] }; // ф Ф
+	key <AC02> { [  Cyrillic_yeru,  Cyrillic_YERU                                 ] }; // ы Ы
+	key <AC03> { [    Cyrillic_ve,    Cyrillic_VE                                 ] }; // в В
+	key <AC04> { [     Cyrillic_a,     Cyrillic_A                                 ] }; // а А
+	key <AC05> { [    Cyrillic_pe,    Cyrillic_PE                                 ] }; // п П
+	key <AC06> { [    Cyrillic_er,    Cyrillic_ER                                 ] }; // р Р
+	key <AC07> { [     Cyrillic_o,     Cyrillic_O                                 ] }; // о О
+	key <AC08> { [    Cyrillic_el,    Cyrillic_EL                                 ] }; // л Л
+	key <AC09> { [    Cyrillic_de,    Cyrillic_DE                                 ] }; // д Д
+	key <AC10> { [   Cyrillic_zhe,   Cyrillic_ZHE                                 ] }; // ж Ж
+	key <AC11> { [     Cyrillic_e,     Cyrillic_E                                 ] }; // э Э
+	key <AD01> { [ Cyrillic_shorti, Cyrillic_SHORTI                               ] }; // й Й
+	key <AD02> { [   Cyrillic_tse,   Cyrillic_TSE                                 ] }; // ц Ц
+	key <AD03> { [     Cyrillic_u,     Cyrillic_U,      0x10004ef,      0x10004ee ] }; // у У ӯ Ӯ
+	key <AD04> { [    Cyrillic_ka,    Cyrillic_KA,      0x100049b,      0x100049a ] }; // к К қ Қ
+	key <AD05> { [    Cyrillic_ie,    Cyrillic_IE                                 ] }; // е Е
+	key <AD06> { [    Cyrillic_en,    Cyrillic_EN                                 ] }; // н Н
+	key <AD07> { [   Cyrillic_ghe,   Cyrillic_GHE,      0x1000493,      0x1000492 ] }; // г Г ғ Ғ
+	key <AD08> { [   Cyrillic_sha,   Cyrillic_SHA                                 ] }; // ш Ш
+	key <AD09> { [ Cyrillic_shcha, Cyrillic_SHCHA                                 ] }; // щ Щ
+	key <AD10> { [    Cyrillic_ze,    Cyrillic_ZE                                 ] }; // з З
+	key <AD11> { [    Cyrillic_ha,    Cyrillic_HA,      0x10004b3,      0x10004b2 ] }; // х Х ҳ Ҳ
+	key <AD12> { [ Cyrillic_hardsign, Cyrillic_HARDSIGN                           ] }; // ъ Ъ
+	key <AE01> { [              1,         exclam,      0x10000a7                 ] }; // 1 ! §
+	key <AE02> { [              2,       quotedbl,      0x10000ab,      0x10000bb ] }; // 2 " « »
+	key <AE03> { [              3,     numerosign                                 ] }; // 3 №
+	key <AE04> { [              4,      semicolon                                 ] }; // 4 ;
+	key <AE05> { [              5,        percent                                 ] }; // 5 %
+	key <AE06> { [              6,          colon,      0x1002013                 ] }; // 6 : –
+	key <AE07> { [              7,       question,      ampersand                 ] }; // 7 ? &
+	key <AE08> { [              8,       asterisk                                 ] }; // 8 *
+	key <AE09> { [              9,      parenleft                                 ] }; // 9 (
+	key <AE10> { [              0,     parenright                                 ] }; // 0 )
+	key <AE11> { [          minus,     underscore                                 ] }; // - _
+	key <AE12> { [          equal,           plus                                 ] }; // = +
+	key <BKSL> { [      backslash,          slash                                 ] }; // \ /
+	key <LSGT> { [          slash,            bar                                 ] }; // / |
+	key <TLDE> { [    Cyrillic_io,    Cyrillic_IO                                 ] }; // ё Ё
 };

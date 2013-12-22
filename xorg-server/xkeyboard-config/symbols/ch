@@ -36,7 +36,7 @@ xkb_symbols "basic" {
     include "level3(ralt_switch)"
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "legacy" {
     include "ch(basic)"
 
@@ -44,12 +44,12 @@ xkb_symbols "legacy" {
     key <AE07> { [          7,      slash,    brokenbar             ] };
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "de" {
     include "ch(basic)"
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "de_Sundeadkeys" {
     // modify the basic Swiss German layout to use Sun dead keys
     include "ch(basic)"
@@ -58,13 +58,13 @@ xkb_symbols "de_Sundeadkeys" {
     key <AD12> { [ dead_diaeresis,      exclam, bracketright   ] };
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "de_sundeadkeys" {
     include "ch(de_Sundeadkeys)"
     name[Group1]= "German (Switzerland, Sun dead keys)";
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "de_nodeadkeys" {
     // modify the basic Swiss German layout not to have any dead keys
     include "ch(basic)"
@@ -74,7 +74,7 @@ xkb_symbols "de_nodeadkeys" {
     key <AD12> { [   diaeresis,   exclam, bracketright  ] };
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "fr" {
 
     include "ch(basic)"
@@ -123,7 +123,7 @@ xkb_symbols "fr_nodeadkeys" {
 
 partial alphanumeric_keys
 xkb_symbols "de_mac" {
-    
+
     name[Group1]= "German (Switzerland, Macintosh)";
 
     key <AE01> { [	1,	plus, 	plusminus,	infinity		]	};
@@ -143,7 +143,7 @@ xkb_symbols "de_mac" {
     key <AD02> { [	w,	W, 	Greek_SIGMA,	Aacute			]	};
     key <AD03> { [ 	e,	E, 	EuroSign,	Ediaeresis		]	};
     key <AD04> { [ 	r,	R, 	registered,	Egrave			]	};
-    key <AD05> { [ 	t,	T, 	dagger,		Icircumflex		]	}; 
+    key <AD05> { [ 	t,	T, 	dagger,		Icircumflex		]	};
     key <AD06> { [	z,	Z, 	Greek_OMEGA,	Iacute			]	};
     key <AD07> { [ 	u,	U, 	degree,		Ugrave			]	};
     key <AD08> { [ 	i,	I, 	exclamdown,	idotless		]	};
@@ -152,7 +152,7 @@ xkb_symbols "de_mac" {
     key <AD11> { [	udiaeresis,	egrave, 	section,	ydiaeresis		]	};
     key <AD12> { [	dead_diaeresis,	exclam, 	grave,		apostrophe		]	};
     key <AC01> { [ 	a,	A, 	aring,		Aring			]	};
-    key <AC02> { [ 	s,	S, 	ssharp, 	NoSymbol		]	}; 
+    key <AC02> { [ 	s,	S, 	ssharp, 	NoSymbol		]	};
 					// ligature fl
     key <AC03> { [ 	d,	D, 	Greek_sigma,	NoSymbol		]	};
 			// partialderivative is not available here att
@@ -168,7 +168,7 @@ xkb_symbols "de_mac" {
     key <AB02> { [ 	x,	X, 	similarequal,	trademark		]	};
     key <AB03> { [ 	c,	C, 	copyright,	NoSymbol		]	};
     key <AB04> { [ 	v,	V, 	radical,	diamond			]	};
-    key <AB05> { [ 	b,	B, 	integral,	NoSymbol		]	};  
+    key <AB05> { [ 	b,	B, 	integral,	NoSymbol		]	};
     key <AB06> { [ 	n,	N, 	dead_tilde, 	enopencircbullet	]       };
 					// to be fixed att
     key <AB07> { [ 	m,	M, 	mu,		dead_abovering		]       };
@@ -186,7 +186,7 @@ xkb_symbols "de_mac" {
     include "level3(ralt_switch)"
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "fr_mac" {
 
     include "ch(de_mac)"

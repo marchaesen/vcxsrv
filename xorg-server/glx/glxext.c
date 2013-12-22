@@ -399,6 +399,9 @@ GlxExtensionInit(void)
 
     __glXErrorBase = extEntry->errorBase;
     __glXEventBase = extEntry->eventBase;
+#if PRESENT
+    __glXregisterPresentCompleteNotify();
+#endif
 }
 
 /************************************************************************/
@@ -541,17 +544,19 @@ __glXleaveServer(GLboolean rendering)
     glxServerLeaveCount++;
 }
 
-static void (*(*_get_proc_address)(const char *))(void);
+static glx_gpa_proc _get_proc_address;
 
 void
-__glXsetGetProcAddress(void (*(*get_proc_address) (const char *))(void))
+__glXsetGetProcAddress(glx_gpa_proc get_proc_address)
 {
     _get_proc_address = get_proc_address;
 }
 
 void *__glGetProcAddress(const char *proc)
 {
-    return _get_proc_address(proc);
+    void *ret = _get_proc_address(proc);
+
+    return ret ? ret : NoopDDA;
 }
 
 /*

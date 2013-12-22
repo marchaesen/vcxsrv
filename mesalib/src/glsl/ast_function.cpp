@@ -123,7 +123,7 @@ verify_parameter_modes(_mesa_glsl_parse_state *state,
       YYLTYPE loc = actual_ast->get_location();
 
       /* Verify that 'const_in' parameters are ir_constants. */
-      if (formal->mode == ir_var_const_in &&
+      if (formal->data.mode == ir_var_const_in &&
 	  actual->ir_type != ir_type_constant) {
 	 _mesa_glsl_error(&loc, state,
 			  "parameter `in %s' must be a constant expression",
@@ -132,10 +132,10 @@ verify_parameter_modes(_mesa_glsl_parse_state *state,
       }
 
       /* Verify that 'out' and 'inout' actual parameters are lvalues. */
-      if (formal->mode == ir_var_function_out
-          || formal->mode == ir_var_function_inout) {
+      if (formal->data.mode == ir_var_function_out
+          || formal->data.mode == ir_var_function_inout) {
 	 const char *mode = NULL;
-	 switch (formal->mode) {
+	 switch (formal->data.mode) {
 	 case ir_var_function_out:   mode = "out";   break;
 	 case ir_var_function_inout: mode = "inout"; break;
 	 default:                    assert(false);  break;
@@ -155,9 +155,9 @@ verify_parameter_modes(_mesa_glsl_parse_state *state,
 
 	 ir_variable *var = actual->variable_referenced();
 	 if (var)
-	    var->assigned = true;
+	    var->data.assigned = true;
 
-	 if (var && var->read_only) {
+	 if (var && var->data.read_only) {
 	    _mesa_glsl_error(&loc, state,
 			     "function parameter '%s %s' references the "
 			     "read-only variable '%s'",
@@ -274,19 +274,19 @@ fix_parameter(void *mem_ctx, ir_rvalue *actual, const glsl_type *formal_type,
 }
 
 /**
- * If a function call is generated, \c call_ir will point to it on exit.
- * Otherwise \c call_ir will be set to \c NULL.
+ * Generate a function call.
+ *
+ * For non-void functions, this returns a dereference of the temporary variable
+ * which stores the return value for the call.  For void functions, this returns
+ * NULL.
  */
 static ir_rvalue *
 generate_call(exec_list *instructions, ir_function_signature *sig,
 	      exec_list *actual_parameters,
-	      ir_call **call_ir,
 	      struct _mesa_glsl_parse_state *state)
 {
    void *ctx = state;
    exec_list post_call_conversions;
-
-   *call_ir = NULL;
 
    /* Perform implicit conversion of arguments.  For out parameters, we need
     * to place them in a temporary variable and do the conversion after the
@@ -304,7 +304,7 @@ generate_call(exec_list *instructions, ir_function_signature *sig,
       assert(formal != NULL);
 
       if (formal->type->is_numeric() || formal->type->is_boolean()) {
-	 switch (formal->mode) {
+	 switch (formal->data.mode) {
 	 case ir_var_const_in:
 	 case ir_var_function_in: {
 	    ir_rvalue *converted
@@ -316,7 +316,7 @@ generate_call(exec_list *instructions, ir_function_signature *sig,
 	 case ir_var_function_inout:
             fix_parameter(ctx, actual, formal->type,
                           instructions, &post_call_conversions,
-                          formal->mode == ir_var_function_inout);
+                          formal->data.mode == ir_var_function_inout);
 	    break;
 	 default:
 	    assert (!"Illegal formal parameter mode");
@@ -421,6 +421,25 @@ done:
    return sig;
 }
 
+static void
+print_function_prototypes(_mesa_glsl_parse_state *state, YYLTYPE *loc,
+                          ir_function *f)
+{
+   if (f == NULL)
+      return;
+
+   foreach_list (node, &f->signatures) {
+      ir_function_signature *sig = (ir_function_signature *) node;
+
+      if (sig->is_builtin() && !sig->is_builtin_available(state))
+         continue;
+
+      char *str = prototype_string(sig->return_type, f->name, &sig->parameters);
+      _mesa_glsl_error(loc, state, "   %s", str);
+      ralloc_free(str);
+   }
+}
+
 /**
  * Raise a "no matching function" error, listing all possible overloads the
  * compiler considered so developers can figure out what went wrong.
@@ -431,30 +450,23 @@ no_matching_function_error(const char *name,
 			   exec_list *actual_parameters,
 			   _mesa_glsl_parse_state *state)
 {
-   char *str = prototype_string(NULL, name, actual_parameters);
-   _mesa_glsl_error(loc, state, "no matching function for call to `%s'", str);
-   ralloc_free(str);
+   gl_shader *sh = _mesa_glsl_get_builtin_function_shader();
 
-   const char *prefix = "candidates are: ";
+   if (state->symbols->get_function(name) == NULL
+      && (!state->uses_builtin_functions
+          || sh->symbols->get_function(name) == NULL)) {
+      _mesa_glsl_error(loc, state, "no function with name '%s'", name);
+   } else {
+      char *str = prototype_string(NULL, name, actual_parameters);
+      _mesa_glsl_error(loc, state,
+                       "no matching function for call to `%s'; candidates are:",
+                       str);
+      ralloc_free(str);
 
-   for (int i = -1; i < (int) state->num_builtins_to_link; i++) {
-      glsl_symbol_table *syms = i >= 0 ? state->builtins_to_link[i]->symbols
-				       : state->symbols;
-      ir_function *f = syms->get_function(name);
-      if (f == NULL)
-	 continue;
+      print_function_prototypes(state, loc, state->symbols->get_function(name));
 
-      foreach_list (node, &f->signatures) {
-	 ir_function_signature *sig = (ir_function_signature *) node;
-
-         if (sig->is_builtin() && !sig->is_builtin_available(state))
-            continue;
-
-	 str = prototype_string(sig->return_type, f->name, &sig->parameters);
-	 _mesa_glsl_error(loc, state, "%s%s", prefix, str);
-	 ralloc_free(str);
-
-	 prefix = "                ";
+      if (state->uses_builtin_functions) {
+         print_function_prototypes(state, loc, sh->symbols->get_function(name));
       }
    }
 }
@@ -1651,7 +1663,7 @@ ast_function_expression::hir(exec_list *instructions,
    } else {
       const ast_expression *id = subexpressions[0];
       const char *func_name = id->primary_expression.identifier;
-      YYLTYPE loc = id->get_location();
+      YYLTYPE loc = get_location();
       exec_list actual_parameters;
 
       process_parameters(instructions, &actual_parameters, &this->expressions,
@@ -1660,7 +1672,6 @@ ast_function_expression::hir(exec_list *instructions,
       ir_function_signature *sig =
 	 match_function_by_name(func_name, &actual_parameters, state);
 
-      ir_call *call = NULL;
       ir_rvalue *value = NULL;
       if (sig == NULL) {
 	 no_matching_function_error(func_name, &loc, &actual_parameters, state);
@@ -1669,8 +1680,7 @@ ast_function_expression::hir(exec_list *instructions,
 	 /* an error has already been emitted */
 	 value = ir_rvalue::error_value(ctx);
       } else {
-	 value = generate_call(instructions, sig, &actual_parameters,
-			       &call, state);
+	 value = generate_call(instructions, sig, &actual_parameters, state);
       }
 
       return value;
