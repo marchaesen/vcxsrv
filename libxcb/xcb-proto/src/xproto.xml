@@ -1080,7 +1080,7 @@ The number of keycodes altered.
     </doc>
   </event>
 
-  <event name="ge" number="35" xge="true">
+  <event name="GeGeneric" number="35" xge="true">
     <pad bytes="22" />
     <doc>
       <brief>generic event (with length)</brief>

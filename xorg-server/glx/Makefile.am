@@ -20,7 +20,8 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/hw/xfree86/os-support/bus \
 	-I$(top_srcdir)/hw/xfree86/common \
 	-I$(top_srcdir)/hw/xfree86/dri \
-	-I$(top_srcdir)/mi
+	-I$(top_srcdir)/mi \
+	-I$(top_srcdir)/present
 
 if DRI2_AIGLX
 AM_CPPFLAGS += -I$(top_srcdir)/hw/xfree86/dri2
@@ -69,7 +70,6 @@ libglx_la_SOURCES = \
         glxscreens.c \
         glxscreens.h \
         glxserver.h \
-        glxstubs.c \
         glxutil.h \
         render2.c \
         render2swap.c \

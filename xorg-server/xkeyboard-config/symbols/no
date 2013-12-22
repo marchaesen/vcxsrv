@@ -53,7 +53,7 @@ xkb_symbols "nodeadkeys" {
 };
 
 // Norwegian Dvorak
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "dvorak" {
     include "us(dvorak)"
 
@@ -186,7 +186,7 @@ xkb_symbols "smi_nodeadkeys" {
 };
 
 // Copied from macintosh_vndr/no
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "mac" {
 
     // Describes the differences between a very simple en_US
@@ -211,7 +211,7 @@ xkb_symbols "mac" {
     key <BKSL>	{ [        at,   asterisk     ]	};
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "mac_nodeadkeys" {
 
     // Modifies the basic Norwegian layout to eliminate dead keys
@@ -222,7 +222,7 @@ xkb_symbols "mac_nodeadkeys" {
     key <AD12>	{ [  diaeresis, asciicircum, asciitilde,       macron ]	};
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "colemak" {
 
     // Colemak layout - http://colemak.com/

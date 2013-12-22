@@ -407,7 +407,7 @@ swrast_map_renderbuffer(struct gl_context *ctx,
       stride = w * cpp;
       xrb->Base.Buffer = (GLubyte*)malloc(h * stride);
 
-      sPriv->swrast_loader->getImage(dPriv, x, y, w, h,
+      sPriv->swrast_loader->getImage(dPriv, x, rb->Height - y - h, w, h,
 				     (char *) xrb->Base.Buffer,
 				     dPriv->loaderPrivate);
 
@@ -710,6 +710,8 @@ dri_create_context(gl_api api,
 	goto context_fail;
     }
 
+    driContextSetFlags(mesaCtx, flags);
+
     /* do bounds checking to prevent segfaults and server crashes! */
     mesaCtx->Const.CheckArrayBounds = GL_TRUE;
 
@@ -825,6 +827,39 @@ dri_unbind_context(__DRIcontext * cPriv)
     return GL_TRUE;
 }
 
+static void
+dri_copy_sub_buffer(__DRIdrawable *dPriv, int x, int y,
+                    int w, int h)
+{
+    __DRIscreen *sPriv = dPriv->driScreenPriv;
+    void *data;
+    int iy;
+    struct dri_drawable *drawable = dri_drawable(dPriv);
+    struct gl_framebuffer *fb;
+    struct dri_swrast_renderbuffer *frontrb, *backrb;
+
+    TRACE;
+
+    fb = &drawable->Base;
+
+    frontrb =
+	dri_swrast_renderbuffer(fb->Attachment[BUFFER_FRONT_LEFT].Renderbuffer);
+    backrb =
+	dri_swrast_renderbuffer(fb->Attachment[BUFFER_BACK_LEFT].Renderbuffer);
+
+    /* check for signle-buffered */
+    if (backrb == NULL)
+       return;
+
+    iy = frontrb->Base.Base.Height - y - h;
+    data = (char *)backrb->Base.Buffer + (iy * backrb->pitch) + (x * ((backrb->bpp + 7) / 8));
+    sPriv->swrast_loader->putImage2(dPriv, __DRI_SWRAST_IMAGE_OP_SWAP,
+                                    x, iy, w, h,
+                                    frontrb->pitch,
+                                    data,
+                                    dPriv->loaderPrivate);
+}
+
 
 static const struct __DriverAPIRec swrast_driver_api = {
     /*.InitScreen = */dri_init_screen,
@@ -836,6 +871,7 @@ static const struct __DriverAPIRec swrast_driver_api = {
     /*.SwapBuffers = */dri_swap_buffers,
     /*.MakeCurrent = */dri_make_current,
     /*.UnbindContext = */dri_unbind_context,
+    /*.CopySubBuffer = */dri_copy_sub_buffer,
     /*.AllocateBuffer = */NULL,
     /*.ReleaseBuffer = */NULL
 };
@@ -848,6 +884,7 @@ static const struct __DRIDriverVtableExtensionRec swrast_vtable = {
 static const __DRIextension *swrast_driver_extensions[] = {
     &driCoreExtension.base,
     &driSWRastExtension.base,
+    &driCopySubBufferExtension.base,
     &swrast_vtable.base,
     NULL
 };

@@ -18,7 +18,7 @@ xkb_symbols "basic" {
       name[Group1]= "Dzongkha";
 
       key <TLDE> { [      0x1000F09, 0x1000F0A, 0x1000F6C, 0x1000F6D ]	};
-      
+
 // numbers e.a.
       key <AE01> { [      0x1000F21, 0x1000F04, 1, exclam ]	};
       key <AE02> { [      0x1000F22, 0x1000F05, 2, at     ]	};
@@ -63,7 +63,7 @@ xkb_symbols "basic" {
       key <AC09> { [      0x1000F59, 0x1000FA9, 0x1000F39, VoidSymbol ]	};
       key <AC10> { [      0x1000F5A, 0x1000FAA, colon, semicolon ]	};
       key <AC11> { [      0x1000F5B, 0x1000FAB, apostrophe, quotedbl ]	};
-      
+
 // TODO: BKSL and LSGT are from gb layout, are there any variants?
       key <BKSL> { [      0x1000F5D, 0x1000FAD, backslash, 0x1000FBA ]	};
       key <LSGT> { [      0x1000F0D, 0x1000F11, 0x1000F10, 0x1000F0F ]	};

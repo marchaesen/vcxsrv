@@ -672,6 +672,11 @@ DRI2ExtensionInit(void)
 {
     ExtensionEntry *dri2Extension;
 
+#ifdef PANORAMIX
+    if (!noPanoramiXExtension)
+        return;
+#endif
+
     dri2Extension = AddExtension(DRI2_NAME,
                                  DRI2NumberEvents,
                                  DRI2NumberErrors,

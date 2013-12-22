@@ -1762,9 +1762,9 @@
     <layout>
       <configItem>
         <name>bd</name>
-        <!-- Keyboard indicator for Bengali layouts -->
+        <!-- Keyboard indicator for Bangla layouts -->
         <_shortDescription>bn</_shortDescription>
-        <_description>Bengali</_description>
+        <_description>Bangla</_description>
         <languageList>
           <iso639Id>ben</iso639Id>
         </languageList>
@@ -1773,7 +1773,7 @@
         <variant>
           <configItem>
             <name>probhat</name>
-            <_description>Bengali (Probhat)</_description>
+            <_description>Bangla (Probhat)</_description>
           </configItem>
         </variant>
       </variantList>
@@ -1789,9 +1789,9 @@
         <variant>
           <configItem>
             <name>ben</name>
-            <!-- Keyboard indicator for Bengali layouts -->
+            <!-- Keyboard indicator for Bangla layouts -->
             <_shortDescription>bn</_shortDescription>
-            <_description>Bengali (India)</_description>
+            <_description>Bangla (India)</_description>
             <languageList>
               <iso639Id>ben</iso639Id>
             </languageList>
@@ -1800,9 +1800,9 @@
         <variant>
           <configItem>
             <name>ben_probhat</name>
-            <!-- Keyboard indicator for Bengali layouts -->
+            <!-- Keyboard indicator for Bangla layouts -->
             <_shortDescription>bn</_shortDescription>
-            <_description>Bengali (India, Probhat)</_description>
+            <_description>Bangla (India, Probhat)</_description>
             <languageList>
               <iso639Id>ben</iso639Id>
             </languageList>
@@ -1811,28 +1811,28 @@
         <variant>
           <configItem>
             <name>ben_baishakhi</name>
-            <_description>Bengali (India, Baishakhi)</_description>
+            <_description>Bangla (India, Baishakhi)</_description>
             <languageList><iso639Id>ben</iso639Id></languageList>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>ben_bornona</name>
-            <_description>Bengali (India, Bornona)</_description>
+            <_description>Bangla (India, Bornona)</_description>
             <languageList><iso639Id>ben</iso639Id></languageList>
             </configItem>
         </variant>
          <variant>
           <configItem>
             <name>ben_gitanjali</name>
-            <_description>Bengali (India, Uni Gitanjali)</_description>
+            <_description>Bangla (India, Uni Gitanjali)</_description>
             <languageList><iso639Id>ben</iso639Id></languageList>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>ben_inscript</name>
-            <_description>Bengali (India, Baishakhi Inscript)</_description>
+            <_description>Bangla (India, Baishakhi Inscript)</_description>
             <languageList><iso639Id>ben</iso639Id></languageList>
           </configItem>
         </variant>
@@ -6033,6 +6033,24 @@
           <_description>Right Alt as Right Ctrl</_description>
         </configItem>
       </option>
+      <option>
+        <configItem>
+          <name>ctrl:swap_lalt_lctl</name>
+          <_description>Swap Left Alt key with Left Ctrl key</_description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
+          <name>ctrl:swap_lwin_lctl</name>
+          <_description>Swap Left Win key with Left Ctrl key</_description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
+          <name>ctrl:swap_lalt_lctl_lwin</name>
+          <_description>Left Alt as Ctrl, Left Ctrl as Win, Left Win as Alt</_description>
+        </configItem>
+      </option>
     </group>
     <group allowMultipleSelection="true">
       <!-- Using startard LEDs to indicate the alternative (not first) group(s) -->
@@ -6530,6 +6548,12 @@
         <configItem>
           <name>grab:break_actions</name>
           <_description>Allow breaking grabs with keyboard actions (warning: security risk)</_description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
+          <name>grab:debug_actions</name>
+          <_description>Allow grab and window tree logging</_description>
         </configItem>
       </option>
     </group>

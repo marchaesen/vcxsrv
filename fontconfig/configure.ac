@@ -148,52 +148,42 @@ AC_TYPE_PID_T
 # Checks for library functions.
 AC_FUNC_VPRINTF
 AC_FUNC_MMAP
-AC_CHECK_FUNCS([link mkstemp mkostemp _mktemp_s mkdtemp getopt getopt_long getprogname getexecname rand random lrand48 random_r rand_r regcomp regerror regexec regfree fstatvfs fstatfs lstat])
+AC_CHECK_FUNCS([link mkstemp mkostemp _mktemp_s mkdtemp getopt getopt_long getprogname getexecname rand random lrand48 random_r rand_r readlink regcomp regerror regexec regfree fstatvfs fstatfs lstat])
 
 dnl AC_CHECK_FUNCS doesn't check for header files.
 dnl posix_fadvise() may be not available in older libc.
-fc_saved_CFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS $WARN_CFLAGS -Werror"
-AC_MSG_CHECKING([for posix_fadvise])
-AC_LINK_IFELSE([AC_LANG_SOURCE([[
-	#include <fcntl.h>
-	int main(void) {
-	    return posix_fadvise(0, 0, 0, 0);
-	}
-	]])],[
-		AC_MSG_RESULT([yes])
-		AC_DEFINE([HAVE_POSIX_FADVISE], [1], [Define to 1 if you have the 'posix_fadvise' function.])
-	],[AC_MSG_RESULT([no])])
+AC_CHECK_SYMBOL([posix_fadvise], [fcntl.h], [fc_func_posix_fadvise=1], [fc_func_posix_fadvise=0])
+AC_DEFINE_UNQUOTED([HAVE_POSIX_FADVISE], [$fc_func_posix_fadvise], [Define to 1 if you have the 'posix_fadivse' function.])
 if test "$os_win32" = "no"; then
 	AC_MSG_CHECKING([for scandir])
-	AC_LINK_IFELSE([AC_LANG_SOURCE([[
+	fc_saved_CFLAGS="$CFLAGS"
+	CFLAGS="$CFLAGS $WARN_CFLAGS -Werror"
+	AC_TRY_COMPILE([
 		#include <dirent.h>
-		int comp(const struct dirent **, const struct dirent **);
-		int comp(const struct dirent **a, const struct dirent **b) { return 0; }
-		int main(void) {
-		    struct dirent **d;
-		    return scandir(".", &d, 0, &comp) >= 0;
-		}
-		]])],[
+		int main(void);
+	], [
+		int (* comp) (const struct dirent **, const struct dirent **) = 0;
+		struct dirent **d;
+		return scandir(".", &d, 0, comp) >= 0;
+	], [
+		AC_MSG_RESULT([yes])
+		AC_DEFINE([HAVE_SCANDIR], [1], [Define to 1 if you have the 'scandir' function.])
+	], [
+		AC_TRY_COMPILE([
+			#include <dirent.h>
+			int main(void);
+		], [
+			int (* comp) (const void *, const void *) = 0;
+			struct dirent **d;
+			return scandir(".", &d, 0, comp) >= 0;
+		], [
 			AC_MSG_RESULT([yes])
-			AC_DEFINE([HAVE_SCANDIR], [1], [Define to 1 if you have the 'scandir' function.])
+			AC_DEFINE([HAVE_SCANDIR_VOID_P], [1], [Define to 1 if you have the 'scandir' function with int (* compar)(const void *, const void *)])
 		],[
-			AC_LINK_IFELSE([AC_LANG_SOURCE([[
-				#include <dirent.h>
-				int comp(const void *, const void *);
-				int comp(const void *a, const void *b) { return 0; }
-				int main(void) {
-				    struct dirent **d;
-				    return scandir(".", &d, 0, &comp) >= 0;
-				}
-			]])],[
-				AC_MSG_RESULT([yes])
-				AC_DEFINE([HAVE_SCANDIR_VOID_P], [1], [Define to 1 if you have the 'scandir' function with int (* compar)(const void *, const void *)])
-			],[
-				AC_MSG_ERROR([
+			AC_MSG_ERROR([
 *** No scandir function available.])
-			])
 		])
+	])
 fi
 CFLAGS="$fc_saved_CFLAGS"
 
@@ -531,7 +521,7 @@ AC_ARG_WITH(cache-dir,
 case $fc_cachedir in
 no|yes)
 	if test "$os_win32" = "yes"; then
-		fc_cachedir="WINDOWSTEMPDIR_FONTCONFIG_CACHE"
+		fc_cachedir="LOCAL_APPDATA_FONTCONFIG_CACHE"
 	else
 		fc_cachedir='${localstatedir}/cache/${PACKAGE}'
 	fi

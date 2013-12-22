@@ -1,17 +1,14 @@
-// based on a keyboard map from an 'xkb/symbols/ar' file
-
 default  partial alphanumeric_keys
 xkb_symbols "basic" {
     name[Group1]= "Arabic";
 
 // NOTES:
 //
-// there is also combined shadda diacritis in AltGr position of simple
-// diacritics fatha, fathatan, damma, dammatan, kasra and kasratan
-// should a third state be added to Group2 ?
-//
+// There is also a combined shadda diacritic in the AltGr position of the
+// simple diacritics fatha, fathatan, damma, dammatan, kasra and kasratan. (??)
+// Should a third state be added to Group2?
 
-    key <TLDE> {  [     Arabic_thal,      Arabic_shadda   ]	};
+    key <TLDE> {  [     Arabic_thal,   Arabic_shadda      ]     };
     key <AE01> {  [               1,          exclam      ]     };
     key <AE02> {  [               2,              at      ]     };
     key <AE03> {  [               3,      numbersign      ]     };
@@ -24,42 +21,42 @@ xkb_symbols "basic" {
     key <AE10> {  [               0,       parenleft      ]     };
     key <AE11> {  [           minus,      underscore      ]     };
     key <AE12> {  [           equal,            plus      ]     };
-						
+
     key <AD01> {  [      Arabic_dad,     Arabic_fatha     ]     };
-    key <AD02> {  [      Arabic_sad,     Arabic_fathatan  ]     };
+    key <AD02> {  [      Arabic_sad,  Arabic_fathatan     ]     };
     key <AD03> {  [     Arabic_theh,     Arabic_damma     ]     };
-    key <AD04> {  [      Arabic_qaf,     Arabic_dammatan  ]     };
-    key <AD05> {  [   Arabic_feh,  0x100fef9, 0x10006a4   ]     };
-    key <AD06> {  [   Arabic_ghain, Arabic_hamzaunderalef ]     };
-    key <AD07> {  [      Arabic_ain,         grave        ]     };
-    key <AD08> {  [       Arabic_ha,        division      ]     };
-    key <AD09> {  [     Arabic_khah,       multiply       ]     };
-    key <AD10> {  [      Arabic_hah,    Arabic_semicolon  ]     };
-    key <AD11> {  [     Arabic_jeem,   less, 0x1000686    ]     };
-    key <AD12> {  [      Arabic_dal,        greater       ]     };
+    key <AD04> {  [      Arabic_qaf,  Arabic_dammatan     ]     };
+    key <AD05> {  [      Arabic_feh,        0x100fef9,      0x10006a4   ]     };
+    key <AD06> {  [    Arabic_ghain, Arabic_hamzaunderalef]     };
+    key <AD07> {  [      Arabic_ain,            grave     ]     };
+    key <AD08> {  [       Arabic_ha,         division     ]     };
+    key <AD09> {  [     Arabic_khah,         multiply     ]     };
+    key <AD10> {  [      Arabic_hah, Arabic_semicolon     ]     };
+    key <AD11> {  [     Arabic_jeem,             less,      0x1000686   ]     };
+    key <AD12> {  [      Arabic_dal,          greater     ]     };
 
-    key <AC01> {  [    Arabic_sheen,   Arabic_kasra       ]     };
-    key <AC02> {  [     Arabic_seen,   Arabic_kasratan    ]     };
-    key <AC03> {  [      Arabic_yeh,       bracketright   ]     };
-    key <AC04> {  [   Arabic_beh, bracketleft, 0x100067e  ]     };
-    key <AC05> {  [      Arabic_lam,       0x100fef7      ]     };
-    key <AC06> {  [     Arabic_alef,   Arabic_hamzaonalef ]     };
-    key <AC07> {  [      Arabic_teh,      Arabic_tatweel  ]     };
-    key <AC08> {  [     Arabic_noon,      Arabic_comma    ]     };
-    key <AC09> {  [     Arabic_meem,         slash        ]     };
-    key <AC10> {  [      Arabic_kaf,   colon, 0x10006af   ]     };
-    key <AC11> {  [      Arabic_tah,        quotedbl      ]     };
+    key <AC01> {  [    Arabic_sheen,     Arabic_kasra     ]     };
+    key <AC02> {  [     Arabic_seen,  Arabic_kasratan     ]     };
+    key <AC03> {  [      Arabic_yeh,     bracketright     ]     };
+    key <AC04> {  [      Arabic_beh,      bracketleft,      0x100067e   ]     };
+    key <AC05> {  [      Arabic_lam,        0x100fef7     ]     };
+    key <AC06> {  [     Arabic_alef, Arabic_hamzaonalef   ]     };
+    key <AC07> {  [      Arabic_teh,   Arabic_tatweel     ]     };
+    key <AC08> {  [     Arabic_noon,     Arabic_comma     ]     };
+    key <AC09> {  [     Arabic_meem,            slash     ]     };
+    key <AC10> {  [      Arabic_kaf,            colon,      0x10006af   ]     };
+    key <AC11> {  [      Arabic_tah,         quotedbl     ]     };
 
-    key <LSGT> {  [             bar,      brokenbar	  ]     };
-    key <AB01> {  [Arabic_hamzaonyeh, asciitilde, guillemotright  ]     };
-    key <AB02> {  [    Arabic_hamza,  Arabic_sukun, guillemotleft ]     };
+    key <LSGT> {  [             bar,        brokenbar     ]     };
+    key <AB01> {  [Arabic_hamzaonyeh,      asciitilde,      guillemotright ]};
+    key <AB02> {  [    Arabic_hamza,     Arabic_sukun,      guillemotleft ]};
     key <AB03> {  [Arabic_hamzaonwaw,      braceright     ]     };
-    key <AB04> {  [       Arabic_ra,       braceleft      ]     };
-    key <AB05> {  [       0x100fefb,       0x100fef5      ]     };
+    key <AB04> {  [       Arabic_ra,        braceleft     ]     };
+    key <AB05> {  [       0x100fefb,        0x100fef5     ]     };
     key <AB06> {  [Arabic_alefmaksura, Arabic_maddaonalef ]     };
-    key <AB07> {  [Arabic_tehmarbuta,    apostrophe       ]     };
-    key <AB08> {  [      Arabic_waw,         comma        ]     };
-    key <AB09> {  [     Arabic_zain,         period       ]     };
+    key <AB07> {  [Arabic_tehmarbuta,      apostrophe     ]     };
+    key <AB08> {  [      Arabic_waw,            comma     ]     };
+    key <AB09> {  [     Arabic_zain,           period     ]     };
     key <AB10> {  [      Arabic_zah, Arabic_question_mark ]     };
 };
 
@@ -74,15 +71,15 @@ xkb_symbols "azerty" {
     include "ara(basic)"
     name[Group1]= "Arabic (azerty)";
 
-	// the north african arabic keyboard differs from the middle east one
-	// by the numeric row; it follows French keyboard style
+	// The North African Arabic keyboard differs from the Middle East one
+	// by the numeric row; it follows French keyboard style.
 	//
-	// PROBLEM: some chars are inaccessible: ! @ # $ % ^ *
-	// should they go elsewhere? replace " ' that are now in double ?
-	// also, dead_circumflex and dead_diaeresis from French keyboard
+	// PROBLEM: some characters are inaccessible: ! @ # $ % ^ *
+	// Should they go elsewhere?  Replacing " ' that are now doubled?
+	// Also, dead_circumflex and dead_diaeresis from French keyboard
 	// as well as ugrave are missing, which questions the utility of the
-	// other accentuated latin letters. Maybe this is useful only with
-	// a French keyboard in Group1 ? Then, shouldn't Group1 be filled ?
+	// other accentuated Latin letters. Maybe this is useful only with
+	// a French keyboard in Group1? Then, shouldn't Group1 be filled?
 
     key <AE01> {  [       ampersand,               1      ]       };
     key <AE02> {  [          eacute,               2      ]       };
@@ -101,21 +98,21 @@ partial alphanumeric_keys
 xkb_symbols "digits_KP" {
     name[Group1]= "Arabic (digits_KP)";
 
-       // use arabic script digits on KP
+    // Use Arabic-script digits on the keypad.
 
-    key <KP7>  {  [   KP_Home,       0x1000667 ] }; //
-    key <KP8>  {  [     KP_Up,       0x1000668 ] }; //
-    key <KP9>  {  [  KP_Prior,       0x1000669 ] }; //
+    key <KP7>  {  [   KP_Home,       0x1000667 ] };
+    key <KP8>  {  [     KP_Up,       0x1000668 ] };
+    key <KP9>  {  [  KP_Prior,       0x1000669 ] };
 
-    key <KP4>  {  [   KP_Left,       0x1000664 ] }; //
-    key <KP5>  {  [  KP_Begin,       0x1000665 ] }; //
-    key <KP6>  {  [  KP_Right,       0x1000666 ] }; //
+    key <KP4>  {  [   KP_Left,       0x1000664 ] };
+    key <KP5>  {  [  KP_Begin,       0x1000665 ] };
+    key <KP6>  {  [  KP_Right,       0x1000666 ] };
 
-    key <KP1>  {  [    KP_End,       0x1000661 ] }; //
-    key <KP2>  {  [   KP_Down,       0x1000662 ] }; //
-    key <KP3>  {  [   KP_Next,       0x1000663 ] }; //
+    key <KP1>  {  [    KP_End,       0x1000661 ] };
+    key <KP2>  {  [   KP_Down,       0x1000662 ] };
+    key <KP3>  {  [   KP_Next,       0x1000663 ] };
 
-    key <KP0>  {  [ KP_Insert,       0x1000660 ] }; //
+    key <KP0>  {  [ KP_Insert,       0x1000660 ] };
 };
 
 partial alphanumeric_keys
@@ -123,7 +120,7 @@ xkb_symbols "digits" {
     include "ara(basic)"
     name[Group1]= "Arabic (digits)";
 
-	// use arabic script digits
+    // Use Arabic-script digits on the numberic row.
 
     key <AE01> {  [       0x1000661,          exclam      ]       };
     key <AE02> {  [       0x1000662,              at      ]       };
@@ -149,7 +146,7 @@ partial alphanumeric_keys
 xkb_symbols "azerty_digits" {
     include "ara(azerty)"
     name[Group1]= "Arabic (azerty/digits)";
-	
+
     key <AE01> {  [       ampersand,       0x1000661      ]       };
     key <AE02> {  [          eacute,       0x1000662      ]       };
     key <AE03> {  [        quotedbl,       0x1000663      ]       };
@@ -166,9 +163,7 @@ xkb_symbols "azerty_digits" {
 // http://www.qamus.org/transliteration.htm
 // Martin Vidner
 
-// symbol names: see /usr/X11R6/include/X11/keysymdef.h (XFree86-devel.rpm)
-
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "buckwalter" {
     name[Group1]= "Arabic (Buckwalter)";
 
@@ -191,7 +186,7 @@ xkb_symbols "buckwalter" {
     key <AE10> {  [       0x1000660,   0x100fd3f          ]       };
     key <AE11> {  [       minus,       Arabic_tatweel     ]       };
     key <AE12> {  [       equal,       plus               ]       };
-						
+
     key <AD01> {  [      Arabic_qaf,   VoidSymbol         ]       };
     key <AD02> {  [      Arabic_waw,   Arabic_hamzaonwaw  ]       };
     key <AD03> {  [      VoidSymbol,   Arabic_ain         ]       };
@@ -218,9 +213,7 @@ xkb_symbols "buckwalter" {
     key <AC10> {  [    Arabic_semicolon, VoidSymbol       ]       };
     key <AC11> {  [    Arabic_hamza,   VoidSymbol         ]       };
 
-    key <BKSL> {  [      VoidSymbol,   Arabic_maddaonalef ]     };
-
-//    key <LSGT> {  [             bar,      brokenbar	  ]     };
+    key <BKSL> {  [    VoidSymbol,     Arabic_maddaonalef ]       };
 
     key <AB01> {  [    Arabic_zain,    Arabic_zah         ]       };
     key <AB02> {  [    Arabic_khah,    VoidSymbol         ]       };
@@ -285,7 +278,7 @@ xkb_symbols "olpc" {
 
     // REH isolated form?
     key <AB03> {  [ Arabic_hamzaonwaw,   Arabic_kasra ] };
-    key <AB04> {  [       Arabic_ra,  Arabic_kasratan ] };    
+    key <AB04> {  [       Arabic_ra,  Arabic_kasratan ] };
     key <AB05> {  [     Arabic_thal,      asciicircum ] };
 
     include "group(olpc)"

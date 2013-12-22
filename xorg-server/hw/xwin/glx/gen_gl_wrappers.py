@@ -1,5 +1,8 @@
 #!/usr/bin/python3
 #
+# python script to generate cdecl to stdcall wrappers for GL functions
+# adapted from genheaders.py
+#
 # Copyright (c) 2013 The Khronos Group Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
@@ -24,30 +27,23 @@
 import sys, time, pdb, string, cProfile
 from reg import *
 
-# debug - start header generation in debugger
-# dump - dump registry after loading
-# profile - enable Python profiling
-# protect - whether to use #ifndef protections
-# registry <filename> - use specified XML registry instead of gl.xml
-# timeit - time length of registry loading & header generation
-# validate - validate return & parameter group tags against <group>
-debug   = False
-dump    = False
-profile = False
-protect = True
-timeit  = False
-validate= False
 # Default input / log files
 errFilename = None
 diagFilename = 'diag.txt'
 regFilename = 'gl.xml'
 outFilename = 'gen_gl_wrappers.c'
-dispatchheader=None
+
+protect=True
 prefix="gl"
 preresolve=False
+wrapper=False
+shim=False
+thunk=False
+thunkdefs=False
 staticwrappers=False
-nodebugcallcounting=False
+nodebug=False
 
+#exclude base WGL API
 WinGDI={key: 1 for key in [
      "wglCopyContext"
     ,"wglCreateContext"
@@ -83,110 +79,45 @@ if __name__ == '__main__':
     while (i < len(sys.argv)):
         arg = sys.argv[i]
         i = i + 1
-        if (arg == '-debug'):
-            print('Enabling debug (-debug)', file=sys.stderr)
-            debug = True
-        elif (arg == '-dump'):
-            print('Enabling dump (-dump)', file=sys.stderr)
-            dump = True
-        elif (arg == '-noprotect'):
+        if (arg == '-noprotect'):
             print('Disabling inclusion protection in output headers', file=sys.stderr)
             protect = False
-        elif (arg == '-profile'):
-            print('Enabling profiling (-profile)', file=sys.stderr)
-            profile = True
         elif (arg == '-registry'):
             regFilename = sys.argv[i]
             i = i+1
-            print('Using registry ', regFilename, file=sys.stderr)
-        elif (arg == '-time'):
-            print('Enabling timing (-time)', file=sys.stderr)
-            timeit = True
-        elif (arg == '-validate'):
-            print('Enabling group validation (-validate)', file=sys.stderr)
-            validate = True
+            print('Using registry', regFilename, file=sys.stderr)
         elif (arg == '-outfile'):
             outFilename = sys.argv[i]
             i = i+1
         elif (arg == '-preresolve'):
             preresolve=True
+        elif (arg == '-wrapper'):
+            wrapper=True
+        elif (arg == '-shim'):
+            shim=True
+        elif (arg == '-thunk'):
+            thunk=True
+        elif (arg == '-thunkdefs'):
+            thunkdefs=True
         elif (arg == '-staticwrappers'):
             staticwrappers=True
-        elif (arg == '-dispatchheader'):
-            dispatchheader = sys.argv[i]
-            i = i+1
         elif (arg == '-prefix'):
             prefix = sys.argv[i]
             i = i+1
-        elif (arg == '-nodbgcount'):
-            nodebugcallcounting = True
+        elif (arg == '-nodebug'):
+            nodebug = True
         elif (arg[0:1] == '-'):
             print('Unrecognized argument:', arg, file=sys.stderr)
             exit(1)
-print('Generating ', outFilename, file=sys.stderr)
 
-# Simple timer functions
-startTime = None
-def startTimer():
-    global startTime
-    startTime = time.clock()
-def endTimer(msg):
-    global startTime
-    endTime = time.clock()
-    if (timeit):
-        print(msg, endTime - startTime)
-        startTime = None
+print('Generating', outFilename, file=sys.stderr)
 
 # Load & parse registry
 reg = Registry()
-
-startTimer()
 tree = etree.parse(regFilename)
-endTimer('Time to make ElementTree =')
-
-startTimer()
 reg.loadElementTree(tree)
-endTimer('Time to parse ElementTree =')
 
-if (validate):
-    reg.validateGroups()
-
-if (dump):
-    print('***************************************')
-    print('Performing Registry dump to regdump.txt')
-    print('***************************************')
-    reg.dumpReg(filehandle = open('regdump.txt','w'))
-
-# Turn a list of strings into a regexp string matching exactly those strings
-def makeREstring(list):
-    return '^(' + '|'.join(list) + ')$'
-
-# These are "mandatory" OpenGL ES 1 extensions, to
-# be included in the core GLES/gl.h header.
-es1CoreList = [
-    'GL_OES_read_format',
-    'GL_OES_compressed_paletted_texture',
-    'GL_OES_point_size_array',
-    'GL_OES_point_sprite'
-]
-
-# Descriptive names for various regexp patterns used to select
-# versions and extensions
-
-allVersions     = allExtensions = '.*'
-noVersions      = noExtensions = None
-gl12andLaterPat = '1\.[2-9]|[234]\.[0-9]'
-gles2onlyPat    = '2\.[0-9]'
-gles2and3Pat    = '[23]\.[0-9]'
-es1CorePat      = makeREstring(es1CoreList)
-# Extensions in old glcorearb.h but not yet tagged accordingly in gl.xml
-glCoreARBPat    = None
-glx13andLaterPat = '1\.[3-9]'
-
-# Defaults for generating re-inclusion protection wrappers (or not)
-protectFile = protect
-protectFeature = protect
-protectProto = protect
+allVersions = '.*'
 
 genOpts = CGeneratorOptions(
         apiname           = prefix,
@@ -194,16 +125,9 @@ genOpts = CGeneratorOptions(
         versions          = allVersions,
         emitversions      = allVersions,
         defaultExtensions = prefix,                   # Default extensions for GL
-#        addExtensions     = None,
-#        removeExtensions  = None,
-#        prefixText        = prefixStrings + glExtPlatformStrings + glextVersionStrings,
-#        genFuncPointers   = True,
-#        protectFile       = protectFile,
-#        protectFeature    = protectFeature,
-#        protectProto      = protectProto,
-#        apicall           = 'GLAPI ',
-#        apientry          = 'APIENTRY ',
-#        apientryp         = 'APIENTRYP '),
+        protectFile       = protect,
+        protectFeature    = protect,
+        protectProto      = protect,
         )
 
 # create error/warning & diagnostic files
@@ -213,28 +137,6 @@ else:
     errWarn = sys.stderr
 diag = open(diagFilename, 'w')
 
-#
-# look for all the SET_ macros in dispatch.h, this is the set of functions
-# we need to generate
-#
-
-dispatch = {}
-
-if dispatchheader :
-    fh = open(dispatchheader)
-    dispatchh = fh.readlines()
-
-    dispatch_regex = re.compile(r'(?:#define|static\s+INLINE\s+void)\s+SET_([^\()]+)\(')
-
-    for line in dispatchh :
-        line = line.strip()
-        m1 = dispatch_regex.search(line)
-
-        if m1 :
-            dispatch[prefix+m1.group(1)] = 1
-
-    del dispatch['glby_offset']
-
 class PreResolveOutputGenerator(OutputGenerator):
     def __init__(self,
                  errFile = sys.stderr,
@@ -243,7 +145,7 @@ class PreResolveOutputGenerator(OutputGenerator):
         OutputGenerator.__init__(self, errFile, warnFile, diagFile)
         self.wrappers={}
     def beginFile(self, genOpts):
-        pass
+        self.outFile.write('/* Automatically generated from %s - DO NOT EDIT */\n\n'%regFilename)
     def endFile(self):
         self.outFile.write('\nvoid ' + prefix + 'ResolveExtensionProcs(void)\n{\n')
         for funcname in self.wrappers.keys():
@@ -251,7 +153,6 @@ class PreResolveOutputGenerator(OutputGenerator):
         self.outFile.write('}\n\n')
     def beginFeature(self, interface, emit):
         OutputGenerator.beginFeature(self, interface, emit)
-        self.OldVersion = self.featureName.startswith('GL_VERSION_1_0') or self.featureName.startswith('GL_VERSION_1_1')
     def endFeature(self):
         OutputGenerator.endFeature(self)
     def genType(self, typeinfo, name):
@@ -260,21 +161,21 @@ class PreResolveOutputGenerator(OutputGenerator):
         OutputGenerator.genEnum(self, enuminfo, name)
     def genCmd(self, cmd, name):
         OutputGenerator.genCmd(self, cmd, name)
+
         if name in WinGDI:
             return
 
         self.outFile.write('RESOLVE_DECL(PFN' + name.upper() + 'PROC);\n')
         self.wrappers[name]=1
 
-class MyOutputGenerator(OutputGenerator):
+class WrapperOutputGenerator(OutputGenerator):
     def __init__(self,
                  errFile = sys.stderr,
                  warnFile = sys.stderr,
                  diagFile = sys.stdout):
         OutputGenerator.__init__(self, errFile, warnFile, diagFile)
-        self.wrappers={}
     def beginFile(self, genOpts):
-        pass
+        self.outFile.write('/* Automatically generated from %s - DO NOT EDIT */\n\n'%regFilename)
     def endFile(self):
         pass
     def beginFeature(self, interface, emit):
@@ -288,26 +189,18 @@ class MyOutputGenerator(OutputGenerator):
         OutputGenerator.genEnum(self, enuminfo, name)
     def genCmd(self, cmd, name):
         OutputGenerator.genCmd(self, cmd, name)
-        # Avoid generating wrappers which aren't referenced by the dispatch table
-        if dispatchheader and not name in dispatch :
-            self.outFile.write('/* No wrapper for ' + name + ', not in dispatch table */\n')
-            return
 
         if name in WinGDI:
             return
-
-        self.wrappers[name]=1
 
         proto=noneStr(cmd.elem.find('proto'))
         rettype=noneStr(proto.text)
         if rettype.lower()!="void ":
             plist = ([t for t in proto.itertext()])
             rettype = ''.join(plist[:-1])
-            #ptype=proto.find("ptype")
-            #if ptype!=None:
-            #    rettype = (noneStr(ptype.text))+" "
+        rettype=rettype.strip()
         if staticwrappers: self.outFile.write("static ")
-        self.outFile.write("%s__stdcall %sWrapper("%(rettype, name))
+        self.outFile.write("%s %sWrapper("%(rettype, name))
         params = cmd.elem.findall('param')
         plist=[]
         for param in params:
@@ -322,55 +215,230 @@ class MyOutputGenerator(OutputGenerator):
                 Comma=", "
         else:
             self.outFile.write("void")
+
+        self.outFile.write(")\n{\n")
+
+        # for GL 1.0 and 1.1 functions, generate stdcall wrappers which call the function directly
         if self.OldVersion:
-            if nodebugcallcounting:
-                self.outFile.write(")\n{\n")
-            else:
-                self.outFile.write( """)
-{
-#ifdef _DEBUG
-  if (glxWinDebugSettings.enable%scallTrace) ErrorF("%s\\n");
-  glWinDirectProcCalls++;
-#endif
-"""%(prefix.upper(), name))
-            if rettype.lower()=="void ":
+            if not nodebug:
+                self.outFile.write('  if (glxWinDebugSettings.enable%scallTrace) ErrorF("%s\\n");\n'%(prefix.upper(), name))
+                self.outFile.write("  glWinDirectProcCalls++;\n")
+                self.outFile.write("\n")
+
+            if rettype.lower()=="void":
                 self.outFile.write("  %s( "%(name))
             else:
                 self.outFile.write("  return %s( "%(name))
+
             Comma=""
             for ptype, pname in plist:
                 self.outFile.write("%s%s_"%(Comma, pname))
                 Comma=", "
+
+        # for GL 1.2+ functions, generate stdcall wrappers which use wglGetProcAddress()
         else:
-            if rettype.lower()=="void ":
-                self.outFile.write(""")
-{
-  RESOLVE(PFN%sPROC, "%s");"""%(name.upper(), name))
-                if not nodebugcallcounting: self.outFile.write("""
-#ifdef _DEBUG
-  if (glxWinDebugSettings.enable%scallTrace) ErrorF("%s\\n");
-#endif"""%(prefix.upper(), name))
-                self.outFile.write("""
-  RESOLVED_PROC(PFN%sPROC)( """%(name.upper()))
+            if rettype.lower()=="void":
+                self.outFile.write('  RESOLVE(PFN%sPROC, "%s");\n'%(name.upper(), name))
+
+                if not nodebug:
+                    self.outFile.write("\n")
+                    self.outFile.write('  if (glxWinDebugSettings.enable%scallTrace) ErrorF("%s\\n");\n'%(prefix.upper(), name))
+                    self.outFile.write("\n")
+
+                self.outFile.write("  RESOLVED_PROC(PFN%sPROC)( """%(name.upper()))
             else:
-                self.outFile.write(""")
-{
-  RESOLVE_RET(PFN%sPROC, "%s", FALSE);"""%(name.upper(), name))
-                if not nodebugcallcounting: self.outFile.write("""
-#ifdef _DEBUG
-  if (glxWinDebugSettings.enable%scallTrace) ErrorF("%s\\n");
-#endif"""%(prefix.upper(), name))
-                self.outFile.write("""
-  return RESOLVED_PROC(PFN%sPROC)( """%(name.upper()))
+                self.outFile.write('  RESOLVE_RET(PFN%sPROC, "%s", FALSE);\n'%(name.upper(), name))
+
+                if not nodebug:
+                    self.outFile.write("\n")
+                    self.outFile.write('  if (glxWinDebugSettings.enable%scallTrace) ErrorF("%s\\n");\n'%(prefix.upper(), name))
+                    self.outFile.write("\n")
+
+                self.outFile.write("  return RESOLVED_PROC(PFN%sPROC)("%(name.upper()))
+
             Comma=""
             for ptype, pname in plist:
                 self.outFile.write("%s%s_"%(Comma, pname))
                 Comma=", "
         self.outFile.write(" );\n}\n\n")
 
+class ThunkOutputGenerator(OutputGenerator):
+    def __init__(self,
+                 errFile = sys.stderr,
+                 warnFile = sys.stderr,
+                 diagFile = sys.stdout):
+        OutputGenerator.__init__(self, errFile, warnFile, diagFile)
+    def beginFile(self, genOpts):
+        self.outFile.write('/* Automatically generated from %s - DO NOT EDIT */\n\n'%regFilename)
+    def endFile(self):
+        pass
+    def beginFeature(self, interface, emit):
+        OutputGenerator.beginFeature(self, interface, emit)
+        self.OldVersion = self.featureName.startswith('GL_VERSION_1_0') or self.featureName.startswith('GL_VERSION_1_1')
+    def endFeature(self):
+        OutputGenerator.endFeature(self)
+    def genType(self, typeinfo, name):
+        OutputGenerator.genType(self, typeinfo, name)
+    def genEnum(self, enuminfo, name):
+        OutputGenerator.genEnum(self, enuminfo, name)
+    def genCmd(self, cmd, name):
+        OutputGenerator.genCmd(self, cmd, name)
+
+        proto=noneStr(cmd.elem.find('proto'))
+        rettype=noneStr(proto.text)
+        if rettype.lower()!="void ":
+            plist = ([t for t in proto.itertext()])
+            rettype = ''.join(plist[:-1])
+        rettype=rettype.strip()
+        self.outFile.write("%s %sWrapper("%(rettype, name))
+        params = cmd.elem.findall('param')
+        plist=[]
+        for param in params:
+            paramlist = ([t for t in param.itertext()])
+            paramtype = ''.join(paramlist[:-1])
+            paramname = paramlist[-1]
+            plist.append((paramtype, paramname))
+        Comma=""
+        if len(plist):
+            for ptype, pname in plist:
+                self.outFile.write("%s%s%s_"%(Comma, ptype, pname))
+                Comma=", "
+        else:
+            self.outFile.write("void")
+
+        self.outFile.write(")\n{\n")
+
+        # for GL 1.0 and 1.1 functions, generate stdcall thunk wrappers which call the function directly
+        if self.OldVersion:
+            if rettype.lower()=="void":
+                self.outFile.write("  %s( "%(name))
+            else:
+                self.outFile.write("  return %s( "%(name))
+
+            Comma=""
+            for ptype, pname in plist:
+                self.outFile.write("%s%s_"%(Comma, pname))
+                Comma=", "
+
+        # for GL 1.2+ functions, generate wrappers which use wglGetProcAddress()
+        else:
+            if rettype.lower()=="void":
+                self.outFile.write('  RESOLVE(PFN%sPROC, "%s");\n'%(name.upper(), name))
+                self.outFile.write("  RESOLVED_PROC(PFN%sPROC)( """%(name.upper()))
+            else:
+                self.outFile.write('  RESOLVE_RET(PFN%sPROC, "%s", FALSE);\n'%(name.upper(), name))
+                self.outFile.write("  return RESOLVED_PROC(PFN%sPROC)("%(name.upper()))
+
+            Comma=""
+            for ptype, pname in plist:
+                self.outFile.write("%s%s_"%(Comma, pname))
+                Comma=", "
+        self.outFile.write(" );\n}\n\n")
+
+class ThunkDefsOutputGenerator(OutputGenerator):
+    def __init__(self,
+                 errFile = sys.stderr,
+                 warnFile = sys.stderr,
+                 diagFile = sys.stdout):
+        OutputGenerator.__init__(self, errFile, warnFile, diagFile)
+    def beginFile(self, genOpts):
+        self.outFile.write("EXPORTS\n"); # this must be the first line for libtool to realize this is a .def file
+        self.outFile.write('; Automatically generated from %s - DO NOT EDIT\n\n'%regFilename)
+    def endFile(self):
+        pass
+    def beginFeature(self, interface, emit):
+        OutputGenerator.beginFeature(self, interface, emit)
+    def endFeature(self):
+        OutputGenerator.endFeature(self)
+    def genType(self, typeinfo, name):
+        OutputGenerator.genType(self, typeinfo, name)
+    def genEnum(self, enuminfo, name):
+        OutputGenerator.genEnum(self, enuminfo, name)
+    def genCmd(self, cmd, name):
+        OutputGenerator.genCmd(self, cmd, name)
+
+        # export the wrapper function with the name of the function it wraps
+        self.outFile.write("%s = %sWrapper\n"%(name, name))
+
+class ShimOutputGenerator(OutputGenerator):
+    def __init__(self,
+                 errFile = sys.stderr,
+                 warnFile = sys.stderr,
+                 diagFile = sys.stdout):
+        OutputGenerator.__init__(self, errFile, warnFile, diagFile)
+    def beginFile(self, genOpts):
+        self.outFile.write('/* Automatically generated from %s - DO NOT EDIT */\n\n'%regFilename)
+    def endFile(self):
+        pass
+    def beginFeature(self, interface, emit):
+        OutputGenerator.beginFeature(self, interface, emit)
+        self.OldVersion = self.featureName.startswith('GL_VERSION_1_0') or self.featureName.startswith('GL_VERSION_1_1') or self.featureName.startswith('GL_VERSION_1_2') or self.featureName.startswith('GL_ARB_imaging') or self.featureName.startswith('GL_ARB_multitexture') or self.featureName.startswith('GL_ARB_texture_compression')
+    def endFeature(self):
+        OutputGenerator.endFeature(self)
+    def genType(self, typeinfo, name):
+        OutputGenerator.genType(self, typeinfo, name)
+    def genEnum(self, enuminfo, name):
+        OutputGenerator.genEnum(self, enuminfo, name)
+    def genCmd(self, cmd, name):
+        OutputGenerator.genCmd(self, cmd, name)
+
+        if not self.OldVersion:
+            return
+
+        # for GL functions which are in the ABI, generate a shim which calls the function via GetProcAddress
+        proto=noneStr(cmd.elem.find('proto'))
+        rettype=noneStr(proto.text)
+        if rettype.lower()!="void ":
+            plist = ([t for t in proto.itertext()])
+            rettype = ''.join(plist[:-1])
+        rettype=rettype.strip()
+        self.outFile.write("%s %s("%(rettype, name))
+        params = cmd.elem.findall('param')
+        plist=[]
+        for param in params:
+            paramlist = ([t for t in param.itertext()])
+            paramtype = ''.join(paramlist[:-1])
+            paramname = paramlist[-1]
+            plist.append((paramtype, paramname))
+        Comma=""
+        if len(plist):
+            for ptype, pname in plist:
+                self.outFile.write("%s%s%s_"%(Comma, ptype, pname))
+                Comma=", "
+        else:
+            self.outFile.write("void")
+
+        self.outFile.write(")\n{\n")
+
+        self.outFile.write('  typedef %s (* PFN%sPROC)(' % (rettype, name.upper()))
+
+        if len(plist):
+            Comma=""
+            for ptype, pname in plist:
+                self.outFile.write("%s %s %s_"%(Comma, ptype, pname))
+                Comma=", "
+        else:
+            self.outFile.write("void")
+
+        self.outFile.write(');\n')
+
+        if rettype.lower()=="void":
+            self.outFile.write('  RESOLVE(PFN%sPROC, "%s");\n'%(name.upper(), name))
+            self.outFile.write('  RESOLVED_PROC(')
+        else:
+            self.outFile.write('  RESOLVE_RET(PFN%sPROC, "%s", 0);\n'%(name.upper(), name))
+            self.outFile.write('  return RESOLVED_PROC(')
+
+        Comma=""
+        for ptype, pname in plist:
+            self.outFile.write("%s%s_"%(Comma, pname))
+            Comma=", "
+
+        self.outFile.write(" );\n}\n\n")
+
 def genHeaders():
-    startTimer()
     outFile = open(outFilename,"w")
+
     if preresolve:
         gen = PreResolveOutputGenerator(errFile=errWarn,
                                         warnFile=errWarn,
@@ -378,40 +446,40 @@ def genHeaders():
         gen.outFile=outFile
         reg.setGenerator(gen)
         reg.apiGen(genOpts)
-    gen = MyOutputGenerator(errFile=errWarn,
-                            warnFile=errWarn,
-                            diagFile=diag)
-    gen.outFile=outFile
-    reg.setGenerator(gen)
-    reg.apiGen(genOpts)
 
-    # generate function to setup the dispatch table, which sets each
-    # dispatch table entry to point to it's wrapper function
-    # (assuming we were able to make one)
+    if wrapper:
+        gen = WrapperOutputGenerator(errFile=errWarn,
+                                     warnFile=errWarn,
+                                     diagFile=diag)
+        gen.outFile=outFile
+        reg.setGenerator(gen)
+        reg.apiGen(genOpts)
 
-    if dispatchheader :
-        outFile.write( 'void glWinSetupDispatchTable(void)\n')
-        outFile.write( '{\n')
-        outFile.write( '  struct _glapi_table *disp = _glapi_get_dispatch();\n')
+    if shim:
+        gen = ShimOutputGenerator(errFile=errWarn,
+                                  warnFile=errWarn,
+                                  diagFile=diag)
+        gen.outFile=outFile
+        reg.setGenerator(gen)
+        reg.apiGen(genOpts)
 
-        for d in sorted(dispatch.keys()) :
-                if d in gen.wrappers :
-                        outFile.write('  SET_'+ d[len(prefix):] + '(disp, (void *)' + d + 'Wrapper);\n')
-                else :
-                        outFile.write('#pragma message("No wrapper for ' + d + ' !")\n')
+    if thunk:
+        gen = ThunkOutputGenerator(errFile=errWarn,
+                                   warnFile=errWarn,
+                                   diagFile=diag)
+        gen.outFile=outFile
+        reg.setGenerator(gen)
+        reg.apiGen(genOpts)
 
-        outFile.write('}\n')
 
-
+    if thunkdefs:
+        gen = ThunkDefsOutputGenerator(errFile=errWarn,
+                                       warnFile=errWarn,
+                                       diagFile=diag)
+        gen.outFile=outFile
+        reg.setGenerator(gen)
+        reg.apiGen(genOpts)
 
     outFile.close()
 
-if (debug):
-    pdb.run('genHeaders()')
-elif (profile):
-    import cProfile, pstats
-    cProfile.run('genHeaders()', 'profile.txt')
-    p = pstats.Stats('profile.txt')
-    p.strip_dirs().sort_stats('time').print_stats(50)
-else:
-    genHeaders()
+genHeaders()

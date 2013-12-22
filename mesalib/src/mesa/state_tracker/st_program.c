@@ -258,6 +258,10 @@ st_prepare_vertex_program(struct gl_context *ctx,
             stvp->output_semantic_name[slot] = TGSI_SEMANTIC_CLIPVERTEX;
             stvp->output_semantic_index[slot] = 0;
             break;
+         case VARYING_SLOT_LAYER:
+            stvp->output_semantic_name[slot] = TGSI_SEMANTIC_LAYER;
+            stvp->output_semantic_index[slot] = 0;
+            break;
 
          case VARYING_SLOT_TEX0:
          case VARYING_SLOT_TEX1:
@@ -560,6 +564,11 @@ st_translate_fragment_program(struct st_context *st,
             break;
          case VARYING_SLOT_FACE:
             input_semantic_name[slot] = TGSI_SEMANTIC_FACE;
+            input_semantic_index[slot] = 0;
+            interpMode[slot] = TGSI_INTERPOLATE_CONSTANT;
+            break;
+         case VARYING_SLOT_PRIMITIVE_ID:
+            input_semantic_name[slot] = TGSI_SEMANTIC_PRIMID;
             input_semantic_index[slot] = 0;
             interpMode[slot] = TGSI_INTERPOLATE_CONSTANT;
             break;

@@ -848,7 +848,7 @@ blend_soft_light (uint32_t d_org,
     double as = as_org * (1.0 / MASK);
     double r;
 
-    if (2 * s < as)
+    if (2 * s <= as)
     {
 	if (ad == 0)
 	    r = d * as;

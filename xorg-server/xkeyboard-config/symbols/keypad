@@ -349,7 +349,7 @@ xkb_symbols "legacynumber" {
     key <KP7>  { [   KP_Home,       KP_7 ] }; //   <home> 7
     key <KP8>  { [     KP_Up,       KP_8 ] }; //     <up> 8
     key <KP9>  { [  KP_Prior,       KP_9 ] }; //  <prior> 9
- 
+
     key <KP4>  { [   KP_Left,       KP_4 ] }; //   <left> 4
     key <KP5>  { [  KP_Begin,       KP_5 ] }; //  <begin> 5
     key <KP6>  { [  KP_Right,       KP_6 ] }; //  <right> 6
@@ -391,7 +391,7 @@ xkb_symbols "legacynumber_wang" {
     key <KP7>  { [   KP_Home,   KP_7,         less ] }; //   <home> 7 <
     key <KP8>  { [     KP_Up,   KP_8,      greater ] }; //     <up> 8 >
     key <KP9>  { [  KP_Prior,   KP_9,  asciicircum ] }; //  <prior> 9 ^
- 
+
     key <KP4>  { [   KP_Left,   KP_4,  bracketleft ] }; //   <left> 4 [
     key <KP5>  { [  KP_Begin,   KP_5, bracketright ] }; //  <begin> 5 ]
     key <KP6>  { [  KP_Right,   KP_6,       dollar ] }; //  <right> 6 $
@@ -431,7 +431,7 @@ xkb_symbols "ossnumber" {
     key <KP7>  { [   KP_Home,   KP_7, 0x1002196, 0x10021D6 ] }; //   <home> 7 ↖ ⇖
     key <KP8>  { [     KP_Up,   KP_8, 0x1002191, 0x10021D1 ] }; //     <up> 8 ↑ ⇑
     key <KP9>  { [  KP_Prior,   KP_9, 0x1002197, 0x10021D7 ] }; //  <prior> 9 ↗ ⇗
- 
+
     key <KP4>  { [   KP_Left,   KP_4, 0x1002190, 0x10021D0 ] }; //   <left> 4 ← ⇐
     key <KP5>  { [  KP_Begin,   KP_5, 0x1002194, 0x10021D4 ] }; //  <begin> 5 ↔ ⇔
     key <KP6>  { [  KP_Right,   KP_6, 0x1002192, 0x10021D2 ] }; //  <right> 6 → ⇒
@@ -471,7 +471,7 @@ xkb_symbols "ossnumber_wang" {
     key <KP7>  { [   KP_Home,   KP_7,         less, 0x1002196 ] }; //   <home> 7 < ↖
     key <KP8>  { [     KP_Up,   KP_8,      greater, 0x1002191 ] }; //     <up> 8 > ↑
     key <KP9>  { [  KP_Prior,   KP_9,  asciicircum, 0x1002197 ] }; //  <prior> 9 ^ ↗
- 
+
     key <KP4>  { [   KP_Left,   KP_4,  bracketleft, 0x1002190 ] }; //   <left> 4 [ ←
     key <KP5>  { [  KP_Begin,   KP_5, bracketright, 0x1002194 ] }; //  <begin> 5 ] ↔
     key <KP6>  { [  KP_Right,   KP_6,       dollar, 0x1002192 ] }; //  <right> 6 $ →
@@ -532,7 +532,7 @@ xkb_symbols "hex" {
     key <KP7>  { [ NoSymbol,  NoSymbol,  a          ] };
     key <KP8>  { [ NoSymbol,  NoSymbol,  b          ] };
     key <KP9>  { [ NoSymbol,  NoSymbol,  c          ] };
- 
+
     // home row
     key <KP4>  { [ NoSymbol,  NoSymbol,  d          ] };
     key <KP5>  { [ NoSymbol,  NoSymbol,  e          ] };

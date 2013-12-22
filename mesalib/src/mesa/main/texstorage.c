@@ -37,7 +37,9 @@
 #include "macros.h"
 #include "teximage.h"
 #include "texobj.h"
+#include "mipmap.h"
 #include "texstorage.h"
+#include "textureview.h"
 #include "mtypes.h"
 
 
@@ -73,8 +75,7 @@ legal_texobj_target(struct gl_context *ctx, GLuint dims, GLenum target)
          return ctx->Extensions.NV_texture_rectangle;
       case GL_TEXTURE_1D_ARRAY:
       case GL_PROXY_TEXTURE_1D_ARRAY:
-         return (ctx->Extensions.MESA_texture_array ||
-                 ctx->Extensions.EXT_texture_array);
+         return ctx->Extensions.EXT_texture_array;
       default:
          return GL_FALSE;
       }
@@ -85,8 +86,7 @@ legal_texobj_target(struct gl_context *ctx, GLuint dims, GLenum target)
          return GL_TRUE;
       case GL_TEXTURE_2D_ARRAY:
       case GL_PROXY_TEXTURE_2D_ARRAY:
-         return (ctx->Extensions.MESA_texture_array ||
-                 ctx->Extensions.EXT_texture_array);
+         return ctx->Extensions.EXT_texture_array;
       case GL_TEXTURE_CUBE_MAP_ARRAY:
       case GL_PROXY_TEXTURE_CUBE_MAP_ARRAY:
          return ctx->Extensions.ARB_texture_cube_map_array;
@@ -96,27 +96,6 @@ legal_texobj_target(struct gl_context *ctx, GLuint dims, GLenum target)
    default:
       _mesa_problem(ctx, "invalid dims=%u in legal_texobj_target()", dims);
       return GL_FALSE;
-   }
-}
-
-
-/**
- * Compute the size of the next mipmap level.
- */
-static void
-next_mipmap_level_size(GLenum target,
-                       GLint *width, GLint *height, GLint *depth)
-{
-   if (*width > 1) {
-      *width /= 2;
-   }
-
-   if ((*height > 1) && (target != GL_TEXTURE_1D_ARRAY)) {
-      *height /= 2;
-   }
-
-   if ((*depth > 1) && (target != GL_TEXTURE_2D_ARRAY)) {
-      *depth /= 2;
    }
 }
 
@@ -164,7 +143,8 @@ initialize_texture_fields(struct gl_context *ctx,
                                     0, internalFormat, texFormat);
       }
 
-      next_mipmap_level_size(target, &levelWidth, &levelHeight, &levelDepth);
+      _mesa_next_mipmap_level_size(target, 0, levelWidth, levelHeight, levelDepth,
+                                   &levelWidth, &levelHeight, &levelDepth);
    }
    return GL_TRUE;
 }
@@ -436,8 +416,8 @@ texstorage(GLuint dims, GLenum target, GLsizei levels, GLenum internalformat,
          return;
       }
 
-      texObj->Immutable = GL_TRUE;
-      texObj->ImmutableLevels = levels;
+      _mesa_set_texture_view_state(ctx, texObj, target, levels);
+
    }
 }
 

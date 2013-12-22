@@ -9,7 +9,7 @@ xkb_symbols "swa" {
     include "us"
 
     name[Group1]= "Swahili (Kenya)";
-    
+
     key <AC10> { [ semicolon,	    colon,  0x01000324,  0x01000324 ] };	//COMBINING DIAERESIS BELOW	
     key <AC11> { [apostrophe,    quotedbl,  0x01000301,  0x01000308 ] };	//COMBINING ACUTE ACCENT, COMBINING DIAERESIS
     key <TLDE> { [     grave,  asciitilde,  0x01000300,  0x01000303 ] };	//COMBINING GRAVE ACCENT, COMBINING TILDE
@@ -18,17 +18,17 @@ xkb_symbols "swa" {
     key <AE09> { [	   9,   parenleft,  0x01000306	            ] };	//COMBINING BREVE
     key <AE10> { [	   0,  parenright,  0x0100030c 	            ] };	//COMBINING CARON
     key <AE11> { [     minus,  underscore,  0x01000304,  0x01000331 ] };	//COMBINING MACRON,COMBINING MACRON BELOW   
-	
+
     include "level3(ralt_switch)"
 };
 
-partial alphanumeric_keys  
+partial alphanumeric_keys
 xkb_symbols "kik" {
 
     include "us"
 
     name[Group1]= "Kikuyu";
-    
+
     key <AC10> { [ semicolon,	    colon,  0x01000324,  0x01000324 ] };	//COMBINING DIAERESIS BELOW	
     key <AC11> { [apostrophe,    quotedbl,  0x01000301,  0x01000308 ] };	//COMBINING ACUTE ACCENT, COMBINING DIAERESIS
     key <TLDE> { [     grave,  asciitilde,  0x01000300,  0x01000303 ] };	//COMBINING GRAVE ACCENT, COMBINING TILDE
@@ -37,6 +37,6 @@ xkb_symbols "kik" {
     key <AE09> { [	   9,   parenleft,  0x01000306	            ] };	//COMBINING BREVE
     key <AE10> { [	   0,  parenright,  0x0100030c 	            ] };	//COMBINING CARON
     key <AE11> { [     minus,  underscore,  0x01000304,  0x01000331 ] };	//COMBINING MACRON,COMBINING MACRON BELOW 
-	
+
     include "level3(ralt_switch)"
 };

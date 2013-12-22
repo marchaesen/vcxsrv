@@ -59,7 +59,7 @@ partial alphanumeric_keys
 xkb_symbols "dvorak" {
    include "us(dvorak)"
    name[Group1]= "Estonian (Dvorak)";
-   
+
     key <AE03>	{ [         3, numbersign,   sterling ]	};
     key <AE04>	{ [         4,     dollar,    section,   currency ]	};
     key <AE08>	{ [         8,   asterisk,    onehalf ]	};
@@ -68,7 +68,7 @@ xkb_symbols "dvorak" {
     key <AC02>	{ [         o,          O,     otilde,     Otilde ]	};
     key <AC03>	{ [         e,          E, odiaeresis, Odiaeresis ]	};
     key <AC04>	{ [         u,          U, udiaeresis, Udiaeresis ]	};
-    key <AC10>	{ [         s,          S,     scaron,     Scaron ]	};   
+    key <AC10>	{ [         s,          S,     scaron,     Scaron ]	};
     key <AB10>	{ [         z,          Z,     zcaron,     Zcaron ]	};
 
     include "level3(ralt_switch)"

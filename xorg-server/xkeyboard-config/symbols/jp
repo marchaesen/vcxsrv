@@ -101,6 +101,14 @@ xkb_symbols "common" {
 };
 
 partial alphanumeric_keys
+xkb_symbols "henkan" {
+    key <XFER> {
+	type[Group1]="PC_ALT_LEVEL2",
+	symbols[Group1]= [ Henkan, Mode_switch ]
+    };
+};
+
+partial alphanumeric_keys
 xkb_symbols "OADG109A" {
 
     include "jp(common)"

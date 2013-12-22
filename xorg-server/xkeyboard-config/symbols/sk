@@ -1,6 +1,6 @@
 default  partial alphanumeric_keys
 xkb_symbols "basic" {
-     
+
      // This layout conforms to a new sk compromise standard designed 
      // to satisfy most unix, windows and mac users.
      // 2001 by Kamil Toman <ktoman@email.cz>
@@ -46,7 +46,7 @@ xkb_symbols "basic" {
     key <AC07>	{ [         j,          J,   apostrophe,     NoSymbol ]	};
     key <AC08>	{ [         k,          K,      lstroke,     NoSymbol ]	};
     key <AC09>	{ [         l,          L,      Lstroke,     NoSymbol ]	};
-                  
+
     key <AC10>	{ [ocircumflex,   quotedbl,      dollar,     NoSymbol ]	};
     key <AC11>	{ [   section,     exclam,   apostrophe,       ssharp ]	};
     key <AC12>	{ [  EuroSign, dead_diaeresis, NoSymbol,     NoSymbol ]	};
@@ -78,13 +78,13 @@ xkb_symbols "bksl" {
     key <BKSL>	{ [ backslash,        bar,        slash,     NoSymbol ]	};
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "qwerty" {
- 
+
     // This layout should work exactly as a sk with the exception 
     // of 'Z' and 'Y' keys, which are in the qwerty style (ie. swapped).
     // 2001 by Kamil Toman <ktoman@email.cz>
-    
+
     include "sk(basic)"
 
     name[Group1] = "Slovak (qwerty)";

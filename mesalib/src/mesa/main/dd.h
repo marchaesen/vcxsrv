@@ -375,6 +375,11 @@ struct dd_function_table {
                                     GLsizei levels, GLsizei width,
                                     GLsizei height, GLsizei depth);
 
+   /** Called as part of glTextureView to add views to origTexObj */
+   GLboolean (*TextureView)(struct gl_context *ctx,
+                            struct gl_texture_object *texObj,
+                            struct gl_texture_object *origTexObj);
+
    /**
     * Map a renderbuffer into user space.
     * \param mode  bitmask of GL_MAP_READ_BIT, GL_MAP_WRITE_BIT and
@@ -568,6 +573,12 @@ struct dd_function_table {
    void (*GetBufferSubData)( struct gl_context *ctx,
 			     GLintptrARB offset, GLsizeiptrARB size,
 			     GLvoid *data, struct gl_buffer_object *obj );
+
+   void (*ClearBufferSubData)( struct gl_context *ctx,
+                               GLintptr offset, GLsizeiptr size,
+                               const GLvoid *clearValue,
+                               GLsizeiptr clearValueSize,
+                               struct gl_buffer_object *obj );
 
    void (*CopyBufferSubData)( struct gl_context *ctx,
                               struct gl_buffer_object *src,

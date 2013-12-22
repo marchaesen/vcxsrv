@@ -175,10 +175,8 @@ st_FreeTextureImageBuffer(struct gl_context *ctx,
       pipe_resource_reference(&stImage->pt, NULL);
    }
 
-   if (stImage->TexData) {
-      _mesa_align_free(stImage->TexData);
-      stImage->TexData = NULL;
-   }
+   _mesa_align_free(stImage->TexData);
+   stImage->TexData = NULL;
 }
 
 
@@ -1156,8 +1154,8 @@ fallback_copy_texsubimage(struct gl_context *ctx,
 
    map = pipe_transfer_map(pipe,
                            strb->texture,
-                           strb->rtt_level,
-                           strb->rtt_face + strb->rtt_slice,
+                           strb->surface->u.tex.level,
+                           strb->surface->u.tex.first_layer,
                            PIPE_TRANSFER_READ,
                            srcX, srcY,
                            width, height, &src_trans);

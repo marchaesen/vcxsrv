@@ -15,8 +15,8 @@ xkb_symbols "yoruba" {
     name[Group1]= "Yoruba";
 
     key <AD01> { [ 0x01001EB9, 0x01001EB8,          q,          Q ] };
-    key <AB02> { [ 0x01001ECD, 0x01001ECC,          x,          X ] }; 
-    key <AB04> { [ 0x01001E63, 0x01001E62,          v,          V ] }; 
+    key <AB02> { [ 0x01001ECD, 0x01001ECC,          x,          X ] };
+    key <AB04> { [ 0x01001E63, 0x01001E62,          v,          V ] };
 };
 
 partial alphanumeric_keys
@@ -26,7 +26,7 @@ xkb_symbols "igbo" {
     name[Group1]= "Igbo";
 
     key <AD01> { [ 0x01001ECB, 0x01001ECA,          q,          Q ] };
-    key <AB02> { [ 0x01001E45, 0x01001E44,          x,          X ] }; 
+    key <AB02> { [ 0x01001E45, 0x01001E44,          x,          X ] };
     key <AC10> { [ 0x01001EE5, 0x01001EE4,   semicolon,	    colon ] };
     key <AD11> { [ 0x01001ECD, 0x01001ECC, bracketleft, braceleft ] };		 
 };

@@ -438,7 +438,7 @@ blend_hard_light (float sa, float s, float da, float d)
 static force_inline float
 blend_soft_light (float sa, float s, float da, float d)
 {
-    if (2 * s < sa)
+    if (2 * s <= sa)
     {
 	if (FLOAT_IS_ZERO (da))
 	    return d * sa;

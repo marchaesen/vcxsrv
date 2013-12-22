@@ -62,6 +62,7 @@ xkb_symbols "legacy" {
     name[Group1]="Polish (legacy)";
 
     key <AD03>	{ [         e,          E,      eogonek,      Eogonek ]	};
+    key <AD07>  { [         u,          U,	EuroSign,     cent    ] };
     key <AD09>	{ [         o,          O,       oacute,       Oacute ]	};
 
     key <AC01>	{ [         a,          A,      aogonek,      Aogonek ]	};
@@ -131,10 +132,10 @@ xkb_symbols "qwertz" {
 // "1/!" key. If you do not use Polish quotes at all, you can use "pl_basic" map.
 
 // Basic Polish keymap (without Polish quotes)
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "dvorak" {
     include "us(dvorak)"
-    
+
     name[Group1] = "Polish (Dvorak)";
 
     key <AD08> { [	    c,	C,	cacute,	Cacute		]	};
@@ -146,7 +147,7 @@ xkb_symbols "dvorak" {
     key <AC10> { [	    s,	S,      sacute, Sacute		]	};
     key <AB09> { [	    v,	V,      zacute, Zacute		]	};
     key <AB10> { [	    z,	Z,   zabovedot, Zabovedot	]	};
-    
+
     include "kpdl(comma)"
 
     include "level3(ralt_switch)"
@@ -156,7 +157,7 @@ xkb_symbols "dvorak" {
 partial alphanumeric_keys
 xkb_symbols "dvorak_quotes" {
     include "pl(dvorak)"
-    
+
     name[Group1] = "Polish (Dvorak, Polish quotes on quotemark key)";
 
     key <AD01> { [  apostrophe,	quotedbl, doublelowquotemark, rightdoublequotemark	] };
@@ -482,7 +483,7 @@ xkb_symbols "colemak" {
     key <AB02> { [            x,            X, 	        zacute,           Zacute ] };
     key <AB03> { [            c,            C,          cacute,           Cacute ] };
     key <AC01> { [            a,            A,         aogonek,          Aogonek ] };
-    key <AC03> { [            s,            S,          sacute,           Sacute ] }; 
+    key <AC03> { [            s,            S,          sacute,           Sacute ] };
     key <AC07> { [            n,            N,          nacute,           Nacute ] };
     key <AC08> { [            e,            E,         eogonek,          Eogonek ] };
     key <AC10> { [            o,            O,          oacute,           Oacute ] };

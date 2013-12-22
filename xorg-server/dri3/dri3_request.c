@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include <xace.h>
 #include "../Xext/syncsdk.h"
+#include <protocol-versions.h>
 
 static int
 proc_dri3_query_version(ClientPtr client)
@@ -38,8 +39,8 @@ proc_dri3_query_version(ClientPtr client)
         .type = X_Reply,
         .sequenceNumber = client->sequence,
         .length = 0,
-        .majorVersion = DRI3_MAJOR,
-        .minorVersion = DRI3_MINOR
+        .majorVersion = SERVER_DRI3_MAJOR_VERSION,
+        .minorVersion = SERVER_DRI3_MINOR_VERSION
     };
 
     REQUEST_SIZE_MATCH(xDRI3QueryVersionReq);

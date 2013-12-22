@@ -1,0 +1,54 @@
+! $inetkbds = acer_c300 acer_ferrari4k acer_laptop \
+              airkey \
+              apple armada azonaRF2300 \
+              benqx brother \
+              btc5113rf btc9000 btc9000a btc9001ah btc5090 btc9019u \
+              cherryblue cherrybluea cherryblueb \
+              cherrycyboard cherrycmexpert \
+              chicony chicony0108 chicony0420 chicony9885 \
+              compalfl90 \
+              compaqeak8 compaqik7 compaqik13 compaqik18 \
+              creativedw7000 \
+              cymotionlinux \
+              dell dellm65 inspiron dellusbmm \
+              emachines ennyah_dkb1008 evdev \
+              genius geniuscomfy2 \
+              gyration honeywell_euroboard \
+              hp250x hp5xx hp500fa hpdv5 \
+              hpi6 hpxe3gc hpxe3gf hpxe4xxx hpxt1000 hpzt11xx htcdream \
+              ibm_spacesaver ipaq inspiron intel \
+              logiaccess logicda logicink \
+              logiex110 logiclx300 \
+              logiinkse logiinkseusb logiitc logiik \
+              logitech_base itouch logiultrax \
+              logitech_g15 \
+              logidinovo logidinovoedge \
+              microsoft4000 microsoft7000 microsoftinet microsoftprousb microsoftprooem microsoftprose \
+              microsoftoffice microsoftmult \
+              mx1998 mx2500 mx2750 \
+              oretec \
+              pc105 \
+              presario propeller \
+              qtronix \
+              rapidaccess rapidaccess2 thinkpad60 \
+              samsung4500 samsung4510 \
+              silvercrest \
+              sk1300 sk2500 sk6200 sk7100 \
+              sven sven303 symplon \
+              toshiba_s3000 trust trustda \
+              unitekkb1925 yahoo
+
+! $inetmediakbds = acer_ferrari4k acer_laptop btc5090 btc9019u cherryblueb \
+		cherrybluea herrycyboard chicony042 compaqik13 compaqik18 \
+		armada presario dellm65 inspiron dellusbmm diamond \
+		ennyah_dkb1008 genius geniuscomfy2 hpi6 hpxe3gc hpxe3gf \
+		hpxt1000 hpzt11xx hpdv5 hpxe4xxx hp5xx thinkpad60 ogitech_base \
+		logidinovo logidinovoedge logitech_g15 mx1998 mx2500 mx2750 \
+		microsoft4000 microsoft7000 microsoftprooem microsoftmult \
+		propeller samsung4500 samsung4510 sk1300 sk2500 sk7100 \
+		toshiba_s3000 trust trustda cymotionlinux silvercrest \
+		emachines benqx unitekkb1925 creativedw7000 compalfl90 \
+		pc105 a4techKB21 a4techKBS8 a4_rfkb23 asus_laptop btc6301urf \
+		dexxa dtk2000 fscaa1667g geniuskb19e geniuscomfy latitude \
+		microsoftpro precision_m scorpius sp_inet targa_v811 thinkpad \
+		tm2030USB-102 tm2030USB-106 trust_slimline

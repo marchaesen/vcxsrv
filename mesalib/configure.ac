@@ -28,7 +28,7 @@ AC_SUBST([OSMESA_VERSION])
 
 dnl Versions for external dependencies
 LIBDRM_REQUIRED=2.4.24
-LIBDRM_RADEON_REQUIRED=2.4.49
+LIBDRM_RADEON_REQUIRED=2.4.50
 LIBDRM_INTEL_REQUIRED=2.4.49
 LIBDRM_NVVIEUX_REQUIRED=2.4.33
 LIBDRM_NOUVEAU_REQUIRED="2.4.33 libdrm >= 2.4.41"
@@ -229,6 +229,12 @@ esac
 
 AC_SUBST([VISIBILITY_CFLAGS])
 AC_SUBST([VISIBILITY_CXXFLAGS])
+
+dnl
+dnl Optional flags, check for compiler support
+dnl
+AX_CHECK_COMPILE_FLAG([-msse4.1], [SSE41_SUPPORTED=1], [SSE41_SUPPORTED=0])
+AM_CONDITIONAL([SSE41_SUPPORTED], [test x$SSE41_SUPPORTED = x1])
 
 dnl
 dnl Hacks to enable 32 or 64 bit build
@@ -761,6 +767,9 @@ AC_SUBST([MESA_LLVM])
 # Check for libdrm
 PKG_CHECK_MODULES([LIBDRM], [libdrm >= $LIBDRM_REQUIRED],
                   [have_libdrm=yes], [have_libdrm=no])
+if test "x$have_libdrm" = xyes; then
+	DEFINES="$DEFINES -DHAVE_LIBDRM"
+fi
 
 PKG_CHECK_MODULES([LIBUDEV], [libudev >= $LIBUDEV_REQUIRED],
                   have_libudev=yes, have_libudev=no)
@@ -833,7 +842,7 @@ xyesno)
     dri_modules="x11 xext xdamage xfixes x11-xcb xcb-glx >= 1.8.1 xcb-dri2 >= 1.8"
 
     if test x"$enable_dri3" = xyes; then
-        dri_modules="$dri_modules xcb-dri3 xcb-present xcb-sync xshmfence"
+        dri_modules="$dri_modules xcb-dri3 xcb-present xcb-sync xshmfence >= 1.1"
     fi
 
     # add xf86vidmode if available
@@ -1439,6 +1448,8 @@ for plat in $egl_platforms; do
 	drm)
 		test "x$enable_gbm" = "xno" &&
 			AC_MSG_ERROR([EGL platform drm needs gbm])
+		test "x$have_libdrm" != xyes &&
+			AC_MSG_ERROR([EGL platform drm requires libdrm >= $LIBDRM_REQUIRED])
 		;;
 
 	android|fbdev|gdi|null)
@@ -1541,6 +1552,7 @@ strip_unwanted_llvm_flags() {
 	-e 's/-O.\>//g' \
 	-e 's/-g\>//g' \
 	-e 's/-Wall\>//g' \
+	-e 's/-fcolor-diagnostics\>//g' \
 	-e 's/-fomit-frame-pointer\>//g'
 }
 
@@ -1938,7 +1950,7 @@ AC_SUBST([XVMC_MAJOR], 1)
 AC_SUBST([XVMC_MINOR], 0)
 
 AC_SUBST([XA_MAJOR], 2)
-AC_SUBST([XA_MINOR], 0)
+AC_SUBST([XA_MINOR], 1)
 AC_SUBST([XA_TINY], 0)
 AC_SUBST([XA_VERSION], "$XA_MAJOR.$XA_MINOR.$XA_TINY")
 

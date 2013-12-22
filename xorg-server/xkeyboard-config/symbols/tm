@@ -4,7 +4,7 @@
 default  partial
 xkb_symbols "basic" {
     name[Group1]="Turkmen";
-    
+
     include "us"
     key <TLDE> {	[    zcaron, 	Zcaron,		grave,	asciitilde	]	};
 

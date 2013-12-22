@@ -954,7 +954,7 @@ ephyrProcessMouseMotion(xcb_generic_event_t *xev)
 #ifdef XF86DRI
         EphyrWindowPair *pair = NULL;
 #endif
-        EPHYR_LOG("enqueuing mouse motion:%d\n", ephyrCurScreen);
+        EPHYR_LOG("enqueuing mouse motion:%d\n", screen->pScreen->myNum);
         x = motion->event_x;
         y = motion->event_y;
         EPHYR_LOG("initial (x,y):(%d,%d)\n", x, y);
@@ -988,7 +988,7 @@ ephyrProcessButtonPress(xcb_generic_event_t *xev)
 
     if (!ephyrMouse ||
         !((EphyrPointerPrivate *) ephyrMouse->driverPrivate)->enabled) {
-        EPHYR_LOG("skipping mouse press:%d\n", ephyrCurScreen);
+        EPHYR_LOG("skipping mouse press:%d\n", screen_from_window(button->event)->pScreen->myNum);
         return;
     }
 
@@ -998,7 +998,7 @@ ephyrProcessButtonPress(xcb_generic_event_t *xev)
      */
     mouseState |= 1 << (button->detail - 1);
 
-    EPHYR_LOG("enqueuing mouse press:%d\n", ephyrCurScreen);
+    EPHYR_LOG("enqueuing mouse press:%d\n", screen_from_window(button->event)->pScreen->myNum);
     KdEnqueuePointerEvent(ephyrMouse, mouseState | KD_MOUSE_DELTA, 0, 0, 0);
 }
 
@@ -1015,7 +1015,7 @@ ephyrProcessButtonRelease(xcb_generic_event_t *xev)
     ephyrUpdateModifierState(button->state);
     mouseState &= ~(1 << (button->detail - 1));
 
-    EPHYR_LOG("enqueuing mouse release:%d\n", ephyrCurScreen);
+    EPHYR_LOG("enqueuing mouse release:%d\n", screen_from_window(button->event)->pScreen->myNum);
     KdEnqueuePointerEvent(ephyrMouse, mouseState | KD_MOUSE_DELTA, 0, 0, 0);
 }
 

@@ -55,7 +55,6 @@ typedef struct __GLXDRIscreen __GLXDRIscreen;
 typedef struct __GLXDRIcontext __GLXDRIcontext;
 typedef struct __GLXDRIdrawable __GLXDRIdrawable;
 
-
 #ifdef __DRI2_ROBUSTNESS
 #define ALL_DRI_CTX_FLAGS (__DRI_CTX_FLAG_DEBUG                         \
                            | __DRI_CTX_FLAG_FORWARD_COMPATIBLE          \
@@ -177,36 +176,25 @@ __glXdriSwapEvent(ClientPtr client, void *data, int type, CARD64 ust,
                   CARD64 msc, CARD32 sbc)
 {
     __GLXdrawable *drawable = data;
-    xGLXBufferSwapComplete2 wire =  {
-        .type = __glXEventBase + GLX_BufferSwapComplete
-    };
-
-    if (!(drawable->eventMask & GLX_BUFFER_SWAP_COMPLETE_INTEL_MASK))
-        return;
-
+    int glx_type;
     switch (type) {
     case DRI2_EXCHANGE_COMPLETE:
-        wire.event_type = GLX_EXCHANGE_COMPLETE_INTEL;
-        break;
-    case DRI2_BLIT_COMPLETE:
-        wire.event_type = GLX_BLIT_COMPLETE_INTEL;
-        break;
-    case DRI2_FLIP_COMPLETE:
-        wire.event_type = GLX_FLIP_COMPLETE_INTEL;
+        glx_type = GLX_EXCHANGE_COMPLETE_INTEL;
         break;
     default:
-        /* unknown swap completion type */
-        wire.event_type = 0;
+        /* unknown swap completion type,
+         * BLIT is a reasonable default, so
+         * fall through ...
+         */
+    case DRI2_BLIT_COMPLETE:
+        glx_type = GLX_BLIT_COMPLETE_INTEL;
+        break;
+    case DRI2_FLIP_COMPLETE:
+        glx_type = GLX_FLIP_COMPLETE_INTEL;
         break;
     }
-    wire.drawable = drawable->drawId;
-    wire.ust_hi = ust >> 32;
-    wire.ust_lo = ust & 0xffffffff;
-    wire.msc_hi = msc >> 32;
-    wire.msc_lo = msc & 0xffffffff;
-    wire.sbc = sbc;
-
-    WriteEventsToClient(client, 1, (xEvent *) &wire);
+    
+    __glXsendSwapEvent(drawable, glx_type, ust, msc, sbc);
 }
 
 /*
@@ -784,7 +772,7 @@ dri2FlushFrontBuffer(__DRIdrawable * driDrawable, void *loaderPrivate)
 }
 
 static const __DRIdri2LoaderExtension loaderExtension = {
-    {__DRI_DRI2_LOADER, __DRI_DRI2_LOADER_VERSION},
+    {__DRI_DRI2_LOADER, 3},
     dri2GetBuffers,
     dri2FlushFrontBuffer,
     dri2GetBuffersWithFormat,
@@ -792,7 +780,7 @@ static const __DRIdri2LoaderExtension loaderExtension = {
 
 #ifdef __DRI_USE_INVALIDATE
 static const __DRIuseInvalidateExtension dri2UseInvalidate = {
-    {__DRI_USE_INVALIDATE, __DRI_USE_INVALIDATE_VERSION}
+    {__DRI_USE_INVALIDATE, 1}
 };
 #endif
 
@@ -940,6 +928,9 @@ initializeExtensions(__GLXDRIscreen * screen)
     }
 }
 
+/* white lie */
+extern glx_func_ptr glXGetProcAddressARB(const char *);
+
 static __GLXscreen *
 __glXDRIscreenProbe(ScreenPtr pScreen)
 {
@@ -1023,6 +1014,8 @@ __glXDRIscreenProbe(ScreenPtr pScreen)
     pScrn->EnterVT = glxDRIEnterVT;
     screen->leaveVT = pScrn->LeaveVT;
     pScrn->LeaveVT = glxDRILeaveVT;
+
+    __glXsetGetProcAddress(glXGetProcAddressARB);
 
     LogMessage(X_INFO, "AIGLX: Loaded and initialized %s\n", driverName);
 

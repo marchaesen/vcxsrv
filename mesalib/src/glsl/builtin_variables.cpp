@@ -332,6 +332,7 @@ per_vertex_accumulator::add_field(int slot, const glsl_type *type,
    this->fields[this->num_fields].location = slot;
    this->fields[this->num_fields].interpolation = INTERP_QUALIFIER_NONE;
    this->fields[this->num_fields].centroid = 0;
+   this->fields[this->num_fields].sample = 0;
    this->num_fields++;
 }
 
@@ -434,14 +435,14 @@ builtin_variable_generator::add_variable(const char *name,
                                          enum ir_variable_mode mode, int slot)
 {
    ir_variable *var = new(symtab) ir_variable(type, name, mode);
-   var->how_declared = ir_var_declared_implicitly;
+   var->data.how_declared = ir_var_declared_implicitly;
 
-   switch (var->mode) {
+   switch (var->data.mode) {
    case ir_var_auto:
    case ir_var_shader_in:
    case ir_var_uniform:
    case ir_var_system_value:
-      var->read_only = true;
+      var->data.read_only = true;
       break;
    case ir_var_shader_out:
       break;
@@ -454,9 +455,9 @@ builtin_variable_generator::add_variable(const char *name,
       break;
    }
 
-   var->location = slot;
-   var->explicit_location = (slot >= 0);
-   var->explicit_index = 0;
+   var->data.location = slot;
+   var->data.explicit_location = (slot >= 0);
+   var->data.explicit_index = 0;
 
    /* Once the variable is created an initialized, add it to the symbol table
     * and add the declaration to the IR stream.
@@ -523,7 +524,7 @@ builtin_variable_generator::add_const(const char *name, int value)
 					 ir_var_auto, -1);
    var->constant_value = new(var) ir_constant(value);
    var->constant_initializer = new(var) ir_constant(value);
-   var->has_initializer = true;
+   var->data.has_initializer = true;
    return var;
 }
 
@@ -792,9 +793,9 @@ builtin_variable_generator::generate_gs_special_vars()
     */
    ir_variable *var;
    var = add_input(VARYING_SLOT_PRIMITIVE_ID, int_t, "gl_PrimitiveIDIn");
-   var->interpolation = INTERP_QUALIFIER_FLAT;
+   var->data.interpolation = INTERP_QUALIFIER_FLAT;
    var = add_output(VARYING_SLOT_PRIMITIVE_ID, int_t, "gl_PrimitiveID");
-   var->interpolation = INTERP_QUALIFIER_FLAT;
+   var->data.interpolation = INTERP_QUALIFIER_FLAT;
 }
 
 
@@ -812,7 +813,7 @@ builtin_variable_generator::generate_fs_special_vars()
    if (state->is_version(150, 0)) {
       ir_variable *var =
          add_input(VARYING_SLOT_PRIMITIVE_ID, int_t, "gl_PrimitiveID");
-      var->interpolation = INTERP_QUALIFIER_FLAT;
+      var->data.interpolation = INTERP_QUALIFIER_FLAT;
    }
 
    /* gl_FragColor and gl_FragData were deprecated starting in desktop GLSL
@@ -857,6 +858,10 @@ builtin_variable_generator::generate_fs_special_vars()
        */
       add_output(FRAG_RESULT_SAMPLE_MASK, array(int_t, 1), "gl_SampleMask");
    }
+
+   if (state->ARB_gpu_shader5_enable) {
+      add_system_value(SYSTEM_VALUE_SAMPLE_MASK_IN, array(int_t, 1), "gl_SampleMaskIn");
+   }
 }
 
 
@@ -872,13 +877,13 @@ builtin_variable_generator::add_varying(int slot, const glsl_type *type,
                                         const char *name_as_gs_input)
 {
    switch (state->target) {
-   case geometry_shader:
+   case MESA_SHADER_GEOMETRY:
       this->per_vertex_in.add_field(slot, type, name);
       /* FALLTHROUGH */
-   case vertex_shader:
+   case MESA_SHADER_VERTEX:
       this->per_vertex_out.add_field(slot, type, name);
       break;
-   case fragment_shader:
+   case MESA_SHADER_FRAGMENT:
       add_input(slot, type, name);
       break;
    }
@@ -896,7 +901,7 @@ builtin_variable_generator::generate_varyings()
    add_varying(loc, type, name, name "In")
 
    /* gl_Position and gl_PointSize are not visible from fragment shaders. */
-   if (state->target != fragment_shader) {
+   if (state->target != MESA_SHADER_FRAGMENT) {
       ADD_VARYING(VARYING_SLOT_POS, vec4_t, "gl_Position");
       ADD_VARYING(VARYING_SLOT_PSIZ, float_t, "gl_PointSize");
    }
@@ -909,7 +914,7 @@ builtin_variable_generator::generate_varyings()
    if (compatibility) {
       ADD_VARYING(VARYING_SLOT_TEX0, array(vec4_t, 0), "gl_TexCoord");
       ADD_VARYING(VARYING_SLOT_FOGC, float_t, "gl_FogFragCoord");
-      if (state->target == fragment_shader) {
+      if (state->target == MESA_SHADER_FRAGMENT) {
          ADD_VARYING(VARYING_SLOT_COL0, vec4_t, "gl_Color");
          ADD_VARYING(VARYING_SLOT_COL1, vec4_t, "gl_SecondaryColor");
       } else {
@@ -921,13 +926,13 @@ builtin_variable_generator::generate_varyings()
       }
    }
 
-   if (state->target == geometry_shader) {
+   if (state->target == MESA_SHADER_GEOMETRY) {
       const glsl_type *per_vertex_in_type =
          this->per_vertex_in.construct_interface_instance();
       add_variable("gl_in", array(per_vertex_in_type, 0),
                    ir_var_shader_in, -1);
    }
-   if (state->target == vertex_shader || state->target == geometry_shader) {
+   if (state->target == MESA_SHADER_VERTEX || state->target == MESA_SHADER_GEOMETRY) {
       const glsl_type *per_vertex_out_type =
          this->per_vertex_out.construct_interface_instance();
       const glsl_struct_field *fields = per_vertex_out_type->fields.structure;
@@ -935,8 +940,9 @@ builtin_variable_generator::generate_varyings()
          ir_variable *var =
             add_variable(fields[i].name, fields[i].type, ir_var_shader_out,
                          fields[i].location);
-         var->interpolation = fields[i].interpolation;
-         var->centroid = fields[i].centroid;
+         var->data.interpolation = fields[i].interpolation;
+         var->data.centroid = fields[i].centroid;
+         var->data.sample = fields[i].sample;
          var->init_interface_type(per_vertex_out_type);
       }
    }
@@ -958,13 +964,13 @@ _mesa_glsl_initialize_variables(exec_list *instructions,
    gen.generate_varyings();
 
    switch (state->target) {
-   case vertex_shader:
+   case MESA_SHADER_VERTEX:
       gen.generate_vs_special_vars();
       break;
-   case geometry_shader:
+   case MESA_SHADER_GEOMETRY:
       gen.generate_gs_special_vars();
       break;
-   case fragment_shader:
+   case MESA_SHADER_FRAGMENT:
       gen.generate_fs_special_vars();
       break;
    }

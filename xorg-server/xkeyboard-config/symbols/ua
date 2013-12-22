@@ -8,7 +8,7 @@
 default  partial alphanumeric_keys
 xkb_symbols "unicode" {
     include "ua(winkeys)"
- 
+
     name[Group1]= "Ukrainian";
 
     key <TLDE> {    [           U2019, 	apostrophe,    U0301,   asciitilde     ]       };	// Apostrophe and Stress symbol
@@ -43,7 +43,7 @@ xkb_symbols "unicode" {
     include "level3(ralt_switch)"
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "legacy" {
 
     name[Group1]= "Ukrainian (legacy)";
@@ -105,7 +105,7 @@ xkb_symbols "legacy" {
 partial alphanumeric_keys
 xkb_symbols "winkeys" {
     include "ua(legacy)"
- 
+
     name[Group1]= "Ukrainian (WinKeys)";
 
     key <AE03> {        [               3,      numerosign      ]       };
@@ -149,7 +149,7 @@ xkb_symbols "typewriter" {
 partial alphanumeric_keys
 xkb_symbols "phonetic" {
   include "ua(legacy)"
-  
+
   name[Group1]= "Ukrainian (phonetic)";
 
   key <LatQ> {   [ Cyrillic_ya,       Cyrillic_YA         ]    };

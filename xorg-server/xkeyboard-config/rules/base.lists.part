@@ -33,45 +33,6 @@
 ! $azerty = be fr
 ! $qwertz = al cz de hr hu ro si sk 
 
-! $inetkbds = acer_c300 acer_ferrari4k acer_laptop \
-              airkey \
-              apple armada azonaRF2300 \
-              benqx brother \
-              btc5113rf btc9000 btc9000a btc9001ah btc5090 btc9019u \
-              cherryblue cherrybluea cherryblueb \
-              cherrycyboard cherrycmexpert \
-              chicony chicony0108 chicony0420 chicony9885 \
-              compalfl90 \
-              compaqeak8 compaqik7 compaqik13 compaqik18 \
-              creativedw7000 \
-              cymotionlinux \
-              dell dellm65 inspiron dellusbmm \
-              emachines ennyah_dkb1008 evdev \
-              genius geniuscomfy2 \
-              gyration honeywell_euroboard \
-              hp250x hp5xx hp500fa hpdv5 \
-              hpi6 hpxe3gc hpxe3gf hpxe4xxx hpxt1000 hpzt11xx htcdream \
-              ibm_spacesaver ipaq inspiron intel \
-              logiaccess logicda logicink \
-              logiex110 logiclx300 \
-              logiinkse logiinkseusb logiitc logiik \
-              logitech_base itouch logiultrax \
-              logitech_g15 \
-              logidinovo logidinovoedge \
-              microsoft4000 microsoft7000 microsoftinet microsoftprousb microsoftprooem microsoftprose \
-              microsoftoffice microsoftmult \
-              mx1998 mx2500 mx2750 \
-              oretec \
-              pc105 \
-              presario propeller \
-              qtronix \
-              rapidaccess rapidaccess2 thinkpad60 \
-              samsung4500 samsung4510 \
-              silvercrest \
-              sk1300 sk2500 sk6200 sk7100 \
-              sven sven303 symplon \
-              toshiba_s3000 trust trustda \
-              unitekkb1925 yahoo
 
 // all layouts with 3rd and 4th groups
 ! $threelevellayouts = al az \
@@ -95,8 +56,6 @@
               vn \
               za
 
-! $evdevkbds = ibm_spacesaver
-
 ! $thinkpads = thinkpad thinkpad60 thinkpadz60
 
 ! $sun = sun_type6_jp sun_type6_usb sun_type6_euro_usb \
@@ -117,3 +76,4 @@
 ! $sun_compat = sun_type6 sun_type6_suncompat sun_type7_suncompat suncompat
 
 ! $htcdreamlayouts = us it de
+

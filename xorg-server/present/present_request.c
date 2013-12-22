@@ -26,17 +26,19 @@
 
 #include "present_priv.h"
 #include "randrstr.h"
+#include <protocol-versions.h>
 
 static int
 proc_present_query_version(ClientPtr client)
 {
     xPresentQueryVersionReply rep;
     REQUEST(xPresentQueryVersionReq);
+
         rep.type = X_Reply;
         rep.sequenceNumber = client->sequence;
         rep.length = 0;
-        rep.majorVersion = PRESENT_MAJOR;
-        rep.minorVersion = PRESENT_MINOR;
+        rep.majorVersion = SERVER_PRESENT_MAJOR_VERSION;
+        rep.minorVersion = SERVER_PRESENT_MINOR_VERSION;
 
 
     REQUEST_SIZE_MATCH(xPresentQueryVersionReq);

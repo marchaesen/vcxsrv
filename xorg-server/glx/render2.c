@@ -56,7 +56,7 @@ __glXDisp_Map1f(GLbyte * pc)
     points = (GLfloat *) (pc + 16);
     k = __glMap1f_size(target);
 
-    CALL_Map1f(GET_DISPATCH(), (target, u1, u2, k, order, points));
+    glMap1f(target, u1, u2, k, order, points);
 }
 
 void
@@ -79,9 +79,7 @@ __glXDisp_Map2f(GLbyte * pc)
     ustride = vorder * k;
     vstride = k;
 
-    CALL_Map2f(GET_DISPATCH(),
-               (target, u1, u2, ustride, uorder, v1, v2, vstride, vorder,
-                points));
+    glMap2f(target, u1, u2, ustride, uorder, v1, v2, vstride, vorder, points);
 }
 
 void
@@ -127,7 +125,7 @@ __glXDisp_Map1d(GLbyte * pc)
 #else
     points = (GLdouble *) pc;
 #endif
-    CALL_Map1d(GET_DISPATCH(), (target, u1, u2, k, order, points));
+    glMap1d(target, u1, u2, k, order, points);
 }
 
 void
@@ -179,9 +177,7 @@ __glXDisp_Map2d(GLbyte * pc)
 #else
     points = (GLdouble *) pc;
 #endif
-    CALL_Map2d(GET_DISPATCH(),
-               (target, u1, u2, ustride, uorder, v1, v2, vstride, vorder,
-                points));
+    glMap2d(target, u1, u2, ustride, uorder, v1, v2, vstride, vorder, points);
 }
 
 void
@@ -216,40 +212,45 @@ __glXDisp_DrawArrays(GLbyte * pc)
 
         switch (component) {
         case GL_VERTEX_ARRAY:
-            CALL_EnableClientState(GET_DISPATCH(), (GL_VERTEX_ARRAY));
-            CALL_VertexPointer(GET_DISPATCH(), (numVals, datatype, stride, pc));
+            glEnableClientState(GL_VERTEX_ARRAY);
+            glVertexPointer(numVals, datatype, stride, pc);
             break;
         case GL_NORMAL_ARRAY:
-            CALL_EnableClientState(GET_DISPATCH(), (GL_NORMAL_ARRAY));
-            CALL_NormalPointer(GET_DISPATCH(), (datatype, stride, pc));
+            glEnableClientState(GL_NORMAL_ARRAY);
+            glNormalPointer(datatype, stride, pc);
             break;
         case GL_COLOR_ARRAY:
-            CALL_EnableClientState(GET_DISPATCH(), (GL_COLOR_ARRAY));
-            CALL_ColorPointer(GET_DISPATCH(), (numVals, datatype, stride, pc));
+            glEnableClientState(GL_COLOR_ARRAY);
+            glColorPointer(numVals, datatype, stride, pc);
             break;
         case GL_INDEX_ARRAY:
-            CALL_EnableClientState(GET_DISPATCH(), (GL_INDEX_ARRAY));
-            CALL_IndexPointer(GET_DISPATCH(), (datatype, stride, pc));
+            glEnableClientState(GL_INDEX_ARRAY);
+            glIndexPointer(datatype, stride, pc);
             break;
         case GL_TEXTURE_COORD_ARRAY:
-            CALL_EnableClientState(GET_DISPATCH(), (GL_TEXTURE_COORD_ARRAY));
-            CALL_TexCoordPointer(GET_DISPATCH(),
-                                 (numVals, datatype, stride, pc));
+            glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+            glTexCoordPointer(numVals, datatype, stride, pc);
             break;
         case GL_EDGE_FLAG_ARRAY:
-            CALL_EnableClientState(GET_DISPATCH(), (GL_EDGE_FLAG_ARRAY));
-            CALL_EdgeFlagPointer(GET_DISPATCH(),
-                                 (stride, (const GLboolean *) pc));
+            glEnableClientState(GL_EDGE_FLAG_ARRAY);
+            glEdgeFlagPointer(stride, (const GLboolean *) pc);
             break;
         case GL_SECONDARY_COLOR_ARRAY:
-            CALL_EnableClientState(GET_DISPATCH(), (GL_SECONDARY_COLOR_ARRAY));
-            CALL_SecondaryColorPointer(GET_DISPATCH(),
-                                          (numVals, datatype, stride, pc));
+        {
+            PFNGLSECONDARYCOLORPOINTERPROC SecondaryColorPointerEXT =
+                __glGetProcAddress("glSecondaryColorPointerEXT");
+            glEnableClientState(GL_SECONDARY_COLOR_ARRAY);
+            SecondaryColorPointerEXT(numVals, datatype, stride, pc);
             break;
+        }
         case GL_FOG_COORD_ARRAY:
-            CALL_EnableClientState(GET_DISPATCH(), (GL_FOG_COORD_ARRAY));
-            CALL_FogCoordPointer(GET_DISPATCH(), (datatype, stride, pc));
+        {
+            PFNGLFOGCOORDPOINTERPROC FogCoordPointerEXT =
+                __glGetProcAddress("glFogCoordPointerEXT");
+            glEnableClientState(GL_FOG_COORD_ARRAY);
+            FogCoordPointerEXT(datatype, stride, pc);
             break;
+        }
         default:
             break;
         }
@@ -257,15 +258,15 @@ __glXDisp_DrawArrays(GLbyte * pc)
         pc += __GLX_PAD(numVals * __glXTypeSize(datatype));
     }
 
-    CALL_DrawArrays(GET_DISPATCH(), (primType, 0, numVertexes));
+    glDrawArrays(primType, 0, numVertexes);
 
     /* turn off anything we might have turned on */
-    CALL_DisableClientState(GET_DISPATCH(), (GL_VERTEX_ARRAY));
-    CALL_DisableClientState(GET_DISPATCH(), (GL_NORMAL_ARRAY));
-    CALL_DisableClientState(GET_DISPATCH(), (GL_COLOR_ARRAY));
-    CALL_DisableClientState(GET_DISPATCH(), (GL_INDEX_ARRAY));
-    CALL_DisableClientState(GET_DISPATCH(), (GL_TEXTURE_COORD_ARRAY));
-    CALL_DisableClientState(GET_DISPATCH(), (GL_EDGE_FLAG_ARRAY));
-    CALL_DisableClientState(GET_DISPATCH(), (GL_SECONDARY_COLOR_ARRAY));
-    CALL_DisableClientState(GET_DISPATCH(), (GL_FOG_COORD_ARRAY));
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+    glDisableClientState(GL_INDEX_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_EDGE_FLAG_ARRAY);
+    glDisableClientState(GL_SECONDARY_COLOR_ARRAY);
+    glDisableClientState(GL_FOG_COORD_ARRAY);
 }

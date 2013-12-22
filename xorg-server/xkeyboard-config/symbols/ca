@@ -266,7 +266,7 @@ xkb_symbols "multi-2gr" {
 // Inuktitut keyboard for X11
 // written by Pablo Saratxaga <pablo@mandrakesoft.com>
 
-alphanumeric_keys 
+alphanumeric_keys
 xkb_symbols "ike" {
 
     name[Group1]= "Inuktitut";
@@ -453,18 +453,18 @@ xkb_symbols "multix" {
 xkb_symbols "olpc" {
 
     include "ca(fr)"
-    
+
     key <AE02>	{ [          2,    quotedbl,          ograve,        Ograve ] };
     key <AE03>	{ [          3,    slash,          at,        VoidSymbol ] };
-    
+
     key <AD03>	{ [          e,    E,          EuroSign, VoidSymbol]	};
-        
+
     key <AB09>	{ [  period,         period,         0x1002010 ]	};
-    
+
     key <I219>  { [  guillemotleft,  guillemotright, degree, VoidSymbol ] };
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "eng" {
     name[Group1] = "English (Canada)";
     include "us(basic)"
@@ -472,7 +472,7 @@ xkb_symbols "eng" {
 
 // EXTRAS:
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "kut" {
 
     // Ejective U0313 and acute accents are taken from shs layout.
@@ -501,7 +501,7 @@ xkb_symbols "kut" {
 
 // Secwepemctsin keyboard for X11
 // written by Neskie Manuel <neskiem@gmail.com>
-partial alphanumeric_keys  
+partial alphanumeric_keys
 xkb_symbols "shs" {
 
     include "us"

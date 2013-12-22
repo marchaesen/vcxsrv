@@ -206,6 +206,11 @@ present_extension_init(void)
     ExtensionEntry *extension;
     int i;
 
+#ifdef PANORAMIX
+    if (!noPanoramiXExtension)
+        return;
+#endif
+
     extension = AddExtension(PRESENT_NAME, PresentNumberEvents, PresentNumberErrors,
                              proc_present_dispatch, sproc_present_dispatch,
                              NULL, StandardMinorOpcode);

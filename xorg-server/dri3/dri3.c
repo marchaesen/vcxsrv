@@ -68,6 +68,11 @@ dri3_extension_init(void)
     ExtensionEntry *extension;
     int i;
 
+#ifdef PANORAMIX
+    if (!noPanoramiXExtension)
+        return;
+#endif
+
     extension = AddExtension(DRI3_NAME, DRI3NumberEvents, DRI3NumberErrors,
                              proc_dri3_dispatch, sproc_dri3_dispatch,
                              NULL, StandardMinorOpcode);

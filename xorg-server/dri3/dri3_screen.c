@@ -55,6 +55,9 @@ dri3_pixmap_from_fd(PixmapPtr *ppixmap, ScreenPtr screen, int fd,
     dri3_screen_info_ptr        info = ds->info;
     PixmapPtr                   pixmap;
 
+    if (!info || !info->pixmap_from_fd)
+        return BadImplementation;
+
     pixmap = (*info->pixmap_from_fd) (screen, fd, width, height, stride, depth, bpp);
     if (!pixmap)
         return BadAlloc;
@@ -70,6 +73,9 @@ dri3_fd_from_pixmap(int *pfd, PixmapPtr pixmap, CARD16 *stride, CARD32 *size)
     dri3_screen_priv_ptr        ds = dri3_screen_priv(screen);
     dri3_screen_info_ptr        info = ds->info;
     int                         fd;
+
+    if (!info || !info->fd_from_pixmap)
+        return BadImplementation;
 
     fd = (*info->fd_from_pixmap)(screen, pixmap, stride, size);
     if (fd < 0)

@@ -1301,9 +1301,6 @@ _mesa_error_check_format_and_type(const struct gl_context *ctx,
       return GL_INVALID_OPERATION;
 
    case GL_UNSIGNED_INT_24_8:
-      if (!ctx->Extensions.EXT_packed_depth_stencil) {
-         return GL_INVALID_ENUM;
-      }
       if (format != GL_DEPTH_STENCIL) {
          return GL_INVALID_OPERATION;
       }
@@ -1484,9 +1481,8 @@ _mesa_error_check_format_and_type(const struct gl_context *ctx,
          else
             return GL_INVALID_OPERATION;
 
-      case GL_DEPTH_STENCIL_EXT:
-         if (ctx->Extensions.EXT_packed_depth_stencil &&
-             type == GL_UNSIGNED_INT_24_8)
+      case GL_DEPTH_STENCIL:
+         if (type == GL_UNSIGNED_INT_24_8)
             return GL_NO_ERROR;
          else if (ctx->Extensions.ARB_depth_buffer_float &&
              type == GL_FLOAT_32_UNSIGNED_INT_24_8_REV)
@@ -1694,8 +1690,6 @@ GLenum
 _mesa_es3_error_check_format_and_type(GLenum format, GLenum type,
                                       GLenum internalFormat)
 {
-   GLboolean type_valid = GL_TRUE;
-
    switch (format) {
    case GL_RGBA:
       switch (type) {
@@ -2116,5 +2110,5 @@ _mesa_es3_error_check_format_and_type(GLenum format, GLenum type,
       break;
    }
 
-   return type_valid ? GL_NO_ERROR : GL_INVALID_OPERATION;
+   return GL_NO_ERROR;
 }

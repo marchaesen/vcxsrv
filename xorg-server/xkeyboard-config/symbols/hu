@@ -353,7 +353,7 @@ hidden partial keypad_keys
 xkb_symbols "def_dot" { 	 
     key <KPDL>  { [    KP_Delete,   KP_Decimal                                     ] }; 	 
 }; 	 
- 
+
 
 // def_dead:
 // Dead keys support part
@@ -398,6 +398,7 @@ hidden partial alphanumeric_keys
 xkb_symbols "def_common" {
     key <AD01>  { [            q,            Q,         backslash                  ] };
     key <AD02>  { [            w,            W,               bar                  ] };
+    key <AD03>  { [            e,            E,        Adiaeresis                  ] };
     key <AD07>  { [            u,            U,          EuroSign                  ] };
     key <AD08>  { [            i,            I,            Iacute,          iacute ] };
     key <AD09>	{ [            o,            O,        doublelowquotemark          ] };

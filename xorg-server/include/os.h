@@ -702,4 +702,7 @@ xorg_backtrace(void);
 #define snprintf _snprintf
 #endif
 
+extern _X_EXPORT int
+os_move_fd(int fd);
+
 #endif                          /* OS_H */

@@ -21,10 +21,10 @@
  */
 
 #include "xftint.h"
-#include <freetype/ftoutln.h>
-#include <freetype/ftlcdfil.h>
+#include FT_OUTLINE_H
+#include FT_LCD_FILTER_H
 
-#include <freetype/ftsynth.h>
+#include FT_SYNTHESIS_H
 
 /*
  * Validate the memory info for a font

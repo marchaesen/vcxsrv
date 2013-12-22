@@ -183,11 +183,7 @@ general_composite_rect  (pixman_implementation_t *imp,
 	mask_image = NULL;
     }
 
-    component_alpha =
-        mask_image			      &&
-        mask_image->common.type == BITS       &&
-        mask_image->common.component_alpha    &&
-        PIXMAN_FORMAT_RGB (mask_image->bits.format);
+    component_alpha = mask_image && mask_image->common.component_alpha;
 
     _pixman_implementation_iter_init (
 	imp->toplevel, &mask_iter,

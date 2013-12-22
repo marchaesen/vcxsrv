@@ -299,17 +299,6 @@ composite_test (image_t *dst,
 	}
     }
 
-    if (mask)
-    {
-	if (component_alpha && PIXMAN_FORMAT_R (mask->format) == 0)
-	{
-	    /* Ax component-alpha masks expand alpha into
-	     * all color channels.
-	     */
-	    tmsk.r = tmsk.g = tmsk.b = tmsk.a;
-	}
-    }
-
     if (PIXMAN_FORMAT_TYPE (dst->format) == PIXMAN_TYPE_ARGB_SRGB)
     {
 	tdst.r = convert_linear_to_srgb (tdst.r);

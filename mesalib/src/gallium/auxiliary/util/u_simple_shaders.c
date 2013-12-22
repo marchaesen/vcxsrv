@@ -99,6 +99,32 @@ util_make_vertex_passthrough_shader_with_so(struct pipe_context *pipe,
 }
 
 
+void *util_make_layered_clear_vertex_shader(struct pipe_context *pipe)
+{
+   static const char text[] =
+         "VERT\n"
+         "DCL IN[0]\n"
+         "DCL IN[1]\n"
+         "DCL SV[0], INSTANCEID\n"
+         "DCL OUT[0], POSITION\n"
+         "DCL OUT[1], GENERIC[0]\n"
+         "DCL OUT[2], LAYER\n"
+
+         "MOV OUT[0], IN[0]\n"
+         "MOV OUT[1], IN[1]\n"
+         "MOV OUT[2], SV[0]\n"
+         "END\n";
+   struct tgsi_token tokens[1000];
+   struct pipe_shader_state state = {tokens};
+
+   if (!tgsi_text_translate(text, tokens, Elements(tokens))) {
+      assert(0);
+      return NULL;
+   }
+   return pipe->create_vs_state(pipe, &state);
+}
+
+
 /**
  * Make simple fragment texture shader:
  *  IMM {0,0,0,1}                         // (if writemask != 0xf)
@@ -526,4 +552,158 @@ util_make_fs_blit_msaa_depthstencil(struct pipe_context *pipe,
 #endif
 
    return pipe->create_fs_state(pipe, &state);
+}
+
+
+void *
+util_make_fs_msaa_resolve(struct pipe_context *pipe,
+                          unsigned tgsi_tex, unsigned nr_samples,
+                          boolean is_uint, boolean is_sint)
+{
+   struct ureg_program *ureg;
+   struct ureg_src sampler, coord;
+   struct ureg_dst out, tmp_sum, tmp_coord, tmp;
+   int i;
+
+   ureg = ureg_create(TGSI_PROCESSOR_FRAGMENT);
+   if (!ureg)
+      return NULL;
+
+   /* Declarations. */
+   sampler = ureg_DECL_sampler(ureg, 0);
+   coord = ureg_DECL_fs_input(ureg, TGSI_SEMANTIC_GENERIC, 0,
+                              TGSI_INTERPOLATE_LINEAR);
+   out = ureg_DECL_output(ureg, TGSI_SEMANTIC_COLOR, 0);
+   tmp_sum = ureg_DECL_temporary(ureg);
+   tmp_coord = ureg_DECL_temporary(ureg);
+   tmp = ureg_DECL_temporary(ureg);
+
+   /* Instructions. */
+   ureg_MOV(ureg, tmp_sum, ureg_imm1f(ureg, 0));
+   ureg_F2U(ureg, tmp_coord, coord);
+
+   for (i = 0; i < nr_samples; i++) {
+      /* Read one sample. */
+      ureg_MOV(ureg, ureg_writemask(tmp_coord, TGSI_WRITEMASK_W),
+               ureg_imm1u(ureg, i));
+      ureg_TXF(ureg, tmp, tgsi_tex, ureg_src(tmp_coord), sampler);
+
+      if (is_uint)
+         ureg_U2F(ureg, tmp, ureg_src(tmp));
+      else if (is_sint)
+         ureg_I2F(ureg, tmp, ureg_src(tmp));
+
+      /* Add it to the sum.*/
+      ureg_ADD(ureg, tmp_sum, ureg_src(tmp_sum), ureg_src(tmp));
+   }
+
+   /* Calculate the average and return. */
+   ureg_MUL(ureg, tmp_sum, ureg_src(tmp_sum),
+            ureg_imm1f(ureg, 1.0 / nr_samples));
+
+   if (is_uint)
+      ureg_F2U(ureg, out, ureg_src(tmp_sum));
+   else if (is_sint)
+      ureg_F2I(ureg, out, ureg_src(tmp_sum));
+   else
+      ureg_MOV(ureg, out, ureg_src(tmp_sum));
+
+   ureg_END(ureg);
+
+   return ureg_create_shader_and_destroy(ureg, pipe);
+}
+
+
+void *
+util_make_fs_msaa_resolve_bilinear(struct pipe_context *pipe,
+                                   unsigned tgsi_tex, unsigned nr_samples,
+                                   boolean is_uint, boolean is_sint)
+{
+   struct ureg_program *ureg;
+   struct ureg_src sampler, coord;
+   struct ureg_dst out, tmp, top, bottom;
+   struct ureg_dst tmp_coord[4], tmp_sum[4];
+   int i, c;
+
+   ureg = ureg_create(TGSI_PROCESSOR_FRAGMENT);
+   if (!ureg)
+      return NULL;
+
+   /* Declarations. */
+   sampler = ureg_DECL_sampler(ureg, 0);
+   coord = ureg_DECL_fs_input(ureg, TGSI_SEMANTIC_GENERIC, 0,
+                              TGSI_INTERPOLATE_LINEAR);
+   out = ureg_DECL_output(ureg, TGSI_SEMANTIC_COLOR, 0);
+   for (c = 0; c < 4; c++)
+      tmp_sum[c] = ureg_DECL_temporary(ureg);
+   for (c = 0; c < 4; c++)
+      tmp_coord[c] = ureg_DECL_temporary(ureg);
+   tmp = ureg_DECL_temporary(ureg);
+   top = ureg_DECL_temporary(ureg);
+   bottom = ureg_DECL_temporary(ureg);
+
+   /* Instructions. */
+   for (c = 0; c < 4; c++)
+      ureg_MOV(ureg, tmp_sum[c], ureg_imm1f(ureg, 0));
+
+   /* Get 4 texture coordinates for the bilinear filter. */
+   ureg_F2U(ureg, tmp_coord[0], coord); /* top-left */
+   ureg_UADD(ureg, tmp_coord[1], ureg_src(tmp_coord[0]),
+             ureg_imm4u(ureg, 1, 0, 0, 0)); /* top-right */
+   ureg_UADD(ureg, tmp_coord[2], ureg_src(tmp_coord[0]),
+             ureg_imm4u(ureg, 0, 1, 0, 0)); /* bottom-left */
+   ureg_UADD(ureg, tmp_coord[3], ureg_src(tmp_coord[0]),
+             ureg_imm4u(ureg, 1, 1, 0, 0)); /* bottom-right */
+
+   for (i = 0; i < nr_samples; i++) {
+      for (c = 0; c < 4; c++) {
+         /* Read one sample. */
+         ureg_MOV(ureg, ureg_writemask(tmp_coord[c], TGSI_WRITEMASK_W),
+                  ureg_imm1u(ureg, i));
+         ureg_TXF(ureg, tmp, tgsi_tex, ureg_src(tmp_coord[c]), sampler);
+
+         if (is_uint)
+            ureg_U2F(ureg, tmp, ureg_src(tmp));
+         else if (is_sint)
+            ureg_I2F(ureg, tmp, ureg_src(tmp));
+
+         /* Add it to the sum.*/
+         ureg_ADD(ureg, tmp_sum[c], ureg_src(tmp_sum[c]), ureg_src(tmp));
+      }
+   }
+
+   /* Calculate the average. */
+   for (c = 0; c < 4; c++)
+      ureg_MUL(ureg, tmp_sum[c], ureg_src(tmp_sum[c]),
+               ureg_imm1f(ureg, 1.0 / nr_samples));
+
+   /* Take the 4 average values and apply a standard bilinear filter. */
+   ureg_FRC(ureg, tmp, coord);
+
+   ureg_LRP(ureg, top,
+            ureg_scalar(ureg_src(tmp), 0),
+            ureg_src(tmp_sum[1]),
+            ureg_src(tmp_sum[0]));
+
+   ureg_LRP(ureg, bottom,
+            ureg_scalar(ureg_src(tmp), 0),
+            ureg_src(tmp_sum[3]),
+            ureg_src(tmp_sum[2]));
+
+   ureg_LRP(ureg, tmp,
+            ureg_scalar(ureg_src(tmp), 1),
+            ureg_src(bottom),
+            ureg_src(top));
+
+   /* Convert to the texture format and return. */
+   if (is_uint)
+      ureg_F2U(ureg, out, ureg_src(tmp));
+   else if (is_sint)
+      ureg_F2I(ureg, out, ureg_src(tmp));
+   else
+      ureg_MOV(ureg, out, ureg_src(tmp));
+
+   ureg_END(ureg);
+
+   return ureg_create_shader_and_destroy(ureg, pipe);
 }

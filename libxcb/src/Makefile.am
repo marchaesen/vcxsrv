@@ -139,7 +139,7 @@ endif
 EXTSOURCES += sync.c
 if BUILD_SYNC
 lib_LTLIBRARIES += libxcb-sync.la
-libxcb_sync_la_LDFLAGS = -version-info 0:0:0 -no-undefined @lt_enable_auto_import@
+libxcb_sync_la_LDFLAGS = -version-info 1:0:0 -no-undefined @lt_enable_auto_import@
 libxcb_sync_la_LIBADD = $(XCB_LIBS)
 nodist_libxcb_sync_la_SOURCES = sync.c sync.h
 endif
@@ -179,7 +179,7 @@ endif
 EXTSOURCES += xinput.c
 if BUILD_XINPUT
 lib_LTLIBRARIES += libxcb-xinput.la
-libxcb_xinput_la_LDFLAGS = -version-info 0:0:0 -no-undefined @lt_enable_auto_import@
+libxcb_xinput_la_LDFLAGS = -version-info 1:0:1 -no-undefined @lt_enable_auto_import@
 libxcb_xinput_la_LIBADD = $(XCB_LIBS)
 nodist_libxcb_xinput_la_SOURCES = xinput.c xinput.h
 endif
@@ -187,7 +187,7 @@ endif
 EXTSOURCES += xkb.c
 if BUILD_XKB
 lib_LTLIBRARIES += libxcb-xkb.la
-libxcb_xkb_la_LDFLAGS = -version-info 0:0:0 -no-undefined
+libxcb_xkb_la_LDFLAGS = -version-info 1:0:0 -no-undefined
 libxcb_xkb_la_LIBADD = $(XCB_LIBS)
 nodist_libxcb_xkb_la_SOURCES = xkb.c xkb.h
 endif

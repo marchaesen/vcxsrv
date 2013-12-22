@@ -68,7 +68,7 @@ xkb_symbols "ctrl_modifier" {
     replace key <CAPS> {
         type[Group1] = "ONE_LEVEL",
         symbols[Group1] = [ Caps_Lock ],
-        actions[Group1] = [ SetMods(modifiers=Control) ]    
+        actions[Group1] = [ SetMods(modifiers=Control) ]
     };
     modifier_map Control { <CAPS> };
 };

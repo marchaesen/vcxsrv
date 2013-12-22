@@ -43,12 +43,12 @@ xkb_symbols "basic" {
     key <AB09> { [ hebrew_finalzade,	less	]	};
 
     key.type[Group1] = "THREE_LEVEL";
-    
+
     key <TLDE> { [ semicolon,	asciitilde,0x10005b0	]}; // Sheva
     key <AB10> { [ period,	question,  0x10005c3	]}; // Sof Pasuq
     key <AD03> { [ hebrew_qoph,	E,	EuroSign	]};
     key <AC01> { [ hebrew_shin,	A,	0x10020AA	]};
-  
+
     // The following may get overriden by the iso9995-3(basic101) symbols.
     // therefore they are included here. 
     // Including them isn't a great idea (for instance: what if group 1 uses
@@ -67,11 +67,11 @@ xkb_symbols "basic" {
     key <AE10> { [     0, parenleft  , 0x10005c1	]}; // Shin dot
     key <AE11> { [ minus, underscore  , 0x10005b9	]}; // Holam
     key <AE12> { [ equal, plus        , 0x10005bc	]}; // Dagesh/Shuruq
-  
+
     // Mirrored: 
     key <AD11> { [ bracketright, braceright, 0x10005bf	]}; // Rafe
     key <AD12> { [ bracketleft,  braceleft,  0x10005bd	]}; // Meteg
-                                      
+
     key <BKSL> { [ backslash,    bar,  0x10005bb	]}; // Qubuts    
 
     include "level3(ralt_switch)"
@@ -79,7 +79,7 @@ xkb_symbols "basic" {
 
 
 // nikud patter based on Dekel Tsur's Hebrew mapping for LyX
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "lyx" {
     name[Group1]= "Hebrew (lyx)";
 
@@ -103,7 +103,7 @@ xkb_symbols "lyx" {
     key <AC01> { [ hebrew_shin,	0x10005b0	]	}; // Sheva
     key <AC02> { [ hebrew_dalet,	0x10005bc	]       }; // Dagesh/Shuruq
     key <AC03> { [ hebrew_gimel,	hebrew_gimel	]       };
-    key <AC04> { [ hebrew_kaph,	hebrew_kaph	]	}; 
+    key <AC04> { [ hebrew_kaph,	hebrew_kaph	]	};
     key <AC05> { [ hebrew_ayin,	0x10005c2	]       }; // Sin dot
     key <AC06> { [ hebrew_yod,	0x10005c1	]       }; // Shin dot
     key <AC07> { [ hebrew_chet,	0x10005b4	]	}; // Hiriq
@@ -136,13 +136,13 @@ xkb_symbols "lyx" {
     key <AE08> { [ 8, asterisk    ]};
     key <AE09> { [ 9, parenright  ]};
     key <AE10> { [ 0, parenleft	  ]};
-    
+
     key <AE11> { [ minus     ,	0x10005be	]	}; // H. Hiphen
     key <AE12> { [ equal     ,	plus		]	};
 };
 
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "phonetic" {
 
     // uses the phonetic layout from old Slackware 'il.map' file
@@ -199,7 +199,7 @@ xkb_symbols "phonetic" {
 // layout below does not include 'il(basic)' but redoes the _whole_ thing from
 // scratch.
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "biblical" {
 	name[Group1]= "Hebrew (Biblical, Tiro)";
 	key.type = "FOUR_LEVEL_SEMIALPHABETIC";
@@ -267,7 +267,7 @@ xkb_symbols "biblical" {
 // The layout corresponds phonetically to a US standard layout or similar (Qwerty).
 // If you are using an actual Hebrew keyboard, you are probably better off using a Tiro compliant scholarly layout
 // This linux port created and maintained by Dennis Meulensteen, dennis@meulensteen.nl
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "biblicalSIL" {
 	name[Group1]= "Hebrew (Biblical, SIL phonetic)";
 	key.type = "FOUR_LEVEL_SEMIALPHABETIC";

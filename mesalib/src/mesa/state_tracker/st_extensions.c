@@ -406,7 +406,6 @@ void st_init_extensions(struct st_context *st)
       { o(NV_texture_barrier),               PIPE_CAP_TEXTURE_BARRIER                  },
       /* GL_NV_point_sprite is not supported by gallium because we don't
        * support the GL_POINT_SPRITE_R_MODE_NV option. */
-      { o(MESA_texture_array),               PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS         },
 
       { o(OES_standard_derivatives),         PIPE_CAP_SM3                              },
       { o(ARB_texture_cube_map_array),       PIPE_CAP_CUBE_MAP_ARRAY                   },
@@ -444,11 +443,6 @@ void st_init_extensions(struct st_context *st)
       { { o(ARB_depth_buffer_float) },
         { PIPE_FORMAT_Z32_FLOAT,
           PIPE_FORMAT_Z32_FLOAT_S8X24_UINT } },
-
-      { { o(EXT_packed_depth_stencil) },
-        { PIPE_FORMAT_S8_UINT_Z24_UNORM,
-          PIPE_FORMAT_Z24_UNORM_S8_UINT },
-        GL_TRUE }, /* at least one format must be supported */
    };
 
    /* Required: sampler support */
@@ -605,6 +599,13 @@ void st_init_extensions(struct st_context *st)
       ctx->Const.ForceGLSLVersion = st->options.force_glsl_version;
    }
 
+   /* This extension needs full OpenGL 3.2, but we don't know if that's
+    * supported at this point. Only check the GLSL version. */
+   if (ctx->Const.GLSLVersion >= 150 &&
+       screen->get_param(screen, PIPE_CAP_TGSI_VS_LAYER)) {
+      ctx->Extensions.AMD_vertex_shader_layer = GL_TRUE;
+   }
+
    if (ctx->Const.GLSLVersion >= 130) {
       ctx->Const.NativeIntegers = GL_TRUE;
       ctx->Const.MaxClipPlanes = 8;
@@ -758,8 +759,7 @@ void st_init_extensions(struct st_context *st)
                              PIPE_BUFFER, PIPE_BIND_SAMPLER_VIEW);
    }
 
-   if (screen->get_param(screen, PIPE_CAP_MIXED_FRAMEBUFFER_SIZES) &&
-       ctx->Extensions.EXT_packed_depth_stencil) {
+   if (screen->get_param(screen, PIPE_CAP_MIXED_FRAMEBUFFER_SIZES)) {
       ctx->Extensions.ARB_framebuffer_object = GL_TRUE;
    }
 

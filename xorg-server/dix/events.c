@@ -4702,7 +4702,7 @@ DeviceEnterLeaveEvent(DeviceIntPtr mouse,
 
     filter = GetEventFilter(mouse, (xEvent *) event);
 
-    if (grab && grab->type == XI2) {
+    if (grab && grab->grabtype == XI2) {
         Mask mask;
 
         mask = xi2mask_isset(grab->xi2mask, mouse, type);

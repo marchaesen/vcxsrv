@@ -347,7 +347,7 @@ extern char *bundle_id_prefix;
     const char *newargv[4];
     char buf[128];
     char *s;
-#if 0 && MAC_OS_X_VERSION_MAX_ALLOWED >= 1080
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= 1080
     int stdout_pipe[2];
     int stderr_pipe[2];
 #endif
@@ -363,7 +363,7 @@ extern char *bundle_id_prefix;
         setenv("DISPLAY", buf, TRUE);
     }
 
-#if 0 && MAC_OS_X_VERSION_MAX_ALLOWED >= 1080
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= 1080
     if (asl_log_descriptor) {
         char *asl_sender;
         aslmsg amsg = asl_new(ASL_TYPE_MSG);
@@ -413,7 +413,7 @@ extern char *bundle_id_prefix;
             _exit(1);
 
         case 0:                                     /* child2 */
-#if 0 && MAC_OS_X_VERSION_MAX_ALLOWED >= 1080
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= 1080
             if (asl_log_descriptor) {
                 /* Replace our stdout/stderr */
                 dup2(stdout_pipe[1], STDOUT_FILENO);
@@ -442,7 +442,7 @@ extern char *bundle_id_prefix;
         waitpid(child1, &status, 0);
     }
 
-#if 0 && MAC_OS_X_VERSION_MAX_ALLOWED >= 1080
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= 1080
     if (asl_log_descriptor) {
         /* Close the write ends of the pipe */
         close(stdout_pipe[1]);

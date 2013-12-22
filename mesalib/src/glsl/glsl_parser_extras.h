@@ -34,12 +34,6 @@
 #include <stdlib.h>
 #include "glsl_symbol_table.h"
 
-enum _mesa_glsl_parser_targets {
-   vertex_shader,
-   geometry_shader,
-   fragment_shader
-};
-
 struct gl_context;
 
 struct glsl_switch_state {
@@ -175,7 +169,7 @@ struct _mesa_glsl_parse_state {
 
    bool es_shader;
    unsigned language_version;
-   enum _mesa_glsl_parser_targets target;
+   gl_shader_type target;
 
    /**
     * Number of nested struct_specifier levels
@@ -365,9 +359,7 @@ struct _mesa_glsl_parse_state {
    /** Extensions supported by the OpenGL implementation. */
    const struct gl_extensions *extensions;
 
-   /** Shaders containing built-in functions that are used for linking. */
-   struct gl_shader *builtins_to_link[16];
-   unsigned num_builtins_to_link;
+   bool uses_builtin_functions;
 
    /**
     * For geometry shaders, size of the most recently seen input declaration
@@ -437,7 +429,7 @@ extern bool _mesa_glsl_process_extension(const char *name, YYLTYPE *name_locp,
  * Get the textual name of the specified shader target
  */
 extern const char *
-_mesa_glsl_shader_target_name(enum _mesa_glsl_parser_targets target);
+_mesa_glsl_shader_target_name(gl_shader_type target);
 
 
 #endif /* __cplusplus */

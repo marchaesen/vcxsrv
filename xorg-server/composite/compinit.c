@@ -117,11 +117,11 @@ compChangeWindowAttributes(WindowPtr pWin, unsigned long mask)
 
     if (ret && (mask & CWBackingStore) &&
         pScreen->backingStoreSupport != NotUseful) {
-        if (pWin->backingStore != NotUseful) {
+        if (pWin->backingStore != NotUseful && !pWin->backStorage) {
             compRedirectWindow(serverClient, pWin, CompositeRedirectAutomatic);
             pWin->backStorage = (pointer) (intptr_t) 1;
         }
-        else {
+        else if (pWin->backingStore == NotUseful && pWin->backStorage) {
             compUnredirectWindow(serverClient, pWin,
                                  CompositeRedirectAutomatic);
             pWin->backStorage = NULL;
@@ -354,6 +354,9 @@ compScreenInit(ScreenPtr pScreen)
         free(cs);
         return FALSE;
     }
+
+    if (!disableBackingStore)
+        pScreen->backingStoreSupport = WhenMapped;
 
     cs->PositionWindow = pScreen->PositionWindow;
     pScreen->PositionWindow = compPositionWindow;

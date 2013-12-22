@@ -54,6 +54,7 @@ Equipment Corporation.
 #include "resource.h"
 #include "picturestr.h"
 #include "xfixesint.h"
+#include "damageextint.h"
 #ifdef COMPOSITE
 #include "compint.h"
 #endif
@@ -73,7 +74,7 @@ int PanoramiXPixWidth = 0;
 int PanoramiXPixHeight = 0;
 int PanoramiXNumScreens = 0;
 
-static RegionRec PanoramiXScreenRegion = { {0, 0, 0, 0}, NULL };
+_X_EXPORT RegionRec PanoramiXScreenRegion = { {0, 0, 0, 0}, NULL };
 
 static int PanoramiXNumDepths;
 static DepthPtr PanoramiXDepths;
@@ -582,6 +583,7 @@ PanoramiXExtensionInit(void)
 
     PanoramiXRenderInit();
     PanoramiXFixesInit();
+    PanoramiXDamageInit();
 #ifdef COMPOSITE
     PanoramiXCompositeInit();
 #endif
@@ -887,6 +889,7 @@ PanoramiXResetProc(ExtensionEntry * extEntry)
 
     PanoramiXRenderReset();
     PanoramiXFixesReset();
+    PanoramiXDamageReset();
 #ifdef COMPOSITE
     PanoramiXCompositeReset ();
 #endif

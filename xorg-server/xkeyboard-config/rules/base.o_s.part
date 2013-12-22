@@ -8,6 +8,7 @@
   altwin:hyper_win	=	+altwin(hyper_win)
   altwin:alt_super_win	=	+altwin(alt_super_win)
   altwin:swap_alt_win	=	+altwin(swap_alt_win)
+  grab:debug		=	+srvr_ctrl(grab_debug)
   grp:switch		=	+group(switch)
   grp:lswitch		=	+group(lswitch)
   grp:win_switch	=	+group(win_switch)

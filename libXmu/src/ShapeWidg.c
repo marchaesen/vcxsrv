@@ -201,7 +201,7 @@ ShapeEllipseOrRoundedRectangle(Widget w, Bool ellipse, int ew, int eh)
     GC gc;
   unsigned long mask;
 
-  if (width < 3 || width < 3)
+  if (width < 3 || height < 3)
     return;
   width += w->core.border_width << 1;
   height += w->core.border_width << 1;

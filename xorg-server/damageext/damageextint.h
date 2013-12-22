@@ -67,4 +67,7 @@ typedef struct _DamageExt {
 void
  DamageExtSetCritical(ClientPtr pClient, Bool critical);
 
+void PanoramiXDamageInit(void);
+void PanoramiXDamageReset(void);
+
 #endif                          /* _DAMAGEEXTINT_H_ */

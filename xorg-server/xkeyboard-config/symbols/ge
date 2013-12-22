@@ -123,7 +123,7 @@ xkb_symbols "ergonomic" {
     key <AC07> { [ 0x010010db, noSymbol     ]       };
     key <AC08> { [ 0x010010e1, noSymbol     ]       };
     key <AC09> { [ 0x010010e0, noSymbol, L  ]       };
-    key <AC10> { [ 0x010010d1, noSymbol, colon         ] }; 
+    key <AC10> { [ 0x010010d1, noSymbol, colon         ] };
     key <AC11> { [ 0x010010d2, noSymbol, 0x010010f9, quotedbl ] };
     key <BKSL> { [ slash, section, backslash, bar ] };
 

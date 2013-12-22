@@ -280,6 +280,7 @@ typedef enum
  */
 #define SYSTEM_BIT_SAMPLE_ID BITFIELD64_BIT(SYSTEM_VALUE_SAMPLE_ID)
 #define SYSTEM_BIT_SAMPLE_POS BITFIELD64_BIT(SYSTEM_VALUE_SAMPLE_POS)
+#define SYSTEM_BIT_SAMPLE_MASK_IN BITFIELD64_BIT(SYSTEM_VALUE_SAMPLE_MASK_IN)
 
 /**
  * Determine if the given gl_varying_slot appears in the fragment shader.
@@ -1193,6 +1194,11 @@ struct gl_texture_object
                                     pressure? */
    GLboolean Immutable;        /**< GL_ARB_texture_storage */
 
+   GLuint MinLevel;            /**< GL_ARB_texture_view */
+   GLuint MinLayer;            /**< GL_ARB_texture_view */
+   GLuint NumLevels;           /**< GL_ARB_texture_view */
+   GLuint NumLayers;           /**< GL_ARB_texture_view */
+
    /** Actual texture images, indexed by [cube face] and [mipmap level] */
    struct gl_texture_image *Image[MAX_FACES][MAX_TEXTURE_LEVELS];
 
@@ -1968,12 +1974,13 @@ typedef enum
  */
 typedef enum
 {
-   SYSTEM_VALUE_FRONT_FACE,  /**< Fragment shader only (not done yet) */
-   SYSTEM_VALUE_VERTEX_ID,   /**< Vertex shader only */
-   SYSTEM_VALUE_INSTANCE_ID, /**< Vertex shader only */
-   SYSTEM_VALUE_SAMPLE_ID,   /**< Fragment shader only */
-   SYSTEM_VALUE_SAMPLE_POS,  /**< Fragment shader only */
-   SYSTEM_VALUE_MAX          /**< Number of values */
+   SYSTEM_VALUE_FRONT_FACE,     /**< Fragment shader only (not done yet) */
+   SYSTEM_VALUE_VERTEX_ID,      /**< Vertex shader only */
+   SYSTEM_VALUE_INSTANCE_ID,    /**< Vertex shader only */
+   SYSTEM_VALUE_SAMPLE_ID,      /**< Fragment shader only */
+   SYSTEM_VALUE_SAMPLE_POS,     /**< Fragment shader only */
+   SYSTEM_VALUE_SAMPLE_MASK_IN, /**< Fragment shader only */
+   SYSTEM_VALUE_MAX             /**< Number of values */
 } gl_system_value;
 
 
@@ -2132,6 +2139,12 @@ struct gl_fragment_program
     * uses centroid interpolation, 0 otherwise.  Unused inputs are 0.
     */
    GLbitfield64 IsCentroid;
+
+   /**
+    * Bitfield indicating, for each fragment shader input, 1 if that input
+    * uses sample interpolation, 0 otherwise.  Unused inputs are 0.
+    */
+   GLbitfield64 IsSample;
 };
 
 
@@ -2352,9 +2365,7 @@ struct gl_shader
    struct exec_list *ir;
    struct glsl_symbol_table *symbols;
 
-   /** Shaders containing built-in functions that are used for linking. */
-   struct gl_shader *builtins_to_link[16];
-   unsigned num_builtins_to_link;
+   bool uses_builtin_functions;
 
    /**
     * Geometry shader state from GLSL 1.50 layout qualifiers.
@@ -2388,8 +2399,9 @@ typedef enum
    MESA_SHADER_VERTEX = 0,
    MESA_SHADER_GEOMETRY = 1,
    MESA_SHADER_FRAGMENT = 2,
-   MESA_SHADER_TYPES = 3
 } gl_shader_type;
+
+#define MESA_SHADER_TYPES (MESA_SHADER_FRAGMENT + 1)
 
 
 struct gl_uniform_buffer_variable
@@ -3374,6 +3386,7 @@ struct gl_extensions
    GLboolean ARB_texture_query_lod;
    GLboolean ARB_texture_rg;
    GLboolean ARB_texture_rgb10_a2ui;
+   GLboolean ARB_texture_view;
    GLboolean ARB_timer_query;
    GLboolean ARB_transform_feedback2;
    GLboolean ARB_transform_feedback3;
@@ -3395,7 +3408,6 @@ struct gl_extensions
    GLboolean EXT_framebuffer_sRGB;
    GLboolean EXT_gpu_program_parameters;
    GLboolean EXT_gpu_shader4;
-   GLboolean EXT_packed_depth_stencil;
    GLboolean EXT_packed_float;
    GLboolean EXT_pixel_buffer_object;
    GLboolean EXT_point_parameters;
@@ -3432,7 +3444,6 @@ struct gl_extensions
    GLboolean ATI_fragment_shader;
    GLboolean ATI_separate_stencil;
    GLboolean MESA_pack_invert;
-   GLboolean MESA_texture_array;
    GLboolean MESA_ycbcr_texture;
    GLboolean NV_conditional_render;
    GLboolean NV_fog_distance;

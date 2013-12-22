@@ -43,7 +43,7 @@ xkb_symbols "nodeadkeys" {
 };
 
 // Copied from macintosh_vndr/dk
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "mac" {
 
     include "dk"
@@ -55,7 +55,7 @@ xkb_symbols "mac" {
 };
 
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "mac_nodeadkeys" {
     include "dk(mac)"
     name[Group1]= "Danish (Macintosh, eliminate dead keys)";
@@ -64,7 +64,7 @@ xkb_symbols "mac_nodeadkeys" {
     key <AD12>	{ [diaeresis, asciicircum,   asciitilde,  dead_macron ]	};
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "dvorak" {
     include "no(dvorak)"
 

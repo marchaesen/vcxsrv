@@ -59,12 +59,12 @@ xkb_symbols "basic" {
     key <BKSL> { [ Thai_khokhuat,	Thai_khokhon	]	};
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "pat" {
     name[Group1]= "Thai (Pattachote)";
     // The thai layout defines a second keyboard group and changes
     // the behavior of a few modifier keys.
-    
+
     // converted to THai keysysms - Pablo Saratxaga pablo@mandrakesoft.com
     // Pattachote modification by Visanu Euarchukiati -- visanu@inet.co.th
     key <TLDE> { [ underscore,		Thai_baht	] };
@@ -121,7 +121,7 @@ xkb_symbols "pat" {
 };
 
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "tis" {
     name[Group1]= "Thai (TIS-820.2538)";
     // The thai layout defines a second keyboard group and changes
