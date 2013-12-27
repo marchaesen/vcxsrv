@@ -1,4 +1,4 @@
-Release 1.10 (2013-12-XX)
+Release 1.10 (2013-12-22)
 =========================
 * Bump libxcb-xkb SONAME due to ABI break introduced in 1.9.2
 * Enable libxcb-xkb by default

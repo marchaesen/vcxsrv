@@ -525,6 +525,7 @@ present_execute(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
     WindowPtr                   window = vblank->window;
     ScreenPtr                   screen = window->drawable.pScreen;
     present_screen_priv_ptr     screen_priv = present_screen_priv(screen);
+    uint8_t                     mode;
 
     if (vblank->wait_fence) {
         if (!present_fence_check_triggered(vblank->wait_fence)) {
@@ -604,7 +605,20 @@ present_execute(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
 
         present_pixmap_idle(vblank->pixmap, vblank->window, vblank->serial, vblank->idle_fence);
     }
-    present_vblank_notify(vblank, vblank->kind, PresentCompleteModeCopy, ust, crtc_msc);
+
+    /* Compute correct CompleteMode
+     */
+    if (vblank->kind == PresentCompleteKindPixmap) {
+        if (vblank->pixmap && vblank->window)
+            mode = PresentCompleteModeCopy;
+        else
+            mode = PresentCompleteModeSkip;
+    }
+    else
+        mode = PresentCompleteModeCopy;
+
+
+    present_vblank_notify(vblank, vblank->kind, mode, ust, crtc_msc);
     present_vblank_destroy(vblank);
 }
 
@@ -663,10 +677,18 @@ present_pixmap(WindowPtr window,
     if (crtc_msc >= target_msc) {
         if (divisor != 0) {
             target_msc = crtc_msc - (crtc_msc % divisor) + remainder;
-            if (target_msc <= crtc_msc)
-                target_msc += divisor;
-        } else
+            if (options & PresentOptionAsync) {
+                if (target_msc < crtc_msc)
+                    target_msc += divisor;
+            } else {
+                if (target_msc <= crtc_msc)
+                    target_msc += divisor;
+            }
+        } else {
             target_msc = crtc_msc;
+            if (!(options & PresentOptionAsync))
+                target_msc++;
+        }
     }
 
     /*
@@ -679,6 +701,9 @@ present_pixmap(WindowPtr window,
         xorg_list_for_each_entry(vblank, &window_priv->vblank, window_list) {
 
             if (!vblank->pixmap)
+                continue;
+
+            if (!vblank->queued)
                 continue;
 
             if (vblank->crtc != target_crtc || vblank->target_msc != target_msc)
