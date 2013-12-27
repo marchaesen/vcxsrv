@@ -1,4 +1,4 @@
-Release 1.10 (2013-12-XX)
+Release 1.10 (2013-12-22)
 =========================
 * xkb: comment out portions that libxcb doesn't handle properly
 * Present: Remove reference to nonexistent enum
