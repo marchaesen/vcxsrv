@@ -414,7 +414,7 @@ link_invalidate_variable_locations(exec_list *ir)
  * Return false if an error was reported.
  */
 static void
-analyze_clip_usage(const char *shader_type, struct gl_shader_program *prog,
+analyze_clip_usage(struct gl_shader_program *prog,
                    struct gl_shader *shader, GLboolean *UsesClipDistance,
                    GLuint *ClipDistanceArraySize)
 {
@@ -437,7 +437,8 @@ analyze_clip_usage(const char *shader_type, struct gl_shader_program *prog,
       clip_distance.run(shader->ir);
       if (clip_vertex.variable_found() && clip_distance.variable_found()) {
          linker_error(prog, "%s shader writes to both `gl_ClipVertex' "
-                      "and `gl_ClipDistance'\n", shader_type);
+                      "and `gl_ClipDistance'\n",
+                      _mesa_shader_enum_to_string(shader->Type));
          return;
       }
       *UsesClipDistance = clip_distance.variable_found();
@@ -501,7 +502,7 @@ validate_vertex_shader_executable(struct gl_shader_program *prog,
       }
    }
 
-   analyze_clip_usage("vertex", prog, shader, &prog->Vert.UsesClipDistance,
+   analyze_clip_usage(prog, shader, &prog->Vert.UsesClipDistance,
                       &prog->Vert.ClipDistanceArraySize);
 }
 
@@ -548,7 +549,7 @@ validate_geometry_shader_executable(struct gl_shader_program *prog,
    unsigned num_vertices = vertices_per_prim(prog->Geom.InputType);
    prog->Geom.VerticesIn = num_vertices;
 
-   analyze_clip_usage("geometry", prog, shader, &prog->Geom.UsesClipDistance,
+   analyze_clip_usage(prog, shader, &prog->Geom.UsesClipDistance,
                       &prog->Geom.ClipDistanceArraySize);
 
    find_end_primitive_visitor end_primitive;
@@ -1375,7 +1376,7 @@ link_intrastage_shaders(void *mem_ctx,
 
    if (main == NULL) {
       linker_error(prog, "%s shader lacks `main'\n",
-		   _mesa_glsl_shader_target_name(shader_list[0]->Type));
+		   _mesa_shader_enum_to_string(shader_list[0]->Type));
       return NULL;
    }
 
@@ -1893,33 +1894,35 @@ store_fragdepth_layout(struct gl_shader_program *prog)
 static void
 check_resources(struct gl_context *ctx, struct gl_shader_program *prog)
 {
-   static const char *const shader_names[MESA_SHADER_TYPES] = {
-      "vertex", "geometry", "fragment"
-   };
-
-   const unsigned max_samplers[MESA_SHADER_TYPES] = {
+   const unsigned max_samplers[] = {
       ctx->Const.VertexProgram.MaxTextureImageUnits,
       ctx->Const.GeometryProgram.MaxTextureImageUnits,
       ctx->Const.FragmentProgram.MaxTextureImageUnits
    };
+   STATIC_ASSERT(Elements(max_samplers) == MESA_SHADER_TYPES);
 
-   const unsigned max_default_uniform_components[MESA_SHADER_TYPES] = {
+   const unsigned max_default_uniform_components[] = {
       ctx->Const.VertexProgram.MaxUniformComponents,
       ctx->Const.GeometryProgram.MaxUniformComponents,
       ctx->Const.FragmentProgram.MaxUniformComponents
    };
+   STATIC_ASSERT(Elements(max_default_uniform_components) ==
+                 MESA_SHADER_TYPES);
 
-   const unsigned max_combined_uniform_components[MESA_SHADER_TYPES] = {
+   const unsigned max_combined_uniform_components[] = {
       ctx->Const.VertexProgram.MaxCombinedUniformComponents,
       ctx->Const.GeometryProgram.MaxCombinedUniformComponents,
       ctx->Const.FragmentProgram.MaxCombinedUniformComponents
    };
+   STATIC_ASSERT(Elements(max_combined_uniform_components) ==
+                 MESA_SHADER_TYPES);
 
-   const unsigned max_uniform_blocks[MESA_SHADER_TYPES] = {
+   const unsigned max_uniform_blocks[] = {
       ctx->Const.VertexProgram.MaxUniformBlocks,
       ctx->Const.GeometryProgram.MaxUniformBlocks,
       ctx->Const.FragmentProgram.MaxUniformBlocks
    };
+   STATIC_ASSERT(Elements(max_uniform_blocks) == MESA_SHADER_TYPES);
 
    for (unsigned i = 0; i < MESA_SHADER_TYPES; i++) {
       struct gl_shader *sh = prog->_LinkedShaders[i];
@@ -1929,7 +1932,7 @@ check_resources(struct gl_context *ctx, struct gl_shader_program *prog)
 
       if (sh->num_samplers > max_samplers[i]) {
 	 linker_error(prog, "Too many %s shader texture samplers",
-		      shader_names[i]);
+		      _mesa_shader_type_to_string(i));
       }
 
       if (sh->num_uniform_components > max_default_uniform_components[i]) {
@@ -1938,11 +1941,11 @@ check_resources(struct gl_context *ctx, struct gl_shader_program *prog)
                            "components, but the driver will try to optimize "
                            "them out; this is non-portable out-of-spec "
 			   "behavior\n",
-                           shader_names[i]);
+                           _mesa_shader_type_to_string(i));
          } else {
             linker_error(prog, "Too many %s shader default uniform block "
 			 "components",
-                         shader_names[i]);
+                         _mesa_shader_type_to_string(i));
          }
       }
 
@@ -1952,10 +1955,10 @@ check_resources(struct gl_context *ctx, struct gl_shader_program *prog)
             linker_warning(prog, "Too many %s shader uniform components, "
                            "but the driver will try to optimize them out; "
                            "this is non-portable out-of-spec behavior\n",
-                           shader_names[i]);
+                           _mesa_shader_type_to_string(i));
          } else {
             linker_error(prog, "Too many %s shader uniform components",
-                         shader_names[i]);
+                         _mesa_shader_type_to_string(i));
          }
       }
    }
@@ -1979,7 +1982,7 @@ check_resources(struct gl_context *ctx, struct gl_shader_program *prog)
 	 for (unsigned i = 0; i < MESA_SHADER_TYPES; i++) {
 	    if (blocks[i] > max_uniform_blocks[i]) {
 	       linker_error(prog, "Too many %s uniform blocks (%d/%d)",
-			    shader_names[i],
+			    _mesa_shader_type_to_string(i),
 			    blocks[i],
 			    max_uniform_blocks[i]);
 	       break;

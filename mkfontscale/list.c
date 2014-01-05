@@ -235,7 +235,12 @@ sortList(ListPtr old)
     int i;
     int l = listLength(old);
     ListPtr n;
-    ListPtr *sorted = malloc(l * sizeof(ListPtr));
+    ListPtr *sorted;
+
+    if (l <= 0)
+        return old;
+
+    sorted = malloc(l * sizeof(ListPtr));
 
     if (sorted == NULL)
         return old;

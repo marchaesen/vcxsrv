@@ -1763,7 +1763,7 @@ def c_simple(self, name):
         # Iterator
         _c_iterator(self, name)
 
-def _c_complex(self):
+def _c_complex(self, force_packed = False):
     '''
     Helper function for handling all structure types.
     Called for all structs, requests, replies, events, errors.
@@ -1818,7 +1818,7 @@ def _c_complex(self):
             if b.type.has_name:
                 _h('    } %s;', b.c_field_name)
 
-    _h('} %s;', self.c_type)
+    _h('} %s%s;', 'XCB_PACKED ' if force_packed else '', self.c_type)
 
 def c_struct(self, name):
     '''
@@ -2903,6 +2903,7 @@ def c_event(self, name):
     # events while generating the structure for them. Otherwise we would read
     # garbage (the internal full_sequence) when accessing normal event fields
     # there.
+    force_packed = False
     if hasattr(self, 'is_ge_event') and self.is_ge_event and self.name == name:
         event_size = 0
         for field in self.fields:
@@ -2912,6 +2913,11 @@ def c_event(self, name):
                 full_sequence = Field(tcard32, tcard32.name, 'full_sequence', False, True, True)
                 idx = self.fields.index(field)
                 self.fields.insert(idx + 1, full_sequence)
+
+                # If the event contains any 64-bit extended fields, they need
+                # to remain aligned on a 64-bit boundary.  Adding full_sequence
+                # would normally break that; force the struct to be packed.
+                force_packed = any(f.type.size == 8 and f.type.is_simple for f in self.fields[(idx+1):])
                 break
 
     _c_type_setup(self, name, ('event',))
@@ -2921,7 +2927,7 @@ def c_event(self, name):
 
     if self.name == name:
         # Structure definition
-        _c_complex(self)
+        _c_complex(self, force_packed)
     else:
         # Typedef
         _h('')

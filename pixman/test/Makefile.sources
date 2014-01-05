@@ -27,6 +27,7 @@ TESTPROGRAMS =			\
 	scaling-test		\
 	affine-test		\
 	composite		\
+	tolerance-test		\
 	$(NULL)
 
 # Other programs

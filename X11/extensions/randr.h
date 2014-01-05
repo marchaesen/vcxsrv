@@ -180,6 +180,7 @@ typedef unsigned long	XRandrModeFlags;
 #define RR_PROPERTY_CLONE_LIST		"CloneList"
 #define RR_PROPERTY_BORDER		"Border"
 #define RR_PROPERTY_BORDER_DIMENSIONS	"BorderDimensions"
+#define RR_PROPERTY_GUID		"GUID"
 
 /* roles this device can carry out */
 #define RR_Capability_None 0
