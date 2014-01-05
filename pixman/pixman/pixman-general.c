@@ -109,6 +109,20 @@ static const op_info_t op_flags[PIXMAN_N_OPERATORS] =
 
 #define SCANLINE_BUFFER_LENGTH 8192
 
+static pixman_bool_t
+operator_needs_division (pixman_op_t op)
+{
+    static const uint8_t needs_division[] =
+    {
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, /* SATURATE */
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, /* DISJOINT */
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, /* CONJOINT */
+	0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, /* blend ops */
+    };
+
+    return needs_division[op];
+}
+
 static void
 general_composite_rect  (pixman_implementation_t *imp,
                          pixman_composite_info_t *info)
@@ -124,9 +138,10 @@ general_composite_rect  (pixman_implementation_t *imp,
     int Bpp;
     int i;
 
-    if ((src_image->common.flags & FAST_PATH_NARROW_FORMAT)		    &&
-	(!mask_image || mask_image->common.flags & FAST_PATH_NARROW_FORMAT) &&
-	(dest_image->common.flags & FAST_PATH_NARROW_FORMAT))
+    if ((src_image->common.flags & FAST_PATH_NARROW_FORMAT)		     &&
+	(!mask_image || mask_image->common.flags & FAST_PATH_NARROW_FORMAT)  &&
+	(dest_image->common.flags & FAST_PATH_NARROW_FORMAT)		     &&
+	!(operator_needs_division (op)))
     {
 	width_flag = ITER_NARROW;
 	Bpp = 4;

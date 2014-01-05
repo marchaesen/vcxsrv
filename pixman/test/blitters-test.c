@@ -122,6 +122,15 @@ static pixman_op_t op_list[] = {
     PIXMAN_OP_ATOP_REVERSE,
     PIXMAN_OP_XOR,
     PIXMAN_OP_ADD,
+    PIXMAN_OP_MULTIPLY,
+    PIXMAN_OP_SCREEN,
+    PIXMAN_OP_OVERLAY,
+    PIXMAN_OP_DARKEN,
+    PIXMAN_OP_LIGHTEN,
+    PIXMAN_OP_HARD_LIGHT,
+    PIXMAN_OP_DIFFERENCE,
+    PIXMAN_OP_EXCLUSION,
+#if 0 /* these use floating point math and are not always bitexact on different platforms */
     PIXMAN_OP_SATURATE,
     PIXMAN_OP_DISJOINT_CLEAR,
     PIXMAN_OP_DISJOINT_SRC,
@@ -147,17 +156,8 @@ static pixman_op_t op_list[] = {
     PIXMAN_OP_CONJOINT_ATOP,
     PIXMAN_OP_CONJOINT_ATOP_REVERSE,
     PIXMAN_OP_CONJOINT_XOR,
-    PIXMAN_OP_MULTIPLY,
-    PIXMAN_OP_SCREEN,
-    PIXMAN_OP_OVERLAY,
-    PIXMAN_OP_DARKEN,
-    PIXMAN_OP_LIGHTEN,
     PIXMAN_OP_COLOR_DODGE,
     PIXMAN_OP_COLOR_BURN,
-    PIXMAN_OP_HARD_LIGHT,
-    PIXMAN_OP_DIFFERENCE,
-    PIXMAN_OP_EXCLUSION,
-#if 0 /* these use floating point math and are not always bitexact on different platforms */
     PIXMAN_OP_SOFT_LIGHT,
     PIXMAN_OP_HSL_HUE,
     PIXMAN_OP_HSL_SATURATION,
@@ -394,6 +394,6 @@ main (int argc, const char *argv[])
     }
 
     return fuzzer_test_main("blitters", 2000000,
-			    0x63B4E3F3,
+			    0xCC21DDF0,
 			    test_composite, argc, argv);
 }

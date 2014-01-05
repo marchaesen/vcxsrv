@@ -51,6 +51,8 @@ extern "C" {
  * @file xcb.h
  */
 
+#define XCB_PACKED __attribute__((__packed__))
+
 /**
  * @defgroup XCB_Core_API XCB Core API
  * @brief Core API of the XCB library.

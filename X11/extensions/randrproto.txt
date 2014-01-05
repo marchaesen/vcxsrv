@@ -1957,6 +1957,17 @@ doesn't handle a mandatory property correctly.
 	  2 = left/right and top/bottom borders can be specified independently
 	  4 = all four borders can be specified independently
 
+    "GUID"			aka RR_PROPERTY_GUID
+	Type:			INTEGER
+	Format:			8
+	Num items:		16
+	Flags:			Immutable
+	Range/List:		-
+
+	Some display devices, such as DisplayPort 1.2 devices, have globally
+	unique identifiers.  When such an identifier is available, this property
+	contains its raw bytes.
+
 
 9.2 Properties introduced with version 1.2 of the RandR extension
 
@@ -1990,6 +2001,7 @@ Property			Immutable	Mandatory since
 ────────			─────────	───────────────
 Border				yes		not mandatory
 BorderDimensions		yes: static	not mandatory
+GUID				yes		not mandatory
 
 			      ❧❧❧❧❧❧❧❧❧❧❧
 

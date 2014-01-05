@@ -29,6 +29,7 @@ in this Software without prior written authorization from The Open Group.
 #endif
 #include <X11/Xauth.h>
 #include <X11/Xos.h>
+#include <assert.h>
 #include <stdlib.h>
 
 static char *buf = NULL;
@@ -69,6 +70,7 @@ XauFileName (void)
     if ((size > bsize) || (buf == NULL)) {
 	if (buf)
 	    free (buf);
+        assert(size > 0);
 	buf = malloc (size);
 	if (!buf) {
 	    bsize = 0;

@@ -490,7 +490,7 @@ safe(const char* s)
         i++;
     }
 
-    if(safe_flag) return s;
+    if(safe_flag) return strdup(s);
 
     len = i;
     t = malloc(len + 1);
@@ -514,7 +514,7 @@ makeXLFD(char *filename, FT_Face face, int isBitmap)
 {
     ListPtr xlfd = NULL;
     const char *foundry, *family, *weight, *slant, *sWidth, *adstyle,
-        *spacing, *full_name;
+        *spacing, *full_name, *tmp;
     TT_Header *head;
     TT_HoriHeader *hhea;
     TT_OS2 *os2;
@@ -582,11 +582,11 @@ makeXLFD(char *filename, FT_Face face, int isBitmap)
 
     if(t1info) {
         if(!family)
-            family = t1info->family_name;
+            family = strdup(t1info->family_name);
         if(!family)
-            family = t1info->full_name;
+            family = strdup(t1info->full_name);
         if(!full_name)
-            full_name = t1info->full_name;
+            full_name = strdup(t1info->full_name);
         if(!foundry)
             foundry = notice_foundry(t1info->notice);
         if(!weight)
@@ -603,7 +603,7 @@ makeXLFD(char *filename, FT_Face face, int isBitmap)
 
     if(!full_name) {
         fprintf(stderr, "Couldn't determine full name for %s\n", filename);
-        full_name = filename;
+        full_name = strdup(filename);
     }
 
     if(head) {
@@ -628,11 +628,13 @@ makeXLFD(char *filename, FT_Face face, int isBitmap)
         notice = getName(face, TT_NAME_ID_TRADEMARK);
         if(notice) {
             foundry = notice_foundry(notice);
+            free(notice);
         }
         if(!foundry) {
             notice = getName(face, TT_NAME_ID_MANUFACTURER);
             if(notice) {
                 foundry = notice_foundry(notice);
+                free(notice);
             }
         }
     }
@@ -650,7 +652,7 @@ makeXLFD(char *filename, FT_Face face, int isBitmap)
     if(!foundry) foundry = "misc";
     if(!family) {
         fprintf(stderr, "Couldn't get family name for %s\n", filename);
-        family = filename;
+        family = strdup(filename);
     }
 
     if(!weight) weight = "medium";
@@ -659,9 +661,11 @@ makeXLFD(char *filename, FT_Face face, int isBitmap)
     if(!adstyle) adstyle = "";
     if(!spacing) spacing = "p";
 
-    /* Yes, it's a memory leak. */
     foundry = safe(foundry);
+
+    tmp = family;
     family = safe(family);
+    free((void *)tmp);
 
     if(!isBitmap) {
         xlfd = listConsF(xlfd,
@@ -684,6 +688,10 @@ makeXLFD(char *filename, FT_Face face, int isBitmap)
                              spacing, 60);
         }
     }
+
+    free((void *)family);
+    free((void *)foundry);
+    free((void *)full_name);
     return xlfd;
 }
 

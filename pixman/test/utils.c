@@ -4,6 +4,7 @@
 #include <math.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <float.h>
 
 #ifdef HAVE_GETTIMEOFDAY
 #include <sys/time.h>
@@ -1099,6 +1100,152 @@ format_name (pixman_format_code_t format)
     return "<unknown format>";
 };
 
+#define IS_ZERO(f)     (-DBL_MIN < (f) && (f) < DBL_MIN)
+
+typedef double (* blend_func_t) (double as, double s, double ad, double d);
+
+static force_inline double
+blend_multiply (double sa, double s, double da, double d)
+{
+    return d * s;
+}
+
+static force_inline double
+blend_screen (double sa, double s, double da, double d)
+{
+    return d * sa + s * da - s * d;
+}
+
+static force_inline double
+blend_overlay (double sa, double s, double da, double d)
+{
+    if (2 * d < da)
+        return 2 * s * d;
+    else
+        return sa * da - 2 * (da - d) * (sa - s);
+}
+
+static force_inline double
+blend_darken (double sa, double s, double da, double d)
+{
+    s = s * da;
+    d = d * sa;
+
+    if (s > d)
+        return d;
+    else
+        return s;
+}
+
+static force_inline double
+blend_lighten (double sa, double s, double da, double d)
+{
+    s = s * da;
+    d = d * sa;
+
+    if (s > d)
+        return s;
+    else
+        return d;
+}
+
+static force_inline double
+blend_color_dodge (double sa, double s, double da, double d)
+{
+    if (IS_ZERO (d))
+        return 0.0f;
+    else if (d * sa >= sa * da - s * da)
+        return sa * da;
+    else if (IS_ZERO (sa - s))
+        return sa * da;
+    else
+        return sa * sa * d / (sa - s);
+}
+
+static force_inline double
+blend_color_burn (double sa, double s, double da, double d)
+{
+    if (d >= da)
+        return sa * da;
+    else if (sa * (da - d) >= s * da)
+        return 0.0f;
+    else if (IS_ZERO (s))
+        return 0.0f;
+    else
+        return sa * (da - sa * (da - d) / s);
+}
+
+static force_inline double
+blend_hard_light (double sa, double s, double da, double d)
+{
+    if (2 * s < sa)
+        return 2 * s * d;
+    else
+        return sa * da - 2 * (da - d) * (sa - s);
+}
+
+static force_inline double
+blend_soft_light (double sa, double s, double da, double d)
+{
+    if (2 * s <= sa)
+    {
+        if (IS_ZERO (da))
+            return d * sa;
+        else
+            return d * sa - d * (da - d) * (sa - 2 * s) / da;
+    }
+    else
+    {
+        if (IS_ZERO (da))
+        {
+	    return d * sa;
+        }
+        else
+        {
+            if (4 * d <= da)
+                return d * sa + (2 * s - sa) * d * ((16 * d / da - 12) * d / da + 3);
+            else
+                return d * sa + (sqrt (d * da) - d) * (2 * s - sa);
+        }
+    }
+}
+
+static force_inline double
+blend_difference (double sa, double s, double da, double d)
+{
+    double dsa = d * sa;
+    double sda = s * da;
+
+    if (sda < dsa)
+        return dsa - sda;
+    else
+        return sda - dsa;
+}
+
+static force_inline double
+blend_exclusion (double sa, double s, double da, double d)
+{
+    return s * da + d * sa - 2 * d * s;
+}
+
+static double
+clamp (double d)
+{
+    if (d > 1.0)
+	return 1.0;
+    else if (d < 0.0)
+	return 0.0;
+    else
+	return d;
+}
+
+static double
+blend_channel (double as, double s, double ad, double d,
+                   blend_func_t blend)
+{
+    return clamp ((1 - ad) * s + (1 - as) * d + blend (as, s, ad, d));
+}
+
 static double
 calc_op (pixman_op_t op, double src, double dst, double srca, double dsta)
 {
@@ -1336,6 +1483,21 @@ do_composite (pixman_op_t op,
 {
     color_t srcval, srcalpha;
 
+    static const blend_func_t blend_funcs[] =
+    {
+        blend_multiply,
+        blend_screen,
+        blend_overlay,
+        blend_darken,
+        blend_lighten,
+        blend_color_dodge,
+        blend_color_burn,
+        blend_hard_light,
+        blend_soft_light,
+        blend_difference,
+        blend_exclusion,
+    };
+
     if (mask == NULL)
     {
 	srcval = *src;
@@ -1370,10 +1532,22 @@ do_composite (pixman_op_t op,
 	srcalpha.a = src->a * mask->a;
     }
 
-    result->r = calc_op (op, srcval.r, dst->r, srcalpha.r, dst->a);
-    result->g = calc_op (op, srcval.g, dst->g, srcalpha.g, dst->a);
-    result->b = calc_op (op, srcval.b, dst->b, srcalpha.b, dst->a);
-    result->a = calc_op (op, srcval.a, dst->a, srcalpha.a, dst->a);
+    if (op >= PIXMAN_OP_MULTIPLY)
+    {
+        blend_func_t func = blend_funcs[op - PIXMAN_OP_MULTIPLY];
+
+	result->a = srcalpha.a + dst->a - srcalpha.a * dst->a;
+	result->r = blend_channel (srcalpha.r, srcval.r, dst->a, dst->r, func);
+	result->g = blend_channel (srcalpha.g, srcval.g, dst->a, dst->g, func);
+	result->b = blend_channel (srcalpha.b, srcval.b, dst->a, dst->b, func);
+    }
+    else
+    {
+        result->r = calc_op (op, srcval.r, dst->r, srcalpha.r, dst->a);
+        result->g = calc_op (op, srcval.g, dst->g, srcalpha.g, dst->a);
+        result->b = calc_op (op, srcval.b, dst->b, srcalpha.b, dst->a);
+        result->a = calc_op (op, srcval.a, dst->a, srcalpha.a, dst->a);
+    }
 }
 
 static double
@@ -1580,7 +1754,7 @@ get_limits (const pixel_checker_t *checker, double limit,
 
 /* The acceptable deviation in units of [0.0, 1.0]
  */
-#define DEVIATION (0.0064)
+#define DEVIATION (0.0128)
 
 void
 pixel_checker_get_max (const pixel_checker_t *checker, color_t *color,
