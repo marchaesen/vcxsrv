@@ -169,9 +169,6 @@ XkbSelectEventDetails(Display *dpy,
         /* doesn't.   Make sure that we always request the stuff */
         /* that the implicit support needs, and just filter out anything */
         /* the client doesn't want later */
-        req->affectWhich = 0;
-        req->selectAll = 0;
-        req->clear = 0;
         req->affectMap = (CARD16) affect;
         req->map = (CARD16) details | (XkbAllClientInfoMask & affect);
         req->affectWhich = XkbMapNotifyMask;

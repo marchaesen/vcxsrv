@@ -108,7 +108,7 @@ instead it provides a mechanism to find out what combinations are supported.
 1.3 Introduction to version 1.3 of the extension
 
 Version 1.3 builds on the changes made with version 1.2 and adds some new
-capabilities without fundmentally changing the extension again. The
+capabilities without fundamentally changing the extension again. The
 following features are added in this version:
 
    • Projective Transforms. The implementation work for general rotation

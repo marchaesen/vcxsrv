@@ -33,6 +33,7 @@ FcPatternCreate (void)
     p = (FcPattern *) malloc (sizeof (FcPattern));
     if (!p)
 	return 0;
+    memset (p, 0, sizeof (FcPattern));
     p->num = 0;
     p->size = 0;
     p->elts_offset = FcPtrToOffset (p, NULL);
@@ -1310,6 +1311,7 @@ FcValueListSerialize (FcSerialize *serialize, const FcValueList *vl)
     }
     return head_serialized;
 }
+
 #define __fcpat__
 #include "fcaliastail.h"
 #include "fcftaliastail.h"

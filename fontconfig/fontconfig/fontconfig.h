@@ -541,6 +541,9 @@ FcDirSave (FcFontSet *set, FcStrSet *dirs, const FcChar8 *dir);
 
 FcPublic FcCache *
 FcDirCacheLoad (const FcChar8 *dir, FcConfig *config, FcChar8 **cache_file);
+
+FcPublic FcCache *
+FcDirCacheRescan (const FcChar8 *dir, FcConfig *config);
     
 FcPublic FcCache *
 FcDirCacheRead (const FcChar8 *dir, FcBool force, FcConfig *config);

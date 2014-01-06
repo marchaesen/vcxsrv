@@ -130,7 +130,12 @@ FcFileScanConfig (FcFontSet	*set,
     if (FcFileIsDir (file))
 	return FcStrSetAdd (dirs, file);
     else
-	return FcFileScanFontConfig (set, blanks, file, config);
+    {
+	if (set)
+	    return FcFileScanFontConfig (set, blanks, file, config);
+	else
+	    return FcTrue;
+    }
 }
 
 FcBool
@@ -304,6 +309,45 @@ FcDirCacheScan (const FcChar8 *dir, FcConfig *config)
     FcFontSetDestroy (set);
  bail:
     return cache;
+}
+
+FcCache *
+FcDirCacheRescan (const FcChar8 *dir, FcConfig *config)
+{
+    FcCache *cache = FcDirCacheLoad (dir, config, NULL);
+    FcCache *new = NULL;
+    struct stat dir_stat;
+    FcStrSet *dirs;
+
+    if (!cache)
+	return NULL;
+    if (FcStatChecksum (dir, &dir_stat) < 0)
+	goto bail;
+    dirs = FcStrSetCreate ();
+    if (!dirs)
+	goto bail;
+
+    /*
+     * Scan the dir
+     */
+    if (!FcDirScanConfig (NULL, dirs, NULL, dir, FcTrue, config))
+	goto bail1;
+    /*
+     * Rebuild the cache object
+     */
+    new = FcDirCacheRebuild (cache, &dir_stat, dirs);
+    if (!new)
+	goto bail1;
+    FcDirCacheUnload (cache);
+    /*
+     * Write out the cache file, ignoring any troubles
+     */
+    FcDirCacheWrite (new, config);
+
+bail1:
+    FcStrSetDestroy (dirs);
+bail:
+    return new;
 }
 
 /*

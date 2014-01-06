@@ -122,6 +122,28 @@ FcFontSetSerialize (FcSerialize *serialize, const FcFontSet * s)
 
     return s_serialize;
 }
+
+FcFontSet *
+FcFontSetDeserialize (const FcFontSet *set)
+{
+    int i;
+    FcFontSet *new = FcFontSetCreate ();
+
+    if (!new)
+	return NULL;
+    for (i = 0; i < set->nfont; i++)
+    {
+	if (!FcFontSetAdd (new, FcPatternDuplicate (FcFontSetFont (set, i))))
+	    goto bail;
+    }
+
+    return new;
+bail:
+    FcFontSetDestroy (new);
+
+    return NULL;
+}
+
 #define __fcfs__
 #include "fcaliastail.h"
 #undef __fcfs__

@@ -187,8 +187,13 @@ scanDirs (FcStrList *list, FcConfig *config, FcBool force, FcBool really_force, 
 	
 	if (!cache)
 	{
-	    (*changed)++;
-	    cache = FcDirCacheRead (dir, FcTrue, config);
+	    if (!recursive)
+		cache = FcDirCacheRescan (dir, config);
+	    else
+	    {
+		(*changed)++;
+		cache = FcDirCacheRead (dir, FcTrue, config);
+	    }
 	    if (!cache)
 	    {
 		fprintf (stderr, "%s: error scanning\n", dir);
@@ -386,6 +391,7 @@ main (int argc, char **argv)
 	ret += scanDirs (list, config, FcTrue, really_force, verbose, FcFalse, &changed, NULL);
 	FcStrListDone (list);
     }
+    FcStrSetDestroy (updateDirs);
 
     /*
      * Try to create CACHEDIR.TAG anyway.

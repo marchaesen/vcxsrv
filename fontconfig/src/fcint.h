@@ -567,6 +567,9 @@ FcDirCacheScan (const FcChar8 *dir, FcConfig *config);
 FcPrivate FcCache *
 FcDirCacheBuild (FcFontSet *set, const FcChar8 *dir, struct stat *dir_stat, FcStrSet *dirs);
 
+FcPrivate FcCache *
+FcDirCacheRebuild (FcCache *cache, struct stat *dir_stat, FcStrSet *dirs);
+
 FcPrivate FcBool
 FcDirCacheWrite (FcCache *cache, FcConfig *config);
 
@@ -837,6 +840,9 @@ FcFontSetSerializeAlloc (FcSerialize *serialize, const FcFontSet *s);
 
 FcPrivate FcFontSet *
 FcFontSetSerialize (FcSerialize *serialize, const FcFontSet * s);
+
+FcPrivate FcFontSet *
+FcFontSetDeserialize (const FcFontSet *set);
 
 /* fchash.c */
 FcPrivate FcChar8 *
