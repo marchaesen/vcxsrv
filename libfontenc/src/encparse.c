@@ -300,7 +300,7 @@ getnextline(FontFilePtr f)
             }
         } else if(!strcasecmp(keyword_value, "STARTMAPPING")) {
             keyword_value[0] = 0;
-            value1 = 0; value1 = 0;
+            value1 = 0; value2 = 0;
             /* first a keyword */
             token = gettoken(f,c,&c);
             if(token != KEYWORD_TOKEN) {

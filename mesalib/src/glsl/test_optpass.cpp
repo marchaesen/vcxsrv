@@ -204,11 +204,12 @@ int test_optpass(int argc, char **argv)
 
    struct gl_shader *shader = rzalloc(NULL, struct gl_shader);
    shader->Type = shader_type;
+   shader->Stage = _mesa_shader_enum_to_shader_stage(shader_type);
 
    string input = read_stdin_to_eof();
 
    struct _mesa_glsl_parse_state *state
-      = new(shader) _mesa_glsl_parse_state(ctx, shader->Type, shader);
+      = new(shader) _mesa_glsl_parse_state(ctx, shader->Stage, shader);
 
    if (input_format_ir) {
       shader->ir = new(shader) exec_list;
@@ -242,7 +243,7 @@ int test_optpass(int argc, char **argv)
    if (!state->error) {
       GLboolean progress;
       const struct gl_shader_compiler_options *options =
-         &ctx->ShaderCompilerOptions[_mesa_shader_type_to_index(shader_type)];
+         &ctx->ShaderCompilerOptions[_mesa_shader_enum_to_shader_stage(shader_type)];
       do {
          progress = do_optimization_passes(shader->ir, &argv[optind],
                                            argc - optind, quiet != 0, options);

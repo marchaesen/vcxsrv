@@ -2392,7 +2392,7 @@ class add_uniform_to_shader : public program_resource_visitor {
 public:
    add_uniform_to_shader(struct gl_shader_program *shader_program,
 			 struct gl_program_parameter_list *params,
-                         gl_shader_type shader_type)
+                         gl_shader_stage shader_type)
       : shader_program(shader_program), params(params), idx(-1),
         shader_type(shader_type)
    {
@@ -2414,7 +2414,7 @@ private:
    struct gl_shader_program *shader_program;
    struct gl_program_parameter_list *params;
    int idx;
-   gl_shader_type shader_type;
+   gl_shader_stage shader_type;
 };
 
 } /* anonymous namespace */
@@ -2493,8 +2493,7 @@ _mesa_generate_parameters_list_for_uniforms(struct gl_shader_program
 					    struct gl_program_parameter_list
 					    *params)
 {
-   add_uniform_to_shader add(shader_program, params,
-                             _mesa_shader_type_to_index(sh->Type));
+   add_uniform_to_shader add(shader_program, params, sh->Stage);
 
    foreach_list(node, sh->ir) {
       ir_variable *var = ((ir_instruction *) node)->as_variable();
@@ -2800,25 +2799,10 @@ get_mesa_program(struct gl_context *ctx,
    ir_instruction **mesa_instruction_annotation;
    int i;
    struct gl_program *prog;
-   GLenum target;
-   const char *target_string = _mesa_shader_enum_to_string(shader->Type);
+   GLenum target = _mesa_shader_stage_to_program(shader->Stage);
+   const char *target_string = _mesa_shader_stage_to_string(shader->Stage);
    struct gl_shader_compiler_options *options =
-         &ctx->ShaderCompilerOptions[_mesa_shader_type_to_index(shader->Type)];
-
-   switch (shader->Type) {
-   case GL_VERTEX_SHADER:
-      target = GL_VERTEX_PROGRAM_ARB;
-      break;
-   case GL_FRAGMENT_SHADER:
-      target = GL_FRAGMENT_PROGRAM_ARB;
-      break;
-   case GL_GEOMETRY_SHADER:
-      target = GL_GEOMETRY_PROGRAM_NV;
-      break;
-   default:
-      assert(!"should not be reached");
-      return NULL;
-   }
+         &ctx->ShaderCompilerOptions[shader->Stage];
 
    validate_ir_tree(shader->ir);
 
@@ -2952,7 +2936,7 @@ get_mesa_program(struct gl_context *ctx,
     */
    mesa_instructions = NULL;
 
-   do_set_program_inouts(shader->ir, prog, shader->Type);
+   do_set_program_inouts(shader->ir, prog, shader->Stage);
 
    prog->SamplersUsed = shader->active_samplers;
    prog->ShadowSamplers = shader->shadow_samplers;
@@ -3000,14 +2984,14 @@ _mesa_ir_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 {
    assert(prog->LinkStatus);
 
-   for (unsigned i = 0; i < MESA_SHADER_TYPES; i++) {
+   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       if (prog->_LinkedShaders[i] == NULL)
 	 continue;
 
       bool progress;
       exec_list *ir = prog->_LinkedShaders[i]->ir;
       const struct gl_shader_compiler_options *options =
-            &ctx->ShaderCompilerOptions[_mesa_shader_type_to_index(prog->_LinkedShaders[i]->Type)];
+            &ctx->ShaderCompilerOptions[prog->_LinkedShaders[i]->Stage];
 
       do {
 	 progress = false;
@@ -3055,7 +3039,7 @@ _mesa_ir_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
       validate_ir_tree(ir);
    }
 
-   for (unsigned i = 0; i < MESA_SHADER_TYPES; i++) {
+   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       struct gl_program *linked_prog;
 
       if (prog->_LinkedShaders[i] == NULL)
@@ -3064,7 +3048,7 @@ _mesa_ir_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
       linked_prog = get_mesa_program(ctx, prog, prog->_LinkedShaders[i]);
 
       if (linked_prog) {
-         _mesa_copy_linked_program_data((gl_shader_type) i, prog, linked_prog);
+         _mesa_copy_linked_program_data((gl_shader_stage) i, prog, linked_prog);
 
 	 _mesa_reference_program(ctx, &prog->_LinkedShaders[i]->Program,
 				 linked_prog);

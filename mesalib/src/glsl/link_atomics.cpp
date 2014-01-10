@@ -64,7 +64,7 @@ namespace {
 
       active_atomic_counter *counters;
       unsigned num_counters;
-      unsigned stage_references[MESA_SHADER_TYPES];
+      unsigned stage_references[MESA_SHADER_STAGES];
       unsigned size;
    };
 
@@ -96,7 +96,7 @@ namespace {
 
       *num_buffers = 0;
 
-      for (unsigned i = 0; i < MESA_SHADER_TYPES; ++i) {
+      for (unsigned i = 0; i < MESA_SHADER_STAGES; ++i) {
          struct gl_shader *sh = prog->_LinkedShaders[i];
          if (sh == NULL)
             continue;
@@ -199,7 +199,7 @@ link_assign_atomic_counter_resources(struct gl_context *ctx,
       }
 
       /* Assign stage-specific fields. */
-      for (unsigned j = 0; j < MESA_SHADER_TYPES; ++j)
+      for (unsigned j = 0; j < MESA_SHADER_STAGES; ++j)
          mab.StageReferences[j] =
             (ab.stage_references[j] ? GL_TRUE : GL_FALSE);
 
@@ -214,23 +214,11 @@ void
 link_check_atomic_counter_resources(struct gl_context *ctx,
                                     struct gl_shader_program *prog)
 {
-   const unsigned max_atomic_counters[] = {
-      ctx->Const.VertexProgram.MaxAtomicCounters,
-      ctx->Const.GeometryProgram.MaxAtomicCounters,
-      ctx->Const.FragmentProgram.MaxAtomicCounters
-   };
-   STATIC_ASSERT(Elements(max_atomic_counters) == MESA_SHADER_TYPES);
-   const unsigned max_atomic_buffers[] = {
-      ctx->Const.VertexProgram.MaxAtomicBuffers,
-      ctx->Const.GeometryProgram.MaxAtomicBuffers,
-      ctx->Const.FragmentProgram.MaxAtomicBuffers
-   };
-   STATIC_ASSERT(Elements(max_atomic_buffers) == MESA_SHADER_TYPES);
    unsigned num_buffers;
    active_atomic_buffer *const abs =
       find_active_atomic_counters(ctx, prog, &num_buffers);
-   unsigned atomic_counters[MESA_SHADER_TYPES] = {};
-   unsigned atomic_buffers[MESA_SHADER_TYPES] = {};
+   unsigned atomic_counters[MESA_SHADER_STAGES] = {};
+   unsigned atomic_buffers[MESA_SHADER_STAGES] = {};
    unsigned total_atomic_counters = 0;
    unsigned total_atomic_buffers = 0;
 
@@ -243,7 +231,7 @@ link_check_atomic_counter_resources(struct gl_context *ctx,
       if (abs[i].size == 0)
          continue;
 
-      for (unsigned j = 0; j < MESA_SHADER_TYPES; ++j) {
+      for (unsigned j = 0; j < MESA_SHADER_STAGES; ++j) {
          const unsigned n = abs[i].stage_references[j];
 
          if (n) {
@@ -256,14 +244,14 @@ link_check_atomic_counter_resources(struct gl_context *ctx,
    }
 
    /* Check that they are within the supported limits. */
-   for (unsigned i = 0; i < MESA_SHADER_TYPES; i++) {
-      if (atomic_counters[i] > max_atomic_counters[i])
+   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
+      if (atomic_counters[i] > ctx->Const.Program[i].MaxAtomicCounters)
          linker_error(prog, "Too many %s shader atomic counters",
-                      _mesa_shader_type_to_string(i));
+                      _mesa_shader_stage_to_string(i));
 
-      if (atomic_buffers[i] > max_atomic_buffers[i])
+      if (atomic_buffers[i] > ctx->Const.Program[i].MaxAtomicBuffers)
          linker_error(prog, "Too many %s shader atomic counter buffers",
-                      _mesa_shader_type_to_string(i));
+                      _mesa_shader_stage_to_string(i));
    }
 
    if (total_atomic_counters > ctx->Const.MaxCombinedAtomicCounters)

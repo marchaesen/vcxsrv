@@ -181,7 +181,7 @@ _mesa_find_free_register(const GLboolean used[],
 
 extern GLboolean
 _mesa_valid_register_index(const struct gl_context *ctx,
-                           gl_shader_type shaderType,
+                           gl_shader_stage shaderType,
                            gl_register_file file, GLint index);
 
 extern void
@@ -192,7 +192,7 @@ _mesa_get_min_invocations_per_fragment(struct gl_context *ctx,
                                        const struct gl_fragment_program *prog);
 
 static inline GLuint
-_mesa_program_target_to_index(GLenum v)
+_mesa_program_enum_to_shader_stage(GLenum v)
 {
    switch (v) {
    case GL_VERTEX_PROGRAM_ARB:
@@ -207,6 +207,24 @@ _mesa_program_target_to_index(GLenum v)
    }
 }
 
+
+static inline GLenum
+_mesa_shader_stage_to_program(gl_shader_stage stage)
+{
+   switch (stage) {
+   case MESA_SHADER_VERTEX:
+      return GL_VERTEX_PROGRAM_ARB;
+   case MESA_SHADER_FRAGMENT:
+      return GL_FRAGMENT_PROGRAM_ARB;
+   case MESA_SHADER_GEOMETRY:
+      return GL_GEOMETRY_PROGRAM_NV;
+   }
+
+   assert(!"Unexpected shader stage in _mesa_shader_stage_to_program");
+   return GL_VERTEX_PROGRAM_ARB;
+}
+
+
 static inline GLenum
 _mesa_program_index_to_target(GLuint i)
 {
@@ -215,8 +233,8 @@ _mesa_program_index_to_target(GLuint i)
       GL_GEOMETRY_PROGRAM_NV,
       GL_FRAGMENT_PROGRAM_ARB
    };
-   STATIC_ASSERT(Elements(enums) == MESA_SHADER_TYPES);
-   if(i >= MESA_SHADER_TYPES) {
+   STATIC_ASSERT(Elements(enums) == MESA_SHADER_STAGES);
+   if(i >= MESA_SHADER_STAGES) {
       assert(!"Unexpected program index");
       return 0;
    } else

@@ -877,8 +877,11 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
    GLint fixedSampleLocations = -1;
    GLint i;
    GLuint j;
-   bool layer_count_valid = false;
-   GLuint layer_count = 0, att_layer_count;
+   /* Covers max_layer_count, is_layered, and layer_tex_target */
+   bool layer_info_valid = false;
+   GLuint max_layer_count = 0, att_layer_count;
+   bool is_layered;
+   GLenum layer_tex_target = 0;
 
    assert(_mesa_is_user_fbo(fb));
 
@@ -1062,22 +1065,25 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
       } else {
          att_layer_count = 0;
       }
-      if (!layer_count_valid) {
-         layer_count = att_layer_count;
-         layer_count_valid = true;
-      } else if (layer_count != att_layer_count) {
-         if (layer_count == 0 || att_layer_count == 0) {
-            fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS;
-            fbo_incomplete(ctx, "framebuffer attachment layer mode is inconsistent", i);
-         } else {
-            fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_LAYER_COUNT_ARB;
-            fbo_incomplete(ctx, "framebuffer attachment layer count is inconsistent", i);
-         }
+      if (!layer_info_valid) {
+         is_layered = att->Layered;
+         max_layer_count = att_layer_count;
+         layer_tex_target = att_tex_target;
+         layer_info_valid = true;
+      } else if (max_layer_count > 0 && layer_tex_target != att_tex_target) {
+         fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS;
+         fbo_incomplete(ctx, "layered framebuffer has mismatched targets", i);
          return;
+      } else if (is_layered != att->Layered) {
+         fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS;
+         fbo_incomplete(ctx, "framebuffer attachment layer mode is inconsistent", i);
+         return;
+      } else if (att_layer_count > max_layer_count) {
+         max_layer_count = att_layer_count;
       }
    }
 
-   fb->NumLayers = layer_count;
+   fb->MaxNumLayers = max_layer_count;
 
    if (_mesa_is_desktop_gl(ctx) && !ctx->Extensions.ARB_ES2_compatibility) {
       /* Check that all DrawBuffers are present */
@@ -1504,6 +1510,22 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
       return ctx->API == API_OPENGL_COMPAT &&
              ctx->Extensions.EXT_texture_snorm &&
              ctx->Extensions.ARB_framebuffer_object ? GL_ALPHA : 0;
+   case GL_LUMINANCE_SNORM:
+   case GL_LUMINANCE8_SNORM:
+   case GL_LUMINANCE16_SNORM:
+      return _mesa_is_desktop_gl(ctx) && ctx->Extensions.EXT_texture_snorm
+         ? GL_LUMINANCE : 0;
+   case GL_LUMINANCE_ALPHA_SNORM:
+   case GL_LUMINANCE8_ALPHA8_SNORM:
+   case GL_LUMINANCE16_ALPHA16_SNORM:
+      return _mesa_is_desktop_gl(ctx) && ctx->Extensions.EXT_texture_snorm
+         ? GL_LUMINANCE_ALPHA : 0;
+   case GL_INTENSITY_SNORM:
+   case GL_INTENSITY8_SNORM:
+   case GL_INTENSITY16_SNORM:
+      return _mesa_is_desktop_gl(ctx) && ctx->Extensions.EXT_texture_snorm
+         ? GL_INTENSITY : 0;
+
    case GL_R16F:
    case GL_R32F:
       return ((_mesa_is_desktop_gl(ctx) &&

@@ -2001,6 +2001,11 @@ Property			Immutable	Mandatory since
 ────────			─────────	───────────────
 Border				yes		not mandatory
 BorderDimensions		yes: static	not mandatory
+
+9.6 Properties introduced with version 1.4.1 of the RandR extension
+
+Property			Immutable	Mandatory since
+────────			─────────	───────────────
 GUID				yes		not mandatory
 
 			      ❧❧❧❧❧❧❧❧❧❧❧
