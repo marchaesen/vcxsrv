@@ -1,8 +1,9 @@
-// Fairly complete set of symbol interpretations 
-// to provide reasonable default behavior
+// Fairly complete set of symbol interpretations
+// to provide reasonable default behavior.
 
-default partial xkb_compatibility "default"  {
-    virtual_modifiers LevelFive;
+default partial xkb_compatibility "default" {
+
+    virtual_modifiers  LevelFive;
 
     interpret.repeat= False;
     setMods.clearLocks= True;
@@ -39,15 +40,17 @@ default partial xkb_compatibility "default"  {
 	action= LockMods(modifiers=LevelFive);
     };
 };
-partial xkb_compatibility "level5_lock"  {
-	// This defines a Level5-Lock using the NumLock real modifier in order to
-	// create arbitrary level-behaviour, which would not be possible with the
-	// virtual modifier.
-	// See also: types/level5 : EIGHT_LEVEL_LEVEL_FIVE_LOCK
-	// See also: symbols/level5(lock)
-    virtual_modifiers NumLock;
-    
+
+partial xkb_compatibility "level5_lock" {
+    // This defines a Level5-Lock using the NumLock real modifier
+    // in order to create arbitrary level-behaviour, which would
+    // not be possible with the virtual modifier.
+    // See also: types/level5 : EIGHT_LEVEL_LEVEL_FIVE_LOCK
+    // See also: symbols/level5(lock)
+
+    virtual_modifiers  NumLock;
+
     interpret ISO_Level5_Lock {
-        action = LockMods(modifiers = NumLock);
+	action = LockMods(modifiers = NumLock);
     };
 };

@@ -218,10 +218,10 @@ typedef struct _FileSpec {
 } FileSpec;
 
 typedef struct {
-    char *model;
-    char *layout[XkbNumKbdGroups + 1];
-    char *variant[XkbNumKbdGroups + 1];
-    char *options;
+    const char *model;
+    const char *layout[XkbNumKbdGroups + 1];
+    const char *variant[XkbNumKbdGroups + 1];
+    const char *options;
 } XkbRF_MultiDefsRec, *XkbRF_MultiDefsPtr;
 
 #define NDX_BUFF_SIZE	4
@@ -343,9 +343,9 @@ SetUpRemap(InputLine * line, RemapSpec * remap)
 }
 
 static Bool
-MatchOneOf(char *wanted, char *vals_defined)
+MatchOneOf(const char *wanted, const char *vals_defined)
 {
-    char *str, *next;
+    const char *str, *next;
     int want_len = strlen(wanted);
 
     for (str = vals_defined, next = NULL; str != NULL; str = next) {
@@ -469,7 +469,7 @@ CheckLine(InputLine * line,
 }
 
 static char *
-_Concat(char *str1, char *str2)
+_Concat(char *str1, const char *str2)
 {
     int len;
 
@@ -498,12 +498,13 @@ squeeze_spaces(char *p1)
 static Bool
 MakeMultiDefs(XkbRF_MultiDefsPtr mdefs, XkbRF_VarDefsPtr defs)
 {
-
+    char *options;
     memset((char *) mdefs, 0, sizeof(XkbRF_MultiDefsRec));
     mdefs->model = defs->model;
-    mdefs->options = Xstrdup(defs->options);
-    if (mdefs->options)
-        squeeze_spaces(mdefs->options);
+    options = Xstrdup(defs->options);
+    if (options)
+        squeeze_spaces(options);
+    mdefs->options = options;
 
     if (defs->layout) {
         if (!strchr(defs->layout, ',')) {
@@ -511,13 +512,15 @@ MakeMultiDefs(XkbRF_MultiDefsPtr mdefs, XkbRF_VarDefsPtr defs)
         }
         else {
             char *p;
+            char *layout;
             int i;
 
-            mdefs->layout[1] = Xstrdup(defs->layout);
-            if (mdefs->layout[1] == NULL)
+            layout = Xstrdup(defs->layout);
+            if (layout == NULL)
                 return FALSE;
-            squeeze_spaces(mdefs->layout[1]);
-            p = mdefs->layout[1];
+            squeeze_spaces(layout);
+            mdefs->layout[1] = layout;
+            p = layout;
             for (i = 2; i <= XkbNumKbdGroups; i++) {
                 if ((p = strchr(p, ','))) {
                     *p++ = '\0';
@@ -538,13 +541,15 @@ MakeMultiDefs(XkbRF_MultiDefsPtr mdefs, XkbRF_VarDefsPtr defs)
         }
         else {
             char *p;
+            char *variant;
             int i;
 
-            mdefs->variant[1] = Xstrdup(defs->variant);
-            if (mdefs->variant[1] == NULL)
+            variant = Xstrdup(defs->variant);
+            if (variant == NULL)
                 return FALSE;
-            squeeze_spaces(mdefs->variant[1]);
-            p = mdefs->variant[1];
+            squeeze_spaces(variant);
+            mdefs->variant[1] = variant;
+            p = variant;
             for (i = 2; i <= XkbNumKbdGroups; i++) {
                 if ((p = strchr(p, ','))) {
                     *p++ = '\0';
@@ -564,13 +569,13 @@ MakeMultiDefs(XkbRF_MultiDefsPtr mdefs, XkbRF_VarDefsPtr defs)
 static void
 FreeMultiDefs(XkbRF_MultiDefsPtr defs)
 {
-    free(defs->options);
-    free(defs->layout[1]);
-    free(defs->variant[1]);
+    free((void *) defs->options);
+    free((void *) defs->layout[1]);
+    free((void *) defs->variant[1]);
 }
 
 static void
-Apply(char *src, char **dst)
+Apply(const char *src, char **dst)
 {
     if (src) {
         if (*src == '+' || *src == '!') {
@@ -596,7 +601,7 @@ XkbRF_ApplyRule(XkbRF_RulePtr rule, XkbComponentNamesPtr names)
 }
 
 static Bool
-CheckGroup(XkbRF_RulesPtr rules, char *group_name, char *name)
+CheckGroup(XkbRF_RulesPtr rules, const char *group_name, const char *name)
 {
     int i;
     char *p;
@@ -1013,15 +1018,15 @@ XkbRF_Free(XkbRF_RulesPtr rules, Bool freeRules)
         return;
     if (rules->rules) {
         for (i = 0, rule = rules->rules; i < rules->num_rules; i++, rule++) {
-            free(rule->model);
-            free(rule->layout);
-            free(rule->variant);
-            free(rule->option);
-            free(rule->keycodes);
-            free(rule->symbols);
-            free(rule->types);
-            free(rule->compat);
-            free(rule->geometry);
+            free((void *) rule->model);
+            free((void *) rule->layout);
+            free((void *) rule->variant);
+            free((void *) rule->option);
+            free((void *) rule->keycodes);
+            free((void *) rule->symbols);
+            free((void *) rule->types);
+            free((void *) rule->compat);
+            free((void *) rule->geometry);
             memset((char *) rule, 0, sizeof(XkbRF_RuleRec));
         }
         free(rules->rules);
@@ -1031,7 +1036,7 @@ XkbRF_Free(XkbRF_RulesPtr rules, Bool freeRules)
 
     if (rules->groups) {
         for (i = 0, group = rules->groups; i < rules->num_groups; i++, group++) {
-            free(group->name);
+            free((void *) group->name);
             free(group->words);
         }
         free(rules->groups);

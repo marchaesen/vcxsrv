@@ -58,15 +58,15 @@ typedef struct {
     Bool inUse;
     int videoRam;
     int textClockFreq;
-    pointer options;
+    void *options;
     int screen;                 /* For multi-CRTC cards */
 } GDevRec, *GDevPtr;
 
 typedef struct {
     char *identifier;
     char *driver;
-    pointer commonOptions;
-    pointer extraOptions;
+    void *commonOptions;
+    void *extraOptions;
 } IDevRec, *IDevPtr;
 
 typedef struct {
@@ -81,19 +81,19 @@ typedef struct {
     rgb whiteColour;
     int defaultVisual;
     char **modes;
-    pointer options;
+    void *options;
 } DispRec, *DispPtr;
 
 typedef struct _confxvportrec {
     char *identifier;
-    pointer options;
+    void *options;
 } confXvPortRec, *confXvPortPtr;
 
 typedef struct _confxvadaptrec {
     char *identifier;
     int numports;
     confXvPortPtr ports;
-    pointer options;
+    void *options;
 } confXvAdaptorRec, *confXvAdaptorPtr;
 
 typedef struct _confscreenrec {
@@ -107,7 +107,7 @@ typedef struct _confscreenrec {
     DispPtr displays;
     int numxvadaptors;
     confXvAdaptorPtr xvadaptors;
-    pointer options;
+    void *options;
 } confScreenRec, *confScreenPtr;
 
 typedef enum {
@@ -142,7 +142,7 @@ typedef struct _serverlayoutrec {
     screenLayoutPtr screens;
     GDevPtr inactives;
     IDevPtr inputs;
-    pointer options;
+    void *options;
 } serverLayoutRec, *serverLayoutPtr;
 
 /*
@@ -233,11 +233,11 @@ typedef struct {
  * Function prototypes
  */
 
-char *winSetStrOption(pointer optlist, const char *name, char *deflt);
-int winSetBoolOption(pointer optlist, const char *name, int deflt);
-int winSetIntOption(pointer optlist, const char *name, int deflt);
-double winSetRealOption(pointer optlist, const char *name, double deflt);
-double winSetPercentOption(pointer optlist, const char *name, double deflt);
+char *winSetStrOption(void *optlist, const char *name, char *deflt);
+int winSetBoolOption(void *optlist, const char *name, int deflt);
+int winSetIntOption(void *optlist, const char *name, int deflt);
+double winSetRealOption(void *optlist, const char *name, double deflt);
+double winSetPercentOption(void *optlist, const char *name, double deflt);
 
 #ifdef XWIN_XF86CONFIG
 XF86OptionPtr winFindOption(XF86OptionPtr list, const char *name);

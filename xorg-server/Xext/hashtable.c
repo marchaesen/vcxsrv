@@ -23,7 +23,7 @@ struct HashTableRec {
     HashFunc        hash;
     HashCompareFunc compare;
 
-    pointer         cdata;
+    void            *cdata;
 };
 
 typedef struct {
@@ -37,7 +37,7 @@ ht_create(int             keySize,
           int             dataSize,
           HashFunc        hash,
           HashCompareFunc compare,
-          pointer         cdata)
+          void            *cdata)
 {
     int c;
     int numBuckets;
@@ -117,8 +117,8 @@ double_size(HashTable ht)
     }
 }
 
-pointer
-ht_add(HashTable ht, pointer key)
+void *
+ht_add(HashTable ht, const void *key)
 {
     unsigned index = ht->hash(ht->cdata, key, ht->bucketBits);
     struct xorg_list *bucket = &ht->buckets[index];
@@ -164,7 +164,7 @@ ht_add(HashTable ht, pointer key)
 }
 
 void
-ht_remove(HashTable ht, pointer key)
+ht_remove(HashTable ht, const void *key)
 {
     unsigned index = ht->hash(ht->cdata, key, ht->bucketBits);
     struct xorg_list *bucket = &ht->buckets[index];
@@ -182,8 +182,8 @@ ht_remove(HashTable ht, pointer key)
     }
 }
 
-pointer
-ht_find(HashTable ht, pointer key)
+void *
+ht_find(HashTable ht, const void *key)
 {
     unsigned index = ht->hash(ht->cdata, key, ht->bucketBits);
     struct xorg_list *bucket = &ht->buckets[index];

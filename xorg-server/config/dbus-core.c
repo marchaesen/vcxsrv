@@ -45,10 +45,10 @@ struct dbus_core_info {
 };
 static struct dbus_core_info bus_info;
 
-static CARD32 reconnect_timer(OsTimerPtr timer, CARD32 time, pointer arg);
+static CARD32 reconnect_timer(OsTimerPtr timer, CARD32 time, void *arg);
 
 static void
-wakeup_handler(pointer data, int err, pointer read_mask)
+wakeup_handler(void *data, int err, void *read_mask)
 {
     struct dbus_core_info *info = data;
 
@@ -63,7 +63,7 @@ wakeup_handler(pointer data, int err, pointer read_mask)
 }
 
 static void
-block_handler(pointer data, struct timeval **tv, pointer read_mask)
+block_handler(void *data, struct timeval **tv, void *read_mask)
 {
 }
 
@@ -185,7 +185,7 @@ connect_to_bus(void)
 }
 
 static CARD32
-reconnect_timer(OsTimerPtr timer, CARD32 time, pointer arg)
+reconnect_timer(OsTimerPtr timer, CARD32 time, void *arg)
 {
     if (connect_to_bus()) {
         TimerFree(bus_info.timer);

@@ -39,6 +39,7 @@ struct gl_buffer_object;
 struct gl_context;
 struct gl_display_list;
 struct gl_framebuffer;
+struct gl_image_unit;
 struct gl_pixelstore_attrib;
 struct gl_program;
 struct gl_renderbuffer;
@@ -484,7 +485,7 @@ struct dd_function_table {
    /** Enable or disable writing into the depth buffer */
    void (*DepthMask)(struct gl_context *ctx, GLboolean flag);
    /** Specify mapping of depth values from NDC to window coordinates */
-   void (*DepthRange)(struct gl_context *ctx, GLclampd nearval, GLclampd farval);
+   void (*DepthRange)(struct gl_context *ctx);
    /** Specify the current buffer for writing */
    void (*DrawBuffer)( struct gl_context *ctx, GLenum buffer );
    /** Specify the buffers for writing for fragment programs*/
@@ -524,7 +525,7 @@ struct dd_function_table {
    /** Set rasterization mode */
    void (*RenderMode)(struct gl_context *ctx, GLenum mode );
    /** Define the scissor box */
-   void (*Scissor)(struct gl_context *ctx, GLint x, GLint y, GLsizei w, GLsizei h);
+   void (*Scissor)(struct gl_context *ctx);
    /** Select flat or smooth shading */
    void (*ShadeModel)(struct gl_context *ctx, GLenum mode);
    /** OpenGL 2.0 two-sided StencilFunc */
@@ -546,7 +547,7 @@ struct dd_function_table {
                         struct gl_texture_object *texObj,
                         GLenum pname, const GLfloat *params);
    /** Set the viewport */
-   void (*Viewport)(struct gl_context *ctx, GLint x, GLint y, GLsizei w, GLsizei h);
+   void (*Viewport)(struct gl_context *ctx);
    /*@}*/
 
 
@@ -910,6 +911,19 @@ struct dd_function_table {
     * non-zero status should be returned for the duration of the reset.
     */
    GLenum (*GetGraphicsResetStatus)(struct gl_context *ctx);
+
+   /**
+    * \name GL_ARB_shader_image_load_store interface.
+    */
+   /** @{ */
+   void (*BindImageTexture)(struct gl_context *ctx,
+                            struct gl_image_unit *unit,
+                            struct gl_texture_object *texObj,
+                            GLint level, GLboolean layered, GLint layer,
+                            GLenum access, GLenum format);
+
+   void (*MemoryBarrier)(struct gl_context *ctx, GLbitfield barriers);
+   /** @} */
 };
 
 

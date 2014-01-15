@@ -82,7 +82,7 @@ __wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client, Mask access)
 
 /* AddResource is called from XISetSEventMask, we don't need this */
 Bool
-__wrap_AddResource(XID id, RESTYPE type, pointer value)
+__wrap_AddResource(XID id, RESTYPE type, void *value)
 {
     return TRUE;
 }

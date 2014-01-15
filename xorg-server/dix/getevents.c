@@ -1382,10 +1382,10 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
 {
     int num_events = 1;
     DeviceEvent *event;
-    RawDeviceEvent *raw;
+    RawDeviceEvent *raw = NULL;
     double screenx = 0.0, screeny = 0.0;        /* desktop coordinate system */
     double devx = 0.0, devy = 0.0;      /* desktop-wide in device coords */
-    int sx, sy;                         /* for POINTER_SCREEN */
+    int sx = 0, sy = 0;                 /* for POINTER_SCREEN */
     ValuatorMask mask;
     ScreenPtr scr;
     int num_barrier_events = 0;
@@ -1437,7 +1437,7 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
 
         transformAbsolute(pDev, &mask);
         clipAbsolute(pDev, &mask);
-        if ((flags & POINTER_NORAW) == 0)
+        if ((flags & POINTER_NORAW) == 0 && raw)
             set_raw_valuators(raw, &mask, raw->valuators.data);
     }
     else {
@@ -1445,7 +1445,7 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
 
         if (flags & POINTER_ACCELERATE)
             accelPointer(pDev, &mask, ms);
-        if ((flags & POINTER_NORAW) == 0)
+        if ((flags & POINTER_NORAW) == 0 && raw)
             set_raw_valuators(raw, &mask, raw->valuators.data);
 
         moveRelative(pDev, flags, &mask);
@@ -1512,7 +1512,8 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
     event_set_root_coordinates(event, screenx - scr->x, screeny - scr->y);
 
     if (flags & POINTER_EMULATED) {
-        raw->flags = XIPointerEmulated;
+        if (raw)
+            raw->flags = XIPointerEmulated;
         event->flags = XIPointerEmulated;
     }
 

@@ -59,7 +59,7 @@ extern Status XkbGetControls(Display * /* dpy */ ,
 DeviceIntPtr xnestKeyboardDevice = NULL;
 
 void
-xnestBell(int volume, DeviceIntPtr pDev, pointer ctrl, int cls)
+xnestBell(int volume, DeviceIntPtr pDev, void *ctrl, int cls)
 {
     XBell(xnestDisplay, volume);
 }

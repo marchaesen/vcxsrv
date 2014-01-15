@@ -272,18 +272,18 @@ ps2LinuxGetMap(DevicePtr pDev, unsigned char *map, int *nButtons)
 
 /** Currently unused hook called prior to an VT switch. */
 void
-ps2LinuxVTPreSwitch(pointer p)
+ps2LinuxVTPreSwitch(void *p)
 {
 }
 
 /** Currently unused hook called after returning from a VT switch. */
 void
-ps2LinuxVTPostSwitch(pointer p)
+ps2LinuxVTPostSwitch(void *p)
 {
 }
 
 /** Create a private structure for use within this file. */
-pointer
+void *
 ps2LinuxCreatePrivate(DeviceIntPtr pMouse)
 {
     myPrivate *priv = calloc(1, sizeof(*priv));
@@ -295,7 +295,7 @@ ps2LinuxCreatePrivate(DeviceIntPtr pMouse)
 
 /** Destroy a private structure. */
 void
-ps2LinuxDestroyPrivate(pointer priv)
+ps2LinuxDestroyPrivate(void *priv)
 {
     free(priv);
 }

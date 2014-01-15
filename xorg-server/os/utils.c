@@ -490,7 +490,7 @@ GetTimeInMicros(void)
 #endif
 
 void
-AdjustWaitForDelay(pointer waitTime, unsigned long newdelay)
+AdjustWaitForDelay(void *waitTime, unsigned long newdelay)
 {
     static struct timeval delay_val;
     struct timeval **wt = (struct timeval **) waitTime;
@@ -986,7 +986,7 @@ ProcessCommandLine(int argc, char *argv[])
 /* Implement a simple-minded font authorization scheme.  The authorization
    name is "hp-hostname-1", the contents are simply the host name. */
 int
-set_font_authorizations(char **authorizations, int *authlen, pointer client)
+set_font_authorizations(char **authorizations, int *authlen, void *client)
 {
 #define AUTHORIZATION_NAME "hp-hostname-1"
 #if defined(TCPCONN) || defined(STREAMSCONN)
@@ -1385,7 +1385,7 @@ static struct pid {
 
 OsSigHandlerPtr old_alarm = NULL;       /* XXX horrible awful hack */
 
-pointer
+void *
 Popen(const char *command, const char *type)
 {
     struct pid *cur;
@@ -1473,7 +1473,7 @@ Popen(const char *command, const char *type)
 }
 
 /* fopen that drops privileges */
-pointer
+void *
 Fopen(const char *file, const char *type)
 {
     FILE *iop;
@@ -1568,7 +1568,7 @@ Fopen(const char *file, const char *type)
 }
 
 int
-Pclose(pointer iop)
+Pclose(void *iop)
 {
     struct pid *cur, *last;
     int pstat;
@@ -1605,7 +1605,7 @@ Pclose(pointer iop)
 }
 
 int
-Fclose(pointer iop)
+Fclose(void *iop)
 {
 #ifdef HAS_SAVED_IDS_AND_SETEUID
     return fclose(iop);
@@ -1946,10 +1946,10 @@ CheckUserAuthorization(void)
  * Tokenize a string into a NULL terminated array of strings. Always returns
  * an allocated array unless an error occurs.
  */
-char **
+const char **
 xstrtokenize(const char *str, const char *separators)
 {
-    char **list, **nlist;
+    const char **list, **nlist;
     char *tok, *tmp;
     unsigned num = 0, n;
 
@@ -1977,7 +1977,7 @@ xstrtokenize(const char *str, const char *separators)
  error:
     free(tmp);
     for (n = 0; n < num; n++)
-        free(list[n]);
+        free((void *) list[n]);
     free(list);
     return NULL;
 }

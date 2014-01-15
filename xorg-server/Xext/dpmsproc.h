@@ -9,7 +9,7 @@
 
 #include "dixstruct.h"
 
-int DPMSSet(ClientPtr client, int level);
-Bool DPMSSupported(void);
+int _X_EXPORT DPMSSet(ClientPtr client, int level);
+Bool _X_EXPORT DPMSSupported(void);
 
 #endif

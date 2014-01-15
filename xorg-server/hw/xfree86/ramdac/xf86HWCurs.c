@@ -462,9 +462,9 @@ RealizeCursorInterleave16(xf86CursorInfoPtr infoPtr, CursorPtr pCurs)
     }
 
     /* 16 bit interleave */
-    DstS = (pointer) mem2;
+    DstS = (void *) mem2;
     DstM = DstS + (size >> 2);
-    pntr = (pointer) mem;
+    pntr = (void *) mem;
     count = (size >> 1);
     while (count) {
         *pntr++ = *DstS++;
@@ -497,9 +497,9 @@ RealizeCursorInterleave32(xf86CursorInfoPtr infoPtr, CursorPtr pCurs)
     }
 
     /* 32 bit interleave */
-    DstS = (pointer) mem2;
+    DstS = (void *) mem2;
     DstM = DstS + (size >> 3);
-    pntr = (pointer) mem;
+    pntr = (void *) mem;
     count = (size >> 2);
     while (count) {
         *pntr++ = *DstS++;
@@ -532,9 +532,9 @@ RealizeCursorInterleave64(xf86CursorInfoPtr infoPtr, CursorPtr pCurs)
     }
 
     /* 64 bit interleave */
-    DstS = (pointer) mem2;
+    DstS = (void *) mem2;
     DstM = DstS + (size >> 3);
-    pntr = (pointer) mem;
+    pntr = (void *) mem;
     count = (size >> 2);
     while (count) {
         *pntr++ = *DstS++;

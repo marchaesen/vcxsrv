@@ -379,7 +379,7 @@ xf86CrtcSetModeTransform(xf86CrtcPtr crtc, DisplayModePtr mode,
         crtc->transformPresent = saved_transform_present;
     }
 
-    free(adjusted_mode->name);
+    free((void *) adjusted_mode->name);
     free(adjusted_mode);
 
     if (didLock)
@@ -564,8 +564,8 @@ static const char *direction[4] = {
 static Rotation
 xf86OutputInitialRotation(xf86OutputPtr output)
 {
-    char *rotate_name = xf86GetOptValString(output->options,
-                                            OPTION_ROTATE);
+    const char *rotate_name = xf86GetOptValString(output->options,
+                                                  OPTION_ROTATE);
     int i;
 
     if (!rotate_name) {
@@ -926,7 +926,6 @@ xf86PickCrtcs(ScrnInfoPtr scrn,
     xf86OutputPtr output;
     xf86CrtcPtr crtc;
     xf86CrtcPtr *crtcs;
-    xf86CrtcPtr best_crtc;
     int best_score;
     int score;
     int my_score;
@@ -939,7 +938,6 @@ xf86PickCrtcs(ScrnInfoPtr scrn,
      * Compute score with this output disabled
      */
     best_crtcs[n] = NULL;
-    best_crtc = NULL;
     best_score = xf86PickCrtcs(scrn, best_crtcs, modes, n + 1, width, height);
     if (modes[n] == NULL)
         return best_score;
@@ -993,7 +991,6 @@ xf86PickCrtcs(ScrnInfoPtr scrn,
         score =
             my_score + xf86PickCrtcs(scrn, crtcs, modes, n + 1, width, height);
         if (score > best_score) {
-            best_crtc = crtc;
             best_score = score;
             memcpy(best_crtcs, crtcs, config->num_output * sizeof(xf86CrtcPtr));
         }
@@ -1087,8 +1084,8 @@ xf86UserConfiguredOutputs(ScrnInfoPtr scrn, DisplayModePtr * modes)
 
     for (o = 0; o < config->num_output; o++) {
         xf86OutputPtr output = config->output[o];
-        char *position;
-        char *relative_name;
+        const char *position;
+        const char *relative_name;
         OutputOpts relation;
         int r;
 
@@ -1145,8 +1142,8 @@ xf86InitialOutputPositions(ScrnInfoPtr scrn, DisplayModePtr * modes)
             };
             xf86OutputPtr output = config->output[o];
             xf86OutputPtr relative;
-            char *relative_name;
-            char *position;
+            const char *relative_name;
+            const char *position;
             OutputOpts relation;
             int r;
 
@@ -1306,7 +1303,7 @@ xf86InitialPanning(ScrnInfoPtr scrn)
 
     for (o = 0; o < config->num_output; o++) {
         xf86OutputPtr output = config->output[o];
-        char *panning = xf86GetOptValString(output->options, OPTION_PANNING);
+        const char *panning = xf86GetOptValString(output->options, OPTION_PANNING);
         int width, height, left, top;
         int track_width, track_height, track_left, track_top;
         int brdr[4];
@@ -1389,7 +1386,7 @@ xf86SortModes(DisplayModePtr input)
     for (o = output; o && (n = o->next); o = n) {
         if (!strcmp(o->name, n->name) && xf86ModesEqual(o, n)) {
             o->next = n->next;
-            free(n->name);
+            free((void *) n->name);
             free(n);
             n = o;
         }
@@ -1403,10 +1400,10 @@ xf86SortModes(DisplayModePtr input)
     return output;
 }
 
-static char *
+static const char *
 preferredMode(ScrnInfoPtr pScrn, xf86OutputPtr output)
 {
-    char *preferred_mode = NULL;
+    const char *preferred_mode = NULL;
 
     /* Check for a configured preference for a particular mode */
     preferred_mode = xf86GetOptValString(output->options,
@@ -1610,7 +1607,7 @@ xf86ProbeOutputModes(ScrnInfoPtr scrn, int maxX, int maxY)
         xf86OutputPtr output = config->output[o];
         DisplayModePtr mode;
         DisplayModePtr config_modes = NULL, output_modes, default_modes = NULL;
-        char *preferred_mode;
+        const char *preferred_mode;
         xf86MonPtr edid_monitor;
         XF86ConfMonitorPtr conf_monitor;
         MonRec mon_rec;
@@ -1832,10 +1829,6 @@ xf86ProbeOutputModes(ScrnInfoPtr scrn, int maxX, int maxY)
 /**
  * Copy one of the output mode lists to the ScrnInfo record
  */
-
-/* XXX where does this function belong? Here? */
-void
- xf86RandR12GetOriginalVirtualSize(ScrnInfoPtr scrn, int *x, int *y);
 
 static DisplayModePtr
 biggestMode(DisplayModePtr a, DisplayModePtr b)

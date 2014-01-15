@@ -533,7 +533,7 @@ LegalModifier(unsigned int key, DeviceIntPtr pDev)
 }
 
 static void
-KdBell(int volume, DeviceIntPtr pDev, pointer arg, int something)
+KdBell(int volume, DeviceIntPtr pDev, void *arg, int something)
 {
     KeybdCtrl *ctrl = arg;
     KdKeyboardInfo *ki = NULL;
@@ -1940,7 +1940,7 @@ _KdEnqueuePointerEvent(KdPointerInfo * pi, int type, int x, int y, int z,
 }
 
 void
-KdBlockHandler(ScreenPtr pScreen, pointer timeout, pointer readmask)
+KdBlockHandler(ScreenPtr pScreen, void *timeout, void *readmask)
 {
     KdPointerInfo *pi;
     int myTimeout = 0;
@@ -1966,7 +1966,7 @@ KdBlockHandler(ScreenPtr pScreen, pointer timeout, pointer readmask)
 }
 
 void
-KdWakeupHandler(ScreenPtr pScreen, unsigned long lresult, pointer readmask)
+KdWakeupHandler(ScreenPtr pScreen, unsigned long lresult, void *readmask)
 {
     int result = (int) lresult;
     fd_set *pReadmask = (fd_set *) readmask;

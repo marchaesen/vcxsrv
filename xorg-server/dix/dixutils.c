@@ -199,7 +199,7 @@ dixLookupDrawable(DrawablePtr *pDraw, XID id, ClientPtr client,
 
     *pDraw = NULL;
 
-    rc = dixLookupResourceByClass((pointer *) &pTmp, id, RC_DRAWABLE, client,
+    rc = dixLookupResourceByClass((void **) &pTmp, id, RC_DRAWABLE, client,
                                   access);
 
     if (rc != Success)
@@ -236,7 +236,7 @@ dixLookupWindow(WindowPtr *pWin, XID id, ClientPtr client, Mask access)
 int
 dixLookupGC(GCPtr *pGC, XID id, ClientPtr client, Mask access)
 {
-    return dixLookupResourceByType((pointer *) pGC, id, RT_GC, client, access);
+    return dixLookupResourceByType((void **) pGC, id, RT_GC, client, access);
 }
 
 int
@@ -246,11 +246,11 @@ dixLookupFontable(FontPtr *pFont, XID id, ClientPtr client, Mask access)
     GC *pGC;
 
     client->errorValue = id;    /* EITHER font or gc */
-    rc = dixLookupResourceByType((pointer *) pFont, id, RT_FONT, client,
+    rc = dixLookupResourceByType((void **) pFont, id, RT_FONT, client,
                                  access);
     if (rc != BadFont)
         return rc;
-    rc = dixLookupResourceByType((pointer *) &pGC, id, RT_GC, client, access);
+    rc = dixLookupResourceByType((void **) &pGC, id, RT_GC, client, access);
     if (rc == BadGC)
         return BadFont;
     if (rc == Success)
@@ -261,7 +261,7 @@ dixLookupFontable(FontPtr *pFont, XID id, ClientPtr client, Mask access)
 int
 dixLookupClient(ClientPtr *pClient, XID rid, ClientPtr client, Mask access)
 {
-    pointer pRes;
+    void *pRes;
     int rc = BadValue, clientIndex = CLIENT_ID(rid);
 
     if (!clientIndex || !clients[clientIndex] || (rid & SERVER_BIT))
@@ -296,7 +296,7 @@ AlterSaveSetForClient(ClientPtr client, WindowPtr pWin, unsigned mode,
     j = 0;
     if (numnow) {
         pTmp = client->saveSet;
-        while ((j < numnow) && (SaveSetWindow(pTmp[j]) != (pointer) pWin))
+        while ((j < numnow) && (SaveSetWindow(pTmp[j]) != (void *) pWin))
             j++;
     }
     if (mode == SetModeInsert) {
@@ -362,7 +362,7 @@ NoopDDA(void)
 typedef struct _BlockHandler {
     BlockHandlerProcPtr BlockHandler;
     WakeupHandlerProcPtr WakeupHandler;
-    pointer blockData;
+    void *blockData;
     Bool deleted;
 } BlockHandlerRec, *BlockHandlerPtr;
 
@@ -378,7 +378,7 @@ static Bool handlerDeleted;
  *  \param pReadMask  nor how it represents the det of descriptors
  */
 void
-BlockHandler(pointer pTimeout, pointer pReadmask)
+BlockHandler(void *pTimeout, void *pReadmask)
 {
     int i, j;
 
@@ -413,7 +413,7 @@ BlockHandler(pointer pTimeout, pointer pReadmask)
  *  \param pReadmask the resulting descriptor mask
  */
 void
-WakeupHandler(int result, pointer pReadmask)
+WakeupHandler(int result, void *pReadmask)
 {
     int i, j;
 
@@ -449,7 +449,7 @@ WakeupHandler(int result, pointer pReadmask)
 Bool
 RegisterBlockAndWakeupHandlers(BlockHandlerProcPtr blockHandler,
                                WakeupHandlerProcPtr wakeupHandler,
-                               pointer blockData)
+                               void *blockData)
 {
     BlockHandlerPtr new;
 
@@ -472,7 +472,7 @@ RegisterBlockAndWakeupHandlers(BlockHandlerProcPtr blockHandler,
 void
 RemoveBlockAndWakeupHandlers(BlockHandlerProcPtr blockHandler,
                              WakeupHandlerProcPtr wakeupHandler,
-                             pointer blockData)
+                             void *blockData)
 {
     int i;
 
@@ -556,9 +556,8 @@ ProcessWorkQueueZombies(void)
 }
 
 Bool
-QueueWorkProc(Bool (*function)
-              (ClientPtr /* pClient */ , pointer /* closure */ ),
-              ClientPtr client, pointer closure)
+QueueWorkProc(Bool (*function) (ClientPtr pClient, void *closure),
+              ClientPtr client, void *closure)
 {
     WorkQueuePtr q;
 
@@ -586,13 +585,13 @@ typedef struct _SleepQueue {
     struct _SleepQueue *next;
     ClientPtr client;
     ClientSleepProcPtr function;
-    pointer closure;
+    void *closure;
 } SleepQueueRec, *SleepQueuePtr;
 
 static SleepQueuePtr sleepQueue = NULL;
 
 Bool
-ClientSleep(ClientPtr client, ClientSleepProcPtr function, pointer closure)
+ClientSleep(ClientPtr client, ClientSleepProcPtr function, void *closure)
 {
     SleepQueuePtr q;
 
@@ -666,7 +665,7 @@ static int numCallbackListsToCleanup = 0;
 static CallbackListPtr **listsToCleanup = NULL;
 
 static Bool
-_AddCallback(CallbackListPtr *pcbl, CallbackProcPtr callback, pointer data)
+_AddCallback(CallbackListPtr *pcbl, CallbackProcPtr callback, void *data)
 {
     CallbackPtr cbr;
 
@@ -682,7 +681,7 @@ _AddCallback(CallbackListPtr *pcbl, CallbackProcPtr callback, pointer data)
 }
 
 static Bool
-_DeleteCallback(CallbackListPtr *pcbl, CallbackProcPtr callback, pointer data)
+_DeleteCallback(CallbackListPtr *pcbl, CallbackProcPtr callback, void *data)
 {
     CallbackListPtr cbl = *pcbl;
     CallbackPtr cbr, pcbr;
@@ -709,7 +708,7 @@ _DeleteCallback(CallbackListPtr *pcbl, CallbackProcPtr callback, pointer data)
 }
 
 void
-_CallCallbacks(CallbackListPtr *pcbl, pointer call_data)
+_CallCallbacks(CallbackListPtr *pcbl, void *call_data)
 {
     CallbackListPtr cbl = *pcbl;
     CallbackPtr cbr, pcbr;
@@ -821,7 +820,7 @@ CreateCallbackList(CallbackListPtr *pcbl)
 /* ===== Public Procedures ===== */
 
 Bool
-AddCallback(CallbackListPtr *pcbl, CallbackProcPtr callback, pointer data)
+AddCallback(CallbackListPtr *pcbl, CallbackProcPtr callback, void *data)
 {
     if (!pcbl)
         return FALSE;
@@ -833,7 +832,7 @@ AddCallback(CallbackListPtr *pcbl, CallbackProcPtr callback, pointer data)
 }
 
 Bool
-DeleteCallback(CallbackListPtr *pcbl, CallbackProcPtr callback, pointer data)
+DeleteCallback(CallbackListPtr *pcbl, CallbackProcPtr callback, void *data)
 {
     if (!pcbl || !*pcbl)
         return FALSE;

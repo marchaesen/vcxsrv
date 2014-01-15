@@ -84,47 +84,47 @@ typedef int (*PutVideoFuncPtr) (ScrnInfoPtr pScrn,
                                 short vid_x, short vid_y, short drw_x,
                                 short drw_y, short vid_w, short vid_h,
                                 short drw_w, short drw_h, RegionPtr clipBoxes,
-                                pointer data, DrawablePtr pDraw);
+                                void *data, DrawablePtr pDraw);
 typedef int (*PutStillFuncPtr) (ScrnInfoPtr pScrn, short vid_x, short vid_y,
                                 short drw_x, short drw_y, short vid_w,
                                 short vid_h, short drw_w, short drw_h,
-                                RegionPtr clipBoxes, pointer data,
+                                RegionPtr clipBoxes, void *data,
                                 DrawablePtr pDraw);
 typedef int (*GetVideoFuncPtr) (ScrnInfoPtr pScrn, short vid_x, short vid_y,
                                 short drw_x, short drw_y, short vid_w,
                                 short vid_h, short drw_w, short drw_h,
-                                RegionPtr clipBoxes, pointer data,
+                                RegionPtr clipBoxes, void *data,
                                 DrawablePtr pDraw);
 typedef int (*GetStillFuncPtr) (ScrnInfoPtr pScrn, short vid_x, short vid_y,
                                 short drw_x, short drw_y, short vid_w,
                                 short vid_h, short drw_w, short drw_h,
-                                RegionPtr clipBoxes, pointer data,
+                                RegionPtr clipBoxes, void *data,
                                 DrawablePtr pDraw);
-typedef void (*StopVideoFuncPtr) (ScrnInfoPtr pScrn, pointer data, Bool Exit);
+typedef void (*StopVideoFuncPtr) (ScrnInfoPtr pScrn, void *data, Bool Exit);
 typedef int (*SetPortAttributeFuncPtr) (ScrnInfoPtr pScrn, Atom attribute,
-                                        INT32 value, pointer data);
+                                        INT32 value, void *data);
 typedef int (*GetPortAttributeFuncPtr) (ScrnInfoPtr pScrn, Atom attribute,
-                                        INT32 *value, pointer data);
+                                        INT32 *value, void *data);
 typedef void (*QueryBestSizeFuncPtr) (ScrnInfoPtr pScrn, Bool motion,
                                       short vid_w, short vid_h, short drw_w,
                                       short drw_h, unsigned int *p_w,
-                                      unsigned int *p_h, pointer data);
+                                      unsigned int *p_h, void *data);
 typedef int (*PutImageFuncPtr) (ScrnInfoPtr pScrn, short src_x, short src_y,
                                 short drw_x, short drw_y, short src_w,
                                 short src_h, short drw_w, short drw_h,
                                 int image, unsigned char *buf, short width,
                                 short height, Bool Sync, RegionPtr clipBoxes,
-                                pointer data, DrawablePtr pDraw);
+                                void *data, DrawablePtr pDraw);
 typedef int (*ReputImageFuncPtr) (ScrnInfoPtr pScrn, short src_x, short src_y,
                                   short drw_x, short drw_y, short src_w,
                                   short src_h, short drw_w, short drw_h,
-                                  RegionPtr clipBoxes, pointer data,
+                                  RegionPtr clipBoxes, void *data,
                                   DrawablePtr pDraw);
 typedef int (*QueryImageAttributesFuncPtr) (ScrnInfoPtr pScrn, int image,
                                             unsigned short *width,
                                             unsigned short *height,
                                             int *pitches, int *offsets);
-typedef void (*ClipNotifyFuncPtr) (ScrnInfoPtr pScrn, pointer data,
+typedef void (*ClipNotifyFuncPtr) (ScrnInfoPtr pScrn, void *data,
                                    WindowPtr window, int dx, int dy);
 
 typedef enum {
@@ -137,7 +137,7 @@ typedef enum {
 
 typedef struct {
     int id;
-    char *name;
+    const char *name;
     unsigned short width, height;
     XvRationalRec rate;
 } XF86VideoEncodingRec, *XF86VideoEncodingPtr;
@@ -151,13 +151,13 @@ typedef struct {
     int flags;
     int min_value;
     int max_value;
-    char *name;
+    const char *name;
 } XF86AttributeRec, *XF86AttributePtr;
 
 typedef struct {
     unsigned int type;
     int flags;
-    char *name;
+    const char *name;
     int nEncodings;
     XF86VideoEncodingPtr pEncodings;
     int nFormats;
@@ -238,7 +238,7 @@ xf86XVFillKeyHelperDrawable(DrawablePtr pDraw, CARD32 key, RegionPtr clipboxes);
 
 extern _X_EXPORT void
 
-xf86XVFillKeyHelperPort(DrawablePtr pDraw, pointer data, CARD32 key,
+xf86XVFillKeyHelperPort(DrawablePtr pDraw, void *data, CARD32 key,
                         RegionPtr clipboxes, Bool fillEverything);
 
 extern _X_EXPORT Bool

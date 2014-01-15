@@ -145,7 +145,7 @@ typedef struct _Picture {
     DDXPointRec alphaOrigin;
 
     DDXPointRec clipOrigin;
-    pointer clientClip;
+    void *clientClip;
 
     unsigned long serialNumber;
 
@@ -189,7 +189,7 @@ typedef struct {
 typedef int (*CreatePictureProcPtr) (PicturePtr pPicture);
 typedef void (*DestroyPictureProcPtr) (PicturePtr pPicture);
 typedef int (*ChangePictureClipProcPtr) (PicturePtr pPicture,
-                                         int clipType, pointer value, int n);
+                                         int clipType, void *value, int n);
 typedef void (*DestroyPictureClipProcPtr) (PicturePtr pPicture);
 
 typedef int (*ChangePictureTransformProcPtr) (PicturePtr pPicture,
@@ -363,7 +363,7 @@ extern _X_EXPORT RESTYPE GlyphSetType;
 #define SetPictureWindow(w,p) dixSetPrivate(&(w)->devPrivates, PictureWindowPrivateKey, p)
 
 #define VERIFY_PICTURE(pPicture, pid, client, mode) {\
-    int tmprc = dixLookupResourceByType((pointer)&(pPicture), pid,\
+    int tmprc = dixLookupResourceByType((void *)&(pPicture), pid,\
 	                                PictureType, client, mode);\
     if (tmprc != Success)\
 	return tmprc;\
@@ -482,10 +482,10 @@ extern _X_EXPORT void
  ValidatePicture(PicturePtr pPicture);
 
 extern _X_EXPORT int
- FreePicture(pointer pPicture, XID pid);
+ FreePicture(void *pPicture, XID pid);
 
 extern _X_EXPORT int
- FreePictFormat(pointer pPictFormat, XID pid);
+ FreePictFormat(void *pPictFormat, XID pid);
 
 extern _X_EXPORT void
 

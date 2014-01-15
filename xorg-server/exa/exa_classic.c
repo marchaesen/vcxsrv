@@ -147,7 +147,7 @@ exaCreatePixmap_classic(ScreenPtr pScreen, int w, int h, int depth,
 Bool
 exaModifyPixmapHeader_classic(PixmapPtr pPixmap, int width, int height,
                               int depth, int bitsPerPixel, int devKind,
-                              pointer pPixData)
+                              void *pPixData)
 {
     ScreenPtr pScreen;
     ExaScreenPrivPtr pExaScr;

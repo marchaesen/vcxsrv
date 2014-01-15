@@ -130,7 +130,7 @@ exaCreatePixmap_driver(ScreenPtr pScreen, int w, int h, int depth,
 Bool
 exaModifyPixmapHeader_driver(PixmapPtr pPixmap, int width, int height,
                              int depth, int bitsPerPixel, int devKind,
-                             pointer pPixData)
+                             void *pPixData)
 {
     ScreenPtr pScreen;
     ExaScreenPrivPtr pExaScr;
@@ -218,7 +218,7 @@ exaPixmapHasGpuCopy_driver(PixmapPtr pPixmap)
     ScreenPtr pScreen = pPixmap->drawable.pScreen;
 
     ExaScreenPriv(pScreen);
-    pointer saved_ptr;
+    void *saved_ptr;
     Bool ret;
 
     saved_ptr = pPixmap->devPrivate.ptr;

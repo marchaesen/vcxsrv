@@ -322,7 +322,7 @@ ProcDbeAllocateBackBufferName(ClientPtr client)
     if (status == Success) {
         pDbeWindowPriv->IDs[add_index] = stuff->buffer;
         if (!AddResource(stuff->buffer, dbeWindowPrivResType,
-                         (pointer) pDbeWindowPriv)) {
+                         (void *) pDbeWindowPriv)) {
             pDbeWindowPriv->IDs[add_index] = DBE_FREE_ID_ELEMENT;
 
             if (pDbeWindowPriv->nBufferIDs == 0) {
@@ -378,12 +378,12 @@ ProcDbeDeallocateBackBufferName(ClientPtr client)
     REQUEST(xDbeDeallocateBackBufferNameReq);
     DbeWindowPrivPtr pDbeWindowPriv;
     int rc, i;
-    pointer val;
+    void *val;
 
     REQUEST_SIZE_MATCH(xDbeDeallocateBackBufferNameReq);
 
     /* Buffer name must be valid */
-    rc = dixLookupResourceByType((pointer *) &pDbeWindowPriv, stuff->buffer,
+    rc = dixLookupResourceByType((void **) &pDbeWindowPriv, stuff->buffer,
                                  dbeWindowPrivResType, client,
                                  DixDestroyAccess);
     if (rc != Success)
@@ -726,7 +726,7 @@ ProcDbeGetBackBufferAttributes(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xDbeGetBackBufferAttributesReq);
 
-    rc = dixLookupResourceByType((pointer *) &pDbeWindowPriv, stuff->buffer,
+    rc = dixLookupResourceByType((void **) &pDbeWindowPriv, stuff->buffer,
                                  dbeWindowPrivResType, client,
                                  DixGetAttrAccess);
     if (rc == Success) {
@@ -1125,7 +1125,7 @@ DbeSetupBackgroundPainter(WindowPtr pWin, GCPtr pGC)
  *
  *****************************************************************************/
 static int
-DbeDrawableDelete(pointer pDrawable, XID id)
+DbeDrawableDelete(void *pDrawable, XID id)
 {
     return Success;
 
@@ -1143,7 +1143,7 @@ DbeDrawableDelete(pointer pDrawable, XID id)
  *
  *****************************************************************************/
 static int
-DbeWindowPrivDelete(pointer pDbeWinPriv, XID id)
+DbeWindowPrivDelete(void *pDbeWinPriv, XID id)
 {
     DbeScreenPrivPtr pDbeScreenPriv;
     DbeWindowPrivPtr pDbeWindowPriv = (DbeWindowPrivPtr) pDbeWinPriv;

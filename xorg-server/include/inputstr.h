@@ -447,7 +447,7 @@ typedef struct _XIPropertyValue {
     Atom type;                  /* ignored by server */
     short format;               /* format of data for swapping - 8,16,32 */
     long size;                  /* size of data in (format/8) bytes */
-    pointer data;               /* private to client */
+    void *data;                 /* private to client */
 } XIPropertyValueRec;
 
 typedef struct _XIProperty {
@@ -542,7 +542,7 @@ typedef struct _DeviceIntRec {
     GrabInfoRec deviceGrab;     /* grab on the device */
     int type;                   /* MASTER_POINTER, MASTER_KEYBOARD, SLAVE */
     Atom xinput_type;
-    char *name;
+    const char *name;
     int id;
     KeyClassPtr key;
     ValuatorClassPtr valuator;

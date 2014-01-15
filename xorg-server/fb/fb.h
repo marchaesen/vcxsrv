@@ -776,7 +776,7 @@ fb24_32ModifyPixmapHeader(PixmapPtr pPixmap,
                           int width,
                           int height,
                           int depth,
-                          int bitsPerPixel, int devKind, pointer pPixData);
+                          int bitsPerPixel, int devKind, void *pPixData);
 
 /*
  * fballpriv.c
@@ -1229,7 +1229,7 @@ fbPolyGlyphBlt(DrawablePtr pDrawable,
                GCPtr pGC,
                int x,
                int y,
-               unsigned int nglyph, CharInfoPtr * ppci, pointer pglyphBase);
+               unsigned int nglyph, CharInfoPtr * ppci, void *pglyphBase);
 
 extern _X_EXPORT void
 
@@ -1237,7 +1237,7 @@ fbImageGlyphBlt(DrawablePtr pDrawable,
                 GCPtr pGC,
                 int x,
                 int y,
-                unsigned int nglyph, CharInfoPtr * ppci, pointer pglyphBase);
+                unsigned int nglyph, CharInfoPtr * ppci, void *pglyphBase);
 
 /*
  * fbimage.c
@@ -1409,7 +1409,7 @@ extern _X_EXPORT void
  _fbSetWindowPixmap(WindowPtr pWindow, PixmapPtr pPixmap);
 
 extern _X_EXPORT Bool
- fbSetupScreen(ScreenPtr pScreen, pointer pbits,        /* pointer to screen bitmap */
+ fbSetupScreen(ScreenPtr pScreen, void *pbits,        /* pointer to screen bitmap */
                int xsize,       /* in pixels */
                int ysize, int dpix,     /* dots per inch */
                int dpiy, int width,     /* pixel width of frame buffer */
@@ -1418,7 +1418,7 @@ extern _X_EXPORT Bool
 extern _X_EXPORT Bool
 
 wfbFinishScreenInit(ScreenPtr pScreen,
-                    pointer pbits,
+                    void *pbits,
                     int xsize,
                     int ysize,
                     int dpix,
@@ -1430,7 +1430,7 @@ wfbFinishScreenInit(ScreenPtr pScreen,
 extern _X_EXPORT Bool
 
 wfbScreenInit(ScreenPtr pScreen,
-              pointer pbits,
+              void *pbits,
               int xsize,
               int ysize,
               int dpix,
@@ -1442,14 +1442,14 @@ wfbScreenInit(ScreenPtr pScreen,
 extern _X_EXPORT Bool
 
 fbFinishScreenInit(ScreenPtr pScreen,
-                   pointer pbits,
+                   void *pbits,
                    int xsize,
                    int ysize, int dpix, int dpiy, int width, int bpp);
 
 extern _X_EXPORT Bool
 
 fbScreenInit(ScreenPtr pScreen,
-             pointer pbits,
+             void *pbits,
              int xsize, int ysize, int dpix, int dpiy, int width, int bpp);
 
 /*

@@ -82,7 +82,7 @@ extern _X_EXPORT void VBESetModeParameters(ScrnInfoPtr pScrn, vbeInfoPtr pVbe);
  */
 extern _X_EXPORT int VBEValidateModes(ScrnInfoPtr scrp,
                                       DisplayModePtr availModes,
-                                      char **modeNames,
+                                      const char **modeNames,
                                       ClockRangePtr clockRanges,
                                       int *linePitches, int minPitch,
                                       int maxPitch, int pitchInc, int minHeight,

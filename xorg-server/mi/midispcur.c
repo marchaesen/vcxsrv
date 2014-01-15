@@ -79,7 +79,7 @@ typedef struct {
   (miDCBufferPtr)dixLookupScreenPrivate(&GetMaster(dev, MASTER_POINTER)->devPrivates, miDCDeviceKey, screen))
 
 /* 
- * The core pointer buffer will point to the index of the virtual core pointer
+ * The core pointer buffer will point to the index of the virtual pointer
  * in the pCursorBuffers array. 
  */
 typedef struct {
@@ -114,7 +114,7 @@ miDCInitialize(ScreenPtr pScreen, miPointerScreenFuncPtr screenFuncs)
     dixSetPrivate(&pScreen->devPrivates, miDCScreenKey, pScreenPriv);
 
     if (!miSpriteInitialize(pScreen, screenFuncs)) {
-        free((pointer) pScreenPriv);
+        free((void *) pScreenPriv);
         return FALSE;
     }
     return TRUE;
@@ -152,7 +152,7 @@ miDCCloseScreen(ScreenPtr pScreen)
     pScreen->CloseScreen = pScreenPriv->CloseScreen;
 
     miDCSwitchScreenCursor(pScreen, NULL, NULL, NULL, NULL);
-    free((pointer) pScreenPriv);
+    free((void *) pScreenPriv);
     return (*pScreen->CloseScreen) (pScreen);
 }
 

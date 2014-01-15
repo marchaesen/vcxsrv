@@ -22,77 +22,77 @@
  */
 __asm(".arch ev56");
 
-int readDense8(pointer Base, register unsigned long Offset);
-int readDense16(pointer Base, register unsigned long Offset);
-int readDense32(pointer Base, register unsigned long Offset);
+int readDense8(void *Base, register unsigned long Offset);
+int readDense16(void *Base, register unsigned long Offset);
+int readDense32(void *Base, register unsigned long Offset);
 void
- writeDenseNB8(int Value, pointer Base, register unsigned long Offset);
+ writeDenseNB8(int Value, void *Base, register unsigned long Offset);
 void
- writeDenseNB16(int Value, pointer Base, register unsigned long Offset);
+ writeDenseNB16(int Value, void *Base, register unsigned long Offset);
 void
- writeDenseNB32(int Value, pointer Base, register unsigned long Offset);
+ writeDenseNB32(int Value, void *Base, register unsigned long Offset);
 void
- writeDense8(int Value, pointer Base, register unsigned long Offset);
+ writeDense8(int Value, void *Base, register unsigned long Offset);
 void
- writeDense16(int Value, pointer Base, register unsigned long Offset);
+ writeDense16(int Value, void *Base, register unsigned long Offset);
 void
- writeDense32(int Value, pointer Base, register unsigned long Offset);
+ writeDense32(int Value, void *Base, register unsigned long Offset);
 
 int
-readDense8(pointer Base, register unsigned long Offset)
+readDense8(void *Base, register unsigned long Offset)
 {
     mem_barrier();
-    return (alpha_ldbu((pointer) ((unsigned long) Base + (Offset))));
+    return (alpha_ldbu((void *) ((unsigned long) Base + (Offset))));
 }
 
 int
-readDense16(pointer Base, register unsigned long Offset)
+readDense16(void *Base, register unsigned long Offset)
 {
     mem_barrier();
-    return (alpha_ldwu((pointer) ((unsigned long) Base + (Offset))));
+    return (alpha_ldwu((void *) ((unsigned long) Base + (Offset))));
 }
 
 int
-readDense32(pointer Base, register unsigned long Offset)
+readDense32(void *Base, register unsigned long Offset)
 {
     mem_barrier();
     return *(volatile CARD32 *) ((unsigned long) Base + (Offset));
 }
 
 void
-writeDenseNB8(int Value, pointer Base, register unsigned long Offset)
+writeDenseNB8(int Value, void *Base, register unsigned long Offset)
 {
-    alpha_stb((pointer) ((unsigned long) Base + (Offset)), Value);
+    alpha_stb((void *) ((unsigned long) Base + (Offset)), Value);
 }
 
 void
-writeDenseNB16(int Value, pointer Base, register unsigned long Offset)
+writeDenseNB16(int Value, void *Base, register unsigned long Offset)
 {
-    alpha_stw((pointer) ((unsigned long) Base + (Offset)), Value);
+    alpha_stw((void *) ((unsigned long) Base + (Offset)), Value);
 }
 
 void
-writeDenseNB32(int Value, pointer Base, register unsigned long Offset)
+writeDenseNB32(int Value, void *Base, register unsigned long Offset)
 {
     *(volatile CARD32 *) ((unsigned long) Base + (Offset)) = Value;
 }
 
 void
-writeDense8(int Value, pointer Base, register unsigned long Offset)
+writeDense8(int Value, void *Base, register unsigned long Offset)
 {
     write_mem_barrier();
-    alpha_stb((pointer) ((unsigned long) Base + (Offset)), Value);
+    alpha_stb((void *) ((unsigned long) Base + (Offset)), Value);
 }
 
 void
-writeDense16(int Value, pointer Base, register unsigned long Offset)
+writeDense16(int Value, void *Base, register unsigned long Offset)
 {
     write_mem_barrier();
-    alpha_stw((pointer) ((unsigned long) Base + (Offset)), Value);
+    alpha_stw((void *) ((unsigned long) Base + (Offset)), Value);
 }
 
 void
-writeDense32(int Value, pointer Base, register unsigned long Offset)
+writeDense32(int Value, void *Base, register unsigned long Offset)
 {
     write_mem_barrier();
     *(volatile CARD32 *) ((unsigned long) Base + (Offset)) = Value;

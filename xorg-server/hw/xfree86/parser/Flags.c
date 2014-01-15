@@ -189,7 +189,7 @@ xf86printServerFlagsSection(FILE * f, XF86ConfFlagsPtr flags)
 }
 
 static XF86OptionPtr
-addNewOption2(XF86OptionPtr head, char *name, char *val, int used)
+addNewOption2(XF86OptionPtr head, char *name, char *_val, int used)
 {
     XF86OptionPtr new, old = NULL;
 
@@ -202,7 +202,7 @@ addNewOption2(XF86OptionPtr head, char *name, char *val, int used)
     else
         new = calloc(1, sizeof(*new));
     new->opt_name = name;
-    new->opt_val = val;
+    new->opt_val = _val;
     new->opt_used = used;
 
     if (old)
@@ -211,9 +211,9 @@ addNewOption2(XF86OptionPtr head, char *name, char *val, int used)
 }
 
 XF86OptionPtr
-xf86addNewOption(XF86OptionPtr head, char *name, char *val)
+xf86addNewOption(XF86OptionPtr head, char *name, char *_val)
 {
-    return addNewOption2(head, name, val, 0);
+    return addNewOption2(head, name, _val, 0);
 }
 
 void
@@ -230,11 +230,11 @@ XF86OptionPtr
 xf86optionListDup(XF86OptionPtr opt)
 {
     XF86OptionPtr newopt = NULL;
-    char *val;
+    char *_val;
 
     while (opt) {
-        val = opt->opt_val ? strdup(opt->opt_val) : NULL;
-        newopt = xf86addNewOption(newopt, strdup(opt->opt_name), val);
+        _val = opt->opt_val ? strdup(opt->opt_val) : NULL;
+        newopt = xf86addNewOption(newopt, strdup(opt->opt_name), _val);
         newopt->opt_used = opt->opt_used;
         if (opt->opt_comment)
             newopt->opt_comment = strdup(opt->opt_comment);

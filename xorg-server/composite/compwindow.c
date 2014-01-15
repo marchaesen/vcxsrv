@@ -53,7 +53,7 @@
 
 #ifdef COMPOSITE_DEBUG
 static int
-compCheckWindow(WindowPtr pWin, pointer data)
+compCheckWindow(WindowPtr pWin, void *data)
 {
     ScreenPtr pScreen = pWin->drawable.pScreen;
     PixmapPtr pWinPixmap = (*pScreen->GetWindowPixmap) (pWin);
@@ -92,7 +92,7 @@ typedef struct _compPixmapVisit {
 } CompPixmapVisitRec, *CompPixmapVisitPtr;
 
 static Bool
-compRepaintBorder(ClientPtr pClient, pointer closure)
+compRepaintBorder(ClientPtr pClient, void *closure)
 {
     WindowPtr pWindow;
     int rc =
@@ -111,7 +111,7 @@ compRepaintBorder(ClientPtr pClient, pointer closure)
 }
 
 static int
-compSetPixmapVisitWindow(WindowPtr pWindow, pointer data)
+compSetPixmapVisitWindow(WindowPtr pWindow, void *data)
 {
     CompPixmapVisitPtr pVisit = (CompPixmapVisitPtr) data;
     ScreenPtr pScreen = pWindow->drawable.pScreen;
@@ -128,7 +128,7 @@ compSetPixmapVisitWindow(WindowPtr pWindow, pointer data)
     SetBorderSize(pWindow);
     if (HasBorder(pWindow))
         QueueWorkProc(compRepaintBorder, serverClient,
-                      (pointer) (intptr_t) pWindow->drawable.id);
+                      (void *) (intptr_t) pWindow->drawable.id);
     return WT_WALKCHILDREN;
 }
 
@@ -139,7 +139,7 @@ compSetPixmap(WindowPtr pWindow, PixmapPtr pPixmap)
 
     visitRec.pWindow = pWindow;
     visitRec.pPixmap = pPixmap;
-    TraverseTree(pWindow, compSetPixmapVisitWindow, (pointer) &visitRec);
+    TraverseTree(pWindow, compSetPixmapVisitWindow, (void *) &visitRec);
     compCheckTree(pWindow->drawable.pScreen);
 }
 

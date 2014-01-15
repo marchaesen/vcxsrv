@@ -70,12 +70,12 @@ typedef struct _NewClientRec *NewClientPtr;
 #ifndef xalloc
 #define xnfalloc(size) XNFalloc((unsigned long)(size))
 #define xnfcalloc(_num, _size) XNFcalloc((unsigned long)(_num)*(unsigned long)(_size))
-#define xnfrealloc(ptr, size) XNFrealloc((pointer)(ptr), (unsigned long)(size))
+#define xnfrealloc(ptr, size) XNFrealloc((void *)(ptr), (unsigned long)(size))
 
 #define xalloc(size) Xalloc((unsigned long)(size))
 #define xcalloc(_num, _size) Xcalloc((unsigned long)(_num)*(unsigned long)(_size))
-#define xrealloc(ptr, size) Xrealloc((pointer)(ptr), (unsigned long)(size))
-#define xfree(ptr) Xfree((pointer)(ptr))
+#define xrealloc(ptr, size) Xrealloc((void *)(ptr), (unsigned long)(size))
+#define xfree(ptr) Xfree((void *)(ptr))
 #define xstrdup(s) Xstrdup(s)
 #define xnfstrdup(s) XNFstrdup(s)
 #endif
@@ -140,7 +140,7 @@ extern _X_EXPORT const char *ClientAuthorized(ClientPtr /*client */ ,
                                               char * /*auth_string */ );
 
 extern _X_EXPORT Bool EstablishNewConnections(ClientPtr /*clientUnused */ ,
-                                              pointer /*closure */ );
+                                              void */*closure */ );
 
 extern _X_EXPORT void CheckConnections(void);
 
@@ -173,14 +173,14 @@ extern void ListenOnOpenFD(int /* fd */ , int /* noxauth */ );
 extern _X_EXPORT CARD32 GetTimeInMillis(void);
 extern _X_EXPORT CARD64 GetTimeInMicros(void);
 
-extern _X_EXPORT void AdjustWaitForDelay(pointer /*waitTime */ ,
+extern _X_EXPORT void AdjustWaitForDelay(void */*waitTime */ ,
                                          unsigned long /*newdelay */ );
 
 typedef struct _OsTimerRec *OsTimerPtr;
 
 typedef CARD32 (*OsTimerCallback) (OsTimerPtr /* timer */ ,
                                    CARD32 /* time */ ,
-                                   pointer /* arg */ );
+                                   void */* arg */ );
 
 extern _X_EXPORT void TimerInit(void);
 
@@ -193,7 +193,7 @@ extern _X_EXPORT OsTimerPtr TimerSet(OsTimerPtr /* timer */ ,
                                      int /* flags */ ,
                                      CARD32 /* millis */ ,
                                      OsTimerCallback /* func */ ,
-                                     pointer /* arg */ );
+                                     void */* arg */ );
 
 extern _X_EXPORT void TimerCheck(void);
 extern _X_EXPORT void TimerCancel(OsTimerPtr /* pTimer */ );
@@ -212,7 +212,7 @@ extern _X_EXPORT void ProcessCommandLine(int /*argc */ , char * /*argv */ []);
 
 extern _X_EXPORT int set_font_authorizations(char ** /* authorizations */ ,
                                              int * /*authlen */ ,
-                                             pointer /* client */ );
+                                             void */* client */ );
 
 #ifndef _HAVE_XALLOC_DECLS
 #define _HAVE_XALLOC_DECLS
@@ -359,14 +359,14 @@ OsAbort(void)
 #if !defined(WIN32)
 extern _X_EXPORT int
 System(const char *);
-extern _X_EXPORT pointer
+extern _X_EXPORT void *
 Popen(const char *, const char *);
 extern _X_EXPORT int
-Pclose(pointer);
-extern _X_EXPORT pointer
+Pclose(void *);
+extern _X_EXPORT void *
 Fopen(const char *, const char *);
 extern _X_EXPORT int
-Fclose(pointer);
+Fclose(void *);
 #else
 
 extern const char *
@@ -395,17 +395,17 @@ ForEachHostInFamily(int /*family */ ,
                     Bool (* /*func */ )(
                                            unsigned char * /* addr */ ,
                                            short /* len */ ,
-                                           pointer /* closure */ ),
-                    pointer /*closure */ );
+                                           void */* closure */ ),
+                    void */*closure */ );
 
 extern _X_EXPORT int
 RemoveHost(ClientPtr /*client */ ,
            int /*family */ ,
            unsigned /*length */ ,
-           pointer /*pAddr */ );
+           void */*pAddr */ );
 
 extern _X_EXPORT int
-GetHosts(pointer * /*data */ ,
+GetHosts(void ** /*data */ ,
          int * /*pnHosts */ ,
          int * /*pLen */ ,
          BOOL * /*pEnabled */ );
@@ -448,7 +448,7 @@ extern _X_EXPORT void
 AddLocalHosts(void);
 
 extern _X_EXPORT void
-ResetHosts(char *display);
+ResetHosts(const char *display);
 
 extern _X_EXPORT void
 EnableLocalHost(void);
@@ -464,14 +464,14 @@ DefineSelf(int /*fd */ );
 
 #if XDMCP
 extern _X_EXPORT void
-AugmentSelf(pointer /*from */ , int /*len */ );
+AugmentSelf(void */*from */ , int /*len */ );
 
 extern _X_EXPORT void
 RegisterAuthorizations(void);
 #endif
 
 extern _X_EXPORT void
-InitAuthorization(char * /*filename */ );
+InitAuthorization(const char * /*filename */ );
 
 /* extern int LoadAuthorization(void); */
 

@@ -288,7 +288,7 @@ xf86IsEntityPrimary(int entityIndex)
 
 Bool
 xf86SetEntityFuncs(int entityIndex, EntityProc init, EntityProc enter,
-                   EntityProc leave, pointer private)
+                   EntityProc leave, void *private)
 {
     if (entityIndex >= xf86NumEntities)
         return FALSE;

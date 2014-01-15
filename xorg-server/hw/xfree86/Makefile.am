@@ -121,7 +121,7 @@ sdksyms.dep sdksyms.c: sdksyms.sh
 	$(AM_V_GEN)CPP='$(CPP)' AWK='$(AWK)' $(SHELL) $(srcdir)/sdksyms.sh $(top_srcdir) $(CFLAGS) $(AM_CFLAGS) $(AM_CPPFLAGS)
 
 SDKSYMS_DEP = sdksyms.dep
-include $(SDKSYMS_DEP)
+-include $(SDKSYMS_DEP)
 
 i2c/libi2c.la:
 	$(AM_V_at)cd i2c && $(MAKE) libi2c.la

@@ -84,15 +84,15 @@ static Bool ephyrXVPrivSaveImageToPortPriv(EphyrPortPriv * a_port_priv,
                                            int a_image_len);
 
 static void ephyrStopVideo(KdScreenInfo * a_info,
-                           pointer a_xv_priv, Bool a_exit);
+                           void *a_xv_priv, Bool a_exit);
 
 static int ephyrSetPortAttribute(KdScreenInfo * a_info,
                                  Atom a_attr_name,
-                                 int a_attr_value, pointer a_port_priv);
+                                 int a_attr_value, void *a_port_priv);
 
 static int ephyrGetPortAttribute(KdScreenInfo * a_screen_info,
                                  Atom a_attr_name,
-                                 int *a_attr_value, pointer a_port_priv);
+                                 int *a_attr_value, void *a_port_priv);
 
 static void ephyrQueryBestSize(KdScreenInfo * a_info,
                                Bool a_motion,
@@ -101,7 +101,7 @@ static void ephyrQueryBestSize(KdScreenInfo * a_info,
                                short a_drw_w,
                                short a_drw_h,
                                unsigned int *a_prefered_w,
-                               unsigned int *a_prefered_h, pointer a_port_priv);
+                               unsigned int *a_prefered_h, void *a_port_priv);
 
 static int ephyrPutImage(KdScreenInfo * a_info,
                          DrawablePtr a_drawable,
@@ -118,13 +118,13 @@ static int ephyrPutImage(KdScreenInfo * a_info,
                          short a_width,
                          short a_height,
                          Bool a_sync,
-                         RegionPtr a_clipping_region, pointer a_port_priv);
+                         RegionPtr a_clipping_region, void *a_port_priv);
 
 static int ephyrReputImage(KdScreenInfo * a_info,
                            DrawablePtr a_drawable,
                            short a_drw_x,
                            short a_drw_y,
-                           RegionPtr a_clipping_region, pointer a_port_priv);
+                           RegionPtr a_clipping_region, void *a_port_priv);
 
 static int ephyrPutVideo(KdScreenInfo * a_info,
                          DrawablePtr a_drawable,
@@ -132,7 +132,7 @@ static int ephyrPutVideo(KdScreenInfo * a_info,
                          short a_drw_x, short a_drw_y,
                          short a_vid_w, short a_vid_h,
                          short a_drw_w, short a_drw_h,
-                         RegionPtr a_clip_region, pointer a_port_priv);
+                         RegionPtr a_clip_region, void *a_port_priv);
 
 static int ephyrGetVideo(KdScreenInfo * a_info,
                          DrawablePtr a_drawable,
@@ -140,7 +140,7 @@ static int ephyrGetVideo(KdScreenInfo * a_info,
                          short a_drw_x, short a_drw_y,
                          short a_vid_w, short a_vid_h,
                          short a_drw_w, short a_drw_h,
-                         RegionPtr a_clip_region, pointer a_port_priv);
+                         RegionPtr a_clip_region, void *a_port_priv);
 
 static int ephyrPutStill(KdScreenInfo * a_info,
                          DrawablePtr a_drawable,
@@ -148,7 +148,7 @@ static int ephyrPutStill(KdScreenInfo * a_info,
                          short a_drw_x, short a_drw_y,
                          short a_vid_w, short a_vid_h,
                          short a_drw_w, short a_drw_h,
-                         RegionPtr a_clip_region, pointer a_port_priv);
+                         RegionPtr a_clip_region, void *a_port_priv);
 
 static int ephyrGetStill(KdScreenInfo * a_info,
                          DrawablePtr a_drawable,
@@ -156,7 +156,7 @@ static int ephyrGetStill(KdScreenInfo * a_info,
                          short a_drw_x, short a_drw_y,
                          short a_vid_w, short a_vid_h,
                          short a_drw_w, short a_drw_h,
-                         RegionPtr a_clip_region, pointer a_port_priv);
+                         RegionPtr a_clip_region, void *a_port_priv);
 
 static int ephyrQueryImageAttributes(KdScreenInfo * a_info,
                                      int a_id,
@@ -744,7 +744,7 @@ ephyrXVPrivSaveImageToPortPriv(EphyrPortPriv * a_port_priv,
 }
 
 static void
-ephyrStopVideo(KdScreenInfo * a_info, pointer a_port_priv, Bool a_exit)
+ephyrStopVideo(KdScreenInfo * a_info, void *a_port_priv, Bool a_exit)
 {
     xcb_connection_t *conn = hostx_get_xcbconn();
     EphyrPortPriv *port_priv = a_port_priv;
@@ -759,7 +759,7 @@ ephyrStopVideo(KdScreenInfo * a_info, pointer a_port_priv, Bool a_exit)
 
 static int
 ephyrSetPortAttribute(KdScreenInfo * a_info,
-                      Atom a_attr_name, int a_attr_value, pointer a_port_priv)
+                      Atom a_attr_name, int a_attr_value, void *a_port_priv)
 {
     xcb_connection_t *conn = hostx_get_xcbconn();
     int res = Success, host_atom = 0;
@@ -814,7 +814,7 @@ ephyrSetPortAttribute(KdScreenInfo * a_info,
 
 static int
 ephyrGetPortAttribute(KdScreenInfo * a_screen_info,
-                      Atom a_attr_name, int *a_attr_value, pointer a_port_priv)
+                      Atom a_attr_name, int *a_attr_value, void *a_port_priv)
 {
     xcb_connection_t *conn = hostx_get_xcbconn();
     int res = Success, host_atom = 0;
@@ -862,7 +862,7 @@ ephyrQueryBestSize(KdScreenInfo * a_info,
                    short a_drw_w,
                    short a_drw_h,
                    unsigned int *a_prefered_w,
-                   unsigned int *a_prefered_h, pointer a_port_priv)
+                   unsigned int *a_prefered_h, void *a_port_priv)
 {
     xcb_connection_t *conn = hostx_get_xcbconn();
     EphyrPortPriv *port_priv = a_port_priv;
@@ -992,7 +992,7 @@ ephyrPutImage(KdScreenInfo * a_info,
               unsigned char *a_buf,
               short a_width,
               short a_height,
-              Bool a_sync, RegionPtr a_clipping_region, pointer a_port_priv)
+              Bool a_sync, RegionPtr a_clipping_region, void *a_port_priv)
 {
     EphyrPortPriv *port_priv = a_port_priv;
     Bool is_ok = FALSE;
@@ -1064,7 +1064,7 @@ static int
 ephyrReputImage(KdScreenInfo * a_info,
                 DrawablePtr a_drawable,
                 short a_drw_x,
-                short a_drw_y, RegionPtr a_clipping_region, pointer a_port_priv)
+                short a_drw_y, RegionPtr a_clipping_region, void *a_port_priv)
 {
     EphyrPortPriv *port_priv = a_port_priv;
     int result = BadImplementation;
@@ -1107,7 +1107,7 @@ ephyrPutVideo(KdScreenInfo * a_info,
               short a_drw_x, short a_drw_y,
               short a_vid_w, short a_vid_h,
               short a_drw_w, short a_drw_h,
-              RegionPtr a_clipping_region, pointer a_port_priv)
+              RegionPtr a_clipping_region, void *a_port_priv)
 {
     EphyrScrPriv *scrpriv = a_info->driver;
     xcb_connection_t *conn = hostx_get_xcbconn();
@@ -1138,7 +1138,7 @@ ephyrGetVideo(KdScreenInfo * a_info,
               short a_drw_x, short a_drw_y,
               short a_vid_w, short a_vid_h,
               short a_drw_w, short a_drw_h,
-              RegionPtr a_clipping_region, pointer a_port_priv)
+              RegionPtr a_clipping_region, void *a_port_priv)
 {
     EphyrScrPriv *scrpriv = a_info->driver;
     xcb_connection_t *conn = hostx_get_xcbconn();
@@ -1170,7 +1170,7 @@ ephyrPutStill(KdScreenInfo * a_info,
               short a_drw_x, short a_drw_y,
               short a_vid_w, short a_vid_h,
               short a_drw_w, short a_drw_h,
-              RegionPtr a_clipping_region, pointer a_port_priv)
+              RegionPtr a_clipping_region, void *a_port_priv)
 {
     EphyrScrPriv *scrpriv = a_info->driver;
     xcb_connection_t *conn = hostx_get_xcbconn();
@@ -1201,7 +1201,7 @@ ephyrGetStill(KdScreenInfo * a_info,
               short a_drw_x, short a_drw_y,
               short a_vid_w, short a_vid_h,
               short a_drw_w, short a_drw_h,
-              RegionPtr a_clipping_region, pointer a_port_priv)
+              RegionPtr a_clipping_region, void *a_port_priv)
 {
     EphyrScrPriv *scrpriv = a_info->driver;
     xcb_connection_t *conn = hostx_get_xcbconn();

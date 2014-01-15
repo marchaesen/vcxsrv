@@ -317,7 +317,7 @@ CopyGrab(GrabPtr dst, const GrabPtr src)
 }
 
 int
-DeletePassiveGrab(pointer value, XID id)
+DeletePassiveGrab(void *value, XID id)
 {
     GrabPtr g, prev;
     GrabPtr pGrab = (GrabPtr) value;
@@ -564,7 +564,7 @@ AddPassiveGrabToList(ClientPtr client, GrabPtr pGrab)
 
     pGrab->next = pGrab->window->optional->passiveGrabs;
     pGrab->window->optional->passiveGrabs = pGrab;
-    if (AddResource(pGrab->resource, RT_PASSIVEGRAB, (pointer) pGrab))
+    if (AddResource(pGrab->resource, RT_PASSIVEGRAB, (void *) pGrab))
         return Success;
     return BadAlloc;
 }
@@ -662,7 +662,7 @@ DeletePassiveGrabFromList(GrabPtr pMinuendGrab)
                 ok = FALSE;
             }
             else if (!AddResource(pNewGrab->resource, RT_PASSIVEGRAB,
-                                  (pointer) pNewGrab))
+                                  (void *) pNewGrab))
                 ok = FALSE;
             else
                 adds[nadds++] = pNewGrab;

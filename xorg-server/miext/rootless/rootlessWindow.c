@@ -625,7 +625,7 @@ RootlessRestackWindow(WindowPtr pWin, WindowPtr pOldNextSib)
  */
 
 // Globals needed during window resize and move.
-static pointer gResizeDeathBits = NULL;
+static void *gResizeDeathBits = NULL;
 static int gResizeDeathCount = 0;
 static PixmapPtr gResizeDeathPix[2] = { NULL, NULL };
 

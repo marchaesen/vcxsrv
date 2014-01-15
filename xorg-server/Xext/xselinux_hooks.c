@@ -74,10 +74,10 @@ static Atom atom_client_ctx;
 static security_id_t unlabeled_sid;
 
 /* forward declarations */
-static void SELinuxScreen(CallbackListPtr *, pointer, pointer);
+static void SELinuxScreen(CallbackListPtr *, void *, void *);
 
 /* "true" pointer value for use as callback data */
-static pointer truep = (pointer) 1;
+static void *truep = (void *) 1;
 
 /*
  * Performs an SELinux permission check.
@@ -147,7 +147,7 @@ SELinuxLabelClient(ClientPtr client)
         strncpy(subj->command, cmdname, COMMAND_LEN - 1);
 
         if (!cached)
-            free((void *) cmdname);     /* const char * */
+            free(cmdname);     /* const char * */
     }
 
  finish:
@@ -171,7 +171,7 @@ SELinuxLabelInitial(void)
     SELinuxSubjectRec *subj;
     SELinuxObjectRec *obj;
     security_context_t ctx;
-    pointer unused;
+    void *unused;
 
     /* Do the serverClient */
     subj = dixLookupPrivate(&serverClient->devPrivates, subjectKey);
@@ -326,7 +326,7 @@ SELinuxLog(int type, const char *fmt, ...)
  */
 
 static void
-SELinuxDevice(CallbackListPtr *pcbl, pointer unused, pointer calldata)
+SELinuxDevice(CallbackListPtr *pcbl, void *unused, void *calldata)
 {
     XaceDeviceAccessRec *rec = calldata;
     SELinuxSubjectRec *subj;
@@ -363,7 +363,7 @@ SELinuxDevice(CallbackListPtr *pcbl, pointer unused, pointer calldata)
 }
 
 static void
-SELinuxSend(CallbackListPtr *pcbl, pointer unused, pointer calldata)
+SELinuxSend(CallbackListPtr *pcbl, void *unused, void *calldata)
 {
     XaceSendAccessRec *rec = calldata;
     SELinuxSubjectRec *subj;
@@ -405,7 +405,7 @@ SELinuxSend(CallbackListPtr *pcbl, pointer unused, pointer calldata)
 }
 
 static void
-SELinuxReceive(CallbackListPtr *pcbl, pointer unused, pointer calldata)
+SELinuxReceive(CallbackListPtr *pcbl, void *unused, void *calldata)
 {
     XaceReceiveAccessRec *rec = calldata;
     SELinuxSubjectRec *subj;
@@ -443,7 +443,7 @@ SELinuxReceive(CallbackListPtr *pcbl, pointer unused, pointer calldata)
 }
 
 static void
-SELinuxExtension(CallbackListPtr *pcbl, pointer unused, pointer calldata)
+SELinuxExtension(CallbackListPtr *pcbl, void *unused, void *calldata)
 {
     XaceExtAccessRec *rec = calldata;
     SELinuxSubjectRec *subj, *serv;
@@ -484,7 +484,7 @@ SELinuxExtension(CallbackListPtr *pcbl, pointer unused, pointer calldata)
 }
 
 static void
-SELinuxSelection(CallbackListPtr *pcbl, pointer unused, pointer calldata)
+SELinuxSelection(CallbackListPtr *pcbl, void *unused, void *calldata)
 {
     XaceSelectionAccessRec *rec = calldata;
     SELinuxSubjectRec *subj;
@@ -544,7 +544,7 @@ SELinuxSelection(CallbackListPtr *pcbl, pointer unused, pointer calldata)
 }
 
 static void
-SELinuxProperty(CallbackListPtr *pcbl, pointer unused, pointer calldata)
+SELinuxProperty(CallbackListPtr *pcbl, void *unused, void *calldata)
 {
     XacePropertyAccessRec *rec = calldata;
     SELinuxSubjectRec *subj;
@@ -608,7 +608,7 @@ SELinuxProperty(CallbackListPtr *pcbl, pointer unused, pointer calldata)
 }
 
 static void
-SELinuxResource(CallbackListPtr *pcbl, pointer unused, pointer calldata)
+SELinuxResource(CallbackListPtr *pcbl, void *unused, void *calldata)
 {
     XaceResourceAccessRec *rec = calldata;
     SELinuxSubjectRec *subj;
@@ -667,7 +667,7 @@ SELinuxResource(CallbackListPtr *pcbl, pointer unused, pointer calldata)
 }
 
 static void
-SELinuxScreen(CallbackListPtr *pcbl, pointer is_saver, pointer calldata)
+SELinuxScreen(CallbackListPtr *pcbl, void *is_saver, void *calldata)
 {
     XaceScreenAccessRec *rec = calldata;
     SELinuxSubjectRec *subj;
@@ -699,7 +699,7 @@ SELinuxScreen(CallbackListPtr *pcbl, pointer is_saver, pointer calldata)
 }
 
 static void
-SELinuxClient(CallbackListPtr *pcbl, pointer unused, pointer calldata)
+SELinuxClient(CallbackListPtr *pcbl, void *unused, void *calldata)
 {
     XaceClientAccessRec *rec = calldata;
     SELinuxSubjectRec *subj;
@@ -717,7 +717,7 @@ SELinuxClient(CallbackListPtr *pcbl, pointer unused, pointer calldata)
 }
 
 static void
-SELinuxServer(CallbackListPtr *pcbl, pointer unused, pointer calldata)
+SELinuxServer(CallbackListPtr *pcbl, void *unused, void *calldata)
 {
     XaceServerAccessRec *rec = calldata;
     SELinuxSubjectRec *subj;
@@ -739,7 +739,7 @@ SELinuxServer(CallbackListPtr *pcbl, pointer unused, pointer calldata)
  */
 
 static void
-SELinuxClientState(CallbackListPtr *pcbl, pointer unused, pointer calldata)
+SELinuxClientState(CallbackListPtr *pcbl, void *unused, void *calldata)
 {
     NewClientInfoRec *pci = calldata;
 
@@ -754,7 +754,7 @@ SELinuxClientState(CallbackListPtr *pcbl, pointer unused, pointer calldata)
 }
 
 static void
-SELinuxResourceState(CallbackListPtr *pcbl, pointer unused, pointer calldata)
+SELinuxResourceState(CallbackListPtr *pcbl, void *unused, void *calldata)
 {
     ResourceStateInfoRec *rec = calldata;
     SELinuxSubjectRec *subj;

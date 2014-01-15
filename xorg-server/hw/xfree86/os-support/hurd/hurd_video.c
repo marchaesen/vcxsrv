@@ -42,7 +42,7 @@
 /**************************************************************************
  * Video Memory Mapping section                                            
  ***************************************************************************/
-static pointer
+static void *
 mapVidMem(int ScreenNum, unsigned long Base, unsigned long Size, int Flags)
 {
     mach_port_t device, mem_dev;
@@ -89,11 +89,11 @@ mapVidMem(int ScreenNum, unsigned long Base, unsigned long Size, int Flags)
             ("xf86MapVidMem() can't mach_port_deallocate.(mem_dev) (%s)\n",
              strerror(errno));
     }
-    return (pointer) addr;
+    return (void *) addr;
 }
 
 static void
-unmapVidMem(int ScreenNum, pointer Base, unsigned long Size)
+unmapVidMem(int ScreenNum, void *Base, unsigned long Size)
 {
     kern_return_t err = vm_deallocate(mach_task_self(), (int) Base, Size);
 

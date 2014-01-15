@@ -381,7 +381,7 @@ DevPrivateKeyRec XIClientPrivateKeyRec;
  */
 
 static void
-XIClientCallback(CallbackListPtr *list, pointer closure, pointer data)
+XIClientCallback(CallbackListPtr *list, void *closure, void *data)
 {
     NewClientInfoRec *clientinfo = (NewClientInfoRec *) data;
     ClientPtr pClient = clientinfo->client;
@@ -1169,8 +1169,8 @@ IResetProc(ExtensionEntry * unused)
     EventSwapVector[DevicePropertyNotify] = NotImplemented;
     RestoreExtensionEvents();
 
-    free(xi_all_devices.name);
-    free(xi_all_master_devices.name);
+    free((void *) xi_all_devices.name);
+    free((void *) xi_all_master_devices.name);
 
     XIBarrierReset();
 }

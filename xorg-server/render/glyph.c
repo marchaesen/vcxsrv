@@ -97,7 +97,7 @@ GlyphUninit(ScreenPtr pScreen)
             glyph = globalGlyphs[fdepth].table[i].glyph;
             if (glyph && glyph != DeletedGlyph) {
                 if (GetGlyphPicture(glyph, pScreen)) {
-                    FreePicture((pointer) GetGlyphPicture(glyph, pScreen), 0);
+                    FreePicture((void *) GetGlyphPicture(glyph, pScreen), 0);
                     SetGlyphPicture(glyph, pScreen, NULL);
                 }
                 (*ps->UnrealizeGlyph) (pScreen, glyph);
@@ -237,7 +237,7 @@ FreeGlyphPicture(GlyphPtr glyph)
         ScreenPtr pScreen = screenInfo.screens[i];
 
         if (GetGlyphPicture(glyph, pScreen))
-            FreePicture((pointer) GetGlyphPicture(glyph, pScreen), 0);
+            FreePicture((void *) GetGlyphPicture(glyph, pScreen), 0);
 
         ps = GetPictureScreenIfSet(pScreen);
         if (ps)
@@ -467,7 +467,7 @@ AllocateGlyphSet(int fdepth, PictFormatPtr format)
 }
 
 int
-FreeGlyphSet(pointer value, XID gid)
+FreeGlyphSet(void *value, XID gid)
 {
     GlyphSetPtr glyphSet = (GlyphSetPtr) value;
 
@@ -678,7 +678,7 @@ miGlyphs(CARD8 op,
                          pDst,
                          xSrc + x - xDst,
                          ySrc + y - yDst, 0, 0, x, y, width, height);
-        FreePicture((pointer) pMask, (XID) 0);
+        FreePicture((void *) pMask, (XID) 0);
         (*pScreen->DestroyPixmap) (pMaskPixmap);
     }
 }

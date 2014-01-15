@@ -136,7 +136,7 @@ AnimCurCursorLimits(DeviceIntPtr pDev,
 
 static void
 AnimCurScreenBlockHandler(ScreenPtr pScreen,
-                          pointer pTimeout, pointer pReadmask)
+                          void *pTimeout, void *pReadmask)
 {
     AnimCurScreenPtr as = GetAnimCurScreen(pScreen);
     DeviceIntPtr dev;

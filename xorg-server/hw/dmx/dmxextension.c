@@ -728,7 +728,7 @@ static Bool FoundPixImage;
  *  another screen with the same image.  If so, copy the pixmap image
  *  from the existing screen to the newly created pixmap. */
 static void
-dmxBERestorePixmapImage(pointer value, XID id, RESTYPE type, pointer p)
+dmxBERestorePixmapImage(void *value, XID id, RESTYPE type, void *p)
 {
     if ((type & TypeMask) == (XRT_PIXMAP & TypeMask)) {
         PixmapPtr pDst = (PixmapPtr) p;
@@ -737,7 +737,7 @@ dmxBERestorePixmapImage(pointer value, XID id, RESTYPE type, pointer p)
         PixmapPtr pPix;
         int i;
 
-        dixLookupResourceByType((pointer *) &pPix, pXinPix->info[idx].id,
+        dixLookupResourceByType((void **) &pPix, pXinPix->info[idx].id,
                                 RT_PIXMAP, NullClient, DixUnknownAccess);
         if (pPix != pDst)
             return;             /* Not a match.... Next! */
@@ -749,7 +749,7 @@ dmxBERestorePixmapImage(pointer value, XID id, RESTYPE type, pointer p)
             if (i == idx)
                 continue;       /* Self replication is bad */
 
-            dixLookupResourceByType((pointer *) &pSrc, pXinPix->info[i].id,
+            dixLookupResourceByType((void **) &pSrc, pXinPix->info[i].id,
                                     RT_PIXMAP, NullClient, DixUnknownAccess);
             pSrcPriv = DMX_GET_PIXMAP_PRIV(pSrc);
             if (pSrcPriv->pixmap) {
@@ -828,7 +828,7 @@ dmxBERestorePixmap(PixmapPtr pPixmap)
     for (i = currentMaxClients; --i >= 0;)
         if (clients[i])
             FindAllClientResources(clients[i], dmxBERestorePixmapImage,
-                                   (pointer) pPixmap);
+                                   (void *) pPixmap);
 
     /* No corresponding pixmap image was found on other screens, so we
      * need to copy it from the saved image when the screen was detached
@@ -895,7 +895,7 @@ dmxBERestorePixmap(PixmapPtr pPixmap)
  *  number passed in as \a n and calls the appropriate DMX function to
  *  create the associated resource on the back-end server. */
 static void
-dmxBECreateResources(pointer value, XID id, RESTYPE type, pointer n)
+dmxBECreateResources(void *value, XID id, RESTYPE type, void *n)
 {
     int scrnNum = (uintptr_t) n;
     ScreenPtr pScreen = screenInfo.screens[scrnNum];
@@ -1121,7 +1121,7 @@ dmxCompareScreens(DMXScreenInfo * new, DMXScreenInfo * old)
 
 /** Restore Render's picture */
 static void
-dmxBERestoreRenderPict(pointer value, XID id, pointer n)
+dmxBERestoreRenderPict(void *value, XID id, void *n)
 {
     PicturePtr pPicture = value;        /* The picture */
     DrawablePtr pDraw = pPicture->pDrawable;    /* The picture's drawable */
@@ -1145,7 +1145,7 @@ dmxBERestoreRenderPict(pointer value, XID id, pointer n)
 
 /** Restore Render's glyphs */
 static void
-dmxBERestoreRenderGlyph(pointer value, XID id, pointer n)
+dmxBERestoreRenderGlyph(void *value, XID id, void *n)
 {
     GlyphSetPtr glyphSet = value;
     int scrnNum = (uintptr_t) n;
@@ -1340,7 +1340,7 @@ dmxAttachScreen(int idx, DMXScreenAttributesPtr attr)
     for (i = currentMaxClients; --i >= 0;)
         if (clients[i])
             FindAllClientResources(clients[i], dmxBECreateResources,
-                                   (pointer) (uintptr_t) idx);
+                                   (void *) (uintptr_t) idx);
 
     /* Create window hierarchy (top down) */
     dmxBECreateWindowTree(idx);
@@ -1350,14 +1350,14 @@ dmxAttachScreen(int idx, DMXScreenAttributesPtr attr)
         if (clients[i])
             FindClientResourcesByType(clients[i], PictureType,
                                       dmxBERestoreRenderPict,
-                                      (pointer) (uintptr_t) idx);
+                                      (void *) (uintptr_t) idx);
 
     /* Restore the glyph state for RENDER */
     for (i = currentMaxClients; --i >= 0;)
         if (clients[i])
             FindClientResourcesByType(clients[i], GlyphSetType,
                                       dmxBERestoreRenderGlyph,
-                                      (pointer) (uintptr_t) idx);
+                                      (void *) (uintptr_t) idx);
 
     /* Refresh screen by generating exposure events for all windows */
     dmxForceExposures(idx);
@@ -1425,7 +1425,7 @@ dmxAttachScreen(int idx, DMXScreenAttributesPtr attr)
 /** Search the Xinerama XRT_PIXMAP resources for the pixmap that needs
  *  to have its image saved. */
 static void
-dmxBEFindPixmapImage(pointer value, XID id, RESTYPE type, pointer p)
+dmxBEFindPixmapImage(void *value, XID id, RESTYPE type, void *p)
 {
     if ((type & TypeMask) == (XRT_PIXMAP & TypeMask)) {
         PixmapPtr pDst = (PixmapPtr) p;
@@ -1434,7 +1434,7 @@ dmxBEFindPixmapImage(pointer value, XID id, RESTYPE type, pointer p)
         PixmapPtr pPix;
         int i;
 
-        dixLookupResourceByType((pointer *) &pPix, pXinPix->info[idx].id,
+        dixLookupResourceByType((void **) &pPix, pXinPix->info[idx].id,
                                 RT_PIXMAP, NullClient, DixUnknownAccess);
         if (pPix != pDst)
             return;             /* Not a match.... Next! */
@@ -1446,7 +1446,7 @@ dmxBEFindPixmapImage(pointer value, XID id, RESTYPE type, pointer p)
             if (i == idx)
                 continue;       /* Self replication is bad */
 
-            dixLookupResourceByType((pointer *) &pSrc, pXinPix->info[i].id,
+            dixLookupResourceByType((void **) &pSrc, pXinPix->info[i].id,
                                     RT_PIXMAP, NullClient, DixUnknownAccess);
             pSrcPriv = DMX_GET_PIXMAP_PRIV(pSrc);
             if (pSrcPriv->pixmap) {
@@ -1482,7 +1482,7 @@ dmxBESavePixmap(PixmapPtr pPixmap)
     for (i = currentMaxClients; --i >= 0;)
         if (clients[i])
             FindAllClientResources(clients[i], dmxBEFindPixmapImage,
-                                   (pointer) pPixmap);
+                                   (void *) pPixmap);
 
     /* Save the image only if there is no other screens that have a
      * pixmap that corresponds to the one we are trying to save. */
@@ -1522,7 +1522,7 @@ dmxBESavePixmap(PixmapPtr pPixmap)
  *  number passed in as \a n and calls the appropriate DMX function to
  *  free the associated resource on the back-end server. */
 static void
-dmxBEDestroyResources(pointer value, XID id, RESTYPE type, pointer n)
+dmxBEDestroyResources(void *value, XID id, RESTYPE type, void *n)
 {
     int scrnNum = (uintptr_t) n;
     ScreenPtr pScreen = screenInfo.screens[scrnNum];
@@ -1683,7 +1683,7 @@ dmxDetachScreen(int idx)
     for (i = currentMaxClients; --i >= 0;)
         if (clients[i])
             FindAllClientResources(clients[i], dmxBEDestroyResources,
-                                   (pointer) (uintptr_t) idx);
+                                   (void *) (uintptr_t) idx);
 
     /* Free scratch GCs */
     dmxBEDestroyScratchGCs(idx);

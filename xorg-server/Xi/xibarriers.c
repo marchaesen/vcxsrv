@@ -695,7 +695,7 @@ BarrierFreeBarrier(void *data, XID id)
     return Success;
 }
 
-static void add_master_func(pointer res, XID id, pointer devid)
+static void add_master_func(void *res, XID id, void *devid)
 {
     struct PointerBarrier *b;
     struct PointerBarrierClient *barrier;
@@ -712,7 +712,7 @@ static void add_master_func(pointer res, XID id, pointer devid)
     xorg_list_add(&pbd->entry, &barrier->per_device);
 }
 
-static void remove_master_func(pointer res, XID id, pointer devid)
+static void remove_master_func(void *res, XID id, void *devid)
 {
     struct PointerBarrierDevice *pbd;
     struct PointerBarrierClient *barrier;

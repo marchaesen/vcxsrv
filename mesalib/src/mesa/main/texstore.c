@@ -2191,6 +2191,7 @@ _mesa_texstore_snorm88(TEXSTORE_PARAMS)
    const GLenum baseFormat = _mesa_get_format_base_format(dstFormat);
 
    ASSERT(dstFormat == MESA_FORMAT_SIGNED_AL88 ||
+          dstFormat == MESA_FORMAT_SIGNED_RG88 ||
           dstFormat == MESA_FORMAT_SIGNED_RG88_REV);
    ASSERT(_mesa_get_format_bytes(dstFormat) == 2);
 
@@ -2210,13 +2211,27 @@ _mesa_texstore_snorm88(TEXSTORE_PARAMS)
       for (img = 0; img < srcDepth; img++) {
          GLbyte *dstRow = (GLbyte *) dstSlices[img];
          for (row = 0; row < srcHeight; row++) {
-            GLbyte *dst = dstRow;
-            for (col = 0; col < srcWidth; col++) {
-               dst[0] = FLOAT_TO_BYTE_TEX(src[0]);
-               dst[1] = FLOAT_TO_BYTE_TEX(src[1]);
-               src += 2;
-               dst += 2;
+            GLushort *dst = (GLushort *) dstRow;
+
+            if (dstFormat == MESA_FORMAT_SIGNED_AL88 ||
+                dstFormat == MESA_FORMAT_SIGNED_RG88_REV) {
+               for (col = 0; col < srcWidth; col++) {
+                  GLubyte l = FLOAT_TO_BYTE_TEX(src[0]);
+                  GLubyte a = FLOAT_TO_BYTE_TEX(src[1]);
+
+                  dst[col] = PACK_COLOR_88_REV(l, a);
+                  src += 2;
+               }
+            } else {
+               for (col = 0; col < srcWidth; col++) {
+                  GLubyte l = FLOAT_TO_BYTE_TEX(src[0]);
+                  GLubyte a = FLOAT_TO_BYTE_TEX(src[1]);
+
+                  dst[col] = PACK_COLOR_88(l, a);
+                  src += 2;
+               }
             }
+
             dstRow += dstRowStride;
          }
       }
@@ -2278,6 +2293,7 @@ _mesa_texstore_snorm1616(TEXSTORE_PARAMS)
    const GLenum baseFormat = _mesa_get_format_base_format(dstFormat);
 
    ASSERT(dstFormat == MESA_FORMAT_SIGNED_AL1616 ||
+          dstFormat == MESA_FORMAT_SIGNED_RG1616 ||
           dstFormat == MESA_FORMAT_SIGNED_GR1616);
    ASSERT(_mesa_get_format_bytes(dstFormat) == 4);
 
@@ -2297,17 +2313,29 @@ _mesa_texstore_snorm1616(TEXSTORE_PARAMS)
       for (img = 0; img < srcDepth; img++) {
          GLubyte *dstRow = dstSlices[img];
          for (row = 0; row < srcHeight; row++) {
-            GLshort *dst = (GLshort *) dstRow;
-            for (col = 0; col < srcWidth; col++) {
-               GLushort l, a;
+            GLuint *dst = (GLuint *) dstRow;
 
-               UNCLAMPED_FLOAT_TO_SHORT(l, src[0]);
-               UNCLAMPED_FLOAT_TO_SHORT(a, src[1]);
-               dst[0] = l;
-               dst[1] = a;
-               src += 2;
-               dst += 2;
+            if (dstFormat == MESA_FORMAT_SIGNED_AL1616 ||
+                dstFormat == MESA_FORMAT_SIGNED_GR1616) {
+               for (col = 0; col < srcWidth; col++) {
+                  GLushort l, a;
+
+                  UNCLAMPED_FLOAT_TO_SHORT(l, src[0]);
+                  UNCLAMPED_FLOAT_TO_SHORT(a, src[1]);
+                  dst[col] = PACK_COLOR_1616_REV(l, a);
+                  src += 2;
+               }
+            } else {
+               for (col = 0; col < srcWidth; col++) {
+                  GLushort l, a;
+
+                  UNCLAMPED_FLOAT_TO_SHORT(l, src[0]);
+                  UNCLAMPED_FLOAT_TO_SHORT(a, src[1]);
+                  dst[col] = PACK_COLOR_1616_REV(l, a);
+                  src += 2;
+               }
             }
+
             dstRow += dstRowStride;
          }
       }
@@ -3559,6 +3587,50 @@ _mesa_texstore_abgr2101010_uint(TEXSTORE_PARAMS)
 }
 
 static GLboolean
+_mesa_texstore_abgr2101010(TEXSTORE_PARAMS)
+{
+   const GLenum baseFormat = _mesa_get_format_base_format(dstFormat);
+
+   ASSERT(dstFormat == MESA_FORMAT_ABGR2101010);
+   ASSERT(_mesa_get_format_bytes(dstFormat) == 4);
+
+   {
+      /* general path */
+      const GLfloat *tempImage = _mesa_make_temp_float_image(ctx, dims,
+                                                 baseInternalFormat,
+                                                 baseFormat,
+                                                 srcWidth, srcHeight, srcDepth,
+                                                 srcFormat, srcType, srcAddr,
+                                                 srcPacking,
+                                                 ctx->_ImageTransferState);
+      const GLfloat *src = tempImage;
+      GLint img, row, col;
+      if (!tempImage)
+         return GL_FALSE;
+      for (img = 0; img < srcDepth; img++) {
+         GLubyte *dstRow = dstSlices[img];
+
+         for (row = 0; row < srcHeight; row++) {
+            GLuint *dstUI = (GLuint *) dstRow;
+            for (col = 0; col < srcWidth; col++) {
+               GLushort a,r,g,b;
+
+               UNCLAMPED_FLOAT_TO_USHORT(a, src[ACOMP]);
+               UNCLAMPED_FLOAT_TO_USHORT(r, src[RCOMP]);
+               UNCLAMPED_FLOAT_TO_USHORT(g, src[GCOMP]);
+               UNCLAMPED_FLOAT_TO_USHORT(b, src[BCOMP]);
+               dstUI[col] = PACK_COLOR_2101010_US(a, b, g, r);
+               src += 4;
+            }
+            dstRow += dstRowStride;
+         }
+      }
+      free((void *) tempImage);
+   }
+   return GL_TRUE;
+}
+
+static GLboolean
 _mesa_texstore_null(TEXSTORE_PARAMS)
 {
    (void) ctx; (void) dims;
@@ -3781,6 +3853,11 @@ _mesa_get_texstore_func(gl_format format)
       table[MESA_FORMAT_XBGR32323232_FLOAT] = _mesa_texstore_rgba_float32;
       table[MESA_FORMAT_XBGR32323232_UINT] = _mesa_texstore_rgba_uint32;
       table[MESA_FORMAT_XBGR32323232_SINT] = _mesa_texstore_rgba_int32;
+
+      table[MESA_FORMAT_ABGR2101010] = _mesa_texstore_abgr2101010;
+
+      table[MESA_FORMAT_SIGNED_RG88] = _mesa_texstore_snorm88;
+      table[MESA_FORMAT_SIGNED_RG1616] = _mesa_texstore_snorm1616;
 
       initialized = GL_TRUE;
    }

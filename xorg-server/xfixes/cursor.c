@@ -72,7 +72,7 @@ static void deleteCursorHideCountsForScreen(ScreenPtr pScreen);
 #define VERIFY_CURSOR(pCursor, cursor, client, access)			\
     do {								\
 	int err;							\
-	err = dixLookupResourceByType((pointer *) &pCursor, cursor,	\
+	err = dixLookupResourceByType((void **) &pCursor, cursor,	\
 				      RT_CURSOR, client, access);	\
 	if (err != Success) {						\
 	    client->errorValue = cursor;				\
@@ -195,7 +195,7 @@ static int
 XFixesSelectCursorInput(ClientPtr pClient, WindowPtr pWindow, CARD32 eventMask)
 {
     CursorEventPtr *prev, e;
-    pointer val;
+    void *val;
     int rc;
 
     for (prev = &cursorEvents; (e = *prev); prev = &e->next) {
@@ -228,12 +228,12 @@ XFixesSelectCursorInput(ClientPtr pClient, WindowPtr pWindow, CARD32 eventMask)
                                      DixGetAttrAccess);
         if (rc != Success)
             if (!AddResource(pWindow->drawable.id, CursorWindowType,
-                             (pointer) pWindow)) {
+                             (void *) pWindow)) {
                 free(e);
                 return BadAlloc;
             }
 
-        if (!AddResource(e->clientResource, CursorClientType, (pointer) e))
+        if (!AddResource(e->clientResource, CursorClientType, (void *) e))
             return BadAlloc;
 
         *prev = e;
@@ -568,13 +568,13 @@ SProcXFixesGetCursorImageAndName(ClientPtr client)
  * whether it should be replaced with a reference to pCursor.
  */
 
-typedef Bool (*TestCursorFunc) (CursorPtr pOld, pointer closure);
+typedef Bool (*TestCursorFunc) (CursorPtr pOld, void *closure);
 
 typedef struct {
     RESTYPE type;
     TestCursorFunc testCursor;
     CursorPtr pNew;
-    pointer closure;
+    void *closure;
 } ReplaceCursorLookupRec, *ReplaceCursorLookupPtr;
 
 static const RESTYPE CursorRestypes[] = {
@@ -584,7 +584,7 @@ static const RESTYPE CursorRestypes[] = {
 #define NUM_CURSOR_RESTYPES (sizeof (CursorRestypes) / sizeof (CursorRestypes[0]))
 
 static Bool
-ReplaceCursorLookup(pointer value, XID id, pointer closure)
+ReplaceCursorLookup(void *value, XID id, void *closure)
 {
     ReplaceCursorLookupPtr rcl = (ReplaceCursorLookupPtr) closure;
     WindowPtr pWin;
@@ -626,7 +626,7 @@ ReplaceCursorLookup(pointer value, XID id, pointer closure)
 }
 
 static void
-ReplaceCursor(CursorPtr pCursor, TestCursorFunc testCursor, pointer closure)
+ReplaceCursor(CursorPtr pCursor, TestCursorFunc testCursor, void *closure)
 {
     int clientIndex;
     int resIndex;
@@ -652,7 +652,7 @@ ReplaceCursor(CursorPtr pCursor, TestCursorFunc testCursor, pointer closure)
              */
             LookupClientResourceComplex(clients[clientIndex],
                                         rcl.type,
-                                        ReplaceCursorLookup, (pointer) &rcl);
+                                        ReplaceCursorLookup, (void *) &rcl);
         }
     }
     /* this "knows" that WindowHasNewCursor doesn't depend on it's argument */
@@ -660,7 +660,7 @@ ReplaceCursor(CursorPtr pCursor, TestCursorFunc testCursor, pointer closure)
 }
 
 static Bool
-TestForCursor(CursorPtr pCursor, pointer closure)
+TestForCursor(CursorPtr pCursor, void *closure)
 {
     return (pCursor == (CursorPtr) closure);
 }
@@ -678,7 +678,7 @@ ProcXFixesChangeCursor(ClientPtr client)
     VERIFY_CURSOR(pDestination, stuff->destination, client,
                   DixWriteAccess | DixSetAttrAccess);
 
-    ReplaceCursor(pSource, TestForCursor, (pointer) pDestination);
+    ReplaceCursor(pSource, TestForCursor, (void *) pDestination);
     return Success;
 }
 
@@ -695,7 +695,7 @@ SProcXFixesChangeCursor(ClientPtr client)
 }
 
 static Bool
-TestForCursorName(CursorPtr pCursor, pointer closure)
+TestForCursorName(CursorPtr pCursor, void *closure)
 {
     Atom *pName = closure;
 
@@ -776,7 +776,7 @@ createCursorHideCount(ClientPtr pClient, ScreenPtr pScreen)
      * Create a resource for this element so it can be deleted
      * when the client goes away.
      */
-    if (!AddResource(pChc->resource, CursorHideCountType, (pointer) pChc)) {
+    if (!AddResource(pChc->resource, CursorHideCountType, (void *) pChc)) {
         free(pChc);
         return BadAlloc;
     }
@@ -841,7 +841,7 @@ ProcXFixesHideCursor(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xXFixesHideCursorReq);
 
-    ret = dixLookupResourceByType((pointer *) &pWin, stuff->window, RT_WINDOW,
+    ret = dixLookupResourceByType((void **) &pWin, stuff->window, RT_WINDOW,
                                   client, DixGetAttrAccess);
     if (ret != Success) {
         client->errorValue = stuff->window;
@@ -905,7 +905,7 @@ ProcXFixesShowCursor(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xXFixesShowCursorReq);
 
-    rc = dixLookupResourceByType((pointer *) &pWin, stuff->window, RT_WINDOW,
+    rc = dixLookupResourceByType((void **) &pWin, stuff->window, RT_WINDOW,
                                  client, DixGetAttrAccess);
     if (rc != Success) {
         client->errorValue = stuff->window;
@@ -946,7 +946,7 @@ SProcXFixesShowCursor(ClientPtr client)
 }
 
 static int
-CursorFreeClient(pointer data, XID id)
+CursorFreeClient(void *data, XID id)
 {
     CursorEventPtr old = (CursorEventPtr) data;
     CursorEventPtr *prev, e;
@@ -962,7 +962,7 @@ CursorFreeClient(pointer data, XID id)
 }
 
 static int
-CursorFreeHideCount(pointer data, XID id)
+CursorFreeHideCount(void *data, XID id)
 {
     CursorHideCountPtr pChc = (CursorHideCountPtr) data;
     ScreenPtr pScreen = pChc->pScreen;
@@ -978,7 +978,7 @@ CursorFreeHideCount(pointer data, XID id)
 }
 
 static int
-CursorFreeWindow(pointer data, XID id)
+CursorFreeWindow(void *data, XID id)
 {
     WindowPtr pWindow = (WindowPtr) data;
     CursorEventPtr e, next;

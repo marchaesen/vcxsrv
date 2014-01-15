@@ -114,7 +114,7 @@ static void xf86VTSwitch(void);
 typedef struct x_IHRec {
     int fd;
     InputHandlerProc ihproc;
-    pointer data;
+    void *data;
     Bool enabled;
     Bool is_input;
     struct x_IHRec *next;
@@ -243,7 +243,7 @@ xf86ProcessActionEvent(ActionEvent action, void *arg)
 
 /* ARGSUSED */
 void
-xf86Wakeup(pointer blockData, int err, pointer pReadmask)
+xf86Wakeup(void *blockData, int err, void *pReadmask)
 {
     fd_set *LastSelectMask = (fd_set *) pReadmask;
     fd_set devicesWithInput;
@@ -583,8 +583,8 @@ xf86VTSwitch(void)
 
 /* Input handler registration */
 
-static pointer
-addInputHandler(int fd, InputHandlerProc proc, pointer data)
+static void *
+addInputHandler(int fd, InputHandlerProc proc, void *data)
 {
     IHPtr ih;
 
@@ -606,8 +606,8 @@ addInputHandler(int fd, InputHandlerProc proc, pointer data)
     return ih;
 }
 
-pointer
-xf86AddInputHandler(int fd, InputHandlerProc proc, pointer data)
+void *
+xf86AddInputHandler(int fd, InputHandlerProc proc, void *data)
 {
     IHPtr ih = addInputHandler(fd, proc, data);
 
@@ -618,8 +618,8 @@ xf86AddInputHandler(int fd, InputHandlerProc proc, pointer data)
     return ih;
 }
 
-pointer
-xf86AddGeneralHandler(int fd, InputHandlerProc proc, pointer data)
+void *
+xf86AddGeneralHandler(int fd, InputHandlerProc proc, void *data)
 {
     IHPtr ih = addInputHandler(fd, proc, data);
 
@@ -634,7 +634,7 @@ xf86AddGeneralHandler(int fd, InputHandlerProc proc, pointer data)
  * proc may be NULL if the server should not handle events on the console.
  */
 InputHandlerProc
-xf86SetConsoleHandler(InputHandlerProc proc, pointer data)
+xf86SetConsoleHandler(InputHandlerProc proc, void *data)
 {
     static IHPtr handler = NULL;
     InputHandlerProc old_proc = NULL;
@@ -667,7 +667,7 @@ removeInputHandler(IHPtr ih)
 }
 
 int
-xf86RemoveInputHandler(pointer handler)
+xf86RemoveInputHandler(void *handler)
 {
     IHPtr ih;
     int fd;
@@ -686,7 +686,7 @@ xf86RemoveInputHandler(pointer handler)
 }
 
 int
-xf86RemoveGeneralHandler(pointer handler)
+xf86RemoveGeneralHandler(void *handler)
 {
     IHPtr ih;
     int fd;
@@ -705,7 +705,7 @@ xf86RemoveGeneralHandler(pointer handler)
 }
 
 void
-xf86DisableInputHandler(pointer handler)
+xf86DisableInputHandler(void *handler)
 {
     IHPtr ih;
 
@@ -719,7 +719,7 @@ xf86DisableInputHandler(pointer handler)
 }
 
 void
-xf86DisableGeneralHandler(pointer handler)
+xf86DisableGeneralHandler(void *handler)
 {
     IHPtr ih;
 
@@ -733,7 +733,7 @@ xf86DisableGeneralHandler(pointer handler)
 }
 
 void
-xf86EnableInputHandler(pointer handler)
+xf86EnableInputHandler(void *handler)
 {
     IHPtr ih;
 
@@ -747,7 +747,7 @@ xf86EnableInputHandler(pointer handler)
 }
 
 void
-xf86EnableGeneralHandler(pointer handler)
+xf86EnableGeneralHandler(void *handler)
 {
     IHPtr ih;
 

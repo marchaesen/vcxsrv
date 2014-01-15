@@ -64,7 +64,7 @@ xf86ConfigSymTabRec InputClassTab[] = {
 #define TOKEN_SEP "|"
 
 static void
-add_group_entry(struct xorg_list *head, char **values)
+add_group_entry(struct xorg_list *head, const char **values)
 {
     xf86MatchGroup *group;
 
@@ -257,7 +257,7 @@ void
 xf86printInputClassSection(FILE * cf, XF86ConfInputClassPtr ptr)
 {
     const xf86MatchGroup *group;
-    char *const *cur;
+    const char *const *cur;
 
     while (ptr) {
         fprintf(cf, "Section \"InputClass\"\n");
@@ -363,7 +363,7 @@ xf86freeInputClassList(XF86ConfInputClassPtr ptr)
 
     while (ptr) {
         xf86MatchGroup *group, *next;
-        char **list;
+        const char **list;
 
         TestFree(ptr->identifier);
         TestFree(ptr->driver);
@@ -371,55 +371,55 @@ xf86freeInputClassList(XF86ConfInputClassPtr ptr)
         xorg_list_for_each_entry_safe(group, next, &ptr->match_product, entry) {
             xorg_list_del(&group->entry);
             for (list = group->values; *list; list++)
-                free(*list);
+                free((void *) *list);
             free(group);
         }
         xorg_list_for_each_entry_safe(group, next, &ptr->match_vendor, entry) {
             xorg_list_del(&group->entry);
             for (list = group->values; *list; list++)
-                free(*list);
+                free((void *) *list);
             free(group);
         }
         xorg_list_for_each_entry_safe(group, next, &ptr->match_device, entry) {
             xorg_list_del(&group->entry);
             for (list = group->values; *list; list++)
-                free(*list);
+                free((void *) *list);
             free(group);
         }
         xorg_list_for_each_entry_safe(group, next, &ptr->match_os, entry) {
             xorg_list_del(&group->entry);
             for (list = group->values; *list; list++)
-                free(*list);
+                free((void *) *list);
             free(group);
         }
         xorg_list_for_each_entry_safe(group, next, &ptr->match_pnpid, entry) {
             xorg_list_del(&group->entry);
             for (list = group->values; *list; list++)
-                free(*list);
+                free((void *) *list);
             free(group);
         }
         xorg_list_for_each_entry_safe(group, next, &ptr->match_usbid, entry) {
             xorg_list_del(&group->entry);
             for (list = group->values; *list; list++)
-                free(*list);
+                free((void *) *list);
             free(group);
         }
         xorg_list_for_each_entry_safe(group, next, &ptr->match_driver, entry) {
             xorg_list_del(&group->entry);
             for (list = group->values; *list; list++)
-                free(*list);
+                free((void *) *list);
             free(group);
         }
         xorg_list_for_each_entry_safe(group, next, &ptr->match_tag, entry) {
             xorg_list_del(&group->entry);
             for (list = group->values; *list; list++)
-                free(*list);
+                free((void *) *list);
             free(group);
         }
         xorg_list_for_each_entry_safe(group, next, &ptr->match_layout, entry) {
             xorg_list_del(&group->entry);
             for (list = group->values; *list; list++)
-                free(*list);
+                free((void *) *list);
             free(group);
         }
 

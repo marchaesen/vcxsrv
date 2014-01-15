@@ -119,7 +119,7 @@ SizeDeviceInfo(DeviceIntPtr d, int *namesize, int *size)
  */
 
 static void
-CopyDeviceName(char **namebuf, char *name)
+CopyDeviceName(char **namebuf, const char *name)
 {
     char *nameptr = (char *) *namebuf;
 

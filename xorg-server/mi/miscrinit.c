@@ -53,14 +53,14 @@ from The Open Group.
  */
 
 typedef struct {
-    pointer pbits;              /* pointer to framebuffer */
+    void *pbits;                /* pointer to framebuffer */
     int width;                  /* delta to add to a framebuffer addr to move one row down */
 } miScreenInitParmsRec, *miScreenInitParmsPtr;
 
 /* this plugs into pScreen->ModifyPixmapHeader */
 Bool
 miModifyPixmapHeader(PixmapPtr pPixmap, int width, int height, int depth,
-                     int bitsPerPixel, int devKind, pointer pPixData)
+                     int bitsPerPixel, int devKind, void *pPixData)
 {
     if (!pPixmap)
         return FALSE;
@@ -135,7 +135,7 @@ Bool
 miCreateScreenResources(ScreenPtr pScreen)
 {
     miScreenInitParmsPtr pScrInitParms;
-    pointer value;
+    void *value;
 
     pScrInitParms = (miScreenInitParmsPtr) pScreen->devPrivate;
 
@@ -161,7 +161,7 @@ miCreateScreenResources(ScreenPtr pScreen)
                                                            pScreen->rootDepth),
                                              pScrInitParms->pbits))
             return FALSE;
-        value = (pointer) pPixmap;
+        value = (void *) pPixmap;
     }
     else {
         value = pScrInitParms->pbits;
@@ -172,7 +172,7 @@ miCreateScreenResources(ScreenPtr pScreen)
 }
 
 Bool
-miScreenDevPrivateInit(ScreenPtr pScreen, int width, pointer pbits)
+miScreenDevPrivateInit(ScreenPtr pScreen, int width, void *pbits)
 {
     miScreenInitParmsPtr pScrInitParms;
 
@@ -185,7 +185,7 @@ miScreenDevPrivateInit(ScreenPtr pScreen, int width, pointer pbits)
         return FALSE;
     pScrInitParms->pbits = pbits;
     pScrInitParms->width = width;
-    pScreen->devPrivate = (pointer) pScrInitParms;
+    pScreen->devPrivate = (void *) pScrInitParms;
     return TRUE;
 }
 
@@ -199,11 +199,11 @@ static void
 miSetScreenPixmap(PixmapPtr pPix)
 {
     if (pPix)
-        pPix->drawable.pScreen->devPrivate = (pointer) pPix;
+        pPix->drawable.pScreen->devPrivate = (void *) pPix;
 }
 
 Bool
-miScreenInit(ScreenPtr pScreen, pointer pbits,  /* pointer to screen bits */
+miScreenInit(ScreenPtr pScreen, void *pbits,  /* pointer to screen bits */
              int xsize, int ysize,      /* in pixels */
              int dpix, int dpiy,        /* dots per inch */
              int width,         /* pixel width of frame buffer */

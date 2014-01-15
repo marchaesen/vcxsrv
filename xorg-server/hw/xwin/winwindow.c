@@ -39,7 +39,7 @@
  */
 
 static int
- winAddRgn(WindowPtr pWindow, pointer data);
+ winAddRgn(WindowPtr pWindow, void *data);
 
 static
     void
@@ -456,7 +456,7 @@ winSetShapeRootless(WindowPtr pWin, int kind)
 
 static
     int
-winAddRgn(WindowPtr pWin, pointer data)
+winAddRgn(WindowPtr pWin, void *data)
 {
     int iX, iY, iWidth, iHeight, iBorder;
     HRGN hRgn = *(HRGN *) data;

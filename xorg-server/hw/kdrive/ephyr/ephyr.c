@@ -341,7 +341,7 @@ ephyrInternalDamageRedisplay(ScreenPtr pScreen)
 }
 
 static void
-ephyrInternalDamageBlockHandler(pointer data, OSTimePtr pTimeout, pointer pRead)
+ephyrInternalDamageBlockHandler(void *data, OSTimePtr pTimeout, void *pRead)
 {
     ScreenPtr pScreen = (ScreenPtr) data;
 
@@ -349,7 +349,7 @@ ephyrInternalDamageBlockHandler(pointer data, OSTimePtr pTimeout, pointer pRead)
 }
 
 static void
-ephyrInternalDamageWakeupHandler(pointer data, int i, pointer LastSelectMask)
+ephyrInternalDamageWakeupHandler(void *data, int i, void *LastSelectMask)
 {
     /* FIXME: Not needed ? */
 }
@@ -368,7 +368,7 @@ ephyrSetInternalDamage(ScreenPtr pScreen)
 
     if (!RegisterBlockAndWakeupHandlers(ephyrInternalDamageBlockHandler,
                                         ephyrInternalDamageWakeupHandler,
-                                        (pointer) pScreen))
+                                        (void *) pScreen))
         return FALSE;
 
     pPixmap = (*pScreen->GetScreenPixmap) (pScreen);
@@ -389,7 +389,7 @@ ephyrUnsetInternalDamage(ScreenPtr pScreen)
 
     RemoveBlockAndWakeupHandlers(ephyrInternalDamageBlockHandler,
                                  ephyrInternalDamageWakeupHandler,
-                                 (pointer) pScreen);
+                                 (void *) pScreen);
 }
 
 #ifdef RANDR

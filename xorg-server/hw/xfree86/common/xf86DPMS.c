@@ -60,7 +60,7 @@ xf86DPMSInit(ScreenPtr pScreen, DPMSSetProcPtr set, int flags)
 #ifdef DPMSExtension
     ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     DPMSPtr pDPMS;
-    pointer DPMSOpt;
+    void *DPMSOpt;
     MessageType enabled_from;
 
     DPMSKey = &DPMSKeyRec;

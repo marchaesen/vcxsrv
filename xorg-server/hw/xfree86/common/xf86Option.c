@@ -478,7 +478,8 @@ static Bool
 ParseOptionValue(int scrnIndex, XF86OptionPtr options, OptionInfoPtr p,
                  Bool markUsed)
 {
-    char *s, *end;
+    const char *s;
+    char *end;
     Bool wasUsed = FALSE;
 
     if ((s = xf86findOptionValue(options, p->name)) != NULL) {
@@ -755,7 +756,7 @@ xf86IsOptionSet(const OptionInfoRec * table, int token)
     return p && p->found;
 }
 
-char *
+const char *
 xf86GetOptValString(const OptionInfoRec * table, int token)
 {
     OptionInfoPtr p;

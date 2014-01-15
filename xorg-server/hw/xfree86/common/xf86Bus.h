@@ -51,7 +51,7 @@ typedef struct {
     EntityProc entityInit;
     EntityProc entityEnter;
     EntityProc entityLeave;
-    pointer private;
+    void *private;
     Bool active;
     Bool inUse;
     BusRec bus;

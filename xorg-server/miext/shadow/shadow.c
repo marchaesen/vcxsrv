@@ -65,7 +65,7 @@ shadowRedisplay(ScreenPtr pScreen)
 }
 
 static void
-shadowBlockHandler(pointer data, OSTimePtr pTimeout, pointer pRead)
+shadowBlockHandler(void *data, OSTimePtr pTimeout, void *pRead)
 {
     ScreenPtr pScreen = (ScreenPtr) data;
 
@@ -73,7 +73,7 @@ shadowBlockHandler(pointer data, OSTimePtr pTimeout, pointer pRead)
 }
 
 static void
-shadowWakeupHandler(pointer data, int i, pointer LastSelectMask)
+shadowWakeupHandler(void *data, int i, void *LastSelectMask)
 {
 }
 
@@ -183,7 +183,7 @@ shadowAdd(ScreenPtr pScreen, PixmapPtr pPixmap, ShadowUpdateProc update,
     shadowBuf(pScreen);
 
     if (!RegisterBlockAndWakeupHandlers(shadowBlockHandler, shadowWakeupHandler,
-                                        (pointer) pScreen))
+                                        (void *) pScreen))
         return FALSE;
 
     /*
@@ -228,7 +228,7 @@ shadowRemove(ScreenPtr pScreen, PixmapPtr pPixmap)
     }
 
     RemoveBlockAndWakeupHandlers(shadowBlockHandler, shadowWakeupHandler,
-                                 (pointer) pScreen);
+                                 (void *) pScreen);
 }
 
 Bool

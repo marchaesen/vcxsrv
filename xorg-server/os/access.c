@@ -186,7 +186,7 @@ Bool defeatAccessControl = FALSE;
 
 static int ConvertAddr(struct sockaddr * /*saddr */ ,
                        int * /*len */ ,
-                       pointer * /*addr */ );
+                       void ** /*addr */ );
 
 static int CheckAddr(int /*family */ ,
                      const void * /*pAddr */ ,
@@ -226,7 +226,7 @@ static int LocalHostRequested = FALSE;
 static int UsingXdmcp = FALSE;
 
 /* FamilyServerInterpreted implementation */
-static Bool siAddrMatch(int family, pointer addr, int len, HOST * host,
+static Bool siAddrMatch(int family, void *addr, int len, HOST * host,
                         ClientPtr client);
 static int siCheckAddr(const char *addrString, int length);
 static void siTypesInitialize(void);
@@ -258,7 +258,7 @@ DisableLocalHost(void)
     for (self = selfhosts; self; self = self->next) {
         if (!self->requested)   /* Fix for XFree86 bug #156 */
             (void) RemoveHost((ClientPtr) NULL, self->family, self->len,
-                              (pointer) self->addr);
+                              (void *) self->addr);
     }
 }
 
@@ -382,7 +382,7 @@ DefineSelf(int fd)
         default:
             goto DefineLocalHost;
         }
-        family = ConvertAddr(&(saddr.sa), &len, (pointer *) &addr);
+        family = ConvertAddr(&(saddr.sa), &len, (void **) &addr);
         if (family != -1 && family != FamilyLocal) {
             for (host = selfhosts;
                  host && !addrEqual(family, addr, len, host);
@@ -545,7 +545,7 @@ DefineSelf(int fd)
 #define IFR_IFR_NAME ifr->ifr_name
 #endif
 
-    if (ifioctl(fd, IFC_IOCTL_REQ, (pointer) &ifc) < 0)
+    if (ifioctl(fd, IFC_IOCTL_REQ, (void *) &ifc) < 0)
         ErrorF("Getting interface configuration (4): %s\n", strerror(errno));
 
     cplim = (char *) IFC_IFC_REQ + IFC_IFC_LEN;
@@ -554,7 +554,7 @@ DefineSelf(int fd)
         ifr = (ifr_type *) cp;
         len = ifraddr_size(IFR_IFR_ADDR);
         family = ConvertAddr((struct sockaddr *) &IFR_IFR_ADDR,
-                             &len, (pointer *) &addr);
+                             &len, (void **) &addr);
         if (family == -1 || family == FamilyLocal)
             continue;
 #if defined(IPv6) && defined(AF_INET6)
@@ -649,12 +649,12 @@ DefineSelf(int fd)
                 struct ifreq broad_req;
 
                 broad_req = *ifr;
-                if (ifioctl(fd, SIOCGIFFLAGS, (pointer) &broad_req) != -1 &&
+                if (ifioctl(fd, SIOCGIFFLAGS, (void *) &broad_req) != -1 &&
                     (broad_req.ifr_flags & IFF_BROADCAST) &&
                     (broad_req.ifr_flags & IFF_UP)
                     ) {
                     broad_req = *ifr;
-                    if (ifioctl(fd, SIOCGIFBRDADDR, (pointer) &broad_req) != -1)
+                    if (ifioctl(fd, SIOCGIFBRDADDR, (void *) &broad_req) != -1)
                         broad_addr = broad_req.ifr_addr;
                     else
                         continue;
@@ -679,7 +679,7 @@ DefineSelf(int fd)
             continue;
         len = sizeof(*(ifr->ifa_addr));
         family = ConvertAddr((struct sockaddr *) ifr->ifa_addr, &len,
-                             (pointer *) &addr);
+                             (void **) &addr);
         if (family == -1 || family == FamilyLocal)
             continue;
 #if defined(IPv6) && defined(AF_INET6)
@@ -775,13 +775,13 @@ DefineSelf(int fd)
 
 #ifdef XDMCP
 void
-AugmentSelf(pointer from, int len)
+AugmentSelf(void *from, int len)
 {
     int family;
-    pointer addr;
+    void *addr;
     register HOST *host;
 
-    family = ConvertAddr(from, &len, (pointer *) &addr);
+    family = ConvertAddr(from, &len, (void **) &addr);
     if (family == -1 || family == FamilyLocal)
         return;
     for (host = selfhosts; host; host = host->next) {
@@ -814,7 +814,7 @@ AddLocalHosts(void)
 
 /* Reset access control list to initial hosts */
 void
-ResetHosts(char *display)
+ResetHosts(const char *display)
 {
     register HOST *host;
     char lhostname[120], ohostname[120];
@@ -835,7 +835,7 @@ ResetHosts(char *display)
     } saddr;
 #endif
     int family = 0;
-    pointer addr;
+    void *addr;
     int len;
 
     siTypesInitialize();
@@ -927,7 +927,7 @@ ResetHosts(char *display)
                         for (a = addresses; a != NULL; a = a->ai_next) {
                             len = a->ai_addrlen;
                             f = ConvertAddr(a->ai_addr, &len,
-                                            (pointer *) &addr);
+                                            (void **) &addr);
                             if ((family == f) ||
                                 ((family == FamilyWild) && (f != -1))) {
                                 NewHost(f, addr, len, FALSE);
@@ -950,15 +950,15 @@ ResetHosts(char *display)
                     len = sizeof(saddr.sa);
                     if ((family =
                          ConvertAddr(&saddr.sa, &len,
-                                     (pointer *) &addr)) != -1) {
+                                     (void **) &addr)) != -1) {
 #ifdef h_addr                   /* new 4.3bsd version of gethostent */
                         char **list;
 
                         /* iterate over the addresses */
                         for (list = hp->h_addr_list; *list; list++)
-                            (void) NewHost(family, (pointer) *list, len, FALSE);
+                            (void) NewHost(family, (void *) *list, len, FALSE);
 #else
-                        (void) NewHost(family, (pointer) hp->h_addr, len,
+                        (void) NewHost(family, (void *) hp->h_addr, len,
                                        FALSE);
 #endif
                     }
@@ -978,7 +978,7 @@ ComputeLocalClient(ClientPtr client)
 {
     int alen, family, notused;
     Xtransaddr *from = NULL;
-    pointer addr;
+    void *addr;
     register HOST *host;
     OsCommPtr oc = (OsCommPtr) client->osPrivate;
 
@@ -987,7 +987,7 @@ ComputeLocalClient(ClientPtr client)
 
     if (!_XSERVTransGetPeerAddr(oc->trans_conn, &notused, &alen, &from)) {
         family = ConvertAddr((struct sockaddr *) from,
-                             &alen, (pointer *) &addr);
+                             &alen, (void **) &addr);
         if (family == -1) {
             free(from);
             return FALSE;
@@ -1219,8 +1219,8 @@ AddHost(ClientPtr client, int family, unsigned length,  /* of bytes in pAddr */
 Bool
 ForEachHostInFamily(int family, Bool (*func) (unsigned char * /* addr */ ,
                                               short /* len */ ,
-                                              pointer /* closure */ ),
-                    pointer closure)
+                                              void */* closure */ ),
+                    void *closure)
 {
     HOST *host;
 
@@ -1264,7 +1264,7 @@ NewHost(int family, const void *addr, int len, int addingLocalHosts)
 
 int
 RemoveHost(ClientPtr client, int family, unsigned length,       /* of bytes in pAddr */
-           pointer pAddr)
+           void *pAddr)
 {
     int rc, len;
     register HOST *host, **prev;
@@ -1311,7 +1311,7 @@ RemoveHost(ClientPtr client, int family, unsigned length,       /* of bytes in p
 
 /* Get all hosts in the access control list */
 int
-GetHosts(pointer *data, int *pnHosts, int *pLen, BOOL * pEnabled)
+GetHosts(void **data, int *pnHosts, int *pLen, BOOL * pEnabled)
 {
     int len;
     register int n = 0;
@@ -1386,12 +1386,12 @@ int
 InvalidHost(register struct sockaddr *saddr, int len, ClientPtr client)
 {
     int family;
-    pointer addr;
+    void *addr;
     register HOST *selfhost, *host;
 
     if (!AccessEnabled)         /* just let them in */
         return 0;
-    family = ConvertAddr(saddr, &len, (pointer *) &addr);
+    family = ConvertAddr(saddr, &len, (void **) &addr);
     if (family == -1)
         return 1;
     if (family == FamilyLocal) {
@@ -1427,7 +1427,7 @@ InvalidHost(register struct sockaddr *saddr, int len, ClientPtr client)
 }
 
 static int
-ConvertAddr(register struct sockaddr *saddr, int *len, pointer *addr)
+ConvertAddr(register struct sockaddr *saddr, int *len, void **addr)
 {
     if (*len == 0)
         return FamilyLocal;
@@ -1444,7 +1444,7 @@ ConvertAddr(register struct sockaddr *saddr, int *len, pointer *addr)
             return FamilyLocal;
 #endif
         *len = sizeof(struct in_addr);
-        *addr = (pointer) &(((struct sockaddr_in *) saddr)->sin_addr);
+        *addr = (void *) &(((struct sockaddr_in *) saddr)->sin_addr);
         return FamilyInternet;
 #if defined(IPv6) && defined(AF_INET6)
     case AF_INET6:
@@ -1453,12 +1453,12 @@ ConvertAddr(register struct sockaddr *saddr, int *len, pointer *addr)
 
         if (IN6_IS_ADDR_V4MAPPED(&(saddr6->sin6_addr))) {
             *len = sizeof(struct in_addr);
-            *addr = (pointer) &(saddr6->sin6_addr.s6_addr[12]);
+            *addr = (void *) &(saddr6->sin6_addr.s6_addr[12]);
             return FamilyInternet;
         }
         else {
             *len = sizeof(struct in6_addr);
-            *addr = (pointer) &(saddr6->sin6_addr);
+            *addr = (void *) &(saddr6->sin6_addr);
             return FamilyInternet6;
         }
     }
@@ -1505,7 +1505,7 @@ GetAccessControl(void)
  * future to enable loading additional host types, but that was not done for
  * the initial implementation.
  */
-typedef Bool (*siAddrMatchFunc) (int family, pointer addr, int len,
+typedef Bool (*siAddrMatchFunc) (int family, void *addr, int len,
                                  const char *siAddr, int siAddrlen,
                                  ClientPtr client, void *siTypePriv);
 typedef int (*siCheckAddrFunc) (const char *addrString, int length,
@@ -1558,7 +1558,7 @@ siTypeAdd(const char *typeName, siAddrMatchFunc addrMatch,
 
 /* Checks to see if a host matches a server-interpreted host entry */
 static Bool
-siAddrMatch(int family, pointer addr, int len, HOST * host, ClientPtr client)
+siAddrMatch(int family, void *addr, int len, HOST * host, ClientPtr client)
 {
     Bool matches = FALSE;
     struct siType *s;
@@ -1659,7 +1659,7 @@ siCheckAddr(const char *addrString, int length)
 #endif
 
 static Bool
-siHostnameAddrMatch(int family, pointer addr, int len,
+siHostnameAddrMatch(int family, void *addr, int len,
                     const char *siAddr, int siAddrLen, ClientPtr client,
                     void *typePriv)
 {
@@ -1675,7 +1675,7 @@ siHostnameAddrMatch(int family, pointer addr, int len,
         struct addrinfo *addresses;
         struct addrinfo *a;
         int f, hostaddrlen;
-        pointer hostaddr;
+        void *hostaddr;
 
         if (siAddrLen >= sizeof(hostname))
             return FALSE;
@@ -1704,7 +1704,7 @@ siHostnameAddrMatch(int family, pointer addr, int len,
 #endif
         char hostname[SI_HOSTNAME_MAXLEN];
         int f, hostaddrlen;
-        pointer hostaddr;
+        void *hostaddr;
         const char **addrlist;
 
         if (siAddrLen >= sizeof(hostname))
@@ -1808,7 +1808,7 @@ siHostnameCheckAddr(const char *valueString, int length, void *typePriv)
 #define SI_IPv6_MAXLEN INET6_ADDRSTRLEN
 
 static Bool
-siIPv6AddrMatch(int family, pointer addr, int len,
+siIPv6AddrMatch(int family, void *addr, int len,
                 const char *siAddr, int siAddrlen, ClientPtr client,
                 void *typePriv)
 {
@@ -1934,7 +1934,7 @@ siLocalCredGetId(const char *addr, int len, siLocalCredPrivPtr lcPriv, int *id)
 }
 
 static Bool
-siLocalCredAddrMatch(int family, pointer addr, int len,
+siLocalCredAddrMatch(int family, void *addr, int len,
                      const char *siAddr, int siAddrlen, ClientPtr client,
                      void *typePriv)
 {

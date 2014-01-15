@@ -339,7 +339,7 @@ ChangeGC(ClientPtr client, GC * pGC, BITS32 mask, ChangeGCValPtr pUnion)
                 pPixmap->refcnt++;
             }
             (*pGC->funcs->ChangeClip) (pGC, pPixmap ? CT_PIXMAP : CT_NONE,
-                                       (pointer) pPixmap, 0);
+                                       (void *) pPixmap, 0);
             break;
         case GCDashOffset:
             NEXTVAL(INT16, pGC->dashOffset);
@@ -494,7 +494,7 @@ NewGCObject(ScreenPtr pScreen, int depth)
     pGC->clipOrg.x = 0;
     pGC->clipOrg.y = 0;
     pGC->clientClipType = CT_NONE;
-    pGC->clientClip = (pointer) NULL;
+    pGC->clientClip = (void *) NULL;
     pGC->numInDashList = 2;
     pGC->dash = DefaultDash;
     pGC->dashOffset = 0;
@@ -764,7 +764,7 @@ CopyGC(GC * pgcSrc, GC * pgcDst, BITS32 mask)
  *  \param value  must conform to DeleteType
  */
 int
-FreeGC(pointer value, XID gid)
+FreeGC(void *value, XID gid)
 {
     GCPtr pGC = (GCPtr) value;
 
@@ -1023,7 +1023,7 @@ SetClipRects(GCPtr pGC, int xOrigin, int yOrigin, int nrects,
 
     if (size)
         memmove((char *) prectsNew, (char *) prects, size);
-    (*pGC->funcs->ChangeClip) (pGC, newct, (pointer) prectsNew, nrects);
+    (*pGC->funcs->ChangeClip) (pGC, newct, (void *) prectsNew, nrects);
     if (pGC->funcs->ChangeGC)
         (*pGC->funcs->ChangeGC) (pGC,
                                  GCClipXOrigin | GCClipYOrigin | GCClipMask);

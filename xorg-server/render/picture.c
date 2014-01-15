@@ -70,7 +70,7 @@ PictureDestroyWindow(WindowPtr pWindow)
         SetPictureWindow(pWindow, pPicture->pNext);
         if (pPicture->id)
             FreeResource(pPicture->id, PictureType);
-        FreePicture((pointer) pPicture, pPicture->id);
+        FreePicture((void *) pPicture, pPicture->id);
     }
     pScreen->DestroyWindow = ps->DestroyWindow;
     ret = (*pScreen->DestroyWindow) (pWindow);
@@ -445,7 +445,7 @@ PictureInitIndexedFormat(ScreenPtr pScreen, PictFormatPtr format)
         return TRUE;
 
     if (format->index.vid == pScreen->rootVisual) {
-        dixLookupResourceByType((pointer *) &format->index.pColormap,
+        dixLookupResourceByType((void **) &format->index.pColormap,
                                 pScreen->defColormap, RT_COLORMAP,
                                 serverClient, DixGetAttrAccess);
     }
@@ -601,7 +601,7 @@ PictureParseCmapPolicy(const char *name)
 
 /** @see GetDefaultBytes */
 static void
-GetPictureBytes(pointer value, XID id, ResourceSizePtr size)
+GetPictureBytes(void *value, XID id, ResourceSizePtr size)
 {
     PicturePtr picture = value;
 
@@ -655,7 +655,7 @@ PictureInit(ScreenPtr pScreen, PictFormatPtr formats, int nformats)
     }
     for (n = 0; n < nformats; n++) {
         if (!AddResource
-            (formats[n].id, PictFormatType, (pointer) (formats + n))) {
+            (formats[n].id, PictFormatType, (void *) (formats + n))) {
             free(formats);
             return FALSE;
         }
@@ -1054,7 +1054,7 @@ ChangePicture(PicturePtr pPicture,
                 if (pid == None)
                     pAlpha = 0;
                 else {
-                    error = dixLookupResourceByType((pointer *) &pAlpha, pid,
+                    error = dixLookupResourceByType((void **) &pAlpha, pid,
                                                     PictureType, client,
                                                     DixReadAccess);
                     if (error != Success) {
@@ -1075,7 +1075,7 @@ ChangePicture(PicturePtr pPicture,
                 if (pAlpha && pAlpha->pDrawable->type == DRAWABLE_PIXMAP)
                     pAlpha->refcnt++;
                 if (pPicture->alphaMap)
-                    FreePicture((pointer) pPicture->alphaMap, (XID) 0);
+                    FreePicture((void *) pPicture->alphaMap, (XID) 0);
                 pPicture->alphaMap = pAlpha;
             }
         }
@@ -1113,7 +1113,7 @@ ChangePicture(PicturePtr pPicture,
                 }
                 else {
                     clipType = CT_PIXMAP;
-                    error = dixLookupResourceByType((pointer *) &pPixmap, pid,
+                    error = dixLookupResourceByType((void **) &pPixmap, pid,
                                                     RT_PIXMAP, client,
                                                     DixReadAccess);
                     if (error != Success) {
@@ -1143,7 +1143,7 @@ ChangePicture(PicturePtr pPicture,
                 }
             }
             error = (*ps->ChangePictureClip) (pPicture, clipType,
-                                              (pointer) pPixmap, 0);
+                                              (void *) pPixmap, 0);
             break;
         }
         case CPGraphicsExposure:
@@ -1240,7 +1240,7 @@ SetPictureClipRects(PicturePtr pPicture,
     if (!clientClip)
         return BadAlloc;
     result = (*ps->ChangePictureClip) (pPicture, CT_REGION,
-                                       (pointer) clientClip, 0);
+                                       (void *) clientClip, 0);
     if (result == Success) {
         pPicture->clipOrigin.x = xOrigin;
         pPicture->clipOrigin.y = yOrigin;
@@ -1276,7 +1276,7 @@ SetPictureClipRegion(PicturePtr pPicture,
         clientClip = 0;
     }
 
-    result = (*ps->ChangePictureClip) (pPicture, type, (pointer) clientClip, 0);
+    result = (*ps->ChangePictureClip) (pPicture, type, (void *) clientClip, 0);
     if (result == Success) {
         pPicture->clipOrigin.x = xOrigin;
         pPicture->clipOrigin.y = yOrigin;
@@ -1354,7 +1354,7 @@ CopyPicture(PicturePtr pSrc, Mask mask, PicturePtr pDst)
                 pSrc->alphaMap->pDrawable->type == DRAWABLE_PIXMAP)
                 pSrc->alphaMap->refcnt++;
             if (pDst->alphaMap)
-                FreePicture((pointer) pDst->alphaMap, (XID) 0);
+                FreePicture((void *) pDst->alphaMap, (XID) 0);
             pDst->alphaMap = pSrc->alphaMap;
             break;
         case CPAlphaXOrigin:
@@ -1435,7 +1435,7 @@ ValidatePicture(PicturePtr pPicture)
 }
 
 int
-FreePicture(pointer value, XID pid)
+FreePicture(void *value, XID pid)
 {
     PicturePtr pPicture = (PicturePtr) value;
 
@@ -1454,7 +1454,7 @@ FreePicture(pointer value, XID pid)
             PictureScreenPtr ps = GetPictureScreen(pScreen);
 
             if (pPicture->alphaMap)
-                FreePicture((pointer) pPicture->alphaMap, (XID) 0);
+                FreePicture((void *) pPicture->alphaMap, (XID) 0);
             (*ps->DestroyPicture) (pPicture);
             (*ps->DestroyPictureClip) (pPicture);
             if (pPicture->pDrawable->type == DRAWABLE_WINDOW) {
@@ -1480,7 +1480,7 @@ FreePicture(pointer value, XID pid)
 }
 
 int
-FreePictFormat(pointer pPictFormat, XID pid)
+FreePictFormat(void *pPictFormat, XID pid)
 {
     return Success;
 }

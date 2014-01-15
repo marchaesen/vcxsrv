@@ -259,7 +259,7 @@ fixupDefaultColormaps(FixupFunc fixup, unsigned bytes)
     for (s = 0; s < screenInfo.numScreens; s++) {
         ColormapPtr cmap;
 
-        dixLookupResourceByType((pointer *) &cmap,
+        dixLookupResourceByType((void **) &cmap,
                                 screenInfo.screens[s]->defColormap, RT_COLORMAP,
                                 serverClient, DixCreateAccess);
         if (cmap &&
@@ -348,7 +348,7 @@ dixRegisterPrivateKey(DevPrivateKey key, DevPrivateType type, unsigned size)
     if (size == 0)
         bytes = sizeof(void *);
 
-    /* align to void * size */
+    /* align to pointer size */
     bytes = (bytes + sizeof(void *) - 1) & ~(sizeof(void *) - 1);
 
     /* Update offsets for all affected keys */
@@ -697,7 +697,7 @@ _dixAllocateScreenObjectWithPrivates(ScreenPtr pScreen,
         privates_size = pScreen->screenSpecificPrivates[type].offset;
     else
         privates_size = global_keys[type].offset;
-    /* round up so that void * is aligned */
+    /* round up so that pointer is aligned */
     baseSize = (baseSize + sizeof(void *) - 1) & ~(sizeof(void *) - 1);
     totalSize = baseSize + privates_size;
     object = malloc(totalSize);

@@ -99,14 +99,10 @@ typedef struct _ShmScrPrivateRec {
 } ShmScrPrivateRec;
 
 static PixmapPtr fbShmCreatePixmap(XSHM_CREATE_PIXMAP_ARGS);
-static int ShmDetachSegment(pointer /* value */ ,
-                            XID /* shmseg */
-    );
-static void ShmResetProc(ExtensionEntry *       /* extEntry */
-    );
-static void SShmCompletionEvent(xShmCompletionEvent * /* from */ ,
-                                xShmCompletionEvent *   /* to */
-    );
+static int ShmDetachSegment(void *value, XID shmseg);
+static void ShmResetProc(ExtensionEntry *extEntry);
+static void SShmCompletionEvent(xShmCompletionEvent *from,
+                                xShmCompletionEvent *to);
 
 static Bool ShmDestroyPixmap(PixmapPtr pPixmap);
 
@@ -130,7 +126,7 @@ static ShmFuncs fbFuncs = { fbShmCreatePixmap, NULL };
 #define VERIFY_SHMSEG(shmseg,shmdesc,client) \
 { \
     int tmprc; \
-    tmprc = dixLookupResourceByType((pointer *)&(shmdesc), shmseg, ShmSegType, \
+    tmprc = dixLookupResourceByType((void **)&(shmdesc), shmseg, ShmSegType, \
                                     client, DixReadAccess); \
     if (tmprc != Success) \
 	return tmprc; \
@@ -260,7 +256,7 @@ ShmDestroyPixmap(PixmapPtr pPixmap)
         shmdesc = (ShmDescPtr) dixLookupPrivate(&pPixmap->devPrivates,
                                                 shmPixmapPrivateKey);
         if (shmdesc)
-            ShmDetachSegment((pointer) shmdesc, pPixmap->drawable.id);
+            ShmDetachSegment((void *) shmdesc, pPixmap->drawable.id);
     }
 
     pScreen->DestroyPixmap = screen_priv->destroyPixmap;
@@ -425,13 +421,13 @@ ProcShmAttach(ClientPtr client)
         shmdesc->next = Shmsegs;
         Shmsegs = shmdesc;
     }
-    if (!AddResource(stuff->shmseg, ShmSegType, (pointer) shmdesc))
+    if (!AddResource(stuff->shmseg, ShmSegType, (void *) shmdesc))
         return BadAlloc;
     return Success;
 }
 
  /*ARGSUSED*/ static int
-ShmDetachSegment(pointer value, /* must conform to DeleteType */
+ShmDetachSegment(void *value, /* must conform to DeleteType */
                  XID shmseg)
 {
     ShmDescPtr shmdesc = (ShmDescPtr) value;
@@ -729,12 +725,12 @@ ProcPanoramiXShmPutImage(ClientPtr client)
     REQUEST(xShmPutImageReq);
     REQUEST_SIZE_MATCH(xShmPutImageReq);
 
-    result = dixLookupResourceByClass((pointer *) &draw, stuff->drawable,
+    result = dixLookupResourceByClass((void **) &draw, stuff->drawable,
                                       XRC_DRAWABLE, client, DixWriteAccess);
     if (result != Success)
         return (result == BadValue) ? BadDrawable : result;
 
-    result = dixLookupResourceByType((pointer *) &gc, stuff->gc,
+    result = dixLookupResourceByType((void **) &gc, stuff->gc,
                                      XRT_GC, client, DixReadAccess);
     if (result != Success)
         return result;
@@ -783,7 +779,7 @@ ProcPanoramiXShmGetImage(ClientPtr client)
         return BadValue;
     }
 
-    rc = dixLookupResourceByClass((pointer *) &draw, stuff->drawable,
+    rc = dixLookupResourceByClass((void **) &draw, stuff->drawable,
                                   XRC_DRAWABLE, client, DixWriteAccess);
     if (rc != Success)
         return (rc == BadValue) ? BadDrawable : rc;
@@ -980,7 +976,7 @@ ProcPanoramiXShmCreatePixmap(ClientPtr client)
             shmdesc->refcnt++;
             pMap->drawable.serialNumber = NEXT_SERIAL_NUMBER;
             pMap->drawable.id = newPix->info[j].id;
-            if (!AddResource(newPix->info[j].id, RT_PIXMAP, (pointer) pMap)) {
+            if (!AddResource(newPix->info[j].id, RT_PIXMAP, (void *) pMap)) {
                 result = BadAlloc;
                 break;
             }
@@ -1016,7 +1012,7 @@ fbShmCreatePixmap(ScreenPtr pScreen,
     if (!(*pScreen->ModifyPixmapHeader) (pPixmap, width, height, depth,
                                          BitsPerPixel(depth),
                                          PixmapBytePad(width, depth),
-                                         (pointer) addr)) {
+                                         (void *) addr)) {
         (*pScreen->DestroyPixmap) (pPixmap);
         return NullPixmap;
     }
@@ -1095,7 +1091,7 @@ ProcShmCreatePixmap(ClientPtr client)
         shmdesc->refcnt++;
         pMap->drawable.serialNumber = NEXT_SERIAL_NUMBER;
         pMap->drawable.id = stuff->pid;
-        if (AddResource(stuff->pid, RT_PIXMAP, (pointer) pMap)) {
+        if (AddResource(stuff->pid, RT_PIXMAP, (void *) pMap)) {
             return Success;
         }
     }
@@ -1172,7 +1168,7 @@ ProcShmAttachFd(ClientPtr client)
     shmdesc->next = Shmsegs;
     Shmsegs = shmdesc;
 
-    if (!AddResource(stuff->shmseg, ShmSegType, (pointer) shmdesc))
+    if (!AddResource(stuff->shmseg, ShmSegType, (void *) shmdesc))
         return BadAlloc;
     return Success;
 }
@@ -1263,7 +1259,7 @@ ProcShmCreateSegment(ClientPtr client)
     shmdesc->next = Shmsegs;
     Shmsegs = shmdesc;
 
-    if (!AddResource(stuff->shmseg, ShmSegType, (pointer) shmdesc)) {
+    if (!AddResource(stuff->shmseg, ShmSegType, (void *) shmdesc)) {
         close(fd);
         return BadAlloc;
     }

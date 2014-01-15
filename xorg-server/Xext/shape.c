@@ -50,11 +50,11 @@ in this Software without prior written authorization from The Open Group.
 typedef RegionPtr (*CreateDftPtr) (WindowPtr    /* pWin */
     );
 
-static int ShapeFreeClient(pointer /* data */ ,
-                           XID  /* id */
+static int ShapeFreeClient(void * /* data */ ,
+                           XID    /* id */
     );
-static int ShapeFreeEvents(pointer /* data */ ,
-                           XID  /* id */
+static int ShapeFreeEvents(void * /* data */ ,
+                           XID    /* id */
     );
 static void SShapeNotifyEvent(xShapeNotifyEvent * /* from */ ,
                               xShapeNotifyEvent *       /* to */
@@ -306,7 +306,7 @@ ProcPanoramiXShapeRectangles(ClientPtr client)
 
     REQUEST_AT_LEAST_SIZE(xShapeRectanglesReq);
 
-    result = dixLookupResourceByType((pointer *) &win, stuff->dest, XRT_WINDOW,
+    result = dixLookupResourceByType((void **) &win, stuff->dest, XRT_WINDOW,
                                      client, DixWriteAccess);
     if (result != Success)
         return result;
@@ -361,7 +361,7 @@ ProcShapeMask(ClientPtr client)
     if (stuff->src == None)
         srcRgn = 0;
     else {
-        rc = dixLookupResourceByType((pointer *) &pPixmap, stuff->src,
+        rc = dixLookupResourceByType((void **) &pPixmap, stuff->src,
                                      RT_PIXMAP, client, DixReadAccess);
         if (rc != Success)
             return rc;
@@ -404,13 +404,13 @@ ProcPanoramiXShapeMask(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xShapeMaskReq);
 
-    result = dixLookupResourceByType((pointer *) &win, stuff->dest, XRT_WINDOW,
+    result = dixLookupResourceByType((void **) &win, stuff->dest, XRT_WINDOW,
                                      client, DixWriteAccess);
     if (result != Success)
         return result;
 
     if (stuff->src != None) {
-        result = dixLookupResourceByType((pointer *) &pmap, stuff->src,
+        result = dixLookupResourceByType((void **) &pmap, stuff->src,
                                          XRT_PIXMAP, client, DixReadAccess);
         if (result != Success)
             return result;
@@ -532,12 +532,12 @@ ProcPanoramiXShapeCombine(ClientPtr client)
 
     REQUEST_AT_LEAST_SIZE(xShapeCombineReq);
 
-    result = dixLookupResourceByType((pointer *) &win, stuff->dest, XRT_WINDOW,
+    result = dixLookupResourceByType((void **) &win, stuff->dest, XRT_WINDOW,
                                      client, DixWriteAccess);
     if (result != Success)
         return result;
 
-    result = dixLookupResourceByType((pointer *) &win2, stuff->src, XRT_WINDOW,
+    result = dixLookupResourceByType((void **) &win2, stuff->src, XRT_WINDOW,
                                      client, DixReadAccess);
     if (result != Success)
         return result;
@@ -603,7 +603,7 @@ ProcPanoramiXShapeOffset(ClientPtr client)
 
     REQUEST_AT_LEAST_SIZE(xShapeOffsetReq);
 
-    result = dixLookupResourceByType((pointer *) &win, stuff->dest, XRT_WINDOW,
+    result = dixLookupResourceByType((void **) &win, stuff->dest, XRT_WINDOW,
                                      client, DixWriteAccess);
     if (result != Success)
         return result;
@@ -686,7 +686,7 @@ ProcShapeQueryExtents(ClientPtr client)
 }
 
  /*ARGSUSED*/ static int
-ShapeFreeClient(pointer data, XID id)
+ShapeFreeClient(void *data, XID id)
 {
     ShapeEventPtr pShapeEvent;
     WindowPtr pWin;
@@ -695,7 +695,7 @@ ShapeFreeClient(pointer data, XID id)
 
     pShapeEvent = (ShapeEventPtr) data;
     pWin = pShapeEvent->window;
-    rc = dixLookupResourceByType((pointer *) &pHead, pWin->drawable.id,
+    rc = dixLookupResourceByType((void **) &pHead, pWin->drawable.id,
                                  ShapeEventType, serverClient, DixReadAccess);
     if (rc == Success) {
         pPrev = 0;
@@ -708,12 +708,12 @@ ShapeFreeClient(pointer data, XID id)
                 *pHead = pShapeEvent->next;
         }
     }
-    free((pointer) pShapeEvent);
+    free((void *) pShapeEvent);
     return 1;
 }
 
  /*ARGSUSED*/ static int
-ShapeFreeEvents(pointer data, XID id)
+ShapeFreeEvents(void *data, XID id)
 {
     ShapeEventPtr *pHead, pCur, pNext;
 
@@ -721,9 +721,9 @@ ShapeFreeEvents(pointer data, XID id)
     for (pCur = *pHead; pCur; pCur = pNext) {
         pNext = pCur->next;
         FreeResource(pCur->clientResource, ClientType);
-        free((pointer) pCur);
+        free((void *) pCur);
     }
-    free((pointer) pHead);
+    free((void *) pHead);
     return 1;
 }
 
@@ -740,7 +740,7 @@ ProcShapeSelectInput(ClientPtr client)
     rc = dixLookupWindow(&pWin, stuff->window, client, DixReceiveAccess);
     if (rc != Success)
         return rc;
-    rc = dixLookupResourceByType((pointer *) &pHead, pWin->drawable.id,
+    rc = dixLookupResourceByType((void **) &pHead, pWin->drawable.id,
                                  ShapeEventType, client, DixWriteAccess);
     if (rc != Success && rc != BadValue)
         return rc;
@@ -770,10 +770,10 @@ ProcShapeSelectInput(ClientPtr client)
          */
         clientResource = FakeClientID(client->index);
         pNewShapeEvent->clientResource = clientResource;
-        if (!AddResource(clientResource, ClientType, (pointer) pNewShapeEvent))
+        if (!AddResource(clientResource, ClientType, (void *) pNewShapeEvent))
             return BadAlloc;
         /*
-         * create a resource to contain a pointer to the list
+         * create a resource to contain a void *to the list
          * of clients selecting input.  This must be indirect as
          * the list may be arbitrarily rearranged which cannot be
          * done through the resource database.
@@ -782,7 +782,7 @@ ProcShapeSelectInput(ClientPtr client)
             pHead = malloc(sizeof(ShapeEventPtr));
             if (!pHead ||
                 !AddResource(pWin->drawable.id, ShapeEventType,
-                             (pointer) pHead)) {
+                             (void *) pHead)) {
                 FreeResource(clientResource, RT_NONE);
                 return BadAlloc;
             }
@@ -831,7 +831,7 @@ SendShapeNotify(WindowPtr pWin, int which)
     BYTE shaped;
     int rc;
 
-    rc = dixLookupResourceByType((pointer *) &pHead, pWin->drawable.id,
+    rc = dixLookupResourceByType((void **) &pHead, pWin->drawable.id,
                                  ShapeEventType, serverClient, DixReadAccess);
     if (rc != Success)
         return;
@@ -910,7 +910,7 @@ ProcShapeInputSelected(ClientPtr client)
     rc = dixLookupWindow(&pWin, stuff->window, client, DixGetAttrAccess);
     if (rc != Success)
         return rc;
-    rc = dixLookupResourceByType((pointer *) &pHead, pWin->drawable.id,
+    rc = dixLookupResourceByType((void **) &pHead, pWin->drawable.id,
                                  ShapeEventType, client, DixReadAccess);
     if (rc != Success && rc != BadValue)
         return rc;

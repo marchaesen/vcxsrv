@@ -318,7 +318,7 @@ struct pixmap_visit {
 };
 
 static int
-present_set_tree_pixmap_visit(WindowPtr window, pointer data)
+present_set_tree_pixmap_visit(WindowPtr window, void *data)
 {
     struct pixmap_visit *visit = data;
     ScreenPtr           screen = window->drawable.pScreen;

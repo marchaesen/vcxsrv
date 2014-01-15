@@ -1,8 +1,9 @@
-// Fairly complete set of symbol interpretations 
-// to provide reasonable default behavior
+// Fairly complete set of symbol interpretations
+// to provide reasonable default behavior.
 
-default partial xkb_compatibility "default"  {
-    virtual_modifiers LevelThree,AltGr;
+default partial xkb_compatibility "default" {
+
+    virtual_modifiers  LevelThree,AltGr;
 
     interpret.repeat= False;
     setMods.clearLocks= True;

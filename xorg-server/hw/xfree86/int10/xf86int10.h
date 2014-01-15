@@ -21,13 +21,13 @@
 /* int10 info structure */
 typedef struct {
     int entityIndex;
-    CARD16 BIOSseg;
-    CARD16 inb40time;
+    uint16_t BIOSseg;
+    uint16_t inb40time;
     ScrnInfoPtr pScrn;
-    pointer cpuRegs;
+    void *cpuRegs;
     char *BIOSScratch;
     int Flags;
-    pointer private;
+    void *private;
     struct _int10Mem *mem;
     int num;
     int ax;
@@ -45,19 +45,19 @@ typedef struct {
 } xf86Int10InfoRec, *xf86Int10InfoPtr;
 
 typedef struct _int10Mem {
-    CARD8 (*rb) (xf86Int10InfoPtr, int);
-    CARD16 (*rw) (xf86Int10InfoPtr, int);
-    CARD32 (*rl) (xf86Int10InfoPtr, int);
-    void (*wb) (xf86Int10InfoPtr, int, CARD8);
-    void (*ww) (xf86Int10InfoPtr, int, CARD16);
-    void (*wl) (xf86Int10InfoPtr, int, CARD32);
+    uint8_t (*rb) (xf86Int10InfoPtr, int);
+    uint16_t (*rw) (xf86Int10InfoPtr, int);
+    uint32_t (*rl) (xf86Int10InfoPtr, int);
+    void (*wb) (xf86Int10InfoPtr, int, uint8_t);
+    void (*ww) (xf86Int10InfoPtr, int, uint16_t);
+    void (*wl) (xf86Int10InfoPtr, int, uint32_t);
 } int10MemRec, *int10MemPtr;
 
 typedef struct {
-    CARD8 save_msr;
-    CARD8 save_pos102;
-    CARD8 save_vse;
-    CARD8 save_46e8;
+    uint8_t save_msr;
+    uint8_t save_pos102;
+    uint8_t save_vse;
+    uint8_t save_46e8;
 } legacyVGARec, *legacyVGAPtr;
 
 /* OS dependent functions */
@@ -69,7 +69,7 @@ extern _X_EXPORT void *xf86Int10AllocPages(xf86Int10InfoPtr pInt, int num,
                                            int *off);
 extern _X_EXPORT void xf86Int10FreePages(xf86Int10InfoPtr pInt, void *pbase,
                                          int num);
-extern _X_EXPORT pointer xf86int10Addr(xf86Int10InfoPtr pInt, CARD32 addr);
+extern _X_EXPORT void *xf86int10Addr(xf86Int10InfoPtr pInt, uint32_t addr);
 
 /* x86 executor related functions */
 extern _X_EXPORT void xf86ExecX86int10(xf86Int10InfoPtr pInt);
@@ -127,13 +127,13 @@ int int_handler(xf86Int10InfoPtr pInt);
 /* helper_exec.c */
 int setup_int(xf86Int10InfoPtr pInt);
 void finish_int(xf86Int10InfoPtr, int sig);
-CARD32 getIntVect(xf86Int10InfoPtr pInt, int num);
-void pushw(xf86Int10InfoPtr pInt, CARD16 val);
+uint32_t getIntVect(xf86Int10InfoPtr pInt, int num);
+void pushw(xf86Int10InfoPtr pInt, uint16_t val);
 int run_bios_int(int num, xf86Int10InfoPtr pInt);
 void dump_code(xf86Int10InfoPtr pInt);
 void dump_registers(xf86Int10InfoPtr pInt);
 void stack_trace(xf86Int10InfoPtr pInt);
-CARD8 bios_checksum(const CARD8 *start, int size);
+uint8_t bios_checksum(const uint8_t *start, int size);
 void LockLegacyVGA(xf86Int10InfoPtr pInt, legacyVGAPtr vga);
 void UnlockLegacyVGA(xf86Int10InfoPtr pInt, legacyVGAPtr vga);
 
@@ -142,31 +142,31 @@ extern _X_EXPORT void xf86Int10SaveRestoreBIOSVars(xf86Int10InfoPtr pInt,
                                                    Bool save);
 #endif
 int port_rep_inb(xf86Int10InfoPtr pInt,
-                 CARD16 port, CARD32 base, int d_f, CARD32 count);
+                 uint16_t port, uint32_t base, int d_f, uint32_t count);
 int port_rep_inw(xf86Int10InfoPtr pInt,
-                 CARD16 port, CARD32 base, int d_f, CARD32 count);
+                 uint16_t port, uint32_t base, int d_f, uint32_t count);
 int port_rep_inl(xf86Int10InfoPtr pInt,
-                 CARD16 port, CARD32 base, int d_f, CARD32 count);
+                 uint16_t port, uint32_t base, int d_f, uint32_t count);
 int port_rep_outb(xf86Int10InfoPtr pInt,
-                  CARD16 port, CARD32 base, int d_f, CARD32 count);
+                  uint16_t port, uint32_t base, int d_f, uint32_t count);
 int port_rep_outw(xf86Int10InfoPtr pInt,
-                  CARD16 port, CARD32 base, int d_f, CARD32 count);
+                  uint16_t port, uint32_t base, int d_f, uint32_t count);
 int port_rep_outl(xf86Int10InfoPtr pInt,
-                  CARD16 port, CARD32 base, int d_f, CARD32 count);
+                  uint16_t port, uint32_t base, int d_f, uint32_t count);
 
-CARD8 x_inb(CARD16 port);
-CARD16 x_inw(CARD16 port);
-void x_outb(CARD16 port, CARD8 val);
-void x_outw(CARD16 port, CARD16 val);
-CARD32 x_inl(CARD16 port);
-void x_outl(CARD16 port, CARD32 val);
+uint8_t x_inb(uint16_t port);
+uint16_t x_inw(uint16_t port);
+void x_outb(uint16_t port, uint8_t val);
+void x_outw(uint16_t port, uint16_t val);
+uint32_t x_inl(uint16_t port);
+void x_outl(uint16_t port, uint32_t val);
 
-CARD8 Mem_rb(CARD32 addr);
-CARD16 Mem_rw(CARD32 addr);
-CARD32 Mem_rl(CARD32 addr);
-void Mem_wb(CARD32 addr, CARD8 val);
-void Mem_ww(CARD32 addr, CARD16 val);
-void Mem_wl(CARD32 addr, CARD32 val);
+uint8_t Mem_rb(uint32_t addr);
+uint16_t Mem_rw(uint32_t addr);
+uint32_t Mem_rl(uint32_t addr);
+void Mem_wb(uint32_t addr, uint8_t val);
+void Mem_ww(uint32_t addr, uint16_t val);
+void Mem_wl(uint32_t addr, uint32_t val);
 
 /* helper_mem.c */
 void setup_int_vect(xf86Int10InfoPtr pInt);

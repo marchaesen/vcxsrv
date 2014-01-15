@@ -148,7 +148,7 @@ miPolyRectangle(DrawablePtr pDraw, GCPtr pGC, int nrects, xRectangle *pRects)
             }
         }
         (*pGC->ops->PolyFillRect) (pDraw, pGC, t - tmp, tmp);
-        free((pointer) tmp);
+        free((void *) tmp);
     }
     else {
 

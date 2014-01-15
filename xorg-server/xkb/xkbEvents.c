@@ -482,7 +482,7 @@ XkbHandleBell(BOOL force,
               BOOL eventOnly,
               DeviceIntPtr kbd,
               CARD8 percent,
-              pointer pCtrl,
+              void *pCtrl,
               CARD8 class, Atom name, WindowPtr pWin, ClientPtr pClient)
 {
     xkbBellNotify bn;
@@ -502,7 +502,7 @@ XkbHandleBell(BOOL force,
     if ((force || (xkbi->desc->ctrls->enabled_ctrls & XkbAudibleBellMask)) &&
         (!eventOnly)) {
         if (kbd->kbdfeed->BellProc)
-            (*kbd->kbdfeed->BellProc) (percent, kbd, (pointer) pCtrl, class);
+            (*kbd->kbdfeed->BellProc) (percent, kbd, (void *) pCtrl, class);
     }
     interest = kbd->xkb_interest;
     if ((!interest) || (force))

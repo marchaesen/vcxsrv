@@ -128,7 +128,7 @@ exaDDXDriverInit(ScreenPtr pScreen)
     if (pExaScr->info->flags & EXA_OFFSCREEN_PIXMAPS) {
         if (!(pExaScr->info->flags & EXA_HANDLES_PIXMAPS) &&
             pExaScr->info->offScreenBase < pExaScr->info->memorySize) {
-            char *heuristicName;
+            const char *heuristicName;
 
             heuristicName = xf86GetOptValString(pScreenPriv->options,
                                                 EXAOPT_MIGRATION_HEURISTIC);

@@ -545,7 +545,7 @@ FI1236_set_tuner_type(FI1236Ptr f, int type)
 }
 
 static CARD32
-AFC_TimerCallback(OsTimerPtr timer, CARD32 time, pointer data)
+AFC_TimerCallback(OsTimerPtr timer, CARD32 time, void *data)
 {
     FI1236Ptr f = (FI1236Ptr) data;
 

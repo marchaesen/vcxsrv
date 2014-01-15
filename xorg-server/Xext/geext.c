@@ -150,7 +150,7 @@ SProcGEDispatch(ClientPtr client)
  * used in the furture for versioning support.
  */
 static void
-GEClientCallback(CallbackListPtr *list, pointer closure, pointer data)
+GEClientCallback(CallbackListPtr *list, void *closure, void *data)
 {
     NewClientInfoRec *clientinfo = (NewClientInfoRec *) data;
     ClientPtr pClient = clientinfo->client;

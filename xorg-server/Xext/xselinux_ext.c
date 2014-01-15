@@ -245,7 +245,7 @@ ProcSELinuxGetDrawableContext(ClientPtr client)
 }
 
 static int
-ProcSELinuxGetPropertyContext(ClientPtr client, pointer privKey)
+ProcSELinuxGetPropertyContext(ClientPtr client, void *privKey)
 {
     WindowPtr pWin;
     PropertyPtr pProp;
@@ -269,7 +269,7 @@ ProcSELinuxGetPropertyContext(ClientPtr client, pointer privKey)
 }
 
 static int
-ProcSELinuxGetSelectionContext(ClientPtr client, pointer privKey)
+ProcSELinuxGetSelectionContext(ClientPtr client, void *privKey)
 {
     Selection *pSel;
     SELinuxObjectRec *obj;
@@ -576,7 +576,7 @@ SProcSELinuxGetDrawableContext(ClientPtr client)
 }
 
 static int
-SProcSELinuxGetPropertyContext(ClientPtr client, pointer privKey)
+SProcSELinuxGetPropertyContext(ClientPtr client, void *privKey)
 {
     REQUEST(SELinuxGetPropertyContextReq);
 
@@ -587,7 +587,7 @@ SProcSELinuxGetPropertyContext(ClientPtr client, pointer privKey)
 }
 
 static int
-SProcSELinuxGetSelectionContext(ClientPtr client, pointer privKey)
+SProcSELinuxGetSelectionContext(ClientPtr client, void *privKey)
 {
     REQUEST(SELinuxGetContextReq);
 

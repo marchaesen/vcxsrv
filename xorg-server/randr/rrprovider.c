@@ -365,7 +365,7 @@ RRProviderCreate(ScreenPtr pScreen, const char *name,
     provider->name[nameLength] = '\0';
     provider->changed = FALSE;
 
-    if (!AddResource (provider->id, RRProviderType, (pointer) provider))
+    if (!AddResource (provider->id, RRProviderType, (void *) provider))
         return NULL;
     pScrPriv->provider = provider;
     return provider;
@@ -387,7 +387,7 @@ RRProviderSetCapabilities(RRProviderPtr provider, uint32_t capabilities)
 }
 
 static int
-RRProviderDestroyResource (pointer value, XID pid)
+RRProviderDestroyResource (void *value, XID pid)
 {
     RRProviderPtr provider = (RRProviderPtr)value;
     ScreenPtr pScreen = provider->pScreen;

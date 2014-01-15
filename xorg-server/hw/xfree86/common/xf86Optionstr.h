@@ -31,10 +31,10 @@
  */
 typedef struct _XF86OptionRec {
     GenericListRec list;
-    char *opt_name;
-    char *opt_val;
+    const char *opt_name;
+    const char *opt_val;
     int opt_used;
-    char *opt_comment;
+    const char *opt_comment;
 } XF86OptionRec;
 
 typedef struct _InputOption *XF86OptionPtr;

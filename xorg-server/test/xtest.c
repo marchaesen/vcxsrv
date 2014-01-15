@@ -71,7 +71,7 @@ xtest_init_devices(void)
     screen.DeviceCursorCleanup = device_cursor_cleanup;
     dixResetPrivates();
     serverClient = &server_client;
-    InitClient(serverClient, 0, (pointer) NULL);
+    InitClient(serverClient, 0, (void *) NULL);
     if (!InitClientResources(serverClient)) /* for root resources */
         FatalError("couldn't init server resources");
     InitAtoms();

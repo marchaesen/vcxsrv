@@ -165,7 +165,7 @@ typedef struct _Resource {
     struct _Resource *next;
     XID id;
     RESTYPE type;
-    pointer value;
+    void *value;
 } ResourceRec, *ResourcePtr;
 
 typedef struct _ClientResource {
@@ -203,7 +203,7 @@ struct ResourceType {
  *                  resource can't be determined.
  */
 static void
-GetDefaultBytes(pointer value, XID id, ResourceSizePtr size)
+GetDefaultBytes(void *value, XID id, ResourceSizePtr size)
 {
     size->resourceSize = 0;
     size->pixmapRefSize = 0;
@@ -224,7 +224,7 @@ GetDefaultBytes(pointer value, XID id, ResourceSizePtr size)
  * @param[out] cdata Pointer to opaque data.
  */
 static void
-DefaultFindSubRes(pointer value, FindAllRes func, pointer cdata)
+DefaultFindSubRes(void *value, FindAllRes func, void *cdata)
 {
     /* do nothing */
 }
@@ -268,7 +268,7 @@ GetDrawableBytes(DrawablePtr drawable)
  *                  pixmap reference.
  */
 static void
-GetPixmapBytes(pointer value, XID id, ResourceSizePtr size)
+GetPixmapBytes(void *value, XID id, ResourceSizePtr size)
 {
     PixmapPtr pixmap = value;
 
@@ -297,7 +297,7 @@ GetPixmapBytes(pointer value, XID id, ResourceSizePtr size)
  *                  pixmap references of a window.
  */
 static void
-GetWindowBytes(pointer value, XID id, ResourceSizePtr size)
+GetWindowBytes(void *value, XID id, ResourceSizePtr size)
 {
     SizeType pixmapSizeFunc = GetResourceTypeSizeFunc(RT_PIXMAP);
     ResourceSizeRec pixmapSize = { 0, 0, 0 };
@@ -339,7 +339,7 @@ GetWindowBytes(pointer value, XID id, ResourceSizePtr size)
  * @param[out] cdata Pointer to opaque data
  */
 static void
-FindWindowSubRes(pointer value, FindAllRes func, pointer cdata)
+FindWindowSubRes(void *value, FindAllRes func, void *cdata)
 {
     WindowPtr window = value;
 
@@ -370,7 +370,7 @@ FindWindowSubRes(pointer value, FindAllRes func, pointer cdata)
  *                  pixmap references of a graphics context.
  */
 static void
-GetGcBytes(pointer value, XID id, ResourceSizePtr size)
+GetGcBytes(void *value, XID id, ResourceSizePtr size)
 {
     SizeType pixmapSizeFunc = GetResourceTypeSizeFunc(RT_PIXMAP);
     ResourceSizeRec pixmapSize = { 0, 0, 0 };
@@ -411,7 +411,7 @@ GetGcBytes(pointer value, XID id, ResourceSizePtr size)
  * @param[out] cdata Pointer to opaque data
  */
 static void
-FindGCSubRes(pointer value, FindAllRes func, pointer cdata)
+FindGCSubRes(void *value, FindAllRes func, void *cdata)
 {
     GCPtr gc = value;
 
@@ -743,7 +743,7 @@ GetXIDList(ClientPtr pClient, unsigned count, XID *pids)
     unsigned int found = 0;
     XID rc, id = pClient->clientAsMask;
     XID maxid;
-    pointer val;
+    void *val;
 
     maxid = id | RESOURCE_ID_MASK;
     while ((found < count) && (id <= maxid)) {
@@ -787,7 +787,7 @@ FakeClientID(int client)
 }
 
 Bool
-AddResource(XID id, RESTYPE type, pointer value)
+AddResource(XID id, RESTYPE type, void *value)
 {
     int client;
     ClientResourceRec *rrec;
@@ -948,7 +948,7 @@ FreeResourceByType(XID id, RESTYPE type, Bool skipFree)
  */
 
 Bool
-ChangeResourceValue(XID id, RESTYPE rtype, pointer value)
+ChangeResourceValue(XID id, RESTYPE rtype, void *value)
 {
     int cid;
     ResourcePtr res;
@@ -973,7 +973,7 @@ ChangeResourceValue(XID id, RESTYPE rtype, pointer value)
 
 void
 FindClientResourcesByType(ClientPtr client,
-                          RESTYPE type, FindResType func, pointer cdata)
+                          RESTYPE type, FindResType func, void *cdata)
 {
     ResourcePtr *resources;
     ResourcePtr this, next;
@@ -998,17 +998,17 @@ FindClientResourcesByType(ClientPtr client,
     }
 }
 
-void FindSubResources(pointer    resource,
+void FindSubResources(void *resource,
                       RESTYPE    type,
                       FindAllRes func,
-                      pointer    cdata)
+                      void *cdata)
 {
     struct ResourceType rtype = resourceTypes[type & TypeMask];
     rtype.findSubResFunc(resource, func, cdata);
 }
 
 void
-FindAllClientResources(ClientPtr client, FindAllRes func, pointer cdata)
+FindAllClientResources(ClientPtr client, FindAllRes func, void *cdata)
 {
     ResourcePtr *resources;
     ResourcePtr this, next;
@@ -1031,14 +1031,14 @@ FindAllClientResources(ClientPtr client, FindAllRes func, pointer cdata)
     }
 }
 
-pointer
+void *
 LookupClientResourceComplex(ClientPtr client,
                             RESTYPE type,
-                            FindComplexResType func, pointer cdata)
+                            FindComplexResType func, void *cdata)
 {
     ResourcePtr *resources;
     ResourcePtr this, next;
-    pointer value;
+    void *value;
     int i;
 
     if (!client)
@@ -1158,7 +1158,7 @@ FreeAllResources(void)
 Bool
 LegalNewID(XID id, ClientPtr client)
 {
-    pointer val;
+    void *val;
     int rc;
 
 #ifdef PANORAMIX
@@ -1181,7 +1181,7 @@ LegalNewID(XID id, ClientPtr client)
 }
 
 int
-dixLookupResourceByType(pointer *result, XID id, RESTYPE rtype,
+dixLookupResourceByType(void **result, XID id, RESTYPE rtype,
                         ClientPtr client, Mask mode)
 {
     int cid = CLIENT_ID(id);
@@ -1216,7 +1216,7 @@ dixLookupResourceByType(pointer *result, XID id, RESTYPE rtype,
 }
 
 int
-dixLookupResourceByClass(pointer *result, XID id, RESTYPE rclass,
+dixLookupResourceByClass(void **result, XID id, RESTYPE rclass,
                          ClientPtr client, Mask mode)
 {
     int cid = CLIENT_ID(id);

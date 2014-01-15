@@ -36,7 +36,7 @@
 void xf86PciProbe(void);
 Bool xf86PciAddMatchingDev(DriverPtr drvp);
 Bool xf86PciProbeDev(DriverPtr drvp);
-void xf86PciIsolateDevice(char *argument);
+void xf86PciIsolateDevice(const char *argument);
 int xf86PciMatchDriver(char *matches[], int nmatches);
 Bool xf86PciConfigure(void *busData, struct pci_device *pDev);
 void xf86PciConfigureNewDev(void *busData, struct pci_device *pVideo,

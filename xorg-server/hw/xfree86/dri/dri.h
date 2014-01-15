@@ -151,7 +151,7 @@ typedef struct {
     int ddxDriverMajorVersion;
     int ddxDriverMinorVersion;
     int ddxDriverPatchVersion;
-    pointer frameBufferPhysicalAddress;
+    void *frameBufferPhysicalAddress;
     long frameBufferSize;
     long frameBufferStride;
     long SAREASize;
@@ -224,7 +224,7 @@ extern _X_EXPORT Bool DRICreateContext(ScreenPtr pScreen,
 
 extern _X_EXPORT Bool DRIDestroyContext(ScreenPtr pScreen, XID context);
 
-extern _X_EXPORT Bool DRIContextPrivDelete(pointer pResource, XID id);
+extern _X_EXPORT Bool DRIContextPrivDelete(void *pResource, XID id);
 
 extern _X_EXPORT Bool DRICreateDrawable(ScreenPtr pScreen,
                                         ClientPtr client,
@@ -235,7 +235,7 @@ extern _X_EXPORT Bool DRIDestroyDrawable(ScreenPtr pScreen,
                                          ClientPtr client,
                                          DrawablePtr pDrawable);
 
-extern _X_EXPORT Bool DRIDrawablePrivDelete(pointer pResource, XID id);
+extern _X_EXPORT Bool DRIDrawablePrivDelete(void *pResource, XID id);
 
 extern _X_EXPORT Bool DRIGetDrawableInfo(ScreenPtr pScreen,
                                          DrawablePtr pDrawable,
@@ -265,18 +265,18 @@ extern _X_EXPORT void DRIDestroyInfoRec(DRIInfoPtr DRIInfo);
 
 extern _X_EXPORT Bool DRIFinishScreenInit(ScreenPtr pScreen);
 
-extern _X_EXPORT void DRIWakeupHandler(pointer wakeupData,
-                                       int result, pointer pReadmask);
+extern _X_EXPORT void DRIWakeupHandler(void *wakeupData,
+                                       int result, void *pReadmask);
 
-extern _X_EXPORT void DRIBlockHandler(pointer blockData,
-                                      OSTimePtr pTimeout, pointer pReadmask);
+extern _X_EXPORT void DRIBlockHandler(void *blockData,
+                                      OSTimePtr pTimeout, void *pReadmask);
 
 extern _X_EXPORT void DRIDoWakeupHandler(ScreenPtr pScreen,
                                          unsigned long result,
-                                         pointer pReadmask);
+                                         void *pReadmask);
 
 extern _X_EXPORT void DRIDoBlockHandler(ScreenPtr pScreen,
-                                        pointer pTimeout, pointer pReadmask);
+                                        void *pTimeout, void *pReadmask);
 
 extern _X_EXPORT void DRISwapContext(int drmFD, void *oldctx, void *newctx);
 

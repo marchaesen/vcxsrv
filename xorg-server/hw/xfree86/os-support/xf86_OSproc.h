@@ -132,9 +132,9 @@ _XFUNCPROTOBEGIN
 /* public functions */
 extern _X_EXPORT Bool xf86LinearVidMem(void);
 extern _X_EXPORT _X_DEPRECATED Bool xf86CheckMTRR(int);
-extern _X_EXPORT _X_DEPRECATED pointer xf86MapVidMem(int, int, unsigned long,
+extern _X_EXPORT _X_DEPRECATED void *xf86MapVidMem(int, int, unsigned long,
                                                      unsigned long);
-extern _X_EXPORT _X_DEPRECATED void xf86UnMapVidMem(int, pointer,
+extern _X_EXPORT _X_DEPRECATED void xf86UnMapVidMem(int, void *,
                                                     unsigned long);
 extern _X_EXPORT int xf86ReadBIOS(unsigned long, unsigned long, unsigned char *,
                                   int);

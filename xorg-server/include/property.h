@@ -64,7 +64,7 @@ extern _X_EXPORT int dixChangeWindowProperty(ClientPtr /*pClient */ ,
                                              int /*format */ ,
                                              int /*mode */ ,
                                              unsigned long /*len */ ,
-                                             pointer /*value */ ,
+                                             void */*value */ ,
                                              Bool /*sendevent */ );
 
 extern _X_EXPORT int ChangeWindowProperty(WindowPtr /*pWin */ ,
@@ -73,7 +73,7 @@ extern _X_EXPORT int ChangeWindowProperty(WindowPtr /*pWin */ ,
                                           int /*format */ ,
                                           int /*mode */ ,
                                           unsigned long /*len */ ,
-                                          pointer /*value */ ,
+                                          void */*value */ ,
                                           Bool /*sendevent */ );
 
 extern _X_EXPORT int DeleteProperty(ClientPtr /*client */ ,

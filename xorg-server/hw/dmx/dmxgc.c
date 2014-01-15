@@ -378,7 +378,7 @@ dmxDestroyGC(GCPtr pGC)
 
 /** Change the clip rects for a GC. */
 void
-dmxChangeClip(GCPtr pGC, int type, pointer pvalue, int nrects)
+dmxChangeClip(GCPtr pGC, int type, void *pvalue, int nrects)
 {
     ScreenPtr pScreen = pGC->pScreen;
     DMXScreenInfo *dmxScreen = &dmxScreens[pScreen->myNum];

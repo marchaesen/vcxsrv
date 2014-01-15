@@ -53,7 +53,7 @@ static void
  winUpdateWindowsWindow(WindowPtr pWin);
 
 static void
- winFindWindow(pointer value, XID id, pointer cdata);
+ winFindWindow(void *value, XID id, void *cdata);
 
 static
     void
@@ -724,7 +724,7 @@ winGetWindowID(WindowPtr pWin)
  */
 
 static void
-winFindWindow(pointer value, XID id, pointer cdata)
+winFindWindow(void *value, XID id, void *cdata)
 {
     WindowIDPairPtr wi = (WindowIDPairPtr) cdata;
 
@@ -813,7 +813,7 @@ winMinimizeWindow(Window id)
     ErrorF("winMinimizeWindow\n");
 #endif
 
-    dixLookupResourceByType((pointer) &pWin, id, RT_WINDOW, NullClient,
+    dixLookupResourceByType((void *) &pWin, id, RT_WINDOW, NullClient,
                             DixUnknownAccess);
     if (!pWin) {
         ErrorF("%s: NULL pWin. Leaving\n", __FUNCTION__);

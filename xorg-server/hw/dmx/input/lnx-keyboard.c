@@ -361,7 +361,7 @@ static unsigned char at2lnx[NUM_KEYCODES] = {
 };
 
 /** Create a private structure for use within this file. */
-pointer
+void *
 kbdLinuxCreatePrivate(DeviceIntPtr pKeyboard)
 {
     myPrivate *priv = calloc(1, sizeof(*priv));
@@ -373,7 +373,7 @@ kbdLinuxCreatePrivate(DeviceIntPtr pKeyboard)
 
 /** Destroy a private structure. */
 void
-kbdLinuxDestroyPrivate(pointer priv)
+kbdLinuxDestroyPrivate(void *priv)
 {
     free(priv);
 }
@@ -466,13 +466,13 @@ static int kbdLinuxActivate(int fd, int vtno, int setSig);
 
 /** Currently unused hook called prior to an VT switch. */
 void
-kbdLinuxVTPreSwitch(pointer p)
+kbdLinuxVTPreSwitch(void *p)
 {
 }
 
 /** Currently unused hook called after returning from a VT switch. */
 void
-kbdLinuxVTPostSwitch(pointer p)
+kbdLinuxVTPostSwitch(void *p)
 {
 }
 
@@ -481,8 +481,8 @@ kbdLinuxVTPostSwitch(pointer p)
  * switched back to the pre-switch VT (i.e., the user returns to the DMX
  * session). */
 int
-kbdLinuxVTSwitch(pointer p, int vt,
-                 void (*switch_return) (pointer), pointer switch_return_data)
+kbdLinuxVTSwitch(void *p, int vt,
+                 void (*switch_return) (void *), void *switch_return_data)
 {
     myPrivate *priv = p;
 

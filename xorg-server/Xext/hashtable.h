@@ -55,7 +55,7 @@ extern _X_EXPORT HashTable ht_create(int             keySize,
                                      int             dataSize,
                                      HashFunc        hash,
                                      HashCompareFunc compare,
-                                     pointer         cdata);
+                                     void            *cdata);
 /** @brief  HtDestruct deinitializes the structure. It does not free the
             memory allocated to HashTableRec
 */
@@ -75,12 +75,12 @@ extern _X_EXPORT void ht_destroy(HashTable ht);
          to avoid returning NULL. Obviously the data pointed cannot be
          modified, as implied by dataSize being 0.
 */
-extern _X_EXPORT pointer ht_add(HashTable ht, pointer key);
+extern _X_EXPORT void *ht_add(HashTable ht, const void *key);
 
 /** @brief  Removes a key from the hash table along with its
             associated data, which will be free'd.
 */
-extern _X_EXPORT void ht_remove(HashTable ht, pointer key);
+extern _X_EXPORT void ht_remove(HashTable ht, const void *key);
 
 /** @brief  Finds the associated data of a key from the hash table.
 
@@ -93,7 +93,7 @@ extern _X_EXPORT void ht_remove(HashTable ht, pointer key);
           use HtMember instead to determine if a key has been
           inserted.
 */
-extern _X_EXPORT pointer ht_find(HashTable ht, pointer key);
+extern _X_EXPORT void *ht_find(HashTable ht, const void *key);
 
 /** @brief  A generic hash function */
 extern _X_EXPORT unsigned ht_generic_hash(void *cdata,

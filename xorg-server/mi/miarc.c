@@ -1489,7 +1489,7 @@ miGetArcPts(SppArcPtr parc,     /* points to an arc */
     count++;
 
     cdt = 2 * miDcos(dt);
-    if (!(poly = (SppPointPtr) realloc((pointer) *ppPts,
+    if (!(poly = (SppPointPtr) realloc((void *) *ppPts,
                                        (cpt + count) * sizeof(SppPointRec))))
         return 0;
     *ppPts = poly;

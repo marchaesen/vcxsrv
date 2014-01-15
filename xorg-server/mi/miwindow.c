@@ -305,7 +305,7 @@ miMoveWindow(WindowPtr pWin, int x, int y, WindowPtr pNextSib, VTKind kind)
  */
 
 static int
-miRecomputeExposures(WindowPtr pWin, pointer value)
+miRecomputeExposures(WindowPtr pWin, void *value)
 {                               /* must conform to VisitWindowProcPtr */
     RegionPtr pValid = (RegionPtr) value;
 
@@ -584,7 +584,7 @@ miSlideAndSizeWindow(WindowPtr pWin,
                 if (pChild->winGravity != g)
                     continue;
                 RegionIntersect(pRegion, &pChild->borderClip, gravitate[g]);
-                TraverseTree(pChild, miRecomputeExposures, (pointer) pRegion);
+                TraverseTree(pChild, miRecomputeExposures, (void *) pRegion);
             }
 
             /*

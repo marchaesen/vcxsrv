@@ -56,10 +56,10 @@ typedef xPoint DDXPointRec;
 typedef struct pixman_box16 BoxRec;
 
 typedef union _DevUnion {
-    pointer ptr;
+    void *ptr;
     long val;
     unsigned long uval;
-    pointer (*fptr) (void);
+    void *(*fptr) (void);
 } DevUnion;
 
 #endif                          /* MISCSTRUCT_H */

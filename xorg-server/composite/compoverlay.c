@@ -114,7 +114,7 @@ compCreateOverlayClient(ScreenPtr pScreen, ClientPtr pClient)
      * Create a resource for this element so it can be deleted
      * when the client goes away.
      */
-    if (!AddResource(pOc->resource, CompositeClientOverlayType, (pointer) pOc))
+    if (!AddResource(pOc->resource, CompositeClientOverlayType, (void *) pOc))
         return NULL;
 
     return pOc;
@@ -152,7 +152,7 @@ compCreateOverlayWindow(ScreenPtr pScreen)
     if (pWin == NULL)
         return FALSE;
 
-    if (!AddResource(pWin->drawable.id, RT_WINDOW, (pointer) pWin))
+    if (!AddResource(pWin->drawable.id, RT_WINDOW, (void *) pWin))
         return FALSE;
 
     MapWindow(pWin, serverClient);

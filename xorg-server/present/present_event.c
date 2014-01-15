@@ -29,7 +29,7 @@
 RESTYPE present_event_type;
 
 static int
-present_free_event(pointer data, XID id)
+present_free_event(void *data, XID id)
 {
     present_event_ptr present_event = (present_event_ptr) data;
     present_window_priv_ptr window_priv = present_window_priv(present_event->window);
@@ -41,7 +41,7 @@ present_free_event(pointer data, XID id)
             break;
         }
     }
-    free((pointer) present_event);
+    free((void *) present_event);
     return 1;
 
 }
@@ -229,7 +229,7 @@ present_select_input(ClientPtr client, XID eid, WindowPtr window, CARD32 mask)
     event->next = window_priv->events;
     window_priv->events = event;
 
-    if (!AddResource(event->id, present_event_type, (pointer) event))
+    if (!AddResource(event->id, present_event_type, (void *) event))
         return BadAlloc;
 
     return Success;

@@ -53,8 +53,8 @@ static XID eventResource;
 /* Currently selected events */
 static unsigned int eventMask = 0;
 
-static int WMFreeClient(pointer data, XID id);
-static int WMFreeEvents(pointer data, XID id);
+static int WMFreeClient(void *data, XID id);
+static int WMFreeEvents(void *data, XID id);
 static void SNotifyEvent(xWindowsWMNotifyEvent * from,
                          xWindowsWMNotifyEvent * to);
 
@@ -99,13 +99,13 @@ updateEventMask(WMEventPtr * pHead)
 }
 
  /*ARGSUSED*/ static int
-WMFreeClient(pointer data, XID id)
+WMFreeClient(void *data, XID id)
 {
     WMEventPtr pEvent;
     WMEventPtr *pHead, pCur, pPrev;
 
     pEvent = (WMEventPtr) data;
-    dixLookupResourceByType((pointer) &pHead, eventResource, eventResourceType,
+    dixLookupResourceByType((void *) &pHead, eventResource, eventResourceType,
                             NullClient, DixUnknownAccess);
     if (pHead) {
         pPrev = 0;
@@ -119,12 +119,12 @@ WMFreeClient(pointer data, XID id)
         }
         updateEventMask(pHead);
     }
-    free((pointer) pEvent);
+    free((void *) pEvent);
     return 1;
 }
 
  /*ARGSUSED*/ static int
-WMFreeEvents(pointer data, XID id)
+WMFreeEvents(void *data, XID id)
 {
     WMEventPtr *pHead, pCur, pNext;
 
@@ -132,9 +132,9 @@ WMFreeEvents(pointer data, XID id)
     for (pCur = *pHead; pCur; pCur = pNext) {
         pNext = pCur->next;
         FreeResource(pCur->clientResource, ClientType);
-        free((pointer) pCur);
+        free((void *) pCur);
     }
-    free((pointer) pHead);
+    free((void *) pHead);
     eventMask = 0;
     return 1;
 }
@@ -147,7 +147,7 @@ ProcWindowsWMSelectInput(ClientPtr client)
     XID clientResource;
 
     REQUEST_SIZE_MATCH(xWindowsWMSelectInputReq);
-    dixLookupResourceByType((pointer) &pHead, eventResource, eventResourceType,
+    dixLookupResourceByType((void *) &pHead, eventResource, eventResourceType,
                             client, DixWriteAccess);
     if (stuff->mask != 0) {
         if (pHead) {
@@ -174,7 +174,7 @@ ProcWindowsWMSelectInput(ClientPtr client)
          */
         clientResource = FakeClientID(client->index);
         pNewEvent->clientResource = clientResource;
-        if (!AddResource(clientResource, ClientType, (pointer) pNewEvent))
+        if (!AddResource(clientResource, ClientType, (void *) pNewEvent))
             return BadAlloc;
         /*
          * create a resource to contain a pointer to the list
@@ -185,7 +185,7 @@ ProcWindowsWMSelectInput(ClientPtr client)
         if (!pHead) {
             pHead = (WMEventPtr *) malloc(sizeof(WMEventPtr));
             if (!pHead ||
-                !AddResource(eventResource, eventResourceType, (pointer) pHead))
+                !AddResource(eventResource, eventResourceType, (void *) pHead))
             {
                 FreeResource(clientResource, RT_NONE);
                 return BadAlloc;
@@ -239,7 +239,7 @@ winWindowsWMSendEvent(int type, unsigned int mask, int which, int arg,
     ErrorF("winWindowsWMSendEvent %d %d %d %d,  %d %d - %d %d\n",
            type, mask, which, arg, x, y, w, h);
 #endif
-    dixLookupResourceByType((pointer) &pHead, eventResource, eventResourceType,
+    dixLookupResourceByType((void *) &pHead, eventResource, eventResourceType,
                             NullClient, DixUnknownAccess);
     if (!pHead)
         return;

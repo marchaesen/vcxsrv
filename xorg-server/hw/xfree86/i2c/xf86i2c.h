@@ -66,7 +66,7 @@ extern _X_EXPORT int xf86I2CGetScreenBuses(int scrnIndex,
 /* I2C slave devices */
 
 typedef struct _I2CDevRec {
-    char *DevName;
+    const char *DevName;
 
     int BitTimeout;             /* usec */
     int ByteTimeout;            /* usec */

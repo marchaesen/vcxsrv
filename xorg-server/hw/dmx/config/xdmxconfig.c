@@ -974,9 +974,9 @@ main(int argc, char **argv)
     const char *canvastrans =
         "<Btn3Down>: placeMenu() XtMenuPopup(buttonpopup)";
     XtActionsRec actiontable[] = {
-        {"openOk", dmxConfigOkAction},
-        {"placeMenu", dmxConfigPlaceMenu},
-        {"noop", NULL}
+        {(char *) "openOk", dmxConfigOkAction},
+        {(char *) "placeMenu", dmxConfigPlaceMenu},
+        {(char *) "noop", NULL}
     };
 
     dmxConfigFilename = XtNewString((argc >= 2) ? argv[1] : "");

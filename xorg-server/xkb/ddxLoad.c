@@ -299,7 +299,7 @@ XkbDDXLoadKeymapByNames(DeviceIntPtr keybd,
 
 Bool
 XkbDDXNamesFromRules(DeviceIntPtr keybd,
-                     char *rules_name,
+                     const char *rules_name,
                      XkbRF_VarDefsPtr defs, XkbComponentNamesPtr names)
 {
     char buf[PATH_MAX];

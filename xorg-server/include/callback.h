@@ -62,21 +62,21 @@ typedef struct _CallbackList *CallbackListPtr;  /* also in misc.h */
 #define _XTYPEDEF_CALLBACKLISTPTR
 #endif
 
-typedef void (*CallbackProcPtr) (CallbackListPtr *, pointer, pointer);
+typedef void (*CallbackProcPtr) (CallbackListPtr *, void *, void *);
 
 extern _X_EXPORT Bool AddCallback(CallbackListPtr * /*pcbl */ ,
                                   CallbackProcPtr /*callback */ ,
-                                  pointer /*data */ );
+                                  void */*data */ );
 
 extern _X_EXPORT Bool DeleteCallback(CallbackListPtr * /*pcbl */ ,
                                      CallbackProcPtr /*callback */ ,
-                                     pointer /*data */ );
+                                     void */*data */ );
 
 extern _X_EXPORT void _CallCallbacks(CallbackListPtr * /*pcbl */ ,
-                                     pointer /*call_data */ );
+                                     void */*call_data */ );
 
 static inline void
-CallCallbacks(CallbackListPtr *pcbl, pointer call_data)
+CallCallbacks(CallbackListPtr *pcbl, void *call_data)
 {
     if (!pcbl || !*pcbl)
         return;

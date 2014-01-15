@@ -326,7 +326,7 @@ static void damageValidateGC(GCPtr, unsigned long, DrawablePtr);
 static void damageChangeGC(GCPtr, unsigned long);
 static void damageCopyGC(GCPtr, unsigned long, GCPtr);
 static void damageDestroyGC(GCPtr);
-static void damageChangeClip(GCPtr, int, pointer, int);
+static void damageChangeClip(GCPtr, int, void *, int);
 static void damageDestroyClip(GCPtr);
 static void damageCopyClip(GCPtr, GCPtr);
 
@@ -359,7 +359,7 @@ damageCreateGC(GCPtr pGC)
 
 #define DAMAGE_GC_OP_PROLOGUE(pGC, pDrawable) \
     damageGCPriv(pGC);  \
-    GCFuncs *oldFuncs = pGC->funcs; \
+    const GCFuncs *oldFuncs = pGC->funcs; \
     unwrap(pGCPriv, pGC, funcs);  \
     unwrap(pGCPriv, pGC, ops); \
 
@@ -379,7 +379,6 @@ damageCreateGC(GCPtr pGC)
 static void
 damageValidateGC(GCPtr pGC, unsigned long changes, DrawablePtr pDrawable)
 {
-    drawableDamage(pDrawable);
     DAMAGE_GC_FUNC_PROLOGUE(pGC);
     (*pGC->funcs->ValidateGC) (pGC, changes, pDrawable);
     pGCPriv->ops = pGC->ops; /* just so it's not NULL */
@@ -411,7 +410,7 @@ damageCopyGC(GCPtr pGCSrc, unsigned long mask, GCPtr pGCDst)
 }
 
 static void
-damageChangeClip(GCPtr pGC, int type, pointer pvalue, int nrects)
+damageChangeClip(GCPtr pGC, int type, void *pvalue, int nrects)
 {
     DAMAGE_GC_FUNC_PROLOGUE(pGC);
     (*pGC->funcs->ChangeClip) (pGC, type, pvalue, nrects);
@@ -1367,7 +1366,7 @@ damageImageGlyphBlt(DrawablePtr pDrawable,
                     GCPtr pGC,
                     int x,
                     int y,
-                    unsigned int nglyph, CharInfoPtr * ppci, pointer pglyphBase)
+                    unsigned int nglyph, CharInfoPtr * ppci, void *pglyphBase)
 {
     DAMAGE_GC_OP_PROLOGUE(pGC, pDrawable);
     damageDamageChars(pDrawable, pGC->font, x + pDrawable->x, y + pDrawable->y,
@@ -1382,7 +1381,7 @@ damagePolyGlyphBlt(DrawablePtr pDrawable,
                    GCPtr pGC,
                    int x,
                    int y,
-                   unsigned int nglyph, CharInfoPtr * ppci, pointer pglyphBase)
+                   unsigned int nglyph, CharInfoPtr * ppci, void *pglyphBase)
 {
     DAMAGE_GC_OP_PROLOGUE(pGC, pDrawable);
     damageDamageChars(pDrawable, pGC->font, x + pDrawable->x, y + pDrawable->y,

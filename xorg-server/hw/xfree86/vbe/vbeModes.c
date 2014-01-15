@@ -356,8 +356,10 @@ VBESetModeNames(DisplayModePtr pMode)
                 pMode->name = strdup("BADMODE");
             }
             else {
-                XNFasprintf(&pMode->name, "%dx%d",
+                char *tmp;
+                XNFasprintf(&tmp, "%dx%d",
                             pMode->HDisplay, pMode->VDisplay);
+                pMode->name = tmp;
             }
         }
         pMode = pMode->next;
@@ -433,7 +435,7 @@ VBESetModeParameters(ScrnInfoPtr pScrn, vbeInfoPtr pVbe)
  */
 int
 VBEValidateModes(ScrnInfoPtr scrp, DisplayModePtr availModes,
-                 char **modeNames, ClockRangePtr clockRanges,
+                 const char **modeNames, ClockRangePtr clockRanges,
                  int *linePitches, int minPitch, int maxPitch, int pitchInc,
                  int minHeight, int maxHeight, int virtualX, int virtualY,
                  int apertureSize, LookupModeFlags strategy)

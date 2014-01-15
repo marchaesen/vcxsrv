@@ -81,7 +81,7 @@ with the sample server.
 
 void
 miPolyGlyphBlt(DrawablePtr pDrawable, GC * pGC, int x, int y, unsigned int nglyph, CharInfoPtr * ppci,  /* array of character info */
-               pointer pglyphBase       /* start of array of glyphs */
+               void *pglyphBase       /* start of array of glyphs */
     )
 {
     int width, height;
@@ -182,7 +182,7 @@ miPolyGlyphBlt(DrawablePtr pDrawable, GC * pGC, int x, int y, unsigned int nglyp
 
 void
 miImageGlyphBlt(DrawablePtr pDrawable, GC * pGC, int x, int y, unsigned int nglyph, CharInfoPtr * ppci, /* array of character info */
-                pointer pglyphBase      /* start of array of glyphs */
+                void *pglyphBase      /* start of array of glyphs */
     )
 {
     ExtentInfoRec info;         /* used by QueryGlyphExtents() */

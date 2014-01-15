@@ -227,7 +227,7 @@ log_window_info(WindowPtr pWin, int depth)
 
     win_name = get_window_name(pWin);
     ErrorF("win 0x%.8x (%s), [%d, %d] to [%d, %d]",
-           pWin->drawable.id,
+           (unsigned) pWin->drawable.id,
            win_name ? win_name : "no name",
            pWin->drawable.x, pWin->drawable.y,
            pWin->drawable.x + pWin->drawable.width,
@@ -240,7 +240,7 @@ log_window_info(WindowPtr pWin, int depth)
         ErrorF(" (%s compositing: pixmap %x)",
                (pWin->redirectDraw == RedirectDrawAutomatic) ?
                "automatic" : "manual",
-               pScreen->GetWindowPixmap(pWin)->drawable.id);
+               (unsigned) pScreen->GetWindowPixmap(pWin)->drawable.id);
 #endif
 
     switch (pWin->visibility) {
@@ -283,7 +283,7 @@ PrintWindowTree(void)
     for (scrnum = 0; scrnum < screenInfo.numScreens; scrnum++) {
         pScreen = screenInfo.screens[scrnum];
         ErrorF("[dix] Dumping windows for screen %d (pixmap %x):\n", scrnum,
-               pScreen->GetScreenPixmap(pScreen)->drawable.id);
+               (unsigned) pScreen->GetScreenPixmap(pScreen)->drawable.id);
         pWin = pScreen->root;
         depth = 1;
         while (pWin) {
@@ -305,7 +305,7 @@ PrintWindowTree(void)
 }
 
 int
-TraverseTree(WindowPtr pWin, VisitWindowProcPtr func, pointer data)
+TraverseTree(WindowPtr pWin, VisitWindowProcPtr func, void *data)
 {
     int result;
     WindowPtr pChild;
@@ -338,7 +338,7 @@ TraverseTree(WindowPtr pWin, VisitWindowProcPtr func, pointer data)
  *****/
 
 int
-WalkTree(ScreenPtr pScreen, VisitWindowProcPtr func, pointer data)
+WalkTree(ScreenPtr pScreen, VisitWindowProcPtr func, void *data)
 {
     return (TraverseTree(pScreen->root, func, data));
 }
@@ -363,7 +363,7 @@ SetWindowToDefaults(WindowPtr pWin)
 
     pWin->backingStore = NotUseful;
     pWin->DIXsaveUnder = FALSE;
-    pWin->backStorage = (pointer) NULL;
+    pWin->backStorage = (void *) NULL;
 
     pWin->mapped = FALSE;       /* off */
     pWin->realized = FALSE;     /* off */
@@ -524,7 +524,7 @@ CreateRootWindow(ScreenPtr pScreen)
                  RT_WINDOW, pWin, RT_NONE, NULL, DixCreateAccess))
         return FALSE;
 
-    if (!AddResource(pWin->drawable.id, RT_WINDOW, (pointer) pWin))
+    if (!AddResource(pWin->drawable.id, RT_WINDOW, (void *) pWin))
         return FALSE;
 
     if (disableBackingStore)
@@ -959,7 +959,7 @@ CrushTree(WindowPtr pWin)
  *****/
 
 int
-DeleteWindow(pointer value, XID wid)
+DeleteWindow(void *value, XID wid)
 {
     WindowPtr pParent;
     WindowPtr pWin = (WindowPtr) value;
@@ -1107,7 +1107,7 @@ ChangeWindowAttributes(WindowPtr pWin, Mask vmask, XID *vlist, ClientPtr client)
                  * incremented. */
             }
             else {
-                rc = dixLookupResourceByType((pointer *) &pPixmap, pixID,
+                rc = dixLookupResourceByType((void **) &pPixmap, pixID,
                                              RT_PIXMAP, client, DixReadAccess);
                 if (rc == Success) {
                     if ((pPixmap->drawable.depth != pWin->drawable.depth) ||
@@ -1161,7 +1161,7 @@ ChangeWindowAttributes(WindowPtr pWin, Mask vmask, XID *vlist, ClientPtr client)
                     pixID = pWin->parent->border.pixmap->drawable.id;
                 }
             }
-            rc = dixLookupResourceByType((pointer *) &pPixmap, pixID, RT_PIXMAP,
+            rc = dixLookupResourceByType((void **) &pPixmap, pixID, RT_PIXMAP,
                                          client, DixReadAccess);
             if (rc == Success) {
                 if ((pPixmap->drawable.depth != pWin->drawable.depth) ||
@@ -1308,7 +1308,7 @@ ChangeWindowAttributes(WindowPtr pWin, Mask vmask, XID *vlist, ClientPtr client)
                 error = BadMatch;
                 goto PatchUp;
             }
-            rc = dixLookupResourceByType((pointer *) &pCmap, cmap, RT_COLORMAP,
+            rc = dixLookupResourceByType((void **) &pCmap, cmap, RT_COLORMAP,
                                          client, DixUseAccess);
             if (rc != Success) {
                 error = rc;
@@ -1378,7 +1378,7 @@ ChangeWindowAttributes(WindowPtr pWin, Mask vmask, XID *vlist, ClientPtr client)
                     pCursor = (CursorPtr) None;
             }
             else {
-                rc = dixLookupResourceByType((pointer *) &pCursor, cursorID,
+                rc = dixLookupResourceByType((void **) &pCursor, cursorID,
                                              RT_CURSOR, client, DixUseAccess);
                 if (rc != Success) {
                     error = rc;
@@ -2377,7 +2377,7 @@ CirculateWindow(WindowPtr pParent, int direction, ClientPtr client)
 }
 
 static int
-CompareWIDs(WindowPtr pWin, pointer value)
+CompareWIDs(WindowPtr pWin, void *value)
 {                               /* must conform to VisitWindowProcPtr */
     Window *wid = (Window *) value;
 
@@ -2402,7 +2402,7 @@ ReparentWindow(WindowPtr pWin, WindowPtr pParent,
     ScreenPtr pScreen;
 
     pScreen = pWin->drawable.pScreen;
-    if (TraverseTree(pWin, CompareWIDs, (pointer) &pParent->drawable.id) ==
+    if (TraverseTree(pWin, CompareWIDs, (void *) &pParent->drawable.id) ==
         WT_STOPWALKING)
         return BadMatch;
     if (!MakeWindowOptional(pWin))
@@ -2688,7 +2688,7 @@ UnrealizeTree(WindowPtr pWin, Bool fromConfigure)
 #ifdef PANORAMIX
             if (!noPanoramiXExtension && !pChild->drawable.pScreen->myNum) {
                 PanoramiXRes *win;
-                int rc = dixLookupResourceByType((pointer *) &win,
+                int rc = dixLookupResourceByType((void **) &win,
                                                  pChild->drawable.id,
                                                  XRT_WINDOW,
                                                  serverClient, DixWriteAccess);
@@ -3167,7 +3167,7 @@ TileScreenSaver(ScreenPtr pScreen, int kind)
                                  &cursor, serverClient, (XID) 0);
         if (cursor) {
             cursorID = FakeClientID(0);
-            if (AddResource(cursorID, RT_CURSOR, (pointer) cursor)) {
+            if (AddResource(cursorID, RT_CURSOR, (void *) cursor)) {
                 attributes[attri] = cursorID;
                 mask |= CWCursor;
             }
@@ -3196,7 +3196,7 @@ TileScreenSaver(ScreenPtr pScreen, int kind)
         return FALSE;
 
     if (!AddResource(pWin->drawable.id, RT_WINDOW,
-                     (pointer) pScreen->screensaver.pWindow))
+                     (void *) pScreen->screensaver.pWindow))
         return FALSE;
 
     if (mask & CWBackPixmap) {

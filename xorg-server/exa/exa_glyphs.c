@@ -127,7 +127,7 @@ exaUnrealizeGlyphCaches(ScreenPtr pScreen, unsigned int format)
             continue;
 
         if (cache->picture) {
-            FreePicture((pointer) cache->picture, (XID) 0);
+            FreePicture((void *) cache->picture, (XID) 0);
             cache->picture = NULL;
         }
 
@@ -225,7 +225,7 @@ exaRealizeGlyphCaches(ScreenPtr pScreen, unsigned int format)
     }
 
     /* Each cache references the picture individually */
-    FreePicture((pointer) pPicture, (XID) 0);
+    FreePicture((void *) pPicture, (XID) 0);
     return TRUE;
 
  bail:
@@ -737,7 +737,7 @@ exaGlyphs(CARD8 op,
 
             /* The driver can't seem to composite to a8, let's try argb (but
              * without component-alpha) */
-            FreePicture((pointer) pMask, (XID) 0);
+            FreePicture((void *) pMask, (XID) 0);
 
             argbFormat = PictureMatchFormat(pScreen, 32, PICT_a8r8g8b8);
 
@@ -833,7 +833,7 @@ exaGlyphs(CARD8 op,
                          pDst,
                          xSrc + x - first_xOff,
                          ySrc + y - first_yOff, 0, 0, x, y, width, height);
-        FreePicture((pointer) pMask, (XID) 0);
+        FreePicture((void *) pMask, (XID) 0);
         (*pScreen->DestroyPixmap) (pMaskPixmap);
     }
 }

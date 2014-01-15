@@ -1,12 +1,12 @@
 partial default xkb_types "default" {
-    // Definition for a key type used for the czech keymap, for instance.
-    // Defines style a with four level shift. It is similar to three_level
-    // type used for iso9995 but it lets the shift key behave "normally".
+
+    // Defines a type with an eight-level shift, similar to the three-level
+    // type used for iso9995, but it lets the Shift key behave "normally".
 
     virtual_modifiers LevelThree,ScrollLock,LevelFive;
 
     type "EIGHT_LEVEL" {
-        modifiers = Shift+LevelThree+LevelFive;
+	modifiers = Shift+LevelThree+LevelFive;
 	map[None] = Level1;
 	map[Shift] = Level2;
 	map[LevelThree] = Level3;
@@ -17,8 +17,8 @@ partial default xkb_types "default" {
 	map[Shift+LevelThree+LevelFive] = Level8;
 	level_name[Level1] = "Base";
 	level_name[Level2] = "Shift";
-	level_name[Level3] = "Alt Base";  
-	level_name[Level4] = "Shift Alt";  
+	level_name[Level3] = "Alt Base";
+	level_name[Level4] = "Shift Alt";
 	level_name[Level5] = "X";
 	level_name[Level6] = "X Shift";
 	level_name[Level7] = "X Alt Base";
@@ -33,7 +33,7 @@ partial default xkb_types "default" {
 	map[LevelThree] = Level3;
 	map[Shift+LevelThree] = Level4;
 	map[Lock+LevelThree] =  Level4;
-        map[Lock+Shift+LevelThree] = Level3;
+	map[Lock+Shift+LevelThree] = Level3;
 
 	map[LevelFive] = Level5;
 	map[Shift+LevelFive] = Level6;
@@ -41,7 +41,7 @@ partial default xkb_types "default" {
 	map[LevelThree+LevelFive] = Level7;
 	map[Shift+LevelThree+LevelFive] = Level8;
 	map[Lock+LevelThree+LevelFive] =  Level8;
-        map[Lock+Shift+LevelThree+LevelFive] = Level7;
+	map[Lock+Shift+LevelThree+LevelFive] = Level7;
 
 	level_name[Level1] = "Base";
 	level_name[Level2] = "Shift";
@@ -54,9 +54,9 @@ partial default xkb_types "default" {
     };
 
 //    type "EIGHT_LEVEL_LEVEL_FIVE_LOCK" {
-//    	// Level5-Lock is implemented by using NumLock, because a real modifier
-//    	// is required.
-//    	
+//      // Level5-Lock is implemented by using NumLock, because a real modifier
+//      // is required.
+//
 //        modifiers = Shift + Lock + LevelThree + NumLock + LevelFive;
 //
 //        map[None]                                    = Level1;
@@ -116,11 +116,11 @@ partial default xkb_types "default" {
 //    };
 //
 //    type "EIGHT_LEVEL_ALPHABETIC_LEVEL_FIVE_LOCK" {
-//    	// Level5-Lock is implemented by using NumLock, because a real modifier
-//    	// is required.
-//    	
+//      // Level5-Lock is implemented by using NumLock, because a real modifier
+//      // is required.
+//
 //        modifiers = Shift + Lock + LevelThree + NumLock + LevelFive;
-//    
+//
 //        map[None]                                    = Level1;
 //        map[Shift]                                   = Level2;
 //        map[LevelThree]                              = Level3;
@@ -183,7 +183,7 @@ partial default xkb_types "default" {
 	map[LevelThree] = Level3;
 	map[Shift+LevelThree] = Level4;
 	map[Lock+LevelThree] =  Level3;
-        map[Lock+Shift+LevelThree] = Level4;
+	map[Lock+Shift+LevelThree] = Level4;
 
 	map[LevelFive] = Level5;
 	map[Shift+LevelFive] = Level6;
@@ -192,7 +192,7 @@ partial default xkb_types "default" {
 	map[LevelThree+LevelFive] = Level7;
 	map[Shift+LevelThree+LevelFive] = Level8;
 	map[Lock+LevelThree+LevelFive] =  Level7;
-        map[Lock+Shift+LevelThree+LevelFive] = Level8;
+	map[Lock+Shift+LevelThree+LevelFive] = Level8;
 
 	preserve[Lock+LevelThree] = Lock;
 	preserve[Lock+Shift+LevelThree] = Lock;

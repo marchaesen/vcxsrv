@@ -261,7 +261,7 @@ xf86XVScreenInit(ScreenPtr pScreen, XF86VideoAdaptorPtr * adaptors, int num)
        sure that I appreciate that.  */
 
     ScreenPriv = malloc(sizeof(XF86XVScreenRec));
-    pxvs->devPriv.ptr = (pointer) ScreenPriv;
+    pxvs->devPriv.ptr = (void *) ScreenPriv;
 
     if (!ScreenPriv)
         return FALSE;
@@ -551,7 +551,7 @@ xf86XVInitAdaptors(ScreenPtr pScreen, XF86VideoAdaptorPtr * infoPtr, int number)
         adaptorPriv->PutImage = adaptorPtr->PutImage;
         adaptorPriv->ReputImage = adaptorPtr->ReputImage;       /* image/still */
 
-        pa->devPriv.ptr = (pointer) adaptorPriv;
+        pa->devPriv.ptr = (void *) adaptorPriv;
 
         if (!(pPort = calloc(adaptorPtr->nPorts, sizeof(XvPortRec)))) {
             xf86XVFreeAdaptor(pa);
@@ -957,7 +957,7 @@ xf86XVReputImage(XvPortRecPrivatePtr portPriv)
 }
 
 static int
-xf86XVReputAllVideo(WindowPtr pWin, pointer data)
+xf86XVReputAllVideo(WindowPtr pWin, void *data)
 {
     XF86XVWindowPtr WinPriv = GET_XF86XV_WINDOW(pWin);
 
@@ -1922,7 +1922,7 @@ xf86XVFillKeyHelper(ScreenPtr pScreen, CARD32 key, RegionPtr fillboxes)
 }
 
 void
-xf86XVFillKeyHelperPort(DrawablePtr pDraw, pointer data, CARD32 key,
+xf86XVFillKeyHelperPort(DrawablePtr pDraw, void *data, CARD32 key,
                         RegionPtr clipboxes, Bool fillEverything)
 {
     WindowPtr pWin = (WindowPtr) pDraw;

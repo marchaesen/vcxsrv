@@ -122,9 +122,9 @@ XaceHook(int hook, ...)
         u.res.client = va_arg(ap, ClientPtr);
         u.res.id = va_arg(ap, XID);
         u.res.rtype = va_arg(ap, RESTYPE);
-        u.res.res = va_arg(ap, pointer);
+        u.res.res = va_arg(ap, void *);
         u.res.ptype = va_arg(ap, RESTYPE);
-        u.res.parent = va_arg(ap, pointer);
+        u.res.parent = va_arg(ap, void *);
         u.res.access_mode = va_arg(ap, Mask);
 
         u.res.status = Success; /* default allow */
@@ -288,7 +288,7 @@ XaceCensorImage(ClientPtr client,
 
         pPix = GetScratchPixmapHeader(pDraw->pScreen, w, h,
                                       depth, bitsPerPixel,
-                                      widthBytesLine, (pointer) pBuf);
+                                      widthBytesLine, (void *) pBuf);
         if (!pPix) {
             failed = TRUE;
             goto failSafe;

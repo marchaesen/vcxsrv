@@ -95,7 +95,7 @@ RRCrtcCreate(ScreenPtr pScreen, void *devPrivate)
     pixman_f_transform_init_identity(&crtc->f_transform);
     pixman_f_transform_init_identity(&crtc->f_inverse);
 
-    if (!AddResource(crtc->id, RRCrtcType, (pointer) crtc))
+    if (!AddResource(crtc->id, RRCrtcType, (void *) crtc))
         return NULL;
 
     /* attach the screen and crtc together */
@@ -654,7 +654,7 @@ RRCrtcDestroy(RRCrtcPtr crtc)
 }
 
 static int
-RRCrtcDestroyResource(pointer value, XID pid)
+RRCrtcDestroyResource(void *value, XID pid)
 {
     RRCrtcPtr crtc = (RRCrtcPtr) value;
     ScreenPtr pScreen = crtc->pScreen;
@@ -1026,7 +1026,7 @@ ProcRRSetCrtcConfig(ClientPtr client)
 
     outputIds = (RROutput *) (stuff + 1);
     for (i = 0; i < numOutputs; i++) {
-        ret = dixLookupResourceByType((pointer *) (outputs + i), outputIds[i],
+        ret = dixLookupResourceByType((void **) (outputs + i), outputIds[i],
                                      RROutputType, client, DixSetAttrAccess);
         if (ret != Success) {
             free(outputs);

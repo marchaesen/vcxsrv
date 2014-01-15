@@ -45,7 +45,7 @@
 #define _PATH_APM_DEV		"/dev/apm"
 #define _PATH_APM_CTLDEV	"/dev/apmctl"
 
-static pointer APMihPtr = NULL;
+static void *APMihPtr = NULL;
 static int devFd = -1;
 static int ctlFd = -1;
 static void bsdCloseAPM(void);

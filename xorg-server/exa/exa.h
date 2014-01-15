@@ -58,7 +58,7 @@ struct _ExaOffscreenArea {
     int offset;                 /* aligned offset */
     int size;                   /* total allocation size */
     unsigned last_use;
-    pointer privData;
+    void *privData;
 
     ExaOffscreenSaveProc save;
 
@@ -685,7 +685,7 @@ typedef struct _ExaDriver {
      */
     Bool (*ModifyPixmapHeader) (PixmapPtr pPixmap, int width, int height,
                                 int depth, int bitsPerPixel, int devKind,
-                                pointer pPixData);
+                                void *pPixData);
 
     /* hooks for drivers with tiling support:
      * driver MUST fill out new_fb_pitch with valid pitch of pixmap
@@ -784,7 +784,7 @@ extern _X_EXPORT ExaOffscreenArea *exaOffscreenAlloc(ScreenPtr pScreen,
                                                      int size, int align,
                                                      Bool locked,
                                                      ExaOffscreenSaveProc save,
-                                                     pointer privData);
+                                                     void *privData);
 
 extern _X_EXPORT ExaOffscreenArea *exaOffscreenFree(ScreenPtr pScreen,
                                                     ExaOffscreenArea * area);

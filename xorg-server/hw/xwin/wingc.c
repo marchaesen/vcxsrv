@@ -56,7 +56,7 @@ static void
 
 #if 0
 static void
- winChangeClipNativeGDI(GCPtr pGC, int nType, pointer pValue, int nRects);
+ winChangeClipNativeGDI(GCPtr pGC, int nType, void *pValue, int nRects);
 
 static void
  winDestroyClipNativeGDI(GCPtr pGC);
@@ -214,7 +214,7 @@ winDestroyGCNativeGDI(GCPtr pGC)
 #if 0
 /* See Porting Layer Definition - p. 46 */
 static void
-winChangeClipNativeGDI(GCPtr pGC, int nType, pointer pValue, int nRects)
+winChangeClipNativeGDI(GCPtr pGC, int nType, void *pValue, int nRects)
 {
 
 }

@@ -133,7 +133,7 @@ _X_HIDDEN int
 validGlxContext(ClientPtr client, XID id, int access_mode,
                 __GLXcontext ** context, int *err)
 {
-    *err = dixLookupResourceByType((pointer *) context, id,
+    *err = dixLookupResourceByType((void **) context, id,
                                    __glXContextRes, client, access_mode);
     if (*err != Success || (*context)->idExists == GL_FALSE) {
         client->errorValue = id;
@@ -151,7 +151,7 @@ validGlxDrawable(ClientPtr client, XID id, int type, int access_mode,
 {
     int rc;
 
-    rc = dixLookupResourceByType((pointer *) drawable, id,
+    rc = dixLookupResourceByType((void **) drawable, id,
                                  __glXDrawableRes, client, access_mode);
     if (rc != Success && rc != BadValue) {
         *err = rc;
@@ -2507,7 +2507,7 @@ __glXpresentCompleteNotify(WindowPtr window, CARD8 present_mode, CARD32 serial,
     int glx_type;
     int rc;
 
-    rc = dixLookupResourceByType((pointer *) &drawable, window->drawable.id,
+    rc = dixLookupResourceByType((void **) &drawable, window->drawable.id,
                                  __glXDrawableRes, serverClient, DixGetAttrAccess);
 
     if (rc != Success)

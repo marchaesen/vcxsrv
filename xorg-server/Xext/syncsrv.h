@@ -66,10 +66,10 @@ typedef enum {
     XSyncCounterUnrestricted
 } SyncCounterType;
 
-typedef void (*SyncSystemCounterQueryValue)(pointer counter,
+typedef void (*SyncSystemCounterQueryValue)(void *counter,
                                             CARD64 *value_return
     );
-typedef void (*SyncSystemCounterBracketValues)(pointer counter,
+typedef void (*SyncSystemCounterBracketValues)(void *counter,
                                                CARD64 *pbracket_less,
                                                CARD64 *pbracket_greater
     );
@@ -132,7 +132,7 @@ extern void SyncChangeCounter(SyncCounter *pCounter,
                               CARD64 new_value
     );
 
-extern void SyncDestroySystemCounter(pointer pCounter);
+extern void SyncDestroySystemCounter(void *pCounter);
 
 extern SyncCounter *SyncInitDeviceIdleTime(DeviceIntPtr dev);
 extern void SyncRemoveDeviceIdleTime(SyncCounter *counter);

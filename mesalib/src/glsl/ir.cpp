@@ -1649,13 +1649,10 @@ modes_match(unsigned a, unsigned b)
 const char *
 ir_function_signature::qualifiers_match(exec_list *params)
 {
-   exec_list_iterator iter_a = parameters.iterator();
-   exec_list_iterator iter_b = params->iterator();
-
    /* check that the qualifiers match. */
-   while (iter_a.has_next()) {
-      ir_variable *a = (ir_variable *)iter_a.get();
-      ir_variable *b = (ir_variable *)iter_b.get();
+   foreach_two_lists(a_node, &this->parameters, b_node, params) {
+      ir_variable *a = (ir_variable *) a_node;
+      ir_variable *b = (ir_variable *) b_node;
 
       if (a->data.read_only != b->data.read_only ||
 	  !modes_match(a->data.mode, b->data.mode) ||
@@ -1666,9 +1663,6 @@ ir_function_signature::qualifiers_match(exec_list *params)
 	 /* parameter a's qualifiers don't match */
 	 return a->name;
       }
-
-      iter_a.next();
-      iter_b.next();
    }
    return NULL;
 }
@@ -1717,8 +1711,8 @@ ir_rvalue::error_value(void *mem_ctx)
 void
 visit_exec_list(exec_list *list, ir_visitor *visitor)
 {
-   foreach_iter(exec_list_iterator, iter, *list) {
-      ((ir_instruction *)iter.get())->accept(visitor);
+   foreach_list_safe(n, list) {
+      ((ir_instruction *) n)->accept(visitor);
    }
 }
 
@@ -1739,8 +1733,8 @@ steal_memory(ir_instruction *ir, void *new_ctx)
     */
    if (constant != NULL) {
       if (constant->type->is_record()) {
-	 foreach_iter(exec_list_iterator, iter, constant->components) {
-	    ir_constant *field = (ir_constant *)iter.get();
+	 foreach_list(n, &constant->components) {
+	    ir_constant *field = (ir_constant *) n;
 	    steal_memory(field, ir);
 	 }
       } else if (constant->type->is_array()) {

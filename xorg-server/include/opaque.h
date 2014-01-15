@@ -33,8 +33,8 @@ from The Open Group.
 
 #include "globals.h"
 
-extern _X_EXPORT char *defaultTextFont;
-extern _X_EXPORT char *defaultCursorFont;
+extern _X_EXPORT const char *defaultTextFont;
+extern _X_EXPORT const char *defaultCursorFont;
 extern _X_EXPORT int MaxClients;
 extern _X_EXPORT volatile char isItTimeToYield;
 extern _X_EXPORT volatile char dispatchException;
@@ -49,7 +49,7 @@ extern _X_EXPORT int ScreenSaverBlanking;
 extern _X_EXPORT int ScreenSaverAllowExposures;
 extern _X_EXPORT int defaultScreenSaverBlanking;
 extern _X_EXPORT int defaultScreenSaverAllowExposures;
-extern _X_EXPORT char *display;
+extern _X_EXPORT const char *display;
 extern _X_EXPORT int displayfd;
 
 extern _X_EXPORT int defaultBackingStore;

@@ -213,7 +213,7 @@ SProcXFixesDispatch(ClientPtr client)
 }
 
 static void
-XFixesClientCallback(CallbackListPtr *list, pointer closure, pointer data)
+XFixesClientCallback(CallbackListPtr *list, void *closure, void *data)
 {
     NewClientInfoRec *clientinfo = (NewClientInfoRec *) data;
     ClientPtr pClient = clientinfo->client;

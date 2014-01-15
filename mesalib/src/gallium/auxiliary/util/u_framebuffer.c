@@ -127,6 +127,9 @@ util_framebuffer_min_size(const struct pipe_framebuffer_state *fb,
    unsigned i;
 
    for (i = 0; i < fb->nr_cbufs; i++) {
+      if (!fb->cbufs[i])
+         continue;
+
       w = MIN2(w, fb->cbufs[i]->width);
       h = MIN2(h, fb->cbufs[i]->height);
    }
@@ -170,4 +173,25 @@ util_framebuffer_get_num_layers(const struct pipe_framebuffer_state *fb)
 		num_layers = MAX2(num_layers, num);
 	}
 	return num_layers;
+}
+
+
+/**
+ * Return the number of MSAA samples.
+ */
+unsigned
+util_framebuffer_get_num_samples(const struct pipe_framebuffer_state *fb)
+{
+   unsigned i;
+
+   for (i = 0; i < fb->nr_cbufs; i++) {
+      if (fb->cbufs[i]) {
+         return MAX2(1, fb->cbufs[i]->texture->nr_samples);
+      }
+   }
+   if (fb->zsbuf) {
+      return MAX2(1, fb->zsbuf->texture->nr_samples);
+   }
+
+   return 1;
 }

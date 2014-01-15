@@ -168,7 +168,7 @@ proc_dri3_pixmap_from_buffer(ClientPtr client)
         (*drawable->pScreen->DestroyPixmap) (pixmap);
         return rc;
     }
-    if (AddResource(stuff->pixmap, RT_PIXMAP, (pointer) pixmap))
+    if (AddResource(stuff->pixmap, RT_PIXMAP, (void *) pixmap))
         return Success;
 
     return Success;
@@ -189,7 +189,7 @@ proc_dri3_buffer_from_pixmap(ClientPtr client)
     PixmapPtr pixmap;
 
     REQUEST_SIZE_MATCH(xDRI3BufferFromPixmapReq);
-    rc = dixLookupResourceByType((pointer *) &pixmap, stuff->pixmap, RT_PIXMAP,
+    rc = dixLookupResourceByType((void **) &pixmap, stuff->pixmap, RT_PIXMAP,
                                  client, DixWriteAccess);
     if (rc != Success) {
         client->errorValue = stuff->pixmap;

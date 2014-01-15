@@ -127,8 +127,8 @@ typedef struct _DMXLocalInitInfo {
     KeySym *symbols;                          /**< Key symbols */
 } DMXLocalInitInfo, *DMXLocalInitInfoPtr;
 
-typedef pointer (*dmxCreatePrivateProcPtr) (DeviceIntPtr);
-typedef void (*dmxDestroyPrivateProcPtr) (pointer);
+typedef void *(*dmxCreatePrivateProcPtr) (DeviceIntPtr);
+typedef void (*dmxDestroyPrivateProcPtr) (void *);
 
 typedef void (*dmxInitProcPtr) (DevicePtr);
 typedef void (*dmxReInitProcPtr) (DevicePtr);
@@ -136,13 +136,13 @@ typedef void (*dmxLateReInitProcPtr) (DevicePtr);
 typedef void (*dmxGetInfoProcPtr) (DevicePtr, DMXLocalInitInfoPtr);
 typedef int (*dmxOnProcPtr) (DevicePtr);
 typedef void (*dmxOffProcPtr) (DevicePtr);
-typedef void (*dmxUpdatePositionProcPtr) (pointer, int x, int y);
+typedef void (*dmxUpdatePositionProcPtr) (void *, int x, int y);
 
-typedef void (*dmxVTPreSwitchProcPtr) (pointer);        /* Turn I/O Off */
-typedef void (*dmxVTPostSwitchProcPtr) (pointer);       /* Turn I/O On */
-typedef void (*dmxVTSwitchReturnProcPtr) (pointer);
-typedef int (*dmxVTSwitchProcPtr) (pointer, int vt,
-                                   dmxVTSwitchReturnProcPtr, pointer);
+typedef void (*dmxVTPreSwitchProcPtr) (void *);        /* Turn I/O Off */
+typedef void (*dmxVTPostSwitchProcPtr) (void *);       /* Turn I/O On */
+typedef void (*dmxVTSwitchReturnProcPtr) (void *);
+typedef int (*dmxVTSwitchProcPtr) (void *, int vt,
+                                   dmxVTSwitchReturnProcPtr, void *);
 
 typedef void (*dmxMotionProcPtr) (DevicePtr,
                                   int *valuators,
@@ -157,9 +157,9 @@ typedef void (*dmxCollectEventsProcPtr) (DevicePtr,
                                          dmxMotionProcPtr,
                                          dmxEnqueueProcPtr,
                                          dmxCheckSpecialProcPtr, DMXBlockType);
-typedef void (*dmxProcessInputProcPtr) (pointer);
-typedef void (*dmxUpdateInfoProcPtr) (pointer, DMXUpdateType, WindowPtr);
-typedef int (*dmxFunctionsProcPtr) (pointer, DMXFunctionType);
+typedef void (*dmxProcessInputProcPtr) (void *);
+typedef void (*dmxUpdateInfoProcPtr) (void *, DMXUpdateType, WindowPtr);
+typedef int (*dmxFunctionsProcPtr) (void *, DMXFunctionType);
 
 typedef void (*dmxKBCtrlProcPtr) (DevicePtr, KeybdCtrl * ctrl);
 typedef void (*dmxMCtrlProcPtr) (DevicePtr, PtrCtrl * ctrl);
@@ -223,7 +223,7 @@ typedef struct _DMXLocalInputInfo {
     dmxKBCtrlProcPtr kCtrl;                   /**< Keyboard control */
     dmxKBBellProcPtr kBell;                   /**< Bell control */
 
-    pointer private;                          /**< Device-dependent private  */
+    void *private;                            /**< Device-dependent private  */
     int isCore;                               /**< Is a DMX core device  */
     int sendsCore;                            /**< Sends DMX core events */
     KeybdCtrl kctrl;                          /**< Keyboard control */
@@ -269,7 +269,7 @@ extern DMXLocalInputInfoPtr dmxInputCopyLocal(DMXInputInfo * dmxInput,
 extern void dmxChangePointerControl(DeviceIntPtr pDevice, PtrCtrl * ctrl);
 extern void dmxKeyboardKbdCtrlProc(DeviceIntPtr pDevice, KeybdCtrl * ctrl);
 extern void dmxKeyboardBellProc(int percent, DeviceIntPtr pDevice,
-                                pointer ctrl, int unknown);
+                                void *ctrl, int unknown);
 
 extern int dmxInputExtensionErrorHandler(Display * dsp, _Xconst char *name,
                                          _Xconst char *reason);

@@ -826,7 +826,7 @@ AuditF(const char *f, ...)
 }
 
 static CARD32
-AuditFlush(OsTimerPtr timer, CARD32 now, pointer arg)
+AuditFlush(OsTimerPtr timer, CARD32 now, void *arg)
 {
     char *prefix;
 

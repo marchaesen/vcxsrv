@@ -49,7 +49,7 @@ from The Open Group.
 /* callable by ddx */
 PixmapPtr
 GetScratchPixmapHeader(ScreenPtr pScreen, int width, int height, int depth,
-                       int bitsPerPixel, int devKind, pointer pPixData)
+                       int bitsPerPixel, int devKind, void *pPixData)
 {
     PixmapPtr pPixmap = pScreen->pScratchPixmap;
 

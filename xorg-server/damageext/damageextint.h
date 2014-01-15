@@ -58,7 +58,7 @@ typedef struct _DamageExt {
 } DamageExtRec, *DamageExtPtr;
 
 #define VERIFY_DAMAGEEXT(pDamageExt, rid, client, mode) { \
-    int rc = dixLookupResourceByType((pointer *)&(pDamageExt), rid, \
+    int rc = dixLookupResourceByType((void **)&(pDamageExt), rid, \
                                      DamageExtType, client, mode); \
     if (rc != Success) \
         return rc; \

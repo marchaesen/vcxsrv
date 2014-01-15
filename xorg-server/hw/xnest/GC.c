@@ -188,7 +188,7 @@ xnestDestroyGC(GCPtr pGC)
 }
 
 void
-xnestChangeClip(GCPtr pGC, int type, pointer pValue, int nRects)
+xnestChangeClip(GCPtr pGC, int type, void *pValue, int nRects)
 {
     int i, size;
     BoxPtr pBox;
@@ -225,7 +225,7 @@ xnestChangeClip(GCPtr pGC, int type, pointer pValue, int nRects)
          * current pixmap contents.
          */
         pGC->clientClip =
-            (pointer) (*pGC->pScreen->BitmapToRegion) ((PixmapPtr) pValue);
+            (void *) (*pGC->pScreen->BitmapToRegion) ((PixmapPtr) pValue);
         (*pGC->pScreen->DestroyPixmap) ((PixmapPtr) pValue);
         pValue = pGC->clientClip;
         type = CT_REGION;
@@ -269,7 +269,7 @@ xnestChangeClip(GCPtr pGC, int type, pointer pValue, int nRects)
          * other parts of server can only deal with CT_NONE,
          * CT_PIXMAP and CT_REGION client clips.
          */
-        pGC->clientClip = (pointer) RegionFromRects(nRects,
+        pGC->clientClip = (void *) RegionFromRects(nRects,
                                                     (xRectangle *) pValue,
                                                     type);
         free(pValue);

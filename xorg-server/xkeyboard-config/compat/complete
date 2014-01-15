@@ -1,4 +1,4 @@
-default xkb_compatibility "complete"  {
+default xkb_compatibility "complete" {
     include "basic"
     augment "iso9995"
     augment "mousekeys"

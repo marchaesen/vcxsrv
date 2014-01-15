@@ -760,7 +760,7 @@ AllocNewConnection(XtransConnInfo trans_conn, int fd, CARD32 conn_time)
     oc->output = (ConnectionOutputPtr) NULL;
     oc->auth_id = None;
     oc->conn_time = conn_time;
-    if (!(client = NextAvailableClient((pointer) oc))) {
+    if (!(client = NextAvailableClient((void *) oc))) {
         free(oc);
         return NullClient;
     }
@@ -798,7 +798,7 @@ AllocNewConnection(XtransConnInfo trans_conn, int fd, CARD32 conn_time)
  *****************/
 
  /*ARGSUSED*/ Bool
-EstablishNewConnections(ClientPtr clientUnused, pointer closure)
+EstablishNewConnections(ClientPtr clientUnused, void *closure)
 {
     fd_set readyconnections;    /* set of listeners that are ready */
     int curconn;                /* fd of listener that's ready */
@@ -1046,7 +1046,7 @@ CloseDownConnection(ClientPtr client)
     CloseDownFileDescriptor(oc);
     FreeOsBuffers(oc);
     free(client->osPrivate);
-    client->osPrivate = (pointer) NULL;
+    client->osPrivate = (void *) NULL;
     if (auditTrailLevel > 1)
         AuditF("client %d disconnected\n", client->index);
 }

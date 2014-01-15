@@ -202,7 +202,7 @@ RootlessStartDrawing(WindowPtr pWindow)
  *  damaged regions are flushed to the screen.
  */
 static int
-RestorePreDrawingPixmapVisitor(WindowPtr pWindow, pointer data)
+RestorePreDrawingPixmapVisitor(WindowPtr pWindow, void *data)
 {
     RootlessWindowRec *winRec = (RootlessWindowRec *) data;
     ScreenPtr pScreen = pWindow->drawable.pScreen;
@@ -249,7 +249,7 @@ RootlessStopDrawing(WindowPtr pWindow, Bool flush)
         SCREENREC(pScreen)->imp->StopDrawing(winRec->wid, flush);
 
         FreeScratchPixmapHeader(winRec->pixmap);
-        TraverseTree(top, RestorePreDrawingPixmapVisitor, (pointer) winRec);
+        TraverseTree(top, RestorePreDrawingPixmapVisitor, (void *) winRec);
         winRec->pixmap = NULL;
 
         winRec->is_drawing = FALSE;

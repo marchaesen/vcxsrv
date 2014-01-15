@@ -80,7 +80,7 @@ xnestDestroyPixmap(PixmapPtr pPixmap)
 
 Bool
 xnestModifyPixmapHeader(PixmapPtr pPixmap, int width, int height, int depth,
-                        int bitsPerPixel, int devKind, pointer pPixData)
+                        int bitsPerPixel, int devKind, void *pPixData)
 {
   if(!xnestPixmapPriv(pPixmap)->pixmap && width > 0 && height > 0) {
     xnestPixmapPriv(pPixmap)->pixmap =

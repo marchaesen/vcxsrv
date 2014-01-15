@@ -60,7 +60,7 @@ DevPrivateKeyRec RRClientPrivateKeyRec;
 DevPrivateKeyRec rrPrivKeyRec;
 
 static void
-RRClientCallback(CallbackListPtr *list, pointer closure, pointer data)
+RRClientCallback(CallbackListPtr *list, void *closure, void *data)
 {
     NewClientInfoRec *clientinfo = (NewClientInfoRec *) data;
     ClientPtr pClient = clientinfo->client;
@@ -338,7 +338,7 @@ RRScreenInit(ScreenPtr pScreen)
 }
 
  /*ARGSUSED*/ static int
-RRFreeClient(pointer data, XID id)
+RRFreeClient(void *data, XID id)
 {
     RREventPtr pRREvent;
     WindowPtr pWin;
@@ -346,7 +346,7 @@ RRFreeClient(pointer data, XID id)
 
     pRREvent = (RREventPtr) data;
     pWin = pRREvent->window;
-    dixLookupResourceByType((pointer *) &pHead, pWin->drawable.id,
+    dixLookupResourceByType((void **) &pHead, pWin->drawable.id,
                             RREventType, serverClient, DixDestroyAccess);
     if (pHead) {
         pPrev = 0;
@@ -359,12 +359,12 @@ RRFreeClient(pointer data, XID id)
                 *pHead = pRREvent->next;
         }
     }
-    free((pointer) pRREvent);
+    free((void *) pRREvent);
     return 1;
 }
 
  /*ARGSUSED*/ static int
-RRFreeEvents(pointer data, XID id)
+RRFreeEvents(void *data, XID id)
 {
     RREventPtr *pHead, pCur, pNext;
 
@@ -372,9 +372,9 @@ RRFreeEvents(pointer data, XID id)
     for (pCur = *pHead; pCur; pCur = pNext) {
         pNext = pCur->next;
         FreeResource(pCur->clientResource, RRClientType);
-        free((pointer) pCur);
+        free((void *) pCur);
     }
-    free((pointer) pHead);
+    free((void *) pHead);
     return 1;
 }
 
@@ -447,7 +447,7 @@ RRDeliverResourceEvent(ClientPtr client, WindowPtr pWin)
 }
 
 static int
-TellChanged(WindowPtr pWin, pointer value)
+TellChanged(WindowPtr pWin, void *value)
 {
     RREventPtr *pHead, pRREvent;
     ClientPtr client;
@@ -458,7 +458,7 @@ TellChanged(WindowPtr pWin, pointer value)
     rrScrPriv(pScreen);
     int i;
 
-    dixLookupResourceByType((pointer *) &pHead, pWin->drawable.id,
+    dixLookupResourceByType((void **) &pHead, pWin->drawable.id,
                             RREventType, serverClient, DixReadAccess);
     if (!pHead)
         return WT_WALKCHILDREN;
@@ -589,7 +589,7 @@ RRTellChanged(ScreenPtr pScreen)
         pScrPriv->changed = FALSE;
         mastersp->changed = FALSE;
 
-        WalkTree(master, TellChanged, (pointer) master);
+        WalkTree(master, TellChanged, (void *) master);
 
         mastersp->resourcesChanged = FALSE;
 

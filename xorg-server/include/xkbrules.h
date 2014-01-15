@@ -30,40 +30,40 @@
 /***====================================================================***/
 
 typedef struct _XkbRMLVOSet {
-    char *rules;
-    char *model;
-    char *layout;
-    char *variant;
-    char *options;
+    const char *rules;
+    const char *model;
+    const char *layout;
+    const char *variant;
+    const char *options;
 } XkbRMLVOSet;
 
 typedef struct _XkbRF_VarDefs {
-    char *model;
-    char *layout;
-    char *variant;
-    char *options;
+    const char *model;
+    const char *layout;
+    const char *variant;
+    const char *options;
 } XkbRF_VarDefsRec, *XkbRF_VarDefsPtr;
 
 typedef struct _XkbRF_Rule {
     int number;
     int layout_num;
     int variant_num;
-    char *model;
-    char *layout;
-    char *variant;
-    char *option;
+    const char *model;
+    const char *layout;
+    const char *variant;
+    const char *option;
     /* yields */
-    char *keycodes;
-    char *symbols;
-    char *types;
-    char *compat;
-    char *geometry;
+    const char *keycodes;
+    const char *symbols;
+    const char *types;
+    const char *compat;
+    const char *geometry;
     unsigned flags;
 } XkbRF_RuleRec, *XkbRF_RulePtr;
 
 typedef struct _XkbRF_Group {
     int number;
-    char *name;
+    const char *name;
     char *words;
 } XkbRF_GroupRec, *XkbRF_GroupPtr;
 

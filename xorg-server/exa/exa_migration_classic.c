@@ -350,7 +350,7 @@ exaDoMoveInPixmap(ExaMigrationPtr migrate)
         pExaPixmap->area =
             exaOffscreenAlloc(pScreen, pExaPixmap->fb_size,
                               pExaScr->info->pixmapOffsetAlign, FALSE,
-                              exaPixmapSave, (pointer) pPixmap);
+                              exaPixmapSave, (void *) pPixmap);
         if (pExaPixmap->area == NULL)
             return;
 
@@ -465,12 +465,12 @@ exaMigrateTowardFb(ExaMigrationPtr migrate)
 
     if (pExaPixmap->score == EXA_PIXMAP_SCORE_PINNED) {
         DBG_MIGRATE(("UseScreen: not migrating pinned pixmap %p\n",
-                     (pointer) pPixmap));
+                     (void *) pPixmap));
         return;
     }
 
     DBG_MIGRATE(("UseScreen %p score %d\n",
-                 (pointer) pPixmap, pExaPixmap->score));
+                 (void *) pPixmap, pExaPixmap->score));
 
     if (pExaPixmap->score == EXA_PIXMAP_SCORE_INIT) {
         exaDoMoveInPixmap(migrate);
@@ -504,7 +504,7 @@ exaMigrateTowardSys(ExaMigrationPtr migrate)
 
     ExaPixmapPriv(pPixmap);
 
-    DBG_MIGRATE(("UseMem: %p score %d\n", (pointer) pPixmap,
+    DBG_MIGRATE(("UseMem: %p score %d\n", (void *) pPixmap,
                  pExaPixmap->score));
 
     if (pExaPixmap->score == EXA_PIXMAP_SCORE_PINNED)

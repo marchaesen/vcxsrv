@@ -139,11 +139,11 @@ DoShowOptions(void)
 /* xf86Events.c */
 
 extern _X_EXPORT void
-xf86Wakeup(pointer blockData, int err, pointer pReadmask);
+xf86Wakeup(void *blockData, int err, void *pReadmask);
 extern _X_HIDDEN int
 xf86SigWrapper(int signo);
 extern _X_EXPORT void
-xf86HandlePMEvents(int fd, pointer data);
+xf86HandlePMEvents(int fd, void *data);
 extern _X_EXPORT int (*xf86PMGetEventFromOs) (int fd, pmEvent * events,
                                               int num);
 extern _X_EXPORT pmWait (*xf86PMConfirmEventToOs) (int fd, pmEvent event);
@@ -156,7 +156,7 @@ xf86CloseLog(enum ExitCode error);
 
 /* xf86Init.c */
 extern _X_EXPORT Bool
-xf86LoadModules(char **list, pointer *optlist);
+xf86LoadModules(const char **list, void **optlist);
 extern _X_EXPORT int
 xf86SetVerbosity(int verb);
 extern _X_EXPORT int

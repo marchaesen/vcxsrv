@@ -118,7 +118,7 @@ extern void dmxCommonOthOff(DevicePtr pDev);
 extern void dmxCommonOthGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info);
 
                                 /* helper functions */
-extern pointer dmxCommonCopyPrivate(DeviceIntPtr pDevice);
-extern void dmxCommonSaveState(pointer private);
-extern void dmxCommonRestoreState(pointer private);
+extern void *dmxCommonCopyPrivate(DeviceIntPtr pDevice);
+extern void dmxCommonSaveState(void *private);
+extern void dmxCommonRestoreState(void *private);
 #endif

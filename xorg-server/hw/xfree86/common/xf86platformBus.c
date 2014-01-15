@@ -400,7 +400,7 @@ xf86platformAddDevice(int index)
     DriverPtr drvp = NULL;
     int entity;
     screenLayoutPtr layout;
-    static char *hotplug_driver_name = "modesetting";
+    static const char *hotplug_driver_name = "modesetting";
 
     /* force load the driver for now */
     xf86LoadOneModule(hotplug_driver_name, NULL);

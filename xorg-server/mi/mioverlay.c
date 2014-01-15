@@ -1050,7 +1050,7 @@ typedef struct {
 } miOverlayTwoRegions;
 
 static int
-miOverlayRecomputeExposures(WindowPtr pWin, pointer value)
+miOverlayRecomputeExposures(WindowPtr pWin, void *value)
 {
     miOverlayTwoRegions *pValid = (miOverlayTwoRegions *) value;
     miOverlayTreePtr pTree = MIOVERLAY_GET_WINDOW_TREE(pWin);
@@ -1404,7 +1404,7 @@ miOverlayResizeWindow(WindowPtr pWin,
                 TwoRegions.under = gravitate2[g];
 
                 TraverseTree(pChild, miOverlayRecomputeExposures,
-                             (pointer) (&TwoRegions));
+                             (void *) (&TwoRegions));
             }
 
             /*

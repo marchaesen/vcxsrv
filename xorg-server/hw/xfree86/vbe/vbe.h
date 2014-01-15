@@ -25,7 +25,7 @@ typedef enum {
 typedef struct {
     xf86Int10InfoPtr pInt10;
     int version;
-    pointer memory;
+    void *memory;
     int real_mode_base;
     int num_pages;
     Bool init_int10;
@@ -40,7 +40,7 @@ extern _X_EXPORT vbeInfoPtr VBEInit(xf86Int10InfoPtr pInt, int entityIndex);
 extern _X_EXPORT vbeInfoPtr VBEExtendedInit(xf86Int10InfoPtr pInt,
                                             int entityIndex, int Flags);
 extern _X_EXPORT void vbeFree(vbeInfoPtr pVbe);
-extern _X_EXPORT xf86MonPtr vbeDoEDID(vbeInfoPtr pVbe, pointer pDDCModule);
+extern _X_EXPORT xf86MonPtr vbeDoEDID(vbeInfoPtr pVbe, void *pDDCModule);
 
 #pragma pack(1)
 
@@ -227,7 +227,7 @@ typedef enum {
 extern _X_EXPORT Bool
 
 VBESaveRestore(vbeInfoPtr pVbe, vbeSaveRestoreFunction fuction,
-               pointer *memory, int *size, int *real_mode_pages);
+               void **memory, int *size, int *real_mode_pages);
 
 /*
  * INT 5

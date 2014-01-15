@@ -42,7 +42,7 @@ is" without express or implied warranty.
 DevPrivateKeyRec xnestWindowPrivateKeyRec;
 
 static int
-xnestFindWindowMatch(WindowPtr pWin, pointer ptr)
+xnestFindWindowMatch(WindowPtr pWin, void *ptr)
 {
     xnestWindowMatch *wm = (xnestWindowMatch *) ptr;
 
@@ -64,7 +64,7 @@ xnestWindowPtr(Window window)
     wm.window = window;
 
     for (i = 0; i < xnestNumScreens; i++) {
-        WalkTree(screenInfo.screens[i], xnestFindWindowMatch, (pointer) &wm);
+        WalkTree(screenInfo.screens[i], xnestFindWindowMatch, (void *) &wm);
         if (wm.pWin)
             break;
     }
@@ -96,7 +96,7 @@ xnestCreateWindow(WindowPtr pWin)
                     xnestVisualFromID(pWin->drawable.pScreen, wVisual(pWin));
                 mask |= CWColormap;
                 if (pWin->optional->colormap) {
-                    dixLookupResourceByType((pointer *) &pCmap, wColormap(pWin),
+                    dixLookupResourceByType((void **) &pCmap, wColormap(pWin),
                                             RT_COLORMAP, serverClient,
                                             DixUseAccess);
                     attributes.colormap = xnestColormap(pCmap);
@@ -109,7 +109,7 @@ xnestCreateWindow(WindowPtr pWin)
         }
         else {                  /* root windows have their own colormaps at creation time */
             visual = xnestVisualFromID(pWin->drawable.pScreen, wVisual(pWin));
-            dixLookupResourceByType((pointer *) &pCmap, wColormap(pWin),
+            dixLookupResourceByType((void **) &pCmap, wColormap(pWin),
                                     RT_COLORMAP, serverClient, DixUseAccess);
             mask |= CWColormap;
             attributes.colormap = xnestColormap(pCmap);
@@ -331,7 +331,7 @@ xnestChangeWindowAttributes(WindowPtr pWin, unsigned long mask)
     if (mask & CWColormap) {
         ColormapPtr pCmap;
 
-        dixLookupResourceByType((pointer *) &pCmap, wColormap(pWin),
+        dixLookupResourceByType((void **) &pCmap, wColormap(pWin),
                                 RT_COLORMAP, serverClient, DixUseAccess);
 
         attributes.colormap = xnestColormap(pCmap);

@@ -62,8 +62,8 @@ typedef struct {
 } ShadowScreenRec, *ShadowScreenPtr;
 
 typedef struct {
-    GCOps *ops;
-    GCFuncs *funcs;
+    const GCOps *ops;
+    const GCFuncs *funcs;
 } ShadowGCRec, *ShadowGCPtr;
 
 static DevPrivateKeyRec ShadowScreenKeyRec;
@@ -96,7 +96,7 @@ static DevPrivateKeyRec ShadowGCKeyRec;
 #define SHADOW_GC_OP_PROLOGUE(pGC)\
     ShadowScreenPtr pPriv = GET_SCREEN_PRIVATE(pGC->pScreen); \
     ShadowGCPtr pGCPriv = GET_GC_PRIVATE(pGC);\
-    GCFuncs *oldFuncs = pGC->funcs;\
+    const GCFuncs *oldFuncs = pGC->funcs;\
     pGC->funcs = pGCPriv->funcs;\
     pGC->ops = pGCPriv->ops
 
@@ -243,7 +243,7 @@ ShadowCloseScreen(ScreenPtr pScreen)
         ps->Composite = pPriv->Composite;
     }
 
-    free((pointer) pPriv);
+    free((void *) pPriv);
 
     return (*pScreen->CloseScreen) (pScreen);
 }
@@ -342,7 +342,7 @@ static void ShadowValidateGC(GCPtr, unsigned long, DrawablePtr);
 static void ShadowChangeGC(GCPtr, unsigned long);
 static void ShadowCopyGC(GCPtr, unsigned long, GCPtr);
 static void ShadowDestroyGC(GCPtr);
-static void ShadowChangeClip(GCPtr, int, pointer, int);
+static void ShadowChangeClip(GCPtr, int, void *, int);
 static void ShadowDestroyClip(GCPtr);
 static void ShadowCopyClip(GCPtr, GCPtr);
 
@@ -409,7 +409,7 @@ ShadowCopyGC(GCPtr pGCSrc, unsigned long mask, GCPtr pGCDst)
 }
 
 static void
-ShadowChangeClip(GCPtr pGC, int type, pointer pvalue, int nrects)
+ShadowChangeClip(GCPtr pGC, int type, void *pvalue, int nrects)
 {
     SHADOW_GC_FUNC_PROLOGUE(pGC);
     (*pGC->funcs->ChangeClip) (pGC, type, pvalue, nrects);
@@ -1477,7 +1477,7 @@ ShadowImageGlyphBlt(DrawablePtr pDraw,
                     GCPtr pGC,
                     int x, int y,
                     unsigned int nglyphInit,
-                    CharInfoPtr * ppciInit, pointer pglyphBase)
+                    CharInfoPtr * ppciInit, void *pglyphBase)
 {
     BoxRec box;
     Bool boxNotEmpty = FALSE;
@@ -1538,7 +1538,7 @@ ShadowPolyGlyphBlt(DrawablePtr pDraw,
                    GCPtr pGC,
                    int x, int y,
                    unsigned int nglyphInit,
-                   CharInfoPtr * ppciInit, pointer pglyphBase)
+                   CharInfoPtr * ppciInit, void *pglyphBase)
 {
     BoxRec box;
     Bool boxNotEmpty = FALSE;

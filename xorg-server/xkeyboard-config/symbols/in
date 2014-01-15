@@ -2013,4 +2013,72 @@ xkb_symbols "tel-kagapa" {
 
     include "level3(ralt_switch)"
 };
-// ---- END Telugu KaGaPa ----
+
+// Description 	: Keymap for Manipuri language (Meetei mayek script)
+// Encoding    	: Unicode (http://www.unicode.org)
+// Author      	: Santosh Heigrujam <santosh.tomba@gmail.com>
+// Date        	: December, 2013
+// Source	: 
+// Comment	:
+	
+partial alphanumeric_keys modifier_keys
+xkb_symbols "eeyek" {
+
+    name[Group1]= "Manipuri (Eeyek)";
+
+    // Alphanumeric section
+    key <TLDE> {	[     grave,	asciitilde	]	};
+    key <AE01> {	[	  Uabf1,	exclam 		]	};
+    key <AE02> {	[	  Uabf2,	at		]	};
+    key <AE03> {	[	  Uabf3,	numbersign	]	};
+    key <AE04> {	[	  Uabf4,	dollar		]	};
+    key <AE05> {	[	  Uabf5,	percent		]	};
+    key <AE06> {	[	  Uabf6,	asciicircum	]	};
+    key <AE07> {	[	  Uabf7,	ampersand	]	};
+    key <AE08> {	[	  Uabf8,	asterisk	]	};
+    key <AE09> {	[	  Uabf9,	parenleft	]	};
+    key <AE10> {	[	  Uabf0,	parenright	]	};
+    key <AE11> {	[     minus,	underscore	]	};
+    key <AE12> {	[     equal,	plus		]	};
+
+    key <AD01> {	[	  Uabc8,	Uabd8 		]	};
+    key <AD02> {	[	  Uabcb,	Uabcb		]	};
+    key <AD03> {	[	  Uabcf,	Uabe2		]	};
+    key <AD04> {	[	  Uabd4,	Uabd4		]	};
+    key <AD05> {	[	  Uabc7,	Uabe0		]	};
+    key <AD06> {	[	  Uabcc,	Uabe6		]	};
+    key <AD07> {	[	  Uabce,	Uabe8		]	};
+    key <AD08> {	[	  Uabe4,	Uabe9		]	};
+    key <AD09> {	[	  Uabe3,	Uabe7		]	};
+    key <AD10> {	[	  Uabc4,	Uabde		]	};
+    key <AD11> {	[ bracketleft,	braceleft	]	};
+    key <AD12> {	[ bracketright,	braceright	]	};
+
+    key <AC01> {	[	  Uabd1,	Uabe5 		]	};
+    key <AC02> {	[	  Uabc1,	Uabd3		]	};
+    key <AC03> {	[	  Uabd7,	Uabd9		]	};
+    key <AC04> {	[	  Uabd0,	Uabda		]	};
+    key <AC05> {	[	  Uabd2,	Uabd8		]	};
+    key <AC06> {	[	  Uabcd,	Uabea		]	};
+    key <AC07> {	[	  Uabd6,	Uabd3		]	};
+    key <AC08> {	[	  Uabc0,	Uabdb		]	};
+    key <AC09> {	[	  Uabc2,	Uabdc		]	};
+    key <AC10> {	[ semicolon,	colon		]	};
+    key <AC11> {	[ apostrophe,	quotedbl	]	};
+
+    key <AB01> {	[	  Uabc9,	Uabe1 		]	};
+    key <AB02> {	[	  Uabca,	Uabd9		]	};
+    key <AB03> {	[	  Uabc6,	Uabeb		]	};
+    key <AB04> {	[	  Uabda,	Uabed		]	};
+    key <AB05> {	[	  Uabd5,	Uabec		]	};
+    key <AB06> {	[	  Uabc5,	Uabdf		]	};
+    key <AB07> {	[	  Uabc3,	Uabdd		]	};
+    key <AB08> {	[     comma,	less		]	};
+    key <AB09> {	[    period,	greater		]	};
+    key <AB10> {	[     slash,	question	]	};
+
+    key <BKSL> {	[ backslash,         bar	]	};
+    // End alphanumeric section
+    
+    include "level3(ralt_switch)"
+};

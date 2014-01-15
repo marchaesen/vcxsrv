@@ -118,7 +118,7 @@ struct _OsTimerRec {
     CARD32 expires;
     CARD32 delta;
     OsTimerCallback callback;
-    pointer arg;
+    void *arg;
 };
 
 static void DoTimer(OsTimerPtr timer, CARD32 now, OsTimerPtr *prev);
@@ -212,7 +212,7 @@ WaitForSomething(int *pClientsReady)
             XFD_COPYSET(&AllSockets, &LastSelectMask);
         }
 
-        BlockHandler((pointer) &wt, (pointer) &LastSelectMask);
+        BlockHandler((void *) &wt, (void *) &LastSelectMask);
         if (NewOutputPending)
             FlushAllOutput();
         /* keep this check close to select() call to minimize race */
@@ -226,7 +226,7 @@ WaitForSomething(int *pClientsReady)
             i = Select(MaxClients, &LastSelectMask, NULL, NULL, wt);
         }
         selecterr = GetErrno();
-        WakeupHandler(i, (pointer) &LastSelectMask);
+        WakeupHandler(i, (void *) &LastSelectMask);
         if (i <= 0) {           /* An error or timeout occurred */
             if (dispatchException)
                 return 0;
@@ -303,7 +303,7 @@ WaitForSomething(int *pClientsReady)
             XFD_ANDSET(&tmp_set, &LastSelectMask, &WellKnownConnections);
             if (XFD_ANYSET(&tmp_set))
                 QueueWorkProc(EstablishNewConnections, NULL,
-                              (pointer) &LastSelectMask);
+                              (void *) &LastSelectMask);
 
             if (XFD_ANYSET(&devicesReadable) || XFD_ANYSET(&clientsReadable))
                 break;
@@ -416,7 +416,7 @@ DoTimer(OsTimerPtr timer, CARD32 now, OsTimerPtr *prev)
 
 OsTimerPtr
 TimerSet(OsTimerPtr timer, int flags, CARD32 millis,
-         OsTimerCallback func, pointer arg)
+         OsTimerCallback func, void *arg)
 {
     register OsTimerPtr *prev;
     CARD32 now = GetTimeInMillis();
@@ -564,7 +564,7 @@ NextDPMSTimeout(INT32 timeout)
 #endif                          /* DPMSExtension */
 
 static CARD32
-ScreenSaverTimeoutExpire(OsTimerPtr timer, CARD32 now, pointer arg)
+ScreenSaverTimeoutExpire(OsTimerPtr timer, CARD32 now, void *arg)
 {
     INT32 timeout = now - LastEventTime(XIAllDevices).milliseconds;
     CARD32 nextTimeout = 0;

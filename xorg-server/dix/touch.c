@@ -75,7 +75,7 @@ static unsigned char resize_waiting[(MAXDEVICES + 7) / 8];
  * anyway and re-executing this won't help.
  */
 static Bool
-TouchResizeQueue(ClientPtr client, pointer closure)
+TouchResizeQueue(ClientPtr client, void *closure)
 {
     int i;
 

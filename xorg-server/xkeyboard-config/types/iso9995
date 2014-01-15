@@ -1,8 +1,8 @@
 partial default xkb_types "default" {
 
-    // Definition for a key type which 
-    // can be used to implement ISO9995
-    // style level three shift
+    // A key type which can be used to implement
+    // an ISO9995-style level-three shift.
+
     virtual_modifiers LevelThree;
 
     type "THREE_LEVEL" {

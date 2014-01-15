@@ -97,8 +97,7 @@ xf86parseFilesSection(void)
             j = FALSE;
             str = val.str;
             if (ptr->file_fontpath == NULL) {
-                ptr->file_fontpath = malloc(1);
-                ptr->file_fontpath[0] = '\0';
+                ptr->file_fontpath = calloc(1, 1);
                 i = strlen(str) + 1;
             }
             else {

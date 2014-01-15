@@ -175,7 +175,7 @@ dmxStatSync(DMXScreenInfo * dmxScreen,
 
 /* Actually do the work of printing out the human-readable message. */
 static CARD32
-dmxStatCallback(OsTimerPtr timer, CARD32 t, pointer arg)
+dmxStatCallback(OsTimerPtr timer, CARD32 t, void *arg)
 {
     int i, j;
     static int header = 0;

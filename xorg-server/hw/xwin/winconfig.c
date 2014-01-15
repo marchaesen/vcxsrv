@@ -106,7 +106,7 @@ winInfoRec g_winInfo = {
 #ifdef XWIN_XF86CONFIG
 serverLayoutRec g_winConfigLayout;
 
-static Bool ParseOptionValue(int scrnIndex, pointer options, OptionInfoPtr p);
+static Bool ParseOptionValue(int scrnIndex, void *options, OptionInfoPtr p);
 static Bool configLayout(serverLayoutPtr, XF86ConfLayoutPtr, char *);
 static Bool configImpliedLayout(serverLayoutPtr, XF86ConfScreenPtr);
 static Bool GetBoolValue(OptionInfoPtr p, const char *s);
@@ -188,7 +188,7 @@ winReadConfigfile()
         /* Check if layout is given in the config file */
         if (g_xf86configptr->conf_flags != NULL) {
             char *dfltlayout = NULL;
-            pointer optlist = g_xf86configptr->conf_flags->flg_option_lst;
+            void *optlist = g_xf86configptr->conf_flags->flg_option_lst;
 
             if (optlist && winFindOption(optlist, "defaultserverlayout"))
                 dfltlayout =
@@ -588,7 +588,7 @@ winConfigScreens(void)
 
 #ifdef XWIN_XF86CONFIG
 char *
-winSetStrOption(pointer optlist, const char *name, char *deflt)
+winSetStrOption(void *optlist, const char *name, char *deflt)
 {
     OptionInfoRec o;
 
@@ -603,7 +603,7 @@ winSetStrOption(pointer optlist, const char *name, char *deflt)
 }
 
 int
-winSetBoolOption(pointer optlist, const char *name, int deflt)
+winSetBoolOption(void *optlist, const char *name, int deflt)
 {
     OptionInfoRec o;
 
@@ -615,7 +615,7 @@ winSetBoolOption(pointer optlist, const char *name, int deflt)
 }
 
 int
-winSetIntOption(pointer optlist, const char *name, int deflt)
+winSetIntOption(void *optlist, const char *name, int deflt)
 {
     OptionInfoRec o;
 
@@ -627,7 +627,7 @@ winSetIntOption(pointer optlist, const char *name, int deflt)
 }
 
 double
-winSetRealOption(pointer optlist, const char *name, double deflt)
+winSetRealOption(void *optlist, const char *name, double deflt)
 {
     OptionInfoRec o;
 
@@ -639,7 +639,7 @@ winSetRealOption(pointer optlist, const char *name, double deflt)
 }
 
 double
-winSetPercentOption(pointer optlist, const char *name, double deflt)
+winSetPercentOption(void *optlist, const char *name, double deflt)
 {
     OptionInfoRec o;
 
@@ -734,7 +734,7 @@ winFindOptionValue(XF86OptionPtr list, const char *name)
  */
 
 static Bool
-ParseOptionValue(int scrnIndex, pointer options, OptionInfoPtr p)
+ParseOptionValue(int scrnIndex, void *options, OptionInfoPtr p)
 {
     char *s, *end;
 

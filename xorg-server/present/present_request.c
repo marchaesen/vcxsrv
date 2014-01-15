@@ -89,7 +89,7 @@ proc_present_pixmap(ClientPtr client)
     ret = dixLookupWindow(&window, stuff->window, client, DixWriteAccess);
     if (ret != Success)
         return ret;
-    ret = dixLookupResourceByType((pointer *) &pixmap, stuff->pixmap, RT_PIXMAP, client, DixReadAccess);
+    ret = dixLookupResourceByType((void **) &pixmap, stuff->pixmap, RT_PIXMAP, client, DixReadAccess);
     if (ret != Success)
         return ret;
 

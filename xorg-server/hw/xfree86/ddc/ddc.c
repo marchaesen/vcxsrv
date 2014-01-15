@@ -299,7 +299,7 @@ xf86DoEDID_DDC1(ScrnInfoPtr pScrn, DDC1SetSpeedProc DDC1SetSpeed,
 /* DDC2 */
 
 static I2CDevPtr
-DDC2MakeDevice(I2CBusPtr pBus, int address, char *name)
+DDC2MakeDevice(I2CBusPtr pBus, int address, const char *name)
 {
     I2CDevPtr dev = NULL;
 

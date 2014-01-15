@@ -51,7 +51,7 @@ static Bool g_winKeyState[NUM_KEYCODES];
  */
 
 static void
- winKeybdBell(int iPercent, DeviceIntPtr pDeviceInt, pointer pCtrl, int iClass);
+ winKeybdBell(int iPercent, DeviceIntPtr pDeviceInt, void *pCtrl, int iClass);
 
 static void
  winKeybdCtrl(DeviceIntPtr pDevice, KeybdCtrl * pCtrl);
@@ -120,7 +120,7 @@ winTranslateKey(WPARAM wParam, LPARAM lParam)
 
 /* Ring the keyboard bell (system speaker on PCs) */
 static void
-winKeybdBell(int iPercent, DeviceIntPtr pDeviceInt, pointer pCtrl, int iClass)
+winKeybdBell(int iPercent, DeviceIntPtr pDeviceInt, void *pCtrl, int iClass)
 {
     /*
      * We can't use Beep () here because it uses the PC speaker

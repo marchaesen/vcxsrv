@@ -98,10 +98,10 @@ static XtResource resources[] = {
     {XtNcallback, XtCCallback, XtRCallback,
      sizeof(XtCallbackList), offset(input_callback), XtRCallback, NULL}
     ,
-    {XtNcanvasExposeCallback, XtCcanvasExposeCallback, XtRCallback,
+    {(char *) XtNcanvasExposeCallback, (char *) XtCcanvasExposeCallback, XtRCallback,
      sizeof(XtCallbackList), offset(expose_callback), XtRCallback, NULL}
     ,
-    {XtNcanvasResizeCallback, XtCcanvasResizeCallback, XtRCallback,
+    {(char *) XtNcanvasResizeCallback, (char *) XtCcanvasResizeCallback, XtRCallback,
      sizeof(XtCallbackList), offset(resize_callback), XtRCallback, NULL}
     ,
 };
@@ -109,7 +109,7 @@ static XtResource resources[] = {
 #undef offset
 
 static XtActionsRec actions[] = {
-    {"canvas", CanvasAction},
+    {(char *) "canvas", CanvasAction},
 };
 
 static char translations[] = "<Key>:    canvas()\n\
@@ -123,7 +123,7 @@ CanvasClassRec canvasClassRec = {
     /* core */
     {
      (WidgetClass) Superclass,  /* superclass */
-     "Canvas",                  /* class_name */
+     (char *) "Canvas",         /* class_name */
      sizeof(CanvasRec),         /* widget_size */
      NULL,                      /* class_initialize */
      NULL,                      /* class_part_initialize */

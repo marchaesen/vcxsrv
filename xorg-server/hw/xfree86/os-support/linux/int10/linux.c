@@ -18,7 +18,7 @@
 #define DEV_MEM "/dev/mem"
 #endif
 #define ALLOC_ENTRIES(x) ((V_RAM / x) - 1)
-#define SHMERRORPTR (pointer)(-1)
+#define SHMERRORPTR (void *)(-1)
 
 #include <fcntl.h>
 #include <errno.h>
@@ -153,9 +153,9 @@ xf86ExtendedInitInt10(int entityIndex, int Flags)
         goto error0;
     pInt->mem = &linuxMem;
     pagesize = getpagesize();
-    pInt->private = (pointer) xnfcalloc(1, sizeof(linuxInt10Priv));
+    pInt->private = (void *) xnfcalloc(1, sizeof(linuxInt10Priv));
     ((linuxInt10Priv *) pInt->private)->alloc =
-        (pointer) xnfcalloc(1, ALLOC_ENTRIES(pagesize));
+        (void *) xnfcalloc(1, ALLOC_ENTRIES(pagesize));
 
     if (!xf86IsEntityPrimary(entityIndex)) {
         DebugF("Mapping high memory area\n");
@@ -233,10 +233,10 @@ xf86ExtendedInitInt10(int entityIndex, int Flags)
      * 64K bytes at a time.
      */
     if (!videoBiosMapped) {
-        memset((pointer) V_BIOS, 0, SYS_BIOS - V_BIOS);
+        memset((void *) V_BIOS, 0, SYS_BIOS - V_BIOS);
         DebugF("Reading BIOS\n");
         for (cs = V_BIOS; cs < SYS_BIOS; cs += V_BIOS_SIZE)
-            if (xf86ReadBIOS(cs, 0, (pointer) cs, V_BIOS_SIZE) < V_BIOS_SIZE)
+            if (xf86ReadBIOS(cs, 0, (void *) cs, V_BIOS_SIZE) < V_BIOS_SIZE)
                 xf86DrvMsg(screen, X_WARNING,
                            "Unable to retrieve all of segment 0x%06lX.\n",
                            (long) cs);
@@ -319,7 +319,7 @@ xf86ExtendedInitInt10(int entityIndex, int Flags)
 Bool
 MapCurrentInt10(xf86Int10InfoPtr pInt)
 {
-    pointer addr;
+    void *addr;
     int fd = -1;
 
     if (Int10Current) {
@@ -327,7 +327,7 @@ MapCurrentInt10(xf86Int10InfoPtr pInt)
         if (((linuxInt10Priv *) Int10Current->private)->highMem >= 0)
             shmdt((char *) HIGH_MEM);
         else
-            munmap((pointer) V_BIOS, (SYS_BIOS - V_BIOS));
+            munmap((void *) V_BIOS, (SYS_BIOS - V_BIOS));
     }
     addr =
         shmat(((linuxInt10Priv *) pInt->private)->lowMem, (char *) 1, SHM_RND);
@@ -392,7 +392,7 @@ xf86FreeInt10(xf86Int10InfoPtr pInt)
         if (((linuxInt10Priv *) pInt->private)->highMem >= 0)
             shmdt((char *) HIGH_MEM);
         else
-            munmap((pointer) V_BIOS, (SYS_BIOS - V_BIOS));
+            munmap((void *) V_BIOS, (SYS_BIOS - V_BIOS));
         Int10Current = NULL;
     }
 
@@ -486,22 +486,22 @@ write_l(xf86Int10InfoPtr pInt, int addr, CARD32 val)
     *((CARD32 *) (memType) addr) = val;
 }
 
-pointer
+void *
 xf86int10Addr(xf86Int10InfoPtr pInt, CARD32 addr)
 {
     if (addr < V_RAM)
         return ((linuxInt10Priv *) pInt->private)->base + addr;
     else if (addr < V_BIOS)
-        return (pointer) (memType) addr;
+        return (void *) (memType) addr;
     else if (addr < SYS_BIOS) {
         if (((linuxInt10Priv *) pInt->private)->base_high)
-            return (pointer) (((linuxInt10Priv *) pInt->private)->base_high
+            return (void *) (((linuxInt10Priv *) pInt->private)->base_high
                               - V_BIOS + addr);
         else
-            return (pointer) (memType) addr;
+            return (void *) (memType) addr;
     }
     else
-        return (pointer) (memType) addr;
+        return (void *) (memType) addr;
 }
 
 #if defined DoSubModules

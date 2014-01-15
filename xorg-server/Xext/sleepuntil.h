@@ -36,7 +36,7 @@
 extern int ClientSleepUntil(ClientPtr client,
                             TimeStamp *revive,
                             void (*notifyFunc) (ClientPtr /* client */ ,
-                                                pointer /* closure */
-                            ), pointer Closure);
+                                                void *    /* closure */
+                            ), void *Closure);
 
 #endif

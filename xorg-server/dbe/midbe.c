@@ -202,7 +202,7 @@ miDbeAllocBackBufferName(WindowPtr pWin, XID bufId, int swapAction)
 
         /* Associate the new ID with an existing pixmap. */
         if (!AddResource(bufId, dbeDrawableResType,
-                         (pointer) pDbeWindowPriv->pBackBuffer)) {
+                         (void *) pDbeWindowPriv->pBackBuffer)) {
             return BadAlloc;
         }
 
@@ -230,7 +230,7 @@ miDbeAliasBuffers(DbeWindowPrivPtr pDbeWindowPriv)
 
     for (i = 0; i < pDbeWindowPriv->nBufferIDs; i++) {
         ChangeResourceValue(pDbeWindowPriv->IDs[i], dbeDrawableResType,
-                            (pointer) pDbeWindowPriv->pBackBuffer);
+                            (void *) pDbeWindowPriv->pBackBuffer);
     }
 
 }                               /* miDbeAliasBuffers() */

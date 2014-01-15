@@ -83,8 +83,8 @@ xf86OpenConsole(void)
     struct vt_mode VT;
     struct vt_stat vts;
     MessageType from = X_PROBED;
-    char *tty0[] = { "/dev/tty0", "/dev/vc/0", NULL };
-    char *vcs[] = { "/dev/vc/%d", "/dev/tty%d", NULL };
+    const char *tty0[] = { "/dev/tty0", "/dev/vc/0", NULL };
+    const char *vcs[] = { "/dev/vc/%d", "/dev/tty%d", NULL };
 
     if (serverGeneration == 1) {
 

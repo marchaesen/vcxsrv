@@ -2,7 +2,8 @@ partial default xkb_types "default" {
 
     // Some types that are necessary
     // for a full implementation of
-    // a PC compatible keyboard.
+    // a PC-compatible keyboard.
+
     virtual_modifiers Alt;
     virtual_modifiers LevelThree;
     virtual_modifiers LAlt;
@@ -74,13 +75,13 @@ partial default xkb_types "default" {
         level_name[Level5] = "Ctrl+Alt";
     };
 
-   // Local eight level
-   // Needed when you want part of your layout eight-level but can not use
-   // LevelFive as modifier, as this will take over right ctrl by default
-   // for all the layout and is too invasive for your average four-level user
-   // Needed to fix bug #9529
-   // FIXME Should really use RControl but it's seems not to be enabled by
-   // default and touching this requires a lot of testing
+   // Local eight level.
+   // Needed when you want part of your layout eight-level but cannot use
+   // LevelFive as modifier, as this will take over the right Ctrl by default
+   // for the whole layout and is too invasive for the average four-level user.
+   // Needed to fix bug #9529.
+   // FIXME: Should really use RControl but it seems not to be enabled by
+   // default and touching this requires a lot of testing.
    type "LOCAL_EIGHT_LEVEL" {
 	modifiers = Shift+Lock+LevelThree+Control;
 

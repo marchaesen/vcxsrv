@@ -168,7 +168,7 @@ dix_main(int argc, char *argv[], char *envp[])
             serverClient = calloc(sizeof(ClientRec), 1);
             if (!serverClient)
                 FatalError("couldn't create server client");
-            InitClient(serverClient, 0, (pointer) NULL);
+            InitClient(serverClient, 0, (void *) NULL);
         }
         else
             ResetWellKnownSockets();

@@ -585,7 +585,7 @@ mieqProcessInputEvents(void)
     if (n_enqueued >= (miEventQueue.nevents - (2 * QUEUE_RESERVED_SIZE)) &&
         miEventQueue.nevents < QUEUE_MAXIMUM_SIZE) {
         ErrorF("[mi] Increasing EQ size to %lu to prevent dropped events.\n",
-               miEventQueue.nevents << 1);
+               (unsigned long) (miEventQueue.nevents << 1));
         if (!mieqGrowQueue(&miEventQueue, miEventQueue.nevents << 1)) {
             ErrorF("[mi] Increasing the size of EQ failed.\n");
         }
@@ -593,7 +593,7 @@ mieqProcessInputEvents(void)
 
     if (miEventQueue.dropped) {
         ErrorF("[mi] EQ processing has resumed after %lu dropped events.\n",
-               miEventQueue.dropped);
+               (unsigned long) miEventQueue.dropped);
         ErrorF
             ("[mi] This may be caused my a misbehaving driver monopolizing the server's resources.\n");
         miEventQueue.dropped = 0;

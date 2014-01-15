@@ -178,7 +178,7 @@ Bool
 winModifyPixmapHeaderNativeGDI(PixmapPtr pPixmap,
                                int iWidth, int iHeight,
                                int iDepth,
-                               int iBitsPerPixel, int devKind, pointer pPixData)
+                               int iBitsPerPixel, int devKind, void *pPixData)
 {
     FatalError("winModifyPixmapHeaderNativeGDI ()\n");
     return TRUE;

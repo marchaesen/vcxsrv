@@ -157,6 +157,7 @@ _mesa_initialize_texture_object( struct gl_context *ctx,
    obj->Sampler.sRGBDecode = GL_DECODE_EXT;
    obj->BufferObjectFormat = GL_R8;
    obj->_BufferObjectFormat = MESA_FORMAT_R8;
+   obj->ImageFormatCompatibilityType = GL_IMAGE_FORMAT_COMPATIBILITY_BY_SIZE;
 }
 
 
@@ -1099,6 +1100,25 @@ unbind_texobj_from_texunits(struct gl_context *ctx,
 
 
 /**
+ * Check if the given texture object is bound to any shader image unit
+ * and unbind it if that's the case.
+ */
+static void
+unbind_texobj_from_imgunits(struct gl_context *ctx,
+                            struct gl_texture_object *texObj)
+{
+   int i;
+
+   for (i = 0; i < ctx->Const.MaxImageUnits; i++) {
+      struct gl_image_unit *unit = &ctx->ImageUnits[i];
+
+      if (texObj == unit->TexObj)
+         _mesa_reference_texobj(&unit->TexObj, NULL);
+   }
+}
+
+
+/**
  * Delete named textures.
  *
  * \param n number of textures to be deleted.
@@ -1144,6 +1164,12 @@ _mesa_DeleteTextures( GLsizei n, const GLuint *textures)
              * If so, unbind it.
              */
             unbind_texobj_from_texunits(ctx, delObj);
+
+            /* Check if this texture is currently bound to any shader
+             * image unit.  If so, unbind it.
+             * See section 3.9.X of GL_ARB_shader_image_load_store.
+             */
+            unbind_texobj_from_imgunits(ctx, delObj);
 
             _mesa_unlock_texture(ctx, delObj);
 

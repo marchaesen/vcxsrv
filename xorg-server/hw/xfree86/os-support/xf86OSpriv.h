@@ -32,12 +32,12 @@
 #ifndef _XF86OSPRIV_H
 #define _XF86OSPRIV_H
 
-typedef pointer (*MapMemProcPtr) (int, unsigned long, unsigned long, int);
-typedef void (*UnmapMemProcPtr) (int, pointer, unsigned long);
-typedef pointer (*SetWCProcPtr) (int, unsigned long, unsigned long, Bool,
+typedef void *(*MapMemProcPtr) (int, unsigned long, unsigned long, int);
+typedef void (*UnmapMemProcPtr) (int, void *, unsigned long);
+typedef void *(*SetWCProcPtr) (int, unsigned long, unsigned long, Bool,
                                  MessageType);
-typedef void (*ProtectMemProcPtr) (int, pointer, unsigned long, Bool);
-typedef void (*UndoWCProcPtr) (int, pointer);
+typedef void (*ProtectMemProcPtr) (int, void *, unsigned long, Bool);
+typedef void (*UndoWCProcPtr) (int, void *);
 
 typedef struct {
     Bool initialised;

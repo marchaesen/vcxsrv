@@ -138,7 +138,7 @@ KdInstallColormap(ColormapPtr pCmap)
     /* Tell X clients that the installed colormap is going away. */
     if (pScreenPriv->pInstalledmap)
         WalkTree(pScreenPriv->pInstalledmap->pScreen, TellLostMap,
-                 (pointer) &(pScreenPriv->pInstalledmap->mid));
+                 (void *) &(pScreenPriv->pInstalledmap->mid));
 
     /* Take note of the new installed colorscreen-> */
     pScreenPriv->pInstalledmap = pCmap;
@@ -146,7 +146,7 @@ KdInstallColormap(ColormapPtr pCmap)
     KdSetColormap(pCmap->pScreen);
 
     /* Tell X clients of the new colormap */
-    WalkTree(pCmap->pScreen, TellGainedMap, (pointer) &(pCmap->mid));
+    WalkTree(pCmap->pScreen, TellGainedMap, (void *) &(pCmap->mid));
 }
 
 /*
@@ -173,13 +173,13 @@ KdUninstallColormap(ColormapPtr pCmap)
         return;
 
     /* install default */
-    dixLookupResourceByType((pointer *) &defMap, defMapID, RT_COLORMAP,
+    dixLookupResourceByType((void **) &defMap, defMapID, RT_COLORMAP,
                             serverClient, DixInstallAccess);
     if (defMap)
         (*pCmap->pScreen->InstallColormap) (defMap);
     else {
         /* uninstall and clear colormap pointer */
-        WalkTree(pCmap->pScreen, TellLostMap, (pointer) &(pCmap->mid));
+        WalkTree(pCmap->pScreen, TellLostMap, (void *) &(pCmap->mid));
         pScreenPriv->pInstalledmap = 0;
     }
 }
