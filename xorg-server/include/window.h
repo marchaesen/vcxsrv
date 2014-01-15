@@ -73,15 +73,15 @@ typedef struct _BackingStore *BackingStorePtr;
 typedef struct _Window *WindowPtr;
 
 typedef int (*VisitWindowProcPtr) (WindowPtr /*pWin */ ,
-                                   void */*data */ );
+                                   void * /*data */ );
 
 extern _X_EXPORT int TraverseTree(WindowPtr /*pWin */ ,
                                   VisitWindowProcPtr /*func */ ,
-                                  void */*data */ );
+                                  void * /*data */ );
 
 extern _X_EXPORT int WalkTree(ScreenPtr /*pScreen */ ,
                               VisitWindowProcPtr /*func */ ,
-                              void */*data */ );
+                              void * /*data */ );
 
 extern _X_EXPORT Bool CreateRootWindow(ScreenPtr /*pScreen */ );
 
@@ -108,7 +108,7 @@ extern _X_EXPORT WindowPtr CreateWindow(Window /*wid */ ,
                                         VisualID /*visual */ ,
                                         int * /*error */ );
 
-extern _X_EXPORT int DeleteWindow(void */*pWin */ ,
+extern _X_EXPORT int DeleteWindow(void * /*pWin */ ,
                                   XID /*wid */ );
 
 extern _X_EXPORT int DestroySubwindows(WindowPtr /*pWin */ ,

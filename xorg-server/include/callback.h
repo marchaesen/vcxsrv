@@ -70,14 +70,14 @@ typedef void (*CallbackProcPtr) (CallbackListPtr *, void *, void *);
 
 extern _X_EXPORT Bool AddCallback(CallbackListPtr * /*pcbl */ ,
                                   CallbackProcPtr /*callback */ ,
-                                  void */*data */ );
+                                  void * /*data */ );
 
 extern _X_EXPORT Bool DeleteCallback(CallbackListPtr * /*pcbl */ ,
                                      CallbackProcPtr /*callback */ ,
-                                     void */*data */ );
+                                     void * /*data */ );
 
 extern _X_EXPORT void _CallCallbacks(CallbackListPtr * /*pcbl */ ,
-                                     void */*call_data */ );
+                                     void * /*call_data */ );
 
 static inline void
 CallCallbacks(CallbackListPtr *pcbl, void *call_data)

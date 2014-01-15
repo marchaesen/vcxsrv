@@ -40,9 +40,9 @@ extern _X_EXPORT void QueueFontWakeup(FontPathElementPtr /*fpe */ );
 
 extern _X_EXPORT void RemoveFontWakeup(FontPathElementPtr /*fpe */ );
 
-extern _X_EXPORT void FontWakeup(void */*data */ ,
+extern _X_EXPORT void FontWakeup(void * /*data */ ,
                                  int /*count */ ,
-                                 void */*LastSelectMask */ );
+                                 void * /*LastSelectMask */ );
 
 extern _X_EXPORT int OpenFont(ClientPtr /*client */ ,
                               XID /*fid */ ,
@@ -50,7 +50,7 @@ extern _X_EXPORT int OpenFont(ClientPtr /*client */ ,
                               unsigned /*lenfname */ ,
                               const char * /*pfontname */ );
 
-extern _X_EXPORT int CloseFont(void */*pfont */ ,
+extern _X_EXPORT int CloseFont(void * /*pfont */ ,
                                XID /*fid */ );
 
 typedef struct _xQueryFontReply *xQueryFontReplyPtr;

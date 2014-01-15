@@ -506,7 +506,7 @@ b2f(operand a)
 }
 
 ir_expression *
-fma_mesa(operand a, operand b, operand c)
+fma(operand a, operand b, operand c)
 {
    return expr(ir_triop_fma, a, b, c);
 }

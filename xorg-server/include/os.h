@@ -142,7 +142,7 @@ extern _X_EXPORT const char *ClientAuthorized(ClientPtr /*client */ ,
                                               char * /*auth_string */ );
 
 extern _X_EXPORT Bool EstablishNewConnections(ClientPtr /*clientUnused */ ,
-                                              void */*closure */ );
+                                              void * /*closure */ );
 
 extern _X_EXPORT void CheckConnections(void);
 
@@ -175,14 +175,14 @@ extern void ListenOnOpenFD(int /* fd */ , int /* noxauth */ );
 extern _X_EXPORT CARD32 GetTimeInMillis(void);
 extern _X_EXPORT CARD64 GetTimeInMicros(void);
 
-extern _X_EXPORT void AdjustWaitForDelay(void */*waitTime */ ,
+extern _X_EXPORT void AdjustWaitForDelay(void * /*waitTime */ ,
                                          unsigned long /*newdelay */ );
 
 typedef struct _OsTimerRec *OsTimerPtr;
 
 typedef CARD32 (*OsTimerCallback) (OsTimerPtr /* timer */ ,
                                    CARD32 /* time */ ,
-                                   void */* arg */ );
+                                   void * /* arg */ );
 
 extern _X_EXPORT void TimerInit(void);
 
@@ -195,7 +195,7 @@ extern _X_EXPORT OsTimerPtr TimerSet(OsTimerPtr /* timer */ ,
                                      int /* flags */ ,
                                      CARD32 /* millis */ ,
                                      OsTimerCallback /* func */ ,
-                                     void */* arg */ );
+                                     void * /* arg */ );
 
 extern _X_EXPORT void TimerCheck(void);
 extern _X_EXPORT void TimerCancel(OsTimerPtr /* pTimer */ );
@@ -214,7 +214,7 @@ extern _X_EXPORT void ProcessCommandLine(int /*argc */ , char * /*argv */ []);
 
 extern _X_EXPORT int set_font_authorizations(char ** /* authorizations */ ,
                                              int * /*authlen */ ,
-                                             void */* client */ );
+                                             void * /* client */ );
 
 #ifndef _HAVE_XALLOC_DECLS
 #define _HAVE_XALLOC_DECLS
@@ -397,14 +397,14 @@ ForEachHostInFamily(int /*family */ ,
                     Bool (* /*func */ )(
                                            unsigned char * /* addr */ ,
                                            short /* len */ ,
-                                           void */* closure */ ),
-                    void */*closure */ );
+                                           void * /* closure */ ),
+                    void * /*closure */ );
 
 extern _X_EXPORT int
 RemoveHost(ClientPtr /*client */ ,
            int /*family */ ,
            unsigned /*length */ ,
-           void */*pAddr */ );
+           void * /*pAddr */ );
 
 extern _X_EXPORT int
 GetHosts(void ** /*data */ ,
@@ -466,7 +466,7 @@ DefineSelf(int /*fd */ , const int /*protocol*/);
 
 #if XDMCP
 extern _X_EXPORT void
-AugmentSelf(void */*from */ , int /*len */ );
+AugmentSelf(void * /*from */ , int /*len */ );
 
 extern _X_EXPORT void
 RegisterAuthorizations(void);

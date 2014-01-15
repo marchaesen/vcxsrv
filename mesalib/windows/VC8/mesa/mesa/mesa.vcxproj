@@ -316,6 +316,7 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\remap.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\set.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\shaderapi.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\main\shaderimage.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\shaderobj.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\shader_query.cpp" />
     <ClCompile Include="..\..\..\..\src\mesa\main\texcompress_cpal.c" />

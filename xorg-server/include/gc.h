@@ -112,7 +112,7 @@ extern _X_EXPORT int CopyGC(GCPtr /*pgcSrc */ ,
                             GCPtr /*pgcDst */ ,
                             BITS32 /*mask */ );
 
-extern _X_EXPORT int FreeGC(void */*pGC */ ,
+extern _X_EXPORT int FreeGC(void * /*pGC */ ,
                             XID /*gid */ );
 
 extern _X_EXPORT void FreeGCperDepth(int /*screenNum */ );

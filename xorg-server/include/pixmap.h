@@ -99,7 +99,7 @@ extern _X_EXPORT PixmapPtr GetScratchPixmapHeader(ScreenPtr /*pScreen */ ,
                                                   int /*depth */ ,
                                                   int /*bitsPerPixel */ ,
                                                   int /*devKind */ ,
-                                                  void */*pPixData */ );
+                                                  void * /*pPixData */ );
 
 extern _X_EXPORT void FreeScratchPixmapHeader(PixmapPtr /*pPixmap */ );
 

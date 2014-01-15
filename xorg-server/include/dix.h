@@ -147,14 +147,14 @@ extern _X_EXPORT void UpdateCurrentTime(void);
 
 extern _X_EXPORT void UpdateCurrentTimeIf(void);
 
-extern _X_EXPORT int dixDestroyPixmap(void */*value */ ,
+extern _X_EXPORT int dixDestroyPixmap(void * /*value */ ,
                                       XID /*pid */ );
 
 extern _X_EXPORT void InitClient(ClientPtr /*client */ ,
                                  int /*i */ ,
-                                 void */*ospriv */ );
+                                 void * /*ospriv */ );
 
-extern _X_EXPORT ClientPtr NextAvailableClient(void */*ospriv */ );
+extern _X_EXPORT ClientPtr NextAvailableClient(void * /*ospriv */ );
 
 extern _X_EXPORT void SendErrorToClient(ClientPtr /*client */ ,
                                         unsigned int /*majorCode */ ,
@@ -203,11 +203,11 @@ extern _X_EXPORT int AlterSaveSetForClient(ClientPtr /*client */ ,
 
 extern _X_EXPORT void DeleteWindowFromAnySaveSet(WindowPtr /*pWin */ );
 
-extern _X_EXPORT void BlockHandler(void */*pTimeout */ ,
-                                   void */*pReadmask */ );
+extern _X_EXPORT void BlockHandler(void * /*pTimeout */ ,
+                                   void * /*pReadmask */ );
 
 extern _X_EXPORT void WakeupHandler(int /*result */ ,
-                                    void */*pReadmask */ );
+                                    void * /*pReadmask */ );
 
 void
  EnableLimitedSchedulingLatency(void);
@@ -215,21 +215,21 @@ void
 void
  DisableLimitedSchedulingLatency(void);
 
-typedef void (*WakeupHandlerProcPtr) (void */* blockData */ ,
+typedef void (*WakeupHandlerProcPtr) (void * /* blockData */ ,
                                       int /* result */ ,
-                                      void */* pReadmask */ );
+                                      void * /* pReadmask */ );
 
 extern _X_EXPORT Bool RegisterBlockAndWakeupHandlers(BlockHandlerProcPtr
                                                      /*blockHandler */ ,
                                                      WakeupHandlerProcPtr
                                                      /*wakeupHandler */ ,
-                                                     void */*blockData */ );
+                                                     void * /*blockData */ );
 
 extern _X_EXPORT void RemoveBlockAndWakeupHandlers(BlockHandlerProcPtr
                                                    /*blockHandler */ ,
                                                    WakeupHandlerProcPtr
                                                    /*wakeupHandler */ ,
-                                                   void */*blockData */ );
+                                                   void * /*blockData */ );
 
 extern _X_EXPORT void InitBlockAndWakeupHandlers(void);
 
@@ -244,15 +244,15 @@ extern _X_EXPORT Bool QueueWorkProc(Bool (* /*function */ )(
                                                                void *
                                                                /*closure */ ),
                                     ClientPtr /*client */ ,
-                                    void */*closure */
+                                    void * /*closure */
     );
 
 typedef Bool (*ClientSleepProcPtr) (ClientPtr /*client */ ,
-                                    void */*closure */ );
+                                    void * /*closure */ );
 
 extern _X_EXPORT Bool ClientSleep(ClientPtr /*client */ ,
                                   ClientSleepProcPtr /* function */ ,
-                                  void */*closure */ );
+                                  void * /*closure */ );
 
 #ifndef ___CLIENTSIGNAL_DEFINED___
 #define ___CLIENTSIGNAL_DEFINED___
@@ -444,7 +444,7 @@ extern void
 RecalculateDeliverableEvents(WindowPtr /* pWin */ );
 
 extern _X_EXPORT int
-OtherClientGone(void */* value */ ,
+OtherClientGone(void * /* value */ ,
                 XID /* id */ );
 
 extern void

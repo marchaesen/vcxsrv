@@ -260,12 +260,12 @@ typedef void (*SendGraphicsExposeProcPtr) (ClientPtr /*client */ ,
                                            int /*minor */ );
 
 typedef void (*ScreenBlockHandlerProcPtr) (ScreenPtr /*pScreen*/ ,
-                                           void */*pTimeout */ ,
-                                           void */*pReadmask */ );
+                                           void * /*pTimeout */ ,
+                                           void * /*pReadmask */ );
 
 typedef void (*ScreenWakeupHandlerProcPtr) (ScreenPtr /*pScreen*/ ,
                                             unsigned long /*result */ ,
-                                            void */*pReadMask */ );
+                                            void * /*pReadMask */ );
 
 typedef Bool (*CreateScreenResourcesProcPtr) (ScreenPtr /*pScreen */ );
 
@@ -275,7 +275,7 @@ typedef Bool (*ModifyPixmapHeaderProcPtr) (PixmapPtr /*pPixmap */ ,
                                            int /*depth */ ,
                                            int /*bitsPerPixel */ ,
                                            int /*devKind */ ,
-                                           void */*pPixData */ );
+                                           void * /*pPixData */ );
 
 typedef PixmapPtr (*GetWindowPixmapProcPtr) (WindowPtr /*pWin */ );
 
