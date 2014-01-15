@@ -1101,7 +1101,7 @@ xi_unregister_handlers(void)
 static void
 cmp_attr_fields(InputAttributes * attr1, InputAttributes * attr2)
 {
-    char **tags1, **tags2;
+    const char **tags1, **tags2;
 
     assert(attr1 && attr2);
     assert(attr1 != attr2);
@@ -1182,7 +1182,7 @@ dix_input_attributes(void)
 {
     InputAttributes orig = { 0 };
     InputAttributes *new;
-    char *tags[4] = { "tag1", "tag2", "tag2", NULL };
+    const char *tags[4] = { "tag1", "tag2", "tag2", NULL };
 
     new = DuplicateInputAttributes(NULL);
     assert(!new);

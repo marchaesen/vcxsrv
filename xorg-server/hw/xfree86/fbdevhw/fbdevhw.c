@@ -81,15 +81,13 @@ typedef struct {
 Bool
 fbdevHWGetRec(ScrnInfoPtr pScrn)
 {
-    fbdevHWPtr fPtr;
-
     if (fbdevHWPrivateIndex < 0)
         fbdevHWPrivateIndex = xf86AllocateScrnInfoPrivateIndex();
 
     if (FBDEVHWPTR(pScrn) != NULL)
         return TRUE;
 
-    fPtr = FBDEVHWPTRLVAL(pScrn) = xnfcalloc(sizeof(fbdevHWRec), 1);
+    FBDEVHWPTRLVAL(pScrn) = xnfcalloc(sizeof(fbdevHWRec), 1);
     return TRUE;
 }
 
@@ -301,7 +299,7 @@ fbdev_open_pci(struct pci_device *pPci, char **namep)
 }
 
 static int
-fbdev_open(int scrnIndex, char *dev, char **namep)
+fbdev_open(int scrnIndex, const char *dev, char **namep)
 {
     struct fb_fix_screeninfo fix;
     int fd;
@@ -497,7 +495,7 @@ fbdevHWSetMode(ScrnInfoPtr pScrn, DisplayModePtr mode, Bool check)
 void
 fbdevHWSetVideoModes(ScrnInfoPtr pScrn)
 {
-    char **modename;
+    const char **modename;
     DisplayModePtr mode, this, last = pScrn->modes;
 
     if (NULL == pScrn->display->modes)

@@ -399,6 +399,19 @@ is_color_masked(struct gl_context *ctx, int i)
 
 
 /**
+ * Return if all of the stencil bits are masked.
+ */
+static INLINE GLboolean
+is_stencil_disabled(struct gl_context *ctx, struct gl_renderbuffer *rb)
+{
+   const GLuint stencilMax = 0xff;
+
+   assert(_mesa_get_format_bits(rb->Format, GL_STENCIL_BITS) > 0);
+   return (ctx->Stencil.WriteMask[0] & stencilMax) == 0;
+}
+
+
+/**
  * Return if any of the stencil bits are masked.
  */
 static INLINE GLboolean
@@ -431,9 +444,9 @@ st_Clear(struct gl_context *ctx, GLbitfield mask)
 
    if (mask & BUFFER_BITS_COLOR) {
       for (i = 0; i < ctx->DrawBuffer->_NumColorDrawBuffers; i++) {
-         GLuint b = ctx->DrawBuffer->_ColorDrawBufferIndexes[i];
+         GLint b = ctx->DrawBuffer->_ColorDrawBufferIndexes[i];
 
-         if (mask & (1 << b)) {
+         if (b >= 0 && mask & (1 << b)) {
             struct gl_renderbuffer *rb
                = ctx->DrawBuffer->Attachment[b].Renderbuffer;
             struct st_renderbuffer *strb = st_renderbuffer(rb);
@@ -457,7 +470,7 @@ st_Clear(struct gl_context *ctx, GLbitfield mask)
    if (mask & BUFFER_BIT_DEPTH) {
       struct st_renderbuffer *strb = st_renderbuffer(depthRb);
 
-      if (strb->surface) {
+      if (strb->surface && ctx->Depth.Mask) {
          if (is_scissor_enabled(ctx, depthRb))
             quad_buffers |= PIPE_CLEAR_DEPTH;
          else
@@ -467,7 +480,7 @@ st_Clear(struct gl_context *ctx, GLbitfield mask)
    if (mask & BUFFER_BIT_STENCIL) {
       struct st_renderbuffer *strb = st_renderbuffer(stencilRb);
 
-      if (strb->surface) {
+      if (strb->surface && !is_stencil_disabled(ctx, stencilRb)) {
          if (is_scissor_enabled(ctx, stencilRb) ||
              is_stencil_masked(ctx, stencilRb))
             quad_buffers |= PIPE_CLEAR_STENCIL;
@@ -476,14 +489,23 @@ st_Clear(struct gl_context *ctx, GLbitfield mask)
       }
    }
 
-   /*
-    * If we're going to use clear_with_quad() for any reason, use it for
-    * everything possible.
+   /* Always clear depth and stencil together.
+    * This can only happen when the stencil writemask is not a full mask.
+    */
+   if (quad_buffers & PIPE_CLEAR_DEPTHSTENCIL &&
+       clear_buffers & PIPE_CLEAR_DEPTHSTENCIL) {
+      quad_buffers |= clear_buffers & PIPE_CLEAR_DEPTHSTENCIL;
+      clear_buffers &= ~PIPE_CLEAR_DEPTHSTENCIL;
+   }
+
+   /* Only use quad-based clearing for the renderbuffers which cannot
+    * use pipe->clear. We want to always use pipe->clear for the other
+    * renderbuffers, because it's likely to be faster.
     */
    if (quad_buffers) {
-      quad_buffers |= clear_buffers;
       clear_with_quad(ctx, quad_buffers);
-   } else if (clear_buffers) {
+   }
+   if (clear_buffers) {
       /* We can't translate the clear color to the colorbuffer format,
        * because different colorbuffers may have different formats.
        */

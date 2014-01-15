@@ -404,7 +404,6 @@ vfbInstallColormap(ColormapPtr pmap)
     if (pmap != oldpmap) {
         int entries;
         XWDFileHeader *pXWDHeader;
-        XWDColor *pXWDCmap;
         VisualPtr pVisual;
         Pixel *ppix;
         xrgb *prgb;
@@ -419,7 +418,6 @@ vfbInstallColormap(ColormapPtr pmap)
 
         entries = pmap->pVisual->ColormapEntries;
         pXWDHeader = vfbScreens[pmap->pScreen->myNum].pXWDHeader;
-        pXWDCmap = vfbScreens[pmap->pScreen->myNum].pXWDCmap;
         pVisual = pmap->pVisual;
 
         swapcopy32(pXWDHeader->visual_class, pVisual->class);
@@ -460,7 +458,7 @@ vfbUninstallColormap(ColormapPtr pmap)
 
     if (pmap == curpmap) {
         if (pmap->mid != pmap->pScreen->defColormap) {
-            dixLookupResourceByType((pointer *) &curpmap,
+            dixLookupResourceByType((void **) &curpmap,
                                     pmap->pScreen->defColormap,
                                     RT_COLORMAP, serverClient,
                                     DixInstallAccess);
@@ -508,7 +506,7 @@ vfbSaveScreen(ScreenPtr pScreen, int on)
 
 /* this flushes any changes to the screens out to the mmapped file */
 static void
-vfbBlockHandler(pointer blockData, OSTimePtr pTimeout, pointer pReadmask)
+vfbBlockHandler(void *blockData, OSTimePtr pTimeout, void *pReadmask)
 {
     int i;
 
@@ -529,7 +527,7 @@ vfbBlockHandler(pointer blockData, OSTimePtr pTimeout, pointer pReadmask)
 }
 
 static void
-vfbWakeupHandler(pointer blockData, int result, pointer pReadmask)
+vfbWakeupHandler(void *blockData, int result, void *pReadmask)
 {
 }
 

@@ -110,6 +110,7 @@ _mesa_new_shader(struct gl_context *ctx, GLuint name, GLenum type)
    shader = rzalloc(NULL, struct gl_shader);
    if (shader) {
       shader->Type = type;
+      shader->Stage = _mesa_shader_enum_to_shader_stage(type);
       shader->Name = name;
       _mesa_init_shader(ctx, shader);
    }
@@ -307,7 +308,7 @@ _mesa_free_shader_program_data(struct gl_context *ctx,
                                struct gl_shader_program *shProg)
 {
    GLuint i;
-   gl_shader_type sh;
+   gl_shader_stage sh;
 
    assert(shProg->Type == GL_SHADER_PROGRAM_MESA);
 
@@ -346,7 +347,7 @@ _mesa_free_shader_program_data(struct gl_context *ctx,
    shProg->TransformFeedback.NumVarying = 0;
 
 
-   for (sh = 0; sh < MESA_SHADER_TYPES; sh++) {
+   for (sh = 0; sh < MESA_SHADER_STAGES; sh++) {
       if (shProg->_LinkedShaders[sh] != NULL) {
 	 ctx->Driver.DeleteShader(ctx, shProg->_LinkedShaders[sh]);
 	 shProg->_LinkedShaders[sh] = NULL;

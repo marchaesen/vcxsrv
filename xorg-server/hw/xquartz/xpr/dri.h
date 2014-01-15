@@ -99,7 +99,7 @@ DRIDestroySurface(ScreenPtr pScreen, Drawable id, DrawablePtr pDrawable,
                                  void *data), void *notify_data);
 
 extern Bool
-DRIDrawablePrivDelete(pointer pResource, XID id);
+DRIDrawablePrivDelete(void *pResource, XID id);
 
 extern DRIWrappedFuncsRec *
 DRIGetWrappedFuncs(ScreenPtr pScreen);

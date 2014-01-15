@@ -125,7 +125,7 @@ exaCreatePixmap_mixed(ScreenPtr pScreen, int w, int h, int depth,
 
 Bool
 exaModifyPixmapHeader_mixed(PixmapPtr pPixmap, int width, int height, int depth,
-                            int bitsPerPixel, int devKind, pointer pPixData)
+                            int bitsPerPixel, int devKind, void *pPixData)
 {
     ScreenPtr pScreen;
     ExaScreenPrivPtr pExaScr;
@@ -282,7 +282,7 @@ exaPixmapHasGpuCopy_mixed(PixmapPtr pPixmap)
 
     ExaScreenPriv(pScreen);
     ExaPixmapPriv(pPixmap);
-    pointer saved_ptr;
+    void *saved_ptr;
     Bool ret;
 
     if (!pExaPixmap->driverPriv)

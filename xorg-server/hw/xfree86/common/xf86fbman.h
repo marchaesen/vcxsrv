@@ -60,7 +60,7 @@ typedef struct _FBLinear {
     DevUnion devPrivate;
 } FBLinear, *FBLinearPtr;
 
-typedef void (*FreeBoxCallbackProcPtr) (ScreenPtr, RegionPtr, pointer);
+typedef void (*FreeBoxCallbackProcPtr) (ScreenPtr, RegionPtr, void *);
 typedef void (*MoveAreaCallbackProcPtr) (FBAreaPtr, FBAreaPtr);
 typedef void (*RemoveAreaCallbackProcPtr) (FBAreaPtr);
 
@@ -73,7 +73,7 @@ typedef struct {
                                        int granularity,
                                        MoveAreaCallbackProcPtr moveCB,
                                        RemoveAreaCallbackProcPtr removeCB,
-                                       pointer privData);
+                                       void *privData);
     void (*FreeOffscreenArea) (FBAreaPtr area);
     Bool (*ResizeOffscreenArea) (FBAreaPtr area, int w, int h);
     Bool (*QueryLargestOffscreenArea) (ScreenPtr pScreen,
@@ -82,14 +82,14 @@ typedef struct {
                                        int preferences, int priority);
     Bool (*RegisterFreeBoxCallback) (ScreenPtr pScreen,
                                      FreeBoxCallbackProcPtr FreeBoxCallback,
-                                     pointer devPriv);
+                                     void *devPriv);
 /* linear functions */
      FBLinearPtr(*AllocateOffscreenLinear) (ScreenPtr pScreen,
                                             int size,
                                             int granularity,
                                             MoveLinearCallbackProcPtr moveCB,
                                             RemoveLinearCallbackProcPtr
-                                            removeCB, pointer privData);
+                                            removeCB, void *privData);
     void (*FreeOffscreenLinear) (FBLinearPtr area);
     Bool (*ResizeOffscreenLinear) (FBLinearPtr area, int size);
     Bool (*QueryLargestOffscreenLinear) (ScreenPtr pScreen,
@@ -121,7 +121,7 @@ xf86AllocateOffscreenArea(ScreenPtr pScreen,
                           int w, int h,
                           int granularity,
                           MoveAreaCallbackProcPtr moveCB,
-                          RemoveAreaCallbackProcPtr removeCB, pointer privData);
+                          RemoveAreaCallbackProcPtr removeCB, void *privData);
 
 extern _X_EXPORT FBAreaPtr
 xf86AllocateLinearOffscreenArea(ScreenPtr pScreen,
@@ -129,7 +129,7 @@ xf86AllocateLinearOffscreenArea(ScreenPtr pScreen,
                                 int granularity,
                                 MoveAreaCallbackProcPtr moveCB,
                                 RemoveAreaCallbackProcPtr removeCB,
-                                pointer privData);
+                                void *privData);
 
 extern _X_EXPORT FBLinearPtr
 xf86AllocateOffscreenLinear(ScreenPtr pScreen,
@@ -137,7 +137,7 @@ xf86AllocateOffscreenLinear(ScreenPtr pScreen,
                             int granularity,
                             MoveLinearCallbackProcPtr moveCB,
                             RemoveLinearCallbackProcPtr removeCB,
-                            pointer privData);
+                            void *privData);
 
 extern _X_EXPORT void xf86FreeOffscreenArea(FBAreaPtr area);
 extern _X_EXPORT void xf86FreeOffscreenLinear(FBLinearPtr area);
@@ -152,7 +152,7 @@ extern _X_EXPORT Bool
 
 xf86RegisterFreeBoxCallback(ScreenPtr pScreen,
                             FreeBoxCallbackProcPtr FreeBoxCallback,
-                            pointer devPriv);
+                            void *devPriv);
 
 extern _X_EXPORT Bool
  xf86PurgeUnlockedOffscreenAreas(ScreenPtr pScreen);

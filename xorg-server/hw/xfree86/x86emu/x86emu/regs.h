@@ -39,6 +39,8 @@
 #ifndef __X86EMU_REGS_H
 #define __X86EMU_REGS_H
 
+#include <X11/Xfuncproto.h>
+
 /*---------------------- Macros and type definitions ----------------------*/
 
 #ifdef PACK
@@ -337,7 +339,8 @@ extern "C" {                    /* Use "C" linkage when in C++ mode */
 
 /* Function to log information at runtime */
 
-    void printk(const char *fmt, ...);
+    void printk(const char *fmt, ...)
+        _X_ATTRIBUTE_PRINTF(1, 2);
 
 #ifdef  __cplusplus
 }                               /* End of "C" linkage for C++           */

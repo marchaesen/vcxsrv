@@ -319,7 +319,7 @@ WindowPtr
  CompositeRealChildHead(WindowPtr pWin);
 
 int
- DeleteWindowNoInputDevices(pointer value, XID wid);
+ DeleteWindowNoInputDevices(void *value, XID wid);
 
 int
 

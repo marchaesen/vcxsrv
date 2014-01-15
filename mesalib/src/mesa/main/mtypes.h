@@ -393,6 +393,23 @@ typedef enum
 
 
 /**
+ * Shader stages. Note that these will become 5 with tessellation.
+ *
+ * The order must match how shaders are ordered in the pipeline.
+ * The GLSL linker assumes that if i<j, then the j-th shader is
+ * executed later than the i-th shader.
+ */
+typedef enum
+{
+   MESA_SHADER_VERTEX = 0,
+   MESA_SHADER_GEOMETRY = 1,
+   MESA_SHADER_FRAGMENT = 2,
+} gl_shader_stage;
+
+#define MESA_SHADER_STAGES (MESA_SHADER_FRAGMENT + 1)
+
+
+/**
  * Framebuffer configuration (aka visual / pixelformat)
  * Note: some of these fields should be boolean, but it appears that
  * code in drivers/dri/common/util.c requires int-sized fields.
@@ -1213,6 +1230,9 @@ struct gl_texture_object
 
    /** GL_OES_EGL_image_external */
    GLint RequiredTextureImageUnits;
+
+   /** GL_ARB_shader_image_load_store */
+   GLenum ImageFormatCompatibilityType;
 };
 
 
@@ -2302,6 +2322,7 @@ struct gl_shader
     * Must be the first field.
     */
    GLenum Type;
+   gl_shader_stage Stage;
    GLuint Name;  /**< AKA the handle */
    GLchar *Label;   /**< GL_KHR_debug */
    GLint RefCount;  /**< Reference count */
@@ -2384,24 +2405,33 @@ struct gl_shader
         */
       GLenum OutputType;
    } Geom;
+
+   /**
+    * Map from image uniform index to image unit (set by glUniform1i())
+    *
+    * An image uniform index is associated with each image uniform by
+    * the linker.  The image index associated with each uniform is
+    * stored in the \c gl_uniform_storage::image field.
+    */
+   GLubyte ImageUnits[MAX_IMAGE_UNIFORMS];
+
+   /**
+    * Access qualifier specified in the shader for each image uniform
+    * index.  Either \c GL_READ_ONLY, \c GL_WRITE_ONLY or \c
+    * GL_READ_WRITE.
+    *
+    * It may be different, though only more strict than the value of
+    * \c gl_image_unit::Access for the corresponding image unit.
+    */
+   GLenum ImageAccess[MAX_IMAGE_UNIFORMS];
+
+   /**
+    * Number of image uniforms defined in the shader.  It specifies
+    * the number of valid elements in the \c ImageUnits and \c
+    * ImageAccess arrays above.
+    */
+   GLuint NumImages;
 };
-
-
-/**
- * Shader stages. Note that these will become 5 with tessellation.
- *
- * The order must match how shaders are ordered in the pipeline.
- * The GLSL linker assumes that if i<j, then the j-th shader is
- * executed later than the i-th shader.
- */
-typedef enum
-{
-   MESA_SHADER_VERTEX = 0,
-   MESA_SHADER_GEOMETRY = 1,
-   MESA_SHADER_FRAGMENT = 2,
-} gl_shader_type;
-
-#define MESA_SHADER_TYPES (MESA_SHADER_FRAGMENT + 1)
 
 
 struct gl_uniform_buffer_variable
@@ -2482,7 +2512,7 @@ struct gl_active_atomic_buffer
    GLuint MinimumSize;
 
    /** Shader stages making use of it. */
-   GLboolean StageReferences[MESA_SHADER_TYPES];
+   GLboolean StageReferences[MESA_SHADER_STAGES];
 };
 
 /**
@@ -2620,7 +2650,7 @@ struct gl_shader_program
     * This is used to maintain the Binding values of the stage's UniformBlocks[]
     * and to answer the GL_UNIFORM_BLOCK_REFERENCED_BY_*_SHADER queries.
     */
-   int *UniformBlockStageIndex[MESA_SHADER_TYPES];
+   int *UniformBlockStageIndex[MESA_SHADER_STAGES];
 
    /**
     * Map of active uniform names to locations
@@ -2650,7 +2680,7 @@ struct gl_shader_program
     * \c MESA_SHADER_* defines.  Entries for non-existent stages will be
     * \c NULL.
     */
-   struct gl_shader *_LinkedShaders[MESA_SHADER_TYPES];
+   struct gl_shader *_LinkedShaders[MESA_SHADER_STAGES];
 };   
 
 
@@ -3007,12 +3037,11 @@ struct gl_framebuffer
    struct gl_renderbuffer *_ColorReadBuffer;
 
    /**
-    * The number of layers in the framebuffer, or 0 if the framebuffer is not
-    * layered.  For cube maps, this value is 6.  For cube map arrays, this
-    * value is the "depth" value passed to TexImage3D (always a multiple of
-    * 6).
+    * The maximum number of layers in the framebuffer, or 0 if the framebuffer
+    * is not layered.  For cube maps and cube map arrays, each cube face
+    * counts as a layer.
     */
-   GLuint NumLayers;
+   GLuint MaxNumLayers;
 
    /** Delete this framebuffer */
    void (*Delete)(struct gl_framebuffer *fb);
@@ -3089,9 +3118,13 @@ struct gl_program_constants
    GLuint MaxUniformBlocks;
    GLuint MaxCombinedUniformComponents;
    GLuint MaxTextureImageUnits;
+
    /* GL_ARB_shader_atomic_counters */
    GLuint MaxAtomicBuffers;
    GLuint MaxAtomicCounters;
+
+   /* GL_ARB_shader_image_load_store */
+   GLuint MaxImageUniforms;
 };
 
 
@@ -3134,9 +3167,7 @@ struct gl_constants
 
    GLuint MaxViewportWidth, MaxViewportHeight;
 
-   struct gl_program_constants VertexProgram;   /**< GL_ARB_vertex_program */
-   struct gl_program_constants FragmentProgram; /**< GL_ARB_fragment_program */
-   struct gl_program_constants GeometryProgram;  /**< GL_ARB_geometry_shader4 */
+   struct gl_program_constants Program[MESA_SHADER_STAGES];
    GLuint MaxProgramMatrices;
    GLuint MaxProgramMatrixStackDepth;
 
@@ -3314,6 +3345,12 @@ struct gl_constants
    /** GL_ARB_vertex_attrib_binding */
    GLint MaxVertexAttribRelativeOffset;
    GLint MaxVertexAttribBindings;
+
+   /* GL_ARB_shader_image_load_store */
+   GLuint MaxImageUnits;
+   GLuint MaxCombinedImageUnitsAndFragmentOutputs;
+   GLuint MaxImageSamples;
+   GLuint MaxCombinedImageUniforms;
 };
 
 
@@ -3361,6 +3398,7 @@ struct gl_extensions
    GLboolean ARB_seamless_cube_map;
    GLboolean ARB_shader_atomic_counters;
    GLboolean ARB_shader_bit_encoding;
+   GLboolean ARB_shader_image_load_store;
    GLboolean ARB_shader_stencil_export;
    GLboolean ARB_shader_texture_lod;
    GLboolean ARB_shading_language_packing;
@@ -3435,6 +3473,7 @@ struct gl_extensions
    /* vendor extensions */
    GLboolean AMD_performance_monitor;
    GLboolean AMD_seamless_cubemap_per_texture;
+   GLboolean AMD_shader_trinary_minmax;
    GLboolean AMD_vertex_shader_layer;
    GLboolean APPLE_object_purgeable;
    GLboolean ATI_envmap_bumpmap;
@@ -3738,6 +3777,11 @@ struct gl_driver_flags
     * gl_context::AtomicBufferBindings
     */
    GLbitfield NewAtomicBuffer;
+
+   /**
+    * gl_context::ImageUnits
+    */
+   GLbitfield NewImageUnits;
 };
 
 struct gl_uniform_buffer_binding
@@ -3752,6 +3796,60 @@ struct gl_uniform_buffer_binding
     * limited by the current size of the BufferObject.
     */
    GLboolean AutomaticSize;
+};
+
+/**
+ * ARB_shader_image_load_store image unit.
+ */
+struct gl_image_unit
+{
+   /**
+    * Texture object bound to this unit.
+    */
+   struct gl_texture_object *TexObj;
+
+   /**
+    * Level of the texture object bound to this unit.
+    */
+   GLuint Level;
+
+   /**
+    * \c GL_TRUE if the whole level is bound as an array of layers, \c
+    * GL_FALSE if only some specific layer of the texture is bound.
+    * \sa Layer
+    */
+   GLboolean Layered;
+
+   /**
+    * Layer of the texture object bound to this unit, or zero if the
+    * whole level is bound.
+    */
+   GLuint Layer;
+
+   /**
+    * Access allowed to this texture image.  Either \c GL_READ_ONLY,
+    * \c GL_WRITE_ONLY or \c GL_READ_WRITE.
+    */
+   GLenum Access;
+
+   /**
+    * GL internal format that determines the interpretation of the
+    * image memory when shader image operations are performed through
+    * this unit.
+    */
+   GLenum Format;
+
+   /**
+    * Mesa format corresponding to \c Format.
+    */
+   gl_format _ActualFormat;
+
+   /**
+    * GL_TRUE if the state of this image unit is valid and access from
+    * the shader is allowed.  Otherwise loads from this unit should
+    * return zero and stores should have no effect.
+    */
+   GLboolean _Valid;
 };
 
 /**
@@ -3906,7 +4004,7 @@ struct gl_context
    struct gl_ati_fragment_shader_state ATIFragmentShader;
 
    struct gl_shader_state Shader; /**< GLSL shader object state */
-   struct gl_shader_compiler_options ShaderCompilerOptions[MESA_SHADER_TYPES];
+   struct gl_shader_compiler_options ShaderCompilerOptions[MESA_SHADER_STAGES];
 
    struct gl_query_state Query;  /**< occlusion, timer queries */
 
@@ -3945,6 +4043,11 @@ struct gl_context
     */
    struct gl_atomic_buffer_binding
       AtomicBufferBindings[MAX_COMBINED_ATOMIC_BUFFERS];
+
+   /**
+    * Array of image units for ARB_shader_image_load_store.
+    */
+   struct gl_image_unit ImageUnits[MAX_IMAGE_UNITS];
 
    /*@}*/
 

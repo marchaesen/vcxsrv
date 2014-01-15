@@ -89,7 +89,7 @@ RRModeCreate(xRRModeInfo * modeInfo, const char *name, ScreenPtr userScreen)
     }
 
     mode->mode.id = FakeClientID(0);
-    if (!AddResource(mode->mode.id, RRModeType, (pointer) mode)) {
+    if (!AddResource(mode->mode.id, RRModeType, (void *) mode)) {
         free(newModes);
         return NULL;
     }
@@ -250,7 +250,7 @@ RRModeDestroy(RRModePtr mode)
 }
 
 static int
-RRModeDestroyResource(pointer value, XID pid)
+RRModeDestroyResource(void *value, XID pid)
 {
     RRModeDestroy((RRModePtr) value);
     return 1;

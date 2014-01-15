@@ -1,18 +1,17 @@
-default xkb_compatibility "xtest"  {
+default xkb_compatibility "xtest" {
 
     // Minimal set of symbol interpretations to provide
-    // reasonable behavior for testing.   The X Test 
-    // Suite assumes that it can set any modifier by 
-    // simulating a KeyPress and clear it by simulating 
-    // a KeyRelease.  Because of the way that XKB 
-    // implements locking/latching modifiers, this 
-    // approach fails in some cases (typically the 
-    // lock or num lock modifiers).  These symbol
-    // interpretations make all modifier keys just
-    // set the corresponding modifier so that xtest
+    // reasonable behavior for testing.
+    // The X Test Suite assumes that it can set any modifier
+    // by simulating a KeyPress and clear it by simulating a
+    // KeyRelease.  Because of the way that XKB implements
+    // locking/latching modifiers, this approach fails in
+    // some cases (typically the Lock or NumLock modifiers).
+    // These symbol interpretations make all modifier keys
+    // just set the corresponding modifier so that xtest
     // will see the behavior it expects.
 
-    virtual_modifiers NumLock,AltGr;
+    virtual_modifiers  NumLock,AltGr;
 
     interpret.repeat= False;
     setMods.clearLocks= True;
@@ -43,7 +42,7 @@ default xkb_compatibility "xtest"  {
     group 4 = AltGr;
 
     indicator.allowExplicit= False;
-    indicator "Caps Lock" { 
+    indicator "Caps Lock" {
 	modifiers= Lock;
     };
     indicator "Num Lock" {

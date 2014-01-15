@@ -57,7 +57,7 @@ extern _X_EXPORT void
  miDestroyPictureClip(PicturePtr pPicture);
 
 extern _X_EXPORT int
- miChangePictureClip(PicturePtr pPicture, int type, pointer value, int n);
+ miChangePictureClip(PicturePtr pPicture, int type, void *value, int n);
 
 extern _X_EXPORT void
  miChangePicture(PicturePtr pPicture, Mask mask);

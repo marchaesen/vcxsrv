@@ -302,18 +302,18 @@ msLinuxGetMap(DevicePtr pDev, unsigned char *map, int *nButtons)
 
 /** Currently unused hook called prior to an VT switch. */
 void
-msLinuxVTPreSwitch(pointer p)
+msLinuxVTPreSwitch(void *p)
 {
 }
 
 /** Currently unused hook called after returning from a VT switch. */
 void
-msLinuxVTPostSwitch(pointer p)
+msLinuxVTPostSwitch(void *p)
 {
 }
 
 /** Create a private structure for use within this file. */
-pointer
+void *
 msLinuxCreatePrivate(DeviceIntPtr pMouse)
 {
     myPrivate *priv = calloc(1, sizeof(*priv));
@@ -325,7 +325,7 @@ msLinuxCreatePrivate(DeviceIntPtr pMouse)
 
 /** Destroy a private structure. */
 void
-msLinuxDestroyPrivate(pointer priv)
+msLinuxDestroyPrivate(void *priv)
 {
     free(priv);
 }

@@ -324,7 +324,7 @@ SyncInitTrigger(ClientPtr client, SyncTrigger * pTrigger, XID syncObject,
     if (changes & XSyncCACounter) {
         if (syncObject == None)
             pSync = NULL;
-        else if (Success != (rc = dixLookupResourceByType((pointer *) &pSync,
+        else if (Success != (rc = dixLookupResourceByType((void **) &pSync,
                                                           syncObject, resType,
                                                           client,
                                                           DixReadAccess))) {
@@ -344,7 +344,7 @@ SyncInitTrigger(ClientPtr client, SyncTrigger * pTrigger, XID syncObject,
         pCounter = (SyncCounter *) pSync;
 
         if (IsSystemCounter(pCounter)) {
-            (*pCounter->pSysCounterInfo->QueryValue) ((pointer) pCounter,
+            (*pCounter->pSysCounterInfo->QueryValue) ((void *) pCounter,
                                                       &pCounter->value);
         }
     }
@@ -931,7 +931,7 @@ SyncCreateFenceFromFD(ClientPtr client, DrawablePtr pDraw, XID id, int fd, BOOL 
         return status;
     }
 
-    if (!AddResource(id, RTFence, (pointer) pFence))
+    if (!AddResource(id, RTFence, (void *) pFence))
         return BadAlloc;
 
     return Success;
@@ -961,7 +961,7 @@ SyncCreateCounter(ClientPtr client, XSyncCounter id, CARD64 initialvalue)
     pCounter->value = initialvalue;
     pCounter->pSysCounterInfo = NULL;
 
-    if (!AddResource(id, RTCounter, (pointer) pCounter))
+    if (!AddResource(id, RTCounter, (void *) pCounter))
         return NULL;
 
     return pCounter;
@@ -1021,7 +1021,7 @@ SyncCreateSystemCounter(const char *name,
 }
 
 void
-SyncDestroySystemCounter(pointer pSysCounter)
+SyncDestroySystemCounter(void *pSysCounter)
 {
     SyncCounter *pCounter = (SyncCounter *) pSysCounter;
 
@@ -1119,7 +1119,7 @@ SyncComputeBracketValues(SyncCounter * pCounter)
         }
     }                           /* end for each trigger */
 
-    (*psci->BracketValues) ((pointer) pCounter, pnewltval, pnewgtval);
+    (*psci->BracketValues) ((void *) pCounter, pnewltval, pnewgtval);
 
 }
 
@@ -1433,7 +1433,7 @@ ProcSyncSetCounter(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xSyncSetCounterReq);
 
-    rc = dixLookupResourceByType((pointer *) &pCounter, stuff->cid, RTCounter,
+    rc = dixLookupResourceByType((void **) &pCounter, stuff->cid, RTCounter,
                                  client, DixWriteAccess);
     if (rc != Success)
         return rc;
@@ -1462,7 +1462,7 @@ ProcSyncChangeCounter(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xSyncChangeCounterReq);
 
-    rc = dixLookupResourceByType((pointer *) &pCounter, stuff->cid, RTCounter,
+    rc = dixLookupResourceByType((void **) &pCounter, stuff->cid, RTCounter,
                                  client, DixWriteAccess);
     if (rc != Success)
         return rc;
@@ -1495,7 +1495,7 @@ ProcSyncDestroyCounter(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xSyncDestroyCounterReq);
 
-    rc = dixLookupResourceByType((pointer *) &pCounter, stuff->counter,
+    rc = dixLookupResourceByType((void **) &pCounter, stuff->counter,
                                  RTCounter, client, DixDestroyAccess);
     if (rc != Success)
         return rc;
@@ -1656,14 +1656,14 @@ ProcSyncQueryCounter(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xSyncQueryCounterReq);
 
-    rc = dixLookupResourceByType((pointer *) &pCounter, stuff->counter,
+    rc = dixLookupResourceByType((void **) &pCounter, stuff->counter,
                                  RTCounter, client, DixReadAccess);
     if (rc != Success)
         return rc;
 
     /* if system counter, ask it what the current value is */
     if (IsSystemCounter(pCounter)) {
-        (*pCounter->pSysCounterInfo->QueryValue) ((pointer) pCounter,
+        (*pCounter->pSysCounterInfo->QueryValue) ((void *) pCounter,
                                                   &pCounter->value);
     }
 
@@ -1781,7 +1781,7 @@ ProcSyncChangeAlarm(ClientPtr client)
 
     REQUEST_AT_LEAST_SIZE(xSyncChangeAlarmReq);
 
-    status = dixLookupResourceByType((pointer *) &pAlarm, stuff->alarm, RTAlarm,
+    status = dixLookupResourceByType((void **) &pAlarm, stuff->alarm, RTAlarm,
                                      client, DixWriteAccess);
     if (status != Success)
         return status;
@@ -1822,7 +1822,7 @@ ProcSyncQueryAlarm(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xSyncQueryAlarmReq);
 
-    rc = dixLookupResourceByType((pointer *) &pAlarm, stuff->alarm, RTAlarm,
+    rc = dixLookupResourceByType((void **) &pAlarm, stuff->alarm, RTAlarm,
                                  client, DixReadAccess);
     if (rc != Success)
         return rc;
@@ -1879,7 +1879,7 @@ ProcSyncDestroyAlarm(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xSyncDestroyAlarmReq);
 
-    rc = dixLookupResourceByType((pointer *) &pAlarm, stuff->alarm, RTAlarm,
+    rc = dixLookupResourceByType((void **) &pAlarm, stuff->alarm, RTAlarm,
                                  client, DixDestroyAccess);
     if (rc != Success)
         return rc;
@@ -1909,7 +1909,7 @@ ProcSyncCreateFence(ClientPtr client)
 
     miSyncInitFence(pDraw->pScreen, pFence, stuff->initially_triggered);
 
-    if (!AddResource(stuff->fid, RTFence, (pointer) pFence))
+    if (!AddResource(stuff->fid, RTFence, (void *) pFence))
         return BadAlloc;
 
     return client->noClientException;
@@ -1928,7 +1928,7 @@ FreeFence(void *obj, XID id)
 int
 SyncVerifyFence(SyncFence ** ppSyncFence, XID fid, ClientPtr client, Mask mode)
 {
-    int rc = dixLookupResourceByType((pointer *) ppSyncFence, fid, RTFence,
+    int rc = dixLookupResourceByType((void **) ppSyncFence, fid, RTFence,
                                      client, mode);
 
     if (rc != Success)
@@ -1946,7 +1946,7 @@ ProcSyncTriggerFence(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xSyncTriggerFenceReq);
 
-    rc = dixLookupResourceByType((pointer *) &pFence, stuff->fid, RTFence,
+    rc = dixLookupResourceByType((void **) &pFence, stuff->fid, RTFence,
                                  client, DixWriteAccess);
     if (rc != Success)
         return rc;
@@ -1965,7 +1965,7 @@ ProcSyncResetFence(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xSyncResetFenceReq);
 
-    rc = dixLookupResourceByType((pointer *) &pFence, stuff->fid, RTFence,
+    rc = dixLookupResourceByType((void **) &pFence, stuff->fid, RTFence,
                                  client, DixWriteAccess);
     if (rc != Success)
         return rc;
@@ -1987,7 +1987,7 @@ ProcSyncDestroyFence(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xSyncDestroyFenceReq);
 
-    rc = dixLookupResourceByType((pointer *) &pFence, stuff->fid, RTFence,
+    rc = dixLookupResourceByType((void **) &pFence, stuff->fid, RTFence,
                                  client, DixDestroyAccess);
     if (rc != Success)
         return rc;
@@ -2006,7 +2006,7 @@ ProcSyncQueryFence(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xSyncQueryFenceReq);
 
-    rc = dixLookupResourceByType((pointer *) &pFence, stuff->fid,
+    rc = dixLookupResourceByType((void **) &pFence, stuff->fid,
                                  RTFence, client, DixReadAccess);
     if (rc != Success)
         return rc;
@@ -2554,7 +2554,7 @@ SyncExtensionInit(void)
  * ***** SERVERTIME implementation - should go in its own file in OS directory?
  */
 
-static pointer ServertimeCounter;
+static void *ServertimeCounter;
 static XSyncValue Now;
 static XSyncValue *pnext_time;
 
@@ -2655,7 +2655,7 @@ typedef struct {
 } IdleCounterPriv;
 
 static void
-IdleTimeQueryValue(pointer pCounter, CARD64 * pValue_return)
+IdleTimeQueryValue(void *pCounter, CARD64 * pValue_return)
 {
     int deviceid;
     CARD32 idle;
@@ -2672,7 +2672,7 @@ IdleTimeQueryValue(pointer pCounter, CARD64 * pValue_return)
 }
 
 static void
-IdleTimeBlockHandler(pointer pCounter, struct timeval **wt, pointer LastSelectMask)
+IdleTimeBlockHandler(void *pCounter, struct timeval **wt, void *LastSelectMask)
 {
     SyncCounter *counter = pCounter;
     IdleCounterPriv *priv = SysCounterGetPrivate(counter);
@@ -2768,7 +2768,7 @@ IdleTimeCheckBrackets(SyncCounter *counter, XSyncValue idle, XSyncValue *less, X
 }
 
 static void
-IdleTimeWakeupHandler(pointer pCounter, int rc, pointer LastSelectMask)
+IdleTimeWakeupHandler(void *pCounter, int rc, void *LastSelectMask)
 {
     SyncCounter *counter = pCounter;
     IdleCounterPriv *priv = SysCounterGetPrivate(counter);
@@ -2802,7 +2802,7 @@ IdleTimeWakeupHandler(pointer pCounter, int rc, pointer LastSelectMask)
 }
 
 static void
-IdleTimeBracketValues(pointer pCounter, CARD64 * pbracket_less,
+IdleTimeBracketValues(void *pCounter, CARD64 * pbracket_less,
                       CARD64 * pbracket_greater)
 {
     SyncCounter *counter = pCounter;

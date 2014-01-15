@@ -72,10 +72,10 @@ typedef struct module_desc {
 
 void LoaderInit(void);
 
-ModuleDescPtr LoadDriver(const char *, const char *, int, pointer, int *,
+ModuleDescPtr LoadDriver(const char *, const char *, int, void *, int *,
                          int *);
 ModuleDescPtr LoadModule(const char *, const char *, const char **,
-                         const char **, pointer, const XF86ModReqInfo *,
+                         const char **, void *, const XF86ModReqInfo *,
                          int *, int *);
 ModuleDescPtr DuplicateModule(ModuleDescPtr mod, ModuleDescPtr parent);
 void UnloadDriver(ModuleDescPtr);

@@ -820,7 +820,7 @@ static char *
 OpenConfigDir(const char *path, const char *cmdline, const char *projroot,
               const char *confname)
 {
-    char *dirpath, *pathcopy;
+    char *dirpath = NULL, *pathcopy;
     const char *template;
     Bool found = FALSE;
     int cmdlineUsed = 0;
@@ -1078,9 +1078,10 @@ xf86nameCompare(const char *s1, const char *s2)
 }
 
 char *
-xf86addComment(char *cur, char *add)
+xf86addComment(char *cur, const char *add)
 {
     char *str;
+    const char *cstr;
     int len, curlen, iscomment, hasnewline = 0, insnewline, endnewline;
 
     if (add == NULL || add[0] == '\0')
@@ -1095,14 +1096,14 @@ xf86addComment(char *cur, char *add)
     else
         curlen = 0;
 
-    str = add;
+    cstr = add;
     iscomment = 0;
-    while (*str) {
-        if (*str != ' ' && *str != '\t')
+    while (*cstr) {
+        if (*cstr != ' ' && *cstr != '\t')
             break;
-        ++str;
+        ++cstr;
     }
-    iscomment = (*str == '#');
+    iscomment = (*cstr == '#');
 
     len = strlen(add);
     endnewline = add[len - 1] == '\n';

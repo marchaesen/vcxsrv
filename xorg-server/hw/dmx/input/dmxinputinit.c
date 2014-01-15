@@ -225,7 +225,7 @@ dmxKbdCtrl(DeviceIntPtr pDevice, KeybdCtrl * ctrl)
 
 /* taken from kdrive/src/kinput.c: */
 static void
-dmxBell(int volume, DeviceIntPtr pDev, pointer arg, int something)
+dmxBell(int volume, DeviceIntPtr pDev, void *arg, int something)
 {
 #if 0
     KeybdCtrl *ctrl = arg;
@@ -336,7 +336,7 @@ _dmxKeyboardBellProc(DMXLocalInputInfoPtr dmxLocal, int percent)
  * sound the bell on all of the devices that send core events. */
 void
 dmxKeyboardBellProc(int percent, DeviceIntPtr pDevice,
-                    pointer ctrl, int unknown)
+                    void *ctrl, int unknown)
 {
     GETDMXLOCALFROMPDEVICE;
     int i, j;
@@ -633,7 +633,7 @@ dmxCollectAll(DMXInputInfo * dmxInput)
 }
 
 static void
-dmxBlockHandler(pointer blockData, OSTimePtr pTimeout, pointer pReadMask)
+dmxBlockHandler(void *blockData, OSTimePtr pTimeout, void *pReadMask)
 {
     DMXInputInfo *dmxInput = &dmxInputs[(uintptr_t) blockData];
     static unsigned long generation = 0;
@@ -645,7 +645,7 @@ dmxBlockHandler(pointer blockData, OSTimePtr pTimeout, pointer pReadMask)
 }
 
 static void
-dmxSwitchReturn(pointer p)
+dmxSwitchReturn(void *p)
 {
     DMXInputInfo *dmxInput = p;
     int i;
@@ -662,7 +662,7 @@ dmxSwitchReturn(pointer p)
 }
 
 static void
-dmxWakeupHandler(pointer blockData, int result, pointer pReadMask)
+dmxWakeupHandler(void *blockData, int result, void *pReadMask)
 {
     DMXInputInfo *dmxInput = &dmxInputs[(uintptr_t) blockData];
     int i;
@@ -921,7 +921,7 @@ dmxInputScanForExtensions(DMXInputInfo * dmxInput, int doXI)
                 break;
             }
             dmxLogInput(dmxInput, "  %2d %-10.10s %-16.16s\n",
-                        devices[i].id,
+                        (int) devices[i].id,
                         devices[i].name ? devices[i].name : "", use);
         }
 
@@ -993,7 +993,6 @@ dmxInputLateReInit(DMXInputInfo * dmxInput)
 void
 dmxInputInit(DMXInputInfo * dmxInput)
 {
-    DeviceIntPtr pPointer = NULL, pKeyboard = NULL;
     dmxArg a;
     const char *name;
     int i;
@@ -1108,12 +1107,6 @@ dmxInputInit(DMXInputInfo * dmxInput)
         DMXLocalInputInfoPtr dmxLocal = dmxInput->devs[i];
 
         dmxLocal->pDevice = dmxAddDevice(dmxLocal);
-        if (dmxLocal->isCore) {
-            if (dmxLocal->type == DMX_LOCAL_MOUSE)
-                pPointer = dmxLocal->pDevice;
-            if (dmxLocal->type == DMX_LOCAL_KEYBOARD)
-                pKeyboard = dmxLocal->pDevice;
-        }
     }
 
     dmxInput->processInputEvents = dmxProcessInputEvents;
@@ -1136,7 +1129,7 @@ dmxInputFreeLocal(DMXLocalInputInfoRec * local)
         local->destroy_private(local->private);
     free(local->history);
     free(local->valuators);
-    free(local->deviceName);
+    free((void *) local->deviceName);
     local->private = NULL;
     local->history = NULL;
     local->deviceName = NULL;
@@ -1164,7 +1157,7 @@ dmxInputFree(DMXInputInfo * dmxInput)
     dmxInput->devs = NULL;
     dmxInput->numDevs = 0;
     if (dmxInput->freename)
-        free(dmxInput->name);
+        free((void *) dmxInput->name);
     dmxInput->name = NULL;
 }
 
@@ -1218,7 +1211,7 @@ dmxInputLogDevices(void)
                 dmxLogCont(dmxInfo, "\t[i%d/%*.*s",
                            dmxInput->inputIdx, len, len, dmxInput->name);
                 if (dmxInput->devs[i]->deviceId >= 0)
-                    dmxLogCont(dmxInfo, "/id%d", dmxInput->devs[i]->deviceId);
+                    dmxLogCont(dmxInfo, "/id%d", (int) dmxInput->devs[i]->deviceId);
                 if (dmxInput->devs[i]->deviceName)
                     dmxLogCont(dmxInfo, "=%s", dmxInput->devs[i]->deviceName);
                 dmxLogCont(dmxInfo, "] %s\n",

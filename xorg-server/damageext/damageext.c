@@ -243,7 +243,7 @@ DamageExtCreate(DrawablePtr pDrawable, DamageReportLevel level,
         return NULL;
     }
 
-    if (!AddResource(id, DamageExtType, (pointer) pDamageExt))
+    if (!AddResource(id, DamageExtType, (void *) pDamageExt))
         return NULL;
 
     DamageExtRegister(pDrawable, pDamageExt->pDamage,
@@ -567,7 +567,7 @@ SProcDamageDispatch(ClientPtr client)
 }
 
 static void
-DamageClientCallback(CallbackListPtr *list, pointer closure, pointer data)
+DamageClientCallback(CallbackListPtr *list, void *closure, void *data)
 {
     NewClientInfoRec *clientinfo = (NewClientInfoRec *) data;
     ClientPtr pClient = clientinfo->client;
@@ -585,7 +585,7 @@ DamageResetProc(ExtensionEntry * extEntry)
 }
 
 static int
-FreeDamageExt(pointer value, XID did)
+FreeDamageExt(void *value, XID did)
 {
     DamageExtPtr pDamageExt = (DamageExtPtr) value;
 

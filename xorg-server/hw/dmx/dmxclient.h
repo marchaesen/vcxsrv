@@ -118,17 +118,6 @@ typedef XID KeySym64;
 #undef KeySym
 #endif
 
-/* These are in exglobals.h, but that conflicts with xkbsrv.h */
-extern int ProximityIn;
-extern int ProximityOut;
-extern int DeviceValuator;
-extern int DeviceMotionNotify;
-extern int DeviceFocusIn;
-extern int DeviceFocusOut;
-extern int DeviceStateNotify;
-extern int DeviceMappingNotify;
-extern int ChangeDeviceNotify;
-
 /* Some protocol gets included last, after undefines. */
 #include <X11/XKBlib.h>
 #include <X11/extensions/XKBproto.h>

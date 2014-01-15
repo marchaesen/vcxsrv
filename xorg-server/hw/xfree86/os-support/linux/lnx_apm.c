@@ -36,7 +36,7 @@ extern PMClose lnxACPIOpen(void);
 
 static PMClose lnxAPMOpen(void);
 static void lnxCloseAPM(void);
-static pointer APMihPtr = NULL;
+static void *APMihPtr = NULL;
 
 static struct {
     apm_event_t apmLinux;

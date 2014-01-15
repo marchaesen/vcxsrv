@@ -1824,6 +1824,56 @@ pack_float_XBGR32323232_FLOAT(const GLfloat src[4], void *dst)
    d[3] = 1.0;
 }
 
+/* MESA_FORMAT_ABGR2101010 */
+
+static void
+pack_ubyte_ABGR2101010(const GLubyte src[4], void *dst)
+{
+   GLuint *d = ((GLuint *) dst);
+   GLushort r = UBYTE_TO_USHORT(src[RCOMP]);
+   GLushort g = UBYTE_TO_USHORT(src[GCOMP]);
+   GLushort b = UBYTE_TO_USHORT(src[BCOMP]);
+   GLushort a = UBYTE_TO_USHORT(src[ACOMP]);
+   *d = PACK_COLOR_2101010_US(a, b, g, r);
+}
+
+static void
+pack_float_ABGR2101010(const GLfloat src[4], void *dst)
+{
+   GLuint *d = ((GLuint *) dst);
+   GLushort r, g, b, a;
+   UNCLAMPED_FLOAT_TO_USHORT(r, src[RCOMP]);
+   UNCLAMPED_FLOAT_TO_USHORT(g, src[GCOMP]);
+   UNCLAMPED_FLOAT_TO_USHORT(b, src[BCOMP]);
+   UNCLAMPED_FLOAT_TO_USHORT(a, src[ACOMP]);
+   *d = PACK_COLOR_2101010_US(a, b, g, r);
+}
+
+/*
+ * MESA_FORMAT_SIGNED_RG88
+ */
+
+static void
+pack_float_SIGNED_RG88(const GLfloat src[4], void *dst)
+{
+   GLushort *d = (GLushort *) dst;
+   GLbyte r = FLOAT_TO_BYTE(CLAMP(src[RCOMP], -1.0f, 1.0f));
+   GLbyte g = FLOAT_TO_BYTE(CLAMP(src[GCOMP], -1.0f, 1.0f));
+   *d = (r << 8) | (g & 0xff);
+}
+
+/*
+ * MESA_FORMAT_SIGNED_RG1616
+ */
+
+static void
+pack_float_SIGNED_RG1616(const GLfloat src[4], void *dst)
+{
+   GLuint *d = (GLuint *) dst;
+   GLshort r = FLOAT_TO_SHORT(CLAMP(src[RCOMP], -1.0f, 1.0f));
+   GLshort g = FLOAT_TO_SHORT(CLAMP(src[GCOMP], -1.0f, 1.0f));
+   *d = (r << 16) | (g & 0xffff);
+}
 
 /**
  * Return a function that can pack a GLubyte rgba[4] color.
@@ -1977,6 +2027,8 @@ _mesa_get_pack_ubyte_rgba_function(gl_format format)
       table[MESA_FORMAT_XBGR32323232_FLOAT] = NULL;
       table[MESA_FORMAT_XBGR32323232_UINT] = NULL;
       table[MESA_FORMAT_XBGR32323232_SINT] = NULL;
+
+      table[MESA_FORMAT_ABGR2101010] = pack_ubyte_ABGR2101010;
 
       initialized = GL_TRUE;
    }
@@ -2135,6 +2187,11 @@ _mesa_get_pack_float_rgba_function(gl_format format)
       table[MESA_FORMAT_XBGR32323232_FLOAT] = pack_float_XBGR32323232_FLOAT;
       table[MESA_FORMAT_XBGR32323232_UINT] = NULL;
       table[MESA_FORMAT_XBGR32323232_SINT] = NULL;
+
+      table[MESA_FORMAT_ABGR2101010] = pack_float_ABGR2101010;
+
+      table[MESA_FORMAT_SIGNED_RG88] = pack_float_SIGNED_RG88;
+      table[MESA_FORMAT_SIGNED_RG1616] = pack_float_SIGNED_RG1616;
 
       initialized = GL_TRUE;
    }

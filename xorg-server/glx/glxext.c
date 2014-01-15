@@ -169,7 +169,7 @@ __glXAddContext(__GLXcontext * cx)
 {
     /* Register this context as a resource.
      */
-    if (!AddResource(cx->id, __glXContextRes, (pointer)cx)) {
+    if (!AddResource(cx->id, __glXContextRes, (void *)cx)) {
 	return False;
     }
 
@@ -283,7 +283,7 @@ glxGetClient(ClientPtr pClient)
 }
 
 static void
-glxClientCallback(CallbackListPtr *list, pointer closure, pointer data)
+glxClientCallback(CallbackListPtr *list, void *closure, void *data)
 {
     NewClientInfoRec *clientinfo = (NewClientInfoRec *) data;
     ClientPtr pClient = clientinfo->client;

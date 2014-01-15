@@ -78,10 +78,10 @@ extern void dmxImageText16(DrawablePtr pDrawable, GCPtr pGC,
                            int x, int y, int count, unsigned short *chars);
 extern void dmxImageGlyphBlt(DrawablePtr pDrawable, GCPtr pGC,
                              int x, int y, unsigned int nglyph,
-                             CharInfoPtr * ppci, pointer pglyphBase);
+                             CharInfoPtr * ppci, void *pglyphBase);
 extern void dmxPolyGlyphBlt(DrawablePtr pDrawable, GCPtr pGC,
                             int x, int y, unsigned int nglyph,
-                            CharInfoPtr * ppci, pointer pglyphBase);
+                            CharInfoPtr * ppci, void *pglyphBase);
 extern void dmxPushPixels(GCPtr pGC, PixmapPtr pBitMap, DrawablePtr pDst,
                           int w, int h, int x, int y);
 

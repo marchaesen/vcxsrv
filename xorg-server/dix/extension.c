@@ -96,7 +96,7 @@ AddExtension(const char *name, int NumEvents, int NumErrors,
     }
     ext->name = strdup(name);
     ext->num_aliases = 0;
-    ext->aliases = (char **) NULL;
+    ext->aliases = (const char **) NULL;
     if (!ext->name) {
         dixFreePrivates(ext->devPrivates, PRIVATE_EXTENSION);
         free(ext);
@@ -106,7 +106,7 @@ AddExtension(const char *name, int NumEvents, int NumErrors,
     newexts = (ExtensionEntry **) realloc(extensions,
                                           (i + 1) * sizeof(ExtensionEntry *));
     if (!newexts) {
-        free(ext->name);
+        free((void *) ext->name);
         dixFreePrivates(ext->devPrivates, PRIVATE_EXTENSION);
         free(ext);
         return ((ExtensionEntry *) NULL);
@@ -147,12 +147,12 @@ Bool
 AddExtensionAlias(const char *alias, ExtensionEntry * ext)
 {
     char *name;
-    char **aliases;
+    const char **aliases;
 
     if (!ext)
         return FALSE;
-    aliases = (char **) realloc(ext->aliases,
-                                (ext->num_aliases + 1) * sizeof(char *));
+    aliases = realloc(ext->aliases,
+                      (ext->num_aliases + 1) * sizeof(char *));
     if (!aliases)
         return FALSE;
     ext->aliases = aliases;
@@ -229,9 +229,9 @@ CloseDownExtensions(void)
         if (extensions[i]->CloseDown)
             extensions[i]->CloseDown(extensions[i]);
         NumExtensions = i;
-        free(extensions[i]->name);
+        free((void *) extensions[i]->name);
         for (j = extensions[i]->num_aliases; --j >= 0;)
-            free(extensions[i]->aliases[j]);
+            free((void *) extensions[i]->aliases[j]);
         free(extensions[i]->aliases);
         dixFreePrivates(extensions[i]->devPrivates, PRIVATE_EXTENSION);
         free(extensions[i]);

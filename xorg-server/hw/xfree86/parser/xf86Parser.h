@@ -85,7 +85,7 @@ typedef struct {
 typedef struct {
     GenericListRec list;
     int load_type;
-    char *load_name;
+    const char *load_name;
     XF86OptionPtr load_opt;
     char *load_comment;
     int ignore;
@@ -116,7 +116,7 @@ typedef struct {
 
 typedef struct {
     GenericListRec list;
-    char *ml_identifier;
+    const char *ml_identifier;
     int ml_clock;
     int ml_hdisplay;
     int ml_hsyncstart;
@@ -134,21 +134,21 @@ typedef struct {
 
 typedef struct {
     GenericListRec list;
-    char *vp_identifier;
+    const char *vp_identifier;
     XF86OptionPtr vp_option_lst;
     char *vp_comment;
 } XF86ConfVideoPortRec, *XF86ConfVideoPortPtr;
 
 typedef struct {
     GenericListRec list;
-    char *va_identifier;
-    char *va_vendor;
-    char *va_board;
-    char *va_busid;
-    char *va_driver;
+    const char *va_identifier;
+    const char *va_vendor;
+    const char *va_board;
+    const char *va_busid;
+    const char *va_driver;
     XF86OptionPtr va_option_lst;
     XF86ConfVideoPortPtr va_port_lst;
-    char *va_fwdref;
+    const char *va_fwdref;
     char *va_comment;
 } XF86ConfVideoAdaptorRec, *XF86ConfVideoAdaptorPtr;
 
@@ -165,21 +165,21 @@ typedef struct {
 
 typedef struct {
     GenericListRec list;
-    char *modes_identifier;
+    const char *modes_identifier;
     XF86ConfModeLinePtr mon_modeline_lst;
     char *modes_comment;
 } XF86ConfModesRec, *XF86ConfModesPtr;
 
 typedef struct {
     GenericListRec list;
-    char *ml_modes_str;
+    const char *ml_modes_str;
     XF86ConfModesPtr ml_modes;
 } XF86ConfModesLinkRec, *XF86ConfModesLinkPtr;
 
 typedef struct {
     GenericListRec list;
-    char *mon_identifier;
-    char *mon_vendor;
+    const char *mon_identifier;
+    const char *mon_vendor;
     char *mon_modelname;
     int mon_width;              /* in mm */
     int mon_height;             /* in mm */
@@ -201,21 +201,21 @@ typedef struct {
 
 typedef struct {
     GenericListRec list;
-    char *dev_identifier;
-    char *dev_vendor;
-    char *dev_board;
-    char *dev_chipset;
-    char *dev_busid;
-    char *dev_card;
-    char *dev_driver;
-    char *dev_ramdac;
+    const char *dev_identifier;
+    const char *dev_vendor;
+    const char *dev_board;
+    const char *dev_chipset;
+    const char *dev_busid;
+    const char *dev_card;
+    const char *dev_driver;
+    const char *dev_ramdac;
     int dev_dacSpeeds[CONF_MAXDACSPEEDS];
     int dev_videoram;
     int dev_textclockfreq;
     unsigned long dev_bios_base;
     unsigned long dev_mem_base;
     unsigned long dev_io_base;
-    char *dev_clockchip;
+    const char *dev_clockchip;
     int dev_clocks;
     int dev_clock[CONF_MAXCLOCKS];
     int dev_chipid;
@@ -228,7 +228,7 @@ typedef struct {
 
 typedef struct {
     GenericListRec list;
-    char *mode_name;
+    const char *mode_name;
 } XF86ModeRec, *XF86ModePtr;
 
 typedef struct {
@@ -239,7 +239,7 @@ typedef struct {
     int disp_virtualY;
     int disp_depth;
     int disp_bpp;
-    char *disp_visual;
+    const char *disp_visual;
     parser_rgb disp_weight;
     parser_rgb disp_black;
     parser_rgb disp_white;
@@ -255,20 +255,20 @@ typedef struct {
 
 typedef struct {
     GenericListRec list;
-    char *al_adaptor_str;
+    const char *al_adaptor_str;
     XF86ConfVideoAdaptorPtr al_adaptor;
 } XF86ConfAdaptorLinkRec, *XF86ConfAdaptorLinkPtr;
 
 typedef struct {
     GenericListRec list;
-    char *scrn_identifier;
-    char *scrn_obso_driver;
+    const char *scrn_identifier;
+    const char *scrn_obso_driver;
     int scrn_defaultdepth;
     int scrn_defaultbpp;
     int scrn_defaultfbbpp;
-    char *scrn_monitor_str;
+    const char *scrn_monitor_str;
     XF86ConfMonitorPtr scrn_monitor;
-    char *scrn_device_str;
+    const char *scrn_device_str;
     XF86ConfDevicePtr scrn_device;
     XF86ConfAdaptorLinkPtr scrn_adaptor_lst;
     XF86ConfDisplayPtr scrn_display_lst;
@@ -279,8 +279,8 @@ typedef struct {
 
 typedef struct {
     GenericListRec list;
-    char *inp_identifier;
-    char *inp_driver;
+    const char *inp_identifier;
+    const char *inp_driver;
     XF86OptionPtr inp_option_lst;
     char *inp_comment;
 } XF86ConfInputRec, *XF86ConfInputPtr;
@@ -288,7 +288,7 @@ typedef struct {
 typedef struct {
     GenericListRec list;
     XF86ConfInputPtr iref_inputdev;
-    char *iref_inputdev_str;
+    const char *iref_inputdev_str;
     XF86OptionPtr iref_option_lst;
 } XF86ConfInputrefRec, *XF86ConfInputrefPtr;
 
@@ -299,13 +299,13 @@ typedef struct {
 
 typedef struct {
     struct xorg_list entry;
-    char **values;
+    const char **values;
 } xf86MatchGroup;
 
 typedef struct {
     GenericListRec list;
     char *identifier;
-    char *driver;
+    const char *driver;
     struct xorg_list match_product;
     struct xorg_list match_vendor;
     struct xorg_list match_device;
@@ -338,30 +338,30 @@ typedef struct {
     GenericListRec list;
     int adj_scrnum;
     XF86ConfScreenPtr adj_screen;
-    char *adj_screen_str;
+    const char *adj_screen_str;
     XF86ConfScreenPtr adj_top;
-    char *adj_top_str;
+    const char *adj_top_str;
     XF86ConfScreenPtr adj_bottom;
-    char *adj_bottom_str;
+    const char *adj_bottom_str;
     XF86ConfScreenPtr adj_left;
-    char *adj_left_str;
+    const char *adj_left_str;
     XF86ConfScreenPtr adj_right;
-    char *adj_right_str;
+    const char *adj_right_str;
     int adj_where;
     int adj_x;
     int adj_y;
-    char *adj_refscreen;
+    const char *adj_refscreen;
 } XF86ConfAdjacencyRec, *XF86ConfAdjacencyPtr;
 
 typedef struct {
     GenericListRec list;
-    char *inactive_device_str;
+    const char *inactive_device_str;
     XF86ConfDevicePtr inactive_device;
 } XF86ConfInactiveRec, *XF86ConfInactivePtr;
 
 typedef struct {
     GenericListRec list;
-    char *lay_identifier;
+    const char *lay_identifier;
     XF86ConfAdjacencyPtr lay_adjacency_lst;
     XF86ConfInactivePtr lay_inactive_lst;
     XF86ConfInputrefPtr lay_input_lst;
@@ -371,22 +371,22 @@ typedef struct {
 
 typedef struct {
     GenericListRec list;
-    char *vs_name;
-    char *vs_identifier;
+    const char *vs_name;
+    const char *vs_identifier;
     XF86OptionPtr vs_option_lst;
     char *vs_comment;
 } XF86ConfVendSubRec, *XF86ConfVendSubPtr;
 
 typedef struct {
     GenericListRec list;
-    char *vnd_identifier;
+    const char *vnd_identifier;
     XF86OptionPtr vnd_option_lst;
     XF86ConfVendSubPtr vnd_sub_lst;
     char *vnd_comment;
 } XF86ConfVendorRec, *XF86ConfVendorPtr;
 
 typedef struct {
-    char *dri_group_name;
+    const char *dri_group_name;
     int dri_group;
     int dri_mode;
     char *dri_comment;
@@ -462,7 +462,7 @@ extern _X_EXPORT int xf86itemNotSublist(GenericListPtr list_1,
 
 extern _X_EXPORT int xf86pathIsAbsolute(const char *path);
 extern _X_EXPORT int xf86pathIsSafe(const char *path);
-extern _X_EXPORT char *xf86addComment(char *cur, char *add);
+extern _X_EXPORT char *xf86addComment(char *cur, const char *add);
 extern _X_EXPORT Bool xf86getBoolValue(Bool *val, const char *str);
 
 #endif                          /* _xf86Parser_h_ */

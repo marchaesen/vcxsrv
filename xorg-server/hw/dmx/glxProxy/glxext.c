@@ -182,7 +182,7 @@ __glXFreeGLXWindow(__glXWindow * pGlxWindow)
         WindowPtr pWindow = (WindowPtr) pGlxWindow->pDraw;
         WindowPtr ret;
 
-        dixLookupResourceByType((pointer) &ret,
+        dixLookupResourceByType((void *) &ret,
                                 pWindow->drawable.id, RT_WINDOW,
                                 NullClient, DixUnknownAccess);
         if (ret == pWindow) {
@@ -414,7 +414,7 @@ __glXDispatch(ClientPtr client)
          */
         XID xid = FakeClientID(client->index);
 
-        if (!AddResource(xid, __glXClientRes, (pointer) (long) client->index)) {
+        if (!AddResource(xid, __glXClientRes, (void *) (long) client->index)) {
             return BadAlloc;
         }
         ResetClientState(client->index);
@@ -468,7 +468,7 @@ __glXSwapDispatch(ClientPtr client)
          */
         XID xid = FakeClientID(client->index);
 
-        if (!AddResource(xid, __glXClientRes, (pointer) (long) client->index)) {
+        if (!AddResource(xid, __glXClientRes, (void *) (long) client->index)) {
             return BadAlloc;
         }
         ResetClientState(client->index);

@@ -110,7 +110,7 @@ SwapGroupIsReadyToSwap(SwapGroupPtr pSwap)
 }
 
 static Bool
-SGSwapCleanup(ClientPtr client, pointer closure)
+SGSwapCleanup(ClientPtr client, void *closure)
 {
     /* SwapGroupPtr  pSwap = (SwapGroupPtr)closure; */
 
@@ -154,7 +154,7 @@ SGSwapBuffers(__GLXclientState * cl, XID drawId, GLXContextTag tag,
     else {
         /* The swap group/barrier is not yet ready to swap, so put
          * client to sleep until the rest are ready to swap */
-        ClientSleep(cl->client, SGSwapCleanup, (pointer) pWin);
+        ClientSleep(cl->client, SGSwapCleanup, (void *) pWin);
         pCur->sleeping = TRUE;
     }
 

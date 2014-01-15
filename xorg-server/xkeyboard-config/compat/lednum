@@ -1,23 +1,24 @@
-// Use Num Lock LED to show either Num Lock, Group, or Shift Lock state
+// Use the Num Lock LED to show either
+// Num Lock, Group, or Shift Lock state.
 
-default partial xkb_compatibility "num_lock"   {
+default partial xkb_compatibility "num_lock" {
     indicator "Num Lock" {
-       !allowExplicit;
-       whichModState= Locked;
-       modifiers= NumLock;
-   };
+	!allowExplicit;
+	whichModState= Locked;
+	modifiers= NumLock;
+    };
 };
 
-partial xkb_compatibility "group_lock"   {
-   indicator "Num Lock" {
-       modifiers= None;
-       groups=All-group1;
-   };
+partial xkb_compatibility "group_lock" {
+    indicator "Num Lock" {
+	modifiers= None;
+	groups=All-group1;
+    };
 };
 
-partial xkb_compatibility "shift_lock"   {
-   indicator "Num Lock" {
-       whichModState= Locked;
-       modifiers= Shift;
-   };
+partial xkb_compatibility "shift_lock" {
+    indicator "Num Lock" {
+	whichModState= Locked;
+	modifiers= Shift;
+    };
 };

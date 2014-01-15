@@ -55,7 +55,7 @@ compScreenUpdate(ScreenPtr pScreen)
 }
 
 static void
-compBlockHandler(ScreenPtr pScreen, pointer pTimeout, pointer pReadmask)
+compBlockHandler(ScreenPtr pScreen, void *pTimeout, void *pReadmask)
 {
     CompScreenPtr cs = GetCompScreen(pScreen);
 

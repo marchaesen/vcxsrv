@@ -24,7 +24,7 @@
 
 typedef struct {
     int num;                    /* A unique identifier for the mode (num > 0) */
-    char *name;                 /* name of mode given in the XF86Config */
+    const char *name;           /* name of mode given in the XF86Config */
     int VSync_num;
     int VSync_den;
     int flags;                  /* DGA_CONCURRENT_ACCESS, etc... */

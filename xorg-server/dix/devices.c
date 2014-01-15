@@ -387,7 +387,7 @@ EnableDevice(DeviceIntPtr dev, BOOL sendevent)
         }
         else {
             if (dev->coreEvents)
-                other = (IsPointerDevice(dev)) ? inputInfo.pointer :
+                other = (IsPointerDevice(dev)) ? inputInfo.pointer:
                     inputInfo.keyboard;
             else
                 other = NULL;   /* auto-float non-core devices */
@@ -587,7 +587,7 @@ ActivateDevice(DeviceIntPtr dev, BOOL sendevent)
  * The actual task of ringing the bell is the job of the DDX.
  */
 static void
-CoreKeyboardBell(int volume, DeviceIntPtr pDev, pointer arg, int something)
+CoreKeyboardBell(int volume, DeviceIntPtr pDev, void *arg, int something)
 {
     KeybdCtrl *ctrl = arg;
 
@@ -751,7 +751,7 @@ InitAndStartDevices(void)
  * Free the given device class and reset the pointer to NULL.
  */
 static void
-FreeDeviceClass(int type, pointer *class)
+FreeDeviceClass(int type, void **class)
 {
     if (!(*class))
         return;
@@ -819,7 +819,7 @@ FreeDeviceClass(int type, pointer *class)
 }
 
 static void
-FreeFeedbackClass(int type, pointer *class)
+FreeFeedbackClass(int type, void **class)
 {
     if (!(*class))
         return;
@@ -907,19 +907,19 @@ FreeAllDeviceClasses(ClassesPtr classes)
     if (!classes)
         return;
 
-    FreeDeviceClass(KeyClass, (pointer) &classes->key);
-    FreeDeviceClass(ValuatorClass, (pointer) &classes->valuator);
-    FreeDeviceClass(XITouchClass, (pointer) &classes->touch);
-    FreeDeviceClass(ButtonClass, (pointer) &classes->button);
-    FreeDeviceClass(FocusClass, (pointer) &classes->focus);
-    FreeDeviceClass(ProximityClass, (pointer) &classes->proximity);
+    FreeDeviceClass(KeyClass, (void *) &classes->key);
+    FreeDeviceClass(ValuatorClass, (void *) &classes->valuator);
+    FreeDeviceClass(XITouchClass, (void *) &classes->touch);
+    FreeDeviceClass(ButtonClass, (void *) &classes->button);
+    FreeDeviceClass(FocusClass, (void *) &classes->focus);
+    FreeDeviceClass(ProximityClass, (void *) &classes->proximity);
 
-    FreeFeedbackClass(KbdFeedbackClass, (pointer) &classes->kbdfeed);
-    FreeFeedbackClass(PtrFeedbackClass, (pointer) &classes->ptrfeed);
-    FreeFeedbackClass(IntegerFeedbackClass, (pointer) &classes->intfeed);
-    FreeFeedbackClass(StringFeedbackClass, (pointer) &classes->stringfeed);
-    FreeFeedbackClass(BellFeedbackClass, (pointer) &classes->bell);
-    FreeFeedbackClass(LedFeedbackClass, (pointer) &classes->leds);
+    FreeFeedbackClass(KbdFeedbackClass, (void *) &classes->kbdfeed);
+    FreeFeedbackClass(PtrFeedbackClass, (void *) &classes->ptrfeed);
+    FreeFeedbackClass(IntegerFeedbackClass, (void *) &classes->intfeed);
+    FreeFeedbackClass(StringFeedbackClass, (void *) &classes->stringfeed);
+    FreeFeedbackClass(BellFeedbackClass, (void *) &classes->bell);
+    FreeFeedbackClass(LedFeedbackClass, (void *) &classes->leds);
 
 }
 
@@ -956,7 +956,7 @@ CloseDevice(DeviceIntPtr dev)
     while (dev->xkb_interest)
         XkbRemoveResourceClient((DevicePtr) dev, dev->xkb_interest->resource);
 
-    free(dev->name);
+    free((void *) dev->name);
 
     classes = (ClassesPtr) &dev->key;
     FreeAllDeviceClasses(classes);
@@ -2736,6 +2736,7 @@ AllocDevicePair(ClientPtr client, const char *name,
 {
     DeviceIntPtr pointer;
     DeviceIntPtr keyboard;
+    char *dev_name;
 
     *ptr = *keybd = NULL;
 
@@ -2746,12 +2747,12 @@ AllocDevicePair(ClientPtr client, const char *name,
     if (!pointer)
         return BadAlloc;
 
-    if (asprintf(&pointer->name, "%s pointer", name) == -1) {
-        pointer->name = NULL;
+    if (asprintf(&dev_name, "%s pointer", name) == -1) {
         RemoveDevice(pointer, FALSE);
 
         return BadAlloc;
     }
+    pointer->name = dev_name;
 
     pointer->public.processInputProc = ProcessOtherEvent;
     pointer->public.realInputProc = ProcessOtherEvent;
@@ -2772,13 +2773,13 @@ AllocDevicePair(ClientPtr client, const char *name,
         return BadAlloc;
     }
 
-    if (asprintf(&keyboard->name, "%s keyboard", name) == -1) {
-        keyboard->name = NULL;
+    if (asprintf(&dev_name, "%s keyboard", name) == -1) {
         RemoveDevice(keyboard, FALSE);
         RemoveDevice(pointer, FALSE);
 
         return BadAlloc;
     }
+    keyboard->name = dev_name;
 
     keyboard->public.processInputProc = ProcessOtherEvent;
     keyboard->public.realInputProc = ProcessOtherEvent;

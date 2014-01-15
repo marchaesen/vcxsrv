@@ -574,7 +574,7 @@ typedef struct {
 #endif
 
 typedef struct {
-    pointer value;
+    void *value;
     XID id;
 } WindowIDPairRec, *WindowIDPairPtr;
 
@@ -738,7 +738,7 @@ void winSetAuthorization(void);
 void
 
 winBlockHandler(ScreenPtr pScreen,
-                pointer pTimeout, pointer pReadMask);
+                void *pTimeout, void *pReadMask);
 
 #ifdef XWIN_NATIVEGDI
 /*
@@ -1003,7 +1003,7 @@ winModifyPixmapHeaderNativeGDI(PixmapPtr pPixmap,
                                int iWidth, int iHeight,
                                int iDepth,
                                int iBitsPerPixel,
-                               int devKind, pointer pPixData);
+                               int devKind, void *pPixData);
 #endif
 
 #ifdef XWIN_NATIVEGDI
@@ -1074,7 +1074,7 @@ Bool
 void
 
 winWakeupHandler(ScreenPtr pScreen,
-                 unsigned long ulResult, pointer pReadmask);
+                 unsigned long ulResult, void *pReadmask);
 
 /*
  * winwindow.c

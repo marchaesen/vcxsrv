@@ -46,10 +46,10 @@ typedef struct _Sertafied {
     ClientPtr pClient;
     XID id;
     void (*notifyFunc) (ClientPtr /* client */ ,
-                        pointer /* closure */
+                        void *    /* closure */
         );
 
-    pointer closure;
+    void *closure;
 } SertafiedRec, *SertafiedPtr;
 
 static SertafiedPtr pPending;
@@ -58,24 +58,24 @@ static Bool BlockHandlerRegistered;
 static int SertafiedGeneration;
 
 static void ClientAwaken(ClientPtr /* client */ ,
-                         pointer        /* closure */
+                         void *    /* closure */
     );
-static int SertafiedDelete(pointer /* value */ ,
-                           XID  /* id */
+static int SertafiedDelete(void *  /* value */ ,
+                           XID     /* id */
     );
-static void SertafiedBlockHandler(pointer /* data */ ,
+static void SertafiedBlockHandler(void *    /* data */ ,
                                   OSTimePtr /* wt */ ,
-                                  pointer       /* LastSelectMask */
+                                  void *    /* LastSelectMask */
     );
-static void SertafiedWakeupHandler(pointer /* data */ ,
-                                   int /* i */ ,
-                                   pointer      /* LastSelectMask */
+static void SertafiedWakeupHandler(void *   /* data */ ,
+                                   int      /* i */ ,
+                                   void *   /* LastSelectMask */
     );
 
 int
 ClientSleepUntil(ClientPtr client,
                  TimeStamp *revive,
-                 void (*notifyFunc) (ClientPtr, pointer), pointer closure)
+                 void (*notifyFunc) (ClientPtr, void *), void *closure)
 {
     SertafiedPtr pRequest, pReq, pPrev;
 
@@ -97,14 +97,14 @@ ClientSleepUntil(ClientPtr client,
     if (!BlockHandlerRegistered) {
         if (!RegisterBlockAndWakeupHandlers(SertafiedBlockHandler,
                                             SertafiedWakeupHandler,
-                                            (pointer) 0)) {
+                                            (void *) 0)) {
             free(pRequest);
             return FALSE;
         }
         BlockHandlerRegistered = TRUE;
     }
     pRequest->notifyFunc = 0;
-    if (!AddResource(pRequest->id, SertafiedResType, (pointer) pRequest))
+    if (!AddResource(pRequest->id, SertafiedResType, (void *) pRequest))
         return FALSE;
     if (!notifyFunc)
         notifyFunc = ClientAwaken;
@@ -126,14 +126,14 @@ ClientSleepUntil(ClientPtr client,
 }
 
 static void
-ClientAwaken(ClientPtr client, pointer closure)
+ClientAwaken(ClientPtr client, void *closure)
 {
     if (!client->clientGone)
         AttendClient(client);
 }
 
 static int
-SertafiedDelete(pointer value, XID id)
+SertafiedDelete(void *value, XID id)
 {
     SertafiedPtr pRequest = (SertafiedPtr) value;
     SertafiedPtr pReq, pPrev;
@@ -154,7 +154,7 @@ SertafiedDelete(pointer value, XID id)
 }
 
 static void
-SertafiedBlockHandler(pointer data, OSTimePtr wt, pointer LastSelectMask)
+SertafiedBlockHandler(void *data, OSTimePtr wt, void *LastSelectMask)
 {
     SertafiedPtr pReq, pNext;
     unsigned long delay;
@@ -186,7 +186,7 @@ SertafiedBlockHandler(pointer data, OSTimePtr wt, pointer LastSelectMask)
 }
 
 static void
-SertafiedWakeupHandler(pointer data, int i, pointer LastSelectMask)
+SertafiedWakeupHandler(void *data, int i, void *LastSelectMask)
 {
     SertafiedPtr pReq, pNext;
     TimeStamp now;
@@ -203,7 +203,7 @@ SertafiedWakeupHandler(pointer data, int i, pointer LastSelectMask)
     }
     if (!pPending) {
         RemoveBlockAndWakeupHandlers(SertafiedBlockHandler,
-                                     SertafiedWakeupHandler, (pointer) 0);
+                                     SertafiedWakeupHandler, (void *) 0);
         BlockHandlerRegistered = FALSE;
     }
 }

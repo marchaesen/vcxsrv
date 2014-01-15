@@ -199,7 +199,7 @@ xf86HandleInt10Options(ScrnInfoPtr pScrn, int entityIndex)
     OptionInfoPtr options = NULL;
 
     if (pEnt->device) {
-        pointer configOptions = NULL;
+        void *configOptions = NULL;
 
         /* Check if xf86CollectOptions() has already been called */
         if (((pEnt->index < 0) ||

@@ -83,9 +83,9 @@ static XID eventResource;
 static unsigned int eventMask = 0;
 
 static int
-WMFreeClient(pointer data, XID id);
+WMFreeClient(void *data, XID id);
 static int
-WMFreeEvents(pointer data, XID id);
+WMFreeEvents(void *data, XID id);
 static void
 SNotifyEvent(xAppleWMNotifyEvent *from, xAppleWMNotifyEvent *to);
 
@@ -175,7 +175,7 @@ updateEventMask(WMEventPtr *pHead)
 
 /*ARGSUSED*/
 static int
-WMFreeClient(pointer data, XID id)
+WMFreeClient(void *data, XID id)
 {
     WMEventPtr pEvent;
     WMEventPtr   *pHead, pCur, pPrev;
@@ -183,7 +183,7 @@ WMFreeClient(pointer data, XID id)
 
     pEvent = (WMEventPtr)data;
     i = dixLookupResourceByType(
-        (pointer *)&pHead, eventResource, EventType, serverClient,
+        (void **)&pHead, eventResource, EventType, serverClient,
         DixReadAccess |
         DixWriteAccess | DixDestroyAccess);
     if (i == Success && pHead) {
@@ -198,13 +198,13 @@ WMFreeClient(pointer data, XID id)
         }
         updateEventMask(pHead);
     }
-    free((pointer)pEvent);
+    free((void *)pEvent);
     return 1;
 }
 
 /*ARGSUSED*/
 static int
-WMFreeEvents(pointer data, XID id)
+WMFreeEvents(void *data, XID id)
 {
     WMEventPtr   *pHead, pCur, pNext;
 
@@ -212,9 +212,9 @@ WMFreeEvents(pointer data, XID id)
     for (pCur = *pHead; pCur; pCur = pNext) {
         pNext = pCur->next;
         FreeResource(pCur->clientResource, ClientType);
-        free((pointer)pCur);
+        free((void *)pCur);
     }
-    free((pointer)pHead);
+    free((void *)pHead);
     eventMask = 0;
     return 1;
 }
@@ -229,7 +229,7 @@ ProcAppleWMSelectInput(register ClientPtr client)
 
     REQUEST_SIZE_MATCH(xAppleWMSelectInputReq);
     i =
-        dixLookupResourceByType((pointer *)&pHead, eventResource, EventType,
+        dixLookupResourceByType((void **)&pHead, eventResource, EventType,
                                 client,
                                 DixWriteAccess);
     if (stuff->mask != 0) {
@@ -257,7 +257,7 @@ ProcAppleWMSelectInput(register ClientPtr client)
          */
         clientResource = FakeClientID(client->index);
         pNewEvent->clientResource = clientResource;
-        if (!AddResource(clientResource, ClientType, (pointer)pNewEvent))
+        if (!AddResource(clientResource, ClientType, (void *)pNewEvent))
             return BadAlloc;
         /*
          * create a resource to contain a pointer to the list
@@ -268,7 +268,7 @@ ProcAppleWMSelectInput(register ClientPtr client)
         if (i != Success || !pHead) {
             pHead = (WMEventPtr *)malloc(sizeof(WMEventPtr));
             if (!pHead ||
-                !AddResource(eventResource, EventType, (pointer)pHead)) {
+                !AddResource(eventResource, EventType, (void *)pHead)) {
                 FreeResource(clientResource, RT_NONE);
                 return BadAlloc;
             }
@@ -317,7 +317,7 @@ AppleWMSendEvent(int type, unsigned int mask, int which, int arg)
     int i;
 
     i =
-        dixLookupResourceByType((pointer *)&pHead, eventResource, EventType,
+        dixLookupResourceByType((void **)&pHead, eventResource, EventType,
                                 serverClient,
                                 DixReadAccess);
     if (i != Success || !pHead)

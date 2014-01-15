@@ -58,7 +58,7 @@ present_fake_notify(ScreenPtr screen, uint64_t event_id)
 static CARD32
 present_fake_do_timer(OsTimerPtr timer,
                       CARD32 time,
-                      pointer arg)
+                      void *arg)
 {
     present_fake_vblank_ptr     fake_vblank = arg;
 

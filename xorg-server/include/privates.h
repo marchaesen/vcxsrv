@@ -142,10 +142,10 @@ dixGetPrivate(PrivatePtr *privates, const DevPrivateKey key)
  * dixLookupPrivate(privates, key) will return 'val'.
  */
 static inline void
-dixSetPrivate(PrivatePtr *privates, const DevPrivateKey key, pointer val)
+dixSetPrivate(PrivatePtr *privates, const DevPrivateKey key, void *val)
 {
     assert(key->size == 0);
-    *(pointer *) dixGetPrivateAddr(privates, key) = val;
+    *(void **) dixGetPrivateAddr(privates, key) = val;
 }
 
 #include "dix.h"
@@ -158,7 +158,7 @@ dixSetPrivate(PrivatePtr *privates, const DevPrivateKey key, pointer val)
  * storage. For privates without defined storage, return the pointer
  * contents
  */
-static inline pointer
+static inline void *
 dixLookupPrivate(PrivatePtr *privates, const DevPrivateKey key)
 {
     if (key->size)
@@ -173,11 +173,11 @@ dixLookupPrivate(PrivatePtr *privates, const DevPrivateKey key)
  * This returns the place where the private pointer is stored,
  * which is only valid for privates without predefined storage.
  */
-static inline pointer *
+static inline void **
 dixLookupPrivateAddr(PrivatePtr *privates, const DevPrivateKey key)
 {
     assert(key->size == 0);
-    return (pointer *) dixGetPrivateAddr(privates, key);
+    return (void **) dixGetPrivateAddr(privates, key);
 }
 
 extern _X_EXPORT Bool
@@ -204,19 +204,19 @@ dixGetScreenPrivate(PrivatePtr *privates, const DevScreenPrivateKey key,
 
 static inline void
 dixSetScreenPrivate(PrivatePtr *privates, const DevScreenPrivateKey key,
-                    ScreenPtr pScreen, pointer val)
+                    ScreenPtr pScreen, void *val)
 {
     dixSetPrivate(privates, _dixGetScreenPrivateKey(key, pScreen), val);
 }
 
-static inline pointer
+static inline void *
 dixLookupScreenPrivate(PrivatePtr *privates, const DevScreenPrivateKey key,
                        ScreenPtr pScreen)
 {
     return dixLookupPrivate(privates, _dixGetScreenPrivateKey(key, pScreen));
 }
 
-static inline pointer *
+static inline void **
 dixLookupScreenPrivateAddr(PrivatePtr *privates, const DevScreenPrivateKey key,
                            ScreenPtr pScreen)
 {

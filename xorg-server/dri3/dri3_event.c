@@ -29,7 +29,7 @@
 RESTYPE dri3_event_type;
 
 static int
-dri3_free_event(pointer data, XID id)
+dri3_free_event(void *data, XID id)
 {
     dri3_event_ptr dri3_event = (dri3_event_ptr) data;
     dri3_window_priv_ptr window_priv = dri3_window_priv(dri3_event->window);
@@ -41,7 +41,7 @@ dri3_free_event(pointer data, XID id)
             break;
         }
     }
-    free((pointer) dri3_event);
+    free((void *) dri3_event);
     return 1;
 
 }
@@ -145,7 +145,7 @@ dri3_select_input(ClientPtr client, XID eid, WindowPtr window, CARD32 mask)
     event->next = window_priv->events;
     window_priv->events = event;
 
-    if (!AddResource(event->id, dri3_event_type, (pointer) event))
+    if (!AddResource(event->id, dri3_event_type, (void *) event))
         return BadAlloc;
 
     return Success;

@@ -32,7 +32,7 @@ LIBDRM_RADEON_REQUIRED=2.4.50
 LIBDRM_INTEL_REQUIRED=2.4.49
 LIBDRM_NVVIEUX_REQUIRED=2.4.33
 LIBDRM_NOUVEAU_REQUIRED="2.4.33 libdrm >= 2.4.41"
-LIBDRM_FREEDRENO_REQUIRED=2.4.39
+LIBDRM_FREEDRENO_REQUIRED=2.4.51
 DRI2PROTO_REQUIRED=2.6
 DRI3PROTO_REQUIRED=1.0
 PRESENTPROTO_REQUIRED=1.0
@@ -583,7 +583,7 @@ AC_ARG_ENABLE([xvmc],
    [AS_HELP_STRING([--enable-xvmc],
          [enable xvmc library @<:@default=auto@:>@])],
    [enable_xvmc="$enableval"],
-   [enable_xvmc=auto])
+   [enable_xvmc=no])
 AC_ARG_ENABLE([vdpau],
    [AS_HELP_STRING([--enable-vdpau],
          [enable vdpau library @<:@default=auto@:>@])],
@@ -1567,9 +1567,9 @@ if test "x$enable_gallium_llvm" = xauto; then
 fi
 if test "x$enable_gallium_llvm" = xyes; then
     if test "x$llvm_prefix" != x; then
-        AC_PATH_PROG([LLVM_CONFIG], [llvm-config], [no], ["$llvm_prefix/bin"])
+        AC_PATH_TOOL([LLVM_CONFIG], [llvm-config], [no], ["$llvm_prefix/bin"])
     else
-        AC_PATH_PROG([LLVM_CONFIG], [llvm-config], [no])
+        AC_PATH_TOOL([LLVM_CONFIG], [llvm-config], [no])
     fi
 
     if test "x$LLVM_CONFIG" != xno; then

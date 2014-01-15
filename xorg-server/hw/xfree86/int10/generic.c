@@ -20,12 +20,12 @@
 
 #define ALLOC_ENTRIES(x) ((V_RAM / x) - 1)
 
-static CARD8 read_b(xf86Int10InfoPtr pInt, int addr);
-static CARD16 read_w(xf86Int10InfoPtr pInt, int addr);
-static CARD32 read_l(xf86Int10InfoPtr pInt, int addr);
-static void write_b(xf86Int10InfoPtr pInt, int addr, CARD8 val);
-static void write_w(xf86Int10InfoPtr pInt, int addr, CARD16 val);
-static void write_l(xf86Int10InfoPtr pInt, int addr, CARD32 val);
+static uint8_t read_b(xf86Int10InfoPtr pInt, int addr);
+static uint16_t read_w(xf86Int10InfoPtr pInt, int addr);
+static uint32_t read_l(xf86Int10InfoPtr pInt, int addr);
+static void write_b(xf86Int10InfoPtr pInt, int addr, uint8_t val);
+static void write_w(xf86Int10InfoPtr pInt, int addr, uint16_t val);
+static void write_l(xf86Int10InfoPtr pInt, int addr, uint32_t val);
 
 /*
  * the emulator cannot pass a pointer to the current xf86Int10InfoRec
@@ -87,8 +87,8 @@ xf86ExtendedInitInt10(int entityIndex, int Flags)
     if (!xf86Int10ExecSetup(pInt))
         goto error0;
     pInt->mem = &genericMem;
-    pInt->private = (pointer) xnfcalloc(1, sizeof(genericInt10Priv));
-    INTPriv(pInt)->alloc = (pointer) xnfcalloc(1, ALLOC_ENTRIES(getpagesize()));
+    pInt->private = (void *) xnfcalloc(1, sizeof(genericInt10Priv));
+    INTPriv(pInt)->alloc = (void *) xnfcalloc(1, ALLOC_ENTRIES(getpagesize()));
     pInt->pScrn = pScrn;
     base = INTPriv(pInt)->base = xnfalloc(SYS_BIOS);
 
@@ -339,39 +339,39 @@ xf86Int10FreePages(xf86Int10InfoPtr pInt, void *pbase, int num)
 
 #define VRAM(addr) ((addr >= V_RAM) && (addr < (V_RAM + VRAM_SIZE)))
 #define V_ADDR_RB(addr) \
-	(VRAM(addr)) ? MMIO_IN8((CARD8*)VRAM_BASE,VRAM_ADDR(addr)) \
-	   : *(CARD8*) V_ADDR(addr)
+	(VRAM(addr)) ? MMIO_IN8((uint8_t*)VRAM_BASE,VRAM_ADDR(addr)) \
+	   : *(uint8_t*) V_ADDR(addr)
 #define V_ADDR_RW(addr) \
-	(VRAM(addr)) ? MMIO_IN16((CARD16*)VRAM_BASE,VRAM_ADDR(addr)) \
-	   : ldw_u((pointer)V_ADDR(addr))
+	(VRAM(addr)) ? MMIO_IN16((uint16_t*)VRAM_BASE,VRAM_ADDR(addr)) \
+	   : ldw_u((void *)V_ADDR(addr))
 #define V_ADDR_RL(addr) \
-	(VRAM(addr)) ? MMIO_IN32((CARD32*)VRAM_BASE,VRAM_ADDR(addr)) \
-	   : ldl_u((pointer)V_ADDR(addr))
+	(VRAM(addr)) ? MMIO_IN32((uint32_t*)VRAM_BASE,VRAM_ADDR(addr)) \
+	   : ldl_u((void *)V_ADDR(addr))
 
 #define V_ADDR_WB(addr,val) \
 	if(VRAM(addr)) \
-	    MMIO_OUT8((CARD8*)VRAM_BASE,VRAM_ADDR(addr),val); \
+	    MMIO_OUT8((uint8_t*)VRAM_BASE,VRAM_ADDR(addr),val); \
 	else \
-	    *(CARD8*) V_ADDR(addr) = val;
+	    *(uint8_t*) V_ADDR(addr) = val;
 #define V_ADDR_WW(addr,val) \
 	if(VRAM(addr)) \
-	    MMIO_OUT16((CARD16*)VRAM_BASE,VRAM_ADDR(addr),val); \
+	    MMIO_OUT16((uint16_t*)VRAM_BASE,VRAM_ADDR(addr),val); \
 	else \
-	    stw_u((val),(pointer)(V_ADDR(addr)));
+	    stw_u((val),(void *)(V_ADDR(addr)));
 
 #define V_ADDR_WL(addr,val) \
 	if (VRAM(addr)) \
-	    MMIO_OUT32((CARD32*)VRAM_BASE,VRAM_ADDR(addr),val); \
+	    MMIO_OUT32((uint32_t*)VRAM_BASE,VRAM_ADDR(addr),val); \
 	else \
-	    stl_u(val,(pointer)(V_ADDR(addr)));
+	    stl_u(val,(void *)(V_ADDR(addr)));
 
-static CARD8
+static uint8_t
 read_b(xf86Int10InfoPtr pInt, int addr)
 {
     return V_ADDR_RB(addr);
 }
 
-static CARD16
+static uint16_t
 read_w(xf86Int10InfoPtr pInt, int addr)
 {
 #if X_BYTE_ORDER == X_LITTLE_ENDIAN
@@ -381,7 +381,7 @@ read_w(xf86Int10InfoPtr pInt, int addr)
     return V_ADDR_RB(addr) | (V_ADDR_RB(addr + 1) << 8);
 }
 
-static CARD32
+static uint32_t
 read_l(xf86Int10InfoPtr pInt, int addr)
 {
 #if X_BYTE_ORDER == X_LITTLE_ENDIAN
@@ -394,7 +394,7 @@ read_l(xf86Int10InfoPtr pInt, int addr)
 }
 
 static void
-write_b(xf86Int10InfoPtr pInt, int addr, CARD8 val)
+write_b(xf86Int10InfoPtr pInt, int addr, uint8_t val)
 {
     V_ADDR_WB(addr, val);
 }
@@ -412,7 +412,7 @@ write_w(xf86Int10InfoPtr pInt, int addr, CARD16 val)
 }
 
 static void
-write_l(xf86Int10InfoPtr pInt, int addr, CARD32 val)
+write_l(xf86Int10InfoPtr pInt, int addr, uint32_t val)
 {
 #if X_BYTE_ORDER == X_LITTLE_ENDIAN
     if (OFF(addr + 3) > 2) {
@@ -425,8 +425,8 @@ write_l(xf86Int10InfoPtr pInt, int addr, CARD32 val)
     V_ADDR_WB(addr + 3, val >> 24);
 }
 
-pointer
-xf86int10Addr(xf86Int10InfoPtr pInt, CARD32 addr)
+void *
+xf86int10Addr(xf86Int10InfoPtr pInt, uint32_t addr)
 {
     return V_ADDR(addr);
 }

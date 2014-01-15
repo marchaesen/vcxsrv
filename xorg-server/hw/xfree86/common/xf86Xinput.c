@@ -107,7 +107,7 @@ static int
  * Eval config and modify DeviceVelocityRec accordingly
  */
 static void
-ProcessVelocityConfiguration(DeviceIntPtr pDev, char *devname, pointer list,
+ProcessVelocityConfiguration(DeviceIntPtr pDev, const char *devname, void *list,
                              DeviceVelocityPtr s)
 {
     int tempi;
@@ -539,7 +539,7 @@ MatchAttrToken(const char *attr, struct xorg_list *patterns,
      * match. Each list entry is a separate Match line of the same type.
      */
     xorg_list_for_each_entry(group, patterns, entry) {
-        char *const *cur;
+        const char *const *cur;
         Bool match = FALSE;
 
         for (cur = group->values; *cur; cur++)
@@ -598,7 +598,7 @@ InputClassMatches(const XF86ConfInputClassPtr iclass, const InputInfoPtr idev,
      * See if any of the device's tags match any of the MatchTag tokens.
      */
     if (!xorg_list_is_empty(&iclass->match_tag)) {
-        char *const *tag;
+        const char *const *tag;
         Bool match;
 
         if (!attrs->tags)
@@ -661,7 +661,7 @@ MergeInputClasses(const InputInfoPtr idev, const InputAttributes * attrs)
         /* Collect class options and driver settings */
         classopts = xf86optionListDup(cl->option_lst);
         if (cl->driver) {
-            free(idev->driver);
+            free((void *) idev->driver);
             idev->driver = xstrdup(cl->driver);
             if (!idev->driver) {
                 xf86Msg(X_ERROR, "Failed to allocate memory while merging "
@@ -773,8 +773,8 @@ xf86DeleteInput(InputInfoPtr pInp, int flags)
         /* Else the entry wasn't in the xf86InputDevs list (ignore this). */
     }
 
-    free(pInp->driver);
-    free(pInp->name);
+    free((void *) pInp->driver);
+    free((void *) pInp->name);
     xf86optionListFree(pInp->options);
     free(pInp);
 }
@@ -1067,7 +1067,7 @@ xf86CheckMotionEvent4DGA(DeviceIntPtr device, int is_absolute,
 
 #if XFreeXDGA
     ScreenPtr scr = NULL;
-    int idx, i;
+    int idx = 0, i;
 
     /* The evdev driver may not always send all axes across. */
     if (valuator_mask_isset(mask, 0) || valuator_mask_isset(mask, 1)) {

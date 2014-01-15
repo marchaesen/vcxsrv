@@ -38,8 +38,8 @@
 /* Video Memory Mapping section                                            */
 /***************************************************************************/
 
-static pointer sparc64MapVidMem(int, unsigned long, unsigned long, int);
-static void sparc64UnmapVidMem(int, pointer, unsigned long);
+static void *sparc64MapVidMem(int, unsigned long, unsigned long, int);
+static void sparc64UnmapVidMem(int, void *, unsigned long);
 
 void
 xf86OSInitVidMem(VidMemInfoPtr pVidMem)
@@ -50,12 +50,12 @@ xf86OSInitVidMem(VidMemInfoPtr pVidMem)
     pVidMem->initialised = TRUE;
 }
 
-static pointer
+static void *
 sparc64MapVidMem(int ScreenNum, unsigned long Base, unsigned long Size,
                  int flags)
 {
     int fd = xf86Info.consoleFd;
-    pointer base;
+    void *base;
 
 #ifdef DEBUG
     xf86MsgVerb(X_INFO, 3, "mapVidMem %lx, %lx, fd = %d", Base, Size, fd);
@@ -71,7 +71,7 @@ sparc64MapVidMem(int ScreenNum, unsigned long Base, unsigned long Size,
 }
 
 static void
-sparc64UnmapVidMem(int ScreenNum, pointer Base, unsigned long Size)
+sparc64UnmapVidMem(int ScreenNum, void *Base, unsigned long Size)
 {
     munmap(Base, Size);
 }

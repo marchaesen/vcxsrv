@@ -447,7 +447,7 @@ DRIImageText16(DrawablePtr dst, GCPtr pGC,
 static void
 DRIImageGlyphBlt(DrawablePtr dst, GCPtr pGC,
                  int x, int y, unsigned int nglyphInit,
-                 CharInfoPtr *ppciInit, pointer unused)
+                 CharInfoPtr *ppciInit, void *unused)
 {
     DRISavedDrawableState saved;
 
@@ -465,7 +465,7 @@ DRIImageGlyphBlt(DrawablePtr dst, GCPtr pGC,
 static void
 DRIPolyGlyphBlt(DrawablePtr dst, GCPtr pGC,
                 int x, int y, unsigned int nglyph,
-                CharInfoPtr *ppci, pointer pglyphBase)
+                CharInfoPtr *ppci, void *pglyphBase)
 {
     DRISavedDrawableState saved;
 

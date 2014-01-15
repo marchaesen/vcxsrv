@@ -160,7 +160,7 @@ exaFindAreaToEvict(ExaScreenPrivPtr pExaScr, int size, int align)
  */
 ExaOffscreenArea *
 exaOffscreenAlloc(ScreenPtr pScreen, int size, int align,
-                  Bool locked, ExaOffscreenSaveProc save, pointer privData)
+                  Bool locked, ExaOffscreenSaveProc save, void *privData)
 {
     ExaOffscreenArea *area;
 

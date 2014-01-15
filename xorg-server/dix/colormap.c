@@ -371,7 +371,7 @@ CreateColormap(Colormap mid, ScreenPtr pScreen, VisualPtr pVisual,
     }
     pmap->flags |= BeingCreated;
 
-    if (!AddResource(mid, RT_COLORMAP, (pointer) pmap))
+    if (!AddResource(mid, RT_COLORMAP, (void *) pmap))
         return BadAlloc;
 
     /*  
@@ -401,7 +401,7 @@ CreateColormap(Colormap mid, ScreenPtr pScreen, VisualPtr pVisual,
  * \param value  must conform to DeleteType
  */
 int
-FreeColormap(pointer value, XID mid)
+FreeColormap(void *value, XID mid)
 {
     int i;
     EntryPtr pent;
@@ -409,7 +409,7 @@ FreeColormap(pointer value, XID mid)
 
     if (CLIENT_ID(mid) != SERVER_ID) {
         (*pmap->pScreen->UninstallColormap) (pmap);
-        WalkTree(pmap->pScreen, (VisitWindowProcPtr) TellNoMap, (pointer) &mid);
+        WalkTree(pmap->pScreen, (VisitWindowProcPtr) TellNoMap, (void *) &mid);
     }
 
     /* This is the device's chance to undo anything it needs to, especially
@@ -478,7 +478,7 @@ TellNoMap(WindowPtr pwin, Colormap * pmid)
 
 /* Tell window that pmid got uninstalled */
 int
-TellLostMap(WindowPtr pwin, pointer value)
+TellLostMap(WindowPtr pwin, void *value)
 {
     Colormap *pmid = (Colormap *) value;
 
@@ -503,7 +503,7 @@ TellLostMap(WindowPtr pwin, pointer value)
 
 /* Tell window that pmid got installed */
 int
-TellGainedMap(WindowPtr pwin, pointer value)
+TellGainedMap(WindowPtr pwin, void *value)
 {
     Colormap *pmid = (Colormap *) value;
 
@@ -849,7 +849,7 @@ AllocColor(ColormapPtr pmap,
             pmap->pVisual->vid == pmap->pScreen->rootVisual) {
             ColormapPtr prootmap;
 
-            dixLookupResourceByType((pointer *) &prootmap,
+            dixLookupResourceByType((void **) &prootmap,
                                     pmap->pScreen->defColormap, RT_COLORMAP,
                                     clients[client], DixReadAccess);
 
@@ -867,7 +867,7 @@ AllocColor(ColormapPtr pmap,
             pmap->pVisual->vid == pmap->pScreen->rootVisual) {
             ColormapPtr prootmap;
 
-            dixLookupResourceByType((pointer *) &prootmap,
+            dixLookupResourceByType((void **) &prootmap,
                                     pmap->pScreen->defColormap, RT_COLORMAP,
                                     clients[client], DixReadAccess);
 
@@ -921,7 +921,7 @@ AllocColor(ColormapPtr pmap,
         }
         pcr->mid = pmap->mid;
         pcr->client = client;
-        if (!AddResource(FakeClientID(client), RT_CMAPENTRY, (pointer) pcr))
+        if (!AddResource(FakeClientID(client), RT_CMAPENTRY, (void *) pcr))
             return BadAlloc;
     }
     return Success;
@@ -1467,9 +1467,9 @@ FreePixels(ColormapPtr pmap, int client)
  *  \unused fakeid
  */
 int
-FreeClientPixels(pointer value, XID fakeid)
+FreeClientPixels(void *value, XID fakeid)
 {
-    pointer pmap;
+    void *pmap;
     colorResource *pcr = value;
     int rc;
 
@@ -1536,7 +1536,7 @@ AllocColorCells(int client, ColormapPtr pmap, int colors, int planes,
     if ((ok == Success) && pcr) {
         pcr->mid = pmap->mid;
         pcr->client = client;
-        if (!AddResource(FakeClientID(client), RT_CMAPENTRY, (pointer) pcr))
+        if (!AddResource(FakeClientID(client), RT_CMAPENTRY, (void *) pcr))
             ok = BadAlloc;
     }
     else
@@ -1618,7 +1618,7 @@ AllocColorPlanes(int client, ColormapPtr pmap, int colors,
     if ((ok == Success) && pcr) {
         pcr->mid = pmap->mid;
         pcr->client = client;
-        if (!AddResource(FakeClientID(client), RT_CMAPENTRY, (pointer) pcr))
+        if (!AddResource(FakeClientID(client), RT_CMAPENTRY, (void *) pcr))
             ok = BadAlloc;
     }
     else
@@ -2496,7 +2496,7 @@ struct colormap_lookup_data {
 };
 
 static void
-_colormap_find_resource(pointer value, XID id, pointer cdata)
+_colormap_find_resource(void *value, XID id, void *cdata)
 {
     struct colormap_lookup_data *cmap_data = cdata;
     VisualPtr visuals = cmap_data->visuals;

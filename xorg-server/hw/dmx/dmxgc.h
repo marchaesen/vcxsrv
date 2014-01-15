@@ -55,7 +55,7 @@ extern void dmxValidateGC(GCPtr pGC, unsigned long changes,
 extern void dmxChangeGC(GCPtr pGC, unsigned long mask);
 extern void dmxCopyGC(GCPtr pGCSrc, unsigned long changes, GCPtr pGCDst);
 extern void dmxDestroyGC(GCPtr pGC);
-extern void dmxChangeClip(GCPtr pGC, int type, pointer pvalue, int nrects);
+extern void dmxChangeClip(GCPtr pGC, int type, void *pvalue, int nrects);
 extern void dmxDestroyClip(GCPtr pGC);
 extern void dmxCopyClip(GCPtr pGCDst, GCPtr pGCSrc);
 

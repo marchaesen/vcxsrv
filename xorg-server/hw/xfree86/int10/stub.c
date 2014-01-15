@@ -62,7 +62,7 @@ xf86ExecX86int10(xf86Int10InfoPtr pInt)
     return;
 }
 
-pointer
+void *
 xf86int10Addr(xf86Int10InfoPtr pInt, CARD32 addr)
 {
     return 0;

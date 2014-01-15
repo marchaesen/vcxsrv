@@ -74,8 +74,8 @@ typedef struct _saveSet {
 #define SaveSetAssignMap(ss,m)      ((ss).map = (m))
 
 typedef struct _Client {
-    pointer requestBuffer;
-    pointer osPrivate;          /* for OS layer, including scheduler */
+    void *requestBuffer;
+    void *osPrivate;             /* for OS layer, including scheduler */
     Mask clientAsMask;
     short index;
     unsigned char majorOp, minorOp;
@@ -149,10 +149,10 @@ SmartScheduleInit(void);
 typedef struct _WorkQueue {
     struct _WorkQueue *next;
     Bool (*function) (ClientPtr /* pClient */ ,
-                      pointer   /* closure */
+                      void *    /* closure */
         );
     ClientPtr client;
-    pointer closure;
+    void *closure;
 } WorkQueueRec;
 
 extern _X_EXPORT TimeStamp currentTime;
@@ -166,7 +166,7 @@ ClientTimeToServerTime(CARD32 /*c */ );
 
 typedef struct _CallbackRec {
     CallbackProcPtr proc;
-    pointer data;
+    void *data;
     Bool deleted;
     struct _CallbackRec *next;
 } CallbackRec, *CallbackPtr;

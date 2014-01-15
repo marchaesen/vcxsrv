@@ -248,11 +248,19 @@ extern DevPrivateKeyRec exaScreenPrivateKeyRec;
     real->mem = priv->Saved##mem; \
 }
 
+#ifdef HAVE_TYPEOF
+#define swap(priv, real, mem) {\
+    typeof(real->mem) tmp = priv->Saved##mem; \
+    priv->Saved##mem = real->mem; \
+    real->mem = tmp; \
+}
+#else
 #define swap(priv, real, mem) {\
     void *tmp = priv->Saved##mem; \
     priv->Saved##mem = real->mem; \
     real->mem = tmp; \
 }
+#endif
 
 #define EXA_PRE_FALLBACK(_screen_) \
     ExaScreenPriv(_screen_); \
@@ -333,8 +341,8 @@ typedef struct {
 
 typedef struct {
     /* GC values from the layer below. */
-    GCOps *Savedops;
-    GCFuncs *Savedfuncs;
+    const GCOps *Savedops;
+    const GCFuncs *Savedfuncs;
 } ExaGCPrivRec, *ExaGCPrivPtr;
 
 typedef struct {
@@ -422,13 +430,13 @@ void
 
 ExaCheckImageGlyphBlt(DrawablePtr pDrawable, GCPtr pGC,
                       int x, int y, unsigned int nglyph,
-                      CharInfoPtr * ppci, pointer pglyphBase);
+                      CharInfoPtr * ppci, void *pglyphBase);
 
 void
 
 ExaCheckPolyGlyphBlt(DrawablePtr pDrawable, GCPtr pGC,
                      int x, int y, unsigned int nglyph,
-                     CharInfoPtr * ppci, pointer pglyphBase);
+                     CharInfoPtr * ppci, void *pglyphBase);
 
 void
 
@@ -601,7 +609,7 @@ Bool
 
 exaModifyPixmapHeader_classic(PixmapPtr pPixmap, int width, int height,
                               int depth, int bitsPerPixel, int devKind,
-                              pointer pPixData);
+                              void *pPixData);
 
 Bool
  exaDestroyPixmap_classic(PixmapPtr pPixmap);
@@ -619,7 +627,7 @@ Bool
 
 exaModifyPixmapHeader_driver(PixmapPtr pPixmap, int width, int height,
                              int depth, int bitsPerPixel, int devKind,
-                             pointer pPixData);
+                             void *pPixData);
 
 Bool
  exaDestroyPixmap_driver(PixmapPtr pPixmap);
@@ -636,7 +644,7 @@ exaCreatePixmap_mixed(ScreenPtr pScreen, int w, int h, int depth,
 Bool
 
 exaModifyPixmapHeader_mixed(PixmapPtr pPixmap, int width, int height, int depth,
-                            int bitsPerPixel, int devKind, pointer pPixData);
+                            int bitsPerPixel, int devKind, void *pPixData);
 
 Bool
  exaDestroyPixmap_mixed(PixmapPtr pPixmap);

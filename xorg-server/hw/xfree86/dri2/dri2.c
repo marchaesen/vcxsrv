@@ -354,7 +354,7 @@ DRI2CreateDrawable(ClientPtr client, DrawablePtr pDraw, XID id,
 }
 
 static int
-DRI2DrawableGone(pointer p, XID id)
+DRI2DrawableGone(void *p, XID id)
 {
     DRI2DrawablePtr pPriv = p;
     DRI2DrawableRefPtr ref, next;
@@ -754,7 +754,7 @@ static inline PixmapPtr GetDrawablePixmap(DrawablePtr drawable)
  * pixmap
  */
 static int
-DRI2InvalidateWalk(WindowPtr pWin, pointer data)
+DRI2InvalidateWalk(WindowPtr pWin, void *data)
 {
     if (pWin->drawable.pScreen->GetWindowPixmap(pWin) != data)
         return WT_DONTWALKCHILDREN;
@@ -1562,8 +1562,6 @@ DRI2CloseScreen(ScreenPtr pScreen)
     free(ds);
     dixSetPrivate(&pScreen->devPrivates, dri2ScreenPrivateKey, NULL);
 }
-
-extern Bool DRI2ModuleSetup(void);
 
 /* Called by InitExtensions() */
 Bool

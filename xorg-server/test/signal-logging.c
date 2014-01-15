@@ -56,7 +56,7 @@ check_signed_number_format_test(long int number)
     FormatInt64(number, string);
     if(strncmp(string, expected, 21) != 0) {
         fprintf(stderr, "Failed to convert %jd to decimal string (expected %s but got %s)\n",
-                number, expected, string);
+                (intmax_t) number, expected, string);
         return FALSE;
     }
 
@@ -93,7 +93,7 @@ check_number_format_test(long unsigned int number)
     FormatUInt64(number, string);
     if(strncmp(string, expected, 21) != 0) {
         fprintf(stderr, "Failed to convert %ju to decimal string (%s vs %s)\n",
-                number, expected, string);
+                (intmax_t) number, expected, string);
         return FALSE;
     }
 
@@ -101,7 +101,7 @@ check_number_format_test(long unsigned int number)
     FormatUInt64Hex(number, string);
     if(strncmp(string, expected, 17) != 0) {
         fprintf(stderr, "Failed to convert %ju to hexadecimal string (%s vs %s)\n",
-                number, expected, string);
+                (intmax_t) number, expected, string);
         return FALSE;
     }
 

@@ -59,7 +59,7 @@ typedef struct _Property {
     ATOM type;                  /* ignored by server */
     uint32_t format;            /* format of data for swapping - 8,16,32 */
     uint32_t size;              /* size of data in (format/8) bytes */
-    pointer data;               /* private to client */
+    void *data;                 /* private to client */
     PrivateRec *devPrivates;
 } PropertyRec;
 

@@ -34,7 +34,7 @@ typedef struct {
     int ForceHWCursorCount;
     Bool HWCursorForced;
 
-    pointer transparentData;
+    void *transparentData;
 } xf86CursorScreenRec, *xf86CursorScreenPtr;
 
 void xf86SetCursor(ScreenPtr pScreen, CursorPtr pCurs, int x, int y);

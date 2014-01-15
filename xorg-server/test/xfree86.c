@@ -73,7 +73,8 @@ xfree86_option_list_duplicate(void)
 static void
 xfree86_add_comment(void)
 {
-    char *current = NULL, *comment;
+    char *current = NULL;
+    const char *comment;
     char compare[1024] = { 0 };
 
     comment = "# foo";

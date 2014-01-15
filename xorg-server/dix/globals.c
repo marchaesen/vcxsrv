@@ -112,9 +112,9 @@ int defaultScreenSaverAllowExposures = DEFAULT_SCREEN_SAVER_EXPOSURES;
 Bool screenSaverSuspended = FALSE;
 #endif
 
-char *defaultFontPath = COMPILEDDEFAULTFONTPATH;
-char *defaultTextFont = COMPILEDDEFAULTFONT;
-char *defaultCursorFont = COMPILEDCURSORFONT;
+const char *defaultFontPath = COMPILEDDEFAULTFONTPATH;
+const char *defaultTextFont = COMPILEDDEFAULTFONT;
+const char *defaultCursorFont = COMPILEDCURSORFONT;
 FontPtr defaultFont;            /* not declared in dix.h to avoid including font.h in
                                    every compilation of dix code */
 CursorPtr rootCursor;
@@ -126,7 +126,7 @@ TimeStamp currentTime;
 int defaultColorVisualClass = -1;
 int monitorResolution = 0;
 
-char *display;
+const char *display;
 int displayfd;
 char *ConnectionInfo;
 

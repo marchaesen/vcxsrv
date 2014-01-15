@@ -37,8 +37,8 @@
 #ifndef _LNX_PS2_H_
 #define _LNX_PS2_H_
 
-extern pointer ps2LinuxCreatePrivate(DeviceIntPtr pMouse);
-extern void ps2LinuxDestroyPrivate(pointer priv);
+extern void *ps2LinuxCreatePrivate(DeviceIntPtr pMouse);
+extern void ps2LinuxDestroyPrivate(void *priv);
 extern void ps2LinuxRead(DevicePtr pDev,
                          dmxMotionProcPtr motion,
                          dmxEnqueueProcPtr enqueue,
@@ -49,7 +49,7 @@ extern void ps2LinuxGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info);
 extern int ps2LinuxOn(DevicePtr pDev);
 extern void ps2LinuxOff(DevicePtr pDev);
 extern void ps2LinuxCtrl(DevicePtr pDev, PtrCtrl * ctrl);
-extern void ps2LinuxVTPreSwitch(pointer p);
-extern void ps2LinuxVTPostSwitch(pointer p);
+extern void ps2LinuxVTPreSwitch(void *p);
+extern void ps2LinuxVTPostSwitch(void *p);
 
 #endif

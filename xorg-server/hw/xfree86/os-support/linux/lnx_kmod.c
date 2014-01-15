@@ -37,7 +37,7 @@ int
 xf86LoadKernelModule(const char *modName)
 {
     char mpPath[MAX_PATH] = "";
-    int fd = -1, status, n;
+    int fd = -1, status;
     pid_t pid;
 
     /* get the path to the modprobe program */
@@ -76,7 +76,7 @@ xf86LoadKernelModule(const char *modName)
                     "Setting of real/effective user Id to 0/0 failed");
         }
         setenv("PATH", "/sbin", 1);
-        n = execl(mpPath, "modprobe", modName, NULL);
+        execl(mpPath, "modprobe", modName, NULL);
         xf86Msg(X_WARNING, "LoadKernelModule %s\n", strerror(errno));
         exit(EXIT_FAILURE);     /* if we get here the child's exec failed */
         break;

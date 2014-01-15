@@ -90,7 +90,7 @@ _fbSetWindowPixmap(WindowPtr pWindow, PixmapPtr pPixmap)
 }
 
 Bool
-fbSetupScreen(ScreenPtr pScreen, pointer pbits, /* pointer to screen bitmap */
+fbSetupScreen(ScreenPtr pScreen, void *pbits, /* pointer to screen bitmap */
               int xsize,        /* in pixels */
               int ysize, int dpix,      /* dots per inch */
               int dpiy, int width,      /* pixel width of frame buffer */
@@ -135,7 +135,7 @@ fbSetupScreen(ScreenPtr pScreen, pointer pbits, /* pointer to screen bitmap */
 #ifdef FB_ACCESS_WRAPPER
 Bool
 wfbFinishScreenInit(ScreenPtr pScreen,
-                    pointer pbits,
+                    void *pbits,
                     int xsize,
                     int ysize,
                     int dpix,
@@ -146,7 +146,7 @@ wfbFinishScreenInit(ScreenPtr pScreen,
 #else
 Bool
 fbFinishScreenInit(ScreenPtr pScreen,
-                   pointer pbits,
+                   void *pbits,
                    int xsize, int ysize, int dpix, int dpiy, int width, int bpp)
 #endif
 {
@@ -224,7 +224,7 @@ fbFinishScreenInit(ScreenPtr pScreen,
 #ifdef FB_ACCESS_WRAPPER
 Bool
 wfbScreenInit(ScreenPtr pScreen,
-              pointer pbits,
+              void *pbits,
               int xsize,
               int ysize,
               int dpix,
@@ -242,7 +242,7 @@ wfbScreenInit(ScreenPtr pScreen,
 #else
 Bool
 fbScreenInit(ScreenPtr pScreen,
-             pointer pbits,
+             void *pbits,
              int xsize, int ysize, int dpix, int dpiy, int width, int bpp)
 {
     if (!fbSetupScreen(pScreen, pbits, xsize, ysize, dpix, dpiy, width, bpp))

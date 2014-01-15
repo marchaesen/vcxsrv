@@ -304,6 +304,11 @@ typedef enum
    MESA_FORMAT_XBGR32323232_UINT, /* ... */
    MESA_FORMAT_XBGR32323232_SINT, /* ... */
 
+   MESA_FORMAT_ABGR2101010,
+
+   MESA_FORMAT_SIGNED_RG88,
+   MESA_FORMAT_SIGNED_RG1616,
+
    MESA_FORMAT_COUNT
 } gl_format;
 
@@ -340,6 +345,9 @@ _mesa_is_format_integer_color(gl_format format);
 
 extern GLboolean
 _mesa_is_format_unsigned(gl_format format);
+
+extern GLboolean
+_mesa_is_format_signed(gl_format format);
 
 extern GLenum
 _mesa_get_format_color_encoding(gl_format format);

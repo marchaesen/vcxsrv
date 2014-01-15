@@ -61,7 +61,7 @@ typedef struct {
     (XvMCScreenPtr)(dixLookupPrivate(&(pScreen)->devPrivates, XvMCScreenKey))
 
 static int
-XvMCDestroyContextRes(pointer data, XID id)
+XvMCDestroyContextRes(void *data, XID id)
 {
     XvMCContextPtr pContext = (XvMCContextPtr) data;
 
@@ -78,7 +78,7 @@ XvMCDestroyContextRes(pointer data, XID id)
 }
 
 static int
-XvMCDestroySurfaceRes(pointer data, XID id)
+XvMCDestroySurfaceRes(void *data, XID id)
 {
     XvMCSurfacePtr pSurface = (XvMCSurfacePtr) data;
     XvMCContextPtr pContext = pSurface->context;
@@ -87,13 +87,13 @@ XvMCDestroySurfaceRes(pointer data, XID id)
     (*pScreenPriv->adaptors[pContext->adapt_num].DestroySurface) (pSurface);
     free(pSurface);
 
-    XvMCDestroyContextRes((pointer) pContext, pContext->context_id);
+    XvMCDestroyContextRes((void *) pContext, pContext->context_id);
 
     return Success;
 }
 
 static int
-XvMCDestroySubpictureRes(pointer data, XID id)
+XvMCDestroySubpictureRes(void *data, XID id)
 {
     XvMCSubpicturePtr pSubpict = (XvMCSubpicturePtr) data;
     XvMCContextPtr pContext = pSubpict->context;
@@ -102,7 +102,7 @@ XvMCDestroySubpictureRes(pointer data, XID id)
     (*pScreenPriv->adaptors[pContext->adapt_num].DestroySubpicture) (pSubpict);
     free(pSubpict);
 
-    XvMCDestroyContextRes((pointer) pContext, pContext->context_id);
+    XvMCDestroyContextRes((void *) pContext, pContext->context_id);
 
     return Success;
 }
@@ -276,7 +276,7 @@ ProcXvMCCreateContext(ClientPtr client)
 static int
 ProcXvMCDestroyContext(ClientPtr client)
 {
-    pointer val;
+    void *val;
     int rc;
 
     REQUEST(xvmcDestroyContextReq);
@@ -306,7 +306,7 @@ ProcXvMCCreateSurface(ClientPtr client)
     REQUEST(xvmcCreateSurfaceReq);
     REQUEST_SIZE_MATCH(xvmcCreateSurfaceReq);
 
-    result = dixLookupResourceByType((pointer *) &pContext, stuff->context_id,
+    result = dixLookupResourceByType((void **) &pContext, stuff->context_id,
                                      XvMCRTContext, client, DixUseAccess);
     if (result != Success)
         return result;
@@ -350,7 +350,7 @@ ProcXvMCCreateSurface(ClientPtr client)
 static int
 ProcXvMCDestroySurface(ClientPtr client)
 {
-    pointer val;
+    void *val;
     int rc;
 
     REQUEST(xvmcDestroySurfaceReq);
@@ -382,7 +382,7 @@ ProcXvMCCreateSubpicture(ClientPtr client)
     REQUEST(xvmcCreateSubpictureReq);
     REQUEST_SIZE_MATCH(xvmcCreateSubpictureReq);
 
-    result = dixLookupResourceByType((pointer *) &pContext, stuff->context_id,
+    result = dixLookupResourceByType((void **) &pContext, stuff->context_id,
                                      XvMCRTContext, client, DixUseAccess);
     if (result != Success)
         return result;
@@ -474,7 +474,7 @@ ProcXvMCCreateSubpicture(ClientPtr client)
 static int
 ProcXvMCDestroySubpicture(ClientPtr client)
 {
-    pointer val;
+    void *val;
     int rc;
 
     REQUEST(xvmcDestroySubpictureReq);
@@ -800,8 +800,8 @@ XvMCFindXvImage(XvPortPtr pPort, CARD32 id)
 }
 
 int
-xf86XvMCRegisterDRInfo(ScreenPtr pScreen, char *name,
-                       char *busID, int major, int minor, int patchLevel)
+xf86XvMCRegisterDRInfo(ScreenPtr pScreen, const char *name,
+                       const char *busID, int major, int minor, int patchLevel)
 {
     XvMCScreenPtr pScreenPriv = XVMC_GET_PRIVATE(pScreen);
 

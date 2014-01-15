@@ -68,7 +68,7 @@ extern void _mesa_glsl_error(YYLTYPE *locp, _mesa_glsl_parse_state *state,
 
 
 struct _mesa_glsl_parse_state {
-   _mesa_glsl_parse_state(struct gl_context *_ctx, GLenum target,
+   _mesa_glsl_parse_state(struct gl_context *_ctx, gl_shader_stage stage,
 			  void *mem_ctx);
 
    DECLARE_RALLOC_CXX_OPERATORS(_mesa_glsl_parse_state);
@@ -169,7 +169,7 @@ struct _mesa_glsl_parse_state {
 
    bool es_shader;
    unsigned language_version;
-   gl_shader_type target;
+   gl_shader_stage stage;
 
    /**
     * Number of nested struct_specifier levels
@@ -354,6 +354,8 @@ struct _mesa_glsl_parse_state {
    bool EXT_shader_integer_mix_warn;
    bool ARB_shader_atomic_counters_enable;
    bool ARB_shader_atomic_counters_warn;
+   bool AMD_shader_trinary_minmax_enable;
+   bool AMD_shader_trinary_minmax_warn;
    /*@}*/
 
    /** Extensions supported by the OpenGL implementation. */
@@ -425,14 +427,6 @@ extern bool _mesa_glsl_process_extension(const char *name, YYLTYPE *name_locp,
 					 YYLTYPE *behavior_locp,
 					 _mesa_glsl_parse_state *state);
 
-/**
- * Get the textual name of the specified shader target (which is a
- * gl_shader_type).
- */
-extern const char *
-_mesa_shader_type_to_string(unsigned target);
-
-
 #endif /* __cplusplus */
 
 
@@ -443,8 +437,12 @@ _mesa_shader_type_to_string(unsigned target);
 extern "C" {
 #endif
 
+/**
+ * Get the textual name of the specified shader stage (which is a
+ * gl_shader_stage).
+ */
 extern const char *
-_mesa_shader_enum_to_string(GLenum type);
+_mesa_shader_stage_to_string(unsigned stage);
 
 extern int glcpp_preprocess(void *ctx, const char **shader, char **info_log,
                       const struct gl_extensions *extensions, struct gl_context *gl_ctx);

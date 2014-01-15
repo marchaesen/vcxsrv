@@ -148,7 +148,7 @@ int __wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client,
                            Mask access);
 int __real_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client,
                            Mask access);
-Bool __wrap_AddResource(XID id, RESTYPE type, pointer value);
+Bool __wrap_AddResource(XID id, RESTYPE type, void *value);
 int __wrap_dixLookupClient(ClientPtr *c, XID id, ClientPtr client, Mask access);
 int __real_dixLookupClient(ClientPtr *c, XID id, ClientPtr client, Mask access);
 

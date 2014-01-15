@@ -137,15 +137,15 @@ typedef struct _VGAarbiterScreen {
 } VGAarbiterScreenRec, *VGAarbiterScreenPtr;
 
 typedef struct _VGAarbiterGC {
-    GCOps *wrapOps;
-    GCFuncs *wrapFuncs;
+    const GCOps *wrapOps;
+    const GCFuncs *wrapFuncs;
 } VGAarbiterGCRec, *VGAarbiterGCPtr;
 
 /* Screen funcs */
-static void VGAarbiterBlockHandler(ScreenPtr pScreen, pointer pTimeout,
-                                   pointer pReadmask);
+static void VGAarbiterBlockHandler(ScreenPtr pScreen, void *pTimeout,
+                                   void *pReadmask);
 static void VGAarbiterWakeupHandler(ScreenPtr pScreen,
-                                    unsigned long result, pointer pReadmask);
+                                    unsigned long result, void *pReadmask);
 static Bool VGAarbiterCloseScreen(ScreenPtr pScreen);
 static void VGAarbiterGetImage(DrawablePtr pDrawable, int sx, int sy, int w,
                                int h, unsigned int format,
@@ -188,7 +188,7 @@ static void VGAarbiterValidateGC(GCPtr pGC, unsigned long changes,
 static void VGAarbiterChangeGC(GCPtr pGC, unsigned long mask);
 static void VGAarbiterCopyGC(GCPtr pGCSrc, unsigned long mask, GCPtr pGCDst);
 static void VGAarbiterDestroyGC(GCPtr pGC);
-static void VGAarbiterChangeClip(GCPtr pGC, int type, pointer pvalue,
+static void VGAarbiterChangeClip(GCPtr pGC, int type, void *pvalue,
                                  int nrects);
 static void VGAarbiterDestroyClip(GCPtr pGC);
 static void VGAarbiterCopyClip(GCPtr pgcDst, GCPtr pgcSrc);
@@ -236,10 +236,10 @@ static void VGAarbiterImageText16(DrawablePtr pDraw, GCPtr pGC, int x, int y,
                                   int count, unsigned short *chars);
 static void VGAarbiterImageGlyphBlt(DrawablePtr pDraw, GCPtr pGC, int xInit,
                                     int yInit, unsigned int nglyph,
-                                    CharInfoPtr * ppci, pointer pglyphBase);
+                                    CharInfoPtr * ppci, void *pglyphBase);
 static void VGAarbiterPolyGlyphBlt(DrawablePtr pDraw, GCPtr pGC, int xInit,
                                    int yInit, unsigned int nglyph,
-                                   CharInfoPtr * ppci, pointer pglyphBase);
+                                   CharInfoPtr * ppci, void *pglyphBase);
 static void VGAarbiterPushPixels(GCPtr pGC, PixmapPtr pBitMap, DrawablePtr
                                  pDraw, int dx, int dy, int xOrg, int yOrg);
 

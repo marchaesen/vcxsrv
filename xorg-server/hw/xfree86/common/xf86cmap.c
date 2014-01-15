@@ -224,7 +224,7 @@ xf86HandleColormaps(ScreenPtr pScreen,
     ComputeGamma(pScreenPriv);
 
     /* get the default map */
-    dixLookupResourceByType((pointer *) &pDefMap, pScreen->defColormap,
+    dixLookupResourceByType((void **) &pDefMap, pScreen->defColormap,
                             RT_COLORMAP, serverClient, DixInstallAccess);
 
     if (!CMapAllocateColormapPrivate(pDefMap)) {

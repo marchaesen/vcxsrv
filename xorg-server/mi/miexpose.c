@@ -610,7 +610,7 @@ miPaintWindow(WindowPtr pWin, RegionPtr prgn, int what)
         gcmask |= GCPlaneMask;
 #endif
         gcval[c++].val = FillTiled;
-        gcval[c++].ptr = (pointer) fill.pixmap;
+        gcval[c++].ptr = (void *) fill.pixmap;
         gcval[c++].val = tile_x_off;
         gcval[c++].val = tile_y_off;
         gcmask |= GCFillStyle | GCTile | GCTileStipXOrigin | GCTileStipYOrigin;

@@ -31,14 +31,14 @@
 Bool
 
 fb24_32FinishScreenInit(ScreenPtr pScreen,
-                        pointer pbits,
+                        void *pbits,
                         int xsize,
                         int ysize, int dpix, int dpiy, int width, int bpp);
 
 Bool
 
 fb24_32ScreenInit(ScreenPtr pScreen,
-                  pointer pbits,
+                  void *pbits,
                   int xsize, int ysize, int dpix, int dpiy, int width, int bpp);
 
 #endif

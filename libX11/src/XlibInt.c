@@ -76,27 +76,6 @@ xthread_t (*_Xthread_self_fn)(void) = NULL;
 
 #endif /* XTHREADS */
 
-/* check for both EAGAIN and EWOULDBLOCK, because some supposedly POSIX
- * systems are broken and return EWOULDBLOCK when they should return EAGAIN
- */
-#ifdef WIN32
-#define ETEST() (WSAGetLastError() == WSAEWOULDBLOCK)
-#else
-#ifdef __CYGWIN__ /* Cygwin uses ENOBUFS to signal socket is full */
-#define ETEST() (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOBUFS)
-#else
-#if defined(EAGAIN) && defined(EWOULDBLOCK)
-#define ETEST() (errno == EAGAIN || errno == EWOULDBLOCK)
-#else
-#ifdef EAGAIN
-#define ETEST() (errno == EAGAIN)
-#else
-#define ETEST() (errno == EWOULDBLOCK)
-#endif /* EAGAIN */
-#endif /* EAGAIN && EWOULDBLOCK */
-#endif /* __CYGWIN__ */
-#endif /* WIN32 */
-
 #ifdef WIN32
 #define ECHECK(err) (WSAGetLastError() == err)
 #define ESET(val) WSASetLastError(val)
@@ -107,18 +86,6 @@ xthread_t (*_Xthread_self_fn)(void) = NULL;
 #else
 #define ECHECK(err) (errno == err)
 #define ESET(val) errno = val
-#endif
-#endif
-
-#if defined(LOCALCONN) || defined(LACHMAN)
-#ifdef EMSGSIZE
-#define ESZTEST() (ECHECK(EMSGSIZE) || ECHECK(ERANGE))
-#else
-#define ESZTEST() ECHECK(ERANGE)
-#endif
-#else
-#ifdef EMSGSIZE
-#define ESZTEST() ECHECK(EMSGSIZE)
 #endif
 #endif
 

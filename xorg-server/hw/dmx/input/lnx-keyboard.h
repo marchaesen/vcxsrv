@@ -37,19 +37,19 @@
 #ifndef _LNX_KEYBOARD_H_
 #define _LNX_KEYBOARD_H_
 
-extern pointer kbdLinuxCreatePrivate(DeviceIntPtr pKeyboard);
-extern void kbdLinuxDestroyPrivate(pointer private);
+extern void *kbdLinuxCreatePrivate(DeviceIntPtr pKeyboard);
+extern void kbdLinuxDestroyPrivate(void *private);
 
 extern void kbdLinuxInit(DevicePtr pDev);
 extern void kbdLinuxGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info);
 extern int kbdLinuxOn(DevicePtr pDev);
 extern void kbdLinuxOff(DevicePtr pDev);
 
-extern void kbdLinuxVTPreSwitch(pointer p);
-extern void kbdLinuxVTPostSwitch(pointer p);
-extern int kbdLinuxVTSwitch(pointer p, int vt,
+extern void kbdLinuxVTPreSwitch(void *p);
+extern void kbdLinuxVTPostSwitch(void *p);
+extern int kbdLinuxVTSwitch(void *p, int vt,
                             dmxVTSwitchReturnProcPtr switch_return,
-                            pointer switch_return_data);
+                            void *switch_return_data);
 
 extern void kbdLinuxRead(DevicePtr pDev,
                          dmxMotionProcPtr motion,

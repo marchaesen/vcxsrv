@@ -500,6 +500,7 @@ bt829_Detect(I2CBusPtr b, I2CSlaveAddr addr)
 {
     BT829Ptr bt;
     I2CByte a;
+    char *devname;
 
     bt = calloc(1, sizeof(BT829Rec));
     if (bt == NULL)
@@ -520,31 +521,31 @@ bt829_Detect(I2CBusPtr b, I2CSlaveAddr addr)
 
     bt->id = btread(bt, IDCODE);
 
-    free(bt->d.DevName);
-    bt->d.DevName = calloc(200, sizeof(char));
+    free((void *) bt->d.DevName);
+    bt->d.DevName = devname = calloc(200, sizeof(char));
     switch (BTVERSION) {
     case BT815:
-        sprintf(bt->d.DevName, "bt815a video decoder, revision %d",
+        sprintf(devname, "bt815a video decoder, revision %d",
                 bt->id & 0xf);
         break;
     case BT817:
-        sprintf(bt->d.DevName, "bt817a video decoder, revision %d",
+        sprintf(devname, "bt817a video decoder, revision %d",
                 bt->id & 0xf);
         break;
     case BT819:
-        sprintf(bt->d.DevName, "bt819a video decoder, revision %d",
+        sprintf(devname, "bt819a video decoder, revision %d",
                 bt->id & 0xf);
         break;
     case BT827:
-        sprintf(bt->d.DevName, "bt827a/b video decoder, revision %d",
+        sprintf(devname, "bt827a/b video decoder, revision %d",
                 bt->id & 0xf);
         break;
     case BT829:
-        sprintf(bt->d.DevName, "bt829a/b video decoder, revision %d",
+        sprintf(devname, "bt829a/b video decoder, revision %d",
                 bt->id & 0xf);
         break;
     default:
-        sprintf(bt->d.DevName,
+        sprintf(devname,
                 "bt8xx/unknown video decoder version %d, revision %d",
                 bt->id >> 4, bt->id & 0xf);
         break;

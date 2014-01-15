@@ -87,8 +87,6 @@ static int HostXWantDamageDebug = 0;
 
 extern EphyrKeySyms ephyrKeySyms;
 
-extern int monitorResolution;
-
 extern Bool EphyrWantResize;
 
 char *ephyrResName = NULL;

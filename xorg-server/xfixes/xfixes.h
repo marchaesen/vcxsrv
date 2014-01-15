@@ -35,7 +35,7 @@ extern _X_EXPORT int XFixesErrorBase;
 #define VERIFY_REGION(pRegion, rid, client, mode)			\
     do {								\
 	int err;							\
-	err = dixLookupResourceByType((pointer *) &pRegion, rid,	\
+	err = dixLookupResourceByType((void **) &pRegion, rid,	\
 				      RegionResType, client, mode);	\
 	if (err != Success) {						\
 	    client->errorValue = rid;					\

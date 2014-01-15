@@ -37,12 +37,12 @@
 #endif
 #include <pciaccess.h>
 
-static int pciCfg1in(CARD16 addr, CARD32 *val);
-static int pciCfg1out(CARD16 addr, CARD32 val);
-static int pciCfg1inw(CARD16 addr, CARD16 *val);
-static int pciCfg1outw(CARD16 addr, CARD16 val);
-static int pciCfg1inb(CARD16 addr, CARD8 *val);
-static int pciCfg1outb(CARD16 addr, CARD8 val);
+static int pciCfg1in(uint16_t addr, uint32_t *val);
+static int pciCfg1out(uint16_t addr, uint32_t val);
+static int pciCfg1inw(uint16_t addr, uint16_t *val);
+static int pciCfg1outw(uint16_t addr, uint16_t val);
+static int pciCfg1inb(uint16_t addr, uint8_t *val);
+static int pciCfg1outb(uint16_t addr, uint8_t val);
 
 #if defined (_PC)
 static void SetResetBIOSVars(xf86Int10InfoPtr pInt, Bool set);
@@ -58,13 +58,13 @@ setup_int(xf86Int10InfoPtr pInt)
             return -1;
         Int10Current = pInt;
     }
-    X86_EAX = (CARD32) pInt->ax;
-    X86_EBX = (CARD32) pInt->bx;
-    X86_ECX = (CARD32) pInt->cx;
-    X86_EDX = (CARD32) pInt->dx;
-    X86_ESI = (CARD32) pInt->si;
-    X86_EDI = (CARD32) pInt->di;
-    X86_EBP = (CARD32) pInt->bp;
+    X86_EAX = (uint32_t) pInt->ax;
+    X86_EBX = (uint32_t) pInt->bx;
+    X86_ECX = (uint32_t) pInt->cx;
+    X86_EDX = (uint32_t) pInt->dx;
+    X86_ESI = (uint32_t) pInt->si;
+    X86_EDI = (uint32_t) pInt->di;
+    X86_EBP = (uint32_t) pInt->bp;
     X86_ESP = 0x1000;
     X86_SS = pInt->stackseg >> 4;
     X86_EIP = 0x0600;
@@ -86,15 +86,15 @@ void
 finish_int(xf86Int10InfoPtr pInt, int sig)
 {
     OsReleaseSignals();
-    pInt->ax = (CARD32) X86_EAX;
-    pInt->bx = (CARD32) X86_EBX;
-    pInt->cx = (CARD32) X86_ECX;
-    pInt->dx = (CARD32) X86_EDX;
-    pInt->si = (CARD32) X86_ESI;
-    pInt->di = (CARD32) X86_EDI;
-    pInt->es = (CARD16) X86_ES;
-    pInt->bp = (CARD32) X86_EBP;
-    pInt->flags = (CARD32) X86_FLAGS;
+    pInt->ax = (uint32_t) X86_EAX;
+    pInt->bx = (uint32_t) X86_EBX;
+    pInt->cx = (uint32_t) X86_ECX;
+    pInt->dx = (uint32_t) X86_EDX;
+    pInt->si = (uint32_t) X86_ESI;
+    pInt->di = (uint32_t) X86_EDI;
+    pInt->es = (uint16_t) X86_ES;
+    pInt->bp = (uint32_t) X86_EBP;
+    pInt->flags = (uint32_t) X86_FLAGS;
 #if defined (_PC)
     if (pInt->Flags & RESTORE_BIOS_SCRATCH)
         SetResetBIOSVars(pInt, FALSE);
@@ -102,23 +102,23 @@ finish_int(xf86Int10InfoPtr pInt, int sig)
 }
 
 /* general software interrupt handler */
-CARD32
+uint32_t
 getIntVect(xf86Int10InfoPtr pInt, int num)
 {
     return MEM_RW(pInt, num << 2) + (MEM_RW(pInt, (num << 2) + 2) << 4);
 }
 
 void
-pushw(xf86Int10InfoPtr pInt, CARD16 val)
+pushw(xf86Int10InfoPtr pInt, uint16_t val)
 {
     X86_ESP -= 2;
-    MEM_WW(pInt, ((CARD32) X86_SS << 4) + X86_SP, val);
+    MEM_WW(pInt, ((uint32_t) X86_SS << 4) + X86_SP, val);
 }
 
 int
 run_bios_int(int num, xf86Int10InfoPtr pInt)
 {
-    CARD32 eflags;
+    uint32_t eflags;
 
 #ifndef _PC
     /* check if bios vector is initialized */
@@ -167,10 +167,10 @@ void
 dump_code(xf86Int10InfoPtr pInt)
 {
     int i;
-    CARD32 lina = SEG_ADR((CARD32), X86_CS, IP);
+    uint32_t lina = SEG_ADR((uint32_t), X86_CS, IP);
 
     xf86DrvMsgVerb(pInt->pScrn->scrnIndex, X_INFO, 3, "code at 0x%8.8" PRIx32 ":\n",
-                   lina);
+                   (unsigned) lina);
     for (i = 0; i < 0x10; i++)
         xf86ErrorFVerb(3, " %2.2x", MEM_RB(pInt, lina + i));
     xf86ErrorFVerb(3, "\n");
@@ -203,8 +203,8 @@ void
 stack_trace(xf86Int10InfoPtr pInt)
 {
     int i = 0;
-    unsigned long stack = SEG_ADR((CARD32), X86_SS, SP);
-    unsigned long tail = (CARD32) ((X86_SS << 4) + 0x1000);
+    unsigned long stack = SEG_ADR((uint32_t), X86_SS, SP);
+    unsigned long tail = (uint32_t) ((X86_SS << 4) + 0x1000);
 
     if (stack >= tail)
         return;
@@ -222,14 +222,14 @@ stack_trace(xf86Int10InfoPtr pInt)
 
 int
 port_rep_inb(xf86Int10InfoPtr pInt,
-             CARD16 port, CARD32 base, int d_f, CARD32 count)
+             uint16_t port, uint32_t base, int d_f, uint32_t count)
 {
     register int inc = d_f ? -1 : 1;
-    CARD32 dst = base;
+    uint32_t dst = base;
 
     if (PRINT_PORT && DEBUG_IO_TRACE())
         ErrorF(" rep_insb(%#x) %" PRIu32 " bytes at %8.8" PRIx32 " %s\n",
-               port, count, base, d_f ? "up" : "down");
+               port, (unsigned) count, (unsigned) base, d_f ? "up" : "down");
     while (count--) {
         MEM_WB(pInt, dst, x_inb(port));
         dst += inc;
@@ -239,14 +239,14 @@ port_rep_inb(xf86Int10InfoPtr pInt,
 
 int
 port_rep_inw(xf86Int10InfoPtr pInt,
-             CARD16 port, CARD32 base, int d_f, CARD32 count)
+             uint16_t port, uint32_t base, int d_f, uint32_t count)
 {
     register int inc = d_f ? -2 : 2;
-    CARD32 dst = base;
+    uint32_t dst = base;
 
     if (PRINT_PORT && DEBUG_IO_TRACE())
         ErrorF(" rep_insw(%#x) %" PRIu32 " bytes at %8.8" PRIx32 " %s\n",
-               port, count, base, d_f ? "up" : "down");
+               port, (unsigned) count, (unsigned) base, d_f ? "up" : "down");
     while (count--) {
         MEM_WW(pInt, dst, x_inw(port));
         dst += inc;
@@ -256,14 +256,14 @@ port_rep_inw(xf86Int10InfoPtr pInt,
 
 int
 port_rep_inl(xf86Int10InfoPtr pInt,
-             CARD16 port, CARD32 base, int d_f, CARD32 count)
+             uint16_t port, uint32_t base, int d_f, uint32_t count)
 {
     register int inc = d_f ? -4 : 4;
-    CARD32 dst = base;
+    uint32_t dst = base;
 
     if (PRINT_PORT && DEBUG_IO_TRACE())
         ErrorF(" rep_insl(%#x) %" PRIu32 " bytes at %8.8" PRIx32 " %s\n",
-               port, count, base, d_f ? "up" : "down");
+               port, (unsigned) count, (unsigned) base, d_f ? "up" : "down");
     while (count--) {
         MEM_WL(pInt, dst, x_inl(port));
         dst += inc;
@@ -273,14 +273,14 @@ port_rep_inl(xf86Int10InfoPtr pInt,
 
 int
 port_rep_outb(xf86Int10InfoPtr pInt,
-              CARD16 port, CARD32 base, int d_f, CARD32 count)
+              uint16_t port, uint32_t base, int d_f, uint32_t count)
 {
     register int inc = d_f ? -1 : 1;
-    CARD32 dst = base;
+    uint32_t dst = base;
 
     if (PRINT_PORT && DEBUG_IO_TRACE())
         ErrorF(" rep_outb(%#x) %" PRIu32 " bytes at %8.8" PRIx32 " %s\n",
-               port, count, base, d_f ? "up" : "down");
+               port, (unsigned) count, (unsigned) base, d_f ? "up" : "down");
     while (count--) {
         x_outb(port, MEM_RB(pInt, dst));
         dst += inc;
@@ -290,14 +290,14 @@ port_rep_outb(xf86Int10InfoPtr pInt,
 
 int
 port_rep_outw(xf86Int10InfoPtr pInt,
-              CARD16 port, CARD32 base, int d_f, CARD32 count)
+              uint16_t port, uint32_t base, int d_f, uint32_t count)
 {
     register int inc = d_f ? -2 : 2;
-    CARD32 dst = base;
+    uint32_t dst = base;
 
     if (PRINT_PORT && DEBUG_IO_TRACE())
         ErrorF(" rep_outw(%#x) %" PRIu32 " bytes at %8.8" PRIx32 " %s\n",
-               port, count, base, d_f ? "up" : "down");
+               port, (unsigned) count, (unsigned) base, d_f ? "up" : "down");
     while (count--) {
         x_outw(port, MEM_RW(pInt, dst));
         dst += inc;
@@ -307,14 +307,14 @@ port_rep_outw(xf86Int10InfoPtr pInt,
 
 int
 port_rep_outl(xf86Int10InfoPtr pInt,
-              CARD16 port, CARD32 base, int d_f, CARD32 count)
+              uint16_t port, uint32_t base, int d_f, uint32_t count)
 {
     register int inc = d_f ? -4 : 4;
-    CARD32 dst = base;
+    uint32_t dst = base;
 
     if (PRINT_PORT && DEBUG_IO_TRACE())
         ErrorF(" rep_outl(%#x) %" PRIu32 " bytes at %8.8" PRIx32 " %s\n",
-               port, count, base, d_f ? "up" : "down");
+               port, (unsigned) count, (unsigned) base, d_f ? "up" : "down");
     while (count--) {
         x_outl(port, MEM_RL(pInt, dst));
         dst += inc;
@@ -322,14 +322,14 @@ port_rep_outl(xf86Int10InfoPtr pInt,
     return dst - base;
 }
 
-CARD8
-x_inb(CARD16 port)
+uint8_t
+x_inb(uint16_t port)
 {
-    CARD8 val;
+    uint8_t val;
 
     if (port == 0x40) {
         Int10Current->inb40time++;
-        val = (CARD8) (Int10Current->inb40time >>
+        val = (uint8_t) (Int10Current->inb40time >>
                        ((Int10Current->inb40time & 1) << 3));
         if (PRINT_PORT && DEBUG_IO_TRACE())
             ErrorF(" inb(%#x) = %2.2x\n", port, val);
@@ -353,10 +353,10 @@ x_inb(CARD16 port)
     return val;
 }
 
-CARD16
-x_inw(CARD16 port)
+uint16_t
+x_inw(uint16_t port)
 {
-    CARD16 val;
+    uint16_t val;
 
     if (port == 0x5c) {
         struct timeval tv;
@@ -366,7 +366,7 @@ x_inw(CARD16 port)
          * Approximate this by dividing by 3.
          */
         X_GETTIMEOFDAY(&tv);
-        val = (CARD16) (tv.tv_usec / 3);
+        val = (uint16_t) (tv.tv_usec / 3);
     }
     else if (!pciCfg1inw(port, &val)) {
         val = pci_io_read16(Int10Current->io, port);
@@ -377,7 +377,7 @@ x_inw(CARD16 port)
 }
 
 void
-x_outb(CARD16 port, CARD8 val)
+x_outb(uint16_t port, uint8_t val)
 {
     if ((port == 0x43) && (val == 0)) {
         struct timeval tv;
@@ -389,7 +389,7 @@ x_outb(CARD16 port, CARD8 val)
          * the bottom bit as a byte select.  See inb(0x40) above.
          */
         X_GETTIMEOFDAY(&tv);
-        Int10Current->inb40time = (CARD16) (tv.tv_usec | 1);
+        Int10Current->inb40time = (uint16_t) (tv.tv_usec | 1);
         if (PRINT_PORT && DEBUG_IO_TRACE())
             ErrorF(" outb(%#x, %2.2x)\n", port, val);
 #ifdef __NOT_YET__
@@ -411,7 +411,7 @@ x_outb(CARD16 port, CARD8 val)
 }
 
 void
-x_outw(CARD16 port, CARD16 val)
+x_outw(uint16_t port, uint16_t val)
 {
 
     if (!pciCfg1outw(port, val)) {
@@ -421,66 +421,66 @@ x_outw(CARD16 port, CARD16 val)
     }
 }
 
-CARD32
-x_inl(CARD16 port)
+uint32_t
+x_inl(uint16_t port)
 {
-    CARD32 val;
+    uint32_t val;
 
     if (!pciCfg1in(port, &val)) {
         val = pci_io_read32(Int10Current->io, port);
         if (PRINT_PORT && DEBUG_IO_TRACE())
-            ErrorF(" inl(%#x) = %8.8" PRIx32 "\n", port, val);
+            ErrorF(" inl(%#x) = %8.8" PRIx32 "\n", port, (unsigned) val);
     }
     return val;
 }
 
 void
-x_outl(CARD16 port, CARD32 val)
+x_outl(uint16_t port, uint32_t val)
 {
     if (!pciCfg1out(port, val)) {
         if (PRINT_PORT && DEBUG_IO_TRACE())
-            ErrorF(" outl(%#x, %8.8" PRIx32 ")\n", port, val);
+            ErrorF(" outl(%#x, %8.8" PRIx32 ")\n", port, (unsigned) val);
         pci_io_write32(Int10Current->io, port, val);
     }
 }
 
-CARD8
-Mem_rb(CARD32 addr)
+uint8_t
+Mem_rb(uint32_t addr)
 {
     return (*Int10Current->mem->rb) (Int10Current, addr);
 }
 
-CARD16
-Mem_rw(CARD32 addr)
+uint16_t
+Mem_rw(uint32_t addr)
 {
     return (*Int10Current->mem->rw) (Int10Current, addr);
 }
 
-CARD32
-Mem_rl(CARD32 addr)
+uint32_t
+Mem_rl(uint32_t addr)
 {
     return (*Int10Current->mem->rl) (Int10Current, addr);
 }
 
 void
-Mem_wb(CARD32 addr, CARD8 val)
+Mem_wb(uint32_t addr, uint8_t val)
 {
     (*Int10Current->mem->wb) (Int10Current, addr, val);
 }
 
 void
-Mem_ww(CARD32 addr, CARD16 val)
+Mem_ww(uint32_t addr, uint16_t val)
 {
     (*Int10Current->mem->ww) (Int10Current, addr, val);
 }
 
 void
-Mem_wl(CARD32 addr, CARD32 val)
+Mem_wl(uint32_t addr, uint32_t val)
 {
     (*Int10Current->mem->wl) (Int10Current, addr, val);
 }
 
-static CARD32 PciCfg1Addr = 0;
+static uint32_t PciCfg1Addr = 0;
 
 #define PCI_DOM_FROM_TAG(tag)  (((tag) >> 24) & (PCI_DOM_MASK))
 #define PCI_BUS_FROM_TAG(tag)  (((tag) >> 16) & (PCI_DOMBUS_MASK))
@@ -491,10 +491,10 @@ static CARD32 PciCfg1Addr = 0;
 #define PCI_TAG(x)    ((x) & 0x7fffff00)
 
 static struct pci_device *
-pci_device_for_cfg_address(CARD32 addr)
+pci_device_for_cfg_address(uint32_t addr)
 {
     struct pci_device *dev = NULL;
-    CARD32 tag = PCI_TAG(addr);
+    uint32_t tag = PCI_TAG(addr);
 
     struct pci_slot_match slot_match = {
         .domain = PCI_DOM_FROM_TAG(tag),
@@ -516,7 +516,7 @@ pci_device_for_cfg_address(CARD32 addr)
 }
 
 static int
-pciCfg1in(CARD16 addr, CARD32 *val)
+pciCfg1in(uint16_t addr, uint32_t *val)
 {
     if (addr == 0xCF8) {
         *val = PciCfg1Addr;
@@ -526,15 +526,15 @@ pciCfg1in(CARD16 addr, CARD32 *val)
         pci_device_cfg_read_u32(pci_device_for_cfg_address(PciCfg1Addr),
                                 (uint32_t *) val, PCI_OFFSET(PciCfg1Addr));
         if (PRINT_PORT && DEBUG_IO_TRACE())
-            ErrorF(" cfg_inl(%#" PRIx32 ") = %8.8" PRIx32 "\n", PciCfg1Addr,
-                   *val);
+            ErrorF(" cfg_inl(%#" PRIx32 ") = %8.8" PRIx32 "\n", (unsigned) PciCfg1Addr,
+                   (unsigned) *val);
         return 1;
     }
     return 0;
 }
 
 static int
-pciCfg1out(CARD16 addr, CARD32 val)
+pciCfg1out(uint16_t addr, uint32_t val)
 {
     if (addr == 0xCF8) {
         PciCfg1Addr = val;
@@ -542,8 +542,8 @@ pciCfg1out(CARD16 addr, CARD32 val)
     }
     if (addr == 0xCFC) {
         if (PRINT_PORT && DEBUG_IO_TRACE())
-            ErrorF(" cfg_outl(%#" PRIx32 ", %8.8" PRIx32 ")\n", PciCfg1Addr,
-                   val);
+            ErrorF(" cfg_outl(%#" PRIx32 ", %8.8" PRIx32 ")\n", (unsigned) PciCfg1Addr,
+                   (unsigned) val);
         pci_device_cfg_write_u32(pci_device_for_cfg_address(PciCfg1Addr), val,
                                  PCI_OFFSET(PciCfg1Addr));
         return 1;
@@ -552,7 +552,7 @@ pciCfg1out(CARD16 addr, CARD32 val)
 }
 
 static int
-pciCfg1inw(CARD16 addr, CARD16 *val)
+pciCfg1inw(uint16_t addr, uint16_t *val)
 {
     int shift;
 
@@ -567,30 +567,30 @@ pciCfg1inw(CARD16 addr, CARD16 *val)
         pci_device_cfg_read_u16(pci_device_for_cfg_address(PciCfg1Addr),
                                 val, PCI_OFFSET(PciCfg1Addr) + offset);
         if (PRINT_PORT && DEBUG_IO_TRACE())
-            ErrorF(" cfg_inw(%#" PRIx32 ") = %4.4x\n", PciCfg1Addr + offset,
-                   *val);
+            ErrorF(" cfg_inw(%#" PRIx32 ") = %4.4x\n", (unsigned) (PciCfg1Addr + offset),
+                   (unsigned) *val);
         return 1;
     }
     return 0;
 }
 
 static int
-pciCfg1outw(CARD16 addr, CARD16 val)
+pciCfg1outw(uint16_t addr, uint16_t val)
 {
     int shift;
 
     if ((addr >= 0xCF8) && (addr <= 0xCFB)) {
         shift = (addr - 0xCF8) * 8;
         PciCfg1Addr &= ~(0xffff << shift);
-        PciCfg1Addr |= ((CARD32) val) << shift;
+        PciCfg1Addr |= ((uint32_t) val) << shift;
         return 1;
     }
     if ((addr >= 0xCFC) && (addr <= 0xCFF)) {
         const unsigned offset = addr - 0xCFC;
 
         if (PRINT_PORT && DEBUG_IO_TRACE())
-            ErrorF(" cfg_outw(%#" PRIx32 ", %4.4x)\n", PciCfg1Addr + offset,
-                   val);
+            ErrorF(" cfg_outw(%#" PRIx32 ", %4.4x)\n", (unsigned) (PciCfg1Addr + offset),
+                   (unsigned) val);
         pci_device_cfg_write_u16(pci_device_for_cfg_address(PciCfg1Addr), val,
                                  PCI_OFFSET(PciCfg1Addr) + offset);
         return 1;
@@ -599,7 +599,7 @@ pciCfg1outw(CARD16 addr, CARD16 val)
 }
 
 static int
-pciCfg1inb(CARD16 addr, CARD8 *val)
+pciCfg1inb(uint16_t addr, uint8_t *val)
 {
     int shift;
 
@@ -614,30 +614,30 @@ pciCfg1inb(CARD16 addr, CARD8 *val)
         pci_device_cfg_read_u8(pci_device_for_cfg_address(PciCfg1Addr),
                                val, PCI_OFFSET(PciCfg1Addr) + offset);
         if (PRINT_PORT && DEBUG_IO_TRACE())
-            ErrorF(" cfg_inb(%#" PRIx32 ") = %2.2x\n", PciCfg1Addr + offset,
-                   *val);
+            ErrorF(" cfg_inb(%#" PRIx32 ") = %2.2x\n", (unsigned) (PciCfg1Addr + offset),
+                   (unsigned) *val);
         return 1;
     }
     return 0;
 }
 
 static int
-pciCfg1outb(CARD16 addr, CARD8 val)
+pciCfg1outb(uint16_t addr, uint8_t val)
 {
     int shift;
 
     if ((addr >= 0xCF8) && (addr <= 0xCFB)) {
         shift = (addr - 0xCF8) * 8;
         PciCfg1Addr &= ~(0xff << shift);
-        PciCfg1Addr |= ((CARD32) val) << shift;
+        PciCfg1Addr |= ((uint32_t) val) << shift;
         return 1;
     }
     if ((addr >= 0xCFC) && (addr <= 0xCFF)) {
         const unsigned offset = addr - 0xCFC;
 
         if (PRINT_PORT && DEBUG_IO_TRACE())
-            ErrorF(" cfg_outb(%#" PRIx32 ", %2.2x)\n", PciCfg1Addr + offset,
-                   val);
+            ErrorF(" cfg_outb(%#" PRIx32 ", %2.2x)\n", (unsigned) (PciCfg1Addr + offset),
+                   (unsigned) val);
         pci_device_cfg_write_u8(pci_device_for_cfg_address(PciCfg1Addr), val,
                                 PCI_OFFSET(PciCfg1Addr) + offset);
         return 1;
@@ -645,10 +645,10 @@ pciCfg1outb(CARD16 addr, CARD8 val)
     return 0;
 }
 
-CARD8
-bios_checksum(const CARD8 *start, int size)
+uint8_t
+bios_checksum(const uint8_t *start, int size)
 {
-    CARD8 sum = 0;
+    uint8_t sum = 0;
 
     while (size-- > 0)
         sum += *start++;
@@ -682,12 +682,12 @@ LockLegacyVGA(xf86Int10InfoPtr pInt, legacyVGAPtr vga)
     vga->save_46e8 = pci_io_read8(pInt->io, 0x46E8);
 #endif
     vga->save_pos102 = pci_io_read8(pInt->io, 0x0102);
-    pci_io_write8(pInt->io, 0x03C2, ~(CARD8) 0x03 & vga->save_msr);
-    pci_io_write8(pInt->io, 0x03C3, ~(CARD8) 0x01 & vga->save_vse);
+    pci_io_write8(pInt->io, 0x03C2, ~(uint8_t) 0x03 & vga->save_msr);
+    pci_io_write8(pInt->io, 0x03C3, ~(uint8_t) 0x01 & vga->save_vse);
 #ifndef __ia64__
-    pci_io_write8(pInt->io, 0x46E8, ~(CARD8) 0x08 & vga->save_46e8);
+    pci_io_write8(pInt->io, 0x46E8, ~(uint8_t) 0x08 & vga->save_46e8);
 #endif
-    pci_io_write8(pInt->io, 0x0102, ~(CARD8) 0x01 & vga->save_pos102);
+    pci_io_write8(pInt->io, 0x0102, ~(uint8_t) 0x01 & vga->save_pos102);
 }
 
 void

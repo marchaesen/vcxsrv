@@ -65,7 +65,7 @@ extern Bool dmxDestroyPictureList(WindowPtr pWindow);
 extern int dmxCreatePicture(PicturePtr pPicture);
 extern void dmxDestroyPicture(PicturePtr pPicture);
 extern int dmxChangePictureClip(PicturePtr pPicture, int clipType,
-                                pointer value, int n);
+                                void *value, int n);
 extern void dmxDestroyPictureClip(PicturePtr pPicture);
 extern void dmxChangePicture(PicturePtr pPicture, Mask mask);
 extern void dmxValidatePicture(PicturePtr pPicture, Mask mask);

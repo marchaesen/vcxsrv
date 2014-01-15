@@ -89,7 +89,6 @@ load_extension_config(void)
 {
     XF86ConfModulePtr mod_con = xf86configptr->conf_modules;
     XF86LoadPtr modp;
-    int i;
 
     /* Only the best. */
     if (!mod_con)

@@ -220,7 +220,7 @@ typedef struct _RenderClient {
 #define GetRenderClient(pClient) ((RenderClientPtr)dixLookupPrivate(&(pClient)->devPrivates, RenderClientPrivateKey))
 
 static void
-RenderClientCallback(CallbackListPtr *list, pointer closure, pointer data)
+RenderClientCallback(CallbackListPtr *list, void *closure, void *data)
 {
     NewClientInfoRec *clientinfo = (NewClientInfoRec *) data;
     ClientPtr pClient = clientinfo->client;
@@ -520,7 +520,7 @@ ProcRenderQueryPictIndexValues(ClientPtr client)
 
     REQUEST_AT_LEAST_SIZE(xRenderQueryPictIndexValuesReq);
 
-    rc = dixLookupResourceByType((pointer *) &pFormat, stuff->format,
+    rc = dixLookupResourceByType((void **) &pFormat, stuff->format,
                                  PictFormatType, client, DixReadAccess);
     if (rc != Success)
         return rc;
@@ -587,7 +587,7 @@ ProcRenderCreatePicture(ClientPtr client)
     if (rc != Success)
         return rc;
 
-    rc = dixLookupResourceByType((pointer *) &pFormat, stuff->format,
+    rc = dixLookupResourceByType((void **) &pFormat, stuff->format,
                                  PictFormatType, client, DixReadAccess);
     if (rc != Success)
         return rc;
@@ -604,7 +604,7 @@ ProcRenderCreatePicture(ClientPtr client)
                              stuff->mask, (XID *) (stuff + 1), client, &error);
     if (!pPicture)
         return error;
-    if (!AddResource(stuff->pid, PictureType, (pointer) pPicture))
+    if (!AddResource(stuff->pid, PictureType, (void *) pPicture))
         return BadAlloc;
     return Success;
 }
@@ -744,7 +744,7 @@ ProcRenderTrapezoids(ClientPtr client)
     if (pSrc->pDrawable && pSrc->pDrawable->pScreen != pDst->pDrawable->pScreen)
         return BadMatch;
     if (stuff->maskFormat) {
-        rc = dixLookupResourceByType((pointer *) &pFormat, stuff->maskFormat,
+        rc = dixLookupResourceByType((void **) &pFormat, stuff->maskFormat,
                                      PictFormatType, client, DixReadAccess);
         if (rc != Success)
             return rc;
@@ -783,7 +783,7 @@ ProcRenderTriangles(ClientPtr client)
     if (pSrc->pDrawable && pSrc->pDrawable->pScreen != pDst->pDrawable->pScreen)
         return BadMatch;
     if (stuff->maskFormat) {
-        rc = dixLookupResourceByType((pointer *) &pFormat, stuff->maskFormat,
+        rc = dixLookupResourceByType((void **) &pFormat, stuff->maskFormat,
                                      PictFormatType, client, DixReadAccess);
         if (rc != Success)
             return rc;
@@ -822,7 +822,7 @@ ProcRenderTriStrip(ClientPtr client)
     if (pSrc->pDrawable && pSrc->pDrawable->pScreen != pDst->pDrawable->pScreen)
         return BadMatch;
     if (stuff->maskFormat) {
-        rc = dixLookupResourceByType((pointer *) &pFormat, stuff->maskFormat,
+        rc = dixLookupResourceByType((void **) &pFormat, stuff->maskFormat,
                                      PictFormatType, client, DixReadAccess);
         if (rc != Success)
             return rc;
@@ -861,7 +861,7 @@ ProcRenderTriFan(ClientPtr client)
     if (pSrc->pDrawable && pSrc->pDrawable->pScreen != pDst->pDrawable->pScreen)
         return BadMatch;
     if (stuff->maskFormat) {
-        rc = dixLookupResourceByType((pointer *) &pFormat, stuff->maskFormat,
+        rc = dixLookupResourceByType((void **) &pFormat, stuff->maskFormat,
                                      PictFormatType, client, DixReadAccess);
         if (rc != Success)
             return rc;
@@ -909,7 +909,7 @@ ProcRenderCreateGlyphSet(ClientPtr client)
     REQUEST_SIZE_MATCH(xRenderCreateGlyphSetReq);
 
     LEGAL_NEW_RESOURCE(stuff->gsid, client);
-    rc = dixLookupResourceByType((pointer *) &format, stuff->format,
+    rc = dixLookupResourceByType((void **) &format, stuff->format,
                                  PictFormatType, client, DixReadAccess);
     if (rc != Success)
         return rc;
@@ -943,7 +943,7 @@ ProcRenderCreateGlyphSet(ClientPtr client)
                   glyphSet, RT_NONE, NULL, DixCreateAccess);
     if (rc != Success)
         return rc;
-    if (!AddResource(stuff->gsid, GlyphSetType, (pointer) glyphSet))
+    if (!AddResource(stuff->gsid, GlyphSetType, (void *) glyphSet))
         return BadAlloc;
     return Success;
 }
@@ -960,14 +960,14 @@ ProcRenderReferenceGlyphSet(ClientPtr client)
 
     LEGAL_NEW_RESOURCE(stuff->gsid, client);
 
-    rc = dixLookupResourceByType((pointer *) &glyphSet, stuff->existing,
+    rc = dixLookupResourceByType((void **) &glyphSet, stuff->existing,
                                  GlyphSetType, client, DixGetAttrAccess);
     if (rc != Success) {
         client->errorValue = stuff->existing;
         return rc;
     }
     glyphSet->refcnt++;
-    if (!AddResource(stuff->gsid, GlyphSetType, (pointer) glyphSet))
+    if (!AddResource(stuff->gsid, GlyphSetType, (void *) glyphSet))
         return BadAlloc;
     return Success;
 }
@@ -984,7 +984,7 @@ ProcRenderFreeGlyphSet(ClientPtr client)
     REQUEST(xRenderFreeGlyphSetReq);
 
     REQUEST_SIZE_MATCH(xRenderFreeGlyphSetReq);
-    rc = dixLookupResourceByType((pointer *) &glyphSet, stuff->glyphset,
+    rc = dixLookupResourceByType((void **) &glyphSet, stuff->glyphset,
                                  GlyphSetType, client, DixDestroyAccess);
     if (rc != Success) {
         client->errorValue = stuff->glyphset;
@@ -1024,7 +1024,7 @@ ProcRenderAddGlyphs(ClientPtr client)
 
     REQUEST_AT_LEAST_SIZE(xRenderAddGlyphsReq);
     err =
-        dixLookupResourceByType((pointer *) &glyphSet, stuff->glyphset,
+        dixLookupResourceByType((void **) &glyphSet, stuff->glyphset,
                                 GlyphSetType, client, DixAddAccess);
     if (err != Success) {
         client->errorValue = stuff->glyphset;
@@ -1157,7 +1157,7 @@ ProcRenderAddGlyphs(ClientPtr client)
                                  pSrc,
                                  None, pDst, 0, 0, 0, 0, 0, 0, width, height);
 
-                FreePicture((pointer) pSrc, 0);
+                FreePicture((void *) pSrc, 0);
                 pSrc = NULL;
                 FreeScratchPixmapHeader(pSrcPix);
                 pSrcPix = NULL;
@@ -1189,7 +1189,7 @@ ProcRenderAddGlyphs(ClientPtr client)
     return Success;
  bail:
     if (pSrc)
-        FreePicture((pointer) pSrc, 0);
+        FreePicture((void *) pSrc, 0);
     if (pSrcPix)
         FreeScratchPixmapHeader(pSrcPix);
     for (i = 0; i < nglyphs; i++)
@@ -1216,7 +1216,7 @@ ProcRenderFreeGlyphs(ClientPtr client)
     CARD32 glyph;
 
     REQUEST_AT_LEAST_SIZE(xRenderFreeGlyphsReq);
-    rc = dixLookupResourceByType((pointer *) &glyphSet, stuff->glyphset,
+    rc = dixLookupResourceByType((void **) &glyphSet, stuff->glyphset,
                                  GlyphSetType, client, DixRemoveAccess);
     if (rc != Success) {
         client->errorValue = stuff->glyphset;
@@ -1282,7 +1282,7 @@ ProcRenderCompositeGlyphs(ClientPtr client)
     if (pSrc->pDrawable && pSrc->pDrawable->pScreen != pDst->pDrawable->pScreen)
         return BadMatch;
     if (stuff->maskFormat) {
-        rc = dixLookupResourceByType((pointer *) &pFormat, stuff->maskFormat,
+        rc = dixLookupResourceByType((void **) &pFormat, stuff->maskFormat,
                                      PictFormatType, client, DixReadAccess);
         if (rc != Success)
             return rc;
@@ -1290,7 +1290,7 @@ ProcRenderCompositeGlyphs(ClientPtr client)
     else
         pFormat = 0;
 
-    rc = dixLookupResourceByType((pointer *) &glyphSet, stuff->glyphset,
+    rc = dixLookupResourceByType((void **) &glyphSet, stuff->glyphset,
                                  GlyphSetType, client, DixUseAccess);
     if (rc != Success)
         return rc;
@@ -1341,7 +1341,7 @@ ProcRenderCompositeGlyphs(ClientPtr client)
         if (elt->len == 0xff) {
             if (buffer + sizeof(GlyphSet) < end) {
                 memcpy(&gs, buffer, sizeof(GlyphSet));
-                rc = dixLookupResourceByType((pointer *) &glyphSet, gs,
+                rc = dixLookupResourceByType((void **) &glyphSet, gs,
                                              GlyphSetType, client,
                                              DixUseAccess);
                 if (rc != Success)
@@ -1508,7 +1508,7 @@ ProcRenderCreateCursor(ClientPtr client)
     if (pSrc->format == PICT_a8r8g8b8) {
         (*pScreen->GetImage) (pSrc->pDrawable,
                               0, 0, width, height, ZPixmap,
-                              0xffffffff, (pointer) argbbits);
+                              0xffffffff, (void *) argbbits);
     }
     else {
         PixmapPtr pPixmap;
@@ -1544,7 +1544,7 @@ ProcRenderCreateCursor(ClientPtr client)
                          pSrc, 0, pPicture, 0, 0, 0, 0, 0, 0, width, height);
         (*pScreen->GetImage) (pPicture->pDrawable,
                               0, 0, width, height, ZPixmap,
-                              0xffffffff, (pointer) argbbits);
+                              0xffffffff, (void *) argbbits);
         FreePicture(pPicture, 0);
     }
     /*
@@ -1633,7 +1633,7 @@ ProcRenderCreateCursor(ClientPtr client)
                          &pCursor, client, stuff->cid);
     if (rc != Success)
         goto bail;
-    if (!AddResource(stuff->cid, RT_CURSOR, (pointer) pCursor)) {
+    if (!AddResource(stuff->cid, RT_CURSOR, (void *) pCursor)) {
         rc = BadAlloc;
         goto bail;
     }
@@ -1799,7 +1799,7 @@ ProcRenderCreateAnimCursor(ClientPtr client)
     deltas = (CARD32 *) (cursors + ncursor);
     elt = (xAnimCursorElt *) (stuff + 1);
     for (i = 0; i < ncursor; i++) {
-        ret = dixLookupResourceByType((pointer *) (cursors + i), elt->cursor,
+        ret = dixLookupResourceByType((void **) (cursors + i), elt->cursor,
                                       RT_CURSOR, client, DixReadAccess);
         if (ret != Success) {
             free(cursors);
@@ -1814,7 +1814,7 @@ ProcRenderCreateAnimCursor(ClientPtr client)
     if (ret != Success)
         return ret;
 
-    if (AddResource(stuff->cid, RT_CURSOR, (pointer) pCursor))
+    if (AddResource(stuff->cid, RT_CURSOR, (void *) pCursor))
         return Success;
     return BadAlloc;
 }
@@ -1861,7 +1861,7 @@ ProcRenderCreateSolidFill(ClientPtr client)
                      pPicture, RT_NONE, NULL, DixCreateAccess);
     if (error != Success)
         return error;
-    if (!AddResource(stuff->pid, PictureType, (pointer) pPicture))
+    if (!AddResource(stuff->pid, PictureType, (void *) pPicture))
         return BadAlloc;
     return Success;
 }
@@ -1900,7 +1900,7 @@ ProcRenderCreateLinearGradient(ClientPtr client)
                      pPicture, RT_NONE, NULL, DixCreateAccess);
     if (error != Success)
         return error;
-    if (!AddResource(stuff->pid, PictureType, (pointer) pPicture))
+    if (!AddResource(stuff->pid, PictureType, (void *) pPicture))
         return BadAlloc;
     return Success;
 }
@@ -1938,7 +1938,7 @@ ProcRenderCreateRadialGradient(ClientPtr client)
                      pPicture, RT_NONE, NULL, DixCreateAccess);
     if (error != Success)
         return error;
-    if (!AddResource(stuff->pid, PictureType, (pointer) pPicture))
+    if (!AddResource(stuff->pid, PictureType, (void *) pPicture))
         return BadAlloc;
     return Success;
 }
@@ -1975,7 +1975,7 @@ ProcRenderCreateConicalGradient(ClientPtr client)
                      pPicture, RT_NONE, NULL, DixCreateAccess);
     if (error != Success)
         return error;
-    if (!AddResource(stuff->pid, PictureType, (pointer) pPicture))
+    if (!AddResource(stuff->pid, PictureType, (void *) pPicture))
         return BadAlloc;
     return Success;
 }
@@ -2566,7 +2566,7 @@ SProcRenderDispatch(ClientPtr client)
 
 #ifdef PANORAMIX
 #define VERIFY_XIN_PICTURE(pPicture, pid, client, mode) {\
-    int rc = dixLookupResourceByType((pointer *)&(pPicture), pid,\
+    int rc = dixLookupResourceByType((void **)&(pPicture), pid,\
                                      XRT_PICTURE, client, mode);\
     if (rc != Success)\
 	return rc;\
@@ -2590,7 +2590,7 @@ PanoramiXRenderCreatePicture(ClientPtr client)
     int result, j;
 
     REQUEST_AT_LEAST_SIZE(xRenderCreatePictureReq);
-    result = dixLookupResourceByClass((pointer *) &refDraw, stuff->drawable,
+    result = dixLookupResourceByClass((void **) &refDraw, stuff->drawable,
                                       XRC_DRAWABLE, client, DixWriteAccess);
     if (result != Success)
         return (result == BadValue) ? BadDrawable : result;

@@ -14,7 +14,7 @@
 
 #define APM_DEVICE "/dev/apm"
 
-static pointer APMihPtr = NULL;
+static void *APMihPtr = NULL;
 static void bsdCloseAPM(void);
 
 static struct {

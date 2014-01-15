@@ -81,7 +81,7 @@ static void UnloadModuleOrDriver(ModuleDescPtr mod);
 static char *LoaderGetCanonicalName(const char *, PatternPtr);
 static void RemoveChild(ModuleDescPtr);
 static ModuleDescPtr doLoadModule(const char *, const char *, const char **,
-                                  const char **, pointer,
+                                  const char **, void *,
                                   const XF86ModReqInfo *, int *, int *);
 
 const ModuleVersions LoaderVersionInfo = {
@@ -482,7 +482,7 @@ FindModule(const char *module, const char *dirname, const char **subdirlist,
     return name;
 }
 
-char **
+const char **
 LoaderListDirs(const char **subdirlist, const char **patternlist)
 {
     char buf[PATH_MAX + 1];
@@ -490,7 +490,7 @@ LoaderListDirs(const char **subdirlist, const char **patternlist)
     char **elem;
     const char **subdirs;
     const char **s;
-    PatternPtr patterns;
+    PatternPtr patterns = NULL;
     PatternPtr p;
     DIR *d;
     struct dirent *dp;
@@ -571,7 +571,7 @@ LoaderListDirs(const char **subdirlist, const char **patternlist)
     FreePatterns(patterns);
     FreeSubdirs(subdirs);
     FreePathList(pathlist);
-    return ret;
+    return (const char **) ret;
 }
 
 void
@@ -761,10 +761,10 @@ AddSibling(ModuleDescPtr head, ModuleDescPtr new)
     return new;
 }
 
-pointer
-LoadSubModule(pointer _parent, const char *module,
+void *
+LoadSubModule(void *_parent, const char *module,
               const char **subdirlist, const char **patternlist,
-              pointer options, const XF86ModReqInfo * modreq,
+              void *options, const XF86ModReqInfo * modreq,
               int *errmaj, int *errmin)
 {
     ModuleDescPtr submod;
@@ -843,7 +843,7 @@ static const char *compiled_in_modules[] = {
 
 static ModuleDescPtr
 doLoadModule(const char *module, const char *path, const char **subdirlist,
-             const char **patternlist, pointer options,
+             const char **patternlist, void *options,
              const XF86ModReqInfo * modreq, int *errmaj, int *errmin)
 {
     XF86ModuleData *initdata = NULL;
@@ -1071,7 +1071,7 @@ doLoadModule(const char *module, const char *path, const char **subdirlist,
  */
 ModuleDescPtr
 LoadModule(const char *module, const char *path, const char **subdirlist,
-           const char **patternlist, pointer options,
+           const char **patternlist, void *options,
            const XF86ModReqInfo * modreq, int *errmaj, int *errmin)
 {
     return doLoadModule(module, path, subdirlist, patternlist, options,
@@ -1079,7 +1079,7 @@ LoadModule(const char *module, const char *path, const char **subdirlist,
 }
 
 void
-UnloadModule(pointer mod)
+UnloadModule(void *mod)
 {
     UnloadModuleOrDriver((ModuleDescPtr) mod);
 }
@@ -1115,7 +1115,7 @@ UnloadModuleOrDriver(ModuleDescPtr mod)
 }
 
 void
-UnloadSubModule(pointer _mod)
+UnloadSubModule(void *_mod)
 {
     ModuleDescPtr mod = (ModuleDescPtr) _mod;
 

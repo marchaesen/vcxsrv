@@ -19,7 +19,7 @@ extern _X_EXPORT Bool PanoramiXCreateConnectionBlock(void);
 extern _X_EXPORT PanoramiXRes *PanoramiXFindIDByScrnum(RESTYPE, XID, int);
 extern _X_EXPORT Bool
 XineramaRegisterConnectionBlockCallback(void (*func) (void));
-extern _X_EXPORT int XineramaDeleteResource(pointer, XID);
+extern _X_EXPORT int XineramaDeleteResource(void *, XID);
 
 extern _X_EXPORT void XineramaReinitData(void);
 

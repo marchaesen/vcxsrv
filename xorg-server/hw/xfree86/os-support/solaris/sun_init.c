@@ -316,7 +316,7 @@ xf86CloseConsole(void)
                         " attributes (%s)\n", strerror(errno));
             }
             else {
-                pointer fbdata;
+                void *fbdata;
 
                 fbdata = mmap(NULL, fbattr.fbtype.fb_size,
                               PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);

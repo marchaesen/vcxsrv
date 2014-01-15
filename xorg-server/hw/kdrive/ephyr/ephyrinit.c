@@ -150,8 +150,6 @@ ddxUseMsg(void)
     ErrorF
         ("-title [title]       set the window title in the WM_NAME property\n");
     ErrorF("\n");
-
-    exit(1);
 }
 #endif
 

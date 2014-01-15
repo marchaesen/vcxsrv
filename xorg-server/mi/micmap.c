@@ -75,7 +75,7 @@ miUninstallColormap(ColormapPtr pmap)
 
     if (pmap == curpmap) {
         if (pmap->mid != pmap->pScreen->defColormap) {
-            dixLookupResourceByType((pointer *) &curpmap,
+            dixLookupResourceByType((void **) &curpmap,
                                     pmap->pScreen->defColormap,
                                     RT_COLORMAP, serverClient, DixUseAccess);
             (*pmap->pScreen->InstallColormap) (curpmap);

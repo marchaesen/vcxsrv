@@ -50,7 +50,7 @@ vbeInfoPtr
 VBEExtendedInit(xf86Int10InfoPtr pInt, int entityIndex, int Flags)
 {
     int RealOff;
-    pointer page = NULL;
+    void *page = NULL;
     ScrnInfoPtr pScrn = xf86FindScreenForEntity(entityIndex);
     vbeControllerInfoPtr vbe = NULL;
     Bool init_int10 = FALSE;
@@ -259,7 +259,7 @@ static unsigned char *
 vbeReadEDID(vbeInfoPtr pVbe)
 {
     int RealOff = pVbe->real_mode_base;
-    pointer page = pVbe->memory;
+    void *page = pVbe->memory;
     unsigned char *tmp = NULL;
     Bool novbe = FALSE;
     Bool noddc = FALSE;
@@ -319,7 +319,7 @@ vbeReadEDID(vbeInfoPtr pVbe)
 }
 
 xf86MonPtr
-vbeDoEDID(vbeInfoPtr pVbe, pointer unused)
+vbeDoEDID(vbeInfoPtr pVbe, void *unused)
 {
     unsigned char *DDC_data = NULL;
 
@@ -545,7 +545,7 @@ VBEFreeModeInfo(VbeModeInfoBlock * block)
 
 Bool
 VBESaveRestore(vbeInfoPtr pVbe, vbeSaveRestoreFunction function,
-               pointer *memory, int *size, int *real_mode_pages)
+               void **memory, int *size, int *real_mode_pages)
 {
     /*
        Input:
@@ -929,7 +929,7 @@ VBEVesaSaveRestore(vbeInfoPtr pVbe, vbeSaveRestorePtr vbe_sr,
             memcpy(vbe_sr->state, vbe_sr->pstate, vbe_sr->stateSize);
         ErrorF("VBESaveRestore\n");
         if ((VBESaveRestore(pVbe, function,
-                            (pointer) &vbe_sr->state,
+                            (void *) &vbe_sr->state,
                             &vbe_sr->stateSize, &vbe_sr->statePage))) {
             if (function == MODE_SAVE) {
                 SaveSucc = TRUE;
@@ -1055,7 +1055,7 @@ struct vbePanelID *
 VBEReadPanelID(vbeInfoPtr pVbe)
 {
     int RealOff = pVbe->real_mode_base;
-    pointer page = pVbe->memory;
+    void *page = pVbe->memory;
     void *tmp = NULL;
     int screen = pVbe->pInt10->pScrn->scrnIndex;
 

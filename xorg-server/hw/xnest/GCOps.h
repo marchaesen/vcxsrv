@@ -58,10 +58,10 @@ void xnestImageText16(DrawablePtr pDrawable, GCPtr pGC, int x, int y, int count,
                       unsigned short *string);
 void xnestImageGlyphBlt(DrawablePtr pDrawable, GCPtr pGC, int x, int y,
                         unsigned int nGlyphs, CharInfoPtr * pCharInfo,
-                        pointer pGlyphBase);
+                        void *pGlyphBase);
 void xnestPolyGlyphBlt(DrawablePtr pDrawable, GCPtr pGC, int x, int y,
                        unsigned int nGlyphs, CharInfoPtr * pCharInfo,
-                       pointer pGlyphBase);
+                       void *pGlyphBase);
 void xnestPushPixels(GCPtr pGC, PixmapPtr pBitmap, DrawablePtr pDrawable,
                      int width, int height, int x, int y);
 

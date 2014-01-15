@@ -746,7 +746,7 @@ winCloseScreenShadowDDNL(ScreenPtr pScreen)
     pScreenInfo->pScreen = NULL;
 
     /* Free the screen privates for this screen */
-    free((pointer) pScreenPriv);
+    free((void *) pScreenPriv);
 
     return fReturn;
 }

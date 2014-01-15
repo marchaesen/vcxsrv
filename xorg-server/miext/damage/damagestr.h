@@ -76,8 +76,8 @@ typedef struct _damageScrPriv {
 } DamageScrPrivRec, *DamageScrPrivPtr;
 
 typedef struct _damageGCPriv {
-    GCOps *ops;
-    GCFuncs *funcs;
+    const GCOps *ops;
+    const GCFuncs *funcs;
 } DamageGCPrivRec, *DamageGCPrivPtr;
 
 /* XXX should move these into damage.c, damageScrPrivateIndex is static */

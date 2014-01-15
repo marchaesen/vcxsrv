@@ -474,7 +474,7 @@ usbOff(DevicePtr pDev)
 }
 
 /** Create a private structure for use within this file. */
-pointer
+void *
 usbCreatePrivate(DeviceIntPtr pDevice)
 {
     myPrivate *priv = calloc(1, sizeof(*priv));
@@ -486,7 +486,7 @@ usbCreatePrivate(DeviceIntPtr pDevice)
 
 /** Destroy a private structure. */
 void
-usbDestroyPrivate(pointer priv)
+usbDestroyPrivate(void *priv)
 {
     free(priv);
 }

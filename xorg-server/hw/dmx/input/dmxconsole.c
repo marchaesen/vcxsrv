@@ -141,7 +141,7 @@ unscaley(myPrivate * priv, int y)
 }
 
 /** Create the private area for \a pDevice. */
-pointer
+void *
 dmxConsoleCreatePrivate(DeviceIntPtr pDevice)
 {
     GETDMXLOCALFROMPDEVICE;
@@ -153,7 +153,7 @@ dmxConsoleCreatePrivate(DeviceIntPtr pDevice)
 
 /** If \a private is non-NULL, free its associated memory. */
 void
-dmxConsoleDestroyPrivate(pointer private)
+dmxConsoleDestroyPrivate(void *private)
 {
     free(private);
 }
@@ -193,7 +193,7 @@ dmxConsoleDrawFineCursor(myPrivate * priv, XRectangle * rect)
 }
 
 static void
-dmxConsoleDrawWindows(pointer private)
+dmxConsoleDrawWindows(void *private)
 {
     GETONLYPRIVFROMPRIVATE;
     Display *dpy = priv->display;
@@ -391,7 +391,7 @@ dmxConsoleUpdateFineCursor(myPrivate * priv)
  * fashion: the actual layout of the windows of the screen might not
  * have had any human-visible changes. */
 void
-dmxConsoleUpdateInfo(pointer private, DMXUpdateType type, WindowPtr pWindow)
+dmxConsoleUpdateInfo(void *private, DMXUpdateType type, WindowPtr pWindow)
 {
     GETONLYPRIVFROMPRIVATE;
     dmxConsoleDraw(priv, 1, 1);
@@ -436,7 +436,7 @@ dmxConsoleMoveRelative(myPrivate * priv, int x, int y,
  * allows the console's notion of the cursor postion to change when
  * another input device actually caused the change. */
 void
-dmxConsoleUpdatePosition(pointer private, int x, int y)
+dmxConsoleUpdatePosition(void *private, int x, int y)
 {
     GETONLYPRIVFROMPRIVATE;
     int tmpX, tmpY;
@@ -825,8 +825,8 @@ dmxConsoleInit(DevicePtr pDev)
 
     /* Set up properties */
     XStoreName(dpy, win, DMX_CONSOLE_NAME);
-    class_hints.res_name = DMX_RES_NAME;
-    class_hints.res_class = DMX_RES_CLASS;
+    class_hints.res_name = (char *) DMX_RES_NAME;
+    class_hints.res_class = (char *) DMX_RES_CLASS;
     XSetClassHint(dpy, win, &class_hints);
 
     /* Map the window */
@@ -941,7 +941,7 @@ dmxConsoleKbdGetInfo(DevicePtr pDev, DMXLocalInitInfoPtr info)
 
 /** Handle special console-only keys. */
 int
-dmxConsoleFunctions(pointer private, DMXFunctionType function)
+dmxConsoleFunctions(void *private, DMXFunctionType function)
 {
     GETONLYPRIVFROMPRIVATE;
     XRectangle rect;

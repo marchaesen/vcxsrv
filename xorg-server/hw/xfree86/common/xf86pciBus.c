@@ -575,7 +575,7 @@ xf86PciProbeDev(DriverPtr drvp)
 }
 
 void
-xf86PciIsolateDevice(char *argument)
+xf86PciIsolateDevice(const char *argument)
 {
     int bus, device, func;
 
@@ -1013,7 +1013,7 @@ xf86MatchPciInstances(const char *driverName, int vendorID,
 static void
 xf86ConfigPciEntityInactive(EntityInfoPtr pEnt, PciChipsets * p_chip,
                             EntityProc init, EntityProc enter,
-                            EntityProc leave, pointer private)
+                            EntityProc leave, void *private)
 {
     ScrnInfoPtr pScrn;
 
@@ -1027,7 +1027,7 @@ xf86ConfigPciEntityInactive(EntityInfoPtr pEnt, PciChipsets * p_chip,
 ScrnInfoPtr
 xf86ConfigPciEntity(ScrnInfoPtr pScrn, int scrnFlag, int entityIndex,
                     PciChipsets * p_chip, void *dummy, EntityProc init,
-                    EntityProc enter, EntityProc leave, pointer private)
+                    EntityProc enter, EntityProc leave, void *private)
 {
     EntityInfoPtr pEnt = xf86GetEntityInfo(entityIndex);
 
@@ -1068,7 +1068,7 @@ xf86ConfigPciEntity(ScrnInfoPtr pScrn, int scrnFlag, int entityIndex,
 Bool
 xf86ConfigActivePciEntity(ScrnInfoPtr pScrn, int entityIndex,
                           PciChipsets * p_chip, void *dummy, EntityProc init,
-                          EntityProc enter, EntityProc leave, pointer private)
+                          EntityProc enter, EntityProc leave, void *private)
 {
     EntityInfoPtr pEnt = xf86GetEntityInfo(entityIndex);
 
@@ -1484,6 +1484,7 @@ xf86PciConfigureNewDev(void *busData, struct pci_device *pVideo,
                        GDevRec * GDev, int *chipset)
 {
     char busnum[8];
+    char *tmp;
 
     pVideo = (struct pci_device *) busData;
 
@@ -1493,8 +1494,9 @@ xf86PciConfigureNewDev(void *busData, struct pci_device *pVideo,
         snprintf(busnum, sizeof(busnum), "%d@%d",
                  pVideo->bus & 0x00ff, pVideo->bus >> 8);
 
-    XNFasprintf(&GDev->busID, "PCI:%s:%d:%d",
+    XNFasprintf(&tmp, "PCI:%s:%d:%d",
                 busnum, pVideo->dev, pVideo->func);
+    GDev->busID = tmp;
 
     GDev->chipID = pVideo->device_id;
     GDev->chipRev = pVideo->revision;

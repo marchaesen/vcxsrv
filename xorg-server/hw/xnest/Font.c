@@ -35,7 +35,7 @@ int xnestFontPrivateIndex;
 Bool
 xnestRealizeFont(ScreenPtr pScreen, FontPtr pFont)
 {
-    pointer priv;
+    void *priv;
     Atom name_atom, value_atom;
     int nprops;
     FontPropPtr props;
@@ -64,7 +64,7 @@ xnestRealizeFont(ScreenPtr pScreen, FontPtr pFont)
     if (!name)
         return False;
 
-    priv = (pointer) malloc(sizeof(xnestPrivFont));
+    priv = (void *) malloc(sizeof(xnestPrivFont));
     FontSetPrivate(pFont, xnestFontPrivateIndex, priv);
 
     xnestFontPriv(pFont)->font_struct = XLoadQueryFont(xnestDisplay, name);

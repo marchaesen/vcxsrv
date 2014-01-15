@@ -526,11 +526,11 @@ void
  KdSetLed(KdKeyboardInfo * ki, int led, Bool on);
 
 void
- KdSetPointerMatrix(KdPointerMatrix * pointer);
+ KdSetPointerMatrix(KdPointerMatrix *pointer);
 
 void
 
-KdComputePointerMatrix(KdPointerMatrix * pointer, Rotation randr, int width,
+KdComputePointerMatrix(KdPointerMatrix *pointer, Rotation randr, int width,
                        int height);
 
 void
@@ -538,11 +538,11 @@ void
 
 void
 
-KdBlockHandler(ScreenPtr pScreen, pointer timeout, pointer readmask);
+KdBlockHandler(ScreenPtr pScreen, void *timeout, void *readmask);
 
 void
 
-KdWakeupHandler(ScreenPtr pScreen, unsigned long result, pointer readmask);
+KdWakeupHandler(ScreenPtr pScreen, unsigned long result, void *readmask);
 
 void
  KdDisableInput(void);

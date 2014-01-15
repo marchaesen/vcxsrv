@@ -39,7 +39,7 @@
 /* See Porting Layer Definition - p. 7 */
 void
 winWakeupHandler(ScreenPtr pScreen,
-                 unsigned long ulResult, pointer pReadmask)
+                 unsigned long ulResult, void *pReadmask)
 {
     MSG msg;
 

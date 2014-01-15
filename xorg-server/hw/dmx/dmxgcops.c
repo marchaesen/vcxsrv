@@ -508,7 +508,7 @@ dmxImageText16(DrawablePtr pDrawable, GCPtr pGC,
 void
 dmxImageGlyphBlt(DrawablePtr pDrawable, GCPtr pGC,
                  int x, int y, unsigned int nglyph,
-                 CharInfoPtr * ppci, pointer pglyphBase)
+                 CharInfoPtr * ppci, void *pglyphBase)
 {
     /* Error -- this should never happen! */
 }
@@ -517,7 +517,7 @@ dmxImageGlyphBlt(DrawablePtr pDrawable, GCPtr pGC,
 void
 dmxPolyGlyphBlt(DrawablePtr pDrawable, GCPtr pGC,
                 int x, int y, unsigned int nglyph,
-                CharInfoPtr * ppci, pointer pglyphBase)
+                CharInfoPtr * ppci, void *pglyphBase)
 {
     /* Error -- this should never happen! */
 }
@@ -551,7 +551,7 @@ dmxFindAlternatePixmap(DrawablePtr pDrawable, XID *draw)
     if (pDrawable->type != DRAWABLE_PIXMAP)
         return NULL;
 
-    if (Success != dixLookupResourceByType((pointer *) &pXinPix,
+    if (Success != dixLookupResourceByType((void **) &pXinPix,
                                            pDrawable->id, XRT_PIXMAP,
                                            NullClient, DixUnknownAccess))
         return NULL;
@@ -562,7 +562,7 @@ dmxFindAlternatePixmap(DrawablePtr pDrawable, XID *draw)
             PixmapPtr pSrc;
             dmxPixPrivPtr pSrcPriv;
 
-            dixLookupResourceByType((pointer *) &pSrc, pXinPix->info[i].id,
+            dixLookupResourceByType((void **) &pSrc, pXinPix->info[i].id,
                                     RT_PIXMAP, NullClient, DixUnknownAccess);
             pSrcPriv = DMX_GET_PIXMAP_PRIV(pSrc);
             if (pSrcPriv->pixmap) {

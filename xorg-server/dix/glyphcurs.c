@@ -114,7 +114,7 @@ ServerBitsFromGlyph(FontPtr pfont, unsigned ch, CursorMetricPtr cm,
     /* fill the pixmap with 0 */
     gcval[0].val = GXcopy;
     gcval[1].val = 0;
-    gcval[2].ptr = (pointer) pfont;
+    gcval[2].ptr = (void *) pfont;
     ChangeGC(NullClient, pGC, GCFunction | GCForeground | GCFont, gcval);
     ValidateGC((DrawablePtr) ppix, pGC);
     (*pGC->ops->PolyFillRect) ((DrawablePtr) ppix, pGC, 1, &rect);

@@ -163,7 +163,7 @@ DetectMSP3430(I2CBusPtr b, I2CSlaveAddr addr)
     m->d.ByteTimeout = b->ByteTimeout;
 
     if (!I2C_WriteRead(&(m->d), NULL, 0, &a, 1)) {
-        free(m->d.DevName);
+        free((void *) m->d.DevName);
         free(m);
         return NULL;
     }
@@ -250,12 +250,12 @@ DetectMSP3430(I2CBusPtr b, I2CSlaveAddr addr)
                supported ? "" : " (unsupported)", rom_version, m->chip_id);
 
     if (!supported) {
-        free(m->d.DevName);
+        free((void *) m->d.DevName);
         free(m);
         return NULL;
     }
     if (!I2CDevInit(&(m->d))) {
-        free(m->d.DevName);
+        free((void *) m->d.DevName);
         free(m);
         return NULL;
     }

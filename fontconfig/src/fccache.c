@@ -828,6 +828,19 @@ bail1:
     return NULL;
 }
 
+FcCache *
+FcDirCacheRebuild (FcCache *cache, struct stat *dir_stat, FcStrSet *dirs)
+{
+    FcCache *new;
+    FcFontSet *set = FcFontSetDeserialize (FcCacheSet (cache));
+    const FcChar8 *dir = FcCacheDir (cache);
+
+    new = FcDirCacheBuild (set, dir, dir_stat, dirs);
+    FcFontSetDestroy (set);
+
+    return new;
+}
+
 /* write serialized state to the cache file */
 FcBool
 FcDirCacheWrite (FcCache *cache, FcConfig *config)

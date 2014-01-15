@@ -15,8 +15,8 @@ is" without express or implied warranty.
 #ifndef XNESTHANDLERS_H
 #define XNESTHANDLERS_H
 
-void xnestBlockHandler(pointer blockData, OSTimePtr pTimeout,
-                       pointer pReadMask);
-void xnestWakeupHandler(pointer blockData, int result, pointer pReadMask);
+void xnestBlockHandler(void *blockData, OSTimePtr pTimeout,
+                       void *pReadMask);
+void xnestWakeupHandler(void *blockData, int result, void *pReadMask);
 
 #endif                          /* XNESTHANDLERS_H */

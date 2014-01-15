@@ -147,43 +147,46 @@ static void get_xdmcp_sock(void);
 
 static void send_query_msg(void);
 
-static void recv_willing_msg(struct sockaddr * /*from */ ,
-                             int /*fromlen */ ,
-                             unsigned /*length */ );
+static void recv_willing_msg(struct sockaddr    *from,
+                             int                fromlen,
+                             unsigned           length);
 
 static void send_request_msg(void);
 
-static void recv_accept_msg(unsigned /*length */ );
+static void recv_accept_msg(unsigned    length);
 
-static void recv_decline_msg(unsigned /*length */ );
+static void recv_decline_msg(unsigned   length);
 
 static void send_manage_msg(void);
 
-static void recv_refuse_msg(unsigned /*length */ );
+static void recv_refuse_msg(unsigned    length);
 
-static void recv_failed_msg(unsigned /*length */ );
+static void recv_failed_msg(unsigned    length);
 
 static void send_keepalive_msg(void);
 
-static void recv_alive_msg(unsigned /*length */ );
+static void recv_alive_msg(unsigned     length );
 
-static void XdmcpFatal(const char * /*type */ ,
-                       ARRAY8Ptr /*status */ );
+static void XdmcpFatal(const char       *type,
+                       ARRAY8Ptr        status);
 
-static void XdmcpWarning(const char * /*str */ );
+static void XdmcpWarning(const char     *str);
 
-static void get_manager_by_name(int /*argc */ ,
-                                char ** /*argv */ ,
-                                int /*i */ );
+static void get_manager_by_name(int     argc,
+                                char    **argv,
+                                int     i);
 
-static void get_fromaddr_by_name(int /*argc */ , char ** /*argv */ ,
-                                 int /*i */ );
+static void get_fromaddr_by_name(int    argc,
+                                 char   **argv,
+                                 int    i);
 
 #if defined(IPv6) && defined(AF_INET6)
-static int get_mcast_options(int /*argc */ , char ** /*argv */ , int /*i */ );
+static int get_mcast_options(int        argc,
+                             char       **argv,
+                             int        i);
 #endif
 
-static void receive_packet(int /*socketfd */ );
+static void receive_packet(int socketfd);
 
 static void send_packet(void);
 
@@ -191,13 +194,13 @@ static void timeout(void);
 
 static void restart(void);
 
-static void XdmcpBlockHandler(pointer /*data */ ,
-                              struct timeval ** /*wt */ ,
-                              pointer /*LastSelectMask */ );
+static void XdmcpBlockHandler(void              *data ,
+                              struct timeval    **wt,
+                              void              *LastSelectMask);
 
-static void XdmcpWakeupHandler(pointer /*data */ ,
-                               int /*i */ ,
-                               pointer /*LastSelectMask */ );
+static void XdmcpWakeupHandler(void             *data,
+                               int              i,
+                               void             *LastSelectMask);
 
 #define XSERV_t
 #define TRANS_SERVER
@@ -585,7 +588,7 @@ XdmcpInit(void)
                                   strlen(defaultDisplayClass));
         AccessUsingXdmcp();
         RegisterBlockAndWakeupHandlers(XdmcpBlockHandler, XdmcpWakeupHandler,
-                                       (pointer) 0);
+                                       (void *) 0);
         timeOutRtx = 0;
         DisplayNumber = (CARD16) atoi(display);
         if (ConnectionTypes.length>1 && xdm_from==NULL)
@@ -625,7 +628,7 @@ XdmcpReset(void)
     state = XDM_INIT_STATE;
     if (state != XDM_OFF) {
         RegisterBlockAndWakeupHandlers(XdmcpBlockHandler, XdmcpWakeupHandler,
-                                       (pointer) 0);
+                                       (void *) 0);
         timeOutRtx = 0;
         send_packet();
     }
@@ -668,8 +671,8 @@ XdmcpCloseDisplay(int sock)
  */
 
  /*ARGSUSED*/ static void
-XdmcpBlockHandler(pointer data, /* unused */
-                  struct timeval **wt, pointer pReadmask)
+XdmcpBlockHandler(void *data, /* unused */
+                  struct timeval **wt, void *pReadmask)
 {
     fd_set *LastSelectMask = (fd_set *) pReadmask;
     CARD32 millisToGo;
@@ -696,8 +699,8 @@ XdmcpBlockHandler(pointer data, /* unused */
  */
 
  /*ARGSUSED*/ static void
-XdmcpWakeupHandler(pointer data,        /* unused */
-                   int i, pointer pReadmask)
+XdmcpWakeupHandler(void *data,        /* unused */
+                   int i, void *pReadmask)
 {
     fd_set *LastSelectMask = (fd_set *) pReadmask;
     fd_set devicesReadable;

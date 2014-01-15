@@ -71,12 +71,12 @@
 struct memAccess {
     int ioctl;
     struct map_info memInfo;
-    pointer regionVirtBase;
+    void *regionVirtBase;
     Bool Checked;
     Bool OK;
 };
 
-static pointer xf86MapInfoMap();
+static void *xf86MapInfoMap();
 static void xf86MapInfoUnmap();
 static struct memAccess *checkMapInfo();
 extern int vgaPhysLinearBase;
@@ -111,8 +111,8 @@ struct memAccess ioMemInfo = { CONSOLE_GET_IO_INFO, NULL, NULL,
 static Bool useDevMem = FALSE;
 static int devMemFd = -1;
 
-static pointer mapVidMem(int, unsigned long, unsigned long, int);
-static void unmapVidMem(int, pointer, unsigned long);
+static void *mapVidMem(int, unsigned long, unsigned long, int);
+static void unmapVidMem(int, void *, unsigned long);
 
 /*
  * Check if /dev/mem can be mmap'd.  If it can't print a warning when
@@ -123,7 +123,7 @@ checkDevMem(Bool warn)
 {
     static Bool devMemChecked = FALSE;
     int fd;
-    pointer base;
+    void *base;
 
     if (devMemChecked)
         return;
@@ -170,10 +170,10 @@ xf86OSInitVidMem(VidMemInfoPtr pVidMem)
     pVidMem->initialised = TRUE;
 }
 
-static pointer
+static void *
 mapVidMem(int ScreenNum, unsigned long Base, unsigned long Size, int flags)
 {
-    pointer base;
+    void *base;
 
     checkDevMem(FALSE);
 
@@ -210,7 +210,7 @@ mapVidMem(int ScreenNum, unsigned long Base, unsigned long Size, int flags)
 }
 
 static void
-unmapVidMem(int ScreenNum, pointer Base, unsigned long Size)
+unmapVidMem(int ScreenNum, void *Base, unsigned long Size)
 {
     munmap((caddr_t) Base, Size);
 }
@@ -310,8 +310,8 @@ checkMapInfo(Bool warn, int Region)
     }
 }
 
-static pointer
-xf86MapInfoMap(struct memAccess *memInfoP, pointer Base, unsigned long Size)
+static void *
+xf86MapInfoMap(struct memAccess *memInfoP, void *Base, unsigned long Size)
 {
     struct map_info *mapInfoP = &(memInfoP->memInfo);
 
@@ -335,7 +335,7 @@ xf86MapInfoMap(struct memAccess *memInfoP, pointer Base, unsigned long Size)
                       MAP_SHARED,
                       xf86Info.consoleFd,
                       (unsigned long) mapInfoP->u.map_info_mmap.map_offset))
-                == (pointer) -1) {
+                == (void *) -1) {
                 FatalError
                     ("xf86MapInfoMap: Failed to map memory at 0x%x\n\t%s\n",
                      mapInfoP->u.map_info_mmap.map_offset, strerror(errno));
@@ -351,7 +351,7 @@ xf86MapInfoMap(struct memAccess *memInfoP, pointer Base, unsigned long Size)
         break;
     }
 
-    return (pointer) ((int) memInfoP->regionVirtBase + (int) Base);
+    return (void *) ((int) memInfoP->regionVirtBase + (int) Base);
 }
 
 static void
@@ -374,7 +374,7 @@ xf86MapInfoUnmap(struct memAccess *memInfoP, unsigned long Size)
     }
 }
 
-static pointer
+static void *
 armMapVidMem(int ScreenNum, unsigned long Base, unsigned long Size, int flags)
 {
     struct memAccess *memInfoP;
@@ -404,7 +404,7 @@ armMapVidMem(int ScreenNum, unsigned long Base, unsigned long Size, int flags)
 }
 
 static void
-armUnmapVidMem(int ScreenNum, pointer Base, unsigned long Size)
+armUnmapVidMem(int ScreenNum, void *Base, unsigned long Size)
 {
     struct memAccess *memInfoP;
 
@@ -450,17 +450,17 @@ Bool
 xf86EnableIO()
 {
     int fd;
-    pointer base;
+    void *base;
 
     if (ExtendedEnabled)
         return TRUE;
 
     if ((fd = open("/dev/ttyC0", O_RDWR)) >= 0) {
         /* Try to map a page at the pccons I/O space */
-        base = (pointer) mmap((caddr_t) 0, 65536, PROT_READ | PROT_WRITE,
-                              MAP_FLAGS, fd, (off_t) 0x0000);
+        base = (void *) mmap((caddr_t) 0, 65536, PROT_READ | PROT_WRITE,
+                             MAP_FLAGS, fd, (off_t) 0x0000);
 
-        if (base != (pointer) -1) {
+        if (base != (void *) -1) {
             IOPortBase = base;
         }
         else {
@@ -509,7 +509,7 @@ int ScreenNum;
 {
     int i;
     int fd;
-    pointer base;
+    void *base;
 
 #ifdef __arm32__
     struct memAccess *memInfoP;
@@ -524,10 +524,10 @@ int ScreenNum;
 #ifdef USE_ARC_MMAP
     if ((fd = open("/dev/ttyC0", O_RDWR)) >= 0) {
         /* Try to map a page at the pccons I/O space */
-        base = (pointer) mmap((caddr_t) 0, 65536, PROT_READ | PROT_WRITE,
-                              MAP_FLAGS, fd, (off_t) 0x0000);
+        base = (void *) mmap((caddr_t) 0, 65536, PROT_READ | PROT_WRITE,
+                             MAP_FLAGS, fd, (off_t) 0x0000);
 
-        if (base != (pointer) -1) {
+        if (base != (void *) -1) {
             IOPortBase = base;
         }
         else {
@@ -563,10 +563,10 @@ int ScreenNum;
     checkDevMem(TRUE);
 
     if (devMemFd >= 0 && useDevMem) {
-        base = (pointer) mmap((caddr_t) 0, 0x400, PROT_READ | PROT_WRITE,
+        base = (void *) mmap((caddr_t) 0, 0x400, PROT_READ | PROT_WRITE,
                               MAP_FLAGS, devMemFd, (off_t) DEV_MEM_IOBASE);
 
-        if (base != (pointer) -1)
+        if (base != (void *) -1)
             IOPortBase = (unsigned int) base;
     }
 

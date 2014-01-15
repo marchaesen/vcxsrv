@@ -134,12 +134,12 @@ static Bool XvCloseScreen(ScreenPtr);
 static Bool XvDestroyPixmap(PixmapPtr);
 static Bool XvDestroyWindow(WindowPtr);
 static void XvResetProc(ExtensionEntry *);
-static int XvdiDestroyGrab(pointer, XID);
-static int XvdiDestroyEncoding(pointer, XID);
-static int XvdiDestroyVideoNotify(pointer, XID);
-static int XvdiDestroyPortNotify(pointer, XID);
-static int XvdiDestroyVideoNotifyList(pointer, XID);
-static int XvdiDestroyPort(pointer, XID);
+static int XvdiDestroyGrab(void *, XID);
+static int XvdiDestroyEncoding(void *, XID);
+static int XvdiDestroyVideoNotify(void *, XID);
+static int XvdiDestroyPortNotify(void *, XID);
+static int XvdiDestroyVideoNotifyList(void *, XID);
+static int XvdiDestroyPort(void *, XID);
 static int XvdiSendVideoNotify(XvPortPtr, DrawablePtr, int);
 
 /*
@@ -450,20 +450,20 @@ XvdiVideoStopped(XvPortPtr pPort, int reason)
 }
 
 static int
-XvdiDestroyPort(pointer pPort, XID id)
+XvdiDestroyPort(void *pPort, XID id)
 {
     return (*((XvPortPtr) pPort)->pAdaptor->ddFreePort) (pPort);
 }
 
 static int
-XvdiDestroyGrab(pointer pGrab, XID id)
+XvdiDestroyGrab(void *pGrab, XID id)
 {
     ((XvGrabPtr) pGrab)->client = NULL;
     return Success;
 }
 
 static int
-XvdiDestroyVideoNotify(pointer pn, XID id)
+XvdiDestroyVideoNotify(void *pn, XID id)
 {
     /* JUST CLEAR OUT THE client POINTER FIELD */
 
@@ -472,7 +472,7 @@ XvdiDestroyVideoNotify(pointer pn, XID id)
 }
 
 static int
-XvdiDestroyPortNotify(pointer pn, XID id)
+XvdiDestroyPortNotify(void *pn, XID id)
 {
     /* JUST CLEAR OUT THE client POINTER FIELD */
 
@@ -481,7 +481,7 @@ XvdiDestroyPortNotify(pointer pn, XID id)
 }
 
 static int
-XvdiDestroyVideoNotifyList(pointer pn, XID id)
+XvdiDestroyVideoNotifyList(void *pn, XID id)
 {
     XvVideoNotifyPtr npn, cpn;
 
@@ -500,7 +500,7 @@ XvdiDestroyVideoNotifyList(pointer pn, XID id)
 }
 
 static int
-XvdiDestroyEncoding(pointer value, XID id)
+XvdiDestroyEncoding(void *value, XID id)
 {
     return Success;
 }
@@ -510,7 +510,7 @@ XvdiSendVideoNotify(XvPortPtr pPort, DrawablePtr pDraw, int reason)
 {
     XvVideoNotifyPtr pn;
 
-    dixLookupResourceByType((pointer *) &pn, pDraw->id, XvRTVideoNotifyList,
+    dixLookupResourceByType((void **) &pn, pDraw->id, XvRTVideoNotifyList,
                             serverClient, DixReadAccess);
 
     while (pn) {
@@ -843,7 +843,7 @@ XvdiSelectVideoNotify(ClientPtr client, DrawablePtr pDraw, BOOL onoff)
 
     /* FIND VideoNotify LIST */
 
-    rc = dixLookupResourceByType((pointer *) &pn, pDraw->id,
+    rc = dixLookupResourceByType((void **) &pn, pDraw->id,
                                  XvRTVideoNotifyList, client, DixWriteAccess);
     if (rc != Success && rc != BadValue)
         return rc;

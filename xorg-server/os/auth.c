@@ -96,12 +96,12 @@ static struct protocol protocols[] = {
  * specified authorization file
  */
 
-static char *authorization_file = (char *) NULL;
+static const char *authorization_file = NULL;
 
 static Bool ShouldLoadAuth = TRUE;
 
 void
-InitAuthorization(char *file_name)
+InitAuthorization(const char *file_name)
 {
     authorization_file = file_name;
 }

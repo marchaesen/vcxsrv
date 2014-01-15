@@ -156,7 +156,7 @@ miCompositeRects(CARD8 op,
             rects++;
         }
 
-        FreePicture((pointer) pSrc, 0);
+        FreePicture((void *) pSrc, 0);
  bail4:
         FreeScratchGC(pGC);
  bail3:

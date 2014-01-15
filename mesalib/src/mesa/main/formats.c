@@ -1763,6 +1763,33 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       0, 0, 0, 0, 0,
       1, 1, 16
    },
+   {
+      MESA_FORMAT_ABGR2101010,
+      "MESA_FORMAT_ABGR2101010",
+      GL_RGBA,
+      GL_UNSIGNED_NORMALIZED,
+      10, 10, 10, 2,
+      0, 0, 0, 0, 0,
+      1, 1, 4
+   },
+   {
+      MESA_FORMAT_SIGNED_RG88,
+      "MESA_FORMAT_SIGNED_RG88",
+      GL_RG,
+      GL_SIGNED_NORMALIZED,
+      8, 8, 0, 0,
+      0, 0, 0, 0, 0,
+      1, 1, 2
+   },
+   {
+      MESA_FORMAT_SIGNED_RG1616,
+      "MESA_FORMAT_SIGNED_RG1616",
+      GL_RG,
+      GL_SIGNED_NORMALIZED,
+      16, 16, 0, 0,
+      0, 0, 0, 0, 0,
+      1, 1, 4
+   },
 };
 
 
@@ -1963,6 +1990,26 @@ _mesa_is_format_unsigned(gl_format format)
 {
    const struct gl_format_info *info = _mesa_get_format_info(format);
    return _mesa_is_type_unsigned(info->DataType);
+}
+
+
+/**
+ * Does the given format store signed values?
+ */
+GLboolean
+_mesa_is_format_signed(gl_format format)
+{
+   if (format == MESA_FORMAT_R11_G11_B10_FLOAT || 
+       format == MESA_FORMAT_RGB9_E5_FLOAT) {
+      /* these packed float formats only store unsigned values */
+      return GL_FALSE;
+   }
+   else {
+      const struct gl_format_info *info = _mesa_get_format_info(format);
+      return (info->DataType == GL_SIGNED_NORMALIZED ||
+              info->DataType == GL_INT ||
+              info->DataType == GL_FLOAT);
+   }
 }
 
 
@@ -2821,6 +2868,21 @@ _mesa_format_to_type_and_comps(gl_format format,
       *comps = 4;
       return;
 
+   case MESA_FORMAT_ABGR2101010:
+      *datatype = GL_UNSIGNED_INT_2_10_10_10_REV;
+      *comps = 4;
+      return;
+
+   case MESA_FORMAT_SIGNED_RG88:
+      *datatype = GL_BYTE;
+      *comps = 2;
+      return;
+
+   case MESA_FORMAT_SIGNED_RG1616:
+      *datatype = GL_SHORT;
+      *comps = 2;
+      return;
+
    case MESA_FORMAT_COUNT:
       assert(0);
       return;
@@ -3362,6 +3424,18 @@ _mesa_format_matches_format_and_type(gl_format gl_format,
    case MESA_FORMAT_XBGR32323232_UINT:
    case MESA_FORMAT_XBGR32323232_SINT:
       return GL_FALSE;
+
+   case MESA_FORMAT_ABGR2101010:
+      return format == GL_RGBA && type == GL_UNSIGNED_INT_2_10_10_10_REV &&
+         !swapBytes;
+
+   case MESA_FORMAT_SIGNED_RG88:
+      return format == GL_RG && type == GL_BYTE && !littleEndian &&
+         !swapBytes;
+
+   case MESA_FORMAT_SIGNED_RG1616:
+      return format == GL_RG && type == GL_SHORT && !littleEndian &&
+         !swapBytes;
    }
 
    return GL_FALSE;

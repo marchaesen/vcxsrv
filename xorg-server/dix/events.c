@@ -580,7 +580,7 @@ XineramaSetWindowPntrs(DeviceIntPtr pDev, WindowPtr pWin)
         PanoramiXRes *win;
         int rc, i;
 
-        rc = dixLookupResourceByType((pointer *) &win, pWin->drawable.id,
+        rc = dixLookupResourceByType((void **) &win, pWin->drawable.id,
                                      XRT_WINDOW, serverClient, DixReadAccess);
         if (rc != Success)
             return FALSE;
@@ -1165,7 +1165,7 @@ EnqueueEvent(InternalEvent *ev, DeviceIntPtr device)
 
         eventinfo.event = ev;
         eventinfo.device = device;
-        CallCallbacks(&DeviceEventCallback, (pointer) &eventinfo);
+        CallCallbacks(&DeviceEventCallback, (void *) &eventinfo);
     }
 
     if (event->type == ET_Motion) {
@@ -2674,6 +2674,9 @@ DeliverOneEvent(InternalEvent *event, DeviceIntPtr dev, enum InputLevel level,
     case CORE:
         rc = EventToCore(event, &xE, &count);
         break;
+    default:
+        rc = BadImplementation;
+        break;
     }
 
     if (rc == Success) {
@@ -3832,6 +3835,8 @@ MatchForType(const GrabPtr grab, GrabPtr tmp, enum InputLevel level,
         match = CORE_MATCH;
         ignore_device = TRUE;
         break;
+    default:
+        return NO_MATCH;
     }
 
     tmp->grabtype = grabtype;
@@ -4416,7 +4421,7 @@ RecalculateDeliverableEvents(WindowPtr pWin)
  *  \param value must conform to DeleteType
  */
 int
-OtherClientGone(pointer value, XID id)
+OtherClientGone(void *value, XID id)
 {
     OtherClientsPtr other, prev;
     WindowPtr pWin = (WindowPtr) value;
@@ -4498,7 +4503,7 @@ EventSelectForWindow(WindowPtr pWin, ClientPtr client, Mask mask)
         others->resource = FakeClientID(client->index);
         others->next = pWin->optional->otherClients;
         pWin->optional->otherClients = others;
-        if (!AddResource(others->resource, RT_OTHERCLIENT, (pointer) pWin))
+        if (!AddResource(others->resource, RT_OTHERCLIENT, (void *) pWin))
             return BadAlloc;
     }
  maskSet:
@@ -4985,7 +4990,7 @@ ProcChangeActivePointerGrab(ClientPtr client)
     if (stuff->cursor == None)
         newCursor = NullCursor;
     else {
-        int rc = dixLookupResourceByType((pointer *) &newCursor, stuff->cursor,
+        int rc = dixLookupResourceByType((void **) &newCursor, stuff->cursor,
                                          RT_CURSOR, client, DixUseAccess);
 
         if (rc != Success) {
@@ -5102,7 +5107,7 @@ GrabDevice(ClientPtr client, DeviceIntPtr dev,
     if (curs == None)
         cursor = NullCursor;
     else {
-        rc = dixLookupResourceByType((pointer *) &cursor, curs, RT_CURSOR,
+        rc = dixLookupResourceByType((void **) &cursor, curs, RT_CURSOR,
                                      client, DixUseAccess);
         if (rc != Success) {
             client->errorValue = curs;
@@ -5627,7 +5632,7 @@ ProcGrabButton(ClientPtr client)
     if (stuff->cursor == None)
         cursor = NullCursor;
     else {
-        rc = dixLookupResourceByType((pointer *) &cursor, stuff->cursor,
+        rc = dixLookupResourceByType((void **) &cursor, stuff->cursor,
                                      RT_CURSOR, client, DixUseAccess);
         if (rc != Success) {
             client->errorValue = stuff->cursor;
@@ -5880,7 +5885,7 @@ ProcRecolorCursor(ClientPtr client)
     REQUEST(xRecolorCursorReq);
 
     REQUEST_SIZE_MATCH(xRecolorCursorReq);
-    rc = dixLookupResourceByType((pointer *) &pCursor, stuff->cursor, RT_CURSOR,
+    rc = dixLookupResourceByType((void **) &pCursor, stuff->cursor, RT_CURSOR,
                                  client, DixWriteAccess);
     if (rc != Success) {
         client->errorValue = stuff->cursor;
@@ -5981,7 +5986,7 @@ WriteEventsToClient(ClientPtr pClient, int count, xEvent *events)
         eventinfo.client = pClient;
         eventinfo.events = events;
         eventinfo.count = count;
-        CallCallbacks(&EventCallback, (pointer) &eventinfo);
+        CallCallbacks(&EventCallback, (void *) &eventinfo);
     }
 #ifdef XSERVER_DTRACE
     if (XSERVER_SEND_EVENT_ENABLED()) {

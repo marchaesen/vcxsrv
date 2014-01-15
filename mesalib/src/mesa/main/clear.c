@@ -179,7 +179,11 @@ _mesa_Clear( GLbitfield mask )
       if (mask & GL_COLOR_BUFFER_BIT) {
          GLuint i;
          for (i = 0; i < ctx->DrawBuffer->_NumColorDrawBuffers; i++) {
-            bufferMask |= (1 << ctx->DrawBuffer->_ColorDrawBufferIndexes[i]);
+            GLint buf = ctx->DrawBuffer->_ColorDrawBufferIndexes[i];
+
+            if (buf >= 0) {
+               bufferMask |= 1 << buf;
+            }
          }
       }
 
@@ -274,7 +278,7 @@ make_color_buffer_mask(struct gl_context *ctx, GLint drawbuffer)
       break;
    default:
       {
-         GLuint buf = ctx->DrawBuffer->_ColorDrawBufferIndexes[drawbuffer];
+         GLint buf = ctx->DrawBuffer->_ColorDrawBufferIndexes[drawbuffer];
 
          if (buf >= 0 && att[buf].Renderbuffer) {
             mask |= 1 << buf;

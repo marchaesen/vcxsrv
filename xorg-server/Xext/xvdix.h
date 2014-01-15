@@ -200,7 +200,7 @@ typedef struct _XvPortRec {
 
 #define VALIDATE_XV_PORT(portID, pPort, mode)\
     {\
-	int rc = dixLookupResourceByType((pointer *)&(pPort), portID,\
+	int rc = dixLookupResourceByType((void **)&(pPort), portID,\
 	                                 XvRTPort, client, mode);\
 	if (rc != Success)\
 	    return rc;\

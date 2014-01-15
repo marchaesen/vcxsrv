@@ -215,6 +215,7 @@ xf86GTFMode(int h_pixels, int v_lines, float freq, int interlaced, int margins)
      */
 
     v_back_porch = vsync_plus_bp - V_SYNC_RQD;
+    (void) v_back_porch;
 
     /*  10. Find the total number of lines in Vertical field period:
      *
@@ -253,6 +254,7 @@ xf86GTFMode(int h_pixels, int v_lines, float freq, int interlaced, int margins)
      */
 
     v_frame_rate = interlaced ? v_field_rate / 2.0 : v_field_rate;
+    (void) v_frame_rate;
 
     /*  15. Find number of pixels in left margin:
      *

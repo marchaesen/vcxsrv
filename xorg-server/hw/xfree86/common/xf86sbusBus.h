@@ -52,16 +52,16 @@ typedef struct sbus_device {
     int fd;
     int width, height;
     sbusPromNode node;
-    char *descr;
-    char *device;
+    const char *descr;
+    const char *device;
 } sbusDevice, *sbusDevicePtr;
 
 struct sbus_devtable {
     int devId;
     int fbType;
-    char *promName;
-    char *driverName;
-    char *descr;
+    const char *promName;
+    const char *driverName;
+    const char *descr;
 };
 
 extern _X_EXPORT void xf86SbusProbe(void);
@@ -76,10 +76,10 @@ extern _X_EXPORT sbusDevicePtr xf86GetSbusInfoForEntity(int entityIndex);
 extern _X_EXPORT int xf86GetEntityForSbusInfo(sbusDevicePtr psdp);
 extern _X_EXPORT void xf86SbusUseBuiltinMode(ScrnInfoPtr pScrn,
                                              sbusDevicePtr psdp);
-extern _X_EXPORT pointer xf86MapSbusMem(sbusDevicePtr psdp,
+extern _X_EXPORT void *xf86MapSbusMem(sbusDevicePtr psdp,
                                         unsigned long offset,
                                         unsigned long size);
-extern _X_EXPORT void xf86UnmapSbusMem(sbusDevicePtr psdp, pointer addr,
+extern _X_EXPORT void xf86UnmapSbusMem(sbusDevicePtr psdp, void *addr,
                                        unsigned long size);
 extern _X_EXPORT void xf86SbusHideOsHwCursor(sbusDevicePtr psdp);
 extern _X_EXPORT void xf86SbusSetOsHwCursorCmap(sbusDevicePtr psdp, int bg,

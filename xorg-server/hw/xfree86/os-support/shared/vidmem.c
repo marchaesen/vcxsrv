@@ -51,8 +51,8 @@
 
 typedef struct {
     unsigned long size;
-    pointer virtBase;
-    pointer mtrrInfo;
+    void *virtBase;
+    void *mtrrInfo;
 } MappingRec, *MappingPtr;
 
 typedef struct {
@@ -104,7 +104,7 @@ newMapping(VidMapPtr vp)
 }
 
 static MappingPtr
-findMapping(VidMapPtr vp, pointer vbase, unsigned long size)
+findMapping(VidMapPtr vp, void *vbase, unsigned long size)
 {
     int i;
 
@@ -165,10 +165,10 @@ xf86InitVidMem(void)
     }
 }
 
-pointer
+void *
 xf86MapVidMem(int ScreenNum, int Flags, unsigned long Base, unsigned long Size)
 {
-    pointer vbase = NULL;
+    void *vbase = NULL;
     VidMapPtr vp;
     MappingPtr mp;
 
@@ -182,7 +182,7 @@ xf86MapVidMem(int ScreenNum, int Flags, unsigned long Base, unsigned long Size)
 
     vbase = vidMemInfo.mapMem(ScreenNum, Base, Size, Flags);
 
-    if (!vbase || vbase == (pointer) -1)
+    if (!vbase || vbase == (void *) -1)
         return NULL;
 
     vp = getVidMapRec(ScreenNum);
@@ -208,7 +208,7 @@ xf86MapVidMem(int ScreenNum, int Flags, unsigned long Base, unsigned long Size)
 }
 
 void
-xf86UnMapVidMem(int ScreenNum, pointer Base, unsigned long Size)
+xf86UnMapVidMem(int ScreenNum, void *Base, unsigned long Size)
 {
     VidMapPtr vp;
     MappingPtr mp;

@@ -34,23 +34,23 @@ SOFTWARE.
 
 typedef struct _DIXFontProp *DIXFontPropPtr;
 
-extern _X_EXPORT Bool SetDefaultFont(char * /*defaultfontname */ );
+extern _X_EXPORT Bool SetDefaultFont(const char * /*defaultfontname */ );
 
 extern _X_EXPORT void QueueFontWakeup(FontPathElementPtr /*fpe */ );
 
 extern _X_EXPORT void RemoveFontWakeup(FontPathElementPtr /*fpe */ );
 
-extern _X_EXPORT void FontWakeup(pointer /*data */ ,
+extern _X_EXPORT void FontWakeup(void */*data */ ,
                                  int /*count */ ,
-                                 pointer /*LastSelectMask */ );
+                                 void */*LastSelectMask */ );
 
 extern _X_EXPORT int OpenFont(ClientPtr /*client */ ,
                               XID /*fid */ ,
                               Mask /*flags */ ,
                               unsigned /*lenfname */ ,
-                              char * /*pfontname */ );
+                              const char * /*pfontname */ );
 
-extern _X_EXPORT int CloseFont(pointer /*pfont */ ,
+extern _X_EXPORT int CloseFont(void */*pfont */ ,
                                XID /*fid */ );
 
 typedef struct _xQueryFontReply *xQueryFontReplyPtr;
@@ -99,7 +99,7 @@ extern _X_EXPORT int SetFontPath(ClientPtr /*client */ ,
                                  int /*npaths */ ,
                                  unsigned char * /*paths */ );
 
-extern _X_EXPORT int SetDefaultFontPath(char * /*path */ );
+extern _X_EXPORT int SetDefaultFontPath(const char * /*path */ );
 
 extern _X_EXPORT int GetFontPath(ClientPtr client,
                                  int *count,

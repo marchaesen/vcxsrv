@@ -257,7 +257,7 @@ VGAarbiterCloseScreen(ScreenPtr pScreen)
     UNWRAP_SCREEN_INFO(FreeScreen);
     UNWRAP_SPRITE;
 
-    free((pointer) pScreenPriv);
+    free((void *) pScreenPriv);
     xf86VGAarbiterLock(xf86ScreenToScrn(pScreen));
     val = (*pScreen->CloseScreen) (pScreen);
     xf86VGAarbiterUnlock(xf86ScreenToScrn(pScreen));
@@ -266,7 +266,7 @@ VGAarbiterCloseScreen(ScreenPtr pScreen)
 
 static void
 VGAarbiterBlockHandler(ScreenPtr pScreen,
-                       pointer pTimeout, pointer pReadmask)
+                       void *pTimeout, void *pReadmask)
 {
     SCREEN_PROLOG(BlockHandler);
     VGAGet(pScreen);
@@ -277,7 +277,7 @@ VGAarbiterBlockHandler(ScreenPtr pScreen,
 
 static void
 VGAarbiterWakeupHandler(ScreenPtr pScreen, unsigned long result,
-                        pointer pReadmask)
+                        void *pReadmask)
 {
     SCREEN_PROLOG(WakeupHandler);
     VGAGet(pScreen);
@@ -586,7 +586,7 @@ VGAarbiterCopyGC(GCPtr pGCSrc, unsigned long mask, GCPtr pGCDst)
 }
 
 static void
-VGAarbiterChangeClip(GCPtr pGC, int type, pointer pvalue, int nrects)
+VGAarbiterChangeClip(GCPtr pGC, int type, void *pvalue, int nrects)
 {
     GC_UNWRAP(pGC);
     (*pGC->funcs->ChangeClip) (pGC, type, pvalue, nrects);
@@ -860,7 +860,7 @@ VGAarbiterImageGlyphBlt(DrawablePtr pDraw,
                         GCPtr pGC,
                         int xInit, int yInit,
                         unsigned int nglyph,
-                        CharInfoPtr * ppci, pointer pglyphBase)
+                        CharInfoPtr * ppci, void *pglyphBase)
 {
     ScreenPtr pScreen = pGC->pScreen;
 
@@ -877,7 +877,7 @@ VGAarbiterPolyGlyphBlt(DrawablePtr pDraw,
                        GCPtr pGC,
                        int xInit, int yInit,
                        unsigned int nglyph,
-                       CharInfoPtr * ppci, pointer pglyphBase)
+                       CharInfoPtr * ppci, void *pglyphBase)
 {
     ScreenPtr pScreen = pGC->pScreen;
 

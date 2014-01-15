@@ -109,7 +109,7 @@ typedef void (*xf86XvMCDestroySubpictureProcPtr) (ScrnInfoPtr pScrn,
                                                   XvMCSubpicturePtr subpicture);
 
 typedef struct {
-    char *name;
+    const char *name;
     int num_surfaces;
     XF86MCSurfaceInfoPtr *surfaces;
     int num_subpictures;

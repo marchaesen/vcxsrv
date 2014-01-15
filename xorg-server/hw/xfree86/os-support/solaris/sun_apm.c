@@ -90,7 +90,7 @@ typedef struct apm_event_info {
 #define APM_DEVICE "/dev/srn"
 #define APM_DEVICE1 "/dev/apm"
 
-static pointer APMihPtr = NULL;
+static void *APMihPtr = NULL;
 static void sunCloseAPM(void);
 
 static struct {

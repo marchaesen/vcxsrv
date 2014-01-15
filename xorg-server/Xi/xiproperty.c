@@ -723,10 +723,10 @@ XIChangeDeviceProperty(DeviceIntPtr dev, Atom property, Atom type,
         total_len = prop_value->size + len;
 
     if (mode == PropModeReplace || len > 0) {
-        pointer new_data = NULL, old_data = NULL;
+        void *new_data = NULL, *old_data = NULL;
 
         total_size = total_len * size_in_bytes;
-        new_value.data = (pointer) malloc(total_size);
+        new_value.data = (void *) malloc(total_size);
         if (!new_value.data && total_size) {
             if (add)
                 XIDestroyDeviceProperty(prop);
@@ -742,13 +742,13 @@ XIChangeDeviceProperty(DeviceIntPtr dev, Atom property, Atom type,
             old_data = NULL;
             break;
         case PropModeAppend:
-            new_data = (pointer) (((char *) new_value.data) +
+            new_data = (void *) (((char *) new_value.data) +
                                   (prop_value->size * size_in_bytes));
             old_data = new_value.data;
             break;
         case PropModePrepend:
             new_data = new_value.data;
-            old_data = (pointer) (((char *) new_value.data) +
+            old_data = (void *) (((char *) new_value.data) +
                                   (prop_value->size * size_in_bytes));
             break;
         }

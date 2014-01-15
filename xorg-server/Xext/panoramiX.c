@@ -118,7 +118,7 @@ static DevPrivateKeyRec PanoramiXScreenKeyRec;
 typedef struct {
     DDXPointRec clipOrg;
     DDXPointRec patOrg;
-    GCFuncs *wrapFuncs;
+    const GCFuncs *wrapFuncs;
 } PanoramiXGCRec, *PanoramiXGCPtr;
 
 typedef struct {
@@ -130,11 +130,11 @@ static void XineramaValidateGC(GCPtr, unsigned long, DrawablePtr);
 static void XineramaChangeGC(GCPtr, unsigned long);
 static void XineramaCopyGC(GCPtr, unsigned long, GCPtr);
 static void XineramaDestroyGC(GCPtr);
-static void XineramaChangeClip(GCPtr, int, pointer, int);
+static void XineramaChangeClip(GCPtr, int, void *, int);
 static void XineramaDestroyClip(GCPtr);
 static void XineramaCopyClip(GCPtr, GCPtr);
 
-static GCFuncs XineramaGCFuncs = {
+static const GCFuncs XineramaGCFuncs = {
     XineramaValidateGC, XineramaChangeGC, XineramaCopyGC, XineramaDestroyGC,
     XineramaChangeClip, XineramaDestroyClip, XineramaCopyClip
 };
@@ -160,7 +160,7 @@ XineramaCloseScreen(ScreenPtr pScreen)
     if (pScreen->myNum == 0)
         RegionUninit(&PanoramiXScreenRegion);
 
-    free((pointer) pScreenPriv);
+    free(pScreenPriv);
 
     return (*pScreen->CloseScreen) (pScreen);
 }
@@ -294,7 +294,7 @@ XineramaCopyGC(GCPtr pGCSrc, unsigned long mask, GCPtr pGCDst)
 }
 
 static void
-XineramaChangeClip(GCPtr pGC, int type, pointer pvalue, int nrects)
+XineramaChangeClip(GCPtr pGC, int type, void *pvalue, int nrects)
 {
     Xinerama_GC_FUNC_PROLOGUE(pGC);
     (*pGC->funcs->ChangeClip) (pGC, type, pvalue, nrects);
@@ -318,7 +318,7 @@ XineramaDestroyClip(GCPtr pGC)
 }
 
 int
-XineramaDeleteResource(pointer data, XID id)
+XineramaDeleteResource(void *data, XID id)
 {
     free(data);
     return 1;
@@ -330,7 +330,7 @@ typedef struct {
 } PanoramiXSearchData;
 
 static Bool
-XineramaFindIDByScrnum(pointer resource, XID id, pointer privdata)
+XineramaFindIDByScrnum(void *resource, XID id, void *privdata)
 {
     PanoramiXRes *res = (PanoramiXRes *) resource;
     PanoramiXSearchData *data = (PanoramiXSearchData *) privdata;
@@ -342,7 +342,7 @@ PanoramiXRes *
 PanoramiXFindIDByScrnum(RESTYPE type, XID id, int screen)
 {
     PanoramiXSearchData data;
-    pointer val;
+    void *val;
 
     if (!screen) {
         dixLookupResourceByType(&val, id, type, serverClient, DixReadAccess);
@@ -691,9 +691,9 @@ PanoramiXCreateConnectionBlock(void)
     root->mmHeight *= height_mult;
 
     while (ConnectionCallbackList) {
-        pointer tmp;
+        void *tmp;
 
-        tmp = (pointer) ConnectionCallbackList;
+        tmp = (void *) ConnectionCallbackList;
         (*ConnectionCallbackList->func) ();
         ConnectionCallbackList = ConnectionCallbackList->next;
         free(tmp);

@@ -1838,6 +1838,13 @@
         </variant>
         <variant>
           <configItem>
+            <name>eeyek</name>
+            <description>Manipuri (Eeyek)</description>
+            <languageList><iso639Id>mni</iso639Id></languageList>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
             <name>guj</name>
             <!-- Keyboard indicator for Gujarati layouts -->
             <_shortDescription>gu</_shortDescription>

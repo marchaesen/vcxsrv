@@ -229,13 +229,12 @@ xf86RotateRedisplay(ScreenPtr pScreen)
 
 static void
 xf86RotateBlockHandler(ScreenPtr pScreen,
-                       pointer pTimeout, pointer pReadmask)
+                       void *pTimeout, void *pReadmask)
 {
     ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(pScrn);
-    Bool rotation_active;
 
-    rotation_active = xf86RotateRedisplay(pScreen);
+    xf86RotateRedisplay(pScreen);
     pScreen->BlockHandler = xf86_config->BlockHandler;
     (*pScreen->BlockHandler) (pScreen, pTimeout, pReadmask);
     /* cannot avoid re-wrapping until all wrapping is audited */
@@ -247,7 +246,6 @@ void
 xf86RotateDestroy(xf86CrtcPtr crtc)
 {
     ScrnInfoPtr pScrn = crtc->scrn;
-    ScreenPtr pScreen = xf86ScrnToScreen(pScrn);
     xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(pScrn);
     int c;
 
@@ -267,9 +265,6 @@ xf86RotateDestroy(xf86CrtcPtr crtc)
      * Clean up damage structures when no crtcs are rotated
      */
     if (xf86_config->rotation_damage) {
-        DrawablePtr screenDrawable = NULL;
-        if (pScreen && pScreen->root)
-            screenDrawable = &pScreen->root->drawable;
         /* Free damage structure */
         if (xf86_config->rotation_damage_registered) {
             xf86_config->rotation_damage_registered = FALSE;

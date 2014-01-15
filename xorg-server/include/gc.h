@@ -87,7 +87,7 @@ extern _X_EXPORT void ValidateGC(DrawablePtr /*pDraw */ ,
                                  GCPtr /*pGC */ );
 
 typedef union {
-    pointer ptr;
+    void *ptr;
     CARD32 val;
 } ChangeGCVal, *ChangeGCValPtr;
 
@@ -112,7 +112,7 @@ extern _X_EXPORT int CopyGC(GCPtr /*pgcSrc */ ,
                             GCPtr /*pgcDst */ ,
                             BITS32 /*mask */ );
 
-extern _X_EXPORT int FreeGC(pointer /*pGC */ ,
+extern _X_EXPORT int FreeGC(void */*pGC */ ,
                             XID /*gid */ );
 
 extern _X_EXPORT void FreeGCperDepth(int /*screenNum */ );

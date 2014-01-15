@@ -196,7 +196,7 @@ DoApmEvent(pmEvent event, Bool undo)
 #define MAX_NO_EVENTS 8
 
 void
-xf86HandlePMEvents(int fd, pointer data)
+xf86HandlePMEvents(int fd, void *data)
 {
     pmEvent events[MAX_NO_EVENTS];
     int i, n;

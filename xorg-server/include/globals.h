@@ -18,7 +18,7 @@ extern _X_EXPORT CARD32 ScreenSaverInterval;
 extern _X_EXPORT Bool screenSaverSuspended;
 #endif
 
-extern _X_EXPORT char *defaultFontPath;
+extern _X_EXPORT const char *defaultFontPath;
 extern _X_EXPORT int monitorResolution;
 extern _X_EXPORT int defaultColorVisualClass;
 

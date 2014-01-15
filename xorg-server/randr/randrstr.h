@@ -92,7 +92,7 @@ struct _rrPropertyValue {
     Atom type;                  /* ignored by server */
     short format;               /* format of data for swapping - 8,16,32 */
     long size;                  /* size of data in (format/8) bytes */
-    pointer data;               /* private to client */
+    void *data;                 /* private to client */
 };
 
 struct _rrProperty {
@@ -385,7 +385,7 @@ extern _X_EXPORT RESTYPE RRCrtcType, RRModeType, RROutputType, RRProviderType;
 
 #define VERIFY_RR_OUTPUT(id, ptr, a)\
     {\
-	int rc = dixLookupResourceByType((pointer *)&(ptr), id,\
+	int rc = dixLookupResourceByType((void **)&(ptr), id,\
 	                                 RROutputType, client, a);\
 	if (rc != Success) {\
 	    client->errorValue = id;\
@@ -395,7 +395,7 @@ extern _X_EXPORT RESTYPE RRCrtcType, RRModeType, RROutputType, RRProviderType;
 
 #define VERIFY_RR_CRTC(id, ptr, a)\
     {\
-	int rc = dixLookupResourceByType((pointer *)&(ptr), id,\
+	int rc = dixLookupResourceByType((void **)&(ptr), id,\
 	                                 RRCrtcType, client, a);\
 	if (rc != Success) {\
 	    client->errorValue = id;\
@@ -405,7 +405,7 @@ extern _X_EXPORT RESTYPE RRCrtcType, RRModeType, RROutputType, RRProviderType;
 
 #define VERIFY_RR_MODE(id, ptr, a)\
     {\
-	int rc = dixLookupResourceByType((pointer *)&(ptr), id,\
+	int rc = dixLookupResourceByType((void **)&(ptr), id,\
 	                                 RRModeType, client, a);\
 	if (rc != Success) {\
 	    client->errorValue = id;\
@@ -415,7 +415,7 @@ extern _X_EXPORT RESTYPE RRCrtcType, RRModeType, RROutputType, RRProviderType;
 
 #define VERIFY_RR_PROVIDER(id, ptr, a)\
     {\
-        int rc = dixLookupResourceByType((pointer *)&(ptr), id,\
+        int rc = dixLookupResourceByType((void **)&(ptr), id,\
                                          RRProviderType, client, a);\
         if (rc != Success) {\
             client->errorValue = id;\
@@ -871,7 +871,7 @@ extern _X_EXPORT int
 
 RRChangeOutputProperty(RROutputPtr output, Atom property, Atom type,
                        int format, int mode, unsigned long len,
-                       pointer value, Bool sendevent, Bool pending);
+                       void *value, Bool sendevent, Bool pending);
 
 extern _X_EXPORT int
 
@@ -948,7 +948,7 @@ extern _X_EXPORT void
 extern _X_EXPORT int
 RRChangeProviderProperty(RRProviderPtr provider, Atom property, Atom type,
                        int format, int mode, unsigned long len,
-                       pointer value, Bool sendevent, Bool pending);
+                       void *value, Bool sendevent, Bool pending);
 
 extern _X_EXPORT int
  RRConfigureProviderProperty(RRProviderPtr provider, Atom property,

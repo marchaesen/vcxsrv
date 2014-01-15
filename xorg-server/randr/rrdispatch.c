@@ -83,7 +83,7 @@ ProcRRSelectInput(ClientPtr client)
     rc = dixLookupWindow(&pWin, stuff->window, client, DixReceiveAccess);
     if (rc != Success)
         return rc;
-    rc = dixLookupResourceByType((pointer *) &pHead, pWin->drawable.id,
+    rc = dixLookupResourceByType((void **) &pHead, pWin->drawable.id,
                                  RREventType, client, DixWriteAccess);
     if (rc != Success && rc != BadValue)
         return rc;
@@ -120,7 +120,7 @@ ProcRRSelectInput(ClientPtr client)
              */
             clientResource = FakeClientID(client->index);
             pRREvent->clientResource = clientResource;
-            if (!AddResource(clientResource, RRClientType, (pointer) pRREvent))
+            if (!AddResource(clientResource, RRClientType, (void *) pRREvent))
                 return BadAlloc;
             /*
              * create a resource to contain a pointer to the list
@@ -132,7 +132,7 @@ ProcRRSelectInput(ClientPtr client)
                 pHead = (RREventPtr *) malloc(sizeof(RREventPtr));
                 if (!pHead ||
                     !AddResource(pWin->drawable.id, RREventType,
-                                 (pointer) pHead)) {
+                                 (void *) pHead)) {
                     FreeResource(clientResource, RT_NONE);
                     return BadAlloc;
                 }

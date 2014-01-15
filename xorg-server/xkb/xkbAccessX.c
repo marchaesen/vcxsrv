@@ -279,7 +279,7 @@ AccessXStickyKeysTurnOff(DeviceIntPtr dev, xkbControlsNotify * pCN)
 }                               /* AccessXStickyKeysTurnOff */
 
 static CARD32
-AccessXKRGExpire(OsTimerPtr timer, CARD32 now, pointer arg)
+AccessXKRGExpire(OsTimerPtr timer, CARD32 now, void *arg)
 {
     xkbControlsNotify cn;
     DeviceIntPtr dev = arg;
@@ -309,7 +309,7 @@ AccessXKRGExpire(OsTimerPtr timer, CARD32 now, pointer arg)
 }
 
 static CARD32
-AccessXRepeatKeyExpire(OsTimerPtr timer, CARD32 now, pointer arg)
+AccessXRepeatKeyExpire(OsTimerPtr timer, CARD32 now, void *arg)
 {
     DeviceIntPtr dev = (DeviceIntPtr) arg;
     XkbSrvInfoPtr xkbi = dev->key->xkbInfo;
@@ -331,7 +331,7 @@ AccessXCancelRepeatKey(XkbSrvInfoPtr xkbi, KeyCode key)
 }
 
 static CARD32
-AccessXSlowKeyExpire(OsTimerPtr timer, CARD32 now, pointer arg)
+AccessXSlowKeyExpire(OsTimerPtr timer, CARD32 now, void *arg)
 {
     DeviceIntPtr keybd;
     XkbSrvInfoPtr xkbi;
@@ -370,7 +370,7 @@ AccessXSlowKeyExpire(OsTimerPtr timer, CARD32 now, pointer arg)
                 xkbi->repeatKeyTimer = TimerSet(xkbi->repeatKeyTimer,
                                                 0, ctrls->repeat_delay,
                                                 AccessXRepeatKeyExpire,
-                                                (pointer) keybd);
+                                                (void *) keybd);
             }
         }
     }
@@ -378,7 +378,7 @@ AccessXSlowKeyExpire(OsTimerPtr timer, CARD32 now, pointer arg)
 }
 
 static CARD32
-AccessXBounceKeyExpire(OsTimerPtr timer, CARD32 now, pointer arg)
+AccessXBounceKeyExpire(OsTimerPtr timer, CARD32 now, void *arg)
 {
     XkbSrvInfoPtr xkbi = ((DeviceIntPtr) arg)->key->xkbInfo;
 
@@ -387,7 +387,7 @@ AccessXBounceKeyExpire(OsTimerPtr timer, CARD32 now, pointer arg)
 }
 
 static CARD32
-AccessXTimeoutExpire(OsTimerPtr timer, CARD32 now, pointer arg)
+AccessXTimeoutExpire(OsTimerPtr timer, CARD32 now, void *arg)
 {
     DeviceIntPtr dev = (DeviceIntPtr) arg;
     XkbSrvInfoPtr xkbi = dev->key->xkbInfo;
@@ -467,12 +467,12 @@ AccessXFilterPressEvent(DeviceEvent *event, DeviceIntPtr keybd)
             if (XkbAX_NeedFeedback(ctrls, XkbAX_SlowWarnFBMask)) {
                 xkbi->krgTimerActive = _KRG_WARN_TIMER;
                 xkbi->krgTimer = TimerSet(xkbi->krgTimer, 0, 4000,
-                                          AccessXKRGExpire, (pointer) keybd);
+                                          AccessXKRGExpire, (void *) keybd);
             }
             else {
                 xkbi->krgTimerActive = _KRG_TIMER;
                 xkbi->krgTimer = TimerSet(xkbi->krgTimer, 0, 8000,
-                                          AccessXKRGExpire, (pointer) keybd);
+                                          AccessXKRGExpire, (void *) keybd);
             }
             if (!(ctrls->enabled_ctrls & XkbSlowKeysMask)) {
                 CARD32 now = GetTimeInMillis();
@@ -514,7 +514,7 @@ AccessXFilterPressEvent(DeviceEvent *event, DeviceIntPtr keybd)
         xkbi->slowKey = key;
         xkbi->slowKeysTimer = TimerSet(xkbi->slowKeysTimer,
                                        0, ctrls->slow_keys_delay,
-                                       AccessXSlowKeyExpire, (pointer) keybd);
+                                       AccessXSlowKeyExpire, (void *) keybd);
         ignoreKeyEvent = TRUE;
     }
 
@@ -546,7 +546,7 @@ AccessXFilterPressEvent(DeviceEvent *event, DeviceIntPtr keybd)
                     xkbi->repeatKeyTimer = TimerSet(xkbi->repeatKeyTimer,
                                                     0, ctrls->repeat_delay,
                                                     AccessXRepeatKeyExpire,
-                                                    (pointer) keybd);
+                                                    (void *) keybd);
                 }
             }
         }
@@ -608,7 +608,7 @@ AccessXFilterReleaseEvent(DeviceEvent *event, DeviceIntPtr keybd)
         xkbi->bounceKeysTimer = TimerSet(xkbi->bounceKeysTimer, 0,
                                          ctrls->debounce_delay,
                                          AccessXBounceKeyExpire,
-                                         (pointer) keybd);
+                                         (void *) keybd);
     }
 
     /* Don't transmit the KeyRelease if SlowKeys is turned on and
@@ -651,7 +651,7 @@ AccessXFilterReleaseEvent(DeviceEvent *event, DeviceIntPtr keybd)
         xkbi->lastPtrEventTime = 0;
         xkbi->krgTimer = TimerSet(xkbi->krgTimer, 0,
                                   ctrls->ax_timeout * 1000,
-                                  AccessXTimeoutExpire, (pointer) keybd);
+                                  AccessXTimeoutExpire, (void *) keybd);
         xkbi->krgTimerActive = _ALL_TIMEOUT_TIMER;
     }
     else if (xkbi->krgTimerActive != _OFF_TIMER) {

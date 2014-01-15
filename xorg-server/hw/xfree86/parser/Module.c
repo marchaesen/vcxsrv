@@ -218,7 +218,7 @@ xf86printModuleSection(FILE * cf, XF86ConfModulePtr ptr)
 }
 
 XF86LoadPtr
-xf86addNewLoadDirective(XF86LoadPtr head, char *name, int type,
+xf86addNewLoadDirective(XF86LoadPtr head, const char *name, int type,
                         XF86OptionPtr opts)
 {
     XF86LoadPtr new;

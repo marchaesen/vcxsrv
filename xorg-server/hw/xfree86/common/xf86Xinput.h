@@ -74,7 +74,7 @@ typedef struct _InputDriverRec {
                     struct _InputInfoRec * pInfo, int flags);
     void (*UnInit) (struct _InputDriverRec * drv,
                     struct _InputInfoRec * pInfo, int flags);
-    pointer module;
+    void *module;
     const char **default_options;
 } InputDriverRec, *InputDriverPtr;
 
@@ -82,8 +82,8 @@ typedef struct _InputDriverRec {
 
 typedef struct _InputInfoRec {
     struct _InputInfoRec *next;
-    char *name;
-    char *driver;
+    const char *name;
+    const char *driver;
 
     int flags;
 
@@ -97,10 +97,10 @@ typedef struct _InputInfoRec {
 
     int fd;
     DeviceIntPtr dev;
-    pointer private;
+    void *private;
     const char *type_name;
     InputDriverPtr drv;
-    pointer module;
+    void *module;
     XF86OptionPtr options;
     InputAttributes *attrs;
 } *InputInfoPtr;
@@ -178,7 +178,7 @@ int xf86NewInputDevice(InputInfoPtr pInfo, DeviceIntPtr *pdev, BOOL is_auto);
 InputInfoPtr xf86AllocateInput(void);
 
 /* xf86Helper.c */
-extern _X_EXPORT void xf86AddInputDriver(InputDriverPtr driver, pointer module,
+extern _X_EXPORT void xf86AddInputDriver(InputDriverPtr driver, void *module,
                                          int flags);
 extern _X_EXPORT void xf86DeleteInputDriver(int drvIndex);
 extern _X_EXPORT InputDriverPtr xf86LookupInputDriver(const char *name);

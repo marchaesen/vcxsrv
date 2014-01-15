@@ -47,8 +47,8 @@ extern int aquaMenuBarHeight;
 extern const char      *quartzOpenGLBundle;
 
 void
-QuartzBlockHandler(pointer blockData, OSTimePtr pTimeout, pointer pReadmask);
+QuartzBlockHandler(void *blockData, OSTimePtr pTimeout, void *pReadmask);
 void
-QuartzWakeupHandler(pointer blockData, int result, pointer pReadmask);
+QuartzWakeupHandler(void *blockData, int result, void *pReadmask);
 
 #endif  /* _QUARTZCOMMON_H */

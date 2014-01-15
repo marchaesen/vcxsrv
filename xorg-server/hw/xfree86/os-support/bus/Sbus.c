@@ -641,10 +641,10 @@ sparcPromPathname2Node(const char *pathName)
     return i;
 }
 
-pointer
+void *
 xf86MapSbusMem(sbusDevicePtr psdp, unsigned long offset, unsigned long size)
 {
-    pointer ret;
+    void *ret;
     unsigned long pagemask = getpagesize() - 1;
     unsigned long off = offset & ~pagemask;
     unsigned long len = ((offset + size + pagemask) & ~pagemask) - off;
@@ -657,26 +657,26 @@ xf86MapSbusMem(sbusDevicePtr psdp, unsigned long offset, unsigned long size)
     else if (psdp->fd < 0)
         return NULL;
 
-    ret = (pointer) mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE,
+    ret = (void *) mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE,
                          psdp->fd, off);
-    if (ret == (pointer) -1) {
-        ret = (pointer) mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED,
+    if (ret == (void *) -1) {
+        ret = (void *) mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED,
                              psdp->fd, off);
     }
-    if (ret == (pointer) -1)
+    if (ret == (void *) -1)
         return NULL;
 
     return (char *) ret + (offset - off);
 }
 
 void
-xf86UnmapSbusMem(sbusDevicePtr psdp, pointer addr, unsigned long size)
+xf86UnmapSbusMem(sbusDevicePtr psdp, void *addr, unsigned long size)
 {
     unsigned long mask = getpagesize() - 1;
     unsigned long base = (unsigned long) addr & ~mask;
     unsigned long len = (((unsigned long) addr + size + mask) & ~mask) - base;
 
-    munmap((pointer) base, len);
+    munmap((void *) base, len);
 }
 
 /* Tell OS that we are driving the HW cursor ourselves. */

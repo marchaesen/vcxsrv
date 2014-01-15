@@ -252,7 +252,7 @@ ColormapPtr pmap;
     if (pmap != GetInstalledmiColormap(pmap->pScreen))
         return;
 
-    dixLookupResourceByType((pointer *) &defColormap,
+    dixLookupResourceByType((void **) &defColormap,
                             pmap->pScreen->defColormap, RT_COLORMAP,
                             serverClient, DixInstallAccess);
 

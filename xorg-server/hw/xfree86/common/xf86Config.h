@@ -59,10 +59,10 @@ typedef struct _ModuleDefault {
 /*
  * prototypes
  */
-char **xf86ModulelistFromConfig(pointer **);
-char **xf86DriverlistFromConfig(void);
-char **xf86DriverlistFromCompile(void);
-char **xf86InputDriverlistFromConfig(void);
+const char **xf86ModulelistFromConfig(void ***);
+const char **xf86DriverlistFromConfig(void);
+const char **xf86DriverlistFromCompile(void);
+const char **xf86InputDriverlistFromConfig(void);
 Bool xf86BuiltinInputDriver(const char *);
 ConfigStatus xf86HandleConfigFile(Bool);
 

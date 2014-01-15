@@ -1,10 +1,11 @@
-// Minimal set of symbol interpretations to provide 
-// reasonable default behavior (Num lock, shift and 
-// caps lock and mode switch) and set up the 
-// automatic updating of common keyboard LEDs.
+// Minimal set of symbol interpretations to provide
+// reasonable default behavior (Num lock, Shift lock,
+// and Mode switch) and set up the automatic updating
+// of common keyboard LEDs.
 
-default xkb_compatibility "basic"  {
-    virtual_modifiers NumLock,AltGr;
+default xkb_compatibility "basic" {
+
+    virtual_modifiers  NumLock,AltGr;
 
     interpret.repeat= False;
     setMods.clearLocks= True;
@@ -17,7 +18,7 @@ default xkb_compatibility "basic"  {
 
 //    interpret Any+Lock {
 //	action= LockMods(modifiers=Lock);
-//   }; 
+//    };
 
     interpret Num_Lock+Any {
 	virtualModifier= NumLock;
@@ -39,7 +40,7 @@ default xkb_compatibility "basic"  {
     group 4 = AltGr;
 
     indicator.allowExplicit= False;
-    indicator "Caps Lock" { 
+    indicator "Caps Lock" {
 	whichModState= Locked;
 	modifiers= Lock;
     };

@@ -667,7 +667,7 @@ KdCloseScreen(ScreenPtr pScreen)
 
     pScreenPriv->screen->pScreen = 0;
 
-    free((pointer) pScreenPriv);
+    free((void *) pScreenPriv);
     return ret;
 }
 

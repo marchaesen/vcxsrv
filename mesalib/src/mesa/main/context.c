@@ -461,7 +461,7 @@ _mesa_init_current(struct gl_context *ctx)
  * Important: drivers should override these with actual limits.
  */
 static void
-init_program_limits(struct gl_context *ctx, GLenum type,
+init_program_limits(struct gl_context *ctx, gl_shader_stage stage,
                     struct gl_program_constants *prog)
 {
    prog->MaxInstructions = MAX_PROGRAM_INSTRUCTIONS;
@@ -473,8 +473,8 @@ init_program_limits(struct gl_context *ctx, GLenum type,
    prog->MaxLocalParams = MAX_PROGRAM_LOCAL_PARAMS;
    prog->MaxAddressOffset = MAX_PROGRAM_LOCAL_PARAMS;
 
-   switch (type) {
-   case GL_VERTEX_PROGRAM_ARB:
+   switch (stage) {
+   case MESA_SHADER_VERTEX:
       prog->MaxParameters = MAX_VERTEX_PROGRAM_PARAMS;
       prog->MaxAttribs = MAX_VERTEX_GENERIC_ATTRIBS;
       prog->MaxAddressRegs = MAX_VERTEX_PROGRAM_ADDRESS_REGS;
@@ -482,7 +482,7 @@ init_program_limits(struct gl_context *ctx, GLenum type,
       prog->MaxInputComponents = 0; /* value not used */
       prog->MaxOutputComponents = 16 * 4; /* old limit not to break tnl and swrast */
       break;
-   case GL_FRAGMENT_PROGRAM_ARB:
+   case MESA_SHADER_FRAGMENT:
       prog->MaxParameters = MAX_NV_FRAGMENT_PROGRAM_PARAMS;
       prog->MaxAttribs = MAX_NV_FRAGMENT_PROGRAM_INPUTS;
       prog->MaxAddressRegs = MAX_FRAGMENT_PROGRAM_ADDRESS_REGS;
@@ -490,7 +490,7 @@ init_program_limits(struct gl_context *ctx, GLenum type,
       prog->MaxInputComponents = 16 * 4; /* old limit not to break tnl and swrast */
       prog->MaxOutputComponents = 0; /* value not used */
       break;
-   case MESA_GEOMETRY_PROGRAM:
+   case MESA_SHADER_GEOMETRY:
       prog->MaxParameters = MAX_VERTEX_PROGRAM_PARAMS;
       prog->MaxAttribs = MAX_VERTEX_GENERIC_ATTRIBS;
       prog->MaxAddressRegs = MAX_VERTEX_PROGRAM_ADDRESS_REGS;
@@ -499,7 +499,7 @@ init_program_limits(struct gl_context *ctx, GLenum type,
       prog->MaxOutputComponents = 16 * 4; /* old limit not to break tnl and swrast */
       break;
    default:
-      assert(0 && "Bad program type in init_program_limits()");
+      assert(0 && "Bad shader stage in init_program_limits()");
    }
 
    /* Set the native limits to zero.  This implies that there is no native
@@ -551,6 +551,7 @@ init_program_limits(struct gl_context *ctx, GLenum type,
 static void 
 _mesa_init_constants(struct gl_context *ctx)
 {
+   int i;
    assert(ctx);
 
    /* Constants, may be overriden (usually only reduced) by device drivers */
@@ -561,9 +562,9 @@ _mesa_init_constants(struct gl_context *ctx)
    ctx->Const.MaxTextureRectSize = MAX_TEXTURE_RECT_SIZE;
    ctx->Const.MaxArrayTextureLayers = MAX_ARRAY_TEXTURE_LAYERS;
    ctx->Const.MaxTextureCoordUnits = MAX_TEXTURE_COORD_UNITS;
-   ctx->Const.FragmentProgram.MaxTextureImageUnits = MAX_TEXTURE_IMAGE_UNITS;
+   ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxTextureImageUnits = MAX_TEXTURE_IMAGE_UNITS;
    ctx->Const.MaxTextureUnits = MIN2(ctx->Const.MaxTextureCoordUnits,
-                                     ctx->Const.FragmentProgram.MaxTextureImageUnits);
+                                     ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxTextureImageUnits);
    ctx->Const.MaxTextureMaxAnisotropy = MAX_TEXTURE_MAX_ANISOTROPY;
    ctx->Const.MaxTextureLodBias = MAX_TEXTURE_LOD_BIAS;
    ctx->Const.MaxTextureBufferSize = 65536;
@@ -593,9 +594,8 @@ _mesa_init_constants(struct gl_context *ctx)
    ctx->Const.MaxUniformBlockSize = 16384;
    ctx->Const.UniformBufferOffsetAlignment = 1;
 
-   init_program_limits(ctx, GL_VERTEX_PROGRAM_ARB, &ctx->Const.VertexProgram);
-   init_program_limits(ctx, GL_FRAGMENT_PROGRAM_ARB, &ctx->Const.FragmentProgram);
-   init_program_limits(ctx, MESA_GEOMETRY_PROGRAM, &ctx->Const.GeometryProgram);
+   for (i = 0; i < MESA_SHADER_STAGES; i++)
+      init_program_limits(ctx, i, &ctx->Const.Program[i]);
 
    ctx->Const.MaxProgramMatrices = MAX_PROGRAM_MATRICES;
    ctx->Const.MaxProgramMatrixStackDepth = MAX_PROGRAM_MATRIX_STACK_DEPTH;
@@ -609,10 +609,10 @@ _mesa_init_constants(struct gl_context *ctx)
    ctx->Const.MaxColorAttachments = MAX_COLOR_ATTACHMENTS;
    ctx->Const.MaxRenderbufferSize = MAX_RENDERBUFFER_SIZE;
 
-   ctx->Const.VertexProgram.MaxTextureImageUnits = MAX_TEXTURE_IMAGE_UNITS;
+   ctx->Const.Program[MESA_SHADER_VERTEX].MaxTextureImageUnits = MAX_TEXTURE_IMAGE_UNITS;
    ctx->Const.MaxCombinedTextureImageUnits = MAX_COMBINED_TEXTURE_IMAGE_UNITS;
    ctx->Const.MaxVarying = 16; /* old limit not to break tnl and swrast */
-   ctx->Const.GeometryProgram.MaxTextureImageUnits = MAX_TEXTURE_IMAGE_UNITS;
+   ctx->Const.Program[MESA_SHADER_GEOMETRY].MaxTextureImageUnits = MAX_TEXTURE_IMAGE_UNITS;
    ctx->Const.MaxGeometryOutputVertices = MAX_GEOMETRY_OUTPUT_VERTICES;
    ctx->Const.MaxGeometryTotalOutputComponents = MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS;
 
@@ -699,24 +699,24 @@ check_context_limits(struct gl_context *ctx)
 	  (8 * sizeof(ctx->FragmentProgram._Current->Base.InputsRead)));
 
    /* shader-related checks */
-   assert(ctx->Const.FragmentProgram.MaxLocalParams <= MAX_PROGRAM_LOCAL_PARAMS);
-   assert(ctx->Const.VertexProgram.MaxLocalParams <= MAX_PROGRAM_LOCAL_PARAMS);
+   assert(ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxLocalParams <= MAX_PROGRAM_LOCAL_PARAMS);
+   assert(ctx->Const.Program[MESA_SHADER_VERTEX].MaxLocalParams <= MAX_PROGRAM_LOCAL_PARAMS);
 
    /* Texture unit checks */
-   assert(ctx->Const.FragmentProgram.MaxTextureImageUnits > 0);
-   assert(ctx->Const.FragmentProgram.MaxTextureImageUnits <= MAX_TEXTURE_IMAGE_UNITS);
+   assert(ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxTextureImageUnits > 0);
+   assert(ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxTextureImageUnits <= MAX_TEXTURE_IMAGE_UNITS);
    assert(ctx->Const.MaxTextureCoordUnits > 0);
    assert(ctx->Const.MaxTextureCoordUnits <= MAX_TEXTURE_COORD_UNITS);
    assert(ctx->Const.MaxTextureUnits > 0);
    assert(ctx->Const.MaxTextureUnits <= MAX_TEXTURE_IMAGE_UNITS);
    assert(ctx->Const.MaxTextureUnits <= MAX_TEXTURE_COORD_UNITS);
-   assert(ctx->Const.MaxTextureUnits == MIN2(ctx->Const.FragmentProgram.MaxTextureImageUnits,
+   assert(ctx->Const.MaxTextureUnits == MIN2(ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxTextureImageUnits,
                                              ctx->Const.MaxTextureCoordUnits));
    assert(ctx->Const.MaxCombinedTextureImageUnits > 0);
    assert(ctx->Const.MaxCombinedTextureImageUnits <= MAX_COMBINED_TEXTURE_IMAGE_UNITS);
    assert(ctx->Const.MaxTextureCoordUnits <= MAX_COMBINED_TEXTURE_IMAGE_UNITS);
    /* number of coord units cannot be greater than number of image units */
-   assert(ctx->Const.MaxTextureCoordUnits <= ctx->Const.FragmentProgram.MaxTextureImageUnits);
+   assert(ctx->Const.MaxTextureCoordUnits <= ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxTextureImageUnits);
 
 
    /* Texture size checks */
@@ -1851,14 +1851,14 @@ _mesa_valid_to_render(struct gl_context *ctx, const char *where)
 
 #ifdef DEBUG
    if (ctx->Shader.Flags & GLSL_LOG) {
-      struct gl_shader_program *shProg[MESA_SHADER_TYPES];
-      gl_shader_type i;
+      struct gl_shader_program *shProg[MESA_SHADER_STAGES];
+      gl_shader_stage i;
 
       shProg[MESA_SHADER_VERTEX] = ctx->Shader.CurrentVertexProgram;
       shProg[MESA_SHADER_GEOMETRY] = ctx->Shader.CurrentGeometryProgram;
       shProg[MESA_SHADER_FRAGMENT] = ctx->Shader.CurrentFragmentProgram;
 
-      for (i = 0; i < MESA_SHADER_TYPES; i++) {
+      for (i = 0; i < MESA_SHADER_STAGES; i++) {
 	 if (shProg[i] == NULL || shProg[i]->_Used
 	     || shProg[i]->_LinkedShaders[i] == NULL)
 	    continue;
@@ -1875,7 +1875,7 @@ _mesa_valid_to_render(struct gl_context *ctx, const char *where)
 	 _mesa_append_uniforms_to_file(shProg[i]->_LinkedShaders[i]);
       }
 
-      for (i = 0; i < MESA_SHADER_TYPES; i++) {
+      for (i = 0; i < MESA_SHADER_STAGES; i++) {
 	 if (shProg[i] != NULL)
 	    shProg[i]->_Used = GL_TRUE;
       }

@@ -85,18 +85,18 @@ static int devMemFd = -1;
 #define DEV_APERTURE "/dev/xf86"
 #endif
 
-static pointer mapVidMem(int, unsigned long, unsigned long, int);
-static void unmapVidMem(int, pointer, unsigned long);
+static void *mapVidMem(int, unsigned long, unsigned long, int);
+static void unmapVidMem(int, void *, unsigned long);
 
 #ifdef HAS_MTRR_SUPPORT
-static pointer setWC(int, unsigned long, unsigned long, Bool, MessageType);
-static void undoWC(int, pointer);
+static void *setWC(int, unsigned long, unsigned long, Bool, MessageType);
+static void undoWC(int, void *);
 static Bool cleanMTRR(void);
 #endif
 #if defined(HAS_MTRR_BUILTIN) && defined(__NetBSD__)
-static pointer NetBSDsetWC(int, unsigned long, unsigned long, Bool,
+static void *NetBSDsetWC(int, unsigned long, unsigned long, Bool,
                            MessageType);
-static void NetBSDundoWC(int, pointer);
+static void NetBSDundoWC(int, void *);
 #endif
 
 /*
@@ -108,7 +108,7 @@ checkDevMem(Bool warn)
 {
     static Bool devMemChecked = FALSE;
     int fd;
-    pointer base;
+    void *base;
 
     if (devMemChecked)
         return;
@@ -210,10 +210,10 @@ xf86OSInitVidMem(VidMemInfoPtr pVidMem)
     pVidMem->initialised = TRUE;
 }
 
-static pointer
+static void *
 mapVidMem(int ScreenNum, unsigned long Base, unsigned long Size, int flags)
 {
-    pointer base;
+    void *base;
 
     checkDevMem(FALSE);
 
@@ -250,7 +250,7 @@ mapVidMem(int ScreenNum, unsigned long Base, unsigned long Size, int flags)
 }
 
 static void
-unmapVidMem(int ScreenNum, pointer Base, unsigned long Size)
+unmapVidMem(int ScreenNum, void *Base, unsigned long Size)
 {
     munmap((caddr_t) Base, Size);
 }
@@ -690,7 +690,7 @@ fullCoverage(unsigned long base, unsigned long size, RangePtr overlap)
     return FALSE;
 }
 
-static pointer
+static void *
 addWC(int screenNum, unsigned long base, unsigned long size, MessageType from)
 {
     RangePtr uc = NULL, wc = NULL, retlist = NULL;
@@ -731,7 +731,7 @@ addWC(int screenNum, unsigned long base, unsigned long size, MessageType from)
     }
 }
 
-static pointer
+static void *
 delWC(int screenNum, unsigned long base, unsigned long size, MessageType from)
 {
     RangePtr uc = NULL, wc = NULL, retlist = NULL;
@@ -776,7 +776,7 @@ delWC(int screenNum, unsigned long base, unsigned long size, MessageType from)
     }
 }
 
-static pointer
+static void *
 setWC(int screenNum, unsigned long base, unsigned long size, Bool enable,
       MessageType from)
 {
@@ -787,7 +787,7 @@ setWC(int screenNum, unsigned long base, unsigned long size, Bool enable,
 }
 
 static void
-undoWC(int screenNum, pointer list)
+undoWC(int screenNum, void *list)
 {
     RangePtr rp;
     struct mem_range_op mro;
@@ -835,7 +835,7 @@ undoWC(int screenNum, pointer list)
 #endif                          /* HAS_MTRR_SUPPORT */
 
 #if defined(HAS_MTRR_BUILTIN) && defined(__NetBSD__)
-static pointer
+static void *
 NetBSDsetWC(int screenNum, unsigned long base, unsigned long size, Bool enable,
             MessageType from)
 {
@@ -871,7 +871,7 @@ NetBSDsetWC(int screenNum, unsigned long base, unsigned long size, Bool enable,
 }
 
 static void
-NetBSDundoWC(int screenNum, pointer list)
+NetBSDundoWC(int screenNum, void *list)
 {
     struct mtrr *mtrrp = (struct mtrr *) list;
     int n;

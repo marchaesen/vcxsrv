@@ -460,7 +460,7 @@ dmxRealizeFont(ScreenPtr pScreen, FontPtr pFont)
         pFontPriv->refcnt = 0;
     }
 
-    FontSetPrivate(pFont, dmxFontPrivateIndex, (pointer) pFontPriv);
+    FontSetPrivate(pFont, dmxFontPrivateIndex, (void *) pFontPriv);
 
     if (dmxScreen->beDisplay) {
         if (!dmxBELoadFont(pScreen, pFont))

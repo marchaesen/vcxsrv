@@ -170,8 +170,8 @@ ir_reader::scan_for_prototypes(exec_list *instructions, s_expression *expr)
       return;
    }
 
-   foreach_iter(exec_list_iterator, it, list->subexpressions) {
-      s_list *sub = SX_AS_LIST(it.get());
+   foreach_list(n, &list->subexpressions) {
+      s_list *sub = SX_AS_LIST(n);
       if (sub == NULL)
 	 continue; // not a (function ...); ignore it.
 
@@ -205,11 +205,12 @@ ir_reader::read_function(s_expression *expr, bool skip_body)
       assert(added);
    }
 
-   exec_list_iterator it = ((s_list *) expr)->subexpressions.iterator();
-   it.next(); // skip "function" tag
-   it.next(); // skip function name
-   for (/* nothing */; it.has_next(); it.next()) {
-      s_expression *s_sig = (s_expression *) it.get();
+   /* Skip over "function" tag and function name (which are guaranteed to be
+    * present by the above PARTIAL_MATCH call).
+    */
+   exec_node *node = ((s_list *) expr)->subexpressions.head->next->next;
+   for (/* nothing */; !node->is_tail_sentinel(); node = node->next) {
+      s_expression *s_sig = (s_expression *) node;
       read_function_sig(f, s_sig, skip_body);
    }
    return added ? f : NULL;
@@ -249,9 +250,10 @@ ir_reader::read_function_sig(ir_function *f, s_expression *expr, bool skip_body)
    exec_list hir_parameters;
    state->symbols->push_scope();
 
-   exec_list_iterator it = paramlist->subexpressions.iterator();
-   for (it.next() /* skip "parameters" */; it.has_next(); it.next()) {
-      ir_variable *var = read_declaration((s_expression *) it.get());
+   /* Skip over the "parameters" tag. */
+   exec_node *node = paramlist->subexpressions.head->next;
+   for (/* nothing */; !node->is_tail_sentinel(); node = node->next) {
+      ir_variable *var = read_declaration((s_expression *) node);
       if (var == NULL)
 	 return;
 
@@ -315,8 +317,8 @@ ir_reader::read_instructions(exec_list *instructions, s_expression *expr,
       return;
    }
 
-   foreach_iter(exec_list_iterator, it, list->subexpressions) {
-      s_expression *sub = (s_expression*) it.get();
+   foreach_list(n, &list->subexpressions) {
+      s_expression *sub = (s_expression *) n;
       ir_instruction *ir = read_instruction(sub, loop_ctx);
       if (ir != NULL) {
 	 /* Global variable declarations should be moved to the top, before
@@ -403,8 +405,8 @@ ir_reader::read_declaration(s_expression *expr)
    ir_variable *var = new(mem_ctx) ir_variable(type, s_name->value(),
 					       ir_var_auto);
 
-   foreach_iter(exec_list_iterator, it, s_quals->subexpressions) {
-      s_symbol *qualifier = SX_AS_SYMBOL(it.get());
+   foreach_list(n, &s_quals->subexpressions) {
+      s_symbol *qualifier = SX_AS_SYMBOL(n);
       if (qualifier == NULL) {
 	 ir_read_error(expr, "qualifier list must contain only symbols");
 	 return NULL;
@@ -656,8 +658,8 @@ ir_reader::read_call(s_expression *expr)
 
    exec_list parameters;
 
-   foreach_iter(exec_list_iterator, it, params->subexpressions) {
-      s_expression *expr = (s_expression*) it.get();
+   foreach_list(n, &params->subexpressions) {
+      s_expression *expr = (s_expression *) n;
       ir_rvalue *param = read_rvalue(expr);
       if (param == NULL) {
 	 ir_read_error(expr, "when reading parameter to function call");
@@ -796,8 +798,8 @@ ir_reader::read_constant(s_expression *expr)
    if (type->is_array()) {
       unsigned elements_supplied = 0;
       exec_list elements;
-      foreach_iter(exec_list_iterator, it, values->subexpressions) {
-	 s_expression *elt = (s_expression *) it.get();
+      foreach_list(n, &values->subexpressions) {
+	 s_expression *elt = (s_expression *) n;
 	 ir_constant *ir_elt = read_constant(elt);
 	 if (ir_elt == NULL)
 	    return NULL;
@@ -817,13 +819,13 @@ ir_reader::read_constant(s_expression *expr)
 
    // Read in list of values (at most 16).
    unsigned k = 0;
-   foreach_iter(exec_list_iterator, it, values->subexpressions) {
+   foreach_list(n, &values->subexpressions) {
       if (k >= 16) {
 	 ir_read_error(values, "expected at most 16 numbers");
 	 return NULL;
       }
 
-      s_expression *expr = (s_expression*) it.get();
+      s_expression *expr = (s_expression *) n;
 
       if (type->base_type == GLSL_TYPE_FLOAT) {
 	 s_number *value = SX_AS_NUMBER(expr);

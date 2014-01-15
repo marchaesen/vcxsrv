@@ -308,7 +308,7 @@ xnestImageText16(DrawablePtr pDrawable, GCPtr pGC, int x, int y, int count,
 void
 xnestImageGlyphBlt(DrawablePtr pDrawable, GCPtr pGC, int x, int y,
                    unsigned int nGlyphs, CharInfoPtr * pCharInfo,
-                   pointer pGlyphBase)
+                   void *pGlyphBase)
 {
     ErrorF("xnest warning: function xnestImageGlyphBlt not implemented\n");
 }
@@ -316,7 +316,7 @@ xnestImageGlyphBlt(DrawablePtr pDrawable, GCPtr pGC, int x, int y,
 void
 xnestPolyGlyphBlt(DrawablePtr pDrawable, GCPtr pGC, int x, int y,
                   unsigned int nGlyphs, CharInfoPtr * pCharInfo,
-                  pointer pGlyphBase)
+                  void *pGlyphBase)
 {
     ErrorF("xnest warning: function xnestPolyGlyphBlt not implemented\n");
 }

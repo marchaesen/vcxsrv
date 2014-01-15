@@ -89,6 +89,7 @@ xf86CVTMode(int HDisplay, int VDisplay, float VRefresh, Bool Reduced,
     int HDisplayRnd, HMargin;
     int VDisplayRnd, VMargin, VSync;
     float Interlace;            /* Please rename this */
+    char *tmp;
 
     /* CVT default is 60.0Hz */
     if (!VRefresh)
@@ -177,6 +178,7 @@ xf86CVTMode(int HDisplay, int VDisplay, float VRefresh, Bool Reduced,
 
         /* 10. Find number of lines in back porch */
         VBackPorch = VSyncAndBackPorch - VSync;
+        (void) VBackPorch;
 
         /* 11. Find total number of lines in vertical field */
         Mode->VTotal = VDisplayRnd + 2 * VMargin + VSyncAndBackPorch + Interlace
@@ -282,7 +284,8 @@ xf86CVTMode(int HDisplay, int VDisplay, float VRefresh, Bool Reduced,
     if (Interlaced)
         Mode->VTotal *= 2;
 
-    XNFasprintf(&Mode->name, "%dx%d", HDisplay, VDisplay);
+    XNFasprintf(&tmp, "%dx%d", HDisplay, VDisplay);
+    Mode->name = tmp;
 
     if (Reduced)
         Mode->Flags |= V_PHSYNC | V_NVSYNC;

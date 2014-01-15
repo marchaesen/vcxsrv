@@ -242,7 +242,7 @@ ProcChangeProperty(ClientPtr client)
 int
 dixChangeWindowProperty(ClientPtr pClient, WindowPtr pWin, Atom property,
                         Atom type, int format, int mode, unsigned long len,
-                        pointer value, Bool sendevent)
+                        void *value, Bool sendevent)
 {
     PropertyPtr pProp;
     PropertyRec savedProp;
@@ -356,7 +356,7 @@ dixChangeWindowProperty(ClientPtr pClient, WindowPtr pWin, Atom property,
 
 int
 ChangeWindowProperty(WindowPtr pWin, Atom property, Atom type, int format,
-                     int mode, unsigned long len, pointer value, Bool sendevent)
+                     int mode, unsigned long len, void *value, Bool sendevent)
 {
     return dixChangeWindowProperty(serverClient, pWin, property, type, format,
                                    mode, len, value, sendevent);

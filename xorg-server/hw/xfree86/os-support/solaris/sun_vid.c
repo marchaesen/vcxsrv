@@ -107,10 +107,10 @@ solOpenAperture(void)
     return TRUE;
 }
 
-static pointer
+static void *
 solMapVidMem(int ScreenNum, unsigned long Base, unsigned long Size, int Flags)
 {
-    pointer base;
+    void *base;
     int fd;
     int prot;
 
@@ -144,7 +144,7 @@ solMapVidMem(int ScreenNum, unsigned long Base, unsigned long Size, int Flags)
 
 /* ARGSUSED */
 static void
-solUnMapVidMem(int ScreenNum, pointer Base, unsigned long Size)
+solUnMapVidMem(int ScreenNum, void *Base, unsigned long Size)
 {
     if (munmap(Base, Size) != 0) {
         xf86DrvMsgVerb(ScreenNum, X_WARNING, 0,

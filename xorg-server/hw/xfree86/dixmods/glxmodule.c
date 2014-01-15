@@ -68,8 +68,8 @@ static XF86ModuleVersionInfo VersRec = {
 
 _X_EXPORT XF86ModuleData glxModuleData = { &VersRec, glxSetup, NULL };
 
-static pointer
-glxSetup(pointer module, pointer opts, int *errmaj, int *errmin)
+static void *
+glxSetup(void *module, void *opts, int *errmaj, int *errmin)
 {
     static Bool setupDone = FALSE;
     __GLXprovider *provider;

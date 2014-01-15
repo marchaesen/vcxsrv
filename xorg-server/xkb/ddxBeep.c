@@ -113,7 +113,7 @@ _XkbDDXBeepInitAtoms(void)
 }
 
 static CARD32
-_XkbDDXBeepExpire(OsTimerPtr timer, CARD32 now, pointer arg)
+_XkbDDXBeepExpire(OsTimerPtr timer, CARD32 now, void *arg)
 {
     DeviceIntPtr dev = (DeviceIntPtr) arg;
     KbdFeedbackPtr feed;
@@ -300,11 +300,11 @@ _XkbDDXBeepExpire(OsTimerPtr timer, CARD32 now, pointer arg)
         ctrl->bell_duration = duration;
         ctrl->bell_pitch = pitch;
         if (xkbInfo->beepCount == 0) {
-            XkbHandleBell(0, 0, dev, ctrl->bell, (pointer) ctrl,
+            XkbHandleBell(0, 0, dev, ctrl->bell, (void *) ctrl,
                           KbdFeedbackClass, name, None, NULL);
         }
         else if (xkbInfo->desc->ctrls->enabled_ctrls & XkbAudibleBellMask) {
-            (*dev->kbdfeed->BellProc) (ctrl->bell, dev, (pointer) ctrl,
+            (*dev->kbdfeed->BellProc) (ctrl->bell, dev, (void *) ctrl,
                                        KbdFeedbackClass);
         }
         ctrl->bell_duration = oldDuration;
@@ -340,11 +340,11 @@ XkbDDXAccessXBeep(DeviceIntPtr dev, unsigned what, unsigned which)
 
     xkbInfo->beepType = what;
     xkbInfo->beepCount = 0;
-    next = _XkbDDXBeepExpire(NULL, 0, (pointer) dev);
+    next = _XkbDDXBeepExpire(NULL, 0, (void *) dev);
     if (next > 0) {
         xkbInfo->beepTimer = TimerSet(xkbInfo->beepTimer,
                                       0, next,
-                                      _XkbDDXBeepExpire, (pointer) dev);
+                                      _XkbDDXBeepExpire, (void *) dev);
     }
     return 1;
 }
