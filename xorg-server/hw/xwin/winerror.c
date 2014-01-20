@@ -61,7 +61,9 @@ OsVendorVErrorF(const char *pszFormat, va_list va_args)
 	  || (strcmp(pszFormat,
 		     "Server is already active for display %s\n%s %s\n%s\n") == 0)
 	  || (strcmp(pszFormat,
-		     "MakeAllCOTSServerListeners: server already running\n") == 0))
+		     "MakeAllCOTSServerListeners: server already running\n") == 0)
+	  || (strcmp(pszFormat,
+		     "MakeAllCOTSServerListeners: failed to create listener for %s\n") == 0))
 	{
 	  g_fSilentFatalError = TRUE;
 	}
