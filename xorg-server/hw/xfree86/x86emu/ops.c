@@ -11705,38 +11705,38 @@ x86emuOp_opcFF_word_RM(u8 X86EMU_UNUSED(op1))
         switch (rh) {
         case 0:                /* inc word ptr ... */
             if (M.x86.mode & SYSMODE_PREFIX_DATA) {
-                u32 destval;
+                u32 destval32;
 
-                destval = fetch_data_long(destoffset);
+                destval32 = fetch_data_long(destoffset);
                 TRACE_AND_STEP();
-                destval = inc_long(destval);
-                store_data_long(destoffset, destval);
+                destval32 = inc_long(destval32);
+                store_data_long(destoffset, destval32);
             }
             else {
-                u16 destval;
+                u16 destval16;
 
-                destval = fetch_data_word(destoffset);
+                destval16 = fetch_data_word(destoffset);
                 TRACE_AND_STEP();
-                destval = inc_word(destval);
-                store_data_word(destoffset, destval);
+                destval16 = inc_word(destval16);
+                store_data_word(destoffset, destval16);
             }
             break;
         case 1:                /* dec word ptr ... */
             if (M.x86.mode & SYSMODE_PREFIX_DATA) {
-                u32 destval;
+                u32 destval32;
 
-                destval = fetch_data_long(destoffset);
+                destval32 = fetch_data_long(destoffset);
                 TRACE_AND_STEP();
-                destval = dec_long(destval);
-                store_data_long(destoffset, destval);
+                destval32 = dec_long(destval32);
+                store_data_long(destoffset, destval32);
             }
             else {
-                u16 destval;
+                u16 destval16;
 
-                destval = fetch_data_word(destoffset);
+                destval16 = fetch_data_word(destoffset);
                 TRACE_AND_STEP();
-                destval = dec_word(destval);
-                store_data_word(destoffset, destval);
+                destval16 = dec_word(destval16);
+                store_data_word(destoffset, destval16);
             }
             break;
         case 2:                /* call word ptr ... */
@@ -11768,18 +11768,18 @@ x86emuOp_opcFF_word_RM(u8 X86EMU_UNUSED(op1))
             break;
         case 6:                /*  push word ptr ... */
             if (M.x86.mode & SYSMODE_PREFIX_DATA) {
-                u32 destval;
+                u32 destval32;
 
-                destval = fetch_data_long(destoffset);
+                destval32 = fetch_data_long(destoffset);
                 TRACE_AND_STEP();
-                push_long(destval);
+                push_long(destval32);
             }
             else {
-                u16 destval;
+                u16 destval16;
 
-                destval = fetch_data_word(destoffset);
+                destval16 = fetch_data_word(destoffset);
                 TRACE_AND_STEP();
-                push_word(destval);
+                push_word(destval16);
             }
             break;
         }
@@ -11790,38 +11790,38 @@ x86emuOp_opcFF_word_RM(u8 X86EMU_UNUSED(op1))
         switch (rh) {
         case 0:
             if (M.x86.mode & SYSMODE_PREFIX_DATA) {
-                u32 destval;
+                u32 destval32;
 
-                destval = fetch_data_long(destoffset);
+                destval32 = fetch_data_long(destoffset);
                 TRACE_AND_STEP();
-                destval = inc_long(destval);
-                store_data_long(destoffset, destval);
+                destval32 = inc_long(destval32);
+                store_data_long(destoffset, destval32);
             }
             else {
-                u16 destval;
+                u16 destval16;
 
-                destval = fetch_data_word(destoffset);
+                destval16 = fetch_data_word(destoffset);
                 TRACE_AND_STEP();
-                destval = inc_word(destval);
-                store_data_word(destoffset, destval);
+                destval16 = inc_word(destval16);
+                store_data_word(destoffset, destval16);
             }
             break;
         case 1:
             if (M.x86.mode & SYSMODE_PREFIX_DATA) {
-                u32 destval;
+                u32 destval32;
 
-                destval = fetch_data_long(destoffset);
+                destval32 = fetch_data_long(destoffset);
                 TRACE_AND_STEP();
-                destval = dec_long(destval);
-                store_data_long(destoffset, destval);
+                destval32 = dec_long(destval32);
+                store_data_long(destoffset, destval32);
             }
             else {
-                u16 destval;
+                u16 destval16;
 
-                destval = fetch_data_word(destoffset);
+                destval16 = fetch_data_word(destoffset);
                 TRACE_AND_STEP();
-                destval = dec_word(destval);
-                store_data_word(destoffset, destval);
+                destval16 = dec_word(destval16);
+                store_data_word(destoffset, destval16);
             }
             break;
         case 2:                /* call word ptr ... */
@@ -11853,18 +11853,18 @@ x86emuOp_opcFF_word_RM(u8 X86EMU_UNUSED(op1))
             break;
         case 6:                /*  push word ptr ... */
             if (M.x86.mode & SYSMODE_PREFIX_DATA) {
-                u32 destval;
+                u32 destval32;
 
-                destval = fetch_data_long(destoffset);
+                destval32 = fetch_data_long(destoffset);
                 TRACE_AND_STEP();
-                push_long(destval);
+                push_long(destval32);
             }
             else {
-                u16 destval;
+                u16 destval16;
 
-                destval = fetch_data_word(destoffset);
+                destval16 = fetch_data_word(destoffset);
                 TRACE_AND_STEP();
-                push_word(destval);
+                push_word(destval16);
             }
             break;
         }
@@ -11875,38 +11875,38 @@ x86emuOp_opcFF_word_RM(u8 X86EMU_UNUSED(op1))
         switch (rh) {
         case 0:
             if (M.x86.mode & SYSMODE_PREFIX_DATA) {
-                u32 destval;
+                u32 destval32;
 
-                destval = fetch_data_long(destoffset);
+                destval32 = fetch_data_long(destoffset);
                 TRACE_AND_STEP();
-                destval = inc_long(destval);
-                store_data_long(destoffset, destval);
+                destval32 = inc_long(destval32);
+                store_data_long(destoffset, destval32);
             }
             else {
-                u16 destval;
+                u16 destval16;
 
-                destval = fetch_data_word(destoffset);
+                destval16 = fetch_data_word(destoffset);
                 TRACE_AND_STEP();
-                destval = inc_word(destval);
-                store_data_word(destoffset, destval);
+                destval16 = inc_word(destval16);
+                store_data_word(destoffset, destval16);
             }
             break;
         case 1:
             if (M.x86.mode & SYSMODE_PREFIX_DATA) {
-                u32 destval;
+                u32 destval32;
 
-                destval = fetch_data_long(destoffset);
+                destval32 = fetch_data_long(destoffset);
                 TRACE_AND_STEP();
-                destval = dec_long(destval);
-                store_data_long(destoffset, destval);
+                destval32 = dec_long(destval32);
+                store_data_long(destoffset, destval32);
             }
             else {
-                u16 destval;
+                u16 destval16;
 
-                destval = fetch_data_word(destoffset);
+                destval16 = fetch_data_word(destoffset);
                 TRACE_AND_STEP();
-                destval = dec_word(destval);
-                store_data_word(destoffset, destval);
+                destval16 = dec_word(destval16);
+                store_data_word(destoffset, destval16);
             }
             break;
         case 2:                /* call word ptr ... */
@@ -11938,18 +11938,18 @@ x86emuOp_opcFF_word_RM(u8 X86EMU_UNUSED(op1))
             break;
         case 6:                /*  push word ptr ... */
             if (M.x86.mode & SYSMODE_PREFIX_DATA) {
-                u32 destval;
+                u32 destval32;
 
-                destval = fetch_data_long(destoffset);
+                destval32 = fetch_data_long(destoffset);
                 TRACE_AND_STEP();
-                push_long(destval);
+                push_long(destval32);
             }
             else {
-                u16 destval;
+                u16 destval16;
 
-                destval = fetch_data_word(destoffset);
+                destval16 = fetch_data_word(destoffset);
                 TRACE_AND_STEP();
-                push_word(destval);
+                push_word(destval16);
             }
             break;
         }
@@ -11958,38 +11958,38 @@ x86emuOp_opcFF_word_RM(u8 X86EMU_UNUSED(op1))
         switch (rh) {
         case 0:
             if (M.x86.mode & SYSMODE_PREFIX_DATA) {
-                u32 *destreg;
+                u32 *destreg32;
 
-                destreg = DECODE_RM_LONG_REGISTER(rl);
+                destreg32 = DECODE_RM_LONG_REGISTER(rl);
                 DECODE_PRINTF("\n");
                 TRACE_AND_STEP();
-                *destreg = inc_long(*destreg);
+                *destreg32 = inc_long(*destreg32);
             }
             else {
-                u16 *destreg;
+                u16 *destreg16;
 
-                destreg = DECODE_RM_WORD_REGISTER(rl);
+                destreg16 = DECODE_RM_WORD_REGISTER(rl);
                 DECODE_PRINTF("\n");
                 TRACE_AND_STEP();
-                *destreg = inc_word(*destreg);
+                *destreg16 = inc_word(*destreg16);
             }
             break;
         case 1:
             if (M.x86.mode & SYSMODE_PREFIX_DATA) {
-                u32 *destreg;
+                u32 *destreg32;
 
-                destreg = DECODE_RM_LONG_REGISTER(rl);
+                destreg32 = DECODE_RM_LONG_REGISTER(rl);
                 DECODE_PRINTF("\n");
                 TRACE_AND_STEP();
-                *destreg = dec_long(*destreg);
+                *destreg32 = dec_long(*destreg32);
             }
             else {
-                u16 *destreg;
+                u16 *destreg16;
 
-                destreg = DECODE_RM_WORD_REGISTER(rl);
+                destreg16 = DECODE_RM_WORD_REGISTER(rl);
                 DECODE_PRINTF("\n");
                 TRACE_AND_STEP();
-                *destreg = dec_word(*destreg);
+                *destreg16 = dec_word(*destreg16);
             }
             break;
         case 2:                /* call word ptr ... */
@@ -12018,20 +12018,20 @@ x86emuOp_opcFF_word_RM(u8 X86EMU_UNUSED(op1))
             break;
         case 6:
             if (M.x86.mode & SYSMODE_PREFIX_DATA) {
-                u32 *destreg;
+                u32 *destreg32;
 
-                destreg = DECODE_RM_LONG_REGISTER(rl);
+                destreg32 = DECODE_RM_LONG_REGISTER(rl);
                 DECODE_PRINTF("\n");
                 TRACE_AND_STEP();
-                push_long(*destreg);
+                push_long(*destreg32);
             }
             else {
-                u16 *destreg;
+                u16 *destreg16;
 
-                destreg = DECODE_RM_WORD_REGISTER(rl);
+                destreg16 = DECODE_RM_WORD_REGISTER(rl);
                 DECODE_PRINTF("\n");
                 TRACE_AND_STEP();
-                push_word(*destreg);
+                push_word(*destreg16);
             }
             break;
         }

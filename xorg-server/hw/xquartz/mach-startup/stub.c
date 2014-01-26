@@ -353,6 +353,10 @@ main(int argc, char **argv, char **envp)
     newenvp = (string_array_t)calloc((1 + envpc), sizeof(string_t));
 
     if (!newargv || !newenvp) {
+        /* Silence the clang static analyzer */
+        free(newargv);
+        free(newenvp);
+
         asl_log(aslc, NULL, ASL_LEVEL_ERR,
                 "Xquartz: Memory allocation failure");
         return EXIT_FAILURE;

@@ -460,14 +460,14 @@ DRIScreenInit(ScreenPtr pScreen, DRIInfoPtr pDRIInfo, int *pDRMFD)
         /* Add tags for reserved contexts */
         if ((reserved = drmGetReservedContextList(pDRIPriv->drmFD,
                                                   &reserved_count))) {
-            int i;
+            int r;
             void *tag;
 
-            for (i = 0; i < reserved_count; i++) {
+            for (r = 0; r < reserved_count; r++) {
                 tag = DRICreateContextPrivFromHandle(pScreen,
-                                                     reserved[i],
+                                                     reserved[r],
                                                      DRI_CONTEXT_RESERVED);
-                drmAddContextTag(pDRIPriv->drmFD, reserved[i], tag);
+                drmAddContextTag(pDRIPriv->drmFD, reserved[r], tag);
             }
             drmFreeReservedContextList(reserved);
             DRIDrvMsg(pScreen->myNum, X_INFO,
@@ -684,9 +684,9 @@ DRICloseScreen(ScreenPtr pScreen)
                 pDRIPriv->wrap.ClipNotify = NULL;
             }
             if (pDRIInfo->wrap.AdjustFrame) {
-                ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
+                ScrnInfoPtr scrn = xf86ScreenToScrn(pScreen);
 
-                pScrn->AdjustFrame = pDRIPriv->wrap.AdjustFrame;
+                scrn->AdjustFrame = pDRIPriv->wrap.AdjustFrame;
                 pDRIPriv->wrap.AdjustFrame = NULL;
             }
 

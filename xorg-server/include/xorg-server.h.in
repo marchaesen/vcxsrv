@@ -224,4 +224,7 @@
 /* Use XTrans FD passing support */
 #undef XTRANS_SEND_FDS
 
+/* Ask fontsproto to make font path element names const */
+#define FONT_PATH_ELEMENT_NAME_CONST    1
+
 #endif /* _XORG_SERVER_H_ */

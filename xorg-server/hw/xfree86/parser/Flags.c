@@ -62,7 +62,6 @@
 #include "Xprintf.h"
 #include "optionstr.h"
 
-extern LexRec val;
 
 static xf86ConfigSymTabRec ServerFlagsTab[] = {
     {ENDSECTION, "endsection"},
@@ -99,7 +98,7 @@ xf86parseFlagsSection(void)
 
         switch (token) {
         case COMMENT:
-            ptr->flg_comment = xf86addComment(ptr->flg_comment, val.str);
+            ptr->flg_comment = xf86addComment(ptr->flg_comment, xf86_lex_val.str);
             break;
             /* 
              * these old keywords are turned into standard generic options.
@@ -135,12 +134,12 @@ xf86parseFlagsSection(void)
                         if (strvalue) {
                             if (tokentype != STRING)
                                 Error(QUOTE_MSG, tmp);
-                            valstr = val.str;
+                            valstr = xf86_lex_val.str;
                         }
                         else {
                             if (tokentype != NUMBER)
                                 Error(NUMBER_MSG, tmp);
-                            if (asprintf(&valstr, "%d", val.num) == -1)
+                            if (asprintf(&valstr, "%d", xf86_lex_val.num) == -1)
                                 valstr = NULL;
                         }
                     }
@@ -435,12 +434,12 @@ xf86parseOption(XF86OptionPtr head)
         return head;
     }
 
-    name = val.str;
+    name = xf86_lex_val.str;
     if ((token = xf86getSubToken(&comment)) == STRING) {
-        option = xf86newOption(name, val.str);
+        option = xf86newOption(name, xf86_lex_val.str);
         option->opt_comment = comment;
         if ((token = xf86getToken(NULL)) == COMMENT)
-            option->opt_comment = xf86addComment(option->opt_comment, val.str);
+            option->opt_comment = xf86addComment(option->opt_comment, xf86_lex_val.str);
         else
             xf86unGetToken(token);
     }
@@ -448,7 +447,7 @@ xf86parseOption(XF86OptionPtr head)
         option = xf86newOption(name, NULL);
         option->opt_comment = comment;
         if (token == COMMENT)
-            option->opt_comment = xf86addComment(option->opt_comment, val.str);
+            option->opt_comment = xf86addComment(option->opt_comment, xf86_lex_val.str);
         else
             xf86unGetToken(token);
     }

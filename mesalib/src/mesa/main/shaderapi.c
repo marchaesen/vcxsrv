@@ -130,11 +130,11 @@ _mesa_init_shader_state(struct gl_context *ctx)
 void
 _mesa_free_shader_state(struct gl_context *ctx)
 {
-   _mesa_reference_shader_program(ctx, &ctx->Shader.CurrentVertexProgram, NULL);
-   _mesa_reference_shader_program(ctx, &ctx->Shader.CurrentGeometryProgram,
-				  NULL);
-   _mesa_reference_shader_program(ctx, &ctx->Shader.CurrentFragmentProgram,
-				  NULL);
+   int i;
+   for (i = 0; i < MESA_SHADER_STAGES; i++) {
+      _mesa_reference_shader_program(ctx, &ctx->Shader.CurrentProgram[i],
+                                     NULL);
+   }
    _mesa_reference_shader_program(ctx, &ctx->Shader._CurrentFragmentProgram,
 				  NULL);
    _mesa_reference_shader_program(ctx, &ctx->Shader.ActiveProgram, NULL);
@@ -171,16 +171,23 @@ _mesa_copy_string(GLchar *dst, GLsizei maxLength,
  * \param type  Shader target
  *
  */
-static bool
-validate_shader_target(const struct gl_context *ctx, GLenum type)
+bool
+_mesa_validate_shader_target(const struct gl_context *ctx, GLenum type)
 {
+   /* Note: when building built-in GLSL functions, this function may be
+    * invoked with ctx == NULL.  In that case, we can only validate that it's
+    * a shader target we recognize, not that it's supported in the current
+    * context.  But that's fine--we don't need any further validation than
+    * that when building built-in GLSL functions.
+    */
+
    switch (type) {
    case GL_FRAGMENT_SHADER:
-      return ctx->Extensions.ARB_fragment_shader;
+      return ctx == NULL || ctx->Extensions.ARB_fragment_shader;
    case GL_VERTEX_SHADER:
-      return ctx->Extensions.ARB_vertex_shader;
+      return ctx == NULL || ctx->Extensions.ARB_vertex_shader;
    case GL_GEOMETRY_SHADER_ARB:
-      return _mesa_has_geometry_shaders(ctx);
+      return ctx == NULL || _mesa_has_geometry_shaders(ctx);
    default:
       return false;
    }
@@ -273,7 +280,7 @@ create_shader(struct gl_context *ctx, GLenum type)
    struct gl_shader *sh;
    GLuint name;
 
-   if (!validate_shader_target(ctx, type)) {
+   if (!_mesa_validate_shader_target(ctx, type)) {
       _mesa_error(ctx, GL_INVALID_ENUM, "CreateShader(type)");
       return 0;
    }
@@ -939,32 +946,11 @@ use_shader_program(struct gl_context *ctx, GLenum type,
 		   struct gl_shader_program *shProg)
 {
    struct gl_shader_program **target;
+   gl_shader_stage stage = _mesa_shader_enum_to_shader_stage(type);
 
-   switch (type) {
-   case GL_VERTEX_SHADER:
-      target = &ctx->Shader.CurrentVertexProgram;
-      if ((shProg == NULL)
-	  || (shProg->_LinkedShaders[MESA_SHADER_VERTEX] == NULL)) {
-	 shProg = NULL;
-      }
-      break;
-   case GL_GEOMETRY_SHADER_ARB:
-      target = &ctx->Shader.CurrentGeometryProgram;
-      if ((shProg == NULL)
-	  || (shProg->_LinkedShaders[MESA_SHADER_GEOMETRY] == NULL)) {
-	 shProg = NULL;
-      }
-      break;
-   case GL_FRAGMENT_SHADER:
-      target = &ctx->Shader.CurrentFragmentProgram;
-      if ((shProg == NULL)
-	  || (shProg->_LinkedShaders[MESA_SHADER_FRAGMENT] == NULL)) {
-	 shProg = NULL;
-      }
-      break;
-   default:
-      return;
-   }
+   target = &ctx->Shader.CurrentProgram[stage];
+   if ((shProg == NULL) || (shProg->_LinkedShaders[stage] == NULL))
+      shProg = NULL;
 
    if (*target != shProg) {
       FLUSH_VERTICES(ctx, _NEW_PROGRAM | _NEW_PROGRAM_CONSTANTS);
@@ -1739,7 +1725,7 @@ _mesa_UseShaderProgramEXT(GLenum type, GLuint program)
    GET_CURRENT_CONTEXT(ctx);
    struct gl_shader_program *shProg = NULL;
 
-   if (!validate_shader_target(ctx, type)) {
+   if (!_mesa_validate_shader_target(ctx, type)) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glUseShaderProgramEXT(type)");
       return;
    }

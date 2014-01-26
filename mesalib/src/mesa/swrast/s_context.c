@@ -61,7 +61,7 @@ _swrast_update_rasterflags( struct gl_context *ctx )
    if (ctx->Color.BlendEnabled)           rasterMask |= BLEND_BIT;
    if (ctx->Depth.Test)                   rasterMask |= DEPTH_BIT;
    if (swrast->_FogEnabled)               rasterMask |= FOG_BIT;
-   if (ctx->Scissor.Enabled)              rasterMask |= CLIP_BIT;
+   if (ctx->Scissor.EnableFlags)          rasterMask |= CLIP_BIT;
    if (ctx->Stencil._Enabled)             rasterMask |= STENCIL_BIT;
    for (i = 0; i < ctx->Const.MaxDrawBuffers; i++) {
       if (!ctx->Color.ColorMask[i][0] ||
@@ -74,10 +74,10 @@ _swrast_update_rasterflags( struct gl_context *ctx )
    }
    if (ctx->Color.ColorLogicOpEnabled) rasterMask |= LOGIC_OP_BIT;
    if (ctx->Texture._EnabledUnits)     rasterMask |= TEXTURE_BIT;
-   if (   ctx->Viewport.X < 0
-       || ctx->Viewport.X + ctx->Viewport.Width > (GLint) ctx->DrawBuffer->Width
-       || ctx->Viewport.Y < 0
-       || ctx->Viewport.Y + ctx->Viewport.Height > (GLint) ctx->DrawBuffer->Height) {
+   if (   ctx->ViewportArray[0].X < 0
+       || ctx->ViewportArray[0].X + ctx->ViewportArray[0].Width > (GLfloat) ctx->DrawBuffer->Width
+       || ctx->ViewportArray[0].Y < 0
+       || ctx->ViewportArray[0].Y + ctx->ViewportArray[0].Height > (GLfloat) ctx->DrawBuffer->Height) {
       rasterMask |= CLIP_BIT;
    }
 

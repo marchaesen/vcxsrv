@@ -11,7 +11,7 @@ descriptor=[
   [ "DEPTH_BITS", "BUFFER_INT(Visual.depthBits), extra_new_buffers" ],
   [ "DEPTH_CLEAR_VALUE", "CONTEXT_FIELD(Depth.Clear, TYPE_DOUBLEN), NO_EXTRA" ],
   [ "DEPTH_FUNC", "CONTEXT_ENUM(Depth.Func), NO_EXTRA" ],
-  [ "DEPTH_RANGE", "CONTEXT_FIELD(Viewport.Near, TYPE_FLOATN_2), NO_EXTRA" ],
+  [ "DEPTH_RANGE", "LOC_CUSTOM, TYPE_DOUBLEN_2, 0, NO_EXTRA" ],
   [ "DEPTH_TEST", "CONTEXT_BOOL(Depth.Test), NO_EXTRA" ],
   [ "DEPTH_WRITEMASK", "CONTEXT_BOOL(Depth.Mask), NO_EXTRA" ],
   [ "DITHER", "CONTEXT_BOOL(Color.DitherFlag), NO_EXTRA" ],
@@ -30,7 +30,7 @@ descriptor=[
   [ "POLYGON_OFFSET_FILL", "CONTEXT_BOOL(Polygon.OffsetFill), NO_EXTRA" ],
   [ "RED_BITS", "BUFFER_INT(Visual.redBits), extra_new_buffers" ],
   [ "SCISSOR_BOX", "LOC_CUSTOM, TYPE_INT_4, 0, NO_EXTRA" ],
-  [ "SCISSOR_TEST", "CONTEXT_BOOL(Scissor.Enabled), NO_EXTRA" ],
+  [ "SCISSOR_TEST", "LOC_CUSTOM, TYPE_BOOLEAN, NO_OFFSET, NO_EXTRA" ],
   [ "STENCIL_BITS", "BUFFER_INT(Visual.stencilBits), extra_new_buffers" ],
   [ "STENCIL_CLEAR_VALUE", "CONTEXT_INT(Stencil.Clear), NO_EXTRA" ],
   [ "STENCIL_FAIL", "LOC_CUSTOM, TYPE_ENUM, NO_OFFSET, NO_EXTRA" ],
@@ -44,7 +44,7 @@ descriptor=[
   [ "SUBPIXEL_BITS", "CONTEXT_INT(Const.SubPixelBits), NO_EXTRA" ],
   [ "TEXTURE_BINDING_2D", "LOC_CUSTOM, TYPE_INT, TEXTURE_2D_INDEX, NO_EXTRA" ],
   [ "UNPACK_ALIGNMENT", "CONTEXT_INT(Unpack.Alignment), NO_EXTRA" ],
-  [ "VIEWPORT", "LOC_CUSTOM, TYPE_INT_4, 0, NO_EXTRA" ],
+  [ "VIEWPORT", "LOC_CUSTOM, TYPE_FLOAT_4, 0, NO_EXTRA" ],
 
 # GL_ARB_multitexture
   [ "ACTIVE_TEXTURE", "LOC_CUSTOM, TYPE_INT, 0, NO_EXTRA" ],
@@ -759,6 +759,13 @@ descriptor=[
   [ "TEXTURE_BUFFER_OFFSET_ALIGNMENT", "CONTEXT_INT(Const.TextureBufferOffsetAlignment), extra_ARB_texture_buffer_range" ],
 # GL_ARB_draw_indirect
   [ "DRAW_INDIRECT_BUFFER_BINDING", "LOC_CUSTOM, TYPE_INT, 0, extra_ARB_draw_indirect" ],
+
+# GL_ARB_viewport_array
+  [ "MAX_VIEWPORTS", "CONTEXT_INT(Const.MaxViewports), extra_ARB_viewport_array" ],
+  [ "VIEWPORT_SUBPIXEL_BITS", "CONTEXT_INT(Const.ViewportSubpixelBits), extra_ARB_viewport_array" ],
+  [ "VIEWPORT_BOUNDS_RANGE", "CONTEXT_FLOAT2(Const.ViewportBounds), extra_ARB_viewport_array" ],
+  [ "LAYER_PROVOKING_VERTEX", "CONTEXT_ENUM(Light.ProvokingVertex), extra_ARB_viewport_array" ],
+  [ "VIEWPORT_INDEX_PROVOKING_VERTEX", "CONTEXT_ENUM(Light.ProvokingVertex), extra_ARB_viewport_array" ],
 ]}
 
 ]

@@ -199,12 +199,11 @@ AllocGrab(const GrabPtr src)
             free(grab);
             grab = NULL;
         }
-    }
-
-    if (src && !CopyGrab(grab, src)) {
-        free(grab->xi2mask);
-        free(grab);
-        grab = NULL;
+        else if (src && !CopyGrab(grab, src)) {
+            free(grab->xi2mask);
+            free(grab);
+            grab = NULL;
+        }
     }
 
     return grab;

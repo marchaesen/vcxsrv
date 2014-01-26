@@ -94,9 +94,12 @@ update_program_enables(struct gl_context *ctx)
 static GLbitfield
 update_program(struct gl_context *ctx)
 {
-   const struct gl_shader_program *vsProg = ctx->Shader.CurrentVertexProgram;
-   const struct gl_shader_program *gsProg = ctx->Shader.CurrentGeometryProgram;
-   struct gl_shader_program *fsProg = ctx->Shader.CurrentFragmentProgram;
+   const struct gl_shader_program *vsProg =
+      ctx->Shader.CurrentProgram[MESA_SHADER_VERTEX];
+   const struct gl_shader_program *gsProg =
+      ctx->Shader.CurrentProgram[MESA_SHADER_GEOMETRY];
+   struct gl_shader_program *fsProg =
+      ctx->Shader.CurrentProgram[MESA_SHADER_FRAGMENT];
    const struct gl_vertex_program *prevVP = ctx->VertexProgram._Current;
    const struct gl_fragment_program *prevFP = ctx->FragmentProgram._Current;
    const struct gl_geometry_program *prevGP = ctx->GeometryProgram._Current;
@@ -269,6 +272,7 @@ static void
 update_viewport_matrix(struct gl_context *ctx)
 {
    const GLfloat depthMax = ctx->DrawBuffer->_DepthMaxF;
+   unsigned i;
 
    ASSERT(depthMax > 0);
 
@@ -276,11 +280,13 @@ update_viewport_matrix(struct gl_context *ctx)
     * and should be maintained elsewhere if at all.
     * NOTE: RasterPos uses this.
     */
-   _math_matrix_viewport(&ctx->Viewport._WindowMap,
-                         ctx->Viewport.X, ctx->Viewport.Y,
-                         ctx->Viewport.Width, ctx->Viewport.Height,
-                         ctx->Viewport.Near, ctx->Viewport.Far,
-                         depthMax);
+   for (i = 0; i < ctx->Const.MaxViewports; i++) {
+      _math_matrix_viewport(&ctx->ViewportArray[i]._WindowMap,
+                            ctx->ViewportArray[i].X, ctx->ViewportArray[i].Y,
+                            ctx->ViewportArray[i].Width, ctx->ViewportArray[i].Height,
+                            ctx->ViewportArray[i].Near, ctx->ViewportArray[i].Far,
+                            depthMax);
+   }
 }
 
 
@@ -304,7 +310,7 @@ update_multisample(struct gl_context *ctx)
 static void
 update_twoside(struct gl_context *ctx)
 {
-   if (ctx->Shader.CurrentVertexProgram ||
+   if (ctx->Shader.CurrentProgram[MESA_SHADER_VERTEX] ||
        ctx->VertexProgram._Enabled) {
       ctx->VertexProgram._TwoSideEnabled = ctx->VertexProgram.TwoSideEnabled;
    } else {

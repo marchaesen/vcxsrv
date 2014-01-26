@@ -1202,7 +1202,6 @@ xf86RandR12CrtcSet(ScreenPtr pScreen,
 
         if (randr_mode) {
             DisplayModeRec mode;
-            RRTransformPtr transform = RRCrtcGetTransform(randr_crtc);
 
             xf86RandRModeConvert(pScrn, randr_mode, &mode);
             if (!xf86CrtcSetModeTransform

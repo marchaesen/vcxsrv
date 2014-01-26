@@ -46,29 +46,29 @@ is" without express or implied warranty.
 Bool xnestDoFullGeneration = True;
 
 void
-InitOutput(ScreenInfo * screenInfo, int argc, char *argv[])
+InitOutput(ScreenInfo * screen_info, int argc, char *argv[])
 {
     int i, j;
 
     xnestOpenDisplay(argc, argv);
 
-    screenInfo->imageByteOrder = ImageByteOrder(xnestDisplay);
-    screenInfo->bitmapScanlineUnit = BitmapUnit(xnestDisplay);
-    screenInfo->bitmapScanlinePad = BitmapPad(xnestDisplay);
-    screenInfo->bitmapBitOrder = BitmapBitOrder(xnestDisplay);
+    screen_info->imageByteOrder = ImageByteOrder(xnestDisplay);
+    screen_info->bitmapScanlineUnit = BitmapUnit(xnestDisplay);
+    screen_info->bitmapScanlinePad = BitmapPad(xnestDisplay);
+    screen_info->bitmapBitOrder = BitmapBitOrder(xnestDisplay);
 
-    screenInfo->numPixmapFormats = 0;
+    screen_info->numPixmapFormats = 0;
     for (i = 0; i < xnestNumPixmapFormats; i++)
         for (j = 0; j < xnestNumDepths; j++)
             if ((xnestPixmapFormats[i].depth == 1) ||
                 (xnestPixmapFormats[i].depth == xnestDepths[j])) {
-                screenInfo->formats[screenInfo->numPixmapFormats].depth =
+                screen_info->formats[screen_info->numPixmapFormats].depth =
                     xnestPixmapFormats[i].depth;
-                screenInfo->formats[screenInfo->numPixmapFormats].bitsPerPixel =
+                screen_info->formats[screen_info->numPixmapFormats].bitsPerPixel =
                     xnestPixmapFormats[i].bits_per_pixel;
-                screenInfo->formats[screenInfo->numPixmapFormats].scanlinePad =
+                screen_info->formats[screen_info->numPixmapFormats].scanlinePad =
                     xnestPixmapFormats[i].scanline_pad;
-                screenInfo->numPixmapFormats++;
+                screen_info->numPixmapFormats++;
                 break;
             }
 
@@ -80,7 +80,7 @@ InitOutput(ScreenInfo * screenInfo, int argc, char *argv[])
     for (i = 0; i < xnestNumScreens; i++)
         AddScreen(xnestOpenScreen, argc, argv);
 
-    xnestNumScreens = screenInfo->numScreens;
+    xnestNumScreens = screen_info->numScreens;
 
     xnestDoFullGeneration = xnestFullGeneration;
 }

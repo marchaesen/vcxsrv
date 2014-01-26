@@ -312,7 +312,7 @@ test_XIQueryDevice(void)
     struct test_data data;
 
     reply_handler = reply_XIQueryDevice;
-    userdata = &data;
+    global_userdata = &data;
     request_init(&request, XIQueryDevice);
 
     printf("Testing XIAllDevices.\n");

@@ -26,7 +26,6 @@ static int
 test1(void)
 {
     HashTable h;
-    XID id;
     int c;
     int ok = 1;
     const int numKeys = 420;
@@ -36,7 +35,7 @@ test1(void)
 
     for (c = 0; c < numKeys; ++c) {
       int *dest;
-      id = c;
+      XID id = c;
       dest = ht_add(h, &id);
       if (dest) {
         *dest = 2 * c;
@@ -85,7 +84,6 @@ static int
 test2(void)
 {
     HashTable h;
-    XID id;
     int c;
     int ok = 1;
     const int numKeys = 420;
@@ -94,7 +92,7 @@ test2(void)
     h = ht_create(sizeof(XID), 0, ht_resourceid_hash, ht_resourceid_compare, NULL);
 
     for (c = 0; c < numKeys; ++c) {
-      id = c;
+      XID id = c;
       ht_add(h, &id);
     }
 

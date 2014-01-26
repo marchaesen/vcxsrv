@@ -380,7 +380,7 @@ xnestClipNotify(WindowPtr pWin, int dx, int dy)
 }
 
 static Bool
-xnestWindowExposurePredicate(Display * display, XEvent * event, XPointer ptr)
+xnestWindowExposurePredicate(Display * dpy, XEvent * event, XPointer ptr)
 {
     return (event->type == Expose && event->xexpose.window == *(Window *) ptr);
 }

@@ -915,7 +915,7 @@ exaComposite(CARD8 op,
             if (!pSrc->repeat && xSrc >= 0 && ySrc >= 0 &&
                 (xSrc + width <= pSrc->pDrawable->width) &&
                 (ySrc + height <= pSrc->pDrawable->height)) {
-                Bool ret;
+                Bool suc;
 
                 xDst += pDst->pDrawable->x;
                 yDst += pDst->pDrawable->y;
@@ -927,7 +927,7 @@ exaComposite(CARD8 op,
                                               yDst, width, height))
                     goto done;
 
-                ret = exaHWCopyNtoN(pSrc->pDrawable, pDst->pDrawable, NULL,
+                suc = exaHWCopyNtoN(pSrc->pDrawable, pDst->pDrawable, NULL,
                                     RegionRects(&region),
                                     RegionNumRects(&region), xSrc - xDst,
                                     ySrc - yDst, FALSE, FALSE);
@@ -939,7 +939,7 @@ exaComposite(CARD8 op,
                 xSrc -= pSrc->pDrawable->x;
                 ySrc -= pSrc->pDrawable->y;
 
-                if (!ret)
+                if (!suc)
                     goto fallback;
 
                 goto done;

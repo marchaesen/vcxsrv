@@ -600,6 +600,10 @@ UseMsg(void)
 static int
 VerifyDisplayName(const char *d)
 {
+    int i;
+    int period_found = FALSE;
+    int after_period = 0;
+
     if (d == (char *) 0)
         return 0;               /*  null  */
     if (*d == '\0')
@@ -610,6 +614,29 @@ VerifyDisplayName(const char *d)
         return 0;               /*  must not equal "." or ".."  */
     if (strchr(d, '/') != (char *) 0)
         return 0;               /*  very important!!!  */
+
+    /* Since we run atoi() on the display later, only allow
+       for digits, or exception of :0.0 and similar (two decimal points max)
+       */
+    for (i = 0; i < strlen(d); i++) {
+        if (!isdigit(d[i])) {
+            if (d[i] != '.' || period_found)
+                return 0;
+            period_found = TRUE;
+        } else if (period_found)
+            after_period++;
+
+        if (after_period > 2)
+            return 0;
+    }
+
+    /* don't allow for :0. */
+    if (period_found && after_period == 0)
+        return 0;
+
+    if (atol(d) > INT_MAX)
+        return 0;
+
     return 1;
 }
 

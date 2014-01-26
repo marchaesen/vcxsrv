@@ -934,7 +934,7 @@ extern char *bundle_id_prefix;
             == NSAlertDefaultReturn) ? NSTerminateNow : NSTerminateCancel;
 }
 
-- (void) applicationWillTerminate:(NSNotification *)aNotification
+- (void) applicationWillTerminate:(NSNotification *)aNotification _X_NORETURN
 {
     int remain;
     [X11App prefs_synchronize];

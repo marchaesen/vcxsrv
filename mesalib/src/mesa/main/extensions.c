@@ -80,6 +80,7 @@ static const struct extension extension_table[] = {
    /* ARB Extensions */
    { "GL_ARB_ES2_compatibility",                   o(ARB_ES2_compatibility),                   GL,             2009 },
    { "GL_ARB_ES3_compatibility",                   o(ARB_ES3_compatibility),                   GL,             2012 },
+   { "GL_ARB_arrays_of_arrays",                    o(ARB_arrays_of_arrays),                    GL,             2012 },
    { "GL_ARB_base_instance",                       o(ARB_base_instance),                       GL,             2011 },
    { "GL_ARB_blend_func_extended",                 o(ARB_blend_func_extended),                 GL,             2009 },
    { "GL_ARB_clear_buffer_object",                 o(dummy_true),                              GL,             2012 },
@@ -176,6 +177,7 @@ static const struct extension extension_table[] = {
    { "GL_ARB_vertex_shader",                       o(ARB_vertex_shader),                       GL,             2002 },
    { "GL_ARB_vertex_type_10f_11f_11f_rev",         o(ARB_vertex_type_10f_11f_11f_rev),         GL,             2013 },
    { "GL_ARB_vertex_type_2_10_10_10_rev",          o(ARB_vertex_type_2_10_10_10_rev),          GL,             2009 },
+   { "GL_ARB_viewport_array",                      o(ARB_viewport_array),                      GLC,            2010 },
    { "GL_ARB_window_pos",                          o(dummy_true),                              GLL,            2001 },
    /* EXT extensions */
    { "GL_EXT_abgr",                                o(dummy_true),                              GL,             1995 },

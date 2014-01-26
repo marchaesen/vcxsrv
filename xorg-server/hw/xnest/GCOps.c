@@ -95,7 +95,7 @@ xnestPutImage(DrawablePtr pDrawable, GCPtr pGC, int depth, int x, int y,
 }
 
 static int
-xnestIgnoreErrorHandler (Display     *display,
+xnestIgnoreErrorHandler (Display     *dpy,
                          XErrorEvent *event)
 {
     return False; /* return value is ignored */
@@ -127,7 +127,7 @@ xnestGetImage(DrawablePtr pDrawable, int x, int y, int w, int h,
 }
 
 static Bool
-xnestBitBlitPredicate(Display * display, XEvent * event, char *args)
+xnestBitBlitPredicate(Display * dpy, XEvent * event, char *args)
 {
     return event->type == GraphicsExpose || event->type == NoExpose;
 }

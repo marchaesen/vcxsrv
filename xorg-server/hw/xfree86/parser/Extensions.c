@@ -39,7 +39,6 @@
 #include "xf86tokens.h"
 #include "Configint.h"
 
-extern LexRec val;
 
 static xf86ConfigSymTabRec ExtensionsTab[] = {
     {ENDSECTION, "endsection"},
@@ -66,7 +65,7 @@ xf86parseExtensionsSection(void)
             break;
         case COMMENT:
             ptr->extensions_comment =
-                xf86addComment(ptr->extensions_comment, val.str);
+                xf86addComment(ptr->extensions_comment, xf86_lex_val.str);
             break;
         default:
             Error(INVALID_KEYWORD_MSG, xf86tokenString());

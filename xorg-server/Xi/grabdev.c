@@ -191,7 +191,7 @@ CreateMaskFromList(ClientPtr client, XEventClass * list, int count,
         for (j = 0; j < ExtEventIndex; j++)
             if (EventInfo[j].type == (*list & 0xff)) {
                 mask[device].mask |= EventInfo[j].mask;
-                mask[device].dev = (Pointer) tdev;
+                mask[device].dev = (void *) tdev;
                 break;
             }
     }

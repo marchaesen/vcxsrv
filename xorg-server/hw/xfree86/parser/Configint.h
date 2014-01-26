@@ -79,6 +79,8 @@ typedef struct {
     ParserNumType numType;      /* used to enforce correct number formatting */
 } LexRec, *LexPtr;
 
+extern LexRec xf86_lex_val;
+
 #ifndef TRUE
 #define TRUE 1
 #endif

@@ -260,12 +260,11 @@ SmartScheduleClient(int *clientReady, int nready)
     for (i = 0; i < nready; i++) {
         client = clientReady[i];
         pClient = clients[client];
-        /* Praise clients which are idle */
-        if ((now - pClient->smart_check_tick) >= idle) {
+        /* Praise clients which haven't run in a while */
+        if ((now - pClient->smart_stop_tick) >= idle) {
             if (pClient->smart_priority < 0)
                 pClient->smart_priority++;
         }
-        pClient->smart_check_tick = now;
 
         /* check priority to select best client */
         robin =
@@ -3424,7 +3423,6 @@ InitClient(ClientPtr client, int i, void *ospriv)
     QueryMinMaxKeyCodes(&client->minKC, &client->maxKC);
     client->smart_start_tick = SmartScheduleTime;
     client->smart_stop_tick = SmartScheduleTime;
-    client->smart_check_tick = SmartScheduleTime;
     client->clientIds = NULL;
 }
 

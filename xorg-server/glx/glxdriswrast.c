@@ -170,8 +170,6 @@ __glXDRIcontextCopy(__GLXcontext * baseDst, __GLXcontext * baseSrc,
                                          src->driContext, mask);
 }
 
-#ifdef __DRI_TEX_BUFFER
-
 static int
 __glXDRIbindTexImage(__GLXcontext * baseContext,
                      int buffer, __GLXdrawable * glxPixmap)
@@ -204,24 +202,6 @@ __glXDRIreleaseTexImage(__GLXcontext * baseContext,
     /* FIXME: Just unbind the texture? */
     return Success;
 }
-
-#else
-
-static int
-__glXDRIbindTexImage(__GLXcontext * baseContext,
-                     int buffer, __GLXdrawable * glxPixmap)
-{
-    return Success;
-}
-
-static int
-__glXDRIreleaseTexImage(__GLXcontext * baseContext,
-                        int buffer, __GLXdrawable * pixmap)
-{
-    return Success;
-}
-
-#endif
 
 static __GLXtextureFromPixmap __glXDRItextureFromPixmap = {
     __glXDRIbindTexImage,
@@ -407,20 +387,17 @@ initializeExtensions(__GLXDRIscreen * screen)
     extensions = screen->core->getExtensions(screen->driScreen);
 
     for (i = 0; extensions[i]; i++) {
-#ifdef __DRI_COPY_SUB_BUFFER
         if (strcmp(extensions[i]->name, __DRI_COPY_SUB_BUFFER) == 0) {
             screen->copySubBuffer =
                 (const __DRIcopySubBufferExtension *) extensions[i];
             /* GLX_MESA_copy_sub_buffer is always enabled. */
         }
-#endif
 
-#ifdef __DRI_TEX_BUFFER
         if (strcmp(extensions[i]->name, __DRI_TEX_BUFFER) == 0) {
             screen->texBuffer = (const __DRItexBufferExtension *) extensions[i];
             /* GLX_EXT_texture_from_pixmap is always enabled. */
         }
-#endif
+
         /* Ignore unknown extensions */
     }
 }

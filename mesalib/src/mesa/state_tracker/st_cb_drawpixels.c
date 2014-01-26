@@ -713,7 +713,7 @@ draw_textured_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
       rasterizer.half_pixel_center = 1;
       rasterizer.bottom_edge_rule = 1;
       rasterizer.depth_clip = !ctx->Transform.DepthClamp;
-      rasterizer.scissor = ctx->Scissor.Enabled;
+      rasterizer.scissor = ctx->Scissor.EnableFlags;
       cso_set_rasterizer(cso, &rasterizer);
    }
 
@@ -1364,7 +1364,7 @@ blit_copy_pixels(struct gl_context *ctx, GLint srcx, GLint srcy,
        !ctx->Stencil.Enabled &&
        !ctx->FragmentProgram.Enabled &&
        !ctx->VertexProgram.Enabled &&
-       !ctx->Shader.CurrentFragmentProgram &&
+       !ctx->Shader.CurrentProgram[MESA_SHADER_FRAGMENT] &&
        ctx->DrawBuffer->_NumColorDrawBuffers == 1 &&
        !ctx->Query.CondRenderQuery &&
        !ctx->Query.CurrentOcclusionObject) {

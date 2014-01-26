@@ -406,19 +406,19 @@ The name of this extension is "RANDR".
 
 	New for version 1.2:
 
-	If 'enable' contains RRCrtcChangeMask, RRCrtcChangeNotify events
-	will be sent when a the configuration for a CRTC associated with the
+	If 'enable' contains RRCrtcChangeNotifyMask, RRCrtcChangeNotify events
+	will be sent when the configuration for a CRTC associated with the
 	screen changes, either through this protocol extension or due to
 	detected external changes. RRCrtcChangeNotify may also be sent when
 	this request executes if the CRTC configuration has changed since
 	the client connected, to avoid race conditions.
 
-	If 'enable' contains RROutputChangeMask, RROutputChangeNotify events
-	will be sent when a the configuration for an output associated with
+	If 'enable' contains RROutputChangeNotifyMask, RROutputChangeNotify
+	events will be sent when the configuration for an output associated with
 	the screen changes, either through this protocol extension or due to
-	detected external changes. RROutputChangeNotify may also be sent
-	when this request executes if the output configuration has changed
-	since the client connected, to avoid race conditions.
+	detected external changes. RROutputChangeNotify may also be sent when
+	this request executes if the output configuration has changed since the
+	client connected, to avoid race conditions.
 
 	If 'enable' contains RROutputPropertyNotifyMask,
 	RROutputPropertyNotify events will be sent when properties change on

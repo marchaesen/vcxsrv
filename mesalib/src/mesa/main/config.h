@@ -121,7 +121,7 @@
  * Max number of texture image units.  Also determines number of texture
  * samplers in shaders.
  */
-#define MAX_TEXTURE_IMAGE_UNITS 16
+#define MAX_TEXTURE_IMAGE_UNITS 32
 
 /**
  * Larger of MAX_TEXTURE_COORD_UNITS and MAX_TEXTURE_IMAGE_UNITS.
@@ -136,6 +136,9 @@
 /** Maximum viewport size */
 #define MAX_VIEWPORT_WIDTH 16384
 #define MAX_VIEWPORT_HEIGHT 16384
+
+/** Maximun number of viewports supported with ARB_viewport_array */
+#define MAX_VIEWPORTS 16
 
 /** Maxmimum size for CVA.  May be overridden by the drivers.  */
 #define MAX_ARRAY_LOCK_SIZE 3000

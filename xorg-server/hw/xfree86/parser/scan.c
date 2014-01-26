@@ -103,7 +103,7 @@ static int numFiles = 0;        /* number of config files */
 static int curFileIndex = 0;    /* index of current config file */
 static int pushToken = LOCK_TOKEN;
 static int eol_seen = 0;        /* private state to handle comments */
-LexRec val;
+LexRec xf86_lex_val;
 
 /*
  * xf86getNextLine --
@@ -332,7 +332,7 @@ xf86getToken(xf86ConfigSymTabRec * tab)
             /* XXX no private copy.
              * Use xf86addComment when setting a comment.
              */
-            val.str = configRBuf;
+            xf86_lex_val.str = configRBuf;
             return COMMENT;
         }
 
@@ -354,15 +354,15 @@ xf86getToken(xf86ConfigSymTabRec * tab)
                 if ((configBuf[configPos] == 'x') ||
                     (configBuf[configPos] == 'X')) {
                     base = 16;
-                    val.numType = PARSE_HEX;
+                    xf86_lex_val.numType = PARSE_HEX;
                 }
                 else {
                     base = 8;
-                    val.numType = PARSE_OCTAL;
+                    xf86_lex_val.numType = PARSE_OCTAL;
                 }
             else {
                 base = 10;
-                val.numType = PARSE_DECIMAL;
+                xf86_lex_val.numType = PARSE_DECIMAL;
             }
 
             configRBuf[0] = c;
@@ -374,8 +374,8 @@ xf86getToken(xf86ConfigSymTabRec * tab)
                 configRBuf[i++] = c;
             configPos--;        /* GJA -- one too far */
             configRBuf[i] = '\0';
-            val.num = strtoul(configRBuf, NULL, 0);
-            val.realnum = atof(configRBuf);
+            xf86_lex_val.num = strtoul(configRBuf, NULL, 0);
+            xf86_lex_val.realnum = atof(configRBuf);
             return NUMBER;
         }
 
@@ -389,8 +389,8 @@ xf86getToken(xf86ConfigSymTabRec * tab)
             }
             while ((c != '\"') && (c != '\n') && (c != '\r') && (c != '\0'));
             configRBuf[i] = '\0';
-            val.str = malloc(strlen(configRBuf) + 1);
-            strcpy(val.str, configRBuf);        /* private copy ! */
+            xf86_lex_val.str = malloc(strlen(configRBuf) + 1);
+            strcpy(xf86_lex_val.str, configRBuf);        /* private copy ! */
             return STRING;
         }
 
@@ -452,7 +452,7 @@ xf86getSubToken(char **comment)
         token = xf86getToken(NULL);
         if (token == COMMENT) {
             if (comment)
-                *comment = xf86addComment(*comment, val.str);
+                *comment = xf86addComment(*comment, xf86_lex_val.str);
         }
         else
             return token;
@@ -468,7 +468,7 @@ xf86getSubTokenWithTab(char **comment, xf86ConfigSymTabRec * tab)
         token = xf86getToken(tab);
         if (token == COMMENT) {
             if (comment)
-                *comment = xf86addComment(*comment, val.str);
+                *comment = xf86addComment(*comment, xf86_lex_val.str);
         }
         else
             return token;
@@ -1025,7 +1025,7 @@ xf86setSection(const char *section)
 int
 xf86getStringToken(xf86ConfigSymTabRec * tab)
 {
-    return StringToToken(val.str, tab);
+    return StringToToken(xf86_lex_val.str, tab);
 }
 
 static int

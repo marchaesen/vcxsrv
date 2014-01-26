@@ -973,11 +973,11 @@ handle_cea_svd(struct cea_video_block *video, void *data)
 }
 
 static DisplayModePtr
-DDCModesFromCEAExtension(int scrnIndex, xf86MonPtr MonPtr)
+DDCModesFromCEAExtension(int scrnIndex, xf86MonPtr mon_ptr)
 {
     DisplayModePtr Modes = NULL;
 
-    xf86ForEachVideoBlock(MonPtr, handle_cea_svd, &Modes);
+    xf86ForEachVideoBlock(mon_ptr, handle_cea_svd, &Modes);
 
     return Modes;
 }

@@ -30,11 +30,37 @@
 
 
 /**
+ * Set scissor rectangle data directly in ScissorArray
+ *
+ * This is an internal function that performs no error checking on the
+ * supplied data.  It also does \b not call \c dd_function_table::Scissor.
+ *
+ * \sa _mesa_set_scissor
+ */
+static void
+set_scissor_no_notify(struct gl_context *ctx, unsigned idx,
+                      GLint x, GLint y, GLsizei width, GLsizei height)
+{
+   if (x == ctx->Scissor.ScissorArray[idx].X &&
+       y == ctx->Scissor.ScissorArray[idx].Y &&
+       width == ctx->Scissor.ScissorArray[idx].Width &&
+       height == ctx->Scissor.ScissorArray[idx].Height)
+      return;
+
+   FLUSH_VERTICES(ctx, _NEW_SCISSOR);
+   ctx->Scissor.ScissorArray[idx].X = x;
+   ctx->Scissor.ScissorArray[idx].Y = y;
+   ctx->Scissor.ScissorArray[idx].Width = width;
+   ctx->Scissor.ScissorArray[idx].Height = height;
+}
+
+/**
  * Called via glScissor
  */
 void GLAPIENTRY
 _mesa_Scissor( GLint x, GLint y, GLsizei width, GLsizei height )
 {
+   unsigned i;
    GET_CURRENT_CONTEXT(ctx);
 
    if (MESA_VERBOSE & VERBOSE_API)
@@ -45,7 +71,23 @@ _mesa_Scissor( GLint x, GLint y, GLsizei width, GLsizei height )
       return;
    }
 
-   _mesa_set_scissor(ctx, x, y, width, height);
+   /* The GL_ARB_viewport_array spec says:
+    *
+    *     "Scissor sets the scissor rectangle for all viewports to the same
+    *     values and is equivalent (assuming no errors are generated) to:
+    *
+    *     for (uint i = 0; i < MAX_VIEWPORTS; i++) {
+    *         ScissorIndexed(i, left, bottom, width, height);
+    *     }"
+    *
+    * Set the scissor rectangle for all of the viewports supported by the
+    * implementation, but only signal the driver once at the end.
+    */
+   for (i = 0; i < ctx->Const.MaxViewports; i++)
+      set_scissor_no_notify(ctx, i, x, y, width, height);
+
+   if (ctx->Driver.Scissor)
+      ctx->Driver.Scissor(ctx);
 }
 
 
@@ -63,25 +105,108 @@ _mesa_Scissor( GLint x, GLint y, GLsizei width, GLsizei height )
  * the dd_function_table::Scissor callback.
  */
 void
-_mesa_set_scissor(struct gl_context *ctx, 
+_mesa_set_scissor(struct gl_context *ctx, unsigned idx,
                   GLint x, GLint y, GLsizei width, GLsizei height)
 {
-   if (x == ctx->Scissor.X &&
-       y == ctx->Scissor.Y &&
-       width == ctx->Scissor.Width &&
-       height == ctx->Scissor.Height)
-      return;
-
-   FLUSH_VERTICES(ctx, _NEW_SCISSOR);
-   ctx->Scissor.X = x;
-   ctx->Scissor.Y = y;
-   ctx->Scissor.Width = width;
-   ctx->Scissor.Height = height;
+   set_scissor_no_notify(ctx, idx, x, y, width, height);
 
    if (ctx->Driver.Scissor)
       ctx->Driver.Scissor(ctx);
 }
 
+/**
+ * Define count scissor boxes starting at index.
+ *
+ * \param index  index of first scissor records to set
+ * \param count  number of scissor records to set
+ * \param x, y   pointer to array of struct gl_scissor_rects
+ *
+ * \sa glScissorArrayv().
+ *
+ * Verifies the parameters and call set_scissor_no_notify to do the work.
+ */
+void GLAPIENTRY
+_mesa_ScissorArrayv(GLuint first, GLsizei count, const GLint *v)
+{
+   int i;
+   struct gl_scissor_rect *p = (struct gl_scissor_rect *) v;
+   GET_CURRENT_CONTEXT(ctx);
+
+   if ((first + count) > ctx->Const.MaxViewports) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "glScissorArrayv: first (%d) + count (%d) >= MaxViewports (%d)",
+                  first, count, ctx->Const.MaxViewports);
+      return;
+   }
+
+   /* Verify width & height */
+   for (i = 0; i < count; i++) {
+      if (p[i].Width < 0 || p[i].Height < 0) {
+         _mesa_error(ctx, GL_INVALID_VALUE,
+                     "glScissorArrayv: index (%d) width or height < 0 (%d, %d)",
+                     i, p[i].Width, p[i].Height);
+      }
+   }
+
+   for (i = 0; i < count; i++)
+      set_scissor_no_notify(ctx, i + first,
+                            p[i].X, p[i].Y, p[i].Width, p[i].Height);
+
+   if (ctx->Driver.Scissor)
+      ctx->Driver.Scissor(ctx);
+}
+
+/**
+ * Define the scissor box.
+ *
+ * \param index  index of scissor records to set
+ * \param x, y   coordinates of the scissor box lower-left corner.
+ * \param width  width of the scissor box.
+ * \param height height of the scissor box.
+ *
+ * Verifies the parameters call set_scissor_no_notify to do the work.
+ */
+static void
+ScissorIndexed(GLuint index, GLint left, GLint bottom,
+               GLsizei width, GLsizei height, const char *function)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (MESA_VERBOSE & VERBOSE_API)
+      _mesa_debug(ctx, "%s(%d, %d, %d, %d, %d)\n",
+                  function, index, left, bottom, width, height);
+
+   if (index >= ctx->Const.MaxViewports) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "%s: index (%d) >= MaxViewports (%d)",
+                  function, index, ctx->Const.MaxViewports);
+      return;
+   }
+
+   if (width < 0 || height < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "%s: index (%d) width or height < 0 (%d, %d)",
+                  function, index, width, height);
+   }
+
+   set_scissor_no_notify(ctx, index, left, bottom, width, height);
+
+   if (ctx->Driver.Scissor)
+      ctx->Driver.Scissor(ctx);
+}
+
+void GLAPIENTRY
+_mesa_ScissorIndexed(GLuint index, GLint left, GLint bottom,
+                     GLsizei width, GLsizei height)
+{
+   ScissorIndexed(index, left, bottom, width, height, "glScissorIndexd");
+}
+
+void GLAPIENTRY
+_mesa_ScissorIndexedv(GLuint index, const GLint *v)
+{
+   ScissorIndexed(index, v[0], v[1], v[2], v[3], "glScissorIndexdv");
+}
 
 /**
  * Initialize the context's scissor state.
@@ -90,10 +215,14 @@ _mesa_set_scissor(struct gl_context *ctx,
 void
 _mesa_init_scissor(struct gl_context *ctx)
 {
+   unsigned i;
+
    /* Scissor group */
-   ctx->Scissor.Enabled = GL_FALSE;
-   ctx->Scissor.X = 0;
-   ctx->Scissor.Y = 0;
-   ctx->Scissor.Width = 0;
-   ctx->Scissor.Height = 0;
+   ctx->Scissor.EnableFlags = 0;
+
+   /* Note: ctx->Const.MaxViewports may not have been set by the driver yet,
+    * so just initialize all of them.
+    */
+   for (i = 0; i < MAX_VIEWPORTS; i++)
+      set_scissor_no_notify(ctx, i, 0, 0, 0, 0);
 }

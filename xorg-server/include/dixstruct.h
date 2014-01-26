@@ -106,7 +106,6 @@ typedef struct _Client {
 
     int smart_start_tick;
     int smart_stop_tick;
-    int smart_check_tick;
 
     DeviceIntPtr clientPtr;
     ClientIdPtr clientIds;

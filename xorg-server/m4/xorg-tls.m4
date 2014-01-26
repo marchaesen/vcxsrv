@@ -28,7 +28,7 @@ AC_DEFUN([XORG_TLS], [
         ac_cv_tls=none
         keywords="__thread __declspec(thread)"
         for kw in $keywords ; do
-            AC_TRY_COMPILE([int $kw test;], [], ac_cv_tls=$kw ; break ;)
+            AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[int $kw test;]], [])], ac_cv_tls=$kw ; break ;)
         done
     ])
     AC_MSG_RESULT($ac_cv_tls)
@@ -38,7 +38,7 @@ AC_DEFUN([XORG_TLS], [
         AC_CACHE_VAL(ac_cv_tls_model, [
             save_CFLAGS="$CFLAGS"
             CFLAGS="$CFLAGS $STRICT_CFLAGS"
-            AC_TRY_COMPILE([int $ac_cv_tls __attribute__((tls_model("initial-exec"))) test;], [],
+            AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[int $ac_cv_tls __attribute__((tls_model("initial-exec"))) test;]], [])],
                            ac_cv_tls_model=yes, ac_cv_tls_model=no)
             CFLAGS="$save_CFLAGS"
         ])

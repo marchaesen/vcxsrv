@@ -35,7 +35,6 @@
 #include "xf86tokens.h"
 #include "Configint.h"
 
-extern LexRec val;
 
 static xf86ConfigSymTabRec DRITab[] = {
     {ENDSECTION, "endsection"},
@@ -59,24 +58,24 @@ xf86parseDRISection(void)
         switch (token) {
         case GROUP:
             if ((token = xf86getSubToken(&(ptr->dri_comment))) == STRING)
-                ptr->dri_group_name = val.str;
+                ptr->dri_group_name = xf86_lex_val.str;
             else if (token == NUMBER)
-                ptr->dri_group = val.num;
+                ptr->dri_group = xf86_lex_val.num;
             else
                 Error(GROUP_MSG);
             break;
         case MODE:
             if (xf86getSubToken(&(ptr->dri_comment)) != NUMBER)
                 Error(NUMBER_MSG, "Mode");
-            if (val.numType != PARSE_OCTAL)
-                Error(MUST_BE_OCTAL_MSG, val.num);
-            ptr->dri_mode = val.num;
+            if (xf86_lex_val.numType != PARSE_OCTAL)
+                Error(MUST_BE_OCTAL_MSG, xf86_lex_val.num);
+            ptr->dri_mode = xf86_lex_val.num;
             break;
         case EOF_TOKEN:
             Error(UNEXPECTED_EOF_MSG);
             break;
         case COMMENT:
-            ptr->dri_comment = xf86addComment(ptr->dri_comment, val.str);
+            ptr->dri_comment = xf86addComment(ptr->dri_comment, xf86_lex_val.str);
             break;
         default:
             Error(INVALID_KEYWORD_MSG, xf86tokenString());

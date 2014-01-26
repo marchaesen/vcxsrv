@@ -1821,14 +1821,14 @@ KdXVCopyPlanarData(KdScreenInfo * screen, CARD8 *src, CARD8 *dst, int randr,
 
     w >>= 1;
     for (j = 0; j < h; j++) {
-        CARD32 *dst = (CARD32 *) dst1;
+        CARD32 *dst32 = (CARD32 *) dst1;
         CARD8 *s1l = src1;
         CARD8 *s1r = src1 + srcNext;
         CARD8 *s2 = src2;
         CARD8 *s3 = src3;
 
         for (i = 0; i < w; i++) {
-            *dst++ = *s1l | (*s1r << 16) | (*s3 << 8) | (*s2 << 24);
+            *dst32++ = *s1l | (*s1r << 16) | (*s3 << 8) | (*s2 << 24);
             s1l += srcRight;
             s1r += srcRight;
             s2 += srcRight2;

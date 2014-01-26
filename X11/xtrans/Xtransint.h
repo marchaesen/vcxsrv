@@ -331,6 +331,7 @@ typedef struct _Xtransport_table {
 #define TRANS_NOUNLINK	(1<<4)	/* Don't unlink transport endpoints */
 #define TRANS_ABSTRACT	(1<<5)	/* Use abstract sockets if available */
 #define TRANS_NOXAUTH	(1<<6)	/* Don't verify authentication (because it's secure some other way at the OS layer) */
+#define TRANS_RECEIVED	(1<<7)  /* The fd for this has already been opened by someone else. */
 
 /* Flags to preserve when setting others */
 #define TRANS_KEEPFLAGS	(TRANS_NOUNLINK|TRANS_ABSTRACT)

@@ -206,17 +206,17 @@ configureScreenSection(int screennum)
     ptr->scrn_device_str = tmp;
 
     for (i = 0; i < sizeof(depths) / sizeof(depths[0]); i++) {
-        XF86ConfDisplayPtr display;
+        XF86ConfDisplayPtr conf_display;
 
-        display = calloc(1, sizeof(XF86ConfDisplayRec));
-        display->disp_depth = depths[i];
-        display->disp_black.red = display->disp_white.red = -1;
-        display->disp_black.green = display->disp_white.green = -1;
-        display->disp_black.blue = display->disp_white.blue = -1;
+        conf_display = calloc(1, sizeof(XF86ConfDisplayRec));
+        conf_display->disp_depth = depths[i];
+        conf_display->disp_black.red = conf_display->disp_white.red = -1;
+        conf_display->disp_black.green = conf_display->disp_white.green = -1;
+        conf_display->disp_black.blue = conf_display->disp_white.blue = -1;
         ptr->scrn_display_lst = (XF86ConfDisplayPtr) xf86addListItem((glp) ptr->
                                                                      scrn_display_lst,
                                                                      (glp)
-                                                                     display);
+                                                                     conf_display);
     }
 
     return ptr;
@@ -375,7 +375,6 @@ configureLayoutSection(void)
             aptr->adj_refscreen = NULL;
         }
         else {
-            char *tmp;
             aptr->adj_where = CONF_ADJ_RIGHTOF;
             XNFasprintf(&tmp, "Screen%d", scrnum - 1);
             aptr->adj_refscreen = tmp;
@@ -586,24 +585,24 @@ DoConfigure(void)
 
     /* Add device, monitor and screen sections for detected devices */
     for (screennum = 0; screennum < nDevToConfig; screennum++) {
-        XF86ConfDevicePtr DevicePtr;
-        XF86ConfMonitorPtr MonitorPtr;
-        XF86ConfScreenPtr ScreenPtr;
+        XF86ConfDevicePtr device_ptr;
+        XF86ConfMonitorPtr monitor_ptr;
+        XF86ConfScreenPtr screen_ptr;
 
-        DevicePtr = configureDeviceSection(screennum);
+        device_ptr = configureDeviceSection(screennum);
         xf86config->conf_device_lst = (XF86ConfDevicePtr) xf86addListItem((glp)
                                                                           xf86config->
                                                                           conf_device_lst,
                                                                           (glp)
-                                                                          DevicePtr);
-        MonitorPtr = configureMonitorSection(screennum);
-        xf86config->conf_monitor_lst = (XF86ConfMonitorPtr) xf86addListItem((glp) xf86config->conf_monitor_lst, (glp) MonitorPtr);
-        ScreenPtr = configureScreenSection(screennum);
+                                                                          device_ptr);
+        monitor_ptr = configureMonitorSection(screennum);
+        xf86config->conf_monitor_lst = (XF86ConfMonitorPtr) xf86addListItem((glp) xf86config->conf_monitor_lst, (glp) monitor_ptr);
+        screen_ptr = configureScreenSection(screennum);
         xf86config->conf_screen_lst = (XF86ConfScreenPtr) xf86addListItem((glp)
                                                                           xf86config->
                                                                           conf_screen_lst,
                                                                           (glp)
-                                                                          ScreenPtr);
+                                                                          screen_ptr);
     }
 
     xf86config->conf_files = configureFilesSection();
@@ -714,27 +713,27 @@ DoConfigure(void)
     xf86freeScreenList(xf86config->conf_screen_lst);
     xf86config->conf_screen_lst = NULL;
     for (j = 0; j < xf86NumScreens; j++) {
-        XF86ConfMonitorPtr MonitorPtr;
-        XF86ConfScreenPtr ScreenPtr;
+        XF86ConfMonitorPtr monitor_ptr;
+        XF86ConfScreenPtr screen_ptr;
 
         ConfiguredMonitor = NULL;
 
         if ((*xf86Screens[dev2screen[j]]->PreInit) (xf86Screens[dev2screen[j]],
                                                     PROBE_DETECT) &&
             ConfiguredMonitor) {
-            MonitorPtr = configureDDCMonitorSection(j);
+            monitor_ptr = configureDDCMonitorSection(j);
         }
         else {
-            MonitorPtr = configureMonitorSection(j);
+            monitor_ptr = configureMonitorSection(j);
         }
-        ScreenPtr = configureScreenSection(j);
+        screen_ptr = configureScreenSection(j);
 
-        xf86config->conf_monitor_lst = (XF86ConfMonitorPtr) xf86addListItem((glp) xf86config->conf_monitor_lst, (glp) MonitorPtr);
+        xf86config->conf_monitor_lst = (XF86ConfMonitorPtr) xf86addListItem((glp) xf86config->conf_monitor_lst, (glp) monitor_ptr);
         xf86config->conf_screen_lst = (XF86ConfScreenPtr) xf86addListItem((glp)
                                                                           xf86config->
                                                                           conf_screen_lst,
                                                                           (glp)
-                                                                          ScreenPtr);
+                                                                          screen_ptr);
     }
 
     if (xf86writeConfigFile(filename, xf86config) == 0) {

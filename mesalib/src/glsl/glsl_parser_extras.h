@@ -294,6 +294,8 @@ struct _mesa_glsl_parse_state {
     * \name Enable bits for GLSL extensions
     */
    /*@{*/
+   bool ARB_arrays_of_arrays_enable;
+   bool ARB_arrays_of_arrays_warn;
    bool ARB_draw_buffers_enable;
    bool ARB_draw_buffers_warn;
    bool ARB_draw_instanced_enable;
@@ -352,6 +354,8 @@ struct _mesa_glsl_parse_state {
    bool ARB_shader_atomic_counters_warn;
    bool AMD_shader_trinary_minmax_enable;
    bool AMD_shader_trinary_minmax_warn;
+   bool ARB_viewport_array_enable;
+   bool ARB_viewport_array_warn;
    /*@}*/
 
    /** Extensions supported by the OpenGL implementation. */

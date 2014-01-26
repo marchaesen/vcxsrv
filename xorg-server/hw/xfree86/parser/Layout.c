@@ -65,7 +65,6 @@
 /* Needed for auto server layout */
 extern int xf86CheckBoolOption(void *optlist, const char *name, int deflt);
 
-extern LexRec val;
 
 static xf86ConfigSymTabRec LayoutTab[] = {
     {ENDSECTION, "endsection"},
@@ -100,14 +99,14 @@ xf86parseLayoutSection(void)
         while ((token = xf86getToken(LayoutTab)) != ENDSECTION) {
         switch (token) {
         case COMMENT:
-            ptr->lay_comment = xf86addComment(ptr->lay_comment, val.str);
+            ptr->lay_comment = xf86addComment(ptr->lay_comment, xf86_lex_val.str);
             break;
         case IDENTIFIER:
             if (xf86getSubToken(&(ptr->lay_comment)) != STRING)
                 Error(QUOTE_MSG, "Identifier");
             if (has_ident == TRUE)
                 Error(MULTIPLE_MSG, "Identifier");
-            ptr->lay_identifier = val.str;
+            ptr->lay_identifier = xf86_lex_val.str;
             has_ident = TRUE;
             break;
         case INACTIVE:
@@ -120,7 +119,7 @@ xf86parseLayoutSection(void)
                 free(iptr);
                 Error(INACTIVE_MSG);
             }
-            iptr->inactive_device_str = val.str;
+            iptr->inactive_device_str = xf86_lex_val.str;
             ptr->lay_inactive_lst = (XF86ConfInactivePtr)
                 xf86addListItem((glp) ptr->lay_inactive_lst, (glp) iptr);
         }
@@ -138,7 +137,7 @@ xf86parseLayoutSection(void)
             aptr->adj_y = 0;
             aptr->adj_refscreen = NULL;
             if ((token = xf86getSubToken(&(ptr->lay_comment))) == NUMBER)
-                aptr->adj_scrnum = val.num;
+                aptr->adj_scrnum = xf86_lex_val.num;
             else
                 xf86unGetToken(token);
             token = xf86getSubToken(&(ptr->lay_comment));
@@ -146,7 +145,7 @@ xf86parseLayoutSection(void)
                 free(aptr);
                 Error(SCREEN_MSG);
             }
-            aptr->adj_screen_str = val.str;
+            aptr->adj_screen_str = xf86_lex_val.str;
 
             token = xf86getSubTokenWithTab(&(ptr->lay_comment), AdjTab);
             switch (token) {
@@ -186,13 +185,13 @@ xf86parseLayoutSection(void)
                 if (absKeyword)
                     token = xf86getSubToken(&(ptr->lay_comment));
                 if (token == NUMBER) {
-                    aptr->adj_x = val.num;
+                    aptr->adj_x = xf86_lex_val.num;
                     token = xf86getSubToken(&(ptr->lay_comment));
                     if (token != NUMBER) {
                         free(aptr);
                         Error(INVALID_SCR_MSG);
                     }
-                    aptr->adj_y = val.num;
+                    aptr->adj_y = xf86_lex_val.num;
                 }
                 else {
                     if (absKeyword) {
@@ -213,46 +212,46 @@ xf86parseLayoutSection(void)
                     free(aptr);
                     Error(INVALID_SCR_MSG);
                 }
-                aptr->adj_refscreen = val.str;
+                aptr->adj_refscreen = xf86_lex_val.str;
                 if (aptr->adj_where == CONF_ADJ_RELATIVE) {
                     token = xf86getSubToken(&(ptr->lay_comment));
                     if (token != NUMBER) {
                         free(aptr);
                         Error(INVALID_SCR_MSG);
                     }
-                    aptr->adj_x = val.num;
+                    aptr->adj_x = xf86_lex_val.num;
                     token = xf86getSubToken(&(ptr->lay_comment));
                     if (token != NUMBER) {
                         free(aptr);
                         Error(INVALID_SCR_MSG);
                     }
-                    aptr->adj_y = val.num;
+                    aptr->adj_y = xf86_lex_val.num;
                 }
                 break;
             case CONF_ADJ_OBSOLETE:
                 /* top */
-                aptr->adj_top_str = val.str;
+                aptr->adj_top_str = xf86_lex_val.str;
 
                 /* bottom */
                 if (xf86getSubToken(&(ptr->lay_comment)) != STRING) {
                     free(aptr);
                     Error(SCREEN_MSG);
                 }
-                aptr->adj_bottom_str = val.str;
+                aptr->adj_bottom_str = xf86_lex_val.str;
 
                 /* left */
                 if (xf86getSubToken(&(ptr->lay_comment)) != STRING) {
                     free(aptr);
                     Error(SCREEN_MSG);
                 }
-                aptr->adj_left_str = val.str;
+                aptr->adj_left_str = xf86_lex_val.str;
 
                 /* right */
                 if (xf86getSubToken(&(ptr->lay_comment)) != STRING) {
                     free(aptr);
                     Error(SCREEN_MSG);
                 }
-                aptr->adj_right_str = val.str;
+                aptr->adj_right_str = xf86_lex_val.str;
 
             }
             ptr->lay_adjacency_lst = (XF86ConfAdjacencyPtr)
@@ -270,10 +269,10 @@ xf86parseLayoutSection(void)
                 free(iptr);
                 Error(INPUTDEV_MSG);
             }
-            iptr->iref_inputdev_str = val.str;
+            iptr->iref_inputdev_str = xf86_lex_val.str;
             while ((token = xf86getSubToken(&(ptr->lay_comment))) == STRING) {
                 iptr->iref_option_lst =
-                    xf86addNewOption(iptr->iref_option_lst, val.str, NULL);
+                    xf86addNewOption(iptr->iref_option_lst, xf86_lex_val.str, NULL);
             }
             xf86unGetToken(token);
             ptr->lay_input_lst = (XF86ConfInputrefPtr)

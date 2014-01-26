@@ -41,7 +41,7 @@ WindowRec root;
 WindowRec window;
 static ClientRec server_client;
 
-void *userdata;
+void *global_userdata;
 
 static void
 fake_init_sprite(DeviceIntPtr dev)
@@ -136,34 +136,34 @@ struct devices
 init_devices(void)
 {
     ClientRec client;
-    struct devices devices;
+    struct devices local_devices;
 
     client = init_client(0, NULL);
 
-    AllocDevicePair(&client, "Virtual core", &devices.vcp, &devices.vck,
+    AllocDevicePair(&client, "Virtual core", &local_devices.vcp, &local_devices.vck,
                     CorePointerProc, CoreKeyboardProc, TRUE);
-    inputInfo.pointer = devices.vcp;
+    inputInfo.pointer = local_devices.vcp;
 
-    inputInfo.keyboard = devices.vck;
-    ActivateDevice(devices.vcp, FALSE);
-    ActivateDevice(devices.vck, FALSE);
-    EnableDevice(devices.vcp, FALSE);
-    EnableDevice(devices.vck, FALSE);
+    inputInfo.keyboard = local_devices.vck;
+    ActivateDevice(local_devices.vcp, FALSE);
+    ActivateDevice(local_devices.vck, FALSE);
+    EnableDevice(local_devices.vcp, FALSE);
+    EnableDevice(local_devices.vck, FALSE);
 
-    AllocDevicePair(&client, "", &devices.mouse, &devices.kbd,
+    AllocDevicePair(&client, "", &local_devices.mouse, &local_devices.kbd,
                     TestPointerProc, CoreKeyboardProc, FALSE);
-    ActivateDevice(devices.mouse, FALSE);
-    ActivateDevice(devices.kbd, FALSE);
-    EnableDevice(devices.mouse, FALSE);
-    EnableDevice(devices.kbd, FALSE);
+    ActivateDevice(local_devices.mouse, FALSE);
+    ActivateDevice(local_devices.kbd, FALSE);
+    EnableDevice(local_devices.mouse, FALSE);
+    EnableDevice(local_devices.kbd, FALSE);
 
-    devices.num_devices = 4;
-    devices.num_master_devices = 2;
+    local_devices.num_devices = 4;
+    local_devices.num_master_devices = 2;
 
-    fake_init_sprite(devices.mouse);
-    fake_init_sprite(devices.vcp);
+    fake_init_sprite(local_devices.mouse);
+    fake_init_sprite(local_devices.vcp);
 
-    return devices;
+    return local_devices;
 }
 
 /* Create minimal client, with the given buffer and len as request buffer */
@@ -187,20 +187,20 @@ init_client(int len, void *data)
 }
 
 void
-init_window(WindowPtr window, WindowPtr parent, int id)
+init_window(WindowPtr local_window, WindowPtr parent, int id)
 {
-    memset(window, 0, sizeof(*window));
+    memset(local_window, 0, sizeof(*local_window));
 
-    window->drawable.id = id;
+    local_window->drawable.id = id;
     if (parent) {
-        window->drawable.x = 30;
-        window->drawable.y = 50;
-        window->drawable.width = 100;
-        window->drawable.height = 200;
+        local_window->drawable.x = 30;
+        local_window->drawable.y = 50;
+        local_window->drawable.width = 100;
+        local_window->drawable.height = 200;
     }
-    window->parent = parent;
-    window->optional = calloc(1, sizeof(WindowOptRec));
-    assert(window->optional);
+    local_window->parent = parent;
+    local_window->optional = calloc(1, sizeof(WindowOptRec));
+    assert(local_window->optional);
 }
 
 extern DevPrivateKeyRec miPointerScreenKeyRec;
@@ -208,18 +208,18 @@ extern DevPrivateKeyRec miPointerPrivKeyRec;
 
 /* Needed for the screen setup, otherwise we crash during sprite initialization */
 static Bool
-device_cursor_init(DeviceIntPtr dev, ScreenPtr screen)
+device_cursor_init(DeviceIntPtr dev, ScreenPtr local_screen)
 {
     return TRUE;
 }
 
 static void
-device_cursor_cleanup(DeviceIntPtr dev, ScreenPtr screen)
+device_cursor_cleanup(DeviceIntPtr dev, ScreenPtr local_screen)
 {
 }
 
 static Bool
-set_cursor_pos(DeviceIntPtr dev, ScreenPtr screen, int x, int y, Bool event)
+set_cursor_pos(DeviceIntPtr dev, ScreenPtr local_screen, int x, int y, Bool event)
 {
     return TRUE;
 }
@@ -264,5 +264,5 @@ __wrap_WriteToClient(ClientPtr client, int len, void *data)
 {
     assert(reply_handler != NULL);
 
-    (*reply_handler) (client, len, data, userdata);
+    (*reply_handler) (client, len, data, global_userdata);
 }

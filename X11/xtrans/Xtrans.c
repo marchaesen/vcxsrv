@@ -48,6 +48,10 @@ from The Open Group.
  */
 
 #include <ctype.h>
+#ifdef HAVE_SYSTEMD_DAEMON
+#include <string.h>
+#include <systemd/sd-daemon.h>
+#endif
 
 /*
  * The transport table contains a definition for every transport (protocol)
@@ -744,6 +748,34 @@ TRANS(CreateListener) (XtransConnInfo ciptr, char *port, unsigned int flags)
 }
 
 int
+TRANS(Received) (const char * protocol)
+
+{
+   Xtransport *trans;
+   int i = 0, ret = 0;
+
+   prmsg (5, "Received(%s)\n", protocol);
+
+   if ((trans = TRANS(SelectTransport)(protocol)) == NULL)
+   {
+	prmsg (1,"Received: unable to find transport: %s\n",
+	       protocol);
+
+	return -1;
+   }
+   if (trans->flags & TRANS_ALIAS) {
+       if (trans->nolisten)
+	   while (trans->nolisten[i]) {
+	       ret |= TRANS(Received)(trans->nolisten[i]);
+	       i++;
+       }
+   }
+
+   trans->flags |= TRANS_RECEIVED;
+   return ret;
+}
+
+int
 TRANS(NoListen) (const char * protocol)
 
 {
@@ -1023,6 +1055,79 @@ complete_network_count (void)
 }
 
 
+static int
+receive_listening_fds(char* port, XtransConnInfo* temp_ciptrs, int* count_ret)
+
+{
+#ifdef HAVE_SYSTEMD_DAEMON
+    XtransConnInfo ciptr;
+    int i, systemd_listen_fds;
+
+    systemd_listen_fds = sd_listen_fds(1);
+    if (systemd_listen_fds < 0)
+    {
+        prmsg (1, "receive_listening_fds: sd_listen_fds error: %s\n",
+               strerror(-systemd_listen_fds));
+        return -1;
+    }
+
+    for (i = 0; i < systemd_listen_fds && *count_ret < NUMTRANS; i++)
+    {
+        struct sockaddr_storage a;
+        int ti;
+        const char* tn;
+        socklen_t al;
+
+        al = sizeof(a);
+        if (getsockname(i + SD_LISTEN_FDS_START, (struct sockaddr*)&a, &al) < 0) {
+            prmsg (1, "receive_listening_fds: getsockname error: %s\n",
+                   strerror(errno));
+            return -1;
+        }
+
+        switch (a.ss_family)
+        {
+        case AF_UNIX:
+            ti = TRANS_SOCKET_UNIX_INDEX;
+            if (*((struct sockaddr_un*)&a)->sun_path == '\0' &&
+                al > sizeof(sa_family_t))
+                tn = "local";
+            else
+                tn = "unix";
+            break;
+        case AF_INET:
+            ti = TRANS_SOCKET_INET_INDEX;
+            tn = "inet";
+            break;
+#if defined(IPv6) && defined(AF_INET6)
+        case AF_INET6:
+            ti = TRANS_SOCKET_INET6_INDEX;
+            tn = "inet6";
+            break;
+#endif /* IPv6 */
+        default:
+            prmsg (1, "receive_listening_fds:"
+                   "Got unknown socket address family\n");
+            return -1;
+        }
+
+        ciptr = TRANS(ReopenCOTSServer)(ti, i + SD_LISTEN_FDS_START, port);
+        if (!ciptr)
+        {
+            prmsg (1, "receive_listening_fds:"
+                   "Got NULL while trying to reopen socket received from systemd.\n");
+            return -1;
+        }
+
+        prmsg (5, "receive_listening_fds: received listener for %s, %d\n",
+               tn, ciptr->fd);
+        temp_ciptrs[(*count_ret)++] = ciptr;
+        TRANS(Received)(tn);
+    }
+#endif /* HAVE_SYSTEMD_DAEMON */
+    return 0;
+}
+
 #ifdef XQUARTZ_EXPORTS_LAUNCHD_FD
 extern int xquartz_launchd_fd;
 #endif
@@ -1055,12 +1160,16 @@ TRANS(MakeAllCOTSServerListeners) (char *port, int *partial, int *count_ret,
     }
 #endif
 
+    if (receive_listening_fds(port, temp_ciptrs, count_ret) < 0)
+	return -1;
+
     for (i = 0; i < NUMTRANS; i++)
     {
 	Xtransport *trans = Xtransports[i].transport;
 	unsigned int flags = 0;
 
-	if (trans->flags&TRANS_ALIAS || trans->flags&TRANS_NOLISTEN)
+	if (trans->flags&TRANS_ALIAS || trans->flags&TRANS_NOLISTEN ||
+	    trans->flags&TRANS_RECEIVED)
 	    continue;
 
 	snprintf(buffer, sizeof(buffer), "%s/:%s",

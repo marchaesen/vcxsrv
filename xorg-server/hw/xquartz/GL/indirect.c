@@ -643,10 +643,10 @@ __glFloorLog2(GLuint val)
 
 static void *opengl_framework_handle;
 
-static glx_gpa_proc
+static glx_func_ptr
 get_proc_address(const char *sym)
 {
-    return (glx_gpa_proc) dlsym(opengl_framework_handle, sym);
+    return (glx_func_ptr) dlsym(opengl_framework_handle, sym);
 }
 
 static void

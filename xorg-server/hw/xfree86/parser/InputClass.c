@@ -33,7 +33,6 @@
 #include "xf86tokens.h"
 #include "Configint.h"
 
-extern LexRec val;
 
 static
 xf86ConfigSymTabRec InputClassTab[] = {
@@ -97,25 +96,25 @@ xf86parseInputClassSection(void)
     while ((token = xf86getToken(InputClassTab)) != ENDSECTION) {
         switch (token) {
         case COMMENT:
-            ptr->comment = xf86addComment(ptr->comment, val.str);
+            ptr->comment = xf86addComment(ptr->comment, xf86_lex_val.str);
             break;
         case IDENTIFIER:
             if (xf86getSubToken(&(ptr->comment)) != STRING)
                 Error(QUOTE_MSG, "Identifier");
             if (has_ident == TRUE)
                 Error(MULTIPLE_MSG, "Identifier");
-            ptr->identifier = val.str;
+            ptr->identifier = xf86_lex_val.str;
             has_ident = TRUE;
             break;
         case DRIVER:
             if (xf86getSubToken(&(ptr->comment)) != STRING)
                 Error(QUOTE_MSG, "Driver");
-            if (strcmp(val.str, "keyboard") == 0) {
+            if (strcmp(xf86_lex_val.str, "keyboard") == 0) {
                 ptr->driver = strdup("kbd");
-                free(val.str);
+                free(xf86_lex_val.str);
             }
             else
-                ptr->driver = val.str;
+                ptr->driver = xf86_lex_val.str;
             break;
         case OPTION:
             ptr->option_lst = xf86parseOption(ptr->option_lst);
@@ -124,69 +123,69 @@ xf86parseInputClassSection(void)
             if (xf86getSubToken(&(ptr->comment)) != STRING)
                 Error(QUOTE_MSG, "MatchProduct");
             add_group_entry(&ptr->match_product,
-                            xstrtokenize(val.str, TOKEN_SEP));
-            free(val.str);
+                            xstrtokenize(xf86_lex_val.str, TOKEN_SEP));
+            free(xf86_lex_val.str);
             break;
         case MATCH_VENDOR:
             if (xf86getSubToken(&(ptr->comment)) != STRING)
                 Error(QUOTE_MSG, "MatchVendor");
             add_group_entry(&ptr->match_vendor,
-                            xstrtokenize(val.str, TOKEN_SEP));
-            free(val.str);
+                            xstrtokenize(xf86_lex_val.str, TOKEN_SEP));
+            free(xf86_lex_val.str);
             break;
         case MATCH_DEVICE_PATH:
             if (xf86getSubToken(&(ptr->comment)) != STRING)
                 Error(QUOTE_MSG, "MatchDevicePath");
             add_group_entry(&ptr->match_device,
-                            xstrtokenize(val.str, TOKEN_SEP));
-            free(val.str);
+                            xstrtokenize(xf86_lex_val.str, TOKEN_SEP));
+            free(xf86_lex_val.str);
             break;
         case MATCH_OS:
             if (xf86getSubToken(&(ptr->comment)) != STRING)
                 Error(QUOTE_MSG, "MatchOS");
-            add_group_entry(&ptr->match_os, xstrtokenize(val.str, TOKEN_SEP));
-            free(val.str);
+            add_group_entry(&ptr->match_os, xstrtokenize(xf86_lex_val.str, TOKEN_SEP));
+            free(xf86_lex_val.str);
             break;
         case MATCH_PNPID:
             if (xf86getSubToken(&(ptr->comment)) != STRING)
                 Error(QUOTE_MSG, "MatchPnPID");
             add_group_entry(&ptr->match_pnpid,
-                            xstrtokenize(val.str, TOKEN_SEP));
-            free(val.str);
+                            xstrtokenize(xf86_lex_val.str, TOKEN_SEP));
+            free(xf86_lex_val.str);
             break;
         case MATCH_USBID:
             if (xf86getSubToken(&(ptr->comment)) != STRING)
                 Error(QUOTE_MSG, "MatchUSBID");
             add_group_entry(&ptr->match_usbid,
-                            xstrtokenize(val.str, TOKEN_SEP));
-            free(val.str);
+                            xstrtokenize(xf86_lex_val.str, TOKEN_SEP));
+            free(xf86_lex_val.str);
             break;
         case MATCH_DRIVER:
             if (xf86getSubToken(&(ptr->comment)) != STRING)
                 Error(QUOTE_MSG, "MatchDriver");
             add_group_entry(&ptr->match_driver,
-                            xstrtokenize(val.str, TOKEN_SEP));
-            free(val.str);
+                            xstrtokenize(xf86_lex_val.str, TOKEN_SEP));
+            free(xf86_lex_val.str);
             break;
         case MATCH_TAG:
             if (xf86getSubToken(&(ptr->comment)) != STRING)
                 Error(QUOTE_MSG, "MatchTag");
-            add_group_entry(&ptr->match_tag, xstrtokenize(val.str, TOKEN_SEP));
-            free(val.str);
+            add_group_entry(&ptr->match_tag, xstrtokenize(xf86_lex_val.str, TOKEN_SEP));
+            free(xf86_lex_val.str);
             break;
         case MATCH_LAYOUT:
             if (xf86getSubToken(&(ptr->comment)) != STRING)
                 Error(QUOTE_MSG, "MatchLayout");
             add_group_entry(&ptr->match_layout,
-                            xstrtokenize(val.str, TOKEN_SEP));
-            free(val.str);
+                            xstrtokenize(xf86_lex_val.str, TOKEN_SEP));
+            free(xf86_lex_val.str);
             break;
         case MATCH_IS_KEYBOARD:
             if (xf86getSubToken(&(ptr->comment)) != STRING)
                 Error(QUOTE_MSG, "MatchIsKeyboard");
             ptr->is_keyboard.set = xf86getBoolValue(&ptr->is_keyboard.val,
-                                                    val.str);
-            free(val.str);
+                                                    xf86_lex_val.str);
+            free(xf86_lex_val.str);
             if (!ptr->is_keyboard.set)
                 Error(BOOL_MSG, "MatchIsKeyboard");
             break;
@@ -194,8 +193,8 @@ xf86parseInputClassSection(void)
             if (xf86getSubToken(&(ptr->comment)) != STRING)
                 Error(QUOTE_MSG, "MatchIsPointer");
             ptr->is_pointer.set = xf86getBoolValue(&ptr->is_pointer.val,
-                                                   val.str);
-            free(val.str);
+                                                   xf86_lex_val.str);
+            free(xf86_lex_val.str);
             if (!ptr->is_pointer.set)
                 Error(BOOL_MSG, "MatchIsPointer");
             break;
@@ -203,16 +202,16 @@ xf86parseInputClassSection(void)
             if (xf86getSubToken(&(ptr->comment)) != STRING)
                 Error(QUOTE_MSG, "MatchIsJoystick");
             ptr->is_joystick.set = xf86getBoolValue(&ptr->is_joystick.val,
-                                                    val.str);
-            free(val.str);
+                                                    xf86_lex_val.str);
+            free(xf86_lex_val.str);
             if (!ptr->is_joystick.set)
                 Error(BOOL_MSG, "MatchIsJoystick");
             break;
         case MATCH_IS_TABLET:
             if (xf86getSubToken(&(ptr->comment)) != STRING)
                 Error(QUOTE_MSG, "MatchIsTablet");
-            ptr->is_tablet.set = xf86getBoolValue(&ptr->is_tablet.val, val.str);
-            free(val.str);
+            ptr->is_tablet.set = xf86getBoolValue(&ptr->is_tablet.val, xf86_lex_val.str);
+            free(xf86_lex_val.str);
             if (!ptr->is_tablet.set)
                 Error(BOOL_MSG, "MatchIsTablet");
             break;
@@ -220,8 +219,8 @@ xf86parseInputClassSection(void)
             if (xf86getSubToken(&(ptr->comment)) != STRING)
                 Error(QUOTE_MSG, "MatchIsTouchpad");
             ptr->is_touchpad.set = xf86getBoolValue(&ptr->is_touchpad.val,
-                                                    val.str);
-            free(val.str);
+                                                    xf86_lex_val.str);
+            free(xf86_lex_val.str);
             if (!ptr->is_touchpad.set)
                 Error(BOOL_MSG, "MatchIsTouchpad");
             break;
@@ -229,8 +228,8 @@ xf86parseInputClassSection(void)
             if (xf86getSubToken(&(ptr->comment)) != STRING)
                 Error(QUOTE_MSG, "MatchIsTouchscreen");
             ptr->is_touchscreen.set = xf86getBoolValue(&ptr->is_touchscreen.val,
-                                                       val.str);
-            free(val.str);
+                                                       xf86_lex_val.str);
+            free(xf86_lex_val.str);
             if (!ptr->is_touchscreen.set)
                 Error(BOOL_MSG, "MatchIsTouchscreen");
             break;

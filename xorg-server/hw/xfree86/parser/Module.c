@@ -60,7 +60,6 @@
 #include "xf86tokens.h"
 #include "Configint.h"
 
-extern LexRec val;
 
 static xf86ConfigSymTabRec SubModuleTab[] = {
     {ENDSUBSECTION, "endsubsection"},
@@ -95,7 +94,7 @@ xf86parseModuleSubSection(XF86LoadPtr head, char *name)
     while ((token = xf86getToken(SubModuleTab)) != ENDSUBSECTION) {
         switch (token) {
         case COMMENT:
-            ptr->load_comment = xf86addComment(ptr->load_comment, val.str);
+            ptr->load_comment = xf86addComment(ptr->load_comment, xf86_lex_val.str);
             break;
         case OPTION:
             ptr->load_opt = xf86parseOption(ptr->load_opt);
@@ -126,34 +125,34 @@ xf86parseModuleSection(void)
         while ((token = xf86getToken(ModuleTab)) != ENDSECTION) {
         switch (token) {
         case COMMENT:
-            ptr->mod_comment = xf86addComment(ptr->mod_comment, val.str);
+            ptr->mod_comment = xf86addComment(ptr->mod_comment, xf86_lex_val.str);
             break;
         case LOAD:
             if (xf86getSubToken(&(ptr->mod_comment)) != STRING)
                 Error(QUOTE_MSG, "Load");
             ptr->mod_load_lst =
-                xf86addNewLoadDirective(ptr->mod_load_lst, val.str,
+                xf86addNewLoadDirective(ptr->mod_load_lst, xf86_lex_val.str,
                                         XF86_LOAD_MODULE, NULL);
             break;
         case DISABLE:
             if (xf86getSubToken(&(ptr->mod_comment)) != STRING)
                 Error(QUOTE_MSG, "Disable");
             ptr->mod_disable_lst =
-                xf86addNewLoadDirective(ptr->mod_disable_lst, val.str,
+                xf86addNewLoadDirective(ptr->mod_disable_lst, xf86_lex_val.str,
                                         XF86_DISABLE_MODULE, NULL);
             break;
         case LOAD_DRIVER:
             if (xf86getSubToken(&(ptr->mod_comment)) != STRING)
                 Error(QUOTE_MSG, "LoadDriver");
             ptr->mod_load_lst =
-                xf86addNewLoadDirective(ptr->mod_load_lst, val.str,
+                xf86addNewLoadDirective(ptr->mod_load_lst, xf86_lex_val.str,
                                         XF86_LOAD_DRIVER, NULL);
             break;
         case SUBSECTION:
             if (xf86getSubToken(&(ptr->mod_comment)) != STRING)
                 Error(QUOTE_MSG, "SubSection");
             ptr->mod_load_lst =
-                xf86parseModuleSubSection(ptr->mod_load_lst, val.str);
+                xf86parseModuleSubSection(ptr->mod_load_lst, xf86_lex_val.str);
             break;
         case EOF_TOKEN:
             Error(UNEXPECTED_EOF_MSG);
@@ -232,7 +231,7 @@ xf86addNewLoadDirective(XF86LoadPtr head, const char *name, int type,
     new->list.next = NULL;
 
     if ((token = xf86getToken(NULL)) == COMMENT)
-        new->load_comment = xf86addComment(new->load_comment, val.str);
+        new->load_comment = xf86addComment(new->load_comment, xf86_lex_val.str);
     else
         xf86unGetToken(token);
 

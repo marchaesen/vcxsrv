@@ -64,15 +64,15 @@ SetTimeSinceLastInputEvent(void)
 }
 
 static Bool
-xnestExposurePredicate(Display * display, XEvent * event, char *args)
+xnestExposurePredicate(Display * dpy, XEvent * event, char *args)
 {
     return event->type == Expose || event->type == ProcessedExpose;
 }
 
 static Bool
-xnestNotExposurePredicate(Display * display, XEvent * event, char *args)
+xnestNotExposurePredicate(Display * dpy, XEvent * event, char *args)
 {
-    return !xnestExposurePredicate(display, event, args);
+    return !xnestExposurePredicate(dpy, event, args);
 }
 
 void
