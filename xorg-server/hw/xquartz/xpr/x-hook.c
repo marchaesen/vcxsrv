@@ -70,34 +70,19 @@ X_PFX(hook_remove) (x_list * lst, x_hook_function * fun, void *data) {
 
 X_EXTERN void
 X_PFX(hook_run) (x_list * lst, void *arg) {
-    x_list *node, *cell;
-    x_hook_function **fun;
-    void **data;
-    int length, i;
+    x_list *node;
 
     if (!lst)
         return;
 
-    length = X_PFX(list_length) (lst);
-    fun = malloc(sizeof(x_hook_function *) * length);
-    data = malloc(sizeof(void *) * length);
+    for (node = lst; node != NULL; node = node->next) {
+        x_list *cell = node->data;
 
-    if (!fun || !data) {
-        FatalError("Failed to allocate memory in %s\n", __func__);
+        x_hook_function *fun = CELL_FUN(cell);
+        void *data = CELL_DATA(cell);
+
+        (*fun)(arg, data);
     }
-
-    for (i = 0, node = lst; node != NULL; node = node->next, i++) {
-        cell = node->data;
-        fun[i] = CELL_FUN(cell);
-        data[i] = CELL_DATA(cell);
-    }
-
-    for (i = 0; i < length; i++) {
-        (*fun[i])(arg, data[i]);
-    }
-
-    free(fun);
-    free(data);
 }
 
 X_EXTERN void

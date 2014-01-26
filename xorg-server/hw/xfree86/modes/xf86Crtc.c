@@ -185,10 +185,10 @@ xf86CrtcSetScreenSubpixelOrder(ScreenPtr pScreen)
     Bool has_none = FALSE;
     ScrnInfoPtr scrn = xf86ScreenToScrn(pScreen);
     xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
-    int c, o;
+    int icrtc, o;
 
-    for (c = 0; c < xf86_config->num_crtc; c++) {
-        xf86CrtcPtr crtc = xf86_config->crtc[c];
+    for (icrtc = 0; icrtc < xf86_config->num_crtc; icrtc++) {
+        xf86CrtcPtr crtc = xf86_config->crtc[icrtc];
 
         for (o = 0; o < xf86_config->num_output; o++) {
             xf86OutputPtr output = xf86_config->output[o];
@@ -216,20 +216,20 @@ xf86CrtcSetScreenSubpixelOrder(ScreenPtr pScreen)
                 SubPixelVerticalBGR,
             };
             int rotate;
-            int c;
+            int sc;
 
             for (rotate = 0; rotate < 4; rotate++)
                 if (crtc->rotation & (1 << rotate))
                     break;
-            for (c = 0; c < 4; c++)
-                if (circle[c] == subpixel_order)
+            for (sc = 0; sc < 4; sc++)
+                if (circle[sc] == subpixel_order)
                     break;
-            c = (c + rotate) & 0x3;
-            if ((crtc->rotation & RR_Reflect_X) && !(c & 1))
-                c ^= 2;
-            if ((crtc->rotation & RR_Reflect_Y) && (c & 1))
-                c ^= 2;
-            subpixel_order = circle[c];
+            sc = (sc + rotate) & 0x3;
+            if ((crtc->rotation & RR_Reflect_X) && !(sc & 1))
+                sc ^= 2;
+            if ((crtc->rotation & RR_Reflect_Y) && (sc & 1))
+                sc ^= 2;
+            subpixel_order = circle[sc];
             break;
         }
     }
@@ -1673,6 +1673,7 @@ xf86ProbeOutputModes(ScrnInfoPtr scrn, int maxX, int maxY)
         if (edid_monitor) {
             struct det_monrec_parameter p;
             struct disp_features *features = &edid_monitor->features;
+            struct cea_data_block *hdmi_db;
 
             /* if display is not continuous-frequency, don't add default modes */
             if (!GTF_SUPPORTED(features->msc))
@@ -1685,6 +1686,16 @@ xf86ProbeOutputModes(ScrnInfoPtr scrn, int maxX, int maxY)
             p.sync_source = &sync_source;
 
             xf86ForEachDetailedBlock(edid_monitor, handle_detailed_monrec, &p);
+
+            /* Look at the CEA HDMI vendor block for the max TMDS freq */
+            hdmi_db = xf86MonitorFindHDMIBlock(edid_monitor);
+            if (hdmi_db && hdmi_db->len >= 7) {
+                int tmds_freq = hdmi_db->u.vendor.hdmi.max_tmds_clock * 5000;
+                xf86DrvMsg(scrn->scrnIndex, X_PROBED,
+                           "HDMI max TMDS frequency %dKHz\n", tmds_freq);
+                if (tmds_freq > max_clock)
+                    max_clock = tmds_freq;
+            }
         }
 
         if (xf86GetOptValFreq(output->options, OPTION_MIN_CLOCK,
@@ -2137,10 +2148,10 @@ xf86TargetPreferred(ScrnInfoPtr scrn, xf86CrtcConfigPtr config,
                 }
                 else {
                     for (mode = output->probed_modes; mode; mode = mode->next) {
-                        Rotation r = output->initial_rotation;
+                        Rotation ir = output->initial_rotation;
 
-                        if (xf86ModeWidth(mode, r) == pref_width &&
-                            xf86ModeHeight(mode, r) == pref_height) {
+                        if (xf86ModeWidth(mode, ir) == pref_width &&
+                            xf86ModeHeight(mode, ir) == pref_height) {
                             preferred[o] = mode;
                             match = TRUE;
                         }

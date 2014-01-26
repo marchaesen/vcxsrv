@@ -62,7 +62,7 @@ static XdmAuthKeyRec privateKey;
 static char XdmAuthenticationName[] = "XDM-AUTHENTICATION-1";
 
 #define XdmAuthenticationNameLen (sizeof XdmAuthenticationName - 1)
-static XdmAuthKeyRec rho;
+static XdmAuthKeyRec global_rho;
 
 static Bool
 XdmAuthenticationValidator(ARRAY8Ptr privateData, ARRAY8Ptr incomingData,
@@ -77,7 +77,7 @@ XdmAuthenticationValidator(ARRAY8Ptr privateData, ARRAY8Ptr incomingData,
             return FALSE;
         incoming = (XdmAuthKeyPtr) incomingData->data;
         XdmcpDecrementKey(incoming);
-        return XdmcpCompareKeys(incoming, &rho);
+        return XdmcpCompareKeys(incoming, &global_rho);
     }
     return FALSE;
 }
@@ -90,7 +90,7 @@ XdmAuthenticationGenerator(ARRAY8Ptr privateData, ARRAY8Ptr outgoingData,
     outgoingData->data = 0;
     if (packet_type == REQUEST) {
         if (XdmcpAllocARRAY8(outgoingData, 8))
-            XdmcpWrap((unsigned char *) &rho, (unsigned char *) &privateKey,
+            XdmcpWrap((unsigned char *) &global_rho, (unsigned char *) &privateKey,
                       outgoingData->data, 8);
     }
     return TRUE;
@@ -150,10 +150,10 @@ XdmAuthenticationInit(const char *cookie, int cookie_len)
             cookie_len = 7;
         memmove(privateKey.data + 1, cookie, cookie_len);
     }
-    XdmcpGenerateKey(&rho);
+    XdmcpGenerateKey(&global_rho);
     XdmcpRegisterAuthentication(XdmAuthenticationName, XdmAuthenticationNameLen,
-                                (char *) &rho,
-                                sizeof(rho),
+                                (char *) &global_rho,
+                                sizeof(global_rho),
                                 (ValidatorFunc) XdmAuthenticationValidator,
                                 (GeneratorFunc) XdmAuthenticationGenerator,
                                 (AddAuthorFunc) XdmAuthenticationAddAuth);
@@ -328,7 +328,7 @@ XdmAddCookie(unsigned short data_length, const char *data, XID id)
         if (authFromXDMCP) {
             /* R5 xdm sent bogus authorization data in the accept packet,
              * but we can recover */
-            rho_bits = rho.data;
+            rho_bits = global_rho.data;
             key_bits = (unsigned char *) data;
             key_bits[0] = '\0';
         }
@@ -341,7 +341,7 @@ XdmAddCookie(unsigned short data_length, const char *data, XID id)
         break;
 #ifdef XDMCP
     case 8:                    /* auth from XDMCP is 8 bytes long */
-        rho_bits = rho.data;
+        rho_bits = global_rho.data;
         key_bits = (unsigned char *) data;
         break;
 #endif
@@ -466,7 +466,7 @@ XdmRemoveCookie(unsigned short data_length, const char *data)
         break;
 #ifdef XDMCP
     case 8:
-        rho_bits = &rho;
+        rho_bits = &global_rho;
         key_bits = (XdmAuthKeyPtr) data;
         break;
 #endif

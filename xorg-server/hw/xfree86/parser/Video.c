@@ -60,7 +60,6 @@
 #include "xf86tokens.h"
 #include "Configint.h"
 
-extern LexRec val;
 
 static xf86ConfigSymTabRec VideoPortTab[] = {
     {ENDSUBSECTION, "endsubsection"},
@@ -97,14 +96,14 @@ xf86parseVideoPortSubSection(void)
         while ((token = xf86getToken(VideoPortTab)) != ENDSUBSECTION) {
         switch (token) {
         case COMMENT:
-            ptr->vp_comment = xf86addComment(ptr->vp_comment, val.str);
+            ptr->vp_comment = xf86addComment(ptr->vp_comment, xf86_lex_val.str);
             break;
         case IDENTIFIER:
             if (xf86getSubToken(&(ptr->vp_comment)) != STRING)
                 Error(QUOTE_MSG, "Identifier");
             if (has_ident == TRUE)
                 Error(MULTIPLE_MSG, "Identifier");
-            ptr->vp_identifier = val.str;
+            ptr->vp_identifier = xf86_lex_val.str;
             has_ident = TRUE;
             break;
         case OPTION:
@@ -154,12 +153,12 @@ xf86parseVideoAdaptorSection(void)
         while ((token = xf86getToken(VideoAdaptorTab)) != ENDSECTION) {
         switch (token) {
         case COMMENT:
-            ptr->va_comment = xf86addComment(ptr->va_comment, val.str);
+            ptr->va_comment = xf86addComment(ptr->va_comment, xf86_lex_val.str);
             break;
         case IDENTIFIER:
             if (xf86getSubToken(&(ptr->va_comment)) != STRING)
                 Error(QUOTE_MSG, "Identifier");
-            ptr->va_identifier = val.str;
+            ptr->va_identifier = xf86_lex_val.str;
             if (has_ident == TRUE)
                 Error(MULTIPLE_MSG, "Identifier");
             has_ident = TRUE;
@@ -167,22 +166,22 @@ xf86parseVideoAdaptorSection(void)
         case VENDOR:
             if (xf86getSubToken(&(ptr->va_comment)) != STRING)
                 Error(QUOTE_MSG, "Vendor");
-            ptr->va_vendor = val.str;
+            ptr->va_vendor = xf86_lex_val.str;
             break;
         case BOARD:
             if (xf86getSubToken(&(ptr->va_comment)) != STRING)
                 Error(QUOTE_MSG, "Board");
-            ptr->va_board = val.str;
+            ptr->va_board = xf86_lex_val.str;
             break;
         case BUSID:
             if (xf86getSubToken(&(ptr->va_comment)) != STRING)
                 Error(QUOTE_MSG, "BusID");
-            ptr->va_busid = val.str;
+            ptr->va_busid = xf86_lex_val.str;
             break;
         case DRIVER:
             if (xf86getSubToken(&(ptr->va_comment)) != STRING)
                 Error(QUOTE_MSG, "Driver");
-            ptr->va_driver = val.str;
+            ptr->va_driver = xf86_lex_val.str;
             break;
         case OPTION:
             ptr->va_option_lst = xf86parseOption(ptr->va_option_lst);

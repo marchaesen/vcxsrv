@@ -421,7 +421,6 @@ xf86SetDepthBpp(ScrnInfoPtr scrp, int depth, int dummy, int fbbpp,
              * Check for DefaultDepth and DefaultFbBpp options in the
              * Device sections.
              */
-            int i;
             GDevPtr device;
             Bool found = FALSE;
 

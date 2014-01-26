@@ -309,7 +309,7 @@ xf86CreateRootWindow(WindowPtr pWin)
     int err = Success;
     ScreenPtr pScreen = pWin->drawable.pScreen;
     RootWinPropPtr pProp;
-    CreateWindowProcPtr CreateWindow = (CreateWindowProcPtr)
+    CreateWindowProcPtr create_window = (CreateWindowProcPtr)
         dixLookupPrivate(&pScreen->devPrivates, xf86CreateRootWindowKey);
 
     DebugF("xf86CreateRootWindow(%p)\n", pWin);
@@ -323,7 +323,7 @@ xf86CreateRootWindow(WindowPtr pWin)
     }
 
     /* Unhook this function ... */
-    pScreen->CreateWindow = CreateWindow;
+    pScreen->CreateWindow = create_window;
     dixSetPrivate(&pScreen->devPrivates, xf86CreateRootWindowKey, NULL);
 
     /* ... and call the previous CreateWindow fuction, if any */

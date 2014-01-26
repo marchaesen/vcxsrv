@@ -30,6 +30,7 @@ AC_INIT([xorg-server], 1.15.99.900, [https://bugs.freedesktop.org/enter_bug.cgi?
 RELEASE_DATE="2014-01-09"
 RELEASE_NAME="Golden Gaytime"
 AC_CONFIG_SRCDIR([Makefile.am])
+AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
 AC_USE_SYSTEM_EXTENSIONS
 
@@ -74,9 +75,8 @@ AC_CONFIG_HEADERS(include/version-config.h)
 
 AM_PROG_AS
 AC_PROG_LN_S
-AC_LIBTOOL_WIN32_DLL
-AC_DISABLE_STATIC
-AC_PROG_LIBTOOL
+LT_PREREQ([2.2])
+LT_INIT([disable-static win32-dll])
 PKG_PROG_PKG_CONFIG
 AC_PROG_LEX
 AC_PROG_YACC
@@ -265,20 +265,20 @@ AM_CONDITIONAL(FREEBSD_KLDLOAD, [test "x$ac_cv_sys_linker_h" = xyes])
 
 AC_CACHE_CHECK([for SYSV IPC],
 		ac_cv_sysv_ipc,
-		[AC_TRY_LINK([
+               [AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/stat.h>
-],[
+]],[[
 { 
     int id;
     id = shmget(IPC_PRIVATE, 512, S_IRUSR | S_IWUSR);
     if (id < 0) return -1;
     return shmctl(id, IPC_RMID, 0);
-}],
-	[ac_cv_sysv_ipc=yes],
-	[ac_cv_sysv_ipc=no])])
+}]])],
+       [ac_cv_sysv_ipc=yes],
+       [ac_cv_sysv_ipc=no])])
 if test "x$ac_cv_sysv_ipc" = xyes; then
 	AC_DEFINE(HAVE_SYSV_IPC, 1, [Define to 1 if SYSV IPC is available])
 fi
@@ -437,8 +437,6 @@ VENDOR_NAME="The X.Org Foundation"
 VENDOR_NAME_SHORT="X.Org"
 VENDOR_WEB="http://wiki.x.org"
 
-m4_ifdef([AS_HELP_STRING], , [m4_define([AS_HELP_STRING], m4_defn([AC_HELP_STRING]))])
-
 dnl Build options.
 AC_ARG_ENABLE(werror,        AS_HELP_STRING([--enable-werror],
 		  [Obsolete - use --enable-strict-compilation instead]),
@@ -565,7 +563,7 @@ AC_ARG_ENABLE(install-libxf86config,
 				[Install libxf86config (default: disabled)]),
 				[INSTALL_LIBXF86CONFIG=$enableval],
 				[INSTALL_LIBXF86CONFIG=no])
-AC_ARG_ENABLE(visibility,     AC_HELP_STRING([--enable-visibility], [Enable symbol visibility (default: auto)]),
+AC_ARG_ENABLE(visibility,     AS_HELP_STRING([--enable-visibility], [Enable symbol visibility (default: auto)]),
 				[SYMBOL_VISIBILITY=$enableval],
 				[SYMBOL_VISIBILITY=auto])
 
@@ -627,8 +625,8 @@ AC_ARG_ENABLE(windowswm,      AS_HELP_STRING([--enable-windowswm], [Build XWin w
 AC_ARG_ENABLE(libdrm,         AS_HELP_STRING([--enable-libdrm], [Build Xorg with libdrm support (default: enabled)]), [DRM=$enableval],[DRM=yes])
 AC_ARG_ENABLE(clientids,      AS_HELP_STRING([--disable-clientids], [Build Xorg with client ID tracking (default: enabled)]), [CLIENTIDS=$enableval], [CLIENTIDS=yes])
 AC_ARG_ENABLE(pciaccess, AS_HELP_STRING([--enable-pciaccess], [Build Xorg with pciaccess library (default: enabled)]), [PCI=$enableval], [PCI=yes])
-AC_ARG_ENABLE(linux_acpi, AC_HELP_STRING([--disable-linux-acpi], [Disable building ACPI support on Linux (if available).]), [enable_linux_acpi=$enableval], [enable_linux_acpi=yes])
-AC_ARG_ENABLE(linux_apm, AC_HELP_STRING([--disable-linux-apm], [Disable building APM support on Linux (if available).]), [enable_linux_apm=$enableval], [enable_linux_apm=yes])
+AC_ARG_ENABLE(linux_acpi, AS_HELP_STRING([--disable-linux-acpi], [Disable building ACPI support on Linux (if available).]), [enable_linux_acpi=$enableval], [enable_linux_acpi=yes])
+AC_ARG_ENABLE(linux_apm, AS_HELP_STRING([--disable-linux-apm], [Disable building APM support on Linux (if available).]), [enable_linux_apm=$enableval], [enable_linux_apm=yes])
 
 dnl DDXes.
 AC_ARG_ENABLE(xorg,    	      AS_HELP_STRING([--enable-xorg], [Build Xorg server (default: auto)]), [XORG=$enableval], [XORG=auto])
@@ -645,8 +643,8 @@ AC_ARG_ENABLE(xfake,          AS_HELP_STRING([--enable-xfake], [Build the kdrive
 AC_ARG_ENABLE(xfbdev,         AS_HELP_STRING([--enable-xfbdev], [Build the kdrive framebuffer device server (default: auto)]), [XFBDEV=$enableval], [XFBDEV=auto])
 dnl kdrive options
 AC_ARG_ENABLE(kdrive-kbd,     AS_HELP_STRING([--enable-kdrive-kbd], [Build kbd driver for kdrive (default: auto)]), [KDRIVE_KBD=$enableval], [KDRIVE_KBD=auto])
-AC_ARG_ENABLE(kdrive-mouse,   AC_HELP_STRING([--enable-kdrive-mouse], [Build mouse driver for kdrive (default: auto)]), [KDRIVE_MOUSE=$enableval], [KDRIVE_MOUSE=auto])
-AC_ARG_ENABLE(kdrive-evdev,   AC_HELP_STRING([--enable-kdrive-evdev], [Build evdev driver for kdrive (default: auto)]), [KDRIVE_EVDEV=$enableval], [KDRIVE_EVDEV=auto])
+AC_ARG_ENABLE(kdrive-mouse,   AS_HELP_STRING([--enable-kdrive-mouse], [Build mouse driver for kdrive (default: auto)]), [KDRIVE_MOUSE=$enableval], [KDRIVE_MOUSE=auto])
+AC_ARG_ENABLE(kdrive-evdev,   AS_HELP_STRING([--enable-kdrive-evdev], [Build evdev driver for kdrive (default: auto)]), [KDRIVE_EVDEV=$enableval], [KDRIVE_EVDEV=auto])
 AC_ARG_ENABLE(libunwind,      AS_HELP_STRING([--enable-libunwind], [Use libunwind for backtracing (default: auto)]), [LIBUNWIND="$enableval"], [LIBUNWIND="auto"])
 
 
@@ -1822,13 +1820,13 @@ if test "x$XORG" = xyes; then
 		save_CFLAGS="$CFLAGS"
 		proto_inc=`$PKG_CONFIG --cflags xproto`
 		CFLAGS="$CFLAGS $VISIBILITY_CFLAGS $proto_inc"
-		AC_TRY_COMPILE(
+		AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
 		    [#include <X11/Xfuncproto.h>
 		     extern _X_HIDDEN int hidden_int;
 		     extern _X_EXPORT int public_int;
 		     extern _X_HIDDEN int hidden_int_func(void);
-		     extern _X_EXPORT int public_int_func(void);],
-		    [],
+		     extern _X_EXPORT int public_int_func(void);]],
+		    [])],
 		    have_visibility=yes,
 		    have_visibility=no)
 		CFLAGS=$save_CFLAGS
@@ -2388,12 +2386,12 @@ dnl though, thanks to the passing of some significant amount of time, the
 dnl above is probably a complete fallacy, and you should not rely on it.
 dnl but this is still actually better than imake, honest. -daniels
 
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <features.h>
 #ifndef __GLIBC__
 #error not glibc
 #endif
-], [], [AC_DEFINE(_GNU_SOURCE, 1,
+]], [])], [AC_DEFINE(_GNU_SOURCE, 1,
 	[ Enable GNU and other extensions to the C environment for glibc])])
 
 AC_DEFINE_DIR(PROJECTROOT, prefix, [Overall prefix])
@@ -2415,7 +2413,7 @@ AC_SUBST([prefix])
 AC_CONFIG_COMMANDS([sdksyms], [touch hw/xfree86/sdksyms.dep])
 
 if test "x$CONFIG_HAL" = xno && test "x$CONFIG_UDEV" = xno; then
-    AC_WARN([
+    AC_MSG_WARN([
              ***********************************************
              Neither HAL nor udev backend will be enabled.
              Input device hotplugging will not be available!

@@ -1098,7 +1098,6 @@ ProcXF86DRIGetDrawableInfo(register ClientPtr client)
     if (rep.numClipRects) {
         if (clipRects) {
             ScreenPtr pScreen = screenInfo.screens[stuff->screen];
-            int i = 0;
 
             EPHYR_LOG("clip list of host gl drawable:\n");
             for (i = 0; i < rep.numClipRects; i++) {

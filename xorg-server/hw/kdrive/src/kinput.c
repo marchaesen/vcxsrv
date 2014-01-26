@@ -1963,7 +1963,7 @@ _KdEnqueuePointerEvent(KdPointerInfo * pi, int type, int x, int y, int z,
 }
 
 void
-KdBlockHandler(ScreenPtr pScreen, void *timeout, void *readmask)
+KdBlockHandler(ScreenPtr pScreen, void *timeo, void *readmask)
 {
     KdPointerInfo *pi;
     int myTimeout = 0;
@@ -1985,7 +1985,7 @@ KdBlockHandler(ScreenPtr pScreen, void *timeout, void *readmask)
         myTimeout = 20;
     }
     if (myTimeout > 0)
-        AdjustWaitForDelay(timeout, myTimeout);
+        AdjustWaitForDelay(timeo, myTimeout);
 }
 
 void

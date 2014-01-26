@@ -201,6 +201,7 @@ LogInit(const char *fname, const char *backup)
     char *logFileName = NULL;
 
     if (fname && *fname) {
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
         if (asprintf(&logFileName, fname, display) == -1)
             FatalError("Cannot allocate space for the log file name\n");
 
@@ -211,6 +212,7 @@ LogInit(const char *fname, const char *backup)
                 char *suffix;
                 char *oldLog;
 
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
                 if ((asprintf(&suffix, backup, display) == -1) ||
                     (asprintf(&oldLog, "%s%s", logFileName, suffix) == -1))
                     FatalError("Cannot allocate space for the log file name\n");

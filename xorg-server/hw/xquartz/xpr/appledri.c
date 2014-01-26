@@ -123,6 +123,10 @@ ProcAppleDRIQueryDirectRenderingCapable(register ClientPtr client)
     rep.length = 0;
     rep.sequenceNumber = client->sequence;
 
+    if (stuff->screen >= screenInfo.numScreens) {
+        return BadValue;
+    }
+
     if (!DRIQueryDirectRenderingCapable(screenInfo.screens[stuff->screen],
                                         &isCapable)) {
         return BadValue;
@@ -402,6 +406,7 @@ SProcAppleDRIQueryDirectRenderingCapable(register ClientPtr client)
 {
     REQUEST(xAppleDRIQueryDirectRenderingCapableReq);
     swaps(&stuff->length);
+    REQUEST_SIZE_MATCH(xAppleDRIQueryDirectRenderingCapableReq);
     swapl(&stuff->screen);
     return ProcAppleDRIQueryDirectRenderingCapable(client);
 }
@@ -411,6 +416,7 @@ SProcAppleDRIAuthConnection(register ClientPtr client)
 {
     REQUEST(xAppleDRIAuthConnectionReq);
     swaps(&stuff->length);
+    REQUEST_SIZE_MATCH(xAppleDRIAuthConnectionReq);
     swapl(&stuff->screen);
     swapl(&stuff->magic);
     return ProcAppleDRIAuthConnection(client);
@@ -421,6 +427,7 @@ SProcAppleDRICreateSurface(register ClientPtr client)
 {
     REQUEST(xAppleDRICreateSurfaceReq);
     swaps(&stuff->length);
+    REQUEST_SIZE_MATCH(xAppleDRICreateSurfaceReq);
     swapl(&stuff->screen);
     swapl(&stuff->drawable);
     swapl(&stuff->client_id);
@@ -432,6 +439,7 @@ SProcAppleDRIDestroySurface(register ClientPtr client)
 {
     REQUEST(xAppleDRIDestroySurfaceReq);
     swaps(&stuff->length);
+    REQUEST_SIZE_MATCH(xAppleDRIDestroySurfaceReq);
     swapl(&stuff->screen);
     swapl(&stuff->drawable);
     return ProcAppleDRIDestroySurface(client);
@@ -442,6 +450,7 @@ SProcAppleDRICreatePixmap(register ClientPtr client)
 {
     REQUEST(xAppleDRICreatePixmapReq);
     swaps(&stuff->length);
+    REQUEST_SIZE_MATCH(xAppleDRICreatePixmapReq);
     swapl(&stuff->screen);
     swapl(&stuff->drawable);
     return ProcAppleDRICreatePixmap(client);
@@ -452,6 +461,7 @@ SProcAppleDRIDestroyPixmap(register ClientPtr client)
 {
     REQUEST(xAppleDRIDestroyPixmapReq);
     swaps(&stuff->length);
+    REQUEST_SIZE_MATCH(xAppleDRIDestroyPixmapReq);
     swapl(&stuff->drawable);
     return ProcAppleDRIDestroyPixmap(client);
 }

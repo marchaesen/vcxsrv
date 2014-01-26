@@ -60,7 +60,6 @@
 #include "xf86tokens.h"
 #include "Configint.h"
 
-extern LexRec val;
 
 static xf86ConfigSymTabRec VendorSubTab[] = {
     {ENDSUBSECTION, "endsubsection"},
@@ -82,14 +81,14 @@ xf86parseVendorSubSection(void)
         while ((token = xf86getToken(VendorSubTab)) != ENDSUBSECTION) {
         switch (token) {
         case COMMENT:
-            ptr->vs_comment = xf86addComment(ptr->vs_comment, val.str);
+            ptr->vs_comment = xf86addComment(ptr->vs_comment, xf86_lex_val.str);
             break;
         case IDENTIFIER:
             if (xf86getSubToken(&(ptr->vs_comment)))
                 Error(QUOTE_MSG, "Identifier");
             if (has_ident == TRUE)
                 Error(MULTIPLE_MSG, "Identifier");
-            ptr->vs_identifier = val.str;
+            ptr->vs_identifier = xf86_lex_val.str;
             has_ident = TRUE;
             break;
         case OPTION:
@@ -135,14 +134,14 @@ xf86parseVendorSection(void)
         while ((token = xf86getToken(VendorTab)) != ENDSECTION) {
         switch (token) {
         case COMMENT:
-            ptr->vnd_comment = xf86addComment(ptr->vnd_comment, val.str);
+            ptr->vnd_comment = xf86addComment(ptr->vnd_comment, xf86_lex_val.str);
             break;
         case IDENTIFIER:
             if (xf86getSubToken(&(ptr->vnd_comment)) != STRING)
                 Error(QUOTE_MSG, "Identifier");
             if (has_ident == TRUE)
                 Error(MULTIPLE_MSG, "Identifier");
-            ptr->vnd_identifier = val.str;
+            ptr->vnd_identifier = xf86_lex_val.str;
             has_ident = TRUE;
             break;
         case OPTION:

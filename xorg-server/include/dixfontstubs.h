@@ -11,8 +11,6 @@ extern _X_EXPORT int client_auth_generation(ClientPtr client);
 
 extern _X_EXPORT void DeleteFontClientID(Font id);
 
-extern _X_EXPORT FontResolutionPtr GetClientResolutions(int *num);
-
 extern _X_EXPORT int GetDefaultPointSize(void);
 
 extern _X_EXPORT Font GetNewFontClientID(void);

@@ -113,7 +113,7 @@ request_XIQueryVersion(int smaj, int smin, int cmaj, int cmin, int error)
 
     request_init(&request, XIQueryVersion);
     client = init_client(request.length, &request);
-    userdata = (void *) &versions;
+    global_userdata = (void *) &versions;
 
     /* Change the server to support smaj.smin */
     XIVersion.major_version = smaj;
@@ -206,7 +206,7 @@ test_XIQueryVersion_multiple(void)
     XIVersion.minor_version = 2;
 
     reply_handler = reply_XIQueryVersion_multiple;
-    userdata = (void *) &versions;
+    global_userdata = (void *) &versions;
 
     /* run 1 */
 

@@ -61,7 +61,6 @@
 #include "xf86tokens.h"
 #include "Configint.h"
 
-extern LexRec val;
 
 static
 xf86ConfigSymTabRec InputTab[] = {
@@ -85,25 +84,25 @@ xf86parseInputSection(void)
         while ((token = xf86getToken(InputTab)) != ENDSECTION) {
         switch (token) {
         case COMMENT:
-            ptr->inp_comment = xf86addComment(ptr->inp_comment, val.str);
+            ptr->inp_comment = xf86addComment(ptr->inp_comment, xf86_lex_val.str);
             break;
         case IDENTIFIER:
             if (xf86getSubToken(&(ptr->inp_comment)) != STRING)
                 Error(QUOTE_MSG, "Identifier");
             if (has_ident == TRUE)
                 Error(MULTIPLE_MSG, "Identifier");
-            ptr->inp_identifier = val.str;
+            ptr->inp_identifier = xf86_lex_val.str;
             has_ident = TRUE;
             break;
         case DRIVER:
             if (xf86getSubToken(&(ptr->inp_comment)) != STRING)
                 Error(QUOTE_MSG, "Driver");
-            if (strcmp(val.str, "keyboard") == 0) {
+            if (strcmp(xf86_lex_val.str, "keyboard") == 0) {
                 ptr->inp_driver = strdup("kbd");
-                free(val.str);
+                free(xf86_lex_val.str);
             }
             else
-                ptr->inp_driver = val.str;
+                ptr->inp_driver = xf86_lex_val.str;
             break;
         case OPTION:
             ptr->inp_option_lst = xf86parseOption(ptr->inp_option_lst);

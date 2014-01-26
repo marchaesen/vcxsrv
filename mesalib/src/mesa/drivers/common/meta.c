@@ -138,9 +138,7 @@ struct save_state
    GLboolean FragmentProgramEnabled;
    struct gl_fragment_program *FragmentProgram;
    GLboolean ATIFragmentShaderEnabled;
-   struct gl_shader_program *VertexShader;
-   struct gl_shader_program *GeometryShader;
-   struct gl_shader_program *FragmentShader;
+   struct gl_shader_program *Shader[MESA_SHADER_STAGES];
    struct gl_shader_program *ActiveShader;
 
    /** MESA_META_STENCIL_TEST */
@@ -170,7 +168,7 @@ struct save_state
    struct gl_buffer_object *ArrayBufferObj;
 
    /** MESA_META_VIEWPORT */
-   GLint ViewportX, ViewportY, ViewportW, ViewportH;
+   GLfloat ViewportX, ViewportY, ViewportW, ViewportH;
    GLclampd DepthNear, DepthFar;
 
    /** MESA_META_CLAMP_FRAGMENT_COLOR */
@@ -598,6 +596,8 @@ _mesa_meta_begin(struct gl_context *ctx, GLbitfield state)
    }
 
    if (state & MESA_META_SHADER) {
+      int i;
+
       if (ctx->API == API_OPENGL_COMPAT && ctx->Extensions.ARB_vertex_program) {
          save->VertexProgramEnabled = ctx->VertexProgram.Enabled;
          _mesa_reference_vertprog(ctx, &save->VertexProgram,
@@ -617,12 +617,10 @@ _mesa_meta_begin(struct gl_context *ctx, GLbitfield state)
          _mesa_set_enable(ctx, GL_FRAGMENT_SHADER_ATI, GL_FALSE);
       }
 
-      _mesa_reference_shader_program(ctx, &save->VertexShader,
-                                     ctx->Shader.CurrentVertexProgram);
-      _mesa_reference_shader_program(ctx, &save->GeometryShader,
-                                     ctx->Shader.CurrentGeometryProgram);
-      _mesa_reference_shader_program(ctx, &save->FragmentShader,
-                                     ctx->Shader.CurrentFragmentProgram);
+      for (i = 0; i < MESA_SHADER_STAGES; i++) {
+         _mesa_reference_shader_program(ctx, &save->Shader[i],
+                                     ctx->Shader.CurrentProgram[i]);
+      }
       _mesa_reference_shader_program(ctx, &save->ActiveShader,
                                      ctx->Shader.ActiveProgram);
 
@@ -737,21 +735,21 @@ _mesa_meta_begin(struct gl_context *ctx, GLbitfield state)
 
    if (state & MESA_META_VIEWPORT) {
       /* save viewport state */
-      save->ViewportX = ctx->Viewport.X;
-      save->ViewportY = ctx->Viewport.Y;
-      save->ViewportW = ctx->Viewport.Width;
-      save->ViewportH = ctx->Viewport.Height;
+      save->ViewportX = ctx->ViewportArray[0].X;
+      save->ViewportY = ctx->ViewportArray[0].Y;
+      save->ViewportW = ctx->ViewportArray[0].Width;
+      save->ViewportH = ctx->ViewportArray[0].Height;
       /* set viewport to match window size */
-      if (ctx->Viewport.X != 0 ||
-          ctx->Viewport.Y != 0 ||
-          ctx->Viewport.Width != ctx->DrawBuffer->Width ||
-          ctx->Viewport.Height != ctx->DrawBuffer->Height) {
-         _mesa_set_viewport(ctx, 0, 0,
+      if (ctx->ViewportArray[0].X != 0 ||
+          ctx->ViewportArray[0].Y != 0 ||
+          ctx->ViewportArray[0].Width != (float) ctx->DrawBuffer->Width ||
+          ctx->ViewportArray[0].Height != (float) ctx->DrawBuffer->Height) {
+         _mesa_set_viewport(ctx, 0, 0, 0,
                             ctx->DrawBuffer->Width, ctx->DrawBuffer->Height);
       }
       /* save depth range state */
-      save->DepthNear = ctx->Viewport.Near;
-      save->DepthFar = ctx->Viewport.Far;
+      save->DepthNear = ctx->ViewportArray[0].Near;
+      save->DepthFar = ctx->ViewportArray[0].Far;
       /* set depth range to default */
       _mesa_DepthRange(0.0, 1.0);
    }
@@ -829,6 +827,7 @@ _mesa_meta_end(struct gl_context *ctx)
 {
    struct save_state *save = &ctx->Meta->Save[ctx->Meta->SaveStackDepth - 1];
    const GLbitfield state = save->SavedState;
+   int i;
 
    /* After starting a new occlusion query, initialize the results to the
     * values saved previously. The driver will then continue to increment
@@ -933,9 +932,17 @@ _mesa_meta_end(struct gl_context *ctx)
    }
 
    if (state & MESA_META_SCISSOR) {
-      _mesa_set_enable(ctx, GL_SCISSOR_TEST, save->Scissor.Enabled);
-      _mesa_Scissor(save->Scissor.X, save->Scissor.Y,
-                    save->Scissor.Width, save->Scissor.Height);
+      unsigned i;
+
+      for (i = 0; i < ctx->Const.MaxViewports; i++) {
+         _mesa_set_scissor(ctx, i,
+                           save->Scissor.ScissorArray[i].X,
+                           save->Scissor.ScissorArray[i].Y,
+                           save->Scissor.ScissorArray[i].Width,
+                           save->Scissor.ScissorArray[i].Height);
+         _mesa_set_enablei(ctx, GL_SCISSOR_TEST, i,
+                           (save->Scissor.EnableFlags >> i) & 1);
+      }
    }
 
    if (state & MESA_META_SHADER) {
@@ -960,23 +967,24 @@ _mesa_meta_end(struct gl_context *ctx)
                           save->ATIFragmentShaderEnabled);
       }
 
-      if (ctx->Extensions.ARB_vertex_shader)
-	 _mesa_use_shader_program(ctx, GL_VERTEX_SHADER, save->VertexShader);
+      if (ctx->Extensions.ARB_vertex_shader) {
+	 _mesa_use_shader_program(ctx, GL_VERTEX_SHADER,
+                                  save->Shader[MESA_SHADER_VERTEX]);
+      }
 
       if (_mesa_has_geometry_shaders(ctx))
 	 _mesa_use_shader_program(ctx, GL_GEOMETRY_SHADER_ARB,
-				  save->GeometryShader);
+				  save->Shader[MESA_SHADER_GEOMETRY]);
 
       if (ctx->Extensions.ARB_fragment_shader)
 	 _mesa_use_shader_program(ctx, GL_FRAGMENT_SHADER,
-				  save->FragmentShader);
+				  save->Shader[MESA_SHADER_FRAGMENT]);
 
       _mesa_reference_shader_program(ctx, &ctx->Shader.ActiveProgram,
 				     save->ActiveShader);
 
-      _mesa_reference_shader_program(ctx, &save->VertexShader, NULL);
-      _mesa_reference_shader_program(ctx, &save->GeometryShader, NULL);
-      _mesa_reference_shader_program(ctx, &save->FragmentShader, NULL);
+      for (i = 0; i < MESA_SHADER_STAGES; i++)
+         _mesa_reference_shader_program(ctx, &save->Shader[i], NULL);
       _mesa_reference_shader_program(ctx, &save->ActiveShader, NULL);
    }
 
@@ -1089,11 +1097,11 @@ _mesa_meta_end(struct gl_context *ctx)
    }
 
    if (state & MESA_META_VIEWPORT) {
-      if (save->ViewportX != ctx->Viewport.X ||
-          save->ViewportY != ctx->Viewport.Y ||
-          save->ViewportW != ctx->Viewport.Width ||
-          save->ViewportH != ctx->Viewport.Height) {
-         _mesa_set_viewport(ctx, save->ViewportX, save->ViewportY,
+      if (save->ViewportX != ctx->ViewportArray[0].X ||
+          save->ViewportY != ctx->ViewportArray[0].Y ||
+          save->ViewportW != ctx->ViewportArray[0].Width ||
+          save->ViewportH != ctx->ViewportArray[0].Height) {
+         _mesa_set_viewport(ctx, 0, save->ViewportX, save->ViewportY,
                             save->ViewportW, save->ViewportH);
       }
       _mesa_DepthRange(save->DepthNear, save->DepthFar);
@@ -1761,7 +1769,7 @@ blitframebuffer_texture(struct gl_context *ctx,
          }
 
          /* setup viewport */
-         _mesa_set_viewport(ctx, dstX, dstY, dstW, dstH);
+         _mesa_set_viewport(ctx, 0, dstX, dstY, dstW, dstH);
          _mesa_ColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
          _mesa_DepthMask(GL_FALSE);
          _mesa_DrawArrays(GL_TRIANGLE_FAN, 0, 4);
@@ -1916,7 +1924,7 @@ _mesa_meta_BlitFramebuffer(struct gl_context *ctx,
          _mesa_BufferSubData(GL_ARRAY_BUFFER_ARB, 0, sizeof(verts), verts);
       }
 
-      _mesa_set_viewport(ctx, dstX, dstY, dstW, dstH);
+      _mesa_set_viewport(ctx, 0, dstX, dstY, dstW, dstH);
       _mesa_ColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
       _mesa_set_enable(ctx, GL_DEPTH_TEST, GL_FALSE);
       _mesa_DepthMask(GL_FALSE);
@@ -1965,7 +1973,7 @@ _mesa_meta_BlitFramebuffer(struct gl_context *ctx,
          _mesa_DepthFunc(GL_ALWAYS);
          _mesa_DepthMask(GL_TRUE);
 
-         _mesa_set_viewport(ctx, dstX, dstY, dstW, dstH);
+         _mesa_set_viewport(ctx, 0, dstX, dstY, dstW, dstH);
          _mesa_BufferSubData(GL_ARRAY_BUFFER_ARB, 0, sizeof(verts), verts);
          _mesa_DrawArrays(GL_TRIANGLE_FAN, 0, 4);
          mask &= ~GL_DEPTH_BUFFER_BIT;
@@ -3782,7 +3790,7 @@ _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
       assert(dstHeight == ctx->DrawBuffer->Height);
 
       /* setup viewport */
-      _mesa_set_viewport(ctx, 0, 0, dstWidth, dstHeight);
+      _mesa_set_viewport(ctx, 0, 0, 0, dstWidth, dstHeight);
 
       _mesa_DrawArrays(GL_TRIANGLE_FAN, 0, 4);
    }
@@ -4072,7 +4080,7 @@ decompress_texture_image(struct gl_context *ctx,
    _mesa_MatrixMode(GL_PROJECTION);
    _mesa_LoadIdentity();
    _mesa_Ortho(0.0, width, 0.0, height, -1.0, 1.0);
-   _mesa_set_viewport(ctx, 0, 0, width, height);
+   _mesa_set_viewport(ctx, 0, 0, 0, width, height);
 
    /* upload new vertex data */
    _mesa_BufferSubData(GL_ARRAY_BUFFER_ARB, 0, sizeof(verts), verts);

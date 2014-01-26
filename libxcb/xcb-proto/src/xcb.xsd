@@ -42,7 +42,8 @@ authorization from the authors.
   <!-- Padding -->
   <xsd:element name="pad">
     <xsd:complexType>
-      <xsd:attribute name="bytes" type="xsd:integer" use="required" />
+      <xsd:attribute name="bytes" type="xsd:integer" use="optional" />
+      <xsd:attribute name="align" type="xsd:integer" use="optional" />
     </xsd:complexType>
   </xsd:element>
 

@@ -70,6 +70,18 @@ xpbproxy_run(void);
 static dispatch_queue_t eventTranslationQueue;
 #endif
 
+#ifndef __has_feature
+#define __has_feature(x) 0
+#endif
+
+#ifndef CF_RETURNS_RETAINED
+#if __has_feature(attribute_cf_returns_retained)
+#define CF_RETURNS_RETAINED __attribute__((cf_returns_retained))
+#else
+#define CF_RETURNS_RETAINED
+#endif
+#endif
+
 extern Bool noTestExtensions;
 extern Bool noRenderExtension;
 extern BOOL serverRunning;
@@ -526,6 +538,7 @@ cfrelease(CFAllocatorRef a, const void *b)
     CFRelease(b);
 }
 
+CF_RETURNS_RETAINED
 static CFMutableArrayRef
 nsarray_to_cfarray(NSArray *in)
 {

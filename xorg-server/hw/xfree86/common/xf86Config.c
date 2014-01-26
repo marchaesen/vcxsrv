@@ -1677,7 +1677,7 @@ configLayout(serverLayoutPtr servlayoutp, XF86ConfLayoutPtr conf_layout,
  */
 static Bool
 configImpliedLayout(serverLayoutPtr servlayoutp, XF86ConfScreenPtr conf_screen,
-                    XF86ConfigPtr xf86configptr)
+                    XF86ConfigPtr conf_ptr)
 {
     MessageType from;
     XF86ConfScreenPtr s;
@@ -1722,7 +1722,7 @@ configImpliedLayout(serverLayoutPtr servlayoutp, XF86ConfScreenPtr conf_screen,
 
     memset(&layout, 0, sizeof(layout));
     layout.lay_identifier = servlayoutp->id;
-    if (xf86layoutAddInputDevices(xf86configptr, &layout) > 0) {
+    if (xf86layoutAddInputDevices(conf_ptr, &layout) > 0) {
         if (!configInputDevices(&layout, servlayoutp))
             return FALSE;
         from = X_DEFAULT;

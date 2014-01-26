@@ -303,6 +303,10 @@ int TRANS(CreateListener)(
     unsigned int	/* flags */
 );
 
+int TRANS(Received) (
+    const char*         /* protocol*/
+);
+
 int TRANS(NoListen) (
     const char*         /* protocol*/
 );

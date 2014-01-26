@@ -26,7 +26,7 @@
  */
 
 #ifndef _DARWIN_FB_H
-#define _DARWIN_DB_H
+#define _DARWIN_FB_H
 
 #include "scrnintstr.h"
 

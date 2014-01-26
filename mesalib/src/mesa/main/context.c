@@ -587,6 +587,16 @@ _mesa_init_constants(struct gl_context *ctx)
    ctx->Const.MaxSpotExponent = 128.0;
    ctx->Const.MaxViewportWidth = MAX_VIEWPORT_WIDTH;
    ctx->Const.MaxViewportHeight = MAX_VIEWPORT_HEIGHT;
+   ctx->Const.MinMapBufferAlignment = 1;
+
+   /* Driver must override these values if ARB_viewport_array is supported. */
+   ctx->Const.MaxViewports = 1;
+   ctx->Const.ViewportSubpixelBits = 0;
+   ctx->Const.ViewportBounds.Min = 0;
+   ctx->Const.ViewportBounds.Max = 0;
+
+   /* Driver must override if it supports ARB_viewport_array */
+   ctx->Const.MaxViewports = 1;
 
    /** GL_ARB_uniform_buffer_object */
    ctx->Const.MaxCombinedUniformBlocks = 36;
@@ -1348,13 +1358,17 @@ _mesa_copy_context( const struct gl_context *src, struct gl_context *dst,
    }
    if (mask & GL_VIEWPORT_BIT) {
       /* Cannot use memcpy, because of pointers in GLmatrix _WindowMap */
-      dst->Viewport.X = src->Viewport.X;
-      dst->Viewport.Y = src->Viewport.Y;
-      dst->Viewport.Width = src->Viewport.Width;
-      dst->Viewport.Height = src->Viewport.Height;
-      dst->Viewport.Near = src->Viewport.Near;
-      dst->Viewport.Far = src->Viewport.Far;
-      _math_matrix_copy(&dst->Viewport._WindowMap, &src->Viewport._WindowMap);
+      unsigned i;
+      for (i = 0; i < src->Const.MaxViewports; i++) {
+         dst->ViewportArray[i].X = src->ViewportArray[i].X;
+         dst->ViewportArray[i].Y = src->ViewportArray[i].Y;
+         dst->ViewportArray[i].Width = src->ViewportArray[i].Width;
+         dst->ViewportArray[i].Height = src->ViewportArray[i].Height;
+         dst->ViewportArray[i].Near = src->ViewportArray[i].Near;
+         dst->ViewportArray[i].Far = src->ViewportArray[i].Far;
+         _math_matrix_copy(&dst->ViewportArray[i]._WindowMap,
+                           &src->ViewportArray[i]._WindowMap);
+      }
    }
 
    /* XXX FIXME:  Call callbacks?
@@ -1423,12 +1437,20 @@ void
 _mesa_check_init_viewport(struct gl_context *ctx, GLuint width, GLuint height)
 {
    if (!ctx->ViewportInitialized && width > 0 && height > 0) {
+      unsigned i;
+
       /* Note: set flag here, before calling _mesa_set_viewport(), to prevent
        * potential infinite recursion.
        */
       ctx->ViewportInitialized = GL_TRUE;
-      _mesa_set_viewport(ctx, 0, 0, width, height);
-      _mesa_set_scissor(ctx, 0, 0, width, height);
+
+      /* Note: ctx->Const.MaxViewports may not have been set by the driver
+       * yet, so just initialize all of them.
+       */
+      for (i = 0; i < MAX_VIEWPORTS; i++) {
+         _mesa_set_viewport(ctx, i, 0, 0, width, height);
+         _mesa_set_scissor(ctx, i, 0, 0, width, height);
+      }
    }
 }
 
@@ -1744,10 +1766,10 @@ _mesa_valid_to_render(struct gl_context *ctx, const char *where)
    if (ctx->NewState)
       _mesa_update_state(ctx);
 
-   if (ctx->Shader.CurrentVertexProgram) {
+   if (ctx->Shader.CurrentProgram[MESA_SHADER_VERTEX]) {
       vert_from_glsl_shader = true;
 
-      if (!ctx->Shader.CurrentVertexProgram->LinkStatus) {
+      if (!ctx->Shader.CurrentProgram[MESA_SHADER_VERTEX]->LinkStatus) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "%s(shader not linked)", where);
          return GL_FALSE;
@@ -1756,19 +1778,19 @@ _mesa_valid_to_render(struct gl_context *ctx, const char *where)
       {
          char errMsg[100];
          if (!_mesa_validate_shader_program(ctx,
-					    ctx->Shader.CurrentVertexProgram,
+					    ctx->Shader.CurrentProgram[MESA_SHADER_VERTEX],
                                             errMsg)) {
             _mesa_warning(ctx, "Shader program %u is invalid: %s",
-                          ctx->Shader.CurrentVertexProgram->Name, errMsg);
+                          ctx->Shader.CurrentProgram[MESA_SHADER_VERTEX]->Name, errMsg);
          }
       }
 #endif
    }
 
-   if (ctx->Shader.CurrentGeometryProgram) {
+   if (ctx->Shader.CurrentProgram[MESA_SHADER_GEOMETRY]) {
       geom_from_glsl_shader = true;
 
-      if (!ctx->Shader.CurrentGeometryProgram->LinkStatus) {
+      if (!ctx->Shader.CurrentProgram[MESA_SHADER_GEOMETRY]->LinkStatus) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "%s(shader not linked)", where);
          return GL_FALSE;
@@ -1777,19 +1799,20 @@ _mesa_valid_to_render(struct gl_context *ctx, const char *where)
       {
          char errMsg[100];
          if (!_mesa_validate_shader_program(ctx,
-					    ctx->Shader.CurrentGeometryProgram,
+					    ctx->Shader.CurrentProgram[MESA_SHADER_GEOMETRY],
                                             errMsg)) {
             _mesa_warning(ctx, "Shader program %u is invalid: %s",
-                          ctx->Shader.CurrentGeometryProgram->Name, errMsg);
+                          ctx->Shader.CurrentProgram[MESA_SHADER_GEOMETRY]->Name,
+                          errMsg);
          }
       }
 #endif
    }
 
-   if (ctx->Shader.CurrentFragmentProgram) {
+   if (ctx->Shader.CurrentProgram[MESA_SHADER_FRAGMENT]) {
       frag_from_glsl_shader = true;
 
-      if (!ctx->Shader.CurrentFragmentProgram->LinkStatus) {
+      if (!ctx->Shader.CurrentProgram[MESA_SHADER_FRAGMENT]->LinkStatus) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "%s(shader not linked)", where);
          return GL_FALSE;
@@ -1798,10 +1821,11 @@ _mesa_valid_to_render(struct gl_context *ctx, const char *where)
       {
          char errMsg[100];
          if (!_mesa_validate_shader_program(ctx,
-					    ctx->Shader.CurrentFragmentProgram,
+					    ctx->Shader.CurrentProgram[MESA_SHADER_FRAGMENT],
                                             errMsg)) {
             _mesa_warning(ctx, "Shader program %u is invalid: %s",
-                          ctx->Shader.CurrentFragmentProgram->Name, errMsg);
+                          ctx->Shader.CurrentProgram[MESA_SHADER_FRAGMENT]->Name,
+                          errMsg);
          }
       }
 #endif
@@ -1851,12 +1875,8 @@ _mesa_valid_to_render(struct gl_context *ctx, const char *where)
 
 #ifdef DEBUG
    if (ctx->Shader.Flags & GLSL_LOG) {
-      struct gl_shader_program *shProg[MESA_SHADER_STAGES];
+      struct gl_shader_program **shProg = ctx->Shader.CurrentProgram;
       gl_shader_stage i;
-
-      shProg[MESA_SHADER_VERTEX] = ctx->Shader.CurrentVertexProgram;
-      shProg[MESA_SHADER_GEOMETRY] = ctx->Shader.CurrentGeometryProgram;
-      shProg[MESA_SHADER_FRAGMENT] = ctx->Shader.CurrentFragmentProgram;
 
       for (i = 0; i < MESA_SHADER_STAGES; i++) {
 	 if (shProg[i] == NULL || shProg[i]->_Used

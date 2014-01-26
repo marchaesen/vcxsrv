@@ -1122,11 +1122,8 @@ localQueryLargestOffscreenLinear(ScreenPtr pScreen,
 
         if (localQueryLargestOffscreenArea(pScreen, &w, &h, gran,
                                            FAVOR_WIDTH_THEN_AREA, priority)) {
-            FBManagerPtr offman;
             BoxPtr extents;
 
-            offman = (FBManagerPtr) dixLookupPrivate(&pScreen->devPrivates,
-                                                     xf86FBScreenKey);
             extents = RegionExtents(offman->InitialBoxes);
             if ((extents->x2 - extents->x1) == w)
                 *size = w * h;

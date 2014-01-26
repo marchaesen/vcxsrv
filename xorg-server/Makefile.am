@@ -1,4 +1,6 @@
 AUTOMAKE_OPTIONS=nostdinc
+
+# Required for automake < 1.14
 ACLOCAL_AMFLAGS = -I m4
 
 if COMPOSITE

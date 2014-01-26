@@ -91,7 +91,7 @@ extern struct devices devices;
 /**
  * test-specific userdata, passed into the reply handler.
  */
-extern void *userdata;
+extern void *global_userdata;
 
 /**
  * The reply handler called from WriteToClient. Set this handler if you need

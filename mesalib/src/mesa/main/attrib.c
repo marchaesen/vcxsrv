@@ -112,7 +112,7 @@ struct gl_enable_attrib
    GLboolean PolygonSmooth;
    GLboolean PolygonStipple;
    GLboolean RescaleNormals;
-   GLboolean Scissor;
+   GLbitfield Scissor;
    GLboolean Stencil;
    GLboolean StencilTwoSide;          /* GL_EXT_stencil_two_side */
    GLboolean MultisampleEnabled;      /* GL_ARB_multisample */
@@ -354,7 +354,7 @@ _mesa_PushAttrib(GLbitfield mask)
       attr->PolygonSmooth = ctx->Polygon.SmoothFlag;
       attr->PolygonStipple = ctx->Polygon.StippleFlag;
       attr->RescaleNormals = ctx->Transform.RescaleNormals;
-      attr->Scissor = ctx->Scissor.Enabled;
+      attr->Scissor = ctx->Scissor.EnableFlags;
       attr->Stencil = ctx->Stencil.Enabled;
       attr->StencilTwoSide = ctx->Stencil.TestTwoSide;
       attr->MultisampleEnabled = ctx->Multisample.Enabled;
@@ -533,8 +533,9 @@ _mesa_PushAttrib(GLbitfield mask)
 
    if (mask & GL_VIEWPORT_BIT) {
       if (!push_attrib(ctx, &head, GL_VIEWPORT_BIT,
-                       sizeof(struct gl_viewport_attrib),
-                       (void*)&ctx->Viewport))
+                       sizeof(struct gl_viewport_attrib)
+                       * ctx->Const.MaxViewports,
+                       (void*)&ctx->ViewportArray))
          goto end;
    }
 
@@ -658,7 +659,13 @@ pop_enable_group(struct gl_context *ctx, const struct gl_enable_attrib *enable)
                    GL_POLYGON_SMOOTH);
    TEST_AND_UPDATE(ctx->Polygon.StippleFlag, enable->PolygonStipple,
                    GL_POLYGON_STIPPLE);
-   TEST_AND_UPDATE(ctx->Scissor.Enabled, enable->Scissor, GL_SCISSOR_TEST);
+   if (ctx->Scissor.EnableFlags != enable->Scissor) {
+      unsigned i;
+
+      for (i = 0; i < ctx->Const.MaxViewports; i++) {
+         _mesa_set_enablei(ctx, GL_SCISSOR_TEST, i, (enable->Scissor >> i) & 1);
+      }
+   }
    TEST_AND_UPDATE(ctx->Stencil.Enabled, enable->Stencil, GL_STENCIL_TEST);
    if (ctx->Extensions.EXT_stencil_two_side) {
       TEST_AND_UPDATE(ctx->Stencil.TestTwoSide, enable->StencilTwoSide, GL_STENCIL_TEST_TWO_SIDE_EXT);
@@ -1262,11 +1269,19 @@ _mesa_PopAttrib(void)
 	    break;
          case GL_SCISSOR_BIT:
             {
+               unsigned i;
                const struct gl_scissor_attrib *scissor;
                scissor = (const struct gl_scissor_attrib *) attr->data;
-               _mesa_Scissor(scissor->X, scissor->Y,
-                             scissor->Width, scissor->Height);
-               _mesa_set_enable(ctx, GL_SCISSOR_TEST, scissor->Enabled);
+
+               for (i = 0; i < ctx->Const.MaxViewports; i++) {
+                  _mesa_set_scissor(ctx, i,
+                                    scissor->ScissorArray[i].X,
+                                    scissor->ScissorArray[i].Y,
+                                    scissor->ScissorArray[i].Width,
+                                    scissor->ScissorArray[i].Height);
+                  _mesa_set_enablei(ctx, GL_SCISSOR_TEST, i,
+                                    (scissor->EnableFlags >> i) & 1);
+               }
             }
             break;
          case GL_STENCIL_BUFFER_BIT:
@@ -1342,10 +1357,15 @@ _mesa_PopAttrib(void)
             break;
          case GL_VIEWPORT_BIT:
             {
+               unsigned i;
                const struct gl_viewport_attrib *vp;
                vp = (const struct gl_viewport_attrib *) attr->data;
-               _mesa_Viewport(vp->X, vp->Y, vp->Width, vp->Height);
-               _mesa_DepthRange(vp->Near, vp->Far);
+
+               for (i = 0; i < ctx->Const.MaxViewports; i++) {
+                  _mesa_set_viewport(ctx, i, vp[i].X, vp[i].Y, vp[i].Width,
+                                     vp[i].Height);
+                  _mesa_set_depth_range(ctx, i, vp[i].Near, vp[i].Far);
+               }
             }
             break;
          case GL_MULTISAMPLE_BIT_ARB:

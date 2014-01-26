@@ -267,13 +267,17 @@ class PadType(Type):
         Type.__init__(self, tcard8.name)
         self.is_pad = True
         self.size = 1
-        self.nmemb = 1 if (elt == None) else int(elt.get('bytes'), 0)
+        self.nmemb = 1
+        self.align = 1
+        if elt != None:
+            self.nmemb = int(elt.get('bytes', "1"), 0)
+            self.align = int(elt.get('align', "1"), 0)
 
     def resolve(self, module):
         self.resolved = True
 
     def fixed_size(self):
-        return True
+        return self.align <= 1
 
     
 class ComplexType(Type):
@@ -296,16 +300,15 @@ class ComplexType(Type):
     def resolve(self, module):
         if self.resolved:
             return
-        pads = 0
         enum = None
 
         # Resolve all of our field datatypes.
         for child in list(self.elt):
             if child.tag == 'pad':
-                field_name = 'pad' + str(pads)
+                field_name = 'pad' + str(module.pads)
                 fkey = 'CARD8'
                 type = PadType(child)
-                pads = pads + 1
+                module.pads = module.pads + 1
                 visible = False
             elif child.tag == 'field':
                 field_name = child.get('name')
@@ -397,7 +400,6 @@ class SwitchType(ComplexType):
     def resolve(self, module):
         if self.resolved:
             return
-#        pads = 0
 
         parents = list(self.parents) + [self]
 
@@ -560,6 +562,8 @@ class Reply(ComplexType):
     def resolve(self, module):
         if self.resolved:
             return
+        # Reset pads count
+        module.pads = 0
         # Add the automatic protocol fields
         self.fields.append(Field(tcard8, tcard8.name, 'response_type', False, True, True))
         self.fields.append(_placeholder_byte)

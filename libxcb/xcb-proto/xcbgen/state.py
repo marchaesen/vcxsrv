@@ -93,6 +93,7 @@ class Module(object):
     # Recursively resolve all types
     def resolve(self):
         for (name, item) in self.all:
+            self.pads = 0
             item.resolve(self)
 
     # Call all the output methods

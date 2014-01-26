@@ -378,6 +378,13 @@ ProcAppleWMSetWindowMenu(register ClientPtr client)
     items = malloc(sizeof(char *) * nitems);
     shortcuts = malloc(sizeof(char) * nitems);
 
+    if (!items || !shortcuts) {
+        free(items);
+        free(shortcuts);
+
+        return BadAlloc;
+    }
+
     max_len = (stuff->length << 2) - sizeof(xAppleWMSetWindowMenuReq);
     bytes = (char *)&stuff[1];
 
@@ -391,6 +398,15 @@ ProcAppleWMSetWindowMenu(register ClientPtr client)
                 break;
         }
     }
+
+    /* Check if we bailed out of the above loop due to a request that was too long */
+    if (j < nitems) {
+        free(items);
+        free(shortcuts);
+
+        return BadRequest;
+    }
+
     X11ApplicationSetWindowMenu(nitems, items, shortcuts);
     free(items);
     free(shortcuts);

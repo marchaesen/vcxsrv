@@ -60,7 +60,6 @@
 #include "xf86tokens.h"
 #include "Configint.h"
 
-extern LexRec val;
 
 static xf86ConfigSymTabRec FilesTab[] = {
     {ENDSECTION, "endsection"},
@@ -89,13 +88,13 @@ xf86parseFilesSection(void)
         while ((token = xf86getToken(FilesTab)) != ENDSECTION) {
         switch (token) {
         case COMMENT:
-            ptr->file_comment = xf86addComment(ptr->file_comment, val.str);
+            ptr->file_comment = xf86addComment(ptr->file_comment, xf86_lex_val.str);
             break;
         case FONTPATH:
             if (xf86getSubToken(&(ptr->file_comment)) != STRING)
                 Error(QUOTE_MSG, "FontPath");
             j = FALSE;
-            str = val.str;
+            str = xf86_lex_val.str;
             if (ptr->file_fontpath == NULL) {
                 ptr->file_fontpath = calloc(1, 1);
                 i = strlen(str) + 1;
@@ -112,13 +111,13 @@ xf86parseFilesSection(void)
                 strcat(ptr->file_fontpath, ",");
 
             strcat(ptr->file_fontpath, str);
-            free(val.str);
+            free(xf86_lex_val.str);
             break;
         case MODULEPATH:
             if (xf86getSubToken(&(ptr->file_comment)) != STRING)
                 Error(QUOTE_MSG, "ModulePath");
             l = FALSE;
-            str = val.str;
+            str = xf86_lex_val.str;
             if (ptr->file_modulepath == NULL) {
                 ptr->file_modulepath = malloc(1);
                 ptr->file_modulepath[0] = '\0';
@@ -137,17 +136,17 @@ xf86parseFilesSection(void)
                 strcat(ptr->file_modulepath, ",");
 
             strcat(ptr->file_modulepath, str);
-            free(val.str);
+            free(xf86_lex_val.str);
             break;
         case LOGFILEPATH:
             if (xf86getSubToken(&(ptr->file_comment)) != STRING)
                 Error(QUOTE_MSG, "LogFile");
-            ptr->file_logfile = val.str;
+            ptr->file_logfile = xf86_lex_val.str;
             break;
         case XKBDIR:
             if (xf86getSubToken(&(ptr->file_xkbdir)) != STRING)
                 Error(QUOTE_MSG, "XkbDir");
-            ptr->file_xkbdir = val.str;
+            ptr->file_xkbdir = xf86_lex_val.str;
             break;
         case EOF_TOKEN:
             Error(UNEXPECTED_EOF_MSG);

@@ -982,15 +982,22 @@ def _c_serialize_helper_fields(context, self,
 
         # fields with variable size
         else:
-            # switch/bitcase: always calculate padding before and after variable sized fields
-            if need_padding or is_bitcase:
+            if field.type.is_pad:
+                # Variable length pad is <pad align= />
+                code_lines.append('%s    xcb_align_to = %d;' % (space, field.type.align))
                 count += _c_serialize_helper_insert_padding(context, code_lines, space, 
+                                                        self.var_followed_by_fixed_fields)
+                continue
+            else:
+                # switch/bitcase: always calculate padding before and after variable sized fields
+                if need_padding or is_bitcase:
+                    count += _c_serialize_helper_insert_padding(context, code_lines, space,
                                                             self.var_followed_by_fixed_fields)
 
-            value, length = _c_serialize_helper_fields_variable_size(context, self, field, 
-                                                                     code_lines, temp_vars, 
-                                                                     space, prefix)
-            prev_field_was_variable = True
+                value, length = _c_serialize_helper_fields_variable_size(context, self, field,
+                                                                         code_lines, temp_vars,
+                                                                         space, prefix)
+                prev_field_was_variable = True
         
         # save (un)serialization C code
         if '' != value:
@@ -1741,10 +1748,11 @@ def _c_accessors(self, name, base):
 #    else:
     if True:
         for field in self.fields:
-            if field.type.is_list and not field.type.fixed_size():
-                _c_accessors_list(self, field)
-            elif field.prev_varsized_field is not None or not field.type.fixed_size():
-                _c_accessors_field(self, field)
+            if not field.type.is_pad:
+                if field.type.is_list and not field.type.fixed_size():
+                    _c_accessors_list(self, field)
+                elif field.prev_varsized_field is not None or not field.type.fixed_size():
+                    _c_accessors_field(self, field)
 
 def c_simple(self, name):
     '''

@@ -117,6 +117,8 @@ static void
 number_formatting(void)
 {
     int i;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Woverflow"
     long unsigned int unsigned_tests[] = { 0,/* Zero */
                                            5, /* Single digit number */
                                            12, /* Two digit decimal number */
@@ -139,6 +141,7 @@ number_formatting(void)
                                 -0x15D027BF211B37A, /* Large > 32 bit number */
                                 -0x7FFFFFFFFFFFFFFF, /* Maximum 64-bit signed number */
     } ;
+#pragma GCC diagnostic pop
 
     for (i = 0; i < sizeof(unsigned_tests) / sizeof(unsigned_tests[0]); i++)
         assert(check_number_format_test(unsigned_tests[i]));
@@ -152,6 +155,8 @@ number_formatting(void)
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-security"
+#pragma GCC diagnostic ignored "-Wformat"
+#pragma GCC diagnostic ignored "-Wformat-extra-args"
 static void logging_format(void)
 {
     const char *log_file_path = "/tmp/Xorg-logging-test.log";
@@ -220,14 +225,12 @@ static void logging_format(void)
     assert(strcmp(logmsg, "(EE) substituted string\n") == 0);
 
     /* Invalid format */
-#warning Ignore compiler warning below "lacks type at end of format".  This is intentional.
     LogMessageVerbSigSafe(X_ERROR, -1, "%4", 4);
     read_log_msg(logmsg);
     assert(strcmp(logmsg, "(EE) ") == 0);
     LogMessageVerbSigSafe(X_ERROR, -1, "\n");
     fseek(f, 0, SEEK_END);
 
-#warning Ignore compiler warning below "unknown conversion type character".  This is intentional.
     /* %hld is bogus */
     LogMessageVerbSigSafe(X_ERROR, -1, "%hld\n", 4);
     read_log_msg(logmsg);

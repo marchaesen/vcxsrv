@@ -235,6 +235,7 @@ typedef enum
    VARYING_SLOT_CLIP_DIST1,
    VARYING_SLOT_PRIMITIVE_ID, /* Does not appear in VS */
    VARYING_SLOT_LAYER, /* Appears as VS or GS output */
+   VARYING_SLOT_VIEWPORT, /* Appears as VS or GS output */
    VARYING_SLOT_FACE, /* FS only */
    VARYING_SLOT_PNTC, /* FS only */
    VARYING_SLOT_VAR0, /* First generic varying slot */
@@ -270,6 +271,7 @@ typedef enum
 #define VARYING_BIT_CLIP_DIST1 BITFIELD64_BIT(VARYING_SLOT_CLIP_DIST1)
 #define VARYING_BIT_PRIMITIVE_ID BITFIELD64_BIT(VARYING_SLOT_PRIMITIVE_ID)
 #define VARYING_BIT_LAYER BITFIELD64_BIT(VARYING_SLOT_LAYER)
+#define VARYING_BIT_VIEWPORT BITFIELD64_BIT(VARYING_SLOT_VIEWPORT)
 #define VARYING_BIT_FACE BITFIELD64_BIT(VARYING_SLOT_FACE)
 #define VARYING_BIT_PNTC BITFIELD64_BIT(VARYING_SLOT_PNTC)
 #define VARYING_BIT_VAR(V) BITFIELD64_BIT(VARYING_SLOT_VAR0 + (V))
@@ -1009,11 +1011,15 @@ struct gl_polygon_attrib
 /**
  * Scissor attributes (GL_SCISSOR_BIT).
  */
-struct gl_scissor_attrib
+struct gl_scissor_rect
 {
-   GLboolean Enabled;		/**< Scissor test enabled? */
    GLint X, Y;			/**< Lower left corner of box */
    GLsizei Width, Height;	/**< Size of box */
+};
+struct gl_scissor_attrib
+{
+   GLbitfield EnableFlags;	/**< Scissor test enabled? */
+   struct gl_scissor_rect ScissorArray[MAX_VIEWPORTS];
 };
 
 
@@ -1428,9 +1434,9 @@ struct gl_transform_attrib
  */
 struct gl_viewport_attrib
 {
-   GLint X, Y;			/**< position */
-   GLsizei Width, Height;	/**< size */
-   GLfloat Near, Far;		/**< Depth buffer range */
+   GLfloat X, Y;		/**< position */
+   GLfloat Width, Height;	/**< size */
+   GLdouble Near, Far;		/**< Depth buffer range */
    GLmatrix _WindowMap;		/**< Mapping transformation as a matrix. */
 };
 
@@ -1809,7 +1815,9 @@ struct gl_transform_feedback_object
 
    /**
     * The shader program active when BeginTransformFeedback() was called.
-    * When active and unpaused, this equals ctx->Shader.CurrentVertexProgram.
+    * When active and unpaused, this equals ctx->Shader.CurrentProgram[stage],
+    * where stage is the pipeline stage that is the source of data for
+    * transform feedback.
     */
    struct gl_shader_program *shader_program;
 
@@ -2708,9 +2716,7 @@ struct gl_shader_state
     * GL_EXT_separate_shader_objects is not supported, each of these must point
     * to \c NULL or to the same program.
     */
-   struct gl_shader_program *CurrentVertexProgram;
-   struct gl_shader_program *CurrentGeometryProgram;
-   struct gl_shader_program *CurrentFragmentProgram;
+   struct gl_shader_program *CurrentProgram[MESA_SHADER_STAGES];
 
    struct gl_shader_program *_CurrentFragmentProgram;
 
@@ -2754,10 +2760,13 @@ struct gl_shader_compiler_options
    GLuint MaxUnrollIterations;
 
    /**
-    * Prefer DP4 instructions (rather than MUL/MAD) for matrix * vector
-    * operations, such as position transformation.
+    * Optimize code for array of structures backends.
+    *
+    * This is a proxy for:
+    *   - preferring DP4 instructions (rather than MUL/MAD) for
+    *     matrix * vector operations, such as position transformation.
     */
-   GLboolean PreferDP4;
+   GLboolean OptimizeForAOS;
 
    struct gl_sl_pragmas DefaultPragmas; /**< Default #pragma settings */
 };
@@ -3166,6 +3175,12 @@ struct gl_constants
    GLfloat MaxSpotExponent;                  /**< GL_NV_light_max_exponent */
 
    GLuint MaxViewportWidth, MaxViewportHeight;
+   GLuint MaxViewports;                      /**< GL_ARB_viewport_array */
+   GLuint ViewportSubpixelBits;              /**< GL_ARB_viewport_array */
+   struct {
+      GLfloat Min;
+      GLfloat Max;
+   } ViewportBounds;                         /**< GL_ARB_viewport_array */
 
    struct gl_program_constants Program[MESA_SHADER_STAGES];
    GLuint MaxProgramMatrices;
@@ -3366,6 +3381,7 @@ struct gl_extensions
    GLboolean ANGLE_texture_compression_dxt;
    GLboolean ARB_ES2_compatibility;
    GLboolean ARB_ES3_compatibility;
+   GLboolean ARB_arrays_of_arrays;
    GLboolean ARB_base_instance;
    GLboolean ARB_blend_func_extended;
    GLboolean ARB_color_buffer_float;
@@ -3434,6 +3450,7 @@ struct gl_extensions
    GLboolean ARB_vertex_shader;
    GLboolean ARB_vertex_type_10f_11f_11f_rev;
    GLboolean ARB_vertex_type_2_10_10_10_rev;
+   GLboolean ARB_viewport_array;
    GLboolean EXT_blend_color;
    GLboolean EXT_blend_equation_separate;
    GLboolean EXT_blend_func_separate;
@@ -3764,6 +3781,9 @@ struct gl_driver_flags
    /** gl_context::TransformFeedback::CurrentObject */
    GLbitfield NewTransformFeedback;
 
+   /** gl_context::TransformFeedback::CurrentObject::shader_program */
+   GLbitfield NewTransformFeedbackProg;
+
    /** gl_context::RasterDiscard */
    GLbitfield NewRasterizerDiscard;
 
@@ -3972,7 +3992,7 @@ struct gl_context
    struct gl_stencil_attrib	Stencil;	/**< Stencil buffer attributes */
    struct gl_texture_attrib	Texture;	/**< Texture attributes */
    struct gl_transform_attrib	Transform;	/**< Transformation attributes */
-   struct gl_viewport_attrib	Viewport;	/**< Viewport attributes */
+   struct gl_viewport_attrib	ViewportArray[MAX_VIEWPORTS];	/**< Viewport attributes */
    /*@}*/
 
    /** \name Client attribute stack */

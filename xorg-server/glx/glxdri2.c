@@ -55,14 +55,9 @@ typedef struct __GLXDRIscreen __GLXDRIscreen;
 typedef struct __GLXDRIcontext __GLXDRIcontext;
 typedef struct __GLXDRIdrawable __GLXDRIdrawable;
 
-#ifdef __DRI2_ROBUSTNESS
 #define ALL_DRI_CTX_FLAGS (__DRI_CTX_FLAG_DEBUG                         \
                            | __DRI_CTX_FLAG_FORWARD_COMPATIBLE          \
                            | __DRI_CTX_FLAG_ROBUST_BUFFER_ACCESS)
-#else
-#define ALL_DRI_CTX_FLAGS (__DRI_CTX_FLAG_DEBUG                         \
-                           | __DRI_CTX_FLAG_FORWARD_COMPATIBLE)
-#endif
 
 struct __GLXDRIscreen {
     __GLXscreen base;
@@ -210,15 +205,10 @@ __glXDRIdrawableSwapBuffers(ClientPtr client, __GLXdrawable * drawable)
     __GLXDRIscreen *screen = priv->screen;
     CARD64 unused;
 
-#if __DRI2_FLUSH_VERSION >= 3
     if (screen->flush) {
         (*screen->flush->flush) (priv->driDrawable);
         (*screen->flush->invalidate) (priv->driDrawable);
     }
-#else
-    if (screen->flush)
-        (*screen->flush->flushInvalidate) (priv->driDrawable);
-#endif
 
     if (DRI2SwapBuffers(client, drawable->pDraw, 0, 0, 0, &unused,
                         __glXdriSwapEvent, drawable) != Success)
@@ -294,8 +284,6 @@ __glXDRIcontextWait(__GLXcontext * baseContext,
     return FALSE;
 }
 
-#ifdef __DRI_TEX_BUFFER
-
 static int
 __glXDRIbindTexImage(__GLXcontext * baseContext,
                      int buffer, __GLXdrawable * glxPixmap)
@@ -307,14 +295,12 @@ __glXDRIbindTexImage(__GLXcontext * baseContext,
     if (texBuffer == NULL)
         return Success;
 
-#if __DRI_TEX_BUFFER_VERSION >= 2
     if (texBuffer->base.version >= 2 && texBuffer->setTexBuffer2 != NULL) {
         (*texBuffer->setTexBuffer2) (context->driContext,
                                      glxPixmap->target,
                                      glxPixmap->format, drawable->driDrawable);
     }
     else
-#endif
     {
         texBuffer->setTexBuffer(context->driContext,
                                 glxPixmap->target, drawable->driDrawable);
@@ -330,24 +316,6 @@ __glXDRIreleaseTexImage(__GLXcontext * baseContext,
     /* FIXME: Just unbind the texture? */
     return Success;
 }
-
-#else
-
-static int
-__glXDRIbindTexImage(__GLXcontext * baseContext,
-                     int buffer, __GLXdrawable * glxPixmap)
-{
-    return Success;
-}
-
-static int
-__glXDRIreleaseTexImage(__GLXcontext * baseContext,
-                        int buffer, __GLXdrawable * pixmap)
-{
-    return Success;
-}
-
-#endif
 
 static __GLXtextureFromPixmap __glXDRItextureFromPixmap = {
     __glXDRIbindTexImage,
@@ -398,11 +366,7 @@ dri2_convert_glx_attribs(__GLXDRIscreen *screen, unsigned num_attribs,
 
     *major_ver = 1;
     *minor_ver = 0;
-#ifdef __DRI2_ROBUSTNESS
     *reset = __DRI_CTX_RESET_NO_NOTIFICATION;
-#else
-    (void) reset;
-#endif
 
     for (i = 0; i < num_attribs; i++) {
         switch (attribs[i * 2]) {
@@ -433,7 +397,6 @@ dri2_convert_glx_attribs(__GLXDRIscreen *screen, unsigned num_attribs,
                 return False;
             }
             break;
-#ifdef __DRI2_ROBUSTNESS
         case GLX_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB:
             if (screen->dri2->base.version >= 4) {
                 *error = BadValue;
@@ -452,7 +415,6 @@ dri2_convert_glx_attribs(__GLXDRIscreen *screen, unsigned num_attribs,
                 return False;
             }
             break;
-#endif
         default:
             /* If an unknown attribute is received, fail.
              */
@@ -493,7 +455,6 @@ create_driver_context(__GLXDRIcontext * context,
 {
     context->driContext = NULL;
 
-#if __DRI_DRI2_VERSION >= 3
     if (screen->dri2->base.version >= 3) {
         uint32_t ctx_attribs[3 * 2];
         unsigned num_ctx_attribs = 0;
@@ -525,13 +486,11 @@ create_driver_context(__GLXDRIcontext * context,
                 ctx_attribs[num_ctx_attribs++] = flags;
             }
 
-#ifdef __DRI2_ROBUSTNESS
             if (reset != __DRI_CTX_RESET_NO_NOTIFICATION) {
                 ctx_attribs[num_ctx_attribs++] =
                     __DRI_CTX_ATTRIB_RESET_STRATEGY;
                 ctx_attribs[num_ctx_attribs++] = reset;
             }
-#endif
         }
 
         context->driContext =
@@ -567,7 +526,6 @@ create_driver_context(__GLXDRIcontext * context,
 
         return;
     }
-#endif
 
     if (num_attribs != 0) {
         *error = BadValue;
@@ -625,13 +583,11 @@ __glXDRIscreenCreateContext(__GLXscreen * baseScreen,
 static void
 __glXDRIinvalidateBuffers(DrawablePtr pDraw, void *priv, XID id)
 {
-#if __DRI2_FLUSH_VERSION >= 3
     __GLXDRIdrawable *private = priv;
     __GLXDRIscreen *screen = private->screen;
 
     if (screen->flush)
         (*screen->flush->invalidate) (private->driDrawable);
-#endif
 }
 
 static __GLXdrawable *
@@ -778,18 +734,14 @@ static const __DRIdri2LoaderExtension loaderExtension = {
     dri2GetBuffersWithFormat,
 };
 
-#ifdef __DRI_USE_INVALIDATE
 static const __DRIuseInvalidateExtension dri2UseInvalidate = {
     {__DRI_USE_INVALIDATE, 1}
 };
-#endif
 
 static const __DRIextension *loader_extensions[] = {
     &systemTimeExtension.base,
     &loaderExtension.base,
-#ifdef __DRI_USE_INVALIDATE
     &dri2UseInvalidate.base,
-#endif
     NULL
 };
 
@@ -850,8 +802,6 @@ initializeExtensions(__GLXDRIscreen * screen)
     __glXEnableExtension(screen->glx_enable_bits, "GLX_MESA_copy_sub_buffer");
     LogMessage(X_INFO, "AIGLX: enabled GLX_MESA_copy_sub_buffer\n");
 
-
-#if __DRI_DRI2_VERSION >= 3
     if (screen->dri2->base.version >= 3) {
         __glXEnableExtension(screen->glx_enable_bits,
                              "GLX_ARB_create_context");
@@ -864,7 +814,6 @@ initializeExtensions(__GLXDRIscreen * screen)
         LogMessage(X_INFO,
                    "AIGLX: enabled GLX_EXT_create_context_es2_profile\n");
     }
-#endif
 
     if (DRI2HasSwapControl(pScreen)) {
         __glXEnableExtension(screen->glx_enable_bits, "GLX_INTEL_swap_event");
@@ -889,32 +838,25 @@ initializeExtensions(__GLXDRIscreen * screen)
     }
 
     for (i = 0; extensions[i]; i++) {
-#ifdef __DRI_READ_DRAWABLE
         if (strcmp(extensions[i]->name, __DRI_READ_DRAWABLE) == 0) {
             __glXEnableExtension(screen->glx_enable_bits,
                                  "GLX_SGI_make_current_read");
 
             LogMessage(X_INFO, "AIGLX: enabled GLX_SGI_make_current_read\n");
         }
-#endif
 
-#ifdef __DRI_TEX_BUFFER
         if (strcmp(extensions[i]->name, __DRI_TEX_BUFFER) == 0) {
             screen->texBuffer = (const __DRItexBufferExtension *) extensions[i];
             /* GLX_EXT_texture_from_pixmap is always enabled. */
             LogMessage(X_INFO,
                        "AIGLX: GLX_EXT_texture_from_pixmap backed by buffer objects\n");
         }
-#endif
 
-#ifdef __DRI2_FLUSH
         if (strcmp(extensions[i]->name, __DRI2_FLUSH) == 0 &&
             extensions[i]->version >= 3) {
             screen->flush = (__DRI2flushExtension *) extensions[i];
         }
-#endif
 
-#ifdef __DRI2_ROBUSTNESS
         if (strcmp(extensions[i]->name, __DRI2_ROBUSTNESS) == 0 &&
             screen->dri2->base.version >= 3) {
             __glXEnableExtension(screen->glx_enable_bits,
@@ -922,7 +864,6 @@ initializeExtensions(__GLXDRIscreen * screen)
             LogMessage(X_INFO,
                        "AIGLX: enabled GLX_ARB_create_context_robustness\n");
         }
-#endif
 
         /* Ignore unknown extensions */
     }

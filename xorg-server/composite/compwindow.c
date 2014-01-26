@@ -475,7 +475,6 @@ compCopyWindow(WindowPtr pWin, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
              * need to be copied to pNewPixmap.
              */
             RegionRec rgnDst;
-            PixmapPtr pPixmap = (*pScreen->GetWindowPixmap) (pWin);
             GCPtr pGC;
 
             dx = ptOldOrg.x - pWin->drawable.x;

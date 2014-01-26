@@ -98,4 +98,6 @@ typedef void (*handle_video_fn) (struct cea_video_block *, void *);
 
 void xf86ForEachVideoBlock(xf86MonPtr, handle_video_fn, void *);
 
+struct cea_data_block *xf86MonitorFindHDMIBlock(xf86MonPtr mon);
+
 #endif

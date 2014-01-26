@@ -332,6 +332,97 @@ xf86ForEachVideoBlock(xf86MonPtr mon, handle_video_fn fn, void *data)
     }
 }
 
+static Bool
+cea_db_offsets(Uchar *cea, int *start, int *end)
+{
+    /* Data block offset in CEA extension block */
+    *start = CEA_EXT_MIN_DATA_OFFSET;
+    *end = cea[2];
+    if (*end == 0)
+        *end = CEA_EXT_MAX_DATA_OFFSET;
+    if (*end < CEA_EXT_MIN_DATA_OFFSET || *end > CEA_EXT_MAX_DATA_OFFSET)
+        return FALSE;
+    return TRUE;
+}
+
+static int
+cea_db_len(Uchar *db)
+{
+    return db[0] & 0x1f;
+}
+
+static int
+cea_db_tag(Uchar *db)
+{
+    return db[0] >> 5;
+}
+
+typedef void (*handle_cea_db_fn) (Uchar *, void *);
+
+static void
+cea_for_each_db(xf86MonPtr mon, handle_cea_db_fn fn, void *data)
+{
+    int i;
+
+    if (!mon)
+        return;
+
+    if (!(mon->flags & EDID_COMPLETE_RAWDATA))
+        return;
+
+    if (!mon->no_sections)
+        return;
+
+    if (!mon->rawData)
+        return;
+
+    for (i = 0; i < mon->no_sections; i++) {
+        int start, end, offset;
+        Uchar *ext;
+
+        ext = mon->rawData + EDID1_LEN * (i + 1);
+        if (ext[EXT_TAG] != CEA_EXT)
+            continue;
+
+        if (!cea_db_offsets(ext, &start, &end))
+            continue;
+
+        for (offset = start;
+             offset < end && offset + cea_db_len(&ext[offset]) < end;
+             offset += cea_db_len(&ext[offset]) + 1)
+                fn(&ext[offset], data);
+    }
+}
+
+struct find_hdmi_block_data {
+    struct cea_data_block *hdmi;
+};
+
+static void find_hdmi_block(Uchar *db, void *data)
+{
+    struct find_hdmi_block_data *result = data;
+    int oui;
+
+    if (cea_db_tag(db) != CEA_VENDOR_BLK)
+        return;
+
+    if (cea_db_len(db) < 5)
+        return;
+
+    oui = (db[3] << 16) | (db[2] << 8) | db[1];
+    if (oui == IEEE_ID_HDMI)
+        result->hdmi = (struct cea_data_block *)db;
+}
+
+struct cea_data_block *xf86MonitorFindHDMIBlock(xf86MonPtr mon)
+{
+    struct find_hdmi_block_data result = { NULL };
+
+    cea_for_each_db(mon, find_hdmi_block, &result);
+
+    return result.hdmi;
+}
+
 xf86MonPtr
 xf86InterpretEEDID(int scrnIndex, Uchar * block)
 {
@@ -666,49 +757,5 @@ validate_version(int scrnIndex, struct edid_version *r)
 Bool
 xf86MonitorIsHDMI(xf86MonPtr mon)
 {
-    int i = 0, version, offset;
-    char *edid = NULL;
-
-    if (!mon)
-        return FALSE;
-
-    if (!(mon->flags & EDID_COMPLETE_RAWDATA))
-        return FALSE;
-
-    if (!mon->no_sections)
-        return FALSE;
-
-    edid = (char *) mon->rawData;
-    if (!edid)
-        return FALSE;
-
-    /* find the CEA extension block */
-    for (i = 1; i <= mon->no_sections; i++)
-        if (edid[i * 128] == 0x02)
-            break;
-    if (i == mon->no_sections + 1)
-        return FALSE;
-    edid += (i * 128);
-
-    version = edid[1];
-    offset = edid[2];
-    if (version < 3 || offset < 4)
-        return FALSE;
-
-    /* walk the cea data blocks */
-    for (i = 4; i < offset; i += (edid[i] & 0x1f) + 1) {
-        char *x = edid + i;
-
-        /* find a vendor specific block */
-        if ((x[0] & 0xe0) >> 5 == 0x03) {
-            int oui = (x[3] << 16) + (x[2] << 8) + x[1];
-
-            /* find the HDMI vendor OUI */
-            if (oui == 0x000c03)
-                return TRUE;
-        }
-    }
-
-    /* guess it's not HDMI after all */
-    return FALSE;
+    return xf86MonitorFindHDMIBlock(mon) != NULL;
 }

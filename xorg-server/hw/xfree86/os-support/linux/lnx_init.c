@@ -155,6 +155,7 @@ xf86OpenConsole(void)
 
         i = 0;
         while (vcs[i] != NULL) {
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
             snprintf(vtname, sizeof(vtname), vcs[i], xf86Info.vtno);    /* /dev/tty1-64 */
             if ((xf86Info.consoleFd = open(vtname, O_RDWR | O_NDELAY, 0)) >= 0)
                 break;
