@@ -381,7 +381,6 @@ __glGetBooleanv_size( GLenum e )
         case GL_AUX_BUFFERS:
         case GL_DRAW_BUFFER:
         case GL_READ_BUFFER:
-        case GL_SCISSOR_TEST:
         case GL_INDEX_CLEAR_VALUE:
         case GL_INDEX_WRITEMASK:
         case GL_INDEX_MODE:
@@ -760,7 +759,6 @@ __glGetBooleanv_size( GLenum e )
         case GL_SMOOTH_POINT_SIZE_RANGE:
         case GL_LINE_WIDTH_RANGE:
         case GL_POLYGON_MODE:
-        case GL_DEPTH_RANGE:
         case GL_MAX_VIEWPORT_DIMS:
         case GL_MAP1_GRID_DOMAIN:
         case GL_MAP2_GRID_SEGMENTS:
@@ -779,8 +777,6 @@ __glGetBooleanv_size( GLenum e )
         case GL_LIGHT_MODEL_AMBIENT:
         case GL_FOG_COLOR:
         case GL_ACCUM_CLEAR_VALUE:
-        case GL_VIEWPORT:
-        case GL_SCISSOR_BOX:
         case GL_COLOR_CLEAR_VALUE:
         case GL_COLOR_WRITEMASK:
         case GL_MAP2_GRID_DOMAIN:
