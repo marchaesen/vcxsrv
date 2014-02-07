@@ -1586,7 +1586,7 @@ FcFreeTypeQueryFace (const FT_Face  face,
 	}
 	if (width == -1 &&
 	    FT_Get_BDF_Property (face, "SETWIDTH_NAME", &prop) == 0 &&
-	    prop.type == BDF_PROPERTY_TYPE_ATOM)
+	    prop.type == BDF_PROPERTY_TYPE_ATOM && prop.u.atom != NULL)
 	{
 	    width = FcIsWidth ((FcChar8 *) prop.u.atom);
 	    if (FcDebug () & FC_DBG_SCANV)
@@ -1716,7 +1716,7 @@ bail3:
     /* For PCF fonts, override the computed spacing with the one from
        the property */
     if(FT_Get_BDF_Property(face, "SPACING", &prop) == 0 &&
-       prop.type == BDF_PROPERTY_TYPE_ATOM) {
+       prop.type == BDF_PROPERTY_TYPE_ATOM && prop.u.atom != NULL) {
         if(!strcmp(prop.u.atom, "c") || !strcmp(prop.u.atom, "C"))
             spacing = FC_CHARCELL;
         else if(!strcmp(prop.u.atom, "m") || !strcmp(prop.u.atom, "M"))

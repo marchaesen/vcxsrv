@@ -122,9 +122,9 @@ xkb_symbols "fr-dvorak" {
 partial
 xkb_symbols "fr-legacy" {
 
-    name[Group1] = "French (Canada, legacy)";
-
     include "ca(fr)"
+
+    name[Group1] = "French (Canada, legacy)";
 
     key <TLDE>	{ [    degree,     degree,       notsign ]	};
     key <AE01>	{ [         1,     exclam,   onesuperior ]	};
@@ -168,9 +168,9 @@ xkb_symbols "fr-legacy" {
 partial
 xkb_symbols "multi" {
 
-    name[Group1] = "Canadian Multilingual (first part)";
-
     include "ca(fr)"
+
+    name[Group1] = "Canadian Multilingual (first part)";
 
     key <TLDE>	{ [     slash,  backslash,           bar ]	};
     key <AE01>	{ [         1,     exclam ]	};
@@ -259,7 +259,6 @@ xkb_symbols "multi-2gr" {
     key <AB08>	{ [ Greek_horizbar, multiply ]	};
     key <AB09>	{ [ periodcentered, division ]	};
     key <AB10>	{ [ NoSymbol, dead_abovedot ]	};
-
 };
 
 // based on
@@ -466,8 +465,8 @@ xkb_symbols "olpc" {
 
 partial alphanumeric_keys
 xkb_symbols "eng" {
-    name[Group1] = "English (Canada)";
     include "us(basic)"
+    name[Group1] = "English (Canada)";
 };
 
 // EXTRAS:

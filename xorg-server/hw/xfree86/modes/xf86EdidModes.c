@@ -162,6 +162,11 @@ quirk_detailed_use_maximum_size(int scrnIndex, xf86MonPtr DDC)
         DDC->vendor.prod_id == 0x7f01)
         return TRUE;
 
+    /* Sony Vaio Pro 13 */
+    if (memcmp(DDC->vendor.name, "MEI", 4) == 0 &&
+        DDC->vendor.prod_id == 0x96a2)
+        return TRUE;
+
     return FALSE;
 }
 

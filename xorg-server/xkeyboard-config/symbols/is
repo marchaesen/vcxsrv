@@ -193,10 +193,11 @@ xkb_symbols "mac" {
 // Icelandic Dvorak
 partial alphanumeric_keys
 xkb_symbols "dvorak" {
-    name[Group1]= "Icelandic (Dvorak)";
 
     include "us(dvorak)"
     include "eurosign(4)"
+
+    name[Group1]= "Icelandic (Dvorak)";
 
     key <AD11> { [      slash,  question,    U201e,   U201c   ] };
     key <AC06> { [       d,     D,           eth,     ETH     ] };

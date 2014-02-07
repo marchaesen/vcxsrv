@@ -4,7 +4,7 @@ EXTSOURCES =	xproto.c \
 		bigreq.c \
 		xc_misc.c
 
-AM_CFLAGS = $(CWARNFLAGS) $(NEEDED_CFLAGS) $(XDMCP_CFLAGS)
+AM_CFLAGS = $(BASE_CFLAGS) $(NEEDED_CFLAGS) $(XDMCP_CFLAGS)
 libxcb_la_LIBADD = $(NEEDED_LIBS) $(XDMCP_LIBS)
 libxcb_la_SOURCES = \
 		xcb_conn.c xcb_out.c xcb_in.c xcb_ext.c xcb_xid.c \
@@ -241,15 +241,16 @@ endif
 nodist_xcbinclude_HEADERS = $(EXTHEADERS)
 noinst_HEADERS = xcbint.h
 
-STATIC_MANS = man/xcb-examples.3 man/xcb-requests.3
-BUILT_MANS = man/xcb_*.3
-man_MANS = $(STATIC_MANS) $(BUILT_MANS)
-EXTRA_DIST = $(STATIC_MANS)
+BUILT_MAN_PAGES = man/xcb_*
+libmandir = $(LIB_MAN_DIR)
+libman_DATA = $(BUILT_MAN_PAGES)
 
-BUILT_SOURCES = $(EXTSOURCES) $(BUILT_MANS)
-CLEANFILES = $(EXTSOURCES) $(EXTHEADERS) $(BUILT_MANS)
+BUILT_SOURCES = $(EXTSOURCES) $(BUILT_MAN_PAGES)
+CLEANFILES = $(EXTSOURCES) $(EXTHEADERS) $(BUILT_MAN_PAGES)
 
 $(EXTSOURCES): c_client.py $(XCBPROTO_XCBINCLUDEDIR)/$(@:.c=.xml)
-	$(PYTHON) $(srcdir)/c_client.py -p $(XCBPROTO_XCBPYTHONDIR) $(XCBPROTO_XCBINCLUDEDIR)/$(@:.c=.xml)
+	$(AM_V_GEN)$(PYTHON) $(srcdir)/c_client.py	-c "$(PACKAGE_STRING)" -l "$(XORG_MAN_PAGE)" \
+		-s "$(LIB_MAN_SUFFIX)" -p $(XCBPROTO_XCBPYTHONDIR) \
+		$(XCBPROTO_XCBINCLUDEDIR)/$(@:.c=.xml)
 
-$(man_MANS): $(EXTSOURCES)
+$(BUILT_MAN_PAGES): $(EXTSOURCES)

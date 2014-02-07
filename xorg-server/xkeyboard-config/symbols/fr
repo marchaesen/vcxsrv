@@ -36,8 +36,6 @@ xkb_symbols "basic" {
     key <AB09>	{ [     colon,      slash, periodcentered,   division ]	};
     key <AB10>	{ [    exclam,    section, dead_belowdot, dead_abovedot ] };
 
-    include "kpdl(comma)"
-
     include "level3(ralt_switch)"
 };
 

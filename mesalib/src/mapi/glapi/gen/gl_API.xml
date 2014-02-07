@@ -8243,6 +8243,8 @@
 
 <xi:include href="ARB_draw_indirect.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
+<xi:include href="ARB_gpu_shader5.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
 <category name="GL_ARB_transform_feedback3" number="94">
   <enum name="MAX_TRANSFORM_FEEDBACK_BUFFERS" value="0x8E70"/>
   <enum name="MAX_VERTEX_STREAMS"             value="0x8E71"/>
@@ -8466,7 +8468,9 @@
 
 <xi:include href="ARB_clear_buffer_object.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
-<!-- ARB extensions #122...#123 -->
+<xi:include href="ARB_compute_shader.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<!-- ARB extension #123 -->
 
 <xi:include href="ARB_texture_view.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 

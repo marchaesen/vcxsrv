@@ -53,6 +53,7 @@
 #include "scrnintstr.h"
 #include "site.h"
 #include "mi.h"
+#include "dbus-core.h"
 
 #include "compiler.h"
 
@@ -456,6 +457,8 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
         if (xf86DoShowOptions)
             DoShowOptions();
 
+        dbus_core_init();
+
         /* Do a general bus probe.  This will be a PCI probe for x86 platforms */
         xf86BusProbe();
 
@@ -544,7 +547,8 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
             if (NEED_IO_ENABLED(flags))
                 want_hw_access = TRUE;
 
-            if (!(flags & HW_SKIP_CONSOLE))
+            /* Non-seat0 X servers should not open console */
+            if (!(flags & HW_SKIP_CONSOLE) && !ServerIsNotSeat0())
                 xorgHWOpenConsole = TRUE;
         }
 
@@ -1057,6 +1061,8 @@ ddxGiveUp(enum ExitCode error)
 
     if (xorgHWOpenConsole)
         xf86CloseConsole();
+
+    dbus_core_fini();
 
     xf86CloseLog(error);
 

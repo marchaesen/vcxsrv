@@ -35,7 +35,7 @@
  */
 struct gl_format_info
 {
-   gl_format Name;
+   mesa_format Name;
 
    /** text name for debugging */
    const char *StrName;
@@ -88,8 +88,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       0, 0, 0                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_RGBA8888,        /* Name */
-      "MESA_FORMAT_RGBA8888",      /* StrName */
+      MESA_FORMAT_A8B8G8R8_UNORM,        /* Name */
+      "MESA_FORMAT_A8B8G8R8_UNORM",      /* StrName */
       GL_RGBA,                     /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       8, 8, 8, 8,                  /* Red/Green/Blue/AlphaBits */
@@ -97,8 +97,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_RGBA8888_REV,    /* Name */
-      "MESA_FORMAT_RGBA8888_REV",  /* StrName */
+      MESA_FORMAT_R8G8B8A8_UNORM,    /* Name */
+      "MESA_FORMAT_R8G8B8A8_UNORM",  /* StrName */
       GL_RGBA,                     /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       8, 8, 8, 8,                  /* Red/Green/Blue/AlphaBits */
@@ -106,8 +106,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_ARGB8888,        /* Name */
-      "MESA_FORMAT_ARGB8888",      /* StrName */
+      MESA_FORMAT_B8G8R8A8_UNORM,        /* Name */
+      "MESA_FORMAT_B8G8R8A8_UNORM",      /* StrName */
       GL_RGBA,                     /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       8, 8, 8, 8,                  /* Red/Green/Blue/AlphaBits */
@@ -115,8 +115,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_ARGB8888_REV,    /* Name */
-      "MESA_FORMAT_ARGB8888_REV",  /* StrName */
+      MESA_FORMAT_A8R8G8B8_UNORM,    /* Name */
+      "MESA_FORMAT_A8R8G8B8_UNORM",  /* StrName */
       GL_RGBA,                     /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       8, 8, 8, 8,                  /* Red/Green/Blue/AlphaBits */
@@ -124,8 +124,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_RGBX8888,        /* Name */
-      "MESA_FORMAT_RGBX8888",      /* StrName */
+      MESA_FORMAT_X8B8G8R8_UNORM,        /* Name */
+      "MESA_FORMAT_X8B8G8R8_UNORM",      /* StrName */
       GL_RGB,                      /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       8, 8, 8, 0,                  /* Red/Green/Blue/AlphaBits */
@@ -133,8 +133,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_RGBX8888_REV,    /* Name */
-      "MESA_FORMAT_RGBX8888_REV",  /* StrName */
+      MESA_FORMAT_R8G8B8X8_UNORM,    /* Name */
+      "MESA_FORMAT_R8G8B8X8_UNORM",  /* StrName */
       GL_RGB,                      /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       8, 8, 8, 0,                  /* Red/Green/Blue/AlphaBits */
@@ -142,8 +142,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_XRGB8888,        /* Name */
-      "MESA_FORMAT_XRGB8888",      /* StrName */
+      MESA_FORMAT_B8G8R8X8_UNORM,        /* Name */
+      "MESA_FORMAT_B8G8R8X8_UNORM",      /* StrName */
       GL_RGB,                      /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       8, 8, 8, 0,                  /* Red/Green/Blue/AlphaBits */
@@ -151,8 +151,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_XRGB8888_REV,    /* Name */
-      "MESA_FORMAT_XRGB8888_REV",  /* StrName */
+      MESA_FORMAT_X8R8G8B8_UNORM,    /* Name */
+      "MESA_FORMAT_X8R8G8B8_UNORM",  /* StrName */
       GL_RGB,                      /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       8, 8, 8, 0,                  /* Red/Green/Blue/AlphaBits */
@@ -160,8 +160,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_RGB888,          /* Name */
-      "MESA_FORMAT_RGB888",        /* StrName */
+      MESA_FORMAT_BGR_UNORM8,          /* Name */
+      "MESA_FORMAT_BGR_UNORM8",        /* StrName */
       GL_RGB,                      /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       8, 8, 8, 0,                  /* Red/Green/Blue/AlphaBits */
@@ -169,8 +169,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 3                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_BGR888,          /* Name */
-      "MESA_FORMAT_BGR888",        /* StrName */
+      MESA_FORMAT_RGB_UNORM8,          /* Name */
+      "MESA_FORMAT_RGB_UNORM8",        /* StrName */
       GL_RGB,                      /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       8, 8, 8, 0,                  /* Red/Green/Blue/AlphaBits */
@@ -178,8 +178,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 3                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_RGB565,          /* Name */
-      "MESA_FORMAT_RGB565",        /* StrName */
+      MESA_FORMAT_B5G6R5_UNORM,          /* Name */
+      "MESA_FORMAT_B5G6R5_UNORM",        /* StrName */
       GL_RGB,                      /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       5, 6, 5, 0,                  /* Red/Green/Blue/AlphaBits */
@@ -187,8 +187,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_RGB565_REV,      /* Name */
-      "MESA_FORMAT_RGB565_REV",    /* StrName */
+      MESA_FORMAT_R5G6B5_UNORM,      /* Name */
+      "MESA_FORMAT_R5G6B5_UNORM",    /* StrName */
       GL_RGB,                      /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       5, 6, 5, 0,                  /* Red/Green/Blue/AlphaBits */
@@ -196,8 +196,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_ARGB4444,        /* Name */
-      "MESA_FORMAT_ARGB4444",      /* StrName */
+      MESA_FORMAT_B4G4R4A4_UNORM,        /* Name */
+      "MESA_FORMAT_B4G4R4A4_UNORM",      /* StrName */
       GL_RGBA,                     /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       4, 4, 4, 4,                  /* Red/Green/Blue/AlphaBits */
@@ -205,8 +205,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_ARGB4444_REV,    /* Name */
-      "MESA_FORMAT_ARGB4444_REV",  /* StrName */
+      MESA_FORMAT_A4R4G4B4_UNORM,    /* Name */
+      "MESA_FORMAT_A4R4G4B4_UNORM",  /* StrName */
       GL_RGBA,                     /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       4, 4, 4, 4,                  /* Red/Green/Blue/AlphaBits */
@@ -214,8 +214,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_RGBA5551,        /* Name */
-      "MESA_FORMAT_RGBA5551",      /* StrName */
+      MESA_FORMAT_A1B5G5R5_UNORM,        /* Name */
+      "MESA_FORMAT_A1B5G5R5_UNORM",      /* StrName */
       GL_RGBA,                     /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       5, 5, 5, 1,                  /* Red/Green/Blue/AlphaBits */
@@ -223,8 +223,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_ARGB1555,        /* Name */
-      "MESA_FORMAT_ARGB1555",      /* StrName */
+      MESA_FORMAT_B5G5R5A1_UNORM,        /* Name */
+      "MESA_FORMAT_B5G5R5A1_UNORM",      /* StrName */
       GL_RGBA,                     /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       5, 5, 5, 1,                  /* Red/Green/Blue/AlphaBits */
@@ -232,8 +232,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_ARGB1555_REV,    /* Name */
-      "MESA_FORMAT_ARGB1555_REV",  /* StrName */
+      MESA_FORMAT_A1R5G5B5_UNORM,    /* Name */
+      "MESA_FORMAT_A1R5G5B5_UNORM",  /* StrName */
       GL_RGBA,                     /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       5, 5, 5, 1,                  /* Red/Green/Blue/AlphaBits */
@@ -241,8 +241,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_AL44,            /* Name */
-      "MESA_FORMAT_AL44",          /* StrName */
+      MESA_FORMAT_L4A4_UNORM,            /* Name */
+      "MESA_FORMAT_L4A4_UNORM",          /* StrName */
       GL_LUMINANCE_ALPHA,          /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       0, 0, 0, 4,                  /* Red/Green/Blue/AlphaBits */
@@ -250,8 +250,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 1                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_AL88,            /* Name */
-      "MESA_FORMAT_AL88",          /* StrName */
+      MESA_FORMAT_L8A8_UNORM,            /* Name */
+      "MESA_FORMAT_L8A8_UNORM",          /* StrName */
       GL_LUMINANCE_ALPHA,          /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       0, 0, 0, 8,                  /* Red/Green/Blue/AlphaBits */
@@ -259,8 +259,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_AL88_REV,        /* Name */
-      "MESA_FORMAT_AL88_REV",      /* StrName */
+      MESA_FORMAT_A8L8_UNORM,        /* Name */
+      "MESA_FORMAT_A8L8_UNORM",      /* StrName */
       GL_LUMINANCE_ALPHA,          /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       0, 0, 0, 8,                  /* Red/Green/Blue/AlphaBits */
@@ -268,8 +268,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_AL1616,          /* Name */
-      "MESA_FORMAT_AL1616",        /* StrName */
+      MESA_FORMAT_L16A16_UNORM,          /* Name */
+      "MESA_FORMAT_L16A16_UNORM",        /* StrName */
       GL_LUMINANCE_ALPHA,          /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       0, 0, 0, 16,                 /* Red/Green/Blue/AlphaBits */
@@ -277,8 +277,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_AL1616_REV,      /* Name */
-      "MESA_FORMAT_AL1616_REV",    /* StrName */
+      MESA_FORMAT_A16L16_UNORM,      /* Name */
+      "MESA_FORMAT_A16L16_UNORM",    /* StrName */
       GL_LUMINANCE_ALPHA,          /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       0, 0, 0, 16,                 /* Red/Green/Blue/AlphaBits */
@@ -286,8 +286,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_RGB332,          /* Name */
-      "MESA_FORMAT_RGB332",        /* StrName */
+      MESA_FORMAT_B2G3R3_UNORM,          /* Name */
+      "MESA_FORMAT_B2G3R3_UNORM",        /* StrName */
       GL_RGB,                      /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       3, 3, 2, 0,                  /* Red/Green/Blue/AlphaBits */
@@ -295,8 +295,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 1                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_A8,              /* Name */
-      "MESA_FORMAT_A8",            /* StrName */
+      MESA_FORMAT_A_UNORM8,              /* Name */
+      "MESA_FORMAT_A_UNORM8",            /* StrName */
       GL_ALPHA,                    /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       0, 0, 0, 8,                  /* Red/Green/Blue/AlphaBits */
@@ -304,8 +304,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 1                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_A16,             /* Name */
-      "MESA_FORMAT_A16",           /* StrName */
+      MESA_FORMAT_A_UNORM16,             /* Name */
+      "MESA_FORMAT_A_UNORM16",           /* StrName */
       GL_ALPHA,                    /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       0, 0, 0, 16,                 /* Red/Green/Blue/AlphaBits */
@@ -313,8 +313,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_L8,              /* Name */
-      "MESA_FORMAT_L8",            /* StrName */
+      MESA_FORMAT_L_UNORM8,              /* Name */
+      "MESA_FORMAT_L_UNORM8",            /* StrName */
       GL_LUMINANCE,                /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       0, 0, 0, 0,                  /* Red/Green/Blue/AlphaBits */
@@ -322,8 +322,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 1                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_L16,             /* Name */
-      "MESA_FORMAT_L16",           /* StrName */
+      MESA_FORMAT_L_UNORM16,             /* Name */
+      "MESA_FORMAT_L_UNORM16",           /* StrName */
       GL_LUMINANCE,                /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       0, 0, 0, 0,                  /* Red/Green/Blue/AlphaBits */
@@ -331,8 +331,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_I8,              /* Name */
-      "MESA_FORMAT_I8",            /* StrName */
+      MESA_FORMAT_I_UNORM8,              /* Name */
+      "MESA_FORMAT_I_UNORM8",            /* StrName */
       GL_INTENSITY,                /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       0, 0, 0, 0,                  /* Red/Green/Blue/AlphaBits */
@@ -340,8 +340,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 1                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_I16,             /* Name */
-      "MESA_FORMAT_I16",           /* StrName */
+      MESA_FORMAT_I_UNORM16,             /* Name */
+      "MESA_FORMAT_I_UNORM16",           /* StrName */
       GL_INTENSITY,                /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       0, 0, 0, 0,                  /* Red/Green/Blue/AlphaBits */
@@ -367,8 +367,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_R8,
-      "MESA_FORMAT_R8",
+      MESA_FORMAT_R_UNORM8,
+      "MESA_FORMAT_R_UNORM8",
       GL_RED,
       GL_UNSIGNED_NORMALIZED,
       8, 0, 0, 0,
@@ -376,8 +376,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 1
    },
    {
-      MESA_FORMAT_GR88,
-      "MESA_FORMAT_GR88",
+      MESA_FORMAT_R8G8_UNORM,
+      "MESA_FORMAT_R8G8_UNORM",
       GL_RG,
       GL_UNSIGNED_NORMALIZED,
       8, 8, 0, 0,
@@ -385,8 +385,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2
    },
    {
-      MESA_FORMAT_RG88,
-      "MESA_FORMAT_RG88",
+      MESA_FORMAT_G8R8_UNORM,
+      "MESA_FORMAT_G8R8_UNORM",
       GL_RG,
       GL_UNSIGNED_NORMALIZED,
       8, 8, 0, 0,
@@ -394,8 +394,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2
    },
    {
-      MESA_FORMAT_R16,
-      "MESA_FORMAT_R16",
+      MESA_FORMAT_R_UNORM16,
+      "MESA_FORMAT_R_UNORM16",
       GL_RED,
       GL_UNSIGNED_NORMALIZED,
       16, 0, 0, 0,
@@ -403,8 +403,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2
    },
    {
-      MESA_FORMAT_GR1616,
-      "MESA_FORMAT_GR1616",
+      MESA_FORMAT_R16G16_UNORM,
+      "MESA_FORMAT_R16G16_UNORM",
       GL_RG,
       GL_UNSIGNED_NORMALIZED,
       16, 16, 0, 0,
@@ -412,8 +412,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_RG1616,
-      "MESA_FORMAT_RG1616",
+      MESA_FORMAT_G16R16_UNORM,
+      "MESA_FORMAT_G16R16_UNORM",
       GL_RG,
       GL_UNSIGNED_NORMALIZED,
       16, 16, 0, 0,
@@ -421,8 +421,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_ARGB2101010,
-      "MESA_FORMAT_ARGB2101010",
+      MESA_FORMAT_B10G10R10A2_UNORM,
+      "MESA_FORMAT_B10G10R10A2_UNORM",
       GL_RGBA,
       GL_UNSIGNED_NORMALIZED,
       10, 10, 10, 2,
@@ -430,8 +430,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_Z24_S8,          /* Name */
-      "MESA_FORMAT_Z24_S8",        /* StrName */
+      MESA_FORMAT_S8_UINT_Z24_UNORM,          /* Name */
+      "MESA_FORMAT_S8_UINT_Z24_UNORM",        /* StrName */
       GL_DEPTH_STENCIL,            /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       0, 0, 0, 0,                  /* Red/Green/Blue/AlphaBits */
@@ -439,8 +439,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_S8_Z24,          /* Name */
-      "MESA_FORMAT_S8_Z24",        /* StrName */
+      MESA_FORMAT_Z24_UNORM_X8_UINT,          /* Name */
+      "MESA_FORMAT_Z24_UNORM_X8_UINT",        /* StrName */
       GL_DEPTH_STENCIL,            /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       0, 0, 0, 0,                  /* Red/Green/Blue/AlphaBits */
@@ -448,8 +448,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_Z16,             /* Name */
-      "MESA_FORMAT_Z16",           /* StrName */
+      MESA_FORMAT_Z_UNORM16,             /* Name */
+      "MESA_FORMAT_Z_UNORM16",           /* StrName */
       GL_DEPTH_COMPONENT,          /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       0, 0, 0, 0,                  /* Red/Green/Blue/AlphaBits */
@@ -457,8 +457,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_X8_Z24,          /* Name */
-      "MESA_FORMAT_X8_Z24",        /* StrName */
+      MESA_FORMAT_Z24_UNORM_S8_UINT,          /* Name */
+      "MESA_FORMAT_Z24_UNORM_S8_UINT",        /* StrName */
       GL_DEPTH_COMPONENT,          /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       0, 0, 0, 0,                  /* Red/Green/Blue/AlphaBits */
@@ -466,8 +466,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_Z24_X8,          /* Name */
-      "MESA_FORMAT_Z24_X8",        /* StrName */
+      MESA_FORMAT_X8Z24_UNORM,          /* Name */
+      "MESA_FORMAT_X8Z24_UNORM",        /* StrName */
       GL_DEPTH_COMPONENT,          /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       0, 0, 0, 0,                  /* Red/Green/Blue/AlphaBits */
@@ -475,8 +475,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_Z32,             /* Name */
-      "MESA_FORMAT_Z32",           /* StrName */
+      MESA_FORMAT_Z_UNORM32,             /* Name */
+      "MESA_FORMAT_Z_UNORM32",           /* StrName */
       GL_DEPTH_COMPONENT,          /* BaseFormat */
       GL_UNSIGNED_NORMALIZED,      /* DataType */
       0, 0, 0, 0,                  /* Red/Green/Blue/AlphaBits */
@@ -484,8 +484,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_S8,              /* Name */
-      "MESA_FORMAT_S8",            /* StrName */
+      MESA_FORMAT_S_UINT8,              /* Name */
+      "MESA_FORMAT_S_UINT8",            /* StrName */
       GL_STENCIL_INDEX,            /* BaseFormat */
       GL_UNSIGNED_INT,             /* DataType */
       0, 0, 0, 0,                  /* Red/Green/Blue/AlphaBits */
@@ -493,8 +493,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 1                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_SRGB8,
-      "MESA_FORMAT_SRGB8",
+      MESA_FORMAT_BGR_SRGB8,
+      "MESA_FORMAT_BGR_SRGB8",
       GL_RGB,
       GL_UNSIGNED_NORMALIZED,
       8, 8, 8, 0,
@@ -502,8 +502,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 3
    },
    {
-      MESA_FORMAT_SRGBA8,
-      "MESA_FORMAT_SRGBA8",
+      MESA_FORMAT_A8B8G8R8_SRGB,
+      "MESA_FORMAT_A8B8G8R8_SRGB",
       GL_RGBA,
       GL_UNSIGNED_NORMALIZED,    
       8, 8, 8, 8,
@@ -511,8 +511,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_SARGB8,
-      "MESA_FORMAT_SARGB8",
+      MESA_FORMAT_B8G8R8A8_SRGB,
+      "MESA_FORMAT_B8G8R8A8_SRGB",
       GL_RGBA,
       GL_UNSIGNED_NORMALIZED,    
       8, 8, 8, 8,
@@ -520,8 +520,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_SL8,
-      "MESA_FORMAT_SL8",
+      MESA_FORMAT_L_SRGB8,
+      "MESA_FORMAT_L_SRGB8",
       GL_LUMINANCE,
       GL_UNSIGNED_NORMALIZED,    
       0, 0, 0, 0,
@@ -529,8 +529,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 1
    },
    {
-      MESA_FORMAT_SLA8,
-      "MESA_FORMAT_SLA8",
+      MESA_FORMAT_L8A8_SRGB,
+      "MESA_FORMAT_L8A8_SRGB",
       GL_LUMINANCE_ALPHA,
       GL_UNSIGNED_NORMALIZED,    
       0, 0, 0, 8,
@@ -666,8 +666,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 6
    },
    {
-      MESA_FORMAT_ALPHA_FLOAT32,
-      "MESA_FORMAT_ALPHA_FLOAT32",
+      MESA_FORMAT_A_FLOAT32,
+      "MESA_FORMAT_A_FLOAT32",
       GL_ALPHA,
       GL_FLOAT,
       0, 0, 0, 32,
@@ -675,8 +675,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_ALPHA_FLOAT16,
-      "MESA_FORMAT_ALPHA_FLOAT16",
+      MESA_FORMAT_A_FLOAT16,
+      "MESA_FORMAT_A_FLOAT16",
       GL_ALPHA,
       GL_FLOAT,
       0, 0, 0, 16,
@@ -684,8 +684,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2
    },
    {
-      MESA_FORMAT_LUMINANCE_FLOAT32,
-      "MESA_FORMAT_LUMINANCE_FLOAT32",
+      MESA_FORMAT_L_FLOAT32,
+      "MESA_FORMAT_L_FLOAT32",
       GL_LUMINANCE,
       GL_FLOAT,
       0, 0, 0, 0,
@@ -693,8 +693,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_LUMINANCE_FLOAT16,
-      "MESA_FORMAT_LUMINANCE_FLOAT16",
+      MESA_FORMAT_L_FLOAT16,
+      "MESA_FORMAT_L_FLOAT16",
       GL_LUMINANCE,
       GL_FLOAT,
       0, 0, 0, 0,
@@ -702,8 +702,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2
    },
    {
-      MESA_FORMAT_LUMINANCE_ALPHA_FLOAT32,
-      "MESA_FORMAT_LUMINANCE_ALPHA_FLOAT32",
+      MESA_FORMAT_LA_FLOAT32,
+      "MESA_FORMAT_LA_FLOAT32",
       GL_LUMINANCE_ALPHA,
       GL_FLOAT,
       0, 0, 0, 32,
@@ -711,8 +711,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 8
    },
    {
-      MESA_FORMAT_LUMINANCE_ALPHA_FLOAT16,
-      "MESA_FORMAT_LUMINANCE_ALPHA_FLOAT16",
+      MESA_FORMAT_LA_FLOAT16,
+      "MESA_FORMAT_LA_FLOAT16",
       GL_LUMINANCE_ALPHA,
       GL_FLOAT,
       0, 0, 0, 16,
@@ -720,8 +720,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_INTENSITY_FLOAT32,
-      "MESA_FORMAT_INTENSITY_FLOAT32",
+      MESA_FORMAT_I_FLOAT32,
+      "MESA_FORMAT_I_FLOAT32",
       GL_INTENSITY,
       GL_FLOAT,
       0, 0, 0, 0,
@@ -729,8 +729,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_INTENSITY_FLOAT16,
-      "MESA_FORMAT_INTENSITY_FLOAT16",
+      MESA_FORMAT_I_FLOAT16,
+      "MESA_FORMAT_I_FLOAT16",
       GL_INTENSITY,
       GL_FLOAT,
       0, 0, 0, 0,
@@ -777,8 +777,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
    /* unnormalized signed int formats */
    /* unnormalized unsigned int formats */
    {
-      MESA_FORMAT_ALPHA_UINT8,
-      "MESA_FORMAT_ALPHA_UINT8",
+      MESA_FORMAT_A_UINT8,
+      "MESA_FORMAT_A_UINT8",
       GL_ALPHA,
       GL_UNSIGNED_INT,
       0, 0, 0, 8,
@@ -786,8 +786,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 1
    },
    {
-      MESA_FORMAT_ALPHA_UINT16,
-      "MESA_FORMAT_ALPHA_UINT16",
+      MESA_FORMAT_A_UINT16,
+      "MESA_FORMAT_A_UINT16",
       GL_ALPHA,
       GL_UNSIGNED_INT,
       0, 0, 0, 16,
@@ -795,8 +795,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2
    },
    {
-      MESA_FORMAT_ALPHA_UINT32,
-      "MESA_FORMAT_ALPHA_UINT32",
+      MESA_FORMAT_A_UINT32,
+      "MESA_FORMAT_A_UINT32",
       GL_ALPHA,
       GL_UNSIGNED_INT,
       0, 0, 0, 32,
@@ -804,8 +804,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_ALPHA_INT8,
-      "MESA_FORMAT_ALPHA_INT8",
+      MESA_FORMAT_A_SINT8,
+      "MESA_FORMAT_A_SINT8",
       GL_ALPHA,
       GL_INT,
       0, 0, 0, 8,
@@ -813,8 +813,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 1
    },
    {
-      MESA_FORMAT_ALPHA_INT16,
-      "MESA_FORMAT_ALPHA_INT16",
+      MESA_FORMAT_A_SINT16,
+      "MESA_FORMAT_A_SINT16",
       GL_ALPHA,
       GL_INT,
       0, 0, 0, 16,
@@ -822,8 +822,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2
    },
    {
-      MESA_FORMAT_ALPHA_INT32,
-      "MESA_FORMAT_ALPHA_INT32",
+      MESA_FORMAT_A_SINT32,
+      "MESA_FORMAT_A_SINT32",
       GL_ALPHA,
       GL_INT,
       0, 0, 0, 32,
@@ -831,8 +831,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_INTENSITY_UINT8,
-      "MESA_FORMAT_INTENSITY_UINT8",
+      MESA_FORMAT_I_UINT8,
+      "MESA_FORMAT_I_UINT8",
       GL_INTENSITY,
       GL_UNSIGNED_INT,
       0, 0, 0, 0,
@@ -840,8 +840,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 1
    },
    {
-      MESA_FORMAT_INTENSITY_UINT16,
-      "MESA_FORMAT_INTENSITY_UINT16",
+      MESA_FORMAT_I_UINT16,
+      "MESA_FORMAT_I_UINT16",
       GL_INTENSITY,
       GL_UNSIGNED_INT,
       0, 0, 0, 0,
@@ -849,8 +849,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2
    },
    {
-      MESA_FORMAT_INTENSITY_UINT32,
-      "MESA_FORMAT_INTENSITY_UINT32",
+      MESA_FORMAT_I_UINT32,
+      "MESA_FORMAT_I_UINT32",
       GL_INTENSITY,
       GL_UNSIGNED_INT,
       0, 0, 0, 0,
@@ -858,8 +858,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_INTENSITY_INT8,
-      "MESA_FORMAT_INTENSITY_INT8",
+      MESA_FORMAT_I_SINT8,
+      "MESA_FORMAT_I_SINT8",
       GL_INTENSITY,
       GL_INT,
       0, 0, 0, 0,
@@ -867,8 +867,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 1
    },
    {
-      MESA_FORMAT_INTENSITY_INT16,
-      "MESA_FORMAT_INTENSITY_INT16",
+      MESA_FORMAT_I_SINT16,
+      "MESA_FORMAT_I_SINT16",
       GL_INTENSITY,
       GL_INT,
       0, 0, 0, 0,
@@ -876,8 +876,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2
    },
    {
-      MESA_FORMAT_INTENSITY_INT32,
-      "MESA_FORMAT_INTENSITY_INT32",
+      MESA_FORMAT_I_SINT32,
+      "MESA_FORMAT_I_SINT32",
       GL_INTENSITY,
       GL_INT,
       0, 0, 0, 0,
@@ -885,8 +885,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_LUMINANCE_UINT8,
-      "MESA_FORMAT_LUMINANCE_UINT8",
+      MESA_FORMAT_L_UINT8,
+      "MESA_FORMAT_L_UINT8",
       GL_LUMINANCE,
       GL_UNSIGNED_INT,
       0, 0, 0, 0,
@@ -894,8 +894,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 1
    },
    {
-      MESA_FORMAT_LUMINANCE_UINT16,
-      "MESA_FORMAT_LUMINANCE_UINT16",
+      MESA_FORMAT_L_UINT16,
+      "MESA_FORMAT_L_UINT16",
       GL_LUMINANCE,
       GL_UNSIGNED_INT,
       0, 0, 0, 0,
@@ -903,8 +903,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2
    },
    {
-      MESA_FORMAT_LUMINANCE_UINT32,
-      "MESA_FORMAT_LUMINANCE_UINT32",
+      MESA_FORMAT_L_UINT32,
+      "MESA_FORMAT_L_UINT32",
       GL_LUMINANCE,
       GL_UNSIGNED_INT,
       0, 0, 0, 0,
@@ -912,8 +912,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_LUMINANCE_INT8,
-      "MESA_FORMAT_LUMINANCE_INT8",
+      MESA_FORMAT_L_SINT8,
+      "MESA_FORMAT_L_SINT8",
       GL_LUMINANCE,
       GL_INT,
       0, 0, 0, 0,
@@ -921,8 +921,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 1
    },
    {
-      MESA_FORMAT_LUMINANCE_INT16,
-      "MESA_FORMAT_LUMINANCE_INT16",
+      MESA_FORMAT_L_SINT16,
+      "MESA_FORMAT_L_SINT16",
       GL_LUMINANCE,
       GL_INT,
       0, 0, 0, 0,
@@ -930,8 +930,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2
    },
    {
-      MESA_FORMAT_LUMINANCE_INT32,
-      "MESA_FORMAT_LUMINANCE_INT32",
+      MESA_FORMAT_L_SINT32,
+      "MESA_FORMAT_L_SINT32",
       GL_LUMINANCE,
       GL_INT,
       0, 0, 0, 0,
@@ -939,8 +939,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_LUMINANCE_ALPHA_UINT8,
-      "MESA_FORMAT_LUMINANCE_ALPHA_UINT8",
+      MESA_FORMAT_LA_UINT8,
+      "MESA_FORMAT_LA_UINT8",
       GL_LUMINANCE_ALPHA,
       GL_UNSIGNED_INT,
       0, 0, 0, 8,
@@ -948,8 +948,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2
    },
    {
-      MESA_FORMAT_LUMINANCE_ALPHA_UINT16,
-      "MESA_FORMAT_LUMINANCE_ALPHA_UINT16",
+      MESA_FORMAT_LA_UINT16,
+      "MESA_FORMAT_LA_UINT16",
       GL_LUMINANCE_ALPHA,
       GL_UNSIGNED_INT,
       0, 0, 0, 16,
@@ -957,8 +957,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_LUMINANCE_ALPHA_UINT32,
-      "MESA_FORMAT_LUMINANCE_ALPHA_UINT32",
+      MESA_FORMAT_LA_UINT32,
+      "MESA_FORMAT_LA_UINT32",
       GL_LUMINANCE_ALPHA,
       GL_UNSIGNED_INT,
       0, 0, 0, 32,
@@ -966,8 +966,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 8
    },
    {
-      MESA_FORMAT_LUMINANCE_ALPHA_INT8,
-      "MESA_FORMAT_LUMINANCE_ALPHA_INT8",
+      MESA_FORMAT_LA_SINT8,
+      "MESA_FORMAT_LA_SINT8",
       GL_LUMINANCE_ALPHA,
       GL_INT,
       0, 0, 0, 8,
@@ -975,8 +975,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2
    },
    {
-      MESA_FORMAT_LUMINANCE_ALPHA_INT16,
-      "MESA_FORMAT_LUMINANCE_ALPHA_INT16",
+      MESA_FORMAT_LA_SINT16,
+      "MESA_FORMAT_LA_SINT16",
       GL_LUMINANCE_ALPHA,
       GL_INT,
       0, 0, 0, 16,
@@ -984,8 +984,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_LUMINANCE_ALPHA_INT32,
-      "MESA_FORMAT_LUMINANCE_ALPHA_INT32",
+      MESA_FORMAT_LA_SINT32,
+      "MESA_FORMAT_LA_SINT32",
       GL_LUMINANCE_ALPHA,
       GL_INT,
       0, 0, 0, 32,
@@ -994,8 +994,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
    },
 
    {
-      MESA_FORMAT_R_INT8,
-      "MESA_FORMAT_R_INT8",
+      MESA_FORMAT_R_SINT8,
+      "MESA_FORMAT_R_SINT8",
       GL_RED,
       GL_INT,
       8, 0, 0, 0,
@@ -1003,8 +1003,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 1
    },
    {
-      MESA_FORMAT_RG_INT8,
-      "MESA_FORMAT_RG_INT8",
+      MESA_FORMAT_RG_SINT8,
+      "MESA_FORMAT_RG_SINT8",
       GL_RG,
       GL_INT,
       8, 8, 0, 0,
@@ -1012,8 +1012,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2
    },
    {
-      MESA_FORMAT_RGB_INT8,
-      "MESA_FORMAT_RGB_INT8",
+      MESA_FORMAT_RGB_SINT8,
+      "MESA_FORMAT_RGB_SINT8",
       GL_RGB,
       GL_INT,
       8, 8, 8, 0,
@@ -1021,8 +1021,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 3
    },
    {
-      MESA_FORMAT_RGBA_INT8,
-      "MESA_FORMAT_RGBA_INT8",
+      MESA_FORMAT_RGBA_SINT8,
+      "MESA_FORMAT_RGBA_SINT8",
       GL_RGBA,
       GL_INT,
       8, 8, 8, 8,
@@ -1030,8 +1030,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_R_INT16,
-      "MESA_FORMAT_R_INT16",
+      MESA_FORMAT_R_SINT16,
+      "MESA_FORMAT_R_SINT16",
       GL_RED,
       GL_INT,
       16, 0, 0, 0,
@@ -1039,8 +1039,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2
    },
    {
-      MESA_FORMAT_RG_INT16,
-      "MESA_FORMAT_RG_INT16",
+      MESA_FORMAT_RG_SINT16,
+      "MESA_FORMAT_RG_SINT16",
       GL_RG,
       GL_INT,
       16, 16, 0, 0,
@@ -1048,8 +1048,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_RGB_INT16,
-      "MESA_FORMAT_RGB_INT16",
+      MESA_FORMAT_RGB_SINT16,
+      "MESA_FORMAT_RGB_SINT16",
       GL_RGB,
       GL_INT,
       16, 16, 16, 0,
@@ -1057,8 +1057,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 6
    },
    {
-      MESA_FORMAT_RGBA_INT16,
-      "MESA_FORMAT_RGBA_INT16",
+      MESA_FORMAT_RGBA_SINT16,
+      "MESA_FORMAT_RGBA_SINT16",
       GL_RGBA,
       GL_INT,
       16, 16, 16, 16,
@@ -1066,8 +1066,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 8
    },
    {
-      MESA_FORMAT_R_INT32,
-      "MESA_FORMAT_R_INT32",
+      MESA_FORMAT_R_SINT32,
+      "MESA_FORMAT_R_SINT32",
       GL_RED,
       GL_INT,
       32, 0, 0, 0,
@@ -1075,8 +1075,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_RG_INT32,
-      "MESA_FORMAT_RG_INT32",
+      MESA_FORMAT_RG_SINT32,
+      "MESA_FORMAT_RG_SINT32",
       GL_RG,
       GL_INT,
       32, 32, 0, 0,
@@ -1084,8 +1084,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 8
    },
    {
-      MESA_FORMAT_RGB_INT32,
-      "MESA_FORMAT_RGB_INT32",
+      MESA_FORMAT_RGB_SINT32,
+      "MESA_FORMAT_RGB_SINT32",
       GL_RGB,
       GL_INT,
       32, 32, 32, 0,
@@ -1093,8 +1093,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 12
    },
    {
-      MESA_FORMAT_RGBA_INT32,
-      "MESA_FORMAT_RGBA_INT32",
+      MESA_FORMAT_RGBA_SINT32,
+      "MESA_FORMAT_RGBA_SINT32",
       GL_RGBA,
       GL_INT,
       32, 32, 32, 32,
@@ -1223,8 +1223,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
 
    /* Signed 8 bits / channel */
    {
-      MESA_FORMAT_SIGNED_R8,        /* Name */
-      "MESA_FORMAT_SIGNED_R8",      /* StrName */
+      MESA_FORMAT_R_SNORM8,        /* Name */
+      "MESA_FORMAT_R_SNORM8",      /* StrName */
       GL_RED,                       /* BaseFormat */
       GL_SIGNED_NORMALIZED,         /* DataType */
       8, 0, 0, 0,                   /* Red/Green/Blue/AlphaBits */
@@ -1232,8 +1232,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 1                       /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_SIGNED_RG88_REV,
-      "MESA_FORMAT_SIGNED_RG88_REV",
+      MESA_FORMAT_R8G8_SNORM,
+      "MESA_FORMAT_R8G8_SNORM",
       GL_RG,
       GL_SIGNED_NORMALIZED,
       8, 8, 0, 0,
@@ -1241,8 +1241,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2
    },
    {
-      MESA_FORMAT_SIGNED_RGBX8888,
-      "MESA_FORMAT_SIGNED_RGBX8888",
+      MESA_FORMAT_X8B8G8R8_SNORM,
+      "MESA_FORMAT_X8B8G8R8_SNORM",
       GL_RGB,
       GL_SIGNED_NORMALIZED,
       8, 8, 8, 0,
@@ -1250,8 +1250,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4                       /* 4 bpp, but no alpha */
    },
    {
-      MESA_FORMAT_SIGNED_RGBA8888,
-      "MESA_FORMAT_SIGNED_RGBA8888",
+      MESA_FORMAT_A8B8G8R8_SNORM,
+      "MESA_FORMAT_A8B8G8R8_SNORM",
       GL_RGBA,
       GL_SIGNED_NORMALIZED,
       8, 8, 8, 8,
@@ -1259,8 +1259,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_SIGNED_RGBA8888_REV,
-      "MESA_FORMAT_SIGNED_RGBA8888_REV",
+      MESA_FORMAT_R8G8B8A8_SNORM,
+      "MESA_FORMAT_R8G8B8A8_SNORM",
       GL_RGBA,
       GL_SIGNED_NORMALIZED,
       8, 8, 8, 8,
@@ -1270,8 +1270,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
 
    /* Signed 16 bits / channel */
    {
-      MESA_FORMAT_SIGNED_R16,
-      "MESA_FORMAT_SIGNED_R16",
+      MESA_FORMAT_R_SNORM16,
+      "MESA_FORMAT_R_SNORM16",
       GL_RED,
       GL_SIGNED_NORMALIZED,
       16, 0, 0, 0,
@@ -1279,8 +1279,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2
    },
    {
-      MESA_FORMAT_SIGNED_GR1616,
-      "MESA_FORMAT_SIGNED_GR1616",
+      MESA_FORMAT_R16G16_SNORM,
+      "MESA_FORMAT_R16G16_SNORM",
       GL_RG,
       GL_SIGNED_NORMALIZED,
       16, 16, 0, 0,
@@ -1288,8 +1288,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_SIGNED_RGB_16,
-      "MESA_FORMAT_SIGNED_RGB_16",
+      MESA_FORMAT_RGB_SNORM16,
+      "MESA_FORMAT_RGB_SNORM16",
       GL_RGB,
       GL_SIGNED_NORMALIZED,
       16, 16, 16, 0,
@@ -1297,8 +1297,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 6
    },
    {
-      MESA_FORMAT_SIGNED_RGBA_16,
-      "MESA_FORMAT_SIGNED_RGBA_16",
+      MESA_FORMAT_RGBA_SNORM16,
+      "MESA_FORMAT_RGBA_SNORM16",
       GL_RGBA,
       GL_SIGNED_NORMALIZED,
       16, 16, 16, 16,
@@ -1306,8 +1306,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 8
    },
    {
-      MESA_FORMAT_RGBA_16,
-      "MESA_FORMAT_RGBA_16",
+      MESA_FORMAT_RGBA_UNORM16,
+      "MESA_FORMAT_RGBA_UNORM16",
       GL_RGBA,
       GL_UNSIGNED_NORMALIZED,
       16, 16, 16, 16,
@@ -1315,8 +1315,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 8
    },
    {
-     MESA_FORMAT_RED_RGTC1,
-     "MESA_FORMAT_RED_RGTC1",
+     MESA_FORMAT_R_RGTC1_UNORM,
+     "MESA_FORMAT_R_RGTC1_UNORM",
      GL_RED,
      GL_UNSIGNED_NORMALIZED,
      8, 0, 0, 0,
@@ -1324,8 +1324,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
      4, 4, 8                     /* 8 bytes per 4x4 block */
    },
    {
-     MESA_FORMAT_SIGNED_RED_RGTC1,
-     "MESA_FORMAT_SIGNED_RED_RGTC1",
+     MESA_FORMAT_R_RGTC1_SNORM,
+     "MESA_FORMAT_R_RGTC1_SNORM",
      GL_RED,
      GL_SIGNED_NORMALIZED,
      8, 0, 0, 0,
@@ -1333,8 +1333,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
      4, 4, 8                     /* 8 bytes per 4x4 block */
    },
    {
-     MESA_FORMAT_RG_RGTC2,
-     "MESA_FORMAT_RG_RGTC2",
+     MESA_FORMAT_RG_RGTC2_UNORM,
+     "MESA_FORMAT_RG_RGTC2_UNORM",
      GL_RG,
      GL_UNSIGNED_NORMALIZED,
      8, 8, 0, 0,
@@ -1342,8 +1342,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
      4, 4, 16                     /* 16 bytes per 4x4 block */
    },
    {
-     MESA_FORMAT_SIGNED_RG_RGTC2,
-     "MESA_FORMAT_SIGNED_RG_RGTC2",
+     MESA_FORMAT_RG_RGTC2_SNORM,
+     "MESA_FORMAT_RG_RGTC2_SNORM",
      GL_RG,
      GL_SIGNED_NORMALIZED,
      8, 8, 0, 0,
@@ -1351,8 +1351,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
      4, 4, 16                     /* 16 bytes per 4x4 block */
    },
    {
-     MESA_FORMAT_L_LATC1,
-     "MESA_FORMAT_L_LATC1",
+     MESA_FORMAT_L_LATC1_UNORM,
+     "MESA_FORMAT_L_LATC1_UNORM",
      GL_LUMINANCE,
      GL_UNSIGNED_NORMALIZED,
      0, 0, 0, 0,
@@ -1360,8 +1360,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
      4, 4, 8                     /* 8 bytes per 4x4 block */
    },
    {
-     MESA_FORMAT_SIGNED_L_LATC1,
-     "MESA_FORMAT_SIGNED_L_LATC1",
+     MESA_FORMAT_L_LATC1_SNORM,
+     "MESA_FORMAT_L_LATC1_SNORM",
      GL_LUMINANCE,
      GL_SIGNED_NORMALIZED,
      0, 0, 0, 0,
@@ -1369,8 +1369,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
      4, 4, 8                     /* 8 bytes per 4x4 block */
    },
    {
-     MESA_FORMAT_LA_LATC2,
-     "MESA_FORMAT_LA_LATC2",
+     MESA_FORMAT_LA_LATC2_UNORM,
+     "MESA_FORMAT_LA_LATC2_UNORM",
      GL_LUMINANCE_ALPHA,
      GL_UNSIGNED_NORMALIZED,
      0, 0, 0, 4,
@@ -1378,8 +1378,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
      4, 4, 16                     /* 16 bytes per 4x4 block */
    },
    {
-     MESA_FORMAT_SIGNED_LA_LATC2,
-     "MESA_FORMAT_SIGNED_LA_LATC2",
+     MESA_FORMAT_LA_LATC2_SNORM,
+     "MESA_FORMAT_LA_LATC2_SNORM",
      GL_LUMINANCE_ALPHA,
      GL_SIGNED_NORMALIZED,
      0, 0, 0, 4,
@@ -1499,8 +1499,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
 
    /* Signed formats from EXT_texture_snorm that are not in GL3.1 */
    {
-      MESA_FORMAT_SIGNED_A8,
-      "MESA_FORMAT_SIGNED_A8",
+      MESA_FORMAT_A_SNORM8,
+      "MESA_FORMAT_A_SNORM8",
       GL_ALPHA,
       GL_SIGNED_NORMALIZED,
       0, 0, 0, 8,
@@ -1508,8 +1508,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 1
    },
    {
-      MESA_FORMAT_SIGNED_L8,
-      "MESA_FORMAT_SIGNED_L8",
+      MESA_FORMAT_L_SNORM8,
+      "MESA_FORMAT_L_SNORM8",
       GL_LUMINANCE,
       GL_SIGNED_NORMALIZED,
       0, 0, 0, 0,
@@ -1517,8 +1517,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 1
    },
    {
-      MESA_FORMAT_SIGNED_AL88,
-      "MESA_FORMAT_SIGNED_AL88",
+      MESA_FORMAT_L8A8_SNORM,
+      "MESA_FORMAT_L8A8_SNORM",
       GL_LUMINANCE_ALPHA,
       GL_SIGNED_NORMALIZED,
       0, 0, 0, 8,
@@ -1526,8 +1526,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2
    },
    {
-      MESA_FORMAT_SIGNED_I8,
-      "MESA_FORMAT_SIGNED_I8",
+      MESA_FORMAT_I_SNORM8,
+      "MESA_FORMAT_I_SNORM8",
       GL_INTENSITY,
       GL_SIGNED_NORMALIZED,
       0, 0, 0, 0,
@@ -1535,8 +1535,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 1
    },
    {
-      MESA_FORMAT_SIGNED_A16,
-      "MESA_FORMAT_SIGNED_A16",
+      MESA_FORMAT_A_SNORM16,
+      "MESA_FORMAT_A_SNORM16",
       GL_ALPHA,
       GL_SIGNED_NORMALIZED,
       0, 0, 0, 16,
@@ -1544,8 +1544,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2
    },
    {
-      MESA_FORMAT_SIGNED_L16,
-      "MESA_FORMAT_SIGNED_L16",
+      MESA_FORMAT_L_SNORM16,
+      "MESA_FORMAT_L_SNORM16",
       GL_LUMINANCE,
       GL_SIGNED_NORMALIZED,
       0, 0, 0, 0,
@@ -1553,8 +1553,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2
    },
    {
-      MESA_FORMAT_SIGNED_AL1616,
-      "MESA_FORMAT_SIGNED_AL1616",
+      MESA_FORMAT_LA_SNORM16,
+      "MESA_FORMAT_LA_SNORM16",
       GL_LUMINANCE_ALPHA,
       GL_SIGNED_NORMALIZED,
       0, 0, 0, 16,
@@ -1562,8 +1562,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_SIGNED_I16,
-      "MESA_FORMAT_SIGNED_I16",
+      MESA_FORMAT_I_SNORM16,
+      "MESA_FORMAT_I_SNORM16",
       GL_INTENSITY,
       GL_SIGNED_NORMALIZED,
       0, 0, 0, 0,
@@ -1571,7 +1571,7 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2
    },
    {
-      MESA_FORMAT_RGB9_E5_FLOAT,
+      MESA_FORMAT_R9G9B9E5_FLOAT,
       "MESA_FORMAT_RGB9_E5",
       GL_RGB,
       GL_FLOAT,
@@ -1580,8 +1580,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_R11_G11_B10_FLOAT,
-      "MESA_FORMAT_R11_G11_B10_FLOAT",
+      MESA_FORMAT_R11G11B10_FLOAT,
+      "MESA_FORMAT_R11G11B10_FLOAT",
       GL_RGB,
       GL_FLOAT,
       11, 11, 10, 0,
@@ -1590,8 +1590,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
    },
    /* ARB_depth_buffer_float */
    {
-      MESA_FORMAT_Z32_FLOAT,       /* Name */
-      "MESA_FORMAT_Z32_FLOAT",     /* StrName */
+      MESA_FORMAT_Z_FLOAT32,       /* Name */
+      "MESA_FORMAT_Z_FLOAT32",     /* StrName */
       GL_DEPTH_COMPONENT,          /* BaseFormat */
       GL_FLOAT,                    /* DataType */
       0, 0, 0, 0,                  /* Red/Green/Blue/AlphaBits */
@@ -1599,8 +1599,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_Z32_FLOAT_X24S8, /* Name */
-      "MESA_FORMAT_Z32_FLOAT_X24S8", /* StrName */
+      MESA_FORMAT_Z32_FLOAT_S8X24_UINT, /* Name */
+      "MESA_FORMAT_Z32_FLOAT_S8X24_UINT", /* StrName */
       GL_DEPTH_STENCIL,            /* BaseFormat */
       /* DataType here is used to answer GL_TEXTURE_DEPTH_TYPE queries, and is
        * never used for stencil because stencil is always GL_UNSIGNED_INT.
@@ -1611,8 +1611,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 8                      /* BlockWidth/Height,Bytes */
    },
    {
-      MESA_FORMAT_ARGB2101010_UINT,
-      "MESA_FORMAT_ARGB2101010_UINT",
+      MESA_FORMAT_B10G10R10A2_UINT,
+      "MESA_FORMAT_B10G10R10A2_UINT",
       GL_RGBA,
       GL_UNSIGNED_INT,
       10, 10, 10, 2,
@@ -1620,8 +1620,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_ABGR2101010_UINT,
-      "MESA_FORMAT_ABGR2101010_UINT",
+      MESA_FORMAT_R10G10B10A2_UINT,
+      "MESA_FORMAT_R10G10B10A2_UINT",
       GL_RGBA,
       GL_UNSIGNED_INT,
       10, 10, 10, 2,
@@ -1629,8 +1629,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_XRGB4444_UNORM,
-      "MESA_FORMAT_XRGB4444_UNORM",
+      MESA_FORMAT_B4G4R4X4_UNORM,
+      "MESA_FORMAT_B4G4R4X4_UNORM",
       GL_RGB,
       GL_UNSIGNED_NORMALIZED,
       4, 4, 4, 0,
@@ -1638,8 +1638,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2
    },
    {
-      MESA_FORMAT_XRGB1555_UNORM,
-      "MESA_FORMAT_XRGB1555_UNORM",
+      MESA_FORMAT_B5G5R5X1_UNORM,
+      "MESA_FORMAT_B5G5R5X1_UNORM",
       GL_RGB,
       GL_UNSIGNED_NORMALIZED,
       5, 5, 5, 0,
@@ -1647,8 +1647,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2
    },
    {
-      MESA_FORMAT_XBGR8888_SNORM,
-      "MESA_FORMAT_XBGR8888_SNORM",
+      MESA_FORMAT_R8G8B8X8_SNORM,
+      "MESA_FORMAT_R8G8B8X8_SNORM",
       GL_RGB,
       GL_SIGNED_NORMALIZED,
       8, 8, 8, 0,
@@ -1656,8 +1656,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_XBGR8888_SRGB,
-      "MESA_FORMAT_XBGR8888_SRGB",
+      MESA_FORMAT_R8G8B8X8_SRGB,
+      "MESA_FORMAT_R8G8B8X8_SRGB",
       GL_RGB,
       GL_UNSIGNED_NORMALIZED,
       8, 8, 8, 0,
@@ -1665,8 +1665,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_XBGR8888_UINT,
-      "MESA_FORMAT_XBGR8888_UINT",
+      MESA_FORMAT_RGBX_UINT8,
+      "MESA_FORMAT_RGBX_UINT8",
       GL_RGB,
       GL_UNSIGNED_INT,
       8, 8, 8, 0,
@@ -1674,8 +1674,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_XBGR8888_SINT,
-      "MESA_FORMAT_XBGR8888_SINT",
+      MESA_FORMAT_RGBX_SINT8,
+      "MESA_FORMAT_RGBX_SINT8",
       GL_RGB,
       GL_INT,
       8, 8, 8, 0,
@@ -1683,8 +1683,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_XRGB2101010_UNORM,
-      "MESA_FORMAT_XRGB2101010_UNORM",
+      MESA_FORMAT_B10G10R10X2_UNORM,
+      "MESA_FORMAT_B10G10R10X2_UNORM",
       GL_RGB,
       GL_UNSIGNED_NORMALIZED,
       10, 10, 10, 0,
@@ -1692,8 +1692,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_XBGR16161616_UNORM,
-      "MESA_FORMAT_XBGR16161616_UNORM",
+      MESA_FORMAT_RGBX_UNORM16,
+      "MESA_FORMAT_RGBX_UNORM16",
       GL_RGB,
       GL_UNSIGNED_NORMALIZED,
       16, 16, 16, 0,
@@ -1701,8 +1701,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 8
    },
    {
-      MESA_FORMAT_XBGR16161616_SNORM,
-      "MESA_FORMAT_XBGR16161616_SNORM",
+      MESA_FORMAT_RGBX_SNORM16,
+      "MESA_FORMAT_RGBX_SNORM16",
       GL_RGB,
       GL_SIGNED_NORMALIZED,
       16, 16, 16, 0,
@@ -1710,8 +1710,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 8
    },
    {
-      MESA_FORMAT_XBGR16161616_FLOAT,
-      "MESA_FORMAT_XBGR16161616_FLOAT",
+      MESA_FORMAT_RGBX_FLOAT16,
+      "MESA_FORMAT_RGBX_FLOAT16",
       GL_RGB,
       GL_FLOAT,
       16, 16, 16, 0,
@@ -1719,8 +1719,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 8
    },
    {
-      MESA_FORMAT_XBGR16161616_UINT,
-      "MESA_FORMAT_XBGR16161616_UINT",
+      MESA_FORMAT_RGBX_UINT16,
+      "MESA_FORMAT_RGBX_UINT16",
       GL_RGB,
       GL_UNSIGNED_INT,
       16, 16, 16, 0,
@@ -1728,8 +1728,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 8
    },
    {
-      MESA_FORMAT_XBGR16161616_SINT,
-      "MESA_FORMAT_XBGR16161616_SINT",
+      MESA_FORMAT_RGBX_SINT16,
+      "MESA_FORMAT_RGBX_SINT16",
       GL_RGB,
       GL_INT,
       16, 16, 16, 0,
@@ -1737,8 +1737,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 8
    },
    {
-      MESA_FORMAT_XBGR32323232_FLOAT,
-      "MESA_FORMAT_XBGR32323232_FLOAT",
+      MESA_FORMAT_RGBX_FLOAT32,
+      "MESA_FORMAT_RGBX_FLOAT32",
       GL_RGB,
       GL_FLOAT,
       32, 32, 32, 0,
@@ -1746,8 +1746,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 16
    },
    {
-      MESA_FORMAT_XBGR32323232_UINT,
-      "MESA_FORMAT_XBGR32323232_UINT",
+      MESA_FORMAT_RGBX_UINT32,
+      "MESA_FORMAT_RGBX_UINT32",
       GL_RGB,
       GL_UNSIGNED_INT,
       32, 32, 32, 0,
@@ -1755,8 +1755,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 16
    },
    {
-      MESA_FORMAT_XBGR32323232_SINT,
-      "MESA_FORMAT_XBGR32323232_SINT",
+      MESA_FORMAT_RGBX_SINT32,
+      "MESA_FORMAT_RGBX_SINT32",
       GL_RGB,
       GL_INT,
       32, 32, 32, 0,
@@ -1764,8 +1764,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 16
    },
    {
-      MESA_FORMAT_ABGR2101010,
-      "MESA_FORMAT_ABGR2101010",
+      MESA_FORMAT_R10G10B10A2_UNORM,
+      "MESA_FORMAT_R10G10B10A2_UNORM",
       GL_RGBA,
       GL_UNSIGNED_NORMALIZED,
       10, 10, 10, 2,
@@ -1773,8 +1773,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 4
    },
    {
-      MESA_FORMAT_SIGNED_RG88,
-      "MESA_FORMAT_SIGNED_RG88",
+      MESA_FORMAT_G8R8_SNORM,
+      "MESA_FORMAT_G8R8_SNORM",
       GL_RG,
       GL_SIGNED_NORMALIZED,
       8, 8, 0, 0,
@@ -1782,8 +1782,8 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
       1, 1, 2
    },
    {
-      MESA_FORMAT_SIGNED_RG1616,
-      "MESA_FORMAT_SIGNED_RG1616",
+      MESA_FORMAT_G16R16_SNORM,
+      "MESA_FORMAT_G16R16_SNORM",
       GL_RG,
       GL_SIGNED_NORMALIZED,
       16, 16, 0, 0,
@@ -1795,7 +1795,7 @@ static struct gl_format_info format_info[MESA_FORMAT_COUNT] =
 
 
 static const struct gl_format_info *
-_mesa_get_format_info(gl_format format)
+_mesa_get_format_info(mesa_format format)
 {
    const struct gl_format_info *info = &format_info[format];
    assert(info->Name == format);
@@ -1805,7 +1805,7 @@ _mesa_get_format_info(gl_format format)
 
 /** Return string name of format (for debugging) */
 const char *
-_mesa_get_format_name(gl_format format)
+_mesa_get_format_name(mesa_format format)
 {
    const struct gl_format_info *info = _mesa_get_format_info(format);
    return info->StrName;
@@ -1821,7 +1821,7 @@ _mesa_get_format_name(gl_format format)
  * Note: not GLuint, so as not to coerce math to unsigned. cf. fdo #37351
  */
 GLint
-_mesa_get_format_bytes(gl_format format)
+_mesa_get_format_bytes(mesa_format format)
 {
    const struct gl_format_info *info = _mesa_get_format_info(format);
    ASSERT(info->BytesPerBlock);
@@ -1837,7 +1837,7 @@ _mesa_get_format_bytes(gl_format format)
  * \param pname  the component, such as GL_RED_BITS, GL_TEXTURE_BLUE_BITS, etc.
  */
 GLint
-_mesa_get_format_bits(gl_format format, GLenum pname)
+_mesa_get_format_bits(mesa_format format, GLenum pname)
 {
    const struct gl_format_info *info = _mesa_get_format_info(format);
 
@@ -1886,7 +1886,7 @@ _mesa_get_format_bits(gl_format format, GLenum pname)
 
 
 GLuint
-_mesa_get_format_max_bits(gl_format format)
+_mesa_get_format_max_bits(mesa_format format)
 {
    const struct gl_format_info *info = _mesa_get_format_info(format);
    GLuint max = MAX2(info->RedBits, info->GreenBits);
@@ -1911,7 +1911,7 @@ _mesa_get_format_max_bits(gl_format format)
  *    GL_FLOAT = an ordinary float
  */
 GLenum
-_mesa_get_format_datatype(gl_format format)
+_mesa_get_format_datatype(mesa_format format)
 {
    const struct gl_format_info *info = _mesa_get_format_info(format);
    return info->DataType;
@@ -1924,7 +1924,7 @@ _mesa_get_format_datatype(gl_format format)
  * GL_YCBCR_MESA, GL_DEPTH_COMPONENT, GL_STENCIL_INDEX, GL_DEPTH_STENCIL.
  */
 GLenum
-_mesa_get_format_base_format(gl_format format)
+_mesa_get_format_base_format(mesa_format format)
 {
    const struct gl_format_info *info = _mesa_get_format_info(format);
    return info->BaseFormat;
@@ -1939,7 +1939,7 @@ _mesa_get_format_base_format(gl_format format)
  * \param bh  returns block height in pixels
  */
 void
-_mesa_get_format_block_size(gl_format format, GLuint *bw, GLuint *bh)
+_mesa_get_format_block_size(mesa_format format, GLuint *bw, GLuint *bh)
 {
    const struct gl_format_info *info = _mesa_get_format_info(format);
    *bw = info->BlockWidth;
@@ -1949,7 +1949,7 @@ _mesa_get_format_block_size(gl_format format, GLuint *bw, GLuint *bh)
 
 /** Is the given format a compressed format? */
 GLboolean
-_mesa_is_format_compressed(gl_format format)
+_mesa_is_format_compressed(mesa_format format)
 {
    const struct gl_format_info *info = _mesa_get_format_info(format);
    return info->BlockWidth > 1 || info->BlockHeight > 1;
@@ -1960,7 +1960,7 @@ _mesa_is_format_compressed(gl_format format)
  * Determine if the given format represents a packed depth/stencil buffer.
  */
 GLboolean
-_mesa_is_format_packed_depth_stencil(gl_format format)
+_mesa_is_format_packed_depth_stencil(mesa_format format)
 {
    const struct gl_format_info *info = _mesa_get_format_info(format);
 
@@ -1972,7 +1972,7 @@ _mesa_is_format_packed_depth_stencil(gl_format format)
  * Is the given format a signed/unsigned integer color format?
  */
 GLboolean
-_mesa_is_format_integer_color(gl_format format)
+_mesa_is_format_integer_color(mesa_format format)
 {
    const struct gl_format_info *info = _mesa_get_format_info(format);
    return (info->DataType == GL_INT || info->DataType == GL_UNSIGNED_INT) &&
@@ -1986,7 +1986,7 @@ _mesa_is_format_integer_color(gl_format format)
  * Is the given format an unsigned integer format?
  */
 GLboolean
-_mesa_is_format_unsigned(gl_format format)
+_mesa_is_format_unsigned(mesa_format format)
 {
    const struct gl_format_info *info = _mesa_get_format_info(format);
    return _mesa_is_type_unsigned(info->DataType);
@@ -1997,10 +1997,10 @@ _mesa_is_format_unsigned(gl_format format)
  * Does the given format store signed values?
  */
 GLboolean
-_mesa_is_format_signed(gl_format format)
+_mesa_is_format_signed(mesa_format format)
 {
-   if (format == MESA_FORMAT_R11_G11_B10_FLOAT || 
-       format == MESA_FORMAT_RGB9_E5_FLOAT) {
+   if (format == MESA_FORMAT_R11G11B10_FLOAT || 
+       format == MESA_FORMAT_R9G9B9E5_FLOAT) {
       /* these packed float formats only store unsigned values */
       return GL_FALSE;
    }
@@ -2018,20 +2018,20 @@ _mesa_is_format_signed(gl_format format)
  * \return GL_LINEAR or GL_SRGB
  */
 GLenum
-_mesa_get_format_color_encoding(gl_format format)
+_mesa_get_format_color_encoding(mesa_format format)
 {
    /* XXX this info should be encoded in gl_format_info */
    switch (format) {
-   case MESA_FORMAT_SRGB8:
-   case MESA_FORMAT_SRGBA8:
-   case MESA_FORMAT_SARGB8:
-   case MESA_FORMAT_SL8:
-   case MESA_FORMAT_SLA8:
+   case MESA_FORMAT_BGR_SRGB8:
+   case MESA_FORMAT_A8B8G8R8_SRGB:
+   case MESA_FORMAT_B8G8R8A8_SRGB:
+   case MESA_FORMAT_L_SRGB8:
+   case MESA_FORMAT_L8A8_SRGB:
    case MESA_FORMAT_SRGB_DXT1:
    case MESA_FORMAT_SRGBA_DXT1:
    case MESA_FORMAT_SRGBA_DXT3:
    case MESA_FORMAT_SRGBA_DXT5:
-   case MESA_FORMAT_XBGR8888_SRGB:
+   case MESA_FORMAT_R8G8B8X8_SRGB:
    case MESA_FORMAT_ETC2_SRGB8:
    case MESA_FORMAT_ETC2_SRGB8_ALPHA8_EAC:
    case MESA_FORMAT_ETC2_SRGB8_PUNCHTHROUGH_ALPHA1:
@@ -2046,24 +2046,24 @@ _mesa_get_format_color_encoding(gl_format format)
  * For an sRGB format, return the corresponding linear color space format.
  * For non-sRGB formats, return the format as-is.
  */
-gl_format
-_mesa_get_srgb_format_linear(gl_format format)
+mesa_format
+_mesa_get_srgb_format_linear(mesa_format format)
 {
    switch (format) {
-   case MESA_FORMAT_SRGB8:
-      format = MESA_FORMAT_RGB888;
+   case MESA_FORMAT_BGR_SRGB8:
+      format = MESA_FORMAT_BGR_UNORM8;
       break;
-   case MESA_FORMAT_SRGBA8:
-      format = MESA_FORMAT_RGBA8888;
+   case MESA_FORMAT_A8B8G8R8_SRGB:
+      format = MESA_FORMAT_A8B8G8R8_UNORM;
       break;
-   case MESA_FORMAT_SARGB8:
-      format = MESA_FORMAT_ARGB8888;
+   case MESA_FORMAT_B8G8R8A8_SRGB:
+      format = MESA_FORMAT_B8G8R8A8_UNORM;
       break;
-   case MESA_FORMAT_SL8:
-      format = MESA_FORMAT_L8;
+   case MESA_FORMAT_L_SRGB8:
+      format = MESA_FORMAT_L_UNORM8;
       break;
-   case MESA_FORMAT_SLA8:
-      format = MESA_FORMAT_AL88;
+   case MESA_FORMAT_L8A8_SRGB:
+      format = MESA_FORMAT_L8A8_UNORM;
       break;
    case MESA_FORMAT_SRGB_DXT1:
       format = MESA_FORMAT_RGB_DXT1;
@@ -2077,8 +2077,8 @@ _mesa_get_srgb_format_linear(gl_format format)
    case MESA_FORMAT_SRGBA_DXT5:
       format = MESA_FORMAT_RGBA_DXT5;
       break;
-   case MESA_FORMAT_XBGR8888_SRGB:
-      format = MESA_FORMAT_RGBX8888_REV;
+   case MESA_FORMAT_R8G8B8X8_SRGB:
+      format = MESA_FORMAT_R8G8B8X8_UNORM;
       break;
    case MESA_FORMAT_ETC2_SRGB8:
       format = MESA_FORMAT_ETC2_RGB8;
@@ -2100,57 +2100,57 @@ _mesa_get_srgb_format_linear(gl_format format)
  * If the given format is a compressed format, return a corresponding
  * uncompressed format.
  */
-gl_format
-_mesa_get_uncompressed_format(gl_format format)
+mesa_format
+_mesa_get_uncompressed_format(mesa_format format)
 {
    switch (format) {
    case MESA_FORMAT_RGB_FXT1:
-      return MESA_FORMAT_RGB888;
+      return MESA_FORMAT_BGR_UNORM8;
    case MESA_FORMAT_RGBA_FXT1:
-      return MESA_FORMAT_RGBA8888;
+      return MESA_FORMAT_A8B8G8R8_UNORM;
    case MESA_FORMAT_RGB_DXT1:
    case MESA_FORMAT_SRGB_DXT1:
-      return MESA_FORMAT_RGB888;
+      return MESA_FORMAT_BGR_UNORM8;
    case MESA_FORMAT_RGBA_DXT1:
    case MESA_FORMAT_SRGBA_DXT1:
-      return MESA_FORMAT_RGBA8888;
+      return MESA_FORMAT_A8B8G8R8_UNORM;
    case MESA_FORMAT_RGBA_DXT3:
    case MESA_FORMAT_SRGBA_DXT3:
-      return MESA_FORMAT_RGBA8888;
+      return MESA_FORMAT_A8B8G8R8_UNORM;
    case MESA_FORMAT_RGBA_DXT5:
    case MESA_FORMAT_SRGBA_DXT5:
-      return MESA_FORMAT_RGBA8888;
-   case MESA_FORMAT_RED_RGTC1:
-      return MESA_FORMAT_R8;
-   case MESA_FORMAT_SIGNED_RED_RGTC1:
-      return MESA_FORMAT_SIGNED_R8;
-   case MESA_FORMAT_RG_RGTC2:
-      return MESA_FORMAT_GR88;
-   case MESA_FORMAT_SIGNED_RG_RGTC2:
-      return MESA_FORMAT_SIGNED_RG88_REV;
-   case MESA_FORMAT_L_LATC1:
-      return MESA_FORMAT_L8;
-   case MESA_FORMAT_SIGNED_L_LATC1:
-      return MESA_FORMAT_SIGNED_L8;
-   case MESA_FORMAT_LA_LATC2:
-      return MESA_FORMAT_AL88;
-   case MESA_FORMAT_SIGNED_LA_LATC2:
-      return MESA_FORMAT_SIGNED_AL88;
+      return MESA_FORMAT_A8B8G8R8_UNORM;
+   case MESA_FORMAT_R_RGTC1_UNORM:
+      return MESA_FORMAT_R_UNORM8;
+   case MESA_FORMAT_R_RGTC1_SNORM:
+      return MESA_FORMAT_R_SNORM8;
+   case MESA_FORMAT_RG_RGTC2_UNORM:
+      return MESA_FORMAT_R8G8_UNORM;
+   case MESA_FORMAT_RG_RGTC2_SNORM:
+      return MESA_FORMAT_R8G8_SNORM;
+   case MESA_FORMAT_L_LATC1_UNORM:
+      return MESA_FORMAT_L_UNORM8;
+   case MESA_FORMAT_L_LATC1_SNORM:
+      return MESA_FORMAT_L_SNORM8;
+   case MESA_FORMAT_LA_LATC2_UNORM:
+      return MESA_FORMAT_L8A8_UNORM;
+   case MESA_FORMAT_LA_LATC2_SNORM:
+      return MESA_FORMAT_L8A8_SNORM;
    case MESA_FORMAT_ETC1_RGB8:
    case MESA_FORMAT_ETC2_RGB8:
    case MESA_FORMAT_ETC2_SRGB8:
-      return MESA_FORMAT_RGB888;
+      return MESA_FORMAT_BGR_UNORM8;
    case MESA_FORMAT_ETC2_RGBA8_EAC:
    case MESA_FORMAT_ETC2_SRGB8_ALPHA8_EAC:
    case MESA_FORMAT_ETC2_RGB8_PUNCHTHROUGH_ALPHA1:
    case MESA_FORMAT_ETC2_SRGB8_PUNCHTHROUGH_ALPHA1:
-      return MESA_FORMAT_RGBA8888;
+      return MESA_FORMAT_A8B8G8R8_UNORM;
    case MESA_FORMAT_ETC2_R11_EAC:
    case MESA_FORMAT_ETC2_SIGNED_R11_EAC:
-      return MESA_FORMAT_R16;
+      return MESA_FORMAT_R_UNORM16;
    case MESA_FORMAT_ETC2_RG11_EAC:
    case MESA_FORMAT_ETC2_SIGNED_RG11_EAC:
-      return MESA_FORMAT_GR1616;
+      return MESA_FORMAT_R16G16_UNORM;
    default:
 #ifdef DEBUG
       assert(!_mesa_is_format_compressed(format));
@@ -2161,7 +2161,7 @@ _mesa_get_uncompressed_format(gl_format format)
 
 
 GLuint
-_mesa_format_num_components(gl_format format)
+_mesa_format_num_components(mesa_format format)
 {
    const struct gl_format_info *info = _mesa_get_format_info(format);
    return ((info->RedBits > 0) +
@@ -2180,7 +2180,7 @@ _mesa_format_num_components(gl_format format)
  * in the given format.
  */
 GLuint
-_mesa_format_image_size(gl_format format, GLsizei width,
+_mesa_format_image_size(mesa_format format, GLsizei width,
                         GLsizei height, GLsizei depth)
 {
    const struct gl_format_info *info = _mesa_get_format_info(format);
@@ -2206,7 +2206,7 @@ _mesa_format_image_size(gl_format format, GLsizei width,
  * accomodate very large textures.
  */
 uint64_t
-_mesa_format_image_size64(gl_format format, GLsizei width,
+_mesa_format_image_size64(mesa_format format, GLsizei width,
                           GLsizei height, GLsizei depth)
 {
    const struct gl_format_info *info = _mesa_get_format_info(format);
@@ -2232,7 +2232,7 @@ _mesa_format_image_size64(gl_format format, GLsizei width,
 
 
 GLint
-_mesa_format_row_stride(gl_format format, GLsizei width)
+_mesa_format_row_stride(mesa_format format, GLsizei width)
 {
    const struct gl_format_info *info = _mesa_get_format_info(format);
    /* Strictly speaking, a conditional isn't needed here */
@@ -2259,7 +2259,7 @@ _mesa_format_row_stride(gl_format format, GLsizei width)
 static void
 check_format_to_type_and_comps(void)
 {
-   gl_format f;
+   mesa_format f;
 
    for (f = MESA_FORMAT_NONE + 1; f < MESA_FORMAT_COUNT; f++) {
       GLenum datatype = 0;
@@ -2364,99 +2364,99 @@ _mesa_test_formats(void)
 
 
 /**
- * Return datatype and number of components per texel for the given gl_format.
+ * Return datatype and number of components per texel for the given mesa_format.
  * Only used for mipmap generation code.
  */
 void
-_mesa_format_to_type_and_comps(gl_format format,
+_mesa_format_to_type_and_comps(mesa_format format,
                                GLenum *datatype, GLuint *comps)
 {
    switch (format) {
-   case MESA_FORMAT_RGBA8888:
-   case MESA_FORMAT_RGBA8888_REV:
-   case MESA_FORMAT_ARGB8888:
-   case MESA_FORMAT_ARGB8888_REV:
-   case MESA_FORMAT_RGBX8888:
-   case MESA_FORMAT_RGBX8888_REV:
-   case MESA_FORMAT_XRGB8888:
-   case MESA_FORMAT_XRGB8888_REV:
+   case MESA_FORMAT_A8B8G8R8_UNORM:
+   case MESA_FORMAT_R8G8B8A8_UNORM:
+   case MESA_FORMAT_B8G8R8A8_UNORM:
+   case MESA_FORMAT_A8R8G8B8_UNORM:
+   case MESA_FORMAT_X8B8G8R8_UNORM:
+   case MESA_FORMAT_R8G8B8X8_UNORM:
+   case MESA_FORMAT_B8G8R8X8_UNORM:
+   case MESA_FORMAT_X8R8G8B8_UNORM:
       *datatype = GL_UNSIGNED_BYTE;
       *comps = 4;
       return;
-   case MESA_FORMAT_RGB888:
-   case MESA_FORMAT_BGR888:
+   case MESA_FORMAT_BGR_UNORM8:
+   case MESA_FORMAT_RGB_UNORM8:
       *datatype = GL_UNSIGNED_BYTE;
       *comps = 3;
       return;
-   case MESA_FORMAT_RGB565:
-   case MESA_FORMAT_RGB565_REV:
+   case MESA_FORMAT_B5G6R5_UNORM:
+   case MESA_FORMAT_R5G6B5_UNORM:
       *datatype = GL_UNSIGNED_SHORT_5_6_5;
       *comps = 3;
       return;
 
-   case MESA_FORMAT_ARGB4444:
-   case MESA_FORMAT_ARGB4444_REV:
-   case MESA_FORMAT_XRGB4444_UNORM:
+   case MESA_FORMAT_B4G4R4A4_UNORM:
+   case MESA_FORMAT_A4R4G4B4_UNORM:
+   case MESA_FORMAT_B4G4R4X4_UNORM:
       *datatype = GL_UNSIGNED_SHORT_4_4_4_4;
       *comps = 4;
       return;
 
-   case MESA_FORMAT_ARGB1555:
-   case MESA_FORMAT_ARGB1555_REV:
-   case MESA_FORMAT_XRGB1555_UNORM:
+   case MESA_FORMAT_B5G5R5A1_UNORM:
+   case MESA_FORMAT_A1R5G5B5_UNORM:
+   case MESA_FORMAT_B5G5R5X1_UNORM:
       *datatype = GL_UNSIGNED_SHORT_1_5_5_5_REV;
       *comps = 4;
       return;
 
-   case MESA_FORMAT_ARGB2101010:
+   case MESA_FORMAT_B10G10R10A2_UNORM:
       *datatype = GL_UNSIGNED_INT_2_10_10_10_REV;
       *comps = 4;
       return;
 
-   case MESA_FORMAT_RGBA5551:
+   case MESA_FORMAT_A1B5G5R5_UNORM:
       *datatype = GL_UNSIGNED_SHORT_5_5_5_1;
       *comps = 4;
       return;
 
-   case MESA_FORMAT_AL44:
+   case MESA_FORMAT_L4A4_UNORM:
       *datatype = MESA_UNSIGNED_BYTE_4_4;
       *comps = 2;
       return;
 
-   case MESA_FORMAT_AL88:
-   case MESA_FORMAT_AL88_REV:
-   case MESA_FORMAT_GR88:
-   case MESA_FORMAT_RG88:
+   case MESA_FORMAT_L8A8_UNORM:
+   case MESA_FORMAT_A8L8_UNORM:
+   case MESA_FORMAT_R8G8_UNORM:
+   case MESA_FORMAT_G8R8_UNORM:
       *datatype = GL_UNSIGNED_BYTE;
       *comps = 2;
       return;
 
-   case MESA_FORMAT_AL1616:
-   case MESA_FORMAT_AL1616_REV:
-   case MESA_FORMAT_GR1616:
-   case MESA_FORMAT_RG1616:
+   case MESA_FORMAT_L16A16_UNORM:
+   case MESA_FORMAT_A16L16_UNORM:
+   case MESA_FORMAT_R16G16_UNORM:
+   case MESA_FORMAT_G16R16_UNORM:
       *datatype = GL_UNSIGNED_SHORT;
       *comps = 2;
       return;
 
-   case MESA_FORMAT_R16:
-   case MESA_FORMAT_A16:
-   case MESA_FORMAT_L16:
-   case MESA_FORMAT_I16:
+   case MESA_FORMAT_R_UNORM16:
+   case MESA_FORMAT_A_UNORM16:
+   case MESA_FORMAT_L_UNORM16:
+   case MESA_FORMAT_I_UNORM16:
       *datatype = GL_UNSIGNED_SHORT;
       *comps = 1;
       return;
 
-   case MESA_FORMAT_RGB332:
+   case MESA_FORMAT_B2G3R3_UNORM:
       *datatype = GL_UNSIGNED_BYTE_3_3_2;
       *comps = 3;
       return;
 
-   case MESA_FORMAT_A8:
-   case MESA_FORMAT_L8:
-   case MESA_FORMAT_I8:
-   case MESA_FORMAT_R8:
-   case MESA_FORMAT_S8:
+   case MESA_FORMAT_A_UNORM8:
+   case MESA_FORMAT_L_UNORM8:
+   case MESA_FORMAT_I_UNORM8:
+   case MESA_FORMAT_R_UNORM8:
+   case MESA_FORMAT_S_UINT8:
       *datatype = GL_UNSIGNED_BYTE;
       *comps = 1;
       return;
@@ -2467,42 +2467,42 @@ _mesa_format_to_type_and_comps(gl_format format,
       *comps = 2;
       return;
 
-   case MESA_FORMAT_Z24_S8:
+   case MESA_FORMAT_S8_UINT_Z24_UNORM:
       *datatype = GL_UNSIGNED_INT_24_8_MESA;
       *comps = 2;
       return;
 
-   case MESA_FORMAT_S8_Z24:
+   case MESA_FORMAT_Z24_UNORM_X8_UINT:
       *datatype = GL_UNSIGNED_INT_8_24_REV_MESA;
       *comps = 2;
       return;
 
-   case MESA_FORMAT_Z16:
+   case MESA_FORMAT_Z_UNORM16:
       *datatype = GL_UNSIGNED_SHORT;
       *comps = 1;
       return;
 
-   case MESA_FORMAT_X8_Z24:
+   case MESA_FORMAT_Z24_UNORM_S8_UINT:
       *datatype = GL_UNSIGNED_INT;
       *comps = 1;
       return;
 
-   case MESA_FORMAT_Z24_X8:
+   case MESA_FORMAT_X8Z24_UNORM:
       *datatype = GL_UNSIGNED_INT;
       *comps = 1;
       return;
 
-   case MESA_FORMAT_Z32:
+   case MESA_FORMAT_Z_UNORM32:
       *datatype = GL_UNSIGNED_INT;
       *comps = 1;
       return;
 
-   case MESA_FORMAT_Z32_FLOAT:
+   case MESA_FORMAT_Z_FLOAT32:
       *datatype = GL_FLOAT;
       *comps = 1;
       return;
 
-   case MESA_FORMAT_Z32_FLOAT_X24S8:
+   case MESA_FORMAT_Z32_FLOAT_S8X24_UINT:
       *datatype = GL_FLOAT_32_UNSIGNED_INT_24_8_REV;
       *comps = 1;
       return;
@@ -2512,65 +2512,65 @@ _mesa_format_to_type_and_comps(gl_format format,
       *comps = 2;
       return;
 
-   case MESA_FORMAT_SIGNED_R8:
-   case MESA_FORMAT_SIGNED_A8:
-   case MESA_FORMAT_SIGNED_L8:
-   case MESA_FORMAT_SIGNED_I8:
+   case MESA_FORMAT_R_SNORM8:
+   case MESA_FORMAT_A_SNORM8:
+   case MESA_FORMAT_L_SNORM8:
+   case MESA_FORMAT_I_SNORM8:
       *datatype = GL_BYTE;
       *comps = 1;
       return;
-   case MESA_FORMAT_SIGNED_RG88_REV:
-   case MESA_FORMAT_SIGNED_AL88:
+   case MESA_FORMAT_R8G8_SNORM:
+   case MESA_FORMAT_L8A8_SNORM:
       *datatype = GL_BYTE;
       *comps = 2;
       return;
-   case MESA_FORMAT_SIGNED_RGBA8888:
-   case MESA_FORMAT_SIGNED_RGBA8888_REV:
-   case MESA_FORMAT_SIGNED_RGBX8888:
+   case MESA_FORMAT_A8B8G8R8_SNORM:
+   case MESA_FORMAT_R8G8B8A8_SNORM:
+   case MESA_FORMAT_X8B8G8R8_SNORM:
       *datatype = GL_BYTE;
       *comps = 4;
       return;
 
-   case MESA_FORMAT_RGBA_16:
+   case MESA_FORMAT_RGBA_UNORM16:
       *datatype = GL_UNSIGNED_SHORT;
       *comps = 4;
       return;
 
-   case MESA_FORMAT_SIGNED_R16:
-   case MESA_FORMAT_SIGNED_A16:
-   case MESA_FORMAT_SIGNED_L16:
-   case MESA_FORMAT_SIGNED_I16:
+   case MESA_FORMAT_R_SNORM16:
+   case MESA_FORMAT_A_SNORM16:
+   case MESA_FORMAT_L_SNORM16:
+   case MESA_FORMAT_I_SNORM16:
       *datatype = GL_SHORT;
       *comps = 1;
       return;
-   case MESA_FORMAT_SIGNED_GR1616:
-   case MESA_FORMAT_SIGNED_AL1616:
+   case MESA_FORMAT_R16G16_SNORM:
+   case MESA_FORMAT_LA_SNORM16:
       *datatype = GL_SHORT;
       *comps = 2;
       return;
-   case MESA_FORMAT_SIGNED_RGB_16:
+   case MESA_FORMAT_RGB_SNORM16:
       *datatype = GL_SHORT;
       *comps = 3;
       return;
-   case MESA_FORMAT_SIGNED_RGBA_16:
+   case MESA_FORMAT_RGBA_SNORM16:
       *datatype = GL_SHORT;
       *comps = 4;
       return;
 
-   case MESA_FORMAT_SRGB8:
+   case MESA_FORMAT_BGR_SRGB8:
       *datatype = GL_UNSIGNED_BYTE;
       *comps = 3;
       return;
-   case MESA_FORMAT_SRGBA8:
-   case MESA_FORMAT_SARGB8:
+   case MESA_FORMAT_A8B8G8R8_SRGB:
+   case MESA_FORMAT_B8G8R8A8_SRGB:
       *datatype = GL_UNSIGNED_BYTE;
       *comps = 4;
       return;
-   case MESA_FORMAT_SL8:
+   case MESA_FORMAT_L_SRGB8:
       *datatype = GL_UNSIGNED_BYTE;
       *comps = 1;
       return;
-   case MESA_FORMAT_SLA8:
+   case MESA_FORMAT_L8A8_SRGB:
       *datatype = GL_UNSIGNED_BYTE;
       *comps = 2;
       return;
@@ -2585,14 +2585,14 @@ _mesa_format_to_type_and_comps(gl_format format,
    case MESA_FORMAT_SRGBA_DXT1:
    case MESA_FORMAT_SRGBA_DXT3:
    case MESA_FORMAT_SRGBA_DXT5:
-   case MESA_FORMAT_RED_RGTC1:
-   case MESA_FORMAT_SIGNED_RED_RGTC1:
-   case MESA_FORMAT_RG_RGTC2:
-   case MESA_FORMAT_SIGNED_RG_RGTC2:
-   case MESA_FORMAT_L_LATC1:
-   case MESA_FORMAT_SIGNED_L_LATC1:
-   case MESA_FORMAT_LA_LATC2:
-   case MESA_FORMAT_SIGNED_LA_LATC2:
+   case MESA_FORMAT_R_RGTC1_UNORM:
+   case MESA_FORMAT_R_RGTC1_SNORM:
+   case MESA_FORMAT_RG_RGTC2_UNORM:
+   case MESA_FORMAT_RG_RGTC2_SNORM:
+   case MESA_FORMAT_L_LATC1_UNORM:
+   case MESA_FORMAT_L_LATC1_SNORM:
+   case MESA_FORMAT_LA_LATC2_UNORM:
+   case MESA_FORMAT_LA_LATC2_SNORM:
    case MESA_FORMAT_ETC1_RGB8:
    case MESA_FORMAT_ETC2_RGB8:
    case MESA_FORMAT_ETC2_SRGB8:
@@ -2625,140 +2625,140 @@ _mesa_format_to_type_and_comps(gl_format format,
       *datatype = GL_HALF_FLOAT_ARB;
       *comps = 3;
       return;
-   case MESA_FORMAT_LUMINANCE_ALPHA_FLOAT32:
+   case MESA_FORMAT_LA_FLOAT32:
    case MESA_FORMAT_RG_FLOAT32:
       *datatype = GL_FLOAT;
       *comps = 2;
       return;
-   case MESA_FORMAT_LUMINANCE_ALPHA_FLOAT16:
+   case MESA_FORMAT_LA_FLOAT16:
    case MESA_FORMAT_RG_FLOAT16:
       *datatype = GL_HALF_FLOAT_ARB;
       *comps = 2;
       return;
-   case MESA_FORMAT_ALPHA_FLOAT32:
-   case MESA_FORMAT_LUMINANCE_FLOAT32:
-   case MESA_FORMAT_INTENSITY_FLOAT32:
+   case MESA_FORMAT_A_FLOAT32:
+   case MESA_FORMAT_L_FLOAT32:
+   case MESA_FORMAT_I_FLOAT32:
    case MESA_FORMAT_R_FLOAT32:
       *datatype = GL_FLOAT;
       *comps = 1;
       return;
-   case MESA_FORMAT_ALPHA_FLOAT16:
-   case MESA_FORMAT_LUMINANCE_FLOAT16:
-   case MESA_FORMAT_INTENSITY_FLOAT16:
+   case MESA_FORMAT_A_FLOAT16:
+   case MESA_FORMAT_L_FLOAT16:
+   case MESA_FORMAT_I_FLOAT16:
    case MESA_FORMAT_R_FLOAT16:
       *datatype = GL_HALF_FLOAT_ARB;
       *comps = 1;
       return;
 
-   case MESA_FORMAT_ALPHA_UINT8:
-   case MESA_FORMAT_LUMINANCE_UINT8:
-   case MESA_FORMAT_INTENSITY_UINT8:
+   case MESA_FORMAT_A_UINT8:
+   case MESA_FORMAT_L_UINT8:
+   case MESA_FORMAT_I_UINT8:
       *datatype = GL_UNSIGNED_BYTE;
       *comps = 1;
       return;
-   case MESA_FORMAT_LUMINANCE_ALPHA_UINT8:
+   case MESA_FORMAT_LA_UINT8:
       *datatype = GL_UNSIGNED_BYTE;
       *comps = 2;
       return;
 
-   case MESA_FORMAT_ALPHA_UINT16:
-   case MESA_FORMAT_LUMINANCE_UINT16:
-   case MESA_FORMAT_INTENSITY_UINT16:
+   case MESA_FORMAT_A_UINT16:
+   case MESA_FORMAT_L_UINT16:
+   case MESA_FORMAT_I_UINT16:
       *datatype = GL_UNSIGNED_SHORT;
       *comps = 1;
       return;
-   case MESA_FORMAT_LUMINANCE_ALPHA_UINT16:
+   case MESA_FORMAT_LA_UINT16:
       *datatype = GL_UNSIGNED_SHORT;
       *comps = 2;
       return;
-   case MESA_FORMAT_ALPHA_UINT32:
-   case MESA_FORMAT_LUMINANCE_UINT32:
-   case MESA_FORMAT_INTENSITY_UINT32:
+   case MESA_FORMAT_A_UINT32:
+   case MESA_FORMAT_L_UINT32:
+   case MESA_FORMAT_I_UINT32:
       *datatype = GL_UNSIGNED_INT;
       *comps = 1;
       return;
-   case MESA_FORMAT_LUMINANCE_ALPHA_UINT32:
+   case MESA_FORMAT_LA_UINT32:
       *datatype = GL_UNSIGNED_INT;
       *comps = 2;
       return;
-   case MESA_FORMAT_ALPHA_INT8:
-   case MESA_FORMAT_LUMINANCE_INT8:
-   case MESA_FORMAT_INTENSITY_INT8:
+   case MESA_FORMAT_A_SINT8:
+   case MESA_FORMAT_L_SINT8:
+   case MESA_FORMAT_I_SINT8:
       *datatype = GL_BYTE;
       *comps = 1;
       return;
-   case MESA_FORMAT_LUMINANCE_ALPHA_INT8:
+   case MESA_FORMAT_LA_SINT8:
       *datatype = GL_BYTE;
       *comps = 2;
       return;
 
-   case MESA_FORMAT_ALPHA_INT16:
-   case MESA_FORMAT_LUMINANCE_INT16:
-   case MESA_FORMAT_INTENSITY_INT16:
+   case MESA_FORMAT_A_SINT16:
+   case MESA_FORMAT_L_SINT16:
+   case MESA_FORMAT_I_SINT16:
       *datatype = GL_SHORT;
       *comps = 1;
       return;
-   case MESA_FORMAT_LUMINANCE_ALPHA_INT16:
+   case MESA_FORMAT_LA_SINT16:
       *datatype = GL_SHORT;
       *comps = 2;
       return;
 
-   case MESA_FORMAT_ALPHA_INT32:
-   case MESA_FORMAT_LUMINANCE_INT32:
-   case MESA_FORMAT_INTENSITY_INT32:
+   case MESA_FORMAT_A_SINT32:
+   case MESA_FORMAT_L_SINT32:
+   case MESA_FORMAT_I_SINT32:
       *datatype = GL_INT;
       *comps = 1;
       return;
-   case MESA_FORMAT_LUMINANCE_ALPHA_INT32:
+   case MESA_FORMAT_LA_SINT32:
       *datatype = GL_INT;
       *comps = 2;
       return;
 
-   case MESA_FORMAT_R_INT8:
+   case MESA_FORMAT_R_SINT8:
       *datatype = GL_BYTE;
       *comps = 1;
       return;
-   case MESA_FORMAT_RG_INT8:
+   case MESA_FORMAT_RG_SINT8:
       *datatype = GL_BYTE;
       *comps = 2;
       return;
-   case MESA_FORMAT_RGB_INT8:
+   case MESA_FORMAT_RGB_SINT8:
       *datatype = GL_BYTE;
       *comps = 3;
       return;
-   case MESA_FORMAT_RGBA_INT8:
+   case MESA_FORMAT_RGBA_SINT8:
       *datatype = GL_BYTE;
       *comps = 4;
       return;
-   case MESA_FORMAT_R_INT16:
+   case MESA_FORMAT_R_SINT16:
       *datatype = GL_SHORT;
       *comps = 1;
       return;
-   case MESA_FORMAT_RG_INT16:
+   case MESA_FORMAT_RG_SINT16:
       *datatype = GL_SHORT;
       *comps = 2;
       return;
-   case MESA_FORMAT_RGB_INT16:
+   case MESA_FORMAT_RGB_SINT16:
       *datatype = GL_SHORT;
       *comps = 3;
       return;
-   case MESA_FORMAT_RGBA_INT16:
+   case MESA_FORMAT_RGBA_SINT16:
       *datatype = GL_SHORT;
       *comps = 4;
       return;
-   case MESA_FORMAT_R_INT32:
+   case MESA_FORMAT_R_SINT32:
       *datatype = GL_INT;
       *comps = 1;
       return;
-   case MESA_FORMAT_RG_INT32:
+   case MESA_FORMAT_RG_SINT32:
       *datatype = GL_INT;
       *comps = 2;
       return;
-   case MESA_FORMAT_RGB_INT32:
+   case MESA_FORMAT_RGB_SINT32:
       *datatype = GL_INT;
       *comps = 3;
       return;
-   case MESA_FORMAT_RGBA_INT32:
+   case MESA_FORMAT_RGBA_SINT32:
       *datatype = GL_INT;
       *comps = 4;
       return;
@@ -2815,82 +2815,82 @@ _mesa_format_to_type_and_comps(gl_format format,
       *comps = 4;
       return;
 
-   case MESA_FORMAT_RGB9_E5_FLOAT:
+   case MESA_FORMAT_R9G9B9E5_FLOAT:
       *datatype = GL_UNSIGNED_INT_5_9_9_9_REV;
       *comps = 3;
       return;
 
-   case MESA_FORMAT_R11_G11_B10_FLOAT:
+   case MESA_FORMAT_R11G11B10_FLOAT:
       *datatype = GL_UNSIGNED_INT_10F_11F_11F_REV;
       *comps = 3;
       return;
 
-   case MESA_FORMAT_ARGB2101010_UINT:
-   case MESA_FORMAT_ABGR2101010_UINT:
+   case MESA_FORMAT_B10G10R10A2_UINT:
+   case MESA_FORMAT_R10G10B10A2_UINT:
       *datatype = GL_UNSIGNED_INT_2_10_10_10_REV;
       *comps = 4;
       return;
 
-   case MESA_FORMAT_XBGR8888_SRGB:
-   case MESA_FORMAT_XBGR8888_UINT:
+   case MESA_FORMAT_R8G8B8X8_SRGB:
+   case MESA_FORMAT_RGBX_UINT8:
       *datatype = GL_UNSIGNED_BYTE;
       *comps = 4;
       return;
 
-   case MESA_FORMAT_XBGR8888_SNORM:
-   case MESA_FORMAT_XBGR8888_SINT:
+   case MESA_FORMAT_R8G8B8X8_SNORM:
+   case MESA_FORMAT_RGBX_SINT8:
       *datatype = GL_BYTE;
       *comps = 4;
       return;
 
-   case MESA_FORMAT_XRGB2101010_UNORM:
+   case MESA_FORMAT_B10G10R10X2_UNORM:
       *datatype = GL_UNSIGNED_INT_2_10_10_10_REV;
       *comps = 4;
       return;
 
-   case MESA_FORMAT_XBGR16161616_UNORM:
-   case MESA_FORMAT_XBGR16161616_UINT:
+   case MESA_FORMAT_RGBX_UNORM16:
+   case MESA_FORMAT_RGBX_UINT16:
       *datatype = GL_UNSIGNED_SHORT;
       *comps = 4;
       return;
 
-   case MESA_FORMAT_XBGR16161616_SNORM:
-   case MESA_FORMAT_XBGR16161616_SINT:
+   case MESA_FORMAT_RGBX_SNORM16:
+   case MESA_FORMAT_RGBX_SINT16:
       *datatype = GL_SHORT;
       *comps = 4;
       return;
 
-   case MESA_FORMAT_XBGR16161616_FLOAT:
+   case MESA_FORMAT_RGBX_FLOAT16:
       *datatype = GL_HALF_FLOAT;
       *comps = 4;
       return;
 
-   case MESA_FORMAT_XBGR32323232_FLOAT:
+   case MESA_FORMAT_RGBX_FLOAT32:
       *datatype = GL_FLOAT;
       *comps = 4;
       return;
 
-   case MESA_FORMAT_XBGR32323232_UINT:
+   case MESA_FORMAT_RGBX_UINT32:
       *datatype = GL_UNSIGNED_INT;
       *comps = 4;
       return;
 
-   case MESA_FORMAT_XBGR32323232_SINT:
+   case MESA_FORMAT_RGBX_SINT32:
       *datatype = GL_INT;
       *comps = 4;
       return;
 
-   case MESA_FORMAT_ABGR2101010:
+   case MESA_FORMAT_R10G10B10A2_UNORM:
       *datatype = GL_UNSIGNED_INT_2_10_10_10_REV;
       *comps = 4;
       return;
 
-   case MESA_FORMAT_SIGNED_RG88:
+   case MESA_FORMAT_G8R8_SNORM:
       *datatype = GL_BYTE;
       *comps = 2;
       return;
 
-   case MESA_FORMAT_SIGNED_RG1616:
+   case MESA_FORMAT_G16R16_SNORM:
       *datatype = GL_SHORT;
       *comps = 2;
       return;
@@ -2912,16 +2912,16 @@ _mesa_format_to_type_and_comps(gl_format format,
 }
 
 /**
- * Check if a gl_format exactly matches a GL format/type combination
+ * Check if a mesa_format exactly matches a GL format/type combination
  * such that we can use memcpy() from one to the other.
- * \param gl_format  a MESA_FORMAT_x value
+ * \param mesa_format  a MESA_FORMAT_x value
  * \param format  the user-specified image format
  * \param type  the user-specified image datatype
  * \param swapBytes  typically the current pixel pack/unpack byteswap state
  * \return GL_TRUE if the formats match, GL_FALSE otherwise.
  */
 GLboolean
-_mesa_format_matches_format_and_type(gl_format gl_format,
+_mesa_format_matches_format_and_type(mesa_format mesa_format,
 				     GLenum format, GLenum type,
                                      GLboolean swapBytes)
 {
@@ -2936,14 +2936,14 @@ _mesa_format_matches_format_and_type(gl_format gl_format,
     * enums in formats.h.
     */
 
-   switch (gl_format) {
+   switch (mesa_format) {
 
    case MESA_FORMAT_NONE:
    case MESA_FORMAT_COUNT:
       return GL_FALSE;
 
-   case MESA_FORMAT_RGBA8888:
-   case MESA_FORMAT_SRGBA8:
+   case MESA_FORMAT_A8B8G8R8_UNORM:
+   case MESA_FORMAT_A8B8G8R8_SRGB:
       if (format == GL_RGBA && type == GL_UNSIGNED_INT_8_8_8_8 && !swapBytes)
          return GL_TRUE;
 
@@ -2966,7 +2966,7 @@ _mesa_format_matches_format_and_type(gl_format gl_format,
 
       return GL_FALSE;
 
-   case MESA_FORMAT_RGBA8888_REV:
+   case MESA_FORMAT_R8G8B8A8_UNORM:
       if (format == GL_RGBA && type == GL_UNSIGNED_INT_8_8_8_8_REV &&
           !swapBytes)
          return GL_TRUE;
@@ -2990,8 +2990,8 @@ _mesa_format_matches_format_and_type(gl_format gl_format,
 
       return GL_FALSE;
 
-   case MESA_FORMAT_ARGB8888:
-   case MESA_FORMAT_SARGB8:
+   case MESA_FORMAT_B8G8R8A8_UNORM:
+   case MESA_FORMAT_B8G8R8A8_SRGB:
       if (format == GL_BGRA && type == GL_UNSIGNED_INT_8_8_8_8_REV &&
           !swapBytes)
          return GL_TRUE;
@@ -3004,7 +3004,7 @@ _mesa_format_matches_format_and_type(gl_format gl_format,
 
       return GL_FALSE;
 
-   case MESA_FORMAT_ARGB8888_REV:
+   case MESA_FORMAT_A8R8G8B8_UNORM:
       if (format == GL_BGRA && type == GL_UNSIGNED_INT_8_8_8_8 && !swapBytes)
          return GL_TRUE;
 
@@ -3017,77 +3017,77 @@ _mesa_format_matches_format_and_type(gl_format gl_format,
 
       return GL_FALSE;
 
-   case MESA_FORMAT_RGBX8888:
-   case MESA_FORMAT_RGBX8888_REV:
+   case MESA_FORMAT_X8B8G8R8_UNORM:
+   case MESA_FORMAT_R8G8B8X8_UNORM:
       return GL_FALSE;
 
-   case MESA_FORMAT_XRGB8888:
-   case MESA_FORMAT_XRGB8888_REV:
+   case MESA_FORMAT_B8G8R8X8_UNORM:
+   case MESA_FORMAT_X8R8G8B8_UNORM:
       return GL_FALSE;
 
-   case MESA_FORMAT_RGB888:
-   case MESA_FORMAT_SRGB8:
+   case MESA_FORMAT_BGR_UNORM8:
+   case MESA_FORMAT_BGR_SRGB8:
       return format == GL_BGR && type == GL_UNSIGNED_BYTE && littleEndian;
 
-   case MESA_FORMAT_BGR888:
+   case MESA_FORMAT_RGB_UNORM8:
       return format == GL_RGB && type == GL_UNSIGNED_BYTE && littleEndian;
 
-   case MESA_FORMAT_RGB565:
+   case MESA_FORMAT_B5G6R5_UNORM:
       return format == GL_RGB && type == GL_UNSIGNED_SHORT_5_6_5 && !swapBytes;
 
-   case MESA_FORMAT_RGB565_REV:
+   case MESA_FORMAT_R5G6B5_UNORM:
       /* Some of the 16-bit MESA_FORMATs that would seem to correspond to
        * GL_UNSIGNED_SHORT_* are byte-swapped instead of channel-reversed,
        * according to formats.h, so they can't be matched.
        */
       return GL_FALSE;
 
-   case MESA_FORMAT_ARGB4444:
+   case MESA_FORMAT_B4G4R4A4_UNORM:
       return format == GL_BGRA && type == GL_UNSIGNED_SHORT_4_4_4_4_REV &&
          !swapBytes;
 
-   case MESA_FORMAT_ARGB4444_REV:
+   case MESA_FORMAT_A4R4G4B4_UNORM:
       return GL_FALSE;
 
-   case MESA_FORMAT_RGBA5551:
+   case MESA_FORMAT_A1B5G5R5_UNORM:
       return format == GL_RGBA && type == GL_UNSIGNED_SHORT_5_5_5_1 &&
          !swapBytes;
 
-   case MESA_FORMAT_ARGB1555:
+   case MESA_FORMAT_B5G5R5A1_UNORM:
       return format == GL_BGRA && type == GL_UNSIGNED_SHORT_1_5_5_5_REV &&
          !swapBytes;
 
-   case MESA_FORMAT_ARGB1555_REV:
+   case MESA_FORMAT_A1R5G5B5_UNORM:
       return GL_FALSE;
 
-   case MESA_FORMAT_AL44:
+   case MESA_FORMAT_L4A4_UNORM:
       return GL_FALSE;
-   case MESA_FORMAT_AL88:
-   case MESA_FORMAT_SLA8:
+   case MESA_FORMAT_L8A8_UNORM:
+   case MESA_FORMAT_L8A8_SRGB:
       return format == GL_LUMINANCE_ALPHA && type == GL_UNSIGNED_BYTE && littleEndian;
-   case MESA_FORMAT_AL88_REV:
+   case MESA_FORMAT_A8L8_UNORM:
       return GL_FALSE;
 
-   case MESA_FORMAT_AL1616:
+   case MESA_FORMAT_L16A16_UNORM:
       return format == GL_LUMINANCE_ALPHA && type == GL_UNSIGNED_SHORT && littleEndian && !swapBytes;
-   case MESA_FORMAT_AL1616_REV:
+   case MESA_FORMAT_A16L16_UNORM:
       return GL_FALSE;
 
-   case MESA_FORMAT_RGB332:
+   case MESA_FORMAT_B2G3R3_UNORM:
       return format == GL_RGB && type == GL_UNSIGNED_BYTE_3_3_2;
 
-   case MESA_FORMAT_A8:
+   case MESA_FORMAT_A_UNORM8:
       return format == GL_ALPHA && type == GL_UNSIGNED_BYTE;
-   case MESA_FORMAT_A16:
+   case MESA_FORMAT_A_UNORM16:
       return format == GL_ALPHA && type == GL_UNSIGNED_SHORT && !swapBytes;
-   case MESA_FORMAT_L8:
-   case MESA_FORMAT_SL8:
+   case MESA_FORMAT_L_UNORM8:
+   case MESA_FORMAT_L_SRGB8:
       return format == GL_LUMINANCE && type == GL_UNSIGNED_BYTE;
-   case MESA_FORMAT_L16:
+   case MESA_FORMAT_L_UNORM16:
       return format == GL_LUMINANCE && type == GL_UNSIGNED_SHORT && !swapBytes;
-   case MESA_FORMAT_I8:
+   case MESA_FORMAT_I_UNORM8:
       return format == GL_INTENSITY && type == GL_UNSIGNED_BYTE;
-   case MESA_FORMAT_I16:
+   case MESA_FORMAT_I_UNORM16:
       return format == GL_INTENSITY && type == GL_UNSIGNED_SHORT && !swapBytes;
 
    case MESA_FORMAT_YCBCR:
@@ -3099,45 +3099,45 @@ _mesa_format_matches_format_and_type(gl_format gl_format,
              ((type == GL_UNSIGNED_SHORT_8_8_MESA && littleEndian == swapBytes) ||
               (type == GL_UNSIGNED_SHORT_8_8_REV_MESA && littleEndian != swapBytes));
 
-   case MESA_FORMAT_R8:
+   case MESA_FORMAT_R_UNORM8:
       return format == GL_RED && type == GL_UNSIGNED_BYTE;
-   case MESA_FORMAT_GR88:
+   case MESA_FORMAT_R8G8_UNORM:
       return format == GL_RG && type == GL_UNSIGNED_BYTE && littleEndian;
-   case MESA_FORMAT_RG88:
+   case MESA_FORMAT_G8R8_UNORM:
       return GL_FALSE;
 
-   case MESA_FORMAT_R16:
+   case MESA_FORMAT_R_UNORM16:
       return format == GL_RED && type == GL_UNSIGNED_SHORT &&
          !swapBytes;
-   case MESA_FORMAT_GR1616:
+   case MESA_FORMAT_R16G16_UNORM:
       return format == GL_RG && type == GL_UNSIGNED_SHORT && littleEndian &&
          !swapBytes;
-   case MESA_FORMAT_RG1616:
+   case MESA_FORMAT_G16R16_UNORM:
       return GL_FALSE;
 
-   case MESA_FORMAT_ARGB2101010:
+   case MESA_FORMAT_B10G10R10A2_UNORM:
       return format == GL_BGRA && type == GL_UNSIGNED_INT_2_10_10_10_REV &&
          !swapBytes;
 
-   case MESA_FORMAT_Z24_S8:
+   case MESA_FORMAT_S8_UINT_Z24_UNORM:
       return format == GL_DEPTH_STENCIL && type == GL_UNSIGNED_INT_24_8 &&
          !swapBytes;
-   case MESA_FORMAT_Z24_X8:
-   case MESA_FORMAT_S8_Z24:
+   case MESA_FORMAT_X8Z24_UNORM:
+   case MESA_FORMAT_Z24_UNORM_X8_UINT:
       return GL_FALSE;
 
-   case MESA_FORMAT_Z16:
+   case MESA_FORMAT_Z_UNORM16:
       return format == GL_DEPTH_COMPONENT && type == GL_UNSIGNED_SHORT &&
          !swapBytes;
 
-   case MESA_FORMAT_X8_Z24:
+   case MESA_FORMAT_Z24_UNORM_S8_UINT:
       return GL_FALSE;
 
-   case MESA_FORMAT_Z32:
+   case MESA_FORMAT_Z_UNORM32:
       return format == GL_DEPTH_COMPONENT && type == GL_UNSIGNED_INT &&
          !swapBytes;
 
-   case MESA_FORMAT_S8:
+   case MESA_FORMAT_S_UINT8:
       return format == GL_STENCIL_INDEX && type == GL_UNSIGNED_BYTE;
 
    case MESA_FORMAT_SRGB_DXT1:
@@ -3164,24 +3164,24 @@ _mesa_format_matches_format_and_type(gl_format gl_format,
    case MESA_FORMAT_RGB_FLOAT16:
       return format == GL_RGB && type == GL_HALF_FLOAT && !swapBytes;
 
-   case MESA_FORMAT_ALPHA_FLOAT32:
+   case MESA_FORMAT_A_FLOAT32:
       return format == GL_ALPHA && type == GL_FLOAT && !swapBytes;
-   case MESA_FORMAT_ALPHA_FLOAT16:
+   case MESA_FORMAT_A_FLOAT16:
       return format == GL_ALPHA && type == GL_HALF_FLOAT && !swapBytes;
 
-   case MESA_FORMAT_LUMINANCE_FLOAT32:
+   case MESA_FORMAT_L_FLOAT32:
       return format == GL_LUMINANCE && type == GL_FLOAT && !swapBytes;
-   case MESA_FORMAT_LUMINANCE_FLOAT16:
+   case MESA_FORMAT_L_FLOAT16:
       return format == GL_LUMINANCE && type == GL_HALF_FLOAT && !swapBytes;
 
-   case MESA_FORMAT_LUMINANCE_ALPHA_FLOAT32:
+   case MESA_FORMAT_LA_FLOAT32:
       return format == GL_LUMINANCE_ALPHA && type == GL_FLOAT && !swapBytes;
-   case MESA_FORMAT_LUMINANCE_ALPHA_FLOAT16:
+   case MESA_FORMAT_LA_FLOAT16:
       return format == GL_LUMINANCE_ALPHA && type == GL_HALF_FLOAT && !swapBytes;
 
-   case MESA_FORMAT_INTENSITY_FLOAT32:
+   case MESA_FORMAT_I_FLOAT32:
       return format == GL_INTENSITY && type == GL_FLOAT && !swapBytes;
-   case MESA_FORMAT_INTENSITY_FLOAT16:
+   case MESA_FORMAT_I_FLOAT16:
       return format == GL_INTENSITY && type == GL_HALF_FLOAT && !swapBytes;
 
    case MESA_FORMAT_R_FLOAT32:
@@ -3194,88 +3194,88 @@ _mesa_format_matches_format_and_type(gl_format gl_format,
    case MESA_FORMAT_RG_FLOAT16:
       return format == GL_RG && type == GL_HALF_FLOAT && !swapBytes;
 
-   case MESA_FORMAT_ALPHA_UINT8:
+   case MESA_FORMAT_A_UINT8:
       return format == GL_ALPHA_INTEGER && type == GL_UNSIGNED_BYTE;
-   case MESA_FORMAT_ALPHA_UINT16:
+   case MESA_FORMAT_A_UINT16:
       return format == GL_ALPHA_INTEGER && type == GL_UNSIGNED_SHORT &&
              !swapBytes;
-   case MESA_FORMAT_ALPHA_UINT32:
+   case MESA_FORMAT_A_UINT32:
       return format == GL_ALPHA_INTEGER && type == GL_UNSIGNED_INT &&
              !swapBytes;
-   case MESA_FORMAT_ALPHA_INT8:
+   case MESA_FORMAT_A_SINT8:
       return format == GL_ALPHA_INTEGER && type == GL_BYTE;
-   case MESA_FORMAT_ALPHA_INT16:
+   case MESA_FORMAT_A_SINT16:
       return format == GL_ALPHA_INTEGER && type == GL_SHORT && !swapBytes;
-   case MESA_FORMAT_ALPHA_INT32:
+   case MESA_FORMAT_A_SINT32:
       return format == GL_ALPHA_INTEGER && type == GL_INT && !swapBytes;
 
-   case MESA_FORMAT_INTENSITY_UINT8:
-   case MESA_FORMAT_INTENSITY_UINT16:
-   case MESA_FORMAT_INTENSITY_UINT32:
-   case MESA_FORMAT_INTENSITY_INT8:
-   case MESA_FORMAT_INTENSITY_INT16:
-   case MESA_FORMAT_INTENSITY_INT32:
+   case MESA_FORMAT_I_UINT8:
+   case MESA_FORMAT_I_UINT16:
+   case MESA_FORMAT_I_UINT32:
+   case MESA_FORMAT_I_SINT8:
+   case MESA_FORMAT_I_SINT16:
+   case MESA_FORMAT_I_SINT32:
       /* GL_INTENSITY_INTEGER_EXT doesn't exist. */
       return GL_FALSE;
 
-   case MESA_FORMAT_LUMINANCE_UINT8:
+   case MESA_FORMAT_L_UINT8:
       return format == GL_LUMINANCE_INTEGER_EXT && type == GL_UNSIGNED_BYTE;
-   case MESA_FORMAT_LUMINANCE_UINT16:
+   case MESA_FORMAT_L_UINT16:
       return format == GL_LUMINANCE_INTEGER_EXT && type == GL_UNSIGNED_SHORT &&
              !swapBytes;
-   case MESA_FORMAT_LUMINANCE_UINT32:
+   case MESA_FORMAT_L_UINT32:
       return format == GL_LUMINANCE_INTEGER_EXT && type == GL_UNSIGNED_INT &&
              !swapBytes;
-   case MESA_FORMAT_LUMINANCE_INT8:
+   case MESA_FORMAT_L_SINT8:
       return format == GL_LUMINANCE_INTEGER_EXT && type == GL_BYTE;
-   case MESA_FORMAT_LUMINANCE_INT16:
+   case MESA_FORMAT_L_SINT16:
       return format == GL_LUMINANCE_INTEGER_EXT && type == GL_SHORT &&
              !swapBytes;
-   case MESA_FORMAT_LUMINANCE_INT32:
+   case MESA_FORMAT_L_SINT32:
       return format == GL_LUMINANCE_INTEGER_EXT && type == GL_INT && !swapBytes;
 
-   case MESA_FORMAT_LUMINANCE_ALPHA_UINT8:
+   case MESA_FORMAT_LA_UINT8:
       return format == GL_LUMINANCE_ALPHA_INTEGER_EXT &&
              type == GL_UNSIGNED_BYTE && !swapBytes;
-   case MESA_FORMAT_LUMINANCE_ALPHA_UINT16:
+   case MESA_FORMAT_LA_UINT16:
       return format == GL_LUMINANCE_ALPHA_INTEGER_EXT &&
              type == GL_UNSIGNED_SHORT && !swapBytes;
-   case MESA_FORMAT_LUMINANCE_ALPHA_UINT32:
+   case MESA_FORMAT_LA_UINT32:
       return format == GL_LUMINANCE_ALPHA_INTEGER_EXT &&
              type == GL_UNSIGNED_INT && !swapBytes;
-   case MESA_FORMAT_LUMINANCE_ALPHA_INT8:
+   case MESA_FORMAT_LA_SINT8:
       return format == GL_LUMINANCE_ALPHA_INTEGER_EXT && type == GL_BYTE &&
              !swapBytes;
-   case MESA_FORMAT_LUMINANCE_ALPHA_INT16:
+   case MESA_FORMAT_LA_SINT16:
       return format == GL_LUMINANCE_ALPHA_INTEGER_EXT && type == GL_SHORT &&
              !swapBytes;
-   case MESA_FORMAT_LUMINANCE_ALPHA_INT32:
+   case MESA_FORMAT_LA_SINT32:
       return format == GL_LUMINANCE_ALPHA_INTEGER_EXT && type == GL_INT &&
              !swapBytes;
 
-   case MESA_FORMAT_R_INT8:
+   case MESA_FORMAT_R_SINT8:
       return format == GL_RED_INTEGER && type == GL_BYTE;
-   case MESA_FORMAT_RG_INT8:
+   case MESA_FORMAT_RG_SINT8:
       return format == GL_RG_INTEGER && type == GL_BYTE && !swapBytes;
-   case MESA_FORMAT_RGB_INT8:
+   case MESA_FORMAT_RGB_SINT8:
       return format == GL_RGB_INTEGER && type == GL_BYTE && !swapBytes;
-   case MESA_FORMAT_RGBA_INT8:
+   case MESA_FORMAT_RGBA_SINT8:
       return format == GL_RGBA_INTEGER && type == GL_BYTE && !swapBytes;
-   case MESA_FORMAT_R_INT16:
+   case MESA_FORMAT_R_SINT16:
       return format == GL_RED_INTEGER && type == GL_SHORT && !swapBytes;
-   case MESA_FORMAT_RG_INT16:
+   case MESA_FORMAT_RG_SINT16:
       return format == GL_RG_INTEGER && type == GL_SHORT && !swapBytes;
-   case MESA_FORMAT_RGB_INT16:
+   case MESA_FORMAT_RGB_SINT16:
       return format == GL_RGB_INTEGER && type == GL_SHORT && !swapBytes;
-   case MESA_FORMAT_RGBA_INT16:
+   case MESA_FORMAT_RGBA_SINT16:
       return format == GL_RGBA_INTEGER && type == GL_SHORT && !swapBytes;
-   case MESA_FORMAT_R_INT32:
+   case MESA_FORMAT_R_SINT32:
       return format == GL_RED_INTEGER && type == GL_INT && !swapBytes;
-   case MESA_FORMAT_RG_INT32:
+   case MESA_FORMAT_RG_SINT32:
       return format == GL_RG_INTEGER && type == GL_INT && !swapBytes;
-   case MESA_FORMAT_RGB_INT32:
+   case MESA_FORMAT_RGB_SINT32:
       return format == GL_RGB_INTEGER && type == GL_INT && !swapBytes;
-   case MESA_FORMAT_RGBA_INT32:
+   case MESA_FORMAT_RGBA_SINT32:
       return format == GL_RGBA_INTEGER && type == GL_INT && !swapBytes;
 
    case MESA_FORMAT_R_UINT8:
@@ -3311,15 +3311,15 @@ _mesa_format_matches_format_and_type(gl_format gl_format,
       return (format == GL_DU8DV8_ATI || format == GL_DUDV_ATI) &&
              type == GL_BYTE && littleEndian && !swapBytes;
 
-   case MESA_FORMAT_SIGNED_R8:
+   case MESA_FORMAT_R_SNORM8:
       return format == GL_RED && type == GL_BYTE;
-   case MESA_FORMAT_SIGNED_RG88_REV:
+   case MESA_FORMAT_R8G8_SNORM:
       return format == GL_RG && type == GL_BYTE && littleEndian &&
              !swapBytes;
-   case MESA_FORMAT_SIGNED_RGBX8888:
+   case MESA_FORMAT_X8B8G8R8_SNORM:
       return GL_FALSE;
 
-   case MESA_FORMAT_SIGNED_RGBA8888:
+   case MESA_FORMAT_A8B8G8R8_SNORM:
       if (format == GL_RGBA && type == GL_BYTE && !littleEndian)
          return GL_TRUE;
 
@@ -3328,7 +3328,7 @@ _mesa_format_matches_format_and_type(gl_format gl_format,
 
       return GL_FALSE;
 
-   case MESA_FORMAT_SIGNED_RGBA8888_REV:
+   case MESA_FORMAT_R8G8B8A8_SNORM:
       if (format == GL_RGBA && type == GL_BYTE && littleEndian)
          return GL_TRUE;
 
@@ -3337,29 +3337,29 @@ _mesa_format_matches_format_and_type(gl_format gl_format,
 
       return GL_FALSE;
 
-   case MESA_FORMAT_SIGNED_R16:
+   case MESA_FORMAT_R_SNORM16:
       return format == GL_RED && type == GL_SHORT &&
              !swapBytes;
-   case MESA_FORMAT_SIGNED_GR1616:
+   case MESA_FORMAT_R16G16_SNORM:
       return format == GL_RG && type == GL_SHORT && littleEndian && !swapBytes;
-   case MESA_FORMAT_SIGNED_RGB_16:
+   case MESA_FORMAT_RGB_SNORM16:
       return format == GL_RGB && type == GL_SHORT && !swapBytes;
-   case MESA_FORMAT_SIGNED_RGBA_16:
+   case MESA_FORMAT_RGBA_SNORM16:
       return format == GL_RGBA && type == GL_SHORT && !swapBytes;
-   case MESA_FORMAT_RGBA_16:
+   case MESA_FORMAT_RGBA_UNORM16:
       return format == GL_RGBA && type == GL_UNSIGNED_SHORT &&
              !swapBytes;
 
-   case MESA_FORMAT_RED_RGTC1:
-   case MESA_FORMAT_SIGNED_RED_RGTC1:
-   case MESA_FORMAT_RG_RGTC2:
-   case MESA_FORMAT_SIGNED_RG_RGTC2:
+   case MESA_FORMAT_R_RGTC1_UNORM:
+   case MESA_FORMAT_R_RGTC1_SNORM:
+   case MESA_FORMAT_RG_RGTC2_UNORM:
+   case MESA_FORMAT_RG_RGTC2_SNORM:
       return GL_FALSE;
 
-   case MESA_FORMAT_L_LATC1:
-   case MESA_FORMAT_SIGNED_L_LATC1:
-   case MESA_FORMAT_LA_LATC2:
-   case MESA_FORMAT_SIGNED_LA_LATC2:
+   case MESA_FORMAT_L_LATC1_UNORM:
+   case MESA_FORMAT_L_LATC1_SNORM:
+   case MESA_FORMAT_LA_LATC2_UNORM:
+   case MESA_FORMAT_LA_LATC2_SNORM:
       return GL_FALSE;
 
    case MESA_FORMAT_ETC1_RGB8:
@@ -3375,77 +3375,77 @@ _mesa_format_matches_format_and_type(gl_format gl_format,
    case MESA_FORMAT_ETC2_SRGB8_PUNCHTHROUGH_ALPHA1:
       return GL_FALSE;
 
-   case MESA_FORMAT_SIGNED_A8:
+   case MESA_FORMAT_A_SNORM8:
       return format == GL_ALPHA && type == GL_BYTE;
-   case MESA_FORMAT_SIGNED_L8:
+   case MESA_FORMAT_L_SNORM8:
       return format == GL_LUMINANCE && type == GL_BYTE;
-   case MESA_FORMAT_SIGNED_AL88:
+   case MESA_FORMAT_L8A8_SNORM:
       return format == GL_LUMINANCE_ALPHA && type == GL_BYTE &&
              littleEndian && !swapBytes;
-   case MESA_FORMAT_SIGNED_I8:
+   case MESA_FORMAT_I_SNORM8:
       return format == GL_INTENSITY && type == GL_BYTE;
-   case MESA_FORMAT_SIGNED_A16:
+   case MESA_FORMAT_A_SNORM16:
       return format == GL_ALPHA && type == GL_SHORT && !swapBytes;
-   case MESA_FORMAT_SIGNED_L16:
+   case MESA_FORMAT_L_SNORM16:
       return format == GL_LUMINANCE && type == GL_SHORT && !swapBytes;
-   case MESA_FORMAT_SIGNED_AL1616:
+   case MESA_FORMAT_LA_SNORM16:
       return format == GL_LUMINANCE_ALPHA && type == GL_SHORT &&
              littleEndian && !swapBytes;
-   case MESA_FORMAT_SIGNED_I16:
+   case MESA_FORMAT_I_SNORM16:
       return format == GL_INTENSITY && type == GL_SHORT && littleEndian &&
              !swapBytes;
 
-   case MESA_FORMAT_ARGB2101010_UINT:
+   case MESA_FORMAT_B10G10R10A2_UINT:
       return (format == GL_BGRA_INTEGER_EXT &&
               type == GL_UNSIGNED_INT_2_10_10_10_REV &&
               !swapBytes);
 
-   case MESA_FORMAT_ABGR2101010_UINT:
+   case MESA_FORMAT_R10G10B10A2_UINT:
       return (format == GL_RGBA_INTEGER_EXT &&
               type == GL_UNSIGNED_INT_2_10_10_10_REV &&
               !swapBytes);
 
-   case MESA_FORMAT_RGB9_E5_FLOAT:
+   case MESA_FORMAT_R9G9B9E5_FLOAT:
       return format == GL_RGB && type == GL_UNSIGNED_INT_5_9_9_9_REV &&
          !swapBytes;
 
-   case MESA_FORMAT_R11_G11_B10_FLOAT:
+   case MESA_FORMAT_R11G11B10_FLOAT:
       return format == GL_RGB && type == GL_UNSIGNED_INT_10F_11F_11F_REV &&
          !swapBytes;
 
-   case MESA_FORMAT_Z32_FLOAT:
+   case MESA_FORMAT_Z_FLOAT32:
       return format == GL_DEPTH_COMPONENT && type == GL_FLOAT && !swapBytes;
 
-   case MESA_FORMAT_Z32_FLOAT_X24S8:
+   case MESA_FORMAT_Z32_FLOAT_S8X24_UINT:
       return format == GL_DEPTH_STENCIL &&
              type == GL_FLOAT_32_UNSIGNED_INT_24_8_REV && !swapBytes;
 
-   case MESA_FORMAT_XRGB4444_UNORM:
-   case MESA_FORMAT_XRGB1555_UNORM:
-   case MESA_FORMAT_XBGR8888_SNORM:
-   case MESA_FORMAT_XBGR8888_SRGB:
-   case MESA_FORMAT_XBGR8888_UINT:
-   case MESA_FORMAT_XBGR8888_SINT:
-   case MESA_FORMAT_XRGB2101010_UNORM:
-   case MESA_FORMAT_XBGR16161616_UNORM:
-   case MESA_FORMAT_XBGR16161616_SNORM:
-   case MESA_FORMAT_XBGR16161616_FLOAT:
-   case MESA_FORMAT_XBGR16161616_UINT:
-   case MESA_FORMAT_XBGR16161616_SINT:
-   case MESA_FORMAT_XBGR32323232_FLOAT:
-   case MESA_FORMAT_XBGR32323232_UINT:
-   case MESA_FORMAT_XBGR32323232_SINT:
+   case MESA_FORMAT_B4G4R4X4_UNORM:
+   case MESA_FORMAT_B5G5R5X1_UNORM:
+   case MESA_FORMAT_R8G8B8X8_SNORM:
+   case MESA_FORMAT_R8G8B8X8_SRGB:
+   case MESA_FORMAT_RGBX_UINT8:
+   case MESA_FORMAT_RGBX_SINT8:
+   case MESA_FORMAT_B10G10R10X2_UNORM:
+   case MESA_FORMAT_RGBX_UNORM16:
+   case MESA_FORMAT_RGBX_SNORM16:
+   case MESA_FORMAT_RGBX_FLOAT16:
+   case MESA_FORMAT_RGBX_UINT16:
+   case MESA_FORMAT_RGBX_SINT16:
+   case MESA_FORMAT_RGBX_FLOAT32:
+   case MESA_FORMAT_RGBX_UINT32:
+   case MESA_FORMAT_RGBX_SINT32:
       return GL_FALSE;
 
-   case MESA_FORMAT_ABGR2101010:
+   case MESA_FORMAT_R10G10B10A2_UNORM:
       return format == GL_RGBA && type == GL_UNSIGNED_INT_2_10_10_10_REV &&
          !swapBytes;
 
-   case MESA_FORMAT_SIGNED_RG88:
+   case MESA_FORMAT_G8R8_SNORM:
       return format == GL_RG && type == GL_BYTE && !littleEndian &&
          !swapBytes;
 
-   case MESA_FORMAT_SIGNED_RG1616:
+   case MESA_FORMAT_G16R16_SNORM:
       return format == GL_RG && type == GL_SHORT && !littleEndian &&
          !swapBytes;
    }

@@ -461,7 +461,7 @@ create_driver_context(__GLXDRIcontext * context,
         unsigned dri_err = 0;
         unsigned major_ver;
         unsigned minor_ver;
-        uint32_t flags;
+        uint32_t flags = 0;
         int reset;
         int api = __DRI_API_OPENGL;
 

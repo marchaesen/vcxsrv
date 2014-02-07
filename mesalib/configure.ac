@@ -589,6 +589,11 @@ AC_ARG_ENABLE([vdpau],
          [enable vdpau library @<:@default=auto@:>@])],
    [enable_vdpau="$enableval"],
    [enable_vdpau=auto])
+AC_ARG_ENABLE([omx],
+   [AS_HELP_STRING([--enable-omx],
+         [enable OpenMAX library @<:@default=no@:>@])],
+   [enable_omx="$enableval"],
+   [enable_omx=no])
 AC_ARG_ENABLE([opencl],
    [AS_HELP_STRING([--enable-opencl],
          [enable OpenCL library NOTE: Enabling this option will also enable
@@ -661,6 +666,7 @@ if test "x$enable_opengl" = xno -a \
         "x$enable_xa" = xno -a \
         "x$enable_xvmc" = xno -a \
         "x$enable_vdpau" = xno -a \
+        "x$enable_omx" = xno -a \
         "x$enable_opencl" = xno; then
     AC_MSG_ERROR([at least one API should be enabled])
 fi
@@ -858,7 +864,7 @@ xyesno)
 
     if test x"$enable_dri3$have_libudev" = xyesyes; then
         X11_INCLUDES="$X11_INCLUDES $LIBUDEV_CFLAGS"
-        GL_LIB_DEPS="$GL_LIB_DEPS $LIBUDEV_LIBS"
+        GL_LIB_DEPS="$GL_LIB_DEPS"
     fi
 
     # need DRM libs, $PTHREAD_LIBS, etc.
@@ -866,6 +872,10 @@ xyesno)
     GL_PC_LIB_PRIV="-lm $PTHREAD_LIBS $DLOPEN_LIBS"
     ;;
 esac
+
+if test "$have_libudev" = yes; then
+    DEFINES="$DEFINES -DHAVE_LIBUDEV"
+fi
 
 # This is outside the case (above) so that it is invoked even for non-GLX
 # builds.
@@ -1202,11 +1212,6 @@ if test "x$enable_egl" = xyes; then
     AC_CHECK_FUNC(mincore, [DEFINES="$DEFINES -DHAVE_MINCORE"])
 
     if test "$enable_static" != yes; then
-        # build egl_glx when libGL is built
-        if test "$have_libudev" = yes; then
-            DEFINES="$DEFINES -DHAVE_LIBUDEV"
-        fi
-
         if test "x$enable_dri" = xyes; then
 	    HAVE_EGL_DRIVER_DRI2=1
 	fi
@@ -1307,6 +1312,10 @@ if test -n "$with_gallium_drivers"; then
     if test "x$enable_vdpau" = xauto; then
 	PKG_CHECK_EXISTS([vdpau], [enable_vdpau=yes], [enable_vdpau=no])
     fi
+
+    if test "x$enable_omx" = xauto; then
+	PKG_CHECK_EXISTS([libomxil-bellagio], [enable_omx=yes], [enable_omx=no])
+    fi
 fi
 
 if test "x$enable_xvmc" = xyes; then
@@ -1320,6 +1329,12 @@ if test "x$enable_vdpau" = xyes; then
     GALLIUM_STATE_TRACKERS_DIRS="$GALLIUM_STATE_TRACKERS_DIRS vdpau"
 fi
 AM_CONDITIONAL(HAVE_ST_VDPAU, test "x$enable_vdpau" = xyes)
+
+if test "x$enable_omx" = xyes; then
+    PKG_CHECK_MODULES([OMX], [libomxil-bellagio >= 0.0 x11-xcb xcb-dri2 >= 1.8])
+    GALLIUM_STATE_TRACKERS_DIRS="$GALLIUM_STATE_TRACKERS_DIRS omx"
+fi
+AM_CONDITIONAL(HAVE_ST_OMX, test "x$enable_omx" = xyes)
 
 dnl
 dnl OpenCL configuration
@@ -1439,10 +1454,6 @@ for plat in $egl_platforms; do
 
 	x11)
 		PKG_CHECK_MODULES([XCB_DRI2], [x11-xcb xcb-dri2 >= 1.8 xcb-xfixes])
-
-                if test "x$enable_glx" = xyes; then
-                        HAVE_EGL_DRIVER_GLX=1
-                fi
 		;;
 
 	drm)
@@ -1485,7 +1496,6 @@ AM_CONDITIONAL(HAVE_EGL_PLATFORM_FBDEV, echo "$egl_platforms" | grep 'fbdev' >/d
 AM_CONDITIONAL(HAVE_EGL_PLATFORM_NULL, echo "$egl_platforms" | grep 'null' >/dev/null 2>&1)
 
 AM_CONDITIONAL(HAVE_EGL_DRIVER_DRI2, test "x$HAVE_EGL_DRIVER_DRI2" != "x")
-AM_CONDITIONAL(HAVE_EGL_DRIVER_GLX, test "x$HAVE_EGL_DRIVER_GLX" != "x")
 
 AC_SUBST([EGL_NATIVE_PLATFORM])
 AC_SUBST([EGL_CFLAGS])
@@ -1659,6 +1669,13 @@ AC_ARG_WITH([vdpau-libdir],
     [VDPAU_LIB_INSTALL_DIR='${libdir}/vdpau'])
 AC_SUBST([VDPAU_LIB_INSTALL_DIR])
 
+AC_ARG_WITH([omx-libdir],
+    [AS_HELP_STRING([--with-omx-libdir=DIR],
+        [directory for the OMX libraries])],
+    [OMX_LIB_INSTALL_DIR="$withval"],
+    [OMX_LIB_INSTALL_DIR=`$PKG_CONFIG --variable=pluginsdir libomxil-bellagio`])
+AC_SUBST([OMX_LIB_INSTALL_DIR])
+
 dnl Directory for OpenCL libs
 AC_ARG_WITH([opencl-libdir],
     [AS_HELP_STRING([--with-opencl-libdir=DIR],
@@ -1688,6 +1705,9 @@ gallium_check_st() {
     fi
     if test "x$enable_vdpau" = xyes && test "x$5" != x; then
          GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS $5"
+    fi
+    if test "x$enable_omx" = xyes && test "x$6" != x; then
+         GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS $7"
     fi
 }
 
@@ -1786,7 +1806,7 @@ if test "x$with_gallium_drivers" != x; then
             if test "x$enable_opencl" = xyes; then
                 LLVM_COMPONENTS="${LLVM_COMPONENTS} bitreader asmparser"
             fi
-            gallium_check_st "radeon/drm" "r600/dri" "" "r600/xvmc" "r600/vdpau"
+            gallium_check_st "radeon/drm" "r600/dri" "" "r600/xvmc" "r600/vdpau" "r600/omx"
             DRICOMMON_NEED_LIBDRM=yes
             ;;
         xradeonsi)
@@ -1795,7 +1815,7 @@ if test "x$with_gallium_drivers" != x; then
             gallium_require_drm_loader
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS radeonsi"
             radeon_llvm_check
-            gallium_check_st "radeon/drm" "radeonsi/dri" "" "" "radeonsi/vdpau"
+            gallium_check_st "radeon/drm" "radeonsi/dri" "" "" "radeonsi/vdpau" "radeonsi/omx"
             DRICOMMON_NEED_LIBDRM=yes
             ;;
         xnouveau)
@@ -1975,7 +1995,6 @@ AC_CONFIG_FILES([Makefile
 		src/egl/Makefile
 		src/egl/drivers/Makefile
 		src/egl/drivers/dri2/Makefile
-		src/egl/drivers/glx/Makefile
 		src/egl/main/Makefile
 		src/egl/main/egl.pc
 		src/egl/wayland/Makefile
@@ -2010,6 +2029,7 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/state_trackers/gbm/Makefile
 		src/gallium/state_trackers/glx/xlib/Makefile
 		src/gallium/state_trackers/osmesa/Makefile
+		src/gallium/state_trackers/omx/Makefile
 		src/gallium/state_trackers/vdpau/Makefile
 		src/gallium/state_trackers/vega/Makefile
 		src/gallium/state_trackers/xa/Makefile
@@ -2028,9 +2048,11 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/targets/osmesa/osmesa.pc
 		src/gallium/targets/pipe-loader/Makefile
 		src/gallium/targets/radeonsi/dri/Makefile
+		src/gallium/targets/radeonsi/omx/Makefile
 		src/gallium/targets/radeonsi/vdpau/Makefile
 		src/gallium/targets/r300/dri/Makefile
 		src/gallium/targets/r600/dri/Makefile
+		src/gallium/targets/r600/omx/Makefile
 		src/gallium/targets/r600/vdpau/Makefile
 		src/gallium/targets/r600/xvmc/Makefile
 		src/gallium/targets/libgl-xlib/Makefile
@@ -2157,9 +2179,6 @@ if test "$enable_egl" = yes; then
     echo "        EGL platforms:   $egl_platforms"
 
     egl_drivers=""
-    if test "x$HAVE_EGL_DRIVER_GLX" != "x"; then
-        egl_drivers="$egl_drivers builtin:egl_glx"
-    fi
     if test "x$HAVE_EGL_DRIVER_DRI2" != "x"; then
         egl_drivers="$egl_drivers builtin:egl_dri2"
     fi

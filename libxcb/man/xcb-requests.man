@@ -1,4 +1,4 @@
-.TH xcb-requests 3 2011-12-11 "XCB" "XCB examples"
+.TH xcb-requests __libmansuffix__ __xorgversion__ "XCB examples"
 .ad l
 .SH NAME
 xcb-requests \- about request manpages
@@ -156,10 +156,10 @@ void my_example(xcb_connection *conn, xcb_window_t window) {
 .fi
 
 .SH SEE ALSO
-.BR xcb_map_window (3),
-.BR xcb_intern_atom (3),
-.BR xcb_list_fonts (3),
-.BR xcb_poll_for_event (3),
-.BR xcb_request_check (3)
+.BR xcb_map_window (__libmansuffix__),
+.BR xcb_intern_atom (__libmansuffix__),
+.BR xcb_list_fonts (__libmansuffix__),
+.BR xcb_poll_for_event (__libmansuffix__),
+.BR xcb_request_check (__libmansuffix__)
 .SH AUTHOR
 Michael Stapelberg <michael+xcb at stapelberg dot de>

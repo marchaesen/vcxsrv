@@ -28,76 +28,72 @@
  * Screen Change Window Attribute implementation.
  */
 
-
 static void
-glamor_fixup_window_pixmap(DrawablePtr pDrawable, PixmapPtr * ppPixmap)
+glamor_fixup_window_pixmap(DrawablePtr pDrawable, PixmapPtr *ppPixmap)
 {
-	PixmapPtr pPixmap = *ppPixmap;
-	glamor_pixmap_private *pixmap_priv;
+    PixmapPtr pPixmap = *ppPixmap;
+    glamor_pixmap_private *pixmap_priv;
 
-	if (pPixmap->drawable.bitsPerPixel != pDrawable->bitsPerPixel) {
-		pixmap_priv = glamor_get_pixmap_private(pPixmap);
-		if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv)) {
-			glamor_fallback("pixmap %p has no fbo\n", pPixmap);
-			goto fail;
-		}
-		glamor_debug_output(GLAMOR_DEBUG_UNIMPL,
-				    "To be implemented.\n");
-	}
-	return;
+    if (pPixmap->drawable.bitsPerPixel != pDrawable->bitsPerPixel) {
+        pixmap_priv = glamor_get_pixmap_private(pPixmap);
+        if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv)) {
+            glamor_fallback("pixmap %p has no fbo\n", pPixmap);
+            goto fail;
+        }
+        glamor_debug_output(GLAMOR_DEBUG_UNIMPL, "To be implemented.\n");
+    }
+    return;
 
-      fail:
-	GLAMOR_PANIC
-	    (" We can't fall back to fbFixupWindowPixmap, as the fb24_32ReformatTile"
-	     " is broken for glamor. \n");
+ fail:
+    GLAMOR_PANIC
+        (" We can't fall back to fbFixupWindowPixmap, as the fb24_32ReformatTile"
+         " is broken for glamor. \n");
 }
 
 Bool
 glamor_change_window_attributes(WindowPtr pWin, unsigned long mask)
 {
-	if (mask & CWBackPixmap) {
-		if (pWin->backgroundState == BackgroundPixmap)
-			glamor_fixup_window_pixmap(&pWin->drawable,
-						   &pWin->
-						   background.pixmap);
-	}
+    if (mask & CWBackPixmap) {
+        if (pWin->backgroundState == BackgroundPixmap)
+            glamor_fixup_window_pixmap(&pWin->drawable,
+                                       &pWin->background.pixmap);
+    }
 
-	if (mask & CWBorderPixmap) {
-		if (pWin->borderIsPixel == FALSE)
-			glamor_fixup_window_pixmap(&pWin->drawable,
-						   &pWin->border.pixmap);
-	}
-	return TRUE;
+    if (mask & CWBorderPixmap) {
+        if (pWin->borderIsPixel == FALSE)
+            glamor_fixup_window_pixmap(&pWin->drawable, &pWin->border.pixmap);
+    }
+    return TRUE;
 }
 
 void
 glamor_set_window_pixmap(WindowPtr win, PixmapPtr pPixmap)
 {
-	ScreenPtr screen = win->drawable.pScreen;
-	glamor_screen_private *glamor_priv =
-		glamor_get_screen_private(screen);
-	PixmapPtr old = screen->GetWindowPixmap(win);
+    ScreenPtr screen = win->drawable.pScreen;
+    glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
+    PixmapPtr old = screen->GetWindowPixmap(win);
 
-	if (pPixmap != old) {
-		glamor_pixmap_private *pixmap_priv;
-		PicturePtr pic = NULL;
+    if (pPixmap != old) {
+        glamor_pixmap_private *pixmap_priv;
+        PicturePtr pic = NULL;
 
-		pixmap_priv = glamor_get_pixmap_private(old);
-		if (GLAMOR_PIXMAP_PRIV_IS_PICTURE(pixmap_priv) && pixmap_priv->base.picture->pDrawable == (DrawablePtr)win) {
-			pic = pixmap_priv->base.picture;
-			pixmap_priv->base.is_picture = 0;
-			pixmap_priv->base.picture = NULL;
-		}
+        pixmap_priv = glamor_get_pixmap_private(old);
+        if (GLAMOR_PIXMAP_PRIV_IS_PICTURE(pixmap_priv) &&
+            pixmap_priv->base.picture->pDrawable == (DrawablePtr) win) {
+            pic = pixmap_priv->base.picture;
+            pixmap_priv->base.is_picture = 0;
+            pixmap_priv->base.picture = NULL;
+        }
 
-		pixmap_priv = glamor_get_pixmap_private(pPixmap);
-		if (pixmap_priv) {
-			pixmap_priv->base.is_picture = !!pic;
-			pixmap_priv->base.picture = pic;
-		}
-	}
+        pixmap_priv = glamor_get_pixmap_private(pPixmap);
+        if (pixmap_priv) {
+            pixmap_priv->base.is_picture = ! !pic;
+            pixmap_priv->base.picture = pic;
+        }
+    }
 
-	screen->SetWindowPixmap = glamor_priv->saved_procs.set_window_pixmap;
-	(screen->SetWindowPixmap)(win, pPixmap);
-	glamor_priv->saved_procs.set_window_pixmap = screen->SetWindowPixmap;
-	screen->SetWindowPixmap = glamor_set_window_pixmap;
+    screen->SetWindowPixmap = glamor_priv->saved_procs.set_window_pixmap;
+    (screen->SetWindowPixmap) (win, pPixmap);
+    glamor_priv->saved_procs.set_window_pixmap = screen->SetWindowPixmap;
+    screen->SetWindowPixmap = glamor_set_window_pixmap;
 }

@@ -1792,11 +1792,14 @@ GetFontPath(ClientPtr client, int *count, int *length, unsigned char **result)
         fpe = font_path_elements[i];
         len += fpe->name_length + 1;
     }
-    font_path_string = (unsigned char *) realloc(font_path_string, len);
-    if (!font_path_string)
+    c = realloc(font_path_string, len);
+    if (c == NULL) {
+        free(font_path_string);
+        font_path_string = NULL;
         return BadAlloc;
+    }
 
-    c = font_path_string;
+    font_path_string = c;
     *length = 0;
     for (i = 0; i < num_fpes; i++) {
         fpe = font_path_elements[i];

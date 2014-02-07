@@ -26,7 +26,6 @@
  *
  */
 
-
 #ifdef GLAMOR_GLES2
 
 #define GL_BGRA                                 GL_BGRA_EXT

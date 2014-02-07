@@ -27,20 +27,13 @@
 #ifndef GLAMOR_PRIV_H
 #define GLAMOR_PRIV_H
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "compiler.h"
+#include "dix-config.h"
 
 #include <xorg-server.h>
 #ifndef DEBUG
 #define NDEBUG
 #endif
 #include "glamor.h"
-#include "compat-api.h"
-
-#define GL_GLEXT_PROTOTYPES
 
 #ifdef GLAMOR_GLES2
 #include <GLES2/gl2.h>
@@ -61,125 +54,110 @@
 #include "glamor_debug.h"
 
 #include <list.h>
-/* The list.h rename all the function to add xorg_ prefix.
-   We add hack here to avoid the compile error when using
-   old version xserver header file.
-   These will be removed in future. */
-#ifndef xorg_list_entry
-#define xorg_list list
-#define xorg_list_for_each_entry list_for_each_entry
-#define xorg_list_for_each_entry_safe list_for_each_entry_safe
-#define xorg_list_del list_del
-#define xorg_list_add list_add
-#define xorg_list_append list_append
-#define xorg_list_init list_init
-#endif
 
 struct glamor_pixmap_private;
 
 typedef struct glamor_composite_shader {
-	GLuint prog;
-	GLint dest_to_dest_uniform_location;
-	GLint dest_to_source_uniform_location;
-	GLint dest_to_mask_uniform_location;
-	GLint source_uniform_location;
-	GLint mask_uniform_location;
-	GLint source_wh;
-	GLint mask_wh;
-	GLint source_repeat_mode;
-	GLint mask_repeat_mode;
-	union {
-		float source_solid_color[4];
-		struct {
-			struct glamor_pixmap_private *source_priv;
-			PicturePtr source;
-		};
-	};
+    GLuint prog;
+    GLint dest_to_dest_uniform_location;
+    GLint dest_to_source_uniform_location;
+    GLint dest_to_mask_uniform_location;
+    GLint source_uniform_location;
+    GLint mask_uniform_location;
+    GLint source_wh;
+    GLint mask_wh;
+    GLint source_repeat_mode;
+    GLint mask_repeat_mode;
+    union {
+        float source_solid_color[4];
+        struct {
+            struct glamor_pixmap_private *source_priv;
+            PicturePtr source;
+        };
+    };
 
-	union {
-		float mask_solid_color[4];
-		struct {
-			struct glamor_pixmap_private *mask_priv;
-			PicturePtr mask;
-		};
-	};
+    union {
+        float mask_solid_color[4];
+        struct {
+            struct glamor_pixmap_private *mask_priv;
+            PicturePtr mask;
+        };
+    };
 } glamor_composite_shader;
 
 enum shader_source {
-	SHADER_SOURCE_SOLID,
-	SHADER_SOURCE_TEXTURE,
-	SHADER_SOURCE_TEXTURE_ALPHA,
-	SHADER_SOURCE_COUNT,
+    SHADER_SOURCE_SOLID,
+    SHADER_SOURCE_TEXTURE,
+    SHADER_SOURCE_TEXTURE_ALPHA,
+    SHADER_SOURCE_COUNT,
 };
 
 enum shader_mask {
-	SHADER_MASK_NONE,
-	SHADER_MASK_SOLID,
-	SHADER_MASK_TEXTURE,
-	SHADER_MASK_TEXTURE_ALPHA,
-	SHADER_MASK_COUNT,
+    SHADER_MASK_NONE,
+    SHADER_MASK_SOLID,
+    SHADER_MASK_TEXTURE,
+    SHADER_MASK_TEXTURE_ALPHA,
+    SHADER_MASK_COUNT,
 };
 
 enum shader_in {
-	SHADER_IN_SOURCE_ONLY,
-	SHADER_IN_NORMAL,
-	SHADER_IN_CA_SOURCE,
-	SHADER_IN_CA_ALPHA,
-	SHADER_IN_COUNT,
+    SHADER_IN_SOURCE_ONLY,
+    SHADER_IN_NORMAL,
+    SHADER_IN_CA_SOURCE,
+    SHADER_IN_CA_ALPHA,
+    SHADER_IN_COUNT,
 };
 
 struct shader_key {
-	enum shader_source source;
-	enum shader_mask mask;
-	enum shader_in in;
+    enum shader_source source;
+    enum shader_mask mask;
+    enum shader_in in;
 };
 
 struct blendinfo {
-	Bool dest_alpha;
-	Bool source_alpha;
-	GLenum source_blend;
-	GLenum dest_blend;
+    Bool dest_alpha;
+    Bool source_alpha;
+    GLenum source_blend;
+    GLenum dest_blend;
 };
 
 typedef struct {
-	INT16 x_src;
-	INT16 y_src;
-	INT16 x_mask;
-	INT16 y_mask;
-	INT16 x_dst;
-	INT16 y_dst;
-	INT16 width;
-	INT16 height;
+    INT16 x_src;
+    INT16 y_src;
+    INT16 x_mask;
+    INT16 y_mask;
+    INT16 x_dst;
+    INT16 y_dst;
+    INT16 width;
+    INT16 height;
 } glamor_composite_rect_t;
 
-
 enum glamor_vertex_type {
-	GLAMOR_VERTEX_POS,
-	GLAMOR_VERTEX_SOURCE,
-	GLAMOR_VERTEX_MASK
+    GLAMOR_VERTEX_POS,
+    GLAMOR_VERTEX_SOURCE,
+    GLAMOR_VERTEX_MASK
 };
 
-
 enum gradient_shader {
-	SHADER_GRADIENT_LINEAR,
-	SHADER_GRADIENT_RADIAL,
-	SHADER_GRADIENT_CONICAL,
-	SHADER_GRADIENT_COUNT,
+    SHADER_GRADIENT_LINEAR,
+    SHADER_GRADIENT_RADIAL,
+    SHADER_GRADIENT_CONICAL,
+    SHADER_GRADIENT_COUNT,
 };
 
 enum gradient_shader_prog {
-	SHADER_GRADIENT_VS_PROG,
-	SHADER_GRADIENT_FS_MAIN_PROG,
-	SHADER_GRADIENT_FS_GETCOLOR_PROG,
-	SHADER_GRADIENT_PROG_COUNT,
+    SHADER_GRADIENT_VS_PROG,
+    SHADER_GRADIENT_FS_MAIN_PROG,
+    SHADER_GRADIENT_FS_GETCOLOR_PROG,
+    SHADER_GRADIENT_PROG_COUNT,
 };
 
 struct glamor_screen_private;
 struct glamor_pixmap_private;
 
 enum glamor_gl_flavor {
-	GLAMOR_GL_DESKTOP,	// OPENGL API
-	GLAMOR_GL_ES2		// OPENGL ES2.0 API
+    GLAMOR_GL_DESKTOP,          // OPENGL API
+    GLAMOR_GL_ES2               // OPENGL ES2.0 API
 };
 
 #define GLAMOR_CREATE_PIXMAP_CPU  0x100
@@ -194,34 +172,34 @@ enum glamor_gl_flavor {
 #define GLAMOR_COMPOSITE_VBO_VERT_CNT (64*1024)
 
 typedef struct {
-	PicturePtr picture;	/* Where the glyphs of the cache are stored */
-	GlyphPtr *glyphs;
-	uint16_t count;
-	uint16_t evict;
+    PicturePtr picture;         /* Where the glyphs of the cache are stored */
+    GlyphPtr *glyphs;
+    uint16_t count;
+    uint16_t evict;
 } glamor_glyph_cache_t;
 
 #include "glamor_gl_dispatch.h"
 
-struct glamor_saved_procs { 
-	CloseScreenProcPtr close_screen;
-	CreateGCProcPtr create_gc;
-	CreatePixmapProcPtr create_pixmap;
-	DestroyPixmapProcPtr destroy_pixmap;
-	GetSpansProcPtr get_spans;
-	GetImageProcPtr get_image;
-	CompositeProcPtr composite;
-	CompositeRectsProcPtr composite_rects;
-	TrapezoidsProcPtr trapezoids;
-	GlyphsProcPtr glyphs;
-	ChangeWindowAttributesProcPtr change_window_attributes;
-	CopyWindowProcPtr copy_window;
-	BitmapToRegionProcPtr bitmap_to_region;
-	TrianglesProcPtr triangles;
-	AddTrapsProcPtr addtraps;
-	CreatePictureProcPtr create_picture;
-	DestroyPictureProcPtr destroy_picture;
-	UnrealizeGlyphProcPtr unrealize_glyph;
-	SetWindowPixmapProcPtr set_window_pixmap;
+struct glamor_saved_procs {
+    CloseScreenProcPtr close_screen;
+    CreateGCProcPtr create_gc;
+    CreatePixmapProcPtr create_pixmap;
+    DestroyPixmapProcPtr destroy_pixmap;
+    GetSpansProcPtr get_spans;
+    GetImageProcPtr get_image;
+    CompositeProcPtr composite;
+    CompositeRectsProcPtr composite_rects;
+    TrapezoidsProcPtr trapezoids;
+    GlyphsProcPtr glyphs;
+    ChangeWindowAttributesProcPtr change_window_attributes;
+    CopyWindowProcPtr copy_window;
+    BitmapToRegionProcPtr bitmap_to_region;
+    TrianglesProcPtr triangles;
+    AddTrapsProcPtr addtraps;
+    CreatePictureProcPtr create_picture;
+    DestroyPictureProcPtr destroy_picture;
+    UnrealizeGlyphProcPtr unrealize_glyph;
+    SetWindowPixmapProcPtr set_window_pixmap;
 };
 
 #ifdef GLAMOR_GLES2
@@ -242,79 +220,80 @@ struct glamor_saved_procs {
 #define RENDER_IDEL_MAX 32
 
 typedef struct glamor_screen_private {
-	struct glamor_gl_dispatch _dispatch;
-	int yInverted;
-	unsigned int tick;
-	enum glamor_gl_flavor gl_flavor;
-	int has_pack_invert;
-	int has_fbo_blit;
-	int max_fbo_size;
+    struct glamor_gl_dispatch _dispatch;
+    int yInverted;
+    unsigned int tick;
+    enum glamor_gl_flavor gl_flavor;
+    int has_pack_invert;
+    int has_fbo_blit;
+    int max_fbo_size;
 
-	struct xorg_list fbo_cache[CACHE_FORMAT_COUNT][CACHE_BUCKET_WCOUNT][CACHE_BUCKET_HCOUNT];
-	unsigned long    fbo_cache_watermark;
+    struct xorg_list
+        fbo_cache[CACHE_FORMAT_COUNT][CACHE_BUCKET_WCOUNT][CACHE_BUCKET_HCOUNT];
+    unsigned long fbo_cache_watermark;
 
-	/* glamor_solid */
-	GLint solid_prog;
-	GLint solid_color_uniform_location;
+    /* glamor_solid */
+    GLint solid_prog;
+    GLint solid_color_uniform_location;
 
-	/* vertext/elment_index buffer object for render */
-	GLuint vbo, ebo;
-	int vbo_offset;
-	int vbo_size;
-	char *vb;
-	int vb_stride;
-	Bool has_source_coords, has_mask_coords;
-	int render_nr_verts;
-	glamor_composite_shader composite_shader[SHADER_SOURCE_COUNT]
-						[SHADER_MASK_COUNT]
-						[SHADER_IN_COUNT];
-	glamor_glyph_cache_t glyphCaches[GLAMOR_NUM_GLYPH_CACHE_FORMATS];
-	Bool glyph_cache_initialized;
+    /* vertext/elment_index buffer object for render */
+    GLuint vbo, ebo;
+    int vbo_offset;
+    int vbo_size;
+    char *vb;
+    int vb_stride;
+    Bool has_source_coords, has_mask_coords;
+    int render_nr_verts;
+    glamor_composite_shader composite_shader[SHADER_SOURCE_COUNT]
+        [SHADER_MASK_COUNT]
+        [SHADER_IN_COUNT];
+    glamor_glyph_cache_t glyphCaches[GLAMOR_NUM_GLYPH_CACHE_FORMATS];
+    Bool glyph_cache_initialized;
 
-	/* shaders to restore a texture to another texture.*/
-	GLint finish_access_prog[2];
-	GLint finish_access_revert[2];
-	GLint finish_access_swap_rb[2];
+    /* shaders to restore a texture to another texture. */
+    GLint finish_access_prog[2];
+    GLint finish_access_revert[2];
+    GLint finish_access_swap_rb[2];
 
-	/* glamor_tile */
-	GLint tile_prog;
-	GLint tile_wh;
+    /* glamor_tile */
+    GLint tile_prog;
+    GLint tile_wh;
 
-	/* glamor gradient, 0 for small nstops, 1 for
-	   large nstops and 2 for dynamic generate. */
-	GLint gradient_prog[SHADER_GRADIENT_COUNT][3];
-	GLint linear_gradient_shaders[SHADER_GRADIENT_PROG_COUNT][3];
-	int linear_max_nstops;
-	GLint radial_gradient_shaders[SHADER_GRADIENT_PROG_COUNT][3];
-	int radial_max_nstops;
+    /* glamor gradient, 0 for small nstops, 1 for
+       large nstops and 2 for dynamic generate. */
+    GLint gradient_prog[SHADER_GRADIENT_COUNT][3];
+    GLint linear_gradient_shaders[SHADER_GRADIENT_PROG_COUNT][3];
+    int linear_max_nstops;
+    GLint radial_gradient_shaders[SHADER_GRADIENT_PROG_COUNT][3];
+    int radial_max_nstops;
 
-	/* glamor trapezoid shader. */
-	GLint trapezoid_prog;
+    /* glamor trapezoid shader. */
+    GLint trapezoid_prog;
 
-	/* glamor_putimage */
-	GLint put_image_xybitmap_prog;
-	GLint put_image_xybitmap_fg_uniform_location;
-	GLint put_image_xybitmap_bg_uniform_location;
+    /* glamor_putimage */
+    GLint put_image_xybitmap_prog;
+    GLint put_image_xybitmap_fg_uniform_location;
+    GLint put_image_xybitmap_bg_uniform_location;
 
-	PixmapPtr *back_pixmap;
-	int screen_fbo;
-	struct glamor_saved_procs saved_procs;
-	char delayed_fallback_string[GLAMOR_DELAYED_STRING_MAX + 1];
-	int delayed_fallback_pending;
-	int flags;
-	int state;
-	unsigned int render_idle_cnt;
-	ScreenPtr screen;
-	int dri3_enabled;
+    PixmapPtr *back_pixmap;
+    int screen_fbo;
+    struct glamor_saved_procs saved_procs;
+    char delayed_fallback_string[GLAMOR_DELAYED_STRING_MAX + 1];
+    int delayed_fallback_pending;
+    int flags;
+    int state;
+    unsigned int render_idle_cnt;
+    ScreenPtr screen;
+    int dri3_enabled;
 
-	/* xv */
-	GLint xv_prog;
+    /* xv */
+    GLint xv_prog;
 } glamor_screen_private;
 
 typedef enum glamor_access {
-	GLAMOR_ACCESS_RO,
-	GLAMOR_ACCESS_RW,
-	GLAMOR_ACCESS_WO,
+    GLAMOR_ACCESS_RO,
+    GLAMOR_ACCESS_RW,
+    GLAMOR_ACCESS_WO,
 } glamor_access_t;
 
 #define GLAMOR_FBO_NORMAL     1
@@ -335,17 +314,17 @@ typedef enum glamor_access {
  * @glamor_priv: point to glamor private data.
  */
 typedef struct glamor_pixmap_fbo {
-	struct xorg_list list;
-	unsigned int expire;
-	unsigned char pbo_valid;
-	GLuint tex;
-	GLuint fb;
-	GLuint pbo;
-	int width;
-	int height;
-	GLenum format;
-	GLenum type;
-	glamor_screen_private *glamor_priv;
+    struct xorg_list list;
+    unsigned int expire;
+    unsigned char pbo_valid;
+    GLuint tex;
+    GLuint fb;
+    GLuint pbo;
+    int width;
+    int height;
+    GLenum format;
+    GLenum type;
+    glamor_screen_private *glamor_priv;
 } glamor_pixmap_fbo;
 
 /*
@@ -414,9 +393,9 @@ typedef struct glamor_pixmap_fbo {
  *
  **/
 
-typedef struct glamor_pixmap_clipped_regions{
-	int block_idx;
-	RegionPtr region;
+typedef struct glamor_pixmap_clipped_regions {
+    int block_idx;
+    RegionPtr region;
 } glamor_pixmap_clipped_regions;
 
 #define SET_PIXMAP_FBO_CURRENT(priv, idx) 				\
@@ -428,16 +407,16 @@ typedef struct glamor_pixmap_clipped_regions{
   } while(0)
 
 typedef struct glamor_pixmap_private_base {
-	glamor_pixmap_type_t type;
-	unsigned char gl_fbo:2;
-	unsigned char is_picture:1;
-	unsigned char gl_tex:1;
-	glamor_pixmap_fbo *fbo;
-	PixmapPtr pixmap;
-	int drm_stride;
-	glamor_screen_private *glamor_priv;
-	PicturePtr picture;
-}glamor_pixmap_private_base_t;
+    glamor_pixmap_type_t type;
+    unsigned char gl_fbo:2;
+    unsigned char is_picture:1;
+    unsigned char gl_tex:1;
+    glamor_pixmap_fbo *fbo;
+    PixmapPtr pixmap;
+    int drm_stride;
+    glamor_screen_private *glamor_priv;
+    PicturePtr picture;
+} glamor_pixmap_private_base_t;
 
 /*
  * @base.fbo: current fbo.
@@ -452,39 +431,39 @@ typedef struct glamor_pixmap_private_base {
  *
  **/
 typedef struct glamor_pixmap_private_large {
-	union {
-		glamor_pixmap_type_t type;
-		glamor_pixmap_private_base_t base;
-	};
-	BoxRec box;
-	int block_w;
-	int block_h;
-	int block_wcnt;
-	int block_hcnt;
-	int nbox;
-	BoxPtr box_array;
-	glamor_pixmap_fbo **fbo_array;
-}glamor_pixmap_private_large_t;
+    union {
+        glamor_pixmap_type_t type;
+        glamor_pixmap_private_base_t base;
+    };
+    BoxRec box;
+    int block_w;
+    int block_h;
+    int block_wcnt;
+    int block_hcnt;
+    int nbox;
+    BoxPtr box_array;
+    glamor_pixmap_fbo **fbo_array;
+} glamor_pixmap_private_large_t;
 
 /*
  * @box: the relative coords in the corresponding fbo.
  */
 typedef struct glamor_pixmap_private_atlas {
-	union {
-		glamor_pixmap_type_t type;
-		glamor_pixmap_private_base_t base;
-	};
-	BoxRec box;
-}glamor_pixmap_private_atlas_t;
+    union {
+        glamor_pixmap_type_t type;
+        glamor_pixmap_private_base_t base;
+    };
+    BoxRec box;
+} glamor_pixmap_private_atlas_t;
 
 typedef struct glamor_pixmap_private {
-	union {
-		glamor_pixmap_type_t type;
-		glamor_pixmap_private_base_t base;
-		glamor_pixmap_private_large_t large;
-		glamor_pixmap_private_atlas_t atlas;
-	};
-}glamor_pixmap_private;
+    union {
+        glamor_pixmap_type_t type;
+        glamor_pixmap_private_base_t base;
+        glamor_pixmap_private_large_t large;
+        glamor_pixmap_private_atlas_t atlas;
+    };
+} glamor_pixmap_private;
 
 /* 
  * Pixmap dynamic status, used by dynamic upload feature.
@@ -496,10 +475,10 @@ typedef struct glamor_pixmap_private {
  *
  * */
 typedef enum glamor_pixmap_status {
-	GLAMOR_NONE,
-	GLAMOR_UPLOAD_PENDING,
-	GLAMOR_UPLOAD_DONE,
-	GLAMOR_UPLOAD_FAILED
+    GLAMOR_NONE,
+    GLAMOR_UPLOAD_PENDING,
+    GLAMOR_UPLOAD_DONE,
+    GLAMOR_UPLOAD_FAILED
 } glamor_pixmap_status_t;
 
 extern DevPrivateKey glamor_screen_private_key;
@@ -507,33 +486,28 @@ extern DevPrivateKey glamor_pixmap_private_key;
 static inline glamor_screen_private *
 glamor_get_screen_private(ScreenPtr screen)
 {
-	return (glamor_screen_private *)
-	    dixLookupPrivate(&screen->devPrivates,
-			     glamor_screen_private_key);
+    return (glamor_screen_private *)
+        dixLookupPrivate(&screen->devPrivates, glamor_screen_private_key);
 }
 
 static inline void
 glamor_set_screen_private(ScreenPtr screen, glamor_screen_private *priv)
 {
-	dixSetPrivate(&screen->devPrivates,
-		      glamor_screen_private_key,
-		      priv);
+    dixSetPrivate(&screen->devPrivates, glamor_screen_private_key, priv);
 }
-
-
 
 static inline glamor_pixmap_private *
 glamor_get_pixmap_private(PixmapPtr pixmap)
 {
-	glamor_pixmap_private *priv;
-	priv = dixLookupPrivate(&pixmap->devPrivates,
-				glamor_pixmap_private_key);
-	if (!priv) {
-		glamor_set_pixmap_type(pixmap, GLAMOR_MEMORY);
-		priv = dixLookupPrivate(&pixmap->devPrivates,
-					glamor_pixmap_private_key);
-	}
-	return priv;
+    glamor_pixmap_private *priv;
+
+    priv = dixLookupPrivate(&pixmap->devPrivates, glamor_pixmap_private_key);
+    if (!priv) {
+        glamor_set_pixmap_type(pixmap, GLAMOR_MEMORY);
+        priv = dixLookupPrivate(&pixmap->devPrivates,
+                                glamor_pixmap_private_key);
+    }
+    return priv;
 }
 
 void glamor_set_pixmap_private(PixmapPtr pixmap, glamor_pixmap_private *priv);
@@ -545,8 +519,8 @@ void glamor_set_pixmap_private(PixmapPtr pixmap, glamor_pixmap_private *priv);
 static inline Bool
 glamor_pm_is_solid(DrawablePtr drawable, unsigned long planemask)
 {
-	return (planemask & FbFullMask(drawable->depth)) ==
-	    FbFullMask(drawable->depth);
+    return (planemask & FbFullMask(drawable->depth)) ==
+        FbFullMask(drawable->depth);
 }
 
 extern int glamor_debug_level;
@@ -556,12 +530,15 @@ PixmapPtr glamor_get_drawable_pixmap(DrawablePtr drawable);
 
 Bool glamor_destroy_pixmap(PixmapPtr pixmap);
 
-glamor_pixmap_fbo* glamor_pixmap_detach_fbo(glamor_pixmap_private *pixmap_priv);
+glamor_pixmap_fbo *glamor_pixmap_detach_fbo(glamor_pixmap_private *
+                                            pixmap_priv);
 void glamor_pixmap_attach_fbo(PixmapPtr pixmap, glamor_pixmap_fbo *fbo);
-glamor_pixmap_fbo * glamor_create_fbo_from_tex(glamor_screen_private *glamor_priv,
-					       int w, int h, GLenum format, GLint tex, int flag);
-glamor_pixmap_fbo * glamor_create_fbo(glamor_screen_private *glamor_priv,
-				      int w, int h, GLenum format, int flag);
+glamor_pixmap_fbo *glamor_create_fbo_from_tex(glamor_screen_private *
+                                              glamor_priv, int w, int h,
+                                              GLenum format, GLint tex,
+                                              int flag);
+glamor_pixmap_fbo *glamor_create_fbo(glamor_screen_private *glamor_priv, int w,
+                                     int h, GLenum format, int flag);
 void glamor_destroy_fbo(glamor_pixmap_fbo *fbo);
 void glamor_pixmap_destroy_fbo(glamor_pixmap_private *priv);
 void glamor_purge_fbo(glamor_pixmap_fbo *fbo);
@@ -571,23 +548,23 @@ void glamor_fini_pixmap_fbo(ScreenPtr screen);
 Bool glamor_pixmap_fbo_fixup(ScreenPtr screen, PixmapPtr pixmap);
 void glamor_fbo_expire(glamor_screen_private *glamor_priv);
 
-glamor_pixmap_fbo *
-glamor_create_fbo_array(glamor_screen_private *glamor_priv,
-			int w, int h, GLenum format, int flag,
-			int block_w, int block_h, glamor_pixmap_private *);
+glamor_pixmap_fbo *glamor_create_fbo_array(glamor_screen_private *glamor_priv,
+                                           int w, int h, GLenum format,
+                                           int flag, int block_w, int block_h,
+                                           glamor_pixmap_private *);
 
 /* glamor_copyarea.c */
 RegionPtr
+
 glamor_copy_area(DrawablePtr src, DrawablePtr dst, GCPtr gc,
-		 int srcx, int srcy, int width, int height, int dstx,
-		 int dsty);
+                 int srcx, int srcy, int width, int height, int dstx, int dsty);
 void glamor_copy_n_to_n(DrawablePtr src, DrawablePtr dst, GCPtr gc,
-			BoxPtr box, int nbox, int dx, int dy, Bool reverse,
-			Bool upsidedown, Pixel bitplane, void *closure);
+                        BoxPtr box, int nbox, int dx, int dy, Bool reverse,
+                        Bool upsidedown, Pixel bitplane, void *closure);
 
 /* glamor_copywindow.c */
 void glamor_copy_window(WindowPtr win, DDXPointRec old_origin,
-			RegionPtr src_region);
+                        RegionPtr src_region);
 
 /* glamor_core.c */
 Bool glamor_prepare_access(DrawablePtr drawable, glamor_access_t access);
@@ -600,36 +577,34 @@ void glamor_init_finish_access_shaders(ScreenPtr screen);
 void glamor_fini_finish_access_shaders(ScreenPtr screen);
 const Bool glamor_get_drawable_location(const DrawablePtr drawable);
 void glamor_get_drawable_deltas(DrawablePtr drawable, PixmapPtr pixmap,
-				int *x, int *y);
+                                int *x, int *y);
 Bool glamor_stipple(PixmapPtr pixmap, PixmapPtr stipple,
-		    int x, int y, int width, int height,
-		    unsigned char alu, unsigned long planemask,
-		    unsigned long fg_pixel, unsigned long bg_pixel,
-		    int stipple_x, int stipple_y);
-GLint glamor_compile_glsl_prog(glamor_gl_dispatch * dispatch, GLenum type,
-			       const char *source);
-void glamor_link_glsl_prog(glamor_gl_dispatch * dispatch, GLint prog);
+                    int x, int y, int width, int height,
+                    unsigned char alu, unsigned long planemask,
+                    unsigned long fg_pixel, unsigned long bg_pixel,
+                    int stipple_x, int stipple_y);
+GLint glamor_compile_glsl_prog(glamor_gl_dispatch *dispatch, GLenum type,
+                               const char *source);
+void glamor_link_glsl_prog(glamor_gl_dispatch *dispatch, GLint prog);
 void glamor_get_color_4f_from_pixel(PixmapPtr pixmap,
-				    unsigned long fg_pixel,
-				    GLfloat * color);
+                                    unsigned long fg_pixel, GLfloat *color);
 
 int glamor_set_destination_pixmap(PixmapPtr pixmap);
-int glamor_set_destination_pixmap_priv(glamor_pixmap_private *
-				       pixmap_priv);
+int glamor_set_destination_pixmap_priv(glamor_pixmap_private *pixmap_priv);
 void glamor_set_destination_pixmap_fbo(glamor_pixmap_fbo *, int, int, int, int);
 
 /* nc means no check. caller must ensure this pixmap has valid fbo.
  * usually use the GLAMOR_PIXMAP_PRIV_HAS_FBO firstly. 
  * */
-void glamor_set_destination_pixmap_priv_nc(glamor_pixmap_private *
-					   pixmap_priv);
+void glamor_set_destination_pixmap_priv_nc(glamor_pixmap_private *pixmap_priv);
 
-glamor_pixmap_fbo *
-glamor_es2_pixmap_read_prepare(PixmapPtr source, int x, int y, int w, int h, GLenum format,
-			       GLenum type, int no_alpha, int revert, int swap_rb);
+glamor_pixmap_fbo *glamor_es2_pixmap_read_prepare(PixmapPtr source, int x,
+                                                  int y, int w, int h,
+                                                  GLenum format, GLenum type,
+                                                  int no_alpha, int revert,
+                                                  int swap_rb);
 
-Bool glamor_set_alu(struct glamor_gl_dispatch *dispatch,
-		    unsigned char alu);
+Bool glamor_set_alu(struct glamor_gl_dispatch *dispatch, unsigned char alu);
 Bool glamor_set_planemask(PixmapPtr pixmap, unsigned long planemask);
 Bool glamor_change_window_attributes(WindowPtr pWin, unsigned long mask);
 RegionPtr glamor_bitmap_to_region(PixmapPtr pixmap);
@@ -640,107 +615,88 @@ int glamor_gl_get_version(void);
           ((major) * 256)                       \
         + ((minor) *   1))
 
-
-
-
 /* glamor_fill.c */
 Bool glamor_fill(DrawablePtr drawable,
-		 GCPtr gc, int x, int y, int width, int height, Bool fallback);
+                 GCPtr gc, int x, int y, int width, int height, Bool fallback);
 Bool glamor_solid(PixmapPtr pixmap, int x, int y, int width, int height,
-		  unsigned char alu, unsigned long planemask,
-		  unsigned long fg_pixel);
-Bool
-glamor_solid_boxes(PixmapPtr pixmap,
-		   BoxPtr box, int nbox,
-		   unsigned long fg_pixel);
+                  unsigned char alu, unsigned long planemask,
+                  unsigned long fg_pixel);
+Bool glamor_solid_boxes(PixmapPtr pixmap,
+                        BoxPtr box, int nbox, unsigned long fg_pixel);
 
 /* glamor_fillspans.c */
 void glamor_fill_spans(DrawablePtr drawable,
-		       GCPtr gc,
-		       int n, DDXPointPtr points, int *widths, int sorted);
+                       GCPtr gc,
+                       int n, DDXPointPtr points, int *widths, int sorted);
 
 void glamor_init_solid_shader(ScreenPtr screen);
 void glamor_fini_solid_shader(ScreenPtr screen);
 
 /* glamor_getspans.c */
-void
-
-glamor_get_spans(DrawablePtr drawable,
-		 int wmax,
-		 DDXPointPtr points,
-		 int *widths, int nspans, char *dst_start);
+void glamor_get_spans(DrawablePtr drawable,
+                      int wmax, DDXPointPtr points, int *widths,
+                      int nspans, char *dst_start);
 
 /* glamor_glyphs.c */
 void glamor_glyphs_fini(ScreenPtr screen);
 void glamor_glyphs(CARD8 op,
-		   PicturePtr pSrc,
-		   PicturePtr pDst,
-		   PictFormatPtr maskFormat,
-		   INT16 xSrc,
-		   INT16 ySrc, int nlist, GlyphListPtr list,
-		   GlyphPtr * glyphs);
+                   PicturePtr pSrc,
+                   PicturePtr pDst,
+                   PictFormatPtr maskFormat,
+                   INT16 xSrc,
+                   INT16 ySrc, int nlist, GlyphListPtr list, GlyphPtr *glyphs);
 
 /* glamor_setspans.c */
 void glamor_set_spans(DrawablePtr drawable, GCPtr gc, char *src,
-		      DDXPointPtr points, int *widths, int n, int sorted);
+                      DDXPointPtr points, int *widths, int n, int sorted);
 
 /* glamor_polyfillrect.c */
-void
-glamor_poly_fill_rect(DrawablePtr drawable,
-		      GCPtr gc, int nrect, xRectangle * prect);
+void glamor_poly_fill_rect(DrawablePtr drawable,
+                           GCPtr gc, int nrect, xRectangle *prect);
 
 /* glamor_polylines.c */
-void
-
-glamor_poly_lines(DrawablePtr drawable, GCPtr gc, int mode, int n,
-		  DDXPointPtr points);
+void glamor_poly_lines(DrawablePtr drawable, GCPtr gc, int mode, int n,
+                       DDXPointPtr points);
 
 /* glamor_putimage.c */
-void
-
-glamor_put_image(DrawablePtr drawable, GCPtr gc, int depth, int x, int y,
-		 int w, int h, int leftPad, int format, char *bits);
+void glamor_put_image(DrawablePtr drawable, GCPtr gc, int depth, int x, int y,
+                      int w, int h, int leftPad, int format, char *bits);
 void glamor_init_putimage_shaders(ScreenPtr screen);
 void glamor_fini_putimage_shaders(ScreenPtr screen);
 
 /* glamor_render.c */
-Bool
-glamor_composite_clipped_region(CARD8 op,
-				PicturePtr source,
-				PicturePtr mask,
-				PicturePtr dest,
-				glamor_pixmap_private *soruce_pixmap_priv,
-				glamor_pixmap_private *mask_pixmap_priv,
-				glamor_pixmap_private *dest_pixmap_priv,
-				RegionPtr region,
-				int x_source,
-				int y_source,
-				int x_mask,
-				int y_mask,
-				int x_dest,
-				int y_dest);
+Bool glamor_composite_clipped_region(CARD8 op,
+                                     PicturePtr source,
+                                     PicturePtr mask,
+                                     PicturePtr dest,
+                                     glamor_pixmap_private *soruce_pixmap_priv,
+                                     glamor_pixmap_private *mask_pixmap_priv,
+                                     glamor_pixmap_private *dest_pixmap_priv,
+                                     RegionPtr region,
+                                     int x_source,
+                                     int y_source,
+                                     int x_mask, int y_mask,
+                                     int x_dest, int y_dest);
 
 void glamor_composite(CARD8 op,
-		      PicturePtr pSrc,
-		      PicturePtr pMask,
-		      PicturePtr pDst,
-		      INT16 xSrc,
-		      INT16 ySrc,
-		      INT16 xMask,
-		      INT16 yMask,
-		      INT16 xDst, INT16 yDst, CARD16 width, CARD16 height);
+                      PicturePtr pSrc,
+                      PicturePtr pMask,
+                      PicturePtr pDst,
+                      INT16 xSrc,
+                      INT16 ySrc,
+                      INT16 xMask,
+                      INT16 yMask,
+                      INT16 xDst, INT16 yDst, CARD16 width, CARD16 height);
 
 void glamor_init_composite_shaders(ScreenPtr screen);
 void glamor_fini_composite_shaders(ScreenPtr screen);
 void glamor_composite_glyph_rects(CARD8 op,
-				  PicturePtr src, PicturePtr mask,
-				  PicturePtr dst, int nrect,
-				  glamor_composite_rect_t * rects);
-void glamor_composite_rects (CARD8         op,
-			     PicturePtr    pDst,
-			     xRenderColor  *color,
-			     int           nRect,
-			     xRectangle    *rects);
+                                  PicturePtr src, PicturePtr mask,
+                                  PicturePtr dst, int nrect,
+                                  glamor_composite_rect_t *rects);
+void glamor_composite_rects(CARD8 op,
+                            PicturePtr pDst,
+                            xRenderColor *color, int nRect, xRectangle *rects);
 void glamor_init_trapezoid_shader(ScreenPtr screen);
 void glamor_fini_trapezoid_shader(ScreenPtr screen);
 PicturePtr glamor_convert_gradient_picture(ScreenPtr screen,
@@ -752,19 +708,18 @@ Bool glamor_composite_choose_shader(CARD8 op,
                                     PicturePtr source,
                                     PicturePtr mask,
                                     PicturePtr dest,
-			     	    glamor_pixmap_private *source_pixmap_priv,
-			     	    glamor_pixmap_private *mask_pixmap_priv,
-			     	    glamor_pixmap_private *dest_pixmap_priv,
+                                    glamor_pixmap_private *source_pixmap_priv,
+                                    glamor_pixmap_private *mask_pixmap_priv,
+                                    glamor_pixmap_private *dest_pixmap_priv,
                                     struct shader_key *s_key,
-				    glamor_composite_shader **shader, 
-				    struct blendinfo *op_info,
+                                    glamor_composite_shader ** shader,
+                                    struct blendinfo *op_info,
                                     PictFormatShort *psaved_source_format);
 
-void
-glamor_composite_set_shader_blend(glamor_pixmap_private *dest_priv,
-				  struct shader_key *key,
-				  glamor_composite_shader *shader,
-				  struct blendinfo *op_info);
+void glamor_composite_set_shader_blend(glamor_pixmap_private *dest_priv,
+                                       struct shader_key *key,
+                                       glamor_composite_shader *shader,
+                                       struct blendinfo *op_info);
 
 void glamor_setup_composite_vbo(ScreenPtr screen, int n_verts);
 void glamor_emit_composite_vert(ScreenPtr screen,
@@ -774,15 +729,15 @@ void glamor_emit_composite_vert(ScreenPtr screen,
 
 /* glamor_trapezoid.c */
 void glamor_trapezoids(CARD8 op,
-		       PicturePtr src, PicturePtr dst,
-		       PictFormatPtr mask_format, INT16 x_src, INT16 y_src,
-		       int ntrap, xTrapezoid * traps);
+                       PicturePtr src, PicturePtr dst,
+                       PictFormatPtr mask_format, INT16 x_src, INT16 y_src,
+                       int ntrap, xTrapezoid *traps);
 
 /* glamor_tile.c */
 Bool glamor_tile(PixmapPtr pixmap, PixmapPtr tile,
-		 int x, int y, int width, int height,
-		 unsigned char alu, unsigned long planemask,
-		 int tile_x, int tile_y);
+                 int x, int y, int width, int height,
+                 unsigned char alu, unsigned long planemask,
+                 int tile_x, int tile_y);
 void glamor_init_tile_shader(ScreenPtr screen);
 void glamor_fini_tile_shader(ScreenPtr screen);
 
@@ -801,18 +756,17 @@ PicturePtr glamor_generate_radial_gradient_picture(ScreenPtr screen,
                                                    PictFormatShort format);
 
 /* glamor_triangles.c */
-void
-
-glamor_triangles(CARD8 op,
-		 PicturePtr pSrc,
-		 PicturePtr pDst,
-		 PictFormatPtr maskFormat,
-		 INT16 xSrc, INT16 ySrc, int ntris, xTriangle * tris);
+void glamor_triangles(CARD8 op,
+                      PicturePtr pSrc,
+                      PicturePtr pDst,
+                      PictFormatPtr maskFormat,
+                      INT16 xSrc, INT16 ySrc, int ntris, xTriangle * tris);
 
 /* glamor_pixmap.c */
 
 void glamor_pixmap_init(ScreenPtr screen);
 void glamor_pixmap_fini(ScreenPtr screen);
+
 /** 
  * Download a pixmap's texture to cpu memory. If success,
  * One copy of current pixmap's texture will be put into
@@ -822,13 +776,11 @@ void glamor_pixmap_fini(ScreenPtr screen);
  * gl_tex must be 1. Used by glamor_prepare_access.
  *
  */
-Bool glamor_download_pixmap_to_cpu(PixmapPtr pixmap,
-				   glamor_access_t access);
+Bool glamor_download_pixmap_to_cpu(PixmapPtr pixmap, glamor_access_t access);
 
-void *
-glamor_download_sub_pixmap_to_cpu(PixmapPtr pixmap, int x, int y, int w, int h,
-				  int stride, void *bits, int pbo, glamor_access_t access);
-
+void *glamor_download_sub_pixmap_to_cpu(PixmapPtr pixmap, int x, int y, int w,
+                                        int h, int stride, void *bits, int pbo,
+                                        glamor_access_t access);
 
 /**
  * Restore a pixmap's data which is downloaded by 
@@ -848,85 +800,81 @@ void glamor_restore_pixmap_to_texture(PixmapPtr pixmap);
  * the fbo has valid texture and attach to a valid fb.
  * If the fbo already has a valid glfbo then do nothing.
  */
-Bool
-glamor_pixmap_ensure_fbo(PixmapPtr pixmap, GLenum format, int flag);
+Bool glamor_pixmap_ensure_fbo(PixmapPtr pixmap, GLenum format, int flag);
 
 /**
  * Upload a pixmap to gl texture. Used by dynamic pixmap
  * uploading feature. The pixmap must be a software pixmap.
  * This function will change current FBO and current shaders.
  */
-enum glamor_pixmap_status glamor_upload_pixmap_to_texture(PixmapPtr
-							  pixmap);
+enum glamor_pixmap_status glamor_upload_pixmap_to_texture(PixmapPtr pixmap);
 
-Bool
-glamor_upload_sub_pixmap_to_texture(PixmapPtr pixmap, int x, int y, int w, int h,
-				    int stride, void *bits, int pbo);
+Bool glamor_upload_sub_pixmap_to_texture(PixmapPtr pixmap, int x, int y, int w,
+                                         int h, int stride, void *bits,
+                                         int pbo);
 
-PixmapPtr
-glamor_get_sub_pixmap(PixmapPtr pixmap, int x, int y,
-		      int w, int h, glamor_access_t access);
-void
-glamor_put_sub_pixmap(PixmapPtr sub_pixmap, PixmapPtr pixmap, int x, int y,
-		      int w, int h, glamor_access_t access);
+PixmapPtr glamor_get_sub_pixmap(PixmapPtr pixmap, int x, int y,
+                                int w, int h, glamor_access_t access);
+void glamor_put_sub_pixmap(PixmapPtr sub_pixmap, PixmapPtr pixmap, int x, int y,
+                           int w, int h, glamor_access_t access);
 
 glamor_pixmap_clipped_regions *
-glamor_compute_clipped_regions(glamor_pixmap_private *priv, RegionPtr region,
-			       int *clipped_nbox, int repeat_type,
-			       int reverse, int upsidedown);
+glamor_compute_clipped_regions(glamor_pixmap_private *priv,
+                               RegionPtr region, int *clipped_nbox,
+                               int repeat_type, int reverse,
+                               int upsidedown);
 
 glamor_pixmap_clipped_regions *
 glamor_compute_clipped_regions_ext(glamor_pixmap_private *pixmap_priv,
-				   RegionPtr region,
-				   int *n_region,
-				   int inner_block_w, int inner_block_h,
-			           int reverse, int upsidedown);
+                                   RegionPtr region, int *n_region,
+                                   int inner_block_w, int inner_block_h,
+                                   int reverse, int upsidedown);
 
 glamor_pixmap_clipped_regions *
-glamor_compute_transform_clipped_regions(glamor_pixmap_private *priv, struct pixman_transform *transform,
-					 RegionPtr region, int *n_region, int dx, int dy, int repeat_type,
-			                 int reverse, int upsidedown);
+glamor_compute_transform_clipped_regions(glamor_pixmap_private *priv,
+                                         struct pixman_transform *transform,
+                                         RegionPtr region,
+                                         int *n_region, int dx, int dy,
+                                         int repeat_type, int reverse,
+                                         int upsidedown);
 
-Bool
-glamor_composite_largepixmap_region(CARD8 op,
-			  PicturePtr source,
-			  PicturePtr mask,
-			  PicturePtr dest,
-			  glamor_pixmap_private * source_pixmap_priv,
-			  glamor_pixmap_private * mask_pixmap_priv,
-			  glamor_pixmap_private * dest_pixmap_priv,
-			  RegionPtr region, Bool force_clip,
-			  INT16 x_source,
-			  INT16 y_source,
-			  INT16 x_mask,
-			  INT16 y_mask,
-			  INT16 x_dest, INT16 y_dest,
-			  CARD16 width, CARD16 height);
+Bool glamor_composite_largepixmap_region(CARD8 op,
+                                         PicturePtr source,
+                                         PicturePtr mask,
+                                         PicturePtr dest,
+                                         glamor_pixmap_private *source_pixmap_priv,
+                                         glamor_pixmap_private *mask_pixmap_priv,
+                                         glamor_pixmap_private *dest_pixmap_priv,
+                                         RegionPtr region, Bool force_clip,
+                                         INT16 x_source,
+                                         INT16 y_source,
+                                         INT16 x_mask,
+                                         INT16 y_mask,
+                                         INT16 x_dest, INT16 y_dest,
+                                         CARD16 width, CARD16 height);
 
-Bool
-glamor_get_transform_block_size(struct pixman_transform *transform,
-			   int block_w, int block_h,
-			   int *transformed_block_w,
-			   int *transformed_block_h);
+Bool glamor_get_transform_block_size(struct pixman_transform *transform,
+                                     int block_w, int block_h,
+                                     int *transformed_block_w,
+                                     int *transformed_block_h);
 
-void
-glamor_get_transform_extent_from_box(struct pixman_box32 *temp_box,
-		struct pixman_transform *transform);
+void glamor_get_transform_extent_from_box(struct pixman_box32 *temp_box,
+                                          struct pixman_transform *transform);
 
 /**
  * Upload a picture to gl texture. Similar to the
  * glamor_upload_pixmap_to_texture. Used in rendering.
  **/
-enum glamor_pixmap_status
- glamor_upload_picture_to_texture(PicturePtr picture);
+enum glamor_pixmap_status glamor_upload_picture_to_texture(PicturePtr picture);
 
 /**
  * Upload bits to a pixmap's texture. This function will
  * convert the bits to the specified format/type format
  * if the conversion is unavoidable.
  **/
-Bool glamor_upload_bits_to_pixmap_texture(PixmapPtr pixmap, GLenum format, GLenum type,
-					  int no_alpha, int revert, int swap_rb, void *bits);
+Bool glamor_upload_bits_to_pixmap_texture(PixmapPtr pixmap, GLenum format,
+                                          GLenum type, int no_alpha, int revert,
+                                          int swap_rb, void *bits);
 
 /**
  * Destroy all the resources allocated on the uploading
@@ -938,72 +886,59 @@ int glamor_create_picture(PicturePtr picture);
 
 void glamor_set_window_pixmap(WindowPtr pWindow, PixmapPtr pPixmap);
 
-Bool
-glamor_prepare_access_picture(PicturePtr picture, glamor_access_t access);
+Bool glamor_prepare_access_picture(PicturePtr picture, glamor_access_t access);
 
 void glamor_finish_access_picture(PicturePtr picture, glamor_access_t access);
 
 void glamor_destroy_picture(PicturePtr picture);
 
 /* fixup a fbo to the exact size as the pixmap. */
-Bool
-glamor_fixup_pixmap_priv(ScreenPtr screen, glamor_pixmap_private *pixmap_priv);
+Bool glamor_fixup_pixmap_priv(ScreenPtr screen,
+                              glamor_pixmap_private *pixmap_priv);
 
-void
-glamor_picture_format_fixup(PicturePtr picture,
-			    glamor_pixmap_private * pixmap_priv);
+void glamor_picture_format_fixup(PicturePtr picture,
+                                 glamor_pixmap_private *pixmap_priv);
 
-void
-glamor_get_image(DrawablePtr pDrawable, int x, int y, int w, int h,
-		 unsigned int format, unsigned long planeMask, char *d);
+void glamor_get_image(DrawablePtr pDrawable, int x, int y, int w, int h,
+                      unsigned int format, unsigned long planeMask, char *d);
 
-void
-glamor_add_traps(PicturePtr pPicture,
-		 INT16 x_off, 
-		 INT16 y_off, int ntrap, xTrap * traps);
+void glamor_add_traps(PicturePtr pPicture,
+                      INT16 x_off, INT16 y_off, int ntrap, xTrap *traps);
 
-RegionPtr
-glamor_copy_plane(DrawablePtr pSrc, DrawablePtr pDst, GCPtr pGC,
-		  int srcx, int srcy, int w, int h, int dstx, int dsty,
-		  unsigned long bitPlane);
+RegionPtr glamor_copy_plane(DrawablePtr pSrc, DrawablePtr pDst, GCPtr pGC,
+                            int srcx, int srcy, int w, int h,
+                            int dstx, int dsty,
+                            unsigned long bitPlane);
 
-void
-glamor_image_glyph_blt(DrawablePtr pDrawable, GCPtr pGC,
-                    int x, int y, unsigned int nglyph,
-                    CharInfoPtr * ppci, pointer pglyphBase);
+void glamor_image_glyph_blt(DrawablePtr pDrawable, GCPtr pGC,
+                            int x, int y, unsigned int nglyph,
+                            CharInfoPtr *ppci, void *pglyphBase);
 
-void
-glamor_poly_glyph_blt(DrawablePtr pDrawable, GCPtr pGC,
-                    int x, int y, unsigned int nglyph,
-                    CharInfoPtr * ppci, pointer pglyphBase);
+void glamor_poly_glyph_blt(DrawablePtr pDrawable, GCPtr pGC,
+                           int x, int y, unsigned int nglyph,
+                           CharInfoPtr *ppci, void *pglyphBase);
 
-void
-glamor_push_pixels(GCPtr pGC, PixmapPtr pBitmap,
-		   DrawablePtr pDrawable, int w, int h, int x, int y);
+void glamor_push_pixels(GCPtr pGC, PixmapPtr pBitmap,
+                        DrawablePtr pDrawable, int w, int h, int x, int y);
 
-void
-glamor_poly_point(DrawablePtr pDrawable, GCPtr pGC, int mode, int npt,
-		  DDXPointPtr ppt);
+void glamor_poly_point(DrawablePtr pDrawable, GCPtr pGC, int mode, int npt,
+                       DDXPointPtr ppt);
 
-void
-glamor_poly_segment(DrawablePtr pDrawable, GCPtr pGC, int nseg,
-		    xSegment *pSeg);
+void glamor_poly_segment(DrawablePtr pDrawable, GCPtr pGC, int nseg,
+                         xSegment *pSeg);
 
-void
-glamor_poly_line(DrawablePtr pDrawable, GCPtr pGC, int mode, int npt,
-		 DDXPointPtr ppt);
+void glamor_poly_line(DrawablePtr pDrawable, GCPtr pGC, int mode, int npt,
+                      DDXPointPtr ppt);
 
-void
-glamor_composite_rectangles(CARD8	 op,
-			 PicturePtr	 dst,
-			 xRenderColor	*color,
-			 int		 num_rects,
-			 xRectangle	*rects);
+void glamor_composite_rectangles(CARD8 op,
+                                 PicturePtr dst,
+                                 xRenderColor *color,
+                                 int num_rects, xRectangle *rects);
 
 /* glamor_xv */
 typedef struct {
-    uint32_t	 transform_index;
-    uint32_t	 gamma; /* gamma value x 1000 */
+    uint32_t transform_index;
+    uint32_t gamma;             /* gamma value x 1000 */
     int brightness;
     int saturation;
     int hue;
@@ -1016,8 +951,8 @@ typedef struct {
     int src_w, src_h, dst_w, dst_h;
     int src_x, src_y, drw_x, drw_y;
     int w, h;
-    RegionRec     clip;
-    PixmapPtr src_pix[3]; /* y, u, v for planar */
+    RegionRec clip;
+    PixmapPtr src_pix[3];       /* y, u, v for planar */
     int src_pix_w, src_pix_h;
 } glamor_port_private;
 
@@ -1039,9 +974,9 @@ void glamor_fini_xv_shader(ScreenPtr screen);
 #define GLAMOR_TEXTURED_LARGE_PIXMAP 1
 #define WALKAROUND_LARGE_TEXTURE_MAP
 #if 0
-#define MAX_FBO_SIZE 32 /* For test purpose only. */
+#define MAX_FBO_SIZE 32         /* For test purpose only. */
 #endif
 //#define GLYPHS_NO_EDEGEMAP_OVERLAP_CHECK
 #define GLYPHS_EDEGE_OVERLAP_LOOSE_CHECK
 
-#endif				/* GLAMOR_PRIV_H */
+#endif                          /* GLAMOR_PRIV_H */

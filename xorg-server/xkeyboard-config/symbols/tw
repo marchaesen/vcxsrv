@@ -1,9 +1,9 @@
 default  partial alphanumeric_keys
 xkb_symbols "tw" {
 
-    name[Group1]= "Taiwanese";
-
     include "us(basic)"
+
+    name[Group1]= "Taiwanese";
 
     key <TLDE> { [     grave, asciitilde,    dead_grave,       dead_tilde ] };
     key <AE01> { [	   1,     exclam,         U030D,       exclamdown ] };
@@ -49,9 +49,9 @@ xkb_symbols "tw" {
 partial alphanumeric_keys
 xkb_symbols "indigenous" {
 
-    name[Group1]= "Taiwanese (indigenous)";
-
     include "tw(tw)"
+
+    name[Group1]= "Taiwanese (indigenous)";
 
     key <AC11> { [     U02BC,   quotedbl,    apostrophe, dead_doubleacute ] };
 
@@ -61,9 +61,9 @@ xkb_symbols "indigenous" {
 partial alphanumeric_keys
 xkb_symbols "saisiyat" {
 
-    name[Group1]= "Saisiyat (Taiwan)";
-
     include "tw(indigenous)"
+
+    name[Group1]= "Saisiyat (Taiwan)";
 
     key <AC10> { [     U02D0,      colon,     semicolon,   dead_diaeresis ] };
 

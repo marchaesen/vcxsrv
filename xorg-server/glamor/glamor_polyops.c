@@ -30,56 +30,53 @@
 
 static Bool
 _glamor_poly_point(DrawablePtr pDrawable, GCPtr pGC, int mode, int npt,
-		   DDXPointPtr ppt, Bool fallback)
+                   DDXPointPtr ppt, Bool fallback)
 {
-	if (!fallback 
-	    && glamor_ddx_fallback_check_gc(pGC)
-	    && glamor_ddx_fallback_check_pixmap(pDrawable))
-		return FALSE;
+    if (!fallback && glamor_ddx_fallback_check_gc(pGC)
+        && glamor_ddx_fallback_check_pixmap(pDrawable))
+        return FALSE;
 
-	miPolyPoint(pDrawable, pGC, mode, npt, ppt);
+    miPolyPoint(pDrawable, pGC, mode, npt, ppt);
 
-	return TRUE;
+    return TRUE;
 }
 
 void
 glamor_poly_point(DrawablePtr pDrawable, GCPtr pGC, int mode, int npt,
-		  DDXPointPtr ppt)
+                  DDXPointPtr ppt)
 {
-	_glamor_poly_point(pDrawable, pGC, mode, npt, ppt, TRUE);
+    _glamor_poly_point(pDrawable, pGC, mode, npt, ppt, TRUE);
 }
 
 Bool
 glamor_poly_point_nf(DrawablePtr pDrawable, GCPtr pGC, int mode, int npt,
-		     DDXPointPtr ppt)
+                     DDXPointPtr ppt)
 {
-	return _glamor_poly_point(pDrawable, pGC, mode, npt, ppt, FALSE);
+    return _glamor_poly_point(pDrawable, pGC, mode, npt, ppt, FALSE);
 }
 
 static Bool
 _glamor_poly_segment(DrawablePtr pDrawable, GCPtr pGC, int nseg,
-		     xSegment *pSeg, Bool fallback)
+                     xSegment *pSeg, Bool fallback)
 {
-	if (!fallback 
-	    && glamor_ddx_fallback_check_gc(pGC)
-	    && glamor_ddx_fallback_check_pixmap(pDrawable))
-		return FALSE;
+    if (!fallback && glamor_ddx_fallback_check_gc(pGC)
+        && glamor_ddx_fallback_check_pixmap(pDrawable))
+        return FALSE;
 
-	miPolySegment(pDrawable, pGC, nseg, pSeg);
+    miPolySegment(pDrawable, pGC, nseg, pSeg);
 
-	return TRUE;
+    return TRUE;
 }
 
 void
-glamor_poly_segment(DrawablePtr pDrawable, GCPtr pGC, int nseg,
-		    xSegment *pSeg)
+glamor_poly_segment(DrawablePtr pDrawable, GCPtr pGC, int nseg, xSegment *pSeg)
 {
-	_glamor_poly_segment(pDrawable, pGC, nseg, pSeg, TRUE);
+    _glamor_poly_segment(pDrawable, pGC, nseg, pSeg, TRUE);
 }
 
 Bool
 glamor_poly_segment_nf(DrawablePtr pDrawable, GCPtr pGC, int nseg,
-		     xSegment *pSeg)
+                       xSegment *pSeg)
 {
-	return _glamor_poly_segment(pDrawable, pGC, nseg, pSeg, FALSE);
+    return _glamor_poly_segment(pDrawable, pGC, nseg, pSeg, FALSE);
 }

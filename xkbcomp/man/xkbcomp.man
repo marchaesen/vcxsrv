@@ -63,7 +63,7 @@ Show available options.
 Specifies top-level directories to be searched for files included by the
 keymap description.  After all directories specified by \-I options
 have been searched, the current directory and finally, the default
-xkb directory (usually __projectroot__/lib/X11/xkb) will be searched.
+xkb directory __xkbconfigroot__ will be searched.
 .sp
 To prevent the current and default directories from being searched,
 use the \-I option alone (i.e. without a directory), before any \-I

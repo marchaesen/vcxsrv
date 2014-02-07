@@ -29,7 +29,6 @@
 #ifndef __GLAMOR_DEBUG_H__
 #define __GLAMOR_DEBUG_H__
 
-
 #define GLAMOR_DELAYED_STRING_MAX 64
 
 #define GLAMOR_DEBUG_NONE                     0
@@ -51,9 +50,6 @@ AbortServer(void)
     exit(1);                                            \
   } while(0)
 
-
-
-
 #define __debug_output_message(_format_, _prefix_, ...) \
   LogMessageVerb(X_NONE, 0,				\
 		 "%32s:\t" _format_ ,		\
@@ -69,15 +65,12 @@ AbortServer(void)
 			     ##__VA_ARGS__);		\
   } while(0)
 
-
 #define glamor_fallback(_format_,...)			\
   do {							\
     if (glamor_debug_level >= GLAMOR_DEBUG_FALLBACK)	\
       __debug_output_message(_format_,			\
 			     "Glamor fallback",		\
 			     ##__VA_ARGS__);} while(0)
-
-
 
 #define glamor_delayed_fallback(_screen_, _format_,...)			\
   do {									\
@@ -89,7 +82,6 @@ AbortServer(void)
 	       GLAMOR_DELAYED_STRING_MAX,				\
 	       "glamor delayed fallback: \t%s " _format_ ,		\
                __FUNCTION__, ##__VA_ARGS__); } } while(0)
-
 
 #define glamor_clear_delayed_fallbacks(_screen_)			\
   do {									\
@@ -111,6 +103,5 @@ AbortServer(void)
 //#define DEBUGF(str, ...) ErrorF(str, ##__VA_ARGS__)
 #define DEBUGRegionPrint(x) do {} while (0)
 //#define DEBUGRegionPrint RegionPrint
-
 
 #endif

@@ -256,7 +256,7 @@ xkb_symbols "acer_c300" {
     key <I30>   {       [ XF86AudioRaiseVolume  ]       };
     key <I5E>   {       [ XF86Launch2           ]       };
     key <I75>   {       [ Help                  ]       };
-    key <XFER>  {       [ XF86Launch1           ]       };
+    key <IR7C>  {       [ XF86Launch1           ]       };
 };
 
 // Acer Ferrari 4000 Keyboard
@@ -461,7 +461,7 @@ xkb_symbols "cherryblue" {
     key <I26>	{	[ XF86AudioMute		]	};
     key <I63>	{	[ XF86Standby		]	};
     key <PRSC>	{	[ XF86Terminal		]	};
-    key <XFER>	{	[ XF86Go		]	};
+    key <IR7C>	{	[ XF86Go		]	};
 };
 
 // Cherry CyMotion Master XPress
@@ -488,7 +488,7 @@ xkb_symbols "cherryblueb" {
     key <I71>   {       [ XF86Book              ]       };
     key <I72>   {       [ XF86Book              ]       };
     key <PRSC>  {       [ XF86Terminal          ]       };
-    key <XFER>  {       [ XF86Go                ]       };
+    key <IR7C>  {       [ XF86Go                ]       };
 };
 
 // Cherry Blue Line CyBo@rd (alternate option)
@@ -505,7 +505,7 @@ xkb_symbols "cherrycyboard" {
     key <FK17>    {   [ XF86Search        ]   };
     key <I02> {   [ XF86HomePage      ]   };
     key <K67> {   [ XF86Terminal      ]   };
-    key <XFER>    {   [ XF86AudioMedia    ]   };
+    key <IR7C>    {   [ XF86AudioMedia    ]   };
 };
 
 // Cherry CyMotion Expert
@@ -695,8 +695,8 @@ xkb_symbols "inspiron" {
     key <I04>   {       [ XF86AudioNext         ]       };
     key <I21>   {       [ XF86Eject             ]       };
     key <I56>   {       [ XF86Display           ]       };
-    key <NFER>  {       [ XF86AudioPrev         ]       };
-    key <XFER>  {       [ XF86AudioPlay, XF86AudioPause ] };
+    key <IR7D>  {       [ XF86AudioPrev         ]       };
+    key <IR7C>  {       [ XF86AudioPlay, XF86AudioPause ] };
 };
 
 // DELL USB Multimedia Keyboard (former 8135, generalized, superset of 8125)
@@ -707,7 +707,7 @@ xkb_symbols "dellusbmm" {
     include "inet(media_nav_acpi_common)"
     key <I02>	{	[ XF86HomePage		]	};
     key <K67>	{	[ XF86MyComputer	]	};
-    key <XFER>	{	[ XF86AudioMedia	]	};
+    key <IR7C>	{	[ XF86AudioMedia	]	};
 };
 
 
@@ -727,7 +727,7 @@ xkb_symbols "diamond" {
 partial alphanumeric_keys
 xkb_symbols "ennyah_dkb1008" {
     include "inet(media_nav_acpi_common)"
-    key <XFER>  {	[ XF86AudioMedia	]	};
+    key <IR7C>  {	[ XF86AudioMedia	]	};
 };
 
 
@@ -1033,7 +1033,7 @@ xkb_symbols "logitech_set3" {
     key <I55>   {       [ XF86Save              ]       };      // F8
     key <I56>   {       [ XF86Documents         ]       };      // F10
     key <I69>   {       [ XF86Go                ]       };
-    key <XFER>  {       [ XF86AudioMedia        ]       };
+    key <IR7C>  {       [ XF86AudioMedia        ]       };
 };
 
 // Logitech Access Keyboard
@@ -1170,7 +1170,7 @@ xkb_symbols "logidinovo" {
     key <I21>	{	[ XF86AudioRaiseVolume	]	};
     key <K66>	{	[ XF86AudioLowerVolume	]	};
     key <KPDC>	{	[ XF86AudioMute		]	};
-    key <XFER>	{	[ XF86AudioMedia	]	};
+    key <IR7C>	{	[ XF86AudioMedia	]	};
 };
 
 partial alphanumeric_keys
@@ -1179,7 +1179,7 @@ xkb_symbols "logidinovoedge" {
     key <I02>	{	[ XF86HomePage		]	};
     key <I6C>	{	[ XF86Mail		]	};
     key <FK17>  {       [ XF86Search            ]       };
-    key <XFER>	{	[ XF86AudioMedia	]	};
+    key <IR7C>	{	[ XF86AudioMedia	]	};
 };
 
 partial alphanumeric_keys
@@ -1218,8 +1218,8 @@ xkb_symbols "logitech_g15" {
     key  <K74> {         [         XF86WWW ] };
     key  <K75> {         [     XF86LaunchE ] };
     key <II5D> {         [     XF86Launch1 ] };
-    key <NFER> {         [     XF86Launch2 ] };
-    key <XFER> {         [     XF86Launch8 ] };
+    key <IR7D> {         [     XF86Launch2 ] };
+    key <IR7C> {         [     XF86Launch8 ] };
 };
 
 
@@ -1364,7 +1364,7 @@ xkb_symbols "microsoftprose" {
     key <I63>	{	[ XF86Standby		]	};
     key <I68>	{	[ XF86AudioStop		]	};
     key <PRSC>	{	[ XF86MyComputer	]	};
-    key <XFER>	{	[ XF86AudioMedia	]	};
+    key <IR7C>	{	[ XF86AudioMedia	]	};
 };
 
 // Microsoft Office Keyboard
@@ -1511,7 +1511,7 @@ xkb_symbols "samsung4500" {
     key <I18>	{	[ XF86Eject		]	};
     key <I26>	{	[ Help			]	};
     key <I59>	{	[ XF86Explorer		]	};
-    key <NFER>	{	[ XF86Launch2		]	};
+    key <IR7D>	{	[ XF86Launch2		]	};
 };
 
 // Samsung SDM 4510P
@@ -1521,7 +1521,7 @@ xkb_symbols "samsung4510" {
     key <I02>	{	[ XF86Launch1		]	};
     key <I04>	{	[ XF86Launch3		]	};
     key <I18>	{	[ XF86Eject		]	};
-    key <NFER>	{	[ XF86Launch2		]	};
+    key <IR7D>	{	[ XF86Launch2		]	};
 };
 
 
@@ -1748,7 +1748,7 @@ xkb_symbols "cymotionlinux" {
     key <I78>	{	[	XF86Copy		]	};
     key <K65>	{	[	XF86Paste		]	};
     key <K75>	{	[	XF86ScrollUp		]	};
-    key <XFER>	{	[	XF86AudioMedia		]	};
+    key <IR7C>	{	[	XF86AudioMedia		]	};
 };
 
 partial alphanumeric_keys

@@ -30,82 +30,83 @@
 
 static Bool
 _glamor_set_spans(DrawablePtr drawable, GCPtr gc, char *src,
-		 DDXPointPtr points, int *widths, int numPoints, int sorted,
-		 Bool fallback)
+                  DDXPointPtr points, int *widths, int numPoints, int sorted,
+                  Bool fallback)
 {
-	PixmapPtr dest_pixmap = glamor_get_drawable_pixmap(drawable);
-	glamor_pixmap_private *dest_pixmap_priv;
-	int i;
-	uint8_t *drawpixels_src = (uint8_t *) src;
-	RegionPtr clip = fbGetCompositeClip(gc);
-	BoxRec *pbox;
-	int x_off, y_off;
-	Bool ret = FALSE;
+    PixmapPtr dest_pixmap = glamor_get_drawable_pixmap(drawable);
+    glamor_pixmap_private *dest_pixmap_priv;
+    int i;
+    uint8_t *drawpixels_src = (uint8_t *) src;
+    RegionPtr clip = fbGetCompositeClip(gc);
+    BoxRec *pbox;
+    int x_off, y_off;
+    Bool ret = FALSE;
 
-	dest_pixmap_priv = glamor_get_pixmap_private(dest_pixmap);
-	if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(dest_pixmap_priv)) {
-		glamor_fallback("pixmap has no fbo.\n");
-		goto fail;
-	}
+    dest_pixmap_priv = glamor_get_pixmap_private(dest_pixmap);
+    if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(dest_pixmap_priv)) {
+        glamor_fallback("pixmap has no fbo.\n");
+        goto fail;
+    }
 
-	/* XXX Shall we set alu here? */
-	if (!glamor_set_planemask(dest_pixmap, gc->planemask))
-		goto fail;
+    /* XXX Shall we set alu here? */
+    if (!glamor_set_planemask(dest_pixmap, gc->planemask))
+        goto fail;
 
-	glamor_get_drawable_deltas(drawable, dest_pixmap, &x_off, &y_off);
-	for (i = 0; i < numPoints; i++) {
+    glamor_get_drawable_deltas(drawable, dest_pixmap, &x_off, &y_off);
+    for (i = 0; i < numPoints; i++) {
 
-		int n = REGION_NUM_RECTS(clip);
-		pbox = REGION_RECTS(clip);
-		while (n--) {
-			int x1 = points[i].x;
-			int x2 = x1 + widths[i];
-			int y1 = points[i].y;
+        int n = REGION_NUM_RECTS(clip);
 
-			if (pbox->y1 > points[i].y || pbox->y2 < points[i].y)
-				break;
-			x1 = x1 > pbox->x1 ? x1 : pbox->x1;
-			x2 = x2 < pbox->x2 ? x2 : pbox->x2;
-			if (x1 >= x2)
-				continue;
-			glamor_upload_sub_pixmap_to_texture(dest_pixmap, x1 + x_off,  y1 + y_off, x2 - x1, 1,
-							    PixmapBytePad(widths[i], drawable->depth),
-							    drawpixels_src, 0);
-		}
-		drawpixels_src += PixmapBytePad(widths[i], drawable->depth);
-	}
-	ret = TRUE;
-	goto done;
+        pbox = REGION_RECTS(clip);
+        while (n--) {
+            int x1 = points[i].x;
+            int x2 = x1 + widths[i];
+            int y1 = points[i].y;
 
-fail:
-	if (!fallback
-	    && glamor_ddx_fallback_check_pixmap(drawable))
-		goto done;
+            if (pbox->y1 > points[i].y || pbox->y2 < points[i].y)
+                break;
+            x1 = x1 > pbox->x1 ? x1 : pbox->x1;
+            x2 = x2 < pbox->x2 ? x2 : pbox->x2;
+            if (x1 >= x2)
+                continue;
+            glamor_upload_sub_pixmap_to_texture(dest_pixmap, x1 + x_off,
+                                                y1 + y_off, x2 - x1, 1,
+                                                PixmapBytePad(widths[i],
+                                                              drawable->depth),
+                                                drawpixels_src, 0);
+        }
+        drawpixels_src += PixmapBytePad(widths[i], drawable->depth);
+    }
+    ret = TRUE;
+    goto done;
 
-	glamor_fallback("to %p (%c)\n",
-			drawable, glamor_get_drawable_location(drawable));
-	if (glamor_prepare_access(drawable, GLAMOR_ACCESS_RW)) {
-		fbSetSpans(drawable, gc, src, points, widths, numPoints, sorted);
-		glamor_finish_access(drawable, GLAMOR_ACCESS_RW);
-	}
-	ret = TRUE;
+ fail:
+    if (!fallback && glamor_ddx_fallback_check_pixmap(drawable))
+        goto done;
 
-done:
-	return ret;
+    glamor_fallback("to %p (%c)\n",
+                    drawable, glamor_get_drawable_location(drawable));
+    if (glamor_prepare_access(drawable, GLAMOR_ACCESS_RW)) {
+        fbSetSpans(drawable, gc, src, points, widths, numPoints, sorted);
+        glamor_finish_access(drawable, GLAMOR_ACCESS_RW);
+    }
+    ret = TRUE;
+
+ done:
+    return ret;
 }
 
 void
 glamor_set_spans(DrawablePtr drawable, GCPtr gc, char *src,
-		    DDXPointPtr points, int *widths, int n, int sorted)
+                 DDXPointPtr points, int *widths, int n, int sorted)
 {
-	_glamor_set_spans(drawable, gc, src, points, 
-			     widths, n, sorted, TRUE);
+    _glamor_set_spans(drawable, gc, src, points, widths, n, sorted, TRUE);
 }
 
 Bool
 glamor_set_spans_nf(DrawablePtr drawable, GCPtr gc, char *src,
-		    DDXPointPtr points, int *widths, int n, int sorted)
+                    DDXPointPtr points, int *widths, int n, int sorted)
 {
-	return _glamor_set_spans(drawable, gc, src, points, 
-				    widths, n, sorted, FALSE);
+    return _glamor_set_spans(drawable, gc, src, points,
+                             widths, n, sorted, FALSE);
 }

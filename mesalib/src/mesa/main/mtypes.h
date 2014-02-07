@@ -406,9 +406,10 @@ typedef enum
    MESA_SHADER_VERTEX = 0,
    MESA_SHADER_GEOMETRY = 1,
    MESA_SHADER_FRAGMENT = 2,
+   MESA_SHADER_COMPUTE = 3,
 } gl_shader_stage;
 
-#define MESA_SHADER_STAGES (MESA_SHADER_FRAGMENT + 1)
+#define MESA_SHADER_STAGES (MESA_SHADER_COMPUTE + 1)
 
 
 /**
@@ -1115,7 +1116,7 @@ struct gl_texture_image
 				 *   GL_DEPTH_STENCIL_EXT only. Used for
 				 *   choosing TexEnv arithmetic.
 				 */
-   gl_format TexFormat;         /**< The actual texture memory format */
+   mesa_format TexFormat;         /**< The actual texture memory format */
 
    GLuint Border;		/**< 0 or 1 */
    GLuint Width;		/**< = 2^WidthLog2 + 2*Border */
@@ -1229,7 +1230,7 @@ struct gl_texture_object
    struct gl_buffer_object *BufferObject;
    GLenum BufferObjectFormat;
    /** Equivalent Mesa format for BufferObjectFormat. */
-   gl_format _BufferObjectFormat;
+   mesa_format _BufferObjectFormat;
    /** GL_ARB_texture_buffer_range */
    GLintptr BufferOffset;
    GLsizeiptr BufferSize; /**< if this is -1, use BufferObject->Size instead */
@@ -1423,9 +1424,6 @@ struct gl_transform_attrib
    GLboolean RescaleNormals;			/**< GL_EXT_rescale_normal */
    GLboolean RasterPositionUnclipped;           /**< GL_IBM_rasterpos_clip */
    GLboolean DepthClamp;			/**< GL_ARB_depth_clamp */
-
-   GLfloat CullEyePos[4];
-   GLfloat CullObjPos[4];
 };
 
 
@@ -1551,12 +1549,13 @@ struct gl_vertex_buffer_binding
 
 
 /**
- * Collection of vertex arrays.  Defined by the GL_APPLE_vertex_array_object
- * extension, but a nice encapsulation in any case.
+ * A representation of "Vertex Array Objects" (VAOs) from OpenGL 3.1+,
+ * GL_ARB_vertex_array_object, or the original GL_APPLE_vertex_array_object
+ * extension.
  */
-struct gl_array_object
+struct gl_vertex_array_object
 {
-   /** Name of the array object as received from glGenVertexArrayAPPLE. */
+   /** Name of the VAO as received from glGenVertexArray. */
    GLuint Name;
    GLchar *Label;       /**< GL_KHR_debug */
 
@@ -1584,7 +1583,12 @@ struct gl_array_object
     */
    GLboolean EverBound;
 
-   /** Derived vertex attribute arrays */
+   /**
+    * Derived vertex attribute arrays
+    *
+    * This is a legacy data structure created from gl_vertex_attrib_array and
+    * gl_vertex_buffer_binding, for compatibility with existing driver code.
+    */
    struct gl_client_array _VertexAttrib[VERT_ATTRIB_MAX];
 
    /** Vertex attribute arrays */
@@ -1605,7 +1609,8 @@ struct gl_array_object
     */
    GLuint _MaxElement;
 
-   struct gl_buffer_object *ElementArrayBufferObj;
+   /** The index buffer (also known as the element array buffer in OpenGL). */
+   struct gl_buffer_object *IndexBufferObj;
 };
 
 
@@ -1615,10 +1620,10 @@ struct gl_array_object
 struct gl_array_attrib
 {
    /** Currently bound array object. See _mesa_BindVertexArrayAPPLE() */
-   struct gl_array_object *ArrayObj;
+   struct gl_vertex_array_object *VAO;
 
    /** The default vertex array object */
-   struct gl_array_object *DefaultArrayObj;
+   struct gl_vertex_array_object *DefaultVAO;
 
    /** Array objects (GL_ARB/APPLE_vertex_array_object) */
    struct _mesa_HashTable *Objects;
@@ -2176,6 +2181,18 @@ struct gl_fragment_program
 };
 
 
+/** Compute program object */
+struct gl_compute_program
+{
+   struct gl_program Base;   /**< base class */
+
+   /**
+    * Size specified using local_size_{x,y,z}.
+    */
+   unsigned LocalSize[3];
+};
+
+
 /**
  * State common to vertex and fragment programs.
  */
@@ -2439,6 +2456,17 @@ struct gl_shader
     * ImageAccess arrays above.
     */
    GLuint NumImages;
+
+   /**
+    * Compute shader state from ARB_compute_shader layout qualifiers.
+    */
+   struct {
+      /**
+       * Size specified using local_size_{x,y,z}, or all 0's to indicate that
+       * it's not set in this shader.
+       */
+      unsigned LocalSize[3];
+   } Comp;
 };
 
 
@@ -2622,6 +2650,18 @@ struct gl_shader_program
       GLuint ClipDistanceArraySize; /**< Size of the gl_ClipDistance array, or
                                          0 if not present. */
    } Vert;
+
+   /**
+    * Compute shader state - copied into gl_compute_program by
+    * _mesa_copy_linked_program_data().
+    */
+   struct {
+      /**
+       * If this shader contains a compute stage, size specified using
+       * local_size_{x,y,z}.  Otherwise undefined.
+       */
+      unsigned LocalSize[3];
+   } Comp;
 
    /* post-link info: */
    unsigned NumUserUniformStorage;
@@ -2928,7 +2968,7 @@ struct gl_renderbuffer
    GLenum InternalFormat; /**< The user-specified format */
    GLenum _BaseFormat;    /**< Either GL_RGB, GL_RGBA, GL_DEPTH_COMPONENT or
                                GL_STENCIL_INDEX. */
-   gl_format Format;      /**< The actual renderbuffer memory format */
+   mesa_format Format;      /**< The actual renderbuffer memory format */
    /**
     * Pointer to the texture image if this renderbuffer wraps a texture,
     * otherwise NULL.
@@ -3366,6 +3406,15 @@ struct gl_constants
    GLuint MaxCombinedImageUnitsAndFragmentOutputs;
    GLuint MaxImageSamples;
    GLuint MaxCombinedImageUniforms;
+
+   /** GL_ARB_compute_shader */
+   GLuint MaxComputeWorkGroupCount[3]; /* Array of x, y, z dimensions */
+   GLuint MaxComputeWorkGroupSize[3]; /* Array of x, y, z dimensions */
+   GLuint MaxComputeWorkGroupInvocations;
+
+   /** GL_ARB_gpu_shader5 */
+   GLfloat MinFragmentInterpolationOffset;
+   GLfloat MaxFragmentInterpolationOffset;
 };
 
 
@@ -3385,6 +3434,7 @@ struct gl_extensions
    GLboolean ARB_base_instance;
    GLboolean ARB_blend_func_extended;
    GLboolean ARB_color_buffer_float;
+   GLboolean ARB_compute_shader;
    GLboolean ARB_conservative_depth;
    GLboolean ARB_depth_buffer_float;
    GLboolean ARB_depth_clamp;
@@ -3405,7 +3455,6 @@ struct gl_extensions
    GLboolean ARB_half_float_vertex;
    GLboolean ARB_instanced_arrays;
    GLboolean ARB_internalformat_query;
-   GLboolean ARB_map_buffer_alignment;
    GLboolean ARB_map_buffer_range;
    GLboolean ARB_occlusion_query;
    GLboolean ARB_occlusion_query2;
@@ -3457,7 +3506,6 @@ struct gl_extensions
    GLboolean EXT_blend_minmax;
    GLboolean EXT_depth_bounds_test;
    GLboolean EXT_draw_buffers2;
-   GLboolean EXT_framebuffer_blit;
    GLboolean EXT_framebuffer_multisample;
    GLboolean EXT_framebuffer_multisample_blit_scaled;
    GLboolean EXT_framebuffer_sRGB;
@@ -3490,7 +3538,6 @@ struct gl_extensions
    /* vendor extensions */
    GLboolean AMD_performance_monitor;
    GLboolean AMD_seamless_cubemap_per_texture;
-   GLboolean AMD_shader_trinary_minmax;
    GLboolean AMD_vertex_shader_layer;
    GLboolean APPLE_object_purgeable;
    GLboolean ATI_envmap_bumpmap;
@@ -3862,7 +3909,7 @@ struct gl_image_unit
    /**
     * Mesa format corresponding to \c Format.
     */
-   gl_format _ActualFormat;
+   mesa_format _ActualFormat;
 
    /**
     * GL_TRUE if the state of this image unit is valid and access from

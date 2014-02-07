@@ -40,96 +40,97 @@
  */
 static Bool
 _glamor_poly_lines(DrawablePtr drawable, GCPtr gc, int mode, int n,
-		   DDXPointPtr points, Bool fallback)
+                   DDXPointPtr points, Bool fallback)
 {
-	xRectangle *rects;
-	int x1, x2, y1, y2;
-	int i;
+    xRectangle *rects;
+    int x1, x2, y1, y2;
+    int i;
 
-	/* Don't try to do wide lines or non-solid fill style. */
-	if (gc->lineWidth != 0) {
-		/* This ends up in miSetSpans, which is accelerated as well as we
-		 * can hope X wide lines will be.
-		 */
-		goto wide_line;
-	}
-	if (gc->lineStyle != LineSolid) {
-		glamor_fallback
-		    ("non-solid fill line style %d\n",
-		     gc->lineStyle);
-		goto fail;
-	}
-	rects = malloc(sizeof(xRectangle) * (n - 1));
-	x1 = points[0].x;
-	y1 = points[0].y;
-	/* If we have any non-horizontal/vertical, fall back. */
-	for (i = 0; i < n - 1; i++) {
-		if (mode == CoordModePrevious) {
-			x2 = x1 + points[i + 1].x;
-			y2 = y1 + points[i + 1].y;
-		} else {
-			x2 = points[i + 1].x;
-			y2 = points[i + 1].y;
-		}
-		if (x1 != x2 && y1 != y2) {
-			free(rects);
-			glamor_fallback("stub diagonal poly_line\n");
-			goto fail;
-		}
-		if (x1 < x2) {
-			rects[i].x = x1;
-			rects[i].width = x2 - x1 + 1;
-		} else {
-			rects[i].x = x2;
-			rects[i].width = x1 - x2 + 1;
-		}
-		if (y1 < y2) {
-			rects[i].y = y1;
-			rects[i].height = y2 - y1 + 1;
-		} else {
-			rects[i].y = y2;
-			rects[i].height = y1 - y2 + 1;
-		}
+    /* Don't try to do wide lines or non-solid fill style. */
+    if (gc->lineWidth != 0) {
+        /* This ends up in miSetSpans, which is accelerated as well as we
+         * can hope X wide lines will be.
+         */
+        goto wide_line;
+    }
+    if (gc->lineStyle != LineSolid) {
+        glamor_fallback("non-solid fill line style %d\n", gc->lineStyle);
+        goto fail;
+    }
+    rects = malloc(sizeof(xRectangle) * (n - 1));
+    x1 = points[0].x;
+    y1 = points[0].y;
+    /* If we have any non-horizontal/vertical, fall back. */
+    for (i = 0; i < n - 1; i++) {
+        if (mode == CoordModePrevious) {
+            x2 = x1 + points[i + 1].x;
+            y2 = y1 + points[i + 1].y;
+        }
+        else {
+            x2 = points[i + 1].x;
+            y2 = points[i + 1].y;
+        }
+        if (x1 != x2 && y1 != y2) {
+            free(rects);
+            glamor_fallback("stub diagonal poly_line\n");
+            goto fail;
+        }
+        if (x1 < x2) {
+            rects[i].x = x1;
+            rects[i].width = x2 - x1 + 1;
+        }
+        else {
+            rects[i].x = x2;
+            rects[i].width = x1 - x2 + 1;
+        }
+        if (y1 < y2) {
+            rects[i].y = y1;
+            rects[i].height = y2 - y1 + 1;
+        }
+        else {
+            rects[i].y = y2;
+            rects[i].height = y1 - y2 + 1;
+        }
 
-		x1 = x2;
-		y1 = y2;
-	}
-	gc->ops->PolyFillRect(drawable, gc, n - 1, rects);
-	free(rects);
-	return TRUE;
+        x1 = x2;
+        y1 = y2;
+    }
+    gc->ops->PolyFillRect(drawable, gc, n - 1, rects);
+    free(rects);
+    return TRUE;
 
-      fail:
-	if (!fallback
-	    && glamor_ddx_fallback_check_pixmap(drawable)
-	    && glamor_ddx_fallback_check_gc(gc))
-		return FALSE;
+ fail:
+    if (!fallback && glamor_ddx_fallback_check_pixmap(drawable)
+        && glamor_ddx_fallback_check_gc(gc))
+        return FALSE;
 
-	if (gc->lineWidth == 0) {
-		if (glamor_prepare_access(drawable, GLAMOR_ACCESS_RW)) {
-			if (glamor_prepare_access_gc(gc)) {
-				fbPolyLine(drawable, gc, mode, n, points);
-				glamor_finish_access_gc(gc);
-			}
-			glamor_finish_access(drawable, GLAMOR_ACCESS_RW);
-		}
-	} else {
-wide_line:
-		/* fb calls mi functions in the lineWidth != 0 case. */
-		fbPolyLine(drawable, gc, mode, n, points);
-	}
-	return TRUE;
+    if (gc->lineWidth == 0) {
+        if (glamor_prepare_access(drawable, GLAMOR_ACCESS_RW)) {
+            if (glamor_prepare_access_gc(gc)) {
+                fbPolyLine(drawable, gc, mode, n, points);
+                glamor_finish_access_gc(gc);
+            }
+            glamor_finish_access(drawable, GLAMOR_ACCESS_RW);
+        }
+    }
+    else {
+ wide_line:
+        /* fb calls mi functions in the lineWidth != 0 case. */
+        fbPolyLine(drawable, gc, mode, n, points);
+    }
+    return TRUE;
 }
 
 void
 glamor_poly_lines(DrawablePtr drawable, GCPtr gc, int mode, int n,
-		  DDXPointPtr points)
+                  DDXPointPtr points)
 {
-	_glamor_poly_lines(drawable, gc, mode, n, points, TRUE);
+    _glamor_poly_lines(drawable, gc, mode, n, points, TRUE);
 }
 
 Bool
 glamor_poly_lines_nf(DrawablePtr drawable, GCPtr gc, int mode, int n,
-		     DDXPointPtr points)
+                     DDXPointPtr points)
 {
-	return _glamor_poly_lines(drawable, gc, mode, n, points, FALSE);
+    return _glamor_poly_lines(drawable, gc, mode, n, points, FALSE);
 }

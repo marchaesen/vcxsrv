@@ -96,8 +96,8 @@ xkb_symbols "basic" {
 partial alphanumeric_keys
 xkb_symbols "french"
 {
-	name[Group1]="French (Cameroon)";
 	include "latin"
+	name[Group1]="French (Cameroon)";
 
 	key <AE01> { [ ampersand, 1, onesuperior, exclamdown ] };
 	key <AE02> { [ eacute, 2, asciitilde, oneeighth ] };
@@ -133,13 +133,11 @@ xkb_symbols "french"
 	include "level3(ralt_switch)"
 };
 
-
 partial alphanumeric_keys
 xkb_symbols "azerty"
 {
-	name[Group1] = "Cameroon Multilingual (azerty)";
-	include "level3(ralt_switch)"
 	include "cm(basic)"
+	name[Group1] = "Cameroon Multilingual (azerty)";
 	key <AB01> { [ w, W, U1E85, U1E84 ] };	//  SMALL LETTER W,  CAPITAL LETTER W, SMALL LETTER W WITH DIAERESIS, CAPITAL LETTER W WITH DIAERESIS
 	key <AB02> { [ x, X, U2039, U203A ] };	// SMALL LETTER X, CAPITAL LETTER X, SINGLE LEFT-POINTING ANGLE QUOTATION MARK, SINGLE RIGHT-POINTING ANGLE QUOTATION MARK
 	key <AB03> { [ c, C, U0327, copyright ] };	// SMALL LETTER C, CAPITAL LETTER C, COMBINING CEDILLA, COPYRIGHT SIGN
@@ -189,14 +187,14 @@ xkb_symbols "azerty"
 	key <LSGT> { [ U003C, U003E, U00AB, U00BB ] };	// LESS THAN, GREATER THAN, LEFT GUILLEMET, RIGHT GUILLEMET
 	key <TLDE> { [ U0024, U20AC, U00B2, U00B3 ] };	// DOLLAR, EURO, SUPERSCRIPT 2, SUPERSCRIPT 3
 	include "cm(exclamation_switch)"
+	include "level3(ralt_switch)"
 };
 
 partial alphanumeric_keys
 xkb_symbols "qwerty"
 {
-	name[Group1] = "Cameroon Multilingual (qwerty)";
-	include "level3(ralt_switch)"
 	include "cm(basic)"
+	name[Group1] = "Cameroon Multilingual (qwerty)";
 	key <AB01> { [ z, Z, U2026, U2020 ] };	// SMALL LETTER Z, CAPITAL LETTER Z, ELLIPSIS, DAGGER
 	key <AB02> { [ x, X ] };	// SMALL LETTER X, CAPITAL LETTER X
 	key <AB03> { [ c, C, U0327, U00A9 ] };	// SMALL LETTER C, CAPITAL LETTER C, CEDILLA, COPYRIGHT
@@ -242,15 +240,14 @@ xkb_symbols "qwerty"
 	key <BKSL> { [ U005C, U007C ] };	// BACKSLASH, BAR
 	key <TLDE> { [ U030D, U0303, U0060, U007E ] };	// COMBINING VERTICAL LINE ABOVE, COMBINING TILDE ABOVE, GRAVE ACCENT, TILDE
 	include "cm(semicolon_switch)"
+	include "level3(ralt_switch)"
 };
-
 
 partial alphanumeric_keys
 xkb_symbols "dvorak"
 {
-	name[Group1] = "Cameroon Multilingual (Dvorak)";
-	include "level3(ralt_switch)"
 	include "us(dvorak)"
+	name[Group1] = "Cameroon Multilingual (Dvorak)";
 	key <AB01> { [ semicolon, colon ] };	// SEMICOLON, COLON
 	key <AB02> { [ q, Q, U2014, U2013 ] };	// SMALL LETTER Q, CAPITAL LETTER Q, EM DASH, EN DASH
 	key <AB03> { [ j, J, U0330, U0323 ] };	// SMALL LETTER J, CAPITAL LETTER J, COMBINING TILDE (NASAL) BELOW, COMBINING DOT BELOW
@@ -299,6 +296,7 @@ xkb_symbols "dvorak"
 	key <BKSL> { [ backslash, bar ] };	// BACKSLASH, BAR
 	key <TLDE> { [ U030D, U0303, U0060, U007E ] };	// COMBINING VERTICAL LINE ABOVE, COMBINING TILDE ABOVE, GRAVE ACCENT, TILDE
 	include "cm(semicolon_switch_dvorak)"
+	include "level3(ralt_switch)"
 };
 
 // The following code creates the "Cameroon key" phenomenon.

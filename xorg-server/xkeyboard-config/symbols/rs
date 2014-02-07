@@ -40,11 +40,9 @@ xkb_symbols "latin" {
 
 partial alphanumeric_keys
 xkb_symbols "yz" {
-  // Cyrillic_zhe and Cyrillic_ze swapped.
-
-  name[Group1]= "Serbian (Cyrillic, Z and ZHE swapped)";
-
   include "rs(basic)"
+
+  name[Group1]= "Serbian (Cyrillic, ZE and ZHE swapped)";
 
   key <AD06> {   [ Cyrillic_zhe,        Cyrillic_ZHE,   any,any ]   }; // y
   key <AB01> {   [ Cyrillic_ze,         Cyrillic_ZE,    any,any ]   }; // z
@@ -247,9 +245,10 @@ xkb_symbols "latinunicode" {
   // This mapping supports the Unicode characters 0x1c4-0x1cc (dz, lj, and nj
   // as single character). You get the title form with AltGr+Shift.
 
+  include "rs(latin)"
+
   name[Group1]= "Serbian (Latin Unicode)";
 
-  include "rs(latin)"
   include "rs(twoletter)"
 };
 
@@ -257,9 +256,9 @@ partial alphanumeric_keys
 xkb_symbols "latinyz" {
   // For those who insist on using "english-position" Z and Y.
 
-  name[Group1]= "Serbian (Latin qwerty)";
-
   include "rs(latin)"
+
+  name[Group1]= "Serbian (Latin qwerty)";
 
   key <AD06> {   [ y,                   Y,             any,any ]   }; // y
   key <AB01> {   [ z,                   Z,             any,any ]   }; // z
@@ -269,9 +268,9 @@ partial alphanumeric_keys
 xkb_symbols "latinunicodeyz" {
   // Unicode, ZHE and Z swapped.
 
-  name[Group1]= "Serbian (Latin Unicode qwerty)";
-
   include "rs(latinunicode)"
+
+  name[Group1]= "Serbian (Latin Unicode qwerty)";
 
   key <AD06> {   [ zcaron,              Zcaron,        any,any ]   }; // y
   key <AB01> {   [ z,                   Z,             any,any ]   }; // z
@@ -280,9 +279,9 @@ xkb_symbols "latinunicodeyz" {
 xkb_symbols "alternatequotes" {
   // Another acceptable »pair of quotes« for Serbian 
 
-  name[Group1]= "Serbian (Cyrillic with guillemets)";
-
   include "rs(basic)"
+
+  name[Group1]= "Serbian (Cyrillic with guillemets)";
 
   key <AC02> {   [ any,any,     guillemotright, NoSymbol ]   }; // s
   key <AC03> {   [ any,any,     guillemotleft,  NoSymbol ]   }; // d
@@ -291,9 +290,9 @@ xkb_symbols "alternatequotes" {
 xkb_symbols "latinalternatequotes" {
   // Another acceptable »pair of quotes« for Serbian 
 
-  name[Group1]= "Serbian (Latin with guillemets)";
-
   include "rs(latin)"
+
+  name[Group1]= "Serbian (Latin with guillemets)";
 
   key <AC02> {   [ any,any,     guillemotright, NoSymbol ]   }; // s
   key <AC03> {   [ any,any,     guillemotleft,  NoSymbol ]   }; // d
@@ -306,9 +305,9 @@ xkb_symbols "rue" {
   //   Ljubomir J. Papuga (Любомир Я. Папуґа) <papuga@zoho.com>
   //   Mihajlo Hornjak <smeceiotpad@gmail.com>
 
-  name[Group1]= "Pannonian Rusyn";
-
   include "rs(basic)"
+
+  name[Group1]= "Pannonian Rusyn";
 
   key <TLDE> {   [ Cyrillic_softsign,         Cyrillic_SOFTSIGN         ]   }; // `
 
@@ -330,9 +329,9 @@ xkb_symbols "combiningkeys" {
   // Raw combining characters instead of dead keys,
   // especially good for post-accenting texts.
 
-  name[Group1]= "Serbian (combining accents instead of dead keys)";
-
   include "rs(basic)"
+
+  name[Group1]= "Serbian (combining accents instead of dead keys)";
 
   key <AE03> {   [ any,any,     U0302, dead_circumflex    ]   }; // 3, U0302 = COMBINING CIRCUMFLEX ACCENT
   key <AE07> {   [ any,any,     U0300, NoSymbol           ]   }; // 7, U0300 = COMBINING GRAVE ACCENT

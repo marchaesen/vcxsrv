@@ -28,68 +28,65 @@
 
 #include "glamor_priv.h"
 
-static Bool 
+static Bool
 _glamor_get_spans(DrawablePtr drawable,
-		  int wmax,
-		  DDXPointPtr points, int *widths, int count, char *dst,
-		  Bool fallback)
+                  int wmax,
+                  DDXPointPtr points, int *widths, int count, char *dst,
+                  Bool fallback)
 {
-	PixmapPtr pixmap = glamor_get_drawable_pixmap(drawable);
-	glamor_pixmap_private *pixmap_priv =
-	    glamor_get_pixmap_private(pixmap);
-	int i;
-	uint8_t *readpixels_dst = (uint8_t *) dst;
-	void *data;
-	int x_off, y_off;
-	Bool ret = FALSE;
+    PixmapPtr pixmap = glamor_get_drawable_pixmap(drawable);
+    glamor_pixmap_private *pixmap_priv = glamor_get_pixmap_private(pixmap);
+    int i;
+    uint8_t *readpixels_dst = (uint8_t *) dst;
+    void *data;
+    int x_off, y_off;
+    Bool ret = FALSE;
 
-	if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv))
-		goto fail;
+    if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv))
+        goto fail;
 
-	glamor_get_drawable_deltas(drawable, pixmap, &x_off, &y_off);
-	for (i = 0; i < count; i++) {
-		data = glamor_download_sub_pixmap_to_cpu(pixmap, points[i].x + x_off,
-							 points[i].y + y_off, widths[i], 1,
-							 PixmapBytePad(widths[i], drawable->depth),
-							 readpixels_dst, 0, GLAMOR_ACCESS_RO);
-		assert(data == readpixels_dst);
-		readpixels_dst += PixmapBytePad(widths[i], drawable->depth);
-	}
+    glamor_get_drawable_deltas(drawable, pixmap, &x_off, &y_off);
+    for (i = 0; i < count; i++) {
+        data = glamor_download_sub_pixmap_to_cpu(pixmap, points[i].x + x_off,
+                                                 points[i].y + y_off, widths[i],
+                                                 1, PixmapBytePad(widths[i],
+                                                                  drawable->
+                                                                  depth),
+                                                 readpixels_dst, 0,
+                                                 GLAMOR_ACCESS_RO);
+        (void)data;
+        assert(data == readpixels_dst);
+        readpixels_dst += PixmapBytePad(widths[i], drawable->depth);
+    }
 
-	ret = TRUE;
-	goto done;
-fail:
+    ret = TRUE;
+    goto done;
+ fail:
 
-	if (!fallback
-	    && glamor_ddx_fallback_check_pixmap(drawable))
-		goto done;
+    if (!fallback && glamor_ddx_fallback_check_pixmap(drawable))
+        goto done;
 
-	ret = TRUE;
-	if (glamor_prepare_access(drawable, GLAMOR_ACCESS_RO)) {
-		fbGetSpans(drawable, wmax, points, widths, count, dst);
-		glamor_finish_access(drawable, GLAMOR_ACCESS_RO);
-	}
-done:
-	return ret;
+    ret = TRUE;
+    if (glamor_prepare_access(drawable, GLAMOR_ACCESS_RO)) {
+        fbGetSpans(drawable, wmax, points, widths, count, dst);
+        glamor_finish_access(drawable, GLAMOR_ACCESS_RO);
+    }
+ done:
+    return ret;
 }
 
 void
 glamor_get_spans(DrawablePtr drawable,
-		 int wmax,
-		 DDXPointPtr points, int *widths, int count, char *dst)
+                 int wmax,
+                 DDXPointPtr points, int *widths, int count, char *dst)
 {
-	_glamor_get_spans(drawable, wmax, points, 
-			  widths, count, dst, TRUE);
+    _glamor_get_spans(drawable, wmax, points, widths, count, dst, TRUE);
 }
 
 Bool
 glamor_get_spans_nf(DrawablePtr drawable,
-		    int wmax,
-		    DDXPointPtr points, int *widths, int count, char *dst)
+                    int wmax,
+                    DDXPointPtr points, int *widths, int count, char *dst)
 {
-	return _glamor_get_spans(drawable, wmax, points, 
-				 widths, count, dst, FALSE);
+    return _glamor_get_spans(drawable, wmax, points, widths, count, dst, FALSE);
 }
-
-
-

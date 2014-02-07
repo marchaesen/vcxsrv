@@ -33,8 +33,6 @@ xkb_symbols "basic" {
 
     key <LSGT>	{ [      less,    greater,guillemotleft,guillemotright] };
 
-    include "kpdl(comma)"
-
     include "level3(ralt_switch)"
 };
 
@@ -61,6 +59,14 @@ xkb_symbols "nodeadkeys" {
     key <AB10>	{ [     minus, underscore,       macron,     division ] };
 
     key <BKSL>	{ [    ugrave,    section,        grave,        breve ]	};
+};
+
+partial alphanueric_keys
+xkb_symbols "winkeys" {
+
+   include "it(basic)"
+   name[Group1]="Italian (Winkeys)";
+   include "eurosign(5)"
 };
 
 // Copied from macintosh_vndr/it

@@ -89,10 +89,6 @@ void st_init_limits(struct st_context *st)
    c->MaxArrayTextureLayers
       = screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS);
 
-   c->MaxCombinedTextureImageUnits
-      = _min(screen->get_param(screen, PIPE_CAP_MAX_COMBINED_SAMPLERS),
-             MAX_COMBINED_TEXTURE_IMAGE_UNITS);
-
    /* Define max viewport size and max renderbuffer size in terms of
     * max texture size (note: max tex RECT size = max tex 2D size).
     * If this isn't true for some hardware we'll need new PIPE_CAP_ queries.
@@ -242,6 +238,12 @@ void st_init_limits(struct st_context *st)
          options->MaxUnrollIterations = 255; /* SM3 limit */
       options->LowerClipDistance = true;
    }
+
+   c->MaxCombinedTextureImageUnits =
+         _min(c->Program[MESA_SHADER_VERTEX].MaxTextureImageUnits +
+              c->Program[MESA_SHADER_GEOMETRY].MaxTextureImageUnits +
+              c->Program[MESA_SHADER_FRAGMENT].MaxTextureImageUnits,
+              MAX_COMBINED_TEXTURE_IMAGE_UNITS);
 
    /* This depends on program constants. */
    c->MaxTextureCoordUnits
@@ -419,7 +421,9 @@ void st_init_extensions(struct st_context *st)
           PIPE_FORMAT_R16G16B16A16_FLOAT } },
 
       { { o(ARB_texture_rgb10_a2ui) },
-        { PIPE_FORMAT_B10G10R10A2_UINT } },
+        { PIPE_FORMAT_R10G10B10A2_UINT,
+          PIPE_FORMAT_B10G10R10A2_UINT },
+         GL_TRUE }, /* at least one format must be supported */
 
       { { o(EXT_framebuffer_sRGB) },
         { PIPE_FORMAT_A8B8G8R8_SRGB,
@@ -537,7 +541,6 @@ void st_init_extensions(struct st_context *st)
    ctx->Extensions.EXT_blend_color = GL_TRUE;
    ctx->Extensions.EXT_blend_func_separate = GL_TRUE;
    ctx->Extensions.EXT_blend_minmax = GL_TRUE;
-   ctx->Extensions.EXT_framebuffer_blit = GL_TRUE;
    ctx->Extensions.EXT_gpu_program_parameters = GL_TRUE;
    ctx->Extensions.EXT_pixel_buffer_object = GL_TRUE;
    ctx->Extensions.EXT_point_parameters = GL_TRUE;
@@ -740,9 +743,7 @@ void st_init_extensions(struct st_context *st)
 
    ctx->Const.MinMapBufferAlignment =
       screen->get_param(screen, PIPE_CAP_MIN_MAP_BUFFER_ALIGNMENT);
-   if (ctx->Const.MinMapBufferAlignment >= 64) {
-      ctx->Extensions.ARB_map_buffer_alignment = GL_TRUE;
-   }
+
    if (screen->get_param(screen, PIPE_CAP_TEXTURE_BUFFER_OBJECTS)) {
       ctx->Extensions.ARB_texture_buffer_object = GL_TRUE;
 

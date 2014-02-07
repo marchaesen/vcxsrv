@@ -107,7 +107,7 @@ partial alphanumeric_keys
 xkb_symbols "bolnagri" {
      name[Group1] = "Hindi (Bolnagri)";
      key.type="FOUR_LEVEL";
-    //Top Alphanumeric row
+
     // Roman digits
     key <TLDE>  { [   U0902,	U0901,		apostrophe, 	asciitilde ] }; // apostrophe: anusvara, candrabindu
     key <AE01>  { [   1,	exclam,		U0967,		exclam	   ] };
@@ -393,8 +393,6 @@ xkb_symbols "ben_baishakhi" {
 //   modifier_map Shift  { Shift_L };
 //   modifier_map Lock   { Caps_Lock };
 //   modifier_map Control{ Control_L };
-
-
 };
 
 xkb_symbols "ben_inscript" {
@@ -536,8 +534,6 @@ xkb_symbols "ben_gitanjali" {
 //   modifier_map Shift  { Shift_L };
 //   modifier_map Lock   { Caps_Lock };
 //   modifier_map Control{ Control_L };
-
-
 };
 
 
@@ -613,7 +609,6 @@ xkb_symbols "ben_bornona" {
 //   modifier_map Control{ Control_L };
 // third level with right-alt
     include "level3(ralt_switch)"
-
 };
 
 partial alphanumeric_keys
@@ -842,7 +837,6 @@ xkb_symbols "mal" {
 
     include "rupeesign(4)"
     include "level3(ralt_switch)"
-
 };
 
 //Name		:	Lalitha
@@ -854,7 +848,7 @@ partial alphanumeric_keys
 xkb_symbols "mal_lalitha" {
      name[Group1] = "Malayalam (Lalitha)";
      key.type="FOUR_LEVEL";
-    //Top Alphanumeric row
+
     // Roman digits
     key <TLDE>  { [   U0D4D,	U0D02,		apostrophe, 	asciitilde ] }; // apostrophe: virama(chandrakala),anusvara
     key <AE01>  { [   1,	exclam,	U0D67,		exclam	   ] };
@@ -1237,7 +1231,6 @@ xkb_symbols "tam_TSCII" {
     key <AB07> { [ 0x10000ab, 0x10000ac ] }; // a, A
     key <AB08> { [ 0x10000fe, 0x10000ae ] }; // i, I
 
-};
 
 partial alphanumeric_keys
 xkb_symbols "tam_TAB" {
@@ -1462,7 +1455,7 @@ partial alphanumeric_keys
 xkb_symbols "jhelum" {
       name[Group1] = "Punjabi (Gurmukhi Jhelum)";
           key.type="FOUR_LEVEL";
-     //Top Alphanumeric row
+
      // Roman digits
      key <TLDE>  { [  apostrophe, asciitilde, U0A02,U0A01 ] }; // apostrophe: anusvara, candrabindu
      key <AE01>  { [   1,exclam,	U0A67,	exclam	   ] };
@@ -1660,12 +1653,10 @@ xkb_symbols "hin-wx" {
 partial alphanumeric_keys
 xkb_symbols "eng" {
 
-    name[Group1]= "English (India, with RupeeSign)";
-
     include "us(basic)"
+    name[Group1]= "English (India, with rupee sign)";
 
     include "rupeesign(4)"
-
     include "level3(ralt_switch)"
 };
 
@@ -1681,7 +1672,7 @@ xkb_symbols "eng" {
 partial alphanumeric_keys
 xkb_symbols "mal_enhanced" {
 
-    name[Group1] = "Malayalam (enhanced Inscript with Rupee Sign)";
+    name[Group1] = "Malayalam (enhanced Inscript, with rupee sign)";
 
    //From grave to backslash (\)
 
@@ -1744,11 +1735,8 @@ xkb_symbols "mal_enhanced" {
     key <AB09> { [ period , U0d7d ] }; //chillu l
     key <AB10> { [ U0d2f , question ] };
 
-    // hope this includes the rupee sign at alt + 4
-
     include "rupeesign(4)"
     include "level3(ralt_switch)"
-
 };
 
 
@@ -1780,13 +1768,12 @@ xkb_symbols "hin-kagapa" {
      name[Group1] = "Hindi (KaGaPa phonetic)";
      key.type="FOUR_LEVEL";
 
-    //Top Alphanumeric row
     // Roman digits
     key <TLDE>  { [   apostrophe,   asciitilde,   U201C          ] };  // U201C: left double quotation mark
     key <AE01>  { [   1,            exclam,       U0967          ] };
     key <AE02>  { [   2,            at,           U0968,  U20A8  ] };  // U20A8: generic rupee sign (Rs)
     key <AE03>  { [   3,            numbersign,   U0969          ] };
-    key <AE04>  { [   4,            dollar,       U096A,  U20B9  ] };  // U20B9: new Indian Rupee sign
+    key <AE04>  { [   4,            dollar,       U096A,  U20B9  ] };  // U20B9: new Indian rupee sign
     key <AE05>  { [   5,            percent,      U096B          ] };
     key <AE06>  { [   6,            asciicircum,  U096C,  U200C  ] };  // ZWNJ
     key <AE07>  { [   7,            ampersand,    U096D,  U200D  ] };  // ZWJ
@@ -1824,7 +1811,6 @@ xkb_symbols "hin-kagapa" {
     key <AC10>  { [   semicolon,    colon,     U1CF2,    U1CF3   ] };  // U1CF2/3: ardhavisarga/rotated ardhavisarga
     key <AC11>  { [   apostrophe,   quotedbl,  U0951,    U201D   ] };  // U0951: Devanagari stress sign udatta
                                                                        // U201D: Right double quotation mark
-
     //Z Row
     key <AB01>  { [   U091E,   U0919                   ] };  // Z: nya, nga
     key <AB02>  { [   U0937,   U093C,  U0934           ] };  // X: ssa, nukta below, lla-nukta
@@ -1844,17 +1830,15 @@ xkb_symbols "hin-kagapa" {
 // Sanskrit uses Devanagari layout of Hindi
 partial alphanumeric_keys
 xkb_symbols "san-kagapa" {
-  name[Group1] = "Sanskrit (KaGaPa phonetic)";
   include "in(hin-kagapa)"
-
+  name[Group1] = "Sanskrit (KaGaPa phonetic)";
 };
 
 // Marathi uses Devanagari layout of Hindi
 partial alphanumeric_keys
 xkb_symbols "mar-kagapa" {
-  name[Group1] = "Marathi (KaGaPa phonetic)";
   include "in(hin-kagapa)"
-
+  name[Group1] = "Marathi (KaGaPa phonetic)";
 };
 
 
@@ -1875,13 +1859,12 @@ xkb_symbols "kan-kagapa" {
     name[Group1] = "Kannada (KaGaPa phonetic)";
     key.type="FOUR_LEVEL";
 
-    //Top Alphanumeric row
     // Roman digits
     key <TLDE>  { [   apostrophe,   asciitilde,   U201C          ] };  // U201C: left double quotation mark
     key <AE01>  { [   1,            exclam,       U0CE7          ] };
     key <AE02>  { [   2,            at,           U0CE8,  U20A8  ] };  // U20A8: generic rupee sign (Rs)
     key <AE03>  { [   3,            numbersign,   U0CE9          ] };
-    key <AE04>  { [   4,            dollar,       U0CEA,  U20B9  ] };  // U20B9: new Indian Rupee sign
+    key <AE04>  { [   4,            dollar,       U0CEA,  U20B9  ] };  // U20B9: new Indian rupee sign
     key <AE05>  { [   5,            percent,      U0CEB          ] };
     key <AE06>  { [   6,            asciicircum,  U0CEC,  U200C  ] };  // ZWNJ
     key <AE07>  { [   7,            ampersand,    U0CED,  U200D  ] };  // ZWJ
@@ -1919,7 +1902,6 @@ xkb_symbols "kan-kagapa" {
     key <AC10>  { [   semicolon,    colon                        ] };
     key <AC11>  { [   apostrophe,   quotedbl,  U0951,    U201D   ] };  // U0951: Devanagari stress sign udatta
                                                                        // U201D: Right double quotation mark
-
     //Z Row
     key <AB01>  { [   U0C9E,   U0C99                   ] };  // Z: nya, nga
     key <AB02>  { [   U0CB7,   U0CBC,  U0CDE           ] };  // X: ssa, nukta below, LLLA
@@ -1954,13 +1936,12 @@ xkb_symbols "tel-kagapa" {
     name[Group1] = "Telugu (KaGaPa phonetic)";
     key.type="FOUR_LEVEL";
 
-    //Top Alphanumeric row
     // Roman digits
     key <TLDE>  { [   apostrophe,   asciitilde,   U201C          ] };  // U201C: left double quotation mark
     key <AE01>  { [   1,            exclam,       U0C67          ] };
     key <AE02>  { [   2,            at,           U0C68,  U20A8  ] };  // U20A8: generic rupee sign (Rs)
     key <AE03>  { [   3,            numbersign,   U0C69          ] };
-    key <AE04>  { [   4,            dollar,       U0C6A,  U20B9  ] };  // U20B9: new Indian Rupee sign
+    key <AE04>  { [   4,            dollar,       U0C6A,  U20B9  ] };  // U20B9: new Indian rupee sign
     key <AE05>  { [   5,            percent,      U0C6B          ] };
     key <AE06>  { [   6,            asciicircum,  U0C6C,  U200C  ] };  // ZWNJ
     key <AE07>  { [   7,            ampersand,    U0C6D,  U200D  ] };  // ZWJ
@@ -1998,7 +1979,6 @@ xkb_symbols "tel-kagapa" {
     key <AC10>  { [   semicolon,    colon                        ] };
     key <AC11>  { [   apostrophe,   quotedbl,  U0951,    U201D   ] };  // U0951: Devanagari stress sign udatta
                                                                        // U201D: Right double quotation mark
-
     //Z Row
     key <AB01>  { [   U0C1E,   U0C19                   ] };  // Z: nya, nga
     key <AB02>  { [   U0C37                            ] };  // X: ssa
@@ -2026,7 +2006,6 @@ xkb_symbols "eeyek" {
 
     name[Group1]= "Manipuri (Eeyek)";
 
-    // Alphanumeric section
     key <TLDE> {	[     grave,	asciitilde	]	};
     key <AE01> {	[	  Uabf1,	exclam 		]	};
     key <AE02> {	[	  Uabf2,	at		]	};
@@ -2078,7 +2057,6 @@ xkb_symbols "eeyek" {
     key <AB10> {	[     slash,	question	]	};
 
     key <BKSL> {	[ backslash,         bar	]	};
-    // End alphanumeric section
     
     include "level3(ralt_switch)"
 };

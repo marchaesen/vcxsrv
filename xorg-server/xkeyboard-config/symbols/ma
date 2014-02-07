@@ -82,9 +82,9 @@ xkb_symbols "tifinagh" {
 
 partial alphanumeric_keys
 xkb_symbols "tifinagh-phonetic" {
+    include "ma(tifinagh)"
 
     name[Group1]="Berber (Morocco, Tifinagh phonetic)";
-    include "ma(tifinagh)"
 
     key <LatA>	{ [ 0x1002d30 ]	};
     key <LatZ>	{ [ 0x1002d63, 0x1002d65 ]	};

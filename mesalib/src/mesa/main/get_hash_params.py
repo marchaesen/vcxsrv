@@ -221,9 +221,9 @@ descriptor=[
   [ "SAMPLE_ALPHA_TO_ONE_ARB", "CONTEXT_BOOL(Multisample.SampleAlphaToOne), NO_EXTRA" ],
 
 # GL_ARB_vertex_buffer_object
-  [ "VERTEX_ARRAY_BUFFER_BINDING_ARB", "LOC_CUSTOM, TYPE_INT, offsetof(struct gl_array_object, VertexBinding[VERT_ATTRIB_POS].BufferObj), NO_EXTRA" ],
-  [ "NORMAL_ARRAY_BUFFER_BINDING_ARB", "LOC_CUSTOM, TYPE_INT, offsetof(struct gl_array_object, VertexBinding[VERT_ATTRIB_NORMAL].BufferObj), NO_EXTRA" ],
-  [ "COLOR_ARRAY_BUFFER_BINDING_ARB", "LOC_CUSTOM, TYPE_INT, offsetof(struct gl_array_object, VertexBinding[VERT_ATTRIB_COLOR0].BufferObj), NO_EXTRA" ],
+  [ "VERTEX_ARRAY_BUFFER_BINDING_ARB", "LOC_CUSTOM, TYPE_INT, offsetof(struct gl_vertex_array_object, VertexBinding[VERT_ATTRIB_POS].BufferObj), NO_EXTRA" ],
+  [ "NORMAL_ARRAY_BUFFER_BINDING_ARB", "LOC_CUSTOM, TYPE_INT, offsetof(struct gl_vertex_array_object, VertexBinding[VERT_ATTRIB_NORMAL].BufferObj), NO_EXTRA" ],
+  [ "COLOR_ARRAY_BUFFER_BINDING_ARB", "LOC_CUSTOM, TYPE_INT, offsetof(struct gl_vertex_array_object, VertexBinding[VERT_ATTRIB_COLOR0].BufferObj), NO_EXTRA" ],
   [ "TEXTURE_COORD_ARRAY_BUFFER_BINDING_ARB", "LOC_CUSTOM, TYPE_INT, NO_OFFSET, NO_EXTRA" ],
 
 # GL_OES_point_sprite
@@ -365,7 +365,7 @@ descriptor=[
 
 # GL_EXT_framebuffer_blit
 # NOTE: GL_DRAW_FRAMEBUFFER_BINDING_EXT == GL_FRAMEBUFFER_BINDING_EXT
-  [ "READ_FRAMEBUFFER_BINDING_EXT", "LOC_CUSTOM, TYPE_INT, 0, extra_EXT_framebuffer_blit" ],
+  [ "READ_FRAMEBUFFER_BINDING_EXT", "LOC_CUSTOM, TYPE_INT, 0, NO_EXTRA" ],
 
 # GL_EXT_gpu_shader4 / GLSL 1.30
   [ "MIN_PROGRAM_TEXEL_OFFSET", "CONTEXT_INT(Const.MinProgramTexelOffset), extra_GLSL_130_es3" ],
@@ -583,10 +583,10 @@ descriptor=[
   [ "PRIMITIVE_RESTART_INDEX_NV", "CONTEXT_INT(Array.RestartIndex), extra_NV_primitive_restart" ],
 
 # GL_ARB_vertex_buffer_object
-  [ "INDEX_ARRAY_BUFFER_BINDING_ARB", "LOC_CUSTOM, TYPE_INT, offsetof(struct gl_array_object, VertexBinding[VERT_ATTRIB_COLOR_INDEX].BufferObj), NO_EXTRA" ],
-  [ "EDGE_FLAG_ARRAY_BUFFER_BINDING_ARB", "LOC_CUSTOM, TYPE_INT, offsetof(struct gl_array_object, VertexBinding[VERT_ATTRIB_EDGEFLAG].BufferObj), NO_EXTRA" ],
-  [ "SECONDARY_COLOR_ARRAY_BUFFER_BINDING_ARB", "LOC_CUSTOM, TYPE_INT, offsetof(struct gl_array_object, VertexBinding[VERT_ATTRIB_COLOR1].BufferObj), NO_EXTRA" ],
-  [ "FOG_COORDINATE_ARRAY_BUFFER_BINDING_ARB", "LOC_CUSTOM, TYPE_INT, offsetof(struct gl_array_object, VertexBinding[VERT_ATTRIB_FOG].BufferObj), NO_EXTRA" ],
+  [ "INDEX_ARRAY_BUFFER_BINDING_ARB", "LOC_CUSTOM, TYPE_INT, offsetof(struct gl_vertex_array_object, VertexBinding[VERT_ATTRIB_COLOR_INDEX].BufferObj), NO_EXTRA" ],
+  [ "EDGE_FLAG_ARRAY_BUFFER_BINDING_ARB", "LOC_CUSTOM, TYPE_INT, offsetof(struct gl_vertex_array_object, VertexBinding[VERT_ATTRIB_EDGEFLAG].BufferObj), NO_EXTRA" ],
+  [ "SECONDARY_COLOR_ARRAY_BUFFER_BINDING_ARB", "LOC_CUSTOM, TYPE_INT, offsetof(struct gl_vertex_array_object, VertexBinding[VERT_ATTRIB_COLOR1].BufferObj), NO_EXTRA" ],
+  [ "FOG_COORDINATE_ARRAY_BUFFER_BINDING_ARB", "LOC_CUSTOM, TYPE_INT, offsetof(struct gl_vertex_array_object, VertexBinding[VERT_ATTRIB_FOG].BufferObj), NO_EXTRA" ],
 
 # GL_ARB_vertex_program
 # == GL_VERTEX_PROGRAM_NV
@@ -643,7 +643,7 @@ descriptor=[
 
 # GL_ARB_transform_feedback3
   [ "MAX_TRANSFORM_FEEDBACK_BUFFERS", "CONTEXT_INT(Const.MaxTransformFeedbackBuffers), extra_ARB_transform_feedback3" ],
-  [ "MAX_VERTEX_STREAMS", "CONTEXT_INT(Const.MaxVertexStreams), extra_ARB_transform_feedback3" ],
+  [ "MAX_VERTEX_STREAMS", "CONTEXT_INT(Const.MaxVertexStreams), extra_ARB_transform_feedback3_ARB_gpu_shader5" ],
 
 # GL_ARB_geometry_shader4
   [ "MAX_GEOMETRY_TEXTURE_IMAGE_UNITS_ARB", "CONTEXT_INT(Const.Program[MESA_SHADER_GEOMETRY].MaxTextureImageUnits), extra_gl32_ARB_geometry_shader4" ],
@@ -716,7 +716,7 @@ descriptor=[
   [ "TIMESTAMP", "LOC_CUSTOM, TYPE_INT64, 0, extra_ARB_timer_query" ],
 
 # GL_ARB_map_buffer_alignment
-  [ "MIN_MAP_BUFFER_ALIGNMENT", "CONTEXT_INT(Const.MinMapBufferAlignment), extra_ARB_map_buffer_alignment" ],
+  [ "MIN_MAP_BUFFER_ALIGNMENT", "CONTEXT_INT(Const.MinMapBufferAlignment), NO_EXTRA" ],
 
 # GL_ARB_texture_cube_map_array
   [ "TEXTURE_BINDING_CUBE_MAP_ARRAY_ARB", "LOC_CUSTOM, TYPE_INT, TEXTURE_CUBE_ARRAY_INDEX, extra_ARB_texture_cube_map_array" ],
@@ -751,6 +751,15 @@ descriptor=[
   [ "MAX_GEOMETRY_IMAGE_UNIFORMS", "CONTEXT_INT(Const.Program[MESA_SHADER_GEOMETRY].MaxImageUniforms), extra_ARB_shader_image_load_store_and_geometry_shader"],
   [ "MAX_FRAGMENT_IMAGE_UNIFORMS", "CONTEXT_INT(Const.Program[MESA_SHADER_FRAGMENT].MaxImageUniforms), extra_ARB_shader_image_load_store"],
   [ "MAX_COMBINED_IMAGE_UNIFORMS", "CONTEXT_INT(Const.MaxCombinedImageUniforms), extra_ARB_shader_image_load_store"],
+
+# GL_ARB_compute_shader
+  [ "MAX_COMPUTE_WORK_GROUP_INVOCATIONS", "CONTEXT_INT(Const.MaxComputeWorkGroupInvocations), extra_ARB_compute_shader" ],
+
+# GL_ARB_gpu_shader5
+  [ "MAX_GEOMETRY_SHADER_INVOCATIONS", "CONST(MAX_GEOMETRY_SHADER_INVOCATIONS), extra_ARB_gpu_shader5" ],
+  [ "MIN_FRAGMENT_INTERPOLATION_OFFSET", "CONTEXT_FLOAT(Const.MinFragmentInterpolationOffset), extra_ARB_gpu_shader5" ],
+  [ "MAX_FRAGMENT_INTERPOLATION_OFFSET", "CONTEXT_FLOAT(Const.MaxFragmentInterpolationOffset), extra_ARB_gpu_shader5" ],
+  [ "FRAGMENT_INTERPOLATION_OFFSET_BITS", "CONST(FRAGMENT_INTERPOLATION_OFFSET_BITS), extra_ARB_gpu_shader5" ],
 ]},
 
 # Enums restricted to OpenGL Core profile

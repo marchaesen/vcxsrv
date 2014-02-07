@@ -29,30 +29,28 @@
  */
 
 void
-glamor_copy_window(WindowPtr win, DDXPointRec old_origin,
-		   RegionPtr src_region)
+glamor_copy_window(WindowPtr win, DDXPointRec old_origin, RegionPtr src_region)
 {
-	RegionRec dst_region;
-	int dx, dy;
-	PixmapPtr pixmap = win->drawable.pScreen->GetWindowPixmap(win);
+    RegionRec dst_region;
+    int dx, dy;
+    PixmapPtr pixmap = win->drawable.pScreen->GetWindowPixmap(win);
 
-	dx = old_origin.x - win->drawable.x;
-	dy = old_origin.y - win->drawable.y;
-	REGION_TRANSLATE(win->drawable.pScreen, src_region, -dx, -dy);
+    dx = old_origin.x - win->drawable.x;
+    dy = old_origin.y - win->drawable.y;
+    REGION_TRANSLATE(win->drawable.pScreen, src_region, -dx, -dy);
 
-	REGION_INIT(win->drawable.pScreen, &dst_region, NullBox, 0);
+    REGION_INIT(win->drawable.pScreen, &dst_region, NullBox, 0);
 
-	REGION_INTERSECT(win->drawable.pScreen, &dst_region,
-			 &win->borderClip, src_region);
+    REGION_INTERSECT(win->drawable.pScreen, &dst_region,
+                     &win->borderClip, src_region);
 #ifdef COMPOSITE
-	if (pixmap->screen_x || pixmap->screen_y)
-		REGION_TRANSLATE(win->drawable.pScreen, &dst_region,
-				 -pixmap->screen_x, -pixmap->screen_y);
+    if (pixmap->screen_x || pixmap->screen_y)
+        REGION_TRANSLATE(win->drawable.pScreen, &dst_region,
+                         -pixmap->screen_x, -pixmap->screen_y);
 #endif
 
-	miCopyRegion(&pixmap->drawable, &pixmap->drawable,
-		     NULL, &dst_region, dx, dy, glamor_copy_n_to_n, 0,
-		     NULL);
+    miCopyRegion(&pixmap->drawable, &pixmap->drawable,
+                 NULL, &dst_region, dx, dy, glamor_copy_n_to_n, 0, NULL);
 
-	REGION_UNINIT(win->drawable.pScreen, &dst_region);
+    REGION_UNINIT(win->drawable.pScreen, &dst_region);
 }

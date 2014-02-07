@@ -120,7 +120,7 @@ initialize_texture_fields(struct gl_context *ctx,
                           struct gl_texture_object *texObj,
                           GLint levels,
                           GLsizei width, GLsizei height, GLsizei depth,
-                          GLenum internalFormat, gl_format texFormat)
+                          GLenum internalFormat, mesa_format texFormat)
 {
    const GLenum target = texObj->Target;
    const GLuint numFaces = _mesa_num_tex_faces(target);
@@ -151,9 +151,8 @@ initialize_texture_fields(struct gl_context *ctx,
 
 
 /**
- * Clear all fields of texture object to zeros.  Used for proxy texture tests.
- * Used for proxy texture tests (and to clean up when a texture memory
- * allocation fails).
+ * Clear all fields of texture object to zeros.  Used for proxy texture tests
+ * and to clean up when a texture memory allocation fails.
  */
 static void
 clear_texture_fields(struct gl_context *ctx,
@@ -332,6 +331,11 @@ tex_storage_error_check(struct gl_context *ctx, GLuint dims, GLenum target,
       return GL_TRUE;
    }
 
+   /* additional checks for depth textures */
+   if (!_mesa_legal_texture_base_format_for_target(ctx, target, internalformat,
+                                                   dims, "glTexStorage"))
+      return GL_TRUE;
+
    return GL_FALSE;
 }
 
@@ -345,7 +349,7 @@ texstorage(GLuint dims, GLenum target, GLsizei levels, GLenum internalformat,
 {
    struct gl_texture_object *texObj;
    GLboolean sizeOK, dimensionsOK;
-   gl_format texFormat;
+   mesa_format texFormat;
 
    GET_CURRENT_CONTEXT(ctx);
 

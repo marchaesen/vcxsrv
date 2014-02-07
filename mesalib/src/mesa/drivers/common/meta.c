@@ -164,7 +164,7 @@ struct save_state
    GLuint EnvMode;  /* unit[0] only */
 
    /** MESA_META_VERTEX */
-   struct gl_array_object *ArrayObj;
+   struct gl_vertex_array_object *VAO;
    struct gl_buffer_object *ArrayBufferObj;
 
    /** MESA_META_VIEWPORT */
@@ -221,7 +221,7 @@ struct temp_texture
  */
 struct blit_state
 {
-   GLuint ArrayObj;
+   GLuint VAO;
    GLuint VBO;
    GLuint DepthFP;
    GLuint ShaderProg;
@@ -235,7 +235,7 @@ struct blit_state
  */
 struct clear_state
 {
-   GLuint ArrayObj;
+   GLuint VAO;
    GLuint VBO;
    GLuint ShaderProg;
    GLint ColorLocation;
@@ -252,7 +252,7 @@ struct clear_state
  */
 struct copypix_state
 {
-   GLuint ArrayObj;
+   GLuint VAO;
    GLuint VBO;
 };
 
@@ -262,7 +262,7 @@ struct copypix_state
  */
 struct drawpix_state
 {
-   GLuint ArrayObj;
+   GLuint VAO;
 
    GLuint StencilFP;  /**< Fragment program for drawing stencil images */
    GLuint DepthFP;  /**< Fragment program for drawing depth images */
@@ -274,7 +274,7 @@ struct drawpix_state
  */
 struct bitmap_state
 {
-   GLuint ArrayObj;
+   GLuint VAO;
    GLuint VBO;
    struct temp_texture Tex;  /**< separate texture from other meta ops */
 };
@@ -295,7 +295,7 @@ struct glsl_sampler {
  */
 struct gen_mipmap_state
 {
-   GLuint ArrayObj;
+   GLuint VAO;
    GLuint VBO;
    GLuint FBO;
    GLuint Sampler;
@@ -313,7 +313,7 @@ struct gen_mipmap_state
  */
 struct decompress_state
 {
-   GLuint ArrayObj;
+   GLuint VAO;
    GLuint VBO, FBO, RBO, Sampler;
    GLint Width, Height;
 };
@@ -323,7 +323,7 @@ struct decompress_state
  */
 struct drawtex_state
 {
-   GLuint ArrayObj;
+   GLuint VAO;
    GLuint VBO;
 };
 
@@ -350,11 +350,12 @@ struct gl_meta_state
    struct drawtex_state DrawTex;  /**< For _mesa_meta_DrawTex() */
 };
 
-static void meta_glsl_blit_cleanup(struct gl_context *ctx, struct blit_state *blit);
-static void cleanup_temp_texture(struct gl_context *ctx, struct temp_texture *tex);
-static void meta_glsl_clear_cleanup(struct gl_context *ctx, struct clear_state *clear);
-static void meta_glsl_generate_mipmap_cleanup(struct gl_context *ctx,
-                                              struct gen_mipmap_state *mipmap);
+static void meta_glsl_blit_cleanup(struct blit_state *blit);
+static void cleanup_temp_texture(struct temp_texture *tex);
+static void meta_glsl_clear_cleanup(struct clear_state *clear);
+static void meta_glsl_generate_mipmap_cleanup(struct gen_mipmap_state *mipmap);
+static void meta_decompress_cleanup(struct decompress_state *decompress);
+static void meta_drawpix_cleanup(struct drawpix_state *drawpix);
 
 static GLuint
 compile_shader_with_debug(struct gl_context *ctx, GLenum target, const GLcharARB *source)
@@ -445,10 +446,12 @@ _mesa_meta_free(struct gl_context *ctx)
 {
    GET_CURRENT_CONTEXT(old_context);
    _mesa_make_current(ctx, NULL, NULL);
-   meta_glsl_blit_cleanup(ctx, &ctx->Meta->Blit);
-   meta_glsl_clear_cleanup(ctx, &ctx->Meta->Clear);
-   meta_glsl_generate_mipmap_cleanup(ctx, &ctx->Meta->Mipmap);
-   cleanup_temp_texture(ctx, &ctx->Meta->TempTex);
+   meta_glsl_blit_cleanup(&ctx->Meta->Blit);
+   meta_glsl_clear_cleanup(&ctx->Meta->Clear);
+   meta_glsl_generate_mipmap_cleanup(&ctx->Meta->Mipmap);
+   cleanup_temp_texture(&ctx->Meta->TempTex);
+   meta_decompress_cleanup(&ctx->Meta->Decompress);
+   meta_drawpix_cleanup(&ctx->Meta->DrawPix);
    if (old_context)
       _mesa_make_current(old_context, old_context->WinSysDrawBuffer, old_context->WinSysReadBuffer);
    else
@@ -726,8 +729,8 @@ _mesa_meta_begin(struct gl_context *ctx, GLbitfield state)
 
    if (state & MESA_META_VERTEX) {
       /* save vertex array object state */
-      _mesa_reference_array_object(ctx, &save->ArrayObj,
-                                   ctx->Array.ArrayObj);
+      _mesa_reference_vao(ctx, &save->VAO,
+                                   ctx->Array.VAO);
       _mesa_reference_buffer_object(ctx, &save->ArrayBufferObj,
                                     ctx->Array.ArrayBufferObj);
       /* set some default state? */
@@ -1092,8 +1095,8 @@ _mesa_meta_end(struct gl_context *ctx)
       _mesa_reference_buffer_object(ctx, &save->ArrayBufferObj, NULL);
 
       /* restore vertex array object */
-      _mesa_BindVertexArray(save->ArrayObj->Name);
-      _mesa_reference_array_object(ctx, &save->ArrayObj, NULL);
+      _mesa_BindVertexArray(save->VAO->Name);
+      _mesa_reference_vao(ctx, &save->VAO, NULL);
    }
 
    if (state & MESA_META_VIEWPORT) {
@@ -1208,7 +1211,7 @@ init_temp_texture(struct gl_context *ctx, struct temp_texture *tex)
 }
 
 static void
-cleanup_temp_texture(struct gl_context *ctx, struct temp_texture *tex)
+cleanup_temp_texture(struct temp_texture *tex)
 {
    if (!tex->TexObj)
      return;
@@ -1453,20 +1456,19 @@ init_blit_depth_pixels(struct gl_context *ctx)
 }
 
 static void
-setup_ff_blit_framebuffer(struct gl_context *ctx,
-                          struct blit_state *blit)
+setup_ff_blit_framebuffer(struct blit_state *blit)
 {
    struct vertex {
       GLfloat x, y, s, t;
    };
    struct vertex verts[4];
 
-   if (blit->ArrayObj == 0) {
+   if (blit->VAO == 0) {
       /* one-time setup */
 
       /* create vertex array object */
-      _mesa_GenVertexArrays(1, &blit->ArrayObj);
-      _mesa_BindVertexArray(blit->ArrayObj);
+      _mesa_GenVertexArrays(1, &blit->VAO);
+      _mesa_BindVertexArray(blit->VAO);
 
       /* create vertex array buffer */
       _mesa_GenBuffers(1, &blit->VBO);
@@ -1508,11 +1510,11 @@ setup_glsl_blit_framebuffer(struct gl_context *ctx,
    assert(_mesa_is_desktop_gl(ctx) || texture_2d);
 
    /* Check if already initialized */
-   if (blit->ArrayObj == 0) {
+   if (blit->VAO == 0) {
 
       /* create vertex array object */
-      _mesa_GenVertexArrays(1, &blit->ArrayObj);
-      _mesa_BindVertexArray(blit->ArrayObj);
+      _mesa_GenVertexArrays(1, &blit->VAO);
+      _mesa_BindVertexArray(blit->VAO);
 
       /* create vertex array buffer */
       _mesa_GenBuffers(1, &blit->VBO);
@@ -1682,10 +1684,10 @@ blitframebuffer_texture(struct gl_context *ctx,
                _mesa_UseProgram(blit->RectShaderProg);
          }
          else {
-            setup_ff_blit_framebuffer(ctx, &ctx->Meta->Blit);
+            setup_ff_blit_framebuffer(&ctx->Meta->Blit);
          }
 
-         _mesa_BindVertexArray(blit->ArrayObj);
+         _mesa_BindVertexArray(blit->VAO);
          _mesa_BindBuffer(GL_ARRAY_BUFFER_ARB, blit->VBO);
 
          _mesa_GenSamplers(1, &sampler);
@@ -1867,10 +1869,10 @@ _mesa_meta_BlitFramebuffer(struct gl_context *ctx,
          _mesa_UseProgram(blit->RectShaderProg);
    }
    else {
-      setup_ff_blit_framebuffer(ctx, blit);
+      setup_ff_blit_framebuffer(blit);
    }
 
-   _mesa_BindVertexArray(blit->ArrayObj);
+   _mesa_BindVertexArray(blit->VAO);
    _mesa_BindBuffer(GL_ARRAY_BUFFER_ARB, blit->VBO);
 
    /* Continue with "normal" approach which involves copying the src rect
@@ -1998,11 +2000,11 @@ _mesa_meta_BlitFramebuffer(struct gl_context *ctx,
 }
 
 static void
-meta_glsl_blit_cleanup(struct gl_context *ctx, struct blit_state *blit)
+meta_glsl_blit_cleanup(struct blit_state *blit)
 {
-   if (blit->ArrayObj) {
-      _mesa_DeleteVertexArrays(1, &blit->ArrayObj);
-      blit->ArrayObj = 0;
+   if (blit->VAO) {
+      _mesa_DeleteVertexArrays(1, &blit->VAO);
+      blit->VAO = 0;
       _mesa_DeleteBuffers(1, &blit->VBO);
       blit->VBO = 0;
    }
@@ -2047,12 +2049,12 @@ _mesa_meta_Clear(struct gl_context *ctx, GLbitfield buffers)
 
    _mesa_meta_begin(ctx, metaSave);
 
-   if (clear->ArrayObj == 0) {
+   if (clear->VAO == 0) {
       /* one-time setup */
 
       /* create vertex array object */
-      _mesa_GenVertexArrays(1, &clear->ArrayObj);
-      _mesa_BindVertexArray(clear->ArrayObj);
+      _mesa_GenVertexArrays(1, &clear->VAO);
+      _mesa_BindVertexArray(clear->VAO);
 
       /* create vertex array buffer */
       _mesa_GenBuffers(1, &clear->VBO);
@@ -2065,7 +2067,7 @@ _mesa_meta_Clear(struct gl_context *ctx, GLbitfield buffers)
       _mesa_EnableClientState(GL_COLOR_ARRAY);
    }
    else {
-      _mesa_BindVertexArray(clear->ArrayObj);
+      _mesa_BindVertexArray(clear->VAO);
       _mesa_BindBuffer(GL_ARRAY_BUFFER_ARB, clear->VBO);
    }
 
@@ -2180,12 +2182,12 @@ meta_glsl_clear_init(struct gl_context *ctx, struct clear_state *clear)
    GLuint vs, gs = 0, fs;
    bool has_integer_textures;
 
-   if (clear->ArrayObj != 0)
+   if (clear->VAO != 0)
       return;
 
    /* create vertex array object */
-   _mesa_GenVertexArrays(1, &clear->ArrayObj);
-   _mesa_BindVertexArray(clear->ArrayObj);
+   _mesa_GenVertexArrays(1, &clear->VAO);
+   _mesa_BindVertexArray(clear->VAO);
 
    /* create vertex array buffer */
    _mesa_GenBuffers(1, &clear->VBO);
@@ -2287,12 +2289,12 @@ meta_glsl_clear_init(struct gl_context *ctx, struct clear_state *clear)
 }
 
 static void
-meta_glsl_clear_cleanup(struct gl_context *ctx, struct clear_state *clear)
+meta_glsl_clear_cleanup(struct clear_state *clear)
 {
-   if (clear->ArrayObj == 0)
+   if (clear->VAO == 0)
       return;
-   _mesa_DeleteVertexArrays(1, &clear->ArrayObj);
-   clear->ArrayObj = 0;
+   _mesa_DeleteVertexArrays(1, &clear->VAO);
+   clear->VAO = 0;
    _mesa_DeleteBuffers(1, &clear->VBO);
    clear->VBO = 0;
    _mesa_DeleteObjectARB(clear->ShaderProg);
@@ -2357,7 +2359,7 @@ _mesa_meta_glsl_Clear(struct gl_context *ctx, GLbitfield buffers)
 			  ctx->Color.ClearColor.f);
    }
 
-   _mesa_BindVertexArray(clear->ArrayObj);
+   _mesa_BindVertexArray(clear->VAO);
    _mesa_BindBuffer(GL_ARRAY_BUFFER_ARB, clear->VBO);
 
    /* GL_COLOR_BUFFER_BIT */
@@ -2470,12 +2472,12 @@ _mesa_meta_CopyPixels(struct gl_context *ctx, GLint srcX, GLint srcY,
                           MESA_META_VERTEX |
                           MESA_META_VIEWPORT));
 
-   if (copypix->ArrayObj == 0) {
+   if (copypix->VAO == 0) {
       /* one-time setup */
 
       /* create vertex array object */
-      _mesa_GenVertexArrays(1, &copypix->ArrayObj);
-      _mesa_BindVertexArray(copypix->ArrayObj);
+      _mesa_GenVertexArrays(1, &copypix->VAO);
+      _mesa_BindVertexArray(copypix->VAO);
 
       /* create vertex array buffer */
       _mesa_GenBuffers(1, &copypix->VBO);
@@ -2490,7 +2492,7 @@ _mesa_meta_CopyPixels(struct gl_context *ctx, GLint srcX, GLint srcY,
       _mesa_EnableClientState(GL_TEXTURE_COORD_ARRAY);
    }
    else {
-      _mesa_BindVertexArray(copypix->ArrayObj);
+      _mesa_BindVertexArray(copypix->VAO);
       _mesa_BindBuffer(GL_ARRAY_BUFFER_ARB, copypix->VBO);
    }
 
@@ -2543,7 +2545,24 @@ _mesa_meta_CopyPixels(struct gl_context *ctx, GLint srcX, GLint srcY,
    _mesa_meta_end(ctx);
 }
 
+static void
+meta_drawpix_cleanup(struct drawpix_state *drawpix)
+{
+   if (drawpix->VAO != 0) {
+      _mesa_DeleteVertexArrays(1, &drawpix->VAO);
+      drawpix->VAO = 0;
+   }
 
+   if (drawpix->StencilFP != 0) {
+      _mesa_DeleteProgramsARB(1, &drawpix->StencilFP);
+      drawpix->StencilFP = 0;
+   }
+
+   if (drawpix->DepthFP != 0) {
+      _mesa_DeleteProgramsARB(1, &drawpix->DepthFP);
+      drawpix->DepthFP = 0;
+   }
+}
 
 /**
  * When the glDrawPixels() image size is greater than the max rectangle
@@ -2825,11 +2844,11 @@ _mesa_meta_DrawPixels(struct gl_context *ctx,
       verts[3].t = tex->Ttop;
    }
 
-   if (drawpix->ArrayObj == 0) {
+   if (drawpix->VAO == 0) {
       /* one-time setup: create vertex array object */
-      _mesa_GenVertexArrays(1, &drawpix->ArrayObj);
+      _mesa_GenVertexArrays(1, &drawpix->VAO);
    }
-   _mesa_BindVertexArray(drawpix->ArrayObj);
+   _mesa_BindVertexArray(drawpix->VAO);
 
    /* create vertex array buffer */
    _mesa_GenBuffers(1, &vbo);
@@ -3001,12 +3020,12 @@ _mesa_meta_Bitmap(struct gl_context *ctx,
                           MESA_META_VERTEX |
                           MESA_META_VIEWPORT));
 
-   if (bitmap->ArrayObj == 0) {
+   if (bitmap->VAO == 0) {
       /* one-time setup */
 
       /* create vertex array object */
-      _mesa_GenVertexArraysAPPLE(1, &bitmap->ArrayObj);
-      _mesa_BindVertexArrayAPPLE(bitmap->ArrayObj);
+      _mesa_GenVertexArrays(1, &bitmap->VAO);
+      _mesa_BindVertexArray(bitmap->VAO);
 
       /* create vertex array buffer */
       _mesa_GenBuffers(1, &bitmap->VBO);
@@ -3023,7 +3042,7 @@ _mesa_meta_Bitmap(struct gl_context *ctx,
       _mesa_EnableClientState(GL_COLOR_ARRAY);
    }
    else {
-      _mesa_BindVertexArray(bitmap->ArrayObj);
+      _mesa_BindVertexArray(bitmap->VAO);
       _mesa_BindBuffer(GL_ARRAY_BUFFER_ARB, bitmap->VBO);
    }
 
@@ -3361,18 +3380,17 @@ setup_texture_coords(GLenum faceTarget,
 
 
 static void
-setup_ff_generate_mipmap(struct gl_context *ctx,
-                         struct gen_mipmap_state *mipmap)
+setup_ff_generate_mipmap(struct gen_mipmap_state *mipmap)
 {
    struct vertex {
       GLfloat x, y, tex[3];
    };
 
-   if (mipmap->ArrayObj == 0) {
+   if (mipmap->VAO == 0) {
       /* one-time setup */
       /* create vertex array object */
-      _mesa_GenVertexArraysAPPLE(1, &mipmap->ArrayObj);
-      _mesa_BindVertexArrayAPPLE(mipmap->ArrayObj);
+      _mesa_GenVertexArrays(1, &mipmap->VAO);
+      _mesa_BindVertexArray(mipmap->VAO);
 
       /* create vertex array buffer */
       _mesa_GenBuffers(1, &mipmap->VBO);
@@ -3451,11 +3469,11 @@ setup_glsl_generate_mipmap(struct gl_context *ctx,
    void *mem_ctx;
 
    /* Check if already initialized */
-   if (mipmap->ArrayObj == 0) {
+   if (mipmap->VAO == 0) {
 
       /* create vertex array object */
-      _mesa_GenVertexArrays(1, &mipmap->ArrayObj);
-      _mesa_BindVertexArray(mipmap->ArrayObj);
+      _mesa_GenVertexArrays(1, &mipmap->VAO);
+      _mesa_BindVertexArray(mipmap->VAO);
 
       /* create vertex array buffer */
       _mesa_GenBuffers(1, &mipmap->VBO);
@@ -3552,13 +3570,12 @@ setup_glsl_generate_mipmap(struct gl_context *ctx,
 
 
 static void
-meta_glsl_generate_mipmap_cleanup(struct gl_context *ctx,
-                                 struct gen_mipmap_state *mipmap)
+meta_glsl_generate_mipmap_cleanup(struct gen_mipmap_state *mipmap)
 {
-   if (mipmap->ArrayObj == 0)
+   if (mipmap->VAO == 0)
       return;
-   _mesa_DeleteVertexArrays(1, &mipmap->ArrayObj);
-   mipmap->ArrayObj = 0;
+   _mesa_DeleteVertexArrays(1, &mipmap->VAO);
+   mipmap->VAO = 0;
    _mesa_DeleteBuffers(1, &mipmap->VBO);
    mipmap->VBO = 0;
 
@@ -3630,11 +3647,11 @@ _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
       _mesa_UseProgram(mipmap->ShaderProg);
    }
    else {
-      setup_ff_generate_mipmap(ctx, mipmap);
+      setup_ff_generate_mipmap(mipmap);
       _mesa_set_enable(ctx, target, GL_TRUE);
    }
 
-   _mesa_BindVertexArray(mipmap->ArrayObj);
+   _mesa_BindVertexArray(mipmap->VAO);
    _mesa_BindBuffer(GL_ARRAY_BUFFER_ARB, mipmap->VBO);
 
    samplerSave = ctx->Texture.Unit[ctx->Texture.CurrentUnit].Sampler ?
@@ -3814,7 +3831,7 @@ _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
  * ReadPixels() and passed to Tex[Sub]Image().
  */
 static GLenum
-get_temp_image_type(struct gl_context *ctx, gl_format format)
+get_temp_image_type(struct gl_context *ctx, mesa_format format)
 {
    GLenum baseFormat;
 
@@ -3945,6 +3962,25 @@ _mesa_meta_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
 }
 
 
+static void
+meta_decompress_cleanup(struct decompress_state *decompress)
+{
+   if (decompress->FBO != 0) {
+      _mesa_DeleteFramebuffers(1, &decompress->FBO);
+      _mesa_DeleteRenderbuffers(1, &decompress->RBO);
+   }
+
+   if (decompress->VAO != 0) {
+      _mesa_DeleteVertexArrays(1, &decompress->VAO);
+      _mesa_DeleteBuffers(1, &decompress->VBO);
+   }
+
+   if (decompress->Sampler != 0)
+      _mesa_DeleteSamplers(1, &decompress->Sampler);
+
+   memset(decompress, 0, sizeof(*decompress));
+}
+
 /**
  * Decompress a texture image by drawing a quad with the compressed
  * texture and reading the pixels out of the color buffer.
@@ -3981,11 +4017,28 @@ decompress_texture_image(struct gl_context *ctx,
              target == GL_TEXTURE_2D_ARRAY);
    }
 
-   if (target == GL_TEXTURE_CUBE_MAP) {
+   switch (target) {
+   case GL_TEXTURE_1D:
+   case GL_TEXTURE_1D_ARRAY:
+      assert(!"No compressed 1D textures.");
+      return;
+
+   case GL_TEXTURE_3D:
+      assert(!"No compressed 3D textures.");
+      return;
+
+   case GL_TEXTURE_2D_ARRAY:
+   case GL_TEXTURE_CUBE_MAP_ARRAY:
+      /* These targets are just broken currently. */
+      return;
+
+   case GL_TEXTURE_CUBE_MAP:
       faceTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_X + texImage->Face;
-   }
-   else {
+      break;
+
+   default:
       faceTarget = target;
+      break;
    }
 
    /* save fbo bindings (not saved by _mesa_meta_begin()) */
@@ -4023,10 +4076,10 @@ decompress_texture_image(struct gl_context *ctx,
    }
 
    /* setup VBO data */
-   if (decompress->ArrayObj == 0) {
+   if (decompress->VAO == 0) {
       /* create vertex array object */
-      _mesa_GenVertexArrays(1, &decompress->ArrayObj);
-      _mesa_BindVertexArray(decompress->ArrayObj);
+      _mesa_GenVertexArrays(1, &decompress->VAO);
+      _mesa_BindVertexArray(decompress->VAO);
 
       /* create vertex array buffer */
       _mesa_GenBuffers(1, &decompress->VBO);
@@ -4041,7 +4094,7 @@ decompress_texture_image(struct gl_context *ctx,
       _mesa_EnableClientState(GL_TEXTURE_COORD_ARRAY);
    }
    else {
-      _mesa_BindVertexArray(decompress->ArrayObj);
+      _mesa_BindVertexArray(decompress->VAO);
       _mesa_BindBuffer(GL_ARRAY_BUFFER_ARB, decompress->VBO);
    }
 
@@ -4068,18 +4121,17 @@ decompress_texture_image(struct gl_context *ctx,
                         verts[3].tex);
 
    /* setup vertex positions */
-   verts[0].x = 0.0F;
-   verts[0].y = 0.0F;
-   verts[1].x = width;
-   verts[1].y = 0.0F;
-   verts[2].x = width;
-   verts[2].y = height;
-   verts[3].x = 0.0F;
-   verts[3].y = height;
+   verts[0].x = -1.0F;
+   verts[0].y = -1.0F;
+   verts[1].x =  1.0F;
+   verts[1].y = -1.0F;
+   verts[2].x =  1.0F;
+   verts[2].y =  1.0F;
+   verts[3].x = -1.0F;
+   verts[3].y =  1.0F;
 
    _mesa_MatrixMode(GL_PROJECTION);
    _mesa_LoadIdentity();
-   _mesa_Ortho(0.0, width, 0.0, height, -1.0, 1.0);
    _mesa_set_viewport(ctx, 0, 0, 0, width, height);
 
    /* upload new vertex data */
@@ -4179,7 +4231,8 @@ _mesa_meta_GetTexImage(struct gl_context *ctx,
     * unsigned, normalized values.  We could handle signed and unnormalized 
     * with floating point renderbuffers...
     */
-   if (_mesa_is_format_compressed(texImage->TexFormat) &&
+   if (texImage->TexObject->Target != GL_TEXTURE_CUBE_MAP_ARRAY
+       && _mesa_is_format_compressed(texImage->TexFormat) &&
        _mesa_get_format_datatype(texImage->TexFormat)
        == GL_UNSIGNED_NORMALIZED) {
       struct gl_texture_object *texObj = texImage->TexObject;
@@ -4236,13 +4289,13 @@ _mesa_meta_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
                           MESA_META_VERTEX |
                           MESA_META_VIEWPORT));
 
-   if (drawtex->ArrayObj == 0) {
+   if (drawtex->VAO == 0) {
       /* one-time setup */
       GLint active_texture;
 
       /* create vertex array object */
-      _mesa_GenVertexArrays(1, &drawtex->ArrayObj);
-      _mesa_BindVertexArray(drawtex->ArrayObj);
+      _mesa_GenVertexArrays(1, &drawtex->VAO);
+      _mesa_BindVertexArray(drawtex->VAO);
 
       /* create vertex array buffer */
       _mesa_GenBuffers(1, &drawtex->VBO);
@@ -4266,7 +4319,7 @@ _mesa_meta_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
       _mesa_ClientActiveTexture(GL_TEXTURE0 + active_texture);
    }
    else {
-      _mesa_BindVertexArray(drawtex->ArrayObj);
+      _mesa_BindVertexArray(drawtex->VAO);
       _mesa_BindBuffer(GL_ARRAY_BUFFER_ARB, drawtex->VBO);
    }
 

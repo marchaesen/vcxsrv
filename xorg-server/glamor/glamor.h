@@ -30,14 +30,12 @@
 #define GLAMOR_H
 
 #include <scrnintstr.h>
-#include <xf86.h>
-#include <xf86str.h>
 #include <pixmapstr.h>
 #include <gcstruct.h>
 #include <picturestr.h>
 #include <fb.h>
 #include <fbpict.h>
-#include <xf86xv.h>
+
 /*
  * glamor_pixmap_type : glamor pixmap's type.
  * @MEMORY: pixmap is in memory.
@@ -48,15 +46,15 @@
  * @DRM_ONLY: pixmap is in a external DRM buffer.
  * @TEXTURE_ONLY: pixmap is in an internal texture.
  */
-typedef enum  glamor_pixmap_type {
-	GLAMOR_MEMORY,
-	GLAMOR_MEMORY_MAP,
-	GLAMOR_TEXTURE_DRM,
-	GLAMOR_SEPARATE_TEXTURE,
-	GLAMOR_DRM_ONLY,
-	GLAMOR_TEXTURE_ONLY,
-	GLAMOR_TEXTURE_LARGE,
-	GLAMOR_TEXTURE_PACK
+typedef enum glamor_pixmap_type {
+    GLAMOR_MEMORY,
+    GLAMOR_MEMORY_MAP,
+    GLAMOR_TEXTURE_DRM,
+    GLAMOR_SEPARATE_TEXTURE,
+    GLAMOR_DRM_ONLY,
+    GLAMOR_TEXTURE_ONLY,
+    GLAMOR_TEXTURE_LARGE,
+    GLAMOR_TEXTURE_PACK
 } glamor_pixmap_type_t;
 
 #define GLAMOR_EGL_EXTERNAL_BUFFER 3
@@ -116,17 +114,13 @@ extern _X_EXPORT void glamor_fini(ScreenPtr screen);
  * screen pixmap which must be a glamor pixmap and requires
  * the internal data structure still exist at that time.
  * Otherwise, the glamor internal structure will not be freed.*/
-#ifndef XF86_SCRN_INTERFACE
-extern _X_EXPORT Bool glamor_close_screen(int scrnIndex, ScreenPtr screen);
-#else
 extern _X_EXPORT Bool glamor_close_screen(ScreenPtr screen);
-#endif
-
 
 /* Let glamor to know the screen's fbo. The low level
  * driver should already assign a tex
  * to this pixmap through the set_pixmap_texture. */
-extern _X_EXPORT void glamor_set_screen_pixmap(PixmapPtr screen_pixmap, PixmapPtr *back_pixmap);
+extern _X_EXPORT void glamor_set_screen_pixmap(PixmapPtr screen_pixmap,
+                                               PixmapPtr *back_pixmap);
 
 /* @glamor_glyphs_init: Initialize glyphs internal data structures.
  *
@@ -139,13 +133,14 @@ extern _X_EXPORT void glamor_set_screen_pixmap(PixmapPtr screen_pixmap, PixmapPt
 extern _X_EXPORT Bool glamor_glyphs_init(ScreenPtr pScreen);
 
 extern _X_EXPORT void glamor_set_pixmap_texture(PixmapPtr pixmap,
-						unsigned int tex);
+                                                unsigned int tex);
 
-extern _X_EXPORT void glamor_set_pixmap_type(PixmapPtr pixmap, glamor_pixmap_type_t type);
+extern _X_EXPORT void glamor_set_pixmap_type(PixmapPtr pixmap,
+                                             glamor_pixmap_type_t type);
 extern _X_EXPORT void glamor_destroy_textured_pixmap(PixmapPtr pixmap);
 extern _X_EXPORT void glamor_block_handler(ScreenPtr screen);
-extern _X_EXPORT PixmapPtr glamor_create_pixmap(ScreenPtr screen, int w, int h, int depth,
-						unsigned int usage);
+extern _X_EXPORT PixmapPtr glamor_create_pixmap(ScreenPtr screen, int w, int h,
+                                                int depth, unsigned int usage);
 
 extern _X_EXPORT void glamor_egl_screen_init(ScreenPtr screen);
 
@@ -160,14 +155,21 @@ extern _X_EXPORT void glamor_egl_restore_context(ScreenPtr screen);
  * Used by the DRI2 page flip. This function will exchange the KHR images and
  * fbos of the two pixmaps.
  * */
-extern _X_EXPORT void glamor_egl_exchange_buffers(PixmapPtr front, PixmapPtr back);
+extern _X_EXPORT void glamor_egl_exchange_buffers(PixmapPtr front,
+                                                  PixmapPtr back);
 
-extern _X_EXPORT void glamor_pixmap_exchange_fbos(PixmapPtr front, PixmapPtr back);
+extern _X_EXPORT void glamor_pixmap_exchange_fbos(PixmapPtr front,
+                                                  PixmapPtr back);
 
 /* The DDX is not supposed to call these three functions */
 extern _X_EXPORT void glamor_enable_dri3(ScreenPtr screen);
-extern _X_EXPORT unsigned int glamor_egl_create_argb8888_based_texture(ScreenPtr screen, int w, int h);
-extern _X_EXPORT int glamor_egl_dri3_fd_name_from_tex(ScreenPtr, PixmapPtr, unsigned int, Bool, CARD16*, CARD32*);
+extern _X_EXPORT unsigned int glamor_egl_create_argb8888_based_texture(ScreenPtr
+                                                                       screen,
+                                                                       int w,
+                                                                       int h);
+extern _X_EXPORT int glamor_egl_dri3_fd_name_from_tex(ScreenPtr, PixmapPtr,
+                                                      unsigned int, Bool,
+                                                      CARD16 *, CARD32 *);
 
 /* @glamor_is_dri3_support_enabled: Returns if DRI3 support is enabled.
  *
@@ -194,10 +196,9 @@ extern _X_EXPORT Bool glamor_is_dri3_support_enabled(ScreenPtr screen);
  * content.
  * Returns the fd on success, -1 on error.
  * */
-extern _X_EXPORT int glamor_dri3_fd_from_pixmap (ScreenPtr screen,
-						 PixmapPtr pixmap,
-						 CARD16 *stride,
-						 CARD32 *size);
+extern _X_EXPORT int glamor_dri3_fd_from_pixmap(ScreenPtr screen,
+                                                PixmapPtr pixmap,
+                                                CARD16 *stride, CARD32 *size);
 
 /* @glamor_dri3_name_from_pixmap: helper to get an gem name from a pixmap.
  *
@@ -208,7 +209,7 @@ extern _X_EXPORT int glamor_dri3_fd_from_pixmap (ScreenPtr screen,
  * glamor DRI3 support to be activated.
  * Returns the name on success, -1 on error.
  * */
-extern _X_EXPORT int glamor_dri3_name_from_pixmap (PixmapPtr pixmap);
+extern _X_EXPORT int glamor_dri3_name_from_pixmap(PixmapPtr pixmap);
 
 /* @glamor_egl_dri3_pixmap_from_fd: DRI3 helper to get a pixmap from a dma-buf fd.
  *
@@ -222,13 +223,13 @@ extern _X_EXPORT int glamor_dri3_name_from_pixmap (PixmapPtr pixmap);
  *
  * Returns a valid pixmap if the import succeeded, else NULL.
  * */
-extern _X_EXPORT PixmapPtr glamor_egl_dri3_pixmap_from_fd (ScreenPtr screen,
-							   int fd,
-							   CARD16 width,
-							   CARD16 height,
-							   CARD16 stride,
-							   CARD8 depth,
-							   CARD8 bpp);
+extern _X_EXPORT PixmapPtr glamor_egl_dri3_pixmap_from_fd(ScreenPtr screen,
+                                                          int fd,
+                                                          CARD16 width,
+                                                          CARD16 height,
+                                                          CARD16 stride,
+                                                          CARD8 depth,
+                                                          CARD8 bpp);
 
 #ifdef GLAMOR_FOR_XORG
 
@@ -265,8 +266,7 @@ extern _X_EXPORT Bool glamor_egl_init_textured_pixmap(ScreenPtr screen);
  * screen pixmap is a special, we handle it separately in this function.
  */
 extern _X_EXPORT Bool glamor_egl_create_textured_screen(ScreenPtr screen,
-							int handle,
-							int stride);
+                                                        int handle, int stride);
 
 /* @glamor_egl_create_textured_screen_ext:
  *
@@ -275,9 +275,10 @@ extern _X_EXPORT Bool glamor_egl_create_textured_screen(ScreenPtr screen,
  * the DDX's close screen, we have to free all the glamor related resources.
  */
 extern _X_EXPORT Bool glamor_egl_create_textured_screen_ext(ScreenPtr screen,
-							    int handle,
-							    int stride,
-							    PixmapPtr *back_pixmap);
+                                                            int handle,
+                                                            int stride,
+                                                            PixmapPtr
+                                                            *back_pixmap);
 
 /*
  * @glamor_egl_create_textured_pixmap: Try to create a textured pixmap from
@@ -292,8 +293,7 @@ extern _X_EXPORT Bool glamor_egl_create_textured_screen_ext(ScreenPtr screen,
  * as well. Return true if successful, otherwise return FALSE.
  */
 extern _X_EXPORT Bool glamor_egl_create_textured_pixmap(PixmapPtr pixmap,
-							int handle,
-							int stride);
+                                                        int handle, int stride);
 
 /*
  * @glamor_egl_create_textured_pixmap_from_bo: Try to create a textured pixmap
@@ -305,8 +305,7 @@ extern _X_EXPORT Bool glamor_egl_create_textured_pixmap(PixmapPtr pixmap,
  * This function is similar to glamor_egl_create_textured_pixmap.
  */
 extern _X_EXPORT Bool
-	glamor_egl_create_textured_pixmap_from_gbm_bo(PixmapPtr pixmap,
-						      void *bo);
+ glamor_egl_create_textured_pixmap_from_gbm_bo(PixmapPtr pixmap, void *bo);
 
 #endif
 
@@ -314,119 +313,131 @@ extern _X_EXPORT void glamor_egl_destroy_textured_pixmap(PixmapPtr pixmap);
 
 extern _X_EXPORT int glamor_create_gc(GCPtr gc);
 
-extern _X_EXPORT void glamor_validate_gc(GCPtr gc, unsigned long changes, DrawablePtr drawable);
+extern _X_EXPORT void glamor_validate_gc(GCPtr gc, unsigned long changes,
+                                         DrawablePtr drawable);
 /* Glamor rendering/drawing functions with XXX_nf.
  * nf means no fallback within glamor internal if possible. If glamor
  * fail to accelerate the operation, glamor will return a false, and the
  * caller need to implement fallback method. Return a true means the
  * rendering request get done successfully. */
 extern _X_EXPORT Bool glamor_fill_spans_nf(DrawablePtr drawable,
-					   GCPtr gc,
-					   int n, DDXPointPtr points,
-					   int *widths, int sorted);
+                                           GCPtr gc,
+                                           int n, DDXPointPtr points,
+                                           int *widths, int sorted);
 
 extern _X_EXPORT Bool glamor_poly_fill_rect_nf(DrawablePtr drawable,
-					       GCPtr gc,
-					       int nrect,
-					       xRectangle * prect);
+                                               GCPtr gc,
+                                               int nrect, xRectangle *prect);
 
 extern _X_EXPORT Bool glamor_put_image_nf(DrawablePtr drawable,
-					  GCPtr gc, int depth, int x, int y,
-					  int w, int h, int left_pad,
-					  int image_format, char *bits);
+                                          GCPtr gc, int depth, int x, int y,
+                                          int w, int h, int left_pad,
+                                          int image_format, char *bits);
 
 extern _X_EXPORT Bool glamor_copy_n_to_n_nf(DrawablePtr src,
-					    DrawablePtr dst,
-					    GCPtr gc,
-					    BoxPtr box,
-					    int nbox,
-					    int dx,
-					    int dy,
-					    Bool reverse,
-					    Bool upsidedown, Pixel bitplane,
-					    void *closure);
+                                            DrawablePtr dst,
+                                            GCPtr gc,
+                                            BoxPtr box,
+                                            int nbox,
+                                            int dx,
+                                            int dy,
+                                            Bool reverse,
+                                            Bool upsidedown, Pixel bitplane,
+                                            void *closure);
 
 extern _X_EXPORT Bool glamor_composite_nf(CARD8 op,
-					  PicturePtr source,
-					  PicturePtr mask,
-					  PicturePtr dest,
-					  INT16 x_source,
-					  INT16 y_source,
-					  INT16 x_mask,
-					  INT16 y_mask,
-					  INT16 x_dest, INT16 y_dest,
-					  CARD16 width, CARD16 height);
+                                          PicturePtr source,
+                                          PicturePtr mask,
+                                          PicturePtr dest,
+                                          INT16 x_source,
+                                          INT16 y_source,
+                                          INT16 x_mask,
+                                          INT16 y_mask,
+                                          INT16 x_dest, INT16 y_dest,
+                                          CARD16 width, CARD16 height);
 
 extern _X_EXPORT Bool glamor_trapezoids_nf(CARD8 op,
-					   PicturePtr src, PicturePtr dst,
-					   PictFormatPtr mask_format,
-					   INT16 x_src, INT16 y_src,
-					   int ntrap, xTrapezoid * traps);
+                                           PicturePtr src, PicturePtr dst,
+                                           PictFormatPtr mask_format,
+                                           INT16 x_src, INT16 y_src,
+                                           int ntrap, xTrapezoid *traps);
 
 extern _X_EXPORT Bool glamor_glyphs_nf(CARD8 op,
-				       PicturePtr src,
-				       PicturePtr dst,
-				       PictFormatPtr mask_format,
-				       INT16 x_src,
-				       INT16 y_src, int nlist,
-				       GlyphListPtr list, GlyphPtr * glyphs);
+                                       PicturePtr src,
+                                       PicturePtr dst,
+                                       PictFormatPtr mask_format,
+                                       INT16 x_src,
+                                       INT16 y_src, int nlist,
+                                       GlyphListPtr list, GlyphPtr *glyphs);
 
 extern _X_EXPORT Bool glamor_triangles_nf(CARD8 op,
-					  PicturePtr pSrc,
-					  PicturePtr pDst,
-					  PictFormatPtr maskFormat,
-					  INT16 xSrc, INT16 ySrc,
-					  int ntris, xTriangle * tris);
-
+                                          PicturePtr pSrc,
+                                          PicturePtr pDst,
+                                          PictFormatPtr maskFormat,
+                                          INT16 xSrc, INT16 ySrc,
+                                          int ntris, xTriangle *tris);
 
 extern _X_EXPORT void glamor_glyph_unrealize(ScreenPtr screen, GlyphPtr glyph);
 
-extern _X_EXPORT Bool glamor_set_spans_nf(DrawablePtr drawable, GCPtr gc, char *src,
-					  DDXPointPtr points, int *widths, int n, int sorted);
+extern _X_EXPORT Bool glamor_set_spans_nf(DrawablePtr drawable, GCPtr gc,
+                                          char *src, DDXPointPtr points,
+                                          int *widths, int n, int sorted);
 
 extern _X_EXPORT Bool glamor_get_spans_nf(DrawablePtr drawable, int wmax,
-					  DDXPointPtr points, int *widths, int count, char *dst);
+                                          DDXPointPtr points, int *widths,
+                                          int count, char *dst);
 
-extern _X_EXPORT Bool glamor_composite_rects_nf (CARD8         op,
-						 PicturePtr    pDst,
-						 xRenderColor  *color,
-						 int           nRect,
-						 xRectangle    *rects);
+extern _X_EXPORT Bool glamor_composite_rects_nf(CARD8 op,
+                                                PicturePtr pDst,
+                                                xRenderColor *color,
+                                                int nRect, xRectangle *rects);
 
-extern _X_EXPORT Bool glamor_get_image_nf(DrawablePtr pDrawable, int x, int y, int w, int h,
-					  unsigned int format, unsigned long planeMask, char *d);
+extern _X_EXPORT Bool glamor_get_image_nf(DrawablePtr pDrawable, int x, int y,
+                                          int w, int h, unsigned int format,
+                                          unsigned long planeMask, char *d);
 
 extern _X_EXPORT Bool glamor_add_traps_nf(PicturePtr pPicture,
-					  INT16 x_off,
-					  INT16 y_off, int ntrap, xTrap * traps);
+                                          INT16 x_off,
+                                          INT16 y_off, int ntrap,
+                                          xTrap *traps);
 
-extern _X_EXPORT Bool glamor_copy_plane_nf(DrawablePtr pSrc, DrawablePtr pDst, GCPtr pGC,
-					   int srcx, int srcy, int w, int h, int dstx, int dsty,
-					   unsigned long bitPlane, RegionPtr *pRegion);
+extern _X_EXPORT Bool glamor_copy_plane_nf(DrawablePtr pSrc, DrawablePtr pDst,
+                                           GCPtr pGC, int srcx, int srcy, int w,
+                                           int h, int dstx, int dsty,
+                                           unsigned long bitPlane,
+                                           RegionPtr *pRegion);
 
-extern _X_EXPORT Bool glamor_image_glyph_blt_nf(DrawablePtr pDrawable, GCPtr pGC,
-						int x, int y, unsigned int nglyph,
-						CharInfoPtr * ppci, pointer pglyphBase);
+extern _X_EXPORT Bool glamor_image_glyph_blt_nf(DrawablePtr pDrawable,
+                                                GCPtr pGC, int x, int y,
+                                                unsigned int nglyph,
+                                                CharInfoPtr *ppci,
+                                                void *pglyphBase);
 
 extern _X_EXPORT Bool glamor_poly_glyph_blt_nf(DrawablePtr pDrawable, GCPtr pGC,
-					       int x, int y, unsigned int nglyph,
-					       CharInfoPtr * ppci, pointer pglyphBase);
+                                               int x, int y,
+                                               unsigned int nglyph,
+                                               CharInfoPtr *ppci,
+                                               void *pglyphBase);
 
 extern _X_EXPORT Bool glamor_push_pixels_nf(GCPtr pGC, PixmapPtr pBitmap,
-					    DrawablePtr pDrawable, int w, int h, int x, int y);
+                                            DrawablePtr pDrawable, int w, int h,
+                                            int x, int y);
 
-extern _X_EXPORT Bool glamor_poly_point_nf(DrawablePtr pDrawable, GCPtr pGC, int mode, int npt,
-					   DDXPointPtr ppt);
+extern _X_EXPORT Bool glamor_poly_point_nf(DrawablePtr pDrawable, GCPtr pGC,
+                                           int mode, int npt, DDXPointPtr ppt);
 
-extern _X_EXPORT Bool glamor_poly_segment_nf(DrawablePtr pDrawable, GCPtr pGC, int nseg,
-					     xSegment *pSeg);
+extern _X_EXPORT Bool glamor_poly_segment_nf(DrawablePtr pDrawable, GCPtr pGC,
+                                             int nseg, xSegment *pSeg);
 
-extern _X_EXPORT Bool glamor_poly_line_nf(DrawablePtr pDrawable, GCPtr pGC, int mode, int npt,
-					  DDXPointPtr ppt);
+extern _X_EXPORT Bool glamor_poly_line_nf(DrawablePtr pDrawable, GCPtr pGC,
+                                          int mode, int npt, DDXPointPtr ppt);
 
-extern _X_EXPORT Bool glamor_poly_lines_nf(DrawablePtr drawable, GCPtr gc, int mode, int n,
-					   DDXPointPtr points);
+extern _X_EXPORT Bool glamor_poly_lines_nf(DrawablePtr drawable, GCPtr gc,
+                                           int mode, int n, DDXPointPtr points);
 
-extern _X_EXPORT XF86VideoAdaptorPtr glamor_xv_init(ScreenPtr pScreen, int num_texture_ports);
+#if 0
+extern _X_EXPORT XF86VideoAdaptorPtr glamor_xv_init(ScreenPtr pScreen,
+                                                    int num_texture_ports);
+#endif
 
-#endif /* GLAMOR_H */
+#endif                          /* GLAMOR_H */

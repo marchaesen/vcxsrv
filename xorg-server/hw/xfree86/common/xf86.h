@@ -215,6 +215,8 @@ extern _X_EXPORT xf86SetDGAModeProc xf86SetDGAMode;
 
 /* xf86Events.c */
 
+typedef struct _InputInfoRec *InputInfoPtr;
+
 extern _X_EXPORT void SetTimeSinceLastInputEvent(void);
 extern _X_EXPORT void *xf86AddInputHandler(int fd, InputHandlerProc proc,
                                              void *data);
@@ -234,6 +236,10 @@ extern _X_EXPORT Bool xf86EnableVTSwitch(Bool new);
 extern _X_EXPORT void xf86ProcessActionEvent(ActionEvent action, void *arg);
 extern _X_EXPORT void xf86PrintBacktrace(void);
 extern _X_EXPORT Bool xf86VTOwner(void);
+extern _X_EXPORT void xf86VTLeave(void);
+extern _X_EXPORT void xf86VTEnter(void);
+extern _X_EXPORT void xf86EnableInputDeviceForVTSwitch(InputInfoPtr pInfo);
+extern _X_EXPORT void xf86DisableInputDeviceForVTSwitch(InputInfoPtr pInfo);
 
 /* xf86Helper.c */
 

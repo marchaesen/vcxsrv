@@ -311,6 +311,10 @@ int TRANS(NoListen) (
     const char*         /* protocol*/
 );
 
+int TRANS(IsListening) (
+    const char*         /* protocol*/
+);
+
 int TRANS(ResetListener)(
     XtransConnInfo	/* ciptr */
 );

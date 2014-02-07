@@ -14,43 +14,43 @@
         <variant>
           <configItem>
             <name>dyalog</name>
-            <shortDescription>dlg</shortDescription>
-            <description>APL keyboard symbols (Dyalog)</description>
+            <_shortDescription>dlg</_shortDescription>
+            <_description>APL keyboard symbols (Dyalog)</_description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>sax</name>
-            <shortDescription>sax</shortDescription>
-            <description>APL keyboard symbols (sax)</description>
+            <_shortDescription>sax</_shortDescription>
+            <_description>APL keyboard symbols (sax)</_description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>unified</name>
-            <shortDescription>ufd</shortDescription>
-            <description>APL keyboard symbols (unified)</description>
+            <_shortDescription>ufd</_shortDescription>
+            <_description>APL keyboard symbols (unified)</_description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>apl2</name>
-            <shortDescription>apl2</shortDescription>
-            <description>APL keyboard symbols (IBM APL2)</description>
+            <_shortDescription>apl2</_shortDescription>
+            <_description>APL keyboard symbols (IBM APL2)</_description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>aplplusII</name>
-            <shortDescription>aplII</shortDescription>
-            <description>APL keyboard symbols (Manugistics APL*PLUS II)</description>
+            <_shortDescription>aplII</_shortDescription>
+            <_description>APL keyboard symbols (Manugistics APL*PLUS II)</_description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>aplx</name>
-            <shortDescription>aplx</shortDescription>
-            <description>APL keyboard symbols (APLX unified)</description>
+            <_shortDescription>aplx</_shortDescription>
+            <_description>APL keyboard symbols (APLX unified)</_description>
           </configItem>
         </variant>
       </variantList>
@@ -264,7 +264,7 @@
         <variant>
           <configItem>
             <name>cz_sk_de</name>
-            <description>Czech Slovak and German (US)</description>
+            <_description>Czech Slovak and German (US)</_description>
             <languageList><iso639Id>eng</iso639Id>
                           <iso639Id>cze</iso639Id>
                           <iso639Id>slo</iso639Id>
@@ -371,7 +371,7 @@
         <variant>
           <configItem>
             <name>chu</name>
-            <description>Church Slavonic</description>
+            <_description>Church Slavonic</_description>
             <languageList><iso639Id>chu</iso639Id></languageList>
           </configItem>
         </variant>
@@ -776,6 +776,33 @@
         </variant>
 	  </variantList>
 	</layout>
+    <layout>
+      <configItem>
+	<name>eu</name>
+	<!-- Keyboard indicator for European layouts -->
+	<_shortDescription>eu</_shortDescription>
+	<_description>EurKEY (US based layout with european letters)</_description>
+	  <languageList>
+	    <iso639Id>cat</iso639Id>
+	    <iso639Id>dan</iso639Id>
+	    <iso639Id>eng</iso639Id>
+	    <iso639Id>est</iso639Id>
+	    <iso639Id>fao</iso639Id>
+	    <iso639Id>fin</iso639Id>
+	    <iso639Id>ger</iso639Id>
+	    <iso639Id>gre</iso639Id>
+	    <iso639Id>gsw</iso639Id>
+	    <iso639Id>ita</iso639Id>
+	    <iso639Id>lav</iso639Id>
+	    <iso639Id>lit</iso639Id>
+	    <iso639Id>nld</iso639Id>
+	    <iso639Id>nor</iso639Id>
+	    <iso639Id>por</iso639Id>
+	    <iso639Id>spa</iso639Id>
+	    <iso639Id>swe</iso639Id>
+	</languageList>
+      </configItem>
+    </layout>
   </layoutList>
   <optionList/>
 </xkbConfigRegistry>

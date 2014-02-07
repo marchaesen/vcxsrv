@@ -80,7 +80,7 @@ get_buffer_target(struct gl_context *ctx, GLenum target)
    case GL_ARRAY_BUFFER_ARB:
       return &ctx->Array.ArrayBufferObj;
    case GL_ELEMENT_ARRAY_BUFFER_ARB:
-      return &ctx->Array.ArrayObj->ElementArrayBufferObj;
+      return &ctx->Array.VAO->IndexBufferObj;
    case GL_PIXEL_PACK_BUFFER_EXT:
       return &ctx->Pack.BufferObj;
    case GL_PIXEL_UNPACK_BUFFER_EXT:
@@ -295,18 +295,18 @@ buffer_object_subdata_range_good(struct gl_context * ctx, GLenum target,
  * \param format          Format of the supplied data.
  * \param type            Type of the supplied data.
  * \param caller          Name of calling function for recording errors.
- * \return   If internalformat, format and type are legal the gl_format
+ * \return   If internalformat, format and type are legal the mesa_format
  *           corresponding to internalformat, otherwise MESA_FORMAT_NONE.
  *
  * \sa glClearBufferData and glClearBufferSubData
  */
-static gl_format
+static mesa_format
 validate_clear_buffer_format(struct gl_context *ctx,
                              GLenum internalformat,
                              GLenum format, GLenum type,
                              const char *caller)
 {
-   gl_format mesaFormat;
+   mesa_format mesaFormat;
    GLenum errorFormatType;
 
    mesaFormat = _mesa_validate_texbuffer_format(ctx, internalformat);
@@ -360,7 +360,7 @@ validate_clear_buffer_format(struct gl_context *ctx,
  */
 static bool
 convert_clear_buffer_data(struct gl_context *ctx,
-                          gl_format internalformat,
+                          mesa_format internalformat,
                           GLubyte *clearValue, GLenum format, GLenum type,
                           const GLvoid *data, const char *caller)
 {
@@ -407,7 +407,7 @@ _mesa_delete_buffer_object(struct gl_context *ctx,
 {
    (void) ctx;
 
-   free(bufObj->Data);
+   _mesa_align_free(bufObj->Data);
 
    /* assign strange values here to help w/ debugging */
    bufObj->RefCount = -1000;
@@ -451,8 +451,8 @@ _mesa_reference_buffer_object_(struct gl_context *ctx,
 #if 0
          /* unfortunately, these tests are invalid during context tear-down */
 	 ASSERT(ctx->Array.ArrayBufferObj != bufObj);
-	 ASSERT(ctx->Array.ArrayObj->ElementArrayBufferObj != bufObj);
-	 ASSERT(ctx->Array.ArrayObj->Vertex.BufferObj != bufObj);
+	 ASSERT(ctx->Array.VAO->IndexBufferObj != bufObj);
+	 ASSERT(ctx->Array.VAO->Vertex.BufferObj != bufObj);
 #endif
 
 	 ASSERT(ctx->Driver.DeleteBuffer);
@@ -560,9 +560,12 @@ _mesa_buffer_data( struct gl_context *ctx, GLenum target, GLsizeiptrARB size,
 {
    void * new_data;
 
-   (void) ctx; (void) target;
+   (void) target;
 
-   new_data = _mesa_realloc( bufObj->Data, bufObj->Size, size );
+   if (bufObj->Data)
+      _mesa_align_free( bufObj->Data );
+
+   new_data = _mesa_align_malloc( size, ctx->Const.MinMapBufferAlignment );
    if (new_data) {
       bufObj->Data = (GLubyte *) new_data;
       bufObj->Size = size;
@@ -1079,7 +1082,7 @@ _mesa_DeleteBuffers(GLsizei n, const GLuint *ids)
    for (i = 0; i < n; i++) {
       struct gl_buffer_object *bufObj = _mesa_lookup_bufferobj(ctx, ids[i]);
       if (bufObj) {
-         struct gl_array_object *arrayObj = ctx->Array.ArrayObj;
+         struct gl_vertex_array_object *vao = ctx->Array.VAO;
          GLuint j;
 
          ASSERT(bufObj->Name == ids[i] || bufObj == &DummyBufferObject);
@@ -1092,14 +1095,14 @@ _mesa_DeleteBuffers(GLsizei n, const GLuint *ids)
          }
 
          /* unbind any vertex pointers bound to this buffer */
-         for (j = 0; j < Elements(arrayObj->VertexBinding); j++) {
-            unbind(ctx, &arrayObj->VertexBinding[j].BufferObj, bufObj);
+         for (j = 0; j < Elements(vao->VertexBinding); j++) {
+            unbind(ctx, &vao->VertexBinding[j].BufferObj, bufObj);
          }
 
          if (ctx->Array.ArrayBufferObj == bufObj) {
             _mesa_BindBuffer( GL_ARRAY_BUFFER_ARB, 0 );
          }
-         if (arrayObj->ElementArrayBufferObj == bufObj) {
+         if (vao->IndexBufferObj == bufObj) {
             _mesa_BindBuffer( GL_ELEMENT_ARRAY_BUFFER_ARB, 0 );
          }
 
@@ -1365,7 +1368,7 @@ _mesa_ClearBufferData(GLenum target, GLenum internalformat, GLenum format,
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_buffer_object* bufObj;
-   gl_format mesaFormat;
+   mesa_format mesaFormat;
    GLubyte clearValue[MAX_PIXEL_BYTES];
    GLsizeiptr clearValueSize;
 
@@ -1420,7 +1423,7 @@ _mesa_ClearBufferSubData(GLenum target, GLenum internalformat,
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_buffer_object* bufObj;
-   gl_format mesaFormat;
+   mesa_format mesaFormat;
    GLubyte clearValue[MAX_PIXEL_BYTES];
    GLsizeiptr clearValueSize;
 

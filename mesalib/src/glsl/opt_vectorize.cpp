@@ -82,6 +82,8 @@ public:
 
    virtual ir_visitor_status visit_enter(ir_assignment *);
    virtual ir_visitor_status visit_enter(ir_swizzle *);
+   virtual ir_visitor_status visit_enter(ir_if *);
+   virtual ir_visitor_status visit_enter(ir_loop *);
 
    virtual ir_visitor_status visit_leave(ir_assignment *);
 
@@ -104,9 +106,10 @@ public:
  * the nodes of the tree (expression float log2 (swiz z   (var_ref v0))),
  * rewriting it into     (expression vec3  log2 (swiz xyz (var_ref v0))).
  *
- * The function modifies only ir_expressions and ir_swizzles. For expressions
- * it sets a new type and swizzles any scalar dereferences into appropriately
- * sized vector arguments. For example, if combining
+ * The function operates on ir_expressions (and its operands) and ir_swizzles.
+ * For expressions it sets a new type and swizzles any non-expression and non-
+ * swizzle scalar operands into appropriately sized vector arguments. For
+ * example, if combining
  *
  * (assign (x) (var_ref r1) (expression float + (swiz x (var_ref v0) (var_ref v1))))
  * (assign (y) (var_ref r1) (expression float + (swiz y (var_ref v0) (var_ref v1))))
@@ -144,9 +147,10 @@ rewrite_swizzle(ir_instruction *ir, void *data)
                                            mask->num_components, 1);
       for (unsigned i = 0; i < 4; i++) {
          if (expr->operands[i]) {
-            ir_dereference *deref = expr->operands[i]->as_dereference();
-            if (deref && deref->type->is_scalar()) {
-               expr->operands[i] = new(ir) ir_swizzle(deref, 0, 0, 0, 0,
+            ir_rvalue *rval = expr->operands[i]->as_rvalue();
+            if (rval && rval->type->is_scalar() &&
+                !rval->as_expression() && !rval->as_swizzle()) {
+               expr->operands[i] = new(ir) ir_swizzle(rval, 0, 0, 0, 0,
                                                       mask->num_components);
             }
          }
@@ -170,21 +174,30 @@ void
 ir_vectorize_visitor::try_vectorize()
 {
    if (this->last_assignment && this->channels > 1) {
-      ir_swizzle_mask mask = {0, 1, 2, 3, channels, 0};
-
-      visit_tree(this->last_assignment->rhs, rewrite_swizzle, &mask);
+      ir_swizzle_mask mask = {0, 0, 0, 0, channels, 0};
 
       this->last_assignment->write_mask = 0;
 
-      for (unsigned i = 0; i < 4; i++) {
+      for (unsigned i = 0, j = 0; i < 4; i++) {
          if (this->assignment[i]) {
             this->last_assignment->write_mask |= 1 << i;
 
             if (this->assignment[i] != this->last_assignment) {
                this->assignment[i]->remove();
             }
+
+            switch (j) {
+            case 0: mask.x = i; break;
+            case 1: mask.y = i; break;
+            case 2: mask.z = i; break;
+            case 3: mask.w = i; break;
+            }
+
+            j++;
          }
       }
+
+      visit_tree(this->last_assignment->rhs, rewrite_swizzle, &mask);
 
       this->progress = true;
    }
@@ -274,6 +287,39 @@ ir_vectorize_visitor::visit_enter(ir_swizzle *ir)
       }
    }
    return visit_continue;
+}
+
+/* Since there is no statement to visit between the "then" and "else"
+ * instructions try to vectorize before, in between, and after them to avoid
+ * combining statements from different basic blocks.
+ */
+ir_visitor_status
+ir_vectorize_visitor::visit_enter(ir_if *ir)
+{
+   try_vectorize();
+
+   visit_list_elements(this, &ir->then_instructions);
+   try_vectorize();
+
+   visit_list_elements(this, &ir->else_instructions);
+   try_vectorize();
+
+   return visit_continue_with_parent;
+}
+
+/* Since there is no statement to visit between the instructions in the body of
+ * the loop and the instructions after it try to vectorize before and after the
+ * body to avoid combining statements from different basic blocks.
+ */
+ir_visitor_status
+ir_vectorize_visitor::visit_enter(ir_loop *ir)
+{
+   try_vectorize();
+
+   visit_list_elements(this, &ir->body_instructions);
+   try_vectorize();
+
+   return visit_continue_with_parent;
 }
 
 /**

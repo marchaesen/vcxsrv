@@ -1,9 +1,8 @@
 default  partial alphanumeric_keys
 xkb_symbols "basic" {
 
-    name[Group1]="Croatian";
-
     include "rs(latin)"
+    name[Group1]="Croatian";
 
     // Redefine these keys to match XFree86 Croatian layout
     key <AE01> { [         1,     exclam,   asciitilde,   dead_tilde ] };
@@ -16,9 +15,8 @@ xkb_symbols "basic" {
 partial alphanumeric_keys
 xkb_symbols "us" {
 
-    name[Group1]= "Croatian (US keyboard with Croatian letters)";
-
     include "us"
+    name[Group1]= "Croatian (US keyboard with Croatian letters)";
 
     key <AD01> { [    any,    any,	backslash	        ] };
     key <AD02> { [    any,    any,	bar      	        ] };
@@ -44,30 +42,25 @@ xkb_symbols "us" {
     key <BKSL> { [    any,    any,	zcaron,	    Zcaron      ] };
 
     include "level3(ralt_switch)"
-
 };
-
 
 partial alphanumeric_keys
 xkb_symbols "alternatequotes" {
 
-    name[Group1]= "Croatian (use guillemets for quotes)";
-
     include "rs(latinalternatequotes)"
+    name[Group1]= "Croatian (with guillemets for quotes)";
 };
 
 partial alphanumeric_keys
 xkb_symbols "unicode" {
 
-    name[Group1]= "Croatian (use Croatian digraphs)";
-
     include "rs(latinunicode)"
+    name[Group1]= "Croatian (with Croatian digraphs)";
 };
 
 partial alphanumeric_keys
 xkb_symbols "unicodeus" {
 
-    name[Group1]= "Croatian (US keyboard with Croatian digraphs)";
-
     include "rs(latinunicodeyz)"
+    name[Group1]= "Croatian (US keyboard with Croatian digraphs)";
 };

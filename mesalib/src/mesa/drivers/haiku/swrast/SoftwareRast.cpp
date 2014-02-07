@@ -593,23 +593,23 @@ MesaSoftwareRast::_SetupRenderBuffer(struct gl_renderbuffer* rb,
 	switch (colorSpace) {
 		case B_RGBA32:
 			rb->_BaseFormat = GL_RGBA;
-			rb->Format = MESA_FORMAT_ARGB8888;
+			rb->Format = MESA_FORMAT_B8G8R8A8_UNORM;
 			break;
 		case B_RGB32:
 			rb->_BaseFormat = GL_RGB;
-			rb->Format = MESA_FORMAT_XRGB8888;
+			rb->Format = MESA_FORMAT_B8G8R8X8_UNORM;
 			break;
 		case B_RGB24:
 			rb->_BaseFormat = GL_RGB;
-			rb->Format = MESA_FORMAT_RGB888;
+			rb->Format = MESA_FORMAT_BGR_UNORM8;
 			break;
 		case B_RGB16:
 			rb->_BaseFormat = GL_RGB;
-			rb->Format = MESA_FORMAT_RGB565;
+			rb->Format = MESA_FORMAT_B5G6R5_UNORM;
 			break;
 		case B_RGB15:
 			rb->_BaseFormat = GL_RGB;
-			rb->Format = MESA_FORMAT_ARGB1555;
+			rb->Format = MESA_FORMAT_B5G5R5A1_UNORM;
 			break;
 		default:
 			fprintf(stderr, "Unsupported screen color space %s\n",
