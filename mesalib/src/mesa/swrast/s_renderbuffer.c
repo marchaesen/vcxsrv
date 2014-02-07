@@ -69,7 +69,7 @@ soft_renderbuffer_storage(struct gl_context *ctx, struct gl_renderbuffer *rb,
    case GL_RGB10:
    case GL_RGB12:
    case GL_RGB16:
-      rb->Format = MESA_FORMAT_RGB888;
+      rb->Format = MESA_FORMAT_BGR_UNORM8;
       break;
    case GL_RGBA:
    case GL_RGBA2:
@@ -81,35 +81,35 @@ soft_renderbuffer_storage(struct gl_context *ctx, struct gl_renderbuffer *rb,
    case GL_RGBA12:
 #endif
       if (_mesa_little_endian())
-         rb->Format = MESA_FORMAT_RGBA8888_REV;
+         rb->Format = MESA_FORMAT_R8G8B8A8_UNORM;
       else
-         rb->Format = MESA_FORMAT_RGBA8888;
+         rb->Format = MESA_FORMAT_A8B8G8R8_UNORM;
       break;
    case GL_RGBA16:
    case GL_RGBA16_SNORM:
       /* for accum buffer */
-      rb->Format = MESA_FORMAT_SIGNED_RGBA_16;
+      rb->Format = MESA_FORMAT_RGBA_SNORM16;
       break;
    case GL_STENCIL_INDEX:
    case GL_STENCIL_INDEX1_EXT:
    case GL_STENCIL_INDEX4_EXT:
    case GL_STENCIL_INDEX8_EXT:
    case GL_STENCIL_INDEX16_EXT:
-      rb->Format = MESA_FORMAT_S8;
+      rb->Format = MESA_FORMAT_S_UINT8;
       break;
    case GL_DEPTH_COMPONENT:
    case GL_DEPTH_COMPONENT16:
-      rb->Format = MESA_FORMAT_Z16;
+      rb->Format = MESA_FORMAT_Z_UNORM16;
       break;
    case GL_DEPTH_COMPONENT24:
-      rb->Format = MESA_FORMAT_X8_Z24;
+      rb->Format = MESA_FORMAT_Z24_UNORM_S8_UINT;
       break;
    case GL_DEPTH_COMPONENT32:
-      rb->Format = MESA_FORMAT_Z32;
+      rb->Format = MESA_FORMAT_Z_UNORM32;
       break;
    case GL_DEPTH_STENCIL_EXT:
    case GL_DEPTH24_STENCIL8_EXT:
-      rb->Format = MESA_FORMAT_Z24_S8;
+      rb->Format = MESA_FORMAT_S8_UINT_Z24_UNORM;
       break;
    default:
       /* unsupported format */

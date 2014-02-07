@@ -1,4 +1,4 @@
-.TH xcb-examples 3 2011-12-11 "XCB" "XCB examples"
+.TH xcb-examples __libmansuffix__ __xorgversion__ "XCB examples"
 .ad l
 .SH NAME
 xcb-examples \- manpage examples
@@ -52,8 +52,8 @@ Comments are in asterisks, like /* this */.
 No line is longer than 80 characters (including indentation).
 
 .SH SEE ALSO
-.BR xcb_connect (3),
-.BR xcb_get_property (3),
-.BR xcb_flush (3)
+.BR xcb_connect (__libmansuffix__),
+.BR xcb_get_property (__libmansuffix__),
+.BR xcb_flush (__libmansuffix__)
 .SH AUTHOR
 Michael Stapelberg <michael+xcb at stapelberg dot de>

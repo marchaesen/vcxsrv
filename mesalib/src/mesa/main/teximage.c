@@ -689,8 +689,8 @@ _mesa_is_proxy_texture(GLenum target)
 /**
  * Return the proxy target which corresponds to the given texture target
  */
-GLenum
-_mesa_get_proxy_target(GLenum target)
+static GLenum
+proxy_target(GLenum target)
 {
    switch (target) {
    case GL_TEXTURE_1D:
@@ -730,27 +730,21 @@ _mesa_get_proxy_target(GLenum target)
    case GL_PROXY_TEXTURE_2D_MULTISAMPLE_ARRAY:
       return GL_PROXY_TEXTURE_2D_MULTISAMPLE_ARRAY;
    default:
-      _mesa_problem(NULL, "unexpected target in _mesa_get_proxy_target()");
+      _mesa_problem(NULL, "unexpected target in proxy_target()");
       return 0;
    }
 }
 
 
 /**
- * Get the texture object that corresponds to the target of the given
- * texture unit.  The target should have already been checked for validity.
- *
- * \param ctx GL context.
- * \param texUnit texture unit.
- * \param target texture target.
- *
- * \return pointer to the texture object on success, or NULL on failure.
+ * Return a pointer to the current texture object for the given target
+ * on the current texture unit.
+ * Note: all <target> error checking should have been done by this point.
  */
 struct gl_texture_object *
-_mesa_select_tex_object(struct gl_context *ctx,
-                        const struct gl_texture_unit *texUnit,
-                        GLenum target)
+_mesa_get_current_tex_object(struct gl_context *ctx, GLenum target)
 {
+   struct gl_texture_unit *texUnit = _mesa_get_current_tex_unit(ctx);
    const GLboolean arrayTex = ctx->Extensions.EXT_texture_array;
 
    switch (target) {
@@ -818,21 +812,11 @@ _mesa_select_tex_object(struct gl_context *ctx,
          return ctx->Extensions.ARB_texture_multisample
             ? ctx->Texture.ProxyTex[TEXTURE_2D_MULTISAMPLE_ARRAY_INDEX] : NULL;
       default:
-         _mesa_problem(NULL, "bad target in _mesa_select_tex_object()");
+         _mesa_problem(NULL, "bad target in _mesa_get_current_tex_object()");
          return NULL;
    }
 }
 
-
-/**
- * Return pointer to texture object for given target on current texture unit.
- */
-struct gl_texture_object *
-_mesa_get_current_tex_object(struct gl_context *ctx, GLenum target)
-{
-   struct gl_texture_unit *texUnit = _mesa_get_current_tex_unit(ctx);
-   return _mesa_select_tex_object(ctx, texUnit, target);
-}
 
 
 /**
@@ -1325,7 +1309,7 @@ _mesa_init_teximage_fields(struct gl_context *ctx,
                            struct gl_texture_image *img,
                            GLsizei width, GLsizei height, GLsizei depth,
                            GLint border, GLenum internalFormat,
-                           gl_format format)
+                           mesa_format format)
 {
    GLenum target;
    ASSERT(img);
@@ -1568,7 +1552,7 @@ _mesa_legal_texture_dimensions(struct gl_context *ctx, GLenum target,
          return GL_FALSE;
       if (height < 2 * border || height > 2 * border + maxSize)
          return GL_FALSE;
-      if (depth < 1 || depth > ctx->Const.MaxArrayTextureLayers)
+      if (depth < 0 || depth > ctx->Const.MaxArrayTextureLayers)
          return GL_FALSE;
       if (!ctx->Extensions.ARB_texture_non_power_of_two) {
          if (width > 0 && !_mesa_is_pow_two(width - 2 * border))
@@ -1585,7 +1569,7 @@ _mesa_legal_texture_dimensions(struct gl_context *ctx, GLenum target,
          return GL_FALSE;
       if (height < 2 * border || height > 2 * border + maxSize)
          return GL_FALSE;
-      if (depth < 1 || depth > ctx->Const.MaxArrayTextureLayers || depth % 6)
+      if (depth < 0 || depth > ctx->Const.MaxArrayTextureLayers || depth % 6)
          return GL_FALSE;
       if (width != height)
          return GL_FALSE;
@@ -1748,7 +1732,7 @@ error_check_subtexture_dimensions(struct gl_context *ctx,
  */
 GLboolean
 _mesa_test_proxy_teximage(struct gl_context *ctx, GLenum target, GLint level,
-                          gl_format format,
+                          mesa_format format,
                           GLint width, GLint height, GLint depth, GLint border)
 {
    /* We just check if the image size is less than MaxTextureMbytes.
@@ -1957,10 +1941,79 @@ static GLuint
 compressed_tex_size(GLsizei width, GLsizei height, GLsizei depth,
                     GLenum glformat)
 {
-   gl_format mesaFormat = _mesa_glenum_to_compressed_format(glformat);
+   mesa_format mesaFormat = _mesa_glenum_to_compressed_format(glformat);
    return _mesa_format_image_size(mesaFormat, width, height, depth);
 }
 
+/**
+ * Verify that a texture format is valid with a particular target
+ *
+ * In particular, textures with base format of \c GL_DEPTH_COMPONENT or
+ * \c GL_DEPTH_STENCIL are only valid with certain, context dependent texture
+ * targets.
+ *
+ * \param ctx             GL context
+ * \param target          Texture target
+ * \param internalFormat  Internal format of the texture image
+ * \param dimensions      Dimensionality at the caller.  This is \b not used
+ *                        in the validation.  It is only used when logging
+ *                        error messages.
+ * \param caller          Base name of the calling function (e.g.,
+ *                        "glTexImage" or "glTexStorage").
+ *
+ * \returns true if the combination is legal, false otherwise.
+ */
+bool
+_mesa_legal_texture_base_format_for_target(struct gl_context *ctx,
+                                           GLenum target, GLenum internalFormat,
+                                           unsigned dimensions,
+                                           const char *caller)
+{
+   if (_mesa_base_tex_format(ctx, internalFormat) == GL_DEPTH_COMPONENT
+       || _mesa_base_tex_format(ctx, internalFormat) == GL_DEPTH_STENCIL) {
+      /* Section 3.8.3 (Texture Image Specification) of the OpenGL 3.3 Core
+       * Profile spec says:
+       *
+       *     "Textures with a base internal format of DEPTH_COMPONENT or
+       *     DEPTH_STENCIL are supported by texture image specification
+       *     commands only if target is TEXTURE_1D, TEXTURE_2D,
+       *     TEXTURE_1D_ARRAY, TEXTURE_2D_ARRAY, TEXTURE_RECTANGLE,
+       *     TEXTURE_CUBE_MAP, PROXY_TEXTURE_1D, PROXY_TEXTURE_2D,
+       *     PROXY_TEXTURE_1D_ARRAY, PROXY_TEXTURE_2D_ARRAY,
+       *     PROXY_TEXTURE_RECTANGLE, or PROXY_TEXTURE_CUBE_MAP. Using these
+       *     formats in conjunction with any other target will result in an
+       *     INVALID_OPERATION error."
+       *
+       * Cubemaps are only supported with desktop OpenGL version >= 3.0,
+       * EXT_gpu_shader4, or, on OpenGL ES 2.0+, OES_depth_texture_cube_map.
+       */
+      if (target != GL_TEXTURE_1D &&
+          target != GL_PROXY_TEXTURE_1D &&
+          target != GL_TEXTURE_2D &&
+          target != GL_PROXY_TEXTURE_2D &&
+          target != GL_TEXTURE_1D_ARRAY &&
+          target != GL_PROXY_TEXTURE_1D_ARRAY &&
+          target != GL_TEXTURE_2D_ARRAY &&
+          target != GL_PROXY_TEXTURE_2D_ARRAY &&
+          target != GL_TEXTURE_RECTANGLE_ARB &&
+          target != GL_PROXY_TEXTURE_RECTANGLE_ARB &&
+         !((_mesa_is_cube_face(target) ||
+            target == GL_TEXTURE_CUBE_MAP ||
+            target == GL_PROXY_TEXTURE_CUBE_MAP) &&
+           (ctx->Version >= 30 || ctx->Extensions.EXT_gpu_shader4
+            || (ctx->API == API_OPENGLES2 && ctx->Extensions.OES_depth_texture_cube_map))) &&
+          !((target == GL_TEXTURE_CUBE_MAP_ARRAY ||
+             target == GL_PROXY_TEXTURE_CUBE_MAP_ARRAY) &&
+            ctx->Extensions.ARB_texture_cube_map_array)) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "%s%dD(bad target for depth texture)",
+                     caller, dimensions);
+         return false;
+      }
+   }
+
+   return true;
+}
 
 /**
  * Test the glTexImage[123]D() parameters for errors.
@@ -2131,32 +2184,9 @@ texture_error_check( struct gl_context *ctx,
    }
 
    /* additional checks for depth textures */
-   if (_mesa_base_tex_format(ctx, internalFormat) == GL_DEPTH_COMPONENT
-       || _mesa_base_tex_format(ctx, internalFormat) == GL_DEPTH_STENCIL) {
-      /* Only 1D, 2D, rect, array and cube textures supported, not 3D
-       * Cubemaps are only supported for GL version > 3.0 or with EXT_gpu_shader4 */
-      if (target != GL_TEXTURE_1D &&
-          target != GL_PROXY_TEXTURE_1D &&
-          target != GL_TEXTURE_2D &&
-          target != GL_PROXY_TEXTURE_2D &&
-          target != GL_TEXTURE_1D_ARRAY &&
-          target != GL_PROXY_TEXTURE_1D_ARRAY &&
-          target != GL_TEXTURE_2D_ARRAY &&
-          target != GL_PROXY_TEXTURE_2D_ARRAY &&
-          target != GL_TEXTURE_RECTANGLE_ARB &&
-          target != GL_PROXY_TEXTURE_RECTANGLE_ARB &&
-         !((_mesa_is_cube_face(target) || target == GL_PROXY_TEXTURE_CUBE_MAP) &&
-           (ctx->Version >= 30 || ctx->Extensions.EXT_gpu_shader4
-            || (ctx->API == API_OPENGLES2 && ctx->Extensions.OES_depth_texture_cube_map))) &&
-          !((target == GL_TEXTURE_CUBE_MAP_ARRAY ||
-             target == GL_PROXY_TEXTURE_CUBE_MAP_ARRAY) &&
-            ctx->Extensions.ARB_texture_cube_map_array)) {
-         _mesa_error(ctx, GL_INVALID_ENUM,
-                     "glTexImage%dD(bad target for depth texture)",
-                     dimensions);
-         return GL_TRUE;
-      }
-   }
+   if (!_mesa_legal_texture_base_format_for_target(ctx, target, internalFormat,
+                                                   dimensions, "glTexImage"))
+      return GL_TRUE;
 
    /* additional checks for compressed textures */
    if (_mesa_is_compressed_format(ctx, internalFormat)) {
@@ -2918,13 +2948,13 @@ override_internal_format(GLenum internalFormat, GLint width, GLint height)
  * for efficient texture memory layout/allocation.  In particular, this
  * comes up during automatic mipmap generation.
  */
-gl_format
+mesa_format
 _mesa_choose_texture_format(struct gl_context *ctx,
                             struct gl_texture_object *texObj,
                             GLenum target, GLint level,
                             GLenum internalFormat, GLenum format, GLenum type)
 {
-   gl_format f;
+   mesa_format f;
 
    /* see if we've already chosen a format for the previous level */
    if (level > 0) {
@@ -3046,7 +3076,7 @@ teximage(struct gl_context *ctx, GLboolean compressed, GLuint dims,
    struct gl_pixelstore_attrib unpack_no_border;
    const struct gl_pixelstore_attrib *unpack = &ctx->Unpack;
    struct gl_texture_object *texObj;
-   gl_format texFormat;
+   mesa_format texFormat;
    GLboolean dimensionsOK, sizeOK;
 
    FLUSH_VERTICES(ctx, 0);
@@ -3137,7 +3167,7 @@ teximage(struct gl_context *ctx, GLboolean compressed, GLuint dims,
                                                  height, depth, border);
 
    /* check that the texture won't take too much memory, etc */
-   sizeOK = ctx->Driver.TestProxyTexImage(ctx, _mesa_get_proxy_target(target),
+   sizeOK = ctx->Driver.TestProxyTexImage(ctx, proxy_target(target),
                                           level, texFormat,
                                           width, height, depth, border);
 
@@ -3412,7 +3442,9 @@ texsubimage(struct gl_context *ctx, GLuint dims, GLenum target, GLint level,
 
          check_gen_mipmap(ctx, target, texObj, level);
 
-         ctx->NewState |= _NEW_TEXTURE;
+         /* NOTE: Don't signal _NEW_TEXTURE since we've only changed
+          * the texel data, not the texture format, size, etc.
+          */
       }
    }
    _mesa_unlock_texture(ctx, texObj);
@@ -3470,7 +3502,7 @@ _mesa_TexSubImage3D( GLenum target, GLint level,
  * from.  This depends on whether the texture contains color or depth values.
  */
 static struct gl_renderbuffer *
-get_copy_tex_image_source(struct gl_context *ctx, gl_format texFormat)
+get_copy_tex_image_source(struct gl_context *ctx, mesa_format texFormat)
 {
    if (_mesa_get_format_bits(texFormat, GL_DEPTH_BITS) > 0) {
       /* reading from depth/stencil buffer */
@@ -3524,7 +3556,7 @@ copyteximage(struct gl_context *ctx, GLuint dims,
    struct gl_texture_object *texObj;
    struct gl_texture_image *texImage;
    const GLuint face = _mesa_tex_target_to_face(target);
-   gl_format texFormat;
+   mesa_format texFormat;
 
    FLUSH_VERTICES(ctx, 0);
 
@@ -3556,7 +3588,7 @@ copyteximage(struct gl_context *ctx, GLuint dims,
                                            internalFormat, GL_NONE, GL_NONE);
    assert(texFormat != MESA_FORMAT_NONE);
 
-   if (!ctx->Driver.TestProxyTexImage(ctx, _mesa_get_proxy_target(target),
+   if (!ctx->Driver.TestProxyTexImage(ctx, proxy_target(target),
                                       level, texFormat,
                                       width, height, 1, border)) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY,
@@ -3699,7 +3731,9 @@ copytexsubimage(struct gl_context *ctx, GLuint dims, GLenum target, GLint level,
 
          check_gen_mipmap(ctx, target, texObj, level);
 
-         ctx->NewState |= _NEW_TEXTURE;
+         /* NOTE: Don't signal _NEW_TEXTURE since we've only changed
+          * the texel data, not the texture format, size, etc.
+          */
       }
    }
    _mesa_unlock_texture(ctx, texObj);
@@ -3924,7 +3958,9 @@ compressed_tex_sub_image(GLuint dims, GLenum target, GLint level,
 
          check_gen_mipmap(ctx, target, texObj, level);
 
-         ctx->NewState |= _NEW_TEXTURE;
+         /* NOTE: Don't signal _NEW_TEXTURE since we've only changed
+          * the texel data, not the texture format, size, etc.
+          */
       }
    }
    _mesa_unlock_texture(ctx, texObj);
@@ -3962,91 +3998,91 @@ _mesa_CompressedTexSubImage3D(GLenum target, GLint level, GLint xoffset,
                             width, height, depth, format, imageSize, data);
 }
 
-static gl_format
+static mesa_format
 get_texbuffer_format(const struct gl_context *ctx, GLenum internalFormat)
 {
    if (ctx->API != API_OPENGL_CORE) {
       switch (internalFormat) {
       case GL_ALPHA8:
-         return MESA_FORMAT_A8;
+         return MESA_FORMAT_A_UNORM8;
       case GL_ALPHA16:
-         return MESA_FORMAT_A16;
+         return MESA_FORMAT_A_UNORM16;
       case GL_ALPHA16F_ARB:
-         return MESA_FORMAT_ALPHA_FLOAT16;
+         return MESA_FORMAT_A_FLOAT16;
       case GL_ALPHA32F_ARB:
-         return MESA_FORMAT_ALPHA_FLOAT32;
+         return MESA_FORMAT_A_FLOAT32;
       case GL_ALPHA8I_EXT:
-         return MESA_FORMAT_ALPHA_INT8;
+         return MESA_FORMAT_A_SINT8;
       case GL_ALPHA16I_EXT:
-         return MESA_FORMAT_ALPHA_INT16;
+         return MESA_FORMAT_A_SINT16;
       case GL_ALPHA32I_EXT:
-         return MESA_FORMAT_ALPHA_INT32;
+         return MESA_FORMAT_A_SINT32;
       case GL_ALPHA8UI_EXT:
-         return MESA_FORMAT_ALPHA_UINT8;
+         return MESA_FORMAT_A_UINT8;
       case GL_ALPHA16UI_EXT:
-         return MESA_FORMAT_ALPHA_UINT16;
+         return MESA_FORMAT_A_UINT16;
       case GL_ALPHA32UI_EXT:
-         return MESA_FORMAT_ALPHA_UINT32;
+         return MESA_FORMAT_A_UINT32;
       case GL_LUMINANCE8:
-         return MESA_FORMAT_L8;
+         return MESA_FORMAT_L_UNORM8;
       case GL_LUMINANCE16:
-         return MESA_FORMAT_L16;
+         return MESA_FORMAT_L_UNORM16;
       case GL_LUMINANCE16F_ARB:
-         return MESA_FORMAT_LUMINANCE_FLOAT16;
+         return MESA_FORMAT_L_FLOAT16;
       case GL_LUMINANCE32F_ARB:
-         return MESA_FORMAT_LUMINANCE_FLOAT32;
+         return MESA_FORMAT_L_FLOAT32;
       case GL_LUMINANCE8I_EXT:
-         return MESA_FORMAT_LUMINANCE_INT8;
+         return MESA_FORMAT_L_SINT8;
       case GL_LUMINANCE16I_EXT:
-         return MESA_FORMAT_LUMINANCE_INT16;
+         return MESA_FORMAT_L_SINT16;
       case GL_LUMINANCE32I_EXT:
-         return MESA_FORMAT_LUMINANCE_INT32;
+         return MESA_FORMAT_L_SINT32;
       case GL_LUMINANCE8UI_EXT:
-         return MESA_FORMAT_LUMINANCE_UINT8;
+         return MESA_FORMAT_L_UINT8;
       case GL_LUMINANCE16UI_EXT:
-         return MESA_FORMAT_LUMINANCE_UINT16;
+         return MESA_FORMAT_L_UINT16;
       case GL_LUMINANCE32UI_EXT:
-         return MESA_FORMAT_LUMINANCE_UINT32;
+         return MESA_FORMAT_L_UINT32;
       case GL_LUMINANCE8_ALPHA8:
-         return MESA_FORMAT_AL88;
+         return MESA_FORMAT_L8A8_UNORM;
       case GL_LUMINANCE16_ALPHA16:
-         return MESA_FORMAT_AL1616;
+         return MESA_FORMAT_L16A16_UNORM;
       case GL_LUMINANCE_ALPHA16F_ARB:
-         return MESA_FORMAT_LUMINANCE_ALPHA_FLOAT16;
+         return MESA_FORMAT_LA_FLOAT16;
       case GL_LUMINANCE_ALPHA32F_ARB:
-         return MESA_FORMAT_LUMINANCE_ALPHA_FLOAT32;
+         return MESA_FORMAT_LA_FLOAT32;
       case GL_LUMINANCE_ALPHA8I_EXT:
-         return MESA_FORMAT_LUMINANCE_ALPHA_INT8;
+         return MESA_FORMAT_LA_SINT8;
       case GL_LUMINANCE_ALPHA16I_EXT:
-         return MESA_FORMAT_LUMINANCE_ALPHA_INT8;
+         return MESA_FORMAT_LA_SINT8;
       case GL_LUMINANCE_ALPHA32I_EXT:
-         return MESA_FORMAT_LUMINANCE_ALPHA_INT16;
+         return MESA_FORMAT_LA_SINT16;
       case GL_LUMINANCE_ALPHA8UI_EXT:
-         return MESA_FORMAT_LUMINANCE_ALPHA_UINT8;
+         return MESA_FORMAT_LA_UINT8;
       case GL_LUMINANCE_ALPHA16UI_EXT:
-         return MESA_FORMAT_LUMINANCE_ALPHA_UINT16;
+         return MESA_FORMAT_LA_UINT16;
       case GL_LUMINANCE_ALPHA32UI_EXT:
-         return MESA_FORMAT_LUMINANCE_ALPHA_UINT32;
+         return MESA_FORMAT_LA_UINT32;
       case GL_INTENSITY8:
-         return MESA_FORMAT_I8;
+         return MESA_FORMAT_I_UNORM8;
       case GL_INTENSITY16:
-         return MESA_FORMAT_I16;
+         return MESA_FORMAT_I_UNORM16;
       case GL_INTENSITY16F_ARB:
-         return MESA_FORMAT_INTENSITY_FLOAT16;
+         return MESA_FORMAT_I_FLOAT16;
       case GL_INTENSITY32F_ARB:
-         return MESA_FORMAT_INTENSITY_FLOAT32;
+         return MESA_FORMAT_I_FLOAT32;
       case GL_INTENSITY8I_EXT:
-         return MESA_FORMAT_INTENSITY_INT8;
+         return MESA_FORMAT_I_SINT8;
       case GL_INTENSITY16I_EXT:
-         return MESA_FORMAT_INTENSITY_INT16;
+         return MESA_FORMAT_I_SINT16;
       case GL_INTENSITY32I_EXT:
-         return MESA_FORMAT_INTENSITY_INT32;
+         return MESA_FORMAT_I_SINT32;
       case GL_INTENSITY8UI_EXT:
-         return MESA_FORMAT_INTENSITY_UINT8;
+         return MESA_FORMAT_I_UINT8;
       case GL_INTENSITY16UI_EXT:
-         return MESA_FORMAT_INTENSITY_UINT16;
+         return MESA_FORMAT_I_UINT16;
       case GL_INTENSITY32UI_EXT:
-         return MESA_FORMAT_INTENSITY_UINT32;
+         return MESA_FORMAT_I_UINT32;
       default:
          break;
       }
@@ -4060,7 +4096,7 @@ get_texbuffer_format(const struct gl_context *ctx, GLenum internalFormat)
       case GL_RGB32UI:
          return MESA_FORMAT_RGB_UINT32;
       case GL_RGB32I:
-         return MESA_FORMAT_RGB_INT32;
+         return MESA_FORMAT_RGB_SINT32;
       default:
          break;
       }
@@ -4068,19 +4104,19 @@ get_texbuffer_format(const struct gl_context *ctx, GLenum internalFormat)
 
    switch (internalFormat) {
    case GL_RGBA8:
-      return MESA_FORMAT_RGBA8888_REV;
+      return MESA_FORMAT_R8G8B8A8_UNORM;
    case GL_RGBA16:
-      return MESA_FORMAT_RGBA_16;
+      return MESA_FORMAT_RGBA_UNORM16;
    case GL_RGBA16F_ARB:
       return MESA_FORMAT_RGBA_FLOAT16;
    case GL_RGBA32F_ARB:
       return MESA_FORMAT_RGBA_FLOAT32;
    case GL_RGBA8I_EXT:
-      return MESA_FORMAT_RGBA_INT8;
+      return MESA_FORMAT_RGBA_SINT8;
    case GL_RGBA16I_EXT:
-      return MESA_FORMAT_RGBA_INT16;
+      return MESA_FORMAT_RGBA_SINT16;
    case GL_RGBA32I_EXT:
-      return MESA_FORMAT_RGBA_INT32;
+      return MESA_FORMAT_RGBA_SINT32;
    case GL_RGBA8UI_EXT:
       return MESA_FORMAT_RGBA_UINT8;
    case GL_RGBA16UI_EXT:
@@ -4089,19 +4125,19 @@ get_texbuffer_format(const struct gl_context *ctx, GLenum internalFormat)
       return MESA_FORMAT_RGBA_UINT32;
 
    case GL_RG8:
-      return MESA_FORMAT_GR88;
+      return MESA_FORMAT_R8G8_UNORM;
    case GL_RG16:
-      return MESA_FORMAT_GR1616;
+      return MESA_FORMAT_R16G16_UNORM;
    case GL_RG16F:
       return MESA_FORMAT_RG_FLOAT16;
    case GL_RG32F:
       return MESA_FORMAT_RG_FLOAT32;
    case GL_RG8I:
-      return MESA_FORMAT_RG_INT8;
+      return MESA_FORMAT_RG_SINT8;
    case GL_RG16I:
-      return MESA_FORMAT_RG_INT16;
+      return MESA_FORMAT_RG_SINT16;
    case GL_RG32I:
-      return MESA_FORMAT_RG_INT32;
+      return MESA_FORMAT_RG_SINT32;
    case GL_RG8UI:
       return MESA_FORMAT_RG_UINT8;
    case GL_RG16UI:
@@ -4110,19 +4146,19 @@ get_texbuffer_format(const struct gl_context *ctx, GLenum internalFormat)
       return MESA_FORMAT_RG_UINT32;
 
    case GL_R8:
-      return MESA_FORMAT_R8;
+      return MESA_FORMAT_R_UNORM8;
    case GL_R16:
-      return MESA_FORMAT_R16;
+      return MESA_FORMAT_R_UNORM16;
    case GL_R16F:
       return MESA_FORMAT_R_FLOAT16;
    case GL_R32F:
       return MESA_FORMAT_R_FLOAT32;
    case GL_R8I:
-      return MESA_FORMAT_R_INT8;
+      return MESA_FORMAT_R_SINT8;
    case GL_R16I:
-      return MESA_FORMAT_R_INT16;
+      return MESA_FORMAT_R_SINT16;
    case GL_R32I:
-      return MESA_FORMAT_R_INT32;
+      return MESA_FORMAT_R_SINT32;
    case GL_R8UI:
       return MESA_FORMAT_R_UINT8;
    case GL_R16UI:
@@ -4136,11 +4172,11 @@ get_texbuffer_format(const struct gl_context *ctx, GLenum internalFormat)
 }
 
 
-gl_format
+mesa_format
 _mesa_validate_texbuffer_format(const struct gl_context *ctx,
                                 GLenum internalFormat)
 {
-   gl_format format = get_texbuffer_format(ctx, internalFormat);
+   mesa_format format = get_texbuffer_format(ctx, internalFormat);
    GLenum datatype;
 
    if (format == MESA_FORMAT_NONE)
@@ -4174,7 +4210,7 @@ texbufferrange(struct gl_context *ctx, GLenum target, GLenum internalFormat,
                GLintptr offset, GLsizeiptr size)
 {
    struct gl_texture_object *texObj;
-   gl_format format;
+   mesa_format format;
 
    FLUSH_VERTICES(ctx, 0);
 
@@ -4311,7 +4347,7 @@ teximagemultisample(GLuint dims, GLenum target, GLsizei samples,
    struct gl_texture_object *texObj;
    struct gl_texture_image *texImage;
    GLboolean sizeOK, dimensionsOK;
-   gl_format texFormat;
+   mesa_format texFormat;
    GLenum sample_count_error;
 
    GET_CURRENT_CONTEXT(ctx);

@@ -156,7 +156,7 @@ _mesa_initialize_texture_object( struct gl_context *ctx,
    obj->_Swizzle = SWIZZLE_NOOP;
    obj->Sampler.sRGBDecode = GL_DECODE_EXT;
    obj->BufferObjectFormat = GL_R8;
-   obj->_BufferObjectFormat = MESA_FORMAT_R8;
+   obj->_BufferObjectFormat = MESA_FORMAT_R_UNORM8;
    obj->ImageFormatCompatibilityType = GL_IMAGE_FORMAT_COMPATIBILITY_BY_SIZE;
 }
 
@@ -189,12 +189,12 @@ finish_texture_init(struct gl_context *ctx, GLenum target,
          if (ctx->Driver.TexParameter) {
             static const GLfloat fparam_wrap[1] = {(GLfloat) GL_CLAMP_TO_EDGE};
             const GLfloat fparam_filter[1] = {(GLfloat) filter};
-            ctx->Driver.TexParameter(ctx, target, obj, GL_TEXTURE_WRAP_S, fparam_wrap);
-            ctx->Driver.TexParameter(ctx, target, obj, GL_TEXTURE_WRAP_T, fparam_wrap);
-            ctx->Driver.TexParameter(ctx, target, obj, GL_TEXTURE_WRAP_R, fparam_wrap);
-            ctx->Driver.TexParameter(ctx, target, obj,
+            ctx->Driver.TexParameter(ctx, obj, GL_TEXTURE_WRAP_S, fparam_wrap);
+            ctx->Driver.TexParameter(ctx, obj, GL_TEXTURE_WRAP_T, fparam_wrap);
+            ctx->Driver.TexParameter(ctx, obj, GL_TEXTURE_WRAP_R, fparam_wrap);
+            ctx->Driver.TexParameter(ctx, obj,
                   GL_TEXTURE_MIN_FILTER, fparam_filter);
-            ctx->Driver.TexParameter(ctx, target, obj,
+            ctx->Driver.TexParameter(ctx, obj,
                   GL_TEXTURE_MAG_FILTER, fparam_filter);
          }
          break;
@@ -745,7 +745,7 @@ _mesa_get_fallback_texture(struct gl_context *ctx, gl_texture_index tex)
       GLubyte texel[4];
       struct gl_texture_object *texObj;
       struct gl_texture_image *texImage;
-      gl_format texFormat;
+      mesa_format texFormat;
       GLuint dims, face, numFaces = 1;
       GLenum target;
 
@@ -1198,8 +1198,8 @@ _mesa_DeleteTextures( GLsizei n, const GLuint *textures)
  * Note that proxy targets are not valid here.
  * \return TEXTURE_x_INDEX or -1 if target is invalid
  */
-static GLint
-target_enum_to_index(const struct gl_context *ctx, GLenum target)
+int
+_mesa_tex_target_to_index(const struct gl_context *ctx, GLenum target)
 {
    switch (target) {
    case GL_TEXTURE_1D:
@@ -1270,7 +1270,7 @@ _mesa_BindTexture( GLenum target, GLuint texName )
       _mesa_debug(ctx, "glBindTexture %s %d\n",
                   _mesa_lookup_enum_by_nr(target), (GLint) texName);
 
-   targetIndex = target_enum_to_index(ctx, target);
+   targetIndex = _mesa_tex_target_to_index(ctx, target);
    if (targetIndex < 0) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glBindTexture(target)");
       return;

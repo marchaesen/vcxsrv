@@ -37,30 +37,30 @@
 enum glamor_pixmap_status
 glamor_upload_picture_to_texture(PicturePtr picture)
 {
-	PixmapPtr pixmap;
-	assert(picture->pDrawable);
-	pixmap = glamor_get_drawable_pixmap(picture->pDrawable);
+    PixmapPtr pixmap;
 
-	return glamor_upload_pixmap_to_texture(pixmap);
+    assert(picture->pDrawable);
+    pixmap = glamor_get_drawable_pixmap(picture->pDrawable);
+
+    return glamor_upload_pixmap_to_texture(pixmap);
 }
-
 
 Bool
 glamor_prepare_access_picture(PicturePtr picture, glamor_access_t access)
 {
-	if (!picture || !picture->pDrawable)
-		return TRUE;
+    if (!picture || !picture->pDrawable)
+        return TRUE;
 
-	return glamor_prepare_access(picture->pDrawable, access);
+    return glamor_prepare_access(picture->pDrawable, access);
 }
 
 void
 glamor_finish_access_picture(PicturePtr picture, glamor_access_t access)
 {
-	if (!picture || !picture->pDrawable)
-		return;
+    if (!picture || !picture->pDrawable)
+        return;
 
-	glamor_finish_access(picture->pDrawable, access);
+    glamor_finish_access(picture->pDrawable, access);
 }
 
 /* 
@@ -71,61 +71,62 @@ glamor_finish_access_picture(PicturePtr picture, glamor_access_t access)
 int
 glamor_create_picture(PicturePtr picture)
 {
-	PixmapPtr pixmap;
-	glamor_pixmap_private *pixmap_priv;
+    PixmapPtr pixmap;
+    glamor_pixmap_private *pixmap_priv;
 
-	if (!picture || !picture->pDrawable)
-		return 0;
+    if (!picture || !picture->pDrawable)
+        return 0;
 
-	pixmap = glamor_get_drawable_pixmap(picture->pDrawable);
-	pixmap_priv = glamor_get_pixmap_private(pixmap);
-	if (!pixmap_priv) {
-	/* We must create a pixmap priv to track the picture format even
- 	 * if the pixmap is a pure in memory pixmap. The reason is that
- 	 * we may need to upload this pixmap to a texture on the fly. During
- 	 * the uploading, we need to know the picture format. */
-		glamor_set_pixmap_type(pixmap, GLAMOR_MEMORY);
-		pixmap_priv = glamor_get_pixmap_private(pixmap);
-	} else {
-		if (GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv)) {
-			/* If the picture format is not compatible with glamor fbo format,
-			 * we have to mark this pixmap as a separated texture, and don't
-			 * fallback to DDX layer. */
-			if (pixmap_priv->type == GLAMOR_TEXTURE_DRM
-			    && !glamor_pict_format_is_compatible(picture->format,
-								 pixmap->drawable.depth))
-				glamor_set_pixmap_type(pixmap, GLAMOR_SEPARATE_TEXTURE);
-		}
-	}
+    pixmap = glamor_get_drawable_pixmap(picture->pDrawable);
+    pixmap_priv = glamor_get_pixmap_private(pixmap);
+    if (!pixmap_priv) {
+        /* We must create a pixmap priv to track the picture format even
+         * if the pixmap is a pure in memory pixmap. The reason is that
+         * we may need to upload this pixmap to a texture on the fly. During
+         * the uploading, we need to know the picture format. */
+        glamor_set_pixmap_type(pixmap, GLAMOR_MEMORY);
+        pixmap_priv = glamor_get_pixmap_private(pixmap);
+    }
+    else {
+        if (GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv)) {
+            /* If the picture format is not compatible with glamor fbo format,
+             * we have to mark this pixmap as a separated texture, and don't
+             * fallback to DDX layer. */
+            if (pixmap_priv->type == GLAMOR_TEXTURE_DRM
+                && !glamor_pict_format_is_compatible(picture->format,
+                                                     pixmap->drawable.depth))
+                glamor_set_pixmap_type(pixmap, GLAMOR_SEPARATE_TEXTURE);
+        }
+    }
 
-	pixmap_priv->base.is_picture = 1;
-	pixmap_priv->base.picture = picture;
+    pixmap_priv->base.is_picture = 1;
+    pixmap_priv->base.picture = picture;
 
-	return miCreatePicture(picture);
+    return miCreatePicture(picture);
 }
 
 void
 glamor_destroy_picture(PicturePtr picture)
 {
-	PixmapPtr pixmap;
-	glamor_pixmap_private *pixmap_priv;
+    PixmapPtr pixmap;
+    glamor_pixmap_private *pixmap_priv;
 
-	if (!picture || !picture->pDrawable)
-		return;
+    if (!picture || !picture->pDrawable)
+        return;
 
-	pixmap = glamor_get_drawable_pixmap(picture->pDrawable);
-	pixmap_priv = glamor_get_pixmap_private(pixmap);
+    pixmap = glamor_get_drawable_pixmap(picture->pDrawable);
+    pixmap_priv = glamor_get_pixmap_private(pixmap);
 
-	if (pixmap_priv) {
-		pixmap_priv->base.is_picture = 0;
-		pixmap_priv->base.picture = NULL;
-	}
-	miDestroyPicture(picture);
+    if (pixmap_priv) {
+        pixmap_priv->base.is_picture = 0;
+        pixmap_priv->base.picture = NULL;
+    }
+    miDestroyPicture(picture);
 }
 
 void
 glamor_picture_format_fixup(PicturePtr picture,
-			    glamor_pixmap_private * pixmap_priv)
+                            glamor_pixmap_private *pixmap_priv)
 {
-	pixmap_priv->base.picture = picture;
+    pixmap_priv->base.picture = picture;
 }

@@ -35,93 +35,90 @@
 
 static Bool
 _glamor_poly_fill_rect(DrawablePtr drawable,
-		      GCPtr gc, int nrect, xRectangle * prect, Bool fallback)
+                       GCPtr gc, int nrect, xRectangle *prect, Bool fallback)
 {
-	int fullX1, fullX2, fullY1, fullY2;
-	int xorg, yorg;
-	int n;
-	register BoxPtr pbox;
-	RegionPtr pClip = fbGetCompositeClip(gc);
-	Bool ret = FALSE;
+    int fullX1, fullX2, fullY1, fullY2;
+    int xorg, yorg;
+    int n;
+    register BoxPtr pbox;
+    RegionPtr pClip = fbGetCompositeClip(gc);
+    Bool ret = FALSE;
 
-	xorg = drawable->x;
-	yorg = drawable->y;
+    xorg = drawable->x;
+    yorg = drawable->y;
 
-	while (nrect--) {
-		fullX1 = prect->x + xorg;
-		fullY1 = prect->y + yorg;
-		fullX2 = fullX1 + (int) prect->width;
-		fullY2 = fullY1 + (int) prect->height;
+    while (nrect--) {
+        fullX1 = prect->x + xorg;
+        fullY1 = prect->y + yorg;
+        fullX2 = fullX1 + (int) prect->width;
+        fullY2 = fullY1 + (int) prect->height;
 
-		n = REGION_NUM_RECTS(pClip);
-		pbox = REGION_RECTS(pClip);
-		/*
-		 * clip the rectangle to each box in the clip region
-		 * this is logically equivalent to calling Intersect(),
-		 * but rectangles may overlap each other here.
-		 */
-		while (n--) {
-			int x1 = fullX1;
-			int x2 = fullX2;
-			int y1 = fullY1;
-			int y2 = fullY2;
+        n = REGION_NUM_RECTS(pClip);
+        pbox = REGION_RECTS(pClip);
+        /*
+         * clip the rectangle to each box in the clip region
+         * this is logically equivalent to calling Intersect(),
+         * but rectangles may overlap each other here.
+         */
+        while (n--) {
+            int x1 = fullX1;
+            int x2 = fullX2;
+            int y1 = fullY1;
+            int y2 = fullY2;
 
-			if (pbox->x1 > x1)
-				x1 = pbox->x1;
-			if (pbox->x2 < x2)
-				x2 = pbox->x2;
-			if (pbox->y1 > y1)
-				y1 = pbox->y1;
-			if (pbox->y2 < y2)
-				y2 = pbox->y2;
+            if (pbox->x1 > x1)
+                x1 = pbox->x1;
+            if (pbox->x2 < x2)
+                x2 = pbox->x2;
+            if (pbox->y1 > y1)
+                y1 = pbox->y1;
+            if (pbox->y2 < y2)
+                y2 = pbox->y2;
 
-			pbox++;
-			if (x1 >= x2 || y1 >= y2)
-				continue;
-			if (!glamor_fill(drawable, gc, x1, y1, x2 - x1,
-					 y2 - y1, fallback)) {
-				nrect++;
-				goto fail;
-			}
-		}
-		prect++;
-	}
-	ret = TRUE;
-	goto done;
+            pbox++;
+            if (x1 >= x2 || y1 >= y2)
+                continue;
+            if (!glamor_fill(drawable, gc, x1, y1, x2 - x1, y2 - y1, fallback)) {
+                nrect++;
+                goto fail;
+            }
+        }
+        prect++;
+    }
+    ret = TRUE;
+    goto done;
 
-fail:
+ fail:
 
-	if (!fallback
-	    && glamor_ddx_fallback_check_pixmap(drawable)
-	    && glamor_ddx_fallback_check_gc(gc))
-		goto done;
+    if (!fallback && glamor_ddx_fallback_check_pixmap(drawable)
+        && glamor_ddx_fallback_check_gc(gc))
+        goto done;
 
-	glamor_fallback(" to %p (%c)\n",
-			drawable, glamor_get_drawable_location(drawable));
-	if (glamor_prepare_access(drawable, GLAMOR_ACCESS_RW)) {
-		if (glamor_prepare_access_gc(gc)) {
-			fbPolyFillRect(drawable, gc, nrect, prect);
-			glamor_finish_access_gc(gc);
-		}
-		glamor_finish_access(drawable, GLAMOR_ACCESS_RW);
-	}
-	ret = TRUE;
+    glamor_fallback(" to %p (%c)\n",
+                    drawable, glamor_get_drawable_location(drawable));
+    if (glamor_prepare_access(drawable, GLAMOR_ACCESS_RW)) {
+        if (glamor_prepare_access_gc(gc)) {
+            fbPolyFillRect(drawable, gc, nrect, prect);
+            glamor_finish_access_gc(gc);
+        }
+        glamor_finish_access(drawable, GLAMOR_ACCESS_RW);
+    }
+    ret = TRUE;
 
-done:
-	return ret;
+ done:
+    return ret;
 }
-
 
 void
 glamor_poly_fill_rect(DrawablePtr drawable,
-		      GCPtr gc, int nrect, xRectangle * prect)
+                      GCPtr gc, int nrect, xRectangle *prect)
 {
-	_glamor_poly_fill_rect(drawable, gc, nrect, prect, TRUE);
+    _glamor_poly_fill_rect(drawable, gc, nrect, prect, TRUE);
 }
 
 Bool
 glamor_poly_fill_rect_nf(DrawablePtr drawable,
-		         GCPtr gc, int nrect, xRectangle * prect)
+                         GCPtr gc, int nrect, xRectangle *prect)
 {
-	return _glamor_poly_fill_rect(drawable, gc, nrect, prect, FALSE);
+    return _glamor_poly_fill_rect(drawable, gc, nrect, prect, FALSE);
 }

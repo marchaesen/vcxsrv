@@ -26,7 +26,7 @@ xkb_symbols "pes" {
 
 partial alphanumeric_keys
 xkb_symbols "pes_keypad" {
-    name[Group1]= "Persian (with Persian Keypad)";
+    name[Group1]= "Persian (with Persian keypad)";
 
     include "ir(pes_part_basic)"
     include "ir(pes_part_keypad)"

@@ -526,10 +526,8 @@ xkb_symbols "mac_nodeadkeys" {
 partial alphanumeric_keys
 xkb_symbols "dsb"
 {
-	name[Group1] = "Lower Sorbian";
 	include "latin(basic)"
-	include "level3(ralt_switch)"
-	include "kpdl(comma)"
+	name[Group1] = "Lower Sorbian";
 	key <AB01> { [              z,              Z,         zcaron,         Zcaron ] };
 	key <AB02> { [              x,              X,         zacute,         Zacute ] };
 	key <AB03> { [              c,              C,         cacute,         Cacute ] };
@@ -544,15 +542,15 @@ xkb_symbols "dsb"
 	key <AD04> { [              r,              R,         racute,         Racute ] };
 	key <AD05> { [              t,              T,          U20B5,       EuroSign ] };
 	key <AD09> { [              o,              O,         oacute,         Oacute ] };
+	include "kpdl(comma)"
+	include "level3(ralt_switch)"
 };
 
 partial alphanumeric_keys
 xkb_symbols "dsb_qwertz"
 {
-	name[Group1] = "Lower Sorbian (qwertz)";
 	include "latin(basic)"
-	include "level3(ralt_switch)"
-	include "kpdl(comma)"
+	name[Group1] = "Lower Sorbian (qwertz)";
 	key <AB01> { [              y,              Y                                 ] };
 	key <AB02> { [              x,              X                                 ] };
 	key <AB03> { [              c,              C,         cacute,         Cacute ] };
@@ -569,6 +567,8 @@ xkb_symbols "dsb_qwertz"
 	key <AD06> { [              z,              Z,         zcaron,         Zcaron ] };
 	key <AD07> { [              u,              U,         zacute,         Zacute ] };
 	key <AD09> { [              o,              O,         oacute,         Oacute ] };
+	include "kpdl(comma)"
+	include "level3(ralt_switch)"
 };
 
 partial alphanumeric_keys
@@ -679,6 +679,24 @@ xkb_symbols "htcdream" {
         key <FK15> { [ at, at, asciitilde, asciitilde ] };
 
         include "level3(alt_switch)"
+};
+
+partial alphanumeric_keys
+xkb_symbols "tr" {
+
+    // add turkish-specific letters to the basic German layout.
+    // Turkish symbols are accessible with combination of <AltGr> and
+    // 'i', 's', 'g', 'c'' (+<Shift> for capital letters).
+
+    include "de(basic)"
+
+    name[Group1]="Turkish (Germany)";
+
+    key <AD08>  { [    i,      I,      U0131,  U0130   ] };
+    key <AC02>  { [    s,      S,      U015F,  U015E   ] };
+    key <AC05>  { [    g,      G,      U011F,  U011E   ] };
+    key <AB03>  { [    c,      C,      U0E7,   U0C7    ] };
+
 };
 
 // EXTRAS:

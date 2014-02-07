@@ -807,6 +807,22 @@ TRANS(NoListen) (const char * protocol)
 }
 
 int
+TRANS(IsListening) (const char * protocol)
+{
+   Xtransport *trans;
+
+   if ((trans = TRANS(SelectTransport)(protocol)) == NULL)
+   {
+	prmsg (1,"TransIsListening: unable to find transport: %s\n",
+	       protocol);
+
+	return 0;
+   }
+
+   return !(trans->flags & TRANS_NOLISTEN);
+}
+
+int
 TRANS(ResetListener) (XtransConnInfo ciptr)
 
 {

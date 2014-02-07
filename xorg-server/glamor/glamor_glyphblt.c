@@ -30,89 +30,90 @@
 
 static Bool
 _glamor_image_glyph_blt(DrawablePtr pDrawable, GCPtr pGC,
-                    int x, int y, unsigned int nglyph,
-                    CharInfoPtr * ppci, pointer pglyphBase, Bool fallback)
+                        int x, int y, unsigned int nglyph,
+                        CharInfoPtr *ppci, void *pglyphBase, Bool fallback)
 {
-	if (!fallback 
-	    && glamor_ddx_fallback_check_pixmap(pDrawable)
-	    && glamor_ddx_fallback_check_gc(pGC))
-		return FALSE;
+    if (!fallback && glamor_ddx_fallback_check_pixmap(pDrawable)
+        && glamor_ddx_fallback_check_gc(pGC))
+        return FALSE;
 
-	miImageGlyphBlt(pDrawable, pGC, x, y, nglyph, ppci, pglyphBase);
-	return TRUE;
+    miImageGlyphBlt(pDrawable, pGC, x, y, nglyph, ppci, pglyphBase);
+    return TRUE;
 }
 
 void
 glamor_image_glyph_blt(DrawablePtr pDrawable, GCPtr pGC,
-                    int x, int y, unsigned int nglyph,
-                    CharInfoPtr * ppci, pointer pglyphBase)
+                       int x, int y, unsigned int nglyph,
+                       CharInfoPtr *ppci, void *pglyphBase)
 {
-	_glamor_image_glyph_blt(pDrawable, pGC, x, y, nglyph, ppci, pglyphBase, TRUE);
+    _glamor_image_glyph_blt(pDrawable, pGC, x, y, nglyph, ppci, pglyphBase,
+                            TRUE);
 }
 
 Bool
 glamor_image_glyph_blt_nf(DrawablePtr pDrawable, GCPtr pGC,
-                    int x, int y, unsigned int nglyph,
-                    CharInfoPtr * ppci, pointer pglyphBase)
+                          int x, int y, unsigned int nglyph,
+                          CharInfoPtr *ppci, void *pglyphBase)
 {
-	return _glamor_image_glyph_blt(pDrawable, pGC, x, y, nglyph, ppci, pglyphBase, FALSE);
+    return _glamor_image_glyph_blt(pDrawable, pGC, x, y, nglyph, ppci,
+                                   pglyphBase, FALSE);
 }
 
 static Bool
 _glamor_poly_glyph_blt(DrawablePtr pDrawable, GCPtr pGC,
-                    int x, int y, unsigned int nglyph,
-                    CharInfoPtr * ppci, pointer pglyphBase, Bool fallback)
+                       int x, int y, unsigned int nglyph,
+                       CharInfoPtr *ppci, void *pglyphBase, Bool fallback)
 {
-	if (!fallback
-	    && glamor_ddx_fallback_check_pixmap(pDrawable)
-	    && glamor_ddx_fallback_check_gc(pGC))
-		return FALSE;
+    if (!fallback && glamor_ddx_fallback_check_pixmap(pDrawable)
+        && glamor_ddx_fallback_check_gc(pGC))
+        return FALSE;
 
-	miPolyGlyphBlt(pDrawable, pGC, x, y, nglyph, ppci, pglyphBase);
-	return TRUE;
+    miPolyGlyphBlt(pDrawable, pGC, x, y, nglyph, ppci, pglyphBase);
+    return TRUE;
 }
 
 void
 glamor_poly_glyph_blt(DrawablePtr pDrawable, GCPtr pGC,
-                    int x, int y, unsigned int nglyph,
-                    CharInfoPtr * ppci, pointer pglyphBase)
+                      int x, int y, unsigned int nglyph,
+                      CharInfoPtr *ppci, void *pglyphBase)
 {
-	_glamor_poly_glyph_blt(pDrawable, pGC, x, y, nglyph, ppci, pglyphBase, TRUE);
+    _glamor_poly_glyph_blt(pDrawable, pGC, x, y, nglyph, ppci, pglyphBase,
+                           TRUE);
 }
 
 Bool
 glamor_poly_glyph_blt_nf(DrawablePtr pDrawable, GCPtr pGC,
-                    int x, int y, unsigned int nglyph,
-                    CharInfoPtr * ppci, pointer pglyphBase)
+                         int x, int y, unsigned int nglyph,
+                         CharInfoPtr *ppci, void *pglyphBase)
 {
-	return _glamor_poly_glyph_blt(pDrawable, pGC, x, y, nglyph, ppci, pglyphBase, FALSE);
+    return _glamor_poly_glyph_blt(pDrawable, pGC, x, y, nglyph, ppci,
+                                  pglyphBase, FALSE);
 }
 
 static Bool
 _glamor_push_pixels(GCPtr pGC, PixmapPtr pBitmap,
-		    DrawablePtr pDrawable, int w, int h, int x, int y, Bool fallback)
+                    DrawablePtr pDrawable, int w, int h, int x, int y,
+                    Bool fallback)
 {
-	if (!fallback
-	    && glamor_ddx_fallback_check_pixmap(pDrawable)
-	    && glamor_ddx_fallback_check_pixmap(&pBitmap->drawable)
-	    && glamor_ddx_fallback_check_gc(pGC))
-		return FALSE;
+    if (!fallback && glamor_ddx_fallback_check_pixmap(pDrawable)
+        && glamor_ddx_fallback_check_pixmap(&pBitmap->drawable)
+        && glamor_ddx_fallback_check_gc(pGC))
+        return FALSE;
 
-	miPushPixels(pGC, pBitmap, pDrawable, w, h, x, y);
-	return TRUE;
+    miPushPixels(pGC, pBitmap, pDrawable, w, h, x, y);
+    return TRUE;
 }
 
 void
 glamor_push_pixels(GCPtr pGC, PixmapPtr pBitmap,
-		   DrawablePtr pDrawable, int w, int h, int x, int y)
+                   DrawablePtr pDrawable, int w, int h, int x, int y)
 {
-	_glamor_push_pixels(pGC, pBitmap, pDrawable, w, h, x, y, TRUE);
+    _glamor_push_pixels(pGC, pBitmap, pDrawable, w, h, x, y, TRUE);
 }
 
 Bool
 glamor_push_pixels_nf(GCPtr pGC, PixmapPtr pBitmap,
-		      DrawablePtr pDrawable, int w, int h, int x, int y)
+                      DrawablePtr pDrawable, int w, int h, int x, int y)
 {
-	return _glamor_push_pixels(pGC, pBitmap, pDrawable, w, h, x, y, FALSE);
+    return _glamor_push_pixels(pGC, pBitmap, pDrawable, w, h, x, y, FALSE);
 }
-

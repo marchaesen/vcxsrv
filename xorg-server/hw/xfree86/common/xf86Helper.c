@@ -217,6 +217,10 @@ xf86DeleteScreen(ScrnInfoPtr pScrn)
     int i;
     int scrnIndex;
     Bool is_gpu = FALSE;
+
+    if (!pScrn)
+        return;
+
     if (pScrn->is_gpu) {
         /* First check if the screen is valid */
         if (xf86NumGPUScreens == 0 || xf86GPUScreens == NULL)
@@ -227,9 +231,6 @@ xf86DeleteScreen(ScrnInfoPtr pScrn)
         if (xf86NumScreens == 0 || xf86Screens == NULL)
             return;
     }
-
-    if (!pScrn)
-        return;
 
     scrnIndex = pScrn->scrnIndex;
     /* If a FreeScreen function is defined, call it here */

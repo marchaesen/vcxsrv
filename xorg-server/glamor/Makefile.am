@@ -1,18 +1,10 @@
-lib_LTLIBRARIES = libglamor.la
+noinst_LTLIBRARIES = libglamor.la libglamor_egl_stubs.la
 
-if GLAMOR_GLES2
-libglamor_la_LIBADD = $(GLESV2_LIBS)
-else
-libglamor_la_LIBADD = $(GL_LIBS)
-endif
+libglamor_la_LIBADD = $(GLAMOR_LIBS)
 
-AM_CFLAGS = $(CWARNFLAGS) $(XORG_CFLAGS) $(LIBDRM_CFLAGS)
-
-libglamor_la_LDFLAGS = -version-info 0:0:0
+AM_CFLAGS = $(CWARNFLAGS) $(DIX_CFLAGS) $(GLAMOR_CFLAGS)
 
 libglamor_la_SOURCES = \
-	compat-api.h \
-	compiler.h \
 	glamor.c \
 	glamor_copyarea.c \
 	glamor_copywindow.c \
@@ -48,24 +40,8 @@ libglamor_la_SOURCES = \
 	glamor_compositerects.c\
 	glamor_xv.c\
 	glamor_utils.h\
-	glamor.h\
-	glapi.h
+	glamor.h
+
+libglamor_egl_stubs_la_SOURCES = glamor_egl_stubs.c
 
 sdk_HEADERS = glamor.h
-
-if EGL
-LIBGLAMOREGL = libglamoregl.la
-module_LTLIBRARIES = $(LIBGLAMOREGL)
-libglamoregl_la_DEPENDENCIES = libglamor.la
-libglamoregl_la_LDFLAGS = -avoid-version -module
-libglamoregl_la_LIBADD = $(EGL_LIBS) $(GLX_SYS_LIBS) $(GBM_LIBS) libglamor.la
-libglamoregl_la_SOURCES = glamor_eglmodule.c glamor_egl.c
-libglamoregl_la_CFLAGS = \
-	$(AM_CFLAGS) \
-	$(GLX_DEFINES) \
-	$(LIBDRM_CFLAGS) \
-	$(EGL_CFLAGS) \
-	$(GBM_CFLAGS)
-endif
-
-

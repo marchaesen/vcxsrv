@@ -2800,7 +2800,6 @@ XCOMM Part 3
 <Multi_key> <asciicircum> <exclam> <o> 	: "ộ"   U1ED9 # LATIN SMALL LETTER O WITH CIRCUMFLEX AND DOT BELOW
 <dead_belowdot> <ocircumflex>    	: "ộ"   U1ED9 # LATIN SMALL LETTER O WITH CIRCUMFLEX AND DOT BELOW
 <dead_acute> <Ohorn>             	: "Ớ"   U1EDA # LATIN CAPITAL LETTER O WITH HORN AND ACUTE
-<dead_acute> <U01A0>         	: "Ớ"   U1EDA # LATIN CAPITAL LETTER O WITH HORN AND ACUTE
 <Multi_key> <acute> <Ohorn>      	: "Ớ"   U1EDA # LATIN CAPITAL LETTER O WITH HORN AND ACUTE
 <Multi_key> <apostrophe> <Ohorn> 	: "Ớ"   U1EDA # LATIN CAPITAL LETTER O WITH HORN AND ACUTE
 <dead_acute> <dead_horn> <O>     	: "Ớ"   U1EDA # LATIN CAPITAL LETTER O WITH HORN AND ACUTE
@@ -2810,7 +2809,6 @@ XCOMM Part 3
 <Multi_key> <apostrophe> <dead_horn> <O> 	: "Ớ"   U1EDA # LATIN CAPITAL LETTER O WITH HORN AND ACUTE
 <Multi_key> <apostrophe> <plus> <O> 	: "Ớ"   U1EDA # LATIN CAPITAL LETTER O WITH HORN AND ACUTE
 <dead_acute> <ohorn>             	: "ớ"   U1EDB # LATIN SMALL LETTER O WITH HORN AND ACUTE
-<dead_acute> <U01A1>         	: "ớ"   U1EDB # LATIN SMALL LETTER O WITH HORN AND ACUTE
 <Multi_key> <acute> <ohorn>      	: "ớ"   U1EDB # LATIN SMALL LETTER O WITH HORN AND ACUTE
 <Multi_key> <apostrophe> <ohorn> 	: "ớ"   U1EDB # LATIN SMALL LETTER O WITH HORN AND ACUTE
 <dead_acute> <dead_horn> <o>     	: "ớ"   U1EDB # LATIN SMALL LETTER O WITH HORN AND ACUTE
@@ -2820,56 +2818,48 @@ XCOMM Part 3
 <Multi_key> <apostrophe> <dead_horn> <o> 	: "ớ"   U1EDB # LATIN SMALL LETTER O WITH HORN AND ACUTE
 <Multi_key> <apostrophe> <plus> <o> 	: "ớ"   U1EDB # LATIN SMALL LETTER O WITH HORN AND ACUTE
 <dead_grave> <Ohorn>             	: "Ờ"   U1EDC # LATIN CAPITAL LETTER O WITH HORN AND GRAVE
-<dead_grave> <U01A0>         	: "Ờ"   U1EDC # LATIN CAPITAL LETTER O WITH HORN AND GRAVE
 <Multi_key> <grave> <Ohorn>      	: "Ờ"   U1EDC # LATIN CAPITAL LETTER O WITH HORN AND GRAVE
 <dead_grave> <dead_horn> <O>     	: "Ờ"   U1EDC # LATIN CAPITAL LETTER O WITH HORN AND GRAVE
 <dead_grave> <Multi_key> <plus> <O> 	: "Ờ"   U1EDC # LATIN CAPITAL LETTER O WITH HORN AND GRAVE
 <Multi_key> <grave> <dead_horn> <O> 	: "Ờ"   U1EDC # LATIN CAPITAL LETTER O WITH HORN AND GRAVE
 <Multi_key> <grave> <plus> <O>   	: "Ờ"   U1EDC # LATIN CAPITAL LETTER O WITH HORN AND GRAVE
 <dead_grave> <ohorn>             	: "ờ"   U1EDD # LATIN SMALL LETTER O WITH HORN AND GRAVE
-<dead_grave> <U01A1>         	: "ờ"   U1EDD # LATIN SMALL LETTER O WITH HORN AND GRAVE
 <Multi_key> <grave> <ohorn>      	: "ờ"   U1EDD # LATIN SMALL LETTER O WITH HORN AND GRAVE
 <dead_grave> <dead_horn> <o>     	: "ờ"   U1EDD # LATIN SMALL LETTER O WITH HORN AND GRAVE
 <dead_grave> <Multi_key> <plus> <o> 	: "ờ"   U1EDD # LATIN SMALL LETTER O WITH HORN AND GRAVE
 <Multi_key> <grave> <dead_horn> <o> 	: "ờ"   U1EDD # LATIN SMALL LETTER O WITH HORN AND GRAVE
 <Multi_key> <grave> <plus> <o>   	: "ờ"   U1EDD # LATIN SMALL LETTER O WITH HORN AND GRAVE
 <dead_hook> <Ohorn>              	: "Ở"   U1EDE # LATIN CAPITAL LETTER O WITH HORN AND HOOK ABOVE
-<dead_hook> <U01A0>          	: "Ở"   U1EDE # LATIN CAPITAL LETTER O WITH HORN AND HOOK ABOVE
 <Multi_key> <question> <Ohorn>   	: "Ở"   U1EDE # LATIN CAPITAL LETTER O WITH HORN AND HOOK ABOVE
 <dead_hook> <dead_horn> <O>      	: "Ở"   U1EDE # LATIN CAPITAL LETTER O WITH HORN AND HOOK ABOVE
 <dead_hook> <Multi_key> <plus> <O> 	: "Ở"   U1EDE # LATIN CAPITAL LETTER O WITH HORN AND HOOK ABOVE
 <Multi_key> <question> <dead_horn> <O> 	: "Ở"   U1EDE # LATIN CAPITAL LETTER O WITH HORN AND HOOK ABOVE
 <Multi_key> <question> <plus> <O> 	: "Ở"   U1EDE # LATIN CAPITAL LETTER O WITH HORN AND HOOK ABOVE
 <dead_hook> <ohorn>              	: "ở"   U1EDF # LATIN SMALL LETTER O WITH HORN AND HOOK ABOVE
-<dead_hook> <U01A1>          	: "ở"   U1EDF # LATIN SMALL LETTER O WITH HORN AND HOOK ABOVE
 <Multi_key> <question> <ohorn>   	: "ở"   U1EDF # LATIN SMALL LETTER O WITH HORN AND HOOK ABOVE
 <dead_hook> <dead_horn> <o>      	: "ở"   U1EDF # LATIN SMALL LETTER O WITH HORN AND HOOK ABOVE
 <dead_hook> <Multi_key> <plus> <o> 	: "ở"   U1EDF # LATIN SMALL LETTER O WITH HORN AND HOOK ABOVE
 <Multi_key> <question> <dead_horn> <o> 	: "ở"   U1EDF # LATIN SMALL LETTER O WITH HORN AND HOOK ABOVE
 <Multi_key> <question> <plus> <o> 	: "ở"   U1EDF # LATIN SMALL LETTER O WITH HORN AND HOOK ABOVE
 <dead_tilde> <Ohorn>             	: "Ỡ"   U1EE0 # LATIN CAPITAL LETTER O WITH HORN AND TILDE
-<dead_tilde> <U01A0>         	: "Ỡ"   U1EE0 # LATIN CAPITAL LETTER O WITH HORN AND TILDE
 <Multi_key> <asciitilde> <Ohorn> 	: "Ỡ"   U1EE0 # LATIN CAPITAL LETTER O WITH HORN AND TILDE
 <dead_tilde> <dead_horn> <O>     	: "Ỡ"   U1EE0 # LATIN CAPITAL LETTER O WITH HORN AND TILDE
 <dead_tilde> <Multi_key> <plus> <O> 	: "Ỡ"   U1EE0 # LATIN CAPITAL LETTER O WITH HORN AND TILDE
 <Multi_key> <asciitilde> <dead_horn> <O> 	: "Ỡ"   U1EE0 # LATIN CAPITAL LETTER O WITH HORN AND TILDE
 <Multi_key> <asciitilde> <plus> <O> 	: "Ỡ"   U1EE0 # LATIN CAPITAL LETTER O WITH HORN AND TILDE
 <dead_tilde> <ohorn>             	: "ỡ"   U1EE1 # LATIN SMALL LETTER O WITH HORN AND TILDE
-<dead_tilde> <U01A1>         	: "ỡ"   U1EE1 # LATIN SMALL LETTER O WITH HORN AND TILDE
 <Multi_key> <asciitilde> <ohorn> 	: "ỡ"   U1EE1 # LATIN SMALL LETTER O WITH HORN AND TILDE
 <dead_tilde> <dead_horn> <o>     	: "ỡ"   U1EE1 # LATIN SMALL LETTER O WITH HORN AND TILDE
 <dead_tilde> <Multi_key> <plus> <o> 	: "ỡ"   U1EE1 # LATIN SMALL LETTER O WITH HORN AND TILDE
 <Multi_key> <asciitilde> <dead_horn> <o> 	: "ỡ"   U1EE1 # LATIN SMALL LETTER O WITH HORN AND TILDE
 <Multi_key> <asciitilde> <plus> <o> 	: "ỡ"   U1EE1 # LATIN SMALL LETTER O WITH HORN AND TILDE
 <dead_belowdot> <Ohorn>          	: "Ợ"   U1EE2 # LATIN CAPITAL LETTER O WITH HORN AND DOT BELOW
-<dead_belowdot> <U01A0>      	: "Ợ"   U1EE2 # LATIN CAPITAL LETTER O WITH HORN AND DOT BELOW
 <Multi_key> <exclam> <Ohorn>     	: "Ợ"   U1EE2 # LATIN CAPITAL LETTER O WITH HORN AND DOT BELOW
 <dead_belowdot> <dead_horn> <O>  	: "Ợ"   U1EE2 # LATIN CAPITAL LETTER O WITH HORN AND DOT BELOW
 <dead_belowdot> <Multi_key> <plus> <O> 	: "Ợ"   U1EE2 # LATIN CAPITAL LETTER O WITH HORN AND DOT BELOW
 <Multi_key> <exclam> <dead_horn> <O> 	: "Ợ"   U1EE2 # LATIN CAPITAL LETTER O WITH HORN AND DOT BELOW
 <Multi_key> <exclam> <plus> <O>  	: "Ợ"   U1EE2 # LATIN CAPITAL LETTER O WITH HORN AND DOT BELOW
 <dead_belowdot> <ohorn>          	: "ợ"   U1EE3 # LATIN SMALL LETTER O WITH HORN AND DOT BELOW
-<dead_belowdot> <U01A1>      	: "ợ"   U1EE3 # LATIN SMALL LETTER O WITH HORN AND DOT BELOW
 <Multi_key> <exclam> <ohorn>     	: "ợ"   U1EE3 # LATIN SMALL LETTER O WITH HORN AND DOT BELOW
 <dead_belowdot> <dead_horn> <o>  	: "ợ"   U1EE3 # LATIN SMALL LETTER O WITH HORN AND DOT BELOW
 <dead_belowdot> <Multi_key> <plus> <o> 	: "ợ"   U1EE3 # LATIN SMALL LETTER O WITH HORN AND DOT BELOW
@@ -2884,7 +2874,6 @@ XCOMM Part 3
 <dead_hook> <u>                  	: "ủ"   U1EE7 # LATIN SMALL LETTER U WITH HOOK ABOVE
 <Multi_key> <question> <u>       	: "ủ"   U1EE7 # LATIN SMALL LETTER U WITH HOOK ABOVE
 <dead_acute> <Uhorn>             	: "Ứ"   U1EE8 # LATIN CAPITAL LETTER U WITH HORN AND ACUTE
-<dead_acute> <U01AF>         	: "Ứ"   U1EE8 # LATIN CAPITAL LETTER U WITH HORN AND ACUTE
 <Multi_key> <acute> <Uhorn>      	: "Ứ"   U1EE8 # LATIN CAPITAL LETTER U WITH HORN AND ACUTE
 <Multi_key> <apostrophe> <Uhorn> 	: "Ứ"   U1EE8 # LATIN CAPITAL LETTER U WITH HORN AND ACUTE
 <dead_acute> <dead_horn> <U>     	: "Ứ"   U1EE8 # LATIN CAPITAL LETTER U WITH HORN AND ACUTE
@@ -2894,7 +2883,6 @@ XCOMM Part 3
 <Multi_key> <apostrophe> <dead_horn> <U> 	: "Ứ"   U1EE8 # LATIN CAPITAL LETTER U WITH HORN AND ACUTE
 <Multi_key> <apostrophe> <plus> <U> 	: "Ứ"   U1EE8 # LATIN CAPITAL LETTER U WITH HORN AND ACUTE
 <dead_acute> <uhorn>             	: "ứ"   U1EE9 # LATIN SMALL LETTER U WITH HORN AND ACUTE
-<dead_acute> <U01B0>         	: "ứ"   U1EE9 # LATIN SMALL LETTER U WITH HORN AND ACUTE
 <Multi_key> <acute> <uhorn>      	: "ứ"   U1EE9 # LATIN SMALL LETTER U WITH HORN AND ACUTE
 <Multi_key> <apostrophe> <uhorn> 	: "ứ"   U1EE9 # LATIN SMALL LETTER U WITH HORN AND ACUTE
 <dead_acute> <dead_horn> <u>     	: "ứ"   U1EE9 # LATIN SMALL LETTER U WITH HORN AND ACUTE
@@ -2904,56 +2892,48 @@ XCOMM Part 3
 <Multi_key> <apostrophe> <dead_horn> <u> 	: "ứ"   U1EE9 # LATIN SMALL LETTER U WITH HORN AND ACUTE
 <Multi_key> <apostrophe> <plus> <u> 	: "ứ"   U1EE9 # LATIN SMALL LETTER U WITH HORN AND ACUTE
 <dead_grave> <Uhorn>             	: "Ừ"   U1EEA # LATIN CAPITAL LETTER U WITH HORN AND GRAVE
-<dead_grave> <U01AF>         	: "Ừ"   U1EEA # LATIN CAPITAL LETTER U WITH HORN AND GRAVE
 <Multi_key> <grave> <Uhorn>      	: "Ừ"   U1EEA # LATIN CAPITAL LETTER U WITH HORN AND GRAVE
 <dead_grave> <dead_horn> <U>     	: "Ừ"   U1EEA # LATIN CAPITAL LETTER U WITH HORN AND GRAVE
 <dead_grave> <Multi_key> <plus> <U> 	: "Ừ"   U1EEA # LATIN CAPITAL LETTER U WITH HORN AND GRAVE
 <Multi_key> <grave> <dead_horn> <U> 	: "Ừ"   U1EEA # LATIN CAPITAL LETTER U WITH HORN AND GRAVE
 <Multi_key> <grave> <plus> <U>   	: "Ừ"   U1EEA # LATIN CAPITAL LETTER U WITH HORN AND GRAVE
 <dead_grave> <uhorn>             	: "ừ"   U1EEB # LATIN SMALL LETTER U WITH HORN AND GRAVE
-<dead_grave> <U01B0>         	: "ừ"   U1EEB # LATIN SMALL LETTER U WITH HORN AND GRAVE
 <Multi_key> <grave> <uhorn>      	: "ừ"   U1EEB # LATIN SMALL LETTER U WITH HORN AND GRAVE
 <dead_grave> <dead_horn> <u>     	: "ừ"   U1EEB # LATIN SMALL LETTER U WITH HORN AND GRAVE
 <dead_grave> <Multi_key> <plus> <u> 	: "ừ"   U1EEB # LATIN SMALL LETTER U WITH HORN AND GRAVE
 <Multi_key> <grave> <dead_horn> <u> 	: "ừ"   U1EEB # LATIN SMALL LETTER U WITH HORN AND GRAVE
 <Multi_key> <grave> <plus> <u>   	: "ừ"   U1EEB # LATIN SMALL LETTER U WITH HORN AND GRAVE
 <dead_hook> <Uhorn>              	: "Ử"   U1EEC # LATIN CAPITAL LETTER U WITH HORN AND HOOK ABOVE
-<dead_hook> <U01AF>          	: "Ử"   U1EEC # LATIN CAPITAL LETTER U WITH HORN AND HOOK ABOVE
 <Multi_key> <question> <Uhorn>   	: "Ử"   U1EEC # LATIN CAPITAL LETTER U WITH HORN AND HOOK ABOVE
 <dead_hook> <dead_horn> <U>      	: "Ử"   U1EEC # LATIN CAPITAL LETTER U WITH HORN AND HOOK ABOVE
 <dead_hook> <Multi_key> <plus> <U> 	: "Ử"   U1EEC # LATIN CAPITAL LETTER U WITH HORN AND HOOK ABOVE
 <Multi_key> <question> <dead_horn> <U> 	: "Ử"   U1EEC # LATIN CAPITAL LETTER U WITH HORN AND HOOK ABOVE
 <Multi_key> <question> <plus> <U> 	: "Ử"   U1EEC # LATIN CAPITAL LETTER U WITH HORN AND HOOK ABOVE
 <dead_hook> <uhorn>              	: "ử"   U1EED # LATIN SMALL LETTER U WITH HORN AND HOOK ABOVE
-<dead_hook> <U01B0>          	: "ử"   U1EED # LATIN SMALL LETTER U WITH HORN AND HOOK ABOVE
 <Multi_key> <question> <uhorn>   	: "ử"   U1EED # LATIN SMALL LETTER U WITH HORN AND HOOK ABOVE
 <dead_hook> <dead_horn> <u>      	: "ử"   U1EED # LATIN SMALL LETTER U WITH HORN AND HOOK ABOVE
 <dead_hook> <Multi_key> <plus> <u> 	: "ử"   U1EED # LATIN SMALL LETTER U WITH HORN AND HOOK ABOVE
 <Multi_key> <question> <dead_horn> <u> 	: "ử"   U1EED # LATIN SMALL LETTER U WITH HORN AND HOOK ABOVE
 <Multi_key> <question> <plus> <u> 	: "ử"   U1EED # LATIN SMALL LETTER U WITH HORN AND HOOK ABOVE
 <dead_tilde> <Uhorn>             	: "Ữ"   U1EEE # LATIN CAPITAL LETTER U WITH HORN AND TILDE
-<dead_tilde> <U01AF>         	: "Ữ"   U1EEE # LATIN CAPITAL LETTER U WITH HORN AND TILDE
 <Multi_key> <asciitilde> <Uhorn> 	: "Ữ"   U1EEE # LATIN CAPITAL LETTER U WITH HORN AND TILDE
 <dead_tilde> <dead_horn> <U>     	: "Ữ"   U1EEE # LATIN CAPITAL LETTER U WITH HORN AND TILDE
 <dead_tilde> <Multi_key> <plus> <U> 	: "Ữ"   U1EEE # LATIN CAPITAL LETTER U WITH HORN AND TILDE
 <Multi_key> <asciitilde> <dead_horn> <U> 	: "Ữ"   U1EEE # LATIN CAPITAL LETTER U WITH HORN AND TILDE
 <Multi_key> <asciitilde> <plus> <U> 	: "Ữ"   U1EEE # LATIN CAPITAL LETTER U WITH HORN AND TILDE
 <dead_tilde> <uhorn>             	: "ữ"   U1EEF # LATIN SMALL LETTER U WITH HORN AND TILDE
-<dead_tilde> <U01B0>         	: "ữ"   U1EEF # LATIN SMALL LETTER U WITH HORN AND TILDE
 <Multi_key> <asciitilde> <uhorn> 	: "ữ"   U1EEF # LATIN SMALL LETTER U WITH HORN AND TILDE
 <dead_tilde> <dead_horn> <u>     	: "ữ"   U1EEF # LATIN SMALL LETTER U WITH HORN AND TILDE
 <dead_tilde> <Multi_key> <plus> <u> 	: "ữ"   U1EEF # LATIN SMALL LETTER U WITH HORN AND TILDE
 <Multi_key> <asciitilde> <dead_horn> <u> 	: "ữ"   U1EEF # LATIN SMALL LETTER U WITH HORN AND TILDE
 <Multi_key> <asciitilde> <plus> <u> 	: "ữ"   U1EEF # LATIN SMALL LETTER U WITH HORN AND TILDE
 <dead_belowdot> <Uhorn>          	: "Ự"   U1EF0 # LATIN CAPITAL LETTER U WITH HORN AND DOT BELOW
-<dead_belowdot> <U01AF>      	: "Ự"   U1EF0 # LATIN CAPITAL LETTER U WITH HORN AND DOT BELOW
 <Multi_key> <exclam> <Uhorn>     	: "Ự"   U1EF0 # LATIN CAPITAL LETTER U WITH HORN AND DOT BELOW
 <dead_belowdot> <dead_horn> <U>  	: "Ự"   U1EF0 # LATIN CAPITAL LETTER U WITH HORN AND DOT BELOW
 <dead_belowdot> <Multi_key> <plus> <U> 	: "Ự"   U1EF0 # LATIN CAPITAL LETTER U WITH HORN AND DOT BELOW
 <Multi_key> <exclam> <dead_horn> <U> 	: "Ự"   U1EF0 # LATIN CAPITAL LETTER U WITH HORN AND DOT BELOW
 <Multi_key> <exclam> <plus> <U>  	: "Ự"   U1EF0 # LATIN CAPITAL LETTER U WITH HORN AND DOT BELOW
 <dead_belowdot> <uhorn>          	: "ự"   U1EF1 # LATIN SMALL LETTER U WITH HORN AND DOT BELOW
-<dead_belowdot> <U01B0>      	: "ự"   U1EF1 # LATIN SMALL LETTER U WITH HORN AND DOT BELOW
 <Multi_key> <exclam> <uhorn>     	: "ự"   U1EF1 # LATIN SMALL LETTER U WITH HORN AND DOT BELOW
 <dead_belowdot> <dead_horn> <u>  	: "ự"   U1EF1 # LATIN SMALL LETTER U WITH HORN AND DOT BELOW
 <dead_belowdot> <Multi_key> <plus> <u> 	: "ự"   U1EF1 # LATIN SMALL LETTER U WITH HORN AND DOT BELOW

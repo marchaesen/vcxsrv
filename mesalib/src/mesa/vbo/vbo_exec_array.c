@@ -287,15 +287,15 @@ static void
 check_draw_elements_data(struct gl_context *ctx, GLsizei count, GLenum elemType,
                          const void *elements, GLint basevertex)
 {
-   struct gl_array_object *arrayObj = ctx->Array.ArrayObj;
+   struct gl_vertex_array_object *vao = ctx->Array.VAO;
    const void *elemMap;
    GLint i, k;
 
-   if (_mesa_is_bufferobj(ctx->Array.ArrayObj->ElementArrayBufferObj)) {
+   if (_mesa_is_bufferobj(ctx->Array.VAO->IndexBufferObj)) {
       elemMap = ctx->Driver.MapBufferRange(ctx, 0,
-					   ctx->Array.ArrayObj->ElementArrayBufferObj->Size,
+					   ctx->Array.VAO->IndexBufferObj->Size,
 					   GL_MAP_READ_BIT,
-					   ctx->Array.ArrayObj->ElementArrayBufferObj);
+					   ctx->Array.VAO->IndexBufferObj);
       elements = ADD_POINTERS(elements, elemMap);
    }
 
@@ -318,17 +318,17 @@ check_draw_elements_data(struct gl_context *ctx, GLsizei count, GLenum elemType,
       }
 
       /* check element j of each enabled array */
-      for (k = 0; k < Elements(arrayObj->_VertexAttrib); k++) {
-         check_array_data(ctx, &arrayObj->_VertexAttrib[k], k, j);
+      for (k = 0; k < Elements(vao->_VertexAttrib); k++) {
+         check_array_data(ctx, &vao->_VertexAttrib[k], k, j);
       }
    }
 
-   if (_mesa_is_bufferobj(arrayObj->ElementArrayBufferObj)) {
-      ctx->Driver.UnmapBuffer(ctx, ctx->Array.ArrayObj->ElementArrayBufferObj);
+   if (_mesa_is_bufferobj(vao->IndexBufferObj)) {
+      ctx->Driver.UnmapBuffer(ctx, ctx->Array.VAO->IndexBufferObj);
    }
 
-   for (k = 0; k < Elements(arrayObj->_VertexAttrib); k++) {
-      unmap_array_buffer(ctx, &arrayObj->_VertexAttrib[k]);
+   for (k = 0; k < Elements(vao->_VertexAttrib); k++) {
+      unmap_array_buffer(ctx, &vao->_VertexAttrib[k]);
    }
 }
 
@@ -352,7 +352,7 @@ print_draw_arrays(struct gl_context *ctx,
 {
    struct vbo_context *vbo = vbo_context(ctx);
    struct vbo_exec_context *exec = &vbo->exec;
-   struct gl_array_object *arrayObj = ctx->Array.ArrayObj;
+   struct gl_vertex_array_object *vao = ctx->Array.VAO;
    int i;
 
    printf("vbo_exec_DrawArrays(mode 0x%x, start %d, count %d):\n",
@@ -368,7 +368,7 @@ print_draw_arrays(struct gl_context *ctx,
 	     exec->array.inputs[i]->Size,
 	     stride,
 	     /*exec->array.inputs[i]->Enabled,*/
-	     arrayObj->_VertexAttrib[VERT_ATTRIB_FF(i)].Enabled,
+	     vao->_VertexAttrib[VERT_ATTRIB_FF(i)].Enabled,
 	     exec->array.inputs[i]->Ptr,
 	     bufName);
 
@@ -405,7 +405,7 @@ recalculate_input_bindings(struct gl_context *ctx)
 {
    struct vbo_context *vbo = vbo_context(ctx);
    struct vbo_exec_context *exec = &vbo->exec;
-   struct gl_client_array *vertexAttrib = ctx->Array.ArrayObj->_VertexAttrib;
+   struct gl_client_array *vertexAttrib = ctx->Array.VAO->_VertexAttrib;
    const struct gl_client_array **inputs = &exec->array.inputs[0];
    GLbitfield64 const_inputs = 0x0;
    GLuint i;
@@ -883,15 +883,15 @@ dump_element_buffer(struct gl_context *ctx, GLenum type)
 {
    const GLvoid *map =
       ctx->Driver.MapBufferRange(ctx, 0,
-				 ctx->Array.ArrayObj->ElementArrayBufferObj->Size,
+				 ctx->Array.VAO->IndexBufferObj->Size,
 				 GL_MAP_READ_BIT,
-				 ctx->Array.ArrayObj->ElementArrayBufferObj);
+				 ctx->Array.VAO->IndexBufferObj);
    switch (type) {
    case GL_UNSIGNED_BYTE:
       {
          const GLubyte *us = (const GLubyte *) map;
          GLint i;
-         for (i = 0; i < ctx->Array.ArrayObj->ElementArrayBufferObj->Size; i++) {
+         for (i = 0; i < ctx->Array.VAO->IndexBufferObj->Size; i++) {
             printf("%02x ", us[i]);
             if (i % 32 == 31)
                printf("\n");
@@ -903,7 +903,7 @@ dump_element_buffer(struct gl_context *ctx, GLenum type)
       {
          const GLushort *us = (const GLushort *) map;
          GLint i;
-         for (i = 0; i < ctx->Array.ArrayObj->ElementArrayBufferObj->Size / 2; i++) {
+         for (i = 0; i < ctx->Array.VAO->IndexBufferObj->Size / 2; i++) {
             printf("%04x ", us[i]);
             if (i % 16 == 15)
                printf("\n");
@@ -915,7 +915,7 @@ dump_element_buffer(struct gl_context *ctx, GLenum type)
       {
          const GLuint *us = (const GLuint *) map;
          GLint i;
-         for (i = 0; i < ctx->Array.ArrayObj->ElementArrayBufferObj->Size / 4; i++) {
+         for (i = 0; i < ctx->Array.VAO->IndexBufferObj->Size / 4; i++) {
             printf("%08x ", us[i]);
             if (i % 8 == 7)
                printf("\n");
@@ -927,7 +927,7 @@ dump_element_buffer(struct gl_context *ctx, GLenum type)
       ;
    }
 
-   ctx->Driver.UnmapBuffer(ctx, ctx->Array.ArrayObj->ElementArrayBufferObj);
+   ctx->Driver.UnmapBuffer(ctx, ctx->Array.VAO->IndexBufferObj);
 }
 #endif
 
@@ -955,7 +955,7 @@ vbo_validated_drawrangeelements(struct gl_context *ctx, GLenum mode,
 
    ib.count = count;
    ib.type = type;
-   ib.obj = ctx->Array.ArrayObj->ElementArrayBufferObj;
+   ib.obj = ctx->Array.VAO->IndexBufferObj;
    ib.ptr = indices;
 
    prim[0].begin = 1;
@@ -1041,7 +1041,7 @@ vbo_exec_DrawRangeElementsBaseVertex(GLenum mode,
       /* _MaxElement was computed, so we can use it.
        * This path is used for drivers which need strict bounds checking.
        */
-      max_element = ctx->Array.ArrayObj->_MaxElement;
+      max_element = ctx->Array.VAO->_MaxElement;
    }
    else {
       /* Generally, hardware drivers don't need to know the buffer bounds
@@ -1097,7 +1097,7 @@ vbo_exec_DrawRangeElementsBaseVertex(GLenum mode,
 	     "(start %u, end %u, type 0x%x, count %d) ElemBuf %u, "
 	     "base %d\n",
 	     start, end, type, count,
-	     ctx->Array.ArrayObj->ElementArrayBufferObj->Name,
+	     ctx->Array.VAO->IndexBufferObj->Name,
 	     basevertex);
    }
 
@@ -1350,13 +1350,13 @@ vbo_validated_multidrawelements(struct gl_context *ctx, GLenum mode,
     * subranges of the index buffer as one large index buffer may lead to
     * us reading unmapped memory.
     */
-   if (!_mesa_is_bufferobj(ctx->Array.ArrayObj->ElementArrayBufferObj))
+   if (!_mesa_is_bufferobj(ctx->Array.VAO->IndexBufferObj))
       fallback = GL_TRUE;
 
    if (!fallback) {
       ib.count = (max_index_ptr - min_index_ptr) / index_type_size;
       ib.type = type;
-      ib.obj = ctx->Array.ArrayObj->ElementArrayBufferObj;
+      ib.obj = ctx->Array.VAO->IndexBufferObj;
       ib.ptr = (void *)min_index_ptr;
 
       for (i = 0; i < primcount; i++) {
@@ -1387,7 +1387,7 @@ vbo_validated_multidrawelements(struct gl_context *ctx, GLenum mode,
 	    continue;
 	 ib.count = count[i];
 	 ib.type = type;
-	 ib.obj = ctx->Array.ArrayObj->ElementArrayBufferObj;
+	 ib.obj = ctx->Array.VAO->IndexBufferObj;
 	 ib.ptr = indices[i];
 
 	 prim[0].begin = 1;
@@ -1657,7 +1657,7 @@ vbo_validated_drawelementsindirect(struct gl_context *ctx,
 
    ib.count = 0; /* unknown */
    ib.type = type;
-   ib.obj = ctx->Array.ArrayObj->ElementArrayBufferObj;
+   ib.obj = ctx->Array.VAO->IndexBufferObj;
    ib.ptr = NULL;
 
    memset(prim, 0, sizeof(prim));
@@ -1701,11 +1701,11 @@ vbo_validated_multidrawelementsindirect(struct gl_context *ctx,
 
    vbo_bind_arrays(ctx);
 
-   /* NOTE: ElementArrayBufferObj is guaranteed to be a VBO. */
+   /* NOTE: IndexBufferObj is guaranteed to be a VBO. */
 
    ib.count = 0; /* unknown */
    ib.type = type;
-   ib.obj = ctx->Array.ArrayObj->ElementArrayBufferObj;
+   ib.obj = ctx->Array.VAO->IndexBufferObj;
    ib.ptr = NULL;
 
    prim[0].begin = 1;

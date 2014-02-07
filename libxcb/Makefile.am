@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS=-I m4
 
-SUBDIRS=src tests doc
+SUBDIRS=src tests doc man
 
 pkgconfigdir = $(libdir)/pkgconfig
 

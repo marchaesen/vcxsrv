@@ -519,7 +519,7 @@ prep_teximage(struct gl_context *ctx, struct gl_texture_image *texImage,
    if (stObj->surface_based) {
       const GLenum target = texObj->Target;
       const GLuint level = texImage->Level;
-      gl_format texFormat;
+      mesa_format texFormat;
 
       _mesa_clear_texture_object(ctx, texObj);
       pipe_resource_reference(&stObj->pt, NULL);
@@ -604,7 +604,7 @@ st_TexSubImage(struct gl_context *ctx, GLuint dims,
    struct pipe_transfer *transfer;
    struct pipe_blit_info blit;
    enum pipe_format src_format, dst_format;
-   gl_format mesa_src_format;
+   mesa_format mesa_src_format;
    GLenum gl_target = texImage->TexObject->Target;
    unsigned bind;
    GLubyte *map;
@@ -856,7 +856,7 @@ st_GetTexImage(struct gl_context * ctx,
    struct pipe_resource *dst = NULL;
    struct pipe_resource dst_templ;
    enum pipe_format dst_format, src_format;
-   gl_format mesa_format;
+   mesa_format mesa_format;
    GLenum gl_target = texImage->TexObject->Target;
    enum pipe_texture_target pipe_target;
    struct pipe_blit_info blit;
@@ -865,7 +865,9 @@ st_GetTexImage(struct gl_context * ctx,
    ubyte *map = NULL;
    boolean done = FALSE;
 
-   if (!st->prefer_blit_based_texture_transfer) {
+   if (!st->prefer_blit_based_texture_transfer &&
+       !_mesa_is_format_compressed(texImage->TexFormat)) {
+      /* Try to avoid the fallback if we're doing texture decompression here */
       goto fallback;
    }
 
@@ -1483,6 +1485,12 @@ st_finalize_texture(struct gl_context *ctx,
    if (tObj->Target == GL_TEXTURE_BUFFER) {
       struct st_buffer_object *st_obj = st_buffer_object(tObj->BufferObject);
 
+      if (!st_obj) {
+         pipe_resource_reference(&stObj->pt, NULL);
+         pipe_sampler_view_reference(&stObj->sampler_view, NULL);
+         return GL_TRUE;
+      }
+
       if (st_obj->buffer != stObj->pt) {
          pipe_resource_reference(&stObj->pt, st_obj->buffer);
          pipe_sampler_view_release(st->pipe, &stObj->sampler_view);
@@ -1689,7 +1697,7 @@ st_AllocTextureStorage(struct gl_context *ctx,
 
 static GLboolean
 st_TestProxyTexImage(struct gl_context *ctx, GLenum target,
-                     GLint level, gl_format format,
+                     GLint level, mesa_format format,
                      GLint width, GLint height,
                      GLint depth, GLint border)
 {

@@ -143,6 +143,10 @@ add_master(ClientPtr client, xXIAddMasterInfo * c, int flags[MAXDEVICES])
     int rc;
 
     name = calloc(c->name_len + 1, sizeof(char));
+    if (name == NULL) {
+        rc = BadAlloc;
+        goto unwind;
+    }
     strncpy(name, (char *) &c[1], c->name_len);
 
     rc = AllocDevicePair(client, name, &ptr, &keybd,

@@ -48,9 +48,9 @@ xkb_symbols "nodeadkeys" {
 partial alphanumeric_keys
 xkb_symbols "dvorak" {
 
-    name[Group1]="Swedish (Dvorak)";
-
     include "se(basic)"
+
+    name[Group1]="Swedish (Dvorak)";
 
     key <AD01> { [     aring,      Aring,    backslash		     ]	};
     key <AD02> { [  adiaeresis,	Adiaeresis,  braceleft,  bracketleft ]	};
@@ -202,9 +202,9 @@ xkb_symbols "mac" {
 partial alphanumeric_keys
 xkb_symbols "svdvorak" {
 
-   name[Group1]="Swedish (Svdvorak)";
-
    include "se(basic)"
+
+   name[Group1]="Swedish (Svdvorak)";
 
    key <AD01> { [ aring, Aring, braceleft ] };
    key <AD02> { [ comma, semicolon, bracketleft ] };

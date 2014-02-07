@@ -26,6 +26,14 @@ xkb_symbols "basic" {
     include "level3(ralt_switch)"
 };
 
+partial alphanumeric
+xkb_symbols "winkeys" {
+
+    include "es(basic)"
+    name[Group1]="Spanish (Winkeys)";
+    include "eurosign(5)"
+};
+
 partial alphanumeric_keys
 xkb_symbols "Sundeadkeys" {
 

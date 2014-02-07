@@ -42,22 +42,22 @@
  * results.
  */
 #ifdef MESA_BIG_ENDIAN
-# define MESA_FORMAT_RGBA_8 MESA_FORMAT_RGBA8888
-# define MESA_FORMAT_RG_16 MESA_FORMAT_RG1616
-# define MESA_FORMAT_RG_8 MESA_FORMAT_RG88
-# define MESA_FORMAT_SIGNED_RGBA_8 MESA_FORMAT_SIGNED_RGBA8888
-# define MESA_FORMAT_SIGNED_RG_16 MESA_FORMAT_SIGNED_RG1616
-# define MESA_FORMAT_SIGNED_RG_8 MESA_FORMAT_SIGNED_RG88
+# define MESA_FORMAT_RGBA_8 MESA_FORMAT_A8B8G8R8_UNORM
+# define MESA_FORMAT_RG_16 MESA_FORMAT_G16R16_UNORM
+# define MESA_FORMAT_RG_8 MESA_FORMAT_G8R8_UNORM
+# define MESA_FORMAT_SIGNED_RGBA_8 MESA_FORMAT_A8B8G8R8_SNORM
+# define MESA_FORMAT_SIGNED_RG_16 MESA_FORMAT_G16R16_SNORM
+# define MESA_FORMAT_SIGNED_RG_8 MESA_FORMAT_G8R8_SNORM
 #else
-# define MESA_FORMAT_RGBA_8 MESA_FORMAT_RGBA8888_REV
-# define MESA_FORMAT_RG_16 MESA_FORMAT_GR1616
-# define MESA_FORMAT_RG_8 MESA_FORMAT_GR88
-# define MESA_FORMAT_SIGNED_RGBA_8 MESA_FORMAT_SIGNED_RGBA8888_REV
-# define MESA_FORMAT_SIGNED_RG_16 MESA_FORMAT_SIGNED_GR1616
-# define MESA_FORMAT_SIGNED_RG_8 MESA_FORMAT_SIGNED_RG88_REV
+# define MESA_FORMAT_RGBA_8 MESA_FORMAT_R8G8B8A8_UNORM
+# define MESA_FORMAT_RG_16 MESA_FORMAT_R16G16_UNORM
+# define MESA_FORMAT_RG_8 MESA_FORMAT_R8G8_UNORM
+# define MESA_FORMAT_SIGNED_RGBA_8 MESA_FORMAT_R8G8B8A8_SNORM
+# define MESA_FORMAT_SIGNED_RG_16 MESA_FORMAT_R16G16_SNORM
+# define MESA_FORMAT_SIGNED_RG_8 MESA_FORMAT_R8G8_SNORM
 #endif
 
-static gl_format
+static mesa_format
 get_image_format(GLenum format)
 {
    switch (format) {
@@ -74,7 +74,7 @@ get_image_format(GLenum format)
       return MESA_FORMAT_RG_FLOAT16;
 
    case GL_R11F_G11F_B10F:
-      return MESA_FORMAT_R11_G11_B10_FLOAT;
+      return MESA_FORMAT_R11G11B10_FLOAT;
 
    case GL_R32F:
       return MESA_FORMAT_R_FLOAT32;
@@ -89,7 +89,7 @@ get_image_format(GLenum format)
       return MESA_FORMAT_RGBA_UINT16;
 
    case GL_RGB10_A2UI:
-      return MESA_FORMAT_ABGR2101010_UINT;
+      return MESA_FORMAT_R10G10B10A2_UINT;
 
    case GL_RGBA8UI:
       return MESA_FORMAT_RGBA_UINT8;
@@ -113,37 +113,37 @@ get_image_format(GLenum format)
       return MESA_FORMAT_R_UINT8;
 
    case GL_RGBA32I:
-      return MESA_FORMAT_RGBA_INT32;
+      return MESA_FORMAT_RGBA_SINT32;
 
    case GL_RGBA16I:
-      return MESA_FORMAT_RGBA_INT16;
+      return MESA_FORMAT_RGBA_SINT16;
 
    case GL_RGBA8I:
-      return MESA_FORMAT_RGBA_INT8;
+      return MESA_FORMAT_RGBA_SINT8;
 
    case GL_RG32I:
-      return MESA_FORMAT_RG_INT32;
+      return MESA_FORMAT_RG_SINT32;
 
    case GL_RG16I:
-      return MESA_FORMAT_RG_INT16;
+      return MESA_FORMAT_RG_SINT16;
 
    case GL_RG8I:
-      return MESA_FORMAT_RG_INT8;
+      return MESA_FORMAT_RG_SINT8;
 
    case GL_R32I:
-      return MESA_FORMAT_R_INT32;
+      return MESA_FORMAT_R_SINT32;
 
    case GL_R16I:
-      return MESA_FORMAT_R_INT16;
+      return MESA_FORMAT_R_SINT16;
 
    case GL_R8I:
-      return MESA_FORMAT_R_INT8;
+      return MESA_FORMAT_R_SINT8;
 
    case GL_RGBA16:
-      return MESA_FORMAT_RGBA_16;
+      return MESA_FORMAT_RGBA_UNORM16;
 
    case GL_RGB10_A2:
-      return MESA_FORMAT_ABGR2101010;
+      return MESA_FORMAT_R10G10B10A2_UNORM;
 
    case GL_RGBA8:
       return MESA_FORMAT_RGBA_8;
@@ -155,13 +155,13 @@ get_image_format(GLenum format)
       return MESA_FORMAT_RG_8;
 
    case GL_R16:
-      return MESA_FORMAT_R16;
+      return MESA_FORMAT_R_UNORM16;
 
    case GL_R8:
-      return MESA_FORMAT_R8;
+      return MESA_FORMAT_R_UNORM8;
 
    case GL_RGBA16_SNORM:
-      return MESA_FORMAT_SIGNED_RGBA_16;
+      return MESA_FORMAT_RGBA_SNORM16;
 
    case GL_RGBA8_SNORM:
       return MESA_FORMAT_SIGNED_RGBA_8;
@@ -173,10 +173,10 @@ get_image_format(GLenum format)
       return MESA_FORMAT_SIGNED_RG_8;
 
    case GL_R16_SNORM:
-      return MESA_FORMAT_SIGNED_R16;
+      return MESA_FORMAT_R_SNORM16;
 
    case GL_R8_SNORM:
-      return MESA_FORMAT_SIGNED_R8;
+      return MESA_FORMAT_R_SNORM8;
 
    default:
       return MESA_FORMAT_NONE;
@@ -205,7 +205,7 @@ enum image_format_class
 };
 
 static enum image_format_class
-get_image_format_class(gl_format format)
+get_image_format_class(mesa_format format)
 {
    switch (format) {
    case MESA_FORMAT_RGBA_FLOAT32:
@@ -220,7 +220,7 @@ get_image_format_class(gl_format format)
    case MESA_FORMAT_RG_FLOAT16:
       return IMAGE_FORMAT_CLASS_2X16;
 
-   case MESA_FORMAT_R11_G11_B10_FLOAT:
+   case MESA_FORMAT_R11G11B10_FLOAT:
       return IMAGE_FORMAT_CLASS_10_11_11;
 
    case MESA_FORMAT_R_FLOAT32:
@@ -235,7 +235,7 @@ get_image_format_class(gl_format format)
    case MESA_FORMAT_RGBA_UINT16:
       return IMAGE_FORMAT_CLASS_4X16;
 
-   case MESA_FORMAT_ABGR2101010_UINT:
+   case MESA_FORMAT_R10G10B10A2_UINT:
       return IMAGE_FORMAT_CLASS_2_10_10_10;
 
    case MESA_FORMAT_RGBA_UINT8:
@@ -259,37 +259,37 @@ get_image_format_class(gl_format format)
    case MESA_FORMAT_R_UINT8:
       return IMAGE_FORMAT_CLASS_1X8;
 
-   case MESA_FORMAT_RGBA_INT32:
+   case MESA_FORMAT_RGBA_SINT32:
       return IMAGE_FORMAT_CLASS_4X32;
 
-   case MESA_FORMAT_RGBA_INT16:
+   case MESA_FORMAT_RGBA_SINT16:
       return IMAGE_FORMAT_CLASS_4X16;
 
-   case MESA_FORMAT_RGBA_INT8:
+   case MESA_FORMAT_RGBA_SINT8:
       return IMAGE_FORMAT_CLASS_4X8;
 
-   case MESA_FORMAT_RG_INT32:
+   case MESA_FORMAT_RG_SINT32:
       return IMAGE_FORMAT_CLASS_2X32;
 
-   case MESA_FORMAT_RG_INT16:
+   case MESA_FORMAT_RG_SINT16:
       return IMAGE_FORMAT_CLASS_2X16;
 
-   case MESA_FORMAT_RG_INT8:
+   case MESA_FORMAT_RG_SINT8:
       return IMAGE_FORMAT_CLASS_2X8;
 
-   case MESA_FORMAT_R_INT32:
+   case MESA_FORMAT_R_SINT32:
       return IMAGE_FORMAT_CLASS_1X32;
 
-   case MESA_FORMAT_R_INT16:
+   case MESA_FORMAT_R_SINT16:
       return IMAGE_FORMAT_CLASS_1X16;
 
-   case MESA_FORMAT_R_INT8:
+   case MESA_FORMAT_R_SINT8:
       return IMAGE_FORMAT_CLASS_1X8;
 
-   case MESA_FORMAT_RGBA_16:
+   case MESA_FORMAT_RGBA_UNORM16:
       return IMAGE_FORMAT_CLASS_4X16;
 
-   case MESA_FORMAT_ABGR2101010:
+   case MESA_FORMAT_R10G10B10A2_UNORM:
       return IMAGE_FORMAT_CLASS_2_10_10_10;
 
    case MESA_FORMAT_RGBA_8:
@@ -301,13 +301,13 @@ get_image_format_class(gl_format format)
    case MESA_FORMAT_RG_8:
       return IMAGE_FORMAT_CLASS_2X8;
 
-   case MESA_FORMAT_R16:
+   case MESA_FORMAT_R_UNORM16:
       return IMAGE_FORMAT_CLASS_1X16;
 
-   case MESA_FORMAT_R8:
+   case MESA_FORMAT_R_UNORM8:
       return IMAGE_FORMAT_CLASS_1X8;
 
-   case MESA_FORMAT_SIGNED_RGBA_16:
+   case MESA_FORMAT_RGBA_SNORM16:
       return IMAGE_FORMAT_CLASS_4X16;
 
    case MESA_FORMAT_SIGNED_RGBA_8:
@@ -319,10 +319,10 @@ get_image_format_class(gl_format format)
    case MESA_FORMAT_SIGNED_RG_8:
       return IMAGE_FORMAT_CLASS_2X8;
 
-   case MESA_FORMAT_SIGNED_R16:
+   case MESA_FORMAT_R_SNORM16:
       return IMAGE_FORMAT_CLASS_1X16;
 
-   case MESA_FORMAT_SIGNED_R8:
+   case MESA_FORMAT_R_SNORM8:
       return IMAGE_FORMAT_CLASS_1X8;
 
    default:

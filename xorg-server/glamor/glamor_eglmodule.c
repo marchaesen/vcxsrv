@@ -27,9 +27,7 @@
  *    Zhigang Gong <zhigang.gong@gmail.com>
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include "dix-config.h"
 
 #include <xorg-server.h>
 #define GLAMOR_FOR_XORG
@@ -37,16 +35,16 @@
 #include "glamor.h"
 
 static XF86ModuleVersionInfo VersRec = {
-	GLAMOR_EGL_MODULE_NAME,
-	MODULEVENDORSTRING,
-	MODINFOSTRING1,
-	MODINFOSTRING2,
-	XORG_VERSION_CURRENT,
-	PACKAGE_VERSION_MAJOR, PACKAGE_VERSION_MINOR, PACKAGE_VERSION_PATCHLEVEL,
-	ABI_CLASS_ANSIC,	/* Only need the ansic layer */
-	ABI_ANSIC_VERSION,
-	MOD_CLASS_NONE,
-	{0, 0, 0, 0}		/* signature, to be patched into the file by a tool */
+    GLAMOR_EGL_MODULE_NAME,
+    MODULEVENDORSTRING,
+    MODINFOSTRING1,
+    MODINFOSTRING2,
+    XORG_VERSION_CURRENT,
+    PACKAGE_VERSION_MAJOR, PACKAGE_VERSION_MINOR, PACKAGE_VERSION_PATCHLEVEL,
+    ABI_CLASS_ANSIC,            /* Only need the ansic layer */
+    ABI_ANSIC_VERSION,
+    MOD_CLASS_NONE,
+    {0, 0, 0, 0}                /* signature, to be patched into the file by a tool */
 };
 
 _X_EXPORT XF86ModuleData glamoreglModuleData = { &VersRec, NULL, NULL };

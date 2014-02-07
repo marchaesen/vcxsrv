@@ -151,7 +151,7 @@ driGetRendererString( char * buffer, const char * hardware_name,
  *                      If the function fails and returns \c GL_FALSE, this
  *                      value will be unmodified, but some elements in the
  *                      linked list may be modified.
- * \param format        Mesa gl_format enum describing the pixel format
+ * \param format        Mesa mesa_format enum describing the pixel format
  * \param depth_bits    Array of depth buffer sizes to be exposed.
  * \param stencil_bits  Array of stencil buffer sizes to be exposed.
  * \param num_depth_stencil_bits  Number of entries in both \c depth_bits and
@@ -176,7 +176,7 @@ driGetRendererString( char * buffer, const char * hardware_name,
  * \c format).
  */
 __DRIconfig **
-driCreateConfigs(gl_format format,
+driCreateConfigs(mesa_format format,
 		 const uint8_t * depth_bits, const uint8_t * stencil_bits,
 		 unsigned num_depth_stencil_bits,
 		 const GLenum * db_modes, unsigned num_db_modes,
@@ -184,15 +184,15 @@ driCreateConfigs(gl_format format,
 		 GLboolean enable_accum)
 {
    static const uint32_t masks_table[][4] = {
-      /* MESA_FORMAT_RGB565 */
+      /* MESA_FORMAT_B5G6R5_UNORM */
       { 0x0000F800, 0x000007E0, 0x0000001F, 0x00000000 },
-      /* MESA_FORMAT_XRGB8888 */
+      /* MESA_FORMAT_B8G8R8X8_UNORM */
       { 0x00FF0000, 0x0000FF00, 0x000000FF, 0x00000000 },
-      /* MESA_FORMAT_ARGB8888 */
+      /* MESA_FORMAT_B8G8R8A8_UNORM */
       { 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000 },
-      /* MESA_FORMAT_XRGB2101010_UNORM */
+      /* MESA_FORMAT_B10G10R10X2_UNORM */
       { 0x3FF00000, 0x000FFC00, 0x000003FF, 0x00000000 },
-      /* MESA_FORMAT_ARGB2101010 */
+      /* MESA_FORMAT_B10G10R10A2_UNORM */
       { 0x3FF00000, 0x000FFC00, 0x000003FF, 0xC0000000 },
    };
 
@@ -209,20 +209,20 @@ driCreateConfigs(gl_format format,
    bool is_srgb;
 
    switch (format) {
-   case MESA_FORMAT_RGB565:
+   case MESA_FORMAT_B5G6R5_UNORM:
       masks = masks_table[0];
       break;
-   case MESA_FORMAT_XRGB8888:
+   case MESA_FORMAT_B8G8R8X8_UNORM:
       masks = masks_table[1];
       break;
-   case MESA_FORMAT_ARGB8888:
-   case MESA_FORMAT_SARGB8:
+   case MESA_FORMAT_B8G8R8A8_UNORM:
+   case MESA_FORMAT_B8G8R8A8_SRGB:
       masks = masks_table[2];
       break;
-   case MESA_FORMAT_XRGB2101010_UNORM:
+   case MESA_FORMAT_B10G10R10X2_UNORM:
       masks = masks_table[3];
       break;
-   case MESA_FORMAT_ARGB2101010:
+   case MESA_FORMAT_B10G10R10A2_UNORM:
       masks = masks_table[4];
       break;
    default:

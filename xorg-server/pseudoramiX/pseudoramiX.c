@@ -100,6 +100,10 @@ static unsigned long pseudoramiXGeneration = 0;
 
 static void
 PseudoramiXTrace(const char *format, ...)
+    _X_ATTRIBUTE_PRINTF(1, 2);
+
+static void
+PseudoramiXTrace(const char *format, ...)
 {
     va_list ap;
 
@@ -107,6 +111,10 @@ PseudoramiXTrace(const char *format, ...)
     LogVMessageVerb(X_NONE, 10, format, ap);
     va_end(ap);
 }
+
+static void
+PseudoramiXDebug(const char *format, ...)
+    _X_ATTRIBUTE_PRINTF(1, 2);
 
 static void
 PseudoramiXDebug(const char *format, ...)

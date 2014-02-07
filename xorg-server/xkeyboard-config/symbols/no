@@ -52,6 +52,14 @@ xkb_symbols "nodeadkeys" {
     key <AB09>	{ [    period,      colon, periodcentered,   abovedot ]	};
 };
 
+partial alphanumeric_keys
+xkb_symbols "winkeys" {
+
+     include "no(basic)"
+     name[Group1]="Norwegian (Winkeys)";
+     include "eurosign(5)"
+};
+
 // Norwegian Dvorak
 partial alphanumeric_keys
 xkb_symbols "dvorak" {

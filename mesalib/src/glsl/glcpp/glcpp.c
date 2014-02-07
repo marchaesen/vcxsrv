@@ -38,7 +38,7 @@
 #define close _close
 #endif
 
-extern int yydebug;
+extern int glcpp_parser_debug;
 
 void
 _mesa_reference_shader(struct gl_context *ctx, struct gl_shader **ptr,
@@ -109,6 +109,7 @@ load_text_file(void *ctx, const char *filename)
 static void
 init_fake_gl_context (struct gl_context *gl_ctx)
 {
+	gl_ctx->API = API_OPENGL_COMPAT;
 	gl_ctx->Const.DisableGLSLLineContinuations = false;
 }
 

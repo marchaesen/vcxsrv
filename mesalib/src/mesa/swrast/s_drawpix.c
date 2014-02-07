@@ -223,8 +223,8 @@ fast_draw_rgba_pixels(struct gl_context *ctx, GLint x, GLint y,
 
    if (format == GL_RGB &&
        type == GL_UNSIGNED_BYTE &&
-       (rb->Format == MESA_FORMAT_XRGB8888 ||
-        rb->Format == MESA_FORMAT_ARGB8888)) {
+       (rb->Format == MESA_FORMAT_B8G8R8X8_UNORM ||
+        rb->Format == MESA_FORMAT_B8G8R8A8_UNORM)) {
       fast_draw_rgb_ubyte_pixels(ctx, rb, x, y, width, height,
                                  &unpack, pixels);
       return GL_TRUE;
@@ -232,8 +232,8 @@ fast_draw_rgba_pixels(struct gl_context *ctx, GLint x, GLint y,
 
    if (format == GL_RGBA &&
        type == GL_UNSIGNED_BYTE &&
-       (rb->Format == MESA_FORMAT_XRGB8888 ||
-        rb->Format == MESA_FORMAT_ARGB8888)) {
+       (rb->Format == MESA_FORMAT_B8G8R8X8_UNORM ||
+        rb->Format == MESA_FORMAT_B8G8R8A8_UNORM)) {
       fast_draw_rgba_ubyte_pixels(ctx, rb, x, y, width, height,
                                   &unpack, pixels);
       return GL_TRUE;
@@ -500,7 +500,7 @@ draw_rgba_pixels( struct gl_context *ctx, GLint x, GLint y,
 
 
 /**
- * Draw depth+stencil values into a MESA_FORAMT_Z24_S8 or MESA_FORMAT_S8_Z24
+ * Draw depth+stencil values into a MESA_FORAMT_Z24_S8 or MESA_FORMAT_Z24_UNORM_X8_UINT
  * renderbuffer.  No masking, zooming, scaling, etc.
  */
 static void
@@ -572,8 +572,8 @@ draw_depth_stencil_pixels(struct gl_context *ctx, GLint x, GLint y,
    ASSERT(stencilRb);
 
    if (depthRb == stencilRb &&
-       (depthRb->Format == MESA_FORMAT_Z24_S8 ||
-        depthRb->Format == MESA_FORMAT_S8_Z24) &&
+       (depthRb->Format == MESA_FORMAT_S8_UINT_Z24_UNORM ||
+        depthRb->Format == MESA_FORMAT_Z24_UNORM_X8_UINT) &&
        type == GL_UNSIGNED_INT_24_8 &&
        !scaleOrBias &&
        !zoom &&

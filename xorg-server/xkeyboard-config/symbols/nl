@@ -49,8 +49,6 @@ xkb_symbols "basic" {
 
     key <LSGT>	{ [bracketright, bracketleft,       bar,    brokenbar ]	};
 
-    include "kpdl(comma)"
-
     include "level3(ralt_switch)"
 };
 

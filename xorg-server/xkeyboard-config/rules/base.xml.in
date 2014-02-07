@@ -1839,7 +1839,7 @@
         <variant>
           <configItem>
             <name>eeyek</name>
-            <description>Manipuri (Eeyek)</description>
+            <_description>Manipuri (Eeyek)</_description>
             <languageList><iso639Id>mni</iso639Id></languageList>
           </configItem>
         </variant>
@@ -1925,7 +1925,7 @@
             <name>mal_enhanced</name>
             <!-- Keyboard indicator for Malayalam layouts -->
             <_shortDescription>ml</_shortDescription>
-            <_description>Malayalam (enhanced Inscript with Rupee Sign)</_description>
+            <_description>Malayalam (enhanced Inscript, with rupee sign)</_description>
             <languageList><iso639Id>mal</iso639Id></languageList>
           </configItem>
          </variant>
@@ -2110,7 +2110,7 @@
             <name>eng</name>
             <!-- Keyboard indicator for English layouts -->
             <_shortDescription>en</_shortDescription>
-            <_description>English (India, with RupeeSign)</_description>
+            <_description>English (India, with rupee sign)</_description>
             <languageList>
               <iso639Id>eng</iso639Id>
             </languageList>
@@ -2132,13 +2132,13 @@
         <variant>
           <configItem>
             <name>alternatequotes</name>
-            <_description>Bosnian (use guillemets for quotes)</_description>
+            <_description>Bosnian (with guillemets for quotes)</_description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>unicode</name>
-            <_description>Bosnian (use Bosnian digraphs)</_description>
+            <_description>Bosnian (with Bosnian digraphs)</_description>
           </configItem>
         </variant>
         <variant>
@@ -2559,13 +2559,13 @@
         <variant>
           <configItem>
             <name>alternatequotes</name>
-            <_description>Croatian (use guillemets for quotes)</_description>
+            <_description>Croatian (with guillemets for quotes)</_description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>unicode</name>
-            <_description>Croatian (use Croatian digraphs)</_description>
+            <_description>Croatian (with Croatian digraphs)</_description>
           </configItem>
         </variant>
         <variant>
@@ -2640,6 +2640,12 @@
           <configItem>
             <name>nodeadkeys</name>
             <_description>Danish (eliminate dead keys)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>winkeys</name>
+            <_description>Danish (Winkeys)</_description>
           </configItem>
         </variant>
         <variant>
@@ -2749,7 +2755,7 @@
         <variant>
           <configItem>
             <name>pes_keypad</name>
-            <_description>Persian (with Persian Keypad)</_description>
+            <_description>Persian (with Persian keypad)</_description>
           </configItem>
         </variant>
         <variant>
@@ -2894,6 +2900,12 @@
           <configItem>
             <name>nodeadkeys</name>
             <_description>Finnish (classic, eliminate dead keys)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>winkeys</name>
+            <_description>Finnish (Winkeys)</_description>
           </configItem>
         </variant>
         <variant>
@@ -3279,6 +3291,15 @@
         </variant>
         <variant>
           <configItem>
+            <name>tr</name>
+            <_description>Turkish (Germany)</_description>
+            <languageList>
+              <iso639Id>tr</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
             <name>ru</name>
             <!-- Keyboard indicator for Russian layouts -->
             <_shortDescription>ru</_shortDescription>
@@ -3543,6 +3564,12 @@
           <configItem>
             <name>nodeadkeys</name>
             <_description>Italian (eliminate dead keys)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>winkeys</name>
+            <_description>Italian (Winkeys)</_description>
           </configItem>
         </variant>
         <variant>
@@ -3984,6 +4011,12 @@
         </variant>
         <variant>
           <configItem>
+            <name>winkeys</name>
+            <_description>Norwegian (Winkeys)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
             <name>dvorak</name>
             <_description>Norwegian (Dvorak)</_description>
           </configItem>
@@ -4079,7 +4112,7 @@
         <variant>
           <configItem>
             <name>szl</name>
-            <description>Silesian</description>
+            <_description>Silesian</_description>
             <languageList><iso639Id>szl</iso639Id></languageList>
           </configItem>
         </variant>
@@ -4443,7 +4476,7 @@
         <variant>
           <configItem>
             <name>alternatequotes</name>
-            <_description>Slovenian (use guillemets for quotes)</_description>
+            <_description>Slovenian (with guillemets for quotes)</_description>
           </configItem>
         </variant>
         <variant>
@@ -4500,6 +4533,12 @@
           <configItem>
             <name>nodeadkeys</name>
             <_description>Spanish (eliminate dead keys)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>winkeys</name>
+            <_description>Spanish (Winkeys)</_description>
           </configItem>
         </variant>
         <variant>
@@ -6343,7 +6382,7 @@
       <option>
         <configItem>
           <name>altwin:hyper_win</name>
-          <_description>Hyper is mapped to Win-keys</_description>
+          <_description>Hyper is mapped to Win keys</_description>
         </configItem>
       </option>
       <option>

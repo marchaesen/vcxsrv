@@ -614,7 +614,6 @@ AC_ARG_ENABLE(xf86bigfont,    AS_HELP_STRING([--enable-xf86bigfont], [Build XF86
 AC_ARG_ENABLE(dpms,           AS_HELP_STRING([--disable-dpms], [Build DPMS extension (default: enabled)]), [DPMSExtension=$enableval], [DPMSExtension=yes])
 AC_ARG_ENABLE(config-udev,    AS_HELP_STRING([--enable-config-udev], [Build udev support (default: auto)]), [CONFIG_UDEV=$enableval], [CONFIG_UDEV=auto])
 AC_ARG_ENABLE(config-udev-kms,    AS_HELP_STRING([--enable-config-udev-kms], [Build udev kms support (default: auto)]), [CONFIG_UDEV_KMS=$enableval], [CONFIG_UDEV_KMS=auto])
-AC_ARG_ENABLE(config-dbus,    AS_HELP_STRING([--enable-config-dbus], [Build D-BUS API support (default: no)]), [CONFIG_DBUS_API=$enableval], [CONFIG_DBUS_API=no])
 AC_ARG_ENABLE(config-hal,     AS_HELP_STRING([--disable-config-hal], [Build HAL support (default: auto)]), [CONFIG_HAL=$enableval], [CONFIG_HAL=auto])
 AC_ARG_ENABLE(config-wscons,  AS_HELP_STRING([--enable-config-wscons], [Build wscons config support (default: auto)]), [CONFIG_WSCONS=$enableval], [CONFIG_WSCONS=auto])
 AC_ARG_ENABLE(xfree86-utils,     AS_HELP_STRING([--enable-xfree86-utils], [Build xfree86 DDX utilities (default: enabled)]), [XF86UTILS=$enableval], [XF86UTILS=yes])
@@ -636,6 +635,7 @@ AC_ARG_ENABLE(xnest,   	      AS_HELP_STRING([--enable-xnest], [Build Xnest serv
 AC_ARG_ENABLE(xquartz,        AS_HELP_STRING([--enable-xquartz], [Build Xquartz server for OS-X (default: auto)]), [XQUARTZ=$enableval], [XQUARTZ=auto])
 AC_ARG_ENABLE(standalone-xpbproxy, AS_HELP_STRING([--enable-standalone-xpbproxy], [Build a standalone xpbproxy (in addition to the one integrated into Xquartz as a separate thread) (default: no)]), [STANDALONE_XPBPROXY=$enableval], [STANDALONE_XPBPROXY=no])
 AC_ARG_ENABLE(xwin,    	      AS_HELP_STRING([--enable-xwin], [Build XWin server (default: auto)]), [XWIN=$enableval], [XWIN=auto])
+AC_ARG_ENABLE(glamor,         AS_HELP_STRING([--enable-glamor], [Build glamor dix module (default: no)]), [GLAMOR=$enableval], [GLAMOR=no])
 dnl kdrive and its subsystems
 AC_ARG_ENABLE(kdrive,         AS_HELP_STRING([--enable-kdrive], [Build kdrive servers (default: no)]), [KDRIVE=$enableval], [KDRIVE=no])
 AC_ARG_ENABLE(xephyr,         AS_HELP_STRING([--enable-xephyr], [Build the kdrive Xephyr server (default: auto)]), [XEPHYR=$enableval], [XEPHYR=auto])
@@ -702,7 +702,6 @@ dnl DDX Detection... Yes, it's ugly to have it here... but we need to
 dnl handle this early on so that we don't require unsupported extensions
 case $host_os in
 	cygwin* | mingw*)
-		CONFIG_DBUS_API=no
 		CONFIG_HAL=no
 		CONFIG_UDEV=no
 		CONFIG_UDEV_KMS=no
@@ -799,7 +798,7 @@ FIXESPROTO="fixesproto >= 5.0"
 DAMAGEPROTO="damageproto >= 1.1"
 XCMISCPROTO="xcmiscproto >= 1.2.0"
 BIGREQSPROTO="bigreqsproto >= 1.1.0"
-XTRANS="xtrans >= 1.3.2"
+XTRANS="xtrans >= 1.3.3"
 PRESENTPROTO="presentproto >= 1.0"
 
 dnl List of libraries that require a specific version
@@ -830,9 +829,28 @@ AC_SUBST(SDK_REQUIRED_MODULES)
 
 REQUIRED_MODULES="$FIXESPROTO $DAMAGEPROTO $XCMISCPROTO $XTRANS $BIGREQSPROTO $SDK_REQUIRED_MODULES"
 
-if test "x$CONFIG_UDEV" = xyes &&
- { test "x$CONFIG_DBUS_API" = xyes || test "x$CONFIG_HAL" = xyes; }; then
-	AC_MSG_ERROR([Hotplugging through both libudev and dbus/hal not allowed])
+dnl systemd socket activation
+dnl activate the code in libxtrans that grabs systemd's socket fds
+AC_ARG_WITH([systemd-daemon],
+	AS_HELP_STRING([--with-systemd-daemon],
+		[support systemd socket activation (default: auto)]),
+	[WITH_SYSTEMD_DAEMON=$withval], [WITH_SYSTEMD_DAEMON=auto])
+PKG_CHECK_MODULES([SYSTEMD_DAEMON], [libsystemd-daemon],
+                  [HAVE_SYSTEMD_DAEMON=yes], [HAVE_SYSTEMD_DAEMON=no])
+if test "x$WITH_SYSTEMD_DAEMON" = xauto; then
+	WITH_SYSTEMD_DAEMON="$HAVE_SYSTEMD_DAEMON"
+fi
+if test "x$WITH_SYSTEMD_DAEMON" = xyes; then
+	if "x$HAVE_SYSTEMD_DAEMON" = xno; then
+		AC_MSG_ERROR([systemd support requested but no library has been found])
+	fi
+	AC_DEFINE(HAVE_SYSTEMD_DAEMON, 1, [Define to 1 if libsystemd-daemon is available])
+	REQUIRED_LIBS="$REQUIRED_LIBS libsystemd-daemon"
+fi
+AM_CONDITIONAL([HAVE_SYSTEMD_DAEMON], [test "x$HAVE_SYSTEMD_DAEMON" = "xyes"])
+
+if test "x$CONFIG_UDEV" = xyes && test "x$CONFIG_HAL" = xyes; then
+	AC_MSG_ERROR([Hotplugging through both libudev and hal not allowed])
 fi
 
 PKG_CHECK_MODULES(UDEV, $LIBUDEV, [HAVE_LIBUDEV=yes], [HAVE_LIBUDEV=no])
@@ -841,7 +859,6 @@ if test "x$CONFIG_UDEV" = xauto; then
 fi
 AM_CONDITIONAL(CONFIG_UDEV, [test "x$CONFIG_UDEV" = xyes])
 if test "x$CONFIG_UDEV" = xyes; then
-	CONFIG_DBUS_API=no
 	CONFIG_HAL=no
 	if test "x$CONFIG_UDEV_KMS" = xauto; then
 		CONFIG_UDEV_KMS="$HAVE_LIBUDEV"
@@ -864,27 +881,11 @@ if test "x$CONFIG_UDEV" = xyes; then
 fi
 AM_CONDITIONAL(CONFIG_UDEV_KMS, [test "x$CONFIG_UDEV_KMS" = xyes])
 
-dnl HAVE_DBUS is true if we actually have the D-Bus library, whereas
-dnl CONFIG_DBUS_API is true if we want to enable the D-Bus config
-dnl API.
 PKG_CHECK_MODULES(DBUS, $LIBDBUS, [HAVE_DBUS=yes], [HAVE_DBUS=no])
 if test "x$HAVE_DBUS" = xyes; then
 	AC_DEFINE(HAVE_DBUS, 1, [Have D-Bus support])
 fi
 AM_CONDITIONAL(HAVE_DBUS, [test "x$HAVE_DBUS" = xyes])
-
-if test "x$CONFIG_DBUS_API" = xauto; then
-	CONFIG_DBUS_API="$HAVE_DBUS"
-fi
-if test "x$CONFIG_DBUS_API" = xyes; then
-	if ! test "x$HAVE_DBUS" = xyes; then
-		AC_MSG_ERROR([D-Bus configuration API requested, but D-Bus is not installed.])
-	fi
-
-	AC_DEFINE(CONFIG_DBUS_API, 1, [Use the D-Bus input configuration API])
-	CONFIG_NEED_DBUS="yes"
-fi
-AM_CONDITIONAL(CONFIG_DBUS_API, [test "x$CONFIG_DBUS_API" = xyes])
 
 PKG_CHECK_MODULES(HAL, hal, [HAVE_HAL=yes], [HAVE_HAL=no])
 if test "x$CONFIG_HAL" = xauto; then
@@ -896,14 +897,14 @@ if test "x$CONFIG_HAL" = xyes; then
 	fi
 
 	AC_DEFINE(CONFIG_HAL, 1, [Use the HAL hotplug API])
-	CONFIG_NEED_DBUS="yes"
+	NEED_DBUS="yes"
 fi
 AM_CONDITIONAL(CONFIG_HAL, [test "x$CONFIG_HAL" = xyes])
 
-if test "x$CONFIG_NEED_DBUS" = xyes; then
-        AC_DEFINE(CONFIG_NEED_DBUS, 1, [Use D-Bus for input hotplug])
+if test "x$NEED_DBUS" = xyes; then
+        AC_DEFINE(NEED_DBUS, 1, [Enable D-Bus core])
 fi
-AM_CONDITIONAL(CONFIG_NEED_DBUS, [test "x$CONFIG_NEED_DBUS" = xyes])
+AM_CONDITIONAL(NEED_DBUS, [test "x$NEED_DBUS" = xyes])
 
 if test "x$CONFIG_WSCONS" = xauto; then
 	case $host_os in
@@ -2063,6 +2064,14 @@ AM_CONDITIONAL([SOLARIS_VT], [test "x$solaris_vt" = xyes])
 AM_CONDITIONAL([DGA], [test "x$DGA" = xyes])
 AM_CONDITIONAL([XF86VIDMODE], [test "x$XF86VIDMODE" = xyes])
 AM_CONDITIONAL([XORG_BUS_PLATFORM], [test "x$CONFIG_UDEV_KMS" = xyes])
+
+dnl glamor
+AM_CONDITIONAL([GLAMOR], [test "x$GLAMOR" = xyes])
+if test "x$GLAMOR" = xyes; then
+	AC_DEFINE(GLAMOR, 1, [Build glamor])
+	PKG_CHECK_MODULES([GLAMOR], [egl gl])
+fi
+
 dnl XWin DDX
 
 AC_MSG_CHECKING([whether to build XWin DDX])
@@ -2173,6 +2182,8 @@ if test "x$XQUARTZ" = xyes; then
 		AC_DEFINE(STANDALONE_XPBPROXY,1,[Build a standalone xpbproxy])
 	fi
 fi
+
+AM_CONDITIONAL(PSEUDORAMIX, [test "x$XQUARTZ" = xyes -o "x$XWIN" = xyes ])
 
 # Support for objc in autotools is minimal and not documented.
 OBJC='$(CC)'
@@ -2432,6 +2443,7 @@ doc/Makefile
 doc/dtrace/Makefile
 man/Makefile
 fb/Makefile
+glamor/Makefile
 record/Makefile
 config/Makefile
 mi/Makefile

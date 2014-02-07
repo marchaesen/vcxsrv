@@ -182,7 +182,7 @@ union value {
 #define CONTEXT_FIELD(field, type) \
    LOC_CONTEXT, type, offsetof(struct gl_context, field)
 #define ARRAY_FIELD(field, type) \
-   LOC_ARRAY, type, offsetof(struct gl_array_object, field)
+   LOC_ARRAY, type, offsetof(struct gl_vertex_array_object, field)
 #undef CONST /* already defined through windows.h */
 #define CONST(value) \
    LOC_CONTEXT, TYPE_CONST, value
@@ -362,7 +362,6 @@ EXTRA_EXT(EXT_stencil_two_side);
 EXTRA_EXT(EXT_depth_bounds_test);
 EXTRA_EXT(ARB_depth_clamp);
 EXTRA_EXT(ATI_fragment_shader);
-EXTRA_EXT(EXT_framebuffer_blit);
 EXTRA_EXT(EXT_provoking_vertex);
 EXTRA_EXT(ARB_fragment_shader);
 EXTRA_EXT(ARB_fragment_program);
@@ -383,7 +382,6 @@ EXTRA_EXT(OES_EGL_image_external);
 EXTRA_EXT(ARB_blend_func_extended);
 EXTRA_EXT(ARB_uniform_buffer_object);
 EXTRA_EXT(ARB_timer_query);
-EXTRA_EXT(ARB_map_buffer_alignment);
 EXTRA_EXT(ARB_texture_cube_map_array);
 EXTRA_EXT(ARB_texture_buffer_range);
 EXTRA_EXT(ARB_texture_multisample);
@@ -392,6 +390,9 @@ EXTRA_EXT(ARB_shader_atomic_counters);
 EXTRA_EXT(ARB_draw_indirect);
 EXTRA_EXT(ARB_shader_image_load_store);
 EXTRA_EXT(ARB_viewport_array);
+EXTRA_EXT(ARB_compute_shader);
+EXTRA_EXT(ARB_gpu_shader5);
+EXTRA_EXT2(ARB_transform_feedback3, ARB_gpu_shader5);
 
 static const int
 extra_ARB_color_buffer_float_or_glcore[] = {
@@ -644,7 +645,7 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
    case GL_TEXTURE_COORD_ARRAY_SIZE:
    case GL_TEXTURE_COORD_ARRAY_TYPE:
    case GL_TEXTURE_COORD_ARRAY_STRIDE:
-      array = &ctx->Array.ArrayObj->VertexAttrib[VERT_ATTRIB_TEX(ctx->Array.ActiveTexture)];
+      array = &ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_TEX(ctx->Array.ActiveTexture)];
       v->value_int = *(GLuint *) ((char *) array + d->offset);
       break;
 
@@ -830,7 +831,7 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
    case GL_SECONDARY_COLOR_ARRAY_BUFFER_BINDING_ARB:
    case GL_FOG_COORDINATE_ARRAY_BUFFER_BINDING_ARB:
       buffer_obj = (struct gl_buffer_object **)
-	 ((char *) ctx->Array.ArrayObj + d->offset);
+	 ((char *) ctx->Array.VAO + d->offset);
       v->value_int = (*buffer_obj)->Name;
       break;
    case GL_ARRAY_BUFFER_BINDING_ARB:
@@ -838,10 +839,10 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
       break;
    case GL_TEXTURE_COORD_ARRAY_BUFFER_BINDING_ARB:
       v->value_int =
-	 ctx->Array.ArrayObj->VertexBinding[VERT_ATTRIB_TEX(ctx->Array.ActiveTexture)].BufferObj->Name;
+	 ctx->Array.VAO->VertexBinding[VERT_ATTRIB_TEX(ctx->Array.ActiveTexture)].BufferObj->Name;
       break;
    case GL_ELEMENT_ARRAY_BUFFER_BINDING_ARB:
-      v->value_int = ctx->Array.ArrayObj->ElementArrayBufferObj->Name;
+      v->value_int = ctx->Array.VAO->IndexBufferObj->Name;
       break;
 
    /* ARB_copy_buffer */
@@ -882,7 +883,7 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
 	 ctx->CurrentRenderbuffer ? ctx->CurrentRenderbuffer->Name : 0;
       break;
    case GL_POINT_SIZE_ARRAY_BUFFER_BINDING_OES:
-      v->value_int = ctx->Array.ArrayObj->VertexBinding[VERT_ATTRIB_POINT_SIZE].BufferObj->Name;
+      v->value_int = ctx->Array.VAO->VertexBinding[VERT_ATTRIB_POINT_SIZE].BufferObj->Name;
       break;
 
    case GL_FOG_COLOR:
@@ -1190,7 +1191,7 @@ find_value(const char *func, GLenum pname, void **p, union value *v)
       *p = ((char *) ctx + d->offset);
       return d;
    case LOC_ARRAY:
-      *p = ((char *) ctx->Array.ArrayObj + d->offset);
+      *p = ((char *) ctx->Array.VAO + d->offset);
       return d;
    case LOC_TEXUNIT:
       unit = &ctx->Texture.Unit[ctx->Texture.CurrentUnit];
@@ -1853,7 +1854,7 @@ find_value_indexed(const char *func, GLenum pname, GLuint index, union value *v)
           goto invalid_enum;
       if (index >= ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs)
           goto invalid_value;
-      v->value_int = ctx->Array.ArrayObj->VertexBinding[VERT_ATTRIB_GENERIC(index)].InstanceDivisor;
+      v->value_int = ctx->Array.VAO->VertexBinding[VERT_ATTRIB_GENERIC(index)].InstanceDivisor;
       return TYPE_INT;
 
    case GL_VERTEX_BINDING_OFFSET:
@@ -1861,7 +1862,7 @@ find_value_indexed(const char *func, GLenum pname, GLuint index, union value *v)
           goto invalid_enum;
       if (index >= ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs)
           goto invalid_value;
-      v->value_int = ctx->Array.ArrayObj->VertexBinding[VERT_ATTRIB_GENERIC(index)].Offset;
+      v->value_int = ctx->Array.VAO->VertexBinding[VERT_ATTRIB_GENERIC(index)].Offset;
       return TYPE_INT;
 
    case GL_VERTEX_BINDING_STRIDE:
@@ -1869,7 +1870,7 @@ find_value_indexed(const char *func, GLenum pname, GLuint index, union value *v)
           goto invalid_enum;
       if (index >= ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs)
           goto invalid_value;
-      v->value_int = ctx->Array.ArrayObj->VertexBinding[VERT_ATTRIB_GENERIC(index)].Stride;
+      v->value_int = ctx->Array.VAO->VertexBinding[VERT_ATTRIB_GENERIC(index)].Stride;
 
    /* ARB_shader_image_load_store */
    case GL_IMAGE_BINDING_NAME: {
@@ -1928,6 +1929,22 @@ find_value_indexed(const char *func, GLenum pname, GLuint index, union value *v)
          goto invalid_value;
 
       v->value_int = ctx->ImageUnits[index].Format;
+      return TYPE_INT;
+
+   case GL_MAX_COMPUTE_WORK_GROUP_COUNT:
+      if (!_mesa_is_desktop_gl(ctx) || !ctx->Extensions.ARB_compute_shader)
+         goto invalid_enum;
+      if (index >= 3)
+         goto invalid_value;
+      v->value_int = ctx->Const.MaxComputeWorkGroupCount[index];
+      return TYPE_INT;
+
+   case GL_MAX_COMPUTE_WORK_GROUP_SIZE:
+      if (!_mesa_is_desktop_gl(ctx) || !ctx->Extensions.ARB_compute_shader)
+         goto invalid_enum;
+      if (index >= 3)
+         goto invalid_value;
+      v->value_int = ctx->Const.MaxComputeWorkGroupSize[index];
       return TYPE_INT;
    }
 

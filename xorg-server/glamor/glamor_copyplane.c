@@ -30,43 +30,43 @@
 
 static Bool
 _glamor_copy_plane(DrawablePtr pSrc, DrawablePtr pDst, GCPtr pGC,
-		   int srcx, int srcy, int w, int h, int dstx, int dsty,
-		   unsigned long bitPlane, RegionPtr *pRegion, Bool fallback)
+                   int srcx, int srcy, int w, int h, int dstx, int dsty,
+                   unsigned long bitPlane, RegionPtr *pRegion, Bool fallback)
 {
-	if (!fallback 
-	    && glamor_ddx_fallback_check_gc(pGC)
-	    && glamor_ddx_fallback_check_pixmap(pSrc)
-	    && glamor_ddx_fallback_check_pixmap(pDst))
-		goto fail;
+    if (!fallback && glamor_ddx_fallback_check_gc(pGC)
+        && glamor_ddx_fallback_check_pixmap(pSrc)
+        && glamor_ddx_fallback_check_pixmap(pDst))
+        goto fail;
 
-	glamor_prepare_access(pDst, GLAMOR_ACCESS_RW);
-	glamor_prepare_access(pSrc, GLAMOR_ACCESS_RO);
-	*pRegion = fbCopyPlane(pSrc, pDst, pGC, srcx, srcy, w, h,
-			  dstx, dsty, bitPlane);
-	glamor_finish_access(pSrc, GLAMOR_ACCESS_RO);
-	glamor_finish_access(pDst, GLAMOR_ACCESS_RW);
-	return TRUE;
+    glamor_prepare_access(pDst, GLAMOR_ACCESS_RW);
+    glamor_prepare_access(pSrc, GLAMOR_ACCESS_RO);
+    *pRegion = fbCopyPlane(pSrc, pDst, pGC, srcx, srcy, w, h,
+                           dstx, dsty, bitPlane);
+    glamor_finish_access(pSrc, GLAMOR_ACCESS_RO);
+    glamor_finish_access(pDst, GLAMOR_ACCESS_RW);
+    return TRUE;
 
  fail:
-	return FALSE;
+    return FALSE;
 }
 
 RegionPtr
 glamor_copy_plane(DrawablePtr pSrc, DrawablePtr pDst, GCPtr pGC,
-		  int srcx, int srcy, int w, int h, int dstx, int dsty,
-		  unsigned long bitPlane)
+                  int srcx, int srcy, int w, int h, int dstx, int dsty,
+                  unsigned long bitPlane)
 {
-	RegionPtr ret;
-	_glamor_copy_plane(pSrc, pDst, pGC, srcx, srcy, w, h,
-			   dstx, dsty, bitPlane, &ret, TRUE);
-	return ret;
+    RegionPtr ret;
+
+    _glamor_copy_plane(pSrc, pDst, pGC, srcx, srcy, w, h,
+                       dstx, dsty, bitPlane, &ret, TRUE);
+    return ret;
 }
 
 Bool
 glamor_copy_plane_nf(DrawablePtr pSrc, DrawablePtr pDst, GCPtr pGC,
-		     int srcx, int srcy, int w, int h, int dstx, int dsty,
-		     unsigned long bitPlane, RegionPtr *pRegion)
+                     int srcx, int srcy, int w, int h, int dstx, int dsty,
+                     unsigned long bitPlane, RegionPtr *pRegion)
 {
-	return _glamor_copy_plane(pSrc, pDst, pGC, srcx, srcy, w, h,
-				  dstx, dsty, bitPlane, pRegion, FALSE);
+    return _glamor_copy_plane(pSrc, pDst, pGC, srcx, srcy, w, h,
+                              dstx, dsty, bitPlane, pRegion, FALSE);
 }

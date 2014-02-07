@@ -188,6 +188,8 @@ _mesa_validate_shader_target(const struct gl_context *ctx, GLenum type)
       return ctx == NULL || ctx->Extensions.ARB_vertex_shader;
    case GL_GEOMETRY_SHADER_ARB:
       return ctx == NULL || _mesa_has_geometry_shaders(ctx);
+   case GL_COMPUTE_SHADER:
+      return ctx == NULL || ctx->Extensions.ARB_compute_shader;
    default:
       return false;
    }
@@ -661,6 +663,24 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname, GLint *param
 
       *params = shProg->NumAtomicBuffers;
       return;
+   case GL_COMPUTE_WORK_GROUP_SIZE: {
+      int i;
+      if (!_mesa_is_desktop_gl(ctx) || !ctx->Extensions.ARB_compute_shader)
+         break;
+      if (!shProg->LinkStatus) {
+         _mesa_error(ctx, GL_INVALID_OPERATION, "glGetProgramiv(program not "
+                     "linked)");
+         return;
+      }
+      if (shProg->_LinkedShaders[MESA_SHADER_COMPUTE] == NULL) {
+         _mesa_error(ctx, GL_INVALID_OPERATION, "glGetProgramiv(no compute "
+                     "shaders)");
+         return;
+      }
+      for (i = 0; i < 3; i++)
+         params[i] = shProg->Comp.LocalSize[i];
+      return;
+   }
    default:
       break;
    }
@@ -966,6 +986,9 @@ use_shader_program(struct gl_context *ctx, GLenum type,
       case GL_GEOMETRY_SHADER_ARB:
 	 /* Empty for now. */
 	 break;
+      case GL_COMPUTE_SHADER:
+         /* Empty for now. */
+         break;
       case GL_FRAGMENT_SHADER:
 	 if (*target == ctx->Shader._CurrentFragmentProgram) {
 	    _mesa_reference_shader_program(ctx,
@@ -989,6 +1012,7 @@ _mesa_use_program(struct gl_context *ctx, struct gl_shader_program *shProg)
    use_shader_program(ctx, GL_VERTEX_SHADER, shProg);
    use_shader_program(ctx, GL_GEOMETRY_SHADER_ARB, shProg);
    use_shader_program(ctx, GL_FRAGMENT_SHADER, shProg);
+   use_shader_program(ctx, GL_COMPUTE_SHADER, shProg);
    _mesa_active_program(ctx, shProg, "glUseProgram");
 
    if (ctx->Driver.UseProgram)
@@ -1838,6 +1862,13 @@ _mesa_copy_linked_program_data(gl_shader_stage type,
       dst_gp->OutputType = src->Geom.OutputType;
       dst->UsesClipDistanceOut = src->Geom.UsesClipDistance;
       dst_gp->UsesEndPrimitive = src->Geom.UsesEndPrimitive;
+   }
+      break;
+   case MESA_SHADER_COMPUTE: {
+      struct gl_compute_program *dst_cp = (struct gl_compute_program *) dst;
+      int i;
+      for (i = 0; i < 3; i++)
+         dst_cp->LocalSize[i] = src->Comp.LocalSize[i];
    }
       break;
    default:

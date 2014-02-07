@@ -76,19 +76,17 @@ static void swrastSetTexBuffer2(__DRIcontext *pDRICtx, GLint target,
     struct dri_context *dri_ctx;
     int x, y, w, h;
     __DRIscreen *sPriv = dPriv->driScreenPriv;
-    struct gl_texture_unit *texUnit;
     struct gl_texture_object *texObj;
     struct gl_texture_image *texImage;
     struct swrast_texture_image *swImage;
     uint32_t internalFormat;
-    gl_format texFormat;
+    mesa_format texFormat;
 
     dri_ctx = (struct dri_context *)pDRICtx->driverPrivate;
 
     internalFormat = (texture_format == __DRI_TEXTURE_FORMAT_RGB ? 3 : 4);
 
-    texUnit = _mesa_get_current_tex_unit(&dri_ctx->Base);
-    texObj = _mesa_select_tex_object(&dri_ctx->Base, texUnit, target);
+    texObj = _mesa_get_current_tex_object(&dri_ctx->Base, target);
     texImage = _mesa_get_tex_image(&dri_ctx->Base, texObj, target, 0);
     swImage = swrast_texture_image(texImage);
 
@@ -97,9 +95,9 @@ static void swrastSetTexBuffer2(__DRIcontext *pDRICtx, GLint target,
     sPriv->swrast_loader->getDrawableInfo(dPriv, &x, &y, &w, &h, dPriv->loaderPrivate);
 
     if (texture_format == __DRI_TEXTURE_FORMAT_RGB)
-	texFormat = MESA_FORMAT_XRGB8888;
+	texFormat = MESA_FORMAT_B8G8R8X8_UNORM;
     else
-	texFormat = MESA_FORMAT_ARGB8888;
+	texFormat = MESA_FORMAT_B8G8R8A8_UNORM;
 
     _mesa_init_teximage_fields(&dri_ctx->Base, texImage,
 			       w, h, 1, 0, internalFormat, texFormat);
@@ -135,7 +133,7 @@ swrastFillInModes(__DRIscreen *psp,
     __DRIconfig **configs;
     unsigned depth_buffer_factor;
     unsigned back_buffer_factor;
-    gl_format format;
+    mesa_format format;
 
     /* GLX_SWAP_COPY_OML is only supported because the Intel driver doesn't
      * support pageflipping at all.
@@ -171,13 +169,13 @@ swrastFillInModes(__DRIscreen *psp,
 
     switch (pixel_bits) {
     case 16:
-	format = MESA_FORMAT_RGB565;
+	format = MESA_FORMAT_B5G6R5_UNORM;
 	break;
     case 24:
-        format = MESA_FORMAT_XRGB8888;
+        format = MESA_FORMAT_B8G8R8X8_UNORM;
 	break;
     case 32:
-	format = MESA_FORMAT_ARGB8888;
+	format = MESA_FORMAT_B8G8R8A8_UNORM;
 	break;
     default:
 	fprintf(stderr, "[%s:%u] bad depth %d\n", __FUNCTION__, __LINE__,
@@ -350,25 +348,25 @@ swrast_new_renderbuffer(const struct gl_config *visual, __DRIdrawable *dPriv,
 
     switch (pixel_format) {
     case PF_A8R8G8B8:
-	rb->Format = MESA_FORMAT_ARGB8888;
+	rb->Format = MESA_FORMAT_B8G8R8A8_UNORM;
 	rb->InternalFormat = GL_RGBA;
 	rb->_BaseFormat = GL_RGBA;
 	xrb->bpp = 32;
 	break;
     case PF_X8R8G8B8:
-	rb->Format = MESA_FORMAT_ARGB8888; /* XXX */
+	rb->Format = MESA_FORMAT_B8G8R8A8_UNORM; /* XXX */
 	rb->InternalFormat = GL_RGB;
 	rb->_BaseFormat = GL_RGB;
 	xrb->bpp = 32;
 	break;
     case PF_R5G6B5:
-	rb->Format = MESA_FORMAT_RGB565;
+	rb->Format = MESA_FORMAT_B5G6R5_UNORM;
 	rb->InternalFormat = GL_RGB;
 	rb->_BaseFormat = GL_RGB;
 	xrb->bpp = 16;
 	break;
     case PF_R3G3B2:
-	rb->Format = MESA_FORMAT_RGB332;
+	rb->Format = MESA_FORMAT_B2G3R3_UNORM;
 	rb->InternalFormat = GL_RGB;
 	rb->_BaseFormat = GL_RGB;
 	xrb->bpp = 8;
@@ -632,14 +630,14 @@ viewport(struct gl_context *ctx)
     swrast_check_and_update_window_size(ctx, read);
 }
 
-static gl_format swrastChooseTextureFormat(struct gl_context * ctx,
+static mesa_format swrastChooseTextureFormat(struct gl_context * ctx,
                                            GLenum target,
 					   GLint internalFormat,
 					   GLenum format,
 					   GLenum type)
 {
     if (internalFormat == GL_RGB)
-	return MESA_FORMAT_XRGB8888;
+	return MESA_FORMAT_B8G8R8X8_UNORM;
     return _mesa_choose_tex_format(ctx, target, internalFormat, format, type);
 }
 

@@ -77,6 +77,7 @@ _mesa_ast_to_hir(exec_list *instructions, struct _mesa_glsl_parse_state *state)
    state->toplevel_ir = instructions;
 
    state->gs_input_prim_type_specified = false;
+   state->cs_input_local_size_specified = false;
 
    /* Section 4.2 of the GLSL 1.20 specification states:
     * "The built-in functions are scoped in a scope outside the global scope
@@ -2155,6 +2156,12 @@ validate_explicit_location(const struct ast_type_qualifier *qual,
 
       fail = true;
       break;
+
+   case MESA_SHADER_COMPUTE:
+      _mesa_glsl_error(loc, state,
+                       "compute shader variables cannot be given "
+                       "explicit locations");
+      return;
    };
 
    if (fail) {
@@ -2275,6 +2282,13 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
       var->data.mode = ir_var_uniform;
 
    if (!is_parameter && is_varying_var(var, state->stage)) {
+      /* User-defined ins/outs are not permitted in compute shaders. */
+      if (state->stage == MESA_SHADER_COMPUTE) {
+         _mesa_glsl_error(loc, state,
+                          "user-defined input and output variables are not "
+                          "permitted in compute shaders");
+      }
+
       /* This variable is being used to link data between shader stages (in
        * pre-glsl-1.30 parlance, it's a "varying").  Check that it has a type
        * that is allowed for such purposes.
@@ -2337,6 +2351,9 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
 	 if (var->data.mode == ir_var_shader_in)
 	    var->data.invariant = true;
 	 break;
+      case MESA_SHADER_COMPUTE:
+         /* Invariance isn't meaningful in compute shaders. */
+         break;
       }
    }
 
@@ -4029,17 +4046,22 @@ ast_jump_statement::hir(exec_list *instructions,
 	 _mesa_glsl_error(& loc, state,
 			  "break may only appear in a loop or a switch");
       } else {
-	 /* For a loop, inline the for loop expression again,
-	  * since we don't know where near the end of
-	  * the loop body the normal copy of it
-	  * is going to be placed.
+	 /* For a loop, inline the for loop expression again, since we don't
+	  * know where near the end of the loop body the normal copy of it is
+	  * going to be placed.  Same goes for the condition for a do-while
+	  * loop.
 	  */
 	 if (state->loop_nesting_ast != NULL &&
-	     mode == ast_continue &&
-	     state->loop_nesting_ast->rest_expression) {
-	    state->loop_nesting_ast->rest_expression->hir(instructions,
-							  state);
-	 }
+	     mode == ast_continue) {
+            if (state->loop_nesting_ast->rest_expression) {
+               state->loop_nesting_ast->rest_expression->hir(instructions,
+                                                             state);
+            }
+            if (state->loop_nesting_ast->mode ==
+                ast_iteration_statement::ast_do_while) {
+               state->loop_nesting_ast->condition_to_hir(instructions, state);
+            }
+         }
 
 	 if (state->switch_state.is_switch_innermost &&
 	     mode == ast_break) {
@@ -4369,14 +4391,14 @@ ast_case_label::hir(exec_list *instructions,
 }
 
 void
-ast_iteration_statement::condition_to_hir(ir_loop *stmt,
+ast_iteration_statement::condition_to_hir(exec_list *instructions,
 					  struct _mesa_glsl_parse_state *state)
 {
    void *ctx = state;
 
    if (condition != NULL) {
       ir_rvalue *const cond =
-	 condition->hir(& stmt->body_instructions, state);
+	 condition->hir(instructions, state);
 
       if ((cond == NULL)
 	  || !cond->type->is_boolean() || !cond->type->is_scalar()) {
@@ -4397,7 +4419,7 @@ ast_iteration_statement::condition_to_hir(ir_loop *stmt,
 	    new(ctx) ir_loop_jump(ir_loop_jump::jump_break);
 
 	 if_stmt->then_instructions.push_tail(break_stmt);
-	 stmt->body_instructions.push_tail(if_stmt);
+	 instructions->push_tail(if_stmt);
       }
    }
 }
@@ -4432,7 +4454,7 @@ ast_iteration_statement::hir(exec_list *instructions,
    state->switch_state.is_switch_innermost = false;
 
    if (mode != ast_do_while)
-      condition_to_hir(stmt, state);
+      condition_to_hir(&stmt->body_instructions, state);
 
    if (body != NULL)
       body->hir(& stmt->body_instructions, state);
@@ -4441,7 +4463,7 @@ ast_iteration_statement::hir(exec_list *instructions,
       rest_expression->hir(& stmt->body_instructions, state);
 
    if (mode == ast_do_while)
-      condition_to_hir(stmt, state);
+      condition_to_hir(&stmt->body_instructions, state);
 
    if (mode != ast_do_while)
       state->symbols->pop_scope();
@@ -5284,6 +5306,84 @@ ast_gs_input_layout::hir(exec_list *instructions,
          }
       }
    }
+
+   return NULL;
+}
+
+
+ir_rvalue *
+ast_cs_input_layout::hir(exec_list *instructions,
+                         struct _mesa_glsl_parse_state *state)
+{
+   YYLTYPE loc = this->get_location();
+
+   /* If any compute input layout declaration preceded this one, make sure it
+    * was consistent with this one.
+    */
+   if (state->cs_input_local_size_specified) {
+      for (int i = 0; i < 3; i++) {
+         if (state->cs_input_local_size[i] != this->local_size[i]) {
+            _mesa_glsl_error(&loc, state,
+                             "compute shader input layout does not match"
+                             " previous declaration");
+            return NULL;
+         }
+      }
+   }
+
+   /* From the ARB_compute_shader specification:
+    *
+    *     If the local size of the shader in any dimension is greater
+    *     than the maximum size supported by the implementation for that
+    *     dimension, a compile-time error results.
+    *
+    * It is not clear from the spec how the error should be reported if
+    * the total size of the work group exceeds
+    * MAX_COMPUTE_WORK_GROUP_INVOCATIONS, but it seems reasonable to
+    * report it at compile time as well.
+    */
+   GLuint64 total_invocations = 1;
+   for (int i = 0; i < 3; i++) {
+      if (this->local_size[i] > state->ctx->Const.MaxComputeWorkGroupSize[i]) {
+         _mesa_glsl_error(&loc, state,
+                          "local_size_%c exceeds MAX_COMPUTE_WORK_GROUP_SIZE"
+                          " (%d)", 'x' + i,
+                          state->ctx->Const.MaxComputeWorkGroupSize[i]);
+         break;
+      }
+      total_invocations *= this->local_size[i];
+      if (total_invocations >
+          state->ctx->Const.MaxComputeWorkGroupInvocations) {
+         _mesa_glsl_error(&loc, state,
+                          "product of local_sizes exceeds "
+                          "MAX_COMPUTE_WORK_GROUP_INVOCATIONS (%d)",
+                          state->ctx->Const.MaxComputeWorkGroupInvocations);
+         break;
+      }
+   }
+
+   state->cs_input_local_size_specified = true;
+   for (int i = 0; i < 3; i++)
+      state->cs_input_local_size[i] = this->local_size[i];
+
+   /* We may now declare the built-in constant gl_WorkGroupSize (see
+    * builtin_variable_generator::generate_constants() for why we didn't
+    * declare it earlier).
+    */
+   ir_variable *var = new(state->symbols)
+      ir_variable(glsl_type::ivec3_type, "gl_WorkGroupSize", ir_var_auto);
+   var->data.how_declared = ir_var_declared_implicitly;
+   var->data.read_only = true;
+   instructions->push_tail(var);
+   state->symbols->add_variable(var);
+   ir_constant_data data;
+   memset(&data, 0, sizeof(data));
+   for (int i = 0; i < 3; i++)
+      data.i[i] = this->local_size[i];
+   var->constant_value = new(var) ir_constant(glsl_type::ivec3_type, &data);
+   var->constant_initializer =
+      new(var) ir_constant(glsl_type::ivec3_type, &data);
+   var->data.has_initializer = true;
 
    return NULL;
 }

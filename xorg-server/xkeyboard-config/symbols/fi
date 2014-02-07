@@ -83,6 +83,14 @@ xkb_symbols "kotoistus" {
 };
 
 partial alphanumeric_keys
+xkb_symbols "winkeys" {
+
+    include "fi(kotoistus)"
+    name[Group1]="Finnish (Winkeys)";
+    include "eurosign(5)"
+};
+
+partial alphanumeric_keys
 xkb_symbols "classic" {
 
     include "fi(fi)"

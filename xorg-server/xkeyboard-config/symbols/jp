@@ -243,8 +243,8 @@ xkb_symbols "nicola_f_bs" {
 // Copied from macintosh_vndr/jp
 partial alphanumeric_keys
 xkb_symbols "mac" {
-    name[Group1]= "Japanese (Macintosh)";
     include "jp(kana)"
+    name[Group1]= "Japanese (Macintosh)";
 
     replace key <CAPS> { [ Caps_Lock ] };
 };
@@ -256,8 +256,8 @@ xkb_symbols "hztg_escape" {
 
 partial alphanumeric_keys
 xkb_symbols "dvorak" {
-    name[Group1]= "Japanese (Dvorak)";
     include "jp(OADG109A)"
+    name[Group1]= "Japanese (Dvorak)";
 
     key <AE11> { [ at, grave		] };
 

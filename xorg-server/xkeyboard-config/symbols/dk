@@ -42,6 +42,14 @@ xkb_symbols "nodeadkeys" {
 
 };
 
+partial alphanumeric_keys
+xkb_symbols "winkeys" {
+
+    include "dk(basic)"
+    name[Group1] = "Danish (Winkeys)";
+    include "eurosign(5)"
+};
+
 // Copied from macintosh_vndr/dk
 partial alphanumeric_keys
 xkb_symbols "mac" {

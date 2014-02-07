@@ -1,9 +1,9 @@
 default  partial alphanumeric_keys
 xkb_symbols "basic" {
 
-    name[Group1]="Slovenian";
-
     include "rs(latin)"
+
+    name[Group1]="Slovenian";
 
     key <TLDE> { type[Group1]="TWO_LEVEL", [ cedilla, diaeresis ] };
 };
@@ -11,20 +11,19 @@ xkb_symbols "basic" {
 partial alphanumeric_keys
 xkb_symbols "us" {
 
-    name[Group1]= "Slovenian (US keyboard with Slovenian letters)";
-
     include "rs(latinyz)"
+
+    name[Group1]= "Slovenian (US keyboard with Slovenian letters)";
 
     key <TLDE> { type[Group1]="TWO_LEVEL", [ cedilla, diaeresis ] };
 };
 
-
 partial alphanumeric_keys
 xkb_symbols "alternatequotes" {
 
-    name[Group1]= "Slovenian (use guillemets for quotes)";
-
     include "rs(latinalternatequotes)"
+
+    name[Group1]= "Slovenian (with guillemets for quotes)";
 
     key <TLDE> { type[Group1]="TWO_LEVEL", [ cedilla, diaeresis ] };
 };

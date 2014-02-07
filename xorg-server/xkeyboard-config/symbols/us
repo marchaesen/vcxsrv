@@ -59,9 +59,8 @@ xkb_symbols "basic" {
 partial alphanumeric_keys
 xkb_symbols "euro" {
 
-    name[Group1]= "English (US, with euro on 5)";
-
     include "us(basic)"
+    name[Group1]= "English (US, with euro on 5)";
 
     include "eurosign(5)"
 
@@ -72,9 +71,8 @@ xkb_symbols "euro" {
 partial alphanumeric_keys
 xkb_symbols "intl" {
 
-    name[Group1]= "English (US, international with dead keys)";
-
     include "us(basic)"
+    name[Group1]= "English (US, international with dead keys)";
 
     key <TLDE> { [dead_grave, dead_tilde,         grave,       asciitilde ] };
     key <AE01> { [	   1,     exclam,    exclamdown,      onesuperior ] };
@@ -163,9 +161,8 @@ xkb_symbols "intl" {
 partial alphanumeric_keys
 xkb_symbols "alt-intl" {
 
-  name[Group1]= "English (US, alternative international)";
-
   include "us"
+  name[Group1]= "English (US, alternative international)";
 
   key <TLDE> { [ dead_grave, dead_tilde,    grave,	      asciitilde    ] };
   key <AE05> { [          5, percent,	    EuroSign			    ] };
@@ -257,9 +254,8 @@ xkb_symbols "dvorak" {
 partial alphanumeric_keys
 xkb_symbols "dvorak-intl" {
 
-    name[Group1]= "English (Dvorak, international with dead keys)";
-
     include "us(dvorak)"
+    name[Group1]= "English (Dvorak, international with dead keys)";
 
     key <TLDE> { [dead_grave, dead_tilde,         grave,       asciitilde ] };
 
@@ -336,9 +332,8 @@ xkb_symbols "dvorak-intl" {
 partial alphanumeric_keys
 xkb_symbols "dvorak-alt-intl" {
 
-    name[Group1]= "English (Dvorak alternative international no dead keys)";
-
     include "us(dvorak)"
+    name[Group1]= "English (Dvorak alternative international no dead keys)";
 
     key <AE04> { [         4,  dollar,    EuroSign ] };
 
@@ -548,8 +543,8 @@ xkb_symbols "dvorak-classic" {
 // symbols that usually follows, accented characters are possible for I18N.
 partial alphanumeric_keys
 xkb_symbols "dvp" {
-    include "us(dvorak)"
 
+    include "us(dvorak)"
     name[Group1] = "English (programmer Dvorak)";
 
     //             Unmodified       Shift           AltGr            Shift+AltGr
@@ -619,9 +614,8 @@ xkb_symbols "dvp" {
 partial alphanumeric_keys
 xkb_symbols "rus" {
 
-    name[Group1]= "Russian (US, phonetic)";
-
     include "us(basic)"
+    name[Group1]= "Russian (US, phonetic)";
 
 key.type[group1]="FOUR_LEVEL_ALPHABETIC";
 
@@ -732,6 +726,7 @@ xkb_symbols "mac" {
 
 partial alphanumeric_keys
 xkb_symbols "colemak" {
+
     include "us"
     name[Group1]= "English (Colemak)";
 
@@ -812,9 +807,8 @@ xkb_symbols "colemak" {
 partial alphanumeric_keys
 xkb_symbols "altgr-intl" {
 
-   name[Group1]= "English (international AltGr dead keys)";
-
    include "us(intl)"
+   name[Group1]= "English (international AltGr dead keys)";
 
 // five dead keys moved into level3:
 
@@ -1175,9 +1169,8 @@ xkb_symbols "chr" {
 partial alphanumeric_keys
 xkb_symbols "hbs" {
 
-  name[Group1]= "Serbo-Croatian (US)";
-
   include "us"
+  name[Group1]= "Serbo-Croatian (US)";
 
   key <TLDE> { [ grave, asciitilde ] };
   key <AE06> { [ 6, dead_caron, asciicircum, asciicircum ] };
@@ -1247,9 +1240,8 @@ xkb_symbols "htcdream" {
 partial alphanumeric_keys
 xkb_symbols "workman" {
 
-    name[Group1]= "English (Workman)";
-
     include "us(basic)"
+    name[Group1]= "English (Workman)";
 
     key <AD01> {  [   q,  Q   ] };
     key <AD02> {  [   d,  D   ] };
@@ -1289,9 +1281,8 @@ xkb_symbols "workman" {
 partial alphanumeric_keys
 xkb_symbols "workman-intl" {
 
-    name[Group1]= "English (Workman, international with dead keys)";
-
     include "us(intl)"
+    name[Group1]= "English (Workman, international with dead keys)";
 
     key <AD01> { [     q,          Q,    adiaeresis,       Adiaeresis ] };
     key <AD02> { [     d,          D,           eth,              ETH ] };
@@ -1337,11 +1328,9 @@ xkb_symbols "workman-intl" {
 partial alphanumeric_keys
 xkb_symbols "norman" {
 
+    include "us(basic)"
     name[Group1]= "English (Norman)";
 
-    include "us(basic)"
-
-    // Alphanumeric section
     key <AD01> { [ q, Q ] };
     key <AD02> { [ w, W ] };
     key <AD03> { [ d, D ] };
@@ -1371,7 +1360,6 @@ xkb_symbols "norman" {
     key <AB05> { [ b, B ] };
     key <AB06> { [ p, P ] };
     key <AB07> { [ m, M ] };
-    // End alphanumeric section
 
     key <CAPS> { [ BackSpace ] };
 
@@ -1383,6 +1371,7 @@ xkb_symbols "norman" {
 // Czech, Slovak and German charecters added as third level symbols to US keyboard layout.
 partial alphanumeric_keys
 xkb_symbols "cz_sk_de" {
+
     include "us"
     name[Group1]="Czech Slovak and German (US)";
 
@@ -1518,7 +1507,6 @@ partial alphanumeric_keys
 xkb_symbols "ats" {
 
     include "us"
-
     name[Group1]= "Atsina";
 
     //Using Dead key to get COMBINING COMMA ABOVE for ejectives on
@@ -1548,7 +1536,6 @@ partial alphanumeric_keys
 xkb_symbols "crd" {
 
   include "us"
-
   name[Group1]= "Coeur d'Alene Salish";
 
   key <AD02> { [         w,           W, U02B7, U02B7 ] };

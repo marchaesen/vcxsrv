@@ -898,12 +898,24 @@ XRequest.RANDR.28: RRGetPanning
 XRequest.RANDR.29: RRSetPanning
 XRequest.RANDR.30: RRSetOutputPrimary
 XRequest.RANDR.31: RRGetOutputPrimary
+XRequest.RANDR.32: RRGetProviders
+XRequest.RANDR.33: RRGetProviderInfo
+XRequest.RANDR.34: RRSetProviderOffloadSink
+XRequest.RANDR.35: RRSetProviderOutputSource
+XRequest.RANDR.36: RRListProviderProperties
+XRequest.RANDR.37: RRQueryProviderProperty
+XRequest.RANDR.38: RRConfigureProviderProperty
+XRequest.RANDR.39: RRChangeProviderProperty
+XRequest.RANDR.40: RRDeleteProviderProperty
+XRequest.RANDR.41: RRGetProviderProperty
 XProtoError.RANDR.0: BadRROutput (invalid Output parameter)
 XlibMessage.RANDR.0: Output id in failed request: 0x%lx
 XProtoError.RANDR.1: BadRRCrtc (invalid Crtc parameter)
 XlibMessage.RANDR.1: Crtc id in failed request: 0x%lx
 XProtoError.RANDR.2: BadRRMode (invalid Mode parameter)
 XlibMessage.RANDR.2: Mode id in failed request: 0x%lx
+XProtoError.RANDR.3: BadRRProvider (invalid Provider parameter)
+XlibMessage.RANDR.3: Provider id in failed request: 0x%lx
 ! RENDER
 XRequest.RENDER.0: RenderQueryVersion
 XRequest.RENDER.1: RenderQueryPictFormats

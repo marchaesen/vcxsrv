@@ -30,6 +30,9 @@
 #ifdef HAVE_SYS_VFS_H
 #include <sys/vfs.h>
 #endif
+#ifdef HAVE_SYS_STATVFS_H
+#include <sys/statvfs.h>
+#endif
 #ifdef HAVE_SYS_STATFS_H
 #include <sys/statfs.h>
 #endif

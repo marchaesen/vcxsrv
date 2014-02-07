@@ -163,9 +163,7 @@ xkb_keycodes "basic" {
     // The entries commented out are never generated because the raw codes
     // in those positions are already used for well-defined keys.
 
-    alias <I01> = <XFER>;
     <I02> =   130;
-    alias <I03> = <NFER>;
     <I04> =   132;
     alias <I05> = <AE13>;
     <I06> =   134;
@@ -287,7 +285,9 @@ xkb_keycodes "basic" {
     <I7A> =   250;
     <I7B> =   251;
     <I7C> =   252;
+    alias <IR7C> = <I7C>;
     <I7D> =   253;
+    alias <IR7D> = <I7D>;
     <I7E> =   254;
     <I7F> =   255;
 

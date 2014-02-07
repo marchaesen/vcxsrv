@@ -30,51 +30,48 @@
 
 static Bool
 _glamor_triangles(CARD8 op,
-		 PicturePtr pSrc,
-		 PicturePtr pDst,
-		 PictFormatPtr maskFormat,
-		 INT16 xSrc, INT16 ySrc, int ntris, xTriangle * tris, Bool fallback)
+                  PicturePtr pSrc,
+                  PicturePtr pDst,
+                  PictFormatPtr maskFormat,
+                  INT16 xSrc, INT16 ySrc, int ntris, xTriangle * tris,
+                  Bool fallback)
 {
-	if (!fallback
-	    && glamor_ddx_fallback_check_pixmap(pDst->pDrawable)
-	    && (!pSrc->pDrawable
-		|| glamor_ddx_fallback_check_pixmap(pSrc->pDrawable)))
-		return FALSE;
+    if (!fallback && glamor_ddx_fallback_check_pixmap(pDst->pDrawable)
+        && (!pSrc->pDrawable
+            || glamor_ddx_fallback_check_pixmap(pSrc->pDrawable)))
+        return FALSE;
 
-	if (glamor_prepare_access_picture(pDst, GLAMOR_ACCESS_RW)) {
-		if (glamor_prepare_access_picture(pSrc,
-						  GLAMOR_ACCESS_RO)) {
+    if (glamor_prepare_access_picture(pDst, GLAMOR_ACCESS_RW)) {
+        if (glamor_prepare_access_picture(pSrc, GLAMOR_ACCESS_RO)) {
 
-			fbTriangles(op, pSrc, pDst, maskFormat, xSrc,
-				    ySrc, ntris, tris);
+            fbTriangles(op, pSrc, pDst, maskFormat, xSrc, ySrc, ntris, tris);
 
-			glamor_finish_access_picture(pSrc, GLAMOR_ACCESS_RO);
-		}
+            glamor_finish_access_picture(pSrc, GLAMOR_ACCESS_RO);
+        }
 
-		glamor_finish_access_picture(pDst, GLAMOR_ACCESS_RW);
-	}
-	return TRUE;
+        glamor_finish_access_picture(pDst, GLAMOR_ACCESS_RW);
+    }
+    return TRUE;
 }
 
 void
 glamor_triangles(CARD8 op,
-		 PicturePtr pSrc,
-		 PicturePtr pDst,
-		 PictFormatPtr maskFormat,
-		 INT16 xSrc, INT16 ySrc, int ntris, xTriangle * tris)
+                 PicturePtr pSrc,
+                 PicturePtr pDst,
+                 PictFormatPtr maskFormat,
+                 INT16 xSrc, INT16 ySrc, int ntris, xTriangle * tris)
 {
-	_glamor_triangles(op, pSrc, pDst, maskFormat, 
-			  xSrc, ySrc, ntris, tris, TRUE);
+    _glamor_triangles(op, pSrc, pDst, maskFormat,
+                      xSrc, ySrc, ntris, tris, TRUE);
 }
 
 Bool
 glamor_triangles_nf(CARD8 op,
-		    PicturePtr pSrc,
-		    PicturePtr pDst,
-		    PictFormatPtr maskFormat,
-		    INT16 xSrc, INT16 ySrc, int ntris, xTriangle * tris)
+                    PicturePtr pSrc,
+                    PicturePtr pDst,
+                    PictFormatPtr maskFormat,
+                    INT16 xSrc, INT16 ySrc, int ntris, xTriangle * tris)
 {
-	return _glamor_triangles(op, pSrc, pDst, maskFormat, 
-				 xSrc, ySrc, ntris, tris, FALSE);
+    return _glamor_triangles(op, pSrc, pDst, maskFormat,
+                             xSrc, ySrc, ntris, tris, FALSE);
 }
-

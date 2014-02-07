@@ -2345,18 +2345,18 @@ def _man_request(self, name, cookie_type, void, aux):
     func_name = self.c_request_name if not aux else self.c_aux_name
 
     def create_link(linkname):
-        name = 'man/%s.3' % linkname
+        name = 'man/%s.%s' % (linkname, section)
         if manpaths:
             sys.stdout.write(name)
         f = open(name, 'w')
-        f.write('.so man3/%s.3' % func_name)
+        f.write('.so man%s/%s.%s' % (section, func_name, section))
         f.close()
 
     if manpaths:
-        sys.stdout.write('man/%s.3 ' % func_name)
+        sys.stdout.write('man/%s.%s ' % (func_name, section))
     # Our CWD is src/, so this will end up in src/man/
-    f = open('man/%s.3' % func_name, 'w')
-    f.write('.TH %s 3  %s "XCB" "XCB Requests"\n' % (func_name, today))
+    f = open('man/%s.%s' % (func_name, section), 'w')
+    f.write('.TH %s %s  "%s" "%s" "XCB Requests"\n' % (func_name, section, center_footer, left_footer))
     # Left-adjust instead of adjusting to both sides
     f.write('.ad l\n')
     f.write('.SH NAME\n')
@@ -2681,14 +2681,14 @@ def _man_request(self, name, cookie_type, void, aux):
                  'have to be handled in the event loop.\n\nIf you want to '
                  'handle errors directly with \\fIxcb_request_check\\fP '
                  'instead, use \\fI%s_checked\\fP. See '
-                 '\\fBxcb-requests(3)\\fP for details.\n') % (base_func_name))
+                 '\\fBxcb-requests(%s)\\fP for details.\n') % (base_func_name, section))
     else:
         f.write(('Returns an \\fI%s\\fP. Errors have to be handled when '
                  'calling the reply function \\fI%s\\fP.\n\nIf you want to '
                  'handle errors in the event loop instead, use '
-                 '\\fI%s_unchecked\\fP. See \\fBxcb-requests(3)\\fP for '
+                 '\\fI%s_unchecked\\fP. See \\fBxcb-requests(%s)\\fP for '
                  'details.\n') %
-                (cookie_type, self.c_reply_name, base_func_name))
+                (cookie_type, self.c_reply_name, base_func_name, section))
     f.write('.SH ERRORS\n')
     if hasattr(self, "doc") and self.doc:
         for errtype, errtext in self.doc.errors.items():
@@ -2706,18 +2706,18 @@ def _man_request(self, name, cookie_type, void, aux):
         f.write('.fi\n')
     f.write('.SH SEE ALSO\n')
     if hasattr(self, "doc") and self.doc:
-        see = ['.BR %s (3)' % 'xcb-requests']
+        see = ['.BR %s (%s)' % ('xcb-requests', section)]
         if self.doc.example:
-            see.append('.BR %s (3)' % 'xcb-examples')
+            see.append('.BR %s (%s)' % ('xcb-examples', section))
         for seename, seetype in self.doc.see.items():
             if seetype == 'program':
                 see.append('.BR %s (1)' % seename)
             elif seetype == 'event':
-                see.append('.BR %s (3)' % _t(('xcb', seename, 'event')))
+                see.append('.BR %s (%s)' % (_t(('xcb', seename, 'event')), section))
             elif seetype == 'request':
-                see.append('.BR %s (3)' % _n(('xcb', seename)))
+                see.append('.BR %s (%s)' % (_n(('xcb', seename)), section))
             elif seetype == 'function':
-                see.append('.BR %s (3)' % seename)
+                see.append('.BR %s (%s)' % (seename, section))
             else:
                 see.append('TODO: %s (type %s)' % (seename, seetype))
         f.write(',\n'.join(see) + '\n')
@@ -2727,10 +2727,10 @@ def _man_request(self, name, cookie_type, void, aux):
 
 def _man_event(self, name):
     if manpaths:
-        sys.stdout.write('man/%s.3 ' % self.c_type)
+        sys.stdout.write('man/%s.%s ' % (self.c_type, section))
     # Our CWD is src/, so this will end up in src/man/
-    f = open('man/%s.3' % self.c_type, 'w')
-    f.write('.TH %s 3  %s "XCB" "XCB Events"\n' % (self.c_type, today))
+    f = open('man/%s.%s' % (self.c_type, section), 'w')
+    f.write('.TH %s %s  "%s" "%s" "XCB Events"\n' % (self.c_type, section, center_footer, left_footer))
     # Left-adjust instead of adjusting to both sides
     f.write('.ad l\n')
     f.write('.SH NAME\n')
@@ -2836,18 +2836,18 @@ def _man_event(self, name):
         f.write('.fi\n')
     f.write('.SH SEE ALSO\n')
     if hasattr(self, "doc") and self.doc:
-        see = ['.BR %s (3)' % 'xcb_generic_event_t']
+        see = ['.BR %s (%s)' % ('xcb_generic_event_t', section)]
         if self.doc.example:
-            see.append('.BR %s (3)' % 'xcb-examples')
+            see.append('.BR %s (%s)' % ('xcb-examples', section))
         for seename, seetype in self.doc.see.items():
             if seetype == 'program':
                 see.append('.BR %s (1)' % seename)
             elif seetype == 'event':
-                see.append('.BR %s (3)' % _t(('xcb', seename, 'event')))
+                see.append('.BR %s (%s)' % (_t(('xcb', seename, 'event')), section))
             elif seetype == 'request':
-                see.append('.BR %s (3)' % _n(('xcb', seename)))
+                see.append('.BR %s (%s)' % (_n(('xcb', seename)), section))
             elif seetype == 'function':
-                see.append('.BR %s (3)' % seename)
+                see.append('.BR %s (%s)' % (seename, section))
             else:
                 see.append('TODO: %s (type %s)' % (seename, seetype))
         f.write(',\n'.join(see) + '\n')
@@ -2979,13 +2979,19 @@ output = {'open'    : c_open,
 
 # Check for the argument that specifies path to the xcbgen python package.
 try:
-    opts, args = getopt.getopt(sys.argv[1:], 'p:m')
+    opts, args = getopt.getopt(sys.argv[1:], 'c:l:s:p:m')
 except getopt.GetoptError as err:
     print(err)
-    print('Usage: c_client.py [-p path] file.xml')
+    print('Usage: c_client.py -c center_footer -l left_footer -s section [-p path] file.xml')
     sys.exit(1)
 
 for (opt, arg) in opts:
+    if opt == '-c':
+        center_footer=arg
+    if opt == '-l':
+        left_footer=arg
+    if opt == '-s':
+        section=arg
     if opt == '-p':
         sys.path.insert(1, arg)
     elif opt == '-m':

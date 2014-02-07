@@ -63,7 +63,7 @@ SProcXIPassiveGrabDevice(ClientPtr client)
     swaps(&stuff->mask_len);
     swaps(&stuff->num_modifiers);
 
-    mods = (uint32_t *) &stuff[1];
+    mods = (uint32_t *) &stuff[1] + stuff->mask_len;
 
     for (i = 0; i < stuff->num_modifiers; i++, mods++) {
         swapl(mods);

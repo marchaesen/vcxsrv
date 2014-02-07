@@ -498,6 +498,14 @@ init_program_limits(struct gl_context *ctx, gl_shader_stage stage,
       prog->MaxInputComponents = 16 * 4; /* old limit not to break tnl and swrast */
       prog->MaxOutputComponents = 16 * 4; /* old limit not to break tnl and swrast */
       break;
+   case MESA_SHADER_COMPUTE:
+      prog->MaxParameters = 0; /* not meaningful for compute shaders */
+      prog->MaxAttribs = 0; /* not meaningful for compute shaders */
+      prog->MaxAddressRegs = 0; /* not meaningful for compute shaders */
+      prog->MaxUniformComponents = 4 * MAX_UNIFORMS;
+      prog->MaxInputComponents = 0; /* not meaningful for compute shaders */
+      prog->MaxOutputComponents = 0; /* not meaningful for compute shaders */
+      break;
    default:
       assert(0 && "Bad shader stage in init_program_limits()");
    }
@@ -587,7 +595,7 @@ _mesa_init_constants(struct gl_context *ctx)
    ctx->Const.MaxSpotExponent = 128.0;
    ctx->Const.MaxViewportWidth = MAX_VIEWPORT_WIDTH;
    ctx->Const.MaxViewportHeight = MAX_VIEWPORT_HEIGHT;
-   ctx->Const.MinMapBufferAlignment = 1;
+   ctx->Const.MinMapBufferAlignment = 64;
 
    /* Driver must override these values if ARB_viewport_array is supported. */
    ctx->Const.MaxViewports = 1;
@@ -692,6 +700,19 @@ _mesa_init_constants(struct gl_context *ctx)
    /* GL_ARB_vertex_attrib_binding */
    ctx->Const.MaxVertexAttribRelativeOffset = 2047;
    ctx->Const.MaxVertexAttribBindings = MAX_VERTEX_GENERIC_ATTRIBS;
+
+   /* GL_ARB_compute_shader */
+   ctx->Const.MaxComputeWorkGroupCount[0] = 65535;
+   ctx->Const.MaxComputeWorkGroupCount[1] = 65535;
+   ctx->Const.MaxComputeWorkGroupCount[2] = 65535;
+   ctx->Const.MaxComputeWorkGroupSize[0] = 1024;
+   ctx->Const.MaxComputeWorkGroupSize[1] = 1024;
+   ctx->Const.MaxComputeWorkGroupSize[2] = 64;
+   ctx->Const.MaxComputeWorkGroupInvocations = 1024;
+
+   /** GL_ARB_gpu_shader5 */
+   ctx->Const.MinFragmentInterpolationOffset = MIN_FRAGMENT_INTERPOLATION_OFFSET;
+   ctx->Const.MaxFragmentInterpolationOffset = MAX_FRAGMENT_INTERPOLATION_OFFSET;
 }
 
 
@@ -1188,8 +1209,8 @@ _mesa_free_context_data( struct gl_context *ctx )
    _mesa_reference_fragprog(ctx, &ctx->FragmentProgram._Current, NULL);
    _mesa_reference_fragprog(ctx, &ctx->FragmentProgram._TexEnvProgram, NULL);
 
-   _mesa_reference_array_object(ctx, &ctx->Array.ArrayObj, NULL);
-   _mesa_reference_array_object(ctx, &ctx->Array.DefaultArrayObj, NULL);
+   _mesa_reference_vao(ctx, &ctx->Array.VAO, NULL);
+   _mesa_reference_vao(ctx, &ctx->Array.DefaultVAO, NULL);
 
    _mesa_free_attrib_data(ctx);
    _mesa_free_buffer_objects(ctx);
