@@ -204,8 +204,6 @@ extern _X_HIDDEN void __glXDisp_VertexAttribs3dvNV(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_VertexAttribs3dvNV(GLbyte * pc);
 extern _X_HIDDEN void __glXDisp_LightModeli(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_LightModeli(GLbyte * pc);
-extern _X_HIDDEN void __glXDisp_VertexAttribs4fvNV(GLbyte * pc);
-extern _X_HIDDEN void __glXDispSwap_VertexAttribs4fvNV(GLbyte * pc);
 extern _X_HIDDEN void __glXDisp_Scaled(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_Scaled(GLbyte * pc);
 extern _X_HIDDEN void __glXDisp_CallLists(GLbyte * pc);
@@ -816,6 +814,8 @@ extern _X_HIDDEN int __glXDisp_GetProgramStringNV(struct __GLXclientStateRec *, 
 extern _X_HIDDEN int __glXDispSwap_GetProgramStringNV(struct __GLXclientStateRec *, GLbyte *);
 extern _X_HIDDEN void __glXDisp_LineWidth(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_LineWidth(GLbyte * pc);
+extern _X_HIDDEN void __glXDisp_VertexAttribs4fvNV(GLbyte * pc);
+extern _X_HIDDEN void __glXDispSwap_VertexAttribs4fvNV(GLbyte * pc);
 extern _X_HIDDEN void __glXDisp_TexGendv(GLbyte * pc);
 extern _X_HIDDEN void __glXDispSwap_TexGendv(GLbyte * pc);
 extern _X_HIDDEN void __glXDisp_ResetMinmax(GLbyte * pc);

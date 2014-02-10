@@ -232,6 +232,12 @@ gles1ExtPlatformStrings = gles2ExtPlatformStrings = [
     ''
 ]
 
+# Insert generation date in a comment for headers not having *GLEXT_VERSION macros
+genDateCommentString = [
+    format("/* Generated on date %s */" % time.strftime("%Y%m%d")),
+    ''
+]
+
 # GL_GLEXT_VERSION is defined only in glext.h
 glextVersionStrings = [
     format("#define GL_GLEXT_VERSION %s" % time.strftime("%Y%m%d")),
@@ -307,7 +313,7 @@ buildList = [
         defaultExtensions = None,                   # No default extensions
         addExtensions     = es1CorePat,             # Add mandatory ES1 extensions in GLES1/gl.h
         removeExtensions  = None,
-        prefixText        = prefixStrings + gles1PlatformStrings,
+        prefixText        = prefixStrings + gles1PlatformStrings + genDateCommentString,
         genFuncPointers   = False,
         protectFile       = protectFile,
         protectFeature    = protectFeature,
@@ -326,7 +332,7 @@ buildList = [
         defaultExtensions = 'gles1',                # Default extensions for GLES 1
         addExtensions     = None,
         removeExtensions  = es1CorePat,             # Remove mandatory ES1 extensions in GLES1/glext.h
-        prefixText        = prefixStrings + gles1ExtPlatformStrings,
+        prefixText        = prefixStrings + gles1ExtPlatformStrings + genDateCommentString,
         genFuncPointers   = True,
         protectFile       = protectFile,
         protectFeature    = protectFeature,
@@ -345,7 +351,7 @@ buildList = [
         defaultExtensions = None,                   # No default extensions
         addExtensions     = None,
         removeExtensions  = None,
-        prefixText        = prefixStrings + gles2PlatformStrings,
+        prefixText        = prefixStrings + gles2PlatformStrings + genDateCommentString,
         genFuncPointers   = False,
         protectFile       = protectFile,
         protectFeature    = protectFeature,
@@ -364,7 +370,7 @@ buildList = [
         defaultExtensions = 'gles2',                # Default extensions for GLES 2
         addExtensions     = None,
         removeExtensions  = None,
-        prefixText        = prefixStrings + gles2ExtPlatformStrings,
+        prefixText        = prefixStrings + gles2ExtPlatformStrings + genDateCommentString,
         genFuncPointers   = True,
         protectFile       = protectFile,
         protectFeature    = protectFeature,
@@ -383,7 +389,7 @@ buildList = [
         defaultExtensions = None,                   # No default extensions
         addExtensions     = None,
         removeExtensions  = None,
-        prefixText        = prefixStrings + gles3PlatformStrings,
+        prefixText        = prefixStrings + gles3PlatformStrings + genDateCommentString,
         genFuncPointers   = False,
         protectFile       = protectFile,
         protectFeature    = protectFeature,
@@ -402,11 +408,11 @@ buildList = [
         defaultExtensions = None,                   # No default extensions
         addExtensions     = None,
         removeExtensions  = None,
-        prefixText        = prefixStrings + eglPlatformStrings + eglextVersionStrings,
+        prefixText        = prefixStrings + eglPlatformStrings + genDateCommentString,
         genFuncPointers   = False,
         protectFile       = protectFile,
         protectFeature    = protectFeature,
-        protectProto      = protectProto,
+        protectProto      = False,
         protectProtoStr   = 'EGL_EGLEXT_PROTOTYPES',
         apicall           = 'EGLAPI ',
         apientry          = 'EGLAPIENTRY ',
@@ -441,7 +447,7 @@ buildList = [
         addExtensions     = None,
         removeExtensions  = None,
         # add glXPlatformStrings?
-        prefixText        = prefixStrings,          # No GLXEXT_VERSION
+        prefixText        = prefixStrings + genDateCommentString,
         genFuncPointers   = True,
         protectFile       = protectFile,
         protectFeature    = protectFeature,
@@ -480,7 +486,7 @@ buildList = [
         defaultExtensions = 'wgl',                  # Default extensions for WGL
         addExtensions     = None,
         removeExtensions  = None,
-        prefixText        = prefixStrings + wglPlatformStrings, # No WGLEXT_VERSION
+        prefixText        = prefixStrings + wglPlatformStrings + genDateCommentString,
         genFuncPointers   = True,
         protectFile       = protectFile,
         protectFeature    = protectFeature,

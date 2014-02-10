@@ -878,6 +878,8 @@
 #define glTextureStorage3DEXT(a1, a2, a3, a4, a5, a6, a7) CALL_TextureStorage3DEXT(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7))
 #define glClearBufferData(a1, a2, a3, a4, a5) CALL_ClearBufferData(GET_DISPATCH(), (a1, a2, a3, a4, a5))
 #define glClearBufferSubData(a1, a2, a3, a4, a5, a6, a7) CALL_ClearBufferSubData(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7))
+#define glDispatchCompute(a1, a2, a3) CALL_DispatchCompute(GET_DISPATCH(), (a1, a2, a3))
+#define glDispatchComputeIndirect(a1) CALL_DispatchComputeIndirect(GET_DISPATCH(), (a1))
 #define glTextureView(a1, a2, a3, a4, a5, a6, a7, a8) CALL_TextureView(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7, a8))
 #define glBindVertexBuffer(a1, a2, a3, a4) CALL_BindVertexBuffer(GET_DISPATCH(), (a1, a2, a3, a4))
 #define glVertexAttribBinding(a1, a2) CALL_VertexAttribBinding(GET_DISPATCH(), (a1, a2))
