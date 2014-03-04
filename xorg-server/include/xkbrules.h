@@ -30,11 +30,11 @@
 /***====================================================================***/
 
 typedef struct _XkbRMLVOSet {
-    const char *rules;
-    const char *model;
-    const char *layout;
-    const char *variant;
-    const char *options;
+    char *rules;
+    char *model;
+    char *layout;
+    char *variant;
+    char *options;
 } XkbRMLVOSet;
 
 typedef struct _XkbRF_VarDefs {

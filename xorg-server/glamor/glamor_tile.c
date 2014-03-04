@@ -37,7 +37,6 @@ void
 glamor_init_tile_shader(ScreenPtr screen)
 {
     glamor_screen_private *glamor_priv;
-    glamor_gl_dispatch *dispatch;
     const char *tile_vs =
         "attribute vec4 v_position;\n"
         "attribute vec4 v_texcoord0;\n"
@@ -63,40 +62,39 @@ glamor_init_tile_shader(ScreenPtr screen)
     GLint sampler_uniform_location;
 
     glamor_priv = glamor_get_screen_private(screen);
-    dispatch = glamor_get_dispatch(glamor_priv);
-    glamor_priv->tile_prog = dispatch->glCreateProgram();
-    vs_prog = glamor_compile_glsl_prog(dispatch, GL_VERTEX_SHADER, tile_vs);
-    fs_prog = glamor_compile_glsl_prog(dispatch, GL_FRAGMENT_SHADER, tile_fs);
-    dispatch->glAttachShader(glamor_priv->tile_prog, vs_prog);
-    dispatch->glAttachShader(glamor_priv->tile_prog, fs_prog);
+    glamor_get_context(glamor_priv);
+    glamor_priv->tile_prog = glCreateProgram();
+    vs_prog = glamor_compile_glsl_prog(GL_VERTEX_SHADER, tile_vs);
+    fs_prog = glamor_compile_glsl_prog(GL_FRAGMENT_SHADER, tile_fs);
+    glAttachShader(glamor_priv->tile_prog, vs_prog);
+    glAttachShader(glamor_priv->tile_prog, fs_prog);
 
-    dispatch->glBindAttribLocation(glamor_priv->tile_prog,
-                                   GLAMOR_VERTEX_POS, "v_position");
-    dispatch->glBindAttribLocation(glamor_priv->tile_prog,
-                                   GLAMOR_VERTEX_SOURCE, "v_texcoord0");
-    glamor_link_glsl_prog(dispatch, glamor_priv->tile_prog);
+    glBindAttribLocation(glamor_priv->tile_prog,
+                         GLAMOR_VERTEX_POS, "v_position");
+    glBindAttribLocation(glamor_priv->tile_prog,
+                         GLAMOR_VERTEX_SOURCE, "v_texcoord0");
+    glamor_link_glsl_prog(glamor_priv->tile_prog);
 
     sampler_uniform_location =
-        dispatch->glGetUniformLocation(glamor_priv->tile_prog, "sampler");
-    dispatch->glUseProgram(glamor_priv->tile_prog);
-    dispatch->glUniform1i(sampler_uniform_location, 0);
+        glGetUniformLocation(glamor_priv->tile_prog, "sampler");
+    glUseProgram(glamor_priv->tile_prog);
+    glUniform1i(sampler_uniform_location, 0);
 
     glamor_priv->tile_wh =
-        dispatch->glGetUniformLocation(glamor_priv->tile_prog, "wh");
-    dispatch->glUseProgram(0);
-    glamor_put_dispatch(glamor_priv);
+        glGetUniformLocation(glamor_priv->tile_prog, "wh");
+    glUseProgram(0);
+    glamor_put_context(glamor_priv);
 }
 
 void
 glamor_fini_tile_shader(ScreenPtr screen)
 {
     glamor_screen_private *glamor_priv;
-    glamor_gl_dispatch *dispatch;
 
     glamor_priv = glamor_get_screen_private(screen);
-    dispatch = glamor_get_dispatch(glamor_priv);
-    dispatch->glDeleteProgram(glamor_priv->tile_prog);
-    glamor_put_dispatch(glamor_priv);
+    glamor_get_context(glamor_priv);
+    glDeleteProgram(glamor_priv->tile_prog);
+    glamor_put_context(glamor_priv);
 }
 
 static void
@@ -105,7 +103,6 @@ _glamor_tile(PixmapPtr pixmap, PixmapPtr tile,
 {
     ScreenPtr screen = pixmap->drawable.pScreen;
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
-    glamor_gl_dispatch *dispatch;
     int x1 = x;
     int x2 = x + width;
     int y1 = y;
@@ -127,47 +124,40 @@ _glamor_tile(PixmapPtr pixmap, PixmapPtr tile,
     glamor_set_destination_pixmap_priv_nc(dst_pixmap_priv);
     pixmap_priv_get_dest_scale(dst_pixmap_priv, &dst_xscale, &dst_yscale);
     pixmap_priv_get_scale(src_pixmap_priv, &src_xscale, &src_yscale);
-    dispatch = glamor_get_dispatch(glamor_priv);
-    dispatch->glUseProgram(glamor_priv->tile_prog);
+    glamor_get_context(glamor_priv);
+    glUseProgram(glamor_priv->tile_prog);
 
     glamor_pixmap_fbo_fix_wh_ratio(wh, src_pixmap_priv);
-    dispatch->glUniform2fv(glamor_priv->tile_wh, 1, wh);
-    dispatch->glActiveTexture(GL_TEXTURE0);
-    dispatch->glBindTexture(GL_TEXTURE_2D, src_pixmap_priv->base.fbo->tex);
-    dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-#ifndef GLAMOR_GLES2
-    dispatch->glEnable(GL_TEXTURE_2D);
-#endif
+    glUniform2fv(glamor_priv->tile_wh, 1, wh);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, src_pixmap_priv->base.fbo->tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glamor_set_repeat_normalize_tcoords
         (src_pixmap_priv, RepeatNormal,
          src_xscale, src_yscale,
          tile_x1, tile_y1,
          tile_x2, tile_y2, glamor_priv->yInverted, source_texcoords);
 
-    dispatch->glVertexAttribPointer(GLAMOR_VERTEX_SOURCE, 2,
-                                    GL_FLOAT, GL_FALSE,
-                                    2 * sizeof(float), source_texcoords);
-    dispatch->glEnableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
+    glVertexAttribPointer(GLAMOR_VERTEX_SOURCE, 2, GL_FLOAT, GL_FALSE,
+                          2 * sizeof(float), source_texcoords);
+    glEnableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
 
     glamor_set_normalize_vcoords(dst_pixmap_priv, dst_xscale, dst_yscale,
                                  x1, y1,
                                  x2, y2, glamor_priv->yInverted, vertices);
 
-    dispatch->glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_FLOAT,
-                                    GL_FALSE, 2 * sizeof(float), vertices);
-    dispatch->glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
-    dispatch->glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_FLOAT, GL_FALSE,
+                          2 * sizeof(float), vertices);
+    glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
-#ifndef GLAMOR_GLES2
-    dispatch->glDisable(GL_TEXTURE_2D);
-#endif
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
-    dispatch->glUseProgram(0);
-    glamor_put_dispatch(glamor_priv);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
+    glUseProgram(0);
+    glamor_put_context(glamor_priv);
 
     glamor_priv->state = RENDER_STATE;
     glamor_priv->render_idle_cnt = 0;
@@ -182,7 +172,6 @@ glamor_tile(PixmapPtr pixmap, PixmapPtr tile,
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
     glamor_pixmap_private *dst_pixmap_priv;
     glamor_pixmap_private *src_pixmap_priv;
-    glamor_gl_dispatch *dispatch;
 
     dst_pixmap_priv = glamor_get_pixmap_private(pixmap);
     src_pixmap_priv = glamor_get_pixmap_private(tile);
@@ -206,10 +195,10 @@ glamor_tile(PixmapPtr pixmap, PixmapPtr tile,
         goto fail;
     }
 
-    dispatch = glamor_get_dispatch(glamor_priv);
-    if (!glamor_set_alu(dispatch, alu)) {
+    glamor_get_context(glamor_priv);
+    if (!glamor_set_alu(screen, alu)) {
         glamor_fallback("unsupported alu %x\n", alu);
-        glamor_put_dispatch(glamor_priv);
+        glamor_put_context(glamor_priv);
         goto fail;
     }
 
@@ -302,8 +291,8 @@ glamor_tile(PixmapPtr pixmap, PixmapPtr tile,
     else
         _glamor_tile(pixmap, tile, x, y, width, height, tile_x, tile_y);
 
-    glamor_set_alu(dispatch, GXcopy);
-    glamor_put_dispatch(glamor_priv);
+    glamor_set_alu(screen, GXcopy);
+    glamor_put_context(glamor_priv);
     return TRUE;
  fail:
     return FALSE;

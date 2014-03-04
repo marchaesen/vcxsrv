@@ -253,14 +253,22 @@ _mesa_GetPointerv( GLenum pname, GLvoid **params )
          *params = (GLvoid *) ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_POINT_SIZE].Ptr;
          break;
       case GL_DEBUG_CALLBACK_FUNCTION_ARB:
-         if (!_mesa_is_desktop_gl(ctx))
+         if (!_mesa_is_desktop_gl(ctx)) {
             goto invalid_pname;
-         *params = (GLvoid *) ctx->Debug.Callback;
+         }
+         else {
+            struct gl_debug_state *debug = _mesa_get_debug_state(ctx);
+            *params = debug ? (void *) debug->Callback : NULL;
+         }
          break;
       case GL_DEBUG_CALLBACK_USER_PARAM_ARB:
-         if (!_mesa_is_desktop_gl(ctx))
+         if (!_mesa_is_desktop_gl(ctx)) {
             goto invalid_pname;
-         *params = (GLvoid *) ctx->Debug.CallbackData;
+         }
+         else {
+            struct gl_debug_state *debug = _mesa_get_debug_state(ctx);
+            *params = debug ? (void *) debug->CallbackData : NULL;
+         }
          break;
       default:
          goto invalid_pname;
@@ -326,7 +334,7 @@ _mesa_GetGraphicsResetStatusARB( void )
        */
       status = ctx->Driver.GetGraphicsResetStatus(ctx);
 
-      _glthread_LOCK_MUTEX(ctx->Shared->Mutex);
+      mtx_lock(&ctx->Shared->Mutex);
 
       /* If this context has not been affected by a GPU reset, check to see if
        * some other context in the share group has been affected by a reset.
@@ -340,7 +348,7 @@ _mesa_GetGraphicsResetStatusARB( void )
       }
 
       ctx->ShareGroupReset = ctx->Shared->ShareGroupReset;
-      _glthread_UNLOCK_MUTEX(ctx->Shared->Mutex);
+      mtx_unlock(&ctx->Shared->Mutex);
    }
 
    if (!ctx->Driver.GetGraphicsResetStatus && (MESA_VERBOSE & VERBOSE_API))

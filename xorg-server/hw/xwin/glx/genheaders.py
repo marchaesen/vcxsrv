@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (c) 2013 The Khronos Group Inc.
+# Copyright (c) 2013-2014 The Khronos Group Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and/or associated documentation files (the
@@ -139,7 +139,7 @@ glx13andLaterPat = '1\.[3-9]'
 # Copyright text prefixing all headers (list of strings).
 prefixStrings = [
     '/*',
-    '** Copyright (c) 2013 The Khronos Group Inc.',
+    '** Copyright (c) 2013-2014 The Khronos Group Inc.',
     '**',
     '** Permission is hereby granted, free of charge, to any person obtaining a',
     '** copy of this software and/or associated documentation files (the',

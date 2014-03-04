@@ -82,8 +82,8 @@ typedef struct _InputDriverRec {
 
 typedef struct _InputInfoRec {
     struct _InputInfoRec *next;
-    const char *name;
-    const char *driver;
+    char *name;
+    char *driver;
 
     int flags;
 

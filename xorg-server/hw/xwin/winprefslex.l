@@ -43,7 +43,7 @@ extern int yyparse(void);
 static char *makestr(char *str)
 {
   char *ptr;
-  ptr = (char*)malloc (strlen(str)+1);
+  ptr = malloc(strlen(str)+1);
   if (!ptr)
     {
       ErrorF ("winMultiWindowLex:makestr() out of memory\n");
@@ -88,6 +88,7 @@ ALWAYSONTOP             { return ALWAYSONTOP; }
 DEBUG                   { return DEBUGOUTPUT; }
 RELOAD                  { return RELOAD; }
 TRAYICON                { return TRAYICON; }
+FORCEEXIT		{ return FORCEEXIT; }
 SILENTEXIT		{ return SILENTEXIT; }
 "{"                     { return LB; }
 "}"                     { return RB; }

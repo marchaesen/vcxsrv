@@ -40,6 +40,9 @@ struct _glapi_table;
 struct gl_context;
 struct gl_shader_program;
 
+extern GLbitfield
+_mesa_get_shader_flags(void);
+
 extern void
 _mesa_copy_string(GLchar *dst, GLsizei maxLength,
                   GLsizei *length, const GLchar *src);
@@ -218,6 +221,11 @@ _mesa_copy_linked_program_data(gl_shader_stage type,
 extern bool
 _mesa_validate_shader_target(const struct gl_context *ctx, GLenum type);
 
+
+/* GL_ARB_separate_shader_objects */
+extern GLuint GLAPIENTRY
+_mesa_CreateShaderProgramv(GLenum type, GLsizei count,
+                           const GLchar* const *strings);
 
 #ifdef __cplusplus
 }

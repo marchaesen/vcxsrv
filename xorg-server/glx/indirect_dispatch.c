@@ -43,7 +43,6 @@
 #include "singlesize.h"
 #include "glapi.h"
 #include "glapitable.h"
-#include "glthread.h"
 #include "dispatch.h"
 
 #define __GLX_PAD(x)  (((x) + 3) & ~3)

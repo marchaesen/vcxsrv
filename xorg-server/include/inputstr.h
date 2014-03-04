@@ -542,7 +542,7 @@ typedef struct _DeviceIntRec {
     GrabInfoRec deviceGrab;     /* grab on the device */
     int type;                   /* MASTER_POINTER, MASTER_KEYBOARD, SLAVE */
     Atom xinput_type;
-    const char *name;
+    char *name;
     int id;
     KeyClassPtr key;
     ValuatorClassPtr valuator;

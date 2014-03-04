@@ -29,22 +29,12 @@
 #include "glamor_priv.h"
 
 void
-glamor_egl_screen_init(ScreenPtr screen)
+glamor_egl_screen_init(ScreenPtr screen, struct glamor_context *glamor_ctx)
 {
 }
 
 void
 glamor_egl_destroy_textured_pixmap(PixmapPtr pixmap)
-{
-}
-
-void
-glamor_egl_make_current(ScreenPtr screen)
-{
-}
-
-void
-glamor_egl_restore_context(ScreenPtr screen)
 {
 }
 

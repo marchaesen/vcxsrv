@@ -777,13 +777,7 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
     MessageType from;
     const char *s;
     XkbRMLVOSet set;
-
-    /* Default options. */
-    set.rules = "base";
-    set.model = "pc105";
-    set.layout = "us";
-    set.variant = NULL;
-    set.options = NULL;
+    const char *rules;
 
     /*
      * Merge the ServerLayout and ServerFlags options.  The former have
@@ -963,9 +957,15 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
      * evdev rules set. */
 #if defined(linux)
     if (!xf86Info.forceInputDevices)
-        set.rules = "evdev";
+        rules = "evdev";
+    else
 #endif
+        rules = "base";
+
+    /* Xkb default options. */
+    XkbInitRules(&set, rules, "pc105", "us", NULL, NULL);
     XkbSetRulesDflts(&set);
+    XkbFreeRMLVOSet(&set, FALSE);
 
     xf86Info.useDefaultFontPath = TRUE;
     xf86Info.useDefaultFontPathFrom = X_DEFAULT;

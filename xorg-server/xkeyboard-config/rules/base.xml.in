@@ -4412,7 +4412,7 @@
         <variant>
           <configItem>
             <name>yz</name>
-            <_description>Serbian (Cyrillic, Z and ZHE swapped)</_description>
+            <_description>Serbian (Cyrillic, ZE and ZHE swapped)</_description>
           </configItem>
         </variant>
         <variant>

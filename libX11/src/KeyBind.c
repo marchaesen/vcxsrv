@@ -48,11 +48,6 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/keysymdef.h>
 #include <stdio.h>
 
-#ifdef USE_OWN_COMPOSE
-#include "imComp.h"
-
-#endif
-
 #include "Xresource.h"
 #include "Key.h"
 
@@ -890,73 +885,6 @@ XLookupString (
     if (! _XTranslateKey(event->display, event->keycode, event->state,
 		  &modifiers, &symbol))
 	return 0;
-
-#ifdef USE_OWN_COMPOSE
-    if ( status ) {
-	static int been_here= 0;
-	if ( !been_here ) {
-	    XimCompInitTables();
-	    been_here = 1;
-	}
-	if ( !XimCompLegalStatus(status) ) {
-	    status->compose_ptr = NULL;
-	    status->chars_matched = 0;
-	}
-	if ( ((status->chars_matched>0)&&(status->compose_ptr!=NULL)) ||
-		XimCompIsComposeKey(symbol,event->keycode,status) ) {
-	    XimCompRtrn rtrn;
-	    switch (XimCompProcessSym(status,symbol,&rtrn)) {
-		case XIM_COMP_IGNORE:
-		    break;
-		case XIM_COMP_IN_PROGRESS:
-		    if ( keysym!=NULL )
-			*keysym = NoSymbol;
-		    return 0;
-		case XIM_COMP_FAIL:
-		{
-		    int n = 0, len= 0;
-		    for (n=len=0;rtrn.sym[n]!=XK_VoidSymbol;n++) {
-			if ( nbytes-len > 0 ) {
-			    len+= _XTranslateKeySym(event->display,rtrn.sym[n],
-							event->state,
-							buffer+len,nbytes-len);
-			}
-		    }
-		    if ( keysym!=NULL ) {
-			if ( n==1 )	*keysym = rtrn.sym[0];
-			else		*keysym = NoSymbol;
-		    }
-		    return len;
-		}
-		case XIM_COMP_SUCCEED:
-		{
-		    int len,n = 0;
-
-		    symbol = rtrn.matchSym;
-		    if ( keysym!=NULL )	*keysym = symbol;
-		    if ( rtrn.str[0]!='\0' ) {
-			strncpy(buffer,rtrn.str,nbytes-1);
-			buffer[nbytes-1]= '\0';
-			len = strlen(buffer);
-		    }
-		    else {
-			len = _XTranslateKeySym(event->display,symbol,
-							event->state,
-							buffer,nbytes);
-		    }
-		    for (n=0;rtrn.sym[n]!=XK_VoidSymbol;n++) {
-			if ( nbytes-len > 0 ) {
-			    len+= _XTranslateKeySym(event->display,rtrn.sym[n],
-							event->state,
-							buffer+len,nbytes-len);
-			}
-		    }
-		    return len;
-		}
-	    }
-	}
-    }
-#endif
 
     if (keysym)
 	*keysym = symbol;

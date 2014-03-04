@@ -129,15 +129,15 @@ glamor_pixmap_fbo_cache_get(glamor_screen_private *glamor_priv,
 void
 glamor_purge_fbo(glamor_pixmap_fbo *fbo)
 {
-    glamor_gl_dispatch *dispatch = glamor_get_dispatch(fbo->glamor_priv);
+    glamor_get_context(fbo->glamor_priv);
 
     if (fbo->fb)
-        dispatch->glDeleteFramebuffers(1, &fbo->fb);
+        glDeleteFramebuffers(1, &fbo->fb);
     if (fbo->tex)
-        dispatch->glDeleteTextures(1, &fbo->tex);
+        glDeleteTextures(1, &fbo->tex);
     if (fbo->pbo)
-        dispatch->glDeleteBuffers(1, &fbo->pbo);
-    glamor_put_dispatch(fbo->glamor_priv);
+        glDeleteBuffers(1, &fbo->pbo);
+    glamor_put_context(fbo->glamor_priv);
 
     free(fbo);
 }
@@ -178,19 +178,17 @@ glamor_pixmap_fbo_cache_put(glamor_pixmap_fbo *fbo)
 static void
 glamor_pixmap_ensure_fb(glamor_pixmap_fbo *fbo)
 {
-    glamor_gl_dispatch *dispatch;
     int status;
 
-    dispatch = glamor_get_dispatch(fbo->glamor_priv);
+    glamor_get_context(fbo->glamor_priv);
 
     if (fbo->fb == 0)
-        dispatch->glGenFramebuffers(1, &fbo->fb);
+        glGenFramebuffers(1, &fbo->fb);
     assert(fbo->tex != 0);
-    dispatch->glBindFramebuffer(GL_FRAMEBUFFER, fbo->fb);
-    dispatch->glFramebufferTexture2D(GL_FRAMEBUFFER,
-                                     GL_COLOR_ATTACHMENT0,
-                                     GL_TEXTURE_2D, fbo->tex, 0);
-    status = dispatch->glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo->fb);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                           GL_TEXTURE_2D, fbo->tex, 0);
+    status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if (status != GL_FRAMEBUFFER_COMPLETE) {
         const char *str;
 
@@ -221,7 +219,7 @@ glamor_pixmap_ensure_fb(glamor_pixmap_fbo *fbo)
         FatalError("destination is framebuffer incomplete: %s [%x]\n",
                    str, status);
     }
-    glamor_put_dispatch(fbo->glamor_priv);
+    glamor_put_context(fbo->glamor_priv);
 }
 
 glamor_pixmap_fbo *
@@ -243,11 +241,9 @@ glamor_create_fbo_from_tex(glamor_screen_private *glamor_priv,
     fbo->glamor_priv = glamor_priv;
 
     if (flag == GLAMOR_CREATE_PIXMAP_MAP) {
-        glamor_gl_dispatch *dispatch;
-
-        dispatch = glamor_get_dispatch(glamor_priv);
-        dispatch->glGenBuffers(1, &fbo->pbo);
-        glamor_put_dispatch(glamor_priv);
+        glamor_get_context(glamor_priv);
+        glGenBuffers(1, &fbo->pbo);
+        glamor_put_context(glamor_priv);
         goto done;
     }
 
@@ -334,7 +330,6 @@ static int
 _glamor_create_tex(glamor_screen_private *glamor_priv,
                    int w, int h, GLenum format)
 {
-    glamor_gl_dispatch *dispatch;
     unsigned int tex = 0;
 
     /* With dri3, we want to allocate ARGB8888 pixmaps only.
@@ -346,16 +341,14 @@ _glamor_create_tex(glamor_screen_private *glamor_priv,
                                                        w, h);
     }
     if (!tex) {
-        dispatch = glamor_get_dispatch(glamor_priv);
-        dispatch->glGenTextures(1, &tex);
-        dispatch->glBindTexture(GL_TEXTURE_2D, tex);
-        dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-                                  GL_NEAREST);
-        dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
-                                  GL_NEAREST);
-        dispatch->glTexImage2D(GL_TEXTURE_2D, 0, format, w, h, 0,
-                               format, GL_UNSIGNED_BYTE, NULL);
-        glamor_put_dispatch(glamor_priv);
+        glamor_get_context(glamor_priv);
+        glGenTextures(1, &tex);
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, w, h, 0,
+                     format, GL_UNSIGNED_BYTE, NULL);
+        glamor_put_context(glamor_priv);
     }
     return tex;
 }

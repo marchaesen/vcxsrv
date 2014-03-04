@@ -1784,7 +1784,7 @@ glxWinCreateContext(__GLXscreen * screen,
         glxWinReleaseTexImage
     };
 
-    context = (__GLXWinContext *) calloc(1, sizeof(__GLXWinContext));
+    context = calloc(1, sizeof(__GLXWinContext));
 
     if (!context)
         return NULL;

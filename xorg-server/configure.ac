@@ -26,9 +26,9 @@ dnl
 dnl Process this file with autoconf to create configure.
 
 AC_PREREQ(2.60)
-AC_INIT([xorg-server], 1.15.99.900, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
-RELEASE_DATE="2014-01-09"
-RELEASE_NAME="Golden Gaytime"
+AC_INIT([xorg-server], 1.15.99.901, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
+RELEASE_DATE="2014-02-24"
+RELEASE_NAME="Szechuan Hot Pot"
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
@@ -841,7 +841,7 @@ if test "x$WITH_SYSTEMD_DAEMON" = xauto; then
 	WITH_SYSTEMD_DAEMON="$HAVE_SYSTEMD_DAEMON"
 fi
 if test "x$WITH_SYSTEMD_DAEMON" = xyes; then
-	if "x$HAVE_SYSTEMD_DAEMON" = xno; then
+	if test "x$HAVE_SYSTEMD_DAEMON" = xno; then
 		AC_MSG_ERROR([systemd support requested but no library has been found])
 	fi
 	AC_DEFINE(HAVE_SYSTEMD_DAEMON, 1, [Define to 1 if libsystemd-daemon is available])
@@ -1853,7 +1853,7 @@ if test "x$XORG" = xyes; then
 	if test "x$PCI" = xyes; then
 		PKG_CHECK_MODULES([PCIACCESS], $LIBPCIACCESS)
 		SDK_REQUIRED_MODULES="$SDK_REQUIRED_MODULES $LIBPCIACCESS"
-		XORG_SYS_LIBS="$XORG_SYS_LIBS $PCIACCESS_LIBS $GLX_SYS_LIBS $LIBDRM_LIBS"
+		XORG_SYS_LIBS="$XORG_SYS_LIBS $PCIACCESS_LIBS $LIBDRM_LIBS"
 		XORG_CFLAGS="$XORG_CFLAGS $PCIACCESS_CFLAGS $LIBDRM_CFLAGS"
 
 		AC_DEFINE(XSERVER_LIBPCIACCESS, 1, [Use libpciaccess for all pci manipulation])
@@ -2069,7 +2069,7 @@ dnl glamor
 AM_CONDITIONAL([GLAMOR], [test "x$GLAMOR" = xyes])
 if test "x$GLAMOR" = xyes; then
 	AC_DEFINE(GLAMOR, 1, [Build glamor])
-	PKG_CHECK_MODULES([GLAMOR], [egl gl])
+	PKG_CHECK_MODULES([GLAMOR], [epoxy])
 fi
 
 dnl XWin DDX

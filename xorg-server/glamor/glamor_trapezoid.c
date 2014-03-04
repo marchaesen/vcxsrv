@@ -204,24 +204,22 @@ static void
 glamor_flush_composite_triangles(ScreenPtr screen)
 {
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
-    glamor_gl_dispatch *dispatch;
 
-    dispatch = glamor_get_dispatch(glamor_priv);
+    glamor_get_context(glamor_priv);
     if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP)
-        dispatch->glUnmapBuffer(GL_ARRAY_BUFFER);
+        glUnmapBuffer(GL_ARRAY_BUFFER);
     else {
 
-        dispatch->glBindBuffer(GL_ARRAY_BUFFER, glamor_priv->vbo);
-        dispatch->glBufferData(GL_ARRAY_BUFFER,
-                               glamor_priv->vbo_offset,
-                               glamor_priv->vb, GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, glamor_priv->vbo);
+        glBufferData(GL_ARRAY_BUFFER, glamor_priv->vbo_offset,
+                     glamor_priv->vb, GL_DYNAMIC_DRAW);
     }
 
     if (!glamor_priv->render_nr_verts)
         return;
 
-    dispatch->glDrawArrays(GL_TRIANGLES, 0, glamor_priv->render_nr_verts);
-    glamor_put_dispatch(glamor_priv);
+    glDrawArrays(GL_TRIANGLES, 0, glamor_priv->render_nr_verts);
+    glamor_put_context(glamor_priv);
 }
 
 static Bool
@@ -582,7 +580,6 @@ static void
 glamor_setup_composite_vbo_for_trapezoid(ScreenPtr screen, int n_verts)
 {
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
-    glamor_gl_dispatch *dispatch;
     int stride;
     int vert_size;
 
@@ -605,25 +602,25 @@ glamor_setup_composite_vbo_for_trapezoid(ScreenPtr screen, int n_verts)
 
     vert_size = n_verts * glamor_priv->vb_stride;
 
-    dispatch = glamor_get_dispatch(glamor_priv);
+    glamor_get_context(glamor_priv);
 
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_TOP_BOTTOM);
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_LEFT_PARAM);
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_RIGHT_PARAM);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_TOP_BOTTOM);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_LEFT_PARAM);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_RIGHT_PARAM);
 
-    dispatch->glBindBuffer(GL_ARRAY_BUFFER, glamor_priv->vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, glamor_priv->vbo);
     if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
         if (glamor_priv->vbo_size < (glamor_priv->vbo_offset + vert_size)) {
             glamor_priv->vbo_size = GLAMOR_COMPOSITE_VBO_VERT_CNT *
                 glamor_priv->vb_stride;
             glamor_priv->vbo_offset = 0;
-            dispatch->glBufferData(GL_ARRAY_BUFFER,
-                                   glamor_priv->vbo_size, NULL, GL_STREAM_DRAW);
+            glBufferData(GL_ARRAY_BUFFER,
+                         glamor_priv->vbo_size, NULL, GL_STREAM_DRAW);
         }
 
-        glamor_priv->vb = dispatch->glMapBufferRange(GL_ARRAY_BUFFER,
+        glamor_priv->vb = glMapBufferRange(GL_ARRAY_BUFFER,
                                                      glamor_priv->vbo_offset,
                                                      vert_size,
                                                      GL_MAP_WRITE_BIT |
@@ -636,43 +633,43 @@ glamor_setup_composite_vbo_for_trapezoid(ScreenPtr screen, int n_verts)
         glamor_priv->vbo_offset = 0;
     }
 
-    dispatch->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glamor_priv->ebo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glamor_priv->ebo);
 
     /* Set the vertex pointer. */
-    dispatch->glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_FLOAT,
-                                    GL_FALSE, glamor_priv->vb_stride,
-                                    (void *) ((long) glamor_priv->vbo_offset));
-    dispatch->glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
+    glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_FLOAT,
+                          GL_FALSE, glamor_priv->vb_stride,
+                          (void *) ((long) glamor_priv->vbo_offset));
+    glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
     stride = 2;
 
-    dispatch->glVertexAttribPointer(GLAMOR_VERTEX_SOURCE, 2, GL_FLOAT,
-                                    GL_FALSE, glamor_priv->vb_stride,
-                                    (void *) ((long) glamor_priv->vbo_offset +
-                                              stride * sizeof(float)));
-    dispatch->glEnableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
+    glVertexAttribPointer(GLAMOR_VERTEX_SOURCE, 2, GL_FLOAT,
+                          GL_FALSE, glamor_priv->vb_stride,
+                          (void *) ((long) glamor_priv->vbo_offset +
+                                    stride * sizeof(float)));
+    glEnableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
     stride += 2;
 
-    dispatch->glVertexAttribPointer(GLAMOR_VERTEX_TOP_BOTTOM, 2, GL_FLOAT,
+    glVertexAttribPointer(GLAMOR_VERTEX_TOP_BOTTOM, 2, GL_FLOAT,
                                     GL_FALSE, glamor_priv->vb_stride,
                                     (void *) ((long) glamor_priv->vbo_offset +
                                               stride * sizeof(float)));
-    dispatch->glEnableVertexAttribArray(GLAMOR_VERTEX_TOP_BOTTOM);
+    glEnableVertexAttribArray(GLAMOR_VERTEX_TOP_BOTTOM);
     stride += 2;
 
-    dispatch->glVertexAttribPointer(GLAMOR_VERTEX_LEFT_PARAM, 4, GL_FLOAT,
+    glVertexAttribPointer(GLAMOR_VERTEX_LEFT_PARAM, 4, GL_FLOAT,
                                     GL_FALSE, glamor_priv->vb_stride,
                                     (void *) ((long) glamor_priv->vbo_offset +
                                               stride * sizeof(float)));
-    dispatch->glEnableVertexAttribArray(GLAMOR_VERTEX_LEFT_PARAM);
+    glEnableVertexAttribArray(GLAMOR_VERTEX_LEFT_PARAM);
     stride += 4;
 
-    dispatch->glVertexAttribPointer(GLAMOR_VERTEX_RIGHT_PARAM, 4, GL_FLOAT,
+    glVertexAttribPointer(GLAMOR_VERTEX_RIGHT_PARAM, 4, GL_FLOAT,
                                     GL_FALSE, glamor_priv->vb_stride,
                                     (void *) ((long) glamor_priv->vbo_offset +
                                               stride * sizeof(float)));
-    dispatch->glEnableVertexAttribArray(GLAMOR_VERTEX_RIGHT_PARAM);
+    glEnableVertexAttribArray(GLAMOR_VERTEX_RIGHT_PARAM);
 
-    glamor_put_dispatch(glamor_priv);
+    glamor_put_context(glamor_priv);
 }
 
 static Bool
@@ -701,7 +698,6 @@ _glamor_trapezoids_with_shader(CARD8 op,
     GLfloat dst_xscale, dst_yscale;
     BoxRec bounds;
     PicturePtr temp_src = src;
-    glamor_gl_dispatch *dispatch = NULL;
     int vert_stride = 3;
     int ntriangle_per_loop;
     int nclip_rect;
@@ -815,6 +811,8 @@ _glamor_trapezoids_with_shader(CARD8 op,
         goto TRAPEZOID_OUT;
     }
 
+    glamor_get_context(glamor_priv);
+
     box = REGION_RECTS(&region);
     nbox = REGION_NUM_RECTS(&region);
     pbox = box;
@@ -832,8 +830,6 @@ _glamor_trapezoids_with_shader(CARD8 op,
     glamor_priv->has_source_coords = key.source != SHADER_SOURCE_SOLID;
     glamor_priv->has_mask_coords = (key.mask != SHADER_MASK_NONE &&
                                     key.mask != SHADER_MASK_SOLID);
-
-    dispatch = glamor_get_dispatch(glamor_priv);
 
     glamor_get_drawable_deltas(dst->pDrawable, dest_pixmap,
                                &dest_x_off, &dest_y_off);
@@ -974,19 +970,14 @@ _glamor_trapezoids_with_shader(CARD8 op,
     ret = TRUE;
 
  TRAPEZOID_RESET_GL:
-    dispatch->glBindBuffer(GL_ARRAY_BUFFER, 0);
-    dispatch->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_MASK);
-    dispatch->glDisable(GL_BLEND);
-#ifndef GLAMOR_GLES2
-    dispatch->glActiveTexture(GL_TEXTURE0);
-    dispatch->glDisable(GL_TEXTURE_2D);
-    dispatch->glActiveTexture(GL_TEXTURE1);
-    dispatch->glDisable(GL_TEXTURE_2D);
-#endif
-    dispatch->glUseProgram(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_MASK);
+    glDisable(GL_BLEND);
+    glUseProgram(0);
+    glamor_put_context(glamor_priv);
 
  TRAPEZOID_OUT:
     if (box) {
@@ -1002,10 +993,6 @@ _glamor_trapezoids_with_shader(CARD8 op,
         }
     }
 
-    if (dispatch) {
-        glamor_put_dispatch(glamor_priv);
-    }
-
     return ret;
 }
 
@@ -1013,7 +1000,6 @@ void
 glamor_init_trapezoid_shader(ScreenPtr screen)
 {
     glamor_screen_private *glamor_priv;
-    glamor_gl_dispatch *dispatch;
     GLint fs_prog, vs_prog;
 
     const char *trapezoid_vs =
@@ -1344,46 +1330,43 @@ glamor_init_trapezoid_shader(ScreenPtr screen)
         "}\n";
 
     glamor_priv = glamor_get_screen_private(screen);
-    dispatch = glamor_get_dispatch(glamor_priv);
+    glamor_get_context(glamor_priv);
 
-    glamor_priv->trapezoid_prog = dispatch->glCreateProgram();
+    glamor_priv->trapezoid_prog = glCreateProgram();
 
-    vs_prog = glamor_compile_glsl_prog(dispatch,
-                                       GL_VERTEX_SHADER, trapezoid_vs);
-    fs_prog = glamor_compile_glsl_prog(dispatch,
-                                       GL_FRAGMENT_SHADER, trapezoid_fs);
+    vs_prog = glamor_compile_glsl_prog(GL_VERTEX_SHADER, trapezoid_vs);
+    fs_prog = glamor_compile_glsl_prog(GL_FRAGMENT_SHADER, trapezoid_fs);
 
-    dispatch->glAttachShader(glamor_priv->trapezoid_prog, vs_prog);
-    dispatch->glAttachShader(glamor_priv->trapezoid_prog, fs_prog);
+    glAttachShader(glamor_priv->trapezoid_prog, vs_prog);
+    glAttachShader(glamor_priv->trapezoid_prog, fs_prog);
 
-    dispatch->glBindAttribLocation(glamor_priv->trapezoid_prog,
-                                   GLAMOR_VERTEX_POS, "v_positionsition");
-    dispatch->glBindAttribLocation(glamor_priv->trapezoid_prog,
-                                   GLAMOR_VERTEX_SOURCE, "v_texcoord");
-    dispatch->glBindAttribLocation(glamor_priv->trapezoid_prog,
-                                   GLAMOR_VERTEX_TOP_BOTTOM, "v_top_bottom");
-    dispatch->glBindAttribLocation(glamor_priv->trapezoid_prog,
-                                   GLAMOR_VERTEX_LEFT_PARAM, "v_left_param");
-    dispatch->glBindAttribLocation(glamor_priv->trapezoid_prog,
-                                   GLAMOR_VERTEX_RIGHT_PARAM, "v_right_param");
+    glBindAttribLocation(glamor_priv->trapezoid_prog,
+                         GLAMOR_VERTEX_POS, "v_positionsition");
+    glBindAttribLocation(glamor_priv->trapezoid_prog,
+                         GLAMOR_VERTEX_SOURCE, "v_texcoord");
+    glBindAttribLocation(glamor_priv->trapezoid_prog,
+                         GLAMOR_VERTEX_TOP_BOTTOM, "v_top_bottom");
+    glBindAttribLocation(glamor_priv->trapezoid_prog,
+                         GLAMOR_VERTEX_LEFT_PARAM, "v_left_param");
+    glBindAttribLocation(glamor_priv->trapezoid_prog,
+                         GLAMOR_VERTEX_RIGHT_PARAM, "v_right_param");
 
-    glamor_link_glsl_prog(dispatch, glamor_priv->trapezoid_prog);
+    glamor_link_glsl_prog(glamor_priv->trapezoid_prog);
 
-    dispatch->glUseProgram(0);
+    glUseProgram(0);
 
-    glamor_put_dispatch(glamor_priv);
+    glamor_put_context(glamor_priv);
 }
 
 void
 glamor_fini_trapezoid_shader(ScreenPtr screen)
 {
     glamor_screen_private *glamor_priv;
-    glamor_gl_dispatch *dispatch;
 
     glamor_priv = glamor_get_screen_private(screen);
-    dispatch = glamor_get_dispatch(glamor_priv);
-    dispatch->glDeleteProgram(glamor_priv->trapezoid_prog);
-    glamor_put_dispatch(glamor_priv);
+    glamor_get_context(glamor_priv);
+    glDeleteProgram(glamor_priv->trapezoid_prog);
+    glamor_put_context(glamor_priv);
 }
 
 static Bool
@@ -1392,7 +1375,6 @@ _glamor_generate_trapezoid_with_shader(ScreenPtr screen, PicturePtr picture,
                                        BoxRec *bounds)
 {
     glamor_screen_private *glamor_priv;
-    glamor_gl_dispatch *dispatch;
     glamor_pixmap_private *pixmap_priv;
     PixmapPtr pixmap = NULL;
     GLint trapezoid_prog;
@@ -1425,20 +1407,20 @@ _glamor_generate_trapezoid_with_shader(ScreenPtr screen, PicturePtr picture,
         return FALSE;
     }
 
-    dispatch = glamor_get_dispatch(glamor_priv);
+    glamor_get_context(glamor_priv);
 
     glamor_set_destination_pixmap_priv_nc(pixmap_priv);
 
     pixmap_priv_get_dest_scale(pixmap_priv, (&xscale), (&yscale));
 
-    dispatch->glBindBuffer(GL_ARRAY_BUFFER, 0);
-    dispatch->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     /* Now draw the Trapezoid mask. */
-    dispatch->glUseProgram(trapezoid_prog);
+    glUseProgram(trapezoid_prog);
 
-    dispatch->glEnable(GL_BLEND);
-    dispatch->glBlendFunc(GL_ONE, GL_ONE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE);
 
     nrect_max = GLAMOR_COMPOSITE_VBO_VERT_CNT / (4 * GLAMOR_VERTEX_RIGHT_PARAM);
 
@@ -1565,37 +1547,36 @@ _glamor_generate_trapezoid_with_shader(ScreenPtr screen, PicturePtr picture,
             continue;
 
         if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP)
-            dispatch->glUnmapBuffer(GL_ARRAY_BUFFER);
+            glUnmapBuffer(GL_ARRAY_BUFFER);
         else {
-            dispatch->glBindBuffer(GL_ARRAY_BUFFER, glamor_priv->vbo);
-            dispatch->glBufferData(GL_ARRAY_BUFFER,
-                                   glamor_priv->vbo_offset,
-                                   glamor_priv->vb, GL_DYNAMIC_DRAW);
+            glBindBuffer(GL_ARRAY_BUFFER, glamor_priv->vbo);
+            glBufferData(GL_ARRAY_BUFFER, glamor_priv->vbo_offset,
+                         glamor_priv->vb, GL_DYNAMIC_DRAW);
         }
 
-#ifndef GLAMOR_GLES2
-        dispatch->glDrawRangeElements(GL_TRIANGLES, 0,
-                                      glamor_priv->render_nr_verts,
-                                      (glamor_priv->render_nr_verts * 3) / 2,
-                                      GL_UNSIGNED_SHORT, NULL);
-#else
-        dispatch->glDrawElements(GL_TRIANGLES,
-                                 (glamor_priv->render_nr_verts * 3) / 2,
-                                 GL_UNSIGNED_SHORT, NULL);
-#endif
+        if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
+            glDrawRangeElements(GL_TRIANGLES, 0,
+                                glamor_priv->render_nr_verts,
+                                (glamor_priv->render_nr_verts * 3) / 2,
+                                GL_UNSIGNED_SHORT, NULL);
+        } else {
+            glDrawElements(GL_TRIANGLES,
+                           (glamor_priv->render_nr_verts * 3) / 2,
+                           GL_UNSIGNED_SHORT, NULL);
+        }
     }
 
-    dispatch->glBindBuffer(GL_ARRAY_BUFFER, 0);
-    dispatch->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    dispatch->glBlendFunc(GL_ONE, GL_ZERO);
-    dispatch->glDisable(GL_BLEND);
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_TOP_BOTTOM);
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_LEFT_PARAM);
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_RIGHT_PARAM);
-    dispatch->glUseProgram(0);
-    glamor_put_dispatch(glamor_priv);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glBlendFunc(GL_ONE, GL_ZERO);
+    glDisable(GL_BLEND);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_TOP_BOTTOM);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_LEFT_PARAM);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_RIGHT_PARAM);
+    glUseProgram(0);
+    glamor_put_context(glamor_priv);
     return TRUE;
 }
 

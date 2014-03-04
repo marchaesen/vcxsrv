@@ -424,7 +424,7 @@ _mesa_reference_program_(struct gl_context *ctx,
    if (*ptr) {
       GLboolean deleteFlag;
 
-      /*_glthread_LOCK_MUTEX((*ptr)->Mutex);*/
+      /*mtx_lock(&(*ptr)->Mutex);*/
 #if 0
       printf("Program %p ID=%u Target=%s  Refcount-- to %d\n",
              *ptr, (*ptr)->Id,
@@ -436,7 +436,7 @@ _mesa_reference_program_(struct gl_context *ctx,
       (*ptr)->RefCount--;
 
       deleteFlag = ((*ptr)->RefCount == 0);
-      /*_glthread_UNLOCK_MUTEX((*ptr)->Mutex);*/
+      /*mtx_lock(&(*ptr)->Mutex);*/
 
       if (deleteFlag) {
          ASSERT(ctx);
@@ -448,7 +448,7 @@ _mesa_reference_program_(struct gl_context *ctx,
 
    assert(!*ptr);
    if (prog) {
-      /*_glthread_LOCK_MUTEX(prog->Mutex);*/
+      /*mtx_lock(&prog->Mutex);*/
       prog->RefCount++;
 #if 0
       printf("Program %p ID=%u Target=%s  Refcount++ to %d\n",
@@ -457,7 +457,7 @@ _mesa_reference_program_(struct gl_context *ctx,
               (prog->Target == MESA_GEOMETRY_PROGRAM ? "GP" : "FP")),
              prog->RefCount);
 #endif
-      /*_glthread_UNLOCK_MUTEX(prog->Mutex);*/
+      /*mtx_unlock(&prog->Mutex);*/
    }
 
    *ptr = prog;
@@ -550,6 +550,7 @@ _mesa_clone_program(struct gl_context *ctx, const struct gl_program *prog)
          struct gl_geometry_program *gpc = gl_geometry_program(clone);
          gpc->VerticesOut = gp->VerticesOut;
          gpc->InputType = gp->InputType;
+         gpc->Invocations = gp->Invocations;
          gpc->OutputType = gp->OutputType;
       }
       break;

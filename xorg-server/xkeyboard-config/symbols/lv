@@ -408,7 +408,7 @@ xkb_symbols "minuskeydvorak" {
 
 	name[Group1]= "Latvian (US Dvorak, minus variant)";
 
-	key <AC11> {[ISO_Level3_Latch, ISO_Level3_Latch, mimus, underscore]};
+	key <AC11> {[ISO_Level3_Latch, ISO_Level3_Latch, minus, underscore]};
 	key <SPCE> {[space, space, minus, underscore]};
 	modifier_map Mod5 { <AR11> };
 
@@ -467,7 +467,7 @@ xkb_symbols "minuskeydvorakprogr" {
 
 	name[Group1]= "Latvian (programmer US Dvorak, minus variant)";
 
-	key <AC11> {[ISO_Level3_Latch, ISO_Level3_Latch, mimus, underscore]};
+	key <AC11> {[ISO_Level3_Latch, ISO_Level3_Latch, minus, underscore]};
 	key <SPCE> {[space, space, minus, underscore]};
 	modifier_map Mod5 { <AC11> };
 

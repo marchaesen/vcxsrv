@@ -80,7 +80,7 @@ winInitClipboard(void)
 }
 
 /*
- * Create the Windows window that we use to recieve Windows messages
+ * Create the Windows window that we use to receive Windows messages
  */
 
 HWND

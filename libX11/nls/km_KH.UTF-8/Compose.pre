@@ -1,6 +1,6 @@
 include "X11_LOCALEDATADIR/en_US.UTF-8/Compose"
 
-# Khmer digraphs
+XCOMM Khmer digraphs
 <U17ff>	:	"ាំ"
 <U17fe>	:	"ោះ"
 <U17fd>	:	"េះ"

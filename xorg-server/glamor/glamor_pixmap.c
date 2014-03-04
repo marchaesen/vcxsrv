@@ -66,18 +66,12 @@ void
 glamor_set_destination_pixmap_fbo(glamor_pixmap_fbo *fbo, int x0, int y0,
                                   int width, int height)
 {
-    glamor_gl_dispatch *dispatch = glamor_get_dispatch(fbo->glamor_priv);
+    glamor_get_context(fbo->glamor_priv);
 
-    dispatch->glBindFramebuffer(GL_FRAMEBUFFER, fbo->fb);
-#ifndef GLAMOR_GLES2
-    dispatch->glMatrixMode(GL_PROJECTION);
-    dispatch->glLoadIdentity();
-    dispatch->glMatrixMode(GL_MODELVIEW);
-    dispatch->glLoadIdentity();
-#endif
-    dispatch->glViewport(x0, y0, width, height);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo->fb);
+    glViewport(x0, y0, width, height);
 
-    glamor_put_dispatch(fbo->glamor_priv);
+    glamor_put_context(fbo->glamor_priv);
 }
 
 void
@@ -121,69 +115,385 @@ glamor_set_planemask(PixmapPtr pixmap, unsigned long planemask)
 }
 
 Bool
-glamor_set_alu(struct glamor_gl_dispatch *dispatch, unsigned char alu)
+glamor_set_alu(ScreenPtr screen, unsigned char alu)
 {
-#ifndef GLAMOR_GLES2
+    glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
+
+    if (glamor_priv->gl_flavor == GLAMOR_GL_ES2) {
+        if (alu != GXcopy)
+            return FALSE;
+        else
+            return TRUE;
+    }
+
     if (alu == GXcopy) {
-        dispatch->glDisable(GL_COLOR_LOGIC_OP);
+        glDisable(GL_COLOR_LOGIC_OP);
         return TRUE;
     }
-    dispatch->glEnable(GL_COLOR_LOGIC_OP);
+    glEnable(GL_COLOR_LOGIC_OP);
     switch (alu) {
     case GXclear:
-        dispatch->glLogicOp(GL_CLEAR);
+        glLogicOp(GL_CLEAR);
         break;
     case GXand:
-        dispatch->glLogicOp(GL_AND);
+        glLogicOp(GL_AND);
         break;
     case GXandReverse:
-        dispatch->glLogicOp(GL_AND_REVERSE);
+        glLogicOp(GL_AND_REVERSE);
         break;
     case GXandInverted:
-        dispatch->glLogicOp(GL_AND_INVERTED);
+        glLogicOp(GL_AND_INVERTED);
         break;
     case GXnoop:
-        dispatch->glLogicOp(GL_NOOP);
+        glLogicOp(GL_NOOP);
         break;
     case GXxor:
-        dispatch->glLogicOp(GL_XOR);
+        glLogicOp(GL_XOR);
         break;
     case GXor:
-        dispatch->glLogicOp(GL_OR);
+        glLogicOp(GL_OR);
         break;
     case GXnor:
-        dispatch->glLogicOp(GL_NOR);
+        glLogicOp(GL_NOR);
         break;
     case GXequiv:
-        dispatch->glLogicOp(GL_EQUIV);
+        glLogicOp(GL_EQUIV);
         break;
     case GXinvert:
-        dispatch->glLogicOp(GL_INVERT);
+        glLogicOp(GL_INVERT);
         break;
     case GXorReverse:
-        dispatch->glLogicOp(GL_OR_REVERSE);
+        glLogicOp(GL_OR_REVERSE);
         break;
     case GXcopyInverted:
-        dispatch->glLogicOp(GL_COPY_INVERTED);
+        glLogicOp(GL_COPY_INVERTED);
         break;
     case GXorInverted:
-        dispatch->glLogicOp(GL_OR_INVERTED);
+        glLogicOp(GL_OR_INVERTED);
         break;
     case GXnand:
-        dispatch->glLogicOp(GL_NAND);
+        glLogicOp(GL_NAND);
         break;
     case GXset:
-        dispatch->glLogicOp(GL_SET);
+        glLogicOp(GL_SET);
         break;
     default:
         glamor_fallback("unsupported alu %x\n", alu);
         return FALSE;
     }
-#else
-    if (alu != GXcopy)
-        return FALSE;
-#endif
+
     return TRUE;
+}
+
+/*
+ * Map picture's format to the correct gl texture format and type.
+ * no_alpha is used to indicate whehter we need to wire alpha to 1.
+ *
+ * Although opengl support A1/GL_BITMAP, we still don't use it
+ * here, it seems that mesa has bugs when uploading a A1 bitmap.
+ *
+ * Return 0 if find a matched texture type. Otherwise return -1.
+ **/
+static int
+glamor_get_tex_format_type_from_pictformat_gl(PictFormatShort format,
+                                              GLenum *tex_format,
+                                              GLenum *tex_type,
+                                              int *no_alpha,
+                                              int *revert,
+                                              int *swap_rb, int is_upload)
+{
+    *no_alpha = 0;
+    *revert = REVERT_NONE;
+    *swap_rb = is_upload ? SWAP_NONE_UPLOADING : SWAP_NONE_DOWNLOADING;
+    switch (format) {
+    case PICT_a1:
+        *tex_format = GL_ALPHA;
+        *tex_type = GL_UNSIGNED_BYTE;
+        *revert = is_upload ? REVERT_UPLOADING_A1 : REVERT_DOWNLOADING_A1;
+        break;
+    case PICT_b8g8r8x8:
+        *no_alpha = 1;
+    case PICT_b8g8r8a8:
+        *tex_format = GL_BGRA;
+        *tex_type = GL_UNSIGNED_INT_8_8_8_8;
+        break;
+
+    case PICT_x8r8g8b8:
+        *no_alpha = 1;
+    case PICT_a8r8g8b8:
+        *tex_format = GL_BGRA;
+        *tex_type = GL_UNSIGNED_INT_8_8_8_8_REV;
+        break;
+    case PICT_x8b8g8r8:
+        *no_alpha = 1;
+    case PICT_a8b8g8r8:
+        *tex_format = GL_RGBA;
+        *tex_type = GL_UNSIGNED_INT_8_8_8_8_REV;
+        break;
+    case PICT_x2r10g10b10:
+        *no_alpha = 1;
+    case PICT_a2r10g10b10:
+        *tex_format = GL_BGRA;
+        *tex_type = GL_UNSIGNED_INT_2_10_10_10_REV;
+        break;
+    case PICT_x2b10g10r10:
+        *no_alpha = 1;
+    case PICT_a2b10g10r10:
+        *tex_format = GL_RGBA;
+        *tex_type = GL_UNSIGNED_INT_2_10_10_10_REV;
+        break;
+
+    case PICT_r5g6b5:
+        *tex_format = GL_RGB;
+        *tex_type = GL_UNSIGNED_SHORT_5_6_5;
+        break;
+    case PICT_b5g6r5:
+        *tex_format = GL_RGB;
+        *tex_type = GL_UNSIGNED_SHORT_5_6_5_REV;
+        break;
+    case PICT_x1b5g5r5:
+        *no_alpha = 1;
+    case PICT_a1b5g5r5:
+        *tex_format = GL_RGBA;
+        *tex_type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
+        break;
+
+    case PICT_x1r5g5b5:
+        *no_alpha = 1;
+    case PICT_a1r5g5b5:
+        *tex_format = GL_BGRA;
+        *tex_type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
+        break;
+    case PICT_a8:
+        *tex_format = GL_ALPHA;
+        *tex_type = GL_UNSIGNED_BYTE;
+        break;
+    case PICT_x4r4g4b4:
+        *no_alpha = 1;
+    case PICT_a4r4g4b4:
+        *tex_format = GL_BGRA;
+        *tex_type = GL_UNSIGNED_SHORT_4_4_4_4_REV;
+        break;
+
+    case PICT_x4b4g4r4:
+        *no_alpha = 1;
+    case PICT_a4b4g4r4:
+        *tex_format = GL_RGBA;
+        *tex_type = GL_UNSIGNED_SHORT_4_4_4_4_REV;
+        break;
+
+    default:
+        LogMessageVerb(X_INFO, 0,
+                       "fail to get matched format for %x \n", format);
+        return -1;
+    }
+    return 0;
+}
+
+#define IS_LITTLE_ENDIAN  (IMAGE_BYTE_ORDER == LSBFirst)
+
+static int
+glamor_get_tex_format_type_from_pictformat_gles2(PictFormatShort format,
+                                                 GLenum *tex_format,
+                                                 GLenum *tex_type,
+                                                 int *no_alpha,
+                                                 int *revert,
+                                                 int *swap_rb, int is_upload)
+{
+    int need_swap_rb = 0;
+
+    *no_alpha = 0;
+    *revert = IS_LITTLE_ENDIAN ? REVERT_NONE : REVERT_NORMAL;
+
+    switch (format) {
+    case PICT_b8g8r8x8:
+        *no_alpha = 1;
+    case PICT_b8g8r8a8:
+        *tex_format = GL_RGBA;
+        *tex_type = GL_UNSIGNED_BYTE;
+        need_swap_rb = 1;
+        *revert = IS_LITTLE_ENDIAN ? REVERT_NORMAL : REVERT_NONE;
+        break;
+
+    case PICT_x8r8g8b8:
+        *no_alpha = 1;
+    case PICT_a8r8g8b8:
+        *tex_format = GL_RGBA;
+        *tex_type = GL_UNSIGNED_BYTE;
+        need_swap_rb = 1;
+        break;
+
+    case PICT_x8b8g8r8:
+        *no_alpha = 1;
+    case PICT_a8b8g8r8:
+        *tex_format = GL_RGBA;
+        *tex_type = GL_UNSIGNED_BYTE;
+        break;
+
+    case PICT_x2r10g10b10:
+        *no_alpha = 1;
+    case PICT_a2r10g10b10:
+        *tex_format = GL_RGBA;
+        /* glReadPixmap doesn't support GL_UNSIGNED_INT_10_10_10_2.
+         * we have to use GL_UNSIGNED_BYTE and do the conversion in
+         * shader latter.*/
+        *tex_type = GL_UNSIGNED_BYTE;
+        if (is_upload == 1) {
+            if (!IS_LITTLE_ENDIAN)
+                *revert = REVERT_UPLOADING_10_10_10_2;
+            else
+                *revert = REVERT_UPLOADING_2_10_10_10;
+        }
+        else {
+            if (!IS_LITTLE_ENDIAN) {
+                *revert = REVERT_DOWNLOADING_10_10_10_2;
+            }
+            else {
+                *revert = REVERT_DOWNLOADING_2_10_10_10;
+            }
+        }
+        need_swap_rb = 1;
+
+        break;
+
+    case PICT_x2b10g10r10:
+        *no_alpha = 1;
+    case PICT_a2b10g10r10:
+        *tex_format = GL_RGBA;
+        *tex_type = GL_UNSIGNED_BYTE;
+        if (is_upload == 1) {
+            if (!IS_LITTLE_ENDIAN)
+                *revert = REVERT_UPLOADING_10_10_10_2;
+            else
+                *revert = REVERT_UPLOADING_2_10_10_10;
+        }
+        else {
+            if (!IS_LITTLE_ENDIAN) {
+                *revert = REVERT_DOWNLOADING_10_10_10_2;
+            }
+            else {
+                *revert = REVERT_DOWNLOADING_2_10_10_10;
+            }
+        }
+        break;
+
+    case PICT_r5g6b5:
+        *tex_format = GL_RGB;
+        *tex_type = GL_UNSIGNED_SHORT_5_6_5;
+        *revert = IS_LITTLE_ENDIAN ? REVERT_NONE : REVERT_NORMAL;
+
+        break;
+
+    case PICT_b5g6r5:
+        *tex_format = GL_RGB;
+        *tex_type = GL_UNSIGNED_SHORT_5_6_5;
+        need_swap_rb = IS_LITTLE_ENDIAN ? 1 : 0;;
+        break;
+
+    case PICT_x1b5g5r5:
+        *no_alpha = 1;
+    case PICT_a1b5g5r5:
+        *tex_format = GL_RGBA;
+        *tex_type = GL_UNSIGNED_SHORT_5_5_5_1;
+        if (IS_LITTLE_ENDIAN) {
+            *revert =
+                is_upload ? REVERT_UPLOADING_1_5_5_5 :
+                REVERT_DOWNLOADING_1_5_5_5;
+        }
+        else
+            *revert = REVERT_NONE;
+        break;
+
+    case PICT_x1r5g5b5:
+        *no_alpha = 1;
+    case PICT_a1r5g5b5:
+        *tex_format = GL_RGBA;
+        *tex_type = GL_UNSIGNED_SHORT_5_5_5_1;
+        if (IS_LITTLE_ENDIAN) {
+            *revert =
+                is_upload ? REVERT_UPLOADING_1_5_5_5 :
+                REVERT_DOWNLOADING_1_5_5_5;
+        }
+        else
+            *revert = REVERT_NONE;
+        need_swap_rb = 1;
+        break;
+
+    case PICT_a1:
+        *tex_format = GL_ALPHA;
+        *tex_type = GL_UNSIGNED_BYTE;
+        *revert = is_upload ? REVERT_UPLOADING_A1 : REVERT_DOWNLOADING_A1;
+        break;
+
+    case PICT_a8:
+        *tex_format = GL_ALPHA;
+        *tex_type = GL_UNSIGNED_BYTE;
+        *revert = REVERT_NONE;
+        break;
+
+    case PICT_x4r4g4b4:
+        *no_alpha = 1;
+    case PICT_a4r4g4b4:
+        *tex_format = GL_RGBA;
+        *tex_type = GL_UNSIGNED_SHORT_4_4_4_4;
+        *revert = IS_LITTLE_ENDIAN ? REVERT_NORMAL : REVERT_NONE;
+        need_swap_rb = 1;
+        break;
+
+    case PICT_x4b4g4r4:
+        *no_alpha = 1;
+    case PICT_a4b4g4r4:
+        *tex_format = GL_RGBA;
+        *tex_type = GL_UNSIGNED_SHORT_4_4_4_4;
+        *revert = IS_LITTLE_ENDIAN ? REVERT_NORMAL : REVERT_NONE;
+        break;
+
+    default:
+        LogMessageVerb(X_INFO, 0,
+                       "fail to get matched format for %x \n", format);
+        return -1;
+    }
+
+    if (need_swap_rb)
+        *swap_rb = is_upload ? SWAP_UPLOADING : SWAP_DOWNLOADING;
+    else
+        *swap_rb = is_upload ? SWAP_NONE_UPLOADING : SWAP_NONE_DOWNLOADING;
+    return 0;
+}
+
+static int
+glamor_get_tex_format_type_from_pixmap(PixmapPtr pixmap,
+                                       GLenum *format,
+                                       GLenum *type,
+                                       int *no_alpha,
+                                       int *revert, int *swap_rb, int is_upload)
+{
+    glamor_pixmap_private *pixmap_priv;
+    PictFormatShort pict_format;
+    glamor_screen_private *glamor_priv =
+        glamor_get_screen_private(pixmap->drawable.pScreen);
+
+    pixmap_priv = glamor_get_pixmap_private(pixmap);
+    if (GLAMOR_PIXMAP_PRIV_IS_PICTURE(pixmap_priv))
+        pict_format = pixmap_priv->base.picture->format;
+    else
+        pict_format = format_for_depth(pixmap->drawable.depth);
+
+    if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
+        return glamor_get_tex_format_type_from_pictformat_gl(pict_format,
+                                                             format, type,
+                                                             no_alpha,
+                                                             revert,
+                                                             swap_rb,
+                                                             is_upload);
+    } else {
+        return glamor_get_tex_format_type_from_pictformat_gles2(pict_format,
+                                                                format, type,
+                                                                no_alpha,
+                                                                revert,
+                                                                swap_rb,
+                                                                is_upload);
+    }
 }
 
 static void *
@@ -397,38 +707,35 @@ __glamor_upload_pixmap_to_texture(PixmapPtr pixmap, unsigned int *tex,
 {
     glamor_screen_private *glamor_priv =
         glamor_get_screen_private(pixmap->drawable.pScreen);
-    glamor_gl_dispatch *dispatch;
     int non_sub = 0;
     unsigned int iformat = 0;
 
-    dispatch = glamor_get_dispatch(glamor_priv);
+    glamor_get_context(glamor_priv);
     if (*tex == 0) {
-        dispatch->glGenTextures(1, tex);
+        glGenTextures(1, tex);
         if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP)
-            gl_iformat_for_depth(pixmap->drawable.depth, &iformat);
+            iformat = gl_iformat_for_pixmap(pixmap);
         else
             iformat = format;
         non_sub = 1;
         assert(x == 0 && y == 0);
     }
 
-    dispatch->glBindTexture(GL_TEXTURE_2D, *tex);
-    dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    dispatch->glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glBindTexture(GL_TEXTURE_2D, *tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 
     if (bits == NULL)
-        dispatch->glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
     if (non_sub)
-        dispatch->glTexImage2D(GL_TEXTURE_2D,
-                               0, iformat, w, h, 0, format, type, bits);
+        glTexImage2D(GL_TEXTURE_2D, 0, iformat, w, h, 0, format, type, bits);
     else
-        dispatch->glTexSubImage2D(GL_TEXTURE_2D,
-                                  0, x, y, w, h, format, type, bits);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, w, h, format, type, bits);
 
     if (bits == NULL)
-        dispatch->glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-    glamor_put_dispatch(glamor_priv);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+    glamor_put_context(glamor_priv);
 }
 
 static Bool
@@ -440,7 +747,6 @@ _glamor_upload_bits_to_pixmap_texture(PixmapPtr pixmap, GLenum format,
     glamor_pixmap_private *pixmap_priv = glamor_get_pixmap_private(pixmap);
     glamor_screen_private *glamor_priv =
         glamor_get_screen_private(pixmap->drawable.pScreen);
-    glamor_gl_dispatch *dispatch;
     static float vertices[8];
 
     static float texcoords[8] = { 0, 1,
@@ -526,42 +832,35 @@ _glamor_upload_bits_to_pixmap_texture(PixmapPtr pixmap, GLenum format,
                                  x + w, y + h,
                                  glamor_priv->yInverted, vertices);
     /* Slow path, we need to flip y or wire alpha to 1. */
-    dispatch = glamor_get_dispatch(glamor_priv);
-    dispatch->glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_FLOAT,
-                                    GL_FALSE, 2 * sizeof(float), vertices);
-    dispatch->glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
-    dispatch->glVertexAttribPointer(GLAMOR_VERTEX_SOURCE, 2, GL_FLOAT,
-                                    GL_FALSE, 2 * sizeof(float), ptexcoords);
-    dispatch->glEnableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
+    glamor_get_context(glamor_priv);
+    glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_FLOAT,
+                          GL_FALSE, 2 * sizeof(float), vertices);
+    glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
+    glVertexAttribPointer(GLAMOR_VERTEX_SOURCE, 2, GL_FLOAT,
+                          GL_FALSE, 2 * sizeof(float), ptexcoords);
+    glEnableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
 
     glamor_set_destination_pixmap_priv_nc(pixmap_priv);
     __glamor_upload_pixmap_to_texture(pixmap, &tex,
                                       format, type, 0, 0, w, h, bits, pbo);
-    dispatch->glActiveTexture(GL_TEXTURE0);
-    dispatch->glBindTexture(GL_TEXTURE_2D, tex);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, tex);
 
-    dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-#ifndef GLAMOR_GLES2
-    dispatch->glEnable(GL_TEXTURE_2D);
-#endif
-    dispatch->glUseProgram(glamor_priv->finish_access_prog[no_alpha]);
-    dispatch->glUniform1i(glamor_priv->finish_access_revert[no_alpha], revert);
-    dispatch->glUniform1i(glamor_priv->finish_access_swap_rb[no_alpha],
-                          swap_rb);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glUseProgram(glamor_priv->finish_access_prog[no_alpha]);
+    glUniform1i(glamor_priv->finish_access_revert[no_alpha], revert);
+    glUniform1i(glamor_priv->finish_access_swap_rb[no_alpha], swap_rb);
 
-    dispatch->glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
-#ifndef GLAMOR_GLES2
-    dispatch->glDisable(GL_TEXTURE_2D);
-#endif
-    dispatch->glUseProgram(0);
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
-    dispatch->glDeleteTextures(1, &tex);
-    dispatch->glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glUseProgram(0);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
+    glDeleteTextures(1, &tex);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    glamor_put_dispatch(glamor_priv);
+    glamor_put_context(glamor_priv);
 
     if (need_free_bits)
         free(bits);
@@ -615,7 +914,7 @@ glamor_pixmap_upload_prepare(PixmapPtr pixmap, GLenum format, int no_alpha,
         return 0;
 
     if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP)
-        gl_iformat_for_depth(pixmap->drawable.depth, &iformat);
+        iformat = gl_iformat_for_pixmap(pixmap);
     else
         iformat = format;
 
@@ -831,7 +1130,6 @@ glamor_es2_pixmap_read_prepare(PixmapPtr source, int x, int y, int w, int h,
     glamor_screen_private *glamor_priv;
     ScreenPtr screen;
     glamor_pixmap_fbo *temp_fbo;
-    glamor_gl_dispatch *dispatch;
     float temp_xscale, temp_yscale, source_xscale, source_yscale;
     static float vertices[8];
     static float texcoords[8];
@@ -844,7 +1142,7 @@ glamor_es2_pixmap_read_prepare(PixmapPtr source, int x, int y, int w, int h,
     if (temp_fbo == NULL)
         return NULL;
 
-    dispatch = glamor_get_dispatch(glamor_priv);
+    glamor_get_context(glamor_priv);
     temp_xscale = 1.0 / w;
     temp_yscale = 1.0 / h;
 
@@ -852,9 +1150,9 @@ glamor_es2_pixmap_read_prepare(PixmapPtr source, int x, int y, int w, int h,
                                  temp_xscale, temp_yscale, 0, 0, w, h,
                                  glamor_priv->yInverted, vertices);
 
-    dispatch->glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_FLOAT,
-                                    GL_FALSE, 2 * sizeof(float), vertices);
-    dispatch->glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
+    glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_FLOAT, GL_FALSE,
+                          2 * sizeof(float), vertices);
+    glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
 
     pixmap_priv_get_scale(source_priv, &source_xscale, &source_yscale);
     glamor_set_normalize_tcoords(source_priv, source_xscale,
@@ -863,27 +1161,26 @@ glamor_es2_pixmap_read_prepare(PixmapPtr source, int x, int y, int w, int h,
                                  x + w, y + h,
                                  glamor_priv->yInverted, texcoords);
 
-    dispatch->glVertexAttribPointer(GLAMOR_VERTEX_SOURCE, 2, GL_FLOAT,
-                                    GL_FALSE, 2 * sizeof(float), texcoords);
-    dispatch->glEnableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
+    glVertexAttribPointer(GLAMOR_VERTEX_SOURCE, 2, GL_FLOAT, GL_FALSE,
+                          2 * sizeof(float), texcoords);
+    glEnableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
 
-    dispatch->glActiveTexture(GL_TEXTURE0);
-    dispatch->glBindTexture(GL_TEXTURE_2D, source_priv->base.fbo->tex);
-    dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, source_priv->base.fbo->tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     glamor_set_destination_pixmap_fbo(temp_fbo, 0, 0, w, h);
-    dispatch->glUseProgram(glamor_priv->finish_access_prog[no_alpha]);
-    dispatch->glUniform1i(glamor_priv->finish_access_revert[no_alpha], revert);
-    dispatch->glUniform1i(glamor_priv->finish_access_swap_rb[no_alpha],
-                          swap_rb);
+    glUseProgram(glamor_priv->finish_access_prog[no_alpha]);
+    glUniform1i(glamor_priv->finish_access_revert[no_alpha], revert);
+    glUniform1i(glamor_priv->finish_access_swap_rb[no_alpha], swap_rb);
 
-    dispatch->glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
-    dispatch->glUseProgram(0);
-    glamor_put_dispatch(glamor_priv);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
+    glUseProgram(0);
+    glamor_put_context(glamor_priv);
     return temp_fbo;
 }
 
@@ -905,7 +1202,6 @@ _glamor_download_sub_pixmap_to_cpu(PixmapPtr pixmap, GLenum format,
     void *data, *read;
     glamor_screen_private *glamor_priv =
         glamor_get_screen_private(pixmap->drawable.pScreen);
-    glamor_gl_dispatch *dispatch;
     glamor_pixmap_fbo *temp_fbo = NULL;
     int need_post_conversion = 0;
     int need_free_data = 0;
@@ -964,57 +1260,53 @@ _glamor_download_sub_pixmap_to_cpu(PixmapPtr pixmap, GLenum format,
         fbo_y_off = 0;
     }
 
-    dispatch = glamor_get_dispatch(glamor_priv);
-    dispatch->glPixelStorei(GL_PACK_ALIGNMENT, 4);
+    glamor_get_context(glamor_priv);
+    glPixelStorei(GL_PACK_ALIGNMENT, 4);
 
     if (glamor_priv->has_pack_invert || glamor_priv->yInverted) {
 
         if (!glamor_priv->yInverted) {
             assert(glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP);
-            dispatch->glPixelStorei(GL_PACK_INVERT_MESA, 1);
+            glPixelStorei(GL_PACK_INVERT_MESA, 1);
         }
 
         if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP && data == NULL) {
             assert(pbo > 0);
-            dispatch->glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
-            dispatch->glBufferData(GL_PIXEL_PACK_BUFFER,
-                                   stride * h, NULL, gl_usage);
+            glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
+            glBufferData(GL_PIXEL_PACK_BUFFER, stride * h, NULL, gl_usage);
         }
 
-        dispatch->glReadPixels(x + fbo_x_off, y + fbo_y_off, w, h, format, type,
-                               data);
+        glReadPixels(x + fbo_x_off, y + fbo_y_off, w, h, format, type, data);
 
         if (!glamor_priv->yInverted) {
             assert(glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP);
-            dispatch->glPixelStorei(GL_PACK_INVERT_MESA, 0);
+            glPixelStorei(GL_PACK_INVERT_MESA, 0);
         }
         if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP && bits == NULL) {
-            bits = dispatch->glMapBuffer(GL_PIXEL_PACK_BUFFER, gl_access);
-            dispatch->glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+            bits = glMapBuffer(GL_PIXEL_PACK_BUFFER, gl_access);
+            glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
         }
     }
     else {
         unsigned int temp_pbo;
         int yy;
 
-        dispatch = glamor_get_dispatch(glamor_priv);
-        dispatch->glGenBuffers(1, &temp_pbo);
-        dispatch->glBindBuffer(GL_PIXEL_PACK_BUFFER, temp_pbo);
-        dispatch->glBufferData(GL_PIXEL_PACK_BUFFER,
-                               stride * h, NULL, GL_STREAM_READ);
-        dispatch->glReadPixels(x + fbo_x_off, y + fbo_y_off, w, h,
-                               format, type, 0);
-        read = dispatch->glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+        glamor_get_context(glamor_priv);
+        glGenBuffers(1, &temp_pbo);
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, temp_pbo);
+        glBufferData(GL_PIXEL_PACK_BUFFER, stride * h, NULL, GL_STREAM_READ);
+        glReadPixels(x + fbo_x_off, y + fbo_y_off, w, h, format, type, 0);
+        read = glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
         for (yy = 0; yy < pixmap->drawable.height; yy++)
             memcpy((char *) data + yy * stride,
                    (char *) read + (h - yy - 1) * stride, stride);
-        dispatch->glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-        dispatch->glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-        dispatch->glDeleteBuffers(1, &temp_pbo);
+        glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+        glDeleteBuffers(1, &temp_pbo);
     }
 
-    dispatch->glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glamor_put_dispatch(glamor_priv);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glamor_put_context(glamor_priv);
 
     if (need_post_conversion) {
         /* As OpenGL desktop version never enters here.
@@ -1168,7 +1460,6 @@ glamor_download_pixmap_to_cpu(PixmapPtr pixmap, glamor_access_t access)
     void *data = NULL, *dst;
     glamor_screen_private *glamor_priv =
         glamor_get_screen_private(pixmap->drawable.pScreen);
-    glamor_gl_dispatch *dispatch;
     int pbo = 0;
 
     if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv))
@@ -1189,10 +1480,10 @@ glamor_download_pixmap_to_cpu(PixmapPtr pixmap, glamor_access_t access)
         data = malloc(stride * pixmap->drawable.height);
     }
     else {
-        dispatch = glamor_get_dispatch(glamor_priv);
+        glamor_get_context(glamor_priv);
         if (pixmap_priv->base.fbo->pbo == 0)
-            dispatch->glGenBuffers(1, &pixmap_priv->base.fbo->pbo);
-        glamor_put_dispatch(glamor_priv);
+            glGenBuffers(1, &pixmap_priv->base.fbo->pbo);
+        glamor_put_context(glamor_priv);
         pbo = pixmap_priv->base.fbo->pbo;
     }
 

@@ -38,4 +38,4 @@ endif # !CONFIG_HAL
 
 endif # !CONFIG_UDEV
 
-EXTRA_DIST = xorg-server.conf x11-input.fdi 10-evdev.conf non-seat0.conf.multi-seat fdi2iclass.py 10-quirks.conf
+EXTRA_DIST = x11-input.fdi 10-evdev.conf fdi2iclass.py 10-quirks.conf

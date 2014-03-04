@@ -130,6 +130,14 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    for (unsigned i = 0; i < Elements(this->Const.MaxComputeWorkGroupSize); i++)
       this->Const.MaxComputeWorkGroupSize[i] = ctx->Const.MaxComputeWorkGroupSize[i];
 
+   this->Const.MaxImageUnits = ctx->Const.MaxImageUnits;
+   this->Const.MaxCombinedImageUnitsAndFragmentOutputs = ctx->Const.MaxCombinedImageUnitsAndFragmentOutputs;
+   this->Const.MaxImageSamples = ctx->Const.MaxImageSamples;
+   this->Const.MaxVertexImageUniforms = ctx->Const.Program[MESA_SHADER_VERTEX].MaxImageUniforms;
+   this->Const.MaxGeometryImageUniforms = ctx->Const.Program[MESA_SHADER_GEOMETRY].MaxImageUniforms;
+   this->Const.MaxFragmentImageUniforms = ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxImageUniforms;
+   this->Const.MaxCombinedImageUniforms = ctx->Const.MaxCombinedImageUniforms;
+
    this->current_function = NULL;
    this->toplevel_ir = NULL;
    this->found_return = false;
@@ -194,9 +202,10 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    this->default_uniform_qualifier->flags.q.column_major = 1;
 
    this->gs_input_prim_type_specified = false;
-   this->gs_input_prim_type = GL_POINTS;
    this->gs_input_size = 0;
+   this->in_qualifier = new(this) ast_type_qualifier();
    this->out_qualifier = new(this) ast_type_qualifier();
+   this->early_fragment_tests = false;
    memset(this->atomic_counter_offsets, 0,
           sizeof(this->atomic_counter_offsets));
 }
@@ -503,6 +512,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(ARB_fragment_coord_conventions, true,  false,     ARB_fragment_coord_conventions),
    EXT(ARB_texture_rectangle,          true,  false,     dummy_true),
    EXT(EXT_texture_array,              true,  false,     EXT_texture_array),
+   EXT(ARB_separate_shader_objects,    true,  false,     ARB_separate_shader_objects),
    EXT(ARB_shader_texture_lod,         true,  false,     ARB_shader_texture_lod),
    EXT(ARB_shader_stencil_export,      true,  false,     ARB_shader_stencil_export),
    EXT(AMD_conservative_depth,         true,  false,     ARB_conservative_depth),
@@ -527,6 +537,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(AMD_shader_trinary_minmax,      true,  false,     dummy_true),
    EXT(ARB_viewport_array,             true,  false,     ARB_viewport_array),
    EXT(ARB_compute_shader,             true,  false,     ARB_compute_shader),
+   EXT(ARB_shader_image_load_store,    true,  false,     ARB_shader_image_load_store),
 };
 
 #undef EXT
@@ -1338,7 +1349,7 @@ set_shader_inout_layout(struct gl_shader *shader,
 {
    if (shader->Stage != MESA_SHADER_GEOMETRY) {
       /* Should have been prevented by the parser. */
-      assert(!state->gs_input_prim_type_specified);
+      assert(!state->in_qualifier->flags.i);
       assert(!state->out_qualifier->flags.i);
    }
 
@@ -1354,7 +1365,7 @@ set_shader_inout_layout(struct gl_shader *shader,
          shader->Geom.VerticesOut = state->out_qualifier->max_vertices;
 
       if (state->gs_input_prim_type_specified) {
-         shader->Geom.InputType = state->gs_input_prim_type;
+         shader->Geom.InputType = state->in_qualifier->prim_type;
       } else {
          shader->Geom.InputType = PRIM_UNKNOWN;
       }
@@ -1364,6 +1375,10 @@ set_shader_inout_layout(struct gl_shader *shader,
       } else {
          shader->Geom.OutputType = PRIM_UNKNOWN;
       }
+
+      shader->Geom.Invocations = 0;
+      if (state->in_qualifier->flags.q.invocations)
+         shader->Geom.Invocations = state->in_qualifier->invocations;
       break;
 
    case MESA_SHADER_COMPUTE:
@@ -1419,7 +1434,7 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
 
       /* Print out the unoptimized IR. */
       if (dump_hir) {
-         _mesa_print_ir(shader->ir, state);
+         _mesa_print_ir(stdout, shader->ir, state);
       }
    }
 

@@ -1190,7 +1190,7 @@ struct gl_sampler_object
  */
 struct gl_texture_object
 {
-   _glthread_Mutex Mutex;      /**< for thread safety */
+   mtx_t Mutex;      /**< for thread safety */
    GLint RefCount;             /**< reference count */
    GLuint Name;                /**< the user-visible texture object ID */
    GLchar *Label;               /**< GL_KHR_debug */
@@ -1439,28 +1439,44 @@ struct gl_viewport_attrib
 };
 
 
+typedef enum {
+   MAP_USER,
+   MAP_INTERNAL,
+
+   MAP_COUNT
+} gl_map_buffer_index;
+
+
+/**
+ * Fields describing a mapped buffer range.
+ */
+struct gl_buffer_mapping {
+   GLbitfield AccessFlags; /**< Mask of GL_MAP_x_BIT flags */
+   GLvoid *Pointer;     /**< User-space address of mapping */
+   GLintptr Offset;     /**< Mapped offset */
+   GLsizeiptr Length;   /**< Mapped length */
+};
+
+
 /**
  * GL_ARB_vertex/pixel_buffer_object buffer object
  */
 struct gl_buffer_object
 {
-   _glthread_Mutex Mutex;
+   mtx_t Mutex;
    GLint RefCount;
    GLuint Name;
    GLchar *Label;       /**< GL_KHR_debug */
    GLenum Usage;        /**< GL_STREAM_DRAW_ARB, GL_STREAM_READ_ARB, etc. */
+   GLbitfield StorageFlags; /**< GL_MAP_PERSISTENT_BIT, etc. */
    GLsizeiptrARB Size;  /**< Size of buffer storage in bytes */
    GLubyte *Data;       /**< Location of storage either in RAM or VRAM. */
-   /** Fields describing a mapped buffer */
-   /*@{*/
-   GLbitfield AccessFlags; /**< Mask of GL_MAP_x_BIT flags */
-   GLvoid *Pointer;     /**< User-space address of mapping */
-   GLintptr Offset;     /**< Mapped offset */
-   GLsizeiptr Length;   /**< Mapped length */
-   /*@}*/
    GLboolean DeletePending;   /**< true if buffer object is removed from the hash */
    GLboolean Written;   /**< Ever written to? (for debugging) */
    GLboolean Purgeable; /**< Is the buffer purgeable under memory pressure? */
+   GLboolean Immutable; /**< GL_ARB_buffer_storage */
+
+   struct gl_buffer_mapping Mappings[MAP_COUNT];
 };
 
 
@@ -1560,7 +1576,7 @@ struct gl_vertex_array_object
    GLchar *Label;       /**< GL_KHR_debug */
 
    GLint RefCount;
-   _glthread_Mutex Mutex;
+   mtx_t Mutex;
 
    /**
     * Does the VAO use ARB semantics or Apple semantics?
@@ -2013,6 +2029,7 @@ typedef enum
    SYSTEM_VALUE_SAMPLE_ID,      /**< Fragment shader only */
    SYSTEM_VALUE_SAMPLE_POS,     /**< Fragment shader only */
    SYSTEM_VALUE_SAMPLE_MASK_IN, /**< Fragment shader only */
+   SYSTEM_VALUE_INVOCATION_ID,  /**< Geometry shader only */
    SYSTEM_VALUE_MAX             /**< Number of values */
 } gl_system_value;
 
@@ -2143,6 +2160,7 @@ struct gl_geometry_program
 
    GLint VerticesIn;
    GLint VerticesOut;
+   GLint Invocations;
    GLenum InputType;  /**< GL_POINTS, GL_LINES, GL_LINES_ADJACENCY_ARB,
                            GL_TRIANGLES, or GL_TRIANGLES_ADJACENCY_ARB */
    GLenum OutputType; /**< GL_POINTS, GL_LINE_STRIP or GL_TRIANGLE_STRIP */
@@ -2419,6 +2437,11 @@ struct gl_shader
    struct {
       GLint VerticesOut;
       /**
+       * 0 - Invocations count not declared in shader, or
+       * 1 .. MAX_GEOMETRY_SHADER_INVOCATIONS
+       */
+      GLint Invocations;
+      /**
        * GL_POINTS, GL_LINES, GL_LINES_ADJACENCY, GL_TRIANGLES, or
        * GL_TRIANGLES_ADJACENCY, or PRIM_UNKNOWN if it's not set in this
        * shader.
@@ -2579,6 +2602,12 @@ struct gl_shader_program
     */
    GLboolean InternalSeparateShader;
 
+   /**
+    * Indicates whether program can be bound for individual pipeline stages
+    * using UseProgramStages after it is next linked.
+    */
+   GLboolean SeparateShader;
+
    GLuint NumShaders;          /**< number of attached shaders */
    struct gl_shader **Shaders; /**< List of attached the shaders */
 
@@ -2627,6 +2656,10 @@ struct gl_shader_program
    struct {
       GLint VerticesIn;
       GLint VerticesOut;
+      /**
+       * 1 .. MAX_GEOMETRY_SHADER_INVOCATIONS
+       */
+      GLint Invocations;
       GLenum InputType;  /**< GL_POINTS, GL_LINES, GL_LINES_ADJACENCY_ARB,
                               GL_TRIANGLES, or GL_TRIANGLES_ADJACENCY_ARB */
       GLenum OutputType; /**< GL_POINTS, GL_LINE_STRIP or GL_TRIANGLE_STRIP */
@@ -2746,9 +2779,19 @@ struct gl_shader_program
 
 /**
  * Context state for GLSL vertex/fragment shaders.
+ * Extended to support pipeline object
  */
-struct gl_shader_state
+struct gl_pipeline_object
 {
+   /** Name of the pipeline object as received from glGenProgramPipelines.
+    * It would be 0 for shaders without separate shader objects.
+    */
+   GLuint Name;
+
+   GLint RefCount;
+
+   mtx_t Mutex;
+
    /**
     * Programs used for rendering
     *
@@ -2768,8 +2811,21 @@ struct gl_shader_state
    struct gl_shader_program *ActiveProgram;
 
    GLbitfield Flags;                    /**< Mask of GLSL_x flags */
+
+   GLboolean EverBound;                 /**< Has the pipeline object been created */
 };
 
+/**
+ * Context state for GLSL pipeline shaders.
+ */
+struct gl_pipeline_shader_state
+{
+   /** Currently bound pipeline object. See _mesa_BindProgramPipeline() */
+   struct gl_pipeline_object *Current;
+
+   /** Pipeline objects */
+   struct _mesa_HashTable *Objects;
+};
 
 /**
  * Compiler options for a single GLSL shaders type
@@ -2871,7 +2927,7 @@ struct gl_sync_object
  */
 struct gl_shared_state
 {
-   _glthread_Mutex Mutex;		   /**< for thread safety */
+   mtx_t Mutex;		   /**< for thread safety */
    GLint RefCount;			   /**< Reference count */
    struct _mesa_HashTable *DisplayList;	   /**< Display lists hash table */
    struct _mesa_HashTable *TexObjects;	   /**< Texture objects hash table */
@@ -2889,7 +2945,7 @@ struct gl_shared_state
     * \todo Improve the granularity of locking.
     */
    /*@{*/
-   _glthread_Mutex TexMutex;		/**< texobj thread safety */
+   mtx_t TexMutex;		/**< texobj thread safety */
    GLuint TextureStateStamp;	        /**< state notification for shared tex */
    /*@}*/
 
@@ -2946,7 +3002,7 @@ struct gl_shared_state
  */
 struct gl_renderbuffer
 {
-   _glthread_Mutex Mutex; /**< for thread safety */
+   mtx_t Mutex; /**< for thread safety */
    GLuint ClassID;        /**< Useful for drivers */
    GLuint Name;
    GLchar *Label;         /**< GL_KHR_debug */
@@ -3024,7 +3080,7 @@ struct gl_renderbuffer_attachment
  */
 struct gl_framebuffer
 {
-   _glthread_Mutex Mutex;  /**< for thread safety */
+   mtx_t Mutex;  /**< for thread safety */
    /**
     * If zero, this is a window system framebuffer.  If non-zero, this
     * is a FBO framebuffer; note that for some devices (i.e. those with
@@ -3433,6 +3489,7 @@ struct gl_extensions
    GLboolean ARB_arrays_of_arrays;
    GLboolean ARB_base_instance;
    GLboolean ARB_blend_func_extended;
+   GLboolean ARB_buffer_storage;
    GLboolean ARB_color_buffer_float;
    GLboolean ARB_compute_shader;
    GLboolean ARB_conservative_depth;
@@ -3451,7 +3508,6 @@ struct gl_extensions
    GLboolean ARB_explicit_attrib_location;
    GLboolean ARB_geometry_shader4;
    GLboolean ARB_gpu_shader5;
-   GLboolean ARB_half_float_pixel;
    GLboolean ARB_half_float_vertex;
    GLboolean ARB_instanced_arrays;
    GLboolean ARB_internalformat_query;
@@ -3461,6 +3517,7 @@ struct gl_extensions
    GLboolean ARB_point_sprite;
    GLboolean ARB_sample_shading;
    GLboolean ARB_seamless_cube_map;
+   GLboolean ARB_separate_shader_objects;
    GLboolean ARB_shader_atomic_counters;
    GLboolean ARB_shader_bit_encoding;
    GLboolean ARB_shader_image_load_store;
@@ -4070,7 +4127,8 @@ struct gl_context
    struct gl_geometry_program_state GeometryProgram;
    struct gl_ati_fragment_shader_state ATIFragmentShader;
 
-   struct gl_shader_state Shader; /**< GLSL shader object state */
+   struct gl_pipeline_shader_state Pipeline; /**< GLSL pipeline shader object state */
+   struct gl_pipeline_object Shader; /**< GLSL shader object state */
    struct gl_shader_compiler_options ShaderCompilerOptions[MESA_SHADER_STAGES];
 
    struct gl_query_state Query;  /**< occlusion, timer queries */
@@ -4132,7 +4190,7 @@ struct gl_context
    GLuint ErrorDebugCount;
 
    /* GL_ARB_debug_output/GL_KHR_debug */
-   struct gl_debug_state Debug;
+   struct gl_debug_state *Debug;
 
    GLenum RenderMode;        /**< either GL_RENDER, GL_SELECT, GL_FEEDBACK */
    GLbitfield NewState;      /**< bitwise-or of _NEW_* flags */

@@ -242,16 +242,16 @@ device_added(struct udev_device *udev_device)
     free(config_info);
     input_option_free_list(&input_options);
 
-    free((void *) attrs.usb_id);
-    free((void *) attrs.pnp_id);
-    free((void *) attrs.product);
-    free((void *) attrs.device);
-    free((void *) attrs.vendor);
+    free(attrs.usb_id);
+    free(attrs.pnp_id);
+    free(attrs.product);
+    free(attrs.device);
+    free(attrs.vendor);
     if (attrs.tags) {
-        const char **tag = attrs.tags;
+        char **tag = attrs.tags;
 
         while (*tag) {
-            free((void *) *tag);
+            free(*tag);
             tag++;
         }
         free(attrs.tags);

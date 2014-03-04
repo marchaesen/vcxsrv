@@ -30,7 +30,7 @@ GL 3.0 --- all DONE: i965, nv50, nvc0, r600, radeonsi
   GL_EXT_texture_shared_exponent                        DONE (swrast)
   Float depth buffers (GL_ARB_depth_buffer_float)       DONE ()
   Framebuffer objects (GL_ARB_framebuffer_object)       DONE (r300, swrast)
-  GL_ARB_half_float_pixel                               DONE (r300, swrast)
+  GL_ARB_half_float_pixel                               DONE (all drivers)
   GL_ARB_half_float_vertex                              DONE (r300, swrast)
   GL_EXT_texture_integer                                DONE ()
   GL_EXT_texture_array                                  DONE ()
@@ -105,9 +105,9 @@ GL 4.0:
   GL_ARB_sample_shading                                DONE (i965)
   GL_ARB_shader_subroutine                             not started
   GL_ARB_tessellation_shader                           not started
-  GL_ARB_texture_buffer_object_rgb32                   DONE (i965, r600, radeonsi, softpipe)
-  GL_ARB_texture_cube_map_array                        DONE (i965, nvc0, r600, softpipe)
-  GL_ARB_texture_gather                                DONE (i965)
+  GL_ARB_texture_buffer_object_rgb32                   DONE (i965, nvc0, r600, radeonsi, softpipe)
+  GL_ARB_texture_cube_map_array                        DONE (i965, nv50, nvc0, r600, softpipe)
+  GL_ARB_texture_gather                                DONE (i965, nv50)
   GL_ARB_transform_feedback2                           DONE (i965, nv50, nvc0, r600, radeonsi)
   GL_ARB_transform_feedback3                           DONE (i965, nv50, nvc0, r600, radeonsi)
 
@@ -120,7 +120,7 @@ GL 4.1:
   GL_ARB_separate_shader_objects                       started (Ian Romanick, Gregory Hainaut)
   GL_ARB_shader_precision                              not started
   GL_ARB_vertex_attrib_64bit                           not started
-  GL_ARB_viewport_array                                DONE (i965)
+  GL_ARB_viewport_array                                DONE (i965, nv50, r600)
 
 
 GL 4.2:
@@ -170,7 +170,7 @@ GL 4.4:
 
   GLSL 4.4                                             not started
   GL_MAX_VERTEX_ATTRIB_STRIDE                          not started
-  GL_ARB_buffer_storage                                not started
+  GL_ARB_buffer_storage                                DONE (r300, r600, radeonsi)
   GL_ARB_clear_texture                                 not started
   GL_ARB_enhanced_layouts                              not started
   GL_ARB_multi_bind                                    started (Fredrik Höglund)

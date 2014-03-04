@@ -139,6 +139,23 @@ struct _mesa_glsl_parse_state {
       return true;
    }
 
+   bool check_separate_shader_objects_allowed(YYLTYPE *locp,
+                                              const ir_variable *var)
+   {
+      if (!this->has_separate_shader_objects()) {
+         const char *const requirement = this->es_shader
+            ? "GL_EXT_separate_shader_objects (not supported by this "
+              "implementation)"
+            : "GL_ARB_separate_shader_objects extension or GLSL 420";
+
+         _mesa_glsl_error(locp, this, "%s explicit location requires %s",
+                          mode_string(var), requirement);
+         return false;
+      }
+
+      return true;
+   }
+
    bool has_explicit_attrib_location() const
    {
       return ARB_explicit_attrib_location_enable || is_version(330, 300);
@@ -147,6 +164,11 @@ struct _mesa_glsl_parse_state {
    bool has_uniform_buffer_objects() const
    {
       return ARB_uniform_buffer_object_enable || is_version(140, 300);
+   }
+
+   bool has_separate_shader_objects() const
+   {
+      return ARB_separate_shader_objects_enable || is_version(410, 0);
    }
 
    void process_version_directive(YYLTYPE *locp, int version,
@@ -194,11 +216,8 @@ struct _mesa_glsl_parse_state {
     */
    bool gs_input_prim_type_specified;
 
-   /**
-    * If gs_input_prim_type_specified is true, the primitive type that was
-    * specified.  Otherwise ignored.
-    */
-   GLenum gs_input_prim_type;
+   /** Input layout qualifiers from GLSL 1.50. (geometry shader controls)*/
+   struct ast_type_qualifier *in_qualifier;
 
    /**
     * True if a compute shader input local size was specified using a layout
@@ -273,6 +292,15 @@ struct _mesa_glsl_parse_state {
       /* ARB_compute_shader */
       unsigned MaxComputeWorkGroupCount[3];
       unsigned MaxComputeWorkGroupSize[3];
+
+      /* ARB_shader_image_load_store */
+      unsigned MaxImageUnits;
+      unsigned MaxCombinedImageUnitsAndFragmentOutputs;
+      unsigned MaxImageSamples;
+      unsigned MaxVertexImageUniforms;
+      unsigned MaxGeometryImageUniforms;
+      unsigned MaxFragmentImageUniforms;
+      unsigned MaxCombinedImageUniforms;
    } Const;
 
    /**
@@ -333,6 +361,8 @@ struct _mesa_glsl_parse_state {
    bool ARB_texture_gather_warn;
    bool EXT_texture_array_enable;
    bool EXT_texture_array_warn;
+   bool ARB_separate_shader_objects_enable;
+   bool ARB_separate_shader_objects_warn;
    bool ARB_shader_texture_lod_enable;
    bool ARB_shader_texture_lod_warn;
    bool ARB_shader_stencil_export_enable;
@@ -381,6 +411,8 @@ struct _mesa_glsl_parse_state {
    bool ARB_viewport_array_warn;
    bool ARB_compute_shader_enable;
    bool ARB_compute_shader_warn;
+   bool ARB_shader_image_load_store_enable;
+   bool ARB_shader_image_load_store_warn;
    /*@}*/
 
    /** Extensions supported by the OpenGL implementation. */
@@ -396,6 +428,8 @@ struct _mesa_glsl_parse_state {
     * Unused for other shader types.
     */
    unsigned gs_input_size;
+
+   bool early_fragment_tests;
 
    /** Atomic counter offsets by binding */
    unsigned atomic_counter_offsets[MAX_COMBINED_ATOMIC_BUFFERS];

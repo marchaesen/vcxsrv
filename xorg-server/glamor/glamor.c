@@ -95,7 +95,7 @@ glamor_set_pixmap_texture(PixmapPtr pixmap, unsigned int tex)
         glamor_destroy_fbo(fbo);
     }
 
-    gl_iformat_for_depth(pixmap->drawable.depth, &format);
+    format = gl_iformat_for_pixmap(pixmap);
     fbo = glamor_create_fbo_from_tex(glamor_priv, pixmap->drawable.width,
                                      pixmap->drawable.height, format, tex, 0);
 
@@ -162,7 +162,7 @@ glamor_create_pixmap(ScreenPtr screen, int w, int h, int depth,
     pixmap_priv->base.pixmap = pixmap;
     pixmap_priv->base.glamor_priv = glamor_priv;
 
-    gl_iformat_for_depth(depth, &format);
+    format = gl_iformat_for_pixmap(pixmap);
 
     pitch = (((w * pixmap->drawable.bitsPerPixel + 7) / 8) + 3) & ~3;
     screen->ModifyPixmapHeader(pixmap, w, h, 0, 0, pitch, NULL);
@@ -218,13 +218,12 @@ void
 glamor_block_handler(ScreenPtr screen)
 {
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
-    glamor_gl_dispatch *dispatch;
 
-    dispatch = glamor_get_dispatch(glamor_priv);
+    glamor_get_context(glamor_priv);
     glamor_priv->tick++;
-    dispatch->glFlush();
+    glFlush();
     glamor_fbo_expire(glamor_priv);
-    glamor_put_dispatch(glamor_priv);
+    glamor_put_context(glamor_priv);
     if (glamor_priv->state == RENDER_STATE
         && glamor_priv->render_idle_cnt++ > RENDER_IDEL_MAX) {
         glamor_priv->state = IDLE_STATE;
@@ -236,10 +235,10 @@ static void
 _glamor_block_handler(void *data, OSTimePtr timeout, void *last_select_mask)
 {
     glamor_screen_private *glamor_priv = data;
-    glamor_gl_dispatch *dispatch = glamor_get_dispatch(glamor_priv);
 
-    dispatch->glFlush();
-    glamor_put_dispatch(glamor_priv);
+    glamor_get_context(glamor_priv);
+    glFlush();
+    glamor_put_context(glamor_priv);
 }
 
 static void
@@ -281,10 +280,10 @@ glamor_init(ScreenPtr screen, unsigned int flags)
         return FALSE;
 
     if (flags & GLAMOR_INVERTED_Y_AXIS) {
-        glamor_priv->yInverted = 1;
+        glamor_priv->yInverted = TRUE;
     }
     else
-        glamor_priv->yInverted = 0;
+        glamor_priv->yInverted = FALSE;
 
     if (!dixRegisterPrivateKey(glamor_screen_private_key, PRIVATE_SCREEN, 0)) {
         LogMessage(X_WARNING,
@@ -302,50 +301,49 @@ glamor_init(ScreenPtr screen, unsigned int flags)
         goto fail;;
     }
 
+    if (epoxy_is_desktop_gl())
+        glamor_priv->gl_flavor = GLAMOR_GL_DESKTOP;
+    else
+        glamor_priv->gl_flavor = GLAMOR_GL_ES2;
+
     gl_version = glamor_gl_get_version();
 
-#ifndef GLAMOR_GLES2
-    if (gl_version < GLAMOR_GL_VERSION_ENCODE(1, 3)) {
-        ErrorF("Require OpenGL version 1.3 or latter.\n");
-        goto fail;
-    }
-#else
-    if (gl_version < GLAMOR_GL_VERSION_ENCODE(2, 0)) {
-        ErrorF("Require Open GLES2.0 or latter.\n");
-        goto fail;
-    }
-#endif
+    if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
+        if (gl_version < GLAMOR_GL_VERSION_ENCODE(1, 3)) {
+            ErrorF("Require OpenGL version 1.3 or later.\n");
+            goto fail;
+        }
+    } else {
+        if (gl_version < GLAMOR_GL_VERSION_ENCODE(2, 0)) {
+            ErrorF("Require Open GLES2.0 or later.\n");
+            goto fail;
+        }
 
-    glamor_gl_dispatch_init(screen, &glamor_priv->_dispatch, gl_version);
-
-#ifdef GLAMOR_GLES2
-    if (!glamor_gl_has_extension("GL_EXT_texture_format_BGRA8888")) {
-        ErrorF("GL_EXT_texture_format_BGRA8888 required\n");
-        goto fail;
+        if (!glamor_gl_has_extension("GL_EXT_texture_format_BGRA8888")) {
+            ErrorF("GL_EXT_texture_format_BGRA8888 required\n");
+            goto fail;
+        }
     }
-#endif
 
     glamor_priv->has_pack_invert =
         glamor_gl_has_extension("GL_MESA_pack_invert");
     glamor_priv->has_fbo_blit =
         glamor_gl_has_extension("GL_EXT_framebuffer_blit");
-    glamor_priv->_dispatch.glGetIntegerv(GL_MAX_RENDERBUFFER_SIZE,
-                                         &glamor_priv->max_fbo_size);
+    glGetIntegerv(GL_MAX_RENDERBUFFER_SIZE, &glamor_priv->max_fbo_size);
 #ifdef MAX_FBO_SIZE
     glamor_priv->max_fbo_size = MAX_FBO_SIZE;
 #endif
 
     glamor_set_debug_level(&glamor_debug_level);
 
-#ifdef GLAMOR_GLES2
-    glamor_priv->gl_flavor = GLAMOR_GL_ES2;
-#else
-    glamor_priv->gl_flavor = GLAMOR_GL_DESKTOP;
-#endif
     /* If we are using egl screen, call egl screen init to
      * register correct close screen function. */
-    if (flags & GLAMOR_USE_EGL_SCREEN)
-        glamor_egl_screen_init(screen);
+    if (flags & GLAMOR_USE_EGL_SCREEN) {
+        glamor_egl_screen_init(screen, &glamor_priv->ctx);
+    } else {
+        if (!glamor_glx_screen_init(&glamor_priv->ctx))
+            goto fail;
+    }
 
     glamor_priv->saved_procs.close_screen = screen->CloseScreen;
     screen->CloseScreen = glamor_close_screen;

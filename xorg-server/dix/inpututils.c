@@ -60,7 +60,8 @@ check_butmap_change(DeviceIntPtr dev, CARD8 *map, int len, CARD32 *errval_out,
     }
 
     for (i = 0; i < len; i++) {
-        if (dev->button->map[i + 1] != map[i] && dev->button->down[i + 1])
+        if (dev->button->map[i + 1] != map[i] &&
+            button_is_down(dev, i + 1, BUTTON_PROCESSED))
             return MappingBusy;
     }
 
@@ -351,7 +352,7 @@ DuplicateInputAttributes(InputAttributes * attrs)
 {
     InputAttributes *new_attr;
     int ntags = 0;
-    const char **tags, **new_tags;
+    char **tags, **new_tags;
 
     if (!attrs)
         return NULL;
@@ -403,20 +404,20 @@ DuplicateInputAttributes(InputAttributes * attrs)
 void
 FreeInputAttributes(InputAttributes * attrs)
 {
-    const char **tags;
+    char **tags;
 
     if (!attrs)
         return;
 
-    free((void *) attrs->product);
-    free((void *) attrs->vendor);
-    free((void *) attrs->device);
-    free((void *) attrs->pnp_id);
-    free((void *) attrs->usb_id);
+    free(attrs->product);
+    free(attrs->vendor);
+    free(attrs->device);
+    free(attrs->pnp_id);
+    free(attrs->usb_id);
 
     if ((tags = attrs->tags))
         while (*tags)
-            free((void *) *tags++);
+            free(*tags++);
 
     free(attrs->tags);
     free(attrs);

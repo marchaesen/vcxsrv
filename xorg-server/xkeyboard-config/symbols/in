@@ -1230,7 +1230,7 @@ xkb_symbols "tam_TSCII" {
     key <AB06> { [ 0x10000b6, 0x10000aa ] }; // au
     key <AB07> { [ 0x10000ab, 0x10000ac ] }; // a, A
     key <AB08> { [ 0x10000fe, 0x10000ae ] }; // i, I
-
+};
 
 partial alphanumeric_keys
 xkb_symbols "tam_TAB" {
@@ -1392,7 +1392,7 @@ xkb_symbols "guru" {
       key <AE08> { [      U0A6e  	 	]	};
       key <AE09> { [      U0A6F, parenleft 	]	};
       key <AE10> { [      U0A66, parenright ]	};
-      key <AE11> { [      gur_visarga 	 	]	};
+      key <AE11> { [      U0A03 	 	]	};
       key <AE12> { [      equal,	plus 	]	};
 
 // Mainly long vowels
@@ -1638,7 +1638,7 @@ xkb_symbols "hin-wx" {
       key <AB01> {	 [      0x1000901,   0x100093C, 0x100093D, 0x1000950]   };
       key <AB02> {       [      0x1000926,   0x1000927      ]       };
       key <AB03> {       [      0x100091A,   0x100091B         ]       };
-      key <AB04> {       [      0x1000935,   dead_V        ]       };
+      key <AB04> {       [      0x1000935                      ]       };
       key <AB05> {       [      0x100092C,   0x100092D        ]       };
       key <AB06> {       [      0x1000928,   0x1000923         ]       };
       key <AB07> {       [      0x100092E,   0x1000902         ]       };

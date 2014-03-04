@@ -1169,8 +1169,8 @@ IResetProc(ExtensionEntry * unused)
     EventSwapVector[DevicePropertyNotify] = NotImplemented;
     RestoreExtensionEvents();
 
-    free((void *) xi_all_devices.name);
-    free((void *) xi_all_master_devices.name);
+    free(xi_all_devices.name);
+    free(xi_all_master_devices.name);
 
     XIBarrierReset();
 }

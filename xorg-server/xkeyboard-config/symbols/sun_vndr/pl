@@ -40,7 +40,7 @@ xkb_symbols "sun_type6" {
     key <AE03> { [ 3,		 numbersign 					] };
     key <AE04> { [ 4,		 dollar	 					] };
     key <AE05> { [ 5,		 percent 					] };
-    key <AE06> { [ 6,		 asciicirum					] };
+    key <AE06> { [ 6,		 asciicircum					] };
     key <AE07> { [ 7,		 ampersand					] };
     key <AE08> { [ 8,		 asterisk					] };
     key <AE09> { [ 9,		 parenleft					] };

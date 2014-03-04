@@ -36,7 +36,7 @@ fixes_LDADD=$(TEST_LDADD)
 xfree86_LDADD=$(TEST_LDADD)
 touch_LDADD=$(TEST_LDADD)
 signal_logging_LDADD=$(TEST_LDADD)
-hashtabletest_LDADD=$(TEST_LDADD) $(top_srcdir)/Xext/hashtable.c
+hashtabletest_LDADD=$(TEST_LDADD)
 os_LDADD=$(TEST_LDADD)
 
 libxservertest_la_LIBADD = $(XSERVER_LIBS)

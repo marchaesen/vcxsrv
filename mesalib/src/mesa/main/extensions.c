@@ -83,6 +83,7 @@ static const struct extension extension_table[] = {
    { "GL_ARB_arrays_of_arrays",                    o(ARB_arrays_of_arrays),                    GL,             2012 },
    { "GL_ARB_base_instance",                       o(ARB_base_instance),                       GL,             2011 },
    { "GL_ARB_blend_func_extended",                 o(ARB_blend_func_extended),                 GL,             2009 },
+   { "GL_ARB_buffer_storage",                      o(ARB_buffer_storage),                      GL,             2013 },
    { "GL_ARB_clear_buffer_object",                 o(dummy_true),                              GL,             2012 },
    { "GL_ARB_color_buffer_float",                  o(ARB_color_buffer_float),                  GL,             2004 },
    { "GL_ARB_compute_shader",                      o(ARB_compute_shader),                      GL,             2012 },
@@ -106,7 +107,7 @@ static const struct extension extension_table[] = {
    { "GL_ARB_framebuffer_sRGB",                    o(EXT_framebuffer_sRGB),                    GL,             1998 },
    { "GL_ARB_get_program_binary",                  o(dummy_true),                              GL,             2010 },
    { "GL_ARB_gpu_shader5",                         o(ARB_gpu_shader5),                         GL,             2010 },
-   { "GL_ARB_half_float_pixel",                    o(ARB_half_float_pixel),                    GL,             2003 },
+   { "GL_ARB_half_float_pixel",                    o(dummy_true),                              GL,             2003 },
    { "GL_ARB_half_float_vertex",                   o(ARB_half_float_vertex),                   GL,             2008 },
    { "GL_ARB_instanced_arrays",                    o(ARB_instanced_arrays),                    GL,             2008 },
    { "GL_ARB_internalformat_query",                o(ARB_internalformat_query),                GL,             2011 },
@@ -126,6 +127,7 @@ static const struct extension extension_table[] = {
    { "GL_ARB_sample_shading",                      o(ARB_sample_shading),                      GL,             2009 },
    { "GL_ARB_sampler_objects",                     o(dummy_true),                              GL,             2009 },
    { "GL_ARB_seamless_cube_map",                   o(ARB_seamless_cube_map),                   GL,             2009 },
+   { "GL_ARB_separate_shader_objects",             o(ARB_separate_shader_objects),             GL,             2010 },
    { "GL_ARB_shader_atomic_counters",              o(ARB_shader_atomic_counters),              GL,             2011 },
    { "GL_ARB_shader_bit_encoding",                 o(ARB_shader_bit_encoding),                 GL,             2010 },
    { "GL_ARB_shader_image_load_store",             o(ARB_shader_image_load_store),             GL,             2011 },
@@ -401,7 +403,6 @@ _mesa_enable_sw_extensions(struct gl_context *ctx)
    ctx->Extensions.ARB_fragment_program_shadow = GL_TRUE;
    ctx->Extensions.ARB_fragment_shader = GL_TRUE;
    ctx->Extensions.ARB_framebuffer_object = GL_TRUE;
-   ctx->Extensions.ARB_half_float_pixel = GL_TRUE;
    ctx->Extensions.ARB_half_float_vertex = GL_TRUE;
    ctx->Extensions.ARB_map_buffer_range = GL_TRUE;
    ctx->Extensions.ARB_occlusion_query = GL_TRUE;

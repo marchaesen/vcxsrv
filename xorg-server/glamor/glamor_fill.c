@@ -137,7 +137,6 @@ void
 glamor_init_solid_shader(ScreenPtr screen)
 {
     glamor_screen_private *glamor_priv;
-    glamor_gl_dispatch *dispatch;
     const char *solid_vs =
         "attribute vec4 v_position;"
         "void main()\n"
@@ -154,32 +153,31 @@ glamor_init_solid_shader(ScreenPtr screen)
     GLint fs_prog, vs_prog;
 
     glamor_priv = glamor_get_screen_private(screen);
-    dispatch = glamor_get_dispatch(glamor_priv);
-    glamor_priv->solid_prog = dispatch->glCreateProgram();
-    vs_prog = glamor_compile_glsl_prog(dispatch, GL_VERTEX_SHADER, solid_vs);
-    fs_prog = glamor_compile_glsl_prog(dispatch, GL_FRAGMENT_SHADER, solid_fs);
-    dispatch->glAttachShader(glamor_priv->solid_prog, vs_prog);
-    dispatch->glAttachShader(glamor_priv->solid_prog, fs_prog);
+    glamor_get_context(glamor_priv);
+    glamor_priv->solid_prog = glCreateProgram();
+    vs_prog = glamor_compile_glsl_prog(GL_VERTEX_SHADER, solid_vs);
+    fs_prog = glamor_compile_glsl_prog(GL_FRAGMENT_SHADER, solid_fs);
+    glAttachShader(glamor_priv->solid_prog, vs_prog);
+    glAttachShader(glamor_priv->solid_prog, fs_prog);
 
-    dispatch->glBindAttribLocation(glamor_priv->solid_prog,
-                                   GLAMOR_VERTEX_POS, "v_position");
-    glamor_link_glsl_prog(dispatch, glamor_priv->solid_prog);
+    glBindAttribLocation(glamor_priv->solid_prog,
+                         GLAMOR_VERTEX_POS, "v_position");
+    glamor_link_glsl_prog(glamor_priv->solid_prog);
 
     glamor_priv->solid_color_uniform_location =
-        dispatch->glGetUniformLocation(glamor_priv->solid_prog, "color");
-    glamor_put_dispatch(glamor_priv);
+        glGetUniformLocation(glamor_priv->solid_prog, "color");
+    glamor_put_context(glamor_priv);
 }
 
 void
 glamor_fini_solid_shader(ScreenPtr screen)
 {
     glamor_screen_private *glamor_priv;
-    glamor_gl_dispatch *dispatch;
 
     glamor_priv = glamor_get_screen_private(screen);
-    dispatch = glamor_get_dispatch(glamor_priv);
-    dispatch->glDeleteProgram(glamor_priv->solid_prog);
-    glamor_put_dispatch(glamor_priv);
+    glamor_get_context(glamor_priv);
+    glDeleteProgram(glamor_priv->solid_prog);
+    glamor_put_context(glamor_priv);
 }
 
 static void
@@ -188,7 +186,6 @@ _glamor_solid_boxes(PixmapPtr pixmap, BoxPtr box, int nbox, float *color)
     ScreenPtr screen = pixmap->drawable.pScreen;
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
     glamor_pixmap_private *pixmap_priv = glamor_get_pixmap_private(pixmap);
-    glamor_gl_dispatch *dispatch;
     GLfloat xscale, yscale;
     float vertices[32];
     float *pvertices = vertices;
@@ -196,10 +193,10 @@ _glamor_solid_boxes(PixmapPtr pixmap, BoxPtr box, int nbox, float *color)
 
     glamor_set_destination_pixmap_priv_nc(pixmap_priv);
 
-    dispatch = glamor_get_dispatch(glamor_priv);
-    dispatch->glUseProgram(glamor_priv->solid_prog);
+    glamor_get_context(glamor_priv);
+    glUseProgram(glamor_priv->solid_prog);
 
-    dispatch->glUniform4fv(glamor_priv->solid_color_uniform_location, 1, color);
+    glUniform4fv(glamor_priv->solid_color_uniform_location, 1, color);
 
     pixmap_priv_get_dest_scale(pixmap_priv, &xscale, &yscale);
 
@@ -221,11 +218,11 @@ _glamor_solid_boxes(PixmapPtr pixmap, BoxPtr box, int nbox, float *color)
     }
 
     if (_X_UNLIKELY(nbox > 1))
-        dispatch->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glamor_priv->ebo);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glamor_priv->ebo);
 
-    dispatch->glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_FLOAT,
-                                    GL_FALSE, 2 * sizeof(float), pvertices);
-    dispatch->glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
+    glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_FLOAT,
+                          GL_FALSE, 2 * sizeof(float), pvertices);
+    glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
 
     while (nbox) {
         int box_cnt, i;
@@ -242,17 +239,16 @@ _glamor_solid_boxes(PixmapPtr pixmap, BoxPtr box, int nbox, float *color)
             valid_vertices += 4 * 2;
         }
         if (box_cnt == 1)
-            dispatch->glDrawArrays(GL_TRIANGLE_FAN, 0, box_cnt * 4);
-        else
-#ifndef GLAMOR_GLES2
-            dispatch->glDrawRangeElements(GL_TRIANGLES,
-                                          0,
-                                          box_cnt * 4,
-                                          box_cnt * 6, GL_UNSIGNED_SHORT, NULL);
-#else
-            dispatch->glDrawElements(GL_TRIANGLES,
-                                     box_cnt * 6, GL_UNSIGNED_SHORT, NULL);
-#endif
+            glDrawArrays(GL_TRIANGLE_FAN, 0, box_cnt * 4);
+        else {
+            if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
+                glDrawRangeElements(GL_TRIANGLES, 0, box_cnt * 4, box_cnt * 6,
+                                    GL_UNSIGNED_SHORT, NULL);
+            } else {
+                glDrawElements(GL_TRIANGLES, box_cnt * 6, GL_UNSIGNED_SHORT,
+                               NULL);
+            }
+        }
         nbox -= box_cnt;
         box += box_cnt;
     }
@@ -260,9 +256,9 @@ _glamor_solid_boxes(PixmapPtr pixmap, BoxPtr box, int nbox, float *color)
     if (pvertices != vertices)
         free(pvertices);
 
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
-    dispatch->glUseProgram(0);
-    glamor_put_dispatch(glamor_priv);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
+    glUseProgram(0);
+    glamor_put_context(glamor_priv);
     glamor_priv->state = RENDER_STATE;
     glamor_priv->render_idle_cnt = 0;
 }
@@ -321,7 +317,6 @@ glamor_solid(PixmapPtr pixmap, int x, int y, int width, int height,
     ScreenPtr screen = pixmap->drawable.pScreen;
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
     glamor_pixmap_private *pixmap_priv;
-    glamor_gl_dispatch *dispatch;
     BoxRec box;
 
     pixmap_priv = glamor_get_pixmap_private(pixmap);
@@ -334,13 +329,13 @@ glamor_solid(PixmapPtr pixmap, int x, int y, int width, int height,
         return FALSE;
     }
 
-    dispatch = glamor_get_dispatch(glamor_priv);
-    if (!glamor_set_alu(dispatch, alu)) {
+    glamor_get_context(glamor_priv);
+    if (!glamor_set_alu(screen, alu)) {
         if (alu == GXclear)
             fg_pixel = 0;
         else {
             glamor_fallback("unsupported alu %x\n", alu);
-            glamor_put_dispatch(glamor_priv);
+            glamor_put_context(glamor_priv);
             return FALSE;
         }
     }
@@ -350,8 +345,8 @@ glamor_solid(PixmapPtr pixmap, int x, int y, int width, int height,
     box.y2 = y + height;
     glamor_solid_boxes(pixmap, &box, 1, fg_pixel);
 
-    glamor_set_alu(dispatch, GXcopy);
-    glamor_put_dispatch(glamor_priv);
+    glamor_set_alu(screen, GXcopy);
+    glamor_put_context(glamor_priv);
 
     return TRUE;
 }

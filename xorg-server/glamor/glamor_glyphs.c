@@ -1274,15 +1274,13 @@ glamor_buffer_glyph(glamor_screen_private *glamor_priv,
             if (buffer->source == NULL)
                 buffer->source = source;
             if (glyphs_dst_mode == GLYPHS_DST_MODE_VIA_MASK_CACHE) {
-                glamor_gl_dispatch *dispatch;
-
                 /* mode 1 means we are using global mask cache,
                  * thus we have to composite from the cache picture
                  * to the cache picture, we need a flush here to make
                  * sure latter we get the corret glyphs data.*/
-                dispatch = glamor_get_dispatch(glamor_priv);
-                dispatch->glFlush();
-                glamor_put_dispatch(glamor_priv);
+                glamor_get_context(glamor_priv);
+                glFlush();
+                glamor_put_context(glamor_priv);
             }
         }
         else {

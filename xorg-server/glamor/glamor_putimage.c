@@ -67,27 +67,26 @@ glamor_init_putimage_shaders(ScreenPtr screen)
     if (!GLEW_ARB_fragment_shader)
         return;
 
-    prog = dispatch->glCreateProgram();
+    prog = glCreateProgram();
     vs_prog = glamor_compile_glsl_prog(GL_VERTEX_SHADER, xybitmap_vs);
     fs_prog = glamor_compile_glsl_prog(GL_FRAGMENT_SHADER, xybitmap_fs);
-    dispatch->glAttachShader(prog, vs_prog);
-    dispatch->glAttachShader(prog, fs_prog);
+    glAttachShader(prog, vs_prog);
+    glAttachShader(prog, fs_prog);
     glamor_link_glsl_prog(prog);
 
-    dispatch->glUseProgram(prog);
-    sampler_uniform_location =
-        dispatch->glGetUniformLocation(prog, "bitmap_sampler");
-    dispatch->glUniform1i(sampler_uniform_location, 0);
+    glUseProgram(prog);
+    sampler_uniform_location = glGetUniformLocation(prog, "bitmap_sampler");
+    glUniform1i(sampler_uniform_location, 0);
 
     glamor_priv->put_image_xybitmap_fg_uniform_location =
-        dispatch->glGetUniformLocation(prog, "fg");
+        glGetUniformLocation(prog, "fg");
     glamor_priv->put_image_xybitmap_bg_uniform_location =
-        dispatch->glGetUniformLocation(prog, "bg");
+        glGetUniformLocation(prog, "bg");
     glamor_get_transform_uniform_locations(prog,
                                            &glamor_priv->
                                            put_image_xybitmap_transform);
     glamor_priv->put_image_xybitmap_prog = prog;
-    dispatch->glUseProgram(0);
+    glUseProgram(0);
 #endif
 }
 
@@ -162,40 +161,37 @@ glamor_put_image_xybitmap(DrawablePtr drawable, GCPtr gc,
     if (!glamor_set_planemask(pixmap, gc->planemask))
         goto fail;
 
-    dispatch->glUseProgram(glamor_priv->put_image_xybitmap_prog);
+    glUseProgram(glamor_priv->put_image_xybitmap_prog);
 
     glamor_get_color_4f_from_pixel(pixmap, gc->fgPixel, fg);
-    dispatch->glUniform4fv
-        (glamor_priv->put_image_xybitmap_fg_uniform_location, 1, fg);
+    glUniform4fv(glamor_priv->put_image_xybitmap_fg_uniform_location, 1, fg);
     glamor_get_color_4f_from_pixel(pixmap, gc->bgPixel, bg);
-    dispatch->glUniform4fv
-        (glamor_priv->put_image_xybitmap_bg_uniform_location, 1, bg);
+    glUniform4fv(glamor_priv->put_image_xybitmap_bg_uniform_location, 1, bg);
 
-    dispatch->glGenTextures(1, &tex);
-    dispatch->glActiveTexture(GL_TEXTURE0);
-    dispatch->glEnable(GL_TEXTURE_2D);
-    dispatch->glBindTexture(GL_TEXTURE_2D, tex);
-    dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    dispatch->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    dispatch->glPixelStorei(GL_UNPACK_ROW_LENGTH, stride * 8);
-    dispatch->glPixelStorei(GL_UNPACK_SKIP_PIXELS, left_pad);
-    dispatch->glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA,
-                           w, h, 0, GL_COLOR_INDEX, GL_BITMAP, bits);
-    dispatch->glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    dispatch->glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+    glGenTextures(1, &tex);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, stride * 8);
+    glPixelStorei(GL_UNPACK_SKIP_PIXELS, left_pad);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA,
+                 w, h, 0, GL_COLOR_INDEX, GL_BITMAP, bits);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
 
     /* Now that we've set up our bitmap texture and the shader, shove
      * the destination rectangle through the cliprects and run the
      * shader on the resulting fragments.
      */
-    dispatch->glVertexPointer(2, GL_FLOAT, 0, dest_coords);
-    dispatch->glEnableClientState(GL_VERTEX_ARRAY);
-    dispatch->glClientActiveTexture(GL_TEXTURE0);
-    dispatch->glTexCoordPointer(2, GL_FLOAT, 0, bitmap_coords);
-    dispatch->glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    glVertexPointer(2, GL_FLOAT, 0, dest_coords);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glClientActiveTexture(GL_TEXTURE0);
+    glTexCoordPointer(2, GL_FLOAT, 0, bitmap_coords);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-    dispatch->glEnable(GL_SCISSOR_TEST);
+    glEnable(GL_SCISSOR_TEST);
     clip = fbGetCompositeClip(gc);
     for (nbox = REGION_NUM_RECTS(clip), box = REGION_RECTS(clip); nbox--; box++) {
         int x1 = x;
@@ -214,19 +210,17 @@ glamor_put_image_xybitmap(DrawablePtr drawable, GCPtr gc,
         if (x1 >= x2 || y1 >= y2)
             continue;
 
-        dispatch->glScissor(box->x1,
-                            y_flip(pixmap, box->y1),
-                            box->x2 - box->x1, box->y2 - box->y1);
-        dispatch->glDrawArrays(GL_QUADS, 0, 4);
+        glScissor(box->x1, y_flip(pixmap, box->y1),
+                  box->x2 - box->x1, box->y2 - box->y1);
+        glDrawArrays(GL_QUADS, 0, 4);
     }
 
-    dispatch->glDisable(GL_SCISSOR_TEST);
+    glDisable(GL_SCISSOR_TEST);
     glamor_set_alu(GXcopy);
     glamor_set_planemask(pixmap, ~0);
-    dispatch->glDeleteTextures(1, &tex);
-    dispatch->glDisable(GL_TEXTURE_2D);
-    dispatch->glDisableClientState(GL_VERTEX_ARRAY);
-    dispatch->glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDeleteTextures(1, &tex);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     return;
     glamor_set_alu(GXcopy);
     glamor_set_planemask(pixmap, ~0);

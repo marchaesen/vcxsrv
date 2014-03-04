@@ -869,19 +869,17 @@ format_for_depth(int depth)
     }
 }
 
-static inline void
-gl_iformat_for_depth(int depth, GLenum * format)
+static inline GLenum
+gl_iformat_for_pixmap(PixmapPtr pixmap)
 {
-    switch (depth) {
-#ifndef GLAMOR_GLES2
-    case 1:
-    case 8:
-        *format = GL_ALPHA;
-        break;
-#endif
-    default:
-        *format = GL_RGBA;
-        break;
+    glamor_screen_private *glamor_priv =
+        glamor_get_screen_private(pixmap->drawable.pScreen);
+
+    if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP &&
+        (pixmap->drawable.depth == 1 || pixmap->drawable.depth == 8)) {
+        return GL_ALPHA;
+    } else {
+        return GL_RGBA;
     }
 }
 
@@ -916,298 +914,6 @@ format_for_pixmap(PixmapPtr pixmap)
 #define SWAP_UPLOADING	  	2
 #define SWAP_NONE_UPLOADING	3
 
-/*
- * Map picture's format to the correct gl texture format and type.
- * no_alpha is used to indicate whehter we need to wire alpha to 1.
- *
- * Although opengl support A1/GL_BITMAP, we still don't use it
- * here, it seems that mesa has bugs when uploading a A1 bitmap.
- *
- * Return 0 if find a matched texture type. Otherwise return -1.
- **/
-#ifndef GLAMOR_GLES2
-static inline int
-glamor_get_tex_format_type_from_pictformat(PictFormatShort format,
-                                           GLenum * tex_format,
-                                           GLenum * tex_type,
-                                           int *no_alpha,
-                                           int *revert,
-                                           int *swap_rb, int is_upload)
-{
-    *no_alpha = 0;
-    *revert = REVERT_NONE;
-    *swap_rb = is_upload ? SWAP_NONE_UPLOADING : SWAP_NONE_DOWNLOADING;
-    switch (format) {
-    case PICT_a1:
-        *tex_format = GL_ALPHA;
-        *tex_type = GL_UNSIGNED_BYTE;
-        *revert = is_upload ? REVERT_UPLOADING_A1 : REVERT_DOWNLOADING_A1;
-        break;
-    case PICT_b8g8r8x8:
-        *no_alpha = 1;
-    case PICT_b8g8r8a8:
-        *tex_format = GL_BGRA;
-        *tex_type = GL_UNSIGNED_INT_8_8_8_8;
-        break;
-
-    case PICT_x8r8g8b8:
-        *no_alpha = 1;
-    case PICT_a8r8g8b8:
-        *tex_format = GL_BGRA;
-        *tex_type = GL_UNSIGNED_INT_8_8_8_8_REV;
-        break;
-    case PICT_x8b8g8r8:
-        *no_alpha = 1;
-    case PICT_a8b8g8r8:
-        *tex_format = GL_RGBA;
-        *tex_type = GL_UNSIGNED_INT_8_8_8_8_REV;
-        break;
-    case PICT_x2r10g10b10:
-        *no_alpha = 1;
-    case PICT_a2r10g10b10:
-        *tex_format = GL_BGRA;
-        *tex_type = GL_UNSIGNED_INT_2_10_10_10_REV;
-        break;
-    case PICT_x2b10g10r10:
-        *no_alpha = 1;
-    case PICT_a2b10g10r10:
-        *tex_format = GL_RGBA;
-        *tex_type = GL_UNSIGNED_INT_2_10_10_10_REV;
-        break;
-
-    case PICT_r5g6b5:
-        *tex_format = GL_RGB;
-        *tex_type = GL_UNSIGNED_SHORT_5_6_5;
-        break;
-    case PICT_b5g6r5:
-        *tex_format = GL_RGB;
-        *tex_type = GL_UNSIGNED_SHORT_5_6_5_REV;
-        break;
-    case PICT_x1b5g5r5:
-        *no_alpha = 1;
-    case PICT_a1b5g5r5:
-        *tex_format = GL_RGBA;
-        *tex_type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
-        break;
-
-    case PICT_x1r5g5b5:
-        *no_alpha = 1;
-    case PICT_a1r5g5b5:
-        *tex_format = GL_BGRA;
-        *tex_type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
-        break;
-    case PICT_a8:
-        *tex_format = GL_ALPHA;
-        *tex_type = GL_UNSIGNED_BYTE;
-        break;
-    case PICT_x4r4g4b4:
-        *no_alpha = 1;
-    case PICT_a4r4g4b4:
-        *tex_format = GL_BGRA;
-        *tex_type = GL_UNSIGNED_SHORT_4_4_4_4_REV;
-        break;
-
-    case PICT_x4b4g4r4:
-        *no_alpha = 1;
-    case PICT_a4b4g4r4:
-        *tex_format = GL_RGBA;
-        *tex_type = GL_UNSIGNED_SHORT_4_4_4_4_REV;
-        break;
-
-    default:
-        LogMessageVerb(X_INFO, 0,
-                       "fail to get matched format for %x \n", format);
-        return -1;
-    }
-    return 0;
-}
-
-/* Currently, we use RGBA to represent all formats. */
-inline static int
-cache_format(GLenum format)
-{
-    switch (format) {
-    case GL_ALPHA:
-        return 1;
-    case GL_RGBA:
-        return 0;
-    default:
-        return -1;
-    }
-}
-
-#else
-#define IS_LITTLE_ENDIAN  (IMAGE_BYTE_ORDER == LSBFirst)
-
-static inline int
-glamor_get_tex_format_type_from_pictformat(PictFormatShort format,
-                                           GLenum * tex_format,
-                                           GLenum * tex_type,
-                                           int *no_alpha,
-                                           int *revert,
-                                           int *swap_rb, int is_upload)
-{
-    int need_swap_rb = 0;
-
-    *no_alpha = 0;
-    *revert = IS_LITTLE_ENDIAN ? REVERT_NONE : REVERT_NORMAL;
-
-    switch (format) {
-    case PICT_b8g8r8x8:
-        *no_alpha = 1;
-    case PICT_b8g8r8a8:
-        *tex_format = GL_RGBA;
-        *tex_type = GL_UNSIGNED_BYTE;
-        need_swap_rb = 1;
-        *revert = IS_LITTLE_ENDIAN ? REVERT_NORMAL : REVERT_NONE;
-        break;
-
-    case PICT_x8r8g8b8:
-        *no_alpha = 1;
-    case PICT_a8r8g8b8:
-        *tex_format = GL_RGBA;
-        *tex_type = GL_UNSIGNED_BYTE;
-        need_swap_rb = 1;
-        break;
-
-    case PICT_x8b8g8r8:
-        *no_alpha = 1;
-    case PICT_a8b8g8r8:
-        *tex_format = GL_RGBA;
-        *tex_type = GL_UNSIGNED_BYTE;
-        break;
-
-    case PICT_x2r10g10b10:
-        *no_alpha = 1;
-    case PICT_a2r10g10b10:
-        *tex_format = GL_RGBA;
-        /* glReadPixmap doesn't support GL_UNSIGNED_INT_10_10_10_2.
-         * we have to use GL_UNSIGNED_BYTE and do the conversion in
-         * shader latter.*/
-        *tex_type = GL_UNSIGNED_BYTE;
-        if (is_upload == 1) {
-            if (!IS_LITTLE_ENDIAN)
-                *revert = REVERT_UPLOADING_10_10_10_2;
-            else
-                *revert = REVERT_UPLOADING_2_10_10_10;
-        }
-        else {
-            if (!IS_LITTLE_ENDIAN) {
-                *revert = REVERT_DOWNLOADING_10_10_10_2;
-            }
-            else {
-                *revert = REVERT_DOWNLOADING_2_10_10_10;
-            }
-        }
-        need_swap_rb = 1;
-
-        break;
-
-    case PICT_x2b10g10r10:
-        *no_alpha = 1;
-    case PICT_a2b10g10r10:
-        *tex_format = GL_RGBA;
-        *tex_type = GL_UNSIGNED_BYTE;
-        if (is_upload == 1) {
-            if (!IS_LITTLE_ENDIAN)
-                *revert = REVERT_UPLOADING_10_10_10_2;
-            else
-                *revert = REVERT_UPLOADING_2_10_10_10;
-        }
-        else {
-            if (!IS_LITTLE_ENDIAN) {
-                *revert = REVERT_DOWNLOADING_10_10_10_2;
-            }
-            else {
-                *revert = REVERT_DOWNLOADING_2_10_10_10;
-            }
-        }
-        break;
-
-    case PICT_r5g6b5:
-        *tex_format = GL_RGB;
-        *tex_type = GL_UNSIGNED_SHORT_5_6_5;
-        *revert = IS_LITTLE_ENDIAN ? REVERT_NONE : REVERT_NORMAL;
-
-        break;
-
-    case PICT_b5g6r5:
-        *tex_format = GL_RGB;
-        *tex_type = GL_UNSIGNED_SHORT_5_6_5;
-        need_swap_rb = IS_LITTLE_ENDIAN ? 1 : 0;;
-        break;
-
-    case PICT_x1b5g5r5:
-        *no_alpha = 1;
-    case PICT_a1b5g5r5:
-        *tex_format = GL_RGBA;
-        *tex_type = GL_UNSIGNED_SHORT_5_5_5_1;
-        if (IS_LITTLE_ENDIAN) {
-            *revert =
-                is_upload ? REVERT_UPLOADING_1_5_5_5 :
-                REVERT_DOWNLOADING_1_5_5_5;
-        }
-        else
-            *revert = REVERT_NONE;
-        break;
-
-    case PICT_x1r5g5b5:
-        *no_alpha = 1;
-    case PICT_a1r5g5b5:
-        *tex_format = GL_RGBA;
-        *tex_type = GL_UNSIGNED_SHORT_5_5_5_1;
-        if (IS_LITTLE_ENDIAN) {
-            *revert =
-                is_upload ? REVERT_UPLOADING_1_5_5_5 :
-                REVERT_DOWNLOADING_1_5_5_5;
-        }
-        else
-            *revert = REVERT_NONE;
-        need_swap_rb = 1;
-        break;
-
-    case PICT_a1:
-        *tex_format = GL_ALPHA;
-        *tex_type = GL_UNSIGNED_BYTE;
-        *revert = is_upload ? REVERT_UPLOADING_A1 : REVERT_DOWNLOADING_A1;
-        break;
-
-    case PICT_a8:
-        *tex_format = GL_ALPHA;
-        *tex_type = GL_UNSIGNED_BYTE;
-        *revert = REVERT_NONE;
-        break;
-
-    case PICT_x4r4g4b4:
-        *no_alpha = 1;
-    case PICT_a4r4g4b4:
-        *tex_format = GL_RGBA;
-        *tex_type = GL_UNSIGNED_SHORT_4_4_4_4;
-        *revert = IS_LITTLE_ENDIAN ? REVERT_NORMAL : REVERT_NONE;
-        need_swap_rb = 1;
-        break;
-
-    case PICT_x4b4g4r4:
-        *no_alpha = 1;
-    case PICT_a4b4g4r4:
-        *tex_format = GL_RGBA;
-        *tex_type = GL_UNSIGNED_SHORT_4_4_4_4;
-        *revert = IS_LITTLE_ENDIAN ? REVERT_NORMAL : REVERT_NONE;
-        break;
-
-    default:
-        LogMessageVerb(X_INFO, 0,
-                       "fail to get matched format for %x \n", format);
-        return -1;
-    }
-
-    if (need_swap_rb)
-        *swap_rb = is_upload ? SWAP_UPLOADING : SWAP_DOWNLOADING;
-    else
-        *swap_rb = is_upload ? SWAP_NONE_UPLOADING : SWAP_NONE_DOWNLOADING;
-    return 0;
-}
-
 inline static int
 cache_format(GLenum format)
 {
@@ -1221,31 +927,6 @@ cache_format(GLenum format)
     default:
         return -1;
     }
-}
-
-#endif
-
-static inline int
-glamor_get_tex_format_type_from_pixmap(PixmapPtr pixmap,
-                                       GLenum * format,
-                                       GLenum * type,
-                                       int *no_alpha,
-                                       int *revert, int *swap_rb, int is_upload)
-{
-    glamor_pixmap_private *pixmap_priv;
-    PictFormatShort pict_format;
-
-    pixmap_priv = glamor_get_pixmap_private(pixmap);
-    if (GLAMOR_PIXMAP_PRIV_IS_PICTURE(pixmap_priv))
-        pict_format = pixmap_priv->base.picture->format;
-    else
-        pict_format = format_for_depth(pixmap->drawable.depth);
-
-    return glamor_get_tex_format_type_from_pictformat(pict_format,
-                                                      format, type,
-                                                      no_alpha,
-                                                      revert,
-                                                      swap_rb, is_upload);
 }
 
 /* borrowed from uxa */
@@ -1319,16 +1000,18 @@ glamor_get_rgba_from_pixel(CARD32 pixel,
 }
 
 inline static Bool
-glamor_pict_format_is_compatible(PictFormatShort pict_format, int depth)
+glamor_pict_format_is_compatible(PicturePtr picture)
 {
     GLenum iformat;
+    PixmapPtr pixmap = glamor_get_drawable_pixmap(picture->pDrawable);
 
-    gl_iformat_for_depth(depth, &iformat);
+    iformat = gl_iformat_for_pixmap(pixmap);
     switch (iformat) {
     case GL_RGBA:
-        return (pict_format == PICT_a8r8g8b8 || pict_format == PICT_x8r8g8b8);
+        return (picture->format == PICT_a8r8g8b8 ||
+                picture->format == PICT_x8r8g8b8);
     case GL_ALPHA:
-        return (pict_format == PICT_a8);
+        return (picture->format == PICT_a8);
     default:
         return FALSE;
     }
@@ -1817,31 +1500,15 @@ __fls(unsigned long x)
 #endif
 
 static inline void
-glamor_make_current(ScreenPtr screen)
+glamor_get_context(glamor_screen_private * glamor_priv)
 {
-    glamor_egl_make_current(screen);
+    glamor_priv->ctx.get_context(&glamor_priv->ctx);
 }
 
 static inline void
-glamor_restore_current(ScreenPtr screen)
+glamor_put_context(glamor_screen_private * glamor_priv)
 {
-    glamor_egl_restore_context(screen);
-}
-
-static inline glamor_gl_dispatch *
-glamor_get_dispatch(glamor_screen_private * glamor_priv)
-{
-    if (glamor_priv->flags & GLAMOR_USE_EGL_SCREEN)
-        glamor_make_current(glamor_priv->screen);
-
-    return &glamor_priv->_dispatch;
-}
-
-static inline void
-glamor_put_dispatch(glamor_screen_private * glamor_priv)
-{
-    if (glamor_priv->flags & GLAMOR_USE_EGL_SCREEN)
-        glamor_restore_current(glamor_priv->screen);
+    glamor_priv->ctx.put_context(&glamor_priv->ctx);
 }
 
 #endif

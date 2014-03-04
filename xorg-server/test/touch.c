@@ -40,7 +40,7 @@ touch_grow_queue(void)
     int i;
 
     memset(&dev, 0, sizeof(dev));
-    dev.name = "test device";
+    dev.name = xnfstrdup("test device");
     dev.id = 2;
     dev.valuator = &val;
     val.numAxes = 5;
@@ -82,6 +82,8 @@ touch_grow_queue(void)
         assert(t->client_id == 0);
         assert(t->ddx_id == 0);
     }
+
+    free(dev.name);
 }
 
 static void
@@ -95,7 +97,7 @@ touch_find_ddxid(void)
     int i;
 
     memset(&dev, 0, sizeof(dev));
-    dev.name = "test device";
+    dev.name = xnfstrdup("test device");
     dev.id = 2;
     dev.valuator = &val;
     val.numAxes = 5;
@@ -150,6 +152,8 @@ touch_find_ddxid(void)
     ProcessWorkQueue();
     ti = TouchFindByDDXID(&dev, 40, TRUE);
     assert(ti == &dev.last.touches[size]);
+
+    free(dev.name);
 }
 
 static void
@@ -164,7 +168,7 @@ touch_begin_ddxtouch(void)
     int size = 5;
 
     memset(&dev, 0, sizeof(dev));
-    dev.name = "test device";
+    dev.name = xnfstrdup("test device");
     dev.id = 2;
     dev.valuator = &val;
     val.numAxes = 5;
@@ -195,6 +199,8 @@ touch_begin_ddxtouch(void)
     assert(ti->client_id > last_client_id);
     assert(!ti->emulate_pointer);
     last_client_id = ti->client_id;
+
+    free(dev.name);
 }
 
 static void
@@ -212,7 +218,7 @@ touch_begin_touch(void)
     screenInfo.screens[0] = &screen;
 
     memset(&dev, 0, sizeof(dev));
-    dev.name = "test device";
+    dev.name = xnfstrdup("test device");
     dev.id = 2;
 
     memset(&sprite, 0, sizeof(sprite));
@@ -237,6 +243,8 @@ touch_begin_touch(void)
     assert(ti->emulate_pointer);
 
     assert(touch.num_touches == 1);
+
+    free(dev.name);
 }
 
 static void
@@ -251,7 +259,7 @@ touch_init(void)
     screenInfo.screens[0] = &screen;
 
     memset(&dev, 0, sizeof(dev));
-    dev.name = "test device";
+    dev.name = xnfstrdup("test device");
 
     memset(&sprite, 0, sizeof(sprite));
     dev.spriteInfo = &sprite;
@@ -264,6 +272,8 @@ touch_init(void)
     rc = InitTouchClassDeviceStruct(&dev, 1, XIDirectTouch, 2);
     assert(rc == TRUE);
     assert(dev.touch);
+
+    free(dev.name);
 }
 
 int

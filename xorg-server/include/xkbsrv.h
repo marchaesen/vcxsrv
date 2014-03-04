@@ -738,6 +738,14 @@ extern _X_EXPORT void XkbClearAllLatchesAndLocks(DeviceIntPtr /* dev */ ,
                                                  XkbEventCausePtr       /* cause */
     );
 
+extern _X_EXPORT void XkbInitRules(XkbRMLVOSet * /* rmlvo   */,
+                                   const char *  /* rules   */,
+                                   const char *  /* model   */,
+                                   const char *  /* layout  */,
+                                   const char *  /* variant */,
+                                   const char *  /* options */
+    ) ;
+
 extern _X_EXPORT void XkbGetRulesDflts(XkbRMLVOSet *    /* rmlvo */
     );
 

@@ -397,11 +397,6 @@ _mesa_base_tex_format( struct gl_context *ctx, GLint internalFormat )
    if (ctx->Extensions.ARB_texture_rg) {
       switch (internalFormat) {
       case GL_R16F:
-	 /* R16F depends on both ARB_half_float_pixel and ARB_texture_float.
-	  */
-	 if (!ctx->Extensions.ARB_half_float_pixel)
-	    break;
-	 /* FALLTHROUGH */
       case GL_R32F:
 	 if (!ctx->Extensions.ARB_texture_float)
 	    break;
@@ -422,11 +417,6 @@ _mesa_base_tex_format( struct gl_context *ctx, GLint internalFormat )
          return GL_RED;
 
       case GL_RG16F:
-	 /* RG16F depends on both ARB_half_float_pixel and ARB_texture_float.
-	  */
-	 if (!ctx->Extensions.ARB_half_float_pixel)
-	    break;
-	 /* FALLTHROUGH */
       case GL_RG32F:
 	 if (!ctx->Extensions.ARB_texture_float)
 	    break;
@@ -2254,9 +2244,10 @@ compressed_texture_error_check(struct gl_context *ctx, GLint dimensions,
 
    /* This will detect any invalid internalFormat value */
    if (!_mesa_is_compressed_format(ctx, internalFormat)) {
-      reason = "internalFormat";
-      error = GL_INVALID_ENUM;
-      goto error;
+      _mesa_error(ctx, GL_INVALID_ENUM,
+                  "glCompressedTexImage%dD(internalFormat=%s)",
+                  dimensions, _mesa_lookup_enum_by_nr(internalFormat));
+      return GL_TRUE;
    }
 
    switch (internalFormat) {
@@ -2348,6 +2339,7 @@ compressed_texture_error_check(struct gl_context *ctx, GLint dimensions,
    return GL_FALSE;
 
 error:
+   /* Note: not all error paths exit through here. */
    _mesa_error(ctx, error, "glCompressedTexImage%dD(%s)", dimensions, reason);
    return GL_TRUE;
 }
@@ -2563,7 +2555,8 @@ copytexture_error_check( struct gl_context *ctx, GLuint dimensions,
          break;
       default:
          _mesa_error(ctx, GL_INVALID_VALUE,
-                     "glCopyTexImage%dD(internalFormat)", dimensions);
+                     "glCopyTexImage%dD(internalFormat=%s)", dimensions,
+                     _mesa_lookup_enum_by_nr(internalFormat));
          return GL_TRUE;
       }
    }
@@ -2571,7 +2564,8 @@ copytexture_error_check( struct gl_context *ctx, GLuint dimensions,
    baseFormat = _mesa_base_tex_format(ctx, internalFormat);
    if (baseFormat < 0) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glCopyTexImage%dD(internalFormat)", dimensions);
+                  "glCopyTexImage%dD(internalFormat=%s)", dimensions,
+                  _mesa_lookup_enum_by_nr(internalFormat));
       return GL_TRUE;
    }
 
@@ -2580,7 +2574,8 @@ copytexture_error_check( struct gl_context *ctx, GLuint dimensions,
    if (_mesa_is_color_format(internalFormat)) {
       if (rb_base_format < 0) {
          _mesa_error(ctx, GL_INVALID_VALUE,
-                     "glCopyTexImage%dD(internalFormat)", dimensions);
+                     "glCopyTexImage%dD(internalFormat=%s)", dimensions,
+                     _mesa_lookup_enum_by_nr(internalFormat));
          return GL_TRUE;
       }
    }
@@ -2606,7 +2601,8 @@ copytexture_error_check( struct gl_context *ctx, GLuint dimensions,
       }
       if (!valid) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glCopyTexImage%dD(internalFormat)", dimensions);
+                     "glCopyTexImage%dD(internalFormat=%s)", dimensions,
+                     _mesa_lookup_enum_by_nr(internalFormat));
          return GL_TRUE;
       }
    }
@@ -4183,10 +4179,18 @@ _mesa_validate_texbuffer_format(const struct gl_context *ctx,
       return MESA_FORMAT_NONE;
 
    datatype = _mesa_get_format_datatype(format);
-   if (datatype == GL_FLOAT && !ctx->Extensions.ARB_texture_float)
-      return MESA_FORMAT_NONE;
 
-   if (datatype == GL_HALF_FLOAT && !ctx->Extensions.ARB_half_float_pixel)
+   /* The GL_ARB_texture_buffer_object spec says:
+    *
+    *     "If ARB_texture_float is not supported, references to the
+    *     floating-point internal formats provided by that extension should be
+    *     removed, and such formats may not be passed to TexBufferARB."
+    *
+    * As a result, GL_HALF_FLOAT internal format depends on both
+    * GL_ARB_texture_float and GL_ARB_half_float_pixel.
+    */
+   if ((datatype == GL_FLOAT || datatype == GL_HALF_FLOAT) &&
+       !ctx->Extensions.ARB_texture_float)
       return MESA_FORMAT_NONE;
 
    if (!ctx->Extensions.ARB_texture_rg) {

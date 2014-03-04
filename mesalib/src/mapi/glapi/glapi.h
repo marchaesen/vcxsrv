@@ -44,12 +44,13 @@
 #ifndef _GLAPI_H
 #define _GLAPI_H
 
-#include "glthread.h"
+#include "u_thread.h"
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 
 #ifdef _GLAPI_NO_EXPORTS
 #  define _GLAPI_EXPORT
@@ -69,7 +70,6 @@ extern "C" {
 
 #include "GL/gl.h"
 #include "GL/glext.h"
-#include "glthread.h"
 
 
 struct _glapi_table;
@@ -84,8 +84,8 @@ typedef void (*_glapi_warning_func)(void *ctx, const char *str, ...);
 #define _glapi_get_dispatch _mglapi_get_dispatch
 #define _glapi_set_context _mglapi_set_context
 #define _glapi_get_context _mglapi_get_context
-#define _glapi_Context _mglapi_Context
 #define _glapi_Dispatch _mglapi_Dispatch
+#define _glapi_Context _mglapi_Context
 #endif
 
 /*
@@ -100,12 +100,14 @@ typedef void (*_glapi_warning_func)(void *ctx, const char *str, ...);
  **/
 #if defined (GLX_USE_TLS)
 
-_GLAPI_EXPORT extern __thread struct _glapi_table * _glapi_tls_Dispatch;
+_GLAPI_EXPORT extern __thread struct _glapi_table * _glapi_tls_Dispatch
+  ;
 
-_GLAPI_EXPORT extern const void *_glapi_Context;
+_GLAPI_EXPORT extern __thread void * _glapi_tls_Context
+  ;
+
 _GLAPI_EXPORT extern const struct _glapi_table *_glapi_Dispatch;
-
-_GLAPI_EXPORT extern __thread void * _glapi_tls_Context;
+_GLAPI_EXPORT extern const void *_glapi_Context;
 
 # define GET_DISPATCH() _glapi_tls_Dispatch
 # define GET_CURRENT_CONTEXT(C)  struct gl_context *C = (struct gl_context *) _glapi_tls_Context
@@ -118,20 +120,22 @@ _GLAPI_EXPORT extern __thread void * _glapi_tls_Context;
 #define SERVEXTERN _declspec(dllexport)
 #endif
 
-SERVEXTERN void *_glapi_Context;
 SERVEXTERN struct _glapi_table *_glapi_Dispatch;
+SERVEXTERN void *_glapi_Context;
 
 # ifdef THREADS
 
 #  define GET_DISPATCH() \
      (likely(_glapi_Dispatch) ? _glapi_Dispatch : _glapi_get_dispatch())
 
-
 #  define GET_CURRENT_CONTEXT(C)  struct gl_context *C = (struct gl_context *) \
      (likely(_glapi_Context) ? _glapi_Context : _glapi_get_context())
+
 # else
+
 #  define GET_DISPATCH() _glapi_Dispatch
 #  define GET_CURRENT_CONTEXT(C)  struct gl_context *C = (struct gl_context *) _glapi_Context
+
 # endif
 
 #endif /* defined (GLX_USE_TLS) */
@@ -183,8 +187,10 @@ _glapi_get_proc_address(const char *funcName);
 extern struct _glapi_table *
 _glapi_create_table_from_handle(void *handle, const char *symbol_prefix);
 
-#endif
+
 
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* _GLAPI_H */

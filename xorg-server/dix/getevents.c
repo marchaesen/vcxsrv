@@ -1671,6 +1671,8 @@ GetPointerEvents(InternalEvent *events, DeviceIntPtr pDev, int type,
     }
 #endif
 
+    BUG_RETURN_VAL(buttons >= MAX_BUTTONS, 0);
+
     /* refuse events from disabled devices */
     if (!pDev->enabled)
         return 0;

@@ -36,9 +36,8 @@
 #define LOG_TO_LOG2        0x10
 #define MOD_TO_FRACT       0x20
 #define INT_DIV_TO_MUL_RCP 0x40
-#define LRP_TO_ARITH       0x80
-#define BITFIELD_INSERT_TO_BFM_BFI 0x100
-#define LDEXP_TO_ARITH     0x200
+#define BITFIELD_INSERT_TO_BFM_BFI 0x80
+#define LDEXP_TO_ARITH     0x100
 
 /**
  * \see class lower_packing_builtins_visitor
@@ -120,6 +119,7 @@ bool lower_vector_insert(exec_list *instructions, bool lower_nonconstant_index);
 void lower_named_interface_blocks(void *mem_ctx, gl_shader *shader);
 bool optimize_redundant_jumps(exec_list *instructions);
 bool optimize_split_arrays(exec_list *instructions, bool linked);
+bool lower_offset_arrays(exec_list *instructions);
 
 ir_rvalue *
 compare_index_block(exec_list *instructions, ir_variable *index,

@@ -90,38 +90,36 @@ void
 glamor_init_xv_shader(ScreenPtr screen)
 {
     glamor_screen_private *glamor_priv;
-    glamor_gl_dispatch *dispatch;
     GLint fs_prog, vs_prog;
 
     glamor_priv = glamor_get_screen_private(screen);
-    dispatch = glamor_get_dispatch(glamor_priv);
-    glamor_priv->xv_prog = dispatch->glCreateProgram();
+    glamor_get_context(glamor_priv);
+    glamor_priv->xv_prog = glCreateProgram();
 
-    vs_prog = glamor_compile_glsl_prog(dispatch, GL_VERTEX_SHADER, xv_vs);
-    fs_prog = glamor_compile_glsl_prog(dispatch, GL_FRAGMENT_SHADER, xv_ps);
-    dispatch->glAttachShader(glamor_priv->xv_prog, vs_prog);
-    dispatch->glAttachShader(glamor_priv->xv_prog, fs_prog);
+    vs_prog = glamor_compile_glsl_prog(GL_VERTEX_SHADER, xv_vs);
+    fs_prog = glamor_compile_glsl_prog(GL_FRAGMENT_SHADER, xv_ps);
+    glAttachShader(glamor_priv->xv_prog, vs_prog);
+    glAttachShader(glamor_priv->xv_prog, fs_prog);
 
-    dispatch->glBindAttribLocation(glamor_priv->xv_prog,
-                                   GLAMOR_VERTEX_POS, "v_position");
-    dispatch->glBindAttribLocation(glamor_priv->xv_prog,
-                                   GLAMOR_VERTEX_SOURCE, "v_texcoord0");
-    glamor_link_glsl_prog(dispatch, glamor_priv->xv_prog);
+    glBindAttribLocation(glamor_priv->xv_prog,
+                         GLAMOR_VERTEX_POS, "v_position");
+    glBindAttribLocation(glamor_priv->xv_prog,
+                         GLAMOR_VERTEX_SOURCE, "v_texcoord0");
+    glamor_link_glsl_prog(glamor_priv->xv_prog);
 
-    glamor_put_dispatch(glamor_priv);
+    glamor_put_context(glamor_priv);
 }
 
 void
 glamor_fini_xv_shader(ScreenPtr screen)
 {
     glamor_screen_private *glamor_priv;
-    glamor_gl_dispatch *dispatch;
 
     glamor_priv = glamor_get_screen_private(screen);
-    dispatch = glamor_get_dispatch(glamor_priv);
+    glamor_get_context(glamor_priv);
 
-    dispatch->glDeleteProgram(glamor_priv->xv_prog);
-    glamor_put_dispatch(glamor_priv);
+    glDeleteProgram(glamor_priv->xv_prog);
+    glamor_put_context(glamor_priv);
 }
 
 #define ClipValue(v,min,max) ((v) < (min) ? (min) : (v) > (max) ? (max) : (v))
@@ -278,7 +276,6 @@ glamor_display_textured_video(glamor_port_private *port_priv)
     glamor_pixmap_private *pixmap_priv =
         glamor_get_pixmap_private(port_priv->pPixmap);
     glamor_pixmap_private *src_pixmap_priv[3];
-    glamor_gl_dispatch *dispatch;
     float vertices[32], texcoords[8];
     BoxPtr box = REGION_RECTS(&port_priv->clip);
     int nBox = REGION_NUM_RECTS(&port_priv->clip);
@@ -327,62 +324,53 @@ glamor_display_textured_video(glamor_port_private *port_priv)
                                   &src_yscale[i]);
         }
     }
-    dispatch = glamor_get_dispatch(glamor_priv);
-    dispatch->glUseProgram(glamor_priv->xv_prog);
+    glamor_get_context(glamor_priv);
+    glUseProgram(glamor_priv->xv_prog);
 
-    uloc = dispatch->glGetUniformLocation(glamor_priv->xv_prog, "offsetyco");
-    dispatch->glUniform4f(uloc, off[0], off[1], off[2], yco);
-    uloc = dispatch->glGetUniformLocation(glamor_priv->xv_prog, "ucogamma");
-    dispatch->glUniform4f(uloc, uco[0], uco[1], uco[2], gamma);
-    uloc = dispatch->glGetUniformLocation(glamor_priv->xv_prog, "vco");
-    dispatch->glUniform4f(uloc, vco[0], vco[1], vco[2], 0);
+    uloc = glGetUniformLocation(glamor_priv->xv_prog, "offsetyco");
+    glUniform4f(uloc, off[0], off[1], off[2], yco);
+    uloc = glGetUniformLocation(glamor_priv->xv_prog, "ucogamma");
+    glUniform4f(uloc, uco[0], uco[1], uco[2], gamma);
+    uloc = glGetUniformLocation(glamor_priv->xv_prog, "vco");
+    glUniform4f(uloc, vco[0], vco[1], vco[2], 0);
 
-    dispatch->glActiveTexture(GL_TEXTURE0);
-    dispatch->glBindTexture(GL_TEXTURE_2D, src_pixmap_priv[0]->base.fbo->tex);
-    dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    dispatch->glTexParameteri(GL_TEXTURE_2D,
-                              GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    dispatch->glTexParameteri(GL_TEXTURE_2D,
-                              GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, src_pixmap_priv[0]->base.fbo->tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    dispatch->glActiveTexture(GL_TEXTURE1);
-    dispatch->glBindTexture(GL_TEXTURE_2D, src_pixmap_priv[1]->base.fbo->tex);
-    dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    dispatch->glTexParameteri(GL_TEXTURE_2D,
-                              GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    dispatch->glTexParameteri(GL_TEXTURE_2D,
-                              GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, src_pixmap_priv[1]->base.fbo->tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    dispatch->glActiveTexture(GL_TEXTURE2);
-    dispatch->glBindTexture(GL_TEXTURE_2D, src_pixmap_priv[2]->base.fbo->tex);
-    dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    dispatch->glTexParameteri(GL_TEXTURE_2D,
-                              GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    dispatch->glTexParameteri(GL_TEXTURE_2D,
-                              GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, src_pixmap_priv[2]->base.fbo->tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    sampler_loc =
-        dispatch->glGetUniformLocation(glamor_priv->xv_prog, "y_sampler");
-    dispatch->glUniform1i(sampler_loc, 0);
-    sampler_loc =
-        dispatch->glGetUniformLocation(glamor_priv->xv_prog, "u_sampler");
-    dispatch->glUniform1i(sampler_loc, 1);
-    sampler_loc =
-        dispatch->glGetUniformLocation(glamor_priv->xv_prog, "v_sampler");
-    dispatch->glUniform1i(sampler_loc, 2);
+    sampler_loc = glGetUniformLocation(glamor_priv->xv_prog, "y_sampler");
+    glUniform1i(sampler_loc, 0);
+    sampler_loc = glGetUniformLocation(glamor_priv->xv_prog, "u_sampler");
+    glUniform1i(sampler_loc, 1);
+    sampler_loc = glGetUniformLocation(glamor_priv->xv_prog, "v_sampler");
+    glUniform1i(sampler_loc, 2);
 
-    dispatch->glVertexAttribPointer(GLAMOR_VERTEX_SOURCE, 2,
-                                    GL_FLOAT, GL_FALSE,
-                                    2 * sizeof(float), texcoords);
-    dispatch->glEnableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
+    glVertexAttribPointer(GLAMOR_VERTEX_SOURCE, 2,
+                          GL_FLOAT, GL_FALSE,
+                          2 * sizeof(float), texcoords);
+    glEnableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
 
-    dispatch->glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_FLOAT,
-                                    GL_FALSE, 2 * sizeof(float), vertices);
+    glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_FLOAT,
+                          GL_FALSE, 2 * sizeof(float), vertices);
 
-    dispatch->glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
+    glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
     for (i = 0; i < nBox; i++) {
         float off_x = box[i].x1 - port_priv->drw_x;
         float off_y = box[i].y1 - port_priv->drw_y;
@@ -418,14 +406,14 @@ glamor_display_textured_video(glamor_port_private *port_priv)
                                      srcy + srch,
                                      glamor_priv->yInverted, texcoords);
 
-        dispatch->glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
     }
 
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
 
-    dispatch->glUseProgram(0);
-    glamor_put_dispatch(glamor_priv);
+    glUseProgram(0);
+    glamor_put_context(glamor_priv);
     DamageDamageRegion(port_priv->pDraw, &port_priv->clip);
 }
 

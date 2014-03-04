@@ -253,6 +253,8 @@ struct __DRItexBufferExtensionRec {
      * __DRIdrawable, including the required texture format attribute.
      *
      * For GLX_EXT_texture_from_pixmap with AIGLX.
+     *
+     * \since 2
      */
     void (*setTexBuffer2)(__DRIcontext *pDRICtx,
 			  GLint target,
@@ -263,6 +265,8 @@ struct __DRItexBufferExtensionRec {
      * need this.
      *
      * For GLX_EXT_texture_from_pixmap with AIGLX.
+     *
+     * \since 3
      */
     void (*releaseTexBuffer)(__DRIcontext *pDRICtx,
 			GLint target,
@@ -468,6 +472,8 @@ struct __DRIswrastLoaderExtensionRec {
 
     /**
      * Put image to drawable
+     *
+     * \since 2
      */
     void (*putImage2)(__DRIdrawable *drawable, int op,
                       int x, int y, int width, int height, int stride,
@@ -852,6 +858,8 @@ struct __DRIdri2LoaderExtensionRec {
      * \param driDrawable    Drawable whose front-buffer is to be flushed
      * \param loaderPrivate  Loader's private data that was previously passed
      *                       into __DRIdri2ExtensionRec::createNewDrawable
+     *
+     * \since 2
      */
     void (*flushFrontBuffer)(__DRIdrawable *driDrawable, void *loaderPrivate);
 
@@ -874,6 +882,8 @@ struct __DRIdri2LoaderExtensionRec {
      *                       \c attachments.
      * \param loaderPrivate  Loader's private data that was previously passed
      *                       into __DRIdri2ExtensionRec::createNewDrawable.
+     *
+     * \since 3
      */
     __DRIbuffer *(*getBuffersWithFormat)(__DRIdrawable *driDrawable,
 					 int *width, int *height,

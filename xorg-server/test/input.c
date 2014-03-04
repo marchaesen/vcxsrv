@@ -1101,7 +1101,7 @@ xi_unregister_handlers(void)
 static void
 cmp_attr_fields(InputAttributes * attr1, InputAttributes * attr2)
 {
-    const char **tags1, **tags2;
+    char **tags1, **tags2;
 
     assert(attr1 && attr2);
     assert(attr1 != attr2);
@@ -1180,50 +1180,54 @@ cmp_attr_fields(InputAttributes * attr1, InputAttributes * attr2)
 static void
 dix_input_attributes(void)
 {
-    InputAttributes orig = { 0 };
+    InputAttributes *orig;
     InputAttributes *new;
-    const char *tags[4] = { "tag1", "tag2", "tag2", NULL };
 
     new = DuplicateInputAttributes(NULL);
     assert(!new);
 
-    new = DuplicateInputAttributes(&orig);
-    assert(memcmp(&orig, new, sizeof(InputAttributes)) == 0);
+    orig = calloc(1, sizeof(InputAttributes));
+    assert(orig);
 
-    orig.product = "product name";
-    new = DuplicateInputAttributes(&orig);
-    cmp_attr_fields(&orig, new);
+    new = DuplicateInputAttributes(orig);
+    assert(memcmp(orig, new, sizeof(InputAttributes)) == 0);
+
+    orig->product = xnfstrdup("product name");
+    new = DuplicateInputAttributes(orig);
+    cmp_attr_fields(orig, new);
     FreeInputAttributes(new);
 
-    orig.vendor = "vendor name";
-    new = DuplicateInputAttributes(&orig);
-    cmp_attr_fields(&orig, new);
+    orig->vendor = xnfstrdup("vendor name");
+    new = DuplicateInputAttributes(orig);
+    cmp_attr_fields(orig, new);
     FreeInputAttributes(new);
 
-    orig.device = "device path";
-    new = DuplicateInputAttributes(&orig);
-    cmp_attr_fields(&orig, new);
+    orig->device = xnfstrdup("device path");
+    new = DuplicateInputAttributes(orig);
+    cmp_attr_fields(orig, new);
     FreeInputAttributes(new);
 
-    orig.pnp_id = "PnPID";
-    new = DuplicateInputAttributes(&orig);
-    cmp_attr_fields(&orig, new);
+    orig->pnp_id = xnfstrdup("PnPID");
+    new = DuplicateInputAttributes(orig);
+    cmp_attr_fields(orig, new);
     FreeInputAttributes(new);
 
-    orig.usb_id = "USBID";
-    new = DuplicateInputAttributes(&orig);
-    cmp_attr_fields(&orig, new);
+    orig->usb_id = xnfstrdup("USBID");
+    new = DuplicateInputAttributes(orig);
+    cmp_attr_fields(orig, new);
     FreeInputAttributes(new);
 
-    orig.flags = 0xF0;
-    new = DuplicateInputAttributes(&orig);
-    cmp_attr_fields(&orig, new);
+    orig->flags = 0xF0;
+    new = DuplicateInputAttributes(orig);
+    cmp_attr_fields(orig, new);
     FreeInputAttributes(new);
 
-    orig.tags = tags;
-    new = DuplicateInputAttributes(&orig);
-    cmp_attr_fields(&orig, new);
+    orig->tags = xstrtokenize("tag1 tag2 tag3", " ");
+    new = DuplicateInputAttributes(orig);
+    cmp_attr_fields(orig, new);
     FreeInputAttributes(new);
+
+    FreeInputAttributes(orig);
 }
 
 static void
@@ -1386,8 +1390,8 @@ dix_valuator_alloc(void)
         assert(v->numAxes == num_axes);
 #if !defined(__i386__) && !defined(__m68k__) && !defined(__sh__)
         /* must be double-aligned on 64 bit */
-        assert(((void *) v->axisVal - (void *) v) % sizeof(double) == 0);
-        assert(((void *) v->axes - (void *) v) % sizeof(double) == 0);
+        assert(offsetof(struct _ValuatorClassRec, axisVal) % sizeof(double) == 0);
+        assert(offsetof(struct _ValuatorClassRec, axes) % sizeof(double) == 0);
 #endif
         num_axes++;
     }

@@ -204,7 +204,7 @@ mtrr_cull_wc_region(int screenNum, unsigned long base, unsigned long size,
             xf86DrvMsgVerb(screenNum, X_WARNING, 0,
                            "Failed to remove MMIO "
                            "write-combining range (0x%lx,0x%lx)\n",
-                           gent.base, (unsigned long) gent.size);
+                           (unsigned long)gent.base, (unsigned long) gent.size);
         }
     }
     return wcreturn;

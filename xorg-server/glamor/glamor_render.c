@@ -62,8 +62,7 @@ static struct blendinfo composite_op_info[] = {
 
 #define RepeatFix			10
 static GLuint
-glamor_create_composite_fs(glamor_gl_dispatch *dispatch,
-                           struct shader_key *key)
+glamor_create_composite_fs(struct shader_key *key)
 {
     const char *repeat_define =
         "#define RepeatNone               	      0\n"
@@ -266,15 +265,14 @@ glamor_create_composite_fs(glamor_gl_dispatch *dispatch,
     XNFasprintf(&source, "%s%s%s%s%s%s", repeat_define, relocate_texture,
                 rel_sampler, source_fetch, mask_fetch, in);
 
-    prog = glamor_compile_glsl_prog(dispatch, GL_FRAGMENT_SHADER, source);
+    prog = glamor_compile_glsl_prog(GL_FRAGMENT_SHADER, source);
     free(source);
 
     return prog;
 }
 
 static GLuint
-glamor_create_composite_vs(glamor_gl_dispatch *dispatch,
-                           struct shader_key *key)
+glamor_create_composite_vs(struct shader_key *key)
 {
     const char *main_opening =
         "attribute vec4 v_position;\n"
@@ -304,7 +302,7 @@ glamor_create_composite_vs(glamor_gl_dispatch *dispatch,
                 main_opening,
                 source_coords_setup, mask_coords_setup, main_closing);
 
-    prog = glamor_compile_glsl_prog(dispatch, GL_VERTEX_SHADER, source);
+    prog = glamor_compile_glsl_prog(GL_VERTEX_SHADER, source);
     free(source);
 
     return prog;
@@ -317,60 +315,57 @@ glamor_create_composite_shader(ScreenPtr screen, struct shader_key *key,
     GLuint vs, fs, prog;
     GLint source_sampler_uniform_location, mask_sampler_uniform_location;
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
-    glamor_gl_dispatch *dispatch;
 
-    dispatch = glamor_get_dispatch(glamor_priv);
-    vs = glamor_create_composite_vs(dispatch, key);
+    glamor_get_context(glamor_priv);
+    vs = glamor_create_composite_vs(key);
     if (vs == 0)
         goto out;
-    fs = glamor_create_composite_fs(dispatch, key);
+    fs = glamor_create_composite_fs(key);
     if (fs == 0)
         goto out;
 
-    prog = dispatch->glCreateProgram();
-    dispatch->glAttachShader(prog, vs);
-    dispatch->glAttachShader(prog, fs);
+    prog = glCreateProgram();
+    glAttachShader(prog, vs);
+    glAttachShader(prog, fs);
 
-    dispatch->glBindAttribLocation(prog, GLAMOR_VERTEX_POS, "v_position");
-    dispatch->glBindAttribLocation(prog, GLAMOR_VERTEX_SOURCE, "v_texcoord0");
-    dispatch->glBindAttribLocation(prog, GLAMOR_VERTEX_MASK, "v_texcoord1");
+    glBindAttribLocation(prog, GLAMOR_VERTEX_POS, "v_position");
+    glBindAttribLocation(prog, GLAMOR_VERTEX_SOURCE, "v_texcoord0");
+    glBindAttribLocation(prog, GLAMOR_VERTEX_MASK, "v_texcoord1");
 
-    glamor_link_glsl_prog(dispatch, prog);
+    glamor_link_glsl_prog(prog);
 
     shader->prog = prog;
 
-    dispatch->glUseProgram(prog);
+    glUseProgram(prog);
 
     if (key->source == SHADER_SOURCE_SOLID) {
-        shader->source_uniform_location =
-            dispatch->glGetUniformLocation(prog, "source");
+        shader->source_uniform_location = glGetUniformLocation(prog, "source");
     }
     else {
         source_sampler_uniform_location =
-            dispatch->glGetUniformLocation(prog, "source_sampler");
-        dispatch->glUniform1i(source_sampler_uniform_location, 0);
-        shader->source_wh = dispatch->glGetUniformLocation(prog, "source_wh");
+            glGetUniformLocation(prog, "source_sampler");
+        glUniform1i(source_sampler_uniform_location, 0);
+        shader->source_wh = glGetUniformLocation(prog, "source_wh");
         shader->source_repeat_mode =
-            dispatch->glGetUniformLocation(prog, "source_repeat_mode");
+            glGetUniformLocation(prog, "source_repeat_mode");
     }
 
     if (key->mask != SHADER_MASK_NONE) {
         if (key->mask == SHADER_MASK_SOLID) {
-            shader->mask_uniform_location =
-                dispatch->glGetUniformLocation(prog, "mask");
+            shader->mask_uniform_location = glGetUniformLocation(prog, "mask");
         }
         else {
             mask_sampler_uniform_location =
-                dispatch->glGetUniformLocation(prog, "mask_sampler");
-            dispatch->glUniform1i(mask_sampler_uniform_location, 1);
-            shader->mask_wh = dispatch->glGetUniformLocation(prog, "mask_wh");
+                glGetUniformLocation(prog, "mask_sampler");
+            glUniform1i(mask_sampler_uniform_location, 1);
+            shader->mask_wh = glGetUniformLocation(prog, "mask_wh");
             shader->mask_repeat_mode =
-                dispatch->glGetUniformLocation(prog, "mask_repeat_mode");
+                glGetUniformLocation(prog, "mask_repeat_mode");
         }
     }
 
  out:
-    glamor_put_dispatch(glamor_priv);
+    glamor_put_context(glamor_priv);
 }
 
 static glamor_composite_shader *
@@ -407,23 +402,21 @@ void
 glamor_init_composite_shaders(ScreenPtr screen)
 {
     glamor_screen_private *glamor_priv;
-    glamor_gl_dispatch *dispatch;
     unsigned short *eb;
     float *vb = NULL;
     int eb_size;
 
     glamor_priv = glamor_get_screen_private(screen);
-    dispatch = glamor_get_dispatch(glamor_priv);
-    dispatch->glGenBuffers(1, &glamor_priv->vbo);
-    dispatch->glGenBuffers(1, &glamor_priv->ebo);
-    dispatch->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glamor_priv->ebo);
+    glamor_get_context(glamor_priv);
+    glGenBuffers(1, &glamor_priv->vbo);
+    glGenBuffers(1, &glamor_priv->ebo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glamor_priv->ebo);
 
     eb_size = GLAMOR_COMPOSITE_VBO_VERT_CNT * sizeof(short) * 2;
 
     if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
-        dispatch->glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                               eb_size, NULL, GL_STATIC_DRAW);
-        eb = dispatch->glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, eb_size, NULL, GL_STATIC_DRAW);
+        eb = glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
     }
     else {
         vb = malloc(GLAMOR_COMPOSITE_VBO_VERT_CNT * sizeof(float) * 2);
@@ -438,51 +431,49 @@ glamor_init_composite_shaders(ScreenPtr screen)
     glamor_init_eb(eb, GLAMOR_COMPOSITE_VBO_VERT_CNT);
 
     if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
-        dispatch->glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
-        dispatch->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
     else {
-        dispatch->glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                               eb_size, eb, GL_STATIC_DRAW);
-        dispatch->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, eb_size, eb, GL_STATIC_DRAW);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-        dispatch->glBindBuffer(GL_ARRAY_BUFFER, glamor_priv->vbo);
-        dispatch->glBufferData(GL_ARRAY_BUFFER,
-                               GLAMOR_COMPOSITE_VBO_VERT_CNT * sizeof(float) *
-                               2, NULL, GL_DYNAMIC_DRAW);
-        dispatch->glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, glamor_priv->vbo);
+        glBufferData(GL_ARRAY_BUFFER,
+                     GLAMOR_COMPOSITE_VBO_VERT_CNT * sizeof(float) *
+                     2, NULL, GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         free(eb);
         glamor_priv->vb = (char *) vb;
     }
 
-    glamor_put_dispatch(glamor_priv);
+    glamor_put_context(glamor_priv);
 }
 
 void
 glamor_fini_composite_shaders(ScreenPtr screen)
 {
     glamor_screen_private *glamor_priv;
-    glamor_gl_dispatch *dispatch;
     glamor_composite_shader *shader;
     int i, j, k;
 
     glamor_priv = glamor_get_screen_private(screen);
-    dispatch = glamor_get_dispatch(glamor_priv);
-    dispatch->glDeleteBuffers(1, &glamor_priv->vbo);
-    dispatch->glDeleteBuffers(1, &glamor_priv->ebo);
+    glamor_get_context(glamor_priv);
+    glDeleteBuffers(1, &glamor_priv->vbo);
+    glDeleteBuffers(1, &glamor_priv->ebo);
 
     for (i = 0; i < SHADER_SOURCE_COUNT; i++)
         for (j = 0; j < SHADER_MASK_COUNT; j++)
             for (k = 0; k < SHADER_IN_COUNT; k++) {
                 shader = &glamor_priv->composite_shader[i][j][k];
                 if (shader->prog)
-                    dispatch->glDeleteProgram(shader->prog);
+                    glDeleteProgram(shader->prog);
             }
     if (glamor_priv->gl_flavor != GLAMOR_GL_DESKTOP && glamor_priv->vb)
         free(glamor_priv->vb);
 
-    glamor_put_dispatch(glamor_priv);
+    glamor_put_context(glamor_priv);
 }
 
 static Bool
@@ -535,44 +526,37 @@ glamor_set_composite_texture(glamor_screen_private *glamor_priv, int unit,
                              glamor_pixmap_private *pixmap_priv,
                              GLuint wh_location, GLuint repeat_location)
 {
-    glamor_gl_dispatch *dispatch;
     float wh[4];
     int repeat_type;
 
-    dispatch = glamor_get_dispatch(glamor_priv);
-    dispatch->glActiveTexture(GL_TEXTURE0 + unit);
-    dispatch->glBindTexture(GL_TEXTURE_2D, pixmap_priv->base.fbo->tex);
+    glamor_get_context(glamor_priv);
+    glActiveTexture(GL_TEXTURE0 + unit);
+    glBindTexture(GL_TEXTURE_2D, pixmap_priv->base.fbo->tex);
     repeat_type = picture->repeatType;
     switch (picture->repeatType) {
     case RepeatNone:
-#ifndef GLAMOR_GLES2
-        /* XXX  GLES2 doesn't support GL_CLAMP_TO_BORDER. */
-        dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
-                                  GL_CLAMP_TO_BORDER);
-        dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
-                                  GL_CLAMP_TO_BORDER);
-#else
-        dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
-                                  GL_CLAMP_TO_EDGE);
-        dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
-                                  GL_CLAMP_TO_EDGE);
-#endif
+        if (glamor_priv->gl_flavor != GLAMOR_GL_ES2) {
+            /* XXX  GLES2 doesn't support GL_CLAMP_TO_BORDER. */
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
+                            GL_CLAMP_TO_BORDER);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
+                            GL_CLAMP_TO_BORDER);
+        } else {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        }
         break;
     case RepeatNormal:
-        dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         break;
     case RepeatPad:
-        dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
-                                  GL_CLAMP_TO_EDGE);
-        dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
-                                  GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         break;
     case RepeatReflect:
-        dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
-                                  GL_MIRRORED_REPEAT);
-        dispatch->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
-                                  GL_MIRRORED_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
         break;
     }
 
@@ -580,23 +564,16 @@ glamor_set_composite_texture(glamor_screen_private *glamor_priv, int unit,
     default:
     case PictFilterFast:
     case PictFilterNearest:
-        dispatch->glTexParameteri(GL_TEXTURE_2D,
-                                  GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        dispatch->glTexParameteri(GL_TEXTURE_2D,
-                                  GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         break;
     case PictFilterGood:
     case PictFilterBest:
     case PictFilterBilinear:
-        dispatch->glTexParameteri(GL_TEXTURE_2D,
-                                  GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        dispatch->glTexParameteri(GL_TEXTURE_2D,
-                                  GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         break;
     }
-#ifndef GLAMOR_GLES2
-    dispatch->glEnable(GL_TEXTURE_2D);
-#endif
 
     /*
      *  GLES2 doesn't support RepeatNone. We need to fix it anyway.
@@ -615,19 +592,18 @@ glamor_set_composite_texture(glamor_screen_private *glamor_priv, int unit,
         if ((wh[0] != 1.0 || wh[1] != 1.0)
             || (glamor_priv->gl_flavor == GLAMOR_GL_ES2
                 && repeat_type == RepeatFix))
-            dispatch->glUniform4fv(wh_location, 1, wh);
+            glUniform4fv(wh_location, 1, wh);
         else
             repeat_type -= RepeatFix;
     }
-    dispatch->glUniform1i(repeat_location, repeat_type);
-    glamor_put_dispatch(glamor_priv);
+    glUniform1i(repeat_location, repeat_type);
+    glamor_put_context(glamor_priv);
 }
 
 static void
-glamor_set_composite_solid(glamor_gl_dispatch *dispatch, float *color,
-                           GLint uniform_location)
+glamor_set_composite_solid(float *color, GLint uniform_location)
 {
-    dispatch->glUniform4fv(uniform_location, 1, color);
+    glUniform4fv(uniform_location, 1, color);
 }
 
 static int
@@ -729,7 +705,6 @@ void
 glamor_setup_composite_vbo(ScreenPtr screen, int n_verts)
 {
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
-    glamor_gl_dispatch *dispatch;
     int vert_size;
 
     glamor_priv->render_nr_verts = 0;
@@ -741,65 +716,54 @@ glamor_setup_composite_vbo(ScreenPtr screen, int n_verts)
 
     vert_size = n_verts * glamor_priv->vb_stride;
 
-    dispatch = glamor_get_dispatch(glamor_priv);
-    dispatch->glBindBuffer(GL_ARRAY_BUFFER, glamor_priv->vbo);
+    glamor_get_context(glamor_priv);
+    glBindBuffer(GL_ARRAY_BUFFER, glamor_priv->vbo);
     if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
         if (glamor_priv->vbo_size < (glamor_priv->vbo_offset + vert_size)) {
             glamor_priv->vbo_size = GLAMOR_COMPOSITE_VBO_VERT_CNT *
                 glamor_priv->vb_stride;
             glamor_priv->vbo_offset = 0;
-            dispatch->glBufferData(GL_ARRAY_BUFFER,
-                                   glamor_priv->vbo_size, NULL, GL_STREAM_DRAW);
+            glBufferData(GL_ARRAY_BUFFER,
+                         glamor_priv->vbo_size, NULL, GL_STREAM_DRAW);
         }
 
-        glamor_priv->vb = dispatch->glMapBufferRange(GL_ARRAY_BUFFER,
-                                                     glamor_priv->vbo_offset,
-                                                     vert_size,
-                                                     GL_MAP_WRITE_BIT |
-                                                     GL_MAP_UNSYNCHRONIZED_BIT);
+        glamor_priv->vb = glMapBufferRange(GL_ARRAY_BUFFER,
+                                           glamor_priv->vbo_offset,
+                                           vert_size,
+                                           GL_MAP_WRITE_BIT |
+                                           GL_MAP_UNSYNCHRONIZED_BIT);
         assert(glamor_priv->vb != NULL);
         glamor_priv->vb -= glamor_priv->vbo_offset;
     }
     else
         glamor_priv->vbo_offset = 0;
 
-    dispatch->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glamor_priv->ebo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glamor_priv->ebo);
 
-    dispatch->glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_FLOAT,
-                                    GL_FALSE, glamor_priv->vb_stride,
-                                    (void *) ((long)
-                                              glamor_priv->vbo_offset));
-    dispatch->glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
+    glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_FLOAT, GL_FALSE,
+                          glamor_priv->vb_stride,
+                          (void *) ((long)
+                                    glamor_priv->vbo_offset));
+    glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
 
     if (glamor_priv->has_source_coords) {
-        dispatch->glVertexAttribPointer(GLAMOR_VERTEX_SOURCE, 2,
-                                        GL_FLOAT, GL_FALSE,
-                                        glamor_priv->vb_stride, (void *) ((long)
-                                                                          glamor_priv->
-                                                                          vbo_offset
-                                                                          +
-                                                                          2 *
-                                                                          sizeof
-                                                                          (float)));
-        dispatch->glEnableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
+        glVertexAttribPointer(GLAMOR_VERTEX_SOURCE, 2,
+                              GL_FLOAT, GL_FALSE,
+                              glamor_priv->vb_stride,
+                              (void *) ((long) glamor_priv->vbo_offset +
+                                        2 * sizeof(float)));
+        glEnableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
     }
 
     if (glamor_priv->has_mask_coords) {
-        dispatch->glVertexAttribPointer(GLAMOR_VERTEX_MASK, 2,
-                                        GL_FLOAT, GL_FALSE,
-                                        glamor_priv->vb_stride, (void *) ((long)
-                                                                          glamor_priv->
-                                                                          vbo_offset
-                                                                          +
-                                                                          (glamor_priv->
-                                                                           has_source_coords
-                                                                           ? 4 :
-                                                                           2) *
-                                                                          sizeof
-                                                                          (float)));
-        dispatch->glEnableVertexAttribArray(GLAMOR_VERTEX_MASK);
+        glVertexAttribPointer(GLAMOR_VERTEX_MASK, 2, GL_FLOAT, GL_FALSE,
+                              glamor_priv->vb_stride,
+                              (void *) ((long) glamor_priv->vbo_offset +
+                                        (glamor_priv->has_source_coords ?
+                                         4 : 2) * sizeof(float)));
+        glEnableVertexAttribArray(GLAMOR_VERTEX_MASK);
     }
-    glamor_put_dispatch(glamor_priv);
+    glamor_put_context(glamor_priv);
 }
 
 void
@@ -831,32 +795,29 @@ static void
 glamor_flush_composite_rects(ScreenPtr screen)
 {
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
-    glamor_gl_dispatch *dispatch;
 
-    dispatch = glamor_get_dispatch(glamor_priv);
+    glamor_get_context(glamor_priv);
     if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP)
-        dispatch->glUnmapBuffer(GL_ARRAY_BUFFER);
+        glUnmapBuffer(GL_ARRAY_BUFFER);
     else {
 
-        dispatch->glBindBuffer(GL_ARRAY_BUFFER, glamor_priv->vbo);
-        dispatch->glBufferData(GL_ARRAY_BUFFER,
-                               glamor_priv->vbo_offset,
-                               glamor_priv->vb, GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, glamor_priv->vbo);
+        glBufferData(GL_ARRAY_BUFFER, glamor_priv->vbo_offset,
+                     glamor_priv->vb, GL_DYNAMIC_DRAW);
     }
 
     if (!glamor_priv->render_nr_verts)
         return;
 
-#ifndef GLAMOR_GLES2
-    dispatch->glDrawRangeElements(GL_TRIANGLES, 0, glamor_priv->render_nr_verts,
-                                  (glamor_priv->render_nr_verts * 3) / 2,
-                                  GL_UNSIGNED_SHORT, NULL);
-#else
-    dispatch->glDrawElements(GL_TRIANGLES,
-                             (glamor_priv->render_nr_verts * 3) / 2,
-                             GL_UNSIGNED_SHORT, NULL);
-#endif
-    glamor_put_dispatch(glamor_priv);
+    if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
+        glDrawRangeElements(GL_TRIANGLES, 0, glamor_priv->render_nr_verts,
+                            (glamor_priv->render_nr_verts * 3) / 2,
+                            GL_UNSIGNED_SHORT, NULL);
+    } else {
+        glDrawElements(GL_TRIANGLES, (glamor_priv->render_nr_verts * 3) / 2,
+                       GL_UNSIGNED_SHORT, NULL);
+    }
+    glamor_put_context(glamor_priv);
 }
 
 int pict_format_combine_tab[][3] = {
@@ -1228,17 +1189,15 @@ glamor_composite_set_shader_blend(glamor_pixmap_private *dest_priv,
                                   glamor_composite_shader *shader,
                                   struct blendinfo *op_info)
 {
-    glamor_gl_dispatch *dispatch;
     glamor_screen_private *glamor_priv;
 
     glamor_priv = dest_priv->base.glamor_priv;
 
-    dispatch = glamor_get_dispatch(glamor_priv);
-    dispatch->glUseProgram(shader->prog);
+    glamor_get_context(glamor_priv);
+    glUseProgram(shader->prog);
 
     if (key->source == SHADER_SOURCE_SOLID) {
-        glamor_set_composite_solid(dispatch,
-                                   shader->source_solid_color,
+        glamor_set_composite_solid(shader->source_solid_color,
                                    shader->source_uniform_location);
     }
     else {
@@ -1250,8 +1209,7 @@ glamor_composite_set_shader_blend(glamor_pixmap_private *dest_priv,
 
     if (key->mask != SHADER_MASK_NONE) {
         if (key->mask == SHADER_MASK_SOLID) {
-            glamor_set_composite_solid(dispatch,
-                                       shader->mask_solid_color,
+            glamor_set_composite_solid(shader->mask_solid_color,
                                        shader->mask_uniform_location);
         }
         else {
@@ -1263,14 +1221,14 @@ glamor_composite_set_shader_blend(glamor_pixmap_private *dest_priv,
     }
 
     if (op_info->source_blend == GL_ONE && op_info->dest_blend == GL_ZERO) {
-        dispatch->glDisable(GL_BLEND);
+        glDisable(GL_BLEND);
     }
     else {
-        dispatch->glEnable(GL_BLEND);
-        dispatch->glBlendFunc(op_info->source_blend, op_info->dest_blend);
+        glEnable(GL_BLEND);
+        glBlendFunc(op_info->source_blend, op_info->dest_blend);
     }
 
-    glamor_put_dispatch(glamor_priv);
+    glamor_put_context(glamor_priv);
 }
 
 static Bool
@@ -1289,7 +1247,6 @@ glamor_composite_with_shader(CARD8 op,
     PixmapPtr dest_pixmap = dest_pixmap_priv->base.pixmap;
     PixmapPtr source_pixmap = NULL;
     PixmapPtr mask_pixmap = NULL;
-    glamor_gl_dispatch *dispatch = NULL;
     GLfloat dst_xscale, dst_yscale;
     GLfloat mask_xscale = 1, mask_yscale = 1, src_xscale = 1, src_yscale = 1;
     struct shader_key key, key_ca;
@@ -1328,7 +1285,7 @@ glamor_composite_with_shader(CARD8 op,
     glamor_set_destination_pixmap_priv_nc(dest_pixmap_priv);
     glamor_composite_set_shader_blend(dest_pixmap_priv, &key, shader, &op_info);
 
-    dispatch = glamor_get_dispatch(glamor_priv);
+    glamor_get_context(glamor_priv);
 
     glamor_priv->has_source_coords = key.source != SHADER_SOURCE_SOLID;
     glamor_priv->has_mask_coords = (key.mask != SHADER_MASK_NONE &&
@@ -1445,25 +1402,19 @@ glamor_composite_with_shader(CARD8 op,
         }
     }
 
-    dispatch->glBindBuffer(GL_ARRAY_BUFFER, 0);
-    dispatch->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
-    dispatch->glDisableVertexAttribArray(GLAMOR_VERTEX_MASK);
-    dispatch->glDisable(GL_BLEND);
-#ifndef GLAMOR_GLES2
-    dispatch->glActiveTexture(GL_TEXTURE0);
-    dispatch->glDisable(GL_TEXTURE_2D);
-    dispatch->glActiveTexture(GL_TEXTURE1);
-    dispatch->glDisable(GL_TEXTURE_2D);
-#endif
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
+    glDisableVertexAttribArray(GLAMOR_VERTEX_MASK);
+    glDisable(GL_BLEND);
     DEBUGF("finish rendering.\n");
-    dispatch->glUseProgram(0);
+    glUseProgram(0);
     glamor_priv->state = RENDER_STATE;
     glamor_priv->render_idle_cnt = 0;
     if (saved_source_format)
         source->format = saved_source_format;
-    glamor_put_dispatch(glamor_priv);
+    glamor_put_context(glamor_priv);
 
     ret = TRUE;
     return ret;
