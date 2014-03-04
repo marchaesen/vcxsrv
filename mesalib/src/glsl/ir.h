@@ -106,6 +106,7 @@ public:
 
    /** ir_print_visitor helper for debugging. */
    void print(void) const;
+   void fprint(FILE *f) const;
 
    virtual void accept(ir_visitor *) = 0;
    virtual ir_visitor_status accept(ir_hierarchical_visitor *) = 0;
@@ -689,6 +690,20 @@ public:
          unsigned buffer_index;
          unsigned offset;
       } atomic;
+
+      /**
+       * ARB_shader_image_load_store qualifiers.
+       */
+      struct {
+         bool read_only; /**< "readonly" qualifier. */
+         bool write_only; /**< "writeonly" qualifier. */
+         bool coherent;
+         bool _volatile;
+         bool restrict_flag;
+
+         /** Image internal format if specified explicitly, otherwise GL_NONE. */
+         GLenum format;
+      } image;
 
       /**
        * Highest element accessed with a constant expression array index
@@ -1441,6 +1456,18 @@ public:
    {
       return (this->operation == ir_quadop_vector)
 	 ? this->type->vector_elements : get_num_operands(operation);
+   }
+
+   /**
+    * Return whether the expression operates on vectors horizontally.
+    */
+   bool is_horizontal() const
+   {
+      return operation == ir_binop_all_equal ||
+             operation == ir_binop_any_nequal ||
+             operation == ir_unop_any ||
+             operation == ir_binop_dot ||
+             operation == ir_quadop_vector;
    }
 
    /**
@@ -2339,7 +2366,7 @@ mode_string(const ir_variable *var);
 extern "C" {
 #endif /* __cplusplus */
 
-extern void _mesa_print_ir(struct exec_list *instructions,
+extern void _mesa_print_ir(FILE *f, struct exec_list *instructions,
                            struct _mesa_glsl_parse_state *state);
 
 #ifdef __cplusplus

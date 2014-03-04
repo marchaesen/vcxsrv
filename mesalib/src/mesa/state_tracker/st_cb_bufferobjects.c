@@ -76,7 +76,7 @@ st_bufferobj_free(struct gl_context *ctx, struct gl_buffer_object *obj)
    struct st_buffer_object *st_obj = st_buffer_object(obj);
 
    assert(obj->RefCount == 0);
-   assert(st_obj->transfer == NULL);
+   _mesa_buffer_unmap_all_mappings(ctx, obj);
 
    if (st_obj->buffer)
       pipe_resource_reference(&st_obj->buffer, NULL);
@@ -176,15 +176,18 @@ st_bufferobj_data(struct gl_context *ctx,
 		  GLsizeiptrARB size,
 		  const GLvoid * data,
 		  GLenum usage,
+                  GLbitfield storageFlags,
 		  struct gl_buffer_object *obj)
 {
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
    struct st_buffer_object *st_obj = st_buffer_object(obj);
-   unsigned bind, pipe_usage;
+   unsigned bind, pipe_usage, pipe_flags = 0;
 
    if (size && data && st_obj->buffer &&
-       st_obj->Base.Size == size && st_obj->Base.Usage == usage) {
+       st_obj->Base.Size == size &&
+       st_obj->Base.Usage == usage &&
+       st_obj->Base.StorageFlags == storageFlags) {
       /* Just discard the old contents and write new data.
        * This should be the same as creating a new buffer, but we avoid
        * a lot of validation in Mesa.
@@ -200,6 +203,7 @@ st_bufferobj_data(struct gl_context *ctx,
 
    st_obj->Base.Size = size;
    st_obj->Base.Usage = usage;
+   st_obj->Base.StorageFlags = storageFlags;
 
    switch (target) {
    case GL_PIXEL_PACK_BUFFER_ARB:
@@ -225,24 +229,41 @@ st_bufferobj_data(struct gl_context *ctx,
       bind = 0;
    }
 
-   switch (usage) {
-   case GL_STATIC_DRAW:
-   case GL_STATIC_READ:
-   case GL_STATIC_COPY:
-   default:
-      pipe_usage = PIPE_USAGE_DEFAULT;
-      break;
-   case GL_DYNAMIC_DRAW:
-   case GL_DYNAMIC_READ:
-   case GL_DYNAMIC_COPY:
-      pipe_usage = PIPE_USAGE_DYNAMIC;
-      break;
-   case GL_STREAM_DRAW:
-   case GL_STREAM_READ:
-   case GL_STREAM_COPY:
-      pipe_usage = PIPE_USAGE_STREAM;
-      break;
+   /* Set usage. */
+   if (st_obj->Base.Immutable) {
+      /* BufferStorage */
+      if (storageFlags & GL_CLIENT_STORAGE_BIT)
+         pipe_usage = PIPE_USAGE_STAGING;
+      else
+         pipe_usage = PIPE_USAGE_DEFAULT;
    }
+   else {
+      /* BufferData */
+      switch (usage) {
+      case GL_STATIC_DRAW:
+      case GL_STATIC_READ:
+      case GL_STATIC_COPY:
+      default:
+	 pipe_usage = PIPE_USAGE_DEFAULT;
+         break;
+      case GL_DYNAMIC_DRAW:
+      case GL_DYNAMIC_READ:
+      case GL_DYNAMIC_COPY:
+         pipe_usage = PIPE_USAGE_DYNAMIC;
+         break;
+      case GL_STREAM_DRAW:
+      case GL_STREAM_READ:
+      case GL_STREAM_COPY:
+         pipe_usage = PIPE_USAGE_STREAM;
+         break;
+      }
+   }
+
+   /* Set flags. */
+   if (storageFlags & GL_MAP_PERSISTENT_BIT)
+      pipe_flags |= PIPE_RESOURCE_FLAG_MAP_PERSISTENT;
+   if (storageFlags & GL_MAP_COHERENT_BIT)
+      pipe_flags |= PIPE_RESOURCE_FLAG_MAP_COHERENT;
 
    pipe_resource_reference( &st_obj->buffer, NULL );
 
@@ -251,8 +272,20 @@ st_bufferobj_data(struct gl_context *ctx,
    }
 
    if (size != 0) {
-      st_obj->buffer = pipe_buffer_create(pipe->screen, bind,
-                                          pipe_usage, size);
+      struct pipe_resource buffer;
+
+      memset(&buffer, 0, sizeof buffer);
+      buffer.target = PIPE_BUFFER;
+      buffer.format = PIPE_FORMAT_R8_UNORM; /* want TYPELESS or similar */
+      buffer.bind = bind;
+      buffer.usage = pipe_usage;
+      buffer.flags = pipe_flags;
+      buffer.width0 = size;
+      buffer.height0 = 1;
+      buffer.depth0 = 1;
+      buffer.array_size = 1;
+
+      st_obj->buffer = pipe->screen->resource_create(pipe->screen, &buffer);
 
       if (!st_obj->buffer) {
          /* out of memory */
@@ -277,7 +310,8 @@ st_bufferobj_data(struct gl_context *ctx,
 static void *
 st_bufferobj_map_range(struct gl_context *ctx,
                        GLintptr offset, GLsizeiptr length, GLbitfield access,
-                       struct gl_buffer_object *obj)
+                       struct gl_buffer_object *obj,
+                       gl_map_buffer_index index)
 {
    struct pipe_context *pipe = st_context(ctx)->pipe;
    struct st_buffer_object *st_obj = st_buffer_object(obj);
@@ -305,6 +339,12 @@ st_bufferobj_map_range(struct gl_context *ctx,
    if (access & GL_MAP_UNSYNCHRONIZED_BIT)
       flags |= PIPE_TRANSFER_UNSYNCHRONIZED;
 
+   if (access & GL_MAP_PERSISTENT_BIT)
+      flags |= PIPE_TRANSFER_PERSISTENT;
+
+   if (access & GL_MAP_COHERENT_BIT)
+      flags |= PIPE_TRANSFER_COHERENT;
+
    /* ... other flags ...
     */
 
@@ -316,28 +356,29 @@ st_bufferobj_map_range(struct gl_context *ctx,
    assert(offset < obj->Size);
    assert(offset + length <= obj->Size);
 
-   obj->Pointer = pipe_buffer_map_range(pipe,
+   obj->Mappings[index].Pointer = pipe_buffer_map_range(pipe,
                                         st_obj->buffer,
                                         offset, length,
                                         flags,
-                                        &st_obj->transfer);
-   if (obj->Pointer) {
-      obj->Offset = offset;
-      obj->Length = length;
-      obj->AccessFlags = access;
+                                        &st_obj->transfer[index]);
+   if (obj->Mappings[index].Pointer) {
+      obj->Mappings[index].Offset = offset;
+      obj->Mappings[index].Length = length;
+      obj->Mappings[index].AccessFlags = access;
    }
    else {
-      st_obj->transfer = NULL;
+      st_obj->transfer[index] = NULL;
    }
 
-   return obj->Pointer;
+   return obj->Mappings[index].Pointer;
 }
 
 
 static void
 st_bufferobj_flush_mapped_range(struct gl_context *ctx,
                                 GLintptr offset, GLsizeiptr length,
-                                struct gl_buffer_object *obj)
+                                struct gl_buffer_object *obj,
+                                gl_map_buffer_index index)
 {
    struct pipe_context *pipe = st_context(ctx)->pipe;
    struct st_buffer_object *st_obj = st_buffer_object(obj);
@@ -345,14 +386,15 @@ st_bufferobj_flush_mapped_range(struct gl_context *ctx,
    /* Subrange is relative to mapped range */
    assert(offset >= 0);
    assert(length >= 0);
-   assert(offset + length <= obj->Length);
-   assert(obj->Pointer);
+   assert(offset + length <= obj->Mappings[index].Length);
+   assert(obj->Mappings[index].Pointer);
 
    if (!length)
       return;
 
-   pipe_buffer_flush_mapped_range(pipe, st_obj->transfer,
-                                  obj->Offset + offset, length);
+   pipe_buffer_flush_mapped_range(pipe, st_obj->transfer[index],
+                                  obj->Mappings[index].Offset + offset,
+                                  length);
 }
 
 
@@ -360,18 +402,19 @@ st_bufferobj_flush_mapped_range(struct gl_context *ctx,
  * Called via glUnmapBufferARB().
  */
 static GLboolean
-st_bufferobj_unmap(struct gl_context *ctx, struct gl_buffer_object *obj)
+st_bufferobj_unmap(struct gl_context *ctx, struct gl_buffer_object *obj,
+                   gl_map_buffer_index index)
 {
    struct pipe_context *pipe = st_context(ctx)->pipe;
    struct st_buffer_object *st_obj = st_buffer_object(obj);
 
-   if (obj->Length)
-      pipe_buffer_unmap(pipe, st_obj->transfer);
+   if (obj->Mappings[index].Length)
+      pipe_buffer_unmap(pipe, st_obj->transfer[index]);
 
-   st_obj->transfer = NULL;
-   obj->Pointer = NULL;
-   obj->Offset = 0;
-   obj->Length = 0;
+   st_obj->transfer[index] = NULL;
+   obj->Mappings[index].Pointer = NULL;
+   obj->Mappings[index].Offset = 0;
+   obj->Mappings[index].Length = 0;
    return GL_TRUE;
 }
 
@@ -395,8 +438,8 @@ st_copy_buffer_subdata(struct gl_context *ctx,
       return;
 
    /* buffer should not already be mapped */
-   assert(!src->Pointer);
-   assert(!dst->Pointer);
+   assert(!_mesa_check_disallowed_mapping(src));
+   assert(!_mesa_check_disallowed_mapping(dst));
 
    u_box_1d(readOffset, size, &box);
 

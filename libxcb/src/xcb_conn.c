@@ -374,6 +374,9 @@ void _xcb_conn_shutdown(xcb_connection_t *c, int err)
 /* Return connection error state.
  * To make thread-safe, I need a seperate static
  * variable for every possible error.
+ * has_error is the first field in xcb_connection_t, so just
+ * return a casted int here; checking has_error (and only
+ * has_error) will be safe.
  */
 xcb_connection_t *_xcb_conn_ret_error(int err)
 {

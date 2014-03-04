@@ -155,7 +155,7 @@ winCopyWindowNativeGDI(WindowPtr pWin, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
     nbox = RegionNumRects(prgnDst);
 
     /* Allocate source points for each box */
-    if (!(pptSrc = (DDXPointPtr) malloc(nbox * sizeof(DDXPointRec))))
+    if (!(pptSrc = malloc(nbox * sizeof(DDXPointRec))))
         return;
 
     /* Set an iterator pointer */

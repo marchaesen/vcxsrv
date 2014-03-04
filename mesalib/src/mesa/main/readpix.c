@@ -595,7 +595,7 @@ fast_read_depth_stencil_pixels(struct gl_context *ctx,
       return GL_FALSE;
 
    if (rb->Format != MESA_FORMAT_S8_UINT_Z24_UNORM &&
-       rb->Format != MESA_FORMAT_Z24_UNORM_X8_UINT)
+       rb->Format != MESA_FORMAT_Z24_UNORM_S8_UINT)
       return GL_FALSE;
 
    ctx->Driver.MapRenderbuffer(ctx, rb, x, y, width, height, GL_MAP_READ_BIT,
@@ -1033,7 +1033,7 @@ _mesa_ReadnPixelsARB( GLint x, GLint y, GLsizei width, GLsizei height,
    }
 
    if (_mesa_is_bufferobj(ctx->Pack.BufferObj) &&
-       _mesa_bufferobj_mapped(ctx->Pack.BufferObj)) {
+       _mesa_check_disallowed_mapping(ctx->Pack.BufferObj)) {
       /* buffer is mapped - that's an error */
       _mesa_error(ctx, GL_INVALID_OPERATION, "glReadPixels(PBO is mapped)");
       return;

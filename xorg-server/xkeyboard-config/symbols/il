@@ -299,7 +299,7 @@ xkb_symbols "biblicalSIL" {
 	key <AC01> { [ U05B7,		U05B8,		U05C7,		U05B2 ] };  //patah		Qamats		Qam. Qatan	hat. patah
 	key <AC02> { [ hebrew_samech,	U05E9 ] }; 					//Samech, 	shin no dot	-			-
 	key <AC03> { [ hebrew_dalet ] }; 								//dalet		-			-			-
-	key <AC04> { [ UFB2B,		hebrew_sin,	U05C2 ] }; 			//UCSv6 Sin	sin (nodot)	sindot		-
+	key <AC04> { [ UFB2B,		hebrew_shin,	U05C2 ] }; 			//UCSv6 Sin	shin (nodot)	sindot		-
 	key <AC05> { [ hebrew_gimel,	VoidSymbol,	U25E6,		U2022 ] };	//gimel		-			bullet(DSS)	bulletfill (DSS)
 	key <AC06> { [ hebrew_he,	VoidSymbol,	U0336,		U030A ] };//he			-			strikeout(DSS)	Ring Above(DSS)
 	key <AC07> { [ UFB2A,		hebrew_shin,	U05C1] };				//UCSv6 Shin	shin (nodot)	shindot		-

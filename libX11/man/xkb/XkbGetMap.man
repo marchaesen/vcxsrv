@@ -106,7 +106,7 @@ in
 are undefined), or BadImplementation (a compatible version of the Xkb extension 
 is not 
 available in the server). To free the returned data, use
-.I XkbFreeClientMap.
+.I XkbFreeKeyboard.
 
 Xkb also provides convenience functions to get partial component definitions 
 from the 

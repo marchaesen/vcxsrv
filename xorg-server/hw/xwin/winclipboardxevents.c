@@ -248,7 +248,7 @@ winClipboardFlushXEvents(HWND hwnd,
                                                       (LPCWSTR) pszGlobalData,
                                                       -1, NULL, 0, NULL, NULL);
                 /* NOTE: iConvertDataLen includes space for null terminator */
-                pszConvertData = (char *) malloc(iConvertDataLen);
+                pszConvertData = malloc(iConvertDataLen);
                 WideCharToMultiByte(CP_UTF8,
                                     0,
                                     (LPCWSTR) pszGlobalData,
@@ -581,8 +581,7 @@ winClipboardFlushXEvents(HWND hwnd,
                                                   pszReturnData, -1, NULL, 0);
 
                 /* Allocate memory for the Unicode string */
-                pwszUnicodeStr
-                    = (wchar_t *) malloc(sizeof(wchar_t) * (iUnicodeLen + 1));
+                pwszUnicodeStr = malloc(sizeof(wchar_t) * (iUnicodeLen + 1));
                 if (!pwszUnicodeStr) {
                     ErrorF("winClipboardFlushXEvents - SelectionNotify "
                            "malloc failed for pwszUnicodeStr, aborting.\n");

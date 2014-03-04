@@ -192,6 +192,7 @@ void _xcb_ext_destroy(xcb_connection_t *c);
 /* xcb_conn.c */
 
 struct xcb_connection_t {
+    /* This must be the first field; see _xcb_conn_ret_error(). */
     int has_error;
 
     /* constant data */

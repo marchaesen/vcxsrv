@@ -568,6 +568,12 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
          return ir->operands[1];
       } else if (ir->operands[0]->equals(ir->operands[1])) {
          return ir->operands[0];
+      } else if (is_vec_zero(op_const[0])) {
+         return mul(ir->operands[1], ir->operands[2]);
+      } else if (is_vec_zero(op_const[1])) {
+         unsigned op2_components = ir->operands[2]->type->vector_elements;
+         ir_constant *one = new(mem_ctx) ir_constant(1.0f, op2_components);
+         return mul(ir->operands[0], add(one, neg(ir->operands[2])));
       }
       break;
 

@@ -54,9 +54,11 @@ __glXDisp_GetCompressedTexImage(struct __GLXclientStateRec *cl, GLbyte * pc)
                                  &compsize);
 
         if (compsize != 0) {
+            PFNGLGETCOMPRESSEDTEXIMAGEARBPROC GetCompressedTexImageARB =
+                __glGetProcAddress("glGetCompressedTexImageARB");
             __GLX_GET_ANSWER_BUFFER(answer, cl, compsize, 1);
             __glXClearErrorOccured();
-            glGetCompressedTexImageARB(target, level, answer);
+            GetCompressedTexImageARB(target, level, answer);
         }
 
         if (__glXErrorOccured()) {
@@ -96,9 +98,11 @@ __glXDispSwap_GetCompressedTexImage(struct __GLXclientStateRec *cl, GLbyte * pc)
                                  &compsize);
 
         if (compsize != 0) {
+            PFNGLGETCOMPRESSEDTEXIMAGEARBPROC GetCompressedTexImageARB =
+                __glGetProcAddress("glGetCompressedTexImageARB");
             __GLX_GET_ANSWER_BUFFER(answer, cl, compsize, 1);
             __glXClearErrorOccured();
-            glGetCompressedTexImageARB(target, level, answer);
+            GetCompressedTexImageARB(target, level, answer);
         }
 
         if (__glXErrorOccured()) {

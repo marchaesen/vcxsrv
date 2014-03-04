@@ -111,6 +111,7 @@ typedef struct _WMInfo {
     WMMsgQueueRec wmMsgQueue;
     Atom atmWmProtos;
     Atom atmWmDelete;
+    Atom atmWmTakeFocus;
     Atom atmPrivMap;
     Bool fAllowOtherWM;
 } WMInfoRec, *WMInfoPtr;
@@ -405,7 +406,7 @@ Xutf8TextPropertyToString(Display * pDisplay, XTextProperty * xtp)
 
         for (i = 0; i < nNum; i++)
             iLen += strlen(ppList[i]);
-        pszReturnData = (char *) malloc(iLen + 1);
+        pszReturnData = malloc(iLen + 1);
         pszReturnData[0] = '\0';
         for (i = 0; i < nNum; i++)
             strcat(pszReturnData, ppList[i]);
@@ -413,7 +414,7 @@ Xutf8TextPropertyToString(Display * pDisplay, XTextProperty * xtp)
             XFreeStringList(ppList);
     }
     else {
-        pszReturnData = (char *) malloc(1);
+        pszReturnData = malloc(1);
         pszReturnData[0] = '\0';
     }
 
@@ -450,6 +451,27 @@ GetWindowName(Display * pDisplay, Window iWin, char **ppWindowName)
     pszWindowName = Xutf8TextPropertyToString(pDisplay, &xtpWindowName);
     XFree(xtpWindowName.value);
     *ppWindowName = pszWindowName;
+}
+
+/*
+ * Does the client support the specified WM_PROTOCOLS protocol?
+ */
+
+static Bool
+IsWmProtocolAvailable(Display * pDisplay, Window iWindow, Atom atmProtocol)
+{
+  int i, n, found = 0;
+  Atom *protocols;
+
+  if (XGetWMProtocols(pDisplay, iWindow, &protocols, &n)) {
+    for (i = 0; i < n; ++i)
+      if (protocols[i] == atmProtocol)
+        ++found;
+
+    XFree(protocols);
+  }
+
+  return found > 0;
 }
 
 /*
@@ -537,7 +559,7 @@ UpdateName(WMInfoPtr pWMInfo, Window iWindow)
             int iLen =
                 MultiByteToWideChar(CP_UTF8, 0, pszWindowName, -1, NULL, 0);
             wchar_t *pwszWideWindowName =
-                (wchar_t *) malloc(sizeof(wchar_t) * (iLen + 1));
+                malloc(sizeof(wchar_t)*(iLen + 1));
             MultiByteToWideChar(CP_UTF8, 0, pszWindowName, -1,
                                 pwszWideWindowName, iLen);
 
@@ -805,21 +827,10 @@ winMultiWindowWMProc(void *pArg)
             ErrorF("\tWM_WM_KILL\n");
 #endif
             {
-                int i, n, found = 0;
-                Atom *protocols;
-
                 /* --- */
-                if (XGetWMProtocols(pWMInfo->pDisplay,
-                                    pNode->msg.iWindow, &protocols, &n)) {
-                    for (i = 0; i < n; ++i)
-                        if (protocols[i] == pWMInfo->atmWmDelete)
-                            ++found;
-
-                    XFree(protocols);
-                }
-
-                /* --- */
-                if (found)
+                if (IsWmProtocolAvailable(pWMInfo->pDisplay,
+                                          pNode->msg.iWindow,
+                                          pWMInfo->atmWmDelete))
                     SendXMessage(pWMInfo->pDisplay,
                                  pNode->msg.iWindow,
                                  pWMInfo->atmWmProtos, pWMInfo->atmWmDelete);
@@ -832,11 +843,39 @@ winMultiWindowWMProc(void *pArg)
 #if CYGMULTIWINDOW_DEBUG
             ErrorF("\tWM_WM_ACTIVATE\n");
 #endif
-
             /* Set the input focus */
-            XSetInputFocus(pWMInfo->pDisplay,
-                           pNode->msg.iWindow,
-                           RevertToPointerRoot, CurrentTime);
+
+            /*
+               ICCCM 4.1.7 is pretty opaque, but it appears that the rules are
+               actually quite simple:
+               -- the WM_HINTS input field determines whether the WM should call
+               XSetInputFocus()
+               -- independently, the WM_TAKE_FOCUS protocol determines whether
+               the WM should send a WM_TAKE_FOCUS ClientMessage.
+            */
+            {
+              Bool neverFocus = FALSE;
+              XWMHints *hints = XGetWMHints(pWMInfo->pDisplay, pNode->msg.iWindow);
+
+              if (hints) {
+                if (hints->flags & InputHint)
+                  neverFocus = !hints->input;
+                XFree(hints);
+              }
+
+              if (!neverFocus)
+                XSetInputFocus(pWMInfo->pDisplay,
+                               pNode->msg.iWindow,
+                               RevertToPointerRoot, CurrentTime);
+
+              if (IsWmProtocolAvailable(pWMInfo->pDisplay,
+                                        pNode->msg.iWindow,
+                                        pWMInfo->atmWmTakeFocus))
+                SendXMessage(pWMInfo->pDisplay,
+                             pNode->msg.iWindow,
+                             pWMInfo->atmWmProtos, pWMInfo->atmWmTakeFocus);
+
+            }
             break;
 
         case WM_WM_NAME_EVENT:
@@ -1237,9 +1276,9 @@ winInitWM(void **ppWMInfo,
           pthread_mutex_t * ppmServerStarted,
           int dwScreen, HWND hwndScreen, BOOL allowOtherWM)
 {
-    WMProcArgPtr pArg = (WMProcArgPtr) malloc(sizeof(WMProcArgRec));
-    WMInfoPtr pWMInfo = (WMInfoPtr) malloc(sizeof(WMInfoRec));
-    XMsgProcArgPtr pXMsgArg = (XMsgProcArgPtr) malloc(sizeof(XMsgProcArgRec));
+    WMProcArgPtr pArg = malloc(sizeof(WMProcArgRec));
+    WMInfoPtr pWMInfo = malloc(sizeof(WMInfoRec));
+    XMsgProcArgPtr pXMsgArg = malloc(sizeof(XMsgProcArgRec));
 
     /* Bail if the input parameters are bad */
     if (pArg == NULL || pWMInfo == NULL || pXMsgArg == NULL) {
@@ -1404,6 +1443,8 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
                                        "WM_PROTOCOLS", False);
     pWMInfo->atmWmDelete = XInternAtom(pWMInfo->pDisplay,
                                        "WM_DELETE_WINDOW", False);
+    pWMInfo->atmWmTakeFocus = XInternAtom(pWMInfo->pDisplay,
+                                       "WM_TAKE_FOCUS", False);
 
     pWMInfo->atmPrivMap = XInternAtom(pWMInfo->pDisplay,
                                       WINDOWSWM_NATIVE_HWND, False);
@@ -1432,7 +1473,7 @@ winSendMessageToWM(void *pWMInfo, winWMMessagePtr pMsg)
     ErrorF("winSendMessageToWM ()\n");
 #endif
 
-    pNode = (WMMsgNodePtr) malloc(sizeof(WMMsgNodeRec));
+    pNode = malloc(sizeof(WMMsgNodeRec));
     if (pNode != NULL) {
         memcpy(&pNode->msg, pMsg, sizeof(winWMMessageRec));
         PushMessage(&((WMInfoPtr) pWMInfo)->wmMsgQueue, pNode);

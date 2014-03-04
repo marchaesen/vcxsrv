@@ -98,6 +98,7 @@ main_sources = [
     'main/pack.c',
     'main/pbo.c',
     'main/performance_monitor.c',
+    'main/pipelineobj.c',
     'main/pixel.c',
     'main/pixelstore.c',
     'main/pixeltransfer.c',
@@ -325,6 +326,7 @@ program_sources = [
 common_driver_sources =	[
     'drivers/common/driverfuncs.c',
     'drivers/common/meta.c',
+    'drivers/common/meta_blit.c'
 ]
 
 mesa_sources = (

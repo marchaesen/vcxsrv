@@ -955,7 +955,7 @@ CloseDevice(DeviceIntPtr dev)
     while (dev->xkb_interest)
         XkbRemoveResourceClient((DevicePtr) dev, dev->xkb_interest->resource);
 
-    free((void *) dev->name);
+    free(dev->name);
 
     classes = (ClassesPtr) &dev->key;
     FreeAllDeviceClasses(classes);
@@ -1279,6 +1279,7 @@ InitButtonClassDeviceStruct(DeviceIntPtr dev, int numButtons, Atom *labels,
 
     BUG_RETURN_VAL(dev == NULL, FALSE);
     BUG_RETURN_VAL(dev->button != NULL, FALSE);
+    BUG_RETURN_VAL(numButtons >= MAX_BUTTONS, FALSE);
 
     butc = calloc(1, sizeof(ButtonClassRec));
     if (!butc)

@@ -82,14 +82,16 @@ xkb_get_rules_test(void)
 static void
 xkb_set_rules_test(void)
 {
-    XkbRMLVOSet rmlvo = {
-        .rules = "test-rules",
-        .model = "test-model",
-        .layout = "test-layout",
-        .variant = "test-variant",
-        .options = "test-options"
-    };
+    XkbRMLVOSet rmlvo;
     XkbRMLVOSet rmlvo_new = { NULL };
+
+    XkbInitRules(&rmlvo, "test-rules", "test-model", "test-layout",
+                         "test-variant", "test-options");
+    assert(rmlvo.rules);
+    assert(rmlvo.model);
+    assert(rmlvo.layout);
+    assert(rmlvo.variant);
+    assert(rmlvo.options);
 
     XkbSetRulesDflts(&rmlvo);
     XkbGetRulesDflts(&rmlvo_new);
@@ -106,6 +108,8 @@ xkb_set_rules_test(void)
     assert(strcmp(rmlvo.layout, rmlvo_new.layout) == 0);
     assert(strcmp(rmlvo.variant, rmlvo_new.variant) == 0);
     assert(strcmp(rmlvo.options, rmlvo_new.options) == 0);
+
+    XkbFreeRMLVOSet(&rmlvo, FALSE);
 }
 
 /**

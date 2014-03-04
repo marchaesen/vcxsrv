@@ -26,7 +26,7 @@ xkb_symbols "basic" {
     include "level3(ralt_switch)"
 };
 
-partial alphanumeric
+partial alphanumeric_keys
 xkb_symbols "winkeys" {
 
     include "es(basic)"

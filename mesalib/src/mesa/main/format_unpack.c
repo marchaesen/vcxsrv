@@ -2366,9 +2366,9 @@ get_unpack_rgba_function(mesa_format format)
       table[MESA_FORMAT_B10G10R10A2_UINT] = unpack_ARGB2101010_UINT;
       table[MESA_FORMAT_R10G10B10A2_UINT] = unpack_ABGR2101010_UINT;
       table[MESA_FORMAT_S8_UINT_Z24_UNORM] = unpack_Z24_S8;
-      table[MESA_FORMAT_Z24_UNORM_X8_UINT] = unpack_S8_Z24;
+      table[MESA_FORMAT_Z24_UNORM_S8_UINT] = unpack_S8_Z24;
       table[MESA_FORMAT_Z_UNORM16] = unpack_Z16;
-      table[MESA_FORMAT_Z24_UNORM_S8_UINT] = unpack_X8_Z24;
+      table[MESA_FORMAT_Z24_UNORM_X8_UINT] = unpack_X8_Z24;
       table[MESA_FORMAT_X8Z24_UNORM] = unpack_Z24_X8;
       table[MESA_FORMAT_Z_UNORM32] = unpack_Z32;
       table[MESA_FORMAT_S_UINT8] = unpack_S8;
@@ -3986,8 +3986,8 @@ _mesa_unpack_float_z_row(mesa_format format, GLuint n,
    case MESA_FORMAT_X8Z24_UNORM:
       unpack = unpack_float_z_Z24_X8;
       break;
-   case MESA_FORMAT_Z24_UNORM_X8_UINT:
    case MESA_FORMAT_Z24_UNORM_S8_UINT:
+   case MESA_FORMAT_Z24_UNORM_X8_UINT:
       unpack = unpack_float_z_X8_Z24;
       break;
    case MESA_FORMAT_Z_UNORM16:
@@ -4091,8 +4091,8 @@ _mesa_unpack_uint_z_row(mesa_format format, GLuint n,
    case MESA_FORMAT_X8Z24_UNORM:
       unpack = unpack_uint_z_Z24_X8;
       break;
-   case MESA_FORMAT_Z24_UNORM_X8_UINT:
    case MESA_FORMAT_Z24_UNORM_S8_UINT:
+   case MESA_FORMAT_Z24_UNORM_X8_UINT:
       unpack = unpack_uint_z_X8_Z24;
       break;
    case MESA_FORMAT_Z_UNORM16:
@@ -4164,7 +4164,7 @@ _mesa_unpack_ubyte_stencil_row(mesa_format format, GLuint n,
    case MESA_FORMAT_S8_UINT_Z24_UNORM:
       unpack_ubyte_s_Z24_S8(src, dst, n);
       break;
-   case MESA_FORMAT_Z24_UNORM_X8_UINT:
+   case MESA_FORMAT_Z24_UNORM_S8_UINT:
       unpack_ubyte_s_S8_Z24(src, dst, n);
       break;
    case MESA_FORMAT_Z32_FLOAT_S8X24_UINT:
@@ -4189,11 +4189,30 @@ unpack_uint_24_8_depth_stencil_S8_Z24(const GLuint *src, GLuint *dst, GLuint n)
 }
 
 static void
+unpack_uint_24_8_depth_stencil_Z32_S8X24(const GLuint *src,
+                                         GLuint *dst, GLuint n)
+{
+   GLuint i;
+
+   for (i = 0; i < n; i++) {
+      /* 8 bytes per pixel (float + uint32) */
+      GLfloat zf = ((GLfloat *) src)[i * 2 + 0];
+      GLuint z24 = (GLuint) (zf * (GLfloat) 0xffffff);
+      GLuint s = src[i * 2 + 1] & 0xff;
+      dst[i] = (z24 << 8) | s;
+   }
+}
+
+static void
 unpack_uint_24_8_depth_stencil_Z24_S8(const GLuint *src, GLuint *dst, GLuint n)
 {
    memcpy(dst, src, n * 4);
 }
 
+/**
+ * Unpack depth/stencil returning as GL_UNSIGNED_INT_24_8.
+ * \param format  the source data format
+ */
 void
 _mesa_unpack_uint_24_8_depth_stencil_row(mesa_format format, GLuint n,
 					 const void *src, GLuint *dst)
@@ -4202,8 +4221,11 @@ _mesa_unpack_uint_24_8_depth_stencil_row(mesa_format format, GLuint n,
    case MESA_FORMAT_S8_UINT_Z24_UNORM:
       unpack_uint_24_8_depth_stencil_Z24_S8(src, dst, n);
       break;
-   case MESA_FORMAT_Z24_UNORM_X8_UINT:
+   case MESA_FORMAT_Z24_UNORM_S8_UINT:
       unpack_uint_24_8_depth_stencil_S8_Z24(src, dst, n);
+      break;
+   case MESA_FORMAT_Z32_FLOAT_S8X24_UINT:
+      unpack_uint_24_8_depth_stencil_Z32_S8X24(src, dst, n);
       break;
    default:
       _mesa_problem(NULL,

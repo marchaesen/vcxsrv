@@ -41,11 +41,6 @@ from The Open Group.
 #include <X11/extensions/XKBproto.h>
 #include "XKBlibint.h"
 
-#ifdef USE_OWN_COMPOSE
-#define COMPOSE_NO_CONST_MEMBERS
-#include "imComp.h"
-#endif
-
 #define AllMods (ShiftMask|LockMask|ControlMask| \
                  Mod1Mask|Mod2Mask|Mod3Mask|Mod4Mask|Mod5Mask)
 
@@ -724,103 +719,6 @@ XLookupString(register XKeyEvent *event,
             }
         }
     }
-
-#ifdef USE_OWN_COMPOSE
-    if (status) {
-        static int been_here = 0;
-
-        if (!been_here) {
-            XimCompInitTables();
-            been_here = 1;
-        }
-        if (!XimCompLegalStatus(status)) {
-            status->compose_ptr = NULL;
-            status->chars_matched = 0;
-        }
-        if (((status->chars_matched > 0) && (status->compose_ptr != NULL)) ||
-            XimCompIsComposeKey(*keysym, event->keycode, status)) {
-            XimCompRtrn rtrn;
-
-            switch (XimCompProcessSym(status, *keysym, &rtrn)) {
-            case XIM_COMP_IGNORE:
-                break;
-            case XIM_COMP_IN_PROGRESS:
-                if (keysym != NULL)
-                    *keysym = NoSymbol;
-#ifndef NO_COMPOSE_LED
-                if (dpy->xkb_info->xlib_ctrls & XkbLC_ComposeLED) {
-                    XkbSetNamedIndicator(dpy, dpy->xkb_info->composeLED,
-                                         True, True, False, NULL);
-                }
-#endif
-                return 0;
-            case XIM_COMP_FAIL:
-            {
-                static Atom _ComposeFail = None;
-                int n = 0, len = 0;
-
-#ifndef NO_COMPOSE_LED
-                if (dpy->xkb_info->xlib_ctrls & XkbLC_ComposeLED) {
-                    XkbSetNamedIndicator(dpy, dpy->xkb_info->composeLED,
-                                         True, False, False, NULL);
-                }
-#endif
-#ifndef NO_BELL_ON_COMPOSE_FAIL
-                if (dpy->xkb_info->xlib_ctrls & XkbLC_BeepOnComposeFail) {
-                    if (_ComposeFail == None)
-                        _ComposeFail = XInternAtom(dpy, "ComposeFail", 0);
-                    XkbBell(dpy, event->window, 0, _ComposeFail);
-                }
-#endif
-                for (n = len = 0; rtrn.sym[n] != XK_VoidSymbol; n++) {
-                    if (nbytes - len > 0) {
-                        len += XkbTranslateKeySym(dpy, &rtrn.sym[n], new_mods,
-                                                  buffer + len, nbytes - len,
-                                                  NULL);
-                    }
-                }
-                if (keysym != NULL) {
-                    if (n == 1)
-                        *keysym = rtrn.sym[0];
-                    else
-                        *keysym = NoSymbol;
-                }
-                return len;
-            }
-            case XIM_COMP_SUCCEED:
-            {
-                int len, n = 0;
-
-#ifndef NO_COMPOSE_LED
-                if (dpy->xkb_info->xlib_ctrls & XkbLC_ComposeLED) {
-                    XkbSetNamedIndicator(dpy, dpy->xkb_info->composeLED,
-                                         True, False, False, NULL);
-                }
-#endif
-                *keysym = rtrn.matchSym;
-                if (rtrn.str[0] != '\0') {
-                    strncpy(buffer, rtrn.str, nbytes - 1);
-                    buffer[nbytes - 1] = '\0';
-                    len = (int) strlen(buffer);
-                }
-                else {
-                    len = XkbTranslateKeySym(dpy, keysym, new_mods,
-                                             buffer, nbytes, NULL);
-                }
-                for (n = 0; rtrn.sym[n] != XK_VoidSymbol; n++) {
-                    if (nbytes - len > 0) {
-                        len += XkbTranslateKeySym(dpy, &rtrn.sym[n],
-                                                  event->state,
-                                                  buffer + len, nbytes - len,
-                                                  NULL);
-                    }
-                }
-                return len;
-            }
-            }
-        }
-    }
-#endif
 
     /* We *should* use the new_mods (which does not contain any modifiers */
     /* that were used to compute the symbol here, but pre-XKB XLookupString */

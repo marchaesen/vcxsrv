@@ -279,8 +279,8 @@ typedef struct {
 
 typedef struct {
     GenericListRec list;
-    const char *inp_identifier;
-    const char *inp_driver;
+    char *inp_identifier;
+    char *inp_driver;
     XF86OptionPtr inp_option_lst;
     char *inp_comment;
 } XF86ConfInputRec, *XF86ConfInputPtr;
@@ -288,7 +288,7 @@ typedef struct {
 typedef struct {
     GenericListRec list;
     XF86ConfInputPtr iref_inputdev;
-    const char *iref_inputdev_str;
+    char *iref_inputdev_str;
     XF86OptionPtr iref_option_lst;
 } XF86ConfInputrefRec, *XF86ConfInputrefPtr;
 
@@ -299,13 +299,13 @@ typedef struct {
 
 typedef struct {
     struct xorg_list entry;
-    const char **values;
+    char **values;
 } xf86MatchGroup;
 
 typedef struct {
     GenericListRec list;
     char *identifier;
-    const char *driver;
+    char *driver;
     struct xorg_list match_product;
     struct xorg_list match_vendor;
     struct xorg_list match_device;

@@ -159,8 +159,8 @@ configureInputSection(void)
 
     parsePrologue(XF86ConfInputPtr, XF86ConfInputRec)
 
-        ptr->inp_identifier = "Keyboard0";
-    ptr->inp_driver = "kbd";
+    ptr->inp_identifier = xnfstrdup("Keyboard0");
+    ptr->inp_driver = xnfstrdup("kbd");
     ptr->list.next = NULL;
 
     /* Crude mechanism to auto-detect mouse (os dependent) */
@@ -175,17 +175,17 @@ configureInputSection(void)
     }
 
     mouse = calloc(1, sizeof(XF86ConfInputRec));
-    mouse->inp_identifier = "Mouse0";
-    mouse->inp_driver = "mouse";
+    mouse->inp_identifier = xnfstrdup("Mouse0");
+    mouse->inp_driver = xnfstrdup("mouse");
     mouse->inp_option_lst =
-        xf86addNewOption(mouse->inp_option_lst, strdup("Protocol"),
-                         strdup(DFLT_MOUSE_PROTO));
+        xf86addNewOption(mouse->inp_option_lst, xnfstrdup("Protocol"),
+                         xnfstrdup(DFLT_MOUSE_PROTO));
     mouse->inp_option_lst =
-        xf86addNewOption(mouse->inp_option_lst, strdup("Device"),
-                         strdup(DFLT_MOUSE_DEV));
+        xf86addNewOption(mouse->inp_option_lst, xnfstrdup("Device"),
+                         xnfstrdup(DFLT_MOUSE_DEV));
     mouse->inp_option_lst =
-        xf86addNewOption(mouse->inp_option_lst, strdup("ZAxisMapping"),
-                         strdup("4 5 6 7"));
+        xf86addNewOption(mouse->inp_option_lst, xnfstrdup("ZAxisMapping"),
+                         xnfstrdup("4 5 6 7"));
     ptr = (XF86ConfInputPtr) xf86addListItem((glp) ptr, (glp) mouse);
     return ptr;
 }
@@ -290,7 +290,7 @@ configureDeviceSection(int screennum)
             "        ### <string>: \"String\", <freq>: \"<f> Hz/kHz/MHz\",\n"
             "        ### <percent>: \"<f>%\"\n"
             "        ### [arg]: arg optional\n";
-        ptr->dev_comment = strdup(descrip);
+        ptr->dev_comment = xnfstrdup(descrip);
         if (ptr->dev_comment) {
             for (p = DevToConfig[screennum].GDev.options; p->name != NULL; p++) {
                 char *p_e;
@@ -337,9 +337,9 @@ configureLayoutSection(void)
         iptr = malloc(sizeof(XF86ConfInputrefRec));
         iptr->list.next = NULL;
         iptr->iref_option_lst = NULL;
-        iptr->iref_inputdev_str = "Mouse0";
+        iptr->iref_inputdev_str = xnfstrdup("Mouse0");
         iptr->iref_option_lst =
-            xf86addNewOption(iptr->iref_option_lst, strdup("CorePointer"),
+            xf86addNewOption(iptr->iref_option_lst, xnfstrdup("CorePointer"),
                              NULL);
         ptr->lay_input_lst = (XF86ConfInputrefPtr)
             xf86addListItem((glp) ptr->lay_input_lst, (glp) iptr);
@@ -351,9 +351,9 @@ configureLayoutSection(void)
         iptr = malloc(sizeof(XF86ConfInputrefRec));
         iptr->list.next = NULL;
         iptr->iref_option_lst = NULL;
-        iptr->iref_inputdev_str = "Keyboard0";
+        iptr->iref_inputdev_str = xnfstrdup("Keyboard0");
         iptr->iref_option_lst =
-            xf86addNewOption(iptr->iref_option_lst, strdup("CoreKeyboard"),
+            xf86addNewOption(iptr->iref_option_lst, xnfstrdup("CoreKeyboard"),
                              NULL);
         ptr->lay_input_lst = (XF86ConfInputrefPtr)
             xf86addListItem((glp) ptr->lay_input_lst, (glp) iptr);
@@ -431,9 +431,9 @@ configureFilesSection(void)
     parsePrologue(XF86ConfFilesPtr, XF86ConfFilesRec)
 
         if (xf86ModulePath)
-        ptr->file_modulepath = strdup(xf86ModulePath);
+        ptr->file_modulepath = xnfstrdup(xf86ModulePath);
     if (defaultFontPath)
-        ptr->file_fontpath = strdup(defaultFontPath);
+        ptr->file_fontpath = xnfstrdup(defaultFontPath);
 
     return ptr;
 }
@@ -446,8 +446,8 @@ configureMonitorSection(int screennum)
 
     XNFasprintf(&tmp, "Monitor%d", screennum);
     ptr->mon_identifier = tmp;
-    ptr->mon_vendor = strdup("Monitor Vendor");
-    ptr->mon_modelname = strdup("Monitor Model");
+    ptr->mon_vendor = xnfstrdup("Monitor Vendor");
+    ptr->mon_modelname = xnfstrdup("Monitor Model");
 
     return ptr;
 }
@@ -491,7 +491,7 @@ configureDDCMonitorSection(int screennum)
 
     XNFasprintf(&tmp, "Monitor%d", screennum);
     ptr->mon_identifier = tmp;
-    ptr->mon_vendor = strdup(ConfiguredMonitor->vendor.name);
+    ptr->mon_vendor = xnfstrdup(ConfiguredMonitor->vendor.name);
     XNFasprintf(&ptr->mon_modelname, "%x", ConfiguredMonitor->vendor.prod_id);
 
     /* features in centimetres, we want millimetres */
@@ -529,7 +529,7 @@ configureDDCMonitorSection(int screennum)
 
     if (ConfiguredMonitor->features.dpms) {
         ptr->mon_option_lst =
-            xf86addNewOption(ptr->mon_option_lst, strdup("DPMS"), NULL);
+            xf86addNewOption(ptr->mon_option_lst, xnfstrdup("DPMS"), NULL);
     }
 
     return ptr;

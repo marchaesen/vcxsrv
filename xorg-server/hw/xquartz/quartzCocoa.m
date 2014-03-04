@@ -48,9 +48,9 @@
  *  Clean out any autoreleased objects.
  */
 void
-QuartzBlockHandler(pointer blockData,
+QuartzBlockHandler(void *blockData,
                    OSTimePtr pTimeout,
-                   pointer pReadmask)
+                   void *pReadmask)
 {
     static NSAutoreleasePool *aPool = nil;
 
@@ -62,9 +62,9 @@ QuartzBlockHandler(pointer blockData,
  * QuartzWakeupHandler
  */
 void
-QuartzWakeupHandler(pointer blockData,
+QuartzWakeupHandler(void *blockData,
                     int result,
-                    pointer pReadmask)
+                    void *pReadmask)
 {
     // nothing here
 }

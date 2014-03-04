@@ -162,7 +162,7 @@ ProcWindowsWMSelectInput(ClientPtr client)
         }
 
         /* build the entry */
-        pNewEvent = (WMEventPtr) malloc(sizeof(WMEventRec));
+        pNewEvent = malloc(sizeof(WMEventRec));
         if (!pNewEvent)
             return BadAlloc;
         pNewEvent->next = 0;
@@ -183,7 +183,7 @@ ProcWindowsWMSelectInput(ClientPtr client)
          * done through the resource database.
          */
         if (!pHead) {
-            pHead = (WMEventPtr *) malloc(sizeof(WMEventPtr));
+            pHead = malloc(sizeof(WMEventPtr));
             if (!pHead ||
                 !AddResource(eventResource, eventResourceType, (void *) pHead))
             {

@@ -95,8 +95,8 @@ SOFTWARE.
 
 #define NO_AXIS_LIMITS -1
 
-#define MAP_LENGTH	256
-#define DOWN_LENGTH	32      /* 256/8 => number of bytes to hold 256 bits */
+#define MAP_LENGTH	MAX_BUTTONS
+#define DOWN_LENGTH	(MAX_BUTTONS/8)      /* 256/8 => number of bytes to hold 256 bits */
 #define NullGrab ((GrabPtr)NULL)
 #define PointerRootWin ((WindowPtr)PointerRoot)
 #define NoneWin ((WindowPtr)None)
@@ -221,12 +221,12 @@ typedef struct _InputOption InputOption;
 typedef struct _XI2Mask XI2Mask;
 
 typedef struct _InputAttributes {
-    const char *product;
-    const char *vendor;
-    const char *device;
-    const char *pnp_id;
-    const char *usb_id;
-    const char **tags;                /* null-terminated */
+    char *product;
+    char *vendor;
+    char *device;
+    char *pnp_id;
+    char *usb_id;
+    char **tags;                /* null-terminated */
     uint32_t flags;
 } InputAttributes;
 

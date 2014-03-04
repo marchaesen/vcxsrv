@@ -189,6 +189,10 @@ ProcXIPassiveGrabDevice(ClientPtr client)
         uint8_t status = Success;
 
         param.modifiers = *modifiers;
+        ret = CheckGrabValues(client, &param);
+        if (ret != Success)
+            goto out;
+
         switch (stuff->grab_type) {
         case XIGrabtypeButton:
             status = GrabButton(client, dev, mod_dev, stuff->detail,

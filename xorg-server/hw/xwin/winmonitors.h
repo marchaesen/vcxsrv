@@ -40,4 +40,4 @@ struct GetMonitorInfoData {
     HMONITOR monitorHandle;
 };
 
-Bool QueryMonitor(int index, struct GetMonitorInfoData *data);
+Bool QueryMonitor(int i, struct GetMonitorInfoData *data);

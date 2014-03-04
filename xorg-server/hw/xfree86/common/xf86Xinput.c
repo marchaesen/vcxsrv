@@ -539,7 +539,7 @@ MatchAttrToken(const char *attr, struct xorg_list *patterns,
      * match. Each list entry is a separate Match line of the same type.
      */
     xorg_list_for_each_entry(group, patterns, entry) {
-        const char *const *cur;
+        char *const *cur;
         Bool match = FALSE;
 
         for (cur = group->values; *cur; cur++)
@@ -598,7 +598,7 @@ InputClassMatches(const XF86ConfInputClassPtr iclass, const InputInfoPtr idev,
      * See if any of the device's tags match any of the MatchTag tokens.
      */
     if (!xorg_list_is_empty(&iclass->match_tag)) {
-        const char *const *tag;
+        char *const *tag;
         Bool match;
 
         if (!attrs->tags)

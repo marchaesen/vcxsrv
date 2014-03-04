@@ -61,7 +61,7 @@ xkb_symbols "nodeadkeys" {
     key <BKSL>	{ [    ugrave,    section,        grave,        breve ]	};
 };
 
-partial alphanueric_keys
+partial alphanumeric_keys
 xkb_symbols "winkeys" {
 
    include "it(basic)"

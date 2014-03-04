@@ -93,8 +93,7 @@ glamor_create_picture(PicturePtr picture)
              * we have to mark this pixmap as a separated texture, and don't
              * fallback to DDX layer. */
             if (pixmap_priv->type == GLAMOR_TEXTURE_DRM
-                && !glamor_pict_format_is_compatible(picture->format,
-                                                     pixmap->drawable.depth))
+                && !glamor_pict_format_is_compatible(picture))
                 glamor_set_pixmap_type(pixmap, GLAMOR_SEPARATE_TEXTURE);
         }
     }

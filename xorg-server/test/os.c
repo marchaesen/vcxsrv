@@ -150,10 +150,10 @@ static void block_sigio_test_nested(void)
        tail guard must be hit.
      */
     void (*old_handler)(int);
-    old_handler = signal(SIGIO, sighandler);
+    old_handler = OsSignal(SIGIO, sighandler);
     expect_signal = 1;
     assert(raise(SIGIO) == 0);
-    assert(signal(SIGIO, old_handler) == sighandler);
+    assert(OsSignal(SIGIO, old_handler) == sighandler);
 #endif
 }
 

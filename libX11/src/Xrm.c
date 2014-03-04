@@ -349,7 +349,7 @@ void XrmSetDatabase(
     XrmDatabase database)
 {
     LockDisplay(display);
-    /* destroy database if set up imlicitely by XGetDefault() */
+    /* destroy database if set up implicitly by XGetDefault() */
     if (display->db && (display->flags & XlibDisplayDfltRMDB)) {
 	XrmDestroyDatabase(display->db);
 	display->flags &= ~XlibDisplayDfltRMDB;
@@ -508,7 +508,7 @@ static XrmDatabase NewDatabase(void)
 }
 
 /* move all values from ftable to ttable, and free ftable's buckets.
- * ttable is quaranteed empty to start with.
+ * ttable is guaranteed empty to start with.
  */
 static void MoveValues(
     LTable ftable,

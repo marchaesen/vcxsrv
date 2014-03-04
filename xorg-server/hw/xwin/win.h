@@ -751,7 +751,7 @@ Bool
  winAllocatePrivates(ScreenPtr pScreen);
 
 Bool
- winInitCmapPrivates(ColormapPtr pCmap, int index);
+ winInitCmapPrivates(ColormapPtr pCmap, int i);
 
 Bool
  winAllocateCmapPrivates(ColormapPtr pCmap);
@@ -1056,12 +1056,12 @@ Bool
  winScreenInit(ScreenPtr pScreen, int argc, char **argv);
 
 Bool
- winFinishScreenInitFB(int index, ScreenPtr pScreen, int argc, char **argv);
+ winFinishScreenInitFB(int i, ScreenPtr pScreen, int argc, char **argv);
 
 #if defined(XWIN_NATIVEGDI)
 Bool
 
-winFinishScreenInitNativeGDI(int index,
+winFinishScreenInitNativeGDI(int i,
                              ScreenPtr pScreen, int argc, char **argv);
 #endif
 

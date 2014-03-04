@@ -111,7 +111,7 @@ DIST_SUBDIRS = \
 	composite \
 	glx \
 	exa \
-	$(GLAMOR_DIR) \
+	glamor \
 	config \
 	dri3 \
 	present \

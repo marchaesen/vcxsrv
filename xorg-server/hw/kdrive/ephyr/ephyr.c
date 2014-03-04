@@ -1232,6 +1232,9 @@ ephyrGetColors(ScreenPtr pScreen, int n, xColorItem * pdefs)
 void
 ephyrPutColors(ScreenPtr pScreen, int n, xColorItem * pdefs)
 {
+    KdScreenPriv(pScreen);
+    KdScreenInfo *screen = pScreenPriv->screen;
+    EphyrScrPriv *scrpriv = screen->driver;
     int min, max, p;
 
     /* XXX Not sure if this is right */
@@ -1250,6 +1253,18 @@ ephyrPutColors(ScreenPtr pScreen, int n, xColorItem * pdefs)
                              pdefs->red >> 8,
                              pdefs->green >> 8, pdefs->blue >> 8);
         pdefs++;
+    }
+    if (scrpriv->pDamage) {
+        BoxRec box;
+        RegionRec region;
+
+        box.x1 = 0;
+        box.y1 = 0;
+        box.x2 = pScreen->width;
+        box.y2 = pScreen->height;
+        RegionInit(&region, &box, 1);
+        DamageReportDamage(scrpriv->pDamage, &region);
+        RegionUninit(&region);
     }
 }
 

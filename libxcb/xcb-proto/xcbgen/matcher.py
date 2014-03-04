@@ -18,10 +18,12 @@ def import_(node, module, namespace):
     '''
     # To avoid circular import error
     from xcbgen import state
+    module.import_level = module.import_level + 1
     new_file = join(namespace.dir, '%s.xml' % node.text)
     new_root = parse(new_file).getroot()
     new_namespace = state.Namespace(new_file)
     execute(module, new_namespace)
+    module.import_level = module.import_level - 1
     if not module.has_import(node.text):
         module.add_import(node.text, new_namespace)
 

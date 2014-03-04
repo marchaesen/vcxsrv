@@ -572,6 +572,11 @@ st_translate_fragment_program(struct st_context *st,
             input_semantic_index[slot] = 0;
             interpMode[slot] = TGSI_INTERPOLATE_CONSTANT;
             break;
+         case VARYING_SLOT_VIEWPORT:
+            input_semantic_name[slot] = TGSI_SEMANTIC_VIEWPORT_INDEX;
+            input_semantic_index[slot] = 0;
+            interpMode[slot] = TGSI_INTERPOLATE_CONSTANT;
+            break;
          case VARYING_SLOT_CLIP_DIST0:
             input_semantic_name[slot] = TGSI_SEMANTIC_CLIPDIST;
             input_semantic_index[slot] = 0;
@@ -1027,6 +1032,10 @@ st_translate_geometry_program(struct st_context *st,
             gs_output_semantic_name[slot] = TGSI_SEMANTIC_PRIMID;
             gs_output_semantic_index[slot] = 0;
             break;
+         case VARYING_SLOT_VIEWPORT:
+            gs_output_semantic_name[slot] = TGSI_SEMANTIC_VIEWPORT_INDEX;
+            gs_output_semantic_index[slot] = 0;
+            break;
          case VARYING_SLOT_TEX0:
          case VARYING_SLOT_TEX1:
          case VARYING_SLOT_TEX2:
@@ -1087,6 +1096,7 @@ st_translate_geometry_program(struct st_context *st,
    ureg_property_gs_input_prim(ureg, stgp->Base.InputType);
    ureg_property_gs_output_prim(ureg, stgp->Base.OutputType);
    ureg_property_gs_max_vertices(ureg, stgp->Base.VerticesOut);
+   ureg_property_gs_invocations(ureg, stgp->Base.Invocations);
 
    if (stgp->glsl_to_tgsi)
       st_translate_program(st->ctx,

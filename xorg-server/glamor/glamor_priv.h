@@ -35,23 +35,19 @@
 #endif
 #include "glamor.h"
 
-#ifdef GLAMOR_GLES2
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
+#include <epoxy/gl.h>
 
-#define GLAMOR_DEFAULT_PRECISION   "precision mediump float;\n"
-#include "glamor_glext.h"
-#else
-#include <GL/gl.h>
-#include <GL/glext.h>
-#define GLAMOR_DEFAULT_PRECISION
-#endif
+#define GLAMOR_DEFAULT_PRECISION  \
+    "#ifdef GL_ES\n"              \
+    "precision mediump float;\n"  \
+    "#endif\n"
 
 #ifdef RENDER
 #include "glyphstr.h"
 #endif
 
 #include "glamor_debug.h"
+#include "glamor_context.h"
 
 #include <list.h>
 
@@ -145,13 +141,6 @@ enum gradient_shader {
     SHADER_GRADIENT_COUNT,
 };
 
-enum gradient_shader_prog {
-    SHADER_GRADIENT_VS_PROG,
-    SHADER_GRADIENT_FS_MAIN_PROG,
-    SHADER_GRADIENT_FS_GETCOLOR_PROG,
-    SHADER_GRADIENT_PROG_COUNT,
-};
-
 struct glamor_screen_private;
 struct glamor_pixmap_private;
 
@@ -178,8 +167,6 @@ typedef struct {
     uint16_t evict;
 } glamor_glyph_cache_t;
 
-#include "glamor_gl_dispatch.h"
-
 struct glamor_saved_procs {
     CloseScreenProcPtr close_screen;
     CreateGCProcPtr create_gc;
@@ -202,11 +189,7 @@ struct glamor_saved_procs {
     SetWindowPixmapProcPtr set_window_pixmap;
 };
 
-#ifdef GLAMOR_GLES2
 #define CACHE_FORMAT_COUNT 3
-#else
-#define CACHE_FORMAT_COUNT 2
-#endif
 
 #define CACHE_BUCKET_WCOUNT 4
 #define CACHE_BUCKET_HCOUNT 4
@@ -220,8 +203,7 @@ struct glamor_saved_procs {
 #define RENDER_IDEL_MAX 32
 
 typedef struct glamor_screen_private {
-    struct glamor_gl_dispatch _dispatch;
-    int yInverted;
+    Bool yInverted;
     unsigned int tick;
     enum glamor_gl_flavor gl_flavor;
     int has_pack_invert;
@@ -262,9 +244,7 @@ typedef struct glamor_screen_private {
     /* glamor gradient, 0 for small nstops, 1 for
        large nstops and 2 for dynamic generate. */
     GLint gradient_prog[SHADER_GRADIENT_COUNT][3];
-    GLint linear_gradient_shaders[SHADER_GRADIENT_PROG_COUNT][3];
     int linear_max_nstops;
-    GLint radial_gradient_shaders[SHADER_GRADIENT_PROG_COUNT][3];
     int radial_max_nstops;
 
     /* glamor trapezoid shader. */
@@ -288,6 +268,8 @@ typedef struct glamor_screen_private {
 
     /* xv */
     GLint xv_prog;
+
+    struct glamor_context ctx;
 } glamor_screen_private;
 
 typedef enum glamor_access {
@@ -583,9 +565,8 @@ Bool glamor_stipple(PixmapPtr pixmap, PixmapPtr stipple,
                     unsigned char alu, unsigned long planemask,
                     unsigned long fg_pixel, unsigned long bg_pixel,
                     int stipple_x, int stipple_y);
-GLint glamor_compile_glsl_prog(glamor_gl_dispatch *dispatch, GLenum type,
-                               const char *source);
-void glamor_link_glsl_prog(glamor_gl_dispatch *dispatch, GLint prog);
+GLint glamor_compile_glsl_prog(GLenum type, const char *source);
+void glamor_link_glsl_prog(GLint prog);
 void glamor_get_color_4f_from_pixel(PixmapPtr pixmap,
                                     unsigned long fg_pixel, GLfloat *color);
 
@@ -604,7 +585,7 @@ glamor_pixmap_fbo *glamor_es2_pixmap_read_prepare(PixmapPtr source, int x,
                                                   int no_alpha, int revert,
                                                   int swap_rb);
 
-Bool glamor_set_alu(struct glamor_gl_dispatch *dispatch, unsigned char alu);
+Bool glamor_set_alu(ScreenPtr screen, unsigned char alu);
 Bool glamor_set_planemask(PixmapPtr pixmap, unsigned long planemask);
 Bool glamor_change_window_attributes(WindowPtr pWin, unsigned long mask);
 RegionPtr glamor_bitmap_to_region(PixmapPtr pixmap);
@@ -934,6 +915,9 @@ void glamor_composite_rectangles(CARD8 op,
                                  PicturePtr dst,
                                  xRenderColor *color,
                                  int num_rects, xRectangle *rects);
+
+extern _X_EXPORT void glamor_egl_screen_init(ScreenPtr screen,
+                                             struct glamor_context *glamor_ctx);
 
 /* glamor_xv */
 typedef struct {

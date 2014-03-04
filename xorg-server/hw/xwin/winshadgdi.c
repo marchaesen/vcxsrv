@@ -184,8 +184,7 @@ winQueryRGBBitsAndMasks(ScreenPtr pScreen)
     }
 
     /* Allocate a bitmap header and color table */
-    pbmih = (BITMAPINFOHEADER *) malloc(sizeof(BITMAPINFOHEADER)
-                                        + 256 * sizeof(RGBQUAD));
+    pbmih = malloc(sizeof(BITMAPINFOHEADER) + 256 * sizeof(RGBQUAD));
     if (pbmih == NULL) {
         ErrorF("winQueryRGBBitsAndMasks - malloc failed\n");
         return FALSE;
@@ -545,8 +544,7 @@ winInitScreenShadowGDI(ScreenPtr pScreen)
     pScreenPriv->hdcShadow = CreateCompatibleDC(pScreenPriv->hdcScreen);
 
     /* Allocate bitmap info header */
-    pScreenPriv->pbmih = (BITMAPINFOHEADER *) malloc(sizeof(BITMAPINFOHEADER)
-                                                     + 256 * sizeof(RGBQUAD));
+    pScreenPriv->pbmih = malloc(sizeof(BITMAPINFOHEADER) + 256 * sizeof(RGBQUAD));
     if (pScreenPriv->pbmih == NULL) {
         ErrorF("winInitScreenShadowGDI - malloc () failed\n");
         return FALSE;

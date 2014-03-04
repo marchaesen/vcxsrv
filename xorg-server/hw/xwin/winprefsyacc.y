@@ -311,10 +311,9 @@ static void
 AddMenuLine (char *text, MENUCOMMANDTYPE cmd, char *param)
 {
   if (menu.menuItem==NULL)
-    menu.menuItem = (MENUITEM*)malloc(sizeof(MENUITEM));
+    menu.menuItem = malloc(sizeof(MENUITEM));
   else
-    menu.menuItem = (MENUITEM*)
-      realloc(menu.menuItem, sizeof(MENUITEM)*(menu.menuItems+1));
+    menu.menuItem = realloc(menu.menuItem, sizeof(MENUITEM)*(menu.menuItems+1));
 
   strncpy (menu.menuItem[menu.menuItems].text, text, MENU_MAX);
   menu.menuItem[menu.menuItems].text[MENU_MAX] = 0;
@@ -339,10 +338,9 @@ CloseMenu (void)
     }
   
   if (pref.menuItems)
-    pref.menu = (MENUPARSED*)
-      realloc (pref.menu, (pref.menuItems+1)*sizeof(MENUPARSED));
+    pref.menu = realloc (pref.menu, (pref.menuItems+1)*sizeof(MENUPARSED));
   else
-    pref.menu = (MENUPARSED*)malloc (sizeof(MENUPARSED));
+    pref.menu = malloc (sizeof(MENUPARSED));
   
   memcpy (pref.menu+pref.menuItems, &menu, sizeof(MENUPARSED));
   pref.menuItems++;
@@ -365,10 +363,9 @@ static void
 AddIconLine (char *matchstr, char *iconfile)
 {
   if (pref.icon==NULL)
-    pref.icon = (ICONITEM*)malloc(sizeof(ICONITEM));
+    pref.icon = malloc(sizeof(ICONITEM));
   else
-    pref.icon = (ICONITEM*)
-      realloc(pref.icon, sizeof(ICONITEM)*(pref.iconItems+1));
+    pref.icon = realloc(pref.icon, sizeof(ICONITEM)*(pref.iconItems+1));
 
   strncpy(pref.icon[pref.iconItems].match, matchstr, MENU_MAX);
   pref.icon[pref.iconItems].match[MENU_MAX] = 0;
@@ -401,10 +398,9 @@ static void
 AddStyleLine (char *matchstr, unsigned long style)
 {
   if (pref.style==NULL)
-    pref.style = (STYLEITEM*)malloc(sizeof(STYLEITEM));
+    pref.style = malloc(sizeof(STYLEITEM));
   else
-    pref.style = (STYLEITEM*)
-      realloc(pref.style, sizeof(STYLEITEM)*(pref.styleItems+1));
+    pref.style = realloc(pref.style, sizeof(STYLEITEM)*(pref.styleItems+1));
 
   strncpy(pref.style[pref.styleItems].match, matchstr, MENU_MAX);
   pref.style[pref.styleItems].match[MENU_MAX] = 0;
@@ -434,10 +430,9 @@ static void
 AddSysMenuLine (char *matchstr, char *menuname, int pos)
 {
   if (pref.sysMenu==NULL)
-    pref.sysMenu = (SYSMENUITEM*)malloc(sizeof(SYSMENUITEM));
+    pref.sysMenu = malloc(sizeof(SYSMENUITEM));
   else
-    pref.sysMenu = (SYSMENUITEM*)
-      realloc(pref.sysMenu, sizeof(SYSMENUITEM)*(pref.sysMenuItems+1));
+    pref.sysMenu = realloc(pref.sysMenu, sizeof(SYSMENUITEM)*(pref.sysMenuItems+1));
 
   strncpy (pref.sysMenu[pref.sysMenuItems].match, matchstr, MENU_MAX);
   pref.sysMenu[pref.sysMenuItems].match[MENU_MAX] = 0;

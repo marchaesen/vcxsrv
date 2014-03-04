@@ -36,6 +36,8 @@
 #include <fb.h>
 #include <fbpict.h>
 
+struct glamor_context;
+
 /*
  * glamor_pixmap_type : glamor pixmap's type.
  * @MEMORY: pixmap is in memory.
@@ -141,11 +143,6 @@ extern _X_EXPORT void glamor_destroy_textured_pixmap(PixmapPtr pixmap);
 extern _X_EXPORT void glamor_block_handler(ScreenPtr screen);
 extern _X_EXPORT PixmapPtr glamor_create_pixmap(ScreenPtr screen, int w, int h,
                                                 int depth, unsigned int usage);
-
-extern _X_EXPORT void glamor_egl_screen_init(ScreenPtr screen);
-
-extern _X_EXPORT void glamor_egl_make_current(ScreenPtr screen);
-extern _X_EXPORT void glamor_egl_restore_context(ScreenPtr screen);
 
 /* @glamor_egl_exchange_buffers: Exchange the underlying buffers(KHR image,fbo).
  *

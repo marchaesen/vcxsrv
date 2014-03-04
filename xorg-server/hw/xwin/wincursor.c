@@ -255,10 +255,8 @@ winLoadCursor(ScreenPtr pScreen, CursorPtr pCursor, int screen)
         bi.bV4BlueMask = 0x000000FF;
         bi.bV4AlphaMask = 0xFF000000;
 
-        lpBits =
-            (uint32_t *) calloc(pScreenPriv->cursor.sm_cx *
-                                pScreenPriv->cursor.sm_cy,
-                                sizeof(uint32_t));
+        lpBits = calloc(pScreenPriv->cursor.sm_cx * pScreenPriv->cursor.sm_cy,
+                        sizeof(uint32_t));
 
         if (lpBits) {
             int y;
@@ -302,9 +300,7 @@ winLoadCursor(ScreenPtr pScreen, CursorPtr pCursor, int screen)
         pbmiColors[2].rgbBlue = pCursor->foreBlue >> 8;
         pbmiColors[2].rgbReserved = 0;
 
-        lpBits =
-            (uint32_t *) calloc(pScreenPriv->cursor.sm_cx *
-                                pScreenPriv->cursor.sm_cy, sizeof(char));
+        lpBits = calloc(pScreenPriv->cursor.sm_cx * pScreenPriv->cursor.sm_cy, 1);
 
         pCur = (unsigned char *) lpBits;
         if (lpBits) {

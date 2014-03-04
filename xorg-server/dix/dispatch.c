@@ -478,9 +478,9 @@ SetVendorRelease(int release)
 }
 
 void
-SetVendorString(const char *string)
+SetVendorString(const char *vendor)
 {
-    VendorString = string;
+    VendorString = vendor;
 }
 
 Bool

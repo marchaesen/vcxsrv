@@ -106,6 +106,7 @@
 #include "matrix.h"
 #include "multisample.h"
 #include "performance_monitor.h"
+#include "pipelineobj.h"
 #include "pixel.h"
 #include "pixelstore.h"
 #include "points.h"
@@ -363,7 +364,7 @@ dummy_enum_func(void)
  *
  * \sa Used by one_time_init().
  */
-_glthread_DECLARE_STATIC_MUTEX(OneTimeLock);
+mtx_t OneTimeLock = _MTX_INITIALIZER_NP;
 
 
 
@@ -381,7 +382,7 @@ one_time_init( struct gl_context *ctx )
 {
    static GLbitfield api_init_mask = 0x0;
 
-   _glthread_LOCK_MUTEX(OneTimeLock);
+   mtx_lock(&OneTimeLock);
 
    /* truly one-time init */
    if (!api_init_mask) {
@@ -422,7 +423,7 @@ one_time_init( struct gl_context *ctx )
 
    api_init_mask |= 1 << ctx->API;
 
-   _glthread_UNLOCK_MUTEX(OneTimeLock);
+   mtx_unlock(&OneTimeLock);
 
    /* Hopefully atexit() is widely available.  If not, we may need some
     * #ifdef tests here.
@@ -602,9 +603,6 @@ _mesa_init_constants(struct gl_context *ctx)
    ctx->Const.ViewportSubpixelBits = 0;
    ctx->Const.ViewportBounds.Min = 0;
    ctx->Const.ViewportBounds.Max = 0;
-
-   /* Driver must override if it supports ARB_viewport_array */
-   ctx->Const.MaxViewports = 1;
 
    /** GL_ARB_uniform_buffer_object */
    ctx->Const.MaxCombinedUniformBlocks = 36;
@@ -814,6 +812,7 @@ init_attrib_groups(struct gl_context *ctx)
    _mesa_init_matrix( ctx );
    _mesa_init_multisample( ctx );
    _mesa_init_performance_monitors( ctx );
+   _mesa_init_pipeline( ctx );
    _mesa_init_pixel( ctx );
    _mesa_init_pixelstore( ctx );
    _mesa_init_point( ctx );
@@ -1219,6 +1218,7 @@ _mesa_free_context_data( struct gl_context *ctx )
    _mesa_free_texture_data( ctx );
    _mesa_free_matrix_data( ctx );
    _mesa_free_viewport_data( ctx );
+   _mesa_free_pipeline_data(ctx);
    _mesa_free_program_data(ctx);
    _mesa_free_shader_state(ctx);
    _mesa_free_queryobj_data(ctx);
@@ -1769,6 +1769,32 @@ _mesa_check_blend_func_error(struct gl_context *ctx)
    return GL_TRUE;
 }
 
+static bool
+shader_linked_or_absent(struct gl_context *ctx,
+                        const struct gl_shader_program *shProg,
+                        bool *shader_present, const char *where)
+{
+   if (shProg) {
+      *shader_present = true;
+
+      if (!shProg->LinkStatus) {
+         _mesa_error(ctx, GL_INVALID_OPERATION, "%s(shader not linked)", where);
+         return false;
+      }
+#if 0 /* not normally enabled */
+      {
+         char errMsg[100];
+         if (!_mesa_validate_shader_program(ctx, shProg, errMsg)) {
+            _mesa_warning(ctx, "Shader program %u is invalid: %s",
+                          shProg->Name, errMsg);
+         }
+      }
+#endif
+   }
+
+   return true;
+}
+
 /**
  * Prior to drawing anything with glBegin, glDrawArrays, etc. this function
  * is called to see if it's valid to render.  This involves checking that
@@ -1779,83 +1805,23 @@ _mesa_check_blend_func_error(struct gl_context *ctx)
 GLboolean
 _mesa_valid_to_render(struct gl_context *ctx, const char *where)
 {
-   bool vert_from_glsl_shader = false;
-   bool geom_from_glsl_shader = false;
-   bool frag_from_glsl_shader = false;
+   bool from_glsl_shader[MESA_SHADER_COMPUTE] = { false };
+   unsigned i;
 
    /* This depends on having up to date derived state (shaders) */
    if (ctx->NewState)
       _mesa_update_state(ctx);
 
-   if (ctx->Shader.CurrentProgram[MESA_SHADER_VERTEX]) {
-      vert_from_glsl_shader = true;
-
-      if (!ctx->Shader.CurrentProgram[MESA_SHADER_VERTEX]->LinkStatus) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "%s(shader not linked)", where);
+   for (i = 0; i < MESA_SHADER_COMPUTE; i++) {
+      if (!shader_linked_or_absent(ctx, ctx->Shader.CurrentProgram[i],
+                                   &from_glsl_shader[i], where))
          return GL_FALSE;
-      }
-#if 0 /* not normally enabled */
-      {
-         char errMsg[100];
-         if (!_mesa_validate_shader_program(ctx,
-					    ctx->Shader.CurrentProgram[MESA_SHADER_VERTEX],
-                                            errMsg)) {
-            _mesa_warning(ctx, "Shader program %u is invalid: %s",
-                          ctx->Shader.CurrentProgram[MESA_SHADER_VERTEX]->Name, errMsg);
-         }
-      }
-#endif
-   }
-
-   if (ctx->Shader.CurrentProgram[MESA_SHADER_GEOMETRY]) {
-      geom_from_glsl_shader = true;
-
-      if (!ctx->Shader.CurrentProgram[MESA_SHADER_GEOMETRY]->LinkStatus) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "%s(shader not linked)", where);
-         return GL_FALSE;
-      }
-#if 0 /* not normally enabled */
-      {
-         char errMsg[100];
-         if (!_mesa_validate_shader_program(ctx,
-					    ctx->Shader.CurrentProgram[MESA_SHADER_GEOMETRY],
-                                            errMsg)) {
-            _mesa_warning(ctx, "Shader program %u is invalid: %s",
-                          ctx->Shader.CurrentProgram[MESA_SHADER_GEOMETRY]->Name,
-                          errMsg);
-         }
-      }
-#endif
-   }
-
-   if (ctx->Shader.CurrentProgram[MESA_SHADER_FRAGMENT]) {
-      frag_from_glsl_shader = true;
-
-      if (!ctx->Shader.CurrentProgram[MESA_SHADER_FRAGMENT]->LinkStatus) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "%s(shader not linked)", where);
-         return GL_FALSE;
-      }
-#if 0 /* not normally enabled */
-      {
-         char errMsg[100];
-         if (!_mesa_validate_shader_program(ctx,
-					    ctx->Shader.CurrentProgram[MESA_SHADER_FRAGMENT],
-                                            errMsg)) {
-            _mesa_warning(ctx, "Shader program %u is invalid: %s",
-                          ctx->Shader.CurrentProgram[MESA_SHADER_FRAGMENT]->Name,
-                          errMsg);
-         }
-      }
-#endif
    }
 
    /* Any shader stages that are not supplied by the GLSL shader and have
     * assembly shaders enabled must now be validated.
     */
-   if (!vert_from_glsl_shader
+   if (!from_glsl_shader[MESA_SHADER_VERTEX]
        && ctx->VertexProgram.Enabled && !ctx->VertexProgram._Enabled) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
 		  "%s(vertex program not valid)", where);
@@ -1865,9 +1831,9 @@ _mesa_valid_to_render(struct gl_context *ctx, const char *where)
    /* FINISHME: If GL_NV_geometry_program4 is ever supported, the current
     * FINISHME: geometry program should validated here.
     */
-   (void) geom_from_glsl_shader;
+   (void) from_glsl_shader[MESA_SHADER_GEOMETRY];
 
-   if (!frag_from_glsl_shader) {
+   if (!from_glsl_shader[MESA_SHADER_FRAGMENT]) {
       if (ctx->FragmentProgram.Enabled && !ctx->FragmentProgram._Enabled) {
 	 _mesa_error(ctx, GL_INVALID_OPERATION,
 		     "%s(fragment program not valid)", where);

@@ -91,6 +91,7 @@ C_SOURCES := \
 	translate/translate_sse.c \
 	util/u_debug.c \
 	util/u_debug_describe.c \
+	util/u_debug_flush.c \
 	util/u_debug_memory.c \
 	util/u_debug_refcnt.c \
 	util/u_debug_stack.c \
@@ -155,7 +156,8 @@ C_SOURCES := \
         vl/vl_idct.c \
 	vl/vl_mc.c \
         vl/vl_vertex_buffers.c \
-        vl/vl_video_buffer.c
+        vl/vl_video_buffer.c \
+	vl/vl_deint_filter.c
 
 GENERATED_SOURCES := \
 	indices/u_indices_gen.c \

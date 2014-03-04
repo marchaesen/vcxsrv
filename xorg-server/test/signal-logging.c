@@ -346,7 +346,11 @@ static void logging_format(void)
     ptr = 1;
     do {
         char expected[30];
+#ifdef __sun /* Solaris doesn't autoadd "0x" to %p format */
+        sprintf(expected, "(EE) 0x%p\n", (void*)ptr);
+#else
         sprintf(expected, "(EE) %p\n", (void*)ptr);
+#endif
         LogMessageVerbSigSafe(X_ERROR, -1, "%p\n", (void*)ptr);
         read_log_msg(logmsg);
         assert(strcmp(logmsg, expected) == 0);
