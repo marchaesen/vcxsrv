@@ -76,6 +76,8 @@ static void OpenStyles(void);
 static void AddStyleLine(char *matchstr, unsigned long style);
 static void CloseStyles(void);
 
+static void SetNoTrayIcon(void);
+
 static void OpenSysMenu(void);
 static void AddSysMenuLine(char *matchstr, char *menuname, int pos);
 static void CloseSysMenu(void);
@@ -104,6 +106,8 @@ extern int yylex(void);
 %token DEFAULTICON
 %token ICONS
 %token STYLES
+%token TASKBAR
+%token NOTAB
 %token TOPMOST
 %token MAXIMIZE
 %token MINIMIZE
@@ -151,6 +155,7 @@ command:	defaulticon
 	| menu
 	| icons
 	| styles
+	| taskbar
 	| sysmenu
 	| rootmenu
 	| defaultsysmenu
@@ -224,6 +229,16 @@ stylelist:	styleline
 	;
 
 styles:	STYLES LB {OpenStyles();} newline_or_nada stylelist RB {CloseStyles();}
+	;
+
+taskbarline:	STRING NOTAB NEWLINE newline_or_nada { SetNoTrayIcon(); free($1); }
+	;
+
+taskbarlist:	taskbarline
+	| taskbarline taskbarlist
+	;
+
+taskbar:	TASKBAR LB newline_or_nada taskbarlist RB
 	;
 
 atspot:	{ $$=AT_END; }
@@ -418,6 +433,13 @@ static void
 CloseStyles (void)
 {
 }
+
+static void
+SetNoTrayIcon (void)
+{
+  pref.fNoTrayIcon=TRUE;
+}
+
 
 static void
 OpenSysMenu (void)

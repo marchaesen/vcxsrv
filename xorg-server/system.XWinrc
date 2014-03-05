@@ -113,6 +113,10 @@ SysMenu {
 	"xterm"	xtermspecial atstart
 }
 
+# taskbar {
+# Tk notab
+# }
+
 # IconDirectory	"c:\winnt\"
 
 # DefaultIcon	"reinstall.ico"

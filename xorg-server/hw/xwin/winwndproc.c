@@ -123,7 +123,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         SetProp(hwnd, WIN_SCR_PROP, s_pScreenPriv);
 
         /* Setup tray icon */
-        if (!s_pScreenInfo->fNoTrayIcon) {
+        if (!s_pScreenInfo->fNoTrayIcon && !pref.fNoTrayIcon) {
             /*
              * NOTE: The WM_CREATE message is processed before CreateWindowEx
              * returns, so s_pScreenPriv->hwndScreen is invalid at this point.

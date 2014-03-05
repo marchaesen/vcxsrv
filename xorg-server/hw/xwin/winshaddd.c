@@ -35,6 +35,7 @@
 #include <xwin-config.h>
 #endif
 #include "win.h"
+#include "winprefs.h"
 
 /*
  * Local prototypes
@@ -631,7 +632,7 @@ winCloseScreenShadowDD(ScreenPtr pScreen)
     RemoveProp(pScreenPriv->hwndScreen, WIN_SCR_PROP);
 
     /* Delete tray icon, if we have one */
-    if (!pScreenInfo->fNoTrayIcon)
+    if (!pScreenInfo->fNoTrayIcon && !pref.fNoTrayIcon)
         winDeleteNotifyIcon(pScreenPriv);
 
     /* Free the exit confirmation dialog box, if it exists */

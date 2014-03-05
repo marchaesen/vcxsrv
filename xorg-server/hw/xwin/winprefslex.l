@@ -70,6 +70,8 @@ ICONDIRECTORY           { return ICONDIRECTORY; }
 DEFAULTICON             { return DEFAULTICON; }
 ICONS                   { return ICONS; }
 STYLES                  { return STYLES; }
+TASKBAR                 { return TASKBAR; }
+NOTAB                   { return NOTAB; }
 TOPMOST                 { return TOPMOST; }
 MAXIMIZE                { return MAXIMIZE; }
 MINIMIZE                { return MINIMIZE; }

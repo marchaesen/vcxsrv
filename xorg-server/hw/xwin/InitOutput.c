@@ -216,7 +216,7 @@ ddxGiveUp(enum ExitCode error)
     /* Perform per-screen deinitialization */
     for (i = 0; i < g_iNumScreens; ++i) {
         /* Delete the tray icon */
-        if (!g_ScreenInfo[i].fNoTrayIcon && g_ScreenInfo[i].pScreen)
+        if (!g_ScreenInfo[i].fNoTrayIcon && g_ScreenInfo[i].pScreen && !pref.fNoTrayIcon)
             winDeleteNotifyIcon(winGetScreenPriv(g_ScreenInfo[i].pScreen));
     }
 

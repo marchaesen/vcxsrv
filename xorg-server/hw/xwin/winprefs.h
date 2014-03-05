@@ -140,6 +140,9 @@ typedef struct WINPREFS {
     /* Silent exit flag */
     Bool fSilentExit;
 
+    /* No tray icon flag */
+    Bool fNoTrayIcon;
+
 } WINPREFS;
 
 /* The global pref settings structure loaded by the winprefyacc.y parser */
