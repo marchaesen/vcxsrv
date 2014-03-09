@@ -60,6 +60,7 @@ running out of memory.
 <function>FcCharSetDelChar</function> deletes a single Unicode char from the set,
 returning FcFalse on failure, either as a result of a constant set or from
 running out of memory.
+@SINCE@		2.9.0
 @@
 
 @RET@		FcCharSet *

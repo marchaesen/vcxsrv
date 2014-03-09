@@ -79,10 +79,10 @@ public:
       struct YYLTYPE locp;
 
       locp.source = this->location.source;
-      locp.first_line = this->location.line;
-      locp.first_column = this->location.column;
-      locp.last_line = locp.first_line;
-      locp.last_column = locp.first_column;
+      locp.first_line = this->location.first_line;
+      locp.first_column = this->location.first_column;
+      locp.last_line = this->location.last_line;
+      locp.last_column = this->location.last_column;
 
       return locp;
    }
@@ -95,17 +95,35 @@ public:
    void set_location(const struct YYLTYPE &locp)
    {
       this->location.source = locp.source;
-      this->location.line = locp.first_line;
-      this->location.column = locp.first_column;
+      this->location.first_line = locp.first_line;
+      this->location.first_column = locp.first_column;
+      this->location.last_line = locp.last_line;
+      this->location.last_column = locp.last_column;
+   }
+
+   /**
+    * Set the source location range of an AST node using two location nodes
+    *
+    * \sa ast_node::set_location
+    */
+   void set_location_range(const struct YYLTYPE &begin, const struct YYLTYPE &end)
+   {
+      this->location.source = begin.source;
+      this->location.first_line = begin.first_line;
+      this->location.last_line = end.last_line;
+      this->location.first_column = begin.first_column;
+      this->location.last_column = end.last_column;
    }
 
    /**
     * Source location of the AST node.
     */
    struct {
-      unsigned source;    /**< GLSL source number. */
-      unsigned line;      /**< Line number within the source string. */
-      unsigned column;    /**< Column in the line. */
+      unsigned source;          /**< GLSL source number. */
+      unsigned first_line;      /**< First line number within the source string. */
+      unsigned first_column;    /**< First column in the first line. */
+      unsigned last_line;       /**< Last line number within the source string. */
+      unsigned last_column;     /**< Last column in the last line. */
    } location;
 
    exec_node link;

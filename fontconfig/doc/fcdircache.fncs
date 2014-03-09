@@ -62,6 +62,7 @@ FcDirCacheRead.
 @DESC@
 Re-scan directories only at <parameter>dir</parameter> and update the cache.
 returns NULL if failed.
+@SINCE@		2.11.1
 @@
 
 @RET@		FcCache *

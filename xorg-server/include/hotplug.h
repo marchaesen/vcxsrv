@@ -32,15 +32,20 @@ extern _X_EXPORT void config_pre_init(void);
 extern _X_EXPORT void config_init(void);
 extern _X_EXPORT void config_fini(void);
 
+enum { ODEV_ATTRIB_STRING, ODEV_ATTRIB_INT };
+
 struct OdevAttribute {
     struct xorg_list member;
     int attrib_id;
-    char *attrib_name;
+    union {
+        char *attrib_name;
+        int attrib_value;
+    };
+    int attrib_type;
 };
 
 struct OdevAttributes {
     struct xorg_list list;
-    Bool unowned;
 };
 
 struct OdevAttributes *
@@ -53,6 +58,17 @@ Bool
 config_odev_add_attribute(struct OdevAttributes *attribs, int attrib,
                           const char *attrib_name);
 
+char *
+config_odev_get_attribute(struct OdevAttributes *attribs, int attrib_id);
+
+Bool
+config_odev_add_int_attribute(struct OdevAttributes *attribs, int attrib,
+                              int attrib_value);
+
+int
+config_odev_get_int_attribute(struct OdevAttributes *attribs, int attrib,
+                              int def);
+
 void
 config_odev_free_attributes(struct OdevAttributes *attribs);
 
@@ -62,6 +78,12 @@ config_odev_free_attributes(struct OdevAttributes *attribs);
 #define ODEV_ATTRIB_SYSPATH 2
 /* DRI-style bus id */
 #define ODEV_ATTRIB_BUSID 3
+/* Server managed FD */
+#define ODEV_ATTRIB_FD 4
+/* Major number of the device node pointed to by ODEV_ATTRIB_PATH */
+#define ODEV_ATTRIB_MAJOR 5
+/* Minor number of the device node pointed to by ODEV_ATTRIB_PATH */
+#define ODEV_ATTRIB_MINOR 6
 
 typedef void (*config_odev_probe_proc_ptr)(struct OdevAttributes *attribs);
 void config_odev_probe(config_odev_probe_proc_ptr probe_callback);
@@ -72,4 +94,8 @@ void DeleteGPUDeviceRequest(struct OdevAttributes *attribs);
 #endif
 
 #define ServerIsNotSeat0() (SeatId && strcmp(SeatId, "seat0"))
+
+struct xf86_platform_device *
+xf86_find_platform_device_by_devnum(int major, int minor);
+
 #endif                          /* HOTPLUG_H */

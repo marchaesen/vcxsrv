@@ -74,6 +74,7 @@ FcCacheCopySet.
 @PURPOSE@
 This tries to clean up the cache directory of <parameter>cache_dir</parameter>.
 This returns FcTrue if the operation is successfully complete. otherwise FcFalse.
+@SINCE@		2.9.91
 @@
 
 @RET@		void
@@ -83,4 +84,5 @@ This returns FcTrue if the operation is successfully complete. otherwise FcFalse
 @DESC@
 This tries to create CACHEDIR.TAG file at the cache directory registered
 to <parameter>config</parameter>.
+@SINCE@		2.9.91
 @@

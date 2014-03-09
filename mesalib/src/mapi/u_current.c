@@ -103,18 +103,18 @@ __thread struct mapi_table *u_current_table
     __attribute__((tls_model("initial-exec")))
     = (struct mapi_table *) table_noop_array;
 
-__thread void *u_current_user
+__thread void *u_current_context
     __attribute__((tls_model("initial-exec")));
 
 #else
 
 struct mapi_table *u_current_table =
    (struct mapi_table *) table_noop_array;
-void *u_current_user;
+void *u_current_context;
 
 #ifdef THREADS
 struct u_tsd u_current_table_tsd;
-static struct u_tsd u_current_user_tsd;
+static struct u_tsd u_current_context_tsd;
 static int ThreadSafe;
 #endif /* THREADS */
 
@@ -127,7 +127,7 @@ u_current_destroy(void)
 {
 #if defined(THREADS) && defined(_WIN32)
    u_tsd_destroy(&u_current_table_tsd);
-   u_tsd_destroy(&u_current_user_tsd);
+   u_tsd_destroy(&u_current_context_tsd);
 #endif
 }
 
@@ -138,13 +138,13 @@ static void
 u_current_init_tsd(void)
 {
    u_tsd_init(&u_current_table_tsd);
-   u_tsd_init(&u_current_user_tsd);
+   u_tsd_init(&u_current_context_tsd);
 }
 
 /**
  * Mutex for multithread check.
  */
-u_mutex_declare_static(ThreadCheckMutex);
+static mtx_t ThreadCheckMutex = _MTX_INITIALIZER_NP;
 
 /**
  * We should call this periodically from a function such as glXMakeCurrent
@@ -159,7 +159,7 @@ u_current_init(void)
    if (ThreadSafe)
       return;
 
-   u_mutex_lock(ThreadCheckMutex);
+   mtx_lock(&ThreadCheckMutex);
    if (firstCall) {
       u_current_init_tsd();
 
@@ -168,10 +168,10 @@ u_current_init(void)
    }
    else if (knownID != u_thread_self()) {
       ThreadSafe = 1;
-      u_current_set(NULL);
-      u_current_set_user(NULL);
+      u_current_set_table(NULL);
+      u_current_set_context(NULL);
    }
-   u_mutex_unlock(ThreadCheckMutex);
+   mtx_unlock(&ThreadCheckMutex);
 }
 
 #else
@@ -191,17 +191,17 @@ u_current_init(void)
  * void from the real context pointer type.
  */
 void
-u_current_set_user(const void *ptr)
+u_current_set_context(const void *ptr)
 {
    u_current_init();
 
 #if defined(GLX_USE_TLS)
-   u_current_user = (void *) ptr;
+   u_current_context = (void *) ptr;
 #elif defined(THREADS)
-   u_tsd_set(&u_current_user_tsd, (void *) ptr);
-   u_current_user = (ThreadSafe) ? NULL : (void *) ptr;
+   u_tsd_set(&u_current_context_tsd, (void *) ptr);
+   u_current_context = (ThreadSafe) ? NULL : (void *) ptr;
 #else
-   u_current_user = (void *) ptr;
+   u_current_context = (void *) ptr;
 #endif
 }
 
@@ -211,16 +211,16 @@ u_current_set_user(const void *ptr)
  * void to the real context pointer type.
  */
 void *
-u_current_get_user_internal(void)
+u_current_get_context_internal(void)
 {
 #if defined(GLX_USE_TLS)
-   return u_current_user;
+   return u_current_context;
 #elif defined(THREADS)
    return (ThreadSafe)
-      ? u_tsd_get(&u_current_user_tsd)
-      : u_current_user;
+      ? u_tsd_get(&u_current_context_tsd)
+      : u_current_context;
 #else
-   return u_current_user;
+   return u_current_context;
 #endif
 }
 
@@ -230,7 +230,7 @@ u_current_get_user_internal(void)
  * table (__glapi_noop_table).
  */
 void
-u_current_set(const struct mapi_table *tbl)
+u_current_set_table(const struct mapi_table *tbl)
 {
    u_current_init();
 
@@ -253,7 +253,7 @@ u_current_set(const struct mapi_table *tbl)
  * Return pointer to current dispatch table for calling thread.
  */
 struct mapi_table *
-u_current_get_internal(void)
+u_current_get_table_internal(void)
 {
 #if defined(GLX_USE_TLS)
    return u_current_table;

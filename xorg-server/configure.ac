@@ -626,6 +626,7 @@ AC_ARG_ENABLE(clientids,      AS_HELP_STRING([--disable-clientids], [Build Xorg 
 AC_ARG_ENABLE(pciaccess, AS_HELP_STRING([--enable-pciaccess], [Build Xorg with pciaccess library (default: enabled)]), [PCI=$enableval], [PCI=yes])
 AC_ARG_ENABLE(linux_acpi, AS_HELP_STRING([--disable-linux-acpi], [Disable building ACPI support on Linux (if available).]), [enable_linux_acpi=$enableval], [enable_linux_acpi=yes])
 AC_ARG_ENABLE(linux_apm, AS_HELP_STRING([--disable-linux-apm], [Disable building APM support on Linux (if available).]), [enable_linux_apm=$enableval], [enable_linux_apm=yes])
+AC_ARG_ENABLE(systemd-logind, AC_HELP_STRING([--enable-systemd-logind], [Build systemd-logind support (default: auto)]), [SYSTEMD_LOGIND=$enableval], [SYSTEMD_LOGIND=auto])
 
 dnl DDXes.
 AC_ARG_ENABLE(xorg,    	      AS_HELP_STRING([--enable-xorg], [Build Xorg server (default: auto)]), [XORG=$enableval], [XORG=auto])
@@ -806,6 +807,8 @@ LIBAPPLEWM="applewm >= 1.4"
 LIBDMX="dmx >= 1.0.99.1"
 LIBDRI="dri >= 7.8.0"
 LIBDRM="libdrm >= 2.3.0"
+LIBEGL="egl"
+LIBGBM="gbm >= 9"
 LIBGL="gl >= 7.1.0"
 LIBXEXT="xext >= 1.0.99.4"
 LIBXFONT="xfont >= 1.4.2"
@@ -900,6 +903,26 @@ if test "x$CONFIG_HAL" = xyes; then
 	NEED_DBUS="yes"
 fi
 AM_CONDITIONAL(CONFIG_HAL, [test "x$CONFIG_HAL" = xyes])
+
+if test "x$SYSTEMD_LOGIND" = xauto; then
+        if test "x$HAVE_DBUS" = xyes -a "x$CONFIG_UDEV" = xyes ; then
+                SYSTEMD_LOGIND=yes
+        else
+                SYSTEMD_LOGIND=no
+        fi
+fi
+if test "x$SYSTEMD_LOGIND" = xyes; then
+        if ! test "x$HAVE_DBUS" = xyes; then
+                AC_MSG_ERROR([systemd-logind requested, but D-Bus is not installed.])
+        fi
+        if ! test "x$CONFIG_UDEV" = xyes ; then
+                AC_MSG_ERROR([systemd-logind is only supported in combination with udev configuration.])
+        fi
+
+        AC_DEFINE(SYSTEMD_LOGIND, 1, [Enable systemd-logind integration])
+        NEED_DBUS="yes"
+fi
+AM_CONDITIONAL(SYSTEMD_LOGIND, [test "x$SYSTEMD_LOGIND" = xyes])
 
 if test "x$NEED_DBUS" = xyes; then
         AC_DEFINE(NEED_DBUS, 1, [Enable D-Bus core])
@@ -2070,7 +2093,15 @@ AM_CONDITIONAL([GLAMOR], [test "x$GLAMOR" = xyes])
 if test "x$GLAMOR" = xyes; then
 	AC_DEFINE(GLAMOR, 1, [Build glamor])
 	PKG_CHECK_MODULES([GLAMOR], [epoxy])
+
+	PKG_CHECK_MODULES(GBM, "$LIBGBM", [GBM=yes], [GBM=no])
+	if test "x$GBM" = xyes; then
+		AC_DEFINE(GLAMOR_HAS_GBM, 1,
+			  [Build glamor with GBM-based EGL support])
+	fi
+
 fi
+AM_CONDITIONAL([GLAMOR_EGL], [test "x$GBM" = xyes])
 
 dnl XWin DDX
 
@@ -2319,6 +2350,9 @@ if test "$KDRIVE" = yes; then
     if test "x$DRI" = xyes && test "x$GLX" = xyes; then
         XEPHYR_REQUIRED_LIBS="$XEPHYR_REQUIRED_LIBS libdrm xcb-glx xcb-xf86dri > 1.6"
     fi
+    if test "x$GLAMOR" = xyes; then
+        XEPHYR_REQUIRED_LIBS="$XEPHYR_REQUIRED_LIBS x11-xcb"
+    fi
 
     if test "x$XEPHYR" = xauto; then
         PKG_CHECK_MODULES(XEPHYR, $XEPHYR_REQUIRED_LIBS, [XEPHYR="yes"], [XEPHYR="no"])
@@ -2476,6 +2510,7 @@ hw/xfree86/exa/Makefile
 hw/xfree86/exa/man/Makefile
 hw/xfree86/fbdevhw/Makefile
 hw/xfree86/fbdevhw/man/Makefile
+hw/xfree86/glamor_egl/Makefile
 hw/xfree86/i2c/Makefile
 hw/xfree86/int10/Makefile
 hw/xfree86/loader/Makefile

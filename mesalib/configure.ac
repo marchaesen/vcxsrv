@@ -611,7 +611,7 @@ AC_ARG_ENABLE([omx],
 AC_ARG_ENABLE([opencl],
    [AS_HELP_STRING([--enable-opencl],
          [enable OpenCL library NOTE: Enabling this option will also enable
-          --with-llvm-shared-libs
+          --enable-llvm-shared-libs
           @<:@default=no@:>@])],
    [],
    [enable_opencl=no])
@@ -994,6 +994,10 @@ if test "x$enable_dri" = xyes; then
             DEFINES="$DEFINES -DHAVE_DRI3"
         fi
 
+        if test "x$have_libudev" != xyes; then
+            AC_MSG_ERROR([libudev-dev required for building DRI])
+        fi
+
         case "$host_cpu" in
         powerpc* | sparc*)
             # Build only the drivers for cards that exist on PowerPC/sparc
@@ -1068,7 +1072,7 @@ if test -n "$with_dri_drivers"; then
 
     dri_drivers=`IFS=', '; echo $with_dri_drivers`
     for driver in $dri_drivers; do
-        DRI_DIRS+="$driver "
+        DRI_DIRS="$DRI_DIRS $driver"
         case "x$driver" in
         xi915)
             HAVE_I915_DRI=yes;
@@ -1888,7 +1892,7 @@ if test "x$MESA_LLVM" != x0; then
 	can use the --with-llvm-prefix= configure flag to specify this directory.
 	NOTE: Mesa is attempting to use llvm shared libraries because you have
 	passed one of the following options to configure:
-		--with-llvm-shared-libs
+		--enable-llvm-shared-libs
 		--enable-opencl
 	If you do not want to build with llvm shared libraries and instead want to
 	use llvm static libraries then remove these options from your configure

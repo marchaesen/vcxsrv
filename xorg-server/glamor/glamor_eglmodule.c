@@ -30,6 +30,7 @@
 #include "dix-config.h"
 
 #include <xorg-server.h>
+#include <xf86.h>
 #define GLAMOR_FOR_XORG
 #include <xf86Module.h>
 #include "glamor.h"
@@ -40,7 +41,7 @@ static XF86ModuleVersionInfo VersRec = {
     MODINFOSTRING1,
     MODINFOSTRING2,
     XORG_VERSION_CURRENT,
-    PACKAGE_VERSION_MAJOR, PACKAGE_VERSION_MINOR, PACKAGE_VERSION_PATCHLEVEL,
+    1, 0, 0, /* version */
     ABI_CLASS_ANSIC,            /* Only need the ansic layer */
     ABI_ANSIC_VERSION,
     MOD_CLASS_NONE,

@@ -437,6 +437,12 @@ texfetch_funcs[] =
       fetch_texel_3d_sargb8
    },
    {
+      MESA_FORMAT_R8G8B8A8_SRGB,
+      fetch_texel_1d_sabgr8,
+      fetch_texel_2d_sabgr8,
+      fetch_texel_3d_sabgr8
+   },
+   {
       MESA_FORMAT_L_SRGB8,
       fetch_texel_1d_sl8,
       fetch_texel_2d_sl8,
@@ -1300,6 +1306,12 @@ texfetch_funcs[] =
    },
    {
       MESA_FORMAT_G16R16_SNORM,
+      NULL,
+      NULL,
+      NULL
+   },
+   {
+      MESA_FORMAT_B8G8R8X8_SRGB,
       NULL,
       NULL,
       NULL

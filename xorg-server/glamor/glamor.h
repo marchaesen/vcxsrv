@@ -35,6 +35,9 @@
 #include <picturestr.h>
 #include <fb.h>
 #include <fbpict.h>
+#ifdef GLAMOR_FOR_XORG
+#include <xf86xv.h>
+#endif
 
 struct glamor_context;
 
@@ -64,10 +67,12 @@ typedef enum glamor_pixmap_type {
 #define GLAMOR_USE_SCREEN		(1 << 1)
 #define GLAMOR_USE_PICTURE_SCREEN 	(1 << 2)
 #define GLAMOR_USE_EGL_SCREEN		(1 << 3)
+#define GLAMOR_NO_DRI3			(1 << 4)
 #define GLAMOR_VALID_FLAGS      (GLAMOR_INVERTED_Y_AXIS  		\
 				 | GLAMOR_USE_SCREEN 			\
                                  | GLAMOR_USE_PICTURE_SCREEN		\
-				 | GLAMOR_USE_EGL_SCREEN)
+				 | GLAMOR_USE_EGL_SCREEN                \
+                                 | GLAMOR_NO_DRI3)
 
 /* @glamor_init: Initialize glamor internal data structure.
  *
@@ -124,6 +129,8 @@ extern _X_EXPORT Bool glamor_close_screen(ScreenPtr screen);
 extern _X_EXPORT void glamor_set_screen_pixmap(PixmapPtr screen_pixmap,
                                                PixmapPtr *back_pixmap);
 
+extern _X_EXPORT uint32_t glamor_get_pixmap_texture(PixmapPtr pixmap);
+
 /* @glamor_glyphs_init: Initialize glyphs internal data structures.
  *
  * @pScreen: Current screen pointer.
@@ -168,21 +175,23 @@ extern _X_EXPORT int glamor_egl_dri3_fd_name_from_tex(ScreenPtr, PixmapPtr,
                                                       unsigned int, Bool,
                                                       CARD16 *, CARD32 *);
 
-/* @glamor_is_dri3_support_enabled: Returns if DRI3 support is enabled.
+/* @glamor_supports_pixmap_import_export: Returns whether
+ * glamor_fd_from_pixmap(), glamor_name_from_pixmap(), and
+ * glamor_pixmap_from_fd() are supported.
  *
  * @screen: Current screen pointer.
  *
- * To have DRI3 support enabled, glamor and glamor_egl need to be initialized,
- * and glamor_egl_init_textured_pixmap need to be called. glamor also
- * has to be compiled with gbm support.
- * The EGL layer need to have the following extensions working:
+ * To have DRI3 support enabled, glamor and glamor_egl need to be
+ * initialized. glamor also has to be compiled with gbm support.
+ *
+ * The EGL layer needs to have the following extensions working:
+ *
  * .EGL_KHR_gl_texture_2D_image
  * .EGL_EXT_image_dma_buf_import
- * If DRI3 support is not enabled, the following helpers will return an error.
  * */
-extern _X_EXPORT Bool glamor_is_dri3_support_enabled(ScreenPtr screen);
+extern _X_EXPORT Bool glamor_supports_pixmap_import_export(ScreenPtr screen);
 
-/* @glamor_dri3_fd_from_pixmap: DRI3 helper to get a dma-buf fd from a pixmap.
+/* @glamor_fd_from_pixmap: Get a dma-buf fd from a pixmap.
  *
  * @screen: Current screen pointer.
  * @pixmap: The pixmap from which we want the fd.
@@ -193,22 +202,25 @@ extern _X_EXPORT Bool glamor_is_dri3_support_enabled(ScreenPtr screen);
  * content.
  * Returns the fd on success, -1 on error.
  * */
-extern _X_EXPORT int glamor_dri3_fd_from_pixmap(ScreenPtr screen,
-                                                PixmapPtr pixmap,
-                                                CARD16 *stride, CARD32 *size);
+extern _X_EXPORT int glamor_fd_from_pixmap(ScreenPtr screen,
+                                           PixmapPtr pixmap,
+                                           CARD16 *stride, CARD32 *size);
 
-/* @glamor_dri3_name_from_pixmap: helper to get an gem name from a pixmap.
+/**
+ * @glamor_name_from_pixmap: Gets a gem name from a pixmap.
  *
  * @pixmap: The pixmap from which we want the gem name.
  *
- * the pixmap and the buffer associated by the gem name will share the same
- * content. This function can be used by the DDX to support DRI2, but needs
- * glamor DRI3 support to be activated.
+ * the pixmap and the buffer associated by the gem name will share the
+ * same content. This function can be used by the DDX to support DRI2,
+ * and needs the same set of buffer export GL extensions as DRI3
+ * support.
+ *
  * Returns the name on success, -1 on error.
  * */
-extern _X_EXPORT int glamor_dri3_name_from_pixmap(PixmapPtr pixmap);
+extern _X_EXPORT int glamor_name_from_pixmap(PixmapPtr pixmap);
 
-/* @glamor_egl_dri3_pixmap_from_fd: DRI3 helper to get a pixmap from a dma-buf fd.
+/* @glamor_pixmap_from_fd: Creates a pixmap to wrap a dma-buf fd.
  *
  * @screen: Current screen pointer.
  * @fd: The dma-buf fd to import.
@@ -220,13 +232,13 @@ extern _X_EXPORT int glamor_dri3_name_from_pixmap(PixmapPtr pixmap);
  *
  * Returns a valid pixmap if the import succeeded, else NULL.
  * */
-extern _X_EXPORT PixmapPtr glamor_egl_dri3_pixmap_from_fd(ScreenPtr screen,
-                                                          int fd,
-                                                          CARD16 width,
-                                                          CARD16 height,
-                                                          CARD16 stride,
-                                                          CARD8 depth,
-                                                          CARD8 bpp);
+extern _X_EXPORT PixmapPtr glamor_pixmap_from_fd(ScreenPtr screen,
+                                                 int fd,
+                                                 CARD16 width,
+                                                 CARD16 height,
+                                                 CARD16 stride,
+                                                 CARD8 depth,
+                                                 CARD8 bpp);
 
 #ifdef GLAMOR_FOR_XORG
 
@@ -432,7 +444,7 @@ extern _X_EXPORT Bool glamor_poly_line_nf(DrawablePtr pDrawable, GCPtr pGC,
 extern _X_EXPORT Bool glamor_poly_lines_nf(DrawablePtr drawable, GCPtr gc,
                                            int mode, int n, DDXPointPtr points);
 
-#if 0
+#ifdef GLAMOR_FOR_XORG
 extern _X_EXPORT XF86VideoAdaptorPtr glamor_xv_init(ScreenPtr pScreen,
                                                     int num_texture_ports);
 #endif

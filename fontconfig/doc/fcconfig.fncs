@@ -378,6 +378,7 @@ parse error, semantic error or allocation failure. Otherwise returns FcTrue.
 @PURPOSE@	Obtain the system root directory
 @DESC@
 Obtrains the system root directory in 'config' if available.
+@SINCE@		2.10.92
 @@
 
 @RET@		void
@@ -390,5 +391,6 @@ Set 'sysroot' as the system root directory. fontconfig prepend 'sysroot'
 to the cache directories in order to allow people to generate caches at
 the build time. Note that this causes changing current config. i.e.
 this function calls FcConfigSetCurrent() internally.
+@SINCE@		2.10.92
 @@
 

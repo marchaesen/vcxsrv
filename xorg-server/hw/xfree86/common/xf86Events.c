@@ -85,6 +85,8 @@
 #endif
 
 #include "xf86platformBus.h"
+#include "systemd-logind.h"
+
 /*
  * This is a toggling variable:
  *  FALSE = No VT switching keys have been pressed last time around
@@ -556,8 +558,11 @@ xf86VTEnter(void)
     /* Turn screen saver off when switching back */
     dixSaveScreens(serverClient, SCREEN_SAVER_FORCER, ScreenSaverReset);
 
-    for (pInfo = xf86InputDevs; pInfo; pInfo = pInfo->next)
-        xf86EnableInputDeviceForVTSwitch(pInfo);
+    /* If we use systemd-logind it will enable input devices for us */
+    if (!systemd_logind_controls_session())
+        for (pInfo = xf86InputDevs; pInfo; pInfo = pInfo->next)
+            xf86EnableInputDeviceForVTSwitch(pInfo);
+
     for (ih = InputHandlers; ih; ih = ih->next) {
         if (ih->is_input)
             xf86EnableInputHandler(ih);
@@ -589,10 +594,14 @@ xf86VTSwitch(void)
     /*
      * Since all screens are currently all in the same state it is sufficient
      * check the first.  This might change in future.
+     *
+     * VTLeave is always handled here (VT_PROCESS guarantees this is safe),
+     * if we use systemd_logind xf86VTEnter() gets called by systemd-logind.c
+     * once it has resumed all drm nodes.
      */
     if (xf86VTOwner())
         xf86VTLeave();
-    else
+    else if (!systemd_logind_controls_session())
         xf86VTEnter();
 }
 

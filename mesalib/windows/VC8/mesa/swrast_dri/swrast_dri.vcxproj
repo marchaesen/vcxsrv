@@ -242,6 +242,7 @@
     <ClCompile Include="..\..\..\..\..\expat\lib\xmltok.c" />
     <ClCompile Include="..\..\..\..\src\mesa\drivers\common\driverfuncs.c" />
     <ClCompile Include="..\..\..\..\src\mesa\drivers\common\meta.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\drivers\common\meta_generate_mipmap.c" />
     <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\common\dri_util.c" />
     <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\common\megadriver_stub.c" />
     <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\common\xmlconfig.c" />

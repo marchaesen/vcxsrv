@@ -410,10 +410,6 @@ _mesa_meta_Bitmap(struct gl_context *ctx,
                   const struct gl_pixelstore_attrib *unpack,
                   const GLubyte *bitmap);
 
-extern GLboolean
-_mesa_meta_check_generate_mipmap_fallback(struct gl_context *ctx, GLenum target,
-                                          struct gl_texture_object *texObj);
-
 extern void
 _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
                           struct gl_texture_object *texObj);
@@ -447,6 +443,17 @@ _mesa_meta_link_program_with_debug(struct gl_context *ctx, GLuint program);
 GLboolean
 _mesa_meta_alloc_texture(struct temp_texture *tex,
                          GLsizei width, GLsizei height, GLenum intFormat);
+
+void
+_mesa_meta_setup_texture_coords(GLenum faceTarget,
+                                GLint slice,
+                                GLint width,
+                                GLint height,
+                                GLint depth,
+                                GLfloat coords0[4],
+                                GLfloat coords1[4],
+                                GLfloat coords2[4],
+                                GLfloat coords3[4]);
 
 struct temp_texture *
 _mesa_meta_get_temp_texture(struct gl_context *ctx);
@@ -490,5 +497,8 @@ _mesa_meta_glsl_blit_cleanup(struct blit_state *blit);
 
 void
 _mesa_meta_blit_shader_table_cleanup(struct blit_shader_table *table);
+
+void
+_mesa_meta_glsl_generate_mipmap_cleanup(struct gen_mipmap_state *mipmap);
 
 #endif /* META_H */

@@ -32,10 +32,14 @@
  * Xv acceleration implementation
  */
 
+#ifdef HAVE_DIX_CONFIG_H
+#include <dix-config.h>
+#endif
+
+#include "xf86xv.h"
+#define GLAMOR_FOR_XORG
 #include "glamor_priv.h"
 
-#ifdef GLAMOR_XV
-#include "xf86xv.h"
 #include <X11/extensions/Xv.h>
 #include "fourcc.h"
 /* Reference color space transform data */
@@ -430,7 +434,7 @@ glamor_xv_put_image(ScrnInfoPtr pScrn,
                     Bool sync,
                     RegionPtr clipBoxes, void *data, DrawablePtr pDrawable)
 {
-    ScreenPtr screen = xf86ScrnToScreen(pScrn);
+    ScreenPtr screen = pDrawable->pScreen;
     glamor_port_private *port_priv = (glamor_port_private *) data;
     INT32 x1, x2, y1, y2;
     int srcPitch, srcPitch2;
@@ -614,12 +618,3 @@ glamor_xv_init(ScreenPtr screen, int num_texture_ports)
     }
     return adapt;
 }
-#else
-#if 0
-XF86VideoAdaptorPtr
-glamor_xv_init(ScreenPtr screen, int num_texture_ports)
-{
-    return NULL;
-}
-#endif
-#endif

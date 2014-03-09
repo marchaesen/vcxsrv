@@ -68,6 +68,7 @@ two or three letter language from ISO 639 and Tt is a territory from ISO
 <parameter>lang</parameter> should be of the form Ll-Tt where Ll is a
 two or three letter language from ISO 639 and Tt is a territory from ISO
 3166.
+@SINCE@		2.9.0
 @@
 
 @RET@		FcLangSet *
@@ -77,6 +78,7 @@ two or three letter language from ISO 639 and Tt is a territory from ISO
 @PURPOSE@	Add langsets
 @DESC@
 Returns a set including only those languages found in either <parameter>ls_a</parameter> or <parameter>ls_b</parameter>.
+@SINCE@		2.9.0
 @@
 
 @RET@		FcLangSet *
@@ -86,6 +88,7 @@ Returns a set including only those languages found in either <parameter>ls_a</pa
 @PURPOSE@	Subtract langsets
 @DESC@
 Returns a set including only those languages found in <parameter>ls_a</parameter> but not in <parameter>ls_b</parameter>.
+@SINCE@		2.9.0
 @@
 
 @RET@		FcLangResult
@@ -161,6 +164,8 @@ has no matching language, this function returns FcLangDifferentLang.
 Returns a string set of the default languages according to the environment variables on the system.
 This function looks for them in order of FC_LANG, LC_ALL, LC_CTYPE and LANG then.
 If there are no valid values in those environment variables, "en" will be set as fallback.
+@SINCE@		2.9.91
+@@
 
 @RET@		FcStrSet *
 @FUNC@		FcLangSetGetLangs
@@ -184,6 +189,7 @@ Returns a string set of all known languages.
 @PURPOSE@	Normalize the language string
 @DESC@
 Returns a string to make <parameter>lang</parameter> suitable on fontconfig.
+@SINCE@		2.10.91
 @@
 
 @RET@		const FcCharSet *

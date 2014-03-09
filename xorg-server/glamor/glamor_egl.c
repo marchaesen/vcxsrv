@@ -50,6 +50,7 @@
 
 #include "glamor.h"
 #include "glamor_priv.h"
+#include "dri3.h"
 
 static const char glamor_name[] = "glamor";
 
@@ -68,6 +69,7 @@ struct glamor_egl_screen_private {
     EGLDisplay display;
     EGLContext context;
     EGLint major, minor;
+    char *device_path;
 
     CreateScreenResourcesProcPtr CreateScreenResources;
     CloseScreenProcPtr CloseScreen;
@@ -453,12 +455,12 @@ glamor_egl_dri3_fd_name_from_tex(ScreenPtr screen,
 #endif
 }
 
-PixmapPtr
-glamor_egl_dri3_pixmap_from_fd(ScreenPtr screen,
-                               int fd,
-                               CARD16 width,
-                               CARD16 height,
-                               CARD16 stride, CARD8 depth, CARD8 bpp)
+_X_EXPORT PixmapPtr
+glamor_pixmap_from_fd(ScreenPtr screen,
+                      int fd,
+                      CARD16 width,
+                      CARD16 height,
+                      CARD16 stride, CARD8 depth, CARD8 bpp)
 {
 #ifdef GLAMOR_HAS_GBM
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
@@ -627,10 +629,67 @@ glamor_egl_has_extension(struct glamor_egl_screen_private *glamor_egl,
     return FALSE;
 }
 
+static int
+glamor_dri3_open(ScreenPtr screen,
+                 RRProviderPtr provider,
+                 int *fdp)
+{
+    ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
+    struct glamor_egl_screen_private *glamor_egl =
+        glamor_egl_get_screen_private(scrn);
+    int fd;
+    drm_magic_t magic;
+
+    fd = open(glamor_egl->device_path, O_RDWR|O_CLOEXEC);
+    if (fd < 0)
+        return BadAlloc;
+
+    /* Before FD passing in the X protocol with DRI3 (and increased
+     * security of rendering with per-process address spaces on the
+     * GPU), the kernel had to come up with a way to have the server
+     * decide which clients got to access the GPU, which was done by
+     * each client getting a unique (magic) number from the kernel,
+     * passing it to the server, and the server then telling the
+     * kernel which clients were authenticated for using the device.
+     *
+     * Now that we have FD passing, the server can just set up the
+     * authentication on its own and hand the prepared FD off to the
+     * client.
+     */
+    if (drmGetMagic(fd, &magic) < 0) {
+        if (errno == EACCES) {
+            /* Assume that we're on a render node, and the fd is
+             * already as authenticated as it should be.
+             */
+            *fdp = fd;
+            return Success;
+        } else {
+            close(fd);
+            return BadMatch;
+        }
+    }
+
+    if (drmAuthMagic(glamor_egl->fd, magic) < 0) {
+        close(fd);
+        return BadMatch;
+    }
+
+    *fdp = fd;
+    return Success;
+}
+
+static dri3_screen_info_rec glamor_dri3_info = {
+    .version = 0,
+    .open = glamor_dri3_open,
+    .pixmap_from_fd = glamor_pixmap_from_fd,
+    .fd_from_pixmap = glamor_fd_from_pixmap,
+};
+
 void
 glamor_egl_screen_init(ScreenPtr screen, struct glamor_context *glamor_ctx)
 {
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
+    glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
     struct glamor_egl_screen_private *glamor_egl =
         glamor_egl_get_screen_private(scrn);
 
@@ -642,6 +701,30 @@ glamor_egl_screen_init(ScreenPtr screen, struct glamor_context *glamor_ctx)
 
     glamor_ctx->get_context = glamor_egl_get_context;
     glamor_ctx->put_context = glamor_egl_put_context;
+
+    if (glamor_egl->dri3_capable) {
+        /* Tell the core that we have the interfaces for import/export
+         * of pixmaps.
+         */
+        glamor_enable_dri3(screen);
+
+        /* If the driver wants to do its own auth dance (e.g. Xwayland
+         * on pre-3.15 kernels that don't have render nodes and thus
+         * has the wayland compositor as a master), then it needs us
+         * to stay out of the way and let it init DRI3 on its own.
+         */
+        if (!(glamor_priv->flags & GLAMOR_NO_DRI3)) {
+            /* To do DRI3 device FD generation, we need to open a new fd
+             * to the same device we were handed in originally.
+             */
+            glamor_egl->device_path = drmGetDeviceNameFromFd(glamor_egl->fd);
+
+            if (!dri3_screen_init(screen, &glamor_dri3_info)) {
+                xf86DrvMsg(scrn->scrnIndex, X_ERROR,
+                           "Failed to initialize DRI3.\n");
+            }
+        }
+    }
 }
 
 static void
@@ -658,6 +741,8 @@ glamor_egl_free_screen(ScrnInfoPtr scrn)
         if (glamor_egl->gbm)
             gbm_device_destroy(glamor_egl->gbm);
 #endif
+        free(glamor_egl->device_path);
+
         scrn->FreeScreen = glamor_egl->saved_free_screen;
         free(glamor_egl);
         scrn->FreeScreen(scrn);

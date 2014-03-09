@@ -79,20 +79,15 @@ switch_to(int vt, const char *from)
 void
 xf86OpenConsole(void)
 {
-    int i, fd = -1, ret;
+    int i, fd = -1, ret, current_vt = -1;
     struct vt_mode VT;
     struct vt_stat vts;
+    struct stat st;
     MessageType from = X_PROBED;
     const char *tty0[] = { "/dev/tty0", "/dev/vc/0", NULL };
     const char *vcs[] = { "/dev/vc/%d", "/dev/tty%d", NULL };
 
     if (serverGeneration == 1) {
-
-        /* when KeepTty check if we're run with euid==0 */
-        if (KeepTty && geteuid() != 0)
-            FatalError("xf86OpenConsole:"
-                       " Server must be suid root for option \"KeepTTY\"\n");
-
         /*
          * setup the virtual terminal manager
          */
@@ -131,6 +126,22 @@ xf86OpenConsole(void)
         }
 
         xf86Msg(from, "using VT number %d\n\n", xf86Info.vtno);
+
+        /* Some of stdin / stdout / stderr maybe redirected to a file */
+        for (i = STDIN_FILENO; i <= STDERR_FILENO; i++) {
+            ret = fstat(i, &st);
+            if (ret == 0 && S_ISCHR(st.st_mode) && major(st.st_rdev) == 4) {
+                current_vt = minor(st.st_rdev);
+                break;
+            }
+        }
+
+        if (!KeepTty && current_vt == xf86Info.vtno) {
+            xf86Msg(X_PROBED,
+                    "controlling tty is VT number %d, auto-enabling KeepTty\n",
+                    current_vt);
+            KeepTty = TRUE;
+        }
 
         if (!KeepTty) {
             pid_t ppid = getppid();

@@ -19,74 +19,25 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-SUBDIRS = man
+module_LTLIBRARIES = libglamoregl.la
 
-AM_CPPFLAGS = 			\
-	@KDRIVE_INCS@		\
-	@KDRIVE_CFLAGS@		\
-	@XEPHYR_INCS@		\
-	@XEPHYR_CFLAGS@		\
-	-I$(top_srcdir)		\
-	-I$(top_srcdir)/glamor	\
-	-I$(top_srcdir)/exa
-
-if XV
-XV_SRCS = ephyrvideo.c
-endif
-
-if GLAMOR
-GLAMOR_SRCS = \
-	ephyr_glamor_glx.c \
-	ephyr_glamor_glx.h \
-	()
-endif
-
-if DRI
-DRI_SRCS =			\
-	ephyrdriext.c		\
-	ephyrdriext.h		\
-	ephyrdri.c		\
-	ephyrdri.h		\
-	ephyrglxext.c		\
-	ephyrglxext.h		\
-	ephyrhostglx.c		\
-	ephyrhostglx.h		\
-	$()
-endif
-
-bin_PROGRAMS = Xephyr
-
-Xephyr_SOURCES = \
-	ephyr.c \
-	ephyr.h \
-	ephyrlog.h \
-	ephyr_draw.c \
-	os.c \
-	ephyrinit.c \
-	hostx.c \
-	hostx.h \
-	$(XV_SRCS) \
-	$(DRI_SRCS) \
-	$(GLAMOR_SRCS) \
+libglamoregl_la_SOURCES = \
+	$(top_srcdir)/glamor/glamor_egl.c \
+	$(top_srcdir)/glamor/glamor_eglmodule.c \
+	$(top_srcdir)/glamor/glamor_xv.c \
 	$()
 
-if GLAMOR
-AM_CPPFLAGS += $(XLIB_CFLAGS)
-XEPHYR_GLAMOR_LIB = \
+libglamoregl_la_LDFLAGS = \
+	-avoid-version \
+	$(GBM_LIBS) \
+	$()
+
+libglamoregl_la_LIBADD = \
 	$(top_builddir)/glamor/libglamor.la \
-	$(top_builddir)/glamor/libglamor_egl_stubs.la \
 	$()
-endif
 
-Xephyr_LDADD = 						\
-	$(top_builddir)/exa/libexa.la			\
-	$(XEPHYR_GLAMOR_LIB)				\
-	@KDRIVE_LIBS@					\
-	@XEPHYR_LIBS@
+AM_CPPFLAGS = $(XORG_INCS) \
+	-I$(top_srcdir)/dri3 \
+	$()
 
-Xephyr_DEPENDENCIES = @KDRIVE_LOCAL_LIBS@ $(XEPHYR_GLAMOR_LIB)
-
-Xephyr_LDFLAGS = $(LD_EXPORT_SYMBOLS_FLAG)
-
-relink:
-	$(AM_V_at)rm -f $(bin_PROGRAMS) && $(MAKE) $(bin_PROGRAMS)
+AM_CFLAGS = $(DIX_CFLAGS) $(XORG_CFLAGS) $(GLAMOR_CFLAGS) $(GBM_CFLAGS)

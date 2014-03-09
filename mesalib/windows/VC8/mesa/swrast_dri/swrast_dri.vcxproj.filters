@@ -138,6 +138,9 @@
     <ClCompile Include="..\..\..\..\src\mesa\drivers\dri\common\megadriver_stub.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\mesa\drivers\common\meta_generate_mipmap.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\src\mesa\drivers\dri\swrast\swrast_priv.h">

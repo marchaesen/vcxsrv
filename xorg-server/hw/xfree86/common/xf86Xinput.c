@@ -63,6 +63,7 @@
 #include "mipointer.h"
 #include "extinit.h"
 #include "loaderProcs.h"
+#include "systemd-logind.h"
 
 #include "exevents.h"           /* AddInputDevice */
 #include "exglobals.h"
@@ -80,6 +81,7 @@
 
 #include <stdarg.h>
 #include <stdint.h>             /* for int64_t */
+#include <unistd.h>
 
 #include "mi.h"
 
@@ -102,6 +104,9 @@
 
 static int
  xf86InputDevicePostInit(DeviceIntPtr dev);
+
+static InputInfoPtr *new_input_devices;
+static int new_input_devices_count;
 
 /**
  * Eval config and modify DeviceVelocityRec accordingly
@@ -773,6 +778,11 @@ xf86DeleteInput(InputInfoPtr pInp, int flags)
         /* Else the entry wasn't in the xf86InputDevs list (ignore this). */
     }
 
+    if (pInp->flags & XI86_SERVER_FD) {
+        systemd_logind_release_fd(pInp->major, pInp->minor);
+        close(pInp->fd);
+    }
+
     free((void *) pInp->driver);
     free((void *) pInp->name);
     xf86optionListFree(pInp->options);
@@ -816,6 +826,7 @@ xf86NewInputDevice(InputInfoPtr pInfo, DeviceIntPtr *pdev, BOOL enable)
 {
     InputDriverPtr drv = NULL;
     DeviceIntPtr dev = NULL;
+    Bool paused;
     int rval;
 
     /* Memory leak for every attached device if we don't
@@ -828,6 +839,26 @@ xf86NewInputDevice(InputInfoPtr pInfo, DeviceIntPtr *pdev, BOOL enable)
         xf86Msg(X_ERROR, "No input driver matching `%s'\n", pInfo->driver);
         rval = BadName;
         goto unwind;
+    }
+
+    if (drv->capabilities & XI86_DRV_CAP_SERVER_FD) {
+        int fd = systemd_logind_take_fd(pInfo->major, pInfo->minor,
+                                        pInfo->attrs->device, &paused);
+        if (fd != -1) {
+            if (paused) {
+                /* Put on new_input_devices list for delayed probe */
+                new_input_devices = xnfrealloc(new_input_devices,
+                            sizeof(pInfo) * (new_input_devices_count + 1));
+                new_input_devices[new_input_devices_count] = pInfo;
+                new_input_devices_count++;
+                systemd_logind_release_fd(pInfo->major, pInfo->minor);
+                close(fd);
+                return BadMatch;
+            }
+            pInfo->fd = fd;
+            pInfo->flags |= XI86_SERVER_FD;
+            pInfo->options = xf86ReplaceIntOption(pInfo->options, "fd", fd);
+        }
     }
 
     xf86Msg(X_INFO, "Using input driver '%s' for '%s'\n", drv->driverName,
@@ -949,6 +980,12 @@ NewInputDeviceRequest(InputOption *options, InputAttributes * attrs,
                 goto unwind;
             }
         }
+
+        if (strcmp(key, "major") == 0)
+            pInfo->major = atoi(value);
+
+        if (strcmp(key, "minor") == 0)
+            pInfo->minor = atoi(value);
     }
 
     nt_list_for_each_entry(option, options, list.next) {
@@ -1467,6 +1504,34 @@ xf86PostTouchEvent(DeviceIntPtr dev, uint32_t touchid, uint16_t type,
 {
 
     QueueTouchEvents(dev, type, touchid, flags, mask);
+}
+
+void
+xf86InputEnableVTProbe(void)
+{
+    int i, is_auto = 0;
+    InputOption *option = NULL;
+    DeviceIntPtr pdev;
+
+    for (i = 0; i < new_input_devices_count; i++) {
+        InputInfoPtr pInfo = new_input_devices[i];
+
+        is_auto = 0;
+        nt_list_for_each_entry(option, pInfo->options, list.next) {
+            const char *key = input_option_get_key(option);
+            const char *value = input_option_get_value(option);
+
+            if (strcmp(key, "_source") == 0 &&
+                (strcmp(value, "server/hal") == 0 ||
+                 strcmp(value, "server/udev") == 0 ||
+                 strcmp(value, "server/wscons") == 0))
+                is_auto = 1;
+        }
+        xf86NewInputDevice(pInfo, &pdev,
+                                  (!is_auto ||
+                                   (is_auto && xf86Info.autoEnableDevices)));
+    }
+    new_input_devices_count = 0;
 }
 
 /* end of xf86Xinput.c */

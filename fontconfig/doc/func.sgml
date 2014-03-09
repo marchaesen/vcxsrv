@@ -33,6 +33,7 @@
 	    <refentrytitle>@FUNC@</refentrytitle>
 @;@
 	    <manvolnum>3</manvolnum>
+	    <refmiscinfo class="software">Fontconfig &version;</refmiscinfo>
 	</refmeta>
 	<refnamediv>
 @{PROTOTYPE@
@@ -82,9 +83,9 @@
 @DESC@
 	    </para>
 	</refsect1>
-	<refsect1><title>Version</title>
-	    <para>
-Fontconfig version &version;
-	    </para>
+@?SINCE@
+	<refsect1><title>Since</title>
+	    <para>version @SINCE@</para>
 	</refsect1>
+@;@
     </refentry>

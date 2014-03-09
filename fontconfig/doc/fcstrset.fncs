@@ -104,6 +104,7 @@ Creates an iterator to list the strings in <parameter>set</parameter>.
 @PURPOSE@	get first string in iteration
 @DESC@
 Returns the first string in <parameter>list</parameter>.
+@SINCE@		2.11.0
 @@
 
 @RET@		FcChar8 *
