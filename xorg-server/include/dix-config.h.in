@@ -420,6 +420,9 @@
 /* Support HAL for hotplug */
 #undef CONFIG_HAL
 
+/* Enable systemd-logind integration */
+#undef SYSTEMD_LOGIND 1
+
 /* Have a monotonic clock from clock_gettime() */
 #undef MONOTONIC_CLOCK
 
@@ -480,5 +483,8 @@
 
 /* Build GLAMOR */
 #undef GLAMOR
+
+/* Build glamor's GBM-based EGL support */
+#undef GLAMOR_HAS_GBM
 
 #endif /* _DIX_CONFIG_H_ */

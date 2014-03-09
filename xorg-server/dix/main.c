@@ -175,6 +175,9 @@ dix_main(int argc, char *argv[], char *envp[])
         clients[0] = serverClient;
         currentMaxClients = 1;
 
+        /* clear any existing selections */
+        InitSelections();
+
         /* Initialize privates before first allocation */
         dixResetPrivates();
 
@@ -192,7 +195,6 @@ dix_main(int argc, char *argv[], char *envp[])
 
         InitAtoms();
         InitEvents();
-        InitSelections();
         InitGlyphCaching();
         dixResetRegistry();
         ResetFontPrivateIndex();

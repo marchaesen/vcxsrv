@@ -305,4 +305,5 @@ For example, the format "%{family|downcase|delete( )}\n" will expand
 to the values of the family element in <parameter>pattern</parameter>,
 lower-cased and with spaces removed.
 
+@SINCE@		2.9.0
 @@

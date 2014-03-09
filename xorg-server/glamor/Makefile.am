@@ -37,7 +37,6 @@ libglamor_la_SOURCES = \
 	glamor_window.c\
 	glamor_fbo.c\
 	glamor_compositerects.c\
-	glamor_xv.c\
 	glamor_utils.h\
 	glamor.h
 

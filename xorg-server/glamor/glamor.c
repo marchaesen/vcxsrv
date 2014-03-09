@@ -123,6 +123,17 @@ glamor_set_screen_pixmap(PixmapPtr screen_pixmap, PixmapPtr *back_pixmap)
     glamor_priv->back_pixmap = back_pixmap;
 }
 
+uint32_t
+glamor_get_pixmap_texture(PixmapPtr pixmap)
+{
+    glamor_pixmap_private *pixmap_priv = glamor_get_pixmap_private(pixmap);
+
+    if (pixmap_priv->type != GLAMOR_TEXTURE_ONLY)
+        return 0;
+
+    return pixmap_priv->base.fbo->tex;
+}
+
 PixmapPtr
 glamor_create_pixmap(ScreenPtr screen, int w, int h, int depth,
                      unsigned int usage)
@@ -556,16 +567,16 @@ glamor_enable_dri3(ScreenPtr screen)
 }
 
 Bool
-glamor_is_dri3_support_enabled(ScreenPtr screen)
+glamor_supports_pixmap_import_export(ScreenPtr screen)
 {
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
 
     return glamor_priv->dri3_enabled;
 }
 
-int
-glamor_dri3_fd_from_pixmap(ScreenPtr screen,
-                           PixmapPtr pixmap, CARD16 *stride, CARD32 *size)
+_X_EXPORT int
+glamor_fd_from_pixmap(ScreenPtr screen,
+                      PixmapPtr pixmap, CARD16 *stride, CARD32 *size)
 {
     glamor_pixmap_private *pixmap_priv;
     glamor_screen_private *glamor_priv =
@@ -589,7 +600,7 @@ glamor_dri3_fd_from_pixmap(ScreenPtr screen,
 }
 
 int
-glamor_dri3_name_from_pixmap(PixmapPtr pixmap)
+glamor_name_from_pixmap(PixmapPtr pixmap)
 {
     glamor_pixmap_private *pixmap_priv;
     glamor_screen_private *glamor_priv =

@@ -29,6 +29,7 @@
 
 #include <libudev.h>
 #include <ctype.h>
+#include <unistd.h>
 
 #include "input.h"
 #include "inputstr.h"
@@ -36,6 +37,7 @@
 #include "config-backends.h"
 #include "os.h"
 #include "globals.h"
+#include "systemd-logind.h"
 
 #define UDEV_XKB_PROP_KEY "xkb"
 
@@ -55,8 +57,17 @@ static struct udev_monitor *udev_monitor;
 #ifdef CONFIG_UDEV_KMS
 static Bool
 config_udev_odev_setup_attribs(const char *path, const char *syspath,
+                               int major, int minor,
                                config_odev_probe_proc_ptr probe_callback);
 #endif
+
+static char itoa_buf[16];
+
+static const char *itoa(int i)
+{
+    snprintf(itoa_buf, sizeof(itoa_buf), "%d", i);
+    return itoa_buf;
+}
 
 static void
 device_added(struct udev_device *udev_device)
@@ -73,6 +84,7 @@ device_added(struct udev_device *udev_device)
     struct udev_device *parent;
     int rc;
     const char *dev_seat;
+    dev_t devnum;
 
     path = udev_device_get_devnode(udev_device);
 
@@ -91,6 +103,8 @@ device_added(struct udev_device *udev_device)
     if (!SeatId && strcmp(dev_seat, "seat0"))
         return;
 
+    devnum = udev_device_get_devnum(udev_device);
+
 #ifdef CONFIG_UDEV_KMS
     if (!strcmp(udev_device_get_subsystem(udev_device), "drm")) {
         const char *sysname = udev_device_get_sysname(udev_device);
@@ -98,9 +112,14 @@ device_added(struct udev_device *udev_device)
         if (strncmp(sysname, "card", 4) != 0)
             return;
 
+        /* Check for devices already added through xf86platformProbe() */
+        if (xf86_find_platform_device_by_devnum(major(devnum), minor(devnum)))
+            return;
+
         LogMessage(X_INFO, "config/udev: Adding drm device (%s)\n", path);
 
-        config_udev_odev_setup_attribs(path, syspath, NewGPUDeviceRequest);
+        config_udev_odev_setup_attribs(path, syspath, major(devnum),
+                                       minor(devnum), NewGPUDeviceRequest);
         return;
     }
 #endif
@@ -153,6 +172,8 @@ device_added(struct udev_device *udev_device)
     input_options = input_option_new(input_options, "name", name);
     input_options = input_option_new(input_options, "path", path);
     input_options = input_option_new(input_options, "device", path);
+    input_options = input_option_new(input_options, "major", itoa(major(devnum)));
+    input_options = input_option_new(input_options, "minor", itoa(minor(devnum)));
     if (path)
         attrs.device = strdup(path);
 
@@ -270,6 +291,7 @@ device_removed(struct udev_device *device)
     if (!strcmp(udev_device_get_subsystem(device), "drm")) {
         const char *sysname = udev_device_get_sysname(device);
         const char *path = udev_device_get_devnode(device);
+        dev_t devnum = udev_device_get_devnum(device);
 
         if (strncmp(sysname,"card", 4) != 0)
             return;
@@ -277,7 +299,10 @@ device_removed(struct udev_device *device)
         if (!path)
             return;
 
-        config_udev_odev_setup_attribs(path, syspath, DeleteGPUDeviceRequest);
+        config_udev_odev_setup_attribs(path, syspath, major(devnum),
+                                       minor(devnum), DeleteGPUDeviceRequest);
+        /* Retry vtenter after a drm node removal */
+        systemd_logind_vtenter();
         return;
     }
 #endif
@@ -427,6 +452,7 @@ config_udev_fini(void)
 
 static Bool
 config_udev_odev_setup_attribs(const char *path, const char *syspath,
+                               int major, int minor,
                                config_odev_probe_proc_ptr probe_callback)
 {
     struct OdevAttributes *attribs = config_odev_allocate_attribute_list();
@@ -440,6 +466,14 @@ config_udev_odev_setup_attribs(const char *path, const char *syspath,
         goto fail;
 
     ret = config_odev_add_attribute(attribs, ODEV_ATTRIB_SYSPATH, syspath);
+    if (ret == FALSE)
+        goto fail;
+
+    ret = config_odev_add_int_attribute(attribs, ODEV_ATTRIB_MAJOR, major);
+    if (ret == FALSE)
+        goto fail;
+
+    ret = config_odev_add_int_attribute(attribs, ODEV_ATTRIB_MINOR, minor);
     if (ret == FALSE)
         goto fail;
 
@@ -477,6 +511,7 @@ config_udev_odev_probe(config_odev_probe_proc_ptr probe_callback)
         struct udev_device *udev_device = udev_device_new_from_syspath(udev, syspath);
         const char *path = udev_device_get_devnode(udev_device);
         const char *sysname = udev_device_get_sysname(udev_device);
+        dev_t devnum = udev_device_get_devnum(udev_device);
 
         if (!path || !syspath)
             goto no_probe;
@@ -485,8 +520,8 @@ config_udev_odev_probe(config_odev_probe_proc_ptr probe_callback)
         else if (strncmp(sysname, "card", 4) != 0)
             goto no_probe;
 
-        config_udev_odev_setup_attribs(path, syspath, probe_callback);
-
+        config_udev_odev_setup_attribs(path, syspath, major(devnum),
+                                       minor(devnum), probe_callback);
     no_probe:
         udev_device_unref(udev_device);
     }

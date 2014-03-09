@@ -36,6 +36,7 @@
 #include <string.h>             /* for memset */
 #include <errno.h>
 #include <time.h>
+#include <err.h>
 
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -54,6 +55,11 @@
 #include <xcb/xf86dri.h>
 #include <xcb/glx.h>
 #endif /* XF86DRI */
+#ifdef GLAMOR
+#include <epoxy/gl.h>
+#include "glamor.h"
+#include "ephyr_glamor_glx.h"
+#endif
 #include "ephyrlog.h"
 #include "ephyr.h"
 
@@ -90,6 +96,7 @@ extern Bool EphyrWantResize;
 char *ephyrResName = NULL;
 int ephyrResNameFromCmd = 0;
 char *ephyrTitle = NULL;
+Bool ephyr_glamor = FALSE;
 
 static void
  hostx_set_fullscreen_hint(void);
@@ -302,7 +309,12 @@ hostx_init(void)
         | XCB_EVENT_MASK_STRUCTURE_NOTIFY;
 
     EPHYR_DBG("mark");
-    HostX.conn = xcb_connect(NULL, &HostX.screen);
+#ifdef GLAMOR
+    if (ephyr_glamor)
+        HostX.conn = ephyr_glamor_connect();
+    else
+#endif
+        HostX.conn = xcb_connect(NULL, &HostX.screen);
     if (xcb_connection_has_error(HostX.conn)) {
         fprintf(stderr, "\nXephyr cannot open host display. Is DISPLAY set?\n");
         exit(1);
@@ -312,7 +324,12 @@ hostx_init(void)
     HostX.winroot = xscreen->root;
     HostX.gc = xcb_generate_id(HostX.conn);
     HostX.depth = xscreen->root_depth;
-    HostX.visual  = xcb_aux_find_visual_by_id(xscreen, xscreen->root_visual);
+#ifdef GLAMOR
+    if (ephyr_glamor)
+        HostX.visual = ephyr_glamor_get_visual();
+    else
+#endif
+        HostX.visual = xcb_aux_find_visual_by_id(xscreen,xscreen->root_visual);
 
     xcb_create_gc(HostX.conn, HostX.gc, HostX.winroot, 0, NULL);
     cookie_WINDOW_STATE = xcb_intern_atom(HostX.conn, FALSE,
@@ -642,7 +659,7 @@ hostx_screen_init(KdScreenInfo *screen,
         }
     }
 
-    if (HostX.have_shm) {
+    if (!ephyr_glamor && HostX.have_shm) {
         scrpriv->ximg = xcb_image_create_native(HostX.conn,
                                                 width,
                                                 buffer_height,
@@ -677,7 +694,7 @@ hostx_screen_init(KdScreenInfo *screen,
         }
     }
 
-    if (!shm_success) {
+    if (!ephyr_glamor && !shm_success) {
         EPHYR_DBG("Creating image %dx%d for screen scrpriv=%p\n",
                   width, buffer_height, scrpriv);
         scrpriv->ximg = xcb_image_create_native(HostX.conn,
@@ -711,7 +728,11 @@ hostx_screen_init(KdScreenInfo *screen,
     scrpriv->win_width = width;
     scrpriv->win_height = height;
 
-    if (host_depth_matches_server(scrpriv)) {
+    if (ephyr_glamor) {
+        *bytes_per_line = 0;
+        *bits_per_pixel = 0;
+        return NULL;
+    } else if (host_depth_matches_server(scrpriv)) {
         *bytes_per_line = scrpriv->ximg->stride;
         *bits_per_pixel = scrpriv->ximg->bpp;
 
@@ -741,6 +762,23 @@ hostx_paint_rect(KdScreenInfo *screen,
     EphyrScrPriv *scrpriv = screen->driver;
 
     EPHYR_DBG("painting in screen %d\n", scrpriv->mynum);
+
+#ifdef GLAMOR
+    if (ephyr_glamor) {
+        BoxRec box;
+        RegionRec region;
+
+        box.x1 = dx;
+        box.y1 = dy;
+        box.x2 = dx + width;
+        box.y2 = dy + height;
+
+        RegionInit(&region, &box, 1);
+        ephyr_glamor_damage_redisplay(scrpriv->glamor, &region);
+        RegionUninit(&region);
+        return;
+    }
+#endif
 
     /*
      *  Copy the image data updated by the shadow layer
@@ -1170,3 +1208,86 @@ hostx_get_resource_id_peer(int a_local_resource_id, int *a_remote_resource_id)
 }
 
 #endif                          /* XF86DRI */
+
+#ifdef GLAMOR
+Bool
+ephyr_glamor_init(ScreenPtr screen)
+{
+    KdScreenPriv(screen);
+    KdScreenInfo *kd_screen = pScreenPriv->screen;
+    EphyrScrPriv *scrpriv = kd_screen->driver;
+
+    scrpriv->glamor = ephyr_glamor_glx_screen_init(scrpriv->win);
+
+    glamor_init(screen,
+                GLAMOR_USE_SCREEN |
+                GLAMOR_USE_PICTURE_SCREEN |
+                GLAMOR_INVERTED_Y_AXIS);
+
+    return TRUE;
+}
+
+Bool
+ephyr_glamor_create_screen_resources(ScreenPtr pScreen)
+{
+    KdScreenPriv(pScreen);
+    KdScreenInfo *kd_screen = pScreenPriv->screen;
+    EphyrScrPriv *scrpriv = kd_screen->driver;
+    PixmapPtr screen_pixmap;
+    uint32_t tex;
+
+    if (!ephyr_glamor)
+        return TRUE;
+
+    if (!glamor_glyphs_init(pScreen))
+        return FALSE;
+
+    /* kdrive's fbSetupScreen() told mi to have
+     * miCreateScreenResources() (which is called before this) make a
+     * scratch pixmap wrapping ephyr-glamor's NULL
+     * KdScreenInfo->fb.framebuffer.
+     *
+     * We want a real (texture-based) screen pixmap at this point.
+     * This is what glamor will render into, and we'll then texture
+     * out of that into the host's window to present the results.
+     *
+     * Thus, delete the current screen pixmap, and put a fresh one in.
+     */
+    screen_pixmap = pScreen->GetScreenPixmap(pScreen);
+    pScreen->DestroyPixmap(screen_pixmap);
+
+    screen_pixmap = pScreen->CreatePixmap(pScreen,
+                                          pScreen->width,
+                                          pScreen->height,
+                                          pScreen->rootDepth, 0);
+    pScreen->SetScreenPixmap(screen_pixmap);
+
+    /* Tell the GLX code what to GL texture to read from. */
+    tex = glamor_get_pixmap_texture(screen_pixmap);
+    ephyr_glamor_set_texture(scrpriv->glamor, tex);
+
+    return TRUE;
+}
+
+void
+ephyr_glamor_enable(ScreenPtr screen)
+{
+}
+
+void
+ephyr_glamor_disable(ScreenPtr screen)
+{
+}
+
+void
+ephyr_glamor_fini(ScreenPtr screen)
+{
+    KdScreenPriv(screen);
+    KdScreenInfo *kd_screen = pScreenPriv->screen;
+    EphyrScrPriv *scrpriv = kd_screen->driver;
+
+    glamor_fini(screen);
+    ephyr_glamor_glx_screen_fini(scrpriv->glamor);
+    scrpriv->glamor = NULL;
+}
+#endif

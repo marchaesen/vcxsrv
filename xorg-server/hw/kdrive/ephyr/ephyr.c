@@ -43,9 +43,15 @@
 #include "ephyrglxext.h"
 #endif                          /* XF86DRI */
 
+#ifdef GLAMOR
+#include "glamor.h"
+#endif
+#include "ephyr_glamor_glx.h"
+
 #include "xkbsrv.h"
 
 extern int KdTsPhyScreen;
+extern Bool ephyr_glamor;
 
 KdKeyboardInfo *ephyrKbd;
 KdPointerInfo *ephyrMouse;
@@ -326,15 +332,19 @@ ephyrInternalDamageRedisplay(ScreenPtr pScreen)
         int nbox;
         BoxPtr pbox;
 
-        nbox = RegionNumRects(pRegion);
-        pbox = RegionRects(pRegion);
+        if (ephyr_glamor) {
+            ephyr_glamor_damage_redisplay(scrpriv->glamor, pRegion);
+        } else {
+            nbox = RegionNumRects(pRegion);
+            pbox = RegionRects(pRegion);
 
-        while (nbox--) {
-            hostx_paint_rect(screen,
-                             pbox->x1, pbox->y1,
-                             pbox->x1, pbox->y1,
-                             pbox->x2 - pbox->x1, pbox->y2 - pbox->y1);
-            pbox++;
+            while (nbox--) {
+                hostx_paint_rect(screen,
+                                 pbox->x1, pbox->y1,
+                                 pbox->x1, pbox->y1,
+                                 pbox->x2 - pbox->x1, pbox->y2 - pbox->y1);
+                pbox++;
+            }
         }
         DamageEmpty(scrpriv->pDamage);
     }
@@ -662,6 +672,7 @@ ephyrInitScreen(ScreenPtr pScreen)
     return TRUE;
 }
 
+
 Bool
 ephyrFinishInitScreen(ScreenPtr pScreen)
 {
@@ -679,6 +690,12 @@ ephyrFinishInitScreen(ScreenPtr pScreen)
     return TRUE;
 }
 
+/**
+ * Called by kdrive after calling down the
+ * pScreen->CreateScreenResources() chain, this gives us a chance to
+ * make any pixmaps after the screen and all extensions have been
+ * initialized.
+ */
 Bool
 ephyrCreateResources(ScreenPtr pScreen)
 {
@@ -693,8 +710,13 @@ ephyrCreateResources(ScreenPtr pScreen)
         return KdShadowSet(pScreen,
                            scrpriv->randr,
                            ephyrShadowUpdate, ephyrWindowLinear);
-    else
+    else {
+#ifdef GLAMOR
+        if (ephyr_glamor)
+            ephyr_glamor_create_screen_resources(pScreen);
+#endif
         return ephyrSetInternalDamage(pScreen);
+    }
 }
 
 void
@@ -1200,6 +1222,9 @@ ephyrPoll(void)
             ephyrProcessConfigureNotify(xev);
             break;
         }
+
+        if (ephyr_glamor)
+            ephyr_glamor_process_event(xev);
 
         free(xev);
     }

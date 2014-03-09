@@ -72,4 +72,5 @@ EXTRA_DIST = 	\
 	dix-config-apple-verbatim.h \
 	dixfontstubs.h eventconvert.h eventstr.h inpututils.h \
 	protocol-versions.h \
+	systemd-logind.h \
 	xsha1.h

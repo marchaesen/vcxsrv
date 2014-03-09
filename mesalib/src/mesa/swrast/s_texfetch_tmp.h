@@ -611,10 +611,10 @@ static void FETCH(f_argb4444_rev)( const struct swrast_texture_image *texImage,
                                    GLint i, GLint j, GLint k, GLfloat *texel )
 {
    const GLushort s = *TEXEL_ADDR(GLushort, texImage, i, j, k, 1);
-   texel[RCOMP] = ((s      ) & 0xf) * (1.0F / 15.0F);
-   texel[GCOMP] = ((s >> 12) & 0xf) * (1.0F / 15.0F);
-   texel[BCOMP] = ((s >>  8) & 0xf) * (1.0F / 15.0F);
-   texel[ACOMP] = ((s >>  4) & 0xf) * (1.0F / 15.0F);
+   texel[RCOMP] = ((s >>  4) & 0xf) * (1.0F / 15.0F);
+   texel[GCOMP] = ((s >>  8) & 0xf) * (1.0F / 15.0F);
+   texel[BCOMP] = ((s >> 12) & 0xf) * (1.0F / 15.0F);
+   texel[ACOMP] = ((s      ) & 0xf) * (1.0F / 15.0F);
 }
 
 
@@ -1010,6 +1010,19 @@ static void FETCH(sargb8)(const struct swrast_texture_image *texImage,
    texel[RCOMP] = nonlinear_to_linear( (s >> 16) & 0xff );
    texel[GCOMP] = nonlinear_to_linear( (s >>  8) & 0xff );
    texel[BCOMP] = nonlinear_to_linear( (s      ) & 0xff );
+   texel[ACOMP] = UBYTE_TO_FLOAT( (s >> 24) ); /* linear! */
+}
+
+
+
+/* Fetch texel from 1D, 2D or 3D sabgr8 texture, return 4 GLfloats */
+static void FETCH(sabgr8)(const struct swrast_texture_image *texImage,
+                          GLint i, GLint j, GLint k, GLfloat *texel )
+{
+   const GLuint s = *TEXEL_ADDR(GLuint, texImage, i, j, k, 1);
+   texel[RCOMP] = nonlinear_to_linear( (s      ) & 0xff );
+   texel[GCOMP] = nonlinear_to_linear( (s >>  8) & 0xff );
+   texel[BCOMP] = nonlinear_to_linear( (s >> 16) & 0xff );
    texel[ACOMP] = UBYTE_TO_FLOAT( (s >> 24) ); /* linear! */
 }
 

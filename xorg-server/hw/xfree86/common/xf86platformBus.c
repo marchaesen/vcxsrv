@@ -52,10 +52,10 @@ int platformSlotClaimed;
 
 int xf86_num_platform_devices;
 
-static struct xf86_platform_device *xf86_platform_devices;
+struct xf86_platform_device *xf86_platform_devices;
 
 int
-xf86_add_platform_device(struct OdevAttributes *attribs)
+xf86_add_platform_device(struct OdevAttributes *attribs, Bool unowned)
 {
     xf86_platform_devices = xnfrealloc(xf86_platform_devices,
                                    (sizeof(struct xf86_platform_device)
@@ -63,6 +63,8 @@ xf86_add_platform_device(struct OdevAttributes *attribs)
 
     xf86_platform_devices[xf86_num_platform_devices].attribs = attribs;
     xf86_platform_devices[xf86_num_platform_devices].pdev = NULL;
+    xf86_platform_devices[xf86_num_platform_devices].flags =
+        unowned ? XF86_PDEV_UNOWNED : 0;
 
     xf86_num_platform_devices++;
     return 0;
@@ -89,35 +91,55 @@ xf86_add_platform_device_attrib(int index, int attrib_id, char *attrib_name)
     return config_odev_add_attribute(device->attribs, attrib_id, attrib_name);
 }
 
+Bool
+xf86_add_platform_device_int_attrib(int index, int attrib_id, int attrib_value)
+{
+    return config_odev_add_int_attribute(xf86_platform_devices[index].attribs, attrib_id, attrib_value);
+}
+
 char *
 xf86_get_platform_attrib(int index, int attrib_id)
 {
-    struct xf86_platform_device *device = &xf86_platform_devices[index];
-    struct OdevAttribute *oa;
-
-    xorg_list_for_each_entry(oa, &device->attribs->list, member) {
-        if (oa->attrib_id == attrib_id)
-            return oa->attrib_name;
-    }
-    return NULL;
+    return config_odev_get_attribute(xf86_platform_devices[index].attribs, attrib_id);
 }
 
 char *
 xf86_get_platform_device_attrib(struct xf86_platform_device *device, int attrib_id)
 {
-    struct OdevAttribute *oa;
+    return config_odev_get_attribute(device->attribs, attrib_id);
+}
 
-    xorg_list_for_each_entry(oa, &device->attribs->list, member) {
-        if (oa->attrib_id == attrib_id)
-            return oa->attrib_name;
-    }
-    return NULL;
+int
+xf86_get_platform_int_attrib(int index, int attrib_id, int def)
+{
+    return config_odev_get_int_attribute(xf86_platform_devices[index].attribs, attrib_id, def);
+}
+
+int
+xf86_get_platform_device_int_attrib(struct xf86_platform_device *device, int attrib_id, int def)
+{
+    return config_odev_get_int_attribute(device->attribs, attrib_id, def);
 }
 
 Bool
 xf86_get_platform_device_unowned(int index)
 {
-    return xf86_platform_devices[index].attribs->unowned;
+    return (xf86_platform_devices[index].flags & XF86_PDEV_UNOWNED) ?
+        TRUE : FALSE;
+}
+
+struct xf86_platform_device *
+xf86_find_platform_device_by_devnum(int major, int minor)
+{
+    int i, attr_major, attr_minor;
+
+    for (i = 0; i < xf86_num_platform_devices; i++) {
+        attr_major = xf86_get_platform_int_attrib(i, ODEV_ATTRIB_MAJOR, 0);
+        attr_minor = xf86_get_platform_int_attrib(i, ODEV_ATTRIB_MINOR, 0);
+        if (attr_major == major && attr_minor == minor)
+            return &xf86_platform_devices[i];
+    }
+    return NULL;
 }
 
 /*
@@ -524,10 +546,10 @@ void xf86platformVTProbe(void)
     int i;
 
     for (i = 0; i < xf86_num_platform_devices; i++) {
-        if (xf86_platform_devices[i].attribs->unowned == FALSE)
+        if (!(xf86_platform_devices[i].flags & XF86_PDEV_UNOWNED))
             continue;
 
-        xf86_platform_devices[i].attribs->unowned = FALSE;
+        xf86_platform_devices[i].flags &= ~XF86_PDEV_UNOWNED;
         xf86PlatformReprobeDevice(i, xf86_platform_devices[i].attribs);
     }
 }

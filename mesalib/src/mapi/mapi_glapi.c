@@ -58,13 +58,13 @@ _glapi_check_multithread(void)
 void
 _glapi_set_context(void *context)
 {
-   u_current_set_user((const void *) context);
+   u_current_set_context((const void *) context);
 }
 
 void
 _glapi_set_dispatch(struct _glapi_table *dispatch)
 {
-   u_current_set((const struct mapi_table *) dispatch);
+   u_current_set_table((const struct mapi_table *) dispatch);
 }
 
 /**
@@ -220,12 +220,6 @@ _glapi_get_proc_name(unsigned int offset)
 {
    const struct mapi_stub *stub = stub_find_by_slot(offset);
    return stub ? stub_get_name(stub) : NULL;
-}
-
-unsigned long
-_glthread_GetID(void)
-{
-   return u_thread_self();
 }
 
 void

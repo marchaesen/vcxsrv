@@ -80,6 +80,12 @@ typedef struct _ephyrScrPriv {
 
     KdScreenInfo *screen;
     int mynum;                  /* Screen number */
+
+    /**
+     * Per-screen Xlib-using state for glamor (private to
+     * ephyr_glamor_glx.c)
+     */
+    struct ephyr_glamor *glamor;
 } EphyrScrPriv;
 
 extern KdCardFuncs ephyrFuncs;
@@ -202,6 +208,14 @@ void
 
 void
  ephyrDrawFini(ScreenPtr pScreen);
+
+/* hostx.c glamor support */
+Bool ephyr_glamor_init(ScreenPtr pScreen);
+Bool ephyr_glamor_create_screen_resources(ScreenPtr pScreen);
+void ephyr_glamor_enable(ScreenPtr pScreen);
+void ephyr_glamor_disable(ScreenPtr pScreen);
+void ephyr_glamor_fini(ScreenPtr pScreen);
+void ephyr_glamor_host_paint_rect(ScreenPtr pScreen);
 
 /*ephyvideo.c*/
 

@@ -124,7 +124,11 @@ xf86OpenSerial(XF86OptionPtr options)
         return -1;
     }
 
-    SYSCALL(fd = open(dev, O_RDWR | O_NONBLOCK));
+    fd = xf86CheckIntOption(options, "fd", -1);
+
+    if (fd == -1)
+        SYSCALL(fd = open(dev, O_RDWR | O_NONBLOCK));
+
     if (fd == -1) {
         xf86Msg(X_ERROR,
                 "xf86OpenSerial: Cannot open device %s\n\t%s.\n",

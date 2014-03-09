@@ -1,7 +1,5 @@
 /*
- * Mesa 3-D graphics library
- *
- * Copyright (C) 2010 LunarG Inc.
+ * Copyright © 2013 Red Hat, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -10,8 +8,9 @@
  * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included
- * in all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -21,44 +20,26 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  *
- * Authors:
- *    Chia-I Wu <olv@lunarg.com>
+ * Author: Hans de Goede <hdegoede@redhat.com>
  */
 
-#include "glapi/glapi.h"
-#include "u_current.h"
+#ifndef SYSTEMD_LOGIND_H
+#define SYSTEMD_LOGIND_H
 
-/*
- * Global variables, _glapi_get_context, and _glapi_get_dispatch are defined in
- * u_current.c.
- */
+#ifdef SYSTEMD_LOGIND
+int systemd_logind_init(void);
+void systemd_logind_fini(void);
+int systemd_logind_take_fd(int major, int minor, const char *path, Bool *paus);
+void systemd_logind_release_fd(int major, int minor);
+int systemd_logind_controls_session(void);
+void systemd_logind_vtenter(void);
+#else
+#define systemd_logind_init()
+#define systemd_logind_fini()
+#define systemd_logind_take_fd(major, minor, path) -1
+#define systemd_logind_release_fd(dev)
+#define systemd_logind_controls_session() 0
+#define systemd_logind_vtenter()
+#endif
 
-#ifdef GLX_USE_TLS
-/* not used, but defined for compatibility */
-const struct _glapi_table *_glapi_Dispatch;
-const void *_glapi_Context;
-#endif /* GLX_USE_TLS */
-
-void
-_glapi_destroy_multithread(void)
-{
-   u_current_destroy();
-}
-
-void
-_glapi_check_multithread(void)
-{
-   u_current_init();
-}
-
-void
-_glapi_set_context(void *context)
-{
-   u_current_set_context((const void *) context);
-}
-
-void
-_glapi_set_dispatch(struct _glapi_table *dispatch)
-{
-   u_current_set_table((const struct mapi_table *) dispatch);
-}
+#endif

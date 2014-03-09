@@ -186,10 +186,8 @@ FcDirChecksum (const FcChar8 *dir, time_t *checksum)
     struct Adler32 ctx;
     struct dirent **files;
     int n;
-#ifndef HAVE_STRUCT_DIRENT_D_TYPE
     int ret = 0;
     size_t len = strlen ((const char *)dir);
-#endif
 
     Adler32Init (&ctx);
 
@@ -210,7 +208,9 @@ FcDirChecksum (const FcChar8 *dir, time_t *checksum)
 
 #ifdef HAVE_STRUCT_DIRENT_D_TYPE
 	dtype = files[n]->d_type;
-#else
+	if (dtype == DT_UNKNOWN)
+	{
+#endif
 	struct stat statb;
 	char f[PATH_MAX + 1];
 
@@ -227,20 +227,18 @@ FcDirChecksum (const FcChar8 *dir, time_t *checksum)
 	    goto bail;
 
 	dtype = statb.st_mode;
+#ifdef HAVE_STRUCT_DIRENT_D_TYPE
+	}
 #endif
 	Adler32Update (&ctx, files[n]->d_name, dlen + 1);
 	Adler32Update (&ctx, (char *)&dtype, sizeof (int));
 
-#ifndef HAVE_STRUCT_DIRENT_D_TYPE
       bail:
-#endif
 	free (files[n]);
     }
     free (files);
-#ifndef HAVE_STRUCT_DIRENT_D_TYPE
     if (ret == -1)
 	return -1;
-#endif
 
     *checksum = Adler32Finish (&ctx);
 

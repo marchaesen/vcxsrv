@@ -57,9 +57,9 @@
 /*
  * Error messages
  */
-#define INIT_TSD_ERROR "_glthread_: failed to allocate key for thread specific data"
-#define GET_TSD_ERROR "_glthread_: failed to get thread specific data"
-#define SET_TSD_ERROR "_glthread_: thread failed to set thread specific data"
+#define INIT_TSD_ERROR "Mesa: failed to allocate key for thread specific data"
+#define GET_TSD_ERROR "Mesa: failed to get thread specific data"
+#define SET_TSD_ERROR "Mesa: thread failed to set thread specific data"
 
 
 /*
@@ -79,20 +79,28 @@ struct u_tsd {
    unsigned initMagic;
 };
 
-typedef mtx_t u_mutex;
-
-#define u_mutex_declare_static(name) \
-   static u_mutex name = _MTX_INITIALIZER_NP
-
-#define u_mutex_init(name)    mtx_init(&(name), mtx_plain)
-#define u_mutex_destroy(name) mtx_destroy(&(name))
-#define u_mutex_lock(name)    (void) mtx_lock(&(name))
-#define u_mutex_unlock(name)  (void) mtx_unlock(&(name))
 
 static INLINE unsigned long
 u_thread_self(void)
 {
+   /*
+    * XXX: Callers of u_thread_self assume it is a lightweight function,
+    * returning a numeric value.  But unfortunately C11's thrd_current() gives
+    * no such guarantees.  In fact, it's pretty hard to have a compliant
+    * implementation of thrd_current() on Windows with such characteristics.
+    * So for now, we side-step this mess and use Windows thread primitives
+    * directly here.
+    *
+    * FIXME: On the other hand, u_thread_self() is a bad
+    * abstraction.  Even with pthreads, there is no guarantee that
+    * pthread_self() will return numeric IDs -- we should be using
+    * pthread_equal() instead of assuming we can compare thread ids...
+    */
+#ifdef _WIN32
+   return GetCurrentThreadId();
+#else
    return (unsigned long) (uintptr_t) thrd_current();
+#endif
 }
 
 

@@ -14,6 +14,10 @@ DRI3_BUILDDIR = $(top_builddir)/dri3
 DRI3_LIB = $(DRI3_BUILDDIR)/libdri3.la
 endif
 
+if GLAMOR_EGL
+GLAMOR_EGL_SUBDIR = glamor_egl
+endif
+
 if XF86UTILS
 XF86UTILS_SUBDIR = utils
 endif
@@ -33,7 +37,8 @@ endif
 SUBDIRS = common ddc x86emu $(INT10_SUBDIR) os-support parser \
 	  ramdac $(VGAHW_SUBDIR) loader modes $(DRI_SUBDIR) \
 	  $(DRI2_SUBDIR) . $(VBE_SUBDIR) i2c dixmods \
-	  fbdevhw shadowfb exa $(XF86UTILS_SUBDIR) doc man
+	  fbdevhw shadowfb exa $(XF86UTILS_SUBDIR) doc man \
+	  $(GLAMOR_EGL_SUBDIR)
 
 DIST_SUBDIRS = common ddc i2c x86emu int10 fbdevhw os-support \
                parser ramdac shadowfb vbe vgahw \

@@ -27,10 +27,12 @@
 #include <dix-config.h>
 #endif
 
+#include <unistd.h>
 #include "os.h"
 #include "inputstr.h"
 #include "hotplug.h"
 #include "config-backends.h"
+#include "systemd-logind.h"
 
 void
 config_pre_init(void)
@@ -145,30 +147,111 @@ config_odev_free_attribute_list(struct OdevAttributes *attribs)
     free(attribs);
 }
 
+static struct OdevAttribute *
+config_odev_find_attribute(struct OdevAttributes *attribs, int attrib_id)
+{
+    struct OdevAttribute *oa;
+
+    xorg_list_for_each_entry(oa, &attribs->list, member) {
+        if (oa->attrib_id == attrib_id)
+          return oa;
+    }
+    return NULL;
+}
+
 Bool
 config_odev_add_attribute(struct OdevAttributes *attribs, int attrib,
                           const char *attrib_name)
 {
     struct OdevAttribute *oa;
 
-    oa = malloc(sizeof(struct OdevAttribute));
+    oa = config_odev_find_attribute(attribs, attrib);
+    if (!oa)
+        oa = calloc(1, sizeof(struct OdevAttribute));
     if (!oa)
         return FALSE;
 
     oa->attrib_id = attrib;
+    free(oa->attrib_name);
     oa->attrib_name = strdup(attrib_name);
+    oa->attrib_type = ODEV_ATTRIB_STRING;
     xorg_list_append(&oa->member, &attribs->list);
     return TRUE;
+}
+
+Bool
+config_odev_add_int_attribute(struct OdevAttributes *attribs, int attrib,
+                              int attrib_value)
+{
+    struct OdevAttribute *oa;
+
+    oa = config_odev_find_attribute(attribs, attrib);
+    if (!oa)
+        oa = calloc(1, sizeof(struct OdevAttribute));
+    if (!oa)
+        return FALSE;
+
+    oa->attrib_id = attrib;
+    oa->attrib_value = attrib_value;
+    oa->attrib_type = ODEV_ATTRIB_INT;
+    xorg_list_append(&oa->member, &attribs->list);
+    return TRUE;
+}
+
+char *
+config_odev_get_attribute(struct OdevAttributes *attribs, int attrib_id)
+{
+    struct OdevAttribute *oa;
+
+    oa = config_odev_find_attribute(attribs, attrib_id);
+    if (!oa)
+        return NULL;
+
+    if (oa->attrib_type != ODEV_ATTRIB_STRING) {
+        LogMessage(X_ERROR, "Error %s called for non string attrib %d\n",
+                   __func__, attrib_id);
+        return NULL;
+    }
+    return oa->attrib_name;
+}
+
+int
+config_odev_get_int_attribute(struct OdevAttributes *attribs, int attrib_id, int def)
+{
+    struct OdevAttribute *oa;
+
+    oa = config_odev_find_attribute(attribs, attrib_id);
+    if (!oa)
+        return def;
+
+    if (oa->attrib_type != ODEV_ATTRIB_INT) {
+        LogMessage(X_ERROR, "Error %s called for non integer attrib %d\n",
+                   __func__, attrib_id);
+        return def;
+    }
+
+    return oa->attrib_value;
 }
 
 void
 config_odev_free_attributes(struct OdevAttributes *attribs)
 {
     struct OdevAttribute *iter, *safe;
+    int major = 0, minor = 0, fd = -1;
 
     xorg_list_for_each_entry_safe(iter, safe, &attribs->list, member) {
+        switch (iter->attrib_id) {
+        case ODEV_ATTRIB_MAJOR: major = iter->attrib_value; break;
+        case ODEV_ATTRIB_MINOR: minor = iter->attrib_value; break;
+        case ODEV_ATTRIB_FD: fd = iter->attrib_value; break;
+        }
         xorg_list_del(&iter->member);
         free(iter->attrib_name);
         free(iter);
+    }
+
+    if (fd != -1) {
+        systemd_logind_release_fd(major, minor);
+        close(fd);
     }
 }

@@ -30,22 +30,33 @@ struct xf86_platform_device {
     struct OdevAttributes *attribs;
     /* for PCI devices */
     struct pci_device *pdev;
+    int flags;
 };
+
+/* xf86_platform_device flags */
+#define XF86_PDEV_UNOWNED       0x01
+#define XF86_PDEV_SERVER_FD     0x02
+#define XF86_PDEV_PAUSED        0x04
 
 #ifdef XSERVER_PLATFORM_BUS
 int xf86platformProbe(void);
 int xf86platformProbeDev(DriverPtr drvp);
 
 extern int xf86_num_platform_devices;
+extern struct xf86_platform_device *xf86_platform_devices;
 
 extern char *
 xf86_get_platform_attrib(int index, int attrib_id);
 extern int
-xf86_add_platform_device(struct OdevAttributes *attribs);
+xf86_get_platform_int_attrib(int index, int attrib_id, int def);
+extern int
+xf86_add_platform_device(struct OdevAttributes *attribs, Bool unowned);
 extern int
 xf86_remove_platform_device(int dev_index);
 extern Bool
 xf86_add_platform_device_attrib(int index, int attrib_id, char *attrib_str);
+extern Bool
+xf86_add_platform_device_int_attrib(int index, int attrib_id, int attrib_value);
 extern Bool
 xf86_get_platform_device_unowned(int index);
 
@@ -56,6 +67,8 @@ xf86platformRemoveDevice(int index);
 
 extern _X_EXPORT char *
 xf86_get_platform_device_attrib(struct xf86_platform_device *device, int attrib_id);
+extern _X_EXPORT int
+xf86_get_platform_device_int_attrib(struct xf86_platform_device *device, int attrib_id, int def);
 extern _X_EXPORT Bool
 xf86PlatformDeviceCheckBusID(struct xf86_platform_device *device, const char *busid);
 
