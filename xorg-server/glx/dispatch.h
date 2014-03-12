@@ -10932,47 +10932,47 @@ static INLINE void SET_GetnTexImageARB(struct _glapi_table *disp, void (GLAPIENT
    SET_by_offset(disp, _gloffset_GetnTexImageARB, fn);
 }
 
-typedef void (GLAPIENTRYP _glptr_GetnUniformdvARB)(GLhandleARB, GLint, GLsizei, GLdouble *);
+typedef void (GLAPIENTRYP _glptr_GetnUniformdvARB)(GLuint, GLint, GLsizei, GLdouble *);
 #define CALL_GetnUniformdvARB(disp, parameters) \
     (* GET_GetnUniformdvARB(disp)) parameters
 static INLINE _glptr_GetnUniformdvARB GET_GetnUniformdvARB(struct _glapi_table *disp) {
    return (_glptr_GetnUniformdvARB) (GET_by_offset(disp, _gloffset_GetnUniformdvARB));
 }
 
-static INLINE void SET_GetnUniformdvARB(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLhandleARB, GLint, GLsizei, GLdouble *)) {
+static INLINE void SET_GetnUniformdvARB(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLint, GLsizei, GLdouble *)) {
    SET_by_offset(disp, _gloffset_GetnUniformdvARB, fn);
 }
 
-typedef void (GLAPIENTRYP _glptr_GetnUniformfvARB)(GLhandleARB, GLint, GLsizei, GLfloat *);
+typedef void (GLAPIENTRYP _glptr_GetnUniformfvARB)(GLuint, GLint, GLsizei, GLfloat *);
 #define CALL_GetnUniformfvARB(disp, parameters) \
     (* GET_GetnUniformfvARB(disp)) parameters
 static INLINE _glptr_GetnUniformfvARB GET_GetnUniformfvARB(struct _glapi_table *disp) {
    return (_glptr_GetnUniformfvARB) (GET_by_offset(disp, _gloffset_GetnUniformfvARB));
 }
 
-static INLINE void SET_GetnUniformfvARB(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLhandleARB, GLint, GLsizei, GLfloat *)) {
+static INLINE void SET_GetnUniformfvARB(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLint, GLsizei, GLfloat *)) {
    SET_by_offset(disp, _gloffset_GetnUniformfvARB, fn);
 }
 
-typedef void (GLAPIENTRYP _glptr_GetnUniformivARB)(GLhandleARB, GLint, GLsizei, GLint *);
+typedef void (GLAPIENTRYP _glptr_GetnUniformivARB)(GLuint, GLint, GLsizei, GLint *);
 #define CALL_GetnUniformivARB(disp, parameters) \
     (* GET_GetnUniformivARB(disp)) parameters
 static INLINE _glptr_GetnUniformivARB GET_GetnUniformivARB(struct _glapi_table *disp) {
    return (_glptr_GetnUniformivARB) (GET_by_offset(disp, _gloffset_GetnUniformivARB));
 }
 
-static INLINE void SET_GetnUniformivARB(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLhandleARB, GLint, GLsizei, GLint *)) {
+static INLINE void SET_GetnUniformivARB(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLint, GLsizei, GLint *)) {
    SET_by_offset(disp, _gloffset_GetnUniformivARB, fn);
 }
 
-typedef void (GLAPIENTRYP _glptr_GetnUniformuivARB)(GLhandleARB, GLint, GLsizei, GLuint *);
+typedef void (GLAPIENTRYP _glptr_GetnUniformuivARB)(GLuint, GLint, GLsizei, GLuint *);
 #define CALL_GetnUniformuivARB(disp, parameters) \
     (* GET_GetnUniformuivARB(disp)) parameters
 static INLINE _glptr_GetnUniformuivARB GET_GetnUniformuivARB(struct _glapi_table *disp) {
    return (_glptr_GetnUniformuivARB) (GET_by_offset(disp, _gloffset_GetnUniformuivARB));
 }
 
-static INLINE void SET_GetnUniformuivARB(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLhandleARB, GLint, GLsizei, GLuint *)) {
+static INLINE void SET_GetnUniformuivARB(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLint, GLsizei, GLuint *)) {
    SET_by_offset(disp, _gloffset_GetnUniformuivARB, fn);
 }
 
