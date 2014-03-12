@@ -256,7 +256,8 @@ typedef enum {
     RR_GET_INFO,
     RR_SET_CONFIG,
     RR_GET_MODE_MM,
-    GET_REQUIRED_HW_INTERFACES = 10
+    GET_REQUIRED_HW_INTERFACES = 10,
+    SUPPORTS_SERVER_FDS = 11,
 } xorgDriverFuncOp;
 
 typedef Bool xorgDriverFuncProc(ScrnInfoPtr, xorgDriverFuncOp, void *);

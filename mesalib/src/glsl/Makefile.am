@@ -128,7 +128,9 @@ glsl_compiler_SOURCES = \
 	$(top_srcdir)/src/mesa/program/symbol_table.c \
 	$(GLSL_COMPILER_CXX_FILES)
 
-glsl_compiler_LDADD = libglsl.la
+glsl_compiler_LDADD =					\
+	libglsl.la					\
+	$(PTHREAD_LIBS)
 
 glsl_test_SOURCES = \
 	$(top_srcdir)/src/mesa/main/hash_table.c \
@@ -178,11 +180,11 @@ glsl_lexer.cpp: glsl_lexer.ll
 	$(AM_V_LEX) $(LEX) $(LFLAGS) -o $@ $<
 
 glcpp/glcpp-parse.c glcpp/glcpp-parse.h: glcpp/glcpp-parse.y
-	$(MKDIR_P) $(GLSL_BUILDDIR)/glcpp
+	$(AM_V_at)$(MKDIR_P) glcpp
 	$(AM_V_YACC) $(YACC) $(YFLAGS) -o $@ -p "glcpp_parser_" --defines=$(GLSL_BUILDDIR)/glcpp/glcpp-parse.h $<
 
 glcpp/glcpp-lex.c: glcpp/glcpp-lex.l
-	$(MKDIR_P) $(GLSL_BUILDDIR)/glcpp
+	$(AM_V_at)$(MKDIR_P) glcpp
 	$(AM_V_LEX) $(LEX) $(LFLAGS) -o $@ $<
 
 # Only the parsers (specifically the header files generated at the same time)

@@ -319,6 +319,19 @@ glamor_init(ScreenPtr screen, unsigned int flags)
 
     gl_version = glamor_gl_get_version();
 
+    /* We'd like to require GL_ARB_map_buffer_range or
+     * GL_OES_map_buffer_range, since it offers more information to
+     * the driver than plain old glMapBuffer() or glBufferSubData().
+     * It's been supported on Mesa on the desktop since 2009 and on
+     * GLES2 since October 2012.  It's supported on Apple's iOS
+     * drivers for SGX535 and A7, but apparently not on most Android
+     * devices (the OES extension spec wasn't released until June
+     * 2012).
+     *
+     * 82% of 0 A.D. players (desktop GL) submitting hardware reports
+     * have support for it, with most of the ones lacking it being on
+     * Windows with Intel 4-series (G45) graphics or older.
+     */
     if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
         if (gl_version < GLAMOR_GL_VERSION_ENCODE(1, 3)) {
             ErrorF("Require OpenGL version 1.3 or later.\n");
@@ -340,6 +353,8 @@ glamor_init(ScreenPtr screen, unsigned int flags)
         glamor_gl_has_extension("GL_MESA_pack_invert");
     glamor_priv->has_fbo_blit =
         glamor_gl_has_extension("GL_EXT_framebuffer_blit");
+    glamor_priv->has_buffer_storage =
+        glamor_gl_has_extension("GL_ARB_buffer_storage");
     glGetIntegerv(GL_MAX_RENDERBUFFER_SIZE, &glamor_priv->max_fbo_size);
 #ifdef MAX_FBO_SIZE
     glamor_priv->max_fbo_size = MAX_FBO_SIZE;
@@ -426,6 +441,7 @@ glamor_init(ScreenPtr screen, unsigned int flags)
     ps->DestroyPicture = glamor_destroy_picture;
     glamor_init_composite_shaders(screen);
 #endif
+    glamor_init_vbo(screen);
     glamor_init_pixmap_fbo(screen);
     glamor_init_solid_shader(screen);
     glamor_init_tile_shader(screen);
@@ -465,6 +481,7 @@ glamor_release_screen_priv(ScreenPtr screen)
 #ifdef RENDER
     glamor_fini_composite_shaders(screen);
 #endif
+    glamor_fini_vbo(screen);
     glamor_fini_pixmap_fbo(screen);
     glamor_fini_solid_shader(screen);
     glamor_fini_tile_shader(screen);

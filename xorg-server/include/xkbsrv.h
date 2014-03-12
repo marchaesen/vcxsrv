@@ -638,6 +638,10 @@ extern _X_EXPORT void XkbHandleActions(DeviceIntPtr /* dev */ ,
                                        DeviceEvent *    /* event */
     );
 
+extern void XkbPushLockedStateToSlaves(DeviceIntPtr /* master */,
+                                       int /* evtype */,
+                                       int /* key */);
+
 extern _X_EXPORT Bool XkbEnableDisableControls(XkbSrvInfoPtr /* xkbi */ ,
                                                unsigned long /* change */ ,
                                                unsigned long /* newValues */ ,

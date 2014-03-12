@@ -1027,6 +1027,17 @@ static void FETCH(sabgr8)(const struct swrast_texture_image *texImage,
 }
 
 
+/* Fetch texel from 1D, 2D or 3D sabgr8 texture, return 4 GLfloats */
+static void FETCH(sxbgr8)(const struct swrast_texture_image *texImage,
+                          GLint i, GLint j, GLint k, GLfloat *texel )
+{
+   const GLuint s = *TEXEL_ADDR(GLuint, texImage, i, j, k, 1);
+   texel[RCOMP] = nonlinear_to_linear( (s      ) & 0xff );
+   texel[GCOMP] = nonlinear_to_linear( (s >>  8) & 0xff );
+   texel[BCOMP] = nonlinear_to_linear( (s >> 16) & 0xff );
+   texel[ACOMP] = 1.0f;
+}
+
 
 /* Fetch texel from 1D, 2D or 3D sl8 texture, return 4 GLfloats */
 static void FETCH(sl8)(const struct swrast_texture_image *texImage,
@@ -1552,7 +1563,7 @@ static void FETCH(f_z24_s8)( const struct swrast_texture_image *texImage,
    const GLdouble scale = 1.0 / (GLdouble) 0xffffff;
    texel[0] = (GLfloat) (((*src) >> 8) * scale);
    ASSERT(texImage->Base.TexFormat == MESA_FORMAT_S8_UINT_Z24_UNORM ||
-	  texImage->Base.TexFormat == MESA_FORMAT_X8Z24_UNORM);
+	  texImage->Base.TexFormat == MESA_FORMAT_X8_UINT_Z24_UNORM);
    ASSERT(texel[0] >= 0.0F);
    ASSERT(texel[0] <= 1.0F);
 }

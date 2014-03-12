@@ -208,6 +208,7 @@ typedef struct glamor_screen_private {
     enum glamor_gl_flavor gl_flavor;
     int has_pack_invert;
     int has_fbo_blit;
+    int has_buffer_storage;
     int max_fbo_size;
 
     struct xorg_list
@@ -220,8 +221,15 @@ typedef struct glamor_screen_private {
 
     /* vertext/elment_index buffer object for render */
     GLuint vbo, ebo;
+    /** Next offset within the VBO that glamor_get_vbo_space() will use. */
     int vbo_offset;
     int vbo_size;
+    /**
+     * Pointer to glamor_get_vbo_space()'s current VBO mapping.
+     *
+     * Note that this is not necessarily equal to the pointer returned
+     * by glamor_get_vbo_space(), so it can't be used in place of that.
+     */
     char *vb;
     int vb_stride;
     Bool has_source_coords, has_mask_coords;
@@ -702,11 +710,7 @@ void glamor_composite_set_shader_blend(glamor_pixmap_private *dest_priv,
                                        glamor_composite_shader *shader,
                                        struct blendinfo *op_info);
 
-void glamor_setup_composite_vbo(ScreenPtr screen, int n_verts);
-void glamor_emit_composite_vert(ScreenPtr screen,
-                                const float *src_coords,
-                                const float *mask_coords,
-                                const float *dst_coords, int i);
+void *glamor_setup_composite_vbo(ScreenPtr screen, int n_verts);
 
 /* glamor_trapezoid.c */
 void glamor_trapezoids(CARD8 op,
@@ -747,6 +751,17 @@ void glamor_triangles(CARD8 op,
 
 void glamor_pixmap_init(ScreenPtr screen);
 void glamor_pixmap_fini(ScreenPtr screen);
+
+/* glamor_vbo.c */
+
+void glamor_init_vbo(ScreenPtr screen);
+void glamor_fini_vbo(ScreenPtr screen);
+
+void *
+glamor_get_vbo_space(ScreenPtr screen, unsigned size, char **vbo_offset);
+
+void
+glamor_put_vbo_space(ScreenPtr screen);
 
 /** 
  * Download a pixmap's texture to cpu memory. If success,

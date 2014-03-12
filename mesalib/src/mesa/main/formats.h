@@ -166,318 +166,140 @@ typedef enum
     *  SRGB - RGB components, or L are UNORMs in sRGB color space.
     *         Alpha, if present is linear.
     *
-    *
-    *   ----------   Type A Format List (based on format_unpack.c):
-    *  BGR_UNORM8
-    *  RGB_UNORM8
-    *  A_UNORM8
-    *  A_UNORM16
-    *  L_UNORM8
-    *  L_UNORM16
-    *  I_UNORM8
-    *  I_UNOMR16
-    *  R_UNORM8
-    *  R_UNORM16
-    *  Z_UNORM16
-    *  Z_UNORM32
-    *  Z_FLOAT32
-    *  S_UINT8
-    *  BGR_SRGB8
-    *  L_SRGB8
-    *  RGBA_FLOAT32
-    *  RGBA_FLOAT16
-    *  RGB_FLOAT32
-    *  RGB_FLOAT16
-    *  A_FLOAT32
-    *  A_FLOAT16
-    *  L_FLOAT32
-    *  L_FLOAT16
-    *  LA_FLOAT32
-    *  LA_FLOAT16
-    *  I_FLOAT32
-    *  I_FLOAT16
-    *  R_FLOAT32
-    *  R_FLOAT16
-    *  RG_FLOAT32
-    *  RG_FLOAT16
-    *  A_UINT8
-    *  A_UINT16
-    *  A_UINT32
-    *  A_SINT8
-    *  A_SINT16
-    *  A_SINT32
-    *  I_UINT8
-    *  I_UINT16
-    *  I_UINT32
-    *  I_SINT8
-    *  I_SINT16
-    *  I_SINT32
-    *  L_UINT8
-    *  L_UINT16
-    *  L_UINT32
-    *  L_SINT8
-    *  L_SINT16
-    *  L_SINT32
-    *  LA_UINT8
-    *  LA_UINT16
-    *  LA_UINT32
-    *  LA_SINT8
-    *  LA_SINT16
-    *  LA_SINT32
-    *  R_SINT8
-    *  RG_SINT8
-    *  RGB_SINT8
-    *  RGBA_SINT8
-    *  R_SINT16
-    *  RG_SINT16
-    *  RGB_SINT16
-    *  RGBA_SINT16
-    *  R_SINT32
-    *  RG_SINT32
-    *  RGB_SINT32
-    *  RGBA_SINT32
-    *  R_SINT16
-    *  R_SINT32
-    *  R_UINT8
-    *  RG_UINT8
-    *  RGB_UINT8
-    *  RGBA_UINT8
-    *  R_UINT16
-    *  RG_UINT16
-    *  RGB_UINT16
-    *  RGBA_UINT16
-    *  R_UINT32
-    *  RG_UINT32
-    *  RGB_UINT32
-    *  RGBA_UINT32
-    *  R_UINT16
-    *  R_UINT32
-    *  R_SNORM8
-    *  R_SNORM16
-    *  RGB_SNORM16
-    *  RGBA_SNORM16
-    *  RGBA_UNORM16
-    *  A_SNORM8
-    *  L_SNORM8
-    *  I_SNORM8
-    *  A_SNORM16
-    *  L_SNORM16
-    *  LA_SNORM16
-    *  I_SNORM16
-    *  RGBX_UINT8
-    *  RGBX_SINT8
-    *  RGBX_UNORM16
-    *  RGBX_SNORM16
-    *  RGBX_FLOAT16
-    *  RGBX_UINT16
-    *  RGBX_SINT16
-    *  RGBX_FLOAT32
-    *  RGBX_UINT32
-    *  RGBX_SINT32
-    *
-    *
-    *
-    *   ----------   Type P Format List (based on format_unpack.c):
-    *  A8B8G8R8_UNORM
-    *  R8G8B8A8_UNORM
-    *  B8G8R8A8_UNORM
-    *  A8R8G8B8_UNORM
-    *  X8B8G8R8_UNORM
-    *  R8G8B8X8_UNORM
-    *  B8G8R8X8_UNORM
-    *  X8R8G8B8_UNORM
-    *  B5G6R5_UNORM
-    *  R5G6B5_UNORM
-    *  B4G4R4A4_UNORM
-    *  A4R4G4B4_UNORM
-    *  A1B5G5R5_UNORM
-    *  B5G5R5A1_UNORM
-    *  A1R5G5B5_UNORM
-    *  L4A4_UNORM
-    *  L8A8_UNORM
-    *  A8L8_UNORM
-    *  L16A16_UNORM
-    *  A16L16_UNORM
-    *  B2G3R3_UNORM
-    *  YCBCR
-    *  YCBCR_REV
-    *  R8G8_UNORM
-    *  G8R8_UNORM
-    *  R16G16_UNORM
-    *  G16R16_UNORM
-    *  B10G10R10A2_UNORM
-    *  B10G10R10A2_UINT
-    *  R10G10B10A2_UINT
-    *  S8_UINT_Z24_UNORM
-    *  Z24_UNORM_S8_UINT
-    *  Z24_UNORM_X8_UINT
-    *  X8_UINT_Z24_UNORM
-    *  Z32_FLOAT_S8X24_UINT
-    *  A8R8G8B8_SRGB
-    *  B8G8R8A8_SRGB
-    *  L8A8_SRGB
-    *  R8G8_SNORM
-    *  X8B8G8R8_SNORM
-    *  A8B8G8R8_SNORM
-    *  R8G8B8A8_SNORM
-    *  R16G16_SNORM
-    *  L8A8_SNORM
-    *  R9G9B9E5_FLOAT
-    *  R11G11B10_FLOAT
-    *  B4G4R4X4_UNORM
-    *  B5G5R5X1_UNORM
-    *  R8G8_SNORM
-    *  R8G8B8X8_SNORM
-    *  R8G8B8X8_SRGB
-    *  B10G10R10X2_UNORM
-    *  R10G10B10A2_UNORM
-    *  G8R8_SINT
-    *  G16R16_SINT
-    *  B8G8R8X8_SRGB
-    *
     */
-   /*@{*/
 
-   /* Type P formats */          /* msb <------ TEXEL BITS -----------> lsb */
+   /* Packed unorm formats */    /* msb <------ TEXEL BITS -----------> lsb */
                                  /* ---- ---- ---- ---- ---- ---- ---- ---- */
    MESA_FORMAT_A8B8G8R8_UNORM,   /* RRRR RRRR GGGG GGGG BBBB BBBB AAAA AAAA */
-   MESA_FORMAT_R8G8B8A8_UNORM,   /* AAAA AAAA BBBB BBBB GGGG GGGG RRRR RRRR */
-   MESA_FORMAT_B8G8R8A8_UNORM,   /* AAAA AAAA RRRR RRRR GGGG GGGG BBBB BBBB */
-   MESA_FORMAT_A8R8G8B8_UNORM,   /* BBBB BBBB GGGG GGGG RRRR RRRR AAAA AAAA */
    MESA_FORMAT_X8B8G8R8_UNORM,   /* RRRR RRRR GGGG GGGG BBBB BBBB xxxx xxxx */
+   MESA_FORMAT_R8G8B8A8_UNORM,   /* AAAA AAAA BBBB BBBB GGGG GGGG RRRR RRRR */
    MESA_FORMAT_R8G8B8X8_UNORM,   /* xxxx xxxx BBBB BBBB GGGG GGGG RRRR RRRR */
+   MESA_FORMAT_B8G8R8A8_UNORM,   /* AAAA AAAA RRRR RRRR GGGG GGGG BBBB BBBB */
    MESA_FORMAT_B8G8R8X8_UNORM,   /* xxxx xxxx RRRR RRRR GGGG GGGG BBBB BBBB */
+   MESA_FORMAT_A8R8G8B8_UNORM,   /* BBBB BBBB GGGG GGGG RRRR RRRR AAAA AAAA */
    MESA_FORMAT_X8R8G8B8_UNORM,   /* BBBB BBBB GGGG GGGG RRRR RRRR xxxx xxxx */
-
-   /* Type A formats */
-   MESA_FORMAT_BGR_UNORM8,    /* uchar[i * 3] = B, [i * 3 + 1] = G, [i *3 + 2] = R */
-   MESA_FORMAT_RGB_UNORM8,    /* uchar[i * 3] = R, [i * 3 + 1] = G, [i *3 + 2] = B */
-
-   /* Type P formats */
+   MESA_FORMAT_L16A16_UNORM,     /* AAAA AAAA AAAA AAAA LLLL LLLL LLLL LLLL */
+   MESA_FORMAT_A16L16_UNORM,     /* LLLL LLLL LLLL LLLL AAAA AAAA AAAA AAAA */
    MESA_FORMAT_B5G6R5_UNORM,                         /* RRRR RGGG GGGB BBBB */
    MESA_FORMAT_R5G6B5_UNORM,                         /* BBBB BGGG GGGR RRRR */
    MESA_FORMAT_B4G4R4A4_UNORM,                       /* AAAA RRRR GGGG BBBB */
+   MESA_FORMAT_B4G4R4X4_UNORM,                       /* xxxx RRRR GGGG BBBB */
    MESA_FORMAT_A4R4G4B4_UNORM,                       /* BBBB GGGG RRRR AAAA */
    MESA_FORMAT_A1B5G5R5_UNORM,                       /* RRRR RGGG GGBB BBBA */
    MESA_FORMAT_B5G5R5A1_UNORM,                       /* ARRR RRGG GGGB BBBB */
+   MESA_FORMAT_B5G5R5X1_UNORM,                       /* xRRR RRGG GGGB BBBB */
    MESA_FORMAT_A1R5G5B5_UNORM,                       /* BBBB BGGG GGRR RRRA */
-   MESA_FORMAT_L4A4_UNORM,                                     /* AAAA LLLL */
    MESA_FORMAT_L8A8_UNORM,                           /* AAAA AAAA LLLL LLLL */
    MESA_FORMAT_A8L8_UNORM,                           /* LLLL LLLL AAAA AAAA */
-   MESA_FORMAT_L16A16_UNORM,     /* AAAA AAAA AAAA AAAA LLLL LLLL LLLL LLLL */
-   MESA_FORMAT_A16L16_UNORM,     /* LLLL LLLL LLLL LLLL AAAA AAAA AAAA AAAA */
-   MESA_FORMAT_B2G3R3_UNORM,                                   /* RRRG GGBB */
-
-   /* Type A formats */
-   MESA_FORMAT_A_UNORM8,     /* uchar[i] = A */
-   MESA_FORMAT_A_UNORM16,    /* ushort[i] = A */
-   MESA_FORMAT_L_UNORM8,     /* uchar[i] = L */
-   MESA_FORMAT_L_UNORM16,    /* ushort[i] = L */
-   MESA_FORMAT_I_UNORM8,     /* uchar[i] = I */
-   MESA_FORMAT_I_UNORM16,    /* ushort[i] = I */
-
-   /* Type P formats */
-   MESA_FORMAT_YCBCR,         /*                     YYYY YYYY UorV UorV */
-   MESA_FORMAT_YCBCR_REV,     /*                     UorV UorV YYYY YYYY */
-
-   /* Type A format(s) */
-   MESA_FORMAT_R_UNORM8,      /* uchar[i] = R */
-
-   /* Type P formats */
    MESA_FORMAT_R8G8_UNORM,                           /* GGGG GGGG RRRR RRRR */
    MESA_FORMAT_G8R8_UNORM,                           /* RRRR RRRR GGGG GGGG */
+   MESA_FORMAT_L4A4_UNORM,                                     /* AAAA LLLL */
+   MESA_FORMAT_B2G3R3_UNORM,                                   /* RRRG GGBB */
 
-   /* Type A format(s) */
-   MESA_FORMAT_R_UNORM16,     /* ushort[i] = R */
-
-   /* Type P formats */
    MESA_FORMAT_R16G16_UNORM,     /* GGGG GGGG GGGG GGGG RRRR RRRR RRRR RRRR */
    MESA_FORMAT_G16R16_UNORM,     /* RRRR RRRR RRRR RRRR GGGG GGGG GGGG GGGG */
    MESA_FORMAT_B10G10R10A2_UNORM,/* AARR RRRR RRRR GGGG GGGG GGBB BBBB BBBB */
+   MESA_FORMAT_B10G10R10X2_UNORM,/* xxRR RRRR RRRR GGGG GGGG GGBB BBBB BBBB */
+   MESA_FORMAT_R10G10B10A2_UNORM,/* AABB BBBB BBBB GGGG GGGG GGRR RRRR RRRR */
+
    MESA_FORMAT_S8_UINT_Z24_UNORM,/* ZZZZ ZZZZ ZZZZ ZZZZ ZZZZ ZZZZ SSSS SSSS */
+   MESA_FORMAT_X8_UINT_Z24_UNORM,/* ZZZZ ZZZZ ZZZZ ZZZZ ZZZZ ZZZZ xxxx xxxx */
    MESA_FORMAT_Z24_UNORM_S8_UINT,/* SSSS SSSS ZZZZ ZZZZ ZZZZ ZZZZ ZZZZ ZZZZ */
-
-   /* Type A format(s) */
-   MESA_FORMAT_Z_UNORM16,     /* ushort[i] = Z */
-
-   /* Type P formats */
    MESA_FORMAT_Z24_UNORM_X8_UINT,/* xxxx xxxx ZZZZ ZZZZ ZZZZ ZZZZ ZZZZ ZZZZ */
-   MESA_FORMAT_X8Z24_UNORM,      /* ZZZZ ZZZZ ZZZZ ZZZZ ZZZZ ZZZZ xxxx xxxx */
 
-   /* Type A formats */
+   MESA_FORMAT_YCBCR,            /*                     YYYY YYYY UorV UorV */
+   MESA_FORMAT_YCBCR_REV,        /*                     UorV UorV YYYY YYYY */
+
+   MESA_FORMAT_DUDV8,            /*                     DUDU DUDU DVDV DVDV */
+
+   /* Array unorm formats */
+   MESA_FORMAT_A_UNORM8,      /* ubyte[i] = A */
+   MESA_FORMAT_A_UNORM16,     /* ushort[i] = A */
+   MESA_FORMAT_L_UNORM8,      /* ubyte[i] = L */
+   MESA_FORMAT_L_UNORM16,     /* ushort[i] = L */
+   MESA_FORMAT_I_UNORM8,      /* ubyte[i] = I */
+   MESA_FORMAT_I_UNORM16,     /* ushort[i] = I */
+   MESA_FORMAT_R_UNORM8,      /* ubyte[i] = R */
+   MESA_FORMAT_R_UNORM16,     /* ushort[i] = R */
+   MESA_FORMAT_BGR_UNORM8,    /* ubyte[i*3] = B, [i*3+1] = G, [i*3+2] = R */
+   MESA_FORMAT_RGB_UNORM8,    /* ubyte[i*3] = R, [i*3+1] = G, [i*3+2] = B */
+   MESA_FORMAT_RGBA_UNORM16,  /* ushort[i] = R, [1] = G, [2] = B, [3] = A */
+   MESA_FORMAT_RGBX_UNORM16,  
+
+   MESA_FORMAT_Z_UNORM16,     /* ushort[i] = Z */
    MESA_FORMAT_Z_UNORM32,     /* uint[i] = Z */
-   MESA_FORMAT_S_UINT8,       /* uchar[i] = S */
-   /*@}*/
+   MESA_FORMAT_S_UINT8,       /* ubyte[i] = S */
 
-   /**
-    * \name 8-bit/channel sRGB formats
-    */
-   /*@{*/
-   /* Type A format(s) */
-   MESA_FORMAT_BGR_SRGB8,     /* uchar[i * 3] = B, [i * 3 + 1] = G, [i *3 + 2] = R */
+   /* Packed signed/normalized formats */
+                                 /* msb <------ TEXEL BITS -----------> lsb */
+                                 /* ---- ---- ---- ---- ---- ---- ---- ---- */
+   MESA_FORMAT_A8B8G8R8_SNORM,   /* RRRR RRRR GGGG GGGG BBBB BBBB AAAA AAAA */
+   MESA_FORMAT_X8B8G8R8_SNORM,   /* RRRR RRRR GGGG GGGG BBBB BBBB xxxx xxxx */
+   MESA_FORMAT_R8G8B8A8_SNORM,   /* AAAA AAAA BBBB BBBB GGGG GGGG RRRR RRRR */
+   MESA_FORMAT_R8G8B8X8_SNORM,   /* xxxx xxxx BBBB BBBB GGGG GGGG RRRR RRRR */
+   MESA_FORMAT_R16G16_SNORM,     /* GGGG GGGG GGGG GGGG RRRR RRRR RRRR RRRR */
+   MESA_FORMAT_G16R16_SNORM,     /* RRRR RRRR RRRR RRRR GGGG GGGG GGGG GGGG */
+   MESA_FORMAT_R8G8_SNORM,       /*                     GGGG GGGG RRRR RRRR */
+   MESA_FORMAT_G8R8_SNORM,       /*                     RRRR RRRR GGGG GGGG */
+   MESA_FORMAT_L8A8_SNORM,       /*                     AAAA AAAA LLLL LLLL */
 
-   /* Type P formats */
+   /* Array signed/normalized formats */
+   MESA_FORMAT_A_SNORM8,      /* byte[i] = A */
+   MESA_FORMAT_A_SNORM16,     /* short[i] = A */
+   MESA_FORMAT_L_SNORM8,      /* byte[i] = L */
+   MESA_FORMAT_L_SNORM16,     /* short[i] = L */
+   MESA_FORMAT_I_SNORM8,      /* byte[i] = I */
+   MESA_FORMAT_I_SNORM16,     /* short[i] = I */
+   MESA_FORMAT_R_SNORM8,      /* byte[i] = R */
+   MESA_FORMAT_R_SNORM16,     /* short[i] = R */
+   MESA_FORMAT_LA_SNORM16,    /* short[i * 2] = L, [i * 2 + 1] = A */
+   MESA_FORMAT_RGB_SNORM16,   /* short[i*3] = R, [i*3+1] = G, [i*3+2] = B */
+   MESA_FORMAT_RGBA_SNORM16,  /* ... */
+   MESA_FORMAT_RGBX_SNORM16,  /* ... */
+
+   /* Packed sRGB formats */
    MESA_FORMAT_A8B8G8R8_SRGB,    /* RRRR RRRR GGGG GGGG BBBB BBBB AAAA AAAA */
    MESA_FORMAT_B8G8R8A8_SRGB,    /* AAAA AAAA RRRR RRRR GGGG GGGG BBBB BBBB */
+   MESA_FORMAT_B8G8R8X8_SRGB,    /* xxxx xxxx RRRR RRRR GGGG GGGG BBBB BBBB */
    MESA_FORMAT_R8G8B8A8_SRGB,    /* AAAA AAAA BBBB BBBB GGGG GGGG RRRR RRRR */
-
-   /* Type A format(s) */
-   MESA_FORMAT_L_SRGB8,       /* uchar[i] = L */
-
-   /* Type P formats */
+   MESA_FORMAT_R8G8B8X8_SRGB,    /* xxxx xxxx BBBB BBBB GGGG GGGG RRRR RRRR */
    MESA_FORMAT_L8A8_SRGB,                            /* AAAA AAAA LLLL LLLL */
 
-   /* Type C formats */
-   MESA_FORMAT_SRGB_DXT1,
-   MESA_FORMAT_SRGBA_DXT1,
-   MESA_FORMAT_SRGBA_DXT3,
-   MESA_FORMAT_SRGBA_DXT5,
-   /*@}*/
+   /* Array sRGB formats */
+   MESA_FORMAT_L_SRGB8,       /* ubyte[i] = L */
+   MESA_FORMAT_BGR_SRGB8,     /* ubyte[i*3] = B, [i*3+1] = G, [i*3+2] = R */
 
-   /**
-    * \name Compressed texture formats.
-    */
-   /*@{*/
-   /* Type C formats */
-   MESA_FORMAT_RGB_FXT1,
-   MESA_FORMAT_RGBA_FXT1,
-   MESA_FORMAT_RGB_DXT1,
-   MESA_FORMAT_RGBA_DXT1,
-   MESA_FORMAT_RGBA_DXT3,
-   MESA_FORMAT_RGBA_DXT5,
-   /*@}*/
+   /* Packed float formats */
+   MESA_FORMAT_R9G9B9E5_FLOAT,
+   MESA_FORMAT_R11G11B10_FLOAT,   /* BBBB BBBB BBGG GGGG GGGG GRRR RRRR RRRR */
+   MESA_FORMAT_Z32_FLOAT_S8X24_UINT, /* (float, x24s8) */
 
-   /**
-    * \name Floating point texture formats.
-    */
-   /*@{*/
-
-   /* Type A formats */
-   MESA_FORMAT_RGBA_FLOAT32,  /* float[i * 4] = R, [i * 4 + 1] = G, [i * 4 + 2] = B, [i * 4 + 3] = A */
-   MESA_FORMAT_RGBA_FLOAT16,
-   MESA_FORMAT_RGB_FLOAT32,
-   MESA_FORMAT_RGB_FLOAT16,
-   MESA_FORMAT_A_FLOAT32,
+   /* Array float formats */
    MESA_FORMAT_A_FLOAT16,
-   MESA_FORMAT_L_FLOAT32,
+   MESA_FORMAT_A_FLOAT32,
    MESA_FORMAT_L_FLOAT16,
-   MESA_FORMAT_LA_FLOAT32,
+   MESA_FORMAT_L_FLOAT32,
    MESA_FORMAT_LA_FLOAT16,
-   MESA_FORMAT_I_FLOAT32,
+   MESA_FORMAT_LA_FLOAT32,
    MESA_FORMAT_I_FLOAT16,
-   MESA_FORMAT_R_FLOAT32,
+   MESA_FORMAT_I_FLOAT32,
    MESA_FORMAT_R_FLOAT16,
-   MESA_FORMAT_RG_FLOAT32,
+   MESA_FORMAT_R_FLOAT32,
    MESA_FORMAT_RG_FLOAT16,
-   /*@}*/
+   MESA_FORMAT_RG_FLOAT32,
+   MESA_FORMAT_RGB_FLOAT16,
+   MESA_FORMAT_RGB_FLOAT32,
+   MESA_FORMAT_RGBA_FLOAT16,
+   MESA_FORMAT_RGBA_FLOAT32,  /* float[0] = R, [1] = G, [2] = B, [3] = A */
+   MESA_FORMAT_RGBX_FLOAT16,
+   MESA_FORMAT_RGBX_FLOAT32,
+   MESA_FORMAT_Z_FLOAT32,
 
-   /**
-    * \name Non-normalized signed integer formats.
-    * XXX Note: these are just stand-ins for some better hardware
-    * formats TBD such as BGRA or ARGB.
-    */
+   /* Packed signed/unsigned non-normalized integer formats */
+   MESA_FORMAT_B10G10R10A2_UINT, /* AARR RRRR RRRR GGGG GGGG GGBB BBBB BBBB */
+   MESA_FORMAT_R10G10B10A2_UINT, /* AABB BBBB BBBB GGGG GGGG GGRR RRRR RRRR */
 
-   /* Type A formats */
+   /* Array signed/unsigned non-normalized integer formats */
    MESA_FORMAT_A_UINT8,
    MESA_FORMAT_A_UINT16,
    MESA_FORMAT_A_UINT32,
@@ -498,6 +320,7 @@ typedef enum
    MESA_FORMAT_L_SINT8,
    MESA_FORMAT_L_SINT16,
    MESA_FORMAT_L_SINT32,
+
    MESA_FORMAT_LA_UINT8,
    MESA_FORMAT_LA_UINT16,
    MESA_FORMAT_LA_UINT32,
@@ -505,83 +328,70 @@ typedef enum
    MESA_FORMAT_LA_SINT16,
    MESA_FORMAT_LA_SINT32,
 
+   MESA_FORMAT_R_UINT8,
+   MESA_FORMAT_R_UINT16,
+   MESA_FORMAT_R_UINT32,
    MESA_FORMAT_R_SINT8,
-   MESA_FORMAT_RG_SINT8,
-   MESA_FORMAT_RGB_SINT8,
-   MESA_FORMAT_RGBA_SINT8,
    MESA_FORMAT_R_SINT16,
-   MESA_FORMAT_RG_SINT16,
-   MESA_FORMAT_RGB_SINT16,
-   MESA_FORMAT_RGBA_SINT16,
-
    MESA_FORMAT_R_SINT32,
+
+   MESA_FORMAT_RG_UINT8,
+   MESA_FORMAT_RG_UINT16,
+   MESA_FORMAT_RG_UINT32,
+   MESA_FORMAT_RG_SINT8,
+   MESA_FORMAT_RG_SINT16,
    MESA_FORMAT_RG_SINT32,
+
+   MESA_FORMAT_RGB_UINT8,
+   MESA_FORMAT_RGB_UINT16,
+   MESA_FORMAT_RGB_UINT32,
+   MESA_FORMAT_RGB_SINT8,
+   MESA_FORMAT_RGB_SINT16,
    MESA_FORMAT_RGB_SINT32,
+
+   MESA_FORMAT_RGBA_UINT8,
+   MESA_FORMAT_RGBA_UINT16,
+   MESA_FORMAT_RGBA_UINT32,
+   MESA_FORMAT_RGBA_SINT8,
+   MESA_FORMAT_RGBA_SINT16,
    MESA_FORMAT_RGBA_SINT32,
 
-   /**
-    * \name Non-normalized unsigned integer formats.
-    */
-   /* Type A format(s) */
-   MESA_FORMAT_R_UINT8,
-   MESA_FORMAT_RG_UINT8,
-   MESA_FORMAT_RGB_UINT8,
-   MESA_FORMAT_RGBA_UINT8,
+   MESA_FORMAT_RGBX_UINT8,
+   MESA_FORMAT_RGBX_UINT16,
+   MESA_FORMAT_RGBX_UINT32,
+   MESA_FORMAT_RGBX_SINT8,
+   MESA_FORMAT_RGBX_SINT16,
+   MESA_FORMAT_RGBX_SINT32,
 
-   MESA_FORMAT_R_UINT16,
-   MESA_FORMAT_RG_UINT16,
-   MESA_FORMAT_RGB_UINT16,
-   MESA_FORMAT_RGBA_UINT16,
+   /* DXT compressed formats */
+   MESA_FORMAT_RGB_DXT1,
+   MESA_FORMAT_RGBA_DXT1,
+   MESA_FORMAT_RGBA_DXT3,
+   MESA_FORMAT_RGBA_DXT5,
 
-   MESA_FORMAT_R_UINT32,
-   MESA_FORMAT_RG_UINT32,
-   MESA_FORMAT_RGB_UINT32,
-   MESA_FORMAT_RGBA_UINT32,
+   /* DXT sRGB compressed formats */
+   MESA_FORMAT_SRGB_DXT1,
+   MESA_FORMAT_SRGBA_DXT1,
+   MESA_FORMAT_SRGBA_DXT3,
+   MESA_FORMAT_SRGBA_DXT5,
 
-                                 /* msb <------ TEXEL BITS -----------> lsb */
-                                 /* ---- ---- ---- ---- ---- ---- ---- ---- */
-   /**
-    * \name Signed fixed point texture formats.
-    */
-   /*@{*/
-   MESA_FORMAT_DUDV8,             /*                     DUDU DUDU DVDV DVDV */
+   /* FXT1 compressed formats */
+   MESA_FORMAT_RGB_FXT1,
+   MESA_FORMAT_RGBA_FXT1,
 
-   /* Type A format(s) */
-   MESA_FORMAT_R_SNORM8,      /* char[i] = R */
-
-   /* Type P formats */
-   MESA_FORMAT_R8G8_SNORM,                           /* GGGG GGGG RRRR RRRR */
-   MESA_FORMAT_X8B8G8R8_SNORM,   /* RRRR RRRR GGGG GGGG BBBB BBBB xxxx xxxx */
-   MESA_FORMAT_A8B8G8R8_SNORM,   /* RRRR RRRR GGGG GGGG BBBB BBBB AAAA AAAA */
-   MESA_FORMAT_R8G8B8A8_SNORM,   /* AAAA AAAA BBBB BBBB GGGG GGGG RRRR RRRR */
-
-   /* Type A format(s) */
-   MESA_FORMAT_R_SNORM16,     /* short[i] = R */
-
-   /* Type P format(s) */
-   MESA_FORMAT_R16G16_SNORM,     /* GGGG GGGG GGGG GGGG RRRR RRRR RRRR RRRR */
-
-   /* Type A format(s) */
-   MESA_FORMAT_RGB_SNORM16,   /* short[i * 3] = R, [i * 3 + 1] = G, [i *3 + 2] = B */
-   MESA_FORMAT_RGBA_SNORM16,  /* ... */
-   MESA_FORMAT_RGBA_UNORM16,  /* ... */
-   /*@}*/
-
-   /*@{*/
-   /* Type C formats */
+   /* RGTC compressed formats */
    MESA_FORMAT_R_RGTC1_UNORM,
    MESA_FORMAT_R_RGTC1_SNORM,
    MESA_FORMAT_RG_RGTC2_UNORM,
    MESA_FORMAT_RG_RGTC2_SNORM,
-   /*@}*/
 
-   /*@{*/
+   /* LATC1/2 compressed formats */
    MESA_FORMAT_L_LATC1_UNORM,
    MESA_FORMAT_L_LATC1_SNORM,
    MESA_FORMAT_LA_LATC2_UNORM,
    MESA_FORMAT_LA_LATC2_SNORM,
-   /*@}*/
 
+   /* ETC1/2 compressed formats */
    MESA_FORMAT_ETC1_RGB8,
    MESA_FORMAT_ETC2_RGB8,
    MESA_FORMAT_ETC2_SRGB8,
@@ -593,63 +403,6 @@ typedef enum
    MESA_FORMAT_ETC2_SIGNED_RG11_EAC,
    MESA_FORMAT_ETC2_RGB8_PUNCHTHROUGH_ALPHA1,
    MESA_FORMAT_ETC2_SRGB8_PUNCHTHROUGH_ALPHA1,
-
-   /* Type A format(s) */
-   MESA_FORMAT_A_SNORM8,      /* char[i] = A */
-   MESA_FORMAT_L_SNORM8,      /* char[i] = L */
-
-   /* Type P format(s) */
-   MESA_FORMAT_L8A8_SNORM,                           /* AAAA AAAA LLLL LLLL */
-
-   /* Type A format(s) */
-   MESA_FORMAT_I_SNORM8,      /* char[i] = I */
-   MESA_FORMAT_A_SNORM16,     /* short[i] = A */
-   MESA_FORMAT_L_SNORM16,     /* short[i] = L */
-   MESA_FORMAT_LA_SNORM16,    /* short[i * 2] = L, [i * 2 + 1] = A */
-   MESA_FORMAT_I_SNORM16,     /* short[i] = I */
-
-   /* Type P format(s) */
-   MESA_FORMAT_R9G9B9E5_FLOAT,
-   MESA_FORMAT_R11G11B10_FLOAT,   /* BBBB BBBB BBGG GGGG GGGG GRRR RRRR RRRR */
-
-   /* Type A format(s) */
-   MESA_FORMAT_Z_FLOAT32,
-
-   /* Type P formats */
-   MESA_FORMAT_Z32_FLOAT_S8X24_UINT, /* (float, x24s8) */
-
-   MESA_FORMAT_B10G10R10A2_UINT, /* AARR RRRR RRRR GGGG GGGG GGBB BBBB BBBB */
-   MESA_FORMAT_R10G10B10A2_UINT, /* AABB BBBB BBBB GGGG GGGG GGRR RRRR RRRR */
-
-   MESA_FORMAT_B4G4R4X4_UNORM,                       /* xxxx RRRR GGGG BBBB */
-   MESA_FORMAT_B5G5R5X1_UNORM,                       /* xRRR RRGG GGGB BBBB */
-   MESA_FORMAT_R8G8B8X8_SNORM,   /* xxxx xxxx BBBB BBBB GGGG GGGG RRRR RRRR */
-   MESA_FORMAT_R8G8B8X8_SRGB,    /* xxxx xxxx BBBB BBBB GGGG GGGG RRRR RRRR */
-
-   /* Type A formats */
-   MESA_FORMAT_RGBX_UINT8,    /* uchar[i * 4] = R, [i * 4 + 1] = G, [i * 4 + 2] = B, [i * 4 + 3] = x */
-   MESA_FORMAT_RGBX_SINT8,    /* char[i * 4] = R, [i * 4 + 1] = G, [i * 4 + 2] = B, [i * 4 + 3] = x  */
-
-   /* Type P format(s) */
-   MESA_FORMAT_B10G10R10X2_UNORM,/* xxRR RRRR RRRR GGGG GGGG GGBB BBBB BBBB */
-
-   /* Type A formats */
-   MESA_FORMAT_RGBX_UNORM16,  /* ushort[i * 4] = R, [i * 4 + 1] = G, [i * 4 + 2] = B, [i * 4 + 3] = x */
-   MESA_FORMAT_RGBX_SNORM16,  /* ... */
-   MESA_FORMAT_RGBX_FLOAT16,  /* ... */
-   MESA_FORMAT_RGBX_UINT16,   /* ... */
-   MESA_FORMAT_RGBX_SINT16,   /* ... */
-
-   MESA_FORMAT_RGBX_FLOAT32,  /* float[i * 4] = R, [i * 4 + 1] = G, [i * 4 + 2] = B, [i * 4 + 3] = x */
-   MESA_FORMAT_RGBX_UINT32,   /* ... */
-   MESA_FORMAT_RGBX_SINT32,   /* ... */
-
-   /* Type P formats */
-   MESA_FORMAT_R10G10B10A2_UNORM, /* AABB BBBB BBBB GGGG GGGG GGRR RRRR RRRR */
-   MESA_FORMAT_G8R8_SNORM,        /*                     RRRR RRRR GGGG GGGG */
-   MESA_FORMAT_G16R16_SNORM,      /* RRRR RRRR RRRR RRRR GGGG GGGG GGGG GGGG */
-
-   MESA_FORMAT_B8G8R8X8_SRGB,     /* xxxx xxxx RRRR RRRR GGGG GGGG BBBB BBBB */
 
    MESA_FORMAT_COUNT
 } mesa_format;

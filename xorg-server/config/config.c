@@ -159,23 +159,38 @@ config_odev_find_attribute(struct OdevAttributes *attribs, int attrib_id)
     return NULL;
 }
 
+static struct OdevAttribute *
+config_odev_find_or_add_attribute(struct OdevAttributes *attribs, int attrib)
+{
+    struct OdevAttribute *oa;
+
+    oa = config_odev_find_attribute(attribs, attrib);
+    if (oa)
+        return oa;
+
+    oa = calloc(1, sizeof(struct OdevAttribute));
+    if (!oa)
+        return oa;
+
+    oa->attrib_id = attrib;
+    xorg_list_append(&oa->member, &attribs->list);
+
+    return oa;
+}
+
 Bool
 config_odev_add_attribute(struct OdevAttributes *attribs, int attrib,
                           const char *attrib_name)
 {
     struct OdevAttribute *oa;
 
-    oa = config_odev_find_attribute(attribs, attrib);
-    if (!oa)
-        oa = calloc(1, sizeof(struct OdevAttribute));
+    oa = config_odev_find_or_add_attribute(attribs, attrib);
     if (!oa)
         return FALSE;
 
-    oa->attrib_id = attrib;
     free(oa->attrib_name);
     oa->attrib_name = strdup(attrib_name);
     oa->attrib_type = ODEV_ATTRIB_STRING;
-    xorg_list_append(&oa->member, &attribs->list);
     return TRUE;
 }
 
@@ -185,16 +200,12 @@ config_odev_add_int_attribute(struct OdevAttributes *attribs, int attrib,
 {
     struct OdevAttribute *oa;
 
-    oa = config_odev_find_attribute(attribs, attrib);
-    if (!oa)
-        oa = calloc(1, sizeof(struct OdevAttribute));
+    oa = config_odev_find_or_add_attribute(attribs, attrib);
     if (!oa)
         return FALSE;
 
-    oa->attrib_id = attrib;
     oa->attrib_value = attrib_value;
     oa->attrib_type = ODEV_ATTRIB_INT;
-    xorg_list_append(&oa->member, &attribs->list);
     return TRUE;
 }
 
@@ -246,7 +257,8 @@ config_odev_free_attributes(struct OdevAttributes *attribs)
         case ODEV_ATTRIB_FD: fd = iter->attrib_value; break;
         }
         xorg_list_del(&iter->member);
-        free(iter->attrib_name);
+        if (iter->attrib_type == ODEV_ATTRIB_STRING)
+            free(iter->attrib_name);
         free(iter);
     }
 

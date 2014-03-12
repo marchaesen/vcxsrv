@@ -40,9 +40,9 @@
 
 
 extern "C" void GLAPIENTRY
-_mesa_GetActiveUniform(GLhandleARB program, GLuint index,
-                          GLsizei maxLength, GLsizei *length, GLint *size,
-                          GLenum *type, GLcharARB *nameOut)
+_mesa_GetActiveUniform(GLuint program, GLuint index,
+                       GLsizei maxLength, GLsizei *length, GLint *size,
+                       GLenum *type, GLcharARB *nameOut)
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_shader_program *shProg =
@@ -246,13 +246,14 @@ validate_uniform_parameters(struct gl_context *ctx,
       return false;
    }
 
-   _mesa_uniform_split_location_offset(shProg, location, loc, array_index);
-
-   if (*loc >= shProg->NumUserUniformStorage) {
+   /* Check that the given location is in bounds of uniform remap table. */
+   if (location >= (GLint) shProg->NumUniformRemapTable) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(location=%d)",
 		  caller, location);
       return false;
    }
+
+   _mesa_uniform_split_location_offset(shProg, location, loc, array_index);
 
    if (shProg->UniformStorage[*loc].array_elements == 0 && count > 1) {
       _mesa_error(ctx, GL_INVALID_OPERATION,

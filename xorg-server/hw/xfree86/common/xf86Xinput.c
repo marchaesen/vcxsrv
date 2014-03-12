@@ -81,6 +81,7 @@
 
 #include <stdarg.h>
 #include <stdint.h>             /* for int64_t */
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include "mi.h"
@@ -804,6 +805,18 @@ xf86InputDevicePostInit(DeviceIntPtr dev)
     return Success;
 }
 
+static void
+xf86stat(const char *path, int *maj, int *min)
+{
+    struct stat st;
+
+    if (stat(path, &st) == -1)
+        return;
+
+    *maj = major(st.st_rdev);
+    *min = minor(st.st_rdev);
+}
+
 /**
  * Create a new input device, activate and enable it.
  *
@@ -828,6 +841,7 @@ xf86NewInputDevice(InputInfoPtr pInfo, DeviceIntPtr *pdev, BOOL enable)
     DeviceIntPtr dev = NULL;
     Bool paused;
     int rval;
+    const char *path;
 
     /* Memory leak for every attached device if we don't
      * test if the module is already loaded first */
@@ -841,9 +855,13 @@ xf86NewInputDevice(InputInfoPtr pInfo, DeviceIntPtr *pdev, BOOL enable)
         goto unwind;
     }
 
-    if (drv->capabilities & XI86_DRV_CAP_SERVER_FD) {
+    path = xf86CheckStrOption(pInfo->options, "Device", NULL);
+    if (path && pInfo->major == 0 && pInfo->minor == 0)
+        xf86stat(path, &pInfo->major, &pInfo->minor);
+
+    if (path && (drv->capabilities & XI86_DRV_CAP_SERVER_FD)){
         int fd = systemd_logind_take_fd(pInfo->major, pInfo->minor,
-                                        pInfo->attrs->device, &paused);
+                                        path, &paused);
         if (fd != -1) {
             if (paused) {
                 /* Put on new_input_devices list for delayed probe */

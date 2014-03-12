@@ -46,8 +46,6 @@ static const char *
 _glamor_create_getcolor_fs_source(ScreenPtr screen, int stops_count,
                                   int use_array)
 {
-    glamor_screen_private *glamor_priv;
-
     char *gradient_fs = NULL;
 
 #define gradient_fs_getcolor\
@@ -173,9 +171,6 @@ _glamor_create_getcolor_fs_source(ScreenPtr screen, int stops_count,
         "    \n"
         "    return gradient_color;\n"
         "}\n";
-
-    glamor_priv = glamor_get_screen_private(screen);
-    glamor_get_context(glamor_priv);
 
     if (use_array) {
         XNFasprintf(&gradient_fs,

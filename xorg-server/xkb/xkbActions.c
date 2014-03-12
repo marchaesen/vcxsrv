@@ -1127,13 +1127,78 @@ _XkbApplyFilters(XkbSrvInfoPtr xkbi, unsigned kc, XkbAction *pAction)
     return send;
 }
 
+static int
+_XkbEnsureStateChange(XkbSrvInfoPtr xkbi)
+{
+    Bool genStateNotify = FALSE;
+
+    /* The state may change, so if we're not in the middle of sending a state
+     * notify, prepare for it */
+    if ((xkbi->flags & _XkbStateNotifyInProgress) == 0) {
+        xkbi->prev_state = xkbi->state;
+        xkbi->flags |= _XkbStateNotifyInProgress;
+        genStateNotify = TRUE;
+    }
+
+    return genStateNotify;
+}
+
+static void
+_XkbApplyState(DeviceIntPtr dev, Bool genStateNotify, int evtype, int key)
+{
+    XkbSrvInfoPtr xkbi = dev->key->xkbInfo;
+    int changed;
+
+    XkbComputeDerivedState(xkbi);
+
+    changed = XkbStateChangedFlags(&xkbi->prev_state, &xkbi->state);
+    if (genStateNotify) {
+        if (changed) {
+            xkbStateNotify sn;
+
+            sn.keycode = key;
+            sn.eventType = evtype;
+            sn.requestMajor = sn.requestMinor = 0;
+            sn.changed = changed;
+            XkbSendStateNotify(dev, &sn);
+        }
+        xkbi->flags &= ~_XkbStateNotifyInProgress;
+    }
+
+    changed = XkbIndicatorsToUpdate(dev, changed, FALSE);
+    if (changed) {
+        XkbEventCauseRec cause;
+        XkbSetCauseKey(&cause, key, evtype);
+        XkbUpdateIndicators(dev, changed, FALSE, NULL, &cause);
+    }
+}
+
+void
+XkbPushLockedStateToSlaves(DeviceIntPtr master, int evtype, int key)
+{
+    DeviceIntPtr dev;
+    Bool genStateNotify;
+
+    nt_list_for_each_entry(dev, inputInfo.devices, next) {
+        if (!dev->key || GetMaster(dev, MASTER_KEYBOARD) != master)
+            continue;
+
+        genStateNotify = _XkbEnsureStateChange(dev->key->xkbInfo);
+
+        dev->key->xkbInfo->state.locked_mods =
+            master->key->xkbInfo->state.locked_mods;
+
+        _XkbApplyState(dev, genStateNotify, evtype, key);
+    }
+}
+
 void
 XkbHandleActions(DeviceIntPtr dev, DeviceIntPtr kbd, DeviceEvent *event)
 {
     int key, bit, i;
     XkbSrvInfoPtr xkbi;
     KeyClassPtr keyc;
-    int changed, sendEvent;
+    int sendEvent;
     Bool genStateNotify;
     XkbAction act;
     XkbFilterPtr filter;
@@ -1146,15 +1211,8 @@ XkbHandleActions(DeviceIntPtr dev, DeviceIntPtr kbd, DeviceEvent *event)
     keyc = kbd->key;
     xkbi = keyc->xkbInfo;
     key = event->detail.key;
-    /* The state may change, so if we're not in the middle of sending a state
-     * notify, prepare for it */
-    if ((xkbi->flags & _XkbStateNotifyInProgress) == 0) {
-        xkbi->prev_state = xkbi->state;
-        xkbi->flags |= _XkbStateNotifyInProgress;
-        genStateNotify = TRUE;
-    }
-    else
-        genStateNotify = FALSE;
+
+    genStateNotify = _XkbEnsureStateChange(xkbi);
 
     xkbi->clearMods = xkbi->setMods = 0;
     xkbi->groupChange = 0;
@@ -1287,28 +1345,8 @@ XkbHandleActions(DeviceIntPtr dev, DeviceIntPtr kbd, DeviceEvent *event)
         FixKeyState(event, dev);
     }
 
-    XkbComputeDerivedState(xkbi);
-    changed = XkbStateChangedFlags(&xkbi->prev_state, &xkbi->state);
-    if (genStateNotify) {
-        if (changed) {
-            xkbStateNotify sn;
-
-            sn.keycode = key;
-            sn.eventType = event->type;
-            sn.requestMajor = sn.requestMinor = 0;
-            sn.changed = changed;
-            XkbSendStateNotify(dev, &sn);
-        }
-        xkbi->flags &= ~_XkbStateNotifyInProgress;
-    }
-    changed = XkbIndicatorsToUpdate(dev, changed, FALSE);
-    if (changed) {
-        XkbEventCauseRec cause;
-
-        XkbSetCauseKey(&cause, key, event->type);
-        XkbUpdateIndicators(dev, changed, FALSE, NULL, &cause);
-    }
-    return;
+    _XkbApplyState(dev, genStateNotify, event->type, key);
+    XkbPushLockedStateToSlaves(dev, event->type, key);
 }
 
 int

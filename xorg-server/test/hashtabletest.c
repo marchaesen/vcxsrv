@@ -12,7 +12,7 @@ static void
 print_xid(void* ptr, void* v)
 {
     XID *x = v;
-    printf("%ld", *x);
+    printf("%ld", (long)(*x));
 }
 
 static void

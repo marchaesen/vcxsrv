@@ -416,6 +416,8 @@ EnableDevice(DeviceIntPtr dev, BOOL sendevent)
         XISendDeviceHierarchyEvent(flags);
     }
 
+    if (!IsMaster(dev))
+        XkbPushLockedStateToSlaves(GetMaster(dev, MASTER_KEYBOARD), 0, 0);
     RecalculateMasterButtons(dev);
 
     /* initialise an idle timer for this device*/
@@ -2649,6 +2651,7 @@ AttachDevice(ClientPtr client, DeviceIntPtr dev, DeviceIntPtr master)
         dev->spriteInfo->paired = master;
         dev->spriteInfo->spriteOwner = FALSE;
 
+        XkbPushLockedStateToSlaves(GetMaster(dev, MASTER_KEYBOARD), 0, 0);
         RecalculateMasterButtons(master);
     }
 
