@@ -53,7 +53,7 @@
     *(_pyscale_) = 1.0 / (_pixmap_priv_)->base.fbo->height;			\
   } while(0)
 
-#define GLAMOR_PIXMAP_FBO_NOT_EAXCT_SIZE(priv)			\
+#define GLAMOR_PIXMAP_FBO_NOT_EXACT_SIZE(priv)			\
    (priv->base.fbo->width != priv->base.pixmap->drawable.width 	\
       || priv->base.fbo->height != priv->base.pixmap->drawable.height)	\
 

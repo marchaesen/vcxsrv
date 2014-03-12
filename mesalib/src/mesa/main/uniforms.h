@@ -195,23 +195,23 @@ _mesa_ProgramUniformMatrix4x3fv(GLuint program, GLint location, GLsizei count,
                                 GLboolean transpose, const GLfloat *value);
 
 void GLAPIENTRY
-_mesa_GetnUniformfvARB(GLhandleARB, GLint, GLsizei, GLfloat *);
+_mesa_GetnUniformfvARB(GLuint, GLint, GLsizei, GLfloat *);
 void GLAPIENTRY
-_mesa_GetUniformfv(GLhandleARB, GLint, GLfloat *);
+_mesa_GetUniformfv(GLuint, GLint, GLfloat *);
 void GLAPIENTRY
-_mesa_GetnUniformivARB(GLhandleARB, GLint, GLsizei, GLint *);
+_mesa_GetnUniformivARB(GLuint, GLint, GLsizei, GLint *);
 void GLAPIENTRY
-_mesa_GetUniformuiv(GLhandleARB, GLint, GLuint *);
+_mesa_GetUniformuiv(GLuint, GLint, GLuint *);
 void GLAPIENTRY
-_mesa_GetnUniformuivARB(GLhandleARB, GLint, GLsizei, GLuint *);
+_mesa_GetnUniformuivARB(GLuint, GLint, GLsizei, GLuint *);
 void GLAPIENTRY
-_mesa_GetUniformuiv(GLhandleARB program, GLint location, GLuint *params);
+_mesa_GetUniformuiv(GLuint program, GLint location, GLuint *params);
 void GLAPIENTRY
-_mesa_GetnUniformdvARB(GLhandleARB, GLint, GLsizei, GLdouble *);
+_mesa_GetnUniformdvARB(GLuint, GLint, GLsizei, GLdouble *);
 void GLAPIENTRY
-_mesa_GetUniformdv(GLhandleARB, GLint, GLdouble *);
+_mesa_GetUniformdv(GLuint, GLint, GLdouble *);
 GLint GLAPIENTRY
-_mesa_GetUniformLocation(GLhandleARB, const GLcharARB *);
+_mesa_GetUniformLocation(GLuint, const GLcharARB *);
 GLuint GLAPIENTRY
 _mesa_GetUniformBlockIndex(GLuint program,
 			   const GLchar *uniformBlockName);
@@ -243,8 +243,8 @@ _mesa_GetActiveUniformName(GLuint program, GLuint uniformIndex,
 			   GLsizei bufSize, GLsizei *length,
 			   GLchar *uniformName);
 void GLAPIENTRY
-_mesa_GetActiveUniform(GLhandleARB, GLuint, GLsizei, GLsizei *,
-                          GLint *, GLenum *, GLcharARB *);
+_mesa_GetActiveUniform(GLuint, GLuint, GLsizei, GLsizei *,
+                       GLint *, GLenum *, GLcharARB *);
 void GLAPIENTRY
 _mesa_GetActiveUniformsiv(GLuint program,
 			  GLsizei uniformCount,
@@ -252,7 +252,7 @@ _mesa_GetActiveUniformsiv(GLuint program,
 			  GLenum pname,
 			  GLint *params);
 void GLAPIENTRY
-_mesa_GetUniformiv(GLhandleARB, GLint, GLint *);
+_mesa_GetUniformiv(GLuint, GLint, GLint *);
 
 long
 _mesa_parse_program_resource_name(const GLchar *name,
@@ -340,39 +340,46 @@ struct gl_builtin_uniform_desc {
  * element.  We could insert dummy entries in the list for each array
  * element after [0] but that causes complications elsewhere.
  *
- * We solve this problem by encoding two values in the location that's
- * returned by glGetUniformLocation():
- *  a) index into gl_uniform_list::Uniforms[] for the uniform
- *  b) an array/field offset (0 for simple types)
+ * We solve this problem by creating multiple entries for uniform arrays
+ * in the UniformRemapTable so that their elements get sequential locations.
  *
- * These two values are encoded in the high and low halves of a GLint.
- * By putting the uniform number in the high part and the offset in the
- * low part, we can support the unofficial ability to index into arrays
- * by adding offsets to the location value.
+ * Utility functions below offer functionality to split UniformRemapTable
+ * location in to location of the uniform in UniformStorage + offset to the
+ * array element (0 if not an array) and also merge it back again as the
+ * UniformRemapTable location.
+ *
  */
 /*@{*/
 /**
- * Combine the uniform's base location and the offset
+ * Combine the uniform's storage index and the array index
  */
 static inline GLint
 _mesa_uniform_merge_location_offset(const struct gl_shader_program *prog,
-                                    unsigned base_location, unsigned offset)
+                                    unsigned storage_index,
+                                    unsigned uniform_array_index)
 {
-   assert(prog->UniformLocationBaseScale >= 1);
-   assert(offset < prog->UniformLocationBaseScale);
-   return (base_location * prog->UniformLocationBaseScale) + offset;
+   /* location in remap table + array element offset */
+   return prog->UniformStorage[storage_index].remap_location +
+      uniform_array_index;
 }
 
 /**
- * Separate the uniform base location and parameter offset
+ * Separate the uniform storage index and array index
  */
 static inline void
 _mesa_uniform_split_location_offset(const struct gl_shader_program *prog,
-                                    GLint location, unsigned *base_location,
-				    unsigned *offset)
+                                    GLint location, unsigned *storage_index,
+				    unsigned *uniform_array_index)
 {
-   *offset = location % prog->UniformLocationBaseScale;
-   *base_location = location / prog->UniformLocationBaseScale;
+   *storage_index = prog->UniformRemapTable[location] - prog->UniformStorage;
+   *uniform_array_index = location -
+      prog->UniformRemapTable[location]->remap_location;
+
+   /*gl_uniform_storage in UniformStorage with the calculated base_location
+    * must match with the entry in remap table
+    */
+   assert(&prog->UniformStorage[*storage_index] ==
+          prog->UniformRemapTable[location]);
 }
 /*@}*/
 

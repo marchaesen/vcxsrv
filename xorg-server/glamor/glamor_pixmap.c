@@ -697,7 +697,6 @@ glamor_color_convert_to_bits(void *src_bits, void *dst_bits, int w, int h,
  * Upload pixmap to a specified texture.
  * This texture may not be the one attached to it.
  **/
-int in_restore = 0;
 static void
 __glamor_upload_pixmap_to_texture(PixmapPtr pixmap, unsigned int *tex,
                                   GLenum format,
@@ -1529,7 +1528,7 @@ glamor_fixup_pixmap_priv(ScreenPtr screen, glamor_pixmap_private *pixmap_priv)
 
     drawable = &pixmap_priv->base.pixmap->drawable;
 
-    if (!GLAMOR_PIXMAP_FBO_NOT_EAXCT_SIZE(pixmap_priv))
+    if (!GLAMOR_PIXMAP_FBO_NOT_EXACT_SIZE(pixmap_priv))
         return TRUE;
 
     old_fbo = pixmap_priv->base.fbo;

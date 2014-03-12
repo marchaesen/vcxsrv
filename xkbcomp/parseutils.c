@@ -561,10 +561,8 @@ OverlayKeyCreate(char *under, char *over)
         key->common.stmtType = StmtOverlayKeyDef;
         strncpy(key->over, over, XkbKeyNameLength);
         strncpy(key->under, under, XkbKeyNameLength);
-        if (over)
-            uFree(over);
-        if (under)
-            uFree(under);
+        uFree(over);
+        uFree(under);
     }
     return key;
 }

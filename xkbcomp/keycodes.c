@@ -261,7 +261,7 @@ AddIndicatorName(KeyNamesInfo * info, IndicatorNameInfo * new)
     new = NextIndicatorName(info);
     if (!new)
     {
-        WSGO1("Couldn't allocate name for indicator %d\n", new->ndx);
+        WSGO1("Couldn't allocate name for indicator %d\n", old->ndx);
         ACTION("Ignored\n");
         return False;
     }

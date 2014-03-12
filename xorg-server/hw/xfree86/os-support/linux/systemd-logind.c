@@ -347,7 +347,6 @@ message_filter(DBusConnection * connection, DBusMessage * message, void *data)
 
         if (pdev) {
             pdev->flags &= ~XF86_PDEV_PAUSED;
-            systemd_logind_vtenter();
         }
         else {
             pInfo->fd = fd;
@@ -355,6 +354,8 @@ message_filter(DBusConnection * connection, DBusMessage * message, void *data)
             if (info->vt_active)
                 xf86EnableInputDeviceForVTSwitch(pInfo);
         }
+        /* Always call vtenter(), in case there are only legacy video devs */
+        systemd_logind_vtenter();
     }
     return DBUS_HANDLER_RESULT_HANDLED;
 }

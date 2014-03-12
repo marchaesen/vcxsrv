@@ -185,8 +185,7 @@ device_added(LibHalContext * hal_ctx, const char *udi)
     parent = get_prop_string(hal_ctx, udi, "info.parent");
     if (parent) {
         int usb_vendor, usb_product;
-
-        attrs.pnp_id = get_prop_string(hal_ctx, parent, "pnp.id");
+        char *old_parent;
 
         /* construct USB ID in lowercase - "0000:ffff" */
         usb_vendor = libhal_device_get_property_int(hal_ctx, parent,
@@ -204,7 +203,18 @@ device_added(LibHalContext * hal_ctx, const char *udi)
                 == -1)
                 attrs.usb_id = NULL;
 
-        free(parent);
+        attrs.pnp_id = get_prop_string(hal_ctx, parent, "pnp.id");
+        old_parent = parent;
+
+        while (!attrs.pnp_id &&
+               (parent = get_prop_string(hal_ctx, parent, "info.parent"))) {
+            attrs.pnp_id = get_prop_string(hal_ctx, parent, "pnp.id");
+
+            free(old_parent);
+            old_parent = parent;
+        }
+
+        free(old_parent);
     }
 
     input_options = input_option_new(NULL, "_source", "server/hal");

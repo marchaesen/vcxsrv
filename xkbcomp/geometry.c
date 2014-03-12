@@ -2423,7 +2423,6 @@ HandleShapeBody(ShapeDef * def, ShapeInfo * si, unsigned merge,
                           ol->points, info);
             continue;
         }
-        outline = NULL;
         outline = &si->outlines[nOut++];
         outline->num_points = ol->nPoints;
         outline->corner_radius = si->dfltCornerRadius;

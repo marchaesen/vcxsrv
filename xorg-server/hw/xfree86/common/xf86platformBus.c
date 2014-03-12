@@ -38,6 +38,7 @@
 #include <unistd.h>
 #include "os.h"
 #include "hotplug.h"
+#include "systemd-logind.h"
 
 #include "xf86.h"
 #include "xf86_OSproc.h"
@@ -310,15 +311,15 @@ static Bool doPlatformProbe(struct xf86_platform_device *dev, DriverPtr drvp,
                             GDevPtr gdev, int flags, intptr_t match_data)
 {
     Bool foundScreen = FALSE;
-    int entity;
+    int entity, fd, major, minor;
 
-    if (gdev->screen == 0 && !xf86_check_platform_slot(dev))
+    if (gdev && gdev->screen == 0 && !xf86_check_platform_slot(dev))
         return FALSE;
 
     entity = xf86ClaimPlatformSlot(dev, drvp, 0,
-                                   gdev, gdev->active);
+                                   gdev, gdev ? gdev->active : 0);
 
-    if ((entity == -1) && (gdev->screen > 0)) {
+    if ((entity == -1) && gdev && (gdev->screen > 0)) {
         unsigned nent;
 
         for (nent = 0; nent < xf86NumEntities; nent++) {
@@ -334,6 +335,17 @@ static Bool doPlatformProbe(struct xf86_platform_device *dev, DriverPtr drvp,
         }
     }
     if (entity != -1) {
+        if ((dev->flags & XF86_PDEV_SERVER_FD) && (!drvp->driverFunc ||
+                !drvp->driverFunc(NULL, SUPPORTS_SERVER_FDS, NULL))) {
+            fd = xf86_get_platform_device_int_attrib(dev, ODEV_ATTRIB_FD, -1);
+            major = xf86_get_platform_device_int_attrib(dev, ODEV_ATTRIB_MAJOR, 0);
+            minor = xf86_get_platform_device_int_attrib(dev, ODEV_ATTRIB_MINOR, 0);
+            systemd_logind_release_fd(major, minor);
+            close(fd);
+            config_odev_add_int_attribute(dev->attribs, ODEV_ATTRIB_FD, -1);
+            dev->flags &= ~XF86_PDEV_SERVER_FD;
+        }
+
         if (drvp->platformProbe(drvp, entity, flags, dev, match_data))
             foundScreen = TRUE;
         else
@@ -420,7 +432,6 @@ xf86platformAddDevice(int index)
 {
     int i, old_screens, scr_index;
     DriverPtr drvp = NULL;
-    int entity;
     screenLayoutPtr layout;
     static const char *hotplug_driver_name = "modesetting";
 
@@ -440,11 +451,8 @@ xf86platformAddDevice(int index)
         return -1;
 
     old_screens = xf86NumGPUScreens;
-    entity = xf86ClaimPlatformSlot(&xf86_platform_devices[index],
-                                   drvp, 0, 0, 0);
-    if (!drvp->platformProbe(drvp, entity, PLATFORM_PROBE_GPU_SCREEN, &xf86_platform_devices[index], 0)) {
-        xf86UnclaimPlatformSlot(&xf86_platform_devices[index], NULL);
-    }
+    doPlatformProbe(&xf86_platform_devices[index], drvp, NULL,
+                    PLATFORM_PROBE_GPU_SCREEN, 0);
     if (old_screens == xf86NumGPUScreens)
         return -1;
     i = old_screens;

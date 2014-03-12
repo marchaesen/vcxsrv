@@ -302,8 +302,8 @@ AddDirectory(char *head, char *ptrn, char *rest, char *map)
 #else
     if ((dirp = opendir((head ? head : "."))) == NULL)
         return 0;
-    nMatch = 0;
 #endif
+    nMatch = 0;
 #ifdef WIN32
     do
 #else

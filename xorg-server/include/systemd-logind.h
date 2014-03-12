@@ -36,8 +36,8 @@ void systemd_logind_vtenter(void);
 #else
 #define systemd_logind_init()
 #define systemd_logind_fini()
-#define systemd_logind_take_fd(major, minor, path) -1
-#define systemd_logind_release_fd(dev)
+#define systemd_logind_take_fd(major, minor, path, paus) -1
+#define systemd_logind_release_fd(major, minor)
 #define systemd_logind_controls_session() 0
 #define systemd_logind_vtenter()
 #endif
