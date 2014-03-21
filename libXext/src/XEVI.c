@@ -183,8 +183,10 @@ Status XeviGetVisualInfo(
 	_XEatDataWords(dpy, rep.length);
 	UnlockDisplay(dpy);
 	SyncHandle();
-	if (evi_return)
-	   Xfree(evi_return);
+	if (*evi_return) {
+	   Xfree(*evi_return);
+	   *evi_return = NULL;
+	}
 	if (temp_xInfo)
 	   Xfree(temp_xInfo);
 	if (temp_conflict)

@@ -79,13 +79,12 @@ _glamor_fill_spans(DrawablePtr drawable,
     }
     glamor_fallback("to %p (%c)\n", drawable,
                     glamor_get_drawable_location(drawable));
-    if (glamor_prepare_access(drawable, GLAMOR_ACCESS_RW)) {
-        if (glamor_prepare_access_gc(gc)) {
-            fbFillSpans(drawable, gc, n, points, widths, sorted);
-            glamor_finish_access_gc(gc);
-        }
-        glamor_finish_access(drawable, GLAMOR_ACCESS_RW);
+    if (glamor_prepare_access(drawable, GLAMOR_ACCESS_RW) &&
+        glamor_prepare_access_gc(gc)) {
+        fbFillSpans(drawable, gc, n, points, widths, sorted);
     }
+    glamor_finish_access_gc(gc);
+    glamor_finish_access(drawable);
     ret = TRUE;
 
  done:

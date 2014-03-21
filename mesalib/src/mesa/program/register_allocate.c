@@ -82,7 +82,7 @@
 #define NO_REG ~0
 
 struct ra_reg {
-   GLboolean *conflicts;
+   BITSET_WORD *conflicts;
    unsigned int *conflict_list;
    unsigned int conflict_list_size;
    unsigned int num_conflicts;
@@ -99,7 +99,12 @@ struct ra_regs {
 };
 
 struct ra_class {
-   GLboolean *regs;
+   /**
+    * Bitset indicating which registers belong to this class.
+    *
+    * (If bit N is set, then register N belongs to this class.)
+    */
+   BITSET_WORD *regs;
 
    /**
     * p(B) in Runeson/Nyström paper.
@@ -139,7 +144,7 @@ struct ra_node {
     * "remove the edge from the graph" in simplification without
     * having to actually modify the adjacency_list.
     */
-   GLboolean in_stack;
+   bool in_stack;
 
    /* For an implementation that needs register spilling, this is the
     * approximate cost of spilling this node.
@@ -186,8 +191,9 @@ ra_alloc_reg_set(void *mem_ctx, unsigned int count)
    regs->regs = rzalloc_array(regs, struct ra_reg, count);
 
    for (i = 0; i < count; i++) {
-      regs->regs[i].conflicts = rzalloc_array(regs->regs, GLboolean, count);
-      regs->regs[i].conflicts[i] = GL_TRUE;
+      regs->regs[i].conflicts = rzalloc_array(regs->regs, BITSET_WORD,
+                                              BITSET_WORDS(count));
+      BITSET_SET(regs->regs[i].conflicts, i);
 
       regs->regs[i].conflict_list = ralloc_array(regs->regs, unsigned int, 4);
       regs->regs[i].conflict_list_size = 4;
@@ -225,13 +231,13 @@ ra_add_conflict_list(struct ra_regs *regs, unsigned int r1, unsigned int r2)
 				     unsigned int, reg1->conflict_list_size);
    }
    reg1->conflict_list[reg1->num_conflicts++] = r2;
-   reg1->conflicts[r2] = GL_TRUE;
+   BITSET_SET(reg1->conflicts, r2);
 }
 
 void
 ra_add_reg_conflict(struct ra_regs *regs, unsigned int r1, unsigned int r2)
 {
-   if (!regs->regs[r1].conflicts[r2]) {
+   if (!BITSET_TEST(regs->regs[r1].conflicts, r2)) {
       ra_add_conflict_list(regs, r1, r2);
       ra_add_conflict_list(regs, r2, r1);
    }
@@ -269,7 +275,7 @@ ra_alloc_reg_class(struct ra_regs *regs)
    class = rzalloc(regs, struct ra_class);
    regs->classes[regs->class_count] = class;
 
-   class->regs = rzalloc_array(class, GLboolean, regs->count);
+   class->regs = rzalloc_array(class, BITSET_WORD, BITSET_WORDS(regs->count));
 
    return regs->class_count++;
 }
@@ -279,8 +285,17 @@ ra_class_add_reg(struct ra_regs *regs, unsigned int c, unsigned int r)
 {
    struct ra_class *class = regs->classes[c];
 
-   class->regs[r] = GL_TRUE;
+   BITSET_SET(class->regs, r);
    class->p++;
+}
+
+/**
+ * Returns true if the register belongs to the given class.
+ */
+static bool
+reg_belongs_to_class(unsigned int r, struct ra_class *c)
+{
+   return BITSET_TEST(c->regs, r);
 }
 
 /**
@@ -319,12 +334,12 @@ ra_set_finalize(struct ra_regs *regs, unsigned int **q_values)
 	    int conflicts = 0;
 	    int i;
 
-	    if (!regs->classes[c]->regs[rc])
+            if (!reg_belongs_to_class(rc, regs->classes[c]))
 	       continue;
 
 	    for (i = 0; i < regs->regs[rc].num_conflicts; i++) {
 	       unsigned int rb = regs->regs[rc].conflict_list[i];
-	       if (regs->classes[b]->regs[rb])
+	       if (BITSET_TEST(regs->classes[b]->regs, rb))
 		  conflicts++;
 	    }
 	    max_conflicts = MAX2(max_conflicts, conflicts);
@@ -397,7 +412,8 @@ ra_add_node_interference(struct ra_graph *g,
    }
 }
 
-static GLboolean pq_test(struct ra_graph *g, unsigned int n)
+static bool
+pq_test(struct ra_graph *g, unsigned int n)
 {
    unsigned int j;
    unsigned int q = 0;
@@ -420,18 +436,18 @@ static GLboolean pq_test(struct ra_graph *g, unsigned int n)
  * trivially-colorable nodes into a stack of nodes to be colored,
  * removing them from the graph, and rinsing and repeating.
  *
- * Returns GL_TRUE if all nodes were removed from the graph.  GL_FALSE
+ * Returns true if all nodes were removed from the graph.  false
  * means that either spilling will be required, or optimistic coloring
  * should be applied.
  */
-GLboolean
+bool
 ra_simplify(struct ra_graph *g)
 {
-   GLboolean progress = GL_TRUE;
+   bool progress = true;
    int i;
 
    while (progress) {
-      progress = GL_FALSE;
+      progress = false;
 
       for (i = g->count - 1; i >= 0; i--) {
 	 if (g->nodes[i].in_stack || g->nodes[i].reg != NO_REG)
@@ -440,18 +456,18 @@ ra_simplify(struct ra_graph *g)
 	 if (pq_test(g, i)) {
 	    g->stack[g->stack_count] = i;
 	    g->stack_count++;
-	    g->nodes[i].in_stack = GL_TRUE;
-	    progress = GL_TRUE;
+	    g->nodes[i].in_stack = true;
+	    progress = true;
 	 }
       }
    }
 
    for (i = 0; i < g->count; i++) {
       if (!g->nodes[i].in_stack && g->nodes[i].reg == -1)
-	 return GL_FALSE;
+	 return false;
    }
 
-   return GL_TRUE;
+   return true;
 }
 
 /**
@@ -459,9 +475,9 @@ ra_simplify(struct ra_graph *g)
  * registers as they go.
  *
  * If all nodes were trivially colorable, then this must succeed.  If
- * not (optimistic coloring), then it may return GL_FALSE;
+ * not (optimistic coloring), then it may return false;
  */
-GLboolean
+bool
 ra_select(struct ra_graph *g)
 {
    int i;
@@ -478,7 +494,7 @@ ra_select(struct ra_graph *g)
        */
       for (ri = 0; ri < g->regs->count; ri++) {
          r = (start_search_reg + ri) % g->regs->count;
-	 if (!c->regs[r])
+         if (!reg_belongs_to_class(r, c))
 	    continue;
 
 	 /* Check if any of our neighbors conflict with this register choice. */
@@ -486,7 +502,7 @@ ra_select(struct ra_graph *g)
 	    unsigned int n2 = g->nodes[n].adjacency_list[i];
 
 	    if (!g->nodes[n2].in_stack &&
-		g->regs->regs[r].conflicts[g->nodes[n2].reg]) {
+		BITSET_TEST(g->regs->regs[r].conflicts, g->nodes[n2].reg)) {
 	       break;
 	    }
 	 }
@@ -494,17 +510,17 @@ ra_select(struct ra_graph *g)
 	    break;
       }
       if (ri == g->regs->count)
-	 return GL_FALSE;
+	 return false;
 
       g->nodes[n].reg = r;
-      g->nodes[n].in_stack = GL_FALSE;
+      g->nodes[n].in_stack = false;
       g->stack_count--;
 
       if (g->regs->round_robin)
          start_search_reg = r + 1;
    }
 
-   return GL_TRUE;
+   return true;
 }
 
 /**
@@ -526,11 +542,11 @@ ra_optimistic_color(struct ra_graph *g)
 
       g->stack[g->stack_count] = i;
       g->stack_count++;
-      g->nodes[i].in_stack = GL_TRUE;
+      g->nodes[i].in_stack = true;
    }
 }
 
-GLboolean
+bool
 ra_allocate_no_spills(struct ra_graph *g)
 {
    if (!ra_simplify(g)) {
@@ -562,7 +578,7 @@ void
 ra_set_node_reg(struct ra_graph *g, unsigned int n, unsigned int reg)
 {
    g->nodes[n].reg = reg;
-   g->nodes[n].in_stack = GL_FALSE;
+   g->nodes[n].in_stack = false;
 }
 
 static float

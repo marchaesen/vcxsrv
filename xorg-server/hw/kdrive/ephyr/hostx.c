@@ -731,6 +731,8 @@ hostx_screen_init(KdScreenInfo *screen,
     if (ephyr_glamor) {
         *bytes_per_line = 0;
         *bits_per_pixel = 0;
+        ephyr_glamor_set_window_size(scrpriv->glamor,
+                                     scrpriv->win_width, scrpriv->win_height);
         return NULL;
     } else if (host_depth_matches_server(scrpriv)) {
         *bytes_per_line = scrpriv->ximg->stride;
@@ -1218,6 +1220,8 @@ ephyr_glamor_init(ScreenPtr screen)
     EphyrScrPriv *scrpriv = kd_screen->driver;
 
     scrpriv->glamor = ephyr_glamor_glx_screen_init(scrpriv->win);
+    ephyr_glamor_set_window_size(scrpriv->glamor,
+                                 scrpriv->win_width, scrpriv->win_height);
 
     glamor_init(screen,
                 GLAMOR_USE_SCREEN |
@@ -1238,9 +1242,6 @@ ephyr_glamor_create_screen_resources(ScreenPtr pScreen)
 
     if (!ephyr_glamor)
         return TRUE;
-
-    if (!glamor_glyphs_init(pScreen))
-        return FALSE;
 
     /* kdrive's fbSetupScreen() told mi to have
      * miCreateScreenResources() (which is called before this) make a

@@ -982,7 +982,6 @@ _glamor_trapezoids_with_shader(CARD8 op,
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
     glDisableVertexAttribArray(GLAMOR_VERTEX_MASK);
     glDisable(GL_BLEND);
-    glUseProgram(0);
     glamor_put_context(glamor_priv);
 
  TRAPEZOID_OUT:
@@ -1357,9 +1356,7 @@ glamor_init_trapezoid_shader(ScreenPtr screen)
     glBindAttribLocation(glamor_priv->trapezoid_prog,
                          GLAMOR_VERTEX_RIGHT_PARAM, "v_right_param");
 
-    glamor_link_glsl_prog(glamor_priv->trapezoid_prog);
-
-    glUseProgram(0);
+    glamor_link_glsl_prog(screen, glamor_priv->trapezoid_prog, "trapezoid");
 
     glamor_put_context(glamor_priv);
 }
@@ -1573,7 +1570,6 @@ _glamor_generate_trapezoid_with_shader(ScreenPtr screen, PicturePtr picture,
     glDisableVertexAttribArray(GLAMOR_VERTEX_TOP_BOTTOM);
     glDisableVertexAttribArray(GLAMOR_VERTEX_LEFT_PARAM);
     glDisableVertexAttribArray(GLAMOR_VERTEX_RIGHT_PARAM);
-    glUseProgram(0);
     glamor_put_context(glamor_priv);
     return TRUE;
 }

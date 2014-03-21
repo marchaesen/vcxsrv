@@ -5950,25 +5950,13 @@ ProcXkbGetKbdByName(ClientPtr client)
     if (rep.loaded) {
         XkbDescPtr old_xkb;
         xkbNewKeyboardNotify nkn;
-        int i, nG, nTG;
 
         old_xkb = xkb;
         xkb = new;
         dev->key->xkbInfo->desc = xkb;
         new = old_xkb;          /* so it'll get freed automatically */
 
-        *xkb->ctrls = *old_xkb->ctrls;
-        for (nG = nTG = 0, i = xkb->min_key_code; i <= xkb->max_key_code; i++) {
-            nG = XkbKeyNumGroups(xkb, i);
-            if (nG >= XkbNumKbdGroups) {
-                nTG = XkbNumKbdGroups;
-                break;
-            }
-            if (nG > nTG) {
-                nTG = nG;
-            }
-        }
-        xkb->ctrls->num_groups = nTG;
+        XkbCopyControls(xkb, old_xkb);
 
         nkn.deviceID = nkn.oldDeviceID = dev->id;
         nkn.minKeyCode = new->min_key_code;
@@ -5991,7 +5979,7 @@ ProcXkbGetKbdByName(ClientPtr client)
                 continue;
 
             if (tmpd != dev)
-                XkbCopyDeviceKeymap(tmpd, dev);
+                XkbDeviceApplyKeymap(tmpd, xkb);
 
             if (tmpd->kbdfeed && tmpd->kbdfeed->xkb_sli) {
                 old_sli = tmpd->kbdfeed->xkb_sli;

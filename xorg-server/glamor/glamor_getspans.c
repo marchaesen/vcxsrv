@@ -69,8 +69,8 @@ _glamor_get_spans(DrawablePtr drawable,
     ret = TRUE;
     if (glamor_prepare_access(drawable, GLAMOR_ACCESS_RO)) {
         fbGetSpans(drawable, wmax, points, widths, count, dst);
-        glamor_finish_access(drawable, GLAMOR_ACCESS_RO);
     }
+    glamor_finish_access(drawable);
  done:
     return ret;
 }

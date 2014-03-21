@@ -385,6 +385,12 @@ extern _X_EXPORT Bool InitKeyboardDeviceStruct(DeviceIntPtr /*device */ ,
                                                KbdCtrlProcPtr /*controlProc */
                                                );
 
+extern _X_EXPORT Bool InitKeyboardDeviceStructFromString(DeviceIntPtr dev,
+							 const char *keymap,
+							 int keymap_length,
+							 BellProcPtr bell_func,
+							 KbdCtrlProcPtr ctrl_func);
+
 extern int ApplyPointerMapping(DeviceIntPtr /* pDev */ ,
                                CARD8 * /* map */ ,
                                int /* len */ ,

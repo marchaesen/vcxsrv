@@ -200,9 +200,9 @@ static int read_packet(xcb_connection_t *c)
             c->in.request_completed = c->in.request_read - 1;
         }
 
-        while(c->in.pending_replies && 
+        while(c->in.pending_replies &&
               c->in.pending_replies->workaround != WORKAROUND_EXTERNAL_SOCKET_OWNER &&
-	      XCB_SEQUENCE_COMPARE (c->in.pending_replies->last_request, <=, c->in.request_completed))
+              XCB_SEQUENCE_COMPARE (c->in.pending_replies->last_request, <=, c->in.request_completed))
         {
             pending_reply *oldpend = c->in.pending_replies;
             c->in.pending_replies = oldpend->next;
@@ -386,11 +386,11 @@ static int read_block(const int fd, void *buf, const ssize_t len)
             FD_ZERO(&fds);
             FD_SET(fd, &fds);
 
-	    /* Initializing errno here makes sure that for Win32 this loop will execute only once */
-	    errno = 0;  
-	    do {
-		ret = select(fd + 1, &fds, 0, 0, 0);
-	    } while (ret == -1 && errno == EINTR);
+            /* Initializing errno here makes sure that for Win32 this loop will execute only once */
+            errno = 0;
+            do {
+                ret = select(fd + 1, &fds, 0, 0, 0);
+            } while (ret == -1 && errno == EINTR);
 #endif /* USE_POLL */
         }
         if(ret <= 0)
@@ -746,7 +746,7 @@ xcb_register_for_special_xge(xcb_connection_t *c,
         pthread_mutex_unlock(&c->iolock);
         return NULL;
     }
-            
+
     se->extension = ext_reply->major_opcode;
     se->eid = eid;
 

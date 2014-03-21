@@ -824,8 +824,8 @@ extern _X_EXPORT void XkbSendNewKeyboardNotify(DeviceIntPtr /* kbd */ ,
 extern Bool XkbCopyKeymap(XkbDescPtr /* dst */ ,
                           XkbDescPtr /* src */ );
 
-extern _X_EXPORT Bool XkbCopyDeviceKeymap(DeviceIntPtr /* dst */ ,
-                                          DeviceIntPtr /* src */ );
+extern _X_EXPORT Bool XkbDeviceApplyKeymap(DeviceIntPtr /* dst */ ,
+                                           XkbDescPtr /* src */ );
 
 extern void XkbFilterEvents(ClientPtr /* pClient */ ,
                             int /* nEvents */ ,
@@ -840,6 +840,9 @@ extern void XkbMergeLockedPtrBtns(DeviceIntPtr /* master */ );
 extern void XkbFakeDeviceButton(DeviceIntPtr /* dev */ ,
                                 int /* press */ ,
                                 int /* button */ );
+
+extern _X_EXPORT void XkbCopyControls(XkbDescPtr /* dst */ ,
+                                      XkbDescPtr /* src */ );
 
 #include "xkbfile.h"
 #include "xkbrules.h"
@@ -872,5 +875,9 @@ extern _X_EXPORT Bool XkbDDXNamesFromRules(DeviceIntPtr /* keybd */ ,
 extern _X_EXPORT XkbDescPtr XkbCompileKeymap(DeviceIntPtr /* dev */ ,
                                              XkbRMLVOSet *      /* rmlvo */
     );
+
+extern _X_EXPORT XkbDescPtr XkbCompileKeymapFromString(DeviceIntPtr dev,
+						       const char *keymap,
+						       int keymap_length);
 
 #endif                          /* _XKBSRV_H_ */

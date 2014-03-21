@@ -41,16 +41,13 @@ _glamor_triangles(CARD8 op,
             || glamor_ddx_fallback_check_pixmap(pSrc->pDrawable)))
         return FALSE;
 
-    if (glamor_prepare_access_picture(pDst, GLAMOR_ACCESS_RW)) {
-        if (glamor_prepare_access_picture(pSrc, GLAMOR_ACCESS_RO)) {
-
-            fbTriangles(op, pSrc, pDst, maskFormat, xSrc, ySrc, ntris, tris);
-
-            glamor_finish_access_picture(pSrc, GLAMOR_ACCESS_RO);
-        }
-
-        glamor_finish_access_picture(pDst, GLAMOR_ACCESS_RW);
+    if (glamor_prepare_access_picture(pDst, GLAMOR_ACCESS_RW) &&
+        glamor_prepare_access_picture(pSrc, GLAMOR_ACCESS_RO)) {
+        fbTriangles(op, pSrc, pDst, maskFormat, xSrc, ySrc, ntris, tris);
     }
+    glamor_finish_access_picture(pSrc);
+    glamor_finish_access_picture(pDst);
+
     return TRUE;
 }
 

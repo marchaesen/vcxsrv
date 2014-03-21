@@ -89,11 +89,11 @@ static int authnameslen[N_AUTH_PROTOS] = {
 static size_t memdup(char **dst, void *src, size_t len)
 {
     if(len)
-	*dst = malloc(len);
+        *dst = malloc(len);
     else
-	*dst = 0;
+        *dst = 0;
     if(!*dst)
-	return 0;
+        return 0;
     memcpy(*dst, src, len);
     return len;
 }
@@ -101,9 +101,9 @@ static size_t memdup(char **dst, void *src, size_t len)
 static int authname_match(enum auth_protos kind, char *name, size_t namelen)
 {
     if(authnameslen[kind] != namelen)
-	return 0;
+        return 0;
     if(memcmp(authnames[kind], name, namelen))
-	return 0;
+        return 0;
     return 1;
 }
 
@@ -183,7 +183,7 @@ static void do_append(char *buf, int *idxp, void *val, size_t valsize) {
     *idxp += valsize;
 }
 #endif
-     
+
 static int compute_auth(xcb_auth_info_t *info, Xauth *authptr, struct sockaddr *sockname)
 {
     if (authname_match(AUTH_MC1, authptr->name, authptr->name_length)) {
@@ -195,22 +195,22 @@ static int compute_auth(xcb_auth_info_t *info, Xauth *authptr, struct sockaddr *
 #ifdef HASXDMAUTH
 #define APPEND(buf,idx,val) do_append((buf),&(idx),&(val),sizeof(val))
     if (authname_match(AUTH_XA1, authptr->name, authptr->name_length)) {
-	int j;
+        int j;
 
-	info->data = malloc(192 / 8);
-	if(!info->data)
-	    return 0;
+        info->data = malloc(192 / 8);
+        if(!info->data)
+            return 0;
 
-	for (j = 0; j < 8; j++)
-	    info->data[j] = authptr->data[j];
-	switch(sockname->sa_family) {
+        for (j = 0; j < 8; j++)
+            info->data[j] = authptr->data[j];
+        switch(sockname->sa_family) {
         case AF_INET:
             /*block*/ {
-	    struct sockaddr_in *si = (struct sockaddr_in *) sockname;
-	    APPEND(info->data, j, si->sin_addr.s_addr);
-	    APPEND(info->data, j, si->sin_port);
-	}
-	break;
+            struct sockaddr_in *si = (struct sockaddr_in *) sockname;
+            APPEND(info->data, j, si->sin_addr.s_addr);
+            APPEND(info->data, j, si->sin_port);
+        }
+        break;
 #ifdef AF_INET6
         case AF_INET6:
             /*block*/ {
@@ -235,26 +235,26 @@ static int compute_auth(xcb_auth_info_t *info, Xauth *authptr, struct sockaddr *
 #endif
         case AF_UNIX:
             /*block*/ {
-	    uint32_t fakeaddr = htonl(0xffffffff - next_nonce());
-	    uint16_t fakeport = htons(getpid());
-	    APPEND(info->data, j, fakeaddr);
-	    APPEND(info->data, j, fakeport);
-	}
-	break;
+            uint32_t fakeaddr = htonl(0xffffffff - next_nonce());
+            uint16_t fakeport = htons(getpid());
+            APPEND(info->data, j, fakeaddr);
+            APPEND(info->data, j, fakeport);
+        }
+        break;
         default:
             free(info->data);
             return 0;   /* do not know how to build this */
-	}
-	{
-	    uint32_t now = htonl(time(0));
-	    APPEND(info->data, j, now);
-	}
-	assert(j <= 192 / 8);
-	while (j < 192 / 8)
-	    info->data[j++] = 0;
-	info->datalen = j;
-	XdmcpWrap ((unsigned char *) info->data, (unsigned char *) authptr->data + 8, (unsigned char *) info->data, info->datalen);
-	return 1;
+        }
+        {
+            uint32_t now = htonl(time(0));
+            APPEND(info->data, j, now);
+        }
+        assert(j <= 192 / 8);
+        while (j < 192 / 8)
+            info->data[j++] = 0;
+        info->datalen = j;
+        XdmcpWrap ((unsigned char *) info->data, (unsigned char *) authptr->data + 8, (unsigned char *) info->data, info->datalen);
+        return 1;
     }
 #undef APPEND
 #endif
@@ -270,9 +270,9 @@ static int compute_auth(xcb_auth_info_t *info, Xauth *authptr, struct sockaddr *
    (according to POSIX, applications should not assume a particular
    length for `sockaddr_un.sun_path') */
 static struct sockaddr *get_peer_sock_name(int (*socket_func)(int,
-							      struct sockaddr *,
-							      socklen_t *),
-					   int fd)
+                                                              struct sockaddr *,
+                                                              socklen_t *),
+                                           int fd)
 {
     socklen_t socknamelen = sizeof(struct sockaddr) + INITIAL_SOCKNAME_SLACK;
     socklen_t actual_socknamelen = socknamelen;

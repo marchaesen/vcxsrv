@@ -230,7 +230,7 @@ CopyKeyClass(DeviceIntPtr device, DeviceIntPtr master)
 
     mk->sourceid = device->id;
 
-    if (!XkbCopyDeviceKeymap(master, device))
+    if (!XkbDeviceApplyKeymap(master, device->key->xkbInfo->desc))
         FatalError("Couldn't pivot keymap from device to core!\n");
 }
 

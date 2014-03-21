@@ -29,6 +29,7 @@
 #define _MISYNCSTR_H_
 
 #include "dix.h"
+#include "misync.h"
 #include "scrnintstr.h"
 #include <X11/extensions/syncconst.h>
 

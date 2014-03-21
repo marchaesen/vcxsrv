@@ -67,6 +67,9 @@ struct ephyr_glamor {
     GLuint texture_shader;
     GLuint texture_shader_position_loc;
     GLuint texture_shader_texcoord_loc;
+
+    /* Size of the window that we're rendering to. */
+    unsigned width, height;
 };
 
 static GLint
@@ -205,6 +208,7 @@ ephyr_glamor_damage_redisplay(struct ephyr_glamor *glamor,
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glUseProgram(glamor->texture_shader);
+    glViewport(0, 0, glamor->width, glamor->height);
 
     glVertexAttribPointer(glamor->texture_shader_position_loc,
                           2, GL_FLOAT, FALSE, 0, position);
@@ -309,6 +313,7 @@ ephyr_glamor_get_visual(void)
         GLX_GREEN_SIZE, 1,
         GLX_BLUE_SIZE, 1,
         GLX_DOUBLEBUFFER, 1,
+        GLX_VISUAL_ID, DefaultVisual(dpy, DefaultScreen(dpy)),
         None
     };
     int event_base = 0, error_base = 0, nelements;
@@ -328,4 +333,15 @@ ephyr_glamor_get_visual(void)
         FatalError("Couldn't get RGB visual\n");
 
     return xcb_aux_find_visual_by_id(xscreen, visual_info->visualid);
+}
+
+void
+ephyr_glamor_set_window_size(struct ephyr_glamor *glamor,
+                             unsigned width, unsigned height)
+{
+    if (!glamor)
+        return;
+
+    glamor->width = width;
+    glamor->height = height;
 }

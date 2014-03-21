@@ -64,21 +64,30 @@ typedef struct {
     uint16_t length;
 } xcb_setup_generic_t;
 
+/* Keep this list in sync with is_static_error_conn()! */
 static const int xcb_con_error = XCB_CONN_ERROR;
 static const int xcb_con_closed_mem_er = XCB_CONN_CLOSED_MEM_INSUFFICIENT;
 static const int xcb_con_closed_parse_er = XCB_CONN_CLOSED_PARSE_ERR;
 static const int xcb_con_closed_screen_er = XCB_CONN_CLOSED_INVALID_SCREEN;
+
+static int is_static_error_conn(xcb_connection_t *c)
+{
+    return c == (xcb_connection_t *) &xcb_con_error ||
+           c == (xcb_connection_t *) &xcb_con_closed_mem_er ||
+           c == (xcb_connection_t *) &xcb_con_closed_parse_er ||
+           c == (xcb_connection_t *) &xcb_con_closed_screen_er;
+}
 
 static int set_fd_flags(const int fd)
 {
 /* Win32 doesn't have file descriptors and the fcntl function. This block sets the socket in non-blocking mode */
 
 #ifdef _WIN32
-   u_long iMode = 1; /* non-zero puts it in non-blocking mode, 0 in blocking mode */   
+   u_long iMode = 1; /* non-zero puts it in non-blocking mode, 0 in blocking mode */
    int ret = 0;
 
    ret = ioctlsocket(fd, FIONBIO, &iMode);
-   if(ret != 0) 
+   if(ret != 0)
        return 0;
    return 1;
 #else
@@ -195,8 +204,8 @@ static int write_vec(xcb_connection_t *c, struct iovec **vector, int *count)
        an iovec would require more work and I'm not sure of the benefit....works for now */
     vec = *vector;
     while(i < *count)
-    {         	 
-         ret = send(c->fd,vec->iov_base,vec->iov_len,0);	 
+    {
+         ret = send(c->fd,vec->iov_base,vec->iov_len,0);
          if(ret == SOCKET_ERROR)
          {
              err  = WSAGetLastError();
@@ -212,7 +221,7 @@ static int write_vec(xcb_connection_t *c, struct iovec **vector, int *count)
 #else
     n = *count;
     if (n > IOV_MAX)
-	n = IOV_MAX;
+        n = IOV_MAX;
 
 #if HAVE_SENDMSG
     if (c->out.out_fd.nfd) {
@@ -250,7 +259,7 @@ static int write_vec(xcb_connection_t *c, struct iovec **vector, int *count)
             return 1;
     }
 
-#endif /* _WIN32 */    
+#endif /* _WIN32 */
 
     if(n <= 0)
     {
@@ -341,7 +350,7 @@ xcb_connection_t *xcb_connect_to_fd(int fd, xcb_auth_info_t *auth_info)
 
 void xcb_disconnect(xcb_connection_t *c)
 {
-    if(c->has_error)
+    if(c == NULL || is_static_error_conn(c))
         return;
 
     free(c->setup);

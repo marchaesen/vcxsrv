@@ -36,8 +36,8 @@
 #include <windef.h>
 
 struct iovec  {
-    void *iov_base;	/* Pointer to data.  */
-    int iov_len;	/* Length of data.  */ 
+    void *iov_base;    /* Pointer to data.  */
+    int iov_len;       /* Length of data.  */
 };
 
 typedef unsigned int in_addr_t;

@@ -160,6 +160,9 @@ _mesa_base_tex_format( struct gl_context *ctx, GLint internalFormat )
          case GL_DEPTH_COMPONENT24:
          case GL_DEPTH_COMPONENT32:
             return GL_DEPTH_COMPONENT;
+         case GL_DEPTH_STENCIL:
+         case GL_DEPTH24_STENCIL8:
+            return GL_DEPTH_STENCIL;
          default:
             ; /* fallthrough */
       }
@@ -299,14 +302,6 @@ _mesa_base_tex_format( struct gl_context *ctx, GLint internalFormat )
          default:
             ; /* fallthrough */
       }
-   }
-
-   switch (internalFormat) {
-   case GL_DEPTH_STENCIL:
-   case GL_DEPTH24_STENCIL8:
-      return GL_DEPTH_STENCIL;
-   default:
-      ; /* fallthrough */
    }
 
    if (ctx->Extensions.EXT_texture_sRGB) {
@@ -1662,7 +1657,10 @@ error_check_subtexture_dimensions(struct gl_context *ctx,
 
    /* check zoffset and depth */
    if (dims > 2) {
-      GLint zBorder = (target == GL_TEXTURE_2D_ARRAY) ? 0 : destImage->Border;
+      GLint zBorder = (target == GL_TEXTURE_2D_ARRAY ||
+                       target == GL_TEXTURE_CUBE_MAP_ARRAY) ?
+                         0 : destImage->Border;
+
       if (zoffset < -zBorder) {
          _mesa_error(ctx, GL_INVALID_VALUE, "%s3D(zoffset)", function);
          return GL_TRUE;

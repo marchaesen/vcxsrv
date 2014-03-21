@@ -505,9 +505,10 @@ XkbInitControls(DeviceIntPtr pXDev, XkbSrvInfoPtr xkbi)
     return Success;
 }
 
-_X_EXPORT Bool
-InitKeyboardDeviceStruct(DeviceIntPtr dev, XkbRMLVOSet * rmlvo,
-                         BellProcPtr bell_func, KbdCtrlProcPtr ctrl_func)
+static Bool
+InitKeyboardDeviceStructInternal(DeviceIntPtr dev, XkbRMLVOSet * rmlvo,
+                                 const char *keymap, int keymap_length,
+                                 BellProcPtr bell_func, KbdCtrlProcPtr ctrl_func)
 {
     int i;
     unsigned int check;
@@ -521,8 +522,9 @@ InitKeyboardDeviceStruct(DeviceIntPtr dev, XkbRMLVOSet * rmlvo,
     BUG_RETURN_VAL(dev == NULL, FALSE);
     BUG_RETURN_VAL(dev->key != NULL, FALSE);
     BUG_RETURN_VAL(dev->kbdfeed != NULL, FALSE);
+    BUG_RETURN_VAL(rmlvo && keymap, FALSE);
 
-    if (!rmlvo) {
+    if (!rmlvo && !keymap) {
         rmlvo = &rmlvo_dflts;
         XkbGetRulesDflts(rmlvo);
     }
@@ -550,7 +552,7 @@ InitKeyboardDeviceStruct(DeviceIntPtr dev, XkbRMLVOSet * rmlvo,
     }
     dev->key->xkbInfo = xkbi;
 
-    if (xkb_cached_map && !XkbCompareUsedRMLVO(rmlvo)) {
+    if (xkb_cached_map && (keymap || (rmlvo && !XkbCompareUsedRMLVO(rmlvo)))) {
         XkbFreeKeyboard(xkb_cached_map, XkbAllComponentsMask, TRUE);
         xkb_cached_map = NULL;
     }
@@ -558,7 +560,11 @@ InitKeyboardDeviceStruct(DeviceIntPtr dev, XkbRMLVOSet * rmlvo,
     if (xkb_cached_map)
         LogMessageVerb(X_INFO, 4, "XKB: Reusing cached keymap\n");
     else {
-        xkb_cached_map = XkbCompileKeymap(dev, rmlvo);
+        if (rmlvo)
+            xkb_cached_map = XkbCompileKeymap(dev, rmlvo);
+        else
+            xkb_cached_map = XkbCompileKeymapFromString(dev, keymap, keymap_length);
+
         if (!xkb_cached_map) {
             ErrorF("XKB: Failed to compile keymap\n");
             goto unwind_info;
@@ -627,8 +633,10 @@ InitKeyboardDeviceStruct(DeviceIntPtr dev, XkbRMLVOSet * rmlvo,
 
     dev->kbdfeed->CtrlProc(dev, &dev->kbdfeed->ctrl);
 
-    XkbSetRulesDflts(rmlvo);
-    XkbSetRulesUsed(rmlvo);
+    if (rmlvo) {
+        XkbSetRulesDflts(rmlvo);
+        XkbSetRulesUsed(rmlvo);
+    }
     XkbFreeRMLVOSet(&rmlvo_dflts, FALSE);
 
     return TRUE;
@@ -645,6 +653,24 @@ InitKeyboardDeviceStruct(DeviceIntPtr dev, XkbRMLVOSet * rmlvo,
     free(dev->key);
     dev->key = NULL;
     return FALSE;
+}
+
+_X_EXPORT Bool
+InitKeyboardDeviceStruct(DeviceIntPtr dev, XkbRMLVOSet * rmlvo,
+                         BellProcPtr bell_func, KbdCtrlProcPtr ctrl_func)
+{
+    return InitKeyboardDeviceStructInternal(dev, rmlvo,
+                                            NULL, 0, bell_func, ctrl_func);
+}
+
+_X_EXPORT Bool
+InitKeyboardDeviceStructFromString(DeviceIntPtr dev,
+                                   const char *keymap, int keymap_length,
+                                   BellProcPtr bell_func, KbdCtrlProcPtr ctrl_func)
+{
+    return InitKeyboardDeviceStructInternal(dev, NULL,
+                                            keymap, keymap_length,
+                                            bell_func, ctrl_func);
 }
 
 /***====================================================================***/

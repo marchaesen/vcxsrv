@@ -271,6 +271,29 @@ glamor_set_debug_level(int *debug_level)
 
 int glamor_debug_level;
 
+/**
+ * Creates any pixmaps used internally by glamor, since those can't be
+ * allocated at ScreenInit time.
+ */
+static Bool
+glamor_create_screen_resources(ScreenPtr screen)
+{
+    glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
+    Bool ret = TRUE;
+
+    screen->CreateScreenResources =
+        glamor_priv->saved_procs.create_screen_resources;
+    if (screen->CreateScreenResources)
+        ret = screen->CreateScreenResources(screen);
+    screen->CreateScreenResources = glamor_create_screen_resources;
+
+    if (!glamor_realize_glyph_caches(screen)) {
+        ErrorF("Failed to initialize glyph cache\n");
+        ret = FALSE;
+    }
+
+    return ret;
+}
 
 /** Set up glamor for an already-configured GL context. */
 Bool
@@ -290,6 +313,7 @@ glamor_init(ScreenPtr screen, unsigned int flags)
     if (glamor_priv == NULL)
         return FALSE;
 
+    glamor_priv->flags = flags;
     if (flags & GLAMOR_INVERTED_Y_AXIS) {
         glamor_priv->yInverted = TRUE;
     }
@@ -349,6 +373,7 @@ glamor_init(ScreenPtr screen, unsigned int flags)
         }
     }
 
+    glamor_priv->has_khr_debug = glamor_gl_has_extension("GL_KHR_debug");
     glamor_priv->has_pack_invert =
         glamor_gl_has_extension("GL_MESA_pack_invert");
     glamor_priv->has_fbo_blit =
@@ -373,6 +398,10 @@ glamor_init(ScreenPtr screen, unsigned int flags)
 
     glamor_priv->saved_procs.close_screen = screen->CloseScreen;
     screen->CloseScreen = glamor_close_screen;
+
+    glamor_priv->saved_procs.create_screen_resources =
+        screen->CreateScreenResources;
+    screen->CreateScreenResources = glamor_create_screen_resources;
 
     if (flags & GLAMOR_USE_SCREEN) {
         if (!RegisterBlockAndWakeupHandlers(_glamor_block_handler,
@@ -457,8 +486,8 @@ glamor_init(ScreenPtr screen, unsigned int flags)
     glamor_init_xv_shader(screen);
 #endif
     glamor_pixmap_init(screen);
+    glamor_glyphs_init(screen);
 
-    glamor_priv->flags = flags;
     glamor_priv->screen = screen;
 
     return TRUE;
@@ -535,6 +564,8 @@ glamor_close_screen(ScreenPtr screen)
     flags = glamor_priv->flags;
     glamor_glyphs_fini(screen);
     screen->CloseScreen = glamor_priv->saved_procs.close_screen;
+    screen->CreateScreenResources =
+        glamor_priv->saved_procs.create_screen_resources;
     if (flags & GLAMOR_USE_SCREEN) {
 
         screen->CreateGC = glamor_priv->saved_procs.create_gc;
@@ -617,7 +648,7 @@ glamor_fd_from_pixmap(ScreenPtr screen,
 }
 
 int
-glamor_name_from_pixmap(PixmapPtr pixmap)
+glamor_name_from_pixmap(PixmapPtr pixmap, CARD16 *stride, CARD32 *size)
 {
     glamor_pixmap_private *pixmap_priv;
     glamor_screen_private *glamor_priv =
@@ -633,7 +664,7 @@ glamor_name_from_pixmap(PixmapPtr pixmap)
         return glamor_egl_dri3_fd_name_from_tex(pixmap->drawable.pScreen,
                                                 pixmap,
                                                 pixmap_priv->base.fbo->tex,
-                                                TRUE, NULL, NULL);
+                                                TRUE, stride, size);
     default:
         break;
     }
