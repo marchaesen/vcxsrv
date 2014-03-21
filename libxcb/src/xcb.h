@@ -324,7 +324,7 @@ typedef struct xcb_special_event xcb_special_event_t;
  */
 xcb_generic_event_t *xcb_poll_for_special_event(xcb_connection_t *c,
                                                 xcb_special_event_t *se);
- 
+
 /**
  * @brief Returns the next event from a special queue, blocking until one arrives
  */
@@ -335,7 +335,6 @@ xcb_generic_event_t *xcb_wait_for_special_event(xcb_connection_t *c,
  */
 typedef struct xcb_extension_t xcb_extension_t;  /**< Opaque structure used as key for xcb_get_extension_data_t. */
 
- 
 /**
  * @brief Listen for a special event
  */
@@ -489,7 +488,7 @@ xcb_connection_t *xcb_connect_to_fd(int fd, xcb_auth_info_t *auth_info);
  * @param c: The connection.
  *
  * Closes the file descriptor and frees all memory associated with the
- * connection @c c.
+ * connection @c c. If @p c is @c NULL, nothing is done.
  */
 void xcb_disconnect(xcb_connection_t *c);
 

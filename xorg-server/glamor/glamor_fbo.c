@@ -505,7 +505,7 @@ glamor_pixmap_attach_fbo(PixmapPtr pixmap, glamor_pixmap_fbo *fbo)
     case GLAMOR_TEXTURE_LARGE:
     case GLAMOR_TEXTURE_ONLY:
     case GLAMOR_TEXTURE_DRM:
-        pixmap_priv->base.gl_fbo = 1;
+        pixmap_priv->base.gl_fbo = GLAMOR_FBO_NORMAL;
         if (fbo->tex != 0)
             pixmap_priv->base.gl_tex = 1;
         else {

@@ -109,7 +109,7 @@ glamor_init_xv_shader(ScreenPtr screen)
                          GLAMOR_VERTEX_POS, "v_position");
     glBindAttribLocation(glamor_priv->xv_prog,
                          GLAMOR_VERTEX_SOURCE, "v_texcoord0");
-    glamor_link_glsl_prog(glamor_priv->xv_prog);
+    glamor_link_glsl_prog(screen, glamor_priv->xv_prog, "xv");
 
     glamor_put_context(glamor_priv);
 }
@@ -416,7 +416,6 @@ glamor_display_textured_video(glamor_port_private *port_priv)
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
 
-    glUseProgram(0);
     glamor_put_context(glamor_priv);
     DamageDamageRegion(port_priv->pDraw, &port_priv->clip);
 }

@@ -332,7 +332,7 @@ glamor_create_composite_shader(ScreenPtr screen, struct shader_key *key,
     glBindAttribLocation(prog, GLAMOR_VERTEX_SOURCE, "v_texcoord0");
     glBindAttribLocation(prog, GLAMOR_VERTEX_MASK, "v_texcoord1");
 
-    glamor_link_glsl_prog(prog);
+    glamor_link_glsl_prog(screen, prog, "composite");
 
     shader->prog = prog;
 
@@ -961,11 +961,7 @@ glamor_composite_choose_shader(CARD8 op,
              * Does it need special handle? */
             glamor_fallback("source == dest\n");
         }
-        if (source_pixmap_priv->base.gl_fbo == 0) {
-            /* XXX in Xephyr, we may have gl_fbo equal to 1 but gl_tex
-             * equal to zero when the pixmap is screen pixmap. Then we may
-             * refer the tex zero directly latter in the composition.
-             * It seems that it works fine, but it may have potential problem*/
+        if (source_pixmap_priv->base.gl_fbo == GLAMOR_FBO_UNATTACHED) {
 #ifdef GLAMOR_PIXMAP_DYNAMIC_UPLOAD
             source_status = GLAMOR_UPLOAD_PENDING;
 #else
@@ -982,7 +978,7 @@ glamor_composite_choose_shader(CARD8 op,
             glamor_fallback("mask == dest\n");
             goto fail;
         }
-        if (mask_pixmap_priv->base.gl_fbo == 0) {
+        if (mask_pixmap_priv->base.gl_fbo == GLAMOR_FBO_UNATTACHED) {
 #ifdef GLAMOR_PIXMAP_DYNAMIC_UPLOAD
             mask_status = GLAMOR_UPLOAD_PENDING;
 #else
@@ -1339,7 +1335,6 @@ glamor_composite_with_shader(CARD8 op,
     glDisableVertexAttribArray(GLAMOR_VERTEX_MASK);
     glDisable(GL_BLEND);
     DEBUGF("finish rendering.\n");
-    glUseProgram(0);
     glamor_priv->state = RENDER_STATE;
     glamor_priv->render_idle_cnt = 0;
     if (saved_source_format)
@@ -1788,22 +1783,17 @@ _glamor_composite(CARD8 op,
     if (mask && mask->pDrawable && !mask->transform)
         GET_SUB_PICTURE(mask, GLAMOR_ACCESS_RO);
 
-    if (glamor_prepare_access_picture(dest, GLAMOR_ACCESS_RW)) {
-        if (source_pixmap == dest_pixmap || glamor_prepare_access_picture
-            (source, GLAMOR_ACCESS_RO)) {
-            if (!mask || glamor_prepare_access_picture(mask, GLAMOR_ACCESS_RO)) {
-                fbComposite(op,
-                            source, mask, dest,
-                            x_source, y_source,
-                            x_mask, y_mask, x_dest, y_dest, width, height);
-                if (mask)
-                    glamor_finish_access_picture(mask, GLAMOR_ACCESS_RO);
-            }
-            if (source_pixmap != dest_pixmap)
-                glamor_finish_access_picture(source, GLAMOR_ACCESS_RO);
-        }
-        glamor_finish_access_picture(dest, GLAMOR_ACCESS_RW);
+    if (glamor_prepare_access_picture(dest, GLAMOR_ACCESS_RW) &&
+        glamor_prepare_access_picture(source, GLAMOR_ACCESS_RO) &&
+        glamor_prepare_access_picture(mask, GLAMOR_ACCESS_RO)) {
+        fbComposite(op,
+                    source, mask, dest,
+                    x_source, y_source,
+                    x_mask, y_mask, x_dest, y_dest, width, height);
     }
+    glamor_finish_access_picture(mask);
+    glamor_finish_access_picture(source);
+    glamor_finish_access_picture(dest);
 
 #define PUT_SUB_PICTURE(p, access)		do {				\
 	if (sub_ ##p ##_pixmap != NULL) {					\

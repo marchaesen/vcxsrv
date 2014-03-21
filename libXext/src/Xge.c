@@ -265,9 +265,6 @@ _xgeWireToEvent(Display* dpy, XEvent* re, xEvent *event)
         it = it->next;
     }
 
-    fprintf(stderr,
-        "_xgeWireToEvent: Unknown extension %d, this should never happen.\n",
-            extension);
     return False;
 }
 
@@ -294,10 +291,6 @@ _xgeEventToWire(Display* dpy, XEvent* re, xEvent* event)
         }
         it = it->next;
     }
-
-    fprintf(stderr,
-        "_xgeEventToWire: Unknown extension %d, this should never happen.\n",
-        extension);
 
     return Success;
 }

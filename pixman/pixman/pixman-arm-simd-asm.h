@@ -741,12 +741,9 @@ fname:
         preload_leading_step1  mask_bpp, WK2, MASK
         preload_leading_step1  dst_r_bpp, WK3, DST
         
-        tst     DST, #15
+        ands    WK0, DST, #15
         beq     154f
-        rsb     WK0, DST, #0 /* bits 0-3 = number of leading bytes until destination aligned */
-  .if (src_bpp != 0 && src_bpp != 2*dst_w_bpp) || (mask_bpp != 0 && mask_bpp != 2*dst_w_bpp)
-        PF  and,    WK0, WK0, #15
-  .endif
+        rsb     WK0, WK0, #16 /* number of leading bytes until destination aligned */
 
         preload_leading_step2  src_bpp, src_bpp_shift, WK1, SRC
         preload_leading_step2  mask_bpp, mask_bpp_shift, WK2, MASK
@@ -755,18 +752,18 @@ fname:
         leading_15bytes  process_head, process_tail
         
 154:    /* Destination now 16-byte aligned; we have at least one prefetch on each channel as well as at least one 16-byte output block */
- .if (src_bpp > 0) && (mask_bpp == 0) && ((flags) & FLAG_PROCESS_PRESERVES_SCRATCH)
+  .if (src_bpp > 0) && (mask_bpp == 0) && ((flags) & FLAG_PROCESS_PRESERVES_SCRATCH)
         and     SCRATCH, SRC, #31
         rsb     SCRATCH, SCRATCH, #32*prefetch_distance
- .elseif (src_bpp == 0) && (mask_bpp > 0) && ((flags) & FLAG_PROCESS_PRESERVES_SCRATCH)
+  .elseif (src_bpp == 0) && (mask_bpp > 0) && ((flags) & FLAG_PROCESS_PRESERVES_SCRATCH)
         and     SCRATCH, MASK, #31
         rsb     SCRATCH, SCRATCH, #32*prefetch_distance
- .endif
- .ifc "process_inner_loop",""
+  .endif
+  .ifc "process_inner_loop",""
         switch_on_alignment  wide_case_inner_loop_and_trailing_pixels, process_head, process_tail, wide_case_inner_loop, 157f
- .else
+  .else
         switch_on_alignment  wide_case_inner_loop_and_trailing_pixels, process_head, process_tail, process_inner_loop, 157f
- .endif
+  .endif
 
 157:    /* Check for another line */
         end_of_line 1, %((flags) & FLAG_SPILL_LINE_VARS_WIDE), 151b
@@ -787,9 +784,9 @@ fname:
         preload_line 0, dst_r_bpp, dst_bpp_shift, DST
         
         sub     X, X, #128/dst_w_bpp     /* simplifies inner loop termination */
-        tst     DST, #15
+        ands    WK0, DST, #15
         beq     164f
-        rsb     WK0, DST, #0 /* bits 0-3 = number of leading bytes until destination aligned */
+        rsb     WK0, WK0, #16 /* number of leading bytes until destination aligned */
         
         leading_15bytes  process_head, process_tail
         

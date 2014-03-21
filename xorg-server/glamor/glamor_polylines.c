@@ -51,8 +51,9 @@ _glamor_poly_lines(DrawablePtr drawable, GCPtr gc, int mode, int n,
         /* This ends up in miSetSpans, which is accelerated as well as we
          * can hope X wide lines will be.
          */
-        goto wide_line;
+        goto fail;
     }
+
     if (gc->lineStyle != LineSolid) {
         glamor_fallback("non-solid fill line style %d\n", gc->lineStyle);
         goto fail;
@@ -104,20 +105,19 @@ _glamor_poly_lines(DrawablePtr drawable, GCPtr gc, int mode, int n,
         && glamor_ddx_fallback_check_gc(gc))
         return FALSE;
 
-    if (gc->lineWidth == 0) {
-        if (glamor_prepare_access(drawable, GLAMOR_ACCESS_RW)) {
-            if (glamor_prepare_access_gc(gc)) {
-                fbPolyLine(drawable, gc, mode, n, points);
-                glamor_finish_access_gc(gc);
-            }
-            glamor_finish_access(drawable, GLAMOR_ACCESS_RW);
-        }
+    switch (gc->lineStyle) {
+    case LineSolid:
+        if (gc->lineWidth == 0)
+            miZeroLine(drawable, gc, mode, n, points);
+        else
+            miWideLine(drawable, gc, mode, n, points);
+        break;
+    case LineOnOffDash:
+    case LineDoubleDash:
+        miWideDash(drawable, gc, mode, n, points);
+        break;
     }
-    else {
- wide_line:
-        /* fb calls mi functions in the lineWidth != 0 case. */
-        fbPolyLine(drawable, gc, mode, n, points);
-    }
+
     return TRUE;
 }
 

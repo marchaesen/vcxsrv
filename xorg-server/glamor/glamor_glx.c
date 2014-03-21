@@ -53,13 +53,7 @@ glamor_glx_get_context(struct glamor_context *glamor_ctx)
 static void
 glamor_glx_put_context(struct glamor_context *glamor_ctx)
 {
-    if (--glamor_ctx->get_count)
-        return;
-
-    /* We actually reset the context, so that indirect GLX's EGL usage
-     * won't get confused by ours.
-     */
-    glXMakeCurrent(glamor_ctx->display, None, NULL);
+    --glamor_ctx->get_count;
 }
 
 Bool

@@ -132,16 +132,26 @@ static void check_program_state( struct st_context *st )
 static void check_attrib_edgeflag(struct st_context *st)
 {
    const struct gl_client_array **arrays = st->ctx->Array._DrawArrays;
-   GLboolean vertDataEdgeFlags;
+   GLboolean vertdata_edgeflags, edgeflag_culls_prims, edgeflags_enabled;
 
    if (!arrays)
       return;
 
-   vertDataEdgeFlags = arrays[VERT_ATTRIB_EDGEFLAG]->BufferObj &&
-                       arrays[VERT_ATTRIB_EDGEFLAG]->BufferObj->Name;
-   if (vertDataEdgeFlags != st->vertdata_edgeflags) {
-      st->vertdata_edgeflags = vertDataEdgeFlags;
-      st->dirty.st |= ST_NEW_EDGEFLAGS_DATA;
+   edgeflags_enabled = st->ctx->Polygon.FrontMode != GL_FILL ||
+                       st->ctx->Polygon.BackMode != GL_FILL;
+
+   vertdata_edgeflags = edgeflags_enabled &&
+                        arrays[VERT_ATTRIB_EDGEFLAG]->StrideB != 0;
+   if (vertdata_edgeflags != st->vertdata_edgeflags) {
+      st->vertdata_edgeflags = vertdata_edgeflags;
+      st->dirty.st |= ST_NEW_VERTEX_PROGRAM;
+   }
+
+   edgeflag_culls_prims = edgeflags_enabled && !vertdata_edgeflags &&
+                          !st->ctx->Current.Attrib[VERT_ATTRIB_EDGEFLAG][0];
+   if (edgeflag_culls_prims != st->edgeflag_culls_prims) {
+      st->edgeflag_culls_prims = edgeflag_culls_prims;
+      st->dirty.st |= ST_NEW_RASTERIZER;
    }
 }
 

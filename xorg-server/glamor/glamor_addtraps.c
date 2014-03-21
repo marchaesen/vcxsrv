@@ -40,8 +40,8 @@ _glamor_add_traps(PicturePtr pPicture,
 
     if (glamor_prepare_access_picture(pPicture, GLAMOR_ACCESS_RW)) {
         fbAddTraps(pPicture, x_off, y_off, ntrap, traps);
-        glamor_finish_access_picture(pPicture, GLAMOR_ACCESS_RW);
     }
+    glamor_finish_access_picture(pPicture);
 
     return TRUE;
 }

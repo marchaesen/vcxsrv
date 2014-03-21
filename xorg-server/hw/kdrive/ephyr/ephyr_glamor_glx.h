@@ -51,6 +51,10 @@ ephyr_glamor_glx_screen_fini(struct ephyr_glamor *glamor);
 
 #ifdef GLAMOR
 void
+ephyr_glamor_set_window_size(struct ephyr_glamor *glamor,
+                             unsigned width, unsigned height);
+
+void
 ephyr_glamor_damage_redisplay(struct ephyr_glamor *glamor,
                               struct pixman_region16 *damage);
 
@@ -58,6 +62,12 @@ void
 ephyr_glamor_process_event(xcb_generic_event_t *xev);
 
 #else /* !GLAMOR */
+
+static inline void
+ephyr_glamor_set_window_size(struct ephyr_glamor *glamor,
+                             unsigned width, unsigned height)
+{
+}
 
 static inline void
 ephyr_glamor_damage_redisplay(struct ephyr_glamor *glamor,

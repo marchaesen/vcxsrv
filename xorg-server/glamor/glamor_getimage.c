@@ -44,8 +44,6 @@ _glamor_get_image(DrawablePtr drawable, int x, int y, int w, int h,
 
     if (format != ZPixmap)
         goto fall_back;
-    pixmap = glamor_get_drawable_pixmap(drawable);
-    glamor_get_drawable_deltas(drawable, pixmap, &x_off, &y_off);
 
     if (!glamor_set_planemask(pixmap, planeMask)) {
         glamor_fallback("Failedto set planemask  in glamor_solid.\n");

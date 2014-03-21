@@ -137,7 +137,7 @@ glamor_copy_n_to_n_textured(DrawablePtr src,
     src_pixmap_priv = glamor_get_pixmap_private(src_pixmap);
     dst_pixmap_priv = glamor_get_pixmap_private(dst_pixmap);
 
-    if (!src_pixmap_priv->base.gl_fbo) {
+    if (src_pixmap_priv->base.gl_fbo == GLAMOR_FBO_UNATTACHED) {
 #ifndef GLAMOR_PIXMAP_DYNAMIC_UPLOAD
         glamor_delayed_fallback(dst->pScreen, "src has no fbo.\n");
         return FALSE;
@@ -205,7 +205,6 @@ glamor_copy_n_to_n_textured(DrawablePtr src,
 
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
-    glUseProgram(0);
     /* The source texture is bound to a fbo, we have to flush it here. */
     glamor_put_context(glamor_priv);
     glamor_priv->state = RENDER_STATE;
@@ -570,15 +569,15 @@ _glamor_copy_n_to_n(DrawablePtr src,
                     glamor_get_drawable_location(src),
                     glamor_get_drawable_location(dst));
 
-    if (glamor_prepare_access(dst, GLAMOR_ACCESS_RW)) {
-        if (dst == src || glamor_prepare_access(src, GLAMOR_ACCESS_RO)) {
-            fbCopyNtoN(src, dst, gc, box, nbox,
-                       dx, dy, reverse, upsidedown, bitplane, closure);
-            if (dst != src)
-                glamor_finish_access(src, GLAMOR_ACCESS_RO);
-        }
-        glamor_finish_access(dst, GLAMOR_ACCESS_RW);
+    if (glamor_prepare_access(dst, GLAMOR_ACCESS_RW) &&
+        glamor_prepare_access(src, GLAMOR_ACCESS_RO) &&
+        glamor_prepare_access_gc(gc)) {
+        fbCopyNtoN(src, dst, gc, box, nbox,
+                   dx, dy, reverse, upsidedown, bitplane, closure);
     }
+    glamor_finish_access_gc(gc);
+    glamor_finish_access(src);
+    glamor_finish_access(dst);
     ok = TRUE;
 
  done:

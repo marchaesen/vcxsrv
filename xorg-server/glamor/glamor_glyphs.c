@@ -303,7 +303,7 @@ glamor_glyphs_fini(ScreenPtr pScreen)
  * rest of the allocated structures for all caches with the given format.
  */
 
-static Bool
+Bool
 glamor_realize_glyph_caches(ScreenPtr pScreen)
 {
     glamor_screen_private *glamor = glamor_get_screen_private(pScreen);
@@ -314,10 +314,6 @@ glamor_realize_glyph_caches(ScreenPtr pScreen)
     };
     int i;
 
-    if (glamor->glyph_cache_initialized)
-        return TRUE;
-
-    glamor->glyph_cache_initialized = TRUE;
     memset(glamor->glyphCaches, 0, sizeof(glamor->glyphCaches));
 
     for (i = 0; i < sizeof(formats) / sizeof(formats[0]); i++) {
@@ -370,16 +366,27 @@ glamor_realize_glyph_caches(ScreenPtr pScreen)
     return FALSE;
 }
 
+/**
+ * Called by glamor_create_screen_resources() to set up the glyph cache.
+ *
+ * This was previously required to be called by the drivers, but not
+ * as of the xserver 1.16 ABI.
+ */
 Bool
 glamor_glyphs_init(ScreenPtr pScreen)
 {
+    glamor_screen_private *glamor = glamor_get_screen_private(pScreen);
+
+    if (glamor->glyph_cache_initialized)
+        return TRUE;
+
     if (!dixRegisterPrivateKey(&glamor_glyph_key,
                                PRIVATE_GLYPH, sizeof(struct glamor_glyph)))
         return FALSE;
 
-    /* Skip pixmap creation if we don't intend to use it. */
+    glamor->glyph_cache_initialized = TRUE;
 
-    return glamor_realize_glyph_caches(pScreen);
+    return TRUE;
 }
 
 /* The most efficient thing to way to upload the glyph to the screen

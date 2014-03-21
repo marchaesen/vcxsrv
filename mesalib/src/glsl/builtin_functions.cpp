@@ -194,13 +194,6 @@ shader_integer_mix(const _mesa_glsl_parse_state *state)
 }
 
 static bool
-shader_packing(const _mesa_glsl_parse_state *state)
-{
-   return state->ARB_shading_language_packing_enable ||
-          state->is_version(400, 0);
-}
-
-static bool
 shader_packing_or_es3(const _mesa_glsl_parse_state *state)
 {
    return state->ARB_shading_language_packing_enable ||
@@ -208,9 +201,24 @@ shader_packing_or_es3(const _mesa_glsl_parse_state *state)
 }
 
 static bool
+shader_packing_or_es3_or_gpu_shader5(const _mesa_glsl_parse_state *state)
+{
+   return state->ARB_shading_language_packing_enable ||
+          state->ARB_gpu_shader5_enable ||
+          state->is_version(400, 300);
+}
+
+static bool
 gpu_shader5(const _mesa_glsl_parse_state *state)
 {
    return state->is_version(400, 0) || state->ARB_gpu_shader5_enable;
+}
+
+static bool
+shader_packing_or_gpu_shader5(const _mesa_glsl_parse_state *state)
+{
+   return state->ARB_shading_language_packing_enable ||
+          gpu_shader5(state);
 }
 
 static bool
@@ -991,16 +999,16 @@ builtin_builder::create_builtins()
                 _uintBitsToFloat(glsl_type::uvec4_type),
                 NULL);
 
-   add_function("packUnorm2x16",   _packUnorm2x16(shader_packing_or_es3),   NULL);
-   add_function("packSnorm2x16",   _packSnorm2x16(shader_packing_or_es3),   NULL);
-   add_function("packUnorm4x8",    _packUnorm4x8(shader_packing),           NULL);
-   add_function("packSnorm4x8",    _packSnorm4x8(shader_packing),           NULL);
-   add_function("unpackUnorm2x16", _unpackUnorm2x16(shader_packing_or_es3), NULL);
-   add_function("unpackSnorm2x16", _unpackSnorm2x16(shader_packing_or_es3), NULL);
-   add_function("unpackUnorm4x8",  _unpackUnorm4x8(shader_packing),         NULL);
-   add_function("unpackSnorm4x8",  _unpackSnorm4x8(shader_packing),         NULL);
-   add_function("packHalf2x16",    _packHalf2x16(shader_packing_or_es3),    NULL);
-   add_function("unpackHalf2x16",  _unpackHalf2x16(shader_packing_or_es3),  NULL);
+   add_function("packUnorm2x16",   _packUnorm2x16(shader_packing_or_es3_or_gpu_shader5),   NULL);
+   add_function("packSnorm2x16",   _packSnorm2x16(shader_packing_or_es3),                  NULL);
+   add_function("packUnorm4x8",    _packUnorm4x8(shader_packing_or_gpu_shader5),           NULL);
+   add_function("packSnorm4x8",    _packSnorm4x8(shader_packing_or_gpu_shader5),           NULL);
+   add_function("unpackUnorm2x16", _unpackUnorm2x16(shader_packing_or_es3_or_gpu_shader5), NULL);
+   add_function("unpackSnorm2x16", _unpackSnorm2x16(shader_packing_or_es3),                NULL);
+   add_function("unpackUnorm4x8",  _unpackUnorm4x8(shader_packing_or_gpu_shader5),         NULL);
+   add_function("unpackSnorm4x8",  _unpackSnorm4x8(shader_packing_or_gpu_shader5),         NULL);
+   add_function("packHalf2x16",    _packHalf2x16(shader_packing_or_es3),                   NULL);
+   add_function("unpackHalf2x16",  _unpackHalf2x16(shader_packing_or_es3),                 NULL);
 
    F(length)
    F(distance)
@@ -3041,7 +3049,7 @@ builtin_builder::_length(const glsl_type *type)
    ir_variable *x = in_var(type, "x");
    MAKE_SIG(glsl_type::float_type, always_available, 1, x);
 
-   body.emit(ret(sqrt(dotlike(x, x))));
+   body.emit(ret(sqrt(dot(x, x))));
 
    return sig;
 }
@@ -3131,7 +3139,7 @@ builtin_builder::_faceforward(const glsl_type *type)
    ir_variable *Nref = in_var(type, "Nref");
    MAKE_SIG(type, always_available, 3, N, I, Nref);
 
-   body.emit(if_tree(less(dotlike(Nref, I), imm(0.0f)),
+   body.emit(if_tree(less(dot(Nref, I), imm(0.0f)),
                      ret(N), ret(neg(N))));
 
    return sig;
@@ -3145,7 +3153,7 @@ builtin_builder::_reflect(const glsl_type *type)
    MAKE_SIG(type, always_available, 2, I, N);
 
    /* I - 2 * dot(N, I) * N */
-   body.emit(ret(sub(I, mul(imm(2.0f), mul(dotlike(N, I), N)))));
+   body.emit(ret(sub(I, mul(imm(2.0f), mul(dot(N, I), N)))));
 
    return sig;
 }
@@ -3159,7 +3167,7 @@ builtin_builder::_refract(const glsl_type *type)
    MAKE_SIG(type, always_available, 3, I, N, eta);
 
    ir_variable *n_dot_i = body.make_temp(glsl_type::float_type, "n_dot_i");
-   body.emit(assign(n_dot_i, dotlike(N, I)));
+   body.emit(assign(n_dot_i, dot(N, I)));
 
    /* From the GLSL 1.10 specification:
     * k = 1.0 - eta * eta * (1.0 - dot(N, I) * dot(N, I))

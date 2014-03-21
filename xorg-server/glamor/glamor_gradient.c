@@ -377,9 +377,7 @@ _glamor_create_radial_gradient_program(ScreenPtr screen, int stops_count,
     glBindAttribLocation(gradient_prog, GLAMOR_VERTEX_POS, "v_position");
     glBindAttribLocation(gradient_prog, GLAMOR_VERTEX_SOURCE, "v_texcoord");
 
-    glamor_link_glsl_prog(gradient_prog);
-
-    glUseProgram(0);
+    glamor_link_glsl_prog(screen, gradient_prog, "radial gradient");
 
     if (dyn_gen) {
         index = 2;
@@ -590,9 +588,7 @@ _glamor_create_linear_gradient_program(ScreenPtr screen, int stops_count,
     glBindAttribLocation(gradient_prog, GLAMOR_VERTEX_POS, "v_position");
     glBindAttribLocation(gradient_prog, GLAMOR_VERTEX_SOURCE, "v_texcoord");
 
-    glamor_link_glsl_prog(gradient_prog);
-
-    glUseProgram(0);
+    glamor_link_glsl_prog(screen, gradient_prog, "linear gradient");
 
     if (dyn_gen) {
         index = 2;
@@ -983,8 +979,6 @@ glamor_generate_radial_gradient_picture(ScreenPtr screen,
                                                         "repeat_type");
     n_stop_uniform_location = glGetUniformLocation(gradient_prog, "n_stop");
     A_value_uniform_location = glGetUniformLocation(gradient_prog, "A_value");
-    repeat_type_uniform_location =glGetUniformLocation(gradient_prog,
-                                                       "repeat_type");
     c1_uniform_location = glGetUniformLocation(gradient_prog, "c1");
     r1_uniform_location = glGetUniformLocation(gradient_prog, "r1");
     c2_uniform_location = glGetUniformLocation(gradient_prog, "c2");
@@ -1171,7 +1165,6 @@ glamor_generate_radial_gradient_picture(ScreenPtr screen,
 
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
-    glUseProgram(0);
 
     glamor_put_context(glamor_priv);
     return dst_picture;
@@ -1193,7 +1186,6 @@ glamor_generate_radial_gradient_picture(ScreenPtr screen,
 
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
-    glUseProgram(0);
     glamor_put_context(glamor_priv);
     return NULL;
 }
@@ -1524,7 +1516,6 @@ glamor_generate_linear_gradient_picture(ScreenPtr screen,
 
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
-    glUseProgram(0);
 
     glamor_put_context(glamor_priv);
     return dst_picture;
@@ -1546,7 +1537,6 @@ glamor_generate_linear_gradient_picture(ScreenPtr screen,
 
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
-    glUseProgram(0);
     glamor_put_context(glamor_priv);
     return NULL;
 }
