@@ -60,6 +60,7 @@
 #include "window.h"
 #include "pixmapstr.h"
 #include "windowstr.h"
+#include "winglobals.h"
 
 #ifdef XWIN_MULTIWINDOWEXTWM
 #include <X11/extensions/windowswmstr.h>
@@ -67,6 +68,10 @@
 /* We need the native HWND atom for intWM, so for consistency use the
    same name as extWM would if we were building with enabled... */
 #define WINDOWSWM_NATIVE_HWND "_WINDOWSWM_NATIVE_HWND"
+#endif
+
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 255
 #endif
 
 extern void winDebug(const char *format, ...);
@@ -430,7 +435,10 @@ GetWindowName(Display * pDisplay, Window iWin, char **ppWindowName)
 {
     int nResult;
     XTextProperty xtpWindowName;
+    XTextProperty xtpClientMachine;
     char *pszWindowName;
+    char *pszClientMachine;
+    char hostname[HOST_NAME_MAX + 1];
 
 #if CYGMULTIWINDOW_DEBUG
     ErrorF("GetWindowName\n");
@@ -450,6 +458,41 @@ GetWindowName(Display * pDisplay, Window iWin, char **ppWindowName)
 
     pszWindowName = Xutf8TextPropertyToString(pDisplay, &xtpWindowName);
     XFree(xtpWindowName.value);
+
+    if (g_fHostInTitle) {
+        /* Try to get client machine name */
+        nResult = XGetWMClientMachine(pDisplay, iWin, &xtpClientMachine);
+        if (nResult && xtpClientMachine.value && xtpClientMachine.nitems) {
+            pszClientMachine =
+                Xutf8TextPropertyToString(pDisplay, &xtpClientMachine);
+            XFree(xtpClientMachine.value);
+
+            /*
+               If we have a client machine name
+               and it's not the local host name
+               and it's not already in the window title...
+             */
+            if (strlen(pszClientMachine) &&
+                !gethostname(hostname, HOST_NAME_MAX + 1) &&
+                strcmp(hostname, pszClientMachine) &&
+                (strstr(pszWindowName, pszClientMachine) == 0)) {
+                /* ... add '@<clientmachine>' to end of window name */
+                *ppWindowName =
+                    malloc(strlen(pszWindowName) +
+                           strlen(pszClientMachine) + 2);
+                strcpy(*ppWindowName, pszWindowName);
+                strcat(*ppWindowName, "@");
+                strcat(*ppWindowName, pszClientMachine);
+
+                free(pszWindowName);
+                free(pszClientMachine);
+
+                return;
+            }
+        }
+    }
+
+    /* otherwise just return the window name */
     *ppWindowName = pszWindowName;
 }
 
@@ -1618,10 +1661,10 @@ winDeinitMultiWindowWM(void)
 }
 
 /* Windows window styles */
-#define HINT_NOFRAME	(1l<<0)
+#define HINT_NOFRAME	(1L<<0)
 #define HINT_BORDER	(1L<<1)
-#define HINT_SIZEBOX	(1l<<2)
-#define HINT_CAPTION	(1l<<3)
+#define HINT_SIZEBOX	(1L<<2)
+#define HINT_CAPTION	(1L<<3)
 #define HINT_NOMAXIMIZE (1L<<4)
 #define HINT_NOMINIMIZE (1L<<5)
 #define HINT_NOSYSMENU  (1L<<6)

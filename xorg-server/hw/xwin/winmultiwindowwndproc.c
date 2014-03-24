@@ -316,6 +316,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     static Bool s_fTracking = FALSE;
     Bool needRestack = FALSE;
     LRESULT ret;
+    static Bool hasEnteredSizeMove = FALSE;
 
 #if CYGDEBUG
     winDebugWin32Message("winTopLevelWindowProc", hwnd, message, wParam,
@@ -837,7 +838,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_CLOSE:
-        /* Removep AppUserModelID property */
+        /* Remove AppUserModelID property */
         winSetAppUserModelID(hwnd, NULL);
         /* Branch on if the window was killed in X already */
         if (pWinPriv->fXKilled) {
@@ -872,7 +873,9 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_MOVE:
         /* Adjust the X Window to the moved Windows window */
-        winAdjustXWindow(pWin, hwnd);
+        if (!hasEnteredSizeMove)
+            winAdjustXWindow(pWin, hwnd);
+        /* else: Wait for WM_EXITSIZEMOVE */
         return 0;
 
     case WM_SHOWWINDOW:
@@ -1005,6 +1008,16 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
          */
         break;
 
+    case WM_ENTERSIZEMOVE:
+        hasEnteredSizeMove = TRUE;
+        return 0;
+
+    case WM_EXITSIZEMOVE:
+        /* Adjust the X Window to the moved Windows window */
+        hasEnteredSizeMove = FALSE;
+        winAdjustXWindow(pWin, hwnd);
+        return 0;
+
     case WM_SIZE:
         /* see dix/window.c */
 #if CYGWINDOWING_DEBUG
@@ -1029,8 +1042,11 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                (int) (GetTickCount()));
     }
 #endif
-        /* Adjust the X Window to the moved Windows window */
-        winAdjustXWindow(pWin, hwnd);
+        if (!hasEnteredSizeMove) {
+            /* Adjust the X Window to the moved Windows window */
+            winAdjustXWindow(pWin, hwnd);
+        }
+        /* else: wait for WM_EXITSIZEMOVE */
         return 0;               /* end of WM_SIZE handler */
 
     case WM_STYLECHANGING:

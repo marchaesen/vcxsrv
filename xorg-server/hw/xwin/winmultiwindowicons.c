@@ -372,13 +372,12 @@ winXIconToHICON(Display * pDisplay, Window id, int iconSize)
     unsigned char *mask, *image = NULL, *imageMask;
     unsigned char *dst, *src;
     int planes, bpp, i;
-    int biggest_size = 0;
+    unsigned int biggest_size = 0;
     HDC hDC;
     ICONINFO ii;
     XWMHints *hints;
     HICON hIcon = NULL;
     uint32_t *biggest_icon = NULL;
-
     static Atom _XA_NET_WM_ICON;
     static int generation;
     uint32_t *icon, *icon_data = NULL;
@@ -405,10 +404,25 @@ winXIconToHICON(Display * pDisplay, Window id, int iconSize)
         (icon_data != NULL)) {
         for (icon = icon_data; icon < &icon_data[size] && *icon;
              icon = &icon[icon[0] * icon[1] + 2]) {
-            /* Find an exact match to the size we require...  */
+            winDebug("winXIconToHICON: %u x %u NetIcon\n", icon[0], icon[1]);
+
+            /* Icon data size will overflow an int and thus is bigger than the
+               property can possibly be */
+            if ((INT_MAX/icon[0]) < icon[1]) {
+                winDebug("winXIconToHICON: _NET_WM_ICON icon data size overflow\n");
+                break;
+            }
+
+            /* Icon data size is bigger than amount of data remaining */
+            if (&icon[icon[0] * icon[1] + 2] > &icon_data[size]) {
+                winDebug("winXIconToHICON: _NET_WM_ICON data is malformed\n");
+                break;
+            }
+
+            /* Found an exact match to the size we require...  */
             if (icon[0] == iconSize && icon[1] == iconSize) {
-                winDebug("winXIconToHICON: found %lu x %lu NetIcon\n", icon[0],
-                         icon[1]);
+                winDebug("winXIconToHICON: selected %d x %d NetIcon\n",
+                         iconSize, iconSize);
                 hIcon = NetWMToWinIcon(bpp, icon);
                 break;
             }
@@ -421,7 +435,7 @@ winXIconToHICON(Display * pDisplay, Window id, int iconSize)
 
         if (!hIcon && biggest_icon) {
             winDebug
-                ("winXIconToHICON: selected %lu x %lu NetIcon for scaling to %u x %u\n",
+                ("winXIconToHICON: selected %u x %u NetIcon for scaling to %d x %d\n",
                  biggest_icon[0], biggest_icon[1], iconSize, iconSize);
 
             hIcon = NetWMToWinIcon(bpp, biggest_icon);

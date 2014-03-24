@@ -55,7 +55,7 @@
 static struct udev_monitor *udev_monitor;
 
 #ifdef CONFIG_UDEV_KMS
-static Bool
+static void
 config_udev_odev_setup_attribs(const char *path, const char *syspath,
                                int major, int minor,
                                config_odev_probe_proc_ptr probe_callback);
@@ -457,40 +457,20 @@ config_udev_fini(void)
 
 #ifdef CONFIG_UDEV_KMS
 
-static Bool
+static void
 config_udev_odev_setup_attribs(const char *path, const char *syspath,
                                int major, int minor,
                                config_odev_probe_proc_ptr probe_callback)
 {
     struct OdevAttributes *attribs = config_odev_allocate_attribute_list();
-    int ret;
 
-    if (!attribs)
-        return FALSE;
-
-    ret = config_odev_add_attribute(attribs, ODEV_ATTRIB_PATH, path);
-    if (ret == FALSE)
-        goto fail;
-
-    ret = config_odev_add_attribute(attribs, ODEV_ATTRIB_SYSPATH, syspath);
-    if (ret == FALSE)
-        goto fail;
-
-    ret = config_odev_add_int_attribute(attribs, ODEV_ATTRIB_MAJOR, major);
-    if (ret == FALSE)
-        goto fail;
-
-    ret = config_odev_add_int_attribute(attribs, ODEV_ATTRIB_MINOR, minor);
-    if (ret == FALSE)
-        goto fail;
+    config_odev_add_attribute(attribs, ODEV_ATTRIB_PATH, path);
+    config_odev_add_attribute(attribs, ODEV_ATTRIB_SYSPATH, syspath);
+    config_odev_add_int_attribute(attribs, ODEV_ATTRIB_MAJOR, major);
+    config_odev_add_int_attribute(attribs, ODEV_ATTRIB_MINOR, minor);
 
     /* ownership of attribs is passed to probe layer */
     probe_callback(attribs);
-    return TRUE;
-fail:
-    config_odev_free_attributes(attribs);
-    free(attribs);
-    return FALSE;
 }
 
 void

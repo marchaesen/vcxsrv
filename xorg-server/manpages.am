@@ -31,6 +31,7 @@ MAN_SUBSTS += 	-e 's|__logdir__|$(logdir)|g' \
 		-e 's|__XKB_DFLT_OPTIONS__|$(XKB_DFLT_OPTIONS)|g' \
 		-e 's|__bundle_id_prefix__|$(BUNDLE_ID_PREFIX)|g' \
 		-e 's|__modulepath__|$(DEFAULT_MODULE_PATH)|g' \
+		-e 's|__suid_wrapper_dir__|$(SUID_WRAPPER_DIR)|g' \
 		-e 's|__default_font_path__|$(COMPILEDDEFAULTFONTPATH)|g' \
 		-e '\|$(COMPILEDDEFAULTFONTPATH)| s|/,|/, |g'
 

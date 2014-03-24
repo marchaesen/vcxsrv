@@ -271,9 +271,9 @@ ddxGiveUp(enum ExitCode error)
     PostQuitMessage(0);
 
     {
-        winDebug("ddxGiveUp - Releasing termination mutex\n");
-
         int iReturn = pthread_mutex_unlock(&g_pmTerminating);
+
+        winDebug("ddxGiveUp - Releasing termination mutex\n");
 
         if (iReturn != 0) {
             ErrorF("winMsgWindowProc - pthread_mutex_unlock () failed: %d\n",
@@ -785,6 +785,9 @@ winUseMsg(void)
         );
 
     ErrorF("-fullscreen\n" "\tRun the server in fullscreen mode.\n");
+
+    ErrorF("-hostintitle\n"
+           "\tIn multiwindow mode, add remote host names to window titles.\n");
 
     ErrorF("-ignoreinput\n" "\tIgnore keyboard and mouse input.\n");
 

@@ -108,10 +108,11 @@ InitInput(int argc, char *argv[])
     }
 #endif
 
-    g_pwinPointer = AddInputDevice(serverClient, winMouseProc, TRUE);
-    g_pwinKeyboard = AddInputDevice(serverClient, winKeybdProc, TRUE);
-    g_pwinPointer->name = strdup("Windows mouse");
-    g_pwinKeyboard->name = strdup("Windows keyboard");
+    if (AllocDevicePair(serverClient, "Windows",
+                        &g_pwinPointer, &g_pwinKeyboard,
+                        winMouseProc, winKeybdProc,
+                        FALSE) != Success)
+        FatalError("InitInput - Failed to allocate slave devices.\n");
 
     mieqInit();
 

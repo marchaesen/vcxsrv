@@ -1,0 +1,70 @@
+#!/bin/sh
+
+case "$AM_SRCDIR" in
+"")
+	AM_SRCDIR="."
+	;;
+*)
+	;;
+esac
+
+fix=n
+status=0
+case "$1" in
+"-fix")
+	fix=y
+	;;
+esac
+
+for inc in src/*.h; do
+	package=xcb-`basename $inc .h`
+	pcin="$AM_SRCDIR"/$package.pc.in
+	if [ -f $pcin ]; then
+		included=`grep '# *include' $inc |
+			sed -e 's/[^<"]*[<"]//' -e 's/[>"]//' |
+			grep -v 'xcb.h\|xproto.h'`
+		requires=`grep '^Requires:' $pcin`
+		missing=""
+		for i in $included; do
+			ibase=`basename $i .h`
+			r="xcb-$ibase"
+			rpcin="$AM_SRCDIR"/$r.pc.in
+			if [ -f $rpcin ]; then
+				m="$r"
+				for has in $requires; do
+					if [ $has = $r ]; then
+						m=""
+					fi
+				done
+				case "$m" in
+				"")
+					;;
+				*)
+					case "$missing" in
+					"")
+						missing=$m
+						;;
+					*)
+						missing="$missing $m"
+						;;
+					esac
+					;;
+				esac
+			fi
+		done
+		case "$missing" in
+		"")
+			;;
+		*)
+			if [ "$fix" = "y" ]; then
+			    echo $package adding dependency on $missing
+			    sed -i '/^Requires:/s/$/ '"$missing"'/' $pcin
+			else
+			    echo $package missing $missing
+			    status=1
+			fi
+			;;
+		esac
+	fi
+done
+exit $status

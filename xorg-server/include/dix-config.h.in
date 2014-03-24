@@ -288,8 +288,14 @@
 /* Support SHAPE extension */
 #undef SHAPE
 
+/* Where to install Xorg.bin and Xorg.wrap */
+#undef SUID_WRAPPER_DIR
+
 /* Define to 1 on systems derived from System V Release 4 */
 #undef SVR4
+
+/* sysconfdir */
+#undef SYSCONFDIR
 
 /* Support TCP socket connections */
 #undef TCPCONN

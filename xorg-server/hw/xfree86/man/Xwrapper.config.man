@@ -1,0 +1,1 @@
+.so man1/Xorg.wrap.1

@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: XCB XInput
 Description: XCB XInput Extension (EXPERIMENTAL)
 Version: @PACKAGE_VERSION@
-Requires: xcb
+Requires: xcb xcb-xfixes
 Libs: -L${libdir} -lxcb-xinput
 Cflags: -I${includedir}

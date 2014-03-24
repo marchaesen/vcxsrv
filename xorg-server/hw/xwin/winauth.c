@@ -97,9 +97,9 @@ MitGenerateCookie(unsigned data_length,
 static
     XID
 GenerateAuthorization(unsigned name_length,
-                      char *name,
+                      const char *name,
                       unsigned data_length,
-                      char *data,
+                      const char *data,
                       unsigned *data_length_return, char **data_return)
 {
     return MitGenerateCookie(data_length, data,

@@ -955,11 +955,11 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             wShift = (GetKeyState(VK_SHIFT) & 0x8000) ? MK_SHIFT : 0;
             wCtrl = (GetKeyState(VK_CONTROL) & 0x8000) ? MK_CONTROL : 0;
             lPos = MAKELPARAM(point.x, point.y);
-            if (g_fButton[0] & !wL)
+            if (g_fButton[0] && !wL)
                 PostMessage(hwnd, WM_LBUTTONUP, wCtrl | wM | wR | wShift, lPos);
-            if (g_fButton[1] & !wM)
+            if (g_fButton[1] && !wM)
                 PostMessage(hwnd, WM_MBUTTONUP, wCtrl | wL | wR | wShift, lPos);
-            if (g_fButton[2] & !wR)
+            if (g_fButton[2] && !wR)
                 PostMessage(hwnd, WM_RBUTTONUP, wCtrl | wL | wM | wShift, lPos);
         }
         }

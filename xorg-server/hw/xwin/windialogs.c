@@ -574,10 +574,7 @@ winAboutDlgProc(HWND hwndDialog, UINT message, WPARAM wParam, LPARAM lParam)
         winInitDialog(hwndDialog);
 
         /* Override the URL buttons */
-        winOverrideURLButton(hwndDialog, ID_ABOUT_CHANGELOG);
         winOverrideURLButton(hwndDialog, ID_ABOUT_WEBSITE);
-        winOverrideURLButton(hwndDialog, ID_ABOUT_UG);
-        winOverrideURLButton(hwndDialog, ID_ABOUT_FAQ);
 
         return TRUE;
 
@@ -608,28 +605,8 @@ winAboutDlgProc(HWND hwndDialog, UINT message, WPARAM wParam, LPARAM lParam)
             PostMessage(s_pScreenPriv->hwndScreen, WM_NULL, 0, 0);
 
             /* Restore window procedures for URL buttons */
-            winUnoverrideURLButton(hwndDialog, ID_ABOUT_CHANGELOG);
             winUnoverrideURLButton(hwndDialog, ID_ABOUT_WEBSITE);
-            winUnoverrideURLButton(hwndDialog, ID_ABOUT_UG);
-            winUnoverrideURLButton(hwndDialog, ID_ABOUT_FAQ);
 
-            return TRUE;
-
-        case ID_ABOUT_CHANGELOG:
-        {
-            INT_PTR iReturn;
-
-            const char *pszWinPath = "http://x.cygwin.com/"
-                "devel/server/changelog.html";
-
-            iReturn = (INT_PTR) ShellExecute(NULL,
-                                         "open",
-                                         pszWinPath, NULL, NULL, SW_MAXIMIZE);
-            if (iReturn < 32) {
-                ErrorF("winAboutDlgProc - WM_COMMAND - ID_ABOUT_CHANGELOG - "
-                       "ShellExecute failed: %d\n", (int)iReturn);
-            }
-        }
             return TRUE;
 
         case ID_ABOUT_WEBSITE:
@@ -647,36 +624,6 @@ winAboutDlgProc(HWND hwndDialog, UINT message, WPARAM wParam, LPARAM lParam)
             }
         }
             return TRUE;
-
-        case ID_ABOUT_UG:
-        {
-            const char *pszPath = "http://x.cygwin.com/docs/ug/";
-            INT_PTR iReturn;
-
-            iReturn = (INT_PTR) ShellExecute(NULL,
-                                         "open",
-                                         pszPath, NULL, NULL, SW_MAXIMIZE);
-            if (iReturn < 32) {
-                ErrorF("winAboutDlgProc - WM_COMMAND - ID_ABOUT_UG - "
-                       "ShellExecute failed: %d\n", (int)iReturn);
-            }
-        }
-            return TRUE;
-
-        case ID_ABOUT_FAQ:
-        {
-            const char *pszPath = "http://x.cygwin.com/docs/faq/";
-            INT_PTR iReturn;
-
-            iReturn = (INT_PTR) ShellExecute(NULL,
-                                         "open",
-                                         pszPath, NULL, NULL, SW_MAXIMIZE);
-            if (iReturn < 32) {
-                ErrorF("winAboutDlgProc - WM_COMMAND - ID_ABOUT_FAQ - "
-                       "ShellExecute failed: %d\n", (int)iReturn);
-            }
-        }
-            return TRUE;
         }
         break;
 
@@ -690,10 +637,7 @@ winAboutDlgProc(HWND hwndDialog, UINT message, WPARAM wParam, LPARAM lParam)
         PostMessage(s_pScreenPriv->hwndScreen, WM_NULL, 0, 0);
 
         /* Restore window procedures for URL buttons */
-        winUnoverrideURLButton(hwndDialog, ID_ABOUT_CHANGELOG);
         winUnoverrideURLButton(hwndDialog, ID_ABOUT_WEBSITE);
-        winUnoverrideURLButton(hwndDialog, ID_ABOUT_UG);
-        winUnoverrideURLButton(hwndDialog, ID_ABOUT_FAQ);
 
         return TRUE;
     }

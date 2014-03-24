@@ -44,9 +44,6 @@
 #define ID_APP_ALWAYS_ON_TOP	202
 #define ID_APP_ABOUT		203
 
-#define ID_ABOUT_UG		300
-#define ID_ABOUT_FAQ		301
-#define ID_ABOUT_CHANGELOG	302
 #define ID_ABOUT_WEBSITE	303
 
 #endif

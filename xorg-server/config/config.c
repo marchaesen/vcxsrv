@@ -132,10 +132,7 @@ config_odev_allocate_attribute_list(void)
 {
     struct OdevAttributes *attriblist;
 
-    attriblist = malloc(sizeof(struct OdevAttributes));
-    if (!attriblist)
-        return NULL;
-
+    attriblist = XNFalloc(sizeof(struct OdevAttributes));
     xorg_list_init(&attriblist->list);
     return attriblist;
 }
@@ -168,10 +165,7 @@ config_odev_find_or_add_attribute(struct OdevAttributes *attribs, int attrib)
     if (oa)
         return oa;
 
-    oa = calloc(1, sizeof(struct OdevAttribute));
-    if (!oa)
-        return oa;
-
+    oa = XNFcalloc(sizeof(struct OdevAttribute));
     oa->attrib_id = attrib;
     xorg_list_append(&oa->member, &attribs->list);
 
@@ -185,11 +179,8 @@ config_odev_add_attribute(struct OdevAttributes *attribs, int attrib,
     struct OdevAttribute *oa;
 
     oa = config_odev_find_or_add_attribute(attribs, attrib);
-    if (!oa)
-        return FALSE;
-
     free(oa->attrib_name);
-    oa->attrib_name = strdup(attrib_name);
+    oa->attrib_name = XNFstrdup(attrib_name);
     oa->attrib_type = ODEV_ATTRIB_STRING;
     return TRUE;
 }
@@ -201,9 +192,6 @@ config_odev_add_int_attribute(struct OdevAttributes *attribs, int attrib,
     struct OdevAttribute *oa;
 
     oa = config_odev_find_or_add_attribute(attribs, attrib);
-    if (!oa)
-        return FALSE;
-
     oa->attrib_value = attrib_value;
     oa->attrib_type = ODEV_ATTRIB_INT;
     return TRUE;

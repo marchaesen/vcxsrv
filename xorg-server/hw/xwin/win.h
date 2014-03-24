@@ -1336,9 +1336,6 @@ void
  winMWExtWMMoveResizeXWindow(WindowPtr pWin, int x, int y, int w, int h);
 
 void
- winMWExtWMUpdateIcon(Window id);
-
-void
 
 winMWExtWMUpdateWindowDecoration(win32RootlessWindowPtr pRLWinPriv,
                                  winScreenInfoPtr pScreenInfo);

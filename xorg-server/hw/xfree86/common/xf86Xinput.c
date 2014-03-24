@@ -81,8 +81,12 @@
 
 #include <stdarg.h>
 #include <stdint.h>             /* for int64_t */
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#ifdef HAVE_SYS_MKDEV_H
+#include <sys/mkdev.h>          /* for major() & minor() on Solaris */
+#endif
 
 #include "mi.h"
 
@@ -766,6 +770,11 @@ xf86DeleteInput(InputInfoPtr pInp, int flags)
 
     FreeInputAttributes(pInp->attrs);
 
+    if (pInp->flags & XI86_SERVER_FD) {
+        systemd_logind_release_fd(pInp->major, pInp->minor);
+        close(pInp->fd);
+    }
+
     /* Remove the entry from the list. */
     if (pInp == xf86InputDevs)
         xf86InputDevs = pInp->next;
@@ -777,11 +786,6 @@ xf86DeleteInput(InputInfoPtr pInp, int flags)
         if (p)
             p->next = pInp->next;
         /* Else the entry wasn't in the xf86InputDevs list (ignore this). */
-    }
-
-    if (pInp->flags & XI86_SERVER_FD) {
-        systemd_logind_release_fd(pInp->major, pInp->minor);
-        close(pInp->fd);
     }
 
     free((void *) pInp->driver);

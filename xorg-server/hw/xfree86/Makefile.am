@@ -81,9 +81,15 @@ Xorg_DEPENDENCIES = $(LOCAL_LIBS)
 
 Xorg_LDFLAGS = $(LD_EXPORT_SYMBOLS_FLAG)
 
+if SUID_WRAPPER
+wrapdir = $(SUID_WRAPPER_DIR)
+wrap_PROGRAMS = Xorg.wrap
+Xorg_wrap_SOURCES = xorg-wrapper.c
+endif
+
 BUILT_SOURCES = xorg.conf.example
 DISTCLEANFILES = xorg.conf.example
-EXTRA_DIST = xorgconf.cpp
+EXTRA_DIST = xorgconf.cpp Xorg.sh.in
 
 # Without logdir, X will post an error on the terminal and will not start
 install-data-local:
@@ -97,6 +103,11 @@ install-exec-hook:
 if INSTALL_SETUID
 	chown root $(DESTDIR)$(bindir)/Xorg
 	chmod u+s $(DESTDIR)$(bindir)/Xorg
+endif
+if SUID_WRAPPER
+	mv $(DESTDIR)$(bindir)/Xorg $(DESTDIR)$(SUID_WRAPPER_DIR)/Xorg.bin
+	${INSTALL} -m 755 Xorg.sh $(DESTDIR)$(bindir)/Xorg
+	-chown root $(DESTDIR)$(SUID_WRAPPER_DIR)/Xorg.wrap && chmod u+s $(DESTDIR)$(SUID_WRAPPER_DIR)/Xorg.wrap
 endif
 
 uninstall-local:
@@ -119,7 +130,7 @@ xorg.conf.example: xorgconf.cpp
 relink:
 	$(AM_V_at)rm -f Xorg$(EXEEXT) && $(MAKE) Xorg$(EXEEXT)
 
-CLEANFILES = sdksyms.c sdksyms.dep
+CLEANFILES = sdksyms.c sdksyms.dep Xorg.sh
 EXTRA_DIST += sdksyms.sh
 
 sdksyms.dep sdksyms.c: sdksyms.sh
