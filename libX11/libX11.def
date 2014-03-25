@@ -149,6 +149,7 @@ EXPORTS
   XGetVisualInfo
   XGetWindowAttributes
   XGetWindowProperty
+  XGetWMClientMachine
   XGetWMHints
   XGetWMName
   XGetWMNormalHints

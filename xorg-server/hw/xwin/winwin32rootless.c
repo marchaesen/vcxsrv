@@ -39,7 +39,6 @@
 #include <winuser.h>
 #define _WINDOWSWM_SERVER_
 #include <X11/extensions/windowswmstr.h>
-#include "dixevents.h"
 #include "winmultiwindowclass.h"
 #include <X11/Xatom.h>
 

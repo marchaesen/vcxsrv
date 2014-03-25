@@ -51,11 +51,43 @@ struct systemd_logind_info {
 
 static struct systemd_logind_info logind_info;
 
+static InputInfoPtr
+systemd_logind_find_info_ptr_by_devnum(InputInfoPtr start,
+                                       int major, int minor)
+{
+    InputInfoPtr pInfo;
+
+    for (pInfo = start; pInfo; pInfo = pInfo->next)
+        if (pInfo->major == major && pInfo->minor == minor &&
+                (pInfo->flags & XI86_SERVER_FD))
+            return pInfo;
+
+    return NULL;
+}
+
+static void
+systemd_logind_set_input_fd_for_all_devs(int major, int minor, int fd,
+                                         Bool enable)
+{
+    InputInfoPtr pInfo;
+
+    pInfo = systemd_logind_find_info_ptr_by_devnum(xf86InputDevs, major, minor);
+    while (pInfo) {
+        pInfo->fd = fd;
+        pInfo->options = xf86ReplaceIntOption(pInfo->options, "fd", fd);
+        if (enable)
+            xf86EnableInputDeviceForVTSwitch(pInfo);
+
+        pInfo = systemd_logind_find_info_ptr_by_devnum(pInfo->next, major, minor);
+    }
+}
+
 int
 systemd_logind_take_fd(int _major, int _minor, const char *path,
                        Bool *paused_ret)
 {
     struct systemd_logind_info *info = &logind_info;
+    InputInfoPtr pInfo;
     DBusError error;
     DBusMessage *msg = NULL;
     DBusMessage *reply = NULL;
@@ -70,6 +102,16 @@ systemd_logind_take_fd(int _major, int _minor, const char *path,
     /* logind does not support mouse devs (with evdev we don't need them) */
     if (strstr(path, "mouse"))
         return -1;
+
+    /* Check if we already have an InputInfo entry with this major, minor
+     * (shared device-nodes happen ie with Wacom tablets). */
+    pInfo = systemd_logind_find_info_ptr_by_devnum(xf86InputDevs, major, minor);
+    if (pInfo) {
+        LogMessage(X_INFO, "systemd-logind: returning pre-existing fd for %s %u:%u\n",
+               path, major, minor);
+        *paused_ret = FALSE;
+        return pInfo->fd;
+    }
 
     dbus_error_init(&error);
 
@@ -123,14 +165,30 @@ void
 systemd_logind_release_fd(int _major, int _minor)
 {
     struct systemd_logind_info *info = &logind_info;
+    InputInfoPtr pInfo;
     DBusError error;
     DBusMessage *msg = NULL;
     DBusMessage *reply = NULL;
     dbus_int32_t major = _major;
     dbus_int32_t minor = _minor;
+    int matches = 0;
 
     if (!info->session || major == 0)
         return;
+
+    /* Only release the fd if there is only 1 InputInfo left for this major
+     * and minor, otherwise other InputInfo's are still referencing the fd. */
+    pInfo = systemd_logind_find_info_ptr_by_devnum(xf86InputDevs, major, minor);
+    while (pInfo) {
+        matches++;
+        pInfo = systemd_logind_find_info_ptr_by_devnum(pInfo->next, major, minor);
+    }
+    if (matches > 1) {
+        LogMessage(X_INFO, "systemd-logind: not releasing fd for %u:%u, still in use\n", major, minor);
+        return;
+    }
+
+    LogMessage(X_INFO, "systemd-logind: releasing fd for %u:%u\n", major, minor);
 
     dbus_error_init(&error);
 
@@ -201,19 +259,6 @@ systemd_logind_vtenter(void)
 
     /* Do delayed input probing, this must be done after the above enabling */
     xf86InputEnableVTProbe();
-}
-
-static InputInfoPtr
-systemd_logind_find_info_ptr_by_devnum(int major, int minor)
-{
-    InputInfoPtr pInfo;
-
-    for (pInfo = xf86InputDevs; pInfo; pInfo = pInfo->next)
-        if (pInfo->major == major && pInfo->minor == minor &&
-                (pInfo->flags & XI86_SERVER_FD))
-            return pInfo;
-
-    return NULL;
 }
 
 static void
@@ -320,7 +365,8 @@ message_filter(DBusConnection * connection, DBusMessage * message, void *data)
 
     pdev = xf86_find_platform_device_by_devnum(major, minor);        
     if (!pdev)
-        pInfo = systemd_logind_find_info_ptr_by_devnum(major, minor);
+        pInfo = systemd_logind_find_info_ptr_by_devnum(xf86InputDevs,
+                                                       major, minor);
     if (!pdev && !pInfo) {
         LogMessage(X_WARNING, "systemd-logind: could not find dev %u:%u\n",
                    major, minor);
@@ -335,8 +381,7 @@ message_filter(DBusConnection * connection, DBusMessage * message, void *data)
             pdev->flags |= XF86_PDEV_PAUSED;
         else {
             close(pInfo->fd);
-            pInfo->fd = -1;
-            pInfo->options = xf86ReplaceIntOption(pInfo->options, "fd", -1);
+            systemd_logind_set_input_fd_for_all_devs(major, minor, -1, FALSE);
         }
         if (ack)
             systemd_logind_ack_pause(info, major, minor);
@@ -345,15 +390,12 @@ message_filter(DBusConnection * connection, DBusMessage * message, void *data)
         /* info->vt_active gets set by systemd_logind_vtenter() */
         info->active = TRUE;
 
-        if (pdev) {
+        if (pdev)
             pdev->flags &= ~XF86_PDEV_PAUSED;
-        }
-        else {
-            pInfo->fd = fd;
-            pInfo->options = xf86ReplaceIntOption(pInfo->options, "fd", fd);
-            if (info->vt_active)
-                xf86EnableInputDeviceForVTSwitch(pInfo);
-        }
+        else
+            systemd_logind_set_input_fd_for_all_devs(major, minor, fd,
+                                                     info->vt_active);
+
         /* Always call vtenter(), in case there are only legacy video devs */
         systemd_logind_vtenter();
     }

@@ -165,6 +165,12 @@ The maximum dimensions of the screen are the dimensions of the \fIWindows\fP vir
 on its own is equivalent to \fB\-resize=randr\fP
 .RE
 
+.SH OPTIONS FOR MULTIWINDOW MODE
+.TP 8
+.B \-hostintitle
+Add the host name to the window title for X applications which are running
+on remote hosts, when that information is available and it's useful to do so.
+
 .SH OPTIONS CONTROLLING WINDOWS INTEGRATION
 .TP 8
 .B \-[no]clipboard

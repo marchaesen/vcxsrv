@@ -79,6 +79,7 @@ Bool g_fSoftwareCursor = FALSE;
 Bool g_fSilentDupError = FALSE;
 Bool g_fNativeGl = TRUE;
 Bool g_fswrastwgl = FALSE;
+Bool g_fHostInTitle = FALSE;
 pthread_mutex_t g_pmTerminating = PTHREAD_MUTEX_INITIALIZER;
 
 #ifdef XWIN_CLIPBOARD

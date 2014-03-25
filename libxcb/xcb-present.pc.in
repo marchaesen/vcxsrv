@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: XCB Present
 Description: XCB Present Extension
 Version: @PACKAGE_VERSION@
-Requires: xcb
+Requires: xcb xcb-randr xcb-xfixes xcb-sync
 Libs: -L${libdir} -lxcb-present
 Cflags: -I${includedir}

@@ -48,12 +48,14 @@ struct OdevAttributes {
     struct xorg_list list;
 };
 
+/* Note starting with xserver 1.16 this function never fails */
 struct OdevAttributes *
 config_odev_allocate_attribute_list(void);
 
 void
 config_odev_free_attribute_list(struct OdevAttributes *attribs);
 
+/* Note starting with xserver 1.16 this function never fails */
 Bool
 config_odev_add_attribute(struct OdevAttributes *attribs, int attrib,
                           const char *attrib_name);
@@ -61,6 +63,7 @@ config_odev_add_attribute(struct OdevAttributes *attribs, int attrib,
 char *
 config_odev_get_attribute(struct OdevAttributes *attribs, int attrib_id);
 
+/* Note starting with xserver 1.16 this function never fails */
 Bool
 config_odev_add_int_attribute(struct OdevAttributes *attribs, int attrib,
                               int attrib_value);

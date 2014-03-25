@@ -1,11 +1,64 @@
                               Fontconfig
              Font configuration and customization library
-                             Version 2.11
-                              2013-10-11
+                            Version 2.11.1
+                              2014-03-24
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://bugs.freedesktop.org in the fontconfig module.
+
+2.11.1
+
+Akira TAGOH (31):
+      do not build test-migration for Win32
+      Fix build issue on Debian/kFreeBSD 7.0
+      Update ax_pthread.m4 to the latest version
+      Fix the dynamic loading issue on NetBSD
+      Use stat() if there are no d_type in struct dirent
+      Fix a build issue on Solaris 10
+      Change the default weight on match to FC_WEIGHT_NORMAL
+      Warn if no <test> nor <edit> elements in <match>
+      Correct DTD
+      Re-scan font directories only when it contains subdirs
+      Fix typo
+      Bug 72086 - Check for gperf in autogen.sh
+      Simplify to validate the availability of posix_fadvise
+      Simplify to validate the availability of scandir
+      Fix a typo
+      Fix a build issue on platforms where doesn't support readlink()
+      Improve the performance issue on rescanning directories
+      Bug 73686 - confdir is not set correctly in fontconfig.pc
+      Update zh_hk.orth
+      clean up the unused files
+      Add missing license headers
+      Update the use of autotools' macro
+      Fix a crash issue when empty strings are set to the BDF properties
+      Add a doc for FcDirCacheRescan
+      Add missing #include <sys/statvfs.h> in fcstat.c
+      Fix incompatible API on AIX with random_r and initstate_r
+      Fallback to lstat() in case the filesystem doesn't support d_type in struct dirent
+      Update doc to include the version info of `since when'
+      Bug 73291 - poppler does not show fl ligature
+      Add README describes the criteria to add/modify the orthography files
+      Fix autoconf warning, warning: AC_COMPILE_IFELSE was called before AC_USE_SYSTEM_EXTENSIONS
+
+Alan Coopersmith (3):
+      Leave room for null terminators in arrays
+      Avoid memory leak when NULL path passed to FcStrBuildFilename
+      Avoid null pointer dereference in FcNameParse if malloc fails
+
+Behdad Esfahbod (1):
+      Bug 72380 - Never drop first font when trimming
+
+Frederic Crozat (2):
+      Fix inversion between Tinos and Cousine in the comment
+      Add metric aliases for additional Google ChromeOS fonts
+
+Jehan (1):
+      Defaulting <cachedir> to LOCAL_APPDATA_FONTCONFIG_CACHE for Win32 build
+
+Ross Burton (1):
+      fc-cache: --sysroot option takes an argument
 
 2.11
 

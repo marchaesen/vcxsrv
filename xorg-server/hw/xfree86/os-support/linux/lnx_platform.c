@@ -40,10 +40,7 @@ get_drm_info(struct OdevAttributes *attribs, char *path, int delayed_index)
             systemd_logind_release_fd(major, minor);
             return FALSE;
         }
-        if (!config_odev_add_int_attribute(attribs, ODEV_ATTRIB_FD, fd)) {
-            systemd_logind_release_fd(major, minor);
-            return FALSE;
-        }
+        config_odev_add_int_attribute(attribs, ODEV_ATTRIB_FD, fd);
         server_fd = TRUE;
     }
 

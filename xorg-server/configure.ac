@@ -133,7 +133,8 @@ AM_CONDITIONAL(SPECIAL_DTRACE_OBJECTS, [test "x$SPECIAL_DTRACE_OBJECTS" = "xyes"
 
 AC_HEADER_DIRENT
 AC_HEADER_STDC
-AC_CHECK_HEADERS([fcntl.h stdlib.h string.h unistd.h dlfcn.h stropts.h fnmatch.h sys/utsname.h])
+AC_CHECK_HEADERS([fcntl.h stdlib.h string.h unistd.h dlfcn.h stropts.h \
+ fnmatch.h sys/mkdev.h sys/utsname.h])
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -491,17 +492,14 @@ XORG_FONTSUBDIR(FONTTYPE1DIR, fonttype1dir, Type1)
 XORG_FONTSUBDIR(FONT75DPIDIR, font75dpidir, 75dpi)
 XORG_FONTSUBDIR(FONT100DPIDIR, font100dpidir, 100dpi)
 
-dnl Uses --default-font-path if set, otherwise checks for /etc/X11/fontpath.d,
-dnl otherwise uses standard subdirectories of FONTROOTDIR. When cross
-dnl compiling, assume default font path uses standard FONTROOTDIR directories.
+dnl Uses --with-default-font-path if set, otherwise uses standard
+dnl subdirectories of FONTROOTDIR. Some distros set the default font path to
+dnl "catalogue:/etc/X11/fontpath.d,built-ins"
 DEFAULT_FONT_PATH="${FONTMISCDIR}/,${FONTTTFDIR}/,${FONTOTFDIR}/,${FONTTYPE1DIR}/,${FONT100DPIDIR}/,${FONT75DPIDIR}/"
-if test "$cross_compiling" != yes; then
-	AC_CHECK_FILE([${sysconfdir}/X11/fontpath.d],
-		[DEFAULT_FONT_PATH='catalogue:${sysconfdir}/X11/fontpath.d'],
-		[case $host_os in
-			darwin*) DEFAULT_FONT_PATH="${DEFAULT_FONT_PATH},/Library/Fonts,/System/Library/Fonts" ;;
-		esac])
-fi
+case $host_os in
+    darwin*) DEFAULT_FONT_PATH="${DEFAULT_FONT_PATH},/Library/Fonts,/System/Library/Fonts" ;;
+esac
+
 AC_ARG_WITH(default-font-path, AS_HELP_STRING([--with-default-font-path=PATH], [Comma separated list of font dirs]),
 				[ FONTPATH="$withval" ],
 				[ FONTPATH="${DEFAULT_FONT_PATH}" ])
@@ -627,6 +625,7 @@ AC_ARG_ENABLE(pciaccess, AS_HELP_STRING([--enable-pciaccess], [Build Xorg with p
 AC_ARG_ENABLE(linux_acpi, AS_HELP_STRING([--disable-linux-acpi], [Disable building ACPI support on Linux (if available).]), [enable_linux_acpi=$enableval], [enable_linux_acpi=yes])
 AC_ARG_ENABLE(linux_apm, AS_HELP_STRING([--disable-linux-apm], [Disable building APM support on Linux (if available).]), [enable_linux_apm=$enableval], [enable_linux_apm=yes])
 AC_ARG_ENABLE(systemd-logind, AC_HELP_STRING([--enable-systemd-logind], [Build systemd-logind support (default: auto)]), [SYSTEMD_LOGIND=$enableval], [SYSTEMD_LOGIND=auto])
+AC_ARG_ENABLE(suid-wrapper, AC_HELP_STRING([--enable-suid-wrapper], [Build suid-root wrapper for legacy driver support on rootless xserver systems (default: no)]), [SUID_WRAPPER=$enableval], [SUID_WRAPPER=no])
 
 dnl DDXes.
 AC_ARG_ENABLE(xorg,    	      AS_HELP_STRING([--enable-xorg], [Build Xorg server (default: auto)]), [XORG=$enableval], [XORG=auto])
@@ -923,6 +922,16 @@ if test "x$SYSTEMD_LOGIND" = xyes; then
         NEED_DBUS="yes"
 fi
 AM_CONDITIONAL(SYSTEMD_LOGIND, [test "x$SYSTEMD_LOGIND" = xyes])
+
+if test "x$SUID_WRAPPER" = xyes; then
+        dnl The wrapper uses libdrm headers, so ensure they are available
+        PKG_CHECK_MODULES([LIBDRM], $LIBDRM)
+        dnl This is a define so that if some platforms want to put the wrapper
+        dnl somewhere else this can be easily changed
+        AC_DEFINE_DIR(SUID_WRAPPER_DIR, libexecdir, [Where to install Xorg.bin and Xorg.wrap])
+        SETUID="no"
+fi
+AM_CONDITIONAL(SUID_WRAPPER, [test "x$SUID_WRAPPER" = xyes])
 
 if test "x$NEED_DBUS" = xyes; then
         AC_DEFINE(NEED_DBUS, 1, [Enable D-Bus core])
@@ -2116,7 +2125,6 @@ fi
 AC_MSG_RESULT([$XWIN])
 
 if test "x$XWIN" = xyes; then
-	AC_DEFINE_DIR(SYSCONFDIR, sysconfdir, [Location of system.XWinrc])
 	AC_DEFINE_DIR(DEFAULT_LOGDIR, logdir, [Default log location])
 	AC_DEFINE_UNQUOTED(XORG_VERSION_CURRENT, [$VENDOR_RELEASE], [Current Xorg version])
 	AC_DEFINE_UNQUOTED(__VENDORDWEBSUPPORT__, ["$VENDOR_WEB"], [Vendor web address for support])
@@ -2440,6 +2448,7 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 	[ Enable GNU and other extensions to the C environment for glibc])])
 
 AC_DEFINE_DIR(PROJECTROOT, prefix, [Overall prefix])
+AC_DEFINE_DIR(SYSCONFDIR, sysconfdir, [sysconfdir])
 
 AC_SUBST([RELEASE_DATE])
 BUILD_DATE="`date +'%Y%m%d'`"
@@ -2499,6 +2508,7 @@ dri3/Makefile
 present/Makefile
 hw/Makefile
 hw/xfree86/Makefile
+hw/xfree86/Xorg.sh
 hw/xfree86/common/Makefile
 hw/xfree86/common/xf86Build.h
 hw/xfree86/ddc/Makefile

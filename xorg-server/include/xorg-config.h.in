@@ -118,6 +118,9 @@
 /* Have execinfo.h */
 #undef HAVE_EXECINFO_H
 
+/* Define to 1 if you have the <sys/mkdev.h> header file. */
+#undef HAVE_SYS_MKDEV_H
+
 /* Path to text files containing PCI IDs */
 #undef PCI_TXT_IDS_PATH
 

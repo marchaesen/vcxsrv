@@ -262,11 +262,9 @@ ddxGiveUp(enum ExitCode error)
     PostQuitMessage(0);
 
     {
-        int iReturn;
+        int iReturn = pthread_mutex_unlock(&g_pmTerminating);
 
         winDebug("ddxGiveUp - Releasing termination mutex\n");
-
-        iReturn = pthread_mutex_unlock(&g_pmTerminating);
 
         if (iReturn != 0) {
             ErrorF("winMsgWindowProc - pthread_mutex_unlock () failed: %d\n",
@@ -420,8 +418,7 @@ winFixupPaths(void)
     {
         /* Open fontpath configuration file */
 #if defined WIN32 && defined __MINGW32__
-qsdf qsdf qsdf qsdf
-                static Bool once = False;
+        static Bool once = False;
         char buffer[MAX_PATH];
         snprintf(buffer, sizeof(buffer), "%s\\font-dirs", basedir);
         buffer[sizeof(buffer)-1] = 0;
@@ -429,7 +426,6 @@ qsdf qsdf qsdf qsdf
         if (once) fontdirs = NULL;
         else once = True;
 #else
-qsdfqsdf qsdf qsdf
         FILE *fontdirs = fopen(ETCX11DIR "/font-dirs", "rt");
 #endif
         if (fontdirs != NULL) {
@@ -808,6 +804,9 @@ winUseMsg(void)
         );
 
     ErrorF("-fullscreen\n" "\tRun the server in fullscreen mode.\n");
+
+    ErrorF("-hostintitle\n"
+           "\tIn multiwindow mode, add remote host names to window titles.\n");
 
     ErrorF("-ignoreinput\n" "\tIgnore keyboard and mouse input.\n");
 

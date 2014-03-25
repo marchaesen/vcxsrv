@@ -99,15 +99,11 @@ InitInput(int argc, char *argv[])
     }
 #endif
 
-    rc = AllocDevicePair(serverClient, "Windows",
-                         &g_pwinPointer,
-                         &g_pwinKeyboard,
-                         winMouseProc,
-                         winKeybdProc,
-                         FALSE);
-
-    if (rc != Success)
-        FatalError("Failed to init vcxsrv default devices.\n");
+    if (AllocDevicePair(serverClient, "Windows",
+                        &g_pwinPointer, &g_pwinKeyboard,
+                        winMouseProc, winKeybdProc,
+                        FALSE) != Success)
+        FatalError("InitInput - Failed to allocate slave devices.\n");
 
     mieqInit();
 

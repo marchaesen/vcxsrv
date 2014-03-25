@@ -191,7 +191,7 @@ def c_open(self):
     _c('#define ALIGNOF(type) offsetof(struct { char dummy; type member; }, member)')
 
     if _ns.is_ext:
-        for (n, h) in self.imports:
+        for (n, h) in self.direct_imports:
             _hc('#include "%s.h"', h)
 
     _h('')

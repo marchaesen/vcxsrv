@@ -54,11 +54,12 @@ xf86_add_platform_device(struct OdevAttributes *attribs, Bool unowned);
 extern int
 xf86_remove_platform_device(int dev_index);
 extern Bool
+xf86_get_platform_device_unowned(int index);
+/* Note starting with xserver 1.16 these 2 functions never fail */
+extern Bool
 xf86_add_platform_device_attrib(int index, int attrib_id, char *attrib_str);
 extern Bool
 xf86_add_platform_device_int_attrib(int index, int attrib_id, int attrib_value);
-extern Bool
-xf86_get_platform_device_unowned(int index);
 
 extern int
 xf86platformAddDevice(int index);
