@@ -21,13 +21,18 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([libXfont], [1.4.6],
+AC_INIT([libXfont], [1.4.7],
 	[https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [libXfont])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h include/X11/fonts/fontconf.h])
 
 # Initialize Automake
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
+
+# Set common system defines for POSIX extensions, such as _GNU_SOURCE
+# Must be called before any macros that run the compiler (like
+# AC_PROG_LIBTOOL) to avoid autoconf errors.
+AC_USE_SYSTEM_EXTENSIONS
 
 # Initialize libtool
 AC_PROG_LIBTOOL

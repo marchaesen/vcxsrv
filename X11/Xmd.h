@@ -70,15 +70,6 @@ SOFTWARE.
 # endif
 
 /*
- * Stuff to handle large architecture machines; the constants were generated
- * on a 32-bit machine and must correspond to the protocol.
- */
-# ifdef WORD64
-#  define MUSTCOPY
-# endif /* WORD64 */
-
-
-/*
  * Definition of macro used to set constants for size of network structures;
  * machines with preprocessors that can't handle all of the sz_ symbols
  * can define this macro to be sizeof(x) if and only if their compiler doesn't
@@ -100,29 +91,15 @@ SOFTWARE.
  * need them.  Note that bitfields are not guaranteed to be signed
  * (or even unsigned) according to ANSI C.
  */
-# ifdef WORD64
-typedef long INT64;
-typedef unsigned long CARD64;
-#  define B32 :32
-#  define B16 :16
-#  ifdef UNSIGNEDBITFIELDS
-typedef unsigned int INT32;
-typedef unsigned int INT16;
-#  else
-typedef signed int INT32;
-typedef signed int INT16;
-#  endif
-# else
-#  define B32
-#  define B16
-#  ifdef LONG64
+# define B32 /* bitfield not needed on architectures with native 32-bit type */
+# define B16 /* bitfield not needed on architectures with native 16-bit type */
+# ifdef LONG64
 typedef long INT64;
 typedef int INT32;
-#  else
+# else
 typedef long INT32;
-#  endif
-typedef short INT16;
 # endif
+typedef short INT16;
 
 typedef signed char    INT8;
 
@@ -130,10 +107,8 @@ typedef signed char    INT8;
 typedef unsigned long CARD64;
 typedef unsigned int CARD32;
 # else
-typedef unsigned long CARD32;
-# endif
-# if !defined(WORD64) && !defined(LONG64)
 typedef unsigned long long CARD64;
+typedef unsigned long CARD32;
 # endif
 typedef unsigned short CARD16;
 typedef unsigned char  CARD8;
@@ -145,43 +120,23 @@ typedef CARD8		BYTE;
 typedef CARD8		BOOL;
 
 /*
- * definitions for sign-extending bitfields on 64-bit architectures
+ * was definitions for sign-extending bitfields on architectures without
+ * native types smaller than 64-bit, now just backwards compatibility
  */
-# if defined(WORD64) && defined(UNSIGNEDBITFIELDS)
-#  define cvtINT8toInt(val)   (((val) & 0x00000080) ? ((val) | 0xffffffffffffff00) : (val))
-#  define cvtINT16toInt(val)  (((val) & 0x00008000) ? ((val) | 0xffffffffffff0000) : (val))
-#  define cvtINT32toInt(val)  (((val) & 0x80000000) ? ((val) | 0xffffffff00000000) : (val))
-#  define cvtINT8toShort(val)  cvtINT8toInt(val)
-#  define cvtINT16toShort(val) cvtINT16toInt(val)
-#  define cvtINT32toShort(val) cvtINT32toInt(val)
-#  define cvtINT8toLong(val)  cvtINT8toInt(val)
-#  define cvtINT16toLong(val) cvtINT16toInt(val)
-#  define cvtINT32toLong(val) cvtINT32toInt(val)
-# else
-#  define cvtINT8toInt(val) (val)
-#  define cvtINT16toInt(val) (val)
-#  define cvtINT32toInt(val) (val)
-#  define cvtINT8toShort(val) (val)
-#  define cvtINT16toShort(val) (val)
-#  define cvtINT32toShort(val) (val)
-#  define cvtINT8toLong(val) (val)
-#  define cvtINT16toLong(val) (val)
-#  define cvtINT32toLong(val) (val)
-# endif /* WORD64 and UNSIGNEDBITFIELDS */
+# define cvtINT8toInt(val) (val)
+# define cvtINT16toInt(val) (val)
+# define cvtINT32toInt(val) (val)
+# define cvtINT8toShort(val) (val)
+# define cvtINT16toShort(val) (val)
+# define cvtINT32toShort(val) (val)
+# define cvtINT8toLong(val) (val)
+# define cvtINT16toLong(val) (val)
+# define cvtINT32toLong(val) (val)
 
-
-
-# ifdef MUSTCOPY
-/*
- * This macro must not cast or else pointers will get aligned and be wrong
- */
-#  define NEXTPTR(p,t)  (((char *) p) + SIZEOF(t))
-# else /* else not MUSTCOPY, this is used for 32-bit machines */
 /*
  * this version should leave result of type (t *), but that should only be
  * used when not in MUSTCOPY
  */
-#  define NEXTPTR(p,t) (((t *)(p)) + 1)
-# endif /* MUSTCOPY - used machines whose C structs don't line up with proto */
+# define NEXTPTR(p,t) (((t *)(p)) + 1)
 
 #endif /* XMD_H */

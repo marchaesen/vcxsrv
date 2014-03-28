@@ -118,19 +118,23 @@ ResizeHashTable (void)
 static int
 ResizeReverseMap (void)
 {
-    int ret = TRUE;
+    AtomListPtr *newMap;
+    int newMapSize;
+
     if (reverseMapSize == 0)
-	reverseMapSize = 1000;
+	newMapSize = 1000;
     else
-	reverseMapSize *= 2;
-    reverseMap = realloc (reverseMap, reverseMapSize * sizeof (AtomListPtr));
-    if (!reverseMap) {
+	newMapSize = reverseMapSize * 2;
+    newMap = realloc (reverseMap, newMapSize * sizeof (AtomListPtr));
+    if (newMap == NULL) {
 	fprintf(stderr, "ResizeReverseMap(): Error: Couldn't reallocate"
 		" reverseMap (%ld)\n",
-		reverseMapSize * (unsigned long)sizeof(AtomListPtr));
-	ret = FALSE;
+		newMapSize * (unsigned long)sizeof(AtomListPtr));
+	return FALSE;
     }
-    return ret;
+    reverseMap = newMap;
+    reverseMapSize = newMapSize;
+    return TRUE;
 }
 
 static int

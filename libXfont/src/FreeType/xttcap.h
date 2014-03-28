@@ -1,8 +1,8 @@
 /* ===EmacsMode: -*- Mode: C; tab-width:4; c-basic-offset: 4; -*- === */
 /* ===FileName: ===
    Copyright (c) 1998 Takuya SHIOZAKI, All Rights reserved.
-   Copyright (c) 1998 X-TrueType Server Project, All rights reserved. 
-   Copyright (c) 2003 After X-TT Project, All rights reserved. 
+   Copyright (c) 1998 X-TrueType Server Project, All rights reserved.
+   Copyright (c) 2003 After X-TT Project, All rights reserved.
 
 ===Notice
    Redistribution and use in source and binary forms, with or without
@@ -115,15 +115,6 @@ SPropRecValList_dump(SRefPropRecValList *refList);
   ((contRecVal)->uValue.boolValue)
 #define SPropContainer_value_str(contRecVal)\
   ((contRecVal)->uValue.dynStringValue)
-
-/******************************************************
-  Prototypes (xttmisc)
- */
-
-/* strdup clone */
-char * XttXstrdup(char const *str);
-#undef xstrdup
-#define xstrdup(s) XttXstrdup((char const*)s)
 
 #endif /* !def _XTTCAP_H_ */
 
