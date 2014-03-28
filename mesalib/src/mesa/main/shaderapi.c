@@ -44,6 +44,7 @@
 #include "main/hash.h"
 #include "main/hash_table.h"
 #include "main/mtypes.h"
+#include "main/pipelineobj.h"
 #include "main/shaderapi.h"
 #include "main/shaderobj.h"
 #include "main/transformfeedback.h"
@@ -144,6 +145,8 @@ _mesa_free_shader_state(struct gl_context *ctx)
    _mesa_reference_shader_program(ctx, &ctx->Shader.ActiveProgram, NULL);
 
    /* Extended for ARB_separate_shader_objects */
+   _mesa_reference_pipeline_object(ctx, &ctx->_Shader, NULL);
+
    assert(ctx->Shader.RefCount == 1);
    mtx_destroy(&ctx->Shader.Mutex);
 }
@@ -465,8 +468,8 @@ static GLuint
 get_handle(struct gl_context *ctx, GLenum pname)
 {
    if (pname == GL_PROGRAM_OBJECT_ARB) {
-      if (ctx->Shader.ActiveProgram)
-         return ctx->Shader.ActiveProgram->Name;
+      if (ctx->_Shader->ActiveProgram)
+         return ctx->_Shader->ActiveProgram->Name;
       else
          return 0;
    }
@@ -837,7 +840,7 @@ compile_shader(struct gl_context *ctx, GLuint shaderObj)
        */
       sh->CompileStatus = GL_FALSE;
    } else {
-      if (ctx->Shader.Flags & GLSL_DUMP) {
+      if (ctx->_Shader->Flags & GLSL_DUMP) {
          fprintf(stderr, "GLSL source for %s shader %d:\n",
                  _mesa_shader_stage_to_string(sh->Stage), sh->Name);
          fprintf(stderr, "%s\n", sh->Source);
@@ -849,11 +852,11 @@ compile_shader(struct gl_context *ctx, GLuint shaderObj)
        */
       _mesa_glsl_compile_shader(ctx, sh, false, false);
 
-      if (ctx->Shader.Flags & GLSL_LOG) {
+      if (ctx->_Shader->Flags & GLSL_LOG) {
          _mesa_write_shader_to_file(sh);
       }
 
-      if (ctx->Shader.Flags & GLSL_DUMP) {
+      if (ctx->_Shader->Flags & GLSL_DUMP) {
          if (sh->CompileStatus) {
             fprintf(stderr, "GLSL IR for shader %d:\n", sh->Name);
             _mesa_print_ir(stderr, sh->ir, NULL);
@@ -871,7 +874,7 @@ compile_shader(struct gl_context *ctx, GLuint shaderObj)
    }
 
    if (!sh->CompileStatus) {
-      if (ctx->Shader.Flags & GLSL_DUMP_ON_ERROR) {
+      if (ctx->_Shader->Flags & GLSL_DUMP_ON_ERROR) {
          fprintf(stderr, "GLSL source for %s shader %d:\n",
                  _mesa_shader_stage_to_string(sh->Stage), sh->Name);
          fprintf(stderr, "%s\n", sh->Source);
@@ -879,7 +882,7 @@ compile_shader(struct gl_context *ctx, GLuint shaderObj)
          fflush(stderr);
       }
 
-      if (ctx->Shader.Flags & GLSL_REPORT_ERRORS) {
+      if (ctx->_Shader->Flags & GLSL_REPORT_ERRORS) {
          _mesa_debug(ctx, "Error compiling shader %u:\n%s\n",
                      sh->Name, sh->InfoLog);
       }
@@ -915,7 +918,7 @@ link_program(struct gl_context *ctx, GLuint program)
    _mesa_glsl_link_shader(ctx, shProg);
 
    if (shProg->LinkStatus == GL_FALSE && 
-       (ctx->Shader.Flags & GLSL_REPORT_ERRORS)) {
+       (ctx->_Shader->Flags & GLSL_REPORT_ERRORS)) {
       _mesa_debug(ctx, "Error linking program %u:\n%s\n",
                   shProg->Name, shProg->InfoLog);
    }
@@ -986,17 +989,21 @@ _mesa_active_program(struct gl_context *ctx, struct gl_shader_program *shProg,
  */
 static void
 use_shader_program(struct gl_context *ctx, GLenum type,
-		   struct gl_shader_program *shProg)
+                   struct gl_shader_program *shProg,
+                   struct gl_pipeline_object *shTarget)
 {
    struct gl_shader_program **target;
    gl_shader_stage stage = _mesa_shader_enum_to_shader_stage(type);
 
-   target = &ctx->Shader.CurrentProgram[stage];
+   target = &shTarget->CurrentProgram[stage];
    if ((shProg == NULL) || (shProg->_LinkedShaders[stage] == NULL))
       shProg = NULL;
 
    if (*target != shProg) {
-      FLUSH_VERTICES(ctx, _NEW_PROGRAM | _NEW_PROGRAM_CONSTANTS);
+      /* Program is current, flush it */
+      if (shTarget == ctx->_Shader) {
+         FLUSH_VERTICES(ctx, _NEW_PROGRAM | _NEW_PROGRAM_CONSTANTS);
+      }
 
       /* If the shader is also bound as the current rendering shader, unbind
        * it from that binding point as well.  This ensures that the correct
@@ -1013,9 +1020,9 @@ use_shader_program(struct gl_context *ctx, GLenum type,
          /* Empty for now. */
          break;
       case GL_FRAGMENT_SHADER:
-	 if (*target == ctx->Shader._CurrentFragmentProgram) {
+         if (*target == ctx->_Shader->_CurrentFragmentProgram) {
 	    _mesa_reference_shader_program(ctx,
-					   &ctx->Shader._CurrentFragmentProgram,
+                                           &ctx->_Shader->_CurrentFragmentProgram,
 					   NULL);
 	 }
 	 break;
@@ -1032,10 +1039,10 @@ use_shader_program(struct gl_context *ctx, GLenum type,
 void
 _mesa_use_program(struct gl_context *ctx, struct gl_shader_program *shProg)
 {
-   use_shader_program(ctx, GL_VERTEX_SHADER, shProg);
-   use_shader_program(ctx, GL_GEOMETRY_SHADER_ARB, shProg);
-   use_shader_program(ctx, GL_FRAGMENT_SHADER, shProg);
-   use_shader_program(ctx, GL_COMPUTE_SHADER, shProg);
+   use_shader_program(ctx, GL_VERTEX_SHADER, shProg, &ctx->Shader);
+   use_shader_program(ctx, GL_GEOMETRY_SHADER_ARB, shProg, &ctx->Shader);
+   use_shader_program(ctx, GL_FRAGMENT_SHADER, shProg, &ctx->Shader);
+   use_shader_program(ctx, GL_COMPUTE_SHADER, shProg, &ctx->Shader);
    _mesa_active_program(ctx, shProg, "glUseProgram");
 
    if (ctx->Driver.UseProgram)
@@ -1533,7 +1540,7 @@ _mesa_UseProgram(GLhandleARB program)
       }
 
       /* debug code */
-      if (ctx->Shader.Flags & GLSL_USE_PROG) {
+      if (ctx->_Shader->Flags & GLSL_USE_PROG) {
          print_shader_info(shProg);
       }
    }
@@ -1541,7 +1548,31 @@ _mesa_UseProgram(GLhandleARB program)
       shProg = NULL;
    }
 
-   _mesa_use_program(ctx, shProg);
+   /* The "Dependencies on EXT_separate_shader_objects" section of the
+    * ARB_separate_shader_object spec says:
+    *
+    *     "The executable code for an individual shader stage is taken from
+    *     the current program for that stage.  If there is a current program
+    *     object for any shader stage or for uniform updates established by
+    *     UseProgram, UseShaderProgramEXT, or ActiveProgramEXT, the current
+    *     program for that stage (if any) is considered current.  Otherwise,
+    *     if there is a bound program pipeline object ..."
+    */
+   if (program) {
+      /* Attach shader state to the binding point */
+      _mesa_reference_pipeline_object(ctx, &ctx->_Shader, &ctx->Shader);
+      /* Update the program */
+      _mesa_use_program(ctx, shProg);
+   } else {
+      /* Must be done first: detach the progam */
+      _mesa_use_program(ctx, shProg);
+      /* Unattach shader_state binding point */
+      _mesa_reference_pipeline_object(ctx, &ctx->_Shader, ctx->Pipeline.Default);
+      /* If a pipeline was bound, rebind it */
+      if (ctx->Pipeline.Current) {
+         _mesa_BindProgramPipeline(ctx->Pipeline.Current->Name);
+      }
+   }
 }
 
 
@@ -1773,9 +1804,10 @@ _mesa_ProgramParameteri(GLuint program, GLenum pname, GLint value)
 
 void
 _mesa_use_shader_program(struct gl_context *ctx, GLenum type,
-			 struct gl_shader_program *shProg)
+                         struct gl_shader_program *shProg,
+                         struct gl_pipeline_object *shTarget)
 {
-   use_shader_program(ctx, type, shProg);
+   use_shader_program(ctx, type, shProg, shTarget);
 
    if (ctx->Driver.UseProgram)
       ctx->Driver.UseProgram(ctx, shProg);
@@ -1815,7 +1847,41 @@ _mesa_UseShaderProgramEXT(GLenum type, GLuint program)
       }
    }
 
-   _mesa_use_shader_program(ctx, type, shProg);
+   /* The "Dependencies on EXT_separate_shader_objects" section of the
+    * ARB_separate_shader_object spec says:
+    *
+    *     "The executable code for an individual shader stage is taken from
+    *     the current program for that stage.  If there is a current program
+    *     object for any shader stage or for uniform updates established by
+    *     UseProgram, UseShaderProgramEXT, or ActiveProgramEXT, the current
+    *     program for that stage (if any) is considered current.  Otherwise,
+    *     if there is a bound program pipeline object ..."
+    */
+   if (program) {
+      /* Attach shader state to the binding point */
+      _mesa_reference_pipeline_object(ctx, &ctx->_Shader, &ctx->Shader);
+      /* Update the program */
+      _mesa_use_shader_program(ctx, type, shProg, ctx->_Shader);
+   } else {
+      /* Must be done first: detach the progam */
+      _mesa_use_shader_program(ctx, type, shProg, ctx->_Shader);
+
+      /* Nothing remains current */
+      if (!ctx->Shader.CurrentProgram[MESA_SHADER_VERTEX] &&
+          !ctx->Shader.CurrentProgram[MESA_SHADER_GEOMETRY] &&
+          !ctx->Shader.CurrentProgram[MESA_SHADER_FRAGMENT] &&
+          !ctx->Shader.ActiveProgram) {
+
+         /* Unattach shader_state binding point */
+         _mesa_reference_pipeline_object(ctx, &ctx->_Shader,
+                                         ctx->Pipeline.Default);
+
+         /* If a pipeline was bound, rebind it */
+         if (ctx->Pipeline.Current) {
+            _mesa_BindProgramPipeline(ctx->Pipeline.Current->Name);
+         }
+      }
+   }
 }
 
 
@@ -1830,7 +1896,39 @@ _mesa_ActiveProgramEXT(GLuint program)
       ? _mesa_lookup_shader_program_err(ctx, program, "glActiveProgramEXT")
       : NULL;
 
-   _mesa_active_program(ctx, shProg, "glActiveProgramEXT");
+   /* The "Dependencies on EXT_separate_shader_objects" section of the
+    * ARB_separate_shader_object spec says:
+    *
+    *     "The executable code for an individual shader stage is taken from
+    *     the current program for that stage.  If there is a current program
+    *     object for any shader stage or for uniform updates established by
+    *     UseProgram, UseShaderProgramEXT, or ActiveProgramEXT, the current
+    *     program for that stage (if any) is considered current.  Otherwise,
+    *     if there is a bound program pipeline object ..."
+    */
+   if (shProg != NULL) {
+      /* Attach shader state to the binding point */
+      _mesa_reference_pipeline_object(ctx, &ctx->_Shader, &ctx->Shader);
+      _mesa_active_program(ctx, shProg, "glActiveProgramEXT");
+   } else {
+      /* Must be done first: unset the current active progam */
+      _mesa_active_program(ctx, shProg, "glActiveProgramEXT");
+
+      /* Nothing remains current */
+      if (!ctx->Shader.CurrentProgram[MESA_SHADER_VERTEX] &&
+          !ctx->Shader.CurrentProgram[MESA_SHADER_GEOMETRY] &&
+          !ctx->Shader.CurrentProgram[MESA_SHADER_FRAGMENT] &&
+          !ctx->Shader.ActiveProgram) {
+
+         /* Unattach shader_state binding point */
+         _mesa_reference_pipeline_object(ctx, &ctx->_Shader, ctx->Pipeline.Default);
+         /* If a pipeline was bound, rebind it */
+         if (ctx->Pipeline.Current) {
+            _mesa_BindProgramPipeline(ctx->Pipeline.Current->Name);
+         }
+      }
+   }
+
    return;
 }
 

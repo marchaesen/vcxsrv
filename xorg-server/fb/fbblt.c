@@ -56,39 +56,45 @@ fbBlt(FbBits * srcLine,
     int n, nmiddle;
     Bool destInvarient;
     int startbyte, endbyte;
-    int careful;
 
     FbDeclareMergeRop();
+
+    if (alu == GXcopy && pm == FB_ALLONES &&
+        !(srcX & 7) && !(dstX & 7) && !(width & 7))
+    {
+        CARD8           *src_byte = (CARD8 *) srcLine + (srcX >> 3);
+        CARD8           *dst_byte = (CARD8 *) dstLine + (dstX >> 3);
+        FbStride        src_byte_stride = srcStride << (FB_SHIFT - 3);
+        FbStride        dst_byte_stride = dstStride << (FB_SHIFT - 3);
+        int             width_byte = (width >> 3);
+
+        /* Make sure there's no overlap; we can't use memcpy in that
+         * case as it's not well defined, so fall through to the
+         * general code
+         */
+        if (src_byte + width_byte <= dst_byte ||
+            dst_byte + width_byte <= src_byte)
+        {
+            int i;
+
+            if (!upsidedown)
+                for (i = 0; i < height; i++)
+                    MEMCPY_WRAPPED(dst_byte + i * dst_byte_stride,
+                                   src_byte + i * src_byte_stride,
+                                   width_byte);
+            else
+                for (i = height - 1; i >= 0; i--)
+                    MEMCPY_WRAPPED(dst_byte + i * dst_byte_stride,
+                                   src_byte + i * src_byte_stride,
+                                   width_byte);
+
+            return;
+        }
+    }
 
     if (bpp == 24 && !FbCheck24Pix(pm)) {
         fbBlt24(srcLine, srcStride, srcX, dstLine, dstStride, dstX,
                 width, height, alu, pm, reverse, upsidedown);
-        return;
-    }
-
-    careful = !((srcLine < dstLine && srcLine + width * (bpp >> 3) > dstLine) ||
-                (dstLine < srcLine && dstLine + width * (bpp >> 3) > srcLine))
-        || (bpp & 7);
-
-    if (alu == GXcopy && pm == FB_ALLONES && !careful &&
-        !(srcX & 7) && !(dstX & 7) && !(width & 7)) {
-        int i;
-        CARD8 *tmpsrc = (CARD8 *) srcLine;
-        CARD8 *tmpdst = (CARD8 *) dstLine;
-
-        srcStride *= sizeof(FbBits);
-        dstStride *= sizeof(FbBits);
-        width >>= 3;
-        tmpsrc += (srcX >> 3);
-        tmpdst += (dstX >> 3);
-
-        if (!upsidedown)
-            for (i = 0; i < height; i++)
-                MEMCPY_WRAPPED(tmpdst + i * dstStride, tmpsrc + i * srcStride, width);
-        else
-            for (i = height - 1; i >= 0; i--)
-                MEMCPY_WRAPPED(tmpdst + i * dstStride, tmpsrc + i * srcStride, width);
-
         return;
     }
 

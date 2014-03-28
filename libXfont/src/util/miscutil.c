@@ -47,7 +47,7 @@ extern void BuiltinRegisterFpeFunctions(void);
 
 #ifndef NO_WEAK_SYMBOLS
 /* make sure everything initializes themselves at least once */
-weak long serverGeneration = 1;
+weak unsigned long serverGeneration = 1;
 #endif
 
 weak void

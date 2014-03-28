@@ -49,8 +49,9 @@ from The Open Group.
 
 #include <ctype.h>
 #include <unistd.h>
-#ifdef HAVE_SYSTEMD_DAEMON
+#include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_SYSTEMD_DAEMON
 #include <systemd/sd-daemon.h>
 #endif
 
@@ -171,8 +172,8 @@ TRANS(SelectTransport) (const char *protocol)
     protobuf[PROTOBUFSIZE-1] = '\0';
 
     for (i = 0; i < PROTOBUFSIZE && protobuf[i] != '\0'; i++)
-	if (isupper (protobuf[i]))
-	    protobuf[i] = tolower (protobuf[i]);
+	if (isupper ((unsigned char)protobuf[i]))
+	    protobuf[i] = tolower ((unsigned char)protobuf[i]);
 
     /* Look at all of the configured protocols */
 

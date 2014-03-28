@@ -728,6 +728,12 @@ __asm int 3;
             malloc(scrpriv->ximg->stride * buffer_height);
     }
 
+    {
+        uint32_t mask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+        uint32_t values[2] = {width, height};
+        xcb_configure_window(HostX.conn, scrpriv->win, mask, values);
+    }
+
     if (scrpriv->win_pre_existing == None && !EphyrWantResize) {
         /* Ask the WM to keep our size static */
         xcb_size_hints_t size_hints = {0};
@@ -1286,7 +1292,9 @@ ephyr_glamor_create_screen_resources(ScreenPtr pScreen)
     screen_pixmap = pScreen->CreatePixmap(pScreen,
                                           pScreen->width,
                                           pScreen->height,
-                                          pScreen->rootDepth, 0);
+                                          pScreen->rootDepth,
+                                          GLAMOR_CREATE_NO_LARGE);
+
     pScreen->SetScreenPixmap(screen_pixmap);
 
     /* Tell the GLX code what to GL texture to read from. */

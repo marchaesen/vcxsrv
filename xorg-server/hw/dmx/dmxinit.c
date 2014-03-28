@@ -597,10 +597,8 @@ static void dmxAddExtensions(Bool glxSupported)
         { GlxExtensionInit, "GLX", &glxSupported },
 #endif
     };
-    int i;
 
-    for (i = 0; i < ARRAY_SIZE(dmxExtensions); i++)
-        LoadExtension(&dmxExtensions[i], TRUE);
+    LoadExtensionList(dmxExtensions, ARRAY_SIZE(dmxExtensions), TRUE);
 }
 
 /** This routine is called in Xserver/dix/main.c from \a main(). */

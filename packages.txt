@@ -54,7 +54,7 @@ libXau git version
 libXaw-1.0.12
 libXdmcp git version
 libXext git version
-libXfont-1.4.6
+libXfont-1.4.7
 libXft git version
 libXinerama git version
 libXmu git version
@@ -90,7 +90,7 @@ xineramaproto-1.2.1
 xkbcomp git version
 xkeyboard-config git version
 xrdb git version
-xproto-7.0.24
+xproto-7.0.25
 xserver git version
 xtrans git version
 xwininfo git version

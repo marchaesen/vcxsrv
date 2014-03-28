@@ -56,34 +56,7 @@ of the copyright holder.
 #define VIDEO_OVERLAID_STILLS			0x00000008
 #define VIDEO_CLIP_TO_VIEWPORT			0x00000010
 
-typedef struct {
-    int id;
-    int type;
-    int byte_order;
-    unsigned char guid[16];
-    int bits_per_pixel;
-    int format;
-    int num_planes;
-
-    /* for RGB formats only */
-    int depth;
-    unsigned int red_mask;
-    unsigned int green_mask;
-    unsigned int blue_mask;
-
-    /* for YUV formats only */
-    unsigned int y_sample_bits;
-    unsigned int u_sample_bits;
-    unsigned int v_sample_bits;
-    unsigned int horz_y_period;
-    unsigned int horz_u_period;
-    unsigned int horz_v_period;
-    unsigned int vert_y_period;
-    unsigned int vert_u_period;
-    unsigned int vert_v_period;
-    char component_order[32];
-    int scanline_order;
-} KdImageRec, *KdImagePtr;
+typedef XvImageRec KdImageRec, *KdImagePtr;
 
 typedef struct {
     KdScreenInfo *screen;
@@ -158,12 +131,7 @@ typedef struct {
     short class;
 } KdVideoFormatRec, *KdVideoFormatPtr;
 
-typedef struct {
-    int flags;
-    int min_value;
-    int max_value;
-    char *name;
-} KdAttributeRec, *KdAttributePtr;
+typedef XvAttributeRec KdAttributeRec, *KdAttributePtr;
 
 typedef struct {
     unsigned int type;

@@ -1,3 +1,129 @@
+commit 30110063857ff9a5f93f6d8d13f535c9b6e59e2a
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Jan 7 08:22:31 2014 -0800
+
+    libXfont 1.4.7
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 2a84680376bafd74609c6ef3e38befcb8467d814
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Dec 23 19:01:11 2013 -0800
+
+    Limit additional sscanf strings to fit buffer sizes
+    
+    None of these could currently result in buffer overflow, as the input
+    and output buffers were the same size, but adding limits helps ensure
+    we keep it that way, if we ever resize any of these in the future.
+    
+    Fixes cppcheck warnings:
+     [lib/libXfont/src/bitmap/bdfread.c:547]: (warning)
+      scanf without field width limits can crash with huge input data.
+     [lib/libXfont/src/bitmap/bdfread.c:553]: (warning)
+      scanf without field width limits can crash with huge input data.
+     [lib/libXfont/src/bitmap/bdfread.c:636]: (warning)
+      scanf without field width limits can crash with huge input data.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
+    Reviewed-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+
+commit 4d024ac10f964f6bd372ae0dd14f02772a6e5f63
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Dec 23 18:34:02 2013 -0800
+
+    CVE-2013-6462: unlimited sscanf overflows stack buffer in bdfReadCharacters()
+    
+    Fixes cppcheck warning:
+     [lib/libXfont/src/bitmap/bdfread.c:341]: (warning)
+      scanf without field width limits can crash with huge input data.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
+    Reviewed-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+
+commit fdcf9a9be6a5d453659beadec5d1a1fdbab9afaf
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Dec 27 11:01:35 2013 -0800
+
+    Add AC_USE_SYSTEM_EXTENSIONS to expose non-standard extensions
+    
+    Required on Solaris to expose definitions in system headers that
+    are not defined in the XPG standards now that xtrans 1.3 defines
+    _XOPEN_SOURCE to 600 on Solaris.
+    
+    Fixes build failures:
+    fserve.c: In function 'fs_block_handler':
+    fserve.c:1210:5: error: 'fd_mask' undeclared (first use in this function)
+    fserve.c:1210:5: note: each undeclared identifier is reported only once for each function it appears in
+    In file included from transport.c:67:0,
+                     from fstrans.c:28:
+    Xtranssock.c: In function '_FontTransSocketINETConnect':
+    Xtranssock.c:1421:19: error: 'INET6_ADDRSTRLEN' undeclared (first use in this function)
+    Xtranssock.c:1421:19: note: each undeclared identifier is reported only once for each function it appears in
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Daniel Stone <daniel@fooishbar.org>
+
+commit 0d24378a6f08f5ab594ff552d60cf5f8f74bcb33
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Dec 7 20:11:29 2013 -0800
+
+    Don't leak old allocation if realloc fails to enlarge it
+    
+    In ftfuncs.c, since the buffer being reallocated is a function local
+    buffer, used to accumulate data for a single run of the function and
+    then freed at the end of the function, we just free the old buffer if
+    realloc fails.
+    
+    In atom.c however, the ReverseMap is a static buffer, so we operate in
+    temporary variables until we know we're successful, then update the
+    static variables.  If we fail, we leave the old static variables in place,
+    since they contain data about previous atoms we should maintain, not lose.
+    
+    Reported by cppcheck:
+    [lib/libXfont/src/FreeType/ftfuncs.c:2122]: (error) Common realloc mistake:
+     'ranges' nulled but not freed upon failure
+    [lib/libXfont/src/util/atom.c:126]: (error) Common realloc mistake:
+     'reverseMap' nulled but not freed upon failure
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit 5e27c364b174497d427dcecd122d711ef6b9f630
+Author: Julien Cristau <jcristau@debian.org>
+Date:   Mon Aug 12 18:40:27 2013 +0200
+
+    Make serverGeneration unsigned
+    
+    Makes the definition match other declarations, and xserver's definition.
+    
+    Debian bug#689439
+    
+    Reported-by: Michael Tautschnig <mt@debian.org>
+    Signed-off-by: Julien Cristau <jcristau@debian.org>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 7d34534c050cb4366c7b14bff585c17d6d578f89
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Oct 26 00:06:22 2013 -0700
+
+    Replace malloc(strlen)+strcpy/strcat calls with strdup
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 8a9fc31628a98e3cdaae6078bb5d92bce06c37ac
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Oct 25 23:56:55 2013 -0700
+
+    xstrdup -> strdup
+    
+    Missed in xalloc -> malloc etal conversion in 0cdc9b8f850342
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Jasper St. Pierre <jstpierre@mecheye.net>
+
 commit 8b289e10c5013cdcbf817c06bd929e3ea8339987
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Sun Jul 21 16:53:47 2013 -0700

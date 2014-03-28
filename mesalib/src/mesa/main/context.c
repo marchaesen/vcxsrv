@@ -1841,6 +1841,7 @@ shader_linked_or_absent(struct gl_context *ctx,
  * Prior to drawing anything with glBegin, glDrawArrays, etc. this function
  * is called to see if it's valid to render.  This involves checking that
  * the current shader is valid and the framebuffer is complete.
+ * It also check the current pipeline object is valid if any.
  * If an error is detected it'll be recorded here.
  * \return GL_TRUE if OK to render, GL_FALSE if not
  */
@@ -1855,7 +1856,7 @@ _mesa_valid_to_render(struct gl_context *ctx, const char *where)
       _mesa_update_state(ctx);
 
    for (i = 0; i < MESA_SHADER_COMPUTE; i++) {
-      if (!shader_linked_or_absent(ctx, ctx->Shader.CurrentProgram[i],
+      if (!shader_linked_or_absent(ctx, ctx->_Shader->CurrentProgram[i],
                                    &from_glsl_shader[i], where))
          return GL_FALSE;
    }
@@ -1892,6 +1893,15 @@ _mesa_valid_to_render(struct gl_context *ctx, const char *where)
       }
    }
 
+   /* A pipeline object is bound */
+   if (ctx->_Shader->Name && !ctx->_Shader->Validated) {
+      /* Error message will be printed inside _mesa_validate_program_pipeline.
+       */
+      if (!_mesa_validate_program_pipeline(ctx, ctx->_Shader, GL_TRUE)) {
+         return GL_FALSE;
+      }
+   }
+
    if (ctx->DrawBuffer->_Status != GL_FRAMEBUFFER_COMPLETE_EXT) {
       _mesa_error(ctx, GL_INVALID_FRAMEBUFFER_OPERATION_EXT,
                   "%s(incomplete framebuffer)", where);
@@ -1903,8 +1913,8 @@ _mesa_valid_to_render(struct gl_context *ctx, const char *where)
    }
 
 #ifdef DEBUG
-   if (ctx->Shader.Flags & GLSL_LOG) {
-      struct gl_shader_program **shProg = ctx->Shader.CurrentProgram;
+   if (ctx->_Shader->Flags & GLSL_LOG) {
+      struct gl_shader_program **shProg = ctx->_Shader->CurrentProgram;
       gl_shader_stage i;
 
       for (i = 0; i < MESA_SHADER_STAGES; i++) {

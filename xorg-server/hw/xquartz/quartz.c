@@ -164,10 +164,7 @@ static const ExtensionModule quartzExtensions[] = {
  */
 static void QuartzExtensionInit(void)
 {
-    int i;
-
-    for (i = 0; i < ARRAY_SIZE(quartzExtensions); i++)
-        LoadExtension(&quartzExtensions[i], TRUE);
+    LoadExtensionList(quartzExtensions, ARRAY_SIZE(quartzExtensions), TRUE);
 }
 
 /*

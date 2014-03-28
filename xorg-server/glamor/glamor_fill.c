@@ -218,9 +218,6 @@ _glamor_solid_boxes(PixmapPtr pixmap, BoxPtr box, int nbox, float *color)
         }
     }
 
-    if (_X_UNLIKELY(nbox > 1))
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glamor_priv->ebo);
-
     glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_FLOAT,
                           GL_FALSE, 2 * sizeof(float), vertices);
     glEnableVertexAttribArray(GLAMOR_VERTEX_POS);

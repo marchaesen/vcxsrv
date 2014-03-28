@@ -637,8 +637,6 @@ glamor_setup_composite_vbo_for_trapezoid(ScreenPtr screen, int n_verts)
 
     vb = glamor_get_vbo_space(screen, vert_size, &vbo_offset);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glamor_priv->ebo);
-
     /* Set the vertex pointer. */
     glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_FLOAT,
                           GL_FALSE, glamor_priv->vb_stride,
@@ -977,7 +975,6 @@ _glamor_trapezoids_with_shader(CARD8 op,
     ret = TRUE;
 
  TRAPEZOID_RESET_GL:
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
     glDisableVertexAttribArray(GLAMOR_VERTEX_MASK);
@@ -1415,8 +1412,6 @@ _glamor_generate_trapezoid_with_shader(ScreenPtr screen, PicturePtr picture,
 
     pixmap_priv_get_dest_scale(pixmap_priv, (&xscale), (&yscale));
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
     /* Now draw the Trapezoid mask. */
     glUseProgram(trapezoid_prog);
 
@@ -1562,7 +1557,6 @@ _glamor_generate_trapezoid_with_shader(ScreenPtr screen, PicturePtr picture,
         }
     }
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glBlendFunc(GL_ONE, GL_ZERO);
     glDisable(GL_BLEND);
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);

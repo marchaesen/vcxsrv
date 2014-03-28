@@ -2054,7 +2054,7 @@ restrict_code_range_by_str(int count,unsigned short *refFirstCol,
 {
     int nRanges = 0;
     int result = 0;
-    fsRange *ranges = NULL;
+    fsRange *ranges = NULL, *oldRanges;
     char const *p, *q;
 
     p = q = str;
@@ -2123,10 +2123,13 @@ restrict_code_range_by_str(int count,unsigned short *refFirstCol,
         fflush(stderr);
 #endif
         nRanges++;
+        oldRanges = ranges;
         ranges = realloc(ranges, nRanges*sizeof(*ranges));
-        if (NULL == ranges)
+        if (NULL == ranges) {
+            free(oldRanges);
             break;
-        {
+        }
+        else {
             fsRange *r = ranges+nRanges-1;
 
             r->min_char_low = minpoint & 0xff;
@@ -2208,7 +2211,7 @@ FreeTypeSetUpTTCap( char *fileName, FontScalablePtr vals,
 		strcpy(*dynStrRealFileName+dirLen, p2+1);
 		capHead = p1;
 	    } else {
-		*dynStrRealFileName = xstrdup(fileName);
+		*dynStrRealFileName = strdup(fileName);
 		if( *dynStrRealFileName == NULL ) {
 		    result = AllocError;
 		    goto quit;
@@ -2293,13 +2296,11 @@ FreeTypeSetUpTTCap( char *fileName, FontScalablePtr vals,
 	    }
 	}
 	else{
-	    *dynStrFTFileName = malloc(strlen(*dynStrRealFileName)+1);
+	    *dynStrFTFileName = strdup(*dynStrRealFileName);
 	    if( *dynStrFTFileName == NULL ){
 		result = AllocError;
 		goto quit;
 	    }
-	    **dynStrFTFileName = '\0';
-	    strcat(*dynStrFTFileName,*dynStrRealFileName);
 	}
     }
     /*
@@ -2553,7 +2554,7 @@ FreeTypeSetUpTTCap( char *fileName, FontScalablePtr vals,
     if (SPropRecValList_search_record(&listPropRecVal,
 				      &contRecValue,
 				      "CodeRange")) {
-	*dynStrTTCapCodeRange = xstrdup(SPropContainer_value_str(contRecValue));
+	*dynStrTTCapCodeRange = strdup(SPropContainer_value_str(contRecValue));
 	if( *dynStrTTCapCodeRange == NULL ) {
 	    result = AllocError;
 	    goto quit;

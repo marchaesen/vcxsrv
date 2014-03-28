@@ -425,17 +425,13 @@ FontFileCountDashes (char *name, int namelen)
     return ndashes;
 }
 
+/* exported in public API in <X11/fonts/fntfil.h> */
 char *
 FontFileSaveString (char *s)
 {
-    char    *n;
-
-    n = malloc (strlen (s) + 1);
-    if (!n)
-	return 0;
-    strcpy (n, s);
-    return n;
+    return strdup(s);
 }
+#define FontFileSaveString(s) strdup(s)
 
 FontEntryPtr
 FontFileFindNameInScalableDir(FontTablePtr table, FontNamePtr pat,

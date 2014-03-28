@@ -332,7 +332,7 @@ glamor_realize_glyph_caches(ScreenPtr pScreen)
         pixmap = pScreen->CreatePixmap(pScreen,
                                        CACHE_PICTURE_SIZE,
                                        CACHE_PICTURE_SIZE + MASK_CACHE_MAX_SIZE,
-                                       depth, 0);
+                                       depth, GLAMOR_CREATE_NO_LARGE);
         if (!pixmap)
             goto bail;
 

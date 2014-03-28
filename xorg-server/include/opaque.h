@@ -74,5 +74,6 @@ extern _X_EXPORT Bool whiteRoot;
 extern _X_EXPORT Bool bgNoneRoot;
 
 extern _X_EXPORT Bool CoreDump;
+extern _X_EXPORT Bool NoListenAll;
 
 #endif                          /* OPAQUE_H */

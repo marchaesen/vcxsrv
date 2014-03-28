@@ -75,7 +75,7 @@ typedef int		FcBool;
 #define FC_STYLE	    "style"		/* String */
 #define FC_SLANT	    "slant"		/* Int */
 #define FC_WEIGHT	    "weight"		/* Int */
-#define FC_SIZE		    "size"		/* Double */
+#define FC_SIZE		    "size"		/* Range (double) */
 #define FC_ASPECT	    "aspect"		/* Double */
 #define FC_PIXEL_SIZE	    "pixelsize"		/* Double */
 #define FC_SPACING	    "spacing"		/* Int */
@@ -194,7 +194,8 @@ typedef enum _FcType {
     FcTypeMatrix,
     FcTypeCharSet,
     FcTypeFTFace,
-    FcTypeLangSet
+    FcTypeLangSet,
+    FcTypeRange
 } FcType;
 
 typedef struct _FcMatrix {
@@ -231,6 +232,8 @@ typedef struct _FcPattern   FcPattern;
 
 typedef struct _FcLangSet   FcLangSet;
 
+typedef struct _FcRange	    FcRange;
+
 typedef struct _FcValue {
     FcType	type;
     union {
@@ -242,6 +245,7 @@ typedef struct _FcValue {
 	const FcCharSet	*c;
 	void		*f;
 	const FcLangSet	*l;
+	const FcRange	*r;
     } u;
 } FcValue;
 
@@ -853,6 +857,9 @@ FcPatternAddBool (FcPattern *p, const char *object, FcBool b);
 FcPublic FcBool
 FcPatternAddLangSet (FcPattern *p, const char *object, const FcLangSet *ls);
 
+FcPublic FcBool
+FcPatternAddRange (FcPattern *p, const char *object, const FcRange *r);
+
 FcPublic FcResult
 FcPatternGetInteger (const FcPattern *p, const char *object, int n, int *i);
 
@@ -874,6 +881,9 @@ FcPatternGetBool (const FcPattern *p, const char *object, int n, FcBool *b);
 FcPublic FcResult
 FcPatternGetLangSet (const FcPattern *p, const char *object, int n, FcLangSet **ls);
 
+FcPublic FcResult
+FcPatternGetRange (const FcPattern *p, const char *object, int id, FcRange **r);
+
 FcPublic FcPattern *
 FcPatternVaBuild (FcPattern *p, va_list va);
     
@@ -882,6 +892,20 @@ FcPatternBuild (FcPattern *p, ...) FC_ATTRIBUTE_SENTINEL(0);
 
 FcPublic FcChar8 *
 FcPatternFormat (FcPattern *pat, const FcChar8 *format);
+
+/* fcrange.c */
+FcPublic FcRange *
+FcRangeCreateDouble (double begin, double end);
+
+FcPublic FcRange *
+FcRangeCreateInteger (FcChar32 begin, FcChar32 end);
+
+FcPublic void
+FcRangeDestroy (FcRange *range);
+
+FcPublic FcRange *
+FcRangeCopy (const FcRange *r);
+
 
 /* fcstr.c */
 

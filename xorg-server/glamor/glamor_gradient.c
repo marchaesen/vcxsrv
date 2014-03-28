@@ -247,7 +247,6 @@ _glamor_create_radial_gradient_program(ScreenPtr screen, int stops_count,
 	    "{\n"\
 	    "    float t = 0.0;\n"\
 	    "    float sqrt_value;\n"\
-	    "    int revserse = 0;\n"\
 	    "    t_invalid = 0;\n"\
 	    "    \n"\
 	    "    vec3 tmp = vec3(source_texture.x, source_texture.y, 1.0);\n"\
@@ -295,30 +294,11 @@ _glamor_create_radial_gradient_program(ScreenPtr screen, int stops_count,
 	    "    }\n"\
 	    "    \n"\
 	    "    if(repeat_type == %d){\n" /* repeat normal*/\
-	    "        while(t > 1.0) \n"\
-	    "            t = t - 1.0; \n"\
-	    "        while(t < 0.0) \n"\
-	    "            t = t + 1.0; \n"\
+	    "        t = fract(t);\n"\
 	    "    }\n"\
 	    "    \n"\
 	    "    if(repeat_type == %d) {\n" /* repeat reflect*/\
-	    "        while(t > 1.0) {\n"\
-	    "            t = t - 1.0; \n"\
-	    "            if(revserse == 0)\n"\
-	    "                revserse = 1;\n"\
-	    "            else\n"\
-	    "                revserse = 0;\n"\
-	    "        }\n"\
-	    "        while(t < 0.0) {\n"\
-	    "            t = t + 1.0; \n"\
-	    "            if(revserse == 0)\n"\
-	    "                revserse = 1;\n"\
-	    "            else\n"\
-	    "                revserse = 0;\n"\
-	    "        }\n"\
-	    "        if(revserse == 1) {\n"\
-	    "            t = 1.0 - t; \n"\
-	    "        }\n"\
+	    "        t = abs(fract(t * 0.5 + 0.5) * 2.0 - 1.0);\n"\
 	    "    }\n"\
 	    "    \n"\
 	    "    return t;\n"\
@@ -492,7 +472,6 @@ _glamor_create_linear_gradient_program(ScreenPtr screen, int stops_count,
 	    "    vec4 stop_color_before;\n"\
 	    "    vec4 stop_color_after;\n"\
 	    "    float new_alpha; \n"\
-	    "    int revserse = 0;\n"\
 	    "    vec4 gradient_color;\n"\
 	    "    float percentage; \n"\
 	    "    vec3 source_texture_trans = transform_mat * tmp;\n"\
@@ -512,30 +491,11 @@ _glamor_create_linear_gradient_program(ScreenPtr screen, int stops_count,
 	    "    distance = distance - _p1_distance; \n"\
 	    "    \n"\
 	    "    if(repeat_type == %d){\n" /* repeat normal*/\
-	    "        while(distance > _pt_distance) \n"\
-	    "            distance = distance - (_pt_distance); \n"\
-	    "        while(distance < 0.0) \n"\
-	    "            distance = distance + (_pt_distance); \n"\
+	    "        distance = mod(distance, _pt_distance);\n"\
 	    "    }\n"\
 	    "    \n"\
 	    "    if(repeat_type == %d) {\n" /* repeat reflect*/\
-	    "        while(distance > _pt_distance) {\n"\
-	    "            distance = distance - (_pt_distance); \n"\
-	    "            if(revserse == 0)\n"\
-	    "                revserse = 1;\n"\
-	    "            else\n"\
-	    "                revserse = 0;\n"\
-	    "        }\n"\
-	    "        while(distance < 0.0) {\n"\
-	    "            distance = distance + (_pt_distance); \n"\
-	    "            if(revserse == 0)\n"\
-	    "                revserse = 1;\n"\
-	    "            else\n"\
-	    "                revserse = 0;\n"\
-	    "        }\n"\
-	    "        if(revserse == 1) {\n"\
-	    "            distance = (_pt_distance) - distance; \n"\
-	    "        }\n"\
+	    "        distance = abs(mod(distance + _pt_distance, 2.0 * _pt_distance) - _pt_distance);\n"\
 	    "    }\n"\
 	    "    \n"\
 	    "    len_percentage = distance/(_pt_distance);\n"\
@@ -1160,9 +1120,6 @@ glamor_generate_radial_gradient_picture(ScreenPtr screen,
         free(stop_colors);
     }
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
 
@@ -1180,9 +1137,6 @@ glamor_generate_radial_gradient_picture(ScreenPtr screen,
         if (stop_colors)
             free(stop_colors);
     }
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
@@ -1511,9 +1465,6 @@ glamor_generate_linear_gradient_picture(ScreenPtr screen,
         free(stop_colors);
     }
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
 
@@ -1531,9 +1482,6 @@ glamor_generate_linear_gradient_picture(ScreenPtr screen,
         if (stop_colors)
             free(stop_colors);
     }
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);

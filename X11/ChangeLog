@@ -1,3 +1,55 @@
+commit a7fa86998c873ce7463d169b4bd423898ca2bae1
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Nov 22 22:14:24 2013 -0800
+
+    xproto 7.0.25
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit a8aa17cb63493b4b756587ddc884a9055dba14da
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Sat Oct 26 09:42:05 2013 -0400
+
+    config: replace deprecated use of AC_OUTPUT with AC_CONFIG_FILES
+    
+    Fix Automake warning: AC_OUTPUT should be used without arguments.
+    www.gnu.org/software/autoconf/manual/autoconf.html#Configuration-Files
+    
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit ed5a86761d96d4bdebda4f09071a49cbf4688d1b
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Mar 1 20:05:12 2013 -0800
+
+    Remove WORD64, MUSTCOPY, and other CRAY leftovers
+    
+    Leaves behind several no-op macros for compatibility with existing
+    code that uses them.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 6d4acb0e3a6568a8faaa651d4e3d32f917b9067b
+Author: Benno Schulenberg <bensberg@justemail.net>
+Date:   Sat Aug 31 17:00:34 2013 +0200
+
+    Additional dead keysyms to complete the German DIN T3 keyboard layout.
+    
+    Signed-off-by: Benno Schulenberg <bensberg@justemail.net>
+    Signed-off-by: James Cloos <cloos@jhcloos.com>
+
+commit 043ed78ce03febd113615f5920bc9dffaf7f0b16
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Apr 19 14:45:28 2013 -0700
+
+    Add _X_COLD attribute for branch prediction hints
+    
+    Unfortunately the Solaris Studio equivalent is a pragma taking the
+    function names as arguments, so doesn't translate cleanly into a
+    common macro form.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+
 commit d103af8068fb90494cbd6e1ff950850369bbf95f
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Fri Mar 29 16:20:49 2013 -0700

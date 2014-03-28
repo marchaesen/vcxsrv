@@ -29,6 +29,8 @@
 static void
 _FcValuePrintFile (FILE *f, const FcValue v)
 {
+    FcRange r;
+
     switch (v.type) {
     case FcTypeUnknown:
 	fprintf (f, "<unknown>");
@@ -60,6 +62,10 @@ _FcValuePrintFile (FILE *f, const FcValue v)
 	break;
     case FcTypeFTFace:
 	fprintf (f, "face");
+	break;
+    case FcTypeRange:
+	r = FcRangeCanonicalize (v.u.r);
+	fprintf (f, "(%g, %g)", r.u.d.begin, r.u.d.end);
 	break;
     }
 }
@@ -261,6 +267,8 @@ FcOpPrint (FcOp op_)
 void
 FcExprPrint (const FcExpr *expr)
 {
+    FcRange r;
+
     if (!expr) printf ("none");
     else switch (FC_OP_GET_OP (expr->op)) {
     case FcOpInteger: printf ("%d", expr->u.ival); break;
@@ -277,7 +285,10 @@ FcExprPrint (const FcExpr *expr)
 	FcExprPrint (expr->u.mexpr->yy);
 	printf ("]");
 	break;
-    case FcOpRange: break;
+    case FcOpRange:
+	r = FcRangeCanonicalize (expr->u.rval);
+	printf ("(%g, %g)", r.u.d.begin, r.u.d.end);
+	break;
     case FcOpBool: printf ("%s", expr->u.bval ? "true" : "false"); break;
     case FcOpCharSet: printf ("charset\n"); break;
     case FcOpLangSet:

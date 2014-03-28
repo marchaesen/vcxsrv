@@ -77,6 +77,9 @@
 	case FcTypeLangSet:					    \
 	    __v__.u.l = va_arg (va, const FcLangSet *);		    \
 	    break;						    \
+	case FcTypeRange:					    \
+	    __v__.u.r = va_arg (va, const FcRange *);		    \
+	    break;						    \
 	}							    \
 	if (!FcPatternAdd (__p__, __o__, __v__, FcTrue))	    \
 	    goto _FcPatternVapBuild_bail1;			    \

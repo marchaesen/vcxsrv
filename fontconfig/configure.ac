@@ -321,6 +321,10 @@ AC_CHECK_MEMBER(FT_Bitmap_Size.y_ppem,
 #include FT_FREETYPE_H])
 AC_DEFINE_UNQUOTED(HAVE_FT_BITMAP_SIZE_Y_PPEM,$HAVE_FT_BITMAP_SIZE_Y_PPEM,
 		   [FT_Bitmap_Size structure includes y_ppem field])
+AC_CHECK_MEMBERS([TT_OS2.usLowerOpticalPointSize, TT_OS2.usUpperOpticalPointSize], [], [], [[
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#include FT_TRUETYPE_TABLES_H]])
 CFLAGS="$fontconfig_save_cflags"
 LIBS="$fontconfig_save_libs"
 

@@ -824,6 +824,9 @@ extern _X_EXPORT void XkbSendNewKeyboardNotify(DeviceIntPtr /* kbd */ ,
 extern Bool XkbCopyKeymap(XkbDescPtr /* dst */ ,
                           XkbDescPtr /* src */ );
 
+extern _X_EXPORT Bool XkbCopyDeviceKeymap(DeviceIntPtr /* dst */,
+					  DeviceIntPtr /* src */);
+
 extern _X_EXPORT Bool XkbDeviceApplyKeymap(DeviceIntPtr /* dst */ ,
                                            XkbDescPtr /* src */ );
 

@@ -361,9 +361,6 @@ glamor_create_fbo(glamor_screen_private *glamor_priv,
     GLint tex = 0;
     int cache_flag;
 
-    if (!glamor_check_fbo_size(glamor_priv, w, h))
-        return NULL;
-
     if (flag == GLAMOR_CREATE_FBO_NO_FBO)
         goto new_fbo;
 
