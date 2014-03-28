@@ -1107,6 +1107,8 @@ FcFreeTypeQueryFace (const FT_Face  face,
     FcChar8	    *hashstr = NULL;
     FT_Error	    err;
     FT_ULong	    len = 0, alen;
+    FcRange	    *r = NULL;
+    double	    lower_size = 0.0L, upper_size = DBL_MAX;
 
     pat = FcPatternCreate ();
     if (!pat)
@@ -1512,6 +1514,39 @@ FcFreeTypeQueryFace (const FT_Face  face,
 	    goto bail1;
 	}
 	free (complex_);
+    }
+
+#if defined (HAVE_TT_OS2_USUPPEROPTICALPOINTSIZE) && defined (HAVE_TT_OS2_USLOWEROPTICALPOINTSIZE)
+    if (os2 && os2->version >= 0x0005 && os2->version != 0xffff)
+    {
+	/* usLowerPointSize and usUpperPointSize is actually twips */
+	lower_size = os2->usLowerOpticalPointSize / 20.0L;
+	upper_size = os2->usUpperOpticalPointSize / 20.0L;
+    }
+#endif
+    if (os2)
+    {
+	r = FcRangeCreateDouble (lower_size, upper_size);
+	if (!FcPatternAddRange (pat, FC_SIZE, r))
+	{
+	    FcRangeDestroy (r);
+	    goto bail1;
+	}
+	FcRangeDestroy (r);
+    }
+    else
+    {
+	for (i = 0; i < face->num_fixed_sizes; i++)
+	{
+	    double d = FcGetPixelSize (face, i);
+	    r = FcRangeCreateDouble (d, d);
+	    if (!FcPatternAddRange (pat, FC_SIZE, r))
+	    {
+		FcRangeDestroy (r);
+		goto bail1;
+	    }
+	    FcRangeDestroy (r);
+	}
     }
 
     /*

@@ -52,6 +52,7 @@
 
 #include "glamor_debug.h"
 #include "glamor_context.h"
+#include "glamor_program.h"
 
 #include <list.h>
 
@@ -153,13 +154,6 @@ enum glamor_gl_flavor {
     GLAMOR_GL_ES2               // OPENGL ES2.0 API
 };
 
-#define GLAMOR_CREATE_PIXMAP_CPU  0x100
-#define GLAMOR_CREATE_PIXMAP_FIXUP 0x101
-#define GLAMOR_CREATE_FBO_NO_FBO   0x103
-#define GLAMOR_CREATE_PIXMAP_MAP 0x104
-
-#define GLAMOR_CREATE_TEXTURE_EXACT_SIZE 0x104
-
 #define GLAMOR_NUM_GLYPH_CACHE_FORMATS 2
 
 #define GLAMOR_COMPOSITE_VBO_VERT_CNT (64*1024)
@@ -213,6 +207,7 @@ typedef struct glamor_screen_private {
     enum glamor_gl_flavor gl_flavor;
     int has_pack_invert;
     int has_fbo_blit;
+    int has_map_buffer_range;
     int has_buffer_storage;
     int has_khr_debug;
     int max_fbo_size;
@@ -224,6 +219,9 @@ typedef struct glamor_screen_private {
     /* glamor_solid */
     GLint solid_prog;
     GLint solid_color_uniform_location;
+
+    /* glamor point shader */
+    glamor_program point_prog;
 
     /* vertext/elment_index buffer object for render */
     GLuint vbo, ebo;
@@ -421,6 +419,7 @@ typedef struct glamor_pixmap_private_base {
     unsigned char gl_tex:1;
     glamor_pixmap_fbo *fbo;
     PixmapPtr pixmap;
+    BoxRec box;
     int drm_stride;
     glamor_screen_private *glamor_priv;
     PicturePtr picture;
@@ -475,6 +474,52 @@ typedef struct glamor_pixmap_private {
         glamor_pixmap_private_atlas_t atlas;
     };
 } glamor_pixmap_private;
+
+static inline glamor_pixmap_fbo *
+glamor_pixmap_fbo_at(glamor_pixmap_private *priv, int x, int y)
+{
+    if (priv->type == GLAMOR_TEXTURE_LARGE) {
+        assert(x < priv->large.block_wcnt);
+        assert(y < priv->large.block_hcnt);
+        return priv->large.fbo_array[y * priv->large.block_wcnt + x];
+    }
+    assert (x == 0);
+    assert (y == 0);
+    return priv->base.fbo;
+}
+
+static inline BoxPtr
+glamor_pixmap_box_at(glamor_pixmap_private *priv, int x, int y)
+{
+    if (priv->type == GLAMOR_TEXTURE_LARGE) {
+        assert(x < priv->large.block_wcnt);
+        assert(y < priv->large.block_hcnt);
+        return &priv->large.box_array[y * priv->large.block_wcnt + x];
+    }
+    assert (x == 0);
+    assert (y == 0);
+    return &priv->base.box;
+}
+
+static inline int
+glamor_pixmap_wcnt(glamor_pixmap_private *priv)
+{
+    if (priv->type == GLAMOR_TEXTURE_LARGE)
+        return priv->large.block_wcnt;
+    return 1;
+}
+
+static inline int
+glamor_pixmap_hcnt(glamor_pixmap_private *priv)
+{
+    if (priv->type == GLAMOR_TEXTURE_LARGE)
+        return priv->large.block_hcnt;
+    return 1;
+}
+
+#define glamor_pixmap_loop(priv, x, y)                  \
+    for (y = 0; y < glamor_pixmap_hcnt(priv); y++)      \
+        for (x = 0; x < glamor_pixmap_wcnt(priv); x++)
 
 /* 
  * Pixmap dynamic status, used by dynamic upload feature.
@@ -619,12 +664,6 @@ Bool glamor_set_alu(ScreenPtr screen, unsigned char alu);
 Bool glamor_set_planemask(PixmapPtr pixmap, unsigned long planemask);
 Bool glamor_change_window_attributes(WindowPtr pWin, unsigned long mask);
 RegionPtr glamor_bitmap_to_region(PixmapPtr pixmap);
-Bool glamor_gl_has_extension(const char *extension);
-int glamor_gl_get_version(void);
-
-#define GLAMOR_GL_VERSION_ENCODE(major, minor) ( \
-          ((major) * 256)                       \
-        + ((minor) *   1))
 
 /* glamor_fill.c */
 Bool glamor_fill(DrawablePtr drawable,

@@ -163,8 +163,6 @@ static const ExtensionModule xwinExtensions[] = {
 static
 void XwinExtensionInit(void)
 {
-    int i;
-
 #ifdef XWIN_GLX_WINDOWS
     if (g_fNativeGl) {
         /* install the native GL provider */
@@ -172,8 +170,7 @@ void XwinExtensionInit(void)
     }
 #endif
 
-    for (i = 0; i < ARRAY_SIZE(xwinExtensions); i++)
-        LoadExtension(&xwinExtensions[i], TRUE);
+    LoadExtensionList(xwinExtensions, ARRAY_SIZE(xwinExtensions), TRUE);
 }
 
 #if defined(DDXBEFORERESET)

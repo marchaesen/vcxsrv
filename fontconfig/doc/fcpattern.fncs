@@ -181,12 +181,21 @@ values added to the list have binding <parameter>weak</parameter> instead of <pa
 @TYPE2+++++++@	const char *			@ARG2+++++++@	object
 @TYPE3+++++++@	const FcLangSet *		@ARG3+++++++@	l
 
+@PROTOTYPE++++++++@
+@RET++++++++@	FcBool
+@FUNC++++++++@	FcPatternAddRange
+@TYPE1++++++++@	FcPattern *			@ARG1++++++++@	p
+@TYPE2++++++++@	const char *			@ARG2++++++++@	object
+@TYPE3++++++++@	const FcRange *			@ARG3++++++++@	r
+
 @PURPOSE@	Add a typed value to a pattern
 @DESC@
 These are all convenience functions that insert objects of the specified
 type into the pattern.  Use these in preference to FcPatternAdd as they
 will provide compile-time typechecking.  These all append values to
 any existing list of values.
+
+<function>FcPatternAddRange</function> are available since 2.11.91.
 @@
 
 @RET@		FcResult
@@ -257,16 +266,24 @@ within the pattern directly.  Applications must not free this value.
 @FUNC++++++@	FcPatternGetFTFace
 @TYPE1++++++@ 	FcPattern * 			@ARG1++++++@ 	p
 @TYPE2++++++@	const char *			@ARG2++++++@	object
-@TYPE3+++++@ 	int%  				@ARG3+++++@ 	n
-@TYPE3++++++@	FT_Face *			@ARG3++++++@	f
+@TYPE3++++++@ 	int%  				@ARG3++++++@ 	n
+@TYPE4++++++@	FT_Face *			@ARG4++++++@	f
 
 @PROTOTYPE+++++++@
 @RET+++++++@	FcResult
 @FUNC+++++++@	FcPatternGetLangSet
 @TYPE1+++++++@ 	FcPattern * 			@ARG1+++++++@ 	p
 @TYPE2+++++++@	const char *			@ARG2+++++++@	object
-@TYPE3+++++@ 	int%  				@ARG3+++++@ 	n
-@TYPE3+++++++@	FcLangSet **			@ARG3+++++++@	l
+@TYPE3+++++++@ 	int%  				@ARG3+++++++@ 	n
+@TYPE4+++++++@	FcLangSet **			@ARG4+++++++@	l
+
+@PROTOTYPE++++++++@
+@RET++++++++@	FcResult
+@FUNC++++++++@	FcPatternGetRange
+@TYPE1++++++++@	FcPattern *			@ARG1++++++++@	p
+@TYPE2++++++++@	const char *			@ARG2++++++++@	object
+@TYPE3++++++++@	int%  	   			@ARG3++++++++@	n
+@TYPE4++++++++@	FcRange **			@ARG4++++++++@	r
 
 @PURPOSE@	Return a typed value from a pattern
 @DESC@
@@ -275,6 +292,8 @@ returned data is of the expected type. They return FcResultTypeMismatch if
 this is not the case.  Note that these (like FcPatternGet) do not make a
 copy of any data structure referenced by the return value.  Use these
 in preference to FcPatternGet to provide compile-time typechecking.
+
+<function>FcPatternGetRange</function> are available since 2.11.91.
 @@
 
 @RET@		FcPattern *

@@ -38,6 +38,8 @@
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
+#include <float.h>
+#include <math.h>
 #include <unistd.h>
 #include <stddef.h>
 #include <sys/types.h>
@@ -93,6 +95,11 @@ extern pfnSHGetFolderPathA pSHGetFolderPathA;
 #define FC_MIN(a,b) ((a) < (b) ? (a) : (b))
 #define FC_MAX(a,b) ((a) > (b) ? (a) : (b))
 #define FC_ABS(a)   ((a) < 0 ? -(a) : (a))
+
+#define FcDoubleIsZero(a)	(fabs ((a)) <= DBL_EPSILON)
+#define FcDoubleCmpEQ(a,b)	(fabs ((a) - (b)) <= DBL_EPSILON)
+#define FcDoubleCmpGE(a,b)	(FcDoubleCmpEQ (a, b) || (a) > (b))
+#define FcDoubleCmpLE(a,b)	(FcDoubleCmpEQ (a, b) || (a) < (b))
 
 /* slim_internal.h */
 #if (__GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 3)) && defined(__ELF__) && !defined(__sun)
@@ -161,6 +168,7 @@ typedef enum _FcValueBinding {
 #define FcValueString(v)	FcPointerMember(v,u.s,FcChar8)
 #define FcValueCharSet(v)	FcPointerMember(v,u.c,const FcCharSet)
 #define FcValueLangSet(v)	FcPointerMember(v,u.l,const FcLangSet)
+#define FcValueRange(v)		FcPointerMember(v,u.r,const FcRange)
 
 typedef struct _FcValueList *FcValueListPtr;
 
@@ -244,20 +252,38 @@ typedef struct _FcExprName {
   FcMatchKind	kind;
 } FcExprName;
 
+typedef struct _FcRangeInt {
+    FcChar32 begin;
+    FcChar32 end;
+} FcRangeInt;
+typedef struct _FcRangeDouble {
+    double begin;
+    double end;
+} FcRangeDouble;
+struct _FcRange {
+    FcBool is_double;
+    FcBool is_inclusive;
+    union {
+	FcRangeInt i;
+	FcRangeDouble d;
+    } u;
+};
+
 
 typedef struct _FcExpr {
     FcOp   op;
     union {
-	int	    ival;
-	double	    dval;
-	const FcChar8	    *sval;
-	FcExprMatrix *mexpr;
-	FcBool	    bval;
-	FcCharSet   *cval;
-	FcLangSet   *lval;
+	int		ival;
+	double		dval;
+	const FcChar8	*sval;
+	FcExprMatrix	*mexpr;
+	FcBool		bval;
+	FcCharSet	*cval;
+	FcLangSet	*lval;
+	FcRange		*rval;
 
-	FcExprName  name;
-	const FcChar8	    *constant;
+	FcExprName	name;
+	const FcChar8	*constant;
 	struct {
 	    struct _FcExpr *left, *right;
 	} tree;
@@ -531,13 +557,6 @@ typedef struct _FcFileTime {
 } FcFileTime;
 
 typedef struct _FcCharMap FcCharMap;
-
-typedef struct _FcRange	    FcRange;
-
-struct _FcRange {
-    FcChar32 begin;
-    FcChar32 end;
-};
 
 typedef struct _FcStatFS    FcStatFS;
 
@@ -1008,6 +1027,9 @@ FcPatternObjectAddBool (FcPattern *p, FcObject object, FcBool b);
 FcPrivate FcBool
 FcPatternObjectAddLangSet (FcPattern *p, FcObject object, const FcLangSet *ls);
 
+FcPrivate FcBool
+FcPatternObjectAddRange (FcPattern *p, FcObject object, const FcRange *r);
+
 FcPrivate FcResult
 FcPatternObjectGetInteger (const FcPattern *p, FcObject object, int n, int *i);
 
@@ -1028,6 +1050,9 @@ FcPatternObjectGetBool (const FcPattern *p, FcObject object, int n, FcBool *b);
 
 FcPrivate FcResult
 FcPatternObjectGetLangSet (const FcPattern *p, FcObject object, int n, FcLangSet **ls);
+
+FcPrivate FcResult
+FcPatternObjectGetRange (const FcPattern *p, FcObject object, int id, FcRange **r);
 
 FcPrivate FcBool
 FcPatternAppend (FcPattern *p, FcPattern *s);
@@ -1055,6 +1080,32 @@ extern FcPrivate const FcMatrix    FcIdentityMatrix;
 
 FcPrivate void
 FcMatrixFree (FcMatrix *mat);
+
+/* fcrange.c */
+
+FcPrivate FcRange
+FcRangeCanonicalize (const FcRange *range);
+
+FcPrivate FcRange *
+FcRangePromote (double v, FcValuePromotionBuffer *vbuf);
+
+FcPrivate FcBool
+FcRangeIsZero (const FcRange *r);
+
+FcPrivate FcBool
+FcRangeIsInRange (const FcRange *a, const FcRange *b);
+
+FcPrivate FcBool
+FcRangeCompare (FcOp op, const FcRange *a, const FcRange *b);
+
+FcPrivate FcChar32
+FcRangeHash (const FcRange *r);
+
+FcPrivate FcBool
+FcRangeSerializeAlloc (FcSerialize *serialize, const FcRange *r);
+
+FcPrivate FcRange *
+FcRangeSerialize (FcSerialize *serialize, const FcRange *r);
 
 /* fcstat.c */
 

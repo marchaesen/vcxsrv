@@ -43,7 +43,7 @@ SUBDIRS = common ddc x86emu $(INT10_SUBDIR) os-support parser \
 DIST_SUBDIRS = common ddc i2c x86emu int10 fbdevhw os-support \
                parser ramdac shadowfb vbe vgahw \
                loader dixmods dri dri2 exa modes \
-	       utils doc man
+	       utils doc man glamor_egl
 
 bin_PROGRAMS = Xorg
 nodist_Xorg_SOURCES = sdksyms.c

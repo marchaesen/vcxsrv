@@ -151,6 +151,7 @@ libfontconfig_la_SOURCES = \
 	fcobjs.h \
 	fcobjshash.h \
 	fcpat.c \
+	fcrange.c \
 	fcserialize.c \
 	fcstat.c \
 	fcstr.c \

@@ -273,6 +273,8 @@ FcListValueHash (FcValue    *value)
 	return (long) v.u.f;
     case FcTypeLangSet:
 	return FcLangSetHash (v.u.l);
+    case FcTypeRange:
+	return FcRangeHash (v.u.r);
     }
     return 0;
 }

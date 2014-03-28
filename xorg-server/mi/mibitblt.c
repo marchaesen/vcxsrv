@@ -730,7 +730,7 @@ miPutImage(DrawablePtr pDraw, GCPtr pGC, int depth,
         ChangeGC(NullClient, pGC, GCForeground | GCBackground, gcv);
         bytesPer = (long) h *BitmapBytePad(w + leftPad);
 
-        for (i = 1 << (depth - 1); i != 0; i >>= 1, pImage += bytesPer) {
+        for (i = (unsigned long) 1 << (depth - 1); i != 0; i >>= 1, pImage += bytesPer) {
             if (i & oldPlanemask) {
                 gcv[0].val = (XID) i;
                 ChangeGC(NullClient, pGC, GCPlaneMask, gcv);

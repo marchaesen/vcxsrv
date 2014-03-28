@@ -57,6 +57,9 @@ FcValueDestroy (FcValue v)
     case FcTypeLangSet:
 	FcLangSetDestroy ((FcLangSet *) v.u.l);
 	break;
+    case FcTypeRange:
+	FcRangeDestroy ((FcRange *) v.u.r);
+	break;
     default:
 	break;
     }
@@ -80,6 +83,10 @@ FcValueCanonicalize (const FcValue *v)
     case FcTypeLangSet:
 	new.u.l = FcValueLangSet(v);
 	new.type = FcTypeLangSet;
+	break;
+    case FcTypeRange:
+	new.u.r = FcValueRange(v);
+	new.type = FcTypeRange;
 	break;
     default:
 	new = *v;
@@ -110,6 +117,11 @@ FcValueSave (FcValue v)
     case FcTypeLangSet:
 	v.u.l = FcLangSetCopy (v.u.l);
 	if (!v.u.l)
+	    v.type = FcTypeVoid;
+	break;
+    case FcTypeRange:
+	v.u.r = FcRangeCopy (v.u.r);
+	if (!v.u.r)
 	    v.type = FcTypeVoid;
 	break;
     default:
@@ -144,6 +156,9 @@ FcValueListDestroy (FcValueListPtr l)
 	case FcTypeLangSet:
 	    FcLangSetDestroy
 		((FcLangSet *) (l->value.u.l));
+	    break;
+	case FcTypeRange:
+	    FcRangeDestroy ((FcRange *) (l->value.u.r));
 	    break;
 	default:
 	    break;
@@ -267,6 +282,8 @@ FcValueEqual (FcValue va, FcValue vb)
 	return va.u.f == vb.u.f;
     case FcTypeLangSet:
 	return FcLangSetEqual (va.u.l, vb.u.l);
+    case FcTypeRange:
+	return FcRangeIsInRange (va.u.r, vb.u.r);
     }
     return FcFalse;
 }
@@ -320,6 +337,8 @@ FcValueHash (const FcValue *v)
 	       FcStringHash ((const FcChar8 *) ((FT_Face) v->u.f)->style_name);
     case FcTypeLangSet:
 	return FcLangSetHash (FcValueLangSet(v));
+    case FcTypeRange:
+	return FcRangeHash (v->u.r);
     }
     return 0;
 }
@@ -841,6 +860,22 @@ FcPatternAddLangSet (FcPattern *p, const char *object, const FcLangSet *ls)
     return FcPatternAdd (p, object, v, FcTrue);
 }
 
+FcBool
+FcPatternObjectAddRange (FcPattern *p, FcObject object, const FcRange *r)
+{
+    FcValue v;
+
+    v.type = FcTypeRange;
+    v.u.r = (FcRange *)r;
+    return FcPatternObjectAdd (p, object, v, FcTrue);
+}
+
+FcBool
+FcPatternAddRange (FcPattern *p, const char *object, const FcRange *r)
+{
+    return FcPatternObjectAddRange (p, FcObjectFromName (object), r);
+}
+
 FcResult
 FcPatternObjectGet (const FcPattern *p, FcObject object, int id, FcValue *v)
 {
@@ -1023,6 +1058,31 @@ FcPatternGetLangSet(const FcPattern *p, const char *object, int id, FcLangSet **
         return FcResultTypeMismatch;
     *ls = (FcLangSet *)v.u.l;
     return FcResultMatch;
+}
+
+FcResult
+FcPatternObjectGetRange (const FcPattern *p, FcObject object, int id, FcRange **r)
+{
+    FcValue	v;
+    FcResult	res;
+
+    res = FcPatternObjectGet (p, object, id, &v);
+    if (res != FcResultMatch)
+	return res;
+    switch ((int)v.type) {
+    case FcTypeRange:
+	*r = (FcRange *)v.u.r;
+	break;
+    default:
+	return FcResultTypeMismatch;
+    }
+    return FcResultMatch;
+}
+
+FcResult
+FcPatternGetRange (const FcPattern *p, const char *object, int id, FcRange **r)
+{
+    return FcPatternObjectGetRange (p, FcObjectFromName (object), id, r);
 }
 
 FcPattern *
@@ -1230,6 +1290,10 @@ FcValueListSerializeAlloc (FcSerialize *serialize, const FcValueList *vl)
 	    if (!FcLangSetSerializeAlloc (serialize, vl->value.u.l))
 		return FcFalse;
 	    break;
+	case FcTypeRange:
+	    if (!FcRangeSerializeAlloc (serialize, vl->value.u.r))
+		return FcFalse;
+	    break;
 	default:
 	    break;
 	}
@@ -1245,6 +1309,7 @@ FcValueListSerialize (FcSerialize *serialize, const FcValueList *vl)
     FcChar8	*s_serialized;
     FcCharSet	*c_serialized;
     FcLangSet	*l_serialized;
+    FcRange	*r_serialized;
     FcValueList	*head_serialized = NULL;
     FcValueList	*prev_serialized = NULL;
 
@@ -1302,6 +1367,14 @@ FcValueListSerialize (FcSerialize *serialize, const FcValueList *vl)
 	    vl_serialized->value.u.l = FcPtrToEncodedOffset (&vl_serialized->value,
 							     l_serialized,
 							     FcLangSet);
+	    break;
+	case FcTypeRange:
+	    r_serialized = FcRangeSerialize (serialize, vl->value.u.r);
+	    if (!r_serialized)
+		return NULL;
+	    vl_serialized->value.u.r = FcPtrToEncodedOffset (&vl_serialized->value,
+							     r_serialized,
+							     FcRange);
 	    break;
 	default:
 	    break;

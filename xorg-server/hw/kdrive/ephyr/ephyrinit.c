@@ -65,10 +65,7 @@ static const ExtensionModule ephyrExtensions[] = {
 static
 void ephyrExtensionInit(void)
 {
- int i;
-
- for (i = 0; i < ARRAY_SIZE(ephyrExtensions); i++)
- LoadExtension(&ephyrExtensions[i], TRUE);
+    LoadExtensionList(ephyrExtensions, ARRAY_SIZE(ephyrExtensions), TRUE);
 }
 
 

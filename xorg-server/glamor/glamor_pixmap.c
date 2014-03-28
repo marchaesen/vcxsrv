@@ -1013,10 +1013,9 @@ glamor_upload_sub_pixmap_to_texture(PixmapPtr pixmap, int x, int y, int w,
             clipped_regions =
                 glamor_compute_clipped_regions_ext(pixmap_priv, &region,
                                                    &n_region,
-                                                   pixmap_priv->base.
-                                                   glamor_priv->max_fbo_size,
-                                                   pixmap_priv->base.
-                                                   glamor_priv->max_fbo_size, 0,
+                                                   pixmap_priv->large.block_w,
+                                                   pixmap_priv->large.block_h,
+                                                   0,
                                                    0);
         DEBUGF("prepare upload %dx%d to a large pixmap %p\n", w, h, pixmap);
         for (i = 0; i < n_region; i++) {
@@ -1374,10 +1373,9 @@ glamor_download_sub_pixmap_to_cpu(PixmapPtr pixmap, int x, int y, int w, int h,
             clipped_regions =
                 glamor_compute_clipped_regions_ext(pixmap_priv, &region,
                                                    &n_region,
-                                                   pixmap_priv->base.
-                                                   glamor_priv->max_fbo_size,
-                                                   pixmap_priv->base.
-                                                   glamor_priv->max_fbo_size, 0,
+                                                   pixmap_priv->large.block_w,
+                                                   pixmap_priv->large.block_h,
+                                                   0,
                                                    0);
 
         DEBUGF("start download large pixmap %p %dx%d \n", pixmap, w, h);

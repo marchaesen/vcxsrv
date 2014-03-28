@@ -76,6 +76,10 @@ glamor_set_pixmap_type(PixmapPtr pixmap, glamor_pixmap_type_t type)
         pixmap_priv->base.glamor_priv = glamor_priv;
     }
     pixmap_priv->type = type;
+    pixmap_priv->base.box.x1 = 0;
+    pixmap_priv->base.box.x2 = pixmap->drawable.width;
+    pixmap_priv->base.box.y1 = 0;
+    pixmap_priv->base.box.y2 = pixmap->drawable.height;
 }
 
 _X_EXPORT void
@@ -178,8 +182,14 @@ glamor_create_pixmap(ScreenPtr screen, int w, int h, int depth,
     pitch = (((w * pixmap->drawable.bitsPerPixel + 7) / 8) + 3) & ~3;
     screen->ModifyPixmapHeader(pixmap, w, h, 0, 0, pitch, NULL);
 
-    if (type == GLAMOR_MEMORY_MAP || glamor_check_fbo_size(glamor_priv, w, h)) {
+    if (type == GLAMOR_MEMORY_MAP || usage == GLAMOR_CREATE_NO_LARGE ||
+        glamor_check_fbo_size(glamor_priv, w, h))
+    {
         pixmap_priv->type = type;
+        pixmap_priv->base.box.x1 = 0;
+        pixmap_priv->base.box.y1 = 0;
+        pixmap_priv->base.box.x2 = w;
+        pixmap_priv->base.box.y2 = h;
         fbo = glamor_create_fbo(glamor_priv, w, h, format, usage);
     }
     else {
@@ -341,7 +351,7 @@ glamor_init(ScreenPtr screen, unsigned int flags)
     else
         glamor_priv->gl_flavor = GLAMOR_GL_ES2;
 
-    gl_version = glamor_gl_get_version();
+    gl_version = epoxy_gl_version();
 
     /* We'd like to require GL_ARB_map_buffer_range or
      * GL_OES_map_buffer_range, since it offers more information to
@@ -357,29 +367,31 @@ glamor_init(ScreenPtr screen, unsigned int flags)
      * Windows with Intel 4-series (G45) graphics or older.
      */
     if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
-        if (gl_version < GLAMOR_GL_VERSION_ENCODE(1, 3)) {
-            ErrorF("Require OpenGL version 1.3 or later.\n");
+        if (gl_version < 21) {
+            ErrorF("Require OpenGL version 2.1 or later.\n");
             goto fail;
         }
     } else {
-        if (gl_version < GLAMOR_GL_VERSION_ENCODE(2, 0)) {
+        if (gl_version < 20) {
             ErrorF("Require Open GLES2.0 or later.\n");
             goto fail;
         }
 
-        if (!glamor_gl_has_extension("GL_EXT_texture_format_BGRA8888")) {
+        if (!epoxy_has_gl_extension("GL_EXT_texture_format_BGRA8888")) {
             ErrorF("GL_EXT_texture_format_BGRA8888 required\n");
             goto fail;
         }
     }
 
-    glamor_priv->has_khr_debug = glamor_gl_has_extension("GL_KHR_debug");
+    glamor_priv->has_khr_debug = epoxy_has_gl_extension("GL_KHR_debug");
     glamor_priv->has_pack_invert =
-        glamor_gl_has_extension("GL_MESA_pack_invert");
+        epoxy_has_gl_extension("GL_MESA_pack_invert");
     glamor_priv->has_fbo_blit =
-        glamor_gl_has_extension("GL_EXT_framebuffer_blit");
+        epoxy_has_gl_extension("GL_EXT_framebuffer_blit");
+    glamor_priv->has_map_buffer_range =
+        epoxy_has_gl_extension("GL_ARB_map_buffer_range");
     glamor_priv->has_buffer_storage =
-        glamor_gl_has_extension("GL_ARB_buffer_storage");
+        epoxy_has_gl_extension("GL_ARB_buffer_storage");
     glGetIntegerv(GL_MAX_RENDERBUFFER_SIZE, &glamor_priv->max_fbo_size);
 #ifdef MAX_FBO_SIZE
     glamor_priv->max_fbo_size = MAX_FBO_SIZE;

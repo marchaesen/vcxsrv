@@ -189,6 +189,49 @@ FcCompareSize (FcValue *value1, FcValue *value2)
 }
 
 static double
+FcCompareSizeRange (FcValue *v1, FcValue *v2)
+{
+    FcValue value1 = FcValueCanonicalize (v1);
+    FcValue value2 = FcValueCanonicalize (v2);
+    FcRange *r1 = NULL, *r2 = NULL;
+    double ret = -1.0;
+
+    switch ((int) value1.type) {
+    case FcTypeDouble:
+	r1 = FcRangeCreateDouble (value1.u.d, value1.u.d);
+	break;
+    case FcTypeRange:
+	r1 = FcRangeCopy (value1.u.r);
+	break;
+    default:
+	goto bail;
+    }
+    switch ((int) value2.type) {
+    case FcTypeDouble:
+	r2 = FcRangeCreateDouble (value2.u.d, value2.u.d);
+	break;
+    case FcTypeRange:
+	r2 = FcRangeCopy (value2.u.r);
+	break;
+    default:
+	goto bail;
+    }
+
+    if (FcRangeIsInRange (r1, r2))
+	ret = 0.0;
+    else
+	ret = FC_MIN (fabs (r1->u.d.end - r2->u.d.begin), fabs (r1->u.d.begin - r2->u.d.end));
+
+bail:
+    if (r1)
+	FcRangeDestroy (r1);
+    if (r2)
+	FcRangeDestroy (r2);
+
+    return ret;
+}
+
+static double
 FcCompareFilename (FcValue *v1, FcValue *v2)
 {
     const FcChar8 *s1 = FcValueString (v1), *s2 = FcValueString (v2);
@@ -227,6 +270,7 @@ FcCompareHash (FcValue *v1, FcValue *v2)
 #define PRI_FcCompareLang(n)		PRI1(n)
 #define PRI_FcComparePostScript(n)	PRI1(n)
 #define PRI_FcCompareHash(n)		PRI1(n)
+#define PRI_FcCompareSizeRange(n)	PRI1(n)
 
 #define FC_OBJECT(NAME, Type, Cmp)	PRI_##Cmp(NAME)
 
@@ -255,6 +299,7 @@ typedef enum _FcMatcherPriority {
     PRI_FAMILY_WEAK,
     PRI_POSTSCRIPT_NAME_WEAK,
     PRI1(SPACING),
+    PRI1(SIZE),
     PRI1(PIXEL_SIZE),
     PRI1(STYLE),
     PRI1(SLANT),

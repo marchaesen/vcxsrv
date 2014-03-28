@@ -96,7 +96,7 @@ glamor_get_vbo_space(ScreenPtr screen, unsigned size, char **vbo_offset)
         *vbo_offset = (void *)(uintptr_t)glamor_priv->vbo_offset;
         data = glamor_priv->vb + glamor_priv->vbo_offset;
         glamor_priv->vbo_offset += size;
-    } else if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
+    } else if (glamor_priv->has_map_buffer_range) {
         if (glamor_priv->vbo_size < glamor_priv->vbo_offset + size) {
             glamor_priv->vbo_size = MAX(GLAMOR_VBO_SIZE, size);
             glamor_priv->vbo_offset = 0;
@@ -147,7 +147,7 @@ glamor_put_vbo_space(ScreenPtr screen)
          * persistent mapping, so we can leave it around until we
          * reach the end of the buffer.
          */
-    } else if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
+    } else if (glamor_priv->has_map_buffer_range) {
         glUnmapBuffer(GL_ARRAY_BUFFER);
     } else {
         glBufferData(GL_ARRAY_BUFFER, glamor_priv->vbo_offset,
@@ -179,7 +179,7 @@ glamor_fini_vbo(ScreenPtr screen)
     glamor_get_context(glamor_priv);
 
     glDeleteBuffers(1, &glamor_priv->vbo);
-    if (glamor_priv->gl_flavor != GLAMOR_GL_DESKTOP)
+    if (!glamor_priv->has_map_buffer_range)
         free(glamor_priv->vb);
 
     glamor_put_context(glamor_priv);

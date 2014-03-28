@@ -5920,10 +5920,10 @@ These may be moved out of the loader at some point.
 
       <blockquote><para>
 	  <programlisting>
-    void LoadExtension(ExtensionModule *ext);
+    void LoadExtensionList(const ExtensionModule ext[]);
 	  </programlisting>
 	  <blockquote><para>
-    This registers the entry points for the extension identified by
+    This registers the entry points for the extension array identified by
     <parameter>ext</parameter>.  The <structname>ExtensionModule</structname> struct is
     defined as:
 

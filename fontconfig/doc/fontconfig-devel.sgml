@@ -16,6 +16,7 @@
 <!ENTITY fcobjectset SYSTEM "fcobjectset.sgml">
 <!ENTITY fcobjecttype SYSTEM "fcobjecttype.sgml">
 <!ENTITY fcpattern SYSTEM "fcpattern.sgml">
+<!ENTITY fcrange SYSTEM "fcrange.sgml">
 <!ENTITY fcstring SYSTEM "fcstring.sgml">
 <!ENTITY fcstrset SYSTEM "fcstrset.sgml">
 <!ENTITY fcvalue SYSTEM "fcvalue.sgml">
@@ -507,6 +508,12 @@ languages.
 FcMatrix structures hold an affine transformation in matrix form.
     </para>
     &fcmatrix;
+  </sect2>
+  <sect2><title>FcRange</title>
+    <para>
+An FcRange holds two variables to indicate a range in between.
+    </para>
+    &fcrange;
   </sect2>
   <sect2><title>FcConfig</title>
     <para>

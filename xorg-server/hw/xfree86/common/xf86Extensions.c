@@ -132,10 +132,7 @@ load_extension_config(void)
 void
 xf86ExtensionInit(void)
 {
-    int i;
-
     load_extension_config();
 
-    for (i = 0; i < ARRAY_SIZE(extensionModules); i++)
-	LoadExtension(&extensionModules[i], TRUE);
+    LoadExtensionList(extensionModules, ARRAY_SIZE(extensionModules), TRUE);
 }

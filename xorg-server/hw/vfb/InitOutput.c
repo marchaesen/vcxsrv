@@ -892,10 +892,7 @@ static const ExtensionModule vfbExtensions[] = {
 static
 void vfbExtensionInit(void)
 {
-    int i;
-
-    for (i = 0; i < ARRAY_SIZE(vfbExtensions); i++)
-        LoadExtension(&vfbExtensions[i], TRUE);
+    LoadExtensionList(vfbExtensions, ARRAY_SIZE(vfbExtensions), TRUE);
 }
 
 void

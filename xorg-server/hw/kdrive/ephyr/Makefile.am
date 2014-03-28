@@ -38,7 +38,7 @@ if GLAMOR
 GLAMOR_SRCS = \
 	ephyr_glamor_glx.c \
 	ephyr_glamor_glx.h \
-	()
+	$()
 endif
 
 if DRI

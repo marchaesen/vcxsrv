@@ -2027,6 +2027,12 @@ XkbDeviceApplyKeymap(DeviceIntPtr dst, XkbDescPtr desc)
     return ret;
 }
 
+Bool
+XkbCopyDeviceKeymap(DeviceIntPtr dst, DeviceIntPtr src)
+{
+    return XkbDeviceApplyKeymap(dst, src->key->xkbInfo->desc);
+}
+
 int
 XkbGetEffectiveGroup(XkbSrvInfoPtr xkbi, XkbStatePtr xkbState, CARD8 keycode)
 {

@@ -722,6 +722,11 @@ FcConfigPromote (FcValue v, FcValue u, FcValuePromotionBuffer *buf)
 	v.u.l = FcLangSetPromote (v.u.s, buf);
 	v.type = FcTypeLangSet;
     }
+    if (buf && v.type == FcTypeDouble && u.type == FcTypeRange)
+    {
+	v.u.r = FcRangePromote (v.u.d, buf);
+	v.type = FcTypeRange;
+    }
     return v;
 }
 
@@ -894,6 +899,9 @@ FcConfigCompareValue (const FcValue	*left_o,
 		break;
 	    }
 	    break;
+	case FcTypeRange:
+	    ret = FcRangeCompare (op, left.u.r, right.u.r);
+	    break;
 	}
     }
     else
@@ -915,10 +923,11 @@ FcConfigCompareValue (const FcValue	*left_o,
 static FcValue
 FcConfigEvaluate (FcPattern *p, FcPattern *p_pat, FcMatchKind kind, FcExpr *e)
 {
-    FcValue	v, vl, vr;
+    FcValue	v, vl, vr, vle, vre;
     FcMatrix	*m;
     FcChar8     *str;
     FcOp	op = FC_OP_GET_OP (e->op);
+    FcValuePromotionBuffer buf1, buf2;
 
     switch ((int) op) {
     case FcOpInteger:
@@ -965,6 +974,11 @@ FcConfigEvaluate (FcPattern *p, FcPattern *p_pat, FcMatchKind kind, FcExpr *e)
     case FcOpLangSet:
 	v.type = FcTypeLangSet;
 	v.u.l = e->u.lval;
+	v = FcValueSave (v);
+	break;
+    case FcOpRange:
+	v.type = FcTypeRange;
+	v.u.r = e->u.rval;
 	v = FcValueSave (v);
 	break;
     case FcOpBool:
@@ -1033,28 +1047,28 @@ FcConfigEvaluate (FcPattern *p, FcPattern *p_pat, FcMatchKind kind, FcExpr *e)
     case FcOpDivide:
 	vl = FcConfigEvaluate (p, p_pat, kind, e->u.tree.left);
 	vr = FcConfigEvaluate (p, p_pat, kind, e->u.tree.right);
-	vl = FcConfigPromote (vl, vr, NULL);
-	vr = FcConfigPromote (vr, vl, NULL);
-	if (vl.type == vr.type)
+	vle = FcConfigPromote (vl, vr, &buf1);
+	vre = FcConfigPromote (vr, vle, &buf2);
+	if (vle.type == vre.type)
 	{
-	    switch ((int) vl.type) {
+	    switch ((int) vle.type) {
 	    case FcTypeDouble:
 		switch ((int) op) {
 		case FcOpPlus:	
 		    v.type = FcTypeDouble;
-		    v.u.d = vl.u.d + vr.u.d;
+		    v.u.d = vle.u.d + vre.u.d;
 		    break;
 		case FcOpMinus:
 		    v.type = FcTypeDouble;
-		    v.u.d = vl.u.d - vr.u.d;
+		    v.u.d = vle.u.d - vre.u.d;
 		    break;
 		case FcOpTimes:
 		    v.type = FcTypeDouble;
-		    v.u.d = vl.u.d * vr.u.d;
+		    v.u.d = vle.u.d * vre.u.d;
 		    break;
 		case FcOpDivide:
 		    v.type = FcTypeDouble;
-		    v.u.d = vl.u.d / vr.u.d;
+		    v.u.d = vle.u.d / vre.u.d;
 		    break;
 		default:
 		    v.type = FcTypeVoid;
@@ -1071,11 +1085,11 @@ FcConfigEvaluate (FcPattern *p, FcPattern *p_pat, FcMatchKind kind, FcExpr *e)
 		switch ((int) op) {
 		case FcOpOr:
 		    v.type = FcTypeBool;
-		    v.u.b = vl.u.b || vr.u.b;
+		    v.u.b = vle.u.b || vre.u.b;
 		    break;
 		case FcOpAnd:
 		    v.type = FcTypeBool;
-		    v.u.b = vl.u.b && vr.u.b;
+		    v.u.b = vle.u.b && vre.u.b;
 		    break;
 		default:
 		    v.type = FcTypeVoid;
@@ -1086,7 +1100,7 @@ FcConfigEvaluate (FcPattern *p, FcPattern *p_pat, FcMatchKind kind, FcExpr *e)
 		switch ((int) op) {
 		case FcOpPlus:
 		    v.type = FcTypeString;
-		    str = FcStrPlus (vl.u.s, vr.u.s);
+		    str = FcStrPlus (vle.u.s, vre.u.s);
 		    v.u.s = FcStrdup (str);
 		    FcStrFree (str);
 			
@@ -1105,7 +1119,7 @@ FcConfigEvaluate (FcPattern *p, FcPattern *p_pat, FcMatchKind kind, FcExpr *e)
 		    m = malloc (sizeof (FcMatrix));
 		    if (m)
 		    {
-			FcMatrixMultiply (m, vl.u.m, vr.u.m);
+			FcMatrixMultiply (m, vle.u.m, vre.u.m);
 			v.u.m = m;
 		    }
 		    else
@@ -1122,13 +1136,13 @@ FcConfigEvaluate (FcPattern *p, FcPattern *p_pat, FcMatchKind kind, FcExpr *e)
 		switch ((int) op) {
 		case FcOpPlus:
 		    v.type = FcTypeCharSet;
-		    v.u.c = FcCharSetUnion (vl.u.c, vr.u.c);
+		    v.u.c = FcCharSetUnion (vle.u.c, vre.u.c);
 		    if (!v.u.c)
 			v.type = FcTypeVoid;
 		    break;
 		case FcOpMinus:
 		    v.type = FcTypeCharSet;
-		    v.u.c = FcCharSetSubtract (vl.u.c, vr.u.c);
+		    v.u.c = FcCharSetSubtract (vle.u.c, vre.u.c);
 		    if (!v.u.c)
 			v.type = FcTypeVoid;
 		    break;
@@ -1141,13 +1155,13 @@ FcConfigEvaluate (FcPattern *p, FcPattern *p_pat, FcMatchKind kind, FcExpr *e)
 		switch ((int) op) {
 		case FcOpPlus:
 		    v.type = FcTypeLangSet;
-		    v.u.l = FcLangSetUnion (vl.u.l, vr.u.l);
+		    v.u.l = FcLangSetUnion (vle.u.l, vre.u.l);
 		    if (!v.u.l)
 			v.type = FcTypeVoid;
 		    break;
 		case FcOpMinus:
 		    v.type = FcTypeLangSet;
-		    v.u.l = FcLangSetSubtract (vl.u.l, vr.u.l);
+		    v.u.l = FcLangSetSubtract (vle.u.l, vre.u.l);
 		    if (!v.u.l)
 			v.type = FcTypeVoid;
 		    break;

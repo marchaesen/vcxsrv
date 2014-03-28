@@ -50,91 +50,165 @@
 
 
 /**
- * Combine depth texture mode with "swizzle" so that depth mode swizzling
- * takes place before texture swizzling, and return the resulting swizzle.
- * If the format is not a depth format, return "swizzle" unchanged.
- *
- * \param format     PIPE_FORMAT_*.
- * \param swizzle    Texture swizzle, a bitmask computed using MAKE_SWIZZLE4.
- * \param depthmode  One of GL_LUMINANCE, GL_INTENSITY, GL_ALPHA, GL_RED.
+ * Return swizzle1(swizzle2)
  */
-static GLuint
-apply_depthmode(enum pipe_format format, GLuint swizzle, GLenum depthmode)
+static unsigned
+swizzle_swizzle(unsigned swizzle1, unsigned swizzle2)
 {
-   const struct util_format_description *desc =
-         util_format_description(format);
-   unsigned char swiz[4];
-   unsigned i;
+   unsigned i, swz[4];
 
-   if (desc->colorspace != UTIL_FORMAT_COLORSPACE_ZS ||
-       desc->swizzle[0] == UTIL_FORMAT_SWIZZLE_NONE) {
-      /* Not a depth format. */
-      return swizzle;
+   for (i = 0; i < 4; i++) {
+      unsigned s = GET_SWZ(swizzle1, i);
+      switch (s) {
+      case SWIZZLE_X:
+      case SWIZZLE_Y:
+      case SWIZZLE_Z:
+      case SWIZZLE_W:
+         swz[i] = GET_SWZ(swizzle2, s);
+         break;
+      case SWIZZLE_ZERO:
+         swz[i] = SWIZZLE_ZERO;
+         break;
+      case SWIZZLE_ONE:
+         swz[i] = SWIZZLE_ONE;
+         break;
+      default:
+         assert(!"Bad swizzle term");
+         swz[i] = SWIZZLE_X;
+      }
    }
 
-   for (i = 0; i < 4; i++)
-      swiz[i] = GET_SWZ(swizzle, i);
-
-   switch (depthmode) {
-      case GL_LUMINANCE:
-         /* Rewrite reads from W to ONE, and reads from XYZ to XXX. */
-         for (i = 0; i < 4; i++)
-            if (swiz[i] == SWIZZLE_W)
-               swiz[i] = SWIZZLE_ONE;
-            else if (swiz[i] < SWIZZLE_W)
-               swiz[i] = SWIZZLE_X;
-         break;
-
-      case GL_INTENSITY:
-         /* Rewrite reads from XYZW to XXXX. */
-         for (i = 0; i < 4; i++)
-            if (swiz[i] <= SWIZZLE_W)
-               swiz[i] = SWIZZLE_X;
-         break;
-
-      case GL_ALPHA:
-         /* Rewrite reads from W to X, and reads from XYZ to 000. */
-         for (i = 0; i < 4; i++)
-            if (swiz[i] == SWIZZLE_W)
-               swiz[i] = SWIZZLE_X;
-            else if (swiz[i] < SWIZZLE_W)
-               swiz[i] = SWIZZLE_ZERO;
-         break;
-      case GL_RED:
-	 /* Rewrite reads W to 1, XYZ to X00 */
-	 for (i = 0; i < 4; i++)
-	    if (swiz[i] == SWIZZLE_W)
-	       swiz[i] = SWIZZLE_ONE;
-	    else if (swiz[i] == SWIZZLE_Y || swiz[i] == SWIZZLE_Z)
-	       swiz[i] = SWIZZLE_ZERO;
-	 break;
-   }
-
-   return MAKE_SWIZZLE4(swiz[0], swiz[1], swiz[2], swiz[3]);
+   return MAKE_SWIZZLE4(swz[0], swz[1], swz[2], swz[3]);
 }
 
 
 /**
- * Return TRUE if the swizzling described by "swizzle" and
- * "depthmode" (for depth textures only) is different from the swizzling
- * set in the given sampler view.
+ * Given a user-specified texture base format, the actual gallium texture
+ * format and the current GL_DEPTH_MODE, return a texture swizzle.
  *
- * \param sv         A sampler view.
- * \param swizzle    Texture swizzle, a bitmask computed using MAKE_SWIZZLE4.
- * \param depthmode  One of GL_LUMINANCE, GL_INTENSITY, GL_ALPHA.
+ * Consider the case where the user requests a GL_RGB internal texture
+ * format the driver actually uses an RGBA format.  The A component should
+ * be ignored and sampling from the texture should always return (r,g,b,1).
+ * But if we rendered to the texture we might have written A values != 1.
+ * By sampling the texture with a ".xyz1" swizzle we'll get the expected A=1.
+ * This function computes the texture swizzle needed to get the expected
+ * values.
+ *
+ * In the case of depth textures, the GL_DEPTH_MODE state determines the
+ * texture swizzle.
+ *
+ * This result must be composed with the user-specified swizzle to get
+ * the final swizzle.
+ */
+static unsigned
+compute_texture_format_swizzle(GLenum baseFormat, GLenum depthMode,
+                               enum pipe_format actualFormat)
+{
+   switch (baseFormat) {
+   case GL_RGBA:
+      return SWIZZLE_XYZW;
+   case GL_RGB:
+      if (util_format_has_alpha(actualFormat))
+         return MAKE_SWIZZLE4(SWIZZLE_X, SWIZZLE_Y, SWIZZLE_Z, SWIZZLE_ONE);
+      else
+         return SWIZZLE_XYZW;
+   case GL_RG:
+      if (util_format_get_nr_components(actualFormat) > 2)
+         return MAKE_SWIZZLE4(SWIZZLE_X, SWIZZLE_Y, SWIZZLE_ZERO, SWIZZLE_ONE);
+      else
+         return SWIZZLE_XYZW;
+   case GL_RED:
+      if (util_format_get_nr_components(actualFormat) > 1)
+         return MAKE_SWIZZLE4(SWIZZLE_X, SWIZZLE_ZERO,
+                              SWIZZLE_ZERO, SWIZZLE_ONE);
+      else
+         return SWIZZLE_XYZW;
+   case GL_ALPHA:
+      if (util_format_get_nr_components(actualFormat) > 1)
+         return MAKE_SWIZZLE4(SWIZZLE_ZERO, SWIZZLE_ZERO,
+                              SWIZZLE_ZERO, SWIZZLE_W);
+      else
+         return SWIZZLE_XYZW;
+   case GL_LUMINANCE:
+      if (util_format_get_nr_components(actualFormat) > 1)
+         return MAKE_SWIZZLE4(SWIZZLE_X, SWIZZLE_X, SWIZZLE_X, SWIZZLE_ONE);
+      else
+         return SWIZZLE_XYZW;
+   case GL_LUMINANCE_ALPHA:
+      if (util_format_get_nr_components(actualFormat) > 2)
+         return MAKE_SWIZZLE4(SWIZZLE_X, SWIZZLE_X, SWIZZLE_X, SWIZZLE_W);
+      else
+         return SWIZZLE_XYZW;
+   case GL_INTENSITY:
+      if (util_format_get_nr_components(actualFormat) > 1)
+         return SWIZZLE_XXXX;
+      else
+         return SWIZZLE_XYZW;
+   case GL_STENCIL_INDEX:
+      return SWIZZLE_XYZW;
+   case GL_DEPTH_STENCIL:
+      /* fall-through */
+   case GL_DEPTH_COMPONENT:
+      /* Now examine the depth mode */
+      switch (depthMode) {
+      case GL_LUMINANCE:
+         return MAKE_SWIZZLE4(SWIZZLE_X, SWIZZLE_X, SWIZZLE_X, SWIZZLE_ONE);
+      case GL_INTENSITY:
+         return MAKE_SWIZZLE4(SWIZZLE_X, SWIZZLE_X, SWIZZLE_X, SWIZZLE_X);
+      case GL_ALPHA:
+         return MAKE_SWIZZLE4(SWIZZLE_ZERO, SWIZZLE_ZERO,
+                              SWIZZLE_ZERO, SWIZZLE_X);
+      case GL_RED:
+         return MAKE_SWIZZLE4(SWIZZLE_X, SWIZZLE_ZERO,
+                              SWIZZLE_ZERO, SWIZZLE_ONE);
+      default:
+         assert(!"Unexpected depthMode");
+         return SWIZZLE_XYZW;
+      }
+   default:
+      assert(!"Unexpected baseFormat");
+      return SWIZZLE_XYZW;
+   }
+}
+
+
+static unsigned
+get_texture_format_swizzle(const struct st_texture_object *stObj)
+{
+   const struct gl_texture_image *texImage =
+      stObj->base.Image[0][stObj->base.BaseLevel];
+   unsigned tex_swizzle;
+
+   if (texImage) {
+      tex_swizzle = compute_texture_format_swizzle(texImage->_BaseFormat,
+                                                   stObj->base.DepthMode,
+                                                   stObj->pt->format);
+   }
+   else {
+      tex_swizzle = SWIZZLE_XYZW;
+   }
+
+   /* Combine the texture format swizzle with user's swizzle */
+   return swizzle_swizzle(stObj->base._Swizzle, tex_swizzle);
+}
+
+                            
+/**
+ * Return TRUE if the texture's sampler view swizzle is equal to
+ * the texture's swizzle.
+ *
+ * \param stObj  the st texture object,
  */
 static boolean
-check_sampler_swizzle(struct pipe_sampler_view *sv,
-                      GLuint swizzle, GLenum depthmode)
+check_sampler_swizzle(const struct st_texture_object *stObj)
 {
-   swizzle = apply_depthmode(sv->texture->format, swizzle, depthmode);
+   const struct pipe_sampler_view *sv = stObj->sampler_view;
+   unsigned swizzle = get_texture_format_swizzle(stObj);
 
-   if ((sv->swizzle_r != GET_SWZ(swizzle, 0)) ||
-       (sv->swizzle_g != GET_SWZ(swizzle, 1)) ||
-       (sv->swizzle_b != GET_SWZ(swizzle, 2)) ||
-       (sv->swizzle_a != GET_SWZ(swizzle, 3)))
-      return TRUE;
-   return FALSE;
+   return ((sv->swizzle_r != GET_SWZ(swizzle, 0)) ||
+           (sv->swizzle_g != GET_SWZ(swizzle, 1)) ||
+           (sv->swizzle_b != GET_SWZ(swizzle, 2)) ||
+           (sv->swizzle_a != GET_SWZ(swizzle, 3)));
 }
 
 
@@ -145,9 +219,7 @@ st_create_texture_sampler_view_from_stobj(struct pipe_context *pipe,
 					  enum pipe_format format)
 {
    struct pipe_sampler_view templ;
-   GLuint swizzle = apply_depthmode(stObj->pt->format,
-                                    stObj->base._Swizzle,
-                                    stObj->base.DepthMode);
+   unsigned swizzle = get_texture_format_swizzle(stObj);
 
    u_sampler_view_default_template(&templ,
                                    stObj->pt,
@@ -260,9 +332,7 @@ update_single_texture(struct st_context *st,
 
    /* if sampler view has changed dereference it */
    if (stObj->sampler_view) {
-      if (check_sampler_swizzle(stObj->sampler_view,
-				stObj->base._Swizzle,
-				stObj->base.DepthMode) ||
+      if (check_sampler_swizzle(stObj) ||
 	  (view_format != stObj->sampler_view->format) ||
 	  stObj->base.BaseLevel != stObj->sampler_view->u.tex.first_level) {
 	 pipe_sampler_view_release(pipe, &stObj->sampler_view);

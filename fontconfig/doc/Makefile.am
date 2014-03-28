@@ -81,6 +81,7 @@ DOC_FUNCS_FNCS =		\
 	fcobjectset.fncs	\
 	fcobjecttype.fncs	\
 	fcpattern.fncs		\
+	fcrange.fncs		\
 	fcstring.fncs		\
 	fcstrset.fncs		\
 	fcvalue.fncs		\

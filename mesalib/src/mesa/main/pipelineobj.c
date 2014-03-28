@@ -80,6 +80,7 @@ _mesa_new_pipeline_object(struct gl_context *ctx, GLuint name)
       mtx_init(&obj->Mutex, mtx_plain);
       obj->RefCount = 1;
       obj->Flags = _mesa_get_shader_flags();
+      obj->InfoLog = NULL;
    }
 
    return obj;
@@ -94,6 +95,10 @@ _mesa_init_pipeline(struct gl_context *ctx)
    ctx->Pipeline.Objects = _mesa_NewHashTable();
 
    ctx->Pipeline.Current = NULL;
+
+   /* Install a default Pipeline */
+   ctx->Pipeline.Default = _mesa_new_pipeline_object(ctx, 0);
+   _mesa_reference_pipeline_object(ctx, &ctx->_Shader, ctx->Pipeline.Default);
 }
 
 
@@ -117,6 +122,10 @@ _mesa_free_pipeline_data(struct gl_context *ctx)
 {
    _mesa_HashDeleteAll(ctx->Pipeline.Objects, delete_pipelineobj_cb, ctx);
    _mesa_DeleteHashTable(ctx->Pipeline.Objects);
+
+   _mesa_reference_pipeline_object(ctx, &ctx->_Shader, NULL);
+   _mesa_delete_pipeline_object(ctx, ctx->Pipeline.Default);
+
 }
 
 /**
@@ -214,6 +223,109 @@ _mesa_reference_pipeline_object_(struct gl_context *ctx,
 void GLAPIENTRY
 _mesa_UseProgramStages(GLuint pipeline, GLbitfield stages, GLuint program)
 {
+   GET_CURRENT_CONTEXT(ctx);
+
+   struct gl_pipeline_object *pipe = lookup_pipeline_object(ctx, pipeline);
+   struct gl_shader_program *shProg = NULL;
+   GLbitfield any_valid_stages;
+
+   if (!pipe) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glUseProgramStages(pipeline)");
+      return;
+   }
+
+   /* Object is created by any Pipeline call but glGenProgramPipelines,
+    * glIsProgramPipeline and GetProgramPipelineInfoLog
+    */
+   pipe->EverBound = GL_TRUE;
+
+   /* Section 2.11.4 (Program Pipeline Objects) of the OpenGL 4.1 spec says:
+    *
+    *     "If stages is not the special value ALL_SHADER_BITS, and has a bit
+    *     set that is not recognized, the error INVALID_VALUE is generated."
+    *
+    * NOT YET SUPPORTED:
+    * GL_TESS_CONTROL_SHADER_BIT
+    * GL_TESS_EVALUATION_SHADER_BIT
+    */
+   any_valid_stages = GL_VERTEX_SHADER_BIT | GL_FRAGMENT_SHADER_BIT;
+   if (_mesa_has_geometry_shaders(ctx))
+      any_valid_stages |= GL_GEOMETRY_SHADER_BIT;
+
+   if (stages != GL_ALL_SHADER_BITS && (stages & ~any_valid_stages) != 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glUseProgramStages(Stages)");
+      return;
+   }
+
+   /* Section 2.17.2 (Transform Feedback Primitive Capture) of the OpenGL 4.1
+    * spec says:
+    *
+    *     "The error INVALID_OPERATION is generated:
+    *
+    *      ...
+    *
+    *         - by UseProgramStages if the program pipeline object it refers
+    *           to is current and the current transform feedback object is
+    *           active and not paused;
+    */
+   if (ctx->_Shader == pipe) {
+      if (_mesa_is_xfb_active_and_unpaused(ctx)) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+               "glUseProgramStages(transform feedback active)");
+         return;
+      }
+   }
+
+   if (program) {
+      shProg = _mesa_lookup_shader_program_err(ctx, program,
+                                               "glUseProgramStages");
+      if (shProg == NULL)
+         return;
+
+      /* Section 2.11.4 (Program Pipeline Objects) of the OpenGL 4.1 spec
+       * says:
+       *
+       *     "If the program object named by program was linked without the
+       *     PROGRAM_SEPARABLE parameter set, or was not linked successfully,
+       *     the error INVALID_OPERATION is generated and the corresponding
+       *     shader stages in the pipeline program pipeline object are not
+       *     modified."
+       */
+      if (!shProg->LinkStatus) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glUseProgramStages(program not linked)");
+         return;
+      }
+
+      if (!shProg->SeparateShader) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glUseProgramStages(program wasn't linked with the "
+                     "PROGRAM_SEPARABLE flag)");
+         return;
+      }
+   }
+
+   /* Enable individual stages from the program as requested by the
+    * application.  If there is no shader for a requested stage in the
+    * program, _mesa_use_shader_program will enable fixed-function processing
+    * as dictated by the spec.
+    *
+    * Section 2.11.4 (Program Pipeline Objects) of the OpenGL 4.1 spec
+    * says:
+    *
+    *     "If UseProgramStages is called with program set to zero or with a
+    *     program object that contains no executable code for the given
+    *     stages, it is as if the pipeline object has no programmable stage
+    *     configured for the indicated shader stages."
+    */
+   if ((stages & GL_VERTEX_SHADER_BIT) != 0)
+      _mesa_use_shader_program(ctx, GL_VERTEX_SHADER, shProg, pipe);
+
+   if ((stages & GL_FRAGMENT_SHADER_BIT) != 0)
+      _mesa_use_shader_program(ctx, GL_FRAGMENT_SHADER, shProg, pipe);
+
+   if ((stages & GL_GEOMETRY_SHADER_BIT) != 0)
+      _mesa_use_shader_program(ctx, GL_GEOMETRY_SHADER, shProg, pipe);
 }
 
 /**
@@ -259,6 +371,75 @@ _mesa_ActiveShaderProgram(GLuint pipeline, GLuint program)
 void GLAPIENTRY
 _mesa_BindProgramPipeline(GLuint pipeline)
 {
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_pipeline_object *newObj = NULL;
+
+   /* Rebinding the same pipeline object: no change.
+    */
+   if (ctx->_Shader->Name == pipeline)
+      return;
+
+   /* Section 2.17.2 (Transform Feedback Primitive Capture) of the OpenGL 4.1
+    * spec says:
+    *
+    *     "The error INVALID_OPERATION is generated:
+    *
+    *      ...
+    *
+    *         - by BindProgramPipeline if the current transform feedback
+    *           object is active and not paused;
+    */
+   if (_mesa_is_xfb_active_and_unpaused(ctx)) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+            "glBindProgramPipeline(transform feedback active)");
+      return;
+   }
+
+   /* Get pointer to new pipeline object (newObj)
+    */
+   if (pipeline) {
+      /* non-default pipeline object */
+      newObj = lookup_pipeline_object(ctx, pipeline);
+      if (!newObj) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glBindProgramPipeline(non-gen name)");
+         return;
+      }
+
+      /* Object is created by any Pipeline call but glGenProgramPipelines,
+       * glIsProgramPipeline and GetProgramPipelineInfoLog
+       */
+      newObj->EverBound = GL_TRUE;
+   }
+
+   /* First bind the Pipeline to pipeline binding point */
+   _mesa_reference_pipeline_object(ctx, &ctx->Pipeline.Current, newObj);
+
+   /* Section 2.11.3 (Program Objects) of the OpenGL 4.1 spec says:
+    *
+    *     "If there is a current program object established by UseProgram,
+    *     that program is considered current for all stages. Otherwise, if
+    *     there is a bound program pipeline object (see section 2.11.4), the
+    *     program bound to the appropriate stage of the pipeline object is
+    *     considered current."
+    */
+   if (&ctx->Shader != ctx->_Shader) {
+      if (pipeline) {
+         /* Bound the pipeline to the current program and
+          * restore the pipeline state
+          */
+         _mesa_reference_pipeline_object(ctx, &ctx->_Shader, newObj);
+      } else {
+         /* Unbind the pipeline */
+         _mesa_reference_pipeline_object(ctx, &ctx->_Shader,
+                                         ctx->Pipeline.Default);
+      }
+
+      FLUSH_VERTICES(ctx, _NEW_PROGRAM | _NEW_PROGRAM_CONSTANTS);
+
+      if (ctx->Driver.UseProgram)
+         ctx->Driver.UseProgram(ctx, NULL);
+   }
 }
 
 /**
@@ -393,14 +574,10 @@ _mesa_GetProgramPipelineiv(GLuint pipeline, GLenum pname, GLint *params)
       *params = pipe->ActiveProgram ? pipe->ActiveProgram->Name : 0;
       return;
    case GL_INFO_LOG_LENGTH:
-      /* FINISHME: Implement the info log.
-       */
-      *params = 0;
+      *params = pipe->InfoLog ? strlen(pipe->InfoLog) + 1 : 0;
       return;
    case GL_VALIDATE_STATUS:
-      /* FINISHME: Implement validation status.
-       */
-      *params = 0;
+      *params = pipe->Validated;
       return;
    case GL_VERTEX_SHADER:
       *params = pipe->CurrentProgram[MESA_SHADER_VERTEX]
@@ -431,15 +608,222 @@ _mesa_GetProgramPipelineiv(GLuint pipeline, GLenum pname, GLint *params)
 }
 
 /**
+ * Determines whether every stage in a linked program is active in the
+ * specified pipeline.
+ */
+static bool
+program_stages_all_active(struct gl_pipeline_object *pipe,
+                          const struct gl_shader_program *prog)
+{
+   unsigned i;
+   bool status = true;
+
+   if (!prog)
+      return true;
+
+   for (i = 0; i < MESA_SHADER_STAGES; i++) {
+      if (prog->_LinkedShaders[i]) {
+         if (pipe->CurrentProgram[i]) {
+            if (prog->Name != pipe->CurrentProgram[i]->Name) {
+               status = false;
+            }
+         } else {
+            status = false;
+         }
+      }
+   }
+
+   if (!status) {
+      pipe->InfoLog = ralloc_asprintf(pipe,
+                                      "Program %d is not active for all "
+                                      "shaders that was linked",
+                                      prog->Name);
+   }
+
+   return status;
+}
+
+extern GLboolean
+_mesa_validate_program_pipeline(struct gl_context* ctx,
+                                struct gl_pipeline_object *pipe,
+                                GLboolean IsBound)
+{
+   unsigned i;
+
+   pipe->Validated = GL_FALSE;
+
+   /* Release and reset the info log.
+    */
+   if (pipe->InfoLog != NULL)
+      ralloc_free(pipe->InfoLog);
+
+   pipe->InfoLog = NULL;
+
+   /* Section 2.11.11 (Shader Execution), subheading "Validation," of the
+    * OpenGL 4.1 spec says:
+    *
+    *     "[INVALID_OPERATION] is generated by any command that transfers
+    *     vertices to the GL if:
+    *
+    *         - A program object is active for at least one, but not all of
+    *           the shader stages that were present when the program was
+    *           linked."
+    *
+    * For each possible program stage, verify that the program bound to that
+    * stage has all of its stages active.  In other words, if the program
+    * bound to the vertex stage also has a fragment shader, the fragment
+    * shader must also be bound to the fragment stage.
+    */
+   for (i = 0; i < MESA_SHADER_STAGES; i++) {
+      if (!program_stages_all_active(pipe, pipe->CurrentProgram[i])) {
+         goto err;
+      }
+   }
+
+   /* Section 2.11.11 (Shader Execution), subheading "Validation," of the
+    * OpenGL 4.1 spec says:
+    *
+    *     "[INVALID_OPERATION] is generated by any command that transfers
+    *     vertices to the GL if:
+    *
+    *         ...
+    *
+    *         - One program object is active for at least two shader stages
+    *           and a second program is active for a shader stage between two
+    *           stages for which the first program was active."
+    *
+    * Without Tesselation, the only case where this can occur is the geometry
+    * shader between the fragment shader and vertex shader.
+    */
+   if (pipe->CurrentProgram[MESA_SHADER_GEOMETRY]
+       && pipe->CurrentProgram[MESA_SHADER_FRAGMENT]
+       && pipe->CurrentProgram[MESA_SHADER_VERTEX]) {
+      if (pipe->CurrentProgram[MESA_SHADER_VERTEX]->Name == pipe->CurrentProgram[MESA_SHADER_FRAGMENT]->Name &&
+          pipe->CurrentProgram[MESA_SHADER_GEOMETRY]->Name != pipe->CurrentProgram[MESA_SHADER_VERTEX]->Name) {
+         pipe->InfoLog =
+            ralloc_asprintf(pipe,
+                            "Program %d is active for geometry stage between "
+                            "two stages for which another program %d is "
+                            "active",
+                            pipe->CurrentProgram[MESA_SHADER_GEOMETRY]->Name,
+                            pipe->CurrentProgram[MESA_SHADER_VERTEX]->Name);
+         goto err;
+      }
+   }
+
+   /* Section 2.11.11 (Shader Execution), subheading "Validation," of the
+    * OpenGL 4.1 spec says:
+    *
+    *     "[INVALID_OPERATION] is generated by any command that transfers
+    *     vertices to the GL if:
+    *
+    *         ...
+    *
+    *         - There is an active program for tessellation control,
+    *           tessellation evaluation, or geometry stages with corresponding
+    *           executable shader, but there is no active program with
+    *           executable vertex shader."
+    */
+   if (!pipe->CurrentProgram[MESA_SHADER_VERTEX]
+       && pipe->CurrentProgram[MESA_SHADER_GEOMETRY]) {
+      pipe->InfoLog = ralloc_strdup(pipe, "Program lacks a vertex shader");
+      goto err;
+   }
+
+   /* Section 2.11.11 (Shader Execution), subheading "Validation," of the
+    * OpenGL 4.1 spec says:
+    *
+    *     "[INVALID_OPERATION] is generated by any command that transfers
+    *     vertices to the GL if:
+    *
+    *         ...
+    *
+    *         - There is no current program object specified by UseProgram,
+    *           there is a current program pipeline object, and the current
+    *           program for any shader stage has been relinked since being
+    *           applied to the pipeline object via UseProgramStages with the
+    *           PROGRAM_SEPARABLE parameter set to FALSE.
+    */
+   for (i = 0; i < MESA_SHADER_STAGES; i++) {
+      if (pipe->CurrentProgram[i] && !pipe->CurrentProgram[i]->SeparateShader) {
+         pipe->InfoLog = ralloc_asprintf(pipe,
+                                         "Program %d was relinked without "
+                                         "PROGRAM_SEPARABLE state",
+                                         pipe->CurrentProgram[i]->Name);
+         goto err;
+      }
+   }
+
+   /* Section 2.11.11 (Shader Execution), subheading "Validation," of the
+    * OpenGL 4.1 spec says:
+    *
+    *     "[INVALID_OPERATION] is generated by any command that transfers
+    *     vertices to the GL if:
+    *
+    *         ...
+    *
+    *         - Any two active samplers in the current program object are of
+    *           different types, but refer to the same texture image unit.
+    *
+    *         - The number of active samplers in the program exceeds the
+    *           maximum number of texture image units allowed."
+    */
+   if (!_mesa_sampler_uniforms_pipeline_are_valid(pipe))
+      goto err;
+
+   pipe->Validated = GL_TRUE;
+   return GL_TRUE;
+
+err:
+   if (IsBound)
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glValidateProgramPipeline failed to validate the pipeline");
+
+   return GL_FALSE;
+}
+
+/**
  * Check compatibility of pipeline's program
  */
 void GLAPIENTRY
 _mesa_ValidateProgramPipeline(GLuint pipeline)
 {
+   GET_CURRENT_CONTEXT(ctx);
+
+   struct gl_pipeline_object *pipe = lookup_pipeline_object(ctx, pipeline);
+
+   if (!pipe) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glValidateProgramPipeline(pipeline)");
+      return;
+   }
+
+   _mesa_validate_program_pipeline(ctx, pipe,
+                                   (ctx->_Shader->Name == pipe->Name));
 }
 
 void GLAPIENTRY
 _mesa_GetProgramPipelineInfoLog(GLuint pipeline, GLsizei bufSize,
                                 GLsizei *length, GLchar *infoLog)
 {
+   GET_CURRENT_CONTEXT(ctx);
+
+   struct gl_pipeline_object *pipe = lookup_pipeline_object(ctx, pipeline);
+
+   if (!pipe) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "glGetProgramPipelineInfoLog(pipeline)");
+      return;
+   }
+
+   if (bufSize < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "glGetProgramPipelineInfoLog(bufSize)");
+      return;
+   }
+
+   if (pipe->InfoLog)
+      _mesa_copy_string(infoLog, bufSize, length, pipe->InfoLog);
+   else
+      *length = 0;
 }

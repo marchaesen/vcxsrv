@@ -387,6 +387,7 @@ EXTRA_EXT(ARB_texture_cube_map_array);
 EXTRA_EXT(ARB_texture_buffer_range);
 EXTRA_EXT(ARB_texture_multisample);
 EXTRA_EXT(ARB_texture_gather);
+EXTRA_EXT(ARB_separate_shader_objects);
 EXTRA_EXT(ARB_shader_atomic_counters);
 EXTRA_EXT(ARB_draw_indirect);
 EXTRA_EXT(ARB_shader_image_load_store);
@@ -873,6 +874,18 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
       v->value_int = ctx->TransformFeedback.CurrentObject->Name;
       break;
    case GL_CURRENT_PROGRAM:
+      /* The Changelog of the ARB_separate_shader_objects spec says:
+       *
+       * 24 25 Jul 2011  pbrown  Remove the language erroneously deleting
+       *                         CURRENT_PROGRAM.  In the EXT extension, this
+       *                         token was aliased to ACTIVE_PROGRAM_EXT, and
+       *                         was used to indicate the last program set by
+       *                         either ActiveProgramEXT or UseProgram.  In
+       *                         the ARB extension, the SSO active programs
+       *                         are now program pipeline object state and
+       *                         CURRENT_PROGRAM should still be used to query
+       *                         the last program set by UseProgram (bug 7822).
+       */
       v->value_int =
 	 ctx->Shader.ActiveProgram ? ctx->Shader.ActiveProgram->Name : 0;
       break;
@@ -1001,6 +1014,14 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
    /* GL_ARB_draw_indirect */
    case GL_DRAW_INDIRECT_BUFFER_BINDING:
       v->value_int = ctx->DrawIndirectBuffer->Name;
+      break;
+   /* GL_ARB_separate_shader_objects */
+   case GL_PROGRAM_PIPELINE_BINDING:
+      if (ctx->Pipeline.Current) {
+         v->value_int = ctx->Pipeline.Current->Name;
+      } else {
+         v->value_int = 0;
+      }
       break;
    }
 }

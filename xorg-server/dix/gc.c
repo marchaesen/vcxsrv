@@ -261,12 +261,14 @@ ChangeGC(ClientPtr client, GC * pGC, BITS32 mask, ChangeGCValPtr pUnion)
         case GCStipple:
             NEXT_PTR(PixmapPtr, pPixmap);
 
-            if ((pPixmap->drawable.depth != 1) ||
-                (pPixmap->drawable.pScreen != pGC->pScreen)) {
+            if (pPixmap && ((pPixmap->drawable.depth != 1) ||
+                            (pPixmap->drawable.pScreen != pGC->pScreen)))
+            {
                 error = BadMatch;
             }
             else {
-                pPixmap->refcnt++;
+                if (pPixmap)
+                    pPixmap->refcnt++;
                 if (pGC->stipple)
                     (*pGC->pScreen->DestroyPixmap) (pGC->stipple);
                 pGC->stipple = pPixmap;

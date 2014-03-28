@@ -270,7 +270,7 @@ LockServer(void)
     int len;
     char port[20];
 
-    if (nolock)
+    if (nolock || NoListenAll)
         return;
     /*
      * Path names
@@ -390,7 +390,7 @@ LockServer(void)
 void
 UnlockServer(void)
 {
-    if (nolock)
+    if (nolock || NoListenAll)
         return;
 
     if (!StillLocking) {

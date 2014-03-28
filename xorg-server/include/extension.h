@@ -97,6 +97,7 @@ extern _X_EXPORT void InitExtensions(int argc, char **argv);
 
 extern _X_EXPORT void CloseDownExtensions(void);
 
-extern _X_EXPORT void LoadExtension(const ExtensionModule *ext, Bool external);
+extern _X_EXPORT void LoadExtensionList(const ExtensionModule ext[],
+                                        int listSize, Bool external);
 
 #endif                          /* EXTENSION_H */
