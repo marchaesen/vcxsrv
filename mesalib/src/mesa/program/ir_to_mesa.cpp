@@ -229,7 +229,7 @@ public:
 
    int next_temp;
 
-   variable_storage *find_variable_storage(ir_variable *var);
+   variable_storage *find_variable_storage(const ir_variable *var);
 
    src_reg get_temp(const glsl_type *type);
    void reladdr_to_temp(ir_instruction *ir, src_reg *reg, int *num_reladdr);
@@ -661,9 +661,8 @@ ir_to_mesa_visitor::get_temp(const glsl_type *type)
 }
 
 variable_storage *
-ir_to_mesa_visitor::find_variable_storage(ir_variable *var)
+ir_to_mesa_visitor::find_variable_storage(const ir_variable *var)
 {
-   
    variable_storage *entry;
 
    foreach_list(node, &this->variables) {
@@ -1964,7 +1963,7 @@ ir_to_mesa_visitor::visit(ir_constant *ir)
 }
 
 void
-ir_to_mesa_visitor::visit(ir_call *ir)
+ir_to_mesa_visitor::visit(ir_call *)
 {
    assert(!"ir_to_mesa: All function calls should have been inlined by now.");
 }
@@ -2228,13 +2227,13 @@ ir_to_mesa_visitor::visit(ir_if *ir)
 }
 
 void
-ir_to_mesa_visitor::visit(ir_emit_vertex *ir)
+ir_to_mesa_visitor::visit(ir_emit_vertex *)
 {
    assert(!"Geometry shaders not supported.");
 }
 
 void
-ir_to_mesa_visitor::visit(ir_end_primitive *ir)
+ir_to_mesa_visitor::visit(ir_end_primitive *)
 {
    assert(!"Geometry shaders not supported.");
 }
