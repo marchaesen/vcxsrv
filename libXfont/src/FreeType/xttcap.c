@@ -45,6 +45,7 @@ static char const * const releaseID =
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
+#include <unistd.h>
 
 #ifndef True
 #define True (-1)

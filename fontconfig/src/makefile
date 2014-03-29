@@ -36,6 +36,7 @@ CSRCS = \
 	fcname.c \
 	fcobjs.c \
 	fcpat.c \
+	fcrange.c \
 	fcserialize.c \
 	fcstat.c \
 	fcstr.c \

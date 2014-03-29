@@ -5562,8 +5562,8 @@ FAST_NEAREST_MAINLOOP_COMMON (sse2_8888_n_8888_normal_OVER,
 /***********************************************************************************/
 
 # define BILINEAR_DECLARE_VARIABLES						\
-    const __m128i xmm_wt = _mm_set_epi16 (wt, wt, wt, wt, wt, wt, wt, wt);	\
-    const __m128i xmm_wb = _mm_set_epi16 (wb, wb, wb, wb, wb, wb, wb, wb);	\
+	const __m128i xmm_wt = _mm_set_epi16(wt & 0xffff, wt & 0xffff, wt & 0xffff, wt & 0xffff, wt & 0xffff, wt & 0xffff, wt & 0xffff, wt & 0xffff);	\
+	const __m128i xmm_wb = _mm_set_epi16(wb & 0xffff, wb & 0xffff, wb & 0xffff, wb & 0xffff, wb & 0xffff, wb & 0xffff, wb & 0xffff, wb & 0xffff);	\
     const __m128i xmm_addc = _mm_set_epi16 (0, 1, 0, 1, 0, 1, 0, 1);		\
     const __m128i xmm_ux1 = _mm_set_epi16 ((unit_x)&0xffff, (-unit_x)&0xffff, (unit_x)&0xffff, (-unit_x)&0xffff,	\
 					   (unit_x)&0xffff, (-unit_x)&0xffff, (unit_x)&0xffff, (-unit_x)&0xffff);	\
@@ -5572,10 +5572,10 @@ FAST_NEAREST_MAINLOOP_COMMON (sse2_8888_n_8888_normal_OVER,
 					   (unit_x * 4)&0xffff, (-unit_x * 4)&0xffff,		\
 					   (unit_x * 4)&0xffff, (-unit_x * 4)&0xffff);		\
     const __m128i xmm_zero = _mm_setzero_si128 ();				\
-    __m128i xmm_x = _mm_set_epi16 (vx + unit_x * 3, -(vx + 1) - unit_x * 3,	\
-				   vx + unit_x * 2, -(vx + 1) - unit_x * 2,	\
-				   vx + unit_x * 1, -(vx + 1) - unit_x * 1,	\
-				   vx + unit_x * 0, -(vx + 1) - unit_x * 0);	\
+	__m128i xmm_x = _mm_set_epi16((vx + unit_x * 3) & 0xffff, (-(vx + 1) - unit_x * 3) & 0xffff, \
+								  (vx + unit_x * 2) & 0xffff, (-(vx + 1) - unit_x * 2) & 0xffff, \
+								  (vx + unit_x * 1) & 0xffff, (-(vx + 1) - unit_x * 1) & 0xffff, \
+								  (vx + unit_x * 0) & 0xffff, (-(vx + 1) - unit_x * 0) & 0xffff);	\
     __m128i xmm_wh_state;
 
 #define BILINEAR_INTERPOLATE_ONE_PIXEL_HELPER(pix, phase_)			\
@@ -5610,15 +5610,15 @@ do {										\
 #else /************************************************************************/
 
 # define BILINEAR_DECLARE_VARIABLES						\
-    const __m128i xmm_wt = _mm_set_epi16 (wt, wt, wt, wt, wt, wt, wt, wt);	\
-    const __m128i xmm_wb = _mm_set_epi16 (wb, wb, wb, wb, wb, wb, wb, wb);	\
+	const __m128i xmm_wt = _mm_set_epi16(wt & 0xffff, wt & 0xffff, wt & 0xffff, wt & 0xffff, wt & 0xffff, wt & 0xffff, wt & 0xffff, wt & 0xffff);	\
+	const __m128i xmm_wb = _mm_set_epi16(wb & 0xffff, wb & 0xffff, wb & 0xffff, wb & 0xffff, wb & 0xffff, wb & 0xffff, wb & 0xffff, wb & 0xffff);	\
     const __m128i xmm_addc = _mm_set_epi16 (0, 1, 0, 1, 0, 1, 0, 1);		\
-    const __m128i xmm_ux1 = _mm_set_epi16 (unit_x, -unit_x, unit_x, -unit_x,	\
-					  unit_x, -unit_x, unit_x, -unit_x);	\
-    const __m128i xmm_ux4 = _mm_set_epi16 (unit_x * 4, -unit_x * 4,		\
-					   unit_x * 4, -unit_x * 4,		\
-					   unit_x * 4, -unit_x * 4,		\
-					   unit_x * 4, -unit_x * 4);		\
+	const __m128i xmm_ux1 = _mm_set_epi16((unit_x) & 0xffff, (-unit_x) & 0xffff, (unit_x) & 0xffff, (-unit_x) & 0xffff, \
+	(unit_x) & 0xffff, (-unit_x) & 0xffff, (unit_x) & 0xffff, (-unit_x) & 0xffff);	\
+					  const __m128i xmm_ux4 = _mm_set_epi16((unit_x * 4) & 0xffff, (-unit_x * 4) & 0xffff, \
+					  (unit_x * 4) & 0xffff, (-unit_x * 4) & 0xffff, \
+					  (unit_x * 4) & 0xffff, (-unit_x * 4) & 0xffff, \
+					  (unit_x * 4) & 0xffff, (-unit_x * 4) & 0xffff);		\
     const __m128i xmm_zero = _mm_setzero_si128 ();				\
     __m128i xmm_x = _mm_set_epi16 (vx&0xffff, (-(vx + 1))&0xffff, vx&0xffff, (-(vx + 1))&0xffff,		\
 				   vx&0xffff, (-(vx + 1))&0xffff, vx&0xffff, (-(vx + 1))&0xffff)
