@@ -365,7 +365,6 @@ void
 LoadExtensionList(const ExtensionModule ext[], int size, Bool builtin)
 {
     ExtensionModule *newext;
-    const char *msg;
     int i;
 
     /* Make sure built-in extensions get added to the list before those
@@ -375,14 +374,7 @@ LoadExtensionList(const ExtensionModule ext[], int size, Bool builtin)
     if (!(newext = NewExtensionModuleList(size)))
         return;
 
-    if (builtin)
-        msg = "Initializing built-in";
-    else
-        msg = "Loading";
-
     for (i = 0; i < size; i++, newext++) {
-        ErrorF("%s extension %s\n", msg, ext[i].name);
-
         newext->name = ext[i].name;
         newext->initFunc = ext[i].initFunc;
         newext->disablePtr = ext[i].disablePtr;
