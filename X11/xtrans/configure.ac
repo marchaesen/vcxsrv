@@ -21,7 +21,7 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([xtrans], [1.3.3],
+AC_INIT([xtrans], [1.3.4],
         [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [xtrans])
 AC_CONFIG_SRCDIR([Makefile.am])
 

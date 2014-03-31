@@ -284,14 +284,17 @@ dnl Can't have static and shared libraries, default to static if user
 dnl explicitly requested. If both disabled, set to static since shared
 dnl was explicitly requested.
 case "x$enable_static$enable_shared" in
-xnoyes )
+xyesyes)
+    AC_MSG_WARN([Cannot build static and shared libraries, disabling shared])
+    enable_shared=no
     ;;
-* )
-    AC_MSG_WARN([Messa build supports only shared libraries, enabling shared])
+xnono)
+    AC_MSG_WARN([Cannot disable both static and shared libraries, enabling shared])
     enable_shared=yes
-    enable_static=no
     ;;
 esac
+
+AM_CONDITIONAL(BUILD_SHARED, test "x$enable_shared" = xyes)
 
 dnl
 dnl other compiler options
@@ -311,6 +314,22 @@ if test "x$enable_debug" = xyes; then
         CXXFLAGS="$CXXFLAGS -g -O0"
     fi
 fi
+
+dnl
+dnl Check if linker supports garbage collection
+dnl
+save_LDFLAGS=$LDFLAGS
+LDFLAGS="$LDFLAGS -Wl,--gc-sections"
+AC_MSG_CHECKING([whether ld supports --gc-sections])
+AC_LINK_IFELSE(
+    [AC_LANG_SOURCE([static char UnusedFunc() { return 5; } int main() { return 0;}])],
+    [AC_MSG_RESULT([yes])
+        GC_SECTIONS="-Wl,--gc-sections";],
+    [AC_MSG_RESULT([no])
+        GC_SECTIONS="";])
+LDFLAGS=$save_LDFLAGS
+
+AC_SUBST([GC_SECTIONS])
 
 dnl
 dnl compatibility symlinks
@@ -527,11 +546,20 @@ AC_ARG_ENABLE([dri],
         [enable DRI modules @<:@default=enabled@:>@])],
     [enable_dri="$enableval"],
     [enable_dri=yes])
+
+case "$host_os" in
+linux*)
+    dri3_default=yes
+    ;;
+*)
+    dri3_default=no
+    ;;
+esac
 AC_ARG_ENABLE([dri3],
     [AS_HELP_STRING([--enable-dri3],
-        [enable DRI3 @<:@default=enabled@:>@])],
+        [enable DRI3 @<:@default=auto@:>@])],
     [enable_dri3="$enableval"],
-    [enable_dri3=yes])
+    [enable_dri3="$dri3_default"])
 AC_ARG_ENABLE([glx],
     [AS_HELP_STRING([--enable-glx],
         [enable GLX library @<:@default=enabled@:>@])],
@@ -750,8 +778,8 @@ if test "x$enable_dri" = xyes; then
 fi
 
 if test "x$enable_gallium_osmesa" = xyes; then
-    if test -z "$with_gallium_drivers"; then
-        AC_MSG_ERROR([Cannot enable gallium_osmesa without Gallium])
+    if ! echo "$with_gallium_drivers" | grep -q 'swrast'; then
+        AC_MSG_ERROR([gallium_osmesa requires the gallium swrast driver])
     fi
     if test "x$enable_osmesa" = xyes; then
         AC_MSG_ERROR([Cannot enable both classic and Gallium OSMesa implementations])
@@ -773,6 +801,10 @@ PKG_CHECK_MODULES([LIBUDEV], [libudev >= $LIBUDEV_REQUIRED],
                   have_libudev=yes, have_libudev=no)
 
 if test "x$enable_dri" = xyes; then
+    if test "$enable_static" = yes; then
+        AC_MSG_ERROR([Cannot use static libraries for DRI drivers])
+    fi
+
     # not a hard requirement as swrast does not depend on it
     if test "x$have_libdrm" = xyes; then
         DRI_PC_REQ_PRIV="libdrm >= $LIBDRM_REQUIRED"
@@ -823,9 +855,6 @@ xyesno)
         PKG_CHECK_MODULES([DRI2PROTO], [dri2proto >= $DRI2PROTO_REQUIRED])
         GL_PC_REQ_PRIV="$GL_PC_REQ_PRIV libdrm >= $LIBDRM_REQUIRED"
         if test x"$enable_dri3" = xyes; then
-            if test x"$have_libudev" != xyes; then
-              AC_MSG_ERROR([DRI3 requires libudev >= $LIBUDEV_REQUIRED])
-            fi
             PKG_CHECK_MODULES([DRI3PROTO], [dri3proto >= $DRI3PROTO_REQUIRED])
             PKG_CHECK_MODULES([PRESENTPROTO], [presentproto >= $PRESENTPROTO_REQUIRED])
         fi
@@ -978,7 +1007,7 @@ if test "x$enable_dri" = xyes; then
     gnu*)
         DEFINES="$DEFINES -DUSE_EXTERNAL_DXTN_LIB=1"
         DEFINES="$DEFINES -DHAVE_ALIAS"
-	;;
+        ;;
     solaris*)
         DEFINES="$DEFINES -DUSE_EXTERNAL_DXTN_LIB=1"
         ;;
@@ -1104,7 +1133,12 @@ x16|x32)
 esac
 
 if test "x$enable_osmesa" = xyes -o "x$enable_gallium_osmesa" = xyes; then
-    OSMESA_LIB_DEPS="-lm $PTHREAD_LIBS $SELINUX_LIBS $DLOPEN_LIBS"
+    # only link libraries with osmesa if shared
+    if test "$enable_static" = no; then
+        OSMESA_LIB_DEPS="-lm $PTHREAD_LIBS $SELINUX_LIBS $DLOPEN_LIBS"
+    else
+        OSMESA_LIB_DEPS=""
+    fi
     OSMESA_MESA_DEPS=""
     OSMESA_PC_LIB_PRIV="-lm $PTHREAD_LIBS $SELINUX_LIBS $DLOPEN_LIBS"
 fi
@@ -1153,8 +1187,11 @@ if test "x$enable_egl" = xyes; then
 
     AC_CHECK_FUNC(mincore, [DEFINES="$DEFINES -DHAVE_MINCORE"])
 
-    if test "x$enable_dri" = xyes; then
-        HAVE_EGL_DRIVER_DRI2=1
+    if test "$enable_static" != yes; then
+        if test "x$enable_dri" = xyes; then
+	    HAVE_EGL_DRIVER_DRI2=1
+	fi
+
     fi
 fi
 AM_CONDITIONAL(HAVE_EGL, test "x$enable_egl" = xyes)
@@ -1252,7 +1289,7 @@ AM_CONDITIONAL(HAVE_OPENVG, test "x$enable_openvg" = xyes)
 dnl
 dnl Gallium G3DVL configuration
 dnl
-if test -n "$with_gallium_drivers"; then
+if test -n "$with_gallium_drivers" && ! echo "$with_gallium_drivers" | grep -q 'swrast'; then
     if test "x$enable_xvmc" = xauto; then
 	PKG_CHECK_EXISTS([xvmc], [enable_xvmc=yes], [enable_xvmc=no])
     fi
@@ -1435,15 +1472,15 @@ else
     EGL_NATIVE_PLATFORM="_EGL_INVALID_PLATFORM"
 fi
 
-if echo "$egl_platforms" | grep 'x11' >/dev/null 2>&1; then
+if echo "$egl_platforms" | grep -q 'x11'; then
     GALLIUM_WINSYS_DIRS="$GALLIUM_WINSYS_DIRS sw/xlib"
     NEED_WINSYS_XLIB=yes
 fi
-AM_CONDITIONAL(HAVE_EGL_PLATFORM_X11, echo "$egl_platforms" | grep 'x11' >/dev/null 2>&1)
-AM_CONDITIONAL(HAVE_EGL_PLATFORM_WAYLAND, echo "$egl_platforms" | grep 'wayland' >/dev/null 2>&1)
-AM_CONDITIONAL(HAVE_EGL_PLATFORM_DRM, echo "$egl_platforms" | grep 'drm' >/dev/null 2>&1)
-AM_CONDITIONAL(HAVE_EGL_PLATFORM_FBDEV, echo "$egl_platforms" | grep 'fbdev' >/dev/null 2>&1)
-AM_CONDITIONAL(HAVE_EGL_PLATFORM_NULL, echo "$egl_platforms" | grep 'null' >/dev/null 2>&1)
+AM_CONDITIONAL(HAVE_EGL_PLATFORM_X11, echo "$egl_platforms" | grep -q 'x11')
+AM_CONDITIONAL(HAVE_EGL_PLATFORM_WAYLAND, echo "$egl_platforms" | grep -q 'wayland')
+AM_CONDITIONAL(HAVE_EGL_PLATFORM_DRM, echo "$egl_platforms" | grep -q 'drm')
+AM_CONDITIONAL(HAVE_EGL_PLATFORM_FBDEV, echo "$egl_platforms" | grep -q 'fbdev')
+AM_CONDITIONAL(HAVE_EGL_PLATFORM_NULL, echo "$egl_platforms" | grep -q 'null')
 
 AM_CONDITIONAL(HAVE_EGL_DRIVER_DRI2, test "x$HAVE_EGL_DRIVER_DRI2" != "x")
 

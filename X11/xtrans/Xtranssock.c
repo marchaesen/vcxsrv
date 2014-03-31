@@ -445,6 +445,27 @@ TRANS(SocketOpen) (int i, int type)
     }
 #endif
 
+    /*
+     * Some systems provide a really small default buffer size for
+     * UNIX sockets.  Bump it up a bit such that large transfers don't
+     * proceed at glacial speed.
+     */
+#ifdef SO_SNDBUF
+    if (Sockettrans2devtab[i].family == AF_UNIX)
+    {
+	SOCKLEN_T len = sizeof (int);
+	int val;
+
+	if (getsockopt (ciptr->fd, SOL_SOCKET, SO_SNDBUF,
+	    (char *) &val, &len) == 0 && val < 64 * 1024)
+	{
+	    val = 64 * 1024;
+	    setsockopt (ciptr->fd, SOL_SOCKET, SO_SNDBUF,
+	        (char *) &val, sizeof (int));
+	}
+    }
+#endif
+
     return ciptr;
 }
 

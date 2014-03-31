@@ -54,25 +54,37 @@ GALLIUM_VIDEO_CFLAGS = \
 DRI_VERSION_SCRIPT ?= $(top_srcdir)/src/gallium/state_trackers/dri/dri.link
 
 GALLIUM_DRI_LINKER_FLAGS = \
+	-shared \
 	-module \
 	-avoid-version \
-	-Wl,--version-script=$(DRI_VERSION_SCRIPT) \
-	-shared \
-	-no-undefined
+	$(GC_SECTIONS) \
+	-Wl,--version-script=$(DRI_VERSION_SCRIPT)
 
 GALLIUM_VDPAU_LINKER_FLAGS = \
+	-shared \
 	-module \
+	-no-undefined \
 	-version-number $(VDPAU_MAJOR):$(VDPAU_MINOR) \
 	-export-symbols-regex $(VDPAU_EXPORTS) \
-	-shared \
-	-no-undefined
+	$(GC_SECTIONS) \
+	-Wl,--no-undefined
 
 GALLIUM_XVMC_LINKER_FLAGS = \
-	-module \
-	-version-number $(XVMC_MAJOR):$(XVMC_MINOR) \
 	-shared \
+	-module \
+	-no-undefined \
+	-version-number $(XVMC_MAJOR):$(XVMC_MINOR) \
 	-export-symbols-regex '^XvMC' \
-	-no-undefined
+	$(GC_SECTIONS) \
+	-Wl,--no-undefined
+
+GALLIUM_OMX_LINKER_FLAGS = \
+	-shared \
+	-module \
+	-no-undefined \
+	-export-symbols-regex $(EXPORTS) \
+	$(GC_SECTIONS) \
+	-Wl,--no-undefined
 
 GALLIUM_VDPAU_LIB_DEPS = \
 	$(top_builddir)/src/gallium/auxiliary/libgallium.la \
@@ -90,9 +102,29 @@ GALLIUM_XVMC_LIB_DEPS = \
 	$(XVMC_LIBS) \
 	$(LIBDRM_LIBS)
 
+GALLIUM_OMX_LIB_DEPS = \
+	$(top_builddir)/src/gallium/auxiliary/libgallium.la \
+	$(top_builddir)/src/gallium/state_trackers/omx/libomxtracker.la \
+	$(GALLIUM_DRI_LIB_DEPS) \
+	$(OMX_LIBS)
+
 GALLIUM_WINSYS_CFLAGS = \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/src/gallium/include \
 	-I$(top_srcdir)/src/gallium/auxiliary \
 	$(DEFINES) \
 	$(VISIBILITY_CFLAGS)
+
+if HAVE_MESA_LLVM
+
+GALLIUM_DRI_LINKER_FLAGS += $(LLVM_LDFLAGS)
+GALLIUM_VDPAU_LINKER_FLAGS += $(LLVM_LDFLAGS)
+GALLIUM_XVMC_LINKER_FLAGS += $(LLVM_LDFLAGS)
+GALLIUM_OMX_LINKER_FLAGS += $(LLVM_LDFLAGS)
+
+GALLIUM_DRI_LIB_DEPS += $(LLVM_LIBS)
+GALLIUM_VDPAU_LIB_DEPS += $(LLVM_LIBS)
+GALLIUM_XVMC_LIB_DEPS += $(LLVM_LIBS)
+GALLIUM_OMX_LIB_DEPS += $(LLVM_LIBS)
+
+endif
