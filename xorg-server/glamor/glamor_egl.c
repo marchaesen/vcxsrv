@@ -608,9 +608,10 @@ glamor_egl_close_screen(ScreenPtr screen)
 }
 
 static int
-glamor_dri3_open(ScreenPtr screen,
-                 RRProviderPtr provider,
-                 int *fdp)
+glamor_dri3_open_client(ClientPtr client,
+                        ScreenPtr screen,
+                        RRProviderPtr provider,
+                        int *fdp)
 {
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     struct glamor_egl_screen_private *glamor_egl =
@@ -657,8 +658,8 @@ glamor_dri3_open(ScreenPtr screen,
 }
 
 static dri3_screen_info_rec glamor_dri3_info = {
-    .version = 0,
-    .open = glamor_dri3_open,
+    .version = 1,
+    .open_client = glamor_dri3_open_client,
     .pixmap_from_fd = glamor_pixmap_from_fd,
     .fd_from_pixmap = glamor_fd_from_pixmap,
 };

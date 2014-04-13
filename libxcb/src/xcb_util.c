@@ -467,16 +467,17 @@ xcb_connection_t *xcb_connect_to_display_with_auth_info(const char *displayname,
     if(!parsed) {
         c = _xcb_conn_ret_error(XCB_CONN_CLOSED_PARSE_ERR);
         goto out;
-    } else {
-#ifdef _WIN32
-        WSADATA wsaData;
-        if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-            c = _xcb_conn_ret_error(XCB_CONN_ERROR);
-            goto out;
-        }
-#endif
-        fd = _xcb_open(host, protocol, display);
     }
+
+#ifdef _WIN32
+    WSADATA wsaData;
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+        c = _xcb_conn_ret_error(XCB_CONN_ERROR);
+        goto out;
+    }
+#endif
+
+    fd = _xcb_open(host, protocol, display);
 
     if(fd == -1) {
         c = _xcb_conn_ret_error(XCB_CONN_ERROR);

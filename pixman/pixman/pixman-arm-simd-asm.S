@@ -611,3 +611,81 @@ generate_composite_function \
 
 /******************************************************************************/
 
+.macro over_reverse_n_8888_init
+        ldr     SRC, [sp, #ARGS_STACK_OFFSET]
+        ldr     MASK, =0x00800080
+        /* Split source pixel into RB/AG parts */
+        uxtb16  STRIDE_S, SRC
+        uxtb16  STRIDE_M, SRC, ror #8
+        /* Set GE[3:0] to 0101 so SEL instructions do what we want */
+        uadd8   SCRATCH, MASK, MASK
+        line_saved_regs  STRIDE_D, ORIG_W
+.endm
+
+.macro over_reverse_n_8888_newline
+        mov     STRIDE_D, #0xFF
+.endm
+
+.macro over_reverse_n_8888_process_head  cond, numbytes, firstreg, unaligned_src, unaligned_mask, preload
+        pixld   , numbytes, firstreg, DST, 0
+.endm
+
+.macro over_reverse_n_8888_1pixel  d, is_only
+        teq     WK&d, #0
+        beq     8f       /* replace with source */
+        bics    ORIG_W, STRIDE_D, WK&d, lsr #24
+ .if is_only == 1
+        beq     49f      /* skip store */
+ .else
+        beq     9f       /* write same value back */
+ .endif
+        mla     SCRATCH, STRIDE_S, ORIG_W, MASK /* red/blue */
+        mla     ORIG_W, STRIDE_M, ORIG_W, MASK  /* alpha/green */
+        uxtab16 SCRATCH, SCRATCH, SCRATCH, ror #8
+        uxtab16 ORIG_W, ORIG_W, ORIG_W, ror #8
+        mov     SCRATCH, SCRATCH, ror #8
+        sel     ORIG_W, SCRATCH, ORIG_W
+        uqadd8  WK&d, WK&d, ORIG_W
+        b       9f
+8:      mov     WK&d, SRC
+9:
+.endm
+
+.macro over_reverse_n_8888_tail  numbytes, reg1, reg2, reg3, reg4
+ .if numbytes == 4
+        over_reverse_n_8888_1pixel  reg1, 1
+ .else
+        and     SCRATCH, WK&reg1, WK&reg2
+  .if numbytes == 16
+        and     SCRATCH, SCRATCH, WK&reg3
+        and     SCRATCH, SCRATCH, WK&reg4
+  .endif
+        mvns    SCRATCH, SCRATCH, asr #24
+        beq     49f /* skip store if all opaque */
+        over_reverse_n_8888_1pixel  reg1, 0
+        over_reverse_n_8888_1pixel  reg2, 0
+  .if numbytes == 16
+        over_reverse_n_8888_1pixel  reg3, 0
+        over_reverse_n_8888_1pixel  reg4, 0
+  .endif
+ .endif
+        pixst   , numbytes, reg1, DST
+49:
+.endm
+
+.macro over_reverse_n_8888_process_tail  cond, numbytes, firstreg
+        over_reverse_n_8888_tail  numbytes, firstreg, %(firstreg+1), %(firstreg+2), %(firstreg+3)
+.endm
+
+generate_composite_function \
+    pixman_composite_over_reverse_n_8888_asm_armv6, 0, 0, 32 \
+    FLAG_DST_READWRITE | FLAG_BRANCH_OVER | FLAG_PROCESS_CORRUPTS_PSR | FLAG_PROCESS_DOES_STORE | FLAG_SPILL_LINE_VARS | FLAG_PROCESS_CORRUPTS_SCRATCH, \
+    3, /* prefetch distance */ \
+    over_reverse_n_8888_init, \
+    over_reverse_n_8888_newline, \
+    nop_macro, /* cleanup */ \
+    over_reverse_n_8888_process_head, \
+    over_reverse_n_8888_process_tail
+
+/******************************************************************************/
+

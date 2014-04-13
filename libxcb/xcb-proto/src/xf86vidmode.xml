@@ -159,7 +159,7 @@ authorization from the authors.
 		    <op op="&amp;">
 			<op op="+">
 			    <fieldref>vendor_length</fieldref>
-			    <value> 3 </value>
+			    <value>3</value>
 			</op>
 			<unop op="~">
 			    <value>3</value>

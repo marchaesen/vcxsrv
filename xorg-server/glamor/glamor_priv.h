@@ -205,6 +205,7 @@ typedef struct glamor_screen_private {
     Bool yInverted;
     unsigned int tick;
     enum glamor_gl_flavor gl_flavor;
+    int glsl_version;
     int has_pack_invert;
     int has_fbo_blit;
     int has_map_buffer_range;
@@ -222,6 +223,20 @@ typedef struct glamor_screen_private {
 
     /* glamor point shader */
     glamor_program point_prog;
+
+    /* glamor spans shaders */
+    glamor_program_fill fill_spans_program;
+
+    /* glamor rect shaders */
+    glamor_program_fill poly_fill_rect_program;
+
+    /* glamor glyphblt shaders */
+    glamor_program_fill poly_glyph_blt_progs;
+
+    /* glamor text shaders */
+    glamor_program_fill poly_text_progs;
+    glamor_program      te_text_prog;
+    glamor_program      image_text_prog;
 
     /* vertext/elment_index buffer object for render */
     GLuint vbo, ebo;
@@ -584,8 +599,6 @@ extern int glamor_debug_level;
 /* glamor.c */
 PixmapPtr glamor_get_drawable_pixmap(DrawablePtr drawable);
 
-Bool glamor_destroy_pixmap(PixmapPtr pixmap);
-
 glamor_pixmap_fbo *glamor_pixmap_detach_fbo(glamor_pixmap_private *
                                             pixmap_priv);
 void glamor_pixmap_attach_fbo(PixmapPtr pixmap, glamor_pixmap_fbo *fbo);
@@ -674,18 +687,8 @@ Bool glamor_solid(PixmapPtr pixmap, int x, int y, int width, int height,
 Bool glamor_solid_boxes(PixmapPtr pixmap,
                         BoxPtr box, int nbox, unsigned long fg_pixel);
 
-/* glamor_fillspans.c */
-void glamor_fill_spans(DrawablePtr drawable,
-                       GCPtr gc,
-                       int n, DDXPointPtr points, int *widths, int sorted);
-
 void glamor_init_solid_shader(ScreenPtr screen);
 void glamor_fini_solid_shader(ScreenPtr screen);
-
-/* glamor_getspans.c */
-void glamor_get_spans(DrawablePtr drawable,
-                      int wmax, DDXPointPtr points, int *widths,
-                      int nspans, char *dst_start);
 
 /* glamor_glyphs.c */
 Bool glamor_realize_glyph_caches(ScreenPtr screen);
@@ -696,14 +699,6 @@ void glamor_glyphs(CARD8 op,
                    PictFormatPtr maskFormat,
                    INT16 xSrc,
                    INT16 ySrc, int nlist, GlyphListPtr list, GlyphPtr *glyphs);
-
-/* glamor_setspans.c */
-void glamor_set_spans(DrawablePtr drawable, GCPtr gc, char *src,
-                      DDXPointPtr points, int *widths, int n, int sorted);
-
-/* glamor_polyfillrect.c */
-void glamor_poly_fill_rect(DrawablePtr drawable,
-                           GCPtr gc, int nrect, xRectangle *prect);
 
 /* glamor_polylines.c */
 void glamor_poly_lines(DrawablePtr drawable, GCPtr gc, int mode, int n,
@@ -967,6 +962,39 @@ RegionPtr glamor_copy_plane(DrawablePtr pSrc, DrawablePtr pDst, GCPtr pGC,
                             int dstx, int dsty,
                             unsigned long bitPlane);
 
+/* glamor_text.c */
+int glamor_poly_text8(DrawablePtr pDrawable, GCPtr pGC,
+                      int x, int y, int count, char *chars);
+
+int glamor_poly_text16(DrawablePtr pDrawable, GCPtr pGC,
+                       int x, int y, int count, unsigned short *chars);
+
+void glamor_image_text8(DrawablePtr pDrawable, GCPtr pGC,
+                        int x, int y, int count, char *chars);
+
+void glamor_image_text16(DrawablePtr pDrawable, GCPtr pGC,
+                         int x, int y, int count, unsigned short *chars);
+
+/* glamor_spans.c */
+void
+glamor_fill_spans(DrawablePtr drawable,
+                  GCPtr gc,
+                  int n, DDXPointPtr points, int *widths, int sorted);
+
+void
+glamor_get_spans(DrawablePtr drawable, int wmax,
+                 DDXPointPtr points, int *widths, int count, char *dst);
+
+void
+glamor_set_spans(DrawablePtr drawable, GCPtr gc, char *src,
+                 DDXPointPtr points, int *widths, int numPoints, int sorted);
+
+/* glamor_rects.c */
+void
+glamor_poly_fill_rect(DrawablePtr drawable,
+                      GCPtr gc, int nrect, xRectangle *prect);
+
+/* glamor_glyphblt.c */
 void glamor_image_glyph_blt(DrawablePtr pDrawable, GCPtr pGC,
                             int x, int y, unsigned int nglyph,
                             CharInfoPtr *ppci, void *pglyphBase);
@@ -991,9 +1019,6 @@ void glamor_composite_rectangles(CARD8 op,
                                  PicturePtr dst,
                                  xRenderColor *color,
                                  int num_rects, xRectangle *rects);
-
-extern _X_EXPORT void glamor_egl_screen_init(ScreenPtr screen,
-                                             struct glamor_context *glamor_ctx);
 
 /* glamor_xv */
 typedef struct {
@@ -1038,5 +1063,7 @@ void glamor_fini_xv_shader(ScreenPtr screen);
 #endif
 //#define GLYPHS_NO_EDEGEMAP_OVERLAP_CHECK
 #define GLYPHS_EDEGE_OVERLAP_LOOSE_CHECK
+
+#include "glamor_font.h"
 
 #endif                          /* GLAMOR_PRIV_H */

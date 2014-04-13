@@ -507,6 +507,10 @@ extern _X_EXPORT void miMarkUnrealizedWindow(WindowPtr /*pChild */ ,
 extern _X_EXPORT void miSegregateChildren(WindowPtr pWin, RegionPtr pReg,
                                           int depth);
 
+extern _X_EXPORT WindowPtr miSpriteTrace(SpritePtr pSprite, int x, int y);
+
+extern _X_EXPORT WindowPtr miXYToWindow(ScreenPtr pScreen, SpritePtr pSprite, int x, int y);
+
 /* mizerarc.c */
 
 extern _X_EXPORT void miZeroPolyArc(DrawablePtr /*pDraw */ ,

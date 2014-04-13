@@ -744,8 +744,9 @@ class ES1APIPrinter(GLAPIPrinter):
     def _override_for_api(self, ent):
         if ent.xml_data is None:
             raise Exception('ES2 API printer requires XML input')
-        ent.hidden = ent.name not in \
-            ent.xml_data.entry_points_for_api_version('es1')
+        ent.hidden = (ent.name not in \
+            ent.xml_data.entry_points_for_api_version('es1')) \
+            or ent.hidden
         ent.handcode = False
 
     def _get_c_header(self):
@@ -767,8 +768,17 @@ class ES2APIPrinter(GLAPIPrinter):
     def _override_for_api(self, ent):
         if ent.xml_data is None:
             raise Exception('ES2 API printer requires XML input')
-        ent.hidden = ent.name not in \
-            ent.xml_data.entry_points_for_api_version('es2')
+        ent.hidden = (ent.name not in \
+            ent.xml_data.entry_points_for_api_version('es2')) \
+            or ent.hidden
+
+        # This is hella ugly.  The same-named function in desktop OpenGL is
+        # hidden, but it needs to be exposed by libGLESv2 for OpenGL ES 3.0.
+        # There's no way to express in the XML that a function should be be
+        # hidden in one API but exposed in another.
+        if ent.name == 'GetInternalformativ':
+            ent.hidden = False
+
         ent.handcode = False
 
     def _get_c_header(self):

@@ -30,11 +30,16 @@
 #include <X11/extensions/dri3proto.h>
 #include <randrstr.h>
 
-#define DRI3_SCREEN_INFO_VERSION        0
+#define DRI3_SCREEN_INFO_VERSION        1
 
 typedef int (*dri3_open_proc)(ScreenPtr screen,
                               RRProviderPtr provider,
                               int *fd);
+
+typedef int (*dri3_open_client_proc)(ClientPtr client,
+                                     ScreenPtr screen,
+                                     RRProviderPtr provider,
+                                     int *fd);
 
 typedef PixmapPtr (*dri3_pixmap_from_fd_proc) (ScreenPtr screen,
                                                int fd,
@@ -55,10 +60,17 @@ typedef struct dri3_screen_info {
     dri3_open_proc              open;
     dri3_pixmap_from_fd_proc    pixmap_from_fd;
     dri3_fd_from_pixmap_proc    fd_from_pixmap;
+
+    /* Version 1 */
+    dri3_open_client_proc       open_client;
+
 } dri3_screen_info_rec, *dri3_screen_info_ptr;
 
 extern _X_EXPORT Bool
 dri3_screen_init(ScreenPtr screen, dri3_screen_info_ptr info);
+
+extern _X_EXPORT int
+dri3_send_open_reply(ClientPtr client, int fd);
 
 #endif
 

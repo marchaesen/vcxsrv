@@ -20,7 +20,6 @@ SUBDIRS = bundle . $(GL_DIR) xpr pbproxy mach-startup man
 DIST_SUBDIRS = bundle . GL xpr pbproxy mach-startup man
 
 libXquartz_la_SOURCES = \
-	$(top_srcdir)/fb/fbcmap_mi.c \
 	$(top_srcdir)/mi/miinitext.c \
 	X11Application.m \
 	X11Controller.m \

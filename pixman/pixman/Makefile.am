@@ -72,6 +72,7 @@ libpixman_arm_simd_la_SOURCES = \
 	pixman-arm-common.h	\
 	pixman-arm-simd-asm.S   \
 	pixman-arm-simd-asm-scaled.S \
+	pixman-arm-asm.h	\
 	pixman-arm-simd-asm.h
 libpixman_1_la_LIBADD += libpixman-arm-simd.la
 
@@ -86,6 +87,7 @@ libpixman_arm_neon_la_SOURCES = \
         pixman-arm-common.h	\
         pixman-arm-neon-asm.S	\
 		pixman-arm-neon-asm-bilinear.S \
+        pixman-arm-asm.h	\
         pixman-arm-neon-asm.h
 libpixman_1_la_LIBADD += libpixman-arm-neon.la
 

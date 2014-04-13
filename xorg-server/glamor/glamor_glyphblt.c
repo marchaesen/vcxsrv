@@ -28,203 +28,156 @@
 
 #include "glamor_priv.h"
 #include <dixfontstr.h>
+#include "glamor_transform.h"
+
+static const glamor_facet glamor_facet_poly_glyph_blt = {
+    .name = "poly_glyph_blt",
+    .vs_vars = "attribute vec2 primitive;\n",
+    .vs_exec = ("       vec2 pos = vec2(0,0);\n"
+                GLAMOR_POS(gl_Position, primitive)),
+};
 
 static Bool
-glamor_poly_glyph_blt_pixels(DrawablePtr drawable, GCPtr gc,
-                             int x, int y, unsigned int nglyph,
-                             CharInfoPtr *ppci)
+glamor_poly_glyph_blt_gl(DrawablePtr drawable, GCPtr gc,
+                         int start_x, int y, unsigned int nglyph,
+                         CharInfoPtr *ppci, void *pglyph_base)
 {
     ScreenPtr screen = drawable->pScreen;
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
     PixmapPtr pixmap = glamor_get_drawable_pixmap(drawable);
     glamor_pixmap_private *pixmap_priv;
-    int off_x, off_y;
-    GLfloat xscale, yscale;
-    float color[4];
-    unsigned long fg_pixel = gc->fgPixel;
-    char *vbo_offset;
-    RegionPtr clip;
-    int num_points, max_points;
-    float *points = NULL;
-
-    x += drawable->x;
-    y += drawable->y;
-
-    if (gc->fillStyle != FillSolid) {
-        glamor_fallback("gc fillstyle not solid\n");
-        return FALSE;
-    }
+    glamor_program *prog;
+    RegionPtr clip = gc->pCompositeClip;
+    int box_x, box_y;
 
     pixmap_priv = glamor_get_pixmap_private(pixmap);
     if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv))
-        return FALSE;
+        goto bail;
 
     glamor_get_context(glamor_priv);
-    if (!glamor_set_alu(screen, gc->alu)) {
-        if (gc->alu == GXclear)
-            fg_pixel = 0;
-        else {
-            glamor_fallback("unsupported alu %x\n", gc->alu);
-            glamor_put_context(glamor_priv);
-            return FALSE;
-        }
-    }
 
-    if (!glamor_set_planemask(pixmap, gc->planemask)) {
-        glamor_fallback("Failed to set planemask in %s.\n", __FUNCTION__);
-        glamor_put_context(glamor_priv);
-        return FALSE;
-    }
-
-    glamor_get_drawable_deltas(drawable, pixmap, &off_x, &off_y);
-
-    glamor_set_destination_pixmap_priv_nc(pixmap_priv);
-    pixmap_priv_get_dest_scale(pixmap_priv, &xscale, &yscale);
-
-    glUseProgram(glamor_priv->solid_prog);
-
-    glamor_get_rgba_from_pixel(fg_pixel,
-                               &color[0], &color[1], &color[2], &color[3],
-                               format_for_pixmap(pixmap));
-    glUniform4fv(glamor_priv->solid_color_uniform_location, 1, color);
-
-    clip = fbGetCompositeClip(gc);
+    prog = glamor_use_program_fill(pixmap, gc, &glamor_priv->poly_glyph_blt_progs,
+                                   &glamor_facet_poly_glyph_blt);
+    if (!prog)
+        goto bail_ctx;
 
     glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
 
-    max_points = 500;
-    num_points = 0;
-    while (nglyph--) {
-        CharInfoPtr charinfo = *ppci++;
-        int w = GLYPHWIDTHPIXELS(charinfo);
-        int h = GLYPHHEIGHTPIXELS(charinfo);
-        uint8_t *glyphbits = FONTGLYPHBITS(NULL, charinfo);
+    start_x += drawable->x;
+    y += drawable->y;
 
-        if (w && h) {
-            int glyph_x = x + charinfo->metrics.leftSideBearing;
-            int glyph_y = y - charinfo->metrics.ascent;
-            int glyph_stride = GLYPHWIDTHBYTESPADDED(charinfo);
-            int xx, yy;
+    glamor_pixmap_loop(pixmap_priv, box_x, box_y) {
+        int x;
+        int n;
+        int num_points, max_points;
+        INT16 *points = NULL;
+        int off_x, off_y;
+        char *vbo_offset;
 
-            for (yy = 0; yy < h; yy++) {
-                uint8_t *glyph_row = glyphbits + glyph_stride * yy;
-                for (xx = 0; xx < w; xx++) {
-                    int pt_x_i = glyph_x + xx;
-                    int pt_y_i = glyph_y + yy;
-                    float pt_x_f, pt_y_f;
-                    if (!(glyph_row[xx / 8] & (1 << xx % 8)))
-                        continue;
+        glamor_set_destination_drawable(drawable, box_x, box_y, FALSE, TRUE, prog->matrix_uniform, &off_x, &off_y);
 
-                    if (!RegionContainsPoint(clip, pt_x_i, pt_y_i, NULL))
-                        continue;
+        max_points = 500;
+        num_points = 0;
+        x = start_x;
+        for (n = 0; n < nglyph; n++) {
+            CharInfoPtr charinfo = ppci[n];
+            int w = GLYPHWIDTHPIXELS(charinfo);
+            int h = GLYPHHEIGHTPIXELS(charinfo);
+            uint8_t *glyphbits = FONTGLYPHBITS(NULL, charinfo);
 
-                    if (!num_points) {
-                        points = glamor_get_vbo_space(screen,
-                                                      max_points * 2 * sizeof(float),
-                                                      &vbo_offset);
+            if (w && h) {
+                int glyph_x = x + charinfo->metrics.leftSideBearing;
+                int glyph_y = y - charinfo->metrics.ascent;
+                int glyph_stride = GLYPHWIDTHBYTESPADDED(charinfo);
+                int xx, yy;
 
-                        glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_FLOAT,
-                                              GL_FALSE, 2 * sizeof(float),
-                                              vbo_offset);
+                for (yy = 0; yy < h; yy++) {
+                    uint8_t *glyph = glyphbits;
+                    for (xx = 0; xx < w; glyph += ((xx&7) == 7), xx++) {
+                        int pt_x_i = glyph_x + xx;
+                        int pt_y_i = glyph_y + yy;
+
+                        if (!(*glyph & (1 << (xx & 7))))
+                            continue;
+
+                        if (!RegionContainsPoint(clip, pt_x_i, pt_y_i, NULL))
+                            continue;
+
+                        if (!num_points) {
+                            points = glamor_get_vbo_space(screen,
+                                                          max_points * (2 * sizeof (INT16)),
+                                                          &vbo_offset);
+
+                            glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_SHORT,
+                                                  GL_FALSE, 0, vbo_offset);
+                        }
+
+                        *points++ = pt_x_i;
+                        *points++ = pt_y_i;
+                        num_points++;
+
+                        if (num_points == max_points) {
+                            glamor_put_vbo_space(screen);
+                            glDrawArrays(GL_POINTS, 0, num_points);
+                            num_points = 0;
+                        }
                     }
-
-                    pt_x_f = v_from_x_coord_x(xscale, pt_x_i + off_x + 0.5);
-                    if (glamor_priv->yInverted)
-                        pt_y_f = v_from_x_coord_y_inverted(yscale, pt_y_i + off_y + 0.5);
-                    else
-                        pt_y_f = v_from_x_coord_y(yscale, pt_y_i + off_y + 0.5);
-
-                    points[num_points * 2 + 0] = pt_x_f;
-                    points[num_points * 2 + 1] = pt_y_f;
-                    num_points++;
-
-                    if (num_points == max_points) {
-                        glamor_put_vbo_space(screen);
-                        glDrawArrays(GL_POINTS, 0, num_points);
-                        num_points = 0;
-                    }
+                    glyphbits += glyph_stride;
                 }
             }
+            x += charinfo->metrics.characterWidth;
         }
 
-        x += charinfo->metrics.characterWidth;
+        if (num_points) {
+            glamor_put_vbo_space(screen);
+            glDrawArrays(GL_POINTS, 0, num_points);
+        }
     }
 
-    if (num_points) {
-        glamor_put_vbo_space(screen);
-        glDrawArrays(GL_POINTS, 0, num_points);
-    }
-
+    glDisable(GL_COLOR_LOGIC_OP);
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
 
     glamor_put_context(glamor_priv);
-
     return TRUE;
-}
-
-static Bool
-_glamor_image_glyph_blt(DrawablePtr pDrawable, GCPtr pGC,
-                        int x, int y, unsigned int nglyph,
-                        CharInfoPtr *ppci, void *pglyphBase, Bool fallback)
-{
-    if (!fallback && glamor_ddx_fallback_check_pixmap(pDrawable)
-        && glamor_ddx_fallback_check_gc(pGC))
-        return FALSE;
-
-    miImageGlyphBlt(pDrawable, pGC, x, y, nglyph, ppci, pglyphBase);
-    return TRUE;
+bail_ctx:
+    glDisable(GL_COLOR_LOGIC_OP);
+    glamor_put_context(glamor_priv);
+bail:
+    return FALSE;
 }
 
 void
-glamor_image_glyph_blt(DrawablePtr pDrawable, GCPtr pGC,
-                       int x, int y, unsigned int nglyph,
-                       CharInfoPtr *ppci, void *pglyphBase)
+glamor_poly_glyph_blt(DrawablePtr drawable, GCPtr gc,
+                      int start_x, int y, unsigned int nglyph,
+                      CharInfoPtr *ppci, void *pglyph_base)
 {
-    _glamor_image_glyph_blt(pDrawable, pGC, x, y, nglyph, ppci, pglyphBase,
-                            TRUE);
+    if (glamor_poly_glyph_blt_gl(drawable, gc, start_x, y, nglyph, ppci, pglyph_base))
+        return;
+    miPolyGlyphBlt(drawable, gc, start_x, y, nglyph,
+                   ppci, pglyph_base);
 }
 
 Bool
-glamor_image_glyph_blt_nf(DrawablePtr pDrawable, GCPtr pGC,
-                          int x, int y, unsigned int nglyph,
-                          CharInfoPtr *ppci, void *pglyphBase)
+glamor_poly_glyph_blt_nf(DrawablePtr drawable, GCPtr gc,
+                         int start_x, int y, unsigned int nglyph,
+                         CharInfoPtr *ppci, void *pglyph_base)
 {
-    return _glamor_image_glyph_blt(pDrawable, pGC, x, y, nglyph, ppci,
-                                   pglyphBase, FALSE);
-}
-
-static Bool
-_glamor_poly_glyph_blt(DrawablePtr pDrawable, GCPtr pGC,
-                       int x, int y, unsigned int nglyph,
-                       CharInfoPtr *ppci, void *pglyphBase, Bool fallback)
-{
-    if (glamor_poly_glyph_blt_pixels(pDrawable, pGC, x, y, nglyph, ppci))
+    if (glamor_poly_glyph_blt_gl(drawable, gc, start_x, y, nglyph, ppci, pglyph_base))
         return TRUE;
-
-    if (!fallback && glamor_ddx_fallback_check_pixmap(pDrawable)
-        && glamor_ddx_fallback_check_gc(pGC))
+    if (glamor_ddx_fallback_check_pixmap(drawable) && glamor_ddx_fallback_check_gc(gc))
         return FALSE;
-
-    miPolyGlyphBlt(pDrawable, pGC, x, y, nglyph, ppci, pglyphBase);
+    miPolyGlyphBlt(drawable, gc, start_x, y, nglyph,
+                   ppci, pglyph_base);
     return TRUE;
 }
 
-void
-glamor_poly_glyph_blt(DrawablePtr pDrawable, GCPtr pGC,
-                      int x, int y, unsigned int nglyph,
-                      CharInfoPtr *ppci, void *pglyphBase)
-{
-    _glamor_poly_glyph_blt(pDrawable, pGC, x, y, nglyph, ppci, pglyphBase,
-                           TRUE);
-}
-
 Bool
-glamor_poly_glyph_blt_nf(DrawablePtr pDrawable, GCPtr pGC,
-                         int x, int y, unsigned int nglyph,
-                         CharInfoPtr *ppci, void *pglyphBase)
+glamor_image_glyph_blt_nf(DrawablePtr drawable, GCPtr gc,
+                          int start_x, int y, unsigned int nglyph,
+                          CharInfoPtr *ppci, void *pglyph_base)
 {
-    return _glamor_poly_glyph_blt(pDrawable, pGC, x, y, nglyph, ppci,
-                                  pglyphBase, FALSE);
+    miImageGlyphBlt(drawable, gc, start_x, y, nglyph, ppci, pglyph_base);
+    return TRUE;
 }
 
 static Bool

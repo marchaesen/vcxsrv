@@ -55,16 +55,35 @@ proc_dri3_query_version(ClientPtr client)
     return Success;
 }
 
-static int
-proc_dri3_open(ClientPtr client)
+int
+dri3_send_open_reply(ClientPtr client, int fd)
 {
-    REQUEST(xDRI3OpenReq);
     xDRI3OpenReply rep = {
         .type = X_Reply,
         .nfd = 1,
         .sequenceNumber = client->sequence,
         .length = 0,
     };
+
+    if (client->swapped) {
+        swaps(&rep.sequenceNumber);
+        swapl(&rep.length);
+    }
+
+    if (WriteFdToClient(client, fd, TRUE) < 0) {
+        close(fd);
+        return BadAlloc;
+    }
+
+    WriteToClient(client, sizeof (rep), &rep);
+
+    return Success;
+}
+
+static int
+proc_dri3_open(ClientPtr client)
+{
+    REQUEST(xDRI3OpenReq);
     RRProviderPtr provider;
     DrawablePtr drawable;
     ScreenPtr screen;
@@ -92,17 +111,8 @@ proc_dri3_open(ClientPtr client)
     if (status != Success)
         return status;
 
-    if (client->swapped) {
-        swaps(&rep.sequenceNumber);
-        swapl(&rep.length);
-    }
-
-    if (WriteFdToClient(client, fd, TRUE) < 0) {
-        close(fd);
-        return BadAlloc;
-    }
-
-    WriteToClient(client, sizeof (rep), &rep);
+    if (client->ignoreCount == 0)
+        return dri3_send_open_reply(client, fd);
 
     return Success;
 }

@@ -2421,8 +2421,7 @@ struct gl_shader
    /**
     * This shader's uniform block information.
     *
-    * The offsets of the variables are assigned only for shaders in a program's
-    * _LinkedShaders[].
+    * These fields are only set post-linking.
     */
    struct gl_uniform_block *UniformBlocks;
    unsigned NumUniformBlocks;
@@ -3472,6 +3471,8 @@ struct gl_constants
    /** GL_ARB_gpu_shader5 */
    GLfloat MinFragmentInterpolationOffset;
    GLfloat MaxFragmentInterpolationOffset;
+
+   GLboolean FakeSWMSAA;
 };
 
 

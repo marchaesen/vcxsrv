@@ -275,6 +275,9 @@ void st_init_limits(struct st_context *st)
    c->MaxProgramTexelOffset = screen->get_param(screen, PIPE_CAP_MAX_TEXEL_OFFSET);
 
    c->MaxProgramTextureGatherComponents = screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_GATHER_COMPONENTS);
+   c->MinProgramTextureGatherOffset = screen->get_param(screen, PIPE_CAP_MIN_TEXTURE_GATHER_OFFSET);
+   c->MaxProgramTextureGatherOffset = screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_GATHER_OFFSET);
+
    c->UniformBooleanTrue = ~0;
 
    c->MaxTransformFeedbackBuffers =
@@ -421,7 +424,8 @@ void st_init_extensions(struct st_context *st)
 
       { o(OES_standard_derivatives),         PIPE_CAP_SM3                              },
       { o(ARB_texture_cube_map_array),       PIPE_CAP_CUBE_MAP_ARRAY                   },
-      { o(ARB_texture_multisample),          PIPE_CAP_TEXTURE_MULTISAMPLE              }
+      { o(ARB_texture_multisample),          PIPE_CAP_TEXTURE_MULTISAMPLE              },
+      { o(ARB_texture_query_lod),            PIPE_CAP_TEXTURE_QUERY_LOD                }
    };
 
    /* Required: render target and sampler support */
@@ -726,6 +730,13 @@ void st_init_extensions(struct st_context *st)
    else if (ctx->Const.MaxSamples >= 2) {
       ctx->Extensions.EXT_framebuffer_multisample = GL_TRUE;
       ctx->Extensions.EXT_framebuffer_multisample_blit_scaled = GL_TRUE;
+   }
+
+   if (ctx->Const.MaxSamples == 0 && screen->get_param(screen, PIPE_CAP_FAKE_SW_MSAA)) {
+	ctx->Const.FakeSWMSAA = GL_TRUE;
+        ctx->Extensions.EXT_framebuffer_multisample = GL_TRUE;
+        ctx->Extensions.EXT_framebuffer_multisample_blit_scaled = GL_TRUE;
+        ctx->Extensions.ARB_texture_multisample = GL_TRUE;
    }
 
    if (ctx->Const.MaxDualSourceDrawBuffers > 0 &&

@@ -1061,6 +1061,24 @@ fi
 
 AC_MSG_RESULT($support_for_builtin_clz)
 
+dnl =====================================
+dnl GCC vector extensions
+
+support_for_gcc_vector_extensions=no
+
+AC_MSG_CHECKING(for GCC vector extensions)
+AC_LINK_IFELSE([AC_LANG_SOURCE([[
+unsigned int __attribute__ ((vector_size(16))) e, a, b;
+int main (void) { e = a - ((b << 27) + (b >> (32 - 27))) + 1; return e[0]; }
+]])], support_for_gcc_vector_extensions=yes)
+
+if test x$support_for_gcc_vector_extensions = xyes; then
+   AC_DEFINE([HAVE_GCC_VECTOR_EXTENSIONS], [],
+             [Whether the compiler supports GCC vector extensions])
+fi
+
+AC_MSG_RESULT($support_for_gcc_vector_extensions)
+
 dnl ==================
 dnl libpng
 

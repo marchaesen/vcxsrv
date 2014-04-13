@@ -30,6 +30,14 @@
 #include <misyncshm.h>
 #include <randrstr.h>
 
+static inline Bool has_open(dri3_screen_info_ptr info) {
+    if (info == NULL)
+        return FALSE;
+
+    return info->open != NULL ||
+        (info->version >= 1 && info->open_client != NULL);
+}
+
 int
 dri3_open(ClientPtr client, ScreenPtr screen, RRProviderPtr provider, int *fd)
 {
@@ -37,10 +45,14 @@ dri3_open(ClientPtr client, ScreenPtr screen, RRProviderPtr provider, int *fd)
     dri3_screen_info_ptr        info = ds->info;
     int                         rc;
 
-    if (!info || !info->open)
+    if (!has_open(info))
         return BadMatch;
 
-    rc = (*info->open) (screen, provider, fd);
+    if (info->version >= 1 && info->open_client != NULL)
+        rc = (*info->open_client) (client, screen, provider, fd);
+    else
+        rc = (*info->open) (screen, provider, fd);
+
     if (rc != Success)
         return rc;
 

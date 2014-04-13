@@ -313,7 +313,6 @@ ephyr_glamor_get_visual(void)
         GLX_GREEN_SIZE, 1,
         GLX_BLUE_SIZE, 1,
         GLX_DOUBLEBUFFER, 1,
-        GLX_VISUAL_ID, DefaultVisual(dpy, DefaultScreen(dpy)),
         None
     };
     int event_base = 0, error_base = 0, nelements;

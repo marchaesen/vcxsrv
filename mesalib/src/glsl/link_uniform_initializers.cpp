@@ -46,6 +46,18 @@ get_storage(gl_uniform_storage *storage, unsigned num_storage,
    return NULL;
 }
 
+static unsigned
+get_uniform_block_index(const gl_shader_program *shProg,
+                        const char *uniformBlockName)
+{
+   for (unsigned i = 0; i < shProg->NumUniformBlocks; i++) {
+      if (!strcmp(shProg->UniformBlocks[i].Name, uniformBlockName))
+	 return i;
+   }
+
+   return GL_INVALID_INDEX;
+}
+
 void
 copy_constant_to_storage(union gl_constant_value *storage,
 			 const ir_constant *val,
@@ -84,8 +96,7 @@ copy_constant_to_storage(union gl_constant_value *storage,
 }
 
 void
-set_uniform_binding(void *mem_ctx, gl_shader_program *prog,
-                    const char *name, const glsl_type *type, int binding)
+set_sampler_binding(gl_shader_program *prog, const char *name, int binding)
 {
    struct gl_uniform_storage *const storage =
       get_storage(prog->UniformStorage, prog->NumUserUniformStorage, name);
@@ -95,42 +106,53 @@ set_uniform_binding(void *mem_ctx, gl_shader_program *prog,
       return;
    }
 
-   if (storage->type->is_sampler()) {
-      unsigned elements = MAX2(storage->array_elements, 1);
+   const unsigned elements = MAX2(storage->array_elements, 1);
 
-      /* From section 4.4.4 of the GLSL 4.20 specification:
-       * "If the binding identifier is used with an array, the first element
-       *  of the array takes the specified unit and each subsequent element
-       *  takes the next consecutive unit."
-       */
-      for (unsigned int i = 0; i < elements; i++) {
-         storage->storage[i].i = binding + i;
-      }
+   /* Section 4.4.4 (Opaque-Uniform Layout Qualifiers) of the GLSL 4.20 spec
+    * says:
+    *
+    *     "If the binding identifier is used with an array, the first element
+    *     of the array takes the specified unit and each subsequent element
+    *     takes the next consecutive unit."
+    */
+   for (unsigned int i = 0; i < elements; i++) {
+      storage->storage[i].i = binding + i;
+   }
 
-      for (int sh = 0; sh < MESA_SHADER_STAGES; sh++) {
-         gl_shader *shader = prog->_LinkedShaders[sh];
+   for (int sh = 0; sh < MESA_SHADER_STAGES; sh++) {
+      gl_shader *shader = prog->_LinkedShaders[sh];
 
-         if (shader && storage->sampler[sh].active) {
-            for (unsigned i = 0; i < elements; i++) {
-               unsigned index = storage->sampler[sh].index + i;
+      if (shader && storage->sampler[sh].active) {
+         for (unsigned i = 0; i < elements; i++) {
+            unsigned index = storage->sampler[sh].index + i;
 
-               shader->SamplerUnits[index] = storage->storage[i].i;
-            }
+            shader->SamplerUnits[index] = storage->storage[i].i;
          }
       }
-   } else if (storage->block_index != -1) {
+   }
+
+   storage->initialized = true;
+}
+
+void
+set_block_binding(gl_shader_program *prog, const char *block_name, int binding)
+{
+   const unsigned block_index = get_uniform_block_index(prog, block_name);
+
+   if (block_index == GL_INVALID_INDEX) {
+      assert(block_index != GL_INVALID_INDEX);
+      return;
+   }
+
       /* This is a field of a UBO.  val is the binding index. */
       for (int i = 0; i < MESA_SHADER_STAGES; i++) {
-         int stage_index = prog->UniformBlockStageIndex[i][storage->block_index];
+         int stage_index = prog->UniformBlockStageIndex[i][block_index];
 
          if (stage_index != -1) {
             struct gl_shader *sh = prog->_LinkedShaders[i];
             sh->UniformBlocks[stage_index].Binding = binding;
          }
       }
-   }
-
-   storage->initialized = true;
 }
 
 void
@@ -232,8 +254,51 @@ link_set_uniform_initializers(struct gl_shader_program *prog)
 	    mem_ctx = ralloc_context(NULL);
 
          if (var->data.explicit_binding) {
-            linker::set_uniform_binding(mem_ctx, prog, var->name,
-                                        var->type, var->data.binding);
+            const glsl_type *const type = var->type;
+
+            if (type->is_sampler()
+                || (type->is_array() && type->fields.array->is_sampler())) {
+               linker::set_sampler_binding(prog, var->name, var->data.binding);
+            } else if (var->is_in_uniform_block()) {
+               const glsl_type *const iface_type = var->get_interface_type();
+
+               /* If the variable is an array and it is an interface instance,
+                * we need to set the binding for each array element.  Just
+                * checking that the variable is an array is not sufficient.
+                * The variable could be an array element of a uniform block
+                * that lacks an instance name.  For example:
+                *
+                *     uniform U {
+                *         float f[4];
+                *     };
+                *
+                * In this case "f" would pass is_in_uniform_block (above) and
+                * type->is_array(), but it will fail is_interface_instance().
+                */
+               if (var->is_interface_instance() && var->type->is_array()) {
+                  for (unsigned i = 0; i < var->type->length; i++) {
+                     const char *name =
+                        ralloc_asprintf(mem_ctx, "%s[%u]", iface_type->name, i);
+
+                     /* Section 4.4.3 (Uniform Block Layout Qualifiers) of the
+                      * GLSL 4.20 spec says:
+                      *
+                      *     "If the binding identifier is used with a uniform
+                      *     block instanced as an array then the first element
+                      *     of the array takes the specified block binding and
+                      *     each subsequent element takes the next consecutive
+                      *     uniform block binding point."
+                      */
+                     linker::set_block_binding(prog, name,
+                                               var->data.binding + i);
+                  }
+               } else {
+                  linker::set_block_binding(prog, iface_type->name,
+                                            var->data.binding);
+               }
+            } else {
+               assert(!"Explicit binding not on a sampler or UBO.");
+            }
          } else if (var->constant_value) {
             linker::set_uniform_initializer(mem_ctx, prog, var->name,
                                             var->type, var->constant_value);

@@ -272,6 +272,7 @@ miScreenInit(ScreenPtr pScreen, void *pbits,  /* pointer to screen bits */
     pScreen->ChangeBorderWidth = miChangeBorderWidth;
     pScreen->SetShape = miSetShape;
     pScreen->MarkUnrealizedWindow = miMarkUnrealizedWindow;
+    pScreen->XYToWindow = miXYToWindow;
 
     miSetZeroLineBias(pScreen, DEFAULTZEROLINEBIAS);
 

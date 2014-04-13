@@ -1,4 +1,4 @@
-noinst_LTLIBRARIES = libXi.la
+noinst_LTLIBRARIES = libXi.la libXistubs.la
 
 AM_CFLAGS = $(DIX_CFLAGS)
 
@@ -107,4 +107,5 @@ libXi_la_SOURCES =	\
 	xiwarppointer.c \
 	xiwarppointer.h
 
-EXTRA_DIST = stubs.c
+libXistubs_la_SOURCES =	\
+	stubs.c

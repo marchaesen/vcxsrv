@@ -283,8 +283,6 @@ glamor_get_tex_format_type_from_pictformat_gl(PictFormatShort format,
         break;
 
     default:
-        LogMessageVerb(X_INFO, 0,
-                       "fail to get matched format for %x \n", format);
         return -1;
     }
     return 0;
@@ -980,7 +978,7 @@ glamor_upload_sub_pixmap_to_texture(PixmapPtr pixmap, int x, int y, int w,
                                                &no_alpha,
                                                &revert, &swap_rb, 1)) {
         glamor_fallback("Unknown pixmap depth %d.\n", pixmap->drawable.depth);
-        return TRUE;
+        return FALSE;
     }
     if (glamor_pixmap_upload_prepare(pixmap, format, no_alpha, revert, swap_rb))
         return FALSE;

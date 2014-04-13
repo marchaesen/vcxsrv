@@ -12,18 +12,20 @@ libglamor_la_SOURCES = \
 	glamor_core.c \
 	glamor_debug.h \
 	glamor_fill.c \
-	glamor_fillspans.c \
-	glamor_getspans.c \
+	glamor_font.c \
 	glamor_glx.c \
 	glamor_glyphs.c \
-	glamor_polyfillrect.c \
 	glamor_polylines.c \
 	glamor_putimage.c \
-	glamor_setspans.c \
 	glamor_segment.c \
 	glamor_render.c \
 	glamor_gradient.c \
 	glamor_program.c \
+	glamor_rects.c \
+	glamor_spans.c \
+	glamor_text.c \
+	glamor_transfer.c \
+	glamor_transfer.h \
 	glamor_transform.c \
 	glamor_trapezoid.c \
 	glamor_tile.c \

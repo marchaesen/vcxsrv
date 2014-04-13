@@ -70,9 +70,7 @@ endif
 else
 nodist_libxservertest_la_SOURCES = \
             ddxstubs.c \
-            $(top_srcdir)/mi/miinitext.c \
-            $(top_srcdir)/Xext/dpmsstubs.c \
-            $(top_srcdir)/Xi/stubs.c
+            $(top_srcdir)/mi/miinitext.c
 
 libxservertest_la_LIBADD += \
             $(top_builddir)/damageext/libdamageext.la \
@@ -83,7 +81,9 @@ libxservertest_la_LIBADD += \
             $(top_builddir)/randr/librandr.la \
             $(top_builddir)/render/librender.la \
             $(top_builddir)/Xext/libXext.la \
+            $(top_builddir)/Xext/libXextdpmsstubs.la \
             $(top_builddir)/Xi/libXi.la \
+            $(top_builddir)/Xi/libXistubs.la \
             $(top_builddir)/xfixes/libxfixes.la \
             $(top_builddir)/xkb/libxkb.la \
             $(top_builddir)/xkb/libxkbstubs.la

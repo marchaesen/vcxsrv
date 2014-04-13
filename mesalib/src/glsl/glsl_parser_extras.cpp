@@ -66,10 +66,6 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    this->translation_unit.make_empty();
    this->symbols = new(mem_ctx) glsl_symbol_table;
 
-   this->num_uniform_blocks = 0;
-   this->uniform_block_array_size = 0;
-   this->uniform_blocks = NULL;
-
    this->info_log = ralloc_strdup(mem_ctx, "");
    this->error = false;
    this->loop_nesting_ast = NULL;
@@ -1448,7 +1444,8 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
       /* Do some optimization at compile time to reduce shader IR size
        * and reduce later work if the same shader is linked multiple times
        */
-      while (do_common_optimization(shader->ir, false, false, 32, options))
+      while (do_common_optimization(shader->ir, false, false, options,
+                                    ctx->Const.NativeIntegers))
          ;
 
       validate_ir_tree(shader->ir);
@@ -1463,12 +1460,6 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
    shader->Version = state->language_version;
    shader->IsES = state->es_shader;
    shader->uses_builtin_functions = state->uses_builtin_functions;
-
-   if (shader->UniformBlocks)
-      ralloc_free(shader->UniformBlocks);
-   shader->NumUniformBlocks = state->num_uniform_blocks;
-   shader->UniformBlocks = state->uniform_blocks;
-   ralloc_steal(shader, shader->UniformBlocks);
 
    if (!state->error)
       set_shader_inout_layout(shader, state);
@@ -1501,8 +1492,8 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
 bool
 do_common_optimization(exec_list *ir, bool linked,
 		       bool uniform_locations_assigned,
-		       unsigned max_unroll_iterations,
-                       const struct gl_shader_compiler_options *options)
+                       const struct gl_shader_compiler_options *options,
+                       bool native_integers)
 {
    GLboolean progress = GL_FALSE;
 
@@ -1538,7 +1529,7 @@ do_common_optimization(exec_list *ir, bool linked,
       progress = do_constant_variable_unlinked(ir) || progress;
    progress = do_constant_folding(ir) || progress;
    progress = do_cse(ir) || progress;
-   progress = do_algebraic(ir) || progress;
+   progress = do_algebraic(ir, native_integers) || progress;
    progress = do_lower_jumps(ir) || progress;
    progress = do_vec_index_to_swizzle(ir) || progress;
    progress = lower_vector_insert(ir, false) || progress;
@@ -1551,7 +1542,7 @@ do_common_optimization(exec_list *ir, bool linked,
    loop_state *ls = analyze_loop_variables(ir);
    if (ls->loop_found) {
       progress = set_loop_controls(ir, ls) || progress;
-      progress = unroll_loops(ir, ls, max_unroll_iterations) || progress;
+      progress = unroll_loops(ir, ls, options) || progress;
    }
    delete ls;
 

@@ -221,6 +221,13 @@ public:
    virtual ir_rvalue *hir(exec_list *instructions,
 			  struct _mesa_glsl_parse_state *state);
 
+   virtual void hir_no_rvalue(exec_list *instructions,
+                              struct _mesa_glsl_parse_state *state);
+
+   ir_rvalue *do_hir(exec_list *instructions,
+                     struct _mesa_glsl_parse_state *state,
+                     bool needs_rvalue);
+
    virtual void print(void) const;
 
    enum ast_operators oper;
@@ -290,6 +297,9 @@ public:
 
    virtual ir_rvalue *hir(exec_list *instructions,
 			  struct _mesa_glsl_parse_state *state);
+
+   virtual void hir_no_rvalue(exec_list *instructions,
+                              struct _mesa_glsl_parse_state *state);
 
 private:
    /**
@@ -363,6 +373,9 @@ public:
 
    virtual ir_rvalue *hir(exec_list *instructions,
                           struct _mesa_glsl_parse_state *state);
+
+   virtual void hir_no_rvalue(exec_list *instructions,
+                              struct _mesa_glsl_parse_state *state);
 };
 
 /**

@@ -182,7 +182,15 @@ glamor_create_pixmap(ScreenPtr screen, int w, int h, int depth,
     pitch = (((w * pixmap->drawable.bitsPerPixel + 7) / 8) + 3) & ~3;
     screen->ModifyPixmapHeader(pixmap, w, h, 0, 0, pitch, NULL);
 
-    if (type == GLAMOR_MEMORY_MAP || usage == GLAMOR_CREATE_NO_LARGE ||
+    if (usage == GLAMOR_CREATE_PIXMAP_NO_TEXTURE) {
+        pixmap_priv->type = GLAMOR_TEXTURE_ONLY;
+        pixmap_priv->base.box.x1 = 0;
+        pixmap_priv->base.box.y1 = 0;
+        pixmap_priv->base.box.x2 = w;
+        pixmap_priv->base.box.y2 = h;
+        return pixmap;
+    }
+    else if (type == GLAMOR_MEMORY_MAP || usage == GLAMOR_CREATE_NO_LARGE ||
         glamor_check_fbo_size(glamor_priv, w, h))
     {
         pixmap_priv->type = type;
@@ -353,6 +361,15 @@ glamor_init(ScreenPtr screen, unsigned int flags)
 
     gl_version = epoxy_gl_version();
 
+    /* Would be nice to have a cleaner test for GLSL 1.30 support,
+     * but for now this should suffice
+     */
+    if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP && gl_version >= 30)
+        glamor_priv->glsl_version = 130;
+    else
+        glamor_priv->glsl_version = 120;
+
+
     /* We'd like to require GL_ARB_map_buffer_range or
      * GL_OES_map_buffer_range, since it offers more information to
      * the driver than plain old glMapBuffer() or glBufferSubData().
@@ -415,6 +432,9 @@ glamor_init(ScreenPtr screen, unsigned int flags)
         screen->CreateScreenResources;
     screen->CreateScreenResources = glamor_create_screen_resources;
 
+    if (!glamor_font_init(screen))
+        goto fail;
+
     if (flags & GLAMOR_USE_SCREEN) {
         if (!RegisterBlockAndWakeupHandlers(_glamor_block_handler,
                                             _glamor_wakeup_handler,
@@ -475,13 +495,13 @@ glamor_init(ScreenPtr screen, unsigned int flags)
     glamor_priv->saved_procs.create_picture = ps->CreatePicture;
     ps->CreatePicture = glamor_create_picture;
 
-    glamor_priv->saved_procs.set_window_pixmap = screen->SetWindowPixmap;
-    screen->SetWindowPixmap = glamor_set_window_pixmap;
-
     glamor_priv->saved_procs.destroy_picture = ps->DestroyPicture;
     ps->DestroyPicture = glamor_destroy_picture;
     glamor_init_composite_shaders(screen);
 #endif
+    glamor_priv->saved_procs.set_window_pixmap = screen->SetWindowPixmap;
+    screen->SetWindowPixmap = glamor_set_window_pixmap;
+
     glamor_init_vbo(screen);
     glamor_init_pixmap_fbo(screen);
     glamor_init_solid_shader(screen);
@@ -493,9 +513,6 @@ glamor_init(ScreenPtr screen, unsigned int flags)
     glamor_init_finish_access_shaders(screen);
 #ifdef GLAMOR_GRADIENT_SHADER
     glamor_init_gradient_shader(screen);
-#endif
-#ifdef GLAMOR_XV
-    glamor_init_xv_shader(screen);
 #endif
     glamor_pixmap_init(screen);
     glamor_glyphs_init(screen);
@@ -516,9 +533,6 @@ glamor_release_screen_priv(ScreenPtr screen)
     glamor_screen_private *glamor_priv;
 
     glamor_priv = glamor_get_screen_private(screen);
-#ifdef GLAMOR_XV
-    glamor_fini_xv_shader(screen);
-#endif
 #ifdef RENDER
     glamor_fini_composite_shaders(screen);
 #endif

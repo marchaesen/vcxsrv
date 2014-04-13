@@ -1000,7 +1000,7 @@ authorization from the authors.
     <!-- ChangeDeviceProperty -->
 
     <enum name="PropertyFormat">
-        <item name="8Bits">  <value> 8</value> </item>
+        <item name="8Bits">  <value>8</value> </item>
         <item name="16Bits"> <value>16</value> </item>
         <item name="32Bits"> <value>32</value> </item>
     </enum>

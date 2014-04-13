@@ -89,7 +89,7 @@ endif
 
 BUILT_SOURCES = xorg.conf.example
 DISTCLEANFILES = xorg.conf.example
-EXTRA_DIST = xorgconf.cpp Xorg.sh.in
+EXTRA_DIST = xorgconf.cpp
 
 # Without logdir, X will post an error on the terminal and will not start
 install-data-local:
@@ -105,6 +105,7 @@ if INSTALL_SETUID
 	chmod u+s $(DESTDIR)$(bindir)/Xorg
 endif
 if SUID_WRAPPER
+	$(MKDIR_P) $(DESTDIR)$(SUID_WRAPPER_DIR)
 	mv $(DESTDIR)$(bindir)/Xorg $(DESTDIR)$(SUID_WRAPPER_DIR)/Xorg.bin
 	${INSTALL} -m 755 Xorg.sh $(DESTDIR)$(bindir)/Xorg
 	-chown root $(DESTDIR)$(SUID_WRAPPER_DIR)/Xorg.wrap && chmod u+s $(DESTDIR)$(SUID_WRAPPER_DIR)/Xorg.wrap

@@ -942,9 +942,8 @@ extern char *bundle_id_prefix;
     /* shutdown the X server, it will exit () for us. */
     DarwinSendDDXEvent(kXquartzQuit, 0);
 
-    /* In case it doesn't, exit anyway after a while. */
-    remain = 10000000;
-    while ((remain = usleep(remain)) > 0) ;
+    /* In case it doesn't, exit anyway after 5s. */
+    [NSThread sleepForTimeInterval:5.0];
 
     exit(1);
 }

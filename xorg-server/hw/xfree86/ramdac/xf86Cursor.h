@@ -12,7 +12,7 @@ typedef struct _xf86CursorInfoRec {
     int MaxHeight;
     void (*SetCursorColors) (ScrnInfoPtr pScrn, int bg, int fg);
     void (*SetCursorPosition) (ScrnInfoPtr pScrn, int x, int y);
-    void (*LoadCursorImage) (ScrnInfoPtr pScrn, unsigned char *bits);
+    Bool (*LoadCursorImage) (ScrnInfoPtr pScrn, unsigned char *bits);
     void (*HideCursor) (ScrnInfoPtr pScrn);
     void (*ShowCursor) (ScrnInfoPtr pScrn);
     unsigned char *(*RealizeCursor) (struct _xf86CursorInfoRec *, CursorPtr);
@@ -20,7 +20,7 @@ typedef struct _xf86CursorInfoRec {
 
 #ifdef ARGB_CURSOR
     Bool (*UseHWCursorARGB) (ScreenPtr, CursorPtr);
-    void (*LoadCursorARGB) (ScrnInfoPtr, CursorPtr);
+    Bool (*LoadCursorARGB) (ScrnInfoPtr, CursorPtr);
 #endif
 
 } xf86CursorInfoRec, *xf86CursorInfoPtr;

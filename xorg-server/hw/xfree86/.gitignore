@@ -1,4 +1,5 @@
 Xorg
+Xorg.sh
 xorg.conf.example
 sdksyms.c
 sdksyms.dep

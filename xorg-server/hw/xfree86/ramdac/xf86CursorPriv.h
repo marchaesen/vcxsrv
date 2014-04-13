@@ -37,7 +37,7 @@ typedef struct {
     void *transparentData;
 } xf86CursorScreenRec, *xf86CursorScreenPtr;
 
-void xf86SetCursor(ScreenPtr pScreen, CursorPtr pCurs, int x, int y);
+Bool xf86SetCursor(ScreenPtr pScreen, CursorPtr pCurs, int x, int y);
 void xf86SetTransparentCursor(ScreenPtr pScreen);
 void xf86MoveCursor(ScreenPtr pScreen, int x, int y);
 void xf86RecolorCursor(ScreenPtr pScreen, CursorPtr pCurs, Bool displayed);

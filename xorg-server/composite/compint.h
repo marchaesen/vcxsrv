@@ -119,6 +119,11 @@ typedef struct _CompOverlayClientRec {
     XID resource;
 } CompOverlayClientRec;
 
+typedef struct _CompImplicitRedirectException {
+    XID parentVisual;
+    XID winVisual;
+} CompImplicitRedirectException;
+
 typedef struct _CompScreen {
     PositionWindowProcPtr PositionWindow;
     CopyWindowProcPtr CopyWindow;
@@ -155,6 +160,8 @@ typedef struct _CompScreen {
     CloseScreenProcPtr CloseScreen;
     int numAlternateVisuals;
     VisualID *alternateVisuals;
+    int numImplicitRedirectExceptions;
+    CompImplicitRedirectException *implicitRedirectExceptions;
 
     WindowPtr pOverlayWin;
     Window overlayWid;
