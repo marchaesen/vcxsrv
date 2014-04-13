@@ -1,4 +1,4 @@
-noinst_LTLIBRARIES = libXext.la
+noinst_LTLIBRARIES = libXext.la libXextdpmsstubs.la
 
 AM_CFLAGS = $(DIX_CFLAGS)
 
@@ -95,6 +95,8 @@ endif
 
 libXext_la_SOURCES =		$(BUILTIN_SRCS)
 libXext_la_LIBADD =		$(BUILTIN_LIBS)
+
+libXextdpmsstubs_la_SOURCES = dpmsstubs.c
 
 EXTRA_DIST = \
 	$(MITSHM_SRCS) \

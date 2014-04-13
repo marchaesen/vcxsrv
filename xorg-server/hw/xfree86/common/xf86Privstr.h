@@ -163,4 +163,8 @@ typedef struct _RootWinProp {
 #define WSCONS		  32
 #endif
 
+/* Root window property to tell clients whether our VT is currently active.
+ * Name chosen to match the "XFree86_VT" property. */
+#define HAS_VT_ATOM_NAME "XFree86_has_VT"
+
 #endif                          /* _XF86PRIVSTR_H */

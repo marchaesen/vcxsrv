@@ -57,6 +57,7 @@ SOFTWARE.
 #include "scrnintstr.h"
 #include "pixmapstr.h"
 #include "mivalidate.h"
+#include "inputstr.h"
 
 void
 miClearToBackground(WindowPtr pWin,
@@ -757,4 +758,69 @@ miSegregateChildren(WindowPtr pWin, RegionPtr pReg, int depth)
         if (pChild->firstChild)
             miSegregateChildren(pChild, pReg, depth);
     }
+}
+
+WindowPtr
+miSpriteTrace(SpritePtr pSprite, int x, int y)
+{
+    WindowPtr pWin;
+    BoxRec box;
+
+    pWin = DeepestSpriteWin(pSprite);
+    while (pWin) {
+        if ((pWin->mapped) &&
+            (x >= pWin->drawable.x - wBorderWidth(pWin)) &&
+            (x < pWin->drawable.x + (int) pWin->drawable.width +
+             wBorderWidth(pWin)) &&
+            (y >= pWin->drawable.y - wBorderWidth(pWin)) &&
+            (y < pWin->drawable.y + (int) pWin->drawable.height +
+             wBorderWidth(pWin))
+            /* When a window is shaped, a further check
+             * is made to see if the point is inside
+             * borderSize
+             */
+            && (!wBoundingShape(pWin) || PointInBorderSize(pWin, x, y))
+            && (!wInputShape(pWin) ||
+                RegionContainsPoint(wInputShape(pWin),
+                                    x - pWin->drawable.x,
+                                    y - pWin->drawable.y, &box))
+#ifdef ROOTLESS
+            /* In rootless mode windows may be offscreen, even when
+             * they're in X's stack. (E.g. if the native window system
+             * implements some form of virtual desktop system).
+             */
+            && !pWin->rootlessUnhittable
+#endif
+            ) {
+            if (pSprite->spriteTraceGood >= pSprite->spriteTraceSize) {
+                pSprite->spriteTraceSize += 10;
+                pSprite->spriteTrace = realloc(pSprite->spriteTrace,
+                                               pSprite->spriteTraceSize *
+                                               sizeof(WindowPtr));
+            }
+            pSprite->spriteTrace[pSprite->spriteTraceGood++] = pWin;
+            pWin = pWin->firstChild;
+        }
+        else
+            pWin = pWin->nextSib;
+    }
+    return DeepestSpriteWin(pSprite);
+}
+
+/**
+ * Traversed from the root window to the window at the position x/y. While
+ * traversing, it sets up the traversal history in the spriteTrace array.
+ * After completing, the spriteTrace history is set in the following way:
+ *   spriteTrace[0] ... root window
+ *   spriteTrace[1] ... top level window that encloses x/y
+ *       ...
+ *   spriteTrace[spriteTraceGood - 1] ... window at x/y
+ *
+ * @returns the window at the given coordinates.
+ */
+WindowPtr
+miXYToWindow(ScreenPtr pScreen, SpritePtr pSprite, int x, int y)
+{
+    pSprite->spriteTraceGood = 1;       /* root window still there */
+    return miSpriteTrace(pSprite, x, y);
 }

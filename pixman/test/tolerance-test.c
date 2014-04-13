@@ -347,12 +347,12 @@ main (int argc, const char *argv[])
     else
     {
 #ifdef USE_OPENMP
-#       pragma omp parallel for default(none) shared(i) private (result)
+#       pragma omp parallel for default(none) reduction(|:result)
 #endif
         for (i = 0; i < N_TESTS; ++i)
 	{
 	    if (!do_check (i))
-		result = 1;
+		result |= 1;
 	}
     }
     

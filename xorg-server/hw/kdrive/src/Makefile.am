@@ -4,7 +4,7 @@ AM_CPPFLAGS = 					\
 
 AM_CFLAGS =	-DHAVE_DIX_CONFIG_H
 
-noinst_LTLIBRARIES = libkdrive.la libkdrivestubs.la
+noinst_LTLIBRARIES = libkdrive.la
 
 if XV
 KDRIVE_XV_SOURCES =	\
@@ -23,6 +23,3 @@ libkdrive_la_SOURCES =	\
 	kshadow.c	\
 	$(KDRIVE_XV_SOURCES) \
         $(top_srcdir)/mi/miinitext.c
-
-libkdrivestubs_la_SOURCES = \
-        $(top_srcdir)/fb/fbcmap_mi.c

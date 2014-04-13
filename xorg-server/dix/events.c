@@ -2835,7 +2835,7 @@ DeliverEvents(WindowPtr pWin, xEvent *xE, int count, WindowPtr otherParent)
     return deliveries;
 }
 
-static Bool
+Bool
 PointInBorderSize(WindowPtr pWin, int x, int y)
 {
     BoxRec box;
@@ -2876,49 +2876,9 @@ PointInBorderSize(WindowPtr pWin, int x, int y)
 WindowPtr
 XYToWindow(SpritePtr pSprite, int x, int y)
 {
-    WindowPtr pWin;
-    BoxRec box;
+    ScreenPtr pScreen = RootWindow(pSprite)->drawable.pScreen;
 
-    pSprite->spriteTraceGood = 1;       /* root window still there */
-    pWin = RootWindow(pSprite)->firstChild;
-    while (pWin) {
-        if ((pWin->mapped) &&
-            (x >= pWin->drawable.x - wBorderWidth(pWin)) &&
-            (x < pWin->drawable.x + (int) pWin->drawable.width +
-             wBorderWidth(pWin)) &&
-            (y >= pWin->drawable.y - wBorderWidth(pWin)) &&
-            (y < pWin->drawable.y + (int) pWin->drawable.height +
-             wBorderWidth(pWin))
-            /* When a window is shaped, a further check
-             * is made to see if the point is inside
-             * borderSize
-             */
-            && (!wBoundingShape(pWin) || PointInBorderSize(pWin, x, y))
-            && (!wInputShape(pWin) ||
-                RegionContainsPoint(wInputShape(pWin),
-                                    x - pWin->drawable.x,
-                                    y - pWin->drawable.y, &box))
-#ifdef ROOTLESS
-            /* In rootless mode windows may be offscreen, even when
-             * they're in X's stack. (E.g. if the native window system
-             * implements some form of virtual desktop system).
-             */
-            && !pWin->rootlessUnhittable
-#endif
-            ) {
-            if (pSprite->spriteTraceGood >= pSprite->spriteTraceSize) {
-                pSprite->spriteTraceSize += 10;
-                pSprite->spriteTrace = realloc(pSprite->spriteTrace,
-                                               pSprite->spriteTraceSize *
-                                               sizeof(WindowPtr));
-            }
-            pSprite->spriteTrace[pSprite->spriteTraceGood++] = pWin;
-            pWin = pWin->firstChild;
-        }
-        else
-            pWin = pWin->nextSib;
-    }
-    return DeepestSpriteWin(pSprite);
+    return (*pScreen->XYToWindow)(pScreen, pSprite, x, y);
 }
 
 /**

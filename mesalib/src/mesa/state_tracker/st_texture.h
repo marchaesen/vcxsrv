@@ -56,7 +56,11 @@ struct st_texture_image
     */
    struct pipe_resource *pt;
 
-   struct pipe_transfer *transfer;
+   /* List of transfers, allocated on demand.
+    * transfer[layer] is a mapping for that layer.
+    */
+   struct pipe_transfer **transfer;
+   unsigned num_transfers;
 };
 
 
@@ -82,10 +86,13 @@ struct st_texture_object
     */
    struct pipe_resource *pt;
 
-   /* Default sampler view attached to this texture object. Created lazily
-    * on first binding.
+   /* Number of views in sampler_views array */
+   GLuint num_sampler_views;
+
+   /* Array of sampler views (one per context) attached to this texture
+    * object. Created lazily on first binding in context.
     */
-   struct pipe_sampler_view *sampler_view;
+   struct pipe_sampler_view **sampler_views;
 
    /* True if this texture comes from the window system. Such a texture
     * cannot be reallocated and the format can only be changed with a sampler
@@ -192,11 +199,12 @@ extern GLubyte *
 st_texture_image_map(struct st_context *st, struct st_texture_image *stImage,
                      enum pipe_transfer_usage usage,
                      GLuint x, GLuint y, GLuint z,
-                     GLuint w, GLuint h, GLuint d);
+                     GLuint w, GLuint h, GLuint d,
+                     struct pipe_transfer **transfer);
 
 extern void
 st_texture_image_unmap(struct st_context *st,
-                       struct st_texture_image *stImage);
+                       struct st_texture_image *stImage, unsigned slice);
 
 
 /* Return pointers to each 2d slice within an image.  Indexed by depth
@@ -227,8 +235,18 @@ st_texture_image_copy(struct pipe_context *pipe,
 extern struct pipe_resource *
 st_create_color_map_texture(struct gl_context *ctx);
 
+extern struct pipe_sampler_view **
+st_texture_get_sampler_view(struct st_context *st,
+                            struct st_texture_object *stObj);
+
 extern void
 st_texture_release_sampler_view(struct st_context *st,
                                 struct st_texture_object *stObj);
+
+extern void
+st_texture_release_all_sampler_views(struct st_texture_object *stObj);
+
+void
+st_texture_free_sampler_views(struct st_texture_object *stObj);
 
 #endif

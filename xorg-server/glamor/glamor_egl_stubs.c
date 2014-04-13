@@ -26,7 +26,9 @@
  * Stubbed out glamor_egl.c functions for servers other than Xorg.
  */
 
-#include "glamor_priv.h"
+#include "dix-config.h"
+
+#include "glamor.h"
 
 void
 glamor_egl_screen_init(ScreenPtr screen, struct glamor_context *glamor_ctx)

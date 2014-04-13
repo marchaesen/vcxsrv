@@ -119,7 +119,7 @@ xf86InitHardwareCursor(ScreenPtr pScreen, xf86CursorInfoPtr infoPtr)
     return TRUE;
 }
 
-void
+Bool
 xf86SetCursor(ScreenPtr pScreen, CursorPtr pCurs, int x, int y)
 {
     xf86CursorScreenPtr ScreenPriv =
@@ -130,7 +130,7 @@ xf86SetCursor(ScreenPtr pScreen, CursorPtr pCurs, int x, int y)
 
     if (pCurs == NullCursor) {
         (*infoPtr->HideCursor) (infoPtr->pScrn);
-        return;
+        return TRUE;
     }
 
     bits =
@@ -152,18 +152,21 @@ xf86SetCursor(ScreenPtr pScreen, CursorPtr pCurs, int x, int y)
         (*infoPtr->HideCursor) (infoPtr->pScrn);
 
 #ifdef ARGB_CURSOR
-    if (pCurs->bits->argb && infoPtr->LoadCursorARGB)
-        (*infoPtr->LoadCursorARGB) (infoPtr->pScrn, pCurs);
-    else
+    if (pCurs->bits->argb && infoPtr->LoadCursorARGB) {
+        if (!(*infoPtr->LoadCursorARGB) (infoPtr->pScrn, pCurs))
+            return FALSE;
+    } else
 #endif
     if (bits)
-        (*infoPtr->LoadCursorImage) (infoPtr->pScrn, bits);
+        if (!(*infoPtr->LoadCursorImage) (infoPtr->pScrn, bits))
+            return FALSE;
 
     xf86RecolorCursor(pScreen, pCurs, 1);
 
     (*infoPtr->SetCursorPosition) (infoPtr->pScrn, x, y);
 
     (*infoPtr->ShowCursor) (infoPtr->pScrn);
+    return TRUE;
 }
 
 void

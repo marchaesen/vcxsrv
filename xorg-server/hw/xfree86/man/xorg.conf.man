@@ -442,10 +442,14 @@ __modulepath__
 .TP 7
 .BI "LogFile \*q" path \*q
 sets the name of the Xorg server log file.
-The default log file name is
+The default log file name when running as root is
 .PP
 .RS 11
 .RI __logdir__/Xorg. <n> .log
+.RE
+and for non root it is
+.RS 11
+.RI $XDG_DATA_HOME/xorg/Xorg. <n> .log
 .RE
 .PP
 .RS 7

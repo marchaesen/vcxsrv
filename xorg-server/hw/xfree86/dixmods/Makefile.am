@@ -19,12 +19,12 @@ AM_CPPFLAGS = @XORG_INCS@ \
 
 libfb_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
 libfb_la_LIBADD = $(top_builddir)/fb/libfb.la
-libfb_la_SOURCES = $(top_builddir)/fb/fbcmap_mi.c fbmodule.c
+libfb_la_SOURCES = fbmodule.c
 libfb_la_CFLAGS = $(AM_CFLAGS)
 
 libwfb_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
 libwfb_la_LIBADD = $(top_builddir)/fb/libwfb.la
-libwfb_la_SOURCES = $(top_builddir)/fb/fbcmap_mi.c fbmodule.c
+libwfb_la_SOURCES = fbmodule.c
 libwfb_la_CFLAGS = $(AM_CFLAGS) -DFB_ACCESS_WRAPPER
 
 libglx_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)

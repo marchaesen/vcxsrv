@@ -388,7 +388,7 @@ main (int argc, char **argv)
     list = FcStrListCreate (updateDirs);
     if (list)
     {
-	ret += scanDirs (list, config, FcTrue, really_force, verbose, FcFalse, &changed, NULL);
+	ret += scanDirs (list, config, FcTrue, FcFalse, verbose, FcFalse, &changed, NULL);
 	FcStrListDone (list);
     }
     FcStrSetDestroy (updateDirs);

@@ -186,13 +186,13 @@ typedef struct _xf86CrtcFuncs {
     /**
      * Load monochrome image
      */
-    void
+    Bool
      (*load_cursor_image) (xf86CrtcPtr crtc, CARD8 *image);
 
     /**
      * Load ARGB image
      */
-    void
+    Bool
      (*load_cursor_argb) (xf86CrtcPtr crtc, CARD32 *image);
 
     /**

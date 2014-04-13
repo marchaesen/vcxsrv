@@ -55,6 +55,7 @@ DRI_VERSION_SCRIPT ?= $(top_srcdir)/src/gallium/state_trackers/dri/dri.link
 
 GALLIUM_DRI_LINKER_FLAGS = \
 	-shared \
+	-shrext .so \
 	-module \
 	-avoid-version \
 	$(GC_SECTIONS) \
@@ -67,7 +68,7 @@ GALLIUM_VDPAU_LINKER_FLAGS = \
 	-version-number $(VDPAU_MAJOR):$(VDPAU_MINOR) \
 	-export-symbols-regex $(VDPAU_EXPORTS) \
 	$(GC_SECTIONS) \
-	-Wl,--no-undefined
+	$(LD_NO_UNDEFINED)
 
 GALLIUM_XVMC_LINKER_FLAGS = \
 	-shared \
@@ -76,7 +77,7 @@ GALLIUM_XVMC_LINKER_FLAGS = \
 	-version-number $(XVMC_MAJOR):$(XVMC_MINOR) \
 	-export-symbols-regex '^XvMC' \
 	$(GC_SECTIONS) \
-	-Wl,--no-undefined
+	$(LD_NO_UNDEFINED)
 
 GALLIUM_OMX_LINKER_FLAGS = \
 	-shared \
@@ -84,29 +85,41 @@ GALLIUM_OMX_LINKER_FLAGS = \
 	-no-undefined \
 	-export-symbols-regex $(EXPORTS) \
 	$(GC_SECTIONS) \
-	-Wl,--no-undefined
+	$(LD_NO_UNDEFINED)
+
+GALLIUM_COMMON_LIB_DEPS = \
+	-lm \
+	$(CLOCK_LIB) \
+	$(PTHREAD_LIBS) \
+	$(DLOPEN_LIBS)
+
+GALLIUM_DRI_LIB_DEPS = \
+	$(top_builddir)/src/mesa/libmesagallium.la \
+	$(top_builddir)/src/gallium/auxiliary/libgallium.la \
+	$(SELINUX_LIBS) \
+	$(LIBDRM_LIBS) \
+	$(EXPAT_LIBS) \
+	$(GALLIUM_COMMON_LIB_DEPS)
 
 GALLIUM_VDPAU_LIB_DEPS = \
 	$(top_builddir)/src/gallium/auxiliary/libgallium.la \
 	$(top_builddir)/src/gallium/state_trackers/vdpau/libvdpautracker.la \
 	$(VDPAU_LIBS) \
 	$(LIBDRM_LIBS) \
-	-lm \
-	$(CLOCK_LIB) \
-	$(PTHREAD_LIBS) \
-	$(DLOPEN_LIBS)
+	$(GALLIUM_COMMON_LIB_DEPS)
 
 GALLIUM_XVMC_LIB_DEPS = \
 	$(top_builddir)/src/gallium/auxiliary/libgallium.la \
 	$(top_builddir)/src/gallium/state_trackers/xvmc/libxvmctracker.la \
 	$(XVMC_LIBS) \
-	$(LIBDRM_LIBS)
+	$(LIBDRM_LIBS) \
+	$(GALLIUM_COMMON_LIB_DEPS)
 
 GALLIUM_OMX_LIB_DEPS = \
 	$(top_builddir)/src/gallium/auxiliary/libgallium.la \
 	$(top_builddir)/src/gallium/state_trackers/omx/libomxtracker.la \
-	$(GALLIUM_DRI_LIB_DEPS) \
-	$(OMX_LIBS)
+	$(OMX_LIBS) \
+	$(GALLIUM_COMMON_LIB_DEPS)
 
 GALLIUM_WINSYS_CFLAGS = \
 	-I$(top_srcdir)/include \

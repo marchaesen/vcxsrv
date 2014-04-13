@@ -82,7 +82,7 @@ fbDestroyGlyphCache(void)
     }
 }
 
-static void
+void
 fbUnrealizeGlyph(ScreenPtr pScreen,
 		 GlyphPtr pGlyph)
 {
@@ -90,7 +90,7 @@ fbUnrealizeGlyph(ScreenPtr pScreen,
 	pixman_glyph_cache_remove (glyphCache, pGlyph, NULL);
 }
 
-static void
+void
 fbGlyphs(CARD8 op,
 	 PicturePtr pSrc,
 	 PicturePtr pDst,

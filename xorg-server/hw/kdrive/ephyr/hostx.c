@@ -734,13 +734,16 @@ hostx_screen_init(KdScreenInfo *screen,
     scrpriv->win_width = width;
     scrpriv->win_height = height;
 
+#ifdef GLAMOR
     if (ephyr_glamor) {
         *bytes_per_line = 0;
         *bits_per_pixel = 0;
         ephyr_glamor_set_window_size(scrpriv->glamor,
                                      scrpriv->win_width, scrpriv->win_height);
         return NULL;
-    } else if (host_depth_matches_server(scrpriv)) {
+    } else
+#endif
+    if (host_depth_matches_server(scrpriv)) {
         *bytes_per_line = scrpriv->ximg->stride;
         *bits_per_pixel = scrpriv->ximg->bpp;
 

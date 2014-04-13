@@ -22,6 +22,7 @@ libfb_la_SOURCES = 	\
 	fbbits.h	\
 	fbblt.c		\
 	fbbltone.c	\
+	fbcmap_mi.c     \
 	fbcopy.c	\
 	fbfill.c	\
 	fbfillrect.c	\
@@ -50,5 +51,3 @@ libfb_la_SOURCES = 	\
 	fbwindow.c
 
 libwfb_la_SOURCES = $(libfb_la_SOURCES)
-
-EXTRA_DIST = fbcmap_mi.c

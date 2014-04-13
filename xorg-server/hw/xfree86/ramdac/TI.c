@@ -642,7 +642,7 @@ TIramdacSetCursorColors(ScrnInfoPtr pScrn, int bg, int fg)
     (*ramdacPtr->WriteDAC) (pScrn, TIDAC_CURS_COLOR, 0, (fg & 0x000000ff));
 }
 
-static void
+static Bool
 TIramdacLoadCursorImage(ScrnInfoPtr pScrn, unsigned char *src)
 {
     RamDacRecPtr ramdacPtr = RAMDACSCRPTR(pScrn);
@@ -657,6 +657,7 @@ TIramdacLoadCursorImage(ScrnInfoPtr pScrn, unsigned char *src)
         /* NOT_DONE: might need a delay here */
         (*ramdacPtr->WriteDAC) (pScrn, TIDAC_CURS_RAM_DATA, 0, *(src++));
     }
+    return TRUE;
 }
 
 static Bool

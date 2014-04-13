@@ -103,6 +103,33 @@ static void get_socket_back(xcb_connection_t *c)
     _xcb_in_replies_done(c);
 }
 
+static void prepare_socket_request(xcb_connection_t *c)
+{
+    /* We're about to append data to out.queue, so we need to
+     * atomically test for an external socket owner *and* some other
+     * thread currently writing.
+     *
+     * If we have an external socket owner, we have to get the socket back
+     * before we can use it again.
+     *
+     * If some other thread is writing to the socket, we assume it's
+     * writing from out.queue, and so we can't stick data there.
+     *
+     * We satisfy this condition by first calling get_socket_back
+     * (which may drop the lock, but will return when XCB owns the
+     * socket again) and then checking for another writing thread and
+     * escaping the loop if we're ready to go.
+     */
+    for (;;) {
+        if(c->has_error)
+            return;
+        get_socket_back(c);
+        if (!c->out.writing)
+            break;
+        pthread_cond_wait(&c->out.cond, &c->iolock);
+    }
+}
+
 /* Public interface */
 
 void xcb_prefetch_maximum_request_length(xcb_connection_t *c)
@@ -236,24 +263,23 @@ unsigned int xcb_send_request(xcb_connection_t *c, int flags, struct iovec *vect
 
     /* get a sequence number and arrange for delivery. */
     pthread_mutex_lock(&c->iolock);
-    /* wait for other writing threads to get out of my way. */
-    while(c->out.writing)
-        pthread_cond_wait(&c->out.cond, &c->iolock);
-    get_socket_back(c);
+
+    prepare_socket_request(c);
 
     /* send GetInputFocus (sync_req) when 64k-2 requests have been sent without
-     * a reply. */
-    if(req->isvoid && c->out.request == c->in.request_expected + (1 << 16) - 2)
-        send_sync(c);
-    /* Also send sync_req (could use NoOp) at 32-bit wrap to avoid having
+     * a reply.
+     * Also send sync_req (could use NoOp) at 32-bit wrap to avoid having
      * applications see sequence 0 as that is used to indicate
-     * an error in sending the request */
-    if((unsigned int) (c->out.request + 1) == 0)
+     * an error in sending the request
+     */
+     
+    while ((req->isvoid && c->out.request == c->in.request_expected + (1 << 16) - 2) ||
+           (unsigned int) (c->out.request + 1) == 0)
+    {
         send_sync(c);
+        prepare_socket_request(c);
+    }
 
-    /* The above send_sync calls could drop the I/O lock, but this
-     * thread will still exclude any other thread that tries to write,
-     * so the sequence number postconditions still hold. */
     send_request(c, req->isvoid, workaround, flags, vector, veclen);
     request = c->has_error ? 0 : c->out.request;
     pthread_mutex_unlock(&c->iolock);
@@ -373,10 +399,7 @@ int _xcb_out_send(xcb_connection_t *c, struct iovec *vector, int count)
 
 void _xcb_out_send_sync(xcb_connection_t *c)
 {
-    /* wait for other writing threads to get out of my way. */
-    while(c->out.writing)
-        pthread_cond_wait(&c->out.cond, &c->iolock);
-    get_socket_back(c);
+    prepare_socket_request(c);
     send_sync(c);
 }
 

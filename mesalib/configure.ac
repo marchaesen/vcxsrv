@@ -28,7 +28,7 @@ AC_SUBST([OSMESA_VERSION])
 
 dnl Versions for external dependencies
 LIBDRM_REQUIRED=2.4.38
-LIBDRM_RADEON_REQUIRED=2.4.50
+LIBDRM_RADEON_REQUIRED=2.4.53
 LIBDRM_INTEL_REQUIRED=2.4.52
 LIBDRM_NVVIEUX_REQUIRED=2.4.33
 LIBDRM_NOUVEAU_REQUIRED="2.4.33 libdrm >= 2.4.41"
@@ -797,6 +797,13 @@ if test "x$have_libdrm" = xyes; then
 	DEFINES="$DEFINES -DHAVE_LIBDRM"
 fi
 
+case "$host_os" in
+linux*)
+    need_libudev=yes ;;
+*)
+    need_libudev=no ;;
+esac
+
 PKG_CHECK_MODULES([LIBUDEV], [libudev >= $LIBUDEV_REQUIRED],
                   have_libudev=yes, have_libudev=no)
 
@@ -1025,7 +1032,7 @@ if test "x$enable_dri" = xyes; then
     fi
 
     # Check for expat
-    PKG_CHECK_EXISTS([EXPAT], [have_expat=yes], [have_expat=no])
+    PKG_CHECK_EXISTS([expat], [have_expat=yes], [have_expat=no])
     if test "x$have_expat" = "xyes"; then
        PKG_CHECK_MODULES([EXPAT], [expat], [],
                          AC_MSG_ERROR([Expat required for DRI.]))
@@ -1049,12 +1056,9 @@ if test "x$enable_dri" = xyes; then
 
     # put all the necessary libs together
     DRI_LIB_DEPS="$DRI_LIB_DEPS $SELINUX_LIBS $LIBDRM_LIBS $EXPAT_LIBS -lm $PTHREAD_LIBS $DLOPEN_LIBS"
-    GALLIUM_DRI_LIB_DEPS="$GALLIUM_DRI_LIB_DEPS $SELINUX_LIBS $LIBDRM_LIBS $EXPAT_LIBS -lm $CLOCK_LIB $PTHREAD_LIBS $DLOPEN_LIBS"
-
 fi
 
 AC_SUBST([DRI_LIB_DEPS])
-AC_SUBST([GALLIUM_DRI_LIB_DEPS])
 
 DRI_DIRS=''
 dnl Duplicates in DRI_DIRS are removed by sorting it at the end of this block
@@ -1160,7 +1164,7 @@ if test "x$enable_gbm" = xauto; then
     esac
 fi
 if test "x$enable_gbm" = xyes; then
-    if test x"$have_libudev" != xyes; then
+    if test "x$need_libudev$have_libudev" = xyesno; then
         AC_MSG_ERROR([gbm requires udev >= $LIBUDEV_REQUIRED])
     fi
 
@@ -1172,7 +1176,11 @@ if test "x$enable_gbm" = xyes; then
     fi
 fi
 AM_CONDITIONAL(HAVE_GBM, test "x$enable_gbm" = xyes)
-GBM_PC_REQ_PRIV="libudev >= $LIBUDEV_REQUIRED"
+if test "x$need_libudev" = xyes; then
+    GBM_PC_REQ_PRIV="libudev >= $LIBUDEV_REQUIRED"
+else
+    GBM_PC_REQ_PRIV=""
+fi
 GBM_PC_LIB_PRIV="$DLOPEN_LIBS"
 AC_SUBST([GBM_PC_REQ_PRIV])
 AC_SUBST([GBM_PC_LIB_PRIV])
@@ -1457,8 +1465,8 @@ for plat in $egl_platforms; do
 		;;
 	esac
 
-        case "$plat$have_libudev" in
-                waylandno|drmno)
+        case "$plat$need_libudev$have_libudev" in
+                waylandyesno|drmyesno)
                     AC_MSG_ERROR([cannot build $plat platform without udev >= $LIBUDEV_REQUIRED]) ;;
         esac
 done
@@ -1720,7 +1728,7 @@ gallium_require_llvm() {
 
 gallium_require_drm_loader() {
     if test "x$enable_gallium_loader" = xyes; then
-        if test "x$have_libudev" != xyes; then
+        if test "x$need_libudev$have_libudev" = xyesno; then
             AC_MSG_ERROR([Gallium drm loader requires libudev >= $LIBUDEV_REQUIRED])
         fi
         if test "x$have_libdrm" != xyes; then
@@ -1992,9 +2000,14 @@ AC_SUBST([VDPAU_MINOR], 0)
 AC_SUBST([XVMC_MAJOR], 1)
 AC_SUBST([XVMC_MINOR], 0)
 
-AC_SUBST([XA_MAJOR], 2)
-AC_SUBST([XA_MINOR], 2)
-AC_SUBST([XA_TINY], 0)
+XA_HEADER="$srcdir/src/gallium/state_trackers/xa/xa_tracker.h"
+XA_MAJOR=`grep "#define XA_TRACKER_VERSION_MAJOR" $XA_HEADER | $SED 's/^#define XA_TRACKER_VERSION_MAJOR //'`
+XA_MINOR=`grep "#define XA_TRACKER_VERSION_MINOR" $XA_HEADER | $SED 's/^#define XA_TRACKER_VERSION_MINOR //'`
+XA_TINY=`grep "#define XA_TRACKER_VERSION_PATCH" $XA_HEADER | $SED 's/^#define XA_TRACKER_VERSION_PATCH //'`
+
+AC_SUBST([XA_MAJOR], $XA_MAJOR)
+AC_SUBST([XA_MINOR], $XA_MINOR)
+AC_SUBST([XA_TINY], $XA_TINY)
 AC_SUBST([XA_VERSION], "$XA_MAJOR.$XA_MINOR.$XA_TINY")
 
 dnl Restore LDFLAGS and CPPFLAGS
@@ -2014,8 +2027,6 @@ CXXFLAGS="$CXXFLAGS $USER_CXXFLAGS"
 dnl Substitute the config
 AC_CONFIG_FILES([Makefile
 		src/Makefile
-		src/egl/Makefile
-		src/egl/drivers/Makefile
 		src/egl/drivers/dri2/Makefile
 		src/egl/main/Makefile
 		src/egl/main/egl.pc

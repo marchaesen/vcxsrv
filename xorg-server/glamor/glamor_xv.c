@@ -114,18 +114,6 @@ glamor_init_xv_shader(ScreenPtr screen)
     glamor_put_context(glamor_priv);
 }
 
-void
-glamor_fini_xv_shader(ScreenPtr screen)
-{
-    glamor_screen_private *glamor_priv;
-
-    glamor_priv = glamor_get_screen_private(screen);
-    glamor_get_context(glamor_priv);
-
-    glDeleteProgram(glamor_priv->xv_prog);
-    glamor_put_context(glamor_priv);
-}
-
 #define ClipValue(v,min,max) ((v) < (min) ? (min) : (v) > (max) ? (max) : (v))
 #define MAKE_ATOM(a) MakeAtom(a, sizeof(a) - 1, TRUE)
 
@@ -558,6 +546,8 @@ glamor_xv_init(ScreenPtr screen, int num_texture_ports)
     glamor_port_private *port_priv;
     XF86VideoAdaptorPtr adapt;
     int i;
+
+    glamor_init_xv_shader(screen);
 
     adapt = calloc(1, sizeof(XF86VideoAdaptorRec) + num_texture_ports *
                    (sizeof(glamor_port_private) + sizeof(DevUnion)));

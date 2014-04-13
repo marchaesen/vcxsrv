@@ -79,8 +79,7 @@
 
 /*****************************************************************************/
 
-#if defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7))
-#define GCC_VECTOR_EXTENSIONS_SUPPORTED
+#ifdef HAVE_GCC_VECTOR_EXTENSIONS
 typedef uint32_t uint32x4 __attribute__ ((vector_size(16)));
 typedef uint8_t  uint8x16 __attribute__ ((vector_size(16)));
 #endif
@@ -92,7 +91,7 @@ typedef struct
 
 typedef struct
 {
-#ifdef GCC_VECTOR_EXTENSIONS_SUPPORTED
+#ifdef HAVE_GCC_VECTOR_EXTENSIONS
     uint32x4 a, b, c, d;
 #else
     smallprng_t p1, p2, p3, p4;
@@ -104,7 +103,7 @@ typedef union
 {
     uint8_t  b[16];
     uint32_t w[4];
-#ifdef GCC_VECTOR_EXTENSIONS_SUPPORTED
+#ifdef HAVE_GCC_VECTOR_EXTENSIONS
     uint8x16 vb;
     uint32x4 vw;
 #endif
@@ -134,7 +133,7 @@ prng_rand_r (prng_t *x)
 static force_inline void
 prng_rand_128_r (prng_t *x, prng_rand_128_data_t *data)
 {
-#ifdef GCC_VECTOR_EXTENSIONS_SUPPORTED
+#ifdef HAVE_GCC_VECTOR_EXTENSIONS
     uint32x4 e = x->a - ((x->b << 27) + (x->b >> (32 - 27)));
     x->a = x->b ^ ((x->c << 17) ^ (x->c >> (32 - 17)));
     x->b = x->c + x->d;

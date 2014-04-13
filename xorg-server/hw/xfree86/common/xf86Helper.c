@@ -1217,16 +1217,45 @@ xf86ErrorF(const char *format, ...)
     va_end(ap);
 }
 
+/* Note temporarily modifies the passed in buffer! */
+static void xf86_mkdir_p(char *path)
+{
+    char *sep = path;
+
+    while ((sep = strchr(sep + 1, '/'))) {
+        *sep = 0;
+        (void)mkdir(path, 0777);
+        *sep = '/';
+    }
+    (void)mkdir(path, 0777);
+}
+
 void
 xf86LogInit(void)
 {
-    char *lf = NULL;
+    char *env, *lf = NULL;
+    char buf[PATH_MAX];
 
 #define LOGSUFFIX ".log"
 #define LOGOLDSUFFIX ".old"
 
     /* Get the log file name */
     if (xf86LogFileFrom == X_DEFAULT) {
+        /* When not running as root, we won't be able to write to /var/log */
+        if (geteuid() != 0) {
+            if ((env = getenv("XDG_DATA_HOME")))
+                snprintf(buf, sizeof(buf), "%s/%s", env,
+                         DEFAULT_XDG_DATA_HOME_LOGDIR);
+            else if ((env = getenv("HOME")))
+                snprintf(buf, sizeof(buf), "%s/%s/%s", env,
+                         DEFAULT_XDG_DATA_HOME, DEFAULT_XDG_DATA_HOME_LOGDIR);
+
+            if (env) {
+                xf86_mkdir_p(buf);
+                strlcat(buf, "/" DEFAULT_LOGPREFIX, sizeof(buf));
+                xf86LogFile = buf;
+            }
+        }
         /* Append the display number and ".log" */
         if (asprintf(&lf, "%s%%s" LOGSUFFIX, xf86LogFile) == -1)
             FatalError("Cannot allocate space for the log file name\n");

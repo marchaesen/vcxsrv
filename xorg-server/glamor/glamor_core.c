@@ -426,13 +426,13 @@ GCOps glamor_gc_ops = {
     .FillPolygon = miFillPolygon,
     .PolyFillRect = glamor_poly_fill_rect,
     .PolyFillArc = miPolyFillArc,
-    .PolyText8 = miPolyText8,
-    .PolyText16 = miPolyText16,
-    .ImageText8 = miImageText8,
-    .ImageText16 = miImageText16,
-    .ImageGlyphBlt = glamor_image_glyph_blt,    //miImageGlyphBlt,
-    .PolyGlyphBlt = glamor_poly_glyph_blt,      //miPolyGlyphBlt,
-    .PushPixels = glamor_push_pixels,   //miPushPixels,
+    .PolyText8 = glamor_poly_text8,
+    .PolyText16 = glamor_poly_text16,
+    .ImageText8 = glamor_image_text8,
+    .ImageText16 = glamor_image_text16,
+    .ImageGlyphBlt = miImageGlyphBlt,
+    .PolyGlyphBlt = glamor_poly_glyph_blt,
+    .PushPixels = glamor_push_pixels,
 };
 
 /**

@@ -2793,7 +2793,7 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
       }
       break;
    case ir_lod:
-      assert(!"Unexpected ir_lod opcode");
+      opcode = TGSI_OPCODE_LODQ;
       break;
    case ir_query_levels:
       assert(!"Unexpected ir_query_levels opcode");
@@ -4513,6 +4513,7 @@ compile_tgsi_instruction(struct st_translate *t,
    case TGSI_OPCODE_TXB2:
    case TGSI_OPCODE_TXL2:
    case TGSI_OPCODE_TG4:
+   case TGSI_OPCODE_LODQ:
       src[num_src++] = t->samplers[inst->sampler];
       for (i = 0; i < inst->tex_offset_num_offset; i++) {
          texoffsets[i] = translate_tex_offset(t, &inst->tex_offsets[i], i);
@@ -5356,8 +5357,8 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 
          progress = do_lower_jumps(ir, true, true, options->EmitNoMainReturn, options->EmitNoCont, options->EmitNoLoops) || progress;
 
-         progress = do_common_optimization(ir, true, true,
-					   options->MaxUnrollIterations, options)
+         progress = do_common_optimization(ir, true, true, options,
+                                           ctx->Const.NativeIntegers)
 	   || progress;
 
          progress = lower_if_to_cond_assign(ir, options->MaxIfDepth) || progress;

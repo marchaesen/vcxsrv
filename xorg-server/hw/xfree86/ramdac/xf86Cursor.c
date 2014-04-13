@@ -352,12 +352,13 @@ xf86CursorSetCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCurs,
                 (*ScreenPriv->spriteFuncs->SetCursor) (pDev, pScreen,
                                                        NullCursor, x, y);
 
-            xf86SetCursor(pScreen, cursor, x, y);
-            ScreenPriv->SWCursor = FALSE;
-            ScreenPriv->isUp = TRUE;
+            if (xf86SetCursor(pScreen, cursor, x, y)) {
+                ScreenPriv->SWCursor = FALSE;
+                ScreenPriv->isUp = TRUE;
 
-            miPointerSetWaitForUpdate(pScreen, !infoPtr->pScrn->silkenMouse);
-            return;
+                miPointerSetWaitForUpdate(pScreen, !infoPtr->pScrn->silkenMouse);
+                return;
+            }
         }
 
         miPointerSetWaitForUpdate(pScreen, TRUE);

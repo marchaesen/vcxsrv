@@ -40,6 +40,7 @@
 #include "util/u_format.h"
 #include "util/u_rect.h"
 #include "util/u_math.h"
+#include "util/u_memory.h"
 
 
 #define DBG if(0) printf
@@ -240,11 +241,13 @@ GLubyte *
 st_texture_image_map(struct st_context *st, struct st_texture_image *stImage,
                      enum pipe_transfer_usage usage,
                      GLuint x, GLuint y, GLuint z,
-                     GLuint w, GLuint h, GLuint d)
+                     GLuint w, GLuint h, GLuint d,
+                     struct pipe_transfer **transfer)
 {
    struct st_texture_object *stObj =
       st_texture_object(stImage->base.TexObject);
    GLuint level;
+   void *map;
 
    DBG("%s \n", __FUNCTION__);
 
@@ -256,22 +259,41 @@ st_texture_image_map(struct st_context *st, struct st_texture_image *stImage,
    else
       level = stImage->base.Level;
 
-   return pipe_transfer_map_3d(st->pipe, stImage->pt, level, usage,
-                               x, y, z + stImage->base.Face,
-                               w, h, d, &stImage->transfer);
+   z += stImage->base.Face;
+
+   map = pipe_transfer_map_3d(st->pipe, stImage->pt, level, usage,
+                              x, y, z, w, h, d, transfer);
+   if (map) {
+      /* Enlarge the transfer array if it's not large enough. */
+      if (z >= stImage->num_transfers) {
+         unsigned new_size = z + 1;
+
+         stImage->transfer = realloc(stImage->transfer,
+                                     new_size * sizeof(void*));
+         memset(&stImage->transfer[stImage->num_transfers], 0,
+               (new_size - stImage->num_transfers) * sizeof(void*));
+         stImage->num_transfers = new_size;
+      }
+
+      assert(!stImage->transfer[z]);
+      stImage->transfer[z] = *transfer;
+   }
+   return map;
 }
 
 
 void
 st_texture_image_unmap(struct st_context *st,
-                       struct st_texture_image *stImage)
+                       struct st_texture_image *stImage, unsigned slice)
 {
    struct pipe_context *pipe = st->pipe;
+   struct pipe_transfer **transfer =
+      &stImage->transfer[slice + stImage->base.Face];
 
    DBG("%s\n", __FUNCTION__);
 
-   pipe_transfer_unmap(pipe, stImage->transfer);
-   stImage->transfer = NULL;
+   pipe_transfer_unmap(pipe, *transfer);
+   *transfer = NULL;
 }
 
 
@@ -412,10 +434,85 @@ st_create_color_map_texture(struct gl_context *ctx)
    return pt;
 }
 
+/**
+ * Try to find a matching sampler view for the given context.
+ * If none is found an empty slot is initialized with a
+ * template and returned instead.
+ */
+struct pipe_sampler_view **
+st_texture_get_sampler_view(struct st_context *st,
+                            struct st_texture_object *stObj)
+{
+   struct pipe_sampler_view **used = NULL, **free = NULL;
+   GLuint i;
+
+   for (i = 0; i < stObj->num_sampler_views; ++i) {
+      struct pipe_sampler_view **sv = &stObj->sampler_views[i];
+      /* Is the array entry used ? */
+      if (*sv) {
+         /* Yes, check if it's the right one */
+         if ((*sv)->context == st->pipe)
+            return sv;
+
+         /* Wasn't the right one, but remember it as template */
+         used = sv;
+      } else {
+         /* Found a free slot, remember that */
+         free = sv;
+      }
+   }
+
+   /* Couldn't find a slot for our context, create a new one */
+
+   if (!free) {
+      /* Haven't even found a free one, resize the array */
+      GLuint old_size = stObj->num_sampler_views * sizeof(void *);
+      GLuint new_size = old_size + sizeof(void *);
+      stObj->sampler_views = REALLOC(stObj->sampler_views, old_size, new_size);
+      free = &stObj->sampler_views[stObj->num_sampler_views++];
+      *free = NULL;
+   }
+
+   /* Add just any sampler view to be used as a template */
+   if (used)
+      pipe_sampler_view_reference(free, *used);
+
+   return free;
+}
+
 void
 st_texture_release_sampler_view(struct st_context *st,
                                 struct st_texture_object *stObj)
 {
-   if (stObj->sampler_view && stObj->sampler_view->context == st->pipe)
-      pipe_sampler_view_reference(&stObj->sampler_view, NULL);
+   GLuint i;
+
+   for (i = 0; i < stObj->num_sampler_views; ++i) {
+      struct pipe_sampler_view **sv = &stObj->sampler_views[i];
+
+      if (*sv && (*sv)->context == st->pipe) {
+         pipe_sampler_view_reference(sv, NULL);
+         break;
+      }
+   }
+}
+
+void
+st_texture_release_all_sampler_views(struct st_texture_object *stObj)
+{
+   GLuint i;
+
+   for (i = 0; i < stObj->num_sampler_views; ++i)
+      pipe_sampler_view_reference(&stObj->sampler_views[i], NULL);
+}
+
+
+void
+st_texture_free_sampler_views(struct st_texture_object *stObj)
+{
+   /* NOTE:
+    * We use FREE() here to match REALLOC() above.  Both come from
+    * u_memory.h, not imports.h.  If we mis-match MALLOC/FREE from
+    * those two headers we can trash the heap.
+    */
+   FREE(stObj->sampler_views);
 }

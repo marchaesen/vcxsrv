@@ -211,7 +211,7 @@ set_bit(CARD8 *image, xf86CursorInfoPtr cursor_info, int x, int y, Bool mask)
 /*
  * Load a two color cursor into a driver that supports only ARGB cursors
  */
-static void
+static Bool
 xf86_crtc_convert_cursor_to_argb(xf86CrtcPtr crtc, unsigned char *src)
 {
     ScrnInfoPtr scrn = crtc->scrn;
@@ -244,7 +244,7 @@ xf86_crtc_convert_cursor_to_argb(xf86CrtcPtr crtc, unsigned char *src)
                 bits = 0;
             cursor_image[y * cursor_info->MaxWidth + x] = bits;
         }
-    crtc->funcs->load_cursor_argb(crtc, cursor_image);
+    return crtc->funcs->load_cursor_argb(crtc, cursor_image);
 }
 
 /*
@@ -415,7 +415,7 @@ xf86_set_cursor_position(ScrnInfoPtr scrn, int x, int y)
 /*
  * Load a two-color cursor into a crtc, performing rotation as needed
  */
-static void
+static Bool
 xf86_crtc_load_cursor_image(xf86CrtcPtr crtc, CARD8 *src)
 {
     ScrnInfoPtr scrn = crtc->scrn;
@@ -450,13 +450,13 @@ xf86_crtc_load_cursor_image(xf86CrtcPtr crtc, CARD8 *src)
                     set_bit(cursor_image, cursor_info, x, y, TRUE);
             }
     }
-    crtc->funcs->load_cursor_image(crtc, cursor_image);
+    return crtc->funcs->load_cursor_image(crtc, cursor_image);
 }
 
 /*
  * Load a cursor image into all active CRTCs
  */
-static void
+static Bool
 xf86_load_cursor_image(ScrnInfoPtr scrn, unsigned char *src)
 {
     xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
@@ -466,12 +466,17 @@ xf86_load_cursor_image(ScrnInfoPtr scrn, unsigned char *src)
         xf86CrtcPtr crtc = xf86_config->crtc[c];
 
         if (crtc->enabled) {
-            if (crtc->funcs->load_cursor_image)
-                xf86_crtc_load_cursor_image(crtc, src);
-            else if (crtc->funcs->load_cursor_argb)
-                xf86_crtc_convert_cursor_to_argb(crtc, src);
+            if (crtc->funcs->load_cursor_image) {
+                if (!xf86_crtc_load_cursor_image(crtc, src))
+                    return FALSE;
+            } else if (crtc->funcs->load_cursor_argb) {
+                if (!xf86_crtc_convert_cursor_to_argb(crtc, src))
+                    return FALSE;
+            } else
+                return FALSE;
         }
     }
+    return TRUE;
 }
 
 static Bool
@@ -516,7 +521,7 @@ xf86_use_hw_cursor_argb(ScreenPtr screen, CursorPtr cursor)
     return TRUE;
 }
 
-static void
+static Bool
 xf86_crtc_load_cursor_argb(xf86CrtcPtr crtc, CursorPtr cursor)
 {
     ScrnInfoPtr scrn = crtc->scrn;
@@ -544,10 +549,10 @@ xf86_crtc_load_cursor_argb(xf86CrtcPtr crtc, CursorPtr cursor)
             cursor_image[y * image_width + x] = bits;
         }
 
-    crtc->funcs->load_cursor_argb(crtc, cursor_image);
+    return crtc->funcs->load_cursor_argb(crtc, cursor_image);
 }
 
-static void
+static Bool
 xf86_load_cursor_argb(ScrnInfoPtr scrn, CursorPtr cursor)
 {
     xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
@@ -557,8 +562,10 @@ xf86_load_cursor_argb(ScrnInfoPtr scrn, CursorPtr cursor)
         xf86CrtcPtr crtc = xf86_config->crtc[c];
 
         if (crtc->enabled)
-            xf86_crtc_load_cursor_argb(crtc, cursor);
+            if (!xf86_crtc_load_cursor_argb(crtc, cursor))
+                return FALSE;
     }
+    return TRUE;
 }
 
 Bool
@@ -608,6 +615,8 @@ xf86_cursors_init(ScreenPtr screen, int max_width, int max_height, int flags)
  * Called when anything on the screen is reconfigured.
  *
  * Reloads cursor images as needed, then adjusts cursor positions
+ * @note We assume that all hardware cursors to be loaded have already been
+ *       found to be usable by the hardware.
  */
 
 void

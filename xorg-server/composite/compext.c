@@ -239,12 +239,15 @@ ProcCompositeNameWindowPixmap(ClientPtr client)
     WindowPtr pWin;
     CompWindowPtr cw;
     PixmapPtr pPixmap;
+    ScreenPtr pScreen;
     int rc;
 
     REQUEST(xCompositeNameWindowPixmapReq);
 
     REQUEST_SIZE_MATCH(xCompositeNameWindowPixmapReq);
     VERIFY_WINDOW(pWin, stuff->window, client, DixGetAttrAccess);
+
+    pScreen = pWin->drawable.pScreen;
 
     if (!pWin->viewable)
         return BadMatch;
@@ -255,7 +258,7 @@ ProcCompositeNameWindowPixmap(ClientPtr client)
     if (!cw)
         return BadMatch;
 
-    pPixmap = (*pWin->drawable.pScreen->GetWindowPixmap) (pWin);
+    pPixmap = (*pScreen->GetWindowPixmap) (pWin);
     if (!pPixmap)
         return BadMatch;
 
@@ -269,6 +272,14 @@ ProcCompositeNameWindowPixmap(ClientPtr client)
 
     if (!AddResource(stuff->pixmap, RT_PIXMAP, (void *) pPixmap))
         return BadAlloc;
+
+    if (pScreen->NameWindowPixmap) {
+        rc = pScreen->NameWindowPixmap(pWin, pPixmap, stuff->pixmap);
+        if (rc != Success) {
+            FreeResource(stuff->pixmap, RT_NONE);
+            return rc;
+        }
+    }
 
     return Success;
 }
