@@ -27,6 +27,8 @@ $zlib_lib="zlib1.lib";
 $l_flags =~ s/-L("\[^"]+")/\/libpath:$1/g;
 $l_flags =~ s/-L(\S+)/\/libpath:$1/g;
 
+my $ff = "";
+
 # C compiler stuff
 $cc='cl';
 if ($FLAVOR =~ /WIN64/)
@@ -129,6 +131,7 @@ else	# Win32
 
     my $f = ' /MD';
     $lib_cflag='/Zl' if (!$shlib);	# remove /DEFAULTLIBs from static lib
+    $ff = "/fixed";
     $opt_cflags=$f.' /O2 /Ob2 /Oi /Ox /Oy /Ot /GL /Gy /GF /Zi';     
     $dbg_cflags=$f.'d /RTCc /RTC1 /Od /GS /GR /Gy /GF /Zi';   
     $lflags="/NOLOGO /SUBSYSTEM:CONSOLE /OPT:REF /OPT:ICF /LTCG:STATUS";
@@ -331,7 +334,7 @@ sub do_lib_rule
 			$ret.="\tSET FIPS_SHA1_EXE=\$(FIPS_SHA1_EXE)\n";
 			$ret.="\tSET FIPS_TARGET=$target\n";
 			$ret.="\tSET FIPSLIB_D=\$(FIPSLIB_D)\n";
-			$ret.="\t\$(FIPSLINK) \$(MLFLAGS) /map $base_arg $efile$target ";
+			$ret.="\t\$(FIPSLINK) \$(MLFLAGS) $ff /map $base_arg $efile$target ";
 			$ret.="$name @<<\n  \$(SHLIB_EX_OBJ) $objs \$(EX_LIBS) ";
 			$ret.="\$(OBJ_D)${o}fips_premain.obj $ex\n<<\n";
 			}
@@ -368,7 +371,7 @@ sub do_link_rule
 		$ret.="\tSET FIPS_TARGET=$target\n";
 		$ret.="\tSET FIPS_SHA1_EXE=\$(FIPS_SHA1_EXE)\n";
 		$ret.="\tSET FIPSLIB_D=\$(FIPSLIB_D)\n";
-		$ret.="\t\$(FIPSLINK) \$(LFLAGS) /map $efile$target @<<\n";
+		$ret.="\t\$(FIPSLINK) \$(LFLAGS) $ff /map $efile$target @<<\n";
 		$ret.="\t\$(APP_EX_OBJ) $files \$(OBJ_D)${o}fips_premain.obj $libs\n<<\n";
 		}
 	else
