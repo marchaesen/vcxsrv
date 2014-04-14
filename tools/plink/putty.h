@@ -589,6 +589,7 @@ void get_clip(void *frontend, wchar_t **, int *);
 void optimised_move(void *frontend, int, int, int);
 void set_raw_mouse_mode(void *frontend, int);
 void connection_fatal(void *frontend, char *, ...);
+void nonfatal(char *, ...);
 void fatalbox(char *, ...);
 void modalfatalbox(char *, ...);
 #ifdef macintosh
@@ -791,7 +792,7 @@ void cleanup_exit(int);
     X(INT, NONE, xterm_256_colour) \
     X(INT, NONE, system_colour) \
     X(INT, NONE, try_palette) \
-    X(INT, NONE, bold_colour) \
+    X(INT, NONE, bold_style) \
     X(INT, INT, colours) \
     /* Selection options */ \
     X(INT, NONE, mouse_is_xterm) \
@@ -836,12 +837,16 @@ void cleanup_exit(int);
     X(INT, NONE, sshbug_rekey2) \
     X(INT, NONE, sshbug_maxpkt2) \
     X(INT, NONE, sshbug_ignore2) \
+    X(INT, NONE, sshbug_winadj) \
     /*                                                                \
      * ssh_simple means that we promise never to open any channel     \
      * other than the main one, which means it can safely use a very  \
      * large window in SSH-2.                                         \
      */ \
     X(INT, NONE, ssh_simple) \
+    X(INT, NONE, ssh_connection_sharing) \
+    X(INT, NONE, ssh_connection_sharing_upstream) \
+    X(INT, NONE, ssh_connection_sharing_downstream) \
     /* Options for pterm. Should split out into platform-dependent part. */ \
     X(INT, NONE, stamp_utmp) \
     X(INT, NONE, login_shell) \
@@ -975,8 +980,6 @@ void term_update(Terminal *);
 void term_invalidate(Terminal *);
 void term_blink(Terminal *, int set_cursor);
 void term_do_paste(Terminal *);
-int term_paste_pending(Terminal *);
-void term_paste(Terminal *);
 void term_nopaste(Terminal *);
 int term_ldisc(Terminal *, int option);
 void term_copyall(Terminal *);
@@ -1016,7 +1019,8 @@ struct logblank_t {
 void log_packet(void *logctx, int direction, int type,
 		char *texttype, const void *data, int len,
 		int n_blanks, const struct logblank_t *blanks,
-		const unsigned long *sequence);
+		const unsigned long *sequence,
+                unsigned downstream_id, const char *additional_log_text);
 
 /*
  * Exports from testback.c
@@ -1126,10 +1130,10 @@ void get_unitab(int codepage, wchar_t * unitab, int ftype);
 /*
  * Exports from wcwidth.c
  */
-int mk_wcwidth(wchar_t ucs);
-int mk_wcswidth(const wchar_t *pwcs, size_t n);
-int mk_wcwidth_cjk(wchar_t ucs);
-int mk_wcswidth_cjk(const wchar_t *pwcs, size_t n);
+int mk_wcwidth(unsigned int ucs);
+int mk_wcswidth(const unsigned int *pwcs, size_t n);
+int mk_wcwidth_cjk(unsigned int ucs);
+int mk_wcswidth_cjk(const unsigned int *pwcs, size_t n);
 
 /*
  * Exports from mscrypto.c
@@ -1257,7 +1261,7 @@ void setup_config_box(struct controlbox *b, int midsession,
  * Exports from minibidi.c.
  */
 typedef struct bidi_char {
-    wchar_t origwc, wc;
+    unsigned int origwc, wc;
     unsigned short index;
 } bidi_char;
 int do_bidi(bidi_char *line, int count);
@@ -1382,11 +1386,41 @@ char *get_random_data(int bytes);      /* used in cmdgen.c */
  * GETTICKCOUNT() and compare the result with the returned `next'
  * value to find out how long you have to make your next wait().)
  */
-typedef void (*timer_fn_t)(void *ctx, long now);
-long schedule_timer(int ticks, timer_fn_t fn, void *ctx);
+typedef void (*timer_fn_t)(void *ctx, unsigned long now);
+unsigned long schedule_timer(int ticks, timer_fn_t fn, void *ctx);
 void expire_timer_context(void *ctx);
-int run_timers(long now, long *next);
-void timer_change_notify(long next);
+int run_timers(unsigned long now, unsigned long *next);
+void timer_change_notify(unsigned long next);
+
+/*
+ * Exports from callback.c.
+ *
+ * This provides a method of queuing function calls to be run at the
+ * earliest convenience from the top-level event loop. Use it if
+ * you're deep in a nested chain of calls and want to trigger an
+ * action which will probably lead to your function being re-entered
+ * recursively if you just call the initiating function the normal
+ * way.
+ *
+ * Most front ends run the queued callbacks by simply calling
+ * run_toplevel_callbacks() after handling each event in their
+ * top-level event loop. However, if a front end doesn't have control
+ * over its own event loop (e.g. because it's using GTK) then it can
+ * instead request notifications when a callback is available, so that
+ * it knows to ask its delegate event loop to do the same thing. Also,
+ * if a front end needs to know whether a callback is pending without
+ * actually running it (e.g. so as to put a zero timeout on a select()
+ * call) then it can call toplevel_callback_pending(), which will
+ * return true if at least one callback is in the queue.
+ */
+typedef void (*toplevel_callback_fn_t)(void *ctx);
+void queue_toplevel_callback(toplevel_callback_fn_t fn, void *ctx);
+void run_toplevel_callbacks(void);
+int toplevel_callback_pending(void);
+
+typedef void (*toplevel_callback_notify_fn_t)(void *frontend);
+void request_callback_notifications(toplevel_callback_notify_fn_t notify,
+                                    void *frontend);
 
 /*
  * Define no-op macros for the jump list functions, on platforms that
@@ -1398,5 +1432,30 @@ void timer_change_notify(long next);
 #define add_session_to_jumplist(x) ((void)0)
 #define remove_session_from_jumplist(x) ((void)0)
 #endif
+
+/* SURROGATE PAIR */
+#ifndef IS_HIGH_SURROGATE
+#define HIGH_SURROGATE_START 0xd800
+#define HIGH_SURROGATE_END 0xdbff
+#define LOW_SURROGATE_START 0xdc00
+#define LOW_SURROGATE_END 0xdfff
+
+#define IS_HIGH_SURROGATE(wch) (((wch) >= HIGH_SURROGATE_START) && \
+                                ((wch) <= HIGH_SURROGATE_END))
+#define IS_LOW_SURROGATE(wch) (((wch) >= LOW_SURROGATE_START) && \
+                               ((wch) <= LOW_SURROGATE_END))
+#define IS_SURROGATE_PAIR(hs, ls) (IS_HIGH_SURROGATE(hs) && \
+                                   IS_LOW_SURROGATE(ls))
+#endif
+
+
+#define IS_SURROGATE(wch) (((wch) >= HIGH_SURROGATE_START) &&   \
+                           ((wch) <= LOW_SURROGATE_END))
+#define HIGH_SURROGATE_OF(codept) \
+    (HIGH_SURROGATE_START + (((codept) - 0x10000) >> 10))
+#define LOW_SURROGATE_OF(codept) \
+    (LOW_SURROGATE_START + (((codept) - 0x10000) & 0x3FF))
+#define FROM_SURROGATES(wch1, wch2) \
+    (0x10000 + (((wch1) & 0x3FF) << 10) + ((wch2) & 0x3FF))
 
 #endif

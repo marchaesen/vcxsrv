@@ -178,7 +178,7 @@ static int gppmap(void *handle, char *name, Conf *conf, int primary)
 	    val = q;
 	*q = '\0';
 
-        if (primary == CONF_portfwd && buf[0] == 'D') {
+        if (primary == CONF_portfwd && strchr(buf, 'D') != NULL) {
             /*
              * Backwards-compatibility hack: dynamic forwardings are
              * indexed in the data store as a third type letter in the
@@ -188,9 +188,10 @@ static int gppmap(void *handle, char *name, Conf *conf, int primary)
              * _listening_ on a local port, and are hence mutually
              * exclusive on the same port number. So here we translate
              * the legacy storage format into the sensible internal
-             * form.
+             * form, by finding the D and turning it into a L.
              */
-            char *newkey = dupcat("L", buf+1, NULL);
+            char *newkey = dupstr(buf);
+            *strchr(newkey, 'D') = 'L';
             conf_set_str_str(conf, primary, newkey, "D");
             sfree(newkey);
         } else {
@@ -232,9 +233,13 @@ static void wmap(void *handle, char const *outkey, Conf *conf, int primary)
              * conceptually incoherent legacy storage format (key
              * "D<port>", value empty).
              */
+            char *L;
+
             realkey = key;             /* restore it at end of loop */
             val = "";
-            key = dupcat("D", key+1, NULL);
+            key = dupstr(key);
+            L = strchr(key, 'L');
+            if (L) *L = 'D';
         } else {
             realkey = NULL;
         }
@@ -562,7 +567,7 @@ void save_open_settings(void *sesskey, Conf *conf)
     write_setting_i(sesskey, "TryPalette", conf_get_int(conf, CONF_try_palette));
     write_setting_i(sesskey, "ANSIColour", conf_get_int(conf, CONF_ansi_colour));
     write_setting_i(sesskey, "Xterm256Colour", conf_get_int(conf, CONF_xterm_256_colour));
-    write_setting_i(sesskey, "BoldAsColour", conf_get_int(conf, CONF_bold_colour));
+    write_setting_i(sesskey, "BoldAsColour", conf_get_int(conf, CONF_bold_style)-1);
 
     for (i = 0; i < 22; i++) {
 	char buf[20], buf2[30];
@@ -620,6 +625,7 @@ void save_open_settings(void *sesskey, Conf *conf)
     write_setting_i(sesskey, "BugPKSessID2", 2-conf_get_int(conf, CONF_sshbug_pksessid2));
     write_setting_i(sesskey, "BugRekey2", 2-conf_get_int(conf, CONF_sshbug_rekey2));
     write_setting_i(sesskey, "BugMaxPkt2", 2-conf_get_int(conf, CONF_sshbug_maxpkt2));
+    write_setting_i(sesskey, "BugWinadj", 2-conf_get_int(conf, CONF_sshbug_winadj));
     write_setting_i(sesskey, "StampUtmp", conf_get_int(conf, CONF_stamp_utmp));
     write_setting_i(sesskey, "LoginShell", conf_get_int(conf, CONF_login_shell));
     write_setting_i(sesskey, "ScrollbarOnLeft", conf_get_int(conf, CONF_scrollbar_on_left));
@@ -635,6 +641,9 @@ void save_open_settings(void *sesskey, Conf *conf)
     write_setting_i(sesskey, "SerialParity", conf_get_int(conf, CONF_serparity));
     write_setting_i(sesskey, "SerialFlowControl", conf_get_int(conf, CONF_serflow));
     write_setting_s(sesskey, "WindowClass", conf_get_str(conf, CONF_winclass));
+    write_setting_i(sesskey, "ConnectionSharing", conf_get_int(conf, CONF_ssh_connection_sharing));
+    write_setting_i(sesskey, "ConnectionSharingUpstream", conf_get_int(conf, CONF_ssh_connection_sharing_upstream));
+    write_setting_i(sesskey, "ConnectionSharingDownstream", conf_get_int(conf, CONF_ssh_connection_sharing_downstream));
 }
 
 void load_settings(char *section, Conf *conf)
@@ -847,7 +856,7 @@ void load_open_settings(void *sesskey, Conf *conf)
 		 / 1000
 #endif
 		 );
-    gppi(sesskey, "ScrollbackLines", 200, conf, CONF_savelines);
+    gppi(sesskey, "ScrollbackLines", 2000, conf, CONF_savelines);
     gppi(sesskey, "DECOriginMode", 0, conf, CONF_dec_om);
     gppi(sesskey, "AutoWrapMode", 1, conf, CONF_wrap_mode);
     gppi(sesskey, "LFImpliesCR", 0, conf, CONF_lfhascr);
@@ -865,7 +874,7 @@ void load_open_settings(void *sesskey, Conf *conf)
     gppi(sesskey, "TryPalette", 0, conf, CONF_try_palette);
     gppi(sesskey, "ANSIColour", 1, conf, CONF_ansi_colour);
     gppi(sesskey, "Xterm256Colour", 1, conf, CONF_xterm_256_colour);
-    gppi(sesskey, "BoldAsColour", 1, conf, CONF_bold_colour);
+    i = gppi_raw(sesskey, "BoldAsColour", 1); conf_set_int(conf, CONF_bold_style, i+1);
 
     for (i = 0; i < 22; i++) {
 	static const char *const defaults[] = {
@@ -960,6 +969,7 @@ void load_open_settings(void *sesskey, Conf *conf)
     i = gppi_raw(sesskey, "BugPKSessID2", 0); conf_set_int(conf, CONF_sshbug_pksessid2, 2-i);
     i = gppi_raw(sesskey, "BugRekey2", 0); conf_set_int(conf, CONF_sshbug_rekey2, 2-i);
     i = gppi_raw(sesskey, "BugMaxPkt2", 0); conf_set_int(conf, CONF_sshbug_maxpkt2, 2-i);
+    i = gppi_raw(sesskey, "BugWinadj", 0); conf_set_int(conf, CONF_sshbug_winadj, 2-i);
     conf_set_int(conf, CONF_ssh_simple, FALSE);
     gppi(sesskey, "StampUtmp", 1, conf, CONF_stamp_utmp);
     gppi(sesskey, "LoginShell", 1, conf, CONF_login_shell);
@@ -976,6 +986,9 @@ void load_open_settings(void *sesskey, Conf *conf)
     gppi(sesskey, "SerialParity", SER_PAR_NONE, conf, CONF_serparity);
     gppi(sesskey, "SerialFlowControl", SER_FLOW_XONXOFF, conf, CONF_serflow);
     gpps(sesskey, "WindowClass", "", conf, CONF_winclass);
+    gppi(sesskey, "ConnectionSharing", 0, conf, CONF_ssh_connection_sharing);
+    gppi(sesskey, "ConnectionSharingUpstream", 1, conf, CONF_ssh_connection_sharing_upstream);
+    gppi(sesskey, "ConnectionSharingDownstream", 1, conf, CONF_ssh_connection_sharing_downstream);
 }
 
 void do_defaults(char *session, Conf *conf)

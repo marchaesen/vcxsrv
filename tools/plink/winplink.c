@@ -49,6 +49,15 @@ void modalfatalbox(char *p, ...)
     }
     cleanup_exit(1);
 }
+void nonfatal(char *p, ...)
+{
+    va_list ap;
+    fprintf(stderr, "ERROR: ");
+    va_start(ap, p);
+    vfprintf(stderr, p, ap);
+    va_end(ap);
+    fputc('\n', stderr);
+}
 void connection_fatal(void *frontend, char *p, ...)
 {
     va_list ap;
@@ -279,6 +288,9 @@ void stdouterr_sent(struct handle *h, int new_backlog)
     }
 }
 
+const int share_can_be_downstream = TRUE;
+const int share_can_be_upstream = TRUE;
+
 int main(int argc, char **argv)
 {
     int sending;
@@ -289,7 +301,7 @@ int main(int argc, char **argv)
     int errors;
     int got_host = FALSE;
     int use_subsystem = 0;
-    long now, next;
+    unsigned long now, next, then;
 
     sklist = NULL;
     skcount = sksize = 0;
@@ -343,8 +355,10 @@ int main(int argc, char **argv)
 	    } else if (!strcmp(p, "-s")) {
 		/* Save status to write to conf later. */
 		use_subsystem = 1;
-	    } else if (!strcmp(p, "-V")) {
+	    } else if (!strcmp(p, "-V") || !strcmp(p, "--version")) {
                 version();
+	    } else if (!strcmp(p, "--help")) {
+                usage();
             } else if (!strcmp(p, "-pgpfp")) {
                 pgp_fingerprints();
                 exit(1);
@@ -368,8 +382,7 @@ int main(int argc, char **argv)
 			q += 2;
 		    conf_set_int(conf, CONF_protocol, PROT_TELNET);
 		    p = q;
-		    while (*p && *p != ':' && *p != '/')
-			p++;
+                    p += host_strcspn(p, ":/");
 		    c = *p;
 		    if (*p)
 			*p++ = '\0';
@@ -507,10 +520,21 @@ int main(int argc, char **argv)
 	    }
 	}
 
-	/*
-	 * Trim off a colon suffix if it's there.
-	 */
-	host[strcspn(host, ":")] = '\0';
+        /*
+         * Trim a colon suffix off the hostname if it's there. In
+         * order to protect unbracketed IPv6 address literals
+         * against this treatment, we do not do this if there's
+         * _more_ than one colon.
+         */
+        {
+            char *c = host_strchr(host, ':');
+ 
+            if (c) {
+                char *d = host_strchr(c+1, ':');
+                if (!d)
+                    *c = '\0';
+            }
+        }
 
 	/*
 	 * Remove any remaining whitespace.
@@ -633,9 +657,15 @@ int main(int argc, char **argv)
 	    sending = TRUE;
 	}
 
-	if (run_timers(now, &next)) {
-	    ticks = next - GETTICKCOUNT();
-	    if (ticks < 0) ticks = 0;  /* just in case */
+        if (toplevel_callback_pending()) {
+            ticks = 0;
+        } else if (run_timers(now, &next)) {
+	    then = now;
+	    now = GETTICKCOUNT();
+	    if (now - then > next - then)
+		ticks = 0;
+	    else
+		ticks = next - now;
 	} else {
 	    ticks = INFINITE;
 	}
@@ -718,6 +748,8 @@ int main(int argc, char **argv)
 		sfree(c);
 	    }
 	}
+
+        run_toplevel_callbacks();
 
 	if (n == WAIT_TIMEOUT) {
 	    now = next;

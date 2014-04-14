@@ -53,7 +53,6 @@ struct Socket_tag {
     char *error;
     SOCKET s;
     Plug plug;
-    void *private_ptr;
     bufchain output_data;
     int connected;
     int writable;
@@ -82,6 +81,8 @@ struct SockAddr_tag {
     int refcount;
     char *error;
     int resolved;
+    int namedpipe; /* indicates that this SockAddr is phony, holding a Windows
+                    * named pipe pathname instead of a network address */
 #ifndef NO_IPV6
     struct addrinfo *ais;	       /* Addresses IPv6 style. */
 #endif
@@ -332,8 +333,38 @@ void sk_cleanup(void)
 #endif
 }
 
+struct errstring {
+    int error;
+    char *text;
+};
+
+static int errstring_find(void *av, void *bv)
+{
+    int *a = (int *)av;
+    struct errstring *b = (struct errstring *)bv;
+    if (*a < b->error)
+        return -1;
+    if (*a > b->error)
+        return +1;
+    return 0;
+}
+static int errstring_compare(void *av, void *bv)
+{
+    struct errstring *a = (struct errstring *)av;
+    return errstring_find(&a->error, bv);
+}
+
+static tree234 *errstrings = NULL;
+
 char *winsock_error_string(int error)
 {
+    const char prefix[] = "Network error: ";
+    struct errstring *es;
+
+    /*
+     * Error codes we know about and have historically had reasonably
+     * sensible error messages for.
+     */
     switch (error) {
       case WSAEACCES:
 	return "Network error: Permission denied";
@@ -406,9 +437,53 @@ char *winsock_error_string(int error)
 	return "Network error: Resource temporarily unavailable";
       case WSAEDISCON:
 	return "Network error: Graceful shutdown in progress";
-      default:
-	return "Unknown network error";
     }
+
+    /*
+     * Generic code to handle any other error.
+     *
+     * Slightly nasty hack here: we want to return a static string
+     * which the caller will never have to worry about freeing, but on
+     * the other hand if we call FormatMessage to get it then it will
+     * want to either allocate a buffer or write into one we own.
+     *
+     * So what we do is to maintain a tree234 of error strings we've
+     * already used. New ones are allocated from the heap, but then
+     * put in this tree and kept forever.
+     */
+
+    if (!errstrings)
+        errstrings = newtree234(errstring_compare);
+
+    es = find234(errstrings, &error, errstring_find);
+
+    if (!es) {
+        int bufsize, bufused;
+
+        es = snew(struct errstring);
+        es->error = error;
+        /* maximum size for FormatMessage is 64K */
+        bufsize = 65535 + sizeof(prefix);
+        es->text = snewn(bufsize, char);
+        strcpy(es->text, prefix);
+        bufused = strlen(es->text);
+        if (!FormatMessage((FORMAT_MESSAGE_FROM_SYSTEM |
+                            FORMAT_MESSAGE_IGNORE_INSERTS), NULL, error,
+                           MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                           es->text + bufused, bufsize - bufused, NULL)) {
+            sprintf(es->text + bufused,
+                    "Windows error code %d (and FormatMessage returned %d)", 
+                    error, GetLastError());
+        } else {
+            int len = strlen(es->text);
+            if (len > 0 && es->text[len-1] == '\n')
+                es->text[len-1] = '\0';
+        }
+        es->text = sresize(es->text, strlen(es->text) + 1, char);
+        add234(errstrings, es);
+    }
+
+    return es->text;
 }
 
 SockAddr sk_namelookup(const char *host, char **canonicalname,
@@ -431,6 +506,7 @@ SockAddr sk_namelookup(const char *host, char **canonicalname,
 #ifndef NO_IPV6
     ret->ais = NULL;
 #endif
+    ret->namedpipe = FALSE;
     ret->addresses = NULL;
     ret->resolved = FALSE;
     ret->refcount = 1;
@@ -451,7 +527,13 @@ SockAddr sk_namelookup(const char *host, char **canonicalname,
 	    memset(&hints, 0, sizeof(hints));
 	    hints.ai_family = hint_family;
 	    hints.ai_flags = AI_CANONNAME;
-	    if ((err = p_getaddrinfo(host, NULL, &hints, &ret->ais)) == 0)
+            {
+                /* strip [] on IPv6 address literals */
+                char *trimmed_host = host_strduptrim(host);
+                err = p_getaddrinfo(trimmed_host, NULL, &hints, &ret->ais);
+                sfree(trimmed_host);
+            }
+	    if (err == 0)
 		ret->resolved = TRUE;
 	} else
 #endif
@@ -537,10 +619,28 @@ SockAddr sk_nonamelookup(const char *host)
 #ifndef NO_IPV6
     ret->ais = NULL;
 #endif
+    ret->namedpipe = FALSE;
     ret->addresses = NULL;
     ret->naddresses = 0;
     ret->refcount = 1;
     strncpy(ret->hostname, host, lenof(ret->hostname));
+    ret->hostname[lenof(ret->hostname)-1] = '\0';
+    return ret;
+}
+
+SockAddr sk_namedpipe_addr(const char *pipename)
+{
+    SockAddr ret = snew(struct SockAddr_tag);
+    ret->error = NULL;
+    ret->resolved = FALSE;
+#ifndef NO_IPV6
+    ret->ais = NULL;
+#endif
+    ret->namedpipe = TRUE;
+    ret->addresses = NULL;
+    ret->naddresses = 0;
+    ret->refcount = 1;
+    strncpy(ret->hostname, pipename, lenof(ret->hostname));
     ret->hostname[lenof(ret->hostname)-1] = '\0';
     return ret;
 }
@@ -598,7 +698,12 @@ void sk_getaddr(SockAddr addr, char *buf, int buflen)
     }
 }
 
-int sk_hostname_is_local(char *name)
+int sk_addr_needs_port(SockAddr addr)
+{
+    return addr->namedpipe ? FALSE : TRUE;
+}
+
+int sk_hostname_is_local(const char *name)
 {
     return !strcmp(name, "localhost") ||
 	   !strcmp(name, "::1") ||
@@ -645,7 +750,7 @@ int sk_address_is_local(SockAddr addr)
 
 #ifndef NO_IPV6
     if (family == AF_INET6) {
-    	return IN6_IS_ADDR_LOOPBACK((const struct in6_addr *)step.ai->ai_addr);
+    	return IN6_IS_ADDR_LOOPBACK(&((const struct sockaddr_in6 *)step.ai->ai_addr)->sin6_addr);
     } else
 #endif
     if (family == AF_INET) {
@@ -665,6 +770,11 @@ int sk_address_is_local(SockAddr addr)
 	assert(family == AF_UNSPEC);
 	return 0;		       /* we don't know; assume not */
     }
+}
+
+int sk_address_is_special_local(SockAddr addr)
+{
+    return 0;                /* no Unix-domain socket analogue here */
 }
 
 int sk_addrtype(SockAddr addr)
@@ -749,14 +859,12 @@ static void sk_tcp_close(Socket s);
 static int sk_tcp_write(Socket s, const char *data, int len);
 static int sk_tcp_write_oob(Socket s, const char *data, int len);
 static void sk_tcp_write_eof(Socket s);
-static void sk_tcp_set_private_ptr(Socket s, void *ptr);
-static void *sk_tcp_get_private_ptr(Socket s);
 static void sk_tcp_set_frozen(Socket s, int is_frozen);
 static const char *sk_tcp_socket_error(Socket s);
 
 extern char *do_select(SOCKET skt, int startup);
 
-Socket sk_register(void *sock, Plug plug)
+static Socket sk_tcp_accept(accept_ctx_t ctx, Plug plug)
 {
     static const struct socket_function_table fn_table = {
 	sk_tcp_plug,
@@ -765,8 +873,6 @@ Socket sk_register(void *sock, Plug plug)
 	sk_tcp_write_oob,
 	sk_tcp_write_eof,
 	sk_tcp_flush,
-	sk_tcp_set_private_ptr,
-	sk_tcp_get_private_ptr,
 	sk_tcp_set_frozen,
 	sk_tcp_socket_error
     };
@@ -793,7 +899,7 @@ Socket sk_register(void *sock, Plug plug)
     ret->parent = ret->child = NULL;
     ret->addr = NULL;
 
-    ret->s = (SOCKET)sock;
+    ret->s = (SOCKET)ctx.p;
 
     if (ret->s == INVALID_SOCKET) {
 	err = p_WSAGetLastError();
@@ -1015,8 +1121,6 @@ Socket sk_new(SockAddr addr, int port, int privport, int oobinline,
 	sk_tcp_write_oob,
 	sk_tcp_write_eof,
 	sk_tcp_flush,
-	sk_tcp_set_private_ptr,
-	sk_tcp_get_private_ptr,
 	sk_tcp_set_frozen,
 	sk_tcp_socket_error
     };
@@ -1068,8 +1172,6 @@ Socket sk_newlistener(char *srcaddr, int port, Plug plug, int local_host_only,
 	sk_tcp_write_oob,
 	sk_tcp_write_eof,
 	sk_tcp_flush,
-	sk_tcp_set_private_ptr,
-	sk_tcp_get_private_ptr,
 	sk_tcp_set_frozen,
 	sk_tcp_socket_error
     };
@@ -1145,15 +1247,29 @@ Socket sk_newlistener(char *srcaddr, int port, Plug plug, int local_host_only,
 	if (address_family == AF_INET6) {
 	    memset(&a6, 0, sizeof(a6));
 	    a6.sin6_family = AF_INET6;
-	    /* FIXME: srcaddr is ignored for IPv6, because I (SGT) don't
-	     * know how to do it. :-)
-	     * (jeroen:) saddr is specified as an address.. eg 2001:db8::1
-	     * Thus we need either a parser that understands [2001:db8::1]:80
-	     * style addresses and/or enhance this to understand hostnames too. */
 	    if (local_host_only)
 		a6.sin6_addr = in6addr_loopback;
 	    else
 		a6.sin6_addr = in6addr_any;
+            if (srcaddr != NULL && p_getaddrinfo) {
+                struct addrinfo hints;
+                struct addrinfo *ai;
+                int err;
+
+                memset(&hints, 0, sizeof(hints));
+                hints.ai_family = AF_INET6;
+                hints.ai_flags = 0;
+                {
+                    /* strip [] on IPv6 address literals */
+                    char *trimmed_addr = host_strduptrim(srcaddr);
+                    err = p_getaddrinfo(trimmed_addr, NULL, &hints, &ai);
+                    sfree(trimmed_addr);
+                }
+                if (err == 0 && ai->ai_family == AF_INET6) {
+                    a6.sin6_addr =
+                        ((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr;
+                }
+            }
 	    a6.sin6_port = p_htons(port);
 	} else
 #endif
@@ -1210,7 +1326,7 @@ Socket sk_newlistener(char *srcaddr, int port, Plug plug, int local_host_only,
 
     if (p_listen(s, SOMAXCONN) == SOCKET_ERROR) {
         p_closesocket(s);
-	ret->error = winsock_error_string(err);
+	ret->error = winsock_error_string(p_WSAGetLastError());
 	return (Socket) ret;
     }
 
@@ -1267,6 +1383,27 @@ static void sk_tcp_close(Socket sock)
 }
 
 /*
+ * Deal with socket errors detected in try_send().
+ */
+static void socket_error_callback(void *vs)
+{
+    Actual_Socket s = (Actual_Socket)vs;
+
+    /*
+     * Just in case other socket work has caused this socket to vanish
+     * or become somehow non-erroneous before this callback arrived...
+     */
+    if (!find234(sktree, s, NULL) || !s->pending_error)
+        return;
+
+    /*
+     * An error has occurred on this socket. Pass it to the plug.
+     */
+    plug_closing(s->plug, winsock_error_string(s->pending_error),
+                 s->pending_error, 0);
+}
+
+/*
  * The function which tries to send on a socket once it's deemed
  * writable.
  */
@@ -1315,6 +1452,7 @@ void try_send(Actual_Socket s)
 		 * plug_closing()) at some suitable future moment.
 		 */
 		s->pending_error = err;
+                queue_toplevel_callback(socket_error_callback, s);
 		return;
 	    } else {
 		/* We're inside the Windows frontend here, so we know
@@ -1559,6 +1697,7 @@ int select_result(WPARAM wParam, LPARAM lParam)
 #endif
 	    int addrlen = sizeof(isa);
 	    SOCKET t;  /* socket of connection */
+            accept_ctx_t actx;
 
 	    memset(&isa, 0, sizeof(isa));
 	    err = 0;
@@ -1569,6 +1708,9 @@ int select_result(WPARAM wParam, LPARAM lParam)
 		if (err == WSATRY_AGAIN)
 		    break;
 	    }
+
+            actx.p = (void *)t;
+
 #ifndef NO_IPV6
             if (isa.ss_family == AF_INET &&
                 s->localhost_only &&
@@ -1578,67 +1720,13 @@ int select_result(WPARAM wParam, LPARAM lParam)
 #endif
 	    {
 		p_closesocket(t);      /* dodgy WinSock let nonlocal through */
-	    } else if (plug_accepting(s->plug, (void*)t)) {
+	    } else if (plug_accepting(s->plug, sk_tcp_accept, actx)) {
 		p_closesocket(t);      /* denied or error */
 	    }
 	}
     }
 
     return 1;
-}
-
-/*
- * Deal with socket errors detected in try_send().
- */
-void net_pending_errors(void)
-{
-    int i;
-    Actual_Socket s;
-
-    /*
-     * This might be a fiddly business, because it's just possible
-     * that handling a pending error on one socket might cause
-     * others to be closed. (I can't think of any reason this might
-     * happen in current SSH implementation, but to maintain
-     * generality of this network layer I'll assume the worst.)
-     * 
-     * So what we'll do is search the socket list for _one_ socket
-     * with a pending error, and then handle it, and then search
-     * the list again _from the beginning_. Repeat until we make a
-     * pass with no socket errors present. That way we are
-     * protected against the socket list changing under our feet.
-     */
-
-    do {
-	for (i = 0; (s = index234(sktree, i)) != NULL; i++) {
-	    if (s->pending_error) {
-		/*
-		 * An error has occurred on this socket. Pass it to the
-		 * plug.
-		 */
-		plug_closing(s->plug,
-			     winsock_error_string(s->pending_error),
-			     s->pending_error, 0);
-		break;
-	    }
-	}
-    } while (s);
-}
-
-/*
- * Each socket abstraction contains a `void *' private field in
- * which the client can keep state.
- */
-static void sk_tcp_set_private_ptr(Socket sock, void *ptr)
-{
-    Actual_Socket s = (Actual_Socket) sock;
-    s->private_ptr = ptr;
-}
-
-static void *sk_tcp_get_private_ptr(Socket sock)
-{
-    Actual_Socket s = (Actual_Socket) sock;
-    return s->private_ptr;
 }
 
 /*
