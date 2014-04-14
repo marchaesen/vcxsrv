@@ -167,7 +167,10 @@ char *read_setting_s(void *handle, const char *key)
     ret = snewn(size+1, char);
     if (RegQueryValueEx((HKEY) handle, key, 0,
 			&type, ret, &size) != ERROR_SUCCESS ||
-	type != REG_SZ) return NULL;
+	type != REG_SZ) {
+        sfree(ret);
+        return NULL;
+    }
 
     return ret;
 }
@@ -190,6 +193,7 @@ FontSpec *read_setting_fontspec(void *handle, const char *name)
 {
     char *settingname;
     char *fontname;
+    FontSpec *ret;
     int isbold, height, charset;
 
     fontname = read_setting_s(handle, name);
@@ -199,19 +203,30 @@ FontSpec *read_setting_fontspec(void *handle, const char *name)
     settingname = dupcat(name, "IsBold", NULL);
     isbold = read_setting_i(handle, settingname, -1);
     sfree(settingname);
-    if (isbold == -1) return NULL;
+    if (isbold == -1) {
+        sfree(fontname);
+        return NULL;
+    }
 
     settingname = dupcat(name, "CharSet", NULL);
     charset = read_setting_i(handle, settingname, -1);
     sfree(settingname);
-    if (charset == -1) return NULL;
+    if (charset == -1) {
+        sfree(fontname);
+        return NULL;
+    }
 
     settingname = dupcat(name, "Height", NULL);
     height = read_setting_i(handle, settingname, INT_MIN);
     sfree(settingname);
-    if (height == INT_MIN) return NULL;
+    if (height == INT_MIN) {
+        sfree(fontname);
+        return NULL;
+    }
 
-    return fontspec_new(fontname, isbold, height, charset);
+    ret = fontspec_new(fontname, isbold, height, charset);
+    sfree(fontname);
+    return ret;
 }
 
 void write_setting_fontspec(void *handle, const char *name, FontSpec *font)
@@ -340,16 +355,18 @@ int verify_host_key(const char *hostname, int port,
      * Now read a saved key in from the registry and see what it
      * says.
      */
-    otherstr = snewn(len, char);
     regname = snewn(3 * (strlen(hostname) + strlen(keytype)) + 15, char);
 
     hostkey_regname(regname, hostname, port, keytype);
 
     if (RegOpenKey(HKEY_CURRENT_USER, PUTTY_REG_POS "\\SshHostKeys",
-		   &rkey) != ERROR_SUCCESS)
+		   &rkey) != ERROR_SUCCESS) {
+        sfree(regname);
 	return 1;		       /* key does not exist in registry */
+    }
 
     readlen = len;
+    otherstr = snewn(len, char);
     ret = RegQueryValueEx(rkey, regname, NULL, &type, otherstr, &readlen);
 
     if (ret != ERROR_SUCCESS && ret != ERROR_MORE_DATA &&
@@ -412,6 +429,8 @@ int verify_host_key(const char *hostname, int port,
 		RegSetValueEx(rkey, regname, 0, REG_SZ, otherstr,
 			      strlen(otherstr) + 1);
 	}
+
+        sfree(oldstyle);
     }
 
     RegCloseKey(rkey);
@@ -456,7 +475,10 @@ enum { DEL, OPEN_R, OPEN_W };
 static int try_random_seed(char const *path, int action, HANDLE *ret)
 {
     if (action == DEL) {
-	remove(path);
+        if (!DeleteFile(path) && GetLastError() != ERROR_FILE_NOT_FOUND) {
+            nonfatal("Unable to delete '%s': %s", path,
+                     win_strerror(GetLastError()));
+        }
 	*ret = INVALID_HANDLE_VALUE;
 	return FALSE;		       /* so we'll do the next ones too */
     }
@@ -727,7 +749,7 @@ static int transform_jumplist_registry
     /*
      * Either return or free the result.
      */
-    if (out)
+    if (out && ret == ERROR_SUCCESS)
         *out = old_value;
     else
         sfree(old_value);
@@ -760,7 +782,7 @@ char *get_jumplist_registry_entries (void)
 {
     char *list_value;
 
-    if (transform_jumplist_registry(NULL,NULL,&list_value) != ERROR_SUCCESS) {
+    if (transform_jumplist_registry(NULL,NULL,&list_value) != JUMPLISTREG_OK) {
 	list_value = snewn(2, char);
         *list_value = '\0';
         *(list_value + 1) = '\0';

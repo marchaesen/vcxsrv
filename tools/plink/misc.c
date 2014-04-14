@@ -87,6 +87,133 @@ char ctrlparse(char *s, char **next)
     return c;
 }
 
+/*
+ * Find a character in a string, unless it's a colon contained within
+ * square brackets. Used for untangling strings of the form
+ * 'host:port', where host can be an IPv6 literal.
+ *
+ * We provide several variants of this function, with semantics like
+ * various standard string.h functions.
+ */
+static const char *host_strchr_internal(const char *s, const char *set,
+                                        int first)
+{
+    int brackets = 0;
+    const char *ret = NULL;
+
+    while (1) {
+        if (!*s)
+            return ret;
+
+        if (*s == '[')
+            brackets++;
+        else if (*s == ']' && brackets > 0)
+            brackets--;
+        else if (brackets && *s == ':')
+            /* never match */ ;
+        else if (strchr(set, *s)) {
+            ret = s;
+            if (first)
+                return ret;
+        }
+
+        s++;
+    }
+}
+size_t host_strcspn(const char *s, const char *set)
+{
+    const char *answer = host_strchr_internal(s, set, TRUE);
+    if (answer)
+        return answer - s;
+    else
+        return strlen(s);
+}
+char *host_strchr(const char *s, int c)
+{
+    char set[2];
+    set[0] = c;
+    set[1] = '\0';
+    return (char *) host_strchr_internal(s, set, TRUE);
+}
+char *host_strrchr(const char *s, int c)
+{
+    char set[2];
+    set[0] = c;
+    set[1] = '\0';
+    return (char *) host_strchr_internal(s, set, FALSE);
+}
+
+#ifdef TEST_HOST_STRFOO
+int main(void)
+{
+    int passes = 0, fails = 0;
+
+#define TEST1(func, string, arg2, suffix, result) do                    \
+    {                                                                   \
+        const char *str = string;                                       \
+        unsigned ret = func(string, arg2) suffix;                       \
+        if (ret == result) {                                            \
+            passes++;                                                   \
+        } else {                                                        \
+            printf("fail: %s(%s,%s)%s = %u, expected %u\n",             \
+                   #func, #string, #arg2, #suffix, ret, result);        \
+            fails++;                                                    \
+        }                                                               \
+} while (0)
+
+    TEST1(host_strchr, "[1:2:3]:4:5", ':', -str, 7);
+    TEST1(host_strrchr, "[1:2:3]:4:5", ':', -str, 9);
+    TEST1(host_strcspn, "[1:2:3]:4:5", "/:",, 7);
+    TEST1(host_strchr, "[1:2:3]", ':', == NULL, 1);
+    TEST1(host_strrchr, "[1:2:3]", ':', == NULL, 1);
+    TEST1(host_strcspn, "[1:2:3]", "/:",, 7);
+    TEST1(host_strcspn, "[1:2/3]", "/:",, 4);
+    TEST1(host_strcspn, "[1:2:3]/", "/:",, 7);
+
+    printf("passed %d failed %d total %d\n", passes, fails, passes+fails);
+    return fails != 0 ? 1 : 0;
+}
+/* Stubs to stop the rest of this module causing compile failures. */
+void modalfatalbox(char *fmt, ...) {}
+int conf_get_int(Conf *conf, int primary) { return 0; }
+char *conf_get_str(Conf *conf, int primary) { return NULL; }
+#endif /* TEST_HOST_STRFOO */
+
+/*
+ * Trim square brackets off the outside of an IPv6 address literal.
+ * Leave all other strings unchanged. Returns a fresh dynamically
+ * allocated string.
+ */
+char *host_strduptrim(const char *s)
+{
+    if (s[0] == '[') {
+        const char *p = s+1;
+        int colons = 0;
+        while (*p && *p != ']') {
+            if (isxdigit((unsigned char)*p))
+                /* OK */;
+            else if (*p == ':')
+                colons++;
+            else
+                break;
+            p++;
+        }
+        if (*p == ']' && !p[1] && colons > 1) {
+            /*
+             * This looks like an IPv6 address literal (hex digits and
+             * at least two colons, contained in square brackets).
+             * Trim off the brackets.
+             */
+            return dupprintf("%.*s", (int)(p - (s+1)), s+1);
+        }
+    }
+
+    /*
+     * Any other shape of string is simply duplicated.
+     */
+    return dupstr(s);
+}
+
 prompts_t *new_prompts(void *frontend)
 {
     prompts_t *p = snew(prompts_t);
@@ -124,7 +251,7 @@ void prompt_ensure_result_size(prompt_t *pr, int newlen)
          */
         newbuf = snewn(newlen, char);
         memcpy(newbuf, pr->result, pr->resultsize);
-        memset(pr->result, '\0', pr->resultsize);
+        smemclr(pr->result, pr->resultsize);
         sfree(pr->result);
         pr->result = newbuf;
         pr->resultsize = newlen;
@@ -140,7 +267,7 @@ void free_prompts(prompts_t *p)
     size_t i;
     for (i=0; i < p->n_prompts; i++) {
 	prompt_t *pr = p->prompts[i];
-	memset(pr->result, 0, pr->resultsize); /* burn the evidence */
+	smemclr(pr->result, pr->resultsize); /* burn the evidence */
 	sfree(pr->result);
 	sfree(pr->prompt);
 	sfree(pr);
@@ -203,9 +330,32 @@ char *dupcat(const char *s1, ...)
 void burnstr(char *string)             /* sfree(str), only clear it first */
 {
     if (string) {
-        memset(string, 0, strlen(string));
+        smemclr(string, strlen(string));
         sfree(string);
     }
+}
+
+int toint(unsigned u)
+{
+    /*
+     * Convert an unsigned to an int, without running into the
+     * undefined behaviour which happens by the strict C standard if
+     * the value overflows. You'd hope that sensible compilers would
+     * do the sensible thing in response to a cast, but actually I
+     * don't trust modern compilers not to do silly things like
+     * assuming that _obviously_ you wouldn't have caused an overflow
+     * and so they can elide an 'if (i < 0)' test immediately after
+     * the cast.
+     *
+     * Sensible compilers ought of course to optimise this entire
+     * function into 'just return the input value'!
+     */
+    if (u <= (unsigned)INT_MAX)
+        return (int)u;
+    else if (u >= (unsigned)INT_MIN)   /* wrap in cast _to_ unsigned is OK */
+        return INT_MIN + (int)(u - (unsigned)INT_MIN);
+    else
+        return INT_MIN; /* fallback; should never occur on binary machines */
 }
 
 /*
@@ -364,12 +514,11 @@ void base64_encode_atom(unsigned char *data, int n, char *out)
  *  - return the current size of the buffer chain in bytes
  */
 
-#define BUFFER_GRANULE  512
+#define BUFFER_MIN_GRANULE  512
 
 struct bufchain_granule {
     struct bufchain_granule *next;
-    int buflen, bufpos;
-    char buf[BUFFER_GRANULE];
+    char *bufpos, *bufend, *bufmax;
 };
 
 void bufchain_init(bufchain *ch)
@@ -403,28 +552,29 @@ void bufchain_add(bufchain *ch, const void *data, int len)
 
     ch->buffersize += len;
 
-    if (ch->tail && ch->tail->buflen < BUFFER_GRANULE) {
-	int copylen = min(len, BUFFER_GRANULE - ch->tail->buflen);
-	memcpy(ch->tail->buf + ch->tail->buflen, buf, copylen);
-	buf += copylen;
-	len -= copylen;
-	ch->tail->buflen += copylen;
-    }
     while (len > 0) {
-	int grainlen = min(len, BUFFER_GRANULE);
-	struct bufchain_granule *newbuf;
-	newbuf = snew(struct bufchain_granule);
-	newbuf->bufpos = 0;
-	newbuf->buflen = grainlen;
-	memcpy(newbuf->buf, buf, grainlen);
-	buf += grainlen;
-	len -= grainlen;
-	if (ch->tail)
-	    ch->tail->next = newbuf;
-	else
-	    ch->head = ch->tail = newbuf;
-	newbuf->next = NULL;
-	ch->tail = newbuf;
+	if (ch->tail && ch->tail->bufend < ch->tail->bufmax) {
+	    int copylen = min(len, ch->tail->bufmax - ch->tail->bufend);
+	    memcpy(ch->tail->bufend, buf, copylen);
+	    buf += copylen;
+	    len -= copylen;
+	    ch->tail->bufend += copylen;
+	}
+	if (len > 0) {
+	    int grainlen =
+		max(sizeof(struct bufchain_granule) + len, BUFFER_MIN_GRANULE);
+	    struct bufchain_granule *newbuf;
+	    newbuf = smalloc(grainlen);
+	    newbuf->bufpos = newbuf->bufend =
+		(char *)newbuf + sizeof(struct bufchain_granule);
+	    newbuf->bufmax = (char *)newbuf + grainlen;
+	    newbuf->next = NULL;
+	    if (ch->tail)
+		ch->tail->next = newbuf;
+	    else
+		ch->head = newbuf;
+	    ch->tail = newbuf;
+	}
     }
 }
 
@@ -436,13 +586,13 @@ void bufchain_consume(bufchain *ch, int len)
     while (len > 0) {
 	int remlen = len;
 	assert(ch->head != NULL);
-	if (remlen >= ch->head->buflen - ch->head->bufpos) {
-	    remlen = ch->head->buflen - ch->head->bufpos;
+	if (remlen >= ch->head->bufend - ch->head->bufpos) {
+	    remlen = ch->head->bufend - ch->head->bufpos;
 	    tmp = ch->head;
 	    ch->head = tmp->next;
-	    sfree(tmp);
 	    if (!ch->head)
 		ch->tail = NULL;
+	    sfree(tmp);
 	} else
 	    ch->head->bufpos += remlen;
 	ch->buffersize -= remlen;
@@ -452,8 +602,8 @@ void bufchain_consume(bufchain *ch, int len)
 
 void bufchain_prefix(bufchain *ch, void **data, int *len)
 {
-    *len = ch->head->buflen - ch->head->bufpos;
-    *data = ch->head->buf + ch->head->bufpos;
+    *len = ch->head->bufend - ch->head->bufpos;
+    *data = ch->head->bufpos;
 }
 
 void bufchain_fetch(bufchain *ch, void *data, int len)
@@ -468,9 +618,9 @@ void bufchain_fetch(bufchain *ch, void *data, int len)
 	int remlen = len;
 
 	assert(tmp != NULL);
-	if (remlen >= tmp->buflen - tmp->bufpos)
-	    remlen = tmp->buflen - tmp->bufpos;
-	memcpy(data_c, tmp->buf + tmp->bufpos, remlen);
+	if (remlen >= tmp->bufend - tmp->bufpos)
+	    remlen = tmp->bufend - tmp->bufpos;
+	memcpy(data_c, tmp->bufpos, remlen);
 
 	tmp = tmp->next;
 	len -= remlen;
@@ -685,3 +835,43 @@ char const *conf_dest(Conf *conf)
     else
 	return conf_get_str(conf, CONF_host);
 }
+
+#ifndef PLATFORM_HAS_SMEMCLR
+/*
+ * Securely wipe memory.
+ *
+ * The actual wiping is no different from what memset would do: the
+ * point of 'securely' is to try to be sure over-clever compilers
+ * won't optimise away memsets on variables that are about to be freed
+ * or go out of scope. See
+ * https://buildsecurityin.us-cert.gov/bsi-rules/home/g1/771-BSI.html
+ *
+ * Some platforms (e.g. Windows) may provide their own version of this
+ * function.
+ */
+void smemclr(void *b, size_t n) {
+    volatile char *vp;
+
+    if (b && n > 0) {
+        /*
+         * Zero out the memory.
+         */
+        memset(b, 0, n);
+
+        /*
+         * Perform a volatile access to the object, forcing the
+         * compiler to admit that the previous memset was important.
+         *
+         * This while loop should in practice run for zero iterations
+         * (since we know we just zeroed the object out), but in
+         * theory (as far as the compiler knows) it might range over
+         * the whole object. (If we had just written, say, '*vp =
+         * *vp;', a compiler could in principle have 'helpfully'
+         * optimised the memset into only zeroing out the first byte.
+         * This should be robust.)
+         */
+        vp = b;
+        while (*vp) vp++;
+    }
+}
+#endif

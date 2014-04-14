@@ -63,7 +63,7 @@ void cmdline_cleanup(void)
     int pri;
 
     if (cmdline_password) {
-	memset(cmdline_password, 0, strlen(cmdline_password));
+	smemclr(cmdline_password, strlen(cmdline_password));
 	sfree(cmdline_password);
 	cmdline_password = NULL;
     }
@@ -106,7 +106,7 @@ int cmdline_get_passwd_input(prompts_t *p, unsigned char *in, int inlen) {
 	return 0;
 
     prompt_set_result(p->prompts[0], cmdline_password);
-    memset(cmdline_password, 0, strlen(cmdline_password));
+    smemclr(cmdline_password, strlen(cmdline_password));
     sfree(cmdline_password);
     cmdline_password = NULL;
     tried_once = 1;
@@ -261,9 +261,9 @@ int cmdline_process_param(char *p, char *value, int need_save, Conf *conf)
 
             type = p[1];               /* 'L' or 'R' */
 
-	    q = qq = strchr(value, ':');
+	    q = qq = host_strchr(value, ':');
 	    while (qq) {
-		char *qqq = strchr(qq+1, ':');
+		char *qqq = host_strchr(qq+1, ':');
 		if (qqq)
 		    q = qq;
 		qq = qqq;
@@ -275,7 +275,7 @@ int cmdline_process_param(char *p, char *value, int need_save, Conf *conf)
 		return ret;
 	    }
 
-	    key = dupprintf("%c%.*s", type, q - value, value);
+	    key = dupprintf("%c%.*s", type, (int)(q - value), value);
 	    val = dupstr(q+1);
 	} else {
             /*
@@ -301,13 +301,13 @@ int cmdline_process_param(char *p, char *value, int need_save, Conf *conf)
 	UNAVAILABLE_IN(TOOLTYPE_FILETRANSFER | TOOLTYPE_NONNETWORK);
 	SAVEABLE(0);
 
-	portp = strchr(value, ':');
+	portp = host_strchr(value, ':');
 	if (!portp) {
 	    cmdline_error("-nc expects argument of form 'host:port'");
 	    return ret;
 	}
 
-	host = dupprintf("%.*s", portp - value, value);
+	host = dupprintf("%.*s", (int)(portp - value), value);
 	conf_set_str(conf, CONF_ssh_nc_host, host);
 	conf_set_int(conf, CONF_ssh_nc_port, atoi(portp + 1));
         sfree(host);
@@ -368,7 +368,7 @@ int cmdline_process_param(char *p, char *value, int need_save, Conf *conf)
 	    /* Assuming that `value' is directly from argv, make a good faith
 	     * attempt to trample it, to stop it showing up in `ps' output
 	     * on Unix-like systems. Not guaranteed, of course. */
-	    memset(value, 0, strlen(value));
+	    smemclr(value, strlen(value));
 	}
     }
 

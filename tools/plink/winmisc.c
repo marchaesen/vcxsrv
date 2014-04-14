@@ -68,6 +68,16 @@ Filename *filename_deserialise(void *vdata, int maxsize, int *used)
     return filename_from_str(data);
 }
 
+#ifndef NO_SECUREZEROMEMORY
+/*
+ * Windows implementation of smemclr (see misc.c) using SecureZeroMemory.
+ */
+void smemclr(void *b, size_t n) {
+    if (b && n > 0)
+        SecureZeroMemory(b, n);
+}
+#endif
+
 char *get_username(void)
 {
     DWORD namelen;
@@ -161,6 +171,66 @@ HMODULE load_system32_dll(const char *libname)
     ret = LoadLibrary(fullpath);
     sfree(fullpath);
     return ret;
+}
+
+/*
+ * A tree234 containing mappings from system error codes to strings.
+ */
+
+struct errstring {
+    int error;
+    char *text;
+};
+
+static int errstring_find(void *av, void *bv)
+{
+    int *a = (int *)av;
+    struct errstring *b = (struct errstring *)bv;
+    if (*a < b->error)
+        return -1;
+    if (*a > b->error)
+        return +1;
+    return 0;
+}
+static int errstring_compare(void *av, void *bv)
+{
+    struct errstring *a = (struct errstring *)av;
+    return errstring_find(&a->error, bv);
+}
+
+static tree234 *errstrings = NULL;
+
+const char *win_strerror(int error)
+{
+    struct errstring *es;
+
+    if (!errstrings)
+        errstrings = newtree234(errstring_compare);
+
+    es = find234(errstrings, &error, errstring_find);
+
+    if (!es) {
+        char msgtext[65536]; /* maximum size for FormatMessage is 64K */
+
+        es = snew(struct errstring);
+        es->error = error;
+        if (!FormatMessage((FORMAT_MESSAGE_FROM_SYSTEM |
+                            FORMAT_MESSAGE_IGNORE_INSERTS), NULL, error,
+                           MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                           msgtext, lenof(msgtext)-1, NULL)) {
+            sprintf(msgtext,
+                    "(unable to format: FormatMessage returned %d)", 
+                    error, GetLastError());
+        } else {
+            int len = strlen(msgtext);
+            if (len > 0 && msgtext[len-1] == '\n')
+                msgtext[len-1] = '\0';
+        }
+        es->text = dupprintf("Error %d: %s", error, msgtext);
+        add234(errstrings, es);
+    }
+
+    return es->text;
 }
 
 #ifdef DEBUG
