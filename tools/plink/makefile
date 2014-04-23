@@ -10,6 +10,7 @@ CSRCS = winplink.c winhandl.c misc.c settings.c winstore.c windefs.c winmisc.c w
         sshdh.c sshzlib.c sshbn.c sshrsa.c sshcrcda.c sshpubk.c sshdes.c wingss.c \
         sshblowf.c sshsh512.c sshsh256.c sshaes.c pinger.c ssharcf.c x11fwd.c winpgntc.c \
         winx11.c portfwd.c sshcrc.c wildcard.c ldisc.c sshdss.c raw.c telnet.c sshgssc.c \
-        pgssapi.c winnojmp.c conf.c
+        pgssapi.c winnojmp.c conf.c callback.c sshshare.c winsecur.c errsock.c winshare.c \
+	winnps.c winnpc.c noterm.c winhsock.c
 
 TTYAPP=plink
