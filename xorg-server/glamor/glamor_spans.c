@@ -61,7 +61,7 @@ glamor_fill_spans_gl(DrawablePtr drawable,
     if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv))
         goto bail;
 
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
 
     if (glamor_priv->glsl_version >= 130) {
         prog = glamor_use_program_fill(pixmap, gc, &glamor_priv->fill_spans_program,
@@ -152,11 +152,9 @@ glamor_fill_spans_gl(DrawablePtr drawable,
         glVertexAttribDivisor(GLAMOR_VERTEX_POS, 0);
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
 
-    glamor_put_context(glamor_priv);
     return TRUE;
 bail_ctx:
     glDisable(GL_COLOR_LOGIC_OP);
-    glamor_put_context(glamor_priv);
 bail:
     return FALSE;
 }
@@ -222,7 +220,7 @@ glamor_get_spans_gl(DrawablePtr drawable, int wmax,
 
     glamor_format_for_pixmap(pixmap, &format, &type);
 
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
 
     glamor_pixmap_loop(pixmap_priv, box_x, box_y) {
         BoxPtr                  box = glamor_pixmap_box_at(pixmap_priv, box_x, box_y);
@@ -261,7 +259,6 @@ glamor_get_spans_gl(DrawablePtr drawable, int wmax,
         }
     }
 
-    glamor_put_context(glamor_priv);
     return TRUE;
 bail:
     return FALSE;
@@ -327,7 +324,7 @@ glamor_set_spans_gl(DrawablePtr drawable, GCPtr gc, char *src,
     glamor_get_drawable_deltas(drawable, pixmap, &off_x, &off_y);
     glamor_format_for_pixmap(pixmap, &format, &type);
 
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -397,7 +394,6 @@ glamor_set_spans_gl(DrawablePtr drawable, GCPtr gc, char *src,
         }
     }
 
-    glamor_put_context(glamor_priv);
     return TRUE;
 
 bail:

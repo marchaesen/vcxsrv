@@ -53,12 +53,6 @@
 #include "glapi.h"
 
 /*
-** The last context used by the server.  It is the context that is current
-** from the server's perspective.
-*/
-__GLXcontext *__glXLastContext;
-
-/*
 ** X resources.
 */
 RESTYPE __glXContextRes;
@@ -84,7 +78,7 @@ static int __glXDispatch(ClientPtr);
 static void
 ResetExtension(ExtensionEntry * extEntry)
 {
-    __glXFlushContextCache();
+    lastGLContext = NULL;
 }
 
 /*
@@ -146,8 +140,7 @@ DrawableGone(__GLXdrawable * glxPriv, XID xid)
 		(c->drawPriv == glxPriv || c->readPriv == glxPriv)) {
             /* just force a re-bind the next time through */
             (*c->loseCurrent) (c);
-            if (c == __glXLastContext)
-                __glXFlushContextCache();
+            lastGLContext = NULL;
         }
         if (c->drawPriv == glxPriv)
             c->drawPriv = NULL;
@@ -208,8 +201,8 @@ __glXFreeContext(__GLXcontext * cx)
 
     free(cx->feedbackBuf);
     free(cx->selectBuf);
-    if (cx == __glXLastContext) {
-        __glXFlushContextCache();
+    if (cx == lastGLContext) {
+        lastGLContext = NULL;
     }
 
     /* We can get here through both regular dispatching from
@@ -301,6 +294,7 @@ glxClientCallback(CallbackListPtr *list, void *closure, void *data)
             next = c->next;
             if (c->currentClient == pClient) {
                 c->loseCurrent(c);
+                lastGLContext = NULL;
                 c->currentClient = NULL;
                 __glXFreeContext(c);
             }
@@ -411,12 +405,6 @@ GlxExtensionInit(void)
 
 /************************************************************************/
 
-void
-__glXFlushContextCache(void)
-{
-    __glXLastContext = 0;
-}
-
 /*
 ** Make a context the current one for the GL (in this implementation, there
 ** is only one instance of the GL, and we use it to serve all GL clients by
@@ -454,21 +442,22 @@ __glXForceCurrent(__GLXclientState * cl, GLXContextTag tag, int *error)
     if (cx->wait && (*cx->wait) (cx, cl, error))
         return NULL;
 
-    if (cx == __glXLastContext && GET_DISPATCH()) {
+    if (cx == lastGLContext && GET_DISPATCH()) {
         /* No need to re-bind */
         return cx;
     }
 
     /* Make this context the current one for the GL. */
     if (!cx->isDirect) {
+        lastGLContext = cx;
         if (!(*cx->makeCurrent) (cx)) {
             /* Bind failed, and set the error code.  Bummer */
+            lastGLContext = NULL;
             cl->client->errorValue = cx->id;
             *error = __glXError(GLXBadContextState);
             return 0;
         }
     }
-    __glXLastContext = cx;
     return cx;
 }
 

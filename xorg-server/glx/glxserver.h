@@ -84,7 +84,6 @@ void __glXScreenInitVisuals(__GLXscreen * screen);
 /*
 ** The last context used (from the server's persective) is cached.
 */
-extern __GLXcontext *__glXLastContext;
 extern __GLXcontext *__glXForceCurrent(__GLXclientState *, GLXContextTag,
                                        int *);
 

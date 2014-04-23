@@ -1,1 +1,1 @@
-.so man1/Xorg.wrap.1
+.so man__appmansuffix__/Xorg.wrap.__appmansuffix__

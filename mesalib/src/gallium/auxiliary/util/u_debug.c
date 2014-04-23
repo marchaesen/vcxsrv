@@ -274,10 +274,7 @@ void _debug_assert_fail(const char *expr,
                         const char *function) 
 {
    _debug_printf("%s:%u:%s: Assertion `%s' failed.\n", file, line, function, expr);
-   if (debug_get_bool_option("GALLIUM_ABORT_ON_ASSERT", TRUE))
-      os_abort();
-   else
-      _debug_printf("continuing...\n");
+   os_abort();
 }
 
 
@@ -337,10 +334,10 @@ debug_dump_flags(const struct debug_named_value *names,
    while(names->name) {
       if((names->value & value) == names->value) {
 	 if (!first)
-	    util_strncat(output, "|", sizeof(output));
+	    util_strncat(output, "|", sizeof(output) - strlen(output) - 1);
 	 else
 	    first = 0;
-	 util_strncat(output, names->name, sizeof(output) - 1);
+	 util_strncat(output, names->name, sizeof(output) - strlen(output) - 1);
 	 output[sizeof(output) - 1] = '\0';
 	 value &= ~names->value;
       }
@@ -349,12 +346,12 @@ debug_dump_flags(const struct debug_named_value *names,
    
    if (value) {
       if (!first)
-	 util_strncat(output, "|", sizeof(output));
+	 util_strncat(output, "|", sizeof(output) - strlen(output) - 1);
       else
 	 first = 0;
       
       util_snprintf(rest, sizeof(rest), "0x%08lx", value);
-      util_strncat(output, rest, sizeof(output) - 1);
+      util_strncat(output, rest, sizeof(output) - strlen(output) - 1);
       output[sizeof(output) - 1] = '\0';
    }
    

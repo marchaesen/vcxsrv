@@ -131,7 +131,7 @@ xkb_symbols "kana86" {
     name[Group1]= "Japanese (Kana 86)";
 
     key  <ESC> {	[ Escape	]	};
-    key <NMLK> {	[ Num_Lock, Pointer_EnableKeys ] };
+    key <NMLK> {	[ Num_Lock	]	};
     key <BKSP> {	[ BackSpace	]	};
     key  <TAB> {	[ Tab, ISO_Left_Tab ]	};
     key <RTRN> {	[ Return	]	};

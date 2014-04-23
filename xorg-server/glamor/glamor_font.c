@@ -89,7 +89,7 @@ glamor_font_get(ScreenPtr screen, FontPtr font)
     glamor_font->default_col = font->info.defaultCh;
 
     glamor_priv = glamor_get_screen_private(screen);
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
 
     glGenTextures(1, &glamor_font->texture_id);
     glActiveTexture(GL_TEXTURE0);
@@ -118,8 +118,6 @@ glamor_font_get(ScreenPtr screen, FontPtr font)
                                 GL_RED_INTEGER, GL_UNSIGNED_BYTE, glyph->bits);
         }
     }
-
-    glamor_put_context(glamor_priv);
 
     return glamor_font;
 }
@@ -150,9 +148,8 @@ glamor_unrealize_font(ScreenPtr screen, FontPtr font)
     glamor_font->realized = FALSE;
 
     glamor_priv = glamor_get_screen_private(screen);
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
     glDeleteTextures(1, &glamor_font->texture_id);
-    glamor_put_context(glamor_priv);
 
     /* Check to see if all of the screens are  done with this font
      * and free the private when that happens

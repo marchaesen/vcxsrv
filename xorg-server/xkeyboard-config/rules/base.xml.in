@@ -3905,7 +3905,7 @@
         <variant>
           <configItem>
             <name>cyrillicyz</name>
-            <_description>Montenegrin (Cyrillic, Z and ZHE swapped)</_description>
+            <_description>Montenegrin (Cyrillic, ZE and ZHE swapped)</_description>
           </configItem>
         </variant>
         <variant>

@@ -1,342 +1,331 @@
-// Bosnian, Croatian, Serbian and Slovenian XKB keyboard mapping
-// (derived from "Danube" D.2)
+// Bosnian, Croatian, Serbian and Slovenian XKB keyboard mappings.
 //
-// Danube D.2 from 2003-05-12 is available at http://srpski.org/dunav/
+// Derived from "Danube" D.2 from 2003-05-12,
+// which is available at http://srpski.org/dunav/.
 //
 // Original authors:
 //  Danilo Segan (Данило Шеган) <danilo@kvota.net>
 //  Chusslove Illich (Часлав Илић) <caslav.ilic@gmx.net>
 //
 // Danilo Segan <danilo@kvota.net>:
-// - Modified for inclusion in XFree86
-// - Further modifications on 2005-08-18 to support Bosnian, Croatian
-//   and Slovenian in xkeyboard-config
-//  
+// - Modified for inclusion in XFree86.
+// - Further modifications on 2005-08-18 to support Bosnian,
+//   Croatian and Slovenian in xkeyboard-config.
 
 default  partial alphanumeric_keys
 xkb_symbols "basic" {
 
-  name[Group1]= "Serbian";
+    name[Group1]= "Serbian";
 
-  include "rs(cyrlevel3)"
-  include "rs(common)"
-  include "rs(cyralpha)"
-  include "level3(ralt_switch)"
+    include "rs(cyrlevel3)"
+    include "rs(common)"
+    include "rs(cyralpha)"
+    include "level3(ralt_switch)"
 };
-
 
 partial alphanumeric_keys
 xkb_symbols "latin" {
 
-  name[Group1]= "Serbian (Latin)";
+    name[Group1]= "Serbian (Latin)";
 
-  include "latin(type3)"
-  include "rs(latalpha)"
-  include "rs(latlevel3)"
-  include "rs(common)"
-  include "level3(ralt_switch)"
+    include "latin(type3)"
+    include "rs(latalpha)"
+    include "rs(latlevel3)"
+    include "rs(common)"
+    include "level3(ralt_switch)"
 };
-
 
 partial alphanumeric_keys
 xkb_symbols "yz" {
-  include "rs(basic)"
 
-  name[Group1]= "Serbian (Cyrillic, ZE and ZHE swapped)";
+    include "rs(basic)"
+    name[Group1]= "Serbian (Cyrillic, ZE and ZHE swapped)";
 
-  key <AD06> {   [ Cyrillic_zhe,        Cyrillic_ZHE,   any,any ]   }; // y
-  key <AB01> {   [ Cyrillic_ze,         Cyrillic_ZE,    any,any ]   }; // z
+    key <AD06> { [ Cyrillic_zhe,    Cyrillic_ZHE,  any, any ] }; // y
+    key <AB01> { [ Cyrillic_ze,     Cyrillic_ZE,   any, any ] }; // z
 };
 
 partial hidden alphanumeric_keys
 xkb_symbols "common" {
-  // "Common" keys: keys which are same for both latin and cyrillic keyboards
+    // "Common" keys: keys that are the same
+    // for both latin and cyrillic keyboards.
 
-  key.type[Group1] = "FOUR_LEVEL";
+    key.type[Group1] = "FOUR_LEVEL";
 
-  key <TLDE> {   [ grave,               asciitilde,    any,any ]   }; //
-  key <AE01> {   [ 1,                   exclam,        any,any ]   }; //
-  key <AE02> {   [ 2,                   quotedbl,      any,any ]   }; //
-  key <AE03> {   [ 3,                   numbersign,    any,any ]   }; //
-  key <AE04> {   [ 4,                   dollar,        any,any ]   }; //
-  key <AE05> {   [ 5,                   percent,       any,any ]   }; //
-  key <AE06> {   [ 6,                   ampersand,     any,any ]   }; //
-  key <AE07> {   [ 7,                   slash,         any,any ]   }; //
-  key <AE08> {   [ 8,                   parenleft,     any,any ]   }; //
-  key <AE09> {   [ 9,                   parenright,    any,any ]   }; //
-  key <AE10> {   [ 0,                   equal,         any,any ]   }; //
-  key <AE11> {   [ apostrophe,          question,      any,any ]   }; //
-  key <AE12> {   [ plus,                asterisk,      any,any ]   }; //
+    key <TLDE> { [ grave,          asciitilde,     any, any ] };
+    key <AE01> { [ 1,              exclam,         any, any ] };
+    key <AE02> { [ 2,              quotedbl,       any, any ] };
+    key <AE03> { [ 3,              numbersign,     any, any ] };
+    key <AE04> { [ 4,              dollar,         any, any ] };
+    key <AE05> { [ 5,              percent,        any, any ] };
+    key <AE06> { [ 6,              ampersand,      any, any ] };
+    key <AE07> { [ 7,              slash,          any, any ] };
+    key <AE08> { [ 8,              parenleft,      any, any ] };
+    key <AE09> { [ 9,              parenright,     any, any ] };
+    key <AE10> { [ 0,              equal,          any, any ] };
+    key <AE11> { [ apostrophe,     question,       any, any ] };
+    key <AE12> { [ plus,           asterisk,       any, any ] };
 
-  key <AB08> {   [ comma,               semicolon,     any,any ]   }; //
-  key <AB09> {   [ period,              colon,         any,any ]   }; //
-  key <AB10> {   [ minus,               underscore,    any,any ]   }; //
+    key <AB08> { [ comma,          semicolon,      any, any ] };
+    key <AB09> { [ period,         colon,          any, any ] };
+    key <AB10> { [ minus,          underscore,     any, any ] };
 
-  include "kpdl(comma)"
+    include "kpdl(comma)"
 };
 
 partial hidden alphanumeric_keys
 xkb_symbols "cyralpha" {
 
-  key.type[Group1] = "FOUR_LEVEL_ALPHABETIC";
+    key.type[Group1] = "FOUR_LEVEL_ALPHABETIC";
 
-  key <AD01> {   [ Cyrillic_lje,        Cyrillic_LJE,   any,any ]   }; // q
-  key <AD02> {   [ Cyrillic_nje,        Cyrillic_NJE,   any,any ]   }; // w
-  key <AD03> {   [ Cyrillic_ie,         Cyrillic_IE,    any,any ]   }; // e
-  key <AD04> {   [ Cyrillic_er,         Cyrillic_ER,    any,any ]   }; // r
-  key <AD05> {   [ Cyrillic_te,         Cyrillic_TE,    any,any ]   }; // t
-  key <AD06> {   [ Cyrillic_ze,         Cyrillic_ZE,    any,any ]   }; // y
-  key <AD07> {   [ Cyrillic_u,          Cyrillic_U,     any,any ]   }; // u
-  key <AD08> {   [ Cyrillic_i,          Cyrillic_I,     any,any ]   }; // i
-  key <AD09> {   [ Cyrillic_o,          Cyrillic_O,     any,any ]   }; // o
-  key <AD10> {   [ Cyrillic_pe,         Cyrillic_PE,    any,any ]   }; // p
-  key <AD11> {   [ Cyrillic_sha,        Cyrillic_SHA,   any,any ]   }; // [ {
-  key <AD12> {   [ Serbian_dje,         Serbian_DJE,    any,any ]   }; // ] }
+    key <AD01> { [ Cyrillic_lje,   Cyrillic_LJE,   any, any ] }; // q
+    key <AD02> { [ Cyrillic_nje,   Cyrillic_NJE,   any, any ] }; // w
+    key <AD03> { [ Cyrillic_ie,    Cyrillic_IE,    any, any ] }; // e
+    key <AD04> { [ Cyrillic_er,    Cyrillic_ER,    any, any ] }; // r
+    key <AD05> { [ Cyrillic_te,    Cyrillic_TE,    any, any ] }; // t
+    key <AD06> { [ Cyrillic_ze,    Cyrillic_ZE,    any, any ] }; // y
+    key <AD07> { [ Cyrillic_u,     Cyrillic_U,     any, any ] }; // u
+    key <AD08> { [ Cyrillic_i,     Cyrillic_I,     any, any ] }; // i
+    key <AD09> { [ Cyrillic_o,     Cyrillic_O,     any, any ] }; // o
+    key <AD10> { [ Cyrillic_pe,    Cyrillic_PE,    any, any ] }; // p
+    key <AD11> { [ Cyrillic_sha,   Cyrillic_SHA,   any, any ] }; // [ {
+    key <AD12> { [ Serbian_dje,    Serbian_DJE,    any, any ] }; // ] }
 
-  key <AC01> {   [ Cyrillic_a,          Cyrillic_A,     any,any ]   }; // a
-  key <AC02> {   [ Cyrillic_es,         Cyrillic_ES,    any,any ]   }; // s
-  key <AC03> {   [ Cyrillic_de,         Cyrillic_DE,    any,any ]   }; // d
-  key <AC04> {   [ Cyrillic_ef,         Cyrillic_EF,    any,any ]   }; // f
-  key <AC05> {   [ Cyrillic_ghe,        Cyrillic_GHE,   any,any ]   }; // g
-  key <AC06> {   [ Cyrillic_ha,         Cyrillic_HA,    any,any ]   }; // h
-  key <AC07> {   [ Cyrillic_je,         Cyrillic_JE,    any,any ]   }; // j
-  key <AC08> {   [ Cyrillic_ka,         Cyrillic_KA,    any,any ]   }; // k
-  key <AC09> {   [ Cyrillic_el,         Cyrillic_EL,    any,any ]   }; // l
-  key <AC10> {   [ Cyrillic_che,        Cyrillic_CHE,   any,any ]   }; // ; :
-  key <AC11> {   [ Serbian_tshe,        Serbian_TSHE,   any,any ]   }; // ' "
-  key <BKSL> {   [ Cyrillic_zhe,        Cyrillic_ZHE,   any,any ]   }; // \ |
+    key <AC01> { [ Cyrillic_a,     Cyrillic_A,     any, any ] }; // a
+    key <AC02> { [ Cyrillic_es,    Cyrillic_ES,    any, any ] }; // s
+    key <AC03> { [ Cyrillic_de,    Cyrillic_DE,    any, any ] }; // d
+    key <AC04> { [ Cyrillic_ef,    Cyrillic_EF,    any, any ] }; // f
+    key <AC05> { [ Cyrillic_ghe,   Cyrillic_GHE,   any, any ] }; // g
+    key <AC06> { [ Cyrillic_ha,    Cyrillic_HA,    any, any ] }; // h
+    key <AC07> { [ Cyrillic_je,    Cyrillic_JE,    any, any ] }; // j
+    key <AC08> { [ Cyrillic_ka,    Cyrillic_KA,    any, any ] }; // k
+    key <AC09> { [ Cyrillic_el,    Cyrillic_EL,    any, any ] }; // l
+    key <AC10> { [ Cyrillic_che,   Cyrillic_CHE,   any, any ] }; // ; :
+    key <AC11> { [ Serbian_tshe,   Serbian_TSHE,   any, any ] }; // ' "
+    key <BKSL> { [ Cyrillic_zhe,   Cyrillic_ZHE,   any, any ] }; // \ |
 
-  key <AB01> {   [ Cyrillic_zhe,        Cyrillic_ZHE,   any,any ]   }; // z
-  key <AB02> {   [ Cyrillic_dzhe,       Cyrillic_DZHE,  any,any ]   }; // x
-  key <AB03> {   [ Cyrillic_tse,        Cyrillic_TSE,   any,any ]   }; // c
-  key <AB04> {   [ Cyrillic_ve,         Cyrillic_VE,    any,any ]   }; // v
-  key <AB05> {   [ Cyrillic_be,         Cyrillic_BE,    any,any ]   }; // b
-  key <AB06> {   [ Cyrillic_en,         Cyrillic_EN,    any,any ]   }; // n
-  key <AB07> {   [ Cyrillic_em,         Cyrillic_EM,    any,any ]   }; // m
+    key <AB01> { [ Cyrillic_zhe,   Cyrillic_ZHE,   any, any ] }; // z
+    key <AB02> { [ Cyrillic_dzhe,  Cyrillic_DZHE,  any, any ] }; // x
+    key <AB03> { [ Cyrillic_tse,   Cyrillic_TSE,   any, any ] }; // c
+    key <AB04> { [ Cyrillic_ve,    Cyrillic_VE,    any, any ] }; // v
+    key <AB05> { [ Cyrillic_be,    Cyrillic_BE,    any, any ] }; // b
+    key <AB06> { [ Cyrillic_en,    Cyrillic_EN,    any, any ] }; // n
+    key <AB07> { [ Cyrillic_em,    Cyrillic_EM,    any, any ] }; // m
 };
 
 
 partial hidden alphanumeric_keys
 xkb_symbols "latalpha" {
 
-  key.type[Group1] = "FOUR_LEVEL_ALPHABETIC";
+    key.type[Group1] = "FOUR_LEVEL_ALPHABETIC";
 
-  key <AD11> {   [ scaron,              Scaron,        any,any ]   }; //
-  key <AD12> {   [ dstroke,             Dstroke,       any,any ]   }; //
+    key <AD11> { [ scaron,         Scaron,         any, any ] }; // [ {
+    key <AD12> { [ dstroke,        Dstroke,        any, any ] }; // ] }
 
-  key <AC10> {   [ ccaron,              Ccaron,        any,any ]   }; //
-  key <AC11> {   [ cacute,              Cacute,        any,any ]   }; //
-  key <BKSL> {   [ zcaron,              Zcaron,        any,any ]   }; //
-
+    key <AC10> { [ ccaron,         Ccaron,         any, any ] }; // ; :
+    key <AC11> { [ cacute,         Cacute,         any, any ] }; // ' "
+    key <BKSL> { [ zcaron,         Zcaron,         any, any ] }; // \ |
 };
 
 partial hidden alphanumeric_keys
 xkb_symbols "twoletter" {
-  // These are letters which are written in latin transcription with two-characters.
 
-  key <AD01> {   type[Group1] = "SEPARATE_CAPS_AND_SHIFT_ALPHABETIC",
-                 [ U1C9,                U1C8,         any,   U1C7 ]   }; // q
-  key <AD02> {   type[Group1] = "SEPARATE_CAPS_AND_SHIFT_ALPHABETIC",
-                 [ U1CC,                U1CB,         any,   U1CA ]   }; // w
-  key <AB02> {   type[Group1] = "SEPARATE_CAPS_AND_SHIFT_ALPHABETIC",
-                 [ U1C6,                U1C5,         any,   U1C4 ]   }; // x
+    // Letters which are written in latin transcription with two characters.
+    key <AD01> { type[Group1] = "SEPARATE_CAPS_AND_SHIFT_ALPHABETIC",
+               [ U1C9,           U1C8,          any, U1C7 ] }; // q
+    key <AD02> { type[Group1] = "SEPARATE_CAPS_AND_SHIFT_ALPHABETIC",
+               [ U1CC,           U1CB,          any, U1CA ] }; // w
+    key <AB02> { type[Group1] = "SEPARATE_CAPS_AND_SHIFT_ALPHABETIC",
+               [ U1C6,           U1C5,          any, U1C4 ] }; // x
 
-  // Also replace letter Y with Zcaron, since Y is of no use any longer
-  key <AB01> {   [ zcaron,              Zcaron,        any,any ]   }; //
+    // Also replace letter Y with Zcaron, since Y is of no use any longer.
+    key <AB01> { [ zcaron,         Zcaron,        any, any ] }; // z
 };
 
 partial hidden alphanumeric_keys
 xkb_symbols "latlevel3" {
-  key <TLDE> {   [ any,any,     notsign,             notsign     ]   }; // ` ~
-  key <AE01> {   [ any,any,     dead_tilde,          asciitilde  ]   }; // 1 !
-  key <AE02> {   [ any,any,     dead_caron,          caron 	 ]   }; // 2 @
-  key <AE03> {   [ any,any,     dead_circumflex,     asciicircum ]   }; // 3 #
-  key <AE04> {   [ any,any,     dead_breve,          breve 	 ]   }; // 4 $
-  key <AE05> {   [ any,any,     dead_abovering,      degree	 ]   }; // 5 %
-  key <AE06> {   [ any,any,     dead_ogonek,         ogonek	 ]   }; // 6 ^
-  key <AE07> {   [ any,any,     dead_grave,          grave 	 ]   }; // 7 &
-  key <AE08> {   [ any,any,     dead_abovedot,       abovedot 	 ]   }; // 8 *
-  key <AE09> {   [ any,any,     dead_acute,          apostrophe  ]   }; // 9 (
-  key <AE10> {   [ any,any,     dead_doubleacute,    doubleacute ]   }; // 0 )
-  key <AE11> {   [ any,any,     dead_diaeresis,      diaeresis 	 ]   }; // - _
-  key <AE12> {   [ any,any,     dead_cedilla,        cedilla 	 ]   }; // = +
+    key <TLDE> { [ any, any,   notsign,             notsign          ] }; // ` ~
+    key <AE01> { [ any, any,   dead_tilde,          asciitilde       ] }; // 1 !
+    key <AE02> { [ any, any,   dead_caron,          caron            ] }; // 2 @
+    key <AE03> { [ any, any,   dead_circumflex,     asciicircum      ] }; // 3 #
+    key <AE04> { [ any, any,   dead_breve,          breve            ] }; // 4 $
+    key <AE05> { [ any, any,   dead_abovering,      degree           ] }; // 5 %
+    key <AE06> { [ any, any,   dead_ogonek,         ogonek           ] }; // 6 ^
+    key <AE07> { [ any, any,   dead_grave,          grave            ] }; // 7 &
+    key <AE08> { [ any, any,   dead_abovedot,       abovedot         ] }; // 8 *
+    key <AE09> { [ any, any,   dead_acute,          apostrophe       ] }; // 9 (
+    key <AE10> { [ any, any,   dead_doubleacute,    doubleacute      ] }; // 0 )
+    key <AE11> { [ any, any,   dead_diaeresis,      diaeresis        ] }; // - _
+    key <AE12> { [ any, any,   dead_cedilla,        cedilla          ] }; // = +
 
-  key <AD01> {   [ any,any,     backslash,           Greek_OMEGA ]   }; // q
-  key <AD02> {   [ any,any,     bar,                 Lstroke 	 ]   }; // w
-  key <AD03> {   [ any,any,     EuroSign,            EuroSign 	 ]   }; // e
-  key <AD04> {   [ any,any,     paragraph,           registered  ]   }; // r
-  key <AD05> {   [ any,any,     tslash,              Tslash 	 ]   }; // t // ALPHABETIC
-  key <AD06> {   [ any,any,     leftarrow,           yen 	 ]   }; // y
-  key <AD07> {   [ any,any,     downarrow,           uparrow 	 ]   }; // u
-  key <AD08> {   [ any,any,     rightarrow,          idotless 	 ]   }; // i
-  key <AD09> {   [ any,any,     oslash,              Ooblique 	 ]   }; // o // ALPHABETIC
-  key <AD10> {   [ any,any,     thorn,               THORN 	 ]   }; // p // ALPHABETIC
-  key <AD11> {   [ any,any,     division,            dead_abovering ]   }; // [
-  key <AD12> {   [ any,any,     multiply,            dead_macron ]   }; // ]
+    key <AD01> { [ any, any,   backslash,           Greek_OMEGA      ] }; // q
+    key <AD02> { [ any, any,   bar,                 Lstroke          ] }; // w
+    key <AD03> { [ any, any,   EuroSign,            EuroSign         ] }; // e
+    key <AD04> { [ any, any,   paragraph,           registered       ] }; // r
+    key <AD05> { [ any, any,   tslash,              Tslash           ] }; // t // ALPHABETIC
+    key <AD06> { [ any, any,   leftarrow,           yen              ] }; // y
+    key <AD07> { [ any, any,   downarrow,           uparrow          ] }; // u
+    key <AD08> { [ any, any,   rightarrow,          idotless         ] }; // i
+    key <AD09> { [ any, any,   oslash,              Ooblique         ] }; // o // ALPHABETIC
+    key <AD10> { [ any, any,   thorn,               THORN            ] }; // p // ALPHABETIC
+    key <AD11> { [ any, any,   division,            dead_abovering   ] }; // [
+    key <AD12> { [ any, any,   multiply,            dead_macron      ] }; // ]
 
-  key <AC01> {   [ any,any,     ae,            	     AE               ]   }; // a // ALPHABETIC
-  key <AC02> {   [ any,any,     doublelowquotemark,  guillemotright   ]   }; // s
-  key <AC03> {   [ any,any,     leftdoublequotemark, guillemotleft    ]   }; // d
-  key <AC04> {   [ any,any,     bracketleft,         ordfeminine      ]   }; // f
-  key <AC05> {   [ any,any,     bracketright,        ENG 	      ]   }; // g
-  key <AC06> {   [ any,any,     hstroke,             Hstroke 	      ]   }; // h // ALPHABETIC
-  key <AC07> {   [ any,any,     NoSymbol,            NoSymbol 	      ]   }; // j
-  key <AC08> {   [ any,any,     lstroke,             ampersand 	      ]   }; // k
-  key <AC09> {   [ any,any,     lstroke,             Lstroke 	      ]   }; // l
-  key <AC10> {   [ any,any,     dead_acute,          dead_doubleacute ]   }; // ;
-  key <AC11> {   [ any,any,     ssharp,              dead_caron       ]   }; // '
-  key <BKSL> {   [ any,any,     currency,            dead_breve       ]   }; // \
+    key <AC01> { [ any, any,   ae,                  AE               ] }; // a // ALPHABETIC
+    key <AC02> { [ any, any,   doublelowquotemark,  guillemotright   ] }; // s
+    key <AC03> { [ any, any,   leftdoublequotemark, guillemotleft    ] }; // d
+    key <AC04> { [ any, any,   bracketleft,         ordfeminine      ] }; // f
+    key <AC05> { [ any, any,   bracketright,        ENG              ] }; // g
+    key <AC06> { [ any, any,   hstroke,             Hstroke          ] }; // h // ALPHABETIC
+    key <AC07> { [ any, any,   NoSymbol,            NoSymbol         ] }; // j
+    key <AC08> { [ any, any,   lstroke,             ampersand        ] }; // k
+    key <AC09> { [ any, any,   lstroke,             Lstroke          ] }; // l
+    key <AC10> { [ any, any,   dead_acute,          dead_doubleacute ] }; // ;
+    key <AC11> { [ any, any,   ssharp,              dead_caron       ] }; // '
+    key <BKSL> { [ any, any,   currency,            dead_breve       ] }; // \
 
-  key <AB01> {   [ any,any,     leftsinglequotemark, guillemotright   ]   }; // z
-  key <AB02> {   [ any,any,     rightsinglequotemark,guillemotleft    ]   }; // x
-  key <AB03> {   [ any,any,     cent,                copyright 	      ]   }; // c
-  key <AB04> {   [ any,any,     at,                  grave 	      ]   }; // v
-  key <AB05> {   [ any,any,     braceleft,           apostrophe       ]   }; // b
-  key <AB06> {   [ any,any,     braceright,          braceright       ]   }; // n
-  key <AB07> {   [ any,any,     asciicircum,         masculine 	      ]   }; // m
-  key <AB08> {   [ any,any,     less,                multiply 	      ]   }; // , <
-  key <AB09> {   [ any,any,     greater,             division 	      ]   }; // . >
-  key <AB10> {   [ any,any,     emdash,              endash   	      ]   }; // / ?
-
+    key <AB01> { [ any, any,   leftsinglequotemark, guillemotright   ] }; // z
+    key <AB02> { [ any, any,   rightsinglequotemark,guillemotleft    ] }; // x
+    key <AB03> { [ any, any,   cent,                copyright        ] }; // c
+    key <AB04> { [ any, any,   at,                  grave            ] }; // v
+    key <AB05> { [ any, any,   braceleft,           apostrophe       ] }; // b
+    key <AB06> { [ any, any,   braceright,          braceright       ] }; // n
+    key <AB07> { [ any, any,   asciicircum,         masculine        ] }; // m
+    key <AB08> { [ any, any,   less,                multiply         ] }; // , <
+    key <AB09> { [ any, any,   greater,             division         ] }; // . >
+    key <AB10> { [ any, any,   emdash,              endash           ] }; // / ?
 };
 
 partial hidden alphanumeric_keys
 xkb_symbols "cyrlevel3" {
-  key <TLDE> {   [ any,any,     degree,              notsign          ]   }; // ` ~
-  key <AE03> {   [ any,any,     dead_circumflex,     NoSymbol         ]   }; // 3 #
-  key <AE07> {   [ any,any,     dead_grave,          NoSymbol         ]   }; // 7 &
-  key <AE08> {   [ any,any,     dead_doublegrave,    NoSymbol         ]   }; // 8 *
-  key <AE09> {   [ any,any,     dead_acute,          NoSymbol         ]   }; // 9 (
-  key <AE10> {   [ any,any,     dead_invertedbreve,  NoSymbol         ]   }; // 0 )
-  key <AE11> {   [ any,any,     dead_macron,         NoSymbol         ]   }; // - _
+    key <TLDE> { [ any, any,   degree,              notsign          ] }; // ` ~
+    key <AE03> { [ any, any,   dead_circumflex,     NoSymbol         ] }; // 3 #
+    key <AE07> { [ any, any,   dead_grave,          NoSymbol         ] }; // 7 &
+    key <AE08> { [ any, any,   dead_doublegrave,    NoSymbol         ] }; // 8 *
+    key <AE09> { [ any, any,   dead_acute,          NoSymbol         ] }; // 9 (
+    key <AE10> { [ any, any,   dead_invertedbreve,  NoSymbol         ] }; // 0 )
+    key <AE11> { [ any, any,   dead_macron,         NoSymbol         ] }; // - _
 
-  key <AD01> {   [ any,any,     backslash,           NoSymbol         ]   }; // q
-  key <AD02> {   [ any,any,     bar,                 NoSymbol         ]   }; // w
-  key <AD03> {   [ any,any,     EuroSign,            sterling         ]   }; // e
-  key <AD04> {   [ any,any,     paragraph,           registered       ]   }; // r
-  key <AD05> {   [ any,any,     ellipsis,            NoSymbol         ]   }; // t // ALPHABETIC
-  key <AD06> {   [ any,any,     leftarrow,           yen              ]   }; // y
-  key <AD07> {   [ any,any,     downarrow,           uparrow          ]   }; // u
-  key <AD08> {   [ any,any,     rightarrow,          NoSymbol         ]   }; // i
-  key <AD09> {   [ any,any,     section,             NoSymbol         ]   }; // o // ALPHABETIC
-  key <AD11> {   [ any,any,     division,            NoSymbol         ]   }; // [
-  key <AD12> {   [ any,any,     multiply,            NoSymbol         ]   }; // ]
+    key <AD01> { [ any, any,   backslash,           NoSymbol         ] }; // q
+    key <AD02> { [ any, any,   bar,                 NoSymbol         ] }; // w
+    key <AD03> { [ any, any,   EuroSign,            sterling         ] }; // e
+    key <AD04> { [ any, any,   paragraph,           registered       ] }; // r
+    key <AD05> { [ any, any,   ellipsis,            NoSymbol         ] }; // t // ALPHABETIC
+    key <AD06> { [ any, any,   leftarrow,           yen              ] }; // y
+    key <AD07> { [ any, any,   downarrow,           uparrow          ] }; // u
+    key <AD08> { [ any, any,   rightarrow,          NoSymbol         ] }; // i
+    key <AD09> { [ any, any,   section,             NoSymbol         ] }; // o // ALPHABETIC
+    key <AD11> { [ any, any,   division,            NoSymbol         ] }; // [
+    key <AD12> { [ any, any,   multiply,            NoSymbol         ] }; // ]
 
-  key <AC02> {   [ any,any,     doublelowquotemark,  guillemotright   ]   }; // s
-  key <AC03> {   [ any,any,     leftdoublequotemark, guillemotleft    ]   }; // d
-  key <AC04> {   [ any,any,     bracketleft,         NoSymbol         ]   }; // f
-  key <AC05> {   [ any,any,     bracketright,        NoSymbol         ]   }; // g
-  key <BKSL> {   [ any,any,     currency,            NoSymbol         ]   }; // \
+    key <AC02> { [ any, any,   doublelowquotemark,  guillemotright   ] }; // s
+    key <AC03> { [ any, any,   leftdoublequotemark, guillemotleft    ] }; // d
+    key <AC04> { [ any, any,   bracketleft,         NoSymbol         ] }; // f
+    key <AC05> { [ any, any,   bracketright,        NoSymbol         ] }; // g
+    key <BKSL> { [ any, any,   currency,            NoSymbol         ] }; // \
 
-  key <AB01> {   [ any,any,     leftsinglequotemark, NoSymbol         ]   }; // z
-  key <AB02> {   [ any,any,     rightsinglequotemark,NoSymbol         ]   }; // x
-  key <AB03> {   [ any,any,     cent,                copyright        ]   }; // c
-  key <AB04> {   [ any,any,     at,                  NoSymbol         ]   }; // v
-  key <AB05> {   [ any,any,     braceleft,           NoSymbol         ]   }; // b
-  key <AB06> {   [ any,any,     braceright,          NoSymbol         ]   }; // n
-  key <AB07> {   [ any,any,     asciicircum,         NoSymbol         ]   }; // m
-  key <AB08> {   [ any,any,     less,                NoSymbol         ]   }; // , <
-  key <AB09> {   [ any,any,     greater,             NoSymbol         ]   }; // . >
-  key <AB10> {   [ any,any,     emdash,              endash           ]   }; // / ?
+    key <AB01> { [ any, any,   leftsinglequotemark, NoSymbol         ] }; // z
+    key <AB02> { [ any, any,   rightsinglequotemark,NoSymbol         ] }; // x
+    key <AB03> { [ any, any,   cent,                copyright        ] }; // c
+    key <AB04> { [ any, any,   at,                  NoSymbol         ] }; // v
+    key <AB05> { [ any, any,   braceleft,           NoSymbol         ] }; // b
+    key <AB06> { [ any, any,   braceright,          NoSymbol         ] }; // n
+    key <AB07> { [ any, any,   asciicircum,         NoSymbol         ] }; // m
+    key <AB08> { [ any, any,   less,                NoSymbol         ] }; // , <
+    key <AB09> { [ any, any,   greater,             NoSymbol         ] }; // . >
+    key <AB10> { [ any, any,   emdash,              endash           ] }; // / ?
 };
 
 partial alphanumeric_keys
 xkb_symbols "latinunicode" {
-  // This mapping supports the Unicode characters 0x1c4-0x1cc (dz, lj, and nj
-  // as single character). You get the title form with AltGr+Shift.
+    // This mapping supports the Unicode characters 0x1c4-0x1cc (dz, lj, and nj
+    // as single character). You get the title form with AltGr+Shift.
 
-  include "rs(latin)"
+    include "rs(latin)"
+    name[Group1]= "Serbian (Latin Unicode)";
 
-  name[Group1]= "Serbian (Latin Unicode)";
-
-  include "rs(twoletter)"
+    include "rs(twoletter)"
 };
 
 partial alphanumeric_keys
 xkb_symbols "latinyz" {
-  // For those who insist on using "english-position" Z and Y.
+    // For those who insist on using "english-position" Z and Y.
 
-  include "rs(latin)"
+    include "rs(latin)"
+    name[Group1]= "Serbian (Latin qwerty)";
 
-  name[Group1]= "Serbian (Latin qwerty)";
-
-  key <AD06> {   [ y,                   Y,             any,any ]   }; // y
-  key <AB01> {   [ z,                   Z,             any,any ]   }; // z
+    key <AD06> { [ y,              Y,              any, any ] }; // y
+    key <AB01> { [ z,              Z,              any, any ] }; // z
 };
 
 partial alphanumeric_keys
 xkb_symbols "latinunicodeyz" {
-  // Unicode, ZHE and Z swapped.
+    // Unicode, ZHE and Z swapped.
 
-  include "rs(latinunicode)"
+    include "rs(latinunicode)"
+    name[Group1]= "Serbian (Latin Unicode qwerty)";
 
-  name[Group1]= "Serbian (Latin Unicode qwerty)";
-
-  key <AD06> {   [ zcaron,              Zcaron,        any,any ]   }; // y
-  key <AB01> {   [ z,                   Z,             any,any ]   }; // z
+    key <AD06> { [ zcaron,         Zcaron,         any, any ] }; // y
+    key <AB01> { [ z,              Z,              any, any ] }; // z
 };
 
 xkb_symbols "alternatequotes" {
-  // Another acceptable »pair of quotes« for Serbian 
+    // Another acceptable »pair of quotes« for Serbian.
 
-  include "rs(basic)"
+    include "rs(basic)"
+    name[Group1]= "Serbian (Cyrillic with guillemets)";
 
-  name[Group1]= "Serbian (Cyrillic with guillemets)";
-
-  key <AC02> {   [ any,any,     guillemotright, NoSymbol ]   }; // s
-  key <AC03> {   [ any,any,     guillemotleft,  NoSymbol ]   }; // d
+    key <AC02> { [ any, any,   guillemotright, NoSymbol ] }; // s
+    key <AC03> { [ any, any,   guillemotleft,  NoSymbol ] }; // d
 };
 
 xkb_symbols "latinalternatequotes" {
-  // Another acceptable »pair of quotes« for Serbian 
+    // Another acceptable »pair of quotes« for Serbian.
 
-  include "rs(latin)"
+    include "rs(latin)"
+    name[Group1]= "Serbian (Latin with guillemets)";
 
-  name[Group1]= "Serbian (Latin with guillemets)";
-
-  key <AC02> {   [ any,any,     guillemotright, NoSymbol ]   }; // s
-  key <AC03> {   [ any,any,     guillemotleft,  NoSymbol ]   }; // d
+    key <AC02> { [ any, any,   guillemotright, NoSymbol ] }; // s
+    key <AC03> { [ any, any,   guillemotleft,  NoSymbol ] }; // d
 };
 
 xkb_symbols "rue" {
-  // Layout for Pannonian Rusyn (spoken mainly in Serbia and
-  // Croatia by the Rusyn people), based on Serbian Cyrillic layout.
-  // Authors:
-  //   Ljubomir J. Papuga (Любомир Я. Папуґа) <papuga@zoho.com>
-  //   Mihajlo Hornjak <smeceiotpad@gmail.com>
+    // Layout for Pannonian Rusyn (spoken mainly in Serbia and Croatia
+    // by the Rusyn people), based on Serbian Cyrillic layout.
+    // Authors:
+    //   Ljubomir J. Papuga (Любомир Я. Папуґа) <papuga@zoho.com>
+    //   Mihajlo Hornjak <smeceiotpad@gmail.com>
 
-  include "rs(basic)"
+    include "rs(basic)"
+    name[Group1]= "Pannonian Rusyn";
 
-  name[Group1]= "Pannonian Rusyn";
+    key <TLDE> { [ Cyrillic_softsign,         Cyrillic_SOFTSIGN         ] }; // `
 
-  key <TLDE> {   [ Cyrillic_softsign,         Cyrillic_SOFTSIGN         ]   }; // `
+    key <AD01> { [ Cyrillic_ya,               Cyrillic_YA               ] }; // q
+    key <AD02> { [ Ukrainian_ie,              Ukrainian_IE              ] }; // w
+    key <AD12> { [ Cyrillic_shcha,            Cyrillic_SHCHA            ] }; // ]
 
-  key <AD01> {   [ Cyrillic_ya,               Cyrillic_YA               ]   }; // q
-  key <AD02> {   [ Ukrainian_ie,              Ukrainian_IE              ]   }; // w
-  key <AD12> {   [ Cyrillic_shcha,            Cyrillic_SHCHA            ]   }; // ]
+    key <AC05> { [ Ukrainian_ghe_with_upturn, Ukrainian_GHE_WITH_UPTURN ] }; // g
+    key <AC07> { [ Cyrillic_shorti,           Cyrillic_SHORTI           ] }; // j
+    key <AC11> { [ Cyrillic_ghe,              Cyrillic_GHE              ] }; // '
 
-  key <AC05> {   [ Ukrainian_ghe_with_upturn, Ukrainian_GHE_WITH_UPTURN ]   }; // g
-  key <AC07> {   [ Cyrillic_shorti,           Cyrillic_SHORTI           ]   }; // j
-  key <AC11> {   [ Cyrillic_ghe,              Cyrillic_GHE              ]   }; // '
-
-  key <AB01> {   [ Cyrillic_yu,               Cyrillic_YU               ]   }; // z
-  key <AB02> {   [ Ukrainian_yi,              Ukrainian_YI              ]   }; // x
+    key <AB01> { [ Cyrillic_yu,               Cyrillic_YU               ] }; // z
+    key <AB02> { [ Ukrainian_yi,              Ukrainian_YI              ] }; // x
 };
 
 // EXTRAS:
 
 xkb_symbols "combiningkeys" {
-  // Raw combining characters instead of dead keys,
-  // especially good for post-accenting texts.
+    // Raw combining characters instead of dead keys,
+    // especially good for post-accenting texts.
 
-  include "rs(basic)"
+    include "rs(basic)"
+    name[Group1]= "Serbian (combining accents instead of dead keys)";
 
-  name[Group1]= "Serbian (combining accents instead of dead keys)";
-
-  key <AE03> {   [ any,any,     U0302, dead_circumflex    ]   }; // 3, U0302 = COMBINING CIRCUMFLEX ACCENT
-  key <AE07> {   [ any,any,     U0300, NoSymbol           ]   }; // 7, U0300 = COMBINING GRAVE ACCENT
-  key <AE08> {   [ any,any,     U030F, NoSymbol           ]   }; // 8, U030F = COMBINING DOUBLE GRAVE ACCENT
-  key <AE09> {   [ any,any,     U0301, NoSymbol           ]   }; // 9, U0301 = COMBINING ACUTE ACCENT
-  key <AE10> {   [ any,any,     U0311, NoSymbol           ]   }; // 0, U0311 = COMBINING INVERTED BREVE
-  key <AE11> {   [ any,any,     U0304, NoSymbol           ]   }; // -, U0304 = COMBINING MACRON
+    key <AE03> { [ any, any,   U0302, dead_circumflex ] }; // 3, U0302 = COMBINING CIRCUMFLEX ACCENT
+    key <AE07> { [ any, any,   U0300, NoSymbol        ] }; // 7, U0300 = COMBINING GRAVE ACCENT
+    key <AE08> { [ any, any,   U030F, NoSymbol        ] }; // 8, U030F = COMBINING DOUBLE GRAVE ACCENT
+    key <AE09> { [ any, any,   U0301, NoSymbol        ] }; // 9, U0301 = COMBINING ACUTE ACCENT
+    key <AE10> { [ any, any,   U0311, NoSymbol        ] }; // 0, U0311 = COMBINING INVERTED BREVE
+    key <AE11> { [ any, any,   U0304, NoSymbol        ] }; // -, U0304 = COMBINING MACRON
 };

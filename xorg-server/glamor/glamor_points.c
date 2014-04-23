@@ -52,7 +52,7 @@ glamor_poly_point_gl(DrawablePtr drawable, GCPtr gc, int mode, int npt, DDXPoint
     if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv))
         goto bail;
 
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
 
     if (prog->failed)
         goto bail_ctx;
@@ -105,8 +105,6 @@ glamor_poly_point_gl(DrawablePtr drawable, GCPtr gc, int mode, int npt, DDXPoint
     glDisable(GL_COLOR_LOGIC_OP);
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
 
-    glamor_put_context(glamor_priv);
-
     glamor_priv->state = RENDER_STATE;
     glamor_priv->render_idle_cnt = 0;
 
@@ -114,7 +112,6 @@ glamor_poly_point_gl(DrawablePtr drawable, GCPtr gc, int mode, int npt, DDXPoint
 
 bail_ctx:
     glDisable(GL_COLOR_LOGIC_OP);
-    glamor_put_context(glamor_priv);
 bail:
     return FALSE;
 }

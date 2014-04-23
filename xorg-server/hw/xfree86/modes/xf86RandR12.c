@@ -1256,12 +1256,13 @@ xf86RandR12CrtcSetGamma(ScreenPtr pScreen, RRCrtcPtr randr_crtc)
         CARD16 *tmp_ptr;
 
         tmp_ptr =
-            realloc(crtc->gamma_red, 3 * crtc->gamma_size * sizeof(CARD16));
+            realloc(crtc->gamma_red,
+                    3 * randr_crtc->gammaSize * sizeof(CARD16));
         if (!tmp_ptr)
             return FALSE;
         crtc->gamma_red = tmp_ptr;
-        crtc->gamma_green = crtc->gamma_red + crtc->gamma_size;
-        crtc->gamma_blue = crtc->gamma_green + crtc->gamma_size;
+        crtc->gamma_green = crtc->gamma_red + randr_crtc->gammaSize;
+        crtc->gamma_blue = crtc->gamma_green + randr_crtc->gammaSize;
     }
 
     crtc->gamma_size = randr_crtc->gammaSize;

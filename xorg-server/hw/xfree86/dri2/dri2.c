@@ -1092,6 +1092,14 @@ DRI2SwapBuffers(ClientPtr client, DrawablePtr pDraw, CARD64 target_msc,
         return BadDrawable;
     }
 
+    /* According to spec, return expected swapbuffers count SBC after this swap
+     * will complete. This is ignored unless we return Success, but it must be
+     * initialized on every path where we return Success or the caller will send
+     * an uninitialized value off the stack to the client. So let's initialize
+     * it as early as possible, just to be sure.
+     */
+    *swap_target = pPriv->swap_count + pPriv->swapsPending + 1;
+
     for (i = 0; i < pPriv->bufferCount; i++) {
         if (pPriv->buffers[i]->attachment == DRI2BufferFrontLeft)
             pDestBuffer = (DRI2BufferPtr) pPriv->buffers[i];
@@ -1149,17 +1157,13 @@ DRI2SwapBuffers(ClientPtr client, DrawablePtr pDraw, CARD64 target_msc,
          * we have to account for the current swap count, interval, and the
          * number of pending swaps.
          */
-        *swap_target = pPriv->last_swap_target + pPriv->swap_interval;
+        target_msc = pPriv->last_swap_target + pPriv->swap_interval;
 
-    }
-    else {
-        /* glXSwapBuffersMscOML could have a 0 target_msc, honor it */
-        *swap_target = target_msc;
     }
 
     pPriv->swapsPending++;
     ret = (*ds->ScheduleSwap) (client, pDraw, pDestBuffer, pSrcBuffer,
-                               swap_target, divisor, remainder, func, data);
+                               &target_msc, divisor, remainder, func, data);
     if (!ret) {
         pPriv->swapsPending--;  /* didn't schedule */
         xf86DrvMsg(pScreen->myNum, X_ERROR,
@@ -1167,12 +1171,7 @@ DRI2SwapBuffers(ClientPtr client, DrawablePtr pDraw, CARD64 target_msc,
         return BadDrawable;
     }
 
-    pPriv->last_swap_target = *swap_target;
-
-    /* According to spec, return expected swapbuffers count SBC after this swap
-     * will complete.
-     */
-    *swap_target = pPriv->swap_count + pPriv->swapsPending;
+    pPriv->last_swap_target = target_msc;
 
     DRI2InvalidateDrawableAll(pDraw);
 

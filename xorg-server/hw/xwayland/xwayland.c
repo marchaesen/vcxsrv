@@ -218,7 +218,6 @@ xwl_realize_window(WindowPtr window)
     screen->RealizeWindow = xwl_realize_window;
 
     if (xwl_screen->rootless && !window->parent) {
-        ErrorF("Clearing root clip\n");
         RegionNull(&window->clipList);
         RegionNull(&window->borderClip);
         RegionNull(&window->winSize);
@@ -573,8 +572,10 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
 
     fbPictureInit(pScreen, 0, 0);
 
+#ifdef HAVE_XSHMFENCE
     if (!miSyncShmScreenInit(pScreen))
         return FALSE;
+#endif
 
     xwl_screen->wayland_fd = wl_display_get_fd(xwl_screen->display);
     AddGeneralSocket(xwl_screen->wayland_fd);
@@ -616,8 +617,10 @@ xwl_log_handler(const char *format, va_list args)
     FatalError("%s", msg);
 }
 
-static const ExtensionModule glx_extension[] = {
+static const ExtensionModule xwayland_extensions[] = {
+#ifdef GLXEXT
     { GlxExtensionInit, "GLX", &noGlxExtension },
+#endif
 };
 
 void
@@ -639,7 +642,8 @@ InitOutput(ScreenInfo * screen_info, int argc, char **argv)
     screen_info->bitmapBitOrder = BITMAP_BIT_ORDER;
     screen_info->numPixmapFormats = ARRAY_SIZE(depths);
 
-    LoadExtensionList(glx_extension, ARRAY_SIZE(glx_extension), FALSE);
+    LoadExtensionList(xwayland_extensions,
+                      ARRAY_SIZE(xwayland_extensions), FALSE);
 
     /* Cast away warning from missing printf annotation for
      * wl_log_func_t.  Wayland 1.5 will have the annotation, so we can

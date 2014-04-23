@@ -54,7 +54,7 @@ glamor_poly_glyph_blt_gl(DrawablePtr drawable, GCPtr gc,
     if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv))
         goto bail;
 
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
 
     prog = glamor_use_program_fill(pixmap, gc, &glamor_priv->poly_glyph_blt_progs,
                                    &glamor_facet_poly_glyph_blt);
@@ -137,11 +137,9 @@ glamor_poly_glyph_blt_gl(DrawablePtr drawable, GCPtr gc,
     glDisable(GL_COLOR_LOGIC_OP);
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
 
-    glamor_put_context(glamor_priv);
     return TRUE;
 bail_ctx:
     glDisable(GL_COLOR_LOGIC_OP);
-    glamor_put_context(glamor_priv);
 bail:
     return FALSE;
 }
@@ -212,20 +210,18 @@ glamor_push_pixels_points(GCPtr gc, PixmapPtr bitmap,
     if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv))
         return FALSE;
 
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
     if (!glamor_set_alu(screen, gc->alu)) {
         if (gc->alu == GXclear)
             fg_pixel = 0;
         else {
             glamor_fallback("unsupported alu %x\n", gc->alu);
-            glamor_put_context(glamor_priv);
             return FALSE;
         }
     }
 
     if (!glamor_set_planemask(pixmap, gc->planemask)) {
         glamor_fallback("Failed to set planemask in %s.\n", __FUNCTION__);
-        glamor_put_context(glamor_priv);
         return FALSE;
     }
 
@@ -280,8 +276,6 @@ glamor_push_pixels_points(GCPtr gc, PixmapPtr bitmap,
     glDrawArrays(GL_POINTS, 0, num_points);
 
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
-
-    glamor_put_context(glamor_priv);
 
     return TRUE;
 }

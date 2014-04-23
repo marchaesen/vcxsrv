@@ -629,7 +629,7 @@ AC_ARG_ENABLE(suid-wrapper, AS_HELP_STRING([--enable-suid-wrapper], [Build suid-
 
 dnl DDXes.
 AC_ARG_ENABLE(xorg,    	      AS_HELP_STRING([--enable-xorg], [Build Xorg server (default: auto)]), [XORG=$enableval], [XORG=auto])
-AC_ARG_ENABLE(dmx,    	      AS_HELP_STRING([--enable-dmx], [Build DMX server (default: auto)]), [DMX=$enableval], [DMX=no])
+AC_ARG_ENABLE(dmx,    	      AS_HELP_STRING([--enable-dmx], [Build DMX server (default: no)]), [DMX=$enableval], [DMX=no])
 AC_ARG_ENABLE(xvfb,    	      AS_HELP_STRING([--enable-xvfb], [Build Xvfb server (default: yes)]), [XVFB=$enableval], [XVFB=yes])
 AC_ARG_ENABLE(xnest,   	      AS_HELP_STRING([--enable-xnest], [Build Xnest server (default: auto)]), [XNEST=$enableval], [XNEST=auto])
 AC_ARG_ENABLE(xquartz,        AS_HELP_STRING([--enable-xquartz], [Build Xquartz server for OS-X (default: auto)]), [XQUARTZ=$enableval], [XQUARTZ=auto])
@@ -789,13 +789,13 @@ APPLEWMPROTO="applewmproto >= 1.4"
 XSHMFENCE="xshmfence >= 1.1"
 
 dnl Required modules
-XPROTO="xproto >= 7.0.22"
+XPROTO="xproto >= 7.0.26"
 RANDRPROTO="randrproto >= 1.4.0"
 RENDERPROTO="renderproto >= 0.11"
 XEXTPROTO="xextproto >= 7.2.99.901"
 INPUTPROTO="inputproto >= 2.3"
 KBPROTO="kbproto >= 1.0.3"
-FONTSPROTO="fontsproto"
+FONTSPROTO="fontsproto >= 2.1.3"
 FIXESPROTO="fixesproto >= 5.0"
 DAMAGEPROTO="damageproto >= 1.1"
 XCMISCPROTO="xcmiscproto >= 1.2.0"
@@ -2458,7 +2458,6 @@ if test "x$XWAYLAND" = xyes; then
 	XWAYLAND_SYS_LIBS="$XWAYLANDMODULES_LIBS $GLX_SYS_LIBS"
 	AC_SUBST([XWAYLAND_LIBS])
 	AC_SUBST([XWAYLAND_SYS_LIBS])
-	WAYLAND_SCANNER_RULES(['$(top_srcdir)/hw/xwayland'])
 fi
 
 

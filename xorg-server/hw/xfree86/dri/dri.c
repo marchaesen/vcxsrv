@@ -177,19 +177,15 @@ DRIOpenDRMMaster(ScrnInfoPtr pScrn,
     memset(&tmp, 0, sizeof(tmp));
 
     /* Check the DRM lib version.
-     * drmGetLibVersion was not supported in version 1.0, so check for
-     * symbol first to avoid possible crash or hang.
      */
 
     drmlibmajor = 1;
     drmlibminor = 0;
-    if (xf86LoaderCheckSymbol("drmGetLibVersion")) {
-        drmlibv = drmGetLibVersion(-1);
-        if (drmlibv != NULL) {
-            drmlibmajor = drmlibv->version_major;
-            drmlibminor = drmlibv->version_minor;
-            drmFreeVersion(drmlibv);
-        }
+    drmlibv = drmGetLibVersion(-1);
+    if (drmlibv != NULL) {
+        drmlibmajor = drmlibv->version_major;
+        drmlibminor = drmlibv->version_minor;
+        drmFreeVersion(drmlibv);
     }
 
     /* Check if the libdrm can handle falling back to loading based on name

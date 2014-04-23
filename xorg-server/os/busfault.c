@@ -142,6 +142,7 @@ busfault_init(void)
 
     act.sa_sigaction = busfault_sigaction;
     act.sa_flags = SA_SIGINFO;
+    sigemptyset(&act.sa_mask);
     if (sigaction(SIGBUS, &act, &old_act) < 0)
         return FALSE;
     previous_busfault_sigaction = old_act.sa_sigaction;

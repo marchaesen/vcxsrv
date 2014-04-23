@@ -638,7 +638,7 @@ ProcRenderSetPictureClipRectangles(ClientPtr client)
     REQUEST_AT_LEAST_SIZE(xRenderSetPictureClipRectanglesReq);
     VERIFY_PICTURE(pPicture, stuff->picture, client, DixSetAttrAccess);
     if (!pPicture->pDrawable)
-        return BadDrawable;
+        return RenderErrBase + BadPicture;
 
     nr = (client->req_len << 2) - sizeof(xRenderSetPictureClipRectanglesReq);
     if (nr & 4)

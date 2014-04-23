@@ -324,7 +324,7 @@ _glamor_create_radial_gradient_program(ScreenPtr screen, int stops_count,
         return;
     }
 
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
 
     if (dyn_gen && glamor_priv->gradient_prog[SHADER_GRADIENT_RADIAL][2]) {
         glDeleteProgram(glamor_priv->gradient_prog[SHADER_GRADIENT_RADIAL][2]);
@@ -371,8 +371,6 @@ _glamor_create_radial_gradient_program(ScreenPtr screen, int stops_count,
     }
 
     glamor_priv->gradient_prog[SHADER_GRADIENT_RADIAL][index] = gradient_prog;
-
-    glamor_put_context(glamor_priv);
 }
 
 static void
@@ -519,7 +517,7 @@ _glamor_create_linear_gradient_program(ScreenPtr screen, int stops_count,
         return;
     }
 
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
     if (dyn_gen && glamor_priv->gradient_prog[SHADER_GRADIENT_LINEAR][2]) {
         glDeleteProgram(glamor_priv->gradient_prog[SHADER_GRADIENT_LINEAR][2]);
         glamor_priv->gradient_prog[SHADER_GRADIENT_LINEAR][2] = 0;
@@ -562,8 +560,6 @@ _glamor_create_linear_gradient_program(ScreenPtr screen, int stops_count,
     }
 
     glamor_priv->gradient_prog[SHADER_GRADIENT_LINEAR][index] = gradient_prog;
-
-    glamor_put_context(glamor_priv);
 }
 
 void
@@ -595,7 +591,7 @@ glamor_fini_gradient_shader(ScreenPtr screen)
     int i = 0;
 
     glamor_priv = glamor_get_screen_private(screen);
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
 
     for (i = 0; i < 3; i++) {
         /* Linear Gradient */
@@ -607,8 +603,6 @@ glamor_fini_gradient_shader(ScreenPtr screen)
             glDeleteProgram(glamor_priv->gradient_prog
                             [SHADER_GRADIENT_RADIAL][i]);
     }
-
-    glamor_put_context(glamor_priv);
 }
 
 static void
@@ -739,7 +733,7 @@ _glamor_gradient_set_pixmap_destination(ScreenPtr screen,
            tex_vertices[0], tex_vertices[1], tex_vertices[2], tex_vertices[3],
            tex_vertices[4], tex_vertices[5], tex_vertices[6], tex_vertices[7]);
 
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
 
     glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_FLOAT,
                           GL_FALSE, 0, vertices);
@@ -748,8 +742,6 @@ _glamor_gradient_set_pixmap_destination(ScreenPtr screen,
 
     glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
     glEnableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
-
-    glamor_put_context(glamor_priv);
 
     return 1;
 }
@@ -892,7 +884,7 @@ glamor_generate_radial_gradient_picture(ScreenPtr screen,
     GLint r2_uniform_location = 0;
 
     glamor_priv = glamor_get_screen_private(screen);
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
 
     /* Create a pixmap with VBO. */
     pixmap = glamor_create_pixmap(screen,
@@ -1123,7 +1115,6 @@ glamor_generate_radial_gradient_picture(ScreenPtr screen,
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
 
-    glamor_put_context(glamor_priv);
     return dst_picture;
 
  GRADIENT_FAIL:
@@ -1140,7 +1131,6 @@ glamor_generate_radial_gradient_picture(ScreenPtr screen,
 
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
-    glamor_put_context(glamor_priv);
     return NULL;
 }
 
@@ -1204,7 +1194,7 @@ glamor_generate_linear_gradient_picture(ScreenPtr screen,
     GLint pt_distance_uniform_location = 0;
 
     glamor_priv = glamor_get_screen_private(screen);
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
 
     /* Create a pixmap with VBO. */
     pixmap = glamor_create_pixmap(screen,
@@ -1468,7 +1458,6 @@ glamor_generate_linear_gradient_picture(ScreenPtr screen,
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
 
-    glamor_put_context(glamor_priv);
     return dst_picture;
 
  GRADIENT_FAIL:
@@ -1485,7 +1474,6 @@ glamor_generate_linear_gradient_picture(ScreenPtr screen,
 
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
-    glamor_put_context(glamor_priv);
     return NULL;
 }
 

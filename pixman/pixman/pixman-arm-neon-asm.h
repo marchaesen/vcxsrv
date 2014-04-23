@@ -631,14 +631,8 @@ local skip1
                                    src_basereg_   = 0, \
                                    mask_basereg_  = 24
 
-    .func fname
-    .global fname
-    /* For ELF format also set function visibility to hidden */
-#ifdef __ELF__
-    .hidden fname
-    .type fname, %function
-#endif
-fname:
+    pixman_asm_function fname
+
     push        {r4-r12, lr}        /* save all registers */
 
 /*
@@ -945,14 +939,8 @@ fname:
                                                    src_basereg_   = 0, \
                                                    mask_basereg_  = 24
 
-    .func fname
-    .global fname
-    /* For ELF format also set function visibility to hidden */
-#ifdef __ELF__
-    .hidden fname
-    .type fname, %function
-#endif
-fname:
+    pixman_asm_function fname
+
     .set PREFETCH_TYPE_CURRENT, PREFETCH_TYPE_NONE
 /*
  * Make some macro arguments globally visible and accessible

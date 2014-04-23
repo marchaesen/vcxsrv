@@ -267,7 +267,7 @@ glamor_poly_text(DrawablePtr drawable, GCPtr gc,
     if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv))
         goto bail;
 
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
 
     prog = glamor_use_program_fill(pixmap, gc, &glamor_priv->poly_text_progs, &glamor_facet_poly_text);
 
@@ -279,8 +279,6 @@ glamor_poly_text(DrawablePtr drawable, GCPtr gc,
 
     glDisable(GL_COLOR_LOGIC_OP);
 
-    glamor_put_context(glamor_priv);
-
     glamor_priv->state = RENDER_STATE;
     glamor_priv->render_idle_cnt = 0;
 
@@ -289,7 +287,6 @@ glamor_poly_text(DrawablePtr drawable, GCPtr gc,
 
 bail_ctx:
     glDisable(GL_COLOR_LOGIC_OP);
-    glamor_put_context(glamor_priv);
 bail:
     return FALSE;
 }
@@ -420,7 +417,7 @@ glamor_image_text(DrawablePtr drawable, GCPtr gc,
 
     glamor_get_glyphs(gc->font, glamor_font, count, chars, sixteen, charinfo);
 
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
 
     if (TERMINALFONT(gc->font))
         prog = &glamor_priv->te_text_prog;
@@ -482,8 +479,6 @@ glamor_image_text(DrawablePtr drawable, GCPtr gc,
     (void) glamor_text(drawable, gc, glamor_font, prog,
                        x, y, count, chars, charinfo, sixteen);
 
-    glamor_put_context(glamor_priv);
-
     glamor_priv->state = RENDER_STATE;
     glamor_priv->render_idle_cnt = 0;
 
@@ -491,7 +486,6 @@ glamor_image_text(DrawablePtr drawable, GCPtr gc,
 
 bail:
     glDisable(GL_COLOR_LOGIC_OP);
-    glamor_put_context(glamor_priv);
     return FALSE;
 }
 

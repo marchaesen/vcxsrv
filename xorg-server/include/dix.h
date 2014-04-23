@@ -608,4 +608,6 @@ CorePointerProc(DeviceIntPtr dev, int what);
 extern _X_HIDDEN int
 CoreKeyboardProc(DeviceIntPtr dev, int what);
 
+extern _X_EXPORT void *lastGLContext;
+
 #endif                          /* DIX_H */
