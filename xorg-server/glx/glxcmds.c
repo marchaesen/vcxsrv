@@ -188,7 +188,7 @@ validGlxDrawable(ClientPtr client, XID id, int type, int access_mode,
 void
 __glXContextDestroy(__GLXcontext * context)
 {
-    __glXFlushContextCache();
+    lastGLContext = NULL;
 }
 
 static void
@@ -275,6 +275,17 @@ DoCreateContext(__GLXclientState * cl, GLXContextID gcId,
      ** Allocate memory for the new context
      */
     if (!isDirect) {
+        /* Only allow creating indirect GLX contexts if allowed by
+         * server command line.  Indirect GLX is of limited use (since
+         * it's only GL 1.4), it's slower than direct contexts, and
+         * it's a massive attack surface for buffer overflow type
+         * errors.
+         */
+        if (!enableIndirectGLX) {
+            client->errorValue = isDirect;
+            return BadValue;
+        }
+
         /* Without any attributes, the only error that the driver should be
          * able to generate is BadAlloc.  As result, just drop the error
          * returned from the driver on the floor.
@@ -434,10 +445,6 @@ static void
 StopUsingContext(__GLXcontext * glxc)
 {
     if (glxc) {
-        if (glxc == __glXLastContext) {
-            /* Tell server GL library */
-            __glXLastContext = 0;
-        }
         glxc->currentClient = NULL;
         if (!glxc->idExists) {
             FreeResourceByType(glxc->id, __glXContextRes, FALSE);
@@ -448,7 +455,6 @@ StopUsingContext(__GLXcontext * glxc)
 static void
 StartUsingContext(__GLXclientState * cl, __GLXcontext * glxc)
 {
-    __glXLastContext = glxc;
     glxc->currentClient = cl->client;
 }
 
@@ -627,7 +633,7 @@ DoMakeCurrent(__GLXclientState * cl,
         if (!(*prevglxc->loseCurrent) (prevglxc)) {
             return __glXError(GLXBadContext);
         }
-        __glXFlushContextCache();
+        lastGLContext = NULL;
         if (!prevglxc->isDirect) {
             prevglxc->drawPriv = NULL;
             prevglxc->readPriv = NULL;
@@ -640,7 +646,9 @@ DoMakeCurrent(__GLXclientState * cl,
         glxc->readPriv = readPriv;
 
         /* make the context current */
+        lastGLContext = glxc;
         if (!(*glxc->makeCurrent) (glxc)) {
+            lastGLContext = NULL;
             glxc->drawPriv = NULL;
             glxc->readPriv = NULL;
             return __glXError(GLXBadContext);

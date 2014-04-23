@@ -151,10 +151,17 @@ void debug_print_format(const char *msg, unsigned fmt );
 long
 debug_get_num_option(const char *name, long dfault);
 
+#ifdef _MSC_VER
+__declspec(noreturn)
+#endif
 void _debug_assert_fail(const char *expr, 
                         const char *file, 
                         unsigned line, 
-                        const char *function);
+                        const char *function)
+#ifdef __GNUC__
+   __attribute__((__noreturn__))
+#endif
+;
 
 
 /** 

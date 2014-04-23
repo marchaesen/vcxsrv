@@ -1,4 +1,4 @@
-.\" Xwrapper.wrap.1
+.\" Xwrapper.wrap.__appmansuffix__
 .\"
 .\" Copyright 2014 Red Hat, Inc.
 .\"
@@ -26,7 +26,7 @@
 .\"
 .\" shorthand for double quote that works everywhere.
 .ds q \N'34'
-.TH Xorg.wrap 1 __xorgversion__
+.TH Xorg.wrap __appmansuffix__ __xorgversion__
 .SH NAME
 Xorg.wrap \- Xorg X server binary wrapper
 .SH DESCRIPTION

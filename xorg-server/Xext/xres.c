@@ -353,9 +353,9 @@ static unsigned long
 ResGetApproxPixmapBytes(PixmapPtr pix)
 {
     unsigned long nPixels;
-    int bytesPerPixel;
+    float bytesPerPixel;
 
-    bytesPerPixel = pix->drawable.bitsPerPixel >> 3;
+    bytesPerPixel = (float)pix->drawable.bitsPerPixel / 8.0;
     nPixels = pix->drawable.width * pix->drawable.height;
 
     /* Divide by refcnt as pixmap could be shared between clients,  

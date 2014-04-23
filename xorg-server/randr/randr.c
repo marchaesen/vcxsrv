@@ -679,7 +679,7 @@ static int
 SProcRRDispatch(ClientPtr client)
 {
     REQUEST(xReq);
-    if (stuff->data >= RRNumberRequests || !ProcRandrVector[stuff->data])
+    if (stuff->data >= RRNumberRequests || !SProcRandrVector[stuff->data])
         return BadRequest;
     return (*SProcRandrVector[stuff->data]) (client);
 }

@@ -211,7 +211,7 @@ xkb_symbols "core" {
 
     modifier_map Mod2 { Num_Lock };
 
-    key <NMLK> { [ Num_Lock, Pointer_EnableKeys ] };
+    key <NMLK> { [ Num_Lock                     ] };
     key <KPEN> { [ KP_Enter                     ] };
     key <KPEQ> { [ KP_Equal                     ] };
 };

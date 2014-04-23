@@ -491,13 +491,14 @@ static void
 LogSWrite(int verb, const char *buf, size_t len, Bool end_line)
 {
     static Bool newline = TRUE;
+    int ret;
 
     if (verb < 0 || logVerbosity >= verb)
-        write(2, buf, len);
+        ret = write(2, buf, len);
 
     if (verb < 0 || logFileVerbosity >= verb) {
         if (inSignalContext && logFileFd >= 0) {
-            write(logFileFd, buf, len);
+            ret = write(logFileFd, buf, len);
 #ifndef WIN32
             if (logFlush && logSync)
                 fsync(logFileFd);
@@ -529,6 +530,11 @@ LogSWrite(int verb, const char *buf, size_t len, Bool end_line)
             bufferPos += len;
         }
     }
+
+    /* There's no place to log an error message if the log write
+     * fails...
+     */
+    (void) ret;
 }
 
 void

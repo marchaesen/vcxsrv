@@ -1499,15 +1499,12 @@ __fls(unsigned long x)
 #endif
 
 static inline void
-glamor_get_context(glamor_screen_private * glamor_priv)
+glamor_make_current(glamor_screen_private *glamor_priv)
 {
-    glamor_priv->ctx.get_context(&glamor_priv->ctx);
-}
-
-static inline void
-glamor_put_context(glamor_screen_private * glamor_priv)
-{
-    glamor_priv->ctx.put_context(&glamor_priv->ctx);
+    if (lastGLContext != &glamor_priv->ctx) {
+        lastGLContext = &glamor_priv->ctx;
+        glamor_priv->ctx.make_current(&glamor_priv->ctx);
+    }
 }
 
 #endif

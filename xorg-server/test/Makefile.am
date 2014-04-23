@@ -41,7 +41,7 @@ os_LDADD=$(TEST_LDADD)
 libxservertest_la_LIBADD = $(XSERVER_LIBS)
 if XORG
 
-nodist_libxservertest_la_SOURCES = $(top_builddir)/hw/xfree86/sdksyms.c
+nodist_libxservertest_la_SOURCES = sdksyms.c
 libxservertest_la_LIBADD += \
             $(top_builddir)/hw/xfree86/loader/libloader.la \
             $(top_builddir)/hw/xfree86/os-support/libxorgos.la \
@@ -54,6 +54,12 @@ libxservertest_la_LIBADD += \
             $(top_builddir)/hw/xfree86/i2c/libi2c.la \
             $(top_builddir)/hw/xfree86/dixmods/libxorgxkb.la \
             @XORG_LIBS@
+
+BUILT_SOURCES = sdksyms.c
+CLEANFILES = sdksyms.c
+
+sdksyms.c: $(top_builddir)/hw/xfree86/sdksyms.c
+	$(AM_V_GEN)$(LN_S) $(top_builddir)/hw/xfree86/sdksyms.c
 
 if DRI
 libxservertest_la_LIBADD += $(top_builddir)/hw/xfree86/dri/libdri.la

@@ -103,6 +103,7 @@
 #if !defined(__sparc__) && !defined(__sparc) && !defined(__arm32__) && !defined(__nds32__) \
       && !(defined(__alpha__) && defined(linux)) \
       && !(defined(__ia64__) && defined(linux)) \
+      && !(defined(__mips64) && defined(linux)) \
 
 extern _X_EXPORT void outb(unsigned short, unsigned char);
 extern _X_EXPORT void outw(unsigned short, unsigned short);
@@ -721,7 +722,7 @@ xf86WriteMmio32LeNB(__volatile__ void *base, const unsigned long offset,
 }
 
 #elif defined(__mips__) || (defined(__arm32__) && !defined(__linux__))
-#ifdef __arm32__
+#if defined(__arm32__) || defined(__mips64)
 #define PORT_SIZE long
 #else
 #define PORT_SIZE short

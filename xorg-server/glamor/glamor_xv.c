@@ -97,7 +97,7 @@ glamor_init_xv_shader(ScreenPtr screen)
     GLint fs_prog, vs_prog;
 
     glamor_priv = glamor_get_screen_private(screen);
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
     glamor_priv->xv_prog = glCreateProgram();
 
     vs_prog = glamor_compile_glsl_prog(GL_VERTEX_SHADER, xv_vs);
@@ -110,8 +110,6 @@ glamor_init_xv_shader(ScreenPtr screen)
     glBindAttribLocation(glamor_priv->xv_prog,
                          GLAMOR_VERTEX_SOURCE, "v_texcoord0");
     glamor_link_glsl_prog(screen, glamor_priv->xv_prog, "xv");
-
-    glamor_put_context(glamor_priv);
 }
 
 #define ClipValue(v,min,max) ((v) < (min) ? (min) : (v) > (max) ? (max) : (v))
@@ -316,7 +314,7 @@ glamor_display_textured_video(glamor_port_private *port_priv)
                                   &src_yscale[i]);
         }
     }
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
     glUseProgram(glamor_priv->xv_prog);
 
     uloc = glGetUniformLocation(glamor_priv->xv_prog, "offsetyco");
@@ -404,7 +402,6 @@ glamor_display_textured_video(glamor_port_private *port_priv)
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
 
-    glamor_put_context(glamor_priv);
     DamageDamageRegion(port_priv->pDraw, &port_priv->clip);
 }
 

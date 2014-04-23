@@ -101,8 +101,7 @@ xkb_symbols "classic" {
 partial alphanumeric_keys hidden
 xkb_symbols "fi" {
 
-    // Classic Finnish keyboard layout with dead keys support
-    // and all ISO-8859-1 and ISO-8859-15 characters available
+    // Classic Finnish keyboard layout with dead keys
 
     key <TLDE> { [  section,         onehalf,          onequarter,            threequarters         ] };
     key <AE01> { [  1,               exclam,           exclamdown,            onesuperior           ] };
@@ -112,8 +111,8 @@ xkb_symbols "fi" {
     key <AE05> { [  5,               percent,          EuroSign,              masculine             ] };
     key <AE06> { [  6,               ampersand,        yen,                   ordfeminine           ] };
     key <AE07> { [  7,               slash,            braceleft,             plusminus             ] };
-    key <AE08> { [  8,               parenleft,        bracketleft,           guillemotleft         ] };
-    key <AE09> { [  9,               parenright,       bracketright,          guillemotright        ] };
+    key <AE08> { [  8,               parenleft,        bracketleft,           less                  ] };
+    key <AE09> { [  9,               parenright,       bracketright,          greater               ] };
     key <AE10> { [  0,               equal,            braceright,            degree                ] };
     key <AE11> { [  plus,            question,         backslash,             questiondown          ] };
     key <AE12> { [  dead_acute,      dead_grave,       dead_cedilla,          dead_ogonek           ] };
@@ -205,9 +204,10 @@ xkb_symbols "mac" {
     name[Group1]="Finnish (Macintosh)";
 };
 
-// EXTRAS:
-
 partial alphanumeric_keys
-	xkb_symbols "sun_type6" {
-	include "sun_vndr/fi(sun_type6)"
+xkb_symbols "sun_type6" {
+
+    // Sun Type 6/7 keyboard for Finland
+
+    include "sun_vndr/fi(sun_type6)"
 };

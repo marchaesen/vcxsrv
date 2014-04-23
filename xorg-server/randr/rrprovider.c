@@ -285,7 +285,7 @@ ProcRRSetProviderOutputSource(ClientPtr client)
     RRProviderPtr provider, source_provider = NULL;
     ScreenPtr pScreen;
 
-    REQUEST_AT_LEAST_SIZE(xRRSetProviderOutputSourceReq);
+    REQUEST_SIZE_MATCH(xRRSetProviderOutputSourceReq);
 
     VERIFY_RR_PROVIDER(stuff->provider, provider, DixReadAccess);
 
@@ -320,7 +320,7 @@ ProcRRSetProviderOffloadSink(ClientPtr client)
     RRProviderPtr provider, sink_provider = NULL;
     ScreenPtr pScreen;
 
-    REQUEST_AT_LEAST_SIZE(xRRSetProviderOffloadSinkReq);
+    REQUEST_SIZE_MATCH(xRRSetProviderOffloadSinkReq);
 
     VERIFY_RR_PROVIDER(stuff->provider, provider, DixReadAccess);
     if (!(provider->capabilities & RR_Capability_SourceOffload))

@@ -146,7 +146,7 @@ glamor_create_pixmap(ScreenPtr screen, int w, int h, int depth,
     glamor_pixmap_type_t type = GLAMOR_TEXTURE_ONLY;
     glamor_pixmap_private *pixmap_priv;
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
-    glamor_pixmap_fbo *fbo;
+    glamor_pixmap_fbo *fbo = NULL;
     int pitch;
     GLenum format;
 
@@ -199,13 +199,12 @@ glamor_create_pixmap(ScreenPtr screen, int w, int h, int depth,
         pixmap_priv->base.box.x2 = w;
         pixmap_priv->base.box.y2 = h;
         fbo = glamor_create_fbo(glamor_priv, w, h, format, usage);
-    }
-    else {
-        DEBUGF("Create LARGE pixmap %p width %d height %d\n", pixmap, w, h);
+    } else {
+        int tile_size = glamor_priv->max_fbo_size;
+        DEBUGF("Create LARGE pixmap %p width %d height %d, tile size %d\n", pixmap, w, h, tile_size);
         pixmap_priv->type = GLAMOR_TEXTURE_LARGE;
         fbo = glamor_create_fbo_array(glamor_priv, w, h, format, usage,
-                                      glamor_priv->max_fbo_size,
-                                      glamor_priv->max_fbo_size, pixmap_priv);
+                                      tile_size, tile_size, pixmap_priv);
     }
 
     if (fbo == NULL) {
@@ -248,11 +247,10 @@ glamor_block_handler(ScreenPtr screen)
 {
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
 
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
     glamor_priv->tick++;
     glFlush();
     glamor_fbo_expire(glamor_priv);
-    glamor_put_context(glamor_priv);
     if (glamor_priv->state == RENDER_STATE
         && glamor_priv->render_idle_cnt++ > RENDER_IDEL_MAX) {
         glamor_priv->state = IDLE_STATE;
@@ -265,9 +263,8 @@ _glamor_block_handler(void *data, OSTimePtr timeout, void *last_select_mask)
 {
     glamor_screen_private *glamor_priv = data;
 
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
     glFlush();
-    glamor_put_context(glamor_priv);
 }
 
 static void
@@ -509,7 +506,6 @@ glamor_init(ScreenPtr screen, unsigned int flags)
 #ifdef GLAMOR_TRAPEZOID_SHADER
     glamor_init_trapezoid_shader(screen);
 #endif
-    glamor_init_putimage_shaders(screen);
     glamor_init_finish_access_shaders(screen);
 #ifdef GLAMOR_GRADIENT_SHADER
     glamor_init_gradient_shader(screen);
@@ -543,7 +539,6 @@ glamor_release_screen_priv(ScreenPtr screen)
 #ifdef GLAMOR_TRAPEZOID_SHADER
     glamor_fini_trapezoid_shader(screen);
 #endif
-    glamor_fini_putimage_shaders(screen);
     glamor_fini_finish_access_shaders(screen);
 #ifdef GLAMOR_GRADIENT_SHADER
     glamor_fini_gradient_shader(screen);
@@ -662,7 +657,8 @@ glamor_fd_from_pixmap(ScreenPtr screen,
     switch (pixmap_priv->type) {
     case GLAMOR_TEXTURE_DRM:
     case GLAMOR_TEXTURE_ONLY:
-        glamor_pixmap_ensure_fbo(pixmap, GL_RGBA, 0);
+        if (!glamor_pixmap_ensure_fbo(pixmap, GL_RGBA, 0))
+            return -1;
         return glamor_egl_dri3_fd_name_from_tex(screen,
                                                 pixmap,
                                                 pixmap_priv->base.fbo->tex,
@@ -686,7 +682,8 @@ glamor_name_from_pixmap(PixmapPtr pixmap, CARD16 *stride, CARD32 *size)
     switch (pixmap_priv->type) {
     case GLAMOR_TEXTURE_DRM:
     case GLAMOR_TEXTURE_ONLY:
-        glamor_pixmap_ensure_fbo(pixmap, GL_RGBA, 0);
+        if (!glamor_pixmap_ensure_fbo(pixmap, GL_RGBA, 0))
+            return -1;
         return glamor_egl_dri3_fd_name_from_tex(pixmap->drawable.pScreen,
                                                 pixmap,
                                                 pixmap_priv->base.fbo->tex,

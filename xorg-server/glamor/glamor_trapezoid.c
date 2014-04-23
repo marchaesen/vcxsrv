@@ -235,14 +235,13 @@ glamor_flush_composite_triangles(ScreenPtr screen)
 {
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
 
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
     glamor_put_vbo_space(screen);
 
     if (!glamor_priv->render_nr_verts)
         return;
 
     glDrawArrays(GL_TRIANGLES, 0, glamor_priv->render_nr_verts);
-    glamor_put_context(glamor_priv);
 }
 
 static Bool
@@ -627,7 +626,7 @@ glamor_setup_composite_vbo_for_trapezoid(ScreenPtr screen, int n_verts)
 
     vert_size = n_verts * glamor_priv->vb_stride;
 
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
 
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
@@ -666,8 +665,6 @@ glamor_setup_composite_vbo_for_trapezoid(ScreenPtr screen, int n_verts)
                           GL_FALSE, glamor_priv->vb_stride,
                           vbo_offset + stride * sizeof(float));
     glEnableVertexAttribArray(GLAMOR_VERTEX_RIGHT_PARAM);
-
-    glamor_put_context(glamor_priv);
 
     return vb;
 }
@@ -811,7 +808,7 @@ _glamor_trapezoids_with_shader(CARD8 op,
         goto TRAPEZOID_OUT;
     }
 
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
 
     box = REGION_RECTS(&region);
     nbox = REGION_NUM_RECTS(&region);
@@ -979,7 +976,6 @@ _glamor_trapezoids_with_shader(CARD8 op,
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
     glDisableVertexAttribArray(GLAMOR_VERTEX_MASK);
     glDisable(GL_BLEND);
-    glamor_put_context(glamor_priv);
 
  TRAPEZOID_OUT:
     if (box) {
@@ -1332,7 +1328,7 @@ glamor_init_trapezoid_shader(ScreenPtr screen)
         "}\n";
 
     glamor_priv = glamor_get_screen_private(screen);
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
 
     glamor_priv->trapezoid_prog = glCreateProgram();
 
@@ -1354,8 +1350,6 @@ glamor_init_trapezoid_shader(ScreenPtr screen)
                          GLAMOR_VERTEX_RIGHT_PARAM, "v_right_param");
 
     glamor_link_glsl_prog(screen, glamor_priv->trapezoid_prog, "trapezoid");
-
-    glamor_put_context(glamor_priv);
 }
 
 void
@@ -1364,9 +1358,8 @@ glamor_fini_trapezoid_shader(ScreenPtr screen)
     glamor_screen_private *glamor_priv;
 
     glamor_priv = glamor_get_screen_private(screen);
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
     glDeleteProgram(glamor_priv->trapezoid_prog);
-    glamor_put_context(glamor_priv);
 }
 
 static Bool
@@ -1406,7 +1399,7 @@ _glamor_generate_trapezoid_with_shader(ScreenPtr screen, PicturePtr picture,
         return FALSE;
     }
 
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
 
     glamor_set_destination_pixmap_priv_nc(pixmap_priv);
 
@@ -1564,7 +1557,6 @@ _glamor_generate_trapezoid_with_shader(ScreenPtr screen, PicturePtr picture,
     glDisableVertexAttribArray(GLAMOR_VERTEX_TOP_BOTTOM);
     glDisableVertexAttribArray(GLAMOR_VERTEX_LEFT_PARAM);
     glDisableVertexAttribArray(GLAMOR_VERTEX_RIGHT_PARAM);
-    glamor_put_context(glamor_priv);
     return TRUE;
 }
 

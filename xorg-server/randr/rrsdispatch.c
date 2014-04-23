@@ -434,6 +434,133 @@ SProcRRGetOutputPrimary(ClientPtr client)
     return ProcRandrVector[stuff->randrReqType] (client);
 }
 
+static int SProcRRGetProviders(ClientPtr client)
+{
+    REQUEST(xRRGetProvidersReq);
+
+    REQUEST_SIZE_MATCH(xRRGetProvidersReq);
+    swaps(&stuff->length);
+    swapl(&stuff->window);
+    return ProcRandrVector[stuff->randrReqType] (client);
+}
+
+static int SProcRRGetProviderInfo(ClientPtr client)
+{
+    REQUEST(xRRGetProviderInfoReq);
+
+    REQUEST_SIZE_MATCH(xRRGetProviderInfoReq);
+    swaps(&stuff->length);
+    swapl(&stuff->provider);
+    swapl(&stuff->configTimestamp);
+    return ProcRandrVector[stuff->randrReqType] (client);
+}
+
+static int SProcRRSetProviderOffloadSink(ClientPtr client)
+{
+    REQUEST(xRRSetProviderOffloadSinkReq);
+
+    REQUEST_SIZE_MATCH(xRRSetProviderOffloadSinkReq);
+    swaps(&stuff->length);
+    swapl(&stuff->provider);
+    swapl(&stuff->sink_provider);
+    swapl(&stuff->configTimestamp);
+    return ProcRandrVector[stuff->randrReqType] (client);
+}
+
+static int SProcRRSetProviderOutputSource(ClientPtr client)
+{
+    REQUEST(xRRSetProviderOutputSourceReq);
+
+    REQUEST_SIZE_MATCH(xRRSetProviderOutputSourceReq);
+    swaps(&stuff->length);
+    swapl(&stuff->provider);
+    swapl(&stuff->source_provider);
+    swapl(&stuff->configTimestamp);
+    return ProcRandrVector[stuff->randrReqType] (client);
+}
+
+static int SProcRRListProviderProperties(ClientPtr client)
+{
+    REQUEST(xRRListProviderPropertiesReq);
+
+    REQUEST_SIZE_MATCH(xRRListProviderPropertiesReq);
+    swaps(&stuff->length);
+    swapl(&stuff->provider);
+    return ProcRandrVector[stuff->randrReqType] (client);
+}
+
+static int SProcRRQueryProviderProperty(ClientPtr client)
+{
+    REQUEST(xRRQueryProviderPropertyReq);
+
+    REQUEST_SIZE_MATCH(xRRQueryProviderPropertyReq);
+    swaps(&stuff->length);
+    swapl(&stuff->provider);
+    swapl(&stuff->property);
+    return ProcRandrVector[stuff->randrReqType] (client);
+}
+
+static int SProcRRConfigureProviderProperty(ClientPtr client)
+{
+    REQUEST(xRRConfigureProviderPropertyReq);
+
+    REQUEST_AT_LEAST_SIZE(xRRConfigureProviderPropertyReq);
+    swaps(&stuff->length);
+    swapl(&stuff->provider);
+    swapl(&stuff->property);
+    /* TODO: no way to specify format? */
+    SwapRestL(stuff);
+    return ProcRandrVector[stuff->randrReqType] (client);
+}
+
+static int SProcRRChangeProviderProperty(ClientPtr client)
+{
+    REQUEST(xRRChangeProviderPropertyReq);
+
+    REQUEST_AT_LEAST_SIZE(xRRChangeProviderPropertyReq);
+    swaps(&stuff->length);
+    swapl(&stuff->provider);
+    swapl(&stuff->property);
+    swapl(&stuff->type);
+    swapl(&stuff->nUnits);
+    switch (stuff->format) {
+    case 8:
+        break;
+    case 16:
+        SwapRestS(stuff);
+        break;
+    case 32:
+        SwapRestL(stuff);
+        break;
+    }
+    return ProcRandrVector[stuff->randrReqType] (client);
+}
+
+static int SProcRRDeleteProviderProperty(ClientPtr client)
+{
+    REQUEST(xRRDeleteProviderPropertyReq);
+
+    REQUEST_SIZE_MATCH(xRRDeleteProviderPropertyReq);
+    swaps(&stuff->length);
+    swapl(&stuff->provider);
+    swapl(&stuff->property);
+    return ProcRandrVector[stuff->randrReqType] (client);
+}
+
+static int SProcRRGetProviderProperty(ClientPtr client)
+{
+    REQUEST(xRRGetProviderPropertyReq);
+
+    REQUEST_SIZE_MATCH(xRRGetProviderPropertyReq);
+    swaps(&stuff->length);
+    swapl(&stuff->provider);
+    swapl(&stuff->property);
+    swapl(&stuff->type);
+    swapl(&stuff->longOffset);
+    swapl(&stuff->longLength);
+    return ProcRandrVector[stuff->randrReqType] (client);
+}
+
 int (*SProcRandrVector[RRNumberRequests]) (ClientPtr) = {
     SProcRRQueryVersion,        /* 0 */
 /* we skip 1 to make old clients fail pretty immediately */
@@ -472,4 +599,15 @@ int (*SProcRandrVector[RRNumberRequests]) (ClientPtr) = {
         SProcRRSetPanning,      /* 29 */
         SProcRRSetOutputPrimary,        /* 30 */
         SProcRRGetOutputPrimary,        /* 31 */
+/* V1.4 additions */
+        SProcRRGetProviders,            /* 32 */
+        SProcRRGetProviderInfo,         /* 33 */
+        SProcRRSetProviderOffloadSink,  /* 34 */
+        SProcRRSetProviderOutputSource, /* 35 */
+        SProcRRListProviderProperties,  /* 36 */
+        SProcRRQueryProviderProperty,   /* 37 */
+        SProcRRConfigureProviderProperty, /* 38 */
+        SProcRRChangeProviderProperty,  /* 39 */
+        SProcRRDeleteProviderProperty,  /* 40 */
+        SProcRRGetProviderProperty,     /* 41 */
 };

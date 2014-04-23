@@ -21,7 +21,7 @@ xkb_symbols "cyrillic" {
 partial alphanumeric_keys
 xkb_symbols "cyrillicyz" {
   include "rs(yz)"
-  name[Group1]= "Montenegrin (Cyrillic, Z and ZHE swapped)";
+  name[Group1]= "Montenegrin (Cyrillic, ZE and ZHE swapped)";
 };
 
 partial alphanumeric_keys

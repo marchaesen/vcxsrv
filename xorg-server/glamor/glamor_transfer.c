@@ -70,7 +70,7 @@ glamor_upload_boxes(PixmapPtr pixmap, BoxPtr in_boxes, int in_nbox,
 
     glamor_format_for_pixmap(pixmap, &format, &type);
 
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -127,7 +127,6 @@ glamor_upload_boxes(PixmapPtr pixmap, BoxPtr in_boxes, int in_nbox,
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
     glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
-    glamor_put_context(glamor_priv);
 }
 
 /*
@@ -180,7 +179,7 @@ glamor_download_boxes(PixmapPtr pixmap, BoxPtr in_boxes, int in_nbox,
 
     glamor_format_for_pixmap(pixmap, &format, &type);
 
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
 
     glPixelStorei(GL_PACK_ALIGNMENT, 4);
     glPixelStorei(GL_PACK_ROW_LENGTH, byte_stride / bytes_per_pixel);
@@ -226,7 +225,6 @@ glamor_download_boxes(PixmapPtr pixmap, BoxPtr in_boxes, int in_nbox,
     glPixelStorei(GL_PACK_ROW_LENGTH, 0);
     glPixelStorei(GL_PACK_SKIP_ROWS, 0);
     glPixelStorei(GL_PACK_SKIP_PIXELS, 0);
-    glamor_put_context(glamor_priv);
 }
 
 /*

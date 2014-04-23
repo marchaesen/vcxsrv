@@ -240,6 +240,14 @@ enum blit_msaa_shader {
    BLIT_MSAA_SHADER_2D_MULTISAMPLE_COPY_UINT,
    BLIT_MSAA_SHADER_2D_MULTISAMPLE_DEPTH_RESOLVE,
    BLIT_MSAA_SHADER_2D_MULTISAMPLE_DEPTH_COPY,
+   BLIT_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_RESOLVE,
+   BLIT_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_RESOLVE_INT,
+   BLIT_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_RESOLVE_UINT,
+   BLIT_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_COPY,
+   BLIT_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_COPY_INT,
+   BLIT_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_COPY_UINT,
+   BLIT_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_DEPTH_RESOLVE,
+   BLIT_MSAA_SHADER_2D_MULTISAMPLE_ARRAY_DEPTH_COPY,
    BLIT_MSAA_SHADER_COUNT,
 };
 
@@ -250,10 +258,10 @@ struct blit_state
 {
    GLuint VAO;
    GLuint VBO;
-   GLuint DepthFP;
    struct blit_shader_table shaders;
    GLuint msaa_shaders[BLIT_MSAA_SHADER_COUNT];
    struct temp_texture depthTex;
+   bool no_ctsi_fallback;
 };
 
 
@@ -504,5 +512,9 @@ _mesa_meta_blit_shader_table_cleanup(struct blit_shader_table *table);
 
 void
 _mesa_meta_glsl_generate_mipmap_cleanup(struct gen_mipmap_state *mipmap);
+
+void
+_mesa_meta_bind_fbo_image(GLenum attachment,
+                          struct gl_texture_image *texImage, GLuint layer);
 
 #endif /* META_H */

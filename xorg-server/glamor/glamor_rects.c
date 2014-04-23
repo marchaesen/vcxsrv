@@ -57,7 +57,7 @@ glamor_poly_fill_rect_gl(DrawablePtr drawable,
     if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv))
         goto bail;
 
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
 
     if (glamor_priv->glsl_version >= 130) {
         prog = glamor_use_program_fill(pixmap, gc,
@@ -144,11 +144,9 @@ glamor_poly_fill_rect_gl(DrawablePtr drawable,
         glVertexAttribDivisor(GLAMOR_VERTEX_POS, 0);
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
 
-    glamor_put_context(glamor_priv);
     return TRUE;
 bail_ctx:
     glDisable(GL_COLOR_LOGIC_OP);
-    glamor_put_context(glamor_priv);
 bail:
     return FALSE;
 }

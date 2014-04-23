@@ -337,6 +337,7 @@ swrastPutImage(__DRIdrawable * draw, int op,
     __GLXDRIdrawable *drawable = loaderPrivate;
     DrawablePtr pDraw = drawable->base.pDraw;
     GCPtr gc;
+    __GLXcontext *cx = lastGLContext;
 
     switch (op) {
     case __DRI_SWRAST_IMAGE_OP_DRAW:
@@ -352,6 +353,10 @@ swrastPutImage(__DRIdrawable * draw, int op,
     ValidateGC(pDraw, gc);
 
     gc->ops->PutImage(pDraw, gc, pDraw->depth, x, y, w, h, 0, ZPixmap, data);
+    if (cx != lastGLContext) {
+        lastGLContext = cx;
+        cx->makeCurrent(cx);
+    }
 }
 
 static void
@@ -361,8 +366,13 @@ swrastGetImage(__DRIdrawable * draw,
     __GLXDRIdrawable *drawable = loaderPrivate;
     DrawablePtr pDraw = drawable->base.pDraw;
     ScreenPtr pScreen = pDraw->pScreen;
+    __GLXcontext *cx = lastGLContext;
 
     pScreen->GetImage(pDraw, x, y, w, h, ZPixmap, ~0L, data);
+    if (cx != lastGLContext) {
+        lastGLContext = cx;
+        cx->makeCurrent(cx);
+    }
 }
 
 static const __DRIswrastLoaderExtension swrastLoaderExtension = {

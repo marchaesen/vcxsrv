@@ -1658,7 +1658,7 @@ SetFontPathElements(int npaths, unsigned char *paths, int *bad, Bool persist)
                     err = (*fpe_functions[fpe->type].init_fpe) (fpe);
                 if (err != Successful) {
                     if (persist) {
-                        ErrorF
+                        DebugF
                             ("[dix] Could not init font path element %s, removing from list!\n",
                              fpe->name);
                     }

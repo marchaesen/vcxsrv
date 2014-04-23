@@ -48,7 +48,7 @@ glamor_get_vbo_space(ScreenPtr screen, unsigned size, char **vbo_offset)
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
     void *data;
 
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
 
     glBindBuffer(GL_ARRAY_BUFFER, glamor_priv->vbo);
 
@@ -79,7 +79,6 @@ glamor_get_vbo_space(ScreenPtr screen, unsigned size, char **vbo_offset)
                      */
                     glamor_priv->has_buffer_storage = false;
                     glamor_priv->vbo_size = 0;
-                    glamor_put_context(glamor_priv);
 
                     return glamor_get_vbo_space(screen, size, vbo_offset);
                 }
@@ -130,8 +129,6 @@ glamor_get_vbo_space(ScreenPtr screen, unsigned size, char **vbo_offset)
         data = glamor_priv->vb;
     }
 
-    glamor_put_context(glamor_priv);
-
     return data;
 }
 
@@ -140,7 +137,7 @@ glamor_put_vbo_space(ScreenPtr screen)
 {
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
 
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
 
     if (glamor_priv->has_buffer_storage) {
         /* If we're in the ARB_buffer_storage path, we have a
@@ -155,8 +152,6 @@ glamor_put_vbo_space(ScreenPtr screen)
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    glamor_put_context(glamor_priv);
 }
 
 void
@@ -164,11 +159,9 @@ glamor_init_vbo(ScreenPtr screen)
 {
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
 
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
 
     glGenBuffers(1, &glamor_priv->vbo);
-
-    glamor_put_context(glamor_priv);
 }
 
 void
@@ -176,11 +169,9 @@ glamor_fini_vbo(ScreenPtr screen)
 {
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
 
-    glamor_get_context(glamor_priv);
+    glamor_make_current(glamor_priv);
 
     glDeleteBuffers(1, &glamor_priv->vbo);
     if (!glamor_priv->has_map_buffer_range)
         free(glamor_priv->vb);
-
-    glamor_put_context(glamor_priv);
 }

@@ -68,13 +68,16 @@ LinuxCheckChown(const char *file)
     struct stat st;
     __uid_t u;
     __gid_t g;
+    int r;
 
     if (stat(file, &st) < 0)
         return;
     u = getuid();
     g = getgid();
-    if (st.st_uid != u || st.st_gid != g)
-        chown(file, u, g);
+    if (st.st_uid != u || st.st_gid != g) {
+        r = chown(file, u, g);
+        (void) r;
+    }
 }
 
 static int

@@ -43,14 +43,7 @@ struct glamor_context {
     /** The GLXDrawable we should MakeCurrent to */
     uint32_t drawable_xid;
 
-    /**
-     * Count of how deep in glamor_get_context() we are, to reduce
-     * MakeCurrent calls.
-     */
-    int get_count;
-
-    void (*get_context)(struct glamor_context *glamor_ctx);
-    void (*put_context)(struct glamor_context *glamor_ctx);
+    void (*make_current)(struct glamor_context *glamor_ctx);
 };
 
 Bool glamor_glx_screen_init(struct glamor_context *glamor_ctx);

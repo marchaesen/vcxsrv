@@ -866,3 +866,28 @@ InitCallbackManager(void)
 {
     DeleteCallbackManager();
 }
+
+/**
+ * Coordinates the global GL context used by modules in the X Server
+ * doing rendering with OpenGL.
+ *
+ * When setting a GL context (glXMakeCurrent() or eglMakeCurrent()),
+ * there is an expensive implied glFlush() required by the GLX and EGL
+ * APIs, so modules don't want to have to do it on every request.  But
+ * the individual modules using GL also don't know about each other,
+ * so they have to coordinate who owns the current context.
+ *
+ * When you're about to do a MakeCurrent, you should set this variable
+ * to your context's address, and you can skip MakeCurrent if it's
+ * already set to yours.
+ *
+ * When you're about to do a DestroyContext, you should set this to
+ * NULL if it's set to your context.
+ *
+ * When you're about to do an unbindContext on a DRI driver, you
+ * should set this to NULL.  Despite the unbindContext interface
+ * sounding like it only unbinds the passed in context, it actually
+ * unconditionally clears the dispatch table even if the given
+ * context wasn't current.
+ */
+void *lastGLContext = NULL;

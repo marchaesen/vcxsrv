@@ -34,27 +34,20 @@
  */
 
 static void
-glamor_glx_get_context(struct glamor_context *glamor_ctx)
+glamor_glx_make_current(struct glamor_context *glamor_ctx)
 {
-    GLXContext old_ctx;
-
-    if (glamor_ctx->get_count++)
-        return;
-
-    old_ctx = glXGetCurrentContext();
-    if (old_ctx == glamor_ctx->ctx)
-        return;
+    /* There's only a single global dispatch table in Mesa.  EGL, GLX,
+     * and AIGLX's direct dispatch table manipulation don't talk to
+     * each other.  We need to set the context to NULL first to avoid
+     * GLX's no-op context change fast path when switching back to
+     * GLX.
+     */
+    glXMakeCurrent(glamor_ctx->display, None, None);
 
     glXMakeCurrent(glamor_ctx->display, glamor_ctx->drawable_xid,
                    glamor_ctx->ctx);
 }
 
-
-static void
-glamor_glx_put_context(struct glamor_context *glamor_ctx)
-{
-    --glamor_ctx->get_count;
-}
 
 Bool
 glamor_glx_screen_init(struct glamor_context *glamor_ctx)
@@ -69,8 +62,7 @@ glamor_glx_screen_init(struct glamor_context *glamor_ctx)
 
     glamor_ctx->drawable_xid = glXGetCurrentDrawable();
 
-    glamor_ctx->get_context = glamor_glx_get_context;
-    glamor_ctx->put_context = glamor_glx_put_context;
+    glamor_ctx->make_current = glamor_glx_make_current;
 
     return True;
 }

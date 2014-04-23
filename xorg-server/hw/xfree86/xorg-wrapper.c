@@ -25,6 +25,7 @@
 
 #include "dix-config.h"
 
+#include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <stdint.h>
@@ -34,11 +35,16 @@
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+#include <sys/consio.h>
+#endif
 #include <unistd.h>
-#include <drm/drm.h>
+#include <drm.h>
 #include <xf86drm.h> /* For DRM_DEV_NAME */
 
 #define CONFIG_FILE SYSCONFDIR "/X11/Xwrapper.config"
+
+static const char *progname;
 
 enum { ROOT_ONLY, CONSOLE_ONLY, ANYBODY };
 
@@ -88,18 +94,21 @@ static void parse_config(int *allowed, int *needs_root_rights)
         /* Split in a key + value pair */
         equals = strchr(stripped, '=');
         if (!equals) {
-            fprintf(stderr, "Syntax error at %s line %d\n", CONFIG_FILE, line);
+            fprintf(stderr, "%s: Syntax error at %s line %d\n", progname,
+                CONFIG_FILE, line);
             exit(1);
         }
         *equals = 0;
         key   = strip(stripped);   /* To remove trailing whitespace from key */
         value = strip(equals + 1); /* To remove leading whitespace from val */
         if (!key[0]) {
-            fprintf(stderr, "Missing key at %s line %d\n", CONFIG_FILE, line);
+            fprintf(stderr, "%s: Missing key at %s line %d\n", progname,
+                CONFIG_FILE, line);
             exit(1);
         }
         if (!value[0]) {
-            fprintf(stderr, "Missing value at %s line %d\n", CONFIG_FILE, line);
+            fprintf(stderr, "%s: Missing value at %s line %d\n", progname,
+                CONFIG_FILE, line);
             exit(1);
         }
 
@@ -113,8 +122,8 @@ static void parse_config(int *allowed, int *needs_root_rights)
                 *allowed = ANYBODY;
             else {
                 fprintf(stderr,
-                    "Invalid value '%s' for 'allowed_users' at %s line %d\n",
-                    value, CONFIG_FILE, line);
+                    "%s: Invalid value '%s' for 'allowed_users' at %s line %d\n",
+                    progname, value, CONFIG_FILE, line);
                 exit(1);
             }
         }
@@ -127,8 +136,8 @@ static void parse_config(int *allowed, int *needs_root_rights)
                 *needs_root_rights = -1;
             else {
                 fprintf(stderr,
-                    "Invalid value '%s' for 'needs_root_rights' at %s line %d\n",
-                    value, CONFIG_FILE, line);
+                    "%s: Invalid value '%s' for 'needs_root_rights' at %s line %d\n",
+                    progname, value, CONFIG_FILE, line);
                 exit(1);
             }
         }
@@ -136,24 +145,53 @@ static void parse_config(int *allowed, int *needs_root_rights)
             /* Backward compatibility with older Debian Xwrapper, ignore */
         }
         else {
-            fprintf(stderr, "Invalid key '%s' at %s line %d\n", key,
-                    CONFIG_FILE, line);
+            fprintf(stderr, "%s: Invalid key '%s' at %s line %d\n", key,
+                progname, CONFIG_FILE, line);
             exit(1);
         }
     }
     fclose(f);
 }
 
+static int on_console(int fd)
+{
+#if defined(__linux__)
+    struct stat st;
+    int r;
+
+    r = fstat(fd, &st);
+    if (r == 0 && S_ISCHR(st.st_mode) && major(st.st_rdev) == 4)
+      return 1;
+#elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+    int idx;
+
+    if (ioctl(fd, VT_GETINDEX, &idx) != -1)
+        return 1;
+#else
+#warning This program needs porting to your kernel.
+    static int seen;
+
+    if (!seen) {
+        fprintf(stderr, "%s: Unable to determine if running on a console\n",
+            progname);
+        seen = 1;
+    }
+#endif
+
+    return 0;
+}
+
 int main(int argc, char *argv[])
 {
     struct drm_mode_card_res res;
-    struct stat st;
     char buf[PATH_MAX];
     int i, r, fd;
     int kms_cards = 0;
     int total_cards = 0;
     int allowed = CONSOLE_ONLY;
     int needs_root_rights = -1;
+
+    progname = argv[0];
 
     parse_config(&allowed, &needs_root_rights);
 
@@ -168,8 +206,7 @@ int main(int argc, char *argv[])
         case CONSOLE_ONLY:
             /* Some of stdin / stdout / stderr maybe redirected to a file */
             for (i = STDIN_FILENO; i <= STDERR_FILENO; i++) {
-                r = fstat(i, &st);
-                if (r == 0 && S_ISCHR(st.st_mode) && major(st.st_rdev) == 4)
+                if (on_console(i))
                     break;
             }
             if (i > STDERR_FILENO) {
@@ -207,11 +244,13 @@ int main(int argc, char *argv[])
         uid_t realuid = getuid();
 
         if (setresgid(-1, realgid, realgid) != 0) {
-            perror("Could not drop setgid privileges");
+            fprintf(stderr, "%s: Could not drop setgid privileges: %s\n",
+                progname, strerror(errno));
             exit(1);
         }
         if (setresuid(-1, realuid, realuid) != 0) {
-            perror("Could not drop setuid privileges");
+            fprintf(stderr, "%s: Could not drop setuid privileges: %s\n",
+                progname, strerror(errno));
             exit(1);
         }
     }
@@ -220,12 +259,14 @@ int main(int argc, char *argv[])
 
     /* Check if the server is executable by our real uid */
     if (access(buf, X_OK) != 0) {
-        perror("Missing execute permissions for " SUID_WRAPPER_DIR "Xorg.bin");
+        fprintf(stderr, "%s: Missing execute permissions for %s/Xorg.bin: %s\n",
+            progname, SUID_WRAPPER_DIR, strerror(errno));
         exit(1);
     }
 
     argv[0] = buf;
     (void) execv(argv[0], argv);
-    perror("Failed to execute " SUID_WRAPPER_DIR "/Xorg.bin");
+    fprintf(stderr, "%s: Failed to execute %s/Xorg.bin: %s\n",
+        progname, SUID_WRAPPER_DIR, strerror(errno));
     exit(1);
 }

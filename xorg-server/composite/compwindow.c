@@ -525,6 +525,7 @@ compCopyWindow(WindowPtr pWin, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
                 }
                 FreeScratchGC(pGC);
             }
+            RegionUninit(&rgnDst);
             return;
         }
         dx = pPixmap->screen_x - cw->oldx;

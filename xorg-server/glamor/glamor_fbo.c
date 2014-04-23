@@ -129,7 +129,7 @@ glamor_pixmap_fbo_cache_get(glamor_screen_private *glamor_priv,
 void
 glamor_purge_fbo(glamor_pixmap_fbo *fbo)
 {
-    glamor_get_context(fbo->glamor_priv);
+    glamor_make_current(fbo->glamor_priv);
 
     if (fbo->fb)
         glDeleteFramebuffers(1, &fbo->fb);
@@ -137,7 +137,6 @@ glamor_purge_fbo(glamor_pixmap_fbo *fbo)
         glDeleteTextures(1, &fbo->tex);
     if (fbo->pbo)
         glDeleteBuffers(1, &fbo->pbo);
-    glamor_put_context(fbo->glamor_priv);
 
     free(fbo);
 }
@@ -175,12 +174,12 @@ glamor_pixmap_fbo_cache_put(glamor_pixmap_fbo *fbo)
 #endif
 }
 
-static void
+static int
 glamor_pixmap_ensure_fb(glamor_pixmap_fbo *fbo)
 {
-    int status;
+    int status, err = 0;
 
-    glamor_get_context(fbo->glamor_priv);
+    glamor_make_current(fbo->glamor_priv);
 
     if (fbo->fb == 0)
         glGenFramebuffers(1, &fbo->fb);
@@ -216,10 +215,11 @@ glamor_pixmap_ensure_fb(glamor_pixmap_fbo *fbo)
             break;
         }
 
-        FatalError("destination is framebuffer incomplete: %s [%x]\n",
-                   str, status);
+        glamor_fallback("glamor: Failed to create fbo, %s\n", str);
+        err = -1;
     }
-    glamor_put_context(fbo->glamor_priv);
+
+    return err;
 }
 
 glamor_pixmap_fbo *
@@ -241,14 +241,17 @@ glamor_create_fbo_from_tex(glamor_screen_private *glamor_priv,
     fbo->glamor_priv = glamor_priv;
 
     if (flag == GLAMOR_CREATE_PIXMAP_MAP) {
-        glamor_get_context(glamor_priv);
+        glamor_make_current(glamor_priv);
         glGenBuffers(1, &fbo->pbo);
-        glamor_put_context(glamor_priv);
         goto done;
     }
 
-    if (flag != GLAMOR_CREATE_FBO_NO_FBO)
-        glamor_pixmap_ensure_fb(fbo);
+    if (flag != GLAMOR_CREATE_FBO_NO_FBO) {
+        if (glamor_pixmap_ensure_fb(fbo) != 0) {
+            glamor_purge_fbo(fbo);
+            fbo = NULL;
+        }
+    }
 
  done:
     return fbo;
@@ -341,14 +344,13 @@ _glamor_create_tex(glamor_screen_private *glamor_priv,
                                                        w, h);
     }
     if (!tex) {
-        glamor_get_context(glamor_priv);
+        glamor_make_current(glamor_priv);
         glGenTextures(1, &tex);
         glBindTexture(GL_TEXTURE_2D, tex);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexImage2D(GL_TEXTURE_2D, 0, format, w, h, 0,
                      format, GL_UNSIGNED_BYTE, NULL);
-        glamor_put_context(glamor_priv);
     }
     return tex;
 }
@@ -367,10 +369,11 @@ glamor_create_fbo(glamor_screen_private *glamor_priv,
     if (flag == GLAMOR_CREATE_PIXMAP_MAP)
         goto no_tex;
 
-    if (flag == GLAMOR_CREATE_PIXMAP_FIXUP)
-        cache_flag = GLAMOR_CACHE_EXACT_SIZE;
-    else
-        cache_flag = 0;
+    /* Tiling from textures requires exact pixmap sizes. As we don't
+     * know which pixmaps will be used as tiles, just allocate
+     * everything at the requested size
+     */
+    cache_flag = GLAMOR_CACHE_EXACT_SIZE;
 
     fbo = glamor_pixmap_fbo_cache_get(glamor_priv, w, h, format, cache_flag);
     if (fbo)
@@ -565,7 +568,8 @@ glamor_pixmap_ensure_fbo(PixmapPtr pixmap, GLenum format, int flag)
                                    pixmap->drawable.height, format);
 
         if (flag != GLAMOR_CREATE_FBO_NO_FBO && pixmap_priv->base.fbo->fb == 0)
-            glamor_pixmap_ensure_fb(pixmap_priv->base.fbo);
+            if (glamor_pixmap_ensure_fb(pixmap_priv->base.fbo) != 0)
+                return FALSE;
     }
 
     return TRUE;

@@ -194,6 +194,8 @@ Bool noGEExtension = FALSE;
 
 Bool CoreDump;
 
+Bool enableIndirectGLX = TRUE;
+
 #ifdef PANORAMIX
 Bool PanoramiXExtensionDisabledHack = FALSE;
 #endif
@@ -313,7 +315,8 @@ LockServer(void)
     if (lfd < 0)
         FatalError("Could not create lock file in %s\n", tmp);
     snprintf(pid_str, sizeof(pid_str), "%10ld\n", (long) getpid());
-    (void) write(lfd, pid_str, 11);
+    if (write(lfd, pid_str, 11) != 11)
+        FatalError("Could not write pid to lock file in %s\n", tmp);
     (void) fchmod(lfd, 0444);
     (void) close(lfd);
 
@@ -537,6 +540,8 @@ UseMsg(void)
     ErrorF("-fn string             default font name\n");
     ErrorF("-fp string             default font path\n");
     ErrorF("-help                  prints message with these options\n");
+    ErrorF("+iglx                  Allow creating indirect GLX contexts (default)\n");
+    ErrorF("-iglx                  Prohibit creating indirect GLX contexts\n");
     ErrorF("-I                     ignore all remaining arguments\n");
 #ifdef RLIMIT_DATA
     ErrorF("-ld int                limit data space to N Kb\n");
@@ -783,6 +788,10 @@ ProcessCommandLine(int argc, char *argv[])
             UseMsg();
             exit(0);
         }
+        else if (strcmp(argv[i], "+iglx") == 0)
+            enableIndirectGLX = TRUE;
+        else if (strcmp(argv[i], "-iglx") == 0)
+            enableIndirectGLX = FALSE;
         else if ((skip = XkbProcessArguments(argc, argv, i)) != 0) {
             if (skip > 0)
                 i += skip - 1;
