@@ -33,7 +33,7 @@ extern "C" {
 ** used to make the header, and the header can be found at
 **   http://www.opengl.org/registry/
 **
-** Khronos $Revision: 25406 $ on $Date: 2014-02-18 16:34:26 -0800 (Tue, 18 Feb 2014) $
+** Khronos $Revision: 25853 $ on $Date: 2014-03-13 03:40:45 -0700 (Thu, 13 Mar 2014) $
 */
 
 #if defined(_WIN32) && !defined(APIENTRY) && !defined(__CYGWIN__) && !defined(__SCITECH_SNAP__)
@@ -53,7 +53,7 @@ extern "C" {
 #define GLAPI extern
 #endif
 
-#define GL_GLEXT_VERSION 20140218
+#define GL_GLEXT_VERSION 20140313
 
 /* Generated C header for:
  * API: gl
@@ -7080,6 +7080,10 @@ GLAPI GLuint APIENTRY glCreateShaderProgramEXT (GLenum type, const GLchar *strin
 #define GL_SEPARATE_SPECULAR_COLOR_EXT    0x81FA
 #endif /* GL_EXT_separate_specular_color */
 
+#ifndef GL_EXT_shader_image_load_formatted
+#define GL_EXT_shader_image_load_formatted 1
+#endif /* GL_EXT_shader_image_load_formatted */
+
 #ifndef GL_EXT_shader_image_load_store
 #define GL_EXT_shader_image_load_store 1
 #define GL_MAX_IMAGE_UNITS_EXT            0x8F38
@@ -9426,6 +9430,17 @@ GLAPI void APIENTRY glProgramUniformui64vNV (GLuint program, GLint location, GLs
 #ifndef GL_NV_shader_storage_buffer_object
 #define GL_NV_shader_storage_buffer_object 1
 #endif /* GL_NV_shader_storage_buffer_object */
+
+#ifndef GL_NV_shader_thread_group
+#define GL_NV_shader_thread_group 1
+#define GL_WARP_SIZE_NV                   0x9339
+#define GL_WARPS_PER_SM_NV                0x933A
+#define GL_SM_COUNT_NV                    0x933B
+#endif /* GL_NV_shader_thread_group */
+
+#ifndef GL_NV_shader_thread_shuffle
+#define GL_NV_shader_thread_shuffle 1
+#endif /* GL_NV_shader_thread_shuffle */
 
 #ifndef GL_NV_tessellation_program5
 #define GL_NV_tessellation_program5 1

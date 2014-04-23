@@ -1047,14 +1047,14 @@ glxWinDrawableDestroy(__GLXdrawable * base)
     __GLXWinDrawable *glxPriv = (__GLXWinDrawable *) base;
 
     if (glxPriv->drawContext &&
-        (__glXLastContext == &((glxPriv->drawContext)->base))) {
+        (lastGLContext == &((glxPriv->drawContext)->base))) {
         // if this context is current and has unflushed commands, say we have flushed them
         // (don't actually flush them, the window is going away anyhow, and an implict flush occurs
         // on the next context change)
         // (GLX core considers it an error when we try to select a new current context if the old one
         // has unflushed commands, but the window has disappeared..)
-        __glXLastContext->hasUnflushedCommands = FALSE;
-        __glXLastContext = NULL;
+        ((__GLXcontext *)lastGLContext)->hasUnflushedCommands = FALSE;
+        lastGLContext = NULL;
     }
 
     if (glxPriv->hPbuffer)
