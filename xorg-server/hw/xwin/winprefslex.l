@@ -72,6 +72,7 @@ ICONS                   { return ICONS; }
 STYLES                  { return STYLES; }
 TASKBAR                 { return TASKBAR; }
 NOTAB                   { return NOTAB; }
+NEWTAB                  { return NEWTAB; }
 TOPMOST                 { return TOPMOST; }
 MAXIMIZE                { return MAXIMIZE; }
 MINIMIZE                { return MINIMIZE; }

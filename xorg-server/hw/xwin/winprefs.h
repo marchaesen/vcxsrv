@@ -66,6 +66,10 @@ typedef enum MENUCOMMANDTYPE {
 #define STYLE_MINIMIZE (1L<<5)  /* Open a window minimized                    */
 #define STYLE_BOTTOM   (1L<<6)  /* Open a window at the bottom of the Z order */
 
+#define TASKBAR_NONE   (0L)     /* Dummy the first entry                      */
+#define TASKBAR_NOTAB  (1L)     /* Force no taskbar icon                      */
+#define TASKBAR_NEWTAB (1L<<1)  /* Force new taskbar icon                     */
+
 /* Where to place a system menu */
 typedef enum MENUPOSITION {
     AT_START,                   /* Place menu at the top of the system menu   */
@@ -107,6 +111,12 @@ typedef struct STYLEITEM {
     unsigned long type;         /* What should it do? */
 } STYLEITEM;
 
+/* To redefine taskbar properties for certain window types */
+typedef struct TASKBARITEM {
+    char match[MENU_MAX+1];     /* What string to search for? */
+    unsigned long type;         /* What should it do? */
+} TASKBARITEM;
+
 typedef struct WINPREFS {
     /* Menu information */
     MENUPARSED *menu;           /* Array of created menus */
@@ -133,6 +143,9 @@ typedef struct WINPREFS {
 
     STYLEITEM *style;
     int styleItems;
+
+    TASKBARITEM *taskbar;
+    int taskbarItems;
 
     /* Force exit flag */
     Bool fForceExit;
@@ -171,6 +184,9 @@ HICON winOverrideIcon(char *res_name, char *res_class, char *wmName);
 
 unsigned long
  winOverrideStyle(char *res_name, char *res_class, char *wmName);
+
+unsigned long
+ winOverrideTaskbar(char *res_name, char *res_class, char *wmName);
 
 HICON winTaskbarIcon(void);
 

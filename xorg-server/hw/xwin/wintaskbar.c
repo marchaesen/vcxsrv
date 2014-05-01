@@ -26,34 +26,7 @@
 #include "win.h"
 #include "winwindow.h"
 
-const GUID CLSID_TaskbarList = {0x56fdf344,0xfd6d,0x11d0,{0x95,0x8a,0x0,0x60,0x97,0xc9,0xa0,0x90}};
-const GUID IID_ITaskbarList =  {0x56fdf342,0xfd6d,0x11d0,{0x95,0x8a,0x0,0x60,0x97,0xc9,0xa0,0x90}};
-
-#ifdef INTERFACE
-#undef INTERFACE
-#endif
-
-#define INTERFACE ITaskbarList
-DECLARE_INTERFACE_(ITaskbarList, IUnknown)
-{
-  /* IUnknown methods */
-  STDMETHOD(QueryInterface) (THIS_ REFIID riid, void **ppv) PURE;
-  STDMETHOD_(ULONG, AddRef) (THIS) PURE;
-  STDMETHOD_(ULONG, Release) (THIS) PURE;
-
-  /* ITaskbarList methods */
-  STDMETHOD(HrInit) (THIS) PURE;
-  STDMETHOD(AddTab) (THIS_ HWND hWnd) PURE;
-  STDMETHOD(DeleteTab) (THIS_ HWND hWnd) PURE;
-  STDMETHOD(ActivateTab) (THIS_ HWND hWnd) PURE;
-  STDMETHOD(SetActiveAlt) (THIS_ HWND hWnd) PURE;
-};
-#undef INTERFACE
-
-/*
-   The stuff above needs to be in win32api headers, not defined here,
-   or at least generated from the MIDL :-)
-*/
+#include <shobjidl.h>
 
 /*
   This is unnecessarily heavyweight, we could just call CoInitialize() once at

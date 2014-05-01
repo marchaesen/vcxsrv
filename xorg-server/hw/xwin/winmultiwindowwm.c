@@ -83,6 +83,9 @@ extern void winDebug(const char *format, ...);
 extern void winReshapeMultiWindow(WindowPtr pWin);
 extern void winUpdateRgnMultiWindow(WindowPtr pWin);
 
+extern void winSetAuthorization(void);
+extern void winUpdateIcon(HWND hWnd, Display *pDisplay, Window id, HICON hIconNew);
+
 /*
  * Constant defines
  */
@@ -178,7 +181,7 @@ static int
  winMultiWindowXMsgProcIOErrorHandler(Display * pDisplay);
 
 static void
-winMultiWindowThreadExit(void *arg);
+ winMultiWindowThreadExit(void *arg);
 
 static int
  winRedirectErrorHandler(Display * pDisplay, XErrorEvent * pErr);
@@ -187,8 +190,7 @@ static void
  winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg);
 
 static Bool
-
-CheckAnotherWindowManager(Display * pDisplay, DWORD dwScreen,
+ CheckAnotherWindowManager(Display * pDisplay, DWORD dwScreen,
                           Bool fAllowOtherWM);
 
 static void
@@ -713,7 +715,7 @@ winMultiWindowWMProc(void *pArg)
     /* Initialize the Window Manager */
     winInitMultiWindowWM(pWMInfo, pProcArg);
 
-   winDebug ("winMultiWindowWMProc ()\n");
+    winDebug ("winMultiWindowWMProc ()\n");
 
     /* Loop until we explicitly break out */
     for (;;) {
@@ -782,7 +784,6 @@ winMultiWindowWMProc(void *pArg)
                             PropModeReplace,
                             (unsigned char *) &(pNode->msg.hwndWindow), sizeof(HWND)/4);
             UpdateName(pWMInfo, pNode->msg.iWindow);
-            UpdateIcon(pWMInfo, pNode->msg.iWindow);
             UpdateStyle(pWMInfo, pNode->msg.iWindow);
 
 
@@ -796,6 +797,7 @@ winMultiWindowWMProc(void *pArg)
                 }
             }
 
+            UpdateIcon(pWMInfo, pNode->msg.iWindow);
             break;
 
         case WM_WM_UNMAP:
@@ -986,9 +988,6 @@ winMultiWindowXMsgProc(void *pArg)
     /* Print the display connection string */
     winDebug("winMultiWindowXMsgProc - DISPLAY=%s\n", pszDisplay);
 
-    /* Use our generated cookie for authentication */
-    winSetAuthorization();
-
     /* Initialize retry count */
     iRetries = 0;
 
@@ -1046,19 +1045,13 @@ winMultiWindowXMsgProc(void *pArg)
         xis->max_width = xis->max_height = 48;
         xis->width_inc = xis->height_inc = 16;
         XSetIconSizes(pProcArg->pDisplay,
-                      RootWindow(pProcArg->pDisplay, pProcArg->dwScreen),
+                      XRootWindow(pProcArg->pDisplay, pProcArg->dwScreen),
                       xis, 1);
         XFree(xis);
     }
 
     atmWmName = XInternAtom(pProcArg->pDisplay, "WM_NAME", False);
-    atmWmHints = XInternAtom(pProcArg->pDisplay, "WM_HINTS", False);
     atmWmChange = XInternAtom(pProcArg->pDisplay, "WM_CHANGE_STATE", False);
-    atmNetWmIcon = XInternAtom(pProcArg->pDisplay, "_NET_WM_ICON", False);
-    atmWindowState = XInternAtom(pProcArg->pDisplay, "_NET_WM_STATE", False);
-    atmMotifWmHints = XInternAtom(pProcArg->pDisplay, "_MOTIF_WM_HINTS", False);
-    atmWindowType = XInternAtom(pProcArg->pDisplay, "_NET_WM_WINDOW_TYPE", False);
-    atmNormalHints = XInternAtom(pProcArg->pDisplay, "WM_NORMAL_HINTS", False);
 
     /*
        iiimxcf had a bug until 2009-04-27, assuming that the
@@ -1198,6 +1191,20 @@ winMultiWindowXMsgProc(void *pArg)
                 winSendMessageToWM(pProcArg->pWMInfo, &msg);
             }
             else {
+                static Atom atmWindowState, atmMotifWmHints, atmWindowType, atmNormalHints, atmWmHints, atmNetWmIcon;
+                if (atmWmHints == None)
+                    atmWmHints = XInternAtom(pProcArg->pDisplay, "WM_HINTS", False);
+                if (atmWindowState == None)
+                    atmWindowState = XInternAtom(pProcArg->pDisplay, "_NET_WM_STATE", False);
+                if (atmMotifWmHints == None)
+                    atmMotifWmHints = XInternAtom(pProcArg->pDisplay, "_MOTIF_WM_HINTS", False);
+                if (atmWindowType == None)
+                    atmWindowType = XInternAtom(pProcArg->pDisplay, "_NET_WM_WINDOW_TYPE", False);
+                if (atmNormalHints == None)
+                    atmNormalHints = XInternAtom(pProcArg->pDisplay, "WM_NORMAL_HINTS", False);
+                if (atmNetWmIcon == None)
+                    atmNetWmIcon = XInternAtom(pProcArg->pDisplay, "_NET_WM_ICON", False);
+
                 /*
                    Several properties are considered for WM hints, check if this property change affects any of them...
                    (this list needs to be kept in sync with winApplyHints())
@@ -1425,7 +1432,7 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
 
         if (cursor) {
             XDefineCursor(pWMInfo->pDisplay,
-                          DefaultRootWindow(pWMInfo->pDisplay), cursor);
+                          XDefaultRootWindow(pWMInfo->pDisplay), cursor);
             XFreeCursor(pWMInfo->pDisplay, cursor);
         }
     }
@@ -1489,11 +1496,11 @@ winMultiWindowWMErrorHandler(Display * pDisplay, XErrorEvent * pErr)
 static int
 winMultiWindowWMIOErrorHandler(Display * pDisplay)
 {
+    if (g_shutdown) pthread_exit(NULL); 
+
     ErrorF("winMultiWindowWMIOErrorHandler!\n");
 
     if (pthread_equal(pthread_self(), g_winMultiWindowWMThread)) {
-        if (g_shutdown)
-            pthread_exit(NULL);
 
         /* Restart at the main entry point */
         longjmp(g_jmpWMEntry, WIN_JMP_ERROR_IO);
@@ -1538,6 +1545,8 @@ winMultiWindowXMsgProcErrorHandler(Display * pDisplay, XErrorEvent * pErr)
 static int
 winMultiWindowXMsgProcIOErrorHandler(Display * pDisplay)
 {
+    if (g_shutdown) pthread_exit(NULL);
+
     ErrorF("winMultiWindowXMsgProcIOErrorHandler!\n");
 
     if (pthread_equal(pthread_self(), g_winMultiWindowXMsgProcThread)) {
@@ -1600,7 +1609,7 @@ CheckAnotherWindowManager(Display * pDisplay, DWORD dwScreen,
        If other WMs are not allowed, also select one of the events which only one client
        at a time is allowed to select, so other window managers won't start...
      */
-    XSelectInput(pDisplay, RootWindow(pDisplay, dwScreen),
+    XSelectInput(pDisplay, XRootWindow(pDisplay, dwScreen),
                  SubstructureNotifyMask | (!fAllowOtherWM ? ButtonPressMask :
                                            0));
     XSync(pDisplay, 0);
@@ -1614,6 +1623,7 @@ CheckAnotherWindowManager(Display * pDisplay, DWORD dwScreen,
 void
 winDeinitMultiWindowWM(void)
 {
+    if (g_shutdown == TRUE) return;
     winDebug("winDeinitMultiWindowWM - Noting shutdown in progress\n");
     g_shutdown = TRUE;
 }
@@ -1637,11 +1647,11 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
     static Atom windowState, motif_wm_hints, windowType;
     static Atom hiddenState, fullscreenState, belowState, aboveState,
         skiptaskbarState;
-    static Atom dockWindow;
+    static Atom dockWindow, splashWindow;
     static int generation;
     Atom type, *pAtom = NULL;
     int format;
-    unsigned long hint = 0, maxmin = 0, nitems = 0, left = 0;
+    unsigned long hint = 0, maxmin = 0, nitems = 0, left = 0, taskbar = 0;
     unsigned long style, exStyle;
     WindowPtr pWin = GetProp (hWnd, WIN_WINDOW_PROP);
     MwmHints *mwm_hint = NULL;
@@ -1663,6 +1673,7 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
         belowState = XInternAtom(pDisplay, "_NET_WM_STATE_BELOW", False);
         aboveState = XInternAtom(pDisplay, "_NET_WM_STATE_ABOVE", False);
         dockWindow = XInternAtom(pDisplay, "_NET_WM_WINDOW_TYPE_DOCK", False);
+        splashWindow = XInternAtom(pDisplay, "_NET_WM_WINDOW_TYPE_SPLASH", False);
         skiptaskbarState =
             XInternAtom(pDisplay, "_NET_WM_STATE_SKIP_TASKBAR", False);
     }
@@ -1699,7 +1710,7 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
         if (mwm_hint && nitems == PropMwmHintsElements &&
             (mwm_hint->flags & MwmHintsDecorations)) {
             if (!mwm_hint->decorations)
-                hint |= HINT_NOFRAME;
+                hint |= (HINT_NOFRAME | HINT_NOSYSMENU | HINT_NOMINIMIZE | HINT_NOMAXIMIZE);
             else if (!(mwm_hint->decorations & MwmDecorAll)) {
                 if (mwm_hint->decorations & MwmDecorBorder)
                     hint |= HINT_BORDER;
@@ -1736,7 +1747,11 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
                 hint = (hint & ~HINT_NOFRAME) | HINT_SIZEBOX;   /* Xming puts a sizebox on dock windows */
                 *zstyle = HWND_TOPMOST;
             }
-        }
+            else if (*pAtom == splashWindow) {
+                hint |= (HINT_SKIPTASKBAR | HINT_NOSYSMENU | HINT_NOMINIMIZE | HINT_NOMAXIMIZE);
+                *zstyle = HWND_TOPMOST;
+            }
+       }
         if (pAtom)
             XFree(pAtom);
     }
@@ -1772,27 +1787,36 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
      */
     {
         XClassHint class_hint = { 0, 0 };
-        char *application_id = 0;
 
         if (XGetClassHint(pDisplay, iWindow, &class_hint)) {
             char *window_name = 0;
             char *application_id = 0;
+            char *rand_id = 0;
+
             XFetchName(pDisplay, iWindow, &window_name);
+            taskbar = winOverrideTaskbar(class_hint.res_name, class_hint.res_class, window_name);
+            if (taskbar & TASKBAR_NEWTAB) {
+                int irand_id;
+                srand((unsigned)time(NULL));
+                irand_id = rand();
+                asprintf(&rand_id, "%d", irand_id);
+            }
 
             style =
                 winOverrideStyle(class_hint.res_name, class_hint.res_class,
                                  window_name);
 
-#define APPLICATION_ID_FORMAT	"%s.vcxsrv.%s"
-#define APPLICATION_ID_UNKNOWN "unknown"
-            if (class_hint.res_class) {
-                asprintf(&application_id, APPLICATION_ID_FORMAT, XVENDORNAME,
-                         class_hint.res_class);
-            }
-            else {
-                asprintf(&application_id, APPLICATION_ID_FORMAT, XVENDORNAME,
-                         APPLICATION_ID_UNKNOWN);
-            }
+            /* AppUserModelID in the following form CompanyName.ProductName.SubProduct.VersionInformation
+               VersionInformation is set random with NEWTAB and to display-number normally. No spaces allowed. */
+            asprintf(&application_id,
+                     "%s.%s.%s.%s",
+                     XVENDORNAME,
+                     PROJECT_NAME,
+                     (class_hint.res_class) ? class_hint.res_class :
+                     (class_hint.res_name) ? class_hint.res_name :
+                     (window_name) ? window_name : "SubProductUnknown",
+                     (taskbar & TASKBAR_NEWTAB) ? rand_id :
+                     (getenv("DISNO")) ? getenv("DISNO") : 0);
             winSetAppUserModelID(hWnd, application_id);
 
             if (class_hint.res_name)
@@ -1829,10 +1853,12 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
             HINT_SIZEBOX;
     else if (style & STYLE_OUTLINE)
         hint =
-            (hint & ~HINT_NOFRAME & ~HINT_CAPTION) | HINT_BORDER;
+            (hint & ~HINT_NOFRAME & ~HINT_SIZEBOX & ~HINT_CAPTION) |
+            HINT_BORDER;
     else if (style & STYLE_NOFRAME)
         hint =
-            (hint & ~HINT_BORDER & ~HINT_CAPTION) | HINT_NOFRAME;
+            (hint & ~HINT_BORDER & ~HINT_CAPTION & ~HINT_SIZEBOX) |
+            HINT_NOFRAME;
 
     /* Now apply styles to window */
     style = GetWindowLongPtr(hWnd, GWL_STYLE);
@@ -1842,7 +1868,7 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
     style &= ~WS_CAPTION & ~WS_SIZEBOX; /* Just in case */
 
     if (!(hint & ~HINT_SKIPTASKBAR))    /* No hints, default */
-        style = style | WS_CAPTION;
+        style = style | WS_CAPTION | WS_SIZEBOX;
     else if (hint & HINT_NOFRAME)       /* No frame, no decorations */
         style = style & ~WS_CAPTION & ~WS_SIZEBOX;
     else
@@ -1859,26 +1885,21 @@ winApplyHints(Display * pDisplay, Window iWindow, HWND hWnd, HWND * zstyle)
     if (hint & HINT_NOSYSMENU)
         style = style & ~WS_SYSMENU;
 
-    if (hint & HINT_SKIPTASKBAR)
+    if ((hint & HINT_SKIPTASKBAR) || (taskbar & TASKBAR_NOTAB)) {
+        winShowWindowOnTaskbar(hWnd, FALSE);
         style = style & ~WS_MINIMIZEBOX;        /* window will become lost if minimized */
+    }
 
     if (!IsWindow (hWnd))
     {
         ErrorF("Windows window 0x%x has become invalid, so returning without applying hints\n",hWnd);
         return;
     }
-                
-    if (winMultiWindowGetWMNormalHints(pWin, &SizeHints))
-    {
-        if (!(SizeHints.max_width&&SizeHints.max_height&&(SizeHints.min_width == SizeHints.max_width)&&(SizeHints.min_height == SizeHints.max_height) ))
-            style|=WS_SIZEBOX;
-    }
-    else
-        style|=WS_SIZEBOX;
+
     SetWindowLongPtr(hWnd, GWL_STYLE, style);
 
     exStyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
-    if (hint & HINT_SKIPTASKBAR)
+    if ((hint & HINT_SKIPTASKBAR) || (taskbar & TASKBAR_NOTAB))
         exStyle = (exStyle & ~WS_EX_APPWINDOW) | WS_EX_TOOLWINDOW;
     else
         exStyle = (exStyle & ~WS_EX_TOOLWINDOW) | WS_EX_APPWINDOW;

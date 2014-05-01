@@ -67,6 +67,7 @@ EXPORTS
   XDefaultColormap
   XDefaultDepth
   XDefaultScreen
+  XDefaultRootWindow
   XDefaultVisual
   XDefineCursor
   XDeleteContext
@@ -256,6 +257,7 @@ EXPORTS
   XRefreshKeyboardMapping
   XRemoveHost
   XResourceManagerString
+  XRootWindow
   XrmCombineDatabase
   XrmCombineFileDatabase
   XrmDestroyDatabase

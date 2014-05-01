@@ -78,6 +78,10 @@ static void CloseStyles(void);
 
 static void SetNoTrayIcon(void);
 
+static void OpenTaskbar(void);
+static void AddTaskbarLine(char *matchstr, unsigned long type);
+static void CloseTaskbar(void);
+
 static void OpenSysMenu(void);
 static void AddSysMenuLine(char *matchstr, char *menuname, int pos);
 static void CloseSysMenu(void);
@@ -106,8 +110,6 @@ extern int yylex(void);
 %token DEFAULTICON
 %token ICONS
 %token STYLES
-%token TASKBAR
-%token NOTAB
 %token TOPMOST
 %token MAXIMIZE
 %token MINIMIZE
@@ -115,6 +117,9 @@ extern int yylex(void);
 %token NOTITLE
 %token OUTLINE
 %token NOFRAME
+%token TASKBAR
+%token NOTAB
+%token NEWTAB
 %token DEFAULTSYSMENU
 %token SYSMENU
 %token ROOTMENU
@@ -133,6 +138,7 @@ extern int yylex(void);
 %type <uVal>  group1
 %type <uVal>  group2
 %type <uVal>  stylecombo
+%type <uVal>  group3
 %type <iVal>  atspot
 
 %%
@@ -231,14 +237,18 @@ stylelist:	styleline
 styles:	STYLES LB {OpenStyles();} newline_or_nada stylelist RB {CloseStyles();}
 	;
 
-taskbarline:	STRING NOTAB NEWLINE newline_or_nada { SetNoTrayIcon(); free($1); }
+group3:	NOTAB { $$=TASKBAR_NOTAB; }
+        | NEWTAB { $$=TASKBAR_NEWTAB; }
+        ;
+
+taskbarline:	STRING group3 NEWLINE newline_or_nada { AddTaskbarLine($1, $2); free($1); }
 	;
 
 taskbarlist:	taskbarline
 	| taskbarline taskbarlist
 	;
 
-taskbar:	TASKBAR LB newline_or_nada taskbarlist RB
+taskbar:	TASKBAR LB {OpenTaskbar();} newline_or_nada taskbarlist RB {CloseTaskbar();}
 	;
 
 atspot:	{ $$=AT_END; }
@@ -440,6 +450,38 @@ SetNoTrayIcon (void)
   pref.fNoTrayIcon=TRUE;
 }
 
+
+static void
+OpenTaskbar (void)
+{
+  if (pref.taskbar != NULL) {
+    ErrorF("LoadPreferences - Redefining taskbar property\n");
+    free(pref.taskbar);
+    pref.taskbar = NULL;
+  }
+  pref.taskbarItems = 0;
+}
+
+static void
+AddTaskbarLine (char *matchstr, unsigned long type)
+{
+  if (pref.taskbar==NULL)
+    pref.taskbar = malloc(sizeof(TASKBARITEM));
+  else
+    pref.taskbar = realloc(pref.taskbar, sizeof(TASKBARITEM)*(pref.taskbarItems+1));
+
+  strncpy(pref.taskbar[pref.taskbarItems].match, matchstr, MENU_MAX);
+  pref.taskbar[pref.taskbarItems].match[MENU_MAX] = 0;
+
+  pref.taskbar[pref.taskbarItems].type = type;
+
+  pref.taskbarItems++;
+}
+
+static void
+CloseTaskbar (void)
+{
+}
 
 static void
 OpenSysMenu (void)

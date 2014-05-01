@@ -771,3 +771,24 @@ winOverrideStyle(char *res_name, char *res_class, char *wmName)
     /* Didn't find the style, fail gracefully */
     return STYLE_NONE;
 }
+
+/*
+ * Check for a match of the window class to one specified in the
+ * TASKBAR{} section in the prefs file
+ */
+unsigned long
+winOverrideTaskbar(char *res_name, char *res_class, char *wmName)
+{
+    int i;
+
+    for (i=0; i<pref.taskbarItems; i++) {
+        if ((res_name && !strcmp(pref.taskbar[i].match, res_name)) ||
+            (res_class && !strcmp(pref.taskbar[i].match, res_class)) ||
+            (wmName && strstr(wmName, pref.taskbar[i].match))) {
+            if (pref.taskbar[i].type) return pref.taskbar[i].type;
+        }
+    }
+
+    /* Didn't find a taskbar type */
+    return TASKBAR_NONE;
+}
