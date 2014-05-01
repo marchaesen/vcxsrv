@@ -41,10 +41,63 @@
 static mtx_t DynamicIDMutex = _MTX_INITIALIZER_NP;
 static GLuint NextDynamicID = 1;
 
-struct gl_debug_severity
+/**
+ * A namespace element.
+ */
+struct gl_debug_element
 {
    struct simple_node link;
+
    GLuint ID;
+   /* at which severity levels (mesa_debug_severity) is the message enabled */
+   GLbitfield State;
+};
+
+struct gl_debug_namespace
+{
+   struct simple_node Elements;
+   GLbitfield DefaultState;
+};
+
+struct gl_debug_group {
+   struct gl_debug_namespace Namespaces[MESA_DEBUG_SOURCE_COUNT][MESA_DEBUG_TYPE_COUNT];
+};
+
+/**
+ * An error, warning, or other piece of debug information for an application
+ * to consume via GL_ARB_debug_output/GL_KHR_debug.
+ */
+struct gl_debug_message
+{
+   enum mesa_debug_source source;
+   enum mesa_debug_type type;
+   GLuint id;
+   enum mesa_debug_severity severity;
+   GLsizei length;
+   GLcharARB *message;
+};
+
+/**
+ * Debug message log.  It works like a ring buffer.
+ */
+struct gl_debug_log {
+   struct gl_debug_message Messages[MAX_DEBUG_LOGGED_MESSAGES];
+   GLint NextMessage;
+   GLint NumMessages;
+};
+
+struct gl_debug_state
+{
+   GLDEBUGPROC Callback;
+   const void *CallbackData;
+   GLboolean SyncOutput;
+   GLboolean DebugOutput;
+
+   struct gl_debug_group *Groups[MAX_DEBUG_GROUP_STACK_DEPTH];
+   struct gl_debug_message GroupMessages[MAX_DEBUG_GROUP_STACK_DEPTH];
+   GLint GroupStackDepth;
+
+   struct gl_debug_log Log;
 };
 
 static char out_of_memory[] = "Debugging error: out of memory";
@@ -139,235 +192,399 @@ debug_get_id(GLuint *id)
    }
 }
 
-
-/*
- * We store a bitfield in the hash table, with five possible values total.
- *
- * The ENABLED_BIT's purpose is self-explanatory.
- *
- * The FOUND_BIT is needed to differentiate the value of DISABLED from
- * the value returned by HashTableLookup() when it can't find the given key.
- *
- * The KNOWN_SEVERITY bit is a bit complicated:
- *
- * A client may call Control() with an array of IDs, then call Control()
- * on all message IDs of a certain severity, then Insert() one of the
- * previously specified IDs, giving us a known severity level, then call
- * Control() on all message IDs of a certain severity level again.
- *
- * After the first call, those IDs will have a FOUND_BIT, but will not
- * exist in any severity-specific list, so the second call will not
- * impact them. This is undesirable but unavoidable given the API:
- * The only entrypoint that gives a severity for a client-defined ID
- * is the Insert() call.
- *
- * For the sake of Control(), we want to maintain the invariant
- * that an ID will either appear in none of the three severity lists,
- * or appear once, to minimize pointless duplication and potential surprises.
- *
- * Because Insert() is the only place that will learn an ID's severity,
- * it should insert an ID into the appropriate list, but only if the ID
- * doesn't exist in it or any other list yet. Because searching all three
- * lists at O(n) is needlessly expensive, we store KNOWN_SEVERITY.
- */
-enum {
-   FOUND_BIT = 1 << 0,
-   ENABLED_BIT = 1 << 1,
-   KNOWN_SEVERITY = 1 << 2,
-
-   /* HashTable reserves zero as a return value meaning 'not found' */
-   NOT_FOUND = 0,
-   DISABLED = FOUND_BIT,
-   ENABLED = ENABLED_BIT | FOUND_BIT
-};
-
-
-/**
- * Return debug state for the context.  The debug state will be allocated
- * and initialized upon the first call.
- */
-struct gl_debug_state *
-_mesa_get_debug_state(struct gl_context *ctx)
-{
-   if (!ctx->Debug) {
-      ctx->Debug = CALLOC_STRUCT(gl_debug_state);
-      if (!ctx->Debug) {
-         _mesa_error(ctx, GL_OUT_OF_MEMORY, "allocating debug state");
-      }
-      else {
-         struct gl_debug_state *debug = ctx->Debug;
-         int s, t, sev;
-
-         /* Enable all the messages with severity HIGH or MEDIUM by default. */
-         memset(debug->Defaults[0][MESA_DEBUG_SEVERITY_HIGH], GL_TRUE,
-                sizeof debug->Defaults[0][MESA_DEBUG_SEVERITY_HIGH]);
-         memset(debug->Defaults[0][MESA_DEBUG_SEVERITY_MEDIUM], GL_TRUE,
-                sizeof debug->Defaults[0][MESA_DEBUG_SEVERITY_MEDIUM]);
-         memset(debug->Defaults[0][MESA_DEBUG_SEVERITY_LOW], GL_FALSE,
-                sizeof debug->Defaults[0][MESA_DEBUG_SEVERITY_LOW]);
-
-         /* Initialize state for filtering known debug messages. */
-         for (s = 0; s < MESA_DEBUG_SOURCE_COUNT; s++) {
-            for (t = 0; t < MESA_DEBUG_TYPE_COUNT; t++) {
-               debug->Namespaces[0][s][t].IDs = _mesa_NewHashTable();
-               assert(debug->Namespaces[0][s][t].IDs);
-
-               for (sev = 0; sev < MESA_DEBUG_SEVERITY_COUNT; sev++) {
-                  make_empty_list(&debug->Namespaces[0][s][t].Severity[sev]);
-               }
-            }
-         }
-      }
-   }
-
-   return ctx->Debug;
-}
-
-
-
-/**
- * Returns the state of the given message source/type/ID tuple.
- */
-static GLboolean
-should_log(struct gl_context *ctx,
-           enum mesa_debug_source source,
-           enum mesa_debug_type type,
-           GLuint id,
-           enum mesa_debug_severity severity)
-{
-   struct gl_debug_state *debug;
-   uintptr_t state = 0;
-
-   if (!ctx->Debug) {
-      /* no debug state set so far */
-      return GL_FALSE;
-   }
-
-   debug = _mesa_get_debug_state(ctx);
-   if (debug) {
-      const GLint gstack = debug->GroupStackDepth;
-      struct gl_debug_namespace *nspace =
-         &debug->Namespaces[gstack][source][type];
-
-      if (!debug->DebugOutput)
-         return GL_FALSE;
-
-      /* In addition to not being able to store zero as a value, HashTable also
-       * can't use zero as a key.
-       */
-      if (id)
-         state = (uintptr_t)_mesa_HashLookup(nspace->IDs, id);
-      else
-         state = nspace->ZeroID;
-
-      /* Only do this once for each ID. This makes sure the ID exists in,
-       * at most, one list, and does not pointlessly appear multiple times.
-       */
-      if (!(state & KNOWN_SEVERITY)) {
-         struct gl_debug_severity *entry;
-
-         if (state == NOT_FOUND) {
-            if (debug->Defaults[gstack][severity][source][type])
-               state = ENABLED;
-            else
-               state = DISABLED;
-         }
-
-         entry = malloc(sizeof *entry);
-         if (!entry)
-            goto out;
-
-         state |= KNOWN_SEVERITY;
-
-         if (id)
-            _mesa_HashInsert(nspace->IDs, id, (void*)state);
-         else
-            nspace->ZeroID = state;
-
-         entry->ID = id;
-         insert_at_tail(&nspace->Severity[severity], &entry->link);
-      }
-   }
-out:
-   return !!(state & ENABLED_BIT);
-}
-
-
-/**
- * Sets the state of the given message source/type/ID tuple.
- */
 static void
-set_message_state(struct gl_context *ctx,
-                  enum mesa_debug_source source,
-                  enum mesa_debug_type type,
-                  GLuint id, GLboolean enabled)
+debug_message_clear(struct gl_debug_message *msg)
 {
-   struct gl_debug_state *debug = _mesa_get_debug_state(ctx);
-
-   if (debug) {
-      GLint gstack = debug->GroupStackDepth;
-      struct gl_debug_namespace *nspace =
-         &debug->Namespaces[gstack][source][type];
-      uintptr_t state;
-
-      /* In addition to not being able to store zero as a value, HashTable also
-       * can't use zero as a key.
-       */
-      if (id)
-         state = (uintptr_t)_mesa_HashLookup(nspace->IDs, id);
-      else
-         state = nspace->ZeroID;
-
-      if (state == NOT_FOUND)
-         state = enabled ? ENABLED : DISABLED;
-      else {
-         if (enabled)
-            state |= ENABLED_BIT;
-         else
-            state &= ~ENABLED_BIT;
-      }
-
-      if (id)
-         _mesa_HashInsert(nspace->IDs, id, (void*)state);
-      else
-         nspace->ZeroID = state;
-   }
+   if (msg->message != (char*)out_of_memory)
+      free(msg->message);
+   msg->message = NULL;
+   msg->length = 0;
 }
-
 
 static void
-store_message_details(struct gl_debug_msg *emptySlot,
-                      enum mesa_debug_source source,
-                      enum mesa_debug_type type, GLuint id,
-                      enum mesa_debug_severity severity, GLint len,
-                      const char *buf)
+debug_message_store(struct gl_debug_message *msg,
+                    enum mesa_debug_source source,
+                    enum mesa_debug_type type, GLuint id,
+                    enum mesa_debug_severity severity,
+                    GLsizei len, const char *buf)
 {
-   assert(!emptySlot->message && !emptySlot->length);
+   assert(!msg->message && !msg->length);
 
-   emptySlot->message = malloc(len+1);
-   if (emptySlot->message) {
-      (void) strncpy(emptySlot->message, buf, (size_t)len);
-      emptySlot->message[len] = '\0';
+   msg->message = malloc(len+1);
+   if (msg->message) {
+      (void) strncpy(msg->message, buf, (size_t)len);
+      msg->message[len] = '\0';
 
-      emptySlot->length = len+1;
-      emptySlot->source = source;
-      emptySlot->type = type;
-      emptySlot->id = id;
-      emptySlot->severity = severity;
+      msg->length = len+1;
+      msg->source = source;
+      msg->type = type;
+      msg->id = id;
+      msg->severity = severity;
    } else {
       static GLuint oom_msg_id = 0;
       debug_get_id(&oom_msg_id);
 
       /* malloc failed! */
-      emptySlot->message = out_of_memory;
-      emptySlot->length = strlen(out_of_memory)+1;
-      emptySlot->source = MESA_DEBUG_SOURCE_OTHER;
-      emptySlot->type = MESA_DEBUG_TYPE_ERROR;
-      emptySlot->id = oom_msg_id;
-      emptySlot->severity = MESA_DEBUG_SEVERITY_HIGH;
+      msg->message = out_of_memory;
+      msg->length = strlen(out_of_memory)+1;
+      msg->source = MESA_DEBUG_SOURCE_OTHER;
+      msg->type = MESA_DEBUG_TYPE_ERROR;
+      msg->id = oom_msg_id;
+      msg->severity = MESA_DEBUG_SEVERITY_HIGH;
    }
 }
 
+static void
+debug_namespace_init(struct gl_debug_namespace *ns)
+{
+   make_empty_list(&ns->Elements);
+
+   /* Enable all the messages with severity HIGH or MEDIUM by default */
+   ns->DefaultState = (1 << MESA_DEBUG_SEVERITY_HIGH) |
+                      (1 << MESA_DEBUG_SEVERITY_MEDIUM);
+}
+
+static void
+debug_namespace_clear(struct gl_debug_namespace *ns)
+{
+   struct simple_node *node, *tmp;
+
+   foreach_s(node, tmp, &ns->Elements)
+      free(node);
+}
+
+static bool
+debug_namespace_copy(struct gl_debug_namespace *dst,
+                     const struct gl_debug_namespace *src)
+{
+   struct simple_node *node;
+
+   dst->DefaultState = src->DefaultState;
+
+   make_empty_list(&dst->Elements);
+   foreach(node, &src->Elements) {
+      const struct gl_debug_element *elem =
+         (const struct gl_debug_element *) node;
+      struct gl_debug_element *copy;
+
+      copy = malloc(sizeof(*copy));
+      if (!copy) {
+         debug_namespace_clear(dst);
+         return false;
+      }
+
+      copy->ID = elem->ID;
+      copy->State = elem->State;
+      insert_at_tail(&dst->Elements, &copy->link);
+   }
+
+   return true;
+}
+
+/**
+ * Set the state of \p id in the namespace.
+ */
+static bool
+debug_namespace_set(struct gl_debug_namespace *ns,
+                    GLuint id, bool enabled)
+{
+   const uint32_t state = (enabled) ?
+      ((1 << MESA_DEBUG_SEVERITY_COUNT) - 1) : 0;
+   struct gl_debug_element *elem = NULL;
+   struct simple_node *node;
+
+   /* find the element */
+   foreach(node, &ns->Elements) {
+      struct gl_debug_element *tmp = (struct gl_debug_element *) node;
+      if (tmp->ID == id) {
+         elem = tmp;
+         break;
+      }
+   }
+
+   /* we do not need the element if it has the default state */
+   if (ns->DefaultState == state) {
+      if (elem) {
+         remove_from_list(&elem->link);
+         free(elem);
+      }
+      return true;
+   }
+
+   if (!elem) {
+      elem = malloc(sizeof(*elem));
+      if (!elem)
+         return false;
+
+      elem->ID = id;
+      insert_at_tail(&ns->Elements, &elem->link);
+   }
+
+   elem->State = state;
+
+   return true;
+}
+
+/**
+ * Set the default state of the namespace for \p severity.  When \p severity
+ * is MESA_DEBUG_SEVERITY_COUNT, the default values for all severities are
+ * updated.
+ */
+static void
+debug_namespace_set_all(struct gl_debug_namespace *ns,
+                        enum mesa_debug_severity severity,
+                        bool enabled)
+{
+   struct simple_node *node, *tmp;
+   uint32_t mask, val;
+
+   /* set all elements to the same state */
+   if (severity == MESA_DEBUG_SEVERITY_COUNT) {
+      ns->DefaultState = (enabled) ? ((1 << severity) - 1) : 0;
+      debug_namespace_clear(ns);
+      make_empty_list(&ns->Elements);
+      return;
+   }
+
+   mask = 1 << severity;
+   val = (enabled) ? mask : 0;
+
+   ns->DefaultState = (ns->DefaultState & ~mask) | val;
+
+   foreach_s(node, tmp, &ns->Elements) {
+      struct gl_debug_element *elem = (struct gl_debug_element *) node;
+
+      elem->State = (elem->State & ~mask) | val;
+      if (elem->State == ns->DefaultState) {
+         remove_from_list(node);
+         free(node);
+      }
+   }
+}
+
+/**
+ * Get the state of \p id in the namespace.
+ */
+static bool
+debug_namespace_get(const struct gl_debug_namespace *ns, GLuint id,
+                    enum mesa_debug_severity severity)
+{
+   struct simple_node *node;
+   uint32_t state;
+
+   state = ns->DefaultState;
+   foreach(node, &ns->Elements) {
+      struct gl_debug_element *elem = (struct gl_debug_element *) node;
+
+      if (elem->ID == id) {
+         state = elem->State;
+         break;
+      }
+   }
+
+   return (state & (1 << severity));
+}
+
+/**
+ * Allocate and initialize context debug state.
+ */
+static struct gl_debug_state *
+debug_create(void)
+{
+   struct gl_debug_state *debug;
+   int s, t;
+
+   debug = CALLOC_STRUCT(gl_debug_state);
+   if (!debug)
+      return NULL;
+
+   debug->Groups[0] = malloc(sizeof(*debug->Groups[0]));
+   if (!debug->Groups[0]) {
+      free(debug);
+      return NULL;
+   }
+
+   /* Initialize state for filtering known debug messages. */
+   for (s = 0; s < MESA_DEBUG_SOURCE_COUNT; s++) {
+      for (t = 0; t < MESA_DEBUG_TYPE_COUNT; t++)
+         debug_namespace_init(&debug->Groups[0]->Namespaces[s][t]);
+   }
+
+   return debug;
+}
+
+/**
+ * Return true if the top debug group points to the group below it.
+ */
+static bool
+debug_is_group_read_only(const struct gl_debug_state *debug)
+{
+   const GLint gstack = debug->GroupStackDepth;
+   return (gstack > 0 && debug->Groups[gstack] == debug->Groups[gstack - 1]);
+}
+
+/**
+ * Make the top debug group writable.
+ */
+static bool
+debug_make_group_writable(struct gl_debug_state *debug)
+{
+   const GLint gstack = debug->GroupStackDepth;
+   const struct gl_debug_group *src = debug->Groups[gstack];
+   struct gl_debug_group *dst;
+   int s, t;
+
+   if (!debug_is_group_read_only(debug))
+      return true;
+
+   dst = malloc(sizeof(*dst));
+   if (!dst)
+      return false;
+
+   for (s = 0; s < MESA_DEBUG_SOURCE_COUNT; s++) {
+      for (t = 0; t < MESA_DEBUG_TYPE_COUNT; t++) {
+         if (!debug_namespace_copy(&dst->Namespaces[s][t],
+                                   &src->Namespaces[s][t])) {
+            /* error path! */
+            for (t = t - 1; t >= 0; t--)
+               debug_namespace_clear(&dst->Namespaces[s][t]);
+            for (s = s - 1; s >= 0; s--) {
+               for (t = 0; t < MESA_DEBUG_TYPE_COUNT; t++)
+                  debug_namespace_clear(&dst->Namespaces[s][t]);
+            }
+            free(dst);
+            return false;
+         }
+      }
+   }
+
+   debug->Groups[gstack] = dst;
+
+   return true;
+}
+
+/**
+ * Free the top debug group.
+ */
+static void
+debug_clear_group(struct gl_debug_state *debug)
+{
+   const GLint gstack = debug->GroupStackDepth;
+
+   if (!debug_is_group_read_only(debug)) {
+      struct gl_debug_group *grp = debug->Groups[gstack];
+      int s, t;
+
+      for (s = 0; s < MESA_DEBUG_SOURCE_COUNT; s++) {
+         for (t = 0; t < MESA_DEBUG_TYPE_COUNT; t++)
+            debug_namespace_clear(&grp->Namespaces[s][t]);
+      }
+
+      free(grp);
+   }
+
+   debug->Groups[gstack] = NULL;
+}
+
+/**
+ * Loop through debug group stack tearing down states for
+ * filtering debug messages.  Then free debug output state.
+ */
+static void
+debug_destroy(struct gl_debug_state *debug)
+{
+   while (debug->GroupStackDepth > 0) {
+      debug_clear_group(debug);
+      debug->GroupStackDepth--;
+   }
+
+   debug_clear_group(debug);
+   free(debug);
+}
+
+/**
+ * Sets the state of the given message source/type/ID tuple.
+ */
+static void
+debug_set_message_enable(struct gl_debug_state *debug,
+                         enum mesa_debug_source source,
+                         enum mesa_debug_type type,
+                         GLuint id, GLboolean enabled)
+{
+   const GLint gstack = debug->GroupStackDepth;
+   struct gl_debug_namespace *ns;
+
+   debug_make_group_writable(debug);
+   ns = &debug->Groups[gstack]->Namespaces[source][type];
+
+   debug_namespace_set(ns, id, enabled);
+}
+
+/*
+ * Set the state of all message IDs found in the given intersection of
+ * 'source', 'type', and 'severity'.  The _COUNT enum can be used for
+ * GL_DONT_CARE (include all messages in the class).
+ *
+ * This requires both setting the state of all previously seen message
+ * IDs in the hash table, and setting the default state for all
+ * applicable combinations of source/type/severity, so that all the
+ * yet-unknown message IDs that may be used in the future will be
+ * impacted as if they were already known.
+ */
+static void
+debug_set_message_enable_all(struct gl_debug_state *debug,
+                             enum mesa_debug_source source,
+                             enum mesa_debug_type type,
+                             enum mesa_debug_severity severity,
+                             GLboolean enabled)
+{
+   const GLint gstack = debug->GroupStackDepth;
+   int s, t, smax, tmax;
+
+   if (source == MESA_DEBUG_SOURCE_COUNT) {
+      source = 0;
+      smax = MESA_DEBUG_SOURCE_COUNT;
+   } else {
+      smax = source+1;
+   }
+
+   if (type == MESA_DEBUG_TYPE_COUNT) {
+      type = 0;
+      tmax = MESA_DEBUG_TYPE_COUNT;
+   } else {
+      tmax = type+1;
+   }
+
+   debug_make_group_writable(debug);
+
+   for (s = source; s < smax; s++) {
+      for (t = type; t < tmax; t++) {
+         struct gl_debug_namespace *nspace =
+            &debug->Groups[gstack]->Namespaces[s][t];
+         debug_namespace_set_all(nspace, severity, enabled);
+      }
+   }
+}
+
+/**
+ * Returns if the given message source/type/ID tuple is enabled.
+ */
+static bool
+debug_is_message_enabled(const struct gl_debug_state *debug,
+                         enum mesa_debug_source source,
+                         enum mesa_debug_type type,
+                         GLuint id,
+                         enum mesa_debug_severity severity)
+{
+   const GLint gstack = debug->GroupStackDepth;
+   struct gl_debug_group *grp = debug->Groups[gstack];
+   struct gl_debug_namespace *nspace = &grp->Namespaces[source][type];
+
+   if (!debug->DebugOutput)
+      return false;
+
+   return debug_namespace_get(nspace, id, severity);
+}
 
 /**
  * 'buf' is not necessarily a null-terminated string. When logging, copy
@@ -376,20 +593,217 @@ store_message_details(struct gl_debug_msg *emptySlot,
  * the null terminator this time.
  */
 static void
+debug_log_message(struct gl_debug_state *debug,
+                  enum mesa_debug_source source,
+                  enum mesa_debug_type type, GLuint id,
+                  enum mesa_debug_severity severity,
+                  GLsizei len, const char *buf)
+{
+   struct gl_debug_log *log = &debug->Log;
+   GLint nextEmpty;
+   struct gl_debug_message *emptySlot;
+
+   assert(len >= 0 && len < MAX_DEBUG_MESSAGE_LENGTH);
+
+   if (log->NumMessages == MAX_DEBUG_LOGGED_MESSAGES)
+      return;
+
+   nextEmpty = (log->NextMessage + log->NumMessages)
+      % MAX_DEBUG_LOGGED_MESSAGES;
+   emptySlot = &log->Messages[nextEmpty];
+
+   debug_message_store(emptySlot, source, type,
+                       id, severity, len, buf);
+
+   log->NumMessages++;
+}
+
+/**
+ * Return the oldest debug message out of the log.
+ */
+static const struct gl_debug_message *
+debug_fetch_message(const struct gl_debug_state *debug)
+{
+   const struct gl_debug_log *log = &debug->Log;
+
+   return (log->NumMessages) ? &log->Messages[log->NextMessage] : NULL;
+}
+
+/**
+ * Delete the oldest debug messages out of the log.
+ */
+static void
+debug_delete_messages(struct gl_debug_state *debug, unsigned count)
+{
+   struct gl_debug_log *log = &debug->Log;
+
+   if (count > log->NumMessages)
+      count = log->NumMessages;
+
+   while (count--) {
+      struct gl_debug_message *msg = &log->Messages[log->NextMessage];
+
+      debug_message_clear(msg);
+
+      log->NumMessages--;
+      log->NextMessage++;
+      log->NextMessage %= MAX_DEBUG_LOGGED_MESSAGES;
+   }
+}
+
+static struct gl_debug_message *
+debug_get_group_message(struct gl_debug_state *debug)
+{
+   return &debug->GroupMessages[debug->GroupStackDepth];
+}
+
+static void
+debug_push_group(struct gl_debug_state *debug)
+{
+   const GLint gstack = debug->GroupStackDepth;
+
+   /* just point to the previous stack */
+   debug->Groups[gstack + 1] = debug->Groups[gstack];
+   debug->GroupStackDepth++;
+}
+
+static void
+debug_pop_group(struct gl_debug_state *debug)
+{
+   debug_clear_group(debug);
+   debug->GroupStackDepth--;
+}
+
+
+/**
+ * Return debug state for the context.  The debug state will be allocated
+ * and initialized upon the first call.
+ */
+static struct gl_debug_state *
+_mesa_get_debug_state(struct gl_context *ctx)
+{
+   if (!ctx->Debug) {
+      ctx->Debug = debug_create();
+      if (!ctx->Debug) {
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "allocating debug state");
+      }
+   }
+
+   return ctx->Debug;
+}
+
+/**
+ * Set the integer debug state specified by \p pname.  This can be called from
+ * _mesa_set_enable for example.
+ */
+bool
+_mesa_set_debug_state_int(struct gl_context *ctx, GLenum pname, GLint val)
+{
+   struct gl_debug_state *debug = _mesa_get_debug_state(ctx);
+
+   if (!debug)
+      return false;
+
+   switch (pname) {
+   case GL_DEBUG_OUTPUT:
+      debug->DebugOutput = (val != 0);
+      break;
+   case GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB:
+      debug->SyncOutput = (val != 0);
+      break;
+   default:
+      assert(!"unknown debug output param");
+      break;
+   }
+
+   return true;
+}
+
+/**
+ * Query the integer debug state specified by \p pname.  This can be called
+ * _mesa_GetIntegerv for example.
+ */
+GLint
+_mesa_get_debug_state_int(struct gl_context *ctx, GLenum pname)
+{
+   struct gl_debug_state *debug;
+   GLint val;
+
+   debug = ctx->Debug;
+   if (!debug)
+      return 0;
+
+   switch (pname) {
+   case GL_DEBUG_OUTPUT:
+      val = debug->DebugOutput;
+      break;
+   case GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB:
+      val = debug->SyncOutput;
+      break;
+   case GL_DEBUG_LOGGED_MESSAGES:
+      val = debug->Log.NumMessages;
+      break;
+   case GL_DEBUG_NEXT_LOGGED_MESSAGE_LENGTH:
+      val = (debug->Log.NumMessages) ?
+         debug->Log.Messages[debug->Log.NextMessage].length : 0;
+      break;
+   case GL_DEBUG_GROUP_STACK_DEPTH:
+      val = debug->GroupStackDepth;
+      break;
+   default:
+      assert(!"unknown debug output param");
+      val = 0;
+      break;
+   }
+
+   return val;
+}
+
+/**
+ * Query the pointer debug state specified by \p pname.  This can be called
+ * _mesa_GetPointerv for example.
+ */
+void *
+_mesa_get_debug_state_ptr(struct gl_context *ctx, GLenum pname)
+{
+   struct gl_debug_state *debug;
+   void *val;
+
+   debug = ctx->Debug;
+   if (!debug)
+      return NULL;
+
+   switch (pname) {
+   case GL_DEBUG_CALLBACK_FUNCTION_ARB:
+      val = (void *) debug->Callback;
+      break;
+   case GL_DEBUG_CALLBACK_USER_PARAM_ARB:
+      val = (void *) debug->CallbackData;
+      break;
+   default:
+      assert(!"unknown debug output param");
+      val = NULL;
+      break;
+   }
+
+   return val;
+}
+
+
+/**
+ * Log a client or driver debug message.
+ */
+static void
 log_msg(struct gl_context *ctx, enum mesa_debug_source source,
         enum mesa_debug_type type, GLuint id,
         enum mesa_debug_severity severity, GLint len, const char *buf)
 {
    struct gl_debug_state *debug = _mesa_get_debug_state(ctx);
-   GLint nextEmpty;
-   struct gl_debug_msg *emptySlot;
 
    if (!debug)
       return;
 
-   assert(len >= 0 && len < MAX_DEBUG_MESSAGE_LENGTH);
-
-   if (!should_log(ctx, source, type, id, severity))
+   if (!debug_is_message_enabled(debug, source, type, id, severity))
       return;
 
    if (debug->Callback) {
@@ -401,83 +815,7 @@ log_msg(struct gl_context *ctx, enum mesa_debug_source source,
       return;
    }
 
-   if (debug->NumMessages == MAX_DEBUG_LOGGED_MESSAGES)
-      return;
-
-   nextEmpty = (debug->NextMsg + debug->NumMessages)
-                          % MAX_DEBUG_LOGGED_MESSAGES;
-   emptySlot = &debug->Log[nextEmpty];
-
-   store_message_details(emptySlot, source, type, id, severity, len, buf);
-
-   if (debug->NumMessages == 0)
-      debug->NextMsgLength = debug->Log[debug->NextMsg].length;
-
-   debug->NumMessages++;
-}
-
-
-/**
- * Pop the oldest debug message out of the log.
- * Writes the message string, including the null terminator, into 'buf',
- * using up to 'bufSize' bytes. If 'bufSize' is too small, or
- * if 'buf' is NULL, nothing is written.
- *
- * Returns the number of bytes written on success, or when 'buf' is NULL,
- * the number that would have been written. A return value of 0
- * indicates failure.
- */
-static GLsizei
-get_msg(struct gl_context *ctx, GLenum *source, GLenum *type,
-        GLuint *id, GLenum *severity, GLsizei bufSize, char *buf)
-{
-   struct gl_debug_state *debug = _mesa_get_debug_state(ctx);
-   struct gl_debug_msg *msg;
-   GLsizei length;
-
-   if (!debug || debug->NumMessages == 0)
-      return 0;
-
-   msg = &debug->Log[debug->NextMsg];
-   length = msg->length;
-
-   assert(length > 0 && length == debug->NextMsgLength);
-
-   if (bufSize < length && buf != NULL)
-      return 0;
-
-   if (severity) {
-      *severity = debug_severity_enums[msg->severity];
-   }
-
-   if (source) {
-      *source = debug_source_enums[msg->source];
-   }
-
-   if (type) {
-      *type = debug_type_enums[msg->type];
-   }
-
-   if (id) {
-      *id = msg->id;
-   }
-
-   if (buf) {
-      assert(msg->message[length-1] == '\0');
-      (void) strncpy(buf, msg->message, (size_t)length);
-   }
-
-   if (msg->message != (char*)out_of_memory)
-      free(msg->message);
-   msg->message = NULL;
-   msg->length = 0;
-
-   debug->NumMessages--;
-   debug->NextMsg++;
-   debug->NextMsg %= MAX_DEBUG_LOGGED_MESSAGES;
-   debug->NextMsgLength = debug->Log[debug->NextMsg].length;
-
-   return length;
+   debug_log_message(debug, source, type, id, severity, len, buf);
 }
 
 
@@ -560,172 +898,18 @@ error:
 }
 
 
-/**
- * Set the state of all message IDs found in the given intersection of
- * 'source', 'type', and 'severity'.  The _COUNT enum can be used for
- * GL_DONT_CARE (include all messages in the class).
- *
- * This requires both setting the state of all previously seen message
- * IDs in the hash table, and setting the default state for all
- * applicable combinations of source/type/severity, so that all the
- * yet-unknown message IDs that may be used in the future will be
- * impacted as if they were already known.
- */
-static void
-control_messages(struct gl_context *ctx,
-                 enum mesa_debug_source source,
-                 enum mesa_debug_type type,
-                 enum mesa_debug_severity severity,
-                 GLboolean enabled)
+static GLboolean
+validate_length(struct gl_context *ctx, const char *callerstr, GLsizei length)
 {
-   struct gl_debug_state *debug = _mesa_get_debug_state(ctx);
-   int s, t, sev, smax, tmax, sevmax;
-   const GLint gstack = debug ? debug->GroupStackDepth : 0;
-
-   if (!debug)
-      return;
-
-   if (source == MESA_DEBUG_SOURCE_COUNT) {
-      source = 0;
-      smax = MESA_DEBUG_SOURCE_COUNT;
-   } else {
-      smax = source+1;
-   }
-
-   if (type == MESA_DEBUG_TYPE_COUNT) {
-      type = 0;
-      tmax = MESA_DEBUG_TYPE_COUNT;
-   } else {
-      tmax = type+1;
-   }
-
-   if (severity == MESA_DEBUG_SEVERITY_COUNT) {
-      severity = 0;
-      sevmax = MESA_DEBUG_SEVERITY_COUNT;
-   } else {
-      sevmax = severity+1;
-   }
-
-   for (sev = severity; sev < sevmax; sev++) {
-      for (s = source; s < smax; s++) {
-         for (t = type; t < tmax; t++) {
-            struct simple_node *node;
-            struct gl_debug_severity *entry;
-
-            /* change the default for IDs we've never seen before. */
-            debug->Defaults[gstack][sev][s][t] = enabled;
-
-            /* Now change the state of IDs we *have* seen... */
-            foreach(node, &debug->Namespaces[gstack][s][t].Severity[sev]) {
-               entry = (struct gl_debug_severity *)node;
-               set_message_state(ctx, s, t, entry->ID, enabled);
-            }
-         }
-      }
-   }
-}
-
-
-/**
- * Debugging-message namespaces with the source APPLICATION or THIRD_PARTY
- * require special handling, since the IDs in them are controlled by clients,
- * not the OpenGL implementation.
- *
- * 'count' is the length of the array 'ids'. If 'count' is nonzero, all
- * the given IDs in the namespace defined by 'esource' and 'etype'
- * will be affected.
- *
- * If 'count' is zero, this sets the state of all IDs that match
- * the combination of 'esource', 'etype', and 'eseverity'.
- */
-static void
-control_app_messages(struct gl_context *ctx, GLenum esource, GLenum etype,
-                     GLenum eseverity, GLsizei count, const GLuint *ids,
-                     GLboolean enabled)
-{
-   GLsizei i;
-   enum mesa_debug_source source = gl_enum_to_debug_source(esource);
-   enum mesa_debug_type type = gl_enum_to_debug_type(etype);
-   enum mesa_debug_severity severity = gl_enum_to_debug_severity(eseverity);
-
-   for (i = 0; i < count; i++)
-      set_message_state(ctx, source, type, ids[i], enabled);
-
-   if (count)
-      return;
-
-   control_messages(ctx, source, type, severity, enabled);
-}
-
-
-/**
- * This is a generic message insert function.
- * Validation of source, type and severity parameters should be done
- * before calling this funtion.
- */
-static void
-message_insert(GLenum source, GLenum type, GLuint id,
-               GLenum severity, GLint length, const GLchar *buf,
-               const char *callerstr)
-{
-   GET_CURRENT_CONTEXT(ctx);
-
-   if (length < 0)
-      length = strlen(buf);
-
    if (length >= MAX_DEBUG_MESSAGE_LENGTH) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                  "%s(length=%d, which is not less than "
                  "GL_MAX_DEBUG_MESSAGE_LENGTH=%d)", callerstr, length,
                  MAX_DEBUG_MESSAGE_LENGTH);
-      return;
+      return GL_FALSE;
    }
 
-   log_msg(ctx,
-           gl_enum_to_debug_source(source),
-           gl_enum_to_debug_type(type), id,
-           gl_enum_to_debug_severity(severity), length, buf);
-}
-
-
-static void
-do_nothing(GLuint key, void *data, void *userData)
-{
-}
-
-
-/**
- * Free context state pertaining to error/debug state for the given stack
- * depth.
- */
-static void
-free_errors_data(struct gl_context *ctx, GLint gstack)
-{
-   struct gl_debug_state *debug = ctx->Debug;
-   enum mesa_debug_type t;
-   enum mesa_debug_source s;
-   enum mesa_debug_severity sev;
-
-   assert(debug);
-
-   /* Tear down state for filtering debug messages. */
-   for (s = 0; s < MESA_DEBUG_SOURCE_COUNT; s++) {
-      for (t = 0; t < MESA_DEBUG_TYPE_COUNT; t++) {
-         _mesa_HashDeleteAll(debug->Namespaces[gstack][s][t].IDs,
-                             do_nothing, NULL);
-         _mesa_DeleteHashTable(debug->Namespaces[gstack][s][t].IDs);
-         for (sev = 0; sev < MESA_DEBUG_SEVERITY_COUNT; sev++) {
-            struct simple_node *node, *tmp;
-            struct gl_debug_severity *entry;
-
-            foreach_s(node, tmp,
-                      &debug->Namespaces[gstack][s][t].Severity[sev]) {
-               entry = (struct gl_debug_severity *)node;
-               free(entry);
-            }
-         }
-      }
-   }
+   return GL_TRUE;
 }
 
 
@@ -741,7 +925,15 @@ _mesa_DebugMessageInsert(GLenum source, GLenum type, GLuint id,
    if (!validate_params(ctx, INSERT, callerstr, source, type, severity))
       return; /* GL_INVALID_ENUM */
 
-   message_insert(source, type, id, severity, length, buf, callerstr);
+   if (length < 0)
+      length = strlen(buf);
+   if (!validate_length(ctx, callerstr, length))
+      return; /* GL_INVALID_VALUE */
+
+   log_msg(ctx, gl_enum_to_debug_source(source),
+           gl_enum_to_debug_type(type), id,
+           gl_enum_to_debug_severity(severity),
+           length, buf);
 }
 
 
@@ -751,6 +943,7 @@ _mesa_GetDebugMessageLog(GLuint count, GLsizei logSize, GLenum *sources,
                          GLsizei *lengths, GLchar *messageLog)
 {
    GET_CURRENT_CONTEXT(ctx);
+   struct gl_debug_state *debug;
    GLuint ret;
 
    if (!messageLog)
@@ -763,29 +956,39 @@ _mesa_GetDebugMessageLog(GLuint count, GLsizei logSize, GLenum *sources,
       return 0;
    }
 
+   debug = _mesa_get_debug_state(ctx);
+   if (!debug)
+      return 0;
+
    for (ret = 0; ret < count; ret++) {
-      GLsizei written = get_msg(ctx, sources, types, ids, severities,
-                                logSize, messageLog);
-      if (!written)
+      const struct gl_debug_message *msg = debug_fetch_message(debug);
+
+      if (!msg)
+         break;
+
+      if (logSize < msg->length && messageLog != NULL)
          break;
 
       if (messageLog) {
-         messageLog += written;
-         logSize -= written;
-      }
-      if (lengths) {
-         *lengths = written;
-         lengths++;
+         assert(msg->message[msg->length-1] == '\0');
+         (void) strncpy(messageLog, msg->message, (size_t)msg->length);
+
+         messageLog += msg->length;
+         logSize -= msg->length;
       }
 
+      if (lengths)
+         *lengths++ = msg->length;
       if (severities)
-         severities++;
+         *severities++ = debug_severity_enums[msg->severity];
       if (sources)
-         sources++;
+         *sources++ = debug_source_enums[msg->source];
       if (types)
-         types++;
+         *types++ = debug_type_enums[msg->type];
       if (ids)
-         ids++;
+         *ids++ = msg->id;
+
+      debug_delete_messages(debug, 1);
    }
 
    return ret;
@@ -797,9 +1000,12 @@ _mesa_DebugMessageControl(GLenum gl_source, GLenum gl_type,
                           GLenum gl_severity, GLsizei count,
                           const GLuint *ids, GLboolean enabled)
 {
-   const char *callerstr = "glDebugMessageControl";
-
    GET_CURRENT_CONTEXT(ctx);
+   enum mesa_debug_source source = gl_enum_to_debug_source(gl_source);
+   enum mesa_debug_type type = gl_enum_to_debug_type(gl_type);
+   enum mesa_debug_severity severity = gl_enum_to_debug_severity(gl_severity);
+   const char *callerstr = "glDebugMessageControl";
+   struct gl_debug_state *debug;
 
    if (count < 0) {
       _mesa_error(ctx, GL_INVALID_VALUE,
@@ -821,8 +1027,18 @@ _mesa_DebugMessageControl(GLenum gl_source, GLenum gl_type,
       return;
    }
 
-   control_app_messages(ctx, gl_source, gl_type, gl_severity,
-                        count, ids, enabled);
+   debug = _mesa_get_debug_state(ctx);
+   if (!debug)
+      return;
+
+   if (count) {
+      GLsizei i;
+      for (i = 0; i < count; i++)
+         debug_set_message_enable(debug, source, type, ids[i], enabled);
+   }
+   else {
+      debug_set_message_enable_all(debug, source, type, severity, enabled);
+   }
 }
 
 
@@ -845,10 +1061,7 @@ _mesa_PushDebugGroup(GLenum source, GLuint id, GLsizei length,
    GET_CURRENT_CONTEXT(ctx);
    struct gl_debug_state *debug = _mesa_get_debug_state(ctx);
    const char *callerstr = "glPushDebugGroup";
-   int s, t, sev;
-   GLint prevStackDepth;
-   GLint currStackDepth;
-   struct gl_debug_msg *emptySlot;
+   struct gl_debug_message *emptySlot;
 
    if (!debug)
       return;
@@ -868,55 +1081,26 @@ _mesa_PushDebugGroup(GLenum source, GLuint id, GLsizei length,
       return;
    }
 
-   message_insert(source, GL_DEBUG_TYPE_PUSH_GROUP, id,
-                  GL_DEBUG_SEVERITY_NOTIFICATION, length,
-                  message, callerstr);
-
-   prevStackDepth = debug->GroupStackDepth;
-   debug->GroupStackDepth++;
-   currStackDepth = debug->GroupStackDepth;
-
-   /* pop reuses the message details from push so we store this */
    if (length < 0)
       length = strlen(message);
-   emptySlot = &debug->DebugGroupMsgs[debug->GroupStackDepth];
-   store_message_details(emptySlot, gl_enum_to_debug_source(source),
-                         gl_enum_to_debug_type(GL_DEBUG_TYPE_PUSH_GROUP),
-                         id,
-                   gl_enum_to_debug_severity(GL_DEBUG_SEVERITY_NOTIFICATION),
-                         length, message);
+   if (!validate_length(ctx, callerstr, length))
+      return; /* GL_INVALID_VALUE */
 
-   /* inherit the control volume of the debug group previously residing on
-    * the top of the debug group stack
-    */
-   for (s = 0; s < MESA_DEBUG_SOURCE_COUNT; s++) {
-      for (t = 0; t < MESA_DEBUG_TYPE_COUNT; t++) {
-         /* copy id settings */
-         debug->Namespaces[currStackDepth][s][t].IDs =
-            _mesa_HashClone(debug->Namespaces[prevStackDepth][s][t].IDs);
+   log_msg(ctx, gl_enum_to_debug_source(source),
+           MESA_DEBUG_TYPE_PUSH_GROUP, id,
+           MESA_DEBUG_SEVERITY_NOTIFICATION, length,
+           message);
 
-         for (sev = 0; sev < MESA_DEBUG_SEVERITY_COUNT; sev++) {
-            struct gl_debug_severity *entry, *prevEntry;
-            struct simple_node *node;
+   /* pop reuses the message details from push so we store this */
+   emptySlot = debug_get_group_message(debug);
+   debug_message_store(emptySlot,
+                       gl_enum_to_debug_source(source),
+                       gl_enum_to_debug_type(GL_DEBUG_TYPE_PUSH_GROUP),
+                       id,
+                       gl_enum_to_debug_severity(GL_DEBUG_SEVERITY_NOTIFICATION),
+                       length, message);
 
-            /* copy default settings for unknown ids */
-            debug->Defaults[currStackDepth][sev][s][t] =
-               debug->Defaults[prevStackDepth][sev][s][t];
-
-            /* copy known id severity settings */
-            make_empty_list(&debug->Namespaces[currStackDepth][s][t].Severity[sev]);
-            foreach(node, &debug->Namespaces[prevStackDepth][s][t].Severity[sev]) {
-               prevEntry = (struct gl_debug_severity *)node;
-               entry = malloc(sizeof *entry);
-               if (!entry)
-                  return;
-
-               entry->ID = prevEntry->ID;
-               insert_at_tail(&debug->Namespaces[currStackDepth][s][t].Severity[sev], &entry->link);
-            }
-         }
-      }
-   }
+   debug_push_group(debug);
 }
 
 
@@ -926,8 +1110,7 @@ _mesa_PopDebugGroup(void)
    GET_CURRENT_CONTEXT(ctx);
    struct gl_debug_state *debug = _mesa_get_debug_state(ctx);
    const char *callerstr = "glPopDebugGroup";
-   struct gl_debug_msg *gdmessage;
-   GLint prevStackDepth;
+   struct gl_debug_message *gdmessage;
 
    if (!debug)
       return;
@@ -937,26 +1120,16 @@ _mesa_PopDebugGroup(void)
       return;
    }
 
-   prevStackDepth = debug->GroupStackDepth;
-   debug->GroupStackDepth--;
+   debug_pop_group(debug);
 
-   gdmessage = &debug->DebugGroupMsgs[prevStackDepth];
-   /* using log_msg() directly here as verification of parameters
-    * already done in push
-    */
+   gdmessage = debug_get_group_message(debug);
    log_msg(ctx, gdmessage->source,
            gl_enum_to_debug_type(GL_DEBUG_TYPE_POP_GROUP),
            gdmessage->id,
            gl_enum_to_debug_severity(GL_DEBUG_SEVERITY_NOTIFICATION),
            gdmessage->length, gdmessage->message);
 
-   if (gdmessage->message != (char*)out_of_memory)
-      free(gdmessage->message);
-   gdmessage->message = NULL;
-   gdmessage->length = 0;
-
-   /* free popped debug group data */
-   free_errors_data(ctx, prevStackDepth);
+   debug_message_clear(gdmessage);
 }
 
 
@@ -967,20 +1140,11 @@ _mesa_init_errors(struct gl_context *ctx)
 }
 
 
-/**
- * Loop through debug group stack tearing down states for
- * filtering debug messages.  Then free debug output state.
- */
 void
 _mesa_free_errors_data(struct gl_context *ctx)
 {
    if (ctx->Debug) {
-      GLint i;
-
-      for (i = 0; i <= ctx->Debug->GroupStackDepth; i++) {
-         free_errors_data(ctx, i);
-      }
-      free(ctx->Debug);
+      debug_destroy(ctx->Debug);
       /* set to NULL just in case it is used before context is completely gone. */
       ctx->Debug = NULL;
    }
@@ -1198,11 +1362,16 @@ _mesa_error( struct gl_context *ctx, GLenum error, const char *fmtString, ... )
    debug_get_id(&error_msg_id);
 
    do_output = should_output(ctx, error, fmtString);
-   do_log = should_log(ctx,
-                       MESA_DEBUG_SOURCE_API,
-                       MESA_DEBUG_TYPE_ERROR,
-                       error_msg_id,
-                       MESA_DEBUG_SEVERITY_HIGH);
+   if (ctx->Debug) {
+      do_log = debug_is_message_enabled(ctx->Debug,
+                                        MESA_DEBUG_SOURCE_API,
+                                        MESA_DEBUG_TYPE_ERROR,
+                                        error_msg_id,
+                                        MESA_DEBUG_SEVERITY_HIGH);
+   }
+   else {
+      do_log = GL_FALSE;
+   }
 
    if (do_output || do_log) {
       char s[MAX_DEBUG_MESSAGE_LENGTH], s2[MAX_DEBUG_MESSAGE_LENGTH];

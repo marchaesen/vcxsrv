@@ -676,7 +676,7 @@ TIramdacHWCursorInit(xf86CursorInfoPtr infoPtr)
         HARDWARE_CURSOR_SOURCE_MASK_NOT_INTERLEAVED;
     infoPtr->SetCursorColors = TIramdacSetCursorColors;
     infoPtr->SetCursorPosition = TIramdacSetCursorPosition;
-    infoPtr->LoadCursorImage = TIramdacLoadCursorImage;
+    infoPtr->LoadCursorImageCheck = TIramdacLoadCursorImage;
     infoPtr->HideCursor = TIramdacHideCursor;
     infoPtr->ShowCursor = TIramdacShowCursor;
     infoPtr->UseHWCursor = TIramdacUseHWCursor;

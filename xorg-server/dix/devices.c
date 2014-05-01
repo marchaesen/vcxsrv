@@ -1480,7 +1480,6 @@ InitPtrFeedbackClassDeviceStruct(DeviceIntPtr dev, PtrCtrlProcPtr controlProc)
     PtrFeedbackPtr feedc;
 
     BUG_RETURN_VAL(dev == NULL, FALSE);
-    BUG_RETURN_VAL(dev->ptrfeed != NULL, FALSE);
 
     feedc = malloc(sizeof(PtrFeedbackClassRec));
     if (!feedc)
@@ -1524,7 +1523,6 @@ InitStringFeedbackClassDeviceStruct(DeviceIntPtr dev,
     StringFeedbackPtr feedc;
 
     BUG_RETURN_VAL(dev == NULL, FALSE);
-    BUG_RETURN_VAL(dev->stringfeed != NULL, FALSE);
 
     feedc = malloc(sizeof(StringFeedbackClassRec));
     if (!feedc)
@@ -1561,7 +1559,6 @@ InitBellFeedbackClassDeviceStruct(DeviceIntPtr dev, BellProcPtr bellProc,
     BellFeedbackPtr feedc;
 
     BUG_RETURN_VAL(dev == NULL, FALSE);
-    BUG_RETURN_VAL(dev->bell != NULL, FALSE);
 
     feedc = malloc(sizeof(BellFeedbackClassRec));
     if (!feedc)
@@ -1583,7 +1580,6 @@ InitLedFeedbackClassDeviceStruct(DeviceIntPtr dev, LedCtrlProcPtr controlProc)
     LedFeedbackPtr feedc;
 
     BUG_RETURN_VAL(dev == NULL, FALSE);
-    BUG_RETURN_VAL(dev->leds != NULL, FALSE);
 
     feedc = malloc(sizeof(LedFeedbackClassRec));
     if (!feedc)
@@ -1606,7 +1602,6 @@ InitIntegerFeedbackClassDeviceStruct(DeviceIntPtr dev,
     IntegerFeedbackPtr feedc;
 
     BUG_RETURN_VAL(dev == NULL, FALSE);
-    BUG_RETURN_VAL(dev->intfeed != NULL, FALSE);
 
     feedc = malloc(sizeof(IntegerFeedbackClassRec));
     if (!feedc)

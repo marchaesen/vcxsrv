@@ -551,6 +551,7 @@ UseMsg(void)
     ErrorF("-cc int                default color visual class\n");
     ErrorF("-nocursor              disable the cursor\n");
     ErrorF("-core                  generate core dump on fatal error\n");
+    ErrorF("-displayfd fd          file descriptor to write display number to when ready to connect\n");
 #ifdef _MSC_VER
     ErrorF("-dpi [auto|int]        screen resolution set to native or this dpi\n");
 #else

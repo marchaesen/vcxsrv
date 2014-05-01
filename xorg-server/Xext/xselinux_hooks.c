@@ -812,9 +812,9 @@ SELinuxBlockHandler(void *data, struct timeval **tv, void *read_mask)
 }
 
 static void
-SELinuxWakeupHandler(void *data, int err, void *read_mask)
+SELinuxWakeupHandler(void *data, int num_fds, void *read_mask)
 {
-    if (FD_ISSET(netlink_fd, (fd_set *) read_mask))
+    if (num_fds > 0 && FD_ISSET(netlink_fd, (fd_set *) read_mask))
         avc_netlink_check_nb();
 }
 

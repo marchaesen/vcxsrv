@@ -183,8 +183,13 @@ st_framebuffer_validate(struct st_framebuffer *stfb,
    uint width, height;
    unsigned i;
    boolean changed = FALSE;
-   int32_t new_stamp = p_atomic_read(&stfb->iface->stamp);
+   int32_t new_stamp;
 
+   /* Check for incomplete framebuffers (e.g. EGL_KHR_surfaceless_context) */
+   if (!stfb->iface)
+      return;
+
+   new_stamp = p_atomic_read(&stfb->iface->stamp);
    if (stfb->iface_stamp == new_stamp)
       return;
 
@@ -663,13 +668,11 @@ st_api_create_context(struct st_api *stapi, struct st_manager *smapi,
    }
 
    if (attribs->flags & ST_CONTEXT_FLAG_DEBUG){
-      struct gl_debug_state *debug = _mesa_get_debug_state(st->ctx);
-      if (!debug) {
+      if (!_mesa_set_debug_state_int(st->ctx, GL_DEBUG_OUTPUT, GL_TRUE)) {
          *error = ST_CONTEXT_ERROR_NO_MEMORY;
          return NULL;
       }
       st->ctx->Const.ContextFlags |= GL_CONTEXT_FLAG_DEBUG_BIT;
-      debug->DebugOutput = GL_TRUE;
    }
 
    if (attribs->flags & ST_CONTEXT_FLAG_FORWARD_COMPATIBLE)

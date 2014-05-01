@@ -622,7 +622,7 @@ IBMramdac526HWCursorInit(xf86CursorInfoPtr infoPtr)
         HARDWARE_CURSOR_SOURCE_MASK_INTERLEAVE_1;
     infoPtr->SetCursorColors = IBMramdac526SetCursorColors;
     infoPtr->SetCursorPosition = IBMramdac526SetCursorPosition;
-    infoPtr->LoadCursorImage = IBMramdac526LoadCursorImage;
+    infoPtr->LoadCursorImageCheck = IBMramdac526LoadCursorImage;
     infoPtr->HideCursor = IBMramdac526HideCursor;
     infoPtr->ShowCursor = IBMramdac526ShowCursor;
     infoPtr->UseHWCursor = IBMramdac526UseHWCursor;
@@ -638,7 +638,7 @@ IBMramdac640HWCursorInit(xf86CursorInfoPtr infoPtr)
         HARDWARE_CURSOR_SOURCE_MASK_INTERLEAVE_1;
     infoPtr->SetCursorColors = IBMramdac640SetCursorColors;
     infoPtr->SetCursorPosition = IBMramdac640SetCursorPosition;
-    infoPtr->LoadCursorImage = IBMramdac640LoadCursorImage;
+    infoPtr->LoadCursorImageCheck = IBMramdac640LoadCursorImage;
     infoPtr->HideCursor = IBMramdac640HideCursor;
     infoPtr->ShowCursor = IBMramdac640ShowCursor;
     infoPtr->UseHWCursor = IBMramdac640UseHWCursor;

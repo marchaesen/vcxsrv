@@ -233,13 +233,13 @@ static void make_state_key( struct gl_context *ctx, struct state_key *key )
 
    if (ctx->Texture._TexGenEnabled ||
        ctx->Texture._TexMatEnabled ||
-       ctx->Texture._EnabledUnits)
+       ctx->Texture._MaxEnabledTexImageUnit != -1)
       key->texture_enabled_global = 1;
 
    for (i = 0; i < MAX_TEXTURE_COORD_UNITS; i++) {
       struct gl_texture_unit *texUnit = &ctx->Texture.Unit[i];
 
-      if (texUnit->_ReallyEnabled)
+      if (texUnit->_Current)
 	 key->unit[i].texunit_really_enabled = 1;
 
       if (ctx->Point.PointSprite)

@@ -325,6 +325,7 @@ case $host_cpu in
 	;;
   arm*)
 	ARM_VIDEO=yes
+	DEFAULT_INT10="stub"
 	;;
   i*86)
 	I386_VIDEO=yes

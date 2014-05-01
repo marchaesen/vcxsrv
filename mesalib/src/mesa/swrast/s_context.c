@@ -73,7 +73,7 @@ _swrast_update_rasterflags( struct gl_context *ctx )
       }
    }
    if (ctx->Color.ColorLogicOpEnabled) rasterMask |= LOGIC_OP_BIT;
-   if (ctx->Texture._EnabledUnits)     rasterMask |= TEXTURE_BIT;
+   if (ctx->Texture._MaxEnabledTexImageUnit >= 0) rasterMask |= TEXTURE_BIT;
    if (   ctx->ViewportArray[0].X < 0
        || ctx->ViewportArray[0].X + ctx->ViewportArray[0].Width > (GLfloat) ctx->DrawBuffer->Width
        || ctx->ViewportArray[0].Y < 0
@@ -286,7 +286,7 @@ _swrast_update_specular_vertex_add(struct gl_context *ctx)
        ctx->Light.Model.ColorControl == GL_SEPARATE_SPECULAR_COLOR);
 
    swrast->SpecularVertexAdd = (separateSpecular
-                                && ctx->Texture._EnabledUnits == 0x0
+                                && ctx->Texture._MaxEnabledTexImageUnit == -1
                                 && !_swrast_use_fragment_program(ctx)
                                 && !ctx->ATIFragmentShader._Enabled);
 }
@@ -523,7 +523,7 @@ _swrast_update_active_attribs(struct gl_context *ctx)
       if (swrast->_FogEnabled)
          attribsMask |= VARYING_BIT_FOGC;
 
-      attribsMask |= (ctx->Texture._EnabledUnits << VARYING_SLOT_TEX0);
+      attribsMask |= (ctx->Texture._EnabledCoordUnits << VARYING_SLOT_TEX0);
    }
 
    swrast->_ActiveAttribMask = attribsMask;
@@ -923,7 +923,7 @@ _swrast_print_vertex( struct gl_context *ctx, const SWvertex *v )
                   v->attrib[VARYING_SLOT_POS][3]);
 
       for (i = 0 ; i < ctx->Const.MaxTextureCoordUnits ; i++)
-	 if (ctx->Texture.Unit[i]._ReallyEnabled)
+	 if (ctx->Texture.Unit[i]._Current)
 	    _mesa_debug(ctx, "texcoord[%d] %f %f %f %f\n", i,
                         v->attrib[VARYING_SLOT_TEX0 + i][0],
                         v->attrib[VARYING_SLOT_TEX0 + i][1],

@@ -20,7 +20,7 @@ configuration. Also it shows wise to understand how the X server and a client
 digest their keyboard inputs (with and without xkb).
 
 A useful source is also Ivan  Pascal's text about xkb configuration
-<URL:http://www.tsu.ru/~pascal/en/xkb> often referenced throughout this docu-
+<URL:http://pascal.tsu.ru/en/xkb/> often referenced throughout this docu-
 ment.
 
 Note that this document covers only enhancements which are to be made to
@@ -170,12 +170,12 @@ defined symbol tables. To keep it fully functional you have to:
 
 4.  Defining New Layouts
 
-See Some Words  About XKB internals <URL:http://www.tsu.ru/~pas-
-cal/en/xkb/internals.html> for explanation of used xkb terms and problems
-addressed by XKB extension.
+See Some Words  About XKB internals
+<URL:http://pascal.tsu.ru/en/xkb/internals.html> for explanation of used xkb 
+terms and problems addressed by XKB extension.
 
 See Common  notes about XKB configuration files language
-<URL:http://www.tsu.ru/~pascal/en/xkb/gram-common.html> for more precise
+<URL:http://pascal.tsu.ru/en/xkb/gram-common.html> for more precise
 explanation of syntax of xkb configuration files.
 
 4.1  Predefined XKB Symbol Sets
