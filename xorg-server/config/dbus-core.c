@@ -48,11 +48,11 @@ static struct dbus_core_info bus_info;
 static CARD32 reconnect_timer(OsTimerPtr timer, CARD32 time, void *arg);
 
 static void
-wakeup_handler(void *data, int err, void *read_mask)
+wakeup_handler(void *data, int num_fds, void *read_mask)
 {
     struct dbus_core_info *info = data;
 
-    if (info->connection && FD_ISSET(info->fd, (fd_set *) read_mask)) {
+    if (info->connection && num_fds > 0 && FD_ISSET(info->fd, (fd_set *) read_mask)) {
         do {
             dbus_connection_read_write_dispatch(info->connection, 0);
         } while (info->connection &&

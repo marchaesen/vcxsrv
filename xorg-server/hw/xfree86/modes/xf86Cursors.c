@@ -209,6 +209,40 @@ set_bit(CARD8 *image, xf86CursorInfoPtr cursor_info, int x, int y, Bool mask)
 }
 
 /*
+ * Wrappers to deal with API compatibility with drivers that don't expose
+ * load_cursor_*_check
+ */
+static inline Bool
+xf86_driver_has_load_cursor_image(xf86CrtcPtr crtc)
+{
+    return crtc->funcs->load_cursor_image_check || crtc->funcs->load_cursor_image;
+}
+
+static inline Bool
+xf86_driver_has_load_cursor_argb(xf86CrtcPtr crtc)
+{
+    return crtc->funcs->load_cursor_argb_check || crtc->funcs->load_cursor_argb;
+}
+
+static inline Bool
+xf86_driver_load_cursor_image(xf86CrtcPtr crtc, CARD8 *cursor_image)
+{
+    if (crtc->funcs->load_cursor_image_check)
+        return crtc->funcs->load_cursor_image_check(crtc, cursor_image);
+    crtc->funcs->load_cursor_image(crtc, cursor_image);
+    return TRUE;
+}
+
+static inline Bool
+xf86_driver_load_cursor_argb(xf86CrtcPtr crtc, CARD32 *cursor_argb)
+{
+    if (crtc->funcs->load_cursor_argb_check)
+        return crtc->funcs->load_cursor_argb_check(crtc, cursor_argb);
+    crtc->funcs->load_cursor_argb(crtc, cursor_argb);
+    return TRUE;
+}
+
+/*
  * Load a two color cursor into a driver that supports only ARGB cursors
  */
 static Bool
@@ -244,7 +278,7 @@ xf86_crtc_convert_cursor_to_argb(xf86CrtcPtr crtc, unsigned char *src)
                 bits = 0;
             cursor_image[y * cursor_info->MaxWidth + x] = bits;
         }
-    return crtc->funcs->load_cursor_argb(crtc, cursor_image);
+    return xf86_driver_load_cursor_argb(crtc, cursor_image);
 }
 
 /*
@@ -269,7 +303,7 @@ xf86_set_cursor_colors(ScrnInfoPtr scrn, int bg, int fg)
         xf86CrtcPtr crtc = xf86_config->crtc[c];
 
         if (crtc->enabled && !crtc->cursor_argb) {
-            if (crtc->funcs->load_cursor_image)
+            if (xf86_driver_has_load_cursor_image(crtc))
                 crtc->funcs->set_cursor_colors(crtc, bg, fg);
             else if (bits)
                 xf86_crtc_convert_cursor_to_argb(crtc, bits);
@@ -450,7 +484,7 @@ xf86_crtc_load_cursor_image(xf86CrtcPtr crtc, CARD8 *src)
                     set_bit(cursor_image, cursor_info, x, y, TRUE);
             }
     }
-    return crtc->funcs->load_cursor_image(crtc, cursor_image);
+    return xf86_driver_load_cursor_image(crtc, cursor_image);
 }
 
 /*
@@ -466,10 +500,10 @@ xf86_load_cursor_image(ScrnInfoPtr scrn, unsigned char *src)
         xf86CrtcPtr crtc = xf86_config->crtc[c];
 
         if (crtc->enabled) {
-            if (crtc->funcs->load_cursor_image) {
+            if (xf86_driver_has_load_cursor_image(crtc)) {
                 if (!xf86_crtc_load_cursor_image(crtc, src))
                     return FALSE;
-            } else if (crtc->funcs->load_cursor_argb) {
+            } else if (xf86_driver_has_load_cursor_argb(crtc)) {
                 if (!xf86_crtc_convert_cursor_to_argb(crtc, src))
                     return FALSE;
             } else
@@ -549,7 +583,7 @@ xf86_crtc_load_cursor_argb(xf86CrtcPtr crtc, CursorPtr cursor)
             cursor_image[y * image_width + x] = bits;
         }
 
-    return crtc->funcs->load_cursor_argb(crtc, cursor_image);
+    return xf86_driver_load_cursor_argb(crtc, cursor_image);
 }
 
 static Bool
@@ -594,14 +628,14 @@ xf86_cursors_init(ScreenPtr screen, int max_width, int max_height, int flags)
 
     cursor_info->SetCursorColors = xf86_set_cursor_colors;
     cursor_info->SetCursorPosition = xf86_set_cursor_position;
-    cursor_info->LoadCursorImage = xf86_load_cursor_image;
+    cursor_info->LoadCursorImageCheck = xf86_load_cursor_image;
     cursor_info->HideCursor = xf86_hide_cursors;
     cursor_info->ShowCursor = xf86_show_cursors;
     cursor_info->UseHWCursor = xf86_use_hw_cursor;
 #ifdef ARGB_CURSOR
     if (flags & HARDWARE_CURSOR_ARGB) {
         cursor_info->UseHWCursorARGB = xf86_use_hw_cursor_argb;
-        cursor_info->LoadCursorARGB = xf86_load_cursor_argb;
+        cursor_info->LoadCursorARGBCheck = xf86_load_cursor_argb;
     }
 #endif
 
@@ -658,11 +692,11 @@ xf86_reload_cursors(ScreenPtr screen)
             dixLookupScreenPrivate(&cursor->devPrivates, CursorScreenKey,
                                    screen);
 #ifdef ARGB_CURSOR
-        if (cursor->bits->argb && cursor_info->LoadCursorARGB)
-            (*cursor_info->LoadCursorARGB) (scrn, cursor);
+        if (cursor->bits->argb && xf86DriverHasLoadCursorARGB(cursor_info))
+            xf86DriverLoadCursorARGB(cursor_info, cursor);
         else if (src)
 #endif
-            (*cursor_info->LoadCursorImage) (scrn, src);
+            xf86DriverLoadCursorImage(cursor_info, src);
 
         x += scrn->frameX0 + cursor_screen_priv->HotX;
         y += scrn->frameY0 + cursor_screen_priv->HotY;

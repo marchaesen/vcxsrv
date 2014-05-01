@@ -76,6 +76,7 @@ struct gl_list_extensions;
 struct gl_meta_state;
 struct gl_program_cache;
 struct gl_texture_object;
+struct gl_debug_state;
 struct gl_context;
 struct st_context;
 struct gl_uniform_storage;
@@ -1085,7 +1086,6 @@ typedef enum
 
 /**
  * Bit flags for each type of texture object
- * Used for Texture.Unit[]._ReallyEnabled flags.
  */
 /*@{*/
 #define TEXTURE_2D_MULTISAMPLE_BIT (1 << TEXTURE_2D_MULTISAMPLE_INDEX)
@@ -1327,7 +1327,6 @@ struct gl_texgen
 struct gl_texture_unit
 {
    GLbitfield Enabled;          /**< bitmask of TEXTURE_*_BIT flags */
-   GLbitfield _ReallyEnabled;   /**< 0 or exactly one of TEXTURE_*_BIT flags */
 
    GLenum EnvMode;              /**< GL_MODULATE, GL_DECAL, GL_BLEND, etc. */
    GLclampf EnvColor[4];
@@ -1388,9 +1387,6 @@ struct gl_texture_attrib
    /** GL_ARB_seamless_cubemap */
    GLboolean CubeMapSeamless;
 
-   /** Texture units/samplers used by vertex or fragment texturing */
-   GLbitfield _EnabledUnits;
-
    /** Texture coord units/sets used for fragment texturing */
    GLbitfield _EnabledCoordUnits;
 
@@ -1403,8 +1399,11 @@ struct gl_texture_attrib
    /** Bitwise-OR of all Texture.Unit[i]._GenFlags */
    GLbitfield _GenFlags;
 
-   /** Upper bound on _ReallyEnabled texunits. */
+   /** Largest index of a texture unit with _Current != NULL. */
    GLint _MaxEnabledTexImageUnit;
+
+   /** Largest index + 1 of texture units that have had any CurrentTex set. */
+   GLint NumCurrentTexUsed;
 };
 
 
@@ -3820,45 +3819,6 @@ enum mesa_debug_severity {
 };
 
 /** @} */
-
-/**
- * An error, warning, or other piece of debug information for an application
- * to consume via GL_ARB_debug_output/GL_KHR_debug.
- */
-struct gl_debug_msg
-{
-   enum mesa_debug_source source;
-   enum mesa_debug_type type;
-   GLuint id;
-   enum mesa_debug_severity severity;
-   GLsizei length;
-   GLcharARB *message;
-};
-
-struct gl_debug_namespace
-{
-   struct _mesa_HashTable *IDs;
-   unsigned ZeroID; /* a HashTable won't take zero, so store its state here */
-   /** lists of IDs in the hash table at each severity */
-   struct simple_node Severity[MESA_DEBUG_SEVERITY_COUNT];
-};
-
-struct gl_debug_state
-{
-   GLDEBUGPROC Callback;
-   const void *CallbackData;
-   GLboolean SyncOutput;
-   GLboolean DebugOutput;
-   GLboolean Defaults[MAX_DEBUG_GROUP_STACK_DEPTH][MESA_DEBUG_SEVERITY_COUNT][MESA_DEBUG_SOURCE_COUNT][MESA_DEBUG_TYPE_COUNT];
-   struct gl_debug_namespace Namespaces[MAX_DEBUG_GROUP_STACK_DEPTH][MESA_DEBUG_SOURCE_COUNT][MESA_DEBUG_TYPE_COUNT];
-   struct gl_debug_msg Log[MAX_DEBUG_LOGGED_MESSAGES];
-   struct gl_debug_msg DebugGroupMsgs[MAX_DEBUG_GROUP_STACK_DEPTH];
-   GLint GroupStackDepth;
-   GLint NumMessages;
-   GLint NextMsg;
-   GLint NextMsgLength; /* redundant, but copied here from Log[NextMsg].length
-                           for the sake of the offsetof() code in get.c */
-};
 
 /**
  * Enum for the OpenGL APIs we know about and may support.

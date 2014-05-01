@@ -4260,12 +4260,6 @@ DeliverGrabbedEvent(InternalEvent *event, DeviceIntPtr thisDev,
                                              thisDev);
     }
     if (!deliveries) {
-        /* XXX: In theory, we could pass the internal events through to
-         * everything and only convert just before hitting the wire. We can't
-         * do that yet, so DGE is the last stop for internal events. From here
-         * onwards, we deal with core/XI events.
-         */
-
         sendCore = (IsMaster(thisDev) && thisDev->coreEvents);
         /* try core event */
         if ((sendCore && grab->grabtype == CORE) || grab->grabtype != CORE)

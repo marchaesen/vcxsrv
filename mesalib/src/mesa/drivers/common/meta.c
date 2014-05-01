@@ -2328,7 +2328,7 @@ _mesa_meta_Bitmap(struct gl_context *ctx,
    if (ctx->_ImageTransferState ||
        ctx->FragmentProgram._Enabled ||
        ctx->Fog.Enabled ||
-       ctx->Texture._EnabledUnits ||
+       ctx->Texture._MaxEnabledTexImageUnit != -1 ||
        width > tex->MaxSize ||
        height > tex->MaxSize) {
       _swrast_Bitmap(ctx, x, y, width, height, unpack, bitmap1);
@@ -3265,7 +3265,7 @@ _mesa_meta_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
          GLfloat s, t, s1, t1;
          GLuint tw, th;
 
-         if (!ctx->Texture.Unit[i]._ReallyEnabled) {
+         if (!ctx->Texture.Unit[i]._Current) {
             GLuint j;
             for (j = 0; j < 4; j++) {
                verts[j].st[i][0] = 0.0f;

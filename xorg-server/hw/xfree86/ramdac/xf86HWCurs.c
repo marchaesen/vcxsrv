@@ -87,7 +87,7 @@ xf86InitHardwareCursor(ScreenPtr pScreen, xf86CursorInfoPtr infoPtr)
 
     /* These are required for now */
     if (!infoPtr->SetCursorPosition ||
-        !infoPtr->LoadCursorImage ||
+        !xf86DriverHasLoadCursorImage(infoPtr) ||
         !infoPtr->HideCursor ||
         !infoPtr->ShowCursor || !infoPtr->SetCursorColors)
         return FALSE;
@@ -140,7 +140,7 @@ xf86SetCursor(ScreenPtr pScreen, CursorPtr pCurs, int x, int y)
     y -= infoPtr->pScrn->frameY0 + ScreenPriv->HotY;
 
 #ifdef ARGB_CURSOR
-    if (!pCurs->bits->argb || !infoPtr->LoadCursorARGB)
+    if (!pCurs->bits->argb || !xf86DriverHasLoadCursorARGB(infoPtr))
 #endif
         if (!bits) {
             bits = (*infoPtr->RealizeCursor) (infoPtr, pCurs);
@@ -152,13 +152,13 @@ xf86SetCursor(ScreenPtr pScreen, CursorPtr pCurs, int x, int y)
         (*infoPtr->HideCursor) (infoPtr->pScrn);
 
 #ifdef ARGB_CURSOR
-    if (pCurs->bits->argb && infoPtr->LoadCursorARGB) {
-        if (!(*infoPtr->LoadCursorARGB) (infoPtr->pScrn, pCurs))
+    if (pCurs->bits->argb && xf86DriverHasLoadCursorARGB(infoPtr)) {
+        if (!xf86DriverLoadCursorARGB (infoPtr, pCurs))
             return FALSE;
     } else
 #endif
     if (bits)
-        if (!(*infoPtr->LoadCursorImage) (infoPtr->pScrn, bits))
+        if (!xf86DriverLoadCursorImage (infoPtr, bits))
             return FALSE;
 
     xf86RecolorCursor(pScreen, pCurs, 1);
@@ -185,8 +185,8 @@ xf86SetTransparentCursor(ScreenPtr pScreen)
         (*infoPtr->HideCursor) (infoPtr->pScrn);
 
     if (ScreenPriv->transparentData)
-        (*infoPtr->LoadCursorImage) (infoPtr->pScrn,
-                                     ScreenPriv->transparentData);
+        xf86DriverLoadCursorImage (infoPtr,
+                                   ScreenPriv->transparentData);
 
     (*infoPtr->ShowCursor) (infoPtr->pScrn);
 }
