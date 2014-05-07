@@ -14,15 +14,15 @@
 <iframe src="../contents.html"></iframe>
 <div class="content">
 
-<h1>Mesa 10.2 Release Notes / TBD</h1>
+<h1>Mesa 10.3 Release Notes / TBD</h1>
 
 <p>
-Mesa 10.2 is a new development release.
+Mesa 10.3 is a new development release.
 People who are concerned with stability and reliability should stick
-with a previous release or wait for Mesa 10.2.1.
+with a previous release or wait for Mesa 10.3.1.
 </p>
 <p>
-Mesa 10.2 implements the OpenGL 3.3 API, but the version reported by
+Mesa 10.3 implements the OpenGL 3.3 API, but the version reported by
 glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
 glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
 Some drivers don't support all the features required in OpenGL 3.3.  OpenGL
@@ -44,19 +44,8 @@ Note: some of the new features are only available with certain drivers.
 </p>
 
 <ul>
-<li>GL_ARB_buffer_storage on i965, nv30, nv50, nvc0, r300, r600, and radeonsi</li>
-<li>GL_ARB_multi_bind on all drivers</li>
-<li>GL_ARB_sample_shading on nv50 (GT21x only), nvc0</li>
-<li>GL_ARB_separate_shader_objects (desktop OpenGL) and
-  GL_EXT_separate_shader_objects (OpenGL ES 2.0 and 3.0) on all drivers</li>
-<li>GL_ARB_stencil_texturing on i965/gen8+</li>
-<li>GL_ARB_texture_cube_map_array on nv50 (GT21x only)</li>
-<li>GL_ARB_texture_gather on nv50 (GT21x only), nvc0</li>
-<li>GL_ARB_texture_query_lod on nv50 (GT21x only), nvc0</li>
-<li>GL_ARB_texture_view on i965/gen7</li>
-<li>GL_ARB_vertex_type_10f_11f_11f_rev on nv50, nvc0, radeonsi</li>
-<li>GL_ARB_viewport_array on nv50, r600</li>
-<li>GL_INTEL_performance_query on i965/gen5+</li>
+<li>GL_ARB_stencil_texturing on nv50, nvc0, r600, and radeonsi</li>
+<li>GL_ARB_texture_cube_map_array on radeonsi</li>
 </ul>
 
 

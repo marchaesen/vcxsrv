@@ -1214,7 +1214,7 @@ layout_qualifier_id:
 
       /* Layout qualifiers for GLSL 1.50 geometry shaders. */
       if (!$$.flags.i) {
-         struct {
+         static const struct {
             const char *s;
             GLenum e;
          } map[] = {
@@ -1319,6 +1319,13 @@ layout_qualifier_id:
       if (match_layout_qualifier("location", $1, state) == 0) {
          $$.flags.q.explicit_location = 1;
 
+         if ($$.flags.q.attribute == 1 &&
+             state->ARB_explicit_attrib_location_warn) {
+            _mesa_glsl_warning(& @1, state,
+                               "GL_ARB_explicit_attrib_location layout "
+                               "identifier `%s' used", $1);
+         }
+
          if ($3 >= 0) {
             $$.location = $3;
          } else {
@@ -1368,7 +1375,7 @@ layout_qualifier_id:
          }
       }
 
-      static const char *local_size_qualifiers[3] = {
+      static const char * const local_size_qualifiers[3] = {
          "local_size_x",
          "local_size_y",
          "local_size_z",
@@ -1426,10 +1433,6 @@ layout_qualifier_id:
          _mesa_glsl_error(& @1, state, "unrecognized layout identifier "
                           "`%s'", $1);
          YYERROR;
-      } else if (state->ARB_explicit_attrib_location_warn) {
-         _mesa_glsl_warning(& @1, state,
-                            "GL_ARB_explicit_attrib_location layout "
-                            "identifier `%s' used", $1);
       }
    }
    | interface_block_layout_qualifier

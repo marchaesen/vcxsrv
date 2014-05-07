@@ -86,6 +86,9 @@
 /** Return offset in bytes of the field within a vertex struct */
 #define OFFSET(FIELD) ((void *) offsetof(struct vertex, FIELD))
 
+static void
+meta_clear(struct gl_context *ctx, GLbitfield buffers, bool glsl);
+
 static struct blit_shader *
 choose_blit_shader(GLenum target, struct blit_shader_table *table);
 
@@ -389,6 +392,24 @@ _mesa_meta_init(struct gl_context *ctx)
    ctx->Meta = CALLOC_STRUCT(gl_meta_state);
 }
 
+static GLenum
+gl_buffer_index_to_drawbuffers_enum(gl_buffer_index bufindex)
+{
+   assert(bufindex < BUFFER_COUNT);
+
+   if (bufindex >= BUFFER_COLOR0)
+      return GL_COLOR_ATTACHMENT0 + bufindex - BUFFER_COLOR0;
+   else if (bufindex == BUFFER_FRONT_LEFT)
+      return GL_FRONT_LEFT;
+   else if (bufindex == BUFFER_FRONT_RIGHT)
+      return GL_FRONT_RIGHT;
+   else if (bufindex == BUFFER_BACK_LEFT)
+      return GL_BACK_LEFT;
+   else if (bufindex == BUFFER_BACK_RIGHT)
+      return GL_BACK_RIGHT;
+
+   return GL_NONE;
+}
 
 /**
  * Free context meta-op state.
@@ -576,20 +597,21 @@ _mesa_meta_begin(struct gl_context *ctx, GLbitfield state)
          _mesa_set_enable(ctx, GL_FRAGMENT_SHADER_ATI, GL_FALSE);
       }
 
-      if (ctx->Extensions.ARB_separate_shader_objects) {
-         /* Warning it must be done before _mesa_UseProgram call */
-         _mesa_reference_pipeline_object(ctx, &save->_Shader, ctx->_Shader);
+      if (ctx->Pipeline.Current) {
          _mesa_reference_pipeline_object(ctx, &save->Pipeline,
                                          ctx->Pipeline.Current);
          _mesa_BindProgramPipeline(0);
       }
 
-      for (i = 0; i < MESA_SHADER_STAGES; i++) {
+      /* Save the shader state from ctx->Shader (instead of ctx->_Shader) so
+       * that we don't have to worry about the current pipeline state.
+       */
+      for (i = 0; i <= MESA_SHADER_FRAGMENT; i++) {
          _mesa_reference_shader_program(ctx, &save->Shader[i],
-                                     ctx->_Shader->CurrentProgram[i]);
+                                        ctx->Shader.CurrentProgram[i]);
       }
       _mesa_reference_shader_program(ctx, &save->ActiveShader,
-                                     ctx->_Shader->ActiveProgram);
+                                     ctx->Shader.ActiveProgram);
 
       _mesa_UseProgram(0);
    }
@@ -774,6 +796,23 @@ _mesa_meta_begin(struct gl_context *ctx, GLbitfield state)
          _mesa_set_framebuffer_srgb(ctx, GL_FALSE);
    }
 
+   if (state & MESA_META_DRAW_BUFFERS) {
+      int buf, real_color_buffers = 0;
+      memset(save->ColorDrawBuffers, 0, sizeof(save->ColorDrawBuffers));
+
+      for (buf = 0; buf < MAX_DRAW_BUFFERS; buf++) {
+         int buf_index = ctx->DrawBuffer->_ColorDrawBufferIndexes[buf];
+         if (buf_index == -1)
+            continue;
+
+         save->ColorDrawBuffers[buf] =
+            gl_buffer_index_to_drawbuffers_enum(buf_index);
+
+         if (++real_color_buffers >= ctx->DrawBuffer->_NumColorDrawBuffers)
+            break;
+      }
+   }
+
    /* misc */
    {
       save->Lighting = ctx->Light.Enabled;
@@ -908,6 +947,14 @@ _mesa_meta_end(struct gl_context *ctx)
    }
 
    if (state & MESA_META_SHADER) {
+      static const GLenum targets[] = {
+         GL_VERTEX_SHADER,
+         GL_GEOMETRY_SHADER,
+         GL_FRAGMENT_SHADER,
+      };
+
+      bool any_shader;
+
       if (ctx->Extensions.ARB_vertex_program) {
          _mesa_set_enable(ctx, GL_VERTEX_PROGRAM_ARB,
                           save->VertexProgramEnabled);
@@ -929,37 +976,46 @@ _mesa_meta_end(struct gl_context *ctx)
                           save->ATIFragmentShaderEnabled);
       }
 
-      /* Warning it must be done before _mesa_use_shader_program call */
-      if (ctx->Extensions.ARB_separate_shader_objects) {
-         _mesa_reference_pipeline_object(ctx, &ctx->_Shader, save->_Shader);
-         _mesa_reference_pipeline_object(ctx, &ctx->Pipeline.Current,
-                                         save->Pipeline);
+      any_shader = false;
+      for (i = 0; i <= MESA_SHADER_FRAGMENT; i++) {
+         /* It is safe to call _mesa_use_shader_program even if the extension
+          * necessary for that program state is not supported.  In that case,
+          * the saved program object must be NULL and the currently bound
+          * program object must be NULL.  _mesa_use_shader_program is a no-op
+          * in that case.
+          */
+         _mesa_use_shader_program(ctx, targets[i],
+                                  save->Shader[i],
+                                  &ctx->Shader);
+
+         /* Do this *before* killing the reference. :)
+          */
+         if (save->Shader[i] != NULL)
+            any_shader = true;
+
+         _mesa_reference_shader_program(ctx, &save->Shader[i], NULL);
+      }
+
+      _mesa_reference_shader_program(ctx, &ctx->Shader.ActiveProgram,
+                                     save->ActiveShader);
+      _mesa_reference_shader_program(ctx, &save->ActiveShader, NULL);
+
+      /* If there were any stages set with programs, use ctx->Shader as the
+       * current shader state.  Otherwise, use Pipeline.Default.  The pipeline
+       * hasn't been restored yet, and that may modify ctx->_Shader further.
+       */
+      if (any_shader)
+         _mesa_reference_pipeline_object(ctx, &ctx->_Shader,
+                                         &ctx->Shader);
+      else
+         _mesa_reference_pipeline_object(ctx, &ctx->_Shader,
+                                         ctx->Pipeline.Default);
+
+      if (save->Pipeline) {
+         _mesa_bind_pipeline(ctx, save->Pipeline);
+
          _mesa_reference_pipeline_object(ctx, &save->Pipeline, NULL);
       }
-
-      if (ctx->Extensions.ARB_vertex_shader) {
-	 _mesa_use_shader_program(ctx, GL_VERTEX_SHADER,
-                                  save->Shader[MESA_SHADER_VERTEX],
-                                  ctx->_Shader);
-      }
-
-      if (_mesa_has_geometry_shaders(ctx))
-	 _mesa_use_shader_program(ctx, GL_GEOMETRY_SHADER_ARB,
-                                  save->Shader[MESA_SHADER_GEOMETRY],
-                                  ctx->_Shader);
-
-      if (ctx->Extensions.ARB_fragment_shader)
-	 _mesa_use_shader_program(ctx, GL_FRAGMENT_SHADER,
-                                  save->Shader[MESA_SHADER_FRAGMENT],
-                                  ctx->_Shader);
-
-      _mesa_reference_shader_program(ctx, &ctx->_Shader->ActiveProgram,
-				     save->ActiveShader);
-
-      for (i = 0; i < MESA_SHADER_STAGES; i++)
-         _mesa_reference_shader_program(ctx, &save->Shader[i], NULL);
-      _mesa_reference_shader_program(ctx, &save->ActiveShader, NULL);
-      _mesa_reference_pipeline_object(ctx, &save->_Shader, NULL);
    }
 
    if (state & MESA_META_STENCIL_TEST) {
@@ -1154,6 +1210,10 @@ _mesa_meta_end(struct gl_context *ctx)
    if (!ctx->CurrentRenderbuffer ||
        ctx->CurrentRenderbuffer->Name != save->RenderbufferName)
       _mesa_BindRenderbuffer(GL_RENDERBUFFER, save->RenderbufferName);
+
+   if (state & MESA_META_DRAW_BUFFERS) {
+      _mesa_DrawBuffers(MAX_DRAW_BUFFERS, save->ColorDrawBuffers);
+   }
 
    ctx->Meta->SaveStackDepth--;
 
@@ -1441,100 +1501,13 @@ _mesa_meta_setup_ff_tnl_for_blit(GLuint *VAO, GLuint *VBO,
 void
 _mesa_meta_Clear(struct gl_context *ctx, GLbitfield buffers)
 {
-   struct clear_state *clear = &ctx->Meta->Clear;
-   struct vertex verts[4];
-   /* save all state but scissor, pixel pack/unpack */
-   GLbitfield metaSave = (MESA_META_ALL -
-			  MESA_META_SCISSOR -
-			  MESA_META_PIXEL_STORE -
-			  MESA_META_CONDITIONAL_RENDER -
-                          MESA_META_FRAMEBUFFER_SRGB);
-   const GLuint stencilMax = (1 << ctx->DrawBuffer->Visual.stencilBits) - 1;
+   meta_clear(ctx, buffers, false);
+}
 
-   if (buffers & BUFFER_BITS_COLOR) {
-      /* if clearing color buffers, don't save/restore colormask */
-      metaSave -= MESA_META_COLOR_MASK;
-   }
-
-   _mesa_meta_begin(ctx, metaSave);
-
-   _mesa_meta_setup_vertex_objects(&clear->VAO, &clear->VBO, false, 3, 0, 4);
-
-   /* GL_COLOR_BUFFER_BIT */
-   if (buffers & BUFFER_BITS_COLOR) {
-      /* leave colormask, glDrawBuffer state as-is */
-
-      /* Clears never have the color clamped. */
-      if (ctx->Extensions.ARB_color_buffer_float)
-         _mesa_ClampColor(GL_CLAMP_FRAGMENT_COLOR, GL_FALSE);
-   }
-   else {
-      ASSERT(metaSave & MESA_META_COLOR_MASK);
-      _mesa_ColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-   }
-
-   /* GL_DEPTH_BUFFER_BIT */
-   if (buffers & BUFFER_BIT_DEPTH) {
-      _mesa_set_enable(ctx, GL_DEPTH_TEST, GL_TRUE);
-      _mesa_DepthFunc(GL_ALWAYS);
-      _mesa_DepthMask(GL_TRUE);
-   }
-   else {
-      assert(!ctx->Depth.Test);
-   }
-
-   /* GL_STENCIL_BUFFER_BIT */
-   if (buffers & BUFFER_BIT_STENCIL) {
-      _mesa_set_enable(ctx, GL_STENCIL_TEST, GL_TRUE);
-      _mesa_StencilOpSeparate(GL_FRONT_AND_BACK,
-                              GL_REPLACE, GL_REPLACE, GL_REPLACE);
-      _mesa_StencilFuncSeparate(GL_FRONT_AND_BACK, GL_ALWAYS,
-                                ctx->Stencil.Clear & stencilMax,
-                                ctx->Stencil.WriteMask[0]);
-   }
-   else {
-      assert(!ctx->Stencil.Enabled);
-   }
-
-   /* vertex positions/colors */
-   {
-      const GLfloat x0 = (GLfloat) ctx->DrawBuffer->_Xmin;
-      const GLfloat y0 = (GLfloat) ctx->DrawBuffer->_Ymin;
-      const GLfloat x1 = (GLfloat) ctx->DrawBuffer->_Xmax;
-      const GLfloat y1 = (GLfloat) ctx->DrawBuffer->_Ymax;
-      const GLfloat z = invert_z(ctx->Depth.Clear);
-      GLuint i;
-
-      verts[0].x = x0;
-      verts[0].y = y0;
-      verts[0].z = z;
-      verts[1].x = x1;
-      verts[1].y = y0;
-      verts[1].z = z;
-      verts[2].x = x1;
-      verts[2].y = y1;
-      verts[2].z = z;
-      verts[3].x = x0;
-      verts[3].y = y1;
-      verts[3].z = z;
-
-      /* vertex colors */
-      for (i = 0; i < 4; i++) {
-         verts[i].r = ctx->Color.ClearColor.f[0];
-         verts[i].g = ctx->Color.ClearColor.f[1];
-         verts[i].b = ctx->Color.ClearColor.f[2];
-         verts[i].a = ctx->Color.ClearColor.f[3];
-      }
-
-      /* upload new vertex data */
-      _mesa_BufferData(GL_ARRAY_BUFFER_ARB, sizeof(verts), verts,
-			  GL_DYNAMIC_DRAW_ARB);
-   }
-
-   /* draw quad */
-   _mesa_DrawArrays(GL_TRIANGLE_FAN, 0, 4);
-
-   _mesa_meta_end(ctx);
+void
+_mesa_meta_glsl_Clear(struct gl_context *ctx, GLbitfield buffers)
+{
+   meta_clear(ctx, buffers, true);
 }
 
 static void
@@ -1682,21 +1655,60 @@ meta_glsl_clear_cleanup(struct clear_state *clear)
 }
 
 /**
+ * Given a bitfield of BUFFER_BIT_x draw buffers, call glDrawBuffers to
+ * set GL to only draw to those buffers.
+ *
+ * Since the bitfield has no associated order, the assignment of draw buffer
+ * indices to color attachment indices is rather arbitrary.
+ */
+static void
+drawbuffers_from_bitfield(GLbitfield bits)
+{
+   GLenum enums[MAX_DRAW_BUFFERS];
+   int i = 0;
+   int n;
+
+   /* This function is only legal for color buffer bitfields. */
+   assert((bits & ~BUFFER_BITS_COLOR) == 0);
+
+   /* Make sure we don't overflow any arrays. */
+   assert(_mesa_bitcount(bits) <= MAX_DRAW_BUFFERS);
+
+   enums[0] = GL_NONE;
+
+   if (bits & BUFFER_BIT_FRONT_LEFT)
+      enums[i++] = GL_FRONT_LEFT;
+
+   if (bits & BUFFER_BIT_FRONT_RIGHT)
+      enums[i++] = GL_FRONT_RIGHT;
+
+   if (bits & BUFFER_BIT_BACK_LEFT)
+      enums[i++] = GL_BACK_LEFT;
+
+   if (bits & BUFFER_BIT_BACK_RIGHT)
+      enums[i++] = GL_BACK_RIGHT;
+
+   for (n = 0; n < MAX_COLOR_ATTACHMENTS; n++) {
+      if (bits & (1 << (BUFFER_COLOR0 + n)))
+         enums[i++] = GL_COLOR_ATTACHMENT0 + n;
+   }
+
+   _mesa_DrawBuffers(i, enums);
+}
+
+/**
  * Meta implementation of ctx->Driver.Clear() in terms of polygon rendering.
  */
-void
-_mesa_meta_glsl_Clear(struct gl_context *ctx, GLbitfield buffers)
+static void
+meta_clear(struct gl_context *ctx, GLbitfield buffers, bool glsl)
 {
    struct clear_state *clear = &ctx->Meta->Clear;
    GLbitfield metaSave;
    const GLuint stencilMax = (1 << ctx->DrawBuffer->Visual.stencilBits) - 1;
    struct gl_framebuffer *fb = ctx->DrawBuffer;
-   const float x0 = ((float)fb->_Xmin / fb->Width)  * 2.0f - 1.0f;
-   const float y0 = ((float)fb->_Ymin / fb->Height) * 2.0f - 1.0f;
-   const float x1 = ((float)fb->_Xmax / fb->Width)  * 2.0f - 1.0f;
-   const float y1 = ((float)fb->_Ymax / fb->Height) * 2.0f - 1.0f;
-   const float z = -invert_z(ctx->Depth.Clear);
+   float x0, y0, x1, y1, z;
    struct vertex verts[4];
+   int i;
 
    metaSave = (MESA_META_ALPHA_TEST |
 	       MESA_META_BLEND |
@@ -1711,7 +1723,18 @@ _mesa_meta_glsl_Clear(struct gl_context *ctx, GLbitfield buffers)
                MESA_META_MULTISAMPLE |
                MESA_META_OCCLUSION_QUERY);
 
-   if (!(buffers & BUFFER_BITS_COLOR)) {
+   if (!glsl) {
+      metaSave |= MESA_META_FOG |
+                  MESA_META_PIXEL_TRANSFER |
+                  MESA_META_TRANSFORM |
+                  MESA_META_TEXTURE |
+                  MESA_META_CLAMP_VERTEX_COLOR |
+                  MESA_META_SELECT_FEEDBACK;
+   }
+
+   if (buffers & BUFFER_BITS_COLOR) {
+      metaSave |= MESA_META_DRAW_BUFFERS;
+   } else {
       /* We'll use colormask to disable color writes.  Otherwise,
        * respect color mask
        */
@@ -1720,13 +1743,30 @@ _mesa_meta_glsl_Clear(struct gl_context *ctx, GLbitfield buffers)
 
    _mesa_meta_begin(ctx, metaSave);
 
-   meta_glsl_clear_init(ctx, clear);
+   if (glsl) {
+      meta_glsl_clear_init(ctx, clear);
+
+      x0 = ((float) fb->_Xmin / fb->Width)  * 2.0f - 1.0f;
+      y0 = ((float) fb->_Ymin / fb->Height) * 2.0f - 1.0f;
+      x1 = ((float) fb->_Xmax / fb->Width)  * 2.0f - 1.0f;
+      y1 = ((float) fb->_Ymax / fb->Height) * 2.0f - 1.0f;
+      z = -invert_z(ctx->Depth.Clear);
+   } else {
+      _mesa_meta_setup_vertex_objects(&clear->VAO, &clear->VBO, false, 3, 0, 4);
+
+      x0 = (float) fb->_Xmin;
+      y0 = (float) fb->_Ymin;
+      x1 = (float) fb->_Xmax;
+      y1 = (float) fb->_Ymax;
+      z = invert_z(ctx->Depth.Clear);
+   }
 
    if (fb->_IntegerColor) {
+      assert(glsl);
       _mesa_UseProgram(clear->IntegerShaderProg);
       _mesa_Uniform4iv(clear->IntegerColorLocation, 1,
 			  ctx->Color.ClearColor.i);
-   } else {
+   } else if (glsl) {
       _mesa_UseProgram(clear->ShaderProg);
       _mesa_Uniform4fv(clear->ColorLocation, 1,
 			  ctx->Color.ClearColor.f);
@@ -1734,7 +1774,10 @@ _mesa_meta_glsl_Clear(struct gl_context *ctx, GLbitfield buffers)
 
    /* GL_COLOR_BUFFER_BIT */
    if (buffers & BUFFER_BITS_COLOR) {
-      /* leave colormask, glDrawBuffer state as-is */
+      /* Only draw to the buffers we were asked to clear. */
+      drawbuffers_from_bitfield(buffers & BUFFER_BITS_COLOR);
+
+      /* leave colormask state as-is */
 
       /* Clears never have the color clamped. */
       if (ctx->Extensions.ARB_color_buffer_float)
@@ -1782,6 +1825,15 @@ _mesa_meta_glsl_Clear(struct gl_context *ctx, GLbitfield buffers)
    verts[3].y = y1;
    verts[3].z = z;
 
+   if (!glsl) {
+      for (i = 0; i < 4; i++) {
+         verts[i].r = ctx->Color.ClearColor.f[0];
+         verts[i].g = ctx->Color.ClearColor.f[1];
+         verts[i].b = ctx->Color.ClearColor.f[2];
+         verts[i].a = ctx->Color.ClearColor.f[3];
+      }
+   }
+
    /* upload new vertex data */
    _mesa_BufferData(GL_ARRAY_BUFFER_ARB, sizeof(verts), verts,
 		       GL_DYNAMIC_DRAW_ARB);
@@ -1789,6 +1841,7 @@ _mesa_meta_glsl_Clear(struct gl_context *ctx, GLbitfield buffers)
    /* draw quad(s) */
    if (fb->MaxNumLayers > 0) {
       unsigned layer;
+      assert(glsl);
       for (layer = 0; layer < fb->MaxNumLayers; layer++) {
          if (fb->_IntegerColor)
             _mesa_Uniform1i(clear->IntegerLayerLocation, layer);
@@ -2756,7 +2809,7 @@ copytexsubimage_using_blit_framebuffer(struct gl_context *ctx, GLuint dims,
 
    _mesa_unlock_texture(ctx, texObj);
 
-   _mesa_meta_begin(ctx, MESA_META_ALL);
+   _mesa_meta_begin(ctx, MESA_META_ALL & ~MESA_META_DRAW_BUFFERS);
 
    _mesa_GenFramebuffers(1, &fbo);
    _mesa_BindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
@@ -2978,7 +3031,8 @@ decompress_texture_image(struct gl_context *ctx,
       break;
    }
 
-   _mesa_meta_begin(ctx, MESA_META_ALL & ~MESA_META_PIXEL_STORE);
+   _mesa_meta_begin(ctx, MESA_META_ALL & ~(MESA_META_PIXEL_STORE |
+                                           MESA_META_DRAW_BUFFERS));
 
    samplerSave = ctx->Texture.Unit[ctx->Texture.CurrentUnit].Sampler ?
          ctx->Texture.Unit[ctx->Texture.CurrentUnit].Sampler->Name : 0;

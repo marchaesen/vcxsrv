@@ -387,7 +387,6 @@ EXTRA_EXT(ARB_texture_cube_map_array);
 EXTRA_EXT(ARB_texture_buffer_range);
 EXTRA_EXT(ARB_texture_multisample);
 EXTRA_EXT(ARB_texture_gather);
-EXTRA_EXT(ARB_separate_shader_objects);
 EXTRA_EXT(ARB_shader_atomic_counters);
 EXTRA_EXT(ARB_draw_indirect);
 EXTRA_EXT(ARB_shader_image_load_store);
@@ -395,6 +394,7 @@ EXTRA_EXT(ARB_viewport_array);
 EXTRA_EXT(ARB_compute_shader);
 EXTRA_EXT(ARB_gpu_shader5);
 EXTRA_EXT2(ARB_transform_feedback3, ARB_gpu_shader5);
+EXTRA_EXT(INTEL_performance_query);
 
 static const int
 extra_ARB_color_buffer_float_or_glcore[] = {

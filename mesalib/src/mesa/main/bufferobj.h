@@ -86,6 +86,20 @@ _mesa_update_default_objects_buffer_objects(struct gl_context *ctx);
 extern struct gl_buffer_object *
 _mesa_lookup_bufferobj(struct gl_context *ctx, GLuint buffer);
 
+extern struct gl_buffer_object *
+_mesa_lookup_bufferobj_locked(struct gl_context *ctx, GLuint buffer);
+
+extern void
+_mesa_begin_bufferobj_lookups(struct gl_context *ctx);
+
+extern void
+_mesa_end_bufferobj_lookups(struct gl_context *ctx);
+
+extern struct gl_buffer_object *
+_mesa_multi_bind_lookup_bufferobj(struct gl_context *ctx,
+                                  const GLuint *buffers,
+                                  GLuint index, const char *caller);
+
 extern void
 _mesa_initialize_buffer_object(struct gl_context *ctx,
                                struct gl_buffer_object *obj,
@@ -209,6 +223,13 @@ _mesa_BindBufferRange(GLenum target, GLuint index,
 void GLAPIENTRY
 _mesa_BindBufferBase(GLenum target, GLuint index, GLuint buffer);
 
+void GLAPIENTRY
+_mesa_BindBuffersRange(GLenum target, GLuint first, GLsizei count,
+                       const GLuint *buffers,
+                       const GLintptr *offsets, const GLsizeiptr *sizes);
+void GLAPIENTRY
+_mesa_BindBuffersBase(GLenum target, GLuint first, GLsizei count,
+                      const GLuint *buffers);
 void GLAPIENTRY
 _mesa_InvalidateBufferSubData(GLuint buffer, GLintptr offset,
                               GLsizeiptr length);

@@ -11,6 +11,14 @@ partial default xkb_types "default" {
     virtual_modifiers RControl;
     virtual_modifiers LControl;
 
+    type "PC_SUPER_LEVEL2" {
+       modifiers = Mod4;
+       map[None] = Level1;
+       map[Mod4] = Level2;
+       level_name[Level1] = "Base";
+       level_name[Level2] = "Super";
+    };
+
     type "PC_CONTROL_LEVEL2" {
 	modifiers = Control;
 	map[None] = Level1;

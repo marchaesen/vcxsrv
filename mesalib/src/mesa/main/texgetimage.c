@@ -131,8 +131,8 @@ get_tex_depth_stencil(struct gl_context *ctx, GLuint dimensions,
    GLint img, row;
 
    assert(format == GL_DEPTH_STENCIL);
-   assert(type == GL_UNSIGNED_INT_24_8);
-   /* XXX type == GL_FLOAT_32_UNSIGNED_INT_24_8_REV is not handled yet */
+   assert(type == GL_UNSIGNED_INT_24_8 ||
+          type == GL_FLOAT_32_UNSIGNED_INT_24_8_REV);
 
    for (img = 0; img < depth; img++) {
       GLubyte *srcMap;
@@ -149,11 +149,10 @@ get_tex_depth_stencil(struct gl_context *ctx, GLuint dimensions,
             void *dest = _mesa_image_address(dimensions, &ctx->Pack, pixels,
                                              width, height, format, type,
                                              img, row, 0);
-            /* Unpack from texture's format to GL's z24_s8 layout */
-            _mesa_unpack_uint_24_8_depth_stencil_row(texImage->TexFormat,
-                                                     width,
-                                                     (const GLuint *) src,
-                                                     dest);
+            _mesa_unpack_depth_stencil_row(texImage->TexFormat,
+                                           width,
+                                           (const GLuint *) src,
+                                           type, dest);
             if (ctx->Pack.SwapBytes) {
                _mesa_swap4((GLuint *) dest, width);
             }
@@ -836,6 +835,11 @@ getteximage_error_check(struct gl_context *ctx, GLenum target, GLint level,
             && !_mesa_is_depth_format(baseFormat)
             && !_mesa_is_depthstencil_format(baseFormat)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "glGetTexImage(format mismatch)");
+      return GL_TRUE;
+   }
+   else if (_mesa_is_stencil_format(format)
+            && !ctx->Extensions.ARB_texture_stencil8) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "glGetTexImage(format=GL_STENCIL_INDEX)");
       return GL_TRUE;
    }
    else if (_mesa_is_ycbcr_format(format)

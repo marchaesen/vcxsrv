@@ -975,6 +975,78 @@ _mesa_lookup_bufferobj(struct gl_context *ctx, GLuint buffer)
 }
 
 
+struct gl_buffer_object *
+_mesa_lookup_bufferobj_locked(struct gl_context *ctx, GLuint buffer)
+{
+   return (struct gl_buffer_object *)
+      _mesa_HashLookupLocked(ctx->Shared->BufferObjects, buffer);
+}
+
+
+void
+_mesa_begin_bufferobj_lookups(struct gl_context *ctx)
+{
+   _mesa_HashLockMutex(ctx->Shared->BufferObjects);
+}
+
+
+void
+_mesa_end_bufferobj_lookups(struct gl_context *ctx)
+{
+   _mesa_HashUnlockMutex(ctx->Shared->BufferObjects);
+}
+
+
+/**
+ * Look up a buffer object for a multi-bind function.
+ *
+ * Unlike _mesa_lookup_bufferobj(), this function also takes care
+ * of generating an error if the buffer ID is not zero or the name
+ * of an existing buffer object.
+ *
+ * If the buffer ID refers to an existing buffer object, a pointer
+ * to the buffer object is returned.  If the ID is zero, a pointer
+ * to the shared NullBufferObj is returned.  If the ID is not zero
+ * and does not refer to a valid buffer object, this function
+ * returns NULL.
+ *
+ * This function assumes that the caller has already locked the
+ * hash table mutex by calling _mesa_begin_bufferobj_lookups().
+ */
+struct gl_buffer_object *
+_mesa_multi_bind_lookup_bufferobj(struct gl_context *ctx,
+                                  const GLuint *buffers,
+                                  GLuint index, const char *caller)
+{
+   struct gl_buffer_object *bufObj;
+
+   if (buffers[index] != 0) {
+      bufObj = _mesa_lookup_bufferobj_locked(ctx, buffers[index]);
+
+      /* The multi-bind functions don't create the buffer objects
+         when they don't exist. */
+      if (bufObj == &DummyBufferObject)
+         bufObj = NULL;
+   } else
+      bufObj = ctx->Shared->NullBufferObj;
+
+   if (!bufObj) {
+      /* The ARB_multi_bind spec says:
+       *
+       *    "An INVALID_OPERATION error is generated if any value
+       *     in <buffers> is not zero or the name of an existing
+       *     buffer object (per binding)."
+       */
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(buffers[%u]=%u is not zero or the name "
+                  "of an existing buffer object)",
+                  caller, index, buffers[index]);
+   }
+
+   return bufObj;
+}
+
+
 /**
  * If *ptr points to obj, set ptr = the Null/default buffer object.
  * This is a helper for buffer object deletion.
@@ -2529,17 +2601,45 @@ _mesa_GetObjectParameterivAPPLE(GLenum objectType, GLuint name, GLenum pname,
    }
 }
 
+/**
+ * Binds a buffer object to a uniform buffer binding point.
+ *
+ * The caller is responsible for flushing vertices and updating
+ * NewDriverState.
+ */
 static void
 set_ubo_binding(struct gl_context *ctx,
-		int index,
-		struct gl_buffer_object *bufObj,
-		GLintptr offset,
-		GLsizeiptr size,
-		GLboolean autoSize)
+                struct gl_uniform_buffer_binding *binding,
+                struct gl_buffer_object *bufObj,
+                GLintptr offset,
+                GLsizeiptr size,
+                GLboolean autoSize)
 {
-   struct gl_uniform_buffer_binding *binding;
+   _mesa_reference_buffer_object(ctx, &binding->BufferObject, bufObj);
 
-   binding = &ctx->UniformBufferBindings[index];
+   binding->Offset = offset;
+   binding->Size = size;
+   binding->AutomaticSize = autoSize;
+}
+
+/**
+ * Binds a buffer object to a uniform buffer binding point.
+ *
+ * Unlike set_ubo_binding(), this function also flushes vertices
+ * and updates NewDriverState.  It also checks if the binding
+ * has actually changed before updating it.
+ */
+static void
+bind_uniform_buffer(struct gl_context *ctx,
+                    GLuint index,
+                    struct gl_buffer_object *bufObj,
+                    GLintptr offset,
+                    GLsizeiptr size,
+                    GLboolean autoSize)
+{
+   struct gl_uniform_buffer_binding *binding =
+      &ctx->UniformBufferBindings[index];
+
    if (binding->BufferObject == bufObj &&
        binding->Offset == offset &&
        binding->Size == size &&
@@ -2550,10 +2650,7 @@ set_ubo_binding(struct gl_context *ctx,
    FLUSH_VERTICES(ctx, 0);
    ctx->NewDriverState |= ctx->DriverFlags.NewUniformBuffer;
 
-   _mesa_reference_buffer_object(ctx, &binding->BufferObject, bufObj);
-   binding->Offset = offset;
-   binding->Size = size;
-   binding->AutomaticSize = autoSize;
+   set_ubo_binding(ctx, binding, bufObj, offset, size, autoSize);
 }
 
 /**
@@ -2588,7 +2685,7 @@ bind_buffer_range_uniform_buffer(struct gl_context *ctx,
    }
 
    _mesa_reference_buffer_object(ctx, &ctx->UniformBuffer, bufObj);
-   set_ubo_binding(ctx, index, bufObj, offset, size, GL_FALSE);
+   bind_uniform_buffer(ctx, index, bufObj, offset, size, GL_FALSE);
 }
 
 
@@ -2607,19 +2704,52 @@ bind_buffer_base_uniform_buffer(struct gl_context *ctx,
    }
 
    _mesa_reference_buffer_object(ctx, &ctx->UniformBuffer, bufObj);
+
    if (bufObj == ctx->Shared->NullBufferObj)
-      set_ubo_binding(ctx, index, bufObj, -1, -1, GL_TRUE);
+      bind_uniform_buffer(ctx, index, bufObj, -1, -1, GL_TRUE);
    else
-      set_ubo_binding(ctx, index, bufObj, 0, 0, GL_TRUE);
+      bind_uniform_buffer(ctx, index, bufObj, 0, 0, GL_TRUE);
 }
 
+/**
+ * Binds a buffer object to an atomic buffer binding point.
+ *
+ * The caller is responsible for validating the offset,
+ * flushing the vertices and updating NewDriverState.
+ */
 static void
 set_atomic_buffer_binding(struct gl_context *ctx,
-                          unsigned index,
+                          struct gl_atomic_buffer_binding *binding,
                           struct gl_buffer_object *bufObj,
                           GLintptr offset,
-                          GLsizeiptr size,
-                          const char *name)
+                          GLsizeiptr size)
+{
+   _mesa_reference_buffer_object(ctx, &binding->BufferObject, bufObj);
+
+   if (bufObj == ctx->Shared->NullBufferObj) {
+      binding->Offset = -1;
+      binding->Size = -1;
+   } else {
+      binding->Offset = offset;
+      binding->Size = size;
+   }
+}
+
+/**
+ * Binds a buffer object to an atomic buffer binding point.
+ *
+ * Unlike set_atomic_buffer_binding(), this function also validates the
+ * index and offset, flushes vertices, and updates NewDriverState.
+ * It also checks if the binding has actually changing before
+ * updating it.
+ */
+static void
+bind_atomic_buffer(struct gl_context *ctx,
+                   unsigned index,
+                   struct gl_buffer_object *bufObj,
+                   GLintptr offset,
+                   GLsizeiptr size,
+                   const char *name)
 {
    struct gl_atomic_buffer_binding *binding;
 
@@ -2647,15 +2777,704 @@ set_atomic_buffer_binding(struct gl_context *ctx,
    FLUSH_VERTICES(ctx, 0);
    ctx->NewDriverState |= ctx->DriverFlags.NewAtomicBuffer;
 
-   _mesa_reference_buffer_object(ctx, &binding->BufferObject, bufObj);
+   set_atomic_buffer_binding(ctx, binding, bufObj, offset, size);
+}
 
-   if (bufObj == ctx->Shared->NullBufferObj) {
-      binding->Offset = -1;
-      binding->Size = -1;
-   } else {
-      binding->Offset = offset;
-      binding->Size = size;
+static inline bool
+bind_buffers_check_offset_and_size(struct gl_context *ctx,
+                                   GLuint index,
+                                   const GLintptr *offsets,
+                                   const GLsizeiptr *sizes)
+{
+   if (offsets[index] < 0) {
+     /* The ARB_multi_bind spec says:
+      *
+      *    "An INVALID_VALUE error is generated by BindBuffersRange if any
+      *     value in <offsets> is less than zero (per binding)."
+      */
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "glBindBuffersRange(offsets[%u]=%lld < 0)",
+                  index, (long long int) offsets[index]);
+      return false;
    }
+
+   if (sizes[index] <= 0) {
+     /* The ARB_multi_bind spec says:
+      *
+      *     "An INVALID_VALUE error is generated by BindBuffersRange if any
+      *      value in <sizes> is less than or equal to zero (per binding)."
+      */
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "glBindBuffersRange(sizes[%u]=%lld <= 0)",
+                  index, (long long int) sizes[index]);
+      return false;
+   }
+
+   return true;
+}
+
+static bool
+error_check_bind_uniform_buffers(struct gl_context *ctx,
+                                 GLuint first, GLsizei count,
+                                 const char *caller)
+{
+   if (!ctx->Extensions.ARB_uniform_buffer_object) {
+      _mesa_error(ctx, GL_INVALID_ENUM,
+                  "%s(target=GL_UNIFORM_BUFFER)", caller);
+      return false;
+   }
+
+   /* The ARB_multi_bind_spec says:
+    *
+    *     "An INVALID_OPERATION error is generated if <first> + <count> is
+    *      greater than the number of target-specific indexed binding points,
+    *      as described in section 6.7.1."
+    */
+   if (first + count > ctx->Const.MaxUniformBufferBindings) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(first=%u + count=%d > the value of "
+                  "GL_MAX_UNIFORM_BUFFER_BINDINGS=%u)",
+                  caller, first, count,
+                  ctx->Const.MaxUniformBufferBindings);
+      return false;
+   }
+
+   return true;
+}
+
+/**
+ * Unbind all uniform buffers in the range
+ * <first> through <first>+<count>-1
+ */
+static void
+unbind_uniform_buffers(struct gl_context *ctx, GLuint first, GLsizei count)
+{
+   struct gl_buffer_object *bufObj = ctx->Shared->NullBufferObj;
+   GLuint i;
+
+   for (i = 0; i < count; i++)
+      set_ubo_binding(ctx, &ctx->UniformBufferBindings[first + i],
+                      bufObj, -1, -1, GL_TRUE);
+}
+
+static void
+bind_uniform_buffers_base(struct gl_context *ctx, GLuint first, GLsizei count,
+                          const GLuint *buffers)
+{
+   GLuint i;
+
+   if (!error_check_bind_uniform_buffers(ctx, first, count, "glBindBuffersBase"))
+      return;
+
+   /* Assume that at least one binding will be changed */
+   FLUSH_VERTICES(ctx, 0);
+   ctx->NewDriverState |= ctx->DriverFlags.NewUniformBuffer;
+
+   if (!buffers) {
+      /* The ARB_multi_bind spec says:
+       *
+       *   "If <buffers> is NULL, all bindings from <first> through
+       *    <first>+<count>-1 are reset to their unbound (zero) state."
+       */
+      unbind_uniform_buffers(ctx, first, count);
+      return;
+   }
+
+   /* Note that the error semantics for multi-bind commands differ from
+    * those of other GL commands.
+    *
+    * The Issues section in the ARB_multi_bind spec says:
+    *
+    *    "(11) Typically, OpenGL specifies that if an error is generated by a
+    *          command, that command has no effect.  This is somewhat
+    *          unfortunate for multi-bind commands, because it would require a
+    *          first pass to scan the entire list of bound objects for errors
+    *          and then a second pass to actually perform the bindings.
+    *          Should we have different error semantics?
+    *
+    *       RESOLVED:  Yes.  In this specification, when the parameters for
+    *       one of the <count> binding points are invalid, that binding point
+    *       is not updated and an error will be generated.  However, other
+    *       binding points in the same command will be updated if their
+    *       parameters are valid and no other error occurs."
+    */
+
+   _mesa_begin_bufferobj_lookups(ctx);
+
+   for (i = 0; i < count; i++) {
+      struct gl_uniform_buffer_binding *binding =
+          &ctx->UniformBufferBindings[first + i];
+      struct gl_buffer_object *bufObj;
+
+      if (binding->BufferObject && binding->BufferObject->Name == buffers[i])
+         bufObj = binding->BufferObject;
+      else
+         bufObj = _mesa_multi_bind_lookup_bufferobj(ctx, buffers, i,
+                                                    "glBindBuffersBase");
+
+      if (bufObj) {
+         if (bufObj == ctx->Shared->NullBufferObj)
+            set_ubo_binding(ctx, binding, bufObj, -1, -1, GL_TRUE);
+         else
+            set_ubo_binding(ctx, binding, bufObj, 0, 0, GL_TRUE);
+      }
+   }
+
+   _mesa_end_bufferobj_lookups(ctx);
+}
+
+static void
+bind_uniform_buffers_range(struct gl_context *ctx, GLuint first, GLsizei count,
+                           const GLuint *buffers,
+                           const GLintptr *offsets, const GLsizeiptr *sizes)
+{
+   GLuint i;
+
+   if (!error_check_bind_uniform_buffers(ctx, first, count,
+                                         "glBindBuffersRange"))
+      return;
+
+   /* Assume that at least one binding will be changed */
+   FLUSH_VERTICES(ctx, 0);
+   ctx->NewDriverState |= ctx->DriverFlags.NewUniformBuffer;
+
+   if (!buffers) {
+      /* The ARB_multi_bind spec says:
+       *
+       *    "If <buffers> is NULL, all bindings from <first> through
+       *     <first>+<count>-1 are reset to their unbound (zero) state.
+       *     In this case, the offsets and sizes associated with the
+       *     binding points are set to default values, ignoring
+       *     <offsets> and <sizes>."
+       */
+      unbind_uniform_buffers(ctx, first, count);
+      return;
+   }
+
+   /* Note that the error semantics for multi-bind commands differ from
+    * those of other GL commands.
+    *
+    * The Issues section in the ARB_multi_bind spec says:
+    *
+    *    "(11) Typically, OpenGL specifies that if an error is generated by a
+    *          command, that command has no effect.  This is somewhat
+    *          unfortunate for multi-bind commands, because it would require a
+    *          first pass to scan the entire list of bound objects for errors
+    *          and then a second pass to actually perform the bindings.
+    *          Should we have different error semantics?
+    *
+    *       RESOLVED:  Yes.  In this specification, when the parameters for
+    *       one of the <count> binding points are invalid, that binding point
+    *       is not updated and an error will be generated.  However, other
+    *       binding points in the same command will be updated if their
+    *       parameters are valid and no other error occurs."
+    */
+
+   _mesa_begin_bufferobj_lookups(ctx);
+
+   for (i = 0; i < count; i++) {
+      struct gl_uniform_buffer_binding *binding =
+         &ctx->UniformBufferBindings[first + i];
+      struct gl_buffer_object *bufObj;
+
+      if (!bind_buffers_check_offset_and_size(ctx, i, offsets, sizes))
+         continue;
+
+      /* The ARB_multi_bind spec says:
+       *
+       *     "An INVALID_VALUE error is generated by BindBuffersRange if any
+       *      pair of values in <offsets> and <sizes> does not respectively
+       *      satisfy the constraints described for those parameters for the
+       *      specified target, as described in section 6.7.1 (per binding)."
+       *
+       * Section 6.7.1 refers to table 6.5, which says:
+       *
+       *     "┌───────────────────────────────────────────────────────────────┐
+       *      │ Uniform buffer array bindings (see sec. 7.6)                  │
+       *      ├─────────────────────┬─────────────────────────────────────────┤
+       *      │  ...                │  ...                                    │
+       *      │  offset restriction │  multiple of value of UNIFORM_BUFFER_-  │
+       *      │                     │  OFFSET_ALIGNMENT                       │
+       *      │  ...                │  ...                                    │
+       *      │  size restriction   │  none                                   │
+       *      └─────────────────────┴─────────────────────────────────────────┘"
+       */
+      if (offsets[i] & (ctx->Const.UniformBufferOffsetAlignment - 1)) {
+         _mesa_error(ctx, GL_INVALID_VALUE,
+                     "glBindBuffersRange(offsets[%u]=%lld is misaligned; "
+                     "it must be a multiple of the value of "
+                     "GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT=%u when "
+                     "target=GL_UNIFORM_BUFFER)",
+                     i, (long long int) offsets[i],
+                     ctx->Const.UniformBufferOffsetAlignment);
+         continue;
+      }
+
+      if (binding->BufferObject && binding->BufferObject->Name == buffers[i])
+         bufObj = binding->BufferObject;
+      else
+         bufObj = _mesa_multi_bind_lookup_bufferobj(ctx, buffers, i,
+                                                    "glBindBuffersRange");
+
+      if (bufObj) {
+         if (bufObj == ctx->Shared->NullBufferObj)
+            set_ubo_binding(ctx, binding, bufObj, -1, -1, GL_FALSE);
+         else
+            set_ubo_binding(ctx, binding, bufObj,
+                            offsets[i], sizes[i], GL_FALSE);
+      }
+   }
+
+   _mesa_end_bufferobj_lookups(ctx);
+}
+
+static bool
+error_check_bind_xfb_buffers(struct gl_context *ctx,
+                             struct gl_transform_feedback_object *tfObj,
+                             GLuint first, GLsizei count, const char *caller)
+{
+   if (!ctx->Extensions.EXT_transform_feedback) {
+      _mesa_error(ctx, GL_INVALID_ENUM,
+                  "%s(target=GL_TRANSFORM_FEEDBACK_BUFFER)", caller);
+      return false;
+   }
+
+   /* Page 398 of the PDF of the OpenGL 4.4 (Core Profile) spec says:
+    *
+    *     "An INVALID_OPERATION error is generated :
+    *
+    *     ...
+    *     • by BindBufferRange or BindBufferBase if target is TRANSFORM_-
+    *       FEEDBACK_BUFFER and transform feedback is currently active."
+    *
+    * We assume that this is also meant to apply to BindBuffersRange
+    * and BindBuffersBase.
+    */
+   if (tfObj->Active) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(Changing transform feedback buffers while "
+                  "transform feedback is active)", caller);
+      return false;
+   }
+
+   /* The ARB_multi_bind_spec says:
+    *
+    *     "An INVALID_OPERATION error is generated if <first> + <count> is
+    *      greater than the number of target-specific indexed binding points,
+    *      as described in section 6.7.1."
+    */
+   if (first + count > ctx->Const.MaxTransformFeedbackBuffers) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(first=%u + count=%d > the value of "
+                  "GL_MAX_TRANSFORM_FEEDBACK_BUFFERS=%u)",
+                  caller, first, count,
+                  ctx->Const.MaxTransformFeedbackBuffers);
+      return false;
+   }
+
+   return true;
+}
+
+/**
+ * Unbind all transform feedback buffers in the range
+ * <first> through <first>+<count>-1
+ */
+static void
+unbind_xfb_buffers(struct gl_context *ctx,
+                   struct gl_transform_feedback_object *tfObj,
+                   GLuint first, GLsizei count)
+{
+   struct gl_buffer_object * const bufObj = ctx->Shared->NullBufferObj;
+   GLuint i;
+
+   for (i = 0; i < count; i++)
+      _mesa_set_transform_feedback_binding(ctx, tfObj, first + i,
+                                           bufObj, 0, 0);
+}
+
+static void
+bind_xfb_buffers_base(struct gl_context *ctx,
+                      GLuint first, GLsizei count,
+                      const GLuint *buffers)
+{
+   struct gl_transform_feedback_object *tfObj =
+      ctx->TransformFeedback.CurrentObject;
+   GLuint i;
+
+   if (!error_check_bind_xfb_buffers(ctx, tfObj, first, count,
+                                     "glBindBuffersBase"))
+      return;
+
+   /* Assume that at least one binding will be changed */
+   FLUSH_VERTICES(ctx, 0);
+   ctx->NewDriverState |= ctx->DriverFlags.NewTransformFeedback;
+
+   if (!buffers) {
+      /* The ARB_multi_bind spec says:
+       *
+       *   "If <buffers> is NULL, all bindings from <first> through
+       *    <first>+<count>-1 are reset to their unbound (zero) state."
+       */
+      unbind_xfb_buffers(ctx, tfObj, first, count);
+      return;
+   }
+
+   /* Note that the error semantics for multi-bind commands differ from
+    * those of other GL commands.
+    *
+    * The Issues section in the ARB_multi_bind spec says:
+    *
+    *    "(11) Typically, OpenGL specifies that if an error is generated by a
+    *          command, that command has no effect.  This is somewhat
+    *          unfortunate for multi-bind commands, because it would require a
+    *          first pass to scan the entire list of bound objects for errors
+    *          and then a second pass to actually perform the bindings.
+    *          Should we have different error semantics?
+    *
+    *       RESOLVED:  Yes.  In this specification, when the parameters for
+    *       one of the <count> binding points are invalid, that binding point
+    *       is not updated and an error will be generated.  However, other
+    *       binding points in the same command will be updated if their
+    *       parameters are valid and no other error occurs."
+    */
+
+   _mesa_begin_bufferobj_lookups(ctx);
+
+   for (i = 0; i < count; i++) {
+      struct gl_buffer_object * const boundBufObj = tfObj->Buffers[first + i];
+      struct gl_buffer_object *bufObj;
+
+      if (boundBufObj && boundBufObj->Name == buffers[i])
+         bufObj = boundBufObj;
+      else
+         bufObj = _mesa_multi_bind_lookup_bufferobj(ctx, buffers, i,
+                                                    "glBindBuffersBase");
+
+      if (bufObj)
+         _mesa_set_transform_feedback_binding(ctx, tfObj, first + i,
+                                              bufObj, 0, 0);
+   }
+
+   _mesa_end_bufferobj_lookups(ctx);
+}
+
+static void
+bind_xfb_buffers_range(struct gl_context *ctx,
+                       GLuint first, GLsizei count,
+                       const GLuint *buffers,
+                       const GLintptr *offsets,
+                       const GLsizeiptr *sizes)
+{
+   struct gl_transform_feedback_object *tfObj =
+       ctx->TransformFeedback.CurrentObject;
+   GLuint i;
+
+   if (!error_check_bind_xfb_buffers(ctx, tfObj, first, count,
+                                     "glBindBuffersRange"))
+      return;
+
+   /* Assume that at least one binding will be changed */
+   FLUSH_VERTICES(ctx, 0);
+   ctx->NewDriverState |= ctx->DriverFlags.NewTransformFeedback;
+
+   if (!buffers) {
+      /* The ARB_multi_bind spec says:
+       *
+       *    "If <buffers> is NULL, all bindings from <first> through
+       *     <first>+<count>-1 are reset to their unbound (zero) state.
+       *     In this case, the offsets and sizes associated with the
+       *     binding points are set to default values, ignoring
+       *     <offsets> and <sizes>."
+       */
+      unbind_xfb_buffers(ctx, tfObj, first, count);
+      return;
+   }
+
+   /* Note that the error semantics for multi-bind commands differ from
+    * those of other GL commands.
+    *
+    * The Issues section in the ARB_multi_bind spec says:
+    *
+    *    "(11) Typically, OpenGL specifies that if an error is generated by a
+    *          command, that command has no effect.  This is somewhat
+    *          unfortunate for multi-bind commands, because it would require a
+    *          first pass to scan the entire list of bound objects for errors
+    *          and then a second pass to actually perform the bindings.
+    *          Should we have different error semantics?
+    *
+    *       RESOLVED:  Yes.  In this specification, when the parameters for
+    *       one of the <count> binding points are invalid, that binding point
+    *       is not updated and an error will be generated.  However, other
+    *       binding points in the same command will be updated if their
+    *       parameters are valid and no other error occurs."
+    */
+
+   _mesa_begin_bufferobj_lookups(ctx);
+
+   for (i = 0; i < count; i++) {
+      const GLuint index = first + i;
+      struct gl_buffer_object * const boundBufObj = tfObj->Buffers[index];
+      struct gl_buffer_object *bufObj;
+
+      if (!bind_buffers_check_offset_and_size(ctx, i, offsets, sizes))
+         continue;
+
+      /* The ARB_multi_bind spec says:
+       *
+       *     "An INVALID_VALUE error is generated by BindBuffersRange if any
+       *      pair of values in <offsets> and <sizes> does not respectively
+       *      satisfy the constraints described for those parameters for the
+       *      specified target, as described in section 6.7.1 (per binding)."
+       *
+       * Section 6.7.1 refers to table 6.5, which says:
+       *
+       *     "┌───────────────────────────────────────────────────────────────┐
+       *      │ Transform feedback array bindings (see sec. 13.2.2)           │
+       *      ├───────────────────────┬───────────────────────────────────────┤
+       *      │    ...                │    ...                                │
+       *      │    offset restriction │    multiple of 4                      │
+       *      │    ...                │    ...                                │
+       *      │    size restriction   │    multiple of 4                      │
+       *      └───────────────────────┴───────────────────────────────────────┘"
+       */
+      if (offsets[i] & 0x3) {
+         _mesa_error(ctx, GL_INVALID_VALUE,
+                     "glBindBuffersRange(offsets[%u]=%lld is misaligned; "
+                     "it must be a multiple of 4 when "
+                     "target=GL_TRANSFORM_FEEDBACK_BUFFER)",
+                     i, (long long int) offsets[i]);
+         continue;
+      }
+
+      if (sizes[i] & 0x3) {
+         _mesa_error(ctx, GL_INVALID_VALUE,
+                     "glBindBuffersRange(sizes[%u]=%lld is misaligned; "
+                     "it must be a multiple of 4 when "
+                     "target=GL_TRANSFORM_FEEDBACK_BUFFER)",
+                     i, (long long int) sizes[i]);
+         continue;
+      }
+
+      if (boundBufObj && boundBufObj->Name == buffers[i])
+         bufObj = boundBufObj;
+      else
+         bufObj = _mesa_multi_bind_lookup_bufferobj(ctx, buffers, i,
+                                                    "glBindBuffersRange");
+
+      if (bufObj)
+         _mesa_set_transform_feedback_binding(ctx, tfObj, index, bufObj,
+                                              offsets[i], sizes[i]);
+   }
+
+   _mesa_end_bufferobj_lookups(ctx);
+}
+
+static bool
+error_check_bind_atomic_buffers(struct gl_context *ctx,
+                                GLuint first, GLsizei count,
+                                const char *caller)
+{
+   if (!ctx->Extensions.ARB_shader_atomic_counters) {
+      _mesa_error(ctx, GL_INVALID_ENUM,
+                  "%s(target=GL_ATOMIC_COUNTER_BUFFER)", caller);
+      return false;
+   }
+
+   /* The ARB_multi_bind_spec says:
+    *
+    *     "An INVALID_OPERATION error is generated if <first> + <count> is
+    *      greater than the number of target-specific indexed binding points,
+    *      as described in section 6.7.1."
+    */
+   if (first + count > ctx->Const.MaxAtomicBufferBindings) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(first=%u + count=%d > the value of "
+                  "GL_MAX_ATOMIC_BUFFER_BINDINGS=%u)",
+                  caller, first, count, ctx->Const.MaxAtomicBufferBindings);
+      return false;
+   }
+
+   return true;
+}
+
+/**
+ * Unbind all atomic counter buffers in the range
+ * <first> through <first>+<count>-1
+ */
+static void
+unbind_atomic_buffers(struct gl_context *ctx, GLuint first, GLsizei count)
+{
+   struct gl_buffer_object * const bufObj = ctx->Shared->NullBufferObj;
+   GLuint i;
+
+   for (i = 0; i < count; i++)
+      set_atomic_buffer_binding(ctx, &ctx->AtomicBufferBindings[first + i],
+                                bufObj, -1, -1);
+}
+
+static void
+bind_atomic_buffers_base(struct gl_context *ctx,
+                         GLuint first,
+                         GLsizei count,
+                         const GLuint *buffers)
+{
+   GLuint i;
+
+   if (!error_check_bind_atomic_buffers(ctx, first, count,
+                                        "glBindBuffersBase"))
+     return;
+
+   /* Assume that at least one binding will be changed */
+   FLUSH_VERTICES(ctx, 0);
+   ctx->NewDriverState |= ctx->DriverFlags.NewAtomicBuffer;
+
+   if (!buffers) {
+      /* The ARB_multi_bind spec says:
+       *
+       *   "If <buffers> is NULL, all bindings from <first> through
+       *    <first>+<count>-1 are reset to their unbound (zero) state."
+       */
+      unbind_atomic_buffers(ctx, first, count);
+      return;
+   }
+
+   /* Note that the error semantics for multi-bind commands differ from
+    * those of other GL commands.
+    *
+    * The Issues section in the ARB_multi_bind spec says:
+    *
+    *    "(11) Typically, OpenGL specifies that if an error is generated by a
+    *          command, that command has no effect.  This is somewhat
+    *          unfortunate for multi-bind commands, because it would require a
+    *          first pass to scan the entire list of bound objects for errors
+    *          and then a second pass to actually perform the bindings.
+    *          Should we have different error semantics?
+    *
+    *       RESOLVED:  Yes.  In this specification, when the parameters for
+    *       one of the <count> binding points are invalid, that binding point
+    *       is not updated and an error will be generated.  However, other
+    *       binding points in the same command will be updated if their
+    *       parameters are valid and no other error occurs."
+    */
+
+   _mesa_begin_bufferobj_lookups(ctx);
+
+   for (i = 0; i < count; i++) {
+      struct gl_atomic_buffer_binding *binding =
+         &ctx->AtomicBufferBindings[first + i];
+      struct gl_buffer_object *bufObj;
+
+      if (binding->BufferObject && binding->BufferObject->Name == buffers[i])
+         bufObj = binding->BufferObject;
+      else
+         bufObj = _mesa_multi_bind_lookup_bufferobj(ctx, buffers, i,
+                                                    "glBindBuffersBase");
+
+      if (bufObj)
+         set_atomic_buffer_binding(ctx, binding, bufObj, 0, 0);
+   }
+
+   _mesa_end_bufferobj_lookups(ctx);
+}
+
+static void
+bind_atomic_buffers_range(struct gl_context *ctx,
+                          GLuint first,
+                          GLsizei count,
+                          const GLuint *buffers,
+                          const GLintptr *offsets,
+                          const GLsizeiptr *sizes)
+{
+   GLuint i;
+
+   if (!error_check_bind_atomic_buffers(ctx, first, count,
+                                        "glBindBuffersRange"))
+     return;
+
+   /* Assume that at least one binding will be changed */
+   FLUSH_VERTICES(ctx, 0);
+   ctx->NewDriverState |= ctx->DriverFlags.NewAtomicBuffer;
+
+   if (!buffers) {
+      /* The ARB_multi_bind spec says:
+       *
+       *    "If <buffers> is NULL, all bindings from <first> through
+       *     <first>+<count>-1 are reset to their unbound (zero) state.
+       *     In this case, the offsets and sizes associated with the
+       *     binding points are set to default values, ignoring
+       *     <offsets> and <sizes>."
+       */
+      unbind_atomic_buffers(ctx, first, count);
+      return;
+   }
+
+   /* Note that the error semantics for multi-bind commands differ from
+    * those of other GL commands.
+    *
+    * The Issues section in the ARB_multi_bind spec says:
+    *
+    *    "(11) Typically, OpenGL specifies that if an error is generated by a
+    *          command, that command has no effect.  This is somewhat
+    *          unfortunate for multi-bind commands, because it would require a
+    *          first pass to scan the entire list of bound objects for errors
+    *          and then a second pass to actually perform the bindings.
+    *          Should we have different error semantics?
+    *
+    *       RESOLVED:  Yes.  In this specification, when the parameters for
+    *       one of the <count> binding points are invalid, that binding point
+    *       is not updated and an error will be generated.  However, other
+    *       binding points in the same command will be updated if their
+    *       parameters are valid and no other error occurs."
+    */
+
+   _mesa_begin_bufferobj_lookups(ctx);
+
+   for (i = 0; i < count; i++) {
+      struct gl_atomic_buffer_binding *binding =
+         &ctx->AtomicBufferBindings[first + i];
+      struct gl_buffer_object *bufObj;
+
+      if (!bind_buffers_check_offset_and_size(ctx, i, offsets, sizes))
+         continue;
+
+      /* The ARB_multi_bind spec says:
+       *
+       *     "An INVALID_VALUE error is generated by BindBuffersRange if any
+       *      pair of values in <offsets> and <sizes> does not respectively
+       *      satisfy the constraints described for those parameters for the
+       *      specified target, as described in section 6.7.1 (per binding)."
+       *
+       * Section 6.7.1 refers to table 6.5, which says:
+       *
+       *     "┌───────────────────────────────────────────────────────────────┐
+       *      │ Atomic counter array bindings (see sec. 7.7.2)                │
+       *      ├───────────────────────┬───────────────────────────────────────┤
+       *      │    ...                │    ...                                │
+       *      │    offset restriction │    multiple of 4                      │
+       *      │    ...                │    ...                                │
+       *      │    size restriction   │    none                               │
+       *      └───────────────────────┴───────────────────────────────────────┘"
+       */
+      if (offsets[i] & (ATOMIC_COUNTER_SIZE - 1)) {
+         _mesa_error(ctx, GL_INVALID_VALUE,
+                     "glBindBuffersRange(offsets[%u]=%lld is misaligned; "
+                     "it must be a multiple of %d when "
+                     "target=GL_ATOMIC_COUNTER_BUFFER)",
+                     i, (long long int) offsets[i], ATOMIC_COUNTER_SIZE);
+         continue;
+      }
+
+      if (binding->BufferObject && binding->BufferObject->Name == buffers[i])
+         bufObj = binding->BufferObject;
+      else
+         bufObj = _mesa_multi_bind_lookup_bufferobj(ctx, buffers, i,
+                                                    "glBindBuffersRange");
+
+      if (bufObj)
+         set_atomic_buffer_binding(ctx, binding, bufObj, offsets[i], sizes[i]);
+   }
+
+   _mesa_end_bufferobj_lookups(ctx);
 }
 
 void GLAPIENTRY
@@ -2697,8 +3516,8 @@ _mesa_BindBufferRange(GLenum target, GLuint index,
       bind_buffer_range_uniform_buffer(ctx, index, bufObj, offset, size);
       return;
    case GL_ATOMIC_COUNTER_BUFFER:
-      set_atomic_buffer_binding(ctx, index, bufObj, offset, size,
-                                "glBindBufferRange");
+      bind_atomic_buffer(ctx, index, bufObj, offset, size,
+                         "glBindBufferRange");
       return;
    default:
       _mesa_error(ctx, GL_INVALID_ENUM, "glBindBufferRange(target)");
@@ -2761,12 +3580,60 @@ _mesa_BindBufferBase(GLenum target, GLuint index, GLuint buffer)
       bind_buffer_base_uniform_buffer(ctx, index, bufObj);
       return;
    case GL_ATOMIC_COUNTER_BUFFER:
-      set_atomic_buffer_binding(ctx, index, bufObj, 0, 0,
-                                "glBindBufferBase");
+      bind_atomic_buffer(ctx, index, bufObj, 0, 0,
+                         "glBindBufferBase");
       return;
    default:
       _mesa_error(ctx, GL_INVALID_ENUM, "glBindBufferBase(target)");
       return;
+   }
+}
+
+void GLAPIENTRY
+_mesa_BindBuffersRange(GLenum target, GLuint first, GLsizei count,
+                       const GLuint *buffers,
+                       const GLintptr *offsets, const GLsizeiptr *sizes)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   switch (target) {
+   case GL_TRANSFORM_FEEDBACK_BUFFER:
+      bind_xfb_buffers_range(ctx, first, count, buffers, offsets, sizes);
+      return;
+   case GL_UNIFORM_BUFFER:
+      bind_uniform_buffers_range(ctx, first, count, buffers, offsets, sizes);
+      return;
+   case GL_ATOMIC_COUNTER_BUFFER:
+      bind_atomic_buffers_range(ctx, first, count, buffers,
+                                offsets, sizes);
+      return;
+   default:
+      _mesa_error(ctx, GL_INVALID_ENUM, "glBindBuffersRange(target=%s)",
+                  _mesa_lookup_enum_by_nr(target));
+      break;
+   }
+}
+
+void GLAPIENTRY
+_mesa_BindBuffersBase(GLenum target, GLuint first, GLsizei count,
+                      const GLuint *buffers)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   switch (target) {
+   case GL_TRANSFORM_FEEDBACK_BUFFER:
+      bind_xfb_buffers_base(ctx, first, count, buffers);
+      return;
+   case GL_UNIFORM_BUFFER:
+      bind_uniform_buffers_base(ctx, first, count, buffers);
+      return;
+   case GL_ATOMIC_COUNTER_BUFFER:
+      bind_atomic_buffers_base(ctx, first, count, buffers);
+      return;
+   default:
+      _mesa_error(ctx, GL_INVALID_ENUM, "glBindBuffersBase(target=%s)",
+                  _mesa_lookup_enum_by_nr(target));
+      break;
    }
 }
 

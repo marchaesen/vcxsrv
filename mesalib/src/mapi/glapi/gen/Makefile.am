@@ -133,6 +133,7 @@ API_XML = \
 	ARB_internalformat_query.xml \
 	ARB_invalidate_subdata.xml \
 	ARB_map_buffer_range.xml \
+	ARB_multi_bind.xml \
 	ARB_robustness.xml \
 	ARB_sample_shading.xml \
 	ARB_sampler_objects.xml \
@@ -171,6 +172,7 @@ API_XML = \
 	EXT_texture_array.xml \
 	EXT_texture_integer.xml \
 	EXT_transform_feedback.xml \
+	INTEL_performance_query.xml \
 	KHR_debug.xml \
 	NV_conditional_render.xml \
 	NV_primitive_restart.xml \
