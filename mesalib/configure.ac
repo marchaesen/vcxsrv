@@ -1179,6 +1179,13 @@ if test "x$enable_gbm" = xyes; then
         if test "x$enable_shared_glapi" = xno; then
             AC_MSG_ERROR([gbm_dri requires --enable-shared-glapi])
         fi
+    else
+        # Strictly speaking libgbm does not require --enable-dri, although
+        # both of its backends do. Thus one can build libgbm without any
+        # backends if --disable-dri is set.
+        # To avoid unnecessary complexity of checking if at least one backend
+        # is available when building, just mandate --enable-dri.
+        AC_MSG_ERROR([gbm requires --enable-dri])
     fi
 fi
 AM_CONDITIONAL(HAVE_GBM, test "x$enable_gbm" = xyes)
@@ -1605,6 +1612,12 @@ if test "x$enable_gallium_llvm" = xyes; then
         AC_COMPUTE_INT([LLVM_VERSION_MINOR], [LLVM_VERSION_MINOR],
             [#include "${LLVM_INCLUDEDIR}/llvm/Config/llvm-config.h"])
 
+        dnl In LLVM 3.4.1 patch level was defined in config.h and not
+        dnl llvm-config.h
+        AC_COMPUTE_INT([LLVM_VERSION_PATCH], [LLVM_VERSION_PATCH],
+            [#include "${LLVM_INCLUDEDIR}/llvm/Config/config.h"],
+            LLVM_VERSION_PATCH=0) dnl Default if LLVM_VERSION_PATCH not found
+
         if test -n "${LLVM_VERSION_MAJOR}"; then
             LLVM_VERSION_INT="${LLVM_VERSION_MAJOR}0${LLVM_VERSION_MINOR}"
         else
@@ -1627,7 +1640,7 @@ if test "x$enable_gallium_llvm" = xyes; then
                 LLVM_COMPONENTS="${LLVM_COMPONENTS} option"
             fi
         fi
-        DEFINES="${DEFINES} -DHAVE_LLVM=0x0$LLVM_VERSION_INT"
+        DEFINES="${DEFINES} -DHAVE_LLVM=0x0$LLVM_VERSION_INT -DLLVM_VERSION_PATCH=$LLVM_VERSION_PATCH"
         MESA_LLVM=1
 
         dnl Check for Clang internal headers
