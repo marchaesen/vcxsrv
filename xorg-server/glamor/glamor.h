@@ -321,6 +321,9 @@ extern _X_EXPORT int glamor_create_gc(GCPtr gc);
 extern _X_EXPORT void glamor_validate_gc(GCPtr gc, unsigned long changes,
                                          DrawablePtr drawable);
 
+extern Bool _X_EXPORT glamor_change_window_attributes(WindowPtr pWin, unsigned long mask);
+extern void _X_EXPORT glamor_copy_window(WindowPtr window, DDXPointRec old_origin, RegionPtr src_region);
+
 /* Glamor rendering/drawing functions with XXX_nf.
  * nf means no fallback within glamor internal if possible. If glamor
  * fail to accelerate the operation, glamor will return a false, and the

@@ -304,6 +304,83 @@ generate_composite_function \
 
 /******************************************************************************/
 
+.macro src_x888_0565_init
+        /* Hold loop invariant in MASK */
+        ldr     MASK, =0x001F001F
+        line_saved_regs  STRIDE_S, ORIG_W
+.endm
+
+.macro src_x888_0565_1pixel  s, d
+        and     WK&d, MASK, WK&s, lsr #3           @ 00000000000rrrrr00000000000bbbbb
+        and     STRIDE_S, WK&s, #0xFC00            @ 0000000000000000gggggg0000000000
+        orr     WK&d, WK&d, WK&d, lsr #5           @ 00000000000-----rrrrr000000bbbbb
+        orr     WK&d, WK&d, STRIDE_S, lsr #5       @ 00000000000-----rrrrrggggggbbbbb
+        /* Top 16 bits are discarded during the following STRH */
+.endm
+
+.macro src_x888_0565_2pixels  slo, shi, d, tmp
+        and     SCRATCH, WK&shi, #0xFC00           @ 0000000000000000GGGGGG0000000000
+        and     WK&tmp, MASK, WK&shi, lsr #3       @ 00000000000RRRRR00000000000BBBBB
+        and     WK&shi, MASK, WK&slo, lsr #3       @ 00000000000rrrrr00000000000bbbbb
+        orr     WK&tmp, WK&tmp, WK&tmp, lsr #5     @ 00000000000-----RRRRR000000BBBBB
+        orr     WK&tmp, WK&tmp, SCRATCH, lsr #5    @ 00000000000-----RRRRRGGGGGGBBBBB
+        and     SCRATCH, WK&slo, #0xFC00           @ 0000000000000000gggggg0000000000
+        orr     WK&shi, WK&shi, WK&shi, lsr #5     @ 00000000000-----rrrrr000000bbbbb
+        orr     WK&shi, WK&shi, SCRATCH, lsr #5    @ 00000000000-----rrrrrggggggbbbbb
+        pkhbt   WK&d, WK&shi, WK&tmp, lsl #16      @ RRRRRGGGGGGBBBBBrrrrrggggggbbbbb
+.endm
+
+.macro src_x888_0565_process_head   cond, numbytes, firstreg, unaligned_src, unaligned_mask, preload
+        WK4     .req    STRIDE_S
+        WK5     .req    STRIDE_M
+        WK6     .req    WK3
+        WK7     .req    ORIG_W
+ .if numbytes == 16
+        pixld   , 16, 4, SRC, 0
+        src_x888_0565_2pixels  4, 5, 0, 0
+        pixld   , 8, 4, SRC, 0
+        src_x888_0565_2pixels  6, 7, 1, 1
+        pixld   , 8, 6, SRC, 0
+ .else
+        pixld   , numbytes*2, 4, SRC, 0
+ .endif
+.endm
+
+.macro src_x888_0565_process_tail   cond, numbytes, firstreg
+ .if numbytes == 16
+        src_x888_0565_2pixels  4, 5, 2, 2
+        src_x888_0565_2pixels  6, 7, 3, 4
+ .elseif numbytes == 8
+        src_x888_0565_2pixels  4, 5, 1, 1
+        src_x888_0565_2pixels  6, 7, 2, 2
+ .elseif numbytes == 4
+        src_x888_0565_2pixels  4, 5, 1, 1
+ .else
+        src_x888_0565_1pixel  4, 1
+ .endif
+ .if numbytes == 16
+        pixst   , numbytes, 0, DST
+ .else
+        pixst   , numbytes, 1, DST
+ .endif
+        .unreq  WK4
+        .unreq  WK5
+        .unreq  WK6
+        .unreq  WK7
+.endm
+
+generate_composite_function \
+    pixman_composite_src_x888_0565_asm_armv6, 32, 0, 16, \
+    FLAG_DST_WRITEONLY | FLAG_BRANCH_OVER | FLAG_PROCESS_DOES_STORE | FLAG_SPILL_LINE_VARS | FLAG_PROCESS_CORRUPTS_SCRATCH, \
+    3, /* prefetch distance */ \
+    src_x888_0565_init, \
+    nop_macro, /* newline */ \
+    nop_macro, /* cleanup */ \
+    src_x888_0565_process_head, \
+    src_x888_0565_process_tail
+
+/******************************************************************************/
+
 .macro add_8_8_8pixels  cond, dst1, dst2
         uqadd8&cond  WK&dst1, WK&dst1, MASK
         uqadd8&cond  WK&dst2, WK&dst2, STRIDE_M

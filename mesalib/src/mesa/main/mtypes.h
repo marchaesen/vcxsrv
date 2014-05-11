@@ -1195,6 +1195,8 @@ struct gl_texture_object
    GLuint Name;                /**< the user-visible texture object ID */
    GLchar *Label;               /**< GL_KHR_debug */
    GLenum Target;              /**< GL_TEXTURE_1D, GL_TEXTURE_2D, etc. */
+   gl_texture_index TargetIndex; /**< The gl_texture_unit::CurrentTex index.
+                                      Only valid when Target is valid. */
 
    struct gl_sampler_object Sampler;
 
@@ -1368,6 +1370,9 @@ struct gl_texture_unit
 
    /** Points to highest priority, complete and enabled texture object */
    struct gl_texture_object *_Current;
+
+   /** Texture targets that have a non-default texture bound */
+   GLbitfield _BoundTextures;
 };
 
 
@@ -2432,6 +2437,15 @@ struct gl_shader
    struct glsl_symbol_table *symbols;
 
    bool uses_builtin_functions;
+   bool uses_gl_fragcoord;
+   bool redeclares_gl_fragcoord;
+   bool ARB_fragment_coord_conventions_enable;
+
+   /**
+    * Fragment shader state from GLSL 1.50 layout qualifiers.
+    */
+   bool origin_upper_left;
+   bool pixel_center_integer;
 
    /**
     * Geometry shader state from GLSL 1.50 layout qualifiers.
@@ -2594,17 +2608,6 @@ struct gl_shader_program
    GLboolean BinaryRetreivableHint;
 
    /**
-    * Flags that the linker should not reject the program if it lacks
-    * a vertex or fragment shader.  GLES2 doesn't allow separate
-    * shader objects, and would reject them.  However, we internally
-    * build separate shader objects for fixed function programs, which
-    * we use for drivers/common/meta.c and for handling
-    * _mesa_update_state with no program bound (for example in
-    * glClear()).
-    */
-   GLboolean InternalSeparateShader;
-
-   /**
     * Indicates whether program can be bound for individual pipeline stages
     * using UseProgramStages after it is next linked.
     */
@@ -2757,6 +2760,11 @@ struct gl_shader_program
     * \c NULL.
     */
    struct gl_shader *_LinkedShaders[MESA_SHADER_STAGES];
+
+   /* True if any of the fragment shaders attached to this program use:
+    * #extension ARB_fragment_coord_conventions: enable
+    */
+   GLboolean ARB_fragment_coord_conventions_enable;
 };   
 
 
@@ -2790,9 +2798,7 @@ struct gl_pipeline_object
    /**
     * Programs used for rendering
     *
-    * There is a separate program set for each shader stage.  If
-    * GL_EXT_separate_shader_objects is not supported, each of these must point
-    * to \c NULL or to the same program.
+    * There is a separate program set for each shader stage.
     */
    struct gl_shader_program *CurrentProgram[MESA_SHADER_STAGES];
 
@@ -3521,7 +3527,6 @@ struct gl_extensions
    GLboolean ARB_point_sprite;
    GLboolean ARB_sample_shading;
    GLboolean ARB_seamless_cube_map;
-   GLboolean ARB_separate_shader_objects;
    GLboolean ARB_shader_atomic_counters;
    GLboolean ARB_shader_bit_encoding;
    GLboolean ARB_shader_image_load_store;
@@ -3547,6 +3552,7 @@ struct gl_extensions
    GLboolean ARB_texture_mirror_clamp_to_edge;
    GLboolean ARB_texture_multisample;
    GLboolean ARB_texture_non_power_of_two;
+   GLboolean ARB_texture_stencil8;
    GLboolean ARB_texture_query_levels;
    GLboolean ARB_texture_query_lod;
    GLboolean ARB_texture_rg;
@@ -3577,7 +3583,6 @@ struct gl_extensions
    GLboolean EXT_pixel_buffer_object;
    GLboolean EXT_point_parameters;
    GLboolean EXT_provoking_vertex;
-   GLboolean EXT_separate_shader_objects;
    GLboolean EXT_shader_integer_mix;
    GLboolean EXT_stencil_two_side;
    GLboolean EXT_texture3D;
@@ -3608,6 +3613,7 @@ struct gl_extensions
    GLboolean ATI_texture_env_combine3;
    GLboolean ATI_fragment_shader;
    GLboolean ATI_separate_stencil;
+   GLboolean INTEL_performance_query;
    GLboolean MESA_pack_invert;
    GLboolean MESA_ycbcr_texture;
    GLboolean NV_conditional_render;

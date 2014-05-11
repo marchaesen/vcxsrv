@@ -28,7 +28,7 @@ AC_SUBST([OSMESA_VERSION])
 
 dnl Versions for external dependencies
 LIBDRM_REQUIRED=2.4.38
-LIBDRM_RADEON_REQUIRED=2.4.53
+LIBDRM_RADEON_REQUIRED=2.4.54
 LIBDRM_INTEL_REQUIRED=2.4.52
 LIBDRM_NVVIEUX_REQUIRED=2.4.33
 LIBDRM_NOUVEAU_REQUIRED="2.4.33 libdrm >= 2.4.41"
@@ -1179,6 +1179,13 @@ if test "x$enable_gbm" = xyes; then
         if test "x$enable_shared_glapi" = xno; then
             AC_MSG_ERROR([gbm_dri requires --enable-shared-glapi])
         fi
+    else
+        # Strictly speaking libgbm does not require --enable-dri, although
+        # both of its backends do. Thus one can build libgbm without any
+        # backends if --disable-dri is set.
+        # To avoid unnecessary complexity of checking if at least one backend
+        # is available when building, just mandate --enable-dri.
+        AC_MSG_ERROR([gbm requires --enable-dri])
     fi
 fi
 AM_CONDITIONAL(HAVE_GBM, test "x$enable_gbm" = xyes)
@@ -1605,6 +1612,12 @@ if test "x$enable_gallium_llvm" = xyes; then
         AC_COMPUTE_INT([LLVM_VERSION_MINOR], [LLVM_VERSION_MINOR],
             [#include "${LLVM_INCLUDEDIR}/llvm/Config/llvm-config.h"])
 
+        dnl In LLVM 3.4.1 patch level was defined in config.h and not
+        dnl llvm-config.h
+        AC_COMPUTE_INT([LLVM_VERSION_PATCH], [LLVM_VERSION_PATCH],
+            [#include "${LLVM_INCLUDEDIR}/llvm/Config/config.h"],
+            LLVM_VERSION_PATCH=0) dnl Default if LLVM_VERSION_PATCH not found
+
         if test -n "${LLVM_VERSION_MAJOR}"; then
             LLVM_VERSION_INT="${LLVM_VERSION_MAJOR}0${LLVM_VERSION_MINOR}"
         else
@@ -1627,7 +1640,7 @@ if test "x$enable_gallium_llvm" = xyes; then
                 LLVM_COMPONENTS="${LLVM_COMPONENTS} option"
             fi
         fi
-        DEFINES="${DEFINES} -DHAVE_LLVM=0x0$LLVM_VERSION_INT"
+        DEFINES="${DEFINES} -DHAVE_LLVM=0x0$LLVM_VERSION_INT -DLLVM_VERSION_PATCH=$LLVM_VERSION_PATCH"
         MESA_LLVM=1
 
         dnl Check for Clang internal headers
@@ -1744,6 +1757,19 @@ gallium_require_drm_loader() {
     fi
 }
 
+require_egl_drm() {
+    case "$with_egl_platforms" in
+        *drm*)
+            ;;
+         *)
+            AC_MSG_ERROR([--with-egl-platforms=drm is required to build the $1 driver.])
+            ;;
+    esac
+    if test "x$enable_gbm" != xyes; then
+            AC_MSG_ERROR([--enable-gbm is required to build the $1 driver.])
+    fi
+}
+
 radeon_llvm_check() {
     if test "x$enable_gallium_llvm" != "xyes"; then
         AC_MSG_ERROR([--enable-gallium-llvm is required when building $1])
@@ -1835,6 +1861,7 @@ if test -n "$with_gallium_drivers"; then
             gallium_require_drm_loader
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS radeonsi"
             radeon_llvm_check "radeonsi"
+            require_egl_drm "radeonsi"
             gallium_check_st "radeon/drm" "radeonsi/dri" "" "" "radeonsi/vdpau" "radeonsi/omx"
             DRICOMMON_NEED_LIBDRM=yes
             ;;
@@ -1843,7 +1870,7 @@ if test -n "$with_gallium_drivers"; then
             PKG_CHECK_MODULES([NOUVEAU], [libdrm_nouveau >= $LIBDRM_NOUVEAU_REQUIRED])
             gallium_require_drm_loader
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS nouveau"
-            gallium_check_st "nouveau/drm" "dri-nouveau" "" "xvmc-nouveau" "vdpau-nouveau"
+            gallium_check_st "nouveau/drm" "dri-nouveau" "" "xvmc-nouveau" "vdpau-nouveau" "omx-nouveau"
             DRICOMMON_NEED_LIBDRM=yes
             ;;
         xfreedreno)
@@ -2086,6 +2113,7 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/targets/opencl/Makefile
 		src/gallium/targets/xa/Makefile
 		src/gallium/targets/xa/xatracker.pc
+		src/gallium/targets/omx-nouveau/Makefile
 		src/gallium/targets/osmesa/Makefile
 		src/gallium/targets/osmesa/osmesa.pc
 		src/gallium/targets/pipe-loader/Makefile

@@ -5874,6 +5874,12 @@
       </option>
       <option>
         <configItem>
+          <name>grp:win_space_toggle</name>
+          <_description>Win Key+Space</_description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
           <name>grp:rwin_toggle</name>
           <_description>Right Win</_description>
         </configItem>

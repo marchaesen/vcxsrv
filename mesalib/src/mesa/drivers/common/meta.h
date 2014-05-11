@@ -58,6 +58,7 @@
 #define MESA_META_MULTISAMPLE          0x100000
 #define MESA_META_FRAMEBUFFER_SRGB     0x200000
 #define MESA_META_OCCLUSION_QUERY      0x400000
+#define MESA_META_DRAW_BUFFERS         0x800000
 /**\}*/
 
 /**
@@ -121,7 +122,6 @@ struct save_state
    GLboolean ATIFragmentShaderEnabled;
    struct gl_shader_program *Shader[MESA_SHADER_STAGES];
    struct gl_shader_program *ActiveShader;
-   struct gl_pipeline_object   *_Shader;
    struct gl_pipeline_object   *Pipeline;
 
    /** MESA_META_STENCIL_TEST */
@@ -181,6 +181,9 @@ struct save_state
    GLboolean TransformFeedbackNeedsResume;
 
    GLuint DrawBufferName, ReadBufferName, RenderbufferName;
+
+   /** MESA_META_DRAW_BUFFERS */
+   GLenum ColorDrawBuffers[MAX_DRAW_BUFFERS];
 };
 
 /**

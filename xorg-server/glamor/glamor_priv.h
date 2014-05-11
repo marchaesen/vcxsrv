@@ -626,10 +626,6 @@ void glamor_copy_n_to_n(DrawablePtr src, DrawablePtr dst, GCPtr gc,
                         BoxPtr box, int nbox, int dx, int dy, Bool reverse,
                         Bool upsidedown, Pixel bitplane, void *closure);
 
-/* glamor_copywindow.c */
-void glamor_copy_window(WindowPtr win, DDXPointRec old_origin,
-                        RegionPtr src_region);
-
 /* glamor_core.c */
 Bool glamor_prepare_access(DrawablePtr drawable, glamor_access_t access);
 void glamor_finish_access(DrawablePtr drawable);
@@ -670,7 +666,6 @@ glamor_pixmap_fbo *glamor_es2_pixmap_read_prepare(PixmapPtr source, int x,
 
 Bool glamor_set_alu(ScreenPtr screen, unsigned char alu);
 Bool glamor_set_planemask(PixmapPtr pixmap, unsigned long planemask);
-Bool glamor_change_window_attributes(WindowPtr pWin, unsigned long mask);
 RegionPtr glamor_bitmap_to_region(PixmapPtr pixmap);
 
 /* glamor_fill.c */

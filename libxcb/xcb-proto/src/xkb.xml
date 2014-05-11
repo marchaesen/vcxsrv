@@ -1778,7 +1778,7 @@ authorization from the authors.
 			<bitcase>
 				<enumref ref="NameDetail">KTLevelNames</enumref>
 				<list name="nLevelsPerType" type="CARD8">
-					<fieldref>nKTLevels</fieldref>
+					<fieldref>nTypes</fieldref>
 				</list>
 				<list name="ktLevelNames" type="ATOM">
 					<sumof ref="nLevelsPerType" />
@@ -2220,7 +2220,7 @@ authorization from the authors.
 						<bitcase>
 							<enumref ref="NameDetail">KTLevelNames</enumref>
 							<list name="nLevelsPerType" type="CARD8">
-								<fieldref>nKTLevels</fieldref>
+								<fieldref>nTypes</fieldref>
 							</list>
 							<list name="ktLevelNames" type="ATOM">
 								<sumof ref="nLevelsPerType" />

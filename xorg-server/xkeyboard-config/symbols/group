@@ -85,6 +85,15 @@ xkb_symbols "shift_caps_switch" {
     key <CAPS> { [ ISO_First_Group, ISO_Last_Group ] };
 };
 
+// toggle using win + space as combo
+partial modifier_keys
+xkb_symbols "win_space_toggle" {
+  key <SPCE> {
+    type[Group1]="PC_SUPER_LEVEL2",
+    symbols[Group1]= [ space, ISO_Next_Group ]
+  };
+};
+
 // Pressing the left Win key selects the first group,
 // pressing the right Win or the Menu key selects the last group.
 partial modifier_keys

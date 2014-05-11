@@ -49,7 +49,7 @@ glsl_compute_version_string(void *mem_ctx, bool is_es, unsigned version)
 }
 
 
-static unsigned known_desktop_glsl_versions[] =
+static const unsigned known_desktop_glsl_versions[] =
    { 110, 120, 130, 140, 150, 330, 400, 410, 420, 430, 440 };
 
 
@@ -196,6 +196,12 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    this->default_uniform_qualifier = new(this) ast_type_qualifier();
    this->default_uniform_qualifier->flags.q.shared = 1;
    this->default_uniform_qualifier->flags.q.column_major = 1;
+
+   this->fs_uses_gl_fragcoord = false;
+   this->fs_redeclares_gl_fragcoord = false;
+   this->fs_origin_upper_left = false;
+   this->fs_pixel_center_integer = false;
+   this->fs_redeclares_gl_fragcoord_with_no_layout_qualifiers = false;
 
    this->gs_input_prim_type_specified = false;
    this->gs_input_size = 0;
@@ -500,40 +506,53 @@ struct _mesa_glsl_extension {
 static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    /*                                  API availability */
    /* name                             GL     ES         supported flag */
+
+   /* ARB extensions go here, sorted alphabetically.
+    */
    EXT(ARB_arrays_of_arrays,           true,  false,     ARB_arrays_of_arrays),
+   EXT(ARB_compute_shader,             true,  false,     ARB_compute_shader),
    EXT(ARB_conservative_depth,         true,  false,     ARB_conservative_depth),
    EXT(ARB_draw_buffers,               true,  false,     dummy_true),
    EXT(ARB_draw_instanced,             true,  false,     ARB_draw_instanced),
    EXT(ARB_explicit_attrib_location,   true,  false,     ARB_explicit_attrib_location),
    EXT(ARB_fragment_coord_conventions, true,  false,     ARB_fragment_coord_conventions),
-   EXT(ARB_texture_rectangle,          true,  false,     dummy_true),
-   EXT(EXT_texture_array,              true,  false,     EXT_texture_array),
-   EXT(ARB_separate_shader_objects,    true,  false,     ARB_separate_shader_objects),
-   EXT(ARB_shader_texture_lod,         true,  false,     ARB_shader_texture_lod),
-   EXT(ARB_shader_stencil_export,      true,  false,     ARB_shader_stencil_export),
-   EXT(AMD_conservative_depth,         true,  false,     ARB_conservative_depth),
-   EXT(AMD_shader_stencil_export,      true,  false,     ARB_shader_stencil_export),
-   EXT(OES_texture_3D,                 false, true,      EXT_texture3D),
-   EXT(OES_EGL_image_external,         false, true,      OES_EGL_image_external),
+   EXT(ARB_gpu_shader5,                true,  false,     ARB_gpu_shader5),
+   EXT(ARB_sample_shading,             true,  false,     ARB_sample_shading),
+   EXT(ARB_separate_shader_objects,    true,  false,     dummy_true),
+   EXT(ARB_shader_atomic_counters,     true,  false,     ARB_shader_atomic_counters),
    EXT(ARB_shader_bit_encoding,        true,  false,     ARB_shader_bit_encoding),
-   EXT(ARB_uniform_buffer_object,      true,  false,     ARB_uniform_buffer_object),
-   EXT(OES_standard_derivatives,       false,  true,     OES_standard_derivatives),
-   EXT(ARB_texture_cube_map_array,     true,  false,     ARB_texture_cube_map_array),
-   EXT(ARB_shading_language_packing,   true,  false,     ARB_shading_language_packing),
+   EXT(ARB_shader_image_load_store,    true,  false,     ARB_shader_image_load_store),
+   EXT(ARB_shader_stencil_export,      true,  false,     ARB_shader_stencil_export),
+   EXT(ARB_shader_texture_lod,         true,  false,     ARB_shader_texture_lod),
    EXT(ARB_shading_language_420pack,   true,  false,     ARB_shading_language_420pack),
+   EXT(ARB_shading_language_packing,   true,  false,     ARB_shading_language_packing),
+   EXT(ARB_texture_cube_map_array,     true,  false,     ARB_texture_cube_map_array),
+   EXT(ARB_texture_gather,             true,  false,     ARB_texture_gather),
    EXT(ARB_texture_multisample,        true,  false,     ARB_texture_multisample),
    EXT(ARB_texture_query_levels,       true,  false,     ARB_texture_query_levels),
    EXT(ARB_texture_query_lod,          true,  false,     ARB_texture_query_lod),
-   EXT(ARB_gpu_shader5,                true,  false,     ARB_gpu_shader5),
-   EXT(AMD_vertex_shader_layer,        true,  false,     AMD_vertex_shader_layer),
-   EXT(EXT_shader_integer_mix,         true,  true,      EXT_shader_integer_mix),
-   EXT(ARB_texture_gather,             true,  false,     ARB_texture_gather),
-   EXT(ARB_shader_atomic_counters,     true,  false,     ARB_shader_atomic_counters),
-   EXT(ARB_sample_shading,             true,  false,     ARB_sample_shading),
-   EXT(AMD_shader_trinary_minmax,      true,  false,     dummy_true),
+   EXT(ARB_texture_rectangle,          true,  false,     dummy_true),
+   EXT(ARB_uniform_buffer_object,      true,  false,     ARB_uniform_buffer_object),
    EXT(ARB_viewport_array,             true,  false,     ARB_viewport_array),
-   EXT(ARB_compute_shader,             true,  false,     ARB_compute_shader),
-   EXT(ARB_shader_image_load_store,    true,  false,     ARB_shader_image_load_store),
+
+   /* KHR extensions go here, sorted alphabetically.
+    */
+
+   /* OES extensions go here, sorted alphabetically.
+    */
+   EXT(OES_EGL_image_external,         false, true,      OES_EGL_image_external),
+   EXT(OES_standard_derivatives,       false, true,      OES_standard_derivatives),
+   EXT(OES_texture_3D,                 false, true,      EXT_texture3D),
+
+   /* All other extensions go here, sorted alphabetically.
+    */
+   EXT(AMD_conservative_depth,         true,  false,     ARB_conservative_depth),
+   EXT(AMD_shader_stencil_export,      true,  false,     ARB_shader_stencil_export),
+   EXT(AMD_shader_trinary_minmax,      true,  false,     dummy_true),
+   EXT(AMD_vertex_shader_layer,        true,  false,     AMD_vertex_shader_layer),
+   EXT(EXT_separate_shader_objects,    false, true,      dummy_true),
+   EXT(EXT_shader_integer_mix,         true,  true,      EXT_shader_integer_mix),
+   EXT(EXT_texture_array,              true,  false,     EXT_texture_array),
 };
 
 #undef EXT
@@ -637,7 +656,7 @@ _mesa_glsl_process_extension(const char *name, YYLTYPE *name_locp,
       if (extension && extension->compatible_with_state(state)) {
          extension->set_flags(state, behavior);
       } else {
-         static const char *const fmt = "extension `%s' unsupported in %s shader";
+         static const char fmt[] = "extension `%s' unsupported in %s shader";
 
          if (behavior == extension_require) {
             _mesa_glsl_error(name_locp, state, fmt,
@@ -1356,6 +1375,14 @@ set_shader_inout_layout(struct gl_shader *shader,
       assert(!state->cs_input_local_size_specified);
    }
 
+   if (shader->Stage != MESA_SHADER_FRAGMENT) {
+      /* Should have been prevented by the parser. */
+      assert(!state->fs_uses_gl_fragcoord);
+      assert(!state->fs_redeclares_gl_fragcoord);
+      assert(!state->fs_pixel_center_integer);
+      assert(!state->fs_origin_upper_left);
+   }
+
    switch (shader->Stage) {
    case MESA_SHADER_GEOMETRY:
       shader->Geom.VerticesOut = 0;
@@ -1387,6 +1414,15 @@ set_shader_inout_layout(struct gl_shader *shader,
          for (int i = 0; i < 3; i++)
             shader->Comp.LocalSize[i] = 0;
       }
+      break;
+
+   case MESA_SHADER_FRAGMENT:
+      shader->redeclares_gl_fragcoord = state->fs_redeclares_gl_fragcoord;
+      shader->uses_gl_fragcoord = state->fs_uses_gl_fragcoord;
+      shader->pixel_center_integer = state->fs_pixel_center_integer;
+      shader->origin_upper_left = state->fs_origin_upper_left;
+      shader->ARB_fragment_coord_conventions_enable =
+         state->ARB_fragment_coord_conventions_enable;
       break;
 
    default:

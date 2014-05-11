@@ -22,6 +22,7 @@
   grp:caps_switch       =       +capslock(groupshift)
   grp:shift_caps_toggle	=	+group(shift_caps_toggle)
   grp:shift_caps_switch	=	+group(shift_caps_switch)
+  grp:win_space_toggle	=	+group(win_space_toggle)
   grp:win_menu_switch	=	+group(win_menu_switch)
   grp:alt_caps_toggle   =       +group(alt_caps_toggle)
   grp:alt_space_toggle	=	+group(alt_space_toggle)
