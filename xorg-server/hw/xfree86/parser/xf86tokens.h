@@ -87,6 +87,7 @@ typedef enum {
     VENDOR,
     DASH,
     COMMA,
+    MATCHSEAT,
     OPTION,
     COMMENT,
 

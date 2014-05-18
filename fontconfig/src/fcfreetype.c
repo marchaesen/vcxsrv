@@ -1104,9 +1104,6 @@ FcFreeTypeQueryFace (const FT_Face  face,
     char	    psname[256];
     const char	    *tmp;
 
-    FcChar8	    *hashstr = NULL;
-    FT_Error	    err;
-    FT_ULong	    len = 0, alen;
     FcRange	    *r = NULL;
     double	    lower_size = 0.0L, upper_size = DBL_MAX;
 
@@ -1324,7 +1321,7 @@ FcFreeTypeQueryFace (const FT_Face  face,
 	++nstyle;
     }
 
-    if (!nfamily)
+    if (!nfamily && file && *file)
     {
 	FcChar8	*start, *end;
 	FcChar8	*family;
@@ -1398,7 +1395,7 @@ FcFreeTypeQueryFace (const FT_Face  face,
     if (!FcPatternAddString (pat, FC_POSTSCRIPT_NAME, (const FcChar8 *)psname))
 	goto bail1;
 
-    if (!FcPatternAddString (pat, FC_FILE, file))
+    if (file && *file && !FcPatternAddString (pat, FC_FILE, file))
 	goto bail1;
 
     if (!FcPatternAddInteger (pat, FC_INDEX, id))
@@ -1699,46 +1696,55 @@ FcFreeTypeQueryFace (const FT_Face  face,
     if (!FcPatternAddBool (pat, FC_DECORATIVE, decorative))
 	goto bail1;
 
-    err = FT_Load_Sfnt_Table (face, 0, 0, NULL, &len);
-    if (err == FT_Err_Ok)
-    {
-	char *fontdata;
 
-	alen = (len + 63) & ~63;
-	fontdata = malloc (alen);
-	if (!fontdata)
-	    goto bail3;
-	err = FT_Load_Sfnt_Table (face, 0, 0, (FT_Byte *)fontdata, &len);
-	if (err != FT_Err_Ok)
+    /*
+     * Compute hash digest for the font
+     */
+    {
+	FcChar8	    *hashstr = NULL;
+	FcHashDigest digest;
+
+	FcHashInitDigest (digest);
+
+	if (face->stream->read == NULL)
 	{
-	    free (fontdata);
-	    goto bail3;
+	    const char *data = (const char *) face->stream->base;
+	    size_t total_len = face->stream->size;
+	    size_t len = total_len;
+
+	    while (len >= 64)
+	    {
+		FcHashDigestAddBlock (digest, data);
+		data += 64;
+		len -= 64;
+	    }
+	    FcHashDigestFinish (digest, data, total_len);
+	} else {
+	    char data[64];
+	    size_t total_len = 0;
+	    size_t len = 0;
+
+	    while ((len = face->stream->read (face->stream, total_len, (unsigned char *) data, sizeof(data))) == 64)
+	    {
+		FcHashDigestAddBlock (digest, data);
+		total_len += 64;
+	    }
+	    total_len += len;
+	    FcHashDigestFinish (digest, data, total_len);
 	}
-	memset (&fontdata[len], 0, alen - len);
-	hashstr = FcHashGetSHA256DigestFromMemory (fontdata, len);
-	free (fontdata);
-    }
-    else if (err == FT_Err_Invalid_Face_Handle)
-    {
-	/* font may not support SFNT. falling back to
-	 * read the font data from file directly
-	 */
-	hashstr = FcHashGetSHA256DigestFromFile (file);
-    }
-    else
-    {
-	goto bail3;
-    }
-    if (hashstr)
-    {
-	if (!FcPatternAddString (pat, FC_HASH, hashstr))
+
+	hashstr = FcHashToString (digest);
+	if (hashstr)
 	{
+	    if (!FcPatternAddString (pat, FC_HASH, hashstr))
+	    {
+		free (hashstr);
+		goto bail1;
+	    }
 	    free (hashstr);
-	    goto bail1;
 	}
-	free (hashstr);
     }
-bail3:
+
 
     /*
      * Compute the unicode coverage for the font

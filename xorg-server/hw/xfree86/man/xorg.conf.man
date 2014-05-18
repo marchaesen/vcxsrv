@@ -1378,6 +1378,14 @@ for the regular text mode.
 The frequency is specified in MHz.
 This is rarely used.
 .TP 7
+.BI "MatchSeat  " "seat\-id"
+Only apply this
+.B Device
+section if X server was started with
+.B -seat
+.I seat\-id
+option.
+.TP 7
 .BI "Option \*qModeDebug\*q \*q" boolean \*q
 Enable printing of additional debugging information about modesetting to
 the server log.
@@ -1900,6 +1908,14 @@ The only case where there is even a choice in this value is for depth 24,
 where some hardware supports both a packed 24 bit framebuffer layout and a
 sparse 32 bit framebuffer layout.
 .TP 7
+.BI "MatchSeat  " "seat\-id"
+Only apply this
+.B Screen
+section if X server was started with
+.B -seat
+.I seat\-id
+option.
+.TP 7
 .B Options
 Various
 .B Option
@@ -2294,6 +2310,14 @@ The most commonly used options are:
 and the first two should normally be used to indicate the core pointer
 and core keyboard devices respectively.
 .RE
+.TP 7
+.BI "MatchSeat  " "seat\-id"
+Only apply this
+.B ServerLayout
+section if X server was started with
+.B -seat
+.I seat\-id
+option.
 .TP 7
 .B Options
 In addition to the following, any option permitted in the

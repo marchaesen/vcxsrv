@@ -770,10 +770,8 @@ xf86DeleteInput(InputInfoPtr pInp, int flags)
 
     FreeInputAttributes(pInp->attrs);
 
-    if (pInp->flags & XI86_SERVER_FD) {
-        systemd_logind_release_fd(pInp->major, pInp->minor);
-        close(pInp->fd);
-    }
+    if (pInp->flags & XI86_SERVER_FD)
+        systemd_logind_release_fd(pInp->major, pInp->minor, pInp->fd);
 
     /* Remove the entry from the list. */
     if (pInp == xf86InputDevs)
@@ -873,8 +871,7 @@ xf86NewInputDevice(InputInfoPtr pInfo, DeviceIntPtr *pdev, BOOL enable)
                             sizeof(pInfo) * (new_input_devices_count + 1));
                 new_input_devices[new_input_devices_count] = pInfo;
                 new_input_devices_count++;
-                systemd_logind_release_fd(pInfo->major, pInfo->minor);
-                close(fd);
+                systemd_logind_release_fd(pInfo->major, pInfo->minor, fd);
                 return BadMatch;
             }
             pInfo->fd = fd;

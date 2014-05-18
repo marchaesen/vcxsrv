@@ -30,14 +30,14 @@
 int systemd_logind_init(void);
 void systemd_logind_fini(void);
 int systemd_logind_take_fd(int major, int minor, const char *path, Bool *paus);
-void systemd_logind_release_fd(int major, int minor);
+void systemd_logind_release_fd(int major, int minor, int fd);
 int systemd_logind_controls_session(void);
 void systemd_logind_vtenter(void);
 #else
 #define systemd_logind_init()
 #define systemd_logind_fini()
 #define systemd_logind_take_fd(major, minor, path, paus) -1
-#define systemd_logind_release_fd(major, minor)
+#define systemd_logind_release_fd(major, minor, fd) close(fd)
 #define systemd_logind_controls_session() 0
 #define systemd_logind_vtenter()
 #endif

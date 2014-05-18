@@ -720,6 +720,9 @@ FcPrivate FcLangSet *
 FcLangSetSerialize(FcSerialize *serialize, const FcLangSet *l);
 
 /* fccharset.c */
+FcPrivate FcCharSet *
+FcCharSetPromote (FcValuePromotionBuffer *vbuf);
+
 FcPrivate void
 FcLangCharSetPopulate (void);
 
@@ -864,16 +867,23 @@ FcPrivate FcFontSet *
 FcFontSetDeserialize (const FcFontSet *set);
 
 /* fchash.c */
-FcPrivate FcChar8 *
-FcHashGetSHA256Digest (const FcChar8 *input_strings,
-		       size_t         len);
+
+typedef FcChar32 FcHashDigest[8];
+
+FcPrivate void
+FcHashInitDigest (FcHashDigest digest);
+
+FcPrivate void
+FcHashDigestAddBlock (FcHashDigest digest,
+		      const char   block[64]);
+
+FcPrivate void
+FcHashDigestFinish (FcHashDigest  digest,
+		    const char   *residual, /* < 64 bytes */
+		    size_t        total_len);
 
 FcPrivate FcChar8 *
-FcHashGetSHA256DigestFromFile (const FcChar8 *filename);
-
-FcPrivate FcChar8 *
-FcHashGetSHA256DigestFromMemory (const char *fontdata,
-				 size_t      length);
+FcHashToString (const FcHashDigest digest);
 
 /* fcinit.c */
 FcPrivate FcConfig *

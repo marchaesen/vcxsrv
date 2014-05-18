@@ -70,6 +70,7 @@ static xf86ConfigSymTabRec LayoutTab[] = {
     {ENDSECTION, "endsection"},
     {SCREEN, "screen"},
     {IDENTIFIER, "identifier"},
+    {MATCHSEAT, "matchseat"},
     {INACTIVE, "inactive"},
     {INPUTDEVICE, "inputdevice"},
     {OPTION, "option"},
@@ -108,6 +109,11 @@ xf86parseLayoutSection(void)
                 Error(MULTIPLE_MSG, "Identifier");
             ptr->lay_identifier = xf86_lex_val.str;
             has_ident = TRUE;
+            break;
+        case MATCHSEAT:
+            if (xf86getSubToken(&(ptr->lay_comment)) != STRING)
+                Error(QUOTE_MSG, "MatchSeat");
+            ptr->match_seat = xf86_lex_val.str;
             break;
         case INACTIVE:
         {

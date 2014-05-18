@@ -198,6 +198,7 @@ xf86parseDisplaySubSection(void)
 static xf86ConfigSymTabRec ScreenTab[] = {
     {ENDSECTION, "endsection"},
     {IDENTIFIER, "identifier"},
+    {MATCHSEAT, "matchseat"},
     {OBSDRIVER, "driver"},
     {MDEVICE, "device"},
     {MONITOR, "monitor"},
@@ -235,6 +236,11 @@ xf86parseScreenSection(void)
             if (has_ident || has_driver)
                 Error(ONLY_ONE_MSG, "Identifier or Driver");
             has_ident = TRUE;
+            break;
+        case MATCHSEAT:
+            if (xf86getSubToken(&(ptr->scrn_comment)) != STRING)
+                Error(QUOTE_MSG, "MatchSeat");
+            ptr->match_seat = xf86_lex_val.str;
             break;
         case OBSDRIVER:
             if (xf86getSubToken(&(ptr->scrn_comment)) != STRING)

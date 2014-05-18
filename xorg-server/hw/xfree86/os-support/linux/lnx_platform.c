@@ -37,7 +37,7 @@ get_drm_info(struct OdevAttributes *attribs, char *path, int delayed_index)
         if (paused) {
             LogMessage(X_ERROR,
                     "Error systemd-logind returned paused fd for drm node\n");
-            systemd_logind_release_fd(major, minor);
+            systemd_logind_release_fd(major, minor, -1);
             return FALSE;
         }
         config_odev_add_int_attribute(attribs, ODEV_ATTRIB_FD, fd);

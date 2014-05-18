@@ -476,7 +476,7 @@ rrCheckPixmapBounding(ScreenPtr pScreen,
 
     xorg_list_for_each_entry(slave, &pScreen->output_slave_list, output_head) {
         rrScrPrivPtr    slave_priv = rrGetScrPriv(slave);
-        for (c = 0; c < slave_priv->numCrtcs; c++)
+        for (c = 0; c < slave_priv->numCrtcs; c++) {
             if (slave_priv->crtcs[c] == rr_crtc) {
                 newbox.x1 = x;
                 newbox.x2 = x + w;
@@ -491,8 +491,9 @@ rrCheckPixmapBounding(ScreenPtr pScreen,
                 newbox.y1 = slave_priv->crtcs[c]->y;
                 newbox.y2 = slave_priv->crtcs[c]->y + slave_priv->crtcs[c]->mode->mode.height;
             }
-        RegionInit(&new_crtc_region, &newbox, 1);
-        RegionUnion(&total_region, &total_region, &new_crtc_region);
+            RegionInit(&new_crtc_region, &newbox, 1);
+            RegionUnion(&total_region, &total_region, &new_crtc_region);
+        }
     }
 
     newsize = RegionExtents(&total_region);
