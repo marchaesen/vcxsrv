@@ -71,6 +71,7 @@ xf86ConfigSymTabRec DeviceTab[] = {
     {RAMDAC, "ramdac"},
     {DACSPEED, "dacspeed"},
     {CLOCKS, "clocks"},
+    {MATCHSEAT, "matchseat"},
     {OPTION, "option"},
     {VIDEORAM, "videoram"},
     {BIOSBASE, "biosbase"},
@@ -215,6 +216,11 @@ xf86parseDeviceSection(void)
             if ((token = xf86getSubToken(&(ptr->dev_comment))) != NUMBER)
                 Error(NUMBER_MSG, "TextClockFreq");
             ptr->dev_textclockfreq = (int) (xf86_lex_val.realnum * 1000.0 + 0.5);
+            break;
+        case MATCHSEAT:
+            if (xf86getSubToken(&(ptr->dev_comment)) != STRING)
+                Error(QUOTE_MSG, "MatchSeat");
+            ptr->match_seat = xf86_lex_val.str;
             break;
         case OPTION:
             ptr->dev_option_lst = xf86parseOption(ptr->dev_option_lst);

@@ -30,9 +30,6 @@
 #include "dix-config.h"
 
 #include <xorg-server.h>
-#ifndef DEBUG
-#define NDEBUG
-#endif
 #include "glamor.h"
 
 #include <epoxy/gl.h>

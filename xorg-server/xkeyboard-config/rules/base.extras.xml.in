@@ -120,6 +120,12 @@
             <_description>German (Sun Type 6/7)</_description>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>adnw</name>
+            <_description>German (Aus der Neo-Welt)</_description>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>
@@ -687,6 +693,12 @@
         <_description>Swedish</_description>
       </configItem>
       <variantList>
+        <variant>
+          <configItem>
+            <name>dvorak_a5</name>
+            <_description>Swedish (Dvorak A5)</_description>
+          </configItem>
+        </variant>
         <variant>
           <configItem>
             <name>sun_type6</name>

@@ -1584,7 +1584,14 @@
           <iso639Id>alb</iso639Id>
         </languageList>
       </configItem>
-      <variantList/>
+      <variantList>
+        <variant>
+          <configItem>
+            <name>plisi-d1</name>
+            <_description>Albanian (Plisi D1)</_description>
+          </configItem>
+        </variant>
+      </variantList>
     </layout>
     <layout>
       <configItem>
@@ -6604,7 +6611,7 @@
       </option>
       <option>
         <configItem>
-          <name>grab:debug_actions</name>
+          <name>grab:debug</name>
           <_description>Allow grab and window tree logging</_description>
         </configItem>
       </option>

@@ -232,6 +232,18 @@ xf86ValidateFontPath(char *path)
     return tmp_path;
 }
 
+#define FIND_SUITABLE(pointertype, listhead, ptr)                                            \
+    do {                                                                                     \
+        pointertype _l, _p;                                                                  \
+                                                                                             \
+        for (_l = (listhead), _p = NULL; !_p && _l; _l = (pointertype)_l->list.next) {       \
+            if (!_l->match_seat || (SeatId && xf86nameCompare(_l->match_seat, SeatId) == 0)) \
+                _p = _l;                                                                     \
+        }                                                                                    \
+                                                                                             \
+        (ptr) = _p;                                                                          \
+    } while(0)
+
 /*
  * use the datastructure that the parser provides and pick out the parts
  * that we need at this point
@@ -1580,8 +1592,11 @@ configLayout(serverLayoutPtr servlayoutp, XF86ConfLayoutPtr conf_layout,
      * config file, or - if it is NULL - configScreen autogenerates one for
      * us */
     if (!count) {
+        XF86ConfScreenPtr screen;
+
+        FIND_SUITABLE (XF86ConfScreenPtr, xf86configptr->conf_screen_lst, screen);
         slp[0].screen = xnfcalloc(1, sizeof(confScreenRec));
-        if (!configScreen(slp[0].screen, xf86configptr->conf_screen_lst,
+        if (!configScreen(slp[0].screen, screen,
                           0, X_CONFIG)) {
             free(slp[0].screen);
             free(slp);
@@ -1821,7 +1836,7 @@ configScreen(confScreenPtr screenp, XF86ConfScreenPtr conf_screen, int scrnum,
      * set it to NULL so that the section can be autoconfigured later */
     screenp->device = xnfcalloc(1, sizeof(GDevRec));
     if ((!conf_screen->scrn_device) && (xf86configptr->conf_device_lst)) {
-        conf_screen->scrn_device = xf86configptr->conf_device_lst;
+        FIND_SUITABLE (XF86ConfDevicePtr, xf86configptr->conf_device_lst, conf_screen->scrn_device);
         xf86Msg(X_DEFAULT, "No device specified for screen \"%s\".\n"
                 "\tUsing the first device section listed.\n", screenp->id);
     }
@@ -2354,6 +2369,7 @@ xf86HandleConfigFile(Bool autoconfig)
     const char *scanptr;
     Bool singlecard = 0;
     Bool implicit_layout = FALSE;
+    XF86ConfLayoutPtr layout;
 
     if (!autoconfig) {
         char *filename, *dirname, *sysdirname;
@@ -2429,14 +2445,17 @@ xf86HandleConfigFile(Bool autoconfig)
      */
 
     /* First check if a layout section is present, and if it is valid. */
+    FIND_SUITABLE(XF86ConfLayoutPtr, xf86configptr->conf_layout_lst, layout);
+    if (layout == NULL || xf86ScreenName != NULL) {
+        XF86ConfScreenPtr screen;
 
-    if (xf86configptr->conf_layout_lst == NULL || xf86ScreenName != NULL) {
         if (xf86ScreenName == NULL) {
             xf86Msg(X_DEFAULT,
                     "No Layout section.  Using the first Screen section.\n");
         }
+        FIND_SUITABLE (XF86ConfScreenPtr, xf86configptr->conf_screen_lst, screen);
         if (!configImpliedLayout(&xf86ConfigLayout,
-                                 xf86configptr->conf_screen_lst,
+                                 screen,
                                  xf86configptr)) {
             xf86Msg(X_ERROR, "Unable to determine the screen layout\n");
             return CONFIG_PARSE_ERROR;
@@ -2451,16 +2470,13 @@ xf86HandleConfigFile(Bool autoconfig)
             if (optlist && xf86FindOption(optlist, "defaultserverlayout"))
                 dfltlayout =
                     xf86SetStrOption(optlist, "defaultserverlayout", NULL);
-            if (!configLayout
-                (&xf86ConfigLayout, xf86configptr->conf_layout_lst,
-                 dfltlayout)) {
+            if (!configLayout(&xf86ConfigLayout, layout, dfltlayout)) {
                 xf86Msg(X_ERROR, "Unable to determine the screen layout\n");
                 return CONFIG_PARSE_ERROR;
             }
         }
         else {
-            if (!configLayout(&xf86ConfigLayout, xf86configptr->conf_layout_lst,
-                              NULL)) {
+            if (!configLayout(&xf86ConfigLayout, layout, NULL)) {
                 xf86Msg(X_ERROR, "Unable to determine the screen layout\n");
                 return CONFIG_PARSE_ERROR;
             }

@@ -250,8 +250,6 @@ config_odev_free_attributes(struct OdevAttributes *attribs)
         free(iter);
     }
 
-    if (fd != -1) {
-        systemd_logind_release_fd(major, minor);
-        close(fd);
-    }
+    if (fd != -1)
+        systemd_logind_release_fd(major, minor, fd);
 }

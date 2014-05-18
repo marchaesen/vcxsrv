@@ -340,8 +340,7 @@ static Bool doPlatformProbe(struct xf86_platform_device *dev, DriverPtr drvp,
             fd = xf86_get_platform_device_int_attrib(dev, ODEV_ATTRIB_FD, -1);
             major = xf86_get_platform_device_int_attrib(dev, ODEV_ATTRIB_MAJOR, 0);
             minor = xf86_get_platform_device_int_attrib(dev, ODEV_ATTRIB_MINOR, 0);
-            systemd_logind_release_fd(major, minor);
-            close(fd);
+            systemd_logind_release_fd(major, minor, fd);
             config_odev_add_int_attribute(dev->attribs, ODEV_ATTRIB_FD, -1);
             dev->flags &= ~XF86_PDEV_SERVER_FD;
         }

@@ -26,14 +26,19 @@ Bool
 glamor_poly_segment_nf(DrawablePtr drawable, GCPtr gc, int nseg,
                        xSegment *seg)
 {
-    return FALSE;
+    if (glamor_ddx_fallback_check_pixmap(drawable) &&
+        glamor_ddx_fallback_check_gc(gc)) {
+        return FALSE;
+    }
+
+    miPolySegment(drawable, gc, nseg, seg);
+
+    return TRUE;
 }
 
 void
 glamor_poly_segment(DrawablePtr drawable, GCPtr gc, int nseg,
                     xSegment *seg)
 {
-    if (glamor_poly_segment_nf(drawable, gc, nseg, seg))
-        return;
     miPolySegment(drawable, gc, nseg, seg);
 }

@@ -766,7 +766,7 @@ miSpriteTrace(SpritePtr pSprite, int x, int y)
     WindowPtr pWin;
     BoxRec box;
 
-    pWin = DeepestSpriteWin(pSprite);
+    pWin = DeepestSpriteWin(pSprite)->firstChild;
     while (pWin) {
         if ((pWin->mapped) &&
             (x >= pWin->drawable.x - wBorderWidth(pWin)) &&

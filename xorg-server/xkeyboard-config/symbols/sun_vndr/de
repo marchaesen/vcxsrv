@@ -121,6 +121,16 @@ partial alphanumeric_keys
 };
 
 partial alphanumeric_keys
+	xkb_symbols "adnw" {
+	include "de(adnw)"
+};
+
+partial alphanumeric_keys
+	xkb_symbols "adnw_base" {
+	include "de(adnw_base)"
+};
+
+partial alphanumeric_keys
 	xkb_symbols "neo" {
 	include "de(neo)"
 };

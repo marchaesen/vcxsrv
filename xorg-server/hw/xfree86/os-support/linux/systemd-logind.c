@@ -162,7 +162,7 @@ cleanup:
 }
 
 void
-systemd_logind_release_fd(int _major, int _minor)
+systemd_logind_release_fd(int _major, int _minor, int fd)
 {
     struct systemd_logind_info *info = &logind_info;
     InputInfoPtr pInfo;
@@ -174,7 +174,7 @@ systemd_logind_release_fd(int _major, int _minor)
     int matches = 0;
 
     if (!info->session || major == 0)
-        return;
+        goto close;
 
     /* Only release the fd if there is only 1 InputInfo left for this major
      * and minor, otherwise other InputInfo's are still referencing the fd. */
@@ -218,6 +218,9 @@ cleanup:
     if (reply)
         dbus_message_unref(reply);
     dbus_error_free(&error);
+close:
+    if (fd != -1)
+        close(fd);
 }
 
 int

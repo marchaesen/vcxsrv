@@ -332,6 +332,19 @@ LDFLAGS=$save_LDFLAGS
 AC_SUBST([GC_SECTIONS])
 
 dnl
+dnl OpenBSD does not have DT_NEEDED entries for libc by design
+dnl so when these flags are passed to ld via libtool the checks will fail
+dnl
+case "$host_os" in
+openbsd*)
+    LD_NO_UNDEFINED="" ;;
+*)
+    LD_NO_UNDEFINED="-Wl,--no-undefined" ;;
+esac
+
+AC_SUBST([LD_NO_UNDEFINED])
+
+dnl
 dnl compatibility symlinks
 dnl
 case "$host_os" in
@@ -1624,6 +1637,12 @@ if test "x$enable_gallium_llvm" = xyes; then
             LLVM_VERSION_INT=`echo $LLVM_VERSION | sed -e 's/\([[0-9]]\)\.\([[0-9]]\)/\10\2/g'`
         fi
 
+        LLVM_REQUIRED_VERSION_MAJOR="3"
+        LLVM_REQUIRED_VERSION_MINOR="1"
+        if test "$LLVM_VERSION_INT" -lt "${LLVM_REQUIRED_VERSION_MAJOR}0${LLVM_REQUIRED_VERSION_MINOR}"; then
+            AC_MSG_ERROR([LLVM $LLVM_REQUIRED_VERSION_MAJOR.$LLVM_REQUIRED_VERSION_MINOR or newer is required])
+        fi
+
         LLVM_COMPONENTS="engine bitwriter"
         if $LLVM_CONFIG --components | grep -qw 'mcjit'; then
             LLVM_COMPONENTS="${LLVM_COMPONENTS} mcjit"
@@ -1948,6 +1967,8 @@ AM_CONDITIONAL(HAVE_GALLIUM_ILO, test "x$HAVE_GALLIUM_ILO" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_R300, test "x$HAVE_GALLIUM_R300" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_R600, test "x$HAVE_GALLIUM_R600" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_RADEONSI, test "x$HAVE_GALLIUM_RADEONSI" = xyes)
+AM_CONDITIONAL(HAVE_GALLIUM_RADEON_COMMON, test "x$HAVE_GALLIUM_R600" = xyes -o \
+                                                "x$HAVE_GALLIUM_RADEONSI" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_NOUVEAU, test "x$HAVE_GALLIUM_NOUVEAU" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_FREEDRENO, test "x$HAVE_GALLIUM_FREEDRENO" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_SOFTPIPE, test "x$HAVE_GALLIUM_SOFTPIPE" = xyes)

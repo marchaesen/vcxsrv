@@ -156,6 +156,8 @@ xkb_symbols "typewriter-legacy" {
 partial alphanumeric_keys
 xkb_symbols "phonetic" {
 
+    name[Group1]= "Russian (phonetic)";
+
     key <AE01> { [           1,      exclam  ] };
     key <AE02> { [           2,          at  ] };
     key <AE03> { [           3, Cyrillic_io  ] };

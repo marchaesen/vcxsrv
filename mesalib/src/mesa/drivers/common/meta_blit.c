@@ -62,7 +62,6 @@ setup_glsl_msaa_blit_shader(struct gl_context *ctx,
 {
    const char *vs_source;
    char *fs_source;
-   GLuint vs, fs;
    void *mem_ctx;
    enum blit_msaa_shader shader_index;
    bool dst_is_msaa = false;
@@ -314,21 +313,10 @@ setup_glsl_msaa_blit_shader(struct gl_context *ctx,
                                   sample_resolve);
    }
 
-   vs = _mesa_meta_compile_shader_with_debug(ctx, GL_VERTEX_SHADER, vs_source);
-   fs = _mesa_meta_compile_shader_with_debug(ctx, GL_FRAGMENT_SHADER, fs_source);
+   _mesa_meta_compile_and_link_program(ctx, vs_source, fs_source, name,
+                                       &blit->msaa_shaders[shader_index]);
 
-   blit->msaa_shaders[shader_index] = _mesa_CreateProgram();
-   _mesa_AttachShader(blit->msaa_shaders[shader_index], fs);
-   _mesa_DeleteShader(fs);
-   _mesa_AttachShader(blit->msaa_shaders[shader_index], vs);
-   _mesa_DeleteShader(vs);
-   _mesa_BindAttribLocation(blit->msaa_shaders[shader_index], 0, "position");
-   _mesa_BindAttribLocation(blit->msaa_shaders[shader_index], 1, "texcoords");
-   _mesa_meta_link_program_with_debug(ctx, blit->msaa_shaders[shader_index]);
-   _mesa_ObjectLabel(GL_PROGRAM, blit->msaa_shaders[shader_index], -1, name);
    ralloc_free(mem_ctx);
-
-   _mesa_UseProgram(blit->msaa_shaders[shader_index]);
 }
 
 static void
@@ -368,19 +356,14 @@ blitframebuffer_texture(struct gl_context *ctx,
    const struct gl_renderbuffer_attachment *readAtt =
       &readFb->Attachment[att_index];
    struct blit_state *blit = &ctx->Meta->Blit;
+   struct fb_tex_blit_state fb_tex_blit;
    const GLint dstX = MIN2(dstX0, dstX1);
    const GLint dstY = MIN2(dstY0, dstY1);
    const GLint dstW = abs(dstX1 - dstX0);
    const GLint dstH = abs(dstY1 - dstY0);
    struct gl_texture_object *texObj;
    GLuint srcLevel;
-   GLint baseLevelSave;
-   GLint maxLevelSave;
    GLenum target;
-   GLuint sampler, samplerSave =
-      ctx->Texture.Unit[ctx->Texture.CurrentUnit].Sampler ?
-      ctx->Texture.Unit[ctx->Texture.CurrentUnit].Sampler->Name : 0;
-   GLuint tempTex = 0;
    struct gl_renderbuffer *rb = readAtt->Renderbuffer;
    struct temp_texture *meta_temp_texture;
 
@@ -391,6 +374,8 @@ blitframebuffer_texture(struct gl_context *ctx,
        filter == GL_SCALED_RESOLVE_NICEST_EXT) {
       filter = GL_LINEAR;
    }
+
+   _mesa_meta_fb_tex_blit_begin(ctx, &fb_tex_blit);
 
    if (readAtt->Texture &&
        (readAtt->Texture->Target == GL_TEXTURE_2D ||
@@ -404,38 +389,16 @@ blitframebuffer_texture(struct gl_context *ctx,
       texObj = readAtt->Texture;
       target = texObj->Target;
    } else if (!readAtt->Texture && ctx->Driver.BindRenderbufferTexImage) {
-      /* Otherwise, we need the driver to be able to bind a renderbuffer as
-       * a texture image.
-       */
-      struct gl_texture_image *texImage;
-
-      if (rb->NumSamples > 1)
-         target = GL_TEXTURE_2D_MULTISAMPLE;
-      else
-         target = GL_TEXTURE_2D;
-
-      _mesa_GenTextures(1, &tempTex);
-      _mesa_BindTexture(target, tempTex);
-      srcLevel = 0;
-      texObj = _mesa_lookup_texture(ctx, tempTex);
-      texImage = _mesa_get_tex_image(ctx, texObj, target, srcLevel);
-
-      if (!ctx->Driver.BindRenderbufferTexImage(ctx, rb, texImage)) {
-         _mesa_DeleteTextures(1, &tempTex);
+      if (!_mesa_meta_bind_rb_as_tex_image(ctx, rb, &fb_tex_blit.tempTex,
+                                           &texObj, &target))
          return false;
-      } else {
-         if (ctx->Driver.FinishRenderTexture &&
-             !rb->NeedsFinishRenderTexture) {
-            rb->NeedsFinishRenderTexture = true;
-            ctx->Driver.FinishRenderTexture(ctx, rb);
-         }
 
-         if (_mesa_is_winsys_fbo(readFb)) {
-            GLint temp = srcY0;
-            srcY0 = rb->Height - srcY1;
-            srcY1 = rb->Height - temp;
-            flipY = -flipY;
-         }
+      srcLevel = 0;
+      if (_mesa_is_winsys_fbo(readFb)) {
+         GLint temp = srcY0;
+         srcY0 = rb->Height - srcY1;
+         srcY1 = rb->Height - temp;
+         flipY = -flipY;
       }
    } else {
       GLenum tex_base_format;
@@ -476,8 +439,8 @@ blitframebuffer_texture(struct gl_context *ctx,
       srcY1 = srcH;
    }
 
-   baseLevelSave = texObj->BaseLevel;
-   maxLevelSave = texObj->MaxLevel;
+   fb_tex_blit.baseLevelSave = texObj->BaseLevel;
+   fb_tex_blit.maxLevelSave = texObj->MaxLevel;
 
    if (glsl_version) {
       setup_glsl_blit_framebuffer(ctx, blit, rb, target);
@@ -488,25 +451,14 @@ blitframebuffer_texture(struct gl_context *ctx,
                                        2);
    }
 
-   _mesa_GenSamplers(1, &sampler);
-   _mesa_BindSampler(ctx->Texture.CurrentUnit, sampler);
-
    /*
      printf("Blit from texture!\n");
      printf("  srcAtt %p  dstAtt %p\n", readAtt, drawAtt);
      printf("  srcTex %p  dstText %p\n", texObj, drawAtt->Texture);
    */
 
-   /* Prepare src texture state */
-   _mesa_BindTexture(target, texObj->Name);
-   _mesa_SamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, filter);
-   _mesa_SamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, filter);
-   if (target != GL_TEXTURE_RECTANGLE_ARB) {
-      _mesa_TexParameteri(target, GL_TEXTURE_BASE_LEVEL, srcLevel);
-      _mesa_TexParameteri(target, GL_TEXTURE_MAX_LEVEL, srcLevel);
-   }
-   _mesa_SamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-   _mesa_SamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+   fb_tex_blit.sampler = _mesa_meta_setup_sampler(ctx, texObj, target, filter,
+                                                  srcLevel);
 
    /* Always do our blits with no net sRGB decode or encode.
     *
@@ -527,11 +479,12 @@ blitframebuffer_texture(struct gl_context *ctx,
    if (ctx->Extensions.EXT_texture_sRGB_decode) {
       if (_mesa_get_format_color_encoding(rb->Format) == GL_SRGB &&
           ctx->DrawBuffer->Visual.sRGBCapable) {
-         _mesa_SamplerParameteri(sampler, GL_TEXTURE_SRGB_DECODE_EXT,
-                                 GL_DECODE_EXT);
+         _mesa_SamplerParameteri(fb_tex_blit.sampler,
+                                 GL_TEXTURE_SRGB_DECODE_EXT, GL_DECODE_EXT);
          _mesa_set_framebuffer_srgb(ctx, GL_TRUE);
       } else {
-         _mesa_SamplerParameteri(sampler, GL_TEXTURE_SRGB_DECODE_EXT,
+         _mesa_SamplerParameteri(fb_tex_blit.sampler,
+                                 GL_TEXTURE_SRGB_DECODE_EXT,
                                  GL_SKIP_DECODE_EXT);
          /* set_framebuffer_srgb was set by _mesa_meta_begin(). */
       }
@@ -598,21 +551,93 @@ blitframebuffer_texture(struct gl_context *ctx,
    _mesa_DepthFunc(GL_ALWAYS);
 
    _mesa_DrawArrays(GL_TRIANGLE_FAN, 0, 4);
+   _mesa_meta_fb_tex_blit_end(ctx, target, &fb_tex_blit);
 
+   return true;
+}
+
+void
+_mesa_meta_fb_tex_blit_begin(const struct gl_context *ctx,
+                             struct fb_tex_blit_state *blit)
+{
+   blit->samplerSave =
+      ctx->Texture.Unit[ctx->Texture.CurrentUnit].Sampler ?
+      ctx->Texture.Unit[ctx->Texture.CurrentUnit].Sampler->Name : 0;
+   blit->tempTex = 0;
+}
+
+void
+_mesa_meta_fb_tex_blit_end(const struct gl_context *ctx, GLenum target,
+                           struct fb_tex_blit_state *blit)
+{
    /* Restore texture object state, the texture binding will
     * be restored by _mesa_meta_end().
     */
    if (target != GL_TEXTURE_RECTANGLE_ARB) {
-      _mesa_TexParameteri(target, GL_TEXTURE_BASE_LEVEL, baseLevelSave);
-      _mesa_TexParameteri(target, GL_TEXTURE_MAX_LEVEL, maxLevelSave);
+      _mesa_TexParameteri(target, GL_TEXTURE_BASE_LEVEL, blit->baseLevelSave);
+      _mesa_TexParameteri(target, GL_TEXTURE_MAX_LEVEL, blit->maxLevelSave);
    }
 
-   _mesa_BindSampler(ctx->Texture.CurrentUnit, samplerSave);
-   _mesa_DeleteSamplers(1, &sampler);
-   if (tempTex)
-      _mesa_DeleteTextures(1, &tempTex);
+   _mesa_BindSampler(ctx->Texture.CurrentUnit, blit->samplerSave);
+   _mesa_DeleteSamplers(1, &blit->sampler);
+   if (blit->tempTex)
+      _mesa_DeleteTextures(1, &blit->tempTex);
+}
+
+GLboolean
+_mesa_meta_bind_rb_as_tex_image(struct gl_context *ctx,
+                                struct gl_renderbuffer *rb,
+                                GLuint *tex,
+                                struct gl_texture_object **texObj,
+                                GLenum *target)
+{
+   struct gl_texture_image *texImage;
+
+   if (rb->NumSamples > 1)
+      *target = GL_TEXTURE_2D_MULTISAMPLE;
+   else
+      *target = GL_TEXTURE_2D;
+
+   _mesa_GenTextures(1, tex);
+   _mesa_BindTexture(*target, *tex);
+   *texObj = _mesa_lookup_texture(ctx, *tex);
+   texImage = _mesa_get_tex_image(ctx, *texObj, *target, 0);
+
+   if (!ctx->Driver.BindRenderbufferTexImage(ctx, rb, texImage)) {
+      _mesa_DeleteTextures(1, tex);
+      return false;
+   }
+
+   if (ctx->Driver.FinishRenderTexture && !rb->NeedsFinishRenderTexture) {
+      rb->NeedsFinishRenderTexture = true;
+      ctx->Driver.FinishRenderTexture(ctx, rb);
+   }
 
    return true;
+}
+
+GLuint
+_mesa_meta_setup_sampler(struct gl_context *ctx,
+                         const struct gl_texture_object *texObj,
+                         GLenum target, GLenum filter, GLuint srcLevel)
+{
+   GLuint sampler;
+
+   _mesa_GenSamplers(1, &sampler);
+   _mesa_BindSampler(ctx->Texture.CurrentUnit, sampler);
+
+   /* Prepare src texture state */
+   _mesa_BindTexture(target, texObj->Name);
+   _mesa_SamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, filter);
+   _mesa_SamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, filter);
+   if (target != GL_TEXTURE_RECTANGLE_ARB) {
+      _mesa_TexParameteri(target, GL_TEXTURE_BASE_LEVEL, srcLevel);
+      _mesa_TexParameteri(target, GL_TEXTURE_MAX_LEVEL, srcLevel);
+   }
+   _mesa_SamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+   _mesa_SamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+   return sampler;
 }
 
 /**
@@ -707,7 +732,7 @@ _mesa_meta_BlitFramebuffer(struct gl_context *ctx,
    _mesa_meta_end(ctx);
 
 fallback:
-   if (mask) {
+   if (mask && !ctx->Meta->Blit.no_ctsi_fallback) {
       _swrast_BlitFramebuffer(ctx, srcX0, srcY0, srcX1, srcY1,
                               dstX0, dstY0, dstX1, dstY1, mask, filter);
    }

@@ -43,6 +43,21 @@ FcCharSetCreate (void)
 }
 
 FcCharSet *
+FcCharSetPromote (FcValuePromotionBuffer *vbuf)
+{
+    FcCharSet *fcs = (FcCharSet *) vbuf;
+
+    FC_ASSERT_STATIC (sizeof (FcCharSet) <= sizeof (FcValuePromotionBuffer));
+
+    FcRefSetConst (&fcs->ref);
+    fcs->num = 0;
+    fcs->leaves_offset = 0;
+    fcs->numbers_offset = 0;
+
+    return fcs;
+}
+
+FcCharSet *
 FcCharSetNew (void)
 {
     return FcCharSetCreate ();

@@ -325,6 +325,7 @@ public:
    struct gl_context *ctx;
    struct gl_program *prog;
    struct gl_shader_program *shader_program;
+   struct gl_shader *shader;
    struct gl_shader_compiler_options *options;
 
    int next_temp;
@@ -459,8 +460,7 @@ public:
    int get_last_temp_write(int index);
 
    void copy_propagate(void);
-   void eliminate_dead_code(void);
-   int eliminate_dead_code_advanced(void);
+   int eliminate_dead_code(void);
    void merge_registers(void);
    void renumber_registers(void);
 
@@ -1671,30 +1671,82 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
    case ir_unop_any: {
       assert(ir->operands[0]->type->is_vector());
 
-      /* After the dot-product, the value will be an integer on the
-       * range [0,4].  Zero stays zero, and positive values become 1.0.
-       */
-      glsl_to_tgsi_instruction *const dp =
-         emit_dp(ir, result_dst, op[0], op[0],
-                 ir->operands[0]->type->vector_elements);
-      if (this->prog->Target == GL_FRAGMENT_PROGRAM_ARB &&
-          result_dst.type == GLSL_TYPE_FLOAT) {
-	      /* The clamping to [0,1] can be done for free in the fragment
-	       * shader with a saturate.
-	       */
-	      dp->saturate = true;
-      } else if (result_dst.type == GLSL_TYPE_FLOAT) {
-	      /* Negating the result of the dot-product gives values on the range
-	       * [-4, 0].  Zero stays zero, and negative values become 1.0.  This
-	       * is achieved using SLT.
-	       */
-	      st_src_reg slt_src = result_src;
-	      slt_src.negate = ~slt_src.negate;
-	      emit(ir, TGSI_OPCODE_SLT, result_dst, slt_src, st_src_reg_for_float(0.0));
-      }
-      else {
-         /* Use SNE 0 if integers are being used as boolean values. */
-         emit(ir, TGSI_OPCODE_SNE, result_dst, result_src, st_src_reg_for_int(0));
+      if (native_integers) {
+         int dst_swizzle = 0, op0_swizzle, i;
+         st_src_reg accum = op[0];
+
+         op0_swizzle = op[0].swizzle;
+         accum.swizzle = MAKE_SWIZZLE4(GET_SWZ(op0_swizzle, 0),
+                                       GET_SWZ(op0_swizzle, 0),
+                                       GET_SWZ(op0_swizzle, 0),
+                                       GET_SWZ(op0_swizzle, 0));
+         for (i = 0; i < 4; i++) {
+            if (result_dst.writemask & (1 << i)) {
+               dst_swizzle = MAKE_SWIZZLE4(i, i, i, i);
+               break;
+            }
+         }
+         assert(i != 4);
+         assert(ir->operands[0]->type->is_boolean());
+
+         /* OR all the components together, since they should be either 0 or ~0
+          */
+         switch (ir->operands[0]->type->vector_elements) {
+         case 4:
+            op[0].swizzle = MAKE_SWIZZLE4(GET_SWZ(op0_swizzle, 3),
+                                          GET_SWZ(op0_swizzle, 3),
+                                          GET_SWZ(op0_swizzle, 3),
+                                          GET_SWZ(op0_swizzle, 3));
+            emit(ir, TGSI_OPCODE_OR, result_dst, accum, op[0]);
+            accum = st_src_reg(result_dst);
+            accum.swizzle = dst_swizzle;
+            /* fallthrough */
+         case 3:
+            op[0].swizzle = MAKE_SWIZZLE4(GET_SWZ(op0_swizzle, 2),
+                                          GET_SWZ(op0_swizzle, 2),
+                                          GET_SWZ(op0_swizzle, 2),
+                                          GET_SWZ(op0_swizzle, 2));
+            emit(ir, TGSI_OPCODE_OR, result_dst, accum, op[0]);
+            accum = st_src_reg(result_dst);
+            accum.swizzle = dst_swizzle;
+            /* fallthrough */
+         case 2:
+            op[0].swizzle = MAKE_SWIZZLE4(GET_SWZ(op0_swizzle, 1),
+                                          GET_SWZ(op0_swizzle, 1),
+                                          GET_SWZ(op0_swizzle, 1),
+                                          GET_SWZ(op0_swizzle, 1));
+            emit(ir, TGSI_OPCODE_OR, result_dst, accum, op[0]);
+            break;
+         default:
+            assert(!"Unexpected vector size");
+            break;
+         }
+      } else {
+         /* After the dot-product, the value will be an integer on the
+          * range [0,4].  Zero stays zero, and positive values become 1.0.
+          */
+         glsl_to_tgsi_instruction *const dp =
+            emit_dp(ir, result_dst, op[0], op[0],
+                    ir->operands[0]->type->vector_elements);
+         if (this->prog->Target == GL_FRAGMENT_PROGRAM_ARB &&
+             result_dst.type == GLSL_TYPE_FLOAT) {
+            /* The clamping to [0,1] can be done for free in the fragment
+             * shader with a saturate.
+             */
+            dp->saturate = true;
+         } else if (result_dst.type == GLSL_TYPE_FLOAT) {
+            /* Negating the result of the dot-product gives values on the range
+             * [-4, 0].  Zero stays zero, and negative values become 1.0.  This
+             * is achieved using SLT.
+             */
+            st_src_reg slt_src = result_src;
+            slt_src.negate = ~slt_src.negate;
+            emit(ir, TGSI_OPCODE_SLT, result_dst, slt_src, st_src_reg_for_float(0.0));
+         }
+         else {
+            /* Use SNE 0 if integers are being used as boolean values. */
+            emit(ir, TGSI_OPCODE_SNE, result_dst, result_src, st_src_reg_for_int(0));
+         }
       }
       break;
    }
@@ -3103,6 +3155,7 @@ glsl_to_tgsi_visitor::glsl_to_tgsi_visitor()
    ctx = NULL;
    prog = NULL;
    shader_program = NULL;
+   shader = NULL;
    options = NULL;
 }
 
@@ -3672,7 +3725,8 @@ glsl_to_tgsi_visitor::copy_propagate(void)
 }
 
 /*
- * Tracks available PROGRAM_TEMPORARY registers for dead code elimination.
+ * On a basic block basis, tracks available PROGRAM_TEMPORARY registers for dead
+ * code elimination.
  *
  * The glsl_to_tgsi_visitor lazily produces code assuming that this pass
  * will occur.  As an example, a TXP production after copy propagation but 
@@ -3685,48 +3739,9 @@ glsl_to_tgsi_visitor::copy_propagate(void)
  * and after this pass:
  *
  * 0: TXP TEMP[2], INPUT[4].xyyw, texture[0], 2D;
- * 
- * FIXME: assumes that all functions are inlined (no support for BGNSUB/ENDSUB)
- * FIXME: doesn't eliminate all dead code inside of loops; it steps around them
- */
-void
-glsl_to_tgsi_visitor::eliminate_dead_code(void)
-{
-   int i;
-   
-   for (i=0; i < this->next_temp; i++) {
-      int last_read = get_last_temp_read(i);
-      int j = 0;
-      
-      foreach_list_safe(node, &this->instructions) {
-         glsl_to_tgsi_instruction *inst = (glsl_to_tgsi_instruction *) node;
-
-         if (inst->dst.file == PROGRAM_TEMPORARY && inst->dst.index == i &&
-             j > last_read)
-         {
-            inst->remove();
-            delete inst;
-         }
-         
-         j++;
-      }
-   }
-}
-
-/*
- * On a basic block basis, tracks available PROGRAM_TEMPORARY registers for dead
- * code elimination.  This is less primitive than eliminate_dead_code(), as it
- * is per-channel and can detect consecutive writes without a read between them
- * as dead code.  However, there is some dead code that can be eliminated by 
- * eliminate_dead_code() but not this function - for example, this function 
- * cannot eliminate an instruction writing to a register that is never read and
- * is the only instruction writing to that register.
- *
- * The glsl_to_tgsi_visitor lazily produces code assuming that this pass
- * will occur.
  */
 int
-glsl_to_tgsi_visitor::eliminate_dead_code_advanced(void)
+glsl_to_tgsi_visitor::eliminate_dead_code(void)
 {
    glsl_to_tgsi_instruction **writes = rzalloc_array(mem_ctx,
                                                      glsl_to_tgsi_instruction *,
@@ -3974,6 +3989,7 @@ get_pixel_transfer_visitor(struct st_fragment_program *fp,
    v->ctx = original->ctx;
    v->prog = prog;
    v->shader_program = NULL;
+   v->shader = NULL;
    v->glsl_version = original->glsl_version;
    v->native_integers = original->native_integers;
    v->options = original->options;
@@ -4104,6 +4120,7 @@ get_bitmap_visitor(struct st_fragment_program *fp,
    v->ctx = original->ctx;
    v->prog = prog;
    v->shader_program = NULL;
+   v->shader = NULL;
    v->glsl_version = original->glsl_version;
    v->native_integers = original->native_integers;
    v->options = original->options;
@@ -5083,11 +5100,11 @@ st_translate_program(
       }
    }
 
-   if (program->shader_program) {
-      unsigned num_ubos = program->shader_program->NumUniformBlocks;
+   if (program->shader) {
+      unsigned num_ubos = program->shader->NumUniformBlocks;
 
       for (i = 0; i < num_ubos; i++) {
-         ureg_DECL_constant2D(t->ureg, 0, program->shader_program->UniformBlocks[i].UniformBufferSize / 4, i + 1);
+         ureg_DECL_constant2D(t->ureg, 0, program->shader->UniformBlocks[i].UniformBufferSize / 4, i + 1);
       }
    }
    
@@ -5208,6 +5225,7 @@ get_mesa_program(struct gl_context *ctx,
    v->ctx = ctx;
    v->prog = prog;
    v->shader_program = shader_program;
+   v->shader = shader;
    v->options = options;
    v->glsl_version = ctx->Const.GLSLVersion;
    v->native_integers = ctx->Const.NativeIntegers;
@@ -5270,9 +5288,8 @@ get_mesa_program(struct gl_context *ctx,
    /* Perform optimizations on the instructions in the glsl_to_tgsi_visitor. */
    v->simplify_cmp();
    v->copy_propagate();
-   while (v->eliminate_dead_code_advanced());
+   while (v->eliminate_dead_code());
 
-   v->eliminate_dead_code();
    v->merge_registers();
    v->renumber_registers();
    
