@@ -63,8 +63,8 @@
 #include <limits>
 
 #define M_PIf   ((float) M_PI)
-#define M_PI_2f ((float) M_PI_2)
-#define M_PI_4f ((float) M_PI_4)
+#define M_PI_2f ((float) M_PI/2.0f)
+#define M_PI_4f ((float) M_PI/4.0f)
 
 using namespace ir_builder;
 
