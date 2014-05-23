@@ -316,6 +316,22 @@ if test "x$enable_debug" = xyes; then
 fi
 
 dnl
+dnl Check if linker supports -Bsymbolic
+dnl
+save_LDFLAGS=$LDFLAGS
+LDFLAGS="$LDFLAGS -Wl,-Bsymbolic"
+AC_MSG_CHECKING([if ld supports -Bsymbolic])
+AC_LINK_IFELSE(
+    [AC_LANG_SOURCE([int main() { return 0;}])],
+    [AC_MSG_RESULT([yes])
+        BSYMBOLIC="-Wl,-Bsymbolic";],
+    [AC_MSG_RESULT([no])
+        BSYMBOLIC="";])
+LDFLAGS=$save_LDFLAGS
+
+AC_SUBST([BSYMBOLIC])
+
+dnl
 dnl Check if linker supports garbage collection
 dnl
 save_LDFLAGS=$LDFLAGS
@@ -336,13 +352,35 @@ dnl OpenBSD does not have DT_NEEDED entries for libc by design
 dnl so when these flags are passed to ld via libtool the checks will fail
 dnl
 case "$host_os" in
-openbsd*)
+openbsd* | darwin* )
     LD_NO_UNDEFINED="" ;;
 *)
     LD_NO_UNDEFINED="-Wl,--no-undefined" ;;
 esac
 
 AC_SUBST([LD_NO_UNDEFINED])
+
+dnl
+dnl Check if linker supports version scripts
+dnl
+AC_MSG_CHECKING([if the linker supports version-scripts])
+save_LDFLAGS=$LDFLAGS
+LDFLAGS="$LDFLAGS -Wl,--version-script=conftest.map"
+cat > conftest.map <<EOF
+VERSION_1 {
+     global:
+         main;
+
+     local:
+         *;
+};
+EOF
+AC_LINK_IFELSE(
+    [AC_LANG_SOURCE([int main() { return 0;}])],
+    [have_ld_version_script=yes;AC_MSG_RESULT(yes)],
+    [have_ld_version_script=no; AC_MSG_RESULT(no)])
+LDFLAGS=$save_LDFLAGS
+AM_CONDITIONAL(HAVE_LD_VERSION_SCRIPT, test "$have_ld_version_script" = "yes")
 
 dnl
 dnl compatibility symlinks
@@ -748,8 +786,22 @@ fi
 
 AM_CONDITIONAL(HAVE_DRI_GLX, test "x$enable_glx" = xyes -a \
                                   "x$enable_dri" = xyes)
-AM_CONDITIONAL(HAVE_DRI, test "x$enable_dri" = xyes)
-AM_CONDITIONAL(HAVE_DRI3, test "x$enable_dri3" = xyes)
+
+# Select which platform-dependent DRI code gets built
+case "$host_os" in
+darwin*)
+    dri_platform='apple' ;;
+gnu*|mingw*|cygwin*)
+    dri_platform='none' ;;
+*)
+    dri_platform='drm' ;;
+esac
+
+AM_CONDITIONAL(HAVE_DRICOMMON, test "x$enable_dri" = xyes )
+AM_CONDITIONAL(HAVE_DRISW, test "x$enable_dri" = xyes )
+AM_CONDITIONAL(HAVE_DRI2, test "x$enable_dri" = xyes && test "x$dri_platform" = xdrm )
+AM_CONDITIONAL(HAVE_DRI3, test "x$enable_dri3" = xyes && test "x$dri_platform" = xdrm )
+AM_CONDITIONAL(HAVE_APPLEDRI, test "x$enable_dri" = xyes && test "x$dri_platform" = xapple )
 
 AC_ARG_ENABLE([shared-glapi],
     [AS_HELP_STRING([--enable-shared-glapi],
@@ -874,23 +926,34 @@ xyesyes)
 xyesno)
     # DRI-based GLX
     PKG_CHECK_MODULES([GLPROTO], [glproto >= $GLPROTO_REQUIRED])
-    if test x"$driglx_direct" = xyes; then
-        if test "x$have_libdrm" != xyes; then
-            AC_MSG_ERROR([Direct rendering requires libdrm >= $LIBDRM_REQUIRED])
-        fi
-        PKG_CHECK_MODULES([DRI2PROTO], [dri2proto >= $DRI2PROTO_REQUIRED])
-        GL_PC_REQ_PRIV="$GL_PC_REQ_PRIV libdrm >= $LIBDRM_REQUIRED"
-        if test x"$enable_dri3" = xyes; then
-            PKG_CHECK_MODULES([DRI3PROTO], [dri3proto >= $DRI3PROTO_REQUIRED])
-            PKG_CHECK_MODULES([PRESENTPROTO], [presentproto >= $PRESENTPROTO_REQUIRED])
-        fi
-    fi
 
     # find the DRI deps for libGL
-    dri_modules="x11 xext xdamage xfixes x11-xcb xcb-glx >= $XCBGLX_REQUIRED xcb-dri2 >= $XCBDRI2_REQUIRED"
+    dri_modules="x11 xext xdamage xfixes x11-xcb xcb-glx >= $XCBGLX_REQUIRED"
 
-    if test x"$enable_dri3" = xyes; then
-        dri_modules="$dri_modules xcb-dri3 xcb-present xcb-sync xshmfence >= $XSHMFENCE_REQUIRED"
+    if test x"$driglx_direct" = xyes; then
+        if test x"$dri_platform" = xdrm ; then
+            if test "x$have_libdrm" != xyes; then
+               AC_MSG_ERROR([Direct rendering requires libdrm >= $LIBDRM_REQUIRED])
+            fi
+
+            PKG_CHECK_MODULES([DRI2PROTO], [dri2proto >= $DRI2PROTO_REQUIRED])
+            GL_PC_REQ_PRIV="$GL_PC_REQ_PRIV libdrm >= $LIBDRM_REQUIRED"
+            if test x"$enable_dri3" = xyes; then
+               PKG_CHECK_MODULES([DRI3PROTO], [dri3proto >= $DRI3PROTO_REQUIRED])
+               PKG_CHECK_MODULES([PRESENTPROTO], [presentproto >= $PRESENTPROTO_REQUIRED])
+            fi
+
+            if test x"$enable_dri" = xyes; then
+               dri_modules="$dri_modules xcb-dri2 >= $XCBDRI2_REQUIRED"
+            fi
+
+            if test x"$enable_dri3" = xyes; then
+               dri_modules="$dri_modules xcb-dri3 xcb-present xcb-sync xshmfence >= $XSHMFENCE_REQUIRED"
+            fi
+        fi
+        if test x"$dri_platform" = xapple ; then
+            DEFINES="$DEFINES -DGLX_USE_APPLEGL"
+        fi
     fi
 
     # add xf86vidmode if available
@@ -1039,6 +1102,12 @@ if test "x$enable_dri" = xyes; then
         ;;
     cygwin*)
         DEFINES="$DEFINES -DUSE_EXTERNAL_DXTN_LIB=1"
+        if test "x$with_dri_drivers" = "xyes"; then
+            with_dri_drivers="swrast"
+        fi
+        ;;
+    darwin*)
+        DEFINES="$DEFINES -DUSE_EXTERNAL_DXTN_LIB=1 -DGLX_ALIAS_UNSUPPORTED"
         if test "x$with_dri_drivers" = "xyes"; then
             with_dri_drivers="swrast"
         fi
@@ -1591,7 +1660,8 @@ strip_unwanted_llvm_flags() {
 	-e 's/-fno-exceptions\>//g' \
 	-e 's/-fomit-frame-pointer\>//g' \
 	-e 's/-fvisibility-inlines-hidden\>//g' \
-	-e 's/-fPIC\>//g'
+	-e 's/-fPIC\>//g' \
+	-e 's/-fstack-protector-strong\>//g'
 }
 
 
@@ -2169,6 +2239,7 @@ AC_CONFIG_FILES([Makefile
 		src/gbm/main/gbm.pc
 		src/glsl/Makefile
 		src/glx/Makefile
+		src/glx/apple/Makefile
 		src/glx/tests/Makefile
 		src/gtest/Makefile
 		src/loader/Makefile
@@ -2238,7 +2309,9 @@ xnono)
         ;;
 esac
 
+echo ""
 if test "x$enable_dri" != xno; then
+        echo "        DRI platform:    $dri_platform"
         if test -z "$DRI_DIRS"; then
             echo "        DRI drivers:     no"
         else

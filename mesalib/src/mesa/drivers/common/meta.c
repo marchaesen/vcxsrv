@@ -242,10 +242,25 @@ _mesa_meta_setup_blit_shader(struct gl_context *ctx,
                              GLenum target,
                              struct blit_shader_table *table)
 {
-   const char *vs_source;
-   char *fs_source;
+   char *vs_source, *fs_source;
    void *const mem_ctx = ralloc_context(NULL);
    struct blit_shader *shader = choose_blit_shader(target, table);
+   const char *vs_input, *vs_output, *fs_input, *vs_preprocess, *fs_preprocess;
+
+   if (ctx->Const.GLSLVersion < 130) {
+      vs_preprocess = "";
+      vs_input = "attribute";
+      vs_output = "varying";
+      fs_preprocess = "#extension GL_EXT_texture_array : enable";
+      fs_input = "varying";
+   } else {
+      vs_preprocess = "#version 130";
+      vs_input = "in";
+      vs_output = "out";
+      fs_preprocess = "#version 130";
+      fs_input = "in";
+      shader->func = "texture";
+   }
 
    assert(shader != NULL);
 
@@ -254,57 +269,30 @@ _mesa_meta_setup_blit_shader(struct gl_context *ctx,
       return;
    }
 
-   if (ctx->Const.GLSLVersion < 130) {
-      vs_source =
-         "attribute vec2 position;\n"
-         "attribute vec4 textureCoords;\n"
-         "varying vec4 texCoords;\n"
-         "void main()\n"
-         "{\n"
-         "   texCoords = textureCoords;\n"
-         "   gl_Position = vec4(position, 0.0, 1.0);\n"
-         "}\n";
+   vs_source = ralloc_asprintf(mem_ctx,
+                "%s\n"
+                "%s vec2 position;\n"
+                "%s vec4 textureCoords;\n"
+                "%s vec4 texCoords;\n"
+                "void main()\n"
+                "{\n"
+                "   texCoords = textureCoords;\n"
+                "   gl_Position = vec4(position, 0.0, 1.0);\n"
+                "}\n",
+                vs_preprocess, vs_input, vs_input, vs_output);
 
-      fs_source = ralloc_asprintf(mem_ctx,
-                                  "#extension GL_EXT_texture_array : enable\n"
-                                  "#extension GL_ARB_texture_cube_map_array: enable\n"
-                                  "uniform %s texSampler;\n"
-                                  "varying vec4 texCoords;\n"
-                                  "void main()\n"
-                                  "{\n"
-                                  "   gl_FragColor = %s(texSampler, %s);\n"
-                                  "   gl_FragDepth = gl_FragColor.x;\n"
-                                  "}\n",
-                                  shader->type,
-                                  shader->func, shader->texcoords);
-   }
-   else {
-      vs_source = ralloc_asprintf(mem_ctx,
-                                  "#version 130\n"
-                                  "in vec2 position;\n"
-                                  "in vec4 textureCoords;\n"
-                                  "out vec4 texCoords;\n"
-                                  "void main()\n"
-                                  "{\n"
-                                  "   texCoords = textureCoords;\n"
-                                  "   gl_Position = vec4(position, 0.0, 1.0);\n"
-                                  "}\n");
-      fs_source = ralloc_asprintf(mem_ctx,
-                                  "#version 130\n"
-                                  "#extension GL_ARB_texture_cube_map_array: enable\n"
-                                  "uniform %s texSampler;\n"
-                                  "in vec4 texCoords;\n"
-                                  "out vec4 out_color;\n"
-                                  "\n"
-                                  "void main()\n"
-                                  "{\n"
-                                  "   out_color = texture(texSampler, %s);\n"
-                                  "   gl_FragDepth = out_color.x;\n"
-                                  "}\n",
-                                  shader->type,
-                                  shader->texcoords);
-   }
-
+   fs_source = ralloc_asprintf(mem_ctx,
+                "%s\n"
+                "#extension GL_ARB_texture_cube_map_array: enable\n"
+                "uniform %s texSampler;\n"
+                "%s vec4 texCoords;\n"
+                "void main()\n"
+                "{\n"
+                "   gl_FragColor = %s(texSampler, %s);\n"
+                "   gl_FragDepth = gl_FragColor.x;\n"
+                "}\n",
+                fs_preprocess, shader->type, fs_input,
+                shader->func, shader->texcoords);
 
    _mesa_meta_compile_and_link_program(ctx, vs_source, fs_source,
                                        ralloc_asprintf(mem_ctx, "%s blit",
@@ -2860,13 +2848,13 @@ copytexsubimage_using_blit_framebuffer(struct gl_context *ctx, GLuint dims,
     * are too strict for CopyTexImage.  We know meta will be fine with format
     * changes.
     */
-   _mesa_meta_BlitFramebuffer(ctx, x, y,
-                              x + width, y + height,
-                              xoffset, yoffset,
-                              xoffset + width, yoffset + height,
-                              mask, GL_NEAREST);
+   mask = _mesa_meta_BlitFramebuffer(ctx, x, y,
+                                     x + width, y + height,
+                                     xoffset, yoffset,
+                                     xoffset + width, yoffset + height,
+                                     mask, GL_NEAREST);
    ctx->Meta->Blit.no_ctsi_fallback = false;
-   success = true;
+   success = mask == 0x0;
 
  out:
    _mesa_lock_texture(ctx, texObj);

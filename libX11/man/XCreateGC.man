@@ -247,173 +247,127 @@ The
 .ZN XGCValues
 structure contains:
 .LP
-.LP
 /\&* GC attribute value mask bits */
 .TS
 lw(.5i) lw(2.5i) lw(.75i).
-T{
-\&#define
-T}	T{
+\&#define	T{
 .ZN GCFunction
 T}	T{
 (1L<<0)
 T}
-T{
-\&#define
-T}	T{
+\&#define	T{
 .ZN GCPlaneMask
 T}	T{
 (1L<<1)
 T}
-T{
-\&#define
-T}	T{
+\&#define	T{
 .ZN GCForeground
 T}	T{
 (1L<<2)
 T}
-T{
-\&#define
-T}	T{
+\&#define	T{
 .ZN GCBackground
 T}	T{
 (1L<<3)
 T}
-T{
-\&#define
-T}	T{
+\&#define	T{
 .ZN GCLineWidth
 T}	T{
 (1L<<4)
 T}
-T{
-\&#define
-T}	T{
+\&#define	T{
 .ZN GCLineStyle
 T}	T{
 (1L<<5)
 T}
-T{
-\&#define
-T}	T{
+\&#define	T{
 .ZN GCCapStyle
 T}	T{
 (1L<<6)
 T}
-T{
-\&#define
-T}	T{
+\&#define	T{
 .ZN GCJoinStyle
 T}	T{
 (1L<<7)
 T}
-T{
-\&#define
-T}	T{
+\&#define	T{
 .ZN GCFillStyle
 T}	T{
 (1L<<8)
 T}
-T{
-\&#define
-T}	T{
+\&#define	T{
 .ZN GCFillRule
 T}	T{
 (1L<<9)
 T}
-T{
-\&#define
-T}	T{
+\&#define	T{
 .ZN GCTile
 T}	T{
 (1L<<10)
 T}
-T{
-\&#define
-T}	T{
+\&#define	T{
 .ZN GCStipple
 T}	T{
 (1L<<11)
 T}
-T{
-\&#define
-T}	T{
+\&#define	T{
 .ZN GCTileStipXOrigin
 T}	T{
 (1L<<12)
 T}
-T{
-\&#define
-T}	T{
+\&#define	T{
 .ZN GCTileStipYOrigin
 T}	T{
 (1L<<13)
 T}
-T{
-\&#define
-T}	T{
+\&#define	T{
 .ZN GCFont
 T}	T{
 (1L<<14)
 T}
-T{
-\&#define
-T}	T{
+\&#define	T{
 .ZN GCSubwindowMode
 T}	T{
 (1L<<15)
 T}
-T{
-\&#define
-T}	T{
+\&#define	T{
 .ZN GCGraphicsExposures
 T}	T{
 (1L<<16)
 T}
-T{
-\&#define
-T}	T{
+\&#define	T{
 .ZN GCClipXOrigin
 T}	T{
 (1L<<17)
 T}
-T{
-\&#define
-T}	T{
+\&#define	T{
 .ZN GCClipYOrigin
 T}	T{
 (1L<<18)
 T}
-T{
-\&#define
-T}	T{
+\&#define	T{
 .ZN GCClipMask
 T}	T{
 (1L<<19)
 T}
-T{
-\&#define
-T}	T{
+\&#define	T{
 .ZN GCDashOffset
 T}	T{
 (1L<<20)
 T}
-T{
-\&#define
-T}	T{
+\&#define	T{
 .ZN GCDashList
 T}	T{
 (1L<<21)
 T}
-T{
-\&#define
-T}	T{
+\&#define	T{
 .ZN GCArcMode
 T}	T{
 (1L<<22)
 T}
 .TE
 .IN "XGCValues" "" "@DEF@"
+.LP
 .Ds 0
 /\&* Values */
 

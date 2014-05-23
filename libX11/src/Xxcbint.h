@@ -46,4 +46,6 @@ typedef struct _X11XCBPrivate {
 int _XConnectXCB(Display *dpy, _Xconst char *display, int *screenp);
 void _XFreeX11XCBStructure(Display *dpy);
 
+unsigned long _XNextRequest(Display *dpy);
+
 #endif /* XXCBINT_H */

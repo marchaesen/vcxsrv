@@ -2009,6 +2009,7 @@ CreateGLXPixmap(__GLXclientState * cl,
         }
         else {
             client->errorValue = (visual ? visual : fbconfigId);
+            free(pGlxPixmap->be_xids);
             free(pGlxPixmap);
             return BadValue;
         }
@@ -2017,6 +2018,7 @@ CreateGLXPixmap(__GLXclientState * cl,
     }
 
     if (!(AddResource(glxpixmapId, __glXPixmapRes, pGlxPixmap))) {
+        free(pGlxPixmap->be_xids);
         free(pGlxPixmap);
         return BadAlloc;
     }

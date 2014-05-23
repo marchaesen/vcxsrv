@@ -2,6 +2,7 @@
 TESTPROGRAMS =			\
 	prng-test		\
 	a1-trap-test		\
+	radial-invalid		\
 	pdf-op-test		\
 	region-test		\
 	region-translate-test	\
