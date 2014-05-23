@@ -29,14 +29,14 @@
 #include "picturestr.h"
 
 static Bool ShadowCloseScreen(ScreenPtr pScreen);
-static Bool ShadowCreateScreenResources(ScreenPtr pScreen);
+static Bool ShadowCreateRootWindow(WindowPtr pWin);
 
 typedef struct {
     ScrnInfoPtr pScrn;
     RefreshAreaFuncPtr preRefresh;
     RefreshAreaFuncPtr postRefresh;
     CloseScreenProcPtr CloseScreen;
-    CreateScreenResourcesProcPtr CreateScreenResources;
+    CreateWindowProcPtr CreateWindow;
 } ShadowScreenRec, *ShadowScreenPtr;
 
 static DevPrivateKeyRec ShadowScreenKeyRec;
@@ -71,10 +71,10 @@ ShadowFBInit2(ScreenPtr pScreen,
     pPriv->postRefresh = postRefreshArea;
 
     pPriv->CloseScreen = pScreen->CloseScreen;
-    pPriv->CreateScreenResources = pScreen->CreateScreenResources;
+    pPriv->CreateWindow = pScreen->CreateWindow;
 
     pScreen->CloseScreen = ShadowCloseScreen;
-    pScreen->CreateScreenResources = ShadowCreateScreenResources;
+    pScreen->CreateWindow = ShadowCreateRootWindow;
 
     return TRUE;
 }
@@ -117,16 +117,21 @@ shadowfbReportPost(DamagePtr damage, RegionPtr reg, void *closure)
 }
 
 static Bool
-ShadowCreateScreenResources(ScreenPtr pScreen)
+ShadowCreateRootWindow(WindowPtr pWin)
 {
     Bool ret;
-    WindowPtr pWin = pScreen->root;
+    ScreenPtr pScreen = pWin->drawable.pScreen;
     ShadowScreenPtr pPriv = shadowfbGetScreenPrivate(pScreen);
 
-    pScreen->CreateScreenResources = pPriv->CreateScreenResources;
-    ret = pScreen->CreateScreenResources(pScreen);
-    pPriv->CreateScreenResources = pScreen->CreateScreenResources;
-    pScreen->CreateScreenResources = ShadowCreateScreenResources;
+    /* paranoia */
+    if (pWin != pScreen->root)
+        ErrorF("ShadowCreateRootWindow called unexpectedly\n");
+
+    /* call down, but don't hook ourselves back in; we know the first time
+     * we're called it's for the root window.
+     */
+    pScreen->CreateWindow = pPriv->CreateWindow;
+    ret = pScreen->CreateWindow(pWin);
 
     /* this might look like it leaks, but the damage code reaps listeners
      * when their drawable disappears.
@@ -159,7 +164,6 @@ ShadowCloseScreen(ScreenPtr pScreen)
     ShadowScreenPtr pPriv = shadowfbGetScreenPrivate(pScreen);
 
     pScreen->CloseScreen = pPriv->CloseScreen;
-    pScreen->CreateScreenResources = pPriv->CreateScreenResources;
 
     free(pPriv);
 

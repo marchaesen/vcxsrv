@@ -397,12 +397,12 @@ dmxBELoadFont(ScreenPtr pScreen, FontPtr pFont)
                    "font-path-related options, see the Xdmx man page.\n");
         }
 
+        free(goodfps);
         if (!dmxIgnoreBadFontPaths ||
             (dmxIgnoreBadFontPaths && dmxSetFontPath(dmxScreen))) {
             /* We still have errors so return with error */
             dmxFreeFontPath(fp);
             XFreeFontPath(oldFontPath);
-            free(goodfps);
             return FALSE;
         }
     }

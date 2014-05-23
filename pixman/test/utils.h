@@ -120,6 +120,7 @@ fail_after (int seconds, const char *msg);
 
 /* If possible, enable traps for floating point exceptions */
 void enable_divbyzero_exceptions(void);
+void enable_invalid_exceptions(void);
 
 /* Converts a8r8g8b8 pixels to pixels that
  *  - are not premultiplied,

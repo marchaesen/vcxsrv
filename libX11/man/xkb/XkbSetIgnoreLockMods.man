@@ -187,6 +187,7 @@ XkbNamesMask	names	(1L<<4)
 XkbCompatMapMask	compat	(1L<<5)
 XkbGeometryMask	geom	(1L<<6)
 XkbAllComponentsMask	All Fields	(0x7f)
+.TE
 .SH "SEE ALSO"
 .BR XkbGetControls (__libmansuffix__),
 .BR XkbGetNames (__libmansuffix__),

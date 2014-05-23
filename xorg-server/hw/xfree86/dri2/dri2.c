@@ -156,11 +156,9 @@ GetScreenPrime(ScreenPtr master, int prime_id)
 
         ds = DRI2GetScreen(slave);
         if (ds->prime_id == prime_id)
-            break;
+            return slave;
     }
-    if (!slave)
-        return master;
-    return slave;
+    return master;
 }
 
 static DRI2ScreenPtr

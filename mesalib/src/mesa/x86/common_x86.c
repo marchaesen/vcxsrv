@@ -47,6 +47,13 @@
 #include <sys/sysctl.h>
 #include <machine/cpu.h>
 #endif
+#if defined(USE_X86_64_ASM)
+#include <cpuid.h>
+#if !defined(bit_SSE4_1) && defined(bit_SSE41)
+/* XXX: clang defines bit_SSE41 instead of bit_SSE4_1 */
+#define bit_SSE4_1 bit_SSE41
+#endif
+#endif
 
 #include "main/imports.h"
 #include "common_x86_asm.h"
@@ -223,7 +230,7 @@ _mesa_get_x86_features(void)
        _mesa_debug(NULL, "CPUID not detected\n");
    }
    else {
-       GLuint cpu_features;
+       GLuint cpu_features, cpu_features_ecx;
        GLuint cpu_ext_features;
        GLuint cpu_ext_info;
        char cpu_vendor[13];
@@ -238,6 +245,7 @@ _mesa_get_x86_features(void)
 
        /* get cpu features */
        cpu_features = _mesa_x86_cpuid_edx(1);
+       cpu_features_ecx = _mesa_x86_cpuid_ecx(1);
 
        if (cpu_features & X86_CPU_FPU)
 	   _mesa_x86_cpu_features |= X86_FEATURE_FPU;
@@ -254,6 +262,8 @@ _mesa_get_x86_features(void)
 	   _mesa_x86_cpu_features |= X86_FEATURE_XMM;
        if (cpu_features & X86_CPU_XMM2)
 	   _mesa_x86_cpu_features |= X86_FEATURE_XMM2;
+       if (cpu_features_ecx & X86_CPU_SSE4_1)
+	   _mesa_x86_cpu_features |= X86_FEATURE_SSE4_1;
 #endif
 
        /* query extended cpu features */
@@ -330,7 +340,18 @@ _mesa_get_x86_features(void)
    }
 #endif
 
-#endif /* USE_X86_ASM */
+#elif defined(USE_X86_64_ASM)
+   unsigned int uninitialized_var(eax), uninitialized_var(ebx),
+                uninitialized_var(ecx), uninitialized_var(edx);
+
+   /* Always available on x86-64. */
+   _mesa_x86_cpu_features |= X86_FEATURE_XMM | X86_FEATURE_XMM2;
+
+   __get_cpuid(1, &eax, &ebx, &ecx, &edx);
+
+   if (ecx & bit_SSE4_1)
+      _mesa_x86_cpu_features |= X86_FEATURE_SSE4_1;
+#endif /* USE_X86_64_ASM */
 
    (void) detection_debug;
 }

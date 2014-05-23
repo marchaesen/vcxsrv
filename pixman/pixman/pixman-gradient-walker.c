@@ -54,7 +54,7 @@ static void
 gradient_walker_reset (pixman_gradient_walker_t *walker,
 		       pixman_fixed_48_16_t      pos)
 {
-    int32_t x, left_x, right_x;
+    int64_t x, left_x, right_x;
     pixman_color_t *left_c, *right_c;
     int n, count = walker->num_stops;
     pixman_gradient_stop_t *stops = walker->stops;

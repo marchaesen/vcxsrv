@@ -300,6 +300,19 @@ SOFTWARE.
 
 #endif                          /* __aarch64__ */
 
+#if defined(__arc__)
+
+#if defined(__BIG_ENDIAN__)
+#define IMAGE_BYTE_ORDER	MSBFirst
+#define BITMAP_BIT_ORDER	MSBFirst
+#else
+#define IMAGE_BYTE_ORDER	LSBFirst
+#define BITMAP_BIT_ORDER	LSBFirst
+#endif
+#define GLYPHPADBYTES		4
+
+#endif                          /* ARC */
+
 /* size of buffer to use with GetImage, measured in bytes. There's obviously
  * a trade-off between the amount of heap used and the number of times the
  * ddx routine has to be called.

@@ -849,6 +849,16 @@ enable_divbyzero_exceptions (void)
 #endif
 }
 
+void
+enable_invalid_exceptions (void)
+{
+#ifdef HAVE_FENV_H
+#ifdef HAVE_FEENABLEEXCEPT
+    feenableexcept (FE_INVALID);
+#endif
+#endif
+}
+
 void *
 aligned_malloc (size_t align, size_t size)
 {

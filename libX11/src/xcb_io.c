@@ -774,3 +774,14 @@ void _XEatDataWords(Display *dpy, unsigned long n)
 		dpy->xcb->reply_consumed = dpy->xcb->reply_length;
 	_XFreeReplyData(dpy, False);
 }
+
+unsigned long
+_XNextRequest(Display *dpy)
+{
+    /* This will update dpy->request. The assumption is that the next thing
+     * that the application will do is make a request so there's little
+     * overhead.
+     */
+    require_socket(dpy);
+    return NextRequest(dpy);
+}

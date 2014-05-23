@@ -325,10 +325,15 @@ setup_glsl_blit_framebuffer(struct gl_context *ctx,
                             struct gl_renderbuffer *src_rb,
                             GLenum target)
 {
+   unsigned texcoord_size;
+
    /* target = GL_TEXTURE_RECTANGLE is not supported in GLES 3.0 */
    assert(_mesa_is_desktop_gl(ctx) || target == GL_TEXTURE_2D);
 
-   _mesa_meta_setup_vertex_objects(&blit->VAO, &blit->VBO, true, 2, 2, 0);
+   texcoord_size = 2 + (src_rb->Depth > 1 ? 1 : 0);
+
+   _mesa_meta_setup_vertex_objects(&blit->VAO, &blit->VBO, true,
+                                   2, texcoord_size, 0);
 
    if (target == GL_TEXTURE_2D_MULTISAMPLE ||
        target == GL_TEXTURE_2D_MULTISAMPLE_ARRAY) {
@@ -533,12 +538,16 @@ blitframebuffer_texture(struct gl_context *ctx,
 
       verts[0].tex[0] = s0;
       verts[0].tex[1] = t0;
+      verts[0].tex[2] = readAtt->Zoffset;
       verts[1].tex[0] = s1;
       verts[1].tex[1] = t0;
+      verts[1].tex[2] = readAtt->Zoffset;
       verts[2].tex[0] = s1;
       verts[2].tex[1] = t1;
+      verts[2].tex[2] = readAtt->Zoffset;
       verts[3].tex[0] = s0;
       verts[3].tex[1] = t1;
+      verts[3].tex[2] = readAtt->Zoffset;
 
       _mesa_BufferSubData(GL_ARRAY_BUFFER_ARB, 0, sizeof(verts), verts);
    }
@@ -644,7 +653,7 @@ _mesa_meta_setup_sampler(struct gl_context *ctx,
  * Meta implementation of ctx->Driver.BlitFramebuffer() in terms
  * of texture mapping and polygon rendering.
  */
-void
+GLbitfield
 _mesa_meta_BlitFramebuffer(struct gl_context *ctx,
                            GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
                            GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
@@ -669,7 +678,7 @@ _mesa_meta_BlitFramebuffer(struct gl_context *ctx,
    /* Multisample texture blit support requires texture multisample. */
    if (ctx->ReadBuffer->Visual.samples > 0 &&
        !ctx->Extensions.ARB_texture_multisample) {
-      goto fallback;
+      return mask;
    }
 
    /* Clip a copy of the blit coordinates. If these differ from the input
@@ -678,7 +687,7 @@ _mesa_meta_BlitFramebuffer(struct gl_context *ctx,
    if (!_mesa_clip_blit(ctx, &clip.srcX0, &clip.srcY0, &clip.srcX1, &clip.srcY1,
                         &clip.dstX0, &clip.dstY0, &clip.dstX1, &clip.dstY1)) {
       /* clipped/scissored everything away */
-      return;
+      return 0;
    }
 
    /* Only scissor affects blit, but we're doing to set a custom scissor if
@@ -705,10 +714,6 @@ _mesa_meta_BlitFramebuffer(struct gl_context *ctx,
                                   filter, dstFlipX, dstFlipY,
                                   use_glsl_version, false)) {
          mask &= ~GL_COLOR_BUFFER_BIT;
-         if (mask == 0x0) {
-            _mesa_meta_end(ctx);
-            return;
-         }
       }
    }
 
@@ -718,10 +723,6 @@ _mesa_meta_BlitFramebuffer(struct gl_context *ctx,
                                   filter, dstFlipX, dstFlipY,
                                   use_glsl_version, true)) {
          mask &= ~GL_DEPTH_BUFFER_BIT;
-         if (mask == 0x0) {
-            _mesa_meta_end(ctx);
-            return;
-         }
       }
    }
 
@@ -731,11 +732,7 @@ _mesa_meta_BlitFramebuffer(struct gl_context *ctx,
 
    _mesa_meta_end(ctx);
 
-fallback:
-   if (mask && !ctx->Meta->Blit.no_ctsi_fallback) {
-      _swrast_BlitFramebuffer(ctx, srcX0, srcY0, srcX1, srcY1,
-                              dstX0, dstY0, dstX1, dstY1, mask, filter);
-   }
+   return mask;
 }
 
 void
@@ -752,4 +749,25 @@ _mesa_meta_glsl_blit_cleanup(struct blit_state *blit)
 
    _mesa_DeleteTextures(1, &blit->depthTex.TexObj);
    blit->depthTex.TexObj = 0;
+}
+
+void
+_mesa_meta_and_swrast_BlitFramebuffer(struct gl_context *ctx,
+                                      GLint srcX0, GLint srcY0,
+                                      GLint srcX1, GLint srcY1,
+                                      GLint dstX0, GLint dstY0,
+                                      GLint dstX1, GLint dstY1,
+                                      GLbitfield mask, GLenum filter)
+{
+   mask = _mesa_meta_BlitFramebuffer(ctx,
+                                     srcX0, srcY0, srcX1, srcY1,
+                                     dstX0, dstY0, dstX1, dstY1,
+                                     mask, filter);
+   if (mask == 0x0)
+      return;
+
+   _swrast_BlitFramebuffer(ctx,
+                           srcX0, srcY0, srcX1, srcY1,
+                           dstX0, dstY0, dstX1, dstY1,
+                           mask, filter);
 }
