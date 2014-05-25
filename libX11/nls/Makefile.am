@@ -20,19 +20,19 @@ include $(top_srcdir)/cpprules.in
 
 locale.alias: locale.alias.pre
 	$(AM_V_GEN)$(RAWCPP) $(RAWCPPFLAGS) $(CPP_FILES_FLAGS) < $(srcdir)/locale.alias.pre | $(CPP_SED_MAGIC) > locale.alias.l1
-	$(SED) -e '/^[^#][^        ]*:/s/://' -e '/^[^#].*[        ].*:/d' \
+	$(SED) -e '/^[^#][^	 ]*:/s/://' -e '/^[^#].*[	 ].*:/d' \
         < locale.alias.l1 > locale.alias.l2
 	cat locale.alias.l2 locale.alias.l1 > locale.alias
 
 compose.dir: compose.dir.pre
 	$(AM_V_GEN)$(RAWCPP) $(RAWCPPFLAGS) $(CPP_FILES_FLAGS) < $(srcdir)/compose.dir.pre | $(CPP_SED_MAGIC) > compose.dir.l1
-	$(SED) -e '/^[^#][^        ]*:/s/://' -e '/^[^#].*[        ].*:/d' \
+	$(SED) -e '/^[^#][^	 ]*:/s/://' -e '/^[^#].*[	 ].*:/d' \
         < compose.dir.l1 > compose.dir.l2
 	cat compose.dir.l2 compose.dir.l1 > compose.dir
 
 locale.dir: locale.dir.pre
 	$(AM_V_GEN)$(RAWCPP) $(RAWCPPFLAGS) $(CPP_FILES_FLAGS) < $(srcdir)/locale.dir.pre | $(CPP_SED_MAGIC) > locale.dir.l1
-	$(SED) -e '/^[^#][^        ]*:/s/://' -e '/^[^#].*[        ].*:/d' \
+	$(SED) -e '/^[^#][^	 ]*:/s/://' -e '/^[^#].*[	 ].*:/d' \
         < locale.dir.l1 > locale.dir.l2
 	cat locale.dir.l2 locale.dir.l1 > locale.dir
 
