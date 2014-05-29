@@ -146,7 +146,7 @@ print_type(FILE *f, const glsl_type *t)
       print_type(f, t->fields.array);
       fprintf(f, " %u)", t->length);
    } else if ((t->base_type == GLSL_TYPE_STRUCT)
-	      && (strncmp("gl_", t->name, 3) != 0)) {
+              && !is_gl_identifier(t->name)) {
       fprintf(f, "%s@%p", t->name, (void *) t);
    } else {
       fprintf(f, "%s", t->name);
@@ -430,7 +430,7 @@ void ir_print_visitor::visit(ir_constant *ir)
 	 case GLSL_TYPE_FLOAT:
             if (ir->value.f[i] == 0.0f)
                /* 0.0 == -0.0, so print with %f to get the proper sign. */
-               fprintf(f, "%.1f", ir->value.f[i]);
+               fprintf(f, "%f", ir->value.f[i]);
             else if (fabs(ir->value.f[i]) < 0.000001f)
                fprintf(f, "%a", ir->value.f[i]);
             else if (fabs(ir->value.f[i]) > 1000000.0f)

@@ -52,7 +52,7 @@
 #include "main/errors.h"
 #include "main/macros.h"
 
-PUBLIC const char __dri2ConfigOptions[] =
+const char __dri2ConfigOptions[] =
    DRI_CONF_BEGIN
       DRI_CONF_SECTION_PERFORMANCE
          DRI_CONF_VBLANK_MODE(DRI_CONF_VBLANK_DEF_INTERVAL_1)
@@ -736,7 +736,7 @@ driSwapBuffers(__DRIdrawable *pdp)
 
 /** Core interface */
 const __DRIcoreExtension driCoreExtension = {
-    /*.base =*/ { __DRI_CORE, __DRI_CORE_VERSION },
+    /*.base =*/ { __DRI_CORE, 1 },
 
     /*.createNewScreen            =*/ NULL,
     /*.destroyScreen              =*/ driDestroyScreen,
