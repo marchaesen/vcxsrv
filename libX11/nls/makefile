@@ -22,7 +22,7 @@ include ../cpprules.mak
 
 $(X11_LOCALEDATADIR)\%: %.pre
 	cl /nologo /EP $< -DXCOMM\#\# > $<.l1
-	sed -e "/^[^\#][^        ]*:/s/://" -e "/^[^\#].*[        ].*:/d" < $<.l1 > $<.l2
+	sed -e "/^[^\#][^	 ]*:/s/://" -e "/^[^\#].*[	 ].*:/d" < $<.l1 > $<.l2
 	type $<.l2 $<.l1 > $@
 	del $<.l1
 	del $<.l2
