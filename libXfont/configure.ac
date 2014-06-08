@@ -21,7 +21,7 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([libXfont], [1.4.7],
+AC_INIT([libXfont], [1.4.8],
 	[https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [libXfont])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h include/X11/fonts/fontconf.h])
@@ -64,9 +64,8 @@ PKG_PROG_PKG_CONFIG
 XFONT_FONTFILE=no
 
 #
-# Scalable fonts in files:
-# 	FreeType
-#	Bitstream Speedo rasterizer
+# FreeType for all scalable (OpenType, TrueType, PostScript) and
+# some bitmap formats (BDF & PCF)
 #
 AC_ARG_ENABLE(freetype, [ --disable-freetype],[XFONT_FREETYPE=$enableval],[XFONT_FREETYPE=yes])
 AM_CONDITIONAL(XFONT_FREETYPE, [test x$XFONT_FREETYPE = xyes])
@@ -181,7 +180,7 @@ fi
 AC_CHECK_LIB(m, hypot, [MATH_LIBS=-lm
 AC_SUBST(MATH_LIBS)], AC_MSG_ERROR([*** libm is required]))
 
-PKG_CHECK_MODULES(XFONT, xproto xtrans fontsproto fontenc)
+PKG_CHECK_MODULES(XFONT, [xproto xtrans fontsproto < 2.1.3 fontenc])
 
 # Transport selection macro from xtrans.m4
 XTRANS_CONNECTION_FLAGS

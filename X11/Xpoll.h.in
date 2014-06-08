@@ -50,7 +50,7 @@ from The Open Group.
 #ifndef _XPOLL_H_
 #define _XPOLL_H_
 
-#ifndef WIN32
+#if !defined(WIN32) || defined(__CYGWIN__)
 
 #ifndef USE_POLL
 

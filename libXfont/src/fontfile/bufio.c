@@ -162,8 +162,10 @@ BufFileOpenWrite (int fd)
     setmode(fd,O_BINARY);
 #endif
     f = BufFileCreate ((char *)(long) fd, 0, BufFileRawFlush, 0, BufFileFlush);
-    f->bufp = f->buffer;
-    f->left = BUFFILESIZE;
+    if (f != NULL) {
+	f->bufp = f->buffer;
+	f->left = BUFFILESIZE;
+    }
     return f;
 }
 

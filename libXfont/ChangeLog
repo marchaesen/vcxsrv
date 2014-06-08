@@ -1,3 +1,406 @@
+commit 6ed205bd618f3f3016e34ab132019d53d0623576
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu May 15 19:21:07 2014 -0700
+
+    libXfont 1.4.8
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 23a7a10aaada0a4b00272b512bd430545ce799e3
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri May 2 19:24:17 2014 -0700
+
+    CVE-2014-0210: unvalidated length fields in fs_read_list_info()
+    
+    fs_read_list_info() parses a reply from the font server.  The reply
+    contains a number of additional data items with embedded length or
+    count fields, none of which are validated. This can cause out of
+    bound reads when looping over these items in the reply.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    (cherry picked from commit d338f81df1e188eb16e1d6aeea7f4800f89c1218)
+
+commit a455f111eb2779e3258d49c1c003d3023d1b9bab
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri May 2 19:24:17 2014 -0700
+
+    CVE-2014-0210: unvalidated length fields in fs_read_list()
+    
+    fs_read_list() parses a reply from the font server.  The reply
+    contains a list of strings with embedded length fields, none of
+    which are validated. This can cause out of bound reads when looping
+    over the strings in the reply.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    (cherry picked from commit 5fa73ac18474be3032ee7af9c6e29deab163ea39)
+
+commit 2b7b6f21ec67c2e4fdc3cee9db3199a6edef5c5c
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Apr 25 23:03:24 2014 -0700
+
+    CVE-2014-0210: unvalidated length fields in fs_read_glyphs()
+    
+    fs_read_glyphs() parses a reply from the font server.  The reply
+    contains embedded length fields, none of which are validated.
+    This can cause out of bound reads when looping over the glyph
+    bitmaps in the reply.
+    
+    Reported-by: Ilja Van Sprundel <ivansprundel@ioactive.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Adam Jackson <ajax@redhat.com>
+    Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
+    (cherry picked from commit 520683652564c2a4e42328ae23eef9bb63271565)
+
+commit 573c3fdcb934ca1f3243f6ced40e1f037ea6cefe
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Apr 25 23:03:05 2014 -0700
+
+    CVE-2014-0210: unvalidated length fields in fs_read_extent_info()
+    
+    Looping over the extents in the reply could go past the end of the
+    reply buffer if the reply indicated more extents than could fit in
+    the specified reply length.
+    
+    Reported-by: Ilja Van Sprundel <ivansprundel@ioactive.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Adam Jackson <ajax@redhat.com>
+    Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
+    (cherry picked from commit a3f21421537620fc4e1f844a594a4bcd9f7e2bd8)
+
+commit 4b762a7eb73d4d84466331be2d48565561018fc1
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Apr 25 23:02:54 2014 -0700
+
+    CVE-2014-0211: integer overflow in fs_alloc_glyphs()
+    
+    fs_alloc_glyphs() is a malloc wrapper used by the font code.
+    It contains a classic integer overflow in the malloc() call,
+    which can cause memory corruption.
+    
+    Reported-by: Ilja Van Sprundel <ivansprundel@ioactive.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Adam Jackson <ajax@redhat.com>
+    Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
+    (cherry picked from commit a42f707f8a62973f5e8bbcd08afb10a79e9cee33)
+
+commit e6d9db84113650c4f4d9bebddb60cdb72690d798
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Apr 25 23:02:42 2014 -0700
+
+    CVE-2014-0211: integer overflow in fs_read_extent_info()
+    
+    fs_read_extent_info() parses a reply from the font server.
+    The reply contains a 32bit number of elements field which is used
+    to calculate a buffer length. There is an integer overflow in this
+    calculation which can lead to memory corruption.
+    
+    Reported-by: Ilja Van Sprundel <ivansprundel@ioactive.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Adam Jackson <ajax@redhat.com>
+    Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
+    (cherry picked from commit c578408c1fd4db09e4e3173f8a9e65c81cc187c1)
+
+commit fb4ecda3014744fa690959da9c5b09233b73c016
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Apr 25 23:02:34 2014 -0700
+
+    CVE-2014-0210: unvalidated length fields in fs_read_query_info()
+    
+    fs_read_query_info() parses a reply from the font server.  The reply
+    contains embedded length fields, none of which are validated.  This
+    can cause out of bound reads in either fs_read_query_info() or in
+    _fs_convert_props() which it calls to parse the fsPropInfo in the reply.
+    
+    Reported-by: Ilja Van Sprundel <ivansprundel@ioactive.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Adam Jackson <ajax@redhat.com>
+    Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
+    (cherry picked from commit 491291cabf78efdeec8f18b09e14726a9030cc8f)
+
+commit 633005ac24a44dacaf6beb3ed240ae0ea7e022d7
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Apr 25 23:02:25 2014 -0700
+
+    CVE-2014-0211: Integer overflow in fs_get_reply/_fs_start_read
+    
+    fs_get_reply() would take any reply size, multiply it by 4 and pass to
+    _fs_start_read.  If that size was bigger than the current reply buffer
+    size, _fs_start_read would add it to the existing buffer size plus the
+    buffer size increment constant and realloc the buffer to that result.
+    
+    This math could overflow, causing the code to allocate a smaller
+    buffer than the amount it was about to read into that buffer from
+    the network.  It could also succeed, allowing the remote font server
+    to cause massive allocations in the X server, possibly using up all
+    the address space in a 32-bit X server, allowing the triggering of
+    other bugs in code that fails to handle malloc failure properly.
+    
+    This patch protects against both problems, by disconnecting any
+    font server trying to feed us more than (the somewhat arbitrary)
+    64 mb in a single reply.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Adam Jackson <ajax@redhat.com>
+    Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
+    (cherry picked from commit 0f1a5d372c143f91a602bdf10c917d7eabaee09b)
+
+commit 647d9ea15e34779afa442d362997d92488778907
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Apr 25 23:02:12 2014 -0700
+
+    CVE-2014-0210: unvalidated lengths when reading replies from font server
+    
+    Functions to handle replies to font server requests were casting replies
+    from the generic form to reply specific structs without first checking
+    that the reply was at least as long as the struct being cast to.
+    
+    Reported-by: Ilja Van Sprundel <ivansprundel@ioactive.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Adam Jackson <ajax@redhat.com>
+    Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
+    (cherry picked from commit cbb64aef35960b2882be721f4b8fbaa0fb649d12)
+
+commit 23dcf6b1da8b5088856aef12b4a3f4581836f63a
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Apr 25 23:02:00 2014 -0700
+
+    CVE-2014-0210: unvalidated length in _fs_recv_conn_setup()
+    
+    The connection setup reply from the font server can include a list
+    of alternate servers to contact if this font server stops working.
+    
+    The reply specifies a total size of all the font server names, and
+    then provides a list of names. _fs_recv_conn_setup() allocated the
+    specified total size for copying the names to, but didn't check to
+    make sure it wasn't copying more data to that buffer than the size
+    it had allocated.
+    
+    Reported-by: Ilja Van Sprundel <ivansprundel@ioactive.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Adam Jackson <ajax@redhat.com>
+    Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
+    (cherry picked from commit 891e084b26837162b12f841060086a105edde86d)
+
+commit 26643c0c3f4e53945516e20e00dfbb4d69a39c65
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Apr 25 23:01:48 2014 -0700
+
+    CVE-2014-0209: integer overflow of realloc() size in lexAlias()
+    
+    lexAlias() reads from a file in a loop. It does this by starting with a
+    64 byte buffer.  If that size limit is hit, it does a realloc of the
+    buffer size << 1, basically doubling the needed length every time the
+    length limit is hit.
+    
+    Eventually, this will shift out to 0 (for a length of ~4gig), and that
+    length will be passed on to realloc().  A length of 0 (with a valid
+    pointer) causes realloc to free the buffer on most POSIX platforms,
+    but the caller will still have a pointer to it, leading to use after
+    free issues.
+    
+    Reported-by: Ilja Van Sprundel <ivansprundel@ioactive.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Adam Jackson <ajax@redhat.com>
+    Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
+    (cherry picked from commit 05c8020a49416dd8b7510cbba45ce4f3fc81a7dc)
+
+commit 0a37bf2d9977db81573f300b0dc203df8fe108b5
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Apr 25 23:01:11 2014 -0700
+
+    CVE-2014-0209: integer overflow of realloc() size in FontFileAddEntry()
+    
+    FontFileReadDirectory() opens a fonts.dir file, and reads over every
+    line in an fscanf loop.  For each successful entry read (font name,
+    file name) a call is made to FontFileAddFontFile().
+    
+    FontFileAddFontFile() will add a font file entry (for the font name
+    and file) each time it’s called, by calling FontFileAddEntry().
+    FontFileAddEntry() will do the actual adding.  If the table it has
+    to add to is full, it will do a realloc, adding 100 more entries
+    to the table size without checking to see if that will overflow the
+    int used to store the size.
+    
+    Reported-by: Ilja Van Sprundel <ivansprundel@ioactive.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Adam Jackson <ajax@redhat.com>
+    Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
+    (cherry picked from commit 2f5e57317339c526e6eaee1010b0e2ab8089c42e)
+
+commit c1ccb7d4eb34c99178ace3956768abfb4cf866fd
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Apr 22 23:49:29 2014 -0700
+
+    Clean up warnings when src/fc is built with -DDEBUG
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    (cherry picked from commit 77902e1422315963364fcba3736ff9b5b0f32d47)
+
+commit e9a07053d2b5aa55634c2bb2fd080fae77020e3c
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Apr 22 23:45:41 2014 -0700
+
+    Allow enabling src/fc DEBUG helpers via CPPFLAGS
+    
+    Instead of editing fsio.h to turn on debugging logs, just add
+    -DDEBUG to CPPFLAGS when building.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    (cherry picked from commit f75f7bde4cedc36d5ca1289988b3daebb80528d2)
+
+commit 9b41f3d0c7c430a2909c9455eff347e714f0c4b4
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Apr 20 18:10:07 2014 -0700
+
+    Require fontsproto < 2.1.3 for matching function prototypes
+    
+    Building libXfont-1.4.x against fontsproto 2.1.3 causes clang
+    complaints of:
+    
+    patcache.c:130:1: error: conflicting types for 'CacheFontPattern'
+    CacheFontPattern (FontPatternCachePtr cache,
+    ^
+    patcache.c:176:1: error: conflicting types for 'FindCachedFontPattern'
+    FindCachedFontPattern (FontPatternCachePtr cache,
+    ^
+    
+    due to the constification of arguments not matching.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Thomas Klausner <wiz@NetBSD.org>
+
+commit 371f8582a33235afa1b61d76e4fe98bdc9d7c083
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Apr 20 17:59:14 2014 -0700
+
+    Check if pointer returned by BufFileCreate is NULL before writing to it
+    
+    Fixes clang analyzer warning:
+    
+    bufio.c:165:13: warning: Access to field 'bufp' results in a dereference
+     of a null pointer (loaded from variable 'f')
+        f->bufp = f->buffer;
+        ~       ^
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Thomas Klausner <wiz@NetBSD.org>
+    (cherry picked from commit c77a0784bdfc8c178f0742689cf6ae02a2fce37f)
+
+commit 5bb34807642589e5b592b04418855fd059fc5022
+Author: Peter Harris <pharris@opentext.com>
+Date:   Mon Apr 7 14:25:02 2014 -0400
+
+    Fix buffer read overrun
+    
+    "FreeType" is only eight bytes long. The atom "FreeType\x00\x??" is
+    probably not what the author intended.
+    
+    Signed-off-by: Peter Harris <pharris@opentext.com>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    (cherry picked from commit c8855746aec2a9b732502da0ca3258b4e701c61a)
+
+commit 2a3429413df27224ceeddd22500ce43b5431d698
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Jan 17 22:25:56 2014 -0800
+
+    Add note to README declaring snf fonts to be deprecated
+    
+    pcf was introduced to replace snf in X11R5 in 1991:
+        http://www.x.org/wiki/X11R5/#index56h3
+    22 years is long enough to move off a font format that was alive for
+    less than a decade before that, and widely considered a bad idea even
+    then:
+        http://www.faqs.org/faqs/fonts-faq/part15/
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
+    Reviewed-by: Eric Anholt <eric@anholt.net>
+    Reviewed-by: Julien Cristau <jcristau@debian.org>
+
+commit efcb136a03f642fba7e289e25d5dcf609bd13f07
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Jan 17 22:25:01 2014 -0800
+
+    Add notes to README about various font formats & configure options
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
+    Reviewed-by: Eric Anholt <eric@anholt.net>
+    Reviewed-by: Julien Cristau <jcristau@debian.org>
+
+commit 5d696738c2ab901bdef004169799bb63939fa7b5
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Jan 17 22:00:25 2014 -0800
+
+    Correct comment in configure.ac about scalable font support
+    
+    Bitstream Speedo support was removed in commit d50de26430c1a114a.
+    All scalable font support now goes through FreeType, which can
+    also handle some bitmap font formats as well.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
+    Reviewed-by: Eric Anholt <eric@anholt.net>
+    Reviewed-by: Julien Cristau <jcristau@debian.org>
+
+commit 6371fcf2b60e48605ed59f098d1e642e35b1d142
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Jan 7 23:09:08 2014 -0800
+
+    Remove redundant setting of 'len' in SPropRecValList_add_by_font_cap
+    
+    Found by cppcheck 1.63:
+    [FreeType/xttcap.c:621] -> [FreeType/xttcap.c:624]: (performance)
+     Variable 'len' is reassigned a value before the old one has been used.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Jasper St. Pierre <jstpierre@mecheye.net>
+
+commit 63c7ac4dbb739e51d55249e71282699e5e0d7e1d
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Jan 7 22:58:22 2014 -0800
+
+    Initialize (unused) data field in fsListCataloguesReq before sending it.
+    
+    Quiets cppcheck 1.63 warning:
+    [fc/fserve.c:2972]: (error) Uninitialized variable: lcreq
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Jasper St. Pierre <jstpierre@mecheye.net>
+
+commit d279ffa49284b5e5f787f76edbe8c52226534a64
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Jan 7 22:29:04 2014 -0800
+
+    Remove redundant declaration of FontFileStartListFonts()
+    
+    Fixes gcc warning:
+    catalogue.c:336:1: warning: redundant redeclaration of
+     'FontFileStartListFonts' [-Wredundant-decls]
+    In file included from ../../include/X11/fonts/fntfilst.h:40:0,
+                     from catalogue.c:32:
+    ../../include/X11/fonts/fntfil.h:92:12: note: previous declaration
+     of 'FontFileStartListFonts' was here
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Jasper St. Pierre <jstpierre@mecheye.net>
+
+commit 2fb6295ace36394732815aca5aef1a85e63de56c
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Jan 7 22:15:50 2014 -0800
+
+    Fix unused variable 'dir' warnings
+    
+    catalogue.c: In function 'CatalogueOpenFont':
+    catalogue.c:290:22: warning: variable 'dir' set but not used [-Wunused-but-set-variable]
+    catalogue.c: In function 'CatalogueListFonts':
+    catalogue.c:324:22: warning: variable 'dir' set but not used [-Wunused-but-set-variable]
+    fpe.c: In function 'BuiltinResetFPE':
+    fpe.c:57:22: warning: variable 'dir' set but not used [-Wunused-but-set-variable]
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Jasper St. Pierre <jstpierre@mecheye.net>
+
 commit 30110063857ff9a5f93f6d8d13f535c9b6e59e2a
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Tue Jan 7 08:22:31 2014 -0800

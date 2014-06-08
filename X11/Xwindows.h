@@ -63,6 +63,10 @@ The Open Group.
 #define _NO_BOOL_TYPEDEF
 #define BOOL WINBOOL
 #define INT32 wINT32
+#ifdef __x86_64__
+#define INT64 wINT64
+#define LONG64 wLONG64
+#endif
 #ifdef Status
 #undef Status
 #endif
@@ -77,6 +81,8 @@ typedef int Status;
 #undef BYTE
 #undef BOOL
 #undef INT32
+#undef INT64
+#undef LONG64
 #undef ATOM
 #undef FreeResource
 #undef CreateWindowA

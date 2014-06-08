@@ -42,6 +42,7 @@ in this Software without prior written authorization from The Open Group.
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <limits.h>
 
 static Bool AddFileNameAliases ( FontDirectoryPtr dir );
 static int ReadFontAlias ( char *directory, Bool isFile,
@@ -90,7 +91,7 @@ FontFileReadDirectory (char *directory, FontDirectoryPtr *pdir)
     strcat(dir_file, FontDirFile);
     file = fopen(dir_file, "rt");
     if (file) {
-#ifndef WIN32        
+#ifndef WIN32
 	if (fstat (fileno(file), &statb) == -1)
 #else
 	if (stat (dir_file, &statb) == -1)
@@ -135,7 +136,7 @@ FontFileReadDirectory (char *directory, FontDirectoryPtr *pdir)
 	    FontFileAddFontFile (dir, font_name, file_name);
 	}
 	fclose(file);
-	
+
     } else if (errno != ENOENT) {
 	return BadFontPath;
     }
@@ -188,7 +189,7 @@ FontFileDirectoryChanged(FontDirectoryPtr dir)
 	return TRUE;
     return FALSE;
 }
-    
+
 /*
  * Make each of the file names an automatic alias for each of the files.
  */
@@ -212,7 +213,7 @@ AddFileNameAliases(FontDirectoryPtr dir)
 	renderer = FontFileMatchRenderer (fileName);
 	if (!renderer)
 	    continue;
-	
+
 	len = strlen (fileName) - renderer->fileSuffixLen;
 	if (len >= sizeof(copy))
 	    continue;
@@ -374,6 +375,9 @@ lexAlias(FILE *file, char **lexToken)
 	    int         nsize;
 	    char       *nbuf;
 
+	    if (tokenSize >= (INT_MAX >> 2))
+		/* Stop before we overflow */
+		return EALLOC;
 	    nsize = tokenSize ? (tokenSize << 1) : 64;
 	    nbuf = realloc(tokenBuf, nsize);
 	    if (!nbuf)
