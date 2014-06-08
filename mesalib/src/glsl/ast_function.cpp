@@ -701,7 +701,7 @@ process_vec_mat_constructor(exec_list *instructions,
             glsl_type::get_instance(GLSL_TYPE_FLOAT,
                                     ir->type->vector_elements,
                                     ir->type->matrix_columns);
-         if (result->type->can_implicitly_convert_to(desired_type)) {
+         if (result->type->can_implicitly_convert_to(desired_type, state)) {
             /* Even though convert_component() implements the constructor
              * conversion rules (not the implicit conversion rules), its safe
              * to use it here because we already checked that the implicit
@@ -830,7 +830,7 @@ process_array_constructor(exec_list *instructions,
 	    glsl_type::get_instance(GLSL_TYPE_FLOAT,
 				    ir->type->vector_elements,
 				    ir->type->matrix_columns);
-	 if (result->type->can_implicitly_convert_to(desired_type)) {
+	 if (result->type->can_implicitly_convert_to(desired_type, state)) {
 	    /* Even though convert_component() implements the constructor
 	     * conversion rules (not the implicit conversion rules), its safe
 	     * to use it here because we already checked that the implicit
@@ -1560,7 +1560,7 @@ ast_function_expression::hir(exec_list *instructions,
 
       foreach_list (n, &this->expressions) {
 	 ast_node *ast = exec_node_data(ast_node, n, link);
-	 ir_rvalue *result = ast->hir(instructions, state)->as_rvalue();
+	 ir_rvalue *result = ast->hir(instructions, state);
 
 	 /* From page 50 (page 56 of the PDF) of the GLSL 1.50 spec:
 	  *

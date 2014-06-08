@@ -519,7 +519,7 @@ xf86InputDriverlistFromConfig(void)
 static void
 fixup_video_driver_list(const char **drivers)
 {
-    static const char *fallback[4] = { "fbdev", "vesa", "wsfb", NULL };
+    static const char *fallback[5] = { "modesetting", "fbdev", "vesa", "wsfb", NULL };
     const char **end, **drv;
     const char *x;
     int i;

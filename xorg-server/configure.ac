@@ -26,9 +26,9 @@ dnl
 dnl Process this file with autoconf to create configure.
 
 AC_PREREQ(2.60)
-AC_INIT([xorg-server], 1.15.99.902, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
-RELEASE_DATE="2014-04-08"
-RELEASE_NAME="Glacier Blue"
+AC_INIT([xorg-server], 1.15.99.903, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
+RELEASE_DATE="2014-06-04"
+RELEASE_NAME="Strawberry Shortcake"
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
@@ -2442,7 +2442,7 @@ AM_CONDITIONAL(XFAKESERVER, [test "x$KDRIVE" = xyes && test "x$XFAKE" = xyes])
 
 dnl Xwayland DDX
 
-PKG_CHECK_MODULES(XWAYLANDMODULES, [wayland-client libdrm epoxy], [have_xwayland=yes], [have_xwayland=no])
+PKG_CHECK_MODULES(XWAYLANDMODULES, [wayland-client >= 1.3.0 libdrm epoxy], [have_xwayland=yes], [have_xwayland=no])
 AC_MSG_CHECKING([whether to build Xwayland DDX])
 if test "x$XWAYLAND" = xauto; then
    XWAYLAND="$have_xwayland"

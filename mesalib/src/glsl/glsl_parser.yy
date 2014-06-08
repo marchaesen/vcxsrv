@@ -129,7 +129,7 @@ static bool match_layout_qualifier(const char *s1, const char *s2,
 %token ATTRIBUTE CONST_TOK BOOL_TOK FLOAT_TOK INT_TOK UINT_TOK
 %token BREAK CONTINUE DO ELSE FOR IF DISCARD RETURN SWITCH CASE DEFAULT
 %token BVEC2 BVEC3 BVEC4 IVEC2 IVEC3 IVEC4 UVEC2 UVEC3 UVEC4 VEC2 VEC3 VEC4
-%token CENTROID IN_TOK OUT_TOK INOUT_TOK UNIFORM VARYING
+%token CENTROID IN_TOK OUT_TOK INOUT_TOK UNIFORM VARYING SAMPLE
 %token NOPERSPECTIVE FLAT SMOOTH
 %token MAT2X2 MAT2X3 MAT2X4
 %token MAT3X2 MAT3X3 MAT3X4
@@ -167,7 +167,7 @@ static bool match_layout_qualifier(const char *s1, const char *s2,
 %token AND_OP OR_OP XOR_OP MUL_ASSIGN DIV_ASSIGN ADD_ASSIGN
 %token MOD_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN XOR_ASSIGN OR_ASSIGN
 %token SUB_ASSIGN
-%token INVARIANT
+%token INVARIANT PRECISE
 %token LOWP MEDIUMP HIGHP SUPERP PRECISION
 
 %token VERSION_TOK EXTENSION LINE COLON EOL INTERFACE OUTPUT
@@ -184,7 +184,7 @@ static bool match_layout_qualifier(const char *s1, const char *s2,
 %token HVEC2 HVEC3 HVEC4 DVEC2 DVEC3 DVEC4 FVEC2 FVEC3 FVEC4
 %token SAMPLER3DRECT
 %token SIZEOF CAST NAMESPACE USING
-%token RESOURCE PATCH SAMPLE
+%token RESOURCE PATCH
 %token SUBROUTINE
 
 %token ERROR_TOK
@@ -932,14 +932,22 @@ parameter_qualifier:
       $$ = $2;
       $$.flags.q.constant = 1;
    }
+   | PRECISE parameter_qualifier
+   {
+      if ($2.flags.q.precise)
+         _mesa_glsl_error(&@1, state, "duplicate precise qualifier");
+
+      $$ = $2;
+      $$.flags.q.precise = 1;
+   }
    | parameter_direction_qualifier parameter_qualifier
    {
       if (($1.flags.q.in || $1.flags.q.out) && ($2.flags.q.in || $2.flags.q.out))
          _mesa_glsl_error(&@1, state, "duplicate in/out/inout qualifier");
 
       if (!state->ARB_shading_language_420pack_enable && $2.flags.q.constant)
-         _mesa_glsl_error(&@1, state, "const must be specified before "
-                          "in/out/inout");
+         _mesa_glsl_error(&@1, state, "in/out/inout must come after const "
+                                      "or precise");
 
       $$ = $1;
       $$.merge_qualifier(&@1, state, $2);
@@ -1072,7 +1080,7 @@ single_declaration:
       $$->set_location_range(@1, @2);
       $$->declarations.push_tail(&decl->link);
    }
-   | INVARIANT variable_identifier // Vertex only.
+   | INVARIANT variable_identifier
    {
       void *ctx = state;
       ast_declaration *decl = new(ctx) ast_declaration($2, NULL, NULL);
@@ -1081,6 +1089,18 @@ single_declaration:
       $$ = new(ctx) ast_declarator_list(NULL);
       $$->set_location_range(@1, @2);
       $$->invariant = true;
+
+      $$->declarations.push_tail(&decl->link);
+   }
+   | PRECISE variable_identifier
+   {
+      void *ctx = state;
+      ast_declaration *decl = new(ctx) ast_declaration($2, NULL, NULL);
+      decl->set_location(@2);
+
+      $$ = new(ctx) ast_declarator_list(NULL);
+      $$->set_location_range(@1, @2);
+      $$->precise = true;
 
       $$->declarations.push_tail(&decl->link);
    }
@@ -1499,6 +1519,11 @@ type_qualifier:
       memset(& $$, 0, sizeof($$));
       $$.flags.q.invariant = 1;
    }
+   | PRECISE
+   {
+      memset(& $$, 0, sizeof($$));
+      $$.flags.q.precise = 1;
+   }
    | auxiliary_storage_qualifier
    | storage_qualifier
    | interpolation_qualifier
@@ -1519,8 +1544,16 @@ type_qualifier:
     * Each qualifier's rule ensures that the accumulated qualifiers on the right
     * side don't contain any that must appear on the left hand side.
     * For example, when processing a storage qualifier, we check that there are
-    * no auxiliary, interpolation, layout, or invariant qualifiers to the right.
+    * no auxiliary, interpolation, layout, invariant, or precise qualifiers to the right.
     */
+   | PRECISE type_qualifier
+   {
+      if ($2.flags.q.precise)
+         _mesa_glsl_error(&@1, state, "duplicate \"precise\" qualifier");
+
+      $$ = $2;
+      $$.flags.q.precise = 1;
+   }
    | INVARIANT type_qualifier
    {
       if ($2.flags.q.invariant)
@@ -1530,6 +1563,10 @@ type_qualifier:
          _mesa_glsl_error(&@1, state,
                           "\"invariant\" cannot be used with layout(...)");
       }
+
+      if (!state->ARB_shading_language_420pack_enable && $2.flags.q.precise)
+         _mesa_glsl_error(&@1, state,
+                          "\"invariant\" must come after \"precise\"");
 
       $$ = $2;
       $$.flags.q.invariant = 1;
@@ -1554,9 +1591,10 @@ type_qualifier:
                           "with layout(...)");
       }
 
-      if (!state->ARB_shading_language_420pack_enable && $2.flags.q.invariant) {
+      if (!state->ARB_shading_language_420pack_enable &&
+          ($2.flags.q.precise || $2.flags.q.invariant)) {
          _mesa_glsl_error(&@1, state, "interpolation qualifiers must come "
-                          "after \"invariant\"");
+                          "after \"precise\" or \"invariant\"");
       }
 
       $$ = $1;
@@ -1577,6 +1615,10 @@ type_qualifier:
          _mesa_glsl_error(&@1, state, "layout(...) cannot be used with "
                           "the \"invariant\" qualifier");
 
+      if ($2.flags.q.precise)
+         _mesa_glsl_error(&@1, state, "layout(...) cannot be used with "
+                          "the \"precise\" qualifier");
+
       if ($2.has_interpolation()) {
          _mesa_glsl_error(&@1, state, "layout(...) cannot be used with "
                           "interpolation qualifiers");
@@ -1593,7 +1635,8 @@ type_qualifier:
       }
 
       if (!state->ARB_shading_language_420pack_enable &&
-          ($2.flags.q.invariant || $2.has_interpolation() || $2.has_layout())) {
+          ($2.flags.q.precise || $2.flags.q.invariant ||
+           $2.has_interpolation() || $2.has_layout())) {
          _mesa_glsl_error(&@1, state, "auxiliary storage qualifiers must come "
                           "just before storage qualifiers");
       }
@@ -1610,10 +1653,10 @@ type_qualifier:
          _mesa_glsl_error(&@1, state, "duplicate storage qualifier");
 
       if (!state->ARB_shading_language_420pack_enable &&
-          ($2.flags.q.invariant || $2.has_interpolation() || $2.has_layout() ||
-           $2.has_auxiliary_storage())) {
+          ($2.flags.q.precise || $2.flags.q.invariant || $2.has_interpolation() ||
+           $2.has_layout() || $2.has_auxiliary_storage())) {
          _mesa_glsl_error(&@1, state, "storage qualifiers must come after "
-                          "invariant, interpolation, layout and auxiliary "
+                          "precise, invariant, interpolation, layout and auxiliary "
                           "storage qualifiers");
       }
 

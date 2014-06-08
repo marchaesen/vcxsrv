@@ -81,7 +81,7 @@ Status XGetStandardColormap (
 	    int i;
 
 	    if (!sp) {
-		if (stdcmaps) Xfree (stdcmaps);
+		Xfree (stdcmaps);
 		return False;
 	    }
 	    vid = sp->root_visual->visualid;

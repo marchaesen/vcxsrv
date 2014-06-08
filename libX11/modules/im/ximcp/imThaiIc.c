@@ -65,18 +65,20 @@ _XimThaiDestroyIC(
     if(((Xim)ic->core.im)->private.local.current_ic == (XIC)ic) {
 	_XimThaiUnSetFocus(xic);
     }
-    if(ic->private.local.ic_resources) {
-	Xfree(ic->private.local.ic_resources);
-	ic->private.local.ic_resources = NULL;
-    }
 
-    if (b->tree)  Xfree (b->tree);
-    if (b->mb)    Xfree (b->mb);
-    if (b->wc)    Xfree (b->wc);
-    if (b->utf8)  Xfree (b->utf8);
+    Xfree(ic->private.local.ic_resources);
+    ic->private.local.ic_resources = NULL;
+
+    Xfree (b->tree);
     b->tree = NULL;
+
+    Xfree (b->mb);
     b->mb   = NULL;
+
+    Xfree (b->wc);
     b->wc   = NULL;
+
+    Xfree (b->utf8);
     b->utf8 = NULL;
     return;
 }

@@ -50,7 +50,7 @@ XGetModifierMapping(register Display *dpy)
     } else
 	res = NULL;
     if ((! res) || (! res->modifiermap)) {
-	if (res) Xfree(res);
+	Xfree(res);
 	res = (XModifierKeymap *) NULL;
 	_XEatDataWords(dpy, rep.length);
     } else {
@@ -114,8 +114,7 @@ int
 XFreeModifiermap(XModifierKeymap *map)
 {
     if (map) {
-	if (map->modifiermap)
-	    Xfree(map->modifiermap);
+        Xfree(map->modifiermap);
 	Xfree(map);
     }
     return 1;

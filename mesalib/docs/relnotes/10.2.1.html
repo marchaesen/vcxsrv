@@ -14,15 +14,13 @@
 <iframe src="../contents.html"></iframe>
 <div class="content">
 
-<h1>Mesa 10.3 Release Notes / TBD</h1>
+<h1>Mesa 10.2.1 Release Notes / June 6, 2014</h1>
 
 <p>
-Mesa 10.3 is a new development release.
-People who are concerned with stability and reliability should stick
-with a previous release or wait for Mesa 10.3.1.
+Mesa 10.2.1 is a bug fix release which fixes bugs found since the 10.1 release.
 </p>
 <p>
-Mesa 10.3 implements the OpenGL 3.3 API, but the version reported by
+Mesa 10.2.1 implements the OpenGL 3.3 API, but the version reported by
 glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
 glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
 Some drivers don't support all the features required in OpenGL 3.3.  OpenGL
@@ -33,30 +31,29 @@ because compatibility contexts are not supported.
 
 <h2>MD5 checksums</h2>
 <pre>
-TBD.
+96f892dae2d0bb14ac9c2113f586c909  MesaLib-10.2.1.tar.gz
+093f9b5d077e5f6061dcd7b01b7aa51a  MesaLib-10.2.1.tar.bz2
+6ab76c1608e5deed1eb8b54c62d7a48a  MesaLib-10.2.1.zip
 </pre>
 
 
 <h2>New features</h2>
-
-<p>
-Note: some of the new features are only available with certain drivers.
-</p>
-
-<ul>
-<li>GL_ARB_sample_shading on radeonsi</li>
-<li>GL_ARB_stencil_texturing on nv50, nvc0, r600, and radeonsi</li>
-<li>GL_ARB_texture_cube_map_array on radeonsi</li>
-</ul>
-
+<p>None</p>
 
 <h2>Bug fixes</h2>
 
-TBD.
+<p>
+Mesa 10.2 had a build problem in the radeonsi driver due to an error resolving
+conflicts in a patch cherry-pick from master.  The build error is fixed.
+</p>
 
 <h2>Changes</h2>
 
+<p>Ian Romanick (3):</p>
 <ul>
+  <li>docs: Add MD5 checksum, etc. for 10.1 release</li>
+  <li>radeonsi: Fix build error introduced in 5ab9a9c</li>
+  <li>Bump version to 10.2.1</li>
 </ul>
 
 </div>

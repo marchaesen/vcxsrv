@@ -57,8 +57,8 @@ char **XGetFontPath(
 	    }
 
 	    if ((! flist) || (! ch)) {
-		if (flist) Xfree(flist);
-		if (ch) Xfree(ch);
+		Xfree(flist);
+		Xfree(ch);
 		_XEatDataWords(dpy, rep.length);
 		UnlockDisplay(dpy);
 		SyncHandle();

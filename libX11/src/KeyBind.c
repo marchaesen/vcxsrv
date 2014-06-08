@@ -271,12 +271,13 @@ _XKeyInitialize(
 	if (! keysyms) return 0;
 
 	LockDisplay(dpy);
-	if (dpy->keysyms)
-	    Xfree (dpy->keysyms);
+
+	Xfree (dpy->keysyms);
 	dpy->keysyms = keysyms;
 	dpy->keysyms_per_keycode = per;
 	if (dpy->modifiermap)
 	    ResetModMap(dpy);
+
 	UnlockDisplay(dpy);
     }
     if (!dpy->modifiermap)
@@ -929,8 +930,8 @@ XRebindKeysym (
 	((! (p->string = Xmalloc(nbytes))) && (nbytes > 0)) ||
 	((! (p->modifiers = Xmalloc(nb))) && (nb > 0))) {
 	if (p) {
-	    if (p->string) Xfree(p->string);
-	    if (p->modifiers) Xfree(p->modifiers);
+	    Xfree(p->string);
+	    Xfree(p->modifiers);
 	    Xfree(p);
 	}
 	UnlockDisplay(dpy);

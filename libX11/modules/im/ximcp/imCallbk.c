@@ -553,10 +553,8 @@ static void
 _free_memory_for_text(XIMText* text)
 {
     if (text) {
-	if (text->string.multi_byte)
-	    Xfree(text->string.multi_byte);
-	if (text->feedback)
-	    Xfree(text->feedback);
+        Xfree(text->string.multi_byte);
+        Xfree(text->feedback);
 	Xfree(text);
     }
 }

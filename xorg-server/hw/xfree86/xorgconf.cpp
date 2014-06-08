@@ -97,7 +97,7 @@ Section "ServerFlags"
 # Uncomment this to disable the <Ctrl><Alt><BS> server abort sequence
 # This allows clients to receive this key event.
 
-#    Option	"DontZap"	"false"
+#    Option	"DontZap"	"true"
 
 # Uncomment this to disable the <Ctrl><Alt><KP_+>/<KP_-> mode switching
 # sequences.  This allows clients to receive these key events.

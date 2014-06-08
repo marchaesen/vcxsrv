@@ -434,8 +434,8 @@ Status XInitImage (XImage *image)
 
 static int _XDestroyImage (XImage *ximage)
 {
-	if (ximage->data != NULL) Xfree(ximage->data);
-	if (ximage->obdata != NULL) Xfree(ximage->obdata);
+	Xfree(ximage->data);
+	Xfree(ximage->obdata);
 	Xfree(ximage);
 	return 1;
 }

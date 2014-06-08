@@ -281,7 +281,7 @@ static size_t strlcat (char *dst, const char *src, size_t dstsize)
 /*
  * Report the syntax for calling xwininfo:
  */
-_X_NORETURN
+_X_NORETURN _X_COLD
 static void
 usage (void)
 {
@@ -289,6 +289,7 @@ usage (void)
 	     "usage:  %s [-options ...]\n\n"
 	     "where options include:\n"
 	     "    -help                print this message\n"
+	     "    -version             print version message\n"
 	     "    -display host:dpy    X server to contact\n"
 	     "    -root                use the root window\n"
 	     "    -id windowid         use the window with the specified id\n"
@@ -546,7 +547,12 @@ main (int argc, char **argv)
 	if (!strcmp(argv[i], "-pause")) {
 	    pauseatend = 1;
 	    continue;
+	if (!strcmp(argv[i], "-version")) {
+	    puts(PACKAGE_STRING);
+	    exit(0);
 	}
+	fprintf (stderr, "%s: unrecognized argument %s\n\n",
+		 program_name, argv[i]);
 	usage ();
     }
 

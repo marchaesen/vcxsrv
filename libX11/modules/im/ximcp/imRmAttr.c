@@ -972,8 +972,7 @@ _XimEncodePreeditValue(
 	if (!p->value)
 	    return False;
 
-	if (ic->private.proto.preedit_font)
-	    Xfree(ic->private.proto.preedit_font);
+	Xfree(ic->private.proto.preedit_font);
 
 	list_ret = XFontsOfFontSet((XFontSet)p->value,
 						 &struct_list, &name_list);
@@ -1024,8 +1023,7 @@ _XimEncodeStatusValue(
 	if (!p->value)
 	    return False;
 
-	if (ic->private.proto.status_font)
-	    Xfree(ic->private.proto.status_font);
+	Xfree(ic->private.proto.status_font);
 
 	list_ret = XFontsOfFontSet((XFontSet)p->value,
 						 &struct_list, &name_list);
@@ -1243,8 +1241,7 @@ _XimEncodeSavedStatusValue(
 	if (!value)
 	    return False;
 
-	if (ic->private.proto.status_font)
-	    Xfree(ic->private.proto.status_font);
+	Xfree(ic->private.proto.status_font);
 
 	list_ret = XFontsOfFontSet((XFontSet)value,
 						&struct_list, &name_list);
@@ -1460,10 +1457,9 @@ _XimGetAttributeID(
     }
     _XIMCompileResourceList(res, n);
 
-    if (im->core.im_resources)
-	Xfree(im->core.im_resources);
-    if (im->core.im_values_list)
-	Xfree(im->core.im_values_list);
+    Xfree(im->core.im_resources);
+    Xfree(im->core.im_values_list);
+
     im->core.im_resources     = res;
     im->core.im_num_resources = n;
     im->core.im_values_list   = values_list;
@@ -1506,10 +1502,10 @@ _XimGetAttributeID(
     }
     _XIMCompileResourceList(res, n);
 
-    if (im->core.ic_resources)
-	Xfree(im->core.ic_resources);
-    if (im->core.ic_values_list)
-	Xfree(im->core.ic_values_list);
+
+    Xfree(im->core.ic_resources);
+    Xfree(im->core.ic_values_list);
+
     im->core.ic_resources     = res;
     im->core.ic_num_resources = n;
     im->core.ic_values_list   = values_list;

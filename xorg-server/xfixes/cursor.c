@@ -1057,6 +1057,8 @@ XFixesCursorInit(void)
 
     if (party_like_its_1989)
         CursorVisible = EnableCursor;
+    else
+        CursorVisible = FALSE;
 
     if (!dixRegisterPrivateKey(&CursorScreenPrivateKeyRec, PRIVATE_SCREEN, 0))
         return FALSE;

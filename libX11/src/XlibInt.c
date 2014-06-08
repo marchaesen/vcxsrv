@@ -418,8 +418,7 @@ _XUnregisterInternalConnection(
 		 watch=watch->next, wd++) {
 		(*watch->fn) (dpy, watch->client_data, fd, False, wd);
 	    }
-	    if (info_list->watch_data)
-		Xfree (info_list->watch_data);
+	    Xfree (info_list->watch_data);
 	    Xfree (info_list);
 	    break;
 	}
@@ -1502,8 +1501,9 @@ char *_XAllocScratch(
 	unsigned long nbytes)
 {
 	if (nbytes > dpy->scratch_length) {
-	    if (dpy->scratch_buffer) Xfree (dpy->scratch_buffer);
-	    if ((dpy->scratch_buffer = Xmalloc(nbytes)))
+	    Xfree (dpy->scratch_buffer);
+	    dpy->scratch_buffer = Xmalloc(nbytes);
+	    if (dpy->scratch_buffer)
 		dpy->scratch_length = nbytes;
 	    else dpy->scratch_length = 0;
 	}
@@ -1531,8 +1531,8 @@ void _XFreeTemp(
     char *buf,
     unsigned long nbytes)
 {
-    if (dpy->scratch_buffer)
-	Xfree(dpy->scratch_buffer);
+
+    Xfree(dpy->scratch_buffer);
     dpy->scratch_buffer = buf;
     dpy->scratch_length = nbytes;
 }

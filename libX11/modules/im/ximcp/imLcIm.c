@@ -131,13 +131,14 @@ XimFreeDefaultTree(
     }
 #endif
     Xfree (b->tree);
-    if (b->mb)    Xfree (b->mb);
-    if (b->wc)    Xfree (b->wc);
-    if (b->utf8)  Xfree (b->utf8);
     b->tree = NULL;
+    Xfree (b->mb);
     b->mb   = NULL;
+    Xfree (b->wc);
     b->wc   = NULL;
+    Xfree (b->utf8);
     b->utf8 = NULL;
+
     b->treeused = b->treesize = 0;
     b->mbused   = b->mbsize   = 0;
     b->wcused   = b->wcsize   = 0;
@@ -151,38 +152,30 @@ _XimLocalIMFree(
     XimFreeDefaultTree(&im->private.local.base);
     im->private.local.top = 0;
 
-    if(im->core.im_resources) {
-	Xfree(im->core.im_resources);
-	im->core.im_resources = NULL;
-    }
-    if(im->core.ic_resources) {
-	Xfree(im->core.ic_resources);
-	im->core.ic_resources = NULL;
-    }
-    if(im->core.im_values_list) {
-	Xfree(im->core.im_values_list);
-	im->core.im_values_list = NULL;
-    }
-    if(im->core.ic_values_list) {
-	Xfree(im->core.ic_values_list);
-	im->core.ic_values_list = NULL;
-    }
-    if(im->core.styles) {
-	Xfree(im->core.styles);
-	im->core.styles = NULL;
-    }
-    if(im->core.res_name) {
-	Xfree(im->core.res_name);
-	im->core.res_name = NULL;
-    }
-    if(im->core.res_class) {
-	Xfree(im->core.res_class);
-	im->core.res_class = NULL;
-    }
-    if(im->core.im_name) {
-	Xfree(im->core.im_name);
-	im->core.im_name = NULL;
-    }
+    Xfree(im->core.im_resources);
+    im->core.im_resources = NULL;
+
+    Xfree(im->core.ic_resources);
+    im->core.ic_resources = NULL;
+
+    Xfree(im->core.im_values_list);
+    im->core.im_values_list = NULL;
+
+    Xfree(im->core.ic_values_list);
+    im->core.ic_values_list = NULL;
+
+    Xfree(im->core.styles);
+    im->core.styles = NULL;
+
+    Xfree(im->core.res_name);
+    im->core.res_name = NULL;
+
+    Xfree(im->core.res_class);
+    im->core.res_class = NULL;
+
+    Xfree(im->core.im_name);
+    im->core.im_name = NULL;
+
     if (im->private.local.ctom_conv) {
 	_XlcCloseConverter(im->private.local.ctom_conv);
         im->private.local.ctom_conv = NULL;
@@ -576,19 +569,15 @@ _XimCreateDefaultTree(
 				      encoding, 0, 1, &cachename, &size);
 	if (cachefd != -1) {
 	    if (_XimLoadCache (cachefd, intname, encoding, size, im)) {
-		if (tmpcachedir)
-		    Xfree  (tmpcachedir);
-		if (tmpname)
-		    Xfree (tmpname);
-		if (cachename)
-		    Xfree (cachename);
+	        Xfree (tmpcachedir);
+		Xfree (tmpname);
+		Xfree (cachename);
 		close (cachefd);
 		return;
 	    }
 	    close (cachefd);
 	}
-	if (cachename)
-	    Xfree (cachename);
+	Xfree (cachename);
 	cachename = NULL;
     }
 
@@ -603,12 +592,9 @@ _XimCreateDefaultTree(
 				      euid, 0, &cachename, &size);
 	if (cachefd != -1) {
 	    if (_XimLoadCache (cachefd, intname, encoding, size, im)) {
-		if (tmpcachedir)
-		    Xfree  (tmpcachedir);
-		if (tmpname)
-		    Xfree (tmpname);
-		if (cachename)
-		    Xfree (cachename);
+	        Xfree (tmpcachedir);
+		Xfree (tmpname);
+		Xfree (cachename);
 		close (cachefd);
 		return;
 	    }
@@ -618,12 +604,9 @@ _XimCreateDefaultTree(
 #endif
 
     if (! (fp = _XFopenFile (name, "r"))) {
-	if (tmpcachedir)
-	    Xfree  (tmpcachedir);
-	if (tmpname)
-	    Xfree (tmpname);
-	if (cachename)
-	    Xfree (cachename);
+	Xfree (tmpcachedir);
+	Xfree (tmpname);
+	Xfree (cachename);
         return;
     }
     _XimParseStringFile(fp, im);
@@ -636,12 +619,9 @@ _XimCreateDefaultTree(
     }
 #endif
 
-    if (tmpcachedir)
-	Xfree  (tmpcachedir);
-    if (tmpname)
-	Xfree (tmpname);
-    if (cachename)
-	Xfree (cachename);
+    Xfree (tmpcachedir);
+    Xfree (tmpname);
+    Xfree (cachename);
 }
 
 static XIMMethodsRec      Xim_im_local_methods = {

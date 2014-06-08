@@ -223,9 +223,8 @@ turns on auto-repeat.
 .B -retro
 starts the stipple with the classic stipple and cursor visible.  The default
 is to start with a black root window, and to suppress display of the cursor
-until the first time an application calls XDefineCursor().  For the Xorg
-server, this also sets the default for the DontZap option to FALSE.  For
-kdrive servers, this implies -zap.
+until the first time an application calls XDefineCursor(). For kdrive
+servers, this implies -zap.
 .TP 8
 .B \-s \fIminutes\fP
 sets screen-saver timeout time in minutes.

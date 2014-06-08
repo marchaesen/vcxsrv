@@ -32,7 +32,7 @@ xwininfo \- window information utility for X
 [\-children] [\-tree] [\-stats] [\-bits] [\-events] [\-size] [\-wm] [\-shape]
 [\-frame] [\-all]
 [\-english] [\-metric]
-[\-display \fIdisplay\fP]
+[\-display \fIdisplay\fP] [\-version]
 .SH DESCRIPTION
 .PP
 .I Xwininfo
@@ -154,6 +154,12 @@ This option is a quick way to ask for all information possible.
 .TP 8
 .B \-display \fIdisplay\fP
 This option allows you to specify the server to connect to; see \fIX(__miscmansuffix__)\fP.
+PP
+.TP 8
+.B \-version
+This option indicates that
+.I xwininfo
+should print its version information and exit.
 .SH EXAMPLE
 .PP
 The following is a sample summary taken with no options specified:

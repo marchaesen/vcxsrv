@@ -54,6 +54,11 @@
 #include "damage.h"
 #endif
 
+#if MAC_OS_X_VERSION_MIN_REQUIRED < 1090
+// From NSApplication.h
+extern const double NSAppKitVersionNumber;
+#endif
+
 /* 10.4's deferred update makes X slower.. have to live with the tearing
  * for now.. */
 #define XP_NO_DEFERRED_UPDATES 8
@@ -164,9 +169,14 @@ displayScreenBounds(CGDirectDisplayID id)
               (int)frame.size.width, (int)frame.size.height,
               (int)frame.origin.x, (int)frame.origin.y);
 
-    /* Remove menubar to help standard X11 window managers. */
-    if (XQuartzIsRootless &&
-        frame.origin.x == 0 && frame.origin.y == 0) {
+    /* Remove menubar to help standard X11 window managers.
+     * On Mavericks and later, the menu bar is on all displays.
+     */
+    if (XQuartzIsRootless
+#if MAC_OS_X_VERSION_MIN_REQUIRED < 1090
+        && (NSAppKitVersionNumber >= 1265 || (frame.origin.x == 0 && frame.origin.y == 0))
+#endif
+        ) {
         frame.origin.y += aquaMenuBarHeight;
         frame.size.height -= aquaMenuBarHeight;
     }

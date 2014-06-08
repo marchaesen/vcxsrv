@@ -1775,10 +1775,8 @@ _XimEncodingNegotiation(
 						detail_ptr, detail_len)))
 	goto free_preply;
 
-    if (name_ptr)
-	Xfree(name_ptr);
-    if (detail_ptr)
-	Xfree(detail_ptr);
+    Xfree(name_ptr);
+    Xfree(detail_ptr);
 
     if(reply != preply)
 	Xfree(preply);
