@@ -621,7 +621,6 @@ SPropRecValList_add_by_font_cap(SDynPropRecValList *pThisList,
                     int len = term-p-1;
                     char *value;
 
-                    len = term-p-1;
                     value=malloc(len+1);
                     memcpy(value, p+1, len);
                     value[len]='\0';

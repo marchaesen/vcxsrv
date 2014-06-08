@@ -1865,7 +1865,7 @@ FreeTypeAddProperties(FTFontPtr font, FontScalablePtr vals, FontInfoPtr info,
     i++;
 
     info->props[i].name  = MakeAtom("RASTERIZER_NAME", 15, TRUE);
-    info->props[i].value = MakeAtom("FreeType", 10, TRUE);
+    info->props[i].value = MakeAtom("FreeType", 8, TRUE);
     info->isStringProp[i] = 1;
     i++;
 

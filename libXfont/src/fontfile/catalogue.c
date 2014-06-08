@@ -287,7 +287,6 @@ CatalogueOpenFont (pointer client, FontPathElementPtr fpe, Mask flags,
 {
     CataloguePtr cat = fpe->private;
     FontPathElementPtr subfpe;
-    FontDirectoryPtr dir;
     int i, status;
 
     CatalogueRescan (fpe, FALSE);
@@ -295,7 +294,6 @@ CatalogueOpenFont (pointer client, FontPathElementPtr fpe, Mask flags,
     for (i = 0; i < cat->fpeCount; i++)
     {
 	subfpe = cat->fpeList[i];
-	dir = subfpe->private;
 	status = FontFileOpenFont(client, subfpe, flags,
 				  name, namelen, format, fmask, id,
 				  pFont, aliasName, non_cachable_font);
@@ -321,7 +319,6 @@ CatalogueListFonts (pointer client, FontPathElementPtr fpe, char *pat,
 {
     CataloguePtr cat = fpe->private;
     FontPathElementPtr subfpe;
-    FontDirectoryPtr dir;
     int i;
 
     CatalogueRescan (fpe, FALSE);
@@ -329,17 +326,11 @@ CatalogueListFonts (pointer client, FontPathElementPtr fpe, char *pat,
     for (i = 0; i < cat->fpeCount; i++)
     {
 	subfpe = cat->fpeList[i];
-	dir = subfpe->private;
 	FontFileListFonts(client, subfpe, pat, len, max, names);
     }
 
     return Successful;
 }
-
-int
-FontFileStartListFonts(pointer client, FontPathElementPtr fpe,
-		       char *pat, int len, int max,
-		       pointer *privatep, int mark_aliases);
 
 typedef struct _LFWIData {
     pointer		*privates;

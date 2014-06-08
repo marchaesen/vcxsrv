@@ -26,8 +26,9 @@
 #ifndef	_FSIO_H_
 #define	_FSIO_H_
 
-#undef DEBUG
+#ifdef DEBUG
 #define	REQUEST_LOG_SIZE	100
+#endif
 
 typedef struct _fs_fpe_alternate {
     char       *name;
