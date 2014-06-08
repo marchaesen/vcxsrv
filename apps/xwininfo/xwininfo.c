@@ -547,6 +547,7 @@ main (int argc, char **argv)
 	if (!strcmp(argv[i], "-pause")) {
 	    pauseatend = 1;
 	    continue;
+	}
 	if (!strcmp(argv[i], "-version")) {
 	    puts(PACKAGE_STRING);
 	    exit(0);

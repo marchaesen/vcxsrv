@@ -46,7 +46,7 @@
 #undef PACKAGE_NAME
 
 /* Define to the full name and version of this package. */
-#undef PACKAGE_STRING
+#define PACKAGE_STRING "xwininfo"
 
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
@@ -107,3 +107,5 @@
 
 /* Define to 1 if you need to in order for `stat' and other things to work. */
 #undef _POSIX_SOURCE
+
+#define _X_COLD
