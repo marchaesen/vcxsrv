@@ -234,7 +234,7 @@
 #define XI_RawMotionMask                 (1 << XI_RawMotion)
 #define XI_TouchBeginMask                (1 << XI_TouchBegin)
 #define XI_TouchEndMask                  (1 << XI_TouchEnd)
-#define XI_TouchOwnershipChangedMask     (1 << XI_TouchOwnershipChanged)
+#define XI_TouchOwnershipChangedMask     (1 << XI_TouchOwnership)
 #define XI_TouchUpdateMask               (1 << XI_TouchUpdate)
 #define XI_RawTouchBeginMask             (1 << XI_RawTouchBegin)
 #define XI_RawTouchEndMask               (1 << XI_RawTouchEnd)

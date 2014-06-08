@@ -1,3 +1,67 @@
+commit 03cbbf6c3e811c026c86e3a60d2f9af56606e155
+Author: Julien Cristau <jcristau@debian.org>
+Date:   Mon Apr 14 15:36:00 2014 +0200
+
+    xproto 7.0.26
+    
+    Signed-off-by: Julien Cristau <jcristau@debian.org>
+
+commit d522ff998b77f0c8c39c4d3945f78d2221fe1209
+Author: Jon TURNEY <jon.turney@dronecode.org.uk>
+Date:   Tue Dec 17 14:26:07 2013 +0000
+
+    Xpoll.h.in: Fix WIN32 check to trigger on MinGW only
+    
+    MinGW-w64 w32api-headers 3.0.0 define WIN32 in some places they didn't before,
+    which causes this check to turn on for Cygwin, which is not wanted.
+    
+    Signed-off-by: Jon TURNEY <jon.turney@dronecode.org.uk>
+    Reviewed-by: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+
+commit aee7e4de57349db186ca9d8c1312dc18590d3942
+Author: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+Date:   Wed Apr 3 13:55:16 2013 +0100
+
+    Xwindows.h: Wrap Windows 64-bit types as well for 64-bit build
+    
+    Signed-off-by: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+    Reviewed-by: Jon TURNEY <jon.turney@dronecode.org.uk>
+
+commit e5e2ed5b115107d1b1d5248ac5c5dda67e71ea50
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Dec 28 11:11:00 2013 -0800
+
+    Add more comments on connection setup to Xproto.h
+    
+    Some of the bits I forget and have to dig out of the protocol spec
+    every few years when I need to know again.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 148d89f0b3a652acc54b1a21807ffd6d0e81e279
+Author: Keith Packard <keithp@keithp.com>
+Date:   Sun Dec 15 08:27:09 2013 -0800
+
+    Replace 'pointer' with explicit 'void *'
+    
+    To get rid of the 'pointer' typedef, stop using it locally. That way,
+    when _XTYPEDEF_POINTER is defined before Xdefs.h is included, it won't
+    get defined and Xdefs.h will still compile.
+    
+    Signed-off-by: Keith Packard <keithp@keithp.com>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 3911ad9e8e8911c4b4a5d624e73b51667d0e3963
+Author: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+Date:   Thu Nov 21 20:20:22 2013 -0600
+
+    Xthreads.h: Declare _Xthread_init for WIN32
+    
+    This fixes the build of libXt on *-*-mingw* with -Werror=implicit.
+    
+    Signed-off-by: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
 commit a7fa86998c873ce7463d169b4bd423898ca2bae1
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Fri Nov 22 22:14:24 2013 -0800

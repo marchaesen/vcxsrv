@@ -44,10 +44,10 @@ font-util-1.3.0
 font-winitzki-cyrillic-1.0.3
 font-xfree86-type1-1.0.4
 fontconfig git version
-fontsproto-2.1.2
+fontsproto-2.1.3
 freetype-2.5.0.1
 glproto git version
-inputproto-2.3
+inputproto-2.3.1
 kbproto-1.0.6
 libX11 git version
 libXau git version
@@ -90,7 +90,7 @@ xineramaproto-1.2.1
 xkbcomp git version
 xkeyboard-config git version
 xrdb git version
-xproto-7.0.25
+xproto-7.0.26
 xserver git version
 xtrans git version
 xwininfo git version

@@ -74,7 +74,7 @@ extern FontPtr  CreateFontRec (void);
 extern void  DestroyFontRec (FontPtr font);
 extern Bool     _FontSetNewPrivate (FontPtr        /* pFont */,
 				    int            /* n */,
-				    pointer        /* ptr */);
+				    void *         /* ptr */);
 extern int      AllocateFontPrivateIndex (void);
 extern void ResetFontPrivateIndex (void);
 

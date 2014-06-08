@@ -85,12 +85,14 @@ typedef struct  _XExtEventInfo
     BYTE	word;
     } XExtEventInfo;
 
-typedef unsigned char *Pointer;
+#ifndef _XITYPEDEF_POINTER
+typedef void *Pointer;
+#endif
 
 struct tmask
     {
     Mask	mask;
-    Pointer     dev;
+    void        *dev;
     };
 
 /*********************************************************

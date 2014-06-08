@@ -259,10 +259,13 @@ restoring the definitions in X.h.  */
 typedef CARD16 KeyButMask;
 
 /***************** 
-   connection setup structure.  This is followed by
-   numRoots xWindowRoot structs.
+   Connection setup structures.  See Chapter 8: Connection Setup
+   of the X Window System Protocol specification for details.
 *****************/
 
+/* Client initiates handshake with this data, followed by the strings
+ * for the auth protocol & data.
+ */
 typedef struct {
     CARD8	byteOrder;
     BYTE	pad;
@@ -272,6 +275,16 @@ typedef struct {
     CARD16	pad2 B16;
 } xConnClientPrefix;
 
+/* Server response to xConnClientPrefix.
+ *
+ * If success == Success, this is followed by xConnSetup and
+ * numRoots xWindowRoot structs.
+ *
+ * If success == Failure, this is followed by a reason string.
+ *
+ * The protocol also defines a case of success == Authenticate, but
+ * that doesn't seem to have ever been implemented by the X Consortium.
+ */
 typedef struct {
     CARD8          success;
     BYTE           lengthReason; /*num bytes in string following if failure */
