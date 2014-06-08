@@ -54,7 +54,7 @@ void Setup_Display_And_Screen (const char *displayname,
 xcb_window_t Select_Window (xcb_connection_t *, const xcb_screen_t *, int);
 xcb_window_t Window_With_Name (xcb_connection_t *, xcb_window_t, const char *);
 
-void Fatal_Error (const char *, ...) _X_NORETURN _X_ATTRIBUTE_PRINTF(1, 2);
+void Fatal_Error (const char *, ...) _X_NORETURN _X_ATTRIBUTE_PRINTF(1, 2) _X_COLD;
 
 void Print_X_Error (xcb_connection_t *, xcb_generic_error_t *);
 

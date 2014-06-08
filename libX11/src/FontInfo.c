@@ -179,8 +179,8 @@ XFontStruct **info)	/* RETURN */
         Xfree(flist[j]);
         if (finfo[j].properties) Xfree(finfo[j].properties);
     }
-    if (flist) Xfree(flist);
-    if (finfo) Xfree(finfo);
+    Xfree(flist);
+    Xfree(finfo);
 
   clearwire:
     /* Clear the wire. */

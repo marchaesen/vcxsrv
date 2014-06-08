@@ -946,8 +946,9 @@ CloseDevice(DeviceIntPtr dev)
     if (dev->inited)
         (void) (*dev->deviceProc) (dev, DEVICE_CLOSE);
 
-    /* free sprite memory */
-    if (IsMaster(dev) && dev->spriteInfo->sprite)
+    FreeSprite(dev);
+
+    if (IsMaster(dev))
         screen->DeviceCursorCleanup(dev, screen);
 
     /* free acceleration info */
@@ -967,8 +968,6 @@ CloseDevice(DeviceIntPtr dev)
         FreeAllDeviceClasses(classes);
         free(classes);
     }
-
-    FreeSprite(dev);
 
     /* a client may have the device set as client pointer */
     for (j = 0; j < currentMaxClients; j++) {

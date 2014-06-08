@@ -1015,7 +1015,7 @@ ucstocs1(
     XPointer *args,
     int num_args)
 {
-    ucs4_t const *src = (ucs4_t const *) *from;
+    ucs4_t const *src;
     unsigned char *dst = (unsigned char *) *to;
     int unconv_num = 0;
     Utf8Conv *preferred_charsets = (Utf8Conv *) conv->state;
@@ -1026,6 +1026,8 @@ ucstocs1(
 
     if (from == NULL || *from == NULL)
 	return 0;
+
+    src = (ucs4_t const *) *from;
 
     count = charset_wctocs_exactly(preferred_charsets, &chosen_charset,
                                    &chosen_side, conv, dst, *src, *to_left);

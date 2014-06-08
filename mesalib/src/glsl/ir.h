@@ -59,31 +59,27 @@
  * types, this allows writing very straightforward, readable code.
  */
 enum ir_node_type {
-   /**
-    * Zero is unused so that the IR validator can detect cases where
-    * \c ir_instruction::ir_type has not been initialized.
-    */
-   ir_type_unset,
-   ir_type_variable,
-   ir_type_assignment,
-   ir_type_call,
-   ir_type_constant,
    ir_type_dereference_array,
    ir_type_dereference_record,
    ir_type_dereference_variable,
-   ir_type_discard,
+   ir_type_constant,
    ir_type_expression,
+   ir_type_swizzle,
+   ir_type_texture,
+   ir_type_variable,
+   ir_type_assignment,
+   ir_type_call,
    ir_type_function,
    ir_type_function_signature,
    ir_type_if,
    ir_type_loop,
    ir_type_loop_jump,
    ir_type_return,
-   ir_type_swizzle,
-   ir_type_texture,
+   ir_type_discard,
    ir_type_emit_vertex,
    ir_type_end_primitive,
-   ir_type_max /**< maximum ir_type enum number, for validation */
+   ir_type_max, /**< maximum ir_type enum number, for validation */
+   ir_type_unset = ir_type_max
 };
 
 
@@ -121,24 +117,58 @@ public:
     * Additional downcast functions will be added as needed.
     */
    /*@{*/
-   virtual class ir_variable *          as_variable()         { return NULL; }
-   virtual class ir_function *          as_function()         { return NULL; }
-   virtual class ir_dereference *       as_dereference()      { return NULL; }
-   virtual class ir_dereference_array *	as_dereference_array() { return NULL; }
-   virtual class ir_dereference_variable *as_dereference_variable() { return NULL; }
-   virtual class ir_dereference_record *as_dereference_record() { return NULL; }
-   virtual class ir_expression *        as_expression()       { return NULL; }
-   virtual class ir_rvalue *            as_rvalue()           { return NULL; }
-   virtual class ir_loop *              as_loop()             { return NULL; }
-   virtual class ir_assignment *        as_assignment()       { return NULL; }
-   virtual class ir_call *              as_call()             { return NULL; }
-   virtual class ir_return *            as_return()           { return NULL; }
-   virtual class ir_if *                as_if()               { return NULL; }
-   virtual class ir_swizzle *           as_swizzle()          { return NULL; }
-   virtual class ir_texture *           as_texture()          { return NULL; }
-   virtual class ir_constant *          as_constant()         { return NULL; }
-   virtual class ir_discard *           as_discard()          { return NULL; }
-   virtual class ir_jump *              as_jump()             { return NULL; }
+   class ir_rvalue *as_rvalue()
+   {
+      if (ir_type == ir_type_dereference_array ||
+          ir_type == ir_type_dereference_record ||
+          ir_type == ir_type_dereference_variable ||
+          ir_type == ir_type_constant ||
+          ir_type == ir_type_expression ||
+          ir_type == ir_type_swizzle ||
+          ir_type == ir_type_texture)
+         return (class ir_rvalue *) this;
+      return NULL;
+   }
+
+   class ir_dereference *as_dereference()
+   {
+      if (ir_type == ir_type_dereference_array ||
+          ir_type == ir_type_dereference_record ||
+          ir_type == ir_type_dereference_variable)
+         return (class ir_dereference *) this;
+      return NULL;
+   }
+
+   class ir_jump *as_jump()
+   {
+      if (ir_type == ir_type_loop_jump ||
+          ir_type == ir_type_return ||
+          ir_type == ir_type_discard)
+         return (class ir_jump *) this;
+      return NULL;
+   }
+
+   #define AS_CHILD(TYPE) \
+   class ir_##TYPE * as_##TYPE() \
+   { \
+      return ir_type == ir_type_##TYPE ? (ir_##TYPE *) this : NULL; \
+   }
+   AS_CHILD(variable)
+   AS_CHILD(function)
+   AS_CHILD(dereference_array)
+   AS_CHILD(dereference_variable)
+   AS_CHILD(dereference_record)
+   AS_CHILD(expression)
+   AS_CHILD(loop)
+   AS_CHILD(assignment)
+   AS_CHILD(call)
+   AS_CHILD(return)
+   AS_CHILD(if)
+   AS_CHILD(swizzle)
+   AS_CHILD(texture)
+   AS_CHILD(constant)
+   AS_CHILD(discard)
+   #undef AS_CHILD
    /*@}*/
 
    /**
@@ -152,9 +182,15 @@ public:
    virtual bool equals(ir_instruction *ir, enum ir_node_type ignore = ir_type_unset);
 
 protected:
+   ir_instruction(enum ir_node_type t)
+      : ir_type(t)
+   {
+   }
+
+private:
    ir_instruction()
    {
-      ir_type = ir_type_unset;
+      assert(!"Should not get here.");
    }
 };
 
@@ -176,11 +212,6 @@ public:
    virtual ir_visitor_status accept(ir_hierarchical_visitor *);
 
    virtual ir_constant *constant_expression_value(struct hash_table *variable_context = NULL);
-
-   virtual ir_rvalue * as_rvalue()
-   {
-      return this;
-   }
 
    ir_rvalue *as_rvalue_to_saturate();
 
@@ -281,7 +312,7 @@ public:
    static ir_rvalue *error_value(void *mem_ctx);
 
 protected:
-   ir_rvalue();
+   ir_rvalue(enum ir_node_type t);
 };
 
 
@@ -381,11 +412,6 @@ public:
    ir_variable(const struct glsl_type *, const char *, ir_variable_mode);
 
    virtual ir_variable *clone(void *mem_ctx, struct hash_table *ht) const;
-
-   virtual ir_variable *as_variable()
-   {
-      return this;
-   }
 
    virtual void accept(ir_visitor *v)
    {
@@ -535,6 +561,7 @@ public:
       unsigned centroid:1;
       unsigned sample:1;
       unsigned invariant:1;
+      unsigned precise:1;
 
       /**
        * Has this variable been used for reading or writing?
@@ -917,11 +944,6 @@ public:
 
    virtual ir_function *clone(void *mem_ctx, struct hash_table *ht) const;
 
-   virtual ir_function *as_function()
-   {
-      return this;
-   }
-
    virtual void accept(ir_visitor *v)
    {
       v->visit(this);
@@ -984,17 +1006,11 @@ inline const char *ir_function_signature::function_name() const
 class ir_if : public ir_instruction {
 public:
    ir_if(ir_rvalue *condition)
-      : condition(condition)
+      : ir_instruction(ir_type_if), condition(condition)
    {
-      ir_type = ir_type_if;
    }
 
    virtual ir_if *clone(void *mem_ctx, struct hash_table *ht) const;
-
-   virtual ir_if *as_if()
-   {
-      return this;
-   }
 
    virtual void accept(ir_visitor *v)
    {
@@ -1027,11 +1043,6 @@ public:
 
    virtual ir_visitor_status accept(ir_hierarchical_visitor *);
 
-   virtual ir_loop *as_loop()
-   {
-      return this;
-   }
-
    /** List of ir_instruction that make up the body of the loop. */
    exec_list body_instructions;
 };
@@ -1061,11 +1072,6 @@ public:
    }
 
    virtual ir_visitor_status accept(ir_hierarchical_visitor *);
-
-   virtual ir_assignment * as_assignment()
-   {
-      return this;
-   }
 
    /**
     * Get a whole variable written by an assignment
@@ -1430,11 +1436,6 @@ public:
     */
    ir_expression(int op, ir_rvalue *op0, ir_rvalue *op1, ir_rvalue *op2);
 
-   virtual ir_expression *as_expression()
-   {
-      return this;
-   }
-
    virtual bool equals(ir_instruction *ir, enum ir_node_type ignore = ir_type_unset);
 
    virtual ir_expression *clone(void *mem_ctx, struct hash_table *ht) const;
@@ -1514,9 +1515,8 @@ public:
    ir_call(ir_function_signature *callee,
 	   ir_dereference_variable *return_deref,
 	   exec_list *actual_parameters)
-      : return_deref(return_deref), callee(callee)
+      : ir_instruction(ir_type_call), return_deref(return_deref), callee(callee)
    {
-      ir_type = ir_type_call;
       assert(callee->return_type != NULL);
       actual_parameters->move_nodes_to(& this->actual_parameters);
       this->use_builtin = callee->is_builtin();
@@ -1525,11 +1525,6 @@ public:
    virtual ir_call *clone(void *mem_ctx, struct hash_table *ht) const;
 
    virtual ir_constant *constant_expression_value(struct hash_table *variable_context = NULL);
-
-   virtual ir_call *as_call()
-   {
-      return this;
-   }
 
    virtual void accept(ir_visitor *v)
    {
@@ -1579,38 +1574,25 @@ public:
 /*@{*/
 class ir_jump : public ir_instruction {
 protected:
-   ir_jump()
+   ir_jump(enum ir_node_type t)
+      : ir_instruction(t)
    {
-      ir_type = ir_type_unset;
-   }
-
-public:
-   virtual ir_jump *as_jump()
-   {
-      return this;
    }
 };
 
 class ir_return : public ir_jump {
 public:
    ir_return()
-      : value(NULL)
+      : ir_jump(ir_type_return), value(NULL)
    {
-      this->ir_type = ir_type_return;
    }
 
    ir_return(ir_rvalue *value)
-      : value(value)
+      : ir_jump(ir_type_return), value(value)
    {
-      this->ir_type = ir_type_return;
    }
 
    virtual ir_return *clone(void *mem_ctx, struct hash_table *) const;
-
-   virtual ir_return *as_return()
-   {
-      return this;
-   }
 
    ir_rvalue *get_value() const
    {
@@ -1644,8 +1626,8 @@ public:
    };
 
    ir_loop_jump(jump_mode mode)
+      : ir_jump(ir_type_loop_jump)
    {
-      this->ir_type = ir_type_loop_jump;
       this->mode = mode;
    }
 
@@ -1678,14 +1660,14 @@ public:
 class ir_discard : public ir_jump {
 public:
    ir_discard()
+      : ir_jump(ir_type_discard)
    {
-      this->ir_type = ir_type_discard;
       this->condition = NULL;
    }
 
    ir_discard(ir_rvalue *cond)
+      : ir_jump(ir_type_discard)
    {
-      this->ir_type = ir_type_discard;
       this->condition = cond;
    }
 
@@ -1697,11 +1679,6 @@ public:
    }
 
    virtual ir_visitor_status accept(ir_hierarchical_visitor *);
-
-   virtual ir_discard *as_discard()
-   {
-      return this;
-   }
 
    ir_rvalue *condition;
 };
@@ -1752,10 +1729,10 @@ enum ir_texture_opcode {
 class ir_texture : public ir_rvalue {
 public:
    ir_texture(enum ir_texture_opcode op)
-      : op(op), sampler(NULL), coordinate(NULL), projector(NULL),
+      : ir_rvalue(ir_type_texture),
+        op(op), sampler(NULL), coordinate(NULL), projector(NULL),
         shadow_comparitor(NULL), offset(NULL)
    {
-      this->ir_type = ir_type_texture;
       memset(&lod_info, 0, sizeof(lod_info));
    }
 
@@ -1766,11 +1743,6 @@ public:
    virtual void accept(ir_visitor *v)
    {
       v->visit(this);
-   }
-
-   virtual ir_texture *as_texture()
-   {
-      return this;
    }
 
    virtual ir_visitor_status accept(ir_hierarchical_visitor *);
@@ -1864,11 +1836,6 @@ public:
 
    virtual ir_constant *constant_expression_value(struct hash_table *variable_context = NULL);
 
-   virtual ir_swizzle *as_swizzle()
-   {
-      return this;
-   }
-
    /**
     * Construct an ir_swizzle from the textual representation.  Can fail.
     */
@@ -1910,17 +1877,18 @@ class ir_dereference : public ir_rvalue {
 public:
    virtual ir_dereference *clone(void *mem_ctx, struct hash_table *) const = 0;
 
-   virtual ir_dereference *as_dereference()
-   {
-      return this;
-   }
-
    bool is_lvalue() const;
 
    /**
     * Get the variable that is ultimately referenced by an r-value
     */
    virtual ir_variable *variable_referenced() const = 0;
+
+protected:
+   ir_dereference(enum ir_node_type t)
+      : ir_rvalue(t)
+   {
+   }
 };
 
 
@@ -1932,11 +1900,6 @@ public:
 					  struct hash_table *) const;
 
    virtual ir_constant *constant_expression_value(struct hash_table *variable_context = NULL);
-
-   virtual ir_dereference_variable *as_dereference_variable()
-   {
-      return this;
-   }
 
    virtual bool equals(ir_instruction *ir, enum ir_node_type ignore = ir_type_unset);
 
@@ -1984,11 +1947,6 @@ public:
 
    virtual ir_constant *constant_expression_value(struct hash_table *variable_context = NULL);
 
-   virtual ir_dereference_array *as_dereference_array()
-   {
-      return this;
-   }
-
    virtual bool equals(ir_instruction *ir, enum ir_node_type ignore = ir_type_unset);
 
    /**
@@ -2024,11 +1982,6 @@ public:
 					struct hash_table *) const;
 
    virtual ir_constant *constant_expression_value(struct hash_table *variable_context = NULL);
-
-   virtual ir_dereference_record *as_dereference_record()
-   {
-      return this;
-   }
 
    /**
     * Get the variable that is ultimately referenced by an r-value
@@ -2094,11 +2047,6 @@ public:
    virtual ir_constant *clone(void *mem_ctx, struct hash_table *) const;
 
    virtual ir_constant *constant_expression_value(struct hash_table *variable_context = NULL);
-
-   virtual ir_constant *as_constant()
-   {
-      return this;
-   }
 
    virtual void accept(ir_visitor *v)
    {
@@ -2207,8 +2155,8 @@ private:
 class ir_emit_vertex : public ir_instruction {
 public:
    ir_emit_vertex()
+      : ir_instruction(ir_type_emit_vertex)
    {
-      ir_type = ir_type_emit_vertex;
    }
 
    virtual void accept(ir_visitor *v)
@@ -2231,8 +2179,8 @@ public:
 class ir_end_primitive : public ir_instruction {
 public:
    ir_end_primitive()
+      : ir_instruction(ir_type_end_primitive)
    {
-      ir_type = ir_type_end_primitive;
    }
 
    virtual void accept(ir_visitor *v)

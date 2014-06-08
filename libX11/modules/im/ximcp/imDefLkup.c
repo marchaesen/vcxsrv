@@ -599,10 +599,9 @@ _XimUnregCommitInfo(
     if (!(info = ic->private.proto.commit_info))
 	return;
 
-    if (info->string)
-	Xfree(info->string);
-    if (info->keysym)
-	Xfree(info->keysym);
+
+    Xfree(info->string);
+    Xfree(info->keysym);
     ic->private.proto.commit_info = info->next;
     Xfree(info);
     return;
@@ -696,10 +695,8 @@ _XimCommitRecv(
     }
 
     if (!(_XimRegCommitInfo(ic, string, string_len, keysym, keysym_len))) {
-	if (string)
-	    Xfree(string);
-	if (keysym)
-	    Xfree(keysym);
+       Xfree(string);
+	Xfree(keysym);
 	_XimError(im, ic, XIM_BadAlloc, (INT16)0, (CARD16)0, (char *)NULL);
 	return False;
     }

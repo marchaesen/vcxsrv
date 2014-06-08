@@ -838,6 +838,12 @@ static const char *compiled_in_modules[] = {
     "extmod",
     "dri",
     "dri2",
+#if DRI3
+    "dri3",
+#endif
+#if PRESENT
+    "present",
+#endif
     NULL
 };
 

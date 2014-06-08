@@ -661,6 +661,8 @@ void
 DeepCopyDeviceClasses(DeviceIntPtr from, DeviceIntPtr to,
                       DeviceChangedEvent *dce)
 {
+    OsBlockSIGIO();
+
     /* generic feedback classes, not tied to pointer and/or keyboard */
     DeepCopyFeedbackClasses(from, to);
 
@@ -668,6 +670,8 @@ DeepCopyDeviceClasses(DeviceIntPtr from, DeviceIntPtr to,
         DeepCopyKeyboardClasses(from, to);
     if ((dce->flags & DEVCHANGE_POINTER_EVENT))
         DeepCopyPointerClasses(from, to);
+
+    OsReleaseSIGIO();
 }
 
 /**

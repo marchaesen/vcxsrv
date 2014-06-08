@@ -62,8 +62,8 @@ char **XListExtensions(
 	    }
 
 	    if ((!list) || (!ch)) {
-		if (list) Xfree(list);
-		if (ch)   Xfree(ch);
+		Xfree(list);
+		Xfree(ch);
 		_XEatDataWords(dpy, rep.length);
 		UnlockDisplay(dpy);
 		SyncHandle();

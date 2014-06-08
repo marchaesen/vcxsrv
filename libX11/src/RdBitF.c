@@ -137,7 +137,7 @@ XReadBitmapFileData (
 
     /* error cleanup and return macro	*/
 #define	RETURN(code) \
-{ if (bits) Xfree (bits); fclose (fstream); return code; }
+{ Xfree (bits); fclose (fstream); return code; }
 
     while (fgets(line, MAX_SIZE, fstream)) {
 	if (strlen(line) == MAX_SIZE-1)

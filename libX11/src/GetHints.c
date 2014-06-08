@@ -75,7 +75,7 @@ Status XGetSizeHints (
 
         if ((actual_type != XA_WM_SIZE_HINTS) ||
 	    (nitems < OldNumPropSizeElements) || (actual_format != 32)) {
-		if (prop != NULL) Xfree (prop);
+		Xfree (prop);
                 return(0);
 		}
 	hints->flags	  = (prop->flags & (USPosition|USSize|PAllHints));
@@ -124,7 +124,7 @@ XWMHints *XGetWMHints (
 
         if ((actual_type != XA_WM_HINTS) ||
 	    (nitems < (NumPropWMHintsElements - 1)) || (actual_format != 32)) {
-		if (prop != NULL) Xfree (prop);
+		Xfree (prop);
                 return(NULL);
 		}
 	/* static copies not allowed in library, due to reentrancy constraint*/
@@ -196,7 +196,7 @@ Status XGetIconSizes (
 	    (nitems < NumPropIconSizeElements) ||
 	    (nitems % NumPropIconSizeElements != 0) ||
 	    (actual_format != 32)) {
-		if (prop != NULL) Xfree (prop);
+		Xfree (prop);
                 return(0);
 		}
 
@@ -204,7 +204,7 @@ Status XGetIconSizes (
 
 	nitems /= NumPropIconSizeElements;
 	if (! (hp = hints = Xcalloc (nitems, sizeof(XIconSize)))) {
-	    if (prop) Xfree (prop);
+	    Xfree (prop);
 	    return 0;
 	}
 
@@ -239,7 +239,7 @@ Status XGetCommand (
     if (!XGetTextProperty (dpy, w, &tp, XA_WM_COMMAND)) return 0;
 
     if (tp.encoding != XA_STRING || tp.format != 8) {
-	if (tp.value) Xfree (tp.value);
+	Xfree (tp.value);
 	return 0;
     }
 
@@ -254,7 +254,7 @@ Status XGetCommand (
      * create a string list and return if successful
      */
     if (!XTextPropertyToStringList (&tp, &argv, &argc)) {
-	if (tp.value) Xfree (tp.value);
+	Xfree (tp.value);
 	return (0);
     }
 
@@ -291,7 +291,7 @@ XGetTransientForHint(
 	return (1);
 	}
     *propWindow = None;
-    if (data) Xfree( (char *) data);
+    Xfree( (char *) data);
     return(0);
 }
 
@@ -333,6 +333,6 @@ XGetClassHint(
 	Xfree( (char *) data);
 	return(1);
 	}
-    if (data) Xfree( (char *) data);
+    Xfree( (char *) data);
     return(0);
 }

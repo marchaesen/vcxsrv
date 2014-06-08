@@ -704,22 +704,6 @@ OsVendorInit(void)
         free(lf);
 
         DarwinPrintBanner();
-#ifdef ENABLE_DEBUG_LOG
-        {
-            char *home_dir = NULL, *log_file_path = NULL;
-            home_dir = getenv("HOME");
-            if (home_dir) asprintf(&log_file_path, "%s/%s", home_dir,
-                                   DEBUG_LOG_NAME);
-            if (log_file_path) {
-                if (!access(log_file_path, F_OK)) {
-                    debug_log_fp = fopen(log_file_path, "a");
-                    if (debug_log_fp) ErrorF("Debug logging enabled to %s\n",
-                                             log_file_path);
-                }
-                free(log_file_path);
-            }
-        }
-#endif
     }
 }
 

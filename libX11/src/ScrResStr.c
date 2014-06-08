@@ -48,8 +48,7 @@ char *XScreenResourceString(Screen *screen)
 			   (unsigned char **) &val) == Success) {
 	if ((actual_type == XA_STRING) && (actual_format == 8))
 	    return val;
-	if (val)
-	    Xfree(val);
+	Xfree(val);
     }
     return (char *)NULL;
 }

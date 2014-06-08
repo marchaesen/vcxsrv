@@ -170,8 +170,8 @@ XFreeFont(
 #endif
     }
     _XFreeExtData(fs->ext_data);
-    if (fs->properties)
-	Xfree (fs->properties);
+
+    Xfree (fs->properties);
     Xfree (fs);
     return 1;
 }
@@ -271,7 +271,7 @@ _XQueryFont (
 	    }
 	}
 	if (! fs->per_char) {
-	    if (fs->properties) Xfree(fs->properties);
+	    Xfree(fs->properties);
 	    Xfree(fs);
 	    _XEatDataWords(dpy, reply_left);
 	    return (XFontStruct *)NULL;
@@ -524,14 +524,14 @@ _XF86BigfontQueryFont (
 	             + (reply.nCharInfos+1)/2 * 2 * sizeof(CARD16);
 	    pUniqCI = Xmalloc (nbytes);
 	    if (!pUniqCI) {
-		if (fs->properties) Xfree(fs->properties);
+		Xfree(fs->properties);
 		Xfree(fs);
 		_XEatDataWords(dpy, reply_left);
 		return (XFontStruct *)NULL;
 	    }
 	    if (! (fs->per_char = Xmalloc (reply.nCharInfos * sizeof(XCharStruct)))) {
 		Xfree(pUniqCI);
-		if (fs->properties) Xfree(fs->properties);
+		Xfree(fs->properties);
 		Xfree(fs);
 		_XEatDataWords(dpy, reply_left);
 		return (XFontStruct *)NULL;
@@ -542,7 +542,7 @@ _XF86BigfontQueryFont (
 		if (pIndex2UniqIndex[i] >= reply.nUniqCharInfos) {
 		    fprintf(stderr, "_XF86BigfontQueryFont: server returned wrong data\n");
 		    Xfree(pUniqCI);
-		    if (fs->properties) Xfree(fs->properties);
+		    Xfree(fs->properties);
 		    Xfree(fs);
 		    return (XFontStruct *)NULL;
 		}
@@ -558,7 +558,7 @@ _XF86BigfontQueryFont (
 
 	    pData = Xmalloc(sizeof(XExtData));
 	    if (!pData) {
-		if (fs->properties) Xfree(fs->properties);
+		Xfree(fs->properties);
 		Xfree(fs);
 		return (XFontStruct *)NULL;
 	    }
@@ -578,7 +578,7 @@ _XF86BigfontQueryFont (
 		if (extcodes->serverCapabilities & CAP_VerifiedLocal)
 		    fprintf(stderr, "_XF86BigfontQueryFont: could not attach shm segment\n");
 	        Xfree(pData);
-	        if (fs->properties) Xfree(fs->properties);
+	        Xfree(fs->properties);
 	        Xfree(fs);
 		/* Stop requesting shared memory transport from now on. */
 		extcodes->serverCapabilities &= ~ XF86Bigfont_CAP_LocalShm;
@@ -593,7 +593,7 @@ _XF86BigfontQueryFont (
 		      && *(CARD32 *)(addr + reply.shmsegoffset + reply.nCharInfos * sizeof(XCharStruct)) == extcodes->serverSignature)) {
 		    shmdt(addr);
 		    Xfree(pData);
-		    if (fs->properties) Xfree(fs->properties);
+		    Xfree(fs->properties);
 		    Xfree(fs);
 		    /* Stop requesting shared memory transport from now on. */
 		    extcodes->serverCapabilities &= ~ XF86Bigfont_CAP_LocalShm;
@@ -697,8 +697,8 @@ int _XF86LoadQueryLocaleFont(
 #endif
 	}
 	_XFreeExtData(fs->ext_data);
-	if (fs->properties)
-	    Xfree (fs->properties);
+
+	Xfree (fs->properties);
 	*fidp = fs->fid;
 	Xfree (fs);
     } else {

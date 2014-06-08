@@ -753,7 +753,7 @@ mbstowcs_org(
 
     CodeSet codeset = NULL;
 
-    const char *inbufptr = *from;
+    const char *inbufptr;
     wchar_t *outbufptr = (wchar_t *) *to;
     int from_size = *from_left;
 
@@ -763,6 +763,8 @@ mbstowcs_org(
 	_XlcResetConverter(conv);
         return( 0 );
     }
+
+    inbufptr = *from;
 
     while (*from_left && *to_left) {
 
@@ -1223,8 +1225,7 @@ stdc_wcstocts(
         goto ret;
 
 ret:
-    if (buf)
-	Xfree(buf);
+    Xfree(buf);
 
     return (unconv_num1 + unconv_num2);
 }
@@ -1252,7 +1253,7 @@ ctstowcs(
     CodeSet codeset = NULL;
     XlcCharSet charset_tmp;
 
-    const char *inbufptr = *from;
+    const char *inbufptr;
     wchar_t *outbufptr = (wchar_t *) *to;
     int from_size = *from_left;
 
@@ -1262,6 +1263,7 @@ ctstowcs(
 	_XlcResetConverter(conv);
         return( 0 );
     }
+    inbufptr = *from;
 
     while (*from_left && *to_left) {
 
@@ -1437,13 +1439,15 @@ cstowcs(
     CodeSet codeset = NULL;
     XlcCharSet charset, charset_tmp;
 
-    const char *inbufptr = *from;
+    const char *inbufptr;
     wchar_t *outbufptr = (wchar_t *) *to;
     int from_size = *from_left;
 
     if (from == NULL || *from == NULL) {
         return( 0 );
     }
+
+    inbufptr = *from;
 
     charset = (XlcCharSet) args[0];
 
@@ -1543,8 +1547,7 @@ stdc_ctstowcs(
         goto ret;
 
 ret:
-    if (buf)
-	Xfree(buf);
+    Xfree(buf);
 
     return (unconv_num1 + unconv_num2);
 }
@@ -1579,8 +1582,7 @@ stdc_cstowcs(
         goto ret;
 
 ret:
-    if (buf)
-	Xfree(buf);
+    Xfree(buf);
 
     return (unconv_num1 + unconv_num2);
 }
@@ -1615,8 +1617,7 @@ mbstocts(
         goto ret;
 
 ret:
-    if (buf)
-	Xfree(buf);
+    Xfree(buf);
 
     return (unconv_num1 + unconv_num2);
 }
@@ -1643,7 +1644,7 @@ mbstostr(
 
     CodeSet codeset = NULL;
 
-    const char *inbufptr = *from;
+    const char *inbufptr;
     char *outbufptr = *to;
     int from_size = *from_left;
 
@@ -1653,6 +1654,8 @@ mbstostr(
 	_XlcResetConverter(conv);
         return( 0 );
     }
+
+    inbufptr = *from;
 
     while (*from_left && *to_left) {
 
@@ -1758,7 +1761,7 @@ mbtocs(
     CodeSet codeset = NULL;
     XlcCharSet charset = NULL;
 
-    const char *inbufptr = *from;
+    const char *inbufptr;
     char *outbufptr = *to;
     int from_size = *from_left;
 
@@ -1768,6 +1771,8 @@ mbtocs(
 	_XlcResetConverter(conv);
         return( 0 );
     }
+
+    inbufptr = *from;
 
     while (*from_left && *to_left) {
 
@@ -2062,8 +2067,7 @@ stdc_wcstostr(
         goto ret;
 
 ret:
-    if (buf)
-	Xfree(buf);
+    Xfree(buf);
 
     return (unconv_num1 + unconv_num2);
 }
@@ -2337,8 +2341,7 @@ ctstombs(
         goto ret;
 
 ret:
-    if (buf)
-	Xfree(buf);
+    Xfree(buf);
 
     return (unconv_num1 + unconv_num2);
 }
@@ -2373,8 +2376,7 @@ cstombs(
         goto ret;
 
 ret:
-    if (buf)
-	Xfree(buf);
+    Xfree(buf);
 
     return (unconv_num1 + unconv_num2);
 }
@@ -2582,8 +2584,7 @@ stdc_strtowcs(
         goto ret;
 
 ret:
-    if (buf)
-	Xfree(buf);
+    Xfree(buf);
 
     return (unconv_num1 + unconv_num2);
 }
@@ -2596,14 +2597,8 @@ static void
 close_converter(
     XlcConv conv)
 {
-    if (conv->state) {
-	Xfree(conv->state);
-    }
-
-    if (conv->methods) {
-	Xfree(conv->methods);
-    }
-
+    Xfree(conv->state);
+    Xfree(conv->methods);
     Xfree(conv);
 }
 

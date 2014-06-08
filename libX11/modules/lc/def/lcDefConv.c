@@ -563,9 +563,8 @@ static void
 close_converter(
     XlcConv conv)
 {
-    if (conv->state)
-	Xfree(conv->state);
 
+    Xfree(conv->state);
     Xfree(conv);
 }
 

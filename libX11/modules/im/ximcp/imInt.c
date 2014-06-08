@@ -239,14 +239,11 @@ Error4 :
     Xfree(im);
     return NULL;
 Error3 :
-    if(im->core.im_name)
-	Xfree(im->core.im_name);
+    Xfree(im->core.im_name);
 Error2:
-    if(im->core.res_class)
-	Xfree(im->core.res_class);
+    Xfree(im->core.res_class);
 Error1:
-    if(im->core.res_name)
-	Xfree(im->core.res_name);
+    Xfree(im->core.res_name);
     Xfree(im);
     return NULL;
 }

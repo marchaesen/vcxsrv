@@ -73,8 +73,8 @@ int *actualCount)	/* RETURN */
 	}
 
 	if ((! flist) || (! ch)) {
-	    if (flist) Xfree(flist);
-	    if (ch) Xfree(ch);
+	    Xfree(flist);
+	    Xfree(ch);
 	    _XEatDataWords(dpy, rep.length);
 	    *actualCount = 0;
 	    UnlockDisplay(dpy);

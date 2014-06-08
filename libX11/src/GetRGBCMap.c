@@ -63,7 +63,7 @@ Status XGetRGBColormaps (
     /* if wrong type or format, or too small for us, then punt */
     if ((actual_type != XA_RGB_COLOR_MAP) || (actual_format != 32) ||
 	(nitems < OldNumPropStandardColormapElements)) {
-	if (data) Xfree (data);
+	Xfree (data);
 	return False;
     }
 
@@ -78,7 +78,7 @@ Status XGetRGBColormaps (
 	    Screen *sp = _XScreenOfWindow (dpy, w);
 
 	    if (!sp) {
-		if (data) Xfree (data);
+		Xfree (data);
 		return False;
 	    }
 	    def_visual = sp->root_visual->visualid;
@@ -90,7 +90,7 @@ Status XGetRGBColormaps (
 	ncmaps = (nitems / NumPropStandardColormapElements);
 	if ((((unsigned long) ncmaps) * NumPropStandardColormapElements) !=
 	    nitems) {
-	    if (data) Xfree (data);
+	    Xfree (data);
 	    return False;
 	}
     }
@@ -101,7 +101,7 @@ Status XGetRGBColormaps (
      */
     cmaps = Xmalloc (ncmaps * sizeof (XStandardColormap));
     if (!cmaps) {
-	if (data) Xfree (data);
+	Xfree (data);
 	return False;
     }
 

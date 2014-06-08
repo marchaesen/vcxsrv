@@ -58,7 +58,7 @@ Status XFetchName (
 	*name = (char *)data;
 	return(1);
 	}
-    if (data) Xfree (data);
+    Xfree (data);
     *name = NULL;
     return(0);
 }
@@ -89,7 +89,7 @@ Status XGetIconName (
 	*icon_name = (char*)data;
 	return(1);
 	}
-    if (data) Xfree (data);
+    Xfree (data);
     *icon_name = NULL;
     return(0);
 }

@@ -545,6 +545,26 @@ FcCacheTimeValid (FcCache *cache, struct stat *dir_stat)
     return cache->checksum == (int) dir_stat->st_mtime;
 }
 
+static FcBool
+FcCacheDirsValid (FcCache *cache)
+{
+    FcStrSet *dirs = FcStrSetCreate ();
+    FcBool ret = FcFalse;
+
+    if (!dirs)
+	goto bail;
+    if (!FcDirScanOnly (dirs, FcCacheDir (cache)))
+	goto bail1;
+    ret = cache->dirs_count == dirs->num;
+    if (FcDebug () & FC_DBG_CACHE)
+	printf ("%s: cache: %d, fs: %d\n", FcCacheDir (cache), cache->dirs_count, dirs->num);
+
+bail1:
+    FcStrSetDestroy (dirs);
+bail:
+    return ret;
+}
+
 /*
  * Map a cache file into memory
  */
@@ -559,7 +579,8 @@ FcDirCacheMapFd (int fd, struct stat *fd_stat, struct stat *dir_stat)
     cache = FcCacheFindByStat (fd_stat);
     if (cache)
     {
-	if (FcCacheTimeValid (cache, dir_stat))
+	if (FcCacheTimeValid (cache, dir_stat) &&
+	    FcCacheDirsValid (cache))
 	    return cache;
 	FcDirCacheUnload (cache);
 	cache = NULL;
@@ -611,6 +632,7 @@ FcDirCacheMapFd (int fd, struct stat *fd_stat, struct stat *dir_stat)
 	cache->version < FC_CACHE_CONTENT_VERSION ||
 	cache->size != (intptr_t) fd_stat->st_size ||
 	!FcCacheTimeValid (cache, dir_stat) ||
+	!FcCacheDirsValid (cache) ||
 	!FcCacheInsert (cache, fd_stat))
     {
 	if (allocated)

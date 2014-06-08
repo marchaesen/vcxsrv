@@ -929,17 +929,6 @@ glxWinDrawableDestroy(__GLXdrawable * base)
 {
     __GLXWinDrawable *glxPriv = (__GLXWinDrawable *) base;
 
-    if (glxPriv->drawContext &&
-        (__glXLastContext == &((glxPriv->drawContext)->base))) {
-        // if this context is current and has unflushed commands, say we have flushed them
-        // (don't actually flush them, the window is going away anyhow, and an implict flush occurs
-        // on the next context change)
-        // (GLX core considers it an error when we try to select a new current context if the old one
-        // has unflushed commands, but the window has disappeared..)
-        __glXLastContext->hasUnflushedCommands = FALSE;
-        __glXLastContext = NULL;
-    }
-
     if (glxPriv->hPbuffer)
         if (!wglDestroyPbufferARBWrapper(glxPriv->hPbuffer)) {
             ErrorF("wglDestroyPbufferARB failed: %s\n", glxWinErrorMessage());
@@ -1542,7 +1531,7 @@ glxWinContextLoseCurrent(__GLXcontext * base)
        An error seems to be reported if we try to make no context current
        if there is already no current context, so avoid doing that...
      */
-    if (__glXLastContext != NULL) {
+    if (wglGetCurrentContext() != NULL) {
         ret = wglMakeCurrent(NULL, NULL);       /* We don't need a DC when setting no current context */
         if (!ret)
             ErrorF("glxWinContextLoseCurrent error: %s\n",

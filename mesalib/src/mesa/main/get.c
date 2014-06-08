@@ -847,6 +847,16 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
       v->value_int = ctx->Array.VAO->IndexBufferObj->Name;
       break;
 
+   /* ARB_vertex_array_bgra */
+   case GL_COLOR_ARRAY_SIZE:
+      array = &ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_COLOR0];
+      v->value_int = array->Format == GL_BGRA ? GL_BGRA : array->Size;
+      break;
+   case GL_SECONDARY_COLOR_ARRAY_SIZE:
+      array = &ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_COLOR1];
+      v->value_int = array->Format == GL_BGRA ? GL_BGRA : array->Size;
+      break;
+
    /* ARB_copy_buffer */
    case GL_COPY_READ_BUFFER:
       v->value_int = ctx->CopyReadBuffer->Name;
@@ -995,7 +1005,11 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
       break;
    /* GL_ARB_shader_atomic_counters */
    case GL_ATOMIC_COUNTER_BUFFER_BINDING:
-      v->value_int = ctx->AtomicBuffer->Name;
+      if (ctx->AtomicBuffer) {
+         v->value_int = ctx->AtomicBuffer->Name;
+      } else {
+         v->value_int = 0;
+      }
       break;
    /* GL_ARB_draw_indirect */
    case GL_DRAW_INDIRECT_BUFFER_BINDING:

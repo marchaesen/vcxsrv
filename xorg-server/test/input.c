@@ -1712,6 +1712,18 @@ mieq_test_event_handler(int screenNum, InternalEvent *ie, DeviceIntPtr dev)
 static void
 _mieq_test_generate_events(uint32_t start, uint32_t count)
 {
+    static DeviceIntRec dev;
+    static SpriteInfoRec spriteInfo;
+    static SpriteRec sprite;
+
+    memset(&dev, 0, sizeof(dev));
+    memset(&spriteInfo, 0, sizeof(spriteInfo));
+    memset(&sprite, 0, sizeof(sprite));
+    dev.spriteInfo = &spriteInfo;
+    spriteInfo.sprite = &sprite;
+
+    dev.enabled = 1;
+
     count += start;
     while (start < count) {
         RawDeviceEvent e = { 0 };
@@ -1721,7 +1733,7 @@ _mieq_test_generate_events(uint32_t start, uint32_t count)
         e.time = GetTimeInMillis();
         e.flags = start;
 
-        mieqEnqueue(NULL, (InternalEvent *) &e);
+        mieqEnqueue(&dev, (InternalEvent *) &e);
 
         start++;
     }

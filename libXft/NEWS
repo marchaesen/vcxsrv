@@ -7,6 +7,14 @@ Xft version 2.1 was the first stand alone release of Xft, a library that
 connects X applications with the FreeType font rasterization library. Xft
 uses fontconfig to locate fonts so it has no configuration files.
 
+Version 2.3.2
+
+Build fix for freetype 2.5.1, man page fix for XftDrawString8 & XftDrawRect.
+
+Version 2.3.1
+
+Fix regression that broke bold fonts in 2.3.0, remove dead code.
+
 Version 2.3.0
 
 Subpixel LCD text rendering improvements

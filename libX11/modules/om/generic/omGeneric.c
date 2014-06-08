@@ -196,16 +196,12 @@ init_fontset(
     return True;
 
 err:
-    if(font_set->font_data)
-	Xfree(font_set->font_data);
-    if(font_set->substitute)
-	Xfree(font_set->substitute);
-    if(font_set->vmap)
-	Xfree(font_set->vmap);
-    if(font_set->vrotate)
-	Xfree(font_set->vrotate);
-    if(font_set)
-	Xfree(font_set);
+
+    Xfree(font_set->font_data);
+    Xfree(font_set->substitute);
+    Xfree(font_set->vmap);
+    Xfree(font_set->vrotate);
+    Xfree(font_set);
     gen->font_set = (FontSet) NULL;
     gen->font_set_num = 0;
     return False;
@@ -504,8 +500,8 @@ init_core_part(
     return True;
 
 err:
-    if (font_name_list)
-	Xfree(font_name_list);
+
+    Xfree(font_name_list);
     Xfree(font_struct_list);
 
     return False;
@@ -1486,24 +1482,15 @@ destroy_oc(
 */
 /* For VW/UDC end */
 
-    if (oc->core.base_name_list)
-	Xfree(oc->core.base_name_list);
-
-    if (oc->core.font_info.font_name_list)
-	XFreeStringList(oc->core.font_info.font_name_list);
-
-    if (oc->core.font_info.font_struct_list) {
-	Xfree(oc->core.font_info.font_struct_list);
-    }
-
-    if (oc->core.missing_list.charset_list)
-	XFreeStringList(oc->core.missing_list.charset_list);
+    Xfree(oc->core.base_name_list);
+    XFreeStringList(oc->core.font_info.font_name_list);
+    Xfree(oc->core.font_info.font_struct_list);
+    XFreeStringList(oc->core.missing_list.charset_list);
 
 #ifdef notdef
-    if (oc->core.res_name)
-	Xfree(oc->core.res_name);
-    if (oc->core.res_class)
-	Xfree(oc->core.res_class);
+
+    Xfree(oc->core.res_name);
+    Xfree(oc->core.res_class);
 #endif
 
     Xfree(oc);

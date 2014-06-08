@@ -83,7 +83,7 @@ Status XGetWMSizeHints (
 
     if ((actual_type != XA_WM_SIZE_HINTS) ||
 	(nitems < OldNumPropSizeElements) || (actual_format != 32)) {
-	if (prop != NULL) Xfree (prop);
+	Xfree (prop);
 	return False;
     }
 

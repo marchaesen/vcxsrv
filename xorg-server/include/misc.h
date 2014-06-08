@@ -259,15 +259,19 @@ extern void FormatDouble(double dbl, char *string);
  * or a value greater than 0
  */
 static inline int
-version_compare(uint16_t a_major, uint16_t a_minor,
-                uint16_t b_major, uint16_t b_minor)
+version_compare(uint32_t a_major, uint32_t a_minor,
+                uint32_t b_major, uint32_t b_minor)
 {
-    int a, b;
+    if (a_major > b_major)
+        return 1;
+    if (a_major < b_major)
+        return -1;
+    if (a_minor > b_minor)
+        return 1;
+    if (a_minor < b_minor)
+        return -1;
 
-    a = a_major << 16 | a_minor;
-    b = b_major << 16 | b_minor;
-
-    return (a - b);
+    return 0;
 }
 
 /* some macros to help swap requests, replies, and events */

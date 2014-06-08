@@ -3237,7 +3237,7 @@ InitializeSprite(DeviceIntPtr pDev, WindowPtr pWin)
     pCursor = RefCursor(pCursor);
     if (pSprite->current)
         FreeCursor(pSprite->current, None);
-    pSprite->current = RefCursor(pCursor);
+    pSprite->current = pCursor;
 
     if (pScreen) {
         (*pScreen->RealizeCursor) (pDev, pScreen, pSprite->current);

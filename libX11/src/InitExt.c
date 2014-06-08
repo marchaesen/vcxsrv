@@ -51,7 +51,7 @@ XExtCodes *XInitExtension (
 	LockDisplay (dpy);
 	if (! (ext = Xcalloc (1, sizeof (_XExtension))) ||
 	    ! (ext->name = strdup(name))) {
-	    if (ext) Xfree(ext);
+	    Xfree(ext);
 	    UnlockDisplay(dpy);
 	    return (XExtCodes *) NULL;
 	}

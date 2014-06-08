@@ -74,7 +74,7 @@ char *XFetchBuffer (
 	*nbytes = nitems;
 	return((char *)data);
 	}
-    if ((char *) data != NULL) Xfree (data);
+    Xfree (data);
     return(NULL);
 }
 

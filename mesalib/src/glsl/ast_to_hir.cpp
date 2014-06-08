@@ -164,6 +164,31 @@ _mesa_ast_to_hir(exec_list *instructions, struct _mesa_glsl_parse_state *state)
 }
 
 
+static ir_expression_operation
+get_conversion_operation(const glsl_type *to, const glsl_type *from,
+                         struct _mesa_glsl_parse_state *state)
+{
+   switch (to->base_type) {
+   case GLSL_TYPE_FLOAT:
+      switch (from->base_type) {
+      case GLSL_TYPE_INT: return ir_unop_i2f;
+      case GLSL_TYPE_UINT: return ir_unop_u2f;
+      default: return (ir_expression_operation)0;
+      }
+
+   case GLSL_TYPE_UINT:
+      if (!state->is_version(400, 0) && !state->ARB_gpu_shader5_enable)
+         return (ir_expression_operation)0;
+      switch (from->base_type) {
+         case GLSL_TYPE_INT: return ir_unop_i2u;
+         default: return (ir_expression_operation)0;
+      }
+
+   default: return (ir_expression_operation)0;
+   }
+}
+
+
 /**
  * If a conversion is available, convert one operand to a different type
  *
@@ -185,9 +210,7 @@ apply_implicit_conversion(const glsl_type *to, ir_rvalue * &from,
    if (to->base_type == from->type->base_type)
       return true;
 
-   /* This conversion was added in GLSL 1.20.  If the compilation mode is
-    * GLSL 1.10, the conversion is skipped.
-    */
+   /* Prior to GLSL 1.20, there are no implicit conversions */
    if (!state->is_version(120, 0))
       return false;
 
@@ -195,36 +218,25 @@ apply_implicit_conversion(const glsl_type *to, ir_rvalue * &from,
     *
     *    "There are no implicit array or structure conversions. For
     *    example, an array of int cannot be implicitly converted to an
-    *    array of float. There are no implicit conversions between
-    *    signed and unsigned integers."
+    *    array of float.
     */
-   /* FINISHME: The above comment is partially a lie.  There is int/uint
-    * FINISHME: conversion for immediate constants.
-    */
-   if (!to->is_float() || !from->type->is_numeric())
+   if (!to->is_numeric() || !from->type->is_numeric())
       return false;
 
-   /* Convert to a floating point type with the same number of components
-    * as the original type - i.e. int to float, not int to vec4.
+   /* We don't actually want the specific type `to`, we want a type
+    * with the same base type as `to`, but the same vector width as
+    * `from`.
     */
-   to = glsl_type::get_instance(GLSL_TYPE_FLOAT, from->type->vector_elements,
-			        from->type->matrix_columns);
+   to = glsl_type::get_instance(to->base_type, from->type->vector_elements,
+                                from->type->matrix_columns);
 
-   switch (from->type->base_type) {
-   case GLSL_TYPE_INT:
-      from = new(ctx) ir_expression(ir_unop_i2f, to, from, NULL);
-      break;
-   case GLSL_TYPE_UINT:
-      from = new(ctx) ir_expression(ir_unop_u2f, to, from, NULL);
-      break;
-   case GLSL_TYPE_BOOL:
-      from = new(ctx) ir_expression(ir_unop_b2f, to, from, NULL);
-      break;
-   default:
-      assert(0);
+   ir_expression_operation op = get_conversion_operation(to, from->type, state);
+   if (op) {
+      from = new(ctx) ir_expression(op, to, from, NULL);
+      return true;
+   } else {
+      return false;
    }
-
-   return true;
 }
 
 
@@ -2393,6 +2405,17 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
       }
    }
 
+   if (qual->flags.q.precise) {
+      if (var->data.used) {
+         _mesa_glsl_error(loc, state,
+                          "variable `%s' may not be redeclared "
+                          "`precise' after being used",
+                          var->name);
+      } else {
+         var->data.precise = 1;
+      }
+   }
+
    if (qual->flags.q.constant || qual->flags.q.attribute
        || qual->flags.q.uniform
        || (qual->flags.q.varying && (state->stage == MESA_SHADER_FRAGMENT)))
@@ -3163,8 +3186,45 @@ ast_declarator_list::hir(exec_list *instructions,
       return NULL;
    }
 
+   if (this->precise) {
+      assert(this->type == NULL);
+
+      foreach_list_typed (ast_declaration, decl, link, &this->declarations) {
+         assert(decl->array_specifier == NULL);
+         assert(decl->initializer == NULL);
+
+         ir_variable *const earlier =
+            state->symbols->get_variable(decl->identifier);
+         if (earlier == NULL) {
+            _mesa_glsl_error(& loc, state,
+                             "undeclared variable `%s' cannot be marked "
+                             "precise", decl->identifier);
+         } else if (state->current_function != NULL &&
+                    !state->symbols->name_declared_this_scope(decl->identifier)) {
+            /* Note: we have to check if we're in a function, since
+             * builtins are treated as having come from another scope.
+             */
+            _mesa_glsl_error(& loc, state,
+                             "variable `%s' from an outer scope may not be "
+                             "redeclared `precise' in this scope",
+                             earlier->name);
+         } else if (earlier->data.used) {
+            _mesa_glsl_error(& loc, state,
+                             "variable `%s' may not be redeclared "
+                             "`precise' after being used",
+                             earlier->name);
+         } else {
+            earlier->data.precise = true;
+         }
+      }
+
+      /* Precise redeclarations do not have r-values either. */
+      return NULL;
+   }
+
    assert(this->type != NULL);
    assert(!this->invariant);
+   assert(!this->precise);
 
    /* The type specifier may contain a structure definition.  Process that
     * before any of the variable declarations.

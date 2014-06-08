@@ -778,9 +778,14 @@ XkbNoteNameChanges(XkbNameChangesPtr old,
 {
     int first, last, old_last, new_last;
 
-    wanted &= new->changed;
-    if ((old == NULL) || (new == NULL) || (wanted == 0))
+    if ((old == NULL) || (new == NULL))
         return;
+
+    wanted &= new->changed;
+
+    if (wanted == 0)
+	return;
+
     if (wanted & XkbKeyTypeNamesMask) {
         if (old->changed & XkbKeyTypeNamesMask) {
             new_last = (new->first_type + new->num_types - 1);
