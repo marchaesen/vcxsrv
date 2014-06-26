@@ -21,9 +21,9 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftmemory.h>
-#include <freetype/internal/ftstream.h>
-#include <freetype/internal/ftdebug.h>
+#include <internal/ftmemory.h>
+#include <internal/ftstream.h>
+#include <internal/ftdebug.h>
 #include FT_GZIP_H
 #include FT_CONFIG_STANDARD_LIBRARY_H
 

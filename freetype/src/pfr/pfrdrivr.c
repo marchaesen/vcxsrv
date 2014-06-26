@@ -17,8 +17,8 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftstream.h>
+#include <internal/ftdebug.h>
+#include <internal/ftstream.h>
 #include FT_SERVICE_PFR_H
 #include FT_SERVICE_XFREE86_NAME_H
 #include "pfrdrivr.h"

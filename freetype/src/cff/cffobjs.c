@@ -17,14 +17,14 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftcalc.h>
-#include <freetype/internal/ftstream.h>
-#include <freetype/fterrors.h>
-#include <freetype/ttnameid.h>
-#include <freetype/tttags.h>
-#include <freetype/internal/sfnt.h>
-#include <freetype/ftcffdrv.h>
+#include <internal/ftdebug.h>
+#include <internal/ftcalc.h>
+#include <internal/ftstream.h>
+#include <fterrors.h>
+#include <ttnameid.h>
+#include <tttags.h>
+#include <internal/sfnt.h>
+#include <ftcffdrv.h>
 
 #include "cffobjs.h"
 #include "cffload.h"

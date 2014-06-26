@@ -17,9 +17,9 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/sfnt.h>
-#include <freetype/internal/ftobjs.h>
+#include <internal/ftdebug.h>
+#include <internal/sfnt.h>
+#include <internal/ftobjs.h>
 
 #include "sfdriver.h"
 #include "ttload.h"

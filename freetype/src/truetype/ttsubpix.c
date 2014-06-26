@@ -16,12 +16,12 @@
 /***************************************************************************/
 
 #include <ft2build.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftcalc.h>
-#include <freetype/internal/ftstream.h>
-#include <freetype/internal/sfnt.h>
-#include <freetype/tttags.h>
-#include <freetype/ftoutln.h>
+#include <internal/ftdebug.h>
+#include <internal/ftcalc.h>
+#include <internal/ftstream.h>
+#include <internal/sfnt.h>
+#include <tttags.h>
+#include <ftoutln.h>
 #include FT_TRUETYPE_DRIVER_H
 
 #include "ttsubpix.h"

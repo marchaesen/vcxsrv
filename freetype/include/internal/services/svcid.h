@@ -18,7 +18,7 @@
 #ifndef __SVCID_H__
 #define __SVCID_H__
 
-#include <freetype/internal/ftserv.h>
+#include <internal/ftserv.h>
 
 
 FT_BEGIN_HEADER

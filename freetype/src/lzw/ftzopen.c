@@ -19,9 +19,9 @@
 /***************************************************************************/
 
 #include "ftzopen.h"
-#include <freetype/internal/ftmemory.h>
-#include <freetype/internal/ftstream.h>
-#include <freetype/internal/ftdebug.h>
+#include <internal/ftmemory.h>
+#include <internal/ftstream.h>
+#include <internal/ftdebug.h>
 
 
   static int

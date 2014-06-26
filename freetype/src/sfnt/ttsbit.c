@@ -20,10 +20,10 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftstream.h>
-#include <freetype/tttags.h>
-#include <freetype/ftbitmap.h>
+#include <internal/ftdebug.h>
+#include <internal/ftstream.h>
+#include <tttags.h>
+#include <ftbitmap.h>
 #include "ttsbit.h"
 
 #include "sferrors.h"

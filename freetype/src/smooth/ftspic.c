@@ -18,7 +18,7 @@
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
-#include <freetype/internal/ftobjs.h>
+#include <internal/ftobjs.h>
 #include "ftspic.h"
 #include "ftsmerrs.h"
 

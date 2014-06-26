@@ -19,13 +19,13 @@
 #include <ft2build.h>
 #include "cidriver.h"
 #include "cidgload.h"
-#include <freetype/internal/ftdebug.h>
+#include <internal/ftdebug.h>
 
 #include "ciderrs.h"
 
 #include FT_SERVICE_POSTSCRIPT_NAME_H
 #include FT_SERVICE_XFREE86_NAME_H
-#include <freetype/internal/services/svpsinfo.h>
+#include <internal/services/svpsinfo.h>
 #include FT_SERVICE_CID_H
 
 

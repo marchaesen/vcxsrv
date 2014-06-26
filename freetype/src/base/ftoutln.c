@@ -25,10 +25,10 @@
 
 #include <ft2build.h>
 #include FT_OUTLINE_H
-#include <freetype/internal/ftobjs.h>
-#include <freetype/internal/ftcalc.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/fttrigon.h>
+#include <internal/ftobjs.h>
+#include <internal/ftcalc.h>
+#include <internal/ftdebug.h>
+#include <fttrigon.h>
 
 
   /*************************************************************************/

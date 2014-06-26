@@ -27,15 +27,15 @@
 #define __FTOBJS_H__
 
 #include <ft2build.h>
-#include <freetype/ftrender.h>
-#include <freetype/ftsizes.h>
-#include <freetype/ftlcdfil.h>
-#include <freetype/internal/ftmemory.h>
-#include <freetype/internal/ftgloadr.h>
-#include <freetype/internal/ftdriver.h>
-#include <freetype/internal/autohint.h>
-#include <freetype/internal/ftserv.h>
-#include <freetype/internal/ftpic.h>
+#include <ftrender.h>
+#include <ftsizes.h>
+#include <ftlcdfil.h>
+#include <internal/ftmemory.h>
+#include <internal/ftgloadr.h>
+#include <internal/ftdriver.h>
+#include <internal/autohint.h>
+#include <internal/ftserv.h>
+#include <internal/ftpic.h>
 
 #ifdef FT_CONFIG_OPTION_INCREMENTAL
 #include FT_INCREMENTAL_H

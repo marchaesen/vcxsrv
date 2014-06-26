@@ -22,9 +22,9 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftobjs.h>
-#include <freetype/internal/t1types.h>
-#include <freetype/internal/services/svpscmap.h>
+#include <internal/ftobjs.h>
+#include <internal/t1types.h>
+#include <internal/services/svpscmap.h>
 
 
 FT_BEGIN_HEADER

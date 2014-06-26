@@ -17,9 +17,9 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftmemory.h>
-#include <freetype/internal/ftobjs.h>
+#include <internal/ftdebug.h>
+#include <internal/ftmemory.h>
+#include <internal/ftobjs.h>
 #include FT_LIST_H
 
 

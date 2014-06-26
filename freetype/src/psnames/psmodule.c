@@ -17,9 +17,9 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftobjs.h>
-#include <freetype/internal/services/svpscmap.h>
+#include <internal/ftdebug.h>
+#include <internal/ftobjs.h>
+#include <internal/services/svpscmap.h>
 
 #include "psmodule.h"
 #include "pstables.h"

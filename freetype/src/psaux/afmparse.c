@@ -17,8 +17,8 @@
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/psaux.h>
+#include <internal/ftdebug.h>
+#include <internal/psaux.h>
 
 #include "afmparse.h"
 #include "psconv.h"

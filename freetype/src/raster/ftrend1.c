@@ -17,8 +17,8 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftobjs.h>
+#include <internal/ftdebug.h>
+#include <internal/ftobjs.h>
 #include FT_OUTLINE_H
 #include "ftrend1.h"
 #include "ftraster.h"

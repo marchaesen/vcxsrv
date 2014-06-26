@@ -21,8 +21,8 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/t1types.h>
-#include <freetype/internal/ftstream.h>
+#include <internal/t1types.h>
+#include <internal/ftstream.h>
 
 
 FT_BEGIN_HEADER

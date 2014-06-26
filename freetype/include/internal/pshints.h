@@ -23,8 +23,8 @@
 
 
 #include <ft2build.h>
-#include <freetype/freetype.h>
-#include <freetype/t1tables.h>
+#include <freetype.h>
+#include <t1tables.h>
 
 
 FT_BEGIN_HEADER

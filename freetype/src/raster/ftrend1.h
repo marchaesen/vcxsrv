@@ -21,7 +21,7 @@
 
 
 #include <ft2build.h>
-#include <freetype/ftrender.h>
+#include <ftrender.h>
 
 
 FT_BEGIN_HEADER

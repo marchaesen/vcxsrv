@@ -27,9 +27,9 @@ THE SOFTWARE.
 
 #include <ft2build.h>
 
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftstream.h>
-#include <freetype/internal/ftobjs.h>
+#include <internal/ftdebug.h>
+#include <internal/ftstream.h>
+#include <internal/ftobjs.h>
 
 #include "pcf.h"
 #include "pcfread.h"

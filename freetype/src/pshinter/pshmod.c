@@ -17,7 +17,7 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftobjs.h>
+#include <internal/ftobjs.h>
 #include "pshrec.h"
 #include "pshalgo.h"
 #include "pshpic.h"

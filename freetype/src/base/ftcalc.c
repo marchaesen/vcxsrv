@@ -34,10 +34,10 @@
 
 #include <ft2build.h>
 #include FT_GLYPH_H
-#include <freetype/fttrigon.h>
-#include <freetype/internal/ftcalc.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftobjs.h>
+#include <fttrigon.h>
+#include <internal/ftcalc.h>
+#include <internal/ftdebug.h>
+#include <internal/ftobjs.h>
 
 #ifdef FT_MULFIX_INLINED
 #undef FT_MulFix

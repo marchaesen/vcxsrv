@@ -21,8 +21,8 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftstream.h>
-#include <freetype/internal/psaux.h>
+#include <internal/ftstream.h>
+#include <internal/psaux.h>
 #include FT_MULTIPLE_MASTERS_H
 
 #include "t1parse.h"

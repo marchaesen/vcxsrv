@@ -19,7 +19,7 @@
 #include "pfrgload.h"
 #include "pfrsbit.h"
 #include "pfrload.h"            /* for macro definitions */
-#include <freetype/internal/ftdebug.h>
+#include <internal/ftdebug.h>
 
 #include "pfrerror.h"
 

@@ -21,7 +21,7 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/psaux.h>
+#include <internal/psaux.h>
 
 
 FT_BEGIN_HEADER

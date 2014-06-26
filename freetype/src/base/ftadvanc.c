@@ -20,7 +20,7 @@
 #include FT_INTERNAL_DEBUG_H
 
 #include FT_ADVANCES_H
-#include <freetype/internal/ftobjs.h>
+#include <internal/ftobjs.h>
 
 
   static FT_Error

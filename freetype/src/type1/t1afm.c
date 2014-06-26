@@ -19,8 +19,8 @@
 #include <ft2build.h>
 #include "t1afm.h"
 #include FT_INTERNAL_DEBUG_H
-#include <freetype/internal/ftstream.h>
-#include <freetype/internal/psaux.h>
+#include <internal/ftstream.h>
+#include <internal/psaux.h>
 #include "t1errors.h"
 
 

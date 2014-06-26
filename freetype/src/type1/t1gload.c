@@ -18,11 +18,11 @@
 
 #include <ft2build.h>
 #include "t1gload.h"
-#include <freetype/internal/ftcalc.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftstream.h>
+#include <internal/ftcalc.h>
+#include <internal/ftdebug.h>
+#include <internal/ftstream.h>
 #include FT_OUTLINE_H
-#include <freetype/internal/psaux.h>
+#include <internal/psaux.h>
 
 #include "t1errors.h"
 

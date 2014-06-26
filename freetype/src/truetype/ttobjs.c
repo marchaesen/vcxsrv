@@ -17,10 +17,10 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftstream.h>
+#include <internal/ftdebug.h>
+#include <internal/ftstream.h>
 #include FT_TRUETYPE_TAGS_H
-#include <freetype/internal/sfnt.h>
+#include <internal/sfnt.h>
 #include FT_TRUETYPE_DRIVER_H
 
 #include "ttgload.h"

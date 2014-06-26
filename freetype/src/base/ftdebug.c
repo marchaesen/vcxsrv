@@ -42,8 +42,8 @@
 
 
 #include <ft2build.h>
-#include <freetype/freetype.h>
-#include <freetype/internal/ftdebug.h>
+#include <freetype.h>
+#include <internal/ftdebug.h>
 
 
 #ifdef FT_DEBUG_LEVEL_ERROR

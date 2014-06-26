@@ -29,8 +29,8 @@
   void*  _af_debug_hints;
 #endif
 
-#include <freetype/internal/ftobjs.h>
-#include <freetype/internal/ftdebug.h>
+#include <internal/ftobjs.h>
+#include <internal/ftdebug.h>
 #include FT_AUTOHINTER_H
 #include FT_SERVICE_PROPERTIES_H
 

@@ -20,10 +20,10 @@
 
 
 #include <ft2build.h>
-#include <freetype/freetype.h>
-#include <freetype/t1tables.h>
-#include <freetype/internal/t1types.h>
-#include <freetype/internal/pshints.h>
+#include <freetype.h>
+#include <t1tables.h>
+#include <internal/t1types.h>
+#include <internal/pshints.h>
 
 
 FT_BEGIN_HEADER

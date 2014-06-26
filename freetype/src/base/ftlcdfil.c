@@ -21,7 +21,7 @@
 
 #include FT_LCD_FILTER_H
 #include FT_IMAGE_H
-#include <freetype/internal/ftobjs.h>
+#include <internal/ftobjs.h>
 
 
 #ifdef FT_CONFIG_OPTION_SUBPIXEL_RENDERING

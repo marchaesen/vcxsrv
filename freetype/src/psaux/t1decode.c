@@ -17,9 +17,9 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/pshints.h>
-#include <freetype/internal/ftcalc.h>
+#include <internal/ftdebug.h>
+#include <internal/pshints.h>
+#include <internal/ftcalc.h>
 #include FT_OUTLINE_H
 
 #include "t1decode.h"

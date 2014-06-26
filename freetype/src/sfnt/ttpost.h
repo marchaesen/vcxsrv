@@ -23,7 +23,7 @@
 
 #include <ft2build.h>
 #include FT_CONFIG_CONFIG_H
-#include <freetype/internal/tttypes.h>
+#include <internal/tttypes.h>
 
 
 FT_BEGIN_HEADER

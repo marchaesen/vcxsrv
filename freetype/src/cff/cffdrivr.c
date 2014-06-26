@@ -17,12 +17,12 @@
 
 
 #include <ft2build.h>
-#include <freetype/freetype.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftstream.h>
-#include <freetype/internal/sfnt.h>
-#include <freetype/internal/services/svcid.h>
-#include <freetype/internal/services/svpsinfo.h>
+#include <freetype.h>
+#include <internal/ftdebug.h>
+#include <internal/ftstream.h>
+#include <internal/sfnt.h>
+#include <internal/services/svcid.h>
+#include <internal/services/svpsinfo.h>
 #include FT_SERVICE_POSTSCRIPT_NAME_H
 #include FT_SERVICE_TT_CMAP_H
 

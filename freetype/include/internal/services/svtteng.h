@@ -19,7 +19,7 @@
 #ifndef __SVTTENG_H__
 #define __SVTTENG_H__
 
-#include <freetype/internal/ftserv.h>
+#include <internal/ftserv.h>
 #include FT_MODULE_H
 
 

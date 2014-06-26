@@ -17,9 +17,9 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftstream.h>
-#include <freetype/internal/ftcalc.h>
+#include <internal/ftdebug.h>
+#include <internal/ftstream.h>
+#include <internal/ftcalc.h>
 #include FT_TRUETYPE_IDS_H
 
 #include "t1gload.h"
@@ -32,7 +32,7 @@
 #endif
 
 #include FT_SERVICE_POSTSCRIPT_CMAPS_H
-#include <freetype/internal/psaux.h>
+#include <internal/psaux.h>
 
 
   /*************************************************************************/

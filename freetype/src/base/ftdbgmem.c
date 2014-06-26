@@ -18,8 +18,8 @@
 
 #include <ft2build.h>
 #include FT_CONFIG_CONFIG_H
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftmemory.h>
+#include <internal/ftdebug.h>
+#include <internal/ftmemory.h>
 #include FT_SYSTEM_H
 #include FT_ERRORS_H
 #include FT_TYPES_H

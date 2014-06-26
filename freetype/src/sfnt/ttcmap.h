@@ -21,8 +21,8 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/tttypes.h>
-#include <freetype/internal/ftvalid.h>
+#include <internal/tttypes.h>
+#include <internal/ftvalid.h>
 #include FT_SERVICE_TT_CMAP_H
 
 FT_BEGIN_HEADER

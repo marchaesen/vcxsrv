@@ -17,7 +17,7 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftobjs.h>
+#include <internal/ftobjs.h>
 #include FT_OUTLINE_H
 #include "ftsmooth.h"
 #include "ftgrays.h"

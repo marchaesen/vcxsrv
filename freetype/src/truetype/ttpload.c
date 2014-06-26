@@ -17,9 +17,9 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftobjs.h>
-#include <freetype/internal/ftstream.h>
+#include <internal/ftdebug.h>
+#include <internal/ftobjs.h>
+#include <internal/ftstream.h>
 #include FT_TRUETYPE_TAGS_H
 
 #include "ttpload.h"

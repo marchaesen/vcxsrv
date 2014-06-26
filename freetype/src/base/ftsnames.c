@@ -21,8 +21,8 @@
 
 #include <ft2build.h>
 #include FT_SFNT_NAMES_H
-#include <freetype/internal/tttypes.h>
-#include <freetype/internal/ftstream.h>
+#include <internal/tttypes.h>
+#include <internal/ftstream.h>
 
 
 #ifdef TT_CONFIG_OPTION_SFNT_NAMES

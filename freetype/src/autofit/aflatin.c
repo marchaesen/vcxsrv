@@ -17,8 +17,8 @@
 
 
 #include <ft2build.h>
-#include <freetype/ftadvanc.h>
-#include <freetype/internal/ftdebug.h>
+#include <ftadvanc.h>
+#include <internal/ftdebug.h>
 
 #include "afglobal.h"
 #include "afpic.h"

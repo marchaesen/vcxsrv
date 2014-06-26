@@ -17,8 +17,8 @@
 
 
 #include "pfrload.h"
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftstream.h>
+#include <internal/ftdebug.h>
+#include <internal/ftstream.h>
 
 #include "pfrerror.h"
 

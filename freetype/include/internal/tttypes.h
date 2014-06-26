@@ -23,7 +23,7 @@
 
 #include <ft2build.h>
 #include FT_TRUETYPE_TABLES_H
-#include <freetype/internal/ftobjs.h>
+#include <internal/ftobjs.h>
 
 #ifdef TT_CONFIG_OPTION_GX_VAR_SUPPORT
 #include FT_MULTIPLE_MASTERS_H

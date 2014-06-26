@@ -21,7 +21,7 @@
 
 #include <ft2build.h>
 #include "t1objs.h"
-#include <freetype/internal/t1types.h>
+#include <internal/t1types.h>
 
 FT_BEGIN_HEADER
 

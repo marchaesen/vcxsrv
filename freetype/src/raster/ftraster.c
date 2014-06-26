@@ -60,7 +60,7 @@
 
 #include <ft2build.h>
 #include "ftraster.h"
-#include <freetype/internal/ftcalc.h>   /* for FT_MulDiv and FT_MulDiv_No_Round */
+#include <internal/ftcalc.h>   /* for FT_MulDiv and FT_MulDiv_No_Round */
 
 #include "rastpic.h"
 
@@ -230,8 +230,8 @@
 #else /* !_STANDALONE_ */
 
 
-#include <freetype/internal/ftobjs.h>
-#include <freetype/internal/ftdebug.h>        /* for FT_TRACE, FT_ERROR, and FT_THROW */
+#include <internal/ftobjs.h>
+#include <internal/ftdebug.h>        /* for FT_TRACE, FT_ERROR, and FT_THROW */
 
 #include "rasterrs.h"
 

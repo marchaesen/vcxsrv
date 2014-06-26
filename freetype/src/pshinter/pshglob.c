@@ -19,7 +19,7 @@
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
-#include <freetype/internal/ftobjs.h>
+#include <internal/ftobjs.h>
 #include "pshglob.h"
 
 #ifdef DEBUG_HINTER

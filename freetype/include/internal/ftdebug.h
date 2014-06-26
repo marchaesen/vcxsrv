@@ -26,8 +26,8 @@
 
 
 #include <ft2build.h>
-#include <freetype/config/ftconfig.h>
-#include <freetype/freetype.h>
+#include <config/ftconfig.h>
+#include <freetype.h>
 
 
 FT_BEGIN_HEADER

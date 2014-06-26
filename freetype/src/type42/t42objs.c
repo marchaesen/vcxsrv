@@ -19,7 +19,7 @@
 #include "t42objs.h"
 #include "t42parse.h"
 #include "t42error.h"
-#include <freetype/internal/ftdebug.h>
+#include <internal/ftdebug.h>
 #include FT_LIST_H
 #include FT_TRUETYPE_IDS_H
 

@@ -30,8 +30,8 @@ THE SOFTWARE.
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftdriver.h>
-#include <freetype/internal/ftstream.h>
+#include <internal/ftdriver.h>
+#include <internal/ftstream.h>
 
 
 FT_BEGIN_HEADER

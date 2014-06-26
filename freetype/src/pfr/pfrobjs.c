@@ -22,7 +22,7 @@
 #include "pfrcmap.h"
 #include "pfrsbit.h"
 #include FT_OUTLINE_H
-#include <freetype/internal/ftdebug.h>
+#include <internal/ftdebug.h>
 #include FT_TRUETYPE_IDS_H
 
 #include "pfrerror.h"

@@ -21,8 +21,8 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/psaux.h>
-#include <freetype/internal/t1types.h>
+#include <internal/psaux.h>
+#include <internal/t1types.h>
 
 
 FT_BEGIN_HEADER

@@ -21,7 +21,7 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftdriver.h>
+#include <internal/ftdriver.h>
 
 
 FT_BEGIN_HEADER

@@ -34,7 +34,7 @@
 #include FT_GLYPH_H
 #include FT_OUTLINE_H
 #include FT_BITMAP_H
-#include <freetype/internal/ftobjs.h>
+#include <internal/ftobjs.h>
 
 #include "basepic.h"
 

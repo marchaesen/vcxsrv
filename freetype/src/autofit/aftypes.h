@@ -34,10 +34,10 @@
 
 #include <ft2build.h>
 
-#include <freetype/freetype.h>
+#include <freetype.h>
 #include FT_OUTLINE_H
-#include <freetype/internal/ftobjs.h>
-#include <freetype/internal/ftdebug.h>
+#include <internal/ftobjs.h>
+#include <internal/ftdebug.h>
 
 #include "afblue.h"
 

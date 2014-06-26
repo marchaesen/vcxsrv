@@ -20,7 +20,7 @@
 #define __SVBDF_H__
 
 #include FT_BDF_H
-#include <freetype/internal/ftserv.h>
+#include <internal/ftserv.h>
 
 
 FT_BEGIN_HEADER

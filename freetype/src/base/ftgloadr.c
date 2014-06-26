@@ -17,10 +17,10 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftgloadr.h>
-#include <freetype/internal/ftmemory.h>
-#include <freetype/internal/ftobjs.h>
+#include <internal/ftdebug.h>
+#include <internal/ftgloadr.h>
+#include <internal/ftmemory.h>
+#include <internal/ftobjs.h>
 
 #undef  FT_COMPONENT
 #define FT_COMPONENT  trace_gloader

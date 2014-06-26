@@ -17,7 +17,7 @@
 #ifndef __SVTTGLYF_H__
 #define __SVTTGLYF_H__
 
-#include <freetype/internal/ftserv.h>
+#include <internal/ftserv.h>
 #include FT_TRUETYPE_TABLES_H
 
 

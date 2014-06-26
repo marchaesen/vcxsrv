@@ -21,8 +21,8 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftcalc.h>
+#include <internal/ftdebug.h>
+#include <internal/ftcalc.h>
 #include FT_TRIGONOMETRY_H
 #include FT_SYSTEM_H
 #include FT_TRUETYPE_DRIVER_H

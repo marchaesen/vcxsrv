@@ -17,11 +17,11 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftobjs.h>
-#include <freetype/internal/ftstream.h>
-#include <freetype/tttags.h>
-#include <freetype/t1tables.h>
+#include <internal/ftdebug.h>
+#include <internal/ftobjs.h>
+#include <internal/ftstream.h>
+#include <tttags.h>
+#include <t1tables.h>
 
 #include "cffload.h"
 #include "cffparse.h"

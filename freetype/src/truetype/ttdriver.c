@@ -17,9 +17,9 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftstream.h>
-#include <freetype/internal/sfnt.h>
+#include <internal/ftdebug.h>
+#include <internal/ftstream.h>
+#include <internal/sfnt.h>
 #include FT_SERVICE_XFREE86_NAME_H
 
 #ifdef TT_CONFIG_OPTION_GX_VAR_SUPPORT

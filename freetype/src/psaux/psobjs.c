@@ -17,9 +17,9 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/psaux.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftcalc.h>
+#include <internal/psaux.h>
+#include <internal/ftdebug.h>
+#include <internal/ftcalc.h>
 
 #include "psobjs.h"
 #include "psconv.h"

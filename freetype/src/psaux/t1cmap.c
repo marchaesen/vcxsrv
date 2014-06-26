@@ -18,7 +18,7 @@
 
 #include "t1cmap.h"
 
-#include <freetype/internal/ftdebug.h>
+#include <internal/ftdebug.h>
 
 #include "psauxerr.h"
 

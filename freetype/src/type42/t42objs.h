@@ -19,14 +19,14 @@
 #define __T42OBJS_H__
 
 #include <ft2build.h>
-#include <freetype/freetype.h>
-#include <freetype/t1tables.h>
-#include <freetype/internal/t1types.h>
+#include <freetype.h>
+#include <t1tables.h>
+#include <internal/t1types.h>
 #include "t42types.h"
-#include <freetype/internal/ftobjs.h>
-#include <freetype/internal/ftdriver.h>
-#include <freetype/internal/services/svpscmap.h>
-#include <freetype/internal/pshints.h>
+#include <internal/ftobjs.h>
+#include <internal/ftdriver.h>
+#include <internal/services/svpscmap.h>
+#include <internal/pshints.h>
 
 
 FT_BEGIN_HEADER

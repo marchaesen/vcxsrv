@@ -61,11 +61,11 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftdebug.h>
+#include <internal/ftdebug.h>
 #include FT_CONFIG_CONFIG_H
 #include FT_MULTIPLE_MASTERS_H
-#include <freetype/internal/t1types.h>
-#include <freetype/internal/ftcalc.h>
+#include <internal/t1types.h>
+#include <internal/ftcalc.h>
 
 #include "t1load.h"
 #include "t1errors.h"

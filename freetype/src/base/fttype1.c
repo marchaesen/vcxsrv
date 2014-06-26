@@ -17,9 +17,9 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftobjs.h>
-#include <freetype/internal/ftserv.h>
-#include <freetype/internal/services/svpsinfo.h>
+#include <internal/ftobjs.h>
+#include <internal/ftserv.h>
+#include <internal/services/svpsinfo.h>
 
 
   /* documentation is in t1tables.h */

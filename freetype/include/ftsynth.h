@@ -46,7 +46,7 @@
 
 
 #include <ft2build.h>
-#include <freetype/freetype.h>
+#include <freetype.h>
 
 #ifdef FREETYPE_H
 #error "freetype.h of FreeType 1 has been loaded!"

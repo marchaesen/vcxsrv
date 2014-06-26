@@ -17,7 +17,7 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftobjs.h>
+#include <internal/ftobjs.h>
 #include FT_SERVICE_BDF_H
 
 

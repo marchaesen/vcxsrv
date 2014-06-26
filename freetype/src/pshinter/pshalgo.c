@@ -17,9 +17,9 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftobjs.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftcalc.h>
+#include <internal/ftobjs.h>
+#include <internal/ftdebug.h>
+#include <internal/ftcalc.h>
 #include "pshalgo.h"
 
 #include "pshnterr.h"

@@ -21,9 +21,9 @@
 
 
 #include <ft2build.h>
-#include <freetype/config/ftconfig.h>
-#include <freetype/ftsystem.h>
-#include <freetype/ftimage.h>
+#include <config/ftconfig.h>
+#include <ftsystem.h>
+#include <ftimage.h>
 
 #include <stddef.h>
 

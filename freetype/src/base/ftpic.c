@@ -18,7 +18,7 @@
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
-#include <freetype/internal/ftobjs.h>
+#include <internal/ftobjs.h>
 #include "basepic.h"
 
 #ifdef FT_CONFIG_OPTION_PIC

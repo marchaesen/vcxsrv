@@ -17,8 +17,8 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/psaux.h>
-#include <freetype/internal/ftdebug.h>
+#include <internal/psaux.h>
+#include <internal/ftdebug.h>
 
 #include "psconv.h"
 #include "psauxerr.h"

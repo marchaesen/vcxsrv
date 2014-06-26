@@ -19,7 +19,7 @@
 #ifndef __SVXF86NM_H__
 #define __SVXF86NM_H__
 
-#include <freetype/internal/ftserv.h>
+#include <internal/ftserv.h>
 
 
 FT_BEGIN_HEADER

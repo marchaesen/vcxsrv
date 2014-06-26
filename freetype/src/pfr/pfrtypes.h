@@ -20,7 +20,7 @@
 #define __PFRTYPES_H__
 
 #include <ft2build.h>
-#include <freetype/internal/ftobjs.h>
+#include <internal/ftobjs.h>
 
 FT_BEGIN_HEADER
 

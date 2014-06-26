@@ -24,7 +24,7 @@
 #ifndef __SVTTCMAP_H__
 #define __SVTTCMAP_H__
 
-#include <freetype/internal/ftserv.h>
+#include <internal/ftserv.h>
 #include FT_TRUETYPE_TABLES_H
 
 

@@ -19,12 +19,12 @@
 #include <ft2build.h>
 #include FT_LIST_H
 #include FT_OUTLINE_H
-#include <freetype/internal/ftvalid.h>
-#include <freetype/internal/ftobjs.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftrfork.h>
-#include <freetype/internal/ftstream.h>
-#include <freetype/internal/sfnt.h>    /* for SFNT_Load_Table_Func */
+#include <internal/ftvalid.h>
+#include <internal/ftobjs.h>
+#include <internal/ftdebug.h>
+#include <internal/ftrfork.h>
+#include <internal/ftstream.h>
+#include <internal/sfnt.h>    /* for SFNT_Load_Table_Func */
 #include FT_TRUETYPE_TABLES_H
 #include FT_TRUETYPE_TAGS_H
 #include FT_TRUETYPE_IDS_H

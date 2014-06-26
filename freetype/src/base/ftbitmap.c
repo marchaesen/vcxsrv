@@ -21,7 +21,7 @@
 
 #include FT_BITMAP_H
 #include FT_IMAGE_H
-#include <freetype/internal/ftobjs.h>
+#include <internal/ftobjs.h>
 
 
   static

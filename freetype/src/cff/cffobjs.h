@@ -21,11 +21,11 @@
 
 
 #include <ft2build.h>
-#include <freetype/internal/ftobjs.h>
+#include <internal/ftobjs.h>
 #include "cfftypes.h"
-#include <freetype/internal/tttypes.h>
-#include <freetype/internal/services/svpscmap.h>
-#include <freetype/internal/pshints.h>
+#include <internal/tttypes.h>
+#include <internal/services/svpscmap.h>
+#include <internal/pshints.h>
 
 
 FT_BEGIN_HEADER

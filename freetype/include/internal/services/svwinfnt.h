@@ -19,7 +19,7 @@
 #ifndef __SVWINFNT_H__
 #define __SVWINFNT_H__
 
-#include <freetype/internal/ftserv.h>
+#include <internal/ftserv.h>
 #include FT_WINFONTS_H
 
 

@@ -39,12 +39,12 @@
 #include "t42drivr.h"
 #include "t42objs.h"
 #include "t42error.h"
-#include <freetype/internal/ftdebug.h>
+#include <internal/ftdebug.h>
 
 #include FT_SERVICE_XFREE86_NAME_H
 #include FT_SERVICE_GLYPH_DICT_H
 #include FT_SERVICE_POSTSCRIPT_NAME_H
-#include <freetype/internal/services/svpsinfo.h>
+#include <internal/services/svpsinfo.h>
 
 #undef  FT_COMPONENT
 #define FT_COMPONENT  trace_t42

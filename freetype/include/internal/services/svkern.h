@@ -19,7 +19,7 @@
 #ifndef __SVKERN_H__
 #define __SVKERN_H__
 
-#include <freetype/internal/ftserv.h>
+#include <internal/ftserv.h>
 #include FT_TRUETYPE_TABLES_H
 
 
