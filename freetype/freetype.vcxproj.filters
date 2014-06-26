@@ -200,6 +200,15 @@
     <ClCompile Include="src\pcf\pcfutil.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\autofit\hbshim.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\autofit\afblue.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\autofit\afranges.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\freetype\freetype.h">

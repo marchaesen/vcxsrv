@@ -603,6 +603,7 @@ __glGetBooleanv_size( GLenum e )
         case GL_RESET_NOTIFICATION_STRATEGY_ARB:
         case GL_MAX_DEBUG_GROUP_STACK_DEPTH:
         case GL_DEBUG_GROUP_STACK_DEPTH:
+        case GL_MAX_UNIFORM_LOCATIONS:
         case GL_MAX_LABEL_LENGTH:
         case GL_CURRENT_FOG_COORD:
         case GL_FOG_COORDINATE_ARRAY_TYPE:

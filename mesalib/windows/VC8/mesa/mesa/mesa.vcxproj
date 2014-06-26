@@ -287,6 +287,7 @@
     <ClCompile Include="..\..\..\..\src\glsl\opt_function_inlining.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_if_simplification.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_noop_swizzle.cpp" />
+    <ClCompile Include="..\..\..\..\src\glsl\opt_rebalance_tree.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_redundant_jumps.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_structure_splitting.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_swizzle_swizzle.cpp" />

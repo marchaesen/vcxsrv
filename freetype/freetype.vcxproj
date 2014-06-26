@@ -380,6 +380,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\autofit\afangles.c" />
+    <ClCompile Include="src\autofit\afblue.c" />
     <ClCompile Include="src\autofit\afcjk.c" />
     <ClCompile Include="src\autofit\afdummy.c" />
     <ClCompile Include="src\autofit\afglobal.c">
@@ -391,6 +392,8 @@
     <ClCompile Include="src\autofit\aflatin.c" />
     <ClCompile Include="src\autofit\afloader.c" />
     <ClCompile Include="src\autofit\afmodule.c" />
+    <ClCompile Include="src\autofit\afranges.c" />
+    <ClCompile Include="src\autofit\hbshim.c" />
     <ClCompile Include="src\base\ftbitmap.c" />
     <ClCompile Include="src\base\ftlcdfil.c" />
     <ClCompile Include="src\base\ftsynth.c" />
