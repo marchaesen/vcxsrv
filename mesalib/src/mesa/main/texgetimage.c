@@ -43,6 +43,7 @@
 #include "texcompress.h"
 #include "texgetimage.h"
 #include "teximage.h"
+#include "texstore.h"
 
 
 
@@ -686,56 +687,62 @@ _mesa_get_compressed_teximage(struct gl_context *ctx,
                               struct gl_texture_image *texImage,
                               GLvoid *img)
 {
-   const GLuint row_stride =
-      _mesa_format_row_stride(texImage->TexFormat, texImage->Width);
-   GLuint i;
-   GLubyte *src;
-   GLint srcRowStride;
+   const GLuint dimensions =
+      _mesa_get_texture_dimensions(texImage->TexObject->Target);
+   struct compressed_pixelstore store;
+   GLuint i, slice;
+   GLubyte *dest;
+
+   _mesa_compute_compressed_pixelstore(dimensions, texImage,
+                                       texImage->Width, texImage->Height,
+                                       texImage->Depth,
+                                       &ctx->Pack,
+                                       &store);
 
    if (_mesa_is_bufferobj(ctx->Pack.BufferObj)) {
       /* pack texture image into a PBO */
-      GLubyte *buf = (GLubyte *)
+      dest = (GLubyte *)
          ctx->Driver.MapBufferRange(ctx, 0, ctx->Pack.BufferObj->Size,
 				    GL_MAP_WRITE_BIT, ctx->Pack.BufferObj,
                                     MAP_INTERNAL);
-      if (!buf) {
+      if (!dest) {
          /* out of memory or other unexpected error */
          _mesa_error(ctx, GL_OUT_OF_MEMORY,
                      "glGetCompresssedTexImage(map PBO failed)");
          return;
       }
-      img = ADD_POINTERS(buf, img);
+      dest = ADD_POINTERS(dest, img);
+   } else {
+      dest = img;
    }
 
-   /* map src texture buffer */
-   ctx->Driver.MapTextureImage(ctx, texImage, 0,
-                               0, 0, texImage->Width, texImage->Height,
-                               GL_MAP_READ_BIT, &src, &srcRowStride);
+   dest += store.SkipBytes;
 
-   if (src) {
-      /* no pixelstore or pixel transfer, but respect stride */
+   for (slice = 0; slice < store.CopySlices; slice++) {
+      GLint srcRowStride;
+      GLubyte *src;
 
-      if (row_stride == srcRowStride) {
-         const GLuint size = _mesa_format_image_size(texImage->TexFormat,
-                                                     texImage->Width,
-                                                     texImage->Height,
-                                                     texImage->Depth);
-         memcpy(img, src, size);
-      }
-      else {
-         GLuint bw, bh;
-         _mesa_get_format_block_size(texImage->TexFormat, &bw, &bh);
-         for (i = 0; i < (texImage->Height + bh - 1) / bh; i++) {
-            memcpy((GLubyte *)img + i * row_stride,
-                   (GLubyte *)src + i * srcRowStride,
-                   row_stride);
+      /* map src texture buffer */
+      ctx->Driver.MapTextureImage(ctx, texImage, 0,
+                                  0, 0, texImage->Width, texImage->Height,
+                                  GL_MAP_READ_BIT, &src, &srcRowStride);
+
+      if (src) {
+
+         for (i = 0; i < store.CopyRowsPerSlice; i++) {
+            memcpy(dest, src, store.CopyBytesPerRow);
+            dest += store.TotalBytesPerRow;
+            src += srcRowStride;
          }
-      }
 
-      ctx->Driver.UnmapTextureImage(ctx, texImage, 0);
-   }
-   else {
-      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glGetCompresssedTexImage");
+         ctx->Driver.UnmapTextureImage(ctx, texImage, 0);
+
+         /* Advance to next slice */
+         dest += store.TotalBytesPerRow * (store.TotalRowsPerSlice - store.CopyRowsPerSlice);
+
+      } else {
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glGetCompresssedTexImage");
+      }
    }
 
    if (_mesa_is_bufferobj(ctx->Pack.BufferObj)) {
@@ -963,7 +970,7 @@ getcompressedteximage_error_check(struct gl_context *ctx, GLenum target,
    struct gl_texture_object *texObj;
    struct gl_texture_image *texImage;
    const GLint maxLevels = _mesa_max_texture_levels(ctx, target);
-   GLuint compressedSize;
+   GLuint compressedSize, dimensions;
 
    if (!legal_getteximage_target(ctx, target)) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glGetCompressedTexImage(target=0x%x)",
@@ -1003,6 +1010,14 @@ getcompressedteximage_error_check(struct gl_context *ctx, GLenum target,
                                             texImage->Width,
                                             texImage->Height,
                                             texImage->Depth);
+
+   /* Check for invalid pixel storage modes */
+   dimensions = _mesa_get_texture_dimensions(texImage->TexObject->Target);
+   if (!_mesa_compressed_texture_pixel_storage_error_check(ctx, dimensions,
+                                                           &ctx->Pack,
+                                                           "glGetCompressedTexImageARB")) {
+      return GL_TRUE;
+   }
 
    if (!_mesa_is_bufferobj(ctx->Pack.BufferObj)) {
       /* do bounds checking on writing to client memory */

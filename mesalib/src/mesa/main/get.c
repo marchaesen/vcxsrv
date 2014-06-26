@@ -278,11 +278,6 @@ static const int extra_flush_current[] = {
    EXTRA_END
 };
 
-static const int extra_EXT_texture_integer[] = {
-   EXT(EXT_texture_integer),
-   EXTRA_END
-};
-
 static const int extra_EXT_texture_integer_and_new_buffers[] = {
    EXT(EXT_texture_integer),
    EXTRA_NEW_BUFFERS,
@@ -395,6 +390,7 @@ EXTRA_EXT(ARB_compute_shader);
 EXTRA_EXT(ARB_gpu_shader5);
 EXTRA_EXT2(ARB_transform_feedback3, ARB_gpu_shader5);
 EXTRA_EXT(INTEL_performance_query);
+EXTRA_EXT(ARB_explicit_uniform_location);
 
 static const int
 extra_ARB_color_buffer_float_or_glcore[] = {

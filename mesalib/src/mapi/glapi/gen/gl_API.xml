@@ -8276,7 +8276,9 @@
   </function>
 </category>
 
-<!-- ARB extensions #110...#116 -->
+<xi:include href="ARB_compressed_texture_pixel_storage.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<!-- ARB extensions #111...#116 -->
 
 <xi:include href="ARB_internalformat_query.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
@@ -8310,7 +8312,19 @@
 
 <xi:include href="ARB_ES3_compatibility.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
-<!-- ARB extensions #128...#131 -->
+<!-- ARB extension #128 -->
+
+<category name="GL_ARB_fragment_layer_viewport" number="129">
+    <!-- No new functions, types, enums. -->
+</category>
+
+<!-- ARB extensions #130..#131 -->
+
+<category name="GL_ARB_explicit_uniform_location" number="128">
+    <enum name="MAX_UNIFORM_LOCATIONS" count="1" value="0x826E" >
+        <size name="Get" mode="get"/>
+    </enum>
+</category>
 
 <xi:include href="ARB_invalidate_subdata.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 

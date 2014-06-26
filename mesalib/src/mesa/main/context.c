@@ -396,6 +396,8 @@ one_time_init( struct gl_context *ctx )
       assert( sizeof(GLint) == 4 );
       assert( sizeof(GLuint) == 4 );
 
+      _mesa_one_time_init_extension_overrides();
+
       _mesa_get_cpu_features();
 
       for (i = 0; i < 256; i++) {
@@ -609,6 +611,10 @@ _mesa_init_constants(struct gl_context *ctx)
    ctx->Const.MaxUniformBufferBindings = 36;
    ctx->Const.MaxUniformBlockSize = 16384;
    ctx->Const.UniformBufferOffsetAlignment = 1;
+
+   /* GL_ARB_explicit_uniform_location, GL_MAX_UNIFORM_LOCATIONS */
+   ctx->Const.MaxUserAssignableUniformLocations =
+      4 * MESA_SHADER_STAGES * MAX_UNIFORMS;
 
    for (i = 0; i < MESA_SHADER_STAGES; i++)
       init_program_limits(ctx, i, &ctx->Const.Program[i]);

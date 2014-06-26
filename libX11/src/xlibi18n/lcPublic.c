@@ -255,16 +255,14 @@ static void
 destroy_core(
     XLCd lcd)
 {
-    if (lcd->core) {
-	if (lcd->core->name)
+    if (lcd) {
+        if (lcd->core) {
             Xfree(lcd->core->name);
-	Xfree(lcd->core);
+            Xfree(lcd->core);
+        }
+        Xfree(lcd->methods);
+        Xfree(lcd);
     }
-
-    if (lcd->methods)
-	Xfree(lcd->methods);
-
-    Xfree(lcd);
 }
 
 static void
@@ -275,10 +273,8 @@ destroy(
 
     _XlcDestroyLocaleDataBase(lcd);
 
-    if (pub->siname)
-	Xfree(pub->siname);
-    if (pub->encoding_name)
-	Xfree(pub->encoding_name);
+    Xfree(pub->siname);
+    Xfree(pub->encoding_name);
 
     destroy_core(lcd);
 }

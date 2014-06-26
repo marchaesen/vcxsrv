@@ -442,8 +442,7 @@ XkbAllocDeviceInfo(unsigned deviceSpec, unsigned nButtons, unsigned szLeds)
             devi->sz_leds = szLeds;
             devi->leds = _XkbTypedCalloc(szLeds, XkbDeviceLedInfoRec);
             if (!devi->leds) {
-                if (devi->btn_acts)
-                    _XkbFree(devi->btn_acts);
+                _XkbFree(devi->btn_acts);
                 _XkbFree(devi);
                 return NULL;
             }

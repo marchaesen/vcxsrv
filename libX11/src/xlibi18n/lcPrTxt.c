@@ -283,8 +283,7 @@ _XwcFreeStringList(
     wchar_t **list)
 {
     if (list) {
-        if (*list)
-	     Xfree(*list);
+        Xfree(*list);
         Xfree(list);
     }
 }

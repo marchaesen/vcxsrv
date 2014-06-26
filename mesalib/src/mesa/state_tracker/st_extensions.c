@@ -543,6 +543,7 @@ void st_init_extensions(struct st_context *st)
    ctx->Extensions.ARB_ES2_compatibility = GL_TRUE;
    ctx->Extensions.ARB_draw_elements_base_vertex = GL_TRUE;
    ctx->Extensions.ARB_explicit_attrib_location = GL_TRUE;
+   ctx->Extensions.ARB_explicit_uniform_location = GL_TRUE;
    ctx->Extensions.ARB_fragment_coord_conventions = GL_TRUE;
    ctx->Extensions.ARB_fragment_program = GL_TRUE;
    ctx->Extensions.ARB_fragment_shader = GL_TRUE;
@@ -630,6 +631,7 @@ void st_init_extensions(struct st_context *st)
       ctx->Extensions.ARB_shading_language_packing = GL_TRUE;
       ctx->Extensions.OES_depth_texture_cube_map = GL_TRUE;
       ctx->Extensions.ARB_shading_language_420pack = GL_TRUE;
+      ctx->Extensions.ARB_texture_query_levels = GL_TRUE;
 
       if (!st->options.disable_shader_bit_encoding) {
          ctx->Extensions.ARB_shader_bit_encoding = GL_TRUE;

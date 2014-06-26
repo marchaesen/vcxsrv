@@ -258,7 +258,7 @@ Status XGetCommand (
 	return (0);
     }
 
-    if (tp.value) Xfree (tp.value);
+    Xfree (tp.value);
     *argvp = argv;
     *argcp = argc;
     return 1;

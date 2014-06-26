@@ -21,12 +21,6 @@ SConscript([
     'drivers/trace/SConscript',
 ])
 
-if not env['msvc']:
-    # These drivers do not build on MSVC compilers
-    SConscript([
-        'drivers/i915/SConscript',
-    ])
-
 #
 # State trackers
 #
@@ -66,11 +60,6 @@ if env['platform'] == 'windows':
         'winsys/sw/gdi/SConscript',
     ])
 
-if not env['msvc']:
-    SConscript([
-        'winsys/i915/sw/SConscript',
-    ])
-
 if env['platform'] == 'haiku':
     SConscript([
         'winsys/sw/hgl/SConscript',
@@ -84,11 +73,6 @@ if env['dri']:
     SConscript([
         'winsys/svga/drm/SConscript',
     ])
-
-    if env['drm_intel']:
-        SConscript([
-            'winsys/i915/drm/SConscript',
-        ])
 
 #
 # Targets
@@ -126,10 +110,6 @@ if not env['embedded']:
             'targets/dri-swrast/SConscript',
             'targets/dri-vmwgfx/SConscript',
         ])
-        if env['drm_intel']:
-            SConscript([
-                'targets/dri-i915/SConscript',
-            ])
 
 
 #

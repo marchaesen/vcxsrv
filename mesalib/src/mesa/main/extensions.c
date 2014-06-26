@@ -37,6 +37,11 @@
 #include "macros.h"
 #include "mtypes.h"
 
+struct gl_extensions _mesa_extension_override_enables;
+struct gl_extensions _mesa_extension_override_disables;
+static char *extra_extensions = NULL;
+static char *cant_disable_extensions = NULL;
+
 enum {
    DISABLE = 0,
    GLL = 1 << API_OPENGL_COMPAT,       /* GL Legacy / Compatibility */
@@ -86,6 +91,7 @@ static const struct extension extension_table[] = {
    { "GL_ARB_buffer_storage",                      o(ARB_buffer_storage),                      GL,             2013 },
    { "GL_ARB_clear_buffer_object",                 o(dummy_true),                              GL,             2012 },
    { "GL_ARB_color_buffer_float",                  o(ARB_color_buffer_float),                  GL,             2004 },
+   { "GL_ARB_compressed_texture_pixel_storage",    o(dummy_true),                              GL,             2011 },
    { "GL_ARB_compute_shader",                      o(ARB_compute_shader),                      GL,             2012 },
    { "GL_ARB_copy_buffer",                         o(dummy_true),                              GL,             2008 },
    { "GL_ARB_conservative_depth",                  o(ARB_conservative_depth),                  GL,             2011 },
@@ -99,7 +105,9 @@ static const struct extension extension_table[] = {
    { "GL_ARB_draw_indirect",                       o(ARB_draw_indirect),                       GLC,            2010 },
    { "GL_ARB_draw_instanced",                      o(ARB_draw_instanced),                      GL,             2008 },
    { "GL_ARB_explicit_attrib_location",            o(ARB_explicit_attrib_location),            GL,             2009 },
+   { "GL_ARB_explicit_uniform_location",           o(ARB_explicit_uniform_location),           GL,             2012 },
    { "GL_ARB_fragment_coord_conventions",          o(ARB_fragment_coord_conventions),          GL,             2009 },
+   { "GL_ARB_fragment_layer_viewport",             o(ARB_fragment_layer_viewport),             GLC,            2012 },
    { "GL_ARB_fragment_program",                    o(ARB_fragment_program),                    GLL,            2002 },
    { "GL_ARB_fragment_program_shadow",             o(ARB_fragment_program_shadow),             GLL,            2003 },
    { "GL_ARB_fragment_shader",                     o(ARB_fragment_shader),                     GL,             2002 },
@@ -388,6 +396,31 @@ name_to_offset(const char* name)
    return 0;
 }
 
+/**
+ * Overrides extensions in \c ctx based on the values in
+ * _mesa_extension_override_enables and _mesa_extension_override_disables.
+ */
+static void
+override_extensions_in_context(struct gl_context *ctx)
+{
+   const struct extension *i;
+   const GLboolean *enables =
+      (GLboolean*) &_mesa_extension_override_enables;
+   const GLboolean *disables =
+      (GLboolean*) &_mesa_extension_override_disables;
+   GLboolean *ctx_ext = (GLboolean*)&ctx->Extensions;
+
+   for (i = extension_table; i->name != 0; ++i) {
+      size_t offset = i->offset;
+      assert(!enables[offset] || !disables[offset]);
+      if (enables[offset]) {
+         ctx_ext[offset] = 1;
+      } else if (disables[offset]) {
+         ctx_ext[offset] = 0;
+      }
+   }
+}
+
 
 /**
  * Enable all extensions suitable for a software-only renderer.
@@ -473,34 +506,19 @@ _mesa_enable_sw_extensions(struct gl_context *ctx)
 
 /**
  * Either enable or disable the named extension.
- * \return GL_TRUE for success, GL_FALSE if invalid extension name
+ * \return offset of extensions withint `ext' or 0 if extension is not known
  */
-static GLboolean
-set_extension( struct gl_context *ctx, const char *name, GLboolean state )
+static size_t
+set_extension(struct gl_extensions *ext, const char *name, GLboolean state)
 {
    size_t offset;
 
-   if (ctx->Extensions.String) {
-      /* The string was already queried - can't change it now! */
-      _mesa_problem(ctx, "Trying to enable/disable extension after "
-                    "glGetString(GL_EXTENSIONS): %s", name);
-      return GL_FALSE;
+   offset = name_to_offset(name);
+   if (offset != 0 && (offset != o(dummy_true) || state != GL_FALSE)) {
+      ((GLboolean *) ext)[offset] = state;
    }
 
-   offset = name_to_offset(name);
-   if (offset == 0) {
-      _mesa_problem(ctx, "Trying to enable/disable unknown extension %s",
-	            name);
-      return GL_FALSE;
-   } else if (offset == o(dummy_true) && state == GL_FALSE) {
-      _mesa_problem(ctx, "Trying to disable a permanently enabled extension: "
-	                  "%s", name);
-      return GL_FALSE;
-   } else {
-      GLboolean *base = (GLboolean *) &ctx->Extensions;
-      base[offset] = state;
-      return GL_TRUE;
-   }
+   return offset;
 }
 
 /**
@@ -513,32 +531,80 @@ set_extension( struct gl_context *ctx, const char *name, GLboolean state )
  *    - Enable recognized extension names that are not prefixed.
  *    - Collect unrecognized extension names in a new string.
  *
+ * \c MESA_EXTENSION_OVERRIDE was previously parsed during
+ * _mesa_one_time_init_extension_overrides. We just use the results of that
+ * parsing in this function.
+ *
  * \return Space-separated list of unrecognized extension names (which must
  *    be freed). Does not return \c NULL.
  */
 static char *
 get_extension_override( struct gl_context *ctx )
 {
+   override_extensions_in_context(ctx);
+
+   if (cant_disable_extensions != NULL) {
+      _mesa_problem(ctx,
+                    "Trying to disable permanently enabled extensions: %s",
+	            cant_disable_extensions);
+   }
+
+   if (extra_extensions == NULL) {
+      return calloc(1, sizeof(char));
+   } else {
+      _mesa_problem(ctx, "Trying to enable unknown extensions: %s",
+                    extra_extensions);
+      return strdup(extra_extensions);
+   }
+}
+
+
+/**
+ * \brief Free extra_extensions and cant_disable_extensions strings
+ *
+ * These strings are allocated early during the first context creation by
+ * _mesa_one_time_init_extension_overrides.
+ */
+static void
+free_unknown_extensions_strings(void)
+{
+   free(extra_extensions);
+   free(cant_disable_extensions);
+}
+
+
+/**
+ * \brief Initialize extension override tables.
+ *
+ * This should be called one time early during first context initialization.
+ */
+void
+_mesa_one_time_init_extension_overrides(void)
+{
    const char *env_const = _mesa_getenv("MESA_EXTENSION_OVERRIDE");
    char *env;
    char *ext;
-   char *extra_exts;
    int len;
+   size_t offset;
+
+   atexit(free_unknown_extensions_strings);
+
+   memset(&_mesa_extension_override_enables, 0, sizeof(struct gl_extensions));
+   memset(&_mesa_extension_override_disables, 0, sizeof(struct gl_extensions));
 
    if (env_const == NULL) {
-      /* Return the empty string rather than NULL. This simplifies the logic
-       * of client functions. */
-      return calloc(4, sizeof(char));
+      return;
    }
 
    /* extra_exts: List of unrecognized extensions. */
-   extra_exts = calloc(ALIGN(strlen(env_const) + 2, 4), sizeof(char));
+   extra_extensions = calloc(ALIGN(strlen(env_const) + 2, 4), sizeof(char));
+   cant_disable_extensions = calloc(ALIGN(strlen(env_const) + 2, 4), sizeof(char));
 
    /* Copy env_const because strtok() is destructive. */
    env = strdup(env_const);
    for (ext = strtok(env, " "); ext != NULL; ext = strtok(NULL, " ")) {
       int enable;
-      int recognized;
+      bool recognized;
       switch (ext[0]) {
       case '+':
          enable = 1;
@@ -552,21 +618,43 @@ get_extension_override( struct gl_context *ctx )
          enable = 1;
          break;
       }
-      recognized = set_extension(ctx, ext, enable);
+
+      offset = set_extension(&_mesa_extension_override_enables, ext, enable);
+      if (offset != 0 && (offset != o(dummy_true) || enable != GL_FALSE)) {
+         ((GLboolean *) &_mesa_extension_override_disables)[offset] = !enable;
+         recognized = true;
+      } else {
+         recognized = false;
+      }
+
       if (!recognized) {
-         strcat(extra_exts, ext);
-         strcat(extra_exts, " ");
+         if (enable) {
+            strcat(extra_extensions, ext);
+            strcat(extra_extensions, " ");
+         } else if (offset == o(dummy_true)) {
+            strcat(cant_disable_extensions, ext);
+            strcat(cant_disable_extensions, " ");
+         }
       }
    }
 
    free(env);
 
-   /* Remove trailing space. */
-   len = strlen(extra_exts);
-   if (len > 0 && extra_exts[len - 1] == ' ')
-      extra_exts[len - 1] = '\0';
-
-   return extra_exts;
+   /* Remove trailing space, and free if unused. */
+   len = strlen(extra_extensions);
+   if (len == 0) {
+      free(extra_extensions);
+      extra_extensions = NULL;
+   } else if (extra_extensions[len - 1] == ' ') {
+      extra_extensions[len - 1] = '\0';
+   }
+   len = strlen(cant_disable_extensions);
+   if (len == 0) {
+      free(cant_disable_extensions);
+      cant_disable_extensions = NULL;
+   } else if (cant_disable_extensions[len - 1] == ' ') {
+      cant_disable_extensions[len - 1] = '\0';
+   }
 }
 
 

@@ -155,6 +155,21 @@ struct _mesa_glsl_parse_state {
       return true;
    }
 
+   bool check_explicit_uniform_location_allowed(YYLTYPE *locp,
+                                                const ir_variable *)
+   {
+      if (!this->has_explicit_attrib_location() ||
+          !this->ARB_explicit_uniform_location_enable) {
+         _mesa_glsl_error(locp, this,
+                          "uniform explicit location requires "
+                          "GL_ARB_explicit_uniform_location and either "
+                          "GL_ARB_explicit_attrib_location or GLSL 330.");
+         return false;
+      }
+
+      return true;
+   }
+
    bool has_explicit_attrib_location() const
    {
       return ARB_explicit_attrib_location_enable || is_version(330, 300);
@@ -192,7 +207,7 @@ struct _mesa_glsl_parse_state {
    /**
     * Number of nested struct_specifier levels
     *
-    * Outside a struct_specifer, this is zero.
+    * Outside a struct_specifier, this is zero.
     */
    unsigned struct_specifier_depth;
 
@@ -367,8 +382,12 @@ struct _mesa_glsl_parse_state {
    bool ARB_draw_instanced_warn;
    bool ARB_explicit_attrib_location_enable;
    bool ARB_explicit_attrib_location_warn;
+   bool ARB_explicit_uniform_location_enable;
+   bool ARB_explicit_uniform_location_warn;
    bool ARB_fragment_coord_conventions_enable;
    bool ARB_fragment_coord_conventions_warn;
+   bool ARB_fragment_layer_viewport_enable;
+   bool ARB_fragment_layer_viewport_warn;
    bool ARB_gpu_shader5_enable;
    bool ARB_gpu_shader5_warn;
    bool ARB_sample_shading_enable;

@@ -119,7 +119,7 @@ glamor_get_vbo_space(ScreenPtr screen, unsigned size, char **vbo_offset)
         if (glamor_priv->vbo_size < size) {
             glamor_priv->vbo_size = MAX(GLAMOR_VBO_SIZE, size);
             free(glamor_priv->vb);
-            glamor_priv->vb = XNFalloc(size);
+            glamor_priv->vb = XNFalloc(glamor_priv->vbo_size);
         }
         *vbo_offset = NULL;
         /* We point to the start of glamor_priv->vb every time, and

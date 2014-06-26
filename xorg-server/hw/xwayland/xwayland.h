@@ -55,6 +55,7 @@ struct xwl_screen {
     int listen_fds[5];
     int listen_fd_count;
     int rootless;
+    int glamor;
 
     CreateScreenResourcesProcPtr CreateScreenResources;
     CloseScreenProcPtr CloseScreen;
@@ -83,6 +84,16 @@ struct xwl_screen {
 #define XWL_FORMAT_RGB565   (1 << 2)
 
     int prepare_read;
+
+    char *device_name;
+    int drm_fd;
+    int fd_render_node;
+    struct wl_drm *drm;
+    uint32_t formats;
+    uint32_t capabilities;
+    void *egl_display, *egl_context;
+    struct gbm_device *gbm;
+    struct glamor_context *glamor_ctx;
 };
 
 struct xwl_window {
@@ -160,5 +171,11 @@ PixmapPtr xwl_shm_create_pixmap(ScreenPtr screen, int width, int height,
 Bool xwl_shm_destroy_pixmap(PixmapPtr pixmap);
 struct wl_buffer *xwl_shm_pixmap_get_wl_buffer(PixmapPtr pixmap);
 
+
+Bool xwl_glamor_init(struct xwl_screen *xwl_screen);
+
+Bool xwl_screen_init_glamor(struct xwl_screen *xwl_screen,
+                         uint32_t id, uint32_t version);
+struct wl_buffer *xwl_glamor_pixmap_get_wl_buffer(PixmapPtr pixmap);
 
 #endif

@@ -1698,55 +1698,6 @@ FcFreeTypeQueryFace (const FT_Face  face,
 
 
     /*
-     * Compute hash digest for the font
-     */
-    {
-	FcChar8	    *hashstr = NULL;
-	FcHashDigest digest;
-
-	FcHashInitDigest (digest);
-
-	if (face->stream->read == NULL)
-	{
-	    const char *data = (const char *) face->stream->base;
-	    size_t total_len = face->stream->size;
-	    size_t len = total_len;
-
-	    while (len >= 64)
-	    {
-		FcHashDigestAddBlock (digest, data);
-		data += 64;
-		len -= 64;
-	    }
-	    FcHashDigestFinish (digest, data, total_len);
-	} else {
-	    char data[64];
-	    size_t total_len = 0;
-	    size_t len = 0;
-
-	    while ((len = face->stream->read (face->stream, total_len, (unsigned char *) data, sizeof(data))) == 64)
-	    {
-		FcHashDigestAddBlock (digest, data);
-		total_len += 64;
-	    }
-	    total_len += len;
-	    FcHashDigestFinish (digest, data, total_len);
-	}
-
-	hashstr = FcHashToString (digest);
-	if (hashstr)
-	{
-	    if (!FcPatternAddString (pat, FC_HASH, hashstr))
-	    {
-		free (hashstr);
-		goto bail1;
-	    }
-	    free (hashstr);
-	}
-    }
-
-
-    /*
      * Compute the unicode coverage for the font
      */
     cs = FcFreeTypeCharSetAndSpacing (face, blanks, &spacing);

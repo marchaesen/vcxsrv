@@ -1271,7 +1271,7 @@ xkb_symbols "mx2750" {
 
 // Microsoft
 
-// Microsoft Natural Wireless Ergonomic Keyboard 4000
+// Microsoft Natural Ergonomic Keyboard 4000
 partial alphanumeric_keys
 xkb_symbols "microsoft4000" {
     include "inet(media_nav_common)"
