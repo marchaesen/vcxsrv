@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    The FreeType glyph rasterizer (body).                                */
 /*                                                                         */
-/*  Copyright 1996-2003, 2005, 2007-2013 by                                */
+/*  Copyright 1996-2003, 2005, 2007-2014 by                                */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -24,8 +24,8 @@
   /*                                                                       */
   /* - copy `src/raster/ftraster.c' (this file) to your current directory  */
   /*                                                                       */
-  /* - copy `include/freetype/ftimage.h' and `src/raster/ftmisc.h'         */
-  /*   to your current directory                                           */
+  /* - copy `include/ftimage.h' and `src/raster/ftmisc.h' to your current  */
+  /*   directory                                                           */
   /*                                                                       */
   /* - compile `ftraster' with the _STANDALONE_ macro defined, as in       */
   /*                                                                       */
@@ -1874,7 +1874,7 @@
         v_start.x = ( v_start.x + v_last.x ) / 2;
         v_start.y = ( v_start.y + v_last.y ) / 2;
 
-        v_last = v_start;
+     /* v_last = v_start; */
       }
       point--;
       tags--;

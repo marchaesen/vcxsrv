@@ -38,9 +38,9 @@ FT_BEGIN_HEADER
   /*    library from a single source directory.                            */
   /*                                                                       */
   /*  - You can put a copy of this file in your build directory, more      */
-  /*    precisely in `$BUILD/freetype/config/ftoption.h', where `$BUILD'   */
-  /*    is the name of a directory that is included _before_ the FreeType  */
-  /*    include path during compilation.                                   */
+  /*    precisely in `$BUILD/config/ftoption.h', where `$BUILD' is the     */
+  /*    name of a directory that is included _before_ the FreeType include */
+  /*    path during compilation.                                           */
   /*                                                                       */
   /*    The default FreeType Makefiles and Jamfiles use the build          */
   /*    directory `builds/<system>' by default, but you can easily change  */
@@ -51,7 +51,7 @@ FT_BEGIN_HEADER
   /*    locate this file during the build.  For example,                   */
   /*                                                                       */
   /*      #define FT_CONFIG_OPTIONS_H  <myftoptions.h>                     */
-  /*      #include <freetype/config/ftheader.h>                            */
+  /*      #include <config/ftheader.h>                                     */
   /*                                                                       */
   /*    will use `$BUILD/myftoptions.h' instead of this file for macro     */
   /*    definitions.                                                       */
@@ -59,7 +59,7 @@ FT_BEGIN_HEADER
   /*    Note also that you can similarly pre-define the macro              */
   /*    FT_CONFIG_MODULES_H used to locate the file listing of the modules */
   /*    that are statically linked to the library at compile time.  By     */
-  /*    default, this file is <freetype/config/ftmodule.h>.                */
+  /*    default, this file is <config/ftmodule.h>.                         */
   /*                                                                       */
   /*  We highly recommend using the third method whenever possible.        */
   /*                                                                       */
@@ -215,6 +215,19 @@ FT_BEGIN_HEADER
   /*   Define this macro if you want to enable this `feature'.             */
   /*                                                                       */
 #define FT_CONFIG_OPTION_USE_PNG
+
+
+  /*************************************************************************/
+  /*                                                                       */
+  /*  HarfBuzz support.                                                    */
+  /*                                                                       */
+  /*   FreeType uses the HarfBuzz library to improve auto-hinting of       */
+  /*   OpenType fonts.  If available, many glyphs not directly addressable */
+  /*   by a font's character map will be hinted also.                      */
+  /*                                                                       */
+  /*   Define this macro if you want to enable this `feature'.             */
+  /*                                                                       */
+#define FT_CONFIG_OPTION_USE_HARFBUZZ
 
 
   /*************************************************************************/
@@ -528,7 +541,7 @@ FT_BEGIN_HEADER
   /* does not contain any glyph name though.                               */
   /*                                                                       */
   /* Accessing SFNT names is done through the functions declared in        */
-  /* `freetype/ftsnames.h'.                                                */
+  /* `ftsnames.h'.                                                         */
   /*                                                                       */
 #define TT_CONFIG_OPTION_SFNT_NAMES
 

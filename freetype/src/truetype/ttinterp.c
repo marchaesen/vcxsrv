@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    TrueType bytecode interpreter (body).                                */
 /*                                                                         */
-/*  Copyright 1996-2013                                                    */
+/*  Copyright 1996-2014                                                    */
 /*  by David Turner, Robert Wilhelm, and Werner Lemberg.                   */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -796,16 +796,13 @@
   FT_EXPORT_DEF( TT_ExecContext )
   TT_New_Context( TT_Driver  driver )
   {
-    TT_ExecContext  exec;
-    FT_Memory       memory;
+    FT_Memory  memory = driver->root.root.memory;
 
-
-    memory = driver->root.root.memory;
-    exec   = driver->context;
 
     if ( !driver->context )
     {
-      FT_Error  error;
+      FT_Error        error;
+      TT_ExecContext  exec;
 
 
       /* allocate object */
@@ -1437,8 +1434,107 @@
 
 #undef PACK
 
-#if 1
 
+#ifndef FT_CONFIG_OPTION_NO_ASSEMBLER
+
+#if defined( __arm__ )                                 && \
+    ( defined( __thumb2__ ) || !defined( __thumb__ ) )
+
+#define TT_MulFix14  TT_MulFix14_arm
+
+  static FT_Int32
+  TT_MulFix14_arm( FT_Int32  a,
+                   FT_Int    b )
+  {
+    register FT_Int32  t, t2;
+
+
+#if defined( __CC_ARM ) || defined( __ARMCC__ )
+
+    __asm
+    {
+      smull t2, t,  b,  a           /* (lo=t2,hi=t) = a*b */
+      mov   a,  t,  asr #31         /* a   = (hi >> 31) */
+      add   a,  a,  #0x2000         /* a  += 0x2000 */
+      adds  t2, t2, a               /* t2 += a */
+      adc   t,  t,  #0              /* t  += carry */
+      mov   a,  t2, lsr #14         /* a   = t2 >> 14 */
+      orr   a,  a,  t,  lsl #18     /* a  |= t << 18 */
+    }
+
+#elif defined( __GNUC__ )
+
+    __asm__ __volatile__ (
+      "smull  %1, %2, %4, %3\n\t"       /* (lo=%1,hi=%2) = a*b */
+      "mov    %0, %2, asr #31\n\t"      /* %0  = (hi >> 31) */
+#if defined( __clang__ ) && defined( __thumb2__ )
+      "add.w  %0, %0, #0x2000\n\t"      /* %0 += 0x2000 */
+#else
+      "add    %0, %0, #0x2000\n\t"      /* %0 += 0x2000 */
+#endif
+      "adds   %1, %1, %0\n\t"           /* %1 += %0 */
+      "adc    %2, %2, #0\n\t"           /* %2 += carry */
+      "mov    %0, %1, lsr #14\n\t"      /* %0  = %1 >> 16 */
+      "orr    %0, %0, %2, lsl #18\n\t"  /* %0 |= %2 << 16 */
+      : "=r"(a), "=&r"(t2), "=&r"(t)
+      : "r"(a), "r"(b)
+      : "cc" );
+
+#endif
+
+    return a;
+  }
+
+#endif /* __arm__ && ( __thumb2__ || !__thumb__ ) */
+
+#endif /* !FT_CONFIG_OPTION_NO_ASSEMBLER */
+
+
+#if defined( __GNUC__ )                              && \
+    ( defined( __i386__ ) || defined( __x86_64__ ) )
+
+#define TT_MulFix14  TT_MulFix14_long_long
+
+  /* Temporarily disable the warning that C90 doesn't support `long long'. */
+#if ( __GNUC__ * 100 + __GNUC_MINOR__ ) >= 406
+#pragma GCC diagnostic push
+#endif
+#pragma GCC diagnostic ignored "-Wlong-long"
+
+  /* This is declared `noinline' because inlining the function results */
+  /* in slower code.  The `pure' attribute indicates that the result   */
+  /* only depends on the parameters.                                   */
+  static __attribute__(( noinline ))
+         __attribute__(( pure )) FT_Int32
+  TT_MulFix14_long_long( FT_Int32  a,
+                         FT_Int    b )
+  {
+
+    long long  ret = (long long)a * b;
+
+    /* The following line assumes that right shifting of signed values */
+    /* will actually preserve the sign bit.  The exact behaviour is    */
+    /* undefined, but this is true on x86 and x86_64.                  */
+    long long  tmp = ret >> 63;
+
+
+    ret += 0x2000 + tmp;
+
+    return (FT_Int32)( ret >> 14 );
+  }
+
+#if ( __GNUC__ * 100 + __GNUC_MINOR__ ) >= 406
+#pragma GCC diagnostic pop
+#endif
+
+#endif /* __GNUC__ && ( __i386__ || __x86_64__ ) */
+
+
+#ifndef TT_MulFix14
+
+  /* Compute (a*b)/2^14 with maximum accuracy and rounding.  */
+  /* This is optimized to be faster than calling FT_MulFix() */
+  /* for platforms where sizeof(int) == 2.                   */
   static FT_Int32
   TT_MulFix14( FT_Int32  a,
                FT_Int    b )
@@ -1470,37 +1566,50 @@
     return sign >= 0 ? (FT_Int32)mid : -(FT_Int32)mid;
   }
 
-#else
+#endif  /* !TT_MulFix14 */
 
-  /* compute (a*b)/2^14 with maximum accuracy and rounding */
-  static FT_Int32
-  TT_MulFix14( FT_Int32  a,
-               FT_Int    b )
+
+#if defined( __GNUC__ )        && \
+    ( defined( __i386__ )   ||    \
+      defined( __x86_64__ ) ||    \
+      defined( __arm__ )    )
+
+#define TT_DotFix14  TT_DotFix14_long_long
+
+#if ( __GNUC__ * 100 + __GNUC_MINOR__ ) >= 406
+#pragma GCC diagnostic push
+#endif
+#pragma GCC diagnostic ignored "-Wlong-long"
+
+  static __attribute__(( pure )) FT_Int32
+  TT_DotFix14_long_long( FT_Int32  ax,
+                         FT_Int32  ay,
+                         FT_Int    bx,
+                         FT_Int    by )
   {
-    FT_Int32   m, s, hi;
-    FT_UInt32  l, lo;
+    /* Temporarily disable the warning that C90 doesn't support */
+    /* `long long'.                                             */
+
+    long long  temp1 = (long long)ax * bx;
+    long long  temp2 = (long long)ay * by;
 
 
-    /* compute ax*bx as 64-bit value */
-    l  = (FT_UInt32)( ( a & 0xFFFFU ) * b );
-    m  = ( a >> 16 ) * b;
+    temp1 += temp2;
+    temp2  = temp1 >> 63;
+    temp1 += 0x2000 + temp2;
 
-    lo = l + ( (FT_UInt32)m << 16 );
-    hi = ( m >> 16 ) + ( (FT_Int32)l >> 31 ) + ( lo < l );
+    return (FT_Int32)( temp1 >> 14 );
 
-    /* divide the result by 2^14 with rounding */
-    s   = hi >> 31;
-    l   = lo + (FT_UInt32)s;
-    hi += s + ( l < lo );
-    lo  = l;
-
-    l   = lo + 0x2000U;
-    hi += l < lo;
-
-    return (FT_Int32)( ( (FT_UInt32)hi << 18 ) | ( l >> 14 ) );
   }
+
+#if ( __GNUC__ * 100 + __GNUC_MINOR__ ) >= 406
+#pragma GCC diagnostic pop
 #endif
 
+#endif /* __GNUC__ && (__arm__ || __i386__ || __x86_64__) */
+
+
+#ifndef TT_DotFix14
 
   /* compute (ax*bx+ay*by)/2^14 with maximum accuracy and rounding */
   static FT_Int32
@@ -1542,6 +1651,8 @@
 
     return (FT_Int32)( ( (FT_UInt32)hi << 18 ) | ( l >> 14 ) );
   }
+
+#endif /* TT_DotFix14 */
 
 
   /*************************************************************************/
@@ -3037,42 +3148,42 @@
   }
 
 
-#define DO_JROT                                                   \
-    if ( args[1] != 0 )                                           \
-    {                                                             \
-      if ( args[0] == 0 && CUR.args == 0 )                        \
-        CUR.error = FT_THROW( Bad_Argument );                     \
-      CUR.IP += args[0];                                          \
-      if ( CUR.IP < 0                                          || \
-           ( CUR.callTop > 0                                 &&   \
-             CUR.IP > CUR.callStack[CUR.callTop - 1].Cur_End ) )  \
-        CUR.error = FT_THROW( Bad_Argument );                     \
-      CUR.step_ins = FALSE;                                       \
+#define DO_JROT                                                    \
+    if ( args[1] != 0 )                                            \
+    {                                                              \
+      if ( args[0] == 0 && CUR.args == 0 )                         \
+        CUR.error = FT_THROW( Bad_Argument );                      \
+      CUR.IP += args[0];                                           \
+      if ( CUR.IP < 0                                           || \
+           ( CUR.callTop > 0                                  &&   \
+             CUR.IP > CUR.callStack[CUR.callTop - 1].Def->end ) )  \
+        CUR.error = FT_THROW( Bad_Argument );                      \
+      CUR.step_ins = FALSE;                                        \
     }
 
 
-#define DO_JMPR                                                 \
-    if ( args[0] == 0 && CUR.args == 0 )                        \
-      CUR.error = FT_THROW( Bad_Argument );                     \
-    CUR.IP += args[0];                                          \
-    if ( CUR.IP < 0                                          || \
-         ( CUR.callTop > 0                                 &&   \
-           CUR.IP > CUR.callStack[CUR.callTop - 1].Cur_End ) )  \
-      CUR.error = FT_THROW( Bad_Argument );                     \
+#define DO_JMPR                                                  \
+    if ( args[0] == 0 && CUR.args == 0 )                         \
+      CUR.error = FT_THROW( Bad_Argument );                      \
+    CUR.IP += args[0];                                           \
+    if ( CUR.IP < 0                                           || \
+         ( CUR.callTop > 0                                  &&   \
+           CUR.IP > CUR.callStack[CUR.callTop - 1].Def->end ) )  \
+      CUR.error = FT_THROW( Bad_Argument );                      \
     CUR.step_ins = FALSE;
 
 
-#define DO_JROF                                                   \
-    if ( args[1] == 0 )                                           \
-    {                                                             \
-      if ( args[0] == 0 && CUR.args == 0 )                        \
-        CUR.error = FT_THROW( Bad_Argument );                     \
-      CUR.IP += args[0];                                          \
-      if ( CUR.IP < 0                                          || \
-           ( CUR.callTop > 0                                 &&   \
-             CUR.IP > CUR.callStack[CUR.callTop - 1].Cur_End ) )  \
-        CUR.error = FT_THROW( Bad_Argument );                     \
-      CUR.step_ins = FALSE;                                       \
+#define DO_JROF                                                    \
+    if ( args[1] == 0 )                                            \
+    {                                                              \
+      if ( args[0] == 0 && CUR.args == 0 )                         \
+        CUR.error = FT_THROW( Bad_Argument );                      \
+      CUR.IP += args[0];                                           \
+      if ( CUR.IP < 0                                           || \
+           ( CUR.callTop > 0                                  &&   \
+             CUR.IP > CUR.callStack[CUR.callTop - 1].Def->end ) )  \
+        CUR.error = FT_THROW( Bad_Argument );                      \
+      CUR.step_ins = FALSE;                                        \
     }
 
 
@@ -4788,7 +4899,7 @@
     if ( pRec->Cur_Count > 0 )
     {
       CUR.callTop++;
-      CUR.IP = pRec->Cur_Restart;
+      CUR.IP = pRec->Def->start;
     }
     else
       /* Loop through the current function */
@@ -4878,8 +4989,7 @@
     pCrec->Caller_Range = CUR.curRange;
     pCrec->Caller_IP    = CUR.IP + 1;
     pCrec->Cur_Count    = 1;
-    pCrec->Cur_Restart  = def->start;
-    pCrec->Cur_End      = def->end;
+    pCrec->Def          = def;
 
     CUR.callTop++;
 
@@ -4967,8 +5077,7 @@
       pCrec->Caller_Range = CUR.curRange;
       pCrec->Caller_IP    = CUR.IP + 1;
       pCrec->Cur_Count    = (FT_Int)args[0];
-      pCrec->Cur_Restart  = def->start;
-      pCrec->Cur_End      = def->end;
+      pCrec->Def          = def;
 
       CUR.callTop++;
 
@@ -7057,7 +7166,7 @@
         org_dist = CUR_fast_dualproj( &vec );
       }
 
-      cur_dist = CUR_Func_project ( &CUR.zp2.cur[point], cur_base );
+      cur_dist = CUR_Func_project( &CUR.zp2.cur[point], cur_base );
 
       if ( org_dist )
       {
@@ -7068,14 +7177,20 @@
           /* This is the same as what MS does for the invalid case:  */
           /*                                                         */
           /*   delta = (Original_Pt - Original_RP1) -                */
-          /*           (Current_Pt - Current_RP1)                    */
+          /*           (Current_Pt - Current_RP1)         ;          */
           /*                                                         */
           /* In FreeType speak:                                      */
           /*                                                         */
-          /*   new_dist = cur_dist -                                 */
-          /*              org_dist - cur_dist;                       */
+          /*   delta = org_dist - cur_dist          .                */
+          /*                                                         */
+          /* We move `point' by `new_dist - cur_dist' after leaving  */
+          /* this block, thus we have                                */
+          /*                                                         */
+          /*   new_dist - cur_dist = delta                   ,       */
+          /*   new_dist - cur_dist = org_dist - cur_dist     ,       */
+          /*              new_dist = org_dist                .       */
 
-          new_dist = -org_dist;
+          new_dist = org_dist;
         }
       }
       else
@@ -7708,26 +7823,16 @@
          CUR.ignore_x_mode                                   &&
          CUR.rasterizer_version >= TT_INTERPRETER_VERSION_35 )
     {
-      /********************************/
-      /* HINTING FOR GRAYSCALE        */
-      /* Selector Bit:  5             */
-      /* Return Bit(s): 12            */
-      /*                              */
-      if ( ( args[0] & 32 ) != 0 && CUR.grayscale_hinting )
-        K |= 1 << 12;
 
-      /********************************/
-      /* HINTING FOR SUBPIXEL         */
-      /* Selector Bit:  6             */
-      /* Return Bit(s): 13            */
-      /*                              */
-      if ( ( args[0] & 64 ) != 0        &&
-           CUR.subpixel_hinting         &&
-           CUR.rasterizer_version >= 37 )
+      if ( CUR.rasterizer_version >= 37 )
       {
-        K |= 1 << 13;
-
-        /* the stuff below is irrelevant if subpixel_hinting is not set */
+        /********************************/
+        /* HINTING FOR SUBPIXEL         */
+        /* Selector Bit:  6             */
+        /* Return Bit(s): 13            */
+        /*                              */
+        if ( ( args[0] & 64 ) != 0 && CUR.subpixel )
+          K |= 1 << 13;
 
         /********************************/
         /* COMPATIBLE WIDTHS ENABLED    */
@@ -7803,8 +7908,7 @@
         call->Caller_Range = CUR.curRange;
         call->Caller_IP    = CUR.IP + 1;
         call->Cur_Count    = 1;
-        call->Cur_Restart  = def->start;
-        call->Cur_End      = def->end;
+        call->Def          = def;
 
         INS_Goto_CodeRange( def->range, def->start );
 
@@ -8860,8 +8964,7 @@
                 callrec->Caller_Range = CUR.curRange;
                 callrec->Caller_IP    = CUR.IP + 1;
                 callrec->Cur_Count    = 1;
-                callrec->Cur_Restart  = def->start;
-                callrec->Cur_End      = def->end;
+                callrec->Def          = def;
 
                 if ( INS_Goto_CodeRange( def->range, def->start ) == FAILURE )
                   goto LErrorLabel_;

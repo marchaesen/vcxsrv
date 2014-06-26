@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    High-level SFNT driver interface (body).                             */
 /*                                                                         */
-/*  Copyright 1996-2007, 2009-2013 by                                      */
+/*  Copyright 1996-2007, 2009-2014 by                                      */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -266,7 +266,7 @@
       {
         FT_Stream   stream = face->name_table.stream;
         FT_String*  r      = (FT_String*)result;
-        FT_Byte*    p      = (FT_Byte*)name->string;
+        FT_Byte*    p;
 
 
         if ( FT_STREAM_SEEK( name->stringOffset ) ||
@@ -499,8 +499,8 @@
     tt_face_load_hmtx,
 
     /* see `ttsbit.h' and `sfnt.h' */
-    PUT_EMBEDDED_BITMAPS( tt_face_load_eblc ),
-    PUT_EMBEDDED_BITMAPS( tt_face_free_eblc ),
+    PUT_EMBEDDED_BITMAPS( tt_face_load_sbit ),
+    PUT_EMBEDDED_BITMAPS( tt_face_free_sbit ),
 
     PUT_EMBEDDED_BITMAPS( tt_face_set_sbit_strike     ),
     PUT_EMBEDDED_BITMAPS( tt_face_load_strike_metrics ),

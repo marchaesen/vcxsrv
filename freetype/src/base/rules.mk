@@ -19,8 +19,8 @@
 #   BASE_OBJ_S:   The single-object base layer.
 #   BASE_OBJ_M:   A list of all objects for a multiple-objects build.
 #   BASE_EXT_OBJ: A list of base layer extensions, i.e., components found
-#                 in `freetype/src/base' which are not compiled within the
-#                 base layer proper.
+#                 in `src/base' which are not compiled within the base
+#                 layer proper.
 
 
 BASE_COMPILE := $(FT_COMPILE) $I$(subst /,$(COMPILER_SEP),$(SRC_DIR)/base)
@@ -33,12 +33,14 @@ BASE_COMPILE := $(FT_COMPILE) $I$(subst /,$(COMPILER_SEP),$(SRC_DIR)/base)
 # All files listed here should be included in `ftbase.c' (for a `single'
 # build).
 #
-BASE_SRC := $(BASE_DIR)/ftadvanc.c \
+BASE_SRC := $(BASE_DIR)/basepic.c  \
+            $(BASE_DIR)/ftadvanc.c \
             $(BASE_DIR)/ftcalc.c   \
             $(BASE_DIR)/ftdbgmem.c \
             $(BASE_DIR)/ftgloadr.c \
             $(BASE_DIR)/ftobjs.c   \
             $(BASE_DIR)/ftoutln.c  \
+            $(BASE_DIR)/ftpic.c    \
             $(BASE_DIR)/ftrfork.c  \
             $(BASE_DIR)/ftsnames.c \
             $(BASE_DIR)/ftstream.c \
@@ -51,8 +53,9 @@ ifneq ($(ftmac_c),)
 endif
 
 # for simplicity, we also handle `md5.c' (which gets included by `ftobjs.h')
-BASE_H := $(BASE_DIR)/ftbase.h \
-          $(BASE_DIR)/md5.c    \
+BASE_H := $(BASE_DIR)/basepic.h \
+          $(BASE_DIR)/ftbase.h  \
+          $(BASE_DIR)/md5.c     \
           $(BASE_DIR)/md5.h
 
 # Base layer `extensions' sources

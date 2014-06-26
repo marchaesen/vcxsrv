@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    Arithmetic computations (body).                                      */
 /*                                                                         */
-/*  Copyright 1996-2006, 2008, 2012-2013 by                                */
+/*  Copyright 1996-2006, 2008, 2012-2014 by                                */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -128,7 +128,7 @@
     }
     if ( z >= ( 1L << 1 ) )
     {
-      z     >>= 1;
+   /* z     >>= 1; */
       shift  += 1;
     }
 
@@ -816,6 +816,8 @@
   }
 
 
+#if 0
+
   /* documentation is in ftcalc.h */
 
   FT_BASE_DEF( FT_Int32 )
@@ -849,6 +851,8 @@
 
     return (FT_Int32)root;
   }
+
+#endif /* 0 */
 
 
   /* documentation is in ftcalc.h */
@@ -945,11 +949,27 @@
     FT_Pos  d_in, d_out, d_corner;
 
 
+    /* We approximate the Euclidean metric (sqrt(x^2 + y^2)) with */
+    /* the Taxicab metric (|x| + |y|), which can be computed much */
+    /* faster.  If one of the two vectors is much longer than the */
+    /* other one, the direction of the shorter vector doesn't     */
+    /* influence the result any more.                             */
+    /*                                                            */
+    /*                 corner                                     */
+    /*       x---------------------------x                        */
+    /*        \                      /                            */
+    /*         \                /                                 */
+    /*      in  \          /  out                                 */
+    /*           \    /                                           */
+    /*            o                                               */
+    /*              Point                                         */
+    /*                                                            */
+
     if ( ax < 0 )
       ax = -ax;
     if ( ay < 0 )
       ay = -ay;
-    d_in = ax + ay;
+    d_in = ax + ay;  /* d_in = || in || */
 
     ax = out_x;
     if ( ax < 0 )
@@ -957,7 +977,7 @@
     ay = out_y;
     if ( ay < 0 )
       ay = -ay;
-    d_out = ax + ay;
+    d_out = ax + ay;  /* d_out = || out || */
 
     ax = out_x + in_x;
     if ( ax < 0 )
@@ -965,7 +985,11 @@
     ay = out_y + in_y;
     if ( ay < 0 )
       ay = -ay;
-    d_corner = ax + ay;
+    d_corner = ax + ay;  /* d_corner = || in + out || */
+
+    /* now do a simple length comparison: */
+    /*                                    */
+    /*   d_in + d_out < 17/16 d_corner    */
 
     return ( d_in + d_out - d_corner ) < ( d_corner >> 4 );
   }
