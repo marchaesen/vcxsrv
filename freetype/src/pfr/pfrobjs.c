@@ -137,7 +137,8 @@
 
       pfrface->face_index = face_index;
       pfrface->num_glyphs = phy_font->num_chars + 1;
-      pfrface->face_flags = FT_FACE_FLAG_SCALABLE;
+
+      pfrface->face_flags |= FT_FACE_FLAG_SCALABLE;
 
       /* if all characters point to the same gps_offset 0, we */
       /* assume that the font only contains bitmaps           */
@@ -323,6 +324,8 @@
     FT_Outline*  outline = &pfrslot->outline;
     FT_ULong     gps_offset;
 
+
+    FT_TRACE1(( "pfr_slot_load: glyph index %d\n", gindex ));
 
     if ( gindex > 0 )
       gindex--;

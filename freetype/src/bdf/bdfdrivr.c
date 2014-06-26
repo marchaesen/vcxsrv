@@ -2,7 +2,7 @@
 
     FreeType font driver for bdf files
 
-    Copyright (C) 2001-2008, 2011, 2013 by
+    Copyright (C) 2001-2008, 2011, 2013, 2014 by
     Francesco Zappa Nardelli
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -243,8 +243,6 @@ THE SOFTWARE.
          !( *(prop->value.atom) == 'N' || *(prop->value.atom) == 'n' ) )
       strings[0] = (char *)(prop->value.atom);
 
-    len = 0;
-
     for ( len = 0, nn = 0; nn < 4; nn++ )
     {
       lengths[nn] = 0;
@@ -351,7 +349,6 @@ THE SOFTWARE.
 
     FT_UNUSED( num_params );
     FT_UNUSED( params );
-    FT_UNUSED( face_index );
 
 
     FT_TRACE2(( "BDF driver\n" ));
@@ -375,6 +372,19 @@ THE SOFTWARE.
 
     /* we have a bdf font: let's construct the face object */
     face->bdffont = font;
+
+    /* BDF could not have multiple face in single font file.
+     * XXX: non-zero face_index is already invalid argument, but
+     *      Type1, Type42 driver has a convention to return
+     *      an invalid argument error when the font could be
+     *      opened by the specified driver.
+     */
+    if ( face_index > 0 ) {
+      FT_ERROR(( "BDF_Face_Init: invalid face index\n" ));
+      BDF_Face_Done( bdfface );
+      return FT_THROW( Invalid_Argument );
+    }
+ 
     {
       bdf_property_t*  prop = NULL;
 
@@ -388,9 +398,10 @@ THE SOFTWARE.
 
       bdfface->num_faces  = 1;
       bdfface->face_index = 0;
-      bdfface->face_flags = FT_FACE_FLAG_FIXED_SIZES |
-                            FT_FACE_FLAG_HORIZONTAL  |
-                            FT_FACE_FLAG_FAST_GLYPHS;
+
+      bdfface->face_flags |= FT_FACE_FLAG_FIXED_SIZES |
+                             FT_FACE_FLAG_HORIZONTAL  |
+                             FT_FACE_FLAG_FAST_GLYPHS;
 
       prop = bdf_get_font_property( font, "SPACING" );
       if ( prop && prop->format == BDF_ATOM                             &&
@@ -673,6 +684,8 @@ THE SOFTWARE.
       error = FT_THROW( Invalid_Argument );
       goto Exit;
     }
+
+    FT_TRACE1(( "BDF_Glyph_Load: glyph index %d\n", glyph_index ));
 
     /* index 0 is the undefined glyph */
     if ( glyph_index == 0 )

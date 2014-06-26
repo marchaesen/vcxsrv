@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    FreeType outline management (body).                                  */
 /*                                                                         */
-/*  Copyright 1996-2008, 2010, 2012-2013 by                                */
+/*  Copyright 1996-2008, 2010, 2012-2014 by                                */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -128,7 +128,7 @@
           v_start.x = ( v_start.x + v_last.x ) / 2;
           v_start.y = ( v_start.y + v_last.y ) / 2;
 
-          v_last = v_start;
+       /* v_last = v_start; */
         }
         point--;
         tags--;
@@ -576,11 +576,13 @@
       {
         char*  p = outline->tags + first;
         char*  q = outline->tags + last;
-        char   swap;
 
 
         while ( p < q )
         {
+          char  swap;
+
+
           swap = *p;
           *p   = *q;
           *q   = swap;
@@ -721,7 +723,8 @@
 #if 0
 
 #define FT_OUTLINE_GET_CONTOUR( outline, c, first, last )  \
-  do {                                                     \
+  do                                                       \
+  {                                                        \
     (first) = ( c > 0 ) ? (outline)->points +              \
                             (outline)->contours[c - 1] + 1 \
                         : (outline)->points;               \

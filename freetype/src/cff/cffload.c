@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    OpenType and CFF data/program tables loader (body).                  */
 /*                                                                         */
-/*  Copyright 1996-2013 by                                                 */
+/*  Copyright 1996-2014 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -414,7 +414,7 @@
       cur_offset = idx->offsets[0] - 1;
 
       /* sanity check */
-      if ( cur_offset >= idx->data_size )
+      if ( cur_offset != 0 )
       {
         FT_TRACE0(( "cff_index_get_pointers:"
                     " invalid first offset value %d set to zero\n",
@@ -432,11 +432,11 @@
         FT_ULong  next_offset = idx->offsets[n] - 1;
 
 
-        /* empty slot + two sanity checks for invalid offset tables */
-        if ( next_offset == 0                                    ||
-             next_offset < cur_offset                            ||
-             ( next_offset >= idx->data_size && n < idx->count ) )
+        /* two sanity checks for invalid offset tables */
+        if ( next_offset < cur_offset )
           next_offset = cur_offset;
+        else if ( next_offset > idx->data_size )
+          next_offset = idx->data_size;
 
         if ( !pool )
           t[n] = org_bytes + next_offset;
@@ -689,6 +689,13 @@
       if ( FT_READ_USHORT( num_ranges ) )
         goto Exit;
 
+      if ( !num_ranges )
+      {
+        FT_TRACE0(( "CFF_Load_FD_Select: empty FDSelect array\n" ));
+        error = FT_THROW( Invalid_File_Format );
+        goto Exit;
+      }
+
       fdselect->data_size = num_ranges * 3 + 2;
 
     Load_Data:
@@ -719,7 +726,7 @@
       break;
 
     case 3:
-      /* first, compare to cache */
+      /* first, compare to the cache */
       if ( (FT_UInt)( glyph_index - fdselect->cache_first ) <
                         fdselect->cache_count )
       {
@@ -727,7 +734,7 @@
         break;
       }
 
-      /* then, lookup the ranges array */
+      /* then, look up the ranges array */
       {
         FT_Byte*  p       = fdselect->data;
         FT_Byte*  p_limit = p + fdselect->data_size;
@@ -750,7 +757,7 @@
 
             /* update cache */
             fdselect->cache_first = first;
-            fdselect->cache_count = limit-first;
+            fdselect->cache_count = limit - first;
             fdselect->cache_fd    = fd2;
             break;
           }

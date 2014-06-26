@@ -2,9 +2,10 @@
 /*                                                                         */
 /*  aflatin.h                                                              */
 /*                                                                         */
-/*    Auto-fitter hinting routines for latin script (specification).       */
+/*    Auto-fitter hinting routines for latin writing system                */
+/*    (specification).                                                     */
 /*                                                                         */
-/*  Copyright 2003-2007, 2009, 2011-2012 by                                */
+/*  Copyright 2003-2007, 2009, 2011-2013 by                                */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -24,10 +25,9 @@
 
 FT_BEGIN_HEADER
 
+  /* the `latin' writing system */
 
-  /* the latin-specific script class */
-
-  AF_DECLARE_SCRIPT_CLASS( af_latin_script_class )
+  AF_DECLARE_WRITING_SYSTEM_CLASS( af_latin_writing_system_class )
 
 
   /* constants are given with units_per_em == 2048 in mind */
@@ -46,32 +46,19 @@ FT_BEGIN_HEADER
 
   /*
    *  The following declarations could be embedded in the file `aflatin.c';
-   *  they have been made semi-public to allow alternate script hinters to
-   *  re-use some of them.
+   *  they have been made semi-public to allow alternate writing system
+   *  hinters to re-use some of them.
    */
 
 
-  /* Latin (global) metrics management */
-
-  enum
-  {
-    AF_LATIN_BLUE_CAPITAL_TOP,
-    AF_LATIN_BLUE_CAPITAL_BOTTOM,
-    AF_LATIN_BLUE_SMALL_F_TOP,
-    AF_LATIN_BLUE_SMALL_TOP,
-    AF_LATIN_BLUE_SMALL_BOTTOM,
-    AF_LATIN_BLUE_SMALL_MINOR,
-
-    AF_LATIN_BLUE_MAX
-  };
-
-
-#define AF_LATIN_IS_TOP_BLUE( b )  ( (b) == AF_LATIN_BLUE_CAPITAL_TOP || \
-                                     (b) == AF_LATIN_BLUE_SMALL_F_TOP || \
-                                     (b) == AF_LATIN_BLUE_SMALL_TOP   )
+#define AF_LATIN_IS_TOP_BLUE( b ) \
+          ( (b)->properties & AF_BLUE_PROPERTY_LATIN_TOP )
+#define AF_LATIN_IS_X_HEIGHT_BLUE( b ) \
+          ( (b)->properties & AF_BLUE_PROPERTY_LATIN_X_HEIGHT )
+#define AF_LATIN_IS_LONG_BLUE( b ) \
+          ( (b)->properties & AF_BLUE_PROPERTY_LATIN_LONG )
 
 #define AF_LATIN_MAX_WIDTHS  16
-#define AF_LATIN_MAX_BLUES   AF_LATIN_BLUE_MAX
 
 
   enum
@@ -106,7 +93,7 @@ FT_BEGIN_HEADER
 
     /* ignored for horizontal metrics */
     FT_UInt          blue_count;
-    AF_LatinBlueRec  blues[AF_LATIN_BLUE_MAX];
+    AF_LatinBlueRec  blues[AF_BLUE_STRINGSET_MAX];
 
     FT_Fixed         org_scale;
     FT_Pos           org_delta;
@@ -116,9 +103,9 @@ FT_BEGIN_HEADER
 
   typedef struct  AF_LatinMetricsRec_
   {
-    AF_ScriptMetricsRec  root;
-    FT_UInt              units_per_em;
-    AF_LatinAxisRec      axis[AF_DIMENSION_MAX];
+    AF_StyleMetricsRec  root;
+    FT_UInt             units_per_em;
+    AF_LatinAxisRec     axis[AF_DIMENSION_MAX];
 
   } AF_LatinMetricsRec, *AF_LatinMetrics;
 
@@ -174,7 +161,7 @@ FT_BEGIN_HEADER
 
   /*
    *  The next functions shouldn't normally be exported.  However, other
-   *  scripts might like to use these functions as-is.
+   *  writing systems might like to use these functions as-is.
    */
   FT_LOCAL( FT_Error )
   af_latin_hints_compute_segments( AF_GlyphHints  hints,

@@ -2,7 +2,7 @@
 /*                                                                         */
 /*  aflatin2.c                                                             */
 /*                                                                         */
-/*    Auto-fitter hinting routines for latin script (body).                */
+/*    Auto-fitter hinting routines for latin writing system (body).        */
 /*                                                                         */
 /*  Copyright 2003-2013 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
@@ -76,8 +76,9 @@
       AF_Scaler            scaler = &dummy->root.scaler;
 
 
-      glyph_index = FT_Get_Char_Index( face,
-                                       metrics->root.clazz->standard_char );
+      glyph_index = FT_Get_Char_Index(
+                      face,
+                      metrics->root.style_class->standard_char );
       if ( glyph_index == 0 )
         goto Exit;
 
@@ -94,7 +95,7 @@
       scaler->render_mode = FT_RENDER_MODE_NORMAL;
       scaler->flags       = 0;
 
-      af_glyph_hints_rescale( hints, (AF_ScriptMetrics)dummy );
+      af_glyph_hints_rescale( hints, (AF_StyleMetrics)dummy );
 
       error = af_glyph_hints_reload( hints, &face->glyph->outline );
       if ( error )
@@ -409,11 +410,11 @@
         blue->flags |= AF_LATIN_BLUE_TOP;
 
       /*
-       * The following flags is used later to adjust the y and x scales
+       * The following flag is used later to adjust the y and x scales
        * in order to optimize the pixel grid alignment of the top of small
        * letters.
        */
-      if ( bb == AF_LATIN_BLUE_SMALL_TOP )
+      if ( AF_LATIN_IS_X_HEIGHT_BLUE( bb ) )
         blue->flags |= AF_LATIN_BLUE_ADJUSTMENT;
 
       FT_TRACE5(( "    -> reference = %ld\n"
@@ -1500,7 +1501,7 @@
     FT_Face         face = metrics->root.scaler.face;
 
 
-    af_glyph_hints_rescale( hints, (AF_ScriptMetrics)metrics );
+    af_glyph_hints_rescale( hints, (AF_StyleMetrics)metrics );
 
     /*
      *  correct x_scale and y_scale if needed, since they may have
@@ -2379,27 +2380,19 @@
   /*************************************************************************/
 
 
-  static const AF_Script_UniRangeRec  af_latin2_uniranges[] =
-  {
-    AF_UNIRANGE_REC( 32UL,  127UL ),    /* TODO: Add new Unicode ranges here! */
-    AF_UNIRANGE_REC( 160UL, 255UL ),
-    AF_UNIRANGE_REC( 0UL,   0UL )
-  };
+  AF_DEFINE_WRITING_SYSTEM_CLASS(
+    af_latin2_writing_system_class,
 
-
-  AF_DEFINE_SCRIPT_CLASS( af_latin2_script_class,
-    AF_SCRIPT_LATIN2,
-    af_latin2_uniranges,
-    'o',
+    AF_WRITING_SYSTEM_LATIN2,
 
     sizeof ( AF_LatinMetricsRec ),
 
-    (AF_Script_InitMetricsFunc) af_latin2_metrics_init,
-    (AF_Script_ScaleMetricsFunc)af_latin2_metrics_scale,
-    (AF_Script_DoneMetricsFunc) NULL,
+    (AF_WritingSystem_InitMetricsFunc) af_latin2_metrics_init,
+    (AF_WritingSystem_ScaleMetricsFunc)af_latin2_metrics_scale,
+    (AF_WritingSystem_DoneMetricsFunc) NULL,
 
-    (AF_Script_InitHintsFunc)   af_latin2_hints_init,
-    (AF_Script_ApplyHintsFunc)  af_latin2_hints_apply
+    (AF_WritingSystem_InitHintsFunc)   af_latin2_hints_init,
+    (AF_WritingSystem_ApplyHintsFunc)  af_latin2_hints_apply
   )
 
 

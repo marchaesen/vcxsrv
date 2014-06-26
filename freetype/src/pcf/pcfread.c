@@ -1096,7 +1096,7 @@ THE SOFTWARE.
   pcf_load_font( FT_Stream  stream,
                  PCF_Face   face )
   {
-    FT_Error   error  = FT_Err_Ok;
+    FT_Error   error;
     FT_Memory  memory = FT_FACE( face )->memory;
     FT_Bool    hasBDFAccelerators;
 
@@ -1153,9 +1153,10 @@ THE SOFTWARE.
 
       root->num_faces  = 1;
       root->face_index = 0;
-      root->face_flags = FT_FACE_FLAG_FIXED_SIZES |
-                         FT_FACE_FLAG_HORIZONTAL  |
-                         FT_FACE_FLAG_FAST_GLYPHS;
+
+      root->face_flags |= FT_FACE_FLAG_FIXED_SIZES |
+                          FT_FACE_FLAG_HORIZONTAL  |
+                          FT_FACE_FLAG_FAST_GLYPHS;
 
       if ( face->accel.constantWidth )
         root->face_flags |= FT_FACE_FLAG_FIXED_WIDTH;
