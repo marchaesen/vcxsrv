@@ -801,7 +801,7 @@ _mesa_meta_begin(struct gl_context *ctx, GLbitfield state)
       int buf, real_color_buffers = 0;
       memset(save->ColorDrawBuffers, 0, sizeof(save->ColorDrawBuffers));
 
-      for (buf = 0; buf < MAX_DRAW_BUFFERS; buf++) {
+      for (buf = 0; buf < ctx->Const.MaxDrawBuffers; buf++) {
          int buf_index = ctx->DrawBuffer->_ColorDrawBufferIndexes[buf];
          if (buf_index == -1)
             continue;
@@ -1213,7 +1213,7 @@ _mesa_meta_end(struct gl_context *ctx)
       _mesa_BindRenderbuffer(GL_RENDERBUFFER, save->RenderbufferName);
 
    if (state & MESA_META_DRAW_BUFFERS) {
-      _mesa_DrawBuffers(MAX_DRAW_BUFFERS, save->ColorDrawBuffers);
+      _mesa_DrawBuffers(ctx->Const.MaxDrawBuffers, save->ColorDrawBuffers);
    }
 
    ctx->Meta->SaveStackDepth--;
@@ -1569,6 +1569,7 @@ meta_glsl_clear_init(struct gl_context *ctx, struct clear_state *clear)
    _mesa_AttachShader(clear->ShaderProg, vs);
    _mesa_DeleteShader(vs);
    _mesa_BindAttribLocation(clear->ShaderProg, 0, "position");
+   _mesa_ObjectLabel(GL_PROGRAM, clear->ShaderProg, -1, "meta clear");
    _mesa_LinkProgram(clear->ShaderProg);
 
    clear->ColorLocation = _mesa_GetUniformLocation(clear->ShaderProg,
@@ -2613,6 +2614,7 @@ _mesa_meta_setup_texture_coords(GLenum faceTarget,
             break;
          default:
             assert(0);
+            unreachable();
          }
 
          coord[3] = (float) (slice / 6);

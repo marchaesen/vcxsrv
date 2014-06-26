@@ -114,8 +114,13 @@ SOFTWARE.
 
 #if defined(__powerpc__) || defined(__ppc__) || defined(__ppc64__)
 
-#define IMAGE_BYTE_ORDER        MSBFirst
-#define BITMAP_BIT_ORDER        MSBFirst
+#if defined(__LITTLE_ENDIAN__)
+#define IMAGE_BYTE_ORDER      LSBFirst
+#define BITMAP_BIT_ORDER      LSBFirst
+#else
+#define IMAGE_BYTE_ORDER      MSBFirst
+#define BITMAP_BIT_ORDER      MSBFirst
+#endif
 #define GLYPHPADBYTES           4
 
 #endif                          /* PowerPC */

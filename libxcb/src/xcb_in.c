@@ -36,9 +36,6 @@
 #include <stdio.h>
 #include <errno.h>
 
-#include "xcb.h"
-#include "xcbext.h"
-#include "xcbint.h"
 #if USE_POLL
 #include <poll.h>
 #endif
@@ -50,6 +47,10 @@
 #ifdef _WIN32
 #include "xcb_windefs.h"
 #endif /* _WIN32 */
+
+#include "xcb.h"
+#include "xcbext.h"
+#include "xcbint.h"
 
 #define XCB_ERROR 0
 #define XCB_REPLY 1

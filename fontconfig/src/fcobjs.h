@@ -44,7 +44,7 @@ FC_OBJECT (AUTOHINT,		FcTypeBool,	NULL)
 FC_OBJECT (GLOBAL_ADVANCE,	FcTypeBool,	NULL)	/* deprecated */
 FC_OBJECT (FILE,		FcTypeString,	FcCompareFilename)
 FC_OBJECT (INDEX,		FcTypeInteger,	NULL)
-FC_OBJECT (RASTERIZER,		FcTypeString,	FcCompareString)
+FC_OBJECT (RASTERIZER,		FcTypeString,	FcCompareString)	/* deprecated */
 FC_OBJECT (OUTLINE,		FcTypeBool,	FcCompareBool)
 FC_OBJECT (SCALABLE,		FcTypeBool,	FcCompareBool)
 FC_OBJECT (DPI,			FcTypeDouble,	NULL)
@@ -66,6 +66,6 @@ FC_OBJECT (LCD_FILTER,		FcTypeInteger,	NULL)
 FC_OBJECT (NAMELANG,		FcTypeString,	NULL)
 FC_OBJECT (FONT_FEATURES,	FcTypeString,	NULL)
 FC_OBJECT (PRGNAME,		FcTypeString,	NULL)
-FC_OBJECT (HASH,		FcTypeString,	FcCompareHash)
+FC_OBJECT (HASH,		FcTypeString,	FcCompareHash)	/* deprecated */
 FC_OBJECT (POSTSCRIPT_NAME,	FcTypeString,	FcComparePostScript)
 /* ^-------------- Add new objects here. */

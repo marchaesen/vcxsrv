@@ -177,19 +177,28 @@ FcDirCacheOpenFile (const FcChar8 *cache_file, struct stat *file_stat)
  */
 static FcBool
 FcDirCacheProcess (FcConfig *config, const FcChar8 *dir,
-		   FcBool (*callback) (int fd, struct stat *fd_stat,
+		   FcBool (*callback) (FcConfig *config, int fd, struct stat *fd_stat,
 				       struct stat *dir_stat, void *closure),
 		   void *closure, FcChar8 **cache_file_ret)
 {
     int		fd = -1;
     FcChar8	cache_base[CACHEBASE_LEN];
     FcStrList	*list;
-    FcChar8	*cache_dir;
+    FcChar8	*cache_dir, *d;
     struct stat file_stat, dir_stat;
     FcBool	ret = FcFalse;
+    const FcChar8 *sysroot = FcConfigGetSysRoot (config);
 
-    if (FcStatChecksum (dir, &dir_stat) < 0)
+    if (sysroot)
+	d = FcStrBuildFilename (sysroot, dir, NULL);
+    else
+	d = FcStrdup (dir);
+    if (FcStatChecksum (d, &dir_stat) < 0)
+    {
+	FcStrFree (d);
         return FcFalse;
+    }
+    FcStrFree (d);
 
     FcDirCacheBasename (dir, cache_base);
 
@@ -199,7 +208,6 @@ FcDirCacheProcess (FcConfig *config, const FcChar8 *dir,
 	
     while ((cache_dir = FcStrListNext (list)))
     {
-	const FcChar8 *sysroot = FcConfigGetSysRoot (config);
         FcChar8	*cache_hashed;
 
 	if (sysroot)
@@ -210,7 +218,7 @@ FcDirCacheProcess (FcConfig *config, const FcChar8 *dir,
 	    break;
         fd = FcDirCacheOpenFile (cache_hashed, &file_stat);
         if (fd >= 0) {
-	    ret = (*callback) (fd, &file_stat, &dir_stat, closure);
+	    ret = (*callback) (config, fd, &file_stat, &dir_stat, closure);
 	    close (fd);
 	    if (ret)
 	    {
@@ -529,14 +537,25 @@ FcCacheFini (void)
 }
 
 static FcBool
-FcCacheTimeValid (FcCache *cache, struct stat *dir_stat)
+FcCacheTimeValid (FcConfig *config, FcCache *cache, struct stat *dir_stat)
 {
     struct stat	dir_static;
 
     if (!dir_stat)
     {
-	if (FcStatChecksum (FcCacheDir (cache), &dir_static) < 0)
+	const FcChar8 *sysroot = FcConfigGetSysRoot (config);
+	FcChar8 *d;
+
+	if (sysroot)
+	    d = FcStrBuildFilename (sysroot, FcCacheDir (cache), NULL);
+	else
+	    d = FcStrdup (FcCacheDir (cache));
+	if (FcStatChecksum (d, &dir_static) < 0)
+	{
+	    FcStrFree (d);
 	    return FcFalse;
+	}
+	FcStrFree (d);
 	dir_stat = &dir_static;
     }
     if (FcDebug () & FC_DBG_CACHE)
@@ -546,21 +565,28 @@ FcCacheTimeValid (FcCache *cache, struct stat *dir_stat)
 }
 
 static FcBool
-FcCacheDirsValid (FcCache *cache)
+FcCacheDirsValid (FcConfig *config, FcCache *cache)
 {
     FcStrSet *dirs = FcStrSetCreate ();
     FcBool ret = FcFalse;
+    const FcChar8 *sysroot = FcConfigGetSysRoot (config);
+    FcChar8 *d;
 
     if (!dirs)
 	goto bail;
-    if (!FcDirScanOnly (dirs, FcCacheDir (cache)))
+    if (sysroot)
+	d = FcStrBuildFilename (sysroot, FcCacheDir (cache), NULL);
+    else
+	d = FcStrdup (FcCacheDir (cache));
+    if (!FcDirScanOnly (dirs, d, config))
 	goto bail1;
     ret = cache->dirs_count == dirs->num;
     if (FcDebug () & FC_DBG_CACHE)
-	printf ("%s: cache: %d, fs: %d\n", FcCacheDir (cache), cache->dirs_count, dirs->num);
+	printf ("%s: cache: %d, fs: %d\n", d, cache->dirs_count, dirs->num);
 
 bail1:
     FcStrSetDestroy (dirs);
+    FcStrFree (d);
 bail:
     return ret;
 }
@@ -569,7 +595,7 @@ bail:
  * Map a cache file into memory
  */
 static FcCache *
-FcDirCacheMapFd (int fd, struct stat *fd_stat, struct stat *dir_stat)
+FcDirCacheMapFd (FcConfig *config, int fd, struct stat *fd_stat, struct stat *dir_stat)
 {
     FcCache	*cache;
     FcBool	allocated = FcFalse;
@@ -579,8 +605,8 @@ FcDirCacheMapFd (int fd, struct stat *fd_stat, struct stat *dir_stat)
     cache = FcCacheFindByStat (fd_stat);
     if (cache)
     {
-	if (FcCacheTimeValid (cache, dir_stat) &&
-	    FcCacheDirsValid (cache))
+	if (FcCacheTimeValid (config, cache, dir_stat) &&
+	    FcCacheDirsValid (config, cache))
 	    return cache;
 	FcDirCacheUnload (cache);
 	cache = NULL;
@@ -631,8 +657,8 @@ FcDirCacheMapFd (int fd, struct stat *fd_stat, struct stat *dir_stat)
     if (cache->magic != FC_CACHE_MAGIC_MMAP ||
 	cache->version < FC_CACHE_CONTENT_VERSION ||
 	cache->size != (intptr_t) fd_stat->st_size ||
-	!FcCacheTimeValid (cache, dir_stat) ||
-	!FcCacheDirsValid (cache) ||
+	!FcCacheTimeValid (config, cache, dir_stat) ||
+	!FcCacheDirsValid (config, cache) ||
 	!FcCacheInsert (cache, fd_stat))
     {
 	if (allocated)
@@ -671,9 +697,9 @@ FcDirCacheUnload (FcCache *cache)
 }
 
 static FcBool
-FcDirCacheMapHelper (int fd, struct stat *fd_stat, struct stat *dir_stat, void *closure)
+FcDirCacheMapHelper (FcConfig *config, int fd, struct stat *fd_stat, struct stat *dir_stat, void *closure)
 {
-    FcCache *cache = FcDirCacheMapFd (fd, fd_stat, dir_stat);
+    FcCache *cache = FcDirCacheMapFd (config, fd, fd_stat, dir_stat);
 
     if (!cache)
 	return FcFalse;
@@ -690,6 +716,7 @@ FcDirCacheLoad (const FcChar8 *dir, FcConfig *config, FcChar8 **cache_file)
 			    FcDirCacheMapHelper,
 			    &cache, cache_file))
 	return NULL;
+
     return cache;
 }
 
@@ -705,7 +732,7 @@ FcDirCacheLoadFile (const FcChar8 *cache_file, struct stat *file_stat)
     fd = FcDirCacheOpenFile (cache_file, file_stat);
     if (fd < 0)
 	return NULL;
-    cache = FcDirCacheMapFd (fd, file_stat, NULL);
+    cache = FcDirCacheMapFd (FcConfigGetCurrent (), fd, file_stat, NULL);
     close (fd);
     return cache;
 }
@@ -715,7 +742,7 @@ FcDirCacheLoadFile (const FcChar8 *cache_file, struct stat *file_stat)
  * the magic number and the size field
  */
 static FcBool
-FcDirCacheValidateHelper (int fd, struct stat *fd_stat, struct stat *dir_stat, void *closure FC_UNUSED)
+FcDirCacheValidateHelper (FcConfig *config, int fd, struct stat *fd_stat, struct stat *dir_stat, void *closure FC_UNUSED)
 {
     FcBool  ret = FcTrue;
     FcCache	c;
@@ -1080,15 +1107,22 @@ FcDirCacheClean (const FcChar8 *cache_dir, FcBool verbose)
 	}
 	else
 	{
+	    FcChar8 *s;
+
 	    target_dir = FcCacheDir (cache);
-	    if (stat ((char *) target_dir, &target_stat) < 0)
+	    if (sysroot)
+		s = FcStrBuildFilename (sysroot, target_dir, NULL);
+	    else
+		s = FcStrdup (target_dir);
+	    if (stat ((char *) s, &target_stat) < 0)
 	    {
 		if (verbose || FcDebug () & FC_DBG_CACHE)
 		    printf ("%s: %s: missing directory: %s \n",
-			    dir, ent->d_name, target_dir);
+			    dir, ent->d_name, s);
 		remove = FcTrue;
 	    }
 	    FcDirCacheUnload (cache);
+	    FcStrFree (s);
 	}
 	if (remove)
 	{

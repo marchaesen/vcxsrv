@@ -101,6 +101,7 @@ authorization from the authors.
         <list type="char" name="name">
             <fieldref>name_size</fieldref>
         </list>
+        <pad align="4" />
         <list type="Format" name="formats">
             <fieldref>num_formats</fieldref>
         </list>

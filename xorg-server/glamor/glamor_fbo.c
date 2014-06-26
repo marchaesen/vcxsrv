@@ -347,6 +347,7 @@ _glamor_create_tex(glamor_screen_private *glamor_priv,
         glamor_make_current(glamor_priv);
         glGenTextures(1, &tex);
         glBindTexture(GL_TEXTURE_2D, tex);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexImage2D(GL_TEXTURE_2D, 0, format, w, h, 0,

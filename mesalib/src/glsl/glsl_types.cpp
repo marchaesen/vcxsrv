@@ -22,9 +22,7 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
-#include "main/core.h" /* for Elements */
-#include "glsl_symbol_table.h"
+#include "main/core.h" /* for Elements, MAX2 */
 #include "glsl_parser_extras.h"
 #include "glsl_types.h"
 extern "C" {
@@ -675,6 +673,32 @@ glsl_type::component_slots() const
    }
 
    return 0;
+}
+
+unsigned
+glsl_type::uniform_locations() const
+{
+   if (this->is_matrix())
+      return 1;
+
+   unsigned size = 0;
+
+   switch (this->base_type) {
+   case GLSL_TYPE_STRUCT:
+   case GLSL_TYPE_INTERFACE:
+      for (unsigned i = 0; i < this->length; i++)
+         size += this->fields.structure[i].type->uniform_locations();
+      return size;
+   case GLSL_TYPE_ARRAY:
+      return this->length * this->fields.array->uniform_locations();
+   default:
+      break;
+   }
+
+   /* The location count for many types match with component_slots() result,
+    * all expections should be handled above.
+    */
+   return component_slots();
 }
 
 bool

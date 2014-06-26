@@ -854,7 +854,8 @@ FcDirScanConfig (FcFontSet	*set,
 
 FcPrivate FcBool
 FcDirScanOnly (FcStrSet		*dirs,
-	       const FcChar8	*dir);
+	       const FcChar8	*dir,
+	       FcConfig		*config);
 
 /* fcfont.c */
 FcPrivate int
@@ -870,25 +871,6 @@ FcFontSetSerialize (FcSerialize *serialize, const FcFontSet * s);
 
 FcPrivate FcFontSet *
 FcFontSetDeserialize (const FcFontSet *set);
-
-/* fchash.c */
-
-typedef FcChar32 FcHashDigest[8];
-
-FcPrivate void
-FcHashInitDigest (FcHashDigest digest);
-
-FcPrivate void
-FcHashDigestAddBlock (FcHashDigest digest,
-		      const char   block[64]);
-
-FcPrivate void
-FcHashDigestFinish (FcHashDigest  digest,
-		    const char   *residual, /* < 64 bytes */
-		    size_t        total_len);
-
-FcPrivate FcChar8 *
-FcHashToString (const FcHashDigest digest);
 
 /* fcinit.c */
 FcPrivate FcConfig *

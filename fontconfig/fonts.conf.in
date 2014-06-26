@@ -88,17 +88,15 @@
 			<int>0x00A0</int>	<!-- NO-BREAK SPACE -->
 			<int>0x00AD</int>	<!-- SOFT HYPHEN -->
 			<int>0x034F</int>	<!-- COMBINING GRAPHEME JOINER -->
-			<int>0x0600</int>	<!-- ARABIC NUMBER SIGN -->
-			<int>0x0601</int>	<!-- ARABIC SIGN SANAH -->
-			<int>0x0602</int>	<!-- ARABIC FOOTNOTE MARKER -->
-			<int>0x0603</int>	<!-- ARABIC SIGN SAFHA -->
-			<int>0x06DD</int>	<!-- ARABIC END OF AYAH -->
-			<int>0x070F</int>	<!-- SYRIAC ABBREVIATION MARK -->
+			<int>0x061C</int>	<!-- ARABIC LETTER MARK -->
 			<int>0x115F</int>	<!-- HANGUL CHOSEONG FILLER -->
 			<int>0x1160</int>	<!-- HANGUL JUNGSEONG FILLER -->
 			<int>0x1680</int>	<!-- OGHAM SPACE MARK -->
 			<int>0x17B4</int>	<!-- KHMER VOWEL INHERENT AQ -->
 			<int>0x17B5</int>	<!-- KHMER VOWEL INHERENT AA -->
+			<int>0x180B</int>	<!-- MONGOLIAN FREE VARIATION SELECTOR ONE -->
+			<int>0x180C</int>	<!-- MONGOLIAN FREE VARIATION SELECTOR TWO -->
+			<int>0x180D</int>	<!-- MONGOLIAN FREE VARIATION SELECTOR THREE -->
 			<int>0x180E</int>	<!-- MONGOLIAN VOWEL SEPARATOR -->
 			<int>0x2000</int>	<!-- EN QUAD -->
 			<int>0x2001</int>	<!-- EM QUAD -->
@@ -116,8 +114,6 @@
 			<int>0x200D</int>	<!-- ZERO WIDTH JOINER -->
 			<int>0x200E</int>	<!-- LEFT-TO-RIGHT MARK -->
 			<int>0x200F</int>	<!-- RIGHT-TO-LEFT MARK -->
-			<int>0x2028</int>	<!-- LINE SEPARATOR -->
-			<int>0x2029</int>	<!-- PARAGRAPH SEPARATOR -->
 			<int>0x202A</int>	<!-- LEFT-TO-RIGHT EMBEDDING -->
 			<int>0x202B</int>	<!-- RIGHT-TO-LEFT EMBEDDING -->
 			<int>0x202C</int>	<!-- POP DIRECTIONAL FORMATTING -->
@@ -129,6 +125,11 @@
 			<int>0x2061</int>	<!-- FUNCTION APPLICATION -->
 			<int>0x2062</int>	<!-- INVISIBLE TIMES -->
 			<int>0x2063</int>	<!-- INVISIBLE SEPARATOR -->
+			<int>0x2064</int>	<!-- INVISIBLE PLUS -->
+			<int>0x2066</int>	<!-- LEFT-TO-RIGHT ISOLATE -->
+			<int>0x2067</int>	<!-- RIGHT-TO-LEFT ISOLATE -->
+			<int>0x2068</int>	<!-- FIRST STRONG ISOLATE -->
+			<int>0x2069</int>	<!-- POP DIRECTIONAL ISOLATE -->
 			<int>0x206A</int>	<!-- INHIBIT SYMMETRIC SWAPPING -->
 			<int>0x206B</int>	<!-- ACTIVATE SYMMETRIC SWAPPING -->
 			<int>0x206C</int>	<!-- INHIBIT ARABIC FORM SHAPING -->
@@ -140,9 +141,10 @@
 			<int>0x3164</int>	<!-- HANGUL FILLER -->
 			<int>0xFEFF</int>	<!-- ZERO WIDTH NO-BREAK SPACE -->
 			<int>0xFFA0</int>	<!-- HALFWIDTH HANGUL FILLER -->
-			<int>0xFFF9</int>	<!-- INTERLINEAR ANNOTATION ANCHOR -->
-			<int>0xFFFA</int>	<!-- INTERLINEAR ANNOTATION SEPARATOR -->
-			<int>0xFFFB</int>	<!-- INTERLINEAR ANNOTATION TERMINATOR -->
+			<int>0x1BCA0</int>	<!-- SHORTHAND FORMAT LETTER OVERLAP -->
+			<int>0x1BCA1</int>	<!-- SHORTHAND FORMAT CONTINUING OVERLAP -->
+			<int>0x1BCA2</int>	<!-- SHORTHAND FORMAT DOWN STEP -->
+			<int>0x1BCA3</int>	<!-- SHORTHAND FORMAT UP STEP -->
 		</blank>
 <!--
   Rescan configuration every 30 seconds when FcFontSetList is called

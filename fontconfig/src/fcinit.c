@@ -36,13 +36,14 @@
 #endif
 
 static FcConfig *
-FcInitFallbackConfig (void)
+FcInitFallbackConfig (const FcChar8 *sysroot)
 {
     FcConfig	*config;
 
     config = FcConfigCreate ();
     if (!config)
 	goto bail0;
+    FcConfigSetSysRoot (config, sysroot);
     if (!FcConfigAddDir (config, (FcChar8 *) FC_DEFAULT_FONTS))
 	goto bail1;
     if (!FcConfigAddCacheDir (config, (FcChar8 *) FC_CACHEDIR))
@@ -78,8 +79,12 @@ FcInitLoadOwnConfig (FcConfig *config)
 
     if (!FcConfigParseAndLoad (config, 0, FcTrue))
     {
+	const FcChar8 *sysroot = FcConfigGetSysRoot (config);
+	FcConfig *fallback = FcInitFallbackConfig (sysroot);
+
 	FcConfigDestroy (config);
-	return FcInitFallbackConfig ();
+
+	return fallback;
     }
 
     if (config->cacheDirs && config->cacheDirs->num == 0)
@@ -108,13 +113,19 @@ FcInitLoadOwnConfig (FcConfig *config)
 	if (!FcConfigAddCacheDir (config, (FcChar8 *) FC_CACHEDIR) ||
 	    !FcConfigAddCacheDir (config, (FcChar8 *) prefix))
 	{
+	    FcConfig *fallback;
+	    const FcChar8 *sysroot;
+
 	  bail:
+	    sysroot = FcConfigGetSysRoot (config);
 	    fprintf (stderr,
 		     "Fontconfig error: out of memory");
 	    if (prefix)
 		FcStrFree (prefix);
+	    fallback = FcInitFallbackConfig (sysroot);
 	    FcConfigDestroy (config);
-	    return FcInitFallbackConfig ();
+
+	    return fallback;
 	}
 	FcStrFree (prefix);
     }

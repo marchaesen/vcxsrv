@@ -177,8 +177,7 @@ _XkbClearColor(char *color_in)
 {
     XkbColorPtr color = (XkbColorPtr) color_in;
 
-    if (color->spec)
-        _XkbFree(color->spec);
+    _XkbFree(color->spec);
     return;
 }
 
@@ -660,8 +659,7 @@ XkbAddGeomProperty(XkbGeometryPtr geom, char *name, char *value)
         return NULL;
     for (i = 0, prop = geom->properties; i < geom->num_properties; i++, prop++) {
         if ((prop->name) && (strcmp(name, prop->name) == 0)) {
-            if (prop->value)
-                _XkbFree(prop->value);
+            _XkbFree(prop->value);
             prop->value = strdup(value);
             return prop;
         }

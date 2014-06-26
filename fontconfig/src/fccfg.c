@@ -375,7 +375,7 @@ FcConfigAddDirList (FcConfig *config, FcSetName set, FcStrSet *dirSet)
     while ((dir = FcStrListNext (dirlist)))
     {
 	if (FcDebug () & FC_DBG_FONTSET)
-	    printf ("adding fonts from%s\n", dir);
+	    printf ("adding fonts from %s\n", dir);
 	cache = FcDirCacheRead (dir, FcFalse, config);
 	if (!cache)
 	    continue;

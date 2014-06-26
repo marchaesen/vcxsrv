@@ -133,8 +133,8 @@ _XkbReadGetNamesReply(Display *dpy,
                 if ((nLevels[i] > 0) && (nLevels[i] != type->num_levels)) {
                     goto BAILOUT;
                 }
-                if (type->level_names != NULL)
-                    Xfree(type->level_names);
+
+                Xfree(type->level_names);
                 if (nLevels[i] == 0) {
                     type->level_names = NULL;
                     continue;

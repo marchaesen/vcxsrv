@@ -383,6 +383,24 @@ present_set_tree_pixmap(WindowPtr window, PixmapPtr pixmap)
 }
 
 static void
+present_set_abort_flip(ScreenPtr screen)
+{
+    present_screen_priv_ptr screen_priv = present_screen_priv(screen);
+
+    /* Switch back to using the screen pixmap now to avoid
+     * 2D applications drawing to the wrong pixmap.
+     */
+
+    if (screen_priv->flip_window)
+        present_set_tree_pixmap(screen_priv->flip_window,
+                                  (*screen->GetScreenPixmap)(screen));
+
+    present_set_tree_pixmap(screen->root, (*screen->GetScreenPixmap)(screen));
+
+    screen_priv->flip_pending->abort_flip = TRUE;
+}
+
+static void
 present_unflip(ScreenPtr screen)
 {
     present_screen_priv_ptr screen_priv = present_screen_priv(screen);
@@ -511,7 +529,7 @@ present_check_flip_window (WindowPtr window)
         if (flip_pending->window == window) {
             if (!present_check_flip(flip_pending->crtc, window, flip_pending->pixmap,
                                     flip_pending->sync_flip, NULL, 0, 0))
-                flip_pending->abort_flip = TRUE;
+                present_set_abort_flip(screen);
         }
     } else {
         /*
@@ -578,6 +596,7 @@ present_execute(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
     }
 
     xorg_list_del(&vblank->event_queue);
+    xorg_list_del(&vblank->window_list);
     vblank->queued = FALSE;
 
     if (vblank->pixmap && vblank->window) {
@@ -633,7 +652,7 @@ present_execute(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
             /* Check pending flip
              */
             if (window == screen_priv->flip_pending->window)
-                screen_priv->flip_pending->abort_flip = TRUE;
+                present_set_abort_flip(screen);
         } else if (!screen_priv->unflip_event_id) {
 
             /* Check current flip
@@ -752,7 +771,7 @@ present_pixmap(WindowPtr window,
             if (!vblank->queued)
                 continue;
 
-            if (vblank->crtc != target_crtc || vblank->target_msc > target_msc)
+            if (vblank->crtc != target_crtc || vblank->target_msc != target_msc)
                 continue;
 
             DebugPresent(("\tx %lld %p %8lld: %08lx -> %08lx (crtc %p)\n",
@@ -915,7 +934,7 @@ present_flip_destroy(ScreenPtr screen)
 
     /* Do the actual cleanup once the flip has been performed by the hardware */
     if (screen_priv->flip_pending)
-        screen_priv->flip_pending->abort_flip = TRUE;
+        present_set_abort_flip(screen);
 }
 
 void

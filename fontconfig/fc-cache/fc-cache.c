@@ -128,7 +128,8 @@ scanDirs (FcStrList *list, FcConfig *config, FcBool force, FcBool really_force, 
     struct stat	    statb;
     FcBool	    was_valid;
     int		    i;
-    
+    const FcChar8   *sysroot = FcConfigGetSysRoot (config);
+
     /*
      * Now scan all of the directories into separate databases
      * and write out the results
@@ -138,9 +139,10 @@ scanDirs (FcStrList *list, FcConfig *config, FcBool force, FcBool really_force, 
 	if (verbose)
 	{
 	    if (!recursive)
-		printf ("Re-scanning %s: ", dir);
-	    else
-		printf ("%s: ", dir);
+		printf ("Re-scanning ");
+	    if (sysroot)
+		printf ("[%s]", sysroot);
+	    printf ("%s: ", dir);
 	    fflush (stdout);
 	}
 	

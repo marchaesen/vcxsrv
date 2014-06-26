@@ -367,8 +367,8 @@ init_core_part(
     return True;
 
 err:
-    if (font_name_list)
-	Xfree(font_name_list);
+
+    Xfree(font_name_list);
     Xfree(font_struct_list);
 
     return False;
@@ -636,14 +636,10 @@ destroy_oc(
     XOCGenericPart *gen = XOC_GENERIC(oc);
     XFontStruct **font_list, *font;
 
-    if (gen->font_set)
-	Xfree(gen->font_set);
 
-    if (oc->core.base_name_list)
-	Xfree(oc->core.base_name_list);
-
-    if (oc->core.font_info.font_name_list)
-	XFreeStringList(oc->core.font_info.font_name_list);
+    Xfree(gen->font_set);
+    Xfree(oc->core.base_name_list);
+    XFreeStringList(oc->core.font_info.font_name_list);
 
     if ((font_list = oc->core.font_info.font_struct_list)) {
 	if ((font = *font_list)) {
@@ -655,14 +651,12 @@ destroy_oc(
 	Xfree(oc->core.font_info.font_struct_list);
     }
 
-    if (oc->core.missing_list.charset_list)
-	XFreeStringList(oc->core.missing_list.charset_list);
+
+    XFreeStringList(oc->core.missing_list.charset_list);
 
 #ifdef notdef
-    if (oc->core.res_name)
-	Xfree(oc->core.res_name);
-    if (oc->core.res_class)
-	Xfree(oc->core.res_class);
+    Xfree(oc->core.res_name);
+    Xfree(oc->core.res_class);
 #endif
 
     Xfree(oc);
@@ -1043,7 +1037,6 @@ close_om(
 	if (data->font_data) {
 	  for (font_data = data->font_data, count = data->font_data_count;
 	       count-- > 0 ; font_data++) {
-	    if (font_data->name)
 		Xfree(font_data->name);
 	  }
 	  Xfree(data->font_data);
@@ -1051,17 +1044,16 @@ close_om(
 	Xfree(gen->data);
     }
 
-    if (om->core.res_name)
-	Xfree(om->core.res_name);
-    if (om->core.res_class)
-	Xfree(om->core.res_class);
+
+    Xfree(om->core.res_name);
+    Xfree(om->core.res_class);
+
     if (om->core.required_charset.charset_list)
 	XFreeStringList(om->core.required_charset.charset_list);
     else
 	Xfree((char*)om->core.required_charset.charset_list);
-    if (om->core.orientation_list.orientation)
-	Xfree(om->core.orientation_list.orientation);
 
+    Xfree(om->core.orientation_list.orientation);
     Xfree(om);
 
     return 1;

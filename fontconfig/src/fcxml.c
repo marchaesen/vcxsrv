@@ -3129,11 +3129,12 @@ FcConfigParseAndLoad (FcConfig	    *config,
 {
 
     XML_Parser	    p;
-    FcChar8	    *filename;
+    FcChar8	    *filename, *f;
     int		    fd;
     int		    len;
     FcConfigParse   parse;
     FcBool	    error = FcTrue;
+    const FcChar8   *sysroot = FcConfigGetSysRoot (config);
 
 #ifdef ENABLE_LIBXML2
     xmlSAXHandler   sax;
@@ -3158,9 +3159,14 @@ FcConfigParseAndLoad (FcConfig	    *config,
     }
 #endif
 
-    filename = FcConfigFilename (name);
-    if (!filename)
+    f = FcConfigFilename (name);
+    if (!f)
 	goto bail0;
+    if (sysroot)
+	filename = FcStrBuildFilename (sysroot, f, NULL);
+    else
+	filename = FcStrdup (f);
+    FcStrFree (f);
 
     if (FcStrSetMember (config->configFiles, filename))
     {

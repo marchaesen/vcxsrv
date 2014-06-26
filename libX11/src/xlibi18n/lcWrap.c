@@ -86,8 +86,7 @@ XSetLocaleModifiers(
     user_mods = getenv("XMODIFIERS");
     mapped_mods = (*lcd->methods->map_modifiers) (lcd, user_mods, modifiers);
     if (mapped_mods) {
-	if (lcd->core->modifiers)
-	    Xfree(lcd->core->modifiers);
+	Xfree(lcd->core->modifiers);
 	lcd->core->modifiers = mapped_mods;
     }
     return mapped_mods;

@@ -133,7 +133,10 @@ authorization from the authors.
   <request name="GetBuffers" opcode="5">
     <field type="DRAWABLE" name="drawable" />
     <field type="CARD32" name="count" />
-    <list type="CARD32" name="attachments" />
+    <list type="CARD32" name="attachments">
+    <!-- The length field should be linked but we can't correct it without breaking API -->
+    <!-- <fieldref>count</fieldref> -->
+    </list>
     <reply>
       <pad bytes="1" />
       <field type="CARD32" name="width" />
@@ -159,7 +162,10 @@ authorization from the authors.
   <request name="GetBuffersWithFormat" opcode="7">
     <field type="DRAWABLE" name="drawable" />
     <field type="CARD32" name="count" />
-    <list type="AttachFormat" name="attachments" />
+    <list type="AttachFormat" name="attachments">
+    <!-- The length field should be linked but we can't correct it without breaking API -->
+    <!-- <fieldref>count</fieldref> -->
+    </list>
     <reply>
       <pad bytes="1" />
       <field type="CARD32" name="width" />

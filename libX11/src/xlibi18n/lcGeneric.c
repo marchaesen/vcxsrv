@@ -259,8 +259,8 @@ add_parse_list(
 
 err:
     Xfree(str);
-    if (new)
-        Xfree(new);
+
+    Xfree(new);
 
     return False;
 }
@@ -273,12 +273,10 @@ free_charset(
     ParseInfo *parse_info;
     int num;
 
-    if (gen->mb_parse_table)
-        Xfree(gen->mb_parse_table);
+    Xfree(gen->mb_parse_table);
     if ((num = gen->mb_parse_list_num) > 0) {
         for (parse_info = gen->mb_parse_list; num-- > 0; parse_info++) {
-            if ((*parse_info)->encoding)
-                Xfree((*parse_info)->encoding);
+            Xfree((*parse_info)->encoding);
             Xfree(*parse_info);
         }
         Xfree(gen->mb_parse_list);

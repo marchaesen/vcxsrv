@@ -685,7 +685,7 @@ ExaCheckAddTraps(PicturePtr pPicture,
 
     EXA_PRE_FALLBACK(pScreen);
 
-    EXA_FALLBACK(("to pict %p (%c)\n",
+    EXA_FALLBACK(("to pict %p (%c)\n", pPicture,
                   exaDrawableLocation(pPicture->pDrawable)));
     exaPrepareAccess(pPicture->pDrawable, EXA_PREPARE_DEST);
     swap(pExaScr, ps, AddTraps);

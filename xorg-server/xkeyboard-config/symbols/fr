@@ -128,7 +128,6 @@ xkb_symbols "oss" {
     include "latin"
     include "level3(ralt_switch)"
     include "nbsp(level4n)"
-    include "level5(rctrl_switch)"
     include "keypad(oss)"
 
     name[Group1]="French (alternative)";

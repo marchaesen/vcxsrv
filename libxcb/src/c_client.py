@@ -1548,6 +1548,17 @@ def _c_accessors_list(self, field):
     Declares a direct-accessor function only if the list members are fixed size.
     Declares length and get-iterator functions always.
     '''
+
+    def get_align_pad(field):
+            prev = field.prev_varsized_field
+            prev_prev = field.prev_varsized_field.prev_varsized_field
+
+            if (prev.type.is_pad and prev.type.align > 0 and prev_prev is not None):
+                return (prev_prev, '((-prev.index) & (%d - 1))' % prev.type.align)
+            else:
+                return (prev, None)
+
+
     list = field.type
     c_type = self.c_type
 
@@ -1623,9 +1634,16 @@ def _c_accessors_list(self, field):
         elif field.prev_varsized_field is None:
             _c('    return (%s *) (R + 1);', field.c_field_type)
         else:
-            _c('    xcb_generic_iterator_t prev = %s;', _c_iterator_get_end(field.prev_varsized_field, 'R'))
-            _c('    return (%s *) ((char *) prev.data + XCB_TYPE_PAD(%s, prev.index) + %d);', 
-               field.c_field_type, type_pad_type(field.first_field_after_varsized.type.c_type), field.prev_varsized_offset)
+            (prev_varsized_field, align_pad) = get_align_pad(field)
+
+            if align_pad is None:
+                align_pad = ('XCB_TYPE_PAD(%s, prev.index)' %
+                    type_pad_type(field.first_field_after_varsized.type.c_type))
+
+            _c('    xcb_generic_iterator_t prev = %s;',
+                _c_iterator_get_end(prev_varsized_field, 'R'))
+            _c('    return (%s *) ((char *) prev.data + %s + %d);',
+               field.c_field_type, align_pad, field.prev_varsized_offset)
         _c('}')
 
     _hc('')
@@ -1727,9 +1745,17 @@ def _c_accessors_list(self, field):
         elif field.prev_varsized_field == None:
             _c('    i.data = (%s *) (R + 1);', field.c_field_type)
         else:
-            _c('    xcb_generic_iterator_t prev = %s;', _c_iterator_get_end(field.prev_varsized_field, 'R'))
-            _c('    i.data = (%s *) ((char *) prev.data + XCB_TYPE_PAD(%s, prev.index));', 
-               field.c_field_type, type_pad_type(field.c_field_type))
+            (prev_varsized_field, align_pad) = get_align_pad(field)
+
+            if align_pad is None:
+                align_pad = ('XCB_TYPE_PAD(%s, prev.index)' %
+                    type_pad_type(field.c_field_type))
+
+            _c('    xcb_generic_iterator_t prev = %s;',
+                _c_iterator_get_end(prev_varsized_field, 'R'))
+            _c('    i.data = (%s *) ((char *) prev.data + %s);',
+                field.c_field_type, align_pad)
+
         if switch_obj is None:
             _c('    i.rem = %s;', _c_accessor_get_expr(field.type.expr, fields))
         _c('    i.index = (char *) i.data - (char *) %s;', 'R' if switch_obj is None else 'S' )

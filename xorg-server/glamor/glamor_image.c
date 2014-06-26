@@ -88,8 +88,7 @@ static void
 glamor_put_image_bail(DrawablePtr drawable, GCPtr gc, int depth, int x, int y,
                       int w, int h, int leftPad, int format, char *bits)
 {
-    if (glamor_prepare_access(drawable, GLAMOR_ACCESS_RW) &&
-        glamor_prepare_access_gc(gc))
+    if (glamor_prepare_access(drawable, GLAMOR_ACCESS_RW))
         fbPutImage(drawable, gc, depth, x, y, w, h, leftPad, format, bits);
     glamor_finish_access(drawable);
 }

@@ -186,7 +186,7 @@ XSetIMValues(XIM im, ...)
     va_end(var);
 
     ret = (*im->methods->set_values) (im, args);
-    if (args) Xfree(args);
+    Xfree(args);
     return ret;
 }
 
@@ -213,7 +213,7 @@ XGetIMValues(XIM im, ...)
     va_end(var);
 
     ret = (*im->methods->get_values) (im, args);
-    if (args) Xfree(args);
+    Xfree(args);
     return ret;
 }
 
@@ -245,7 +245,7 @@ XCreateIC(XIM im, ...)
     va_end(var);
 
     ic = (XIC) (*im->methods->create_ic) (im, args);
-    if (args) Xfree(args);
+    Xfree(args);
     if (ic) {
 	ic->core.next = im->core.ic_chain;
 	im->core.ic_chain = ic;
@@ -300,7 +300,7 @@ XGetICValues(XIC ic, ...)
     va_end(var);
 
     ret = (*ic->methods->get_values) (ic, args);
-    if (args) Xfree(args);
+    Xfree(args);
     return ret;
 }
 
@@ -330,7 +330,7 @@ XSetICValues(XIC ic, ...)
     va_end(var);
 
     ret = (*ic->methods->set_values) (ic, args);
-    if (args) Xfree(args);
+    Xfree(args);
     return ret;
 }
 

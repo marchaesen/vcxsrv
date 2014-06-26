@@ -167,8 +167,8 @@ _XkbFreeReadBuffer(XkbReadBufferPtr buf)
         int left;
 
         left = (int) _XkbReadBufferDataLeft(buf);
-        if (buf->start != NULL)
-            Xfree(buf->start);
+
+        Xfree(buf->start);
         buf->size = 0;
         buf->start = buf->data = NULL;
         return left;

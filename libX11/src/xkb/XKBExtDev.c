@@ -194,8 +194,8 @@ _XkbReadGetDeviceInfoReply(Display *dpy,
         act = &devi->btn_acts[rep->firstBtnWanted];
         bzero((char *) act, (rep->nBtnsWanted * sizeof(XkbAction)));
     }
-    if (devi->name != NULL)
-        _XkbFree(devi->name);
+
+    _XkbFree(devi->name);
     if (!_XkbGetReadBufferCountedString(&buf, &devi->name))
         goto BAILOUT;
     if (rep->nBtnsRtrn > 0) {
@@ -475,7 +475,7 @@ _InitLedStuff(SetLedStuff *stuff, unsigned wanted, XkbDeviceInfoPtr devi)
 static void
 _FreeLedStuff(SetLedStuff * stuff)
 {
-    if ((stuff->num_info > 0) && (stuff->info != NULL))
+    if (stuff->num_info > 0)
         _XkbFree(stuff->info);
     bzero(stuff, sizeof(SetLedStuff));
     return;
