@@ -1342,8 +1342,6 @@ struct gl_texture_unit
    GLbitfield _GenFlags;	/**< Bitwise-OR of Gen[STRQ]._ModeBit */
 
    GLfloat LodBias;		/**< for biasing mipmap levels */
-   GLenum BumpTarget;
-   GLfloat RotMatrix[4]; /* 2x2 matrix */
 
    /** Current sampler object (GL_ARB_sampler_objects) */
    struct gl_sampler_object *Sampler;
@@ -1791,6 +1789,7 @@ struct gl_transform_feedback_output
    unsigned OutputRegister;
    unsigned OutputBuffer;
    unsigned NumComponents;
+   unsigned StreamId;
 
    /** offset (in DWORDs) of this output within the interleaved structure */
    unsigned DstOffset;
@@ -2177,6 +2176,7 @@ struct gl_geometry_program
                            GL_TRIANGLES, or GL_TRIANGLES_ADJACENCY_ARB */
    GLenum OutputType; /**< GL_POINTS, GL_LINE_STRIP or GL_TRIANGLE_STRIP */
    bool UsesEndPrimitive;
+   bool UsesStreams;
 };
 
 
@@ -2680,6 +2680,7 @@ struct gl_shader_program
       GLuint ClipDistanceArraySize; /**< Size of the gl_ClipDistance array, or
                                          0 if not present. */
       bool UsesEndPrimitive;
+      bool UsesStreams;
    } Geom;
 
    /** Vertex shader state */
@@ -2892,6 +2893,7 @@ struct gl_query_object
    GLboolean Active;   /**< inside Begin/EndQuery */
    GLboolean Ready;    /**< result is ready? */
    GLboolean EverBound;/**< has query object ever been bound */
+   GLuint Stream;      /**< The stream */
 };
 
 
@@ -2908,8 +2910,8 @@ struct gl_query_state
    struct gl_query_object *CondRenderQuery;
 
    /** GL_EXT_transform_feedback */
-   struct gl_query_object *PrimitivesGenerated;
-   struct gl_query_object *PrimitivesWritten;
+   struct gl_query_object *PrimitivesGenerated[MAX_VERTEX_STREAMS];
+   struct gl_query_object *PrimitivesWritten[MAX_VERTEX_STREAMS];
 
    /** GL_ARB_timer_query */
    struct gl_query_object *TimeElapsed;
@@ -3358,9 +3360,6 @@ struct gl_constants
     */
    GLuint UniformBooleanTrue;
 
-   /** Which texture units support GL_ATI_envmap_bumpmap as targets */
-   GLbitfield SupportedBumpUnits;
-
    /**
     * Maximum amount of time, measured in nanseconds, that the server can wait.
     */
@@ -3618,7 +3617,6 @@ struct gl_extensions
    GLboolean AMD_seamless_cubemap_per_texture;
    GLboolean AMD_vertex_shader_layer;
    GLboolean APPLE_object_purgeable;
-   GLboolean ATI_envmap_bumpmap;
    GLboolean ATI_texture_compression_3dc;
    GLboolean ATI_texture_mirror_once;
    GLboolean ATI_texture_env_combine3;

@@ -2009,6 +2009,8 @@ FcConfigXdgCacheHome (void)
     const char *env = getenv ("XDG_CACHE_HOME");
     FcChar8 *ret = NULL;
 
+    if (!_FcConfigHomeEnabled)
+	return NULL;
     if (env)
 	ret = FcStrCopy ((const FcChar8 *)env);
     else
@@ -2034,6 +2036,8 @@ FcConfigXdgConfigHome (void)
     const char *env = getenv ("XDG_CONFIG_HOME");
     FcChar8 *ret = NULL;
 
+    if (!_FcConfigHomeEnabled)
+	return NULL;
     if (env)
 	ret = FcStrCopy ((const FcChar8 *)env);
     else
@@ -2059,6 +2063,8 @@ FcConfigXdgDataHome (void)
     const char *env = getenv ("XDG_DATA_HOME");
     FcChar8 *ret = NULL;
 
+    if (!_FcConfigHomeEnabled)
+	return NULL;
     if (env)
 	ret = FcStrCopy ((const FcChar8 *)env);
     else

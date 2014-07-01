@@ -132,6 +132,11 @@ register_surface(struct gl_context *ctx, GLboolean isOutput,
    }
 
    surf = CALLOC_STRUCT( vdp_surface );
+   if (surf == NULL) {
+      _mesa_error_no_memory("VDPAURegisterSurfaceNV");
+      return (GLintptr)NULL;
+   }
+
    surf->vdpSurface = vdpSurface;
    surf->target = target;
    surf->access = GL_READ_WRITE;
@@ -140,6 +145,12 @@ register_surface(struct gl_context *ctx, GLboolean isOutput,
    for (i = 0; i < numTextureNames; ++i) {
       struct gl_texture_object *tex;
       tex  = _mesa_lookup_texture(ctx, textureNames[i]);
+      if (tex == NULL) {
+         free(surf);
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "VDPAURegisterSurfaceNV(texture ID not found)");
+         return (GLintptr)NULL;
+      }
 
       _mesa_lock_texture(ctx, tex);
 
