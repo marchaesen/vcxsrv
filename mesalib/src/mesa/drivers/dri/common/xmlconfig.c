@@ -288,6 +288,29 @@ static float strToF (const XML_Char *string, const XML_Char **tail) {
     return result;
 }
 
+#if !defined(HAVE_STRNDUP)
+
+/* Emulates glibc's strndup() */
+char *
+strndup(const char *str, size_t size)
+{
+  size_t len;
+  char *result = (char *)NULL;
+
+  if ((char *)NULL == str) return (char *)NULL;
+
+  len = strlen(str);
+  if (!len) return strdup("");
+  if (size > len) size = len;
+
+  result = (char *)malloc((size + 1) * sizeof (char));
+  memcpy(result, str, size);
+  result[size] = 0x0;
+  return result;
+}
+
+#endif /* _WIN32 should be !HAVE_STRNDUP */
+
 /** \brief Parse a value of a given type. */
 static bool parseValue (driOptionValue *v, driOptionType type,
 			     const XML_Char *string) {

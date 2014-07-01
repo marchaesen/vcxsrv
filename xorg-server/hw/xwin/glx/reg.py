@@ -222,7 +222,7 @@ def regSortFeatures(featureList):
 #     the <extension>. Defaults to None. Usually the same as apiname.
 #   addExtensions - regex matching names of additional extensions
 #     to include. Defaults to None.
-#   removeExtenions - regex matching names of extensions to
+#   removeExtensions - regex matching names of extensions to
 #     remove (after defaultExtensions and addExtensions). Defaults
 #     to None.
 #   sortProcedure - takes a list of FeatureInfo objects and sorts

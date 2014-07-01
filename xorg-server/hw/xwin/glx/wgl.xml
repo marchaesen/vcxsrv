@@ -326,11 +326,11 @@
             <unused start="0x2059" end="0x205F"/>
     </enums>
 
-    <enums namespace="WGL" start="0x2060" end="0x206F" vendor="3Dfx">
+    <enums namespace="WGL" start="0x2060" end="0x206F" vendor="3DFX">
             <unused start="0x2060" end="0x206F" comment="Could be reclaimed"/>
     </enums>
 
-    <enums namespace="WGL" start="0x2070" end="0x209F" vendor="ARB">
+    <enums namespace="WGL" start="0x2070" end="0x209F" vendor="ARB" comment="Shared with GLX; synchronize create_context enums">
         <enum value="0x2060"        name="WGL_SAMPLE_BUFFERS_3DFX"/>
         <enum value="0x2061"        name="WGL_SAMPLES_3DFX"/>
         <enum value="0x2070"        name="WGL_BIND_TO_TEXTURE_RGB_ARB"/>
@@ -372,7 +372,8 @@
         <enum value="0x2094"        name="WGL_CONTEXT_FLAGS_ARB"/>
         <enum value="0x2095"        name="ERROR_INVALID_VERSION_ARB"/>
         <enum value="0x2096"        name="ERROR_INVALID_PROFILE_ARB"/>
-            <unused start="0x2097" end="0x209F"/>
+            <!-- 0x2097-0x2098 reserved for future WGL/GLX extensions -->
+            <unused start="0x2099" end="0x209F"/>
     </enums>
 
     <enums namespace="WGL" start="0x20A0" end="0x219F" vendor="NV" comment="shared with GLX">

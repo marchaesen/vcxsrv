@@ -130,7 +130,8 @@ allVersions     = allExtensions = '.*'
 noVersions      = noExtensions = None
 gl12andLaterPat = '1\.[2-9]|[234]\.[0-9]'
 gles2onlyPat    = '2\.[0-9]'
-gles2and3Pat    = '[23]\.[0-9]'
+gles2and30Pat   = '2\.[0-9]|3.0'
+gles2and30and31Pat    = '2.[0-9]|3.[01]'
 es1CorePat      = makeREstring(es1CoreList)
 # Extensions in old glcorearb.h but not yet tagged accordingly in gl.xml
 glCoreARBPat    = None
@@ -360,7 +361,7 @@ buildList = [
         apicall           = 'GL_APICALL ',
         apientry          = 'GL_APIENTRY ',
         apientryp         = 'GL_APIENTRYP '),
-    # GLES 2.0 extensions - GLES2/gl2ext.h
+    # GLES 3.1 / 3.0 / 2.0 extensions - GLES2/gl2ext.h
     CGeneratorOptions(
         filename          = 'GLES2/gl2ext.h',
         apiname           = 'gles2',
@@ -379,12 +380,31 @@ buildList = [
         apicall           = 'GL_APICALL ',
         apientry          = 'GL_APIENTRY ',
         apientryp         = 'GL_APIENTRYP '),
+    # GLES 3.1 API - GLES3/gl31.h (no function pointers)
+    CGeneratorOptions(
+        filename          = 'GLES3/gl31.h',
+        apiname           = 'gles2',
+        profile           = 'common',
+        versions          = gles2and30and31Pat,
+        emitversions      = allVersions,
+        defaultExtensions = None,                   # No default extensions
+        addExtensions     = None,
+        removeExtensions  = None,
+        prefixText        = prefixStrings + gles3PlatformStrings + genDateCommentString,
+        genFuncPointers   = False,
+        protectFile       = protectFile,
+        protectFeature    = protectFeature,
+        protectProto      = False,                  # Core ES API functions are in the static link libraries
+        protectProtoStr   = 'GL_GLEXT_PROTOTYPES',
+        apicall           = 'GL_APICALL ',
+        apientry          = 'GL_APIENTRY ',
+        apientryp         = 'GL_APIENTRYP '),
     # GLES 3.0 API - GLES3/gl3.h (no function pointers)
     CGeneratorOptions(
         filename          = 'GLES3/gl3.h',
         apiname           = 'gles2',
         profile           = 'common',
-        versions          = gles2and3Pat,
+        versions          = gles2and30Pat,
         emitversions      = allVersions,
         defaultExtensions = None,                   # No default extensions
         addExtensions     = None,
