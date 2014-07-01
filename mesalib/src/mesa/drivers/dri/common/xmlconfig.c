@@ -27,8 +27,6 @@
  * \author Felix Kuehling
  */
 
-#include "main/glheader.h"
-
 #include <string.h>
 #include <assert.h>
 #include <expat.h>
@@ -106,15 +104,15 @@ static const char *__getProgramName () {
 #endif
 
 /** \brief Find an option in an option cache with the name as key */
-static GLuint findOption (const driOptionCache *cache, const char *name) {
-    GLuint len = strlen (name);
-    GLuint size = 1 << cache->tableSize, mask = size - 1;
-    GLuint hash = 0;
-    GLuint i, shift;
+static uint32_t findOption (const driOptionCache *cache, const char *name) {
+    uint32_t len = strlen (name);
+    uint32_t size = 1 << cache->tableSize, mask = size - 1;
+    uint32_t hash = 0;
+    uint32_t i, shift;
 
   /* compute a hash from the variable length name */
     for (i = 0, shift = 0; i < len; ++i, shift = (shift+8) & 31)
-	hash += (GLuint)name[i] << shift;
+	hash += (uint32_t)name[i] << shift;
     hash *= hash;
     hash = (hash >> (16-cache->tableSize/2)) & mask;
 
@@ -134,7 +132,7 @@ static GLuint findOption (const driOptionCache *cache, const char *name) {
 
 /** \brief Like strdup but using malloc and with error checking. */
 #define XSTRDUP(dest,source) do { \
-    GLuint len = strlen (source); \
+    uint32_t len = strlen (source); \
     if (!(dest = malloc(len+1))) { \
 	fprintf (stderr, "%s: %d: out of memory.\n", __FILE__, __LINE__); \
 	abort(); \
@@ -146,8 +144,8 @@ static int compare (const void *a, const void *b) {
     return strcmp (*(char *const*)a, *(char *const*)b);
 }
 /** \brief Binary search in a string array. */
-static GLuint bsearchStr (const XML_Char *name,
-			  const XML_Char *elems[], GLuint count) {
+static uint32_t bsearchStr (const XML_Char *name,
+			  const XML_Char *elems[], uint32_t count) {
     const XML_Char **found;
     found = bsearch (&name, elems, count, sizeof (XML_Char *), compare);
     if (found)
@@ -165,11 +163,11 @@ static GLuint bsearchStr (const XML_Char *name,
  * returning tail points to the first character that is not part of
  * the integer number. If no number was found then tail points to the
  * start of the input string. */
-static GLint strToI (const XML_Char *string, const XML_Char **tail, int base) {
-    GLint radix = base == 0 ? 10 : base;
-    GLint result = 0;
-    GLint sign = 1;
-    GLboolean numberFound = GL_FALSE;
+static int strToI (const XML_Char *string, const XML_Char **tail, int base) {
+    int radix = base == 0 ? 10 : base;
+    int result = 0;
+    int sign = 1;
+    bool numberFound = false;
     const XML_Char *start = string;
 
     assert (radix >= 2 && radix <= 36);
@@ -180,7 +178,7 @@ static GLint strToI (const XML_Char *string, const XML_Char **tail, int base) {
     } else if (*string == '+')
 	string++;
     if (base == 0 && *string == '0') {
-	numberFound = GL_TRUE; 
+	numberFound = true;
 	if (*(string+1) == 'x' || *(string+1) == 'X') {
 	    radix = 16;
 	    string += 2;
@@ -190,7 +188,7 @@ static GLint strToI (const XML_Char *string, const XML_Char **tail, int base) {
 	}
     }
     do {
-	GLint digit = -1;
+	int digit = -1;
 	if (radix <= 10) {
 	    if (*string >= '0' && *string < '0' + radix)
 		digit = *string - '0';
@@ -203,12 +201,12 @@ static GLint strToI (const XML_Char *string, const XML_Char **tail, int base) {
 		digit = *string - 'A' + 10;
 	}
 	if (digit != -1) {
-	    numberFound = GL_TRUE;
+	    numberFound = true;
 	    result = radix*result + digit;
 	    string++;
 	} else
 	    break;
-    } while (GL_TRUE);
+    } while (true);
     *tail = numberFound ? string : start;
     return sign * result;
 }
@@ -225,9 +223,9 @@ static GLint strToI (const XML_Char *string, const XML_Char **tail, int base) {
  * to the start of the input string.
  *
  * Uses two passes for maximum accuracy. */
-static GLfloat strToF (const XML_Char *string, const XML_Char **tail) {
-    GLint nDigits = 0, pointPos, exponent;
-    GLfloat sign = 1.0f, result = 0.0f, scale;
+static float strToF (const XML_Char *string, const XML_Char **tail) {
+    int nDigits = 0, pointPos, exponent;
+    float sign = 1.0f, result = 0.0f, scale;
     const XML_Char *start = string, *numStart;
 
     /* sign */
@@ -270,13 +268,13 @@ static GLfloat strToF (const XML_Char *string, const XML_Char **tail) {
     string = numStart;
 
     /* scale of the first digit */
-    scale = sign * (GLfloat)pow (10.0, (GLdouble)(pointPos-1 + exponent));
+    scale = sign * (float)pow (10.0, (double)(pointPos-1 + exponent));
 
     /* second pass: parse digits */
     do {
 	if (*string != '.') {
 	    assert (*string >= '0' && *string <= '9');
-	    result += scale * (GLfloat)(*string - '0');
+	    result += scale * (float)(*string - '0');
 	    scale *= 0.1f;
 	    nDigits--;
 	}
@@ -287,7 +285,7 @@ static GLfloat strToF (const XML_Char *string, const XML_Char **tail) {
 }
 
 /** \brief Parse a value of a given type. */
-static GLboolean parseValue (driOptionValue *v, driOptionType type,
+static bool parseValue (driOptionValue *v, driOptionType type,
 			     const XML_Char *string) {
     const XML_Char *tail = NULL;
   /* skip leading white-space */
@@ -295,14 +293,14 @@ static GLboolean parseValue (driOptionValue *v, driOptionType type,
     switch (type) {
       case DRI_BOOL:
 	if (!strcmp (string, "false")) {
-	    v->_bool = GL_FALSE;
+	    v->_bool = false;
 	    tail = string + 5;
 	} else if (!strcmp (string, "true")) {
-	    v->_bool = GL_TRUE;
+	    v->_bool = true;
 	    tail = string + 4;
 	}
 	else
-	    return GL_FALSE;
+	    return false;
 	break;
       case DRI_ENUM: /* enum is just a special integer */
       case DRI_INT:
@@ -311,23 +309,28 @@ static GLboolean parseValue (driOptionValue *v, driOptionType type,
       case DRI_FLOAT:
 	v->_float = strToF (string, &tail);
 	break;
+      case DRI_STRING:
+	if (v->_string)
+	    free (v->_string);
+	v->_string = strndup(string, STRING_CONF_MAXLEN);
+	return GL_TRUE;
     }
 
     if (tail == string)
-	return GL_FALSE; /* empty string (or containing only white-space) */
+	return false; /* empty string (or containing only white-space) */
   /* skip trailing white space */
     if (*tail)
 	tail += strspn (tail, " \f\n\r\t\v");
     if (*tail)
-	return GL_FALSE; /* something left over that is not part of value */
+	return false; /* something left over that is not part of value */
 
-    return GL_TRUE;
+    return true;
 }
 
 /** \brief Parse a list of ranges of type info->type. */
-static GLboolean parseRanges (driOptionInfo *info, const XML_Char *string) {
+static bool parseRanges (driOptionInfo *info, const XML_Char *string) {
     XML_Char *cp, *range;
-    GLuint nRanges, i;
+    uint32_t nRanges, i;
     driOptionRange *ranges;
 
     XSTRDUP (cp, string);
@@ -375,39 +378,41 @@ static GLboolean parseRanges (driOptionInfo *info, const XML_Char *string) {
     free(cp);
     if (i < nRanges) {
 	free(ranges);
-	return GL_FALSE;
+	return false;
     } else
 	assert (range == NULL);
 
     info->nRanges = nRanges;
     info->ranges = ranges;
-    return GL_TRUE;
+    return true;
 }
 
 /** \brief Check if a value is in one of info->ranges. */
-static GLboolean checkValue (const driOptionValue *v, const driOptionInfo *info) {
-    GLuint i;
+static bool checkValue (const driOptionValue *v, const driOptionInfo *info) {
+    uint32_t i;
     assert (info->type != DRI_BOOL); /* should be caught by the parser */
     if (info->nRanges == 0)
-	return GL_TRUE;
+	return true;
     switch (info->type) {
       case DRI_ENUM: /* enum is just a special integer */
       case DRI_INT:
 	for (i = 0; i < info->nRanges; ++i)
 	    if (v->_int >= info->ranges[i].start._int &&
 		v->_int <= info->ranges[i].end._int)
-		return GL_TRUE;
+		return true;
 	break;
       case DRI_FLOAT:
 	for (i = 0; i < info->nRanges; ++i)
 	    if (v->_float >= info->ranges[i].start._float &&
 		v->_float <= info->ranges[i].end._float)
-		return GL_TRUE;
+		return true;
+	break;
+      case DRI_STRING:
 	break;
       default:
 	assert (0); /* should never happen */
     }
-    return GL_FALSE;
+    return false;
 }
 
 /**
@@ -478,11 +483,11 @@ struct OptInfoData {
     const char *name;
     XML_Parser parser;
     driOptionCache *cache;
-    GLboolean inDriInfo;
-    GLboolean inSection;
-    GLboolean inDesc;
-    GLboolean inOption;
-    GLboolean inEnum;
+    bool inDriInfo;
+    bool inSection;
+    bool inDesc;
+    bool inOption;
+    bool inEnum;
     int curOption;
 };
 
@@ -500,10 +505,10 @@ static const XML_Char *OptInfoElems[] = {
  * for external configuration tools.
  */
 static void parseEnumAttr (struct OptInfoData *data, const XML_Char **attr) {
-    GLuint i;
+    uint32_t i;
     const XML_Char *value = NULL, *text = NULL;
     driOptionValue v;
-    GLuint opt = data->curOption;
+    uint32_t opt = data->curOption;
     for (i = 0; attr[i]; i += 2) {
 	if (!strcmp (attr[i], "value")) value = attr[i+1];
 	else if (!strcmp (attr[i], "text")) text = attr[i+1];
@@ -523,7 +528,7 @@ static void parseEnumAttr (struct OptInfoData *data, const XML_Char **attr) {
  * for external configuration tools.
  */
 static void parseDescAttr (struct OptInfoData *data, const XML_Char **attr) {
-    GLuint i;
+    uint32_t i;
     const XML_Char *lang = NULL, *text = NULL;
     for (i = 0; attr[i]; i += 2) {
 	if (!strcmp (attr[i], "lang")) lang = attr[i+1];
@@ -541,9 +546,9 @@ static void parseOptInfoAttr (struct OptInfoData *data, const XML_Char **attr) {
     const XML_Char *attrVal[OA_COUNT] = {NULL, NULL, NULL, NULL};
     const char *defaultVal;
     driOptionCache *cache = data->cache;
-    GLuint opt, i;
+    uint32_t opt, i;
     for (i = 0; attr[i]; i += 2) {
-	GLuint attrName = bsearchStr (attr[i], optAttr, OA_COUNT);
+	uint32_t attrName = bsearchStr (attr[i], optAttr, OA_COUNT);
 	if (attrName >= OA_COUNT)
 	    XML_FATAL ("illegal option attribute: %s", attr[i]);
 	attrVal[attrName] = attr[i+1];
@@ -567,6 +572,8 @@ static void parseOptInfoAttr (struct OptInfoData *data, const XML_Char **attr) {
 	cache->info[opt].type = DRI_INT;
     else if (!strcmp (attrVal[OA_TYPE], "float"))
 	cache->info[opt].type = DRI_FLOAT;
+    else if (!strcmp (attrVal[OA_TYPE], "string"))
+	cache->info[opt].type = DRI_STRING;
     else
 	XML_FATAL ("illegal type in option: %s.", attrVal[OA_TYPE]);
 
@@ -608,7 +615,7 @@ static void optInfoStartElem (void *userData, const XML_Char *name,
 	    XML_FATAL1 ("nested <driinfo> elements.");
 	if (attr[0])
 	    XML_FATAL1 ("attributes specified on <driinfo> element.");
-	data->inDriInfo = GL_TRUE;
+	data->inDriInfo = true;
 	break;
       case OI_SECTION:
 	if (!data->inDriInfo)
@@ -617,14 +624,14 @@ static void optInfoStartElem (void *userData, const XML_Char *name,
 	    XML_FATAL1 ("nested <section> elements.");
 	if (attr[0])
 	    XML_FATAL1 ("attributes specified on <section> element.");
-	data->inSection = GL_TRUE;
+	data->inSection = true;
 	break;
       case OI_DESCRIPTION:
 	if (!data->inSection && !data->inOption)
 	    XML_FATAL1 ("<description> must be inside <description> or <option.");
 	if (data->inDesc)
 	    XML_FATAL1 ("nested <description> elements.");
-	data->inDesc = GL_TRUE;
+	data->inDesc = true;
 	parseDescAttr (data, attr);
 	break;
       case OI_OPTION:
@@ -634,7 +641,7 @@ static void optInfoStartElem (void *userData, const XML_Char *name,
 	    XML_FATAL1 ("<option> nested in <description> element.");
 	if (data->inOption)
 	    XML_FATAL1 ("nested <option> elements.");
-	data->inOption = GL_TRUE;
+	data->inOption = true;
 	parseOptInfoAttr (data, attr);
 	break;
       case OI_ENUM:
@@ -642,7 +649,7 @@ static void optInfoStartElem (void *userData, const XML_Char *name,
 	    XML_FATAL1 ("<enum> must be inside <option> and <description>.");
 	if (data->inEnum)
 	    XML_FATAL1 ("nested <enum> elements.");
-	data->inEnum = GL_TRUE;
+	data->inEnum = true;
 	parseEnumAttr (data, attr);
 	break;
       default:
@@ -656,19 +663,19 @@ static void optInfoEndElem (void *userData, const XML_Char *name) {
     enum OptInfoElem elem = bsearchStr (name, OptInfoElems, OI_COUNT);
     switch (elem) {
       case OI_DRIINFO:
-	data->inDriInfo = GL_FALSE;
+	data->inDriInfo = false;
 	break;
       case OI_SECTION:
-	data->inSection = GL_FALSE;
+	data->inSection = false;
 	break;
       case OI_DESCRIPTION:
-	data->inDesc = GL_FALSE;
+	data->inDesc = false;
 	break;
       case OI_OPTION:
-	data->inOption = GL_FALSE;
+	data->inOption = false;
 	break;
       case OI_ENUM:
-	data->inEnum = GL_FALSE;
+	data->inEnum = false;
 	break;
       default:
 	assert (0); /* should have been caught by StartElem */
@@ -699,11 +706,11 @@ void driParseOptionInfo (driOptionCache *info, const char *configOptions) {
     userData.name = "__driConfigOptions";
     userData.parser = p;
     userData.cache = info;
-    userData.inDriInfo = GL_FALSE;
-    userData.inSection = GL_FALSE;
-    userData.inDesc = GL_FALSE;
-    userData.inOption = GL_FALSE;
-    userData.inEnum = GL_FALSE;
+    userData.inDriInfo = false;
+    userData.inSection = false;
+    userData.inDesc = false;
+    userData.inOption = false;
+    userData.inEnum = false;
     userData.curOption = -1;
 
     status = XML_Parse (p, configOptions, strlen (configOptions), 1);
@@ -718,14 +725,14 @@ struct OptConfData {
     const char *name;
     XML_Parser parser;
     driOptionCache *cache;
-    GLint screenNum;
+    int screenNum;
     const char *driverName, *execName;
-    GLuint ignoringDevice;
-    GLuint ignoringApp;
-    GLuint inDriConf;
-    GLuint inDevice;
-    GLuint inApp;
-    GLuint inOption;
+    uint32_t ignoringDevice;
+    uint32_t ignoringApp;
+    uint32_t inDriConf;
+    uint32_t inDevice;
+    uint32_t inApp;
+    uint32_t inOption;
 };
 
 /** \brief Elements in configuration files. */
@@ -738,7 +745,7 @@ static const XML_Char *OptConfElems[] = {
 
 /** \brief Parse attributes of a device element. */
 static void parseDeviceAttr (struct OptConfData *data, const XML_Char **attr) {
-    GLuint i;
+    uint32_t i;
     const XML_Char *driver = NULL, *screen = NULL;
     for (i = 0; attr[i]; i += 2) {
 	if (!strcmp (attr[i], "driver")) driver = attr[i+1];
@@ -758,7 +765,7 @@ static void parseDeviceAttr (struct OptConfData *data, const XML_Char **attr) {
 
 /** \brief Parse attributes of an application element. */
 static void parseAppAttr (struct OptConfData *data, const XML_Char **attr) {
-    GLuint i;
+    uint32_t i;
     const XML_Char *exec = NULL;
     for (i = 0; attr[i]; i += 2) {
 	if (!strcmp (attr[i], "name")) /* not needed here */;
@@ -771,7 +778,7 @@ static void parseAppAttr (struct OptConfData *data, const XML_Char **attr) {
 
 /** \brief Parse attributes of an option element. */
 static void parseOptConfAttr (struct OptConfData *data, const XML_Char **attr) {
-    GLuint i;
+    uint32_t i;
     const XML_Char *name = NULL, *value = NULL;
     for (i = 0; attr[i]; i += 2) {
 	if (!strcmp (attr[i], "name")) name = attr[i+1];
@@ -782,7 +789,7 @@ static void parseOptConfAttr (struct OptConfData *data, const XML_Char **attr) {
     if (!value) XML_WARNING1 ("value attribute missing in option.");
     if (name && value) {
 	driOptionCache *cache = data->cache;
-	GLuint opt = findOption (cache, name);
+	uint32_t opt = findOption (cache, name);
 	if (cache->info[opt].name == NULL)
             /* don't use XML_WARNING, drirc defines options for all drivers,
              * but not all drivers support them */
@@ -867,6 +874,7 @@ static void optConfEndElem (void *userData, const XML_Char *name) {
 
 /** \brief Initialize an option cache based on info */
 static void initOptionCache (driOptionCache *cache, const driOptionCache *info) {
+    GLuint i, size = 1 << info->tableSize;
     cache->info = info->info;
     cache->tableSize = info->tableSize;
     cache->values = malloc((1<<info->tableSize) * sizeof (driOptionValue));
@@ -876,6 +884,10 @@ static void initOptionCache (driOptionCache *cache, const driOptionCache *info) 
     }
     memcpy (cache->values, info->values,
 	    (1<<info->tableSize) * sizeof (driOptionValue));
+    for (i = 0; i < size; ++i) {
+	if (cache->info[i].type == DRI_STRING)
+	    XSTRDUP(cache->values[i]._string, info->values[i]._string);
+    }
 }
 
 /** \brief Parse the named configuration file */
@@ -918,10 +930,10 @@ static void parseOneConfigFile (XML_Parser p) {
 }
 
 void driParseConfigFiles (driOptionCache *cache, const driOptionCache *info,
-			  GLint screenNum, const char *driverName) {
+			  int screenNum, const char *driverName) {
     char *filenames[2] = {"/etc/drirc", NULL};
     char *home;
-    GLuint i;
+    uint32_t i;
     struct OptConfData userData;
 
     initOptionCache (cache, info);
@@ -932,7 +944,7 @@ void driParseConfigFiles (driOptionCache *cache, const driOptionCache *info,
     userData.execName = GET_PROGRAM_NAME();
 
     if ((home = getenv ("HOME"))) {
-	GLuint len = strlen (home);
+	uint32_t len = strlen (home);
 	filenames[1] = malloc(len + 7+1);
 	if (filenames[1] == NULL)
 	    __driUtilMessage ("Can't allocate memory for %s/.drirc.", home);
@@ -969,7 +981,7 @@ void driParseConfigFiles (driOptionCache *cache, const driOptionCache *info,
 void driDestroyOptionInfo (driOptionCache *info) {
     driDestroyOptionCache (info);
     if (info->info) {
-	GLuint i, size = 1 << info->tableSize;
+	uint32_t i, size = 1 << info->tableSize;
 	for (i = 0; i < size; ++i) {
 	    if (info->info[i].name) {
 		free(info->info[i].name);
@@ -981,35 +993,50 @@ void driDestroyOptionInfo (driOptionCache *info) {
 }
 
 void driDestroyOptionCache (driOptionCache *cache) {
+    if (cache->info) {
+	GLuint i, size = 1 << cache->tableSize;
+	for (i = 0; i < size; ++i) {
+	    if (cache->info[i].type == DRI_STRING)
+		free(cache->values[i]._string);
+	}
+    }
     free(cache->values);
 }
 
-GLboolean driCheckOption (const driOptionCache *cache, const char *name,
+bool driCheckOption (const driOptionCache *cache, const char *name,
 			  driOptionType type) {
-    GLuint i = findOption (cache, name);
+    uint32_t i = findOption (cache, name);
     return cache->info[i].name != NULL && cache->info[i].type == type;
 }
 
-GLboolean driQueryOptionb (const driOptionCache *cache, const char *name) {
-    GLuint i = findOption (cache, name);
+bool driQueryOptionb (const driOptionCache *cache, const char *name) {
+    uint32_t i = findOption (cache, name);
   /* make sure the option is defined and has the correct type */
     assert (cache->info[i].name != NULL);
     assert (cache->info[i].type == DRI_BOOL);
     return cache->values[i]._bool;
 }
 
-GLint driQueryOptioni (const driOptionCache *cache, const char *name) {
-    GLuint i = findOption (cache, name);
+int driQueryOptioni (const driOptionCache *cache, const char *name) {
+    uint32_t i = findOption (cache, name);
   /* make sure the option is defined and has the correct type */
     assert (cache->info[i].name != NULL);
     assert (cache->info[i].type == DRI_INT || cache->info[i].type == DRI_ENUM);
     return cache->values[i]._int;
 }
 
-GLfloat driQueryOptionf (const driOptionCache *cache, const char *name) {
-    GLuint i = findOption (cache, name);
+float driQueryOptionf (const driOptionCache *cache, const char *name) {
+    uint32_t i = findOption (cache, name);
   /* make sure the option is defined and has the correct type */
     assert (cache->info[i].name != NULL);
     assert (cache->info[i].type == DRI_FLOAT);
     return cache->values[i]._float;
+}
+
+char *driQueryOptionstr (const driOptionCache *cache, const char *name) {
+    GLuint i = findOption (cache, name);
+  /* make sure the option is defined and has the correct type */
+    assert (cache->info[i].name != NULL);
+    assert (cache->info[i].type == DRI_STRING);
+    return cache->values[i]._string;
 }

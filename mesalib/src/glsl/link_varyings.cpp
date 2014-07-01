@@ -291,6 +291,7 @@ tfeedback_decl::init(struct gl_context *ctx, const void *mem_ctx,
    this->skip_components = 0;
    this->next_buffer_separator = false;
    this->matched_candidate = NULL;
+   this->stream_id = 0;
 
    if (ctx->Extensions.ARB_transform_feedback3) {
       /* Parse gl_NextBuffer. */
@@ -355,8 +356,8 @@ tfeedback_decl::is_same(const tfeedback_decl &x, const tfeedback_decl &y)
 
 
 /**
- * Assign a location for this tfeedback_decl object based on the transform
- * feedback candidate found by find_candidate.
+ * Assign a location and stream ID for this tfeedback_decl object based on the
+ * transform feedback candidate found by find_candidate.
  *
  * If an error occurs, the error is reported through linker_error() and false
  * is returned.
@@ -437,6 +438,11 @@ tfeedback_decl::assign_location(struct gl_context *ctx,
       return false;
    }
 
+   /* Only transform feedback varyings can be assigned to non-zero streams,
+    * so assign the stream id here.
+    */
+   this->stream_id = this->matched_candidate->toplevel_var->data.stream;
+
    return true;
 }
 
@@ -495,6 +501,7 @@ tfeedback_decl::store(struct gl_context *ctx, struct gl_shader_program *prog,
       info->Outputs[info->NumOutputs].ComponentOffset = location_frac;
       info->Outputs[info->NumOutputs].OutputRegister = location;
       info->Outputs[info->NumOutputs].NumComponents = output_size;
+      info->Outputs[info->NumOutputs].StreamId = stream_id;
       info->Outputs[info->NumOutputs].OutputBuffer = buffer;
       info->Outputs[info->NumOutputs].DstOffset = info->BufferStride[buffer];
       ++info->NumOutputs;
@@ -628,10 +635,27 @@ store_tfeedback_info(struct gl_context *ctx, struct gl_shader_program *prog,
    }
    else {
       /* GL_INVERLEAVED_ATTRIBS */
+      int buffer_stream_id = -1;
       for (unsigned i = 0; i < num_tfeedback_decls; ++i) {
          if (tfeedback_decls[i].is_next_buffer_separator()) {
             num_buffers++;
+            buffer_stream_id = -1;
             continue;
+         } else if (buffer_stream_id == -1)  {
+            /* First varying writing to this buffer: remember its stream */
+            buffer_stream_id = (int) tfeedback_decls[i].get_stream_id();
+         } else if (buffer_stream_id !=
+                    (int) tfeedback_decls[i].get_stream_id()) {
+            /* Varying writes to the same buffer from a different stream */
+            linker_error(prog,
+                         "Transform feedback can't capture varyings belonging "
+                         "to different vertex streams in a single buffer. "
+                         "Varying %s writes to buffer from stream %u, other "
+                         "varyings in the same buffer write from stream %u.",
+                         tfeedback_decls[i].name(),
+                         tfeedback_decls[i].get_stream_id(),
+                         buffer_stream_id);
+            return false;
          }
 
          if (!tfeedback_decls[i].store(ctx, prog,
@@ -1323,6 +1347,11 @@ assign_varying_locations(struct gl_context *ctx,
              (output_var->data.mode != ir_var_shader_out))
             continue;
 
+         /* Only geometry shaders can use non-zero streams */
+         assert(output_var->data.stream == 0 ||
+                (output_var->data.stream < MAX_VERTEX_STREAMS &&
+                 producer->Stage == MESA_SHADER_GEOMETRY));
+
          tfeedback_candidate_generator g(mem_ctx, tfeedback_candidates);
          g.process(output_var);
 
@@ -1337,6 +1366,14 @@ assign_varying_locations(struct gl_context *ctx,
           */
          if (input_var || (prog->SeparateShader && consumer == NULL)) {
             matches.record(output_var, input_var);
+         }
+
+         /* Only stream 0 outputs can be consumed in the next stage */
+         if (input_var && output_var->data.stream != 0) {
+            linker_error(prog, "output %s is assigned to stream=%d but "
+                         "is linked to an input, which requires stream=0",
+                         output_var->name, output_var->data.stream);
+            return false;
          }
       }
    } else {
