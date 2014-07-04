@@ -37,7 +37,8 @@ fbCloseScreen(ScreenPtr pScreen)
         free(depths[d].vids);
     free(depths);
     free(pScreen->visuals);
-    FreePixmap((PixmapPtr)pScreen->devPrivate);
+    if (pScreen->devPrivate)
+        FreePixmap((PixmapPtr)pScreen->devPrivate);
     return TRUE;
 }
 
