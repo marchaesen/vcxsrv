@@ -287,6 +287,11 @@ void st_init_limits(struct st_context *st)
       screen->get_param(screen, PIPE_CAP_MAX_STREAM_OUTPUT_SEPARATE_COMPONENTS);
    c->MaxTransformFeedbackInterleavedComponents =
       screen->get_param(screen, PIPE_CAP_MAX_STREAM_OUTPUT_INTERLEAVED_COMPONENTS);
+   c->MaxVertexStreams =
+      MAX2(1, screen->get_param(screen, PIPE_CAP_MAX_VERTEX_STREAMS));
+
+   /* The vertex stream must fit into pipe_stream_output_info::stream */
+   assert(c->MaxVertexStreams <= 4);
 
    c->StripTextureBorder = GL_TRUE;
 
@@ -427,6 +432,7 @@ void st_init_extensions(struct st_context *st)
       { o(ARB_texture_multisample),          PIPE_CAP_TEXTURE_MULTISAMPLE              },
       { o(ARB_texture_query_lod),            PIPE_CAP_TEXTURE_QUERY_LOD                },
       { o(ARB_sample_shading),               PIPE_CAP_SAMPLE_SHADING                   },
+      { o(ARB_draw_indirect),                PIPE_CAP_DRAW_INDIRECT                    }
    };
 
    /* Required: render target and sampler support */
@@ -618,7 +624,7 @@ void st_init_extensions(struct st_context *st)
    /* This extension needs full OpenGL 3.2, but we don't know if that's
     * supported at this point. Only check the GLSL version. */
    if (ctx->Const.GLSLVersion >= 150 &&
-       screen->get_param(screen, PIPE_CAP_TGSI_VS_LAYER)) {
+       screen->get_param(screen, PIPE_CAP_TGSI_VS_LAYER_VIEWPORT)) {
       ctx->Extensions.AMD_vertex_shader_layer = GL_TRUE;
    }
 
@@ -809,6 +815,9 @@ void st_init_extensions(struct st_context *st)
          ctx->Const.ViewportBounds.Min = -16384.0;
          ctx->Const.ViewportBounds.Max = 16384.0;
          ctx->Extensions.ARB_viewport_array = GL_TRUE;
+         ctx->Extensions.ARB_fragment_layer_viewport = GL_TRUE;
+         if (ctx->Extensions.AMD_vertex_shader_layer)
+            ctx->Extensions.AMD_vertex_shader_viewport_index = GL_TRUE;
       }
    }
    if (ctx->Const.MaxProgramTextureGatherComponents > 0)

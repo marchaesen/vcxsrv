@@ -72,7 +72,10 @@
 #define LEAF_MIPS32R2(symbol)                           \
                 .globl  symbol;                         \
                 .align  2;                              \
+#ifdef __ELF__
+                .hidden symbol;                         \
                 .type   symbol, @function;              \
+#endif
                 .ent    symbol, 0;                      \
 symbol:         .frame  sp, 0, ra;                      \
                 .set    push;                           \

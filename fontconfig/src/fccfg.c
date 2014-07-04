@@ -2342,7 +2342,7 @@ void
 FcConfigSetSysRoot (FcConfig      *config,
 		    const FcChar8 *sysroot)
 {
-    FcChar8 *s;
+    FcChar8 *s = NULL;
     FcBool init = FcFalse;
 
     if (!config)
@@ -2362,9 +2362,12 @@ FcConfigSetSysRoot (FcConfig      *config,
 	}
     }
 
-    s = FcStrCopyFilename (sysroot);
-    if (!s)
-	return;
+    if (sysroot)
+    {
+	s = FcStrCopyFilename (sysroot);
+	if (!s)
+	    return;
+    }
 
     if (config->sysRoot)
 	FcStrFree (config->sysRoot);

@@ -552,6 +552,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(AMD_shader_stencil_export,      true,  false,     ARB_shader_stencil_export),
    EXT(AMD_shader_trinary_minmax,      true,  false,     dummy_true),
    EXT(AMD_vertex_shader_layer,        true,  false,     AMD_vertex_shader_layer),
+   EXT(AMD_vertex_shader_viewport_index, true,  false,   AMD_vertex_shader_viewport_index),
    EXT(EXT_separate_shader_objects,    false, true,      dummy_true),
    EXT(EXT_shader_integer_mix,         true,  true,      EXT_shader_integer_mix),
    EXT(EXT_texture_array,              true,  false,     EXT_texture_array),
@@ -844,8 +845,7 @@ ast_compound_statement::print(void) const
 {
    printf("{\n");
    
-   foreach_list_const(n, &this->statements) {
-      ast_node *ast = exec_node_data(ast_node, n, link);
+   foreach_list_typed(ast_node, ast, link, &this->statements) {
       ast->print();
    }
 
@@ -924,11 +924,10 @@ ast_expression::print(void) const
       subexpressions[0]->print();
       printf("( ");
 
-      foreach_list_const (n, &this->expressions) {
-	 if (n != this->expressions.get_head())
+      foreach_list_typed (ast_node, ast, link, &this->expressions) {
+	 if (&ast->link != this->expressions.get_head())
 	    printf(", ");
 
-	 ast_node *ast = exec_node_data(ast_node, n, link);
 	 ast->print();
       }
 
@@ -960,11 +959,10 @@ ast_expression::print(void) const
 
    case ast_sequence: {
       printf("( ");
-      foreach_list_const(n, & this->expressions) {
-	 if (n != this->expressions.get_head())
+      foreach_list_typed (ast_node, ast, link, & this->expressions) {
+	 if (&ast->link != this->expressions.get_head())
 	    printf(", ");
 
-	 ast_node *ast = exec_node_data(ast_node, n, link);
 	 ast->print();
       }
       printf(") ");
@@ -973,11 +971,10 @@ ast_expression::print(void) const
 
    case ast_aggregate: {
       printf("{ ");
-      foreach_list_const(n, & this->expressions) {
-	 if (n != this->expressions.get_head())
+      foreach_list_typed (ast_node, ast, link, & this->expressions) {
+	 if (&ast->link != this->expressions.get_head())
 	    printf(", ");
 
-	 ast_node *ast = exec_node_data(ast_node, n, link);
 	 ast->print();
       }
       printf("} ");
@@ -1027,8 +1024,7 @@ ast_function::print(void) const
    return_type->print();
    printf(" %s (", identifier);
 
-   foreach_list_const(n, & this->parameters) {
-      ast_node *ast = exec_node_data(ast_node, n, link);
+   foreach_list_typed(ast_node, ast, link, & this->parameters) {
       ast->print();
    }
 
@@ -1105,11 +1101,10 @@ ast_declarator_list::print(void) const
    else
       printf("precise ");
 
-   foreach_list_const (ptr, & this->declarations) {
-      if (ptr != this->declarations.get_head())
+   foreach_list_typed (ast_node, ast, link, & this->declarations) {
+      if (&ast->link != this->declarations.get_head())
 	 printf(", ");
 
-      ast_node *ast = exec_node_data(ast_node, ptr, link);
       ast->print();
    }
 
@@ -1241,8 +1236,7 @@ ast_case_label::ast_case_label(ast_expression *test_value)
 
 void ast_case_label_list::print(void) const
 {
-   foreach_list_const(n, & this->labels) {
-      ast_node *ast = exec_node_data(ast_node, n, link);
+   foreach_list_typed(ast_node, ast, link, & this->labels) {
       ast->print();
    }
    printf("\n");
@@ -1257,8 +1251,7 @@ ast_case_label_list::ast_case_label_list(void)
 void ast_case_statement::print(void) const
 {
    labels->print();
-   foreach_list_const(n, & this->stmts) {
-      ast_node *ast = exec_node_data(ast_node, n, link);
+   foreach_list_typed(ast_node, ast, link, & this->stmts) {
       ast->print();
       printf("\n");
    }
@@ -1273,8 +1266,7 @@ ast_case_statement::ast_case_statement(ast_case_label_list *labels)
 
 void ast_case_statement_list::print(void) const
 {
-   foreach_list_const(n, & this->cases) {
-      ast_node *ast = exec_node_data(ast_node, n, link);
+   foreach_list_typed(ast_node, ast, link, & this->cases) {
       ast->print();
    }
 }
@@ -1344,8 +1336,7 @@ void
 ast_struct_specifier::print(void) const
 {
    printf("struct %s { ", name);
-   foreach_list_const(n, &this->declarations) {
-      ast_node *ast = exec_node_data(ast_node, n, link);
+   foreach_list_typed(ast_node, ast, link, &this->declarations) {
       ast->print();
    }
    printf("} ");
@@ -1456,8 +1447,7 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
    }
 
    if (dump_ast) {
-      foreach_list_const(n, &state->translation_unit) {
-         ast_node *ast = exec_node_data(ast_node, n, link);
+      foreach_list_typed(ast_node, ast, link, &state->translation_unit) {
          ast->print();
       }
       printf("\n\n");

@@ -112,8 +112,8 @@ _mesa_ast_to_hir(exec_list *instructions, struct _mesa_glsl_parse_state *state)
     * applications depend on this behavior, and it matches what nearly all
     * other drivers do.
     */
-   foreach_list_safe(node, instructions) {
-      ir_variable *const var = ((ir_instruction *) node)->as_variable();
+   foreach_in_list_safe(ir_instruction, node, instructions) {
+      ir_variable *const var = node->as_variable();
 
       if (var == NULL)
          continue;
@@ -4210,10 +4210,8 @@ ast_function_definition::hir(exec_list *instructions,
     * Add these to the symbol table.
     */
    state->symbols->push_scope();
-   foreach_list(n, &signature->parameters) {
-      ir_variable *const var = ((ir_instruction *) n)->as_variable();
-
-      assert(var != NULL);
+   foreach_in_list(ir_variable, var, &signature->parameters) {
+      assert(var->as_variable() != NULL);
 
       /* The only way a parameter would "exist" is if two parameters have
        * the same name.
@@ -5009,7 +5007,7 @@ ast_process_structure_or_interface_block(exec_list *instructions,
     * 'declarations' list in each of the elements.
     */
    foreach_list_typed (ast_declarator_list, decl_list, link, declarations) {
-      foreach_list_const (decl_ptr, & decl_list->declarations) {
+      foreach_list_typed (ast_declaration, decl, link, &decl_list->declarations) {
          decl_count++;
       }
    }
@@ -5621,8 +5619,8 @@ ast_interface_block::hir(exec_list *instructions,
           * thinking there are conflicting definitions of gl_PerVertex in the
           * shader.
           */
-         foreach_list_safe(node, instructions) {
-            ir_variable *const var = ((ir_instruction *) node)->as_variable();
+         foreach_in_list_safe(ir_instruction, node, instructions) {
+            ir_variable *const var = node->as_variable();
             if (var != NULL &&
                 var->get_interface_type() == earlier_per_vertex &&
                 var->data.mode == var_mode) {
@@ -5678,8 +5676,8 @@ ast_gs_input_layout::hir(exec_list *instructions,
    /* If any shader inputs occurred before this declaration and did not
     * specify an array size, their size is determined now.
     */
-   foreach_list (node, instructions) {
-      ir_variable *var = ((ir_instruction *) node)->as_variable();
+   foreach_in_list(ir_instruction, node, instructions) {
+      ir_variable *var = node->as_variable();
       if (var == NULL || var->data.mode != ir_var_shader_in)
          continue;
 
@@ -5796,8 +5794,8 @@ detect_conflicting_assignments(struct _mesa_glsl_parse_state *state,
    YYLTYPE loc;
    memset(&loc, 0, sizeof(loc));
 
-   foreach_list(node, instructions) {
-      ir_variable *var = ((ir_instruction *)node)->as_variable();
+   foreach_in_list(ir_instruction, node, instructions) {
+      ir_variable *var = node->as_variable();
 
       if (!var || !var->data.assigned)
          continue;
@@ -5886,8 +5884,8 @@ remove_per_vertex_blocks(exec_list *instructions,
    /* Remove any ir_variable declarations that refer to the interface block
     * we're removing.
     */
-   foreach_list_safe(node, instructions) {
-      ir_variable *const var = ((ir_instruction *) node)->as_variable();
+   foreach_in_list_safe(ir_instruction, node, instructions) {
+      ir_variable *const var = node->as_variable();
       if (var != NULL && var->get_interface_type() == per_vertex &&
           var->data.mode == mode) {
          state->symbols->disable_variable(var->name);
