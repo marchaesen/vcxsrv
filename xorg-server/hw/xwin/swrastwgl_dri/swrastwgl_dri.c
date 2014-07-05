@@ -12,6 +12,8 @@
 #include <glx/glapi.h>
 #include <glx/glapitable.h>
 
+#include <stdbool.h>
+
 typedef unsigned char BYTE;
 typedef int BOOL;
 
