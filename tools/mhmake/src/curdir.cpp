@@ -27,6 +27,8 @@
 
 fileinfos g_FileInfos;  // declare here since it is important that it is constructed before m_pcurrentdir
 curdir::initcurdir curdir::m_pCurrentDir;
+makecommand g_MakeCommand;  // Order is important since sm_Statics is using g_MakeCommand
+const string g_QuoteString("\""); // Order is important since sm_Statics is using g_QuoteString
 loadedmakefile::loadedmakefile_statics loadedmakefile::sm_Statics;  // Declare this here because this constructor is using g_FileInfos and m_pCurrentDir
 LOADEDMAKEFILES g_LoadedMakefiles;  // Declare it here otherwize problems in the destructor (still using items from g_FileInfos)
 

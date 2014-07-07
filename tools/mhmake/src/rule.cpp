@@ -30,9 +30,6 @@ refptr<rule> NullRule;
 set<rule*> IMPLICITRULE::m_ImplicitRuleRecurseDetStack;
 vector<implicitrule_t> IMPLICITRULE::m_ImplicitRules;
 
-makecommand g_MakeCommand;  // Order is important since sm_Statics is using g_MakeCommand
-const string g_QuoteString("\""); // Order is important since sm_Statics is using g_QuoteString
-
 ///////////////////////////////////////////////////////////////////////////////
 static bool FindDep(fileinfo *pTarget, implicitruledep_t *pImplicitRule,refptr<rule> &Rule)
 {

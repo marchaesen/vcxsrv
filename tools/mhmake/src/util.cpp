@@ -338,6 +338,9 @@ refptr<loadedmakefile> LOADEDMAKEFILES::find(const loadedmakefile &ToSearch)
 ///////////////////////////////////////////////////////////////////////////////
 bool loadedmakefile::loadedmakefile_statics::GetSvnRevision(void)
 {
+  if (getenv("nosvn"))
+    return true;
+
   // Get the revision of the working copy
   // We do it with the svn info command (do it without path arguments, only current directory, to avoid problems with path names and junctions/links
 
