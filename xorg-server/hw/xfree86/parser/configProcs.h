@@ -57,6 +57,11 @@ XF86ConfInputClassPtr xf86parseInputClassSection(void);
 void xf86printInputClassSection(FILE * f, XF86ConfInputClassPtr ptr);
 void xf86freeInputClassList(XF86ConfInputClassPtr ptr);
 
+/* OutputClass.c */
+XF86ConfOutputClassPtr xf86parseOutputClassSection(void);
+void xf86printOutputClassSection(FILE * f, XF86ConfOutputClassPtr ptr);
+void xf86freeOutputClassList(XF86ConfOutputClassPtr ptr);
+
 /* Layout.c */
 XF86ConfLayoutPtr xf86parseLayoutSection(void);
 void xf86printLayoutSection(FILE * cf, XF86ConfLayoutPtr ptr);

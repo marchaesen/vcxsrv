@@ -3555,7 +3555,8 @@ or
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Drawable<parameter> d</parameter></paramdef>
   <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>intx,<parameter> y</parameter></paramdef>
+  <paramdef>int <parameter>x</parameter></paramdef>
+  <paramdef>int <parameter>y</parameter></paramdef>
   <paramdef>XmbTextItem<parameter> *items</parameter></paramdef>
   <paramdef>int<parameter> nitems</parameter></paramdef>
 </funcprototype>
@@ -3567,7 +3568,8 @@ or
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Drawable<parameter> d</parameter></paramdef>
   <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>intx,<parameter> y</parameter></paramdef>
+  <paramdef>int <parameter>x</parameter></paramdef>
+  <paramdef>int <parameter>y</parameter></paramdef>
   <paramdef>XwcTextItem<parameter> *items</parameter></paramdef>
   <paramdef>int<parameter> nitems</parameter></paramdef>
 </funcprototype>
@@ -3707,7 +3709,8 @@ or
   <paramdef>Drawable<parameter> d</parameter></paramdef>
   <paramdef>XFontSet<parameter> font_set</parameter></paramdef>
   <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>intx,<parameter> y</parameter></paramdef>
+  <paramdef>int <parameter>x</parameter></paramdef>
+  <paramdef>int <parameter>y</parameter></paramdef>
   <paramdef>char<parameter> *string</parameter></paramdef>
   <paramdef>int<parameter> num_bytes</parameter></paramdef>
 </funcprototype>
@@ -3720,7 +3723,8 @@ or
   <paramdef>Drawable<parameter> d</parameter></paramdef>
   <paramdef>XFontSet<parameter> font_set</parameter></paramdef>
   <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>intx,<parameter> y</parameter></paramdef>
+  <paramdef>int <parameter>x</parameter></paramdef>
+  <paramdef>int <parameter>y</parameter></paramdef>
   <paramdef>wchar_t<parameter> *string</parameter></paramdef>
   <paramdef>int<parameter> num_wchars</parameter></paramdef>
 </funcprototype>
@@ -3853,7 +3857,8 @@ or
   <paramdef>Drawable<parameter> d</parameter></paramdef>
   <paramdef>XFontSet<parameter> font_set</parameter></paramdef>
   <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>intx,<parameter> y</parameter></paramdef>
+  <paramdef>int <parameter>x</parameter></paramdef>
+  <paramdef>int <parameter>y</parameter></paramdef>
   <paramdef>char<parameter> *string</parameter></paramdef>
   <paramdef>int<parameter> num_bytes</parameter></paramdef>
 </funcprototype>
@@ -3866,7 +3871,8 @@ or
   <paramdef>Drawable<parameter> d</parameter></paramdef>
   <paramdef>XFontSet<parameter> font_set</parameter></paramdef>
   <paramdef>GC<parameter> gc</parameter></paramdef>
-  <paramdef>intx,<parameter> y</parameter></paramdef>
+  <paramdef>int <parameter>x</parameter></paramdef>
+  <paramdef>int <parameter>y</parameter></paramdef>
   <paramdef>wchar_t<parameter> *string</parameter></paramdef>
   <paramdef>int<parameter> num_wchars</parameter></paramdef>
 </funcprototype>

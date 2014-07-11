@@ -149,13 +149,15 @@ def_mbstowcs(
     XPointer *args,
     int num_args)
 {
-    const char *src = (const char *) *from;
-    wchar_t *dst = (wchar_t *) * to;
+    const char *src;
+    wchar_t *dst = (wchar_t *) *to;
     State state = (State) conv->state;
     int unconv = 0;
 
     if (from == NULL || *from == NULL)
 	return 0;
+
+    src = (const char *) *from;
 
     while (*from_left && *to_left) {
 	(*from_left)--;
@@ -181,7 +183,7 @@ def_wcstombs(
     XPointer *args,
     int num_args)
 {
-    const wchar_t *src = (const wchar_t *) * from;
+    const wchar_t *src;
     char  *dst = (char *) *to;
     State state = (State) conv->state;
     char ch[MB_LEN_MAX];
@@ -189,6 +191,8 @@ def_wcstombs(
 
     if (from == NULL || *from == NULL)
 	return 0;
+
+    src = (const wchar_t *) *from;
 
     while (*from_left && *to_left) {
 	(*from_left)--;
@@ -214,7 +218,7 @@ mbstostr(
     XPointer *args,
     int num_args)
 {
-    const char *src = (const char *) *from;
+    const char *src;
     char *dst = (char *) *to;
     CodeSet codeset;
     State state = (State) conv->state;
@@ -223,6 +227,8 @@ mbstostr(
 
     if (from == NULL || *from == NULL)
 	return 0;
+
+    src = (const char *) *from;
 
     while (*from_left && *to_left) {
 	ch = *src++;
@@ -251,7 +257,7 @@ wcstostr(
     XPointer *args,
     int num_args)
 {
-    const wchar_t *src = (const wchar_t *) *from;
+    const wchar_t *src;
     char *dst = (char *) *to;
     CodeSet codeset;
     State state = (State) conv->state;
@@ -260,6 +266,8 @@ wcstostr(
 
     if (from == NULL || *from == NULL)
 	return 0;
+
+    src = (const wchar_t *) *from;
 
     while (*from_left && *to_left) {
 	(*from_left)--;
@@ -290,7 +298,7 @@ mbstocs(
     XPointer *args,
     int num_args)
 {
-    const char *src = (const char *) *from;
+    const char *src;
     char *dst = (char *) *to;
     int length;
     State state = (State) conv->state;
@@ -300,6 +308,7 @@ mbstocs(
     if (from == NULL || *from == NULL)
 	return 0;
 
+    src = (const char *) *from;
     length = min(*from_left, *to_left);
 
     cur_side = *src & GR;
@@ -336,7 +345,7 @@ wcstocs(
     XPointer *args,
     int num_args)
 {
-    const wchar_t *src = (const wchar_t *) * from;
+    const wchar_t *src;
     char *dst = (char *) *to;
     State state = (State) conv->state;
     char cur_side = 0, ch[MB_LEN_MAX];
@@ -345,6 +354,8 @@ wcstocs(
 
     if (from == NULL || *from == NULL)
 	return 0;
+
+    src = (const wchar_t *) *from;
 
     while (*from_left) {
 	if ((found = state->WCtoMB (state, *src, ch)))
@@ -398,7 +409,7 @@ cstombs(
     XPointer *args,
     int num_args)
 {
-    const char *src = (const char *) *from;
+    const char *src;
     char *dst = (char *) *to;
     CodeSet codeset;
     XlcCharSet charset;
@@ -409,6 +420,8 @@ cstombs(
 
     if (from == NULL || *from == NULL)
 	return 0;
+
+    src = (const char *) *from;
 
     if (num_args > 0) {
 	charset = (XlcCharSet) args[0];
@@ -467,8 +480,8 @@ cstowcs(
     XPointer *args,
     int num_args)
 {
-    const char *src = (const char *) *from;
-    wchar_t *dst = (wchar_t *) * to;
+    const char *src;
+    wchar_t *dst = (wchar_t *) *to;
     CodeSet codeset;
     XlcCharSet charset;
     State state = (State) conv->state;
@@ -478,6 +491,8 @@ cstowcs(
 
     if (from == NULL || *from == NULL)
 	return 0;
+
+    src = (const char *) *from;
 
     if (num_args > 0) {
 	charset = (XlcCharSet) args[0];
@@ -539,13 +554,14 @@ strtombs(
     XPointer *args,
     int num_args)
 {
-    const char *src = (const char *) *from;
+    const char *src;
     char *dst = (char *) *to;
     int length;
 
     if (from == NULL || *from == NULL)
 	return 0;
 
+    src = (const char *) *from;
     length = min(*from_left, *to_left);
     while (length) {
 	*dst++ = *src++;

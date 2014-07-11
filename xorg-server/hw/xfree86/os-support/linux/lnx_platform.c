@@ -24,6 +24,7 @@ static Bool
 get_drm_info(struct OdevAttributes *attribs, char *path, int delayed_index)
 {
     drmSetVersion sv;
+    drmVersionPtr v;
     char *buf;
     int major, minor, fd;
     int err = 0;
@@ -57,8 +58,9 @@ get_drm_info(struct OdevAttributes *attribs, char *path, int delayed_index)
 
     err = drmSetInterfaceVersion(fd, &sv);
     if (err) {
-        ErrorF("setversion 1.4 failed: %s\n", strerror(-err));
-	goto out;
+        xf86Msg(X_ERROR, "%s: failed to set DRM interface version 1.4: %s\n",
+                path, strerror(-err));
+        goto out;
     }
 
     /* for a delayed probe we've already added the device */
@@ -74,6 +76,17 @@ get_drm_info(struct OdevAttributes *attribs, char *path, int delayed_index)
     xf86_add_platform_device_attrib(delayed_index,
                                     ODEV_ATTRIB_BUSID, buf);
     drmFreeBusid(buf);
+
+    v = drmGetVersion(fd);
+    if (!v) {
+        xf86Msg(X_ERROR, "%s: failed to query DRM version\n", path);
+        goto out;
+    }
+
+    xf86_add_platform_device_attrib(delayed_index, ODEV_ATTRIB_DRIVER,
+                                    v->name);
+    drmFreeVersion(v);
+
 out:
     if (!server_fd)
         close(fd);

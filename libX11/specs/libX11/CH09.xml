@@ -42,7 +42,8 @@ There is no way to move a window between screens.
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Window<parameter> w</parameter></paramdef>
   <paramdef>Window<parameter> parent</parameter></paramdef>
-  <paramdef>intx,<parameter> y</parameter></paramdef>
+  <paramdef>int<parameter> x</parameter></paramdef>
+  <paramdef>int<parameter> y</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->

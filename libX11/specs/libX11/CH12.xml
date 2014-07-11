@@ -166,7 +166,7 @@ To grab the pointer, use
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Window<parameter> grab_window</parameter></paramdef>
   <paramdef>Bool<parameter> owner_events</parameter></paramdef>
-  <paramdef>unsignedint<parameter> event_mask</parameter></paramdef>
+  <paramdef>unsigned int <parameter> event_mask</parameter></paramdef>
   <paramdef>intpointer_mode,<parameter> keyboard_mode</parameter></paramdef>
   <paramdef>Window<parameter> confine_to</parameter></paramdef>
   <paramdef>Cursor<parameter> cursor</parameter></paramdef>
@@ -498,7 +498,7 @@ To change an active pointer grab, use
 <funcprototype>
   <funcdef><function>XChangeActivePointerGrab</function></funcdef>
   <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>unsignedint<parameter> event_mask</parameter></paramdef>
+  <paramdef>unsigned int <parameter> event_mask</parameter></paramdef>
   <paramdef>Cursor<parameter> cursor</parameter></paramdef>
   <paramdef>Time<parameter> time</parameter></paramdef>
 </funcprototype>
@@ -586,11 +586,11 @@ To grab a pointer button, use
 <funcprototype>
   <funcdef><function>XGrabButton</function></funcdef>
   <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>unsignedint<parameter> button</parameter></paramdef>
-  <paramdef>unsignedint<parameter> modifiers</parameter></paramdef>
+  <paramdef>unsigned int <parameter> button</parameter></paramdef>
+  <paramdef>unsigned int <parameter> modifiers</parameter></paramdef>
   <paramdef>Window<parameter> grab_window</parameter></paramdef>
   <paramdef>Bool<parameter> owner_events</parameter></paramdef>
-  <paramdef>unsignedint<parameter> event_mask</parameter></paramdef>
+  <paramdef>unsigned int <parameter> event_mask</parameter></paramdef>
   <paramdef>intpointer_mode,<parameter> keyboard_mode</parameter></paramdef>
   <paramdef>Window<parameter> confine_to</parameter></paramdef>
   <paramdef>Cursor<parameter> cursor</parameter></paramdef>
@@ -829,8 +829,8 @@ To ungrab a pointer button, use
 <funcprototype>
   <funcdef><function>XUngrabButton</function></funcdef>
   <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>unsignedint<parameter> button</parameter></paramdef>
-  <paramdef>unsignedint<parameter> modifiers</parameter></paramdef>
+  <paramdef>unsigned int <parameter> button</parameter></paramdef>
+  <paramdef>unsigned int <parameter> modifiers</parameter></paramdef>
   <paramdef>Window<parameter> grab_window</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -1205,7 +1205,7 @@ To passively grab a single key of the keyboard, use
   <funcdef><function>XGrabKey</function></funcdef>
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>int<parameter> keycode</parameter></paramdef>
-  <paramdef>unsignedint<parameter> modifiers</parameter></paramdef>
+  <paramdef>unsigned int <parameter> modifiers</parameter></paramdef>
   <paramdef>Window<parameter> grab_window</parameter></paramdef>
   <paramdef>Bool<parameter> owner_events</parameter></paramdef>
   <paramdef>intpointer_mode,<parameter> keyboard_mode</parameter></paramdef>
@@ -1409,7 +1409,7 @@ To ungrab a key, use
   <funcdef><function>XUngrabKey</function></funcdef>
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>int<parameter> keycode</parameter></paramdef>
-  <paramdef>unsignedint<parameter> modifiers</parameter></paramdef>
+  <paramdef>unsigned int <parameter> modifiers</parameter></paramdef>
   <paramdef>Window<parameter> grab_window</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -1767,7 +1767,8 @@ To move the pointer to an arbitrary point in a window, use
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Windowsrc_w,<parameter> dest_w</parameter></paramdef>
   <paramdef>intsrc_x,<parameter> src_y</parameter></paramdef>
-  <paramdef>unsignedintsrc_width,<parameter> src_height</parameter></paramdef>
+  <paramdef>unsigned int <parameter>src_width</parameter></paramdef>
+  <paramdef>unsigned int <parameter>src_height</parameter></paramdef>
   <paramdef>intdest_x,<parameter> dest_y</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -2328,7 +2329,7 @@ If an error is generated, a subset of the controls may have been altered.
 <funcprototype>
   <funcdef><function>XChangeKeyboardControl</function></funcdef>
   <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>unsignedlong<parameter> value_mask</parameter></paramdef>
+  <paramdef>unsigned long <parameter> value_mask</parameter></paramdef>
   <paramdef>XKeyboardControl<parameter> *values</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>

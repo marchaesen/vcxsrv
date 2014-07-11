@@ -14,6 +14,7 @@ INTERNAL_SOURCES= \
 	Flags.c \
 	Input.c \
 	InputClass.c \
+	OutputClass.c \
 	Layout.c \
 	Module.c \
 	Video.c \

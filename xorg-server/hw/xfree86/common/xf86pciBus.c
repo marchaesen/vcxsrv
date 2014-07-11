@@ -1320,8 +1320,9 @@ xchomp(char *line)
  * don't export their PCI ID's properly. If distros don't end up using this
  * feature it can and should be removed because the symbol-based resolution
  * scheme should be the primary one */
-void
-xf86MatchDriverFromFiles(char **matches, uint16_t match_vendor, uint16_t match_chip)
+int
+xf86MatchDriverFromFiles(uint16_t match_vendor, uint16_t match_chip,
+                         char *matches[], int nmatches)
 {
     DIR *idsdir;
     FILE *fp;
@@ -1331,11 +1332,11 @@ xf86MatchDriverFromFiles(char **matches, uint16_t match_vendor, uint16_t match_c
     ssize_t read;
     char path_name[256], vendor_str[5], chip_str[5];
     uint16_t vendor, chip;
-    int i, j;
+    int i = 0, j;
 
     idsdir = opendir(PCI_TXT_IDS_PATH);
     if (!idsdir)
-        return;
+        return 0;
 
     xf86Msg(X_INFO,
             "Scanning %s directory for additional PCI ID's supported by the drivers\n",
@@ -1386,10 +1387,6 @@ xf86MatchDriverFromFiles(char **matches, uint16_t match_vendor, uint16_t match_c
                         }
                     }
                     if (vendor == match_vendor && chip == match_chip) {
-                        i = 0;
-                        while (matches[i]) {
-                            i++;
-                        }
                         matches[i] =
                             (char *) malloc(sizeof(char) *
                                             strlen(direntry->d_name) - 3);
@@ -1412,6 +1409,7 @@ xf86MatchDriverFromFiles(char **matches, uint16_t match_vendor, uint16_t match_c
                         }
                         xf86Msg(X_INFO, "Matched %s from file name %s\n",
                                 matches[i], direntry->d_name);
+                        i++;
                     }
                 }
                 else {
@@ -1425,6 +1423,7 @@ xf86MatchDriverFromFiles(char **matches, uint16_t match_vendor, uint16_t match_c
  end:
     free(line);
     closedir(idsdir);
+    return i;
 }
 #endif                          /* __linux__ */
 
@@ -1435,7 +1434,7 @@ xf86MatchDriverFromFiles(char **matches, uint16_t match_vendor, uint16_t match_c
 int
 xf86PciMatchDriver(char *matches[], int nmatches)
 {
-    int i;
+    int i = 0;
     struct pci_device *info = NULL;
     struct pci_device_iterator *iter;
 
@@ -1450,12 +1449,9 @@ xf86PciMatchDriver(char *matches[], int nmatches)
     pci_iterator_destroy(iter);
 #ifdef __linux__
     if (info)
-        xf86MatchDriverFromFiles(matches, info->vendor_id, info->device_id);
+        i += xf86MatchDriverFromFiles(info->vendor_id, info->device_id,
+                                      matches, nmatches);
 #endif
-
-    for (i = 0; (i < nmatches) && (matches[i]); i++) {
-        /* find end of matches list */
-    }
 
     if ((info != NULL) && (i < nmatches)) {
         i += xf86VideoPtrToDriverList(info, &(matches[i]), nmatches - i);

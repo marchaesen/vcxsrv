@@ -47,6 +47,7 @@
 #include "xf86Bus.h"
 #include "Pci.h"
 #include "xf86platformBus.h"
+#include "xf86Config.h"
 
 #include "randrstr.h"
 int platformSlotClaimed;
@@ -199,6 +200,81 @@ xf86_check_platform_slot(const struct xf86_platform_device *pd)
     return TRUE;
 }
 
+static Bool
+MatchToken(const char *value, struct xorg_list *patterns,
+           int (*compare)(const char *, const char *))
+{
+    const xf86MatchGroup *group;
+
+    /* If there are no patterns, accept the match */
+    if (xorg_list_is_empty(patterns))
+        return TRUE;
+
+    /* If there are patterns but no attribute, reject the match */
+    if (!value)
+        return FALSE;
+
+    /*
+     * Otherwise, iterate the list of patterns ensuring each entry has a
+     * match. Each list entry is a separate Match line of the same type.
+     */
+    xorg_list_for_each_entry(group, patterns, entry) {
+        Bool match = FALSE;
+        char *const *cur;
+
+        for (cur = group->values; *cur; cur++) {
+            if ((*compare)(value, *cur) == 0) {
+                match = TRUE;
+                break;
+            }
+        }
+
+        if (!match)
+            return FALSE;
+    }
+
+    /* All the entries in the list matched the attribute */
+    return TRUE;
+}
+
+static Bool
+OutputClassMatches(const XF86ConfOutputClassPtr oclass, int index)
+{
+    char *driver = xf86_get_platform_attrib(index, ODEV_ATTRIB_DRIVER);
+
+    if (!MatchToken(driver, &oclass->match_driver, strcmp))
+        return FALSE;
+
+    return TRUE;
+}
+
+static int
+xf86OutputClassDriverList(int index, char *matches[], int nmatches)
+{
+    XF86ConfOutputClassPtr cl;
+    int i = 0;
+
+    if (nmatches == 0)
+        return 0;
+
+    for (cl = xf86configptr->conf_outputclass_lst; cl; cl = cl->list.next) {
+        if (OutputClassMatches(cl, index)) {
+            char *path = xf86_get_platform_attrib(index, ODEV_ATTRIB_PATH);
+
+            xf86Msg(X_INFO, "Applying OutputClass \"%s\" to %s\n",
+                    cl->identifier, path);
+            xf86Msg(X_NONE, "\tloading driver: %s\n", cl->driver);
+
+            matches[i++] = xstrdup(cl->driver);
+        }
+
+        if (i >= nmatches)
+            break;
+    }
+
+    return i;
+}
+
 /**
  *  @return The numbers of found devices that match with the current system
  *  drivers.
@@ -218,15 +294,14 @@ xf86PlatformMatchDriver(char *matches[], int nmatches)
             else if (!xf86IsPrimaryPlatform(&xf86_platform_devices[i]) && (pass == 0))
                 continue;
 
+            j += xf86OutputClassDriverList(i, &matches[j], nmatches - j);
+
             info = xf86_platform_devices[i].pdev;
 #ifdef __linux__
             if (info)
-                xf86MatchDriverFromFiles(matches, info->vendor_id, info->device_id);
+                j += xf86MatchDriverFromFiles(info->vendor_id, info->device_id,
+                                              &matches[j], nmatches - j);
 #endif
-
-            for (j = 0; (j < nmatches) && (matches[j]); j++) {
-                /* find end of matches list */
-            }
 
             if ((info != NULL) && (j < nmatches)) {
                 j += xf86VideoPtrToDriverList(info, &(matches[j]), nmatches - j);

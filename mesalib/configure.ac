@@ -159,20 +159,13 @@ solaris*)
     DEFINES="$DEFINES -DHAVE_PTHREAD -DSVR4"
     ;;
 cygwin*)
-    DEFINES="$DEFINES -DHAVE_PTHREAD"
+    DEFINES="$DEFINES -D_XOPEN_SOURCE=700 -DHAVE_PTHREAD"
     ;;
 esac
 
 dnl Add flags for gcc and g++
 if test "x$GCC" = xyes; then
-    case "$host_os" in
-    cygwin*)
-        CFLAGS="$CFLAGS -Wall -std=gnu99"
-        ;;
-    *)
-        CFLAGS="$CFLAGS -Wall -std=c99"
-        ;;
-    esac
+    CFLAGS="$CFLAGS -Wall -std=c99"
 
     # Enable -Werror=implicit-function-declaration and
     # -Werror=missing-prototypes, if available, or otherwise, just
@@ -1992,7 +1985,7 @@ if test -n "$with_gallium_drivers"; then
             fi
 
             if test "x$enable_dri" = xyes; then
-                GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS dri-swrast"
+                GALLIUM_TARGET_DIRS="$GALLIUM_TARGET_DIRS dri/swrast"
             fi
             ;;
         *)
@@ -2196,8 +2189,6 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/state_trackers/Makefile
 		src/gallium/state_trackers/clover/Makefile
 		src/gallium/state_trackers/dri/Makefile
-		src/gallium/state_trackers/dri/drm/Makefile
-		src/gallium/state_trackers/dri/sw/Makefile
 		src/gallium/state_trackers/egl/Makefile
 		src/gallium/state_trackers/gbm/Makefile
 		src/gallium/state_trackers/glx/xlib/Makefile
@@ -2208,7 +2199,6 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/state_trackers/xa/Makefile
 		src/gallium/state_trackers/xvmc/Makefile
 		src/gallium/targets/Makefile
-		src/gallium/targets/dri-swrast/Makefile
 		src/gallium/targets/dri/Makefile
 		src/gallium/targets/egl-static/Makefile
 		src/gallium/targets/gbm/Makefile

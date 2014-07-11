@@ -3056,7 +3056,7 @@ critical section:
 <funcprototype>
   <funcdef>char *<function>_XAllocScratch</function></funcdef>
   <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>unsignedlong<parameter> nbytes</parameter></paramdef>
+  <paramdef>unsigned long <parameter> nbytes</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3113,7 +3113,7 @@ critical sections:
 <funcprototype>
   <funcdef>char *<function>_XAllocTemp</function></funcdef>
   <paramdef>Display<parameter> *display</parameter></paramdef>
-  <paramdef>unsignedlong<parameter> nbytes</parameter></paramdef>
+  <paramdef>unsigned long <parameter> nbytes</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3153,7 +3153,7 @@ The following function returns the storage:
   <funcdef>void <function>_XFreeTemp</function></funcdef>
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>char<parameter> *buf</parameter></paramdef>
-  <paramdef>unsignedlong<parameter> nbytes</parameter></paramdef>
+  <paramdef>unsigned long <parameter> nbytes</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
