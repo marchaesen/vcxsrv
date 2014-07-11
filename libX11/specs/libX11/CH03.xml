@@ -1256,13 +1256,15 @@ To create an unmapped window and set its window attributes, use
   <funcdef>Window <function>XCreateWindow</function></funcdef>
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Window<parameter> parent</parameter></paramdef>
-  <paramdef>intx,<parameter> y</parameter></paramdef>
-  <paramdef>unsignedintwidth,<parameter> height</parameter></paramdef>
-  <paramdef>unsignedint<parameter> border_width</parameter></paramdef>
+  <paramdef>int <parameter>x</parameter></paramdef>
+  <paramdef>int <parameter>y</parameter></paramdef>
+  <paramdef>unsigned int <parameter>width</parameter></paramdef>
+  <paramdef>unsigned int <parameter>height</parameter></paramdef>
+  <paramdef>unsigned int <parameter> border_width</parameter></paramdef>
   <paramdef>int<parameter> depth</parameter></paramdef>
-  <paramdef>unsignedint<parameter> class</parameter></paramdef>
+  <paramdef>unsigned int <parameter> class</parameter></paramdef>
   <paramdef>Visual<parameter> *visual</parameter></paramdef>
-  <paramdef>unsignedlong<parameter> valuemask</parameter></paramdef>
+  <paramdef>unsigned long <parameter> valuemask</parameter></paramdef>
   <paramdef>XSetWindowAttributes<parameter> *attributes</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -1520,11 +1522,13 @@ subwindow of a given parent window, use
   <funcdef>Window <function>XCreateSimpleWindow</function></funcdef>
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Window<parameter> parent</parameter></paramdef>
-  <paramdef>intx,<parameter> y</parameter></paramdef>
-  <paramdef>unsignedintwidth,<parameter> height</parameter></paramdef>
-  <paramdef>unsignedint<parameter> border_width</parameter></paramdef>
-  <paramdef>unsignedlong<parameter> border</parameter></paramdef>
-  <paramdef>unsignedlong<parameter> background</parameter></paramdef>
+  <paramdef>int <parameter>x</parameter></paramdef>
+  <paramdef>int <parameter>y</parameter></paramdef>
+  <paramdef>unsigned int <parameter>width</parameter></paramdef>
+  <paramdef>unsigned int <parameter>height</parameter></paramdef>
+  <paramdef>unsigned int <parameter> border_width</parameter></paramdef>
+  <paramdef>unsigned long <parameter> border</parameter></paramdef>
+  <paramdef>unsigned long <parameter> background</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2535,7 +2539,7 @@ To configure a window's size, location, stacking, or border, use
   <funcdef><function>XConfigureWindow</function></funcdef>
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>unsignedint<parameter> value_mask</parameter></paramdef>
+  <paramdef>unsigned int <parameter> value_mask</parameter></paramdef>
   <paramdef>XWindowChanges<parameter> *values</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -2640,7 +2644,8 @@ To move a window without changing its size, use
   <funcdef><function>XMoveWindow</function></funcdef>
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>intx,<parameter> y</parameter></paramdef>
+  <paramdef>int <parameter>x</parameter></paramdef>
+  <paramdef>int <parameter>y</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN      -->
@@ -2741,7 +2746,8 @@ To change a window's size without changing the upper-left coordinate, use
   <funcdef><function>XResizeWindow</function></funcdef>
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>unsignedintwidth,<parameter> height</parameter></paramdef>
+  <paramdef>unsigned int <parameter>width</parameter></paramdef>
+  <paramdef>unsigned int <parameter>height</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2843,8 +2849,10 @@ To change the size and location of a window, use
   <funcdef><function>XMoveResizeWindow</function></funcdef>
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>intx,<parameter> y</parameter></paramdef>
-  <paramdef>unsignedintwidth,<parameter> height</parameter></paramdef>
+  <paramdef>int <parameter>x</parameter></paramdef>
+  <paramdef>int <parameter>y</parameter></paramdef>
+  <paramdef>unsigned int <parameter>width</parameter></paramdef>
+  <paramdef>unsigned int <parameter>height</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2962,7 +2970,7 @@ To change the border width of a given window, use
   <funcdef><function>XSetWindowBorderWidth</function></funcdef>
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>unsignedint<parameter> width</parameter></paramdef>
+  <paramdef>unsigned int <parameter> width</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3504,7 +3512,7 @@ To change one or more attributes for a given window, use
   <funcdef><function>XChangeWindowAttributes</function></funcdef>
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>unsignedlong<parameter> valuemask</parameter></paramdef>
+  <paramdef>unsigned long <parameter> valuemask</parameter></paramdef>
   <paramdef>XSetWindowAttributes<parameter> *attributes</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -3662,7 +3670,7 @@ To set the background of a window to a given pixel, use
   <funcdef><function>XSetWindowBackground</function></funcdef>
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>unsignedlong<parameter> background_pixel</parameter></paramdef>
+  <paramdef>unsigned long <parameter> background_pixel</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3831,7 +3839,7 @@ To change and repaint a window's border to a given pixel, use
   <funcdef><function>XSetWindowBorder</function></funcdef>
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Window<parameter> w</parameter></paramdef>
-  <paramdef>unsignedlong<parameter> border_pixel</parameter></paramdef>
+  <paramdef>unsigned long <parameter> border_pixel</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->

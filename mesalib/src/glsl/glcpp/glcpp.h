@@ -37,6 +37,12 @@
 
 /* Some data types used for parser values. */
 
+typedef struct expression_value {
+	intmax_t value;
+	char *undefined_macro;
+} expression_value_t;
+   
+
 typedef struct string_node {
 	const char *str;
 	struct string_node *next;
@@ -53,6 +59,7 @@ typedef struct token_list token_list_t;
 typedef union YYSTYPE
 {
 	intmax_t ival;
+	expression_value_t expression_value;
 	char *str;
 	string_list_t *string_list;
 	token_t *token;
@@ -168,7 +175,7 @@ struct glcpp_parser {
 	yyscan_t scanner;
 	struct hash_table *defines;
 	active_list_t *active;
-	int lexing_if;
+	int lexing_directive;
 	int space_tokens;
 	int newline_as_space;
 	int in_control_line;

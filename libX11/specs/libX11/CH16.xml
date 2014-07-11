@@ -895,7 +895,7 @@ To allocate some memory you will never give back, use
 <funcsynopsis id='Xpermalloc'>
 <funcprototype>
   <funcdef>char *<function>Xpermalloc</function></funcdef>
-  <paramdef>unsignedint<parameter> size</parameter></paramdef>
+  <paramdef>unsigned int <parameter> size</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -930,7 +930,8 @@ To parse standard window geometry strings, use
   <funcdef>int <function>XParseGeometry</function></funcdef>
   <paramdef>char<parameter> *parsestring</parameter></paramdef>
   <paramdef>int*x_return,<parameter> *y_return</parameter></paramdef>
-  <paramdef>unsignedint*width_return,<parameter> *height_return</parameter></paramdef>
+  <paramdef>unsigned int <parameter>*width_return</parameter></paramdef>
+  <paramdef>unsigned int <parameter>*height_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -1066,7 +1067,7 @@ To construct a window's geometry information, use
   <paramdef>int<parameter> screen</parameter></paramdef>
   <paramdef>char<parameter> *user_geom</parameter></paramdef>
   <paramdef>char<parameter> *def_geom</parameter></paramdef>
-  <paramdef>unsignedint<parameter> bwidth</parameter></paramdef>
+  <paramdef>unsigned int <parameter> bwidth</parameter></paramdef>
   <paramdef>XSizeHints<parameter> *hints</parameter></paramdef>
   <paramdef>int*x_return,<parameter> *y_return</parameter></paramdef>
   <paramdef>int<parameter> *width_return</parameter></paramdef>
@@ -1975,7 +1976,8 @@ To determine if a specified point resides in a specified region, use
 <funcprototype>
   <funcdef>Bool <function>XPointInRegion</function></funcdef>
   <paramdef>Region<parameter> r</parameter></paramdef>
-  <paramdef>intx,<parameter> y</parameter></paramdef>
+  <paramdef>int <parameter>x</parameter></paramdef>
+  <paramdef>int <parameter>y</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2033,8 +2035,10 @@ To determine if a specified rectangle is inside a region, use
 <funcprototype>
   <funcdef>int <function>XRectInRegion</function></funcdef>
   <paramdef>Region<parameter> r</parameter></paramdef>
-  <paramdef>intx,<parameter> y</parameter></paramdef>
-  <paramdef>unsignedintwidth,<parameter> height</parameter></paramdef>
+  <paramdef>int <parameter>x</parameter></paramdef>
+  <paramdef>int <parameter>y</parameter></paramdef>
+  <paramdef>unsigned int <parameter>width</parameter></paramdef>
+  <paramdef>unsigned int <parameter>height</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2740,12 +2744,12 @@ structure and initialize it with image format values from a display, use
   <funcdef>XImage *<function>XCreateImage</function></funcdef>
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Visual<parameter> *visual</parameter></paramdef>
-  <paramdef>unsignedint<parameter> depth</parameter></paramdef>
+  <paramdef>unsigned int <parameter> depth</parameter></paramdef>
   <paramdef>int<parameter> format</parameter></paramdef>
   <paramdef>int<parameter> offset</parameter></paramdef>
   <paramdef>char<parameter> *data</parameter></paramdef>
-  <paramdef>unsignedint<parameter> width</parameter></paramdef>
-  <paramdef>unsignedint<parameter> height</parameter></paramdef>
+  <paramdef>unsigned int <parameter> width</parameter></paramdef>
+  <paramdef>unsigned int <parameter> height</parameter></paramdef>
   <paramdef>int<parameter> bitmap_pad</parameter></paramdef>
   <paramdef>int<parameter> bytes_per_line</parameter></paramdef>
 </funcprototype>
@@ -2985,7 +2989,7 @@ To set a pixel value in an image, use
   <paramdef>XImage<parameter> *ximage</parameter></paramdef>
   <paramdef>int<parameter> x</parameter></paramdef>
   <paramdef>int<parameter> y</parameter></paramdef>
-  <paramdef>unsignedlong<parameter> pixel</parameter></paramdef>
+  <paramdef>unsigned long <parameter> pixel</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3057,8 +3061,8 @@ To create a subimage, use
   <paramdef>XImage<parameter> *ximage</parameter></paramdef>
   <paramdef>int<parameter> x</parameter></paramdef>
   <paramdef>int<parameter> y</parameter></paramdef>
-  <paramdef>unsignedint<parameter> subimage_width</parameter></paramdef>
-  <paramdef>unsignedint<parameter> subimage_height</parameter></paramdef>
+  <paramdef>unsigned int <parameter> subimage_width</parameter></paramdef>
+  <paramdef>unsigned int <parameter> subimage_height</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3279,7 +3283,8 @@ To read a bitmap from a file and store it in a pixmap, use
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Drawable<parameter> d</parameter></paramdef>
   <paramdef>char<parameter> *filename</parameter></paramdef>
-  <paramdef>unsignedint*width_return,<parameter> *height_return</parameter></paramdef>
+  <paramdef>unsigned int <parameter>*width_return</parameter></paramdef>
+  <paramdef>unsigned int <parameter>*height_return</parameter></paramdef>
   <paramdef>Pixmap<parameter> *bitmap_return</parameter></paramdef>
   <paramdef>int*x_hot_return,<parameter> *y_hot_return</parameter></paramdef>
 </funcprototype>
@@ -3431,7 +3436,8 @@ To read a bitmap from a file and return it as data, use
 <funcprototype>
   <funcdef>int <function>XReadBitmapFileData</function></funcdef>
   <paramdef>char<parameter> *filename</parameter></paramdef>
-  <paramdef>unsignedint*width_return,<parameter> *height_return</parameter></paramdef>
+  <paramdef>unsigned int <parameter>*width_return</parameter></paramdef>
+  <paramdef>unsigned int <parameter>*height_return</parameter></paramdef>
   <paramdef>unsignedchar<parameter> *data_return</parameter></paramdef>
   <paramdef>int*x_hot_return,<parameter> *y_hot_return</parameter></paramdef>
 </funcprototype>
@@ -3530,7 +3536,8 @@ To write out a bitmap from a pixmap to a file, use
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>char<parameter> *filename</parameter></paramdef>
   <paramdef>Pixmap<parameter> bitmap</parameter></paramdef>
-  <paramdef>unsignedintwidth,<parameter> height</parameter></paramdef>
+  <paramdef>unsigned int <parameter>width</parameter></paramdef>
+  <paramdef>unsigned int <parameter>height</parameter></paramdef>
   <paramdef>intx_hot,<parameter> y_hot</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -3657,9 +3664,10 @@ To create a pixmap and then store bitmap-format data into it, use
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Drawable<parameter> d</parameter></paramdef>
   <paramdef>char<parameter> *data</parameter></paramdef>
-  <paramdef>unsignedintwidth,<parameter> height</parameter></paramdef>
-  <paramdef>unsignedlongfg,<parameter> bg</parameter></paramdef>
-  <paramdef>unsignedint<parameter> depth</parameter></paramdef>
+  <paramdef>unsigned int <parameter>width</parameter></paramdef>
+  <paramdef>unsigned int <parameter>height</parameter></paramdef>
+  <paramdef>unsigned long fg,<parameter> bg</parameter></paramdef>
+  <paramdef>unsigned int <parameter> depth</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -3788,7 +3796,8 @@ in a program directly, as opposed to reading it in every time at run time, use
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Drawable<parameter> d</parameter></paramdef>
   <paramdef>char<parameter> *data</parameter></paramdef>
-  <paramdef>unsignedintwidth,<parameter> height</parameter></paramdef>
+  <paramdef>unsigned int <parameter>width</parameter></paramdef>
+  <paramdef>unsigned int <parameter>height</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->

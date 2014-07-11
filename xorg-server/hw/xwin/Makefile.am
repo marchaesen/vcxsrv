@@ -155,7 +155,7 @@ XWIN_LIBS += 	$(top_builddir)/pseudoramiX/libPseudoramiX.la \
                 $(top_builddir)/Xi/libXistubs.la
 XWin_DEPENDENCIES = $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_LIBS) $(XSERVER_LIBS)
 XWin_LDADD = $(MULTIWINDOW_LIBS) $(MULTIWINDOWEXTWM_LIBS) $(XWIN_GLX_LIBS) $(XWIN_GLX_LINK_FLAGS) $(XWIN_LIBS) $(MAIN_LIB) $(XSERVER_LIBS) $(XSERVER_SYS_LIBS) $(XWIN_SYS_LIBS)
-XWin_LDFLAGS = -mwindows -static -Wl,--disable-stdcall-fixup
+XWin_LDFLAGS = -mwindows -Wl,--disable-stdcall-fixup $(LD_EXPORT_SYMBOLS_FLAG)
 
 
 .rc.o:

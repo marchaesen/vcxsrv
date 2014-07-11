@@ -1915,10 +1915,10 @@ model, use
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Colormap<parameter> colormap</parameter></paramdef>
   <paramdef>Bool<parameter> contig</parameter></paramdef>
-  <paramdef>unsignedlong<parameter> plane_masks_return[]</parameter></paramdef>
-  <paramdef>unsignedint<parameter> nplanes</parameter></paramdef>
-  <paramdef>unsignedlong<parameter> pixels_return[]</parameter></paramdef>
-  <paramdef>unsignedint<parameter> npixels</parameter></paramdef>
+  <paramdef>unsigned long <parameter> plane_masks_return[]</parameter></paramdef>
+  <paramdef>unsigned int <parameter> nplanes</parameter></paramdef>
+  <paramdef>unsigned long <parameter> pixels_return[]</parameter></paramdef>
+  <paramdef>unsigned int <parameter> npixels</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2069,10 +2069,10 @@ model, use
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Colormap<parameter> colormap</parameter></paramdef>
   <paramdef>Bool<parameter> contig</parameter></paramdef>
-  <paramdef>unsignedlong<parameter> pixels_return[]</parameter></paramdef>
+  <paramdef>unsigned long <parameter> pixels_return[]</parameter></paramdef>
   <paramdef>int<parameter> ncolors</parameter></paramdef>
   <paramdef>intnreds,ngreens,<parameter> nblues</parameter></paramdef>
-  <paramdef>unsignedlong*rmask_return,*gmask_return,<parameter> *bmask_return</parameter></paramdef>
+  <paramdef>unsigned long *rmask_return,*gmask_return,<parameter> *bmask_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2270,9 +2270,9 @@ To free colormap cells, use
   <funcdef><function>XFreeColors</function></funcdef>
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Colormap<parameter> colormap</parameter></paramdef>
-  <paramdef>unsignedlong<parameter> pixels[]</parameter></paramdef>
+  <paramdef>unsigned long <parameter> pixels[]</parameter></paramdef>
   <paramdef>int<parameter> npixels</parameter></paramdef>
-  <paramdef>unsignedlong<parameter> planes</parameter></paramdef>
+  <paramdef>unsigned long <parameter> planes</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -2866,7 +2866,7 @@ To store a color specified by name in a single colormap cell, use
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Colormap<parameter> colormap</parameter></paramdef>
   <paramdef>char<parameter> *color</parameter></paramdef>
-  <paramdef>unsignedlong<parameter> pixel</parameter></paramdef>
+  <paramdef>unsigned long <parameter> pixel</parameter></paramdef>
   <paramdef>int<parameter> flags</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -3249,7 +3249,7 @@ To query the color of multiple colormap cells in an arbitrary format, use
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Colormap<parameter> colormap</parameter></paramdef>
   <paramdef>XcmsColor<parameter> colors_in_out[]</parameter></paramdef>
-  <paramdef>unsignedint<parameter> ncolors</parameter></paramdef>
+  <paramdef>unsigned int <parameter> ncolors</parameter></paramdef>
   <paramdef>XcmsColorFormat<parameter> result_format</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -4186,7 +4186,7 @@ to a single destination format, use
   <funcdef>Status <function>XcmsConvertColors</function></funcdef>
   <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
   <paramdef>XcmsColor<parameter> colors_in_out[]</parameter></paramdef>
-  <paramdef>unsignedint<parameter> ncolors</parameter></paramdef>
+  <paramdef>unsigned int <parameter> ncolors</parameter></paramdef>
   <paramdef>XcmsColorFormat<parameter> target_format</parameter></paramdef>
   <paramdef>Bool<parameter> compression_flags_return[]</parameter></paramdef>
 </funcprototype>
@@ -4330,8 +4330,8 @@ following:
   <funcdef>typedef Status<function>(*XcmsCompressionProc</function>)</funcdef>
   <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
   <paramdef>XcmsColor<parameter> colors_in_out[]</parameter></paramdef>
-  <paramdef>unsignedint<parameter> ncolors</parameter></paramdef>
-  <paramdef>unsignedint<parameter> index</parameter></paramdef>
+  <paramdef>unsigned int <parameter> ncolors</parameter></paramdef>
+  <paramdef>unsigned int <parameter> index</parameter></paramdef>
   <paramdef>Bool<parameter> compression_flags_return[]</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -4660,7 +4660,7 @@ The white point adjustment procedure interface must adhere to the following:
   <paramdef>XcmsColor<parameter> *target_white_point</parameter></paramdef>
   <paramdef>XcmsColorFormat<parameter> target_format</parameter></paramdef>
   <paramdef>XcmsColor<parameter> colors_in_out[]</parameter></paramdef>
-  <paramdef>unsignedint<parameter> ncolors</parameter></paramdef>
+  <paramdef>unsigned int <parameter> ncolors</parameter></paramdef>
   <paramdef>Bool<parameter> compression_flags_return[]</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -6273,7 +6273,7 @@ Chroma at which the maximum Values are reached, use
   <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
   <paramdef>XcmsFloat<parameter> hue</parameter></paramdef>
   <paramdef>XcmsColor<parameter> colors_return[]</parameter></paramdef>
-  <paramdef>unsignedint<parameter> nsamples</parameter></paramdef>
+  <paramdef>unsigned int <parameter> nsamples</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -6813,7 +6813,7 @@ following software interface specification:
   <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
   <paramdef>XcmsColor<parameter> *white_point</parameter></paramdef>
   <paramdef>XcmsColor<parameter> *colors_in_out</parameter></paramdef>
-  <paramdef>unsignedint<parameter> ncolors</parameter></paramdef>
+  <paramdef>unsigned int <parameter> ncolors</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -6881,7 +6881,7 @@ following software interface specification:
   <funcdef>Status <function><replaceable>ConversionProc</replaceable></function></funcdef>
   <paramdef>XcmsCCC<parameter> ccc</parameter></paramdef>
   <paramdef>XcmsColor<parameter> *colors_in_out</parameter></paramdef>
-  <paramdef>unsignedint<parameter> ncolors</parameter></paramdef>
+  <paramdef>unsigned int <parameter> ncolors</parameter></paramdef>
   <paramdef>Bool<parameter> compression_flags_return[]</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>

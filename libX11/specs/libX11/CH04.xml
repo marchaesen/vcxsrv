@@ -49,7 +49,7 @@ a given window, use
   <paramdef>Window<parameter> *root_return</parameter></paramdef>
   <paramdef>Window<parameter> *parent_return</parameter></paramdef>
   <paramdef>Window<parameter> **children_return</parameter></paramdef>
-  <paramdef>unsignedint<parameter> *nchildren_return</parameter></paramdef>
+  <paramdef>unsigned int <parameter> *nchildren_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -378,9 +378,10 @@ To obtain the current geometry of a given drawable, use
   <paramdef>Drawable<parameter> d</parameter></paramdef>
   <paramdef>Window<parameter> *root_return</parameter></paramdef>
   <paramdef>int*x_return,<parameter> *y_return</parameter></paramdef>
-  <paramdef>unsignedint*width_return,<parameter> *height_return</parameter></paramdef>
-  <paramdef>unsignedint<parameter> *border_width_return</parameter></paramdef>
-  <paramdef>unsignedint<parameter> *depth_return</parameter></paramdef>
+  <paramdef>unsigned int <parameter>*width_return</parameter></paramdef>
+  <paramdef>unsigned int <parameter>*height_return</parameter></paramdef>
+  <paramdef>unsigned int <parameter> *border_width_return</parameter></paramdef>
+  <paramdef>unsigned int <parameter> *depth_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->
@@ -673,7 +674,7 @@ or to determine the pointer coordinates relative to a specified window, use
   <paramdef>Window*root_return,<parameter> *child_return</parameter></paramdef>
   <paramdef>int*root_x_return,<parameter> *root_y_return</parameter></paramdef>
   <paramdef>int*win_x_return,<parameter> *win_y_return</parameter></paramdef>
-  <paramdef>unsignedint<parameter> *mask_return</parameter></paramdef>
+  <paramdef>unsigned int <parameter> *mask_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 <!-- .FN -->

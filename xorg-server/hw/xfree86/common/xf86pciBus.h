@@ -47,8 +47,9 @@ void xf86PciConfigureNewDev(void *busData, struct pci_device *pVideo,
                                  ((x)->func == (y)->func) &&            \
                                  ((x)->dev == (y)->dev))
 
-void
-xf86MatchDriverFromFiles(char **matches, uint16_t match_vendor, uint16_t match_chip);
+int
+xf86MatchDriverFromFiles(uint16_t match_vendor, uint16_t match_chip,
+                         char *matches[], int nmatches);
 int
 xf86VideoPtrToDriverList(struct pci_device *dev,
                          char *returnList[], int returnListMax);

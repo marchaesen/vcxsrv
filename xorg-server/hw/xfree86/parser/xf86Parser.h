@@ -327,6 +327,14 @@ typedef struct {
     char *comment;
 } XF86ConfInputClassRec, *XF86ConfInputClassPtr;
 
+typedef struct {
+    GenericListRec list;
+    char *identifier;
+    char *driver;
+    struct xorg_list match_driver;
+    char *comment;
+} XF86ConfOutputClassRec, *XF86ConfOutputClassPtr;
+
 /* Values for adj_where */
 #define CONF_ADJ_OBSOLETE	-1
 #define CONF_ADJ_ABSOLUTE	0
@@ -411,6 +419,7 @@ typedef struct {
     XF86ConfScreenPtr conf_screen_lst;
     XF86ConfInputPtr conf_input_lst;
     XF86ConfInputClassPtr conf_inputclass_lst;
+    XF86ConfOutputClassPtr conf_outputclass_lst;
     XF86ConfLayoutPtr conf_layout_lst;
     XF86ConfVendorPtr conf_vendor_lst;
     XF86ConfDRIPtr conf_dri;

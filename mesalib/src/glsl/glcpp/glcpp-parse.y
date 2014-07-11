@@ -166,7 +166,8 @@ add_builtin_define(glcpp_parser_t *parser, const char *name, int value);
 %expect 0
 %token COMMA_FINAL DEFINED ELIF_EXPANDED HASH HASH_DEFINE FUNC_IDENTIFIER OBJ_IDENTIFIER HASH_ELIF HASH_ELSE HASH_ENDIF HASH_IF HASH_IFDEF HASH_IFNDEF HASH_LINE HASH_UNDEF HASH_VERSION IDENTIFIER IF_EXPANDED INTEGER INTEGER_STRING LINE_EXPANDED NEWLINE OTHER PLACEHOLDER SPACE
 %token PASTE
-%type <ival> expression INTEGER operator SPACE integer_constant
+%type <ival> INTEGER operator SPACE integer_constant
+%type <expression_value> expression
 %type <str> IDENTIFIER FUNC_IDENTIFIER OBJ_IDENTIFIER INTEGER_STRING OTHER
 %type <string_list> identifier_list
 %type <token> preprocessing_token conditional_token
@@ -216,10 +217,14 @@ line:
 
 expanded_line:
 	IF_EXPANDED expression NEWLINE {
-		_glcpp_parser_skip_stack_push_if (parser, & @1, $2);
+		if (parser->is_gles && $2.undefined_macro)
+			glcpp_error(& @1, parser, "undefined macro %s in expression (illegal in GLES)", $2.undefined_macro);
+		_glcpp_parser_skip_stack_push_if (parser, & @1, $2.value);
 	}
 |	ELIF_EXPANDED expression NEWLINE {
-		_glcpp_parser_skip_stack_change_if (parser, & @1, "elif", $2);
+		if (parser->is_gles && $2.undefined_macro)
+			glcpp_error(& @1, parser, "undefined macro %s in expression (illegal in GLES)", $2.undefined_macro);
+		_glcpp_parser_skip_stack_change_if (parser, & @1, "elif", $2.value);
 	}
 |	LINE_EXPANDED integer_constant NEWLINE {
 		parser->has_new_line_number = 1;
@@ -260,7 +265,14 @@ control_line:
 |	HASH_UNDEF {
 		glcpp_parser_resolve_implicit_version(parser);
 	} IDENTIFIER NEWLINE {
-		macro_t *macro = hash_table_find (parser->defines, $3);
+		macro_t *macro;
+		if (strcmp("__LINE__", $3) == 0
+		    || strcmp("__FILE__", $3) == 0
+		    || strcmp("__VERSION__", $3) == 0)
+			glcpp_error(& @1, parser, "Built-in (pre-defined)"
+				    " macro names can not be undefined.");
+
+		macro = hash_table_find (parser->defines, $3);
 		if (macro) {
 			hash_table_remove (parser->defines, $3);
 			ralloc_free (macro);
@@ -358,7 +370,7 @@ control_line:
 			glcpp_warning(& @1, parser, "ignoring illegal #elif without expression");
 		}
 	}
-|	HASH_ELSE {
+|	HASH_ELSE { parser->lexing_directive = 1; } NEWLINE {
 		if (parser->skip_stack &&
 		    parser->skip_stack->has_else)
 		{
@@ -370,7 +382,7 @@ control_line:
 			if (parser->skip_stack)
 				parser->skip_stack->has_else = true;
 		}
-	} NEWLINE
+	}
 |	HASH_ENDIF {
 		_glcpp_parser_skip_stack_pop (parser, & @1);
 	} NEWLINE
@@ -406,87 +418,176 @@ integer_constant:
 	}
 
 expression:
-	integer_constant
+	integer_constant {
+		$$.value = $1;
+		$$.undefined_macro = NULL;
+	}
 |	IDENTIFIER {
+		$$.value = 0;
 		if (parser->is_gles)
-			glcpp_error(& @1, parser, "undefined macro %s in expression (illegal in GLES)", $1);
-		$$ = 0;
+			$$.undefined_macro = ralloc_strdup (parser, $1);
+		else
+			$$.undefined_macro = NULL;
 	}
 |	expression OR expression {
-		$$ = $1 || $3;
+		$$.value = $1.value || $3.value;
+
+		/* Short-circuit: Only flag undefined from right side
+		 * if left side evaluates to false.
+		 */
+		if ($1.undefined_macro)
+			$$.undefined_macro = $1.undefined_macro;
+                else if (! $1.value)
+			$$.undefined_macro = $3.undefined_macro;
 	}
 |	expression AND expression {
-		$$ = $1 && $3;
+		$$.value = $1.value && $3.value;
+
+		/* Short-circuit: Only flag undefined from right-side
+		 * if left side evaluates to true.
+		 */
+		if ($1.undefined_macro)
+			$$.undefined_macro = $1.undefined_macro;
+                else if ($1.value)
+			$$.undefined_macro = $3.undefined_macro;
 	}
 |	expression '|' expression {
-		$$ = $1 | $3;
+		$$.value = $1.value | $3.value;
+		if ($1.undefined_macro)
+			$$.undefined_macro = $1.undefined_macro;
+                else
+			$$.undefined_macro = $3.undefined_macro;
 	}
 |	expression '^' expression {
-		$$ = $1 ^ $3;
+		$$.value = $1.value ^ $3.value;
+		if ($1.undefined_macro)
+			$$.undefined_macro = $1.undefined_macro;
+                else
+			$$.undefined_macro = $3.undefined_macro;
 	}
 |	expression '&' expression {
-		$$ = $1 & $3;
+		$$.value = $1.value & $3.value;
+		if ($1.undefined_macro)
+			$$.undefined_macro = $1.undefined_macro;
+                else
+			$$.undefined_macro = $3.undefined_macro;
 	}
 |	expression NOT_EQUAL expression {
-		$$ = $1 != $3;
+		$$.value = $1.value != $3.value;
+		if ($1.undefined_macro)
+			$$.undefined_macro = $1.undefined_macro;
+                else
+			$$.undefined_macro = $3.undefined_macro;
 	}
 |	expression EQUAL expression {
-		$$ = $1 == $3;
+		$$.value = $1.value == $3.value;
+		if ($1.undefined_macro)
+			$$.undefined_macro = $1.undefined_macro;
+                else
+			$$.undefined_macro = $3.undefined_macro;
 	}
 |	expression GREATER_OR_EQUAL expression {
-		$$ = $1 >= $3;
+		$$.value = $1.value >= $3.value;
+		if ($1.undefined_macro)
+			$$.undefined_macro = $1.undefined_macro;
+                else
+			$$.undefined_macro = $3.undefined_macro;
 	}
 |	expression LESS_OR_EQUAL expression {
-		$$ = $1 <= $3;
+		$$.value = $1.value <= $3.value;
+		if ($1.undefined_macro)
+			$$.undefined_macro = $1.undefined_macro;
+                else
+			$$.undefined_macro = $3.undefined_macro;
 	}
 |	expression '>' expression {
-		$$ = $1 > $3;
+		$$.value = $1.value > $3.value;
+		if ($1.undefined_macro)
+			$$.undefined_macro = $1.undefined_macro;
+                else
+			$$.undefined_macro = $3.undefined_macro;
 	}
 |	expression '<' expression {
-		$$ = $1 < $3;
+		$$.value = $1.value < $3.value;
+		if ($1.undefined_macro)
+			$$.undefined_macro = $1.undefined_macro;
+                else
+			$$.undefined_macro = $3.undefined_macro;
 	}
 |	expression RIGHT_SHIFT expression {
-		$$ = $1 >> $3;
+		$$.value = $1.value >> $3.value;
+		if ($1.undefined_macro)
+			$$.undefined_macro = $1.undefined_macro;
+                else
+			$$.undefined_macro = $3.undefined_macro;
 	}
 |	expression LEFT_SHIFT expression {
-		$$ = $1 << $3;
+		$$.value = $1.value << $3.value;
+		if ($1.undefined_macro)
+			$$.undefined_macro = $1.undefined_macro;
+                else
+			$$.undefined_macro = $3.undefined_macro;
 	}
 |	expression '-' expression {
-		$$ = $1 - $3;
+		$$.value = $1.value - $3.value;
+		if ($1.undefined_macro)
+			$$.undefined_macro = $1.undefined_macro;
+                else
+			$$.undefined_macro = $3.undefined_macro;
 	}
 |	expression '+' expression {
-		$$ = $1 + $3;
+		$$.value = $1.value + $3.value;
+		if ($1.undefined_macro)
+			$$.undefined_macro = $1.undefined_macro;
+                else
+			$$.undefined_macro = $3.undefined_macro;
 	}
 |	expression '%' expression {
-		if ($3 == 0) {
+		if ($3.value == 0) {
 			yyerror (& @1, parser,
 				 "zero modulus in preprocessor directive");
 		} else {
-			$$ = $1 % $3;
+			$$.value = $1.value % $3.value;
 		}
+		if ($1.undefined_macro)
+			$$.undefined_macro = $1.undefined_macro;
+                else
+			$$.undefined_macro = $3.undefined_macro;
 	}
 |	expression '/' expression {
-		if ($3 == 0) {
+		if ($3.value == 0) {
 			yyerror (& @1, parser,
 				 "division by 0 in preprocessor directive");
 		} else {
-			$$ = $1 / $3;
+			$$.value = $1.value / $3.value;
 		}
+		if ($1.undefined_macro)
+			$$.undefined_macro = $1.undefined_macro;
+                else
+			$$.undefined_macro = $3.undefined_macro;
 	}
 |	expression '*' expression {
-		$$ = $1 * $3;
+		$$.value = $1.value * $3.value;
+		if ($1.undefined_macro)
+			$$.undefined_macro = $1.undefined_macro;
+                else
+			$$.undefined_macro = $3.undefined_macro;
 	}
 |	'!' expression %prec UNARY {
-		$$ = ! $2;
+		$$.value = ! $2.value;
+		$$.undefined_macro = $2.undefined_macro;
 	}
 |	'~' expression %prec UNARY {
-		$$ = ~ $2;
+		$$.value = ~ $2.value;
+		$$.undefined_macro = $2.undefined_macro;
 	}
 |	'-' expression %prec UNARY {
-		$$ = - $2;
+		$$.value = - $2.value;
+		$$.undefined_macro = $2.undefined_macro;
 	}
 |	'+' expression %prec UNARY {
-		$$ = + $2;
+		$$.value = + $2.value;
+		$$.undefined_macro = $2.undefined_macro;
 	}
 |	'(' expression ')' {
 		$$ = $2;
@@ -525,7 +626,7 @@ replacement_list:
 junk:
 	/* empty */
 |	pp_tokens {
-		glcpp_warning(&@1, parser, "extra tokens at end of directive");
+		glcpp_error(&@1, parser, "extra tokens at end of directive");
 	}
 ;
 
@@ -933,14 +1034,16 @@ _token_list_equal_ignoring_space (token_list_t *a, token_list_t *b)
 
 		if (node_a == NULL || node_b == NULL)
 			return 0;
-
-		if (node_a->token->type == SPACE) {
-			node_a = node_a->next;
-			continue;
-		}
-
-		if (node_b->token->type == SPACE) {
-			node_b = node_b->next;
+		/* Make sure whitespace appears in the same places in both.
+		 * It need not be exactly the same amount of whitespace,
+		 * though.
+		 */
+		if (node_a->token->type == SPACE
+		    && node_b->token->type == SPACE) {
+			while (node_a->token->type == SPACE)
+				node_a = node_a->next;
+			while (node_b->token->type == SPACE)
+				node_b = node_b->next;
 			continue;
 		}
 
@@ -1203,7 +1306,7 @@ glcpp_parser_create (const struct gl_extensions *extensions, gl_api api)
 	parser->defines = hash_table_ctor (32, hash_table_string_hash,
 					   hash_table_string_compare);
 	parser->active = NULL;
-	parser->lexing_if = 0;
+	parser->lexing_directive = 0;
 	parser->space_tokens = 1;
 	parser->newline_as_space = 0;
 	parser->in_control_line = 0;

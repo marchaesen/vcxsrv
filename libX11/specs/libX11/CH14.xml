@@ -419,7 +419,7 @@ To request that a top-level window be reconfigured, use
   <paramdef>Display<parameter> *display</parameter></paramdef>
   <paramdef>Window<parameter> w</parameter></paramdef>
   <paramdef>int<parameter> screen_number</parameter></paramdef>
-  <paramdef>unsignedint<parameter> value_mask</parameter></paramdef>
+  <paramdef>unsigned int <parameter> value_mask</parameter></paramdef>
   <paramdef>XWindowChanges<parameter> *values</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>

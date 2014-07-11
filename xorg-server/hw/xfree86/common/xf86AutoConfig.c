@@ -265,7 +265,7 @@ listPossibleVideoDrivers(char *matches[], int nmatches)
 #endif
 #ifdef XSERVER_LIBPCIACCESS
     if (i < (nmatches - 1))
-        i = xf86PciMatchDriver(matches, nmatches);
+        i += xf86PciMatchDriver(&matches[i], nmatches - i);
 #endif
 
 #if defined(__linux__)

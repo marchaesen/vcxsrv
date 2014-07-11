@@ -56,7 +56,7 @@ mkdir_p(const char *dir)
 
     if (strlen (dir) == 0)
 	return FcFalse;
-    parent = (char *) FcStrDirname (dir);
+    parent = (char *) FcStrDirname ((const FcChar8 *)dir);
     if (!parent)
 	return FcFalse;
     if (access (parent, F_OK) == 0)

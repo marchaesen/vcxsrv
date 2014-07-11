@@ -242,10 +242,6 @@ main(int argc, char **argv)
             }
             bigEncodingFuzz = atof(argv[argn + 1]) / 100.0;
             argn += 2;
-        } else if (strcmp(argv[argn], "-r") == 0) { /* ignore for now */
-	    argn++;
-	} else if (strcmp(argv[argn], "-n") == 0) {
-	    argn++;
 	} else if (strcmp(argv[argn], "-v") == 0) {
 	    printf("%s\n", PACKAGE_STRING);
 	    exit(0);

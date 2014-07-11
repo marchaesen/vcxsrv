@@ -165,6 +165,12 @@ xf86readConfigFile(void)
                 HANDLE_LIST(conf_inputclass_lst,
                             xf86parseInputClassSection, XF86ConfInputClassPtr);
             }
+            else if (xf86nameCompare(xf86_lex_val.str, "outputclass") == 0) {
+                free(xf86_lex_val.str);
+                xf86_lex_val.str = NULL;
+                HANDLE_LIST(conf_outputclass_lst, xf86parseOutputClassSection,
+                            XF86ConfOutputClassPtr);
+            }
             else if (xf86nameCompare(xf86_lex_val.str, "module") == 0) {
                 free(xf86_lex_val.str);
                 xf86_lex_val.str = NULL;
