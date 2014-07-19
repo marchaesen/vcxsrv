@@ -51,42 +51,51 @@ static const glamor_facet glamor_fill_tile = {
     .use = use_tile,
 };
 
-#if 0
 static Bool
-use_stipple(PixmapPtr pixmap, GCPtr gc, glamor_program *prog)
+use_stipple(PixmapPtr pixmap, GCPtr gc, glamor_program *prog, void *arg)
 {
-    return glamor_set_stippled(pixmap, gc, prog->fg_uniform, prog->fill_offset_uniform, prog->fill_size_uniform);
+    return glamor_set_stippled(pixmap, gc, prog->fg_uniform,
+                               prog->fill_offset_uniform,
+                               prog->fill_size_uniform);
 }
 
 static const glamor_facet glamor_fill_stipple = {
     .name = "stipple",
-    .version = 130,
-    .vs_exec =  "       fill_pos = fill_offset + primitive.xy + pos;\n";
-    .fs_exec = ("       if (texelFetch(sampler, ivec2(mod(fill_pos,fill_size)), 0).x == 0)\n"
+    .vs_exec =  "       fill_pos = (fill_offset + primitive.xy + pos) / fill_size;\n",
+    .fs_exec = ("       float a = texture2D(sampler, fill_pos).w;\n"
+                "       if (a == 0.0)\n"
                 "               discard;\n"
-                "       gl_FragColor = fg;\n")
-    .locations = glamor_program_location_fg | glamor_program_location_fill
+                "       gl_FragColor = fg;\n"),
+    .locations = glamor_program_location_fg | glamor_program_location_fill,
     .use = use_stipple,
 };
 
+static Bool
+use_opaque_stipple(PixmapPtr pixmap, GCPtr gc, glamor_program *prog, void *arg)
+{
+    if (!use_stipple(pixmap, gc, prog, arg))
+        return FALSE;
+    glamor_set_color(pixmap, gc->bgPixel, prog->bg_uniform);
+    return TRUE;
+}
+
 static const glamor_facet glamor_fill_opaque_stipple = {
     .name = "opaque_stipple",
-    .version = 130,
-    .vs_exec =  "       fill_pos = fill_offset + primitive.xy + pos;\n";
-    .fs_exec = ("       if (texelFetch(sampler, ivec2(mod(fill_pos,fill_size)), 0).x == 0)\n"
+    .vs_exec =  "       fill_pos = (fill_offset + primitive.xy + pos) / fill_size;\n",
+    .fs_exec = ("       float a = texture2D(sampler, fill_pos).w;\n"
+                "       if (a == 0.0)\n"
                 "               gl_FragColor = bg;\n"
                 "       else\n"
                 "               gl_FragColor = fg;\n"),
-    .locations = glamor_program_location_fg | glamor_program_location_bg | glamor_program_location_fill
+    .locations = glamor_program_location_fg | glamor_program_location_bg | glamor_program_location_fill,
     .use = use_opaque_stipple
 };
-#endif
 
 static const glamor_facet *glamor_facet_fill[4] = {
     &glamor_fill_solid,
     &glamor_fill_tile,
-    NULL,
-    NULL,
+    &glamor_fill_stipple,
+    &glamor_fill_opaque_stipple,
 };
 
 typedef struct {
@@ -116,6 +125,16 @@ static glamor_location_var location_vars[] = {
     {
         .location = glamor_program_location_font,
         .fs_vars = "uniform usampler2D font;\n",
+    },
+    {
+        .location = glamor_program_location_bitplane,
+        .fs_vars = ("uniform uvec4 bitplane;\n"
+                    "uniform vec4 bitmul;\n"),
+    },
+    {
+        .location = glamor_program_location_dash,
+        .vs_vars = "uniform float dash_length;\n",
+        .fs_vars = "uniform sampler2D dash;\n",
     },
 };
 
@@ -195,6 +214,8 @@ str(const char *s)
 static const glamor_facet facet_null_fill = {
     .name = ""
 };
+
+#define DBG 0
 
 static GLint
 glamor_get_uniform(glamor_program               *prog,
@@ -281,7 +302,6 @@ glamor_build_program(ScreenPtr          screen,
     if (!vs_prog_string || !fs_prog_string)
         goto fail;
 
-#define DBG 0
 #if DBG
     ErrorF("\nPrograms for %s %s\nVertex shader:\n\n%s\n\nFragment Shader:\n\n%s",
            prim->name, fill->name, vs_prog_string, fs_prog_string);
@@ -318,6 +338,10 @@ glamor_build_program(ScreenPtr          screen,
     prog->fill_offset_uniform = glamor_get_uniform(prog, glamor_program_location_fill, "fill_offset");
     prog->fill_size_uniform = glamor_get_uniform(prog, glamor_program_location_fill, "fill_size");
     prog->font_uniform = glamor_get_uniform(prog, glamor_program_location_font, "font");
+    prog->bitplane_uniform = glamor_get_uniform(prog, glamor_program_location_bitplane, "bitplane");
+    prog->bitmul_uniform = glamor_get_uniform(prog, glamor_program_location_bitplane, "bitmul");
+    prog->dash_uniform = glamor_get_uniform(prog, glamor_program_location_dash, "dash");
+    prog->dash_length_uniform = glamor_get_uniform(prog, glamor_program_location_dash, "dash_length");
 
     if (glGetError() != GL_NO_ERROR)
         goto fail;

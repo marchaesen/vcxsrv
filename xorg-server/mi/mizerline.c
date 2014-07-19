@@ -179,14 +179,6 @@ miZeroLine(DrawablePtr pDraw, GCPtr pGC, int mode,      /* Origin or Previous */
     MIOUTCODES(oc2, x2, y2, xleft, ytop, xright, ybottom);
 
     while (--npt > 0) {
-        if (Nspans > 0)
-            (*pGC->ops->FillSpans) (pDraw, pGC, Nspans, pspanInit,
-                                    pwidthInit, FALSE);
-        Nspans = 0;
-        new_span = TRUE;
-        spans = pspanInit - 1;
-        widths = pwidthInit - 1;
-
         x1 = x2;
         y1 = y2;
         oc1 = oc2;
@@ -208,6 +200,14 @@ miZeroLine(DrawablePtr pDraw, GCPtr pGC, int mode,      /* Origin or Previous */
 
         CalcLineDeltas(x1, y1, x2, y2, adx, ady, signdx, signdy, 1, 1, octant);
 
+        if (ady + 1 > (list_len - Nspans)) {
+            (*pGC->ops->FillSpans) (pDraw, pGC, Nspans, pspanInit,
+                                    pwidthInit, FALSE);
+            Nspans = 0;
+            spans = pspanInit - 1;
+            widths = pwidthInit - 1;
+        }
+        new_span = TRUE;
         if (adx > ady) {
             e1 = ady << 1;
             e2 = e1 - (adx << 1);

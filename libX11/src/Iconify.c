@@ -67,19 +67,23 @@ Status XIconifyWindow (
     Window w,
     int screen)
 {
-    XClientMessageEvent ev;
-    Window root = RootWindow (dpy, screen);
     Atom prop;
 
     prop = XInternAtom (dpy, "WM_CHANGE_STATE", False);
-    if (prop == None) return False;
+    if (prop == None)
+        return False;
+    else {
+        XClientMessageEvent ev = {
+            .type = ClientMessage,
+            .window = w,
+            .message_type = prop,
+            .format = 32,
+            .data.l[0] = IconicState
+        };
+        Window root = RootWindow (dpy, screen);
 
-    ev.type = ClientMessage;
-    ev.window = w;
-    ev.message_type = prop;
-    ev.format = 32;
-    ev.data.l[0] = IconicState;
-    return (XSendEvent (dpy, root, False,
-			SubstructureRedirectMask|SubstructureNotifyMask,
-			(XEvent *)&ev));
+        return (XSendEvent (dpy, root, False,
+                            SubstructureRedirectMask|SubstructureNotifyMask,
+                            (XEvent *)&ev));
+    }
 }

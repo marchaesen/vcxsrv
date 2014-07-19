@@ -32,6 +32,8 @@
 #ifndef __GLAMOR_UTILS_H__
 #define __GLAMOR_UTILS_H__
 
+#include "glamor_prepare.h"
+
 #define v_from_x_coord_x(_xscale_, _x_)          ( 2 * (_x_) * (_xscale_) - 1.0)
 #define v_from_x_coord_y(_yscale_, _y_)          (-2 * (_y_) * (_yscale_) + 1.0)
 #define v_from_x_coord_y_inverted(_yscale_, _y_) (2 * (_y_) * (_yscale_) - 1.0)
@@ -311,21 +313,17 @@
   } while(0)
 
 #define _glamor_set_normalize_tpoint(xscale, yscale, _tx_, _ty_,	\
-				     texcoord, yInverted)		\
+				     texcoord)                          \
   do {									\
 	(texcoord)[0] = t_from_x_coord_x(xscale, _tx_);			\
-	if (_X_LIKELY(yInverted))					\
-		(texcoord)[1] = t_from_x_coord_y_inverted(yscale, _ty_);\
-	else								\
-		(texcoord)[1] = t_from_x_coord_y(yscale, _ty_);		\
+        (texcoord)[1] = t_from_x_coord_y_inverted(yscale, _ty_);        \
         DEBUGF("normalized point tx %f ty %f \n", (texcoord)[0],	\
 		(texcoord)[1]);						\
   } while(0)
 
 #define glamor_set_transformed_point(priv, matrix, xscale,		\
 				     yscale, texcoord,			\
-                                     x, y, 				\
-				     yInverted)				\
+                                     x, y)				\
   do {									\
     float tx, ty;							\
     int fbo_x_off, fbo_y_off;						\
@@ -337,10 +335,7 @@
     tx += fbo_x_off;							\
     ty += fbo_y_off;							\
     (texcoord)[0] = t_from_x_coord_x(xscale, tx);			\
-    if (_X_LIKELY(yInverted))						\
-      (texcoord)[1] = t_from_x_coord_y_inverted(yscale, ty);		\
-    else								\
-      (texcoord)[1] = t_from_x_coord_y(yscale, ty);			\
+    (texcoord)[1] = t_from_x_coord_y_inverted(yscale, ty);		\
     DEBUGF("normalized tx %f ty %f \n", (texcoord)[0], (texcoord)[1]);	\
   } while(0)
 
@@ -349,18 +344,14 @@
 						     xscale,		\
 						     yscale,		\
 						     vtx,		\
-						     yInverted,		\
 						     texcoords)		\
     do {								\
 	glamor_set_transformed_point(priv, matrix, xscale, yscale,	\
-				     texcoords, (vtx)[0], (vtx)[1],	\
-				     yInverted);			\
+				     texcoords, (vtx)[0], (vtx)[1]);    \
 	glamor_set_transformed_point(priv, matrix, xscale, yscale,	\
-				     texcoords+2, (vtx)[2], (vtx)[3],	\
-				     yInverted);			\
+				     texcoords+2, (vtx)[2], (vtx)[3]);  \
 	glamor_set_transformed_point(priv, matrix, xscale, yscale,	\
-				     texcoords+4, (vtx)[4], (vtx)[5],	\
-				     yInverted);			\
+				     texcoords+4, (vtx)[4], (vtx)[5]);  \
     } while (0)
 
 #define glamor_set_transformed_normalize_tcoords_ext( priv,		\
@@ -368,21 +359,17 @@
 						  xscale,		\
 						  yscale,		\
                                                   tx1, ty1, tx2, ty2,   \
-                                                  yInverted, texcoords,	\
+                                                  texcoords,		\
 						  stride)		\
   do {									\
     glamor_set_transformed_point(priv, matrix, xscale, yscale,		\
-				 texcoords, tx1, ty1,			\
-				 yInverted);				\
+				 texcoords, tx1, ty1);                  \
     glamor_set_transformed_point(priv, matrix, xscale, yscale,		\
-				 texcoords + 1 * stride, tx2, ty1,	\
-				 yInverted);				\
+				 texcoords + 1 * stride, tx2, ty1);     \
     glamor_set_transformed_point(priv, matrix, xscale, yscale,		\
-				 texcoords + 2 * stride, tx2, ty2,	\
-				 yInverted);				\
+				 texcoords + 2 * stride, tx2, ty2);     \
     glamor_set_transformed_point(priv, matrix, xscale, yscale,		\
-				 texcoords + 3 * stride, tx1, ty2,	\
-				 yInverted);				\
+				 texcoords + 3 * stride, tx1, ty2);     \
   } while (0)
 
 #define glamor_set_transformed_normalize_tcoords( priv,			\
@@ -390,35 +377,31 @@
 						  xscale,		\
 						  yscale,		\
                                                   tx1, ty1, tx2, ty2,   \
-                                                  yInverted, texcoords)	\
+                                                  texcoords)            \
   do {									\
 	glamor_set_transformed_normalize_tcoords_ext( priv,		\
 						  matrix,		\
 						  xscale,		\
 						  yscale,		\
                                                   tx1, ty1, tx2, ty2,   \
-                                                  yInverted, texcoords,	\
+                                                  texcoords,		\
 						  2);			\
   } while (0)
 
 #define glamor_set_normalize_tri_tcoords(xscale,		\
 					 yscale,		\
 					 vtx,			\
-					 yInverted,		\
 					 texcoords)		\
     do {							\
 	_glamor_set_normalize_tpoint(xscale, yscale,		\
 				(vtx)[0], (vtx)[1],		\
-				texcoords,			\
-				yInverted);			\
+				texcoords);			\
 	_glamor_set_normalize_tpoint(xscale, yscale,		\
 				(vtx)[2], (vtx)[3],		\
-				texcoords+2,			\
-				yInverted);			\
+				texcoords+2);			\
 	_glamor_set_normalize_tpoint(xscale, yscale,		\
 				(vtx)[4], (vtx)[5],		\
-				texcoords+4,			\
-				yInverted);			\
+				texcoords+4);			\
     } while (0)
 
 #define glamor_set_repeat_transformed_normalize_tcoords_ext( priv,	\
@@ -428,14 +411,13 @@
 							 yscale,	\
 							 _x1_, _y1_,	\
 							 _x2_, _y2_,   	\
-							 yInverted,	\
 							 texcoords,	\
 							 stride)	\
   do {									\
     if (_X_LIKELY(priv->type != GLAMOR_TEXTURE_LARGE)) {		\
 	glamor_set_transformed_normalize_tcoords_ext(priv, matrix, xscale,	\
 						 yscale, _x1_, _y1_,	\
-						 _x2_, _y2_, yInverted,	\
+						 _x2_, _y2_,	\
 						 texcoords, stride);	\
     } else {								\
     float tx1, ty1, tx2, ty2, tx3, ty3, tx4, ty4;			\
@@ -462,13 +444,13 @@
     DEBUGF("repeat transformed %f %f %f %f %f %f %f %f\n", ttx1, tty1, 	\
 	    ttx2, tty2,	ttx3, tty3, ttx4, tty4);			\
     _glamor_set_normalize_tpoint(xscale, yscale, ttx1, tty1,		\
-				 texcoords, yInverted);			\
+				 texcoords);			\
     _glamor_set_normalize_tpoint(xscale, yscale, ttx2, tty2,		\
-				 texcoords + 1 * stride, yInverted);	\
+				 texcoords + 1 * stride);	\
     _glamor_set_normalize_tpoint(xscale, yscale, ttx3, tty3,		\
-				 texcoords + 2 * stride, yInverted);	\
+				 texcoords + 2 * stride);	\
     _glamor_set_normalize_tpoint(xscale, yscale, ttx4, tty4,		\
-				 texcoords + 3 * stride, yInverted);	\
+				 texcoords + 3 * stride);	\
    }									\
   } while (0)
 
@@ -479,7 +461,6 @@
 							 yscale,	\
 							 _x1_, _y1_,	\
 							 _x2_, _y2_,   	\
-							 yInverted,	\
 							 texcoords)	\
   do {									\
 	glamor_set_repeat_transformed_normalize_tcoords_ext( priv,	\
@@ -489,14 +470,13 @@
 							 yscale,	\
 							 _x1_, _y1_,	\
 							 _x2_, _y2_,   	\
-							 yInverted,	\
 							 texcoords,	\
 							 2);	\
   } while (0)
 
 #define _glamor_set_normalize_tcoords(xscale, yscale, tx1,		\
 				      ty1, tx2, ty2,			\
-				      yInverted, vertices, stride)	\
+				      vertices, stride)                 \
   do {									\
     /* vertices may be write-only, so we use following			\
      * temporary variable. */ 						\
@@ -505,21 +485,15 @@
     (vertices)[1 * stride] = _t2_ = t_from_x_coord_x(xscale, tx2);	\
     (vertices)[2 * stride] = _t2_;					\
     (vertices)[3 * stride] = _t0_;					\
-    if (_X_LIKELY(yInverted)) {						\
-      (vertices)[1] = _t1_ = t_from_x_coord_y_inverted(yscale, ty1);	\
-      (vertices)[2 * stride + 1] = _t5_ = t_from_x_coord_y_inverted(yscale, ty2);\
-    }									\
-    else {								\
-      (vertices)[1] = _t1_ = t_from_x_coord_y(yscale, ty1);		\
-      (vertices)[2 * stride + 1] = _t5_ = t_from_x_coord_y(yscale, ty2);\
-    }									\
+    (vertices)[1] = _t1_ = t_from_x_coord_y_inverted(yscale, ty1);	\
+    (vertices)[2 * stride + 1] = _t5_ = t_from_x_coord_y_inverted(yscale, ty2); \
     (vertices)[1 * stride + 1] = _t1_;					\
     (vertices)[3 * stride + 1] = _t5_;					\
   } while(0)
 
 #define glamor_set_normalize_tcoords_ext(priv, xscale, yscale,		\
 				     x1, y1, x2, y2,			\
-                                     yInverted, vertices, stride)	\
+                                     vertices, stride)	\
   do {									\
      if (_X_UNLIKELY(priv->type == GLAMOR_TEXTURE_LARGE)) {		\
 	float tx1, tx2, ty1, ty2;					\
@@ -530,26 +504,26 @@
 	ty1 = y1 + fbo_y_off;						\
 	ty2 = y2 + fbo_y_off;						\
 	_glamor_set_normalize_tcoords(xscale, yscale, tx1, ty1,		\
-				   tx2, ty2, yInverted, vertices,	\
+                                      tx2, ty2, vertices,               \
 				   stride);				\
      } else								\
 	_glamor_set_normalize_tcoords(xscale, yscale, x1, y1,		\
-				   x2, y2, yInverted, vertices, stride);\
+                                      x2, y2, vertices, stride);        \
  } while(0)
 
 #define glamor_set_normalize_tcoords(priv, xscale, yscale,		\
 				     x1, y1, x2, y2,			\
-                                     yInverted, vertices)		\
+                                     vertices)		\
   do {									\
 	glamor_set_normalize_tcoords_ext(priv, xscale, yscale,		\
 				     x1, y1, x2, y2,			\
-                                     yInverted, vertices, 2);		\
+                                     vertices, 2);			\
  } while(0)
 
 #define glamor_set_repeat_normalize_tcoords_ext(priv, repeat_type,	\
 					    xscale, yscale,		\
 					    _x1_, _y1_, _x2_, _y2_,	\
-	                                    yInverted, vertices, stride)\
+	                                    vertices, stride)		\
   do {									\
      if (_X_UNLIKELY(priv->type == GLAMOR_TEXTURE_LARGE)) {		\
 	float tx1, tx2, ty1, ty2;					\
@@ -564,130 +538,99 @@
 				 _x1_, _y1_, _x2_, _y2_);		\
 	}								\
 	_glamor_set_normalize_tcoords(xscale, yscale, tx1, ty1,		\
-				   tx2, ty2, yInverted, vertices,	\
+                                      tx2, ty2, vertices,               \
 				   stride);				\
      } else								\
 	_glamor_set_normalize_tcoords(xscale, yscale, _x1_, _y1_,	\
-				   _x2_, _y2_, yInverted, vertices,	\
+                                      _x2_, _y2_, vertices,             \
 				   stride);				\
  } while(0)
 
 #define glamor_set_repeat_normalize_tcoords(priv, repeat_type,		\
 					    xscale, yscale,		\
 					    _x1_, _y1_, _x2_, _y2_,	\
-	                                    yInverted, vertices)	\
+	                                    vertices)                   \
   do {									\
 	glamor_set_repeat_normalize_tcoords_ext(priv, repeat_type,	\
 					    xscale, yscale,		\
 					    _x1_, _y1_, _x2_, _y2_,	\
-	                                    yInverted, vertices, 2);	\
+	                                    vertices, 2);		\
  } while(0)
 
 #define glamor_set_normalize_tcoords_tri_stripe(xscale, yscale,		\
 						x1, y1, x2, y2,		\
-						yInverted, vertices)	\
+						vertices)               \
     do {								\
 	(vertices)[0] = t_from_x_coord_x(xscale, x1);			\
 	(vertices)[2] = t_from_x_coord_x(xscale, x2);			\
 	(vertices)[6] = (vertices)[2];					\
 	(vertices)[4] = (vertices)[0];					\
-	if (_X_LIKELY(yInverted)) {					\
-	    (vertices)[1] = t_from_x_coord_y_inverted(yscale, y1);	\
-	    (vertices)[7] = t_from_x_coord_y_inverted(yscale, y2);	\
-	}								\
-	else {								\
-	    (vertices)[1] = t_from_x_coord_y(yscale, y1);		\
-	    (vertices)[7] = t_from_x_coord_y(yscale, y2);		\
-	}								\
+        (vertices)[1] = t_from_x_coord_y_inverted(yscale, y1);          \
+        (vertices)[7] = t_from_x_coord_y_inverted(yscale, y2);          \
 	(vertices)[3] = (vertices)[1];					\
 	(vertices)[5] = (vertices)[7];					\
     } while(0)
 
-#define glamor_set_tcoords(width, height, x1, y1, x2, y2,	\
-			   yInverted, vertices)			\
+#define glamor_set_tcoords(x1, y1, x2, y2, vertices)            \
     do {							\
 	(vertices)[0] = (x1);					\
 	(vertices)[2] = (x2);					\
 	(vertices)[4] = (vertices)[2];				\
 	(vertices)[6] = (vertices)[0];				\
-	if (_X_LIKELY(yInverted)) {				\
-	    (vertices)[1] = (y1);				\
-	    (vertices)[5] = (y2);				\
-	}							\
-	else {							\
-	    (vertices)[1] = height - (y2);			\
-	    (vertices)[5] = height - (y1);			\
-	}							\
+        (vertices)[1] = (y1);                                   \
+        (vertices)[5] = (y2);                                   \
 	(vertices)[3] = (vertices)[1];				\
 	(vertices)[7] = (vertices)[5];				\
     } while(0)
 
-#define glamor_set_tcoords_ext(width, height, x1, y1, x2, y2,	\
-			       yInverted, vertices, stride)	\
+#define glamor_set_tcoords_ext(x1, y1, x2, y2, vertices, stride)        \
     do {							\
 	(vertices)[0] = (x1);					\
 	(vertices)[1*stride] = (x2);				\
 	(vertices)[2*stride] = (vertices)[1*stride];		\
 	(vertices)[3*stride] = (vertices)[0];			\
-	if (_X_LIKELY(yInverted)) {				\
-	    (vertices)[1] = (y1);				\
-	    (vertices)[2*stride + 1] = (y2);			\
-	}							\
-	else {							\
-	    (vertices)[1] = height - (y2);			\
-	    (vertices)[2*stride + 1] = height - (y1);		\
-	}							\
+        (vertices)[1] = (y1);                                   \
+        (vertices)[2*stride + 1] = (y2);			\
 	(vertices)[1*stride + 1] = (vertices)[1];		\
 	(vertices)[3*stride + 1] = (vertices)[2*stride + 1];	\
     } while(0)
 
 #define glamor_set_normalize_one_vcoord(xscale, yscale, x, y,		\
-					yInverted, vertices)		\
+					vertices)                       \
     do {								\
 	(vertices)[0] = v_from_x_coord_x(xscale, x);			\
-	if (_X_LIKELY(yInverted)) {					\
-	    (vertices)[1] = v_from_x_coord_y_inverted(yscale, y);	\
-	} else {							\
-	    (vertices)[1] = v_from_x_coord_y(yscale, y);		\
-	}								\
+        (vertices)[1] = v_from_x_coord_y_inverted(yscale, y);           \
     } while(0)
 
 #define glamor_set_normalize_tri_vcoords(xscale, yscale, vtx,		\
-					 yInverted, vertices)		\
+					 vertices)                      \
     do {								\
 	glamor_set_normalize_one_vcoord(xscale, yscale,			\
 					(vtx)[0], (vtx)[1],		\
-					yInverted, vertices);		\
+					vertices);                      \
 	glamor_set_normalize_one_vcoord(xscale, yscale,			\
 					(vtx)[2], (vtx)[3],		\
-					yInverted, vertices+2);		\
+					vertices+2);                    \
 	glamor_set_normalize_one_vcoord(xscale, yscale,			\
 					(vtx)[4], (vtx)[5],		\
-					yInverted, vertices+4);		\
+					vertices+4);                    \
     } while(0)
 
-#define glamor_set_tcoords_tri_strip(width, height, x1, y1, x2, y2,	\
-				     yInverted, vertices)		\
+#define glamor_set_tcoords_tri_strip(x1, y1, x2, y2, vertices)          \
     do {								\
 	(vertices)[0] = (x1);						\
 	(vertices)[2] = (x2);						\
 	(vertices)[6] = (vertices)[2];					\
 	(vertices)[4] = (vertices)[0];					\
-	if (_X_LIKELY(yInverted)) {	    				\
-	    (vertices)[1] = (y1);					\
-	    (vertices)[7] = (y2);					\
-	}								\
-	else {								\
-	    (vertices)[1] = height - (y2);				\
-	    (vertices)[7] = height - (y1);				\
-	}								\
+        (vertices)[1] = (y1);                                           \
+        (vertices)[7] = (y2);                                           \
 	(vertices)[3] = (vertices)[1];					\
 	(vertices)[5] = (vertices)[7];					\
     } while(0)
 
 #define glamor_set_normalize_vcoords_ext(priv, xscale, yscale,		\
 				     x1, y1, x2, y2,			\
-                                     yInverted, vertices, stride)	\
+                                         vertices, stride)              \
   do {									\
     int fbo_x_off, fbo_y_off;						\
     /* vertices may be write-only, so we use following			\
@@ -699,29 +642,22 @@
 					x2 + fbo_x_off);		\
     (vertices)[2 * stride] = _t2_;					\
     (vertices)[3 * stride] = _t0_;					\
-    if (_X_LIKELY(yInverted)) {						\
-      (vertices)[1] = _t1_ = v_from_x_coord_y_inverted(yscale,		\
-				y1 + fbo_y_off);			\
-      (vertices)[2 * stride + 1] = _t5_ =				\
-			v_from_x_coord_y_inverted(yscale,		\
-					y2 + fbo_y_off);		\
-    }									\
-    else {								\
-      (vertices)[1] = _t1_ = v_from_x_coord_y(yscale, y1 + fbo_y_off);	\
-      (vertices)[2 * stride + 1] = _t5_ = v_from_x_coord_y(yscale,	\
-					y2 + fbo_y_off);		\
-    }									\
+    (vertices)[1] = _t1_ = v_from_x_coord_y_inverted(yscale,		\
+                                                     y1 + fbo_y_off);   \
+    (vertices)[2 * stride + 1] = _t5_ =                                 \
+        v_from_x_coord_y_inverted(yscale,                               \
+                                  y2 + fbo_y_off);                      \
     (vertices)[1 * stride + 1] = _t1_;					\
     (vertices)[3 * stride + 1] = _t5_;					\
   } while(0)
 
 #define glamor_set_normalize_vcoords(priv, xscale, yscale,		\
 				     x1, y1, x2, y2,			\
-                                     yInverted, vertices)		\
+                                     vertices)				\
   do {									\
 	glamor_set_normalize_vcoords_ext(priv, xscale, yscale,		\
 				     x1, y1, x2, y2,			\
-                                     yInverted, vertices, 2);		\
+                                     vertices, 2);			\
   } while(0)
 
 #define glamor_set_const_ext(params, nparam, vertices, nverts, stride)	\
@@ -736,44 +672,30 @@
 
 #define glamor_set_normalize_vcoords_tri_strip(xscale, yscale,		\
 					       x1, y1, x2, y2,		\
-					       yInverted, vertices)	\
+					       vertices)		\
     do {								\
 	(vertices)[0] = v_from_x_coord_x(xscale, x1);			\
 	(vertices)[2] = v_from_x_coord_x(xscale, x2);			\
 	(vertices)[6] = (vertices)[2];					\
 	(vertices)[4] = (vertices)[0];					\
-	if (_X_LIKELY(yInverted)) {	    				\
-	    (vertices)[1] = v_from_x_coord_y_inverted(yscale, y1);	\
-	    (vertices)[7] = v_from_x_coord_y_inverted(yscale, y2);	\
-	}								\
-	else {								\
-	    (vertices)[1] = v_from_x_coord_y(yscale, y1);		\
-	    (vertices)[7] = v_from_x_coord_y(yscale, y2);		\
-	}								\
+        (vertices)[1] = v_from_x_coord_y_inverted(yscale, y1);          \
+        (vertices)[7] = v_from_x_coord_y_inverted(yscale, y2);          \
 	(vertices)[3] = (vertices)[1];					\
 	(vertices)[5] = (vertices)[7];					\
     } while(0)
 
 #define glamor_set_normalize_pt(xscale, yscale, x, y,		\
-                                yInverted, pt)			\
+                                pt)				\
     do {							\
         (pt)[0] = t_from_x_coord_x(xscale, x);			\
-        if (_X_LIKELY(yInverted)) {				\
-            (pt)[1] = t_from_x_coord_y_inverted(yscale, y);	\
-        } else {						\
-            (pt)[1] = t_from_x_coord_y(yscale, y);		\
-        }							\
+        (pt)[1] = t_from_x_coord_y_inverted(yscale, y);         \
     } while(0)
 
 #define glamor_set_circle_centre(width, height, x, y,	\
-				 yInverted, c)		\
+				 c)		\
     do {						\
         (c)[0] = (float)x;				\
-        if (_X_LIKELY(yInverted)) {	    		\
-            (c)[1] = (float)y;				\
-        } else {					\
-            (c)[1] = (float)height - (float)y;		\
-        }						\
+        (c)[1] = (float)y;				\
     } while(0)
 
 inline static void

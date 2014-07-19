@@ -49,10 +49,14 @@
 
 #define UNWRAP_SCREEN(x) pScreen->x = pScreenPriv->x
 
-#define SCREEN_PROLOG(x) pScreen->x = ((VGAarbiterScreenPtr) \
-    dixLookupPrivate(&(pScreen)->devPrivates, VGAarbiterScreenKey))->x
+#define SCREEN_PRIV()   ((VGAarbiterScreenPtr) dixLookupPrivate(&(pScreen)->devPrivates, VGAarbiterScreenKey))
 
-#define SCREEN_EPILOG(x,y) pScreen->x = y;
+#define SCREEN_PROLOG(x) (pScreen->x = SCREEN_PRIV()->x)
+
+#define SCREEN_EPILOG(x,y) do {                 \
+        SCREEN_PRIV()->x = pScreen->x;          \
+        pScreen->x = y;                         \
+    } while (0)
 
 #define WRAP_PICT(x,y) if (ps) {pScreenPriv->x = ps->x;\
     ps->x = y;}

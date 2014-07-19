@@ -32,63 +32,40 @@ extern _X_EXPORT void config_pre_init(void);
 extern _X_EXPORT void config_init(void);
 extern _X_EXPORT void config_fini(void);
 
-enum { ODEV_ATTRIB_STRING, ODEV_ATTRIB_INT };
-
-struct OdevAttribute {
-    struct xorg_list member;
-    int attrib_id;
-    union {
-        char *attrib_name;
-        int attrib_value;
-    };
-    int attrib_type;
-};
+/* Bump this each time you add something to the struct
+ * so that drivers can easily tell what is available
+ */
+#define ODEV_ATTRIBUTES_VERSION         1
 
 struct OdevAttributes {
-    struct xorg_list list;
+    /* path to kernel device node - Linux e.g. /dev/dri/card0 */
+    char        *path;
+
+    /* system device path - Linux e.g. /sys/devices/pci0000:00/0000:00:01.0/0000:01:00.0/drm/card1 */
+    char        *syspath;
+
+    /* DRI-style bus id */
+    char        *busid;
+
+    /* Server managed FD */
+    int         fd;
+
+    /* Major number of the device node pointed to by ODEV_ATTRIB_PATH */
+    int         major;
+
+    /* Minor number of the device node pointed to by ODEV_ATTRIB_PATH */
+    int         minor;
+
+    /* kernel driver name */
+    char        *driver;
 };
 
 /* Note starting with xserver 1.16 this function never fails */
 struct OdevAttributes *
-config_odev_allocate_attribute_list(void);
-
-void
-config_odev_free_attribute_list(struct OdevAttributes *attribs);
-
-/* Note starting with xserver 1.16 this function never fails */
-Bool
-config_odev_add_attribute(struct OdevAttributes *attribs, int attrib,
-                          const char *attrib_name);
-
-char *
-config_odev_get_attribute(struct OdevAttributes *attribs, int attrib_id);
-
-/* Note starting with xserver 1.16 this function never fails */
-Bool
-config_odev_add_int_attribute(struct OdevAttributes *attribs, int attrib,
-                              int attrib_value);
-
-int
-config_odev_get_int_attribute(struct OdevAttributes *attribs, int attrib,
-                              int def);
+config_odev_allocate_attributes(void);
 
 void
 config_odev_free_attributes(struct OdevAttributes *attribs);
-
-/* path to kernel device node - Linux e.g. /dev/dri/card0 */
-#define ODEV_ATTRIB_PATH 1
-/* system device path - Linux e.g. /sys/devices/pci0000:00/0000:00:01.0/0000:01:00.0/drm/card1 */
-#define ODEV_ATTRIB_SYSPATH 2
-/* DRI-style bus id */
-#define ODEV_ATTRIB_BUSID 3
-/* Server managed FD */
-#define ODEV_ATTRIB_FD 4
-/* Major number of the device node pointed to by ODEV_ATTRIB_PATH */
-#define ODEV_ATTRIB_MAJOR 5
-/* Minor number of the device node pointed to by ODEV_ATTRIB_PATH */
-#define ODEV_ATTRIB_MINOR 6
-/* kernel driver name */
-#define ODEV_ATTRIB_DRIVER 4
 
 typedef void (*config_odev_probe_proc_ptr)(struct OdevAttributes *attribs);
 void config_odev_probe(config_odev_probe_proc_ptr probe_callback);

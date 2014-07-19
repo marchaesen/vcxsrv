@@ -24,7 +24,7 @@ module_LTLIBRARIES = libglamoregl.la
 libglamoregl_la_SOURCES = \
 	$(top_srcdir)/glamor/glamor_egl.c \
 	$(top_srcdir)/glamor/glamor_eglmodule.c \
-	$(top_srcdir)/glamor/glamor_xv.c \
+	glamor_xf86_xv.c \
 	$()
 
 libglamoregl_la_LDFLAGS = \
@@ -38,6 +38,7 @@ libglamoregl_la_LIBADD = \
 
 AM_CPPFLAGS = $(XORG_INCS) \
 	-I$(top_srcdir)/dri3 \
+	-I$(top_srcdir)/glamor \
 	$()
 
 AM_CFLAGS = $(DIX_CFLAGS) $(XORG_CFLAGS) $(GLAMOR_CFLAGS) $(GBM_CFLAGS)

@@ -520,6 +520,8 @@ miSpriteBlockHandler(ScreenPtr pScreen, void *pTimeout,
     miCursorInfoPtr pCursorInfo;
     Bool WorkToDo = FALSE;
 
+    SCREEN_PROLOGUE(pPriv, pScreen, BlockHandler);
+
     for (pDev = inputInfo.devices; pDev; pDev = pDev->next) {
         if (DevHasCursor(pDev)) {
             pCursorInfo = MISPRITE(pDev);
@@ -542,8 +544,6 @@ miSpriteBlockHandler(ScreenPtr pScreen, void *pTimeout,
             }
         }
     }
-
-    SCREEN_PROLOGUE(pPriv, pScreen, BlockHandler);
 
     (*pScreen->BlockHandler) (pScreen, pTimeout, pReadmask);
 

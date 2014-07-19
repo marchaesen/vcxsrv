@@ -52,6 +52,7 @@
 static Display *dpy;
 static XVisualInfo *visual_info;
 static GLXFBConfig fb_config;
+Bool ephyr_glamor_gles2;
 /** @} */
 
 /**
@@ -145,6 +146,10 @@ ephyr_glamor_setup_texturing_shader(struct ephyr_glamor *glamor)
         "}\n";
 
     const char *fs_source =
+        "#ifdef GL_ES\n"
+        "precision mediump float;\n"
+        "#endif\n"
+        "\n"
         "varying vec2 t;\n"
         "uniform sampler2D s; /* initially 0 */\n"
         "\n"
@@ -276,7 +281,24 @@ ephyr_glamor_glx_screen_init(xcb_window_t win)
 
     glx_win = glXCreateWindow(dpy, fb_config, win, NULL);
 
-    ctx = glXCreateContext(dpy, visual_info, NULL, True);
+    if (ephyr_glamor_gles2) {
+        static const int context_attribs[] = {
+            GLX_CONTEXT_MAJOR_VERSION_ARB, 2,
+            GLX_CONTEXT_MINOR_VERSION_ARB, 0,
+            GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_ES_PROFILE_BIT_EXT,
+            0,
+        };
+        if (epoxy_has_glx_extension(dpy, DefaultScreen(dpy),
+                                    "GLX_EXT_create_context_es2_profile")) {
+            ctx = glXCreateContextAttribsARB(dpy, fb_config, NULL, True,
+                                             context_attribs);
+        } else {
+            FatalError("Xephyr -glamor_gles2 rquires "
+                       "GLX_EXT_create_context_es2_profile\n");
+        }
+    } else {
+        ctx = glXCreateContext(dpy, visual_info, NULL, True);
+    }
     if (ctx == NULL)
         FatalError("glXCreateContext failed\n");
 

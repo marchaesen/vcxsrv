@@ -72,9 +72,6 @@ glamor_upload_boxes(PixmapPtr pixmap, BoxPtr in_boxes, int in_nbox,
 
     glamor_make_current(glamor_priv);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, byte_stride / bytes_per_pixel);
 
@@ -90,27 +87,14 @@ glamor_upload_boxes(PixmapPtr pixmap, BoxPtr in_boxes, int in_nbox,
         while (nbox--) {
 
             /* compute drawable coordinates */
-            int x1 = boxes->x1 + dx_dst;
-            int x2 = boxes->x2 + dx_dst;
-            int y1 = boxes->y1 + dy_dst;
-            int y2 = boxes->y2 + dy_dst;
+            int x1 = MAX(boxes->x1 + dx_dst, box->x1);
+            int x2 = MIN(boxes->x2 + dx_dst, box->x2);
+            int y1 = MAX(boxes->y1 + dy_dst, box->y1);
+            int y2 = MIN(boxes->y2 + dy_dst, box->y2);
 
             boxes++;
 
-            if (x1 < box->x1)
-                x1 = box->x1;
-            if (box->x2 < x2)
-                x2 = box->x2;
-
-            if (x2 <= x1)
-                continue;
-
-            if (y1 < box->y1)
-                y1 = box->y1;
-            if (box->y2 < y2)
-                y2 = box->y2;
-
-            if (y2 <= y1)
+            if (x2 <= x1 || y2 <= y1)
                 continue;
 
             glPixelStorei(GL_UNPACK_SKIP_ROWS, y1 - dy_dst + dy_src);
@@ -195,26 +179,14 @@ glamor_download_boxes(PixmapPtr pixmap, BoxPtr in_boxes, int in_nbox,
         while (nbox--) {
 
             /* compute drawable coordinates */
-            int                     x1 = boxes->x1 + dx_src;
-            int                     x2 = boxes->x2 + dx_src;
-            int                     y1 = boxes->y1 + dy_src;
-            int                     y2 = boxes->y2 + dy_src;
+            int                     x1 = MAX(boxes->x1 + dx_src, box->x1);
+            int                     x2 = MIN(boxes->x2 + dx_src, box->x2);
+            int                     y1 = MAX(boxes->y1 + dy_src, box->y1);
+            int                     y2 = MIN(boxes->y2 + dy_src, box->y2);
 
             boxes++;
 
-            if (x1 < box->x1)
-                x1 = box->x1;
-            if (box->x2 < x2)
-                x2 = box->x2;
-
-            if (y1 < box->y1)
-                y1 = box->y1;
-            if (box->y2 < y2)
-                y2 = box->y2;
-
-            if (x2 <= x1)
-                continue;
-            if (y2 <= y1)
+            if (x2 <= x1 || y2 <= y1)
                 continue;
 
             glPixelStorei(GL_PACK_SKIP_PIXELS, x1 - dx_src + dx_dst);

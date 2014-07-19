@@ -35,9 +35,14 @@ XV_SRCS = ephyrvideo.c
 endif
 
 if GLAMOR
+if XV
+GLAMOR_XV_SRCS = ephyr_glamor_xv.c
+endif
+
 GLAMOR_SRCS = \
 	ephyr_glamor_glx.c \
 	ephyr_glamor_glx.h \
+	$(GLAMOR_XV_SRCS)  \
 	$()
 endif
 

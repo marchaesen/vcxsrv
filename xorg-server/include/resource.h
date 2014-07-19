@@ -139,21 +139,21 @@ typedef struct {
     void *value;
 } ResourceStateInfoRec;
 
-typedef int (*DeleteType) (void * /*value */ ,
-                           XID /*id */ );
+typedef int (*DeleteType) (void *value,
+                           XID id);
 
-typedef void (*FindResType) (void * /*value */ ,
-                             XID /*id */ ,
-                             void * /*cdata */ );
+typedef void (*FindResType) (void *value,
+                             XID id,
+                             void *cdata);
 
-typedef void (*FindAllRes) (void * /*value */ ,
-                            XID /*id */ ,
-                            RESTYPE /*type */ ,
-                            void * /*cdata */ );
+typedef void (*FindAllRes) (void *value,
+                            XID id,
+                            RESTYPE type,
+                            void *cdata);
 
-typedef Bool (*FindComplexResType) (void * /*value */ ,
-                                    XID /*id */ ,
-                                    void * /*cdata */ );
+typedef Bool (*FindComplexResType) (void *value,
+                                    XID id,
+                                    void *cdata);
 
 /* Structure for estimating resource memory usage. Memory usage
  * consists of space allocated for the resource itself and of
@@ -169,16 +169,16 @@ typedef struct {
     unsigned long refCnt;
 } ResourceSizeRec, *ResourceSizePtr;
 
-typedef void (*SizeType)(void * /*value*/,
-                         XID /*id*/,
-                         ResourceSizePtr /*size*/);
+typedef void (*SizeType)(void *value,
+                         XID id,
+                         ResourceSizePtr size);
 
-extern _X_EXPORT RESTYPE CreateNewResourceType(DeleteType /*deleteFunc */ ,
-                                               const char * /*name */ );
+extern _X_EXPORT RESTYPE CreateNewResourceType(DeleteType deleteFunc,
+                                               const char *name);
 
-typedef void (*FindTypeSubResources)(void * /* value */,
-                                     FindAllRes /* func */,
-                                     void * /* cdata */);
+typedef void (*FindTypeSubResources)(void *value,
+                                     FindAllRes func,
+                                     void *cdata);
 
 extern _X_EXPORT SizeType GetResourceTypeSizeFunc(
     RESTYPE /*type*/);
@@ -203,9 +203,9 @@ extern _X_EXPORT XID FakeClientID(int /*client */ );
 #ifdef __APPLE__
 #define AddResource Darwin_X_AddResource
 #endif
-extern _X_EXPORT Bool AddResource(XID /*id */ ,
-                                  RESTYPE /*type */ ,
-                                  void * /*value */ );
+extern _X_EXPORT Bool AddResource(XID id,
+                                  RESTYPE type,
+                                  void *value);
 
 extern _X_EXPORT void FreeResource(XID /*id */ ,
                                    RESTYPE /*skipDeleteFuncType */ );
@@ -214,27 +214,27 @@ extern _X_EXPORT void FreeResourceByType(XID /*id */ ,
                                          RESTYPE /*type */ ,
                                          Bool /*skipFree */ );
 
-extern _X_EXPORT Bool ChangeResourceValue(XID /*id */ ,
-                                          RESTYPE /*rtype */ ,
-                                          void * /*value */ );
+extern _X_EXPORT Bool ChangeResourceValue(XID id,
+                                          RESTYPE rtype,
+                                          void *value);
 
-extern _X_EXPORT void FindClientResourcesByType(ClientPtr /*client */ ,
-                                                RESTYPE /*type */ ,
-                                                FindResType /*func */ ,
-                                                void * /*cdata */ );
+extern _X_EXPORT void FindClientResourcesByType(ClientPtr client,
+                                                RESTYPE type,
+                                                FindResType func,
+                                                void *cdata);
 
-extern _X_EXPORT void FindAllClientResources(ClientPtr /*client */ ,
-                                             FindAllRes /*func */ ,
-                                             void * /*cdata */ );
+extern _X_EXPORT void FindAllClientResources(ClientPtr client,
+                                             FindAllRes func,
+                                             void *cdata);
 
 /** @brief Iterate through all subresources of a resource.
 
     @note The XID argument provided to the FindAllRes function
           may be 0 for subresources that don't have an XID */
-extern _X_EXPORT void FindSubResources(void * /*resource*/,
-                                       RESTYPE /*type*/,
-                                       FindAllRes /*func*/,
-                                       void * /*cdata*/);
+extern _X_EXPORT void FindSubResources(void *resource,
+                                       RESTYPE type,
+                                       FindAllRes func,
+                                       void *cdata);
 
 extern _X_EXPORT void FreeClientNeverRetainResources(ClientPtr /*client */ );
 

@@ -103,7 +103,7 @@
 					"/etc/X11/%X," "%C/X11/%X"
 #endif
 #ifndef SYS_CONFIGDIRPATH
-#define SYS_CONFIGDIRPATH	"/usr/share/X11/%X," "%D/X11/%X"
+#define SYS_CONFIGDIRPATH	"%D/X11/%X"
 #endif
 #ifndef PROJECTROOT
 #define PROJECTROOT	"/usr/X11R6"

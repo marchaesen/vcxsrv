@@ -651,11 +651,12 @@ glamor_composite_with_copy(CARD8 op,
         if (region->extents.y2 + y_source - y_dest > source->pDrawable->height)
             goto cleanup_region;
     }
-    ret = glamor_copy_n_to_n_nf(source->pDrawable,
-                                dest->pDrawable, NULL,
-                                RegionRects(region), RegionNumRects(region),
-                                x_source - x_dest, y_source - y_dest,
-                                FALSE, FALSE, 0, NULL);
+    glamor_copy(source->pDrawable,
+                dest->pDrawable, NULL,
+                RegionRects(region), RegionNumRects(region),
+                x_source - x_dest, y_source - y_dest,
+                FALSE, FALSE, 0, NULL);
+    ret = TRUE;
  cleanup_region:
     return ret;
 }
@@ -792,30 +793,29 @@ glamor_set_normalize_tcoords_generic(glamor_pixmap_private *priv,
                                      float *matrix,
                                      float xscale, float yscale,
                                      int x1, int y1, int x2, int y2,
-                                     int yInverted, float *texcoords,
+                                     float *texcoords,
                                      int stride)
 {
     if (!matrix && repeat_type == RepeatNone)
         glamor_set_normalize_tcoords_ext(priv, xscale, yscale,
                                          x1, y1,
-                                         x2, y2, yInverted, texcoords, stride);
+                                         x2, y2, texcoords, stride);
     else if (matrix && repeat_type == RepeatNone)
         glamor_set_transformed_normalize_tcoords_ext(priv, matrix, xscale,
                                                      yscale, x1, y1,
                                                      x2, y2,
-                                                     yInverted,
                                                      texcoords, stride);
     else if (!matrix && repeat_type != RepeatNone)
         glamor_set_repeat_normalize_tcoords_ext(priv, repeat_type,
                                                 xscale, yscale,
                                                 x1, y1,
                                                 x2, y2,
-                                                yInverted, texcoords, stride);
+                                                texcoords, stride);
     else if (matrix && repeat_type != RepeatNone)
         glamor_set_repeat_transformed_normalize_tcoords_ext(priv, repeat_type,
                                                             matrix, xscale,
                                                             yscale, x1, y1, x2,
-                                                            y2, yInverted,
+                                                            y2,
                                                             texcoords, stride);
 }
 
@@ -1265,7 +1265,7 @@ glamor_composite_with_shader(CARD8 op,
             glamor_set_normalize_vcoords_ext(dest_pixmap_priv, dst_xscale,
                                              dst_yscale, x_dest, y_dest,
                                              x_dest + width, y_dest + height,
-                                             glamor_priv->yInverted, vertices,
+                                             vertices,
                                              vb_stride);
             vertices += 2;
             if (key.source != SHADER_SOURCE_SOLID) {
@@ -1275,7 +1275,6 @@ glamor_composite_with_shader(CARD8 op,
                                                      src_yscale, x_source,
                                                      y_source, x_source + width,
                                                      y_source + height,
-                                                     glamor_priv->yInverted,
                                                      vertices, vb_stride);
                 vertices += 2;
             }
@@ -1287,7 +1286,6 @@ glamor_composite_with_shader(CARD8 op,
                                                      mask_yscale, x_mask,
                                                      y_mask, x_mask + width,
                                                      y_mask + height,
-                                                     glamor_priv->yInverted,
                                                      vertices, vb_stride);
                 vertices += 2;
             }
@@ -1315,8 +1313,6 @@ glamor_composite_with_shader(CARD8 op,
     glDisableVertexAttribArray(GLAMOR_VERTEX_MASK);
     glDisable(GL_BLEND);
     DEBUGF("finish rendering.\n");
-    glamor_priv->state = RENDER_STATE;
-    glamor_priv->render_idle_cnt = 0;
     if (saved_source_format)
         source->format = saved_source_format;
 
@@ -1450,8 +1446,8 @@ glamor_composite_clipped_region(CARD8 op,
                     || source_pixmap->drawable.height != height)))) {
         temp_src =
             glamor_convert_gradient_picture(screen, source,
-                                            extent->x1 + x_source - x_dest,
-                                            extent->y1 + y_source - y_dest,
+                                            extent->x1 + x_source - x_dest - dest->pDrawable->x,
+                                            extent->y1 + y_source - y_dest - dest->pDrawable->y,
                                             width, height);
         if (!temp_src) {
             temp_src = source;
@@ -1459,8 +1455,8 @@ glamor_composite_clipped_region(CARD8 op,
         }
         temp_src_priv =
             glamor_get_pixmap_private((PixmapPtr) (temp_src->pDrawable));
-        x_temp_src = -extent->x1 + x_dest;
-        y_temp_src = -extent->y1 + y_dest;
+        x_temp_src = -extent->x1 + x_dest + dest->pDrawable->x;
+        y_temp_src = -extent->y1 + y_dest + dest->pDrawable->y;
     }
 
     if (mask
@@ -1474,8 +1470,8 @@ glamor_composite_clipped_region(CARD8 op,
          * to do reduce one convertion. */
         temp_mask =
             glamor_convert_gradient_picture(screen, mask,
-                                            extent->x1 + x_mask - x_dest,
-                                            extent->y1 + y_mask - y_dest,
+                                            extent->x1 + x_mask - x_dest - dest->pDrawable->x,
+                                            extent->y1 + y_mask - y_dest - dest->pDrawable->y,
                                             width, height);
         if (!temp_mask) {
             temp_mask = mask;
@@ -1483,8 +1479,8 @@ glamor_composite_clipped_region(CARD8 op,
         }
         temp_mask_priv =
             glamor_get_pixmap_private((PixmapPtr) (temp_mask->pDrawable));
-        x_temp_mask = -extent->x1 + x_dest;
-        y_temp_mask = -extent->y1 + y_dest;
+        x_temp_mask = -extent->x1 + x_dest + dest->pDrawable->x;
+        y_temp_mask = -extent->y1 + y_dest + dest->pDrawable->y;
     }
     /* Do two-pass PictOpOver componentAlpha, until we enable
      * dual source color blending.
@@ -1586,15 +1582,6 @@ _glamor_composite(CARD8 op,
     RegionRec region;
     BoxPtr extent;
     int nbox, ok = FALSE;
-    PixmapPtr sub_dest_pixmap = NULL;
-    PixmapPtr sub_source_pixmap = NULL;
-    PixmapPtr sub_mask_pixmap = NULL;
-    int dest_x_off, dest_y_off, saved_dest_x, saved_dest_y;
-    int source_x_off, source_y_off, saved_source_x, saved_source_y;
-    int mask_x_off, mask_y_off, saved_mask_x, saved_mask_y;
-    DrawablePtr saved_dest_drawable;
-    DrawablePtr saved_source_drawable;
-    DrawablePtr saved_mask_drawable;
     int force_clip = 0;
 
     dest_pixmap_priv = glamor_get_pixmap_private(dest_pixmap);
@@ -1737,34 +1724,13 @@ _glamor_composite(CARD8 op,
          dest->pDrawable->width, dest->pDrawable->height,
          glamor_get_picture_location(dest));
 
-#define GET_SUB_PICTURE(p, access)		do {					\
-	glamor_get_drawable_deltas(p->pDrawable, p ##_pixmap,				\
-				   & p ##_x_off, & p ##_y_off);				\
-	sub_ ##p ##_pixmap = glamor_get_sub_pixmap(p ##_pixmap,				\
-					      x_ ##p + p ##_x_off + p->pDrawable->x,	\
-					      y_ ##p + p ##_y_off + p->pDrawable->y,	\
-					      width, height, access);			\
-	if (sub_ ##p ##_pixmap != NULL) {						\
-		saved_ ##p ##_drawable = p->pDrawable;					\
-		saved_ ##p ##_x = x_ ##p;						\
-		saved_ ##p ##_y = y_ ##p;						\
-		if (p->pCompositeClip)							\
-			pixman_region_translate (p->pCompositeClip,			\
-						 -p->pDrawable->x - x_ ##p,		\
-						 -p->pDrawable->y - y_ ##p);		\
-		p->pDrawable = &sub_ ##p ##_pixmap->drawable;				\
-		x_ ##p = 0;								\
-		y_ ##p = 0;								\
-	} } while(0)
-    GET_SUB_PICTURE(dest, GLAMOR_ACCESS_RW);
-    if (source->pDrawable && !source->transform)
-        GET_SUB_PICTURE(source, GLAMOR_ACCESS_RO);
-    if (mask && mask->pDrawable && !mask->transform)
-        GET_SUB_PICTURE(mask, GLAMOR_ACCESS_RO);
-
-    if (glamor_prepare_access_picture(dest, GLAMOR_ACCESS_RW) &&
-        glamor_prepare_access_picture(source, GLAMOR_ACCESS_RO) &&
-        glamor_prepare_access_picture(mask, GLAMOR_ACCESS_RO)) {
+    if (glamor_prepare_access_picture_box(dest, GLAMOR_ACCESS_RW,
+                                          x_dest, y_dest, width, height) &&
+        glamor_prepare_access_picture_box(source, GLAMOR_ACCESS_RO,
+                                          x_source, y_source, width, height) &&
+        glamor_prepare_access_picture_box(mask, GLAMOR_ACCESS_RO,
+                                          x_mask, y_mask, width, height))
+    {
         fbComposite(op,
                     source, mask, dest,
                     x_source, y_source,
@@ -1774,25 +1740,6 @@ _glamor_composite(CARD8 op,
     glamor_finish_access_picture(source);
     glamor_finish_access_picture(dest);
 
-#define PUT_SUB_PICTURE(p, access)		do {				\
-	if (sub_ ##p ##_pixmap != NULL) {					\
-		x_ ##p = saved_ ##p ##_x;					\
-		y_ ##p = saved_ ##p ##_y;					\
-		p->pDrawable = saved_ ##p ##_drawable;				\
-		if (p->pCompositeClip)						\
-			pixman_region_translate (p->pCompositeClip,		\
-						 p->pDrawable->x + x_ ##p,	\
-						 p->pDrawable->y + y_ ##p);	\
-		glamor_put_sub_pixmap(sub_ ##p ##_pixmap, p ##_pixmap,		\
-				      x_ ##p + p ##_x_off + p->pDrawable->x,	\
-				      y_ ##p + p ##_y_off + p->pDrawable->y,	\
-				      width, height, access);			\
-	}} while(0)
-    if (mask && mask->pDrawable)
-        PUT_SUB_PICTURE(mask, GLAMOR_ACCESS_RO);
-    if (source->pDrawable)
-        PUT_SUB_PICTURE(source, GLAMOR_ACCESS_RO);
-    PUT_SUB_PICTURE(dest, GLAMOR_ACCESS_RW);
  done:
     return ret;
 }

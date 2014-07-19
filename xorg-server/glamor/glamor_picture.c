@@ -45,24 +45,6 @@ glamor_upload_picture_to_texture(PicturePtr picture)
     return glamor_upload_pixmap_to_texture(pixmap);
 }
 
-Bool
-glamor_prepare_access_picture(PicturePtr picture, glamor_access_t access)
-{
-    if (!picture || !picture->pDrawable)
-        return TRUE;
-
-    return glamor_prepare_access(picture->pDrawable, access);
-}
-
-void
-glamor_finish_access_picture(PicturePtr picture)
-{
-    if (!picture || !picture->pDrawable)
-        return;
-
-    glamor_finish_access(picture->pDrawable);
-}
-
 /* 
  * We should already have drawable attached to it, if it has one.
  * Then set the attached pixmap to is_picture format, and set

@@ -49,8 +49,8 @@ public:
 
       this->current_function = NULL;
 
-      this->callback = ir_validate::validate_ir;
-      this->data = ht;
+      this->callback_enter = ir_validate::validate_ir;
+      this->data_enter = ht;
    }
 
    ~ir_validate()
@@ -100,7 +100,7 @@ ir_validate::visit(ir_dereference_variable *ir)
       abort();
    }
 
-   this->validate_ir(ir, this->data);
+   this->validate_ir(ir, this->data_enter);
 
    return visit_continue;
 }
@@ -167,7 +167,7 @@ ir_validate::visit_enter(ir_function *ir)
     */
    this->current_function = ir;
 
-   this->validate_ir(ir, this->data);
+   this->validate_ir(ir, this->data_enter);
 
    /* Verify that all of the things stored in the list of signatures are,
     * in fact, function signatures.
@@ -211,7 +211,7 @@ ir_validate::visit_enter(ir_function_signature *ir)
       abort();
    }
 
-   this->validate_ir(ir, this->data);
+   this->validate_ir(ir, this->data_enter);
 
    return visit_continue;
 }
@@ -371,6 +371,11 @@ ir_validate::visit_leave(ir_expression *ir)
       /* XXX what can we assert here? */
       break;
 
+   case ir_unop_interpolate_at_centroid:
+      assert(ir->operands[0]->type == ir->type);
+      assert(ir->operands[0]->type->is_float());
+      break;
+
    case ir_binop_add:
    case ir_binop_sub:
    case ir_binop_mul:
@@ -508,6 +513,19 @@ ir_validate::visit_leave(ir_expression *ir)
       assert(ir->operands[0]->type->is_vector());
       assert(ir->operands[1]->type->is_scalar()
              && ir->operands[1]->type->is_integer());
+      break;
+
+   case ir_binop_interpolate_at_offset:
+      assert(ir->operands[0]->type == ir->type);
+      assert(ir->operands[0]->type->is_float());
+      assert(ir->operands[1]->type->components() == 2);
+      assert(ir->operands[1]->type->is_float());
+      break;
+
+   case ir_binop_interpolate_at_sample:
+      assert(ir->operands[0]->type == ir->type);
+      assert(ir->operands[0]->type->is_float());
+      assert(ir->operands[1]->type == glsl_type::int_type);
       break;
 
    case ir_triop_fma:
@@ -708,7 +726,7 @@ ir_validate::visit_enter(ir_assignment *ir)
       }
    }
 
-   this->validate_ir(ir, this->data);
+   this->validate_ir(ir, this->data_enter);
 
    return visit_continue;
 }

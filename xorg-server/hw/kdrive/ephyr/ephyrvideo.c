@@ -69,7 +69,7 @@ static Bool ephyrXVPrivSetAdaptorsHooks(EphyrXVPriv * a_this);
 static Bool ephyrXVPrivRegisterAdaptors(EphyrXVPriv * a_this,
                                         ScreenPtr a_screen);
 
-static Bool ephyrXVPrivIsAttrValueValid(KdAttributePtr a_attrs,
+static Bool ephyrXVPrivIsAttrValueValid(XvAttributePtr a_attrs,
                                         int a_attrs_len,
                                         const char *a_attr_name,
                                         int a_attr_value, Bool *a_is_valid);
@@ -363,7 +363,7 @@ translate_xv_attributes(KdVideoAdaptorPtr adaptor,
 
     it = xcb_xv_query_port_attributes_attributes_iterator(reply);
     for (i = 0; i < reply->num_attributes; i++) {
-        KdAttributePtr attribute = &adaptor->pAttributes[i];
+        XvAttributePtr attribute = &adaptor->pAttributes[i];
 
         attribute->flags = it.data->flags;
         attribute->min_value = it.data->min;
@@ -397,7 +397,7 @@ translate_xv_image_formats(KdVideoAdaptorPtr adaptor,
         return FALSE;
 
     adaptor->nImages = reply->num_formats;
-    adaptor->pImages = calloc(reply->num_formats, sizeof(KdImageRec));
+    adaptor->pImages = calloc(reply->num_formats, sizeof(XvImageRec));
     if (!adaptor->pImages) {
         free(reply);
         return FALSE;
@@ -405,7 +405,7 @@ translate_xv_image_formats(KdVideoAdaptorPtr adaptor,
 
     formats = xcb_xv_list_image_formats_format(reply);
     for (i = 0; i < reply->num_formats; i++) {
-        KdImagePtr image = &adaptor->pImages[i];
+        XvImagePtr image = &adaptor->pImages[i];
 
         image->id = formats[i].id;
         image->type = formats[i].type;
@@ -612,11 +612,7 @@ ephyrXVPrivSetAdaptorsHooks(EphyrXVPriv * a_this)
 static Bool
 ephyrXVPrivRegisterAdaptors(EphyrXVPriv * a_this, ScreenPtr a_screen)
 {
-    KdScreenPriv(a_screen);
-    KdScreenInfo *screen = pScreenPriv->screen;
     Bool is_ok = FALSE;
-    KdVideoAdaptorPtr *adaptors = NULL, *registered_adaptors = NULL;
-    int num_registered_adaptors = 0, i = 0, num_adaptors = 0;
 
     EPHYR_RETURN_VAL_IF_FAIL(a_this && a_screen, FALSE);
 
@@ -624,38 +620,22 @@ ephyrXVPrivRegisterAdaptors(EphyrXVPriv * a_this, ScreenPtr a_screen)
 
     if (!a_this->num_adaptors)
         goto out;
-    num_registered_adaptors =
-        KdXVListGenericAdaptors(screen, &registered_adaptors);
 
-    num_adaptors = num_registered_adaptors + a_this->num_adaptors;
-    adaptors = calloc(num_adaptors, sizeof(KdVideoAdaptorPtr));
-    if (!adaptors) {
-        EPHYR_LOG_ERROR("failed to allocate adaptors tab\n");
-        goto out;
-    }
-    memmove(adaptors, registered_adaptors, num_registered_adaptors);
-    for (i = 0; i < a_this->num_adaptors; i++) {
-        *(adaptors + num_registered_adaptors + i) = &a_this->adaptors[i];
-    }
-    if (!KdXVScreenInit(a_screen, adaptors, num_adaptors)) {
+    if (!KdXVScreenInit(a_screen, a_this->adaptors, a_this->num_adaptors)) {
         EPHYR_LOG_ERROR("failed to register adaptors\n");
         goto out;
     }
-    EPHYR_LOG("there are  %d registered adaptors\n", num_adaptors);
+    EPHYR_LOG("there are  %d registered adaptors\n", a_this->num_adaptors);
     is_ok = TRUE;
 
  out:
-    free(registered_adaptors);
-    registered_adaptors = NULL;
-    free(adaptors);
-    adaptors = NULL;
 
     EPHYR_LOG("leave\n");
     return is_ok;
 }
 
 static Bool
-ephyrXVPrivIsAttrValueValid(KdAttributePtr a_attrs,
+ephyrXVPrivIsAttrValueValid(XvAttributePtr a_attrs,
                             int a_attrs_len,
                             const char *a_attr_name,
                             int a_attr_value, Bool *a_is_valid)

@@ -30,8 +30,8 @@ get_drm_info(struct OdevAttributes *attribs, char *path, int delayed_index)
     int err = 0;
     Bool paused, server_fd = FALSE;
 
-    major = config_odev_get_int_attribute(attribs, ODEV_ATTRIB_MAJOR, 0);
-    minor = config_odev_get_int_attribute(attribs, ODEV_ATTRIB_MINOR, 0);
+    major = attribs->major;
+    minor = attribs->minor;
 
     fd = systemd_logind_take_fd(major, minor, path, &paused);
     if (fd != -1) {
@@ -41,7 +41,7 @@ get_drm_info(struct OdevAttributes *attribs, char *path, int delayed_index)
             systemd_logind_release_fd(major, minor, -1);
             return FALSE;
         }
-        config_odev_add_int_attribute(attribs, ODEV_ATTRIB_FD, fd);
+        attribs->fd = fd;
         server_fd = TRUE;
     }
 
@@ -73,8 +73,7 @@ get_drm_info(struct OdevAttributes *attribs, char *path, int delayed_index)
         xf86_platform_devices[delayed_index].flags |= XF86_PDEV_SERVER_FD;
 
     buf = drmGetBusid(fd);
-    xf86_add_platform_device_attrib(delayed_index,
-                                    ODEV_ATTRIB_BUSID, buf);
+    xf86_platform_odev_attributes(delayed_index)->busid = XNFstrdup(buf);
     drmFreeBusid(buf);
 
     v = drmGetVersion(fd);
@@ -83,8 +82,7 @@ get_drm_info(struct OdevAttributes *attribs, char *path, int delayed_index)
         goto out;
     }
 
-    xf86_add_platform_device_attrib(delayed_index, ODEV_ATTRIB_DRIVER,
-                                    v->name);
+    xf86_platform_odev_attributes(delayed_index)->driver = XNFstrdup(v->name);
     drmFreeVersion(v);
 
 out:
@@ -96,16 +94,9 @@ out:
 Bool
 xf86PlatformDeviceCheckBusID(struct xf86_platform_device *device, const char *busid)
 {
-    struct OdevAttribute *attrib;
-    const char *syspath = NULL;
+    const char *syspath = device->attribs->syspath;
     BusType bustype;
     const char *id;
-    xorg_list_for_each_entry(attrib, &device->attribs->list, member) {
-        if (attrib->attrib_id == ODEV_ATTRIB_SYSPATH) {
-            syspath = attrib->attrib_name;
-            break;
-        }
-    }
 
     if (!syspath)
         return FALSE;
@@ -138,8 +129,7 @@ void
 xf86PlatformReprobeDevice(int index, struct OdevAttributes *attribs)
 {
     Bool ret;
-    char *dpath;
-    dpath = xf86_get_platform_attrib(index, ODEV_ATTRIB_PATH);
+    char *dpath = attribs->path;
 
     ret = get_drm_info(attribs, dpath, index);
     if (ret == FALSE) {
@@ -155,18 +145,16 @@ void
 xf86PlatformDeviceProbe(struct OdevAttributes *attribs)
 {
     int i;
-    char *path = NULL;
+    char *path = attribs->path;
     Bool ret;
 
-    path = config_odev_get_attribute(attribs, ODEV_ATTRIB_PATH);
     if (!path)
         goto out_free;
 
     for (i = 0; i < xf86_num_platform_devices; i++) {
-        char *dpath;
-        dpath = xf86_get_platform_attrib(i, ODEV_ATTRIB_PATH);
+        char *dpath = xf86_platform_odev_attributes(i)->path;
 
-        if (!strcmp(path, dpath))
+        if (dpath && !strcmp(path, dpath))
             break;
     }
 
@@ -189,7 +177,7 @@ xf86PlatformDeviceProbe(struct OdevAttributes *attribs)
     return;
 
 out_free:
-    config_odev_free_attribute_list(attribs);
+    config_odev_free_attributes(attribs);
 }
 
 void NewGPUDeviceRequest(struct OdevAttributes *attribs)
@@ -214,21 +202,15 @@ void NewGPUDeviceRequest(struct OdevAttributes *attribs)
 
 void DeleteGPUDeviceRequest(struct OdevAttributes *attribs)
 {
-    struct OdevAttribute *attrib;
     int index;
-    char *syspath = NULL;
+    char *syspath = attribs->syspath;
 
-    xorg_list_for_each_entry(attrib, &attribs->list, member) {
-        if (attrib->attrib_id == ODEV_ATTRIB_SYSPATH) {
-            syspath = attrib->attrib_name;
-            break;
-        }
-    }
+    if (!syspath)
+        goto out;
 
     for (index = 0; index < xf86_num_platform_devices; index++) {
-        char *dspath;
-        dspath = xf86_get_platform_attrib(index, ODEV_ATTRIB_SYSPATH);
-        if (!strcmp(syspath, dspath))
+        char *dspath = xf86_platform_odev_attributes(index)->syspath;
+        if (dspath && !strcmp(syspath, dspath))
             break;
     }
 
@@ -242,7 +224,7 @@ void DeleteGPUDeviceRequest(struct OdevAttributes *attribs)
     else
             xf86platformRemoveDevice(index);
 out:
-    config_odev_free_attribute_list(attribs);
+    config_odev_free_attributes(attribs);
 }
 
 #endif

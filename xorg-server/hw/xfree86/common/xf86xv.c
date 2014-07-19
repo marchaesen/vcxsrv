@@ -359,15 +359,11 @@ xf86XVInitAdaptors(ScreenPtr pScreen, XF86VideoAdaptorPtr * infoPtr, int number)
     XvPortRecPrivatePtr portPriv;
     XvPortPtr pPort, pp;
     int numPort;
-    XF86AttributePtr attributePtr;
-    XvAttributePtr pAttribute, pat;
     XF86VideoFormatPtr formatPtr;
     XvFormatPtr pFormat, pf;
     int numFormat, totFormat;
     XF86VideoEncodingPtr encodingPtr;
     XvEncodingPtr pEncode, pe;
-    XF86ImagePtr imagePtr;
-    XvImagePtr pImage, pi;
     int numVisuals;
     VisualPtr pVisual;
     int i;
@@ -445,49 +441,24 @@ xf86XVInitAdaptors(ScreenPtr pScreen, XF86VideoAdaptorPtr * infoPtr, int number)
         }
 
         if (adaptorPtr->nImages &&
-            (pImage = calloc(adaptorPtr->nImages, sizeof(XvImageRec)))) {
-
-            for (i = 0, pi = pImage, imagePtr = adaptorPtr->pImages;
-                 i < adaptorPtr->nImages; i++, pi++, imagePtr++) {
-                pi->id = imagePtr->id;
-                pi->type = imagePtr->type;
-                pi->byte_order = imagePtr->byte_order;
-                memcpy(pi->guid, imagePtr->guid, 16);
-                pi->bits_per_pixel = imagePtr->bits_per_pixel;
-                pi->format = imagePtr->format;
-                pi->num_planes = imagePtr->num_planes;
-                pi->depth = imagePtr->depth;
-                pi->red_mask = imagePtr->red_mask;
-                pi->green_mask = imagePtr->green_mask;
-                pi->blue_mask = imagePtr->blue_mask;
-                pi->y_sample_bits = imagePtr->y_sample_bits;
-                pi->u_sample_bits = imagePtr->u_sample_bits;
-                pi->v_sample_bits = imagePtr->v_sample_bits;
-                pi->horz_y_period = imagePtr->horz_y_period;
-                pi->horz_u_period = imagePtr->horz_u_period;
-                pi->horz_v_period = imagePtr->horz_v_period;
-                pi->vert_y_period = imagePtr->vert_y_period;
-                pi->vert_u_period = imagePtr->vert_u_period;
-                pi->vert_v_period = imagePtr->vert_v_period;
-                memcpy(pi->component_order, imagePtr->component_order, 32);
-                pi->scanline_order = imagePtr->scanline_order;
-            }
+            (pa->pImages = calloc(adaptorPtr->nImages, sizeof(XvImageRec)))) {
+            memcpy(pa->pImages, adaptorPtr->pImages,
+                   adaptorPtr->nImages * sizeof(XvImageRec));
             pa->nImages = adaptorPtr->nImages;
-            pa->pImages = pImage;
         }
 
         if (adaptorPtr->nAttributes &&
-            (pAttribute =
-             calloc(adaptorPtr->nAttributes, sizeof(XvAttributeRec)))) {
-            for (pat = pAttribute, attributePtr = adaptorPtr->pAttributes, i =
-                 0; i < adaptorPtr->nAttributes; pat++, i++, attributePtr++) {
-                pat->flags = attributePtr->flags;
-                pat->min_value = attributePtr->min_value;
-                pat->max_value = attributePtr->max_value;
-                pat->name = strdup(attributePtr->name);
+            (pa->pAttributes = calloc(adaptorPtr->nAttributes,
+                                      sizeof(XvAttributeRec)))) {
+            memcpy(pa->pAttributes, adaptorPtr->pAttributes,
+                   adaptorPtr->nAttributes * sizeof(XvAttributeRec));
+
+            for (i = 0; i < adaptorPtr->nAttributes; i++) {
+                pa->pAttributes[i].name =
+                    strdup(adaptorPtr->pAttributes[i].name);
             }
+
             pa->nAttributes = adaptorPtr->nAttributes;
-            pa->pAttributes = pAttribute;
         }
 
         totFormat = adaptorPtr->nFormats;

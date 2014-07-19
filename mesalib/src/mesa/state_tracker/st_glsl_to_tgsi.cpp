@@ -2049,6 +2049,9 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
    case ir_binop_ldexp:
    case ir_binop_carry:
    case ir_binop_borrow:
+   case ir_unop_interpolate_at_centroid:
+   case ir_binop_interpolate_at_offset:
+   case ir_binop_interpolate_at_sample:
       /* This operation is not supported, or should have already been handled.
        */
       assert(!"Invalid ir opcode in glsl_to_tgsi_visitor::visit()");
@@ -2820,7 +2823,13 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
       }
       break;
    case ir_txb:
-      opcode = is_cube_array ? TGSI_OPCODE_TXB2 : TGSI_OPCODE_TXB;
+      if (is_cube_array ||
+          sampler_type == glsl_type::samplerCubeShadow_type) {
+         opcode = TGSI_OPCODE_TXB2;
+      }
+      else {
+         opcode = TGSI_OPCODE_TXB;
+      }
       ir->lod_info.bias->accept(this);
       lod_info = this->result;
       if (ir->offset) {

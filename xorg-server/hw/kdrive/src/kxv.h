@@ -56,8 +56,6 @@ of the copyright holder.
 #define VIDEO_OVERLAID_STILLS			0x00000008
 #define VIDEO_CLIP_TO_VIEWPORT			0x00000010
 
-typedef XvImageRec KdImageRec, *KdImagePtr;
-
 typedef struct {
     KdScreenInfo *screen;
     int id;
@@ -121,7 +119,7 @@ typedef enum {
 
 typedef struct {
     int id;
-    char *name;
+    const char *name;
     unsigned short width, height;
     XvRationalRec rate;
 } KdVideoEncodingRec, *KdVideoEncodingPtr;
@@ -131,12 +129,10 @@ typedef struct {
     short class;
 } KdVideoFormatRec, *KdVideoFormatPtr;
 
-typedef XvAttributeRec KdAttributeRec, *KdAttributePtr;
-
 typedef struct {
     unsigned int type;
     int flags;
-    char *name;
+    const char *name;
     int nEncodings;
     KdVideoEncodingPtr pEncodings;
     int nFormats;
@@ -144,9 +140,9 @@ typedef struct {
     int nPorts;
     DevUnion *pPortPrivates;
     int nAttributes;
-    KdAttributePtr pAttributes;
+    XvAttributePtr pAttributes;
     int nImages;
-    KdImagePtr pImages;
+    XvImagePtr pImages;
     PutVideoFuncPtr PutVideo;
     PutStillFuncPtr PutStill;
     GetVideoFuncPtr GetVideo;
@@ -161,16 +157,7 @@ typedef struct {
 } KdVideoAdaptorRec, *KdVideoAdaptorPtr;
 
 Bool
- KdXVScreenInit(ScreenPtr pScreen, KdVideoAdaptorPtr * Adaptors, int num);
-
-typedef int (*KdXVInitGenericAdaptorPtr) (KdScreenInfo * screen,
-                                          KdVideoAdaptorPtr ** Adaptors);
-
-int
- KdXVRegisterGenericAdaptorDriver(KdXVInitGenericAdaptorPtr InitFunc);
-
-int
- KdXVListGenericAdaptors(KdScreenInfo * screen, KdVideoAdaptorPtr ** Adaptors);
+ KdXVScreenInit(ScreenPtr pScreen, KdVideoAdaptorPtr Adaptors, int num);
 
 void
 
