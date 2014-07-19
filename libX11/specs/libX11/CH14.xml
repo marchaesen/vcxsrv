@@ -2094,7 +2094,7 @@ The definitions for the initial_state flag are:
 <literallayout class="monospaced">
 #define      WithdrawnState 0
 #define      NormalState    1   /* most applications start this way */
-#define      IconicState    2   /* application wants to start as an icon */
+#define      IconicState    3   /* application wants to start as an icon */
 
 </literallayout>
 <para>

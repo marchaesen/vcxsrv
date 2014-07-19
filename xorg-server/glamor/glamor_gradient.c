@@ -699,7 +699,7 @@ _glamor_gradient_set_pixmap_destination(ScreenPtr screen,
                                                     width),
                                            (INT16) (dst_picture->pDrawable->
                                                     height),
-                                           glamor_priv->yInverted, vertices);
+                                           vertices);
 
     if (tex_normalize) {
         glamor_set_normalize_tcoords_tri_stripe(*xscale, *yscale,
@@ -710,17 +710,14 @@ _glamor_gradient_set_pixmap_destination(ScreenPtr screen,
                                                 (INT16) (dst_picture->
                                                          pDrawable->height +
                                                          y_source),
-                                                glamor_priv->yInverted,
                                                 tex_vertices);
     }
     else {
-        glamor_set_tcoords_tri_strip((INT16) (dst_picture->pDrawable->width),
-                                     (INT16) (dst_picture->pDrawable->height),
-                                     x_source, y_source,
+        glamor_set_tcoords_tri_strip(x_source, y_source,
                                      (INT16) (dst_picture->pDrawable->width) +
                                      x_source,
                                      (INT16) (dst_picture->pDrawable->height) +
-                                     y_source, glamor_priv->yInverted,
+                                     y_source,
                                      tex_vertices);
     }
 
@@ -1084,13 +1081,11 @@ glamor_generate_radial_gradient_picture(ScreenPtr screen,
     r2 = (float) pixman_fixed_to_double(src_picture->pSourcePict->radial.c2.
                                         radius);
 
-    glamor_set_circle_centre(width, height, c1x, c1y, glamor_priv->yInverted,
-                             cxy);
+    glamor_set_circle_centre(width, height, c1x, c1y, cxy);
     glUniform2fv(c1_uniform_location, 1, cxy);
     glUniform1f(r1_uniform_location, r1);
 
-    glamor_set_circle_centre(width, height, c2x, c2y, glamor_priv->yInverted,
-                             cxy);
+    glamor_set_circle_centre(width, height, c2x, c2y, cxy);
     glUniform2fv(c2_uniform_location, 1, cxy);
     glUniform1f(r2_uniform_location, r2);
 
@@ -1322,7 +1317,7 @@ glamor_generate_linear_gradient_picture(ScreenPtr screen,
                                                    linear.p1.x),
                             pixman_fixed_to_double(src_picture->pSourcePict->
                                                    linear.p1.y),
-                            glamor_priv->yInverted, pt1);
+                            pt1);
     DEBUGF("pt1:(%f, %f) ---> (%f %f)\n",
            pixman_fixed_to_double(src_picture->pSourcePict->linear.p1.x),
            pixman_fixed_to_double(src_picture->pSourcePict->linear.p1.y),
@@ -1333,7 +1328,7 @@ glamor_generate_linear_gradient_picture(ScreenPtr screen,
                                                    linear.p2.x),
                             pixman_fixed_to_double(src_picture->pSourcePict->
                                                    linear.p2.y),
-                            glamor_priv->yInverted, pt2);
+                            pt2);
     DEBUGF("pt2:(%f, %f) ---> (%f %f)\n",
            pixman_fixed_to_double(src_picture->pSourcePict->linear.p2.x),
            pixman_fixed_to_double(src_picture->pSourcePict->linear.p2.y),

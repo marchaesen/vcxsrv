@@ -1051,6 +1051,7 @@ get_tex_level_parameter_image(struct gl_context *ctx,
                               GLenum pname, GLint *params)
 {
    const struct gl_texture_image *img = NULL;
+   struct gl_texture_image dummy_image;
    mesa_format texFormat;
 
    img = _mesa_select_tex_image(ctx, texObj, target, level);
@@ -1062,12 +1063,12 @@ get_tex_level_parameter_image(struct gl_context *ctx,
        *     instead of 1. TEXTURE_COMPONENTS is deprecated; always
        *     use TEXTURE_INTERNAL_FORMAT."
        */
+      memset(&dummy_image, 0, sizeof(dummy_image));
+      dummy_image.TexFormat = MESA_FORMAT_NONE;
+      dummy_image.InternalFormat = GL_RGBA;
+      dummy_image._BaseFormat = GL_NONE;
 
-      if (pname == GL_TEXTURE_INTERNAL_FORMAT)
-         *params = GL_RGBA;
-      else
-         *params = 0;
-      return;
+      img = &dummy_image;
    }
 
    texFormat = img->TexFormat;
@@ -1107,6 +1108,8 @@ get_tex_level_parameter_image(struct gl_context *ctx,
 	 }
          break;
       case GL_TEXTURE_BORDER:
+         if (ctx->API != API_OPENGL_COMPAT)
+            goto invalid_pname;
          *params = img->Border;
          break;
       case GL_TEXTURE_RED_SIZE:
@@ -1120,6 +1123,8 @@ get_tex_level_parameter_image(struct gl_context *ctx,
          break;
       case GL_TEXTURE_INTENSITY_SIZE:
       case GL_TEXTURE_LUMINANCE_SIZE:
+         if (ctx->API != API_OPENGL_COMPAT)
+            goto invalid_pname;
          if (_mesa_base_format_has_channel(img->_BaseFormat, pname)) {
             *params = _mesa_get_format_bits(texFormat, pname);
             if (*params == 0) {
@@ -1166,12 +1171,15 @@ get_tex_level_parameter_image(struct gl_context *ctx,
          break;
 
       /* GL_ARB_texture_float */
+      case GL_TEXTURE_LUMINANCE_TYPE_ARB:
+      case GL_TEXTURE_INTENSITY_TYPE_ARB:
+         if (ctx->API != API_OPENGL_COMPAT)
+            goto invalid_pname;
+         /* FALLTHROUGH */
       case GL_TEXTURE_RED_TYPE_ARB:
       case GL_TEXTURE_GREEN_TYPE_ARB:
       case GL_TEXTURE_BLUE_TYPE_ARB:
       case GL_TEXTURE_ALPHA_TYPE_ARB:
-      case GL_TEXTURE_LUMINANCE_TYPE_ARB:
-      case GL_TEXTURE_INTENSITY_TYPE_ARB:
       case GL_TEXTURE_DEPTH_TYPE_ARB:
          if (!ctx->Extensions.ARB_texture_float)
             goto invalid_pname;

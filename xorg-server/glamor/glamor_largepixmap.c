@@ -797,9 +797,9 @@ glamor_merge_clipped_regions(glamor_pixmap_private *pixmap_priv,
         copy_box.y2 = temp_extent->y2 - temp_extent->y1;
         dx = temp_extent->x1;
         dy = temp_extent->y1;
-        glamor_copy_n_to_n(&priv->base.pixmap->drawable,
-                           &temp_pixmap->drawable,
-                           NULL, &copy_box, 1, dx, dy, 0, 0, 0, NULL);
+        glamor_copy(&priv->base.pixmap->drawable,
+                    &temp_pixmap->drawable,
+                    NULL, &copy_box, 1, dx, dy, 0, 0, 0, NULL);
 //              glamor_solid(temp_pixmap, 0, 0, temp_pixmap->drawable.width,
 //                             temp_pixmap->drawable.height, GXcopy, 0xffffffff, 0xff00);
     }
@@ -829,9 +829,10 @@ glamor_merge_clipped_regions(glamor_pixmap_private *pixmap_priv,
                        copy_box.x1, copy_box.y1, copy_box.x2,
                        copy_box.y2, dx, dy);
 
-                glamor_copy_n_to_n(&priv->base.pixmap->drawable,
-                                   &temp_pixmap->drawable,
-                                   NULL, &copy_box, 1, dx, dy, 0, 0, 0, NULL);
+                glamor_copy(&priv->base.pixmap->drawable,
+                            &temp_pixmap->drawable,
+                            NULL, &copy_box, 1, dx, dy, 0, 0, 0, NULL);
+
                 box++;
             }
         }

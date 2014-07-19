@@ -77,50 +77,12 @@ xf86_remove_platform_device(int dev_index)
 {
     int j;
 
-    config_odev_free_attribute_list(xf86_platform_devices[dev_index].attribs);
+    config_odev_free_attributes(xf86_platform_devices[dev_index].attribs);
 
     for (j = dev_index; j < xf86_num_platform_devices - 1; j++)
         memcpy(&xf86_platform_devices[j], &xf86_platform_devices[j + 1], sizeof(struct xf86_platform_device));
     xf86_num_platform_devices--;
     return 0;
-}
-
-Bool
-xf86_add_platform_device_attrib(int index, int attrib_id, char *attrib_name)
-{
-    struct xf86_platform_device *device = &xf86_platform_devices[index];
-
-    return config_odev_add_attribute(device->attribs, attrib_id, attrib_name);
-}
-
-Bool
-xf86_add_platform_device_int_attrib(int index, int attrib_id, int attrib_value)
-{
-    return config_odev_add_int_attribute(xf86_platform_devices[index].attribs, attrib_id, attrib_value);
-}
-
-char *
-xf86_get_platform_attrib(int index, int attrib_id)
-{
-    return config_odev_get_attribute(xf86_platform_devices[index].attribs, attrib_id);
-}
-
-char *
-xf86_get_platform_device_attrib(struct xf86_platform_device *device, int attrib_id)
-{
-    return config_odev_get_attribute(device->attribs, attrib_id);
-}
-
-int
-xf86_get_platform_int_attrib(int index, int attrib_id, int def)
-{
-    return config_odev_get_int_attribute(xf86_platform_devices[index].attribs, attrib_id, def);
-}
-
-int
-xf86_get_platform_device_int_attrib(struct xf86_platform_device *device, int attrib_id, int def)
-{
-    return config_odev_get_int_attribute(device->attribs, attrib_id, def);
 }
 
 Bool
@@ -136,8 +98,8 @@ xf86_find_platform_device_by_devnum(int major, int minor)
     int i, attr_major, attr_minor;
 
     for (i = 0; i < xf86_num_platform_devices; i++) {
-        attr_major = xf86_get_platform_int_attrib(i, ODEV_ATTRIB_MAJOR, 0);
-        attr_minor = xf86_get_platform_int_attrib(i, ODEV_ATTRIB_MINOR, 0);
+        attr_major = xf86_platform_odev_attributes(i)->major;
+        attr_minor = xf86_platform_odev_attributes(i)->minor;
         if (attr_major == major && attr_minor == minor)
             return &xf86_platform_devices[i];
     }
@@ -240,7 +202,7 @@ MatchToken(const char *value, struct xorg_list *patterns,
 static Bool
 OutputClassMatches(const XF86ConfOutputClassPtr oclass, int index)
 {
-    char *driver = xf86_get_platform_attrib(index, ODEV_ATTRIB_DRIVER);
+    char *driver = xf86_platform_odev_attributes(index)->driver;
 
     if (!MatchToken(driver, &oclass->match_driver, strcmp))
         return FALSE;
@@ -259,7 +221,7 @@ xf86OutputClassDriverList(int index, char *matches[], int nmatches)
 
     for (cl = xf86configptr->conf_outputclass_lst; cl; cl = cl->list.next) {
         if (OutputClassMatches(cl, index)) {
-            char *path = xf86_get_platform_attrib(index, ODEV_ATTRIB_PATH);
+            char *path = xf86_platform_odev_attributes(index)->path;
 
             xf86Msg(X_INFO, "Applying OutputClass \"%s\" to %s\n",
                     cl->identifier, path);
@@ -324,7 +286,7 @@ xf86platformProbe(void)
     }
 
     for (i = 0; i < xf86_num_platform_devices; i++) {
-        char *busid = xf86_get_platform_attrib(i, ODEV_ATTRIB_BUSID);
+        char *busid = xf86_platform_odev_attributes(i)->busid;
 
         if (pci && (strncmp(busid, "pci:", 4) == 0)) {
             platform_find_pci_info(&xf86_platform_devices[i], busid);
@@ -412,11 +374,11 @@ static Bool doPlatformProbe(struct xf86_platform_device *dev, DriverPtr drvp,
     if (entity != -1) {
         if ((dev->flags & XF86_PDEV_SERVER_FD) && (!drvp->driverFunc ||
                 !drvp->driverFunc(NULL, SUPPORTS_SERVER_FDS, NULL))) {
-            fd = xf86_get_platform_device_int_attrib(dev, ODEV_ATTRIB_FD, -1);
-            major = xf86_get_platform_device_int_attrib(dev, ODEV_ATTRIB_MAJOR, 0);
-            minor = xf86_get_platform_device_int_attrib(dev, ODEV_ATTRIB_MINOR, 0);
+            fd = dev->attribs->fd;
+            major = dev->attribs->major;
+            minor = dev->attribs->minor;
             systemd_logind_release_fd(major, minor, fd);
-            config_odev_add_int_attribute(dev->attribs, ODEV_ATTRIB_FD, -1);
+            dev->attribs->fd = -1;
             dev->flags &= ~XF86_PDEV_SERVER_FD;
         }
 

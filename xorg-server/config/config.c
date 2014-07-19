@@ -128,128 +128,21 @@ device_is_duplicate(const char *config_info)
 }
 
 struct OdevAttributes *
-config_odev_allocate_attribute_list(void)
+config_odev_allocate_attributes(void)
 {
-    struct OdevAttributes *attriblist;
-
-    attriblist = XNFalloc(sizeof(struct OdevAttributes));
-    xorg_list_init(&attriblist->list);
-    return attriblist;
-}
-
-void
-config_odev_free_attribute_list(struct OdevAttributes *attribs)
-{
-    config_odev_free_attributes(attribs);
-    free(attribs);
-}
-
-static struct OdevAttribute *
-config_odev_find_attribute(struct OdevAttributes *attribs, int attrib_id)
-{
-    struct OdevAttribute *oa;
-
-    xorg_list_for_each_entry(oa, &attribs->list, member) {
-        if (oa->attrib_id == attrib_id)
-          return oa;
-    }
-    return NULL;
-}
-
-static struct OdevAttribute *
-config_odev_find_or_add_attribute(struct OdevAttributes *attribs, int attrib)
-{
-    struct OdevAttribute *oa;
-
-    oa = config_odev_find_attribute(attribs, attrib);
-    if (oa)
-        return oa;
-
-    oa = XNFcalloc(sizeof(struct OdevAttribute));
-    oa->attrib_id = attrib;
-    xorg_list_append(&oa->member, &attribs->list);
-
-    return oa;
-}
-
-Bool
-config_odev_add_attribute(struct OdevAttributes *attribs, int attrib,
-                          const char *attrib_name)
-{
-    struct OdevAttribute *oa;
-
-    oa = config_odev_find_or_add_attribute(attribs, attrib);
-    free(oa->attrib_name);
-    oa->attrib_name = XNFstrdup(attrib_name);
-    oa->attrib_type = ODEV_ATTRIB_STRING;
-    return TRUE;
-}
-
-Bool
-config_odev_add_int_attribute(struct OdevAttributes *attribs, int attrib,
-                              int attrib_value)
-{
-    struct OdevAttribute *oa;
-
-    oa = config_odev_find_or_add_attribute(attribs, attrib);
-    oa->attrib_value = attrib_value;
-    oa->attrib_type = ODEV_ATTRIB_INT;
-    return TRUE;
-}
-
-char *
-config_odev_get_attribute(struct OdevAttributes *attribs, int attrib_id)
-{
-    struct OdevAttribute *oa;
-
-    oa = config_odev_find_attribute(attribs, attrib_id);
-    if (!oa)
-        return NULL;
-
-    if (oa->attrib_type != ODEV_ATTRIB_STRING) {
-        LogMessage(X_ERROR, "Error %s called for non string attrib %d\n",
-                   __func__, attrib_id);
-        return NULL;
-    }
-    return oa->attrib_name;
-}
-
-int
-config_odev_get_int_attribute(struct OdevAttributes *attribs, int attrib_id, int def)
-{
-    struct OdevAttribute *oa;
-
-    oa = config_odev_find_attribute(attribs, attrib_id);
-    if (!oa)
-        return def;
-
-    if (oa->attrib_type != ODEV_ATTRIB_INT) {
-        LogMessage(X_ERROR, "Error %s called for non integer attrib %d\n",
-                   __func__, attrib_id);
-        return def;
-    }
-
-    return oa->attrib_value;
+    struct OdevAttributes *attribs = XNFcalloc(sizeof (struct OdevAttributes));
+    attribs->fd = -1;
+    return attribs;
 }
 
 void
 config_odev_free_attributes(struct OdevAttributes *attribs)
 {
-    struct OdevAttribute *iter, *safe;
-    int major = 0, minor = 0, fd = -1;
-
-    xorg_list_for_each_entry_safe(iter, safe, &attribs->list, member) {
-        switch (iter->attrib_id) {
-        case ODEV_ATTRIB_MAJOR: major = iter->attrib_value; break;
-        case ODEV_ATTRIB_MINOR: minor = iter->attrib_value; break;
-        case ODEV_ATTRIB_FD: fd = iter->attrib_value; break;
-        }
-        xorg_list_del(&iter->member);
-        if (iter->attrib_type == ODEV_ATTRIB_STRING)
-            free(iter->attrib_name);
-        free(iter);
-    }
-
-    if (fd != -1)
-        systemd_logind_release_fd(major, minor, fd);
+    if (attribs->fd != -1)
+        systemd_logind_release_fd(attribs->major, attribs->minor, attribs->fd);
+    free(attribs->path);
+    free(attribs->syspath);
+    free(attribs->busid);
+    free(attribs->driver);
+    free(attribs);
 }

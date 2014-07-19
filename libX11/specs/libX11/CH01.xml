@@ -678,7 +678,7 @@ store.
   </listitem>
   <listitem>
     <para>
-The user should have control of his screen real estate.
+The user should have control of their screen real estate.
 Therefore, you should write your applications to react to window management
 rather than presume control of the entire screen.
 What you do inside of your top-level window, however,

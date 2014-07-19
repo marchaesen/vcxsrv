@@ -67,6 +67,11 @@ typedef struct _miDash *miDashPtr;
 
 /* miarc.c */
 
+extern _X_EXPORT void miWideArc(DrawablePtr pDraw,
+                                GCPtr pGC,
+                                int narcs,
+                                xArc * parcs);
+
 extern _X_EXPORT void miPolyArc(DrawablePtr /*pDraw */ ,
                                 GCPtr /*pGC */ ,
                                 int /*narcs */ ,
@@ -265,22 +270,22 @@ extern _X_EXPORT void miPolyFillRect(DrawablePtr /*pDrawable */ ,
 
 /* miglblt.c */
 
-extern _X_EXPORT void miPolyGlyphBlt(DrawablePtr /*pDrawable */ ,
-                                     GCPtr /*pGC */ ,
-                                     int /*x */ ,
-                                     int /*y */ ,
-                                     unsigned int /*nglyph */ ,
-                                     CharInfoPtr * /*ppci */ ,
-                                     void */*pglyphBase */
+extern _X_EXPORT void miPolyGlyphBlt(DrawablePtr pDrawable,
+                                     GCPtr pGC,
+                                     int x,
+                                     int y,
+                                     unsigned int nglyph,
+                                     CharInfoPtr *ppci,
+                                     void *pglyphBase
     );
 
-extern _X_EXPORT void miImageGlyphBlt(DrawablePtr /*pDrawable */ ,
-                                      GCPtr /*pGC */ ,
-                                      int /*x */ ,
-                                      int /*y */ ,
-                                      unsigned int /*nglyph */ ,
-                                      CharInfoPtr * /*ppci */ ,
-                                      void */*pglyphBase */
+extern _X_EXPORT void miImageGlyphBlt(DrawablePtr pDrawable,
+                                      GCPtr pGC,
+                                      int x,
+                                      int y,
+                                      unsigned int nglyph,
+                                      CharInfoPtr *ppci,
+                                      void *pglyphBase
     );
 
 /* mipoly.c */
@@ -381,36 +386,36 @@ extern _X_EXPORT void miPushPixels(GCPtr /*pGC */ ,
 
 /* miscrinit.c */
 
-extern _X_EXPORT Bool miModifyPixmapHeader(PixmapPtr /*pPixmap */ ,
-                                           int /*width */ ,
-                                           int /*height */ ,
-                                           int /*depth */ ,
-                                           int /*bitsPerPixel */ ,
-                                           int /*devKind */ ,
-                                           void */*pPixData */
+extern _X_EXPORT Bool miModifyPixmapHeader(PixmapPtr pPixmap,
+                                           int width,
+                                           int height,
+                                           int depth,
+                                           int bitsPerPixel,
+                                           int devKind,
+                                           void *pPixData
     );
 
 extern _X_EXPORT Bool miCreateScreenResources(ScreenPtr /*pScreen */
     );
 
-extern _X_EXPORT Bool miScreenDevPrivateInit(ScreenPtr /*pScreen */ ,
-                                             int /*width */ ,
-                                             void */*pbits */
+extern _X_EXPORT Bool miScreenDevPrivateInit(ScreenPtr pScreen,
+                                             int width,
+                                             void *pbits
     );
 
-extern _X_EXPORT Bool miScreenInit(ScreenPtr /*pScreen */ ,
-                                   void */*pbits */ ,
-                                   int /*xsize */ ,
-                                   int /*ysize */ ,
-                                   int /*dpix */ ,
-                                   int /*dpiy */ ,
-                                   int /*width */ ,
-                                   int /*rootDepth */ ,
-                                   int /*numDepths */ ,
-                                   DepthPtr /*depths */ ,
-                                   VisualID /*rootVisual */ ,
-                                   int /*numVisuals */ ,
-                                   VisualPtr    /*visuals */
+extern _X_EXPORT Bool miScreenInit(ScreenPtr pScreen,
+                                   void *pbits,
+                                   int xsize,
+                                   int ysize,
+                                   int dpix,
+                                   int dpiy,
+                                   int width,
+                                   int rootDepth,
+                                   int numDepths,
+                                   DepthPtr depths,
+                                   VisualID rootVisual,
+                                   int numVisuals,
+                                   VisualPtr visuals
     );
 
 /* mivaltree.c */
@@ -451,6 +456,12 @@ extern _X_EXPORT void miWideDash(DrawablePtr /*pDrawable */ ,
                                  int /*npt */ ,
                                  DDXPointPtr    /*pPts */
     );
+
+extern _X_EXPORT void miPolylines(DrawablePtr pDrawable,
+                                  GCPtr pGC,
+                                  int mode,
+                                  int npt,
+                                  DDXPointPtr pPts);
 
 /* miwindow.c */
 

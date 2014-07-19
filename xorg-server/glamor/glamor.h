@@ -63,7 +63,7 @@ typedef enum glamor_pixmap_type {
 } glamor_pixmap_type_t;
 
 #define GLAMOR_EGL_EXTERNAL_BUFFER 3
-#define GLAMOR_INVERTED_Y_AXIS  	1
+#define GLAMOR_INVERTED_Y_AXIS         1 /* compat stub */
 #define GLAMOR_USE_SCREEN		(1 << 1)
 #define GLAMOR_USE_PICTURE_SCREEN 	(1 << 2)
 #define GLAMOR_USE_EGL_SCREEN		(1 << 3)
@@ -78,12 +78,6 @@ typedef enum glamor_pixmap_type {
  *
  * @screen: Current screen pointer.
  * @flags:  Please refer the flags description above.
- *
- * 	@GLAMOR_INVERTED_Y_AXIS:
- * 	set 1 means the GL env's origin (0,0) is at top-left.
- * 	EGL/DRM platform is an example need to set this bit.
- * 	glx platform's origin is at bottom-left thus need to
- * 	clear this bit.
  *
  * 	@GLAMOR_USE_SCREEN:
  *	If running in an pre-existing X environment, and the
@@ -321,6 +315,10 @@ extern _X_EXPORT int glamor_create_gc(GCPtr gc);
 extern _X_EXPORT void glamor_validate_gc(GCPtr gc, unsigned long changes,
                                          DrawablePtr drawable);
 
+extern _X_EXPORT void glamor_destroy_gc(GCPtr gc);
+
+#define HAS_GLAMOR_DESTROY_GC 1
+
 extern Bool _X_EXPORT glamor_change_window_attributes(WindowPtr pWin, unsigned long mask);
 extern void _X_EXPORT glamor_copy_window(WindowPtr window, DDXPointRec old_origin, RegionPtr src_region);
 
@@ -353,6 +351,17 @@ extern _X_EXPORT Bool glamor_copy_n_to_n_nf(DrawablePtr src,
                                             Bool reverse,
                                             Bool upsidedown, Pixel bitplane,
                                             void *closure);
+
+extern _X_EXPORT Bool glamor_copy_nf(DrawablePtr src,
+                                     DrawablePtr dst,
+                                     GCPtr gc,
+                                     BoxPtr box,
+                                     int nbox,
+                                     int dx,
+                                     int dy,
+                                     Bool reverse,
+                                     Bool upsidedown, Pixel bitplane,
+                                     void *closure);
 
 extern _X_EXPORT Bool glamor_composite_nf(CARD8 op,
                                           PicturePtr source,

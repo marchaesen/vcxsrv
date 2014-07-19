@@ -67,16 +67,18 @@ Status XWithdrawWindow (
     Window w,
     int screen)
 {
-    XUnmapEvent ev;
-    Window root = RootWindow (dpy, screen);
-
     XUnmapWindow (dpy, w);
 
-    ev.type = UnmapNotify;
-    ev.event = root;
-    ev.window = w;
-    ev.from_configure = False;
-    return (XSendEvent (dpy, root, False,
-			SubstructureRedirectMask|SubstructureNotifyMask,
-			(XEvent *)&ev));
+    {
+        Window root = RootWindow (dpy, screen);
+        XUnmapEvent ev = {
+            .type = UnmapNotify,
+            .event = root,
+            .window = w,
+            .from_configure = False
+        };
+        return (XSendEvent (dpy, root, False,
+                            SubstructureRedirectMask|SubstructureNotifyMask,
+                            (XEvent *)&ev));
+    }
 }

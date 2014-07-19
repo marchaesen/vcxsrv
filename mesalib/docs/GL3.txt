@@ -98,7 +98,7 @@ GL 4.0:
 
   GLSL 4.0                                             not started
   GL_ARB_draw_buffers_blend                            DONE (i965, nv50, nvc0, r600, radeonsi, softpipe)
-  GL_ARB_draw_indirect                                 DONE (i965)
+  GL_ARB_draw_indirect                                 DONE (i965, nvc0, radeonsi, softpipe, llvmpipe)
   GL_ARB_gpu_shader5                                   started
   - 'precise' qualifier                                DONE
   - Dynamically uniform sampler array indices          started (Chris)
@@ -110,7 +110,7 @@ GL 4.0:
   - Geometry shader instancing                         DONE (i965, nvc0)
   - Geometry shader multiple streams                   DONE (i965, nvc0)
   - Enhanced per-sample shading                        DONE (i965)
-  - Interpolation functions                            started (Chris)
+  - Interpolation functions                            DONE (i965)
   - New overload resolution rules                      DONE
   GL_ARB_gpu_shader_fp64                               started (Dave)
   GL_ARB_sample_shading                                DONE (i965, nv50, nvc0, radeonsi)
@@ -118,7 +118,7 @@ GL 4.0:
   GL_ARB_tessellation_shader                           started (Fabian)
   GL_ARB_texture_buffer_object_rgb32                   DONE (i965, nvc0, r600, radeonsi, softpipe)
   GL_ARB_texture_cube_map_array                        DONE (i965, nv50, nvc0, r600, radeonsi, softpipe)
-  GL_ARB_texture_gather                                DONE (i965, nv50, nvc0, radeonsi)
+  GL_ARB_texture_gather                                DONE (i965, nv50, nvc0, radeonsi, r600)
   GL_ARB_texture_query_lod                             DONE (i965, nv50, nvc0, radeonsi)
   GL_ARB_transform_feedback2                           DONE (i965, nv50, nvc0, r600, radeonsi)
   GL_ARB_transform_feedback3                           DONE (i965, nv50, nvc0, r600, radeonsi)
@@ -165,7 +165,7 @@ GL 4.3:
   GL_ARB_framebuffer_no_attachments                    not started
   GL_ARB_internalformat_query2                         not started
   GL_ARB_invalidate_subdata                            DONE (all drivers)
-  GL_ARB_multi_draw_indirect                           DONE (i965)
+  GL_ARB_multi_draw_indirect                           DONE (i965, nvc0, radeonsi, softpipe, llvmpipe)
   GL_ARB_program_interface_query                       not started
   GL_ARB_robust_buffer_access_behavior                 not started
   GL_ARB_shader_image_size                             not started

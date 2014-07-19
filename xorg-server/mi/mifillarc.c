@@ -476,26 +476,16 @@ miFillArcSliceSetup(xArc * arc, miArcSliceRec * slice, GCPtr pGC)
 	*wids++ = slw; \
     }
 
-static void
-miFillEllipseI(DrawablePtr pDraw, GCPtr pGC, xArc * arc)
+static int
+miFillEllipseI(DrawablePtr pDraw, GCPtr pGC, xArc * arc, DDXPointPtr points, int *widths)
 {
     int x, y, e;
     int yk, xk, ym, xm, dx, dy, xorg, yorg;
     int slw;
     miFillArcRec info;
-    DDXPointPtr points;
     DDXPointPtr pts;
-    int *widths;
     int *wids;
 
-    points = malloc(sizeof(DDXPointRec) * arc->height);
-    if (!points)
-        return;
-    widths = malloc(sizeof(int) * arc->height);
-    if (!widths) {
-        free(points);
-        return;
-    }
     miFillArcSetup(arc, &info);
     MIFILLARCSETUP();
     if (pGC->miTranslate) {
@@ -508,31 +498,19 @@ miFillEllipseI(DrawablePtr pDraw, GCPtr pGC, xArc * arc)
         MIFILLARCSTEP(slw);
         ADDSPANS();
     }
-    (*pGC->ops->FillSpans) (pDraw, pGC, pts - points, points, widths, FALSE);
-    free(widths);
-    free(points);
+    return pts - points;
 }
 
-static void
-miFillEllipseD(DrawablePtr pDraw, GCPtr pGC, xArc * arc)
+static int
+miFillEllipseD(DrawablePtr pDraw, GCPtr pGC, xArc * arc, DDXPointPtr points, int *widths)
 {
     int x, y;
     int xorg, yorg, dx, dy, slw;
     double e, yk, xk, ym, xm;
     miFillArcDRec info;
-    DDXPointPtr points;
     DDXPointPtr pts;
-    int *widths;
     int *wids;
 
-    points = malloc(sizeof(DDXPointRec) * arc->height);
-    if (!points)
-        return;
-    widths = malloc(sizeof(int) * arc->height);
-    if (!widths) {
-        free(points);
-        return;
-    }
     miFillArcDSetup(arc, &info);
     MIFILLARCSETUP();
     if (pGC->miTranslate) {
@@ -545,9 +523,7 @@ miFillEllipseD(DrawablePtr pDraw, GCPtr pGC, xArc * arc)
         MIFILLARCSTEP(slw);
         ADDSPANS();
     }
-    (*pGC->ops->FillSpans) (pDraw, pGC, pts - points, points, widths, FALSE);
-    free(widths);
-    free(points);
+    return pts - points;
 }
 
 #define ADDSPAN(l,r) \
@@ -572,17 +548,15 @@ miFillEllipseD(DrawablePtr pDraw, GCPtr pGC, xArc * arc)
 	ADDSPAN(xl, xc); \
     }
 
-static void
-miFillArcSliceI(DrawablePtr pDraw, GCPtr pGC, xArc * arc)
+static int
+miFillArcSliceI(DrawablePtr pDraw, GCPtr pGC, xArc * arc, DDXPointPtr points, int *widths)
 {
     int yk, xk, ym, xm, dx, dy, xorg, yorg, slw;
     int x, y, e;
     miFillArcRec info;
     miArcSliceRec slice;
     int ya, xl, xr, xc;
-    DDXPointPtr points;
     DDXPointPtr pts;
-    int *widths;
     int *wids;
 
     miFillArcSetup(arc, &info);
@@ -591,14 +565,6 @@ miFillArcSliceI(DrawablePtr pDraw, GCPtr pGC, xArc * arc)
     slw = arc->height;
     if (slice.flip_top || slice.flip_bot)
         slw += (arc->height >> 1) + 1;
-    points = malloc(sizeof(DDXPointRec) * slw);
-    if (!points)
-        return;
-    widths = malloc(sizeof(int) * slw);
-    if (!widths) {
-        free(points);
-        return;
-    }
     if (pGC->miTranslate) {
         xorg += pDraw->x;
         yorg += pDraw->y;
@@ -622,13 +588,11 @@ miFillArcSliceI(DrawablePtr pDraw, GCPtr pGC, xArc * arc)
             ADDSLICESPANS(slice.flip_bot);
         }
     }
-    (*pGC->ops->FillSpans) (pDraw, pGC, pts - points, points, widths, FALSE);
-    free(widths);
-    free(points);
+    return pts - points;
 }
 
-static void
-miFillArcSliceD(DrawablePtr pDraw, GCPtr pGC, xArc * arc)
+static int
+miFillArcSliceD(DrawablePtr pDraw, GCPtr pGC, xArc * arc, DDXPointPtr points, int *widths)
 {
     int x, y;
     int dx, dy, xorg, yorg, slw;
@@ -636,9 +600,7 @@ miFillArcSliceD(DrawablePtr pDraw, GCPtr pGC, xArc * arc)
     miFillArcDRec info;
     miArcSliceRec slice;
     int ya, xl, xr, xc;
-    DDXPointPtr points;
     DDXPointPtr pts;
-    int *widths;
     int *wids;
 
     miFillArcDSetup(arc, &info);
@@ -647,14 +609,6 @@ miFillArcSliceD(DrawablePtr pDraw, GCPtr pGC, xArc * arc)
     slw = arc->height;
     if (slice.flip_top || slice.flip_bot)
         slw += (arc->height >> 1) + 1;
-    points = malloc(sizeof(DDXPointRec) * slw);
-    if (!points)
-        return;
-    widths = malloc(sizeof(int) * slw);
-    if (!widths) {
-        free(points);
-        return;
-    }
     if (pGC->miTranslate) {
         xorg += pDraw->x;
         yorg += pDraw->y;
@@ -678,35 +632,69 @@ miFillArcSliceD(DrawablePtr pDraw, GCPtr pGC, xArc * arc)
             ADDSLICESPANS(slice.flip_bot);
         }
     }
-    (*pGC->ops->FillSpans) (pDraw, pGC, pts - points, points, widths, FALSE);
-    free(widths);
-    free(points);
+    return pts - points;
 }
 
 /* MIPOLYFILLARC -- The public entry for the PolyFillArc request.
  * Since we don't have to worry about overlapping segments, we can just
  * fill each arc as it comes.
  */
-void
-miPolyFillArc(DrawablePtr pDraw, GCPtr pGC, int narcs, xArc * parcs)
-{
-    int i;
-    xArc *arc;
 
-    for (i = narcs, arc = parcs; --i >= 0; arc++) {
-        if (miFillArcEmpty(arc))
-            continue;
-        if ((arc->angle2 >= FULLCIRCLE) || (arc->angle2 <= -FULLCIRCLE)) {
-            if (miCanFillArc(arc))
-                miFillEllipseI(pDraw, pGC, arc);
-            else
-                miFillEllipseD(pDraw, pGC, arc);
+/* Limit the number of spans in a single draw request to avoid integer
+ * overflow in the computation of the span buffer size.
+ */
+#define MAX_SPANS_PER_LOOP      (4 * 1024 * 1024)
+
+void
+miPolyFillArc(DrawablePtr pDraw, GCPtr pGC, int narcs_all, xArc * parcs)
+{
+    while (narcs_all > 0) {
+        int narcs;
+        int i;
+        xArc *arc;
+        int nspans = 0;
+        DDXPointPtr pts, points;
+        int *wids, *widths;
+        int n;
+
+        for (narcs = 0, arc = parcs; narcs < narcs_all; narcs++, arc++) {
+            if (narcs && nspans + arc->height > MAX_SPANS_PER_LOOP)
+                break;
+            nspans += arc->height;
         }
-        else {
-            if (miCanFillArc(arc))
-                miFillArcSliceI(pDraw, pGC, arc);
-            else
-                miFillArcSliceD(pDraw, pGC, arc);
+
+        pts = points = malloc (sizeof (DDXPointRec) * nspans +
+                               sizeof(int) * nspans);
+        if (points) {
+            wids = widths = (int *) (points + nspans);
+
+            for (i = 0, arc = parcs; i < narcs; arc++, i++) {
+                if (miFillArcEmpty(arc))
+                    continue;
+                if ((arc->angle2 >= FULLCIRCLE) || (arc->angle2 <= -FULLCIRCLE))
+                {
+                    if (miCanFillArc(arc))
+                        n = miFillEllipseI(pDraw, pGC, arc, pts, wids);
+                    else
+                        n = miFillEllipseD(pDraw, pGC, arc, pts, wids);
+                }
+                else
+                {
+                    if (miCanFillArc(arc))
+                        n = miFillArcSliceI(pDraw, pGC, arc, pts, wids);
+                    else
+                        n = miFillArcSliceD(pDraw, pGC, arc, pts, wids);
+                }
+                pts += n;
+                wids += n;
+            }
+            nspans = pts - points;
+            if (nspans)
+                (*pGC->ops->FillSpans) (pDraw, pGC, nspans, points,
+                                        widths, FALSE);
+            free (points);
         }
+        parcs += narcs;
+        narcs_all -= narcs;
     }
 }

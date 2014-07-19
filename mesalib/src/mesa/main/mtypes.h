@@ -1640,6 +1640,17 @@ struct gl_vertex_array_object
 };
 
 
+/** Used to signal when transitioning from one kind of drawing method
+ * to another.
+ */
+typedef enum {
+   DRAW_NONE,          /**< Initial value only */
+   DRAW_BEGIN_END,
+   DRAW_DISPLAY_LIST,
+   DRAW_ARRAYS
+} gl_draw_method;
+
+
 /**
  * Vertex array state
  */
@@ -1679,6 +1690,9 @@ struct gl_array_attrib
     * The array pointer is set up only by the VBO module.
     */
    const struct gl_client_array **_DrawArrays; /**< 0..VERT_ATTRIB_MAX-1 */
+
+   /** One of the DRAW_xxx flags, not consumed by drivers */
+   gl_draw_method DrawMethod;
 };
 
 
@@ -3347,6 +3361,11 @@ struct gl_constants
     * as if they began with "#version ForceGLSLVersion".
     */
    GLuint ForceGLSLVersion;
+
+   /**
+    * Allow GLSL #extension directives in the middle of shaders.
+    */
+   GLboolean AllowGLSLExtensionDirectiveMidShader;
 
    /**
     * Does the driver support real 32-bit integers?  (Otherwise, integers are

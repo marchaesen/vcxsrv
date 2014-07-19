@@ -596,15 +596,15 @@ extern _X_EXPORT void XkbSendCompatMapNotify(DeviceIntPtr /* kbd */ ,
                                              xkbCompatMapNotify *       /* ev */
     );
 
-extern _X_EXPORT void XkbHandleBell(BOOL /* force */ ,
-                                    BOOL /* eventOnly */ ,
-                                    DeviceIntPtr /* kbd */ ,
-                                    CARD8 /* percent */ ,
-                                    void */* ctrl */ ,
-                                    CARD8 /* class */ ,
-                                    Atom /* name */ ,
-                                    WindowPtr /* pWin */ ,
-                                    ClientPtr   /* pClient */
+extern _X_EXPORT void XkbHandleBell(BOOL force,
+                                    BOOL eventOnly,
+                                    DeviceIntPtr kbd,
+                                    CARD8 percent,
+                                    void *ctrl,
+                                    CARD8 class,
+                                    Atom name,
+                                    WindowPtr pWin,
+                                    ClientPtr pClient
     );
 
 extern _X_EXPORT void XkbSendAccessXNotify(DeviceIntPtr /* kbd */ ,

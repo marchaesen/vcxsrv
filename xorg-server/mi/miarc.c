@@ -886,7 +886,7 @@ miFillWideEllipse(DrawablePtr pDraw, GCPtr pGC, xArc * parc)
  */
 
 void
-miPolyArc(DrawablePtr pDraw, GCPtr pGC, int narcs, xArc * parcs)
+miWideArc(DrawablePtr pDraw, GCPtr pGC, int narcs, xArc * parcs)
 {
     int i;
     xArc *parc;
@@ -3395,4 +3395,13 @@ drawQuadrant(struct arc_def *def,
                 ICEIL(acc->fromIntX + x), 0, def, &bound, acc, mask);
         y--;
     }
+}
+
+void
+miPolyArc(DrawablePtr pDraw, GCPtr pGC, int narcs, xArc * parcs)
+{
+    if (pGC->lineWidth == 0)
+        miZeroPolyArc(pDraw, pGC, narcs, parcs);
+    else
+        miWideArc(pDraw, pGC, narcs, parcs);
 }

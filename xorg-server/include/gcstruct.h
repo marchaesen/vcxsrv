@@ -76,10 +76,10 @@ typedef struct _GCFuncs {
 
     void (*DestroyGC) (GCPtr /*pGC */ );
 
-    void (*ChangeClip) (GCPtr /*pGC */ ,
-                        int /*type */ ,
-                        void */*pvalue */ ,
-                        int /*nrects */ );
+    void (*ChangeClip) (GCPtr pGC,
+                        int type,
+                        void *pvalue,
+                        int nrects);
 
     void (*DestroyClip) (GCPtr /*pGC */ );
 
@@ -210,21 +210,21 @@ typedef struct _GCOps {
                          int /*count */ ,
                          unsigned short * /*chars */ );
 
-    void (*ImageGlyphBlt) (DrawablePtr /*pDrawable */ ,
-                           GCPtr /*pGC */ ,
-                           int /*x */ ,
-                           int /*y */ ,
-                           unsigned int /*nglyph */ ,
-                           CharInfoPtr * /*ppci */ ,
-                           void */*pglyphBase */ );
+    void (*ImageGlyphBlt) (DrawablePtr pDrawable,
+                           GCPtr pGC,
+                           int x,
+                           int y,
+                           unsigned int nglyph,
+                           CharInfoPtr *ppci,
+                           void *pglyphBase);
 
-    void (*PolyGlyphBlt) (DrawablePtr /*pDrawable */ ,
-                          GCPtr /*pGC */ ,
-                          int /*x */ ,
-                          int /*y */ ,
-                          unsigned int /*nglyph */ ,
-                          CharInfoPtr * /*ppci */ ,
-                          void */*pglyphBase */ );
+    void (*PolyGlyphBlt) (DrawablePtr pDrawable,
+                          GCPtr pGC,
+                          int x,
+                          int y,
+                          unsigned int nglyph,
+                          CharInfoPtr *ppci,
+                          void *pglyphBase);
 
     void (*PushPixels) (GCPtr /*pGC */ ,
                         PixmapPtr /*pBitMap */ ,

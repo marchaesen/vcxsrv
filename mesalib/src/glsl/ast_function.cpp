@@ -178,6 +178,24 @@ verify_parameter_modes(_mesa_glsl_parse_state *state,
 	 return false;
       }
 
+      /* Verify that shader_in parameters are shader inputs */
+      if (formal->data.must_be_shader_input) {
+         ir_variable *var = actual->variable_referenced();
+         if (var && var->data.mode != ir_var_shader_in) {
+            _mesa_glsl_error(&loc, state,
+                             "parameter `%s` must be a shader input",
+                             formal->name);
+            return false;
+         }
+
+         if (actual->ir_type == ir_type_swizzle) {
+            _mesa_glsl_error(&loc, state,
+                             "parameter `%s` must not be swizzled",
+                             formal->name);
+            return false;
+         }
+      }
+
       /* Verify that 'out' and 'inout' actual parameters are lvalues. */
       if (formal->data.mode == ir_var_function_out
           || formal->data.mode == ir_var_function_inout) {
@@ -742,11 +760,22 @@ process_vec_mat_constructor(exec_list *instructions,
    instructions->push_tail(var);
 
    int i = 0;
-   foreach_in_list(ir_rvalue, rhs, &actual_parameters) {
-      ir_rvalue *lhs = new(ctx) ir_dereference_array(var,
-                                                     new(ctx) ir_constant(i));
 
-      ir_instruction *assignment = new(ctx) ir_assignment(lhs, rhs, NULL);
+   foreach_in_list(ir_rvalue, rhs, &actual_parameters) {
+      ir_instruction *assignment = NULL;
+
+      if (var->type->is_matrix()) {
+         ir_rvalue *lhs = new(ctx) ir_dereference_array(var,
+                                             new(ctx) ir_constant(i));
+         assignment = new(ctx) ir_assignment(lhs, rhs, NULL);
+      } else {
+         /* use writemask rather than index for vector */
+         assert(var->type->is_vector());
+         assert(i < 4);
+         ir_dereference *lhs = new(ctx) ir_dereference_variable(var);
+         assignment = new(ctx) ir_assignment(lhs, rhs, NULL, (unsigned)(1 << i));
+      }
+
       instructions->push_tail(assignment);
 
       i++;

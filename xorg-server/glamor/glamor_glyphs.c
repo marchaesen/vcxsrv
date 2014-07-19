@@ -168,7 +168,7 @@ clear_mask_cache(struct glamor_glyph_mask_cache *maskcache)
     struct glamor_glyph_mask_cache_entry *mce;
 
     glamor_solid(maskcache->pixmap, 0, CACHE_PICTURE_SIZE, CACHE_PICTURE_SIZE,
-                 MASK_CACHE_MAX_SIZE, GXcopy, 0xFFFFFFFF, 0);
+                 MASK_CACHE_MAX_SIZE, 0);
     mce = &maskcache->mcache[0];
     while (cnt--) {
         mce->width = 0;
@@ -448,9 +448,9 @@ glamor_glyph_cache_upload_glyph(ScreenPtr screen,
     box.y1 = y;
     box.x2 = x + glyph->info.width;
     box.y2 = y + glyph->info.height;
-    glamor_copy_n_to_n_nf(&scratch->drawable,
-                          &pCachePixmap->drawable, NULL,
-                          &box, 1, -x, -y, FALSE, FALSE, 0, NULL);
+    glamor_copy(&scratch->drawable,
+                &pCachePixmap->drawable, NULL,
+                &box, 1, -x, -y, FALSE, FALSE, 0, NULL);
     if (scratch != pGlyphPixmap)
         screen->DestroyPixmap(scratch);
 
@@ -1433,7 +1433,7 @@ glamor_glyphs_via_mask(CARD8 op,
             glamor_destroy_pixmap(mask_pixmap);
             return;
         }
-        glamor_solid(mask_pixmap, 0, 0, width, height, GXcopy, 0xFFFFFFFF, 0);
+        glamor_solid(mask_pixmap, 0, 0, width, height, 0);
         component_alpha = NeedsComponent(mask_format->format);
         mask = CreatePicture(0, &mask_pixmap->drawable,
                              mask_format, CPComponentAlpha,

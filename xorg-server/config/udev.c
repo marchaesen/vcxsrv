@@ -462,12 +462,12 @@ config_udev_odev_setup_attribs(const char *path, const char *syspath,
                                int major, int minor,
                                config_odev_probe_proc_ptr probe_callback)
 {
-    struct OdevAttributes *attribs = config_odev_allocate_attribute_list();
+    struct OdevAttributes *attribs = config_odev_allocate_attributes();
 
-    config_odev_add_attribute(attribs, ODEV_ATTRIB_PATH, path);
-    config_odev_add_attribute(attribs, ODEV_ATTRIB_SYSPATH, syspath);
-    config_odev_add_int_attribute(attribs, ODEV_ATTRIB_MAJOR, major);
-    config_odev_add_int_attribute(attribs, ODEV_ATTRIB_MINOR, minor);
+    attribs->path = XNFstrdup(path);
+    attribs->syspath = XNFstrdup(syspath);
+    attribs->major = major;
+    attribs->minor = minor;
 
     /* ownership of attribs is passed to probe layer */
     probe_callback(attribs);

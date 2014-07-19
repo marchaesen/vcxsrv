@@ -130,6 +130,7 @@ typedef struct _KdCardFuncs {
     void (*getColors) (ScreenPtr, int, xColorItem *);
     void (*putColors) (ScreenPtr, int, xColorItem *);
 
+    void (*closeScreen) (ScreenPtr);    /* close ScreenRec */
 } KdCardFuncs;
 
 #define KD_MAX_PSEUDO_DEPTH 8

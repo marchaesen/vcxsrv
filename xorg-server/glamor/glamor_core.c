@@ -114,27 +114,6 @@ glamor_link_glsl_prog(ScreenPtr screen, GLint prog, const char *format, ...)
     }
 }
 
-Bool
-glamor_prepare_access(DrawablePtr drawable, glamor_access_t access)
-{
-    PixmapPtr pixmap = glamor_get_drawable_pixmap(drawable);
-    glamor_pixmap_private *pixmap_priv = glamor_get_pixmap_private(pixmap);
-
-    if (pixmap->devPrivate.ptr) {
-        /* Already mapped, nothing needs to be done.  Note that we
-         * aren't allowing promotion from RO to RW, because it would
-         * require re-mapping the PBO.
-         */
-        assert(!GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv) ||
-               access == GLAMOR_ACCESS_RO ||
-               pixmap_priv->base.map_access == GLAMOR_ACCESS_RW);
-        return TRUE;
-    }
-    pixmap_priv->base.map_access = access;
-
-    return glamor_download_pixmap_to_cpu(pixmap, access);
-}
-
 /*
  *  When downloading a unsupported color format to CPU memory,
     we need to shuffle the color elements and then use a supported
@@ -313,102 +292,6 @@ glamor_fini_finish_access_shaders(ScreenPtr screen)
     glDeleteProgram(glamor_priv->finish_access_prog[1]);
 }
 
-void
-glamor_finish_access(DrawablePtr drawable)
-{
-    PixmapPtr pixmap = glamor_get_drawable_pixmap(drawable);
-    glamor_pixmap_private *pixmap_priv = glamor_get_pixmap_private(pixmap);
-    glamor_screen_private *glamor_priv =
-        glamor_get_screen_private(drawable->pScreen);
-
-    if (!GLAMOR_PIXMAP_PRIV_HAS_FBO_DOWNLOADED(pixmap_priv))
-        return;
-
-    /* If we are doing a series of unmaps from a nested map, we're
-     * done.  None of the callers do any rendering to maps after
-     * starting an unmap sequence, so we don't need to delay until the
-     * last nested unmap.
-     */
-    if (!pixmap->devPrivate.ptr)
-        return;
-
-    if (pixmap_priv->base.map_access == GLAMOR_ACCESS_RW) {
-        glamor_restore_pixmap_to_texture(pixmap);
-    }
-
-    if (pixmap_priv->base.fbo->pbo != 0 && pixmap_priv->base.fbo->pbo_valid) {
-        assert(glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP);
-
-        glamor_make_current(glamor_priv);
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-        glDeleteBuffers(1, &pixmap_priv->base.fbo->pbo);
-
-        pixmap_priv->base.fbo->pbo_valid = FALSE;
-        pixmap_priv->base.fbo->pbo = 0;
-    }
-    else {
-        free(pixmap->devPrivate.ptr);
-    }
-
-    if (pixmap_priv->type == GLAMOR_TEXTURE_DRM)
-        pixmap->devKind = pixmap_priv->base.drm_stride;
-
-    if (pixmap_priv->base.gl_fbo == GLAMOR_FBO_DOWNLOADED)
-        pixmap_priv->base.gl_fbo = GLAMOR_FBO_NORMAL;
-
-    pixmap->devPrivate.ptr = NULL;
-}
-
-/**
- * Calls uxa_prepare_access with UXA_PREPARE_SRC for the tile, if that is the
- * current fill style.
- *
- * Solid doesn't use an extra pixmap source, so we don't worry about them.
- * Stippled/OpaqueStippled are 1bpp and can be in fb, so we should worry
- * about them.
- */
-Bool
-glamor_prepare_access_gc(GCPtr gc)
-{
-    if (gc->stipple) {
-        if (!glamor_prepare_access(&gc->stipple->drawable, GLAMOR_ACCESS_RO))
-            return FALSE;
-    }
-    if (gc->fillStyle == FillTiled) {
-        if (!glamor_prepare_access(&gc->tile.pixmap->drawable,
-                                   GLAMOR_ACCESS_RO)) {
-            if (gc->stipple)
-                glamor_finish_access(&gc->stipple->drawable);
-            return FALSE;
-        }
-    }
-    return TRUE;
-}
-
-/**
- * Finishes access to the tile in the GC, if used.
- */
-void
-glamor_finish_access_gc(GCPtr gc)
-{
-    if (gc->fillStyle == FillTiled)
-        glamor_finish_access(&gc->tile.pixmap->drawable);
-    if (gc->stipple)
-        glamor_finish_access(&gc->stipple->drawable);
-}
-
-Bool
-glamor_stipple(PixmapPtr pixmap, PixmapPtr stipple,
-               int x, int y, int width, int height,
-               unsigned char alu, unsigned long planemask,
-               unsigned long fg_pixel, unsigned long bg_pixel,
-               int stipple_x, int stipple_y)
-{
-    glamor_fallback("stubbed out stipple depth %d\n", pixmap->drawable.depth);
-    return FALSE;
-}
-
 GCOps glamor_gc_ops = {
     .FillSpans = glamor_fill_spans,
     .SetSpans = glamor_set_spans,
@@ -431,6 +314,58 @@ GCOps glamor_gc_ops = {
     .PolyGlyphBlt = glamor_poly_glyph_blt,
     .PushPixels = glamor_push_pixels,
 };
+
+/*
+ * When the stipple is changed or drawn to, invalidate any
+ * cached copy
+ */
+static void
+glamor_invalidate_stipple(GCPtr gc)
+{
+    glamor_gc_private *gc_priv = glamor_get_gc_private(gc);
+
+    if (gc_priv->stipple) {
+        if (gc_priv->stipple_damage)
+            DamageUnregister(gc_priv->stipple_damage);
+        glamor_destroy_pixmap(gc_priv->stipple);
+        gc_priv->stipple = NULL;
+    }
+}
+
+static void
+glamor_stipple_damage_report(DamagePtr damage, RegionPtr region,
+                             void *closure)
+{
+    GCPtr       gc = closure;
+
+    glamor_invalidate_stipple(gc);
+}
+
+static void
+glamor_stipple_damage_destroy(DamagePtr damage, void *closure)
+{
+    GCPtr               gc = closure;
+    glamor_gc_private   *gc_priv = glamor_get_gc_private(gc);
+
+    gc_priv->stipple_damage = NULL;
+    glamor_invalidate_stipple(gc);
+}
+
+void
+glamor_track_stipple(GCPtr gc)
+{
+    if (gc->stipple) {
+        glamor_gc_private *gc_priv = glamor_get_gc_private(gc);
+
+        if (!gc_priv->stipple_damage)
+            gc_priv->stipple_damage = DamageCreate(glamor_stipple_damage_report,
+                                                   glamor_stipple_damage_destroy,
+                                                   DamageReportNonEmpty,
+                                                   TRUE, gc->pScreen, gc);
+        if (gc_priv->stipple_damage)
+            DamageRegister(&gc->stipple->drawable, gc_priv->stipple_damage);
+    }
+}
 
 /**
  * uxa_validate_gc() sets the ops to glamor's implementations, which may be
@@ -502,6 +437,9 @@ glamor_validate_gc(GCPtr gc, unsigned long changes, DrawablePtr drawable)
         changes &= ~GCTile;
     }
 
+    if (changes & GCStipple)
+        glamor_invalidate_stipple(gc);
+
     if (changes & GCStipple && gc->stipple) {
         /* We can't inline stipple handling like we do for GCTile because
          * it sets fbgc privates.
@@ -515,14 +453,38 @@ glamor_validate_gc(GCPtr gc, unsigned long changes, DrawablePtr drawable)
         fbValidateGC(gc, changes, drawable);
     }
 
+    if (changes & GCDashList) {
+        glamor_gc_private *gc_priv = glamor_get_gc_private(gc);
+
+        if (gc_priv->dash) {
+            glamor_destroy_pixmap(gc_priv->dash);
+            gc_priv->dash = NULL;
+        }
+    }
+
     gc->ops = &glamor_gc_ops;
+}
+
+void
+glamor_destroy_gc(GCPtr gc)
+{
+    glamor_gc_private *gc_priv = glamor_get_gc_private(gc);
+
+    if (gc_priv->dash) {
+        glamor_destroy_pixmap(gc_priv->dash);
+        gc_priv->dash = NULL;
+    }
+    glamor_invalidate_stipple(gc);
+    if (gc_priv->stipple_damage)
+        DamageDestroy(gc_priv->stipple_damage);
+    miDestroyGC(gc);
 }
 
 static GCFuncs glamor_gc_funcs = {
     glamor_validate_gc,
     miChangeGC,
     miCopyGC,
-    miDestroyGC,
+    glamor_destroy_gc,
     miChangeClip,
     miDestroyClip,
     miCopyClip
@@ -535,6 +497,10 @@ static GCFuncs glamor_gc_funcs = {
 int
 glamor_create_gc(GCPtr gc)
 {
+    glamor_gc_private *gc_priv = glamor_get_gc_private(gc);
+
+    gc_priv->dash = NULL;
+    gc_priv->stipple = NULL;
     if (!fbCreateGC(gc))
         return FALSE;
 

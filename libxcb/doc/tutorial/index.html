@@ -150,7 +150,7 @@
             <li><a class="subsection" href="#DoesBackingStore">DoesBackingStore</a>
             <li><a class="subsection" href="#EventMaskOfScreen">EventMaskOfScreen</a>
           </ol>
-        <li><a class="subsection" href="#misc">Miscellaneaous macros</a>
+        <li><a class="subsection" href="#misc">Miscellaneous macros</a>
           <ol>
             <li><a class="subsection" href="#DisplayOfScreen">DisplayOfScreen</a>
             <li><a class="subsection" href="#DisplayCells">DisplayCells / CellsOfScreen</a>
@@ -1331,7 +1331,7 @@ main ()
       /* We draw the polygonal line */
       xcb_poly_line (c, XCB_COORD_MODE_PREVIOUS, win, foreground, 4, polyline);
 
-      /* We draw the segements */
+      /* We draw the segments */
       xcb_poly_segment (c, win, foreground, 2, segments);
 
       /* We draw the rectangles */
@@ -1470,10 +1470,10 @@ xcb_change_window_attributes (c, win, XCB_CW_EVENT_MASK, values);
 </pre>
         <div class="emph">
         <p>
-        Note: A common bug programmers do is adding code to handle new
+        Note: A common bug programmers have is adding code to handle new
         event types in their program, while forgetting to add the
         masks for these events in the creation of the window. Such a
-        programmer then should sit down for hours debugging his
+        programmer would then sit there for hours debugging their
         program, wondering "Why doesn't my program notice that I
         released the button?", only to find that they registered for
         button press events but not for button release events.
@@ -1830,7 +1830,7 @@ typedef xcb_enter_notify_event_t xcb_leave_notify_event_t;
           keyboard focus using the window manager (often by clicking
           on the title bar of the desired window). Once our window
           has the keyboard focus, every key press or key release will
-          cause an event to be sent to our program (if it regsitered
+          cause an event to be sent to our program (if it registered
           for these event types...).
           </p>
           <li class="subsubtitle"><a name="keypress">Keyboard press and release events</a>
@@ -2090,7 +2090,7 @@ xcb_void_cookie_t xcb_open_font (xcb_connection_t *c,
         Once a font is opened, you have to create a Graphic Context
         that will contain the informations about the color of the
         foreground and the background used when you draw a text in a
-        Drawable. Here is an exemple of a Graphic Context that will
+        Drawable. Here is an example of a Graphic Context that will
         allow us to draw an opened font with a black foreground and a
         white background:
         </p>
@@ -2404,7 +2404,7 @@ xcb_void_cookie_t xcb_change_property (xcb_connection_t *c,       /* Connection 
                                        const void      *data);    /* Data */
 </pre>
         <p>
-        The <span class="code">mode</span> parameter coud be one of
+        The <span class="code">mode</span> parameter could be one of
         the following values (defined in enumeration xcb_prop_mode_t in
         the xproto.h header file):
         </p>
@@ -2939,7 +2939,7 @@ xcb_get_window_attributes_reply_t *xcb_get_window_attributes_reply (xcb_connecti
         latter case, each time the mouse moves onto your window, the
         screen color map will be replaced by your window's color map,
         and you'll see all the other windows on screen change their
-        colors into something quite bizzare. In fact, this is the
+        colors into something quite bizarre. In fact, this is the
         effect you get with X applications that use the "-install"
         command line option.
         </p>
@@ -3302,10 +3302,10 @@ xcb_void_cookie_t xcb_free_pixmap (xcb_connection_t *c,        /* Pointer to the
       <li class="title"><a name="mousecursor">Messing with the mouse cursor</a>
       <p>
       It it possible to modify the shape of the mouse pointer (also
-      called the X pointer) when in certain states, as we otfen see in
+      called the X pointer) when in certain states, as we often see in
       programs. For example, a busy application would often display
-      the sand clock over its main window, to give the user a visual
-      hint that he should wait. Let's see how we can change the mouse
+      the hourglass cursor over its main window, to give the user a visual
+      hint that they should wait. Let's see how we can change the mouse
       cursor of our windows.
       </p>
       <ol>
@@ -3341,7 +3341,7 @@ xcb_void_cookie_t xcb_create_glyph_cursor (xcb_connection_t *c,
         </p>
         <p>
         So we first open that font (see <a href="#loadfont">Loading a Font</a>)
-        and create the new cursor. As for every X ressource, we have to
+        and create the new cursor. As for every X resource, we have to
         ask for an X id with <span class="code">xcb_generate_id</span>
         first:
         </p>

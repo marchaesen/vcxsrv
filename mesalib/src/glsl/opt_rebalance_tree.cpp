@@ -60,6 +60,7 @@
 #include "ir_visitor.h"
 #include "ir_rvalue_visitor.h"
 #include "ir_optimization.h"
+#include "main/macros.h" /* for MAX2 */
 
 /* The DSW algorithm generates a degenerate tree (really, a linked list) in
  * tree_to_vine(). We'd rather not leave a binary expression with only one
@@ -216,7 +217,9 @@ is_reduction(ir_instruction *ir, void *data)
     * constant fold once split up. Handling matrices will need some more
     * work.
     */
-   if (expr->type->is_matrix()) {
+   if (expr->type->is_matrix() ||
+       expr->operands[0]->type->is_matrix() ||
+       (expr->operands[1] && expr->operands[1]->type->is_matrix())) {
       ird->is_reduction = false;
       return;
    }
@@ -261,6 +264,22 @@ handle_expression(ir_expression *expr)
    return expr;
 }
 
+static void
+update_types(ir_instruction *ir, void *)
+{
+   ir_expression *expr = ir->as_expression();
+   if (!expr)
+      return;
+
+   const glsl_type *const new_type =
+      glsl_type::get_instance(expr->type->base_type,
+                              MAX2(expr->operands[0]->type->vector_elements,
+                                   expr->operands[1]->type->vector_elements),
+                              1);
+   assert(new_type != glsl_type::error_type);
+   expr->type = new_type;
+}
+
 void
 ir_rebalance_visitor::handle_rvalue(ir_rvalue **rvalue)
 {
@@ -284,6 +303,8 @@ ir_rebalance_visitor::handle_rvalue(ir_rvalue **rvalue)
     */
    if (new_rvalue == *rvalue)
       return;
+
+   visit_tree(new_rvalue, NULL, NULL, update_types);
 
    *rvalue = new_rvalue;
    this->progress = true;

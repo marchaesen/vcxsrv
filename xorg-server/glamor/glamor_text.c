@@ -293,9 +293,6 @@ glamor_poly_text(DrawablePtr drawable, GCPtr gc,
 
     glDisable(GL_COLOR_LOGIC_OP);
 
-    glamor_priv->state = RENDER_STATE;
-    glamor_priv->render_idle_cnt = 0;
-
     *final_pos = x;
     return TRUE;
 
@@ -492,9 +489,6 @@ glamor_image_text(DrawablePtr drawable, GCPtr gc,
 
     (void) glamor_text(drawable, gc, glamor_font, prog,
                        x, y, count, chars, charinfo, sixteen);
-
-    glamor_priv->state = RENDER_STATE;
-    glamor_priv->render_idle_cnt = 0;
 
     return TRUE;
 

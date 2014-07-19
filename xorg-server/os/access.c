@@ -1217,9 +1217,9 @@ AddHost(ClientPtr client, int family, unsigned length,  /* of bytes in pAddr */
 }
 
 Bool
-ForEachHostInFamily(int family, Bool (*func) (unsigned char * /* addr */ ,
-                                              short /* len */ ,
-                                              void */* closure */ ),
+ForEachHostInFamily(int family, Bool (*func) (unsigned char *addr,
+                                              short len,
+                                              void *closure),
                     void *closure)
 {
     HOST *host;

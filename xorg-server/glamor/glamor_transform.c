@@ -198,6 +198,64 @@ glamor_set_tiled(PixmapPtr      pixmap,
                               size_uniform);
 }
 
+static PixmapPtr
+glamor_get_stipple_pixmap(GCPtr gc)
+{
+    glamor_gc_private *gc_priv = glamor_get_gc_private(gc);
+    ScreenPtr   screen = gc->pScreen;
+    PixmapPtr   bitmap;
+    PixmapPtr   pixmap;
+    GCPtr       scratch_gc;
+    ChangeGCVal changes[2];
+
+    if (gc_priv->stipple)
+        return gc_priv->stipple;
+
+    bitmap = gc->stipple;
+    if (!bitmap)
+        goto bail;
+
+    pixmap = glamor_create_pixmap(screen,
+                                  bitmap->drawable.width,
+                                  bitmap->drawable.height,
+                                  8, GLAMOR_CREATE_NO_LARGE);
+    if (!pixmap)
+        goto bail;
+
+    scratch_gc = GetScratchGC(8, screen);
+    if (!scratch_gc)
+        goto bail_pixmap;
+
+    changes[0].val = 0xff;
+    changes[1].val = 0x00;
+    if (ChangeGC(NullClient, scratch_gc,
+                 GCForeground|GCBackground, changes) != Success)
+        goto bail_gc;
+    ValidateGC(&pixmap->drawable, scratch_gc);
+
+    (*scratch_gc->ops->CopyPlane)(&bitmap->drawable,
+                                  &pixmap->drawable,
+                                  scratch_gc,
+                                  0, 0,
+                                  bitmap->drawable.width,
+                                  bitmap->drawable.height,
+                                  0, 0, 0x1);
+
+    FreeScratchGC(scratch_gc);
+    gc_priv->stipple = pixmap;
+
+    glamor_track_stipple(gc);
+
+    return pixmap;
+
+bail_gc:
+    FreeScratchGC(scratch_gc);
+bail_pixmap:
+    glamor_destroy_pixmap(pixmap);
+bail:
+    return NULL;
+}
+
 Bool
 glamor_set_stippled(PixmapPtr      pixmap,
                     GCPtr          gc,
@@ -205,11 +263,19 @@ glamor_set_stippled(PixmapPtr      pixmap,
                     GLint          offset_uniform,
                     GLint          size_uniform)
 {
+    PixmapPtr   stipple;
+
+    stipple = glamor_get_stipple_pixmap(gc);
+    if (!stipple)
+        return FALSE;
+
     if (!glamor_set_solid(pixmap, gc, TRUE, fg_uniform))
         return FALSE;
 
-    if (!glamor_set_texture(pixmap, gc->stipple, gc->patOrg.x, gc->patOrg.y, offset_uniform, size_uniform))
-        return FALSE;
-
-    return TRUE;
+    return glamor_set_texture(pixmap,
+                              stipple,
+                              -gc->patOrg.x,
+                              -gc->patOrg.y,
+                              offset_uniform,
+                              size_uniform);
 }

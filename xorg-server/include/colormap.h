@@ -82,14 +82,14 @@ extern _X_EXPORT int CreateColormap(Colormap /*mid */ ,
                                     int /*alloc */ ,
                                     int /*client */ );
 
-extern _X_EXPORT int FreeColormap(void */*pmap */ ,
-                                  XID /*mid */ );
+extern _X_EXPORT int FreeColormap(void *pmap,
+                                  XID mid);
 
-extern _X_EXPORT int TellLostMap(WindowPtr /*pwin */ ,
-                                 void */* Colormap *pmid */ );
+extern _X_EXPORT int TellLostMap(WindowPtr pwin,
+                                 void *value);
 
-extern _X_EXPORT int TellGainedMap(WindowPtr /*pwin */ ,
-                                   void */* Colormap *pmid */ );
+extern _X_EXPORT int TellGainedMap(WindowPtr pwin,
+                                   void *value);
 
 extern _X_EXPORT int CopyColormapAndFree(Colormap /*mid */ ,
                                          ColormapPtr /*pSrc */ ,
@@ -126,8 +126,8 @@ extern _X_EXPORT int QueryColors(ColormapPtr /*pmap */ ,
                                  xrgb * /*prgbList */ ,
                                  ClientPtr client);
 
-extern _X_EXPORT int FreeClientPixels(void */*pcr */ ,
-                                      XID /*fakeid */ );
+extern _X_EXPORT int FreeClientPixels(void *pcr,
+                                      XID fakeid);
 
 extern _X_EXPORT int AllocColorCells(int /*client */ ,
                                      ColormapPtr /*pmap */ ,

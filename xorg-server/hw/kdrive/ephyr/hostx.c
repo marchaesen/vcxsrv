@@ -287,7 +287,8 @@ hostx_set_title(char *title)
 int
 hostx_init(void)
 {
-    uint32_t attr;
+    uint32_t attrs[2];
+    uint32_t attr_mask = 0;
     xcb_cursor_t empty_cursor;
     xcb_pixmap_t cursor_pxm;
     uint16_t red, green, blue;
@@ -299,7 +300,7 @@ hostx_init(void)
     const xcb_query_extension_reply_t *shm_rep;
     xcb_screen_t *xscreen;
 
-    attr =
+    attrs[0] =
         XCB_EVENT_MASK_BUTTON_PRESS
         | XCB_EVENT_MASK_BUTTON_RELEASE
         | XCB_EVENT_MASK_POINTER_MOTION
@@ -307,6 +308,7 @@ hostx_init(void)
         | XCB_EVENT_MASK_KEY_RELEASE
         | XCB_EVENT_MASK_EXPOSURE
         | XCB_EVENT_MASK_STRUCTURE_NOTIFY;
+    attr_mask |= XCB_CW_EVENT_MASK;
 
     EPHYR_DBG("mark");
 #ifdef GLAMOR
@@ -325,9 +327,18 @@ hostx_init(void)
     HostX.gc = xcb_generate_id(HostX.conn);
     HostX.depth = xscreen->root_depth;
 #ifdef GLAMOR
-    if (ephyr_glamor)
+    if (ephyr_glamor) {
         HostX.visual = ephyr_glamor_get_visual();
-    else
+        if (HostX.visual->visual_id != xscreen->root_visual) {
+            attrs[1] = xcb_generate_id(HostX.conn);
+            attr_mask |= XCB_CW_COLORMAP;
+            xcb_create_colormap(HostX.conn,
+                                XCB_COLORMAP_ALLOC_NONE,
+                                attrs[1],
+                                HostX.winroot,
+                                HostX.visual->visual_id);
+        }
+    } else
 #endif
         HostX.visual = xcb_aux_find_visual_by_id(xscreen,xscreen->root_visual);
 
@@ -379,9 +390,9 @@ hostx_init(void)
                               scrpriv->win_height,
                               0,
                               XCB_WINDOW_CLASS_COPY_FROM_PARENT,
-                              XCB_COPY_FROM_PARENT,
-                              XCB_CW_EVENT_MASK,
-                              &attr);
+                              HostX.visual->visual_id,
+                              attr_mask,
+                              attrs);
         }
         else {
             xcb_create_window(HostX.conn,
@@ -391,9 +402,9 @@ hostx_init(void)
                               0,0,100,100, /* will resize */
                               0,
                               XCB_WINDOW_CLASS_COPY_FROM_PARENT,
-                              XCB_COPY_FROM_PARENT,
-                              XCB_CW_EVENT_MASK,
-                              &attr);
+                              HostX.visual->visual_id,
+                              attr_mask,
+                              attrs);
 
             hostx_set_win_title(screen,
                                 "(ctrl+shift grabs mouse and keyboard)");
@@ -1234,8 +1245,7 @@ ephyr_glamor_init(ScreenPtr screen)
 
     glamor_init(screen,
                 GLAMOR_USE_SCREEN |
-                GLAMOR_USE_PICTURE_SCREEN |
-                GLAMOR_INVERTED_Y_AXIS);
+                GLAMOR_USE_PICTURE_SCREEN);
 
     return TRUE;
 }

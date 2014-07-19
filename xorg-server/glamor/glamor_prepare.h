@@ -20,25 +20,33 @@
  * OF THIS SOFTWARE.
  */
 
-#include "glamor_priv.h"
+#ifndef _GLAMOR_PREPARE_H_
+#define _GLAMOR_PREPARE_H_
 
 Bool
-glamor_poly_segment_nf(DrawablePtr drawable, GCPtr gc, int nseg,
-                       xSegment *seg)
-{
-    if (glamor_ddx_fallback_check_pixmap(drawable) &&
-        glamor_ddx_fallback_check_gc(gc)) {
-        return FALSE;
-    }
+glamor_prepare_access(DrawablePtr drawable, glamor_access_t access);
 
-    miPolySegment(drawable, gc, nseg, seg);
-
-    return TRUE;
-}
+Bool
+glamor_prepare_access_box(DrawablePtr drawable, glamor_access_t access,
+                         int x, int y, int w, int h);
 
 void
-glamor_poly_segment(DrawablePtr drawable, GCPtr gc, int nseg,
-                    xSegment *seg)
-{
-    miPolySegment(drawable, gc, nseg, seg);
-}
+glamor_finish_access(DrawablePtr drawable);
+
+Bool
+glamor_prepare_access_picture(PicturePtr picture, glamor_access_t access);
+
+Bool
+glamor_prepare_access_picture_box(PicturePtr picture, glamor_access_t access,
+                        int x, int y, int w, int h);
+
+void
+glamor_finish_access_picture(PicturePtr picture);
+
+Bool
+glamor_prepare_access_gc(GCPtr gc);
+
+void
+glamor_finish_access_gc(GCPtr gc);
+
+#endif /* _GLAMOR_PREPARE_H_ */

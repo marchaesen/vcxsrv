@@ -326,9 +326,6 @@ glamor_set_spans_gl(DrawablePtr drawable, GCPtr gc, char *src,
 
     glamor_make_current(glamor_priv);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 
     glamor_pixmap_loop(pixmap_priv, box_x, box_y) {

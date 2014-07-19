@@ -697,7 +697,7 @@ LogVMessageVerbSigSafe(MessageType type, int verb, const char *format, va_list a
     if (sizeof(buf) - len == 1)
         buf[len - 1] = '\n';
 
-    newline = (buf[len - 1] == '\n');
+    newline = (len > 0 && buf[len - 1] == '\n');
     LogSWrite(verb, buf, len, newline);
 }
 

@@ -47,8 +47,8 @@ extern GrabPtr CreateGrab(int /* client */ ,
                           WindowPtr /* confineTo */ ,
                           CursorPtr /* cursor */ );
 
-extern _X_EXPORT int DeletePassiveGrab(void */* value */ ,
-                                       XID /* id */ );
+extern _X_EXPORT int DeletePassiveGrab(void *value,
+                                       XID id);
 
 extern _X_EXPORT Bool GrabMatchesSecond(GrabPtr /* pFirstGrab */ ,
                                         GrabPtr /* pSecondGrab */ ,

@@ -35,7 +35,7 @@ extern Bool EphyrWantGrayScale;
 extern Bool EphyrWantResize;
 extern Bool kdHasPointer;
 extern Bool kdHasKbd;
-extern Bool ephyr_glamor;
+extern Bool ephyr_glamor, ephyr_glamor_gles2;
 
 #ifdef GLXEXT
 extern Bool ephyrNoDRI;
@@ -138,6 +138,7 @@ ddxUseMsg(void)
     ErrorF("-resizeable          Make Xephyr windows resizeable\n");
 #ifdef GLAMOR
     ErrorF("-glamor              Enable 2D acceleration using glamor\n");
+    ErrorF("-glamor_gles2        Enable 2D acceleration using glamor (with GLES2 only)\n");
 #endif
     ErrorF
         ("-fakexa              Simulate acceleration using software rendering\n");
@@ -245,6 +246,15 @@ ddxProcessArgument(int argc, char **argv, int i)
 #ifdef GLAMOR
     else if (!strcmp (argv[i], "-glamor")) {
         ephyr_glamor = TRUE;
+        ephyrFuncs.initAccel = ephyr_glamor_init;
+        ephyrFuncs.enableAccel = ephyr_glamor_enable;
+        ephyrFuncs.disableAccel = ephyr_glamor_disable;
+        ephyrFuncs.finiAccel = ephyr_glamor_fini;
+        return 1;
+    }
+    else if (!strcmp (argv[i], "-glamor_gles2")) {
+        ephyr_glamor = TRUE;
+        ephyr_glamor_gles2 = TRUE;
         ephyrFuncs.initAccel = ephyr_glamor_init;
         ephyrFuncs.enableAccel = ephyr_glamor_enable;
         ephyrFuncs.disableAccel = ephyr_glamor_disable;
@@ -430,4 +440,6 @@ KdCardFuncs ephyrFuncs = {
 
     ephyrGetColors,             /* getColors */
     ephyrPutColors,             /* putColors */
+
+    ephyrCloseScreen,           /* closeScreen */
 };

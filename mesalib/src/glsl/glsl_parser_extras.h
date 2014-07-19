@@ -43,6 +43,9 @@ struct glsl_switch_state {
    ir_variable *is_break_var;
    class ast_switch_statement *switch_nesting_ast;
 
+   /** Used to set condition if 'default' label should be chosen. */
+   ir_variable *run_default;
+
    /** Table of constant values already used in case labels */
    struct hash_table *labels_ht;
    class ast_case_label *previous_default;
@@ -490,6 +493,8 @@ struct _mesa_glsl_parse_state {
 
    /** Atomic counter offsets by binding */
    unsigned atomic_counter_offsets[MAX_COMBINED_ATOMIC_BUFFERS];
+
+   bool allow_extension_directive_midshader;
 };
 
 # define YYLLOC_DEFAULT(Current, Rhs, N)			\

@@ -1881,9 +1881,10 @@ radeon_llvm_check() {
         AC_MSG_ERROR([--enable-gallium-llvm is required when building $1])
     fi
     LLVM_REQUIRED_VERSION_MAJOR="3"
-    LLVM_REQUIRED_VERSION_MINOR="3"
-    if test "$LLVM_VERSION_INT" -lt "${LLVM_REQUIRED_VERSION_MAJOR}0${LLVM_REQUIRED_VERSION_MINOR}"; then
-        AC_MSG_ERROR([LLVM $LLVM_REQUIRED_VERSION_MAJOR.$LLVM_REQUIRED_VERSION_MINOR or newer is required for $1])
+    LLVM_REQUIRED_VERSION_MINOR="4"
+    LLVM_REQUIRED_VERSION_PATCH="2"
+    if test "${LLVM_VERSION_INT}${LLVM_VERSION_PATCH}" -lt "${LLVM_REQUIRED_VERSION_MAJOR}0${LLVM_REQUIRED_VERSION_MINOR}${LLVM_REQUIRED_VERSION_PATCH}"; then
+        AC_MSG_ERROR([LLVM $LLVM_REQUIRED_VERSION_MAJOR.$LLVM_REQUIRED_VERSION_MINOR.$LLVM_REQUIRED_VERSION_PATCH or newer is required for $1])
     fi
     if test true && $LLVM_CONFIG --targets-built | grep -qvw 'R600' ; then
         AC_MSG_ERROR([LLVM R600 Target not enabled.  You can enable it when building the LLVM

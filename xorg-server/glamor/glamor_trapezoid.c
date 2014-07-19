@@ -908,7 +908,6 @@ _glamor_trapezoids_with_shader(CARD8 op,
                         clipped_vtx_tmp[5] = clipped_vtx[(i + 2) * 2 + 1];
                         glamor_set_normalize_tri_vcoords(dst_xscale, dst_yscale,
                                                          clipped_vtx_tmp,
-                                                         glamor_priv->yInverted,
                                                          vertices);
                         DEBUGF("vertices of triangle: (%f X %f), (%f X %f), "
                                "(%f X %f)\n", vertices[0], vertices[1],
@@ -920,14 +919,12 @@ _glamor_trapezoids_with_shader(CARD8 op,
                                 glamor_set_transformed_normalize_tri_tcoords
                                     (source_pixmap_priv, src_matrix, src_xscale,
                                      src_yscale, clipped_vtx_tmp,
-                                     glamor_priv->yInverted, source_texcoords);
+                                     source_texcoords);
                             }
                             else {
                                 glamor_set_normalize_tri_tcoords(src_xscale,
                                                                  src_yscale,
                                                                  clipped_vtx_tmp,
-                                                                 glamor_priv->
-                                                                 yInverted,
                                                                  source_texcoords);
                             }
 
@@ -1392,12 +1389,8 @@ _glamor_generate_trapezoid_with_shader(ScreenPtr screen, PicturePtr picture,
     }
 
     /* First, clear all to zero */
-    if (!glamor_solid(pixmap, 0, 0, pixmap_priv->base.pixmap->drawable.width,
-                      pixmap_priv->base.pixmap->drawable.height,
-                      GXclear, 0xFFFFFFFF, 0)) {
-        DEBUGF("glamor_solid failed, fallback\n");
-        return FALSE;
-    }
+    glamor_solid(pixmap, 0, 0, pixmap_priv->base.pixmap->drawable.width,
+                 pixmap_priv->base.pixmap->drawable.height, 0);
 
     glamor_make_current(glamor_priv);
 
@@ -1443,11 +1436,9 @@ _glamor_generate_trapezoid_with_shader(ScreenPtr screen, PicturePtr picture,
             miTrapezoidBounds(1, ptrap, &one_trap_bound);
 
             vertices += 2;
-            glamor_set_tcoords_ext((pixmap_priv->base.pixmap->drawable.width),
-                                   (pixmap_priv->base.pixmap->drawable.height),
-                                   (one_trap_bound.x1), (one_trap_bound.y1),
+            glamor_set_tcoords_ext((one_trap_bound.x1), (one_trap_bound.y1),
                                    (one_trap_bound.x2), (one_trap_bound.y2),
-                                   glamor_priv->yInverted, vertices, stride);
+                                   vertices, stride);
             DEBUGF("tex_vertices --> leftup : %f X %f, rightup: %f X %f,"
                    "rightbottom: %f X %f, leftbottom : %f X %f\n", vertices[0],
                    vertices[1], vertices[1 * stride], vertices[1 * stride + 1],
@@ -1467,8 +1458,7 @@ _glamor_generate_trapezoid_with_shader(ScreenPtr screen, PicturePtr picture,
                                              one_trap_bound.y1,
                                              one_trap_bound.x2,
                                              one_trap_bound.y2,
-                                             glamor_priv->yInverted, vertices,
-                                             stride);
+                                             vertices, stride);
             DEBUGF("vertices --> leftup : %f X %f, rightup: %f X %f,"
                    "rightbottom: %f X %f, leftbottom : %f X %f\n", vertices[0],
                    vertices[1], vertices[1 * stride], vertices[1 * stride + 1],

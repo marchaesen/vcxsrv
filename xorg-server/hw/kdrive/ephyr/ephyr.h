@@ -131,6 +131,9 @@ void
  ephyrScreenFini(KdScreenInfo * screen);
 
 void
+ephyrCloseScreen(ScreenPtr pScreen);
+
+void
  ephyrCardFini(KdCardInfo * card);
 
 void
@@ -220,5 +223,15 @@ void ephyr_glamor_host_paint_rect(ScreenPtr pScreen);
 /*ephyvideo.c*/
 
 Bool ephyrInitVideo(ScreenPtr pScreen);
+
+/* ephyr_glamor_xv.c */
+#ifdef GLAMOR
+void ephyr_glamor_xv_init(ScreenPtr screen);
+#else /* !GLAMOR */
+static inline void
+ephyr_glamor_xv_init(ScreenPtr screen)
+{
+}
+#endif /* !GLAMOR */
 
 #endif

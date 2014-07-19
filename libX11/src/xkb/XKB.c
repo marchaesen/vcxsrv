@@ -696,9 +696,7 @@ XkbGetPerClientControls(Display *dpy, unsigned *ctrls)
 
     if ((dpy->flags & XlibDisplayNoXkb) ||
         (!dpy->xkb_info && !XkbUseExtension(dpy, NULL, NULL)) ||
-        (*ctrls & ~(XkbPCF_GrabsUseXKBStateMask |
-                    XkbPCF_LookupStateWhenGrabbed |
-                    XkbPCF_SendEventUsesXKBState)))
+        (ctrls == NULL))
         return False;
     LockDisplay(dpy);
     xkbi = dpy->xkb_info;
@@ -716,10 +714,9 @@ XkbGetPerClientControls(Display *dpy, unsigned *ctrls)
     }
     UnlockDisplay(dpy);
     SyncHandle();
-    if (ctrls)
-        *ctrls = (rep.value & (XkbPCF_GrabsUseXKBStateMask |
-                               XkbPCF_LookupStateWhenGrabbed |
-                               XkbPCF_SendEventUsesXKBState));
+    *ctrls = (rep.value & (XkbPCF_GrabsUseXKBStateMask |
+                           XkbPCF_LookupStateWhenGrabbed |
+                           XkbPCF_SendEventUsesXKBState));
     return (True);
 }
 

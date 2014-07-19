@@ -105,9 +105,6 @@ glamor_poly_point_gl(DrawablePtr drawable, GCPtr gc, int mode, int npt, DDXPoint
     glDisable(GL_COLOR_LOGIC_OP);
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
 
-    glamor_priv->state = RENDER_STATE;
-    glamor_priv->render_idle_cnt = 0;
-
     return TRUE;
 
 bail_ctx:

@@ -41,7 +41,6 @@ Status XReconfigureWMWindow (
     unsigned int mask,
     XWindowChanges *changes)
 {
-    XConfigureRequestEvent ev;
     Window root = RootWindow (dpy, screen);
     _XAsyncHandler async;
     _XAsyncErrorState async_state;
@@ -120,20 +119,24 @@ Status XReconfigureWMWindow (
     /*
      * If the request succeeded, then everything is okay; otherwise, send event
      */
-    if (!async_state.error_count) return True;
-
-    ev.type		= ConfigureRequest;
-    ev.window		= w;
-    ev.parent		= root;
-    ev.value_mask	= (mask & AllMaskBits);
-    ev.x		= changes->x;
-    ev.y		= changes->y;
-    ev.width		= changes->width;
-    ev.height		= changes->height;
-    ev.border_width	= changes->border_width;
-    ev.above		= changes->sibling;
-    ev.detail		= changes->stack_mode;
-    return (XSendEvent (dpy, root, False,
-			SubstructureRedirectMask|SubstructureNotifyMask,
-			(XEvent *)&ev));
+    if (!async_state.error_count)
+        return True;
+    else {
+        XConfigureRequestEvent ev = {
+            .type		= ConfigureRequest,
+            .window		= w,
+            .parent		= root,
+            .value_mask		= (mask & AllMaskBits),
+            .x			= changes->x,
+            .y			= changes->y,
+            .width		= changes->width,
+            .height		= changes->height,
+            .border_width	= changes->border_width,
+            .above		= changes->sibling,
+            .detail		= changes->stack_mode,
+        };
+        return (XSendEvent (dpy, root, False,
+                            SubstructureRedirectMask|SubstructureNotifyMask,
+                            (XEvent *)&ev));
+    }
 }

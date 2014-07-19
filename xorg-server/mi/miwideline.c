@@ -1979,3 +1979,23 @@ miWideDash(DrawablePtr pDrawable, GCPtr pGC,
     if (spanData)
         miCleanupSpanData(pDrawable, pGC, spanData);
 }
+
+void
+miPolylines(DrawablePtr drawable,
+            GCPtr gc,
+            int mode,
+            int n,
+            DDXPointPtr points)
+{
+    if (gc->lineWidth == 0) {
+        if (gc->lineStyle == LineSolid)
+            miZeroLine(drawable, gc, mode, n, points);
+        else
+            miZeroDashLine(drawable, gc, mode, n, points);
+    } else {
+        if (gc->lineStyle == LineSolid)
+            miWideLine(drawable, gc, mode, n, points);
+        else
+            miWideDash(drawable, gc, mode, n, points);
+    }
+}

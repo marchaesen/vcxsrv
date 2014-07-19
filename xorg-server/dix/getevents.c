@@ -770,65 +770,27 @@ add_to_scroll_valuator(DeviceIntPtr dev, ValuatorMask *mask, int valuator, doubl
 }
 
 
-/* FIXME: relative events from devices with absolute axis ranges is
-   fundamentally broken. We map the device coordinate range into the screen
-   range, but don't really account for device resolution in that.
-
-   what we do here is a hack to make touchpads usable. for a given relative
-   motion vector in device coordinates:
-   1. calculate physical movement on the device in metres
-   2. calculate pixel vector that is the same physical movement on the
-      screen (times some magic number to provide sensible base speed)
-   3. calculate what percentage this vector is of the current screen
-      width/height
-   4. calculate equivalent vector in % on the device's min/max axis range
-   5. Use that device vector as the actual motion vector
-
-   e.g. 10/50mm on the device, 10/50mm on the screen are 30/100 pixels,
-   30/100 pixels are 1/3% of the width, 1/3% of the device is a vector of
-   20/80 -> use 20/80 as dx/dy.
-
-   dx/dy is then applied to the current position in device coordinates,
-   mapped to screen coordinates and thus the movement on the screen reflects
-   the motion direction on the device.
- */
 static void
 scale_for_device_resolution(DeviceIntPtr dev, ValuatorMask *mask)
 {
-    double x, y;
+    double y;
     ValuatorClassPtr v = dev->valuator;
     int xrange = v->axes[0].max_value - v->axes[0].min_value + 1;
     int yrange = v->axes[1].max_value - v->axes[1].min_value + 1;
 
-    /* Assume 100 units/m for devices without resolution */
-    int xres = 100000, yres = 100000;
+    double screen_ratio = 1.0 * screenInfo.width/screenInfo.height;
+    double device_ratio = 1.0 * xrange/yrange;
+    double resolution_ratio = 1.0;
+    double ratio;
 
-    /* If we have multiple screens with different dpi, it gets complicated:
-       we have to map which screen we're on and then take the dpi of that
-       screen to be somewhat accurate.  */
-    const ScreenPtr s = screenInfo.screens[0];
-    const double screen_res = 1000.0 * s->width/s->mmWidth; /* units/m */
+    if (!valuator_mask_fetch_double(mask, 1, &y))
+        return;
 
-    /* some magic multiplier, so unaccelerated movement of x mm on the
-       device reflects x * magic mm on the screen */
-    const double magic = 4;
+    if (v->axes[0].resolution != 0 && v->axes[1].resolution != 0)
+        resolution_ratio = 1.0 * v->axes[0].resolution/v->axes[1].resolution;
 
-    if (v->axes[0].resolution != 0 && v->axes[1].resolution != 0) {
-        xres = v->axes[0].resolution;
-        yres = v->axes[1].resolution;
-    }
-
-    if (valuator_mask_isset(mask, 0)) {
-        x = valuator_mask_get_double(mask, 0);
-        x = magic * x/xres * screen_res/screenInfo.width * xrange;
-        valuator_mask_set_double(mask, 0, x);
-    }
-
-    if (valuator_mask_isset(mask, 1)) {
-        y = valuator_mask_get_double(mask, 1);
-        y = magic * y/yres * screen_res/screenInfo.height * yrange;
-        valuator_mask_set_double(mask, 1, y);
-    }
+    ratio = device_ratio/resolution_ratio/screen_ratio;
+    valuator_mask_set_double(mask, 1, y / ratio);
 }
 
 /**
@@ -842,6 +804,15 @@ moveRelative(DeviceIntPtr dev, int flags, ValuatorMask *mask)
 {
     int i;
     Bool clip_xy = IsMaster(dev) || !IsFloating(dev);
+    ValuatorClassPtr v = dev->valuator;
+
+    /* for abs devices in relative mode, we've just scaled wrong, since we
+       mapped the device's shape into the screen shape. Undo this. */
+    if ((flags & POINTER_ABSOLUTE) == 0 && v && v->numAxes > 1 &&
+        v->axes[0].min_value < v->axes[0].max_value &&
+        v->axes[1].min_value < v->axes[1].max_value) {
+        scale_for_device_resolution(dev, mask);
+    }
 
     /* calc other axes, clip, drop back into valuators */
     for (i = 0; i < valuator_mask_size(mask); i++) {
@@ -1470,21 +1441,10 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
             set_raw_valuators(raw, &mask, raw->valuators.data);
     }
     else {
-        ValuatorClassPtr v = pDev->valuator;
-
         transformRelative(pDev, &mask);
-
-        /* for abs devices in relative mode, we've just scaled wrong, since we
-           mapped the device's shape into the screen shape. Undo this. */
-        if (v && v->numAxes > 1 &&
-            v->axes[0].min_value < v->axes[0].max_value &&
-            v->axes[1].min_value < v->axes[1].max_value) {
-            scale_for_device_resolution(pDev, &mask);
-        }
 
         if (flags & POINTER_ACCELERATE)
             accelPointer(pDev, &mask, ms);
-
         if ((flags & POINTER_NORAW) == 0 && raw)
             set_raw_valuators(raw, &mask, raw->valuators.data);
 

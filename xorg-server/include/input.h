@@ -314,10 +314,10 @@ extern _X_EXPORT Bool InitTouchClassDeviceStruct(DeviceIntPtr /*device */ ,
                                                  unsigned int /*mode */ ,
                                                  unsigned int /*numAxes */ );
 
-typedef void (*BellProcPtr) (int /*percent */ ,
-                             DeviceIntPtr /*device */ ,
-                             void */*ctrl */ ,
-                             int);
+typedef void (*BellProcPtr) (int percent,
+                             DeviceIntPtr device,
+                             void *ctrl,
+                             int feedbackClass);
 
 typedef void (*KbdCtrlProcPtr) (DeviceIntPtr /*device */ ,
                                 KeybdCtrl * /*ctrl */ );

@@ -166,7 +166,7 @@ DPMSSet(ClientPtr client, int level)
                 return rc;
         }
     } else if (!xf86IsUnblank(screenIsSaved)) {
-        rc = dixSaveScreens(client, SCREEN_SAVER_FORCER, ScreenSaverReset);
+        rc = dixSaveScreens(client, SCREEN_SAVER_OFF, ScreenSaverReset);
         if (rc != Success)
             return rc;
     }

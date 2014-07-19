@@ -1456,6 +1456,9 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
    case ir_binop_carry:
    case ir_binop_borrow:
    case ir_binop_imul_high:
+   case ir_unop_interpolate_at_centroid:
+   case ir_binop_interpolate_at_offset:
+   case ir_binop_interpolate_at_sample:
       assert(!"not supported");
       break;
 
@@ -2814,10 +2817,7 @@ get_mesa_program(struct gl_context *ctx,
 
    prog->NumTemporaries = v.next_temp;
 
-   int num_instructions = 0;
-   foreach_in_list(ir_instruction, node, &v.instructions) {
-      num_instructions++;
-   }
+   unsigned num_instructions = v.instructions.length();
 
    mesa_instructions =
       (struct prog_instruction *)calloc(num_instructions,

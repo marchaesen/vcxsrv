@@ -656,7 +656,7 @@ miZeroPolyArc(DrawablePtr pDraw, GCPtr pGC, int narcs, xArc * parcs)
 
     for (arc = parcs, i = narcs; --i >= 0; arc++) {
         if (!miCanZeroArc(arc))
-            miPolyArc(pDraw, pGC, 1, arc);
+            miWideArc(pDraw, pGC, 1, arc);
         else {
             if (arc->width > arc->height)
                 n = arc->width + (arc->height >> 1);

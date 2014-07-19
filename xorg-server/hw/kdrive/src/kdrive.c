@@ -621,8 +621,12 @@ KdCloseScreen(ScreenPtr pScreen)
     KdCardInfo *card = pScreenPriv->card;
     Bool ret;
 
+    if (card->cfuncs->closeScreen)
+        (*card->cfuncs->closeScreen)(pScreen);
+
     pScreenPriv->closed = TRUE;
     pScreen->CloseScreen = pScreenPriv->CloseScreen;
+
     if (pScreen->CloseScreen)
         ret = (*pScreen->CloseScreen) (pScreen);
     else
