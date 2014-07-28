@@ -889,6 +889,8 @@
 #define glTexStorage2DMultisample(a1, a2, a3, a4, a5, a6) CALL_TexStorage2DMultisample(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6))
 #define glTexStorage3DMultisample(a1, a2, a3, a4, a5, a6, a7) CALL_TexStorage3DMultisample(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7))
 #define glBufferStorage(a1, a2, a3, a4) CALL_BufferStorage(GET_DISPATCH(), (a1, a2, a3, a4))
+#define glClearTexImage(a1, a2, a3, a4, a5) CALL_ClearTexImage(GET_DISPATCH(), (a1, a2, a3, a4, a5))
+#define glClearTexSubImage(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11) CALL_ClearTexSubImage(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11))
 #define glBindBuffersBase(a1, a2, a3, a4) CALL_BindBuffersBase(GET_DISPATCH(), (a1, a2, a3, a4))
 #define glBindBuffersRange(a1, a2, a3, a4, a5, a6) CALL_BindBuffersRange(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6))
 #define glBindImageTextures(a1, a2, a3) CALL_BindImageTextures(GET_DISPATCH(), (a1, a2, a3))
