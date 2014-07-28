@@ -197,7 +197,6 @@ static const char *stdSubdirs[] = {
     "",
     "input/",
     "drivers/",
-    "multimedia/",
     "extensions/",
     "internal/",
     NULL

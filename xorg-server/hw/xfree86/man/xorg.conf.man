@@ -132,14 +132,14 @@ is the path specified with the
 .B \-configdir
 command line option (which may be absolute or relative).
 .PP
-Finally, configuration files will also be searched for in directories
-reserved for system use. These are to separate configuration files from
-the vendor or 3rd party packages from those of local administration.
-These files are found in the following directories:
+Finally, configuration files will also be searched for in a directory reserved
+for system use.
+This is to separate configuration files from the vendor or 3rd party packages
+from those of local administration.
+These files are found in the following directory:
 .PP
 .RS 4
 .nf
-.I /usr/share/X11/__xconfigdir__
 .I __datadir__/X11/__xconfigdir__
 .fi
 .RE

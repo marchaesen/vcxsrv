@@ -493,4 +493,7 @@
 /* Build glamor's GBM-based EGL support */
 #undef GLAMOR_HAS_GBM
 
+/* byte order */
+#undef X_BYTE_ORDER
+
 #endif /* _DIX_CONFIG_H_ */

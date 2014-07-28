@@ -157,7 +157,7 @@ GL 4.3:
   GL_ARB_arrays_of_arrays                              started (Timothy)
   GL_ARB_ES3_compatibility                             DONE (i965)
   GL_ARB_clear_buffer_object                           DONE (all drivers)
-  GL_ARB_compute_shader                                started (Paul Berry)
+  GL_ARB_compute_shader                                started (currently stalled)
   GL_ARB_copy_image                                    not started
   GL_KHR_debug                                         DONE (all drivers)
   GL_ARB_explicit_uniform_location                     DONE (all drivers that support GLSL)
@@ -183,7 +183,7 @@ GL 4.4:
   GLSL 4.4                                             not started
   GL_MAX_VERTEX_ATTRIB_STRIDE                          not started
   GL_ARB_buffer_storage                                DONE (i965, nv30, nv50, nvc0, r300, r600, radeonsi)
-  GL_ARB_clear_texture                                 not started
+  GL_ARB_clear_texture                                 DONE (i965)
   GL_ARB_enhanced_layouts                              not started
   GL_ARB_multi_bind                                    DONE (all drivers)
   GL_ARB_query_buffer_object                           not started

@@ -85,6 +85,7 @@ DOC_FUNCS_FNCS =		\
 	fcstring.fncs		\
 	fcstrset.fncs		\
 	fcvalue.fncs		\
+	fcweight.fncs		\
 	$(NULL)
 SGML_FILES =			\
 	fontconfig-user.sgml	\

@@ -1,7 +1,5 @@
 /*
- * fontconfig/src/fcwindows.h
- *
- * Copyright © 2013  Google, Inc.
+ * fontconfig/doc/fcweight.fncs
  *
  * Permission to use, copy, modify, distribute, and sell this software and its
  * documentation for any purpose is hereby granted without fee, provided that
@@ -20,30 +18,30 @@
  * DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
- *
- * Google Author(s): Behdad Esfahbod
  */
+@RET@		int
+@FUNC@		FcWeightFromOpenType
+@TYPE1@		int				@ARG1@		ot_weight
+@PURPOSE@	Convert from OpenType weight values to fontconfig ones
+@DESC@
+<function>FcWeightFromOpenType</function> returns an integer value
+to use with FC_WEIGHT, from an integer in the 1..1000 range, resembling
+the numbers from OpenType specification's OS/2 usWeight numbers, which
+are also similar to CSS font-weight numbers.  If input is negative,
+zero, or greater than 1000, returns -1.  This function linearly interpolates
+between various FC_WEIGHT_* constants.  As such, the returned value does not
+necessarily match any of the predefined constants.
+@SINCE@		2.11.91
+@@
 
-#ifndef _FCWINDOWS_H_
-#define _FCWINDOWS_H_
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
-#ifdef _WIN32
-   /* Request Windows Vista for building.  This is required to
-    * get MemoryBarrier on mingw32... */
-#  if defined(_WIN32_WINNT) && _WIN32_WINNT < 0x0600
-#    undef _WIN32_WINNT
-#  endif
-#  ifndef _WIN32_WINNT
-#    define _WIN32_WINNT 0x0600
-#  endif
-#  define WIN32_LEAN_AND_MEAN
-#  define WIN32_EXTRA_LEAN
-#  define STRICT
-#  include <windows.h>
-#endif
-
-#endif /* _FCWINDOWS_H_ */
+@RET@		int
+@FUNC@		FcWeightToOpenType
+@TYPE1@		int				@ARG1@		ot_weight
+@PURPOSE@	Convert from fontconfig weight values to OpenType ones
+@DESC@
+<function>FcWeightToOpenType</function> is the inverse of
+<function>FcWeightFromOpenType</function>.  If the input is less than
+FC_WEIGHT_THIN or greater than FC_WEIGHT_EXTRABLACK, returns -1.  Otherwise
+returns a number in the range 1 to 1000.
+@SINCE@		2.11.91
+@@

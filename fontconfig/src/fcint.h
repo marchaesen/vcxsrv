@@ -1152,12 +1152,6 @@ FcStrCmpIgnoreBlanksAndCase (const FcChar8 *s1, const FcChar8 *s2);
 FcPrivate int
 FcStrCmpIgnoreCaseAndDelims (const FcChar8 *s1, const FcChar8 *s2, const FcChar8 *delims);
 
-FcPrivate FcBool
-FcStrRegexCmp (const FcChar8 *s, const FcChar8 *regex);
-
-FcPrivate FcBool
-FcStrRegexCmpIgnoreCase (const FcChar8 *s, const FcChar8 *regex);
-
 FcPrivate const FcChar8 *
 FcStrContainsIgnoreBlanksAndCase (const FcChar8 *s1, const FcChar8 *s2);
 

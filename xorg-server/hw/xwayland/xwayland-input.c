@@ -491,31 +491,43 @@ seat_handle_capabilities(void *data, struct wl_seat *seat,
 {
     struct xwl_seat *xwl_seat = data;
 
-    if (caps & WL_SEAT_CAPABILITY_POINTER && xwl_seat->pointer == NULL) {
+    if (caps & WL_SEAT_CAPABILITY_POINTER && xwl_seat->wl_pointer == NULL) {
         xwl_seat->wl_pointer = wl_seat_get_pointer(seat);
         wl_pointer_add_listener(xwl_seat->wl_pointer,
                                 &pointer_listener, xwl_seat);
-        xwl_seat_set_cursor(xwl_seat);
-        xwl_seat->pointer =
-            add_device(xwl_seat, "xwayland-pointer", xwl_pointer_proc);
-    }
-    else if (!(caps & WL_SEAT_CAPABILITY_POINTER) && xwl_seat->pointer) {
+
+        if (xwl_seat->pointer)
+            EnableDevice(xwl_seat->pointer, TRUE);
+        else {
+            xwl_seat_set_cursor(xwl_seat);
+            xwl_seat->pointer =
+                add_device(xwl_seat, "xwayland-pointer", xwl_pointer_proc);
+        }
+    } else if (!(caps & WL_SEAT_CAPABILITY_POINTER) && xwl_seat->wl_pointer) {
         wl_pointer_release(xwl_seat->wl_pointer);
-        RemoveDevice(xwl_seat->pointer, FALSE);
-        xwl_seat->pointer = NULL;
+        xwl_seat->wl_pointer = NULL;
+
+        if (xwl_seat->pointer)
+            DisableDevice(xwl_seat->pointer, TRUE);
     }
 
-    if (caps & WL_SEAT_CAPABILITY_KEYBOARD && xwl_seat->keyboard == NULL) {
+    if (caps & WL_SEAT_CAPABILITY_KEYBOARD && xwl_seat->wl_keyboard == NULL) {
         xwl_seat->wl_keyboard = wl_seat_get_keyboard(seat);
         wl_keyboard_add_listener(xwl_seat->wl_keyboard,
                                  &keyboard_listener, xwl_seat);
-        xwl_seat->keyboard =
-            add_device(xwl_seat, "xwayland-keyboard", xwl_keyboard_proc);
-    }
-    else if (!(caps & WL_SEAT_CAPABILITY_KEYBOARD) && xwl_seat->keyboard) {
+
+        if (xwl_seat->keyboard)
+            EnableDevice(xwl_seat->keyboard, TRUE);
+        else {
+            xwl_seat->keyboard =
+                add_device(xwl_seat, "xwayland-keyboard", xwl_keyboard_proc);
+        }
+    } else if (!(caps & WL_SEAT_CAPABILITY_KEYBOARD) && xwl_seat->wl_keyboard) {
         wl_keyboard_release(xwl_seat->wl_keyboard);
-        RemoveDevice(xwl_seat->keyboard, FALSE);
-        xwl_seat->keyboard = NULL;
+        xwl_seat->wl_keyboard = NULL;
+
+        if (xwl_seat->keyboard)
+            DisableDevice(xwl_seat->keyboard, TRUE);
     }
 
     xwl_seat->xwl_screen->expecting_event--;

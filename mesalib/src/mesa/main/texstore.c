@@ -3830,6 +3830,21 @@ _mesa_texstore_can_use_memcpy(struct gl_context *ctx,
       return GL_FALSE;
    }
 
+   /* Depth texture data needs clamping in following cases:
+    * - Floating point dstFormat with signed srcType: clamp to [0.0, 1.0].
+    * - Fixed point dstFormat with signed srcType: clamp to [0, 2^n -1].
+    *
+    * All the cases except one (float dstFormat with float srcType) are ruled
+    * out by _mesa_format_matches_format_and_type() check above. Handle the
+    * remaining case here.
+    */
+   if ((baseInternalFormat == GL_DEPTH_COMPONENT ||
+        baseInternalFormat == GL_DEPTH_STENCIL) &&
+       (srcType == GL_FLOAT ||
+        srcType == GL_FLOAT_32_UNSIGNED_INT_24_8_REV)) {
+      return GL_FALSE;
+   }
+
    return GL_TRUE;
 }
 
@@ -4079,6 +4094,78 @@ _mesa_store_texsubimage(struct gl_context *ctx, GLuint dims,
                      format, type, pixels, packing, "glTexSubImage");
 }
 
+static void
+clear_image_to_zero(GLubyte *dstMap, GLint dstRowStride,
+                    GLsizei width, GLsizei height,
+                    GLsizei clearValueSize)
+{
+   GLsizei y;
+
+   for (y = 0; y < height; y++) {
+      memset(dstMap, 0, clearValueSize * width);
+      dstMap += dstRowStride;
+   }
+}
+
+static void
+clear_image_to_value(GLubyte *dstMap, GLint dstRowStride,
+                     GLsizei width, GLsizei height,
+                     const GLvoid *clearValue,
+                     GLsizei clearValueSize)
+{
+   GLsizei y, x;
+
+   for (y = 0; y < height; y++) {
+      for (x = 0; x < width; x++) {
+         memcpy(dstMap, clearValue, clearValueSize);
+         dstMap += clearValueSize;
+      }
+      dstMap += dstRowStride - clearValueSize * width;
+   }
+}
+
+/*
+ * Fallback for Driver.ClearTexSubImage().
+ */
+void
+_mesa_store_cleartexsubimage(struct gl_context *ctx,
+                             struct gl_texture_image *texImage,
+                             GLint xoffset, GLint yoffset, GLint zoffset,
+                             GLsizei width, GLsizei height, GLsizei depth,
+                             const GLvoid *clearValue)
+{
+   GLubyte *dstMap;
+   GLint dstRowStride;
+   GLsizeiptr clearValueSize;
+   GLsizei z;
+
+   clearValueSize = _mesa_get_format_bytes(texImage->TexFormat);
+
+   for (z = 0; z < depth; z++) {
+      ctx->Driver.MapTextureImage(ctx, texImage,
+                                  z + zoffset, xoffset, yoffset,
+                                  width, height,
+                                  GL_MAP_WRITE_BIT,
+                                  &dstMap, &dstRowStride);
+      if (dstMap == NULL) {
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glClearTex*Image");
+         return;
+      }
+
+      if (clearValue) {
+         clear_image_to_value(dstMap, dstRowStride,
+                              width, height,
+                              clearValue,
+                              clearValueSize);
+      } else {
+         clear_image_to_zero(dstMap, dstRowStride,
+                             width, height,
+                             clearValueSize);
+      }
+
+      ctx->Driver.UnmapTextureImage(ctx, texImage, z + zoffset);
+   }
+}
 
 /**
  * Fallback for Driver.CompressedTexImage()

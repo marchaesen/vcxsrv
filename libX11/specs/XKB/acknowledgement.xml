@@ -1,3 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE preface PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN"
+	  "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
 <preface id='acknowledgement'>
 <title>Acknowledgement</title>
 <para>
@@ -36,8 +39,10 @@ X Consortium Inc.
 This document is made available to you in modern formats such as HTML and PDF
 thanks to the efforts of Matt Dew, who converted the original troff sources to
 DocBook/XML and edited them into shape; Fernando Carrijo, who converted the
-images to SVG format; and Gaetan Nadon, who set up the formatting machinery in
-the libX11 builds and performed further editing of the DocBook markup.
+images to SVG format; Gaetan Nadon, who set up the formatting machinery in
+the libX11 builds and performed further editing of the DocBook markup; and
+Alan Coopersmith, who converted the DocBook tags to semantic markup and
+cleaned up other formatting issues.
 </para>
 </simplesect>
 </preface>

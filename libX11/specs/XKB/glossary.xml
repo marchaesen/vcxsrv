@@ -1,3 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE glossary PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN"
+	  "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
 <glossary id='glossary'>
 <title>Glossary</title>
 <glossentry>
@@ -84,31 +87,31 @@ upon client program exit.
     <para>
 The canonical key types are predefined key types that describe the types of
 keys available on most keyboards. The definitions for the canonical key types
-are held in the first <emphasis>
-XkbNumRequiredTypes</emphasis>
- entries of the <emphasis>
-types</emphasis>
- field of the client map and are indexed using the following constants:
+are held in the first
+<symbol>XkbNumRequiredTypes</symbol>
+entries of the
+<structfield>types</structfield>
+field of the client map and are indexed using the following constants:
     </para>
     <itemizedlist>
       <listitem>
         <para>
-<emphasis>XkbOneLevelIndex</emphasis>
+<symbol>XkbOneLevelIndex</symbol>
         </para>
       </listitem>
       <listitem>
         <para>
-<emphasis>XkbTwoLevelIndex</emphasis>
+<symbol>XkbTwoLevelIndex</symbol>
         </para>
       </listitem>
       <listitem>
         <para>
-<emphasis>XkbAlphabeticIndex</emphasis>
+<symbol>XkbAlphabeticIndex</symbol>
         </para>
       </listitem>
       <listitem>
         <para>
-<emphasis>XkbKeypadIndex</emphasis>
+<symbol>XkbKeypadIndex</symbol>
         </para>
       </listitem>
   </itemizedlist>
@@ -127,9 +130,9 @@ The key mapping information needed to convert arbitrary keycodes to symbols.
   <glossterm>Compat Name</glossterm>
   <glossdef>
     <para>
-The <emphasis>
-compat</emphasis>
- name is a string that provides some information about the rules used to bind
+The
+<emphasis>compat</emphasis>
+name is a string that provides some information about the rules used to bind
 actions to keys that are changed using core protocol requests.
     </para>
   </glossdef>
@@ -186,12 +189,12 @@ processing.
     <para>
 Xkb normally consumes modifiers in determining the appropriate symbol for an
 event, that is, the modifiers are not considered during any of the later stages
-of event processing. For those rare occasions when a modifier <emphasis>
-should</emphasis>
- be considered despite having been used to look up a symbol, key types include
-an optional <emphasis>
-preserve</emphasis>
- field.
+of event processing. For those rare occasions when a modifier
+<emphasis>should</emphasis>
+be considered despite having been used to look up a symbol, key types include
+an optional
+<structfield>preserve</structfield>
+field.
     </para>
   </glossdef>
 </glossentry>
@@ -209,16 +212,15 @@ An event created from the core X server.
     <para>
 Detectable auto-repeat allows a client to detect an auto-repeating key. If a
 client requests and the server supports detectable auto-repeat, Xkb generates
-<emphasis>
-KeyRelease</emphasis>
- events only when the key is physically released. Thus the client receives a
-number of <emphasis>
-KeyPress</emphasis>
- events for that key without intervening <emphasis>
-KeyRelease</emphasis>
- events until the key is finally released, when a <emphasis>
-KeyRelease</emphasis>
- event is received.
+<symbol>KeyRelease</symbol>
+events only when the key is physically released. Thus the client receives a
+number of
+<symbol>KeyPress</symbol>
+events for that key without intervening
+<symbol>KeyRelease</symbol>
+events until the key is finally released, when a
+<symbol>KeyRelease</symbol>
+event is received.
     </para>
   </glossdef>
 </glossentry>
@@ -228,17 +230,16 @@ KeyRelease</emphasis>
     <para>
 The effective group is the arithmetic sum of the locked, latched, and base
 groups. The effective keyboard group is always brought back into range
-depending on the value of the <emphasis>
-GroupsWrap</emphasis>
- control for the keyboard. If an event occurs with an effective group that is
+depending on the value of the
+<emphasis>GroupsWrap</emphasis>
+control for the keyboard. If an event occurs with an effective group that is
 legal for the keyboard as a whole, but not for the key in question, the group
-<emphasis>
-for that event only</emphasis>
- is normalized using the algorithm specified by the <emphasis>
-group_info</emphasis>
- member of the key symbol map (<emphasis>
-XkbSymMapRec</emphasis>
-).
+<emphasis>for that event only</emphasis>
+is normalized using the algorithm specified by the
+<structfield>group_info</structfield>
+member of the key symbol map
+(<structname>XkbSymMapRec</structname>).
+
     </para>
   </glossdef>
 </glossentry>
@@ -352,14 +353,14 @@ Group 4 have indices of 0 through 3.
     <para>
 If a group index exceeds the maximum number of groups permitted for the
 specified keyboard, it is wrapped or truncated back into range as specified by
-the global <emphasis>GroupsWrap</emphasis> control. <emphasis>
-GroupsWrap</emphasis> can have the following values:
+the global <emphasis>GroupsWrap</emphasis> control.
+<emphasis>GroupsWrap</emphasis> can have the following values:
+      <simplelist type='vert' columns='1'>
+        <member><emphasis>WrapIntoRange</emphasis></member>
+        <member><emphasis>ClampIntoRange</emphasis></member>
+        <member><emphasis>RedirectIntoRange</emphasis></member>
+      </simplelist>
     </para>
-    <literallayout>
-          <emphasis>WrapIntoRange</emphasis>
-          <emphasis>ClampIntoRange</emphasis>
-          <emphasis>RedirectIntoRange</emphasis>
-    </literallayout>
   </glossdef>
 </glossentry>
 
@@ -390,8 +391,8 @@ collection of characters. A group usually contains a set of characters that
 logically belong together and that may be arranged on several shift levels
 within that group. For example, Group1 could be the English alphabet, and
 Group2 could be Greek. Xkb supports up to four different groups for an input
-device or keyboard. Groups are in the range 1-4 (Group1 - Group4), and are
-often referred to as G1 - G4 and indexed as 0 - 3.
+device or keyboard. Groups are in the range 1&ndash;4 (Group1&ndash;Group4),
+and are often referred to as G1&ndash;G4 and indexed as 0&ndash;3.
     </para>
   </glossdef>
 </glossentry>
@@ -424,11 +425,11 @@ specifies which lights are on or off.
 An indicator has its own set of attributes that specify whether clients can
 explicitly set its state and whether it tracks the keyboard state. The
 indicator map is the collection of these attributes for each indicator and is
-held in the <emphasis>
-maps</emphasis>
- array, which is an array of <emphasis>
-XkbIndicatorRec</emphasis>
- structures.
+held in the
+<structfield>maps</structfield>
+array, which is an array of
+<structname>XkbIndicatorRec</structname>
+structures.
     </para>
   </glossdef>
 </glossentry>
@@ -495,7 +496,8 @@ Simulate events on other keys
 A key alias is a symbolic name for a specific physical key. Key aliases allow
 the keyboard layout designer to assign multiple key names to a single key. This
 allows the keyboard layout designer to refer to keys using either their
-position or their "function." Key aliases can be specified both in the symbolic
+position or their <quote>function</quote>.
+Key aliases can be specified both in the symbolic
 names component and in the keyboard geometry. Both sets of aliases are always
 valid, but key alias definitions in the keyboard geometry have priority; if
 both symbolic names and geometry include aliases, you should consider the
@@ -508,11 +510,11 @@ symbolic names section.
   <glossterm>Key Behavior</glossterm>
   <glossdef>
     <para>
-The <emphasis>
-behaviors</emphasis>
- field of the server map is an array of <emphasis>
-XkbBehavior</emphasis>
-, indexed by keycode, and contains the behavior for each key. The X server uses
+The
+<structfield>behaviors</structfield>
+field of the server map is an array of
+<structname>XkbBehavior</structname>,
+indexed by keycode, and contains the behavior for each key. The X server uses
 key behavior to determine whether to process or filter out any given key event;
 key behavior is independent of keyboard modifier or group state. Each key has
 exactly one behavior.
@@ -542,9 +544,9 @@ exactly one behavior.
   <glossdef>
     <para>
 A key symbol map describes the symbols bound to a key and the rules to be used
-to interpret those symbols. It is an array of <emphasis>
-XkbSymMapRec</emphasis>
- structures indexed by keycode.
+to interpret those symbols. It is an array of
+<structname>XkbSymMapRec</structname>
+structures indexed by keycode.
     </para>
   </glossdef>
 </glossentry>
@@ -554,15 +556,15 @@ XkbSymMapRec</emphasis>
     <para>
 Key types are used to determine the shift level of a key given the current
 state of the keyboard. There is one key type for each group for a key. Key
-types are defined using the <emphasis>
-XkbKeyTypeRec</emphasis>
- and <emphasis>
-XkbKTMapEntryRec</emphasis>
- structures. Xkb allows up to <emphasis>
-XkbMaxKeyTypes</emphasis>
- (255) key types to be defined, but requires at least <emphasis>
-XkbNumRequiredTypes</emphasis>
- (4) predefined types to be in a key map.
+types are defined using the
+<structname>XkbKeyTypeRec</structname>
+and
+<structname>XkbKTMapEntryRec</structname>
+structures. Xkb allows up to
+<symbol>XkbMaxKeyTypes</symbol>
+(255) key types to be defined, but requires at least
+<symbol>XkbNumRequiredTypes</symbol>
+(4) predefined types to be in a key map.
     </para>
   </glossdef>
 </glossentry>
@@ -572,7 +574,7 @@ XkbNumRequiredTypes</emphasis>
     <para>
 The sound the default bell makes when rung is the system bell or the default
 keyboard bell. Some input devices may have more than one bell, identified by
-<emphasis>bell_class</emphasis> and <emphasis>bell_id</emphasis>.
+<structfield>bell_class</structfield> and <structfield>bell_id</structfield>.
     </para>
   </glossdef>
 </glossentry>
@@ -581,11 +583,14 @@ keyboard bell. Some input devices may have more than one bell, identified by
   <glossdef>
     <para>
 There are five types of components stored in the X server database of keyboard
-components. They correspond to the <emphasis>
-symbols, geometry, keycodes, compat, </emphasis>
-and<emphasis>
- types</emphasis>
- symbolic names associated with a keyboard.
+components. They correspond to the
+<structfield>>symbols</structfield>,
+<structfield>geometry</structfield>,
+<structfield>keycodes</structfield>,
+<structfield>compat</structfield>,
+and
+<structfield>types</structfield>
+symbolic names associated with a keyboard.
     </para>
   </glossdef>
 </glossentry>
@@ -594,16 +599,16 @@ and<emphasis>
   <glossdef>
     <para>
 A keyboard feedback includes the following:
+      <simplelist type='vert' columns='1'>
+        <member>Keyclick volume</member>
+        <member>Bell volume</member>
+        <member>Bell pitch</member>
+        <member>Bell duration</member>
+        <member>Global auto-repeat</member>
+        <member>Per key auto-repeat</member>
+        <member>32 LEDs</member>
+      </simplelist>
     </para>
-<literallayout>
-      Keyclick volume
-      Bell volume
-      Bell pitch
-      Bell duration
-      Global auto-repeat
-      Per key auto-repeat
-      32 LEDs
-</literallayout>
   </glossdef>
 </glossentry>
 
@@ -622,9 +627,9 @@ key type.
     <para>
 Keyboard geometry describes the physical appearance of the keyboard, including
 the shape, location, and color of all keyboard keys or other visible keyboard
-components such as indicators and is stored in a <emphasis>
-XkbGeometryRec</emphasis>
- structure. The information contained in a keyboard geometry is sufficient to
+components such as indicators and is stored in a
+<structname>XkbGeometryRec</structname>
+structure. The information contained in a keyboard geometry is sufficient to
 allow a client program to draw an accurate two-dimensional image of the
 keyboard.
     </para>
@@ -635,9 +640,9 @@ keyboard.
   <glossdef>
     <para>
 The keyboard geometry name describes the physical location, size, and shape of
-the various keys on the keyboard and is part of the <emphasis>
-XkbNamesRec</emphasis>
- structure.
+the various keys on the keyboard and is part of the
+<structname>XkbNamesRec</structname>
+structure.
     </para>
   </glossdef>
 </glossentry>
@@ -666,9 +671,9 @@ the device.
   <glossdef>
     <para>
 The keycode name describes the range and meaning of the keycodes returned by
-the keyboard and is part of the <emphasis>
-XkbNamesRec</emphasis>
- structure.
+the keyboard and is part of the
+<structname>XkbNamesRec</structname>
+structure.
     </para>
   </glossdef>
 </glossentry>
@@ -741,19 +746,17 @@ to a keysym.
     <para>
 A modifier is a logical condition that is either set or unset. The modifiers
 control the Shift Level selected when a key event occurs. Xkb supports the core
-protocol eight modifiers (<emphasis>
-Shift</emphasis>
-, <emphasis>
-Lock</emphasis>
-, <emphasis>
-Control</emphasis>
-, and <emphasis>
-Mod1</emphasis>
- through <emphasis>
-Mod5</emphasis>
-), called the <emphasis>
-real</emphasis>
- modifiers. In addition, Xkb extends modifier flexibility by providing a set of
+protocol eight modifiers
+(<symbol>Shift</symbol>,
+<symbol>Lock</symbol>,
+<symbol>Control</symbol>,
+and
+<symbol>Mod1</symbol>
+through
+<symbol>Mod5</symbol>),
+called the
+<emphasis>real</emphasis>
+modifiers. In addition, Xkb extends modifier flexibility by providing a set of
 sixteen named virtual modifiers, each of which can be bound to any set of the
 eight real modifiers.
     </para>
@@ -773,9 +776,9 @@ may be, for example, a shift key or a control key.
   <glossterm>Modifier Definition</glossterm>
   <glossdef>
     <para>
-An Xkb modifier definition, held in an <emphasis>
-XkbModsRec</emphasis>
-, consists of a set of real modifiers, a set of virtual modifiers, and an
+An Xkb modifier definition, held in an
+<structname>XkbModsRec</structname>,
+consists of a set of real modifiers, a set of virtual modifiers, and an
 effective mask. The mask is the union of the real modifiers and the set of real
 modifiers to which the virtual modifiers map; the mask cannot be explicitly
 changed.
@@ -806,12 +809,12 @@ polygon, used in the geometry specification for a keyboard.
   <glossterm>Physical Indicator Mask</glossterm>
   <glossdef>
     <para>
-The physical indicator mask is a field in the <emphasis>
-XkbIndicatorRec</emphasis>
- that indicates which indicators are bound to physical LEDs on the keyboard; if
-a bit is set in <emphasis>
-phys_indicators</emphasis>
-, then the associated indicator has a physical LED associated with it. This
+The physical indicator mask is a field in the
+<structname>XkbIndicatorRec</structname>
+that indicates which indicators are bound to physical LEDs on the keyboard; if
+a bit is set in
+<structfield>phys_indicators</structfield>,
+then the associated indicator has a physical LED associated with it. This
 field is necessary because some indicators may not have corresponding physical
 LEDs on the keyboard.
     </para>
@@ -821,13 +824,13 @@ LEDs on the keyboard.
   <glossterm>Physical Symbol Keyboard Name</glossterm>
   <glossdef>
     <para>
-The <emphasis>
-symbols</emphasis>
- keyboard name identifies the symbols logically bound to the keys. The symbols
+The
+<structfield>symbols</structfield>
+keyboard name identifies the symbols logically bound to the keys. The symbols
 name is a human or application-readable description of the intended locale or
-usage of the keyboard with these symbols. The <emphasis>
-phys_symbols</emphasis>
- keyboard name, on the other hand, identifies the symbols actually engraved on
+usage of the keyboard with these symbols. The
+<structfield>phys_symbols</structfield>
+keyboard name, on the other hand, identifies the symbols actually engraved on
 the keyboard.
     </para>
   </glossdef>
@@ -838,14 +841,14 @@ the keyboard.
     <para>
 Xkb normally consumes modifiers in determining the appropriate symbol for an
 event, that is, the modifiers are not considered during any of the later stages
-of event processing. For those rare occasions when a modifier <emphasis>
-should</emphasis>
- be considered despite having been used to look up a symbol, key types include
-an optional <emphasis>
-preserve</emphasis>
- field. If a modifier is present in the <emphasis>
-preserve</emphasis>
- list, it is a preserved modifier.
+of event processing. For those rare occasions when a modifier
+<emphasis>should</emphasis>
+be considered despite having been used to look up a symbol, key types include
+an optional
+<structfield>preserve</structfield>
+field. If a modifier is present in the
+<structfield>preserve</structfield>
+list, it is a preserved modifier.
     </para>
   </glossdef>
 </glossentry>
@@ -865,19 +868,17 @@ be logically depressed at one time.
   <glossterm>Real Modifier</glossterm>
   <glossdef>
     <para>
-Xkb supports the eight core protocol modifiers (<emphasis>
-Shift</emphasis>
-, <emphasis>
-Lock</emphasis>
-, <emphasis>
-Control</emphasis>
-, and <emphasis>
-Mod1</emphasis>
- through <emphasis>
-Mod5</emphasis>
-); these are called the <emphasis>
-real</emphasis>
- modifiers, as opposed to the set of sixteen named virtual modifiers that can
+Xkb supports the eight core protocol modifiers
+(<symbol>Shift</symbol>,
+<symbol>Lock</symbol>,
+<symbol>Control</symbol>,
+and
+<symbol>Mod1</symbol>
+through
+<symbol>Mod5</symbol>);
+these are called the
+<emphasis>real</emphasis>
+modifiers, as opposed to the set of sixteen named virtual modifiers that can
 be bound to any set of the eight real modifiers.
     </para>
   </glossdef>
@@ -904,13 +905,13 @@ produced when a key is actuated.
   <glossterm>Symbol Keyboard Name</glossterm>
   <glossdef>
     <para>
-The <emphasis>
-symbols</emphasis>
- keyboard name identifies the symbols logically bound to the keys. The symbols
+The
+<structfield>symbols</structfield>
+keyboard name identifies the symbols logically bound to the keys. The symbols
 name is a human or application-readable description of the intended locale or
-usage of the keyboard with these symbols. The <emphasis>
-phys_symbols</emphasis>
- keyboard name, on the other hand, identifies the symbols actually engraved on
+usage of the keyboard with these symbols. The
+<structfield>phys_symbols</structfield>
+keyboard name, on the other hand, identifies the symbols actually engraved on
 the keyboard.
     </para>
   </glossdef>
@@ -920,9 +921,9 @@ the keyboard.
   <glossdef>
     <para>
 Xkb supports symbolic names for most components of the keyboard extension. Most
-of these symbolic names are grouped into the <emphasis>
-names</emphasis>
- component of the keyboard description.
+of these symbolic names are grouped into the
+<structfield>names</structfield>
+component of the keyboard description.
     </para>
   </glossdef>
 </glossentry>
@@ -939,9 +940,9 @@ group, and button state information pertaining to the event.
   <glossterm>Types Name</glossterm>
   <glossdef>
     <para>
-The <emphasis>
-types</emphasis>
- name provides some information about the set of key types that can be
+The
+<emphasis>types</emphasis>
+name provides some information about the set of key types that can be
 associated with the keyboard. In addition, each key type can have a name, and
 each shift level of a type can have a name.
     </para>
@@ -962,17 +963,15 @@ slider, or a dial.
     <para>
 Xkb provides a set of sixteen named virtual modifiers that can be bound to any
 set of the eight real modifiers. Each virtual modifier can be bound to any set
-of the real modifiers (<emphasis>
-Shift</emphasis>
-, <emphasis>
-Lock</emphasis>
-, <emphasis>
-Control,</emphasis>
- and <emphasis>
-Mod1</emphasis>
--<emphasis>
-Mod5</emphasis>
-).
+of the real modifiers
+(<symbol>Shift</symbol>,
+<symbol>Lock</symbol>,
+<symbol>Control</symbol>,
+and
+<symbol>Mod1</symbol>
+&ndash;
+<symbol>Mod5</symbol>).
+
     </para>
   </glossdef>
 </glossentry>

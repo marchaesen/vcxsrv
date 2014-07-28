@@ -205,3 +205,7 @@ FcRangeSerialize (FcSerialize *serialize, const FcRange *r)
 
     return r_serialize;
 }
+
+#define __fcrange__
+#include "fcaliastail.h"
+#undef __fcrange__

@@ -139,7 +139,8 @@ AC_CHECK_HEADERS([fcntl.h stdlib.h string.h unistd.h dlfcn.h stropts.h \
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 AC_C_TYPEOF
-AC_C_BIGENDIAN([ENDIAN="X_BIG_ENDIAN"], [ENDIAN="X_LITTLE_ENDIAN"])
+AC_C_BIGENDIAN(AC_DEFINE(X_BYTE_ORDER, X_BIG_ENDIAN, [byte order]),
+               AC_DEFINE(X_BYTE_ORDER, X_LITTLE_ENDIAN, [byte order]))
 
 AC_CHECK_SIZEOF([unsigned long])
 if test "$ac_cv_sizeof_unsigned_long" = 8; then
@@ -648,6 +649,7 @@ AC_ARG_ENABLE(kdrive-kbd,     AS_HELP_STRING([--enable-kdrive-kbd], [Build kbd d
 AC_ARG_ENABLE(kdrive-mouse,   AS_HELP_STRING([--enable-kdrive-mouse], [Build mouse driver for kdrive (default: auto)]), [KDRIVE_MOUSE=$enableval], [KDRIVE_MOUSE=auto])
 AC_ARG_ENABLE(kdrive-evdev,   AS_HELP_STRING([--enable-kdrive-evdev], [Build evdev driver for kdrive (default: auto)]), [KDRIVE_EVDEV=$enableval], [KDRIVE_EVDEV=auto])
 AC_ARG_ENABLE(libunwind,      AS_HELP_STRING([--enable-libunwind], [Use libunwind for backtracing (default: auto)]), [LIBUNWIND="$enableval"], [LIBUNWIND="auto"])
+AC_ARG_ENABLE(xshmfence,      AS_HELP_STRING([--disable-xshmfence], [Disable xshmfence (default: auto)]), [XSHMFENCE="$enableval"], [XSHMFENCE="auto"])
 
 
 dnl chown/chmod to be setuid root as part of build
@@ -787,7 +789,7 @@ DMXPROTO="dmxproto >= 2.2.99.1"
 VIDMODEPROTO="xf86vidmodeproto >= 2.2.99.1"
 WINDOWSWMPROTO="windowswmproto"
 APPLEWMPROTO="applewmproto >= 1.4"
-XSHMFENCE="xshmfence >= 1.1"
+LIBXSHMFENCE="xshmfence >= 1.1"
 
 dnl Required modules
 XPROTO="xproto >= 7.0.26"
@@ -1235,20 +1237,23 @@ esac
 
 AM_CONDITIONAL(BUSFAULT, test x"$BUSFAULT" = xyes)
 
-PKG_CHECK_MODULES([XSHMFENCE], $XSHMFENCE,
-		  [HAVE_XSHMFENCE=yes], [HAVE_XSHMFENCE=no])
 
-AM_CONDITIONAL(XSHMFENCE, test "x$HAVE_XSHMFENCE" = xyes)
+PKG_CHECK_MODULES([XSHMFENCE], $LIBXSHMFENCE, [HAVE_XSHMFENCE=yes], [HAVE_XSHMFENCE=no])
+if test "x$XSHMFENCE" = "xauto"; then
+    XSHMFENCE="$HAVE_XSHMFENCE"
+fi
 
-case x"$HAVE_XSHMFENCE" in
-	xyes)
-		AC_DEFINE(HAVE_XSHMFENCE, 1, [Have X Shared Memory Fence library])
-		REQUIRED_LIBS="$REQUIRED_LIBS xshmfence"
-		;;
-esac
+if test "x$XSHMFENCE" = "xyes"; then
+    if test "x$HAVE_XSHMFENCE" != "xyes"; then
+        AC_MSG_ERROR([xshmfence requested but not installed.])
+    fi
+    AC_DEFINE(HAVE_XSHMFENCE, 1, [Have xshmfence support])
+    REQUIRED_LIBS="$REQUIRED_LIBS $LIBXSHMFENCE"
+fi
 
+AM_CONDITIONAL(XSHMFENCE, [test "x$XSHMFENCE" = xyes])
 
-case "$DRI3,$HAVE_XSHMFENCE" in
+case "$DRI3,$XSHMFENCE" in
 	yes,yes | auto,yes)
 		;;
 	yes,no)

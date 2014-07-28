@@ -483,7 +483,7 @@ FcFontRenderPrepare (FcConfig	    *config,
 {
     FcPattern	    *new;
     int		    i;
-    FcPatternElt    *fe, *pe, *fel, *pel;
+    FcPatternElt    *fe, *pe;
     FcValue	    v;
     FcResult	    result;
 
@@ -508,36 +508,25 @@ FcFontRenderPrepare (FcConfig	    *config,
 	    fe->object == FC_STYLE_OBJECT ||
 	    fe->object == FC_FULLNAME_OBJECT)
 	{
+	    FcPatternElt    *fel, *pel;
+
 	    FC_ASSERT_STATIC ((FC_FAMILY_OBJECT + 1) == FC_FAMILYLANG_OBJECT);
 	    FC_ASSERT_STATIC ((FC_STYLE_OBJECT + 1) == FC_STYLELANG_OBJECT);
 	    FC_ASSERT_STATIC ((FC_FULLNAME_OBJECT + 1) == FC_FULLNAMELANG_OBJECT);
 
 	    fel = FcPatternObjectFindElt (font, fe->object + 1);
 	    pel = FcPatternObjectFindElt (pat, fe->object + 1);
-	}
-	else
-	{
-	    fel = NULL;
-	    pel = NULL;
-	}
-	pe = FcPatternObjectFindElt (pat, fe->object);
-	if (pe)
-	{
-	    const FcMatcher *match = FcObjectToMatcher (pe->object, FcFalse);
 
-	    if (!FcCompareValueList (pe->object, match,
-				     FcPatternEltValues(pe),
-				     FcPatternEltValues(fe), &v, NULL, NULL, &result))
-	    {
-		FcPatternDestroy (new);
-		return NULL;
-	    }
 	    if (fel && pel)
 	    {
+		/* The font has name languages, and pattern asks for specific language(s).
+		 * Match on language and and prefer that result.
+		 * Note:  Currently the code only give priority to first matching language.
+		 */
 		int n = 1, j;
 		FcValueListPtr l1, l2, ln = NULL, ll = NULL;
+		const FcMatcher *match = FcObjectToMatcher (pel->object, FcTrue);
 
-		match = FcObjectToMatcher (pel->object, FcTrue);
 		if (!FcCompareValueList (pel->object, match,
 					 FcPatternEltValues (pel),
 					 FcPatternEltValues (fel), NULL, NULL, &n, &result))
@@ -580,9 +569,10 @@ FcFontRenderPrepare (FcConfig	    *config,
 	    }
 	    else if (fel)
 	    {
+		/* Pattern doesn't ask for specific language.  Copy all for name and
+		 * lang. */
 		FcValueListPtr l1, l2;
 
-	    copy_lang:
 		l1 = FcValueListDuplicate (FcPatternEltValues (fe));
 		l2 = FcValueListDuplicate (FcPatternEltValues (fel));
 		FcPatternObjectListAdd (new, fe->object, l1, FcFalse);
@@ -590,12 +580,23 @@ FcFontRenderPrepare (FcConfig	    *config,
 
 		continue;
 	    }
+	}
+
+	pe = FcPatternObjectFindElt (pat, fe->object);
+	if (pe)
+	{
+	    const FcMatcher *match = FcObjectToMatcher (pe->object, FcFalse);
+	    if (!FcCompareValueList (pe->object, match,
+				     FcPatternEltValues(pe),
+				     FcPatternEltValues(fe), &v, NULL, NULL, &result))
+	    {
+		FcPatternDestroy (new);
+		return NULL;
+	    }
 	    FcPatternObjectAdd (new, fe->object, v, FcFalse);
 	}
 	else
 	{
-	    if (fel)
-		goto copy_lang;
 	    FcPatternObjectListAdd (new, fe->object,
 				    FcValueListDuplicate (FcPatternEltValues (fe)),
 				    FcTrue);
