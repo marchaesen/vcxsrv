@@ -6227,6 +6227,10 @@ static void do_ssh2_transport(Ssh ssh, void *vin, int inlen,
 
 	pktin->savedpos += 16;	        /* skip garbage cookie */
 	ssh_pkt_getstring(pktin, &str, &len);    /* key exchange algorithms */
+        if (!str) {
+            bombout(("KEXINIT packet was incomplete"));
+            crStopV;
+        }
 
 	preferred = NULL;
 	for (i = 0; i < s->n_preferred_kex; i++) {
@@ -6246,8 +6250,8 @@ static void do_ssh2_transport(Ssh ssh, void *vin, int inlen,
 		break;
 	}
 	if (!ssh->kex) {
-	    bombout(("Couldn't agree a key exchange algorithm (available: %s)",
-		     str ? str : "(null)"));
+            bombout(("Couldn't agree a key exchange algorithm"
+                     " (available: %.*s)", len, str));
 	    crStopV;
 	}
 	/*
@@ -6257,6 +6261,10 @@ static void do_ssh2_transport(Ssh ssh, void *vin, int inlen,
 	 */
 	s->guessok = first_in_commasep_string(preferred, str, len);
 	ssh_pkt_getstring(pktin, &str, &len);    /* host key algorithms */
+        if (!str) {
+            bombout(("KEXINIT packet was incomplete"));
+            crStopV;
+        }
 	for (i = 0; i < lenof(hostkey_algs); i++) {
 	    if (in_commasep_string(hostkey_algs[i]->name, str, len)) {
 		ssh->hostkey = hostkey_algs[i];
@@ -6264,14 +6272,18 @@ static void do_ssh2_transport(Ssh ssh, void *vin, int inlen,
 	    }
 	}
 	if (!ssh->hostkey) {
-	    bombout(("Couldn't agree a host key algorithm (available: %s)",
-		     str ? str : "(null)"));
+            bombout(("Couldn't agree a host key algorithm"
+                     " (available: %.*s)", len, str));
 	    crStopV;
 	}
 
 	s->guessok = s->guessok &&
 	    first_in_commasep_string(hostkey_algs[0]->name, str, len);
 	ssh_pkt_getstring(pktin, &str, &len);    /* client->server cipher */
+        if (!str) {
+            bombout(("KEXINIT packet was incomplete"));
+            crStopV;
+        }
 	for (i = 0; i < s->n_preferred_ciphers; i++) {
 	    const struct ssh2_ciphers *c = s->preferred_ciphers[i];
 	    if (!c) {
@@ -6288,12 +6300,16 @@ static void do_ssh2_transport(Ssh ssh, void *vin, int inlen,
 		break;
 	}
 	if (!s->cscipher_tobe) {
-	    bombout(("Couldn't agree a client-to-server cipher (available: %s)",
-		     str ? str : "(null)"));
+            bombout(("Couldn't agree a client-to-server cipher"
+                     " (available: %.*s)", len, str));
 	    crStopV;
 	}
 
 	ssh_pkt_getstring(pktin, &str, &len);    /* server->client cipher */
+        if (!str) {
+            bombout(("KEXINIT packet was incomplete"));
+            crStopV;
+        }
 	for (i = 0; i < s->n_preferred_ciphers; i++) {
 	    const struct ssh2_ciphers *c = s->preferred_ciphers[i];
 	    if (!c) {
@@ -6310,12 +6326,16 @@ static void do_ssh2_transport(Ssh ssh, void *vin, int inlen,
 		break;
 	}
 	if (!s->sccipher_tobe) {
-	    bombout(("Couldn't agree a server-to-client cipher (available: %s)",
-		     str ? str : "(null)"));
+            bombout(("Couldn't agree a server-to-client cipher"
+                     " (available: %.*s)", len, str));
 	    crStopV;
 	}
 
 	ssh_pkt_getstring(pktin, &str, &len);    /* client->server mac */
+        if (!str) {
+            bombout(("KEXINIT packet was incomplete"));
+            crStopV;
+        }
 	for (i = 0; i < s->nmacs; i++) {
 	    if (in_commasep_string(s->maclist[i]->name, str, len)) {
 		s->csmac_tobe = s->maclist[i];
@@ -6323,6 +6343,10 @@ static void do_ssh2_transport(Ssh ssh, void *vin, int inlen,
 	    }
 	}
 	ssh_pkt_getstring(pktin, &str, &len);    /* server->client mac */
+        if (!str) {
+            bombout(("KEXINIT packet was incomplete"));
+            crStopV;
+        }
 	for (i = 0; i < s->nmacs; i++) {
 	    if (in_commasep_string(s->maclist[i]->name, str, len)) {
 		s->scmac_tobe = s->maclist[i];
@@ -6330,6 +6354,10 @@ static void do_ssh2_transport(Ssh ssh, void *vin, int inlen,
 	    }
 	}
 	ssh_pkt_getstring(pktin, &str, &len);  /* client->server compression */
+        if (!str) {
+            bombout(("KEXINIT packet was incomplete"));
+            crStopV;
+        }
 	for (i = 0; i < lenof(compressions) + 1; i++) {
 	    const struct ssh_compress *c =
 		i == 0 ? s->preferred_comp : compressions[i - 1];
@@ -6346,6 +6374,10 @@ static void do_ssh2_transport(Ssh ssh, void *vin, int inlen,
 	    }
 	}
 	ssh_pkt_getstring(pktin, &str, &len);  /* server->client compression */
+        if (!str) {
+            bombout(("KEXINIT packet was incomplete"));
+            crStopV;
+        }
 	for (i = 0; i < lenof(compressions) + 1; i++) {
 	    const struct ssh_compress *c =
 		i == 0 ? s->preferred_comp : compressions[i - 1];

@@ -1,5 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN"
+	  "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
 <chapter id='Xkb_Client_Keyboard_Mapping'>
 <title>Xkb Client Keyboard Mapping</title>
+
+<indexterm zone="Xkb_Client_Keyboard_Mapping">
+<primary>client map</primary></indexterm>
+<indexterm zone="Xkb_Client_Keyboard_Mapping">
+<primary>map</primary><secondary>client</secondary></indexterm>
 
 <para>
 The Xkb client map for a keyboard is the collection of information a client
@@ -10,14 +18,16 @@ bound to a key and the rules to be used to interpret those symbols.
 
 
 <para>
-Figure 15.1 shows the relationships between elements in the client map:
+<link linkend="figure15.1">Figure 15.1</link> shows the relationships between elements in the client map:
 </para>
 
-<mediaobject>
- <imageobject> <imagedata format="SVG" fileref="XKBlib-15.svg"/>
- </imageobject>
-<caption>Xkb Client Map</caption>
- </mediaobject>
+<figure id='figure15.1'>
+  <title>Xkb Client Map</title>
+  <mediaobject>
+   <imageobject> <imagedata format="SVG" fileref="XKBlib-15.svg"/>
+   </imageobject>
+   </mediaobject>
+</figure>
 
 
 <!--
@@ -27,207 +37,203 @@ Xkb Client Map</H5>
 
 <sect1 id='The_XkbClientMapRec_Structure'>
 <title>The XkbClientMapRec Structure</title>
+<indexterm significance="preferred" zone="The_XkbClientMapRec_Structure">
+<primary><structname>XkbClientMapRec</structname></primary></indexterm>
 
 <para>
-The <emphasis>
-map </emphasis>
-field of the complete Xkb keyboard description (see section 6.1) is a pointer
-to the Xkb client map, which is of type <emphasis>
-XkbClientMapRec</emphasis>
-:
-</para>
+The
+<structfield>map</structfield>
+field of the complete Xkb keyboard description (see <link linkend="The_XkbDescRec_Structure">section 6.1</link>) is a pointer
+to the Xkb client map, which is of type
+<structname>XkbClientMapRec</structname>:
 
-<para><programlisting>
-typedef struct {                        /* Client Map */
-      unsigned char      size_types;    /* # occupied entries in <emphasis> types</emphasis> */
-      unsigned char      num_types;     /* # entries in <emphasis>types</emphasis> */
-      XkbKeyTypePtr      types;         /* vector of key types used by this keymap */
-      unsigned short     size_syms;     /* length of the <emphasis>syms</emphasis> array */
-      unsigned short     num_syms;      /* # entries in <emphasis>syms</emphasis> */
-      KeySym *           syms;          /* linear 2d tables of keysyms, 1 per key */
-      XkbSymMapPtr       key_sym_map;   /* 1 per keycode, maps keycode to <emphasis>syms</emphasis> */
-      unsigned char *    modmap;        /* 1 per keycode, real mods bound to key */
-} <emphasis>XkbClientMapRec</emphasis>, *XkbClientMapPtr;
+<programlisting>
+typedef struct {                   /* Client Map */
+    unsigned char   size_types;    /* # occupied entries in <structfield>types</structfield> */
+    unsigned char   num_types;     /* # entries in <structfield>types</structfield> */
+    XkbKeyTypePtr   types;         /* vector of key types used by this keymap */
+    unsigned short  size_syms;     /* length of the <structfield>syms</structfield> array */
+    unsigned short  num_syms;      /* # entries in <structfield>syms</structfield> */
+    KeySym *        syms;          /* linear 2d tables of keysyms, 1 per key */
+    XkbSymMapPtr    key_sym_map;   /* 1 per keycode, maps keycode to <structfield>syms</structfield> */
+    unsigned char * modmap;        /* 1 per keycode, real mods bound to key */
+} <structname>XkbClientMapRec</structname>, *XkbClientMapPtr;
 </programlisting></para>
 
 <para>
-The following sections describe each of the elements of the <emphasis>
-XkbClientMapRec</emphasis>
- structure in more detail.
+The following sections describe each of the elements of the
+<structname>XkbClientMapRec</structname>
+structure in more detail.
 </para>
 
 
 </sect1>
 <sect1 id='Key_Types'>
 <title>Key Types</title>
+<indexterm significance="preferred" zone="Key_Types">
+<primary><structname>XkbKeyTypeRec</structname></primary></indexterm>
+<indexterm significance="preferred" zone="Key_Types">
+<primary><structname>XkbKTMapEntryRec</structname></primary></indexterm>
 
 <para>
 Key types are used to determine the shift level of a key given the current
 state of the keyboard. The set of all possible key types for the Xkb keyboard
-description are held in the <emphasis>
-types</emphasis>
- field of the client map, whose total size is stored in <emphasis>
-size_types</emphasis>
-, and whose total number of valid entries is stored in <emphasis>
-num_types</emphasis>
-. Key types are defined using the following structures:
-</para>
+description are held in the
+<structfield>types</structfield>
+field of the client map, whose total size is stored in
+<structfield>size_types</structfield>,
+and whose total number of valid entries is stored in
+<structfield>num_types</structfield>.
+Key types are defined using the following structures:
 
-<para><programlisting>
-typedef struct {                       /* Key Type */
-      XkbModsRec        mods;          /* modifiers used to compute shift
-                                          level */
-      unsigned char     num_levels;    /* total # shift levels, do not
-                                          modify directly */
-      unsigned char     map_count;     /* # entries in <emphasis>map</emphasis>,
-                                          <emphasis> preserve</emphasis>
-                                          (if non-<emphasis> NULL</emphasis>) */
-      XkbKTMapEntryPtr  map;           /* vector of modifiers for each
-                                          shift level */
-      XkbModsPtr        preserve;      /* mods to preserve for corresponding
-                                          <emphasis>map</emphasis> entry */
-      Atom              name;          /* name of key type */
-      Atom *            level_names;   /* array of names of each shift level */
-} <emphasis>XkbKeyTypeRec</emphasis>, *XkbKeyTypePtr;
-</programlisting></para>
+<programlisting>
+typedef struct {                     /* Key Type */
+    XkbModsRec        mods;          /* modifiers used to compute shift level */
+    unsigned char     num_levels;    /* total # shift levels, do not
+                                        modify directly */
+    unsigned char     map_count;     /* # entries in <structfield>map</structfield>, <structfield>preserve</structfield>
+                                        (if non-<symbol>NULL</symbol>) */
+    XkbKTMapEntryPtr  map;           /* vector of modifiers for each
+                                        shift level */
+    XkbModsPtr        preserve;      /* mods to preserve for
+                                        corresponding <structfield>map</structfield> entry */
+    Atom              name;          /* name of key type */
+    Atom *            level_names;   /* array of names of each shift level */
+} <structname>XkbKeyTypeRec</structname>, *XkbKeyTypePtr;
+</programlisting>
 
-<para><programlisting>
-typedef struct {                   /* Modifiers for a key type */
-      Bool            active;      /* <emphasis> True</emphasis> =&gt; entry
-                                      active when determining shift level */
-      unsigned char   level;       /* shift level if modifiers match <emphasis> mods</emphasis> */
-      XkbModsRec      mods;        /* mods needed for this level to be
-                                      selected */
-} <emphasis>XkbKTMapEntryRec</emphasis>,*XkbKTMapEntryPtr;
+<programlisting>
+typedef struct {                     /* Modifiers for a key type */
+    Bool              active;        /* <symbol>True</symbol> &rArr; entry active when
+                                        determining shift level */
+    unsigned char     level;         /* shift level if modifiers match <structfield>mods</structfield> */
+    XkbModsRec        mods;          /* mods needed for this level to be
+                                        selected */
+} <structname>XkbKTMapEntryRec</structname>, *XkbKTMapEntryPtr;
 </programlisting></para>
 
 <para>
-The <emphasis>
-mods</emphasis>
- field of a key type is an <emphasis>
-XkbModsRec</emphasis>
- (see section 7.2) specifying the modifiers the key type uses when calculating
+The
+<structfield>mods</structfield>
+field of a key type is an
+<structname>XkbModsRec</structname>
+(see <link linkend="Modifier_Definitions">section 7.2</link>) specifying the modifiers the key type uses when calculating
 the shift level, and can be composed of both the core modifiers and virtual
 modifiers. To set the modifiers associated with a key type, modify the
-<emphasis>
-real_mods</emphasis>
- and <emphasis>
-vmods</emphasis>
- fields of the <emphasis>
-mods</emphasis>
- <emphasis>
-XkbModsRec</emphasis>
- accordingly. The <emphasis>
-mask</emphasis>
- field of the <emphasis>
-XkbModsRec</emphasis>
- is reserved for use by Xkb and is calculated from the <emphasis>
-real_mods</emphasis>
- and <emphasis>
-vmods</emphasis>
- fields.
+<structfield>real_mods</structfield>
+and
+<structfield>vmods</structfield>
+fields of the
+<structfield>mods</structfield>
+<structname>XkbModsRec</structname>
+accordingly. The
+<structfield>mask</structfield>
+field of the
+<structname>XkbModsRec</structname>
+is reserved for use by Xkb and is calculated from the
+<structfield>real_mods</structfield>
+and
+<structfield>vmods</structfield>
+fields.
 </para>
 
 
 <para>
-The <emphasis>
-num_levels</emphasis>
- field holds the total number of shift levels for the key type. Xkb uses
-<emphasis>
-num_levels</emphasis>
- to ensure the array of symbols bound to a key is large enough. Do not modify
-<emphasis>
-num_levels</emphasis>
- directly to change the number if shift levels for a key type. Instead, use
-<emphasis>
-XkbResizeKeyType</emphasis>
- (see section 15.2.3).
+The
+<structfield>num_levels</structfield>
+field holds the total number of shift levels for the key type. Xkb uses
+<structfield>num_levels</structfield>
+to ensure the array of symbols bound to a key is large enough. Do not modify
+<structfield>num_levels</structfield>
+directly to change the number if shift levels for a key type. Instead, use
+<function>XkbResizeKeyType</function>
+(see <link linkend="Changing_the_Number_of_Levels_in_a_Key_Type">section 15.2.3</link>).
 </para>
 
 
 <para>
-The <emphasis>
-map</emphasis>
- field is a vector of <emphasis>
-XkbKTMapEntryRec</emphasis>
- structures, with <emphasis>
-map_count</emphasis>
- entries, that specify the modifier combinations for each possible shift level.
-Each map entry contains an <emphasis>
-active</emphasis>
- field, a <emphasis>
-mods</emphasis>
- field, and a <emphasis>
-level</emphasis>
- field. The <emphasis>
-active</emphasis>
- field determines whether the modifier combination listed in the <emphasis>
-mods</emphasis>
- field should be considered when determining shift level. If <emphasis>
-active</emphasis>
- is <emphasis>
-False</emphasis>
-, this <emphasis>
-map</emphasis>
- entry is ignored. If <emphasis>
-active</emphasis>
- is <emphasis>
-True</emphasis>
-, the <emphasis>
-level</emphasis>
- field of the <emphasis>
-map </emphasis>
+The
+<structfield>map</structfield>
+field is a vector of
+<structname>XkbKTMapEntryRec</structname>
+structures, with
+<structfield>map_count</structfield>
+entries, that specify the modifier combinations for each possible shift level.
+Each map entry contains an
+<structfield>active</structfield>
+field, a
+<structfield>mods</structfield>
+field, and a
+<structfield>level</structfield>
+field. The
+<structfield>active</structfield>
+field determines whether the modifier combination listed in the
+<structfield>mods</structfield>
+field should be considered when determining shift level. If
+<structfield>active</structfield>
+is
+<symbol>False</symbol>,
+this
+<structfield>map</structfield>
+entry is ignored. If
+<structfield>active</structfield>
+is
+<symbol>True</symbol>,
+the
+<structfield>level</structfield>
+field of the
+<structfield>map</structfield>
 entry specifies the shift level to use when the current modifier combination
-matches the combination specified in the <emphasis>
-mods</emphasis>
- field of the <emphasis>
-map</emphasis>
- entry.
+matches the combination specified in the
+<structfield>mods</structfield>
+field of the
+<structfield>map</structfield>
+entry.
 </para>
 
 
 <para>
-Any combination of modifiers not explicitly listed somewhere in the <emphasis>
-map</emphasis>
- yields shift level one. In addition, <emphasis>
-map</emphasis>
- entries specifying unbound virtual modifiers are not considered.
+Any combination of modifiers not explicitly listed somewhere in the
+<structfield>map</structfield>
+yields shift level one. In addition,
+<structfield>map</structfield>
+entries specifying unbound virtual modifiers are not considered.
 </para>
 
 
 <para>
-Any modifiers specified in <emphasis>
-mods</emphasis>
- are normally <emphasis>
-consumed</emphasis>
- by <emphasis>
-XkbTranslateKeyCode</emphasis>
- (see section 12.1.3). For those rare occasions a modifier <emphasis>
-should</emphasis>
- be considered despite having been used to look up a symbol, key types include
-an optional <emphasis>
-preserve</emphasis>
- field. If a <emphasis>
-preserve</emphasis>
- member of a key type is not <emphasis>
-NULL</emphasis>
-, it represents a list of modifiers where each entry corresponds directly to
-one of the key type’s <emphasis>
-map</emphasis>
-. Each entry lists the modifiers that should <emphasis>
-not</emphasis>
- be consumed if the matching map entry is used to determine shift level.
+Any modifiers specified in
+<structfield>mods</structfield>
+are normally
+<emphasis>consumed</emphasis>
+by
+<function>XkbTranslateKeyCode</function>
+(see <link linkend="X_Library_Functions_Affected_by_Xkb">section 12.1.3</link>). For those rare occasions a modifier
+<emphasis>should</emphasis>
+be considered despite having been used to look up a symbol, key types include
+an optional
+<structfield>preserve</structfield>
+field. If a
+<structfield>preserve</structfield>
+member of a key type is not
+<symbol>NULL</symbol>,
+it represents a list of modifiers where each entry corresponds directly to
+one of the key type’s
+<structfield>map</structfield>.
+Each entry lists the modifiers that should
+<emphasis>not</emphasis>
+be consumed if the matching map entry is used to determine shift level.
 </para>
 
 
 <para>
-Each shift level has a name and these names are held in the <emphasis>
-level_names</emphasis>
- array, whose length is <emphasis>
-num_levels</emphasis>
-. The type itself also has a name, which is held in the <emphasis>
-name</emphasis>
- field.
+Each shift level has a name and these names are held in the
+<structfield>level_names</structfield>
+array, whose length is
+<structfield>num_levels</structfield>.
+The type itself also has a name, which is held in the
+<structfield>name</structfield>
+field.
 </para>
 
 
@@ -238,7 +244,7 @@ keyboard mappings in the server database is not specified by the Xkb extension,
 although this format is one possible example):
 </para>
 
-<table frame='topbot'>
+<table id='table15.1' frame='topbot'>
 <title>Example Key Type</title>
 <?dbfo keep-together="always" ?>
 <tgroup cols='2' align='left' colsep='0' rowsep='0'>
@@ -281,7 +287,7 @@ although this format is one possible example):
   </row>
   <row>
     <entry><emphasis>preserve[None]= None;</emphasis></entry>
-    <entry>Xkb-&gt;map-&gt;types[i].perserve[0]</entry>
+    <entry>Xkb-&gt;map-&gt;types[i].preserve[0]</entry>
   </row>
   <row>
     <entry>preserve[Lock]= Lock;</entry>
@@ -320,79 +326,76 @@ although this format is one possible example):
 </table>
 
 <para>
-The <emphasis>
-name</emphasis>
- of the example key type is "ALPHATHREE," and the modifiers it pays attention
-to are <emphasis>
-Shift</emphasis>
-, <emphasis>
-Lock</emphasis>
-, and the virtual modifier <emphasis>
-LevelThree</emphasis>
-. There are three shift levels. The name of shift level one is "Base," the name
+The
+<structfield>name</structfield>
+of the example key type is "ALPHATHREE," and the modifiers it pays attention
+to are
+<symbol>Shift</symbol>,
+<symbol>Lock</symbol>,
+and the virtual modifier
+<emphasis>LevelThree</emphasis>.
+There are three shift levels. The name of shift level one is "Base," the name
 of shift level two is "Caps," and the name of shift level three is "Level3."
 </para>
 
 
 <para>
-Given the combination of the <emphasis>
-map</emphasis>
- and <emphasis>
-preserve</emphasis>
- specifications, there are five <emphasis>
-map</emphasis>
- entries. The first map entry specifies that shift level one is to be used if
-no modifiers are set. The second entry specifies the <emphasis>
-Lock</emphasis>
- modifier alone also yields shift level one. The third entry specifies the
-<emphasis>
-Shift</emphasis>
- modifier alone yields shift level two. The fourth and fifth entries specify
-that the virtual <emphasis>
-LevelThree</emphasis>
- modifier alone, or in combination with the <emphasis>
-Shift</emphasis>
- modifier, yields shift level three.
+Given the combination of the
+<structfield>map</structfield>
+and
+<structfield>preserve</structfield>
+specifications, there are five
+<structfield>map</structfield>
+entries. The first map entry specifies that shift level one is to be used if
+no modifiers are set. The second entry specifies the
+<symbol>Lock</symbol>
+modifier alone also yields shift level one. The third entry specifies the
+<symbol>Shift</symbol>
+modifier alone yields shift level two. The fourth and fifth entries specify
+that the virtual
+<emphasis>LevelThree</emphasis>
+modifier alone, or in combination with the
+<symbol>Shift</symbol>
+modifier, yields shift level three.
 </para>
 
 <note><para>Shift level three can be reached only if the virtual modifier
-<emphasis>
-LevelThree</emphasis>
- is bound to a real modifier (see section 16.4). If <emphasis>
-LevelThree</emphasis>
- is not bound to a real modifier, the <emphasis>
-map</emphasis>
- entries associated with it are ignored.</para></note>
+<emphasis>LevelThree</emphasis>
+is bound to a real modifier (see <link linkend="Virtual_Modifier_Mapping">section 16.4</link>). If
+<emphasis>LevelThree</emphasis>
+is not bound to a real modifier, the
+<structfield>map</structfield>
+entries associated with it are ignored.</para></note>
 
 <para>
-Because the <emphasis>
-Lock</emphasis>
- modifier is to be preserved for further event processing, the <emphasis>
-preserve</emphasis>
- list is not <emphasis>
-NULL</emphasis>
- and parallels the <emphasis>
-map</emphasis>
- list. All <emphasis>
-preserve</emphasis>
- entries, except for the one corresponding to the <emphasis>
-map</emphasis>
- entry that specifies the <emphasis>
-Lock </emphasis>
-modifier, do not list any modifiers. For the <emphasis>
-map</emphasis>
- entry that specifies the <emphasis>
-Lock</emphasis>
- modifier, the corresponding <emphasis>
-preserve</emphasis>
- list entry lists the <emphasis>
-Lock</emphasis>
- modifier, meaning do not consume the <emphasis>
-Lock</emphasis>
- modifier. In this particular case, the preserved modifier is passed to Xlib
-translation functions and causes them to notice that the <emphasis>
-Lock</emphasis>
- modifier is set; consequently, the Xlib functions apply the appropriate
+Because the
+<symbol>Lock</symbol>
+modifier is to be preserved for further event processing, the
+<structfield>preserve</structfield>
+list is not
+<symbol>NULL</symbol>
+and parallels the
+<structfield>map</structfield>
+list. All
+<structfield>preserve</structfield>
+entries, except for the one corresponding to the
+<structfield>map</structfield>
+entry that specifies the
+<symbol>Lock</symbol>
+modifier, do not list any modifiers. For the
+<structfield>map</structfield>
+entry that specifies the
+<symbol>Lock</symbol>
+modifier, the corresponding
+<structfield>preserve</structfield>
+list entry lists the
+<symbol>Lock</symbol>
+modifier, meaning do not consume the
+<symbol>Lock</symbol>
+modifier. In this particular case, the preserved modifier is passed to Xlib
+translation functions and causes them to notice that the
+<symbol>Lock</symbol>
+modifier is set; consequently, the Xlib functions apply the appropriate
 capitalization rules to the symbol. Because this preserve entry is set only for
 a modifier that yields shift level one, the capitalization occurs only for
 level-one symbols.
@@ -403,26 +406,26 @@ level-one symbols.
 <title>The Canonical Key Types</title>
 
 <para>
-Xkb allows up to <emphasis>
-XkbMaxKeyTypes</emphasis>
- (255) key types to be defined, but requires at least <emphasis>
-XkbNumRequiredTypes</emphasis>
- (4) predefined types to be in a key map. These predefined key types are
+Xkb allows up to
+<symbol>XkbMaxKeyTypes</symbol>
+(255) key types to be defined, but requires at least
+<symbol>XkbNumRequiredTypes</symbol>
+(4) predefined types to be in a key map. These predefined key types are
 referred to as the canonical key types and describe the types of keys available
 on most keyboards. The definitions for the canonical key types are held in the
-first <emphasis>
-XkbNumRequiredTypes</emphasis>
- entries of the <emphasis>
-types</emphasis>
- field of the client map and are indexed using the following constants:
-</para>
+first
+<symbol>XkbNumRequiredTypes</symbol>
+entries of the
+<structfield>types</structfield>
+field of the client map and are indexed using the following constants:
 
-<para><programlisting>
-     <emphasis>XkbOneLevelIndex</emphasis>
-     <emphasis>XkbTwoLevelIndex</emphasis>
-     <emphasis>XkbAlphabeticIndex</emphasis>
-     <emphasis>XkbKeypadIndex</emphasis>
-</programlisting></para>
+  <simplelist type='vert' columns='1'>
+    <member><symbol>XkbOneLevelIndex</symbol></member>
+    <member><symbol>XkbTwoLevelIndex</symbol></member>
+    <member><symbol>XkbAlphabeticIndex</symbol></member>
+    <member><symbol>XkbKeypadIndex</symbol></member>
+  </simplelist>
+</para>
 
 <sect3 id='ONE_LEVEL'>
 <title>ONE_LEVEL</title>
@@ -435,18 +438,18 @@ following:
 </para>
 
 <literallayout>
-type "ONE_LEVEL" {
-      modifiers = None;
-      map[None]= Level1;
-      level_name[Level1]= "Any";
-};
+    type "ONE_LEVEL" {
+          modifiers = None;
+          map[None]= Level1;
+          level_name[Level1]= "Any";
+    };
 </literallayout>
 
 <para>
-The description of the ONE_LEVEL key type is stored in the <emphasis>
-types</emphasis>
-[<emphasis>
-XkbOneLevelIndex</emphasis>
+The description of the ONE_LEVEL key type is stored in the
+<structfield>types</structfield>
+[
+<symbol>XkbOneLevelIndex</symbol>
 ] entry of the client key map.
 </para>
 
@@ -458,28 +461,28 @@ XkbOneLevelIndex</emphasis>
 <para>
 The TWO_LEVEL key type describes groups that consist of two symbols but are
 neither alphabetic nor numeric keypad keys. The default TWO_LEVEL type uses
-only the <emphasis>
-Shift</emphasis>
- modifier. It returns shift level two if <emphasis>
-Shift</emphasis>
- is set, and level one if it is not. A symbolic representation of this key type
+only the
+<symbol>Shift</symbol>
+modifier. It returns shift level two if
+<symbol>Shift</symbol>
+is set, and level one if it is not. A symbolic representation of this key type
 could look like the following:
 </para>
 
 <literallayout>
-type "TWO_LEVEL" {
-      modifiers = Shift;
-      map[Shift]= Level2;
-      level_name[Level1]= "Base";
-      level_name[Level2]= "Shift";
-};
+    type "TWO_LEVEL" {
+          modifiers = Shift;
+          map[Shift]= Level2;
+          level_name[Level1]= "Base";
+          level_name[Level2]= "Shift";
+    };
 </literallayout>
 
 <para>
-The description of the TWO_LEVEL key type is stored in the <emphasis>
-types</emphasis>
-[<emphasis>
-XkbTwoLevelIndex</emphasis>
+The description of the TWO_LEVEL key type is stored in the
+<structfield>types</structfield>
+[
+<symbol>XkbTwoLevelIndex</symbol>
 ] entry of the client key map.
 </para>
 
@@ -491,49 +494,49 @@ XkbTwoLevelIndex</emphasis>
 <para>
 The ALPHABETIC key type describes groups consisting of two symbols: the
 lowercase form of a symbol followed by the uppercase form of the same symbol.
-The default ALPHABETIC type implements locale-sensitive "Shift cancels
-CapsLock" behavior using both the <emphasis>
-Shift</emphasis>
- and <emphasis>
-Lock</emphasis>
- modifiers as follows:
+The default ALPHABETIC type implements locale-sensitive <quote>Shift cancels
+CapsLock</quote> behavior using both the
+<symbol>Shift</symbol>
+and
+<symbol>Lock</symbol>
+modifiers as follows:
 </para>
 
 <itemizedlist>
 <listitem>
   <para>
-If <emphasis>
-Shift</emphasis>
- and <emphasis>
-Lock</emphasis>
- are both set, the default ALPHABETIC type yields level one.
+If
+<symbol>Shift</symbol>
+and
+<symbol>Lock</symbol>
+are both set, the default ALPHABETIC type yields level one.
   </para>
 </listitem>
 <listitem>
   <para>
-If <emphasis>
-Shift</emphasis>
- alone is set, it yields level two.
+If
+<symbol>Shift</symbol>
+alone is set, it yields level two.
   </para>
 </listitem>
 <listitem>
   <para>
-If <emphasis>
-Lock</emphasis>
- alone is set, it yields level one, but preserves the <emphasis>
-Lock</emphasis>
- modifier so Xlib notices and applies the appropriate capitalization rules. The
+If
+<symbol>Lock</symbol>
+alone is set, it yields level one, but preserves the
+<symbol>Lock</symbol>
+modifier so Xlib notices and applies the appropriate capitalization rules. The
 Xlib functions are locale-sensitive and apply different capitalization rules
 for different locales.
   </para>
 </listitem>
 <listitem>
   <para>
-If neither <emphasis>
-Shift</emphasis>
- nor <emphasis>
-Lock</emphasis>
- is set, it yields level one.
+If neither
+<symbol>Shift</symbol>
+nor
+<symbol>Lock</symbol>
+is set, it yields level one.
   </para>
 </listitem>
 </itemizedlist>
@@ -543,20 +546,20 @@ A symbolic representation of this key type could look like the following:
 </para>
 
 <literallayout>
-type "ALPHABETIC" {
-      modifiers = Shift+Lock;
-      map[Shift]= Level2;
-      preserve[Lock]= Lock;
-      level_name[Level1]= "Base";
-      level_name[Level2]= "Caps";
-};
+    type "ALPHABETIC" {
+          modifiers = Shift+Lock;
+          map[Shift]= Level2;
+          preserve[Lock]= Lock;
+          level_name[Level1]= "Base";
+          level_name[Level2]= "Caps";
+    };
 </literallayout>
 
 <para>
-The description of the ALPHABETIC key type is stored in the <emphasis>
-types</emphasis>
-[<emphasis>
-XkbAlphabeticIndex</emphasis>
+The description of the ALPHABETIC key type is stored in the
+<structfield>types</structfield>
+[
+<symbol>XkbAlphabeticIndex</symbol>
 ] entry of the client key map.
 </para>
 
@@ -568,44 +571,45 @@ XkbAlphabeticIndex</emphasis>
 <para>
 The KEYPAD key type describes groups that consist of two symbols, at least one
 of which is a numeric keypad symbol. The numeric keypad symbol is assumed to
-reside at level two. The default KEYPAD key type implements "Shift cancels
-NumLock" behavior using the Shift modifier and the real modifier bound to the
-virtual modifier named "NumLock," known as the <emphasis>
-NumLock</emphasis>
- modifier, as follows:
+reside at level two. The default KEYPAD key type implements
+<quote>Shift cancels NumLock</quote> behavior using the Shift modifier
+and the real modifier bound to the virtual modifier named
+<quote>NumLock</quote>, known as the
+<emphasis>NumLock</emphasis>
+modifier, as follows:
 </para>
 
 <itemizedlist>
 <listitem>
   <para>
-If <emphasis>
-Shift</emphasis>
- and <emphasis>
-NumLock</emphasis>
- are both set, the default KEYPAD type yields level one.
+If
+<symbol>Shift</symbol>
+and
+<emphasis>NumLock</emphasis>
+are both set, the default KEYPAD type yields level one.
   </para>
 </listitem>
 <listitem>
   <para>
-If <emphasis>
-Shift</emphasis>
- alone is set, it yields level two.
+If
+<symbol>Shift</symbol>
+alone is set, it yields level two.
   </para>
 </listitem>
 <listitem>
   <para>
-If <emphasis>
-NumLock</emphasis>
- alone is set, it yields level two.
+If
+<emphasis>NumLock</emphasis>
+alone is set, it yields level two.
   </para>
 </listitem>
 <listitem>
   <para>
-If neither <emphasis>
-Shift</emphasis>
- nor <emphasis>
-NumLock</emphasis>
- is set, it yields level one.
+If neither
+<symbol>Shift</symbol>
+nor
+<emphasis>NumLock</emphasis>
+is set, it yields level one.
   </para>
 </listitem>
 </itemizedlist>
@@ -615,22 +619,22 @@ A symbolic representation of this key type could look like the following:
 </para>
 
 <literallayout>
-type "KEYPAD" {
-      modifiers = Shift+NumLock;
-      map[None]= Level1;
-      map[Shift]= Level2;
-      map[NumLock]= Level2;
-      map[Shift+NumLock]= Level1;
-      level_name[Level1]= "Base";
-      level_name[Level2]= "Caps";
-};
+    type "KEYPAD" {
+          modifiers = Shift+NumLock;
+          map[None]= Level1;
+          map[Shift]= Level2;
+          map[NumLock]= Level2;
+          map[Shift+NumLock]= Level1;
+          level_name[Level1]= "Base";
+          level_name[Level2]= "Caps";
+    };
 </literallayout>
 
 <para>
-The description of the KEYPAD key type is stored in the <emphasis>
-types</emphasis>
-[<emphasis>
-XkbKeypadIndex</emphasis>
+The description of the KEYPAD key type is stored in the
+<structfield>types</structfield>
+[
+<symbol>XkbKeypadIndex</symbol>
 ] entry of the client key map.
 </para>
 
@@ -641,101 +645,104 @@ XkbKeypadIndex</emphasis>
 
 <para>
 To set the definitions of the canonical key types in a client map to their
-default values, use <emphasis>
-XkbInitCanonicalKeyTypes.</emphasis>
+default values, use
+<function>XkbInitCanonicalKeyTypes</function>.
 </para>
 
-<informaltable frame='none'>
-<?dbfo keep-together="always" ?>
-<tgroup cols='1' align='left' colsep='0' rowsep='0'>
-<colspec colname='c1' colwidth='1.0*'/>
-<tbody>
-  <row>
-    <entry role='functiondecl'>
-Status <emphasis>
-XkbInitCanonicalKeyTypes</emphasis>
-(<emphasis>
-xkb, which, keypadVMod</emphasis>
-)
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-XkbDescPtr            <emphasis>
-xkb</emphasis>
-;            /* keyboard description containing client map to initialize */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-unsigned int            <emphasis>
-which</emphasis>
-;            /* mask of types to initialize */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-int            <emphasis>
-keypadVMod</emphasis>
-;            /* index of NumLock virtual modifier */
-    </entry>
-</row>
-</tbody>
-</tgroup>
-</informaltable>
+<indexterm significance="preferred" zone="XkbInitCanonicalKeyTypes"><primary><function>XkbInitCanonicalKeyTypes</function></primary></indexterm>
+<funcsynopsis id="XkbInitCanonicalKeyTypes">
+  <funcprototype>
+    <funcdef>Status <function>XkbInitCanonicalKeyTypes</function></funcdef>
+<!-- (
+<parameter>xkb, which, keypadVMod</parameter>
+) -->
+
+    <paramdef>XkbDescPtr <parameter>xkb</parameter></paramdef>
+    <paramdef>unsigned int <parameter>which</parameter></paramdef>
+    <paramdef>int <parameter>keypadVMod</parameter></paramdef>
+  </funcprototype>
+</funcsynopsis>
+<variablelist>
+  <varlistentry>
+    <term>
+      <parameter>xkb</parameter>
+    </term>
+    <listitem>
+      <para>
+        keyboard description containing client map to initialize
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>which</parameter>
+    </term>
+    <listitem>
+      <para>
+        mask of types to initialize
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>keypadVMod</parameter>
+    </term>
+    <listitem>
+      <para>
+        index of NumLock virtual modifier
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
 
 <para>
-<emphasis>
-XkbInitCanonicalKeyTypes</emphasis>
- initializes the first <emphasis>
-XkbNumRequiredTypes</emphasis>
- key types of the keyboard specified by the <emphasis>
-xkb</emphasis>
- parameter to their default values. The <emphasis>
-which</emphasis>
- parameter specifies what canonical key types to initialize and is a bitwise
-inclusive OR of the following masks: <emphasis>
-XkbOneLevelMask</emphasis>
-, <emphasis>
-XkbTwoLevelMask</emphasis>
-, <emphasis>
-XkbAlphabeticMask</emphasis>
-, and <emphasis>
-XkbKeypadMask</emphasis>
-. Only those canonical types specified by the <emphasis>
-which</emphasis>
- mask are initialized.
-</para>
-
-
-<para>
-If <emphasis>
-XkbKeypadMask</emphasis>
- is set in the <emphasis>
-which</emphasis>
- parameter, <emphasis>
-XkbInitCanonicalKeyTypes</emphasis>
- looks up the <emphasis>
-NumLock</emphasis>
- named virtual modifier to determine which virtual modifier to use when
-initializing the KEYPAD key type. If the <emphasis>
-NumLock</emphasis>
- virtual modifier does not exist, <emphasis>
-XkbInitCanonicalKeyTypes</emphasis>
- creates it.
+<function>XkbInitCanonicalKeyTypes</function>
+initializes the first
+<symbol>XkbNumRequiredTypes</symbol>
+key types of the keyboard specified by the
+<parameter>xkb</parameter>
+parameter to their default values. The
+<parameter>which</parameter>
+parameter specifies what canonical key types to initialize and is a bitwise
+inclusive OR of the following masks:
+<symbol>XkbOneLevelMask</symbol>,
+<symbol>XkbTwoLevelMask</symbol>,
+<symbol>XkbAlphabeticMask</symbol>,
+and
+<symbol>XkbKeypadMask</symbol>.
+Only those canonical types specified by the
+<parameter>which</parameter>
+mask are initialized.
 </para>
 
 
 <para>
-<emphasis>
-XkbInitCanonicalKeyTypes</emphasis>
- normally returns Success. It returns <emphasis>
-BadAccess</emphasis>
- if the Xkb extension has not been properly initialized, and <emphasis>
-BadAccess</emphasis>
- if the <emphasis>
-xkb</emphasis>
- parameter is not valid.
+If
+<symbol>XkbKeypadMask</symbol>
+is set in the
+<parameter>which</parameter>
+parameter,
+<function>XkbInitCanonicalKeyTypes</function>
+looks up the
+<emphasis>NumLock</emphasis>
+named virtual modifier to determine which virtual modifier to use when
+initializing the KEYPAD key type. If the
+<emphasis>NumLock</emphasis>
+virtual modifier does not exist,
+<function>XkbInitCanonicalKeyTypes</function>
+creates it.
+</para>
+
+
+<para>
+<function>XkbInitCanonicalKeyTypes</function>
+normally returns Success. It returns
+<errorname>BadAccess</errorname>
+if the Xkb extension has not been properly initialized, and
+<errorname>BadAccess</errorname>
+if the
+<parameter>xkb</parameter>
+parameter is not valid.
 </para>
 
 
@@ -747,92 +754,97 @@ xkb</emphasis>
 
 <para>
 To obtain the list of available key types in the server’s keyboard mapping,
-use <emphasis>
-XkbGetKeyTypes</emphasis>
-.
+use
+<function>XkbGetKeyTypes</function>.
 </para>
 
-<informaltable frame='none'>
-<?dbfo keep-together="always" ?>
-<tgroup cols='1' align='left' colsep='0' rowsep='0'>
-<colspec colname='c1' colwidth='1.0*'/>
-<tbody>
-  <row>
-    <entry role='functiondecl'>
-Status <emphasis>
-XkbGetKeyTypes</emphasis>
-(<emphasis>
-dpy</emphasis>
-,<emphasis>
- first</emphasis>
-,<emphasis>
- num</emphasis>
-,<emphasis>
- xkb</emphasis>
-)
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-Display *<emphasis>
-            dpy</emphasis>
-;            /* connection to X server */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-unsigned int<emphasis>
-            first</emphasis>
-;            /* index to first type to get, 0 =&gt; 1st type */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-unsigned int            <emphasis>
-num</emphasis>
-;            /* number of key types to be returned */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-XkbDescPtr             <emphasis>
-xkb</emphasis>
-;            /* keyboard description containing client map to update */
-    </entry>
-</row>
-</tbody>
-</tgroup>
-</informaltable>
-<note><para><emphasis>
-XkbGetKeyTypes</emphasis>
- is used to obtain descriptions of the key types themselves, not the key types
+<indexterm significance="preferred" zone="XkbGetKeyTypes"><primary><function>XkbGetKeyTypes</function></primary></indexterm>
+<funcsynopsis id="XkbGetKeyTypes">
+  <funcprototype>
+    <funcdef>Status <function>XkbGetKeyTypes</function></funcdef>
+<!-- (
+<parameter>dpy</parameter>,
+<parameter>first</parameter>,
+<parameter>num</parameter>,
+<parameter>xkb</parameter>
+) -->
+
+    <paramdef>Display *<parameter>dpy</parameter></paramdef>
+    <paramdef>unsigned int <parameter>first</parameter></paramdef>
+    <paramdef>unsigned int <parameter>num</parameter></paramdef>
+    <paramdef>XkbDescPtr <parameter>xkb</parameter></paramdef>
+  </funcprototype>
+</funcsynopsis>
+<variablelist>
+  <varlistentry>
+    <term>
+      <parameter>dpy</parameter>
+    </term>
+    <listitem>
+      <para>
+        connection to X server
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>first</parameter>
+    </term>
+    <listitem>
+      <para>
+        index to first type to get, 0 &rArr; 1st type
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>num</parameter>
+    </term>
+    <listitem>
+      <para>
+        number of key types to be returned
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>xkb</parameter>
+    </term>
+    <listitem>
+      <para>
+        keyboard description containing client map to update
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
+<note><para>
+<function>XkbGetKeyTypes</function>
+is used to obtain descriptions of the key types themselves, not the key types
 bound to individual keys. To obtain the key types bound to an individual key,
-refer to the <emphasis>
-key_sym_map</emphasis>
- field of the client map (see section 15.3.1).</para></note>
+refer to the
+<structfield>key_sym_map</structfield>
+field of the client map (see <link linkend="Per_Key_Key_Type_Indices">section 15.3.1</link>).</para></note>
 
 <para>
-<emphasis>
-XkbGetKeyTypes</emphasis>
- queries the server for the desired types, waits for a reply, and returns the
-desired types in the <emphasis>
-xkb-&gt;map-&gt;types</emphasis>
-. If successful, it returns Success.
+<function>XkbGetKeyTypes</function>
+queries the server for the desired types, waits for a reply, and returns the
+desired types in the
+<structfield>xkb-&gt;map-&gt;types</structfield>.
+If successful, it returns Success.
 </para>
 
 
 <para>
-<emphasis>
-XkbGetKeyTypes</emphasis>
- returns <emphasis>
-BadAccess</emphasis>
- if the Xkb extension has not been properly initialized and <emphasis>
-BadValue</emphasis>
- if the combination of <emphasis>
-first</emphasis>
- and <emphasis>
-num</emphasis>
- results in numbers out of valid range.
+<function>XkbGetKeyTypes</function>
+returns
+<errorname>BadAccess</errorname>
+if the Xkb extension has not been properly initialized and
+<errorname>BadValue</errorname>
+if the combination of
+<parameter>first</parameter>
+and
+<parameter>num</parameter>
+results in numbers out of valid range.
 </para>
 
 
@@ -841,169 +853,170 @@ num</emphasis>
 <title>Changing the Number of Levels in a Key Type</title>
 
 <para>
-To change the number of levels in a key type, use <emphasis>
-XkbResizeKeyType</emphasis>
-.
+To change the number of levels in a key type, use
+<function>XkbResizeKeyType</function>.
 </para>
 
-<informaltable frame='none'>
-<?dbfo keep-together="always" ?>
-<tgroup cols='1' align='left' colsep='0' rowsep='0'>
-<colspec colname='c1' colwidth='1.0*'/>
-<tbody>
-  <row>
-    <entry role='functiondecl'>
-Status <emphasis>
-XkbResizeKeyType</emphasis>
-(<emphasis>
-xkb</emphasis>
-,<emphasis>
- type_ndx</emphasis>
-,<emphasis>
- map_count</emphasis>
-,<emphasis>
- want_preserve</emphasis>
-,<emphasis>
- new_num_lvls</emphasis>
-)
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-XkbDescPtr<emphasis>
-            xkb</emphasis>
-;            /* keyboard description containing client map to update */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-int <emphasis>
-            type_ndx</emphasis>
-;            /* index in xkb-&gt;map-&gt;types of type to change */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-int             <emphasis>
-map_count</emphasis>
-;            /* total # of map entries needed for the type */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-Bool             <emphasis>
-want_preserve</emphasis>
-;            /* <emphasis>
-True</emphasis>
- =&gt; list of preserved modifiers is necessary */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-int <emphasis>
-            new_num_lvls</emphasis>
-;            /* new max # of levels for type */
-    </entry>
-</row>
-</tbody>
-</tgroup>
-</informaltable>
+<indexterm significance="preferred" zone="XkbResizeKeyType"><primary><function>XkbResizeKeyType</function></primary></indexterm>
+<funcsynopsis id="XkbResizeKeyType">
+  <funcprototype>
+    <funcdef>Status <function>XkbResizeKeyType</function></funcdef>
+<!-- (
+<parameter>xkb</parameter>,
+<parameter>type_ndx</parameter>,
+<parameter>map_count</parameter>,
+<parameter>want_preserve</parameter>,
+<parameter>new_num_lvls</parameter>
+) -->
+
+    <paramdef>XkbDescPtr <parameter>xkb</parameter></paramdef>
+    <paramdef>int <parameter>type_ndx</parameter></paramdef>
+    <paramdef>int <parameter>map_count</parameter></paramdef>
+    <paramdef>Bool <parameter>want_preserve</parameter></paramdef>
+    <paramdef>int <parameter>new_num_lvls</parameter></paramdef>
+  </funcprototype>
+</funcsynopsis>
+<variablelist>
+  <varlistentry>
+    <term>
+      <parameter>xkb</parameter>
+    </term>
+    <listitem>
+      <para>
+        keyboard description containing client map to update
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>type_ndx</parameter>
+    </term>
+    <listitem>
+      <para>
+        index in xkb-&gt;map-&gt;types of type to change
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>map_count</parameter>
+    </term>
+    <listitem>
+      <para>
+        total # of map entries needed for the type
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>want_preserve</parameter>
+    </term>
+    <listitem>
+      <para>
+        <symbol>True</symbol>
+         &rArr; list of preserved modifiers is necessary
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>new_num_lvls</parameter>
+    </term>
+    <listitem>
+      <para>
+        new max # of levels for type
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
 
 <para>
-<emphasis>
-XkbResizeKeyType</emphasis>
- changes the type specified by <emphasis>
-xkb</emphasis>
--&gt;<emphasis>
-map-&gt;types</emphasis>
-[<emphasis>
-type_ndx</emphasis>
+<function>XkbResizeKeyType</function>
+changes the type specified by
+<parameter>xkb</parameter>-&gt;<structfield>map-&gt;types</structfield>
+[
+<parameter>type_ndx</parameter>
 ], and reallocates the symbols and actions bound to all keys that use the type,
-if necessary. <emphasis>
-XkbResizeKeyType</emphasis>
- updates only the local copy of the types in <emphasis>
-xkb</emphasis>
-; to update the server’s copy for the physical device, use <emphasis>
-XkbSetMap</emphasis>
- or <emphasis>
-XkbChangeMap</emphasis>
- after calling <emphasis>
-XkbResizeKeyType</emphasis>
-.
+if necessary.
+<function>XkbResizeKeyType</function>
+updates only the local copy of the types in
+<parameter>xkb</parameter>;
+to update the server’s copy for the physical device, use
+<function>XkbSetMap</function>
+or
+<function>XkbChangeMap</function>
+after calling
+<function>XkbResizeKeyType</function>.
 </para>
 
 
 <para>
-The <emphasis>
-map_count</emphasis>
- parameter specifies the total number of map entries needed for the type, and
-can be zero or greater. If <emphasis>
-map_count</emphasis>
- is zero, <emphasis>
-XkbResizeKeyType</emphasis>
- frees the existing <emphasis>
-map</emphasis>
- and <emphasis>
-preserve</emphasis>
- entries for the type if they exist and sets them to <emphasis>
-NULL</emphasis>
-.
+The
+<parameter>map_count</parameter>
+parameter specifies the total number of map entries needed for the type, and
+can be zero or greater. If
+<parameter>map_count</parameter>
+is zero,
+<function>XkbResizeKeyType</function>
+frees the existing
+<structfield>map</structfield>
+and
+<structfield>preserve</structfield>
+entries for the type if they exist and sets them to
+<symbol>NULL</symbol>.
 </para>
 
 
 <para>
-The <emphasis>
-want_preserve</emphasis>
- parameter specifies whether a <emphasis>
-preserve</emphasis>
- list for the key should be created. If <emphasis>
-want_preserve</emphasis>
- is <emphasis>
-True</emphasis>
-, the <emphasis>
-preserve</emphasis>
- list with <emphasis>
-map_count</emphasis>
- entries is allocated or reallocated if it already exists. Otherwise, if
-<emphasis>
-want_preserve</emphasis>
- is <emphasis>
-False</emphasis>
-, the <emphasis>
-preserve</emphasis>
- field is freed if necessary and set to <emphasis>
-NULL</emphasis>
-.
+The
+<parameter>want_preserve</parameter>
+parameter specifies whether a
+<structfield>preserve</structfield>
+list for the key should be created. If
+<parameter>want_preserve</parameter>
+is
+<symbol>True</symbol>,
+the
+<structfield>preserve</structfield>
+list with
+<parameter>map_count</parameter>
+entries is allocated or reallocated if it already exists. Otherwise, if
+<parameter>want_preserve</parameter>
+is
+<symbol>False</symbol>,
+the
+<structfield>preserve</structfield>
+field is freed if necessary and set to
+<symbol>NULL</symbol>.
 </para>
 
 
 <para>
-The <emphasis>
-new_num_lvls</emphasis>
- parameter specifies the new maximum number of shift levels for the type and is
+The
+<parameter>new_num_lvls</parameter>
+parameter specifies the new maximum number of shift levels for the type and is
 used to calculate and resize the symbols and actions bound to all keys that use
 the type.
 </para>
 
 
 <para>
-If <emphasis>
-type_ndx</emphasis>
- does not specify a legal type, <emphasis>
-new_num_lvls</emphasis>
- is less than 1, or the <emphasis>
-map_count</emphasis>
- is less than zero, <emphasis>
-XkbResizeKeyType</emphasis>
- returns <emphasis>
-BadValue</emphasis>
-. If <emphasis>
-XkbResizeKeyType</emphasis>
- encounters any problems with allocation, it returns <emphasis>
-BadAlloc</emphasis>
-. Otherwise, it returns <emphasis>
-Success</emphasis>
-.
+If
+<parameter>type_ndx</parameter>
+does not specify a legal type,
+<parameter>new_num_lvls</parameter>
+is less than 1, or the
+<parameter>map_count</parameter>
+is less than zero,
+<function>XkbResizeKeyType</function>
+returns
+<errorname>BadValue</errorname>.
+If
+<function>XkbResizeKeyType</function>
+encounters any problems with allocation, it returns
+<errorname>BadAlloc</errorname>.
+Otherwise, it returns
+<symbol>Success</symbol>.
 </para>
 
 
@@ -1012,177 +1025,176 @@ Success</emphasis>
 <title>Copying Key Types</title>
 
 <para>
-Use <emphasis>
-XkbCopyKeyType</emphasis>
- and <emphasis>
-XkbCopyKeyTypes</emphasis>
- to copy one or more <emphasis>
-XkbKeyTypeRec</emphasis>
- structures.
+Use
+<function>XkbCopyKeyType</function>
+and
+<function>XkbCopyKeyTypes</function>
+to copy one or more
+<structname>XkbKeyTypeRec</structname>
+structures.
 </para>
 
-<informaltable frame='none'>
-<?dbfo keep-together="always" ?>
-<tgroup cols='1' align='left' colsep='0' rowsep='0'>
-<colspec colname='c1' colwidth='1.0*'/>
-<tbody>
-  <row>
-    <entry role='functiondecl'>
-Status <emphasis>
-XkbCopyKeyType</emphasis>
-(<emphasis>
-from</emphasis>
-,<emphasis>
- into</emphasis>
-)
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-XkbKeyTypePtr <emphasis>
-            from</emphasis>
-;            /* pointer to XkbKeyTypeRec to be copied */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-XkbKeyTypePtr <emphasis>
-            into</emphasis>
-;            /* pointer to XkbKeyTypeRec to be changed */
-    </entry>
-</row>
-</tbody>
-</tgroup>
-</informaltable>
+<indexterm significance="preferred" zone="XkbCopyKeyType"><primary><function>XkbCopyKeyType</function></primary></indexterm>
+<funcsynopsis id="XkbCopyKeyType">
+  <funcprototype>
+    <funcdef>Status <function>XkbCopyKeyType</function></funcdef>
+<!-- (
+<parameter>from</parameter>,
+<parameter>into</parameter>
+) -->
+
+    <paramdef>XkbKeyTypePtr <parameter>from</parameter></paramdef>
+    <paramdef>XkbKeyTypePtr <parameter>into</parameter></paramdef>
+  </funcprototype>
+</funcsynopsis>
+<variablelist>
+  <varlistentry>
+    <term>
+      <parameter>from</parameter>
+    </term>
+    <listitem>
+      <para>
+        pointer to XkbKeyTypeRec to be copied
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>into</parameter>
+    </term>
+    <listitem>
+      <para>
+        pointer to XkbKeyTypeRec to be changed
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
 
 <para>
-<emphasis>
-XkbCopyKeyType</emphasis>
- copies the key type specified by <emphasis>
-from</emphasis>
- to the key type specified by <emphasis>
-into</emphasis>
-. Both must point to legal <emphasis>
-XkbKeyTypeRec</emphasis>
- structures. Xkb assumes <emphasis>
-from</emphasis>
- and <emphasis>
-into</emphasis>
- point to different places. As a result, overlaps can be fatal. <emphasis>
-XkbCopyKeyType</emphasis>
- frees any existing <emphasis>
-map</emphasis>
-, <emphasis>
-preserve</emphasis>
-, and <emphasis>
-level_names</emphasis>
- in <emphasis>
-into</emphasis>
- prior to copying. If any allocation errors occur while copying <emphasis>
-from</emphasis>
- to <emphasis>
-into</emphasis>
-, <emphasis>
-XkbCopyKeyType</emphasis>
- returns <emphasis>
-BadAlloc</emphasis>
-. Otherwise, <emphasis>
-XkbCopyKeyType</emphasis>
- copies <emphasis>
-from</emphasis>
- to <emphasis>
-into</emphasis>
- and returns <emphasis>
-Success</emphasis>
-.
+<function>XkbCopyKeyType</function>
+copies the key type specified by
+<parameter>from</parameter>
+to the key type specified by
+<parameter>into</parameter>.
+Both must point to legal
+<structname>XkbKeyTypeRec</structname>
+structures. Xkb assumes
+<parameter>from</parameter>
+and
+<parameter>into</parameter>
+point to different places. As a result, overlaps can be fatal.
+<function>XkbCopyKeyType</function>
+frees any existing
+<structfield>map</structfield>,
+<structfield>preserve</structfield>,
+and
+<structfield>level_names</structfield>
+in
+<parameter>into</parameter>
+prior to copying. If any allocation errors occur while copying
+<parameter>from</parameter>
+to
+<parameter>into</parameter>,
+<function>XkbCopyKeyType</function>
+returns
+<errorname>BadAlloc</errorname>.
+Otherwise,
+<function>XkbCopyKeyType</function>
+copies
+<parameter>from</parameter>
+to
+<parameter>into</parameter>
+and returns
+<symbol>Success</symbol>.
 </para>
 
 
-<informaltable frame='none'>
-<?dbfo keep-together="always" ?>
-<tgroup cols='1' align='left' colsep='0' rowsep='0'>
-<colspec colname='c1' colwidth='1.0*'/>
-<tbody>
-  <row>
-    <entry role='functiondecl'>
-Status <emphasis>
-XkbCopyKeyTypes</emphasis>
-(<emphasis>
-from</emphasis>
-,<emphasis>
- into</emphasis>
-, <emphasis>
-num_types</emphasis>
-)
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-XkbKeyTypePtr <emphasis>
-            from</emphasis>
-;            /* pointer to array of XkbKeyTypeRecs to copy */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-XkbKeyTypePtr <emphasis>
-            into</emphasis>
-;            /* pointer to array of XkbKeyTypeRecs to change */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-int <emphasis>
-            num_types</emphasis>
-;            /* number of types to copy */
-    </entry>
-</row>
-</tbody>
-</tgroup>
-</informaltable>
+<indexterm significance="preferred" zone="XkbCopyKeyTypes"><primary><function>XkbCopyKeyTypes</function></primary></indexterm>
+<funcsynopsis id="XkbCopyKeyTypes">
+  <funcprototype>
+    <funcdef>Status <function>XkbCopyKeyTypes</function></funcdef>
+<!-- (
+<parameter>from</parameter>,
+<parameter>into</parameter>,
+<parameter>num_types</parameter>
+) -->
+
+    <paramdef>XkbKeyTypePtr <parameter>from</parameter></paramdef>
+    <paramdef>XkbKeyTypePtr <parameter>into</parameter></paramdef>
+    <paramdef>int <parameter>num_types</parameter></paramdef>
+  </funcprototype>
+</funcsynopsis>
+<variablelist>
+  <varlistentry>
+    <term>
+      <parameter>from</parameter>
+    </term>
+    <listitem>
+      <para>
+        pointer to array of XkbKeyTypeRecs to copy
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>into</parameter>
+    </term>
+    <listitem>
+      <para>
+        pointer to array of XkbKeyTypeRecs to change
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>num_types</parameter>
+    </term>
+    <listitem>
+      <para>
+        number of types to copy
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
 
 <para>
-<emphasis>
-XkbCopyKeyTypes</emphasis>
- copies <emphasis>
-num_types</emphasis>
- <emphasis>
-XkbKeyTypeRec</emphasis>
- structures from the array specified by <emphasis>
-from</emphasis>
- into the array specified by <emphasis>
-into</emphasis>
-. It is intended for copying between, rather than within, keyboard
+<function>XkbCopyKeyTypes</function>
+copies
+<parameter>num_types</parameter>
+<structname>XkbKeyTypeRec</structname>
+structures from the array specified by
+<parameter>from</parameter>
+into the array specified by
+<parameter>into</parameter>.
+It is intended for copying between, rather than within, keyboard
 descriptions, so it doesn’t check for overlaps. The same rules that apply to
-the <emphasis>
-from</emphasis>
- and <emphasis>
-into</emphasis>
- parameters in <emphasis>
-XkbCopyKeyType</emphasis>
- apply to each entry of the <emphasis>
-from</emphasis>
- and <emphasis>
-into</emphasis>
- arrays of <emphasis>
-XkbCopyKeyTypes</emphasis>
-. If any allocation errors occur while copying <emphasis>
-from</emphasis>
- to <emphasis>
-into</emphasis>
-, <emphasis>
-XkbCopyKeyTypes</emphasis>
- returns <emphasis>
-BadAlloc</emphasis>
-. Otherwise, <emphasis>
-XkbCopyKeyTypes</emphasis>
- copies <emphasis>
-from</emphasis>
- to <emphasis>
-into</emphasis>
- and returns <emphasis>
-Success</emphasis>
-.
+the
+<parameter>from</parameter>
+and
+<parameter>into</parameter>
+parameters in
+<function>XkbCopyKeyType</function>
+apply to each entry of the
+<parameter>from</parameter>
+and
+<parameter>into</parameter>
+arrays of
+<function>XkbCopyKeyTypes</function>.
+If any allocation errors occur while copying
+<parameter>from</parameter>
+to
+<parameter>into</parameter>,
+<function>XkbCopyKeyTypes</function>
+returns
+<errorname>BadAlloc</errorname>.
+Otherwise,
+<function>XkbCopyKeyTypes</function>
+copies
+<parameter>from</parameter>
+to
+<parameter>into</parameter>
+and returns
+<symbol>Success</symbol>.
 </para>
 
 
@@ -1190,79 +1202,80 @@ Success</emphasis>
 </sect1>
 <sect1 id='Key_Symbol_Map'>
 <title>Key Symbol Map</title>
+<indexterm significance="preferred" zone="Key_Symbol_Map">
+<primary><structname>XkbSymMapRec</structname></primary></indexterm>
 
 <para>
 The entire list of key symbols for the keyboard mapping is held in the
-<emphasis>
-syms</emphasis>
- field of the client map. Whereas the core keyboard mapping is a
-two-dimensional array of <emphasis>
-KeySyms</emphasis>
- whose rows are indexed by keycode, the <emphasis>
-syms</emphasis>
- field of Xkb is a linear list of <emphasis>
-KeySyms</emphasis>
- that needs to be indexed uniquely for each key. This section describes the key
+<structfield>syms</structfield>
+field of the client map. Whereas the core keyboard mapping is a
+two-dimensional array of
+<type>KeySym</type>s
+whose rows are indexed by keycode, the
+<structfield>syms</structfield>
+field of Xkb is a linear list of
+<type>KeySym</type>s
+that needs to be indexed uniquely for each key. This section describes the key
 symbol map and the methods for determining the symbols bound to a key.
 </para>
 
 
 <para>
-The reason the <emphasis>
-syms</emphasis>
- field is a linear list of <emphasis>
-KeySyms</emphasis>
- is to reduce the memory consumption associated with a keymap; because Xkb
+The reason the
+<structfield>syms</structfield>
+field is a linear list of
+<type>KeySym</type>s
+is to reduce the memory consumption associated with a keymap; because Xkb
 allows individual keys to have multiple shift levels and a different number of
-groups per key, a single two-dimensional array of <emphasis>
-KeySyms</emphasis>
- would potentially be very large and sparse. Instead, Xkb provides a small
-two-dimensional array of <emphasis>
-KeySyms</emphasis>
- for each key. To store all of these individual arrays, Xkb concatenates each
-array together in the <emphasis>
-syms</emphasis>
- field of the client map.
+groups per key, a single two-dimensional array of
+<type>KeySym</type>s
+would potentially be very large and sparse. Instead, Xkb provides a small
+two-dimensional array of
+<type>KeySym</type>s
+for each key. To store all of these individual arrays, Xkb concatenates each
+array together in the
+<structfield>syms</structfield>
+field of the client map.
 </para>
 
 
 <para>
-In order to determine which <emphasis>
-KeySyms</emphasis>
- in the <emphasis>
-syms</emphasis>
- field are associated with each keycode, the client map contains an array of
-key symbol mappings, held in the <emphasis>
-key_sym_map</emphasis>
- field. The <emphasis>
-key_sym_map</emphasis>
- field is an array of <emphasis>
-XkbSymMapRec</emphasis>
- structures indexed by keycode. The <emphasis>
-key_sym_map</emphasis>
- array has <emphasis>
-min_key_code</emphasis>
- unused entries at the start to allow direct indexing using a keycode. All
+In order to determine which
+<type>KeySym</type>s
+in the
+<structfield>syms</structfield>
+field are associated with each keycode, the client map contains an array of
+key symbol mappings, held in the
+<structfield>key_sym_map</structfield>
+field. The
+<structfield>key_sym_map</structfield>
+field is an array of
+<structname>XkbSymMapRec</structname>
+structures indexed by keycode. The
+<structfield>key_sym_map</structfield>
+array has
+<structfield>min_key_code</structfield>
+unused entries at the start to allow direct indexing using a keycode. All
 keycodes falling between the minimum and maximum legal keycodes, inclusive,
-have <emphasis>
-key_sym_map</emphasis>
- arrays, whether or not any key actually yields that code. The <emphasis>
-KeySymMapRec</emphasis>
- structure is defined as follows:
-</para>
+have
+<structfield>key_sym_map</structfield>
+arrays, whether or not any key actually yields that code. The
+<structname>KeySymMapRec</structname>
+structure is defined as follows:
 
-<para><programlisting>
+<programlisting>
 #define XkbNumKbdGroups            4
 #define XkbMaxKbdGroup            (XkbNumKbdGroups-1)
-</programlisting></para>
 
-<para><programlisting>
-typedef struct {                                   /* map to keysyms for a single keycode */
-      unsigned char     kt_index[XkbNumKbdGroups]; /* key type index for each group */
-      unsigned char     group_info;                /* # of groups and out of range group handling */
-      unsigned char     width;                     /* max # of shift levels for key */
-      unsigned short    offset;                    /* index to keysym table in <emphasis> syms</emphasis> array */
-} <emphasis>XkbSymMapRec</emphasis>, *XkbSymMapPtr;
+typedef struct {                 /* map to keysyms for a single keycode */
+    unsigned char     kt_index[XkbNumKbdGroups];
+                                         /* key type index for each group */
+    unsigned char     group_info;        /* # of groups and out of range
+                                            group handling */
+    unsigned char     width;             /* max # of shift levels for key */
+    unsigned short    offset;            /* index to keysym table in
+                                            <structfield>syms</structfield> array */
+} <structname>XkbSymMapRec</structname>, *XkbSymMapPtr;
 </programlisting></para>
 
 <para>
@@ -1274,128 +1287,140 @@ These fields are described in detail in the following sections.
 <title>Per-Key Key Type Indices</title>
 
 <para>
-The <emphasis>
-kt_index</emphasis>
- array of the <emphasis>
-XkbSymMapRec</emphasis>
- structure contains the indices of the key types (see section 15.2) for each
+The
+<structfield>kt_index</structfield>
+array of the
+<structname>XkbSymMapRec</structname>
+structure contains the indices of the key types (see <link linkend="Key_Types">section 15.2</link>) for each
 possible group of symbols associated with the key. To obtain the index of a key
 type or the pointer to a key type, Xkb provides the following macros, to access
 the key types:
 </para>
 
 <note><para>The array of key types is of fixed width and is large enough to
-hold key types for the maximum legal number of groups (<emphasis>
-XkbNumKbdGroups</emphasis>
-, currently four); if a key has fewer than <emphasis>
-XkbNumKbdGroups</emphasis>
- groups, the extra key types are reported but ignored.</para></note>
+hold key types for the maximum legal number of groups
+(<symbol>XkbNumKbdGroups</symbol>,
+currently four); if a key has fewer than
+<symbol>XkbNumKbdGroups</symbol>
+groups, the extra key types are reported but ignored.</para></note>
 
-<informaltable frame='none'>
-<?dbfo keep-together="always" ?>
-<tgroup cols='1' align='left' colsep='0' rowsep='0'>
-<colspec colname='c1' colwidth='1.0*'/>
-<tbody>
-  <row>
-    <entry role='functiondecl'>
-int <emphasis>
-XkbKeyTypeIndex</emphasis>
-(<emphasis>
-xkb, keycode, group</emphasis>
-)                              /* macro*/
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-XkbDescPtr            <emphasis>
-xkb</emphasis>
-;                  /* Xkb description of interest */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-KeyCode            <emphasis>
-keycode</emphasis>
-;                  /* keycode of interest */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-int            <emphasis>
-group</emphasis>
-;                  /* group index */
-    </entry>
-</row>
-</tbody>
-</tgroup>
-</informaltable>
+<indexterm significance="preferred" zone="XkbKeyTypeIndex"><primary><function>XkbKeyTypeIndex</function></primary></indexterm>
+<funcsynopsis id="XkbKeyTypeIndex">
+  <funcprototype>
+    <funcdef>int <function>XkbKeyTypeIndex</function></funcdef>
+<!-- (
+<parameter>xkb, keycode, group</parameter>
+)                              /* macro*/ -->
+
+    <paramdef>XkbDescPtr <parameter>xkb</parameter></paramdef>
+    <paramdef>KeyCode <parameter>keycode</parameter></paramdef>
+    <paramdef>int <parameter>group</parameter></paramdef>
+  </funcprototype>
+</funcsynopsis>
+<variablelist>
+  <varlistentry>
+    <term>
+      <parameter>xkb</parameter>
+    </term>
+    <listitem>
+      <para>
+        Xkb description of interest
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>keycode</parameter>
+    </term>
+    <listitem>
+      <para>
+        keycode of interest
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>group</parameter>
+    </term>
+    <listitem>
+      <para>
+        group index
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
 
 <para>
-<emphasis>
-XkbKeyTypeIndex</emphasis>
- computes an index into the <emphasis>
-types</emphasis>
- vector of the client map in <emphasis>
-xkb</emphasis>
- from the given <emphasis>
-keycode</emphasis>
- and <emphasis>
-group</emphasis>
- index.
+<function>XkbKeyTypeIndex</function>
+computes an index into the
+<structfield>types</structfield>
+vector of the client map in
+<parameter>xkb</parameter>
+from the given
+<parameter>keycode</parameter>
+and
+<parameter>group</parameter>
+index.
 </para>
 
 
-<informaltable frame='none'>
-<?dbfo keep-together="always" ?>
-<tgroup cols='1' align='left' colsep='0' rowsep='0'>
-<colspec colname='c1' colwidth='1.0*'/>
-<tbody>
-  <row>
-    <entry role='functiondecl'>
-XkbKeyTypePtr <emphasis>
-XkbKeyType</emphasis>
-(<emphasis>
-xkb, keycode, group</emphasis>
-)                              /* macro */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-XkbDescPtr            <emphasis>
-xkb</emphasis>
-;                  /* Xkb description of interest */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-KeyCode            <emphasis>
-keycode</emphasis>
-;                  /* keycode of interest */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-int            <emphasis>
-group</emphasis>
-;                  /* group index */
-    </entry>
-</row>
-</tbody>
-</tgroup>
-</informaltable>
+<indexterm significance="preferred" zone="XkbKeyType"><primary><function>XkbKeyType</function></primary></indexterm>
+<funcsynopsis id="XkbKeyType">
+  <funcprototype>
+    <funcdef>XkbKeyTypePtr <function>XkbKeyType</function></funcdef>
+<!-- (
+<parameter>xkb, keycode, group</parameter>
+)                              /* macro */ -->
+
+    <paramdef>XkbDescPtr <parameter>xkb</parameter></paramdef>
+    <paramdef>KeyCode <parameter>keycode</parameter></paramdef>
+    <paramdef>int <parameter>group</parameter></paramdef>
+  </funcprototype>
+</funcsynopsis>
+<variablelist>
+  <varlistentry>
+    <term>
+      <parameter>xkb</parameter>
+    </term>
+    <listitem>
+      <para>
+        Xkb description of interest
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>keycode</parameter>
+    </term>
+    <listitem>
+      <para>
+        keycode of interest
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>group</parameter>
+    </term>
+    <listitem>
+      <para>
+        group index
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
 
 <para>
-<emphasis>
-XkbKeyType</emphasis>
- returns a pointer to the key type in the <emphasis>
-types</emphasis>
- vector of the client map in <emphasis>
-xkb</emphasis>
- corresponding to the given <emphasis>
-keycode</emphasis>
- and <emphasis>
-group</emphasis>
- index.
+<function>XkbKeyType</function>
+returns a pointer to the key type in the
+<structfield>types</structfield>
+vector of the client map in
+<parameter>xkb</parameter>
+corresponding to the given
+<parameter>keycode</parameter>
+and
+<parameter>group</parameter>
+index.
 </para>
 
 
@@ -1404,64 +1429,64 @@ group</emphasis>
 <title>Per-Key Group Information</title>
 
 <para>
-The <emphasis>
-group_info</emphasis>
- field of an <emphasis>
-XkbSymMapRec</emphasis>
- is an encoded value containing the number of groups of symbols bound to the
+The
+<structfield>group_info</structfield>
+field of an
+<structname>XkbSymMapRec</structname>
+is an encoded value containing the number of groups of symbols bound to the
 key as well as the specification of the treatment of out-of-range groups. It is
 legal for a key to have zero groups, in which case it also has zero symbols and
-all events from that key yield <emphasis>
-NoSymbol</emphasis>
-. To obtain the number of groups of symbols bound to the key, use <emphasis>
-XkbKeyNumGroups</emphasis>
-. To change the number of groups bound to a key, use <emphasis>
-XkbChangeTypesOfKey</emphasis>
- (see section 15.3.6). To obtain a mask that determines the treatment of
-out-of-range groups, use <emphasis>
-XkbKeyGroupInfo</emphasis>
- and <emphasis>
-XkbOutOfRangeGroupInfo</emphasis>
-.
+all events from that key yield
+<symbol>NoSymbol</symbol>.
+To obtain the number of groups of symbols bound to the key, use
+<function>XkbKeyNumGroups</function>.
+To change the number of groups bound to a key, use
+<function>XkbChangeTypesOfKey</function>
+(see <link linkend="Changing_the_Number_of_Groups_and_Types_Bound_to_a_Key">section 15.3.6</link>). To obtain a mask that determines the treatment of
+out-of-range groups, use
+<function>XkbKeyGroupInfo</function>
+and
+<function>XkbOutOfRangeGroupInfo</function>.
 </para>
 
 
 <para>
-The keyboard controls (see Chapter 10) contain a <emphasis>
-groups_wrap</emphasis>
- field specifying the handling of illegal groups on a global basis. That is,
+The keyboard controls (see <xref linkend="Keyboard_Controls" />) contain a
+<structfield>groups_wrap</structfield>
+field specifying the handling of illegal groups on a global basis. That is,
 when the user performs an action causing the effective group to go out of the
-legal range, the <emphasis>
-groups_wrap</emphasis>
- field specifies how to normalize the effective keyboard group to a group that
+legal range, the
+<structfield>groups_wrap</structfield>
+field specifies how to normalize the effective keyboard group to a group that
 is legal for the keyboard as a whole, but there is no guarantee that the
 normalized group will be within the range of legal groups for any individual
-key. The per-key <emphasis>
-group_info</emphasis>
- field specifies how a key treats a legal effective group if the key does not
-have a type specified for the group of concern. For example, the <emphasis>
-Enter</emphasis>
- key usually has just one group defined. If the user performs an action causing
-the global keyboard group to change to <emphasis>
-Group2</emphasis>
-, the <emphasis>
-group_info</emphasis>
- field for the <emphasis>
-Enter</emphasis>
- key describes how to handle this situation.
+key. The per-key
+<structfield>group_info</structfield>
+field specifies how a key treats a legal effective group if the key does not
+have a type specified for the group of concern. For example, the
+<keycap>Enter</keycap>
+key usually has just one group defined. If the user performs an action causing
+the global keyboard group to change to
+<emphasis>Group2</emphasis>,
+the
+<structfield>group_info</structfield>
+field for the
+<keycap>Enter</keycap>
+key describes how to handle this situation.
 </para>
 
 
 <para>
 Out-of-range groups for individual keys are mapped to a legal group using the
 same options as are used for the overall keyboard group. The particular type of
-mapping used is controlled by the bits set in the <emphasis>
-group_info</emphasis>
- flag, as shown in Table 15.2. See section 10.7.1 for more details on the
-normalization methods in this table.
+mapping used is controlled by the bits set in the
+<structfield>group_info</structfield>
+flag, as shown in <link linkend="table15.2">Table 15.2</link>.
+See <link linkend="The_GroupsWrap_Control">section 10.7.1</link>
+for more details on the normalization methods in this table.
 </para>
 
-<table frame='topbot'>
+<table id='table15.2' frame='topbot'>
 <title>group_info Range Normalization</title>
 <?dbfo keep-together="always" ?>
 <tgroup cols='2' align='left' colsep='0' rowsep='0'>
@@ -1475,16 +1500,16 @@ normalization methods in this table.
 </thead>
 <tbody>
   <row>
-    <entry>XkbRedirectIntoRange</entry>
-    <entry>XkbRedirectIntoRange</entry>
+    <entry><symbol>XkbRedirectIntoRange</symbol></entry>
+    <entry><symbol>XkbRedirectIntoRange</symbol></entry>
   </row>
   <row>
-    <entry>XkbClampIntoRange</entry>
-    <entry>XkbClampIntoRange</entry>
+    <entry><symbol>XkbClampIntoRange</symbol></entry>
+    <entry><symbol>XkbClampIntoRange</symbol></entry>
   </row>
   <row>
     <entry>none of the above</entry>
-    <entry>XkbWrapIntoRange</entry>
+    <entry><symbol>XkbWrapIntoRange</symbol></entry>
   </row>
 </tbody>
 </tgroup>
@@ -1494,167 +1519,159 @@ normalization methods in this table.
 Xkb provides the following macros to access group information:
 </para>
 
-<informaltable frame='none'>
-<?dbfo keep-together="always" ?>
-<tgroup cols='1' align='left' colsep='0' rowsep='0'>
-<colspec colname='c1' colwidth='1.0*'/>
-<tbody>
-  <row>
-    <entry role='functiondecl'>
-int <emphasis>
-XkbKeyNumGroups</emphasis>
-(<emphasis>
-xkb, keycode</emphasis>
-)                              /* macro */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-XkbDescPtr            <emphasis>
-xkb</emphasis>
-;                  /* Xkb description of interest */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-KeyCode            <emphasis>
-keycode</emphasis>
-;                  /* keycode of interest */
-    </entry>
-</row>
-</tbody>
-</tgroup>
-</informaltable>
+<indexterm significance="preferred" zone="XkbKeyNumGroups"><primary><function>XkbKeyNumGroups</function></primary></indexterm>
+<funcsynopsis id="XkbKeyNumGroups">
+  <funcprototype>
+    <funcdef>int <function>XkbKeyNumGroups</function></funcdef>
+<!-- (
+<parameter>xkb, keycode</parameter>
+)                              /* macro */ -->
+
+    <paramdef>XkbDescPtr <parameter>xkb</parameter></paramdef>
+    <paramdef>KeyCode <parameter>keycode</parameter></paramdef>
+  </funcprototype>
+</funcsynopsis>
+<variablelist>
+  <varlistentry>
+    <term>
+      <parameter>xkb</parameter>
+    </term>
+    <listitem>
+      <para>
+        Xkb description of interest
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>keycode</parameter>
+    </term>
+    <listitem>
+      <para>
+        keycode of interest
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
 
 <para>
-<emphasis>
-XkbKeyNumGroups</emphasis>
- returns the number of groups of symbols bound to the key corresponding to
-<emphasis>
-keycode</emphasis>
-.
+<function>XkbKeyNumGroups</function>
+returns the number of groups of symbols bound to the key corresponding to
+<parameter>keycode</parameter>.
 </para>
 
 
-<informaltable frame='none'>
-<?dbfo keep-together="always" ?>
-<tgroup cols='1' align='left' colsep='0' rowsep='0'>
-<colspec colname='c1' colwidth='1.0*'/>
-<tbody>
-  <row>
-    <entry role='functiondecl'>
-unsigned char <emphasis>
-XkbKeyGroupInfo</emphasis>
-(<emphasis>
-xkb, keycode</emphasis>
-)                              /*macro */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-XkbDescPtr            <emphasis>
-xkb</emphasis>
-;                  /* Xkb description of interest */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-KeyCode            <emphasis>
-keycode</emphasis>
-;                  /* keycode of interest */
-    </entry>
-</row>
-</tbody>
-</tgroup>
-</informaltable>
+<indexterm significance="preferred" zone="XkbKeyGroupInfo"><primary><function>XkbKeyGroupInfo</function></primary></indexterm>
+<funcsynopsis id="XkbKeyGroupInfo">
+  <funcprototype>
+    <funcdef>unsigned char <function>XkbKeyGroupInfo</function></funcdef>
+<!-- (
+<parameter>xkb, keycode</parameter>
+)                              /*macro */ -->
+
+    <paramdef>XkbDescPtr <parameter>xkb</parameter></paramdef>
+    <paramdef>KeyCode <parameter>keycode</parameter></paramdef>
+  </funcprototype>
+</funcsynopsis>
+<variablelist>
+  <varlistentry>
+    <term>
+      <parameter>xkb</parameter>
+    </term>
+    <listitem>
+      <para>
+        Xkb description of interest
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>keycode</parameter>
+    </term>
+    <listitem>
+      <para>
+        keycode of interest
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
 
 <para>
-<emphasis>
-XkbKeyGroupInfo</emphasis>
- returns the <emphasis>
-group_info</emphasis>
- field from the <emphasis>
-XkbSymMapRec</emphasis>
- structure associated with the key corresponding to <emphasis>
-keycode</emphasis>
-.
+<function>XkbKeyGroupInfo</function>
+returns the
+<structfield>group_info</structfield>
+field from the
+<structname>XkbSymMapRec</structname>
+structure associated with the key corresponding to
+<parameter>keycode</parameter>.
 </para>
 
 
-<informaltable frame='none'>
-<?dbfo keep-together="always" ?>
-<tgroup cols='1' align='left' colsep='0' rowsep='0'>
-<colspec colname='c1' colwidth='1.0*'/>
-<tbody>
-  <row>
-    <entry role='functiondecl'>
-unsigned char <emphasis>
-XkbOutOfRangeGroupInfo</emphasis>
-(<emphasis>
-grp_inf</emphasis>
-)                              /* macro */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-unsigned char            <emphasis>
-grp_inf</emphasis>
-;                  /* group_info field of <emphasis>
-XkbSymMapRec</emphasis>
- */
-    </entry>
-</row>
-</tbody>
-</tgroup>
-</informaltable>
+<indexterm significance="preferred" zone="XkbOutOfRangeGroupInfo"><primary><function>XkbOutOfRangeGroupInfo</function></primary></indexterm>
+<funcsynopsis id="XkbOutOfRangeGroupInfo">
+  <funcprototype>
+    <funcdef>unsigned char <function>XkbOutOfRangeGroupInfo</function></funcdef>
+<!-- (
+<parameter>grp_inf</parameter>
+)                              /* macro */ -->
+
+    <paramdef>unsigned char <parameter>grp_inf</parameter></paramdef>
+  </funcprototype>
+</funcsynopsis>
+<variablelist>
+  <varlistentry>
+    <term>
+      <parameter>grp_inf</parameter>
+    </term>
+    <listitem>
+      <para>
+        group_info field of <structname>XkbSymMapRec</structname>
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
 
 <para>
-<emphasis>
-XkbOutOfRangeGroupInfo</emphasis>
- returns only the out-of-range processing information from the <emphasis>
-group_info</emphasis>
- field of an <emphasis>
-XkbSymMapRec</emphasis>
- structure.
+<function>XkbOutOfRangeGroupInfo</function>
+returns only the out-of-range processing information from the
+<structfield>group_info</structfield>
+field of an
+<structname>XkbSymMapRec</structname>
+structure.
 </para>
 
 
-<informaltable frame='none'>
-<?dbfo keep-together="always" ?>
-<tgroup cols='1' align='left' colsep='0' rowsep='0'>
-<colspec colname='c1' colwidth='1.0*'/>
-<tbody>
-  <row>
-    <entry role='functiondecl'>
-unsigned char <emphasis>
-XkbOutOfRangeGroupNumber</emphasis>
-(<emphasis>
-grp_inf</emphasis>
-)                              /* macro */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-unsigned char            <emphasis>
-grp_inf</emphasis>
-;                  /* group_info field of <emphasis>
-XkbSymMapRec</emphasis>
- */
-    </entry>
-</row>
-</tbody>
-</tgroup>
-</informaltable>
+<indexterm significance="preferred" zone="XkbOutOfRangeGroupNumber"><primary><function>XkbOutOfRangeGroupNumber</function></primary></indexterm>
+<funcsynopsis id="XkbOutOfRangeGroupNumber">
+  <funcprototype>
+    <funcdef>unsigned char <function>XkbOutOfRangeGroupNumber</function></funcdef>
+<!-- (
+<parameter>grp_inf</parameter>
+)                              /* macro */ -->
+
+    <paramdef>unsigned char <parameter>grp_inf</parameter></paramdef>
+  </funcprototype>
+</funcsynopsis>
+<variablelist>
+  <varlistentry>
+    <term>
+      <parameter>grp_inf</parameter>
+    </term>
+    <listitem>
+      <para>
+        group_info field of <structname>XkbSymMapRec</structname>
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
 
 <para>
-<emphasis>
-XkbOutOfRangeGroupNumber</emphasis>
- returns the out-of-range group number, represented as a group index, from the
-<emphasis>
-group_info</emphasis>
- field of an <emphasis>
-XkbSymMapRec</emphasis>
- structure.
+<function>XkbOutOfRangeGroupNumber</function>
+returns the out-of-range group number, represented as a group index, from the
+<structfield>group_info</structfield>
+field of an
+<structname>XkbSymMapRec</structname>
+structure.
 </para>
 
 
@@ -1664,13 +1681,13 @@ XkbSymMapRec</emphasis>
 
 <para>
 The maximum number of shift levels for a type is also referred to as the width
-of a key type. The <emphasis>
-width</emphasis>
- field of the <emphasis>
-key_sym_map</emphasis>
- entry for a key contains the width of the widest type associated with the key.
-The <emphasis>
-width </emphasis>
+of a key type. The
+<structfield>width</structfield>
+field of the
+<structfield>key_sym_map</structfield>
+entry for a key contains the width of the widest type associated with the key.
+The
+<structfield>width</structfield>
 field cannot be explicitly changed; it is updated automatically whenever the
 symbols or set of types bound to a key are changed.
 </para>
@@ -1682,13 +1699,13 @@ symbols or set of types bound to a key are changed.
 
 <para>
 The key width and number of groups associated with a key are used to form a
-small two-dimensional array of <emphasis>
-KeySyms</emphasis>
- for a key. This array may be different sizes for different keys. The array for
+small two-dimensional array of
+<type>KeySym</type>s
+for a key. This array may be different sizes for different keys. The array for
 a single key is stored as a linear list, in row-major order. The arrays for all
-of the keys are stored in the <emphasis>
-syms</emphasis>
- field of the client map. There is one row for each group associated with a key
+of the keys are stored in the
+<structfield>syms</structfield>
+field of the client map. There is one row for each group associated with a key
 and one column for each level. The index corresponding to a given group and
 shift level is computed as:
 </para>
@@ -1698,297 +1715,315 @@ shift level is computed as:
 </literallayout>
 
 <para>
-The <emphasis>
-offset</emphasis>
- field of the <emphasis>
-key_sym_map</emphasis>
- entry for a key is used to access the beginning of the array.
+The
+<structfield>offset</structfield>
+field of the
+<structfield>key_sym_map</structfield>
+entry for a key is used to access the beginning of the array.
 </para>
 
 
 <para>
-Xkb provides the following macros for accessing the <emphasis>
-width</emphasis>
- and <emphasis>
-offset</emphasis>
- for individual keys, as well as macros for accessing the two-dimensional array
+Xkb provides the following macros for accessing the
+<structfield>width</structfield>
+and
+<structfield>offset</structfield>
+for individual keys, as well as macros for accessing the two-dimensional array
 of symbols bound to the key:
 </para>
 
-<informaltable frame='none'>
-<?dbfo keep-together="always" ?>
-<tgroup cols='1' align='left' colsep='0' rowsep='0'>
-<colspec colname='c1' colwidth='1.0*'/>
-<tbody>
-  <row>
-    <entry role='functiondecl'>
-int <emphasis>
-XkbKeyGroupsWidth</emphasis>
-(<emphasis>
-xkb, keycode</emphasis>
-)                              /* macro */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-XkbDescPtr            <emphasis>
-xkb</emphasis>
-;                  /* Xkb description of interest */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-KeyCode            <emphasis>
-keycode</emphasis>
-;                  /* keycode of interest */
-    </entry>
-</row>
-</tbody>
-</tgroup>
-</informaltable>
+<indexterm significance="preferred" zone="XkbKeyGroupsWidth"><primary><function>XkbKeyGroupsWidth</function></primary></indexterm>
+<funcsynopsis id="XkbKeyGroupsWidth">
+  <funcprototype>
+    <funcdef>int <function>XkbKeyGroupsWidth</function></funcdef>
+<!-- (
+<parameter>xkb, keycode</parameter>
+)                              /* macro */ -->
+
+    <paramdef>XkbDescPtr <parameter>xkb</parameter></paramdef>
+    <paramdef>KeyCode <parameter>keycode</parameter></paramdef>
+  </funcprototype>
+</funcsynopsis>
+<variablelist>
+  <varlistentry>
+    <term>
+      <parameter>xkb</parameter>
+    </term>
+    <listitem>
+      <para>
+        Xkb description of interest
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>keycode</parameter>
+    </term>
+    <listitem>
+      <para>
+        keycode of interest
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
 
 <para>
-<emphasis>
-XkbKeyGroupsWidth</emphasis>
- computes the maximum width associated with the key corresponding to <emphasis>
-keycode</emphasis>
-.
+<function>XkbKeyGroupsWidth</function>
+computes the maximum width associated with the key corresponding to
+<parameter>keycode</parameter>.
 </para>
 
 
-<informaltable frame='none'>
-<?dbfo keep-together="always" ?>
-<tgroup cols='1' align='left' colsep='0' rowsep='0'>
-<colspec colname='c1' colwidth='1.0*'/>
-<tbody>
-  <row>
-    <entry role='functiondecl'>
-int <emphasis>
-XkbKeyGroupWidth</emphasis>
-(<emphasis>
-xkb, keycode, grp</emphasis>
-)                              /* macro */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-XkbDescPtr            <emphasis>
-xkb</emphasis>
-;                  /* Xkb description of interest */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-KeyCode            <emphasis>
-keycode</emphasis>
-;                  /* keycode of interest */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-int            <emphasis>
-grp</emphasis>
-;                  /* group of interest */
-    </entry>
-</row>
-</tbody>
-</tgroup>
-</informaltable>
+<indexterm significance="preferred" zone="XkbKeyGroupWidth"><primary><function>XkbKeyGroupWidth</function></primary></indexterm>
+<funcsynopsis id="XkbKeyGroupWidth">
+  <funcprototype>
+    <funcdef>int <function>XkbKeyGroupWidth</function></funcdef>
+<!-- (
+<parameter>xkb, keycode, grp</parameter>
+)                              /* macro */ -->
+
+    <paramdef>XkbDescPtr <parameter>xkb</parameter></paramdef>
+    <paramdef>KeyCode <parameter>keycode</parameter></paramdef>
+    <paramdef>int <parameter>grp</parameter></paramdef>
+  </funcprototype>
+</funcsynopsis>
+<variablelist>
+  <varlistentry>
+    <term>
+      <parameter>xkb</parameter>
+    </term>
+    <listitem>
+      <para>
+        Xkb description of interest
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>keycode</parameter>
+    </term>
+    <listitem>
+      <para>
+        keycode of interest
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>grp</parameter>
+    </term>
+    <listitem>
+      <para>
+        group of interest
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
 
 <para>
-<emphasis>
-XkbKeyGroupWidth</emphasis>
- computes the width of the type associated with the group <emphasis>
-grp</emphasis>
- for the key corresponding to <emphasis>
-keycode</emphasis>
-.
+<function>XkbKeyGroupWidth</function>
+computes the width of the type associated with the group
+<parameter>grp</parameter>
+for the key corresponding to
+<parameter>keycode</parameter>.
 </para>
 
 
-<informaltable frame='none'>
-<?dbfo keep-together="always" ?>
-<tgroup cols='1' align='left' colsep='0' rowsep='0'>
-<colspec colname='c1' colwidth='1.0*'/>
-<tbody>
-  <row>
-    <entry role='functiondecl'>
-int <emphasis>
-XkbKeySymsOffset</emphasis>
-(<emphasis>
-xkb, keycode</emphasis>
-)                              /* macro */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-XkbDescPtr            <emphasis>
-xkb</emphasis>
-;                  /* Xkb description of interest */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-KeyCode            <emphasis>
-keycode</emphasis>
-;                  /* keycode of interest */
-    </entry>
-</row>
-</tbody>
-</tgroup>
-</informaltable>
+<indexterm significance="preferred" zone="XkbKeySymsOffset"><primary><function>XkbKeySymsOffset</function></primary></indexterm>
+<funcsynopsis id="XkbKeySymsOffset">
+  <funcprototype>
+    <funcdef>int <function>XkbKeySymsOffset</function></funcdef>
+<!-- (
+<parameter>xkb, keycode</parameter>
+)                              /* macro */ -->
+
+    <paramdef>XkbDescPtr <parameter>xkb</parameter></paramdef>
+    <paramdef>KeyCode <parameter>keycode</parameter></paramdef>
+  </funcprototype>
+</funcsynopsis>
+<variablelist>
+  <varlistentry>
+    <term>
+      <parameter>xkb</parameter>
+    </term>
+    <listitem>
+      <para>
+        Xkb description of interest
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>keycode</parameter>
+    </term>
+    <listitem>
+      <para>
+        keycode of interest
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
 
 <para>
-<emphasis>
-XkbKeySymsOffset</emphasis>
- returns the offset of the two-dimensional array of keysyms for the key
-corresponding to <emphasis>
-keycode</emphasis>
-.
+<function>XkbKeySymsOffset</function>
+returns the offset of the two-dimensional array of keysyms for the key
+corresponding to
+<parameter>keycode</parameter>.
 </para>
 
 
-<informaltable frame='none'>
-<?dbfo keep-together="always" ?>
-<tgroup cols='1' align='left' colsep='0' rowsep='0'>
-<colspec colname='c1' colwidth='1.0*'/>
-<tbody>
-  <row>
-    <entry role='functiondecl'>
-int <emphasis>
-XkbKeyNumSyms</emphasis>
-(<emphasis>
-xkb, keycode</emphasis>
-)                              /* macro */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-XkbDescPtr            <emphasis>
-xkb</emphasis>
-;                  /* Xkb description of interest */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-KeyCode            <emphasis>
-keycode</emphasis>
-;                  /* keycode of interest */
-    </entry>
-</row>
-</tbody>
-</tgroup>
-</informaltable>
+<indexterm significance="preferred" zone="XkbKeyNumSyms"><primary><function>XkbKeyNumSyms</function></primary></indexterm>
+<funcsynopsis id="XkbKeyNumSyms">
+  <funcprototype>
+    <funcdef>int <function>XkbKeyNumSyms</function></funcdef>
+<!-- (
+<parameter>xkb, keycode</parameter>
+)                              /* macro */ -->
+
+    <paramdef>XkbDescPtr <parameter>xkb</parameter></paramdef>
+    <paramdef>KeyCode <parameter>keycode</parameter></paramdef>
+  </funcprototype>
+</funcsynopsis>
+<variablelist>
+  <varlistentry>
+    <term>
+      <parameter>xkb</parameter>
+    </term>
+    <listitem>
+      <para>
+        Xkb description of interest
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>keycode</parameter>
+    </term>
+    <listitem>
+      <para>
+        keycode of interest
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
 
 <para>
-<emphasis>
-XkbKeyNumSyms</emphasis>
- returns the total number of keysyms for the key corresponding to <emphasis>
-keycode</emphasis>
-.
+<function>XkbKeyNumSyms</function>
+returns the total number of keysyms for the key corresponding to
+<parameter>keycode</parameter>.
 </para>
 
 
-<informaltable frame='none'>
-<?dbfo keep-together="always" ?>
-<tgroup cols='1' align='left' colsep='0' rowsep='0'>
-<colspec colname='c1' colwidth='1.0*'/>
-<tbody>
-  <row>
-    <entry role='functiondecl'>
-KeySym * <emphasis>
-XkbKeySymsPtr</emphasis>
-(<emphasis>
-xkb, keycode</emphasis>
-)                              /* macro */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-XkbDescPtr            <emphasis>
-xkb</emphasis>
-;                  /* Xkb description of interest */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-KeyCode            <emphasis>
-keycode</emphasis>
-;                  /* keycode of interest */
-    </entry>
-</row>
-</tbody>
-</tgroup>
-</informaltable>
+<indexterm significance="preferred" zone="XkbKeySymsPtr"><primary><function>XkbKeySymsPtr</function></primary></indexterm>
+<funcsynopsis id="XkbKeySymsPtr">
+  <funcprototype>
+    <funcdef>KeySym *<function>XkbKeySymsPtr</function></funcdef>
+<!-- (
+<parameter>xkb, keycode</parameter>
+)                              /* macro */ -->
+
+    <paramdef>XkbDescPtr <parameter>xkb</parameter></paramdef>
+    <paramdef>KeyCode <parameter>keycode</parameter></paramdef>
+  </funcprototype>
+</funcsynopsis>
+<variablelist>
+  <varlistentry>
+    <term>
+      <parameter>xkb</parameter>
+    </term>
+    <listitem>
+      <para>
+        Xkb description of interest
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>keycode</parameter>
+    </term>
+    <listitem>
+      <para>
+        keycode of interest
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
 
 <para>
-<emphasis>
-XkbKeySymsPtr</emphasis>
- returns the pointer to the two-dimensional array of keysyms for the key
-corresponding to <emphasis>
-keycode</emphasis>
-.
+<function>XkbKeySymsPtr</function>
+returns the pointer to the two-dimensional array of keysyms for the key
+corresponding to
+<parameter>keycode</parameter>.
 </para>
 
 
-<informaltable frame='none'>
-<?dbfo keep-together="always" ?>
-<tgroup cols='1' align='left' colsep='0' rowsep='0'>
-<colspec colname='c1' colwidth='1.0*'/>
-<tbody>
-  <row>
-    <entry role='functiondecl'>
-KeySym <emphasis>
-XkbKeySymEntry</emphasis>
-(<emphasis>
-xkb, keycode, shift, grp</emphasis>
-)                              /* macro */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-XkbDescPtr            <emphasis>
-xkb</emphasis>
-;                  /* Xkb description of interest */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-KeyCode            <emphasis>
-keycode</emphasis>
-;                  /* keycode of interest */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-int            <emphasis>
-shift</emphasis>
-;                  /* shift level of interest */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-int            <emphasis>
-grp</emphasis>
-;                  /* group of interest */
-    </entry>
-</row>
-</tbody>
-</tgroup>
-</informaltable>
+<indexterm significance="preferred" zone="XkbKeySymEntry"><primary><function>XkbKeySymEntry</function></primary></indexterm>
+<funcsynopsis id="XkbKeySymEntry">
+  <funcprototype>
+    <funcdef>KeySym <function>XkbKeySymEntry</function></funcdef>
+<!-- (
+<parameter>xkb, keycode, shift, grp</parameter>
+)                              /* macro */ -->
+
+    <paramdef>XkbDescPtr <parameter>xkb</parameter></paramdef>
+    <paramdef>KeyCode <parameter>keycode</parameter></paramdef>
+    <paramdef>int <parameter>shift</parameter></paramdef>
+    <paramdef>int <parameter>grp</parameter></paramdef>
+  </funcprototype>
+</funcsynopsis>
+<variablelist>
+  <varlistentry>
+    <term>
+      <parameter>xkb</parameter>
+    </term>
+    <listitem>
+      <para>
+        Xkb description of interest
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>keycode</parameter>
+    </term>
+    <listitem>
+      <para>
+        keycode of interest
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>shift</parameter>
+    </term>
+    <listitem>
+      <para>
+        shift level of interest
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>grp</parameter>
+    </term>
+    <listitem>
+      <para>
+        group of interest
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
 
 <para>
-<emphasis>
-XkbKeySymEntry</emphasis>
- returns the <emphasis>
-keysym</emphasis>
- corresponding to shift level <emphasis>
-shift</emphasis>
- and group <emphasis>
-grp</emphasis>
- from the two-dimensional array of keysyms for the key corresponding to
-<emphasis>
-keycode</emphasis>
+<function>XkbKeySymEntry</function>
+returns the
+<type>KeySym</type>
+corresponding to shift level
+<parameter>shift</parameter>
+and group
+<parameter>grp</parameter>
+from the two-dimensional array of keysyms for the key corresponding to
+<parameter>keycode</parameter>
 </para>
 
 
@@ -1998,114 +2033,118 @@ keycode</emphasis>
 
 <para>
 To obtain the symbols for a subset of the keys in a keyboard description, use
-<emphasis>
-XkbGetKeySyms</emphasis>
-:
+<function>XkbGetKeySyms</function>:
+
 </para>
 
-<informaltable frame='none'>
-<?dbfo keep-together="always" ?>
-<tgroup cols='1' align='left' colsep='0' rowsep='0'>
-<colspec colname='c1' colwidth='1.0*'/>
-<tbody>
-  <row>
-    <entry role='functiondecl'>
-Status <emphasis>
-XkbGetKeySyms</emphasis>
-(<emphasis>
-dpy</emphasis>
-,<emphasis>
- first</emphasis>
-, <emphasis>
-num</emphasis>
-,<emphasis>
- xkb</emphasis>
-)
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-Display *<emphasis>
-            dpy</emphasis>
-;            /* connection to X server */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-unsigned int<emphasis>
-            first</emphasis>
-;            /* keycode of first key to get */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-unsigned int      <emphasis>
-      num</emphasis>
-;            /* number of keycodes for which syms desired */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-XkbDescPtr             <emphasis>
-xkb</emphasis>
-;            /* Xkb description to be updated */
-    </entry>
-</row>
-</tbody>
-</tgroup>
-</informaltable>
+<indexterm significance="preferred" zone="XkbGetKeySyms"><primary><function>XkbGetKeySyms</function></primary></indexterm>
+<funcsynopsis id="XkbGetKeySyms">
+  <funcprototype>
+    <funcdef>Status <function>XkbGetKeySyms</function></funcdef>
+<!-- (
+<parameter>dpy</parameter>,
+<parameter>first</parameter>,
+<parameter>num</parameter>,
+<parameter>xkb</parameter>
+) -->
+
+    <paramdef>Display *<parameter>dpy</parameter></paramdef>
+    <paramdef>unsigned int <parameter>first</parameter></paramdef>
+    <paramdef>unsigned int <parameter>num</parameter></paramdef>
+    <paramdef>XkbDescPtr <parameter>xkb</parameter></paramdef>
+  </funcprototype>
+</funcsynopsis>
+<variablelist>
+  <varlistentry>
+    <term>
+      <parameter>dpy</parameter>
+    </term>
+    <listitem>
+      <para>
+        connection to X server
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>first</parameter>
+    </term>
+    <listitem>
+      <para>
+        keycode of first key to get
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>num</parameter>
+    </term>
+    <listitem>
+      <para>
+        number of keycodes for which syms desired
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>xkb</parameter>
+    </term>
+    <listitem>
+      <para>
+        Xkb description to be updated
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
 
 <para>
-<emphasis>
-XkbGetKeySyms</emphasis>
- sends a request to the server to obtain the set of keysyms bound to <emphasis>
-num</emphasis>
- keys starting with the key whose keycode is <emphasis>
-first</emphasis>
-. It waits for a reply and returns the keysyms in the <emphasis>
-map.syms</emphasis>
- field of <emphasis>
-xkb</emphasis>
-. If successful, <emphasis>
-XkbGetKeySyms</emphasis>
- returns <emphasis>
-Success</emphasis>
-. The <emphasis>
-xkb</emphasis>
- parameter must be a pointer to a valid Xkb keyboard description.
+<function>XkbGetKeySyms</function>
+sends a request to the server to obtain the set of keysyms bound to
+<parameter>num</parameter>
+keys starting with the key whose keycode is
+<parameter>first</parameter>.
+It waits for a reply and returns the keysyms in the
+<structfield>map.syms</structfield>
+field of
+<parameter>xkb</parameter>.
+If successful,
+<function>XkbGetKeySyms</function>
+returns
+<symbol>Success</symbol>.
+The
+<parameter>xkb</parameter>
+parameter must be a pointer to a valid Xkb keyboard description.
 </para>
 
 
 <para>
-If the client <emphasis>
-map</emphasis>
- in the <emphasis>
-xkb</emphasis>
- parameter has not been allocated, <emphasis>
-XkbGetKeySyms</emphasis>
- allocates and initializes it before obtaining the symbols.
+If the client
+<structfield>map</structfield>
+in the
+<parameter>xkb</parameter>
+parameter has not been allocated,
+<function>XkbGetKeySyms</function>
+allocates and initializes it before obtaining the symbols.
 </para>
 
 
 <para>
 If a compatible version of Xkb is not available in the server or the Xkb
-extension has not been properly initialized, <emphasis>
-XkbGetKeySyms</emphasis>
- returns <emphasis>
-BadAccess</emphasis>
-. If <emphasis>
-num</emphasis>
- is less than 1 or greater than <emphasis>
-XkbMaxKeyCount</emphasis>
-, <emphasis>
-XkbGetKeySyms</emphasis>
- returns <emphasis>
-BadValue</emphasis>
-. If any allocation errors occur, <emphasis>
-XkbGetKeySyms</emphasis>
- returns <emphasis>
-BadAlloc</emphasis>
-.
+extension has not been properly initialized,
+<function>XkbGetKeySyms</function>
+returns
+<errorname>BadAccess</errorname>.
+If
+<parameter>num</parameter>
+is less than 1 or greater than
+<symbol>XkbMaxKeyCount</symbol>,
+<function>XkbGetKeySyms</function>
+returns
+<errorname>BadValue</errorname>.
+If any allocation errors occur,
+<function>XkbGetKeySyms</function>
+returns
+<errorname>BadAlloc</errorname>.
 </para>
 
 
@@ -2114,164 +2153,166 @@ BadAlloc</emphasis>
 <title>Changing the Number of Groups and Types Bound to a Key</title>
 
 <para>
-To change the number of groups and the types bound to a key, use <emphasis>
-XkbChangeTypesOfKey</emphasis>
-.
+To change the number of groups and the types bound to a key, use
+<function>XkbChangeTypesOfKey</function>.
+</para>
+
+
+<indexterm significance="preferred" zone="XkbChangeTypesOfKey"><primary><function>XkbChangeTypesOfKey</function></primary></indexterm>
+<funcsynopsis id="XkbChangeTypesOfKey">
+  <funcprototype>
+    <funcdef>Status <function>XkbChangeTypesOfKey</function></funcdef>
+<!-- (
+<parameter>xkb</parameter>,
+<parameter>key</parameter>,
+<parameter>n_groups</parameter>,
+<parameter>groups</parameter>,
+<parameter>new_types_in</parameter>,
+<parameter>p_changes</parameter>
+) -->
+
+    <paramdef>XkbDescPtr <parameter>xkb</parameter></paramdef>
+    <paramdef>int <parameter>key</parameter></paramdef>
+    <paramdef>int <parameter>n_groups</parameter></paramdef>
+    <paramdef>unsigned int <parameter>groups</parameter></paramdef>
+    <paramdef>int *<parameter>new_types_in</parameter></paramdef>
+    <paramdef>XkbMapChangesPtr <parameter>p_changes</parameter></paramdef>
+  </funcprototype>
+</funcsynopsis>
+<variablelist>
+  <varlistentry>
+    <term>
+      <parameter>xkb</parameter>
+    </term>
+    <listitem>
+      <para>
+        keyboard description to be changed
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>key</parameter>
+    </term>
+    <listitem>
+      <para>
+        keycode for key of interest
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>n_groups</parameter>
+    </term>
+    <listitem>
+      <para>
+        new number of groups for key
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>groups</parameter>
+    </term>
+    <listitem>
+      <para>
+        mask indicating groups to change
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>new_types_in</parameter>
+    </term>
+    <listitem>
+      <para>
+        indices for new groups specified in <parameter>groups</parameter>
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>p_changes</parameter>
+    </term>
+    <listitem>
+      <para>
+        notes changes made to <parameter>xkb</parameter>
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>
+<function>XkbChangeTypesOfKey</function>
+reallocates the symbols and actions bound to the key, if necessary, and
+initializes any new symbols or actions to
+<symbol>NoSymbol</symbol>
+or
+<emphasis>NoAction</emphasis>,
+as appropriate. If the
+<parameter>p_changes</parameter>
+parameter is not
+<symbol>NULL</symbol>,
+<function>XkbChangeTypesOfKey</function>
+adds the
+<symbol>XkbKeySymsMask</symbol>
+to the
+<structfield>changes</structfield>
+field of
+<parameter>p_changes</parameter>
+and modifies the
+<structfield>first_key_sym</structfield>
+and
+<structfield>num_key_syms</structfield>
+fields of
+<parameter>p_changes</parameter>
+to include the
+<parameter>key</parameter>
+that was changed. See <link linkend="The_XkbMapChangesRec_Structure">section 14.3.1</link> for more information on the
+<type>XkbMapChangesPtr</type>
+structure. If successful,
+<function>XkbChangeTypesOfKey</function>
+returns
+<symbol>Success</symbol>.
 </para>
 
 
 <para>
-Status <emphasis>
-XkbChangeTypesOfKey</emphasis>
-(<emphasis>
-xkb</emphasis>
-,<emphasis>
- key</emphasis>
-,<emphasis>
- n_groups</emphasis>
-,<emphasis>
- groups</emphasis>
-,<emphasis>
- new_types_in</emphasis>
-,<emphasis>
- p_changes</emphasis>
-)
-</para>
-
-<informaltable frame='none'>
-<?dbfo keep-together="always" ?>
-<tgroup cols='1' align='left' colsep='0' rowsep='0'>
-<colspec colname='c1' colwidth='1.0*'/>
-<tbody>
-  <row>
-    <entry role='functionargdecl'>
-XkbDescPtr <emphasis>
-            xkb</emphasis>
-;            /* keyboard description to be changed */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-int <emphasis>
-            key</emphasis>
-;            /* keycode for key of interest */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-int <emphasis>
-            n_groups</emphasis>
-;            /* new number of groups for key */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-unsigned int            <emphasis>
-groups</emphasis>
-;            /* mask indicating groups to change */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-int *            <emphasis>
-new_types_in</emphasis>
-;            /* indices for new groups specified in <emphasis>
-groups</emphasis>
- */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-XkbMapChangesPtr            <emphasis>
-p_changes</emphasis>
-;            /* notes changes made to <emphasis>
-xkb</emphasis>
- */
-    </entry>
-</row>
-</tbody>
-</tgroup>
-</informaltable>
-
-<para>
-<emphasis>
-XkbChangeTypesOfKey</emphasis>
- reallocates the symbols and actions bound to the key, if necessary, and
-initializes any new symbols or actions to <emphasis>
-NoSymbol</emphasis>
- or <emphasis>
-NoAction</emphasis>
-, as appropriate. If the <emphasis>
-p_changes</emphasis>
- parameter is not <emphasis>
-NULL</emphasis>
-, <emphasis>
-XkbChangeTypesOfKey</emphasis>
- adds the <emphasis>
-XkbKeySymsMask</emphasis>
- to the <emphasis>
-changes</emphasis>
- field of <emphasis>
-p_changes</emphasis>
- and modifies the <emphasis>
-first_key_sym</emphasis>
- and <emphasis>
-num_key_syms</emphasis>
- fields of <emphasis>
-p_changes</emphasis>
- to include the <emphasis>
-key</emphasis>
- that was changed. See section 14.3.1 for more information on the <emphasis>
-XkbMapChangesPtr</emphasis>
- structure. If successful, <emphasis>
-XkbChangeTypesOfKey</emphasis>
- returns <emphasis>
-Success</emphasis>
-.
+The
+<parameter>n_groups</parameter>
+parameter specifies the new number of groups for the key. The
+<parameter>groups</parameter>
+parameter is a mask specifying the groups for which new types are supplied and
+is a bitwise inclusive OR of the following masks:
+<symbol>XkbGroup1Mask</symbol>,
+<symbol>XkbGroup2Mask</symbol>,
+<symbol>XkbGroup3Mask</symbol>,
+and
+<symbol>XkbGroup4Mask</symbol>.
 </para>
 
 
 <para>
-The <emphasis>
-n_groups</emphasis>
- parameter specifies the new number of groups for the key. The <emphasis>
-groups</emphasis>
- parameter is a mask specifying the groups for which new types are supplied and
-is a bitwise inclusive OR of the following masks: <emphasis>
-XkbGroup1Mask</emphasis>
-, <emphasis>
-XkbGroup2Mask</emphasis>
-, <emphasis>
-XkbGroup3Mask</emphasis>
-, and <emphasis>
-XkbGroup4Mask</emphasis>
-.
-</para>
-
-
-<para>
-The <emphasis>
-new_types_in</emphasis>
- parameter is an integer array of length <emphasis>
-n_groups</emphasis>
-. Each entry represents the type to use for the associated group and is an
-index into <emphasis>
-xkb</emphasis>
--&gt;<emphasis>
-map-&gt;types</emphasis>
-. The <emphasis>
-new_types_in</emphasis>
- array is indexed by group index; if <emphasis>
-n_groups</emphasis>
- is four and <emphasis>
-groups</emphasis>
- only has <emphasis>
-Group1Mask</emphasis>
- and <emphasis>
-Group3Mask</emphasis>
- set, <emphasis>
-new_types_in</emphasis>
- looks like this:
+The
+<parameter>new_types_in</parameter>
+parameter is an integer array of length
+<parameter>n_groups</parameter>.
+Each entry represents the type to use for the associated group and is an
+index into
+<parameter>xkb</parameter>-&gt;<structfield>map-&gt;types</structfield>.
+The
+<parameter>new_types_in</parameter>
+array is indexed by group index; if
+<parameter>n_groups</parameter>
+is four and
+<parameter>groups</parameter>
+only has
+<symbol>XkbGroup1Mask</symbol>
+and
+<symbol>XkbGroup3Mask</symbol>
+set,
+<parameter>new_types_in</parameter>
+looks like this:
 </para>
 
 <literallayout>
@@ -2286,7 +2327,7 @@ For convenience, Xkb provides the following constants to use as indices to the
 groups:
 </para>
 
-<table frame='topbot'>
+<table id='table15.3' frame='topbot'>
 <title>Group Index Constants</title>
 <?dbfo keep-together="always" ?>
 <tgroup cols='2' align='left' colsep='0' rowsep='0'>
@@ -2300,19 +2341,19 @@ groups:
 </thead>
 <tbody>
   <row>
-    <entry>XkbGroup1Index</entry>
+    <entry><symbol>XkbGroup1Index</symbol></entry>
     <entry>0</entry>
   </row>
   <row>
-    <entry>XkbGroup2Index</entry>
+    <entry><symbol>XkbGroup2Index</symbol></entry>
     <entry>1</entry>
   </row>
   <row>
-    <entry>XkbGroup3Index</entry>
+    <entry><symbol>XkbGroup3Index</symbol></entry>
     <entry>2</entry>
   </row>
   <row>
-    <entry>XkbGroup4Index</entry>
+    <entry><symbol>XkbGroup4Index</symbol></entry>
     <entry>3</entry>
   </row>
 </tbody>
@@ -2320,36 +2361,35 @@ groups:
 </table>
 
 <para>
-If the Xkb extension has not been properly initialized, <emphasis>
-XkbChangeTypesOfKey</emphasis>
- returns <emphasis>
-BadAccess</emphasis>
-. If the <emphasis>
-xkb</emphasis>
- parameter it not valid (that is, it is <emphasis>
-NULL</emphasis>
- or it does not contain a valid client map), <emphasis>
-XkbChangeTypesOfKey</emphasis>
- returns <emphasis>
-Bad</emphasis>
-Match. If the <emphasis>
-key</emphasis>
- is not a valid keycode, <emphasis>
-n_groups</emphasis>
- is greater than <emphasis>
-XkbNumKbdGroups</emphasis>
-, or the <emphasis>
-groups</emphasis>
- mask does not contain any of the valid group mask bits, <emphasis>
-XkbChangeTypesOfKey</emphasis>
- returns <emphasis>
-BadValue</emphasis>
-. If it is necessary to resize the key symbols or key actions arrays and any
-allocation errors occur, <emphasis>
-XkbChangeTypesOfKey</emphasis>
- returns <emphasis>
-BadAlloc</emphasis>
-.
+If the Xkb extension has not been properly initialized,
+<function>XkbChangeTypesOfKey</function>
+returns
+<errorname>BadAccess</errorname>.
+If the
+<parameter>xkb</parameter>
+parameter it not valid (that is, it is
+<symbol>NULL</symbol>
+or it does not contain a valid client map),
+<function>XkbChangeTypesOfKey</function>
+returns
+<errorname>BadMatch</errorname>.
+If the
+<parameter>key</parameter>
+is not a valid keycode,
+<parameter>n_groups</parameter>
+is greater than
+<symbol>XkbNumKbdGroups</symbol>,
+or the
+<parameter>groups</parameter>
+mask does not contain any of the valid group mask bits,
+<function>XkbChangeTypesOfKey</function>
+returns
+<errorname>BadValue</errorname>.
+If it is necessary to resize the key symbols or key actions arrays and any
+allocation errors occur,
+<function>XkbChangeTypesOfKey</function>
+returns
+<errorname>BadAlloc</errorname>.
 </para>
 
 
@@ -2358,124 +2398,121 @@ BadAlloc</emphasis>
 <title>Changing the Number of Symbols Bound to a Key</title>
 
 <para>
-To change the number of symbols bound to a key, use <emphasis>
-XkbResizeKeySyms</emphasis>
-.
+To change the number of symbols bound to a key, use
+<function>XkbResizeKeySyms</function>.
 </para>
 
-<informaltable frame='none'>
-<?dbfo keep-together="always" ?>
-<tgroup cols='1' align='left' colsep='0' rowsep='0'>
-<colspec colname='c1' colwidth='1.0*'/>
-<tbody>
-  <row>
-    <entry role='functiondecl'>
-KeySym *<emphasis>
-XkbResizeKeySyms</emphasis>
-(<emphasis>
-xkb</emphasis>
-,<emphasis>
- key</emphasis>
-,<emphasis>
- needed</emphasis>
-)
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-XkbDescRec *<emphasis>
-            xkb</emphasis>
-;            /* keyboard description to be changed */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-int <emphasis>
-            key</emphasis>
-;            /* keycode for key to modify */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-int <emphasis>
-            needed</emphasis>
-;            /* new number of keysyms required for key */
-    </entry>
-</row>
-</tbody>
-</tgroup>
-</informaltable>
+<indexterm significance="preferred" zone="XkbResizeKeySyms"><primary><function>XkbResizeKeySyms</function></primary></indexterm>
+<funcsynopsis id="XkbResizeKeySyms">
+  <funcprototype>
+    <funcdef>KeySym *<function>XkbResizeKeySyms</function></funcdef>
+<!-- (
+<parameter>xkb</parameter>,
+<parameter>key</parameter>,
+<parameter>needed</parameter>
+) -->
+
+    <paramdef>XkbDescRec *<parameter>xkb</parameter></paramdef>
+    <paramdef>int <parameter>key</parameter></paramdef>
+    <paramdef>int <parameter>needed</parameter></paramdef>
+  </funcprototype>
+</funcsynopsis>
+<variablelist>
+  <varlistentry>
+    <term>
+      <parameter>xkb</parameter>
+    </term>
+    <listitem>
+      <para>
+        keyboard description to be changed
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>key</parameter>
+    </term>
+    <listitem>
+      <para>
+        keycode for key to modify
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>needed</parameter>
+    </term>
+    <listitem>
+      <para>
+        new number of keysyms required for key
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
 
 <para>
-<emphasis>
-XkbResizeKeySyms</emphasis>
- reserves the space needed for <emphasis>
-needed</emphasis>
- keysyms and returns a pointer to the beginning of the new array that holds the
-keysyms. It adjusts the <emphasis>
-offset</emphasis>
- field of the <emphasis>
-key_sym_map</emphasis>
- entry for the key if necessary and can also change the <emphasis>
-syms</emphasis>
-, <emphasis>
-num_syms</emphasis>
-, and <emphasis>
-size_syms</emphasis>
- fields of <emphasis>
-xkb</emphasis>
--<emphasis>
-&gt;map</emphasis>
- if it is necessary to reallocate the <emphasis>
-syms</emphasis>
- array. <emphasis>
-XkbResizeKeySyms</emphasis>
- does not modify either the width or number of groups associated with the key.
+<function>XkbResizeKeySyms</function>
+reserves the space needed for
+<parameter>needed</parameter>
+keysyms and returns a pointer to the beginning of the new array that holds the
+keysyms. It adjusts the
+<structfield>offset</structfield>
+field of the
+<structfield>key_sym_map</structfield>
+entry for the key if necessary and can also change the
+<structfield>syms</structfield>,
+<structfield>num_syms</structfield>,
+and
+<structfield>size_syms</structfield>
+fields of
+<structfield>xkb-&gt;map</structfield>
+if it is necessary to reallocate the
+<structfield>syms</structfield>
+array.
+<function>XkbResizeKeySyms</function>
+does not modify either the width or number of groups associated with the key.
 </para>
 
 
 <para>
-If <emphasis>
-needed</emphasis>
- is greater than the current number of keysyms for the key, <emphasis>
-XkbResizeKeySyms</emphasis>
- initializes all new keysyms in the array to <emphasis>
-NoSymbol</emphasis>
-.
+If
+<parameter>needed</parameter>
+is greater than the current number of keysyms for the key,
+<function>XkbResizeKeySyms</function>
+initializes all new keysyms in the array to
+<symbol>NoSymbol</symbol>.
 </para>
 
 
 <para>
 Because the number of symbols needed by a key is normally computed as width *
-number of groups, and <emphasis>
-XkbResizeKeySyms</emphasis>
- does not modify either the width or number of groups for the key, a
-discrepancy exists upon return from <emphasis>
-XkbResizeKeySyms</emphasis>
- between the space allocated for the keysyms and the number required. The
-unused entries in the list of symbols returned by <emphasis>
-XkbResizeKeySyms</emphasis>
- are not preserved across future calls to any of the map editing functions, so
+number of groups, and
+<function>XkbResizeKeySyms</function>
+does not modify either the width or number of groups for the key, a
+discrepancy exists upon return from
+<function>XkbResizeKeySyms</function>
+between the space allocated for the keysyms and the number required. The
+unused entries in the list of symbols returned by
+<function>XkbResizeKeySyms</function>
+are not preserved across future calls to any of the map editing functions, so
 you must update the key symbol mapping (which updates the width and number of
 groups for the key) before calling another allocator function. A call to
-<emphasis>
-XkbChangeTypesOfKey</emphasis>
- will update the mapping.
+<function>XkbChangeTypesOfKey</function>
+will update the mapping.
 </para>
 
 
 <para>
 If any allocation errors occur while resizing the number of symbols bound to
-the key, <emphasis>
-XkbResizeKeySyms</emphasis>
- returns <emphasis>
-NULL</emphasis>
-.
+the key,
+<function>XkbResizeKeySyms</function>
+returns
+<symbol>NULL</symbol>.
 </para>
 
 <note><para>A change to the number of symbols bound to a key should be
 accompanied by a change in the number of actions bound to a key. Refer to
-section 16.1.16 for more information on changing the number of actions bound to
+<link linkend="Changing_the_Number_of_Actions_Bound_to_a_Key">section 16.1.16</link> for more information on changing the number of actions bound to
 a key.</para></note>
 
 
@@ -2485,29 +2522,23 @@ a key.</para></note>
 <title>The Per-Key Modifier Map</title>
 
 <para>
-The <emphasis>
-modmap</emphasis>
- entry of the client map is an array, indexed by keycode, specifying the real
+The
+<structfield>modmap</structfield>
+entry of the client map is an array, indexed by keycode, specifying the real
 modifiers bound to a key. Each entry is a mask composed of a bitwise inclusive
-OR of the legal real modifiers: <emphasis>
-ShiftMask</emphasis>
-, <emphasis>
-LockMask</emphasis>
-, <emphasis>
-ControlMask</emphasis>
-, <emphasis>
-Mod1Mask</emphasis>
-, <emphasis>
-Mod2Mask</emphasis>
-, <emphasis>
-Mod3Mask</emphasis>
-, <emphasis>
-Mod4Mask</emphasis>
-, and <emphasis>
-Mod5Mask</emphasis>
-. If a bit is set in a <emphasis>
-modmap</emphasis>
- entry, the corresponding key is bound to that modifier.
+OR of the legal real modifiers:
+<symbol>ShiftMask</symbol>,
+<symbol>LockMask</symbol>,
+<symbol>ControlMask</symbol>,
+<symbol>Mod1Mask</symbol>,
+<symbol>Mod2Mask</symbol>,
+<symbol>Mod3Mask</symbol>,
+<symbol>Mod4Mask</symbol>,
+and
+<symbol>Mod5Mask</symbol>.
+If a bit is set in a
+<structfield>modmap</structfield>
+entry, the corresponding key is bound to that modifier.
 </para>
 
 
@@ -2515,7 +2546,7 @@ modmap</emphasis>
 Pressing or releasing the key bound to a modifier changes the modifier set and
 unset state. The particular manner in which the modifier set and unset state
 changes is determined by the behavior and actions assigned to the key (see
-Chapter 16).
+<xref linkend="Xkb_Server_Keyboard_Mapping" />).
 </para>
 
 
@@ -2524,100 +2555,103 @@ Chapter 16).
 
 <para>
 To update the modifier map for one or more of the keys in a keyboard
-description, use <emphasis>
-XkbGetKeyModifierMap</emphasis>
-.
+description, use
+<function>XkbGetKeyModifierMap</function>.
 </para>
 
-<informaltable frame='none'>
-<?dbfo keep-together="always" ?>
-<tgroup cols='1' align='left' colsep='0' rowsep='0'>
-<colspec colname='c1' colwidth='1.0*'/>
-<tbody>
-  <row>
-    <entry role='functiondecl'>
-Status <emphasis>
-XkbGetKeyModifierMap</emphasis>
-(<emphasis>
-dpy</emphasis>
-,<emphasis>
- first</emphasis>
-,<emphasis>
- num</emphasis>
-,<emphasis>
- xkb</emphasis>
-)
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-Display *<emphasis>
-            dpy</emphasis>
-;            /* connection to X server */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-unsigned int            <emphasis>
-first</emphasis>
-;            /* keycode of first key to get */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-unsigned int            <emphasis>
-num</emphasis>
-;            /* number of keys for which information is desired */
-    </entry>
-  </row>
-  <row>
-    <entry role='functionargdecl'>
-XkbDescPtr             <emphasis>
-xkb</emphasis>
-;            /* keyboard description to update */
-    </entry>
-</row>
-</tbody>
-</tgroup>
-</informaltable>
+<indexterm significance="preferred" zone="XkbGetKeyModifierMap"><primary><function>XkbGetKeyModifierMap</function></primary></indexterm>
+<funcsynopsis id="XkbGetKeyModifierMap">
+  <funcprototype>
+    <funcdef>Status <function>XkbGetKeyModifierMap</function></funcdef>
+<!-- (
+<parameter>dpy</parameter>,
+<parameter>first</parameter>,
+<parameter>num</parameter>,
+<parameter>xkb</parameter>
+) -->
+
+    <paramdef>Display *<parameter>dpy</parameter></paramdef>
+    <paramdef>unsigned int <parameter>first</parameter></paramdef>
+    <paramdef>unsigned int <parameter>num</parameter></paramdef>
+    <paramdef>XkbDescPtr <parameter>xkb</parameter></paramdef>
+  </funcprototype>
+</funcsynopsis>
+<variablelist>
+  <varlistentry>
+    <term>
+      <parameter>dpy</parameter>
+    </term>
+    <listitem>
+      <para>
+        connection to X server
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>first</parameter>
+    </term>
+    <listitem>
+      <para>
+        keycode of first key to get
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>num</parameter>
+    </term>
+    <listitem>
+      <para>
+        number of keys for which information is desired
+      </para>
+    </listitem>
+  </varlistentry>
+  <varlistentry>
+    <term>
+      <parameter>xkb</parameter>
+    </term>
+    <listitem>
+      <para>
+        keyboard description to update
+      </para>
+    </listitem>
+  </varlistentry>
+</variablelist>
 
 <para>
-<emphasis>
-XkbGetKeyModifierMap</emphasis>
- sends a request to the server for the modifier mappings for <emphasis>
-num</emphasis>
- keys starting with the key whose keycode is <emphasis>
-first</emphasis>
-. It waits for a reply and places the results in the <emphasis>
-xkb</emphasis>
--&gt;map-&gt;modmap array. If successful, <emphasis>
-XkbGetKeyModifier</emphasis>
- returns <emphasis>
-Success</emphasis>
-.
+<function>XkbGetKeyModifierMap</function>
+sends a request to the server for the modifier mappings for
+<parameter>num</parameter>
+keys starting with the key whose keycode is
+<parameter>first</parameter>.
+It waits for a reply and places the results in the
+<parameter>xkb</parameter>-&gt;map-&gt;modmap array. If successful,
+<function>XkbGetKeyModifierMap</function>
+returns
+<symbol>Success</symbol>.
 </para>
 
 
 <para>
-If the map component of the <emphasis>
-xkb</emphasis>
- parameter has not been allocated, <emphasis>
-XkbGetKeyModifierMap</emphasis>
- allocates and initializes it.
+If the map component of the
+<parameter>xkb</parameter>
+parameter has not been allocated,
+<function>XkbGetKeyModifierMap</function>
+allocates and initializes it.
 </para>
 
 
 <para>
 If a compatible version of Xkb is not available in the server or the Xkb
-extension has not been properly initialized, <emphasis>
-XkbGetKeySyms</emphasis>
- returns <emphasis>
-BadAccess</emphasis>
-. If any allocation errors occur while obtaining the modifier map, <emphasis>
-XkbGetKeyModifierMap</emphasis>
- returns <emphasis>
-BadAlloc</emphasis>
-.
+extension has not been properly initialized,
+<function>XkbGetKeySyms</function>
+returns
+<errorname>BadAccess</errorname>.
+If any allocation errors occur while obtaining the modifier map,
+<function>XkbGetKeyModifierMap</function>
+returns
+<errorname>BadAlloc</errorname>.
 </para>
 </sect2>
 </sect1>

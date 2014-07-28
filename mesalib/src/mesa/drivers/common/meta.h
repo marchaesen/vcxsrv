@@ -59,6 +59,7 @@
 #define MESA_META_FRAMEBUFFER_SRGB     0x200000
 #define MESA_META_OCCLUSION_QUERY      0x400000
 #define MESA_META_DRAW_BUFFERS         0x800000
+#define MESA_META_DITHER              0x1000000
 /**\}*/
 
 /**
@@ -83,6 +84,9 @@ struct save_state
    /** MESA_META_BLEND */
    GLbitfield BlendEnabled;
    GLboolean ColorLogicOpEnabled;
+
+   /** MESA_META_DITHER */
+   GLboolean DitherFlag;
 
    /** MESA_META_COLOR_MASK */
    GLubyte ColorMask[MAX_DRAW_BUFFERS][4];
@@ -471,6 +475,13 @@ _mesa_meta_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
                            struct gl_renderbuffer *rb,
                            GLint x, GLint y,
                            GLsizei width, GLsizei height);
+
+extern void
+_mesa_meta_ClearTexSubImage(struct gl_context *ctx,
+                            struct gl_texture_image *texImage,
+                            GLint xoffset, GLint yoffset, GLint zoffset,
+                            GLsizei width, GLsizei height, GLsizei depth,
+                            const GLvoid *clearValue);
 
 extern void
 _mesa_meta_GetTexImage(struct gl_context *ctx,

@@ -1,3 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN"
+	  "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
 <chapter id='Data_Structures'>
 <title>Data Structures</title>
 
@@ -73,20 +76,20 @@ values are properly updated for those Xkb structures that have
 interdependencies. As a general rule, if there is a helper function or macro to
 edit the data structure, use it. For example, increasing the width of a type
 requires you to resize every key that uses that type. This is complicated and
-ugly, which is why there’s an <emphasis>
-XkbResizeKeyType</emphasis>
- function.
+ugly, which is why there’s an
+<function>XkbResizeKeyType</function>
+function.
 </para>
 
 
 <para>
 Many Xkb data structures have arrays whose size is reported by two fields. The
-first field, whose name is usually prefixed by <emphasis>
-sz_</emphasis>
-, represents the total number of elements that can be stored in the array. The
-second field, whose name is usually prefixed by <emphasis>
-num_</emphasis>
-, specifies the number of elements currently stored there. These arrays
+first field, whose name is usually prefixed by
+<emphasis>sz_</emphasis>,
+represents the total number of elements that can be stored in the array. The
+second field, whose name is usually prefixed by
+<emphasis>num_</emphasis>,
+specifies the number of elements currently stored there. These arrays
 typically represent data whose total size cannot always be determined when the
 array is created. In these instances, the usual way to allocate space and add
 data is as follows:
@@ -100,9 +103,9 @@ Call the allocator function with some arbitrary size, as a hint.
   </listitem>
   <listitem>
     <para>
-For those arrays that have an <emphasis>
-Xkb...Add...</emphasis>
- function, call it each time you want to add new data to the array. The
+For those arrays that have an
+<function>Xkb...Add...</function>
+function, call it each time you want to add new data to the array. The
 function expands the array if necessary.
     </para>
   </listitem>
@@ -110,33 +113,31 @@ function expands the array if necessary.
 
 <para>
 For example, call:
-</para>
 
-<para>
+<programlisting>
 XkbAllocGeomShapes(geom,4)
-</para>
+</programlisting>
 
-<para>
-to say "I’ll need space for four new shapes in this geometry." This makes
-sure that <emphasis>
-sz_shapes</emphasis>
- - <emphasis>
-num_shapes</emphasis>
- &gt;= 4, and resizes the shapes array if it isn’t. If this function
+to say <quote>I’ll need space for four new shapes in this geometry.</quote>
+This makes sure that
+<structfield>sz_shapes</structfield>
+&minus;
+<structfield>num_shapes</structfield>
+&gt;= 4, and resizes the shapes array if it isn’t. If this function
 succeeds, you are guaranteed to have space for the number of shapes you need.
 </para>
 
 
 <para>
 When you call an editing function for a structure, you do not need to check for
-space, because the function automatically checks the <emphasis>
-sz_</emphasis>
- and <emphasis>
-num_</emphasis>
- fields of the array, resizes the array if necessary, adds the entry to the
-array, and then updates the <emphasis>
-num_</emphasis>
- field.
+space, because the function automatically checks the
+<emphasis>sz_</emphasis>
+and
+<emphasis>num_</emphasis>
+fields of the array, resizes the array if necessary, adds the entry to the
+array, and then updates the
+<emphasis>num_</emphasis>
+field.
 </para>
 
 
@@ -156,9 +157,11 @@ description or even an entire data structure for only minor changes.
 
 <para>
 To help you keep track of the changes you make to a local copy of the keyboard
-description, Xkb provides separate special <emphasis>
-changes</emphasis>
- data structures for each major Xkb data structure. These data structures do
+description, Xkb provides separate special
+<firstterm>changes</firstterm>
+<indexterm significance="preferred" zone="Making_Changes_to_the_Servers_Keyboard_Description">
+<primary>changes data structures</primary></indexterm>
+data structures for each major Xkb data structure. These data structures do
 not contain the actual changed values: they only indicate the changes that have
 been made to the structures that actually describe the keyboard.
 </para>
@@ -203,21 +206,21 @@ the server.
 <para>
 When your client application receives a report from the server indicating the
 keyboard description has changed, you can determine the set of changes by
-passing the event to an Xkb function that "notes" event information in the
-corresponding changes data structure. These "note changes" functions are
-defined for all major Xkb components, and their names have the form <emphasis>
-XkbNote{Component}Changes</emphasis>
-, where <emphasis>
-Component</emphasis>
- is the name of a major Xkb component such as <emphasis>
-Map</emphasis>
- or <emphasis>
-Names</emphasis>
-. When you want to copy these changes from the server into a local copy of the
-keyboard description, use the corresponding <emphasis>
-XkbGet{Component}Changes</emphasis>
- function<emphasis>
-, </emphasis>
+passing the event to an Xkb function that <quote>notes</quote> event
+information in the corresponding changes data structure. These
+<quote>note changes</quote> functions are
+defined for all major Xkb components, and their names have the form
+<function>XkbNote<replaceable>{Component}</replaceable>Changes</function>,
+where
+<replaceable>Component</replaceable>
+is the name of a major Xkb component such as
+<literal>Map</literal>
+or
+<literal>Names</literal>.
+When you want to copy these changes from the server into a local copy of the
+keyboard description, use the corresponding
+<function>XkbGet<replaceable>{Component}</replaceable>Changes</function>
+function,
 passing it the changes structure. The function then retrieves only the changed
 structures from the server and copies the modified pieces into the local
 keyboard description.
@@ -228,20 +231,19 @@ keyboard description.
 <title>Freeing Data Structures</title>
 
 <para>
-For the same reasons you should not directly use <emphasis>
-malloc</emphasis>
- to allocate Xkb data structures, you should not free Xkb data structures or
-components directly using <emphasis>
-free</emphasis>
- or <emphasis>
-Xfree</emphasis>
-. Xkb provides functions to free the various data structures and their
+For the same reasons you should not directly use
+<function>malloc</function>
+to allocate Xkb data structures, you should not free Xkb data structures or
+components directly using
+<function>free</function>
+or
+<function>Xfree</function>.
+Xkb provides functions to free the various data structures and their
 components. Always use the free functions supplied by Xkb. There is no
-guarantee that any particular field can be safely freed by <emphasis>
-free</emphasis>
- or <emphasis>
-Xfree</emphasis>
-.
+guarantee that any particular field can be safely freed by
+<function>free</function>
+or
+<function>Xfree</function>.
 </para>
 </sect1>
 </chapter>

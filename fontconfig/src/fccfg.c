@@ -1546,10 +1546,38 @@ FcConfigSubstituteWithPat (FcConfig    *config,
 	    FcStrSetDestroy (strs);
 	    while (l && (lang = FcStrListNext (l)))
 	    {
+		FcPatternElt *e = FcPatternObjectFindElt (p, FC_LANG_OBJECT);
+
+		if (e)
+		{
+		    FcValueListPtr ll;
+
+		    for (ll = FcPatternEltValues (e); ll; ll = FcValueListNext (ll))
+		    {
+			FcValue vv = FcValueCanonicalize (&ll->value);
+
+			if (vv.type == FcTypeLangSet)
+			{
+			    FcLangSet *ls = FcLangSetCreate ();
+			    FcBool b;
+
+			    FcLangSetAdd (ls, lang);
+			    b = FcLangSetContains (vv.u.l, ls);
+			    FcLangSetDestroy (ls);
+			    if (b)
+				goto bail_lang;
+			}
+			else
+			    if (FcStrCmpIgnoreCase (vv.u.s, lang) == 0)
+				goto bail_lang;
+		    }
+		}
 		v.type = FcTypeString;
 		v.u.s = lang;
+
 		FcPatternObjectAddWithBinding (p, FC_LANG_OBJECT, v, FcValueBindingWeak, FcTrue);
 	    }
+	bail_lang:
 	    FcStrListDone (l);
 	}
 	if (FcPatternObjectGet (p, FC_PRGNAME_OBJECT, 0, &v) == FcResultNoMatch)

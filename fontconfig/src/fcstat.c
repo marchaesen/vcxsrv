@@ -360,3 +360,7 @@ FcIsFsMtimeBroken (const FcChar8 *dir)
 
     return FcFalse;
 }
+
+#define __fcstat__
+#include "fcaliastail.h"
+#undef __fcstat__

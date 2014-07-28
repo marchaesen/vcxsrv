@@ -53,7 +53,7 @@ glamor_sync_fence_set_triggered (SyncFence *fence)
 
 	/* Flush pending rendering operations */
         glamor_make_current(glamor);
-        glFinish();
+        glFlush();
 
 	fence->funcs.SetTriggered = glamor_fence->set_triggered;
 	fence->funcs.SetTriggered(fence);

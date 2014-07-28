@@ -131,6 +131,8 @@ typedef int		FcBool;
 #define FC_WEIGHT_EXTRALIGHT	    40
 #define FC_WEIGHT_ULTRALIGHT	    FC_WEIGHT_EXTRALIGHT
 #define FC_WEIGHT_LIGHT		    50
+#define FC_WEIGHT_DEMILIGHT	    55
+#define FC_WEIGHT_SEMILIGHT	    FC_WEIGHT_DEMILIGHT
 #define FC_WEIGHT_BOOK		    75
 #define FC_WEIGHT_REGULAR	    80
 #define FC_WEIGHT_NORMAL	    FC_WEIGHT_REGULAR
@@ -906,6 +908,13 @@ FcRangeDestroy (FcRange *range);
 FcPublic FcRange *
 FcRangeCopy (const FcRange *r);
 
+/* fcweight.c */
+
+FcPublic int
+FcWeightFromOpenType (int ot_weight);
+
+FcPublic int
+FcWeightToOpenType (int fc_weight);
 
 /* fcstr.c */
 

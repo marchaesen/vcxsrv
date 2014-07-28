@@ -39,6 +39,7 @@ CSRCS = \
 	fcserialize.c \
 	fcstat.c \
 	fcstr.c \
+	fcweight.c \
 	fcxml.c \
 	ftglue.c
 

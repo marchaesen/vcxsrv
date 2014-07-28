@@ -105,4 +105,5 @@ other dealings in this Software without prior written authorization.
 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="ch21.xml"/>
 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="ch22.xml"/>
 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="glossary.xml"/>
+<index id='index' />
 </book>

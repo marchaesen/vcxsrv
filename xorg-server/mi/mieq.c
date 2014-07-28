@@ -516,7 +516,7 @@ mieqProcessDeviceEvent(DeviceIntPtr dev, InternalEvent *event, ScreenPtr screen)
     verify_internal_event(event);
 
     /* refuse events from disabled devices */
-    if (!dev->enabled)
+    if (dev && !dev->enabled)
         return;
 
     /* Custom event handler */

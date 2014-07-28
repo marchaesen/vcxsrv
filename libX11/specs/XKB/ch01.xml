@@ -1,3 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN"
+	  "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
 <chapter id='Overview'>
 <title>Overview</title>
 
@@ -11,12 +14,12 @@ cumbersome in the core X protocol.
 
 <para>
 The core X protocol specifies the ways that the
-<emphasis>Shift</emphasis>,
-<emphasis>Control</emphasis>, and
-<emphasis>Lock</emphasis>
+<symbol>Shift</symbol>,
+<symbol>Control</symbol>, and
+<symbol>Lock</symbol>
 modifiers and the modifiers bound to the
-<emphasis>Mode_switch</emphasis> or
-<emphasis>Num_Lock</emphasis>
+<keysym>Mode_switch</keysym> or
+<keysym>Num_Lock</keysym>
 keysyms interact to generate keysyms and characters. The core protocol also
 allows users to specify that a key affects one or more modifiers. This behavior
 is simple and fairly flexible, but it has a number of limitations that make it
@@ -43,7 +46,7 @@ Furthermore, this approach limits the number of keyboard groups to two.
   <listitem>
     <para>
 Poorly specified locking key behavior requires X servers to look for a few
-"magic" keysyms to determine that keys should lock when pressed. This leads to
+<quote>magic</quote> keysyms to determine that keys should lock when pressed. This leads to
 incompatibilities between X servers with no way for clients to detect
 implementation differences.
     </para>
@@ -60,7 +63,7 @@ incompatibilities between system wide and X library capitalization behavior.
 Limited interactions between modifiers specified by the core protocol make many
 common keyboard behaviors difficult or impossible to implement. For example,
 there is no reliable way to indicate whether or not the shift modifier should
-"cancel" the lock modifier.
+<quote>cancel</quote> the lock modifier.
     </para>
   </listitem>
   <listitem>
@@ -105,23 +108,28 @@ server and Xlib versions must be at least X11 R6.
 
 
 <para>
-Figure 1.1 shows the overall structure of the Xkb extension:
+<link linkend="figure1.1">Figure 1.1</link> shows the overall structure of the Xkb extension:
 </para>
 
-<mediaobject>
-  <imageobject>
-    <imagedata format="SVG" fileref="XKBlib-1.svg"/>
-  </imageobject>
-  <caption>Overall Xkb Structure</caption>
-</mediaobject>
+<figure id='figure1.1'>
+  <title>Overall Xkb Structure</title>
+  <mediaobject>
+    <imageobject>
+      <imagedata format="SVG" fileref="XKBlib-1.svg"/>
+    </imageobject>
+  </mediaobject>
+</figure>
 
 
-<para>
+<para id="keyboard_description">
 The server portion of the Xkb extension encompasses a database of named
 keyboard components, in unspecified format, that may be used to configure a
-keyboard. Internally, the server maintains a <emphasis>
-keyboard description</emphasis>
- that includes the keyboard state and configuration (mapping). By "keyboard" we
+keyboard. Internally, the server maintains a
+<firstterm>keyboard description</firstterm>
+<indexterm significance="preferred" zone="keyboard_description">
+<primary>keyboard description</primary></indexterm>
+that includes the keyboard state and configuration (mapping). By
+<quote>keyboard</quote> we
 mean the logical keyboard device, which includes not only the physical keys,
 but also potentially a set of up to 32 indicators (usually LEDs) and bells.
 </para>
@@ -131,12 +139,12 @@ but also potentially a set of up to 32 indicators (usually LEDs) and bells.
 The keyboard description is a composite of several different data structures,
 each of which may be manipulated separately. When manipulating the server
 components, the design allows partial components to be transmitted between the
-server and a client. The individual components are shown in Figure 1.1.
+server and a client. The individual components are shown in <link linkend="figure1.1">Figure 1.1</link>.
 </para>
 
 <variablelist>
   <varlistentry>
-    <term>Client Map</term>
+    <term><link linkend="Xkb_Client_Keyboard_Mapping">Client Map</link></term>
     <listitem>
       <para>
 The key mapping information needed to convert arbitrary keycodes to symbols.
@@ -144,7 +152,7 @@ The key mapping information needed to convert arbitrary keycodes to symbols.
     </listitem>
   </varlistentry>
   <varlistentry>
-    <term>Server Map</term>
+    <term><link linkend="Xkb_Server_Keyboard_Mapping">Server Map</link></term>
     <listitem>
       <para>
 The key mapping information categorizing keys by functionality (which keys are
@@ -153,7 +161,7 @@ modifiers, how keys behave, and so on).
     </listitem>
   </varlistentry>
   <varlistentry>
-    <term>Controls</term>
+    <term><link linkend="Keyboard_Controls">Controls</link></term>
     <listitem>
       <para>
 Client configurable quantities effecting how the keyboard behaves, such as
@@ -162,7 +170,7 @@ repeat behavior and modifications for people with movement impairments.
     </listitem>
   </varlistentry>
   <varlistentry>
-    <term>Indicators</term>
+    <term><link linkend="Indicators">Indicators</link></term>
     <listitem>
       <para>
 The mapping of behavior to indicators.
@@ -170,7 +178,7 @@ The mapping of behavior to indicators.
     </listitem>
   </varlistentry>
   <varlistentry>
-    <term>Geometry</term>
+    <term><link linkend="Keyboard_Geometry">Geometry</link></term>
     <listitem>
       <para>
 A complete description of the physical keyboard layout, sufficient to draw a
@@ -179,7 +187,7 @@ representation of the keyboard.
     </listitem>
   </varlistentry>
   <varlistentry>
-    <term>Names</term>
+    <term><link linkend="Symbolic_Names">Names</link></term>
     <listitem>
       <para>
 A mapping of names to various aspects of the keyboard such as individual
@@ -188,7 +196,7 @@ virtual modifiers, indicators, and bells.
     </listitem>
   </varlistentry>
   <varlistentry>
-    <term>Compatibility Map</term>
+    <term><link linkend="The_Xkb_Compatibility_Map">Compatibility Map</link></term>
     <listitem>
       <para>
 The definition of how to map core protocol keyboard state to Xkb keyboard state.
@@ -219,7 +227,7 @@ and incremental reconfiguration are both supported.
 
 <para>
 The graphic characters or control functions that may be accessed by one key are
-logically arranged in groups and levels. See section 14.1for a complete
+logically arranged in groups and levels. See <link linkend="Notation_and_Terminology">section 14.1</link> for a complete
 description of groups and levels.
 </para>
 
@@ -229,14 +237,19 @@ description of groups and levels.
 <title>Radio Groups</title>
 
 <para>
-A radio group is a set of keys whose behavior simulates a set of radio buttons.
+<indexterm significance="preferred" zone="Radio_Groups">
+<primary>radio group</primary></indexterm>
+<indexterm significance="preferred" zone="Radio_Groups">
+<primary>group</primary><secondary>radio</secondary></indexterm>
+A <firstterm>radio group</firstterm>
+is a set of keys whose behavior simulates a set of radio buttons.
 Once a key in a radio group is pressed, it stays logically depressed until
 another key in the group is pressed, at which point the previously depressed
 key is logically released. Consequently, at most one key in a radio group can
 be logically depressed at one time. A radio group is defined by a radio group
-index, an optional name, and by assigning each key in the radio group <emphasis>
-XkbKB_RadioGroup</emphasis>
- behavior and the radio group index.
+index, an optional name, and by assigning each key in the radio group
+<symbol>XkbKB_RadioGroup</symbol>
+behavior and the radio group index.
 </para>
 
 </sect2>
@@ -305,12 +318,11 @@ configuration.
 <title>Additional Protocol Errors</title>
 
 <para>
-The Xkb extension adds a single protocol error, <emphasis>
-BadKeyboard</emphasis>
-, to the core protocol error set. See section 2.6 for a discussion of the  <!-- xref -->
-<emphasis>
-BadKeyboard</emphasis>
- protocol error.
+The Xkb extension adds a single protocol error,
+<errorname>BadKeyboard</errorname>,
+to the core protocol error set. See <link linkend="Protocol_Errors">section 2.6</link> for a discussion of the
+<errorname>BadKeyboard</errorname>
+protocol error.
 </para>
 
 
@@ -322,7 +334,7 @@ BadKeyboard</emphasis>
 The X Keyboard Extension replaces the core protocol definition of a keyboard
 with a more comprehensive one. The X Keyboard Extension library interfaces are
 included in Xlib.<footnote><para>
-X11R6.1 is the first release by the X Consortium, Inc.,that includes the X
+X11R6.1 is the first release by the X Consortium, Inc., that includes the X
 Keyboard Extension in Xlib. X11R6 included work in progress on this extension
 as nonstandard additions to the library.
 </para>
@@ -347,21 +359,23 @@ directly manipulate the new capabilities.
 
 <sect2 id='Error_Indications'>
 <title>Error Indications</title>
+<indexterm zone="Error_Indications"><primary>errors</primary></indexterm>
 
 <para>
 Xkb functions that communicate with the X server check to be sure the Xkb
 extension has been properly initialized prior to doing any other operations. If
 the extension has not been properly initialized or the application, library,
 and server versions are incompatible, these functions return an error
-indication as shown in Table 1.1. Because of this test, <emphasis>
-BadAccess</emphasis>
- and <emphasis>
-BadMatch</emphasis>
- (due to incompatible versions) protocol errors should normally not be
+indication as shown in <link linkend="table1.1">Table 1.1</link>.
+Because of this test,
+<errorname>BadAccess</errorname>
+and
+<errorname>BadMatch</errorname>
+(due to incompatible versions) protocol errors should normally not be
 generated.
 </para>
 
-<table frame='topbot'>
+<table id='table1.1' frame='topbot'>
 <!-- <caption>Function Error Returns Due to Extension Problems</caption> -->
 <title>Function Error Returns Due to Extension Problems</title>
 <?dbfo keep-together="always" ?>
@@ -377,15 +391,15 @@ generated.
 <tbody>
   <row>
     <entry>pointer to a structure</entry>
-    <entry>NULL</entry>
+    <entry><symbol>NULL</symbol></entry>
   </row>
   <row>
     <entry>Bool</entry>
-    <entry>False</entry>
+    <entry><symbol>False</symbol></entry>
   </row>
   <row>
     <entry>Status</entry>
-    <entry>BadAccess</entry>
+    <entry><errorname>BadAccess</errorname></entry>
   </row>
 </tbody>
 </tgroup>
@@ -398,7 +412,8 @@ applications may never actually need to communicate with the server; they
 simply use the Xkb library capabilities. The functions that do not communicate
 with the server return either a pointer to a structure, a Bool, or a Status.
 These functions check that the application has queried the Xkb library version
-and return the values shown in Table 1.1 if it has not.
+and return the values shown in <link linkend="table1.1">Table 1.1</link>
+if it has not.
 </para>
 </sect2>
 </sect1>

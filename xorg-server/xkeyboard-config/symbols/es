@@ -86,8 +86,8 @@ xkb_symbols "dvorak" {
     key <AE11> {[ apostrophe, question, dead_macron, dead_ogonek	]};
     key <AE12> {[ exclamdown, questiondown, dead_breve, dead_abovedot	]};
 
-    key <AD01> {[     period, colon, less				]};
-    key <AD02> {[      comma, semicolon, greater			]};
+    key <AD01> {[     period, colon, less, guillemotleft                ]};
+    key <AD02> {[      comma, semicolon, greater, guillemotright        ]};
     key <AD03> {[     ntilde, Ntilde, lstroke, Lstroke			]};
     key <AD04> {[          p, P, paragraph				]};
     key <AD05> {[          y, Y, yen					]};
