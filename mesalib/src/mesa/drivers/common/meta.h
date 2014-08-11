@@ -440,6 +440,14 @@ _mesa_meta_and_swrast_BlitFramebuffer(struct gl_context *ctx,
                                       GLint dstX1, GLint dstY1,
                                       GLbitfield mask, GLenum filter);
 
+bool
+_mesa_meta_CopyImageSubData_uncompressed(struct gl_context *ctx,
+                                         struct gl_texture_image *src_tex_image,
+                                         int src_x, int src_y, int src_z,
+                                         struct gl_texture_image *dst_tex_image,
+                                         int dst_x, int dst_y, int dst_z,
+                                         int src_width, int src_height);
+
 extern void
 _mesa_meta_Clear(struct gl_context *ctx, GLbitfield buffers);
 
@@ -570,7 +578,7 @@ void
 _mesa_meta_glsl_generate_mipmap_cleanup(struct gen_mipmap_state *mipmap);
 
 void
-_mesa_meta_bind_fbo_image(GLenum attachment,
+_mesa_meta_bind_fbo_image(GLenum target, GLenum attachment,
                           struct gl_texture_image *texImage, GLuint layer);
 
 #endif /* META_H */

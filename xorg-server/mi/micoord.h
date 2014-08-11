@@ -32,27 +32,7 @@
 
 /* Macros which handle a coordinate in a single register */
 
-/*
- * Most compilers will convert divisions by 65536 into shifts, if signed
- * shifts exist.  If your machine does arithmetic shifts and your compiler
- * can't get it right, add to this line.
- */
-
-/*
- * mips compiler - what a joke - it CSEs the 65536 constant into a reg
- * forcing as to use div instead of shift.  Let's be explicit.
- */
-
-#if defined(mips) || \
-    defined(sparc) || defined(__sparc64__) || \
-    defined(__alpha) || defined(__alpha__) || \
-    defined(__i386__) || defined(__i386) || defined(__ia64__) || \
-    defined(__s390x__) || defined(__s390__) || \
-    defined(__amd64__) || defined(amd64) || defined(__amd64)
 #define GetHighWord(x) (((int) (x)) >> 16)
-#else
-#define GetHighWord(x) (((int) (x)) / 65536)
-#endif
 
 #if IMAGE_BYTE_ORDER == MSBFirst
 #define intToCoord(i,x,y)   (((x) = GetHighWord(i)), ((y) = (int) ((short) (i))))

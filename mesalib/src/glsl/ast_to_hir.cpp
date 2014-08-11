@@ -4110,12 +4110,27 @@ ast_function::hir(exec_list *instructions,
                        name);
    }
 
+   /* Create an ir_function if one doesn't already exist. */
+   f = state->symbols->get_function(name);
+   if (f == NULL) {
+      f = new(ctx) ir_function(name);
+      if (!state->symbols->add_function(f)) {
+         /* This function name shadows a non-function use of the same name. */
+         YYLTYPE loc = this->get_location();
+
+         _mesa_glsl_error(&loc, state, "function name `%s' conflicts with "
+                          "non-function", name);
+         return NULL;
+      }
+
+      emit_function(state, f);
+   }
+
    /* Verify that this function's signature either doesn't match a previously
     * seen signature for a function with the same name, or, if a match is found,
     * that the previously seen signature does not have an associated definition.
     */
-   f = state->symbols->get_function(name);
-   if (f != NULL && (state->es_shader || f->has_user_signature())) {
+   if (state->es_shader || f->has_user_signature()) {
       sig = f->exact_matching_signature(state, &hir_parameters);
       if (sig != NULL) {
          const char *badvar = sig->qualifiers_match(&hir_parameters);
@@ -4146,18 +4161,6 @@ ast_function::hir(exec_list *instructions,
             }
          }
       }
-   } else {
-      f = new(ctx) ir_function(name);
-      if (!state->symbols->add_function(f)) {
-         /* This function name shadows a non-function use of the same name. */
-         YYLTYPE loc = this->get_location();
-
-         _mesa_glsl_error(&loc, state, "function name `%s' conflicts with "
-                          "non-function", name);
-         return NULL;
-      }
-
-      emit_function(state, f);
    }
 
    /* Verify the return type of main() */
@@ -4597,12 +4600,6 @@ ast_case_statement_list::hir(exec_list *instructions,
     */
    if (!default_case.is_empty()) {
 
-      /* Default case was the last one, no checks required. */
-      if (after_default.is_empty()) {
-         instructions->append_list(&default_case);
-         return NULL;
-      }
-
       ir_rvalue *const true_val = new (state) ir_constant(true);
       ir_dereference_variable *deref_run_default_var =
          new(state) ir_dereference_variable(state->switch_state.run_default);
@@ -4613,6 +4610,12 @@ ast_case_statement_list::hir(exec_list *instructions,
       ir_assignment *const init_var =
          new(state) ir_assignment(deref_run_default_var, true_val);
       instructions->push_tail(init_var);
+
+      /* Default case was the last one, no checks required. */
+      if (after_default.is_empty()) {
+         instructions->append_list(&default_case);
+         return NULL;
+      }
 
       foreach_in_list(ir_instruction, ir, &after_default) {
          ir_assignment *assign = ir->as_assignment();
@@ -5072,7 +5075,7 @@ ast_process_structure_or_interface_block(exec_list *instructions,
                                          YYLTYPE &loc,
                                          glsl_struct_field **fields_ret,
                                          bool is_interface,
-                                         bool block_row_major,
+                                         enum glsl_matrix_layout matrix_layout,
                                          bool allow_reserved_names,
                                          ir_variable_mode var_mode)
 {
@@ -5203,13 +5206,29 @@ ast_process_structure_or_interface_block(exec_list *instructions,
                              "in uniform blocks or structures.");
          }
 
-         if (field_type->is_matrix() ||
-             (field_type->is_array() && field_type->fields.array->is_matrix())) {
-            fields[i].row_major = block_row_major;
+         /* Propogate row- / column-major information down the fields of the
+          * structure or interface block.  Structures need this data because
+          * the structure may contain a structure that contains ... a matrix
+          * that need the proper layout.
+          */
+         if (field_type->without_array()->is_matrix()
+             || field_type->without_array()->is_record()) {
+            /* If no layout is specified for the field, inherit the layout
+             * from the block.
+             */
+            fields[i].matrix_layout = matrix_layout;
+
             if (qual->flags.q.row_major)
-               fields[i].row_major = true;
+               fields[i].matrix_layout = GLSL_MATRIX_LAYOUT_ROW_MAJOR;
             else if (qual->flags.q.column_major)
-               fields[i].row_major = false;
+               fields[i].matrix_layout = GLSL_MATRIX_LAYOUT_COLUMN_MAJOR;
+
+            /* If we're processing an interface block, the matrix layout must
+             * be decided by this point.
+             */
+            assert(!is_interface
+                   || fields[i].matrix_layout == GLSL_MATRIX_LAYOUT_ROW_MAJOR
+                   || fields[i].matrix_layout == GLSL_MATRIX_LAYOUT_COLUMN_MAJOR);
          }
 
          i++;
@@ -5264,7 +5283,7 @@ ast_struct_specifier::hir(exec_list *instructions,
                                                loc,
                                                &fields,
                                                false,
-                                               false,
+                                               GLSL_MATRIX_LAYOUT_INHERITED,
                                                false /* allow_reserved_names */,
                                                ir_var_auto);
 
@@ -5364,8 +5383,13 @@ ast_interface_block::hir(exec_list *instructions,
       assert(!"interface block layout qualifier not found!");
    }
 
+   enum glsl_matrix_layout matrix_layout = GLSL_MATRIX_LAYOUT_INHERITED;
+   if (this->layout.flags.q.row_major)
+      matrix_layout = GLSL_MATRIX_LAYOUT_ROW_MAJOR;
+   else if (this->layout.flags.q.column_major)
+      matrix_layout = GLSL_MATRIX_LAYOUT_COLUMN_MAJOR;
+
    bool redeclaring_per_vertex = strcmp(this->block_name, "gl_PerVertex") == 0;
-   bool block_row_major = this->layout.flags.q.row_major;
    exec_list declared_variables;
    glsl_struct_field *fields;
 
@@ -5381,7 +5405,7 @@ ast_interface_block::hir(exec_list *instructions,
                                                loc,
                                                &fields,
                                                true,
-                                               block_row_major,
+                                               matrix_layout,
                                                redeclaring_per_vertex,
                                                var_mode);
 
@@ -5589,6 +5613,9 @@ ast_interface_block::hir(exec_list *instructions,
                                       var_mode);
       }
 
+      var->data.matrix_layout = matrix_layout == GLSL_MATRIX_LAYOUT_INHERITED
+         ? GLSL_MATRIX_LAYOUT_COLUMN_MAJOR : matrix_layout;
+
       if (state->stage == MESA_SHADER_GEOMETRY && var_mode == ir_var_shader_in)
          handle_geometry_shader_input_decl(state, loc, var);
 
@@ -5628,6 +5655,13 @@ ast_interface_block::hir(exec_list *instructions,
          var->data.centroid = fields[i].centroid;
          var->data.sample = fields[i].sample;
          var->init_interface_type(block_type);
+
+         if (fields[i].matrix_layout == GLSL_MATRIX_LAYOUT_INHERITED) {
+            var->data.matrix_layout = matrix_layout == GLSL_MATRIX_LAYOUT_INHERITED
+               ? GLSL_MATRIX_LAYOUT_COLUMN_MAJOR : matrix_layout;
+         } else {
+            var->data.matrix_layout = fields[i].matrix_layout;
+         }
 
          if (fields[i].stream != -1 &&
              ((unsigned)fields[i].stream) != this->layout.stream) {

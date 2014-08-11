@@ -35,7 +35,6 @@
 
 #include "xf86.h"
 #include "xf86DDC.h"
-#include "fb.h"
 #include "windowstr.h"
 #include "xf86Crtc.h"
 #include "xf86Modes.h"
@@ -310,6 +309,8 @@ xf86RotateCloseScreen(ScreenPtr screen)
     xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(scrn);
     int c;
 
+    /* This has already been destroyed when the root window was destroyed */
+    xf86_config->rotation_damage = NULL;
     for (c = 0; c < xf86_config->num_crtc; c++)
         xf86RotateDestroy(xf86_config->crtc[c]);
 }

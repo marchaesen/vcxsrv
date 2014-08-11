@@ -506,11 +506,11 @@ event.
     <doc>
       <brief>the pointer is in a different window</brief>
       <field name="event"><![CDATA[
-The reconfigured window or its parent, depending on whether `StructureNotify`
-or `SubstructureNotify` was selected.
+The window on which the event was generated.
       ]]></field>
-      <field name="window"><![CDATA[
-The window that was unmapped.
+      <field name="child"><![CDATA[
+If the `event` window has subwindows and the final pointer position is in one
+of them, then `child` is set to that subwindow, `XCB_WINDOW_NONE` otherwise.
       ]]></field>
       <field name="root"><![CDATA[
 The root window for the final cursor position.

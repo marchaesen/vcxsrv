@@ -914,6 +914,7 @@ authorization from the authors.
         <field type="CARD16" name="len" />
         <field type="CARD8"  name="first_valuator" />
         <field type="CARD8"  name="num_valuators" />
+        <pad bytes="2" />
         <list type="CARD32"  name="resolution_values">
             <fieldref>num_valuators</fieldref>
         </list>
@@ -1229,6 +1230,7 @@ authorization from the authors.
 
     <request name="XIChangeHierarchy" opcode="43">
         <field type="CARD8" name="num_changes" />
+        <pad bytes="3" />
         <list type="HierarchyChange" name="changes">
             <fieldref>num_changes</fieldref>
         </list>

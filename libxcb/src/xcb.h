@@ -397,7 +397,7 @@ void xcb_discard_reply(xcb_connection_t *c, unsigned int sequence);
  * The result must not be freed. This storage is managed by the cache
  * itself.
  */
-const xcb_query_extension_reply_t *xcb_get_extension_data(xcb_connection_t *c, xcb_extension_t *ext);
+const struct xcb_query_extension_reply_t *xcb_get_extension_data(xcb_connection_t *c, xcb_extension_t *ext);
 
 /**
  * @brief Prefetch of extension data into the extension cache
@@ -433,7 +433,7 @@ void xcb_prefetch_extension_data(xcb_connection_t *c, xcb_extension_t *ext);
  *
  * The result must not be freed.
  */
-const xcb_setup_t *xcb_get_setup(xcb_connection_t *c);
+const struct xcb_setup_t *xcb_get_setup(xcb_connection_t *c);
 
 /**
  * @brief Access the file descriptor of the connection.

@@ -28,10 +28,11 @@
 #ifndef _HASH_TABLE_H
 #define _HASH_TABLE_H
 
+#include <stdlib.h>
 #include <inttypes.h>
 #include <stdbool.h>
-
-#include "compiler.h"
+#include "c99_compat.h"
+#include "macros.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -27,7 +27,6 @@
 #define XWAYLAND_H
 
 #include <dix-config.h>
-#include <xorg-server.h>
 
 #include <stdio.h>
 #include <unistd.h>

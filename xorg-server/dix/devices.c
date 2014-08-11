@@ -2257,7 +2257,7 @@ ProcBell(ClientPtr client)
     for (dev = inputInfo.devices; dev; dev = dev->next) {
         if ((dev == keybd ||
              (!IsMaster(dev) && GetMaster(dev, MASTER_KEYBOARD) == keybd)) &&
-            dev->kbdfeed && dev->kbdfeed->BellProc) {
+            ((dev->kbdfeed && dev->kbdfeed->BellProc) || dev->xkb_interest)) {
 
             rc = XaceHook(XACE_DEVICE_ACCESS, client, dev, DixBellAccess);
             if (rc != Success)

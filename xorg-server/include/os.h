@@ -67,15 +67,11 @@ SOFTWARE.
 typedef struct _FontPathRec *FontPathPtr;
 typedef struct _NewClientRec *NewClientPtr;
 
-#ifndef xalloc
+#ifndef xnfalloc
 #define xnfalloc(size) XNFalloc((unsigned long)(size))
 #define xnfcalloc(_num, _size) XNFcalloc((unsigned long)(_num)*(unsigned long)(_size))
 #define xnfrealloc(ptr, size) XNFrealloc((void *)(ptr), (unsigned long)(size))
 
-#define xalloc(size) Xalloc((unsigned long)(size))
-#define xcalloc(_num, _size) Xcalloc((unsigned long)(_num)*(unsigned long)(_size))
-#define xrealloc(ptr, size) Xrealloc((void *)(ptr), (unsigned long)(size))
-#define xfree(ptr) Xfree((void *)(ptr))
 #define xstrdup(s) Xstrdup(s)
 #define xnfstrdup(s) XNFstrdup(s)
 #endif
@@ -213,37 +209,6 @@ extern _X_EXPORT void ProcessCommandLine(int /*argc */ , char * /*argv */ []);
 extern _X_EXPORT int set_font_authorizations(char **authorizations,
                                              int *authlen,
                                              void *client);
-
-#ifndef _HAVE_XALLOC_DECLS
-#define _HAVE_XALLOC_DECLS
-
-/*
- * Use malloc(3) instead.
- */
-extern _X_EXPORT void *
-Xalloc(unsigned long /*amount */ ) _X_DEPRECATED;
-
-/*
- * Use calloc(3) instead
- */
-extern _X_EXPORT void *
-Xcalloc(unsigned long /*amount */ ) _X_DEPRECATED;
-
-/*
- * Use realloc(3) instead
- */
-extern _X_EXPORT void *
-Xrealloc(void * /*ptr */ , unsigned long /*amount */ )
- _X_DEPRECATED;
-
-/*
- * Use free(3) instead
- */
-extern _X_EXPORT void
-Xfree(void * /*ptr */ )
-    _X_DEPRECATED;
-
-#endif
 
 /*
  * This function malloc(3)s buffer, terminating the server if there is not
@@ -414,9 +379,6 @@ typedef struct sockaddr *sockaddrPtr;
 
 extern _X_EXPORT int
 InvalidHost(sockaddrPtr /*saddr */ , int /*len */ , ClientPtr client);
-
-extern _X_EXPORT int
-LocalClientCred(ClientPtr, int *, int *);
 
 #define LCC_UID_SET	(1 << 0)
 #define LCC_GID_SET	(1 << 1)

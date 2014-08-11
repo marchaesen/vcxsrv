@@ -1217,11 +1217,9 @@ library is contained in dix/dixfonts.c
 <section>
   <title>Memory Management</title>
 <para>
-Memory management is based on functions in the C runtime library.
-Xalloc(), Xrealloc(), and Xfree() are deprecated aliases for malloc(),
+Memory management is based on functions in the C runtime library, malloc(),
 realloc(), and free(), and you should simply call the C library functions
-directly.  Consult a C runtime library reference
-manual for more details.
+directly.  Consult a C runtime library reference manual for more details.
 </para>
 <para>
 Treat memory allocation carefully in your implementation.  Memory

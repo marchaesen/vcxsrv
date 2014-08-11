@@ -131,7 +131,7 @@ FcAtomicLock (FcAtomic *atomic)
 	return FcFalse;
     }
     ret = link ((char *) atomic->tmp, (char *) atomic->lck);
-    if (ret < 0 && errno == EPERM)
+    if (ret < 0 && (errno == EPERM || errno == ENOTSUP))
     {
 	/* the filesystem where atomic->lck points to may not supports
 	 * the hard link. so better try to fallback

@@ -65,7 +65,6 @@
 #include "loaderProcs.h"
 #include "xf86.h"
 #include "xf86Priv.h"
-#include "compiler.h"
 
 #ifdef HAVE_DLFCN_H
 

@@ -4543,31 +4543,6 @@ as follows:
 
 	      <variablelist>
 		<varlistentry>
-		  <term><constant>VIDEO_NO_CLIPPING</constant></term>
-		  <listitem><para>
-	   This indicates that the video adaptor does not support
-	   clipping.  The driver will never receive <quote>Put</quote> requests
-	   where less than the entire area determined by
-	   <parameter>drw_x</parameter>, <parameter>drw_y</parameter>,
-	   <parameter>drw_w</parameter> and <parameter>drw_h</parameter> is visible.
-	   This flag does not apply to <quote>Get</quote> requests.  Hardware
-	   that is incapable of clipping <quote>Gets</quote> may punt or get
-	   the extents of the clipping region passed to it.
-		    </para></listitem>
-
-		</varlistentry>
-
-		<varlistentry>
-		  <term><constant>VIDEO_INVERT_CLIPLIST</constant></term>
-		  <listitem><para>
-	   This indicates that the video driver requires the clip
-	   list to contain the regions which are obscured rather
-	   than the regions which are are visible.
-		    </para></listitem>
-
-		</varlistentry>
-
-		<varlistentry>
 		  <term><constant>VIDEO_OVERLAID_STILLS</constant></term>
 		  <listitem><para>
 	   Implementing PutStill for hardware that does video as an
@@ -4724,18 +4699,13 @@ as follows:
 	    </para>
 
 	    <para>
-	If the <constant>VIDEO_NO_CLIPPING</constant>
-	flag is set, the <literal remap="tt">clipBoxes</literal> may be ignored by
-	the driver.  <literal remap="tt">ClipBoxes</literal> is an <literal remap="tt">X-Y</literal>
+	<literal remap="tt">ClipBoxes</literal> is an <literal remap="tt">X-Y</literal>
 	banded region identical to those used throughout the server.
 	The clipBoxes represent the visible portions of the area determined
 	by <literal remap="tt">drw_x</literal>, <literal remap="tt">drw_y</literal>,
 	<literal remap="tt">drw_w</literal> and <literal remap="tt">drw_h</literal> in the Get/Put
 	function.  The boxes are in screen coordinates, are guaranteed
 	not to overlap and an empty region will never be passed.
-	If the driver has specified <constant>VIDEO_INVERT_CLIPLIST</constant>,
-	<literal remap="tt">clipBoxes</literal> will indicate the areas of the primitive
-	which are obscured rather than the areas visible.
 
 	    </para></listitem></varlistentry>
       </variablelist>
@@ -9094,8 +9064,7 @@ ZZZScreenInit(ScreenPtr pScreen, int argc, char **argv)
     xf86SetBlackWhitePixels(pScreen);
 
     /*
-     * Install colourmap functions.  If using the vgahw module,
-     * vgaHandleColormaps would usually be called here.
+     * Install colourmap functions.
      */
 
     ...

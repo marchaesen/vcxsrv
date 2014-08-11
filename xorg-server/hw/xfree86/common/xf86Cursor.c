@@ -37,8 +37,6 @@
 #include "scrnintstr.h"
 #include "globals.h"
 
-#include "compiler.h"
-
 #include "xf86.h"
 #include "xf86Priv.h"
 #include "xf86_OSproc.h"
@@ -75,8 +73,6 @@ static miPointerScreenFuncRec xf86PointerScreenFuncs = {
 };
 
 static xf86ScreenLayoutRec xf86ScreenLayout[MAXSCREENS];
-
-static Bool HardEdges;
 
 /*
  * xf86InitViewport --
@@ -431,16 +427,6 @@ xf86CursorOffScreen(ScreenPtr *pScreen, int *x, int *y)
         }
     }
 
-#if 0
-    /* This presents problems for overlapping screens when
-       HardEdges is used.  Have to think about the logic more */
-    if ((*x < 0) || (*x >= (*pScreen)->width) ||
-        (*y < 0) || (*y >= (*pScreen)->height)) {
-        /* We may have crossed more than one screen */
-        xf86CursorOffScreen(pScreen, x, y);
-    }
-#endif
-
     return TRUE;
 }
 
@@ -583,9 +569,6 @@ xf86InitOrigins(void)
     int i, j, ref, minX, minY, min, max;
     xf86ScreenLayoutPtr pLayout;
     Bool OldStyleConfig = FALSE;
-
-    /* need to have this set up with a config file option */
-    HardEdges = FALSE;
 
     memset(xf86ScreenLayout, 0, MAXSCREENS * sizeof(xf86ScreenLayoutRec));
 
@@ -838,7 +821,7 @@ xf86InitOrigins(void)
         }
     }
 
-    if (!HardEdges && !OldStyleConfig) {
+    if (!OldStyleConfig) {
         for (i = 0; i < xf86NumScreens; i++) {
             pLayout = &xf86ScreenLayout[i];
             pScreen = xf86Screens[i]->pScreen;

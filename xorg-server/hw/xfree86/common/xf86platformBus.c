@@ -348,7 +348,7 @@ static Bool doPlatformProbe(struct xf86_platform_device *dev, DriverPtr drvp,
                             GDevPtr gdev, int flags, intptr_t match_data)
 {
     Bool foundScreen = FALSE;
-    int entity, fd, major, minor;
+    int entity;
 
     if (gdev && gdev->screen == 0 && !xf86_check_platform_slot(dev))
         return FALSE;
@@ -374,10 +374,7 @@ static Bool doPlatformProbe(struct xf86_platform_device *dev, DriverPtr drvp,
     if (entity != -1) {
         if ((dev->flags & XF86_PDEV_SERVER_FD) && (!drvp->driverFunc ||
                 !drvp->driverFunc(NULL, SUPPORTS_SERVER_FDS, NULL))) {
-            fd = dev->attribs->fd;
-            major = dev->attribs->major;
-            minor = dev->attribs->minor;
-            systemd_logind_release_fd(major, minor, fd);
+            systemd_logind_release_fd(dev->attribs->major, dev->attribs->minor, dev->attribs->fd);
             dev->attribs->fd = -1;
             dev->flags &= ~XF86_PDEV_SERVER_FD;
         }

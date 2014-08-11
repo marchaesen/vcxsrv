@@ -35,7 +35,6 @@
 #include "micmap.h"
 
 #include "xf86.h"
-#include "compiler.h"
 #include "colormapst.h"
 #include "xf86RamDacPriv.h"
 

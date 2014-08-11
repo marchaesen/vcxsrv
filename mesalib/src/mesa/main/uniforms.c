@@ -932,7 +932,8 @@ _mesa_GetUniformLocation(GLuint programObj, const GLcharARB *name)
        shProg->UniformStorage[index].atomic_buffer_index != -1)
       return -1;
 
-   return _mesa_uniform_merge_location_offset(shProg, index, offset);
+   /* location in remap table + array element offset */
+   return shProg->UniformStorage[index].remap_location + offset;
 }
 
 GLuint GLAPIENTRY
@@ -1089,18 +1090,38 @@ _mesa_GetActiveUniformBlockiv(GLuint program,
       params[0] = strlen(block->Name) + 1;
       return;
 
-   case GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS:
-      params[0] = block->NumUniforms;
-      return;
+   case GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS: {
+      unsigned count = 0;
 
-   case GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES:
       for (i = 0; i < block->NumUniforms; i++) {
 	 unsigned offset;
-	 params[i] = _mesa_get_uniform_location(ctx, shProg,
-						block->Uniforms[i].IndexName,
-						&offset);
+         const int idx =
+            _mesa_get_uniform_location(ctx, shProg,
+                                       block->Uniforms[i].IndexName,
+                                       &offset);
+         if (idx != -1)
+            count++;
+      }
+
+      params[0] = count;
+      return;
+   }
+
+   case GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES: {
+      unsigned count = 0;
+
+      for (i = 0; i < block->NumUniforms; i++) {
+	 unsigned offset;
+         const int idx =
+            _mesa_get_uniform_location(ctx, shProg,
+                                       block->Uniforms[i].IndexName,
+                                       &offset);
+
+         if (idx != -1)
+            params[count++] = idx;
       }
       return;
+   }
 
    case GL_UNIFORM_BLOCK_REFERENCED_BY_VERTEX_SHADER:
       params[0] = shProg->UniformBlockStageIndex[MESA_SHADER_VERTEX][uniformBlockIndex] != -1;

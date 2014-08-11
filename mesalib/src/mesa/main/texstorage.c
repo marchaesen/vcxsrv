@@ -41,6 +41,7 @@
 #include "texstorage.h"
 #include "textureview.h"
 #include "mtypes.h"
+#include "glformats.h"
 
 
 
@@ -53,6 +54,13 @@
 static GLboolean
 legal_texobj_target(struct gl_context *ctx, GLuint dims, GLenum target)
 {
+   if (_mesa_is_gles3(ctx)
+       && target != GL_TEXTURE_2D
+       && target != GL_TEXTURE_CUBE_MAP
+       && target != GL_TEXTURE_3D
+       && target != GL_TEXTURE_2D_ARRAY)
+      return GL_FALSE;
+
    switch (dims) {
    case 1:
       switch (target) {
@@ -292,6 +300,23 @@ tex_storage_error_check(struct gl_context *ctx, GLuint dims, GLenum target,
                   "glTexStorage%uD(illegal target=%s)",
                   dims, _mesa_lookup_enum_by_nr(target));
       return GL_TRUE;
+   }
+
+   /* From section 3.8.6, page 146 of OpenGL ES 3.0 spec:
+    *
+    *    "The ETC2/EAC texture compression algorithm supports only
+    *     two-dimensional images. If internalformat is an ETC2/EAC format,
+    *     CompressedTexImage3D will generate an INVALID_OPERATION error if
+    *     target is not TEXTURE_2D_ARRAY."
+    *
+    * This should also be applicable for glTexStorage3D().
+    */
+   if (_mesa_is_compressed_format(ctx, internalformat)
+       && !_mesa_target_can_be_compressed(ctx, target, internalformat)) {
+      _mesa_error(ctx, _mesa_is_desktop_gl(ctx)?
+                  GL_INVALID_ENUM : GL_INVALID_OPERATION,
+                  "glTexStorage3D(internalformat = %s)",
+                  _mesa_lookup_enum_by_nr(internalformat));
    }
 
    /* levels check */

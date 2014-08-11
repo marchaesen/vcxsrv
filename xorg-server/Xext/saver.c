@@ -467,9 +467,6 @@ CreateSaverWindow(ScreenPtr pScreen)
     WindowPtr pWin;
     int result;
     unsigned long mask;
-    Colormap *installedMaps;
-    int numInstalled;
-    int i;
     Colormap wantMap;
     ColormapPtr pCmap;
 
@@ -545,18 +542,7 @@ CreateSaverWindow(ScreenPtr pScreen)
 
     /* check and install our own colormap if it isn't installed now */
     wantMap = wColormap(pWin);
-    if (wantMap == None)
-        return TRUE;
-    installedMaps = malloc(pScreen->maxInstalledCmaps * sizeof(Colormap));
-    numInstalled = (*pWin->drawable.pScreen->ListInstalledColormaps)
-        (pScreen, installedMaps);
-    for (i = 0; i < numInstalled; i++)
-        if (installedMaps[i] == wantMap)
-            break;
-
-    free((char *) installedMaps);
-
-    if (i < numInstalled)
+    if (wantMap == None || IsMapInstalled(wantMap, pWin))
         return TRUE;
 
     result = dixLookupResourceByType((void **) &pCmap, wantMap, RT_COLORMAP,

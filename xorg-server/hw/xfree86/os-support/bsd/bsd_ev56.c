@@ -26,12 +26,6 @@ int readDense8(void *Base, register unsigned long Offset);
 int readDense16(void *Base, register unsigned long Offset);
 int readDense32(void *Base, register unsigned long Offset);
 void
- writeDenseNB8(int Value, void *Base, register unsigned long Offset);
-void
- writeDenseNB16(int Value, void *Base, register unsigned long Offset);
-void
- writeDenseNB32(int Value, void *Base, register unsigned long Offset);
-void
  writeDense8(int Value, void *Base, register unsigned long Offset);
 void
  writeDense16(int Value, void *Base, register unsigned long Offset);
@@ -57,24 +51,6 @@ readDense32(void *Base, register unsigned long Offset)
 {
     mem_barrier();
     return *(volatile CARD32 *) ((unsigned long) Base + (Offset));
-}
-
-void
-writeDenseNB8(int Value, void *Base, register unsigned long Offset)
-{
-    alpha_stb((void *) ((unsigned long) Base + (Offset)), Value);
-}
-
-void
-writeDenseNB16(int Value, void *Base, register unsigned long Offset)
-{
-    alpha_stw((void *) ((unsigned long) Base + (Offset)), Value);
-}
-
-void
-writeDenseNB32(int Value, void *Base, register unsigned long Offset)
-{
-    *(volatile CARD32 *) ((unsigned long) Base + (Offset)) = Value;
 }
 
 void

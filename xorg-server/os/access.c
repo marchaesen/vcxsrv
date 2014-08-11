@@ -1008,33 +1008,6 @@ ComputeLocalClient(ClientPtr client)
 }
 
 /*
- * Return the uid and gid of a connected local client
- * 
- * Used by XShm to test access rights to shared memory segments
- */
-int
-LocalClientCred(ClientPtr client, int *pUid, int *pGid)
-{
-    LocalClientCredRec *lcc;
-    int ret = GetLocalClientCreds(client, &lcc);
-
-    if (ret == 0) {
-#ifdef HAVE_GETZONEID           /* only local if in the same zone */
-        if ((lcc->fieldsSet & LCC_ZID_SET) && (lcc->zoneid != getzoneid())) {
-            FreeLocalClientCreds(lcc);
-            return -1;
-        }
-#endif
-        if ((lcc->fieldsSet & LCC_UID_SET) && (pUid != NULL))
-            *pUid = lcc->euid;
-        if ((lcc->fieldsSet & LCC_GID_SET) && (pGid != NULL))
-            *pGid = lcc->egid;
-        FreeLocalClientCreds(lcc);
-    }
-    return ret;
-}
-
-/*
  * Return the uid and all gids of a connected local client
  * Allocates a LocalClientCredRec - caller must call FreeLocalClientCreds
  * 

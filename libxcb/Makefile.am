@@ -97,3 +97,15 @@ tools/api_conv.pl \
 tools/constants \
 autogen.sh \
 $(TESTS)
+
+MAINTAINERCLEANFILES = ChangeLog INSTALL
+
+.PHONY: ChangeLog INSTALL
+
+INSTALL:
+	$(INSTALL_CMD)
+
+ChangeLog:
+	$(CHANGELOG_CMD)
+
+dist-hook: ChangeLog INSTALL

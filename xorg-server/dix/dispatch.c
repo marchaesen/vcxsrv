@@ -3188,13 +3188,11 @@ ProcKillClient(ClientPtr client)
     rc = dixLookupClient(&killclient, stuff->id, client, DixDestroyAccess);
     if (rc == Success) {
         CloseDownClient(killclient);
-        /* if an LBX proxy gets killed, isItTimeToYield will be set */
-        if (isItTimeToYield || (client == killclient)) {
+        if (client == killclient) {
             /* force yield and return Success, so that Dispatch()
              * doesn't try to touch client
              */
             isItTimeToYield = TRUE;
-            return Success;
         }
         return Success;
     }

@@ -364,8 +364,4 @@ struct pcvtid {
 #define XF86_OS_PRIVS
 #include "xf86_OSproc.h"
 
-#ifndef NO_COMPILER_H
-#include "compiler.h"
-#endif
-
 #endif                          /* _XF86_OSLIB_H */

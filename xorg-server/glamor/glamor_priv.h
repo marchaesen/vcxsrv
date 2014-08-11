@@ -29,7 +29,6 @@
 
 #include "dix-config.h"
 
-#include <xorg-server.h>
 #include "glamor.h"
 #include "xvdix.h"
 

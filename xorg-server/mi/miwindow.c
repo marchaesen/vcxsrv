@@ -746,20 +746,6 @@ miMarkUnrealizedWindow(WindowPtr pChild, WindowPtr pWin, Bool fromConfigure)
     }
 }
 
-void
-miSegregateChildren(WindowPtr pWin, RegionPtr pReg, int depth)
-{
-    WindowPtr pChild;
-
-    for (pChild = pWin->firstChild; pChild; pChild = pChild->nextSib) {
-        if (pChild->drawable.depth == depth)
-            RegionUnion(pReg, pReg, &pChild->borderClip);
-
-        if (pChild->firstChild)
-            miSegregateChildren(pChild, pReg, depth);
-    }
-}
-
 WindowPtr
 miSpriteTrace(SpritePtr pSprite, int x, int y)
 {

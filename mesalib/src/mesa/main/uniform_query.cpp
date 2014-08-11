@@ -171,18 +171,17 @@ _mesa_GetActiveUniformsiv(GLuint program,
    _mesa_error(ctx, GL_INVALID_ENUM, "glGetActiveUniformsiv(pname)");
 }
 
-static bool
+static struct gl_uniform_storage *
 validate_uniform_parameters(struct gl_context *ctx,
 			    struct gl_shader_program *shProg,
 			    GLint location, GLsizei count,
-			    unsigned *loc,
 			    unsigned *array_index,
 			    const char *caller,
 			    bool negative_one_is_not_valid)
 {
    if (!shProg || !shProg->LinkStatus) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(program not linked)", caller);
-      return false;
+      return NULL;
    }
 
    if (location == -1) {
@@ -214,7 +213,7 @@ validate_uniform_parameters(struct gl_context *ctx,
 		     caller, location);
       }
 
-      return false;
+      return NULL;
    }
 
    /* From page 12 (page 26 of the PDF) of the OpenGL 2.1 spec:
@@ -224,7 +223,7 @@ validate_uniform_parameters(struct gl_context *ctx,
     */
    if (count < 0) {
       _mesa_error(ctx, GL_INVALID_VALUE, "%s(count < 0)", caller);
-      return false;
+      return NULL;
    }
 
    /* Page 82 (page 96 of the PDF) of the OpenGL 2.1 spec says:
@@ -243,14 +242,14 @@ validate_uniform_parameters(struct gl_context *ctx,
    if (location < -1) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(location=%d)",
                   caller, location);
-      return false;
+      return NULL;
    }
 
    /* Check that the given location is in bounds of uniform remap table. */
    if (location >= (GLint) shProg->NumUniformRemapTable) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(location=%d)",
 		  caller, location);
-      return false;
+      return NULL;
    }
 
    /* If the driver storage pointer in remap table is -1, we ignore silently.
@@ -266,30 +265,33 @@ validate_uniform_parameters(struct gl_context *ctx,
     */
    if (shProg->UniformRemapTable[location] ==
        INACTIVE_UNIFORM_EXPLICIT_LOCATION)
-      return false;
+      return NULL;
 
-   _mesa_uniform_split_location_offset(shProg, location, loc, array_index);
+   struct gl_uniform_storage *const uni = shProg->UniformRemapTable[location];
 
-   if (shProg->UniformStorage[*loc].array_elements == 0 && count > 1) {
+   if (uni->array_elements == 0 && count > 1) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
 		  "%s(count > 1 for non-array, location=%d)",
 		  caller, location);
-      return false;
+      return NULL;
    }
+
+   /* The array index specified by the uniform location is just the uniform
+    * location minus the base location of of the uniform.
+    */
+   *array_index = location - uni->remap_location;
 
    /* If the uniform is an array, check that array_index is in bounds.
     * If not an array, check that array_index is zero.
     * array_index is unsigned so no need to check for less than zero.
     */
-   unsigned limit = shProg->UniformStorage[*loc].array_elements;
-   if (limit == 0)
-      limit = 1;
+   const unsigned limit = MAX2(uni->array_elements, 1);
    if (*array_index >= limit) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(location=%d)",
 		  caller, location);
-      return false;
+      return NULL;
    }
-   return true;
+   return uni;
 }
 
 /**
@@ -302,14 +304,13 @@ _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,
 {
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program, "glGetUniformfv");
-   struct gl_uniform_storage *uni;
-   unsigned loc, offset;
+   unsigned offset;
 
-   if (!validate_uniform_parameters(ctx, shProg, location, 1,
-				    &loc, &offset, "glGetUniform", true))
+   struct gl_uniform_storage *const uni =
+      validate_uniform_parameters(ctx, shProg, location, 1,
+                                  &offset, "glGetUniform", true);
+   if (uni == NULL)
       return;
-
-   uni = &shProg->UniformStorage[loc];
 
    {
       unsigned elements = (uni->type->is_sampler())
@@ -607,17 +608,16 @@ _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
 	      GLint location, GLsizei count,
               const GLvoid *values, GLenum type)
 {
-   unsigned loc, offset;
+   unsigned offset;
    unsigned components;
    unsigned src_components;
    enum glsl_base_type basicType;
-   struct gl_uniform_storage *uni;
 
-   if (!validate_uniform_parameters(ctx, shProg, location, count,
-				    &loc, &offset, "glUniform", false))
+   struct gl_uniform_storage *const uni =
+      validate_uniform_parameters(ctx, shProg, location, count,
+                                  &offset, "glUniform", false);
+   if (uni == NULL)
       return;
-
-   uni = &shProg->UniformStorage[loc];
 
    /* Verify that the types are compatible.
     */
@@ -894,17 +894,17 @@ _mesa_uniform_matrix(struct gl_context *ctx, struct gl_shader_program *shProg,
                      GLint location, GLsizei count,
                      GLboolean transpose, const GLfloat *values)
 {
-   unsigned loc, offset;
+   unsigned offset;
    unsigned vectors;
    unsigned components;
    unsigned elements;
-   struct gl_uniform_storage *uni;
 
-   if (!validate_uniform_parameters(ctx, shProg, location, count,
-				    &loc, &offset, "glUniformMatrix", false))
+   struct gl_uniform_storage *const uni =
+      validate_uniform_parameters(ctx, shProg, location, count,
+                                  &offset, "glUniformMatrix", false);
+   if (uni == NULL)
       return;
 
-   uni = &shProg->UniformStorage[loc];
    if (!uni->type->is_matrix()) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
 		  "glUniformMatrix(non-matrix uniform)");
@@ -993,9 +993,7 @@ _mesa_uniform_matrix(struct gl_context *ctx, struct gl_shader_program *shProg,
  *
  * Returns the uniform index into UniformStorage (also the
  * glGetActiveUniformsiv uniform index), and stores the referenced
- * array offset in *offset, or GL_INVALID_INDEX (-1).  Those two
- * return values can be encoded into a uniform location for
- * glUniform* using _mesa_uniform_merge_location_offset(index, offset).
+ * array offset in *offset, or GL_INVALID_INDEX (-1).
  */
 extern "C" unsigned
 _mesa_get_uniform_location(struct gl_context *ctx,

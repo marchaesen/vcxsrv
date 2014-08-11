@@ -336,6 +336,7 @@ glamor_xv_render(glamor_port_private *port_priv)
                           GL_FALSE, 2 * sizeof(float), vertices);
 
     glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
+    glEnable(GL_SCISSOR_TEST);
     for (i = 0; i < nBox; i++) {
         float off_x = box[i].x1 - port_priv->drw_x;
         float off_y = box[i].y1 - port_priv->drw_y;
@@ -356,23 +357,25 @@ glamor_xv_render(glamor_port_private *port_priv)
 
         glamor_set_normalize_vcoords(pixmap_priv,
                                      dst_xscale, dst_yscale,
-                                     dstx,
+                                     dstx - dstw,
                                      dsty,
                                      dstx + dstw,
-                                     dsty + dsth,
+                                     dsty + dsth * 2,
                                      vertices);
 
         glamor_set_normalize_tcoords(src_pixmap_priv[0],
                                      src_xscale[0],
                                      src_yscale[0],
-                                     srcx,
+                                     srcx - srcw,
                                      srcy,
                                      srcx + srcw,
-                                     srcy + srch,
+                                     srcy + srch * 2,
                                      texcoords);
 
-        glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+        glScissor(dstx, dsty, dstw, dsth);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 3);
     }
+    glDisable(GL_SCISSOR_TEST);
 
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);

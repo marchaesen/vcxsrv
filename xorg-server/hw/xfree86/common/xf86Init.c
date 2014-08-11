@@ -56,8 +56,6 @@
 #include "dbus-core.h"
 #include "systemd-logind.h"
 
-#include "compiler.h"
-
 #include "loaderProcs.h"
 #ifdef XFreeXDGA
 #include "dgaproc.h"

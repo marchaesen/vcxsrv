@@ -53,8 +53,6 @@ typedef void (*ClipNotifyPtr)(WindowPtr, int, int);
 typedef struct {
     WindowExposuresProcPtr WindowExposures;
     CopyWindowProcPtr CopyWindow;
-    ValidateTreeProcPtr ValidateTree;
-    PostValidateTreeProcPtr PostValidateTree;
     ClipNotifyProcPtr ClipNotify;
 } DRIWrappedFuncsRec, *DRIWrappedFuncsPtr;
 
@@ -106,12 +104,6 @@ DRIGetWrappedFuncs(ScreenPtr pScreen);
 
 extern void
 DRICopyWindow(WindowPtr pWin, DDXPointRec ptOldOrg, RegionPtr prgnSrc);
-
-extern int
-DRIValidateTree(WindowPtr pParent, WindowPtr pChild, VTKind kind);
-
-extern void
-DRIPostValidateTree(WindowPtr pParent, WindowPtr pChild, VTKind kind);
 
 extern void
 DRIClipNotify(WindowPtr pWin, int dx, int dy);

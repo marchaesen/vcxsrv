@@ -26,7 +26,7 @@
 #include "linker.h"
 #include "ir_uniform.h"
 #include "link_uniform_block_active_visitor.h"
-#include "main/hash_table.h"
+#include "util/hash_table.h"
 #include "program.h"
 
 namespace {
@@ -68,7 +68,8 @@ private:
    }
 
    virtual void visit_field(const glsl_type *type, const char *name,
-                            bool row_major, const glsl_type *record_type)
+                            bool row_major, const glsl_type *record_type,
+                            bool last_field)
    {
       assert(this->index < this->num_variables);
 
@@ -76,7 +77,7 @@ private:
 
       v->Name = ralloc_strdup(mem_ctx, name);
       v->Type = type;
-      v->RowMajor = row_major;
+      v->RowMajor = type->without_array()->is_matrix() && row_major;
 
       if (this->is_array_instance) {
          v->IndexName = ralloc_strdup(mem_ctx, name);
@@ -103,7 +104,20 @@ private:
 
       this->offset = glsl_align(this->offset, alignment);
       v->Offset = this->offset;
+
+      /* If this is the last field of a structure, apply rule #9.  The
+       * GL_ARB_uniform_buffer_object spec says:
+       *
+       *     "The structure may have padding at the end; the base offset of
+       *     the member following the sub-structure is rounded up to the next
+       *     multiple of the base alignment of the structure."
+       *
+       * last_field won't be set if this is the last field of a UBO that is
+       * not a named instance.
+       */
       this->offset += size;
+      if (last_field)
+         this->offset = glsl_align(this->offset, 16);
 
       /* From the GL_ARB_uniform_buffer_object spec:
        *

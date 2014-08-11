@@ -91,7 +91,11 @@ authorization from the authors.
   <xsd:element name="field" type="var" />
 
   <!-- fd passing parameter -->
-  <xsd:element name="fd" />
+  <xsd:element name="fd">
+    <xsd:complexType>
+      <xsd:attribute name="name" type="xsd:string" use="required" />
+    </xsd:complexType>
+  </xsd:element>
 
   <!-- list replaces ARRAYFIELD, LISTPARAM, and ARRAYREPLY.  The name and type
        are specified as attributes.  The content is an expression giving the
@@ -158,8 +162,8 @@ authorization from the authors.
           <xsd:attribute name="ref" use="required" type="xsd:string" />
         </xsd:complexType>
       </xsd:element>
-      <xsd:element name="value" type="dec-or-hex-integer" />
-      <xsd:element name="bit" type="xsd:integer" />
+      <xsd:element name="value" type="xsd:integer" />
+      <xsd:element name="bit" type="bitType" />
     </xsd:choice>
   </xsd:group>
   
@@ -220,16 +224,12 @@ authorization from the authors.
     <xsd:attribute name="ref" type="xsd:string" use="required" />
   </xsd:complexType>
 
-  <!-- Type for hex integers -->
-  <xsd:simpleType name="hex-integer">
-    <xsd:restriction base="xsd:string">
-      <xsd:pattern value="0x[0-9a-fA-F]+" />
+  <!-- Type for bit values -->
+  <xsd:simpleType name="bitType">
+    <xsd:restriction base="xsd:integer">
+      <xsd:minInclusive value="0" />
+      <xsd:maxExclusive value="32" />
     </xsd:restriction>
-  </xsd:simpleType>
-
-  <!-- Type for integers in either decimal or hex -->
-  <xsd:simpleType name="dec-or-hex-integer">
-    <xsd:union memberTypes="xsd:integer hex-integer" />
   </xsd:simpleType>
 
   <!-- Type for documentation -->
@@ -317,7 +317,7 @@ authorization from the authors.
           <xsd:attribute name="name" type="xsd:string" use="required" />
           <xsd:attribute name="opcode" type="xsd:integer" use="required" />
           <xsd:attribute name="combine-adjacent" type="xsd:boolean"
-                         use="optional"/>
+                         use="optional" default="false" />
         </xsd:complexType>
       </xsd:element>
       <xsd:element name="event">
@@ -328,8 +328,9 @@ authorization from the authors.
                 <xsd:element ref="doc" minOccurs="0" maxOccurs="1" />
               </xsd:sequence>
               <xsd:attribute name="no-sequence-number" type="xsd:boolean"
-                             use="optional" />
-              <xsd:attribute name="xge" type="xsd:boolean" use="optional" />
+                             use="optional" default="false" />
+              <xsd:attribute name="xge" type="xsd:boolean"
+                             use="optional" default="false" />
             </xsd:extension>
           </xsd:complexContent>
         </xsd:complexType>
@@ -359,8 +360,8 @@ authorization from the authors.
             <xsd:element name="item">
               <xsd:complexType>
                 <xsd:choice minOccurs="1" maxOccurs="1">
-                  <xsd:element name="value" type="dec-or-hex-integer" />
-                  <xsd:element name="bit" type="xsd:integer" />
+                  <xsd:element name="value" type="xsd:unsignedInt" />
+                  <xsd:element name="bit" type="bitType" />
                 </xsd:choice>
                 <xsd:attribute name="name" type="xsd:string" use="required" />
               </xsd:complexType>

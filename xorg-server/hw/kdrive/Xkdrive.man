@@ -4,10 +4,6 @@
 .SH NAME
 Xkdrive \- tiny X server
 .SH SYNOPSIS
-.B Xvesa
-.RI [ :display ]
-.RI [ option ...]
-
 .B Xfbdev
 .RI [ :display ]
 .RI [ option ...]
@@ -23,9 +19,6 @@ In addition to the standard options accepted by all X servers (see
 Xserver(1)), all the 
 .B Xkdrive
 servers accept the following options:
-.TP 8
-.B -card \fIpcmcia\fP
-use pcmcia card as additional screen.
 .TP 8
 .B -dumb
 disable hardware acceleration.

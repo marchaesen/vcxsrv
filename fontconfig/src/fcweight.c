@@ -45,15 +45,22 @@ static int lerp(int x, int x1, int x2, int y1, int y2)
 {
   int dx = x2 - x1;
   int dy = y2 - y1;
-  assert (dx > 0 && dy > 0 && x1 <= x && x <= x2);
+  assert (dx > 0 && dy >= 0 && x1 <= x && x <= x2);
   return y1 + (dy*(x-x1) + dx/2) / dx;
 }
 
-FcPublic int
+int
 FcWeightFromOpenType (int ot_weight)
 {
 	int i;
-	if (ot_weight <= 0 || ot_weight > 1000)
+
+	/* Follow WPF Font Selection Model's advice. */
+	if (1 <= ot_weight && ot_weight <= 9)
+	    ot_weight *= 100;
+
+	/* WPF Font Selection Model rejects 1000, we allow it
+	 * because Pango uses that number. */
+	if (ot_weight < 1 || ot_weight > 1000)
 	    return -1;
 
 	for (i = 1; ot_weight > map[i].ot; i++)
@@ -66,7 +73,7 @@ FcWeightFromOpenType (int ot_weight)
 	return lerp (ot_weight, map[i-1].ot, map[i].ot, map[i-1].fc, map[i].fc);
 }
 
-FcPublic int
+int
 FcWeightToOpenType (int fc_weight)
 {
 	int i;

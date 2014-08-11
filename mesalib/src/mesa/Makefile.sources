@@ -3,6 +3,9 @@
 # This file is among different build systems. SRCDIR must be defined with
 # a trailing slash because the Android build system leaves it undefined.
 
+SRCDIR = $(top_srcdir)/src/mesa/
+BUILDDIR = $(top_builddir)/src/mesa/
+
 # this is part of MAIN_FILES
 MAIN_ES_FILES = \
 	$(SRCDIR)main/es1_conversion.c
@@ -28,6 +31,7 @@ MAIN_FILES = \
 	$(SRCDIR)main/condrender.c \
 	$(SRCDIR)main/context.c \
 	$(SRCDIR)main/convolve.c \
+	$(SRCDIR)main/copyimage.c \
 	$(SRCDIR)main/cpuinfo.c \
 	$(SRCDIR)main/debug.c \
 	$(SRCDIR)main/depth.c \
@@ -48,13 +52,13 @@ MAIN_FILES = \
 	$(SRCDIR)main/formats.c \
 	$(SRCDIR)main/format_pack.c \
 	$(SRCDIR)main/format_unpack.c \
+	$(SRCDIR)main/format_utils.c \
 	$(SRCDIR)main/framebuffer.c \
 	$(SRCDIR)main/get.c \
 	$(SRCDIR)main/genmipmap.c \
 	$(SRCDIR)main/getstring.c \
 	$(SRCDIR)main/glformats.c \
 	$(SRCDIR)main/hash.c \
-	$(SRCDIR)main/hash_table.c \
 	$(SRCDIR)main/hint.c \
 	$(SRCDIR)main/histogram.c \
 	$(SRCDIR)main/image.c \
@@ -321,6 +325,7 @@ SPARC_FILES =			\
 COMMON_DRIVER_FILES =			\
 	$(SRCDIR)drivers/common/driverfuncs.c	\
 	$(SRCDIR)drivers/common/meta_blit.c	\
+	$(SRCDIR)drivers/common/meta_copy_image.c	\
 	$(SRCDIR)drivers/common/meta_generate_mipmap.c	\
 	$(SRCDIR)drivers/common/meta.c
 
@@ -349,6 +354,7 @@ MESA_GALLIUM_FILES = \
 
 INCLUDE_DIRS = \
 	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/src \
 	-I$(top_srcdir)/src/glsl \
 	-I$(top_builddir)/src/glsl \
 	-I$(top_srcdir)/src/glsl/glcpp \
