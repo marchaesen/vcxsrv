@@ -37,7 +37,6 @@
 #include "inputstr.h"
 
 typedef struct _xf86RandRInfo {
-    CreateScreenResourcesProcPtr CreateScreenResources;
     CloseScreenProcPtr CloseScreen;
     int virtualX;
     int virtualY;
@@ -336,34 +335,6 @@ xf86RandRSetConfig(ScreenPtr pScreen,
 }
 
 /*
- * Wait until the screen is initialized before whacking the
- * sizes around; otherwise the screen pixmap will be allocated
- * at the current mode size rather than the maximum size
- */
-static Bool
-xf86RandRCreateScreenResources(ScreenPtr pScreen)
-{
-    XF86RandRInfoPtr randrp = XF86RANDRINFO(pScreen);
-
-#if 0
-    ScrnInfoPtr scrp = xf86ScreenToScrn(pScreen);
-    DisplayModePtr mode;
-#endif
-
-    pScreen->CreateScreenResources = randrp->CreateScreenResources;
-    if (!(*pScreen->CreateScreenResources) (pScreen))
-        return FALSE;
-
-#if 0
-    mode = scrp->currentMode;
-    if (mode)
-        xf86RandRSetMode(pScreen, mode, TRUE);
-#endif
-
-    return TRUE;
-}
-
-/*
  * Reset size back to original
  */
 static Bool
@@ -462,9 +433,6 @@ xf86RandRInit(ScreenPtr pScreen)
     randrp->virtualY = scrp->virtualY;
     randrp->mmWidth = pScreen->mmWidth;
     randrp->mmHeight = pScreen->mmHeight;
-
-    randrp->CreateScreenResources = pScreen->CreateScreenResources;
-    pScreen->CreateScreenResources = xf86RandRCreateScreenResources;
 
     randrp->CloseScreen = pScreen->CloseScreen;
     pScreen->CloseScreen = xf86RandRCloseScreen;

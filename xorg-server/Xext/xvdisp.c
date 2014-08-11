@@ -297,9 +297,6 @@ SWriteListImageFormatsReply(ClientPtr client, xvListImageFormatsReply * rep)
   if ((_c)->swapped) SWriteImageFormatInfo(_c, _d); \
   else WriteToClient(_c, sz_xvImageFormatInfo, _d)
 
-#define _AllocatePort(_i,_p) \
-  ((_p)->id != _i) ? (* (_p)->pAdaptor->ddAllocatePort)(_i,_p,&_p) : Success
-
 static int
 ProcXvQueryExtension(ClientPtr client)
 {
@@ -355,8 +352,6 @@ ProcXvQueryAdaptors(ClientPtr client)
 
         return Success;
     }
-
-    (*pxvs->ddQueryAdaptors) (pScreen, &pxvs->pAdaptors, &pxvs->nAdaptors);
 
     rep = (xvQueryAdaptorsReply) {
         .type = X_Reply,
@@ -422,17 +417,11 @@ ProcXvQueryEncodings(ClientPtr client)
     XvPortPtr pPort;
     int ne;
     XvEncodingPtr pe;
-    int status;
 
     REQUEST(xvQueryEncodingsReq);
     REQUEST_SIZE_MATCH(xvQueryEncodingsReq);
 
     VALIDATE_XV_PORT(stuff->port, pPort, DixReadAccess);
-
-    if ((status = _AllocatePort(stuff->port, pPort)) != Success) {
-        client->errorValue = stuff->port;
-        return status;
-    }
 
     rep = (xvQueryEncodingsReply) {
         .type = X_Reply,
@@ -485,11 +474,6 @@ ProcXvPutVideo(ClientPtr client)
     VALIDATE_DRAWABLE_AND_GC(stuff->drawable, pDraw, DixWriteAccess);
     VALIDATE_XV_PORT(stuff->port, pPort, DixReadAccess);
 
-    if ((status = _AllocatePort(stuff->port, pPort)) != Success) {
-        client->errorValue = stuff->port;
-        return status;
-    }
-
     if (!(pPort->pAdaptor->type & XvInputMask) ||
         !(pPort->pAdaptor->type & XvVideoMask)) {
         client->errorValue = stuff->port;
@@ -519,11 +503,6 @@ ProcXvPutStill(ClientPtr client)
 
     VALIDATE_DRAWABLE_AND_GC(stuff->drawable, pDraw, DixWriteAccess);
     VALIDATE_XV_PORT(stuff->port, pPort, DixReadAccess);
-
-    if ((status = _AllocatePort(stuff->port, pPort)) != Success) {
-        client->errorValue = stuff->port;
-        return status;
-    }
 
     if (!(pPort->pAdaptor->type & XvInputMask) ||
         !(pPort->pAdaptor->type & XvStillMask)) {
@@ -555,11 +534,6 @@ ProcXvGetVideo(ClientPtr client)
     VALIDATE_DRAWABLE_AND_GC(stuff->drawable, pDraw, DixReadAccess);
     VALIDATE_XV_PORT(stuff->port, pPort, DixReadAccess);
 
-    if ((status = _AllocatePort(stuff->port, pPort)) != Success) {
-        client->errorValue = stuff->port;
-        return status;
-    }
-
     if (!(pPort->pAdaptor->type & XvOutputMask) ||
         !(pPort->pAdaptor->type & XvVideoMask)) {
         client->errorValue = stuff->port;
@@ -589,11 +563,6 @@ ProcXvGetStill(ClientPtr client)
 
     VALIDATE_DRAWABLE_AND_GC(stuff->drawable, pDraw, DixReadAccess);
     VALIDATE_XV_PORT(stuff->port, pPort, DixReadAccess);
-
-    if ((status = _AllocatePort(stuff->port, pPort)) != Success) {
-        client->errorValue = stuff->port;
-        return status;
-    }
 
     if (!(pPort->pAdaptor->type & XvOutputMask) ||
         !(pPort->pAdaptor->type & XvStillMask)) {
@@ -631,18 +600,12 @@ ProcXvSelectVideoNotify(ClientPtr client)
 static int
 ProcXvSelectPortNotify(ClientPtr client)
 {
-    int status;
     XvPortPtr pPort;
 
     REQUEST(xvSelectPortNotifyReq);
     REQUEST_SIZE_MATCH(xvSelectPortNotifyReq);
 
     VALIDATE_XV_PORT(stuff->port, pPort, DixReadAccess);
-
-    if ((status = _AllocatePort(stuff->port, pPort)) != Success) {
-        client->errorValue = stuff->port;
-        return status;
-    }
 
     return XvdiSelectPortNotify(client, pPort, stuff->onoff);
 }
@@ -658,11 +621,6 @@ ProcXvGrabPort(ClientPtr client)
     REQUEST_SIZE_MATCH(xvGrabPortReq);
 
     VALIDATE_XV_PORT(stuff->port, pPort, DixReadAccess);
-
-    if ((status = _AllocatePort(stuff->port, pPort)) != Success) {
-        client->errorValue = stuff->port;
-        return status;
-    }
 
     status = XvdiGrabPort(client, pPort, stuff->time, &result);
 
@@ -684,7 +642,6 @@ ProcXvGrabPort(ClientPtr client)
 static int
 ProcXvUngrabPort(ClientPtr client)
 {
-    int status;
     XvPortPtr pPort;
 
     REQUEST(xvGrabPortReq);
@@ -692,18 +649,13 @@ ProcXvUngrabPort(ClientPtr client)
 
     VALIDATE_XV_PORT(stuff->port, pPort, DixReadAccess);
 
-    if ((status = _AllocatePort(stuff->port, pPort)) != Success) {
-        client->errorValue = stuff->port;
-        return status;
-    }
-
     return XvdiUngrabPort(client, pPort, stuff->time);
 }
 
 static int
 ProcXvStopVideo(ClientPtr client)
 {
-    int status, ret;
+    int ret;
     DrawablePtr pDraw;
     XvPortPtr pPort;
 
@@ -711,11 +663,6 @@ ProcXvStopVideo(ClientPtr client)
     REQUEST_SIZE_MATCH(xvStopVideoReq);
 
     VALIDATE_XV_PORT(stuff->port, pPort, DixReadAccess);
-
-    if ((status = _AllocatePort(stuff->port, pPort)) != Success) {
-        client->errorValue = stuff->port;
-        return status;
-    }
 
     ret = dixLookupDrawable(&pDraw, stuff->drawable, client, 0, DixWriteAccess);
     if (ret != Success)
@@ -734,11 +681,6 @@ ProcXvSetPortAttribute(ClientPtr client)
     REQUEST_SIZE_MATCH(xvSetPortAttributeReq);
 
     VALIDATE_XV_PORT(stuff->port, pPort, DixSetAttrAccess);
-
-    if ((status = _AllocatePort(stuff->port, pPort)) != Success) {
-        client->errorValue = stuff->port;
-        return status;
-    }
 
     if (!ValidAtom(stuff->attribute)) {
         client->errorValue = stuff->attribute;
@@ -769,11 +711,6 @@ ProcXvGetPortAttribute(ClientPtr client)
 
     VALIDATE_XV_PORT(stuff->port, pPort, DixGetAttrAccess);
 
-    if ((status = _AllocatePort(stuff->port, pPort)) != Success) {
-        client->errorValue = stuff->port;
-        return status;
-    }
-
     if (!ValidAtom(stuff->attribute)) {
         client->errorValue = stuff->attribute;
         return BadAtom;
@@ -800,7 +737,6 @@ ProcXvGetPortAttribute(ClientPtr client)
 static int
 ProcXvQueryBestSize(ClientPtr client)
 {
-    int status;
     unsigned int actual_width, actual_height;
     XvPortPtr pPort;
     xvQueryBestSizeReply rep;
@@ -810,12 +746,7 @@ ProcXvQueryBestSize(ClientPtr client)
 
     VALIDATE_XV_PORT(stuff->port, pPort, DixReadAccess);
 
-    if ((status = _AllocatePort(stuff->port, pPort)) != Success) {
-        client->errorValue = stuff->port;
-        return status;
-    }
-
-    (*pPort->pAdaptor->ddQueryBestSize) (client, pPort, stuff->motion,
+    (*pPort->pAdaptor->ddQueryBestSize) (pPort, stuff->motion,
                                          stuff->vid_w, stuff->vid_h,
                                          stuff->drw_w, stuff->drw_h,
                                          &actual_width, &actual_height);
@@ -836,7 +767,7 @@ ProcXvQueryBestSize(ClientPtr client)
 static int
 ProcXvQueryPortAttributes(ClientPtr client)
 {
-    int status, size, i;
+    int size, i;
     XvPortPtr pPort;
     XvAttributePtr pAtt;
     xvQueryPortAttributesReply rep;
@@ -846,11 +777,6 @@ ProcXvQueryPortAttributes(ClientPtr client)
     REQUEST_SIZE_MATCH(xvQueryPortAttributesReq);
 
     VALIDATE_XV_PORT(stuff->port, pPort, DixGetAttrAccess);
-
-    if ((status = _AllocatePort(stuff->port, pPort)) != Success) {
-        client->errorValue = stuff->port;
-        return status;
-    }
 
     rep = (xvQueryPortAttributesReply) {
         .type = X_Reply,
@@ -902,11 +828,6 @@ ProcXvPutImage(ClientPtr client)
     VALIDATE_DRAWABLE_AND_GC(stuff->drawable, pDraw, DixWriteAccess);
     VALIDATE_XV_PORT(stuff->port, pPort, DixReadAccess);
 
-    if ((status = _AllocatePort(stuff->port, pPort)) != Success) {
-        client->errorValue = stuff->port;
-        return status;
-    }
-
     if (!(pPort->pAdaptor->type & XvImageMask) ||
         !(pPort->pAdaptor->type & XvInputMask)) {
         client->errorValue = stuff->port;
@@ -930,8 +851,7 @@ ProcXvPutImage(ClientPtr client)
 
     width = stuff->width;
     height = stuff->height;
-    size = (*pPort->pAdaptor->ddQueryImageAttributes) (client,
-                                                       pPort, pImage, &width,
+    size = (*pPort->pAdaptor->ddQueryImageAttributes) (pPort, pImage, &width,
                                                        &height, NULL, NULL);
     size += sizeof(xvPutImageReq);
     size = bytes_to_int32(size);
@@ -968,11 +888,6 @@ ProcXvShmPutImage(ClientPtr client)
     VALIDATE_DRAWABLE_AND_GC(stuff->drawable, pDraw, DixWriteAccess);
     VALIDATE_XV_PORT(stuff->port, pPort, DixReadAccess);
 
-    if ((status = _AllocatePort(stuff->port, pPort)) != Success) {
-        client->errorValue = stuff->port;
-        return status;
-    }
-
     if (!(pPort->pAdaptor->type & XvImageMask) ||
         !(pPort->pAdaptor->type & XvInputMask)) {
         client->errorValue = stuff->port;
@@ -1001,8 +916,7 @@ ProcXvShmPutImage(ClientPtr client)
 
     width = stuff->width;
     height = stuff->height;
-    size_needed = (*pPort->pAdaptor->ddQueryImageAttributes) (client,
-                                                              pPort, pImage,
+    size_needed = (*pPort->pAdaptor->ddQueryImageAttributes) (pPort, pImage,
                                                               &width, &height,
                                                               NULL, NULL);
     if ((size_needed + stuff->offset) > shmdesc->size)
@@ -1086,7 +1000,7 @@ ProcXvQueryImageAttributes(ClientPtr client)
     width = stuff->width;
     height = stuff->height;
 
-    size = (*pPort->pAdaptor->ddQueryImageAttributes) (client, pPort, pImage,
+    size = (*pPort->pAdaptor->ddQueryImageAttributes) (pPort, pImage,
                                                        &width, &height, offsets,
                                                        pitches);
 

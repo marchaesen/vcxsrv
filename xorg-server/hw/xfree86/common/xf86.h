@@ -129,14 +129,6 @@ extern _X_EXPORT ScrnInfoPtr xf86ConfigPciEntity(ScrnInfoPtr pScrn,
                                                  EntityProc enter,
                                                  EntityProc leave,
                                                  void *private);
-/* Obsolete! don't use */
-extern _X_EXPORT Bool xf86ConfigActivePciEntity(ScrnInfoPtr pScrn,
-                                                int entityIndex,
-                                                PciChipsets * p_chip,
-                                                void *dummy, EntityProc init,
-                                                EntityProc enter,
-                                                EntityProc leave,
-                                                void *private);
 #else
 #define xf86VGAarbiterInit() do {} while (0)
 #define xf86VGAarbiterFini() do {} while (0)

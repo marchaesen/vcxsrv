@@ -29,7 +29,6 @@
 
 #include "dix-config.h"
 
-#include <xorg-server.h>
 #include <xf86.h>
 #define GLAMOR_FOR_XORG
 #include <xf86Module.h>

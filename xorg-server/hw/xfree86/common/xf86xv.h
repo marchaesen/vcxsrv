@@ -32,8 +32,6 @@
 #include "xvdix.h"
 #include "xf86str.h"
 
-#define VIDEO_NO_CLIPPING			0x00000001
-#define VIDEO_INVERT_CLIPLIST			0x00000002
 #define VIDEO_OVERLAID_IMAGES			0x00000004
 #define VIDEO_OVERLAID_STILLS			0x00000008
 /*

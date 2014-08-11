@@ -1,3 +1,21 @@
+Release 1.11 (2014-08-01)
+=========================
+* Force structures with 64-bit fields to be packed
+* Add support for <pad align="n">
+* Use X.org's build machinery from xorg-macros
+* Fix leak with xcb_disconnect() and connections in an error state
+* Make xcb_disconnect(NULL) safe
+* Use less #include statements in generated code
+* Automatically validate the Requires lines in our .pc.in files
+* Fix a race that resulted in a failed assertion
+* Improve launchd secure socket support
+* Improve API documentation
+* Remove trailing whitespaces
+* c_client.py: prefix all monkey-patched fields with c_
+* c_client.py: make the man page output deterministic
+* c_client.py: remove useless generated comments
+* xcb.h: add 'struct' before xcb_setup_t, xcb_query_extension_reply_t
+
 Release 1.10 (2013-12-22)
 =========================
 * Bump libxcb-xkb SONAME due to ABI break introduced in 1.9.2

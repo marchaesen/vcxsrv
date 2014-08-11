@@ -140,7 +140,7 @@ extern GLfloat _mesa_ubyte_to_float_color_tab[256];
  *** UNCLAMPED_FLOAT_TO_UBYTE: clamp float to [0,1] and map to ubyte in [0,255]
  *** CLAMPED_FLOAT_TO_UBYTE: map float known to be in [0,1] to ubyte in [0,255]
  ***/
-#if defined(USE_IEEE) && !defined(DEBUG)
+#ifndef DEBUG
 /* This function/macro is sensitive to precision.  Test very carefully
  * if you change it!
  */
@@ -818,7 +818,9 @@ DIFFERENT_SIGNS(GLfloat x, GLfloat y)
 #define ENUM_TO_BOOLEAN(E) ((E) ? GL_TRUE : GL_FALSE)
 
 /* Compute the size of an array */
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
+#ifndef ARRAY_SIZE
+#  define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
+#endif
 
 /* Stringify */
 #define STRINGIFY(x) #x

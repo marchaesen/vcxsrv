@@ -45,6 +45,7 @@ present_get_window_priv(WindowPtr window, Bool create)
         return NULL;
     xorg_list_init(&window_priv->vblank);
     xorg_list_init(&window_priv->notifies);
+    window_priv->crtc = PresentCrtcNeverSet;
     dixSetPrivate(&window->devPrivates, &present_window_private_key, window_priv);
     return window_priv;
 }

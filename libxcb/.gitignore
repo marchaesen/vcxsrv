@@ -21,3 +21,5 @@ libtool
 m4/l*.m4
 mkinstalldirs
 stamp-h1
+ChangeLog
+INSTALL

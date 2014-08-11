@@ -20,6 +20,42 @@
 
 #define ALLOC_ENTRIES(x) ((V_RAM / x) - 1)
 
+#include <string.h>             /* needed for memmove */
+
+static __inline__ uint32_t
+ldl_u(uint32_t * p)
+{
+    uint32_t ret;
+
+    memmove(&ret, p, sizeof(*p));
+    return ret;
+}
+
+static __inline__ uint16_t
+ldw_u(uint16_t * p)
+{
+    uint16_t ret;
+
+    memmove(&ret, p, sizeof(*p));
+    return ret;
+}
+
+static __inline__ void
+stl_u(uint32_t val, uint32_t * p)
+{
+    uint32_t tmp = val;
+
+    memmove(p, &tmp, sizeof(*p));
+}
+
+static __inline__ void
+stw_u(uint16_t val, uint16_t * p)
+{
+    uint16_t tmp = val;
+
+    memmove(p, &tmp, sizeof(*p));
+}
+
 static uint8_t read_b(xf86Int10InfoPtr pInt, int addr);
 static uint16_t read_w(xf86Int10InfoPtr pInt, int addr);
 static uint32_t read_l(xf86Int10InfoPtr pInt, int addr);

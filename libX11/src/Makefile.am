@@ -398,7 +398,7 @@ lintlibdir = $(libdir)
 
 lintlib_DATA = $(LINTLIB)
 
-lintlib_src = $(libX11_la_SOURCES) xcms/*.c xkb/*.c
+lintlib_src = $(libX11_la_SOURCES) $(srcdir)/xcms/*.c $(srcdir)/xkb/*.c
 
 CLEANFILES += $(lintlib_DATA)
 

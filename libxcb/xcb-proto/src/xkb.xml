@@ -1204,6 +1204,10 @@ authorization from the authors.
 		<field name="lockGroup" type="BOOL" />
 		<field name="groupLock" type="CARD8" enum="Group" />
 		<field name="affectModLatches" type="CARD8" mask="ModMask" />
+		<pad bytes="1" /> <!-- This pad is a workaround to prevent an API break,
+		                       which the following field (correct fix) would cause.
+		<field name="modLatches" type="CARD8" mask="ModMask" />
+		-->
 		<pad bytes="1" />
 		<field name="latchGroup" type="BOOL" />
 		<field name="groupLatch" type="CARD16" />

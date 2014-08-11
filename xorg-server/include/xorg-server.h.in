@@ -16,6 +16,10 @@
 #ifndef _XORG_SERVER_H_
 #define _XORG_SERVER_H_
 
+#ifdef HAVE_XORG_CONFIG_H
+#error Include xorg-config.h when building the X server
+#endif
+
 /* Support BigRequests extension */
 #undef BIGREQS
 
@@ -226,5 +230,8 @@
 
 /* Ask fontsproto to make font path element names const */
 #define FONT_PATH_ELEMENT_NAME_CONST    1
+
+/* byte order */
+#undef X_BYTE_ORDER
 
 #endif /* _XORG_SERVER_H_ */

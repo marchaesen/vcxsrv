@@ -1192,7 +1192,7 @@ glsl_to_tgsi_visitor::visit(ir_function *ir)
       const ir_function_signature *sig;
       exec_list empty;
 
-      sig = ir->matching_signature(NULL, &empty);
+      sig = ir->matching_signature(NULL, &empty, false);
 
       assert(sig);
 
@@ -1354,7 +1354,7 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
 
    /* Quick peephole: Emit OPCODE_MAD(-a, -b, a) instead of AND(a, NOT(b))
     */
-   if (ir->operation == ir_binop_logic_and) {
+   if (!native_integers && ir->operation == ir_binop_logic_and) {
       if (try_emit_mad_for_and_not(ir, 1))
 	 return;
       if (try_emit_mad_for_and_not(ir, 0))
@@ -1947,16 +1947,16 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
       break;
 
    case ir_binop_ubo_load: {
-      ir_constant *uniform_block = ir->operands[0]->as_constant();
+      ir_constant *const_uniform_block = ir->operands[0]->as_constant();
       ir_constant *const_offset_ir = ir->operands[1]->as_constant();
       unsigned const_offset = const_offset_ir ? const_offset_ir->value.u[0] : 0;
+      unsigned const_block = const_uniform_block ? const_uniform_block->value.u[0] + 1 : 0;
       st_src_reg index_reg = get_temp(glsl_type::uint_type);
       st_src_reg cbuf;
 
       cbuf.type = glsl_type::vec4_type->base_type;
       cbuf.file = PROGRAM_CONSTANT;
       cbuf.index = 0;
-      cbuf.index2D = uniform_block->value.u[0] + 1;
       cbuf.reladdr = NULL;
       cbuf.negate = 0;
       
@@ -1966,7 +1966,6 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
          /* Constant index into constant buffer */
          cbuf.reladdr = NULL;
          cbuf.index = const_offset / 16;
-         cbuf.has_index2 = true;
       }
       else {
          /* Relative/variable index into constant buffer */
@@ -1974,6 +1973,20 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
               st_src_reg_for_int(4));
          cbuf.reladdr = ralloc(mem_ctx, st_src_reg);
          memcpy(cbuf.reladdr, &index_reg, sizeof(index_reg));
+      }
+
+      if (const_uniform_block) {
+         /* Constant constant buffer */
+         cbuf.reladdr2 = NULL;
+         cbuf.index2D = const_block;
+         cbuf.has_index2 = true;
+      }
+      else {
+         /* Relative/variable constant buffer */
+         cbuf.reladdr2 = ralloc(mem_ctx, st_src_reg);
+         cbuf.index2D = 1;
+         memcpy(cbuf.reladdr2, &op[0], sizeof(st_src_reg));
+         cbuf.has_index2 = true;
       }
 
       cbuf.swizzle = swizzle_for_size(ir->type->vector_elements);
@@ -3216,78 +3229,6 @@ count_resources(glsl_to_tgsi_visitor *v, gl_program *prog)
       _mesa_update_shader_textures_used(v->shader_program, prog);
 }
 
-static void
-set_uniform_initializer(struct gl_context *ctx, void *mem_ctx,
-        		struct gl_shader_program *shader_program,
-        		const char *name, const glsl_type *type,
-        		ir_constant *val)
-{
-   if (type->is_record()) {
-      ir_constant *field_constant;
-
-      field_constant = (ir_constant *)val->components.get_head();
-
-      for (unsigned int i = 0; i < type->length; i++) {
-         const glsl_type *field_type = type->fields.structure[i].type;
-         const char *field_name = ralloc_asprintf(mem_ctx, "%s.%s", name,
-        				    type->fields.structure[i].name);
-         set_uniform_initializer(ctx, mem_ctx, shader_program, field_name,
-        			 field_type, field_constant);
-         field_constant = (ir_constant *)field_constant->next;
-      }
-      return;
-   }
-
-   unsigned offset;
-   unsigned index = _mesa_get_uniform_location(ctx, shader_program, name,
-					       &offset);
-   if (offset == GL_INVALID_INDEX) {
-      fail_link(shader_program,
-        	"Couldn't find uniform for initializer %s\n", name);
-      return;
-   }
-   int loc = _mesa_uniform_merge_location_offset(shader_program, index, offset);
-
-   for (unsigned int i = 0; i < (type->is_array() ? type->length : 1); i++) {
-      ir_constant *element;
-      const glsl_type *element_type;
-      if (type->is_array()) {
-         element = val->array_elements[i];
-         element_type = type->fields.array;
-      } else {
-         element = val;
-         element_type = type;
-      }
-
-      void *values;
-
-      if (element_type->base_type == GLSL_TYPE_BOOL) {
-         int *conv = ralloc_array(mem_ctx, int, element_type->components());
-         for (unsigned int j = 0; j < element_type->components(); j++) {
-            conv[j] = element->value.b[j];
-         }
-         values = (void *)conv;
-         element_type = glsl_type::get_instance(GLSL_TYPE_INT,
-        					element_type->vector_elements,
-        					1);
-      } else {
-         values = &element->value;
-      }
-
-      if (element_type->is_matrix()) {
-         _mesa_uniform_matrix(ctx, shader_program,
-        		      element_type->matrix_columns,
-        		      element_type->vector_elements,
-        		      loc, 1, GL_FALSE, (GLfloat *)values);
-      } else {
-         _mesa_uniform(ctx, shader_program, loc, element_type->matrix_columns,
-        	       values, element_type->gl_type);
-      }
-
-      loc++;
-   }
-}
-
 /**
  * Returns the mask of channels (bitmask of WRITEMASK_X,Y,Z,W) which
  * are read from the given src in this instruction
@@ -4225,14 +4166,22 @@ struct st_translate {
 };
 
 /** Map Mesa's SYSTEM_VALUE_x to TGSI_SEMANTIC_x */
-static unsigned mesa_sysval_to_semantic[SYSTEM_VALUE_MAX] = {
-   TGSI_SEMANTIC_FACE,
+const unsigned _mesa_sysval_to_semantic[SYSTEM_VALUE_MAX] = {
+   /* Vertex shader
+    */
    TGSI_SEMANTIC_VERTEXID,
    TGSI_SEMANTIC_INSTANCEID,
+
+   /* Geometry shader
+    */
+   TGSI_SEMANTIC_INVOCATIONID,
+
+   /* Fragment shader
+    */
+   TGSI_SEMANTIC_FACE,
    TGSI_SEMANTIC_SAMPLEID,
    TGSI_SEMANTIC_SAMPLEPOS,
    TGSI_SEMANTIC_SAMPLEMASK,
-   TGSI_SEMANTIC_INVOCATIONID,
 };
 
 /**
@@ -4321,9 +4270,8 @@ dst_register(struct st_translate *t,
       return ureg_dst_undef();
 
    case PROGRAM_TEMPORARY:
-      assert(index >= 0);
-      assert(index < (int) Elements(t->temps));
- 
+      assert(index < Elements(t->temps));
+
       if (ureg_dst_is_undef(t->temps[index]))
          t->temps[index] = ureg_DECL_local_temporary(t->ureg);
 
@@ -4332,8 +4280,7 @@ dst_register(struct st_translate *t,
    case PROGRAM_ARRAY:
       array = index >> 16;
 
-      assert(array >= 0);
-      assert(array < (int) Elements(t->arrays));
+      assert(array < Elements(t->arrays));
 
       if (ureg_dst_is_undef(t->arrays[array]))
          t->arrays[array] = ureg_DECL_array_temporary(
@@ -4367,51 +4314,45 @@ dst_register(struct st_translate *t,
  * Map a glsl_to_tgsi src register to a TGSI ureg_src register.
  */
 static struct ureg_src
-src_register(struct st_translate *t,
-             gl_register_file file,
-             GLint index, GLint index2D)
+src_register(struct st_translate *t, const struct st_src_reg *reg)
 {
-   switch(file) {
+   switch(reg->file) {
    case PROGRAM_UNDEFINED:
       return ureg_src_undef();
 
    case PROGRAM_TEMPORARY:
    case PROGRAM_ARRAY:
-      return ureg_src(dst_register(t, file, index));
+      return ureg_src(dst_register(t, reg->file, reg->index));
 
    case PROGRAM_UNIFORM:
-      assert(index >= 0);
-      return t->constants[index];
+      assert(reg->index >= 0);
+      return t->constants[reg->index];
    case PROGRAM_STATE_VAR:
    case PROGRAM_CONSTANT:       /* ie, immediate */
-      if (index2D) {
-         struct ureg_src src;
-         src = ureg_src_register(TGSI_FILE_CONSTANT, index);
-         src.Dimension = 1;
-         src.DimensionIndex = index2D;
-         return src;
-      } else if (index < 0)
+      if (reg->has_index2)
+         return ureg_src_register(TGSI_FILE_CONSTANT, reg->index);
+      else if (reg->index < 0)
          return ureg_DECL_constant(t->ureg, 0);
       else
-         return t->constants[index];
+         return t->constants[reg->index];
 
    case PROGRAM_IMMEDIATE:
-      return t->immediates[index];
+      return t->immediates[reg->index];
 
    case PROGRAM_INPUT:
-      assert(t->inputMapping[index] < Elements(t->inputs));
-      return t->inputs[t->inputMapping[index]];
+      assert(t->inputMapping[reg->index] < Elements(t->inputs));
+      return t->inputs[t->inputMapping[reg->index]];
 
    case PROGRAM_OUTPUT:
-      assert(t->outputMapping[index] < Elements(t->outputs));
-      return ureg_src(t->outputs[t->outputMapping[index]]); /* not needed? */
+      assert(t->outputMapping[reg->index] < Elements(t->outputs));
+      return ureg_src(t->outputs[t->outputMapping[reg->index]]); /* not needed? */
 
    case PROGRAM_ADDRESS:
-      return ureg_src(t->address[index]);
+      return ureg_src(t->address[reg->index]);
 
    case PROGRAM_SYSTEM_VALUE:
-      assert(index < (int) Elements(t->systemValues));
-      return t->systemValues[index];
+      assert(reg->index < (int) Elements(t->systemValues));
+      return t->systemValues[reg->index];
 
    default:
       assert(!"unknown src register file");
@@ -4472,13 +4413,12 @@ translate_dst(struct st_translate *t,
 static struct ureg_src
 translate_src(struct st_translate *t, const st_src_reg *src_reg)
 {
-   struct ureg_src src = src_register(t, src_reg->file, src_reg->index, src_reg->index2D);
+   struct ureg_src src = src_register(t, src_reg);
 
    if (src_reg->has_index2) {
       /* 2D indexes occur with geometry shader inputs (attrib, vertex)
        * and UBO constant buffers (buffer, position).
        */
-      src = src_register(t, src_reg->file, src_reg->index, src_reg->index2D);
       if (src_reg->reladdr2)
          src = ureg_src_dimension_indirect(src, ureg_src(t->address[1]),
                                            src_reg->index2D);
@@ -4900,6 +4840,21 @@ st_translate_program(
    assert(numInputs <= Elements(t->inputs));
    assert(numOutputs <= Elements(t->outputs));
 
+   assert(_mesa_sysval_to_semantic[SYSTEM_VALUE_FRONT_FACE] ==
+          TGSI_SEMANTIC_FACE);
+   assert(_mesa_sysval_to_semantic[SYSTEM_VALUE_VERTEX_ID] ==
+          TGSI_SEMANTIC_VERTEXID);
+   assert(_mesa_sysval_to_semantic[SYSTEM_VALUE_INSTANCE_ID] ==
+          TGSI_SEMANTIC_INSTANCEID);
+   assert(_mesa_sysval_to_semantic[SYSTEM_VALUE_SAMPLE_ID] ==
+          TGSI_SEMANTIC_SAMPLEID);
+   assert(_mesa_sysval_to_semantic[SYSTEM_VALUE_SAMPLE_POS] ==
+          TGSI_SEMANTIC_SAMPLEPOS);
+   assert(_mesa_sysval_to_semantic[SYSTEM_VALUE_SAMPLE_MASK_IN] ==
+          TGSI_SEMANTIC_SAMPLEMASK);
+   assert(_mesa_sysval_to_semantic[SYSTEM_VALUE_INVOCATION_ID] ==
+          TGSI_SEMANTIC_INVOCATIONID);
+
    t = CALLOC_STRUCT(st_translate);
    if (!t) {
       ret = PIPE_ERROR_OUT_OF_MEMORY;
@@ -5035,7 +4990,7 @@ st_translate_program(
       unsigned numSys = 0;
       for (i = 0; sysInputs; i++) {
          if (sysInputs & (1 << i)) {
-            unsigned semName = mesa_sysval_to_semantic[i];
+            unsigned semName = _mesa_sysval_to_semantic[i];
             t->systemValues[i] = ureg_DECL_system_value(ureg, numSys, semName, 0);
             if (semName == TGSI_SEMANTIC_INSTANCEID ||
                 semName == TGSI_SEMANTIC_VERTEXID) {
@@ -5109,8 +5064,7 @@ st_translate_program(
       unsigned num_ubos = program->shader->NumUniformBlocks;
 
       for (i = 0; i < num_ubos; i++) {
-         unsigned size =
-            program->shader_program->UniformBlocks[i].UniformBufferSize;
+         unsigned size = program->shader->UniformBlocks[i].UniformBufferSize;
          unsigned num_const_vecs = (size + 15) / 16;
          unsigned first, last;
          assert(num_const_vecs > 0);

@@ -49,7 +49,7 @@
 #include "main/viewport.h"
 #include "swrast/swrast.h"
 #include "drivers/common/meta.h"
-#include "../glsl/ralloc.h"
+#include "util/ralloc.h"
 
 /** Return offset in bytes of the field within a vertex struct */
 #define OFFSET(FIELD) ((void *) offsetof(struct vertex, FIELD))
@@ -708,6 +708,9 @@ _mesa_meta_BlitFramebuffer(struct gl_context *ctx,
     * necessary anyway, so save/clear state.
     */
    _mesa_meta_begin(ctx, MESA_META_ALL & ~MESA_META_DRAW_BUFFERS);
+
+   /* Dithering shouldn't be performed for glBlitFramebuffer */
+   _mesa_set_enable(ctx, GL_DITHER, GL_FALSE);
 
    /* If the clipping earlier changed the destination rect at all, then
     * enable the scissor to clip to it.

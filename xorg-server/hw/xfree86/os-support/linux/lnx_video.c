@@ -571,12 +571,6 @@ extern int readDense8(void *Base, register unsigned long Offset);
 extern int readDense16(void *Base, register unsigned long Offset);
 extern int readDense32(void *Base, register unsigned long Offset);
 extern void
- writeDenseNB8(int Value, void *Base, register unsigned long Offset);
-extern void
- writeDenseNB16(int Value, void *Base, register unsigned long Offset);
-extern void
- writeDenseNB32(int Value, void *Base, register unsigned long Offset);
-extern void
  writeDense8(int Value, void *Base, register unsigned long Offset);
 extern void
  writeDense16(int Value, void *Base, register unsigned long Offset);
@@ -867,12 +861,6 @@ void (*xf86WriteMmio16) (int Value, void *Base, unsigned long Offset)
     = writeDense16;
 void (*xf86WriteMmio32) (int Value, void *Base, unsigned long Offset)
     = writeDense32;
-void (*xf86WriteMmioNB8) (int Value, void *Base, unsigned long Offset)
-    = writeDenseNB8;
-void (*xf86WriteMmioNB16) (int Value, void *Base, unsigned long Offset)
-    = writeDenseNB16;
-void (*xf86WriteMmioNB32) (int Value, void *Base, unsigned long Offset)
-    = writeDenseNB32;
 int (*xf86ReadMmio8) (void *Base, unsigned long Offset)
     = readDense8;
 int (*xf86ReadMmio16) (void *Base, unsigned long Offset)

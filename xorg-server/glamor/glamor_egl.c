@@ -30,7 +30,6 @@
 #include "dix-config.h"
 
 #define GLAMOR_FOR_XORG
-#include <xorg-server.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>

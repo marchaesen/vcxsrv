@@ -58,7 +58,6 @@
 #include <X11/Xproto.h>
 #include <X11/Xatom.h>
 #include "misc.h"
-#include "compiler.h"
 #include "xf86.h"
 #include "xf86Priv.h"
 #define XF86_OS_PRIVS

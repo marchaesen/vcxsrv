@@ -58,7 +58,7 @@ typedef struct driOptionInfo {
     char *name;             /**< \brief Name */
     driOptionType type;     /**< \brief Type */
     driOptionRange *ranges; /**< \brief Array of ranges */
-    unsigned int nRanges;         /**< \brief Number of ranges */
+    unsigned int nRanges;   /**< \brief Number of ranges */
 } driOptionInfo;
 
 /** \brief Option cache

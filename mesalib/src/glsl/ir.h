@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "ralloc.h"
+#include "util/ralloc.h"
 #include "glsl_types.h"
 #include "list.h"
 #include "ir_visitor.h"
@@ -660,6 +660,11 @@ public:
       unsigned location_frac:2;
 
       /**
+       * Layout of the matrix.  Uses glsl_matrix_layout values.
+       */
+      unsigned matrix_layout:2;
+
+      /**
        * Non-zero if this variable was created by lowering a named interface
        * block which was not an array.
        *
@@ -974,6 +979,7 @@ public:
     */
    ir_function_signature *matching_signature(_mesa_glsl_parse_state *state,
                                              const exec_list *actual_param,
+                                             bool allow_builtins,
 					     bool *match_is_exact);
 
    /**
@@ -981,7 +987,8 @@ public:
     * conversions into account.
     */
    ir_function_signature *matching_signature(_mesa_glsl_parse_state *state,
-                                             const exec_list *actual_param);
+                                             const exec_list *actual_param,
+                                             bool allow_builtins);
 
    /**
     * Find a signature that exactly matches a set of actual parameters without

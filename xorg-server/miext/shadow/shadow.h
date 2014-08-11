@@ -43,12 +43,10 @@ typedef void *(*ShadowWindowProc) (ScreenPtr pScreen,
                                    CARD32 offset,
                                    int mode, CARD32 *size, void *closure);
 
-/* BC hack: do not move the damage member.  see shadow.c for explanation. */
 typedef struct _shadowBuf {
     DamagePtr pDamage;
     ShadowUpdateProc update;
     ShadowWindowProc window;
-    RegionRec damage;
     PixmapPtr pPixmap;
     void *closure;
     int randr;
@@ -88,10 +86,6 @@ shadowAdd(ScreenPtr pScreen,
 
 extern _X_EXPORT void
  shadowRemove(ScreenPtr pScreen, PixmapPtr pPixmap);
-
-extern _X_EXPORT Bool
-
-shadowInit(ScreenPtr pScreen, ShadowUpdateProc update, ShadowWindowProc window);
 
 extern _X_EXPORT void *shadowAlloc(int width, int height, int bpp);
 

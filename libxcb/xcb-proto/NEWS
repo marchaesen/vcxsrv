@@ -1,3 +1,17 @@
+Release 1.11 (2014-08-01)
+=========================
+* Add support for <pad align="n" />
+* xkb: Fix padding bug in GetMap
+* xcbgen: Track directly included modules
+* xprint: Fix PrintGetAttributes reply
+* xkb: Fix use of nKTLevels
+* xv: Fix padding in struct AdaptorInfo
+* xproto: Fix EnterNotify documentation
+* Update the protocol schema
+* xinput: Add missing pad in DeviceResolutionCtl
+* xinput: Add missing pad in XIChangeHierarchy
+* xinput: Add missing modLatches as comment in LatchLockState
+
 Release 1.10 (2013-12-22)
 =========================
 * xkb: comment out portions that libxcb doesn't handle properly

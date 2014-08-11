@@ -79,9 +79,30 @@ enum glsl_interface_packing {
    GLSL_INTERFACE_PACKING_PACKED
 };
 
+enum glsl_matrix_layout {
+   /**
+    * The layout of the matrix is inherited from the object containing the
+    * matrix (the top level structure or the uniform block).
+    */
+   GLSL_MATRIX_LAYOUT_INHERITED,
+
+   /**
+    * Explicit column-major layout
+    *
+    * If a uniform block doesn't have an explicit layout set, it will default
+    * to this layout.
+    */
+   GLSL_MATRIX_LAYOUT_COLUMN_MAJOR,
+
+   /**
+    * Row-major layout
+    */
+   GLSL_MATRIX_LAYOUT_ROW_MAJOR
+};
+
 #ifdef __cplusplus
 #include "GL/gl.h"
-#include "ralloc.h"
+#include "util/ralloc.h"
 
 struct glsl_type {
    GLenum gl_type;
@@ -465,6 +486,18 @@ struct glsl_type {
    }
 
    /**
+    * Get the type stripped of any arrays
+    *
+    * \return
+    * Pointer to the type of elements of the first non-array type for array
+    * types, or pointer to itself for non-array types.
+    */
+   const glsl_type *without_array() const
+   {
+      return this->is_array() ? this->fields.array : this;
+   }
+
+   /**
     * Return the amount of atomic counter storage required for a type.
     */
    unsigned atomic_size() const
@@ -643,7 +676,6 @@ private:
 struct glsl_struct_field {
    const struct glsl_type *type;
    const char *name;
-   bool row_major;
 
    /**
     * For interface blocks, gl_varying_slot corresponding to the input/output
@@ -671,6 +703,11 @@ struct glsl_struct_field {
     * in ir_variable::sample). 0 otherwise.
     */
    unsigned sample:1;
+
+   /**
+    * Layout of the matrix.  Uses glsl_matrix_layout values.
+    */
+   unsigned matrix_layout:2;
 
    /**
     * For interface blocks, it has a value if this variable uses multiple vertex

@@ -476,9 +476,6 @@ extern _X_EXPORT int
  SetPictureTransform(PicturePtr pPicture, PictTransform * transform);
 
 extern _X_EXPORT void
- CopyPicture(PicturePtr pSrc, Mask mask, PicturePtr pDst);
-
-extern _X_EXPORT void
  ValidatePicture(PicturePtr pPicture);
 
 extern _X_EXPORT int

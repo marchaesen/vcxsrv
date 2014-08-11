@@ -201,6 +201,14 @@ enum; the value is restricted to one of the constants named in the enum.
   declares the data type of the field, and the name attribute gives the name
   of the field.
 
+<fd name="identifier" />
+
+  This element represents a file descriptor field passed with the request.  The
+  name attribute gives the name of the field.
+
+  While ordinary fields are encoded as part of the request, file descriptor
+  fields are generally passed via an out-of-band mechanism.
+
 <list type="identifier" name="identifier">expression</list>
 
   This element represents an array or list of fields in a data structure.  The

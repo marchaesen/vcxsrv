@@ -38,15 +38,32 @@ dnl XCB_EXTENSION(name, default)
 dnl set the X extension
 dnl
 AC_DEFUN([XCB_EXTENSION],
-[
+[dnl
 pushdef([UP], translit([$1], [-a-z], [_A-Z]))dnl
 pushdef([DOWN], translit([$1], [A-Z], [a-z]))dnl
+dnl
+m4_if([$2], [yes], [m4_define([xcb_defopt], [yes])],
+      [$2], [no],  [m4_define([xcb_defopt], [no])],
+      m4_define([xcb_defopt], [auto]))dnl
 
 AC_ARG_ENABLE(DOWN,
-    [AS_HELP_STRING([--enable-[]DOWN], [Build XCB $1 Extension (default: $2)])],
+    [AS_HELP_STRING([--enable-[]DOWN],
+                    [Build XCB $1 Extension (default: ]xcb_defopt[)])],
     [BUILD_[]UP=$enableval],
-    [BUILD_[]UP=$2])
+    [BUILD_[]UP=xcb_defopt])
+dnl
+m4_if(xcb_defopt, [auto], [
+# This extension has a default value of "auto" and depends on the value of $2
+if test "x$BUILD_[]UP" = "xauto" ; then
+    BUILD_[]UP=$2
+fi
+if test "x$BUILD_[]UP" = "xyes" ; then
+    if test "x$2" = "xno" ; then
+      AC_MSG_ERROR([Extension []UP requested, but dependencies are not met])
+    fi
+fi])
 
+m4_undefine([xcb_defopt])dnl
 AM_CONDITIONAL(BUILD_[]UP, [test "x$BUILD_[]UP" = "xyes"])
 ])
 

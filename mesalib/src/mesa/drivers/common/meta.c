@@ -84,7 +84,7 @@
 #include "drivers/common/meta.h"
 #include "main/enums.h"
 #include "main/glformats.h"
-#include "../glsl/ralloc.h"
+#include "util/ralloc.h"
 
 /** Return offset in bytes of the field within a vertex struct */
 #define OFFSET(FIELD) ((void *) offsetof(struct vertex, FIELD))
@@ -101,18 +101,18 @@ static void meta_decompress_cleanup(struct decompress_state *decompress);
 static void meta_drawpix_cleanup(struct drawpix_state *drawpix);
 
 void
-_mesa_meta_bind_fbo_image(GLenum attachment,
+_mesa_meta_bind_fbo_image(GLenum fboTarget, GLenum attachment,
                           struct gl_texture_image *texImage, GLuint layer)
 {
    struct gl_texture_object *texObj = texImage->TexObject;
    int level = texImage->Level;
-   GLenum target = texObj->Target;
+   GLenum texTarget = texObj->Target;
 
-   switch (target) {
+   switch (texTarget) {
    case GL_TEXTURE_1D:
-      _mesa_FramebufferTexture1D(GL_FRAMEBUFFER,
+      _mesa_FramebufferTexture1D(fboTarget,
                                  attachment,
-                                 target,
+                                 texTarget,
                                  texObj->Name,
                                  level);
       break;
@@ -121,19 +121,19 @@ _mesa_meta_bind_fbo_image(GLenum attachment,
    case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
    case GL_TEXTURE_CUBE_MAP_ARRAY:
    case GL_TEXTURE_3D:
-      _mesa_FramebufferTextureLayer(GL_FRAMEBUFFER,
+      _mesa_FramebufferTextureLayer(fboTarget,
                                     attachment,
                                     texObj->Name,
                                     level,
                                     layer);
       break;
    default: /* 2D / cube */
-      if (target == GL_TEXTURE_CUBE_MAP)
-         target = GL_TEXTURE_CUBE_MAP_POSITIVE_X + texImage->Face;
+      if (texTarget == GL_TEXTURE_CUBE_MAP)
+         texTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_X + texImage->Face;
 
-      _mesa_FramebufferTexture2D(GL_FRAMEBUFFER,
+      _mesa_FramebufferTexture2D(fboTarget,
                                  attachment,
-                                 target,
+                                 texTarget,
                                  texObj->Name,
                                  level);
    }
@@ -2732,9 +2732,9 @@ _mesa_meta_blit_shader_table_cleanup(struct blit_shader_table *table)
 static GLenum
 get_temp_image_type(struct gl_context *ctx, mesa_format format)
 {
-   GLenum baseFormat;
-
-   baseFormat = _mesa_get_format_base_format(format);
+   const GLenum baseFormat = _mesa_get_format_base_format(format);
+   const GLenum datatype = _mesa_get_format_datatype(format);
+   const GLint format_red_bits = _mesa_get_format_bits(format, GL_RED_BITS);
 
    switch (baseFormat) {
    case GL_RGBA:
@@ -2745,30 +2745,24 @@ get_temp_image_type(struct gl_context *ctx, mesa_format format)
    case GL_LUMINANCE:
    case GL_LUMINANCE_ALPHA:
    case GL_INTENSITY:
-      if (ctx->DrawBuffer->Visual.redBits <= 8) {
+      if (datatype == GL_INT || datatype == GL_UNSIGNED_INT) {
+         return datatype;
+      } else if (format_red_bits <= 8) {
          return GL_UNSIGNED_BYTE;
-      } else if (ctx->DrawBuffer->Visual.redBits <= 16) {
+      } else if (format_red_bits <= 16) {
          return GL_UNSIGNED_SHORT;
-      } else {
-         GLenum datatype = _mesa_get_format_datatype(format);
-         if (datatype == GL_INT || datatype == GL_UNSIGNED_INT)
-            return datatype;
-         return GL_FLOAT;
       }
-   case GL_DEPTH_COMPONENT: {
-      GLenum datatype = _mesa_get_format_datatype(format);
+      return GL_FLOAT;
+   case GL_DEPTH_COMPONENT:
       if (datatype == GL_FLOAT)
          return GL_FLOAT;
       else
          return GL_UNSIGNED_INT;
-   }
-   case GL_DEPTH_STENCIL: {
-      GLenum datatype = _mesa_get_format_datatype(format);
+   case GL_DEPTH_STENCIL:
       if (datatype == GL_FLOAT)
          return GL_FLOAT_32_UNSIGNED_INT_24_8_REV;
       else
          return GL_UNSIGNED_INT_24_8;
-   }
    default:
       _mesa_problem(ctx, "Unexpected format %d in get_temp_image_type()",
 		    baseFormat);
@@ -2808,17 +2802,20 @@ copytexsubimage_using_blit_framebuffer(struct gl_context *ctx, GLuint dims,
 
    if (rb->_BaseFormat == GL_DEPTH_STENCIL ||
        rb->_BaseFormat == GL_DEPTH_COMPONENT) {
-      _mesa_meta_bind_fbo_image(GL_DEPTH_ATTACHMENT, texImage, zoffset);
+      _mesa_meta_bind_fbo_image(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                                texImage, zoffset);
       mask = GL_DEPTH_BUFFER_BIT;
 
       if (rb->_BaseFormat == GL_DEPTH_STENCIL &&
           texImage->_BaseFormat == GL_DEPTH_STENCIL) {
-         _mesa_meta_bind_fbo_image(GL_STENCIL_ATTACHMENT, texImage, zoffset);
+         _mesa_meta_bind_fbo_image(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT,
+                                   texImage, zoffset);
          mask |= GL_STENCIL_BUFFER_BIT;
       }
       _mesa_DrawBuffer(GL_NONE);
    } else {
-      _mesa_meta_bind_fbo_image(GL_COLOR_ATTACHMENT0, texImage, zoffset);
+      _mesa_meta_bind_fbo_image(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                                texImage, zoffset);
       mask = GL_COLOR_BUFFER_BIT;
       _mesa_DrawBuffer(GL_COLOR_ATTACHMENT0);
    }
@@ -3362,7 +3359,8 @@ cleartexsubimage_color(struct gl_context *ctx,
    GLenum datatype;
    GLenum status;
 
-   _mesa_meta_bind_fbo_image(GL_COLOR_ATTACHMENT0, texImage, zoffset);
+   _mesa_meta_bind_fbo_image(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                             texImage, zoffset);
 
    status = _mesa_CheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
    if (status != GL_FRAMEBUFFER_COMPLETE)
@@ -3408,10 +3406,12 @@ cleartexsubimage_depth_stencil(struct gl_context *ctx,
    GLfloat depthValue;
    GLenum status;
 
-   _mesa_meta_bind_fbo_image(GL_DEPTH_ATTACHMENT, texImage, zoffset);
+   _mesa_meta_bind_fbo_image(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                             texImage, zoffset);
 
    if (texImage->_BaseFormat == GL_DEPTH_STENCIL)
-      _mesa_meta_bind_fbo_image(GL_STENCIL_ATTACHMENT, texImage, zoffset);
+      _mesa_meta_bind_fbo_image(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT,
+                                texImage, zoffset);
 
    status = _mesa_CheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
    if (status != GL_FRAMEBUFFER_COMPLETE)

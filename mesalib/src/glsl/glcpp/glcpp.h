@@ -29,7 +29,7 @@
 
 #include "main/mtypes.h"
 
-#include "../ralloc.h"
+#include "util/ralloc.h"
 
 #include "program/hash_table.h"
 
@@ -177,11 +177,15 @@ struct glcpp_parser {
 	active_list_t *active;
 	int lexing_directive;
 	int space_tokens;
+	int last_token_was_newline;
+	int last_token_was_space;
+	int first_non_space_token_this_line;
 	int newline_as_space;
 	int in_control_line;
 	int paren_count;
 	int commented_newlines;
 	skip_node_t *skip_stack;
+	int skipping;
 	token_list_t *lex_from_list;
 	token_node_t *lex_from_node;
 	char *output;

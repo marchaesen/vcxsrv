@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([libxcb],[1.10],
+AC_INIT([libxcb],[1.11],
         [https://bugs.freedesktop.org/enter_bug.cgi?product=xcb],
         [libxcb])
 AC_CONFIG_AUX_DIR([build-aux])
@@ -50,7 +50,7 @@ fi
 AC_SUBST(HTML_CHECK_RESULT)
 
 # Checks for pkg-config packages
-PKG_CHECK_MODULES(XCBPROTO, xcb-proto >= 1.10)
+PKG_CHECK_MODULES(XCBPROTO, xcb-proto >= 1.11)
 NEEDED="pthread-stubs xau >= 0.99.2"
 PKG_CHECK_MODULES(NEEDED, $NEEDED)
 
@@ -90,14 +90,8 @@ AC_HEADER_STDC
 AC_SEARCH_LIBS(getaddrinfo, socket)
 AC_SEARCH_LIBS(connect, socket)
 
-AC_ARG_ENABLE(sendfds, AS_HELP_STRING([--disable-sendfds], [Support FD passing (default: auto)]),
-              [sendfds=$enableval], [sendfds=auto])
-
-case x$sendfds in
-xauto)
-        AC_SEARCH_LIBS(sendmsg, socket, [sendfds="yes"], [sendfds="no"])
-        ;;
-esac
+# Find support for sending a message from a socket
+AC_SEARCH_LIBS(sendmsg, socket, [have_sendmsg="yes"], [have_sendmsg="no"])
 
 # XPG4v2/UNIX95 added msg_control - check to see if we need to define
 # _XOPEN_SOURCE to get it (such as on Solaris)
@@ -126,14 +120,14 @@ if test "x$ac_cv_member_struct_msghdr_msg_control" = xno; then
     AC_CHECK_MEMBER([struct msghdr.msg_control],
                     [AC_DEFINE([_XOPEN_SOURCE], [500],
                        [Defined if needed to expose struct msghdr.msg_control])
-                    ], [sendfds="no"], [
+                    ], [have_sendmsg="no"], [
 #define _XOPEN_SOURCE 500
 AC_INCLUDES_DEFAULT
 #include <sys/socket.h>
                      ])
 fi
 
-case x$sendfds in
+case x$have_sendmsg in
 xyes)
         AC_DEFINE([HAVE_SENDMSG],1,[Define if your platform supports sendmsg])
         ;;
@@ -212,32 +206,32 @@ case $host_os in
         ;;
 esac
 
-XCB_EXTENSION(Composite, "yes")
-XCB_EXTENSION(Damage, "yes")
-XCB_EXTENSION(DPMS, "yes")
-XCB_EXTENSION(DRI2, "yes")
-XCB_EXTENSION(DRI3, "$sendfds")
-XCB_EXTENSION(GLX, "yes")
-XCB_EXTENSION(Present, "yes")
-XCB_EXTENSION(RandR, "yes")
-XCB_EXTENSION(Record, "yes")
-XCB_EXTENSION(Render, "yes")
-XCB_EXTENSION(Resource, "yes")
-XCB_EXTENSION(Screensaver, "yes")
-XCB_EXTENSION(Shape, "yes")
-XCB_EXTENSION(Shm, "yes")
-XCB_EXTENSION(Sync, "yes")
-XCB_EXTENSION(Xevie, "yes")
-XCB_EXTENSION(XFixes, "yes")
-XCB_EXTENSION(XFree86-DRI, "yes")
-XCB_EXTENSION(Xinerama, "yes")
-XCB_EXTENSION(XInput, "no")
-XCB_EXTENSION(XKB, "yes")
-XCB_EXTENSION(Xprint, "yes")
-XCB_EXTENSION(SELinux, "no")
-XCB_EXTENSION(XTest, "yes")
-XCB_EXTENSION(Xv, "yes")
-XCB_EXTENSION(XvMC, "yes")
+XCB_EXTENSION(Composite, yes)
+XCB_EXTENSION(Damage, yes)
+XCB_EXTENSION(DPMS, yes)
+XCB_EXTENSION(DRI2, yes)
+XCB_EXTENSION(DRI3, $have_sendmsg)
+XCB_EXTENSION(GLX, yes)
+XCB_EXTENSION(Present, yes)
+XCB_EXTENSION(RandR, yes)
+XCB_EXTENSION(Record, yes)
+XCB_EXTENSION(Render, yes)
+XCB_EXTENSION(Resource, yes)
+XCB_EXTENSION(Screensaver, yes)
+XCB_EXTENSION(Shape, yes)
+XCB_EXTENSION(Shm, yes)
+XCB_EXTENSION(Sync, yes)
+XCB_EXTENSION(Xevie, no)
+XCB_EXTENSION(XFixes, yes)
+XCB_EXTENSION(XFree86-DRI, yes)
+XCB_EXTENSION(Xinerama, yes)
+XCB_EXTENSION(XInput, no)
+XCB_EXTENSION(XKB, yes)
+XCB_EXTENSION(Xprint, no)
+XCB_EXTENSION(SELinux, no)
+XCB_EXTENSION(XTest, yes)
+XCB_EXTENSION(Xv, yes)
+XCB_EXTENSION(XvMC, yes)
 
 AC_ARG_WITH(launchd, AS_HELP_STRING([--with-launchd], [Build with support for Apple's launchd (default: auto)]), [LAUNCHD=$withval], [LAUNCHD=auto])
 if test "x$LAUNCHD" = xauto; then
@@ -300,7 +294,7 @@ echo "  Package: ${PACKAGE_NAME} ${PACKAGE_VERSION}"
 echo ""
 echo "  Configuration"
 echo "    XDM support.........: ${have_xdmcp}"
-echo "    sendmsg fd passing..: ${sendfds}"
+echo "    sendmsg fd passing..: ${have_sendmsg}"
 echo "    Build unit tests....: ${HAVE_CHECK}"
 echo "      with html results.: ${HTML_CHECK_RESULT}"
 echo "    XCB buffer size.....: ${xcb_queue_buffer_size}"
@@ -335,7 +329,6 @@ echo ""
 echo "  Used CFLAGS:"
 echo "    CPPFLAGS............: ${CPPFLAGS}"
 echo "    CFLAGS..............: ${CFLAGS}"
-echo "    Warning CFLAGS......: ${BASE_CFLAGS}"
 echo ""
 echo "  Installation:"
 echo "    Prefix..............: ${prefix}"

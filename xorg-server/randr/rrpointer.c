@@ -77,21 +77,22 @@ RRPointerToNearestCrtc(DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y,
 
         if (x < crtc->x)
             dx = crtc->x - x;
-        else if (x > crtc->x + scan_width)
-            dx = x - (crtc->x + scan_width);
+        else if (x > crtc->x + scan_width - 1)
+            dx = crtc->x + (scan_width - 1) - x;
         else
             dx = 0;
         if (y < crtc->y)
             dy = crtc->y - y;
-        else if (y > crtc->y + scan_height)
-            dy = y - (crtc->y + scan_height);
+        else if (y > crtc->y + scan_height - 1)
+            dy = crtc->y + (scan_height - 1) - y;
         else
             dy = 0;
-        dist = dx + dy;
+        dist = dx * dx + dy * dy;
         if (!nearest || dist < best) {
             nearest = crtc;
             best_dx = dx;
             best_dy = dy;
+            best = dist;
         }
     }
     if (best_dx || best_dy)

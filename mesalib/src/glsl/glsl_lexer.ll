@@ -152,7 +152,11 @@ literal_integer(char *text, int len, struct _mesa_glsl_parse_state *state,
 %option never-interactive
 %option prefix="_mesa_glsl_lexer_"
 %option extra-type="struct _mesa_glsl_parse_state *"
+%option warn nodefault
 
+	/* Note: When adding any start conditions to this list, you must also
+	 * update the "Internal compiler error" catch-all rule near the end of
+	 * this file. */
 %x PP PRAGMA
 
 DEC_INT		[1-9][0-9]*
@@ -236,6 +240,7 @@ HASH		^{SPC}#{SPC}
 				    return INTCONSTANT;
 				}
 <PP>\n				{ BEGIN 0; yylineno++; yycolumn = 0; return EOL; }
+<PP>.				{ return yytext[0]; }
 
 \n		{ yylineno++; yycolumn = 0; }
 

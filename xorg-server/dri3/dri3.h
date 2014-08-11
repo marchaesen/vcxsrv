@@ -23,8 +23,6 @@
 #ifndef _DRI3_H_
 #define _DRI3_H_
 
-#include <xorg-server.h>
-
 #ifdef DRI3
 
 #include <X11/extensions/dri3proto.h>

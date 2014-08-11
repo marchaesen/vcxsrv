@@ -323,69 +323,6 @@ struct gl_builtin_uniform_desc {
    unsigned int num_elements;
 };
 
-/**
- * \name GLSL uniform arrays and structs require special handling.
- *
- * The GL_ARB_shader_objects spec says that if you use
- * glGetUniformLocation to get the location of an array, you CANNOT
- * access other elements of the array by adding an offset to the
- * returned location.  For example, you must call
- * glGetUniformLocation("foo[16]") if you want to set the 16th element
- * of the array with glUniform().
- *
- * HOWEVER, some other OpenGL drivers allow accessing array elements
- * by adding an offset to the returned array location.  And some apps
- * seem to depend on that behaviour.
- *
- * Mesa's gl_uniform_list doesn't directly support this since each
- * entry in the list describes one uniform variable, not one uniform
- * element.  We could insert dummy entries in the list for each array
- * element after [0] but that causes complications elsewhere.
- *
- * We solve this problem by creating multiple entries for uniform arrays
- * in the UniformRemapTable so that their elements get sequential locations.
- *
- * Utility functions below offer functionality to split UniformRemapTable
- * location in to location of the uniform in UniformStorage + offset to the
- * array element (0 if not an array) and also merge it back again as the
- * UniformRemapTable location.
- *
- */
-/*@{*/
-/**
- * Combine the uniform's storage index and the array index
- */
-static inline GLint
-_mesa_uniform_merge_location_offset(const struct gl_shader_program *prog,
-                                    unsigned storage_index,
-                                    unsigned uniform_array_index)
-{
-   /* location in remap table + array element offset */
-   return prog->UniformStorage[storage_index].remap_location +
-      uniform_array_index;
-}
-
-/**
- * Separate the uniform storage index and array index
- */
-static inline void
-_mesa_uniform_split_location_offset(const struct gl_shader_program *prog,
-                                    GLint location, unsigned *storage_index,
-				    unsigned *uniform_array_index)
-{
-   *storage_index = prog->UniformRemapTable[location] - prog->UniformStorage;
-   *uniform_array_index = location -
-      prog->UniformRemapTable[location]->remap_location;
-
-   /*gl_uniform_storage in UniformStorage with the calculated base_location
-    * must match with the entry in remap table
-    */
-   assert(&prog->UniformStorage[*storage_index] ==
-          prog->UniformRemapTable[location]);
-}
-/*@}*/
-
-
 #ifdef __cplusplus
 }
 #endif

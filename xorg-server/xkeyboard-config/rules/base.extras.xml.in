@@ -815,6 +815,21 @@
 	</languageList>
       </configItem>
     </layout>
+    <layout>
+      <configItem>
+        <name>cm</name>
+        <_shortDescription>cm</_shortDescription>
+        <_description>English (Cameroon)</_description>
+      </configItem>
+      <variantList>
+        <variant>
+          <configItem>
+            <name>mmuock</name>
+            <_description>Mmuock</_description>
+          </configItem>
+        </variant>
+      </variantList>
+    </layout>
   </layoutList>
   <optionList/>
 </xkbConfigRegistry>

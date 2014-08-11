@@ -138,12 +138,6 @@ DRIFinishScreenInit(ScreenPtr pScreen)
     DRIScreenPrivPtr pDRIPriv = DRI_SCREEN_PRIV(pScreen);
 
     /* Wrap DRI support */
-    pDRIPriv->wrap.ValidateTree = pScreen->ValidateTree;
-    pScreen->ValidateTree = DRIValidateTree;
-
-    pDRIPriv->wrap.PostValidateTree = pScreen->PostValidateTree;
-    pScreen->PostValidateTree = DRIPostValidateTree;
-
     pDRIPriv->wrap.WindowExposures = pScreen->WindowExposures;
     pScreen->WindowExposures = DRIWindowExposures;
 
@@ -622,51 +616,6 @@ DRICopyWindow(WindowPtr pWin, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
 
     /* rewrap */
     pScreen->CopyWindow = DRICopyWindow;
-}
-
-int
-DRIValidateTree(WindowPtr pParent, WindowPtr pChild, VTKind kind)
-{
-    ScreenPtr pScreen = pParent->drawable.pScreen;
-    DRIScreenPrivPtr pDRIPriv = DRI_SCREEN_PRIV(pScreen);
-    int returnValue;
-
-    /* unwrap */
-    pScreen->ValidateTree = pDRIPriv->wrap.ValidateTree;
-
-    /* call lower layers */
-    returnValue = (*pScreen->ValidateTree)(pParent, pChild, kind);
-
-    /* rewrap */
-    pScreen->ValidateTree = DRIValidateTree;
-
-    return returnValue;
-}
-
-void
-DRIPostValidateTree(WindowPtr pParent, WindowPtr pChild, VTKind kind)
-{
-    ScreenPtr pScreen;
-    DRIScreenPrivPtr pDRIPriv;
-
-    if (pParent) {
-        pScreen = pParent->drawable.pScreen;
-    }
-    else {
-        pScreen = pChild->drawable.pScreen;
-    }
-    pDRIPriv = DRI_SCREEN_PRIV(pScreen);
-
-    if (pDRIPriv->wrap.PostValidateTree) {
-        /* unwrap */
-        pScreen->PostValidateTree = pDRIPriv->wrap.PostValidateTree;
-
-        /* call lower layers */
-        (*pScreen->PostValidateTree)(pParent, pChild, kind);
-
-        /* rewrap */
-        pScreen->PostValidateTree = DRIPostValidateTree;
-    }
 }
 
 void

@@ -21,6 +21,7 @@
 
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/src \
 	-I$(top_srcdir)/src/mapi \
 	-I$(top_srcdir)/src/mesa/ \
 	-I$(top_srcdir)/src/glsl/glcpp \
@@ -32,9 +33,9 @@ AM_CXXFLAGS = $(VISIBILITY_CXXFLAGS)
 include Makefile.sources
 
 TESTS = glcpp/tests/glcpp-test				\
+	glcpp/tests/glcpp-test-cr-lf			\
 	tests/general-ir-test				\
 	tests/optimization-test				\
-	tests/ralloc-test				\
 	tests/sampler-types-test                        \
 	tests/uniform-initializer-test
 
@@ -47,14 +48,12 @@ check_PROGRAMS =					\
 	glcpp/glcpp					\
 	glsl_test					\
 	tests/general-ir-test				\
-	tests/ralloc-test				\
 	tests/sampler-types-test			\
 	tests/uniform-initializer-test
 
 noinst_PROGRAMS = glsl_compiler
 
 tests_general_ir_test_SOURCES =		\
-	$(top_srcdir)/src/mesa/main/hash_table.c	\
 	$(top_srcdir)/src/mesa/main/imports.c		\
 	$(top_srcdir)/src/mesa/program/prog_hash_table.c\
 	$(top_srcdir)/src/mesa/program/symbol_table.c	\
@@ -72,7 +71,6 @@ tests_general_ir_test_LDADD =				\
 	$(PTHREAD_LIBS)
 
 tests_uniform_initializer_test_SOURCES =		\
-	$(top_srcdir)/src/mesa/main/hash_table.c	\
 	$(top_srcdir)/src/mesa/main/imports.c		\
 	$(top_srcdir)/src/mesa/program/prog_hash_table.c\
 	$(top_srcdir)/src/mesa/program/symbol_table.c	\
@@ -87,14 +85,6 @@ tests_uniform_initializer_test_LDADD =			\
 	$(top_builddir)/src/glsl/libglsl.la		\
 	$(PTHREAD_LIBS)
 
-tests_ralloc_test_SOURCES =				\
-	tests/ralloc_test.cpp				\
-	$(top_builddir)/src/glsl/ralloc.c
-tests_ralloc_test_CFLAGS = $(PTHREAD_CFLAGS)
-tests_ralloc_test_LDADD =				\
-	$(top_builddir)/src/gtest/libgtest.la		\
-	$(PTHREAD_LIBS)
-
 tests_sampler_types_test_SOURCES =			\
 	$(top_srcdir)/src/mesa/program/prog_hash_table.c\
 	$(top_srcdir)/src/mesa/program/symbol_table.c	\
@@ -107,6 +97,8 @@ tests_sampler_types_test_LDADD =			\
 	$(top_builddir)/src/glsl/libglsl.la		\
 	$(PTHREAD_LIBS)
 
+libglcpp_la_LIBADD =					\
+	$(top_builddir)/src/util/libmesautil.la
 libglcpp_la_SOURCES =					\
 	glcpp/glcpp-lex.c				\
 	glcpp/glcpp-parse.c				\
@@ -127,7 +119,6 @@ libglsl_la_SOURCES =					\
 	$(LIBGLSL_FILES)
 
 glsl_compiler_SOURCES = \
-	$(top_srcdir)/src/mesa/main/hash_table.c \
 	$(top_srcdir)/src/mesa/main/imports.c \
 	$(top_srcdir)/src/mesa/program/prog_hash_table.c \
 	$(top_srcdir)/src/mesa/program/symbol_table.c \
@@ -138,7 +129,6 @@ glsl_compiler_LDADD =					\
 	$(PTHREAD_LIBS)
 
 glsl_test_SOURCES = \
-	$(top_srcdir)/src/mesa/main/hash_table.c \
 	$(top_srcdir)/src/mesa/main/imports.c \
 	$(top_srcdir)/src/mesa/program/prog_hash_table.c \
 	$(top_srcdir)/src/mesa/program/symbol_table.c \

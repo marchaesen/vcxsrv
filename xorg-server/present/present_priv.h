@@ -134,6 +134,8 @@ typedef struct present_window_priv {
     struct xorg_list       notifies;
 } present_window_priv_rec, *present_window_priv_ptr;
 
+#define PresentCrtcNeverSet     ((RRCrtcPtr) 1)
+
 extern DevPrivateKeyRec present_window_private_key;
 
 static inline present_window_priv_ptr

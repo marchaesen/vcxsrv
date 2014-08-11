@@ -235,7 +235,6 @@ XkbSendStateNotify(DeviceIntPtr kbd, xkbStateNotify * pSN)
 
     while (interest) {
         if ((!interest->client->clientGone) &&
-            (interest->client->requestVector != InitialVector) &&
             (interest->client->xkbClientFlags & _XkbClientInitialized) &&
             (interest->stateNotifyMask & changed)) {
             pSN->sequenceNumber = interest->client->sequence;
@@ -398,7 +397,6 @@ XkbSendControlsNotify(DeviceIntPtr kbd, xkbControlsNotify * pCN)
     pCN->numGroups = xkbi->desc->ctrls->num_groups;
     while (interest) {
         if ((!interest->client->clientGone) &&
-            (interest->client->requestVector != InitialVector) &&
             (interest->client->xkbClientFlags & _XkbClientInitialized) &&
             (interest->ctrlsNotifyMask & changedControls)) {
             if (!initialized) {
@@ -445,7 +443,6 @@ XkbSendIndicatorNotify(DeviceIntPtr kbd, int xkbType, xkbIndicatorNotify * pEv)
     changed = pEv->changed;
     while (interest) {
         if ((!interest->client->clientGone) &&
-            (interest->client->requestVector != InitialVector) &&
             (interest->client->xkbClientFlags & _XkbClientInitialized) &&
             (((xkbType == XkbIndicatorStateNotify) &&
               (interest->iStateNotifyMask & changed)) ||
@@ -526,7 +523,6 @@ XkbHandleBell(BOOL force,
     initialized = 0;
     while (interest) {
         if ((!interest->client->clientGone) &&
-            (interest->client->requestVector != InitialVector) &&
             (interest->client->xkbClientFlags & _XkbClientInitialized) &&
             (interest->bellNotifyMask)) {
             if (!initialized) {
@@ -579,7 +575,6 @@ XkbSendAccessXNotify(DeviceIntPtr kbd, xkbAccessXNotify * pEv)
     db_delay = pEv->debounceDelay;
     while (interest) {
         if ((!interest->client->clientGone) &&
-            (interest->client->requestVector != InitialVector) &&
             (interest->client->xkbClientFlags & _XkbClientInitialized) &&
             (interest->accessXNotifyMask & (1 << pEv->detail))) {
             if (!initialized) {
@@ -625,7 +620,6 @@ XkbSendNamesNotify(DeviceIntPtr kbd, xkbNamesNotify * pEv)
     changedVirtualMods = pEv->changedVirtualMods;
     while (interest) {
         if ((!interest->client->clientGone) &&
-            (interest->client->requestVector != InitialVector) &&
             (interest->client->xkbClientFlags & _XkbClientInitialized) &&
             (interest->namesNotifyMask & pEv->changed)) {
             if (!initialized) {
@@ -669,7 +663,6 @@ XkbSendCompatMapNotify(DeviceIntPtr kbd, xkbCompatMapNotify * pEv)
     initialized = 0;
     while (interest) {
         if ((!interest->client->clientGone) &&
-            (interest->client->requestVector != InitialVector) &&
             (interest->client->xkbClientFlags & _XkbClientInitialized) &&
             (interest->compatNotifyMask)) {
             if (!initialized) {
@@ -720,7 +713,6 @@ XkbSendActionMessage(DeviceIntPtr kbd, xkbActionMessage * pEv)
     pEv->group = xkbi->state.group;
     while (interest) {
         if ((!interest->client->clientGone) &&
-            (interest->client->requestVector != InitialVector) &&
             (interest->client->xkbClientFlags & _XkbClientInitialized) &&
             (interest->actionMessageMask)) {
             if (!initialized) {
@@ -764,7 +756,6 @@ XkbSendExtensionDeviceNotify(DeviceIntPtr dev,
     state = pEv->ledState;
     while (interest) {
         if ((!interest->client->clientGone) &&
-            (interest->client->requestVector != InitialVector) &&
             (interest->client->xkbClientFlags & _XkbClientInitialized) &&
             (interest->extDevNotifyMask & reason)) {
             if (!initialized) {
