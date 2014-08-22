@@ -189,11 +189,18 @@ FcBool
 FcInitReinitialize (void)
 {
     FcConfig	*config;
+    FcBool	ret;
 
     config = FcInitLoadConfigAndFonts ();
     if (!config)
 	return FcFalse;
-    return FcConfigSetCurrent (config);
+    ret = FcConfigSetCurrent (config);
+    /* FcConfigSetCurrent() increases the refcount.
+     * decrease it here to avoid the memory leak.
+     */
+    FcConfigDestroy (config);
+
+    return ret;
 }
 
 FcBool

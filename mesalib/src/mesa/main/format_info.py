@@ -62,7 +62,9 @@ def get_gl_base_format(fmat):
 
 def get_gl_data_type(fmat):
    if fmat.is_compressed():
-      if 'SIGNED' in fmat.name or 'SNORM' in fmat.name:
+      if 'FLOAT' in fmat.name:
+         return 'GL_FLOAT'
+      elif 'SIGNED' in fmat.name or 'SNORM' in fmat.name:
          return 'GL_SIGNED_NORMALIZED'
       else:
          return 'GL_UNSIGNED_NORMALIZED'
@@ -124,6 +126,9 @@ def get_channel_bits(fmat, chan_name):
             return 1
 
          bits = 11 if fmat.name.endswith('11_EAC') else 8
+         return bits if fmat.has_channel(chan_name) else 0
+      elif fmat.layout == 'bptc':
+         bits = 16 if fmat.name.endswith('_FLOAT') else 8
          return bits if fmat.has_channel(chan_name) else 0
       else:
          assert False

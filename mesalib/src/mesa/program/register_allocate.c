@@ -146,6 +146,12 @@ struct ra_node {
     */
    bool in_stack;
 
+   /**
+    * The q total, as defined in the Runeson/Nyström paper, for all the
+    * interfering nodes not in the stack.
+    */
+   unsigned int q_total;
+
    /* For an implementation that needs register spilling, this is the
     * approximate cost of spilling this node.
     */
@@ -162,16 +168,6 @@ struct ra_graph {
 
    unsigned int *stack;
    unsigned int stack_count;
-
-   /**
-    * Tracks the start of the set of optimistically-colored registers in the
-    * stack.
-    *
-    * Along with any registers not in the stack (if one called ra_simplify()
-    * and didn't do optimistic coloring), these need to be considered for
-    * spilling.
-    */
-   unsigned int stack_optimistic_start;
 };
 
 /**
@@ -354,6 +350,12 @@ ra_add_node_adjacency(struct ra_graph *g, unsigned int n1, unsigned int n2)
 {
    BITSET_SET(g->nodes[n1].adjacency, n2);
 
+   if (n1 != n2) {
+      int n1_class = g->nodes[n1].class;
+      int n2_class = g->nodes[n2].class;
+      g->nodes[n1].q_total += g->regs->classes[n1_class]->q[n2_class];
+   }
+
    if (g->nodes[n1].adjacency_count >=
        g->nodes[n1].adjacency_list_size) {
       g->nodes[n1].adjacency_list_size *= 2;
@@ -387,6 +389,7 @@ ra_alloc_interference_graph(struct ra_regs *regs, unsigned int count)
       g->nodes[i].adjacency_list =
          ralloc_array(g, unsigned int, g->nodes[i].adjacency_list_size);
       g->nodes[i].adjacency_count = 0;
+      g->nodes[i].q_total = 0;
 
       ra_add_node_adjacency(g, i, i);
       g->nodes[i].reg = NO_REG;
@@ -415,20 +418,25 @@ ra_add_node_interference(struct ra_graph *g,
 static bool
 pq_test(struct ra_graph *g, unsigned int n)
 {
-   unsigned int j;
-   unsigned int q = 0;
    int n_class = g->nodes[n].class;
 
-   for (j = 0; j < g->nodes[n].adjacency_count; j++) {
-      unsigned int n2 = g->nodes[n].adjacency_list[j];
+   return g->nodes[n].q_total < g->regs->classes[n_class]->p;
+}
+
+static void
+decrement_q(struct ra_graph *g, unsigned int n)
+{
+   unsigned int i;
+   int n_class = g->nodes[n].class;
+
+   for (i = 0; i < g->nodes[n].adjacency_count; i++) {
+      unsigned int n2 = g->nodes[n].adjacency_list[i];
       unsigned int n2_class = g->nodes[n2].class;
 
       if (n != n2 && !g->nodes[n2].in_stack) {
-	 q += g->regs->classes[n_class]->q[n2_class];
+	 g->nodes[n2].q_total -= g->regs->classes[n2_class]->q[n_class];
       }
    }
-
-   return q < g->regs->classes[n_class]->p;
 }
 
 /**
@@ -436,17 +444,21 @@ pq_test(struct ra_graph *g, unsigned int n)
  * trivially-colorable nodes into a stack of nodes to be colored,
  * removing them from the graph, and rinsing and repeating.
  *
- * Returns true if all nodes were removed from the graph.  false
- * means that either spilling will be required, or optimistic coloring
- * should be applied.
+ * If we encounter a case where we can't push any nodes on the stack, then
+ * we optimistically choose a node and push it on the stack. We heuristically
+ * push the node with the lowest total q value, since it has the fewest
+ * neighbors and therefore is most likely to be allocated.
  */
-bool
+static void
 ra_simplify(struct ra_graph *g)
 {
    bool progress = true;
    int i;
 
    while (progress) {
+      unsigned int best_optimistic_node = ~0;
+      unsigned int lowest_q_total = ~0;
+
       progress = false;
 
       for (i = g->count - 1; i >= 0; i--) {
@@ -454,20 +466,28 @@ ra_simplify(struct ra_graph *g)
 	    continue;
 
 	 if (pq_test(g, i)) {
+	    decrement_q(g, i);
 	    g->stack[g->stack_count] = i;
 	    g->stack_count++;
 	    g->nodes[i].in_stack = true;
 	    progress = true;
+	 } else {
+	    unsigned int new_q_total = g->nodes[i].q_total;
+	    if (new_q_total < lowest_q_total) {
+	       best_optimistic_node = i;
+	       lowest_q_total = new_q_total;
+	    }
 	 }
       }
-   }
 
-   for (i = 0; i < g->count; i++) {
-      if (!g->nodes[i].in_stack && g->nodes[i].reg == -1)
-	 return false;
+      if (!progress && best_optimistic_node != ~0) {
+	 decrement_q(g, best_optimistic_node);
+	 g->stack[g->stack_count] = best_optimistic_node;
+	 g->stack_count++;
+	 g->nodes[best_optimistic_node].in_stack = true;
+	 progress = true;
+      }
    }
-
-   return true;
 }
 
 /**
@@ -477,7 +497,7 @@ ra_simplify(struct ra_graph *g)
  * If all nodes were trivially colorable, then this must succeed.  If
  * not (optimistic coloring), then it may return false;
  */
-bool
+static bool
 ra_select(struct ra_graph *g)
 {
    int i;
@@ -509,11 +529,16 @@ ra_select(struct ra_graph *g)
 	 if (i == g->nodes[n].adjacency_count)
 	    break;
       }
+
+      /* set this to false even if we return here so that
+       * ra_get_best_spill_node() considers this node later.
+       */
+      g->nodes[n].in_stack = false;
+
       if (ri == g->regs->count)
 	 return false;
 
       g->nodes[n].reg = r;
-      g->nodes[n].in_stack = false;
       g->stack_count--;
 
       if (g->regs->round_robin)
@@ -523,35 +548,10 @@ ra_select(struct ra_graph *g)
    return true;
 }
 
-/**
- * Optimistic register coloring: Just push the remaining nodes
- * on the stack.  They'll be colored first in ra_select(), and
- * if they succeed then the locally-colorable nodes are still
- * locally-colorable and the rest of the register allocation
- * will succeed.
- */
-void
-ra_optimistic_color(struct ra_graph *g)
-{
-   unsigned int i;
-
-   g->stack_optimistic_start = g->stack_count;
-   for (i = 0; i < g->count; i++) {
-      if (g->nodes[i].in_stack || g->nodes[i].reg != NO_REG)
-	 continue;
-
-      g->stack[g->stack_count] = i;
-      g->stack_count++;
-      g->nodes[i].in_stack = true;
-   }
-}
-
 bool
-ra_allocate_no_spills(struct ra_graph *g)
+ra_allocate(struct ra_graph *g)
 {
-   if (!ra_simplify(g)) {
-      ra_optimistic_color(g);
-   }
+   ra_simplify(g);
    return ra_select(g);
 }
 
@@ -614,15 +614,12 @@ ra_get_best_spill_node(struct ra_graph *g)
 {
    unsigned int best_node = -1;
    float best_benefit = 0.0;
-   unsigned int n, i;
+   unsigned int n;
 
-   /* For any registers not in the stack to be colored, consider them for
-    * spilling.  This will mostly collect nodes that were being optimistally
-    * colored as part of ra_allocate_no_spills() if we didn't successfully
-    * optimistically color.
-    *
-    * It also includes nodes not trivially colorable by ra_simplify() if it
-    * was used directly instead of as part of ra_allocate_no_spills().
+   /* Consider any nodes that we colored successfully or the node we failed to
+    * color for spilling. When we failed to color a node in ra_select(), we
+    * only considered these nodes, so spilling any other ones would not result
+    * in us making progress.
     */
    for (n = 0; n < g->count; n++) {
       float cost = g->nodes[n].spill_cost;
@@ -639,26 +636,6 @@ ra_get_best_spill_node(struct ra_graph *g)
       if (benefit / cost > best_benefit) {
 	 best_benefit = benefit / cost;
 	 best_node = n;
-      }
-   }
-
-   /* Also consider spilling any nodes that were set up to be optimistically
-    * colored that we couldn't manage to color in ra_select().
-    */
-   for (i = g->stack_optimistic_start; i < g->stack_count; i++) {
-      float cost, benefit;
-
-      n = g->stack[i];
-      cost = g->nodes[n].spill_cost;
-
-      if (cost <= 0.0)
-         continue;
-
-      benefit = ra_get_spill_benefit(g, n);
-
-      if (benefit / cost > best_benefit) {
-         best_benefit = benefit / cost;
-         best_node = n;
       }
    }
 

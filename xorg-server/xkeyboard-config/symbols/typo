@@ -48,7 +48,7 @@ xkb_symbols "base" {
 // 4th keyboard row
     key <AB02> { [NoSymbol, NoSymbol, multiply, U22C5] }; // "x"
     key <AB03> { [NoSymbol, NoSymbol, copyright, cent] }; // "c"
-    key <AB04> { [NoSymbol, NoSymbol, downarrow] }; // "v"
+    key <AB04> { [NoSymbol, NoSymbol, downarrow, U25CA] }; // "v"
     key <AB07> { [NoSymbol, NoSymbol, U2212, enfilledcircbullet] }; // "m"
     key <AB08> { [NoSymbol, NoSymbol, guillemotleft, less] }; // ","
     key <AB09> { [NoSymbol, NoSymbol, guillemotright, greater] }; // "."

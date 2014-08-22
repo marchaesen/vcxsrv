@@ -245,7 +245,8 @@ public:
    ir_instruction *ir;
    GLboolean cond_update;
    bool saturate;
-   int sampler; /**< sampler index */
+   st_src_reg sampler; /**< sampler register */
+   int sampler_array_size; /**< 1-based size of sampler array, 1 if not array */
    int tex_target; /**< One of TEXTURE_*_INDEX */
    GLboolean tex_shadow;
 
@@ -476,6 +477,7 @@ static st_dst_reg undef_dst = st_dst_reg(PROGRAM_UNDEFINED, SWIZZLE_NOOP, GLSL_T
 
 static st_dst_reg address_reg = st_dst_reg(PROGRAM_ADDRESS, WRITEMASK_X, GLSL_TYPE_FLOAT, 0);
 static st_dst_reg address_reg2 = st_dst_reg(PROGRAM_ADDRESS, WRITEMASK_X, GLSL_TYPE_FLOAT, 1);
+static st_dst_reg sampler_reladdr = st_dst_reg(PROGRAM_ADDRESS, WRITEMASK_X, GLSL_TYPE_FLOAT, 2);
 
 static void
 fail_link(struct gl_shader_program *prog, const char *fmt, ...) PRINTFLIKE(2, 3);
@@ -1460,9 +1462,15 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
       break;
 
    case ir_unop_dFdx:
+   case ir_unop_dFdx_coarse:
       emit(ir, TGSI_OPCODE_DDX, result_dst, op[0]);
       break;
+   case ir_unop_dFdx_fine:
+      emit(ir, TGSI_OPCODE_DDX_FINE, result_dst, op[0]);
+      break;
    case ir_unop_dFdy:
+   case ir_unop_dFdy_coarse:
+   case ir_unop_dFdy_fine:
    {
       /* The X component contains 1 or -1 depending on whether the framebuffer
        * is a FBO or the window system buffer, respectively.
@@ -1483,7 +1491,8 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
       st_src_reg temp = get_temp(glsl_type::vec4_type);
 
       emit(ir, TGSI_OPCODE_MUL, st_dst_reg(temp), transform_y, op[0]);
-      emit(ir, TGSI_OPCODE_DDY, result_dst, temp);
+      emit(ir, ir->operation == ir_unop_dFdy_fine ?
+           TGSI_OPCODE_DDY_FINE : TGSI_OPCODE_DDY, result_dst, temp);
       break;
    }
 
@@ -2799,6 +2808,8 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
    glsl_to_tgsi_instruction *inst = NULL;
    unsigned opcode = TGSI_OPCODE_NOP;
    const glsl_type *sampler_type = ir->sampler->type;
+   ir_rvalue *sampler_index =
+      _mesa_get_sampler_array_nonconst_index(ir->sampler);
    bool is_cube_array = false;
    unsigned i;
 
@@ -3016,6 +3027,11 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
       coord_dst.writemask = WRITEMASK_XYZW;
    }
 
+   if (sampler_index) {
+      sampler_index->accept(this);
+      emit_arl(ir, sampler_reladdr, this->result);
+   }
+
    if (opcode == TGSI_OPCODE_TXD)
       inst = emit(ir, opcode, result_dst, coord, dx, dy);
    else if (opcode == TGSI_OPCODE_TXQ) {
@@ -3045,9 +3061,17 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
    if (ir->shadow_comparitor)
       inst->tex_shadow = GL_TRUE;
 
-   inst->sampler = _mesa_get_sampler_uniform_value(ir->sampler,
-        					   this->shader_program,
-        					   this->prog);
+   inst->sampler.index = _mesa_get_sampler_uniform_value(ir->sampler,
+                                                         this->shader_program,
+                                                         this->prog);
+   if (sampler_index) {
+      inst->sampler.reladdr = ralloc(mem_ctx, st_src_reg);
+      memcpy(inst->sampler.reladdr, &sampler_reladdr, sizeof(sampler_reladdr));
+      inst->sampler_array_size =
+         ir->sampler->as_dereference_array()->array->type->array_size();
+   } else {
+      inst->sampler_array_size = 1;
+   }
 
    if (ir->offset) {
       for (i = 0; i < MAX_GLSL_TEXTURE_OFFSET && offset[i].file != PROGRAM_UNDEFINED; i++)
@@ -3215,10 +3239,12 @@ count_resources(glsl_to_tgsi_visitor *v, gl_program *prog)
 
    foreach_in_list(glsl_to_tgsi_instruction, inst, &v->instructions) {
       if (is_tex_instruction(inst->op)) {
-         v->samplers_used |= 1 << inst->sampler;
+         for (int i = 0; i < inst->sampler_array_size; i++) {
+            v->samplers_used |= 1 << (inst->sampler.index + i);
 
-         if (inst->tex_shadow) {
-            prog->ShadowSamplers |= 1 << inst->sampler;
+            if (inst->tex_shadow) {
+               prog->ShadowSamplers |= 1 << (inst->sampler.index + i);
+            }
          }
       }
    }
@@ -3952,7 +3978,7 @@ get_pixel_transfer_visitor(struct st_fragment_program *fp,
    src0 = v->get_temp(glsl_type::vec4_type);
    dst0 = st_dst_reg(src0);
    inst = v->emit(NULL, TGSI_OPCODE_TEX, dst0, coord);
-   inst->sampler = 0;
+   inst->sampler_array_size = 1;
    inst->tex_target = TEXTURE_2D_INDEX;
 
    prog->InputsRead |= VARYING_BIT_TEX0;
@@ -3991,14 +4017,16 @@ get_pixel_transfer_visitor(struct st_fragment_program *fp,
       /* TEX temp.rg, colorTemp.rgba, texture[1], 2D; */
       temp_dst.writemask = WRITEMASK_XY; /* write R,G */
       inst = v->emit(NULL, TGSI_OPCODE_TEX, temp_dst, src0);
-      inst->sampler = 1;
+      inst->sampler.index = 1;
+      inst->sampler_array_size = 1;
       inst->tex_target = TEXTURE_2D_INDEX;
 
       /* TEX temp.ba, colorTemp.baba, texture[1], 2D; */
       src0.swizzle = MAKE_SWIZZLE4(SWIZZLE_Z, SWIZZLE_W, SWIZZLE_Z, SWIZZLE_W);
       temp_dst.writemask = WRITEMASK_ZW; /* write B,A */
       inst = v->emit(NULL, TGSI_OPCODE_TEX, temp_dst, src0);
-      inst->sampler = 1;
+      inst->sampler.index = 1;
+      inst->sampler_array_size = 1;
       inst->tex_target = TEXTURE_2D_INDEX;
 
       prog->SamplersUsed |= (1 << 1); /* mark sampler 1 as used */
@@ -4079,7 +4107,8 @@ get_bitmap_visitor(struct st_fragment_program *fp,
    src0 = v->get_temp(glsl_type::vec4_type);
    dst0 = st_dst_reg(src0);
    inst = v->emit(NULL, TGSI_OPCODE_TEX, dst0, coord);
-   inst->sampler = samplerIndex;
+   inst->sampler.index = samplerIndex;
+   inst->sampler_array_size = 1;
    inst->tex_target = TEXTURE_2D_INDEX;
 
    prog->InputsRead |= VARYING_BIT_TEX0;
@@ -4135,7 +4164,7 @@ struct st_translate {
    struct ureg_src *immediates;
    struct ureg_dst outputs[PIPE_MAX_SHADER_OUTPUTS];
    struct ureg_src inputs[PIPE_MAX_SHADER_INPUTS];
-   struct ureg_dst address[2];
+   struct ureg_dst address[3];
    struct ureg_src samplers[PIPE_MAX_SAMPLERS];
    struct ureg_src systemValues[SYSTEM_VALUE_MAX];
    struct tgsi_texture_offset tex_offsets[MAX_GLSL_TEXTURE_OFFSET];
@@ -4546,7 +4575,11 @@ compile_tgsi_instruction(struct st_translate *t,
    case TGSI_OPCODE_TXL2:
    case TGSI_OPCODE_TG4:
    case TGSI_OPCODE_LODQ:
-      src[num_src++] = t->samplers[inst->sampler];
+      src[num_src] = t->samplers[inst->sampler.index];
+      if (inst->sampler.reladdr)
+         src[num_src] =
+            ureg_src_indirect(src[num_src], ureg_src(t->address[2]));
+      num_src++;
       for (i = 0; i < inst->tex_offset_num_offset; i++) {
          texoffsets[i] = translate_tex_offset(t, &inst->tex_offsets[i], i);
       }
@@ -4977,10 +5010,9 @@ st_translate_program(
    /* Declare address register.
     */
    if (program->num_address_regs > 0) {
-      assert(program->num_address_regs <= 2);
-      t->address[0] = ureg_DECL_address(ureg);
-      if (program->num_address_regs == 2)
-         t->address[1] = ureg_DECL_address(ureg);
+      assert(program->num_address_regs <= 3);
+      for (int i = 0; i < program->num_address_regs; i++)
+         t->address[i] = ureg_DECL_address(ureg);
    }
 
    /* Declare misc input registers
@@ -5176,7 +5208,7 @@ get_mesa_program(struct gl_context *ctx,
    GLenum target = _mesa_shader_stage_to_program(shader->Stage);
    bool progress;
    struct gl_shader_compiler_options *options =
-         &ctx->ShaderCompilerOptions[_mesa_shader_enum_to_shader_stage(shader->Type)];
+         &ctx->Const.ShaderCompilerOptions[_mesa_shader_enum_to_shader_stage(shader->Type)];
    struct pipe_screen *pscreen = ctx->st->pipe->screen;
    unsigned ptarget = shader_stage_to_ptarget(shader->Stage);
 
@@ -5365,7 +5397,7 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
       bool progress;
       exec_list *ir = prog->_LinkedShaders[i]->ir;
       const struct gl_shader_compiler_options *options =
-            &ctx->ShaderCompilerOptions[_mesa_shader_enum_to_shader_stage(prog->_LinkedShaders[i]->Type)];
+            &ctx->Const.ShaderCompilerOptions[_mesa_shader_enum_to_shader_stage(prog->_LinkedShaders[i]->Type)];
 
       /* If there are forms of indirect addressing that the driver
        * cannot handle, perform the lowering pass.

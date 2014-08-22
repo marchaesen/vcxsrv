@@ -40,6 +40,7 @@
 #include "mtypes.h"
 #include "pack.h"
 #include "pbo.h"
+#include "pixelstore.h"
 #include "texcompress.h"
 #include "texgetimage.h"
 #include "teximage.h"
@@ -693,7 +694,7 @@ _mesa_get_compressed_teximage(struct gl_context *ctx,
    GLuint i, slice;
    GLubyte *dest;
 
-   _mesa_compute_compressed_pixelstore(dimensions, texImage,
+   _mesa_compute_compressed_pixelstore(dimensions, texImage->TexFormat,
                                        texImage->Width, texImage->Height,
                                        texImage->Depth,
                                        &ctx->Pack,
@@ -1008,9 +1009,9 @@ getcompressedteximage_error_check(struct gl_context *ctx, GLenum target,
 
    /* Check for invalid pixel storage modes */
    dimensions = _mesa_get_texture_dimensions(texImage->TexObject->Target);
-   if (!_mesa_compressed_texture_pixel_storage_error_check(ctx, dimensions,
-                                                           &ctx->Pack,
-                                                           "glGetCompressedTexImageARB")) {
+   if (!_mesa_compressed_pixel_storage_error_check(ctx, dimensions,
+                                              &ctx->Pack,
+                                              "glGetCompressedTexImageARB")) {
       return GL_TRUE;
    }
 

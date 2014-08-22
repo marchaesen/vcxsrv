@@ -1459,6 +1459,10 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
    case ir_unop_interpolate_at_centroid:
    case ir_binop_interpolate_at_offset:
    case ir_binop_interpolate_at_sample:
+   case ir_unop_dFdx_coarse:
+   case ir_unop_dFdx_fine:
+   case ir_unop_dFdy_coarse:
+   case ir_unop_dFdy_fine:
       assert(!"not supported");
       break;
 
@@ -2428,8 +2432,7 @@ add_uniform_to_shader::visit_field(const glsl_type *type, const char *name,
    }
 
    gl_register_file file;
-   if (type->is_sampler() ||
-       (type->is_array() && type->fields.array->is_sampler())) {
+   if (type->without_array()->is_sampler()) {
       file = PROGRAM_SAMPLER;
    } else {
       file = PROGRAM_UNIFORM;
@@ -2795,7 +2798,7 @@ get_mesa_program(struct gl_context *ctx,
    GLenum target = _mesa_shader_stage_to_program(shader->Stage);
    const char *target_string = _mesa_shader_stage_to_string(shader->Stage);
    struct gl_shader_compiler_options *options =
-         &ctx->ShaderCompilerOptions[shader->Stage];
+         &ctx->Const.ShaderCompilerOptions[shader->Stage];
 
    validate_ir_tree(shader->ir);
 
@@ -2980,7 +2983,7 @@ _mesa_ir_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
       bool progress;
       exec_list *ir = prog->_LinkedShaders[i]->ir;
       const struct gl_shader_compiler_options *options =
-            &ctx->ShaderCompilerOptions[prog->_LinkedShaders[i]->Stage];
+            &ctx->Const.ShaderCompilerOptions[prog->_LinkedShaders[i]->Stage];
 
       do {
 	 progress = false;

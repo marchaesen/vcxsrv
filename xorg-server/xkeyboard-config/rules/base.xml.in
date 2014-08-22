@@ -3513,6 +3513,12 @@
         </variant>
         <variant>
           <configItem>
+            <name>mac_legacy</name>
+            <_description>Icelandic (Macintosh, legacy)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
             <name>mac</name>
             <_description>Icelandic (Macintosh)</_description>
           </configItem>
@@ -6102,6 +6108,11 @@
         <configItem>
           <name>ctrl:swap_lwin_lctl</name>
           <_description>Swap Left Win key with Left Ctrl key</_description>
+        </configItem>
+      </option><option>
+        <configItem>
+          <name>ctrl:swap_rwin_rctl</name>
+          <_description>Swap Right Win key with Right Ctrl key</_description>
         </configItem>
       </option>
       <option>

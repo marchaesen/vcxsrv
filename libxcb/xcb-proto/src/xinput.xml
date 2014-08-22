@@ -613,6 +613,7 @@ authorization from the authors.
         <field type="CARD32"      name="mask" />
         <field type="CARD8"       name="device_id" />
         <field type="CARD8"       name="feedback_id" />
+        <pad bytes="2" />
         <field type="FeedbackCtl" name="feedback" />
     </request>
 
@@ -671,7 +672,7 @@ authorization from the authors.
     <request name="SetDeviceModifierMapping" opcode="27">
         <field type="CARD8" name="device_id" />
         <field type="CARD8" name="keycodes_per_modifier" />
-        <pad bytes="1" />
+        <pad bytes="2" />
         <list type="CARD8" name="keymaps">
             <op op="*">
                 <fieldref>keycodes_per_modifier</fieldref>

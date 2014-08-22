@@ -434,6 +434,7 @@ retry:
     if (!fc_atomic_ptr_cmpexch (&_fcConfig, cfg, config))
 	goto retry;
 
+    FcConfigReference (config);
     if (cfg)
 	FcConfigDestroy (cfg);
 
@@ -2405,6 +2406,10 @@ FcConfigSetSysRoot (FcConfig      *config,
     {
 	config = FcInitLoadOwnConfigAndFonts (config);
 	FcConfigSetCurrent (config);
+	/* FcConfigSetCurrent() increases the refcount.
+	 * decrease it here to avoid the memory leak.
+	 */
+	FcConfigDestroy (config);
     }
 }
 

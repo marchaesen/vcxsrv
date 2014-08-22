@@ -124,8 +124,9 @@ create_version_string(struct gl_context *ctx, const char *prefix)
  * 3.1: select a Core profile with GL version 3.1
  * 3.1FC: select a Core+Forward Compatible profile with GL version 3.1
  */
-void
-_mesa_override_gl_version(struct gl_context *ctx)
+bool
+_mesa_override_gl_version_contextless(struct gl_constants *consts,
+                                      gl_api *apiOut, GLuint *versionOut)
 {
    int version;
    GLboolean fwd_context;
@@ -133,15 +134,25 @@ _mesa_override_gl_version(struct gl_context *ctx)
    get_gl_override(&version, &fwd_context);
 
    if (version > 0) {
-      ctx->Version = version;
+      *versionOut = version;
       if (version >= 30 && fwd_context) {
-         ctx->API = API_OPENGL_CORE;
-         ctx->Const.ContextFlags |= GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT;
+         *apiOut = API_OPENGL_CORE;
+         consts->ContextFlags |= GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT;
       } else if (version >= 31) {
-         ctx->API = API_OPENGL_CORE;
+         *apiOut = API_OPENGL_CORE;
       } else {
-         ctx->API = API_OPENGL_COMPAT;
+         *apiOut = API_OPENGL_COMPAT;
       }
+      return GL_TRUE;
+   }
+   return GL_FALSE;
+}
+
+void
+_mesa_override_gl_version(struct gl_context *ctx)
+{
+   if (_mesa_override_gl_version_contextless(&ctx->Const, &ctx->API,
+                                             &ctx->Version)) {
       create_version_string(ctx, "");
    }
 }
@@ -168,7 +179,7 @@ _mesa_get_gl_version_override(void)
  * MESA_GLSL_VERSION_OVERRIDE are integers, such as "130".
  */
 void
-_mesa_override_glsl_version(struct gl_context *ctx)
+_mesa_override_glsl_version(struct gl_constants *consts)
 {
    const char *env_var = "MESA_GLSL_VERSION_OVERRIDE";
    const char *version;
@@ -179,7 +190,7 @@ _mesa_override_glsl_version(struct gl_context *ctx)
       return;
    }
 
-   n = sscanf(version, "%u", &ctx->Const.GLSLVersion);
+   n = sscanf(version, "%u", &consts->GLSLVersion);
    if (n != 1) {
       fprintf(stderr, "error: invalid value for %s: %s\n", env_var, version);
       return;
@@ -189,31 +200,32 @@ _mesa_override_glsl_version(struct gl_context *ctx)
 /**
  * Examine enabled GL extensions to determine GL version.
  */
-static void
-compute_version(struct gl_context *ctx)
+static GLuint
+compute_version(const struct gl_extensions *extensions,
+                const struct gl_constants *consts, gl_api api)
 {
-   GLuint major, minor;
+   GLuint major, minor, version;
 
-   const GLboolean ver_1_3 = (ctx->Extensions.ARB_texture_border_clamp &&
-                              ctx->Extensions.ARB_texture_cube_map &&
-                              ctx->Extensions.ARB_texture_env_combine &&
-                              ctx->Extensions.ARB_texture_env_dot3);
+   const GLboolean ver_1_3 = (extensions->ARB_texture_border_clamp &&
+                              extensions->ARB_texture_cube_map &&
+                              extensions->ARB_texture_env_combine &&
+                              extensions->ARB_texture_env_dot3);
    const GLboolean ver_1_4 = (ver_1_3 &&
-                              ctx->Extensions.ARB_depth_texture &&
-                              ctx->Extensions.ARB_shadow &&
-                              ctx->Extensions.ARB_texture_env_crossbar &&
-                              ctx->Extensions.EXT_blend_color &&
-                              ctx->Extensions.EXT_blend_func_separate &&
-                              ctx->Extensions.EXT_blend_minmax &&
-                              ctx->Extensions.EXT_point_parameters);
+                              extensions->ARB_depth_texture &&
+                              extensions->ARB_shadow &&
+                              extensions->ARB_texture_env_crossbar &&
+                              extensions->EXT_blend_color &&
+                              extensions->EXT_blend_func_separate &&
+                              extensions->EXT_blend_minmax &&
+                              extensions->EXT_point_parameters);
    const GLboolean ver_1_5 = (ver_1_4 &&
-                              ctx->Extensions.ARB_occlusion_query);
+                              extensions->ARB_occlusion_query);
    const GLboolean ver_2_0 = (ver_1_5 &&
-                              ctx->Extensions.ARB_point_sprite &&
-                              ctx->Extensions.ARB_vertex_shader &&
-                              ctx->Extensions.ARB_fragment_shader &&
-                              ctx->Extensions.ARB_texture_non_power_of_two &&
-                              ctx->Extensions.EXT_blend_equation_separate &&
+                              extensions->ARB_point_sprite &&
+                              extensions->ARB_vertex_shader &&
+                              extensions->ARB_fragment_shader &&
+                              extensions->ARB_texture_non_power_of_two &&
+                              extensions->EXT_blend_equation_separate &&
 
 			      /* Technically, 2.0 requires the functionality
 			       * of the EXT version.  Enable 2.0 if either
@@ -221,61 +233,61 @@ compute_version(struct gl_context *ctx)
 			       * driver that only exposes the ATI extension
 			       * will fallback to software when necessary.
 			       */
-			      (ctx->Extensions.EXT_stencil_two_side
-			       || ctx->Extensions.ATI_separate_stencil));
+			      (extensions->EXT_stencil_two_side
+			       || extensions->ATI_separate_stencil));
    const GLboolean ver_2_1 = (ver_2_0 &&
-                              ctx->Extensions.EXT_pixel_buffer_object &&
-                              ctx->Extensions.EXT_texture_sRGB);
+                              extensions->EXT_pixel_buffer_object &&
+                              extensions->EXT_texture_sRGB);
    const GLboolean ver_3_0 = (ver_2_1 &&
-                              ctx->Const.GLSLVersion >= 130 &&
-                              (ctx->Const.MaxSamples >= 4 || ctx->Const.FakeSWMSAA) &&
-                              (ctx->API == API_OPENGL_CORE ||
-                               ctx->Extensions.ARB_color_buffer_float) &&
-                              ctx->Extensions.ARB_depth_buffer_float &&
-                              ctx->Extensions.ARB_half_float_vertex &&
-                              ctx->Extensions.ARB_map_buffer_range &&
-                              ctx->Extensions.ARB_shader_texture_lod &&
-                              ctx->Extensions.ARB_texture_float &&
-                              ctx->Extensions.ARB_texture_rg &&
-                              ctx->Extensions.ARB_texture_compression_rgtc &&
-                              ctx->Extensions.EXT_draw_buffers2 &&
-                              ctx->Extensions.ARB_framebuffer_object &&
-                              ctx->Extensions.EXT_framebuffer_sRGB &&
-                              ctx->Extensions.EXT_packed_float &&
-                              ctx->Extensions.EXT_texture_array &&
-                              ctx->Extensions.EXT_texture_shared_exponent &&
-                              ctx->Extensions.EXT_transform_feedback &&
-                              ctx->Extensions.NV_conditional_render);
+                              consts->GLSLVersion >= 130 &&
+                              (consts->MaxSamples >= 4 || consts->FakeSWMSAA) &&
+                              (api == API_OPENGL_CORE ||
+                               extensions->ARB_color_buffer_float) &&
+                              extensions->ARB_depth_buffer_float &&
+                              extensions->ARB_half_float_vertex &&
+                              extensions->ARB_map_buffer_range &&
+                              extensions->ARB_shader_texture_lod &&
+                              extensions->ARB_texture_float &&
+                              extensions->ARB_texture_rg &&
+                              extensions->ARB_texture_compression_rgtc &&
+                              extensions->EXT_draw_buffers2 &&
+                              extensions->ARB_framebuffer_object &&
+                              extensions->EXT_framebuffer_sRGB &&
+                              extensions->EXT_packed_float &&
+                              extensions->EXT_texture_array &&
+                              extensions->EXT_texture_shared_exponent &&
+                              extensions->EXT_transform_feedback &&
+                              extensions->NV_conditional_render);
    const GLboolean ver_3_1 = (ver_3_0 &&
-                              ctx->Const.GLSLVersion >= 140 &&
-                              ctx->Extensions.ARB_draw_instanced &&
-                              ctx->Extensions.ARB_texture_buffer_object &&
-                              ctx->Extensions.ARB_uniform_buffer_object &&
-                              ctx->Extensions.EXT_texture_snorm &&
-                              ctx->Extensions.NV_primitive_restart &&
-                              ctx->Extensions.NV_texture_rectangle &&
-                              ctx->Const.Program[MESA_SHADER_VERTEX].MaxTextureImageUnits >= 16);
+                              consts->GLSLVersion >= 140 &&
+                              extensions->ARB_draw_instanced &&
+                              extensions->ARB_texture_buffer_object &&
+                              extensions->ARB_uniform_buffer_object &&
+                              extensions->EXT_texture_snorm &&
+                              extensions->NV_primitive_restart &&
+                              extensions->NV_texture_rectangle &&
+                              consts->Program[MESA_SHADER_VERTEX].MaxTextureImageUnits >= 16);
    const GLboolean ver_3_2 = (ver_3_1 &&
-                              ctx->Const.GLSLVersion >= 150 &&
-                              ctx->Extensions.ARB_depth_clamp &&
-                              ctx->Extensions.ARB_draw_elements_base_vertex &&
-                              ctx->Extensions.ARB_fragment_coord_conventions &&
-                              ctx->Extensions.EXT_provoking_vertex &&
-                              ctx->Extensions.ARB_seamless_cube_map &&
-                              ctx->Extensions.ARB_sync &&
-                              ctx->Extensions.ARB_texture_multisample &&
-                              ctx->Extensions.EXT_vertex_array_bgra);
+                              consts->GLSLVersion >= 150 &&
+                              extensions->ARB_depth_clamp &&
+                              extensions->ARB_draw_elements_base_vertex &&
+                              extensions->ARB_fragment_coord_conventions &&
+                              extensions->EXT_provoking_vertex &&
+                              extensions->ARB_seamless_cube_map &&
+                              extensions->ARB_sync &&
+                              extensions->ARB_texture_multisample &&
+                              extensions->EXT_vertex_array_bgra);
    const GLboolean ver_3_3 = (ver_3_2 &&
-                              ctx->Const.GLSLVersion >= 330 &&
-                              ctx->Extensions.ARB_blend_func_extended &&
-                              ctx->Extensions.ARB_explicit_attrib_location &&
-                              ctx->Extensions.ARB_instanced_arrays &&
-                              ctx->Extensions.ARB_occlusion_query2 &&
-                              ctx->Extensions.ARB_shader_bit_encoding &&
-                              ctx->Extensions.ARB_texture_rgb10_a2ui &&
-                              ctx->Extensions.ARB_timer_query &&
-                              ctx->Extensions.ARB_vertex_type_2_10_10_10_rev &&
-                              ctx->Extensions.EXT_texture_swizzle);
+                              consts->GLSLVersion >= 330 &&
+                              extensions->ARB_blend_func_extended &&
+                              extensions->ARB_explicit_attrib_location &&
+                              extensions->ARB_instanced_arrays &&
+                              extensions->ARB_occlusion_query2 &&
+                              extensions->ARB_shader_bit_encoding &&
+                              extensions->ARB_texture_rgb10_a2ui &&
+                              extensions->ARB_timer_query &&
+                              extensions->ARB_vertex_type_2_10_10_10_rev &&
+                              extensions->EXT_texture_swizzle);
                               /* ARB_sampler_objects is always enabled in mesa */
 
    if (ver_3_3) {
@@ -319,74 +331,95 @@ compute_version(struct gl_context *ctx)
       minor = 2;
    }
 
-   ctx->Version = major * 10 + minor;
+   version = major * 10 + minor;
 
-   create_version_string(ctx, "");
+   if (api == API_OPENGL_CORE && version < 31)
+      return 0;
+
+   return version;
 }
 
-static void
-compute_version_es1(struct gl_context *ctx)
+static GLuint
+compute_version_es1(const struct gl_extensions *extensions)
 {
    /* OpenGL ES 1.0 is derived from OpenGL 1.3 */
-   const GLboolean ver_1_0 = (ctx->Extensions.ARB_texture_env_combine &&
-                              ctx->Extensions.ARB_texture_env_dot3);
+   const GLboolean ver_1_0 = (extensions->ARB_texture_env_combine &&
+                              extensions->ARB_texture_env_dot3);
    /* OpenGL ES 1.1 is derived from OpenGL 1.5 */
    const GLboolean ver_1_1 = (ver_1_0 &&
-                              ctx->Extensions.EXT_point_parameters);
+                              extensions->EXT_point_parameters);
 
    if (ver_1_1) {
-      ctx->Version = 11;
+      return 11;
    } else if (ver_1_0) {
-      ctx->Version = 10;
+      return 10;
    } else {
-      _mesa_problem(ctx, "Incomplete OpenGL ES 1.0 support.");
+      return 0;
    }
-
-   create_version_string(ctx, "OpenGL ES-CM ");
 }
 
-static void
-compute_version_es2(struct gl_context *ctx)
+static GLuint
+compute_version_es2(const struct gl_extensions *extensions)
 {
    /* OpenGL ES 2.0 is derived from OpenGL 2.0 */
-   const GLboolean ver_2_0 = (ctx->Extensions.ARB_texture_cube_map &&
-                              ctx->Extensions.EXT_blend_color &&
-                              ctx->Extensions.EXT_blend_func_separate &&
-                              ctx->Extensions.EXT_blend_minmax &&
-                              ctx->Extensions.ARB_vertex_shader &&
-                              ctx->Extensions.ARB_fragment_shader &&
-                              ctx->Extensions.ARB_texture_non_power_of_two &&
-                              ctx->Extensions.EXT_blend_equation_separate);
+   const GLboolean ver_2_0 = (extensions->ARB_texture_cube_map &&
+                              extensions->EXT_blend_color &&
+                              extensions->EXT_blend_func_separate &&
+                              extensions->EXT_blend_minmax &&
+                              extensions->ARB_vertex_shader &&
+                              extensions->ARB_fragment_shader &&
+                              extensions->ARB_texture_non_power_of_two &&
+                              extensions->EXT_blend_equation_separate);
    /* FINISHME: This list isn't quite right. */
-   const GLboolean ver_3_0 = (ctx->Extensions.ARB_half_float_vertex &&
-                              ctx->Extensions.ARB_internalformat_query &&
-                              ctx->Extensions.ARB_map_buffer_range &&
-                              ctx->Extensions.ARB_shader_texture_lod &&
-                              ctx->Extensions.ARB_texture_float &&
-                              ctx->Extensions.ARB_texture_rg &&
-                              ctx->Extensions.ARB_texture_compression_rgtc &&
-                              ctx->Extensions.EXT_draw_buffers2 &&
-                              /* ctx->Extensions.ARB_framebuffer_object && */
-                              ctx->Extensions.EXT_framebuffer_sRGB &&
-                              ctx->Extensions.EXT_packed_float &&
-                              ctx->Extensions.EXT_texture_array &&
-                              ctx->Extensions.EXT_texture_shared_exponent &&
-                              ctx->Extensions.EXT_transform_feedback &&
-                              ctx->Extensions.NV_conditional_render &&
-                              ctx->Extensions.ARB_draw_instanced &&
-                              ctx->Extensions.ARB_uniform_buffer_object &&
-                              ctx->Extensions.EXT_texture_snorm &&
-                              ctx->Extensions.NV_primitive_restart &&
-                              ctx->Extensions.OES_depth_texture_cube_map);
+   const GLboolean ver_3_0 = (extensions->ARB_half_float_vertex &&
+                              extensions->ARB_internalformat_query &&
+                              extensions->ARB_map_buffer_range &&
+                              extensions->ARB_shader_texture_lod &&
+                              extensions->ARB_texture_float &&
+                              extensions->ARB_texture_rg &&
+                              extensions->ARB_texture_compression_rgtc &&
+                              extensions->EXT_draw_buffers2 &&
+                              /* extensions->ARB_framebuffer_object && */
+                              extensions->EXT_framebuffer_sRGB &&
+                              extensions->EXT_packed_float &&
+                              extensions->EXT_texture_array &&
+                              extensions->EXT_texture_shared_exponent &&
+                              extensions->EXT_transform_feedback &&
+                              extensions->NV_conditional_render &&
+                              extensions->ARB_draw_instanced &&
+                              extensions->ARB_uniform_buffer_object &&
+                              extensions->EXT_texture_snorm &&
+                              extensions->NV_primitive_restart &&
+                              extensions->OES_depth_texture_cube_map);
    if (ver_3_0) {
-      ctx->Version = 30;
+      return 30;
    } else if (ver_2_0) {
-      ctx->Version = 20;
+      return 20;
    } else {
-      _mesa_problem(ctx, "Incomplete OpenGL ES 2.0 support.");
+      return 0;
    }
+}
 
-   create_version_string(ctx, "OpenGL ES ");
+GLuint
+_mesa_get_version(const struct gl_extensions *extensions,
+                  struct gl_constants *consts, gl_api api)
+{
+   switch (api) {
+   case API_OPENGL_COMPAT:
+      /* Disable GLSL 1.40 and later for legacy contexts.
+       * This disallows creation of the GL 3.1 compatibility context. */
+      if (consts->GLSLVersion > 130) {
+         consts->GLSLVersion = 130;
+      }
+      /* fall through */
+   case API_OPENGL_CORE:
+      return compute_version(extensions, consts, api);
+   case API_OPENGLES:
+      return compute_version_es1(extensions);
+   case API_OPENGLES2:
+      return compute_version_es2(extensions);
+   }
+   return 0;
 }
 
 /**
@@ -400,23 +433,28 @@ _mesa_compute_version(struct gl_context *ctx)
    if (ctx->Version)
       return;
 
+   ctx->Version = _mesa_get_version(&ctx->Extensions, &ctx->Const, ctx->API);
+
    switch (ctx->API) {
    case API_OPENGL_COMPAT:
-      /* Disable GLSL 1.40 and later for legacy contexts.
-       * This disallows creation of the GL 3.1 compatibility context. */
-      if (ctx->Const.GLSLVersion > 130) {
-         ctx->Const.GLSLVersion = 130;
-      }
-      /* fall through */
    case API_OPENGL_CORE:
-      compute_version(ctx);
+      create_version_string(ctx, "");
       break;
+
    case API_OPENGLES:
-      compute_version_es1(ctx);
+      if (!ctx->Version) {
+         _mesa_problem(ctx, "Incomplete OpenGL ES 1.0 support.");
+         return;
+      }
+      create_version_string(ctx, "OpenGL ES-CM ");
       break;
+
    case API_OPENGLES2:
-      compute_version_es2(ctx);
+      if (!ctx->Version) {
+         _mesa_problem(ctx, "Incomplete OpenGL ES 2.0 support.");
+         return;
+      }
+      create_version_string(ctx, "OpenGL ES ");
       break;
    }
-
 }

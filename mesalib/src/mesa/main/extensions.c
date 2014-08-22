@@ -94,6 +94,7 @@ static const struct extension extension_table[] = {
    { "GL_ARB_color_buffer_float",                  o(ARB_color_buffer_float),                  GL,             2004 },
    { "GL_ARB_compressed_texture_pixel_storage",    o(dummy_true),                              GL,             2011 },
    { "GL_ARB_compute_shader",                      o(ARB_compute_shader),                      GL,             2012 },
+   { "GL_ARB_conditional_render_inverted",         o(ARB_conditional_render_inverted),         GL,             2014 },
    { "GL_ARB_copy_buffer",                         o(dummy_true),                              GL,             2008 },
    { "GL_ARB_copy_image",                          o(ARB_copy_image),                          GL,             2012 },
    { "GL_ARB_conservative_depth",                  o(ARB_conservative_depth),                  GL,             2011 },
@@ -101,6 +102,7 @@ static const struct extension extension_table[] = {
    { "GL_ARB_depth_buffer_float",                  o(ARB_depth_buffer_float),                  GL,             2008 },
    { "GL_ARB_depth_clamp",                         o(ARB_depth_clamp),                         GL,             2003 },
    { "GL_ARB_depth_texture",                       o(ARB_depth_texture),                       GLL,            2001 },
+   { "GL_ARB_derivative_control",                  o(ARB_derivative_control),                  GL,             2014 },
    { "GL_ARB_draw_buffers",                        o(dummy_true),                              GL,             2002 },
    { "GL_ARB_draw_buffers_blend",                  o(ARB_draw_buffers_blend),                  GL,             2009 },
    { "GL_ARB_draw_elements_base_vertex",           o(ARB_draw_elements_base_vertex),           GL,             2009 },
@@ -116,7 +118,7 @@ static const struct extension extension_table[] = {
    { "GL_ARB_framebuffer_object",                  o(ARB_framebuffer_object),                  GL,             2005 },
    { "GL_ARB_framebuffer_sRGB",                    o(EXT_framebuffer_sRGB),                    GL,             1998 },
    { "GL_ARB_get_program_binary",                  o(dummy_true),                              GL,             2010 },
-   { "GL_ARB_gpu_shader5",                         o(ARB_gpu_shader5),                         GL,             2010 },
+   { "GL_ARB_gpu_shader5",                         o(ARB_gpu_shader5),                         GLC,            2010 },
    { "GL_ARB_half_float_pixel",                    o(dummy_true),                              GL,             2003 },
    { "GL_ARB_half_float_vertex",                   o(ARB_half_float_vertex),                   GL,             2008 },
    { "GL_ARB_instanced_arrays",                    o(ARB_instanced_arrays),                    GL,             2008 },
@@ -152,11 +154,13 @@ static const struct extension extension_table[] = {
    { "GL_ARB_shadow",                              o(ARB_shadow),                              GLL,            2001 },
    { "GL_ARB_stencil_texturing",                   o(ARB_stencil_texturing),                   GL,             2012 },
    { "GL_ARB_sync",                                o(ARB_sync),                                GL,             2003 },
+   { "GL_ARB_texture_barrier",                     o(NV_texture_barrier),                      GL,             2014 },
    { "GL_ARB_texture_border_clamp",                o(ARB_texture_border_clamp),                GLL,            2000 },
    { "GL_ARB_texture_buffer_object",               o(ARB_texture_buffer_object),               GLC,            2008 },
    { "GL_ARB_texture_buffer_object_rgb32",         o(ARB_texture_buffer_object_rgb32),         GLC,            2009 },
    { "GL_ARB_texture_buffer_range",                o(ARB_texture_buffer_range),                GLC,            2012 },
    { "GL_ARB_texture_compression",                 o(dummy_true),                              GLL,            2000 },
+   { "GL_ARB_texture_compression_bptc",            o(ARB_texture_compression_bptc),            GL,             2010 },
    { "GL_ARB_texture_compression_rgtc",            o(ARB_texture_compression_rgtc),            GL,             2004 },
    { "GL_ARB_texture_cube_map",                    o(ARB_texture_cube_map),                    GLL,            1999 },
    { "GL_ARB_texture_cube_map_array",              o(ARB_texture_cube_map_array),              GL,             2009 },
@@ -449,6 +453,7 @@ _mesa_enable_sw_extensions(struct gl_context *ctx)
    ctx->Extensions.ARB_point_sprite = GL_TRUE;
    ctx->Extensions.ARB_shadow = GL_TRUE;
    ctx->Extensions.ARB_texture_border_clamp = GL_TRUE;
+   ctx->Extensions.ARB_texture_compression_bptc = GL_TRUE;
    ctx->Extensions.ARB_texture_cube_map = GL_TRUE;
    ctx->Extensions.ARB_texture_env_combine = GL_TRUE;
    ctx->Extensions.ARB_texture_env_crossbar = GL_TRUE;
@@ -667,9 +672,9 @@ _mesa_one_time_init_extension_overrides(void)
  * Note: Sets gl_extensions.dummy_true to true.
  */
 void
-_mesa_init_extensions( struct gl_context *ctx )
+_mesa_init_extensions(struct gl_extensions *extensions)
 {
-   GLboolean *base = (GLboolean *) &ctx->Extensions;
+   GLboolean *base = (GLboolean *) extensions;
    GLboolean *sentinel = base + o(extension_sentinel);
    GLboolean *i;
 
@@ -678,8 +683,8 @@ _mesa_init_extensions( struct gl_context *ctx )
       *i = GL_FALSE;
 
    /* Then, selectively turn default extensions on. */
-   ctx->Extensions.dummy_true = GL_TRUE;
-   ctx->Extensions.EXT_texture3D = GL_TRUE;
+   extensions->dummy_true = GL_TRUE;
+   extensions->EXT_texture3D = GL_TRUE;
 }
 
 

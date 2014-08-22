@@ -343,13 +343,23 @@ struct gen_mipmap_state
 };
 
 /**
+ * One of the FBO states for decompress_state. There will be one for each
+ * required renderbuffer format.
+ */
+struct decompress_fbo_state
+{
+   GLuint FBO, RBO;
+   GLint Width, Height;
+};
+
+/**
  * State for texture decompression
  */
 struct decompress_state
 {
    GLuint VAO;
-   GLuint VBO, FBO, RBO, Sampler;
-   GLint Width, Height;
+   struct decompress_fbo_state byteFBO, floatFBO;
+   GLuint VBO, Sampler;
 
    struct blit_shader_table shaders;
 };
@@ -501,6 +511,9 @@ _mesa_meta_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
                    GLfloat width, GLfloat height);
 
 /* meta-internal functions */
+void
+_mesa_meta_drawbuffers_from_bitfield(GLbitfield bits);
+
 GLuint
 _mesa_meta_compile_shader_with_debug(struct gl_context *ctx, GLenum target,
                                      const GLcharARB *source);

@@ -1527,12 +1527,12 @@ meta_glsl_clear_init(struct gl_context *ctx, struct clear_state *clear)
 {
    const char *vs_source =
       "#extension GL_AMD_vertex_shader_layer : enable\n"
+      "#extension GL_ARB_draw_instanced : enable\n"
       "attribute vec4 position;\n"
-      "uniform int layer;\n"
       "void main()\n"
       "{\n"
       "#ifdef GL_AMD_vertex_shader_layer\n"
-      "   gl_Layer = layer;\n"
+      "   gl_Layer = gl_InstanceID;\n"
       "#endif\n"
       "   gl_Position = position;\n"
       "}\n";
@@ -1568,7 +1568,6 @@ meta_glsl_clear_init(struct gl_context *ctx, struct clear_state *clear)
    _mesa_LinkProgram(clear->ShaderProg);
 
    clear->ColorLocation = _mesa_GetUniformLocation(clear->ShaderProg, "color");
-   clear->LayerLocation = _mesa_GetUniformLocation(clear->ShaderProg, "layer");
 
    has_integer_textures = _mesa_is_gles3(ctx) ||
       (_mesa_is_desktop_gl(ctx) && ctx->Const.GLSLVersion >= 130);
@@ -1579,12 +1578,12 @@ meta_glsl_clear_init(struct gl_context *ctx, struct clear_state *clear)
          ralloc_asprintf(shader_source_mem_ctx,
                          "#version 130\n"
                          "#extension GL_AMD_vertex_shader_layer : enable\n"
+                         "#extension GL_ARB_draw_instanced : enable\n"
                          "in vec4 position;\n"
-                         "uniform int layer;\n"
                          "void main()\n"
                          "{\n"
                          "#ifdef GL_AMD_vertex_shader_layer\n"
-                         "   gl_Layer = layer;\n"
+                         "   gl_Layer = gl_InstanceID;\n"
                          "#endif\n"
                          "   gl_Position = position;\n"
                          "}\n");
@@ -1623,8 +1622,6 @@ meta_glsl_clear_init(struct gl_context *ctx, struct clear_state *clear)
 
       clear->IntegerColorLocation =
 	 _mesa_GetUniformLocation(clear->IntegerShaderProg, "color");
-      clear->IntegerLayerLocation =
-         _mesa_GetUniformLocation(clear->IntegerShaderProg, "layer");
    }
 }
 
@@ -1653,8 +1650,8 @@ meta_glsl_clear_cleanup(struct clear_state *clear)
  * Since the bitfield has no associated order, the assignment of draw buffer
  * indices to color attachment indices is rather arbitrary.
  */
-static void
-drawbuffers_from_bitfield(GLbitfield bits)
+void
+_mesa_meta_drawbuffers_from_bitfield(GLbitfield bits)
 {
    GLenum enums[MAX_DRAW_BUFFERS];
    int i = 0;
@@ -1767,7 +1764,7 @@ meta_clear(struct gl_context *ctx, GLbitfield buffers, bool glsl)
    /* GL_COLOR_BUFFER_BIT */
    if (buffers & BUFFER_BITS_COLOR) {
       /* Only draw to the buffers we were asked to clear. */
-      drawbuffers_from_bitfield(buffers & BUFFER_BITS_COLOR);
+      _mesa_meta_drawbuffers_from_bitfield(buffers & BUFFER_BITS_COLOR);
 
       /* leave colormask state as-is */
 
@@ -1832,15 +1829,7 @@ meta_clear(struct gl_context *ctx, GLbitfield buffers, bool glsl)
 
    /* draw quad(s) */
    if (fb->MaxNumLayers > 0) {
-      unsigned layer;
-      assert(glsl && clear->LayerLocation != -1);
-      for (layer = 0; layer < fb->MaxNumLayers; layer++) {
-         if (fb->_IntegerColor)
-            _mesa_Uniform1i(clear->IntegerLayerLocation, layer);
-         else
-            _mesa_Uniform1i(clear->LayerLocation, layer);
-         _mesa_DrawArrays(GL_TRIANGLE_FAN, 0, 4);
-      }
+      _mesa_DrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, fb->MaxNumLayers);
    } else {
       _mesa_DrawArrays(GL_TRIANGLE_FAN, 0, 4);
    }
@@ -2784,7 +2773,6 @@ copytexsubimage_using_blit_framebuffer(struct gl_context *ctx, GLuint dims,
                                        GLint x, GLint y,
                                        GLsizei width, GLsizei height)
 {
-   struct gl_texture_object *texObj = texImage->TexObject;
    GLuint fbo;
    bool success = false;
    GLbitfield mask;
@@ -2792,8 +2780,6 @@ copytexsubimage_using_blit_framebuffer(struct gl_context *ctx, GLuint dims,
 
    if (!ctx->Extensions.ARB_framebuffer_object)
       return false;
-
-   _mesa_unlock_texture(ctx, texObj);
 
    _mesa_meta_begin(ctx, MESA_META_ALL & ~MESA_META_DRAW_BUFFERS);
 
@@ -2845,7 +2831,6 @@ copytexsubimage_using_blit_framebuffer(struct gl_context *ctx, GLuint dims,
    success = mask == 0x0;
 
  out:
-   _mesa_lock_texture(ctx, texObj);
    _mesa_DeleteFramebuffers(1, &fbo);
    _mesa_meta_end(ctx);
    return success;
@@ -2863,7 +2848,6 @@ _mesa_meta_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
                            GLint x, GLint y,
                            GLsizei width, GLsizei height)
 {
-   struct gl_texture_object *texObj = texImage->TexObject;
    GLenum format, type;
    GLint bpp;
    void *buf;
@@ -2908,8 +2892,6 @@ _mesa_meta_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
       return;
    }
 
-   _mesa_unlock_texture(ctx, texObj); /* need to unlock first */
-
    /*
     * Read image from framebuffer (disable pixel transfer ops)
     */
@@ -2938,19 +2920,25 @@ _mesa_meta_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
 
    _mesa_meta_end(ctx);
 
-   _mesa_lock_texture(ctx, texObj); /* re-lock */
-
    free(buf);
 }
 
+static void
+meta_decompress_fbo_cleanup(struct decompress_fbo_state *decompress_fbo)
+{
+   if (decompress_fbo->FBO != 0) {
+      _mesa_DeleteFramebuffers(1, &decompress_fbo->FBO);
+      _mesa_DeleteRenderbuffers(1, &decompress_fbo->RBO);
+   }
+
+   memset(decompress_fbo, 0, sizeof(*decompress_fbo));
+}
 
 static void
 meta_decompress_cleanup(struct decompress_state *decompress)
 {
-   if (decompress->FBO != 0) {
-      _mesa_DeleteFramebuffers(1, &decompress->FBO);
-      _mesa_DeleteRenderbuffers(1, &decompress->RBO);
-   }
+   meta_decompress_fbo_cleanup(&decompress->byteFBO);
+   meta_decompress_fbo_cleanup(&decompress->floatFBO);
 
    if (decompress->VAO != 0) {
       _mesa_DeleteVertexArrays(1, &decompress->VAO);
@@ -2972,7 +2960,7 @@ meta_decompress_cleanup(struct decompress_state *decompress)
  * \param dest  destination buffer
  * \param destRowLength  dest image rowLength (ala GL_PACK_ROW_LENGTH)
  */
-static void
+static bool
 decompress_texture_image(struct gl_context *ctx,
                          struct gl_texture_image *texImage,
                          GLuint slice,
@@ -2980,16 +2968,32 @@ decompress_texture_image(struct gl_context *ctx,
                          GLvoid *dest)
 {
    struct decompress_state *decompress = &ctx->Meta->Decompress;
+   struct decompress_fbo_state *decompress_fbo;
    struct gl_texture_object *texObj = texImage->TexObject;
    const GLint width = texImage->Width;
    const GLint height = texImage->Height;
    const GLint depth = texImage->Height;
    const GLenum target = texObj->Target;
+   GLenum rbFormat;
    GLenum faceTarget;
    struct vertex verts[4];
    GLuint samplerSave;
+   GLenum status;
    const bool use_glsl_version = ctx->Extensions.ARB_vertex_shader &&
                                       ctx->Extensions.ARB_fragment_shader;
+
+   switch (_mesa_get_format_datatype(texImage->TexFormat)) {
+   case GL_FLOAT:
+      decompress_fbo = &decompress->floatFBO;
+      rbFormat = GL_RGBA32F;
+      break;
+   case GL_UNSIGNED_NORMALIZED:
+      decompress_fbo = &decompress->byteFBO;
+      rbFormat = GL_RGBA;
+      break;
+   default:
+      return false;
+   }
 
    if (slice > 0) {
       assert(target == GL_TEXTURE_3D ||
@@ -3001,11 +3005,11 @@ decompress_texture_image(struct gl_context *ctx,
    case GL_TEXTURE_1D:
    case GL_TEXTURE_1D_ARRAY:
       assert(!"No compressed 1D textures.");
-      return;
+      return false;
 
    case GL_TEXTURE_3D:
       assert(!"No compressed 3D textures.");
-      return;
+      return false;
 
    case GL_TEXTURE_CUBE_MAP_ARRAY:
       faceTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_X + (slice % 6);
@@ -3027,27 +3031,35 @@ decompress_texture_image(struct gl_context *ctx,
          ctx->Texture.Unit[ctx->Texture.CurrentUnit].Sampler->Name : 0;
 
    /* Create/bind FBO/renderbuffer */
-   if (decompress->FBO == 0) {
-      _mesa_GenFramebuffers(1, &decompress->FBO);
-      _mesa_GenRenderbuffers(1, &decompress->RBO);
-      _mesa_BindFramebuffer(GL_FRAMEBUFFER_EXT, decompress->FBO);
-      _mesa_BindRenderbuffer(GL_RENDERBUFFER_EXT, decompress->RBO);
+   if (decompress_fbo->FBO == 0) {
+      _mesa_GenFramebuffers(1, &decompress_fbo->FBO);
+      _mesa_GenRenderbuffers(1, &decompress_fbo->RBO);
+      _mesa_BindFramebuffer(GL_FRAMEBUFFER_EXT, decompress_fbo->FBO);
+      _mesa_BindRenderbuffer(GL_RENDERBUFFER_EXT, decompress_fbo->RBO);
       _mesa_FramebufferRenderbuffer(GL_FRAMEBUFFER_EXT,
                                        GL_COLOR_ATTACHMENT0_EXT,
                                        GL_RENDERBUFFER_EXT,
-                                       decompress->RBO);
+                                       decompress_fbo->RBO);
    }
    else {
-      _mesa_BindFramebuffer(GL_FRAMEBUFFER_EXT, decompress->FBO);
+      _mesa_BindFramebuffer(GL_FRAMEBUFFER_EXT, decompress_fbo->FBO);
    }
 
    /* alloc dest surface */
-   if (width > decompress->Width || height > decompress->Height) {
-      _mesa_BindRenderbuffer(GL_RENDERBUFFER_EXT, decompress->RBO);
-      _mesa_RenderbufferStorage(GL_RENDERBUFFER_EXT, GL_RGBA,
-                                   width, height);
-      decompress->Width = width;
-      decompress->Height = height;
+   if (width > decompress_fbo->Width || height > decompress_fbo->Height) {
+      _mesa_BindRenderbuffer(GL_RENDERBUFFER_EXT, decompress_fbo->RBO);
+      _mesa_RenderbufferStorage(GL_RENDERBUFFER_EXT, rbFormat,
+                                width, height);
+      status = _mesa_CheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
+      if (status != GL_FRAMEBUFFER_COMPLETE) {
+         /* If the framebuffer isn't complete then we'll leave
+          * decompress_fbo->Width as zero so that it will fail again next time
+          * too */
+         _mesa_meta_end(ctx);
+         return false;
+      }
+      decompress_fbo->Width = width;
+      decompress_fbo->Height = height;
    }
 
    if (use_glsl_version) {
@@ -3169,6 +3181,8 @@ decompress_texture_image(struct gl_context *ctx,
    _mesa_BindSampler(ctx->Texture.CurrentUnit, samplerSave);
 
    _mesa_meta_end(ctx);
+
+   return true;
 }
 
 
@@ -3182,17 +3196,10 @@ _mesa_meta_GetTexImage(struct gl_context *ctx,
                        GLenum format, GLenum type, GLvoid *pixels,
                        struct gl_texture_image *texImage)
 {
-   /* We can only use the decompress-with-blit method here if the texels are
-    * unsigned, normalized values.  We could handle signed and unnormalized 
-    * with floating point renderbuffers...
-    */
-   if (_mesa_is_format_compressed(texImage->TexFormat) &&
-       _mesa_get_format_datatype(texImage->TexFormat)
-       == GL_UNSIGNED_NORMALIZED) {
-      struct gl_texture_object *texObj = texImage->TexObject;
+   if (_mesa_is_format_compressed(texImage->TexFormat)) {
       GLuint slice;
-      /* Need to unlock the texture here to prevent deadlock... */
-      _mesa_unlock_texture(ctx, texObj);
+      bool result;
+
       for (slice = 0; slice < texImage->Depth; slice++) {
          void *dst;
          if (texImage->TexObject->Target == GL_TEXTURE_2D_ARRAY
@@ -3212,14 +3219,17 @@ _mesa_meta_GetTexImage(struct gl_context *ctx,
          else {
             dst = pixels;
          }
-         decompress_texture_image(ctx, texImage, slice, format, type, dst);
+         result = decompress_texture_image(ctx, texImage, slice,
+                                           format, type, dst);
+         if (!result)
+            break;
       }
-      /* ... and relock it */
-      _mesa_lock_texture(ctx, texObj);
+
+      if (result)
+         return;
    }
-   else {
-      _mesa_get_teximage(ctx, format, type, pixels, texImage);
-   }
+
+   _mesa_get_teximage(ctx, format, type, pixels, texImage);
 }
 
 
@@ -3515,14 +3525,10 @@ _mesa_meta_ClearTexSubImage(struct gl_context *ctx,
 {
    bool res;
 
-   _mesa_unlock_texture(ctx, texImage->TexObject);
-
    res = cleartexsubimage_using_fbo(ctx, texImage,
                                     xoffset, yoffset, zoffset,
                                     width, height, depth,
                                     clearValue);
-
-   _mesa_lock_texture(ctx, texImage->TexObject);
 
    if (res)
       return;
