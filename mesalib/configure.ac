@@ -238,40 +238,10 @@ dnl
 dnl Optional flags, check for compiler support
 dnl
 AX_CHECK_COMPILE_FLAG([-msse4.1], [SSE41_SUPPORTED=1], [SSE41_SUPPORTED=0])
+if test "x$SSE41_SUPPORTED" = x1; then
+    DEFINES="$DEFINES -DUSE_SSE41"
+fi
 AM_CONDITIONAL([SSE41_SUPPORTED], [test x$SSE41_SUPPORTED = x1])
-
-dnl
-dnl Hacks to enable 32 or 64 bit build
-dnl
-AC_ARG_ENABLE([32-bit],
-    [AS_HELP_STRING([--enable-32-bit],
-        [build 32-bit libraries @<:@default=auto@:>@])],
-    [enable_32bit="$enableval"],
-    [enable_32bit=auto]
-)
-if test "x$enable_32bit" = xyes; then
-    if test "x$GCC" = xyes; then
-        CFLAGS="$CFLAGS -m32"
-        CCASFLAGS="$CCASFLAGS -m32"
-    fi
-    if test "x$GXX" = xyes; then
-        CXXFLAGS="$CXXFLAGS -m32"
-    fi
-fi
-AC_ARG_ENABLE([64-bit],
-    [AS_HELP_STRING([--enable-64-bit],
-        [build 64-bit libraries @<:@default=auto@:>@])],
-    [enable_64bit="$enableval"],
-    [enable_64bit=auto]
-)
-if test "x$enable_64bit" = xyes; then
-    if test "x$GCC" = xyes; then
-        CFLAGS="$CFLAGS -m64"
-    fi
-    if test "x$GXX" = xyes; then
-        CXXFLAGS="$CXXFLAGS -m64"
-    fi
-fi
 
 dnl Can't have static and shared libraries, default to static if user
 dnl explicitly requested. If both disabled, set to static since shared
@@ -484,10 +454,7 @@ if test "x$enable_asm" = xyes; then
     case "$host_cpu" in
     i?86)
         case "$host_os" in
-        linux* | *freebsd* | dragonfly* | *netbsd* | openbsd*)
-            test "x$enable_64bit" = xyes && asm_arch=x86_64 || asm_arch=x86
-            ;;
-        gnu*)
+        linux* | *freebsd* | dragonfly* | *netbsd* | openbsd* | gnu*)
             asm_arch=x86
             ;;
         esac
@@ -495,7 +462,7 @@ if test "x$enable_asm" = xyes; then
     x86_64|amd64)
         case "$host_os" in
         linux* | *freebsd* | dragonfly* | *netbsd* | openbsd*)
-            test "x$enable_32bit" = xyes && asm_arch=x86 || asm_arch=x86_64
+            asm_arch=x86_64
             ;;
         esac
         ;;
@@ -1350,9 +1317,9 @@ if test "x$enable_gallium_gbm" = xyes; then
     if test "x$enable_gbm" = xno; then
         AC_MSG_ERROR([cannot enable gbm_gallium without gbm])
     fi
-    # gbm_gallium abuses DRI_LIB_DEPS to link.  Make sure it is set.
-    if test "x$enable_dri" = xno; then
-        AC_MSG_ERROR([gbm_gallium requires --enable-dri to build])
+
+    if test "x$enable_gallium_egl" != xyes; then
+        AC_MSG_ERROR([gbm_gallium is only used by egl_gallium])
     fi
 
     GALLIUM_STATE_TRACKERS_DIRS="gbm $GALLIUM_STATE_TRACKERS_DIRS"
@@ -2200,9 +2167,9 @@ AC_CONFIG_FILES([Makefile
 		src/egl/wayland/wayland-drm/Makefile
 		src/egl/wayland/wayland-egl/Makefile
 		src/egl/wayland/wayland-egl/wayland-egl.pc
+		src/gallium/Makefile
 		src/gallium/auxiliary/Makefile
 		src/gallium/auxiliary/pipe-loader/Makefile
-		src/gallium/drivers/Makefile
 		src/gallium/drivers/freedreno/Makefile
 		src/gallium/drivers/galahad/Makefile
 		src/gallium/drivers/i915/Makefile
@@ -2220,7 +2187,6 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/drivers/svga/Makefile
 		src/gallium/drivers/trace/Makefile
 		src/gallium/drivers/vc4/Makefile
-		src/gallium/state_trackers/Makefile
 		src/gallium/state_trackers/clover/Makefile
 		src/gallium/state_trackers/dri/Makefile
 		src/gallium/state_trackers/egl/Makefile
@@ -2232,7 +2198,6 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/state_trackers/vega/Makefile
 		src/gallium/state_trackers/xa/Makefile
 		src/gallium/state_trackers/xvmc/Makefile
-		src/gallium/targets/Makefile
 		src/gallium/targets/dri/Makefile
 		src/gallium/targets/egl-static/Makefile
 		src/gallium/targets/gbm/Makefile
@@ -2248,7 +2213,6 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/targets/xvmc/Makefile
 		src/gallium/tests/trivial/Makefile
 		src/gallium/tests/unit/Makefile
-		src/gallium/winsys/Makefile
 		src/gallium/winsys/freedreno/drm/Makefile
 		src/gallium/winsys/i915/drm/Makefile
 		src/gallium/winsys/intel/drm/Makefile
@@ -2272,15 +2236,9 @@ AC_CONFIG_FILES([Makefile
 		src/gtest/Makefile
 		src/loader/Makefile
 		src/mapi/Makefile
-		src/mapi/es1api/Makefile
 		src/mapi/es1api/glesv1_cm.pc
-		src/mapi/es2api/Makefile
 		src/mapi/es2api/glesv2.pc
-		src/mapi/glapi/Makefile
 		src/mapi/glapi/gen/Makefile
-		src/mapi/glapi/tests/Makefile
-		src/mapi/shared-glapi/Makefile
-		src/mapi/shared-glapi/tests/Makefile
 		src/mapi/vgapi/Makefile
 		src/mapi/vgapi/vg.pc
 		src/mesa/Makefile

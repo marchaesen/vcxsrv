@@ -70,6 +70,13 @@ xkb_symbols "swap_lwin_lctl" {
     replace key <LCTL> { [ Super_L ] };
 };
 
+// Swap the functions of the right Win key and the right Ctrl key.
+partial modifier_keys
+xkb_symbols "swap_rwin_rctl" {
+    replace key <RWIN> { [ Control_R ] };
+    replace key <RCTL> { [ Super_R ] };
+};
+
 // Map Ctrl to the left Alt key, Alt to the left Win key,
 // and Super to the left Ctrl key.
 partial modifier_keys

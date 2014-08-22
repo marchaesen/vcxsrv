@@ -427,6 +427,12 @@ typedef enum
    MESA_FORMAT_ETC2_RGB8_PUNCHTHROUGH_ALPHA1,
    MESA_FORMAT_ETC2_SRGB8_PUNCHTHROUGH_ALPHA1,
 
+   /* BPTC compressed formats */
+   MESA_FORMAT_BPTC_RGBA_UNORM,
+   MESA_FORMAT_BPTC_SRGB_ALPHA_UNORM,
+   MESA_FORMAT_BPTC_RGB_SIGNED_FLOAT,
+   MESA_FORMAT_BPTC_RGB_UNSIGNED_FLOAT,
+
    MESA_FORMAT_COUNT
 } mesa_format;
 
@@ -475,6 +481,9 @@ _mesa_is_format_signed(mesa_format format);
 
 extern GLboolean
 _mesa_is_format_integer(mesa_format format);
+
+extern bool
+_mesa_is_format_etc2(mesa_format format);
 
 extern GLenum
 _mesa_get_format_color_encoding(mesa_format format);

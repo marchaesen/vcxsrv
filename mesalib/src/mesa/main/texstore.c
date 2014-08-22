@@ -68,6 +68,7 @@
 #include "texcompress_rgtc.h"
 #include "texcompress_s3tc.h"
 #include "texcompress_etc.h"
+#include "texcompress_bptc.h"
 #include "teximage.h"
 #include "texstore.h"
 #include "enums.h"
@@ -1426,6 +1427,15 @@ texstore_compressed(TEXSTORE_PARAMS)
       table[MESA_FORMAT_ETC2_SRGB8_PUNCHTHROUGH_ALPHA1] =
          _mesa_texstore_etc2_srgb8_punchthrough_alpha1;
 
+      table[MESA_FORMAT_BPTC_RGBA_UNORM] =
+         _mesa_texstore_bptc_rgba_unorm;
+      table[MESA_FORMAT_BPTC_SRGB_ALPHA_UNORM] =
+         _mesa_texstore_bptc_rgba_unorm;
+      table[MESA_FORMAT_BPTC_RGB_SIGNED_FLOAT] =
+         _mesa_texstore_bptc_rgb_signed_float;
+      table[MESA_FORMAT_BPTC_RGB_UNSIGNED_FLOAT] =
+         _mesa_texstore_bptc_rgb_unsigned_float;
+
       initialized = GL_TRUE;
    }
 
@@ -1483,6 +1493,12 @@ texstore_swizzle(TEXSTORE_PARAMS)
                                     rgba2dst, &normalized);
 
    if (!is_array)
+      return GL_FALSE;
+
+   if (srcFormat == GL_COLOR_INDEX)
+      return GL_FALSE;
+
+   if (_mesa_texstore_needs_transfer_ops(ctx, baseInternalFormat, dstFormat))
       return GL_FALSE;
 
    switch (srcType) {
@@ -2175,14 +2191,23 @@ _mesa_store_compressed_teximage(struct gl_context *ctx, GLuint dims,
 }
 
 
+/**
+ * Compute compressed_pixelstore parameters for copying compressed
+ * texture data.
+ * \param dims  number of texture image dimensions: 1, 2 or 3
+ * \param texFormat  the compressed texture format
+ * \param width, height, depth  size of image to copy
+ * \param packing  pixelstore parameters describing user-space image packing
+ * \param store  returns the compressed_pixelstore parameters
+ */
 void
-_mesa_compute_compressed_pixelstore(GLuint dims, struct gl_texture_image *texImage,
-                              GLsizei width, GLsizei height, GLsizei depth,
-                              const struct gl_pixelstore_attrib *packing,
-                              struct compressed_pixelstore *store)
+_mesa_compute_compressed_pixelstore(GLuint dims, mesa_format texFormat,
+                                    GLsizei width, GLsizei height,
+                                    GLsizei depth,
+                                    const struct gl_pixelstore_attrib *packing,
+                                    struct compressed_pixelstore *store)
 {
    GLuint bw, bh;
-   const mesa_format texFormat = texImage->TexFormat;
 
    _mesa_get_format_block_size(texFormat, &bw, &bh);
 
@@ -2252,8 +2277,9 @@ _mesa_store_compressed_texsubimage(struct gl_context *ctx, GLuint dims,
       return;
    }
 
-   _mesa_compute_compressed_pixelstore(dims, texImage, width, height, depth,
-                                 &ctx->Unpack, &store);
+   _mesa_compute_compressed_pixelstore(dims, texImage->TexFormat,
+                                       width, height, depth,
+                                       &ctx->Unpack, &store);
 
    /* get pointer to src pixels (may be in a pbo which we'll map here) */
    data = _mesa_validate_pbo_compressed_teximage(ctx, dims, imageSize, data,

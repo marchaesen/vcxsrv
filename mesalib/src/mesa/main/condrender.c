@@ -77,8 +77,14 @@ _mesa_BeginConditionalRender(GLuint queryId, GLenum mode)
    case GL_QUERY_NO_WAIT:
    case GL_QUERY_BY_REGION_WAIT:
    case GL_QUERY_BY_REGION_NO_WAIT:
-      /* OK */
-      break;
+      break; /* OK */
+   case GL_QUERY_WAIT_INVERTED:
+   case GL_QUERY_NO_WAIT_INVERTED:
+   case GL_QUERY_BY_REGION_WAIT_INVERTED:
+   case GL_QUERY_BY_REGION_NO_WAIT_INVERTED:
+      if (ctx->Extensions.ARB_conditional_render_inverted)
+         break; /* OK */
+      /* fallthrough - invalid */
    default:
       _mesa_error(ctx, GL_INVALID_ENUM, "glBeginConditionalRender(mode=%s)",
                   _mesa_lookup_enum_by_nr(mode));
@@ -156,12 +162,25 @@ _mesa_check_conditional_render(struct gl_context *ctx)
          ctx->Driver.WaitQuery(ctx, q);
       }
       return q->Result > 0;
+   case GL_QUERY_BY_REGION_WAIT_INVERTED:
+      /* fall-through */
+   case GL_QUERY_WAIT_INVERTED:
+      if (!q->Ready) {
+         ctx->Driver.WaitQuery(ctx, q);
+      }
+      return q->Result == 0;
    case GL_QUERY_BY_REGION_NO_WAIT:
       /* fall-through */
    case GL_QUERY_NO_WAIT:
       if (!q->Ready)
          ctx->Driver.CheckQuery(ctx, q);
       return q->Ready ? (q->Result > 0) : GL_TRUE;
+   case GL_QUERY_BY_REGION_NO_WAIT_INVERTED:
+      /* fall-through */
+   case GL_QUERY_NO_WAIT_INVERTED:
+      if (!q->Ready)
+         ctx->Driver.CheckQuery(ctx, q);
+      return q->Ready ? (q->Result == 0) : GL_TRUE;
    default:
       _mesa_problem(ctx, "Bad cond render mode %s in "
                     " _mesa_check_conditional_render()",

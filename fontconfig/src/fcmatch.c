@@ -375,7 +375,7 @@ FcCompareValueList (FcObject	     object,
     best = 1e99;
     bestStrong = 1e99;
     bestWeak = 1e99;
-    j = 1;
+    j = 0;
     for (v1 = v1orig; v1; v1 = FcValueListNext(v1))
     {
 	for (v2 = v2orig, k = 0; v2; v2 = FcValueListNext(v2), k++)

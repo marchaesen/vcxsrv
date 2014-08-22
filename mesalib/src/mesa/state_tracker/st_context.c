@@ -189,6 +189,9 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
    st->has_stencil_export =
       screen->get_param(screen, PIPE_CAP_SHADER_STENCIL_EXPORT);
    st->has_shader_model3 = screen->get_param(screen, PIPE_CAP_SM3);
+   st->has_etc1 = screen->is_format_supported(screen, PIPE_FORMAT_ETC1_RGB8,
+                                              PIPE_TEXTURE_2D, 0,
+                                              PIPE_BIND_SAMPLER_VIEW);
    st->prefer_blit_based_texture_transfer = screen->get_param(screen,
                               PIPE_CAP_PREFER_BLIT_BASED_TEXTURE_TRANSFER);
 
@@ -198,10 +201,40 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
       !!(screen->get_param(screen, PIPE_CAP_TEXTURE_BORDER_COLOR_QUIRK) &
          (PIPE_QUIRK_TEXTURE_BORDER_COLOR_SWIZZLE_NV50 |
           PIPE_QUIRK_TEXTURE_BORDER_COLOR_SWIZZLE_R600));
+   st->has_time_elapsed =
+      screen->get_param(screen, PIPE_CAP_QUERY_TIME_ELAPSED);
 
    /* GL limits and extensions */
-   st_init_limits(st);
-   st_init_extensions(st);
+   st_init_limits(st->pipe->screen, &ctx->Const, &ctx->Extensions);
+   st_init_extensions(st->pipe->screen, ctx->API, &ctx->Const,
+                      &ctx->Extensions, &st->options, ctx->Mesa_DXTn);
+
+   /* Enable shader-based fallbacks for ARB_color_buffer_float if needed. */
+   if (screen->get_param(screen, PIPE_CAP_VERTEX_COLOR_UNCLAMPED)) {
+      if (!screen->get_param(screen, PIPE_CAP_VERTEX_COLOR_CLAMPED)) {
+         st->clamp_vert_color_in_shader = GL_TRUE;
+      }
+
+      if (!screen->get_param(screen, PIPE_CAP_FRAGMENT_COLOR_CLAMPED)) {
+         st->clamp_frag_color_in_shader = GL_TRUE;
+      }
+
+      /* For drivers which cannot do color clamping, it's better to just
+       * disable ARB_color_buffer_float in the core profile, because
+       * the clamping is deprecated there anyway. */
+      if (ctx->API == API_OPENGL_CORE &&
+          (st->clamp_frag_color_in_shader || st->clamp_vert_color_in_shader)) {
+         st->clamp_vert_color_in_shader = GL_FALSE;
+         st->clamp_frag_color_in_shader = GL_FALSE;
+         ctx->Extensions.ARB_color_buffer_float = GL_FALSE;
+      }
+   }
+
+   /* called after _mesa_create_context/_mesa_init_point, fix default user
+    * settable max point size up
+    */
+   st->ctx->Point.MaxSize = MAX2(ctx->Const.MaxPointSize,
+                                 ctx->Const.MaxPointSizeAA);
 
    _mesa_compute_version(ctx);
 
@@ -241,7 +274,7 @@ struct st_context *st_create_context(gl_api api, struct pipe_context *pipe,
     * driver prefers DP4 or MUL/MAD for vertex transformation.
     */
    if (debug_get_option_mesa_mvp_dp4())
-      ctx->ShaderCompilerOptions[MESA_SHADER_VERTEX].OptimizeForAOS = GL_TRUE;
+      ctx->Const.ShaderCompilerOptions[MESA_SHADER_VERTEX].OptimizeForAOS = GL_TRUE;
 
    return st_create_context_priv(ctx, pipe, options);
 }

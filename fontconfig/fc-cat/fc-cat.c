@@ -298,6 +298,7 @@ main (int argc, char **argv)
 	return 1;
     }
     FcConfigSetCurrent (config);
+    FcConfigDestroy (config);
     
     args = FcStrSetCreate ();
     if (!args)
@@ -314,12 +315,6 @@ main (int argc, char **argv)
 		fprintf (stderr, "%s: malloc failure\n", argv[0]);
 		return 1;
 	    }
-	}
-	arglist = FcStrListCreate (args);
-	if (!arglist)
-	{
-	    fprintf (stderr, "%s: malloc failure\n", argv[0]);
-	    return 1;
 	}
     }
     else
@@ -340,6 +335,7 @@ main (int argc, char **argv)
 	fprintf (stderr, "%s: malloc failure\n", argv[0]);
 	return 1;
     }
+    FcStrSetDestroy (args);
 
     while ((arg = FcStrListNext (arglist)))
     {
@@ -384,6 +380,7 @@ main (int argc, char **argv)
 	if (cache_file)
 	    FcStrFree (cache_file);
     }
+    FcStrListDone (arglist);
 
     FcFini ();
     return 0;

@@ -59,7 +59,8 @@ cause a new configuration to be created for use as current configuration.
 @PURPOSE@	Set configuration as default
 @DESC@
 Sets the current default configuration to <parameter>config</parameter>.  Implicitly calls
-FcConfigBuildFonts if necessary, returning FcFalse if that call fails.
+FcConfigBuildFonts if necessary, and FcConfigReference() to inrease the reference count
+in <parameter>config</parameter> since 2.12.0, returning FcFalse if that call fails.
 @@
 
 @RET@           FcConfig *

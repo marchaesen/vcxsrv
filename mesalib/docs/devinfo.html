@@ -218,15 +218,93 @@ commit ID of the commit of interest (as it appears in the mesa master branch).
 
 The latest set of patches that have been nominated, accepted, or rejected for
 the upcoming stable release can always be seen on the
-<a href=http://cworth.org/~cworth/mesa-stable-queue/">Mesa Stable Queue</a>
+<a href="http://cworth.org/~cworth/mesa-stable-queue/">Mesa Stable Queue</a>
 page.
 
-<h2>Cherry-picking candidates for a stable branch</h2>
+<h2>Criteria for accepting patches to the stable branch</h2>
 
-<p>
-Please use <code>git cherry-pick -x &lt;commit&gt;</code> for cherry-picking a commit
-from master to a stable branch.
-</p>
+Mesa has a designated release manager for each stable branch, and the release
+manager is the only developer that should be pushing changes to these
+branches. Everyone else should simply nominate patches using the mechanism
+described above.
+
+The stable-release manager will work with the list of nominated patches, and
+for each patch that meets the crtieria below will cherry-pick the patch with:
+<code>git cherry-pick -x &lt;commit&gt;</code>. The <code>-x</code> option is
+important so that the picked patch references the comit ID of the original
+patch.
+
+The stable-release manager may at times need to force-push changes to the
+stable branches, for example, to drop a previously-picked patch that was later
+identified as causing a regression). These force-pushes may cause changes to
+be lost from the stable branch if developers push things directly. Consider
+yourself warned.
+
+The stable-release manager is also given broad discretion in rejecting patches
+that have been nominated for the stable branch. The most basic rule is that
+the stable branch is for bug fixes only, (no new features, no
+regressions). Here is a non-exhaustive list of some reasons that a patch may
+be rejected:
+
+<ul>
+  <li>Patch introduces a regression. Any reported build breakage or other
+  regression caused by a particular patch, (game no longer work, piglit test
+  changes from PASS to FAIL), is justification for rejecting a patch.</li>
+
+  <li>Patch is too large, (say, larger than 100 lines)</li>
+
+  <li>Patch is not a fix. For example, a commit that moves code around with no
+  functional change should be rejected.</li>
+
+  <li>Patch fix is not clearly described. For example, a commit message
+  of only a single line, no description of the bug, no mention of bugzilla,
+  etc.</li>
+
+  <li>Patch has not obviously been reviewed, For example, the commit message
+  has no Reviewed-by, Signed-off-by, nor Tested-by tags from anyone but the
+  author.</li>
+
+  <li>Patch has not already been merged to the master branch. As a rule, bug
+  fixes should never be applied first to a stable branch. Patches should land
+  first on the master branch and then be cherry-picked to a stable
+  branch. (This is to avoid future releases causing regressions if the patch
+  is not also applied to master.) The only things that might look like
+  exceptions would be backports of patches from master that happen to look
+  significantly different.</li>
+
+  <li>Patch depends on too many other patches. Ideally, all stable-branch
+  patches should be self-contained. It sometimes occurs that a single, logical
+  bug-fix occurs as two separate patches on master, (such as an original
+  patch, then a subsequent fix-up to that patch). In such a case, these two
+  patches should be squashed into a single, self-contained patch for the
+  stable branch. (Of course, if the squashing makes the patch too large, then
+  that could be a reason to reject the patch.)</li>
+
+  <li>Patch includes new feature development, not bug fixes. New OpenGL
+  features, extensions, etc. should be applied to Mesa master and included in
+  the next major release. Stable releases are intended only for bug fixes.
+
+  Note: As an exception to this rule, the stable-release manager may accept
+  hardware-enabling "features". For example, backports of new code to support
+  a newly-developed hardware product can be accepted if they can be reasonably
+  determined to not have effects on other hardware.</li>
+
+  <li>Patch is a performance optimization. As a rule, performance patches are
+  not candidates for the stable branch. The only exception might be a case
+  where an application's performance was recently severely impacted so as to
+  become unusable. The fix for this performance regression could then be
+  considered for a stable branch. The optimization must also be
+  non-controversial and the patches still need to meet the other criteria of
+  being simple and self-contained</li>
+
+  <li>Patch introduces a new failure mode (such as an assert). While the new
+  assert might technically be correct, for example to make Mesa more
+  conformant, this is not the kind of "bug fix" we want in a stable
+  release. The potential problem here is that an OpenGL program that was
+  previously working, (even if technically non-compliant with the
+  specification), could stop working after this patch. So that would be a
+  regression that is unaacceptable for the stable branch.</li>
+</ul>
 
 <h2>Making a New Mesa Release</h2>
 
@@ -237,64 +315,205 @@ These are the instructions for making a new Mesa release.
 <h3>Get latest source files</h3>
 <p>
 Use git to get the latest Mesa files from the git repository, from whatever
-branch is relevant.
+branch is relevant. This document uses the convention X.Y.Z for the release
+being created, which should be created from a branch named X.Y.
 </p>
 
-
-<h3>Verify and update version info in VERSION</h3>
-
+<h3>Perform basic testing</h3>
 <p>
-Create a docs/relnotes/x.y.z.html file.
-The bin/bugzilla_mesa.sh and bin/shortlog_mesa.sh scripts can be used to
-create the HTML-formatted lists of bugfixes and changes to include in the file.
-Link the new docs/relnotes/x.y.z.html file into the main <a href="relnotes.html">relnotes.html</a> file.
-</p>
-
-<p>
-Update <a href="index.html">docs/index.html</a>.
+The release manager should, at the very least, test the code by compiling it,
+installing it, and running the latest piglit to ensure that no piglit tests
+have regressed since the previous release.
 </p>
 
 <p>
-Tag the files with the release name (in the form <b>mesa-x.y</b>)
-with: <code>git tag -s mesa-x.y -m "Mesa x.y Release"</code>
-Then: <code>git push origin mesa-x.y</code>
+The release manager should do this testing with at least one hardware driver,
+(say, whatever is contained in the local development machine), as well as on
+both Gallium and non-Gallium software drivers. The software testing can be
+performed by running piglit with the following environment-variable set:
 </p>
 
-
-<h3>Make the tarballs</h3>
-<p>
-Make the distribution files.  From inside the Mesa directory:
 <pre>
-	./autogen.sh
-	make tarballs
+LIBGL_ALWAYS_SOFTWARE=1
+</pre>
+
+And Gallium vs. non-Gallium software drivers can be obtained by using the
+following configure flags on separate builds:
+
+<pre>
+--with-dri-drivers=swrast
+--with-gallium-drivers=swrast
 </pre>
 
 <p>
-After the tarballs are created, the md5 checksums for the files will
-be computed.
-Add them to the docs/relnotes/x.y.html file.
+Note: If both options are given in one build, both swrast_dri.so drivers will
+be compiled, but only one will be installed. The following command can be used
+to ensure the correct driver is being tested:
+</p>
+
+<pre>
+LIBGL_ALWAYS_SOFTWARE=1 glxinfo | grep "renderer string"
+</pre>
+
+If any regressions are found in this testing with piglit, stop here, and do
+not perform a release until regressions are fixed.
+
+<h3>Update version in file VERSION</h3>
+
+<p>
+Increment the version contained in the file VERSION at Mesa's top-level, then
+commit this change.
+</p>
+
+<h3>Create release notes for the new release</h3>
+
+<p>
+Create a new file docs/relnotes/X.Y.Z.html, (follow the style of the previous
+release notes). Note that the sha256sums section of the release notes should
+be empty at this point.
 </p>
 
 <p>
-Copy the distribution files to a temporary directory, unpack them,
-compile everything, and run some demos to be sure everything works.
-</p>
+Two scripts are available to help generate portions of the release notes:
 
-<h3>Update the website and announce the release</h3>
-<p>
-Make a new directory for the release on annarchy.freedesktop.org with:
-<br>
-<code>
-mkdir /srv/ftp.freedesktop.org/pub/mesa/x.y
-</code>
-</p>
+<pre>
+	./bin/bugzilla_mesa.sh
+	./bin/shortlog_mesa.sh
+</pre>
 
 <p>
-Basically, to upload the tarball files with:
-<br>
-<code>
-rsync -avP -e ssh MesaLib-x.y.* USERNAME@annarchy.freedesktop.org:/srv/ftp.freedesktop.org/pub/mesa/x.y/
-</code>
+The first script identifies commits that reference bugzilla bugs and obtains
+the descriptions of those bugs from bugzilla. The second script generates a
+log of all commits. In both cases, HTML-formatted lists are printed to stdout
+to be included in the release notes.
+</p>
+
+<p>
+Commit these changes
+</p>
+
+<h3>Make the release archives, signatures, and the release tag</h3>
+<p>
+From inside the Mesa directory:
+<pre>
+	./autogen.sh
+	make -j1 tarballs
+</pre>
+
+<p>
+After the tarballs are created, the sha256 checksums for the files will
+be computed and printed. These will be used in a step below.
+</p>
+
+<p>
+It's important at this point to also verify that the constructed tar file
+actually builds:
+</p>
+
+<pre>
+	tar xjf MesaLib-X.Y.Z.tar.bz2
+	cd Mesa-X.Y.Z
+	./configure --enable-gallium-llvm
+	make -j6
+	make install
+</pre>
+
+<p>
+Some touch testing should also be performed at this point, (run glxgears or
+more involved OpenGL programs against the installed Mesa).
+</p>
+
+<p>
+Create detached GPG signatures for each of the archive files created above:
+</p>
+
+<pre>
+	gpg --sign --detach MesaLib-X.Y.Z.tar.gz
+	gpg --sign --detach MesaLib-X.Y.Z.tar.bz2
+	gpg --sign --detach MesaLib-X.Y.Z.zip
+</pre>
+
+<p>
+Tag the commit used for the build:
+</p>
+
+<pre>
+	git tag -s mesa-X.Y.X -m "Mesa X.Y.Z release"
+</pre>
+
+<p>
+Note: It would be nice to investigate and fix the issue that causes the
+tarballs target to fail with multiple build process, such as with "-j4". It
+would also be nice to incorporate all of the above commands into a single
+makefile target. And instead of a custom "tarballs" target, we should
+incorporate things into the standard "make dist" and "make distcheck" targets.
+</p>
+
+<h3>Add the sha256sums to the release notes</h3>
+
+<p>
+Edit docs/relnotes/X.Y.Z.html to add the sha256sums printed as part of "make
+tarballs" in the previous step. Commit this change.
+</p>
+
+<h3>Push all commits and the tag creates above</h3>
+
+<p>
+This is the first step that cannot easily be undone. The release is going
+forward from this point:
+</p>
+
+<pre>
+	git push origin X.Y --tags
+</pre>
+
+<h3>Install the release files and signatures on the distribution server</h3>
+
+<p>
+The following commands can be used to copy the release archive files and
+signatures to the freedesktop.org server:
+</p>
+
+<pre>
+	scp MesaLib-X.Y.Z* people.freedesktop.org:
+	ssh people.freedesktop.org
+	cd /srv/ftp.freedesktop.org/pub/mesa
+	mkdir X.Y.Z
+	cd X.Y.Z
+	mv ~/MesaLib-X.Y.Z* .
+</pre>
+
+<h3>Back on mesa master, andd the new release notes into the tree</h3>
+
+<p>
+Something like the following steps will do the trick:
+</p>
+
+<pre>
+	cp docs/relnotes/X.Y.Z.html /tmp
+        git checkout master
+        cp /tmp/X.Y.Z.html docs/relnotes
+        git add docs/relnotes/X.Y.Z.html
+</pre>
+
+<p>
+Also, edit docs/relnotes.html to add a link to the new release notes, and edit
+docs/index.html to add a news entry. Then commit and push:
+</p>
+
+<pre>
+	git commit -a -m "docs: Import X.Y.Z release notes, add news item."
+        git push origin
+</pre>
+
+<h3>Update the mesa3d.org website</h3>
+
+<p>
+NOTE: The recent release managers have not been performing this step
+themselves, but leaving this to Brian Paul, (who has access to the
+sourceforge.net hosting for mesa3d.org). Brian is more than willing to grant
+the permission necessary to future release managers to do this step on their
+own.
 </p>
 
 <p>
@@ -306,13 +525,22 @@ sftp USERNAME,mesa3d@web.sourceforge.net
 </code>
 </p>
 
+
+<h3>Announce the release</h3>
 <p>
 Make an announcement on the mailing lists:
 
 <em>mesa-dev@lists.freedesktop.org</em>,
-<em>mesa-users@lists.freedesktop.org</em>
 and
 <em>mesa-announce@lists.freedesktop.org</em>
+
+Follow the template of previously-sent release announcements. The following
+command can be used to generate the log of changes to be included in the
+release announcement:
+
+<pre>
+	git shortlog mesa-X.Y.Z-1..mesa-X.Y.Z
+</pre>
 </p>
 
 </div>

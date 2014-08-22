@@ -54,7 +54,7 @@
  * Translate Mesa format to Gallium format.
  */
 enum pipe_format
-st_mesa_format_to_pipe_format(mesa_format mesaFormat)
+st_mesa_format_to_pipe_format(struct st_context *st, mesa_format mesaFormat)
 {
    switch (mesaFormat) {
    case MESA_FORMAT_A8B8G8R8_UNORM:
@@ -323,8 +323,19 @@ st_mesa_format_to_pipe_format(mesa_format mesaFormat)
    case MESA_FORMAT_LA_LATC2_SNORM:
       return PIPE_FORMAT_LATC2_SNORM;
 
+   /* The destination RGBA format mustn't be changed, because it's also
+    * a destination format of the unpack/decompression function. */
    case MESA_FORMAT_ETC1_RGB8:
-      return PIPE_FORMAT_ETC1_RGB8;
+      return st->has_etc1 ? PIPE_FORMAT_ETC1_RGB8 : PIPE_FORMAT_R8G8B8A8_UNORM;
+
+   case MESA_FORMAT_BPTC_RGBA_UNORM:
+      return PIPE_FORMAT_BPTC_RGBA_UNORM;
+   case MESA_FORMAT_BPTC_SRGB_ALPHA_UNORM:
+      return PIPE_FORMAT_BPTC_SRGBA;
+   case MESA_FORMAT_BPTC_RGB_SIGNED_FLOAT:
+      return PIPE_FORMAT_BPTC_RGB_FLOAT;
+   case MESA_FORMAT_BPTC_RGB_UNSIGNED_FLOAT:
+      return PIPE_FORMAT_BPTC_RGB_UFLOAT;
 
    /* signed normalized formats */
    case MESA_FORMAT_R_SNORM8:
@@ -401,6 +412,26 @@ st_mesa_format_to_pipe_format(mesa_format mesaFormat)
 
    case MESA_FORMAT_B8G8R8X8_SRGB:
       return PIPE_FORMAT_B8G8R8X8_SRGB;
+
+   /* ETC2 formats are emulated as uncompressed ones.
+    * The destination formats mustn't be changed, because they are also
+    * destination formats of the unpack/decompression function. */
+   case MESA_FORMAT_ETC2_RGB8:
+   case MESA_FORMAT_ETC2_RGBA8_EAC:
+   case MESA_FORMAT_ETC2_RGB8_PUNCHTHROUGH_ALPHA1:
+      return PIPE_FORMAT_R8G8B8A8_UNORM;
+   case MESA_FORMAT_ETC2_SRGB8:
+   case MESA_FORMAT_ETC2_SRGB8_ALPHA8_EAC:
+   case MESA_FORMAT_ETC2_SRGB8_PUNCHTHROUGH_ALPHA1:
+      return PIPE_FORMAT_B8G8R8A8_SRGB;
+   case MESA_FORMAT_ETC2_R11_EAC:
+      return PIPE_FORMAT_R16_UNORM;
+   case MESA_FORMAT_ETC2_RG11_EAC:
+      return PIPE_FORMAT_R16G16_UNORM;
+   case MESA_FORMAT_ETC2_SIGNED_R11_EAC:
+      return PIPE_FORMAT_R16_SNORM;
+   case MESA_FORMAT_ETC2_SIGNED_RG11_EAC:
+      return PIPE_FORMAT_R16G16_SNORM;
 
    default:
       return PIPE_FORMAT_NONE;
@@ -685,6 +716,15 @@ st_pipe_format_to_mesa_format(enum pipe_format format)
    case PIPE_FORMAT_ETC1_RGB8:
       return MESA_FORMAT_ETC1_RGB8;
 
+   case PIPE_FORMAT_BPTC_RGBA_UNORM:
+      return MESA_FORMAT_BPTC_RGBA_UNORM;
+   case PIPE_FORMAT_BPTC_SRGBA:
+      return MESA_FORMAT_BPTC_SRGB_ALPHA_UNORM;
+   case PIPE_FORMAT_BPTC_RGB_FLOAT:
+      return MESA_FORMAT_BPTC_RGB_SIGNED_FLOAT;
+   case PIPE_FORMAT_BPTC_RGB_UFLOAT:
+      return MESA_FORMAT_BPTC_RGB_UNSIGNED_FLOAT;
+
    /* signed normalized formats */
    case PIPE_FORMAT_R8_SNORM:
       return MESA_FORMAT_R_SNORM8;
@@ -775,13 +815,21 @@ st_pipe_format_to_mesa_format(enum pipe_format format)
  * Mesa formats to Gallium formats and back again.
  */
 static void
-test_format_conversion(void)
+test_format_conversion(struct st_context *st)
 {
    GLuint i;
 
    /* test all Mesa formats */
    for (i = 1; i < MESA_FORMAT_COUNT; i++) {
-      enum pipe_format pf = st_mesa_format_to_pipe_format(i);
+      enum pipe_format pf;
+
+      /* ETC formats are translated differently, skip them. */
+      if (_mesa_is_format_etc2(i))
+         continue;
+      if (i == MESA_FORMAT_ETC1_RGB8 && !st->has_etc1)
+         continue;
+
+      pf = st_mesa_format_to_pipe_format(st, i);
       if (pf != PIPE_FORMAT_NONE) {
          mesa_format mf = st_pipe_format_to_mesa_format(pf);
          assert(mf == i);
@@ -791,8 +839,13 @@ test_format_conversion(void)
    /* Test all Gallium formats */
    for (i = 1; i < PIPE_FORMAT_COUNT; i++) {
       mesa_format mf = st_pipe_format_to_mesa_format(i);
+
+      /* ETC formats are translated differently, skip them. */
+      if (i == PIPE_FORMAT_ETC1_RGB8 && !st->has_etc1)
+         continue;
+
       if (mf != MESA_FORMAT_NONE) {
-         enum pipe_format pf = st_mesa_format_to_pipe_format(mf);
+         enum pipe_format pf = st_mesa_format_to_pipe_format(st, mf);
          assert(pf == i);
       }
    }
@@ -1238,6 +1291,24 @@ static const struct format_mapping format_map[] = {
       { PIPE_FORMAT_ETC1_RGB8, 0 }
    },
 
+   /* BPTC */
+   {
+      { GL_COMPRESSED_RGBA_BPTC_UNORM, 0 },
+      { PIPE_FORMAT_BPTC_RGBA_UNORM, 0 },
+   },
+   {
+      { GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM, 0 },
+      { PIPE_FORMAT_BPTC_SRGBA, 0 },
+   },
+   {
+      { GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT, 0 },
+      { PIPE_FORMAT_BPTC_RGB_FLOAT, 0 },
+   },
+   {
+      { GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT, 0 },
+      { PIPE_FORMAT_BPTC_RGB_UFLOAT, 0 },
+   },
+
    /* signed/unsigned integer formats.
     */
    {
@@ -1680,7 +1751,7 @@ st_choose_format(struct st_context *st, GLenum internalFormat,
    {
       static boolean firstCall = TRUE;
       if (firstCall) {
-         test_format_conversion();
+         test_format_conversion(st);
          firstCall = FALSE;
       }
    }
@@ -1746,9 +1817,10 @@ st_choose_renderbuffer_format(struct st_context *st,
  * If no format is supported, return PIPE_FORMAT_NONE.
  */
 enum pipe_format
-st_choose_matching_format(struct pipe_screen *screen, unsigned bind,
+st_choose_matching_format(struct st_context *st, unsigned bind,
 			  GLenum format, GLenum type, GLboolean swapBytes)
 {
+   struct pipe_screen *screen = st->pipe->screen;
    mesa_format mesa_format;
 
    for (mesa_format = 1; mesa_format < MESA_FORMAT_COUNT; mesa_format++) {
@@ -1764,7 +1836,8 @@ st_choose_matching_format(struct pipe_screen *screen, unsigned bind,
 
       if (_mesa_format_matches_format_and_type(mesa_format, format, type,
                                                swapBytes)) {
-         enum pipe_format format = st_mesa_format_to_pipe_format(mesa_format);
+         enum pipe_format format =
+            st_mesa_format_to_pipe_format(st, mesa_format);
 
          if (format &&
              screen->is_format_supported(screen, format, PIPE_TEXTURE_2D, 0,
@@ -1834,16 +1907,14 @@ st_ChooseTextureFormat(struct gl_context *ctx, GLenum target,
        * with the "format".
        */
       if (iformat == baseFormat && iformat == basePackFormat) {
-         pFormat = st_choose_matching_format(st->pipe->screen, bindings,
-                                             format, type,
+         pFormat = st_choose_matching_format(st, bindings, format, type,
                                              ctx->Unpack.SwapBytes);
 
          if (pFormat != PIPE_FORMAT_NONE)
             return st_pipe_format_to_mesa_format(pFormat);
 
          /* try choosing format again, this time without render target bindings */
-         pFormat = st_choose_matching_format(st->pipe->screen,
-                                             PIPE_BIND_SAMPLER_VIEW,
+         pFormat = st_choose_matching_format(st, PIPE_BIND_SAMPLER_VIEW,
                                              format, type,
                                              ctx->Unpack.SwapBytes);
          if (pFormat != PIPE_FORMAT_NONE)

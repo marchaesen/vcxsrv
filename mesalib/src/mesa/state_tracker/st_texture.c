@@ -197,7 +197,8 @@ st_gl_texture_dims_to_pipe_dims(GLenum texture,
  * Check if a texture image can be pulled into a unified mipmap texture.
  */
 GLboolean
-st_texture_match_image(const struct pipe_resource *pt,
+st_texture_match_image(struct st_context *st,
+                       const struct pipe_resource *pt,
                        const struct gl_texture_image *image)
 {
    GLuint ptWidth, ptHeight, ptDepth, ptLayers;
@@ -209,7 +210,7 @@ st_texture_match_image(const struct pipe_resource *pt,
 
    /* Check if this image's format matches the established texture's format.
     */
-   if (st_mesa_format_to_pipe_format(image->TexFormat) != pt->format)
+   if (st_mesa_format_to_pipe_format(st, image->TexFormat) != pt->format)
       return GL_FALSE;
 
    st_gl_texture_dims_to_pipe_dims(image->TexObject->Target,
@@ -269,14 +270,15 @@ st_texture_image_map(struct st_context *st, struct st_texture_image *stImage,
          unsigned new_size = z + 1;
 
          stImage->transfer = realloc(stImage->transfer,
-                                     new_size * sizeof(void*));
+                     new_size * sizeof(struct st_texture_image_transfer));
          memset(&stImage->transfer[stImage->num_transfers], 0,
-               (new_size - stImage->num_transfers) * sizeof(void*));
+                (new_size - stImage->num_transfers) *
+                sizeof(struct st_texture_image_transfer));
          stImage->num_transfers = new_size;
       }
 
-      assert(!stImage->transfer[z]);
-      stImage->transfer[z] = *transfer;
+      assert(!stImage->transfer[z].transfer);
+      stImage->transfer[z].transfer = *transfer;
    }
    return map;
 }
@@ -288,7 +290,7 @@ st_texture_image_unmap(struct st_context *st,
 {
    struct pipe_context *pipe = st->pipe;
    struct pipe_transfer **transfer =
-      &stImage->transfer[slice + stImage->base.Face];
+      &stImage->transfer[slice + stImage->base.Face].transfer;
 
    DBG("%s\n", __FUNCTION__);
 

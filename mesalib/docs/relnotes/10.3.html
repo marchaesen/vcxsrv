@@ -44,23 +44,32 @@ Note: some of the new features are only available with certain drivers.
 </p>
 
 <ul>
+<li>GL_ARB_ES3_compatibility on nv50, nvc0, r600, radeonsi, softpipe, llvmpipe</li>
+<li>GL_ARB_clear_texture on i965</li>
 <li>GL_ARB_compressed_texture_pixel_storage on all drivers</li>
+<li>GL_ARB_conditional_render_inverted on i965, nvc0, softpipe, llvmpipe</li>
+<li>GL_ARB_derivative_control on i965, nv50, nvc0, r600</li>
 <li>GL_ARB_draw_indirect on nvc0, radeonsi</li>
 <li>GL_ARB_explicit_uniform_location (all drivers that support GLSL)</li>
+<li>GL_ARB_fragment_layer_viewport on nv50, nvc0, llvmpipe, r600</li>
+<li>GL_ARB_gpu_shader5 on i965/gen7, nvc0</li>
 <li>GL_ARB_multi_draw_indirect on nvc0, radeonsi</li>
 <li>GL_ARB_sample_shading on radeonsi</li>
+<li>GL_ARB_seamless_cubemap_per_texture on i965, llvmpipe, nvc0, r600, radeonsi, softpipe</li>
 <li>GL_ARB_stencil_texturing on nv50, nvc0, r600, and radeonsi</li>
+<li>GL_ARB_texture_barrier on nv50, nvc0, r300, r600, radeonsi</li>
+<li>GL_ARB_texture_compression_bptc on i965/gen7+, nvc0, r600/evergreen+, radeonsi</li>
 <li>GL_ARB_texture_cube_map_array on radeonsi</li>
 <li>GL_ARB_texture_gather on r600, radeonsi</li>
 <li>GL_ARB_texture_query_levels on nv50, nvc0, llvmpipe, r600, radeonsi, softpipe</li>
 <li>GL_ARB_texture_query_lod on r600, radeonsi</li>
 <li>GL_ARB_viewport_array on nvc0</li>
-<li>GL_ARB_seamless_cubemap_per_texture on i965, llvmpipe, nvc0, r600, radeonsi, softpipe</li>
-<li>GL_ARB_fragment_layer_viewport on nv50, nvc0, llvmpipe, r600</li>
 <li>GL_AMD_vertex_shader_viewport_index on i965/gen7+, r600</li>
-<li>GL_ARB_clear_texture on i965</li>
+<li>GL_OES_compressed_ETC1_RGB8_texture on nv30, nv50, nvc0, r300, r600, radeonsi, softpipe, llvmpipe</li>
+<li>GLX_MESA_query_renderer on nv30, nv50, nvc0, r300, r600, radeonsi, softpipe, llvmpipe</li>
 <li>A new software rasterizer driver (kms_swrast_dri.so) that works with
 DRM drivers that don't have a full-fledged GEM (such as qxl or simpledrm)</li>
+<li>Distribute the Khronos GL/glcorearb.h header file.</li>
 </ul>
 
 
@@ -72,6 +81,8 @@ TBD.
 
 <ul>
 <li>Removed support for the GL_ATI_envmap_bumpmap extension</li>
+<li>The hacky --enable-32/64-bit is no longer available in configure. To build
+32/64 bit mesa refer to the default method recommended by your distribution</li>
 </ul>
 
 </div>
