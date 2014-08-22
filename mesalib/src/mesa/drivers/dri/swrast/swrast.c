@@ -141,6 +141,7 @@ swrast_query_renderer_integer(__DRIscreen *psp, int param,
       return 0;
    case __DRI2_RENDERER_VIDEO_MEMORY: {
       /* XXX: Do we want to return the full amount of system memory ? */
+#ifndef _MSC_VER
       const long system_memory_pages = sysconf(_SC_PHYS_PAGES);
       const long system_page_size = sysconf(_SC_PAGE_SIZE);
 
@@ -155,6 +156,9 @@ swrast_query_renderer_integer(__DRIscreen *psp, int param,
 
       value[0] = system_memory_megabytes;
       return 0;
+#else
+	  return -1;
+#endif
    }
    case __DRI2_RENDERER_UNIFIED_MEMORY_ARCHITECTURE:
       /**

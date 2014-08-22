@@ -326,6 +326,7 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\shaderimage.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\shaderobj.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\shader_query.cpp" />
+    <ClCompile Include="..\..\..\..\src\mesa\main\texcompress_bptc.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\texcompress_cpal.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\texstorage.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\textureview.c" />
