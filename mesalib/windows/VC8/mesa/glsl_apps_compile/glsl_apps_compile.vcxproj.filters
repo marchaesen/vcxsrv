@@ -129,9 +129,6 @@
     <ClCompile Include="..\..\..\..\src\glsl\opt_redundant_jumps.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\ralloc.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\glsl\s_expression.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -246,9 +243,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\program\prog_hash_table.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\mesa\main\hash_table.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\glsl\lower_packed_varyings.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -304,6 +298,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\glsl\opt_rebalance_tree.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\util\hash_table.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\util\ralloc.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

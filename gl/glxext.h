@@ -33,10 +33,10 @@ extern "C" {
 ** used to make the header, and the header can be found at
 **   http://www.opengl.org/registry/
 **
-** Khronos $Revision: 27191 $ on $Date: 2014-06-30 15:11:33 -0700 (Mon, 30 Jun 2014) $
+** Khronos $Revision: 27498 $ on $Date: 2014-07-25 19:12:07 -0700 (Fri, 25 Jul 2014) $
 */
 
-#define GLX_GLXEXT_VERSION 20140630
+#define GLX_GLXEXT_VERSION 20140725
 
 /* Generated C header for:
  * API: glx
@@ -467,6 +467,16 @@ typedef Bool ( *PFNGLXSET3DFXMODEMESAPROC) (int mode);
 Bool glXSet3DfxModeMESA (int mode);
 #endif
 #endif /* GLX_MESA_set_3dfx_mode */
+
+#ifndef GLX_NV_copy_buffer
+#define GLX_NV_copy_buffer 1
+typedef void ( *PFNGLXCOPYBUFFERSUBDATANVPROC) (Display *dpy, GLXContext readCtx, GLXContext writeCtx, GLenum readTarget, GLenum writeTarget, GLintptr readOffset, GLintptr writeOffset, GLsizeiptr size);
+typedef void ( *PFNGLXNAMEDCOPYBUFFERSUBDATANVPROC) (Display *dpy, GLXContext readCtx, GLXContext writeCtx, GLuint readBuffer, GLuint writeBuffer, GLintptr readOffset, GLintptr writeOffset, GLsizeiptr size);
+#ifdef GLX_GLXEXT_PROTOTYPES
+void glXCopyBufferSubDataNV (Display *dpy, GLXContext readCtx, GLXContext writeCtx, GLenum readTarget, GLenum writeTarget, GLintptr readOffset, GLintptr writeOffset, GLsizeiptr size);
+void glXNamedCopyBufferSubDataNV (Display *dpy, GLXContext readCtx, GLXContext writeCtx, GLuint readBuffer, GLuint writeBuffer, GLintptr readOffset, GLintptr writeOffset, GLsizeiptr size);
+#endif
+#endif /* GLX_NV_copy_buffer */
 
 #ifndef GLX_NV_copy_image
 #define GLX_NV_copy_image 1

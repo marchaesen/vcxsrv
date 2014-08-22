@@ -113,7 +113,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\src\mesa;..\..\..\..\src\glsl;..\..\..\..\src\mapi;..\..\..\..\..\include;..\..\..\..\..</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\src\mesa;..\..\..\..\src\glsl;..\..\..\..\src\mapi;..\..\..\..\..\include;..\..\..\..\..;..\..\..\..\src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -152,7 +152,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\src\mesa;..\..\..\..\src\glsl;..\..\..\..\src\mapi;..\..\..\..\..\include;..\..\..\..\..</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\src\mesa;..\..\..\..\src\glsl;..\..\..\..\src\mapi;..\..\..\..\..\include;..\..\..\..\..;..\..\..\..\src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -255,13 +255,13 @@
     <ClCompile Include="..\..\..\..\src\glsl\opt_tree_grafting.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_vectorize.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\standalone_scaffolding.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ralloc.c" />
     <ClCompile Include="..\..\..\..\src\glsl\strtod.c" />
     <ClCompile Include="..\..\..\..\src\glsl\s_expression.cpp" />
-    <ClCompile Include="..\..\..\..\src\mesa\main\hash_table.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\imports.c" />
     <ClCompile Include="..\..\..\..\src\mesa\program\prog_hash_table.c" />
     <ClCompile Include="..\..\..\..\src\mesa\program\symbol_table.c" />
+    <ClCompile Include="..\..\..\..\src\util\hash_table.c" />
+    <ClCompile Include="..\..\..\..\src\util\ralloc.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\src\glsl\strtod.h" />

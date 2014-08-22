@@ -153,21 +153,21 @@ extern GLfloat _mesa_ubyte_to_float_color_tab[256];
            else if (__tmp.i >= IEEE_ONE)				\
               UB = (GLubyte) 255;					\
            else {							\
-              __tmp.f = __tmp.f * (255.0F/256.0F) + 32768.0F;		\
+              __tmp.f = __tmp.f * (255.0f/256.0f) + 32768.0f;		\
               UB = (GLubyte) __tmp.i;					\
            }								\
         } while (0)
 #define CLAMPED_FLOAT_TO_UBYTE(UB, F)					\
         do {								\
            fi_type __tmp;						\
-           __tmp.f = (F) * (255.0F/256.0F) + 32768.0F;			\
+           __tmp.f = (F) * (255.0f/256.0f) + 32768.0f;			\
            UB = (GLubyte) __tmp.i;					\
         } while (0)
 #else
-#define UNCLAMPED_FLOAT_TO_UBYTE(ub, f) \
-	ub = ((GLubyte) F_TO_I(CLAMP((f), 0.0F, 1.0F) * 255.0F))
-#define CLAMPED_FLOAT_TO_UBYTE(ub, f) \
-	ub = ((GLubyte) F_TO_I((f) * 255.0F))
+#define UNCLAMPED_FLOAT_TO_UBYTE(ub, fl) \
+	ub = ((GLubyte) F_TO_I(CLAMP((fl), 0.0f, 1.0f) * 255.0f))
+#define CLAMPED_FLOAT_TO_UBYTE(ub, fl) \
+	ub = ((GLubyte) F_TO_I((fl) * 255.0f))
 #endif
 
 static inline GLfloat INT_AS_FLT(GLint i)

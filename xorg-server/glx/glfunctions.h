@@ -876,6 +876,7 @@
 #define glClearBufferSubData(a1, a2, a3, a4, a5, a6, a7) CALL_ClearBufferSubData(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7))
 #define glDispatchCompute(a1, a2, a3) CALL_DispatchCompute(GET_DISPATCH(), (a1, a2, a3))
 #define glDispatchComputeIndirect(a1) CALL_DispatchComputeIndirect(GET_DISPATCH(), (a1))
+#define glCopyImageSubData(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15) CALL_CopyImageSubData(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15))
 #define glTextureView(a1, a2, a3, a4, a5, a6, a7, a8) CALL_TextureView(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7, a8))
 #define glBindVertexBuffer(a1, a2, a3, a4) CALL_BindVertexBuffer(GET_DISPATCH(), (a1, a2, a3, a4))
 #define glVertexAttribBinding(a1, a2) CALL_VertexAttribBinding(GET_DISPATCH(), (a1, a2))

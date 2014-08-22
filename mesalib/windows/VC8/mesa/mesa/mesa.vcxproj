@@ -116,7 +116,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <OmitFramePointers>true</OmitFramePointers>
       <WholeProgramOptimization>true</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>../../../../include;../../../../src/mesa;../../../../src/glsl;../../../../src/mapi;../../../../src/mesa/main;../../../../src/mesa/shader;../../../../src/mesa/shader/slang;../../../../../include;../../../../..;../../../../src/gallium/auxiliary;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../../include;../../../../src/mesa;../../../../src/glsl;../../../../src/mapi;../../../../src/mesa/main;../../../../src/mesa/shader;../../../../src/mesa/shader/slang;../../../../../include;../../../../..;../../../../src/gallium/auxiliary;../../../../src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NDEBUG;WIN32;_LIB;_DLL;_GDI32_;BUILD_GL32;WIN32_THREADS;MESA_MINWARN;_CRT_SECURE_NO_DEPRECATE;INSERVER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -162,7 +162,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../../../include;../../../../src/mesa;../../../../src/glsl;../../../../src/mapi;../../../../src/mesa/main;../../../../src/mesa/shader;../../../../src/mesa/shader/slang;../../../../../include;../../../../..;../../../../src/gallium/auxiliary;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../../include;../../../../src/mesa;../../../../src/glsl;../../../../src/mapi;../../../../src/mesa/main;../../../../src/mesa/shader;../../../../src/mesa/shader/slang;../../../../../include;../../../../..;../../../../src/gallium/auxiliary;../../../../src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_DEBUG;DEBUG;WIN32;_LIB;_DLL;_GDI32_;BUILD_GL32;WIN32_THREADS;MESA_MINWARN;_CRT_SECURE_NO_DEPRECATE;INSERVER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -293,7 +293,6 @@
     <ClCompile Include="..\..\..\..\src\glsl\opt_swizzle_swizzle.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_tree_grafting.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_vectorize.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\ralloc.c" />
     <ClCompile Include="..\..\..\..\src\glsl\strtod.c" />
     <ClCompile Include="..\..\..\..\src\glsl\s_expression.cpp" />
     <ClCompile Include="..\..\..\..\src\mesa\drivers\common\meta_blit.c" />
@@ -306,14 +305,15 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\atifragshader.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\blit.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\compute.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\main\copyimage.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\drawtex.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\errors.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\es1_conversion.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\formatquery.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\format_pack.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\main\format_utils.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\genmipmap.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\glformats.c" />
-    <ClCompile Include="..\..\..\..\src\mesa\main\hash_table.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\objectlabel.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\pack.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\performance_monitor.c" />
@@ -468,6 +468,9 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\version.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\viewport.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\vtxfmt.c" />
+    <ClCompile Include="..\..\..\..\src\util\format_srgb.c" />
+    <ClCompile Include="..\..\..\..\src\util\hash_table.c" />
+    <ClCompile Include="..\..\..\..\src\util\ralloc.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\src\glsl\strtod.h" />

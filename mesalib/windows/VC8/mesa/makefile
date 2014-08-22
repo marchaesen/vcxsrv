@@ -51,6 +51,8 @@ DEPS:=$(wildcard ..\..\..\src\mesa\swrast\*.c) \
       ..\..\..\src\mesa\main\enums.c \
       ..\..\..\src\mesa\main\api_exec.c \
       ..\..\..\src\mesa\main\get_hash.h \
+      ..\..\..\src\mesa\main\format_info.c \
+      ..\..\..\src\util\format_srgb.c \
       ..\..\..\src\mesa\main\remap_helper.h \
       ..\..\..\src\mesa\drivers\dri\common\xmlpool\options.h
 
@@ -74,6 +76,13 @@ all: $(TARGETDIR)\Release\swrast_dri.dll $(TARGETDIR)\Debug\swrast_dri.dll
 GET_HASH_GEN = ../../../src/mesa/main/get_hash_generator.py
 ..\..\..\src\mesa\main\get_hash.h: ..\..\..\src\mapi\glapi\gen\gl_and_es_API.xml ..\..\..\src\mesa\main\get_hash_params.py $(GET_HASH_GEN)
 	python $(GET_HASH_GEN) -f $(subst $/,/,$<) > $@
+
+GEN_FORMAT_INFO=../../../src/mesa/main/format_info.py
+..\..\..\src\mesa\main\format_info.c: ..\..\..\src\mesa\main\formats.csv ..\..\..\src\mesa\main\format_parser.py $(GEN_FORMAT_INFO)
+	python $(GEN_FORMAT_INFO) $< > $@
+
+..\..\..\src\util\format_srgb.c: ..\..\..\src\util\format_srgb.py
+	python $< > $@
 
 REMAP_HELPER = ../../../src/mapi/glapi/gen/remap_helper.py
 ..\..\..\src\mesa\main\remap_helper.h: ..\..\..\src\mapi\glapi\gen\gl_and_es_API.xml $(REMAP_HELPER)
