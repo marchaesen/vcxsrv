@@ -169,14 +169,25 @@ displayScreenBounds(CGDirectDisplayID id)
               (int)frame.size.width, (int)frame.size.height,
               (int)frame.origin.x, (int)frame.origin.y);
 
-    /* Remove menubar to help standard X11 window managers.
-     * On Mavericks and later, the menu bar is on all displays.
-     */
-    if (XQuartzIsRootless
+    Boolean spacePerDisplay = false;
 #if MAC_OS_X_VERSION_MIN_REQUIRED < 1090
-        && (NSAppKitVersionNumber >= 1265 || (frame.origin.x == 0 && frame.origin.y == 0))
+    if (NSAppKitVersionNumber >= 1265)
 #endif
-        ) {
+    {
+        Boolean ok;
+        (void)CFPreferencesAppSynchronize(CFSTR("com.apple.spaces"));
+        spacePerDisplay = ! CFPreferencesGetAppBooleanValue(CFSTR("spans-displays"),
+                                                            CFSTR("com.apple.spaces"),
+                                                            &ok);
+        if (!ok)
+            spacePerDisplay = true;
+    }
+
+    /* Remove menubar to help standard X11 window managers.
+     * On Mavericks and later, the menu bar is on all displays when spans-displays is false or unset.
+     */
+    if (XQuartzIsRootless &&
+        (spacePerDisplay || (frame.origin.x == 0 && frame.origin.y == 0))) {
         frame.origin.y += aquaMenuBarHeight;
         frame.size.height -= aquaMenuBarHeight;
     }

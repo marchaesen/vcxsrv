@@ -33,7 +33,9 @@ class Type(object):
         self.is_union = False
         self.is_pad = False
         self.is_switch = False
+        self.is_case_or_bitcase = False
         self.is_bitcase = False
+        self.is_case = False
 
     def resolve(self, module):
         '''
@@ -405,16 +407,20 @@ class SwitchType(ComplexType):
 
         # Resolve all of our field datatypes.
         for index, child in enumerate(list(self.elt)):
-            if child.tag == 'bitcase':
+            if child.tag == 'bitcase' or child.tag == 'case':
                 field_name = child.get('name')
                 if field_name is None:
-                    field_type = self.name + ('bitcase%d' % index,)
+                    field_type = self.name + ('%s%d' % ( child.tag, index ),)
                 else:
                     field_type = self.name + (field_name,)
 
                 # use self.parent to indicate anchestor, 
                 # as switch does not contain named fields itself
-                type = BitcaseType(index, field_type, child, *parents)
+                if child.tag == 'bitcase':
+                    type = BitcaseType(index, field_type, child, *parents)
+                else:
+                    type = CaseType(index, field_type, child, *parents)
+
                 # construct the switch type name from the parent type and the field name
                 if field_name is None:
                     type.has_name = False
@@ -497,9 +503,9 @@ class Union(ComplexType):
     out = __main__.output['union']
 
 
-class BitcaseType(ComplexType):
+class CaseOrBitcaseType(ComplexType):
     '''
-    Derived class representing a struct data type.
+    Derived class representing a case or bitcase.
     '''
     def __init__(self, index, name, elt, *parent):
         elts = list(elt)
@@ -515,7 +521,7 @@ class BitcaseType(ComplexType):
         self.index = 1
         self.lenfield_parent = list(parent) + [self]
         self.parents = list(parent)
-        self.is_bitcase = True
+        self.is_case_or_bitcase = True
 
     def make_member_of(self, module, switch_type, field_type, field_name, visible, wire, auto, enum=None):
         '''
@@ -544,6 +550,23 @@ class BitcaseType(ComplexType):
 
         # Resolve the bitcase expression
         ComplexType.resolve(self, module)
+
+
+class BitcaseType(CaseOrBitcaseType):
+    '''
+    Derived class representing a bitcase.
+    '''
+    def __init__(self, index, name, elt, *parent):
+        CaseOrBitcaseType.__init__(self, index, name, elt, *parent)
+        self.is_bitcase = True
+
+class CaseType(CaseOrBitcaseType):
+    '''
+    Derived class representing a case.
+    '''
+    def __init__(self, index, name, elt, *parent):
+        CaseOrBitcaseType.__init__(self, index, name, elt, *parent)
+        self.is_case = True
 
 
 class Reply(ComplexType):

@@ -484,7 +484,7 @@ TRANS(SocketOpen) (int i, int type)
 #ifdef TRANS_REOPEN
 
 static XtransConnInfo
-TRANS(SocketReopen) (int i _X_UNUSED, int type, int fd, char *port)
+TRANS(SocketReopen) (int i _X_UNUSED, int type, int fd, const char *port)
 
 {
     XtransConnInfo	ciptr;
@@ -607,8 +607,8 @@ TRANS(SocketOpenCOTSClientBase) (const char *transname, const char *protocol,
 }
 
 static XtransConnInfo
-TRANS(SocketOpenCOTSClient) (Xtransport *thistrans, char *protocol,
-			     char *host, char *port)
+TRANS(SocketOpenCOTSClient) (Xtransport *thistrans, const char *protocol,
+			     const char *host, const char *port)
 {
     return TRANS(SocketOpenCOTSClientBase)(
 			thistrans->TransName, protocol, host, port, -1);
@@ -621,8 +621,8 @@ TRANS(SocketOpenCOTSClient) (Xtransport *thistrans, char *protocol,
 #ifdef TRANS_SERVER
 
 static XtransConnInfo
-TRANS(SocketOpenCOTSServer) (Xtransport *thistrans, char *protocol,
-			     char *host, char *port)
+TRANS(SocketOpenCOTSServer) (Xtransport *thistrans, const char *protocol,
+			     const char *host, const char *port)
 
 {
     XtransConnInfo	ciptr;
@@ -688,8 +688,8 @@ TRANS(SocketOpenCOTSServer) (Xtransport *thistrans, char *protocol,
 #ifdef TRANS_CLIENT
 
 static XtransConnInfo
-TRANS(SocketOpenCLTSClient) (Xtransport *thistrans, char *protocol,
-			     char *host, char *port)
+TRANS(SocketOpenCLTSClient) (Xtransport *thistrans, const char *protocol,
+			     const char *host, const char *port)
 
 {
     XtransConnInfo	ciptr;
@@ -727,8 +727,8 @@ TRANS(SocketOpenCLTSClient) (Xtransport *thistrans, char *protocol,
 #ifdef TRANS_SERVER
 
 static XtransConnInfo
-TRANS(SocketOpenCLTSServer) (Xtransport *thistrans, char *protocol,
-			     char *host, char *port)
+TRANS(SocketOpenCLTSServer) (Xtransport *thistrans, const char *protocol,
+			     const char *host, const char *port)
 
 {
     XtransConnInfo	ciptr;
@@ -773,7 +773,7 @@ TRANS(SocketOpenCLTSServer) (Xtransport *thistrans, char *protocol,
 #ifdef TRANS_REOPEN
 
 static XtransConnInfo
-TRANS(SocketReopenCOTSServer) (Xtransport *thistrans, int fd, char *port)
+TRANS(SocketReopenCOTSServer) (Xtransport *thistrans, int fd, const char *port)
 
 {
     XtransConnInfo	ciptr;
@@ -807,7 +807,7 @@ TRANS(SocketReopenCOTSServer) (Xtransport *thistrans, int fd, char *port)
 }
 
 static XtransConnInfo
-TRANS(SocketReopenCLTSServer) (Xtransport *thistrans, int fd, char *port)
+TRANS(SocketReopenCLTSServer) (Xtransport *thistrans, int fd, const char *port)
 
 {
     XtransConnInfo	ciptr;
@@ -962,7 +962,8 @@ TRANS(SocketCreateListener) (XtransConnInfo ciptr,
 
 #ifdef TCPCONN
 static int
-TRANS(SocketINETCreateListener) (XtransConnInfo ciptr, char *port, unsigned int flags)
+TRANS(SocketINETCreateListener) (XtransConnInfo ciptr, const char *port,
+                                 unsigned int flags)
 
 {
 #if defined(IPv6) && defined(AF_INET6)
@@ -1090,7 +1091,7 @@ TRANS(SocketINETCreateListener) (XtransConnInfo ciptr, char *port, unsigned int 
 #ifdef UNIXCONN
 
 static int
-TRANS(SocketUNIXCreateListener) (XtransConnInfo ciptr, char *port,
+TRANS(SocketUNIXCreateListener) (XtransConnInfo ciptr, const char *port,
 				 unsigned int flags)
 
 {
@@ -1450,7 +1451,8 @@ static struct addrlist  *addrlist = NULL;
 
 
 static int
-TRANS(SocketINETConnect) (XtransConnInfo ciptr, char *host, char *port)
+TRANS(SocketINETConnect) (XtransConnInfo ciptr,
+                          const char *host, const char *port)
 
 {
     struct sockaddr *	socketaddr = NULL;
@@ -1832,7 +1834,7 @@ TRANS(SocketINETConnect) (XtransConnInfo ciptr, char *host, char *port)
  */
 
 static int
-UnixHostReallyLocal (char *host)
+UnixHostReallyLocal (const char *host)
 
 {
     char hostnamebuf[256];
@@ -1963,7 +1965,8 @@ UnixHostReallyLocal (char *host)
 }
 
 static int
-TRANS(SocketUNIXConnect) (XtransConnInfo ciptr, char *host, char *port)
+TRANS(SocketUNIXConnect) (XtransConnInfo ciptr,
+                          const char *host, const char *port)
 
 {
     struct sockaddr_un	sockname;

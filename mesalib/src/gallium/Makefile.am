@@ -109,6 +109,15 @@ if NEED_WINSYS_WRAPPER
 SUBDIRS += winsys/sw/wrapper
 endif
 
+##
+## Don't forget to bundle the remaining (non autotools) winsys'
+##
+
+EXTRA_DIST = \
+	winsys/sw/android \
+	winsys/sw/gdi \
+	winsys/sw/hgl
+
 
 ##
 ## Gallium state trackers and their users (targets)
@@ -162,6 +171,14 @@ endif
 if HAVE_ST_XVMC
 SUBDIRS += state_trackers/xvmc targets/xvmc
 endif
+
+##
+## Don't forget to bundle the remaining (non autotools) state-trackers/targets
+##
+
+EXTRA_DIST += \
+	state_trackers/hgl targets/haiku-softpipe
+
 
 ##
 ## Gallium tests

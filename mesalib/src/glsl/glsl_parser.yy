@@ -25,6 +25,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#ifndef _MSC_VER
+#include <strings.h>
+#endif
 #include <assert.h>
 
 #include "ast.h"
@@ -180,7 +183,7 @@ static bool match_layout_qualifier(const char *s1, const char *s2,
     */
 %token ASM CLASS UNION ENUM TYPEDEF TEMPLATE THIS PACKED_TOK GOTO
 %token INLINE_TOK NOINLINE PUBLIC_TOK STATIC EXTERN EXTERNAL
-%token LONG_TOK SHORT_TOK DOUBLE_TOK HALF FIXED_TOK UNSIGNED INPUT_TOK OUPTUT
+%token LONG_TOK SHORT_TOK DOUBLE_TOK HALF FIXED_TOK UNSIGNED INPUT_TOK
 %token HVEC2 HVEC3 HVEC4 DVEC2 DVEC3 DVEC4 FVEC2 FVEC3 FVEC4
 %token SAMPLER3DRECT
 %token SIZEOF CAST NAMESPACE USING

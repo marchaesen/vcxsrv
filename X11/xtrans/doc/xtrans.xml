@@ -187,35 +187,35 @@ points for a single transport. This record is defined as:
 <synopsis>
 typedef struct _Xtransport {
 
-    char *TransName;
+    const char *TransName;
     int  flags;
 
     XtransConnInfo (*OpenCOTSClient)(
-    struct _Xtransport *,     /* transport */
-    char     *,     /* protocol */
-    char     *,     /* host */
-    char     *      /* port */
+     struct _Xtransport *,    /* transport */
+     const char *,            /* protocol */
+     const char *,            /* host */
+     const char *             /* port */
     );
 
     XtransConnInfo (*OpenCOTSServer)(
-    struct _Xtransport *,     /* transport */
-    char *,     /* protocol */
-    char *,     /* host */
-    char *      /* port */
+     struct _Xtransport *,    /* transport */
+     const char *,            /* protocol */
+     const char *,            /* host */
+     const char *             /* port */
     );
 
     XtransConnInfo (*OpenCLTSClient)(
-    struct _Xtransport *,     /* transport */
-    char *,               /* protocol */
-    char *,               /* host */
-    char *               /* port */
+     struct _Xtransport *,    /* transport */
+     const char *,            /* protocol */
+     const char *,            /* host */
+     const char *             /* port */
     );
 
     XtransConnInfo (*OpenCLTSServer)(
-     struct _Xtransport *,   /* transport */
-     char *,     /* protocol */
-     char *,     /* host */
-     char *     /* port */
+     struct _Xtransport *,    /* transport */
+     const char *,            /* protocol */
+     const char *,            /* host */
+     const char *             /* port */
     );
 
     int     (*SetOption)(
@@ -226,8 +226,8 @@ typedef struct _Xtransport {
 
     int     (*CreateListener)(
      XtransConnInfo,          /* connection */
-     char *,               /* port */
-     int               /* flags */
+     const char *,            /* port */
+     int                      /* flags */
     );
 
     int     (*ResetListener)(
@@ -240,8 +240,8 @@ typedef struct _Xtransport {
 
     int     (*Connect)(
      XtransConnInfo,          /* connection */
-     char *,               /* host */
-     char *               /* port */
+     const char *,            /* host */
+     const char *             /* port */
     );
 
     int     (*BytesReadable)(
@@ -393,7 +393,7 @@ errno will be available for debugging purposes.
     <funcsynopsis id='TRANSOpenCOTSClient'>
       <funcprototype>
         <funcdef>XtransConnInfo <function>TRANS(OpenCOTSClient)</function></funcdef>
-        <paramdef>char *<parameter>address</parameter></paramdef>
+        <paramdef>const char *<parameter>address</parameter></paramdef>
       </funcprototype>
     </funcsynopsis>
     <para>
@@ -408,7 +408,7 @@ success, or <constant>NULL</constant> on failure.
     <funcsynopsis id='TRANSOpenCOTSServer'>
       <funcprototype>
         <funcdef>XtransConnInfo <function>TRANS(OpenCOTSServer)</function></funcdef>
-        <paramdef>char *<parameter>address</parameter></paramdef>
+        <paramdef>const char *<parameter>address</parameter></paramdef>
       </funcprototype>
     </funcsynopsis>
     <para>
@@ -423,7 +423,7 @@ on failure.
     <funcsynopsis id='TRANSOpenCLTSClient'>
       <funcprototype>
         <funcdef>XtransConnInfo <function>TRANS(OpenCLTSClient)</function></funcdef>
-        <paramdef>char *<parameter>address</parameter></paramdef>
+        <paramdef>const char *<parameter>address</parameter></paramdef>
       </funcprototype>
     </funcsynopsis>
     <para>
@@ -438,7 +438,7 @@ function returns an opaque transport connection object on success, or
     <funcsynopsis id='TRANSOpenCLTSServer'>
       <funcprototype>
         <funcdef>XtransConnInfo <function>TRANS(OpenCLTSServer)</function></funcdef>
-        <paramdef>char *<parameter>address</parameter></paramdef>
+        <paramdef>const char *<parameter>address</parameter></paramdef>
       </funcprototype>
     </funcsynopsis>
     <para>
@@ -480,7 +480,7 @@ Based on current usage, the complimentary function
       <funcprototype>
         <funcdef>int <function>TRANS(CreateListener)</function></funcdef>
         <paramdef>XtransConnInfo <parameter>connection</parameter></paramdef>
-        <paramdef>char *<parameter>port</parameter></paramdef>
+        <paramdef>const char *<parameter>port</parameter></paramdef>
         <paramdef>int <parameter>flags</parameter></paramdef>
       </funcprototype>
     </funcsynopsis>
@@ -542,7 +542,7 @@ new opaque transport connection object upon success,
       <funcprototype>
         <funcdef>int <function>TRANS(Connect)</function></funcdef>
         <paramdef>XtransConnInfo <parameter>connection</parameter></paramdef>
-        <paramdef>char *<parameter>address</parameter></paramdef>
+        <paramdef>const char *<parameter>address</parameter></paramdef>
       </funcprototype>
     </funcsynopsis>
     <para>
@@ -712,7 +712,7 @@ Returns the file descriptor associated with this transport.
     <funcsynopsis id='TRANSMakeAllCOTSServerListeners'>
       <funcprototype>
         <funcdef>int <function>TRANS(MakeAllCOTSServerListeners)</function></funcdef>
-        <paramdef>char *<parameter>port</parameter></paramdef>
+        <paramdef>const char *<parameter>port</parameter></paramdef>
         <paramdef>int *<parameter>partial_ret</parameter></paramdef>
         <paramdef>int *<parameter>count_ret</parameter></paramdef>
         <paramdef>XtransConnInfo **<parameter>connections_ret</parameter></paramdef>
@@ -731,7 +731,7 @@ is the list of transports.
     <funcsynopsis id='TRANSMakeAllCLTSServerListeners'>
       <funcprototype>
         <funcdef>int <function>TRANS(MakeAllCLTSServerListeners)</function></funcdef>
-        <paramdef>char *<parameter>port</parameter></paramdef>
+        <paramdef>const char *<parameter>port</parameter></paramdef>
         <paramdef>int *<parameter>partial_ret</parameter></paramdef>
         <paramdef>int *<parameter>count_ret</parameter></paramdef>
         <paramdef>XtransConnInfo **<parameter>connections_ret</parameter></paramdef>
@@ -826,9 +826,9 @@ the <code>#ifdef SUNSYSV</code> should be handled inside these functions.
       <funcprototype>
         <funcdef>XtransConnInfo *<function>OpenCOTSClient</function></funcdef>
         <paramdef>struct _Xtransport *<parameter>thistrans</parameter></paramdef>
-        <paramdef>char *<parameter>protocol</parameter></paramdef>
-        <paramdef>char *<parameter>host</parameter></paramdef>
-        <paramdef>char *<parameter>port</parameter></paramdef>
+        <paramdef>const char *<parameter>protocol</parameter></paramdef>
+        <paramdef>const char *<parameter>host</parameter></paramdef>
+        <paramdef>const char *<parameter>port</parameter></paramdef>
       </funcprototype>
     </funcsynopsis>
     <para>
@@ -850,9 +850,9 @@ this function.
       <funcprototype>
         <funcdef>XtransConnInfo *<function>OpenCOTSServer</function></funcdef>
         <paramdef>struct _Xtransport *<parameter>thistrans</parameter></paramdef>
-        <paramdef>char *<parameter>protocol</parameter></paramdef>
-        <paramdef>char *<parameter>host</parameter></paramdef>
-        <paramdef>char *<parameter>port</parameter></paramdef>
+        <paramdef>const char *<parameter>protocol</parameter></paramdef>
+        <paramdef>const char *<parameter>host</parameter></paramdef>
+        <paramdef>const char *<parameter>port</parameter></paramdef>
       </funcprototype>
     </funcsynopsis>
     <para>
@@ -872,9 +872,9 @@ will open the transport.
       <funcprototype>
         <funcdef>XtransConnInfo *<function>OpenCLTSClient</function></funcdef>
         <paramdef>struct _Xtransport *<parameter>thistrans</parameter></paramdef>
-        <paramdef>char *<parameter>protocol</parameter></paramdef>
-        <paramdef>char *<parameter>host</parameter></paramdef>
-        <paramdef>char *<parameter>port</parameter></paramdef>
+        <paramdef>const char *<parameter>protocol</parameter></paramdef>
+        <paramdef>const char *<parameter>host</parameter></paramdef>
+        <paramdef>const char *<parameter>port</parameter></paramdef>
       </funcprototype>
     </funcsynopsis>
     <para>
@@ -896,9 +896,9 @@ in by this function.
       <funcprototype>
         <funcdef>XtransConnInfo *<function>OpenCLTSServer</function></funcdef>
         <paramdef>struct _Xtransport *<parameter>thistrans</parameter></paramdef>
-        <paramdef>char *<parameter>protocol</parameter></paramdef>
-        <paramdef>char *<parameter>host</parameter></paramdef>
-        <paramdef>char *<parameter>port</parameter></paramdef>
+        <paramdef>const char *<parameter>protocol</parameter></paramdef>
+        <paramdef>const char *<parameter>host</parameter></paramdef>
+        <paramdef>const char *<parameter>port</parameter></paramdef>
       </funcprototype>
     </funcsynopsis>
     <para>
@@ -935,7 +935,7 @@ different transport type is added, or a transport dependent option is defined.
       <funcprototype>
         <funcdef>int <function>CreateListener</function></funcdef>
         <paramdef>struct _Xtransport *<parameter>thistrans</parameter></paramdef>
-        <paramdef>char <parameter>*port</parameter></paramdef>
+        <paramdef>const char <parameter>*port</parameter></paramdef>
         <paramdef>int <parameter>flags</parameter></paramdef>
       </funcprototype>
     </funcsynopsis>
@@ -987,8 +987,8 @@ structure describing the new endpoint is returned from this function
       <funcprototype>
         <funcdef>int <function>Connect</function></funcdef>
         <paramdef>struct _Xtransport *<parameter>thistrans</parameter></paramdef>
-        <paramdef>char *<parameter>host</parameter></paramdef>
-        <paramdef>char *<parameter>port</parameter></paramdef>
+        <paramdef>const char *<parameter>host</parameter></paramdef>
+        <paramdef>const char *<parameter>port</parameter></paramdef>
       </funcprototype>
     </funcsynopsis>
     <para>

@@ -417,7 +417,7 @@ EnableDevice(DeviceIntPtr dev, BOOL sendevent)
         XISendDeviceHierarchyEvent(flags);
     }
 
-    if (!IsMaster(dev))
+    if (!IsMaster(dev) && !IsFloating(dev))
         XkbPushLockedStateToSlaves(GetMaster(dev, MASTER_KEYBOARD), 0, 0);
     RecalculateMasterButtons(dev);
 

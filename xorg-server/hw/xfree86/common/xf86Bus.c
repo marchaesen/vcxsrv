@@ -210,6 +210,9 @@ xf86BusProbe(void)
 #if (defined(__sparc__) || defined(__sparc)) && !defined(__OpenBSD__)
     xf86SbusProbe();
 #endif
+#ifdef XSERVER_PLATFORM_BUS
+    xf86platformPrimary();
+#endif
 }
 
 /*

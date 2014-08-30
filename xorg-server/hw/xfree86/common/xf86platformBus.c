@@ -435,10 +435,9 @@ xf86platformProbeDev(DriverPtr drvp)
                 /* for non-seat0 servers assume first device is the master */
                 if (ServerIsNotSeat0())
                     break;
-                if (xf86_platform_devices[j].pdev) {
-                    if (xf86IsPrimaryPlatform(&xf86_platform_devices[j]))
-                        break;
-                }
+
+                if (xf86IsPrimaryPlatform(&xf86_platform_devices[j]))
+                    break;
             }
         }
 
@@ -592,6 +591,21 @@ void xf86platformVTProbe(void)
 
         xf86_platform_devices[i].flags &= ~XF86_PDEV_UNOWNED;
         xf86PlatformReprobeDevice(i, xf86_platform_devices[i].attribs);
+    }
+}
+
+void xf86platformPrimary(void)
+{
+    /* use the first platform device as a fallback */
+    if (primaryBus.type == BUS_NONE) {
+        xf86Msg(X_INFO, "no primary bus or device found\n");
+
+        if (xf86_num_platform_devices > 0) {
+            primaryBus.id.plat = &xf86_platform_devices[0];
+            primaryBus.type = BUS_PLATFORM;
+
+            xf86Msg(X_NONE, "\tfalling back to %s\n", primaryBus.id.plat->attribs->syspath);
+        }
     }
 }
 #endif
