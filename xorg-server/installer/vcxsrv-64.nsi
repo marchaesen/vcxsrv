@@ -1,6 +1,6 @@
 /*  This file is part of vcxsrv.
  *
- *  Copyright (C) 2009 Marc Haesen
+ *  Copyright (C) 2014 marha@users.sourceforge.net
  *
  *  vcxsrv is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
  *  along with vcxsrv.  If not, see <http://www.gnu.org/licenses/>.
 */
 ;--------------------------------
+ !include "FileFunc.nsh"
 
 ; The name of the installer
 Name "VcXsrv"
@@ -29,6 +30,14 @@ InstallDir $programfiles64\VcXsrv
 ; Registry key to check for directory (so if you install again, it will
 ; overwrite the old one automatically)
 InstallDirRegKey HKLM SOFTWARE\VcXsrv "Install_Dir_64"
+
+LoadLanguageFile "${NSISDIR}\Contrib\Language files\English.nlf"
+
+VIProductVersion "1.15.2.0"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "VcXsrv"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "VcXsrv windows xserver"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "1.15.2.0"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductVersion" "1.15.2.0"
 
 ; Request application privileges for Windows Vista
 RequestExecutionLevel admin
@@ -124,10 +133,16 @@ Section "VcXsrv (required)"
 
   ; Write the uninstall keys for Windows
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv" "DisplayName" "VcXsrv"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv" "DisplayVersion" "1.15.2.0"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv" "Publisher" "marha@users.sourceforge.net"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv" "UninstallString" '"$INSTDIR\uninstall.exe"'
   WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv" "NoModify" 1
   WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv" "NoRepair" 1
   WriteUninstaller "uninstall.exe"
+
+  ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
+  IntFmt $0 "0x%08X" $0
+  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv" "EstimatedSize" "$0"
 
   ; Register the xlaunch file extension
   WriteRegStr HKCR ".xlaunch" "" "XLaunchFile"

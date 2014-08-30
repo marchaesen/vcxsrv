@@ -33,6 +33,43 @@
 #include "winresource.h"
 #include "xwin-config.h"
 
+#define VER_FILEVERSION             1,15,2,0
+#define VER_FILEVERSION_STR         "1.15.2.0"
+
+#define VER_PRODUCTVERSION          1,15,2,0
+#define VER_PRODUCTVERSION_STR      "1.15.2.0"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION    VER_FILEVERSION
+PRODUCTVERSION VER_PRODUCTVERSION
+FILETYPE       VFT_APP
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904E4"
+        BEGIN
+            VALUE "FileDescription",  "VcXsrv windows xserver\0"
+            VALUE "FileVersion",      VER_FILEVERSION_STR"\0"
+            VALUE "InternalName",     "VcXsrv\0"
+            VALUE "LegalCopyright",   "marha@users.sourceforge.net\0"
+            VALUE "OriginalFilename", "vcxsrv.exe\0"
+            VALUE "ProductName",      "VcXsrv\0"
+            VALUE "ProductVersion",   VER_PRODUCTVERSION_STR"\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        /* The following line should only be modified for localized versions.     */
+        /* It consists of any number of WORD,WORD pairs, with each pair           */
+        /* describing a language,codepage combination supported by the file.      */
+        /*                                                                        */
+        /* For example, a file might have values "0x409,1252" indicating that it  */
+        /* supports English language (0x409) in the Windows ANSI codepage (1252). */
+
+        VALUE "Translation", 0x409, 1252
+    END
+END
+
 /*
  * Dialogs
  */
@@ -47,7 +84,7 @@ BEGIN
   LTEXT			"VcXsrv X Server ", IDC_STATIC, 36, 8, 220, 8
   LTEXT			"http://vcxsrv.sourceforge.net", IDC_STATIC, 36, 18, 220, 8
   LTEXT			"marha@users.sourceforge.net", IDC_STATIC, 36, 28, 220, 8
-  LTEXT			"Version 1.15.2.0 (5 July 2014)", IDC_STATIC, 36, 38, 220, 8
+  LTEXT			"Version "VER_PRODUCTVERSION_STR" (5 July 2014)", IDC_STATIC, 36, 38, 220, 8
   DEFPUSHBUTTON		"OK", IDOK, 105, 75, 50, 15
 END
 

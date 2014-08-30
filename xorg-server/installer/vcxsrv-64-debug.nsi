@@ -1,6 +1,6 @@
 /*  This file is part of vcxsrv.
  *
- *  Copyright (C) 2009 Marc Haesen
+ *  Copyright (C) 2014 marha@users.sourceforge.net
  *
  *  vcxsrv is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -29,6 +29,14 @@ InstallDir $PROGRAMFILES64\VcXsrv
 ; Registry key to check for directory (so if you install again, it will
 ; overwrite the old one automatically)
 InstallDirRegKey HKLM SOFTWARE\VcXsrv "Install_Dir_64"
+
+LoadLanguageFile "${NSISDIR}\Contrib\Language files\English.nlf"
+
+VIProductVersion "1.15.2.0"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "VcXsrv"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "VcXsrv windows xserver"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "1.15.2.0"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductVersion" "1.15.2.0"
 
 ; Request application privileges for Windows Vista
 RequestExecutionLevel admin
