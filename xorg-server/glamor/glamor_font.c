@@ -46,6 +46,8 @@ glamor_font_get(ScreenPtr screen, FontPtr font)
     CharInfoPtr         glyph;
     unsigned long       count;
 
+    if (glamor_priv->glsl_version < 130)
+        return NULL;
 
     privates = FontGetPrivate(font, glamor_font_private_index);
     if (!privates) {
@@ -167,6 +169,11 @@ glamor_unrealize_font(ScreenPtr screen, FontPtr font)
 Bool
 glamor_font_init(ScreenPtr screen)
 {
+    glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
+
+    if (glamor_priv->glsl_version < 130)
+        return TRUE;
+
     if (glamor_font_generation != serverGeneration) {
         glamor_font_private_index = AllocateFontPrivateIndex();
         if (glamor_font_private_index == -1)

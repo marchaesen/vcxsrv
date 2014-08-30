@@ -136,6 +136,11 @@ glamor_init_xv_shader(ScreenPtr screen)
 void
 glamor_xv_stop_video(glamor_port_private *port_priv)
 {
+}
+
+static void
+glamor_xv_free_port_data(glamor_port_private *port_priv)
+{
     int i;
 
     for (i = 0; i < 3; i++) {
@@ -144,6 +149,8 @@ glamor_xv_stop_video(glamor_port_private *port_priv)
             port_priv->src_pix[i] = NULL;
         }
     }
+    RegionUninit(&port_priv->clip);
+    RegionNull(&port_priv->clip);
 }
 
 int
@@ -381,6 +388,8 @@ glamor_xv_render(glamor_port_private *port_priv)
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
 
     DamageDamageRegion(port_priv->pDraw, &port_priv->clip);
+
+    glamor_xv_free_port_data(port_priv);
 }
 
 int
@@ -468,9 +477,7 @@ glamor_xv_put_image(glamor_port_private *port_priv,
     else
         port_priv->pPixmap = (PixmapPtr) pDrawable;
 
-    if (!RegionEqual(&port_priv->clip, clipBoxes)) {
-        RegionCopy(&port_priv->clip, clipBoxes);
-    }
+    RegionCopy(&port_priv->clip, clipBoxes);
 
     port_priv->src_x = src_x;
     port_priv->src_y = src_y;

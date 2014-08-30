@@ -358,7 +358,7 @@ def _c_type_setup(self, name, postfix):
                 field.c_pointer = '*'
                 field.c_field_const_type = 'const ' + field.c_field_type
                 self.c_need_aux = True
-            elif not field.type.fixed_size() and not field.type.is_bitcase:
+            elif not field.type.fixed_size() and not field.type.is_case_or_bitcase:
                 self.c_need_sizeof = True
 
             field.c_iterator_type = _t(field.field_type + ('iterator',))      # xcb_fieldtype_iterator_t
@@ -407,7 +407,7 @@ def _c_type_setup(self, name, postfix):
                 # no list with switch as element, so no call to
                 # _c_iterator(field.type, field_name) necessary
 
-    if not self.is_bitcase:
+    if not self.is_case_or_bitcase:
         if self.c_need_serialize:
             if self.c_serialize_name not in finished_serializers:
                 finished_serializers.append(self.c_serialize_name)
@@ -437,7 +437,7 @@ def _c_helper_absolute_name(prefix, field=None):
         prefix_str += name
         if '' == sep:
             sep = '->'
-            if ((obj.is_bitcase and obj.has_name) or     # named bitcase
+            if ((obj.is_case_or_bitcase and obj.has_name) or     # named bitcase
                 (obj.is_switch and len(obj.parents)>1)):
                 sep = '.'
         prefix_str += sep
@@ -470,7 +470,7 @@ def _c_helper_field_mapping(complex_type, prefix, flat=False):
 
             all_fields[f.field_name] = (fname, f)
             if f.type.is_container and flat==False:
-                if f.type.is_bitcase and not f.type.has_name:
+                if f.type.is_case_or_bitcase and not f.type.has_name:
                     new_prefix = prefix
                 elif f.type.is_switch and len(f.type.parents)>1:
                     # nested switch gets another separator
@@ -493,10 +493,10 @@ def _c_helper_resolve_field_names (prefix):
         name, sep, obj = p
         if ''==sep:
             # sep can be preset in prefix, if not, make a sensible guess
-            sep = '.' if (obj.is_switch or obj.is_bitcase) else '->'
+            sep = '.' if (obj.is_switch or obj.is_case_or_bitcase) else '->'
             # exception: 'toplevel' object (switch as well!) always have sep '->'
             sep = '->' if idx<1 else sep
-        if not obj.is_bitcase or (obj.is_bitcase and obj.has_name):
+        if not obj.is_case_or_bitcase or (obj.is_case_or_bitcase and obj.has_name):
             tmp_prefix.append((name, sep, obj))
         all_fields.update(_c_helper_field_mapping(obj, tmp_prefix, flat=True))
 
@@ -689,18 +689,29 @@ def _c_serialize_helper_switch(context, self, complex_name,
 
     for b in self.bitcases:
         len_expr = len(b.type.expr)
+
+        compare_operator = '&'
+        if b.type.is_case:
+            compare_operator = '=='
+        else:
+            compare_operator = '&'
+
         for n, expr in enumerate(b.type.expr):
             bitcase_expr = _c_accessor_get_expr(expr, None)
             # only one <enumref> in the <bitcase>
             if len_expr == 1:
-                code_lines.append('    if(%s & %s) {' % (switch_expr, bitcase_expr))
+                code_lines.append(
+                    '    if(%s %s %s) {' % (switch_expr, compare_operator, bitcase_expr))
             # multiple <enumref> in the <bitcase>
             elif n == 0: # first
-                code_lines.append('    if((%s & %s) ||' % (switch_expr, bitcase_expr))
+                code_lines.append(
+                    '    if((%s %s %s) ||' % (switch_expr, compare_operator, bitcase_expr))
             elif len_expr == (n + 1): # last
-                code_lines.append('       (%s & %s)) {' % (switch_expr, bitcase_expr))
+                code_lines.append(
+                    '       (%s %s %s)) {' % (switch_expr, compare_operator, bitcase_expr))
             else: # between first and last
-                code_lines.append('       (%s & %s) ||' % (switch_expr, bitcase_expr))
+                code_lines.append(
+                    '       (%s %s %s) ||' % (switch_expr, compare_operator, bitcase_expr))
 
         b_prefix = prefix
         if b.type.has_name:
@@ -710,7 +721,7 @@ def _c_serialize_helper_switch(context, self, complex_name,
                                             code_lines, temp_vars,
                                             "%s    " % space,
                                             b_prefix,
-                                            is_bitcase = True)
+                                            is_case_or_bitcase = True)
         code_lines.append('    }')
 
 #    if 'serialize' == context:
@@ -834,7 +845,7 @@ def _c_serialize_helper_fields_fixed_size(context, self, field,
                                           code_lines, temp_vars,
                                           space, prefix):
     # keep the C code a bit more readable by giving the field name
-    if not self.is_bitcase:
+    if not self.is_case_or_bitcase:
         code_lines.append('%s    /* %s.%s */' % (space, self.c_type, field.c_field_name))
     else:
         scoped_name = [p[2].c_type if idx==0 else p[0] for idx, p in enumerate(prefix)]
@@ -951,7 +962,7 @@ def _c_serialize_helper_fields_variable_size(context, self, field,
 
 def _c_serialize_helper_fields(context, self,
                                code_lines, temp_vars,
-                               space, prefix, is_bitcase):
+                               space, prefix, is_case_or_bitcase):
     count = 0
     need_padding = False
     prev_field_was_variable = False
@@ -963,7 +974,7 @@ def _c_serialize_helper_fields(context, self,
 
         # switch/bitcase: fixed size fields must be considered explicitly
         if field.type.fixed_size():
-            if self.is_bitcase or self.c_var_followed_by_fixed_fields:
+            if self.is_case_or_bitcase or self.c_var_followed_by_fixed_fields:
                 if prev_field_was_variable and need_padding:
                     # insert padding
 #                    count += _c_serialize_helper_insert_padding(context, code_lines, space,
@@ -989,7 +1000,7 @@ def _c_serialize_helper_fields(context, self,
                 continue
             else:
                 # switch/bitcase: always calculate padding before and after variable sized fields
-                if need_padding or is_bitcase:
+                if need_padding or is_case_or_bitcase:
                     count += _c_serialize_helper_insert_padding(context, code_lines, space,
                                                             self.c_var_followed_by_fixed_fields)
 
@@ -1003,7 +1014,7 @@ def _c_serialize_helper_fields(context, self,
             code_lines.append('%s%s' % (space, value))
 
         if field.type.fixed_size():
-            if is_bitcase or self.c_var_followed_by_fixed_fields:
+            if is_case_or_bitcase or self.c_var_followed_by_fixed_fields:
                 # keep track of (un)serialized object's size
                 code_lines.append('%s    xcb_block_len += %s;' % (space, length))
                 if context in ('unserialize', 'unpack', 'sizeof'):
@@ -1461,7 +1472,7 @@ def _c_accessors_field(self, field):
 
     # special case: switch
     switch_obj = self if self.is_switch else None
-    if self.is_bitcase:
+    if self.is_case_or_bitcase:
         switch_obj = self.parents[-1]
     if switch_obj is not None:
         c_type = switch_obj.c_type
@@ -1529,7 +1540,7 @@ def _c_accessors_list(self, field):
     # the reason is that switch is either a child of a request/reply or nested in another switch,
     # so whenever we need to access a length field, we might need to refer to some anchestor type
     switch_obj = self if self.is_switch else None
-    if self.is_bitcase:
+    if self.is_case_or_bitcase:
         switch_obj = self.parents[-1]
     if switch_obj is not None:
         c_type = switch_obj.c_type
@@ -1561,7 +1572,7 @@ def _c_accessors_list(self, field):
         for p in parents[2:] + [self]:
             # the separator between parent and child is always '.' here,
             # because of nested switch statements
-            if not p.is_bitcase or (p.is_bitcase and p.has_name):
+            if not p.is_case_or_bitcase or (p.is_case_or_bitcase and p.has_name):
                 prefix.append((p.name[-1], '.', p))
             fields.update(_c_helper_field_mapping(p, prefix, flat=True))
 
@@ -2364,7 +2375,7 @@ def _man_request(self, name, cookie_type, void, aux):
 
             # special case: switch
             switch_obj = self if self.is_switch else None
-            if self.is_bitcase:
+            if self.is_case_or_bitcase:
                 switch_obj = self.parents[-1]
             if switch_obj is not None:
                 c_type = switch_obj.c_type
@@ -2392,7 +2403,7 @@ def _man_request(self, name, cookie_type, void, aux):
             # the reason is that switch is either a child of a request/reply or nested in another switch,
             # so whenever we need to access a length field, we might need to refer to some anchestor type
             switch_obj = self if self.is_switch else None
-            if self.is_bitcase:
+            if self.is_case_or_bitcase:
                 switch_obj = self.parents[-1]
             if switch_obj is not None:
                 c_type = switch_obj.c_type
@@ -2424,7 +2435,7 @@ def _man_request(self, name, cookie_type, void, aux):
                 for p in parents[2:] + [self]:
                     # the separator between parent and child is always '.' here,
                     # because of nested switch statements
-                    if not p.is_bitcase or (p.is_bitcase and p.has_name):
+                    if not p.is_case_or_bitcase or (p.is_case_or_bitcase and p.has_name):
                         prefix.append((p.name[-1], '.', p))
                     fields.update(_c_helper_field_mapping(p, prefix, flat=True))
 

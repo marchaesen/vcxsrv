@@ -64,6 +64,26 @@ typedef struct {
     uint16_t length;
 } xcb_setup_generic_t;
 
+static const xcb_setup_t xcb_error_setup = {
+    0,     /* status: failed (but we wouldn't have a xcb_setup_t in this case) */
+    0,     /* pad0 */
+    0, 0,  /* protocol version, should be 11.0, but isn't */
+    0,     /* length, invalid value */
+    0,     /* release_number */
+    0, 0,  /* resource_id_{base,mask} */
+    0,     /* motion_buffer_size */
+    0,     /* vendor_len */
+    0,     /* maximum_request_length */
+    0,     /* roots_len */
+    0,     /* pixmap_formats_len */
+    0,     /* image_byte_order */
+    0,     /* bitmap_format_bit_order */
+    0,     /* bitmap_format_scanline_unit */
+    0,     /* bitmap_format_scanline_pad */
+    0, 0,  /* {min,max}_keycode */
+    { 0, 0, 0, 0 } /* pad1 */
+};
+
 /* Keep this list in sync with is_static_error_conn()! */
 static const int xcb_con_error = XCB_CONN_ERROR;
 static const int xcb_con_closed_mem_er = XCB_CONN_CLOSED_MEM_INSUFFICIENT;
@@ -288,15 +308,15 @@ static int write_vec(xcb_connection_t *c, struct iovec **vector, int *count)
 
 const xcb_setup_t *xcb_get_setup(xcb_connection_t *c)
 {
-    if(c->has_error)
-        return 0;
+    if(is_static_error_conn(c))
+        return &xcb_error_setup;
     /* doesn't need locking because it's never written to. */
     return c->setup;
 }
 
 int xcb_get_file_descriptor(xcb_connection_t *c)
 {
-    if(c->has_error)
+    if(is_static_error_conn(c))
         return -1;
     /* doesn't need locking because it's never written to. */
     return c->fd;

@@ -89,6 +89,8 @@ typedef struct _KdScreenInfo {
     ScreenPtr pScreen;
     void *driver;
     Rotation randr;             /* rotation and reflection */
+    int x;
+    int y;
     int width;
     int height;
     int rate;

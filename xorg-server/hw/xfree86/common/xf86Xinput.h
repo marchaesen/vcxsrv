@@ -51,6 +51,7 @@
 #ifndef _xf86Xinput_h
 #define _xf86Xinput_h
 
+#include "xf86.h"
 #include "xf86str.h"
 #include "inputstr.h"
 #include <X11/extensions/XI.h>
@@ -85,7 +86,7 @@ typedef struct _InputDriverRec {
 
 /* This is to input devices what the ScrnInfoRec is to screens. */
 
-typedef struct _InputInfoRec {
+struct _InputInfoRec {
     struct _InputInfoRec *next;
     char *name;
     char *driver;
@@ -110,7 +111,7 @@ typedef struct _InputInfoRec {
     void *module;
     XF86OptionPtr options;
     InputAttributes *attrs;
-} *InputInfoPtr;
+};
 
 /* xf86Globals.c */
 extern InputInfoPtr xf86InputDevs;

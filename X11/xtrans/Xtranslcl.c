@@ -123,7 +123,7 @@ static int TRANS(LocalClose)(XtransConnInfo ciptr);
 /* Type Not Supported */
 
 static int
-TRANS(OpenFail)(XtransConnInfo ciptr _X_UNUSED, char *port _X_UNUSED)
+TRANS(OpenFail)(XtransConnInfo ciptr _X_UNUSED, const char *port _X_UNUSED)
 
 {
     return -1;
@@ -132,7 +132,8 @@ TRANS(OpenFail)(XtransConnInfo ciptr _X_UNUSED, char *port _X_UNUSED)
 #ifdef TRANS_REOPEN
 
 static int
-TRANS(ReopenFail)(XtransConnInfo ciptr _X_UNUSED, int fd _X_UNUSED, char *port _X_UNUSED)
+TRANS(ReopenFail)(XtransConnInfo ciptr _X_UNUSED, int fd _X_UNUSED,
+                  const char *port _X_UNUSED)
 
 {
     return 0;
@@ -158,7 +159,8 @@ TRANS(LocalSendFdInvalid)(XtransConnInfo ciptr, int fd, int do_close)
 
 
 static int
-TRANS(FillAddrInfo)(XtransConnInfo ciptr, char *sun_path, char *peer_sun_path)
+TRANS(FillAddrInfo)(XtransConnInfo ciptr,
+                    const char *sun_path, const char *peer_sun_path)
 
 {
     struct sockaddr_un	*sunaddr;
@@ -316,7 +318,7 @@ static void _dummy(int sig _X_UNUSED)
 #ifdef TRANS_CLIENT
 
 static int
-TRANS(PTSOpenClient)(XtransConnInfo ciptr, char *port)
+TRANS(PTSOpenClient)(XtransConnInfo ciptr, const char *port)
 
 {
 #ifdef PTSNODENAME
@@ -468,7 +470,7 @@ TRANS(PTSOpenClient)(XtransConnInfo ciptr, char *port)
 #ifdef TRANS_SERVER
 
 static int
-TRANS(PTSOpenServer)(XtransConnInfo ciptr, char *port)
+TRANS(PTSOpenServer)(XtransConnInfo ciptr, const char *port)
 
 {
 #ifdef PTSNODENAME
@@ -669,7 +671,7 @@ TRANS(PTSAccept)(XtransConnInfo ciptr, XtransConnInfo newciptr, int *status)
 #ifdef TRANS_CLIENT
 
 static int
-TRANS(NAMEDOpenClient)(XtransConnInfo ciptr, char *port)
+TRANS(NAMEDOpenClient)(XtransConnInfo ciptr, const char *port)
 
 {
 #ifdef NAMEDNODENAME
@@ -806,7 +808,7 @@ TRANS(NAMEDOpenPipe)(const char *server_path)
 #endif
 
 static int
-TRANS(NAMEDOpenServer)(XtransConnInfo ciptr, char *port)
+TRANS(NAMEDOpenServer)(XtransConnInfo ciptr, const char *port)
 {
 #ifdef NAMEDNODENAME
     int			fd;
@@ -1012,7 +1014,7 @@ named_spipe(int fd, char *path)
 #ifdef TRANS_CLIENT
 
 static int
-TRANS(SCOOpenClient)(XtransConnInfo ciptr, char *port)
+TRANS(SCOOpenClient)(XtransConnInfo ciptr, const char *port)
 {
 #ifdef SCORNODENAME
     int			fd, server, fl, ret;
@@ -1100,7 +1102,7 @@ TRANS(SCOOpenClient)(XtransConnInfo ciptr, char *port)
 #ifdef TRANS_SERVER
 
 static int
-TRANS(SCOOpenServer)(XtransConnInfo ciptr, char *port)
+TRANS(SCOOpenServer)(XtransConnInfo ciptr, const char *port)
 {
 #ifdef SCORNODENAME
     char		serverR_path[64];
@@ -1276,7 +1278,7 @@ TRANS(SCOAccept)(XtransConnInfo ciptr, XtransConnInfo newciptr, int *status)
 #ifdef LOCAL_TRANS_PTS
 
 static int
-TRANS(PTSReopenServer)(XtransConnInfo ciptr, int fd, char *port)
+TRANS(PTSReopenServer)(XtransConnInfo ciptr, int fd, const char *port)
 
 {
 #ifdef PTSNODENAME
@@ -1317,7 +1319,7 @@ TRANS(PTSReopenServer)(XtransConnInfo ciptr, int fd, char *port)
 #ifdef LOCAL_TRANS_NAMED
 
 static int
-TRANS(NAMEDReopenServer)(XtransConnInfo ciptr, int fd _X_UNUSED, char *port)
+TRANS(NAMEDReopenServer)(XtransConnInfo ciptr, int fd _X_UNUSED, const char *port)
 
 {
 #ifdef NAMEDNODENAME
@@ -1358,7 +1360,7 @@ TRANS(NAMEDReopenServer)(XtransConnInfo ciptr, int fd _X_UNUSED, char *port)
 
 #ifdef LOCAL_TRANS_SCO
 static int
-TRANS(SCOReopenServer)(XtransConnInfo ciptr, int fd, char *port)
+TRANS(SCOReopenServer)(XtransConnInfo ciptr, int fd, const char *port)
 
 {
 #ifdef SCORNODENAME
@@ -1407,7 +1409,7 @@ typedef struct _LOCALtrans2dev {
 #ifdef TRANS_CLIENT
 
     int	(*devcotsopenclient)(
-	XtransConnInfo, char * /*port*/
+	XtransConnInfo, const char * /*port*/
 );
 
 #endif /* TRANS_CLIENT */
@@ -1415,7 +1417,7 @@ typedef struct _LOCALtrans2dev {
 #ifdef TRANS_SERVER
 
     int	(*devcotsopenserver)(
-	XtransConnInfo, char * /*port*/
+	XtransConnInfo, const char * /*port*/
 );
 
 #endif /* TRANS_SERVER */
@@ -1423,7 +1425,7 @@ typedef struct _LOCALtrans2dev {
 #ifdef TRANS_CLIENT
 
     int	(*devcltsopenclient)(
-	XtransConnInfo, char * /*port*/
+	XtransConnInfo, const char * /*port*/
 );
 
 #endif /* TRANS_CLIENT */
@@ -1431,7 +1433,7 @@ typedef struct _LOCALtrans2dev {
 #ifdef TRANS_SERVER
 
     int	(*devcltsopenserver)(
-	XtransConnInfo, char * /*port*/
+	XtransConnInfo, const char * /*port*/
 );
 
 #endif /* TRANS_SERVER */
@@ -1441,13 +1443,13 @@ typedef struct _LOCALtrans2dev {
     int	(*devcotsreopenserver)(
 	XtransConnInfo,
 	int, 	/* fd */
-	char * 	/* port */
+	const char * 	/* port */
 );
 
     int	(*devcltsreopenserver)(
 	XtransConnInfo,
 	int, 	/* fd */
-	char *	/* port */
+	const char *	/* port */
 );
 
 #endif /* TRANS_REOPEN */
@@ -1757,7 +1759,7 @@ TRANS(LocalGetNextTransport)(void)
  */
 
 static int
-HostReallyLocal (char *host)
+HostReallyLocal (const char *host)
 
 {
     /*
@@ -1787,7 +1789,8 @@ HostReallyLocal (char *host)
 
 
 static XtransConnInfo
-TRANS(LocalOpenClient)(int type, char *protocol, char *host, char *port)
+TRANS(LocalOpenClient)(int type, const char *protocol,
+                       const char *host, const char *port)
 
 {
     LOCALtrans2dev *transptr;
@@ -1882,7 +1885,8 @@ TRANS(LocalOpenClient)(int type, char *protocol, char *host, char *port)
 #ifdef TRANS_SERVER
 
 static XtransConnInfo
-TRANS(LocalOpenServer)(int type, char *protocol, char *host _X_UNUSED, char *port)
+TRANS(LocalOpenServer)(int type, const char *protocol,
+                       const char *host _X_UNUSED, const char *port)
 
 {
     int	i;
@@ -1945,7 +1949,7 @@ TRANS(LocalOpenServer)(int type, char *protocol, char *host _X_UNUSED, char *por
 #ifdef TRANS_REOPEN
 
 static XtransConnInfo
-TRANS(LocalReopenServer)(int type, int index, int fd, char *port)
+TRANS(LocalReopenServer)(int type, int index, int fd, const char *port)
 
 {
     XtransConnInfo ciptr;
@@ -1997,8 +2001,8 @@ TRANS(LocalReopenServer)(int type, int index, int fd, char *port)
 #ifdef TRANS_CLIENT
 
 static XtransConnInfo
-TRANS(LocalOpenCOTSClient)(Xtransport *thistrans _X_UNUSED, char *protocol,
-			   char *host, char *port)
+TRANS(LocalOpenCOTSClient)(Xtransport *thistrans _X_UNUSED, const char *protocol,
+			   const char *host, const char *port)
 
 {
     prmsg(2,"LocalOpenCOTSClient(%s,%s,%s)\n",protocol,host,port);
@@ -2012,8 +2016,8 @@ TRANS(LocalOpenCOTSClient)(Xtransport *thistrans _X_UNUSED, char *protocol,
 #ifdef TRANS_SERVER
 
 static XtransConnInfo
-TRANS(LocalOpenCOTSServer)(Xtransport *thistrans, char *protocol,
-			   char *host, char *port)
+TRANS(LocalOpenCOTSServer)(Xtransport *thistrans, const char *protocol,
+			   const char *host, const char *port)
 
 {
     char *typetocheck = NULL;
@@ -2056,8 +2060,8 @@ TRANS(LocalOpenCOTSServer)(Xtransport *thistrans, char *protocol,
 #ifdef TRANS_CLIENT
 
 static XtransConnInfo
-TRANS(LocalOpenCLTSClient)(Xtransport *thistrans _X_UNUSED, char *protocol,
-			   char *host, char *port)
+TRANS(LocalOpenCLTSClient)(Xtransport *thistrans _X_UNUSED, const char *protocol,
+			   const char *host, const char *port)
 
 {
     prmsg(2,"LocalOpenCLTSClient(%s,%s,%s)\n",protocol,host,port);
@@ -2071,8 +2075,8 @@ TRANS(LocalOpenCLTSClient)(Xtransport *thistrans _X_UNUSED, char *protocol,
 #ifdef TRANS_SERVER
 
 static XtransConnInfo
-TRANS(LocalOpenCLTSServer)(Xtransport *thistrans _X_UNUSED, char *protocol,
-			   char *host, char *port)
+TRANS(LocalOpenCLTSServer)(Xtransport *thistrans _X_UNUSED, const char *protocol,
+			   const char *host, const char *port)
 
 {
     prmsg(2,"LocalOpenCLTSServer(%s,%s,%s)\n",protocol,host,port);
@@ -2086,7 +2090,7 @@ TRANS(LocalOpenCLTSServer)(Xtransport *thistrans _X_UNUSED, char *protocol,
 #ifdef TRANS_REOPEN
 
 static XtransConnInfo
-TRANS(LocalReopenCOTSServer)(Xtransport *thistrans, int fd, char *port)
+TRANS(LocalReopenCOTSServer)(Xtransport *thistrans, int fd, const char *port)
 
 {
     int index;
@@ -2110,7 +2114,7 @@ TRANS(LocalReopenCOTSServer)(Xtransport *thistrans, int fd, char *port)
 }
 
 static XtransConnInfo
-TRANS(LocalReopenCLTSServer)(Xtransport *thistrans, int fd, char *port)
+TRANS(LocalReopenCLTSServer)(Xtransport *thistrans, int fd, const char *port)
 
 {
     int index;
@@ -2150,7 +2154,8 @@ TRANS(LocalSetOption)(XtransConnInfo ciptr, int option, int arg)
 #ifdef TRANS_SERVER
 
 static int
-TRANS(LocalCreateListener)(XtransConnInfo ciptr, char *port, unsigned int flags _X_UNUSED)
+TRANS(LocalCreateListener)(XtransConnInfo ciptr, const char *port,
+                           unsigned int flags _X_UNUSED)
 
 {
     prmsg(2,"LocalCreateListener(%p->%d,%s)\n",ciptr,ciptr->fd,port);
@@ -2215,7 +2220,8 @@ TRANS(LocalAccept)(XtransConnInfo ciptr, int *status)
 #ifdef TRANS_CLIENT
 
 static int
-TRANS(LocalConnect)(XtransConnInfo ciptr, char *host _X_UNUSED, char *port)
+TRANS(LocalConnect)(XtransConnInfo ciptr,
+                    const char *host _X_UNUSED, const char *port)
 
 {
     prmsg(2,"LocalConnect(%p->%d,%s)\n", ciptr, ciptr->fd, port);

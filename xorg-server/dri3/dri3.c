@@ -30,6 +30,8 @@ int dri3_request;
 DevPrivateKeyRec dri3_screen_private_key;
 DevPrivateKeyRec dri3_window_private_key;
 
+static int dri3_screen_generation;
+
 static Bool
 dri3_close_screen(ScreenPtr screen)
 {
@@ -44,6 +46,8 @@ dri3_close_screen(ScreenPtr screen)
 Bool
 dri3_screen_init(ScreenPtr screen, dri3_screen_info_ptr info)
 {
+    dri3_screen_generation = serverGeneration;
+
     if (!dixRegisterPrivateKey(&dri3_screen_private_key, PRIVATE_SCREEN, 0))
         return FALSE;
 
@@ -67,6 +71,12 @@ dri3_extension_init(void)
 {
     ExtensionEntry *extension;
     int i;
+
+    /* If no screens support DRI3, there's no point offering the
+     * extension at all
+     */
+    if (dri3_screen_generation != serverGeneration)
+        return;
 
 #ifdef PANORAMIX
     if (!noPanoramiXExtension)

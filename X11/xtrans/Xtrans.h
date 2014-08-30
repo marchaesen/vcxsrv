@@ -236,7 +236,7 @@ void TRANS(FreeConnInfo) (
 #ifdef TRANS_CLIENT
 
 XtransConnInfo TRANS(OpenCOTSClient)(
-    char *		/* address */
+    const char *	/* address */
 );
 
 #endif /* TRANS_CLIENT */
@@ -244,7 +244,7 @@ XtransConnInfo TRANS(OpenCOTSClient)(
 #ifdef TRANS_SERVER
 
 XtransConnInfo TRANS(OpenCOTSServer)(
-    char *		/* address */
+    const char *	/* address */
 );
 
 #endif /* TRANS_SERVER */
@@ -252,7 +252,7 @@ XtransConnInfo TRANS(OpenCOTSServer)(
 #ifdef TRANS_CLIENT
 
 XtransConnInfo TRANS(OpenCLTSClient)(
-    char *		/* address */
+    const char *	/* address */
 );
 
 #endif /* TRANS_CLIENT */
@@ -260,7 +260,7 @@ XtransConnInfo TRANS(OpenCLTSClient)(
 #ifdef TRANS_SERVER
 
 XtransConnInfo TRANS(OpenCLTSServer)(
-    char *		/* address */
+    const char *	/* address */
 );
 
 #endif /* TRANS_SERVER */
@@ -270,13 +270,13 @@ XtransConnInfo TRANS(OpenCLTSServer)(
 XtransConnInfo TRANS(ReopenCOTSServer)(
     int,		/* trans_id */
     int,		/* fd */
-    char *		/* port */
+    const char *	/* port */
 );
 
 XtransConnInfo TRANS(ReopenCLTSServer)(
     int,		/* trans_id */
     int,		/* fd */
-    char *		/* port */
+    const char *	/* port */
 );
 
 int TRANS(GetReopenInfo)(
@@ -299,7 +299,7 @@ int TRANS(SetOption)(
 
 int TRANS(CreateListener)(
     XtransConnInfo,	/* ciptr */
-    char *,		/* port */
+    const char *,	/* port */
     unsigned int	/* flags */
 );
 
@@ -330,7 +330,7 @@ XtransConnInfo TRANS(Accept)(
 
 int TRANS(Connect)(
     XtransConnInfo,	/* ciptr */
-    char *		/* address */
+    const char *	/* address */
 );
 
 #endif /* TRANS_CLIENT */
@@ -405,14 +405,14 @@ int TRANS(GetConnectionNumber)(
 #ifdef TRANS_SERVER
 
 int TRANS(MakeAllCOTSServerListeners)(
-    char *,		/* port */
+    const char *,	/* port */
     int *,		/* partial */
     int *,		/* count_ret */
     XtransConnInfo **	/* ciptrs_ret */
 );
 
 int TRANS(MakeAllCLTSServerListeners)(
-    char *,		/* port */
+    const char *,	/* port */
     int *,		/* partial */
     int *,		/* count_ret */
     XtransConnInfo **	/* ciptrs_ret */

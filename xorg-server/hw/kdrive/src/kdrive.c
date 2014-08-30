@@ -300,6 +300,8 @@ KdParseScreen(KdScreenInfo * screen, const char *arg)
     screen->softCursor = kdSoftCursor;
     screen->origin = kdOrigin;
     screen->randr = RR_Rotate_0;
+    screen->x = 0;
+    screen->y = 0;
     screen->width = 0;
     screen->height = 0;
     screen->width_mm = 0;
@@ -313,7 +315,7 @@ KdParseScreen(KdScreenInfo * screen, const char *arg)
         return;
 
     for (i = 0; i < 2; i++) {
-        arg = KdParseFindNext(arg, "x/@XY", save, &delim);
+        arg = KdParseFindNext(arg, "x/+@XY", save, &delim);
         if (!save[0])
             return;
 
@@ -321,7 +323,7 @@ KdParseScreen(KdScreenInfo * screen, const char *arg)
         mm = 0;
 
         if (delim == '/') {
-            arg = KdParseFindNext(arg, "x@XY", save, &delim);
+            arg = KdParseFindNext(arg, "x+@XY", save, &delim);
             if (!save[0])
                 return;
             mm = atoi(save);
@@ -335,7 +337,8 @@ KdParseScreen(KdScreenInfo * screen, const char *arg)
             screen->height = pixels;
             screen->height_mm = mm;
         }
-        if (delim != 'x' && delim != '@' && delim != 'X' && delim != 'Y' &&
+        if (delim != 'x' && delim != '+' && delim != '@' &&
+            delim != 'X' && delim != 'Y' &&
             (delim != '\0' || i == 0))
             return;
     }
@@ -345,6 +348,18 @@ KdParseScreen(KdScreenInfo * screen, const char *arg)
     kdDumbDriver = FALSE;
     kdSoftCursor = FALSE;
     kdSubpixelOrder = SubPixelUnknown;
+
+    if (delim == '+') {
+        arg = KdParseFindNext(arg, "+@xXY", save, &delim);
+        if (save[0])
+            screen->x = atoi(save);
+    }
+
+    if (delim == '+') {
+        arg = KdParseFindNext(arg, "@xXY", save, &delim);
+        if (save[0])
+            screen->y = atoi(save);
+    }
 
     if (delim == '@') {
         arg = KdParseFindNext(arg, "xXY", save, &delim);
@@ -425,7 +440,7 @@ KdUseMsg(void)
 {
     ErrorF("\nTinyX Device Dependent Usage:\n");
     ErrorF
-        ("-screen WIDTH[/WIDTHMM]xHEIGHT[/HEIGHTMM][@ROTATION][X][Y][xDEPTH/BPP[xFREQ]]  Specify screen characteristics\n");
+        ("-screen WIDTH[/WIDTHMM]xHEIGHT[/HEIGHTMM][+[-]XOFFSET][+[-]YOFFSET][@ROTATION][X][Y][xDEPTH/BPP[xFREQ]]  Specify screen characteristics\n");
     ErrorF
         ("-rgba rgb/bgr/vrgb/vbgr/none   Specify subpixel ordering for LCD panels\n");
     ErrorF

@@ -155,6 +155,7 @@ extern _X_EXPORT int
 xf86PlatformMatchDriver(char *matches[], int nmatches);
 
 extern void xf86platformVTProbe(void);
+extern void xf86platformPrimary(void);
 #endif
 
 #endif

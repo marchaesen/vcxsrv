@@ -689,6 +689,28 @@ public:
       unsigned must_be_shader_input:1;
 
       /**
+       * Output index for dual source blending.
+       *
+       * \note
+       * The GLSL spec only allows the values 0 or 1 for the index in \b dual
+       * source blending.
+       */
+      unsigned index:1;
+
+
+      /**
+       * ARB_shader_image_load_store qualifiers.
+       */
+      unsigned image_read_only:1; /**< "readonly" qualifier. */
+      unsigned image_write_only:1; /**< "writeonly" qualifier. */
+      unsigned image_coherent:1;
+      unsigned image_volatile:1;
+      unsigned image_restrict:1;
+
+      /** Image internal format if specified explicitly, otherwise GL_NONE. */
+      uint16_t image_format;
+
+      /**
        * \brief Layout qualifier for gl_FragDepth.
        *
        * This is not equal to \c ir_depth_layout_none if and only if this
@@ -722,12 +744,7 @@ public:
       unsigned stream;
 
       /**
-       * output index for dual source blending.
-       */
-      int index;
-
-      /**
-       * Initial binding point for a sampler or UBO.
+       * Initial binding point for a sampler, atomic, or UBO.
        *
        * For array types, this represents the binding point for the first element.
        */
@@ -737,23 +754,8 @@ public:
        * Location an atomic counter is stored at.
        */
       struct {
-         unsigned buffer_index;
          unsigned offset;
       } atomic;
-
-      /**
-       * ARB_shader_image_load_store qualifiers.
-       */
-      struct {
-         bool read_only; /**< "readonly" qualifier. */
-         bool write_only; /**< "writeonly" qualifier. */
-         bool coherent;
-         bool _volatile;
-         bool restrict_flag;
-
-         /** Image internal format if specified explicitly, otherwise GL_NONE. */
-         GLenum format;
-      } image;
 
       /**
        * Highest element accessed with a constant expression array index

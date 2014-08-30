@@ -163,9 +163,9 @@ typedef struct _Xtransport {
 
     XtransConnInfo (*OpenCOTSClient)(
 	struct _Xtransport *,	/* transport */
-	char *,			/* protocol */
-	char *,			/* host */
-	char *			/* port */
+	const char *,		/* protocol */
+	const char *,		/* host */
+	const char *		/* port */
     );
 
 #endif /* TRANS_CLIENT */
@@ -174,9 +174,9 @@ typedef struct _Xtransport {
     const char **	nolisten;
     XtransConnInfo (*OpenCOTSServer)(
 	struct _Xtransport *,	/* transport */
-	char *,			/* protocol */
-	char *,			/* host */
-	char *			/* port */
+	const char *,		/* protocol */
+	const char *,		/* host */
+	const char *		/* port */
     );
 
 #endif /* TRANS_SERVER */
@@ -185,9 +185,9 @@ typedef struct _Xtransport {
 
     XtransConnInfo (*OpenCLTSClient)(
 	struct _Xtransport *,	/* transport */
-	char *,			/* protocol */
-	char *,			/* host */
-	char *			/* port */
+	const char *,		/* protocol */
+	const char *,		/* host */
+	const char *		/* port */
     );
 
 #endif /* TRANS_CLIENT */
@@ -196,9 +196,9 @@ typedef struct _Xtransport {
 
     XtransConnInfo (*OpenCLTSServer)(
 	struct _Xtransport *,	/* transport */
-	char *,			/* protocol */
-	char *,			/* host */
-	char *			/* port */
+	const char *,		/* protocol */
+	const char *,		/* host */
+	const char *		/* port */
     );
 
 #endif /* TRANS_SERVER */
@@ -209,13 +209,13 @@ typedef struct _Xtransport {
     XtransConnInfo (*ReopenCOTSServer)(
 	struct _Xtransport *,	/* transport */
         int,			/* fd */
-        char *			/* port */
+        const char *		/* port */
     );
 
     XtransConnInfo (*ReopenCLTSServer)(
 	struct _Xtransport *,	/* transport */
         int,			/* fd */
-        char *			/* port */
+        const char *		/* port */
     );
 
 #endif /* TRANS_REOPEN */
@@ -233,7 +233,7 @@ typedef struct _Xtransport {
 
     int	(*CreateListener)(
 	XtransConnInfo,		/* connection */
-	char *,			/* port */
+	const char *,		/* port */
 	unsigned int		/* flags */
     );
 
@@ -252,8 +252,8 @@ typedef struct _Xtransport {
 
     int	(*Connect)(
 	XtransConnInfo,		/* connection */
-	char *,			/* host */
-	char *			/* port */
+	const char *,		/* host */
+	const char *		/* port */
     );
 
 #endif /* TRANS_CLIENT */

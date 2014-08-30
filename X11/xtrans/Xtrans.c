@@ -185,7 +185,8 @@ TRANS(SelectTransport) (const char *protocol)
 static
 #endif /* TEST_t */
 int
-TRANS(ParseAddress) (char *address, char **protocol, char **host, char **port)
+TRANS(ParseAddress) (const char *address,
+                     char **protocol, char **host, char **port)
 
 {
     /*
@@ -391,7 +392,7 @@ TRANS(ParseAddress) (char *address, char **protocol, char **host, char **port)
  */
 
 static XtransConnInfo
-TRANS(Open) (int type, char *address)
+TRANS(Open) (int type, const char *address)
 
 {
     char 		*protocol = NULL, *host = NULL, *port = NULL;
@@ -489,7 +490,7 @@ TRANS(Open) (int type, char *address)
  */
 
 static XtransConnInfo
-TRANS(Reopen) (int type, int trans_id, int fd, char *port)
+TRANS(Reopen) (int type, int trans_id, int fd, const char *port)
 
 {
     XtransConnInfo	ciptr = NULL;
@@ -563,7 +564,7 @@ TRANS(Reopen) (int type, int trans_id, int fd, char *port)
 #ifdef TRANS_CLIENT
 
 XtransConnInfo
-TRANS(OpenCOTSClient) (char *address)
+TRANS(OpenCOTSClient) (const char *address)
 
 {
     prmsg (2,"OpenCOTSClient(%s)\n", address);
@@ -576,7 +577,7 @@ TRANS(OpenCOTSClient) (char *address)
 #ifdef TRANS_SERVER
 
 XtransConnInfo
-TRANS(OpenCOTSServer) (char *address)
+TRANS(OpenCOTSServer) (const char *address)
 
 {
     prmsg (2,"OpenCOTSServer(%s)\n", address);
@@ -589,7 +590,7 @@ TRANS(OpenCOTSServer) (char *address)
 #ifdef TRANS_CLIENT
 
 XtransConnInfo
-TRANS(OpenCLTSClient) (char *address)
+TRANS(OpenCLTSClient) (const char *address)
 
 {
     prmsg (2,"OpenCLTSClient(%s)\n", address);
@@ -602,7 +603,7 @@ TRANS(OpenCLTSClient) (char *address)
 #ifdef TRANS_SERVER
 
 XtransConnInfo
-TRANS(OpenCLTSServer) (char *address)
+TRANS(OpenCLTSServer) (const char *address)
 
 {
     prmsg (2,"OpenCLTSServer(%s)\n", address);
@@ -615,7 +616,7 @@ TRANS(OpenCLTSServer) (char *address)
 #ifdef TRANS_REOPEN
 
 XtransConnInfo
-TRANS(ReopenCOTSServer) (int trans_id, int fd, char *port)
+TRANS(ReopenCOTSServer) (int trans_id, int fd, const char *port)
 
 {
     prmsg (2,"ReopenCOTSServer(%d, %d, %s)\n", trans_id, fd, port);
@@ -623,7 +624,7 @@ TRANS(ReopenCOTSServer) (int trans_id, int fd, char *port)
 }
 
 XtransConnInfo
-TRANS(ReopenCLTSServer) (int trans_id, int fd, char *port)
+TRANS(ReopenCLTSServer) (int trans_id, int fd, const char *port)
 
 {
     prmsg (2,"ReopenCLTSServer(%d, %d, %s)\n", trans_id, fd, port);
@@ -742,7 +743,7 @@ TRANS(SetOption) (XtransConnInfo ciptr, int option, int arg)
 #ifdef TRANS_SERVER
 
 int
-TRANS(CreateListener) (XtransConnInfo ciptr, char *port, unsigned int flags)
+TRANS(CreateListener) (XtransConnInfo ciptr, const char *port, unsigned int flags)
 
 {
     return ciptr->transptr->CreateListener (ciptr, port, flags);
@@ -851,7 +852,7 @@ TRANS(Accept) (XtransConnInfo ciptr, int *status)
 #ifdef TRANS_CLIENT
 
 int
-TRANS(Connect) (XtransConnInfo ciptr, char *address)
+TRANS(Connect) (XtransConnInfo ciptr, const char *address)
 
 {
     char	*protocol;
@@ -1073,7 +1074,8 @@ complete_network_count (void)
 
 
 static int
-receive_listening_fds(char* port, XtransConnInfo* temp_ciptrs, int* count_ret)
+receive_listening_fds(const char* port, XtransConnInfo* temp_ciptrs,
+                      int* count_ret)
 
 {
 #ifdef HAVE_SYSTEMD_DAEMON
@@ -1150,8 +1152,8 @@ extern int xquartz_launchd_fd;
 #endif
 
 int
-TRANS(MakeAllCOTSServerListeners) (char *port, int *partial, int *count_ret,
-				   XtransConnInfo **ciptrs_ret)
+TRANS(MakeAllCOTSServerListeners) (const char *port, int *partial,
+                                   int *count_ret, XtransConnInfo **ciptrs_ret)
 
 {
     char		buffer[256]; /* ??? What size ?? */
@@ -1281,8 +1283,8 @@ TRANS(MakeAllCOTSServerListeners) (char *port, int *partial, int *count_ret,
 }
 
 int
-TRANS(MakeAllCLTSServerListeners) (char *port, int *partial, int *count_ret,
-				   XtransConnInfo **ciptrs_ret)
+TRANS(MakeAllCLTSServerListeners) (const char *port, int *partial,
+                                   int *count_ret, XtransConnInfo **ciptrs_ret)
 
 {
     char		buffer[256]; /* ??? What size ?? */

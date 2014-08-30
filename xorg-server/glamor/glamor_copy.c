@@ -233,6 +233,56 @@ bail:
     return FALSE;
 }
 
+/**
+ * Implements CopyArea from the GPU to the CPU using glReadPixels from the
+ * source FBO.
+ */
+static Bool
+glamor_copy_fbo_cpu(DrawablePtr src,
+                    DrawablePtr dst,
+                    GCPtr gc,
+                    BoxPtr box,
+                    int nbox,
+                    int dx,
+                    int dy,
+                    Bool reverse,
+                    Bool upsidedown,
+                    Pixel bitplane,
+                    void *closure)
+{
+    ScreenPtr screen = dst->pScreen;
+    glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
+    PixmapPtr src_pixmap = glamor_get_drawable_pixmap(src);
+    FbBits *dst_bits;
+    FbStride dst_stride;
+    int dst_bpp;
+    int src_xoff, src_yoff;
+    int dst_xoff, dst_yoff;
+
+    if (gc && gc->alu != GXcopy)
+        goto bail;
+
+    if (gc && !glamor_pm_is_solid(dst, gc->planemask))
+        goto bail;
+
+    glamor_make_current(glamor_priv);
+    glamor_prepare_access(dst, GLAMOR_ACCESS_RW);
+
+    glamor_get_drawable_deltas(src, src_pixmap, &src_xoff, &src_yoff);
+
+    fbGetDrawable(dst, dst_bits, dst_stride, dst_bpp, dst_xoff, dst_yoff);
+
+    glamor_download_boxes(src_pixmap, box, nbox, src_xoff + dx, src_yoff + dy,
+                          dst_xoff, dst_yoff,
+                          (uint8_t *) dst_bits, dst_stride * sizeof (FbBits));
+    glamor_finish_access(dst);
+
+    return TRUE;
+
+bail:
+    return FALSE;
+}
+
 /*
  * Copy from GPU to GPU by using the source
  * as a texture and painting that into the destination
@@ -583,6 +633,11 @@ glamor_copy_gl(DrawablePtr src,
         }
         if (bitplane == 0)
             return glamor_copy_cpu_fbo(src, dst, gc, box, nbox, dx, dy,
+                                       reverse, upsidedown, bitplane, closure);
+    } else if (GLAMOR_PIXMAP_PRIV_HAS_FBO(src_priv) &&
+               dst_priv->type != GLAMOR_DRM_ONLY &&
+               bitplane == 0) {
+            return glamor_copy_fbo_cpu(src, dst, gc, box, nbox, dx, dy,
                                        reverse, upsidedown, bitplane, closure);
     }
     return FALSE;

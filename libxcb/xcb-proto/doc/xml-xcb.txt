@@ -184,11 +184,12 @@ separated by a single colon.  For example, to refer to the PIXMAP type defined
 in glx rather than the one defined in xproto, use type="glx:PIXMAP" rather
 than type="PIXMAP".
 
-Note: Most of the below may optionally contain an enum, altenum, or mask
+Note: Most of the below may optionally contain an enum, altenum, mask or altmask
 attribute, which follows the above rules for "type". "enum" is an exhaustive
 enum; the value is restricted to one of the constants named in the enum.
 "altenum" may be one of the values contained in the enum, but it need not be.
-"mask" refers to an enum to be used as a bitmask.
+"mask" refers to an exhaustive enum to be used as a bitmask.
+"altmask" may be a mask from the referred enum, but it need not be.
 
 <pad bytes="integer" />
 
@@ -243,18 +244,40 @@ enum; the value is restricted to one of the constants named in the enum.
   <switch> instead for new protocol definitions.
 
 <switch name="identifier"> switch expression
-    <bitcase> bitcase expression(s), fields </bitcase> </switch>
+    <bitcase> bitcase expression(s), fields </bitcase>
+    <case> case expression(s), fields </case>
+</switch>
 
   This element represents conditional inclusion of fields. It can be viewed
-  as sequence of multiple ifs: if ( switch expression & bitcase expression )
-  is non-zero, bitcase fields are included in structure.  It can be used only
-  as the last field of a structure.
+  as sequence of multiple ifs:
 
-  When a bitcase includes multiple <enumref> clauses, the contents of the
-  bitcase are only present once regardless of the number of bitcase expressions
-  that match.
+  <bitcase>:
+    if ( switch expression & bitcase expression ) is non-zero,
+    bitcase fields are included in structure.
 
-  New protocol definitions should prefer to use this instead of <valueparam>.
+  <case>:
+    if ( switch expression == case expression ) is true,
+    then case fields are included in structure.
+
+  It can be used only as the last field of a structure.
+
+  When a bitcase or case includes multiple <enumref> clauses, the contents
+  of the bitcase or case are only present once regardless of the number of
+  bitcase or case expressions that match.
+
+  <enumref> inside <bitcase> can only refer to an enum's <bit> members.
+  <enumref> inside <case> can only refer to an enum's <value> members.
+
+  A switch may contain multiple <bitcase> or <case> elements.
+  Usually it will only contain <bitcase> elements
+  or only contain <case> elements.
+  That is, mixing of <case> and <bitcase> usually doesn't make any sense.
+
+  The same value may appear in multiple <case> or <bitcase> elements.
+
+  New protocol definitions should prefer to use this instead of <valueparam>
+  and instead of <union>.
+
 
 Expressions
 -----------

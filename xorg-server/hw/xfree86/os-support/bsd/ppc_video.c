@@ -76,7 +76,7 @@ ppcMapVidMem(int ScreenNum, unsigned long Base, unsigned long Size, int flags)
                 (flags & VIDMEM_READONLY) ?
                 PROT_READ : (PROT_READ | PROT_WRITE), MAP_SHARED, fd, Base);
     if (base == MAP_FAILED)
-        FatalError("%s: could not mmap screen [s=%x,a=%x] (%s)",
+        FatalError("%s: could not mmap screen [s=%lx,a=%lx] (%s)",
                    "xf86MapVidMem", Size, Base, strerror(errno));
 
     return base;

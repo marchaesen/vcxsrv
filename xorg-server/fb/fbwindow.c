@@ -33,7 +33,7 @@ fbCreateWindow(WindowPtr pWin)
 {
     dixSetPrivate(&pWin->devPrivates, fbGetWinPrivateKey(pWin),
                   fbGetScreenPixmap(pWin->drawable.pScreen));
-    if (pWin->drawable.bitsPerPixel == 32)
+    if (pWin->drawable.bitsPerPixel == 32 && pWin->drawable.depth <= 24)
         pWin->drawable.bitsPerPixel =
             fbGetScreenPrivate(pWin->drawable.pScreen)->win32bpp;
     return TRUE;
