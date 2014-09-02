@@ -1231,6 +1231,7 @@ sub read_options
 		"no-montasm" => 0,
 		"no-shared" => 0,
 		"no-store" => 0,
+		"no-unit-test" => 0,
 		"no-zlib" => 0,
 		"no-zlib-dynamic" => 0,
 		"fips" => \$fips
