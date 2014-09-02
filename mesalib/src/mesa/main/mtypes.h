@@ -2348,6 +2348,20 @@ struct gl_fragment_program_state
 
 
 /**
+ * Context state for compute programs.
+ */
+struct gl_compute_program_state
+{
+   struct gl_compute_program *Current;  /**< user-bound compute program */
+
+   /** Currently enabled and valid program (including internal programs
+    * and compiled shader programs).
+    */
+   struct gl_compute_program *_Current;
+};
+
+
+/**
  * ATI_fragment_shader runtime state
  */
 #define ATI_FS_INPUT_PRIMARY 0
@@ -3908,32 +3922,32 @@ typedef enum
 struct gl_driver_flags
 {
    /** gl_context::Array::_DrawArrays (vertex array state) */
-   GLbitfield NewArray;
+   uint64_t NewArray;
 
    /** gl_context::TransformFeedback::CurrentObject */
-   GLbitfield NewTransformFeedback;
+   uint64_t NewTransformFeedback;
 
    /** gl_context::TransformFeedback::CurrentObject::shader_program */
-   GLbitfield NewTransformFeedbackProg;
+   uint64_t NewTransformFeedbackProg;
 
    /** gl_context::RasterDiscard */
-   GLbitfield NewRasterizerDiscard;
+   uint64_t NewRasterizerDiscard;
 
    /**
     * gl_context::UniformBufferBindings
     * gl_shader_program::UniformBlocks
     */
-   GLbitfield NewUniformBuffer;
+   uint64_t NewUniformBuffer;
 
    /**
     * gl_context::AtomicBufferBindings
     */
-   GLbitfield NewAtomicBuffer;
+   uint64_t NewAtomicBuffer;
 
    /**
     * gl_context::ImageUnits
     */
-   GLbitfield NewImageUnits;
+   uint64_t NewImageUnits;
 };
 
 struct gl_uniform_buffer_binding
@@ -4153,6 +4167,7 @@ struct gl_context
    struct gl_vertex_program_state VertexProgram;
    struct gl_fragment_program_state FragmentProgram;
    struct gl_geometry_program_state GeometryProgram;
+   struct gl_compute_program_state ComputeProgram;
    struct gl_ati_fragment_shader_state ATIFragmentShader;
 
    struct gl_pipeline_shader_state Pipeline; /**< GLSL pipeline shader object state */
@@ -4240,7 +4255,7 @@ struct gl_context
 
    GLenum RenderMode;        /**< either GL_RENDER, GL_SELECT, GL_FEEDBACK */
    GLbitfield NewState;      /**< bitwise-or of _NEW_* flags */
-   GLbitfield NewDriverState;/**< bitwise-or of flags from DriverFlags */
+   uint64_t NewDriverState;  /**< bitwise-or of flags from DriverFlags */
 
    struct gl_driver_flags DriverFlags;
 

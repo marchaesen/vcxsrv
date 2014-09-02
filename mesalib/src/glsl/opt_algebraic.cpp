@@ -110,6 +110,48 @@ is_vec_basis(ir_constant *ir)
    return (ir == NULL) ? false : ir->is_basis();
 }
 
+static inline bool
+is_valid_vec_const(ir_constant *ir)
+{
+   if (ir == NULL)
+      return false;
+
+   if (!ir->type->is_scalar() && !ir->type->is_vector())
+      return false;
+
+   return true;
+}
+
+static inline bool
+is_less_than_one(ir_constant *ir)
+{
+   if (!is_valid_vec_const(ir))
+      return false;
+
+   unsigned component = 0;
+   for (int c = 0; c < ir->type->vector_elements; c++) {
+      if (ir->get_float_component(c) < 1.0f)
+         component++;
+   }
+
+   return (component == ir->type->vector_elements);
+}
+
+static inline bool
+is_greater_than_zero(ir_constant *ir)
+{
+   if (!is_valid_vec_const(ir))
+      return false;
+
+   unsigned component = 0;
+   for (int c = 0; c < ir->type->vector_elements; c++) {
+      if (ir->get_float_component(c) > 0.0f)
+         component++;
+   }
+
+   return (component == ir->type->vector_elements);
+}
+
 static void
 update_type(ir_expression *ir)
 {
@@ -610,6 +652,62 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
          base_ir->insert_before(x);
          base_ir->insert_before(assign(x, ir->operands[0]));
          return mul(x, x);
+      }
+
+      break;
+
+   case ir_binop_min:
+   case ir_binop_max:
+      if (ir->type->base_type != GLSL_TYPE_FLOAT)
+         break;
+
+      /* Replace min(max) operations and its commutative combinations with
+       * a saturate operation
+       */
+      for (int op = 0; op < 2; op++) {
+         ir_expression *minmax = op_expr[op];
+         ir_constant *outer_const = op_const[1 - op];
+         ir_expression_operation op_cond = (ir->operation == ir_binop_max) ?
+            ir_binop_min : ir_binop_max;
+
+         if (!minmax || !outer_const || (minmax->operation != op_cond))
+            continue;
+
+         /* Found a min(max) combination. Now try to see if its operands
+          * meet our conditions that we can do just a single saturate operation
+          */
+         for (int minmax_op = 0; minmax_op < 2; minmax_op++) {
+            ir_rvalue *inner_val_a = minmax->operands[minmax_op];
+            ir_rvalue *inner_val_b = minmax->operands[1 - minmax_op];
+
+            if (!inner_val_a || !inner_val_b)
+               continue;
+
+            /* Found a {min|max} ({max|min} (x, 0.0), 1.0) operation and its variations */
+            if ((outer_const->is_one() && inner_val_a->is_zero()) ||
+                (inner_val_a->is_one() && outer_const->is_zero()))
+               return saturate(inner_val_b);
+
+            /* Found a {min|max} ({max|min} (x, 0.0), b) where b < 1.0
+             * and its variations
+             */
+            if (is_less_than_one(outer_const) && inner_val_b->is_zero())
+               return expr(ir_binop_min, saturate(inner_val_a), outer_const);
+
+            if (!inner_val_b->as_constant())
+               continue;
+
+            if (is_less_than_one(inner_val_b->as_constant()) && outer_const->is_zero())
+               return expr(ir_binop_min, saturate(inner_val_a), inner_val_b);
+
+            /* Found a {min|max} ({max|min} (x, b), 1.0), where b > 0.0
+             * and its variations
+             */
+            if (outer_const->is_one() && is_greater_than_zero(inner_val_b->as_constant()))
+               return expr(ir_binop_max, saturate(inner_val_a), inner_val_b);
+            if (inner_val_b->as_constant()->is_one() && is_greater_than_zero(outer_const))
+               return expr(ir_binop_max, saturate(inner_val_a), outer_const);
+         }
       }
 
       break;
