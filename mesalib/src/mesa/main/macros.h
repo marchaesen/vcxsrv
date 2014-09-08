@@ -184,12 +184,19 @@ static inline GLfloat UINT_AS_FLT(GLuint u)
    return tmp.f;
 }
 
+static inline unsigned FLT_AS_UINT(float f)
+{
+   fi_type tmp;
+   tmp.f = f;
+   return tmp.u;
+}
+
 /**
  * Convert a floating point value to an unsigned fixed point value.
  *
  * \param frac_bits   The number of bits used to store the fractional part.
  */
-static INLINE uint32_t
+static inline uint32_t
 U_FIXED(float value, uint32_t frac_bits)
 {
    value *= (1 << frac_bits);
@@ -201,7 +208,7 @@ U_FIXED(float value, uint32_t frac_bits)
  *
  * \param frac_bits   The number of bits used to store the fractional part.
  */
-static INLINE int32_t
+static inline int32_t
 S_FIXED(float value, uint32_t frac_bits)
 {
    return (int32_t) (value * (1 << frac_bits));
