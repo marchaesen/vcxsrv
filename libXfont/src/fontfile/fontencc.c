@@ -48,7 +48,7 @@ font_encoding_find(const char *encoding_name, const char *filename)
 }
 
 unsigned
-font_encoding_recode(unsigned code, 
+font_encoding_recode(unsigned code,
                      FontEncPtr encoding, FontMapPtr mapping)
 {
     if(encoding != mapping->encoding) {

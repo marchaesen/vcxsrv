@@ -10,7 +10,6 @@ libstubs_la_SOURCES = 		\
 	csignal.c		\
 	delfntcid.c		\
 	errorf.c		\
-	fatalerror.c		\
 	findoldfnt.c		\
 	getcres.c		\
 	getdefptsize.c		\
@@ -22,4 +21,5 @@ libstubs_la_SOURCES = 		\
 	servclient.c		\
 	setfntauth.c		\
 	stfntcfnt.c		\
+	stubsinit.c		\
 	stubs.h

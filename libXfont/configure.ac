@@ -21,7 +21,7 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([libXfont], [1.4.8],
+AC_INIT([libXfont], [1.5.0],
 	[https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [libXfont])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h include/X11/fonts/fontconf.h])
@@ -67,11 +67,17 @@ XFONT_FONTFILE=no
 # FreeType for all scalable (OpenType, TrueType, PostScript) and
 # some bitmap formats (BDF & PCF)
 #
-AC_ARG_ENABLE(freetype, [ --disable-freetype],[XFONT_FREETYPE=$enableval],[XFONT_FREETYPE=yes])
+AC_ARG_ENABLE(freetype,
+	AS_HELP_STRING([--disable-freetype],
+		[Build freetype backend (default: enabled)]),
+	[XFONT_FREETYPE=$enableval],[XFONT_FREETYPE=yes])
 AM_CONDITIONAL(XFONT_FREETYPE, [test x$XFONT_FREETYPE = xyes])
 if test x$XFONT_FREETYPE = xyes; then
 	AC_DEFINE(XFONT_FREETYPE,1,[Support FreeType rasterizer for nearly all font file formats])
-	AC_ARG_WITH(freetype-config, [  --with-freetype-config=PROG   Use FreeType configuration program PROG], freetype_config=$withval, freetype_config=auto)
+	AC_ARG_WITH(freetype-config,
+		AS_HELP_STRING([--with-freetype-config=PROG],
+			[Use FreeType configuration program PROG]),
+		[freetype_config=$withval], [freetype_config=auto])
 
 	if test "$freetype_config" = "auto" ; then
 		PKG_CHECK_MODULES(FREETYPE, freetype2,
@@ -117,7 +123,7 @@ AC_CHECK_LIB(z, gzopen, [Z_LIBS=-lz], AC_MSG_ERROR([*** zlib is required]))
 
 AC_ARG_WITH(bzip2,
 	AS_HELP_STRING([--with-bzip2],
-			[Support bzip2 compressed bitmap fonts]),
+	  [Use libbz2 to support bzip2 compressed bitmap fonts (default: no)]),
 	[], [with_bzip2=no])
 if test "x$with_bzip2" = xyes; then
 	AC_CHECK_LIB(bz2, BZ2_bzopen, [Z_LIBS="$Z_LIBS -lbz2"],
@@ -127,28 +133,43 @@ fi
 AM_CONDITIONAL(X_BZIP2_FONT_COMPRESSION, [test "x$with_bzip2" = xyes ])
 AC_SUBST(Z_LIBS)
 
-AC_ARG_ENABLE(builtins, [ --disable-builtins ], [XFONT_BUILTINS=$enableval], [XFONT_BUILTINS=yes])
+AC_ARG_ENABLE(builtins,
+	AS_HELP_STRING([--disable-builtins],
+		[Support builtin fonts (default: enabled)]),
+	[XFONT_BUILTINS=$enableval], [XFONT_BUILTINS=yes])
 AM_CONDITIONAL(XFONT_BUILTINS, [test "x$XFONT_BUILTINS" = xyes ])
 if test "x$XFONT_BUILTINS" = xyes; then
 	AC_DEFINE(XFONT_BUILTINS,1,[Support built-in fonts])
 	XFONT_BITMAP=yes
 fi
 
-AC_ARG_ENABLE(pcfformat, [ --disable-pcfformat ], [XFONT_PCFFORMAT=$enableval], [XFONT_PCFFORMAT=yes])
+AC_ARG_ENABLE(pcfformat,
+	AS_HELP_STRING([--disable-pcfformat],
+		[Support PCF format bitmap fonts (default: enabled)]),
+	[XFONT_PCFFORMAT=$enableval], [XFONT_PCFFORMAT=yes])
 AM_CONDITIONAL(XFONT_PCFFORMAT, [test "x$XFONT_PCFFORMAT" = xyes])
 if test "x$XFONT_PCFFORMAT" = xyes; then
 	AC_DEFINE(XFONT_PCFFORMAT,1,[Support pcf format bitmap font files])
 	XFONT_BITMAP=yes
 fi
 
-AC_ARG_ENABLE(bdfformat, [ --disable-bdfformat ], [XFONT_BDFFORMAT=$enableval], [XFONT_BDFFORMAT=yes])
+AM_CONDITIONAL(XFONT_PCF_OR_BUILTIN,
+	[test "x$XFONT_PCFFORMAT" = xyes -o "x$XFONT_BUILTINS" = xyes])
+
+AC_ARG_ENABLE(bdfformat,
+	AS_HELP_STRING([--disable-bdfformat],
+		[Support BDF format bitmap fonts (default: enabled)]),
+	[XFONT_BDFFORMAT=$enableval], [XFONT_BDFFORMAT=yes])
 AM_CONDITIONAL(XFONT_BDFFORMAT, [test "x$XFONT_BDFFORMAT" = xyes])
 if test "x$XFONT_BDFFORMAT" = xyes; then
 	AC_DEFINE(XFONT_BDFFORMAT,1,[Support bdf format bitmap font files])
 	XFONT_BITMAP=yes
 fi
 
-AC_ARG_ENABLE(snfformat, [ --disable-snfformat ], [XFONT_SNFFORMAT=$enableval], [XFONT_SNFFORMAT=yes])
+AC_ARG_ENABLE(snfformat,
+	AS_HELP_STRING([--enable-snfformat],
+		[Support SNF format bitmap fonts (default: disabled)]),
+	[XFONT_SNFFORMAT=$enableval], [XFONT_SNFFORMAT=no])
 AM_CONDITIONAL(XFONT_SNFFORMAT, [test "x$XFONT_SNFFORMAT" = xyes])
 if test "x$XFONT_SNFFORMAT" = xyes; then
 	AC_DEFINE(XFONT_SNFFORMAT,1,[Support snf format bitmap font files])
@@ -170,7 +191,10 @@ fi
 # Support connection to font servers?
 #
 
-AC_ARG_ENABLE(fc, [ --disable-fc ],[XFONT_FC=$enableval],[XFONT_FC=yes])
+AC_ARG_ENABLE(fc,
+	AS_HELP_STRING([--disable-fc],
+		[Support connections to xfs servers (default: enabled)]),
+	[XFONT_FC=$enableval],[XFONT_FC=yes])
 AM_CONDITIONAL(XFONT_FC, [test "x$XFONT_FC" = xyes])
 if test "x$XFONT_FC" = xyes; then
 	AC_DEFINE(XFONT_FC,1,[Support the X Font Services Protocol])
@@ -180,7 +204,7 @@ fi
 AC_CHECK_LIB(m, hypot, [MATH_LIBS=-lm
 AC_SUBST(MATH_LIBS)], AC_MSG_ERROR([*** libm is required]))
 
-PKG_CHECK_MODULES(XFONT, [xproto xtrans fontsproto < 2.1.3 fontenc])
+PKG_CHECK_MODULES(XFONT, [xproto xtrans fontsproto >= 2.1.3 fontenc])
 
 # Transport selection macro from xtrans.m4
 XTRANS_CONNECTION_FLAGS

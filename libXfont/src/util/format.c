@@ -6,11 +6,11 @@
  * documentation for any purpose is hereby granted without fee, provided that
  * the above copyright notice appear in all copies and that both that
  * copyright notice and this permission notice appear in supporting
- * documentation, and that the names of Network Computing Devices or Digital 
- * not be used in advertising or publicity pertaining to distribution of the 
- * software without specific, written prior permission. Network Computing 
- * Devices and Digital make no representations about the suitability of 
- * this software for any purpose.  It is provided "as is" without express 
+ * documentation, and that the names of Network Computing Devices or Digital
+ * not be used in advertising or publicity pertaining to distribution of the
+ * software without specific, written prior permission. Network Computing
+ * Devices and Digital make no representations about the suitability of
+ * this software for any purpose.  It is provided "as is" without express
  * or implied warranty.
  *
  * NETWORK COMPUTING DEVICES AND DIGITAL DISCLAIM ALL WARRANTIES WITH
@@ -59,12 +59,12 @@ from The Open Group.
 #include	<X11/fonts/fontutil.h>
 
 int
-CheckFSFormat(fsBitmapFormat format, 
-	      fsBitmapFormatMask fmask, 
-	      int *bit_order, 
-	      int *byte_order, 
-	      int *scan, 
-	      int *glyph, 
+CheckFSFormat(fsBitmapFormat format,
+	      fsBitmapFormatMask fmask,
+	      int *bit_order,
+	      int *byte_order,
+	      int *scan,
+	      int *glyph,
 	      int *image)
 {
     /* convert format to what the low levels want */

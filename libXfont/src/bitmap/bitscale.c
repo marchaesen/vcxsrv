@@ -34,22 +34,6 @@ from The Open Group.
 #include <config.h>
 #endif
 
-/*
- * Translate monolithic #defines to modular definitions
- */
-
-#ifdef PCFFORMAT
-#define XFONT_PCFFORMAT 1
-#endif
-
-#ifdef SNFFORMAT
-#define XFONT_SNFFORMAT 1
-#endif
-
-#ifdef BDFFORMAT
-#define XFONT_BDFFORMAT 1
-#endif
-
 #include <X11/fonts/fntfilst.h>
 #include <X11/fonts/bitmap.h>
 #include <X11/fonts/fontutil.h>
@@ -60,7 +44,7 @@ from The Open Group.
 #endif
 
 /* Should get this from elsewhere */
-extern unsigned long serverGeneration;
+extern unsigned long __GetServerGeneration(void);
 
 static void bitmapUnloadScalable (FontPtr pFont);
 static void ScaleBitmap ( FontPtr pFont, CharInfoPtr opci,
@@ -597,9 +581,9 @@ ComputeScaledProperties(FontInfoPtr sourceFontInfo, /* the font to be scaled */
     char	*isStringProp;
     int		nProps;
 
-    if (bitscaleGeneration != serverGeneration) {
+    if (bitscaleGeneration != __GetServerGeneration()) {
 	initFontPropTable();
-	bitscaleGeneration = serverGeneration;
+	bitscaleGeneration = __GetServerGeneration();
     }
     nProps = NPROPS + 1 + sizeof(fontPropTable) / sizeof(fontProp) +
 			  sizeof(rawFontPropTable) / sizeof(fontProp);
@@ -751,6 +735,8 @@ compute_xform_matrix(FontScalablePtr vals, double dx, double dy,
  *  ScaleFont
  *  returns a pointer to the new scaled font, or NULL (due to AllocError).
  */
+#pragma GCC diagnostic ignored "-Wbad-function-cast"
+
 static FontPtr
 ScaleFont(FontPtr opf,            /* originating font */
 	  double widthMult, 	  /* glyphs width scale factor */
@@ -811,8 +797,6 @@ ScaleFont(FontPtr opf,            /* originating font */
        needs to be for the output font */
     if (vals->nranges)
     {
-	int i;
-
 	pfi->allExist = 0;
 	firstCol = 255;
 	lastCol = 0;

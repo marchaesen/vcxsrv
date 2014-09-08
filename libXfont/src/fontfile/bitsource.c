@@ -101,14 +101,14 @@ FontFileEmptyBitmapSource(void)
 }
 
 int
-FontFileMatchBitmapSource (FontPathElementPtr fpe, 
-			   FontPtr *pFont, 
-			   int flags, 
-			   FontEntryPtr entry, 
-			   FontNamePtr zeroPat, 
-			   FontScalablePtr vals, 
-			   fsBitmapFormat format, 
-			   fsBitmapFormatMask fmask, 
+FontFileMatchBitmapSource (FontPathElementPtr fpe,
+			   FontPtr *pFont,
+			   int flags,
+			   FontEntryPtr entry,
+			   FontNamePtr zeroPat,
+			   FontScalablePtr vals,
+			   fsBitmapFormat format,
+			   fsBitmapFormatMask fmask,
 			   Bool noSpecificSize)
 {
     int			source;

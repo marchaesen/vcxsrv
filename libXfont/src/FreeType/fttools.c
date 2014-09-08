@@ -112,17 +112,17 @@ FTGetName(FT_Face face, int nid, int pid, int eid, FT_SfntName *name_return)
     return 0;
 }
 
-int 
+int
 FTGetEnglishName(FT_Face face, int nid, char *name_return, int name_len)
 {
     FT_SfntName name;
     int len;
 
-    if(FTGetName(face, nid, 
+    if(FTGetName(face, nid,
                  TT_PLATFORM_MICROSOFT, TT_MS_ID_UNICODE_CS, &name) ||
-       FTGetName(face, nid, 
+       FTGetName(face, nid,
                  TT_PLATFORM_APPLE_UNICODE, -1, &name))
-        return FTu2a(name.string_len, name.string, name_return, 
+        return FTu2a(name.string_len, name.string, name_return,
                      MSBFirst, name_len);
 
     /* Pretend that Apple Roman is ISO 8859-1. */

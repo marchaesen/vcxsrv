@@ -175,7 +175,7 @@ typedef struct _snfFontInfo {
 }           snfFontInfoRec;
 
 extern void SnfSetFormat ( int bit, int byte, int glyph, int scan );
-extern int snfReadFont ( FontPtr pFont, FontFilePtr file, 
+extern int snfReadFont ( FontPtr pFont, FontFilePtr file,
 			 int bit, int byte, int glyph, int scan );
 extern int snfReadFontInfo ( FontInfoPtr pFontInfo, FontFilePtr file );
 

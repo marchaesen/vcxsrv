@@ -10,4 +10,5 @@
 weak void
 DeleteFontClientID(Font id)
 {
+    OVERRIDE_SYMBOL(DeleteFontClientID, id);
 }

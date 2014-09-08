@@ -45,14 +45,22 @@ from The Open Group.
 
 extern void BuiltinRegisterFpeFunctions(void);
 
-#ifndef NO_WEAK_SYMBOLS
 /* make sure everything initializes themselves at least once */
 weak unsigned long serverGeneration = 1;
-#endif
+
+unsigned long __GetServerGeneration (void);
+
+unsigned long
+__GetServerGeneration (void)
+{
+  OVERRIDE_DATA(serverGeneration);
+  return serverGeneration;
+}
 
 weak void
 register_fpe_functions (void)
 {
+    OVERRIDE_SYMBOL(register_fpe_functions);
     BuiltinRegisterFpeFunctions();
     FontFileRegisterFpeFunctions();
 #ifdef XFONT_FC

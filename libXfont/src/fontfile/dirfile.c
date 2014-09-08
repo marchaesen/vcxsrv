@@ -50,8 +50,10 @@ static int ReadFontAlias ( char *directory, Bool isFile,
 static int lexAlias ( FILE *file, char **lexToken );
 static int lexc ( FILE *file );
 
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+
 int
-FontFileReadDirectory (char *directory, FontDirectoryPtr *pdir)
+FontFileReadDirectory (const char *directory, FontDirectoryPtr *pdir)
 {
     char        file_name[MAXFONTFILENAMELEN];
     char        font_name[MAXFONTNAMELEN];

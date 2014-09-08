@@ -65,4 +65,4 @@ libXfont_la_LIBADD = \
 
 libXfont_la_SOURCES = dummy.c
 
-libXfont_la_LDFLAGS = -version-number 1:4:1
+libXfont_la_LDFLAGS = -version-number 1:4:1 -no-undefined

@@ -50,7 +50,7 @@ typedef unsigned char	EntryPtr;
 typedef struct _FontPatternCacheEntry {
     struct _FontPatternCacheEntry   *next, **prev;
     short			    patlen;
-    char			    *pattern;
+    const char			    *pattern;
     int				    hash;
     FontPtr			    pFont;	/* associated font */
 } FontPatternCacheEntryRec, *FontPatternCacheEntryPtr;
@@ -66,7 +66,7 @@ void
 EmptyFontPatternCache (FontPatternCachePtr cache)
 {
     int	    i;
-    
+
     for (i = 0; i < NBUCKETS; i++)
 	cache->buckets[i] = 0;
     for (i = 0; i < NENTRIES; i++)
@@ -74,7 +74,7 @@ EmptyFontPatternCache (FontPatternCachePtr cache)
 	cache->entries[i].next = &cache->entries[i+1];
 	cache->entries[i].prev = 0;
 	cache->entries[i].pFont = 0;
-	free (cache->entries[i].pattern);
+	free ((void *) cache->entries[i].pattern);
 	cache->entries[i].pattern = 0;
 	cache->entries[i].patlen = 0;
     }
@@ -107,7 +107,7 @@ FreeFontPatternCache (FontPatternCachePtr cache)
     int	    i;
 
     for (i = 0; i < NENTRIES; i++)
-	free (cache->entries[i].pattern);
+	free ((void *) cache->entries[i].pattern);
     free (cache);
 }
 
@@ -127,9 +127,9 @@ Hash (const char *string, int len)
 
 /* add entry */
 void
-CacheFontPattern (FontPatternCachePtr cache, 
-		  char *pattern, 
-		  int patlen, 
+CacheFontPattern (FontPatternCachePtr cache,
+		  const char *pattern,
+		  int patlen,
 		  FontPtr pFont)
 {
     FontPatternCacheEntryPtr	e;
@@ -154,7 +154,7 @@ CacheFontPattern (FontPatternCachePtr cache,
 	if (e->next)
 	    e->next->prev = e->prev;
 	*e->prev = e->next;
-	free (e->pattern);
+	free ((void *) e->pattern);
     }
     /* set pattern */
     memcpy (newpat, pattern, patlen);
@@ -173,8 +173,8 @@ CacheFontPattern (FontPatternCachePtr cache,
 
 /* find matching entry */
 FontPtr
-FindCachedFontPattern (FontPatternCachePtr cache, 
-		       char *pattern, 
+FindCachedFontPattern (FontPatternCachePtr cache,
+		       const char *pattern,
 		       int patlen)
 {
     int				hash;
@@ -195,7 +195,7 @@ FindCachedFontPattern (FontPatternCachePtr cache,
 }
 
 void
-RemoveCachedFontPattern (FontPatternCachePtr cache, 
+RemoveCachedFontPattern (FontPatternCachePtr cache,
 			 FontPtr pFont)
 {
     FontPatternCacheEntryPtr	e;
@@ -211,7 +211,7 @@ RemoveCachedFontPattern (FontPatternCachePtr cache,
 	    *e->prev = e->next;
 	    e->next = cache->free;
 	    cache->free = e;
-	    free (e->pattern);
+	    free ((void *) e->pattern);
 	    e->pattern = 0;
 	}
     }

@@ -1069,6 +1069,8 @@ FT_Do_SBit_Metrics( FT_Face ft_face, FT_Size ft_size, FT_ULong strike_index,
 #endif
 }
 
+#pragma GCC diagnostic ignored "-Wbad-function-cast"
+
 int
 FreeTypeRasteriseGlyph(unsigned idx, int flags, CharInfoPtr tgp,
 		       FTInstancePtr instance, int hasMetrics)

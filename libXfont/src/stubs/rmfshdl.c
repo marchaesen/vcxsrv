@@ -7,9 +7,10 @@
 #pragma weak remove_fs_handlers
 #endif
 
-weak void 
+weak void
 remove_fs_handlers(FontPathElementPtr fpe,
                    BlockHandlerProcPtr blockHandler,
                    Bool all)
 {
+    OVERRIDE_SYMBOL(remove_fs_handlers, fpe, blockHandler, all);
 }

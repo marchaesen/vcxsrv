@@ -72,7 +72,7 @@ typedef struct _fs_blocked_extents *FSBlockedExtentPtr;
 extern void _fs_convert_char_info ( fsXCharInfo *src, xCharInfo *dst );
 extern void _fs_free_props (FontInfoPtr pfi);
 extern FontPtr fs_create_font (FontPathElementPtr   fpe,
-			       char		    *name,
+			       const char	    *name,
 			       int		    namelen,
 			       fsBitmapFormat	    format,
 			       fsBitmapFormatMask   fmask);

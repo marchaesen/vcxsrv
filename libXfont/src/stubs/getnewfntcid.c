@@ -10,5 +10,6 @@
 weak Font
 GetNewFontClientID(void)
 {
+    OVERRIDE_SYMBOL(GetNewFontClientID);
     return (Font)0;
 }

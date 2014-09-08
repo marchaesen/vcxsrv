@@ -98,7 +98,7 @@ FontCharInkMetrics(FontPtr pFont, CharInfoPtr pCI, xCharInfo *pInk)
 found_ascent:
     pInk->ascent = vpos - descent + 1;
 
-    p = ((unsigned char *) pCI->bits) + bitmapByteWidthPadded * 
+    p = ((unsigned char *) pCI->bits) + bitmapByteWidthPadded *
 	(descent + ascent - 1) + bitmapByteWidth;
 
     for (vpos = descent + ascent; --vpos >= 0;) {

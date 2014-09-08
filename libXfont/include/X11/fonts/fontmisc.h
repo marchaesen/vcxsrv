@@ -91,7 +91,7 @@ RepadBitmap (
 
 extern void CopyISOLatin1Lowered(
     char * /*dest*/,
-    char * /*source*/,
+    const char * /*source*/,
     int /*length*/
 );
 

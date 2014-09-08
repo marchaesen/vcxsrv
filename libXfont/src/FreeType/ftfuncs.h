@@ -158,7 +158,7 @@ typedef struct _FTFont{
 
 static int FreeTypeOpenFace(FTFacePtr *facep, char *FTFileName, char *realFileName, int faceNumber);
 static void FreeTypeFreeFace(FTFacePtr face);
-static int 
+static int
 FreeTypeOpenInstance(FTInstancePtr *instancep, FTFacePtr face,
                      char *FTFileName, FTNormalisedTransformationPtr trans,
                      int spacing, FontBitmapFormatPtr bmfmt,
@@ -169,20 +169,20 @@ FreeTypeInstanceGetGlyph(unsigned idx, int flags, CharInfoPtr *g, FTInstancePtr 
 static int
 FreeTypeInstanceGetGlyphMetrics(unsigned idx, int flags,
 				xCharInfo **metrics, FTInstancePtr instance );
-static int 
-FreeTypeRasteriseGlyph(unsigned idx, int flags, CharInfoPtr tgp, 
+static int
+FreeTypeRasteriseGlyph(unsigned idx, int flags, CharInfoPtr tgp,
 		       FTInstancePtr instance, int hasMetrics );
 static void FreeTypeFreeFont(FTFontPtr font);
 static void FreeTypeFreeXFont(FontPtr pFont, int freeProps);
 static void FreeTypeUnloadXFont(FontPtr pFont);
 static int
-FreeTypeAddProperties(FTFontPtr font, FontScalablePtr vals, FontInfoPtr info, 
+FreeTypeAddProperties(FTFontPtr font, FontScalablePtr vals, FontInfoPtr info,
                       char *fontname, int rawAverageWidth, Bool font_properties);
 static int FreeTypeFontGetGlyph(unsigned code, int flags, CharInfoPtr *g, FTFontPtr font);
 static int
 FreeTypeLoadFont(FTFontPtr font, FontInfoPtr info, FTFacePtr face,
 		 char *FTFileName, FontScalablePtr vals, FontEntryPtr entry,
-                 FontBitmapFormatPtr bmfmt, FT_Int32 load_flags, 
+                 FontBitmapFormatPtr bmfmt, FT_Int32 load_flags,
 		 struct TTCapInfo *tmp_ttcap, char *dynStrTTCapCodeRange,
 		 int ttcap_spacing );
 

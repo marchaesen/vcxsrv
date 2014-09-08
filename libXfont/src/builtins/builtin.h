@@ -54,9 +54,9 @@ extern const int		builtin_dir_count;
 extern const BuiltinAliasRec	builtin_alias[];
 extern const int		builtin_alias_count;
 
-extern FontFilePtr	BuiltinFileOpen (char *);
+extern FontFilePtr	BuiltinFileOpen (const char *);
 extern int		BuiltinFileClose (BufFilePtr, int);
-extern int BuiltinReadDirectory (char *, FontDirectoryPtr *);
+extern int BuiltinReadDirectory (const char *, FontDirectoryPtr *);
 extern void BuiltinRegisterFontFileFunctions (void);
 
 extern void BuiltinRegisterFpeFunctions (void);

@@ -66,7 +66,7 @@ BufFilePushZIP (BufFilePtr f)
 		       BufZipFileClose);
 }
 
-static int 
+static int
 BufZipFileClose(BufFilePtr f, int flag)
 {
   xzip_buf *x = (xzip_buf *)f->private;
@@ -76,16 +76,16 @@ BufZipFileClose(BufFilePtr f, int flag)
   return 1;
 }
 
-/* here's the real work. 
+/* here's the real work.
    -- we need to put stuff in f.buffer, update f.left and f.bufp,
       then return the first byte (or BUFFILEEOF).
-   -- to do this, we need to get stuff into avail_in, and next_in, 
+   -- to do this, we need to get stuff into avail_in, and next_in,
       and call inflate appropriately.
    -- we may also need to add CRC maintenance - if inflate tells us
       Z_STREAM_END, we then have 4bytes CRC and 4bytes length...
    gzio.c:gzread shows most of the mechanism.
    */
-static int 
+static int
 BufZipFileFill (BufFilePtr f)
 {
   xzip_buf *x = (xzip_buf *)f->private;
@@ -139,7 +139,7 @@ BufZipFileFill (BufFilePtr f)
     }
   }
   f->bufp = x->b;
-  f->left = BUFFILESIZE - x->z.avail_out;  
+  f->left = BUFFILESIZE - x->z.avail_out;
 
   if (f->left >= 0) {
     f->left--;
@@ -150,7 +150,7 @@ BufZipFileFill (BufFilePtr f)
 }
 
 /* there should be a BufCommonSkip... */
-static int 
+static int
 BufZipFileSkip (BufFilePtr f, int c)
 {
   /* BufFileRawSkip returns the count unchanged.
@@ -192,7 +192,7 @@ BufZipFileSkip (BufFilePtr f, int c)
 #define RESERVED     0xE0 /* bits 5..7: reserved */
 
 #define GET(f) do {c = BufFileGet(f); if (c == BUFFILEEOF) return c;} while(0)
-static int 
+static int
 BufCheckZipHeader(BufFilePtr f)
 {
   int c, flags;

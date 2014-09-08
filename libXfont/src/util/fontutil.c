@@ -45,10 +45,10 @@ static int defaultGlyphCachingMode = DEFAULT_GLYPH_CACHING_MODE;
 int glyphCachingMode = DEFAULT_GLYPH_CACHING_MODE;
 
 void
-GetGlyphs(FontPtr font, 
-	  unsigned long count, 
-	  unsigned char *chars, 
-	  FontEncoding fontEncoding, 
+GetGlyphs(FontPtr font,
+	  unsigned long count,
+	  unsigned char *chars,
+	  FontEncoding fontEncoding,
 	  unsigned long *glyphcount,	/* RETURN */
 	  CharInfoPtr *glyphs)		/* RETURN */
 {
@@ -59,9 +59,9 @@ GetGlyphs(FontPtr font,
 #define MAX(a,b)    ((a)>(b)?(a):(b))
 
 void
-QueryGlyphExtents(FontPtr pFont, 
-		  CharInfoPtr *charinfo, 
-		  unsigned long count, 
+QueryGlyphExtents(FontPtr pFont,
+		  CharInfoPtr *charinfo,
+		  unsigned long count,
 		  ExtentInfoRec *info)
 {
     register unsigned long i;
@@ -131,9 +131,9 @@ QueryGlyphExtents(FontPtr pFont,
 }
 
 Bool
-QueryTextExtents(FontPtr pFont, 
-		 unsigned long count, 
-		 unsigned char *chars, 
+QueryTextExtents(FontPtr pFont,
+		 unsigned long count,
+		 unsigned char *chars,
 		 ExtentInfoRec *info)
 {
     xCharInfo     **charinfo;
@@ -182,7 +182,7 @@ QueryTextExtents(FontPtr pFont,
     }
     cm = pFont->info.constantMetrics;
     pFont->info.constantMetrics = FALSE;
-    QueryGlyphExtents(pFont, (CharInfoPtr*) charinfo + firstReal, 
+    QueryGlyphExtents(pFont, (CharInfoPtr*) charinfo + firstReal,
 		      n - firstReal, info);
     pFont->info.constantMetrics = cm;
     free(charinfo);
@@ -227,9 +227,9 @@ SetGlyphCachingMode(int newmode)
 
 /* add_range(): Add range to a list of ranges, with coalescence */
 int
-add_range(fsRange *newrange, 
-	  int *nranges, 
-	  fsRange **range, 
+add_range(fsRange *newrange,
+	  int *nranges,
+	  fsRange **range,
 	  Bool charset_subset)
 {
     int first, last, middle;

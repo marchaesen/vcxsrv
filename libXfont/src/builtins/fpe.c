@@ -32,7 +32,7 @@ static int  font_file_type;
 static const char builtin_fonts[] = "built-ins";
 
 static int
-BuiltinNameCheck (char *name)
+BuiltinNameCheck (const char *name)
 {
     return (strcmp (name, builtin_fonts) == 0);
 }

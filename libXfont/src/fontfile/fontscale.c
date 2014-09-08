@@ -35,7 +35,7 @@ in this Software without prior written authorization from The Open Group.
 #include <math.h>
 
 Bool
-FontFileAddScaledInstance (FontEntryPtr entry, FontScalablePtr vals, 
+FontFileAddScaledInstance (FontEntryPtr entry, FontScalablePtr vals,
 			   FontPtr pFont, char *bitmapName)
 {
     FontScalableEntryPtr    scalable;
@@ -75,7 +75,7 @@ FontFileSwitchStringsToBitmapPointers (FontDirectoryPtr dir)
     FontEntryPtr	    nonScalable;
     FontScaledPtr	    scaled;
     FontScalableExtraPtr    extra;
-    
+
     scalable = dir->scalable.entries;
     nonScalable = dir->nonScalable.entries;
     for (s = 0; s < dir->scalable.used; s++)
@@ -373,12 +373,12 @@ MatchScalable (FontScalablePtr a, FontScalablePtr b)
 	    a->ranges[i].max_char_low != b->ranges[i].max_char_low ||
 	    a->ranges[i].max_char_high != b->ranges[i].max_char_high)
 		return FALSE;
- 
+
     return TRUE;
 }
 
 FontScaledPtr
-FontFileFindScaledInstance (FontEntryPtr entry, FontScalablePtr vals, 
+FontFileFindScaledInstance (FontEntryPtr entry, FontScalablePtr vals,
 			    int noSpecificSize)
 {
     FontScalableEntryPtr    scalable;
