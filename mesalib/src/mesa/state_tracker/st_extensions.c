@@ -34,6 +34,7 @@
 #include "pipe/p_context.h"
 #include "pipe/p_defines.h"
 #include "pipe/p_screen.h"
+#include "util/u_math.h"
 
 #include "st_context.h"
 #include "st_extensions.h"
@@ -273,8 +274,6 @@ void st_init_limits(struct pipe_screen *screen,
    c->MaxProgramTextureGatherComponents = screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_GATHER_COMPONENTS);
    c->MinProgramTextureGatherOffset = screen->get_param(screen, PIPE_CAP_MIN_TEXTURE_GATHER_OFFSET);
    c->MaxProgramTextureGatherOffset = screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_GATHER_OFFSET);
-
-   c->UniformBooleanTrue = ~0;
 
    c->MaxTransformFeedbackBuffers =
       screen->get_param(screen, PIPE_CAP_MAX_STREAM_OUTPUT_BUFFERS);
@@ -621,7 +620,6 @@ void st_init_extensions(struct pipe_screen *screen,
    extensions->NV_fog_distance = GL_TRUE;
    extensions->NV_texture_env_combine4 = GL_TRUE;
    extensions->NV_texture_rectangle = GL_TRUE;
-   extensions->NV_vdpau_interop = GL_TRUE;
 
    extensions->OES_EGL_image = GL_TRUE;
    extensions->OES_EGL_image_external = GL_TRUE;
@@ -699,6 +697,8 @@ void st_init_extensions(struct pipe_screen *screen,
          extensions->EXT_shader_integer_mix = GL_TRUE;
       }
    }
+
+   consts->UniformBooleanTrue = consts->NativeIntegers ? ~0 : fui(1.0f);
 
    /* Below are the cases which cannot be moved into tables easily. */
 
@@ -883,5 +883,12 @@ void st_init_extensions(struct pipe_screen *screen,
                                    PIPE_TEXTURE_2D, 0,
                                    PIPE_BIND_SAMPLER_VIEW)) {
       extensions->ARB_ES3_compatibility = GL_TRUE;
+   }
+
+   if (screen->get_video_param &&
+       screen->get_video_param(screen, PIPE_VIDEO_PROFILE_UNKNOWN,
+                               PIPE_VIDEO_ENTRYPOINT_BITSTREAM,
+                               PIPE_VIDEO_CAP_SUPPORTS_INTERLACED)) {
+      extensions->NV_vdpau_interop = GL_TRUE;
    }
 }

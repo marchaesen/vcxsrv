@@ -41,6 +41,7 @@ GLPROTO_REQUIRED=1.4.14
 LIBOMXIL_BELLAGIO_REQUIRED=0.0
 VDPAU_REQUIRED=0.4.1
 WAYLAND_REQUIRED=1.2.0
+XCB_REQUIRED=1.9.3
 XCBDRI2_REQUIRED=1.8
 XCBGLX_REQUIRED=1.8.1
 XSHMFENCE_REQUIRED=1.1
@@ -56,6 +57,8 @@ AC_CHECK_PROGS([MAKE], [gmake make])
 AC_CHECK_PROGS([PYTHON2], [python2 python])
 AC_PROG_SED
 AC_PROG_MKDIR_P
+
+AC_SYS_LARGEFILE
 
 LT_PREREQ([2.2])
 LT_INIT([disable-static])
@@ -354,6 +357,24 @@ AC_LINK_IFELSE(
     [have_ld_version_script=no; AC_MSG_RESULT(no)])
 LDFLAGS=$save_LDFLAGS
 AM_CONDITIONAL(HAVE_LD_VERSION_SCRIPT, test "$have_ld_version_script" = "yes")
+
+dnl
+dnl Check if linker supports dynamic list files
+dnl
+AC_MSG_CHECKING([if the linker supports --dynamic-list])
+save_LDFLAGS=$LDFLAGS
+LDFLAGS="$LDFLAGS -Wl,--dynamic-list=conftest.dyn"
+cat > conftest.dyn <<EOF
+{
+	radeon_drm_winsys_create;
+};
+EOF
+AC_LINK_IFELSE(
+    [AC_LANG_SOURCE([int main() { return 0;}])],
+    [have_ld_dynamic_list=yes;AC_MSG_RESULT(yes)],
+    [have_ld_dynamic_list=no; AC_MSG_RESULT(no)])
+LDFLAGS=$save_LDFLAGS
+AM_CONDITIONAL(HAVE_LD_DYNAMIC_LIST, test "$have_ld_dynamic_list" = "yes")
 
 dnl
 dnl compatibility symlinks
@@ -886,8 +907,9 @@ dnl
 case "x$enable_glx$enable_xlib_glx" in
 xyesyes)
     # Xlib-based GLX
-    PKG_CHECK_MODULES([XLIBGL], [x11 xext])
-    GL_PC_REQ_PRIV="x11 xext"
+    dri_modules="x11 xext xcb"
+    PKG_CHECK_MODULES([XLIBGL], [$dri_modules])
+    GL_PC_REQ_PRIV="$GL_PC_REQ_PRIV $dri_modules"
     X11_INCLUDES="$X11_INCLUDES $XLIBGL_CFLAGS"
     GL_LIB_DEPS="$XLIBGL_LIBS"
     GL_LIB_DEPS="$GL_LIB_DEPS $SELINUX_LIBS -lm $PTHREAD_LIBS $DLOPEN_LIBS"
@@ -898,7 +920,7 @@ xyesno)
     PKG_CHECK_MODULES([GLPROTO], [glproto >= $GLPROTO_REQUIRED])
 
     # find the DRI deps for libGL
-    dri_modules="x11 xext xdamage xfixes x11-xcb xcb-glx >= $XCBGLX_REQUIRED"
+    dri_modules="x11 xext xdamage xfixes x11-xcb xcb xcb-glx >= $XCBGLX_REQUIRED"
 
     if test x"$driglx_direct" = xyes; then
         if test x"$dri_platform" = xdrm ; then
@@ -919,6 +941,7 @@ xyesno)
             fi
 
             if test x"$enable_dri3" = xyes; then
+               PKG_CHECK_EXISTS([xcb >= $XCB_REQUIRED], [], AC_MSG_ERROR([DRI3 requires xcb >= $XCB_REQUIRED]))
                dri_modules="$dri_modules xcb-dri3 xcb-present xcb-sync xshmfence >= $XSHMFENCE_REQUIRED"
             fi
         fi
@@ -1387,22 +1410,22 @@ if test -n "$with_gallium_drivers" -a "x$with_gallium_drivers" != xswrast; then
 fi
 
 if test "x$enable_xvmc" = xyes; then
-    PKG_CHECK_MODULES([XVMC], [xvmc >= $XVMC_REQUIRED x11-xcb xcb-dri2 >= $XCBDRI2_REQUIRED])
+    PKG_CHECK_MODULES([XVMC], [xvmc >= $XVMC_REQUIRED x11-xcb xcb xcb-dri2 >= $XCBDRI2_REQUIRED])
     GALLIUM_STATE_TRACKERS_DIRS="$GALLIUM_STATE_TRACKERS_DIRS xvmc"
     enable_gallium_loader=yes
 fi
 AM_CONDITIONAL(HAVE_ST_XVMC, test "x$enable_xvmc" = xyes)
 
 if test "x$enable_vdpau" = xyes; then
-    PKG_CHECK_MODULES([VDPAU], [vdpau >= $VDPAU_REQUIRED x11-xcb xcb-dri2 >= $XCBDRI2_REQUIRED],
-                      [VDPAU_LIBS="`$PKG_CONFIG --libs x11-xcb xcb-dri2`"])
+    PKG_CHECK_MODULES([VDPAU], [vdpau >= $VDPAU_REQUIRED x11-xcb xcb xcb-dri2 >= $XCBDRI2_REQUIRED],
+                      [VDPAU_LIBS="`$PKG_CONFIG --libs x11-xcb xcb xcb-dri2`"])
     GALLIUM_STATE_TRACKERS_DIRS="$GALLIUM_STATE_TRACKERS_DIRS vdpau"
     enable_gallium_loader=yes
 fi
 AM_CONDITIONAL(HAVE_ST_VDPAU, test "x$enable_vdpau" = xyes)
 
 if test "x$enable_omx" = xyes; then
-    PKG_CHECK_MODULES([OMX], [libomxil-bellagio >= $LIBOMXIL_BELLAGIO_REQUIRED x11-xcb xcb-dri2 >= $XCBDRI2_REQUIRED])
+    PKG_CHECK_MODULES([OMX], [libomxil-bellagio >= $LIBOMXIL_BELLAGIO_REQUIRED x11-xcb xcb xcb-dri2 >= $XCBDRI2_REQUIRED])
     GALLIUM_STATE_TRACKERS_DIRS="$GALLIUM_STATE_TRACKERS_DIRS omx"
     enable_gallium_loader=yes
 fi
@@ -1525,7 +1548,7 @@ for plat in $egl_platforms; do
 		;;
 
 	x11)
-		PKG_CHECK_MODULES([XCB_DRI2], [x11-xcb xcb-dri2 >= $XCBDRI2_REQUIRED xcb-xfixes])
+		PKG_CHECK_MODULES([XCB_DRI2], [x11-xcb xcb xcb-dri2 >= $XCBDRI2_REQUIRED xcb-xfixes])
 		;;
 
 	drm)
