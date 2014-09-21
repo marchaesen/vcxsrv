@@ -189,15 +189,15 @@ strlen_sigsafe(const char *s)
  * string.
  */
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+
 const char *
 LogInit(const char *fname, const char *backup)
 {
     char *logFileName = NULL;
 
     if (fname && *fname) {
-#if __GNUC__ > 4 || __GNUC__ == 4 && __GNUC_MINOR__ > 2
-#pragma GCC diagnostic ignored "-Wformat-nonliteral"
-#endif
         if (asprintf(&logFileName, fname, display) == -1)
             FatalError("Cannot allocate space for the log file name\n");
 
@@ -208,9 +208,6 @@ LogInit(const char *fname, const char *backup)
                 char *suffix;
                 char *oldLog;
 
-#if __GNUC__ > 4 || __GNUC__ == 4 && __GNUC_MINOR__ > 2
-#pragma GCC diagnostic ignored "-Wformat-nonliteral"
-#endif
                 if ((asprintf(&suffix, backup, display) == -1) ||
                     (asprintf(&oldLog, "%s%s", logFileName, suffix) == -1))
                     FatalError("Cannot allocate space for the log file name\n");
@@ -254,6 +251,7 @@ LogInit(const char *fname, const char *backup)
 
     return logFileName;
 }
+#pragma GCC diagnostic pop
 
 void
 LogClose(enum ExitCode error)

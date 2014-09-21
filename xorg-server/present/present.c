@@ -837,7 +837,10 @@ present_pixmap(WindowPtr window,
     if (!screen_priv->info || !(screen_priv->info->capabilities & PresentCapabilityAsync))
         vblank->sync_flip = TRUE;
 
-    if (pixmap && present_check_flip (target_crtc, window, pixmap, vblank->sync_flip, valid, x_off, y_off)) {
+    if (!(options & PresentOptionCopy) &&
+        pixmap != NULL &&
+        present_check_flip (target_crtc, window, pixmap, vblank->sync_flip, valid, x_off, y_off))
+    {
         vblank->flip = TRUE;
         if (vblank->sync_flip)
             target_msc--;
@@ -935,11 +938,12 @@ present_flip_destroy(ScreenPtr screen)
 {
     present_screen_priv_ptr     screen_priv = present_screen_priv(screen);
 
-    /* XXX this needs to be synchronous for server reset */
-
-    /* Do the actual cleanup once the flip has been performed by the hardware */
+    /* Reset window pixmaps back to the screen pixmap */
     if (screen_priv->flip_pending)
         present_set_abort_flip(screen);
+
+    /* Drop reference to any pending flip or unflip pixmaps. */
+    present_flip_idle(screen);
 }
 
 void

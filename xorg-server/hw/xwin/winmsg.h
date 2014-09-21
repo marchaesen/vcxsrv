@@ -30,6 +30,8 @@
  * Authors: Alexander Gottwald	
  */
 
+#include <X11/Xwindows.h>
+
 /*
  * Function prototypes
  */

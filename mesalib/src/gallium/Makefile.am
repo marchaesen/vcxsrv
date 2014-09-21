@@ -105,9 +105,7 @@ if HAVE_EGL_PLATFORM_WAYLAND
 SUBDIRS += winsys/sw/wayland
 endif
 
-if NEED_WINSYS_WRAPPER
 SUBDIRS += winsys/sw/wrapper
-endif
 
 ##
 ## Don't forget to bundle the remaining (non autotools) winsys'
@@ -123,7 +121,7 @@ EXTRA_DIST = \
 ## Gallium state trackers and their users (targets)
 ##
 
-if NEED_GALLIUM_LOADER
+if HAVE_LOADER_GALLIUM
 SUBDIRS += targets/pipe-loader
 endif
 

@@ -5,7 +5,10 @@ if XORG
 # Tests that require at least some DDX functions in order to fully link
 # For now, requires xf86 ddx, could be adjusted to use another
 SUBDIRS += xi2
-noinst_PROGRAMS += xkb input xtest misc fixes xfree86 hashtabletest os signal-logging touch
+noinst_PROGRAMS += xkb input xtest misc fixes xfree86 os signal-logging touch
+if RES
+noinst_PROGRAMS += hashtabletest
+endif
 endif
 check_LTLIBRARIES = libxservertest.la
 

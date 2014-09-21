@@ -102,6 +102,7 @@ struct xwl_window {
     WindowPtr window;
     DamagePtr damage;
     struct xorg_list link_damage;
+    struct wl_callback *frame_callback;
 };
 
 #define MODIFIER_META 0x01

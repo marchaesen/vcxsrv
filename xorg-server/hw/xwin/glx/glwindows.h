@@ -28,6 +28,9 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+#ifndef GLWINDOWS_H
+#define GLWINDOWS_H
+
 #include <GL/gl.h>
 
 typedef struct {
@@ -52,4 +55,6 @@ int glWinSelectImplementation(int native);
 #else
 #define GLWIN_TRACE_MSG(a, ...)
 #define GLWIN_DEBUG_MSG(a, ...)
+#endif
+
 #endif

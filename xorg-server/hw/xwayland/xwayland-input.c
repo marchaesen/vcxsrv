@@ -152,6 +152,15 @@ pointer_handle_enter(void *data, struct wl_pointer *pointer,
     ScreenPtr pScreen = xwl_seat->xwl_screen->screen;
     ValuatorMask mask;
 
+    /* There's a race here where if we create and then immediately
+     * destroy a surface, we might end up in a state where the Wayland
+     * compositor sends us an event for a surface that doesn't exist.
+     *
+     * Don't process enter events in this case.
+     */
+    if (surface == NULL)
+        return;
+
     xwl_seat->xwl_screen->serial = serial;
     xwl_seat->pointer_enter_serial = serial;
 

@@ -100,13 +100,16 @@ reg = Registry()
 tree = etree.parse(regFilename)
 reg.loadElementTree(tree)
 
-allVersions = '.*'
+if shim:
+    versions = '1\.[012]'
+else:
+    versions = '.*'
 
 genOpts = CGeneratorOptions(
         apiname           = prefix,
         profile           = 'compatibility',
-        versions          = allVersions,
-        emitversions      = allVersions,
+        versions          = versions,
+        emitversions      = versions,
         defaultExtensions = prefix,                   # Default extensions for GL
         protectFile       = protect,
         protectFeature    = protect,
@@ -257,7 +260,7 @@ class ThunkOutputGenerator(OutputGenerator):
         pass
     def beginFeature(self, interface, emit):
         OutputGenerator.beginFeature(self, interface, emit)
-        self.OldVersion = self.featureName.startswith('GL_VERSION_1_0') or self.featureName.startswith('GL_VERSION_1_1')
+        self.OldVersion = (self.featureName in ['GL_VERSION_1_0', 'GL_VERSION_1_1'])
     def endFeature(self):
         OutputGenerator.endFeature(self)
     def genType(self, typeinfo, name):
@@ -355,7 +358,7 @@ class ShimOutputGenerator(OutputGenerator):
         pass
     def beginFeature(self, interface, emit):
         OutputGenerator.beginFeature(self, interface, emit)
-        self.OldVersion = self.featureName.startswith('GL_VERSION_1_0') or self.featureName.startswith('GL_VERSION_1_1') or self.featureName.startswith('GL_VERSION_1_2') or self.featureName.startswith('GL_ARB_imaging') or self.featureName.startswith('GL_ARB_multitexture') or self.featureName.startswith('GL_ARB_texture_compression')
+        self.OldVersion = (self.featureName in ['GL_VERSION_1_0', 'GL_VERSION_1_1', 'GL_VERSION_1_2', 'GL_ARB_imaging', 'GL_ARB_multitexture', 'GL_ARB_texture_compression'])
     def endFeature(self):
         OutputGenerator.endFeature(self)
     def genType(self, typeinfo, name):

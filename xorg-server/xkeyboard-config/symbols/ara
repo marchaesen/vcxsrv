@@ -96,7 +96,6 @@ xkb_symbols "azerty" {
 
 partial hidden alphanumeric_keys
 xkb_symbols "digits_KP" {
-    name[Group1]= "Arabic (digits_KP)";
 
     // Use Arabic-script digits on the keypad.
 
@@ -120,7 +119,7 @@ xkb_symbols "digits" {
     include "ara(basic)"
     name[Group1]= "Arabic (digits)";
 
-    // Use Arabic-script digits on the numberic row.
+    // Use Arabic-script digits on the numeric row.
 
     key <AE01> {  [       0x1000661,          exclam      ]       };
     key <AE02> {  [       0x1000662,              at      ]       };

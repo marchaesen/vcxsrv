@@ -3172,6 +3172,7 @@ glsl_to_tgsi_visitor::glsl_to_tgsi_visitor()
    shader_program = NULL;
    shader = NULL;
    options = NULL;
+   have_sqrt = false;
 }
 
 glsl_to_tgsi_visitor::~glsl_to_tgsi_visitor()
@@ -4167,6 +4168,8 @@ const unsigned _mesa_sysval_to_semantic[SYSTEM_VALUE_MAX] = {
     */
    TGSI_SEMANTIC_VERTEXID,
    TGSI_SEMANTIC_INSTANCEID,
+   0,
+   0,
 
    /* Geometry shader
     */

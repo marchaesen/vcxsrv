@@ -269,6 +269,8 @@ dix_main(int argc, char *argv[], char *envp[])
 
         dixSaveScreens(serverClient, SCREEN_SAVER_FORCER, ScreenSaverReset);
 
+        dixCloseRegistry();
+
 #ifdef PANORAMIX
         if (!noPanoramiXExtension) {
             if (!PanoramiXCreateConnectionBlock()) {

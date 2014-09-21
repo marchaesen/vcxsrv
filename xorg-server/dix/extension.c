@@ -139,7 +139,9 @@ AddExtension(const char *name, int NumEvents, int NumErrors,
         ext->errorLast = 0;
     }
 
+#ifdef X_REGISTRY_REQUEST
     RegisterExtensionNames(ext);
+#endif
     return ext;
 }
 

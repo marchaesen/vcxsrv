@@ -2023,12 +2023,6 @@ Default: false.
 Disables the Int10 module, a module that uses the int10 call to the BIOS
 of the graphics card to initialize it.
 Default: false.
-.TP 7
-.BI "Option \*qNoMTRR\*q"
-Disables MTRR (Memory Type Range Register) support, a feature of modern
-processors which can improve video performance by a factor of up to 2.5.
-Some hardware has buggy MTRR support, and some video drivers have been
-known to exhibit problems when MTRR's are used.
 .PP
 Each
 .B Screen

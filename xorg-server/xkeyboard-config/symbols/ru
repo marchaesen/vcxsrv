@@ -21,7 +21,7 @@ xkb_symbols "winkeys" {
     key <BKSL> { [   backslash,       slash  ] };
 };
 
-partial hidden alphanumeric_keys
+hidden partial alphanumeric_keys
 xkb_symbols "common" {
 
     key <AE01> { [           1,      exclam  ] };

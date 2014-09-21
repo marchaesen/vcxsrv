@@ -44,73 +44,17 @@
 #define DEV_MEM "/dev/xf86"
 #endif
 
-static void *ppcMapVidMem(int, unsigned long, unsigned long, int flags);
-static void ppcUnmapVidMem(int, void *, unsigned long);
-
 Bool xf86EnableIO(void);
 void xf86DisableIO(void);
 
 void
 xf86OSInitVidMem(VidMemInfoPtr pVidMem)
 {
-    pVidMem->linearSupported = TRUE;
-    pVidMem->mapMem = ppcMapVidMem;
-    pVidMem->unmapMem = ppcUnmapVidMem;
     pVidMem->initialised = TRUE;
     xf86EnableIO();
 }
 
 volatile unsigned char *ioBase = MAP_FAILED;
-
-static void *
-ppcMapVidMem(int ScreenNum, unsigned long Base, unsigned long Size, int flags)
-{
-    int fd = xf86Info.consoleFd;
-    void *base;
-
-#ifdef DEBUG
-    xf86MsgVerb(X_INFO, 3, "mapVidMem %lx, %lx, fd = %d", Base, Size, fd);
-#endif
-
-    base = mmap(0, Size,
-                (flags & VIDMEM_READONLY) ?
-                PROT_READ : (PROT_READ | PROT_WRITE), MAP_SHARED, fd, Base);
-    if (base == MAP_FAILED)
-        FatalError("%s: could not mmap screen [s=%lx,a=%lx] (%s)",
-                   "xf86MapVidMem", Size, Base, strerror(errno));
-
-    return base;
-}
-
-static void
-ppcUnmapVidMem(int ScreenNum, void *Base, unsigned long Size)
-{
-    munmap(Base, Size);
-}
-
-int
-xf86ReadBIOS(unsigned long Base, unsigned long Offset, unsigned char *Buf,
-             int Len)
-{
-    int rv;
-    static int kmem = -1;
-
-    if (kmem == -1) {
-        kmem = open(DEV_MEM, 2);
-        if (kmem == -1) {
-            FatalError("xf86ReadBIOS: open %s", DEV_MEM);
-        }
-    }
-
-#ifdef DEBUG
-    xf86MsgVerb(X_INFO, 3, "xf86ReadBIOS() %lx %lx, %x\n", Base, Offset, Len);
-#endif
-
-    lseek(kmem, Base + Offset, 0);
-    rv = read(kmem, Buf, Len);
-
-    return rv;
-}
 
 Bool
 xf86EnableIO()

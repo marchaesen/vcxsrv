@@ -410,7 +410,7 @@ xkb_symbols "alt_caps_toggle" {
     };
 };
 
-partial hidden modifier_keys
+hidden partial modifier_keys
 xkb_symbols "olpc" {
     key <I219> { [ ISO_Next_Group, ISO_Prev_Group ] };
 };

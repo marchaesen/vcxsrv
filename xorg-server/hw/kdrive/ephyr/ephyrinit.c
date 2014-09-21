@@ -369,75 +369,10 @@ OsVendorInit(void)
 {
     EPHYR_DBG("mark");
 
-    if (hostx_want_host_cursor()) {
+    if (hostx_want_host_cursor())
         ephyrFuncs.initCursor = &ephyrCursorInit;
-        ephyrFuncs.enableCursor = &ephyrCursorEnable;
-    }
 
     KdOsInit(&EphyrOsFuncs);
-}
-
-/* 'Fake' cursor stuff, could be improved */
-
-static Bool
-ephyrRealizeCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor)
-{
-    return TRUE;
-}
-
-static Bool
-ephyrUnrealizeCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor)
-{
-    return TRUE;
-}
-
-static void
-ephyrSetCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor, int x,
-               int y)
-{
-    ;
-}
-
-static void
-ephyrMoveCursor(DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y)
-{
-    ;
-}
-
-static Bool
-ephyrDeviceCursorInitialize(DeviceIntPtr pDev, ScreenPtr pScreen)
-{
-    return TRUE;
-}
-
-static void
-ephyrDeviceCursorCleanup(DeviceIntPtr pDev, ScreenPtr pScreen)
-{
-}
-
-miPointerSpriteFuncRec EphyrPointerSpriteFuncs = {
-    ephyrRealizeCursor,
-    ephyrUnrealizeCursor,
-    ephyrSetCursor,
-    ephyrMoveCursor,
-    ephyrDeviceCursorInitialize,
-    ephyrDeviceCursorCleanup
-};
-
-Bool
-ephyrCursorInit(ScreenPtr pScreen)
-{
-    miPointerInitialize(pScreen,
-                        &EphyrPointerSpriteFuncs,
-                        &ephyrPointerScreenFuncs, FALSE);
-
-    return TRUE;
-}
-
-void
-ephyrCursorEnable(ScreenPtr pScreen)
-{
-    ;
 }
 
 KdCardFuncs ephyrFuncs = {

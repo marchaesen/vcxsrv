@@ -57,9 +57,6 @@
 /* Support SHM */
 #undef HAS_SHM
 
-/* Define to 1 if you have the <asm/mtrr.h> header file. */
-#undef HAVE_ASM_MTRR_H
-
 /* Has backtrace support */
 #undef HAVE_BACKTRACE
 

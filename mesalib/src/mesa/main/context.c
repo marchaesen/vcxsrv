@@ -622,8 +622,11 @@ _mesa_init_constants(struct gl_constants *consts, gl_api api)
    consts->MaxProgramMatrices = MAX_PROGRAM_MATRICES;
    consts->MaxProgramMatrixStackDepth = MAX_PROGRAM_MATRIX_STACK_DEPTH;
 
-   /* CheckArrayBounds is overriden by drivers/x11 for X server */
-   consts->CheckArrayBounds = GL_FALSE;
+   /* Assume that if GLSL 1.30+ (or GLSL ES 3.00+) is supported that
+    * gl_VertexID is implemented using a native hardware register with OpenGL
+    * semantics.
+    */
+   consts->VertexID_is_zero_based = false;
 
    /* GL_ARB_draw_buffers */
    consts->MaxDrawBuffers = MAX_DRAW_BUFFERS;
@@ -1501,7 +1504,10 @@ handle_first_current(struct gl_context *ctx)
    GLenum buffer;
    GLint bufferIndex;
 
-   assert(ctx->Version > 0);
+   if (ctx->Version == 0) {
+      /* probably in the process of tearing down the context */
+      return;
+   }
 
    ctx->Extensions.String = _mesa_make_extension_string(ctx);
 

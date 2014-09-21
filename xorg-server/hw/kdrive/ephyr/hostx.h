@@ -29,6 +29,7 @@
 #include <X11/X.h>
 #include <X11/Xmd.h>
 #include <xcb/xcb.h>
+#include <xcb/render.h>
 #include "ephyr.h"
 
 #define EPHYR_WANT_DEBUG 0
@@ -81,6 +82,9 @@ int
 
 void
  hostx_use_sw_cursor(void);
+
+xcb_cursor_t
+ hostx_get_empty_cursor(void);
 
 void
  hostx_get_output_geometry(const char *output,

@@ -804,6 +804,31 @@ TRANS(NoListen) (const char * protocol)
 }
 
 int
+TRANS(Listen) (const char * protocol)
+{
+   Xtransport *trans;
+   int i = 0, ret = 0;
+
+   if ((trans = TRANS(SelectTransport)(protocol)) == NULL)
+   {
+	prmsg (1,"TransListen: unable to find transport: %s\n",
+	       protocol);
+
+	return -1;
+   }
+   if (trans->flags & TRANS_ALIAS) {
+       if (trans->nolisten)
+	   while (trans->nolisten[i]) {
+	       ret |= TRANS(Listen)(trans->nolisten[i]);
+	       i++;
+       }
+   }
+
+   trans->flags &= ~TRANS_NOLISTEN;
+   return ret;
+}
+
+int
 TRANS(IsListening) (const char * protocol)
 {
    Xtransport *trans;

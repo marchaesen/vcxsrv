@@ -985,7 +985,7 @@ glamor_upload_sub_pixmap_to_texture(PixmapPtr pixmap, int x, int y, int w,
 
             assert(pbo == 0);
 
-            SET_PIXMAP_FBO_CURRENT(pixmap_priv, clipped_regions[i].block_idx);
+            glamor_set_pixmap_fbo_current(pixmap_priv, clipped_regions[i].block_idx);
 
             boxes = RegionRects(clipped_regions[i].region);
             nbox = RegionNumRects(clipped_regions[i].region);

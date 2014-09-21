@@ -325,7 +325,7 @@ swrastGetDrawableInfo(__DRIdrawable * draw,
     DrawablePtr pDraw = drawable->base.pDraw;
 
     *x = pDraw->x;
-    *y = pDraw->x;
+    *y = pDraw->y;
     *w = pDraw->width;
     *h = pDraw->height;
 }

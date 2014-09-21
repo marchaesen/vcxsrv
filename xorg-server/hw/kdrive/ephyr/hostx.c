@@ -71,6 +71,8 @@ struct EphyrHostXVars {
     xcb_visualtype_t *visual;
     Window winroot;
     xcb_gcontext_t  gc;
+    xcb_render_pictformat_t argb_format;
+    xcb_cursor_t empty_cursor;
     int depth;
     Bool use_sw_cursor;
     Bool use_fullscreen;
@@ -200,6 +202,12 @@ void
 hostx_use_sw_cursor(void)
 {
     HostX.use_sw_cursor = TRUE;
+}
+
+xcb_cursor_t
+hostx_get_empty_cursor(void)
+{
+    return HostX.empty_cursor;
 }
 
 int
@@ -408,8 +416,8 @@ hostx_init(void)
 {
     uint32_t attrs[2];
     uint32_t attr_mask = 0;
-    xcb_cursor_t empty_cursor;
     xcb_pixmap_t cursor_pxm;
+    xcb_gcontext_t cursor_gc;
     uint16_t red, green, blue;
     uint32_t pixel;
     int index;
@@ -418,6 +426,7 @@ hostx_init(void)
     size_t class_len;
     const xcb_query_extension_reply_t *shm_rep;
     xcb_screen_t *xscreen;
+    xcb_rectangle_t rect = { 0, 0, 1, 1 };
 
     attrs[0] =
         XCB_EVENT_MASK_BUTTON_PRESS
@@ -594,18 +603,25 @@ hostx_init(void)
 
     xcb_change_gc(HostX.conn, HostX.gc, XCB_GC_FOREGROUND, &pixel);
 
+    cursor_pxm = xcb_generate_id(HostX.conn);
+    xcb_create_pixmap(HostX.conn, 1, cursor_pxm, HostX.winroot, 1, 1);
+    cursor_gc = xcb_generate_id(HostX.conn);
+    pixel = 0;
+    xcb_create_gc(HostX.conn, cursor_gc, cursor_pxm,
+                  XCB_GC_FOREGROUND, &pixel);
+    xcb_poly_fill_rectangle(HostX.conn, cursor_pxm, cursor_gc, 1, &rect);
+    xcb_free_gc(HostX.conn, cursor_gc);
+    HostX.empty_cursor = xcb_generate_id(HostX.conn);
+    xcb_create_cursor(HostX.conn,
+                      HostX.empty_cursor,
+                      cursor_pxm, cursor_pxm,
+                      0,0,0,
+                      0,0,0,
+                      1,1);
+    xcb_free_pixmap(HostX.conn, cursor_pxm);
     if (!hostx_want_host_cursor ()) {
         CursorVisible = TRUE;
         /* Ditch the cursor, we provide our 'own' */
-        cursor_pxm = xcb_generate_id(HostX.conn);
-        xcb_create_pixmap(HostX.conn, 1, cursor_pxm, HostX.winroot, 1, 1);
-        empty_cursor = xcb_generate_id(HostX.conn);
-        xcb_create_cursor(HostX.conn,
-                          empty_cursor,
-                          cursor_pxm, cursor_pxm,
-                          0,0,0,
-                          0,0,0,
-                          1,1);
         for (index = 0; index < HostX.n_screens; index++) {
             KdScreenInfo *screen = HostX.screens[index];
             EphyrScrPriv *scrpriv = screen->driver;
@@ -613,9 +629,8 @@ hostx_init(void)
             xcb_change_window_attributes(HostX.conn,
                                          scrpriv->win,
                                          XCB_CW_CURSOR,
-                                         &empty_cursor);
+                                         &HostX.empty_cursor);
         }
-        xcb_free_pixmap(HostX.conn, cursor_pxm);
     }
 
     /* Try to get share memory ximages for a little bit more speed */

@@ -90,6 +90,7 @@ typedef struct _PixmapDirtyUpdate {
     int x, y;
     DamagePtr damage;
     struct xorg_list ent;
+    int dst_x, dst_y;
 } PixmapDirtyUpdateRec;
 
 static inline void

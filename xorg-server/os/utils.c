@@ -194,7 +194,7 @@ Bool noGEExtension = FALSE;
 
 Bool CoreDump;
 
-Bool enableIndirectGLX = TRUE;
+Bool enableIndirectGLX = FALSE;
 
 #ifdef PANORAMIX
 Bool PanoramiXExtensionDisabledHack = FALSE;
@@ -541,8 +541,8 @@ UseMsg(void)
     ErrorF("-fn string             default font name\n");
     ErrorF("-fp string             default font path\n");
     ErrorF("-help                  prints message with these options\n");
-    ErrorF("+iglx                  Allow creating indirect GLX contexts (default)\n");
-    ErrorF("-iglx                  Prohibit creating indirect GLX contexts\n");
+    ErrorF("+iglx                  Allow creating indirect GLX contexts\n");
+    ErrorF("-iglx                  Prohibit creating indirect GLX contexts (default)\n");
     ErrorF("-I                     ignore all remaining arguments\n");
 #ifdef RLIMIT_DATA
     ErrorF("-ld int                limit data space to N Kb\n");

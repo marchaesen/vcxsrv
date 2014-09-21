@@ -61,6 +61,7 @@
 #include "pixmapstr.h"
 #include "windowstr.h"
 #include "winglobals.h"
+#include "windisplay.h"
 
 #ifdef XWIN_MULTIWINDOWEXTWM
 #include <X11/extensions/windowswmstr.h>
@@ -1053,8 +1054,7 @@ winMultiWindowXMsgProc(void *pArg)
     }
 
     /* Setup the display connection string x */
-    snprintf(pszDisplay,
-             512, "127.0.0.1:%s.%d", display, (int) pProcArg->dwScreen);
+    winGetDisplayName(pszDisplay, (int) pProcArg->dwScreen);
 
     /* Print the display connection string */
     ErrorF("winMultiWindowXMsgProc - DISPLAY=%s\n", pszDisplay);
@@ -1446,8 +1446,7 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
     }
 
     /* Setup the display connection string x */
-    snprintf(pszDisplay,
-             512, "127.0.0.1:%s.%d", display, (int) pProcArg->dwScreen);
+    winGetDisplayName(pszDisplay, (int) pProcArg->dwScreen);
 
     /* Print the display connection string */
     ErrorF("winInitMultiWindowWM - DISPLAY=%s\n", pszDisplay);

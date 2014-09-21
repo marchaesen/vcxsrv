@@ -48,7 +48,7 @@ xkb_symbols "right_hand" {
 };
 
 // 6-dot patterns on the keypad
-partial hidden keypad_keys
+hidden partial keypad_keys
 xkb_symbols "keypad" {
     key <KP4>	{ [ braille_dot_1 ] };
     key <KP1>	{ [ braille_dot_2 ] };

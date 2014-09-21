@@ -524,8 +524,10 @@ CreateNewResourceType(DeleteType deleteFunc, const char *name)
     resourceTypes[next].findSubResFunc = DefaultFindSubRes;
     resourceTypes[next].errorValue = BadValue;
 
+#if X_REGISTRY_RESOURCE
     /* Called even if name is NULL, to remove any previous entry */
     RegisterResourceName(next, name);
+#endif
 
     return next;
 }

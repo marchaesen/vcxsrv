@@ -32,19 +32,8 @@
 #ifndef _XF86OSPRIV_H
 #define _XF86OSPRIV_H
 
-typedef void *(*MapMemProcPtr) (int, unsigned long, unsigned long, int);
-typedef void (*UnmapMemProcPtr) (int, void *, unsigned long);
-typedef void *(*SetWCProcPtr) (int, unsigned long, unsigned long, Bool,
-                                 MessageType);
-typedef void (*UndoWCProcPtr) (int, void *);
-
 typedef struct {
     Bool initialised;
-    MapMemProcPtr mapMem;
-    UnmapMemProcPtr unmapMem;
-    SetWCProcPtr setWC;
-    UndoWCProcPtr undoWC;
-    Bool linearSupported;
 } VidMemInfo, *VidMemInfoPtr;
 
 void xf86OSInitVidMem(VidMemInfoPtr);

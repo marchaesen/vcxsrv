@@ -235,29 +235,6 @@ dnl fbdev header
 AC_CHECK_HEADERS([linux/fb.h], FBDEV=yes)
 AM_CONDITIONAL(FBDEVHW, [test "x$FBDEV" = xyes])
 
-dnl MTRR header
-AC_CHECK_HEADERS([asm/mtrr.h], ac_cv_asm_mtrr_h=yes)
-if test "x$ac_cv_asm_mtrr_h" = xyes; then
-	HAVE_MTRR=yes
-fi
-
-dnl BSD MTRR header
-AC_CHECK_HEADERS([sys/memrange.h], ac_cv_memrange_h=yes)
-if test "x$ac_cv_memrange_h" = xyes; then
-	HAVE_MTRR=yes
-fi
-
-if test "x$HAVE_MTRR" = xyes; then
-	AC_DEFINE(HAS_MTRR_SUPPORT, 1, [MTRR support available])
-fi
-
-dnl A NetBSD MTRR header
-AC_CHECK_HEADERS([machine/mtrr.h], ac_cv_machine_mtrr_h=yes)
-if test "x$ac_cv_machine_mtrr_h" = xyes; then
-	AC_DEFINE(HAS_MTRR_BUILTIN, 1, [Define to 1 if NetBSD built-in MTRR
-		support is available])
-fi
-
 dnl FreeBSD kldload support (sys/linker.h)
 AC_CHECK_HEADERS([sys/linker.h],
 	[ac_cv_sys_linker_h=yes],
@@ -587,7 +564,6 @@ AC_ARG_WITH(khronos-spec-dir, AS_HELP_STRING([--with-khronos-spec-dir=PATH], [Pa
 				[KHRONOS_SPEC_DIR=auto])
 
 dnl Extensions.
-AC_ARG_ENABLE(registry,       AS_HELP_STRING([--disable-registry], [Build string registry module (default: enabled)]), [XREGISTRY=$enableval], [XREGISTRY=yes])
 AC_ARG_ENABLE(composite,      AS_HELP_STRING([--disable-composite], [Build Composite extension (default: enabled)]), [COMPOSITE=$enableval], [COMPOSITE=yes])
 AC_ARG_ENABLE(mitshm,         AS_HELP_STRING([--disable-mitshm], [Build SHM extension (default: auto)]), [MITSHM=$enableval], [MITSHM=auto])
 AC_ARG_ENABLE(xres,           AS_HELP_STRING([--disable-xres], [Build XRes extension (default: enabled)]), [RES=$enableval], [RES=yes])
@@ -863,6 +839,7 @@ fi
 PKG_CHECK_MODULES(UDEV, $LIBUDEV, [HAVE_LIBUDEV=yes], [HAVE_LIBUDEV=no])
 if test "x$CONFIG_UDEV" = xauto; then
 	CONFIG_UDEV="$HAVE_LIBUDEV"
+	AC_DEFINE(HAVE_LIBUDEV, 1, [Define to 1 if libudev is available.])
 fi
 AM_CONDITIONAL(CONFIG_UDEV, [test "x$CONFIG_UDEV" = xyes])
 if test "x$CONFIG_UDEV" = xyes; then
@@ -1036,11 +1013,6 @@ fi
 AM_CONDITIONAL(XVMC, [test "x$XVMC" = xyes])
 if test "x$XVMC" = xyes; then
 	AC_DEFINE(XvMCExtension, 1, [Build XvMC extension])
-fi
-
-AM_CONDITIONAL(XREGISTRY, [test "x$XREGISTRY" = xyes])
-if test "x$XREGISTRY" = xyes; then
-	AC_DEFINE(XREGISTRY, 1, [Build registry module])
 fi
 
 AM_CONDITIONAL(COMPOSITE, [test "x$COMPOSITE" = xyes])
@@ -2039,6 +2011,12 @@ if test "x$XORG" = xyes; then
 	        XORG_SYS_LIBS="$XORG_SYS_LIBS $XORG_MODULES_LIBS"
 	fi
 
+	if test "x$DRM" = xyes; then
+		dnl 2.4.46 is required for cursor hotspot support.
+		PKG_CHECK_EXISTS(libdrm >= 2.4.46)
+		XORG_DRIVER_MODESETTING=yes
+	fi
+
 	AC_SUBST([XORG_LIBS])
 	AC_SUBST([XORG_SYS_LIBS])
 	AC_SUBST([XORG_INCS])
@@ -2109,6 +2087,7 @@ AM_CONDITIONAL([SOLARIS_VT], [test "x$solaris_vt" = xyes])
 AM_CONDITIONAL([DGA], [test "x$DGA" = xyes])
 AM_CONDITIONAL([XF86VIDMODE], [test "x$XF86VIDMODE" = xyes])
 AM_CONDITIONAL([XORG_BUS_PLATFORM], [test "x$CONFIG_UDEV_KMS" = xyes])
+AM_CONDITIONAL([XORG_DRIVER_MODESETTING], [test "x$XORG_DRIVER_MODESETTING" = xyes])
 
 dnl glamor
 AM_CONDITIONAL([GLAMOR], [test "x$GLAMOR" = xyes])
@@ -2364,7 +2343,7 @@ if test "$KDRIVE" = yes; then
        AC_DEFINE(KDRIVE_MOUSE, 1, [Enable KDrive mouse driver])
     fi
 
-    XEPHYR_REQUIRED_LIBS="xau xdmcp xcb xcb-shape xcb-aux xcb-image xcb-icccm xcb-shm xcb-keysyms xcb-randr"
+    XEPHYR_REQUIRED_LIBS="xau xdmcp xcb xcb-shape xcb-render xcb-renderutil xcb-aux xcb-image xcb-icccm xcb-shm xcb-keysyms xcb-randr"
     if test "x$XV" = xyes; then
         XEPHYR_REQUIRED_LIBS="$XEPHYR_REQUIRED_LIBS xcb-xv"
     fi
@@ -2554,6 +2533,8 @@ hw/xfree86/dixmods/Makefile
 hw/xfree86/doc/Makefile
 hw/xfree86/dri/Makefile
 hw/xfree86/dri2/Makefile
+hw/xfree86/drivers/Makefile
+hw/xfree86/drivers/modesetting/Makefile
 hw/xfree86/exa/Makefile
 hw/xfree86/exa/man/Makefile
 hw/xfree86/fbdevhw/Makefile

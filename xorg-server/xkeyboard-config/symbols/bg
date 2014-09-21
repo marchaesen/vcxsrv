@@ -190,7 +190,7 @@ xkb_symbols "bas_phonetic" {
 
 // This is an extended variant of the standard Latin QWERTY layout with
 // additional symbols in levels 3 and 4.
-partial hidden alphanumeric_keys
+hidden partial alphanumeric_keys
 xkb_symbols "latin" {
 
   key <TLDE> {[ grave,             asciitilde,        U2248,             U2245               ]};

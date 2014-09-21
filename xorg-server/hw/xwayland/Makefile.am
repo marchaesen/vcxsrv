@@ -39,14 +39,14 @@ nodist_Xwayland_SOURCES =			\
 
 CLEANFILES = $(nodist_Xwayland_SOURCES)
 
-EXTRA_DIST = drm.xml
-
 xwayland-glamor.c : $(nodist_Xwayland_SOURCES)
 
 glamor_lib = $(top_builddir)/glamor/libglamor.la
 
 Xwayland_LDADD += $(GLAMOR_LIBS) $(GBM_LIBS) -lEGL -lGL
 endif
+
+EXTRA_DIST = drm.xml
 
 
 relink:

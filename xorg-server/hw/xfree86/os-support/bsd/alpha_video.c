@@ -35,11 +35,6 @@
 #ifndef __NetBSD__
 #include <sys/sysctl.h>
 #endif
-#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__NetBSD__)
-#include <machine/sysarch.h>
-#endif
-
-#include "xf86Axp.h"
 
 #include "xf86_OSlib.h"
 #include "xf86OSpriv.h"
@@ -50,69 +45,9 @@
 #define MAP_FLAGS (MAP_FILE | MAP_SHARED)
 #endif
 
-axpDevice bsdGetAXP(void);
-
 #ifndef __NetBSD__
 extern unsigned long dense_base(void);
-
-static int axpSystem = -1;
-static unsigned long hae_thresh;
-static unsigned long hae_mask;
-
-static unsigned long
-memory_base(void)
-{
-    static unsigned long base = 0;
-
-    if (base == 0) {
-        size_t len = sizeof(base);
-        int error;
-
-#ifdef __OpenBSD__
-        int mib[3];
-
-        mib[0] = CTL_MACHDEP;
-        mib[1] = CPU_CHIPSET;
-        mib[2] = CPU_CHIPSET_MEM;
-
-        if ((error = sysctl(mib, 3, &base, &len, NULL, 0)) < 0)
-#else
-        if ((error = sysctlbyname("hw.chipset.memory", &base, &len, 0, 0)) < 0)
-#endif
-            FatalError("xf86MapVidMem: can't find memory\n");
-    }
-
-    return base;
-}
-
-static int
-has_bwx(void)
-{
-    static int bwx = 0;
-    size_t len = sizeof(bwx);
-    int error;
-
-#ifdef __OpenBSD__
-    int mib[3];
-
-    mib[0] = CTL_MACHDEP;
-    mib[1] = CPU_CHIPSET;
-    mib[2] = CPU_CHIPSET_BWX;
-
-    if ((error = sysctl(mib, 3, &bwx, &len, NULL, 0)) < 0)
-        return FALSE;
-    else
-        return bwx;
-#else
-    if ((error = sysctlbyname("hw.chipset.bwx", &bwx, &len, 0, 0)) < 0)
-        return FALSE;
-    else
-        return bwx;
-#endif
-}
 #else                           /* __NetBSD__ */
-static unsigned long hae_thresh = (1UL << 24);
-static unsigned long hae_mask = 0xf8000000UL;   /* XXX - should use xf86AXP.c */
 static struct alpha_bus_window *abw;
 static int abw_count = -1;
 
@@ -126,16 +61,6 @@ init_abw(void)
     }
 }
 
-static int
-has_bwx(void)
-{
-    if (abw_count < 0)
-        init_abw();
-
-    xf86Msg(X_INFO, "has_bwx = %d\n", abw[0].abw_abst.abst_flags & ABST_BWX ? 1 : 0);   /* XXXX */
-    return abw[0].abw_abst.abst_flags & ABST_BWX;
-}
-
 static unsigned long
 dense_base(void)
 {
@@ -147,30 +72,9 @@ dense_base(void)
     return abw[0].abw_abst.abst_sys_start;
 }
 
-static unsigned long
-memory_base(void)
-{
-    if (abw_count < 0)
-        init_abw();
-
-    if (abw_count > 1) {
-        xf86Msg(X_INFO, "memory base = %#lx\n", abw[1].abw_abst.abst_sys_start);        /* XXXX */
-        return abw[1].abw_abst.abst_sys_start;
-    }
-    else if (abw_count == 1) {
-        /* assume memory_base == dense_base */
-        xf86Msg(X_INFO, "memory base = %#lx\n", abw[0].abw_abst.abst_sys_start);        /* XXXX */
-        return abw[0].abw_abst.abst_sys_start;
-    }
-    else {
-        xf86Msg(X_INFO, "no memory base\n");    /* XXXX */
-        return 0;
-    }
-}
 #endif                          /* __NetBSD__ */
 
 #define BUS_BASE	dense_base()
-#define BUS_BASE_BWX	memory_base()
 
 /***************************************************************************/
 /* Video Memory Mapping section                                            */
@@ -182,17 +86,11 @@ memory_base(void)
                   "\trefer to xf86(4) for details"
 #endif
 
-static Bool useDevMem = FALSE;
 static int devMemFd = -1;
 
 #ifdef HAS_APERTURE_DRV
 #define DEV_APERTURE "/dev/xf86"
 #endif
-
-static void *mapVidMem(int, unsigned long, unsigned long, int);
-static void unmapVidMem(int, void *, unsigned long);
-static void *mapVidMemSparse(int, unsigned long, unsigned long, int);
-static void unmapVidMemSparse(int, void *, unsigned long);
 
 /*
  * Check if /dev/mem can be mmap'd.  If it can't print a warning when
@@ -219,7 +117,6 @@ checkDevMem(Bool warn)
         if (base != MAP_FAILED) {
             munmap((caddr_t) base, 4096);
             devMemFd = fd;
-            useDevMem = TRUE;
             xf86Msg(X_INFO, "checkDevMem: using aperture driver %s\n",
                     DEV_APERTURE);
             return;
@@ -240,7 +137,6 @@ checkDevMem(Bool warn)
         if (base != MAP_FAILED) {
             munmap((caddr_t) base, 4096);
             devMemFd = fd;
-            useDevMem = TRUE;
             return;
         }
         else {
@@ -266,7 +162,6 @@ checkDevMem(Bool warn)
 #endif
         xf86ErrorF("\tlinear framebuffer access unavailable\n");
     }
-    useDevMem = FALSE;
     return;
 }
 
@@ -274,115 +169,8 @@ void
 xf86OSInitVidMem(VidMemInfoPtr pVidMem)
 {
     checkDevMem(TRUE);
-    pVidMem->linearSupported = useDevMem;
 
-    if (has_bwx()) {
-        xf86Msg(X_PROBED, "Machine type has 8/16 bit access\n");
-        pVidMem->mapMem = mapVidMem;
-        pVidMem->unmapMem = unmapVidMem;
-    }
-    else {
-        xf86Msg(X_PROBED, "Machine needs sparse mapping\n");
-        pVidMem->mapMem = mapVidMemSparse;
-        pVidMem->unmapMem = unmapVidMemSparse;
-#ifndef __NetBSD__
-        if (axpSystem == -1)
-            axpSystem = bsdGetAXP();
-        hae_thresh = xf86AXPParams[axpSystem].hae_thresh;
-        hae_mask = xf86AXPParams[axpSystem].hae_mask;
-#endif                          /* __NetBSD__ */
-    }
     pVidMem->initialised = TRUE;
-}
-
-static void *
-mapVidMem(int ScreenNum, unsigned long Base, unsigned long Size, int flags)
-{
-    void *base;
-
-    checkDevMem(FALSE);
-    Base = Base & ((1L << 32) - 1);
-
-    if (useDevMem) {
-        if (devMemFd < 0) {
-            FatalError("xf86MapVidMem: failed to open %s (%s)\n",
-                       DEV_MEM, strerror(errno));
-        }
-        base = mmap((caddr_t) 0, Size,
-                    (flags & VIDMEM_READONLY) ?
-                    PROT_READ : (PROT_READ | PROT_WRITE),
-                    MAP_FLAGS, devMemFd, (off_t) Base + BUS_BASE_BWX);
-        if (base == MAP_FAILED) {
-            FatalError("%s: could not mmap %s [s=%lx,a=%lx] (%s)\n",
-                       "xf86MapVidMem", DEV_MEM, Size, Base, strerror(errno));
-        }
-        return base;
-    }
-
-    /* else, mmap /dev/vga */
-    if ((unsigned long) Base < 0xA0000 || (unsigned long) Base >= 0xC0000) {
-        FatalError("%s: Address 0x%lx outside allowable range\n",
-                   "xf86MapVidMem", Base);
-    }
-    base = mmap(0, Size,
-                (flags & VIDMEM_READONLY) ?
-                PROT_READ : (PROT_READ | PROT_WRITE),
-                MAP_FLAGS, xf86Info.consoleFd, (unsigned long) Base + BUS_BASE);
-    if (base == MAP_FAILED) {
-        FatalError("xf86MapVidMem: Could not mmap /dev/vga (%s)\n",
-                   strerror(errno));
-    }
-    return base;
-}
-
-static void
-unmapVidMem(int ScreenNum, void *Base, unsigned long Size)
-{
-    munmap((caddr_t) Base, Size);
-}
-
-/*
- * Read BIOS via mmap()ing DEV_MEM
- */
-
-int
-xf86ReadBIOS(unsigned long Base, unsigned long Offset, unsigned char *Buf,
-             int Len)
-{
-    unsigned char *ptr;
-    int psize;
-    int mlen;
-
-    checkDevMem(TRUE);
-    if (devMemFd == -1) {
-        return -1;
-    }
-
-    psize = getpagesize();
-    Offset += Base & (psize - 1);
-    Base &= ~(psize - 1);
-    mlen = (Offset + Len + psize - 1) & ~(psize - 1);
-    ptr = (unsigned char *) mmap((caddr_t) 0, mlen, PROT_READ,
-                                 MAP_SHARED, devMemFd, (off_t) Base + BUS_BASE);
-    if ((long) ptr == -1) {
-        xf86Msg(X_WARNING,
-                "xf86ReadBIOS: %s mmap[s=%x,a=%lx,o=%lx] failed (%s)\n",
-                DEV_MEM, Len, Base, Offset, strerror(errno));
-        return -1;
-    }
-#ifdef DEBUG
-    xf86MsgVerb(X_INFO, 3,
-                "xf86ReadBIOS: BIOS at 0x%08x has signature 0x%04x\n", Base,
-                ptr[0] | (ptr[1] << 8));
-#endif
-    (void) memcpy(Buf, (void *) (ptr + Offset), Len);
-    (void) munmap((caddr_t) ptr, mlen);
-#ifdef DEBUG
-    xf86MsgVerb(X_INFO, 3, "xf86ReadBIOS(%x, %x, Buf, %x)"
-                "-> %02x %02x %02x %02x...\n",
-                Base, Offset, Len, Buf[0], Buf[1], Buf[2], Buf[3]);
-#endif
-    return Len;
 }
 
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__OpenBSD__)
@@ -422,11 +210,6 @@ xf86DisableIO()
 
 #endif                          /* USE_ALPHA_PIO */
 
-#define vuip    volatile unsigned int *
-
-static void *memSBase = 0;
-static void *memBase = 0;
-
 extern int readDense8(void *Base, register unsigned long Offset);
 extern int readDense16(void *Base, register unsigned long Offset);
 extern int readDense32(void *Base, register unsigned long Offset);
@@ -436,223 +219,6 @@ extern void
  writeDense16(int Value, void *Base, register unsigned long Offset);
 extern void
  writeDense32(int Value, void *Base, register unsigned long Offset);
-
-static int readSparse8(void *Base, register unsigned long Offset);
-static int readSparse16(void *Base, register unsigned long Offset);
-static int readSparse32(void *Base, register unsigned long Offset);
-static void
- writeSparseNB8(int Value, void *Base, register unsigned long Offset);
-static void
- writeSparseNB16(int Value, void *Base, register unsigned long Offset);
-static void
- writeSparseNB32(int Value, void *Base, register unsigned long Offset);
-static void
- writeSparse8(int Value, void *Base, register unsigned long Offset);
-static void
- writeSparse16(int Value, void *Base, register unsigned long Offset);
-static void
- writeSparse32(int Value, void *Base, register unsigned long Offset);
-
-#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-extern int sysarch(int, void *);
-
-struct parms {
-    u_int64_t hae;
-};
-
-static void
-sethae(u_int64_t hae)
-{
-#ifndef ALPHA_SETHAE
-#define ALPHA_SETHAE 0
-#endif
-    static struct parms p;
-
-    if (p.hae != hae) {
-        p.hae = hae;
-        sysarch(ALPHA_SETHAE, (char *) &p);
-    }
-}
-#endif
-
-static void *
-mapVidMemSparse(int ScreenNum, unsigned long Base, unsigned long Size,
-                int flags)
-{
-    static Bool was_here = FALSE;
-
-    if (!was_here) {
-        was_here = TRUE;
-
-        checkDevMem(FALSE);
-
-        xf86WriteMmio8 = writeSparse8;
-        xf86WriteMmio16 = writeSparse16;
-        xf86WriteMmio32 = writeSparse32;
-        xf86WriteMmioNB8 = writeSparseNB8;
-        xf86WriteMmioNB16 = writeSparseNB16;
-        xf86WriteMmioNB32 = writeSparseNB32;
-        xf86ReadMmio8 = readSparse8;
-        xf86ReadMmio16 = readSparse16;
-        xf86ReadMmio32 = readSparse32;
-
-        memBase = mmap((caddr_t) 0, 0x100000000,
-                       PROT_READ | PROT_WRITE,
-                       MAP_SHARED, devMemFd, (off_t) BUS_BASE);
-        memSBase = mmap((caddr_t) 0, 0x100000000,
-                        PROT_READ | PROT_WRITE,
-                        MAP_SHARED, devMemFd, (off_t) BUS_BASE_BWX);
-
-        if (memSBase == MAP_FAILED || memBase == MAP_FAILED) {
-            FatalError("xf86MapVidMem: Could not mmap framebuffer (%s)\n",
-                       strerror(errno));
-        }
-    }
-    return (void *) ((unsigned long) memBase + Base);
-}
-
-static void
-unmapVidMemSparse(int ScreenNum, void *Base, unsigned long Size)
-{
-}
-
-static int
-readSparse8(void *Base, register unsigned long Offset)
-{
-    register unsigned long result, shift;
-    register unsigned long msb;
-
-    mem_barrier();
-    Offset += (unsigned long) Base - (unsigned long) memBase;
-    shift = (Offset & 0x3) << 3;
-    if (Offset >= (hae_thresh)) {
-        msb = Offset & hae_mask;
-        Offset -= msb;
-#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-        sethae(msb);
-#endif
-    }
-    result = *(vuip) ((unsigned long) memSBase + (Offset << 5));
-    result >>= shift;
-    return 0xffUL & result;
-}
-
-static int
-readSparse16(void *Base, register unsigned long Offset)
-{
-    register unsigned long result, shift;
-    register unsigned long msb;
-
-    mem_barrier();
-    Offset += (unsigned long) Base - (unsigned long) memBase;
-    shift = (Offset & 0x2) << 3;
-    if (Offset >= (hae_thresh)) {
-        msb = Offset & hae_mask;
-        Offset -= msb;
-#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-        sethae(msb);
-#endif
-    }
-    result =
-        *(vuip) ((unsigned long) memSBase + (Offset << 5) + (1 << (5 - 2)));
-    result >>= shift;
-    return 0xffffUL & result;
-}
-
-static int
-readSparse32(void *Base, register unsigned long Offset)
-{
-    mem_barrier();
-    return *(vuip) ((unsigned long) Base + (Offset));
-}
-
-static void
-writeSparse8(int Value, void *Base, register unsigned long Offset)
-{
-    register unsigned long msb;
-    register unsigned int b = Value & 0xffU;
-
-    write_mem_barrier();
-    Offset += (unsigned long) Base - (unsigned long) memBase;
-    if (Offset >= (hae_thresh)) {
-        msb = Offset & hae_mask;
-        Offset -= msb;
-#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-        sethae(msb);
-#endif
-    }
-    *(vuip) ((unsigned long) memSBase + (Offset << 5)) = b * 0x01010101;
-}
-
-static void
-writeSparse16(int Value, void *Base, register unsigned long Offset)
-{
-    register unsigned long msb;
-    register unsigned int w = Value & 0xffffU;
-
-    write_mem_barrier();
-    Offset += (unsigned long) Base - (unsigned long) memBase;
-    if (Offset >= (hae_thresh)) {
-        msb = Offset & hae_mask;
-        Offset -= msb;
-#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-        sethae(msb);
-#endif
-    }
-    *(vuip) ((unsigned long) memSBase + (Offset << 5) + (1 << (5 - 2))) =
-        w * 0x00010001;
-
-}
-
-static void
-writeSparse32(int Value, void *Base, register unsigned long Offset)
-{
-    write_mem_barrier();
-    *(vuip) ((unsigned long) Base + (Offset)) = Value;
-    return;
-}
-
-static void
-writeSparseNB8(int Value, void *Base, register unsigned long Offset)
-{
-    register unsigned long msb;
-    register unsigned int b = Value & 0xffU;
-
-    Offset += (unsigned long) Base - (unsigned long) memBase;
-    if (Offset >= (hae_thresh)) {
-        msb = Offset & hae_mask;
-        Offset -= msb;
-#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-        sethae(msb);
-#endif
-    }
-    *(vuip) ((unsigned long) memSBase + (Offset << 5)) = b * 0x01010101;
-}
-
-static void
-writeSparseNB16(int Value, void *Base, register unsigned long Offset)
-{
-    register unsigned long msb;
-    register unsigned int w = Value & 0xffffU;
-
-    Offset += (unsigned long) Base - (unsigned long) memBase;
-    if (Offset >= (hae_thresh)) {
-        msb = Offset & hae_mask;
-        Offset -= msb;
-#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-        sethae(msb);
-#endif
-    }
-    *(vuip) ((unsigned long) memSBase + (Offset << 5) + (1 << (5 - 2))) =
-        w * 0x00010001;
-}
-
-static void
-writeSparseNB32(int Value, void *Base, register unsigned long Offset)
-{
-    *(vuip) ((unsigned long) Base + (Offset)) = Value;
-    return;
-}
 
 void (*xf86WriteMmio8) (int Value, void *Base, unsigned long Offset)
     = writeDense8;

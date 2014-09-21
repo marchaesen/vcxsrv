@@ -10,7 +10,7 @@ xkb_symbols "106" {
     key <AE13> { [ backslash, bar	] };
 };
 
-partial hidden alphanumeric_keys
+hidden partial alphanumeric_keys
 xkb_symbols "common" {
     // "Common" keys for jp 106/109A layouts.
 

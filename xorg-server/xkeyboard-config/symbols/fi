@@ -98,7 +98,7 @@ xkb_symbols "classic" {
     name[Group1]="Finnish (classic)";
 };
 
-partial alphanumeric_keys hidden
+hidden partial alphanumeric_keys
 xkb_symbols "fi" {
 
     // Classic Finnish keyboard layout with dead keys

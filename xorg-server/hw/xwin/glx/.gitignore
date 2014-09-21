@@ -1,3 +1,6 @@
 # ignore generated files
-generated_gl_wrappers.c
+diag.txt
+generated_gl_shim.c
+generated_gl_thunks.c
+generated_gl_thunks.def
 generated_wgl_wrappers.c

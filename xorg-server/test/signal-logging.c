@@ -113,12 +113,13 @@ double float_tests[] = { 0, 5, 0.1, 0.01, 5.2342, 10.2301,
                          -1, -2.00, -0.6023, -1203.30
                         };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Woverflow"
+
 static void
 number_formatting(void)
 {
     int i;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Woverflow"
     long unsigned int unsigned_tests[] = { 0,/* Zero */
                                            5, /* Single digit number */
                                            12, /* Two digit decimal number */
@@ -141,7 +142,6 @@ number_formatting(void)
                                 -0x15D027BF211B37A, /* Large > 32 bit number */
                                 -0x7FFFFFFFFFFFFFFF, /* Maximum 64-bit signed number */
     } ;
-#pragma GCC diagnostic pop
 
     for (i = 0; i < sizeof(unsigned_tests) / sizeof(unsigned_tests[0]); i++)
         assert(check_number_format_test(unsigned_tests[i]));
@@ -152,6 +152,7 @@ number_formatting(void)
     for (i = 0; i < sizeof(float_tests) / sizeof(float_tests[0]); i++)
         assert(check_float_format_test(float_tests[i]));
 }
+#pragma GCC diagnostic pop
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-security"

@@ -2508,12 +2508,15 @@ __glXsendSwapEvent(__GLXdrawable *drawable, int type, CARD64 ust,
 
 #if PRESENT
 static void
-__glXpresentCompleteNotify(WindowPtr window, CARD8 present_mode, CARD32 serial,
-                           uint64_t ust, uint64_t msc)
+__glXpresentCompleteNotify(WindowPtr window, CARD8 present_kind, CARD8 present_mode,
+                           CARD32 serial, uint64_t ust, uint64_t msc)
 {
     __GLXdrawable *drawable;
     int glx_type;
     int rc;
+
+    if (present_kind != PresentCompleteKindPixmap)
+        return;
 
     rc = dixLookupResourceByType((void **) &drawable, window->drawable.id,
                                  __glXDrawableRes, serverClient, DixGetAttrAccess);

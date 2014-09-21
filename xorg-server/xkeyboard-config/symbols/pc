@@ -62,7 +62,7 @@ xkb_symbols "pc105" {
     key <KIUP> { [ XF86KbdBrightnessUp ] };
 };
 
-partial hidden alphanumeric_keys
+hidden partial alphanumeric_keys
 xkb_symbols "editing" {
     key <PRSC> {
 	type= "PC_ALT_LEVEL2",

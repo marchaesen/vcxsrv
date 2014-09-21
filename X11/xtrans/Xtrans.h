@@ -311,6 +311,10 @@ int TRANS(NoListen) (
     const char*         /* protocol*/
 );
 
+int TRANS(Listen) (
+    const char*         /* protocol*/
+);
+
 int TRANS(IsListening) (
     const char*         /* protocol*/
 );

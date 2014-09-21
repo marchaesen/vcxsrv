@@ -92,8 +92,9 @@ is_active_attrib(const ir_variable *var)
        * are enumerated, including the special built-in inputs gl_VertexID
        * and gl_InstanceID."
        */
-      return !strcmp(var->name, "gl_VertexID") ||
-             !strcmp(var->name, "gl_InstanceID");
+      return var->data.location == SYSTEM_VALUE_VERTEX_ID ||
+             var->data.location == SYSTEM_VALUE_VERTEX_ID_ZERO_BASE ||
+             var->data.location == SYSTEM_VALUE_INSTANCE_ID;
 
    default:
       return false;
@@ -133,7 +134,18 @@ _mesa_GetActiveAttrib(GLhandleARB program, GLuint desired_index,
          continue;
 
       if (current_index == desired_index) {
-	 _mesa_copy_string(name, maxLength, length, var->name);
+         const char *var_name = var->name;
+
+         /* Since gl_VertexID may be lowered to gl_VertexIDMESA, we need to
+          * consider gl_VertexIDMESA as gl_VertexID for purposes of checking
+          * active attributes.
+          */
+         if (var->data.mode == ir_var_system_value &&
+             var->data.location == SYSTEM_VALUE_VERTEX_ID_ZERO_BASE) {
+            var_name = "gl_VertexID";
+         }
+
+	 _mesa_copy_string(name, maxLength, length, var_name);
 
 	 if (size)
 	    *size = (var->type->is_array()) ? var->type->length : 1;

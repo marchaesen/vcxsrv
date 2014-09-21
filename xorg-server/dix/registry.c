@@ -21,8 +21,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <dix-config.h>
 #endif
 
-#ifdef XREGISTRY
-
 #include <stdlib.h>
 #include <string.h>
 #include <X11/X.h>
@@ -31,6 +29,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "registry.h"
 
 #define BASE_SIZE 16
+
+#ifdef X_REGISTRY_REQUEST
 #define CORE "X11"
 #define FILENAME SERVER_MISC_CONFIG_PATH "/protocol.txt"
 
@@ -42,9 +42,15 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 static FILE *fh;
 
 static char ***requests, **events, **errors;
-static const char **resources;
-static unsigned nmajor, *nminor, nevent, nerror, nresource;
+static unsigned nmajor, *nminor, nevent, nerror;
+#endif
 
+#ifdef X_REGISTRY_RESOURCE
+static const char **resources;
+static unsigned nresource;
+#endif
+
+#if defined(X_REGISTRY_RESOURCE) || defined(X_REGISTRY_REQUEST)
 /*
  * File parsing routines
  */
@@ -72,7 +78,12 @@ double_size(void *p, unsigned n, unsigned size)
     memset(*ptr + s, 0, f - s);
     return TRUE;
 }
+#endif
 
+#ifdef X_REGISTRY_REQUEST
+/*
+ * Request/event/error registry functions
+ */
 static void
 RegisterRequestName(unsigned major, unsigned minor, char *name)
 {
@@ -197,28 +208,6 @@ RegisterExtensionNames(ExtensionEntry * extEntry)
     }
 }
 
-/*
- * Registration functions
- */
-
-void
-RegisterResourceName(RESTYPE resource, const char *name)
-{
-    resource &= TypeMask;
-
-    while (resource >= nresource) {
-        if (!double_size(&resources, nresource, sizeof(char *)))
-            return;
-        nresource = nresource ? nresource * 2 : BASE_SIZE;
-    }
-
-    resources[resource] = name;
-}
-
-/*
- * Lookup functions
- */
-
 const char *
 LookupRequestName(int major, int minor)
 {
@@ -269,6 +258,26 @@ LookupErrorName(int error)
 
     return errors[error] ? errors[error] : XREGISTRY_UNKNOWN;
 }
+#endif /* X_REGISTRY_REQUEST */
+
+#ifdef X_REGISTRY_RESOURCE
+/*
+ * Resource registry functions
+ */
+
+void
+RegisterResourceName(RESTYPE resource, const char *name)
+{
+    resource &= TypeMask;
+
+    while (resource >= nresource) {
+        if (!double_size(&resources, nresource, sizeof(char *)))
+            return;
+        nresource = nresource ? nresource * 2 : BASE_SIZE;
+    }
+
+    resources[resource] = name;
+}
 
 const char *
 LookupResourceName(RESTYPE resource)
@@ -279,10 +288,12 @@ LookupResourceName(RESTYPE resource)
 
     return resources[resource] ? resources[resource] : XREGISTRY_UNKNOWN;
 }
+#endif /* X_REGISTRY_RESOURCE */
 
 void
 dixFreeRegistry(void)
 {
+#ifdef X_REGISTRY_REQUEST
     /* Free all memory */
     while (nmajor--) {
         while (nminor[nmajor])
@@ -299,21 +310,30 @@ dixFreeRegistry(void)
     while (nerror--)
         free(errors[nerror]);
     free(errors);
-
-    free(resources);
-
     requests = NULL;
     nminor = NULL;
     events = NULL;
     errors = NULL;
+    nmajor = nevent = nerror = 0;
+#endif
+
+#ifdef X_REGISTRY_RESOURCE
+    free(resources);
+
     resources = NULL;
+    nresource = 0;
+#endif
+}
 
-    nmajor = nevent = nerror = nresource = 0;
-
+void
+dixCloseRegistry(void)
+{
+#ifdef X_REGISTRY_REQUEST
     if (fh) {
 	fclose(fh);
         fh = NULL;
     }
+#endif
 }
 
 /*
@@ -322,16 +342,24 @@ dixFreeRegistry(void)
 void
 dixResetRegistry(void)
 {
+#ifdef X_REGISTRY_REQUEST
     ExtensionEntry extEntry = { .name = CORE };
+#endif
 
     dixFreeRegistry();
 
+#ifdef X_REGISTRY_REQUEST
     /* Open the protocol file */
     fh = fopen(FILENAME, "r");
     if (!fh)
         LogMessage(X_WARNING,
                    "Failed to open protocol names file " FILENAME "\n");
 
+    /* Add the core protocol */
+    RegisterExtensionNames(&extEntry);
+#endif
+
+#ifdef X_REGISTRY_RESOURCE
     /* Add built-in resources */
     RegisterResourceName(RT_NONE, "NONE");
     RegisterResourceName(RT_WINDOW, "WINDOW");
@@ -343,9 +371,5 @@ dixResetRegistry(void)
     RegisterResourceName(RT_CMAPENTRY, "COLORMAP ENTRY");
     RegisterResourceName(RT_OTHERCLIENT, "OTHER CLIENT");
     RegisterResourceName(RT_PASSIVEGRAB, "PASSIVE GRAB");
-
-    /* Add the core protocol */
-    RegisterExtensionNames(&extEntry);
+#endif
 }
-
-#endif                          /* XREGISTRY */

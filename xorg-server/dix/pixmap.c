@@ -164,9 +164,9 @@ PixmapPtr PixmapShareToSlave(PixmapPtr pixmap, ScreenPtr slave)
 }
 
 Bool
-PixmapStartDirtyTracking(PixmapPtr src,
-                         PixmapPtr slave_dst,
-                         int x, int y)
+PixmapStartDirtyTracking2(PixmapPtr src,
+			  PixmapPtr slave_dst,
+			  int x, int y, int dst_x, int dst_y)
 {
     ScreenPtr screen = src->drawable.pScreen;
     PixmapDirtyUpdatePtr dirty_update;
@@ -179,6 +179,8 @@ PixmapStartDirtyTracking(PixmapPtr src,
     dirty_update->slave_dst = slave_dst;
     dirty_update->x = x;
     dirty_update->y = y;
+    dirty_update->dst_x = dst_x;
+    dirty_update->dst_y = dst_y;
 
     dirty_update->damage = DamageCreate(NULL, NULL,
                                         DamageReportNone,
@@ -192,6 +194,14 @@ PixmapStartDirtyTracking(PixmapPtr src,
     DamageRegister(&src->drawable, dirty_update->damage);
     xorg_list_add(&dirty_update->ent, &screen->pixmap_dirty_list);
     return TRUE;
+}
+
+Bool
+PixmapStartDirtyTracking(PixmapPtr src,
+			 PixmapPtr slave_dst,
+			 int x, int y)
+{
+   return PixmapStartDirtyTracking2(src, slave_dst, x, y, 0, 0);
 }
 
 Bool
@@ -261,7 +271,7 @@ Bool PixmapSyncDirtyHelper(PixmapDirtyUpdatePtr dirty, RegionPtr dirty_region)
         h = dst_box.y2 - dst_box.y1;
 
         pGC->ops->CopyArea(&dirty->src->drawable, &dst->drawable, pGC,
-                           dirty->x + dst_box.x1, dirty->y + dst_box.y1, w, h, dst_box.x1, dst_box.y1);
+                           dirty->x + dst_box.x1, dirty->y + dst_box.y1, w, h, dirty->dst_x + dst_box.x1, dirty->dst_y + dst_box.y1);
         b++;
     }
     FreeScratchGC(pGC);

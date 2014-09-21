@@ -44,6 +44,7 @@
 #include <shellapi.h>
 
 #include "winprefs.h"
+#include "windisplay.h"
 #include "winmultiwindowclass.h"
 
 /* Where will the custom menu commands start counting from? */
@@ -712,15 +713,14 @@ LoadPreferences(void)
 
     /* Setup a DISPLAY environment variable, need to allocate on heap */
     /* because putenv doesn't copy the argument... */
-    snprintf(szDisplay, 512, "DISPLAY=127.0.0.1:%s.0", display);
-    szEnvDisplay = (char *) (malloc(strlen(szDisplay) + 1));
+    winGetDisplayName(szDisplay, 0);
+    szEnvDisplay = (char *) (malloc(strlen(szDisplay) + strlen("DISPLAY=") + 1));
     if (szEnvDisplay) {
-        strcpy(szEnvDisplay, szDisplay);
+        snprintf(szEnvDisplay, 512, "DISPLAY=%s", szDisplay);
         putenv(szEnvDisplay);
     }
 
     /* Replace any "%display%" in menu commands with display string */
-    snprintf(szDisplay, 512, "127.0.0.1:%s.0", display);
     for (i = 0; i < pref.menuItems; i++) {
         for (j = 0; j < pref.menu[i].menuItems; j++) {
             if (pref.menu[i].menuItem[j].cmd == CMD_EXEC) {
