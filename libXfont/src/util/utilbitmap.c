@@ -38,8 +38,8 @@ in this Software without prior written authorization from The Open Group.
  */
 
 int
-RepadBitmap (char *pSrc, char *pDst, 
-	     unsigned int srcPad, unsigned int dstPad, 
+RepadBitmap (char *pSrc, char *pDst,
+	     unsigned int srcPad, unsigned int dstPad,
 	     int width, int height)
 {
     int	    srcWidthBytes,dstWidthBytes;
@@ -47,33 +47,33 @@ RepadBitmap (char *pSrc, char *pDst,
     char    *pTmpSrc,*pTmpDst;
 
     switch (srcPad) {
-    case 1:	
+    case 1:
 	srcWidthBytes = (width+7)>>3;
 	break;
     case 2:
 	srcWidthBytes = ((width+15)>>4)<<1;
 	break;
-    case 4:	
+    case 4:
 	srcWidthBytes = ((width+31)>>5)<<2;
 	break;
-    case 8:	
-	srcWidthBytes = ((width+63)>>6)<<3; 
+    case 8:
+	srcWidthBytes = ((width+63)>>6)<<3;
 	break;
     default:
 	return 0;
     }
     switch (dstPad) {
-    case 1:	
+    case 1:
 	dstWidthBytes = (width+7)>>3;
 	break;
     case 2:
 	dstWidthBytes = ((width+15)>>4)<<1;
 	break;
-    case 4:	
+    case 4:
 	dstWidthBytes = ((width+31)>>5)<<2;
 	break;
-    case 8:	
-	dstWidthBytes = ((width+63)>>6)<<3; 
+    case 8:
+	dstWidthBytes = ((width+63)>>6)<<3;
 	break;
     default:
 	return 0;

@@ -82,7 +82,7 @@ FontComputeInfoAccelerators(FontInfoPtr pFontInfo)
 	pFontInfo->inkInside = FALSE;
 }
 
-int 
+int
 FontCouldBeTerminal(FontInfoPtr pFontInfo)
 {
     if ((pFontInfo->minbounds.leftSideBearing >= 0) &&
@@ -95,7 +95,7 @@ FontCouldBeTerminal(FontInfoPtr pFontInfo)
 	     pFontInfo->minbounds.ascent != pFontInfo->fontAscent ||
 	     pFontInfo->minbounds.descent != pFontInfo->fontDescent)) {
 	/* blow off font with nothing but a SPACE */
-	if (pFontInfo->maxbounds.ascent == 0 && 
+	if (pFontInfo->maxbounds.ascent == 0 &&
 	    pFontInfo->maxbounds.descent == 0)
 		return FALSE;
 	return TRUE;

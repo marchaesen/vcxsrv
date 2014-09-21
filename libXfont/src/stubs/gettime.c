@@ -10,5 +10,6 @@
 weak unsigned long
 GetTimeInMillis (void)
 {
+    OVERRIDE_SYMBOL(GetTimeInMillis);
     return 0;
 }

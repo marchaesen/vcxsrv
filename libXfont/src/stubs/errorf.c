@@ -10,4 +10,5 @@
 weak void
 ErrorF(const char *f, ...)
 {
+    OVERRIDE_VA_SYMBOL(VErrorF, f);
 }

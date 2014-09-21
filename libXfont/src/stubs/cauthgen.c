@@ -10,5 +10,6 @@
 weak int
 client_auth_generation(ClientPtr client)
 {
+    OVERRIDE_SYMBOL(client_auth_generation, client);
     return 0;
 }

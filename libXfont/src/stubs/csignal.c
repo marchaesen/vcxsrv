@@ -10,5 +10,6 @@
 weak Bool
 ClientSignal(ClientPtr client)
 {
+    OVERRIDE_SYMBOL(ClientSignal,client);
     return True;
 }

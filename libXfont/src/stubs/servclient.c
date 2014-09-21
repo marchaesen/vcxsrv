@@ -8,3 +8,12 @@
 #endif
 
 weak void *serverClient = 0;
+
+void *__GetServerClient(void);
+
+void *
+__GetServerClient(void)
+{
+   OVERRIDE_DATA(serverClient);
+   return serverClient;
+}

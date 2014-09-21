@@ -10,5 +10,6 @@
 weak int
 GetDefaultPointSize(void)
 {
+    OVERRIDE_SYMBOL(GetDefaultPointSize);
     return 0;
 }

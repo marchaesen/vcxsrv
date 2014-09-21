@@ -42,7 +42,7 @@ AllocateFontPrivateIndex (void)
     return _FontPrivateAllocateIndex++;
 }
 
-FontPtr 
+FontPtr
 CreateFontRec (void)
 {
     FontPtr pFont;
@@ -51,7 +51,7 @@ CreateFontRec (void)
     size = sizeof(FontRec) + (sizeof(pointer) * _FontPrivateAllocateIndex);
 
     pFont = malloc(size);
-    
+
     if(pFont) {
 	bzero((char*)pFont, size);
 	pFont->maxPrivate = _FontPrivateAllocateIndex - 1;

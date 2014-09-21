@@ -158,6 +158,8 @@ MakeAtom(const char *string, unsigned len, int makeit)
     int		h = 0;
     int		r;
 
+    OVERRIDE_SYMBOL(MakeAtom, string, len, makeit);
+
     hash = Hash (string, len);
     if (hashTable)
     {
@@ -230,6 +232,7 @@ MakeAtom(const char *string, unsigned len, int makeit)
 weak int
 ValidAtom(Atom atom)
 {
+    OVERRIDE_SYMBOL(ValidAtom, atom);
     return (atom != None) && (atom <= lastAtom);
 }
 
@@ -240,6 +243,7 @@ ValidAtom(Atom atom)
 weak char *
 NameForAtom(Atom atom)
 {
+    OVERRIDE_SYMBOL(NameForAtom, atom);
     if (atom != None && atom <= lastAtom)
 	return reverseMap[atom]->name;
     return NULL;

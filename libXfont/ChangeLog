@@ -1,12 +1,129 @@
-commit 6ed205bd618f3f3016e34ab132019d53d0623576
+commit ad4f4d8a2d0730c0ea3c09210bf921638b4682bc
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
-Date:   Thu May 15 19:21:07 2014 -0700
+Date:   Sat Jul 19 09:49:23 2014 -0700
 
-    libXfont 1.4.8
+    libXfont 1.5.0
     
     Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
 
-commit 23a7a10aaada0a4b00272b512bd430545ce799e3
+commit b19cf2a78f7f721c43d0d9e2f32b71fc746142a3
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Jul 7 13:18:18 2014 -0700
+
+    libXfont 1.4.99.901
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 0dcdd82059c69ec417bb094f4da2afef7cc1426a
+Author: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+Date:   Sun Apr 6 14:18:32 2014 -0500
+
+    Make shared library work on Cygwin/MinGW
+    
+    Weak symbols on PE platforms do not work the same way as on ELF
+    platforms, hence we have been unable to have a fully functional shared
+    libXfont until now.  This patch works around these issues so that we
+    can fix that.
+    
+    In summary, only when compiling shared libraries on NO_WEAK_SYMBOLS
+    platforms, when the first stub is called, the invoking program is first
+    checked to determine if it exports the stubbed functions.  Then, for
+    every stub call, if the function is exported by the loader, it is called
+    instead of the stub code.
+    
+    serverClient and serverGeneration are data pointers, and therefore are
+    replaced by getter functions. ErrorF is variadic, so the override is
+    routed through VErrorF instead. FatalError has no va_list equivalent,
+    but it is not actually used in libXfont and therefore should be safe to
+    remove.
+    
+    This requires all X servers to export their symbols, which requires
+    forthcoming patches for hw/xwin and xfs; the other xservers (including
+    tigervnc) already do this via LD_EXPORT_SYMBOLS_FLAG.
+    
+    Signed-off-by: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
+    Reviewed-by: Colin Harrison <colin.harrison@virgin.net>
+    Acked-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Tested-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+
+commit 783a406d6258509abfbdc54c0b32366dcaf13044
+Author: Keith Packard <keithp@keithp.com>
+Date:   Mon Apr 21 13:37:00 2014 -0700
+
+    Use default glyphs when getting 16-bit font with 8-bit text
+    
+    When accessing a 16-bit font with firstRow > 0 with 8-bit text, check
+    to see if the font has a default character and return that for every
+    incoming character.
+    
+    Signed-off-by: Keith Packard <keithp@keithp.com>
+    Reviewed-by: Eric Anholt <eric@anholt.net>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit e8d20171fe04dbdc5f97739d5a59e02f0b091ba0
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu May 15 23:04:23 2014 -0700
+
+    Don't build unused code in bitmapfunc.c if all bitmap formats are disabled
+    
+    If the only bitmaps we support are builtins, don't need the code to
+    register all the bitmap font file handlers.
+    
+    Fixes gcc warnings:
+    bitmapfunc.c:110:1: warning: 'BitmapOpenBitmap' defined but not used [-Wunused-function]
+     BitmapOpenBitmap (FontPathElementPtr fpe, FontPtr *ppFont, int flags,
+     ^
+    bitmapfunc.c:155:1: warning: 'BitmapGetInfoBitmap' defined but not used [-Wunused-function]
+     BitmapGetInfoBitmap (FontPathElementPtr fpe, FontInfoPtr pFontInfo,
+     ^
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Rémi Cardona <remi@gentoo.org>
+
+commit c2b7758d268fd98e09c3e66a0e7717b47ff12a47
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu May 15 22:44:38 2014 -0700
+
+    Don't compile bitmap source files for disabled formats
+    
+    pcfread.c is a special case - it's needed for either reading pcf files
+    from disk (--enable-pcfformat) or from the builtin fonts in memory
+    (--enable-builtins), so needed a new AM_CONDITIONAL case.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Rémi Cardona <remi@gentoo.org>
+
+commit a81f1a9bd3cd0a9d45d93d5b9e392b4e08ac60f7
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu May 15 20:43:34 2014 -0700
+
+    Drop imake/monolithic compatibility #define mapping
+    
+    Require the #defines from configure.ac now that we're not sharing source
+    with the imake builds any longer.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Rémi Cardona <remi@gentoo.org>
+
+commit 37595cfd4feaf031552d66f96dc6d58686f9c851
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu May 15 20:26:41 2014 -0700
+
+    Change default to disabling SNF support
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Rémi Cardona <remi@gentoo.org>
+
+commit 9f677e55c7bf07df280427f127af21e5b70f1e03
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu May 15 20:21:29 2014 -0700
+
+    Use AS_HELP_STRING to provide help for AC_ARG_ENABLE & AC_ARG_WITH options
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Rémi Cardona <remi@gentoo.org>
+
+commit d338f81df1e188eb16e1d6aeea7f4800f89c1218
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Fri May 2 19:24:17 2014 -0700
 
@@ -18,9 +135,8 @@ Date:   Fri May 2 19:24:17 2014 -0700
     bound reads when looping over these items in the reply.
     
     Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
-    (cherry picked from commit d338f81df1e188eb16e1d6aeea7f4800f89c1218)
 
-commit a455f111eb2779e3258d49c1c003d3023d1b9bab
+commit 5fa73ac18474be3032ee7af9c6e29deab163ea39
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Fri May 2 19:24:17 2014 -0700
 
@@ -32,9 +148,8 @@ Date:   Fri May 2 19:24:17 2014 -0700
     over the strings in the reply.
     
     Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
-    (cherry picked from commit 5fa73ac18474be3032ee7af9c6e29deab163ea39)
 
-commit 2b7b6f21ec67c2e4fdc3cee9db3199a6edef5c5c
+commit 520683652564c2a4e42328ae23eef9bb63271565
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Fri Apr 25 23:03:24 2014 -0700
 
@@ -49,9 +164,8 @@ Date:   Fri Apr 25 23:03:24 2014 -0700
     Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
     Reviewed-by: Adam Jackson <ajax@redhat.com>
     Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
-    (cherry picked from commit 520683652564c2a4e42328ae23eef9bb63271565)
 
-commit 573c3fdcb934ca1f3243f6ced40e1f037ea6cefe
+commit a3f21421537620fc4e1f844a594a4bcd9f7e2bd8
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Fri Apr 25 23:03:05 2014 -0700
 
@@ -65,9 +179,8 @@ Date:   Fri Apr 25 23:03:05 2014 -0700
     Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
     Reviewed-by: Adam Jackson <ajax@redhat.com>
     Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
-    (cherry picked from commit a3f21421537620fc4e1f844a594a4bcd9f7e2bd8)
 
-commit 4b762a7eb73d4d84466331be2d48565561018fc1
+commit a42f707f8a62973f5e8bbcd08afb10a79e9cee33
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Fri Apr 25 23:02:54 2014 -0700
 
@@ -81,9 +194,8 @@ Date:   Fri Apr 25 23:02:54 2014 -0700
     Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
     Reviewed-by: Adam Jackson <ajax@redhat.com>
     Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
-    (cherry picked from commit a42f707f8a62973f5e8bbcd08afb10a79e9cee33)
 
-commit e6d9db84113650c4f4d9bebddb60cdb72690d798
+commit c578408c1fd4db09e4e3173f8a9e65c81cc187c1
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Fri Apr 25 23:02:42 2014 -0700
 
@@ -98,9 +210,8 @@ Date:   Fri Apr 25 23:02:42 2014 -0700
     Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
     Reviewed-by: Adam Jackson <ajax@redhat.com>
     Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
-    (cherry picked from commit c578408c1fd4db09e4e3173f8a9e65c81cc187c1)
 
-commit fb4ecda3014744fa690959da9c5b09233b73c016
+commit 491291cabf78efdeec8f18b09e14726a9030cc8f
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Fri Apr 25 23:02:34 2014 -0700
 
@@ -115,9 +226,8 @@ Date:   Fri Apr 25 23:02:34 2014 -0700
     Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
     Reviewed-by: Adam Jackson <ajax@redhat.com>
     Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
-    (cherry picked from commit 491291cabf78efdeec8f18b09e14726a9030cc8f)
 
-commit 633005ac24a44dacaf6beb3ed240ae0ea7e022d7
+commit 0f1a5d372c143f91a602bdf10c917d7eabaee09b
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Fri Apr 25 23:02:25 2014 -0700
 
@@ -142,9 +252,8 @@ Date:   Fri Apr 25 23:02:25 2014 -0700
     Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
     Reviewed-by: Adam Jackson <ajax@redhat.com>
     Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
-    (cherry picked from commit 0f1a5d372c143f91a602bdf10c917d7eabaee09b)
 
-commit 647d9ea15e34779afa442d362997d92488778907
+commit cbb64aef35960b2882be721f4b8fbaa0fb649d12
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Fri Apr 25 23:02:12 2014 -0700
 
@@ -158,9 +267,8 @@ Date:   Fri Apr 25 23:02:12 2014 -0700
     Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
     Reviewed-by: Adam Jackson <ajax@redhat.com>
     Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
-    (cherry picked from commit cbb64aef35960b2882be721f4b8fbaa0fb649d12)
 
-commit 23dcf6b1da8b5088856aef12b4a3f4581836f63a
+commit 891e084b26837162b12f841060086a105edde86d
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Fri Apr 25 23:02:00 2014 -0700
 
@@ -179,9 +287,8 @@ Date:   Fri Apr 25 23:02:00 2014 -0700
     Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
     Reviewed-by: Adam Jackson <ajax@redhat.com>
     Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
-    (cherry picked from commit 891e084b26837162b12f841060086a105edde86d)
 
-commit 26643c0c3f4e53945516e20e00dfbb4d69a39c65
+commit 05c8020a49416dd8b7510cbba45ce4f3fc81a7dc
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Fri Apr 25 23:01:48 2014 -0700
 
@@ -202,9 +309,8 @@ Date:   Fri Apr 25 23:01:48 2014 -0700
     Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
     Reviewed-by: Adam Jackson <ajax@redhat.com>
     Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
-    (cherry picked from commit 05c8020a49416dd8b7510cbba45ce4f3fc81a7dc)
 
-commit 0a37bf2d9977db81573f300b0dc203df8fe108b5
+commit 2f5e57317339c526e6eaee1010b0e2ab8089c42e
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Fri Apr 25 23:01:11 2014 -0700
 
@@ -225,18 +331,32 @@ Date:   Fri Apr 25 23:01:11 2014 -0700
     Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
     Reviewed-by: Adam Jackson <ajax@redhat.com>
     Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
-    (cherry picked from commit 2f5e57317339c526e6eaee1010b0e2ab8089c42e)
 
-commit c1ccb7d4eb34c99178ace3956768abfb4cf866fd
+commit 2a5111af9e03a55bd099c6c3a5b9a7fd3dfce76f
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Apr 24 22:11:08 2014 -0700
+
+    fs_send_open_font needs to allow namelen of 0 when FontReopen is set
+    
+    When _fs_load_glyphs calls fs_send_open_font with FontReopen set, it
+    passes a NULL name and namelen of 0, since fs_send_open_font is going
+    to reuse the previous name.
+    
+    This overly restrictive check was added in XFree86 4.3.99.12:
+    http://cvsweb.xfree86.org/cvsweb/xc/lib/font/fc/fserve.c.diff?r1=3.23&r2=3.24
+    http://cvsweb.xfree86.org/cvsweb/xc/lib/font/fc/fserve.c?rev=3.24&content-type=text/vnd.viewcvs-markup
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 77902e1422315963364fcba3736ff9b5b0f32d47
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Tue Apr 22 23:49:29 2014 -0700
 
     Clean up warnings when src/fc is built with -DDEBUG
     
     Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
-    (cherry picked from commit 77902e1422315963364fcba3736ff9b5b0f32d47)
 
-commit e9a07053d2b5aa55634c2bb2fd080fae77020e3c
+commit f75f7bde4cedc36d5ca1289988b3daebb80528d2
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Tue Apr 22 23:45:41 2014 -0700
 
@@ -246,15 +366,28 @@ Date:   Tue Apr 22 23:45:41 2014 -0700
     -DDEBUG to CPPFLAGS when building.
     
     Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
-    (cherry picked from commit f75f7bde4cedc36d5ca1289988b3daebb80528d2)
 
-commit 9b41f3d0c7c430a2909c9455eff347e714f0c4b4
+commit 21f5d3ec9d833b8bce08d0749b8001e1e88544ac
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Apr 21 22:05:20 2014 -0700
+
+    Bump version to 1.4.99.0 for master branch (to become 1.5)
+    
+    libXfont 1.5.0 will be synchronized with the fontsproto 2.1.3 API
+    changes needed for xorg-server 1.16 branch.
+    
+    libXfont 1.4.x will be left for stable release branch for older
+    Xserver releases.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 5a398a55ccdd92d0ff05793692ef8e57f3a50198
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Sun Apr 20 18:10:07 2014 -0700
 
-    Require fontsproto < 2.1.3 for matching function prototypes
+    Require fontsproto 2.1.3 for matching function prototypes
     
-    Building libXfont-1.4.x against fontsproto 2.1.3 causes clang
+    Building current libXfont git against fontsproto 2.1.2 causes clang
     complaints of:
     
     patcache.c:130:1: error: conflicting types for 'CacheFontPattern'
@@ -269,7 +402,7 @@ Date:   Sun Apr 20 18:10:07 2014 -0700
     Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
     Reviewed-by: Thomas Klausner <wiz@NetBSD.org>
 
-commit 371f8582a33235afa1b61d76e4fe98bdc9d7c083
+commit c77a0784bdfc8c178f0742689cf6ae02a2fce37f
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Sun Apr 20 17:59:14 2014 -0700
 
@@ -284,9 +417,8 @@ Date:   Sun Apr 20 17:59:14 2014 -0700
     
     Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
     Reviewed-by: Thomas Klausner <wiz@NetBSD.org>
-    (cherry picked from commit c77a0784bdfc8c178f0742689cf6ae02a2fce37f)
 
-commit 5bb34807642589e5b592b04418855fd059fc5022
+commit c8855746aec2a9b732502da0ca3258b4e701c61a
 Author: Peter Harris <pharris@opentext.com>
 Date:   Mon Apr 7 14:25:02 2014 -0400
 
@@ -297,7 +429,27 @@ Date:   Mon Apr 7 14:25:02 2014 -0400
     
     Signed-off-by: Peter Harris <pharris@opentext.com>
     Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
-    (cherry picked from commit c8855746aec2a9b732502da0ca3258b4e701c61a)
+
+commit a96cc1f032a059da89319ceccb6659c8edd446fb
+Author: Keith Packard <keithp@keithp.com>
+Date:   Fri Nov 15 21:46:15 2013 +0900
+
+    Warning fixes.
+    
+    Many const char issues.
+    
+    One extra 'i' declared in ScaleFont; we can just use the same 'i' as
+    exists at the top level scope.
+    
+    Also ignore bad-function-cast in ftfuncs.c and bitscale.c because
+    we're casting the return value from floor or ceil from double to
+    int. As floor and ceil are kinda designed to generate integer results,
+    it's pretty clear that we're doing what we want and that the compiler
+    is generating noise. I'm not sure why bad-function-cast is ever a good
+    warning to turn on, but I'll leave that for another day.
+    
+    Signed-off-by: Keith Packard <keithp@keithp.com>
+    Reviewed-by: Gaetan Nadon <memsize@videotron.ca>
 
 commit 2a3429413df27224ceeddd22500ce43b5431d698
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>

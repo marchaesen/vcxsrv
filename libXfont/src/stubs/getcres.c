@@ -10,5 +10,6 @@
 weak FontResolutionPtr
 GetClientResolutions(int *num)
 {
+  OVERRIDE_SYMBOL(GetClientResolutions, num);
   return (FontResolutionPtr) 0;
 }

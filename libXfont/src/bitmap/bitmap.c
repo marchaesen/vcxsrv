@@ -36,8 +36,8 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/fonts/bitmap.h>
 
 int
-bitmapGetGlyphs(FontPtr pFont, unsigned long count, unsigned char *chars, 
-		FontEncoding charEncoding, 
+bitmapGetGlyphs(FontPtr pFont, unsigned long count, unsigned char *chars,
+		FontEncoding charEncoding,
 		unsigned long *glyphCount, 	/* RETURN */
 		CharInfoPtr *glyphs) 		/* RETURN */
 {
@@ -63,8 +63,12 @@ bitmapGetGlyphs(FontPtr pFont, unsigned long count, unsigned char *chars,
 
     case Linear8Bit:
     case TwoD8Bit:
-	if (pFont->info.firstRow > 0)
+	if (pFont->info.firstRow > 0) {
+            if (pDefault)
+                while (count--)
+                    *glyphs++ = pDefault;
 	    break;
+        }
 	if (pFont->info.allExist && pDefault) {
 	    while (count--) {
 		c = (*chars++) - firstCol;
@@ -126,8 +130,8 @@ bitmapGetGlyphs(FontPtr pFont, unsigned long count, unsigned char *chars,
 static CharInfoRec nonExistantChar;
 
 int
-bitmapGetMetrics(FontPtr pFont, unsigned long count, unsigned char *chars, 
-		 FontEncoding charEncoding, 
+bitmapGetMetrics(FontPtr pFont, unsigned long count, unsigned char *chars,
+		 FontEncoding charEncoding,
 		 unsigned long *glyphCount,	/* RETURN */
 		 xCharInfo **glyphs)		/* RETURN */
 {

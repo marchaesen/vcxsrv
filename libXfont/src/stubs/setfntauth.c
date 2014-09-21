@@ -10,5 +10,6 @@
 weak int
 set_font_authorizations(char **authorizations, int *authlen, ClientPtr client)
 {
+    OVERRIDE_SYMBOL(set_font_authorizations, authorizations, authlen, client);
     return 0;
 }

@@ -643,7 +643,7 @@ _fs_unload_font(FontPtr pfont)
 
 FontPtr
 fs_create_font (FontPathElementPtr  fpe,
-		char		    *name,
+		const char	    *name,
 		int		    namelen,
 		fsBitmapFormat	    format,
 		fsBitmapFormatMask  fmask)

@@ -15,7 +15,7 @@
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL SuSE
  * BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
- * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN 
+ * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  * Author:  Keith Packard, SuSE, Inc.
@@ -149,7 +149,7 @@ BuiltinAliasesRestore (BuiltinAliasPtr a_cur_tab,
 }
 
 int
-BuiltinReadDirectory (char *directory, FontDirectoryPtr *pdir)
+BuiltinReadDirectory (const char *directory, FontDirectoryPtr *pdir)
 {
     FontDirectoryPtr	dir;
     int			i;
@@ -195,7 +195,7 @@ BuiltinReadDirectory (char *directory, FontDirectoryPtr *pdir)
     }
     for (i = 0; i < builtin_alias_count; i++)
     {
-	if (!FontFileAddFontAlias (dir, 
+	if (!FontFileAddFontAlias (dir,
 				   (char *) builtin_alias[i].alias_name,
 				   (char *) builtin_alias[i].font_name))
 	{

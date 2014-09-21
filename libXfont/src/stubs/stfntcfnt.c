@@ -10,5 +10,6 @@
 weak int
 StoreFontClientFont(FontPtr pfont, Font id)
 {
+    OVERRIDE_SYMBOL(StoreFontClientFont, pfont, id);
     return 0;
 }
