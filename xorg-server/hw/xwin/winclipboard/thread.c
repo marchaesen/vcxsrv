@@ -35,41 +35,61 @@
 #else
 #define HAS_WINSOCK 1
 #endif
-#include <sys/types.h>
-#include <signal.h>
-#include "winclipboard.h"
-#include "windisplay.h"
-#ifdef __CYGWIN__
-#include <errno.h>
-#endif
-#include "misc.h"
 
 /*
- * References to external symbols
+ * Including any server header might define the macro _XSERVER64 on 64 bit machines.
+ * That macro must _NOT_ be defined for Xlib client code, otherwise bad things happen.
+ * So let's undef that macro if necessary.
  */
+#ifdef _XSERVER64
+#undef _XSERVER64
+#endif
 
-extern Bool g_fUnicodeClipboard;
-extern Bool g_fClipboardStarted;
-extern Bool g_fClipboardLaunched;
-extern Bool g_fClipboard;
-extern HWND g_hwndClipboard;
-extern void *g_pClipboardDisplay;
-extern Window g_iClipboardWindow;
+#include <assert.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <setjmp.h>
+#include <pthread.h>
+#include <sys/param.h> // for MAX() macro
+
+#ifdef HAS_WINSOCK
+#include <X11/Xwinsock.h>
+#else
+#include <errno.h>
+#endif
+
+#include <X11/Xatom.h>
+#include <X11/extensions/Xfixes.h>
+#include "winclipboard.h"
+#include "internal.h"
+
+#define WIN_CONNECT_RETRIES			40
+#define WIN_CONNECT_DELAY			4
+
+#define WIN_CLIPBOARD_WINDOW_CLASS		"xwinclip"
+#define WIN_CLIPBOARD_WINDOW_TITLE		"xwinclip"
+#ifdef HAS_DEVWINDOWS
+#define WIN_MSG_QUEUE_FNAME "/dev/windows"
+#endif
 
 /*
  * Global variables
  */
 
+static HWND g_hwndClipboard = NULL;
 static jmp_buf g_jmpEntry;
-static int clipboardRestarts = 0;
 static XIOErrorHandler g_winClipboardOldIOErrorHandler;
 static pthread_t g_winClipboardProcThread;
 
-Bool g_fUseUnicode = FALSE;
+int xfixes_event_base;
+int xfixes_error_base;
 
 /*
  * Local function prototypes
  */
+
+static HWND
+winClipboardCreateMessagingWindow(Display *pDisplay, Window iWindow, ClipboardAtoms *atoms);
 
 static int
  winClipboardErrorHandler(Display * pDisplay, XErrorEvent * pErr);
@@ -78,13 +98,15 @@ static int
  winClipboardIOErrorHandler(Display * pDisplay);
 
 /*
- * Main thread function
+ * Create X11 and Win32 messaging windows, and run message processing loop
+ *
+ * returns TRUE if shutdown was signalled to loop, FALSE if some error occurred
  */
 
-void *
-winClipboardProc(void *pvNotUsed)
+Bool
+winClipboardProc(Bool fUseUnicode, char *szDisplay)
 {
-    Atom atomClipboard;
+    ClipboardAtoms atoms;
     int iReturn;
     HWND hwnd = NULL;
     int iConnectionNumber = 0;
@@ -98,19 +120,11 @@ winClipboardProc(void *pvNotUsed)
     int iMaxDescriptor;
     Display *pDisplay = NULL;
     Window iWindow = None;
-    int iRetries;
-    Bool fUseUnicode;
-    char szDisplay[512];
     int iSelectError;
+    Bool fShutdown = FALSE;
+    static Bool fErrorHandlerSet = FALSE;
 
     winDebug("winClipboardProc - Hello\n");
-    ++clipboardRestarts;
-
-    /* Do we use Unicode clipboard? */
-    fUseUnicode = g_fUnicodeClipboard;
-
-    /* Save the Unicode support flag in a global */
-    g_fUseUnicode = fUseUnicode;
 
     /* Allow multiple threads to access Xlib */
     if (XInitThreads() == 0) {
@@ -123,69 +137,28 @@ winClipboardProc(void *pvNotUsed)
         ErrorF("winClipboardProc - Warning: Locale not supported by X.\n");
     }
 
-    /* Set error handler */
-    XSetErrorHandler(winClipboardErrorHandler);
     g_winClipboardProcThread = pthread_self();
-    g_winClipboardOldIOErrorHandler =
-        XSetIOErrorHandler(winClipboardIOErrorHandler);
+
+    /* Set error handler */
+    if (!fErrorHandlerSet) {
+      XSetErrorHandler(winClipboardErrorHandler);
+      g_winClipboardOldIOErrorHandler =
+         XSetIOErrorHandler(winClipboardIOErrorHandler);
+      fErrorHandlerSet = TRUE;
+    }
 
     /* Set jump point for Error exits */
-    iReturn = setjmp(g_jmpEntry);
-
-    /* Check if we should continue operations */
-    if (iReturn != WIN_JMP_ERROR_IO && iReturn != WIN_JMP_OKAY) {
-        /* setjmp returned an unknown value, exit */
-        ErrorF("winClipboardProc - setjmp returned: %d exiting\n", iReturn);
-        goto winClipboardProc_Exit;
-    }
-    else if (iReturn == WIN_JMP_ERROR_IO) {
-        /* TODO: Cleanup the Win32 window and free any allocated memory */
+    if (setjmp(g_jmpEntry)) {
         ErrorF("winClipboardProc - setjmp returned for IO Error Handler.\n");
-        pthread_exit(NULL);
+        goto winClipboardProc_Done;
     }
-
-    /* Use our generated cookie for authentication */
-    winSetAuthorization();
-
-    /* Initialize retry count */
-    iRetries = 0;
-
-    /* Setup the display connection string x */
-    /*
-     * NOTE: Always connect to screen 0 since we require that screen
-     * numbers start at 0 and increase without gaps.  We only need
-     * to connect to one screen on the display to get events
-     * for all screens on the display.  That is why there is only
-     * one clipboard client thread.
-     */
-    winGetDisplayName(szDisplay, 0);
-
-    /* Print the display connection string */
-    ErrorF("winClipboardProc - DISPLAY=%s\n", szDisplay);
-
-    /* Open the X display */
-    do {
-        pDisplay = XOpenDisplay(szDisplay);
-        if (pDisplay == NULL) {
-            ErrorF("winClipboardProc - Could not open display, "
-                   "try: %d, sleeping: %d\n", iRetries + 1, WIN_CONNECT_DELAY);
-            ++iRetries;
-            sleep(WIN_CONNECT_DELAY);
-            continue;
-        }
-        else
-            break;
-    }
-    while (pDisplay == NULL && iRetries < WIN_CONNECT_RETRIES);
 
     /* Make sure that the display opened */
+    pDisplay = XOpenDisplay(szDisplay);
     if (pDisplay == NULL) {
         ErrorF("winClipboardProc - Failed opening the display, giving up\n");
         goto winClipboardProc_Done;
     }
-
-    /* Save the display in the screen privates */
-    g_pClipboardDisplay = pDisplay;
 
     ErrorF("winClipboardProc - XOpenDisplay () returned and "
            "successfully opened the display.\n");
@@ -202,13 +175,20 @@ winClipboardProc(void *pvNotUsed)
     }
 
     /* Find max of our file descriptors */
-    iMaxDescriptor = max(fdMessageQueue, iConnectionNumber) + 1;
+    iMaxDescriptor = MAX(fdMessageQueue, iConnectionNumber) + 1;
 #else
     iMaxDescriptor = iConnectionNumber + 1;
 #endif
 
-    /* Create atom */
-    atomClipboard = XInternAtom(pDisplay, "CLIPBOARD", False);
+    if (!XFixesQueryExtension(pDisplay, &xfixes_event_base, &xfixes_error_base))
+      ErrorF ("winClipboardProc - XFixes extension not present\n");
+
+    /* Create atoms */
+    atoms.atomClipboard = XInternAtom(pDisplay, "CLIPBOARD", False);
+    atoms.atomLocalProperty = XInternAtom (pDisplay, "CYGX_CUT_BUFFER", False);
+    atoms.atomUTF8String = XInternAtom (pDisplay, "UTF8_STRING", False);
+    atoms.atomCompoundText = XInternAtom (pDisplay, "COMPOUND_TEXT", False);
+    atoms.atomTargets = XInternAtom (pDisplay, "TARGETS", False);
 
     /* Create a messaging window */
     iWindow = XCreateSimpleWindow(pDisplay,
@@ -230,13 +210,27 @@ winClipboardProc(void *pvNotUsed)
         ErrorF("winClipboardProc - XSelectInput generated BadWindow "
                "on messaging window\n");
 
-    /* Save the window in the screen privates */
-    g_iClipboardWindow = iWindow;
+    XFixesSelectSelectionInput (pDisplay,
+                                iWindow,
+                                XA_PRIMARY,
+                                XFixesSetSelectionOwnerNotifyMask |
+                                XFixesSelectionWindowDestroyNotifyMask |
+                                XFixesSelectionClientCloseNotifyMask);
 
+    XFixesSelectSelectionInput (pDisplay,
+                                iWindow,
+                                atoms.atomClipboard,
+                                XFixesSetSelectionOwnerNotifyMask |
+                                XFixesSelectionWindowDestroyNotifyMask |
+                                XFixesSelectionClientCloseNotifyMask);
+
+
+    /* Initialize monitored selection state */
+    winClipboardInitMonitoredSelections();
     /* Create Windows messaging window */
-    hwnd = winClipboardCreateMessagingWindow();
+    hwnd = winClipboardCreateMessagingWindow(pDisplay, iWindow, &atoms);
 
-    /* Save copy of HWND in screen privates */
+    /* Save copy of HWND */
     g_hwndClipboard = hwnd;
 
     /* Assert ownership of selections if Win32 clipboard is owned */
@@ -251,29 +245,27 @@ winClipboardProc(void *pvNotUsed)
         }
 
         /* CLIPBOARD */
-        iReturn = XSetSelectionOwner(pDisplay, atomClipboard,
+        iReturn = XSetSelectionOwner(pDisplay, atoms.atomClipboard,
                                      iWindow, CurrentTime);
         if (iReturn == BadAtom || iReturn == BadWindow ||
-            XGetSelectionOwner(pDisplay, atomClipboard) != iWindow) {
+            XGetSelectionOwner(pDisplay, atoms.atomClipboard) != iWindow) {
             ErrorF("winClipboardProc - Could not set CLIPBOARD owner\n");
             goto winClipboardProc_Done;
         }
     }
 
     /* Pre-flush X events */
-    /* 
+    /*
      * NOTE: Apparently you'll freeze if you don't do this,
      *       because there may be events in local data structures
      *       already.
      */
-    winClipboardFlushXEvents(hwnd, iWindow, pDisplay, fUseUnicode);
+    winClipboardFlushXEvents(hwnd, iWindow, pDisplay, fUseUnicode, &atoms);
 
     /* Pre-flush Windows messages */
-    if (!winClipboardFlushWindowsMessageQueue(hwnd))
-        return 0;
-
-    /* Signal that the clipboard client has started */
-    g_fClipboardStarted = TRUE;
+    if (!winClipboardFlushWindowsMessageQueue(hwnd)) {
+        ErrorF("winClipboardProc - winClipboardFlushWindowsMessageQueue failed\n");
+    }
 
     /* Loop for X events */
     while (1) {
@@ -326,7 +318,7 @@ winClipboardProc(void *pvNotUsed)
         /* Branch on which descriptor became active */
         if (FD_ISSET(iConnectionNumber, &fdsRead)) {
             /* Process X events */
-            winClipboardFlushXEvents(hwnd, iWindow, pDisplay, fUseUnicode);
+            winClipboardFlushXEvents(hwnd, iWindow, pDisplay, fUseUnicode, &atoms);
         }
 
 #ifdef HAS_DEVWINDOWS
@@ -347,16 +339,13 @@ winClipboardProc(void *pvNotUsed)
     }
 
  winClipboardProc_Exit:
-    /* disable the clipboard, which means the thread will die */
-    g_fClipboard = FALSE;
+    /* broke out of while loop on a shutdown message */
+    fShutdown = TRUE;
 
  winClipboardProc_Done:
     /* Close our Windows window */
     if (g_hwndClipboard) {
-        /* Destroy the Window window (hwnd) */
-        winDebug("winClipboardProc - Destroy Windows window\n");
-        PostMessage(g_hwndClipboard, WM_DESTROY, 0, 0);
-        winClipboardFlushWindowsMessageQueue(g_hwndClipboard);
+        winClipboardWindowDestroy();
     }
 
     /* Close our X window */
@@ -376,8 +365,11 @@ winClipboardProc(void *pvNotUsed)
 
 #if 0
     /*
-     * FIXME: XCloseDisplay hangs if we call it, as of 2004/03/26.  The
-     * XSync and XSelectInput calls did not help.
+     * FIXME: XCloseDisplay hangs if we call it
+     *
+     * XCloseDisplay() calls XSync(), so any outstanding errors are reported.
+     * If we are built into the server, this can deadlock if the server is
+     * in the process of exiting and waiting for this thread to exit.
      */
 
     /* Discard any remaining events */
@@ -393,42 +385,64 @@ winClipboardProc(void *pvNotUsed)
 #endif
 
     /* global clipboard variable reset */
-    g_fClipboardLaunched = FALSE;
-    g_fClipboardStarted = FALSE;
-    g_iClipboardWindow = None;
-    g_pClipboardDisplay = NULL;
     g_hwndClipboard = NULL;
 
-    /* checking if we need to restart */
-    if (clipboardRestarts >= WIN_CLIPBOARD_RETRIES) {
-        /* terminates clipboard thread but the main server still lives */
-        ErrorF
-            ("winClipboardProc - the clipboard thread has restarted %d times and seems to be unstable, disabling clipboard integration\n",
-             clipboardRestarts);
-        g_fClipboard = FALSE;
-        return NULL;
-    }
+    return fShutdown;
+}
 
-    if (g_fClipboard) {
-        sleep(WIN_CLIPBOARD_DELAY);
-        ErrorF("winClipboardProc - trying to restart clipboard thread \n");
-        /* Create the clipboard client thread */
-        if (!winInitClipboard()) {
-            ErrorF("winClipboardProc - winClipboardInit failed.\n");
-            return NULL;
-        }
+/*
+ * Create the Windows window that we use to receive Windows messages
+ */
 
-        winDebug("winClipboardProc - winInitClipboard returned.\n");
-        /* Flag that clipboard client has been launched */
-        g_fClipboardLaunched = TRUE;
-    }
-    else {
-        ErrorF("winClipboardProc - Clipboard disabled  - Exit from server \n");
-        /* clipboard thread has exited, stop server as well */
-        raise(SIGTERM);
-    }
+static HWND
+winClipboardCreateMessagingWindow(Display *pDisplay, Window iWindow, ClipboardAtoms *atoms)
+{
+    WNDCLASSEX wc;
+    ClipboardWindowCreationParams cwcp;
+    HWND hwnd;
 
-    return NULL;
+    /* Setup our window class */
+    wc.cbSize = sizeof(WNDCLASSEX);
+    wc.style = CS_HREDRAW | CS_VREDRAW;
+    wc.lpfnWndProc = winClipboardWindowProc;
+    wc.cbClsExtra = 0;
+    wc.cbWndExtra = 0;
+    wc.hInstance = GetModuleHandle(NULL);
+    wc.hIcon = 0;
+    wc.hCursor = 0;
+    wc.hbrBackground = (HBRUSH) GetStockObject(WHITE_BRUSH);
+    wc.lpszMenuName = NULL;
+    wc.lpszClassName = WIN_CLIPBOARD_WINDOW_CLASS;
+    wc.hIconSm = 0;
+    RegisterClassEx(&wc);
+
+    /* Information to be passed to WM_CREATE */
+    cwcp.pClipboardDisplay = pDisplay;
+    cwcp.iClipboardWindow = iWindow;
+    cwcp.atoms = atoms;
+
+    /* Create the window */
+    hwnd = CreateWindowExA(0,   /* Extended styles */
+                           WIN_CLIPBOARD_WINDOW_CLASS,  /* Class name */
+                           WIN_CLIPBOARD_WINDOW_TITLE,  /* Window name */
+                           WS_OVERLAPPED,       /* Not visible anyway */
+                           CW_USEDEFAULT,       /* Horizontal position */
+                           CW_USEDEFAULT,       /* Vertical position */
+                           CW_USEDEFAULT,       /* Right edge */
+                           CW_USEDEFAULT,       /* Bottom edge */
+                           (HWND) NULL, /* No parent or owner window */
+                           (HMENU) NULL,        /* No menu */
+                           GetModuleHandle(NULL),       /* Instance handle */
+                           &cwcp);       /* Creation data */
+    assert(hwnd != NULL);
+
+    /* I'm not sure, but we may need to call this to start message processing */
+    ShowWindow(hwnd, SW_HIDE);
+
+    /* Similarly, we may need a call to this even though we don't paint */
+    UpdateWindow(hwnd);
+
+    return hwnd;
 }
 
 /*
@@ -458,11 +472,27 @@ winClipboardIOErrorHandler(Display * pDisplay)
 
     if (pthread_equal(pthread_self(), g_winClipboardProcThread)) {
         /* Restart at the main entry point */
-        longjmp(g_jmpEntry, WIN_JMP_ERROR_IO);
+        longjmp(g_jmpEntry, 2);
     }
 
     if (g_winClipboardOldIOErrorHandler)
         g_winClipboardOldIOErrorHandler(pDisplay);
 
     return 0;
+}
+
+void
+winClipboardWindowDestroy(void)
+{
+  if (g_hwndClipboard) {
+    SendMessage(g_hwndClipboard, WM_DESTROY, 0, 0);
+  }
+}
+
+void
+winFixClipboardChain(void)
+{
+  if (g_hwndClipboard) {
+    PostMessage(g_hwndClipboard, WM_WM_REINIT, 0, 0);
+  }
 }

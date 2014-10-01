@@ -976,7 +976,8 @@ populate_symbol_table(gl_shader *sh)
       if ((func = inst->as_function()) != NULL) {
 	 sh->symbols->add_function(func);
       } else if ((var = inst->as_variable()) != NULL) {
-	 sh->symbols->add_variable(var);
+         if (var->data.mode != ir_var_temporary)
+            sh->symbols->add_variable(var);
       }
    }
 }
@@ -1173,7 +1174,8 @@ public:
       if (var->type->is_interface()) {
          if (interface_contains_unsized_arrays(var->type)) {
             const glsl_type *new_type =
-               resize_interface_members(var->type, var->max_ifc_array_access);
+               resize_interface_members(var->type,
+                                        var->get_max_ifc_array_access());
             var->type = new_type;
             var->change_interface_type(new_type);
          }
@@ -1182,7 +1184,7 @@ public:
          if (interface_contains_unsized_arrays(var->type->fields.array)) {
             const glsl_type *new_type =
                resize_interface_members(var->type->fields.array,
-                                        var->max_ifc_array_access);
+                                        var->get_max_ifc_array_access());
             var->change_interface_type(new_type);
             var->type =
                glsl_type::get_array_instance(new_type, var->type->length);
@@ -1714,12 +1716,19 @@ link_intrastage_shaders(void *mem_ctx,
        */
       gl_shader **linking_shaders = (gl_shader **)
          calloc(num_shaders + 1, sizeof(gl_shader *));
-      memcpy(linking_shaders, shader_list, num_shaders * sizeof(gl_shader *));
-      linking_shaders[num_shaders] = _mesa_glsl_get_builtin_function_shader();
 
-      ok = link_function_calls(prog, linked, linking_shaders, num_shaders + 1);
+      ok = linking_shaders != NULL;
 
-      free(linking_shaders);
+      if (ok) {
+         memcpy(linking_shaders, shader_list, num_shaders * sizeof(gl_shader *));
+         linking_shaders[num_shaders] = _mesa_glsl_get_builtin_function_shader();
+
+         ok = link_function_calls(prog, linked, linking_shaders, num_shaders + 1);
+
+         free(linking_shaders);
+      } else {
+         _mesa_error_no_memory(__func__);
+      }
    } else {
       ok = link_function_calls(prog, linked, shader_list, num_shaders);
    }
@@ -1824,9 +1833,10 @@ update_array_sizes(struct gl_shader_program *prog)
 	     * Determine the number of slots per array element by dividing by
 	     * the old (total) size.
 	     */
-	    if (var->num_state_slots > 0) {
-	       var->num_state_slots = (size + 1)
-		  * (var->num_state_slots / var->type->length);
+            const unsigned num_slots = var->get_num_state_slots();
+	    if (num_slots > 0) {
+	       var->set_num_state_slots((size + 1)
+                                        * (num_slots / var->type->length));
 	    }
 
 	    var->type = glsl_type::get_array_instance(var->type->fields.array,
@@ -2176,6 +2186,7 @@ demote_shader_inputs_and_outputs(gl_shader *sh, enum ir_variable_mode mode)
        * to have a location assigned.
        */
       if (var->data.is_unmatched_generic_inout) {
+         assert(var->data.mode != ir_var_temporary);
 	 var->data.mode = ir_var_auto;
       }
    }

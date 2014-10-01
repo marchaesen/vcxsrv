@@ -24,7 +24,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define X_REGISTRY_RESOURCE       1
 #endif
 
-#if defined(XSELINUX) || defined(XCSECURITY)
+#if defined(XSELINUX) || defined(XCSECURITY) || defined(XSERVER_DTRACE)
 #define X_REGISTRY_REQUEST        1
 #endif
 

@@ -70,7 +70,7 @@ GLbitfield
 _mesa_get_shader_flags(void)
 {
    GLbitfield flags = 0x0;
-   const char *env = _mesa_getenv("MESA_GLSL");
+   const char *env = getenv("MESA_GLSL");
 
    if (env) {
       if (strstr(env, "dump_on_error"))
@@ -122,6 +122,9 @@ _mesa_init_shader_state(struct gl_context *ctx)
       memcpy(&ctx->Const.ShaderCompilerOptions[sh], &options, sizeof(options));
 
    ctx->Shader.Flags = _mesa_get_shader_flags();
+
+   if (ctx->Shader.Flags != 0)
+      ctx->Const.GenerateTemporaryNames = true;
 
    /* Extended for ARB_separate_shader_objects */
    ctx->Shader.RefCount = 1;
@@ -272,9 +275,8 @@ attach_shader(struct gl_context *ctx, GLuint program, GLuint shader)
 
    /* grow list */
    shProg->Shaders = (struct gl_shader **)
-      _mesa_realloc(shProg->Shaders,
-                    n * sizeof(struct gl_shader *),
-                    (n + 1) * sizeof(struct gl_shader *));
+      realloc(shProg->Shaders,
+              (n + 1) * sizeof(struct gl_shader *));
    if (!shProg->Shaders) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glAttachShader");
       return;

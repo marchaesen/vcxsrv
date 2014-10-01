@@ -196,6 +196,13 @@ with
 This option may be issued multiple times to disable listening to different
 transport types.
 .TP 8
+.B \-listen \fItrans-type\fP
+enables a transport type.  For example, TCP/IP connections can be enabled
+with
+.BR "\-listen tcp" .
+This option may be issued multiple times to enable listening to different
+transport types.
+.TP 8
 .B \-noreset
 prevents a server reset when the last client connection is closed.  This
 overrides a previous

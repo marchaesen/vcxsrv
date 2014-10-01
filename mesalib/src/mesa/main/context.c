@@ -642,16 +642,14 @@ _mesa_init_constants(struct gl_constants *consts, gl_api api)
    consts->MaxGeometryTotalOutputComponents = MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS;
 
    /* Shading language version */
-   if (api == API_OPENGL_COMPAT || api == API_OPENGL_CORE) {
-      consts->GLSLVersion = 120;
-      _mesa_override_glsl_version(consts);
-   }
-   else if (api == API_OPENGLES2) {
-      consts->GLSLVersion = 100;
-   }
-   else if (api == API_OPENGLES) {
-      consts->GLSLVersion = 0; /* GLSL not supported */
-   }
+   consts->GLSLVersion = 120;
+   _mesa_override_glsl_version(consts);
+
+#ifdef DEBUG
+   consts->GenerateTemporaryNames = true;
+#else
+   consts->GenerateTemporaryNames = false;
+#endif
 
    /* GL_ARB_framebuffer_object */
    consts->MaxSamples = 0;
@@ -689,9 +687,6 @@ _mesa_init_constants(struct gl_constants *consts, gl_api api)
 
    /* GL_ARB_robustness */
    consts->ResetStrategy = GL_NO_RESET_NOTIFICATION_ARB;
-
-   /* PrimitiveRestart */
-   consts->PrimitiveRestartInSoftware = GL_FALSE;
 
    /* ES 3.0 or ARB_ES3_compatibility */
    consts->MaxElementIndex = 0xffffffffu;
@@ -1098,10 +1093,10 @@ _mesa_initialize_context(struct gl_context *ctx,
    ctx->CurrentDispatch = ctx->OutsideBeginEnd;
 
    ctx->FragmentProgram._MaintainTexEnvProgram
-      = (_mesa_getenv("MESA_TEX_PROG") != NULL);
+      = (getenv("MESA_TEX_PROG") != NULL);
 
    ctx->VertexProgram._MaintainTnlProgram
-      = (_mesa_getenv("MESA_TNL_PROG") != NULL);
+      = (getenv("MESA_TNL_PROG") != NULL);
    if (ctx->VertexProgram._MaintainTnlProgram) {
       /* this is required... */
       ctx->FragmentProgram._MaintainTexEnvProgram = GL_TRUE;
@@ -1545,7 +1540,7 @@ handle_first_current(struct gl_context *ctx)
     * first time each context is made current we'll print some useful
     * information.
     */
-   if (_mesa_getenv("MESA_INFO")) {
+   if (getenv("MESA_INFO")) {
       _mesa_print_info(ctx);
    }
 }

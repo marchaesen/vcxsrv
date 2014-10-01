@@ -72,8 +72,10 @@ typedef int (*winDispatchProcPtr) (ClientPtr);
  * Wrapped DIX functions
  */
 extern winDispatchProcPtr winProcEstablishConnectionOrig;
-extern winDispatchProcPtr winProcSetSelectionOwnerOrig;
 #endif
+extern Bool g_fUnicodeClipboard;
+extern Bool g_fClipboard;
+extern Bool g_fClipboardStarted;
 
 /* The global X default icons */
 #if defined(XWIN_MULTIWINDOW)

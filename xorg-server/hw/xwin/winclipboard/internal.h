@@ -1,5 +1,4 @@
-#ifndef _WINCLIPBOARD_H_
-#define _WINCLIPBOARD_H_
+
 /*
  *Copyright (C) 2003-2004 Harold L Hunt II All Rights Reserved.
  *
@@ -30,46 +29,18 @@
  * Authors:	Harold L Hunt II
  */
 
-/* Standard library headers */
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#ifdef __CYGWIN__
-#include <sys/select.h>
-#else
-#include <X11/Xwinsock.h>
-#endif
-#include <fcntl.h>
-#include <setjmp.h>
-#include <pthread.h>
+#ifndef WINCLIPBOARD_INTERNAL_H
+#define WINCLIPBOARD_INTERNAL_H
 
 /* X headers */
-#include <X11/X.h>
-#include <X11/Xatom.h>
-#include <X11/Xproto.h>
-#include <X11/Xutil.h>
-#include <X11/Xlocale.h>
+#include <X11/Xlib.h>
 
 /* Windows headers */
 #include <X11/Xwindows.h>
 
-/* Clipboard module constants */
-#define WIN_CLIPBOARD_WINDOW_CLASS		"xwinclip"
-#define WIN_CLIPBOARD_WINDOW_TITLE		"xwinclip"
-#ifdef HAS_DEVWINDOWS
-#define WIN_MSG_QUEUE_FNAME			"/dev/windows"
-#endif
-#define WIN_CONNECT_RETRIES			40
-#define WIN_CONNECT_DELAY			4
-#define WIN_JMP_OKAY				0
-#define WIN_JMP_ERROR_IO			2
-#define WIN_LOCAL_PROPERTY			"CYGX_CUT_BUFFER"
 #define WIN_XEVENTS_SUCCESS			0
 #define WIN_XEVENTS_CONVERT			2
 #define WIN_XEVENTS_NOTIFY			3
-#define WIN_CLIPBOARD_RETRIES			40
-#define WIN_CLIPBOARD_DELAY			1
 
 #define WM_WM_REINIT                           (WM_USER + 1)
 
@@ -77,18 +48,8 @@
  * References to external symbols
  */
 
-extern char *display;
 extern void winDebug(const char *format, ...);
-extern void winErrorFVerb(int verb, const char *format, ...);
-
-/*
- * winclipboardinit.c
- */
-
-Bool
- winInitClipboard(void);
-
-HWND winClipboardCreateMessagingWindow(void);
+extern void ErrorF(const char *format, ...);
 
 /*
  * winclipboardtextconv.c
@@ -104,23 +65,45 @@ void
  * winclipboardthread.c
  */
 
-void *winClipboardProc(void *);
+
+typedef struct
+{
+    Atom atomClipboard;
+    Atom atomLocalProperty;
+    Atom atomUTF8String;
+    Atom atomCompoundText;
+    Atom atomTargets;
+} ClipboardAtoms;
 
 /*
  * winclipboardwndproc.c
  */
 
-BOOL winClipboardFlushWindowsMessageQueue(HWND hwnd);
+Bool winClipboardFlushWindowsMessageQueue(HWND hwnd);
 
 LRESULT CALLBACK
 winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+
+typedef struct
+{
+  Display *pClipboardDisplay;
+  Window iClipboardWindow;
+  ClipboardAtoms *atoms;
+} ClipboardWindowCreationParams;
 
 /*
  * winclipboardxevents.c
  */
 
 int
-
 winClipboardFlushXEvents(HWND hwnd,
-                         int iWindow, Display * pDisplay, Bool fUnicodeSupport);
+                         Window iWindow, Display * pDisplay, Bool fUnicodeSupport, ClipboardAtoms *atom);
+
+
+Atom
+winClipboardGetLastOwnedSelectionAtom(ClipboardAtoms *atoms);
+
+void
+winClipboardInitMonitoredSelections(void);
+
 #endif

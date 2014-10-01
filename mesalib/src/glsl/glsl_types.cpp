@@ -490,6 +490,20 @@ glsl_type::record_compare(const glsl_type *b) const
    if (this->interface_packing != b->interface_packing)
       return false;
 
+   /* From the GLSL 4.20 specification (Sec 4.2):
+    *
+    *     "Structures must have the same name, sequence of type names, and
+    *     type definitions, and field names to be considered the same type."
+    *
+    * GLSL ES behaves the same (Ver 1.00 Sec 4.2.4, Ver 3.00 Sec 4.2.5).
+    *
+    * Note that we cannot force type name check when comparing unnamed
+    * structure types, these have a unique name assigned during parsing.
+    */
+   if (!this->is_anonymous() && !b->is_anonymous())
+      if (strcmp(this->name, b->name) != 0)
+         return false;
+
    for (unsigned i = 0; i < this->length; i++) {
       if (this->fields.structure[i].type != b->fields.structure[i].type)
 	 return false;
@@ -678,12 +692,17 @@ glsl_type::component_slots() const
 unsigned
 glsl_type::uniform_locations() const
 {
-   if (this->is_matrix())
-      return 1;
-
    unsigned size = 0;
 
    switch (this->base_type) {
+   case GLSL_TYPE_UINT:
+   case GLSL_TYPE_INT:
+   case GLSL_TYPE_FLOAT:
+   case GLSL_TYPE_BOOL:
+   case GLSL_TYPE_SAMPLER:
+   case GLSL_TYPE_IMAGE:
+      return 1;
+
    case GLSL_TYPE_STRUCT:
    case GLSL_TYPE_INTERFACE:
       for (unsigned i = 0; i < this->length; i++)
@@ -692,13 +711,8 @@ glsl_type::uniform_locations() const
    case GLSL_TYPE_ARRAY:
       return this->length * this->fields.array->uniform_locations();
    default:
-      break;
+      return 0;
    }
-
-   /* The location count for many types match with component_slots() result,
-    * all expections should be handled above.
-    */
-   return component_slots();
 }
 
 bool
@@ -965,7 +979,7 @@ glsl_type::std140_size(bool row_major) const
          if (field_type->is_record() && (i + 1 < this->length))
             size = glsl_align(size, 16);
       }
-      size = glsl_align(size, max_align);
+      size = glsl_align(size, MAX2(max_align, 16));
       return size;
    }
 

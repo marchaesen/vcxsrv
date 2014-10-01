@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: xkeyboard-config 2.11.99\n"
 "Report-Msgid-Bugs-To: svu@users.sourceforge.net\n"
 "POT-Creation-Date: 2014-05-18 00:11+0100\n"
-"PO-Revision-Date: 2014-05-21 21:42+0100\n"
+"PO-Revision-Date: 2014-05-29 21:42+0100\n"
 "Last-Translator: Marcos Lans <marcoslansgarza@gmail.com>\n"
 "Language-Team: Galician <proxecto@trasno.net>\n"
 "Language: gl\n"
@@ -19,6 +19,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Launchpad-Export-Date: 2014-04-23 20:24+0000\n"
 "X-Generator: Virtaal 0.7.0\n"
 "X-Poedit-Language: Galician\n"
 
@@ -1211,15 +1212,15 @@ msgstr "ur"
 
 #: ../rules/base.xml.in.h:315
 msgid "Urdu (phonetic)"
-msgstr "Urdu (fonético)"
+msgstr "Urdú (fonético)"
 
 #: ../rules/base.xml.in.h:316
 msgid "Urdu (alternative phonetic)"
-msgstr "Urdu (fonético alternativo)"
+msgstr "Urdú (fonético alternativo)"
 
 #: ../rules/base.xml.in.h:317
 msgid "Urdu (WinKeys)"
-msgstr "Urdu (teclas Windows)"
+msgstr "Urdú (teclas Windows)"
 
 #. Keyboard indicator for Hindi layouts
 #: ../rules/base.xml.in.h:319
@@ -1363,7 +1364,7 @@ msgstr "Bereber (Marrocos, alternativa fonética tifinagh)"
 
 #: ../rules/base.xml.in.h:359
 msgid "Berber (Morocco, Tifinagh extended)"
-msgstr "Bereber (Marrocos, tifinagh extendido)"
+msgstr "Bereber (Marrocos, tifinagh estendido)"
 
 #: ../rules/base.xml.in.h:360
 msgid "Berber (Morocco, Tifinagh phonetic)"
@@ -1371,7 +1372,7 @@ msgstr "Bereber (Marrocos, tifinagh fonético)"
 
 #: ../rules/base.xml.in.h:361
 msgid "Berber (Morocco, Tifinagh extended phonetic)"
-msgstr "Bereber (Marrocos, tifinagh fonético extendido)"
+msgstr "Bereber (Marrocos, tifinagh fonético estendido)"
 
 #. Keyboard indicator for Cameroon layouts
 #: ../rules/base.xml.in.h:363
@@ -1593,19 +1594,19 @@ msgstr "et"
 
 #: ../rules/base.xml.in.h:424 ../rules/base.extras.xml.in.h:99
 msgid "Estonian"
-msgstr "Estonio"
+msgstr "Estoniano"
 
 #: ../rules/base.xml.in.h:425
 msgid "Estonian (eliminate dead keys)"
-msgstr "Estonio (eliminar teclas mortas)"
+msgstr "Estoniano (eliminar teclas mortas)"
 
 #: ../rules/base.xml.in.h:426
 msgid "Estonian (Dvorak)"
-msgstr "Estonio (Dvorak)"
+msgstr "Estoniano (Dvorak)"
 
 #: ../rules/base.xml.in.h:427
 msgid "Estonian (US keyboard with Estonian letters)"
-msgstr "Estonio (teclado EE. UU. con letras estonias)"
+msgstr "Estonio (teclado EE. UU. con letras estonianas)"
 
 #: ../rules/base.xml.in.h:428 ../rules/base.extras.xml.in.h:29
 msgid "Persian"
@@ -2218,7 +2219,7 @@ msgstr "Español (latinoamericano, eliminar teclas mortas)"
 
 #: ../rules/base.xml.in.h:596
 msgid "Spanish (Latin American, include dead tilde)"
-msgstr "Español (latinoamericano, incluir tilde morta)"
+msgstr "Español (latinoamericano, incluír til morta)"
 
 #: ../rules/base.xml.in.h:597
 msgid "Spanish (Latin American, Sun dead keys)"
@@ -2666,7 +2667,7 @@ msgstr "Eslovaco (qwerty)"
 
 #: ../rules/base.xml.in.h:717
 msgid "Slovak (qwerty, extended Backslash)"
-msgstr "Eslovaco (qwerty, contrabarra extendida)"
+msgstr "Eslovaco (qwerty, contrabarra estendida)"
 
 #: ../rules/base.xml.in.h:718 ../rules/base.extras.xml.in.h:126
 msgid "Spanish"
@@ -2682,7 +2683,7 @@ msgstr "Español (tecla Windows)"
 
 #: ../rules/base.xml.in.h:721
 msgid "Spanish (include dead tilde)"
-msgstr "Español (incluir tilde morta)"
+msgstr "Español (incluír til morta)"
 
 #: ../rules/base.xml.in.h:722
 msgid "Spanish (Sun dead keys)"
@@ -2747,39 +2748,39 @@ msgstr "Lingua de signos sueco"
 
 #: ../rules/base.xml.in.h:738 ../rules/base.extras.xml.in.h:132
 msgid "German (Switzerland)"
-msgstr "Alemán (Suiza)"
+msgstr "Alemán (Suíza)"
 
 #: ../rules/base.xml.in.h:739
 msgid "German (Switzerland, legacy)"
-msgstr "Alemán (Suiza, herdado)"
+msgstr "Alemán (Suíza, herdado)"
 
 #: ../rules/base.xml.in.h:740
 msgid "German (Switzerland, eliminate dead keys)"
-msgstr "Alemán (Suiza, eliminar teclas mortas)"
+msgstr "Alemán (Suíza, eliminar teclas mortas)"
 
 #: ../rules/base.xml.in.h:741
 msgid "German (Switzerland, Sun dead keys)"
-msgstr "Alemán (Suiza, teclas mortas de Sun)"
+msgstr "Alemán (Suíza, teclas mortas de Sun)"
 
 #: ../rules/base.xml.in.h:742
 msgid "French (Switzerland)"
-msgstr "Francés (Suiza)"
+msgstr "Francés (Suíza)"
 
 #: ../rules/base.xml.in.h:743
 msgid "French (Switzerland, eliminate dead keys)"
-msgstr "Francés (Suiza, eliminar teclas mortas)"
+msgstr "Francés (Suíza, eliminar teclas mortas)"
 
 #: ../rules/base.xml.in.h:744
 msgid "French (Switzerland, Sun dead keys)"
-msgstr "Francés (Suiza, teclas mortas de Sun)"
+msgstr "Francés (Suíza, teclas mortas de Sun)"
 
 #: ../rules/base.xml.in.h:745
 msgid "French (Switzerland, Macintosh)"
-msgstr "Francés (Suiza, Macintosh)"
+msgstr "Francés (Suíza, Macintosh)"
 
 #: ../rules/base.xml.in.h:746
 msgid "German (Switzerland, Macintosh)"
-msgstr "Alemán (Suiza, Macintosh)"
+msgstr "Alemán (Suíza, Macintosh)"
 
 #: ../rules/base.xml.in.h:747
 msgid "Arabic (Syria)"
@@ -2935,35 +2936,35 @@ msgstr "uk"
 
 #: ../rules/base.xml.in.h:791 ../rules/base.extras.xml.in.h:139
 msgid "Ukrainian"
-msgstr "Ucraniano"
+msgstr "Ucraíno"
 
 #: ../rules/base.xml.in.h:792
 msgid "Ukrainian (phonetic)"
-msgstr "Ucraniano (fonético)"
+msgstr "Ucraíno (fonético)"
 
 #: ../rules/base.xml.in.h:793
 msgid "Ukrainian (typewriter)"
-msgstr "Ucraniano (máquina de escribir)"
+msgstr "Ucraíno (máquina de escribir)"
 
 #: ../rules/base.xml.in.h:794
 msgid "Ukrainian (WinKeys)"
-msgstr "Ucraniano (teclas Windows)"
+msgstr "Ucraíno (teclas Windows)"
 
 #: ../rules/base.xml.in.h:795
 msgid "Ukrainian (legacy)"
-msgstr "Ucraniano (heredado)"
+msgstr "Ucraíno (herdado)"
 
 #: ../rules/base.xml.in.h:796
 msgid "Ukrainian (standard RSTU)"
-msgstr "Ucraniano (estándar RSTU)"
+msgstr "Ucraíno (estándar RSTU)"
 
 #: ../rules/base.xml.in.h:797
 msgid "Russian (Ukraine, standard RSTU)"
-msgstr "Ruso (ucraniano estándar RSTU)"
+msgstr "Ruso (Ucraíno estándar RSTU)"
 
 #: ../rules/base.xml.in.h:798
 msgid "Ukrainian (homophonic)"
-msgstr "Ucraniano (homofónico)"
+msgstr "Ucraíno (homofónico)"
 
 #: ../rules/base.xml.in.h:799 ../rules/base.extras.xml.in.h:141
 msgid "English (UK)"
@@ -2971,7 +2972,7 @@ msgstr "Inglés (RU)"
 
 #: ../rules/base.xml.in.h:800
 msgid "English (UK, extended WinKeys)"
-msgstr "Inglés (RU, estendido con teclas Windows)"
+msgstr "Inglés (UK, estendido con teclas Windows)"
 
 #: ../rules/base.xml.in.h:801
 msgid "English (UK, international with dead keys)"
@@ -3058,19 +3059,19 @@ msgstr "Ogam (IS434)"
 
 #: ../rules/base.xml.in.h:824
 msgid "Urdu (Pakistan)"
-msgstr "Urdu (Pakistán)"
+msgstr "Urdú (Paquistán)"
 
 #: ../rules/base.xml.in.h:825
 msgid "Urdu (Pakistan, CRULP)"
-msgstr "Urdu (Pakistán, CRULP)"
+msgstr "Urdú (Paquistán, CRULP)"
 
 #: ../rules/base.xml.in.h:826
 msgid "Urdu (Pakistan, NLA)"
-msgstr "Urdu (Pakistán, NLA)"
+msgstr "Urdú (Paquistán, NLA)"
 
 #: ../rules/base.xml.in.h:827
 msgid "Arabic (Pakistan)"
-msgstr "Árabe (Pakistán)"
+msgstr "Árabe (Paquistán)"
 
 #. Keyboard indicator for Sindhi layouts
 #: ../rules/base.xml.in.h:829
@@ -3105,7 +3106,7 @@ msgstr "Esperanto"
 
 #: ../rules/base.xml.in.h:838
 msgid "Esperanto (displaced semicolon and quote, obsolete)"
-msgstr "Estonio (punto e coma e comiña desplazadas, obsoleto)"
+msgstr "Estoniano (punto e coma e comiña desprazadas, obsoleto)"
 
 #. Keyboard indicator for Nepali layouts
 #: ../rules/base.xml.in.h:840
@@ -3392,11 +3393,11 @@ msgstr "Alt+Maiús"
 
 #: ../rules/base.xml.in.h:918
 msgid "Left Alt+Left Shift"
-msgstr "Alt izquierdo + Mayús esquerdo"
+msgstr "Alt esquerda + Maiús. esquerda"
 
 #: ../rules/base.xml.in.h:919
 msgid "Alt+Space"
-msgstr "Alt+Espacio"
+msgstr "Alt+Espazo"
 
 #: ../rules/base.xml.in.h:920
 msgid "Menu"
@@ -3703,7 +3704,7 @@ msgstr "Meta está asignada ás teclas Windows"
 
 #: ../rules/base.xml.in.h:998
 msgid "Meta is mapped to Left Win"
-msgstr "Meta está asignada á tecla Windows izquierda"
+msgstr "Meta está asignada á tecla Windows esquerda"
 
 #: ../rules/base.xml.in.h:999
 msgid "Hyper is mapped to Win keys"
@@ -4055,7 +4056,7 @@ msgstr "Multilingüe (Canadá, Sun Type 6/7)"
 
 #: ../rules/base.extras.xml.in.h:24
 msgid "German (US keyboard with German letters)"
-msgstr "Alemán (teclado estadounidense con letras alemanas)"
+msgstr "Alemán (teclado estadounidense con letras alemás)"
 
 #: ../rules/base.extras.xml.in.h:25
 msgid "German (with Hungarian letters and no dead keys)"
@@ -4179,7 +4180,7 @@ msgstr "Idioma da Igrexa eslavona"
 
 #: ../rules/base.extras.xml.in.h:72
 msgid "Russian (with Ukrainian-Belorussian layout)"
-msgstr "Ruso (con distribución ucraniana e bielorrusa)"
+msgstr "Ruso (con distribución ucraína e bielorrusa)"
 
 #: ../rules/base.extras.xml.in.h:73
 msgid "Russian (Sun Type 6/7)"
@@ -4484,7 +4485,7 @@ msgstr "EurKEY (disposición tipo US con letras europeas)"
 #~ msgstr "Etiopía"
 
 #~ msgid "Extended"
-#~ msgstr "Extendido"
+#~ msgstr "estendido"
 
 #~ msgid "Finland"
 #~ msgstr "Finlandia"

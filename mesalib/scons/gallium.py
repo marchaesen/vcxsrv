@@ -583,6 +583,30 @@ def generate(env):
             env.Append(CCFLAGS = ['-fopenmp'])
             env.Append(LIBS = ['gomp'])
 
+    if gcc_compat:
+        ccversion = env['CCVERSION']
+        cppdefines += [
+            'HAVE___BUILTIN_EXPECT',
+            'HAVE___BUILTIN_FFS',
+            'HAVE___BUILTIN_FFSLL',
+            'HAVE_FUNC_ATTRIBUTE_FLATTEN',
+        ]
+        if distutils.version.LooseVersion(ccversion) >= distutils.version.LooseVersion('3'):
+            cppdefines += [
+                'HAVE_FUNC_ATTRIBUTE_FORMAT',
+                'HAVE_FUNC_ATTRIBUTE_PACKED',
+            ]
+        if distutils.version.LooseVersion(ccversion) >= distutils.version.LooseVersion('3.4'):
+            cppdefines += [
+                'HAVE___BUILTIN_CTZ',
+                'HAVE___BUILTIN_POPCOUNT',
+                'HAVE___BUILTIN_POPCOUNTLL',
+                'HAVE___BUILTIN_CLZ',
+                'HAVE___BUILTIN_CLZLL',
+            ]
+        if distutils.version.LooseVersion(ccversion) >= distutils.version.LooseVersion('4.5'):
+            cppdefines += ['HAVE___BUILTIN_UNREACHABLE']
+
     # Load tools
     env.Tool('lex')
     env.Tool('yacc')

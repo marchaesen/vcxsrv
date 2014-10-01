@@ -42,6 +42,9 @@
 #include "winmsg.h"
 #include "winmonitors.h"
 #include "inputstr.h"
+#ifdef XWIN_CLIPBOARD
+#include "winclipboard/winclipboard.h"
+#endif
 
 /*
  * Global variables

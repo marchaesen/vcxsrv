@@ -908,6 +908,9 @@ FcRangeDestroy (FcRange *range);
 FcPublic FcRange *
 FcRangeCopy (const FcRange *r);
 
+FcPublic FcBool
+FcRangeGetDouble(const FcRange *range, double *begin, double *end);
+
 /* fcweight.c */
 
 FcPublic int

@@ -279,6 +279,9 @@ struct glsl_type {
    /**
     * Calculate the number of unique values from glGetUniformLocation for the
     * elements of the type.
+    *
+    * This is used to allocate slots in the UniformRemapTable, the amount of
+    * locations may not match with actual used storage space by the driver.
     */
    unsigned uniform_locations() const;
 
@@ -483,6 +486,14 @@ struct glsl_type {
    bool is_error() const
    {
       return base_type == GLSL_TYPE_ERROR;
+   }
+
+   /**
+    * Query if a type is unnamed/anonymous (named by the parser)
+    */
+   bool is_anonymous() const
+   {
+      return !strncmp(name, "#anon", 5);
    }
 
    /**
