@@ -336,10 +336,10 @@ formats_compatible(enum pipe_format src_format,
  * Copy pixel block from src surface to dst surface.
  * Overlapping regions are acceptable.
  * Flipping and stretching are supported.
- * \param filter  one of PIPE_TEX_MIPFILTER_NEAREST/LINEAR
- * \param writemask  controls which channels in the dest surface are sourced
- *                   from the src surface.  Disabled channels are sourced
- *                   from (0,0,0,1).
+ * \param filter  one of PIPE_TEX_FILTER_NEAREST/LINEAR
+ * \param writemask  bitmask of PIPE_MASK_[RGBAZS].  Controls which channels
+ *                   in the dest surface are sourced from the src surface.
+ *                   Disabled color channels are sourced from (0,0,0,1).
  */
 void
 util_blit_pixels(struct blit_state *ctx,
@@ -352,7 +352,7 @@ util_blit_pixels(struct blit_state *ctx,
                  int dstX0, int dstY0,
                  int dstX1, int dstY1,
                  float z, uint filter,
-                 uint writemask, uint zs_writemask)
+                 uint writemask)
 {
    struct pipe_context *pipe = ctx->pipe;
    enum pipe_format src_format, dst_format;
@@ -364,8 +364,8 @@ util_blit_pixels(struct blit_state *ctx,
          util_format_description(src_tex->format);
    struct pipe_blit_info info;
 
-   assert(filter == PIPE_TEX_MIPFILTER_NEAREST ||
-          filter == PIPE_TEX_MIPFILTER_LINEAR);
+   assert(filter == PIPE_TEX_FILTER_NEAREST ||
+          filter == PIPE_TEX_FILTER_LINEAR);
 
    assert(src_level <= src_tex->last_level);
 
@@ -383,11 +383,18 @@ util_blit_pixels(struct blit_state *ctx,
    is_depth = util_format_has_depth(src_desc);
    is_stencil = util_format_has_stencil(src_desc);
 
-   blit_depth = is_depth && (zs_writemask & BLIT_WRITEMASK_Z);
-   blit_stencil = is_stencil && (zs_writemask & BLIT_WRITEMASK_STENCIL);
+   blit_depth = is_depth && (writemask & PIPE_MASK_Z);
+   blit_stencil = is_stencil && (writemask & PIPE_MASK_S);
 
-   assert((writemask && !zs_writemask && !is_depth && !is_stencil) ||
-          (!writemask && (blit_depth || blit_stencil)));
+   if (is_depth || is_stencil) {
+      assert((writemask & PIPE_MASK_RGBA) == 0);
+      assert(blit_depth || blit_stencil);
+   }
+   else {
+      assert((writemask & PIPE_MASK_ZS) == 0);
+      assert(!blit_depth);
+      assert(!blit_stencil);
+   }
 
    /*
     * XXX: z parameter is deprecated. dst->u.tex.first_layer
@@ -437,7 +444,7 @@ util_blit_pixels(struct blit_state *ctx,
    assert(info.dst.box.width >= 0);
    assert(info.dst.box.height >= 0);
    info.dst.box.depth = 1;
-   info.dst.format = dst->texture->format;
+   info.dst.format = dst_format;
    info.src.resource = src_tex;
    info.src.level = src_level;
    info.src.box.x = srcX0;
@@ -446,8 +453,8 @@ util_blit_pixels(struct blit_state *ctx,
    info.src.box.width = srcX1 - srcX0;
    info.src.box.height = srcY1 - srcY0;
    info.src.box.depth = 1;
-   info.src.format = src_tex->format;
-   info.mask = writemask | (zs_writemask << 4);
+   info.src.format = src_format;
+   info.mask = writemask;
    info.filter = filter;
    info.scissor_enable = 0;
 
@@ -486,8 +493,8 @@ util_blit_pixels_tex(struct blit_state *ctx,
    unsigned offset;
    struct pipe_resource *tex = src_sampler_view->texture;
 
-   assert(filter == PIPE_TEX_MIPFILTER_NEAREST ||
-          filter == PIPE_TEX_MIPFILTER_LINEAR);
+   assert(filter == PIPE_TEX_FILTER_NEAREST ||
+          filter == PIPE_TEX_FILTER_LINEAR);
 
    assert(tex);
    assert(tex->width0 != 0);

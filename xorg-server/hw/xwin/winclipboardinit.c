@@ -36,6 +36,7 @@
 #include "objbase.h"
 #include "ddraw.h"
 #include "winwindow.h"
+#include "internal.h"
 
 /*
  * Local typedefs

@@ -493,4 +493,13 @@
 /* byte order */
 #undef X_BYTE_ORDER
 
+/* Listen on TCP socket */
+#undef LISTEN_TCP
+
+/* Listen on Unix socket */
+#undef LISTEN_UNIX
+
+/* Listen on local socket */
+#undef LISTEN_LOCAL
+
 #endif /* _DIX_CONFIG_H_ */

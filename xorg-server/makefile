@@ -12,6 +12,7 @@ INCLUDELIBFILES =  \
  glx\$(OBJDIR)\libglx.lib \
  hw\xwin\$(OBJDIR)\libXWin.lib \
  hw\xwin\glx\$(OBJDIR)\libwinglx.lib \
+ hw\xwin\winclipboard\$(OBJDIR)\libXWinclipboard.lib \
  mi\$(OBJDIR)\libmi.lib \
  miext\damage\$(OBJDIR)\libdamage.lib \
  miext\shadow\$(OBJDIR)\libshadow.lib \

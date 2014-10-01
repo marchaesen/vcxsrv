@@ -37,6 +37,7 @@
 #endif
 #include <sys/types.h>
 #include <signal.h>
+#include <pthread.h>
 #include "winclipboard.h"
 #include "windisplay.h"
 #ifdef __CYGWIN__
@@ -44,6 +45,7 @@
 #endif
 #include "misc.h"
 #include "winmsg.h"
+#include "internal.h"
 
 #ifdef _MSC_VER
 #define snprintf _snprintf

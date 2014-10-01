@@ -774,6 +774,7 @@ _glamor_upload_bits_to_pixmap_texture(PixmapPtr pixmap, GLenum format,
             return FALSE;
         bits = glamor_color_convert_to_bits(bits, converted_bits, w, h,
                                             stride, no_alpha, revert, swap_rb);
+        free(converted_bits);
         if (bits == NULL) {
             ErrorF("Failed to convert pixmap no_alpha %d,"
                    "revert mode %d, swap mode %d\n", no_alpha, revert, swap_rb);

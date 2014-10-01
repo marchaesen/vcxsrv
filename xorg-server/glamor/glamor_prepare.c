@@ -84,10 +84,7 @@ glamor_prep_pixmap_box(PixmapPtr pixmap, glamor_access_t access, BoxPtr box)
             if (priv->base.pbo == 0)
                 glGenBuffers(1, &priv->base.pbo);
 
-            if (access == GLAMOR_ACCESS_RW)
-                gl_usage = GL_DYNAMIC_DRAW;
-            else
-                gl_usage = GL_STREAM_READ;
+            gl_usage = GL_STREAM_READ;
 
             glBindBuffer(GL_PIXEL_PACK_BUFFER, priv->base.pbo);
             glBufferData(GL_PIXEL_PACK_BUFFER,

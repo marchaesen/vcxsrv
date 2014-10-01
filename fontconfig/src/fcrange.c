@@ -76,6 +76,29 @@ FcRangeCopy (const FcRange *range)
     return ret;
 }
 
+FcBool
+FcRangeGetDouble(const FcRange *range, double *begin, double *end)
+{
+    if (!range)
+	return FcFalse;
+    if (range->is_double)
+    {
+	if (begin)
+	    *begin = range->u.d.begin;
+	if (end)
+	    *end = range->u.d.end;
+    }
+    else
+    {
+	if (begin)
+	    *begin = (double)range->u.i.begin;
+	if (end)
+	    *end = (double)range->u.i.end;
+    }
+
+    return FcTrue;
+}
+
 FcRange
 FcRangeCanonicalize (const FcRange *range)
 {

@@ -475,7 +475,7 @@ public:
       assert(this->interface_type == NULL);
       this->interface_type = type;
       if (this->is_interface_instance()) {
-         this->max_ifc_array_access =
+         this->u.max_ifc_array_access =
             rzalloc_array(this, unsigned, type->length);
       }
    }
@@ -487,7 +487,7 @@ public:
     */
    void change_interface_type(const struct glsl_type *type)
    {
-      if (this->max_ifc_array_access != NULL) {
+      if (this->u.max_ifc_array_access != NULL) {
          /* max_ifc_array_access has already been allocated, so make sure the
           * new interface has the same number of fields as the old one.
           */
@@ -504,7 +504,7 @@ public:
     */
    void reinit_interface_type(const struct glsl_type *type)
    {
-      if (this->max_ifc_array_access != NULL) {
+      if (this->u.max_ifc_array_access != NULL) {
 #ifndef NDEBUG
          /* Redeclaring gl_PerVertex is only allowed if none of the built-ins
           * it defines have been accessed yet; so it's safe to throw away the
@@ -512,10 +512,10 @@ public:
           * zero.
           */
          for (unsigned i = 0; i < this->interface_type->length; i++)
-            assert(this->max_ifc_array_access[i] == 0);
+            assert(this->u.max_ifc_array_access[i] == 0);
 #endif
-         ralloc_free(this->max_ifc_array_access);
-         this->max_ifc_array_access = NULL;
+         ralloc_free(this->u.max_ifc_array_access);
+         this->u.max_ifc_array_access = NULL;
       }
       this->interface_type = NULL;
       init_interface_type(type);
@@ -527,6 +527,72 @@ public:
    }
 
    /**
+    * Get the max_ifc_array_access pointer
+    *
+    * A "set" function is not needed because the array is dynmically allocated
+    * as necessary.
+    */
+   inline unsigned *get_max_ifc_array_access()
+   {
+      assert(this->data._num_state_slots == 0);
+      return this->u.max_ifc_array_access;
+   }
+
+   inline unsigned get_num_state_slots() const
+   {
+      assert(!this->is_interface_instance()
+             || this->data._num_state_slots == 0);
+      return this->data._num_state_slots;
+   }
+
+   inline void set_num_state_slots(unsigned n)
+   {
+      assert(!this->is_interface_instance()
+             || n == 0);
+      this->data._num_state_slots = n;
+   }
+
+   inline ir_state_slot *get_state_slots()
+   {
+      return this->is_interface_instance() ? NULL : this->u.state_slots;
+   }
+
+   inline const ir_state_slot *get_state_slots() const
+   {
+      return this->is_interface_instance() ? NULL : this->u.state_slots;
+   }
+
+   inline ir_state_slot *allocate_state_slots(unsigned n)
+   {
+      assert(!this->is_interface_instance());
+
+      this->u.state_slots = ralloc_array(this, ir_state_slot, n);
+      this->data._num_state_slots = 0;
+
+      if (this->u.state_slots != NULL)
+         this->data._num_state_slots = n;
+
+      return this->u.state_slots;
+   }
+
+   inline bool is_name_ralloced() const
+   {
+      return this->name != ir_variable::tmp_name;
+   }
+
+   /**
+    * Enable emitting extension warnings for this variable
+    */
+   void enable_extension_warning(const char *extension);
+
+   /**
+    * Get the extension warning string for this variable
+    *
+    * If warnings are not enabled, \c NULL is returned.
+    */
+   const char *get_extension_warning() const;
+
+   /**
     * Declared type of the variable
     */
    const struct glsl_type *type;
@@ -535,19 +601,6 @@ public:
     * Declared name of the variable
     */
    const char *name;
-
-   /**
-    * For variables which satisfy the is_interface_instance() predicate, this
-    * points to an array of integers such that if the ith member of the
-    * interface block is an array, max_ifc_array_access[i] is the maximum
-    * array element of that member that has been accessed.  If the ith member
-    * of the interface block is not an array, max_ifc_array_access[i] is
-    * unused.
-    *
-    * For variables whose type is not an interface block, this pointer is
-    * NULL.
-    */
-   unsigned *max_ifc_array_access;
 
    struct ir_variable_data {
 
@@ -697,6 +750,13 @@ public:
        */
       unsigned index:1;
 
+      /**
+       * \brief Layout qualifier for gl_FragDepth.
+       *
+       * This is not equal to \c ir_depth_layout_none if and only if this
+       * variable is \c gl_FragDepth and a layout qualifier is specified.
+       */
+      ir_depth_layout depth_layout:3;
 
       /**
        * ARB_shader_image_load_store qualifiers.
@@ -707,16 +767,34 @@ public:
       unsigned image_volatile:1;
       unsigned image_restrict:1;
 
+      /**
+       * Emit a warning if this variable is accessed.
+       */
+   private:
+      uint8_t warn_extension_index;
+
+   public:
       /** Image internal format if specified explicitly, otherwise GL_NONE. */
       uint16_t image_format;
 
+   private:
       /**
-       * \brief Layout qualifier for gl_FragDepth.
+       * Number of state slots used
        *
-       * This is not equal to \c ir_depth_layout_none if and only if this
-       * variable is \c gl_FragDepth and a layout qualifier is specified.
+       * \note
+       * This could be stored in as few as 7-bits, if necessary.  If it is made
+       * smaller, add an assertion to \c ir_variable::allocate_state_slots to
+       * be safe.
        */
-      ir_depth_layout depth_layout;
+      uint16_t _num_state_slots;
+
+   public:
+      /**
+       * Initial binding point for a sampler, atomic, or UBO.
+       *
+       * For array types, this represents the binding point for the first element.
+       */
+      int16_t binding;
 
       /**
        * Storage location of the base of this variable
@@ -744,13 +822,6 @@ public:
       unsigned stream;
 
       /**
-       * Initial binding point for a sampler, atomic, or UBO.
-       *
-       * For array types, this represents the binding point for the first element.
-       */
-      int binding;
-
-      /**
        * Location an atomic counter is stored at.
        */
       struct {
@@ -764,28 +835,11 @@ public:
        */
       unsigned max_array_access;
 
+      /**
+       * Allow (only) ir_variable direct access private members.
+       */
+      friend class ir_variable;
    } data;
-
-   /**
-    * Built-in state that backs this uniform
-    *
-    * Once set at variable creation, \c state_slots must remain invariant.
-    * This is because, ideally, this array would be shared by all clones of
-    * this variable in the IR tree.  In other words, we'd really like for it
-    * to be a fly-weight.
-    *
-    * If the variable is not a uniform, \c num_state_slots will be zero and
-    * \c state_slots will be \c NULL.
-    */
-   /*@{*/
-   unsigned num_state_slots;    /**< Number of state slots used */
-   ir_state_slot *state_slots;  /**< State descriptors. */
-   /*@}*/
-
-   /**
-    * Emit a warning if this variable is accessed.
-    */
-   const char *warn_extension;
 
    /**
     * Value assigned in the initializer of a variable declared "const"
@@ -803,6 +857,33 @@ public:
    ir_constant *constant_initializer;
 
 private:
+   static const char *const warn_extension_table[];
+
+   union {
+      /**
+       * For variables which satisfy the is_interface_instance() predicate,
+       * this points to an array of integers such that if the ith member of
+       * the interface block is an array, max_ifc_array_access[i] is the
+       * maximum array element of that member that has been accessed.  If the
+       * ith member of the interface block is not an array,
+       * max_ifc_array_access[i] is unused.
+       *
+       * For variables whose type is not an interface block, this pointer is
+       * NULL.
+       */
+      unsigned *max_ifc_array_access;
+
+      /**
+       * Built-in state that backs this uniform
+       *
+       * Once set at variable creation, \c state_slots must remain invariant.
+       *
+       * If the variable is not a uniform, \c _num_state_slots will be zero
+       * and \c state_slots will be \c NULL.
+       */
+      ir_state_slot *state_slots;
+   } u;
+
    /**
     * For variables that are in an interface block or are an instance of an
     * interface block, this is the \c GLSL_TYPE_INTERFACE type for that block.
@@ -810,6 +891,30 @@ private:
     * \sa ir_variable::location
     */
    const glsl_type *interface_type;
+
+   /**
+    * Name used for anonymous compiler temporaries
+    */
+   static const char tmp_name[];
+
+public:
+   /**
+    * Should the construct keep names for ir_var_temporary variables?
+    *
+    * When this global is false, names passed to the constructor for
+    * \c ir_var_temporary variables will be dropped.  Instead, the variable will
+    * be named "compiler_temp".  This name will be in static storage.
+    *
+    * \warning
+    * \b NEVER change the mode of an \c ir_var_temporary.
+    *
+    * \warning
+    * This variable is \b not thread-safe.  It is global, \b not
+    * per-context. It begins life false.  A context can, at some point, make
+    * it true.  From that point on, it will be true forever.  This should be
+    * okay since it will only be set true while debugging.
+    */
+   static bool temporaries_allocate_names;
 };
 
 /**

@@ -279,6 +279,7 @@
     <ClCompile Include="..\..\..\..\src\glsl\opt_copy_propagation.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_copy_propagation_elements.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_cse.cpp" />
+    <ClCompile Include="..\..\..\..\src\glsl\opt_dead_builtin_variables.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_dead_builtin_varyings.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_dead_code.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_dead_code_local.cpp" />
@@ -387,7 +388,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\program\prog_parameter_layout.c" />
     <ClCompile Include="..\..\..\..\src\mesa\program\prog_print.c" />
     <ClCompile Include="..\..\..\..\src\mesa\program\prog_statevars.c" />
-    <ClCompile Include="..\..\..\..\src\mesa\program\register_allocate.c" />
     <ClCompile Include="..\..\..\..\src\mesa\program\sampler.cpp" />
     <ClCompile Include="..\..\..\..\src\mesa\program\symbol_table.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\hint.c" />

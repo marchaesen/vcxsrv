@@ -62,3 +62,13 @@ integer sized value.
 all memory associated with it.
 @SINCE@		2.11.91
 @@
+
+@RET@		FcBool
+@FUNC@		FcRangeGetDouble
+@TYPE1@		const FcRange *			@ARG1@		range
+@TYPE2@		double *      			@ARG2@		begin
+@TYPE3@		double *			@ARG3@		end
+@PURPOSE@	Get the range in double
+@DESC@
+Returns in <parameter>begin</parameter> and <parameter>end</parameter> as the range.
+@SINCE@		2.11.91

@@ -1440,6 +1440,9 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
       new(shader) _mesa_glsl_parse_state(ctx, shader->Stage, shader);
    const char *source = shader->Source;
 
+   if (ctx->Const.GenerateTemporaryNames)
+      ir_variable::temporaries_allocate_names = true;
+
    state->error = glcpp_preprocess(state, &source, &state->info_log,
                              &ctx->Extensions, ctx);
 
@@ -1483,6 +1486,26 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
          ;
 
       validate_ir_tree(shader->ir);
+
+      enum ir_variable_mode other;
+      switch (shader->Stage) {
+      case MESA_SHADER_VERTEX:
+         other = ir_var_shader_in;
+         break;
+      case MESA_SHADER_FRAGMENT:
+         other = ir_var_shader_out;
+         break;
+      default:
+         /* Something invalid to ensure optimize_dead_builtin_uniforms
+          * doesn't remove anything other than uniforms or constants.
+          */
+         other = ir_var_mode_count;
+         break;
+      }
+
+      optimize_dead_builtin_variables(shader->ir, other);
+
+      validate_ir_tree(shader->ir);
    }
 
    if (shader->InfoLog)
@@ -1516,9 +1539,13 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
       case ir_type_function:
          shader->symbols->add_function((ir_function *) ir);
          break;
-      case ir_type_variable:
-         shader->symbols->add_variable((ir_variable *) ir);
+      case ir_type_variable: {
+         ir_variable *const var = (ir_variable *) ir;
+
+         if (var->data.mode != ir_var_temporary)
+            shader->symbols->add_variable(var);
          break;
+      }
       default:
          break;
       }

@@ -33,6 +33,7 @@
 #include "main/macros.h"
 #include "st_context.h"
 #include "st_atom.h"
+#include "st_program.h"
 #include "pipe/p_context.h"
 #include "pipe/p_defines.h"
 #include "cso_cache/cso_context.h"
@@ -171,9 +172,10 @@ static void update_raster_state( struct st_context *st )
             raster->sprite_coord_enable |= 1 << i;
          }
       }
-      if (fragProg->Base.InputsRead & VARYING_BIT_PNTC) {
+      if (!st->needs_texcoord_semantic &&
+          fragProg->Base.InputsRead & VARYING_BIT_PNTC) {
          raster->sprite_coord_enable |=
-            1 << (VARYING_SLOT_PNTC - VARYING_SLOT_TEX0);
+            1 << st_get_generic_varying_index(st, VARYING_SLOT_PNTC);
       }
 
       raster->point_quad_rasterization = 1;

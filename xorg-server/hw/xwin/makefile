@@ -12,12 +12,9 @@ XWIN_GLX_WINDOWS=1       # everything is in the glx makefile
 if XWIN_CLIPBOARD
 SRCS_CLIPBOARD = \
 	winclipboardinit.c \
-	winclipboardtextconv.c \
-	winclipboardthread.c \
-	winclipboardwndproc.c \
-	winclipboardwrappers.c \
-	winclipboardxevents.c
+	winclipboardwrappers.c
 DEFS_CLIPBOARD = -DXWIN_CLIPBOARD
+INCLUDES_CLIPBOARD = winclipboard
 endif
 
 if XWIN_GLX_WINDOWS
@@ -156,7 +153,7 @@ CSRCS := $(CSRCS:%.l=%.c)
 
 DEFINES += $(DEFS:-D%=%) HAVE_XWIN_CONFIG_H PTW32_STATIC_LIB RELOCATE_PROJECTROOT
 
-INCLUDES += ..\.. ..\..\miext\rootless
+INCLUDES += $(INCLUDES_CLIPBOARD) ..\.. ..\..\miext\rootless
 
 INCLUDES += $(OBJDIR)
 

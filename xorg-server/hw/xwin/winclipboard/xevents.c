@@ -36,6 +36,7 @@
 #include "winclipboard.h"
 #include "misc.h"
 #include "winmsg.h"
+#include "internal.h"
 #include <unistd.h>
 
 extern Bool		g_fClipboardPrimary;

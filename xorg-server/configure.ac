@@ -461,6 +461,16 @@ AC_ARG_WITH(os-vendor,       AS_HELP_STRING([--with-os-vendor=OSVENDOR], [Name o
 AC_ARG_WITH(builderstring,   AS_HELP_STRING([--with-builderstring=BUILDERSTRING], [Additional builder string]),
 				[ BUILDERSTRING="$withval" ]
 				[ ])
+AC_ARG_ENABLE(listen-tcp,    AS_HELP_STRING([--enable-listen-tcp],
+                                            [Listen on TCP by default (default:disabled)]),
+                                [LISTEN_TCP=$enableval], [LISTEN_TCP=no])
+AC_ARG_ENABLE(listen-unix,   AS_HELP_STRING([--disable-listen-unix],
+                                            [Listen on Unix by default (default:enabled)]),
+                                [LISTEN_UNIX=$enableval], [LISTEN_UNIX=yes])
+
+AC_ARG_ENABLE(listen-local,  AS_HELP_STRING([--disable-listen-local],
+                                            [Listen on local by default (default:enabled)]),
+                                [LISTEN_LOCAL=$enableval], [LISTEN_LOCAL=yes])
 
 dnl Determine font path
 XORG_FONTROOTDIR
@@ -779,7 +789,7 @@ FIXESPROTO="fixesproto >= 5.0"
 DAMAGEPROTO="damageproto >= 1.1"
 XCMISCPROTO="xcmiscproto >= 1.2.0"
 BIGREQSPROTO="bigreqsproto >= 1.1.0"
-XTRANS="xtrans >= 1.3.3"
+XTRANS="xtrans >= 1.3.5"
 PRESENTPROTO="presentproto >= 1.0"
 
 dnl List of libraries that require a specific version
@@ -1051,6 +1061,16 @@ if test "x$RES" = xyes; then
 	AC_DEFINE(RES, 1, [Support X resource extension])
 	REQUIRED_MODULES="$REQUIRED_MODULES $RESOURCEPROTO"
 	SDK_REQUIRED_MODULES="$SDK_REQUIRED_MODULES $RESOURCEPROTO"
+fi
+
+if test "x$LISTEN_TCP" = xyes; then
+	AC_DEFINE(LISTEN_TCP, 1, [Listen on TCP socket])
+fi
+if test "x$LISTEN_UNIX" = xyes; then
+	AC_DEFINE(LISTEN_UNIX, 1, [Listen on Unix socket])
+fi
+if test "x$LISTEN_LOCAL" = xyes; then
+	AC_DEFINE(LISTEN_LOCAL, 1, [Listen on local socket])
 fi
 
 # The XRes extension may support client ID tracking only if it has
@@ -2122,7 +2142,7 @@ if test "x$XWIN" = xyes; then
 	AC_DEFINE_UNQUOTED(__VENDORDWEBSUPPORT__, ["$VENDOR_WEB"], [Vendor web address for support])
 	AC_CHECK_TOOL(WINDRES, windres)
 
-	PKG_CHECK_MODULES([XWINMODULES],[x11 xdmcp xau])
+	PKG_CHECK_MODULES([XWINMODULES],[x11 xdmcp xau xfixes])
 
 	if test "x$WINDOWSWM" = xauto; then
 		PKG_CHECK_EXISTS($WINDOWSWMPROTO, [WINDOWSWM=yes], [WINDOWSWM=no])
@@ -2580,6 +2600,7 @@ hw/xnest/man/Makefile
 hw/xwin/Makefile
 hw/xwin/glx/Makefile
 hw/xwin/man/Makefile
+hw/xwin/winclipboard/Makefile
 hw/xquartz/Makefile
 hw/xquartz/GL/Makefile
 hw/xquartz/bundle/Makefile

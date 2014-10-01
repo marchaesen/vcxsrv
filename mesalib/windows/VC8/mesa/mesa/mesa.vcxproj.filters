@@ -569,9 +569,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\pixeltransfer.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\mesa\program\register_allocate.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\glsl\lower_vec_index_to_swizzle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -813,6 +810,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\glsl\lower_vertex_id.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\glsl\opt_dead_builtin_variables.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

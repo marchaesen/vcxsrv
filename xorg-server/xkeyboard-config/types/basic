@@ -1,7 +1,8 @@
 default xkb_types "basic" {
 
     // Fairly standard definitions for
-    // the three required key types.
+    // three of the four required key types.
+    // The fourth type "KEYPAD" is defined in the "numpad" file.
 
     virtual_modifiers NumLock;
 

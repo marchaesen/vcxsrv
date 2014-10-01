@@ -1543,18 +1543,44 @@ ir_swizzle::variable_referenced() const
 }
 
 
+bool ir_variable::temporaries_allocate_names = false;
+
+const char ir_variable::tmp_name[] = "compiler_temp";
+
 ir_variable::ir_variable(const struct glsl_type *type, const char *name,
 			 ir_variable_mode mode)
-   : ir_instruction(ir_type_variable), max_ifc_array_access(NULL)
+   : ir_instruction(ir_type_variable)
 {
    this->type = type;
-   this->name = ralloc_strdup(this, name);
+
+   if (mode == ir_var_temporary && !ir_variable::temporaries_allocate_names)
+      name = NULL;
+
+   /* The ir_variable clone method may call this constructor with name set to
+    * tmp_name.
+    */
+   assert(name != NULL
+          || mode == ir_var_temporary
+          || mode == ir_var_function_in
+          || mode == ir_var_function_out
+          || mode == ir_var_function_inout);
+   assert(name != ir_variable::tmp_name
+          || mode == ir_var_temporary);
+   if (mode == ir_var_temporary
+       && (name == NULL || name == ir_variable::tmp_name)) {
+      this->name = ir_variable::tmp_name;
+   } else {
+      this->name = ralloc_strdup(this, name);
+   }
+
+   this->u.max_ifc_array_access = NULL;
+
    this->data.explicit_location = false;
    this->data.has_initializer = false;
    this->data.location = -1;
    this->data.location_frac = 0;
    this->data.binding = 0;
-   this->warn_extension = NULL;
+   this->data.warn_extension_index = 0;
    this->constant_value = NULL;
    this->constant_initializer = NULL;
    this->data.origin_upper_left = false;
@@ -1617,6 +1643,32 @@ ir_variable::determine_interpolation_mode(bool flat_shade)
       return INTERP_QUALIFIER_SMOOTH;
 }
 
+const char *const ir_variable::warn_extension_table[] = {
+   "",
+   "GL_ARB_shader_stencil_export",
+   "GL_AMD_shader_stencil_export",
+};
+
+void
+ir_variable::enable_extension_warning(const char *extension)
+{
+   for (unsigned i = 0; i < Elements(warn_extension_table); i++) {
+      if (strcmp(warn_extension_table[i], extension) == 0) {
+         this->data.warn_extension_index = i;
+         return;
+      }
+   }
+
+   assert(!"Should not get here.");
+   this->data.warn_extension_index = 0;
+}
+
+const char *
+ir_variable::get_extension_warning() const
+{
+   return this->data.warn_extension_index == 0
+      ? NULL : warn_extension_table[this->data.warn_extension_index];
+}
 
 ir_function_signature::ir_function_signature(const glsl_type *return_type,
                                              builtin_available_predicate b)

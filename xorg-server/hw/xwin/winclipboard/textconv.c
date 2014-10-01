@@ -31,14 +31,18 @@
 #ifdef HAVE_XWIN_CONFIG_H
 #include <xwin-config.h>
 #endif
-#include "win.h"
-#include <stdio.h>
-#include <stdlib.h>
 
-void
- winClipboardDOStoUNIX(char *pszSrc, int iLength);
-void
- winClipboardUNIXtoDOS(char **ppszData, int iLength);
+/*
+ * Including any server header might define the macro _XSERVER64 on 64 bit machines.
+ * That macro must _NOT_ be defined for Xlib client code, otherwise bad things happen.
+ * So let's undef that macro if necessary.
+ */
+#ifdef _XSERVER64
+#undef _XSERVER64
+#endif
+
+#include <stdlib.h>
+#include "internal.h"
 
 /*
  * Convert \r\n to \n

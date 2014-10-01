@@ -45,25 +45,18 @@ ir_variable::clone(void *mem_ctx, struct hash_table *ht) const
 
    var->data.max_array_access = this->data.max_array_access;
    if (this->is_interface_instance()) {
-      var->max_ifc_array_access =
+      var->u.max_ifc_array_access =
          rzalloc_array(var, unsigned, this->interface_type->length);
-      memcpy(var->max_ifc_array_access, this->max_ifc_array_access,
+      memcpy(var->u.max_ifc_array_access, this->u.max_ifc_array_access,
              this->interface_type->length * sizeof(unsigned));
    }
 
    memcpy(&var->data, &this->data, sizeof(var->data));
 
-   var->warn_extension = this->warn_extension;
-
-   var->num_state_slots = this->num_state_slots;
-   if (this->state_slots) {
-      /* FINISHME: This really wants to use something like talloc_reference, but
-       * FINISHME: ralloc doesn't have any similar function.
-       */
-      var->state_slots = ralloc_array(var, ir_state_slot,
-				      this->num_state_slots);
-      memcpy(var->state_slots, this->state_slots,
-	     sizeof(this->state_slots[0]) * var->num_state_slots);
+   if (this->get_state_slots()) {
+      ir_state_slot *s = var->allocate_state_slots(this->get_num_state_slots());
+      memcpy(s, this->get_state_slots(),
+             sizeof(s[0]) * var->get_num_state_slots());
    }
 
    if (this->constant_value)

@@ -654,7 +654,7 @@ ir_validate::visit(ir_variable *ir)
     * in the ir_dereference_variable handler to ensure that a variable is
     * declared before it is dereferenced.
     */
-   if (ir->name)
+   if (ir->name && ir->is_name_ralloced())
       assert(ralloc_parent(ir->name) == ir);
 
    hash_table_insert(ht, ir, ir);
@@ -682,10 +682,15 @@ ir_validate::visit(ir_variable *ir)
          ir->get_interface_type()->fields.structure;
       for (unsigned i = 0; i < ir->get_interface_type()->length; i++) {
          if (fields[i].type->array_size() > 0) {
-            if (ir->max_ifc_array_access[i] >= fields[i].type->length) {
+            const unsigned *const max_ifc_array_access =
+               ir->get_max_ifc_array_access();
+
+            assert(max_ifc_array_access != NULL);
+
+            if (max_ifc_array_access[i] >= fields[i].type->length) {
                printf("ir_variable has maximum access out of bounds for "
                       "field %s (%d vs %d)\n", fields[i].name,
-                      ir->max_ifc_array_access[i], fields[i].type->length);
+                      max_ifc_array_access[i], fields[i].type->length);
                ir->print();
                abort();
             }
@@ -696,6 +701,14 @@ ir_validate::visit(ir_variable *ir)
    if (ir->constant_initializer != NULL && !ir->data.has_initializer) {
       printf("ir_variable didn't have an initializer, but has a constant "
 	     "initializer value.\n");
+      ir->print();
+      abort();
+   }
+
+   if (ir->data.mode == ir_var_uniform
+       && strncmp(ir->name, "gl_", 3) == 0
+       && ir->get_state_slots() == NULL) {
+      printf("built-in uniform has no state\n");
       ir->print();
       abort();
    }

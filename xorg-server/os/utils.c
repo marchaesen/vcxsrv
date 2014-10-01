@@ -583,6 +583,7 @@ UseMsg(void)
     ErrorF("-nolock                disable the locking mechanism\n");
 #endif
     ErrorF("-nolisten string       don't listen on protocol\n");
+    ErrorF("-listen string         listen on protocol\n");
     ErrorF("-noreset               don't reset after last client exists\n");
     ErrorF("-background [none]     create root window with no background\n");
     ErrorF("-reset                 reset after last client exists\n");
@@ -665,6 +666,19 @@ VerifyDisplayName(const char *d)
     return 1;
 }
 
+static const char *defaultNoListenList[] = {
+#ifndef LISTEN_TCP
+    "tcp",
+#endif
+#ifndef LISTEN_UNIX
+    "unix",
+#endif
+#ifndef LISTEN_LOCAL
+    "local",
+#endif
+    NULL
+};
+
 /*
  * This function parses the command line. Handles device-independent fields
  * and allows ddx to handle additional fields.  It is not allowed to modify
@@ -682,6 +696,12 @@ ProcessCommandLine(int argc, char *argv[])
 #else
     PartialNetwork = TRUE;
 #endif
+
+    for (i = 0; defaultNoListenList[i] != NULL; i++) {
+        if (_XSERVTransNoListen(defaultNoListenList[i]))
+                    ErrorF("Failed to disable listen for %s transport",
+                           defaultNoListenList[i]);
+    }
 
     for (i = 1; i < argc; i++) {
         /* call ddx first, so it can peek/override if it wants */
@@ -871,6 +891,15 @@ ProcessCommandLine(int argc, char *argv[])
             if (++i < argc) {
                 if (_XSERVTransNoListen(argv[i]))
                     ErrorF("Failed to disable listen for %s transport",
+                           argv[i]);
+            }
+            else
+                UseMsg();
+        }
+        else if (strcmp(argv[i], "-listen") == 0) {
+            if (++i < argc) {
+                if (_XSERVTransListen(argv[i]))
+                    ErrorF("Failed to enable listen for %s transport",
                            argv[i]);
             }
             else

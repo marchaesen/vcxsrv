@@ -68,9 +68,6 @@
    */
 #define HAVE_ALLOCA_H 1
 
-/* Define to 1 if you have the <asm/mtrr.h> header file. */
-#undef HAVE_ASM_MTRR_H
-
 /* Has backtrace support */
 #undef HAVE_BACKTRACE
 
@@ -213,6 +210,9 @@
 /* Define to 1 if you have the `strndup' function. */
 #undef HAVE_STRNDUP
 
+/* Define to 1 if libsystemd-daemon is available */
+#undef HAVE_SYSTEMD_DAEMON
+
 /* Define to 1 if SYSV IPC is available */
 #undef HAVE_SYSV_IPC
 
@@ -302,8 +302,14 @@
 /* Support SHAPE extension */
 #define SHAPE 1
 
+/* Where to install Xorg.bin and Xorg.wrap */
+#undef SUID_WRAPPER_DIR
+
 /* Define to 1 on systems derived from System V Release 4 */
 #undef SVR4
+
+/* sysconfdir */
+#undef SYSCONFDIR
 
 /* Support TCP socket connections */
 #define TCPCONN 1
@@ -450,20 +456,20 @@
 /* Use udev_enumerate_add_match_tag() */
 #undef HAVE_UDEV_ENUMERATE_ADD_MATCH_TAG
 
-/* Use D-Bus for input hotplug */
-#undef CONFIG_NEED_DBUS
-
-/* Support the D-Bus hotplug API */
-#undef CONFIG_DBUS_API
+/* Enable D-Bus core */
+#undef NEED_DBUS
 
 /* Support HAL for hotplug */
 #undef CONFIG_HAL
+
+/* Enable systemd-logind integration */
+#undef SYSTEMD_LOGIND
 
 /* Have a monotonic clock from clock_gettime() */
 #undef MONOTONIC_CLOCK
 
 /* Define to 1 if the DTrace Xserver provider probes should be built in */
-/* #undef XSERVER_DTRACE */
+#undef XSERVER_DTRACE
 
 /* Define to 16-bit byteswap macro */
 #undef bswap_16
@@ -488,10 +494,52 @@
 #include "dix-config-apple-verbatim.h"
 #endif
 
-/* Have support for X shared memory fence library (xshmfence) */
-/* #undef HAVE_XSHMFENCE */
+/* Enable general extensions on Solaris.  */
+#ifndef __EXTENSIONS__
+# undef __EXTENSIONS__
+#endif
 
-#undef HAVE_AVC_NETLINK_ACQUIRE_FD
+/* Defined if needed to expose struct msghdr.msg_control */
+#undef _XOPEN_SOURCE
+
+/* Have support for X shared memory fence library (xshmfence) */
+#undef HAVE_XSHMFENCE
+
+/* Use XTrans FD passing support */
+#undef XTRANS_SEND_FDS
+
+/* Wrap SIGBUS to catch MIT-SHM faults */
+#undef BUSFAULT
+
+/* Directory for shared memory temp files */
+#undef SHMDIR
+
+/* Don't let Xdefs.h define 'pointer' */
+#undef _XTYPEDEF_POINTER
+
+/* Don't let XIproto define 'Pointer' */
+#undef _XITYPEDEF_POINTER
+
+/* Ask fontsproto to make font path element names const */
+#define FONT_PATH_ELEMENT_NAME_CONST    1
+
+/* Build GLAMOR */
+#undef GLAMOR
+
+/* Build glamor's GBM-based EGL support */
+#undef GLAMOR_HAS_GBM
+
+/* byte order */
+/*#undef X_BYTE_ORDER*/
+
+/* Listen on TCP socket */
+#define LISTEN_TCP 1
+
+/* Listen on Unix socket */
+#define LISTEN_UNIX 1
+
+/* Listen on local socket */
+#define LISTEN_LOCAL 1
 
 #include <X11/Xwinsock.h>
 #include <X11/Xwindows.h>

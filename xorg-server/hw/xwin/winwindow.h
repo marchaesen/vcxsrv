@@ -32,6 +32,8 @@
  *              Colin Harrison
  */
 
+#include <pthread.h>
+
 #ifndef NO
 #define NO			0
 #endif
