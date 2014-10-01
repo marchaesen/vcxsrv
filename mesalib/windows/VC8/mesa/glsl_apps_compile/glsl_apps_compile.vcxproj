@@ -230,6 +230,7 @@
     <ClCompile Include="..\..\..\..\src\glsl\lower_vector_insert.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_vec_index_to_cond_assign.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_vec_index_to_swizzle.cpp" />
+    <ClCompile Include="..\..\..\..\src\glsl\lower_vertex_id.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\main.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_algebraic.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_array_splitting.cpp" />

@@ -306,6 +306,9 @@
     <ClCompile Include="..\..\..\..\src\util\ralloc.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\glsl\lower_vertex_id.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\src\glsl\strtod.h">
