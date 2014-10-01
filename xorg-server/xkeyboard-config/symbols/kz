@@ -204,8 +204,6 @@ xkb_symbols "olpc" {
 
    include "kz(basic)"
 
-   name[Group1] = "Kazakh";
-
    key <TLDE> { [ parenleft,               parenright ] };
    key <BKSL> { [ Cyrillic_io,             Cyrillic_IO ] };
 

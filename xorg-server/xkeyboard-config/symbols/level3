@@ -53,7 +53,7 @@ xkb_symbols "ralt_switch_multikey" {
 };
 
 // A special case of the right-Alt switch -- for use with grp:alts_toggle.
-partial hidden modifier_keys
+hidden partial modifier_keys
 xkb_symbols "ralt_switch_for_alts_toggle" {
   virtual_modifiers LAlt, AltGr;
   key <LALT> {

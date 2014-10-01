@@ -788,9 +788,6 @@ glxWinScreenProbe(ScreenPtr pScreen)
 
         __glXScreenInit(&screen->base, pScreen);
 
-        // Override the GL extensions string set by __glXScreenInit()
-        screen->base.GLextensions = strdup(gl_extensions);
-
         // Generate the GLX extensions string (overrides that set by __glXScreenInit())
         {
             unsigned int buffer_size =
@@ -1015,13 +1012,6 @@ glxWinDrawableSwapBuffers(ClientPtr client, __GLXdrawable * base)
     GLWIN_TRACE_MSG
         ("glxWinSwapBuffers on drawable %p, last context %p (native ctx %p)",
          base, draw->drawContext, draw->drawContext->ctx);
-
-    /*
-       draw->drawContext->base.drawPriv will not be set if the context is not current anymore,
-       but if it is, it should point to this drawable....
-     */
-    assert((draw->drawContext->base.drawPriv == NULL) ||
-           (draw->drawContext->base.drawPriv == base));
 
     ret = SwapBuffers(draw->drawContext->hDC);
 
@@ -1458,7 +1448,7 @@ glxWinDeferredCreateContext(__GLXWinContext * gc, __GLXWinDrawable * draw)
             glxWinScreen *winScreen;
             int pixelFormat;
 
-            // XXX: which DC are supposed to use???
+            // XXX: which DC are we supposed to use???
             ScreenPtr pScreen = pWin->drawable.pScreen;
             winPrivScreenPtr pWinScreen = winGetScreenPriv(pScreen);
             HDC screenDC=pWinScreen->hdcScreen;
@@ -1475,8 +1465,6 @@ glxWinDeferredCreateContext(__GLXWinContext * gc, __GLXWinDrawable * draw)
                 fbConfigToPixelFormatIndex(screenDC, gc->base.config,
                                            GLX_PBUFFER_BIT, winScreen);
             if (pixelFormat == 0) {
-                ErrorF("wglChoosePixelFormat error: %s\n",
-                       glxWinErrorMessage());
                 return;
             }
 
@@ -1937,7 +1925,7 @@ fbConfigToPixelFormatIndex(HDC hdc, __GLXconfig * mode,
         SET_ATTR_VALUE(WGL_SWAP_METHOD_ARB, WGL_SWAP_EXCHANGE_ARB);
 
     if (mode->swapMethod == GLX_SWAP_COPY_OML)
-        SET_ATTR_VALUE(WGL_SWAP_COPY_ARB, TRUE);
+        SET_ATTR_VALUE(WGL_SWAP_METHOD_ARB, WGL_SWAP_COPY_ARB);
 
     // XXX: this should probably be the other way around, but that messes up drawableTypeOverride
     if (mode->visualRating == GLX_SLOW_VISUAL_EXT)

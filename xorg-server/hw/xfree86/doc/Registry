@@ -231,7 +231,6 @@ DDC                       B     C    Enable/disable DDC
 DDC1                      B     C    Enable/disable DDC1
 DDC2                      B     C    Enable/disable DDC2
 DPMS                      O     C    Enable DPMS
-MTRR                      B     C    Enable/disable setting MTRRs
 
 BaudRate                  I     I    Serial port baud rate
 ButtonNumber              I     I    Button number (for touch screen?)

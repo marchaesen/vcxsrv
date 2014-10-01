@@ -120,6 +120,12 @@ PixmapStartDirtyTracking(PixmapPtr src,
                          PixmapPtr slave_dst,
                          int x, int y);
 
+#define HAS_DIRTYTRACKING2 1
+extern _X_EXPORT Bool
+PixmapStartDirtyTracking2(PixmapPtr src,
+			  PixmapPtr slave_dst,
+			  int x, int y, int dst_x, int dst_y);
+
 extern _X_EXPORT Bool
 PixmapStopDirtyTracking(PixmapPtr src, PixmapPtr slave_dst);
 

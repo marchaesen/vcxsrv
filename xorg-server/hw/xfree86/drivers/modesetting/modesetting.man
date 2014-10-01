@@ -1,0 +1,54 @@
+.\" shorthand for double quote that works everywhere.
+.ds q \N'34'
+.TH MODESETTING __drivermansuffix__ __vendorversion__
+.SH NAME
+modesetting \- video driver for framebuffer device
+.SH SYNOPSIS
+.nf
+.B "Section \*qDevice\*q"
+.BI "  Identifier \*q"  devname \*q
+.B  "  Driver \*qmodesetting\*q"
+.BI "  BusID  \*qpci:" bus : dev : func \*q
+\ \ ...
+.B EndSection
+.fi
+.SH DESCRIPTION
+.B modesetting
+is an __xservername__ driver for KMS devices.  This is a non-accelerated
+driver, the following framebuffer depths are supported: 8, 15, 16, 24.
+All visual types are supported for depth 8, and TrueColor visual is
+supported for the other depths.  RandR 1.2 is supported.
+.SH SUPPORTED HARDWARE
+The 
+.B modesetting
+driver supports all hardware where a KMS driver is available.
+modesetting uses the Linux DRM KMS ioctls and dumb object create/map.
+.SH CONFIGURATION DETAILS
+Please refer to __xconfigfile__(__filemansuffix__) for general configuration
+details.  This section only covers configuration details specific to
+this driver.
+.PP
+For this driver it is not required to specify modes in the screen 
+section of the config file.  The
+.B modesetting
+driver can pick up the currently used video mode from the kernel
+driver and will use it if there are no video modes configured.
+.PP
+For PCI boards you might have to add a BusID line to the Device
+section.  See above for a sample line.
+.PP
+The following driver 
+.B Options
+are supported:
+.TP
+.BI "Option \*qkmsdev\*q \*q" string \*q
+The framebuffer device to use. Default: /dev/dri/card0.
+.TP
+.BI "Option \*qShadowFB\*q \*q" boolean \*q
+Enable or disable use of the shadow framebuffer layer.  Default: on.
+.TP
+.SH "SEE ALSO"
+__xservername__(__appmansuffix__), __xconfigfile__(__filemansuffix__), Xserver(__appmansuffix__),
+X(__miscmansuffix__)
+.SH AUTHORS
+Authors include: Dave Airlie

@@ -1,6 +1,6 @@
 noinst_LTLIBRARIES = libhurd.la
 
-libhurd_la_SOURCES = hurd_bell.c hurd_init.c hurd_mmap.c \
+libhurd_la_SOURCES = hurd_bell.c hurd_init.c \
 		hurd_video.c \
 		$(srcdir)/../shared/VTsw_noop.c \
 		$(srcdir)/../shared/posix_tty.c \

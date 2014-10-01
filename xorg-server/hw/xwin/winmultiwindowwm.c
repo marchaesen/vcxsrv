@@ -65,6 +65,7 @@ typedef int pid_t;
 #include "windowstr.h"
 #include "winmultiwindowclass.h"
 #include "winglobals.h"
+#include "windisplay.h"
 
 #ifdef XWIN_MULTIWINDOWEXTWM
 #define _WINDOWSWM_SERVER_
@@ -983,7 +984,7 @@ winMultiWindowXMsgProc(void *pArg)
     }
 
     /* Setup the display connection string x */
-    winGetDisplayName(pszDisplay, (int)pProcArg->dwScreen);
+    winGetDisplayName(pszDisplay, (int) pProcArg->dwScreen);
 
     /* Print the display connection string */
     winDebug("winMultiWindowXMsgProc - DISPLAY=%s\n", pszDisplay);
@@ -1382,7 +1383,7 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
     }
 
     /* Setup the display connection string x */
-    winGetDisplayName(pszDisplay, (int)pProcArg->dwScreen);
+    winGetDisplayName(pszDisplay, (int) pProcArg->dwScreen);
 
     /* Print the display connection string */
     winDebug("winInitMultiWindowWM - DISPLAY=%s\n", pszDisplay);

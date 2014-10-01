@@ -38,6 +38,7 @@
 #include <sys/types.h>
 #include <signal.h>
 #include "winclipboard.h"
+#include "windisplay.h"
 #ifdef __CYGWIN__
 #include <errno.h>
 #endif
@@ -157,7 +158,7 @@ winClipboardProc(void *pvNotUsed)
      * for all screens on the display.  That is why there is only
      * one clipboard client thread.
      */
-    winGetDisplayName(szDisplay,0);
+    winGetDisplayName(szDisplay, 0);
 
     /* Print the display connection string */
     winDebug ("winClipboardProc - DISPLAY=%s\n", szDisplay);

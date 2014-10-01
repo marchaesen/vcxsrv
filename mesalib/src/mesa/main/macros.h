@@ -144,10 +144,10 @@ extern GLfloat _mesa_ubyte_to_float_color_tab[256];
 /* This function/macro is sensitive to precision.  Test very carefully
  * if you change it!
  */
-#define UNCLAMPED_FLOAT_TO_UBYTE(UB, F)					\
+#define UNCLAMPED_FLOAT_TO_UBYTE(UB, FLT)				\
         do {								\
            fi_type __tmp;						\
-           __tmp.f = (F);						\
+           __tmp.f = (FLT);						\
            if (__tmp.i < 0)						\
               UB = (GLubyte) 0;						\
            else if (__tmp.i >= IEEE_ONE)				\
@@ -157,17 +157,17 @@ extern GLfloat _mesa_ubyte_to_float_color_tab[256];
               UB = (GLubyte) __tmp.i;					\
            }								\
         } while (0)
-#define CLAMPED_FLOAT_TO_UBYTE(UB, F)					\
+#define CLAMPED_FLOAT_TO_UBYTE(UB, FLT)					\
         do {								\
            fi_type __tmp;						\
-           __tmp.f = (F) * (255.0f/256.0f) + 32768.0f;			\
+           __tmp.f = (FLT) * (255.0f/256.0f) + 32768.0f;		\
            UB = (GLubyte) __tmp.i;					\
         } while (0)
 #else
-#define UNCLAMPED_FLOAT_TO_UBYTE(ub, fl) \
-	ub = ((GLubyte) F_TO_I(CLAMP((fl), 0.0f, 1.0f) * 255.0f))
-#define CLAMPED_FLOAT_TO_UBYTE(ub, fl) \
-	ub = ((GLubyte) F_TO_I((fl) * 255.0f))
+#define UNCLAMPED_FLOAT_TO_UBYTE(ub, FLT) \
+	ub = ((GLubyte) F_TO_I(CLAMP((FLT), 0.0f, 1.0f) * 255.0f))
+#define CLAMPED_FLOAT_TO_UBYTE(ub, FLT) \
+	ub = ((GLubyte) F_TO_I((FLT) * 255.0f))
 #endif
 
 static inline GLfloat INT_AS_FLT(GLint i)

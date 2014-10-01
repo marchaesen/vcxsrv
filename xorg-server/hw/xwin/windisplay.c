@@ -1,4 +1,7 @@
 /*
+ * File: windisplay.c
+ * Purpose: Retrieve server display name
+ *
  * Copyright (C) Jon TURNEY 2009
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -25,9 +28,14 @@
 #ifdef HAVE_XWIN_CONFIG_H
 #include <xwin-config.h>
 #endif
-#include "win.h"
 
-#include <X11/Xwindows.h>
+#include <opaque.h>             // for display
+#include "windisplay.h"
+#include "winmsg.h"
+
+#define XSERV_t
+#define TRANS_SERVER
+#include <X11/Xtrans/Xtrans.h>
 
 /*
   Generate a display name string referring to the display of this server,
@@ -37,24 +45,20 @@
 void
 winGetDisplayName(char *szDisplay, unsigned int screen)
 {
-  if (TransIsListening("local"))
-    {
-      snprintf(szDisplay, 512, ":%s.%d", display, screen);
+    if (_XSERVTransIsListening("local")) {
+        snprintf(szDisplay, 512, ":%s.%d", display, screen);
     }
-  else if (TransIsListening("inet"))
-    {
-      snprintf(szDisplay, 512, "127.0.0.1:%s.%d", display, screen);
+    else if (_XSERVTransIsListening("inet")) {
+        snprintf(szDisplay, 512, "127.0.0.1:%s.%d", display, screen);
     }
-  else if (TransIsListening("inet6"))
-    {
-      snprintf(szDisplay, 512, "[::1]:%s.%d", display, screen);
+    else if (_XSERVTransIsListening("inet6")) {
+        snprintf(szDisplay, 512, "[::1]:%s.%d", display, screen);
     }
-  else
-    {
-      // this can't happen!
-      winDebug ("winGetDisplay: Don't know what to use for DISPLAY\n");
-      snprintf(szDisplay, 512, "localhost:%s.%d", display, screen);
+    else {
+        // this can't happen!
+        winDebug("winGetDisplay: Don't know what to use for DISPLAY\n");
+        snprintf(szDisplay, 512, "localhost:%s.%d", display, screen);
     }
 
-  winDebug ("winGetDisplay: DISPLAY=%s\n", szDisplay);
+    winDebug("winGetDisplay: DISPLAY=%s\n", szDisplay);
 }

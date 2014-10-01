@@ -473,8 +473,7 @@ char *fgetline(FILE *fp)
 }
 
 /* ----------------------------------------------------------------------
- * Base64 encoding routine. This is required in public-key writing
- * but also in HTTP proxy handling, so it's centralised here.
+ * Core base64 encoding and decoding routines.
  */
 
 void base64_encode_atom(unsigned char *data, int n, char *out)
@@ -499,6 +498,54 @@ void base64_encode_atom(unsigned char *data, int n, char *out)
 	out[3] = base64_chars[word & 0x3F];
     else
 	out[3] = '=';
+}
+
+int base64_decode_atom(char *atom, unsigned char *out)
+{
+    int vals[4];
+    int i, v, len;
+    unsigned word;
+    char c;
+
+    for (i = 0; i < 4; i++) {
+	c = atom[i];
+	if (c >= 'A' && c <= 'Z')
+	    v = c - 'A';
+	else if (c >= 'a' && c <= 'z')
+	    v = c - 'a' + 26;
+	else if (c >= '0' && c <= '9')
+	    v = c - '0' + 52;
+	else if (c == '+')
+	    v = 62;
+	else if (c == '/')
+	    v = 63;
+	else if (c == '=')
+	    v = -1;
+	else
+	    return 0;		       /* invalid atom */
+	vals[i] = v;
+    }
+
+    if (vals[0] == -1 || vals[1] == -1)
+	return 0;
+    if (vals[2] == -1 && vals[3] != -1)
+	return 0;
+
+    if (vals[3] != -1)
+	len = 3;
+    else if (vals[2] != -1)
+	len = 2;
+    else
+	len = 1;
+
+    word = ((vals[0] << 18) |
+	    (vals[1] << 12) | ((vals[2] & 0x3F) << 6) | (vals[3] & 0x3F));
+    out[0] = (word >> 16) & 0xFF;
+    if (len > 1)
+	out[1] = (word >> 8) & 0xFF;
+    if (len > 2)
+	out[2] = word & 0xFF;
+    return len;
 }
 
 /* ----------------------------------------------------------------------
@@ -875,3 +922,100 @@ void smemclr(void *b, size_t n) {
     }
 }
 #endif
+
+/*
+ * Validate a manual host key specification (either entered in the
+ * GUI, or via -hostkey). If valid, we return TRUE, and update 'key'
+ * to contain a canonicalised version of the key string in 'key'
+ * (which is guaranteed to take up at most as much space as the
+ * original version), suitable for putting into the Conf. If not
+ * valid, we return FALSE.
+ */
+int validate_manual_hostkey(char *key)
+{
+    char *p, *q, *r, *s;
+
+    /*
+     * Step through the string word by word, looking for a word that's
+     * in one of the formats we like.
+     */
+    p = key;
+    while ((p += strspn(p, " \t"))[0]) {
+        q = p;
+        p += strcspn(p, " \t");
+        if (p) *p++ = '\0';
+
+        /*
+         * Now q is our word.
+         */
+
+        if (strlen(q) == 16*3 - 1 &&
+            q[strspn(q, "0123456789abcdefABCDEF:")] == 0) {
+            /*
+             * Might be a key fingerprint. Check the colons are in the
+             * right places, and if so, return the same fingerprint
+             * canonicalised into lowercase.
+             */
+            int i;
+            for (i = 0; i < 16; i++)
+                if (q[3*i] == ':' || q[3*i+1] == ':')
+                    goto not_fingerprint; /* sorry */
+            for (i = 0; i < 15; i++)
+                if (q[3*i+2] != ':')
+                    goto not_fingerprint; /* sorry */
+            for (i = 0; i < 16*3 - 1; i++)
+                key[i] = tolower(q[i]);
+            key[16*3 - 1] = '\0';
+            return TRUE;
+        }
+      not_fingerprint:;
+
+        /*
+         * Before we check for a public-key blob, trim newlines out of
+         * the middle of the word, in case someone's managed to paste
+         * in a public-key blob _with_ them.
+         */
+        for (r = s = q; *r; r++)
+            if (*r != '\n' && *r != '\r')
+                *s++ = *r;
+        *s = '\0';
+
+        if (strlen(q) % 4 == 0 && strlen(q) > 2*4 &&
+            q[strspn(q, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                     "abcdefghijklmnopqrstuvwxyz+/=")] == 0) {
+            /*
+             * Might be a base64-encoded SSH-2 public key blob. Check
+             * that it starts with a sensible algorithm string. No
+             * canonicalisation is necessary for this string type.
+             *
+             * The algorithm string must be at most 64 characters long
+             * (RFC 4251 section 6).
+             */
+            unsigned char decoded[6];
+            unsigned alglen;
+            int minlen;
+            int len = 0;
+
+            len += base64_decode_atom(q, decoded+len);
+            if (len < 3)
+                goto not_ssh2_blob;    /* sorry */
+            len += base64_decode_atom(q+4, decoded+len);
+            if (len < 4)
+                goto not_ssh2_blob;    /* sorry */
+
+            alglen = GET_32BIT_MSB_FIRST(decoded);
+            if (alglen > 64)
+                goto not_ssh2_blob;    /* sorry */
+
+            minlen = ((alglen + 4) + 2) / 3;
+            if (strlen(q) < minlen)
+                goto not_ssh2_blob;    /* sorry */
+
+            strcpy(key, q);
+            return TRUE;
+        }
+      not_ssh2_blob:;
+    }
+
+    return FALSE;
+}

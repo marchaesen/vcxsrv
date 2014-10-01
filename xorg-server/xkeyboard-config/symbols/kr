@@ -13,13 +13,13 @@ xkb_symbols "kr104" {
     include "kr(koreankeys_raltctl)"
 };
 
-partial hidden function_keys
+hidden partial function_keys
 xkb_symbols "koreankeys" {
     key <K71> { [ Hangul ] };
     key <K72> { [ Hangul_Hanja ] };
 };
 
-partial hidden function_keys
+hidden partial function_keys
 xkb_symbols "koreankeys_raltctl" {
     key <RALT> { [ Hangul ] };
     key <RCTL> { [ Hangul_Hanja ] };

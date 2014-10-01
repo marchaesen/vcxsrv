@@ -38,48 +38,8 @@
 /* Video Memory Mapping section                                            */
 /***************************************************************************/
 
-static void *sparc64MapVidMem(int, unsigned long, unsigned long, int);
-static void sparc64UnmapVidMem(int, void *, unsigned long);
-
 void
 xf86OSInitVidMem(VidMemInfoPtr pVidMem)
 {
-    pVidMem->linearSupported = TRUE;
-    pVidMem->mapMem = sparc64MapVidMem;
-    pVidMem->unmapMem = sparc64UnmapVidMem;
     pVidMem->initialised = TRUE;
-}
-
-static void *
-sparc64MapVidMem(int ScreenNum, unsigned long Base, unsigned long Size,
-                 int flags)
-{
-    int fd = xf86Info.consoleFd;
-    void *base;
-
-#ifdef DEBUG
-    xf86MsgVerb(X_INFO, 3, "mapVidMem %lx, %lx, fd = %d", Base, Size, fd);
-#endif
-
-    base = mmap(0, Size,
-                (flags & VIDMEM_READONLY) ?
-                PROT_READ : (PROT_READ | PROT_WRITE), MAP_SHARED, fd, Base);
-    if (base == MAP_FAILED)
-        FatalError("%s: could not mmap screen [s=%x,a=%x] (%s)",
-                   "xf86MapVidMem", Size, Base, strerror(errno));
-    return base;
-}
-
-static void
-sparc64UnmapVidMem(int ScreenNum, void *Base, unsigned long Size)
-{
-    munmap(Base, Size);
-}
-
-int
-xf86ReadBIOS(unsigned long Base, unsigned long Offset, unsigned char *Buf,
-             int Len)
-{
-
-    return 0;
 }

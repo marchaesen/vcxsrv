@@ -44,6 +44,7 @@
 #include <shellapi.h>
 
 #include "winprefs.h"
+#include "windisplay.h"
 #include "winmultiwindowclass.h"
 
 /* Where will the custom menu commands start counting from? */

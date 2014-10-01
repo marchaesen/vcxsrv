@@ -70,6 +70,20 @@ static Int10LinuxSubModuleState int10LinuxLoadSubModule(ScrnInfoPtr pScrn);
 
 #endif                          /* DoSubModules */
 
+static Bool
+readLegacy(struct pci_device *dev, unsigned char *buf, int base, int len)
+{
+    void *map;
+
+    if (!pci_device_map_legacy(dev, base, len, 0, &map))
+        return FALSE;
+
+    memcpy(buf, map, len);
+    pci_device_unmap_legacy(dev, man, len);
+
+    return TRUE;
+}
+
 xf86Int10InfoPtr
 xf86ExtendedInitInt10(int entityIndex, int Flags)
 {
@@ -222,7 +236,8 @@ xf86ExtendedInitInt10(int entityIndex, int Flags)
     Int10Current = pInt;
 
     DebugF("Mapping int area\n");
-    if (xf86ReadBIOS(0, 0, (unsigned char *) 0, LOW_PAGE_SIZE) < 0) {
+    /* note: yes, we really are writing the 0 page here */
+    if (!readLegacy(pInt->dev, (unsigned char *) 0, 0, LOW_PAGE_SIZE)) {
         xf86DrvMsg(screen, X_ERROR, "Cannot read int vect\n");
         goto error3;
     }
@@ -236,7 +251,7 @@ xf86ExtendedInitInt10(int entityIndex, int Flags)
         memset((void *) V_BIOS, 0, SYS_BIOS - V_BIOS);
         DebugF("Reading BIOS\n");
         for (cs = V_BIOS; cs < SYS_BIOS; cs += V_BIOS_SIZE)
-            if (xf86ReadBIOS(cs, 0, (void *) cs, V_BIOS_SIZE) < V_BIOS_SIZE)
+            if (!readLegacy(pInt->dev, (void *)cs, cs, V_BIOS_SIZE))
                 xf86DrvMsg(screen, X_WARNING,
                            "Unable to retrieve all of segment 0x%06lX.\n",
                            (long) cs);

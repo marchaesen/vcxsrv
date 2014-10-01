@@ -74,24 +74,6 @@
  */
 
 /*
- * Flags for xf86MapVidMem().  Multiple flags can be or'd together.  The
- * flags may be used as hints.  For example it would be permissible to
- * enable write combining for memory marked only for framebuffer use.
- */
-
-#define VIDMEM_FRAMEBUFFER	0x01    /* memory for framebuffer use */
-#define VIDMEM_MMIO		0x02    /* memory for I/O use */
-#define VIDMEM_MMIO_32BIT	0x04    /* memory accesses >= 32bit */
-#define VIDMEM_READSIDEEFFECT	0x08    /* reads can have side-effects */
-#define VIDMEM_SPARSE		0x10    /* sparse mapping required
-                                         * assumed when VIDMEM_MMIO is
-                                         * set. May be used with
-                                         * VIDMEM_FRAMEBUFFER) */
-#define VIDMEM_READONLY		0x20    /* read-only mapping
-                                         * used when reading BIOS images
-                                         * through xf86MapVidMem() */
-
-/*
  * OS-independent modem state flags for xf86SetSerialModemState() and
  * xf86GetSerialModemState().
  */
@@ -130,14 +112,6 @@
 _XFUNCPROTOBEGIN
 
 /* public functions */
-extern _X_EXPORT Bool xf86LinearVidMem(void);
-extern _X_EXPORT _X_DEPRECATED Bool xf86CheckMTRR(int);
-extern _X_EXPORT _X_DEPRECATED void *xf86MapVidMem(int, int, unsigned long,
-                                                     unsigned long);
-extern _X_EXPORT _X_DEPRECATED void xf86UnMapVidMem(int, void *,
-                                                    unsigned long);
-extern _X_EXPORT int xf86ReadBIOS(unsigned long, unsigned long, unsigned char *,
-                                  int);
 extern _X_EXPORT Bool xf86EnableIO(void);
 extern _X_EXPORT void xf86DisableIO(void);
 

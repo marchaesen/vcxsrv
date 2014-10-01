@@ -68,6 +68,7 @@ Xephyr_SOURCES = \
 	ephyr_draw.c \
 	os.c \
 	ephyrinit.c \
+	ephyrcursor.c \
 	hostx.c \
 	hostx.h \
 	$(XV_SRCS) \

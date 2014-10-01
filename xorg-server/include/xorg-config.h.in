@@ -82,12 +82,6 @@
 /* Building vgahw module */
 #undef WITH_VGAHW
 
-/* Define to 1 if NetBSD built-in MTRR support is available */
-#undef HAS_MTRR_BUILTIN
-
-/* Define to 1 if BSD MTRR support is available */
-#undef HAS_MTRR_SUPPORT
-
 /* NetBSD PIO alpha IO */
 #undef USE_ALPHA_PIO
 

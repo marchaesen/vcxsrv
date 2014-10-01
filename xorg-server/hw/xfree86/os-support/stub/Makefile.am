@@ -14,6 +14,5 @@ libstub_la_SOURCES = \
 	$(srcdir)/../shared/posix_tty.c \
 	$(srcdir)/../shared/sigio.c \
 	stub_bell.c \
-	stub_bios.c \
 	stub_init.c \
 	stub_video.c

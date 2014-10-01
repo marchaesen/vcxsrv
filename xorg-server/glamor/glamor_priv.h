@@ -167,6 +167,30 @@ typedef struct {
     uint16_t evict;
 } glamor_glyph_cache_t;
 
+#define CACHE_PICTURE_SIZE 1024
+#define GLYPH_MIN_SIZE 8
+#define GLYPH_MAX_SIZE	64
+#define GLYPH_CACHE_SIZE ((CACHE_PICTURE_SIZE) * CACHE_PICTURE_SIZE / (GLYPH_MIN_SIZE * GLYPH_MIN_SIZE))
+
+#define MASK_CACHE_MAX_SIZE 32
+#define MASK_CACHE_WIDTH (CACHE_PICTURE_SIZE / MASK_CACHE_MAX_SIZE)
+#define MASK_CACHE_MASK ((1LL << (MASK_CACHE_WIDTH)) - 1)
+
+struct glamor_glyph_mask_cache_entry {
+    int idx;
+    int width;
+    int height;
+    int x;
+    int y;
+};
+
+typedef struct {
+    PixmapPtr pixmap;
+    struct glamor_glyph_mask_cache_entry mcache[MASK_CACHE_WIDTH];
+    unsigned int free_bitmap;
+    unsigned int cleared_bitmap;
+} glamor_glyph_mask_cache_t;
+
 struct glamor_saved_procs {
     CloseScreenProcPtr close_screen;
     CreateScreenResourcesProcPtr create_screen_resources;
@@ -268,7 +292,8 @@ typedef struct glamor_screen_private {
         [SHADER_MASK_COUNT]
         [SHADER_IN_COUNT];
     glamor_glyph_cache_t glyphCaches[GLAMOR_NUM_GLYPH_CACHE_FORMATS];
-    Bool glyph_cache_initialized;
+    glamor_glyph_mask_cache_t *mask_cache[GLAMOR_NUM_GLYPH_CACHE_FORMATS];
+    Bool glyph_caches_realized;
 
     /* shaders to restore a texture to another texture. */
     GLint finish_access_prog[2];
@@ -280,9 +305,6 @@ typedef struct glamor_screen_private {
     GLint gradient_prog[SHADER_GRADIENT_COUNT][3];
     int linear_max_nstops;
     int radial_max_nstops;
-
-    /* glamor trapezoid shader. */
-    GLint trapezoid_prog;
 
     PixmapPtr *back_pixmap;
     int screen_fbo;
@@ -413,14 +435,6 @@ typedef struct glamor_pixmap_clipped_regions {
     RegionPtr region;
 } glamor_pixmap_clipped_regions;
 
-#define SET_PIXMAP_FBO_CURRENT(priv, idx) 				\
-  do {									\
-	if (priv->type == GLAMOR_TEXTURE_LARGE) {			\
-		(priv)->large.base.fbo = priv->large.fbo_array[idx]; 	\
-		(priv)->large.box = priv->large.box_array[idx]; 	\
-	}								\
-  } while(0)
-
 typedef struct glamor_pixmap_private_base {
     glamor_pixmap_type_t type;
     enum glamor_fbo_state gl_fbo;
@@ -492,6 +506,15 @@ typedef struct glamor_pixmap_private {
         glamor_pixmap_private_atlas_t atlas;
     };
 } glamor_pixmap_private;
+
+static inline void
+glamor_set_pixmap_fbo_current(glamor_pixmap_private *priv, int idx)
+{
+    if (priv->type == GLAMOR_TEXTURE_LARGE) {
+        priv->large.base.fbo = priv->large.fbo_array[idx];
+        priv->large.box = priv->large.box_array[idx];
+    }
+}
 
 static inline glamor_pixmap_fbo *
 glamor_pixmap_fbo_at(glamor_pixmap_private *priv, int x, int y)
@@ -719,8 +742,6 @@ void glamor_composite_glyph_rects(CARD8 op,
 void glamor_composite_rects(CARD8 op,
                             PicturePtr pDst,
                             xRenderColor *color, int nRect, xRectangle *rects);
-void glamor_init_trapezoid_shader(ScreenPtr screen);
-void glamor_fini_trapezoid_shader(ScreenPtr screen);
 PicturePtr glamor_convert_gradient_picture(ScreenPtr screen,
                                            PicturePtr source,
                                            int x_source,
@@ -1063,7 +1084,6 @@ void glamor_xv_render(glamor_port_private *port_priv);
 
 #define GLAMOR_PIXMAP_DYNAMIC_UPLOAD
 #define GLAMOR_GRADIENT_SHADER
-#define GLAMOR_TRAPEZOID_SHADER
 #define GLAMOR_TEXTURED_LARGE_PIXMAP 1
 #define WALKAROUND_LARGE_TEXTURE_MAP
 #if 0

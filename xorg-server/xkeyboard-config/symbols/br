@@ -64,7 +64,6 @@ partial alphanumeric_keys
 xkb_symbols "thinkpad" {
 
     include "br(abnt2)"
-    name[Group1]="Portuguese (Brazil)";
 
     key <RCTL> { [        slash,       question,        degree,    questiondown ] };
 };

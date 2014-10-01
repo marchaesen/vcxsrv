@@ -142,9 +142,6 @@ Here are the basic steps for kernel setup.
 
         o Enable all chipsets' support for AGP
 
-        o It's recommended that you turn on MTRRs under Processor type and
-          Features, but not required.
-
    o Configure the rest of the kernel as required for your system (i.e. Eth-
      ernet, SCSI, etc)
 

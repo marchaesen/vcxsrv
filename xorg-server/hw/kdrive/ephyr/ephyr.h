@@ -199,8 +199,6 @@ extern KdOsFuncs EphyrOsFuncs;
 
 extern Bool ephyrCursorInit(ScreenPtr pScreen);
 
-extern void ephyrCursorEnable(ScreenPtr pScreen);
-
 extern int ephyrBufferHeight(KdScreenInfo * screen);
 
 extern int ephyrBufferHeight(KdScreenInfo *screen);

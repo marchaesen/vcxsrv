@@ -1,9 +1,9 @@
-partial hidden keypad_keys
+hidden partial keypad_keys
 xkb_symbols "overlay" {
     include "keypad(overlay1)"
 };
 
-partial hidden keypad_keys
+hidden partial keypad_keys
 xkb_symbols "overlay1" {
 
     key  <KP7> {	[  KP_Home	],	overlay1=<KO7>	};
@@ -37,7 +37,7 @@ xkb_symbols "overlay1" {
     key <KODL> {	[  KP_Decimal ]	};
 };
 
-partial hidden keypad_keys
+hidden partial keypad_keys
 xkb_symbols "overlay2" {
 
     key  <KP7> {	[  KP_Home	],	overlay2=<KO7>	};
@@ -71,7 +71,7 @@ xkb_symbols "overlay2" {
     key <KODL> {	[  KP_Decimal ]	};
 };
 
-partial hidden keypad_keys
+hidden partial keypad_keys
 xkb_symbols "operators" {
     // Puts some commands to control the X server on
     // the fifth level of the keypad's operator keys.
@@ -93,7 +93,7 @@ xkb_symbols "operators" {
     };
 };
 
-default  partial hidden keypad_keys
+default  hidden partial keypad_keys
 xkb_symbols "x11" {
 
     include "keypad(operators)"

@@ -296,6 +296,11 @@ glamor_create_screen_resources(ScreenPtr screen)
         ret = screen->CreateScreenResources(screen);
     screen->CreateScreenResources = glamor_create_screen_resources;
 
+    if (!glamor_glyphs_init(screen)) {
+        ErrorF("Failed to initialize glyphs\n");
+        ret = FALSE;
+    }
+
     if (!glamor_realize_glyph_caches(screen)) {
         ErrorF("Failed to initialize glyph cache\n");
         ret = FALSE;
@@ -510,15 +515,11 @@ glamor_init(ScreenPtr screen, unsigned int flags)
 
     glamor_init_vbo(screen);
     glamor_init_pixmap_fbo(screen);
-#ifdef GLAMOR_TRAPEZOID_SHADER
-    glamor_init_trapezoid_shader(screen);
-#endif
     glamor_init_finish_access_shaders(screen);
 #ifdef GLAMOR_GRADIENT_SHADER
     glamor_init_gradient_shader(screen);
 #endif
     glamor_pixmap_init(screen);
-    glamor_glyphs_init(screen);
     glamor_sync_init(screen);
 
     glamor_priv->screen = screen;
@@ -542,9 +543,6 @@ glamor_release_screen_priv(ScreenPtr screen)
 #endif
     glamor_fini_vbo(screen);
     glamor_fini_pixmap_fbo(screen);
-#ifdef GLAMOR_TRAPEZOID_SHADER
-    glamor_fini_trapezoid_shader(screen);
-#endif
     glamor_fini_finish_access_shaders(screen);
 #ifdef GLAMOR_GRADIENT_SHADER
     glamor_fini_gradient_shader(screen);

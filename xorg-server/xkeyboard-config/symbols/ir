@@ -29,13 +29,14 @@ xkb_symbols "pes_keypad" {
     name[Group1]= "Persian (with Persian keypad)";
 
     include "ir(pes_part_basic)"
+    include "ir(pes_part_ext)"
     include "ir(pes_part_keypad)"
 
     include "nbsp(zwnj2nb3nnb4)"
     include "level3(ralt_switch)"
 };
 
-partial hidden alphanumeric_keys
+hidden partial alphanumeric_keys
 xkb_symbols "pes_part_basic" {
 
     // Persian digits
@@ -93,23 +94,23 @@ xkb_symbols "pes_part_basic" {
     key <BKSL> { [ backslash,		bar,			0x1002010	] };
 };
 
-partial hidden alphanumeric_keys
+hidden partial alphanumeric_keys
 xkb_symbols "pes_part_ext" {
 
     // Persian and ASCII digits
-    key <AE01> { [ 0x10006f1,	exclam,		grave,			1	] };
-    key <AE02> { [ 0x10006f2,	0x100066c,	at,			2	] };
-    key <AE03> { [ 0x10006f3,	0x100066b,	numbersign,		3	] };
-    key <AE04> { [ 0x10006f4,	0x100fdfc,	dollar,			4	] };
-    key <AE05> { [ 0x10006f5,	0x100066a,	percent,		5	] };
-    key <AE06> { [ 0x10006f6,	multiply,	asciicircum,		6	] };
-    key <AE07> { [ 0x10006f7,	Arabic_comma,	ampersand,		7	] };
-    key <AE08> { [ 0x10006f8,	asterisk,	enfilledcircbullet,	8	] };
-    key <AE09> { [ 0x10006f9,	parenright,	0x100200e,		9	] };
-    key <AE10> { [ 0x10006f0,	parenleft,	0x100200f,		0	] };
+    key <AE01> { [ Farsi_1,	exclam,		grave,			1	] };
+    key <AE02> { [ Farsi_2,	0x100066c,	at,			2	] };
+    key <AE03> { [ Farsi_3,	0x100066b,	numbersign,		3	] };
+    key <AE04> { [ Farsi_4,	0x100fdfc,	dollar,			4	] };
+    key <AE05> { [ Farsi_5,	0x100066a,	percent,		5	] };
+    key <AE06> { [ Farsi_6,	multiply,	asciicircum,		6	] };
+    key <AE07> { [ Farsi_7,	Arabic_comma,	ampersand,		7	] };
+    key <AE08> { [ Farsi_8,	asterisk,	enfilledcircbullet,	8	] };
+    key <AE09> { [ Farsi_9,	parenright,	0x100200e,		9	] };
+    key <AE10> { [ Farsi_0,	parenleft,	0x100200f,		0	] };
 };
 
-partial hidden alphanumeric_keys
+hidden partial alphanumeric_keys
 xkb_symbols "pes_part_keypad" {
 
     // Persian digits and Mathematical operators
@@ -121,19 +122,19 @@ xkb_symbols "pes_part_keypad" {
     key <KPEN> { [ KP_Enter	] };
     key <KPEQ> { [ equal	] };
 
-    key <KP7>  { [ KP_Home,	0x10006f7	] };
-    key <KP8>  { [ KP_Up,	0x10006f8	] };
-    key <KP9>  { [ KP_Prior,	0x10006f9	] };
+    key <KP7>  { [ KP_Home,	Farsi_7	] };
+    key <KP8>  { [ KP_Up,	Farsi_8	] };
+    key <KP9>  { [ KP_Prior,	Farsi_9	] };
 
-    key <KP4>  { [ KP_Left,	0x10006f4	] };
-    key <KP5>  { [ KP_Begin,	0x10006f5	] };
-    key <KP6>  { [ KP_Right,	0x10006f6	] };
+    key <KP4>  { [ KP_Left,	Farsi_4	] };
+    key <KP5>  { [ KP_Begin,	Farsi_5	] };
+    key <KP6>  { [ KP_Right,	Farsi_6	] };
 
-    key <KP1>  { [ KP_End,	0x10006f1	] };
-    key <KP2>  { [ KP_Down,	0x10006f2	] };
-    key <KP3>  { [ KP_Next,	0x10006f3	] };
+    key <KP1>  { [ KP_End,	Farsi_1	] };
+    key <KP2>  { [ KP_Down,	Farsi_2	] };
+    key <KP3>  { [ KP_Next,	Farsi_3	] };
 
-    key <KP0>  { [ KP_Insert,	0x10006f0	] };
+    key <KP0>  { [ KP_Insert,	Farsi_0	] };
     key <KPDL> { [ KP_Delete,	0x100066b	] };
 };
 
@@ -184,16 +185,16 @@ xkb_symbols "ku_ara" {
     key <BKSL> { [ backslash,		bar,			ccedilla, Ccedilla	] };
 
     // Digits
-    key <AE01> { [ 1,	exclam,		0x10006f1,	grave		] };
-    key <AE02> { [ 2,	at, 		0x10006f2,	at		] };
-    key <AE03> { [ 3,	numbersign,	0x10006f3,	0x100066b	] };
-    key <AE04> { [ 4,	dollar,		0x10006f4, 	0x100fdfc	] };
-    key <AE05> { [ 5,	percent,	0x10006f5,	0x100066a	] };
-    key <AE06> { [ 6,	asciicircum,	0x10006f6,	multiply	] };
-    key <AE07> { [ 7,	ampersand,	0x10006f7, 	Arabic_comma	] };
-    key <AE08> { [ 8,	asterisk,	0x10006f8,	enfilledcircbullet	] };
-    key <AE09> { [ 9,	parenright,	0x10006f9,	0x100200e	] };
-    key <AE10> { [ 0,	parenleft,	0x10006f0,	0x100200f	] };
+    key <AE01> { [ 1,	exclam,		Farsi_1,	grave		] };
+    key <AE02> { [ 2,	at, 		Farsi_2,	at		] };
+    key <AE03> { [ 3,	numbersign,	Farsi_3,	0x100066b	] };
+    key <AE04> { [ 4,	dollar,		Farsi_4, 	0x100fdfc	] };
+    key <AE05> { [ 5,	percent,	Farsi_5,	0x100066a	] };
+    key <AE06> { [ 6,	asciicircum,	Farsi_6,	multiply	] };
+    key <AE07> { [ 7,	ampersand,	Farsi_7, 	Arabic_comma	] };
+    key <AE08> { [ 8,	asterisk,	Farsi_8,	enfilledcircbullet	] };
+    key <AE09> { [ 9,	parenright,	Farsi_9,	0x100200e	] };
+    key <AE10> { [ 0,	parenleft,	Farsi_0,	0x100200f	] };
     key <AE11> { [ minus,		Arabic_tatweel,		underscore	] };
     key <AE12> { [ equal,		plus,			0x1002212	] };
 

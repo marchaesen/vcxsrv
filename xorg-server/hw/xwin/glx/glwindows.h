@@ -28,6 +28,9 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+#ifndef GLWINDOWS_H
+#define GLWINDOWS_H
+
 #include <GL/gl.h>
 
 typedef struct {
@@ -61,4 +64,6 @@ void glWinSetupDispatchTable(void);
 #else
 #define GLWIN_TRACE_MSG(a, ...)
 #define GLWIN_DEBUG_MSG(a, ...)
+#endif
+
 #endif

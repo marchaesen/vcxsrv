@@ -62,14 +62,6 @@
  */
 #define GLYPH_BUFFER_SIZE 1024
 
-#define CACHE_PICTURE_SIZE 1024
-#define GLYPH_MIN_SIZE 8
-#define GLYPH_MAX_SIZE	64
-#define GLYPH_CACHE_SIZE ((CACHE_PICTURE_SIZE) * CACHE_PICTURE_SIZE / (GLYPH_MIN_SIZE * GLYPH_MIN_SIZE))
-#define MASK_CACHE_MAX_SIZE 32
-#define MASK_CACHE_WIDTH (CACHE_PICTURE_SIZE / MASK_CACHE_MAX_SIZE)
-#define MASK_CACHE_MASK ((1LL << (MASK_CACHE_WIDTH)) - 1)
-
 typedef struct {
     PicturePtr source;
     glamor_composite_rect_t rects[GLYPH_BUFFER_SIZE + 4];
@@ -96,9 +88,11 @@ typedef enum {
 static DevPrivateKeyRec glamor_glyph_key;
 
 static inline struct glamor_glyph *
-glamor_glyph_get_private(GlyphPtr glyph)
+glamor_glyph_get_private(ScreenPtr screen, GlyphPtr glyph)
 {
-    return (struct glamor_glyph *) glyph->devPrivates;
+    struct glamor_glyph *privates = (struct glamor_glyph*)glyph->devPrivates;
+
+    return &privates[screen->myNum];
 }
 
 /*
@@ -121,24 +115,8 @@ glamor_glyph_get_private(GlyphPtr glyph)
  * gain.
  */
 
-struct glamor_glyph_mask_cache_entry {
-    int idx;
-    int width;
-    int height;
-    int x;
-    int y;
-};
-
-static struct glamor_glyph_mask_cache {
-    PixmapPtr pixmap;
-    struct glamor_glyph_mask_cache_entry mcache[MASK_CACHE_WIDTH];
-    unsigned int free_bitmap;
-    unsigned int cleared_bitmap;
-} *mask_cache[GLAMOR_NUM_GLYPH_CACHE_FORMATS] = {
-NULL};
-
 static void
-clear_mask_cache_bitmap(struct glamor_glyph_mask_cache *maskcache,
+clear_mask_cache_bitmap(glamor_glyph_mask_cache_t *maskcache,
                         unsigned int clear_mask_bits)
 {
     unsigned int i = 0;
@@ -160,7 +138,7 @@ clear_mask_cache_bitmap(struct glamor_glyph_mask_cache *maskcache,
 }
 
 static void
-clear_mask_cache(struct glamor_glyph_mask_cache *maskcache)
+clear_mask_cache(glamor_glyph_mask_cache_t *maskcache)
 {
     int x = 0;
     int cnt = MASK_CACHE_WIDTH;
@@ -222,7 +200,7 @@ find_continuous_bits(unsigned int bits, int bits_cnt, unsigned int *pbits_mask)
 }
 
 static struct glamor_glyph_mask_cache_entry *
-get_mask_cache(struct glamor_glyph_mask_cache *maskcache, int blocks)
+get_mask_cache(glamor_glyph_mask_cache_t *maskcache, int blocks)
 {
     int free_cleared_bit, idx = -1;
     int retry_cnt = 0;
@@ -255,7 +233,7 @@ get_mask_cache(struct glamor_glyph_mask_cache *maskcache, int blocks)
 }
 
 static void
-put_mask_cache_bitmap(struct glamor_glyph_mask_cache *maskcache,
+put_mask_cache_bitmap(glamor_glyph_mask_cache_t *maskcache,
                       unsigned int bitmap)
 {
     maskcache->free_bitmap |= bitmap;
@@ -269,7 +247,7 @@ glamor_unrealize_glyph_caches(ScreenPtr pScreen)
     glamor_screen_private *glamor = glamor_get_screen_private(pScreen);
     int i;
 
-    if (!glamor->glyph_cache_initialized)
+    if (!glamor->glyph_caches_realized)
         return;
 
     for (i = 0; i < GLAMOR_NUM_GLYPH_CACHE_FORMATS; i++) {
@@ -281,10 +259,10 @@ glamor_unrealize_glyph_caches(ScreenPtr pScreen)
         if (cache->glyphs)
             free(cache->glyphs);
 
-        if (mask_cache[i])
-            free(mask_cache[i]);
+        if (glamor->mask_cache[i])
+            free(glamor->mask_cache[i]);
     }
-    glamor->glyph_cache_initialized = FALSE;
+    glamor->glyph_caches_realized = FALSE;
 }
 
 void
@@ -313,6 +291,9 @@ glamor_realize_glyph_caches(ScreenPtr pScreen)
         PIXMAN_a8r8g8b8,
     };
     int i;
+
+    if (glamor->glyph_caches_realized)
+        return TRUE;
 
     memset(glamor->glyphCaches, 0, sizeof(glamor->glyphCaches));
 
@@ -353,12 +334,13 @@ glamor_realize_glyph_caches(ScreenPtr pScreen)
             goto bail;
 
         cache->evict = rand() % GLYPH_CACHE_SIZE;
-        mask_cache[i] = calloc(1, sizeof(*mask_cache[i]));
-        mask_cache[i]->pixmap = pixmap;
-        clear_mask_cache(mask_cache[i]);
+        glamor->mask_cache[i] = calloc(1, sizeof(*glamor->mask_cache[i]));
+        glamor->mask_cache[i]->pixmap = pixmap;
+        clear_mask_cache(glamor->mask_cache[i]);
     }
     assert(i == GLAMOR_NUM_GLYPH_CACHE_FORMATS);
 
+    glamor->glyph_caches_realized = TRUE;
     return TRUE;
 
  bail:
@@ -375,16 +357,10 @@ glamor_realize_glyph_caches(ScreenPtr pScreen)
 Bool
 glamor_glyphs_init(ScreenPtr pScreen)
 {
-    glamor_screen_private *glamor = glamor_get_screen_private(pScreen);
-
-    if (glamor->glyph_cache_initialized)
-        return TRUE;
-
     if (!dixRegisterPrivateKey(&glamor_glyph_key,
-                               PRIVATE_GLYPH, sizeof(struct glamor_glyph)))
+                               PRIVATE_GLYPH,
+                               screenInfo.numScreens * sizeof(struct glamor_glyph)))
         return FALSE;
-
-    glamor->glyph_cache_initialized = TRUE;
 
     return TRUE;
 }
@@ -463,7 +439,7 @@ glamor_glyph_unrealize(ScreenPtr screen, GlyphPtr glyph)
     struct glamor_glyph *priv;
 
     /* Use Lookup in case we have not attached to this glyph. */
-    priv = glamor_glyph_get_private(glyph);
+    priv = glamor_glyph_get_private(screen, glyph);
 
     if (priv->cached)
         priv->cache->glyphs[priv->pos] = NULL;
@@ -794,7 +770,7 @@ glamor_glyphs_intersect(int nlist, GlyphListPtr list, GlyphPtr *glyphs,
             if (y1 < MINSHORT)
                 y1 = MINSHORT;
             if (check_fake_overlap)
-                priv = glamor_glyph_get_private(glyph);
+                priv = glamor_glyph_get_private(screen, glyph);
 
             x2 = x1 + glyph->info.width;
             y2 = y1 + glyph->info.height;
@@ -1082,7 +1058,7 @@ glamor_glyph_cache(glamor_screen_private *glamor, GlyphPtr glyph, int *out_x,
     mask = glamor_glyph_count_to_mask(s);
     pos = (cache->count + s - 1) & mask;
 
-    priv = glamor_glyph_get_private(glyph);
+    priv = glamor_glyph_get_private(screen, glyph);
     if (pos < GLYPH_CACHE_SIZE) {
         cache->count = pos + s;
     }
@@ -1094,7 +1070,7 @@ glamor_glyph_cache(glamor_screen_private *glamor, GlyphPtr glyph, int *out_x,
             if (evicted == NULL)
                 continue;
 
-            evicted_priv = glamor_glyph_get_private(evicted);
+            evicted_priv = glamor_glyph_get_private(screen, evicted);
             assert(evicted_priv->pos == i);
             if (evicted_priv->size >= s) {
                 cache->glyphs[i] = NULL;
@@ -1115,7 +1091,7 @@ glamor_glyph_cache(glamor_screen_private *glamor, GlyphPtr glyph, int *out_x,
 
                 if (evicted != NULL) {
 
-                    evicted_priv = glamor_glyph_get_private(evicted);
+                    evicted_priv = glamor_glyph_get_private(screen, evicted);
 
                     assert(evicted_priv->pos == pos + s);
                     evicted_priv->cached = FALSE;
@@ -1182,7 +1158,7 @@ unsigned long long dst_glyphs_cnt = 0;
 struct glyphs_flush_mask_arg {
     PicturePtr mask;
     glamor_glyph_buffer_t *buffer;
-    struct glamor_glyph_mask_cache *maskcache;
+    glamor_glyph_mask_cache_t *maskcache;
     unsigned int used_bitmap;
 };
 
@@ -1242,7 +1218,7 @@ glamor_buffer_glyph(glamor_screen_private *glamor_priv,
     glamor_glyph_cache_t *cache;
 
     if (glyphs_dst_mode != GLYPHS_DST_MODE_MASK_TO_DST)
-        priv = glamor_glyph_get_private(glyph);
+        priv = glamor_glyph_get_private(screen, glyph);
 
     if (PICT_FORMAT_BPP(format) == 1)
         format = PICT_a8;
@@ -1300,7 +1276,7 @@ glamor_buffer_glyph(glamor_screen_private *glamor_priv,
             rect->x_src = 0 + dx;
             rect->y_src = 0 + dy;
         }
-        priv = glamor_glyph_get_private(glyph);
+        priv = glamor_glyph_get_private(screen, glyph);
     }
 
     rect->x_dst = x_glyph;
@@ -1398,7 +1374,7 @@ glamor_glyphs_via_mask(CARD8 op,
     glamor_glyph_buffer_t *pmask_buffer;
     struct glyphs_flush_mask_arg *pmask_arg;
     struct glamor_glyph_mask_cache_entry *mce = NULL;
-    struct glamor_glyph_mask_cache *maskcache;
+    glamor_glyph_mask_cache_t *maskcache;
     glamor_glyph_cache_t *cache;
     int glyphs_dst_mode;
 
@@ -1419,7 +1395,7 @@ glamor_glyphs_via_mask(CARD8 op,
 
     cache = &glamor_priv->glyphCaches
         [PICT_FORMAT_RGB(mask_format->format) != 0];
-    maskcache = mask_cache[PICT_FORMAT_RGB(mask_format->format) != 0];
+    maskcache = glamor_priv->mask_cache[PICT_FORMAT_RGB(mask_format->format) != 0];
 
     x = -extents.x1;
     y = -extents.y1;
