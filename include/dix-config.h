@@ -536,10 +536,10 @@
 #define LISTEN_TCP 1
 
 /* Listen on Unix socket */
-#define LISTEN_UNIX 1
+#undef LISTEN_UNIX
 
 /* Listen on local socket */
-#define LISTEN_LOCAL 1
+#undef LISTEN_LOCAL
 
 #include <X11/Xwinsock.h>
 #include <X11/Xwindows.h>

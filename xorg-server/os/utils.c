@@ -670,10 +670,10 @@ static const char *defaultNoListenList[] = {
 #ifndef LISTEN_TCP
     "tcp",
 #endif
-#ifndef LISTEN_UNIX
+#if !defined(LISTEN_UNIX) && defined(UNIXCONN)
     "unix",
 #endif
-#ifndef LISTEN_LOCAL
+#if !defined(LISTEN_LOCAL) && defined(LOCALCONN)
     "local",
 #endif
     NULL
