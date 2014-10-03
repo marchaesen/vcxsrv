@@ -994,6 +994,7 @@ winRedrawScreenShadowDD(ScreenPtr pScreen)
     if (FAILED(ddrval)) {
         ErrorF("winRedrawScreenShadowDD - IDirectDrawSurface_Blt () "
                "failed: %08x\n", (unsigned int) ddrval);
+        return FALSE;
     }
 
     return TRUE;

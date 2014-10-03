@@ -58,22 +58,14 @@ typedef int pid_t;
 /* Windows headers */
 #include <X11/Xwindows.h>
 
-/* Clipboard module constants */
-#define WIN_CLIPBOARD_WINDOW_CLASS		"xwinclip"
-#define WIN_CLIPBOARD_WINDOW_TITLE		"xwinclip"
-#ifdef HAS_DEVWINDOWS
-#define WIN_MSG_QUEUE_FNAME			"/dev/windows"
-#endif
-#define WIN_CONNECT_RETRIES			40
-#define WIN_CONNECT_DELAY			4
-#define WIN_JMP_OKAY				0
-#define WIN_JMP_ERROR_IO			2
-#define WIN_LOCAL_PROPERTY			"CYGX_CUT_BUFFER"
+#include "winmsg.h"
+
 #define WIN_XEVENTS_SUCCESS			0
 #define WIN_XEVENTS_CONVERT			2
 #define WIN_XEVENTS_NOTIFY			3
+#define WIN_LOCAL_PROPERTY			"CYGX_CUT_BUFFER"
 
-#include "winmsg.h"
+#define WM_WM_REINIT                           (WM_USER + 200)
 
 /*
  * References to external symbols

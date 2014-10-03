@@ -47,6 +47,18 @@
 #include "winmsg.h"
 #include "internal.h"
 
+/* Clipboard module constants */
+#define WIN_CONNECT_RETRIES			40
+#define WIN_CONNECT_DELAY			4
+#define WIN_JMP_OKAY				0
+#define WIN_JMP_ERROR_IO			2
+
+#define WIN_CLIPBOARD_WINDOW_CLASS		"xwinclip"
+#define WIN_CLIPBOARD_WINDOW_TITLE		"xwinclip"
+#ifdef HAS_DEVWINDOWS
+#define WIN_MSG_QUEUE_FNAME			"/dev/windows"
+#endif
+
 #ifdef _MSC_VER
 #define snprintf _snprintf
 #endif
@@ -55,6 +67,7 @@
  */
 
 extern Bool g_fUnicodeClipboard;
+extern Bool g_fClipboard;
 extern Bool g_fClipboardStarted;
 extern Bool g_fClipboardLaunched;
 extern HWND g_hwndClipboard;
@@ -423,6 +436,55 @@ commonexit:
 }
 
 /*
+ * Create the Windows window that we use to receive Windows messages
+ */
+
+HWND
+winClipboardCreateMessagingWindow(void)
+{
+    WNDCLASSEX wc;
+    HWND hwnd;
+
+    /* Setup our window class */
+    wc.cbSize = sizeof(WNDCLASSEX);
+    wc.style = CS_HREDRAW | CS_VREDRAW;
+    wc.lpfnWndProc = winClipboardWindowProc;
+    wc.cbClsExtra = 0;
+    wc.cbWndExtra = 0;
+    wc.hInstance = GetModuleHandle(NULL);
+    wc.hIcon = 0;
+    wc.hCursor = 0;
+    wc.hbrBackground = (HBRUSH) GetStockObject(WHITE_BRUSH);
+    wc.lpszMenuName = NULL;
+    wc.lpszClassName = WIN_CLIPBOARD_WINDOW_CLASS;
+    wc.hIconSm = 0;
+    RegisterClassEx(&wc);
+
+    /* Create the window */
+    hwnd = CreateWindowExA(0,   /* Extended styles */
+                           WIN_CLIPBOARD_WINDOW_CLASS,  /* Class name */
+                           WIN_CLIPBOARD_WINDOW_TITLE,  /* Window name */
+                           WS_OVERLAPPED,       /* Not visible anyway */
+                           CW_USEDEFAULT,       /* Horizontal position */
+                           CW_USEDEFAULT,       /* Vertical position */
+                           CW_USEDEFAULT,       /* Right edge */
+                           CW_USEDEFAULT,       /* Bottom edge */
+                           (HWND) NULL, /* No parent or owner window */
+                           (HMENU) NULL,        /* No menu */
+                           GetModuleHandle(NULL),       /* Instance handle */
+                           NULL);       /* Creation data */
+    assert(hwnd != NULL);
+
+    /* I'm not sure, but we may need to call this to start message processing */
+    ShowWindow(hwnd, SW_HIDE);
+
+    /* Similarly, we may need a call to this even though we don't paint */
+    UpdateWindow(hwnd);
+
+    return hwnd;
+}
+
+/*
  * winClipboardErrorHandler - Our application specific error handler
  */
 
@@ -477,4 +539,13 @@ winClipboardThreadExit(void *arg)
   /* clipboard thread has exited, stop server as well */
   AbortDDX(EXIT_ERR_ABORT);
   TerminateProcess(GetCurrentProcess(),1);
+}
+
+
+void
+winFixClipboardChain(int Removed)
+{
+    if (g_fClipboard && g_hwndClipboard) {
+        PostMessage (g_hwndClipboard, WM_WM_REINIT, Removed, 0);
+    }
 }

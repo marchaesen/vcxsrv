@@ -985,7 +985,7 @@ winRedrawScreenShadowDDNL(ScreenPtr pScreen)
 
     /* Return immediately if we didn't get needed surfaces */
     if (!pScreenPriv->pddsPrimary4 || !pScreenPriv->pddsShadow4)
-        return;
+        return FALSE;
 
     /* Get the origin of the window in the screen coords */
     ptOrigin.x = pScreenInfo->dwXOffset;

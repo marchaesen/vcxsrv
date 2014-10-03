@@ -111,8 +111,6 @@ typedef struct _winWMMessageRec {
 #define		WM_WM_HINTS_EVENT	(WM_USER + 14)
 #define		WM_MANAGE		(WM_USER + 100)
 #define		WM_UNMANAGE		(WM_USER + 102)
-#define		WM_WM_REINIT		(WM_USER + 200)
-
 
 #define		MwmHintsDecorations	(1L << 1)
 
