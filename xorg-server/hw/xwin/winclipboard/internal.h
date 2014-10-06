@@ -1,5 +1,3 @@
-#ifndef _WINCLIPBOARD_H_
-#define _WINCLIPBOARD_H_
 /*
  *Copyright (C) 2003-2004 Harold L Hunt II All Rights Reserved.
  *
@@ -29,6 +27,9 @@
  *
  * Authors:	Harold L Hunt II
  */
+
+#ifndef WINCLIPBOARD_INTERNAL_H
+#define WINCLIPBOARD_INTERNAL_H
 
 /* Standard library headers */
 #include <assert.h>
@@ -79,8 +80,6 @@ extern char *display;
 Bool
  winInitClipboard(void);
 
-HWND winClipboardCreateMessagingWindow(void);
-
 /*
  * winclipboardtextconv.c
  */
@@ -95,13 +94,12 @@ void
  * winclipboardthread.c
  */
 
-void *winClipboardProc(void *);
 
 /*
  * winclipboardwndproc.c
  */
 
-BOOL winClipboardFlushWindowsMessageQueue(HWND hwnd);
+Bool winClipboardFlushWindowsMessageQueue(HWND hwnd);
 
 LRESULT CALLBACK
 winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);

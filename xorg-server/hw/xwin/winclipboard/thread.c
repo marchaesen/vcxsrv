@@ -89,6 +89,9 @@ Bool g_fUseUnicode = FALSE;
  * Local function prototypes
  */
 
+static HWND
+winClipboardCreateMessagingWindow(void);
+
 static int
  winClipboardErrorHandler(Display * pDisplay, XErrorEvent * pErr);
 
@@ -101,8 +104,8 @@ winClipboardThreadExit(void *arg);
  * Main thread function
  */
 
-void *
-winClipboardProc(void *pvNotUsed)
+Bool
+winClipboardProc(Bool fUseUnicode, char *szDisplay)
 {
     Atom atomClipboard;
     int iReturn;
@@ -118,30 +121,25 @@ winClipboardProc(void *pvNotUsed)
     int iMaxDescriptor;
     Display *pDisplay = NULL;
     Window iWindow = None;
-    int iRetries;
-    Bool fUseUnicode;
-    char szDisplay[512];
     int iSelectError;
 
     pthread_cleanup_push(&winClipboardThreadExit, NULL);
 
     winDebug ("winClipboardProc - Hello\n");
 
-    /* Do we use Unicode clipboard? */
-    fUseUnicode = g_fUnicodeClipboard;
-
     /* Save the Unicode support flag in a global */
     g_fUseUnicode = fUseUnicode;
 
     /* Create Windows messaging window */
     hwnd = winClipboardCreateMessagingWindow ();
-  
+
     /* Save copy of HWND in screen privates */
     g_hwndClipboard = hwnd;
 
+    g_winClipboardProcThread = pthread_self();
+
     /* Set error handler */
     XSetErrorHandler(winClipboardErrorHandler);
-    g_winClipboardProcThread = pthread_self();
     g_winClipboardOldIOErrorHandler =
         XSetIOErrorHandler(winClipboardIOErrorHandler);
 
@@ -159,41 +157,8 @@ winClipboardProc(void *pvNotUsed)
         ErrorF("winClipboardProc - setjmp returned for IO Error Handler.\n");
     }
 
-    /* Use our generated cookie for authentication */
-    winSetAuthorization();
-
-    /* Initialize retry count */
-    iRetries = 0;
-
-    /* Setup the display connection string x */
-    /*
-     * NOTE: Always connect to screen 0 since we require that screen
-     * numbers start at 0 and increase without gaps.  We only need
-     * to connect to one screen on the display to get events
-     * for all screens on the display.  That is why there is only
-     * one clipboard client thread.
-     */
-    winGetDisplayName(szDisplay, 0);
-
-    /* Print the display connection string */
-    winDebug ("winClipboardProc - DISPLAY=%s\n", szDisplay);
-
-    /* Open the X display */
-    do {
-        pDisplay = XOpenDisplay(szDisplay);
-        if (pDisplay == NULL) {
-            ErrorF("winClipboardProc - Could not open display, "
-                   "try: %d, sleeping: %d\n", iRetries + 1, WIN_CONNECT_DELAY);
-            ++iRetries;
-            sleep(WIN_CONNECT_DELAY);
-            continue;
-        }
-        else
-            break;
-    }
-    while (pDisplay == NULL && iRetries < WIN_CONNECT_RETRIES);
-
     /* Make sure that the display opened */
+    pDisplay = XOpenDisplay(szDisplay);
     if (pDisplay == NULL) {
         ErrorF("winClipboardProc - Failed opening the display, giving up\n");
         goto thread_errorexit;
@@ -282,7 +247,7 @@ winClipboardProc(void *pvNotUsed)
     }
 
     /* Pre-flush X events */
-    /* 
+    /*
      * NOTE: Apparently you'll freeze if you don't do this,
      *       because there may be events in local data structures
      *       already.
@@ -432,7 +397,7 @@ commonexit:
 
     pthread_cleanup_pop(0);
 
-    return NULL;
+    return FALSE;
 }
 
 /*

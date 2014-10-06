@@ -27,5 +27,6 @@
 #ifndef WINCLIPBOARD_H
 #define WINCLIPBOARD_H
 
+void winFixClipboardChain (int Removed);
 
 #endif

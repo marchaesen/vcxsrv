@@ -79,6 +79,11 @@ extern Bool g_fUnicodeClipboard;
 extern Bool g_fClipboard;
 extern Bool g_fClipboardStarted;
 
+extern Bool g_fClipboardLaunched;
+
+extern pthread_t g_ptClipboardProc;
+extern HWND g_hwndClipboard;
+
 /* The global X default icons */
 #if defined(XWIN_MULTIWINDOW)
 extern HICON g_hIconX;

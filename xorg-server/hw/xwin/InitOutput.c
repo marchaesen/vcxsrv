@@ -61,23 +61,10 @@ typedef HRESULT  (__stdcall *  SHGETFOLDERPATHPROC)(HWND hwndOwner,
 /*
  * References to external symbols
  */
-#ifdef XWIN_CLIPBOARD
-extern Bool g_fUnicodeClipboard;
-extern Bool g_fClipboardLaunched;
-extern Bool g_fClipboardStarted;
-extern pthread_t g_ptClipboardProc;
-extern HWND g_hwndClipboard;
-extern Bool g_fClipboard;
-#endif
 
 /*
  * Function prototypes
  */
-
-#ifdef XWIN_CLIPBOARD
-static void
- winClipboardShutdown(void);
-#endif
 
 static Bool
  winCheckDisplayNumber(void);
@@ -119,29 +106,6 @@ static PixmapFormatRec g_PixmapFormats[] = {
 };
 
 const int NUMFORMATS = sizeof(g_PixmapFormats) / sizeof(g_PixmapFormats[0]);
-
-#ifdef XWIN_CLIPBOARD
-static void
-winClipboardShutdown(void)
-{
-    /* Close down clipboard resources */
-    if (g_fClipboard && g_fClipboardLaunched && g_fClipboardStarted) {
-        /* Synchronously destroy the clipboard window */
-        if (g_hwndClipboard != NULL) {
-            g_fClipboardStarted=FALSE; /* This is to avoid dead-locls caused by the clipboard thread still doing some stuff */
-            SendMessage(g_hwndClipboard, WM_DESTROY, 0, 0);
-            /* NOTE: g_hwndClipboard is set to NULL in winclipboardthread.c */
-        }
-        else
-            return;
-
-        /* Wait for the clipboard thread to exit */
-        pthread_join(g_ptClipboardProc, NULL);
-
-        winDebug("winClipboardShutdown - Clipboard thread has exited.\n");
-    }
-}
-#endif
 
 static const ExtensionModule xwinExtensions[] = {
 #ifdef GLXEXT
