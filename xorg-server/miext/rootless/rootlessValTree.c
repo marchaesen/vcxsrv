@@ -106,64 +106,6 @@ Equipment Corporation.
 
 int RootlessMiValidateTree(WindowPtr pRoot, WindowPtr pChild, VTKind kind);
 
-/*
- * Compute the visibility of a shaped window
- */
-static int
-RootlessShapedWindowIn(RegionPtr universe,
-                       RegionPtr bounding, BoxPtr rect, int x, int y)
-{
-    BoxRec box;
-    register BoxPtr boundBox;
-    int nbox;
-    Bool someIn, someOut;
-    register int t, x1, y1, x2, y2;
-
-    nbox = RegionNumRects(bounding);
-    boundBox = RegionRects(bounding);
-    someIn = someOut = FALSE;
-    x1 = rect->x1;
-    y1 = rect->y1;
-    x2 = rect->x2;
-    y2 = rect->y2;
-    while (nbox--) {
-        if ((t = boundBox->x1 + x) < x1)
-            t = x1;
-        box.x1 = t;
-        if ((t = boundBox->y1 + y) < y1)
-            t = y1;
-        box.y1 = t;
-        if ((t = boundBox->x2 + x) > x2)
-            t = x2;
-        box.x2 = t;
-        if ((t = boundBox->y2 + y) > y2)
-            t = y2;
-        box.y2 = t;
-        if (box.x1 > box.x2)
-            box.x2 = box.x1;
-        if (box.y1 > box.y2)
-            box.y2 = box.y1;
-        switch (RegionContainsRect(universe, &box)) {
-        case rgnIN:
-            if (someOut)
-                return rgnPART;
-            someIn = TRUE;
-            break;
-        case rgnOUT:
-            if (someIn)
-                return rgnPART;
-            someOut = TRUE;
-            break;
-        default:
-            return rgnPART;
-        }
-        boundBox++;
-    }
-    if (someIn)
-        return rgnIN;
-    return rgnOUT;
-}
-
 #define HasParentRelativeBorder(w) (!(w)->borderIsPixel && \
 				    HasBorder(w) && \
 				    (w)->backgroundState == ParentRelative)
@@ -229,10 +171,9 @@ RootlessComputeClips(WindowPtr pParent, ScreenPtr pScreen,
             RegionPtr pBounding;
 
             if ((pBounding = wBoundingShape(pParent))) {
-                switch (RootlessShapedWindowIn(universe,
-                                               pBounding, &borderSize,
-                                               pParent->drawable.x,
-                                               pParent->drawable.y)) {
+                switch (miShapedWindowIn(universe, pBounding, &borderSize,
+                                         pParent->drawable.x,
+                                         pParent->drawable.y)) {
                 case rgnIN:
                     newVis = VisibilityUnobscured;
                     break;

@@ -47,6 +47,9 @@ The framebuffer device to use. Default: /dev/dri/card0.
 .BI "Option \*qShadowFB\*q \*q" boolean \*q
 Enable or disable use of the shadow framebuffer layer.  Default: on.
 .TP
+.BI "Option \*qAccelMethod\*q \*q" string \*q
+One of \*qglamor\*q or \*qnone\*q.  Default: glamor
+.TP
 .SH "SEE ALSO"
 __xservername__(__appmansuffix__), __xconfigfile__(__filemansuffix__), Xserver(__appmansuffix__),
 X(__miscmansuffix__)

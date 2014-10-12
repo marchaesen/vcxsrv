@@ -214,18 +214,6 @@ typedef struct {
     DevPrivateKeyRec gcPrivateKeyRec;
 } ExaScreenPrivRec, *ExaScreenPrivPtr;
 
-/*
- * This is the only completely portable way to
- * compute this info.
- */
-#ifndef BitsPerPixel
-#define BitsPerPixel(d) (\
-    PixmapWidthPaddingInfo[d].notPower2 ? \
-    (PixmapWidthPaddingInfo[d].bytesPerPixel * 8) : \
-    ((1 << PixmapWidthPaddingInfo[d].padBytesLog2) * 8 / \
-    (PixmapWidthPaddingInfo[d].padRoundUp+1)))
-#endif
-
 extern DevPrivateKeyRec exaScreenPrivateKeyRec;
 
 #define exaScreenPrivateKey (&exaScreenPrivateKeyRec)

@@ -2747,6 +2747,8 @@ int __glXDisp_AreTexturesResident(__GLXclientState *cl, GLbyte *pc)
         GLboolean retval;
         GLboolean answerBuffer[200];
         GLboolean * residences = __glXGetAnswerBuffer(cl, n, answerBuffer, sizeof(answerBuffer), 1);
+        if (residences == NULL)
+            return BadAlloc;
         retval = CALL_AreTexturesResident( GET_DISPATCH(), (
             n,
              (const GLuint *)(pc +  4),
@@ -2772,6 +2774,8 @@ int __glXDisp_AreTexturesResidentEXT(__GLXclientState *cl, GLbyte *pc)
         GLboolean retval;
         GLboolean answerBuffer[200];
         GLboolean * residences = __glXGetAnswerBuffer(cl, n, answerBuffer, sizeof(answerBuffer), 1);
+        if (residences == NULL)
+            return BadAlloc;
         retval = CALL_AreTexturesResident( GET_DISPATCH(), (
             n,
              (const GLuint *)(pc +  4),
@@ -2889,6 +2893,8 @@ int __glXDisp_GenTextures(__GLXclientState *cl, GLbyte *pc)
 
         GLuint answerBuffer[200];
         GLuint * textures = __glXGetAnswerBuffer(cl, n * 4, answerBuffer, sizeof(answerBuffer), 4);
+        if (textures == NULL)
+            return BadAlloc;
         CALL_GenTextures( GET_DISPATCH(), (
             n,
             textures
@@ -2912,6 +2918,8 @@ int __glXDisp_GenTexturesEXT(__GLXclientState *cl, GLbyte *pc)
 
         GLuint answerBuffer[200];
         GLuint * textures = __glXGetAnswerBuffer(cl, n * 4, answerBuffer, sizeof(answerBuffer), 4);
+        if (textures == NULL)
+            return BadAlloc;
         CALL_GenTextures( GET_DISPATCH(), (
             n,
             textures
@@ -4261,6 +4269,8 @@ int __glXDisp_GenQueries(__GLXclientState *cl, GLbyte *pc)
 
         GLuint answerBuffer[200];
         GLuint * ids = __glXGetAnswerBuffer(cl, n * 4, answerBuffer, sizeof(answerBuffer), 4);
+        if (ids == NULL)
+            return BadAlloc;
         CALL_GenQueries( GET_DISPATCH(), (
             n,
             ids
@@ -4711,6 +4721,8 @@ int __glXDisp_GenProgramsARB(__GLXclientState *cl, GLbyte *pc)
 
         GLuint answerBuffer[200];
         GLuint * programs = __glXGetAnswerBuffer(cl, n * 4, answerBuffer, sizeof(answerBuffer), 4);
+        if (programs == NULL)
+            return BadAlloc;
         CALL_GenProgramsARB( GET_DISPATCH(), (
             n,
             programs
@@ -5086,6 +5098,8 @@ int __glXDisp_GenFramebuffers(__GLXclientState *cl, GLbyte *pc)
 
         GLuint answerBuffer[200];
         GLuint * framebuffers = __glXGetAnswerBuffer(cl, n * 4, answerBuffer, sizeof(answerBuffer), 4);
+        if (framebuffers == NULL)
+            return BadAlloc;
         CALL_GenFramebuffers( GET_DISPATCH(), (
             n,
             framebuffers
@@ -5109,6 +5123,8 @@ int __glXDisp_GenRenderbuffers(__GLXclientState *cl, GLbyte *pc)
 
         GLuint answerBuffer[200];
         GLuint * renderbuffers = __glXGetAnswerBuffer(cl, n * 4, answerBuffer, sizeof(answerBuffer), 4);
+        if (renderbuffers == NULL)
+            return BadAlloc;
         CALL_GenRenderbuffers( GET_DISPATCH(), (
             n,
             renderbuffers
@@ -5271,6 +5287,8 @@ int __glXDisp_AreProgramsResidentNV(__GLXclientState *cl, GLbyte *pc)
         GLboolean retval;
         GLboolean answerBuffer[200];
         GLboolean * residences = __glXGetAnswerBuffer(cl, n, answerBuffer, sizeof(answerBuffer), 1);
+        if (residences == NULL)
+            return BadAlloc;
         retval = CALL_AreProgramsResidentNV( GET_DISPATCH(), (
             n,
              (const GLuint *)(pc +  4),

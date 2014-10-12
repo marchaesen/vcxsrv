@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: XCB DRI2
 Description: XCB DRI2 Extension
 Version: @PACKAGE_VERSION@
-Requires: xcb
+Requires.private: xcb
 Libs: -L${libdir} -lxcb-dri2
 Cflags: -I${includedir}

@@ -2343,6 +2343,8 @@ fast_fetch_bilinear_cover (pixman_iter_t *iter, const uint32_t *mask)
     int32_t dist_y;
     int i;
 
+    COMPILE_TIME_ASSERT (BILINEAR_INTERPOLATION_BITS < 8);
+
     fx = info->x;
     ux = iter->image->common.transform->matrix[0][0];
 

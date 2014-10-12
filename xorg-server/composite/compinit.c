@@ -119,12 +119,12 @@ compChangeWindowAttributes(WindowPtr pWin, unsigned long mask)
         pScreen->backingStoreSupport != NotUseful) {
         if (pWin->backingStore != NotUseful && !pWin->backStorage) {
             compRedirectWindow(serverClient, pWin, CompositeRedirectAutomatic);
-            pWin->backStorage = (void *) (intptr_t) 1;
+            pWin->backStorage = TRUE;
         }
         else if (pWin->backingStore == NotUseful && pWin->backStorage) {
             compUnredirectWindow(serverClient, pWin,
                                  CompositeRedirectAutomatic);
-            pWin->backStorage = NULL;
+            pWin->backStorage = FALSE;
         }
     }
 

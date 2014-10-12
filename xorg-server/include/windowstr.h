@@ -144,14 +144,13 @@ typedef struct _Window {
     Mask eventMask;             /* mask from the creating client */
     PixUnion background;
     PixUnion border;
-    void *backStorage;          /* null when BS disabled */
     WindowOptPtr optional;
     unsigned backgroundState:2; /* None, Relative, Pixel, Pixmap */
     unsigned borderIsPixel:1;
     unsigned cursorIsNone:1;    /* else real cursor (might inherit) */
     unsigned backingStore:2;
+    unsigned backStorage:1;     /* if bs is allocated */
     unsigned saveUnder:1;
-    unsigned DIXsaveUnder:1;
     unsigned bitGravity:4;
     unsigned winGravity:4;
     unsigned overrideRedirect:1;

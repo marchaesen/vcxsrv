@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: XCB XTEST
 Description: XCB XTEST Extension
 Version: @PACKAGE_VERSION@
-Requires: xcb
+Requires.private: xcb
 Libs: -L${libdir} -lxcb-xtest
 Cflags: -I${includedir}

@@ -57,7 +57,6 @@ typedef struct {
     Bool active;
     Bool inUse;
     int videoRam;
-    int textClockFreq;
     void *options;
     int screen;                 /* For multi-CRTC cards */
 } GDevRec, *GDevPtr;

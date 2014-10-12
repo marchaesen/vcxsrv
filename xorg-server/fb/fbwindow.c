@@ -46,7 +46,7 @@ fbDestroyWindow(WindowPtr pWin)
 }
 
 Bool
-fbMapWindow(WindowPtr pWindow)
+fbRealizeWindow(WindowPtr pWindow)
 {
     return TRUE;
 }
@@ -58,7 +58,7 @@ fbPositionWindow(WindowPtr pWin, int x, int y)
 }
 
 Bool
-fbUnmapWindow(WindowPtr pWindow)
+fbUnrealizeWindow(WindowPtr pWindow)
 {
     return TRUE;
 }

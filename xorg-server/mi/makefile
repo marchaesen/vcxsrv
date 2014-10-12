@@ -36,4 +36,5 @@ CSRCS=miarc.c		\
   
 LIBRARY=libmi
 
+INCLUDES+=../composite
 

@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: XCB XvMC
 Description: XCB XvMC Extension
 Version: @PACKAGE_VERSION@
-Requires: xcb xcb-xv
+Requires.private: xcb xcb-xv
 Libs: -L${libdir} -lxcb-xvmc
 Cflags: -I${includedir}

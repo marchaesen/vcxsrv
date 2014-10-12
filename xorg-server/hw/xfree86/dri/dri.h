@@ -280,8 +280,7 @@ extern _X_EXPORT void DRISwapContext(int drmFD, void *oldctx, void *newctx);
 
 extern _X_EXPORT void *DRIGetContextStore(DRIContextPrivPtr context);
 
-extern _X_EXPORT void DRIWindowExposures(WindowPtr pWin,
-                                         RegionPtr prgn, RegionPtr bsreg);
+extern _X_EXPORT void DRIWindowExposures(WindowPtr pWin, RegionPtr prgn);
 
 extern _X_EXPORT Bool DRIDestroyWindow(WindowPtr pWin);
 

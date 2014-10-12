@@ -45,6 +45,7 @@
 #include "main/texenv.h"
 #include "main/teximage.h"
 #include "main/texparam.h"
+#include "main/uniforms.h"
 #include "main/varray.h"
 #include "main/viewport.h"
 #include "swrast/swrast.h"
@@ -69,7 +70,7 @@ setup_glsl_msaa_blit_scaled_shader(struct gl_context *ctx,
    const uint8_t *sample_map;
    char *sample_map_str = rzalloc_size(mem_ctx, 1);
    char *sample_map_expr = rzalloc_size(mem_ctx, 1);
-   char *texel_fetch_macro = rzalloc_size(mem_ctx, 1);;
+   char *texel_fetch_macro = rzalloc_size(mem_ctx, 1);
    const char *vs_source;
    const char *sampler_array_suffix = "";
    const char *texcoord_type = "vec2";
@@ -105,11 +106,11 @@ setup_glsl_msaa_blit_scaled_shader(struct gl_context *ctx,
       _mesa_UseProgram(blit->msaa_shaders[shader_index]);
       /* Update the uniform values. */
       loc_src_width =
-		  _mesa_GetUniformLocation(blit->msaa_shaders[shader_index], "src_width");
+         _mesa_GetUniformLocation(blit->msaa_shaders[shader_index], "src_width");
       loc_src_height =
-		  _mesa_GetUniformLocation(blit->msaa_shaders[shader_index], "src_height");
-	  _mesa_Uniform1f(loc_src_width, src_rb->Width);
-	  _mesa_Uniform1f(loc_src_height, src_rb->Height);
+         _mesa_GetUniformLocation(blit->msaa_shaders[shader_index], "src_height");
+      _mesa_Uniform1f(loc_src_width, src_rb->Width);
+      _mesa_Uniform1f(loc_src_height, src_rb->Height);
       return;
    }
 
@@ -218,9 +219,9 @@ setup_glsl_msaa_blit_scaled_shader(struct gl_context *ctx,
    _mesa_meta_compile_and_link_program(ctx, vs_source, fs_source, name,
                                        &blit->msaa_shaders[shader_index]);
    loc_src_width =
-	   _mesa_GetUniformLocation(blit->msaa_shaders[shader_index], "src_width");
+      _mesa_GetUniformLocation(blit->msaa_shaders[shader_index], "src_width");
    loc_src_height =
-	   _mesa_GetUniformLocation(blit->msaa_shaders[shader_index], "src_height");
+      _mesa_GetUniformLocation(blit->msaa_shaders[shader_index], "src_height");
    _mesa_Uniform1f(loc_src_width, src_rb->Width);
    _mesa_Uniform1f(loc_src_height, src_rb->Height);
 

@@ -84,7 +84,7 @@ static int xf86XVQueryImageAttributes(XvPortPtr, XvImagePtr,
 /* ScreenRec fields */
 
 static Bool xf86XVDestroyWindow(WindowPtr pWin);
-static void xf86XVWindowExposures(WindowPtr pWin, RegionPtr r1, RegionPtr r2);
+static void xf86XVWindowExposures(WindowPtr pWin, RegionPtr r1);
 static void xf86XVPostValidateTree(WindowPtr pWin, WindowPtr pLayerWin,
                                    VTKind kind);
 static void xf86XVClipNotify(WindowPtr pWin, int dx, int dy);
@@ -1048,7 +1048,7 @@ xf86XVPostValidateTree(WindowPtr pWin, WindowPtr pLayerWin, VTKind kind)
 }
 
 static void
-xf86XVWindowExposures(WindowPtr pWin, RegionPtr reg1, RegionPtr reg2)
+xf86XVWindowExposures(WindowPtr pWin, RegionPtr reg1)
 {
     ScreenPtr pScreen = pWin->drawable.pScreen;
     XF86XVScreenPtr ScreenPriv = GET_XF86XV_SCREEN(pScreen);
@@ -1059,7 +1059,7 @@ xf86XVWindowExposures(WindowPtr pWin, RegionPtr reg1, RegionPtr reg2)
     AreasExposed = (WinPriv && reg1 && RegionNotEmpty(reg1));
 
     pScreen->WindowExposures = ScreenPriv->WindowExposures;
-    (*pScreen->WindowExposures) (pWin, reg1, reg2);
+    (*pScreen->WindowExposures) (pWin, reg1);
     pScreen->WindowExposures = xf86XVWindowExposures;
 
     /* filter out XClearWindow/Area */
@@ -1116,10 +1116,6 @@ xf86XVClipNotify(WindowPtr pWin, int dx, int dy)
             RegionDestroy(pPriv->pCompositeClip);
 
         pPriv->pCompositeClip = NULL;
-
-        if (pPriv->AdaptorRec->ClipNotify)
-            (*pPriv->AdaptorRec->ClipNotify) (pPriv->pScrn, pPriv->DevPriv.ptr,
-                                              pWin, dx, dy);
 
         pPriv->clipChanged = TRUE;
 

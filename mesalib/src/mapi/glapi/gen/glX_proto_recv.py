@@ -449,6 +449,8 @@ class PrintGlxDispatchFunctions(glX_proto_common.glx_print_proto):
             elif param.counter:
                 print '        %s answerBuffer[200];' %  (answer_type)
                 print '        %s %s = __glXGetAnswerBuffer(cl, %s%s, answerBuffer, sizeof(answerBuffer), %u);' % (param.type_string(), param.name, param.counter, size_scale, type_size)
+                print '        if (%s == NULL)' % (param.name)
+                print '            return BadAlloc;'
                 answer_string = param.name
                 answer_count = param.counter
             elif c >= 1:

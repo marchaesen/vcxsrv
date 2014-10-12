@@ -138,9 +138,6 @@ DRIFinishScreenInit(ScreenPtr pScreen)
     DRIScreenPrivPtr pDRIPriv = DRI_SCREEN_PRIV(pScreen);
 
     /* Wrap DRI support */
-    pDRIPriv->wrap.WindowExposures = pScreen->WindowExposures;
-    pScreen->WindowExposures = DRIWindowExposures;
-
     pDRIPriv->wrap.CopyWindow = pScreen->CopyWindow;
     pScreen->CopyWindow = DRICopyWindow;
 
@@ -574,24 +571,6 @@ DRIDrawablePrivDelete(void *pResource, XID id)
     --pDRIPriv->nrWindows;
 
     return TRUE;
-}
-
-void
-DRIWindowExposures(WindowPtr pWin, RegionPtr prgn, RegionPtr bsreg)
-{
-    ScreenPtr pScreen = pWin->drawable.pScreen;
-    DRIScreenPrivPtr pDRIPriv = DRI_SCREEN_PRIV(pScreen);
-    DRIDrawablePrivPtr pDRIDrawablePriv = DRI_DRAWABLE_PRIV_FROM_WINDOW(pWin);
-
-    if (pDRIDrawablePriv) {
-        /* FIXME: something? */
-    }
-
-    pScreen->WindowExposures = pDRIPriv->wrap.WindowExposures;
-
-    (*pScreen->WindowExposures)(pWin, prgn, bsreg);
-
-    pScreen->WindowExposures = DRIWindowExposures;
 }
 
 void

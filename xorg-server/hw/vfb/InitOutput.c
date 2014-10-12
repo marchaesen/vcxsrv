@@ -380,26 +380,10 @@ ddxProcessArgument(int argc, char *argv[], int i)
     return 0;
 }
 
-static DevPrivateKeyRec cmapScrPrivateKeyRec;
-
-#define cmapScrPrivateKey (&cmapScrPrivateKeyRec)
-
-#define GetInstalledColormap(s) ((ColormapPtr) dixLookupPrivate(&(s)->devPrivates, cmapScrPrivateKey))
-#define SetInstalledColormap(s,c) (dixSetPrivate(&(s)->devPrivates, cmapScrPrivateKey, c))
-
-static int
-vfbListInstalledColormaps(ScreenPtr pScreen, Colormap * pmaps)
-{
-    /* By the time we are processing requests, we can guarantee that there
-     * is always a colormap installed */
-    *pmaps = GetInstalledColormap(pScreen)->mid;
-    return 1;
-}
-
 static void
 vfbInstallColormap(ColormapPtr pmap)
 {
-    ColormapPtr oldpmap = GetInstalledColormap(pmap->pScreen);
+    ColormapPtr oldpmap = GetInstalledmiColormap(pmap->pScreen);
 
     if (pmap != oldpmap) {
         int entries;
@@ -410,11 +394,7 @@ vfbInstallColormap(ColormapPtr pmap)
         xColorItem *defs;
         int i;
 
-        if (oldpmap != (ColormapPtr) None)
-            WalkTree(pmap->pScreen, TellLostMap, (char *) &oldpmap->mid);
-        /* Install pmap */
-        SetInstalledColormap(pmap->pScreen, pmap);
-        WalkTree(pmap->pScreen, TellGainedMap, (char *) &pmap->mid);
+        miInstallColormap(pmap);
 
         entries = pmap->pVisual->ColormapEntries;
         pXWDHeader = vfbScreens[pmap->pScreen->myNum].pXWDHeader;
@@ -452,28 +432,12 @@ vfbInstallColormap(ColormapPtr pmap)
 }
 
 static void
-vfbUninstallColormap(ColormapPtr pmap)
-{
-    ColormapPtr curpmap = GetInstalledColormap(pmap->pScreen);
-
-    if (pmap == curpmap) {
-        if (pmap->mid != pmap->pScreen->defColormap) {
-            dixLookupResourceByType((void **) &curpmap,
-                                    pmap->pScreen->defColormap,
-                                    RT_COLORMAP, serverClient,
-                                    DixInstallAccess);
-            (*pmap->pScreen->InstallColormap) (curpmap);
-        }
-    }
-}
-
-static void
 vfbStoreColors(ColormapPtr pmap, int ndef, xColorItem * pdefs)
 {
     XWDColor *pXWDCmap;
     int i;
 
-    if (pmap != GetInstalledColormap(pmap->pScreen)) {
+    if (pmap != GetInstalledmiColormap(pmap->pScreen)) {
         return;
     }
 
@@ -761,16 +725,8 @@ static Bool
 vfbCloseScreen(ScreenPtr pScreen)
 {
     vfbScreenInfoPtr pvfb = &vfbScreens[pScreen->myNum];
-    int i;
 
     pScreen->CloseScreen = pvfb->closeScreen;
-
-    /*
-     * XXX probably lots of stuff to clean.  For now,
-     * clear installed colormaps so that server reset works correctly.
-     */
-    for (i = 0; i < screenInfo.numScreens; i++)
-        SetInstalledColormap(screenInfo.screens[i], NULL);
 
     /*
      * fb overwrites miCloseScreen, so do this here
@@ -789,9 +745,6 @@ vfbScreenInit(ScreenPtr pScreen, int argc, char **argv)
     int dpix = monitorResolution, dpiy = monitorResolution;
     int ret;
     char *pbits;
-
-    if (!dixRegisterPrivateKey(&cmapScrPrivateKeyRec, PRIVATE_SCREEN, 0))
-        return FALSE;
 
     if (dpix == 0)
         dpix = 100;
@@ -859,8 +812,6 @@ vfbScreenInit(ScreenPtr pScreen, int argc, char **argv)
         return FALSE;
 
     pScreen->InstallColormap = vfbInstallColormap;
-    pScreen->UninstallColormap = vfbUninstallColormap;
-    pScreen->ListInstalledColormaps = vfbListInstalledColormaps;
 
     pScreen->SaveScreen = vfbSaveScreen;
     pScreen->StoreColors = vfbStoreColors;

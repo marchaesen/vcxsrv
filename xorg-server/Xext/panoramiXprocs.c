@@ -1191,9 +1191,8 @@ PanoramiXCopyArea(ClientPtr client)
             Bool overlap;
 
             RegionValidate(&totalReg, &overlap);
-            (*pDst->pScreen->SendGraphicsExpose) (client, &totalReg,
-                                                  stuff->dstDrawable,
-                                                  X_CopyArea, 0);
+            SendGraphicsExpose(client, &totalReg, stuff->dstDrawable,
+                               X_CopyArea, 0);
             RegionUninit(&totalReg);
         }
     }
@@ -1304,9 +1303,8 @@ PanoramiXCopyPlane(ClientPtr client)
         Bool overlap;
 
         RegionValidate(&totalReg, &overlap);
-        (*pdstDraw->pScreen->SendGraphicsExpose) (client, &totalReg,
-                                                  stuff->dstDrawable,
-                                                  X_CopyPlane, 0);
+        SendGraphicsExpose(client, &totalReg, stuff->dstDrawable,
+                           X_CopyPlane, 0);
         RegionUninit(&totalReg);
     }
 

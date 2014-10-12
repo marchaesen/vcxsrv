@@ -304,8 +304,7 @@ miDoCopy(DrawablePtr pSrcDrawable,
                                         yIn - pSrcDrawable->y,
                                         widthSrc, heightSrc,
                                         xOut - pDstDrawable->x,
-                                        yOut - pDstDrawable->y,
-                                        (unsigned long) bitPlane);
+                                        yOut - pDstDrawable->y);
     RegionUninit(&rgnDst);
     if (freeSrcClip)
         RegionDestroy(prgnSrcClip);

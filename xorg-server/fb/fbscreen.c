@@ -110,8 +110,8 @@ fbSetupScreen(ScreenPtr pScreen, void *pbits, /* pointer to screen bitmap */
     pScreen->DestroyWindow = fbDestroyWindow;
     pScreen->PositionWindow = fbPositionWindow;
     pScreen->ChangeWindowAttributes = fbChangeWindowAttributes;
-    pScreen->RealizeWindow = fbMapWindow;
-    pScreen->UnrealizeWindow = fbUnmapWindow;
+    pScreen->RealizeWindow = fbRealizeWindow;
+    pScreen->UnrealizeWindow = fbUnrealizeWindow;
     pScreen->CopyWindow = fbCopyWindow;
     pScreen->CreatePixmap = fbCreatePixmap;
     pScreen->DestroyPixmap = fbDestroyPixmap;

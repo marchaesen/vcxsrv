@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: XCB Res
 Description: XCB X-Resource Extension
 Version: @PACKAGE_VERSION@
-Requires: xcb
+Requires.private: xcb
 Libs: -L${libdir} -lxcb-res
 Cflags: -I${includedir}

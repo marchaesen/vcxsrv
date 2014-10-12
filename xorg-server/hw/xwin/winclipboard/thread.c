@@ -111,6 +111,7 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
     int iReturn;
     HWND hwnd = NULL;
     int iConnectionNumber = 0;
+    Bool bShutDown = TRUE;
 
 #ifdef HAS_DEVWINDOWS
     int fdMessageQueue = 0;
@@ -161,6 +162,7 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
     pDisplay = XOpenDisplay(szDisplay);
     if (pDisplay == NULL) {
         ErrorF("winClipboardProc - Failed opening the display, giving up\n");
+        bShutDown = FALSE;
         goto thread_errorexit;
     }
 
@@ -397,7 +399,7 @@ commonexit:
 
     pthread_cleanup_pop(0);
 
-    return FALSE;
+    return bShutDown;
 }
 
 /*

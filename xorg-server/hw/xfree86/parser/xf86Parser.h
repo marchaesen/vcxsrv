@@ -211,7 +211,6 @@ typedef struct {
     const char *dev_ramdac;
     int dev_dacSpeeds[CONF_MAXDACSPEEDS];
     int dev_videoram;
-    int dev_textclockfreq;
     unsigned long dev_bios_base;
     unsigned long dev_mem_base;
     unsigned long dev_io_base;

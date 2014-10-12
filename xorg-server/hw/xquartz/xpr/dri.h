@@ -51,7 +51,6 @@ typedef void (*ClipNotifyPtr)(WindowPtr, int, int);
  * overridden by the driver in its [driver]DRIScreenInit function.
  */
 typedef struct {
-    WindowExposuresProcPtr WindowExposures;
     CopyWindowProcPtr CopyWindow;
     ClipNotifyProcPtr ClipNotify;
 } DRIWrappedFuncsRec, *DRIWrappedFuncsPtr;
@@ -107,9 +106,6 @@ DRICopyWindow(WindowPtr pWin, DDXPointRec ptOldOrg, RegionPtr prgnSrc);
 
 extern void
 DRIClipNotify(WindowPtr pWin, int dx, int dy);
-
-extern void
-DRIWindowExposures(WindowPtr pWin, RegionPtr prgn, RegionPtr bsreg);
 
 extern void
 DRISurfaceNotify(xp_surface_id id, int kind);

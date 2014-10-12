@@ -591,9 +591,6 @@ CompositeExtensionInit(void)
         return;
     CompositeReqCode = (CARD8) extEntry->base;
 
-    miRegisterRedirectBorderClipProc(compSetRedirectBorderClip,
-                                     compGetRedirectBorderClip);
-
     /* Initialization succeeded */
     noCompositeExtension = FALSE;
 }

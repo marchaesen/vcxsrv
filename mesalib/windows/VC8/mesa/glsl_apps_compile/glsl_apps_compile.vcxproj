@@ -249,6 +249,7 @@
     <ClCompile Include="..\..\..\..\src\glsl\opt_flip_matrices.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_function_inlining.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_if_simplification.cpp" />
+    <ClCompile Include="..\..\..\..\src\glsl\opt_minmax.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_noop_swizzle.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_rebalance_tree.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_redundant_jumps.cpp" />

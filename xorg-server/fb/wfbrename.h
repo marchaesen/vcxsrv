@@ -86,7 +86,6 @@
 #define fbInstallColormap wfbInstallColormap
 #define fbLaneTable wfbLaneTable
 #define fbListInstalledColormaps wfbListInstalledColormaps
-#define fbMapWindow wfbMapWindow
 #define FbMergeRopBits wFbMergeRopBits
 #define fbOddStipple wfbOddStipple
 #define fbOddTile wfbOddTile
@@ -132,6 +131,7 @@
 #define fbQueryBestSize wfbQueryBestSize
 #define fbRasterizeTrapezoid wfbRasterizeTrapezoid
 #define fbRealizeFont wfbRealizeFont
+#define fbRealizeWindow wfbRealizeWindow
 #define fbReduceRasterOp wfbReduceRasterOp
 #define fbReplicatePixel wfbReplicatePixel
 #define fbResolveColor wfbResolveColor
@@ -158,7 +158,7 @@
 #define fbTrapezoids wfbTrapezoids
 #define fbTriangles wfbTriangles
 #define fbUninstallColormap wfbUninstallColormap
-#define fbUnmapWindow wfbUnmapWindow
+#define fbUnrealizeWindow wfbUnrealizeWindow
 #define fbUnrealizeFont wfbUnrealizeFont
 #define fbValidateGC wfbValidateGC
 #define fbWinPrivateKeyRec wfbWinPrivateKeyRec

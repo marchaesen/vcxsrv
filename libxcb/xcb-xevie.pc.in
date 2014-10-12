@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: XCB Xevie
 Description: XCB Xevie Extension
 Version: @PACKAGE_VERSION@
-Requires: xcb
+Requires.private: xcb
 Libs: -L${libdir} -lxcb-xevie
 Cflags: -I${includedir}

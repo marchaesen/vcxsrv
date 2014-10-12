@@ -120,7 +120,6 @@ xf86InfoRec xf86Info = {
     .pixmap24 = Pix24DontCare,
     .pix24From = X_DEFAULT,
     .pmFlag = TRUE,
-    .log = LogNone,
     .disableRandR = FALSE,
     .randRFrom = X_DEFAULT,
 #if defined(CONFIG_HAL) || defined(CONFIG_UDEV) || defined(CONFIG_WSCONS)

@@ -83,7 +83,6 @@ xf86ConfigSymTabRec DeviceTab[] = {
     {CARD, "card"},
     {DRIVER, "driver"},
     {BUSID, "busid"},
-    {TEXTCLOCKFRQ, "textclockfreq"},
     {IRQ, "irq"},
     {SCREEN, "screen"},
     {-1, ""},
@@ -212,11 +211,6 @@ xf86parseDeviceSection(void)
             ptr->dev_clocks = i;
             xf86unGetToken(token);
             break;
-        case TEXTCLOCKFRQ:
-            if ((token = xf86getSubToken(&(ptr->dev_comment))) != NUMBER)
-                Error(NUMBER_MSG, "TextClockFreq");
-            ptr->dev_textclockfreq = (int) (xf86_lex_val.realnum * 1000.0 + 0.5);
-            break;
         case MATCHSEAT:
             if (xf86getSubToken(&(ptr->dev_comment)) != STRING)
                 Error(QUOTE_MSG, "MatchSeat");
@@ -311,10 +305,6 @@ xf86printDeviceSection(FILE * cf, XF86ConfDevicePtr ptr)
             for (i = 0; i < ptr->dev_clocks; i++)
                 fprintf(cf, "%.1f ", (double) ptr->dev_clock[i] / 1000.0);
             fprintf(cf, "\n");
-        }
-        if (ptr->dev_textclockfreq) {
-            fprintf(cf, "\tTextClockFreq %.1f\n",
-                    (double) ptr->dev_textclockfreq / 1000.0);
         }
         if (ptr->dev_busid)
             fprintf(cf, "\tBusID       \"%s\"\n", ptr->dev_busid);

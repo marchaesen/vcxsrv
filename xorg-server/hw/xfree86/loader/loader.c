@@ -71,24 +71,6 @@
 #include <dlfcn.h>
 #include <X11/Xos.h>
 
-#if defined(DL_LAZY)
-#define DLOPEN_LAZY DL_LAZY
-#elif defined(RTLD_LAZY)
-#define DLOPEN_LAZY RTLD_LAZY
-#elif defined(__FreeBSD__)
-#define DLOPEN_LAZY 1
-#else
-#define DLOPEN_LAZY 0
-#endif
-
-#if defined(LD_GLOBAL)
-#define DLOPEN_GLOBAL LD_GLOBAL
-#elif defined(RTLD_GLOBAL)
-#define DLOPEN_GLOBAL RTLD_GLOBAL
-#else
-#define DLOPEN_GLOBAL 0
-#endif
-
 #else
 #error i have no dynamic linker and i must scream
 #endif
@@ -128,7 +110,7 @@ LoaderOpen(const char *module, int *errmaj, int *errmin)
 
     xf86Msg(X_INFO, "Loading %s\n", module);
 
-    if (!(ret = dlopen(module, DLOPEN_LAZY | DLOPEN_GLOBAL))) {
+    if (!(ret = dlopen(module, RTLD_LAZY | RTLD_GLOBAL))) {
         xf86Msg(X_ERROR, "Failed to load %s: %s\n", module, dlerror());
         if (errmaj)
             *errmaj = LDR_NOLOAD;
@@ -151,7 +133,7 @@ LoaderSymbol(const char *name)
         return p;
 
     if (!global_scope)
-        global_scope = dlopen(NULL, DLOPEN_LAZY | DLOPEN_GLOBAL);
+        global_scope = dlopen(NULL, RTLD_LAZY | RTLD_GLOBAL);
 
     if (global_scope)
         return dlsym(global_scope, name);

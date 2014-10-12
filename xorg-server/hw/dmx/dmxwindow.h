@@ -73,8 +73,7 @@ extern Bool dmxChangeWindowAttributes(WindowPtr pWindow, unsigned long mask);
 extern Bool dmxRealizeWindow(WindowPtr pWindow);
 extern Bool dmxUnrealizeWindow(WindowPtr pWindow);
 extern void dmxRestackWindow(WindowPtr pWindow, WindowPtr pOldNextSib);
-extern void dmxWindowExposures(WindowPtr pWindow, RegionPtr prgn,
-                               RegionPtr other_exposed);
+extern void dmxWindowExposures(WindowPtr pWindow, RegionPtr prgn);
 extern void dmxCopyWindow(WindowPtr pWindow, DDXPointRec ptOldOrg,
                           RegionPtr prgnSrc);
 

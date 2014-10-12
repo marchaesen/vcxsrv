@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: XCB XKB
 Description: XCB Keyboard Extension (EXPERIMENTAL)
 Version: @PACKAGE_VERSION@
-Requires: xcb
+Requires.private: xcb
 Libs: -L${libdir} -lxcb-xkb
 Cflags: -I${includedir}
