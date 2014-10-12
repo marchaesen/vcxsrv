@@ -79,9 +79,6 @@ winClipboardThreadProc(void *arg)
       /* Print the display connection string */
       ErrorF("winClipboardThreadProc - DISPLAY=%s\n", szDisplay);
 
-      /* Flag that clipboard client has been launched */
-      g_fClipboardStarted = TRUE;
-
       fShutdown = winClipboardProc(g_fUnicodeClipboard, szDisplay);
 
       /* Flag that clipboard client has stopped */
