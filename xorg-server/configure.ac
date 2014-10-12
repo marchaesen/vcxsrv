@@ -217,9 +217,11 @@ AC_SUBST(DLOPEN_LIBS)
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS([backtrace ffs geteuid getuid issetugid getresuid \
-	getdtablesize getifaddrs getpeereid getpeerucred getzoneid \
+	getdtablesize getifaddrs getpeereid getpeerucred getprogname getzoneid \
 	mmap seteuid shmctl64 strncasecmp vasprintf vsnprintf walkcontext])
 AC_REPLACE_FUNCS([strcasecmp strcasestr strlcat strlcpy strndup])
+
+AC_CHECK_DECLS([program_invocation_short_name], [], [], [[#include <errno.h>]])
 
 dnl Find the math libary, then check for cbrt function in it.
 AC_CHECK_LIB(m, sqrt)

@@ -1621,13 +1621,13 @@ extern _X_EXPORT Bool
  fbDestroyWindow(WindowPtr pWin);
 
 extern _X_EXPORT Bool
- fbMapWindow(WindowPtr pWindow);
+ fbRealizeWindow(WindowPtr pWindow);
 
 extern _X_EXPORT Bool
  fbPositionWindow(WindowPtr pWin, int x, int y);
 
 extern _X_EXPORT Bool
- fbUnmapWindow(WindowPtr pWindow);
+ fbUnrealizeWindow(WindowPtr pWindow);
 
 extern _X_EXPORT void
 

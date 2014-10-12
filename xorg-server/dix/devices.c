@@ -1214,63 +1214,6 @@ QueryMinMaxKeyCodes(KeyCode *minCode, KeyCode *maxCode)
     }
 }
 
-/* Notably, this function does not expand the destination's keycode range, or
- * notify clients. */
-Bool
-SetKeySymsMap(KeySymsPtr dst, KeySymsPtr src)
-{
-    int i, j;
-    KeySym *tmp;
-    int rowDif = src->minKeyCode - dst->minKeyCode;
-
-    /* if keysym map size changes, grow map first */
-    if (src->mapWidth < dst->mapWidth) {
-        for (i = src->minKeyCode; i <= src->maxKeyCode; i++) {
-#define SI(r, c) (((r - src->minKeyCode) * src->mapWidth) + (c))
-#define DI(r, c) (((r - dst->minKeyCode) * dst->mapWidth) + (c))
-            for (j = 0; j < src->mapWidth; j++)
-                dst->map[DI(i, j)] = src->map[SI(i, j)];
-            for (j = src->mapWidth; j < dst->mapWidth; j++)
-                dst->map[DI(i, j)] = NoSymbol;
-#undef SI
-#undef DI
-        }
-        return TRUE;
-    }
-    else if (src->mapWidth > dst->mapWidth) {
-        i = sizeof(KeySym) * src->mapWidth *
-            (dst->maxKeyCode - dst->minKeyCode + 1);
-        tmp = calloc(sizeof(KeySym), i);
-        if (!tmp)
-            return FALSE;
-
-        if (dst->map) {
-            for (i = 0; i <= dst->maxKeyCode - dst->minKeyCode; i++)
-                memmove(&tmp[i * src->mapWidth], &dst->map[i * dst->mapWidth],
-                        dst->mapWidth * sizeof(KeySym));
-            free(dst->map);
-        }
-        dst->mapWidth = src->mapWidth;
-        dst->map = tmp;
-    }
-    else if (!dst->map) {
-        i = sizeof(KeySym) * src->mapWidth *
-            (dst->maxKeyCode - dst->minKeyCode + 1);
-        tmp = calloc(sizeof(KeySym), i);
-        if (!tmp)
-            return FALSE;
-
-        dst->map = tmp;
-        dst->mapWidth = src->mapWidth;
-    }
-
-    memmove(&dst->map[rowDif * dst->mapWidth], src->map,
-            (src->maxKeyCode - src->minKeyCode + 1) *
-            dst->mapWidth * sizeof(KeySym));
-
-    return TRUE;
-}
-
 Bool
 InitButtonClassDeviceStruct(DeviceIntPtr dev, int numButtons, Atom *labels,
                             CARD8 *map)

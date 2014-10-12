@@ -74,10 +74,9 @@ typedef struct {
 typedef struct {
     drmModePropertyPtr mode_prop;
     uint64_t value;
-    int num_atoms; /* if range prop, num_atoms == 1; if enum prop, num_atoms == num_enums + 1 */
+    int num_atoms;              /* if range prop, num_atoms == 1; if enum prop, num_atoms == num_enums + 1 */
     Atom *atoms;
 } drmmode_prop_rec, *drmmode_prop_ptr;
-
 
 typedef struct {
     drmmode_ptr drmmode;
@@ -97,16 +96,16 @@ typedef struct _msPixmapPriv {
     struct dumb_bo *backing_bo; /* if this pixmap is backed by a dumb bo */
 } msPixmapPrivRec, *msPixmapPrivPtr;
 
-
 extern DevPrivateKeyRec msPixmapPrivateKeyRec;
+
 #define msPixmapPrivateKey (&msPixmapPrivateKeyRec)
 
 #define msGetPixmapPriv(drmmode, p) ((msPixmapPrivPtr)dixGetPrivateAddr(&(p)->devPrivates, &(drmmode)->pixmapPrivateKeyRec))
 
 void *drmmode_map_slave_bo(drmmode_ptr drmmode, msPixmapPrivPtr ppriv);
 Bool drmmode_SetSlaveBO(PixmapPtr ppix,
-			drmmode_ptr drmmode,
-			int fd_handle, int pitch, int size);
+                        drmmode_ptr drmmode,
+                        int fd_handle, int pitch, int size);
 
 extern Bool drmmode_pre_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, int cpp);
 void drmmode_adjust_frame(ScrnInfoPtr pScrn, drmmode_ptr drmmode, int x, int y);
@@ -120,8 +119,8 @@ Bool drmmode_create_initial_bos(ScrnInfoPtr pScrn, drmmode_ptr drmmode);
 void *drmmode_map_front_bo(drmmode_ptr drmmode);
 Bool drmmode_map_cursor_bos(ScrnInfoPtr pScrn, drmmode_ptr drmmode);
 void drmmode_free_bos(ScrnInfoPtr pScrn, drmmode_ptr drmmode);
-void drmmode_get_default_bpp(ScrnInfoPtr pScrn, drmmode_ptr drmmmode, int *depth, int *bpp);
-
+void drmmode_get_default_bpp(ScrnInfoPtr pScrn, drmmode_ptr drmmmode,
+                             int *depth, int *bpp);
 
 #ifndef DRM_CAP_DUMB_PREFERRED_DEPTH
 #define DRM_CAP_DUMB_PREFERRED_DEPTH 3
@@ -131,6 +130,5 @@ void drmmode_get_default_bpp(ScrnInfoPtr pScrn, drmmode_ptr drmmmode, int *depth
 #endif
 
 #define MS_ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
-
 
 #endif

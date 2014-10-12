@@ -187,7 +187,6 @@ typedef enum {
     CHIPREV,
     CARD,
     BUSID,
-    TEXTCLOCKFRQ,
     IRQ,
 
     /* Keyboard tokens */

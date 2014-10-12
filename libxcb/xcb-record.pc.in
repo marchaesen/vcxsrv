@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: XCB Record
 Description: XCB Record Extension
 Version: @PACKAGE_VERSION@
-Requires: xcb
+Requires.private: xcb
 Libs: -L${libdir} -lxcb-record
 Cflags: -I${includedir}

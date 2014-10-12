@@ -82,9 +82,7 @@ extern _X_EXPORT void
  fbOverlayCopyWindow(WindowPtr pWin, DDXPointRec ptOldOrg, RegionPtr prgnSrc);
 
 extern _X_EXPORT void
-
-fbOverlayWindowExposures(WindowPtr pWin,
-                         RegionPtr prgn, RegionPtr other_exposed);
+fbOverlayWindowExposures(WindowPtr pWin, RegionPtr prgn);
 
 extern _X_EXPORT Bool
 

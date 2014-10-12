@@ -37,12 +37,6 @@
 #include "xf86str.h"
 
 typedef enum {
-    LogNone,
-    LogFlush,
-    LogSync
-} Log;
-
-typedef enum {
     XF86_GlxVisualsMinimal,
     XF86_GlxVisualsTypical,
     XF86_GlxVisualsAll,
@@ -91,7 +85,6 @@ typedef struct {
     Pix24Flags pixmap24;
     MessageType pix24From;
     Bool pmFlag;
-    Log log;
     Bool disableRandR;
     MessageType randRFrom;
     Bool aiglx;
@@ -100,7 +93,6 @@ typedef struct {
     MessageType glxVisualsFrom;
 
     Bool useDefaultFontPath;
-    MessageType useDefaultFontPathFrom;
     Bool ignoreABI;
 
     Bool forceInputDevices;     /* force xorg.conf or built-in input devices */

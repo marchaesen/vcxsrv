@@ -229,15 +229,7 @@ extern _X_EXPORT RegionPtr miHandleExposures(DrawablePtr /*pSrcDrawable */ ,
                                              int /*width */ ,
                                              int /*height */ ,
                                              int /*dstx */ ,
-                                             int /*dsty */ ,
-                                             unsigned long      /*plane */
-    );
-
-extern _X_EXPORT void miSendGraphicsExpose(ClientPtr /*client */ ,
-                                           RegionPtr /*pRgn */ ,
-                                           XID /*drawable */ ,
-                                           int /*major */ ,
-                                           int  /*minor */
+                                             int /*dsty */
     );
 
 extern _X_EXPORT void miSendExposures(WindowPtr /*pWin */ ,
@@ -247,9 +239,7 @@ extern _X_EXPORT void miSendExposures(WindowPtr /*pWin */ ,
     );
 
 extern _X_EXPORT void miWindowExposures(WindowPtr /*pWin */ ,
-                                        RegionPtr /*prgn */ ,
-                                        RegionPtr       /*other_exposed */
-    );
+                                        RegionPtr /*prgn */);
 
 extern _X_EXPORT void miPaintWindow(WindowPtr /*pWin */ ,
                                     RegionPtr /*prgn */ ,
@@ -427,17 +417,6 @@ extern _X_EXPORT int miShapedWindowIn(RegionPtr /*universe */ ,
                                       int       /*y */
     );
 
-typedef void
- (*SetRedirectBorderClipProcPtr) (WindowPtr pWindow, RegionPtr pRegion);
-
-typedef RegionPtr
- (*GetRedirectBorderClipProcPtr) (WindowPtr pWindow);
-
-extern _X_EXPORT void
-
-miRegisterRedirectBorderClipProc(SetRedirectBorderClipProcPtr setBorderClip,
-                                 GetRedirectBorderClipProcPtr getBorderClip);
-
 extern _X_EXPORT int miValidateTree(WindowPtr /*pParent */ ,
                                     WindowPtr /*pChild */ ,
                                     VTKind      /*kind */
@@ -491,12 +470,12 @@ extern _X_EXPORT void miMoveWindow(WindowPtr /*pWin */ ,
                                    VTKind       /*kind */
     );
 
-extern _X_EXPORT void miSlideAndSizeWindow(WindowPtr /*pWin */ ,
-                                           int /*x */ ,
-                                           int /*y */ ,
-                                           unsigned int /*w */ ,
-                                           unsigned int /*h */ ,
-                                           WindowPtr    /*pSib */
+extern _X_EXPORT void miResizeWindow(WindowPtr /*pWin */ ,
+                                     int /*x */ ,
+                                     int /*y */ ,
+                                     unsigned int /*w */ ,
+                                     unsigned int /*h */ ,
+                                     WindowPtr    /*pSib */
     );
 
 extern _X_EXPORT WindowPtr miGetLayerWindow(WindowPtr   /*pWin */

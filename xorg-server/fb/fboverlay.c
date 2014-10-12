@@ -240,12 +240,11 @@ fbOverlayCopyWindow(WindowPtr pWin, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
 }
 
 void
-fbOverlayWindowExposures(WindowPtr pWin,
-                         RegionPtr prgn, RegionPtr other_exposed)
+fbOverlayWindowExposures(WindowPtr pWin, RegionPtr prgn)
 {
     fbOverlayUpdateLayerRegion(pWin->drawable.pScreen,
                                fbOverlayWindowLayer(pWin), prgn);
-    miWindowExposures(pWin, prgn, other_exposed);
+    miWindowExposures(pWin, prgn);
 }
 
 Bool

@@ -86,7 +86,7 @@ static int KdXVQueryImageAttributes(XvPortPtr, XvImagePtr,
 /* ScreenRec fields */
 
 static Bool KdXVDestroyWindow(WindowPtr pWin);
-static void KdXVWindowExposures(WindowPtr pWin, RegionPtr r1, RegionPtr r2);
+static void KdXVWindowExposures(WindowPtr pWin, RegionPtr r1);
 static void KdXVClipNotify(WindowPtr pWin, int dx, int dy);
 static Bool KdXVCloseScreen(ScreenPtr);
 
@@ -822,7 +822,7 @@ KdXVDestroyWindow(WindowPtr pWin)
 }
 
 static void
-KdXVWindowExposures(WindowPtr pWin, RegionPtr reg1, RegionPtr reg2)
+KdXVWindowExposures(WindowPtr pWin, RegionPtr reg1)
 {
     ScreenPtr pScreen = pWin->drawable.pScreen;
     KdXVScreenPtr ScreenPriv = GET_KDXV_SCREEN(pScreen);
@@ -834,7 +834,7 @@ KdXVWindowExposures(WindowPtr pWin, RegionPtr reg1, RegionPtr reg2)
     AreasExposed = (WinPriv && reg1 && RegionNotEmpty(reg1));
 
     pScreen->WindowExposures = ScreenPriv->WindowExposures;
-    (*pScreen->WindowExposures) (pWin, reg1, reg2);
+    (*pScreen->WindowExposures) (pWin, reg1);
     pScreen->WindowExposures = KdXVWindowExposures;
 
     /* filter out XClearWindow/Area */

@@ -23,7 +23,7 @@ for inc in src/*.h; do
 		included=`grep '# *include' $inc |
 			sed -e 's/[^<"]*[<"]//' -e 's/[>"]//' |
 			grep -v 'xcb.h\|xproto.h'`
-		requires=`grep '^Requires:' $pcin`
+		requires=`grep '^Requires.private:' $pcin`
 		missing=""
 		for i in $included; do
 			ibase=`basename $i .h`
@@ -58,7 +58,7 @@ for inc in src/*.h; do
 		*)
 			if [ "$fix" = "y" ]; then
 			    echo $package adding dependency on $missing
-			    sed -i '/^Requires:/s/$/ '"$missing"'/' $pcin
+			    sed -i '/^Requires.private:/s/$/ '"$missing"'/' $pcin
 			else
 			    echo $package missing $missing
 			    status=1

@@ -74,7 +74,6 @@ typedef struct _CMapLink {
 } CMapLink, *CMapLinkPtr;
 
 typedef struct {
-    ScrnInfoPtr pScrn;
     CloseScreenProcPtr CloseScreen;
     CreateColormapProcPtr CreateColormap;
     DestroyColormapProcPtr DestroyColormap;
@@ -123,7 +122,7 @@ static int CMapSetDGAMode(ScrnInfoPtr, int, DGADevicePtr);
 #endif
 static int CMapChangeGamma(ScrnInfoPtr, Gamma);
 
-static void ComputeGamma(CMapScreenPtr);
+static void ComputeGamma(ScrnInfoPtr, CMapScreenPtr);
 static Bool CMapAllocateColormapPrivate(ColormapPtr);
 static void CMapRefreshColors(ColormapPtr, int, int *);
 static void CMapSetOverscan(ColormapPtr, int, int *);
@@ -194,7 +193,6 @@ xf86HandleColormaps(ScreenPtr pScreen,
     pScreen->InstallColormap = CMapInstallColormap;
     pScreen->StoreColors = CMapStoreColors;
 
-    pScreenPriv->pScrn = pScrn;
     pScrn->LoadPalette = loadPalette;
     pScrn->SetOverscan = setOverscan;
     pScreenPriv->maxColors = maxColors;
@@ -221,7 +219,7 @@ xf86HandleColormaps(ScreenPtr pScreen,
 #endif
     pScrn->ChangeGamma = CMapChangeGamma;
 
-    ComputeGamma(pScreenPriv);
+    ComputeGamma(pScrn, pScreenPriv);
 
     /* get the default map */
     dixLookupResourceByType((void **) &pDefMap, pScreen->defColormap,
@@ -660,8 +658,7 @@ CMapRefreshColors(ColormapPtr pmap, int defs, int *indices)
     }
 
     if (LOAD_PALETTE(pmap))
-        (*pScrn->LoadPalette) (pScreenPriv->pScrn, defs, indices,
-                               colors, pmap->pVisual);
+        (*pScrn->LoadPalette) (pScrn, defs, indices, colors, pmap->pVisual);
 
     if (pScrn->SetOverscan)
         CMapSetOverscan(pmap, defs, indices);
@@ -822,7 +819,7 @@ CMapSetOverscan(ColormapPtr pmap, int defs, int *indices)
 #ifdef DEBUGOVERSCAN
             ErrorF("SetOverscan() called from CmapSetOverscan\n");
 #endif
-            pScrn->SetOverscan(pScreenPriv->pScrn, overscan);
+            pScrn->SetOverscan(pScrn, overscan);
         }
     }
 }
@@ -851,7 +848,7 @@ CMapUnwrapScreen(ScreenPtr pScreen)
 }
 
 static void
-ComputeGamma(CMapScreenPtr priv)
+ComputeGamma(ScrnInfoPtr pScrn, CMapScreenPtr priv)
 {
     int elements = priv->gammaElements - 1;
     double RedGamma, GreenGamma, BlueGamma;
@@ -859,28 +856,25 @@ ComputeGamma(CMapScreenPtr priv)
 
 #ifndef DONT_CHECK_GAMMA
     /* This check is to catch drivers that are not initialising pScrn->gamma */
-    if (priv->pScrn->gamma.red < GAMMA_MIN ||
-        priv->pScrn->gamma.red > GAMMA_MAX ||
-        priv->pScrn->gamma.green < GAMMA_MIN ||
-        priv->pScrn->gamma.green > GAMMA_MAX ||
-        priv->pScrn->gamma.blue < GAMMA_MIN ||
-        priv->pScrn->gamma.blue > GAMMA_MAX) {
+    if (pScrn->gamma.red < GAMMA_MIN || pScrn->gamma.red > GAMMA_MAX ||
+        pScrn->gamma.green < GAMMA_MIN || pScrn->gamma.green > GAMMA_MAX ||
+        pScrn->gamma.blue < GAMMA_MIN || pScrn->gamma.blue > GAMMA_MAX) {
 
-        xf86DrvMsgVerb(priv->pScrn->scrnIndex, X_WARNING, 0,
+        xf86DrvMsgVerb(pScrn->scrnIndex, X_WARNING, 0,
                        "The %s driver didn't call xf86SetGamma() to initialise\n"
-                       "\tthe gamma values.\n", priv->pScrn->driverName);
-        xf86DrvMsgVerb(priv->pScrn->scrnIndex, X_WARNING, 0,
+                       "\tthe gamma values.\n", pScrn->driverName);
+        xf86DrvMsgVerb(pScrn->scrnIndex, X_WARNING, 0,
                        "PLEASE FIX THE `%s' DRIVER!\n",
-                       priv->pScrn->driverName);
-        priv->pScrn->gamma.red = 1.0;
-        priv->pScrn->gamma.green = 1.0;
-        priv->pScrn->gamma.blue = 1.0;
+                       pScrn->driverName);
+        pScrn->gamma.red = 1.0;
+        pScrn->gamma.green = 1.0;
+        pScrn->gamma.blue = 1.0;
     }
 #endif
 
-    RedGamma = 1.0 / (double) priv->pScrn->gamma.red;
-    GreenGamma = 1.0 / (double) priv->pScrn->gamma.green;
-    BlueGamma = 1.0 / (double) priv->pScrn->gamma.blue;
+    RedGamma = 1.0 / (double) pScrn->gamma.red;
+    GreenGamma = 1.0 / (double) pScrn->gamma.green;
+    BlueGamma = 1.0 / (double) pScrn->gamma.blue;
 
     for (i = 0; i <= elements; i++) {
         if (RedGamma == 1.0)
@@ -933,7 +927,7 @@ CMapChangeGamma(ScrnInfoPtr pScrn, Gamma gamma)
     pScrn->gamma.green = gamma.green;
     pScrn->gamma.blue = gamma.blue;
 
-    ComputeGamma(pScreenPriv);
+    ComputeGamma(pScrn, pScreenPriv);
 
     /* mark all colormaps on this screen */
     pLink = pScreenPriv->maps;

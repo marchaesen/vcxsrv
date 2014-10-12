@@ -1828,7 +1828,7 @@ DRIGetContextStore(DRIContextPrivPtr context)
 }
 
 void
-DRIWindowExposures(WindowPtr pWin, RegionPtr prgn, RegionPtr bsreg)
+DRIWindowExposures(WindowPtr pWin, RegionPtr prgn)
 {
     ScreenPtr pScreen = pWin->drawable.pScreen;
     DRIScreenPrivPtr pDRIPriv = DRI_SCREEN_PRIV(pScreen);
@@ -1846,7 +1846,7 @@ DRIWindowExposures(WindowPtr pWin, RegionPtr prgn, RegionPtr bsreg)
         pScreen->WindowExposures = pDRIPriv->wrap.WindowExposures;
 
         /* call lower layers */
-        (*pScreen->WindowExposures) (pWin, prgn, bsreg);
+        (*pScreen->WindowExposures) (pWin, prgn);
 
         /* rewrap */
         pDRIPriv->wrap.WindowExposures = pScreen->WindowExposures;

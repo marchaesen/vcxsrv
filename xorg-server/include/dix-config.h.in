@@ -72,6 +72,10 @@
 /* Define to 1 if you have the <dbm.h> header file. */
 #undef HAVE_DBM_H
 
+/* Define to 1 if you have the declaration of `program_invocation_short_name', and
+   to 0 if you don't. */
+#undef HAVE_DECL_PROGRAM_INVOCATION_SHORT_NAME
+
 /* Define to 1 if you have the <dirent.h> header file, and it defines `DIR'.
    */
 #undef HAVE_DIRENT_H
@@ -99,6 +103,9 @@
 
 /* Define to 1 if you have the `getpeerucred' function. */
 #undef HAVE_GETPEERUCRED
+
+/* Define to 1 if you have the `getprogname' function. */
+#undef HAVE_GETPROGNAME
 
 /* Define to 1 if you have the `getzoneid' function. */
 #undef HAVE_GETZONEID

@@ -1449,12 +1449,6 @@ This optional entry specifies the chip revision number.
 This can be used to override the auto-detection, but that should only be done
 when the driver-specific documentation recommends it.
 .TP 7
-.BI "TextClockFreq  " "freq"
-This optional entry specifies the pixel clock frequency that is used
-for the regular text mode.
-The frequency is specified in MHz.
-This is rarely used.
-.TP 7
 .BI "MatchSeat  " "seat\-id"
 Only apply this
 .B Device

@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: XCB XFree86-DRI
 Description: XCB XFree86-DRI Extension
 Version: @PACKAGE_VERSION@
-Requires: xcb
+Requires.private: xcb
 Libs: -L${libdir} -lxcb-xf86dri
 Cflags: -I${includedir}

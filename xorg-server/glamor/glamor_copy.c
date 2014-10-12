@@ -677,8 +677,7 @@ glamor_copy_plane(DrawablePtr src, DrawablePtr dst, GCPtr gc,
 {
     if ((bitplane & FbFullMask(src->depth)) == 0)
         return miHandleExposures(src, dst, gc,
-                                 srcx, srcy, width, height, dstx, dsty,
-                                 bitplane);
+                                 srcx, srcy, width, height, dstx, dsty);
     return miDoCopy(src, dst, gc,
                     srcx, srcy, width, height,
                     dstx, dsty, glamor_copy, bitplane, NULL);

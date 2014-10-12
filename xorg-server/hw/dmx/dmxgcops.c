@@ -179,7 +179,7 @@ dmxCopyArea(DrawablePtr pSrc, DrawablePtr pDst, GCPtr pGC,
 
     if (DMX_GCOPS_OFFSCREEN(pSrc) || DMX_GCOPS_OFFSCREEN(pDst))
         return miHandleExposures(pSrc, pDst, pGC, srcx, srcy, w, h,
-                                 dstx, dsty, 0L);
+                                 dstx, dsty);
 
     DMX_GCOPS_SET_DRAWABLE(pSrc, srcDraw);
     DMX_GCOPS_SET_DRAWABLE(pDst, dstDraw);
@@ -188,7 +188,7 @@ dmxCopyArea(DrawablePtr pSrc, DrawablePtr pDst, GCPtr pGC,
               srcx, srcy, w, h, dstx, dsty);
     dmxSync(dmxScreen, FALSE);
 
-    return miHandleExposures(pSrc, pDst, pGC, srcx, srcy, w, h, dstx, dsty, 0L);
+    return miHandleExposures(pSrc, pDst, pGC, srcx, srcy, w, h, dstx, dsty);
 }
 
 /** Copy plane number \a bitPlane from \a pSrc drawable to \a pDst
@@ -206,7 +206,7 @@ dmxCopyPlane(DrawablePtr pSrc, DrawablePtr pDst, GCPtr pGC,
 
     if (DMX_GCOPS_OFFSCREEN(pSrc) || DMX_GCOPS_OFFSCREEN(pDst))
         return miHandleExposures(pSrc, pDst, pGC, srcx, srcy, width, height,
-                                 dstx, dsty, bitPlane);
+                                 dstx, dsty);
 
     DMX_GCOPS_SET_DRAWABLE(pSrc, srcDraw);
     DMX_GCOPS_SET_DRAWABLE(pDst, dstDraw);
@@ -216,7 +216,7 @@ dmxCopyPlane(DrawablePtr pSrc, DrawablePtr pDst, GCPtr pGC,
     dmxSync(dmxScreen, FALSE);
 
     return miHandleExposures(pSrc, pDst, pGC, srcx, srcy, width, height,
-                             dstx, dsty, bitPlane);
+                             dstx, dsty);
 }
 
 /** Render list of points, \a pptInit in \a pDrawable on the back-end

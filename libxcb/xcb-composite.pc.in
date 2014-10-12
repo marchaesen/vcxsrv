@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: XCB Composite
 Description: XCB Composite Extension
 Version: @PACKAGE_VERSION@
-Requires: xcb xcb-xfixes
+Requires.private: xcb xcb-xfixes
 Libs: -L${libdir} -lxcb-composite
 Cflags: -I${includedir}

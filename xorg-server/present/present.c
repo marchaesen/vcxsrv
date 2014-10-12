@@ -767,7 +767,7 @@ present_pixmap(WindowPtr window,
      * in the same frame
      */
 
-    if (!update) {
+    if (!update && pixmap) {
         xorg_list_for_each_entry_safe(vblank, tmp, &window_priv->vblank, window_list) {
 
             if (!vblank->pixmap)

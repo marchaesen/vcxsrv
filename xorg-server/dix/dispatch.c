@@ -1597,6 +1597,52 @@ ProcClearToBackground(ClientPtr client)
     return Success;
 }
 
+/* send GraphicsExpose events, or a NoExpose event, based on the region */
+void
+SendGraphicsExpose(ClientPtr client, RegionPtr pRgn, XID drawable,
+                     int major, int minor)
+{
+    if (pRgn && !RegionNil(pRgn)) {
+        xEvent *pEvent;
+        xEvent *pe;
+        BoxPtr pBox;
+        int i;
+        int numRects;
+
+        numRects = RegionNumRects(pRgn);
+        pBox = RegionRects(pRgn);
+        if (!(pEvent = calloc(numRects, sizeof(xEvent))))
+            return;
+        pe = pEvent;
+
+        for (i = 1; i <= numRects; i++, pe++, pBox++) {
+            pe->u.u.type = GraphicsExpose;
+            pe->u.graphicsExposure.drawable = drawable;
+            pe->u.graphicsExposure.x = pBox->x1;
+            pe->u.graphicsExposure.y = pBox->y1;
+            pe->u.graphicsExposure.width = pBox->x2 - pBox->x1;
+            pe->u.graphicsExposure.height = pBox->y2 - pBox->y1;
+            pe->u.graphicsExposure.count = numRects - i;
+            pe->u.graphicsExposure.majorEvent = major;
+            pe->u.graphicsExposure.minorEvent = minor;
+        }
+        /* GraphicsExpose is a "critical event", which TryClientEvents
+         * handles specially. */
+        TryClientEvents(client, NULL, pEvent, numRects,
+                        (Mask) 0, NoEventMask, NullGrab);
+        free(pEvent);
+    }
+    else {
+        xEvent event = {
+            .u.noExposure.drawable = drawable,
+            .u.noExposure.majorEvent = major,
+            .u.noExposure.minorEvent = minor
+        };
+        event.u.u.type = NoExpose;
+        WriteEventsToClient(client, 1, &event);
+    }
+}
+
 int
 ProcCopyArea(ClientPtr client)
 {
@@ -1628,8 +1674,7 @@ ProcCopyArea(ClientPtr client)
                                   stuff->width, stuff->height,
                                   stuff->dstX, stuff->dstY);
     if (pGC->graphicsExposures) {
-        (*pDst->pScreen->SendGraphicsExpose)
-            (client, pRgn, stuff->dstDrawable, X_CopyArea, 0);
+        SendGraphicsExpose(client, pRgn, stuff->dstDrawable, X_CopyArea, 0);
         if (pRgn)
             RegionDestroy(pRgn);
     }
@@ -1676,8 +1721,7 @@ ProcCopyPlane(ClientPtr client)
                                 stuff->srcY, stuff->width, stuff->height,
                                 stuff->dstX, stuff->dstY, stuff->bitPlane);
     if (pGC->graphicsExposures) {
-        (*pdstDraw->pScreen->SendGraphicsExpose)
-            (client, pRgn, stuff->dstDrawable, X_CopyPlane, 0);
+        SendGraphicsExpose(client, pRgn, stuff->dstDrawable, X_CopyPlane, 0);
         if (pRgn)
             RegionDestroy(pRgn);
     }

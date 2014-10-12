@@ -242,8 +242,7 @@ miCopyArea(DrawablePtr pSrcDrawable,
         }
     }
     prgnExposed = miHandleExposures(pSrcDrawable, pDstDrawable, pGC, xIn, yIn,
-                                    widthSrc, heightSrc, xOut, yOut,
-                                    (unsigned long) 0);
+                                    widthSrc, heightSrc, xOut, yOut);
     if (realSrcClip)
         RegionDestroy(prgnSrcClip);
 
@@ -579,7 +578,7 @@ miCopyPlane(DrawablePtr pSrcDrawable,
         }
     }
     prgnExposed = miHandleExposures(pSrcDrawable, pDstDrawable, pGC, srcx, srcy,
-                                    width, height, dstx, dsty, bitPlane);
+                                    width, height, dstx, dsty);
     RegionDestroy(prgnSrc);
     return prgnExposed;
 }

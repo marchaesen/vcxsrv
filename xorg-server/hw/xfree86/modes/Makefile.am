@@ -10,7 +10,6 @@ libxf86modes_la_SOURCES = \
 	xf86Cursors.c \
 	xf86cvt.c \
 	xf86gtf.c \
-	xf86DisplayIDModes.c \
 	xf86EdidModes.c \
 	xf86Modes.c \
 	xf86Modes.h \

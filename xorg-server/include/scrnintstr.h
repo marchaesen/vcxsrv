@@ -155,8 +155,7 @@ typedef void (*PostValidateTreeProcPtr) (WindowPtr /*pParent */ ,
                                          VTKind /*kind */ );
 
 typedef void (*WindowExposuresProcPtr) (WindowPtr /*pWindow */ ,
-                                        RegionPtr /*prgn */ ,
-                                        RegionPtr /*other_exposed */ );
+                                        RegionPtr /*prgn */);
 
 typedef void (*CopyWindowProcPtr) (WindowPtr /*pWindow */ ,
                                    DDXPointRec /*ptOldOrg */ ,
@@ -252,12 +251,6 @@ typedef void (*ResolveColorProcPtr) (unsigned short * /*pred */ ,
                                      VisualPtr /*pVisual */ );
 
 typedef RegionPtr (*BitmapToRegionProcPtr) (PixmapPtr /*pPix */ );
-
-typedef void (*SendGraphicsExposeProcPtr) (ClientPtr /*client */ ,
-                                           RegionPtr /*pRgn */ ,
-                                           XID /*drawable */ ,
-                                           int /*major */ ,
-                                           int /*minor */ );
 
 typedef void (*ScreenBlockHandlerProcPtr) (ScreenPtr pScreen,
                                            void *pTimeout,
@@ -541,7 +534,6 @@ typedef struct _Screen {
     /* Region procedures */
 
     BitmapToRegionProcPtr BitmapToRegion;
-    SendGraphicsExposeProcPtr SendGraphicsExpose;
 
     /* os layer procedures */
 

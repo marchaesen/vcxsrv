@@ -99,8 +99,10 @@ Equipment Corporation.
 #include    "mi.h"
 #include    "regionstr.h"
 #include    "mivalidate.h"
-
 #include    "globals.h"
+#ifdef COMPOSITE
+#include    "compint.h"
+#endif
 
 /*
  * Compute the visibility of a shaped window
@@ -158,17 +160,6 @@ miShapedWindowIn(RegionPtr universe, RegionPtr bounding,
     if (someIn)
         return rgnIN;
     return rgnOUT;
-}
-
-static GetRedirectBorderClipProcPtr miGetRedirectBorderClipProc;
-static SetRedirectBorderClipProcPtr miSetRedirectBorderClipProc;
-
-void
-miRegisterRedirectBorderClipProc(SetRedirectBorderClipProcPtr setBorderClip,
-                                 GetRedirectBorderClipProcPtr getBorderClip)
-{
-    miSetRedirectBorderClipProc = setBorderClip;
-    miGetRedirectBorderClipProc = getBorderClip;
 }
 
 /*
@@ -242,11 +233,9 @@ miComputeClips(WindowPtr pParent,
      * In redirected drawing case, reset universe to borderSize
      */
     if (pParent->redirectDraw != RedirectDrawNone) {
-        if (miSetRedirectBorderClipProc) {
-            if (TreatAsTransparent(pParent))
-                RegionEmpty(universe);
-            (*miSetRedirectBorderClipProc) (pParent, universe);
-        }
+        if (TreatAsTransparent(pParent))
+            RegionEmpty(universe);
+        compSetRedirectBorderClip (pParent, universe);
         RegionCopy(universe, &pParent->borderSize);
     }
 #endif
@@ -516,6 +505,17 @@ miTreeObscured(WindowPtr pParent)
     }
 }
 
+static RegionPtr
+getBorderClip(WindowPtr pWin)
+{
+#ifdef COMPOSITE
+    if (pWin->redirectDraw != RedirectDrawNone)
+        return compGetRedirectBorderClip(pWin);
+    else
+#endif
+        return &pWin->borderClip;
+}
+
 /*
  *-----------------------------------------------------------------------
  * miValidateTree --
@@ -609,14 +609,7 @@ miValidateTree(WindowPtr pParent,       /* Parent to validate */
             forward = TRUE;
             for (pWin = pChild; pWin; pWin = pWin->nextSib) {
                 if (pWin->valdata) {
-                    RegionPtr pBorderClip = &pWin->borderClip;
-
-#ifdef COMPOSITE
-                    if (pWin->redirectDraw != RedirectDrawNone &&
-                        miGetRedirectBorderClipProc)
-                        pBorderClip = (*miGetRedirectBorderClipProc) (pWin);
-#endif
-                    RegionAppend(&totalClip, pBorderClip);
+                    RegionAppend(&totalClip, getBorderClip(pWin));
                     if (pWin->viewable)
                         viewvals++;
                 }
@@ -627,14 +620,7 @@ miValidateTree(WindowPtr pParent,       /* Parent to validate */
             pWin = pParent->lastChild;
             while (1) {
                 if (pWin->valdata) {
-                    RegionPtr pBorderClip = &pWin->borderClip;
-
-#ifdef COMPOSITE
-                    if (pWin->redirectDraw != RedirectDrawNone &&
-                        miGetRedirectBorderClipProc)
-                        pBorderClip = (*miGetRedirectBorderClipProc) (pWin);
-#endif
-                    RegionAppend(&totalClip, pBorderClip);
+                    RegionAppend(&totalClip, getBorderClip(pWin));
                     if (pWin->viewable)
                         viewvals++;
                 }

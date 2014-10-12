@@ -571,25 +571,6 @@ xf86DriverlistFromCompile(void)
     return driverlist;
 }
 
-/*
- * xf86ConfigError --
- *      Print a READABLE ErrorMessage!!!  All information that is 
- *      available is printed.
- */
-static void
-_X_ATTRIBUTE_PRINTF(1, 2)
-xf86ConfigError(const char *msg, ...)
-{
-    va_list ap;
-
-    ErrorF("\nConfig Error:\n");
-    va_start(ap, msg);
-    VErrorF(msg, ap);
-    va_end(ap);
-    ErrorF("\n");
-    return;
-}
-
 static void
 configFiles(XF86ConfFilesPtr fileconf)
 {
@@ -779,7 +760,7 @@ static OptionInfoRec FlagOptions[] = {
      {0}, FALSE},
 };
 
-static Bool
+static void
 configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
 {
     XF86OptionPtr optp, tmp;
@@ -893,12 +874,10 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
         if ((s = xf86GetOptValString(FlagOptions, FLAG_LOG))) {
             if (!xf86NameCmp(s, "flush")) {
                 xf86Msg(X_CONFIG, "Flushing logfile enabled\n");
-                xf86Info.log = LogFlush;
                 LogSetParameter(XLOG_FLUSH, TRUE);
             }
             else if (!xf86NameCmp(s, "sync")) {
                 xf86Msg(X_CONFIG, "Syncing logfile enabled\n");
-                xf86Info.log = LogSync;
                 LogSetParameter(XLOG_FLUSH, TRUE);
                 LogSetParameter(XLOG_SYNC, TRUE);
             }
@@ -980,10 +959,8 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
     XkbFreeRMLVOSet(&set, FALSE);
 
     xf86Info.useDefaultFontPath = TRUE;
-    xf86Info.useDefaultFontPathFrom = X_DEFAULT;
     if (xf86GetOptValBool(FlagOptions, FLAG_USE_DEFAULT_FONT_PATH, &value)) {
         xf86Info.useDefaultFontPath = value;
-        xf86Info.useDefaultFontPathFrom = X_CONFIG;
     }
 
 /* Make sure that timers don't overflow CARD32's after multiplying */
@@ -994,9 +971,8 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
     if ((i >= 0) && (i < MAX_TIME_IN_MIN))
         ScreenSaverTime = defaultScreenSaverTime = i * MILLI_PER_MIN;
     else if (i != -1)
-        xf86ConfigError
-            ("BlankTime value %d outside legal range of 0 - %d minutes", i,
-             MAX_TIME_IN_MIN);
+        ErrorF("BlankTime value %d outside legal range of 0 - %d minutes\n",
+               i, MAX_TIME_IN_MIN);
 
 #ifdef DPMSExtension
     i = -1;
@@ -1004,25 +980,22 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
     if ((i >= 0) && (i < MAX_TIME_IN_MIN))
         DPMSStandbyTime = i * MILLI_PER_MIN;
     else if (i != -1)
-        xf86ConfigError
-            ("StandbyTime value %d outside legal range of 0 - %d minutes", i,
-             MAX_TIME_IN_MIN);
+        ErrorF("StandbyTime value %d outside legal range of 0 - %d minutes\n",
+               i, MAX_TIME_IN_MIN);
     i = -1;
     xf86GetOptValInteger(FlagOptions, FLAG_DPMS_SUSPENDTIME, &i);
     if ((i >= 0) && (i < MAX_TIME_IN_MIN))
         DPMSSuspendTime = i * MILLI_PER_MIN;
     else if (i != -1)
-        xf86ConfigError
-            ("SuspendTime value %d outside legal range of 0 - %d minutes", i,
-             MAX_TIME_IN_MIN);
+        ErrorF("SuspendTime value %d outside legal range of 0 - %d minutes\n",
+               i, MAX_TIME_IN_MIN);
     i = -1;
     xf86GetOptValInteger(FlagOptions, FLAG_DPMS_OFFTIME, &i);
     if ((i >= 0) && (i < MAX_TIME_IN_MIN))
         DPMSOffTime = i * MILLI_PER_MIN;
     else if (i != -1)
-        xf86ConfigError
-            ("OffTime value %d outside legal range of 0 - %d minutes", i,
-             MAX_TIME_IN_MIN);
+        ErrorF("OffTime value %d outside legal range of 0 - %d minutes\n",
+               i, MAX_TIME_IN_MIN);
 #endif
 
     i = -1;
@@ -1037,8 +1010,8 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
     case -1:
         break;
     default:
-        xf86ConfigError("Pixmap option's value (%d) must be 24 or 32\n", i);
-        return FALSE;
+        ErrorF("Pixmap option's value (%d) must be 24 or 32\n", i);
+        break;
     }
     if (xf86Pix24 != Pix24DontCare) {
         xf86Info.pixmap24 = xf86Pix24;
@@ -1073,8 +1046,6 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
         xf86Info.dri2From = X_CONFIG;
     }
 #endif
-
-    return TRUE;
 }
 
 Bool
@@ -2049,8 +2020,8 @@ configMonitor(MonPtr monitorp, XF86ConfMonitorPtr conf_monitor)
         badgamma = monitorp->gamma.blue;
     }
     if (badgamma > GAMMA_ZERO) {
-        xf86ConfigError("Gamma value %.f is out of range (%.2f - %.1f)\n",
-                        badgamma, GAMMA_MIN, GAMMA_MAX);
+        ErrorF("Gamma value %.f is out of range (%.2f - %.1f)\n", badgamma,
+               GAMMA_MIN, GAMMA_MAX);
         return FALSE;
     }
 
@@ -2109,8 +2080,7 @@ configDisplay(DispPtr displayp, XF86ConfDisplayPtr conf_display)
     if (conf_display->disp_visual) {
         displayp->defaultVisual = lookupVisual(conf_display->disp_visual);
         if (displayp->defaultVisual == -1) {
-            xf86ConfigError("Invalid visual name: \"%s\"",
-                            conf_display->disp_visual);
+            ErrorF("Invalid visual name: \"%s\"\n", conf_display->disp_visual);
             return FALSE;
         }
     }
@@ -2168,7 +2138,6 @@ configDevice(GDevPtr devicep, XF86ConfDevicePtr conf_device, Bool active)
     devicep->IOBase = conf_device->dev_io_base;
     devicep->clockchip = conf_device->dev_clockchip;
     devicep->busID = conf_device->dev_busid;
-    devicep->textClockFreq = conf_device->dev_textclockfreq;
     devicep->chipID = conf_device->dev_chipid;
     devicep->chipRev = conf_device->dev_chiprev;
     devicep->options = conf_device->dev_option_lst;
@@ -2503,11 +2472,7 @@ xf86HandleConfigFile(Bool autoconfig)
     }
 #endif
     /* Now process everything else */
-    if (!configServerFlags(xf86configptr->conf_flags, xf86ConfigLayout.options)) {
-        ErrorF("Problem when converting the config data structures\n");
-        return CONFIG_PARSE_ERROR;
-    }
-
+    configServerFlags(xf86configptr->conf_flags, xf86ConfigLayout.options);
     configFiles(xf86configptr->conf_files);
     configExtensions(xf86configptr->conf_extensions);
 #ifdef XF86DRI

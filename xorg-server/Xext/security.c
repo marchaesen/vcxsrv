@@ -67,7 +67,6 @@ typedef struct {
 static const char *SecurityTrustedExtensions[] = {
     "XC-MISC",
     "BIG-REQUESTS",
-    "XpExtension",
     NULL
 };
 

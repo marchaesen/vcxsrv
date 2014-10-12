@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: XCB XFixes
 Description: XCB XFixes Extension
 Version: @PACKAGE_VERSION@
-Requires: xcb xcb-render xcb-shape
+Requires.private: xcb xcb-render xcb-shape
 Libs: -L${libdir} -lxcb-xfixes
 Cflags: -I${includedir}

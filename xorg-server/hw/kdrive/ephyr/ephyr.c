@@ -878,7 +878,7 @@ ephyrExposePairedWindow(int a_remote)
     screen = pair->local->drawable.pScreen;
     RegionNull(&reg);
     RegionCopy(&reg, &pair->local->clipList);
-    screen->WindowExposures(pair->local, &reg, NullRegion);
+    screen->WindowExposures(pair->local, &reg);
     RegionUninit(&reg);
 }
 #endif                          /* XF86DRI */

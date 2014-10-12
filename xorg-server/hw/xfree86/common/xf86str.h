@@ -403,7 +403,6 @@ typedef struct {
     Bool active;
     Bool inUse;
     int videoRam;
-    int textClockFreq;
     unsigned long BiosBase;     /* Base address of video BIOS */
     unsigned long MemBase;      /* Frame buffer base address */
     unsigned long IOBase;
@@ -753,7 +752,6 @@ typedef struct _ScrnInfoRec {
     unsigned long memPhysBase;  /* Physical address of FB */
     unsigned long fbOffset;     /* Offset of FB in the above */
     int memClk;                 /* memory clock */
-    int textClockFreq;          /* clock of text mode */
     Bool flipPixels;            /* swap default black/white */
     void *options;
 

@@ -386,7 +386,7 @@ xnestWindowExposurePredicate(Display * dpy, XEvent * event, XPointer ptr)
 }
 
 void
-xnestWindowExposures(WindowPtr pWin, RegionPtr pRgn, RegionPtr other_exposed)
+xnestWindowExposures(WindowPtr pWin, RegionPtr pRgn)
 {
     XEvent event;
     Window window;
@@ -410,7 +410,7 @@ xnestWindowExposures(WindowPtr pWin, RegionPtr pRgn, RegionPtr other_exposed)
             XPutBackEvent(xnestDisplay, &event);
     }
 
-    miWindowExposures(pWin, pRgn, other_exposed);
+    miWindowExposures(pWin, pRgn);
 }
 
 void

@@ -2464,6 +2464,9 @@ __glXDisp_AreTexturesResident(__GLXclientState * cl, GLbyte * pc)
         GLboolean answerBuffer[200];
         GLboolean *residences =
             __glXGetAnswerBuffer(cl, n, answerBuffer, sizeof(answerBuffer), 1);
+
+        if (residences == NULL)
+            return BadAlloc;
         retval =
             glAreTexturesResident(n, (const GLuint *) (pc + 4), residences);
         __glXSendReply(cl->client, residences, n, 1, GL_TRUE, retval);
@@ -2488,6 +2491,9 @@ __glXDisp_AreTexturesResidentEXT(__GLXclientState * cl, GLbyte * pc)
         GLboolean answerBuffer[200];
         GLboolean *residences =
             __glXGetAnswerBuffer(cl, n, answerBuffer, sizeof(answerBuffer), 1);
+
+        if (residences == NULL)
+            return BadAlloc;
         retval =
             glAreTexturesResident(n, (const GLuint *) (pc + 4), residences);
         __glXSendReply(cl->client, residences, n, 1, GL_TRUE, retval);
@@ -2593,6 +2599,9 @@ __glXDisp_GenTextures(__GLXclientState * cl, GLbyte * pc)
         GLuint *textures =
             __glXGetAnswerBuffer(cl, n * 4, answerBuffer, sizeof(answerBuffer),
                                  4);
+
+        if (textures == NULL)
+            return BadAlloc;
         glGenTextures(n, textures);
         __glXSendReply(cl->client, textures, n, 4, GL_TRUE, 0);
         error = Success;
@@ -2616,6 +2625,9 @@ __glXDisp_GenTexturesEXT(__GLXclientState * cl, GLbyte * pc)
         GLuint *textures =
             __glXGetAnswerBuffer(cl, n * 4, answerBuffer, sizeof(answerBuffer),
                                  4);
+
+        if (textures == NULL)
+            return BadAlloc;
         glGenTextures(n, textures);
         __glXSendReply(cl->client, textures, n, 4, GL_TRUE, 0);
         error = Success;
@@ -3883,6 +3895,9 @@ __glXDisp_GenQueries(__GLXclientState * cl, GLbyte * pc)
         GLuint *ids =
             __glXGetAnswerBuffer(cl, n * 4, answerBuffer, sizeof(answerBuffer),
                                  4);
+
+        if (ids == NULL)
+            return BadAlloc;
         GenQueries(n, ids);
         __glXSendReply(cl->client, ids, n, 4, GL_TRUE, 0);
         error = Success;
@@ -4253,6 +4268,9 @@ __glXDisp_GenProgramsARB(__GLXclientState * cl, GLbyte * pc)
         GLuint *programs =
             __glXGetAnswerBuffer(cl, n * 4, answerBuffer, sizeof(answerBuffer),
                                  4);
+
+        if (programs == NULL)
+            return BadAlloc;
         GenProgramsARB(n, programs);
         __glXSendReply(cl->client, programs, n, 4, GL_TRUE, 0);
         error = Success;
@@ -4630,6 +4648,10 @@ __glXDisp_GenFramebuffers(__GLXclientState * cl, GLbyte * pc)
         GLuint *framebuffers =
             __glXGetAnswerBuffer(cl, n * 4, answerBuffer, sizeof(answerBuffer),
                                  4);
+
+        if (framebuffers == NULL)
+            return BadAlloc;
+
         GenFramebuffers(n, framebuffers);
         __glXSendReply(cl->client, framebuffers, n, 4, GL_TRUE, 0);
         error = Success;
@@ -4655,6 +4677,9 @@ __glXDisp_GenRenderbuffers(__GLXclientState * cl, GLbyte * pc)
         GLuint *renderbuffers =
             __glXGetAnswerBuffer(cl, n * 4, answerBuffer, sizeof(answerBuffer),
                                  4);
+
+        if (renderbuffers == NULL)
+            return BadAlloc;
         GenRenderbuffers(n, renderbuffers);
         __glXSendReply(cl->client, renderbuffers, n, 4, GL_TRUE, 0);
         error = Success;

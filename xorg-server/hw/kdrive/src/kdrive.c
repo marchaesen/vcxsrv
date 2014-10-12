@@ -909,10 +909,6 @@ KdScreenInit(ScreenPtr pScreen, int argc, char **argv)
         if (!(*card->cfuncs->finishInitScreen) (pScreen))
             return FALSE;
 
-#if 0
-    fbInitValidateTree(pScreen);
-#endif
-
     /*
      * Wrap CloseScreen, the order now is:
      *  KdCloseScreen

@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: XCB RandR
 Description: XCB RandR Extension
 Version: @PACKAGE_VERSION@
-Requires: xcb xcb-render
+Requires.private: xcb xcb-render
 Libs: -L${libdir} -lxcb-randr
 Cflags: -I${includedir}

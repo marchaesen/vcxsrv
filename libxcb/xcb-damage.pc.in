@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: XCB Damage
 Description: XCB Damage Extension
 Version: @PACKAGE_VERSION@
-Requires: xcb xcb-xfixes
+Requires.private: xcb xcb-xfixes
 Libs: -L${libdir} -lxcb-damage
 Cflags: -I${includedir}

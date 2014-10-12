@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: XCB Sync
 Description: XCB Sync Extension
 Version: @PACKAGE_VERSION@
-Requires: xcb
+Requires.private: xcb
 Libs: -L${libdir} -lxcb-sync
 Cflags: -I${includedir}

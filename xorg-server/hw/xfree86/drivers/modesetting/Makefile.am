@@ -28,6 +28,7 @@ AM_CFLAGS = $(DIX_CFLAGS) $(XORG_CFLAGS) $(LIBDRM_CFLAGS) $(UDEV_CFLAGS) $(CWARN
 
 AM_CPPFLAGS = \
 	$(XORG_INCS) \
+	-I$(top_srcdir)/glamor \
 	-I$(srcdir)/../../ddc \
 	-I$(srcdir)/../../i2c \
 	-I$(srcdir)/../../modes \

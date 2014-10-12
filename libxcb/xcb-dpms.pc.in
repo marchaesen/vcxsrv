@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: XCB DPMS
 Description: XCB DPMS Extension
 Version: @PACKAGE_VERSION@
-Requires: xcb
+Requires.private: xcb
 Libs: -L${libdir} -lxcb-dpms
 Cflags: -I${includedir}
