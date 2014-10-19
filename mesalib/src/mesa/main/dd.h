@@ -602,7 +602,7 @@ struct dd_function_table {
     */
    /*@{*/
    struct gl_buffer_object * (*NewBufferObject)(struct gl_context *ctx,
-                                                GLuint buffer, GLenum target);
+                                                GLuint buffer);
    
    void (*DeleteBuffer)( struct gl_context *ctx, struct gl_buffer_object *obj );
 

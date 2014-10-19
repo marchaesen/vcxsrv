@@ -255,7 +255,8 @@ st_texture_release_sampler_view(struct st_context *st,
                                 struct st_texture_object *stObj);
 
 extern void
-st_texture_release_all_sampler_views(struct st_texture_object *stObj);
+st_texture_release_all_sampler_views(struct st_context *st,
+                                     struct st_texture_object *stObj);
 
 void
 st_texture_free_sampler_views(struct st_texture_object *stObj);

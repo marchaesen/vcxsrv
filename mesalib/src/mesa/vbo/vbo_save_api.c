@@ -191,9 +191,7 @@ alloc_vertex_store(struct gl_context *ctx)
     * user.  Perhaps there could be a special number for internal
     * buffers:
     */
-   vertex_store->bufferobj = ctx->Driver.NewBufferObject(ctx,
-                                                         VBO_BUF_ID,
-                                                         GL_ARRAY_BUFFER_ARB);
+   vertex_store->bufferobj = ctx->Driver.NewBufferObject(ctx, VBO_BUF_ID);
    if (vertex_store->bufferobj) {
       save->out_of_memory =
          !ctx->Driver.BufferData(ctx,

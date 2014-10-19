@@ -997,7 +997,7 @@ void vbo_use_buffer_objects(struct gl_context *ctx)
 
    /* Allocate a real buffer object now */
    _mesa_reference_buffer_object(ctx, &exec->vtx.bufferobj, NULL);
-   exec->vtx.bufferobj = ctx->Driver.NewBufferObject(ctx, bufName, target);
+   exec->vtx.bufferobj = ctx->Driver.NewBufferObject(ctx, bufName);
    if (!ctx->Driver.BufferData(ctx, target, size, NULL, usage,
                                GL_MAP_WRITE_BIT |
                                GL_DYNAMIC_STORAGE_BIT |

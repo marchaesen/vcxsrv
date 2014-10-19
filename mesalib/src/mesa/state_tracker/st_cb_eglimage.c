@@ -96,6 +96,7 @@ st_bind_surface(struct gl_context *ctx, GLenum target,
                 struct gl_texture_image *texImage,
                 struct pipe_surface *ps)
 {
+   struct st_context *st = st_context(ctx);
    struct st_texture_object *stObj;
    struct st_texture_image *stImage;
    GLenum internalFormat;
@@ -124,7 +125,7 @@ st_bind_surface(struct gl_context *ctx, GLenum target,
 
    /* FIXME create a non-default sampler view from the pipe_surface? */
    pipe_resource_reference(&stObj->pt, ps->texture);
-   st_texture_release_all_sampler_views(stObj);
+   st_texture_release_all_sampler_views(st, stObj);
    pipe_resource_reference(&stImage->pt, stObj->pt);
 
    stObj->width0 = ps->width;

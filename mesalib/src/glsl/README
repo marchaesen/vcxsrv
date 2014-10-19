@@ -8,7 +8,7 @@ passed straight through.  See glcpp/*
 
 2) lex and yacc-based parser takes the preprocessed string and
 generates the AST (abstract syntax tree).  Almost no checking is
-performed in this stage.  See glsl_lexer.lpp and glsl_parser.ypp.
+performed in this stage.  See glsl_lexer.ll and glsl_parser.yy.
 
 3) The AST is converted to "HIR".  This is the intermediate
 representation of the compiler.  Constructors are generated, function
@@ -34,7 +34,7 @@ linked in.
 
 7) The driver performs code generation out of the IR, taking a linked
 shader program and producing a compiled program for each stage.  See
-ir_to_mesa.cpp for Mesa IR code generation.
+../mesa/program/ir_to_mesa.cpp for Mesa IR code generation.
 
 FAQ:
 
@@ -126,7 +126,7 @@ optimizations like CSE where one must navigate an expression tree.
 
 Q: Why no SSA representation?
 
-A: Converting an IR tree to SSA form makes dead code elmimination,
+A: Converting an IR tree to SSA form makes dead code elimination,
 common subexpression elimination, and many other optimizations much
 easier.  However, in our primarily vector-based language, there's some
 major questions as to how it would work.  Do we do SSA on the scalar
@@ -134,9 +134,9 @@ or vector level?  If we do it at the vector level, we're going to end
 up with many different versions of the variable when encountering code
 like:
 
-(assign (constant bool (1)) (swiz x (var_ref __retval) ) (var_ref a) ) 
-(assign (constant bool (1)) (swiz y (var_ref __retval) ) (var_ref b) ) 
-(assign (constant bool (1)) (swiz z (var_ref __retval) ) (var_ref c) ) 
+(assign (constant bool (1)) (swiz x (var_ref __retval) ) (var_ref a) )
+(assign (constant bool (1)) (swiz y (var_ref __retval) ) (var_ref b) )
+(assign (constant bool (1)) (swiz z (var_ref __retval) ) (var_ref c) )
 
 If every masked update of a component relies on the previous value of
 the variable, then we're probably going to be quite limited in our
@@ -183,7 +183,7 @@ ir_validate.cpp (check users have the right types)
 
 You may also need to update the backends if they will see the new expr type:
 
-../mesa/shaders/ir_to_mesa.cpp
+../mesa/program/ir_to_mesa.cpp
 
 You can then use the new expression from builtins (if all backends
 would rather see it), or scan the IR and convert to use your new
@@ -225,4 +225,4 @@ Initially, there really wasn't one.  We have since adopted one:
  - Files that implement a class that is used throught the code should
    take the name of that class (e.g., ir_hierarchical_visitor.cpp).
  - Files that contain code not fitting in one of the previous
-   categories should have a sensible name (e.g., glsl_parser.ypp).
+   categories should have a sensible name (e.g., glsl_parser.yy).

@@ -54,14 +54,14 @@
  * internal structure where somehow shared.
  */
 static struct gl_buffer_object *
-st_bufferobj_alloc(struct gl_context *ctx, GLuint name, GLenum target)
+st_bufferobj_alloc(struct gl_context *ctx, GLuint name)
 {
    struct st_buffer_object *st_obj = ST_CALLOC_STRUCT(st_buffer_object);
 
    if (!st_obj)
       return NULL;
 
-   _mesa_initialize_buffer_object(ctx, &st_obj->Base, name, target);
+   _mesa_initialize_buffer_object(ctx, &st_obj->Base, name);
 
    return &st_obj->Base;
 }

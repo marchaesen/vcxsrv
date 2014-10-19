@@ -1465,6 +1465,16 @@ struct gl_buffer_mapping {
 
 
 /**
+ * Usages we've seen for a buffer object.
+ */
+typedef enum {
+   USAGE_UNIFORM_BUFFER = 0x1,
+   USAGE_TEXTURE_BUFFER = 0x2,
+   USAGE_ATOMIC_COUNTER_BUFFER = 0x4,
+} gl_buffer_usage;
+
+
+/**
  * GL_ARB_vertex/pixel_buffer_object buffer object
  */
 struct gl_buffer_object
@@ -1481,6 +1491,7 @@ struct gl_buffer_object
    GLboolean Written;   /**< Ever written to? (for debugging) */
    GLboolean Purgeable; /**< Is the buffer purgeable under memory pressure? */
    GLboolean Immutable; /**< GL_ARB_buffer_storage */
+   gl_buffer_usage UsageHistory; /**< How has this buffer been used so far? */
 
    struct gl_buffer_mapping Mappings[MAP_COUNT];
 };
@@ -4059,6 +4070,8 @@ struct gl_driver_flags
     * gl_shader_program::UniformBlocks
     */
    uint64_t NewUniformBuffer;
+
+   uint64_t NewTextureBuffer;
 
    /**
     * gl_context::AtomicBufferBindings

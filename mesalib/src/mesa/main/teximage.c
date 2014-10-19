@@ -4652,6 +4652,12 @@ texbufferrange(struct gl_context *ctx, GLenum target, GLenum internalFormat,
       texObj->BufferSize = size;
    }
    _mesa_unlock_texture(ctx, texObj);
+
+   ctx->NewDriverState |= ctx->DriverFlags.NewTextureBuffer;
+
+   if (bufObj) {
+      bufObj->UsageHistory |= USAGE_TEXTURE_BUFFER;
+   }
 }
 
 
