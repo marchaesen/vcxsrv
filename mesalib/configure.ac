@@ -1126,14 +1126,13 @@ if test "x$enable_dri" = xyes; then
     fi
 
     # Check for expat
-    PKG_CHECK_EXISTS([expat], [have_expat=yes], [have_expat=no])
-    if test "x$have_expat" = "xyes"; then
-       PKG_CHECK_MODULES([EXPAT], [expat], [],
-                         AC_MSG_ERROR([Expat required for DRI.]))
-    else
-       # expat version 2.0 and earlier do not provide expat.pc
-       EXPAT_LIBS=-lexpat
-    fi
+    PKG_CHECK_MODULES([EXPAT], [expat], [],
+        # expat version 2.0 and earlier do not provide expat.pc
+        [AC_CHECK_HEADER([expat.h],[],
+                         [AC_MSG_ERROR([Expat headers required for DRI not found])])
+         AC_CHECK_LIB([expat],[XML_ParserCreate],[],
+                     [AC_MSG_ERROR([Expat library required for DRI not found])])
+         EXPAT_LIBS="-lexpat"])
 
     DRICOMMON_NEED_LIBDRM=no
     # If we are building any DRI driver other than swrast.
@@ -1438,7 +1437,6 @@ AM_CONDITIONAL(HAVE_ST_OMX, test "x$enable_omx" = xyes)
 if test "x$enable_va" = xyes; then
     PKG_CHECK_MODULES([VA], [libva >= 0.35.0 x11-xcb xcb-dri2 >= $XCBDRI2_REQUIRED],
                       [VA_LIBS="`$PKG_CONFIG --libs x11-xcb xcb-dri2`"])
-    GALLIUM_STATE_TRACKERS_DIRS="$GALLIUM_STATE_TRACKERS_DIRS va"
     enable_gallium_loader=$enable_shared_pipe_drivers
 fi
 AM_CONDITIONAL(HAVE_ST_VA, test "x$enable_va" = xyes)
@@ -1786,38 +1784,30 @@ if test "x$enable_gallium_tests" = xyes; then
 fi
 AM_CONDITIONAL(HAVE_GALLIUM_TESTS, test "x$enable_gallium_tests" = xyes)
 
-VDPAU_LIB_INSTALL_DIR_DEFAULT=''
-if test "x$enable_vdpau" = xyes; then
-    VDPAU_LIB_INSTALL_DIR_DEFAULT=`$PKG_CONFIG --variable=moduledir vdpau`
-fi
-
 dnl Directory for VDPAU libs
 AC_ARG_WITH([vdpau-libdir],
     [AS_HELP_STRING([--with-vdpau-libdir=DIR],
-        [directory for the VDPAU libraries @<:@default=`pkg-config --variable=moduledir vdpau`@:>@])],
+        [directory for the VDPAU libraries @<:@default=${libdir}/vdpau@:>@])],
     [VDPAU_LIB_INSTALL_DIR="$withval"],
-    [VDPAU_LIB_INSTALL_DIR="$VDPAU_LIB_INSTALL_DIR_DEFAULT"])
+    [VDPAU_LIB_INSTALL_DIR='${libdir}/vdpau'])
 AC_SUBST([VDPAU_LIB_INSTALL_DIR])
 
-OMX_LIB_INSTALL_DIR_DEFAULT=''
-if test "x$enable_omx" = xyes; then
-    OMX_LIB_INSTALL_DIR_DEFAULT=`$PKG_CONFIG --variable=pluginsdir libomxil-bellagio`
-fi
+dnl Directory for OMX libs
 
 AC_ARG_WITH([omx-libdir],
     [AS_HELP_STRING([--with-omx-libdir=DIR],
-        [directory for the OMX libraries @<:@default=`pkg-config --variable=pluginsdir libomxil-bellagio`@:>@])],
+        [directory for the OMX libraries])],
     [OMX_LIB_INSTALL_DIR="$withval"],
-    [OMX_LIB_INSTALL_DIR="$OMX_LIB_INSTALL_DIR_DEFAULT"])
+    [OMX_LIB_INSTALL_DIR=`$PKG_CONFIG --define-variable=libdir=\$libdir --variable=pluginsdir libomxil-bellagio`])
 AC_SUBST([OMX_LIB_INSTALL_DIR])
 
 dnl Directory for VA libs
 
 AC_ARG_WITH([va-libdir],
     [AS_HELP_STRING([--with-va-libdir=DIR],
-        [directory for the VA libraries @<:@default=`pkg-config libva --variable=driverdir`@:>@])],
+        [directory for the VA libraries @<:@${libdir}/dri@:>@])],
     [VA_LIB_INSTALL_DIR="$withval"],
-    [VA_LIB_INSTALL_DIR=`pkg-config libva --variable=driverdir`])
+    [VA_LIB_INSTALL_DIR="${libdir}/dri"])
 AC_SUBST([VA_LIB_INSTALL_DIR])
 
 dnl

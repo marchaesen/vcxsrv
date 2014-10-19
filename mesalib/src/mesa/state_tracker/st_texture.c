@@ -519,12 +519,14 @@ st_texture_release_sampler_view(struct st_context *st,
 }
 
 void
-st_texture_release_all_sampler_views(struct st_texture_object *stObj)
+st_texture_release_all_sampler_views(struct st_context *st,
+                                     struct st_texture_object *stObj)
 {
    GLuint i;
 
+   /* XXX This should use sampler_views[i]->pipe, not st->pipe */
    for (i = 0; i < stObj->num_sampler_views; ++i)
-      pipe_sampler_view_reference(&stObj->sampler_views[i], NULL);
+      pipe_sampler_view_release(st->pipe, &stObj->sampler_views[i]);
 }
 
 

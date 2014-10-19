@@ -86,7 +86,7 @@ _mesa_alloc_shared_state(struct gl_context *ctx)
    shared->SamplerObjects = _mesa_NewHashTable();
 
    /* Allocate the default buffer object */
-   shared->NullBufferObj = ctx->Driver.NewBufferObject(ctx, 0, 0);
+   shared->NullBufferObj = ctx->Driver.NewBufferObject(ctx, 0);
 
    /* Create default texture objects */
    for (i = 0; i < NUM_TEXTURE_TARGETS; i++) {
