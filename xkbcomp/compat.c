@@ -114,7 +114,11 @@ InitCompatInfo(CompatInfo * info, XkbDescPtr xkb)
     info->dflt.defs.fileID = info->fileID;
     info->dflt.defs.defined = 0;
     info->dflt.defs.merge = MergeOverride;
+    info->dflt.defs.next = NULL;
     info->dflt.interp.flags = 0;
+    info->dflt.interp.match = 0;
+    info->dflt.interp.mods = 0;
+    info->dflt.interp.sym = 0;
     info->dflt.interp.virtual_mod = XkbNoModifier;
     info->dflt.interp.act.type = XkbSA_NoAction;
     for (i = 0; i < XkbAnyActionDataSize; i++)

@@ -336,6 +336,7 @@ char *			name;
 	if (type->level_names!=NULL)
 	     wire.nLevelNames= type->num_levels;
 	else wire.nLevelNames= 0;
+  wire.pad = 0;
 	tmp= fwrite(&wire,SIZEOF(xkmKeyTypeDesc),1,file);
 	size+= tmp*SIZEOF(xkmKeyTypeDesc);
 	for (n=0,entry= type->map;n<type->map_count;n++,entry++) {
@@ -352,6 +353,7 @@ char *			name;
 	    for (n=0,pre=type->preserve;n<type->map_count;n++,pre++) {
 		p_entry.realMods= pre->real_mods;
 		p_entry.virtualMods= pre->vmods;
+    p_entry.pad = 0;
 		tmp= fwrite(&p_entry,SIZEOF(xkmModsDesc),1,file);
 		size+= tmp*SIZEOF(xkmModsDesc);
 	    }
@@ -455,6 +457,7 @@ unsigned		tmp,size=0;
 	    if (info->group_compat&bit) {
 		modsWire.realMods= xkb->compat->groups[i].real_mods;
 		modsWire.virtualMods= xkb->compat->groups[i].vmods;
+		modsWire.pad = 0;
 		fwrite(&modsWire,SIZEOF(xkmModsDesc),1,file);
 		size+= SIZEOF(xkmModsDesc);
 	    }
@@ -962,6 +965,7 @@ unsigned	tmp,size= 0;
     sectionWire.num_rows= section->num_rows;
     sectionWire.num_doodads= section->num_doodads;
     sectionWire.num_overlays= section->num_overlays;
+    sectionWire.pad2 = 0;
     tmp= fwrite(&sectionWire,SIZEOF(xkmSectionDesc),1,file);
     size+= tmp*SIZEOF(xkmSectionDesc);
     if (section->rows) {
@@ -975,6 +979,7 @@ unsigned	tmp,size= 0;
 	    rowWire.left= row->left;
 	    rowWire.num_keys= row->num_keys;
 	    rowWire.vertical= row->vertical;
+			rowWire.pad = 0;
 	    tmp= fwrite(&rowWire,SIZEOF(xkmRowDesc),1,file);
 	    size+= tmp*SIZEOF(xkmRowDesc);
 	    for (k=0,key=row->keys;k<row->num_keys;k++,key++) {
@@ -1027,6 +1032,7 @@ unsigned	tmp,size= 0;
     wire.num_sections= geom->num_sections;
     wire.num_doodads= geom->num_doodads;
     wire.num_key_aliases= geom->num_key_aliases;
+    wire.pad1 = 0;
     size+= xkmPutCountedAtomString(dpy,file,geom->name);
     tmp= fwrite(&wire,SIZEOF(xkmGeometryDesc),1,file);
     size+= tmp*SIZEOF(xkmGeometryDesc);
@@ -1069,6 +1075,7 @@ unsigned	tmp,size= 0;
 		xkmPointDesc	ptWire;
 		olWire.num_points= ol->num_points;
 		olWire.corner_radius= ol->corner_radius;
+		olWire.pad = 0;
 		tmp= fwrite(&olWire,SIZEOF(xkmOutlineDesc),1,file);
 		size+= tmp*SIZEOF(xkmOutlineDesc);
 		for (p=0,pt=ol->points;p<ol->num_points;p++,pt++) {
