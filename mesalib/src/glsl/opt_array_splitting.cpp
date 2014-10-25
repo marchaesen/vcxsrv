@@ -295,7 +295,7 @@ ir_array_splitting_visitor::split_deref(ir_dereference **deref)
    ir_constant *constant = deref_array->array_index->as_constant();
    assert(constant);
 
-   if (constant->value.i[0] < (int)entry->size) {
+   if (constant->value.i[0] >= 0 && constant->value.i[0] < (int)entry->size) {
       *deref = new(entry->mem_ctx)
 	 ir_dereference_variable(entry->components[constant->value.i[0]]);
    } else {

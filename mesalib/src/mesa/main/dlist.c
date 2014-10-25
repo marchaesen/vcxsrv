@@ -398,6 +398,9 @@ typedef enum
    OPCODE_PROGRAM_UNIFORM_MATRIX34F,
    OPCODE_PROGRAM_UNIFORM_MATRIX43F,
 
+   /* GL_ARB_clip_control */
+   OPCODE_CLIP_CONTROL,
+
    /* GL_ARB_color_buffer_float */
    OPCODE_CLAMP_COLOR,
 
@@ -7208,6 +7211,22 @@ save_ProgramUniformMatrix4fv(GLuint program, GLint location, GLsizei count,
 }
 
 static void GLAPIENTRY
+save_ClipControl(GLenum origin, GLenum depth)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_CLIP_CONTROL, 2);
+   if (n) {
+      n[1].e = origin;
+      n[2].e = depth;
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_ClipControl(ctx->Exec, (origin, depth));
+   }
+}
+
+static void GLAPIENTRY
 save_ClampColorARB(GLenum target, GLenum clamp)
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -8617,6 +8636,10 @@ execute_list(struct gl_context *ctx, GLuint list)
                                           get_pointer(&n[5])));
             break;
 
+         case OPCODE_CLIP_CONTROL:
+            CALL_ClipControl(ctx->Exec, (n[1].e, n[2].e));
+            break;
+
          case OPCODE_CLAMP_COLOR:
             CALL_ClampColor(ctx->Exec, (n[1].e, n[2].e));
             break;
@@ -9550,6 +9573,9 @@ _mesa_initialize_save_table(const struct gl_context *ctx)
    SET_ClearColorIuiEXT(table, save_ClearColorIui);
    SET_TexParameterIiv(table, save_TexParameterIiv);
    SET_TexParameterIuiv(table, save_TexParameterIuiv);
+
+   /* GL_ARB_clip_control */
+   SET_ClipControl(table, save_ClipControl);
 
    /* GL_ARB_color_buffer_float */
    SET_ClampColor(table, save_ClampColorARB);

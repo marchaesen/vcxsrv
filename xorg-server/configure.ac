@@ -2208,8 +2208,6 @@ AM_CONDITIONAL(XWIN_MULTIWINDOW, [test "x$XWIN" = xyes])
 AM_CONDITIONAL(XWIN_MULTIWINDOWEXTWM, [test "x$XWIN" = xyes && test "x$WINDOWSWM" = xyes])
 AM_CONDITIONAL(XWIN_CLIPBOARD, [test "x$XWIN" = xyes])
 AM_CONDITIONAL(XWIN_GLX_WINDOWS, [test "x$XWIN" = xyes && test "x$AIGLX" = xyes])
-AM_CONDITIONAL(XWIN_NATIVEGDI, [test "x$XWIN" = xyes])
-AM_CONDITIONAL(XWIN_PRIMARYFB, [test "x$XWIN" = xyes])
 AM_CONDITIONAL(XWIN_RANDR, [test "x$XWIN" = xyes])
 AM_CONDITIONAL(XWIN_XV, [test "x$XWIN" = xyes && test "x$XV" = xyes])
 

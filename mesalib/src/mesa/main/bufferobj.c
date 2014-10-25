@@ -2710,7 +2710,7 @@ bind_buffer_range_uniform_buffer(struct gl_context *ctx,
 
    if (offset & (ctx->Const.UniformBufferOffsetAlignment - 1)) {
       _mesa_error(ctx, GL_INVALID_VALUE,
-                  "glBindBufferRange(offset misalgned %d/%d)", (int) offset,
+                  "glBindBufferRange(offset misaligned %d/%d)", (int) offset,
 		  ctx->Const.UniformBufferOffsetAlignment);
       return;
    }
@@ -2797,7 +2797,7 @@ bind_atomic_buffer(struct gl_context *ctx,
 
    if (offset & (ATOMIC_COUNTER_SIZE - 1)) {
       _mesa_error(ctx, GL_INVALID_VALUE,
-                  "%s(offset misalgned %d/%d)", name, (int) offset,
+                  "%s(offset misaligned %d/%d)", name, (int) offset,
                   ATOMIC_COUNTER_SIZE);
       return;
    }

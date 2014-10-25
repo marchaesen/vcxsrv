@@ -1679,7 +1679,7 @@ link_intrastage_shaders(void *mem_ctx,
 
    populate_symbol_table(linked);
 
-   /* The a pointer to the main function in the final linked shader (i.e., the
+   /* The pointer to the main function in the final linked shader (i.e., the
     * copy of the original shader that contained the main function).
     */
    ir_function_signature *const main_sig =
@@ -1882,7 +1882,7 @@ find_available_slots(unsigned used_mask, unsigned needed_count)
 
 
 /**
- * Assign locations for either VS inputs for FS outputs
+ * Assign locations for either VS inputs or FS outputs
  *
  * \param prog          Shader program whose variables need locations assigned
  * \param target_index  Selector for the program target to receive location
@@ -2484,20 +2484,6 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
    prog->Validated = false;
    prog->_Used = false;
 
-   ralloc_free(prog->InfoLog);
-   prog->InfoLog = ralloc_strdup(NULL, "");
-
-   ralloc_free(prog->UniformBlocks);
-   prog->UniformBlocks = NULL;
-   prog->NumUniformBlocks = 0;
-   for (int i = 0; i < MESA_SHADER_STAGES; i++) {
-      ralloc_free(prog->UniformBlockStageIndex[i]);
-      prog->UniformBlockStageIndex[i] = NULL;
-   }
-
-   ralloc_free(prog->AtomicBuffers);
-   prog->AtomicBuffers = NULL;
-   prog->NumAtomicBuffers = 0;
    prog->ARB_fragment_coord_conventions_enable = false;
 
    /* Separate the shaders into groups based on their type.

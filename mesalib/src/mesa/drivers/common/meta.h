@@ -136,6 +136,9 @@ struct save_state
    GLfloat ModelviewMatrix[16];
    GLfloat ProjectionMatrix[16];
    GLfloat TextureMatrix[16];
+   /** GL_ARB_clip_control */
+   GLenum ClipOrigin;     /**< GL_LOWER_LEFT or GL_UPPER_LEFT */
+   GLenum ClipDepthMode;  /**< GL_NEGATIVE_ONE_TO_ONE or GL_ZERO_TO_ONE */
 
    /** MESA_META_CLIP */
    GLbitfield ClipPlanesEnabled;

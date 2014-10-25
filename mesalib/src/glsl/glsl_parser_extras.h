@@ -40,8 +40,10 @@ struct glsl_switch_state {
    /** Temporary variables needed for switch statement. */
    ir_variable *test_var;
    ir_variable *is_fallthru_var;
-   ir_variable *is_break_var;
    class ast_switch_statement *switch_nesting_ast;
+
+   /** Used to detect if 'continue' was called inside a switch. */
+   ir_variable *continue_inside;
 
    /** Used to set condition if 'default' label should be chosen. */
    ir_variable *run_default;

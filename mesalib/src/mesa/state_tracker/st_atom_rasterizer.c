@@ -33,6 +33,7 @@
 #include "main/macros.h"
 #include "st_context.h"
 #include "st_atom.h"
+#include "st_debug.h"
 #include "st_program.h"
 #include "pipe/p_context.h"
 #include "pipe/p_defines.h"
@@ -70,6 +71,11 @@ static void update_raster_state( struct st_context *st )
     */
    {
       raster->front_ccw = (ctx->Polygon.FrontFace == GL_CCW);
+
+      /* _NEW_VIEWPORT */
+      if (ctx->Transform.ClipOrigin == GL_UPPER_LEFT) {
+         raster->front_ccw ^= 1;
+      }
 
       /*
        * Gallium's surfaces are Y=0=TOP orientation.  OpenGL is the
@@ -119,8 +125,14 @@ static void update_raster_state( struct st_context *st )
    /* _NEW_POLYGON
     */
    {
-      raster->fill_front = translate_fill( ctx->Polygon.FrontMode );
-      raster->fill_back = translate_fill( ctx->Polygon.BackMode );
+      if (ST_DEBUG & DEBUG_WIREFRAME) {
+         raster->fill_front = PIPE_POLYGON_MODE_LINE;
+         raster->fill_back = PIPE_POLYGON_MODE_LINE;
+      }
+      else {
+         raster->fill_front = translate_fill( ctx->Polygon.FrontMode );
+         raster->fill_back = translate_fill( ctx->Polygon.BackMode );
+      }
 
       /* Simplify when culling is active:
        */
@@ -234,6 +246,12 @@ static void update_raster_state( struct st_context *st )
    raster->half_pixel_center = 1;
    if (st_fb_orientation(ctx->DrawBuffer) == Y_0_TOP)
       raster->bottom_edge_rule = 1;
+   /* _NEW_VIEWPORT */
+   if (ctx->Transform.ClipOrigin == GL_UPPER_LEFT)
+      raster->bottom_edge_rule ^= 1;
+
+   /* _NEW_VIEWPORT */
+   raster->clip_halfz = (ctx->Transform.ClipDepthMode == GL_ZERO_TO_ONE);
 
    /* ST_NEW_RASTERIZER */
    raster->rasterizer_discard = ctx->RasterDiscard;
@@ -265,7 +283,8 @@ const struct st_tracked_state st_update_rasterizer = {
        _NEW_PROGRAM |
        _NEW_SCISSOR |
        _NEW_FRAG_CLAMP |
-       _NEW_TRANSFORM),      /* mesa state dependencies*/
+       _NEW_TRANSFORM |
+       _NEW_VIEWPORT),      /* mesa state dependencies*/
       (ST_NEW_VERTEX_PROGRAM |
        ST_NEW_RASTERIZER),  /* state tracker dependencies */
    },

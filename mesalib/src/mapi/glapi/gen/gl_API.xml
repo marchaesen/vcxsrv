@@ -8364,7 +8364,9 @@
 
 <xi:include href="ARB_multi_bind.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
-<!-- ARB extensions 148 - 160 -->
+<!-- ARB extensions 148 - 159 -->
+
+<xi:include href="ARB_clip_control.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <category name="GL_ARB_conditional_render_inverted" number="161">
     <enum name="QUERY_WAIT_INVERTED"                      value="0x8E17"/>

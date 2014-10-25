@@ -106,6 +106,10 @@ _XftDisplayInfoGet (Display *dpy, FcBool createIfNecessary)
 	if (major < 0 || (major == 0 && minor <= 2))
 	    info->use_free_glyphs = FcFalse;
 
+	info->hasSolid = FcFalse;
+	if (major > 0 || (major == 0 && minor >= 10))
+	    info->hasSolid = FcTrue;
+
 	pf.type = PictTypeDirect;
 	pf.depth = 32;
 	pf.direct.redMask = 0xff;

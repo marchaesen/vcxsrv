@@ -163,11 +163,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
          */
         if (s_pScreenInfo->fFullScreen
             && (s_pScreenInfo->dwEngine == WIN_SERVER_SHADOW_DD
-                || s_pScreenInfo->dwEngine == WIN_SERVER_SHADOW_DDNL
-#ifdef XWIN_PRIMARYFB
-                || s_pScreenInfo->dwEngine == WIN_SERVER_PRIMARY_DD
-#endif
-            )) {
+                || s_pScreenInfo->dwEngine == WIN_SERVER_SHADOW_DDNL)) {
             break;
         }
 
@@ -191,11 +187,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (s_pScreenInfo->dwBPP !=
             GetDeviceCaps(s_pScreenPriv->hdcScreen, BITSPIXEL)) {
             if ((s_pScreenInfo->dwEngine == WIN_SERVER_SHADOW_DD ||
-                 s_pScreenInfo->dwEngine == WIN_SERVER_SHADOW_DDNL
-#ifdef XWIN_PRIMARYFB
-                 || s_pScreenInfo->dwEngine == WIN_SERVER_PRIMARY_DD
-#endif
-                )) {
+                 s_pScreenInfo->dwEngine == WIN_SERVER_SHADOW_DDNL)) {
                 /* Cannot display the visual until the depth is restored */
                 ErrorF("winWindowProc - Disruptive change in depth\n");
 

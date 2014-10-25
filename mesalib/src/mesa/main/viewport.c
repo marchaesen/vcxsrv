@@ -30,6 +30,7 @@
 
 
 #include "context.h"
+#include "enums.h"
 #include "macros.h"
 #include "mtypes.h"
 #include "viewport.h"
@@ -39,6 +40,8 @@ set_viewport_no_notify(struct gl_context *ctx, unsigned idx,
                        GLfloat x, GLfloat y,
                        GLfloat width, GLfloat height)
 {
+   double scale[3], translate[3];
+
    /* clamp width and height to the implementation dependent range */
    width  = MIN2(width, (GLfloat) ctx->Const.MaxViewportWidth);
    height = MIN2(height, (GLfloat) ctx->Const.MaxViewportHeight);
@@ -75,14 +78,9 @@ set_viewport_no_notify(struct gl_context *ctx, unsigned idx,
     * the WindowMap matrix being up to date in the driver's Viewport
     * and DepthRange functions.
     */
+   _mesa_get_viewport_xform(ctx, idx, scale, translate);
    _math_matrix_viewport(&ctx->ViewportArray[idx]._WindowMap,
-                         ctx->ViewportArray[idx].X,
-                         ctx->ViewportArray[idx].Y,
-                         ctx->ViewportArray[idx].Width,
-                         ctx->ViewportArray[idx].Height,
-                         ctx->ViewportArray[idx].Near,
-                         ctx->ViewportArray[idx].Far,
-                         ctx->DrawBuffer->_DepthMaxF);
+                         scale, translate, ctx->DrawBuffer->_DepthMaxF);
 #endif
 }
 
@@ -248,6 +246,8 @@ static void
 set_depth_range_no_notify(struct gl_context *ctx, unsigned idx,
                           GLclampd nearval, GLclampd farval)
 {
+   double scale[3], translate[3];
+
    if (ctx->ViewportArray[idx].Near == nearval &&
        ctx->ViewportArray[idx].Far == farval)
       return;
@@ -261,14 +261,9 @@ set_depth_range_no_notify(struct gl_context *ctx, unsigned idx,
     * the WindowMap matrix being up to date in the driver's Viewport
     * and DepthRange functions.
     */
+   _mesa_get_viewport_xform(ctx, idx, scale, translate);
    _math_matrix_viewport(&ctx->ViewportArray[idx]._WindowMap,
-                         ctx->ViewportArray[idx].X,
-                         ctx->ViewportArray[idx].Y,
-                         ctx->ViewportArray[idx].Width,
-                         ctx->ViewportArray[idx].Height,
-                         ctx->ViewportArray[idx].Near,
-                         ctx->ViewportArray[idx].Far,
-                         ctx->DrawBuffer->_DepthMaxF);
+                         scale, translate, ctx->DrawBuffer->_DepthMaxF);
 #endif
 }
 
@@ -396,10 +391,15 @@ void _mesa_init_viewport(struct gl_context *ctx)
    GLfloat depthMax = 65535.0F; /* sorf of arbitrary */
    unsigned i;
 
+   ctx->Transform.ClipOrigin = GL_LOWER_LEFT;
+   ctx->Transform.ClipDepthMode = GL_NEGATIVE_ONE_TO_ONE;
+
    /* Note: ctx->Const.MaxViewports may not have been set by the driver yet,
     * so just initialize all of them.
     */
    for (i = 0; i < MAX_VIEWPORTS; i++) {
+      double scale[3], translate[3];
+
       /* Viewport group */
       ctx->ViewportArray[i].X = 0;
       ctx->ViewportArray[i].Y = 0;
@@ -409,8 +409,9 @@ void _mesa_init_viewport(struct gl_context *ctx)
       ctx->ViewportArray[i].Far = 1.0;
       _math_matrix_ctr(&ctx->ViewportArray[i]._WindowMap);
 
-      _math_matrix_viewport(&ctx->ViewportArray[i]._WindowMap, 0, 0, 0, 0,
-                            0.0F, 1.0F, depthMax);
+      _mesa_get_viewport_xform(ctx, i, scale, translate);
+      _math_matrix_viewport(&ctx->ViewportArray[i]._WindowMap,
+                            scale, translate, depthMax);
    }
 }
 
@@ -427,3 +428,92 @@ void _mesa_free_viewport_data(struct gl_context *ctx)
       _math_matrix_dtr(&ctx->ViewportArray[i]._WindowMap);
 }
 
+extern void GLAPIENTRY
+_mesa_ClipControl(GLenum origin, GLenum depth)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (MESA_VERBOSE&VERBOSE_API)
+      _mesa_debug(ctx, "glClipControl(%s, %s)\n",
+	          _mesa_lookup_enum_by_nr(origin),
+                  _mesa_lookup_enum_by_nr(depth));
+
+   ASSERT_OUTSIDE_BEGIN_END(ctx);
+
+   if (!ctx->Extensions.ARB_clip_control) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glClipControl");
+      return;
+   }
+
+   if (origin != GL_LOWER_LEFT && origin != GL_UPPER_LEFT) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "glClipControl");
+      return;
+   }
+
+   if (depth != GL_NEGATIVE_ONE_TO_ONE && depth != GL_ZERO_TO_ONE) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "glClipControl");
+      return;
+   }
+
+   if (ctx->Transform.ClipOrigin == origin &&
+       ctx->Transform.ClipDepthMode == depth)
+      return;
+
+   FLUSH_VERTICES(ctx, 0);
+
+   if (ctx->Transform.ClipOrigin != origin) {
+      ctx->Transform.ClipOrigin = origin;
+
+      /* Affects the winding order of the front face. */
+      ctx->NewState |= _NEW_POLYGON;
+      /* Affects the y component of the viewport transform. */
+      ctx->NewState |= _NEW_VIEWPORT;
+
+      if (ctx->Driver.FrontFace)
+         ctx->Driver.FrontFace(ctx, ctx->Polygon.FrontFace);
+   }
+
+   if (ctx->Transform.ClipDepthMode != depth) {
+      ctx->Transform.ClipDepthMode = depth;
+
+      /* Affects the z part of the viewpoint transform. */
+      ctx->NewState |= _NEW_VIEWPORT;
+
+      if (ctx->Driver.DepthRange)
+         ctx->Driver.DepthRange(ctx);
+   }
+}
+
+/**
+ * Computes the scaling and the translation part of the
+ * viewport transform matrix of the \param i-th viewport
+ * and writes that into \param scale and \param translate.
+ */
+void
+_mesa_get_viewport_xform(struct gl_context *ctx, unsigned i,
+                         double scale[3], double translate[3])
+{
+   double x = ctx->ViewportArray[i].X;
+   double y = ctx->ViewportArray[i].Y;
+   double half_width = 0.5*ctx->ViewportArray[i].Width;
+   double half_height = 0.5*ctx->ViewportArray[i].Height;
+   double n = ctx->ViewportArray[i].Near;
+   double f = ctx->ViewportArray[i].Far;
+
+   scale[0] = half_width;
+   translate[0] = half_width + x;
+   if (ctx->Transform.ClipOrigin == GL_UPPER_LEFT) {
+      scale[1] = -half_height;
+      translate[1] = half_height - y;
+   } else {
+      scale[1] = half_height;
+      translate[1] = half_height + y;
+   }
+   if (ctx->Transform.ClipDepthMode == GL_NEGATIVE_ONE_TO_ONE) {
+      scale[2] = 0.5*(f - n);
+      translate[2] = 0.5*(n + f);
+   } else {
+      scale[2] = f - n;
+      translate[2] = n;
+   }
+}

@@ -110,20 +110,8 @@ winCreateBoundingWindowFullScreen(ScreenPtr pScreen)
                              GetModuleHandle(NULL),     /* Instance handle */
                              pScreenPriv);      /* ScreenPrivates */
 
-    /* Branch on the server engine */
-    switch (pScreenInfo->dwEngine) {
-#ifdef XWIN_NATIVEGDI
-    case WIN_SERVER_SHADOW_GDI:
-        /* Show the window */
-        ShowWindow(*phwnd, SW_SHOWMAXIMIZED);
-        break;
-#endif
-
-    default:
-        /* Hide the window */
-        ShowWindow(*phwnd, SW_SHOWNORMAL);
-        break;
-    }
+    /* Hide the window */
+    ShowWindow(*phwnd, SW_SHOWNORMAL);
 
     /* Send first paint message */
     UpdateWindow(*phwnd);
@@ -473,12 +461,6 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
             return FALSE;
         }
     }
-
-#ifdef XWIN_NATIVEGDI
-    /* Paint window background blue */
-    if (pScreenInfo->dwEngine == WIN_SERVER_NATIVE_GDI)
-        winPaintBackground(*phwnd, RGB(0x00, 0x00, 0xFF));
-#endif
 
     winDebug("winCreateBoundingWindowWindowed -  Returning\n");
 

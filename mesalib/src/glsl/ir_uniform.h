@@ -45,17 +45,6 @@ extern "C" {
 enum PACKED gl_uniform_driver_format {
    uniform_native = 0,          /**< Store data in the native format. */
    uniform_int_float,           /**< Store integer data as floats. */
-   uniform_bool_float,          /**< Store boolean data as floats. */
-
-   /**
-    * Store boolean data as integer using 1 for \c true.
-    */
-   uniform_bool_int_0_1,
-
-   /**
-    * Store boolean data as integer using ~0 for \c true.
-    */
-   uniform_bool_int_0_not0
 };
 
 struct gl_uniform_driver_storage {

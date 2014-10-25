@@ -533,8 +533,7 @@ _mesa_propagate_uniforms_to_driver_storage(struct gl_uniform_storage *uni,
       dst += array_index * store->element_stride;
 
       switch (store->format) {
-      case uniform_native:
-      case uniform_bool_int_0_1: {
+      case uniform_native: {
 	 unsigned j;
 	 unsigned v;
 
@@ -550,8 +549,7 @@ _mesa_propagate_uniforms_to_driver_storage(struct gl_uniform_storage *uni,
 	 break;
       }
 
-      case uniform_int_float:
-      case uniform_bool_float: {
+      case uniform_int_float: {
 	 const int *isrc = (const int *) src;
 	 unsigned j;
 	 unsigned v;
@@ -561,27 +559,6 @@ _mesa_propagate_uniforms_to_driver_storage(struct gl_uniform_storage *uni,
 	    for (v = 0; v < vectors; v++) {
 	       for (c = 0; c < components; c++) {
 		  ((float *) dst)[c] = (float) *isrc;
-		  isrc++;
-	       }
-
-	       dst += store->vector_stride;
-	    }
-
-	    dst += extra_stride;
-	 }
-	 break;
-      }
-
-      case uniform_bool_int_0_not0: {
-	 const int *isrc = (const int *) src;
-	 unsigned j;
-	 unsigned v;
-	 unsigned c;
-
-	 for (j = 0; j < count; j++) {
-	    for (v = 0; v < vectors; v++) {
-	       for (c = 0; c < components; c++) {
-		  ((int *) dst)[c] = *isrc == 0 ? 0 : ~0;
 		  isrc++;
 	       }
 
@@ -996,8 +973,7 @@ _mesa_uniform_matrix(struct gl_context *ctx, struct gl_shader_program *shProg,
  * array offset in *offset, or GL_INVALID_INDEX (-1).
  */
 extern "C" unsigned
-_mesa_get_uniform_location(struct gl_context *ctx,
-                           struct gl_shader_program *shProg,
+_mesa_get_uniform_location(struct gl_shader_program *shProg,
                            const GLchar *name,
                            unsigned *out_offset)
 {
@@ -1064,42 +1040,16 @@ extern "C" bool
 _mesa_sampler_uniforms_are_valid(const struct gl_shader_program *shProg,
 				 char *errMsg, size_t errMsgLength)
 {
-   const glsl_type *unit_types[MAX_COMBINED_TEXTURE_IMAGE_UNITS];
+   /* Shader does not have samplers. */
+   if (shProg->NumUserUniformStorage == 0)
+      return true;
 
-   memset(unit_types, 0, sizeof(unit_types));
-
-   for (unsigned i = 0; i < shProg->NumUserUniformStorage; i++) {
-      const struct gl_uniform_storage *const storage =
-	 &shProg->UniformStorage[i];
-      const glsl_type *const t = (storage->type->is_array())
-	 ? storage->type->fields.array : storage->type;
-
-      if (!t->is_sampler())
-	 continue;
-
-      const unsigned count = MAX2(1, storage->type->array_size());
-      for (unsigned j = 0; j < count; j++) {
-	 const unsigned unit = storage->storage[j].i;
-
-	 /* The types of the samplers associated with a particular texture
-	  * unit must be an exact match.  Page 74 (page 89 of the PDF) of the
-	  * OpenGL 3.3 core spec says:
-	  *
-	  *     "It is not allowed to have variables of different sampler
-	  *     types pointing to the same texture image unit within a program
-	  *     object."
-	  */
-	 if (unit_types[unit] == NULL) {
-	    unit_types[unit] = t;
-	 } else if (unit_types[unit] != t) {
-	    _mesa_snprintf(errMsg, errMsgLength,
-			   "Texture unit %d is accessed both as %s and %s",
-			   unit, unit_types[unit]->name, t->name);
-	    return false;
-	 }
-      }
+   if (!shProg->SamplersValidated) {
+      _mesa_snprintf(errMsg, errMsgLength,
+                     "active samplers with a different type "
+                     "refer to the same texture image unit");
+      return false;
    }
-
    return true;
 }
 

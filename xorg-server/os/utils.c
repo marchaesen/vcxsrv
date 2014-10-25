@@ -1373,6 +1373,7 @@ System(const char *command)
     switch (pid = fork()) {
     case -1:                   /* error */
         p = -1;
+        break;
     case 0:                    /* child */
         if (setgid(getgid()) == -1)
             _exit(127);

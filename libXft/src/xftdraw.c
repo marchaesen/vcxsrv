@@ -333,39 +333,52 @@ XftDrawSrcPicture (XftDraw *draw, _Xconst XftColor *color)
      * Pick one to replace at random
      */
     i = (unsigned int) rand () % XFT_NUM_SOLID_COLOR;
-    /*
-     * Recreate if it was for the wrong screen
-     */
-    if (info->colors[i].screen != draw->screen && info->colors[i].pict)
-    {
-	XRenderFreePicture (dpy, info->colors[i].pict);
-	info->colors[i].pict = 0;
-    }
-    /*
-     * Create picture if necessary
-     */
-    if (!info->colors[i].pict)
-    {
-	Pixmap			    pix;
-        XRenderPictureAttributes    pa;
 
-	pix = XCreatePixmap (dpy, RootWindow (dpy, draw->screen), 1, 1,
-			     info->solidFormat->depth);
-	pa.repeat = True;
-	info->colors[i].pict = XRenderCreatePicture (draw->dpy,
-						     pix,
-						     info->solidFormat,
-						     CPRepeat, &pa);
-	XFreePixmap (dpy, pix);
+    if (info->hasSolid) {
+	/*
+	 * Free any existing entry
+	 */
+	if (info->colors[i].pict)
+	    XRenderFreePicture (dpy, info->colors[i].pict);
+	/*
+	 * Create picture
+	 */
+	info->colors[i].pict = XRenderCreateSolidFill (draw->dpy, &color->color);
+    } else {
+	if (info->colors[i].screen != draw->screen && info->colors[i].pict)
+	{
+	    XRenderFreePicture (dpy, info->colors[i].pict);
+	    info->colors[i].pict = 0;
+	}
+	/*
+	 * Create picture if necessary
+	 */
+	if (!info->colors[i].pict)
+	{
+	    Pixmap			    pix;
+	    XRenderPictureAttributes    pa;
+
+	    pix = XCreatePixmap (dpy, RootWindow (dpy, draw->screen), 1, 1,
+				 info->solidFormat->depth);
+	    pa.repeat = True;
+	    info->colors[i].pict = XRenderCreatePicture (draw->dpy,
+							 pix,
+							 info->solidFormat,
+							 CPRepeat, &pa);
+	    XFreePixmap (dpy, pix);
+	}
+	/*
+	 * Set to the new color
+	 */
+	info->colors[i].color = color->color;
+	info->colors[i].screen = draw->screen;
+	XRenderFillRectangle (dpy, PictOpSrc,
+			      info->colors[i].pict,
+			      &color->color, 0, 0, 1, 1);
     }
-    /*
-     * Set to the new color
-     */
     info->colors[i].color = color->color;
     info->colors[i].screen = draw->screen;
-    XRenderFillRectangle (dpy, PictOpSrc,
-			  info->colors[i].pict,
-			  &color->color, 0, 0, 1, 1);
+
     return info->colors[i].pict;
 }
 

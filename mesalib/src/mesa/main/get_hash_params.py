@@ -414,6 +414,8 @@ descriptor=[
   [ "AUX_BUFFERS", "BUFFER_INT(Visual.numAuxBuffers), NO_EXTRA" ],
   [ "BLUE_BIAS", "CONTEXT_FLOAT(Pixel.BlueBias), NO_EXTRA" ],
   [ "BLUE_SCALE", "CONTEXT_FLOAT(Pixel.BlueScale), NO_EXTRA" ],
+  [ "CLIP_DEPTH_MODE", "CONTEXT_ENUM(Transform.ClipDepthMode), extra_ARB_clip_control" ],
+  [ "CLIP_ORIGIN", "CONTEXT_ENUM(Transform.ClipOrigin), extra_ARB_clip_control" ],
   [ "CLIENT_ATTRIB_STACK_DEPTH", "CONTEXT_INT(ClientAttribStackDepth), NO_EXTRA" ],
   [ "COLOR_MATERIAL_FACE", "CONTEXT_ENUM(Light.ColorMaterialFace), NO_EXTRA" ],
   [ "COLOR_MATERIAL_PARAMETER", "CONTEXT_ENUM(Light.ColorMaterialMode), NO_EXTRA" ],

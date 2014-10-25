@@ -3020,7 +3020,7 @@ _mesa_glsl_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 {
    unsigned int i;
 
-   _mesa_clear_shader_program_data(ctx, prog);
+   _mesa_clear_shader_program_data(prog);
 
    prog->LinkStatus = GL_TRUE;
 

@@ -391,6 +391,7 @@ EXTRA_EXT(ARB_gpu_shader5);
 EXTRA_EXT2(ARB_transform_feedback3, ARB_gpu_shader5);
 EXTRA_EXT(INTEL_performance_query);
 EXTRA_EXT(ARB_explicit_uniform_location);
+EXTRA_EXT(ARB_clip_control);
 
 static const int
 extra_ARB_color_buffer_float_or_glcore[] = {

@@ -1908,7 +1908,7 @@ PanoramiXGetImage(ClientPtr client)
     }
 
     rc = dixLookupResourceByClass((void **) &draw, stuff->drawable,
-                                  XRC_DRAWABLE, client, DixWriteAccess);
+                                  XRC_DRAWABLE, client, DixReadAccess);
     if (rc != Success)
         return (rc == BadValue) ? BadDrawable : rc;
 

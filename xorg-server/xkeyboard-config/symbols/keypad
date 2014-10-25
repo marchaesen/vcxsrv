@@ -1,3 +1,27 @@
+default  hidden partial keypad_keys
+xkb_symbols "x11" {
+
+    include "keypad(operators)"
+
+    key  <KP7> {	[  KP_Home,	KP_7	]	};
+    key  <KP8> {	[  KP_Up,	KP_8	]	};
+    key  <KP9> {	[  KP_Prior,	KP_9	]	};
+
+    key  <KP4> {	[  KP_Left,	KP_4	]	};
+    key  <KP5> {	[  KP_Begin,	KP_5	]	};
+    key  <KP6> {	[  KP_Right,	KP_6	]	};
+
+    key  <KP1> {	[  KP_End,	KP_1	]	};
+    key  <KP2> {	[  KP_Down,	KP_2	]	};
+    key  <KP3> {	[  KP_Next,	KP_3	]	};
+    key <KPEN> {	[	KP_Enter	]	};
+    key <KPEQ> {	[	KP_Equal	]	};
+
+    key  <KP0> {	[  KP_Insert,	KP_0	]	};
+    key <KPDL> {	[  KP_Delete,	KP_Decimal ]	};
+    key <KPPT> {	[  KP_Decimal,	KP_Decimal ]	};
+};
+
 hidden partial keypad_keys
 xkb_symbols "overlay" {
     include "keypad(overlay1)"
@@ -92,31 +116,6 @@ xkb_symbols "operators" {
         symbols[Group1]= [ KP_Add, KP_Add, KP_Add, KP_Add, XF86_Next_VMode ]
     };
 };
-
-default  hidden partial keypad_keys
-xkb_symbols "x11" {
-
-    include "keypad(operators)"
-
-    key  <KP7> {	[  KP_Home,	KP_7	]	};
-    key  <KP8> {	[  KP_Up,	KP_8	]	};
-    key  <KP9> {	[  KP_Prior,	KP_9	]	};
-
-    key  <KP4> {	[  KP_Left,	KP_4	]	};
-    key  <KP5> {	[  KP_Begin,	KP_5	]	};
-    key  <KP6> {	[  KP_Right,	KP_6	]	};
-
-    key  <KP1> {	[  KP_End,	KP_1	]	};
-    key  <KP2> {	[  KP_Down,	KP_2	]	};
-    key  <KP3> {	[  KP_Next,	KP_3	]	};
-    key <KPEN> {	[	KP_Enter	]	};
-    key <KPEQ> {	[	KP_Equal	]	};
-
-    key  <KP0> {	[  KP_Insert,	KP_0	]	};
-    key <KPDL> {	[  KP_Delete,	KP_Decimal ]	};
-    key <KPPT> {	[  KP_Decimal,	KP_Decimal ]	};
-};
-
 
 // Legacy PC keypad definition
 // Copyright © 2006-2007 Nicolas Mailhot <nicolas.mailhot @ laposte.net>

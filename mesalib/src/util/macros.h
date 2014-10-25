@@ -75,6 +75,20 @@ do {                        \
 #define unreachable(str)
 #endif
 
+/**
+ * Assume macro. Useful for expressing our assumptions to the compiler,
+ * typically for purposes of silencing warnings.
+ */
+#ifdef HAVE___BUILTIN_UNREACHABLE
+#define assume(expr) ((expr) ? ((void) 0) \
+                             : (assert(!"assumption failed"), \
+                                __builtin_unreachable()))
+#elif _MSC_VER >= 1200
+#define assume(expr) __assume(expr)
+#else
+#define assume(expr) assert(expr)
+#endif
+
 #ifdef HAVE_FUNC_ATTRIBUTE_FLATTEN
 #define FLATTEN __attribute__((__flatten__))
 #else

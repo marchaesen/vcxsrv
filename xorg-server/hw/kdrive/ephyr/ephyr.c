@@ -68,6 +68,7 @@ typedef struct _EphyrInputPrivate {
 
 Bool EphyrWantGrayScale = 0;
 Bool EphyrWantResize = 0;
+Bool EphyrWantNoHostGrab = 0;
 
 Bool
 host_has_extension(xcb_extension_t *extension)
@@ -649,7 +650,11 @@ ephyrInitScreen(ScreenPtr pScreen)
 
     EPHYR_LOG("pScreen->myNum:%d\n", pScreen->myNum);
     hostx_set_screen_number(screen, pScreen->myNum);
-    hostx_set_win_title(screen, "(ctrl+shift grabs mouse and keyboard)");
+    if (EphyrWantNoHostGrab) {
+        hostx_set_win_title(screen, "xephyr");
+    } else {
+        hostx_set_win_title(screen, "(ctrl+shift grabs mouse and keyboard)");
+    }
     pScreen->CreateColormap = ephyrCreateColormap;
 
 #ifdef XV
@@ -1092,12 +1097,13 @@ ephyrProcessKeyRelease(xcb_generic_event_t *xev)
     if (!keysyms)
         keysyms = xcb_key_symbols_alloc(conn);
 
-    if (((xcb_key_symbols_get_keysym(keysyms, key->detail, 0) == XK_Shift_L
+    if (!EphyrWantNoHostGrab &&
+        (((xcb_key_symbols_get_keysym(keysyms, key->detail, 0) == XK_Shift_L
           || xcb_key_symbols_get_keysym(keysyms, key->detail, 0) == XK_Shift_R)
          && (key->state & XCB_MOD_MASK_CONTROL)) ||
         ((xcb_key_symbols_get_keysym(keysyms, key->detail, 0) == XK_Control_L
           || xcb_key_symbols_get_keysym(keysyms, key->detail, 0) == XK_Control_R)
-         && (key->state & XCB_MOD_MASK_SHIFT))) {
+         && (key->state & XCB_MOD_MASK_SHIFT)))) {
         KdScreenInfo *screen = screen_from_window(key->event);
         EphyrScrPriv *scrpriv = screen->driver;
 

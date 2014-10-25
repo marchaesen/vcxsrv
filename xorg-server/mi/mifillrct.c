@@ -65,7 +65,7 @@ SOFTWARE.
  * then call FillSpans to fill each rectangle.  We let FillSpans worry about
  * clipping to the destination
  */
-void
+_X_COLD void
 miPolyFillRect(DrawablePtr pDrawable, GCPtr pGC, int nrectFill, /* number of rectangles to fill */
                xRectangle *prectInit    /* Pointer to first rectangle to fill */
     )

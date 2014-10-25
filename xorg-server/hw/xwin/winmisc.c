@@ -33,21 +33,6 @@
 #endif
 #include "win.h"
 
-#ifdef XWIN_NATIVEGDI
-/* See Porting Layer Definition - p. 33 */
-/*
- * Called by clients, returns the best size for a cursor, tile, or
- * stipple, specified by class (sometimes called kind)
- */
-
-void
-winQueryBestSizeNativeGDI(int class, unsigned short *pWidth,
-                          unsigned short *pHeight, ScreenPtr pScreen)
-{
-    ErrorF("winQueryBestSizeNativeGDI\n");
-}
-#endif
-
 /*
  * Count the number of one bits in a color mask.
  */
@@ -93,51 +78,3 @@ winUpdateFBPointer(ScreenPtr pScreen, void *pbits)
 
     return TRUE;
 }
-
-#ifdef XWIN_NATIVEGDI
-/*
- * Paint the window background with the specified color
- */
-
-BOOL
-winPaintBackground(HWND hwnd, COLORREF colorref)
-{
-    HDC hdc;
-    HBRUSH hbrush;
-    RECT rect;
-
-    /* Create an hdc */
-    hdc = GetDC(hwnd);
-    if (hdc == NULL) {
-        printf("gdiWindowProc - GetDC failed\n");
-        exit(1);
-    }
-
-    /* Create and select blue brush */
-    hbrush = CreateSolidBrush(colorref);
-    if (hbrush == NULL) {
-        printf("gdiWindowProc - CreateSolidBrush failed\n");
-        exit(1);
-    }
-
-    /* Get window extents */
-    if (GetClientRect(hwnd, &rect) == FALSE) {
-        printf("gdiWindowProc - GetClientRect failed\n");
-        exit(1);
-    }
-
-    /* Fill window with blue brush */
-    if (FillRect(hdc, &rect, hbrush) == 0) {
-        printf("gdiWindowProc - FillRect failed\n");
-        exit(1);
-    }
-
-    /* Delete blue brush */
-    DeleteObject(hbrush);
-
-    /* Release the hdc */
-    ReleaseDC(hwnd, hdc);
-
-    return TRUE;
-}
-#endif

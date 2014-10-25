@@ -799,7 +799,7 @@ util_bswap64(uint64_t n)
 #if defined(HAVE___BUILTIN_BSWAP64)
    return __builtin_bswap64(n);
 #else
-   return ((uint64_t)util_bswap32(n) << 32) |
+   return ((uint64_t)util_bswap32((uint32_t)n) << 32) |
           util_bswap32((n >> 32));
 #endif
 }

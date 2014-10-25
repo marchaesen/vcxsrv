@@ -55,6 +55,7 @@ static const struct debug_named_value st_debug_flags[] = {
    { "query",    DEBUG_QUERY, NULL },
    { "draw",     DEBUG_DRAW, NULL },
    { "buffer",   DEBUG_BUFFER, NULL },
+   { "wf",       DEBUG_WIREFRAME, NULL },
    DEBUG_NAMED_VALUE_END
 };
 

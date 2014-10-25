@@ -3767,7 +3767,7 @@ ast_declarator_list::hir(exec_list *instructions,
              earlier->data.how_declared == ir_var_declared_in_block) {
             _mesa_glsl_error(&loc, state,
                              "`%s' has already been redeclared using "
-                             "gl_PerVertex", var->name);
+                             "gl_PerVertex", earlier->name);
          }
          earlier->data.how_declared = ir_var_declared_normally;
       }
@@ -4373,7 +4373,7 @@ ast_jump_statement::hir(exec_list *instructions,
           * loop.
           */
          if (state->loop_nesting_ast != NULL &&
-             mode == ast_continue) {
+             mode == ast_continue && !state->switch_state.is_switch_innermost) {
             if (state->loop_nesting_ast->rest_expression) {
                state->loop_nesting_ast->rest_expression->hir(instructions,
                                                              state);
@@ -4385,19 +4385,27 @@ ast_jump_statement::hir(exec_list *instructions,
          }
 
          if (state->switch_state.is_switch_innermost &&
+             mode == ast_continue) {
+            /* Set 'continue_inside' to true. */
+            ir_rvalue *const true_val = new (ctx) ir_constant(true);
+            ir_dereference_variable *deref_continue_inside_var =
+               new(ctx) ir_dereference_variable(state->switch_state.continue_inside);
+            instructions->push_tail(new(ctx) ir_assignment(deref_continue_inside_var,
+                                                           true_val));
+
+            /* Break out from the switch, continue for the loop will
+             * be called right after switch. */
+            ir_loop_jump *const jump =
+               new(ctx) ir_loop_jump(ir_loop_jump::jump_break);
+            instructions->push_tail(jump);
+
+         } else if (state->switch_state.is_switch_innermost &&
              mode == ast_break) {
-            /* Force break out of switch by setting is_break switch state.
-             */
-            ir_variable *const is_break_var = state->switch_state.is_break_var;
-            ir_dereference_variable *const deref_is_break_var =
-               new(ctx) ir_dereference_variable(is_break_var);
-            ir_constant *const true_val = new(ctx) ir_constant(true);
-            ir_assignment *const set_break_var =
-               new(ctx) ir_assignment(deref_is_break_var, true_val);
-	    
-            instructions->push_tail(set_break_var);
-         }
-         else {
+            /* Force break out of switch by inserting a break. */
+            ir_loop_jump *const jump =
+               new(ctx) ir_loop_jump(ir_loop_jump::jump_break);
+            instructions->push_tail(jump);
+         } else {
             ir_loop_jump *const jump =
                new(ctx) ir_loop_jump((mode == ast_break)
                   ? ir_loop_jump::jump_break
@@ -4509,19 +4517,19 @@ ast_switch_statement::hir(exec_list *instructions,
    instructions->push_tail(new(ctx) ir_assignment(deref_is_fallthru_var,
                                                   is_fallthru_val));
 
-   /* Initalize is_break state to false.
+   /* Initialize continue_inside state to false.
     */
-   ir_rvalue *const is_break_val = new (ctx) ir_constant(false);
-   state->switch_state.is_break_var =
+   state->switch_state.continue_inside =
       new(ctx) ir_variable(glsl_type::bool_type,
-                           "switch_is_break_tmp",
+                           "continue_inside_tmp",
                            ir_var_temporary);
-   instructions->push_tail(state->switch_state.is_break_var);
+   instructions->push_tail(state->switch_state.continue_inside);
 
-   ir_dereference_variable *deref_is_break_var =
-      new(ctx) ir_dereference_variable(state->switch_state.is_break_var);
-   instructions->push_tail(new(ctx) ir_assignment(deref_is_break_var,
-                                                  is_break_val));
+   ir_rvalue *const false_val = new (ctx) ir_constant(false);
+   ir_dereference_variable *deref_continue_inside_var =
+      new(ctx) ir_dereference_variable(state->switch_state.continue_inside);
+   instructions->push_tail(new(ctx) ir_assignment(deref_continue_inside_var,
+                                                  false_val));
 
    state->switch_state.run_default =
       new(ctx) ir_variable(glsl_type::bool_type,
@@ -4529,13 +4537,42 @@ ast_switch_statement::hir(exec_list *instructions,
                              ir_var_temporary);
    instructions->push_tail(state->switch_state.run_default);
 
+   /* Loop around the switch is used for flow control. */
+   ir_loop * loop = new(ctx) ir_loop();
+   instructions->push_tail(loop);
+
    /* Cache test expression.
     */
-   test_to_hir(instructions, state);
+   test_to_hir(&loop->body_instructions, state);
 
    /* Emit code for body of switch stmt.
     */
-   body->hir(instructions, state);
+   body->hir(&loop->body_instructions, state);
+
+   /* Insert a break at the end to exit loop. */
+   ir_loop_jump *jump = new(ctx) ir_loop_jump(ir_loop_jump::jump_break);
+   loop->body_instructions.push_tail(jump);
+
+   /* If we are inside loop, check if continue got called inside switch. */
+   if (state->loop_nesting_ast != NULL) {
+      ir_dereference_variable *deref_continue_inside =
+         new(ctx) ir_dereference_variable(state->switch_state.continue_inside);
+      ir_if *irif = new(ctx) ir_if(deref_continue_inside);
+      ir_loop_jump *jump = new(ctx) ir_loop_jump(ir_loop_jump::jump_continue);
+
+      if (state->loop_nesting_ast != NULL) {
+         if (state->loop_nesting_ast->rest_expression) {
+            state->loop_nesting_ast->rest_expression->hir(&irif->then_instructions,
+                                                          state);
+         }
+         if (state->loop_nesting_ast->mode ==
+             ast_iteration_statement::ast_do_while) {
+            state->loop_nesting_ast->condition_to_hir(&irif->then_instructions, state);
+         }
+      }
+      irif->then_instructions.push_tail(jump);
+      instructions->push_tail(irif);
+   }
 
    hash_table_dtor(state->switch_state.labels_ht);
 
@@ -4658,18 +4695,6 @@ ast_case_statement::hir(exec_list *instructions,
                         struct _mesa_glsl_parse_state *state)
 {
    labels->hir(instructions, state);
-
-   /* Conditionally set fallthru state based on break state. */
-   ir_constant *const false_val = new(state) ir_constant(false);
-   ir_dereference_variable *const deref_is_fallthru_var =
-      new(state) ir_dereference_variable(state->switch_state.is_fallthru_var);
-   ir_dereference_variable *const deref_is_break_var =
-      new(state) ir_dereference_variable(state->switch_state.is_break_var);
-   ir_assignment *const reset_fallthru_on_break =
-      new(state) ir_assignment(deref_is_fallthru_var,
-                               false_val,
-                               deref_is_break_var);
-   instructions->push_tail(reset_fallthru_on_break);
 
    /* Guard case statements depending on fallthru state. */
    ir_dereference_variable *const deref_fallthru_guard =
@@ -5681,17 +5706,21 @@ ast_interface_block::hir(exec_list *instructions,
 
          var->data.stream = this->layout.stream;
 
+         /* Examine var name here since var may get deleted in the next call */
+         bool var_is_gl_id = is_gl_identifier(var->name);
+
          if (redeclaring_per_vertex) {
             ir_variable *earlier =
                get_variable_being_redeclared(var, loc, state,
                                              true /* allow_all_redeclarations */);
-            if (!is_gl_identifier(var->name) || earlier == NULL) {
+            if (!var_is_gl_id || earlier == NULL) {
                _mesa_glsl_error(&loc, state,
                                 "redeclaration of gl_PerVertex can only "
                                 "include built-in variables");
             } else if (earlier->data.how_declared == ir_var_declared_normally) {
                _mesa_glsl_error(&loc, state,
-                                "`%s' has already been redeclared", var->name);
+                                "`%s' has already been redeclared",
+                                earlier->name);
             } else {
                earlier->data.how_declared = ir_var_declared_in_block;
                earlier->reinit_interface_type(block_type);

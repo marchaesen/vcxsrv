@@ -384,7 +384,7 @@ validate_image_unit(struct gl_context *ctx, struct gl_image_unit *u)
 void
 _mesa_validate_image_units(struct gl_context *ctx)
 {
-   int i;
+   unsigned i;
 
    for (i = 0; i < ctx->Const.MaxImageUnits; ++i) {
       struct gl_image_unit *u = &ctx->ImageUnits[i];

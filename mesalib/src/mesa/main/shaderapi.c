@@ -316,7 +316,7 @@ create_shader_program(struct gl_context *ctx)
 
    name = _mesa_HashFindFreeKeyBlock(ctx->Shared->ShaderObjects, 1);
 
-   shProg = ctx->Driver.NewShaderProgram(ctx, name);
+   shProg = ctx->Driver.NewShaderProgram(name);
 
    _mesa_HashInsert(ctx->Shared->ShaderObjects, name, shProg);
 

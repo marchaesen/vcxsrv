@@ -103,12 +103,6 @@
 #define WIN_SERVER_SHADOW_GDI	0x1L    /* 1 */
 #define WIN_SERVER_SHADOW_DD	0x2L    /* 2 */
 #define WIN_SERVER_SHADOW_DDNL	0x4L    /* 4 */
-#ifdef XWIN_PRIMARYFB
-#define WIN_SERVER_PRIMARY_DD	0x8L    /* 8 */
-#endif
-#ifdef XWIN_NATIVEGDI
-#define WIN_SERVER_NATIVE_GDI	0x10L   /* 16 */
-#endif
 
 #define AltMapIndex		Mod1MapIndex
 #define NumLockMapIndex		Mod2MapIndex
@@ -303,12 +297,6 @@ typedef Bool (*winReleasePrimarySurfaceProcPtr) (ScreenPtr);
 typedef Bool (*winFinishCreateWindowsWindowProcPtr) (WindowPtr pWin);
 
 typedef Bool (*winCreateScreenResourcesProc) (ScreenPtr);
-
-#ifdef XWIN_NATIVEGDI
-/* Typedefs for native GDI wrappers */
-typedef Bool (*RealizeFontPtr) (ScreenPtr pScreen, FontPtr pFont);
-typedef Bool (*UnrealizeFontPtr) (ScreenPtr pScreen, FontPtr pFont);
-#endif
 
 /*
  * GC (graphics context) privates
@@ -582,12 +570,6 @@ typedef struct _winPrivScreenRec {
     SetShapeProcPtr SetShape;
 
     winCursorRec cursor;
-
-#ifdef XWIN_NATIVEGDI
-    RealizeFontPtr RealizeFont;
-    UnrealizeFontPtr UnrealizeFont;
-#endif
-
 } winPrivScreenRec;
 
 #ifdef XWIN_MULTIWINDOWEXTWM
@@ -775,15 +757,6 @@ void
 winBlockHandler(ScreenPtr pScreen,
                 void *pTimeout, void *pReadMask);
 
-#ifdef XWIN_NATIVEGDI
-/*
- * winclip.c
- */
-
-RegionPtr
- winPixmapToRegionNativeGDI(PixmapPtr pPix);
-#endif
-
 #ifdef XWIN_CLIPBOARD
 /*
  * winclipboardinit.c
@@ -859,52 +832,6 @@ void
 winMessageBoxF(const char *pszError, UINT uType, ...)
 _X_ATTRIBUTE_PRINTF(1, 3);
 
-#ifdef XWIN_NATIVEGDI
-/*
- * winfillsp.c
- */
-
-void
-
-winFillSpansNativeGDI(DrawablePtr pDrawable,
-                      GCPtr pGC,
-                      int nSpans,
-                      DDXPointPtr pPoints, int *pWidths, int fSorted);
-#endif
-
-#ifdef XWIN_NATIVEGDI
-/*
- * winfont.c
- */
-
-Bool
- winRealizeFontNativeGDI(ScreenPtr pScreen, FontPtr pFont);
-
-Bool
- winUnrealizeFontNativeGDI(ScreenPtr pScreen, FontPtr pFont);
-#endif
-
-#ifdef XWIN_NATIVEGDI
-/*
- * wingc.c
- */
-
-Bool
- winCreateGCNativeGDI(GCPtr pGC);
-#endif
-
-#ifdef XWIN_NATIVEGDI
-/*
- * wingetsp.c
- */
-
-void
-
-winGetSpansNativeGDI(DrawablePtr pDrawable,
-                     int wMax,
-                     DDXPointPtr pPoints, int *pWidths, int nSpans, char *pDst);
-#endif
-
 /*
  * winglobals.c
  */
@@ -956,22 +883,11 @@ void
  * winmisc.c
  */
 
-#ifdef XWIN_NATIVEGDI
-void
-
-winQueryBestSizeNativeGDI(int class, unsigned short *pWidth,
-                          unsigned short *pHeight, ScreenPtr pScreen);
-#endif
-
 CARD8
  winCountBits(DWORD dw);
 
 Bool
  winUpdateFBPointer(ScreenPtr pScreen, void *pbits);
-
-#ifdef XWIN_NATIVEGDI
-BOOL winPaintBackground(HWND hwnd, COLORREF colorref);
-#endif
 
 /*
  * winmouse.c
@@ -994,60 +910,6 @@ winMouseButtonsHandle(ScreenPtr pScreen,
 void
  winEnqueueMotion(int x, int y);
 
-#ifdef XWIN_NATIVEGDI
-/*
- * winnativegdi.c
- */
-
-HBITMAP
-winCreateDIBNativeGDI(int iWidth, int iHeight, int iDepth,
-                      BYTE ** ppbBits, BITMAPINFO ** ppbmi);
-
-Bool
- winSetEngineFunctionsNativeGDI(ScreenPtr pScreen);
-#endif
-
-#ifdef XWIN_PRIMARYFB
-/*
- * winpfbddd.c
- */
-
-Bool
- winSetEngineFunctionsPrimaryDD(ScreenPtr pScreen);
-#endif
-
-#ifdef XWIN_NATIVEGDI
-/*
- * winpixmap.c
- */
-
-PixmapPtr
-
-winCreatePixmapNativeGDI(ScreenPtr pScreen, int width, int height, int depth,
-                         unsigned usage_hint);
-
-Bool
- winDestroyPixmapNativeGDI(PixmapPtr pPixmap);
-
-Bool
-
-winModifyPixmapHeaderNativeGDI(PixmapPtr pPixmap,
-                               int iWidth, int iHeight,
-                               int iDepth,
-                               int iBitsPerPixel,
-                               int devKind, void *pPixData);
-#endif
-
-#ifdef XWIN_NATIVEGDI
-/*
- * winpolyline.c
- */
-
-void
-
-winPolyLineNativeGDI(DrawablePtr pDrawable,
-                     GCPtr pGC, int mode, int npt, DDXPointPtr ppt);
-#endif
 /*
  * winscrinit.c
  */
@@ -1057,26 +919,6 @@ Bool
 
 Bool
  winFinishScreenInitFB(int i, ScreenPtr pScreen, int argc, char **argv);
-
-#if defined(XWIN_NATIVEGDI)
-Bool
-
-winFinishScreenInitNativeGDI(int i,
-                             ScreenPtr pScreen, int argc, char **argv);
-#endif
-
-#ifdef XWIN_NATIVEGDI
-/*
- * winsetsp.c
- */
-
-void
-
-winSetSpansNativeGDI(DrawablePtr pDrawable,
-                     GCPtr pGC,
-                     char *pSrc,
-                     DDXPointPtr pPoints, int *pWidth, int nSpans, int fSorted);
-#endif
 
 /*
  * winshaddd.c
@@ -1111,30 +953,6 @@ winWakeupHandler(ScreenPtr pScreen,
 /*
  * winwindow.c
  */
-
-#ifdef XWIN_NATIVEGDI
-Bool
- winCreateWindowNativeGDI(WindowPtr pWin);
-
-Bool
- winDestroyWindowNativeGDI(WindowPtr pWin);
-
-Bool
- winPositionWindowNativeGDI(WindowPtr pWin, int x, int y);
-
-void
-
-winCopyWindowNativeGDI(WindowPtr pWin, DDXPointRec ptOldOrg, RegionPtr prgnSrc);
-
-Bool
- winChangeWindowAttributesNativeGDI(WindowPtr pWin, unsigned long mask);
-
-Bool
- winUnmapWindowNativeGDI(WindowPtr pWindow);
-
-Bool
- winMapWindowNativeGDI(WindowPtr pWindow);
-#endif
 
 Bool
  winCreateWindowRootless(WindowPtr pWindow);

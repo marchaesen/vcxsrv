@@ -22,7 +22,7 @@
  */
 
 /**
- * \file brw_lower_offset_array.cpp
+ * \file lower_offset_array.cpp
  *
  * IR lower pass to decompose ir_texture ir_tg4 with an array of offsets
  * into four ir_tg4s with a single ivec2 offset, select the .w component of each,
@@ -39,9 +39,9 @@
 
 using namespace ir_builder;
 
-class brw_lower_offset_array_visitor : public ir_rvalue_visitor {
+class lower_offset_array_visitor : public ir_rvalue_visitor {
 public:
-   brw_lower_offset_array_visitor()
+   lower_offset_array_visitor()
    {
       progress = false;
    }
@@ -52,7 +52,7 @@ public:
 };
 
 void
-brw_lower_offset_array_visitor::handle_rvalue(ir_rvalue **rv)
+lower_offset_array_visitor::handle_rvalue(ir_rvalue **rv)
 {
    if (*rv == NULL || (*rv)->ir_type != ir_type_texture)
       return;
@@ -83,7 +83,7 @@ brw_lower_offset_array_visitor::handle_rvalue(ir_rvalue **rv)
 bool
 lower_offset_arrays(exec_list *instructions)
 {
-   brw_lower_offset_array_visitor v;
+   lower_offset_array_visitor v;
 
    visit_list_elements(&v, instructions);
 
