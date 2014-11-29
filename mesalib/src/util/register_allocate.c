@@ -335,7 +335,7 @@ ra_set_finalize(struct ra_regs *regs, unsigned int **q_values)
 
 	    for (i = 0; i < regs->regs[rc].num_conflicts; i++) {
 	       unsigned int rb = regs->regs[rc].conflict_list[i];
-	       if (BITSET_TEST(regs->classes[b]->regs, rb))
+	       if (reg_belongs_to_class(rb, regs->classes[b]))
 		  conflicts++;
 	    }
 	    max_conflicts = MAX2(max_conflicts, conflicts);

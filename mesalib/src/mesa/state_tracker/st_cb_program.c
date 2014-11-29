@@ -242,7 +242,5 @@ st_init_program_functions(struct dd_function_table *functions)
    functions->IsProgramNative = st_is_program_native;
    functions->ProgramStringNotify = st_program_string_notify;
    
-   functions->NewShader = st_new_shader;
-   functions->NewShaderProgram = st_new_shader_program;
    functions->LinkShader = st_link_shader;
 }

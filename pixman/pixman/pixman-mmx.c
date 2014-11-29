@@ -3580,6 +3580,8 @@ scaled_nearest_scanline_mmx_8888_8888_OVER (uint32_t*       pd,
 
 	w--;
     }
+
+    _mm_empty ();
 }
 
 FAST_NEAREST_MAINLOOP (mmx_8888_8888_cover_OVER,
@@ -3608,7 +3610,11 @@ scaled_nearest_scanline_mmx_8888_n_8888_OVER (const uint32_t * mask,
     __m64 mm_mask;
 
     if (zero_src || (*mask >> 24) == 0)
+    {
+	/* A workaround for https://gcc.gnu.org/PR47759 */
+	_mm_empty ();
 	return;
+    }
 
     mm_mask = expand_alpha (load8888 (mask));
 

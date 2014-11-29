@@ -665,7 +665,7 @@ static GLboolean args_match( const struct state_key *key, GLuint unit )
 }
 
 static ir_rvalue *
-smear(texenv_fragment_program *p, ir_rvalue *val)
+smear(ir_rvalue *val)
 {
    if (!val->type->is_scalar())
       return val;
@@ -722,7 +722,7 @@ emit_combine(texenv_fragment_program *p,
       tmp1 = mul(src[1], new(p->mem_ctx) ir_constant(2.0f));
       tmp1 = add(tmp1, new(p->mem_ctx) ir_constant(-1.0f));
 
-      return dot(swizzle_xyz(smear(p, tmp0)), swizzle_xyz(smear(p, tmp1)));
+      return dot(swizzle_xyz(smear(tmp0)), swizzle_xyz(smear(tmp1)));
    }
    case MODE_MODULATE_ADD_ATI:
       return add(mul(src[0], src[2]), src[1]);
@@ -804,7 +804,7 @@ emit_texenv(texenv_fragment_program *p, GLuint unit)
 			 key->unit[unit].NumArgsRGB,
 			 key->unit[unit].ModeRGB,
 			 key->unit[unit].OptRGB);
-      val = smear(p, val);
+      val = smear(val);
       if (rgb_saturate)
 	 val = saturate(val);
 
@@ -816,7 +816,7 @@ emit_texenv(texenv_fragment_program *p, GLuint unit)
 				    key->unit[unit].NumArgsRGB,
 				    key->unit[unit].ModeRGB,
 				    key->unit[unit].OptRGB);
-      val = smear(p, val);
+      val = smear(val);
       if (rgb_saturate)
 	 val = saturate(val);
       p->emit(assign(temp_var, val));
@@ -829,7 +829,7 @@ emit_texenv(texenv_fragment_program *p, GLuint unit)
 			 key->unit[unit].NumArgsRGB,
 			 key->unit[unit].ModeRGB,
 			 key->unit[unit].OptRGB);
-      val = swizzle_xyz(smear(p, val));
+      val = swizzle_xyz(smear(val));
       if (rgb_saturate)
 	 val = saturate(val);
       p->emit(assign(temp_var, val, WRITEMASK_XYZ));
@@ -838,7 +838,7 @@ emit_texenv(texenv_fragment_program *p, GLuint unit)
 			 key->unit[unit].NumArgsA,
 			 key->unit[unit].ModeA,
 			 key->unit[unit].OptA);
-      val = swizzle_w(smear(p, val));
+      val = swizzle_w(smear(val));
       if (alpha_saturate)
 	 val = saturate(val);
       p->emit(assign(temp_var, val, WRITEMASK_W));
@@ -1212,7 +1212,7 @@ create_new_program(struct gl_context *ctx, struct state_key *key)
    p.top_instructions = p.shader->ir;
    p.instructions = p.shader->ir;
    p.state = key;
-   p.shader_program = ctx->Driver.NewShaderProgram(ctx, 0);
+   p.shader_program = ctx->Driver.NewShaderProgram(0);
 
    /* Tell the linker to ignore the fact that we're building a
     * separate shader, in case we're in a GLES2 context that would

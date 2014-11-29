@@ -72,7 +72,7 @@ extern int ffs(int);
  *     set them in the destination with SetSpans
  * We let SetSpans worry about clipping to the destination.
  */
-RegionPtr
+_X_COLD RegionPtr
 miCopyArea(DrawablePtr pSrcDrawable,
            DrawablePtr pDstDrawable,
            GCPtr pGC,
@@ -261,8 +261,7 @@ miCopyArea(DrawablePtr pSrcDrawable,
  * This should be replaced with something more general.  mi shouldn't have to
  * care about such things as scanline padding et alia.
  */
-static
-MiBits *
+_X_COLD static MiBits *
 miGetPlane(DrawablePtr pDraw, int planeNum,     /* number of the bitPlane */
            int sx, int sy, int w, int h, MiBits * result)
 {
@@ -368,7 +367,7 @@ miGetPlane(DrawablePtr pDraw, int planeNum,     /* number of the bitPlane */
  * Note how the clipped out bits of the bitmap are always the background
  * color so that the stipple never causes FillRect to draw them.
  */
-static void
+_X_COLD static void
 miOpqStipDrawable(DrawablePtr pDraw, GCPtr pGC, RegionPtr prgnSrc,
                   MiBits * pbits, int srcx, int w, int h, int dstx, int dsty)
 {
@@ -510,7 +509,7 @@ miOpqStipDrawable(DrawablePtr pDraw, GCPtr pGC, RegionPtr prgnSrc,
  * build a source clip
  * Use the bitmap we've built up as a Stipple for the destination 
  */
-RegionPtr
+_X_COLD RegionPtr
 miCopyPlane(DrawablePtr pSrcDrawable,
             DrawablePtr pDstDrawable,
             GCPtr pGC,
@@ -599,7 +598,7 @@ miCopyPlane(DrawablePtr pSrcDrawable,
  * XY format:
  * get the single plane specified in planemask
  */
-void
+_X_COLD void
 miGetImage(DrawablePtr pDraw, int sx, int sy, int w, int h,
            unsigned int format, unsigned long planeMask, char *pDst)
 {
@@ -689,7 +688,7 @@ miGetImage(DrawablePtr pDraw, int sx, int sy, int w, int h,
  * ZPixmap format:
  *	This part is simple, just call SetSpans
  */
-void
+_X_COLD void
 miPutImage(DrawablePtr pDraw, GCPtr pGC, int depth,
            int x, int y, int w, int h, int leftPad, int format, char *pImage)
 {

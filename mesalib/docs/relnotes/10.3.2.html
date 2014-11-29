@@ -1,0 +1,115 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 10.3.2 Release Notes / October 24, 2014</h1>
+
+<p>
+Mesa 10.3.2 is a bug fix release which fixes bugs found since the 10.3 release.
+</p>
+<p>
+Mesa 10.3.2 implements the OpenGL 3.3 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 3.3.  OpenGL
+3.3 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+<h2>SHA256 checksums</h2>
+<pre>
+e65f8e691f06f111c1aeb3a376b13c9cc88cb162bee2709e0e7e6b0e6628ca75  MesaLib-10.3.2.tar.gz
+e9849bcb9aa9acd98a753d6d46d2e7d7238d3367036e11357a60efd16de8bea3  MesaLib-10.3.2.tar.bz2
+427dc0d670d38e713ebff2675665ec2fe4ff7d04ce227bd54de946999fc1d234  MesaLib-10.3.2.zip
+</pre>
+
+<h2>New features</h2>
+<p>None</p>
+
+<h2>Bug fixes</h2>
+
+<p>This list is likely incomplete.</p>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=54372">Bug 54372</a> - GLX_INTEL_swap_event crashes driver when swapping window buffers</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=81680">Bug 81680</a> - [r600g] Firefox crashes with hardware acceleration turned on</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=84140">Bug 84140</a> - mplayer crashes playing some files using vdpau output</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=84662">Bug 84662</a> - Long pauses with Unreal demo Elemental on R9270X since : Always flush the HDP cache before submitting a CS to the GPU</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=85267">Bug 85267</a> - vlc crashes with vdpau (Radeon 3850HD) [r600]</li>
+
+</ul>
+
+<h2>Changes</h2>
+
+<p>Brian Paul (3):</p>
+<ul>
+  <li>mesa: fix spurious wglGetProcAddress / GL_INVALID_OPERATION error</li>
+  <li>st/wgl: add WINAPI qualifiers on wgl function typedefs</li>
+  <li>glsl: fix several use-after-free bugs</li>
+</ul>
+
+<p>Daniel Manjarres (1):</p>
+<ul>
+  <li>glx: Fix glxUseXFont for glxWindow and glxPixmaps</li>
+</ul>
+
+<p>Dave Airlie (1):</p>
+<ul>
+  <li>mesa: fix GetTexImage for 1D array depth textures</li>
+</ul>
+
+<p>Emil Velikov (2):</p>
+<ul>
+  <li>docs: Add sha256 sums for the 10.3.1 release</li>
+  <li>Update VERSION to 10.3.2</li>
+</ul>
+
+<p>Ilia Mirkin (4):</p>
+<ul>
+  <li>gm107/ir: add dnz emission for fmul</li>
+  <li>gk110/ir: add dnz flag emission for fmul/fmad</li>
+  <li>nouveau: 3d textures are unsupported, limit 3d levels to 1</li>
+  <li>st/gbm: fix order of arguments passed to is_format_supported</li>
+</ul>
+
+<p>Kenneth Graunke (3):</p>
+<ul>
+  <li>i965: Add a BRW_MOCS_PTE #define.</li>
+  <li>i965: Use BDW_MOCS_PTE for renderbuffers.</li>
+  <li>i965: Fix register write checks.</li>
+</ul>
+
+<p>Marek Olšák (2):</p>
+<ul>
+  <li>st/mesa: use pipe_sampler_view_release for releasing sampler views</li>
+  <li>glsl_to_tgsi: fix the value of gl_FrontFacing with native integers</li>
+</ul>
+
+<p>Michel Dänzer (4):</p>
+<ul>
+  <li>radeonsi: Clear sampler view flags when binding a buffer</li>
+  <li>r600g,radeonsi: Always use GTT again for PIPE_USAGE_STREAM buffers</li>
+  <li>winsys/radeon: Use separate caching buffer manager for each set of flags</li>
+  <li>r600g: Drop references to destroyed blend state</li>
+</ul>
+
+</div>
+</body>
+</html>

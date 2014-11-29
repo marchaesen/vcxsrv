@@ -114,20 +114,23 @@ SRCS =	InitInput.c \
 	winwindow.c \
 	winwndproc.c \
 	ddraw.h \
-	winclipboard.h \
 	winconfig.h \
 	win.h \
+	winglobals.h \
 	winkeybd.h \
 	winkeynames.h \
 	winlayouts.h \
 	winmessages.h \
+	winmonitors.h \
 	winmsg.h \
 	winms.h \
 	winmultiwindowclass.h \
+	winmultiwindowicons.h \
 	winprefs.h \
 	winresource.h \
 	winwindow.h \
 	windisplay.c \
+	windisplay.h \
 	XWin.rc \
 	$(SRCS_CLIPBOARD) \
 	$(SRCS_MULTIWINDOW) \

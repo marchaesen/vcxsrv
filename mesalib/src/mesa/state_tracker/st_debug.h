@@ -46,6 +46,7 @@ st_print_current(void);
 #define DEBUG_SCREEN    0x80
 #define DEBUG_DRAW      0x100
 #define DEBUG_BUFFER    0x200
+#define DEBUG_WIREFRAME 0x400
 
 #ifdef DEBUG
 extern int ST_DEBUG;

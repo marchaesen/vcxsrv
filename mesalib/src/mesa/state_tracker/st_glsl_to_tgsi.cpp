@@ -4781,15 +4781,19 @@ emit_wpos(struct st_context *st,
  * saturating the value to [0,1] does the job.
  */
 static void
-emit_face_var(struct st_translate *t)
+emit_face_var(struct gl_context *ctx, struct st_translate *t)
 {
    struct ureg_program *ureg = t->ureg;
    struct ureg_dst face_temp = ureg_DECL_temporary(ureg);
    struct ureg_src face_input = t->inputs[t->inputMapping[VARYING_SLOT_FACE]];
 
-   /* MOV_SAT face_temp, input[face] */
-   face_temp = ureg_saturate(face_temp);
-   ureg_MOV(ureg, face_temp, face_input);
+   if (ctx->Const.NativeIntegers) {
+      ureg_FSGE(ureg, face_temp, face_input, ureg_imm1f(ureg, 0));
+   }
+   else {
+      /* MOV_SAT face_temp, input[face] */
+      ureg_MOV(ureg, ureg_saturate(face_temp), face_input);
+   }
 
    /* Use face_temp as face input from here on: */
    t->inputs[t->inputMapping[VARYING_SLOT_FACE]] = ureg_src(face_temp);
@@ -4909,7 +4913,7 @@ st_translate_program(
       }
 
       if (proginfo->InputsRead & VARYING_BIT_FACE)
-         emit_face_var(t);
+         emit_face_var(ctx, t);
 
       /*
        * Declare output attributes.
@@ -5210,6 +5214,7 @@ get_mesa_program(struct gl_context *ctx,
    v->have_sqrt = pscreen->get_shader_param(pscreen, ptarget,
                                             PIPE_SHADER_CAP_TGSI_SQRT_SUPPORTED);
 
+   _mesa_copy_linked_program_data(shader->Stage, shader_program, prog);
    _mesa_generate_parameters_list_for_uniforms(shader_program, shader,
 					       prog->Parameters);
 
@@ -5315,10 +5320,6 @@ get_mesa_program(struct gl_context *ctx,
    case GL_GEOMETRY_SHADER:
       stgp = (struct st_geometry_program *)prog;
       stgp->glsl_to_tgsi = v;
-      stgp->Base.InputType = shader_program->Geom.InputType;
-      stgp->Base.OutputType = shader_program->Geom.OutputType;
-      stgp->Base.VerticesOut = shader_program->Geom.VerticesOut;
-      stgp->Base.Invocations = shader_program->Geom.Invocations;
       break;
    default:
       assert(!"should not be reached");
@@ -5329,34 +5330,6 @@ get_mesa_program(struct gl_context *ctx,
 }
 
 extern "C" {
-
-struct gl_shader *
-st_new_shader(struct gl_context *ctx, GLuint name, GLuint type)
-{
-   struct gl_shader *shader;
-   assert(type == GL_FRAGMENT_SHADER || type == GL_VERTEX_SHADER ||
-          type == GL_GEOMETRY_SHADER_ARB);
-   shader = rzalloc(NULL, struct gl_shader);
-   if (shader) {
-      shader->Type = type;
-      shader->Stage = _mesa_shader_enum_to_shader_stage(type);
-      shader->Name = name;
-      _mesa_init_shader(ctx, shader);
-   }
-   return shader;
-}
-
-struct gl_shader_program *
-st_new_shader_program(struct gl_context *ctx, GLuint name)
-{
-   struct gl_shader_program *shProg;
-   shProg = rzalloc(NULL, struct gl_shader_program);
-   if (shProg) {
-      shProg->Name = name;
-      _mesa_init_shader_program(ctx, shProg);
-   }
-   return shProg;
-}
 
 /**
  * Link a shader.

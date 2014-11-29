@@ -1465,6 +1465,7 @@ AC_ARG_WITH([clang-libdir],
    [CLANG_LIBDIR=''])
 
 PKG_CHECK_EXISTS([libclc], [have_libclc=yes], [have_libclc=no])
+AC_CHECK_LIB([elf], [elf_memory], [have_libelf=yes;ELF_LIB=-lelf])
 
 if test "x$enable_opencl" = xyes; then
     if test -z "$with_gallium_drivers"; then
@@ -1494,6 +1495,10 @@ if test "x$enable_opencl" = xyes; then
         OPENCL_LIBNAME="MesaOpenCL"
     else
         OPENCL_LIBNAME="OpenCL"
+    fi
+
+    if test "x$have_libelf" != xyes; then
+       AC_MSG_ERROR([Clover requires libelf])
     fi
 fi
 AM_CONDITIONAL(HAVE_CLOVER, test "x$enable_opencl" = xyes)
@@ -1714,7 +1719,7 @@ if test "x$enable_gallium_llvm" = xyes; then
         fi
 
         LLVM_REQUIRED_VERSION_MAJOR="3"
-        LLVM_REQUIRED_VERSION_MINOR="1"
+        LLVM_REQUIRED_VERSION_MINOR="3"
         if test "$LLVM_VERSION_INT" -lt "${LLVM_REQUIRED_VERSION_MAJOR}0${LLVM_REQUIRED_VERSION_MINOR}"; then
             AC_MSG_ERROR([LLVM $LLVM_REQUIRED_VERSION_MAJOR.$LLVM_REQUIRED_VERSION_MINOR or newer is required])
         fi
@@ -1870,8 +1875,9 @@ radeon_llvm_check() {
     fi
     LLVM_COMPONENTS="${LLVM_COMPONENTS} r600 bitreader ipo"
     NEED_RADEON_LLVM=yes
-    AC_CHECK_LIB([elf], [elf_memory], [ELF_LIB=-lelf],
-                                 [AC_MSG_ERROR([$1 requires libelf when using LLVM])])
+    if test "x$have_libelf" != xyes; then
+       AC_MSG_ERROR([$1 requires libelf when using llvm])
+    fi
 }
 
 dnl Duplicates in GALLIUM_DRIVERS_DIRS are removed by sorting it after this block

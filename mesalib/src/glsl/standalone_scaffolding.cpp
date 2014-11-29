@@ -83,6 +83,33 @@ _mesa_new_shader(struct gl_context *ctx, GLuint name, GLenum type)
    return shader;
 }
 
+void
+_mesa_clear_shader_program_data(struct gl_shader_program *shProg)
+{
+   unsigned i;
+
+   shProg->NumUserUniformStorage = 0;
+   shProg->UniformStorage = NULL;
+   shProg->NumUniformRemapTable = 0;
+   shProg->UniformRemapTable = NULL;
+   shProg->UniformHash = NULL;
+
+   ralloc_free(shProg->InfoLog);
+   shProg->InfoLog = ralloc_strdup(shProg, "");
+
+   ralloc_free(shProg->UniformBlocks);
+   shProg->UniformBlocks = NULL;
+   shProg->NumUniformBlocks = 0;
+   for (i = 0; i < MESA_SHADER_STAGES; i++) {
+      ralloc_free(shProg->UniformBlockStageIndex[i]);
+      shProg->UniformBlockStageIndex[i] = NULL;
+   }
+
+   ralloc_free(shProg->AtomicBuffers);
+   shProg->AtomicBuffers = NULL;
+   shProg->NumAtomicBuffers = 0;
+}
+
 void initialize_context_to_defaults(struct gl_context *ctx, gl_api api)
 {
    memset(ctx, 0, sizeof(*ctx));

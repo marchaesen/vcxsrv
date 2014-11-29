@@ -51,6 +51,7 @@
 #include "texobj.h"
 #include "texstate.h"
 #include "varray.h"
+#include "viewport.h"
 #include "blend.h"
 
 
@@ -281,12 +282,25 @@ update_viewport_matrix(struct gl_context *ctx)
     * NOTE: RasterPos uses this.
     */
    for (i = 0; i < ctx->Const.MaxViewports; i++) {
+      double scale[3], translate[3];
+
+      _mesa_get_viewport_xform(ctx, i, scale, translate);
       _math_matrix_viewport(&ctx->ViewportArray[i]._WindowMap,
-                            ctx->ViewportArray[i].X, ctx->ViewportArray[i].Y,
-                            ctx->ViewportArray[i].Width, ctx->ViewportArray[i].Height,
-                            ctx->ViewportArray[i].Near, ctx->ViewportArray[i].Far,
-                            depthMax);
+                            scale, translate, depthMax);
    }
+}
+
+
+/**
+ * Update the ctx->Polygon._FrontBit flag.
+ */
+static void
+update_frontbit(struct gl_context *ctx)
+{
+   if (ctx->Transform.ClipOrigin == GL_LOWER_LEFT)
+      ctx->Polygon._FrontBit = (ctx->Polygon.FrontFace == GL_CW);
+   else
+      ctx->Polygon._FrontBit = (ctx->Polygon.FrontFace == GL_CCW);
 }
 
 
@@ -371,6 +385,9 @@ _mesa_update_state_locked( struct gl_context *ctx )
 
    if (new_state & (_NEW_PROGRAM|_NEW_TEXTURE|_NEW_TEXTURE_MATRIX))
       _mesa_update_texture( ctx, new_state );
+
+   if (new_state & _NEW_POLYGON)
+      update_frontbit( ctx );
 
    if (new_state & _NEW_BUFFERS)
       _mesa_update_framebuffer(ctx);

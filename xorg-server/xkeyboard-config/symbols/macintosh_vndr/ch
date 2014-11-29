@@ -3,6 +3,7 @@
 // Andreas Tobler <a.tobler@schweiz.ch>
 // modified for Swiss German Apple Extended Keyboard II
 
+default
 partial alphanumeric_keys
 xkb_symbols "extended" {
     

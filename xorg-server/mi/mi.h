@@ -65,6 +65,10 @@ typedef struct _miDash *miDashPtr;
 #define EVEN_DASH	0
 #define ODD_DASH	~0
 
+#ifdef _MSC_VER
+#define _X_COLD
+#endif
+
 /* miarc.c */
 
 extern _X_EXPORT void miWideArc(DrawablePtr pDraw,

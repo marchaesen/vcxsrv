@@ -63,6 +63,9 @@ improvement is negligible.
 .B -resizeable
 Allow the Xephyr window to be resized, even if not embedded into a parent
 window. By default, the Xephyr window has a fixed size.
+.TP 8
+.B -no-host-grab
+Disable grabbing the keyboard and mouse.
 .SH "SIGNALS"
 Send a SIGUSR1 to the server (e.g. pkill -USR1 Xephyr) to
 toggle the debugging mode.

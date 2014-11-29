@@ -100,7 +100,7 @@ static void
 __glapi_gentable_set_remaining_noop(struct _glapi_table *disp) {
     GLuint entries = _glapi_get_dispatch_table_size();
     void **dispatch = (void **) disp;
-    int i;
+    unsigned i;
 
     /* ISO C is annoying sometimes */
     union {_glapi_proc p; void *v;} p;
@@ -147,7 +147,7 @@ class PrintCode(gl_XML.gl_print_base):
     def __init__(self):
         gl_XML.gl_print_base.__init__(self)
 
-        self.name = "gl_gen_table.py (from Mesa)"
+        self.name = "gl_gentable.py (from Mesa)"
         self.license = license.bsd_license_template % ( \
 """Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
 (C) Copyright IBM Corporation 2004, 2005

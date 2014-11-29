@@ -133,6 +133,7 @@
 #include "program/prog_print.h"
 #include "math/m_matrix.h"
 #include "main/dispatch.h" /* for _gloffset_COUNT */
+#include "uniforms.h"
 
 #ifdef USE_SPARC_ASM
 #include "sparc/sparc.h"
@@ -1945,6 +1946,17 @@ _mesa_valid_to_render(struct gl_context *ctx, const char *where)
       /* Error message will be printed inside _mesa_validate_program_pipeline.
        */
       if (!_mesa_validate_program_pipeline(ctx, ctx->_Shader, GL_TRUE)) {
+         return GL_FALSE;
+      }
+   }
+
+   /* If a program is active and SSO not in use, check if validation of
+    * samplers succeeded for the active program. */
+   if (ctx->_Shader->ActiveProgram && ctx->_Shader != ctx->Pipeline.Current) {
+      char errMsg[100];
+      if (!_mesa_sampler_uniforms_are_valid(ctx->_Shader->ActiveProgram,
+                                            errMsg, 100)) {
+         _mesa_error(ctx, GL_INVALID_OPERATION, "%s", errMsg);
          return GL_FALSE;
       }
    }

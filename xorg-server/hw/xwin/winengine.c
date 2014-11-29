@@ -59,10 +59,6 @@ winDetectSupportedEngines(void)
     /* Initialize the engine support flags */
     g_dwEnginesSupported = WIN_SERVER_SHADOW_GDI;
 
-#ifdef XWIN_NATIVEGDI
-    g_dwEnginesSupported |= WIN_SERVER_NATIVE_GDI;
-#endif
-
     /* Get operating system version information */
     ZeroMemory(&osvi, sizeof(osvi));
     osvi.dwOSVersionInfoSize = sizeof(osvi);
@@ -94,15 +90,6 @@ winDetectSupportedEngines(void)
 	          winDebug (
                           "winDetectSupportedEngines - DirectDraw installed, allowing ShadowDD\n");
             g_dwEnginesSupported |= WIN_SERVER_SHADOW_DD;
-
-#ifdef XWIN_PRIMARYFB
-            /* Allow PrimaryDD engine if NT */
-            if (osvi.dwPlatformId == VER_PLATFORM_WIN32_NT) {
-                g_dwEnginesSupported |= WIN_SERVER_PRIMARY_DD;
-	              winDebug (
-                              "winDetectSupportedEngines - Windows NT, allowing PrimaryDD\n");
-            }
-#endif
         }
 
         /* Try to query for DirectDraw4 interface */
@@ -111,8 +98,8 @@ winDetectSupportedEngines(void)
                                             (LPVOID *) &lpdd4);
         if (SUCCEEDED(ddrval)) {
             /* We have DirectDraw4 */
-	          winDebug (
-                          "winDetectSupportedEngines - DirectDraw4 installed, allowing ShadowDDNL\n");
+            winDebug (
+                      "winDetectSupportedEngines - DirectDraw4 installed, allowing ShadowDDNL\n");
             g_dwEnginesSupported |= WIN_SERVER_SHADOW_DDNL;
         }
 
@@ -206,16 +193,6 @@ winSetEngine(ScreenPtr pScreen)
         case WIN_SERVER_SHADOW_DDNL:
             winSetEngineFunctionsShadowDDNL(pScreen);
             break;
-#ifdef XWIN_PRIMARYFB
-        case WIN_SERVER_PRIMARY_DD:
-            winSetEngineFunctionsPrimaryDD(pScreen);
-            break;
-#endif
-#ifdef XWIN_NATIVEGDI
-        case WIN_SERVER_NATIVE_GDI:
-            winSetEngineFunctionsNativeGDI(pScreen);
-            break;
-#endif
         default:
             FatalError ("winSetEngine - Invalid engine type %d\n",pScreenInfo->dwEngine);
         }

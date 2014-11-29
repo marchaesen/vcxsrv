@@ -37,7 +37,7 @@ import SCons.Errors
 import SCons.Util
 
 
-required_llvm_version = '3.1'
+required_llvm_version = '3.3'
 
 
 def generate(env):
@@ -98,7 +98,7 @@ def generate(env):
             'HAVE_STDINT_H',
         ])
         env.Prepend(LIBPATH = [os.path.join(llvm_dir, 'lib')])
-        if llvm_version >= distutils.version.LooseVersion('3.2'):
+        if True:
             # 3.2
             env.Prepend(LIBS = [
                 'LLVMBitWriter', 'LLVMX86Disassembler', 'LLVMX86AsmParser',
@@ -109,18 +109,6 @@ def generate(env):
                 'LLVMInstCombine', 'LLVMTransformUtils', 'LLVMipa',
                 'LLVMAnalysis', 'LLVMTarget', 'LLVMMC', 'LLVMCore',
                 'LLVMSupport', 'LLVMRuntimeDyld', 'LLVMObject'
-            ])
-        else:
-            # 3.1
-            env.Prepend(LIBS = [
-                'LLVMBitWriter', 'LLVMX86Disassembler', 'LLVMX86AsmParser',
-                'LLVMX86CodeGen', 'LLVMX86Desc', 'LLVMSelectionDAG',
-                'LLVMAsmPrinter', 'LLVMMCParser', 'LLVMX86AsmPrinter',
-                'LLVMX86Utils', 'LLVMX86Info', 'LLVMMCJIT', 'LLVMJIT',
-                'LLVMExecutionEngine', 'LLVMCodeGen', 'LLVMScalarOpts',
-                'LLVMInstCombine', 'LLVMTransformUtils', 'LLVMipa',
-                'LLVMAnalysis', 'LLVMTarget', 'LLVMMC', 'LLVMCore',
-                'LLVMSupport'
             ])
         env.Append(LIBS = [
             'imagehlp',

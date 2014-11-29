@@ -475,7 +475,7 @@ create_driver_context(__GLXDRIcontext * context,
     context->driContext = NULL;
 
     if (screen->dri2->base.version >= 3) {
-        uint32_t ctx_attribs[3 * 2];
+        uint32_t ctx_attribs[4 * 2];
         unsigned num_ctx_attribs = 0;
         unsigned dri_err = 0;
         unsigned major_ver;
@@ -510,6 +510,8 @@ create_driver_context(__GLXDRIcontext * context,
                     __DRI_CTX_ATTRIB_RESET_STRATEGY;
                 ctx_attribs[num_ctx_attribs++] = reset;
             }
+
+            assert(num_ctx_attribs <= ARRAY_SIZE(ctx_attribs));
         }
 
         context->driContext =

@@ -205,15 +205,6 @@ _mesa_use_shader_program(struct gl_context *ctx, GLenum type,
                          struct gl_shader_program *shProg,
                          struct gl_pipeline_object *shTarget);
 
-extern void GLAPIENTRY
-_mesa_UseShaderProgramEXT(GLenum type, GLuint program);
-
-extern void GLAPIENTRY
-_mesa_ActiveProgramEXT(GLuint program);
-
-extern GLuint GLAPIENTRY
-_mesa_CreateShaderProgramEXT(GLenum type, const GLchar *string);
-
 extern void
 _mesa_copy_linked_program_data(gl_shader_stage type,
                                const struct gl_shader_program *src,

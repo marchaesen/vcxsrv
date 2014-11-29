@@ -245,6 +245,7 @@ typedef struct _XftDisplayInfo {
     XExtCodes		    *codes;
     FcPattern		    *defaults;
     FcBool		    hasRender;
+    FcBool		    hasSolid;
     XftFont		    *fonts;
     XRenderPictFormat	    *solidFormat;
     unsigned long	    glyph_memory;

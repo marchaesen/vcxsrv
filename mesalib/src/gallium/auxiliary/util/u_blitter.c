@@ -134,6 +134,7 @@ struct blitter_context_priv
    boolean has_stream_out;
    boolean has_stencil_export;
    boolean has_texture_multisample;
+   boolean cached_all_shaders;
 
    /* The Draw module overrides these functions.
     * Always create the blitter before Draw. */
@@ -356,10 +357,11 @@ static void bind_fs_empty(struct blitter_context_priv *ctx)
    struct pipe_context *pipe = ctx->base.pipe;
 
    if (!ctx->fs_empty) {
+      assert(!ctx->cached_all_shaders);
       ctx->fs_empty = util_make_empty_fragment_shader(pipe);
    }
 
-   pipe->bind_fs_state(pipe, ctx->fs_empty);
+   ctx->bind_fs_state(pipe, ctx->fs_empty);
 }
 
 static void bind_fs_write_one_cbuf(struct blitter_context_priv *ctx)
@@ -367,12 +369,13 @@ static void bind_fs_write_one_cbuf(struct blitter_context_priv *ctx)
    struct pipe_context *pipe = ctx->base.pipe;
 
    if (!ctx->fs_write_one_cbuf) {
+      assert(!ctx->cached_all_shaders);
       ctx->fs_write_one_cbuf =
          util_make_fragment_passthrough_shader(pipe, TGSI_SEMANTIC_GENERIC,
                                                TGSI_INTERPOLATE_CONSTANT, FALSE);
    }
 
-   pipe->bind_fs_state(pipe, ctx->fs_write_one_cbuf);
+   ctx->bind_fs_state(pipe, ctx->fs_write_one_cbuf);
 }
 
 static void bind_fs_write_all_cbufs(struct blitter_context_priv *ctx)
@@ -380,12 +383,13 @@ static void bind_fs_write_all_cbufs(struct blitter_context_priv *ctx)
    struct pipe_context *pipe = ctx->base.pipe;
 
    if (!ctx->fs_write_all_cbufs) {
+      assert(!ctx->cached_all_shaders);
       ctx->fs_write_all_cbufs =
          util_make_fragment_passthrough_shader(pipe, TGSI_SEMANTIC_GENERIC,
                                                TGSI_INTERPOLATE_CONSTANT, TRUE);
    }
 
-   pipe->bind_fs_state(pipe, ctx->fs_write_all_cbufs);
+   ctx->bind_fs_state(pipe, ctx->fs_write_all_cbufs);
 }
 
 void util_blitter_destroy(struct blitter_context *blitter)
@@ -850,6 +854,7 @@ static void *blitter_get_fs_texfetch_col(struct blitter_context_priv *ctx,
             shader = &ctx->fs_resolve[target][index][filter];
 
          if (!*shader) {
+            assert(!ctx->cached_all_shaders);
             if (filter == PIPE_TEX_FILTER_LINEAR) {
                *shader = util_make_fs_msaa_resolve_bilinear(pipe, tgsi_tex,
                                                    src_nr_samples,
@@ -870,6 +875,7 @@ static void *blitter_get_fs_texfetch_col(struct blitter_context_priv *ctx,
 
          /* Create the fragment shader on-demand. */
          if (!*shader) {
+            assert(!ctx->cached_all_shaders);
             *shader = util_make_fs_blit_msaa_color(pipe, tgsi_tex);
          }
       }
@@ -880,6 +886,7 @@ static void *blitter_get_fs_texfetch_col(struct blitter_context_priv *ctx,
 
       /* Create the fragment shader on-demand. */
       if (!*shader) {
+         assert(!ctx->cached_all_shaders);
          *shader = util_make_fragment_tex_shader(pipe, tgsi_tex,
                                                  TGSI_INTERPOLATE_LINEAR);
       }
@@ -902,11 +909,10 @@ void *blitter_get_fs_texfetch_depth(struct blitter_context_priv *ctx,
 
       /* Create the fragment shader on-demand. */
       if (!*shader) {
-         unsigned tgsi_tex = util_pipe_tex_to_tgsi_tex(target,
-                                                       nr_samples);
-
-         *shader =
-            util_make_fs_blit_msaa_depth(pipe, tgsi_tex);
+         unsigned tgsi_tex;
+         assert(!ctx->cached_all_shaders);
+         tgsi_tex = util_pipe_tex_to_tgsi_tex(target, nr_samples);
+         *shader = util_make_fs_blit_msaa_depth(pipe, tgsi_tex);
       }
 
       return *shader;
@@ -915,8 +921,9 @@ void *blitter_get_fs_texfetch_depth(struct blitter_context_priv *ctx,
 
       /* Create the fragment shader on-demand. */
       if (!*shader) {
-         unsigned tgsi_tex = util_pipe_tex_to_tgsi_tex(target, 0);
-
+         unsigned tgsi_tex;
+         assert(!ctx->cached_all_shaders);
+         tgsi_tex = util_pipe_tex_to_tgsi_tex(target, 0);
          *shader =
             util_make_fragment_tex_shader_writedepth(pipe, tgsi_tex,
                                                      TGSI_INTERPOLATE_LINEAR);
@@ -940,11 +947,10 @@ void *blitter_get_fs_texfetch_depthstencil(struct blitter_context_priv *ctx,
 
       /* Create the fragment shader on-demand. */
       if (!*shader) {
-         unsigned tgsi_tex = util_pipe_tex_to_tgsi_tex(target,
-                                                       nr_samples);
-
-         *shader =
-            util_make_fs_blit_msaa_depthstencil(pipe, tgsi_tex);
+         unsigned tgsi_tex;
+         assert(!ctx->cached_all_shaders);
+         tgsi_tex = util_pipe_tex_to_tgsi_tex(target, nr_samples);
+         *shader = util_make_fs_blit_msaa_depthstencil(pipe, tgsi_tex);
       }
 
       return *shader;
@@ -953,8 +959,9 @@ void *blitter_get_fs_texfetch_depthstencil(struct blitter_context_priv *ctx,
 
       /* Create the fragment shader on-demand. */
       if (!*shader) {
-         unsigned tgsi_tex = util_pipe_tex_to_tgsi_tex(target, 0);
-
+         unsigned tgsi_tex;
+         assert(!ctx->cached_all_shaders);
+         tgsi_tex = util_pipe_tex_to_tgsi_tex(target, 0);
          *shader =
             util_make_fragment_tex_shader_writedepthstencil(pipe, tgsi_tex,
                                                      TGSI_INTERPOLATE_LINEAR);
@@ -978,11 +985,10 @@ void *blitter_get_fs_texfetch_stencil(struct blitter_context_priv *ctx,
 
       /* Create the fragment shader on-demand. */
       if (!*shader) {
-         unsigned tgsi_tex = util_pipe_tex_to_tgsi_tex(target,
-                                                       nr_samples);
-
-         *shader =
-            util_make_fs_blit_msaa_stencil(pipe, tgsi_tex);
+         unsigned tgsi_tex;
+         assert(!ctx->cached_all_shaders);
+         tgsi_tex = util_pipe_tex_to_tgsi_tex(target, nr_samples);
+         *shader = util_make_fs_blit_msaa_stencil(pipe, tgsi_tex);
       }
 
       return *shader;
@@ -991,8 +997,9 @@ void *blitter_get_fs_texfetch_stencil(struct blitter_context_priv *ctx,
 
       /* Create the fragment shader on-demand. */
       if (!*shader) {
-         unsigned tgsi_tex = util_pipe_tex_to_tgsi_tex(target, 0);
-
+         unsigned tgsi_tex;
+         assert(!ctx->cached_all_shaders);
+         tgsi_tex = util_pipe_tex_to_tgsi_tex(target, 0);
          *shader =
             util_make_fragment_tex_shader_writestencil(pipe, tgsi_tex,
                                                        TGSI_INTERPOLATE_LINEAR);
@@ -1002,10 +1009,18 @@ void *blitter_get_fs_texfetch_stencil(struct blitter_context_priv *ctx,
    }
 }
 
+
+/**
+ * Generate and save all fragment shaders that we will ever need for
+ * blitting.  Drivers which use the 'draw' fallbacks will typically use
+ * this to make sure we generate/use shaders that don't go through the
+ * draw module's wrapper functions.
+ */
 void util_blitter_cache_all_shaders(struct blitter_context *blitter)
 {
    struct blitter_context_priv *ctx = (struct blitter_context_priv*)blitter;
-   struct pipe_screen *screen = blitter->pipe->screen;
+   struct pipe_context *pipe = blitter->pipe;
+   struct pipe_screen *screen = pipe->screen;
    unsigned samples, j, f, target, max_samples;
    boolean has_arraytex, has_cubearraytex;
 
@@ -1065,6 +1080,18 @@ void util_blitter_cache_all_shaders(struct blitter_context *blitter)
          }
       }
    }
+
+   ctx->fs_empty = util_make_empty_fragment_shader(pipe);
+
+   ctx->fs_write_one_cbuf =
+      util_make_fragment_passthrough_shader(pipe, TGSI_SEMANTIC_GENERIC,
+                                            TGSI_INTERPOLATE_CONSTANT, FALSE);
+
+   ctx->fs_write_all_cbufs =
+      util_make_fragment_passthrough_shader(pipe, TGSI_SEMANTIC_GENERIC,
+                                            TGSI_INTERPOLATE_CONSTANT, TRUE);
+
+   ctx->cached_all_shaders = TRUE;
 }
 
 static void blitter_set_common_draw_rect_state(struct blitter_context_priv *ctx,

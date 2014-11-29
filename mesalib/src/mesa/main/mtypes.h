@@ -1430,6 +1430,9 @@ struct gl_transform_attrib
    GLboolean RescaleNormals;			/**< GL_EXT_rescale_normal */
    GLboolean RasterPositionUnclipped;           /**< GL_IBM_rasterpos_clip */
    GLboolean DepthClamp;			/**< GL_ARB_depth_clamp */
+   /** GL_ARB_clip_control */
+   GLenum ClipOrigin;     /**< GL_LOWER_LEFT or GL_UPPER_LEFT */
+   GLenum ClipDepthMode;  /**< GL_NEGATIVE_ONE_TO_ONE or GL_ZERO_TO_ONE */
 };
 
 
@@ -2775,7 +2778,7 @@ struct gl_shader_program
     * Transform feedback varyings last specified by
     * glTransformFeedbackVaryings().
     *
-    * For the current set of transform feeedback varyings used for transform
+    * For the current set of transform feedback varyings used for transform
     * feedback output, see LinkedTransformFeedback.
     */
    struct {
@@ -2884,6 +2887,7 @@ struct gl_shader_program
    GLboolean LinkStatus;   /**< GL_LINK_STATUS */
    GLboolean Validated;
    GLboolean _Used;        /**< Ever used for drawing? */
+   GLboolean SamplersValidated; /**< Samplers validated against texture units? */
    GLchar *InfoLog;
 
    unsigned Version;       /**< GLSL version used for linking */
@@ -3697,6 +3701,7 @@ struct gl_extensions
    GLboolean ARB_blend_func_extended;
    GLboolean ARB_buffer_storage;
    GLboolean ARB_clear_texture;
+   GLboolean ARB_clip_control;
    GLboolean ARB_color_buffer_float;
    GLboolean ARB_compute_shader;
    GLboolean ARB_conditional_render_inverted;

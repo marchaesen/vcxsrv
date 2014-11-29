@@ -4448,6 +4448,18 @@
             </languageList>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>phonetic_azerty</name>
+            <_description>Russian (phonetic azerty)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>phonetic_fr</name>
+            <_description>Russian (phonetic French)</_description>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>

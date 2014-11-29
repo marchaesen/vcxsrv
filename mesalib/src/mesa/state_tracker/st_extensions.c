@@ -192,6 +192,10 @@ void st_init_limits(struct pipe_screen *screen,
       pc->MaxParameters      = pc->MaxNativeParameters      =
          screen->get_shader_param(screen, sh,
                    PIPE_SHADER_CAP_MAX_CONST_BUFFER_SIZE) / sizeof(float[4]);
+      pc->MaxInputComponents =
+         screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_INPUTS) * 4;
+      pc->MaxOutputComponents =
+         screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_OUTPUTS) * 4;
 
       pc->MaxUniformComponents = 4 * MIN2(pc->MaxNativeParameters, MAX_UNIFORMS);
 
@@ -261,10 +265,6 @@ void st_init_limits(struct pipe_screen *screen,
    c->MaxVarying = screen->get_shader_param(screen, PIPE_SHADER_FRAGMENT,
                                             PIPE_SHADER_CAP_MAX_INPUTS);
    c->MaxVarying = MIN2(c->MaxVarying, MAX_VARYING);
-   c->Program[MESA_SHADER_FRAGMENT].MaxInputComponents = c->MaxVarying * 4;
-   c->Program[MESA_SHADER_VERTEX].MaxOutputComponents = c->MaxVarying * 4;
-   c->Program[MESA_SHADER_GEOMETRY].MaxInputComponents = c->MaxVarying * 4;
-   c->Program[MESA_SHADER_GEOMETRY].MaxOutputComponents = c->MaxVarying * 4;
    c->MaxGeometryOutputVertices = screen->get_param(screen, PIPE_CAP_MAX_GEOMETRY_OUTPUT_VERTICES);
    c->MaxGeometryTotalOutputComponents = screen->get_param(screen, PIPE_CAP_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS);
 
@@ -463,6 +463,7 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(ARB_derivative_control),           PIPE_CAP_TGSI_FS_FINE_DERIVATIVE          },
       { o(ARB_conditional_render_inverted),  PIPE_CAP_CONDITIONAL_RENDER_INVERTED      },
       { o(ARB_texture_view),                 PIPE_CAP_SAMPLER_VIEW_TARGET              },
+      { o(ARB_clip_control),                 PIPE_CAP_CLIP_HALFZ                       },
    };
 
    /* Required: render target and sampler support */

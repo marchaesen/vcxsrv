@@ -91,6 +91,7 @@ static const struct extension extension_table[] = {
    { "GL_ARB_buffer_storage",                      o(ARB_buffer_storage),                      GL,             2013 },
    { "GL_ARB_clear_buffer_object",                 o(dummy_true),                              GL,             2012 },
    { "GL_ARB_clear_texture",                       o(ARB_clear_texture),                       GL,             2013 },
+   { "GL_ARB_clip_control",                        o(ARB_clip_control),                        GL,             2014 },
    { "GL_ARB_color_buffer_float",                  o(ARB_color_buffer_float),                  GL,             2004 },
    { "GL_ARB_compressed_texture_pixel_storage",    o(dummy_true),                              GL,             2011 },
    { "GL_ARB_compute_shader",                      o(ARB_compute_shader),                      GL,             2012 },

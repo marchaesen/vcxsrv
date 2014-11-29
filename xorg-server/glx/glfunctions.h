@@ -898,6 +898,7 @@
 #define glBindSamplers(a1, a2, a3) CALL_BindSamplers(GET_DISPATCH(), (a1, a2, a3))
 #define glBindTextures(a1, a2, a3) CALL_BindTextures(GET_DISPATCH(), (a1, a2, a3))
 #define glBindVertexBuffers(a1, a2, a3, a4, a5) CALL_BindVertexBuffers(GET_DISPATCH(), (a1, a2, a3, a4, a5))
+#define glClipControl(a1, a2) CALL_ClipControl(GET_DISPATCH(), (a1, a2))
 #define glInvalidateBufferData(a1) CALL_InvalidateBufferData(GET_DISPATCH(), (a1))
 #define glInvalidateBufferSubData(a1, a2, a3) CALL_InvalidateBufferSubData(GET_DISPATCH(), (a1, a2, a3))
 #define glInvalidateFramebuffer(a1, a2, a3) CALL_InvalidateFramebuffer(GET_DISPATCH(), (a1, a2, a3))

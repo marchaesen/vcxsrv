@@ -326,7 +326,7 @@ create_bits_picture(PicturePtr pict, Bool has_clip, int *xoff, int *yoff)
      * only set the clip region for pictures with drawables
      */
     if (has_clip) {
-        if (pict->clientClipType != CT_NONE)
+        if (pict->clientClip)
             pixman_image_set_has_client_clip(image, TRUE);
 
         if (*xoff || *yoff)

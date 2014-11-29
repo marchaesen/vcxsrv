@@ -381,7 +381,6 @@ compute_version_es2(const struct gl_extensions *extensions)
                               extensions->ARB_shader_texture_lod &&
                               extensions->ARB_texture_float &&
                               extensions->ARB_texture_rg &&
-                              extensions->ARB_texture_compression_rgtc &&
                               extensions->EXT_draw_buffers2 &&
                               /* extensions->ARB_framebuffer_object && */
                               extensions->EXT_framebuffer_sRGB &&
@@ -389,7 +388,6 @@ compute_version_es2(const struct gl_extensions *extensions)
                               extensions->EXT_texture_array &&
                               extensions->EXT_texture_shared_exponent &&
                               extensions->EXT_transform_feedback &&
-                              extensions->NV_conditional_render &&
                               extensions->ARB_draw_instanced &&
                               extensions->ARB_uniform_buffer_object &&
                               extensions->EXT_texture_snorm &&
