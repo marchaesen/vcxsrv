@@ -427,7 +427,7 @@ XineramaReinitData(void)
 
 /*
  *	PanoramiXExtensionInit():
- *		Called from InitExtensions in main().  
+ *		Called from InitExtensions in main().
  *		Register PanoramiXeen Extension
  *		Initialize global variables.
  */

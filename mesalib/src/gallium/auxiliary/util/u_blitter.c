@@ -319,7 +319,8 @@ static void bind_vs_pos_only(struct blitter_context_priv *ctx)
 
       ctx->vs_pos_only =
          util_make_vertex_passthrough_shader_with_so(pipe, 1, semantic_names,
-                                                     semantic_indices, &so);
+                                                     semantic_indices, FALSE,
+                                                     &so);
    }
 
    pipe->bind_vs_state(pipe, ctx->vs_pos_only);
@@ -335,7 +336,7 @@ static void bind_vs_passthrough(struct blitter_context_priv *ctx)
       const uint semantic_indices[] = { 0, 0 };
       ctx->vs =
          util_make_vertex_passthrough_shader(pipe, 2, semantic_names,
-                                             semantic_indices);
+                                             semantic_indices, FALSE);
    }
 
    pipe->bind_vs_state(pipe, ctx->vs);
@@ -682,11 +683,9 @@ static void blitter_set_rectangle(struct blitter_context_priv *ctx,
    ctx->viewport.scale[0] = 0.5f * ctx->dst_width;
    ctx->viewport.scale[1] = 0.5f * ctx->dst_height;
    ctx->viewport.scale[2] = 1.0f;
-   ctx->viewport.scale[3] = 1.0f;
    ctx->viewport.translate[0] = 0.5f * ctx->dst_width;
    ctx->viewport.translate[1] = 0.5f * ctx->dst_height;
    ctx->viewport.translate[2] = 0.0f;
-   ctx->viewport.translate[3] = 0.0f;
    ctx->base.pipe->set_viewport_states(ctx->base.pipe, 0, 1, &ctx->viewport);
 }
 

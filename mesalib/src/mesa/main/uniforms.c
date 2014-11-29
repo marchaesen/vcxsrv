@@ -151,7 +151,7 @@ void GLAPIENTRY
 _mesa_Uniform1f(GLint location, GLfloat v0)
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, 1, &v0, GL_FLOAT);
+   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, 1, &v0, GLSL_TYPE_FLOAT, 1);
 }
 
 void GLAPIENTRY
@@ -161,7 +161,7 @@ _mesa_Uniform2f(GLint location, GLfloat v0, GLfloat v1)
    GLfloat v[2];
    v[0] = v0;
    v[1] = v1;
-   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, 1, v, GL_FLOAT_VEC2);
+   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, 1, v, GLSL_TYPE_FLOAT, 2);
 }
 
 void GLAPIENTRY
@@ -172,7 +172,7 @@ _mesa_Uniform3f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2)
    v[0] = v0;
    v[1] = v1;
    v[2] = v2;
-   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, 1, v, GL_FLOAT_VEC3);
+   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, 1, v, GLSL_TYPE_FLOAT, 3);
 }
 
 void GLAPIENTRY
@@ -185,14 +185,14 @@ _mesa_Uniform4f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2,
    v[1] = v1;
    v[2] = v2;
    v[3] = v3;
-   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, 1, v, GL_FLOAT_VEC4);
+   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, 1, v, GLSL_TYPE_FLOAT, 4);
 }
 
 void GLAPIENTRY
 _mesa_Uniform1i(GLint location, GLint v0)
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, 1, &v0, GL_INT);
+   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, 1, &v0, GLSL_TYPE_INT, 1);
 }
 
 void GLAPIENTRY
@@ -202,7 +202,7 @@ _mesa_Uniform2i(GLint location, GLint v0, GLint v1)
    GLint v[2];
    v[0] = v0;
    v[1] = v1;
-   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, 1, v, GL_INT_VEC2);
+   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, 1, v, GLSL_TYPE_INT, 2);
 }
 
 void GLAPIENTRY
@@ -213,7 +213,7 @@ _mesa_Uniform3i(GLint location, GLint v0, GLint v1, GLint v2)
    v[0] = v0;
    v[1] = v1;
    v[2] = v2;
-   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, 1, v, GL_INT_VEC3);
+   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, 1, v, GLSL_TYPE_INT, 3);
 }
 
 void GLAPIENTRY
@@ -225,63 +225,63 @@ _mesa_Uniform4i(GLint location, GLint v0, GLint v1, GLint v2, GLint v3)
    v[1] = v1;
    v[2] = v2;
    v[3] = v3;
-   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, 1, v, GL_INT_VEC4);
+   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, 1, v, GLSL_TYPE_INT, 4);
 }
 
 void GLAPIENTRY
 _mesa_Uniform1fv(GLint location, GLsizei count, const GLfloat * value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, count, value, GL_FLOAT);
+   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, count, value, GLSL_TYPE_FLOAT, 1);
 }
 
 void GLAPIENTRY
 _mesa_Uniform2fv(GLint location, GLsizei count, const GLfloat * value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, count, value, GL_FLOAT_VEC2);
+   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, count, value, GLSL_TYPE_FLOAT, 2);
 }
 
 void GLAPIENTRY
 _mesa_Uniform3fv(GLint location, GLsizei count, const GLfloat * value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, count, value, GL_FLOAT_VEC3);
+   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, count, value, GLSL_TYPE_FLOAT, 3);
 }
 
 void GLAPIENTRY
 _mesa_Uniform4fv(GLint location, GLsizei count, const GLfloat * value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, count, value, GL_FLOAT_VEC4);
+   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, count, value, GLSL_TYPE_FLOAT, 4);
 }
 
 void GLAPIENTRY
 _mesa_Uniform1iv(GLint location, GLsizei count, const GLint * value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, count, value, GL_INT);
+   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, count, value, GLSL_TYPE_INT, 1);
 }
 
 void GLAPIENTRY
 _mesa_Uniform2iv(GLint location, GLsizei count, const GLint * value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, count, value, GL_INT_VEC2);
+   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, count, value, GLSL_TYPE_INT, 2);
 }
 
 void GLAPIENTRY
 _mesa_Uniform3iv(GLint location, GLsizei count, const GLint * value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, count, value, GL_INT_VEC3);
+   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, count, value, GLSL_TYPE_INT, 3);
 }
 
 void GLAPIENTRY
 _mesa_Uniform4iv(GLint location, GLsizei count, const GLint * value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, count, value, GL_INT_VEC4);
+   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, count, value, GLSL_TYPE_INT, 4);
 }
 
 /** Same as above with direct state access **/
@@ -292,7 +292,7 @@ _mesa_ProgramUniform1f(GLuint program, GLint location, GLfloat v0)
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniform1f");
-   _mesa_uniform(ctx, shProg, location, 1, &v0, GL_FLOAT);
+   _mesa_uniform(ctx, shProg, location, 1, &v0, GLSL_TYPE_FLOAT, 1);
 }
 
 void GLAPIENTRY
@@ -304,7 +304,7 @@ _mesa_ProgramUniform2f(GLuint program, GLint location, GLfloat v0, GLfloat v1)
    v[0] = v0;
    v[1] = v1;
    shProg = _mesa_lookup_shader_program_err(ctx, program, "glProgramUniform2f");
-   _mesa_uniform(ctx, shProg, location, 1, v, GL_FLOAT_VEC2);
+   _mesa_uniform(ctx, shProg, location, 1, v, GLSL_TYPE_FLOAT, 2);
 }
 
 void GLAPIENTRY
@@ -318,7 +318,7 @@ _mesa_ProgramUniform3f(GLuint program, GLint location, GLfloat v0, GLfloat v1,
    v[1] = v1;
    v[2] = v2;
    shProg = _mesa_lookup_shader_program_err(ctx, program, "glProgramUniform3f");
-   _mesa_uniform(ctx, shProg, location, 1, v, GL_FLOAT_VEC3);
+   _mesa_uniform(ctx, shProg, location, 1, v, GLSL_TYPE_FLOAT, 3);
 }
 
 void GLAPIENTRY
@@ -333,7 +333,7 @@ _mesa_ProgramUniform4f(GLuint program, GLint location, GLfloat v0, GLfloat v1,
    v[2] = v2;
    v[3] = v3;
    shProg = _mesa_lookup_shader_program_err(ctx, program, "glProgramUniform4f");
-   _mesa_uniform(ctx, shProg, location, 1, v, GL_FLOAT_VEC4);
+   _mesa_uniform(ctx, shProg, location, 1, v, GLSL_TYPE_FLOAT, 4);
 }
 
 void GLAPIENTRY
@@ -343,7 +343,7 @@ _mesa_ProgramUniform1i(GLuint program, GLint location, GLint v0)
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniform1i");
-   _mesa_uniform(ctx, shProg, location, 1, &v0, GL_INT);
+   _mesa_uniform(ctx, shProg, location, 1, &v0, GLSL_TYPE_INT, 1);
 }
 
 void GLAPIENTRY
@@ -355,7 +355,7 @@ _mesa_ProgramUniform2i(GLuint program, GLint location, GLint v0, GLint v1)
    v[0] = v0;
    v[1] = v1;
    shProg = _mesa_lookup_shader_program_err(ctx, program, "glProgramUniform2i");
-   _mesa_uniform(ctx, shProg, location, 1, v, GL_INT_VEC2);
+   _mesa_uniform(ctx, shProg, location, 1, v, GLSL_TYPE_INT, 2);
 }
 
 void GLAPIENTRY
@@ -369,7 +369,7 @@ _mesa_ProgramUniform3i(GLuint program, GLint location, GLint v0, GLint v1,
    v[1] = v1;
    v[2] = v2;
    shProg = _mesa_lookup_shader_program_err(ctx, program, "glProgramUniform3i");
-   _mesa_uniform(ctx, shProg, location, 1, v, GL_INT_VEC3);
+   _mesa_uniform(ctx, shProg, location, 1, v, GLSL_TYPE_INT, 3);
 }
 
 void GLAPIENTRY
@@ -384,7 +384,7 @@ _mesa_ProgramUniform4i(GLuint program, GLint location, GLint v0, GLint v1,
    v[2] = v2;
    v[3] = v3;
    shProg = _mesa_lookup_shader_program_err(ctx, program, "glProgramUniform4i");
-   _mesa_uniform(ctx, shProg, location, 1, v, GL_INT_VEC4);
+   _mesa_uniform(ctx, shProg, location, 1, v, GLSL_TYPE_INT, 4);
 }
 
 void GLAPIENTRY
@@ -395,7 +395,7 @@ _mesa_ProgramUniform1fv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniform1fv");
-   _mesa_uniform(ctx, shProg, location, count, value, GL_FLOAT);
+   _mesa_uniform(ctx, shProg, location, count, value, GLSL_TYPE_FLOAT, 1);
 }
 
 void GLAPIENTRY
@@ -406,7 +406,7 @@ _mesa_ProgramUniform2fv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniform2fv");
-   _mesa_uniform(ctx, shProg, location, count, value, GL_FLOAT_VEC2);
+   _mesa_uniform(ctx, shProg, location, count, value, GLSL_TYPE_FLOAT, 2);
 }
 
 void GLAPIENTRY
@@ -417,7 +417,7 @@ _mesa_ProgramUniform3fv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniform3fv");
-   _mesa_uniform(ctx, shProg, location, count, value, GL_FLOAT_VEC3);
+   _mesa_uniform(ctx, shProg, location, count, value, GLSL_TYPE_FLOAT, 3);
 }
 
 void GLAPIENTRY
@@ -428,7 +428,7 @@ _mesa_ProgramUniform4fv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniform4fv");
-   _mesa_uniform(ctx, shProg, location, count, value, GL_FLOAT_VEC4);
+   _mesa_uniform(ctx, shProg, location, count, value, GLSL_TYPE_FLOAT, 4);
 }
 
 void GLAPIENTRY
@@ -439,7 +439,7 @@ _mesa_ProgramUniform1iv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniform1iv");
-   _mesa_uniform(ctx, shProg, location, count, value, GL_INT);
+   _mesa_uniform(ctx, shProg, location, count, value, GLSL_TYPE_INT, 1);
 }
 
 void GLAPIENTRY
@@ -450,7 +450,7 @@ _mesa_ProgramUniform2iv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniform2iv");
-   _mesa_uniform(ctx, shProg, location, count, value, GL_INT_VEC2);
+   _mesa_uniform(ctx, shProg, location, count, value, GLSL_TYPE_INT, 2);
 }
 
 void GLAPIENTRY
@@ -461,7 +461,7 @@ _mesa_ProgramUniform3iv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniform3iv");
-   _mesa_uniform(ctx, shProg, location, count, value, GL_INT_VEC3);
+   _mesa_uniform(ctx, shProg, location, count, value, GLSL_TYPE_INT, 3);
 }
 
 void GLAPIENTRY
@@ -472,7 +472,7 @@ _mesa_ProgramUniform4iv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniform4iv");
-   _mesa_uniform(ctx, shProg, location, count, value, GL_INT_VEC4);
+   _mesa_uniform(ctx, shProg, location, count, value, GLSL_TYPE_INT, 4);
 }
 
 
@@ -481,7 +481,7 @@ void GLAPIENTRY
 _mesa_Uniform1ui(GLint location, GLuint v0)
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, 1, &v0, GL_UNSIGNED_INT);
+   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, 1, &v0, GLSL_TYPE_UINT, 1);
 }
 
 void GLAPIENTRY
@@ -491,7 +491,7 @@ _mesa_Uniform2ui(GLint location, GLuint v0, GLuint v1)
    GLuint v[2];
    v[0] = v0;
    v[1] = v1;
-   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, 1, v, GL_UNSIGNED_INT_VEC2);
+   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, 1, v, GLSL_TYPE_UINT, 2);
 }
 
 void GLAPIENTRY
@@ -502,7 +502,7 @@ _mesa_Uniform3ui(GLint location, GLuint v0, GLuint v1, GLuint v2)
    v[0] = v0;
    v[1] = v1;
    v[2] = v2;
-   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, 1, v, GL_UNSIGNED_INT_VEC3);
+   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, 1, v, GLSL_TYPE_UINT, 3);
 }
 
 void GLAPIENTRY
@@ -514,35 +514,35 @@ _mesa_Uniform4ui(GLint location, GLuint v0, GLuint v1, GLuint v2, GLuint v3)
    v[1] = v1;
    v[2] = v2;
    v[3] = v3;
-   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, 1, v, GL_UNSIGNED_INT_VEC4);
+   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, 1, v, GLSL_TYPE_UINT, 4);
 }
 
 void GLAPIENTRY
 _mesa_Uniform1uiv(GLint location, GLsizei count, const GLuint *value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, count, value, GL_UNSIGNED_INT);
+   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, count, value, GLSL_TYPE_UINT, 1);
 }
 
 void GLAPIENTRY
 _mesa_Uniform2uiv(GLint location, GLsizei count, const GLuint *value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, count, value, GL_UNSIGNED_INT_VEC2);
+   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, count, value, GLSL_TYPE_UINT, 2);
 }
 
 void GLAPIENTRY
 _mesa_Uniform3uiv(GLint location, GLsizei count, const GLuint *value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, count, value, GL_UNSIGNED_INT_VEC3);
+   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, count, value, GLSL_TYPE_UINT, 3);
 }
 
 void GLAPIENTRY
 _mesa_Uniform4uiv(GLint location, GLsizei count, const GLuint *value)
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, count, value, GL_UNSIGNED_INT_VEC4);
+   _mesa_uniform(ctx, ctx->_Shader->ActiveProgram, location, count, value, GLSL_TYPE_UINT, 4);
 }
 
 
@@ -583,7 +583,7 @@ _mesa_ProgramUniform1ui(GLuint program, GLint location, GLuint v0)
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniform1ui");
-   _mesa_uniform(ctx, shProg, location, 1, &v0, GL_UNSIGNED_INT);
+   _mesa_uniform(ctx, shProg, location, 1, &v0, GLSL_TYPE_UINT, 1);
 }
 
 void GLAPIENTRY
@@ -596,7 +596,7 @@ _mesa_ProgramUniform2ui(GLuint program, GLint location, GLuint v0, GLuint v1)
    v[1] = v1;
    shProg = _mesa_lookup_shader_program_err(ctx, program,
                                             "glProgramUniform2ui");
-   _mesa_uniform(ctx, shProg, location, 1, v, GL_UNSIGNED_INT_VEC2);
+   _mesa_uniform(ctx, shProg, location, 1, v, GLSL_TYPE_UINT, 2);
 }
 
 void GLAPIENTRY
@@ -611,7 +611,7 @@ _mesa_ProgramUniform3ui(GLuint program, GLint location, GLuint v0, GLuint v1,
    v[2] = v2;
    shProg = _mesa_lookup_shader_program_err(ctx, program,
                                             "glProgramUniform3ui");
-   _mesa_uniform(ctx, shProg, location, 1, v, GL_UNSIGNED_INT_VEC3);
+   _mesa_uniform(ctx, shProg, location, 1, v, GLSL_TYPE_UINT, 3);
 }
 
 void GLAPIENTRY
@@ -626,7 +626,7 @@ _mesa_ProgramUniform4ui(GLuint program, GLint location, GLuint v0, GLuint v1,
    v[2] = v2;
    v[3] = v3;
    shProg = _mesa_lookup_shader_program_err(ctx, program, "glProgramUniform4ui");
-   _mesa_uniform(ctx, shProg, location, 1, v, GL_UNSIGNED_INT_VEC4);
+   _mesa_uniform(ctx, shProg, location, 1, v, GLSL_TYPE_UINT, 4);
 }
 
 void GLAPIENTRY
@@ -637,7 +637,7 @@ _mesa_ProgramUniform1uiv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniform1uiv");
-   _mesa_uniform(ctx, shProg, location, count, value, GL_UNSIGNED_INT);
+   _mesa_uniform(ctx, shProg, location, count, value, GLSL_TYPE_UINT, 1);
 }
 
 void GLAPIENTRY
@@ -648,7 +648,7 @@ _mesa_ProgramUniform2uiv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniform2uiv");
-   _mesa_uniform(ctx, shProg, location, count, value, GL_UNSIGNED_INT_VEC2);
+   _mesa_uniform(ctx, shProg, location, count, value, GLSL_TYPE_UINT, 2);
 }
 
 void GLAPIENTRY
@@ -659,7 +659,7 @@ _mesa_ProgramUniform3uiv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniform3uiv");
-   _mesa_uniform(ctx, shProg, location, count, value, GL_UNSIGNED_INT_VEC3);
+   _mesa_uniform(ctx, shProg, location, count, value, GLSL_TYPE_UINT, 3);
 }
 
 void GLAPIENTRY
@@ -670,7 +670,7 @@ _mesa_ProgramUniform4uiv(GLuint program, GLint location, GLsizei count,
    struct gl_shader_program *shProg =
       _mesa_lookup_shader_program_err(ctx, program,
             "glProgramUniform4uiv");
-   _mesa_uniform(ctx, shProg, location, count, value, GL_UNSIGNED_INT_VEC4);
+   _mesa_uniform(ctx, shProg, location, count, value, GLSL_TYPE_UINT, 4);
 }
 
 
@@ -1208,7 +1208,7 @@ _mesa_GetActiveUniformName(GLuint program, GLuint uniformIndex,
    struct gl_shader_program *shProg;
 
    if (!ctx->Extensions.ARB_uniform_buffer_object) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glGetActiveUniformBlockiv");
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glGetActiveUniformName");
       return;
    }
 

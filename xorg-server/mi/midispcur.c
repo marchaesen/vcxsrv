@@ -78,9 +78,9 @@ typedef struct {
   (miDCBufferPtr)dixLookupScreenPrivate(&dev->devPrivates, miDCDeviceKey, screen) : \
   (miDCBufferPtr)dixLookupScreenPrivate(&GetMaster(dev, MASTER_POINTER)->devPrivates, miDCDeviceKey, screen))
 
-/* 
+/*
  * The core pointer buffer will point to the index of the virtual pointer
- * in the pCursorBuffers array. 
+ * in the pCursorBuffers array.
  */
 typedef struct {
     CloseScreenProcPtr CloseScreen;

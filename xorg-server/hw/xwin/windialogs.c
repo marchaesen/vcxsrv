@@ -397,8 +397,8 @@ winDisplayDepthChangeDialog(winPrivScreenPtr pScreenPriv)
     }
 
     /*
-     * Display a notification to the user that the visual 
-     * will not be displayed until the Windows display depth 
+     * Display a notification to the user that the visual
+     * will not be displayed until the Windows display depth
      * is restored to the original value.
      */
     g_hDlgDepthChange = CreateDialogParam(g_hInstance,
@@ -419,7 +419,7 @@ winDisplayDepthChangeDialog(winPrivScreenPtr pScreenPriv)
 
 /*
  * Process messages for the dialog that is displayed for
- * disruptive screen depth changes. 
+ * disruptive screen depth changes.
  */
 
 static INT_PTR CALLBACK
@@ -440,8 +440,8 @@ winChangeDepthDlgProc(HWND hwndDialog, UINT message,
         s_pScreenPriv = (winPrivScreenPtr) lParam;
         s_pScreenInfo = s_pScreenPriv->pScreenInfo;
 
-        winDebug("winChangeDepthDlgProc - WM_INITDIALOG - s_pScreenPriv: %08x, "
-                 "s_pScreenInfo: %08x\n",
+        winDebug("winChangeDepthDlgProc - WM_INITDIALOG - s_pScreenPriv: %p, "
+                 "s_pScreenInfo: %p\n",
                  s_pScreenPriv, s_pScreenInfo);
 
         winDebug("winChangeDepthDlgProc - WM_INITDIALOG - orig bpp: %d, "
@@ -479,7 +479,7 @@ winChangeDepthDlgProc(HWND hwndDialog, UINT message,
         case IDCANCEL:
             winDebug("winChangeDepthDlgProc - WM_COMMAND - IDOK or IDCANCEL\n");
 
-            /* 
+            /*
              * User dismissed the dialog, hide it until the
              * display mode is restored.
              */

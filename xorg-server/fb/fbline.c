@@ -26,7 +26,7 @@
 
 #include "fb.h"
 
-void
+static void
 fbZeroLine(DrawablePtr pDrawable, GCPtr pGC, int mode, int npt, DDXPointPtr ppt)
 {
     int x1, y1, x2, y2;
@@ -54,7 +54,7 @@ fbZeroLine(DrawablePtr pDrawable, GCPtr pGC, int mode, int npt, DDXPointPtr ppt)
     }
 }
 
-void
+static void
 fbZeroSegment(DrawablePtr pDrawable, GCPtr pGC, int nseg, xSegment * pSegs)
 {
     int dashOffset;

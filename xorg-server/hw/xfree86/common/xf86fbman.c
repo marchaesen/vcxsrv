@@ -38,7 +38,7 @@
 #include "regionstr.h"
 #include "xf86fbman.h"
 
-/* 
+/*
 #define DEBUG
 */
 
@@ -259,7 +259,7 @@ xf86PurgeUnlockedOffscreenAreas(ScreenPtr pScreen)
     return (*funcs->PurgeOffscreenAreas) (pScreen);
 }
 
-/************************************************************\ 
+/************************************************************\
 
    Below is a specific implementation of an offscreen manager.
 
@@ -1381,7 +1381,7 @@ xf86InitFBManagerLinear(ScreenPtr pScreen, int offset, int size)
     return TRUE;
 }
 
-/* This is an implementation specific function and should 
+/* This is an implementation specific function and should
    disappear after the next release.  People should use the
    real linear functions instead */
 

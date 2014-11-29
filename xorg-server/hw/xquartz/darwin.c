@@ -343,16 +343,16 @@ DarwinMouseProc(DeviceIntPtr pPointer, int what)
         InitValuatorAxisStruct(pPointer, 1, axes_labels[1],
                                NO_AXIS_LIMITS, NO_AXIS_LIMITS,
                                0, 0, 0, Absolute);
-        InitValuatorAxisStruct(pPointer, 2, axes_labels[2], 
+        InitValuatorAxisStruct(pPointer, 2, axes_labels[2],
                                NO_AXIS_LIMITS, NO_AXIS_LIMITS,
                                1, 0, 1, Relative);
-        InitValuatorAxisStruct(pPointer, 3, axes_labels[3], 
+        InitValuatorAxisStruct(pPointer, 3, axes_labels[3],
                                NO_AXIS_LIMITS, NO_AXIS_LIMITS,
                                1, 0, 1, Relative);
-        InitValuatorAxisStruct(pPointer, 4, axes_labels[4], 
+        InitValuatorAxisStruct(pPointer, 4, axes_labels[4],
                                NO_AXIS_LIMITS, NO_AXIS_LIMITS,
                                1, 0, 1, Relative);
-        InitValuatorAxisStruct(pPointer, 5, axes_labels[5], 
+        InitValuatorAxisStruct(pPointer, 5, axes_labels[5],
                                NO_AXIS_LIMITS, NO_AXIS_LIMITS,
                                1, 0, 1, Relative);
 

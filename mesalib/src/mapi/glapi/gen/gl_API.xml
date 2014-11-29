@@ -8379,6 +8379,8 @@
 
 <xi:include href="ARB_texture_barrier.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
+<xi:include href="KHR_context_flush_control.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
 <!-- Non-ARB extensions sorted by extension number. -->
 
 <category name="GL_EXT_blend_color" number="2">

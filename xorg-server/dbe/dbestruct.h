@@ -1,5 +1,5 @@
 /******************************************************************************
- * 
+ *
  * Copyright (c) 1994, 1995  Hewlett-Packard Company
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -9,10 +9,10 @@
  * distribute, sublicense, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included
  * in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
@@ -20,12 +20,12 @@
  * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  * Except as contained in this notice, the name of the Hewlett-Packard
  * Company shall not be used in advertising or otherwise to promote the
  * sale, use or other dealings in this Software without prior written
  * authorization from the Hewlett-Packard Company.
- * 
+ *
  *     Header file for DIX-related DBE
  *
  *****************************************************************************/
@@ -139,7 +139,7 @@ typedef struct _DbeWindowPrivRec {
      * possibly resulting in a page swap and loss of performance.  Initially we
      * will use this array to store buffer IDs.  For situations where we have
      * more IDs than can fit in this static array, we will allocate a larger
-     * array to use, possibly suffering a performance loss. 
+     * array to use, possibly suffering a performance loss.
      */
     XID initIDs[DBE_INIT_MAX_IDS];
 

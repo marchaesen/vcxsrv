@@ -499,25 +499,6 @@ _mesa_strdup( const char *s )
    }
 }
 
-/** Wrapper around strtof() */
-float
-_mesa_strtof( const char *s, char **end )
-{
-#if defined(_GNU_SOURCE) && !defined(__CYGWIN__) && !defined(__FreeBSD__) && \
-   !defined(ANDROID) && !defined(__HAIKU__) && !defined(__UCLIBC__) && \
-   !defined(__NetBSD__)
-   static locale_t loc = NULL;
-   if (!loc) {
-      loc = newlocale(LC_CTYPE_MASK, "C", NULL);
-   }
-   return strtof_l(s, end, loc);
-#elif defined(_ISOC99_SOURCE) || (defined(_XOPEN_SOURCE) && _XOPEN_SOURCE >= 600)
-   return strtof(s, end);
-#else
-   return (float)strtod(s, end);
-#endif
-}
-
 /** Compute simple checksum/hash for a string */
 unsigned int
 _mesa_str_checksum(const char *str)

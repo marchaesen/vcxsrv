@@ -207,9 +207,36 @@ def get_one_shift(type):
     assert False
 
 
+def truncate_mantissa(x, bits):
+    '''Truncate an integer so it can be represented exactly with a floating
+    point mantissa'''
+
+    assert isinstance(x, (int, long))
+
+    s = 1
+    if x < 0:
+        s = -1
+        x = -x
+
+    # We can represent integers up to mantissa + 1 bits exactly
+    mask = (1 << (bits + 1)) - 1
+
+    # Slide the mask until the MSB matches
+    shift = 0
+    while (x >> shift) & ~mask:
+        shift += 1
+
+    x &= mask << shift
+    x *= s
+    return x
+
+
 def value_to_native(type, value):
     '''Get the value of unity for this type.'''
     if type.type == FLOAT:
+        if type.size <= 32 \
+            and isinstance(value, (int, long)):
+            return truncate_mantissa(value, 23)
         return value
     if type.type == FIXED:
         return int(value * (1 << (type.size/2)))
@@ -226,9 +253,9 @@ def native_to_constant(type, value):
     '''Get the value of unity for this type.'''
     if type.type == FLOAT:
         if type.size <= 32:
-            return "%ff" % value 
+            return "%.1ff" % float(value)
         else:
-            return "%ff" % value 
+            return "%.1f" % float(value)
     else:
         return str(int(value))
 
@@ -251,8 +278,8 @@ def clamp_expr(src_channel, dst_channel, dst_native_type, value):
     dst_max = dst_channel.max()
     
     # Translate the destination range to the src native value
-    dst_min_native = value_to_native(src_channel, dst_min)
-    dst_max_native = value_to_native(src_channel, dst_max)
+    dst_min_native = native_to_constant(src_channel, value_to_native(src_channel, dst_min))
+    dst_max_native = native_to_constant(src_channel, value_to_native(src_channel, dst_max))
 
     if src_min < dst_min and src_max > dst_max:
         return 'CLAMP(%s, %s, %s)' % (value, dst_min_native, dst_max_native)

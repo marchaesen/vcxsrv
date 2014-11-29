@@ -719,7 +719,7 @@ ExaBlockHandler(ScreenPtr pScreen, void *pTimeout,
     if (pExaScr->info->flags & EXA_HANDLES_PIXMAPS)
         return;
 
-    /* Try and keep the offscreen memory area tidy every now and then (at most 
+    /* Try and keep the offscreen memory area tidy every now and then (at most
      * once per second) when the server has been idle for at least 100ms.
      */
     if (pExaScr->numOffscreenAvailable > 1) {

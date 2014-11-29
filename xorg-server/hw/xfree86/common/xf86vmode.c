@@ -17,13 +17,13 @@ included in all copies or substantial portions of the Software.
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL Kaleb S. KEITHLEY BE LIABLE FOR ANY CLAIM, DAMAGES 
+IN NO EVENT SHALL Kaleb S. KEITHLEY BE LIABLE FOR ANY CLAIM, DAMAGES
 OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 
-Except as contained in this notice, the name of Kaleb S. KEITHLEY 
-shall not be used in advertising or otherwise to promote the sale, use 
+Except as contained in this notice, the name of Kaleb S. KEITHLEY
+shall not be used in advertising or otherwise to promote the sale, use
 or other dealings in this Software without prior written authorization
 from Kaleb S. KEITHLEY
 
@@ -361,7 +361,7 @@ ProcXF86VidModeGetModeLine(ClientPtr client)
     }
 
     /*
-     * Older servers sometimes had server privates that the VidMode 
+     * Older servers sometimes had server privates that the VidMode
      * extention made available. So to be compatiable pretend that
      * there are no server privates to pass to the client
      */

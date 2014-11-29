@@ -250,21 +250,20 @@ ShmDestroyPixmap(PixmapPtr pPixmap)
 {
     ScreenPtr pScreen = pPixmap->drawable.pScreen;
     ShmScrPrivateRec *screen_priv = ShmGetScreenPriv(pScreen);
+    void *shmdesc = NULL;
     Bool ret;
 
-    if (pPixmap->refcnt == 1) {
-        ShmDescPtr shmdesc;
-
-        shmdesc = (ShmDescPtr) dixLookupPrivate(&pPixmap->devPrivates,
-                                                shmPixmapPrivateKey);
-        if (shmdesc)
-            ShmDetachSegment((void *) shmdesc, pPixmap->drawable.id);
-    }
+    if (pPixmap->refcnt == 1)
+        shmdesc = dixLookupPrivate(&pPixmap->devPrivates, shmPixmapPrivateKey);
 
     pScreen->DestroyPixmap = screen_priv->destroyPixmap;
     ret = (*pScreen->DestroyPixmap) (pPixmap);
     screen_priv->destroyPixmap = pScreen->DestroyPixmap;
     pScreen->DestroyPixmap = ShmDestroyPixmap;
+
+    if (shmdesc)
+	ShmDetachSegment(shmdesc, pPixmap->drawable.id);
+
     return ret;
 }
 
@@ -422,7 +421,7 @@ ProcShmAttach(ClientPtr client)
         }
 
         /* The attach was performed with root privs. We must
-         * do manual checking of access rights for the credentials 
+         * do manual checking of access rights for the credentials
          * of the client */
 
         if (shm_access(client, &(SHM_PERM(buf)), stuff->readOnly) == -1) {
@@ -1167,7 +1166,7 @@ ProcShmAttachFd(ClientPtr client)
                          fd, 0);
 
     close(fd);
-    if ((shmdesc->addr == ((char *) -1))) {
+    if (shmdesc->addr == ((char *) -1)) {
         free(shmdesc);
         return BadAccess;
     }
@@ -1257,7 +1256,7 @@ ProcShmCreateSegment(ClientPtr client)
                          MAP_SHARED,
                          fd, 0);
 
-    if ((shmdesc->addr == ((char *) -1))) {
+    if (shmdesc->addr == ((char *) -1)) {
         close(fd);
         free(shmdesc);
         return BadAccess;

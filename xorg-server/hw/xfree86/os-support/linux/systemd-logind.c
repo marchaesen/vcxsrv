@@ -387,7 +387,7 @@ message_filter(DBusConnection * connection, DBusMessage * message, void *data)
     LogMessage(X_INFO, "systemd-logind: got %s for %u:%u\n",
                pause ? "pause" : "resume", major, minor);
 
-    pdev = xf86_find_platform_device_by_devnum(major, minor);        
+    pdev = xf86_find_platform_device_by_devnum(major, minor);
     if (!pdev)
         pInfo = systemd_logind_find_info_ptr_by_devnum(xf86InputDevs,
                                                        major, minor);

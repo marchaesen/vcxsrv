@@ -340,3 +340,21 @@ DRI_CONF_SECTION_BEGIN \
 DRI_CONF_OPT_BEGIN(device_id, string, def) \
         DRI_CONF_DESC(en,gettext("Define the graphic device to use if possible")) \
 DRI_CONF_OPT_END
+
+/**
+ * \brief Gallium-Nine specific configuration options
+ */
+
+#define DRI_CONF_SECTION_NINE \
+DRI_CONF_SECTION_BEGIN \
+        DRI_CONF_DESC(en,gettext("Gallium Nine"))
+
+#define DRI_CONF_NINE_THROTTLE(def) \
+DRI_CONF_OPT_BEGIN(throttle_value, int, def) \
+        DRI_CONF_DESC(en,gettext("Define the throttling value. -1 for no throttling, -2 for default (usually 2), 0 for glfinish behaviour")) \
+DRI_CONF_OPT_END
+
+#define DRI_CONF_NINE_THREADSUBMIT(def) \
+DRI_CONF_OPT_BEGIN_B(thread_submit, def) \
+        DRI_CONF_DESC(en,gettext("Use an additional thread to submit buffers.")) \
+DRI_CONF_OPT_END

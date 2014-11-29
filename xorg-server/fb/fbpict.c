@@ -82,7 +82,7 @@ fbDestroyGlyphCache(void)
     }
 }
 
-void
+static void
 fbUnrealizeGlyph(ScreenPtr pScreen,
 		 GlyphPtr pGlyph)
 {
@@ -113,7 +113,7 @@ fbGlyphs(CARD8 op,
     int xDst = list->xOff, yDst = list->yOff;
 
     miCompositeSourceValidate(pSrc);
-    
+
     n_glyphs = 0;
     for (i = 0; i < nlist; ++i)
 	n_glyphs += list[i].len;
@@ -122,12 +122,12 @@ fbGlyphs(CARD8 op,
 	glyphCache = pixman_glyph_cache_create();
 
     pixman_glyph_cache_freeze (glyphCache);
-    
+
     if (n_glyphs > N_STACK_GLYPHS) {
 	if (!(pglyphs = malloc (n_glyphs * sizeof (pixman_glyph_t))))
 	    goto out;
     }
-    
+
     i = 0;
     x = y = 0;
     while (nlist--) {
@@ -309,17 +309,9 @@ create_bits_picture(PicturePtr pict, Bool has_clip, int *xoff, int *yoff)
         return NULL;
 
 #ifdef FB_ACCESS_WRAPPER
-#if FB_SHIFT==5
-
     pixman_image_set_accessors(image,
                                (pixman_read_memory_func_t) wfbReadMemory,
                                (pixman_write_memory_func_t) wfbWriteMemory);
-
-#else
-
-#error The pixman library only works when FbBits is 32 bits wide
-
-#endif
 #endif
 
     /* pCompositeClip is undefined for source pictures, so

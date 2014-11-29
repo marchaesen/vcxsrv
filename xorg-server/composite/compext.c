@@ -298,7 +298,7 @@ ProcCompositeGetOverlayWindow(ClientPtr client)
     VERIFY_WINDOW(pWin, stuff->window, client, DixGetAttrAccess);
     pScreen = pWin->drawable.pScreen;
 
-    /* 
+    /*
      * Create an OverlayClient structure to mark this client's
      * interest in the overlay window
      */
@@ -348,7 +348,7 @@ ProcCompositeReleaseOverlayWindow(ClientPtr client)
     REQUEST_SIZE_MATCH(xCompositeReleaseOverlayWindowReq);
     VERIFY_WINDOW(pWin, stuff->window, client, DixGetAttrAccess);
 
-    /* 
+    /*
      * Has client queried a reference to the overlay window
      * on this screen? If not, generate an error.
      */

@@ -254,6 +254,7 @@
     <ClCompile Include="..\..\..\..\src\glsl\loop_analysis.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\loop_controls.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\loop_unroll.cpp" />
+    <ClCompile Include="..\..\..\..\src\glsl\lower_const_arrays_to_uniforms.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_discard.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_discard_flow.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\lower_if_to_cond_assign.cpp" />
@@ -296,7 +297,6 @@
     <ClCompile Include="..\..\..\..\src\glsl\opt_swizzle_swizzle.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_tree_grafting.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_vectorize.cpp" />
-    <ClCompile Include="..\..\..\..\src\glsl\strtod.c" />
     <ClCompile Include="..\..\..\..\src\glsl\s_expression.cpp" />
     <ClCompile Include="..\..\..\..\src\mesa\drivers\common\meta_blit.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\accum.c" />
@@ -475,9 +475,7 @@
     <ClCompile Include="..\..\..\..\src\util\hash_table.c" />
     <ClCompile Include="..\..\..\..\src\util\ralloc.c" />
     <ClCompile Include="..\..\..\..\src\util\rgtc.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\..\..\src\glsl\strtod.h" />
+    <ClCompile Include="..\..\..\..\src\util\strtod.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\..\..\..\src\mesa\program\program_lexer.l">

@@ -26,13 +26,13 @@ Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -82,7 +82,7 @@ SOFTWARE.
 #define EINVAL WSAEINVAL
 #undef EBADF
 #define EBADF WSAENOTSOCK
-/* Windows select does not set errno. Use GetErrno as wrapper for 
+/* Windows select does not set errno. Use GetErrno as wrapper for
    WSAGetLastError */
 #define GetErrno WSAGetLastError
 #else
@@ -167,7 +167,7 @@ WaitForSomething(int *pClientsReady)
     busfault_check();
 #endif
 
-    /* We need a while loop here to handle 
+    /* We need a while loop here to handle
        crashed connections and the screen saver timeout */
     while (1) {
         /* deal with any blocked jobs */
@@ -349,14 +349,14 @@ WaitForSomething(int *pClientsReady)
              *  ready, they are all returned.  This means that an
              *  aggressive client could take over the server.
              *  This was not considered a big problem because
-             *  aggressive clients can hose the server in so many 
+             *  aggressive clients can hose the server in so many
              *  other ways :)
              */
             client_priority = clients[client_index]->priority;
             if (nready == 0 || client_priority > highest_priority) {
                 /*  Either we found the first client, or we found
                  *  a client whose priority is greater than all others
-                 *  that have been found so far.  Either way, we want 
+                 *  that have been found so far.  Either way, we want
                  *  to initialize the list of clients to contain just
                  *  this client.
                  */
@@ -364,7 +364,7 @@ WaitForSomething(int *pClientsReady)
                 highest_priority = client_priority;
                 nready = 1;
             }
-            /*  the following if makes sure that multiple same-priority 
+            /*  the following if makes sure that multiple same-priority
              *  clients get batched together
              */
             else if (client_priority == highest_priority) {

@@ -274,7 +274,7 @@ xf86ModulelistFromConfig(void ***optlist)
 
     if (xf86configptr->conf_modules) {
         /* Walk the disable list and let people know what we've parsed to
-         * not be loaded 
+         * not be loaded
          */
         modp = xf86configptr->conf_modules->mod_disable_lst;
         while (modp) {
@@ -1941,7 +1941,7 @@ configMonitor(MonPtr monitorp, XF86ConfMonitorPtr conf_monitor)
         /* now add the modes found in the modes
            section to the list of modes for this
            monitor unless it has been added before
-           because we are reusing the same section 
+           because we are reusing the same section
            for another screen */
         if (xf86itemNotSublist((GenericListPtr) conf_monitor->mon_modeline_lst,
                                (GenericListPtr) modes->mon_modeline_lst)) {

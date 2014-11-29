@@ -47,9 +47,8 @@ util_pstipple_create_sampler_view(struct pipe_context *pipe,
 extern void *
 util_pstipple_create_sampler(struct pipe_context *pipe);
 
-extern struct pipe_shader_state *
-util_pstipple_create_fragment_shader(struct pipe_context *pipe,
-                                     struct pipe_shader_state *fs,
+struct tgsi_token *
+util_pstipple_create_fragment_shader(const struct tgsi_token *tokens,
                                      unsigned *samplerUnitOut);
 
 

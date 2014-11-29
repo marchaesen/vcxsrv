@@ -170,7 +170,7 @@ winReleasePrimarySurfaceShadowDD(ScreenPtr pScreen)
 /*
  * Create a DirectDraw surface for the shadow framebuffer; also create
  * a primary surface object so we can blit to the display.
- * 
+ *
  * Install a DirectDraw clipper on our primary surface object
  * that clips our blits to the unobscured client area of our display window.
  */
@@ -499,7 +499,7 @@ winShadowUpdateDD(ScreenPtr pScreen, shadowBufPtr pBuf)
 
     /*
      * Handle small regions with multiple blits,
-     * handle large regions by creating a clipping region and 
+     * handle large regions by creating a clipping region and
      * doing a single blit constrained to that clipping region.
      */
     if (pScreenInfo->dwClipUpdatesNBoxes == 0
@@ -601,7 +601,7 @@ winInitScreenShadowDD(ScreenPtr pScreen)
 
 /*
  * Call the wrapped CloseScreen function.
- * 
+ *
  * Free our resources and private structures.
  */
 
@@ -663,7 +663,7 @@ winCloseScreenShadowDD(ScreenPtr pScreen)
 
 /*
  * Tell mi what sort of visuals we need.
- * 
+ *
  * Generally we only need one visual, as our screen can only
  * handle one format at a time, I believe.  You may want
  * to verify that last sentence.

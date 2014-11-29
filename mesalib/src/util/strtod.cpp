@@ -24,23 +24,52 @@
  */
 
 
-#ifndef STRTOD_H
-#define STRTOD_H
+#include <stdlib.h>
 
-#ifdef __cplusplus
-extern "C" {
+#ifdef _GNU_SOURCE
+#include <locale.h>
+#ifdef HAVE_XLOCALE_H
+#include <xlocale.h>
+#endif
 #endif
 
-extern double
-glsl_strtod(const char *s, char **end);
-
-extern float
-glsl_strtof(const char *s, char **end);
+#include "strtod.h"
 
 
-#ifdef __cplusplus
+#if defined(_GNU_SOURCE) && defined(HAVE_XLOCALE_H)
+static struct locale_initializer {
+   locale_initializer() { loc = newlocale(LC_CTYPE_MASK, "C", NULL); }
+   locale_t loc;
+} loc_init;
+#endif
+
+/**
+ * Wrapper around strtod which uses the "C" locale so the decimal
+ * point is always '.'
+ */
+double
+_mesa_strtod(const char *s, char **end)
+{
+#if defined(_GNU_SOURCE) && defined(HAVE_XLOCALE_H)
+   return strtod_l(s, end, loc_init.loc);
+#else
+   return strtod(s, end);
+#endif
 }
-#endif
 
 
+/**
+ * Wrapper around strtof which uses the "C" locale so the decimal
+ * point is always '.'
+ */
+float
+_mesa_strtof(const char *s, char **end)
+{
+#if defined(_GNU_SOURCE) && defined(HAVE_XLOCALE_H)
+   return strtof_l(s, end, loc_init.loc);
+#elif defined(HAVE_STRTOF)
+   return strtof(s, end);
+#else
+   return (float) strtod(s, end);
 #endif
+}

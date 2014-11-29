@@ -918,7 +918,7 @@ LoadModule(const char *module, const char *path, const char **subdirlist,
         goto LoadModule_fail;
     }
 
-    /* 
+    /*
      * if the module name is not a full pathname, we need to
      * check the elements in the path
      */
@@ -938,7 +938,7 @@ LoadModule(const char *module, const char *path, const char **subdirlist,
         }
     }
 
-    /* 
+    /*
      * did we find the module?
      */
     if (!found) {

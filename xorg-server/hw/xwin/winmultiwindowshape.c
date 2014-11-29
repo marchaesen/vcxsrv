@@ -46,7 +46,7 @@ winSetShapeMultiWindow(WindowPtr pWin, int kind)
 
     winScreenPriv(pScreen);
 
-  winDebug ("winSetShapeMultiWindow - pWin: %08x kind: %i\n", pWin, kind);
+  winDebug ("winSetShapeMultiWindow - pWin: %p kind: %i\n", pWin, kind);
 
     WIN_UNWRAP(SetShape);
     (*pScreen->SetShape) (pWin, kind);

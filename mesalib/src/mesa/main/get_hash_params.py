@@ -318,6 +318,9 @@ descriptor=[
   [ "PERFQUERY_COUNTER_NAME_LENGTH_MAX_INTEL", "CONST(MAX_PERFQUERY_COUNTER_NAME_LENGTH), extra_INTEL_performance_query" ],
   [ "PERFQUERY_COUNTER_DESC_LENGTH_MAX_INTEL", "CONST(MAX_PERFQUERY_COUNTER_DESC_LENGTH), extra_INTEL_performance_query" ],
   [ "PERFQUERY_GPA_EXTENDED_COUNTERS_INTEL", "CONST(PERFQUERY_HAVE_GPA_EXTENDED_COUNTERS), extra_INTEL_performance_query" ],
+
+# GL_KHR_context_flush_control
+  [ "CONTEXT_RELEASE_BEHAVIOR", "CONTEXT_ENUM(Const.ContextReleaseBehavior), NO_EXTRA" ],
 ]},
 
 # GLES3 is not a typo.
@@ -624,7 +627,7 @@ descriptor=[
 # == GL_CURRENT_MATRIX_NV
   [ "CURRENT_MATRIX_ARB", "LOC_CUSTOM, TYPE_MATRIX, 0, extra_ARB_vertex_program_ARB_fragment_program" ],
 # == GL_CURRENT_MATRIX_NV
-  [ "TRANSPOSE_CURRENT_MATRIX_ARB", "LOC_CUSTOM, TYPE_MATRIX, 0, extra_ARB_vertex_program_ARB_fragment_program" ],
+  [ "TRANSPOSE_CURRENT_MATRIX_ARB", "LOC_CUSTOM, TYPE_MATRIX_T, 0, extra_ARB_vertex_program_ARB_fragment_program" ],
 # == GL_PROGRAM_ERROR_POSITION_NV
   [ "PROGRAM_ERROR_POSITION_ARB", "CONTEXT_INT(Program.ErrorPos), extra_ARB_vertex_program_ARB_fragment_program" ],
 

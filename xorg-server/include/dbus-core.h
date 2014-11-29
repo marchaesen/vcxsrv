@@ -27,7 +27,7 @@
 #define DBUS_CORE_H
 
 #ifdef NEED_DBUS
-typedef struct DBusConnection DBusConnection;
+#include <dbus/dbus.h>
 
 typedef void (*dbus_core_connect_hook) (DBusConnection * connection,
                                                void *data);

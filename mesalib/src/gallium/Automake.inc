@@ -58,7 +58,8 @@ GALLIUM_WINSYS_CFLAGS = \
 
 
 GALLIUM_PIPE_LOADER_WINSYS_LIBS = \
-	$(top_builddir)/src/gallium/winsys/sw/null/libws_null.la
+	$(top_builddir)/src/gallium/winsys/sw/null/libws_null.la \
+	$(top_builddir)/src/gallium/winsys/sw/wrapper/libwsw.la
 
 if HAVE_DRISW
 GALLIUM_PIPE_LOADER_WINSYS_LIBS += \

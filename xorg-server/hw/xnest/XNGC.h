@@ -37,7 +37,6 @@ void xnestCopyGC(GCPtr pGCSrc, unsigned long mask, GCPtr pGCDst);
 void xnestDestroyGC(GCPtr pGC);
 void xnestChangeClip(GCPtr pGC, int type, void *pValue, int nRects);
 void xnestDestroyClip(GCPtr pGC);
-void xnestDestroyClipHelper(GCPtr pGC);
 void xnestCopyClip(GCPtr pGCDst, GCPtr pGCSrc);
 
 #endif                          /* XNESTGC_H */

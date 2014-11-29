@@ -70,12 +70,10 @@ update_viewport( struct st_context *st )
       st->state.viewport[i].scale[0] = scale[0];
       st->state.viewport[i].scale[1] = scale[1] * yScale;
       st->state.viewport[i].scale[2] = scale[2];
-      st->state.viewport[i].scale[3] = 1.0;
 
       st->state.viewport[i].translate[0] = translate[0];
       st->state.viewport[i].translate[1] = translate[1] * yScale + yBias;
       st->state.viewport[i].translate[2] = translate[2];
-      st->state.viewport[i].translate[3] = 0.0;
    }
 
    cso_set_viewport(st->cso_context, &st->state.viewport[0]);

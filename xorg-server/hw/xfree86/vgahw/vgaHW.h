@@ -116,7 +116,7 @@ typedef struct _vgaHWRec {
                                    = mmioreg */
     void *FontInfo1;          /* save area for fonts in
                                    plane 2 */
-    void *FontInfo2;          /* save area for fonts in       
+    void *FontInfo2;          /* save area for fonts in
                                    plane 3 */
     void *TextInfo;           /* save area for text */
     vgaRegRec SavedReg;         /* saved registers */

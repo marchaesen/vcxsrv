@@ -26,13 +26,13 @@ Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -254,16 +254,15 @@ typedef struct _GC {
     unsigned int arcMode:1;
     unsigned int subWindowMode:1;
     unsigned int graphicsExposures:1;
-    unsigned int clientClipType:2;      /* CT_<kind> */
     unsigned int miTranslate:1; /* should mi things translate? */
     unsigned int tileIsPixel:1; /* tile is solid pixel */
     unsigned int fExpose:1;     /* Call exposure handling */
     unsigned int freeCompClip:1;        /* Free composite clip */
     unsigned int scratch_inuse:1;       /* is this GC in a pool for reuse? */
-    unsigned int unused:13;     /* see comment above */
-    unsigned long planemask;
-    unsigned long fgPixel;
-    unsigned long bgPixel;
+    unsigned int unused:15;     /* see comment above */
+    unsigned int planemask;
+    unsigned int fgPixel;
+    unsigned int bgPixel;
     /*
      * alas -- both tile and stipple must be here as they
      * are independently specifiable
@@ -271,11 +270,11 @@ typedef struct _GC {
     PixUnion tile;
     PixmapPtr stipple;
     DDXPointRec patOrg;         /* origin for (tile, stipple) */
-    struct _Font *font;
     DDXPointRec clipOrg;
-    void *clientClip;
-    unsigned long stateChanges; /* masked with GC_<kind> */
-    unsigned long serialNumber;
+    struct _Font *font;
+    RegionPtr clientClip;
+    unsigned int stateChanges; /* masked with GC_<kind> */
+    unsigned int serialNumber;
     const GCFuncs *funcs;
     const GCOps *ops;
     PrivateRec *devPrivates;

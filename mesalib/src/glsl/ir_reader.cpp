@@ -972,7 +972,7 @@ ir_reader::read_texture(s_expression *expr)
       op = ir_query_levels;
    } else if (MATCH(expr, other_pattern)) {
       op = ir_texture::get_opcode(tag->value());
-      if (op == -1)
+      if (op == (ir_texture_opcode) -1)
 	 return NULL;
    } else {
       ir_read_error(NULL, "unexpected texture pattern %s", tag->value());

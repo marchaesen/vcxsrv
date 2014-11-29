@@ -12,8 +12,8 @@
 
 typedef struct _RamDacRegRec {
 /* This is probably the nastiest assumption, we allocate 1024 slots for
- * ramdac registers, should be enough. I've checked IBM and TVP series 
- * and they seem o.k 
+ * ramdac registers, should be enough. I've checked IBM and TVP series
+ * and they seem o.k
  * Then we allocate 768 entries for the DAC too. IBM640 needs 1024 -FIXME
  */
     unsigned short DacRegs[0x400];      /* register set */

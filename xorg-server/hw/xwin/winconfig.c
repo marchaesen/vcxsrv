@@ -238,7 +238,7 @@ winConfigKeyboard(DeviceIntPtr pDevice)
     XkbGetRulesDflts(&g_winInfo.xkb);
 
     /*
-     * Query the windows autorepeat settings and change the xserver defaults.   
+     * Query the windows autorepeat settings and change the xserver defaults.
      */
     {
         int kbd_delay;
@@ -276,7 +276,7 @@ winConfigKeyboard(DeviceIntPtr pDevice)
             layoutNum = strtoul(layoutName, (char **) NULL, 16);
         if ((layoutNum & 0xffff) == 0x411) {
             /* The japanese layouts know a lot of different IMEs which all have
-               different layout numbers set. Map them to a single entry. 
+               different layout numbers set. Map them to a single entry.
                Same might apply for chinese, korean and other symbol languages
                too */
             layoutNum = (layoutNum & 0xffff);
@@ -355,7 +355,7 @@ winConfigKeyboard(DeviceIntPtr pDevice)
         kbdfrom = X_CMDLINE;
 
     /*
-     * Until the layout code is finished, I search for the keyboard 
+     * Until the layout code is finished, I search for the keyboard
      * device and configure the server with it.
      */
 
@@ -656,7 +656,7 @@ winSetPercentOption(void *optlist, const char *name, double deflt)
 
 /*
  * Compare two strings for equality. This is caseinsensitive  and
- * The characters '_', ' ' (space) and '\t' (tab) are treated as 
+ * The characters '_', ' ' (space) and '\t' (tab) are treated as
  * not existing.
  */
 
@@ -699,7 +699,7 @@ winNameCompare(const char *s1, const char *s2)
 
 #ifdef XWIN_XF86CONFIG
 /*
- * Find the named option in the list. 
+ * Find the named option in the list.
  * @return the pointer to the option record, or NULL if not found.
  */
 

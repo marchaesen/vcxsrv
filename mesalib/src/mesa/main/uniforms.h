@@ -265,7 +265,9 @@ _mesa_get_uniform_location(struct gl_shader_program *shProg,
 void
 _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shader_program,
 	      GLint location, GLsizei count,
-              const GLvoid *values, GLenum type);
+              const GLvoid *values,
+              enum glsl_base_type basicType,
+              unsigned src_components);
 
 void
 _mesa_uniform_matrix(struct gl_context *ctx, struct gl_shader_program *shProg,

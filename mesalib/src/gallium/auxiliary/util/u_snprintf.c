@@ -176,7 +176,7 @@
 #define HAVE_ASPRINTF 1 /* not needed */
 #define HAVE_STDARG_H 1
 #define HAVE_STDDEF_H 1
-#define HAVE_STDINT_H 0
+#define HAVE_STDINT_H 1
 #define HAVE_STDLIB_H 1
 #define HAVE_INTTYPES_H 0
 #define HAVE_LOCALE_H 0

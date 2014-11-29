@@ -103,6 +103,7 @@ XCOMM Spaces
 <Multi_key> <o> <R>              	: "®"   registered # REGISTERED SIGN
 <Multi_key> <O> <r>              	: "®"   registered # REGISTERED SIGN
 <Multi_key> <O> <R>              	: "®"   registered # REGISTERED SIGN
+<Multi_key> <R> <o> 			: "®"   registered # REGISTERED SIGN
 <Multi_key> <R> <O> 			: "®"   registered # REGISTERED SIGN
 
 <Multi_key> <period> <greater>   	: "›"   U203a # SINGLE RIGHT-POINTING ANGLE QUOTATION MARK
@@ -119,8 +120,6 @@ XCOMM Spaces
 <Multi_key> <plus> <minus>       	: "±"   plusminus # PLUS-MINUS SIGN
 <Multi_key> <minus> <plus> 		: "±"   plusminus # PLUS-MINUS SIGN
 <Multi_key> <question> <question> 	: "¿"   questiondown # INVERTED QUESTION MARK
-<Multi_key> <minus> <d>          	: "đ"   dstroke # LATIN SMALL LETTER D WITH STROKE
-<Multi_key> <minus> <D>          	: "Đ"   Dstroke # LATIN CAPITAL LETTER D WITH STROKE
 <Multi_key> <s> <s>              	: "ß"   ssharp # LATIN SMALL LETTER SHARP S
 <Multi_key> <S> <S>              	: "ẞ"   U1e9e # LATIN CAPITAL LETTER SHARP S
 
@@ -200,21 +199,24 @@ XCOMM "₲" U20b2 GUARANI SIGN
 XCOMM "₳" U20b3 AUSTRAL SIGN
 XCOMM "₴" U20b4 HRYVNIA SIGN
 XCOMM "₵" U20b5 CEDI SIGN
+<Multi_key> <R> <equal>          	: "₹" U20b9 # INDIAN RUPEE SIGN
+<Multi_key> <equal> <R>          	: "₹" U20b9 # INDIAN RUPEE SIGN
+<Multi_key> <r> <equal>          	: "₹" U20b9 # INDIAN RUPEE SIGN
+<Multi_key> <equal> <r>          	: "₹" U20b9 # INDIAN RUPEE SIGN
 
-
-<Multi_key> <bar> <C>            	: "¢"   cent # CENT SIGN
-<Multi_key> <bar> <c>            	: "¢"   cent # CENT SIGN
 <Multi_key> <C> <bar>            	: "¢"   cent # CENT SIGN
+<Multi_key> <bar> <C>			: "¢"   cent # CENT SIGN
 <Multi_key> <c> <bar>            	: "¢"   cent # CENT SIGN
+<Multi_key> <bar> <c>			: "¢"   cent # CENT SIGN
 <Multi_key> <c> <slash>          	: "¢"   cent # CENT SIGN
 <Multi_key> <slash> <c>          	: "¢"   cent # CENT SIGN
 <Multi_key> <L> <minus>          	: "£"   sterling # POUND SIGN
-<Multi_key> <l> <minus>          	: "£"   sterling # POUND SIGN
 <Multi_key> <minus> <L>          	: "£"   sterling # POUND SIGN
+<Multi_key> <l> <minus> 		: "£"   sterling # POUND SIGN
 <Multi_key> <minus> <l>          	: "£"   sterling # POUND SIGN
 <Multi_key> <Y> <equal>          	: "¥"   yen # YEN SIGN
-<Multi_key> <y> <equal>          	: "¥"   yen # YEN SIGN
 <Multi_key> <equal> <Y>          	: "¥"   yen # YEN SIGN
+<Multi_key> <y> <equal> 		: "¥"   yen # YEN SIGN
 <Multi_key> <equal> <y>          	: "¥"   yen # YEN SIGN
 <Multi_key> <Y> <minus> 		: "¥"   yen # YEN SIGN
 <Multi_key> <minus> <Y> 		: "¥"   yen # YEN SIGN
@@ -878,12 +880,14 @@ XCOMM Part 3
 <Multi_key> <less> <d> 			: "ď"   U010F # LATIN SMALL LETTER D WITH CARON
 <Multi_key> <d> <less> 			: "ď"   U010F # LATIN SMALL LETTER D WITH CARON
 <dead_stroke> <D>               	: "Đ"   Dstroke # LATIN CAPITAL LETTER D WITH STROKE
+<Multi_key> <minus> <D>          	: "Đ"   Dstroke # LATIN CAPITAL LETTER D WITH STROKE
+<Multi_key> <D> <minus> 		: "Đ"   Dstroke # LATIN CAPITAL LETTER D WITH STROKE
 <Multi_key> <slash> <D>          	: "Đ"   Dstroke # LATIN CAPITAL LETTER D WITH STROKE
 <Multi_key> <KP_Divide> <D>      	: "Đ"   Dstroke # LATIN CAPITAL LETTER D WITH STROKE
-<Multi_key> <D> <minus> 		: "Đ"   Dstroke # LATIN CAPITAL LETTER D WITH STROKE
 <dead_stroke> <d>               	: "đ"   dstroke # LATIN SMALL LETTER D WITH STROKE
-<Multi_key> <slash> <d>          	: "đ"   dstroke # LATIN SMALL LETTER D WITH STROKE
+<Multi_key> <minus> <d>          	: "đ"   dstroke # LATIN SMALL LETTER D WITH STROKE
 <Multi_key> <d> <minus> 		: "đ"   dstroke # LATIN SMALL LETTER D WITH STROKE
+<Multi_key> <slash> <d>          	: "đ"   dstroke # LATIN SMALL LETTER D WITH STROKE
 <Multi_key> <KP_Divide> <d>      	: "đ"   dstroke # LATIN SMALL LETTER D WITH STROKE
 <dead_macron> <E>                	: "Ē"   U0112 # LATIN CAPITAL LETTER E WITH MACRON
 <Multi_key> <macron> <E>         	: "Ē"   U0112 # LATIN CAPITAL LETTER E WITH MACRON
@@ -4425,7 +4429,8 @@ XCOMM Part 3
 <Multi_key> <asciicircum> <plus> 	: "⁺"   U207A # SUPERSCRIPT PLUS SIGN
 <dead_circumflex> <KP_Add>       	: "⁺"   U207A # SUPERSCRIPT PLUS SIGN
 <Multi_key> <asciicircum> <KP_Add> 	: "⁺"   U207A # SUPERSCRIPT PLUS SIGN
-<dead_circumflex> <U2212>    	: "⁻"   U207B # SUPERSCRIPT MINUS
+<dead_circumflex> <minus> 		: "⁻"   U207B # SUPERSCRIPT MINUS
+<dead_circumflex> <U2212> 		: "⁻"   U207B # SUPERSCRIPT MINUS
 <Multi_key> <asciicircum> <U2212> 	: "⁻"   U207B # SUPERSCRIPT MINUS
 <dead_circumflex> <equal>        	: "⁼"   U207C # SUPERSCRIPT EQUALS SIGN
 <Multi_key> <asciicircum> <equal> 	: "⁼"   U207C # SUPERSCRIPT EQUALS SIGN
@@ -5069,13 +5074,18 @@ XCOMM Part 3
 <Multi_key> <parenleft> <U30F0> <parenright> 	: "㋼"   U32FC # CIRCLED KATAKANA WI
 <Multi_key> <parenleft> <U30F1> <parenright> 	: "㋽"   U32FD # CIRCLED KATAKANA WE
 <Multi_key> <parenleft> <kana_WO> <parenright> 	: "㋾"   U32FE # CIRCLED KATAKANA WO
+
+XCOMM
+XCOMM Hebrew letters with accents
+XCOMM
+
 <Multi_key> <U05B4> <hebrew_yod> 	: "יִ"   UFB1D # HEBREW LETTER YOD WITH HIRIQ
-<Multi_key> <U05B7> <U05F2> 	: "ײַ"   UFB1F # HEBREW LIGATURE YIDDISH YOD YOD PATAH
+<Multi_key> <U05B7> <U05F2> 		: "ײַ"   UFB1F # HEBREW LIGATURE YIDDISH YOD YOD PATAH
 <Multi_key> <U05C1> <hebrew_shin> 	: "שׁ"   UFB2A # HEBREW LETTER SHIN WITH SHIN DOT
 <Multi_key> <U05C2> <hebrew_shin> 	: "שׂ"   UFB2B # HEBREW LETTER SHIN WITH SIN DOT
-<Multi_key> <U05C1> <UFB49> 	: "שּׁ"   UFB2C # HEBREW LETTER SHIN WITH DAGESH AND SHIN DOT
+<Multi_key> <U05C1> <UFB49> 			: "שּׁ"   UFB2C # HEBREW LETTER SHIN WITH DAGESH AND SHIN DOT
 <Multi_key> <U05C1> <U05BC> <hebrew_shin> 	: "שּׁ"   UFB2C # HEBREW LETTER SHIN WITH DAGESH AND SHIN DOT
-<Multi_key> <U05C2> <UFB49> 	: "שּׂ"   UFB2D # HEBREW LETTER SHIN WITH DAGESH AND SIN DOT
+<Multi_key> <U05C2> <UFB49> 			: "שּׂ"   UFB2D # HEBREW LETTER SHIN WITH DAGESH AND SIN DOT
 <Multi_key> <U05C2> <U05BC> <hebrew_shin> 	: "שּׂ"   UFB2D # HEBREW LETTER SHIN WITH DAGESH AND SIN DOT
 <Multi_key> <U05B7> <hebrew_aleph> 	: "אַ"   UFB2E # HEBREW LETTER ALEF WITH PATAH
 <Multi_key> <U05B8> <hebrew_aleph> 	: "אָ"   UFB2F # HEBREW LETTER ALEF WITH QAMATS
@@ -5216,7 +5226,6 @@ XCOMM
 <dead_cedilla> <U0114> 		      : "Ḝ"   U1E1C               # LATIN CAPITAL LETTER E WITH CEDILLA AND BREVE
 <dead_cedilla> <U0115> 		      : "ḝ"   U1E1D               # LATIN SMALL LETTER E WITH CEDILLA AND BREVE
 <dead_cedilla> <nobreakspace> 	      : "̧"   U0327               # COMBINING CEDILLA
-<dead_circumflex> <minus> 	      : "⁻"   U207B               # SUPERSCRIPT MINUS
 <dead_circumflex> <Aacute> 	      : "Ấ"   Acircumflexacute    # LATIN CAPITAL LETTER A WITH CIRCUMFLEX AND ACUTE
 <dead_circumflex> <Agrave> 	      : "Ầ"   Acircumflexgrave    # LATIN CAPITAL LETTER A WITH CIRCUMFLEX AND GRAVE
 <dead_circumflex> <Ahook> 	      : "Ẩ"   Acircumflexhook     # LATIN CAPITAL LETTER A WITH CIRCUMFLEX AND HOOK ABOVE
@@ -5867,8 +5876,8 @@ XCOMM Characters from "Mathematical Operators"
 <Multi_key> <greater> <less>                    : "⋄"   U22c4   # > < DIAMOND OPERATOR
 <Multi_key> <U2227> <U2228>                     : "⋄"   U22c4   # ∧ ∨ DIAMOND OPERATOR
 <Multi_key> <U2228> <U2227>                     : "⋄"   U22c4   # ∨ ∧ DIAMOND OPERATOR
-<Multi_key> <colon> <period>                    : "∴"   therefore # THEREFORE
-<Multi_key> <period> <colon>                    : "∵"   because # BECAUSE
+<Multi_key> <colon> <period>                    : "∴"   therefore   # : . THEREFORE
+<Multi_key> <period> <colon>                    : "∵"   because     # . : BECAUSE
 
 XCOMM Characters from "Miscellaneous Technical"
 

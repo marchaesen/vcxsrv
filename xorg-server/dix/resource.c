@@ -26,13 +26,13 @@ Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -101,7 +101,7 @@ Equipment Corporation.
  *	FreeAllResources, LookupIDByType, LookupIDByClass, GetXIDRange
  */
 
-/* 
+/*
  *      A resource ID is a 32 bit quantity, the upper 2 bits of which are
  *	off-limits for client-visible resources.  The next 8 bits are
  *      used as client ID, and the low 22 bits come from the client.
@@ -725,7 +725,7 @@ GetXIDRange(int client, Bool server, XID *minp, XID *maxp)
 
 /**
  *  GetXIDList is called by the XC-MISC extension's MiscGetXIDList function.
- *  This function tries to find count unused XIDs for the given client.  It 
+ *  This function tries to find count unused XIDs for the given client.  It
  *  puts the IDs in the array pids and returns the number found, which should
  *  almost always be the number requested.
  *
@@ -1118,8 +1118,8 @@ FreeClientResources(ClientPtr client)
     resources = clientTable[client->index].resources;
     for (j = 0; j < clientTable[client->index].buckets; j++) {
         /* It may seem silly to update the head of this resource list as
-           we delete the members, since the entire list will be deleted any way, 
-           but there are some resource deletion functions "FreeClientPixels" for 
+           we delete the members, since the entire list will be deleted any way,
+           but there are some resource deletion functions "FreeClientPixels" for
            one which do a LookupID on another resource id (a Colormap id in this
            case), so the resource list must be kept valid up to the point that
            it is deleted, so every time we delete a resource, we must update the

@@ -27,7 +27,7 @@
 #define S_EXPRESSION_H
 
 #include "main/core.h" /* for Elements */
-#include "strtod.h"
+#include "util/strtod.h"
 #include "list.h"
 
 /* Type-safe downcasting macros (also safe to pass NULL) */

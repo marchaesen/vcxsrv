@@ -1410,6 +1410,59 @@ get_prime_id(void)
     return -1;
 }
 
+#include "pci_ids/pci_id_driver_map.h"
+
+static char *
+dri2_probe_driver_name(ScreenPtr pScreen, DRI2InfoPtr info)
+{
+    ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
+    EntityInfoPtr pEnt = xf86GetEntityInfo(pScrn->entityList[0]);
+    struct pci_device *pdev = NULL;
+    int i, j;
+
+    if (pEnt)
+        pdev = xf86GetPciInfoForEntity(pEnt->index);
+
+    /* For non-PCI devices, just assume that the 3D driver is named
+     * the same as the kernel driver.  This is currently true for vc4
+     * and msm (freedreno).
+     */
+    if (!pdev) {
+        drmVersionPtr version = drmGetVersion(info->fd);
+        char *kernel_driver;
+
+        if (!version) {
+            xf86DrvMsg(pScreen->myNum, X_ERROR,
+                       "[DRI2] Couldn't drmGetVersion() on non-PCI device, "
+                       "no driver name found.\n");
+            return NULL;
+        }
+
+        kernel_driver = strndup(version->name, version->name_len);
+        drmFreeVersion(version);
+        return kernel_driver;
+    }
+
+    for (i = 0; driver_map[i].driver; i++) {
+        if (pdev->vendor_id != driver_map[i].vendor_id)
+            continue;
+
+        if (driver_map[i].num_chips_ids == -1)
+            return strdup(driver_map[i].driver);
+
+        for (j = 0; j < driver_map[i].num_chips_ids; j++) {
+            if (driver_map[i].chip_ids[j] == pdev->device_id)
+                return strdup(driver_map[i].driver);
+        }
+    }
+
+    xf86DrvMsg(pScreen->myNum, X_ERROR,
+               "[DRI2] No driver mapping found for PCI device "
+               "0x%04x / 0x%04x\n",
+               pdev->vendor_id, pdev->device_id);
+    return NULL;
+}
+
 Bool
 DRI2ScreenInit(ScreenPtr pScreen, DRI2InfoPtr info)
 {
@@ -1524,7 +1577,14 @@ DRI2ScreenInit(ScreenPtr pScreen, DRI2InfoPtr info)
         ds->driverNames = malloc(sizeof(*ds->driverNames));
         if (!ds->driverNames)
             goto err_out;
-        ds->driverNames[0] = info->driverName;
+
+        if (info->driverName) {
+            ds->driverNames[0] = info->driverName;
+        } else {
+            ds->driverNames[0] = dri2_probe_driver_name(pScreen, info);
+            if (!ds->driverNames[0])
+                return FALSE;
+        }
     }
     else {
         ds->numDrivers = info->numDrivers;

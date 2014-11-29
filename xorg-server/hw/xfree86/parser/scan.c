@@ -1,16 +1,16 @@
-/* 
+/*
  * Copyright (c) 1997  Metro Link Incorporated
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"), 
+ * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
  * the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
@@ -18,11 +18,11 @@
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  * Except as contained in this notice, the name of the Metro Link shall not be
  * used in advertising or otherwise to promote the sale, use or other dealings
  * in this Software without prior written authorization from Metro Link.
- * 
+ *
  */
 /*
  * Copyright (c) 1997-2003 by The XFree86 Project, Inc.
@@ -241,7 +241,7 @@ xf86getNextLine(void)
     return ret;
 }
 
-/* 
+/*
  * xf86getToken --
  *      Read next Token from the config file. Handle the global variable
  *      pushToken.
@@ -251,7 +251,7 @@ xf86getToken(xf86ConfigSymTabRec * tab)
 {
     int c, i;
 
-    /* 
+    /*
      * First check whether pushToken has a different value than LOCK_TOKEN.
      * In this case rBuf[] contains a valid STRING/TOKEN/NUMBER. But in the
      * oth * case the next token must be read from the input.
@@ -266,9 +266,9 @@ xf86getToken(xf86ConfigSymTabRec * tab)
 
         c = configBuf[configPos];
 
-        /* 
+        /*
          * Get start of next Token. EOF is handled,
-         * whitespaces are skipped. 
+         * whitespaces are skipped.
          */
 
  again:
@@ -344,7 +344,7 @@ xf86getToken(xf86ConfigSymTabRec * tab)
             return DASH;
         }
 
-        /* 
+        /*
          * Numbers are returned immediately ...
          */
         if (isdigit(c)) {
@@ -379,7 +379,7 @@ xf86getToken(xf86ConfigSymTabRec * tab)
             return NUMBER;
         }
 
-        /* 
+        /*
          * All Strings START with a \" ...
          */
         else if (c == '\"') {
@@ -394,7 +394,7 @@ xf86getToken(xf86ConfigSymTabRec * tab)
             return STRING;
         }
 
-        /* 
+        /*
          * ... and now we MUST have a valid token.  The search is
          * handled later along with the pushed tokens.
          */
@@ -414,7 +414,7 @@ xf86getToken(xf86ConfigSymTabRec * tab)
     }
     else {
 
-        /* 
+        /*
          * Here we deal with pushed tokens. Reinitialize pushToken again. If
          * the pushed token was NUMBER || STRING return them again ...
          */
@@ -428,7 +428,7 @@ xf86getToken(xf86ConfigSymTabRec * tab)
             return temp;
     }
 
-    /* 
+    /*
      * Joop, at last we have to lookup the token ...
      */
     if (tab) {
@@ -1018,7 +1018,7 @@ xf86setSection(const char *section)
     configSection = strdup(section);
 }
 
-/* 
+/*
  * xf86getToken --
  *  Lookup a string if it is actually a token in disguise.
  */
@@ -1040,7 +1040,7 @@ StringToToken(const char *str, xf86ConfigSymTabRec * tab)
     return ERROR_TOKEN;
 }
 
-/* 
+/*
  * Compare two names.  The characters '_', ' ', and '\t' are ignored
  * in the comparison.
  */

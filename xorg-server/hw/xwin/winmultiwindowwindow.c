@@ -288,7 +288,7 @@ winChangeWindowAttributesMultiWindow(WindowPtr pWin, unsigned long mask)
 
     winScreenPriv(pScreen);
 
-    winDebug ("winChangeWindowAttributesMultiWindow - pWin: %08x\n", pWin);
+    winDebug ("winChangeWindowAttributesMultiWindow - pWin: %p\n", pWin);
 
     WIN_UNWRAP(ChangeWindowAttributes);
     fResult = (*pScreen->ChangeWindowAttributes) (pWin, mask);
@@ -316,7 +316,7 @@ winUnmapWindowMultiWindow(WindowPtr pWin)
     winScreenPriv(pScreen);
 
 #if CYGMULTIWINDOW_DEBUG
-    winDebug ("winUnmapWindowMultiWindow - pWin: %08x\n", pWin);
+    winDebug ("winUnmapWindowMultiWindow - pWin: %p\n", pWin);
 #endif
 
     WIN_UNWRAP(UnrealizeWindow);
@@ -347,7 +347,7 @@ winMapWindowMultiWindow(WindowPtr pWin)
     winScreenPriv(pScreen);
 
 #if CYGMULTIWINDOW_DEBUG
-    winDebug ("winMapWindowMultiWindow - pWin: %08x\n", pWin);
+    winDebug ("winMapWindowMultiWindow - pWin: %p\n", pWin);
 #endif
 
     WIN_UNWRAP(RealizeWindow);
@@ -379,7 +379,7 @@ winReparentWindowMultiWindow(WindowPtr pWin, WindowPtr pPriorParent)
     winScreenPriv(pScreen);
 
     winDebug
-        ("winReparentMultiWindow - pWin:%08x XID:0x%x, reparent from pWin:%08x XID:0x%x to pWin:%08x XID:0x%x\n",
+        ("winReparentMultiWindow - pWin:%p XID:0x%x, reparent from pWin:%p XID:0x%x to pWin:%p XID:0x%x\n",
          pWin, pWin->drawable.id, pPriorParent, pPriorParent->drawable.id,
          pWin->parent, pWin->parent->drawable.id);
 
@@ -403,7 +403,7 @@ winRestackWindowMultiWindow(WindowPtr pWin, WindowPtr pOldNextSib)
 
     winScreenPriv(pScreen);
 
-    winDebug ("winRestackMultiWindow - %08x\n", pWin);
+    winDebug ("winRestackMultiWindow - %p\n", pWin);
 
     WIN_UNWRAP(RestackWindow);
     if (pScreen->RestackWindow)
@@ -440,7 +440,7 @@ winCreateWindowsWindow(WindowPtr pWin)
 
     winInitMultiWindowClass();
 
-    winDebug("winCreateWindowsTopLevelWindow - pWin:%08x XID:0x%x \n", pWin,
+    winDebug("winCreateWindowsTopLevelWindow - pWin:%p XID:0x%x \n", pWin,
              pWin->drawable.id);
 
     iX = pWin->drawable.x + GetSystemMetrics(SM_XVIRTUALSCREEN);
@@ -591,7 +591,7 @@ winDestroyWindowsWindow(WindowPtr pWin)
     HICON hIcon;
     HICON hIconSm;
 
-    winDebug("winDestroyWindowsWindow - pWin:%08x XID:0x%x \n", pWin,
+    winDebug("winDestroyWindowsWindow - pWin:%p XID:0x%x \n", pWin,
              pWin->drawable.id);
 
     /* Bail out if the Windows window handle is invalid */
@@ -704,7 +704,7 @@ winUpdateWindowsWindow(WindowPtr pWin)
 }
 
 /*
- * winGetWindowID - 
+ * winGetWindowID -
  */
 
 XID
@@ -724,7 +724,7 @@ winGetWindowID(WindowPtr pWin)
 }
 
 /*
- * winFindWindow - 
+ * winFindWindow -
  */
 
 static void
@@ -738,7 +738,7 @@ winFindWindow(void *value, XID id, void *cdata)
 }
 
 /*
- * winReorderWindowsMultiWindow - 
+ * winReorderWindowsMultiWindow -
  */
 
 void

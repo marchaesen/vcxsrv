@@ -1072,7 +1072,7 @@ xf86RandR12CrtcNotify(RRCrtcPtr randr_crtc)
             randr_output = output->randr_output;
             randr_outputs[numOutputs++] = randr_output;
             /*
-             * We make copies of modes, so pointer equality 
+             * We make copies of modes, so pointer equality
              * isn't sufficient
              */
             for (j = 0; j < randr_output->numModes + randr_output->numUserModes;
@@ -1890,7 +1890,7 @@ xf86RandR14ProviderDestroy(ScreenPtr screen, RRProviderPtr provider)
 {
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(scrn);
-    
+
     if (config->randr_provider == provider) {
         if (config->randr_provider->offload_sink) {
             DetachOffloadGPU(screen);

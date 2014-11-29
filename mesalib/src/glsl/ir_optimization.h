@@ -114,6 +114,7 @@ bool lower_noise(exec_list *instructions);
 bool lower_variable_index_to_cond_assign(exec_list *instructions,
     bool lower_input, bool lower_output, bool lower_temp, bool lower_uniform);
 bool lower_quadop_vector(exec_list *instructions, bool dont_lower_swz);
+bool lower_const_arrays_to_uniforms(exec_list *instructions);
 bool lower_clip_distance(gl_shader *shader);
 void lower_output_reads(exec_list *instructions);
 bool lower_packing_builtins(exec_list *instructions, int op_mask);

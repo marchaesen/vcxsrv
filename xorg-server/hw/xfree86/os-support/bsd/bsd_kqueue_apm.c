@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2001 The XFree86 Project, Inc.  All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -8,10 +8,10 @@
  * distribute, sublicense, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
@@ -19,7 +19,7 @@
  * OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  * Except as contained in this notice, the name of the XFree86 Project
  * shall not be used in advertising or otherwise to promote the sale, use
  * or other dealings in this Software without prior written authorization
@@ -86,7 +86,7 @@ bsdToXF86(int type)
 }
 
 /*
- * APM events can be requested direclty from /dev/apm 
+ * APM events can be requested direclty from /dev/apm
  */
 static int
 bsdPMGetEventFromOS(int kq, pmEvent * events, int num)
@@ -113,9 +113,9 @@ bsdPMGetEventFromOS(int kq, pmEvent * events, int num)
 
 /*
  * If apmd(8) is running, he will get the events and handle them,
- * so, we've nothing to do here. 
- * Otherwise, opening /dev/apmctl will succeed and we have to send the 
- * confirmations to /dev/apmctl. 
+ * so, we've nothing to do here.
+ * Otherwise, opening /dev/apmctl will succeed and we have to send the
+ * confirmations to /dev/apmctl.
  */
 static pmWait
 bsdPMConfirmEventToOs(int dummyfd, pmEvent event)

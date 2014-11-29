@@ -12,7 +12,7 @@ int x_sha1_update(void *ctx, void *data, int size);
 
 /*
  * Place the hash in result, and free ctx.
- * Returns 0 on error, 1 on success. 
+ * Returns 0 on error, 1 on success.
  */
 int x_sha1_final(void *ctx, unsigned char result[20]);
 

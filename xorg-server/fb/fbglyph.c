@@ -29,7 +29,7 @@
 #include	<X11/fonts/fontstruct.h>
 #include	"dixfontstr.h"
 
-Bool
+static Bool
 fbGlyphIn(RegionPtr pRegion, int x, int y, int width, int height)
 {
     BoxRec box;
@@ -56,11 +56,7 @@ fbGlyphIn(RegionPtr pRegion, int x, int y, int width, int height)
 #define WRITE1(d,n,fg)	WRITE((d) + (n), (CARD8) fg)
 #define WRITE2(d,n,fg)	WRITE((CARD16 *) &(d[n]), (CARD16) fg)
 #define WRITE4(d,n,fg)	WRITE((CARD32 *) &(d[n]), (CARD32) fg)
-#if FB_UNIT == 6 && IMAGE_BYTE_ORDER == LSBFirst
-#define WRITE8(d)	WRITE((FbBits *) &(d[0]), fg)
-#else
 #define WRITE8(d)	WRITE4(d,0,_ABCA), WRITE4(d,4,_BCAB)
-#endif
 
 /*
  * This is a bit tricky, but it's brief.  Write 12 bytes worth
@@ -69,7 +65,7 @@ fbGlyphIn(RegionPtr pRegion, int x, int y, int width, int height)
  *
  *  a b c d  a b c d  a b c d	bytes
  *  A B C A  B C A B  C A B C	pixels
- * 
+ *
  *    f0        f1       f2
  *  A B C A  B C A B  C A B C	pixels LSB
  *  C A B C  A B C A  B C A B	pixels MSB
@@ -120,7 +116,7 @@ fbGlyphIn(RegionPtr pRegion, int x, int y, int width, int height)
 #define CASE(a,b,c,d)	(a | (b << 1) | (c << 2) | (d << 3))
 #endif
 
-void
+static void
 fbGlyph24(FbBits * dstBits,
           FbStride dstStride,
           int dstBpp, FbStip * stipple, FbBits fg, int x, int height)

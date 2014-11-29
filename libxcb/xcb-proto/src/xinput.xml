@@ -862,7 +862,7 @@ in struct DeviceTimeCoord.
         <field type="CARD8" name="len" />
         <field type="CARD8" name="num_valuators" />
         <field type="CARD8" name="mode" mask="ValuatorStateModeMask" />
-        <list type="CARD32" name="valuators">
+        <list type="INT32" name="valuators">
             <fieldref>num_valuators</fieldref>
         </list>
     </struct>
@@ -870,14 +870,33 @@ in struct DeviceTimeCoord.
     <struct name="InputState">
         <field type="CARD8" name="class_id" enum="InputClass" />
         <field type="CARD8" name="len" />
-        <field type="CARD8" name="num_items" />
-        <pad bytes="1" />
-        <list type="CARD8" name="uninterpreted_data">
-            <op op="-">
-                <fieldref>len</fieldref>
-                <value>4</value>
-            </op>
-        </list>
+        <switch name="data">
+            <fieldref>class_id</fieldref>
+            <case name="key">
+                <enumref ref="InputClass">Key</enumref>
+                <field type="CARD8" name="num_keys" />
+                <pad bytes="1" />
+                <list type="CARD8" name="keys">
+                    <value>32</value>
+                </list>
+            </case>
+            <case name="button">
+                <enumref ref="InputClass">Button</enumref>
+                <field type="CARD8" name="num_buttons" />
+                <pad bytes="1" />
+                <list type="CARD8" name="buttons">
+                    <value>32</value>
+                </list>
+            </case>
+            <case name="valuator">
+                <enumref ref="InputClass">Valuator</enumref>
+                <field type="CARD8" name="num_valuators" />
+                <field type="CARD8" name="mode" mask="ValuatorStateModeMask" />
+                <list type="INT32" name="valuators">
+                    <fieldref>num_valuators</fieldref>
+                </list>
+            </case>
+        </switch>
     </struct>
 
     <request name="QueryDeviceState" opcode="30">

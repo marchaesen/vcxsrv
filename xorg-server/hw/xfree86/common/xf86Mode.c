@@ -1878,8 +1878,8 @@ xf86ValidateModes(ScrnInfoPtr scrp, DisplayModePtr availModes,
             const int ntypes = sizeof(types) / sizeof(int);
             int n;
 
-            /* 
-             * We did not find the estimated virtual size. So now we want to 
+            /*
+             * We did not find the estimated virtual size. So now we want to
              * find the largest mode available, but we want to search in the
              * modes in the order of "types" listed above.
              */
@@ -2033,8 +2033,8 @@ xf86PruneDriverModes(ScrnInfoPtr scrp)
         /*
          * A modePool mode's prev field is used to hold a pointer to the
          * member of the scrp->modes list for which a match was considered.
-         * Clear that pointer first, otherwise xf86DeleteMode might get 
-         * confused 
+         * Clear that pointer first, otherwise xf86DeleteMode might get
+         * confused
          */
         scrp->modePool->prev = NULL;
         xf86DeleteMode(&scrp->modePool, scrp->modePool);

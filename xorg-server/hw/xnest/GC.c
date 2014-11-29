@@ -194,11 +194,12 @@ xnestChangeClip(GCPtr pGC, int type, void *pValue, int nRects)
     BoxPtr pBox;
     XRectangle *pRects;
 
-    xnestDestroyClipHelper(pGC);
+    xnestDestroyClip(pGC);
 
     switch (type) {
     case CT_NONE:
         XSetClipMask(xnestDisplay, xnestGC(pGC), None);
+        pValue = NULL;
         break;
 
     case CT_REGION:
@@ -224,11 +225,9 @@ xnestChangeClip(GCPtr pGC, int type, void *pValue, int nRects)
          * Need to change into region, so subsequent uses are with
          * current pixmap contents.
          */
-        pGC->clientClip =
-            (void *) (*pGC->pScreen->BitmapToRegion) ((PixmapPtr) pValue);
+        pGC->clientClip = (*pGC->pScreen->BitmapToRegion) ((PixmapPtr) pValue);
         (*pGC->pScreen->DestroyPixmap) ((PixmapPtr) pValue);
         pValue = pGC->clientClip;
-        type = CT_REGION;
         break;
 
     case CT_UNSORTED:
@@ -264,65 +263,34 @@ xnestChangeClip(GCPtr pGC, int type, void *pValue, int nRects)
     case CT_YSORTED:
     case CT_YXSORTED:
     case CT_YXBANDED:
-
-        /*
-         * other parts of server can only deal with CT_NONE,
-         * CT_PIXMAP and CT_REGION client clips.
-         */
-        pGC->clientClip = (void *) RegionFromRects(nRects,
-                                                    (xRectangle *) pValue,
-                                                    type);
+        /* server clip representation is a region */
+        pGC->clientClip = RegionFromRects(nRects, (xRectangle *) pValue, type);
         free(pValue);
         pValue = pGC->clientClip;
-        type = CT_REGION;
-
         break;
     }
 
-    pGC->clientClipType = type;
     pGC->clientClip = pValue;
 }
 
 void
 xnestDestroyClip(GCPtr pGC)
 {
-    xnestDestroyClipHelper(pGC);
-
-    XSetClipMask(xnestDisplay, xnestGC(pGC), None);
-
-    pGC->clientClipType = CT_NONE;
-    pGC->clientClip = NULL;
-}
-
-void
-xnestDestroyClipHelper(GCPtr pGC)
-{
-    switch (pGC->clientClipType) {
-    default:
-    case CT_NONE:
-        break;
-
-    case CT_REGION:
+    if (pGC->clientClip) {
         RegionDestroy(pGC->clientClip);
-        break;
+        XSetClipMask(xnestDisplay, xnestGC(pGC), None);
+        pGC->clientClip = NULL;
     }
 }
 
 void
 xnestCopyClip(GCPtr pGCDst, GCPtr pGCSrc)
 {
-    RegionPtr pRgn;
-
-    switch (pGCSrc->clientClipType) {
-    default:
-    case CT_NONE:
-        xnestDestroyClip(pGCDst);
-        break;
-
-    case CT_REGION:
-        pRgn = RegionCreate(NULL, 1);
+    if (pGCSrc->clientClip) {
+        RegionPtr pRgn = RegionCreate(NULL, 1);
         RegionCopy(pRgn, pGCSrc->clientClip);
         xnestChangeClip(pGCDst, CT_REGION, pRgn, 0);
-        break;
+    } else {
+        xnestDestroyClip(pGCDst);
     }
 }

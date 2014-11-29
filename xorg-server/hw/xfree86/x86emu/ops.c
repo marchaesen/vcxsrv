@@ -5530,7 +5530,7 @@ x86emuOp_opc80_byte_RM_IMM(u8 X86EMU_UNUSED(op1))
     if (DEBUG_DECODE()) {
         /* XXX DECODE_PRINTF may be changed to something more
            general, so that it is important to leave the strings
-           in the same format, even though the result is that the 
+           in the same format, even though the result is that the
            above test is done twice. */
 
         switch (rh) {
@@ -5658,7 +5658,7 @@ x86emuOp_opc81_word_RM_IMM(u8 X86EMU_UNUSED(op1))
     if (DEBUG_DECODE()) {
         /* XXX DECODE_PRINTF may be changed to something more
            general, so that it is important to leave the strings
-           in the same format, even though the result is that the 
+           in the same format, even though the result is that the
            above test is done twice. */
 
         switch (rh) {
@@ -5690,7 +5690,7 @@ x86emuOp_opc81_word_RM_IMM(u8 X86EMU_UNUSED(op1))
     }
 #endif
     /*
-     * Know operation, decode the mod byte to find the addressing 
+     * Know operation, decode the mod byte to find the addressing
      * mode.
      */
     switch (mod) {
@@ -5853,7 +5853,7 @@ x86emuOp_opc82_byte_RM_IMM(u8 X86EMU_UNUSED(op1))
     if (DEBUG_DECODE()) {
         /* XXX DECODE_PRINTF may be changed to something more
            general, so that it is important to leave the strings
-           in the same format, even though the result is that the 
+           in the same format, even though the result is that the
            above test is done twice. */
         switch (rh) {
         case 0:
@@ -5977,7 +5977,7 @@ x86emuOp_opc83_word_RM_IMM(u8 X86EMU_UNUSED(op1))
     if (DEBUG_DECODE()) {
         /* XXX DECODE_PRINTF may be changed to something more
            general, so that it is important to leave the strings
-           in the same format, even though the result is that the 
+           in the same format, even though the result is that the
            above test is done twice. */
         switch (rh) {
         case 0:
@@ -7472,7 +7472,7 @@ x86emuOp_call_far_IMM(u8 X86EMU_UNUSED(op1))
     CALL_TRACE(M.x86.saved_cs, M.x86.saved_ip, farseg, faroff, "FAR ");
 
     /* XXX
-     * 
+     *
      * Hooked interrupt vectors calling into our "BIOS" will cause
      * problems unless all intersegment stuff is checked for BIOS
      * access.  Check needed here.  For moment, let it alone.
@@ -8688,7 +8688,7 @@ x86emuOp_opcC0_byte_RM_MEM(u8 X86EMU_UNUSED(op1))
     if (DEBUG_DECODE()) {
         /* XXX DECODE_PRINTF may be changed to something more
            general, so that it is important to leave the strings
-           in the same format, even though the result is that the 
+           in the same format, even though the result is that the
            above test is done twice. */
 
         switch (rh) {
@@ -8797,7 +8797,7 @@ x86emuOp_opcC1_word_RM_MEM(u8 X86EMU_UNUSED(op1))
     if (DEBUG_DECODE()) {
         /* XXX DECODE_PRINTF may be changed to something more
            general, so that it is important to leave the strings
-           in the same format, even though the result is that the 
+           in the same format, even though the result is that the
            above test is done twice. */
 
         switch (rh) {
@@ -9700,7 +9700,7 @@ x86emuOp_opcD2_byte_RM_CL(u8 X86EMU_UNUSED(op1))
     if (DEBUG_DECODE()) {
         /* XXX DECODE_PRINTF may be changed to something more
            general, so that it is important to leave the strings
-           in the same format, even though the result is that the 
+           in the same format, even though the result is that the
            above test is done twice. */
         switch (rh) {
         case 0:
@@ -9795,7 +9795,7 @@ x86emuOp_opcD3_word_RM_CL(u8 X86EMU_UNUSED(op1))
     if (DEBUG_DECODE()) {
         /* XXX DECODE_PRINTF may be changed to something more
            general, so that it is important to leave the strings
-           in the same format, even though the result is that the 
+           in the same format, even though the result is that the
            above test is done twice. */
         switch (rh) {
         case 0:
@@ -11538,7 +11538,7 @@ x86emuOp_opcFE_byte_RM(u8 X86EMU_UNUSED(op1))
     if (DEBUG_DECODE()) {
         /* XXX DECODE_PRINTF may be changed to something more
            general, so that it is important to leave the strings
-           in the same format, even though the result is that the 
+           in the same format, even though the result is that the
            above test is done twice. */
 
         switch (rh) {

@@ -24,12 +24,12 @@
 #define PIPE_ATOMIC_MSVC_INTRINSIC
 #elif (defined(PIPE_CC_MSVC) && defined(PIPE_ARCH_X86))
 #define PIPE_ATOMIC_ASM_MSVC_X86                
+#elif defined(PIPE_CC_GCC) && (PIPE_CC_GCC_VERSION >= 401)
+#define PIPE_ATOMIC_GCC_INTRINSIC
 #elif (defined(PIPE_CC_GCC) && defined(PIPE_ARCH_X86))
 #define PIPE_ATOMIC_ASM_GCC_X86
 #elif (defined(PIPE_CC_GCC) && defined(PIPE_ARCH_X86_64))
 #define PIPE_ATOMIC_ASM_GCC_X86_64
-#elif defined(PIPE_CC_GCC) && (PIPE_CC_GCC_VERSION >= 401)
-#define PIPE_ATOMIC_GCC_INTRINSIC
 #else
 #error "Unsupported platform"
 #endif
@@ -66,6 +66,18 @@ static INLINE void
 p_atomic_dec(int32_t *v)
 {
    __asm__ __volatile__("lock; decl %0":"+m"(*v));
+}
+
+static INLINE int32_t
+p_atomic_inc_return(int32_t *v)
+{
+   return __sync_add_and_fetch(v, 1);
+}
+
+static INLINE int32_t
+p_atomic_dec_return(int32_t *v)
+{
+   return __sync_sub_and_fetch(v, 1);
 }
 
 static INLINE int32_t
@@ -116,6 +128,18 @@ p_atomic_dec(int32_t *v)
 }
 
 static INLINE int32_t
+p_atomic_inc_return(int32_t *v)
+{
+   return __sync_add_and_fetch(v, 1);
+}
+
+static INLINE int32_t
+p_atomic_dec_return(int32_t *v)
+{
+   return __sync_sub_and_fetch(v, 1);
+}
+
+static INLINE int32_t
 p_atomic_cmpxchg(int32_t *v, int32_t old, int32_t _new)
 {
    return __sync_val_compare_and_swap(v, old, _new);
@@ -161,6 +185,18 @@ p_atomic_dec(int32_t *v)
 }
 
 static INLINE int32_t
+p_atomic_inc_return(int32_t *v)
+{
+   return __sync_add_and_fetch(v, 1);
+}
+
+static INLINE int32_t
+p_atomic_dec_return(int32_t *v)
+{
+   return __sync_sub_and_fetch(v, 1);
+}
+
+static INLINE int32_t
 p_atomic_cmpxchg(int32_t *v, int32_t old, int32_t _new)
 {
    return __sync_val_compare_and_swap(v, old, _new);
@@ -186,6 +222,8 @@ p_atomic_cmpxchg(int32_t *v, int32_t old, int32_t _new)
 #define p_atomic_dec_zero(_v) ((boolean) --(*(_v)))
 #define p_atomic_inc(_v) ((void) (*(_v))++)
 #define p_atomic_dec(_v) ((void) (*(_v))--)
+#define p_atomic_inc_return(_v) ((*(_v))++)
+#define p_atomic_dec_return(_v) ((*(_v))--)
 #define p_atomic_cmpxchg(_v, old, _new) (*(_v) == old ? *(_v) = (_new) : *(_v))
 
 #endif
@@ -288,10 +326,22 @@ p_atomic_inc(int32_t *v)
    _InterlockedIncrement((long *)v);
 }
 
+static INLINE int32_t
+p_atomic_inc_return(int32_t *v)
+{
+   return _InterlockedIncrement((long *)v);
+}
+
 static INLINE void
 p_atomic_dec(int32_t *v)
 {
    _InterlockedDecrement((long *)v);
+}
+
+static INLINE int32_t
+p_atomic_dec_return(int32_t *v)
+{
+   return _InterlockedDecrement((long *)v);
 }
 
 static INLINE int32_t
@@ -329,6 +379,8 @@ p_atomic_dec_zero(int32_t *v)
 
 #define p_atomic_inc(_v) atomic_inc_32((uint32_t *) _v)
 #define p_atomic_dec(_v) atomic_dec_32((uint32_t *) _v)
+#define p_atomic_inc_return(_v) atomic_inc_32_nv((uint32_t *) _v)
+#define p_atomic_dec_return(_v) atomic_dec_32_nv((uint32_t *) _v)
 
 #define p_atomic_cmpxchg(_v, _old, _new) \
 	atomic_cas_32( (uint32_t *) _v, (uint32_t) _old, (uint32_t) _new)

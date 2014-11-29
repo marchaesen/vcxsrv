@@ -352,6 +352,7 @@ enum glamor_fbo_state {
  * @pbo:     attached pbo.
  * @width:   width of this fbo.
  * @height:  height of this fbo.
+ * @external set when the texture was not created by glamor
  * @format:  internal format of this fbo's texture.
  * @type:    internal type of this fbo's texture.
  * @glamor_priv: point to glamor private data.
@@ -365,6 +366,7 @@ typedef struct glamor_pixmap_fbo {
     GLuint pbo;
     int width;
     int height;
+    Bool external;
     GLenum format;
     GLenum type;
     glamor_screen_private *glamor_priv;

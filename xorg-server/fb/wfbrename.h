@@ -1,4 +1,3 @@
-#define fb16Lane wfb16Lane
 #define fb24_32CopyMtoN wfb24_32CopyMtoN
 #define fb24_32CreateScreenResources wfb24_32CreateScreenResources
 #define fb24_32GetImage wfb24_32GetImage
@@ -7,8 +6,6 @@
 #define fb24_32PutZImage wfb24_32PutZImage
 #define fb24_32ReformatTile wfb24_32ReformatTile
 #define fb24_32SetSpans wfb24_32SetSpans
-#define fb32Lane wfb32Lane
-#define fb8Lane wfb8Lane
 #define fbAddTraps wfbAddTraps
 #define fbAddTriangles wfbAddTriangles
 #define fbAllocatePrivates wfbAllocatePrivates
@@ -59,8 +56,6 @@
 #define fbDots24 wfbDots24
 #define fbDots32 wfbDots32
 #define fbDots8 wfbDots8
-#define fbEvenStipple wfbEvenStipple
-#define fbEvenTile wfbEvenTile
 #define fbExpandDirectColors wfbExpandDirectColors
 #define fbFill wfbFill
 #define fbFillRegionSolid wfbFillRegionSolid
@@ -77,18 +72,13 @@
 #define fbGlyph24 wfbGlyph24
 #define fbGlyph32 wfbGlyph32
 #define fbGlyph8 wfbGlyph8
-#define fbGlyphIn wfbGlyphIn
 #define fbHasVisualTypes wfbHasVisualTypes
 #define fbImageGlyphBlt wfbImageGlyphBlt
 #define fbIn wfbIn
 #define fbInitializeColormap wfbInitializeColormap
 #define fbInitVisuals wfbInitVisuals
-#define fbInstallColormap wfbInstallColormap
-#define fbLaneTable wfbLaneTable
 #define fbListInstalledColormaps wfbListInstalledColormaps
 #define FbMergeRopBits wFbMergeRopBits
-#define fbOddStipple wfbOddStipple
-#define fbOddTile wfbOddTile
 #define fbOver wfbOver
 #define fbOver24 wfbOver24
 #define fbOverlayCloseScreen wfbOverlayCloseScreen
@@ -131,8 +121,6 @@
 #define fbQueryBestSize wfbQueryBestSize
 #define fbRasterizeTrapezoid wfbRasterizeTrapezoid
 #define fbRealizeFont wfbRealizeFont
-#define fbRealizeWindow wfbRealizeWindow
-#define fbReduceRasterOp wfbReduceRasterOp
 #define fbReplicatePixel wfbReplicatePixel
 #define fbResolveColor wfbResolveColor
 #define fbScreenPrivateKeyRec wfbScreenPrivateKeyRec
@@ -146,15 +134,6 @@
 #define fbSolid wfbSolid
 #define fbSolid24 wfbSolid24
 #define fbSolidBoxClipped wfbSolidBoxClipped
-#define fbStipple wfbStipple
-#define fbStipple1Bits wfbStipple1Bits
-#define fbStipple24Bits wfbStipple24Bits
-#define fbStipple2Bits wfbStipple2Bits
-#define fbStipple4Bits wfbStipple4Bits
-#define fbStipple8Bits wfbStipple8Bits
-#define fbStippleTable wfbStippleTable
-#define fbTile wfbTile
-#define fbTransparentSpan wfbTransparentSpan
 #define fbTrapezoids wfbTrapezoids
 #define fbTriangles wfbTriangles
 #define fbUninstallColormap wfbUninstallColormap
@@ -162,7 +141,5 @@
 #define fbUnrealizeFont wfbUnrealizeFont
 #define fbValidateGC wfbValidateGC
 #define fbWinPrivateKeyRec wfbWinPrivateKeyRec
-#define fbZeroLine wfbZeroLine
-#define fbZeroSegment wfbZeroSegment
 #define free_pixman_pict wfb_free_pixman_pict
 #define image_from_pict wfb_image_from_pict

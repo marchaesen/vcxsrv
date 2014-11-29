@@ -4,13 +4,13 @@ and the Massachusetts Institute of Technology, Cambridge, Massachusetts.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the names of Digital or MIT not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -23,11 +23,11 @@ SOFTWARE.
 ******************************************************************/
 
 /*
-** File: 
+** File:
 **
 **   xvmain.c --- Xv server extension main device independent module.
-**   
-** Author: 
+**
+** Author:
 **
 **   David Carver (Digital Workstation Engineering/Project Athena)
 **
@@ -58,7 +58,7 @@ SOFTWARE.
 **
 **   24.01.91 Carver
 **     - version 1.4 upgrade
-**       
+**
 ** Notes:
 **
 **   Port structures reference client structures in a two different
@@ -86,7 +86,7 @@ SOFTWARE.
 #include "scrnintstr.h"
 #include "windowstr.h"
 #include "pixmapstr.h"
-#include "gc.h"
+#include "gcstruct.h"
 #include "extnsionst.h"
 #include "extinit.h"
 #include "dixstruct.h"
@@ -915,7 +915,7 @@ XvdiSelectPortNotify(ClientPtr client, XvPortPtr pPort, BOOL onoff)
         return Success;
     }
 
-    /* DIDN'T FIND IT; SO REUSE LIST ELEMENT IF ONE IS FREE OTHERWISE 
+    /* DIDN'T FIND IT; SO REUSE LIST ELEMENT IF ONE IS FREE OTHERWISE
        CREATE A NEW ONE AND ADD IT TO THE BEGINNING OF THE LIST */
 
     if (!tpn) {

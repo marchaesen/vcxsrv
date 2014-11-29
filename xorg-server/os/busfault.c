@@ -47,7 +47,7 @@ struct busfault {
     void                *context;
 };
 
-static Bool             busfaulted;        
+static Bool             busfaulted;
 static struct xorg_list busfaults;
 
 struct busfault *

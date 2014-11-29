@@ -28,6 +28,7 @@
 #include "program/symbol_table.h"
 #include "program/program_parser.h"
 #include "program/program_parse.tab.h"
+#include "util/strtod.h"
 
 #define require_ARB_vp (yyextra->mode == ARB_vertex)
 #define require_ARB_fp (yyextra->mode == ARB_fragment)
@@ -216,26 +217,19 @@ MIN{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, MIN, 3); }
 MOV{sz}{cc}{sat}   { return_opcode(             1, VECTOR_OP, MOV, 3); }
 MUL{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, MUL, 3); }
 
-PK2H               { return_opcode(require_NV_fp,  VECTOR_OP, PK2H, 4); }
-PK2US              { return_opcode(require_NV_fp,  VECTOR_OP, PK2US, 5); }
-PK4B               { return_opcode(require_NV_fp,  VECTOR_OP, PK4B, 4); }
-PK4UB              { return_opcode(require_NV_fp,  VECTOR_OP, PK4UB, 5); }
 POW{szf}{cc}{sat}  { return_opcode(             1, BINSC_OP, POW, 3); }
 
 RCP{szf}{cc}{sat}  { return_opcode(             1, SCALAR_OP, RCP, 3); }
-RFL{szf}{cc}{sat}  { return_opcode(require_NV_fp,  BIN_OP,    RFL, 3); }
 RSQ{szf}{cc}{sat}  { return_opcode(             1, SCALAR_OP, RSQ, 3); }
 
 SCS{sat}           { return_opcode(require_ARB_fp, SCALAR_OP, SCS, 3); }
 SEQ{sz}{cc}{sat}   { return_opcode(require_NV_fp,  BIN_OP, SEQ, 3); }
-SFL{sz}{cc}{sat}   { return_opcode(require_NV_fp,  BIN_OP, SFL, 3); }
 SGE{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, SGE, 3); }
 SGT{sz}{cc}{sat}   { return_opcode(require_NV_fp,  BIN_OP, SGT, 3); }
 SIN{szf}{cc}{sat}  { return_opcode(require_ARB_fp, SCALAR_OP, SIN, 3); }
 SLE{sz}{cc}{sat}   { return_opcode(require_NV_fp,  BIN_OP, SLE, 3); }
 SLT{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, SLT, 3); }
 SNE{sz}{cc}{sat}   { return_opcode(require_NV_fp,  BIN_OP, SNE, 3); }
-STR{sz}{cc}{sat}   { return_opcode(require_NV_fp,  BIN_OP, STR, 3); }
 SUB{sz}{cc}{sat}   { return_opcode(             1, BIN_OP, SUB, 3); }
 SWZ{sat}           { return_opcode(             1, SWZ, SWZ, 3); }
 
@@ -244,12 +238,6 @@ TXB{cc}{sat}       { return_opcode(require_ARB_fp, SAMPLE_OP, TXB, 3); }
 TXD{cc}{sat}       { return_opcode(require_NV_fp,  TXD_OP, TXD, 3); }
 TXP{cc}{sat}       { return_opcode(require_ARB_fp, SAMPLE_OP, TXP, 3); }
 
-UP2H{cc}{sat}      { return_opcode(require_NV_fp,  SCALAR_OP, UP2H, 4); }
-UP2US{cc}{sat}     { return_opcode(require_NV_fp,  SCALAR_OP, UP2US, 5); }
-UP4B{cc}{sat}      { return_opcode(require_NV_fp,  SCALAR_OP, UP4B, 4); }
-UP4UB{cc}{sat}     { return_opcode(require_NV_fp,  SCALAR_OP, UP4UB, 5); }
-
-X2D{szf}{cc}{sat}  { return_opcode(require_NV_fp,  TRI_OP, X2D, 3); }
 XPD{sat}           { return_opcode(             1, BIN_OP, XPD, 3); }
 
 vertex                    { return_token_or_IDENTIFIER(require_ARB_vp, VERTEX); }

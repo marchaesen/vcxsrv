@@ -129,7 +129,7 @@ sunToXF86(int type)
 }
 
 /*
- * APM events can be requested direclty from /dev/apm 
+ * APM events can be requested direclty from /dev/apm
  */
 static int
 sunPMGetEventFromOS(int fd, pmEvent * events, int num)

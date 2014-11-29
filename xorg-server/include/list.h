@@ -117,7 +117,7 @@ struct xorg_list {
  * Example:
  * xorg_list_init(&bar->list_of_foos);
  *
- * @param The list to initialized.
+ * @param list The list to initialize
  */
 static inline void
 xorg_list_init(struct xorg_list *list)

@@ -239,8 +239,10 @@ build_modmap_from_modkeymap(CARD8 *modmap, KeyCode *modkeymap,
         if (!modkeymap[i])
             continue;
 
+#if MAP_LENGTH < 256
         if (modkeymap[i] >= MAP_LENGTH)
             return BadValue;
+#endif
 
         if (modmap[modkeymap[i]])
             return BadValue;

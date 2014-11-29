@@ -568,7 +568,7 @@ typedef struct _PciChipsets {
      * In drivers that don't have a specific vendor (e.g., vga) contains the
      * device ID for either the generic VGA or generic 8514 devices.  This
      * turns out to be the same as the subclass and programming interface
-     * value (e.g., the full 24-bit class for the VGA device is 0x030000 (or 
+     * value (e.g., the full 24-bit class for the VGA device is 0x030000 (or
      * 0x000101) and for 8514 is 0x030001).
      */
     int PCIid;

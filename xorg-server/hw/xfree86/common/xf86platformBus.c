@@ -497,7 +497,7 @@ xf86platformAddDevice(int index)
 
     if (xf86GPUScreens[i]->PreInit &&
         xf86GPUScreens[i]->PreInit(xf86GPUScreens[i], 0))
-        xf86GPUScreens[i]->configured = TRUE; 
+        xf86GPUScreens[i]->configured = TRUE;
 
     if (!xf86GPUScreens[i]->configured) {
         ErrorF("hotplugged device %d didn't configure\n", i);

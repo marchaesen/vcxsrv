@@ -132,7 +132,7 @@ if (((rx1) < (rx2)) && ((ry1) < (ry2)) &&			\
     r++;							\
 }
 
-/* Convert bitmap clip mask into clipping region. 
+/* Convert bitmap clip mask into clipping region.
  * First, goes through each line and makes boxes by noting the transitions
  * from 0 to 1 and 1 to 0.
  * Then it coalesces the current line with the previous if they have boxes
@@ -246,8 +246,8 @@ fbPixmapToRegion(PixmapPtr pPix)
                     rx1, h, base + (width & FB_MASK), h + 1);
         }
         /* if all rectangles on this line have the same x-coords as
-         * those on the previous line, then add 1 to all the previous  y2s and 
-         * throw away all the rectangles from this line 
+         * those on the previous line, then add 1 to all the previous  y2s and
+         * throw away all the rectangles from this line
          */
         fSame = FALSE;
         if (irectPrevStart != -1) {

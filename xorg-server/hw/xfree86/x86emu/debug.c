@@ -103,11 +103,11 @@ disassemble_forward(u16 seg, u16 off, int n)
      * SINGLE_STEP(r,m); which disappear if DEBUG is not defined to
      * the preprocessor.  The TRACE_REGS macro expands to:
      *
-     * if (debug&DEBUG_DISASSEMBLE) 
+     * if (debug&DEBUG_DISASSEMBLE)
      *     {just_disassemble(); goto EndOfInstruction;}
      *     if (debug&DEBUG_TRACE) trace_regs(r,m);
      *
-     * ......  and at the last line of the routine. 
+     * ......  and at the last line of the routine.
      *
      * EndOfInstruction: end_instr();
      *

@@ -107,7 +107,7 @@ ExaCheckPutImage(DrawablePtr pDrawable, GCPtr pGC, int depth,
     EXA_FALLBACK(("to %p (%c)\n", pDrawable, exaDrawableLocation(pDrawable)));
     if (!pExaScr->prepare_access_reg || !pExaPixmap->pDamage ||
         exaGCReadsDestination(pDrawable, pGC->planemask, pGC->fillStyle,
-                              pGC->alu, pGC->clientClipType))
+                              pGC->alu, pGC->clientClip != NULL))
         exaPrepareAccess(pDrawable, EXA_PREPARE_DEST);
     else
         pExaScr->prepare_access_reg(pPixmap, EXA_PREPARE_DEST,
@@ -143,7 +143,7 @@ ExaCheckCopyNtoN(DrawablePtr pSrc, DrawablePtr pDst, GCPtr pGC,
 
     if (pExaScr->prepare_access_reg &&
         !exaGCReadsDestination(pDst, pGC->planemask, pGC->fillStyle,
-                               pGC->alu, pGC->clientClipType) &&
+                               pGC->alu, pGC->clientClip != NULL) &&
         RegionInitBoxes(&reg, pbox, nbox)) {
         PixmapPtr pPixmap = exaGetDrawablePixmap(pDst);
 
@@ -179,10 +179,9 @@ ExaFallbackPrepareReg(DrawablePtr pDrawable,
     ExaScreenPriv(pScreen);
 
     if (pExaScr->prepare_access_reg &&
-        !(checkReads && exaGCReadsDestination(pDrawable,
-                                              pGC->planemask,
-                                              pGC->fillStyle,
-                                              pGC->alu, pGC->clientClipType))) {
+        !(checkReads && exaGCReadsDestination(pDrawable, pGC->planemask,
+                                              pGC->fillStyle, pGC->alu,
+                                              pGC->clientClip != NULL))) {
         BoxRec box;
         RegionRec reg;
         int xoff, yoff;

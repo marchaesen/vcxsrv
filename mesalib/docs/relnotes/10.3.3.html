@@ -1,0 +1,209 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 10.3.3 Release Notes / November 8, 2014</h1>
+
+<p>
+Mesa 10.3.3 is a bug fix release which fixes bugs found since the 10.3.2 release.
+</p>
+<p>
+Mesa 10.3.3 implements the OpenGL 3.3 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 3.3.  OpenGL
+3.3 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+<h2>SHA256 checksums</h2>
+<pre>
+23a0c36d88cd5d8968ae6454160de2878192fd1d37b5d606adca1f1b7e788b79  MesaLib-10.3.3.tar.gz
+0e4eee4a2ddf86456eed2fc44da367f95471f74249636710491e85cc256c4753  MesaLib-10.3.3.tar.bz2
+a83648f17d776b7cf6c813fbb15782d2644b937dc6a7c53d8c0d1b35411f4840  MesaLib-10.3.3.zip
+</pre>
+
+<h2>New features</h2>
+<p>None</p>
+
+<h2>Bug fixes</h2>
+
+<p>This list is likely incomplete.</p>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=70410">Bug 70410</a> - egl-static/Makefile: linking fails with llvm &gt;= 3.4</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=82921">Bug 82921</a> - layout(location=0) emits error &gt;= MAX_UNIFORM_LOCATIONS due to integer underflow</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=83574">Bug 83574</a> - [llvmpipe] [softpipe] piglit arb_explicit_uniform_location-use-of-unused-loc regression</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=85454">Bug 85454</a> - Unigine Sanctuary with Wine crashes on Mesa Git</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=85918">Bug 85918</a> - Mesa: MSVC 2010/2012 Compile error</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Anuj Phogat (2):</p>
+<ul>
+  <li>glsl: Fix crash due to negative array index</li>
+  <li>glsl: Use signed array index in update_max_array_access()</li>
+</ul>
+
+<p>Brian Paul (1):</p>
+<ul>
+  <li>mesa: fix UNCLAMPED_FLOAT_TO_UBYTE() macro for MSVC</li>
+</ul>
+
+<p>Emil Velikov (2):</p>
+<ul>
+  <li>docs: Add sha256 sums for the 10.3.2 release</li>
+  <li>Update version to 10.3.3</li>
+</ul>
+
+<p>Ilia Mirkin (27):</p>
+<ul>
+  <li>freedreno/ir3: fix FSLT/etc handling to return 0/-1 instead of 0/1.0</li>
+  <li>freedreno/ir3: INEG operates on src0, not src1</li>
+  <li>freedreno/ir3: add UARL support</li>
+  <li>freedreno/ir3: negate result of USLT/etc</li>
+  <li>freedreno/ir3: use unsigned comparison for UIF</li>
+  <li>freedreno/ir3: add TXL support</li>
+  <li>freedreno/ir3: fix UCMP handling</li>
+  <li>freedreno/ir3: implement UMUL correctly</li>
+  <li>freedreno: add default .dir-locals.el for emacs settings</li>
+  <li>freedreno/ir3: make texture instruction construction more dynamic</li>
+  <li>freedreno/ir3: fix TXB/TXL to actually pull the bias/lod argument</li>
+  <li>freedreno/ir3: add TXQ support</li>
+  <li>freedreno/ir3: add TXB2 support</li>
+  <li>freedreno: dual-source render targets are not supported</li>
+  <li>freedreno: instanced drawing/compute not yet supported</li>
+  <li>freedreno/ir3: avoid fan-in sources referring to same instruction</li>
+  <li>freedreno/ir3: add IDIV/UDIV support</li>
+  <li>freedreno/ir3: add UMOD support, based on UDIV</li>
+  <li>freedreno/ir3: add MOD support</li>
+  <li>freedreno/ir3: add ISSG support</li>
+  <li>freedreno/ir3: add UMAD support</li>
+  <li>freedreno/ir3: make TXQ return integers, not floats</li>
+  <li>freedreno/ir3: shadow comes before array</li>
+  <li>freedreno/ir3: add texture offset support</li>
+  <li>freedreno/ir3: add TXD support and expose ARB_shader_texture_lod</li>
+  <li>freedreno/ir3: add TXF support</li>
+  <li>freedreno: positions come out as integers, not half-integers</li>
+</ul>
+
+<p>Jan Vesely (1):</p>
+<ul>
+  <li>configure: include llvm systemlibs when using static llvm</li>
+</ul>
+
+<p>Marek Olšák (5):</p>
+<ul>
+  <li>r600g: fix polygon mode for points and lines and point/line fill modes</li>
+  <li>radeonsi: fix polygon mode for points and lines and point/line fill modes</li>
+  <li>radeonsi: fix incorrect index buffer max size for lowered 8-bit indices</li>
+  <li>Revert "st/mesa: set MaxUnrollIterations = 255"</li>
+  <li>r300g: remove enabled/disabled hyperz and AA compression messages</li>
+</ul>
+
+<p>Mauro Rossi (1):</p>
+<ul>
+  <li>gallium/nouveau: fully build the driver under android</li>
+</ul>
+
+<p>Michel Dänzer (1):</p>
+<ul>
+  <li>radeon/llvm: Dynamically allocate branch/loop stack arrays</li>
+</ul>
+
+<p>Rob Clark (62):</p>
+<ul>
+  <li>freedreno/ir3: detect scheduler fail</li>
+  <li>freedreno/ir3: add TXB</li>
+  <li>freedreno/ir3: add DDX/DDY</li>
+  <li>freedreno/ir3: bit of debug</li>
+  <li>freedreno/ir3: fix error in bail logic</li>
+  <li>freedreno/ir3: fix constlen with relative addressing</li>
+  <li>freedreno/ir3: add no-copy-propagate fallback step</li>
+  <li>freedreno: don't overflow cmdstream buffer so much</li>
+  <li>freedreno/ir3: fix potential segfault in RA</li>
+  <li>freedreno: update generated headers</li>
+  <li>freedreno/a3xx: enable hw primitive-restart</li>
+  <li>freedreno/a3xx: handle rendering to layer != 0</li>
+  <li>freedreno: update generated headers</li>
+  <li>freedreno/a3xx: format fixes</li>
+  <li>util/u_format: add _is_alpha()</li>
+  <li>freedreno/a3xx: alpha render-target shenanigans</li>
+  <li>freedreno/ir3: catch incorrect usage of tmp-dst</li>
+  <li>freedreno/ir3: add missing put_dst</li>
+  <li>freedreno: "fix" problems with excessive flushes</li>
+  <li>freedreno: update generated headers</li>
+  <li>freedreno/a3xx: 3d/array textures</li>
+  <li>freedreno: add DRM_CONF_SHARE_FD</li>
+  <li>freedreno/a3xx: more texture array fixes</li>
+  <li>freedreno/a3xx: initial texture border-color</li>
+  <li>freedreno: fix compiler warning</li>
+  <li>freedreno: don't advertise mirror-clamp support</li>
+  <li>freedreno: update generated headers</li>
+  <li>freedreno: we have more than 0 viewports!</li>
+  <li>freedreno: turn missing caps into compile warnings</li>
+  <li>freedreno/a3xx: add LOD_BIAS</li>
+  <li>freedreno/a3xx: add flat interpolation mode</li>
+  <li>freedreno/a3xx: add 32bit integer vtx formats</li>
+  <li>freedreno/a3xx: fix border color order</li>
+  <li>freedreno: move bind_sampler_states to per-generation</li>
+  <li>freedreno: add texcoord clamp support to lowering</li>
+  <li>freedreno/a3xx: add support to emulate GL_CLAMP</li>
+  <li>freedreno/a3xx: re-emit shaders on variant change</li>
+  <li>freedreno/lowering: fix token calculation for lowering</li>
+  <li>freedreno: destroy transfer pool after blitter</li>
+  <li>freedreno: max-texture-lod-bias should be 15.0f</li>
+  <li>freedreno: update generated headers</li>
+  <li>freedreno/a3xx: handle large shader program sizes</li>
+  <li>freedreno/a3xx: emit all immediates in one shot</li>
+  <li>freedreno/ir3: fix lockups with lame FRAG shaders</li>
+  <li>freedreno/a3xx: handle VS only outputting BCOLOR</li>
+  <li>freedreno: query fixes</li>
+  <li>freedreno/a3xx: refactor vertex state emit</li>
+  <li>freedreno/a3xx: refactor/optimize emit</li>
+  <li>freedreno/ir3: optimize shader key comparision</li>
+  <li>freedreno: inline fd_draw_emit()</li>
+  <li>freedreno: fix layer_stride</li>
+  <li>freedreno: update generated headers</li>
+  <li>freedreno/ir3: large const support</li>
+  <li>freedreno/a3xx: more layer/level fixes</li>
+  <li>freedreno/ir3: comment + better fxn name</li>
+  <li>freedreno/ir3: fix potential gpu lockup with kill</li>
+  <li>freedreno/a3xx: disable early-z when we have kill's</li>
+  <li>freedreno/ir3: add debug flag to disable cp</li>
+  <li>freedreno: clear vs scissor</li>
+  <li>freedreno: mark scissor state dirty when enable bit changes</li>
+  <li>freedreno/a3xx: fix viewport state during clear</li>
+  <li>freedreno/a3xx: fix depth/stencil restore format</li>
+</ul>
+
+<p>Tapani Pälli (2):</p>
+<ul>
+  <li>glsl: fix uniform location count used for glsl types</li>
+  <li>mesa: check that uniform exists in glUniform* functions</li>
+</ul>
+
+
+</div>
+</body>
+</html>

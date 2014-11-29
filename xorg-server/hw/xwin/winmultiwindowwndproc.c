@@ -152,7 +152,7 @@ ConstrainSize(WinXSizeHints hints, int *widthp, int *heightp)
      *
      * minAspectX * dheight > minAspectY * dwidth
      * maxAspectX * dheight < maxAspectY * dwidth
-     * 
+     *
      */
 
     if (hints.flags & PAspect) {
@@ -283,7 +283,7 @@ winRaiseWindow(WindowPtr pWin)
         BOOL oldstate = winInRaiseWindow;
         XID vlist[1] = { 0 };
         winInRaiseWindow = TRUE;
-        /* Call configure window directly to make sure it gets processed 
+        /* Call configure window directly to make sure it gets processed
          * in time
          */
         ConfigureWindow(pWin, CWStackMode, vlist, serverClient);

@@ -28,7 +28,7 @@ Equipment Corporation.
 
 /* THIS IS NOT AN X PROJECT TEAM SPECIFICATION */
 
-/*  
+/*
  *	PanoramiX definitions
  */
 

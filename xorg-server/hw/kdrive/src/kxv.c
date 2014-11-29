@@ -492,7 +492,7 @@ static void
 KdXVCopyClip(XvPortRecPrivatePtr portPriv, GCPtr pGC)
 {
     /* copy the new clip if it exists */
-    if ((pGC->clientClipType == CT_REGION) && pGC->clientClip) {
+    if (pGC->clientClip) {
         if (!portPriv->clientClip)
             portPriv->clientClip = RegionCreate(NullBox, 1);
         /* Note: this is in window coordinates */

@@ -34,7 +34,7 @@
 /** \file
  *  This file provides access to the externally visible RENDER support
  *  functions, global variables and macros for DMX.
- *  
+ *
  *  FIXME: Move function definitions for non-externally visible function
  *  to .c file. */
 

@@ -320,6 +320,7 @@ static const struct extension extension_table[] = {
 
    /* KHR extensions */
    { "GL_KHR_debug",                               o(dummy_true),                              GL,             2012 },
+   { "GL_KHR_context_flush_control",               o(dummy_true),                              GL       | ES2, 2014 },
 
    /* Vendor extensions */
    { "GL_3DFX_texture_compression_FXT1",           o(TDFX_texture_compression_FXT1),           GL,             1999 },

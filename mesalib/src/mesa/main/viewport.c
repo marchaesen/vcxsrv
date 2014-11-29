@@ -459,15 +459,14 @@ _mesa_ClipControl(GLenum origin, GLenum depth)
        ctx->Transform.ClipDepthMode == depth)
       return;
 
-   FLUSH_VERTICES(ctx, 0);
+   /* Affects transform state and the viewport transform */
+   FLUSH_VERTICES(ctx, _NEW_TRANSFORM | _NEW_VIEWPORT);
 
    if (ctx->Transform.ClipOrigin != origin) {
       ctx->Transform.ClipOrigin = origin;
 
       /* Affects the winding order of the front face. */
       ctx->NewState |= _NEW_POLYGON;
-      /* Affects the y component of the viewport transform. */
-      ctx->NewState |= _NEW_VIEWPORT;
 
       if (ctx->Driver.FrontFace)
          ctx->Driver.FrontFace(ctx, ctx->Polygon.FrontFace);
@@ -475,9 +474,6 @@ _mesa_ClipControl(GLenum origin, GLenum depth)
 
    if (ctx->Transform.ClipDepthMode != depth) {
       ctx->Transform.ClipDepthMode = depth;
-
-      /* Affects the z part of the viewpoint transform. */
-      ctx->NewState |= _NEW_VIEWPORT;
 
       if (ctx->Driver.DepthRange)
          ctx->Driver.DepthRange(ctx);

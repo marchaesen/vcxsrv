@@ -567,10 +567,11 @@ compCreateWindow(WindowPtr pWin)
     if (pWin->parent && ret) {
         CompSubwindowsPtr csw = GetCompSubwindows(pWin->parent);
         CompClientWindowPtr ccw;
+        PixmapPtr parent_pixmap = (*pScreen->GetWindowPixmap)(pWin->parent);
+        PixmapPtr window_pixmap = (*pScreen->GetWindowPixmap)(pWin);
 
-        (*pScreen->SetWindowPixmap) (pWin,
-                                     (*pScreen->GetWindowPixmap) (pWin->
-                                                                  parent));
+        if (window_pixmap != parent_pixmap)
+            (*pScreen->SetWindowPixmap) (pWin, parent_pixmap);
         if (csw)
             for (ccw = csw->clients; ccw; ccw = ccw->next)
                 compRedirectWindow(clients[CLIENT_ID(ccw->id)],

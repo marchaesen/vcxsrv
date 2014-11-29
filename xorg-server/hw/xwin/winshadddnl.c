@@ -271,7 +271,7 @@ winReleasePrimarySurfaceShadowDDNL (ScreenPtr pScreen)
 /*
  * Create a DirectDraw surface for the shadow framebuffer; also create
  * a primary surface object so we can blit to the display.
- * 
+ *
  * Install a DirectDraw clipper on our primary surface object
  * that clips our blits to the unobscured client area of our display window.
  */
@@ -316,7 +316,7 @@ winAllocateFBShadowDDNL(ScreenPtr pScreen)
         }
   
         /*
-         * Initialize the framebuffer memory so we don't get a 
+         * Initialize the framebuffer memory so we don't get a
          * strange display at startup
          */
         ZeroMemory (lpSurface, pScreenInfo->dwPaddedWidth * pScreenInfo->dwHeight);
@@ -613,7 +613,7 @@ winShadowUpdateDDNL(ScreenPtr pScreen, shadowBufPtr pBuf)
 
     /*
      * Handle small regions with multiple blits,
-     * handle large regions by creating a clipping region and 
+     * handle large regions by creating a clipping region and
      * doing a single blit constrained to that clipping region.
      */
     if (pScreenInfo->dwClipUpdatesNBoxes == 0

@@ -627,7 +627,7 @@ winIconIsOverride(HICON hicon)
  * If @path is NULL, use the built-in default.
  */
 static int
-winPrefsLoadPreferences(char *path)
+winPrefsLoadPreferences(const char *path)
 {
     FILE *prefFile = NULL;
 

@@ -47,17 +47,25 @@ extern void *
 util_make_vertex_passthrough_shader(struct pipe_context *pipe,
                                     uint num_attribs,
                                     const uint *semantic_names,
-                                    const uint *semantic_indexes);
+                                    const uint *semantic_indexes,
+                                    bool window_space);
 
 extern void *
 util_make_vertex_passthrough_shader_with_so(struct pipe_context *pipe,
                                     uint num_attribs,
                                     const uint *semantic_names,
                                     const uint *semantic_indexes,
+                                    bool window_space,
                                     const struct pipe_stream_output_info *so);
 
 extern void *
 util_make_layered_clear_vertex_shader(struct pipe_context *pipe);
+
+extern void *
+util_make_layered_clear_helper_vertex_shader(struct pipe_context *pipe);
+
+extern void *
+util_make_layered_clear_geometry_shader(struct pipe_context *pipe);
 
 extern void *
 util_make_fragment_tex_shader_writemask(struct pipe_context *pipe, 

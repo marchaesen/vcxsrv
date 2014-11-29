@@ -91,7 +91,7 @@ present_flip_pending_pixmap(ScreenPtr screen)
 
     if (!screen_priv->flip_pending)
         return NULL;
-        
+
     return screen_priv->flip_pending->pixmap;
 }
 
@@ -372,7 +372,7 @@ present_set_tree_pixmap_visit(WindowPtr window, void *data)
     (*screen->SetWindowPixmap)(window, visit->new);
     return WT_WALKCHILDREN;
 }
-    
+
 static void
 present_set_tree_pixmap(WindowPtr window, PixmapPtr pixmap)
 {
@@ -866,7 +866,7 @@ present_pixmap(WindowPtr window,
 
     xorg_list_add(&vblank->event_queue, &present_exec_queue);
     vblank->queued = TRUE;
-    if (target_msc >= crtc_msc) {
+    if ((pixmap && target_msc >= crtc_msc) || (!pixmap && target_msc > crtc_msc)) {
         ret = present_queue_vblank(screen, target_crtc, vblank->event_id, target_msc);
         if (ret != Success) {
             xorg_list_del(&vblank->event_queue);
@@ -929,7 +929,7 @@ present_notify_msc(WindowPtr window,
                           0, 0,
                           NULL,
                           NULL, NULL,
-                          0,
+                          PresentOptionAsync,
                           target_msc, divisor, remainder, NULL, 0);
 }
 

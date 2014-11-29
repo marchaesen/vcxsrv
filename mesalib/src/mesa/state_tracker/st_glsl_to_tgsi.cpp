@@ -4022,6 +4022,7 @@ get_pixel_transfer_visitor(struct st_fragment_program *fp,
 
       newinst = v->emit(NULL, inst->op, inst->dst, src_regs[0], src_regs[1], src_regs[2]);
       newinst->tex_target = inst->tex_target;
+      newinst->sampler_array_size = inst->sampler_array_size;
    }
 
    /* Make modifications to fragment program info. */
@@ -4101,6 +4102,7 @@ get_bitmap_visitor(struct st_fragment_program *fp,
 
       newinst = v->emit(NULL, inst->op, inst->dst, src_regs[0], src_regs[1], src_regs[2]);
       newinst->tex_target = inst->tex_target;
+      newinst->sampler_array_size = inst->sampler_array_size;
    }
 
    /* Make modifications to fragment program info. */
@@ -4524,8 +4526,10 @@ compile_tgsi_instruction(struct st_translate *t,
                              inst->saturate,
                              clamp_dst_color_output);
 
-   for (i = 0; i < num_src; i++) 
+   for (i = 0; i < num_src; i++) {
+      assert(inst->src[i].file != PROGRAM_UNDEFINED);
       src[i] = translate_src(t, &inst->src[i]);
+   }
 
    switch(inst->op) {
    case TGSI_OPCODE_BGNLOOP:
@@ -4555,6 +4559,7 @@ compile_tgsi_instruction(struct st_translate *t,
    case TGSI_OPCODE_TG4:
    case TGSI_OPCODE_LODQ:
       src[num_src] = t->samplers[inst->sampler.index];
+      assert(src[num_src].File != TGSI_FILE_NULL);
       if (inst->sampler.reladdr)
          src[num_src] =
             ureg_src_indirect(src[num_src], ureg_src(t->address[2]));
@@ -4721,7 +4726,8 @@ emit_wpos(struct st_context *st,
       }
       else if (pscreen->get_param(pscreen, PIPE_CAP_TGSI_FS_COORD_ORIGIN_LOWER_LEFT)) {
          /* the driver supports lower-left origin, need to invert Y */
-         ureg_property_fs_coord_origin(ureg, TGSI_FS_COORD_ORIGIN_LOWER_LEFT);
+         ureg_property(ureg, TGSI_PROPERTY_FS_COORD_ORIGIN,
+                       TGSI_FS_COORD_ORIGIN_LOWER_LEFT);
          invert = TRUE;
       }
       else
@@ -4731,7 +4737,8 @@ emit_wpos(struct st_context *st,
       /* Fragment shader wants origin in lower-left */
       if (pscreen->get_param(pscreen, PIPE_CAP_TGSI_FS_COORD_ORIGIN_LOWER_LEFT))
          /* the driver supports lower-left origin */
-         ureg_property_fs_coord_origin(ureg, TGSI_FS_COORD_ORIGIN_LOWER_LEFT);
+         ureg_property(ureg, TGSI_PROPERTY_FS_COORD_ORIGIN,
+                       TGSI_FS_COORD_ORIGIN_LOWER_LEFT);
       else if (pscreen->get_param(pscreen, PIPE_CAP_TGSI_FS_COORD_ORIGIN_UPPER_LEFT))
          /* the driver supports upper-left origin, need to invert Y */
          invert = TRUE;
@@ -4744,7 +4751,8 @@ emit_wpos(struct st_context *st,
       if (pscreen->get_param(pscreen, PIPE_CAP_TGSI_FS_COORD_PIXEL_CENTER_INTEGER)) {
          /* the driver supports pixel center integer */
          adjY[1] = 1.0f;
-         ureg_property_fs_coord_pixel_center(ureg, TGSI_FS_COORD_PIXEL_CENTER_INTEGER);
+         ureg_property(ureg, TGSI_PROPERTY_FS_COORD_PIXEL_CENTER,
+                       TGSI_FS_COORD_PIXEL_CENTER_INTEGER);
       }
       else if (pscreen->get_param(pscreen, PIPE_CAP_TGSI_FS_COORD_PIXEL_CENTER_HALF_INTEGER)) {
          /* the driver supports pixel center half integer, need to bias X,Y */
@@ -4763,7 +4771,8 @@ emit_wpos(struct st_context *st,
       else if (pscreen->get_param(pscreen, PIPE_CAP_TGSI_FS_COORD_PIXEL_CENTER_INTEGER)) {
          /* the driver supports pixel center integer, need to bias X,Y */
          adjX = adjY[0] = adjY[1] = 0.5f;
-         ureg_property_fs_coord_pixel_center(ureg, TGSI_FS_COORD_PIXEL_CENTER_INTEGER);
+         ureg_property(ureg, TGSI_PROPERTY_FS_COORD_PIXEL_CENTER,
+                       TGSI_FS_COORD_PIXEL_CENTER_INTEGER);
       }
       else
          assert(0);

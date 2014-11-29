@@ -156,7 +156,7 @@ compRedirectWindow(ClientPtr pClient, WindowPtr pWin, int update)
                 return BadAccess;
 
     /*
-     * Allocate per-client per-window structure 
+     * Allocate per-client per-window structure
      * The client *could* allocate multiple, but while supported,
      * it is not expected to be common
      */
@@ -353,7 +353,7 @@ compRedirectSubwindows(ClientPtr pClient, WindowPtr pWin, int update)
             if (ccw->update == CompositeRedirectManual)
                 return BadAccess;
     /*
-     * Allocate per-client per-window structure 
+     * Allocate per-client per-window structure
      * The client *could* allocate multiple, but while supported,
      * it is not expected to be common
      */
@@ -401,7 +401,7 @@ compRedirectSubwindows(ClientPtr pClient, WindowPtr pWin, int update)
         return BadAlloc;
     if (ccw->update == CompositeRedirectManual) {
         csw->update = CompositeRedirectManual;
-        /* 
+        /*
          * tell damage extension that damage events for this client are
          * critical output
          */
@@ -430,7 +430,7 @@ compFreeClientSubwindows(WindowPtr pWin, XID id)
 
             *prev = ccw->next;
             if (ccw->update == CompositeRedirectManual) {
-                /* 
+                /*
                  * tell damage extension that damage events for this client are
                  * critical output
                  */

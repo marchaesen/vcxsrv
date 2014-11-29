@@ -30,6 +30,7 @@
 #define U_RECT_H
 
 #include "pipe/p_compiler.h"
+#include "util/u_math.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -67,6 +68,12 @@ u_rect_find_intersection(const struct u_rect *a,
 }
 
 
+static INLINE int
+u_rect_area(const struct u_rect *r)
+{
+   return (r->x1 - r->x0) * (r->y1 - r->y0);
+}
+
 static INLINE void
 u_rect_possible_intersection(const struct u_rect *a,
                              struct u_rect *b)
@@ -77,6 +84,17 @@ u_rect_possible_intersection(const struct u_rect *a,
    else {
       b->x0 = b->x1 = b->y0 = b->y1 = 0;
    }
+}
+
+/* Set @d to a rectangle that covers both @a and @b.
+ */
+static INLINE void
+u_rect_union(struct u_rect *d, const struct u_rect *a, const struct u_rect *b)
+{
+   d->x0 = MIN2(a->x0, b->x0);
+   d->y0 = MIN2(a->y0, b->y0);
+   d->x1 = MAX2(a->x1, b->x1);
+   d->y1 = MAX2(a->y1, b->y1);
 }
 
 #ifdef __cplusplus

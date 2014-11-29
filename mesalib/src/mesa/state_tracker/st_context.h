@@ -181,6 +181,7 @@ struct st_context
       void *vs;
       void *fs;
       void *vs_layered;
+      void *gs_layered;
    } clear;
 
    /** used for anything using util_draw_vertex_buffer */

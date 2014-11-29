@@ -35,7 +35,7 @@
  *
  * This file provides support routines and helper functions to be used
  * to pretty-print DMX configurations.
- * 
+ *
  * Because the DMX configuration file parsing should be capable of being
  * used in a stand-alone fashion (i.e., independent from the DMX server
  * source tree), no dependencies on other DMX routines are made. */

@@ -125,7 +125,7 @@ RegionEnd(RegionPtr reg)
 }
 
 static inline size_t
-RegionSizeof(int n)
+RegionSizeof(size_t n)
 {
     return (sizeof(RegDataRec) + ((n) * sizeof(BoxRec)));
 }

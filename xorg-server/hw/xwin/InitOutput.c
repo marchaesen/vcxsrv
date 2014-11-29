@@ -635,9 +635,9 @@ OsVendorPreInit(int argc, char *argv[])
 
     if (!g_fLogInited) {
         /* keep this order. If LogInit fails it calls Abort which then calls
-         * ddxGiveUp where LogInit is called again and creates an infinite 
-         * recursion. If we set g_fLogInited to TRUE before the init we 
-         * avoid the second call 
+         * ddxGiveUp where LogInit is called again and creates an infinite
+         * recursion. If we set g_fLogInited to TRUE before the init we
+         * avoid the second call
          */
         g_fLogInited = TRUE;
         g_pszLogFile = LogInit(g_pszLogFile, NULL);
@@ -907,7 +907,7 @@ ddxUseMsg(void)
 /* See Porting Layer Definition - p. 20 */
 /*
  * Do any global initialization, then initialize each screen.
- * 
+ *
  * NOTE: We use ddxProcessArgument, so we don't need to touch argc and argv
  */
 
@@ -1027,7 +1027,7 @@ winCheckDisplayNumber(void)
     int nDisp;
     HANDLE mutex;
     char name[MAX_PATH];
-    char *pszPrefix = '\0';
+    const char *pszPrefix = '\0';
     OSVERSIONINFO osvi = { 0 };
 
     /* Check display range */

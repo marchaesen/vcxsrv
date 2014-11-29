@@ -72,10 +72,6 @@ fbTriangles(CARD8 op,
             INT16 xSrc, INT16 ySrc, int ntris, xTriangle * tris);
 
 extern _X_EXPORT void
-fbUnrealizeGlyph(ScreenPtr pScreen,
-		 GlyphPtr pGlyph);
-
-extern _X_EXPORT void
 fbGlyphs(CARD8 op,
 	 PicturePtr pSrc,
 	 PicturePtr pDst,

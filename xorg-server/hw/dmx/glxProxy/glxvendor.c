@@ -220,7 +220,7 @@ __glXVForwardPipe0WithReply(__GLXclientState * cl, GLbyte * pc)
     dmxScreen = &dmxScreens[glxc->pScreen->myNum];
     dpy = GetBackEndDisplay(cl, glxc->pScreen->myNum);
 
-    /* 
+    /*
      * send the request to the first back-end server
      */
     LockDisplay(dpy);
@@ -311,7 +311,7 @@ __glXVForwardAllWithReply(__GLXclientState * cl, GLbyte * pc)
     pc += sz_xGLXVendorPrivateReq;
     buf_size = (req->length << 2) - sz_xGLXVendorPrivateReq;
 
-    /* 
+    /*
      * send the request to the first back-end server(s)
      */
     for (s = to_screen; s >= from_screen; s--) {

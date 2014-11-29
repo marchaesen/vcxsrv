@@ -176,43 +176,10 @@ validate_uniform_parameters(struct gl_context *ctx,
 			    struct gl_shader_program *shProg,
 			    GLint location, GLsizei count,
 			    unsigned *array_index,
-			    const char *caller,
-			    bool negative_one_is_not_valid)
+			    const char *caller)
 {
-   if (!shProg || !shProg->LinkStatus) {
+   if (shProg == NULL) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(program not linked)", caller);
-      return NULL;
-   }
-
-   if (location == -1) {
-      /* For glGetUniform, page 264 (page 278 of the PDF) of the OpenGL 2.1
-       * spec says:
-       *
-       *     "The error INVALID_OPERATION is generated if program has not been
-       *     linked successfully, or if location is not a valid location for
-       *     program."
-       *
-       * For glUniform, page 82 (page 96 of the PDF) of the OpenGL 2.1 spec
-       * says:
-       *
-       *     "If the value of location is -1, the Uniform* commands will
-       *     silently ignore the data passed in, and the current uniform
-       *     values will not be changed."
-       *
-       * Allowing -1 for the location parameter of glUniform allows
-       * applications to avoid error paths in the case that, for example, some
-       * uniform variable is removed by the compiler / linker after
-       * optimization.  In this case, the new value of the uniform is dropped
-       * on the floor.  For the case of glGetUniform, there is nothing
-       * sensible to do for a location of -1.
-       *
-       * The negative_one_is_not_valid flag selects between the two behaviors.
-       */
-      if (negative_one_is_not_valid) {
-	 _mesa_error(ctx, GL_INVALID_OPERATION, "%s(location=%d)",
-		     caller, location);
-      }
-
       return NULL;
    }
 
@@ -226,10 +193,26 @@ validate_uniform_parameters(struct gl_context *ctx,
       return NULL;
    }
 
-   /* Check that the given location is in bounds of uniform remap table. */
-   if (location >= (GLint) shProg->NumUniformRemapTable) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(location=%d)",
-                  caller, location);
+   /* Check that the given location is in bounds of uniform remap table.
+    * Unlinked programs will have NumUniformRemapTable == 0, so we can take
+    * the shProg->LinkStatus check out of the main path.
+    */
+   if (unlikely(location >= (GLint) shProg->NumUniformRemapTable)) {
+      if (!shProg->LinkStatus)
+         _mesa_error(ctx, GL_INVALID_OPERATION, "%s(program not linked)",
+                     caller);
+      else
+         _mesa_error(ctx, GL_INVALID_OPERATION, "%s(location=%d)",
+                     caller, location);
+
+      return NULL;
+   }
+
+   if (location == -1) {
+      if (!shProg->LinkStatus)
+         _mesa_error(ctx, GL_INVALID_OPERATION, "%s(program not linked)",
+                     caller);
+
       return NULL;
    }
 
@@ -269,27 +252,30 @@ validate_uniform_parameters(struct gl_context *ctx,
 
    struct gl_uniform_storage *const uni = shProg->UniformRemapTable[location];
 
-   if (uni->array_elements == 0 && count > 1) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-		  "%s(count > 1 for non-array, location=%d)",
-		  caller, location);
-      return NULL;
-   }
+   if (uni->array_elements == 0) {
+      if (count > 1) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "%s(count > 1 for non-array, location=%d)",
+                     caller, location);
+         return NULL;
+      }
 
-   /* The array index specified by the uniform location is just the uniform
-    * location minus the base location of of the uniform.
-    */
-   *array_index = location - uni->remap_location;
+      assert((location - uni->remap_location) == 0);
+      *array_index = 0;
+   } else {
+      /* The array index specified by the uniform location is just the uniform
+       * location minus the base location of of the uniform.
+       */
+      *array_index = location - uni->remap_location;
 
-   /* If the uniform is an array, check that array_index is in bounds.
-    * If not an array, check that array_index is zero.
-    * array_index is unsigned so no need to check for less than zero.
-    */
-   const unsigned limit = MAX2(uni->array_elements, 1);
-   if (*array_index >= limit) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(location=%d)",
-		  caller, location);
-      return NULL;
+      /* If the uniform is an array, check that array_index is in bounds.
+       * array_index is unsigned so no need to check for less than zero.
+       */
+      if (*array_index >= uni->array_elements) {
+         _mesa_error(ctx, GL_INVALID_OPERATION, "%s(location=%d)",
+                     caller, location);
+         return NULL;
+      }
    }
    return uni;
 }
@@ -308,9 +294,39 @@ _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,
 
    struct gl_uniform_storage *const uni =
       validate_uniform_parameters(ctx, shProg, location, 1,
-                                  &offset, "glGetUniform", true);
-   if (uni == NULL)
+                                  &offset, "glGetUniform");
+   if (uni == NULL) {
+      /* For glGetUniform, page 264 (page 278 of the PDF) of the OpenGL 2.1
+       * spec says:
+       *
+       *     "The error INVALID_OPERATION is generated if program has not been
+       *     linked successfully, or if location is not a valid location for
+       *     program."
+       *
+       * For glUniform, page 82 (page 96 of the PDF) of the OpenGL 2.1 spec
+       * says:
+       *
+       *     "If the value of location is -1, the Uniform* commands will
+       *     silently ignore the data passed in, and the current uniform
+       *     values will not be changed."
+       *
+       * Allowing -1 for the location parameter of glUniform allows
+       * applications to avoid error paths in the case that, for example, some
+       * uniform variable is removed by the compiler / linker after
+       * optimization.  In this case, the new value of the uniform is dropped
+       * on the floor.  For the case of glGetUniform, there is nothing
+       * sensible to do for a location of -1.
+       *
+       * If the location was -1, validate_unfirom_parameters will return NULL
+       * without raising an error.  Raise the error here.
+       */
+      if (location == -1) {
+         _mesa_error(ctx, GL_INVALID_OPERATION, "glGetUniform(location=%d)",
+                     location);
+      }
+
       return;
+   }
 
    {
       unsigned elements = (uni->type->is_sampler())
@@ -342,8 +358,7 @@ _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,
        */
       if (returnType == uni->type->base_type
 	  || ((returnType == GLSL_TYPE_INT
-	       || returnType == GLSL_TYPE_UINT
-	       || returnType == GLSL_TYPE_SAMPLER)
+	       || returnType == GLSL_TYPE_UINT)
 	      &&
 	      (uni->type->base_type == GLSL_TYPE_INT
 	       || uni->type->base_type == GLSL_TYPE_UINT
@@ -583,93 +598,22 @@ _mesa_propagate_uniforms_to_driver_storage(struct gl_uniform_storage *uni,
 extern "C" void
 _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
 	      GLint location, GLsizei count,
-              const GLvoid *values, GLenum type)
+              const GLvoid *values,
+              enum glsl_base_type basicType,
+              unsigned src_components)
 {
    unsigned offset;
-   unsigned components;
-   unsigned src_components;
-   enum glsl_base_type basicType;
 
    struct gl_uniform_storage *const uni =
       validate_uniform_parameters(ctx, shProg, location, count,
-                                  &offset, "glUniform", false);
+                                  &offset, "glUniform");
    if (uni == NULL)
       return;
 
    /* Verify that the types are compatible.
     */
-   switch (type) {
-   case GL_FLOAT:
-      basicType = GLSL_TYPE_FLOAT;
-      src_components = 1;
-      break;
-   case GL_FLOAT_VEC2:
-      basicType = GLSL_TYPE_FLOAT;
-      src_components = 2;
-      break;
-   case GL_FLOAT_VEC3:
-      basicType = GLSL_TYPE_FLOAT;
-      src_components = 3;
-      break;
-   case GL_FLOAT_VEC4:
-      basicType = GLSL_TYPE_FLOAT;
-      src_components = 4;
-      break;
-   case GL_UNSIGNED_INT:
-      basicType = GLSL_TYPE_UINT;
-      src_components = 1;
-      break;
-   case GL_UNSIGNED_INT_VEC2:
-      basicType = GLSL_TYPE_UINT;
-      src_components = 2;
-      break;
-   case GL_UNSIGNED_INT_VEC3:
-      basicType = GLSL_TYPE_UINT;
-      src_components = 3;
-      break;
-   case GL_UNSIGNED_INT_VEC4:
-      basicType = GLSL_TYPE_UINT;
-      src_components = 4;
-      break;
-   case GL_INT:
-      basicType = GLSL_TYPE_INT;
-      src_components = 1;
-      break;
-   case GL_INT_VEC2:
-      basicType = GLSL_TYPE_INT;
-      src_components = 2;
-      break;
-   case GL_INT_VEC3:
-      basicType = GLSL_TYPE_INT;
-      src_components = 3;
-      break;
-   case GL_INT_VEC4:
-      basicType = GLSL_TYPE_INT;
-      src_components = 4;
-      break;
-   case GL_BOOL:
-   case GL_BOOL_VEC2:
-   case GL_BOOL_VEC3:
-   case GL_BOOL_VEC4:
-   case GL_FLOAT_MAT2:
-   case GL_FLOAT_MAT2x3:
-   case GL_FLOAT_MAT2x4:
-   case GL_FLOAT_MAT3x2:
-   case GL_FLOAT_MAT3:
-   case GL_FLOAT_MAT3x4:
-   case GL_FLOAT_MAT4x2:
-   case GL_FLOAT_MAT4x3:
-   case GL_FLOAT_MAT4:
-   default:
-      _mesa_problem(NULL, "Invalid type in %s", __func__);
-      return;
-   }
-
-   if (uni->type->is_sampler()) {
-      components = 1;
-   } else {
-      components = uni->type->vector_elements;
-   }
+   const unsigned components = uni->type->is_sampler()
+      ? 1 : uni->type->vector_elements;
 
    bool match;
    switch (uni->type->base_type) {
@@ -690,7 +634,7 @@ _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
       return;
    }
 
-   if (ctx->_Shader->Flags & GLSL_UNIFORMS) {
+   if (unlikely(ctx->_Shader->Flags & GLSL_UNIFORMS)) {
       log_uniform(values, basicType, components, 1, count,
 		  false, shProg, location, uni);
    }
@@ -713,9 +657,7 @@ _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
     * GL_INVALID_VALUE error and ignore the command.
     */
    if (uni->type->is_sampler()) {
-      int i;
-
-      for (i = 0; i < count; i++) {
+      for (int i = 0; i < count; i++) {
 	 const unsigned texUnit = ((unsigned *) values)[i];
 
          /* check that the sampler (tex unit index) is legal */
@@ -730,9 +672,7 @@ _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
    }
 
    if (uni->type->is_image()) {
-      int i;
-
-      for (i = 0; i < count; i++) {
+      for (int i = 0; i < count; i++) {
          const int unit = ((GLint *) values)[i];
 
          /* check that the image unit is legal */
@@ -772,9 +712,8 @@ _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
 	 (const union gl_constant_value *) values;
       union gl_constant_value *dst = &uni->storage[components * offset];
       const unsigned elems = components * count;
-      unsigned i;
 
-      for (i = 0; i < elems; i++) {
+      for (unsigned i = 0; i < elems; i++) {
 	 if (basicType == GLSL_TYPE_FLOAT) {
             dst[i].i = src[i].f != 0.0f ? ctx->Const.UniformBooleanTrue : 0;
 	 } else {
@@ -791,19 +730,16 @@ _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
     * the changes through.
     */
    if (uni->type->is_sampler()) {
-      int i;
-
       bool flushed = false;
-      for (i = 0; i < MESA_SHADER_STAGES; i++) {
+      for (int i = 0; i < MESA_SHADER_STAGES; i++) {
 	 struct gl_shader *const sh = shProg->_LinkedShaders[i];
-         int j;
 
 	 /* If the shader stage doesn't use the sampler uniform, skip this.
 	  */
 	 if (sh == NULL || !uni->sampler[i].active)
 	    continue;
 
-         for (j = 0; j < count; j++) {
+         for (int j = 0; j < count; j++) {
             sh->SamplerUnits[uni->sampler[i].index + offset + j] =
                ((unsigned *) values)[j];
          }
@@ -845,13 +781,11 @@ _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
     * uniforms to image units present in the shader data structure.
     */
    if (uni->type->is_image()) {
-      int i, j;
-
-      for (i = 0; i < MESA_SHADER_STAGES; i++) {
+      for (int i = 0; i < MESA_SHADER_STAGES; i++) {
 	 if (uni->image[i].active) {
             struct gl_shader *sh = shProg->_LinkedShaders[i];
 
-            for (j = 0; j < count; j++)
+            for (int j = 0; j < count; j++)
                sh->ImageUnits[uni->image[i].index + offset + j] =
                   ((GLint *) values)[j];
          }
@@ -878,7 +812,7 @@ _mesa_uniform_matrix(struct gl_context *ctx, struct gl_shader_program *shProg,
 
    struct gl_uniform_storage *const uni =
       validate_uniform_parameters(ctx, shProg, location, count,
-                                  &offset, "glUniformMatrix", false);
+                                  &offset, "glUniformMatrix");
    if (uni == NULL)
       return;
 
@@ -902,17 +836,17 @@ _mesa_uniform_matrix(struct gl_context *ctx, struct gl_shader_program *shProg,
    }
 
    /* GL_INVALID_VALUE is generated if `transpose' is not GL_FALSE.
-    * http://www.khronos.org/opengles/sdk/docs/man/xhtml/glUniform.xml */
-   if (ctx->API == API_OPENGLES
-       || (ctx->API == API_OPENGLES2 && ctx->Version < 30)) {
-      if (transpose) {
+    * http://www.khronos.org/opengles/sdk/docs/man/xhtml/glUniform.xml
+    */
+   if (transpose) {
+      if (ctx->API == API_OPENGLES2 && ctx->Version < 30) {
 	 _mesa_error(ctx, GL_INVALID_VALUE,
 		     "glUniformMatrix(matrix transpose is not GL_FALSE)");
 	 return;
       }
    }
 
-   if (ctx->_Shader->Flags & GLSL_UNIFORMS) {
+   if (unlikely(ctx->_Shader->Flags & GLSL_UNIFORMS)) {
       log_uniform(values, GLSL_TYPE_FLOAT, components, vectors, count,
 		  bool(transpose), shProg, location, uni);
    }

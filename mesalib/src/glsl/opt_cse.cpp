@@ -194,6 +194,8 @@ is_cse_candidate_visitor::visit(ir_dereference_variable *ir)
    if (ir->var->data.read_only) {
       return visit_continue;
    } else {
+      if (debug)
+         printf("CSE: non-candidate: var %s is not read only\n", ir->var->name);
       ok = false;
       return visit_stop;
    }
@@ -220,8 +222,11 @@ is_cse_candidate(ir_rvalue *ir)
    /* Our temporary variable assignment generation isn't ready to handle
     * anything bigger than a vector.
     */
-   if (!ir->type->is_vector() && !ir->type->is_scalar())
+   if (!ir->type->is_vector() && !ir->type->is_scalar()) {
+      if (debug)
+         printf("CSE: non-candidate: not a vector/scalar\n");
       return false;
+   }
 
    /* Only handle expressions and textures currently.  We may want to extend
     * to variable-index array dereferences at some point.
@@ -231,6 +236,8 @@ is_cse_candidate(ir_rvalue *ir)
    case ir_type_texture:
       break;
    default:
+      if (debug)
+         printf("CSE: non-candidate: not an expression/texture\n");
       return false;
    }
 

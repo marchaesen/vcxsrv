@@ -69,7 +69,7 @@ xf86LoadKernelModule(const char *modName)
     switch (pid = fork()) {
     case 0:                    /* child */
         /* change real/effective user ID to 0/0 as we need to
-         * preinstall agpgart module for some DRM modules 
+         * preinstall agpgart module for some DRM modules
          */
         if (setreuid(0, 0)) {
             xf86Msg(X_WARNING, "LoadKernelModule: "

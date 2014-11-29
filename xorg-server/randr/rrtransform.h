@@ -59,7 +59,7 @@ extern _X_EXPORT Bool
 
 /*
  * Compute the complete transformation matrix including
- * client-specified transform, rotation/reflection values and the crtc 
+ * client-specified transform, rotation/reflection values and the crtc
  * offset.
  *
  * Return TRUE if the resulting transform is not a simple translation.

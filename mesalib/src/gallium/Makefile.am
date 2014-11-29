@@ -138,14 +138,6 @@ if HAVE_OPENVG
 SUBDIRS += state_trackers/vega
 endif
 
-if HAVE_GALLIUM_EGL
-SUBDIRS += state_trackers/egl targets/egl-static
-endif
-
-if HAVE_GALLIUM_GBM
-SUBDIRS += state_trackers/gbm targets/gbm
-endif
-
 if HAVE_X11_DRIVER
 SUBDIRS += state_trackers/glx/xlib targets/libgl-xlib
 endif
@@ -174,11 +166,16 @@ if HAVE_ST_XVMC
 SUBDIRS += state_trackers/xvmc targets/xvmc
 endif
 
+if HAVE_ST_NINE
+SUBDIRS += state_trackers/nine targets/d3dadapter9
+endif
+
 ##
 ## Don't forget to bundle the remaining (non autotools) state-trackers/targets
 ##
 
 EXTRA_DIST += \
+	include \
 	state_trackers/README \
 	state_trackers/wgl targets/libgl-gdi \
 	targets/graw-gdi targets/graw-null  targets/graw-xlib \

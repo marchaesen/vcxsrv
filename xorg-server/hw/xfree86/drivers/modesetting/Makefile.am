@@ -30,6 +30,7 @@ AM_CPPFLAGS = \
 	$(XORG_INCS) \
 	-I$(top_srcdir)/glamor \
 	-I$(srcdir)/../../ddc \
+	-I$(srcdir)/../../dri2 \
 	-I$(srcdir)/../../i2c \
 	-I$(srcdir)/../../modes \
 	-I$(srcdir)/../../parser \
@@ -42,10 +43,13 @@ modesetting_drv_la_LIBADD = $(UDEV_LIBS) $(DRM_LIBS)
 modesetting_drv_ladir = @moduledir@/drivers
 
 modesetting_drv_la_SOURCES = \
+	 dri2.c \
 	 driver.c \
 	 driver.h \
 	 drmmode_display.c \
-	 drmmode_display.h
+	 drmmode_display.h \
+	 vblank.c \
+	 $(NULL)
 
 drivermandir = $(DRIVER_MAN_DIR)
 driverman_PRE = modesetting.man

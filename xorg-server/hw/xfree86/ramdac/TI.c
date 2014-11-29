@@ -21,7 +21,7 @@
  *
  * Authors:  Alan Hourihane, <alanh@fairlite.demon.co.uk>
  *
- * Modified from IBM.c to support TI RAMDAC routines 
+ * Modified from IBM.c to support TI RAMDAC routines
  *   by Jens Owen, <jens@tungstengraphics.com>.
  */
 

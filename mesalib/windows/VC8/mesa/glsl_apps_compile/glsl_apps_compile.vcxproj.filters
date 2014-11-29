@@ -186,9 +186,6 @@
     <ClCompile Include="..\..\..\..\src\glsl\lower_vector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\strtod.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\glsl\opt_copy_propagation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -315,11 +312,12 @@
     <ClCompile Include="..\..\..\..\src\glsl\opt_minmax.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\..\..\src\glsl\strtod.h">
+    <ClCompile Include="..\..\..\..\src\util\strtod.cpp">
       <Filter>Source Files</Filter>
-    </ClInclude>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\glsl\lower_const_arrays_to_uniforms.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\..\..\..\src\glsl\glsl_lexer.ll">

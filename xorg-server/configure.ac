@@ -26,9 +26,9 @@ dnl
 dnl Process this file with autoconf to create configure.
 
 AC_PREREQ(2.60)
-AC_INIT([xorg-server], 1.16.99.1, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
-RELEASE_DATE="2014-07-17"
-RELEASE_NAME="Baba Ghanouj"
+AC_INIT([xorg-server], 1.16.99.901, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
+RELEASE_DATE="2014-10-28"
+RELEASE_NAME="Chanterelle"
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
@@ -698,6 +698,7 @@ case $host_os in
 		CONFIG_UDEV=no
 		CONFIG_UDEV_KMS=no
 		DGA=no
+		DRM=no
 		DRI2=no
 		DRI3=no
 		INT10MODULE=no
@@ -1993,11 +1994,13 @@ if test "x$XORG" = xyes; then
 	  gnu*)
 		XORG_OS_SUBDIR="hurd"
 		;;
+	  cygwin*)
+		XORG_OS_SUBDIR="stub"
+		;;
 	  *)
 		XORG_OS_SUBDIR="stub"
 		AC_MSG_NOTICE([m4_text_wrap(m4_join([ ],
-		[Your OS is unknown. Xorg currently only supports Linux,],
-		[Free/Open/Net/DragonFlyBSD, Solaris/OpenSolaris, & GNU Hurd.],
+		[Your OS is unknown.],
 		[If you are interested in porting Xorg to your platform,],
 		[please email xorg@lists.freedesktop.org.]))])
 		;;
@@ -2553,6 +2556,7 @@ hw/xfree86/dixmods/Makefile
 hw/xfree86/doc/Makefile
 hw/xfree86/dri/Makefile
 hw/xfree86/dri2/Makefile
+hw/xfree86/dri2/pci_ids/Makefile
 hw/xfree86/drivers/Makefile
 hw/xfree86/drivers/modesetting/Makefile
 hw/xfree86/exa/Makefile

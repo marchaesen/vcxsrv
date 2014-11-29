@@ -159,7 +159,7 @@ AnimCurScreenBlockHandler(ScreenPtr pScreen,
 
                 /*
                  * Not a simple Unwrap/Wrap as this
-                 * isn't called along the DisplayCursor 
+                 * isn't called along the DisplayCursor
                  * wrapper chain.
                  */
                 DisplayCursor = pScreen->DisplayCursor;

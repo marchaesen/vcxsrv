@@ -147,7 +147,7 @@ ConstrainSize(WinXSizeHints hints, int *widthp, int *heightp)
      *
      * minAspectX * dheight > minAspectY * dwidth
      * maxAspectX * dheight < maxAspectY * dwidth
-     * 
+     *
      */
 
     if (hints.flags & PAspect) {

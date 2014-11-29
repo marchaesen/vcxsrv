@@ -1667,8 +1667,10 @@ texstore_rgba_integer(TEXSTORE_PARAMS)
 
    assert(is_array && !normalized);
 
-   if (!is_array)
+   if (!is_array) {
+      free(tmp_row);
       return GL_FALSE;
+   }
 
    invert_swizzle(dst2rgba, rgba2dst);
    compute_component_mapping(GL_RGBA, baseInternalFormat, base2rgba);

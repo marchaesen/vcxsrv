@@ -187,18 +187,12 @@ typedef enum prog_opcode {
    OPCODE_NOISE2,    /*                                      X   */
    OPCODE_NOISE3,    /*                                      X   */
    OPCODE_NOISE4,    /*                                      X   */
-   OPCODE_PK2H,      /*                            X             */
-   OPCODE_PK2US,     /*                            X             */
-   OPCODE_PK4B,      /*                            X             */
-   OPCODE_PK4UB,     /*                            X             */
    OPCODE_POW,       /*   X        X               X         X   */
    OPCODE_RCP,       /*   X        X       X       X         X   */
    OPCODE_RET,       /*                    2       2        opt  */
-   OPCODE_RFL,       /*                            X             */
    OPCODE_RSQ,       /*   X        X       X       X         X   */
    OPCODE_SCS,       /*            X                         X   */
    OPCODE_SEQ,       /*                    2       X         X   */
-   OPCODE_SFL,       /*                    2       X             */
    OPCODE_SGE,       /*   X        X       X       X         X   */
    OPCODE_SGT,       /*                    2       X         X   */
    OPCODE_SIN,       /*            X       2       X         X   */
@@ -206,7 +200,6 @@ typedef enum prog_opcode {
    OPCODE_SLT,       /*   X        X       X       X         X   */
    OPCODE_SNE,       /*                    2       X         X   */
    OPCODE_SSG,       /*                    2                 X   */
-   OPCODE_STR,       /*                    2       X             */
    OPCODE_SUB,       /*   X        X       1.1     X         X   */
    OPCODE_SWZ,       /*   X        X                         X   */
    OPCODE_TEX,       /*            X       3       X         X   */
@@ -216,11 +209,6 @@ typedef enum prog_opcode {
    OPCODE_TXP,       /*            X                         X   */
    OPCODE_TXP_NV,    /*                    3       X             */
    OPCODE_TRUNC,     /*                                      X   */
-   OPCODE_UP2H,      /*                            X             */
-   OPCODE_UP2US,     /*                            X             */
-   OPCODE_UP4B,      /*                            X             */
-   OPCODE_UP4UB,     /*                            X             */
-   OPCODE_X2D,       /*                            X             */
    OPCODE_XPD,       /*   X        X                             */
    MAX_OPCODE
 } gl_inst_opcode;
