@@ -180,9 +180,7 @@ struct pstip_transform_context {
    int maxInput;
    uint samplersUsed;  /**< bitfield of samplers used */
    int freeSampler;  /** an available sampler for the pstipple */
-   int texTemp;  /**< temp registers */
    int numImmed;
-   boolean firstInstruction;
    uint coordOrigin;
 };
 
@@ -243,7 +241,7 @@ free_bit(uint bitfield)
 
 
 /**
- * TGSI instruction transform callback.
+ * TGSI transform prolog
  * Before the first instruction, insert our new code to sample the
  * stipple texture (using the fragment coord register) then kill the
  * fragment if the stipple texture bit is off.
@@ -256,165 +254,95 @@ free_bit(uint bitfield)
  *   [...original code...]
  */
 static void
-pstip_transform_inst(struct tgsi_transform_context *ctx,
-                     struct tgsi_full_instruction *inst)
+pstip_transform_prolog(struct tgsi_transform_context *ctx)
 {
    struct pstip_transform_context *pctx =
       (struct pstip_transform_context *) ctx;
+   int wincoordInput;
+   int texTemp;
 
-   if (pctx->firstInstruction) {
-      /* emit our new declarations before the first instruction */
+   /* find free texture sampler */
+   pctx->freeSampler = free_bit(pctx->samplersUsed);
+   if (pctx->freeSampler >= PIPE_MAX_SAMPLERS)
+      pctx->freeSampler = PIPE_MAX_SAMPLERS - 1;
 
-      struct tgsi_full_declaration decl;
-      struct tgsi_full_instruction newInst;
-      uint i;
-      int wincoordInput;
+   if (pctx->wincoordInput < 0)
+      wincoordInput = pctx->maxInput + 1;
+   else
+      wincoordInput = pctx->wincoordInput;
 
-      /* find free texture sampler */
-      pctx->freeSampler = free_bit(pctx->samplersUsed);
-      if (pctx->freeSampler >= PIPE_MAX_SAMPLERS)
-         pctx->freeSampler = PIPE_MAX_SAMPLERS - 1;
-
-      if (pctx->wincoordInput < 0)
-         wincoordInput = pctx->maxInput + 1;
-      else
-         wincoordInput = pctx->wincoordInput;
-
-      /* find one free temp register */
-      for (i = 0; i < 32; i++) {
-         if ((pctx->tempsUsed & (1 << i)) == 0) {
-            /* found a free temp */
-            if (pctx->texTemp < 0)
-               pctx->texTemp  = i;
-            else
-               break;
-         }
-      }
-      assert(pctx->texTemp >= 0);
-
-      if (pctx->wincoordInput < 0) {
-         /* declare new position input reg */
-         decl = tgsi_default_full_declaration();
-         decl.Declaration.File = TGSI_FILE_INPUT;
-         decl.Declaration.Interpolate = 1;
-         decl.Declaration.Semantic = 1;
-         decl.Semantic.Name = TGSI_SEMANTIC_POSITION;
-         decl.Semantic.Index = 0;
-         decl.Range.First = 
-            decl.Range.Last = wincoordInput;
-         decl.Interp.Interpolate = TGSI_INTERPOLATE_LINEAR;
-         ctx->emit_declaration(ctx, &decl);
-      }
-
-      /* declare new sampler */
-      decl = tgsi_default_full_declaration();
-      decl.Declaration.File = TGSI_FILE_SAMPLER;
-      decl.Range.First = 
-      decl.Range.Last = pctx->freeSampler;
-      ctx->emit_declaration(ctx, &decl);
-
-      /* declare new temp regs */
-      decl = tgsi_default_full_declaration();
-      decl.Declaration.File = TGSI_FILE_TEMPORARY;
-      decl.Range.First = 
-      decl.Range.Last = pctx->texTemp;
-      ctx->emit_declaration(ctx, &decl);
-
-      /* emit immediate = {1/32, 1/32, 1, 1}
-       * The index/position of this immediate will be pctx->numImmed
-       */
-      {
-         static const float value[4] = { 1.0/32, 1.0/32, 1.0, 1.0 };
-         struct tgsi_full_immediate immed;
-         uint size = 4;
-         immed = tgsi_default_full_immediate();
-         immed.Immediate.NrTokens = 1 + size; /* one for the token itself */
-         immed.u[0].Float = value[0];
-         immed.u[1].Float = value[1];
-         immed.u[2].Float = value[2];
-         immed.u[3].Float = value[3];
-         ctx->emit_immediate(ctx, &immed);
-      }
-
-      pctx->firstInstruction = FALSE;
-
-
-      /* 
-       * Insert new MUL/TEX/KILL_IF instructions at start of program
-       * Take gl_FragCoord, divide by 32 (stipple size), sample the
-       * texture and kill fragment if needed.
-       *
-       * We'd like to use non-normalized texcoords to index into a RECT
-       * texture, but we can only use REPEAT wrap mode with normalized
-       * texcoords.  Darn.
-       */
-
-      /* XXX invert wincoord if origin isn't lower-left... */
-
-      /* MUL texTemp, INPUT[wincoord], 1/32; */
-      newInst = tgsi_default_full_instruction();
-      newInst.Instruction.Opcode = TGSI_OPCODE_MUL;
-      newInst.Instruction.NumDstRegs = 1;
-      newInst.Dst[0].Register.File = TGSI_FILE_TEMPORARY;
-      newInst.Dst[0].Register.Index = pctx->texTemp;
-      newInst.Instruction.NumSrcRegs = 2;
-      newInst.Src[0].Register.File = TGSI_FILE_INPUT;
-      newInst.Src[0].Register.Index = wincoordInput;
-      newInst.Src[1].Register.File = TGSI_FILE_IMMEDIATE;
-      newInst.Src[1].Register.Index = pctx->numImmed;
-      ctx->emit_instruction(ctx, &newInst);
-
-      /* TEX texTemp, texTemp, sampler; */
-      newInst = tgsi_default_full_instruction();
-      newInst.Instruction.Opcode = TGSI_OPCODE_TEX;
-      newInst.Instruction.NumDstRegs = 1;
-      newInst.Dst[0].Register.File = TGSI_FILE_TEMPORARY;
-      newInst.Dst[0].Register.Index = pctx->texTemp;
-      newInst.Instruction.NumSrcRegs = 2;
-      newInst.Instruction.Texture = TRUE;
-      newInst.Texture.Texture = TGSI_TEXTURE_2D;
-      newInst.Src[0].Register.File = TGSI_FILE_TEMPORARY;
-      newInst.Src[0].Register.Index = pctx->texTemp;
-      newInst.Src[1].Register.File = TGSI_FILE_SAMPLER;
-      newInst.Src[1].Register.Index = pctx->freeSampler;
-      ctx->emit_instruction(ctx, &newInst);
-
-      /* KILL_IF -texTemp;   # if -texTemp < 0, kill fragment */
-      newInst = tgsi_default_full_instruction();
-      newInst.Instruction.Opcode = TGSI_OPCODE_KILL_IF;
-      newInst.Instruction.NumDstRegs = 0;
-      newInst.Instruction.NumSrcRegs = 1;
-      newInst.Src[0].Register.File = TGSI_FILE_TEMPORARY;
-      newInst.Src[0].Register.Index = pctx->texTemp;
-      newInst.Src[0].Register.Negate = 1;
-      ctx->emit_instruction(ctx, &newInst);
+   if (pctx->wincoordInput < 0) {
+      /* declare new position input reg */
+      tgsi_transform_input_decl(ctx, wincoordInput,
+                                TGSI_SEMANTIC_POSITION, 1,
+                                TGSI_INTERPOLATE_LINEAR);
    }
 
-   /* emit this instruction */
-   ctx->emit_instruction(ctx, inst);
+   /* declare new sampler */
+   tgsi_transform_sampler_decl(ctx, pctx->freeSampler);
+
+   /* Declare temp[0] reg if not already declared.
+    * We can always use temp[0] since this code is before
+    * the rest of the shader.
+    */
+   texTemp = 0;
+   if ((pctx->tempsUsed & (1 << texTemp)) == 0) {
+      tgsi_transform_temp_decl(ctx, texTemp);
+   }
+
+   /* emit immediate = {1/32, 1/32, 1, 1}
+    * The index/position of this immediate will be pctx->numImmed
+    */
+   tgsi_transform_immediate_decl(ctx, 1.0/32.0, 1.0/32.0, 1.0, 1.0);
+
+   /* 
+    * Insert new MUL/TEX/KILL_IF instructions at start of program
+    * Take gl_FragCoord, divide by 32 (stipple size), sample the
+    * texture and kill fragment if needed.
+    *
+    * We'd like to use non-normalized texcoords to index into a RECT
+    * texture, but we can only use REPEAT wrap mode with normalized
+    * texcoords.  Darn.
+    */
+
+   /* XXX invert wincoord if origin isn't lower-left... */
+
+   /* MUL texTemp, INPUT[wincoord], 1/32; */
+   tgsi_transform_op2_inst(ctx, TGSI_OPCODE_MUL,
+                           TGSI_FILE_TEMPORARY, texTemp,
+                           TGSI_WRITEMASK_XYZW,
+                           TGSI_FILE_INPUT, wincoordInput,
+                           TGSI_FILE_IMMEDIATE, pctx->numImmed);
+
+   /* TEX texTemp, texTemp, sampler; */
+   tgsi_transform_tex_2d_inst(ctx,
+                              TGSI_FILE_TEMPORARY, texTemp,
+                              TGSI_FILE_TEMPORARY, texTemp,
+                              pctx->freeSampler);
+
+   /* KILL_IF -texTemp;   # if -texTemp < 0, kill fragment */
+   tgsi_transform_kill_inst(ctx,
+                            TGSI_FILE_TEMPORARY, texTemp,
+                            TGSI_SWIZZLE_W);
 }
 
 
 /**
  * Given a fragment shader, return a new fragment shader which
  * samples a stipple texture and executes KILL.
+ * \param samplerUnitOut  returns the index of the sampler unit which
+ *                        will be used to sample the stipple texture
  */
-struct pipe_shader_state *
-util_pstipple_create_fragment_shader(struct pipe_context *pipe,
-                                     struct pipe_shader_state *fs,
+struct tgsi_token *
+util_pstipple_create_fragment_shader(const struct tgsi_token *tokens,
                                      unsigned *samplerUnitOut)
 {
-   struct pipe_shader_state *new_fs;
    struct pstip_transform_context transform;
-   const uint newLen = tgsi_num_tokens(fs->tokens) + NUM_NEW_TOKENS;
+   const uint newLen = tgsi_num_tokens(tokens) + NUM_NEW_TOKENS;
+   struct tgsi_token *new_tokens;
 
-   new_fs = MALLOC(sizeof(*new_fs));
-   if (!new_fs)
-      return NULL;
-
-   new_fs->tokens = tgsi_alloc_tokens(newLen);
-   if (!new_fs->tokens) {
-      FREE(new_fs);
+   new_tokens = tgsi_alloc_tokens(newLen);
+   if (!new_tokens) {
       return NULL;
    }
 
@@ -423,21 +351,17 @@ util_pstipple_create_fragment_shader(struct pipe_context *pipe,
    memset(&transform, 0, sizeof(transform));
    transform.wincoordInput = -1;
    transform.maxInput = -1;
-   transform.texTemp = -1;
-   transform.firstInstruction = TRUE;
    transform.coordOrigin = TGSI_FS_COORD_ORIGIN_UPPER_LEFT;
-   transform.base.transform_instruction = pstip_transform_inst;
+   transform.base.prolog = pstip_transform_prolog;
    transform.base.transform_declaration = pstip_transform_decl;
    transform.base.transform_immediate = pstip_transform_immed;
 
-   tgsi_scan_shader(fs->tokens, &transform.info);
+   tgsi_scan_shader(tokens, &transform.info);
 
    transform.coordOrigin =
       transform.info.properties[TGSI_PROPERTY_FS_COORD_ORIGIN];
 
-   tgsi_transform_shader(fs->tokens,
-                         (struct tgsi_token *) new_fs->tokens,
-                         newLen, &transform.base);
+   tgsi_transform_shader(tokens, new_tokens, newLen, &transform.base);
 
 #if 0 /* DEBUG */
    tgsi_dump(fs->tokens, 0);
@@ -447,6 +371,6 @@ util_pstipple_create_fragment_shader(struct pipe_context *pipe,
    assert(transform.freeSampler < PIPE_MAX_SAMPLERS);
    *samplerUnitOut = transform.freeSampler;
 
-   return new_fs;
+   return new_tokens;
 }
 

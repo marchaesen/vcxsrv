@@ -284,7 +284,7 @@ ProcWindowsWMReenableUpdate(ClientPtr client)
 {
     REQUEST_SIZE_MATCH(xWindowsWMReenableUpdateReq);
 
-    //winEnableUpdate(); 
+    //winEnableUpdate();
 
     return Success;
 }

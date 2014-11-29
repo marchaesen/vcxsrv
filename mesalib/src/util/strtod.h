@@ -24,56 +24,23 @@
  */
 
 
-#include <stdlib.h>
+#ifndef STRTOD_H
+#define STRTOD_H
 
-#ifdef _GNU_SOURCE
-#include <locale.h>
-#ifdef __APPLE__
-#include <xlocale.h>
-#endif
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-#include "strtod.h"
+extern double
+_mesa_strtod(const char *s, char **end);
+
+extern float
+_mesa_strtof(const char *s, char **end);
 
 
-
-/**
- * Wrapper around strtod which uses the "C" locale so the decimal
- * point is always '.'
- */
-double
-glsl_strtod(const char *s, char **end)
-{
-#if defined(_GNU_SOURCE) && !defined(__CYGWIN__) && !defined(__FreeBSD__) && \
-   !defined(__HAIKU__) && !defined(__UCLIBC__)
-   static locale_t loc = NULL;
-   if (!loc) {
-      loc = newlocale(LC_CTYPE_MASK, "C", NULL);
-   }
-   return strtod_l(s, end, loc);
-#else
-   return strtod(s, end);
-#endif
+#ifdef __cplusplus
 }
-
-
-/**
- * Wrapper around strtof which uses the "C" locale so the decimal
- * point is always '.'
- */
-float
-glsl_strtof(const char *s, char **end)
-{
-#if defined(_GNU_SOURCE) && !defined(__CYGWIN__) && !defined(__FreeBSD__) && \
-   !defined(__HAIKU__) && !defined(__UCLIBC__)
-   static locale_t loc = NULL;
-   if (!loc) {
-      loc = newlocale(LC_CTYPE_MASK, "C", NULL);
-   }
-   return strtof_l(s, end, loc);
-#elif _XOPEN_SOURCE >= 600 || _ISOC99_SOURCE
-   return strtof(s, end);
-#else
-   return (float) strtod(s, end);
 #endif
-}
+
+
+#endif

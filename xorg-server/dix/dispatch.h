@@ -26,7 +26,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 /*
  * This prototypes the dispatch.c module (except for functions declared in
  * global headers), plus related dispatch procedures from devices.c, events.c,
- * extension.c, property.c. 
+ * extension.c, property.c.
  */
 
 #ifdef HAVE_DIX_CONFIG_H

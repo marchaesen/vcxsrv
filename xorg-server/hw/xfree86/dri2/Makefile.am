@@ -1,3 +1,5 @@
+SUBDIRS=pci_ids
+
 noinst_LTLIBRARIES = libdri2.la
 AM_CFLAGS = \
 	-DHAVE_XORG_CONFIG_H \

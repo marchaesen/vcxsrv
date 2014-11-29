@@ -1109,7 +1109,7 @@ vgaHWSaveColormap(ScrnInfoPtr scrninfp, vgaRegPtr save)
         hwp->writeDacData(hwp, save->DAC[i]);
 
     if (readError) {
-        /*                       
+        /*
          * save the default lookup table
          */
         memmove(save->DAC, defaultDAC, 768);
@@ -1184,7 +1184,7 @@ vgaHWInit(ScrnInfoPtr scrninfp, DisplayModePtr mode)
     regp = &hwp->ModeReg;
 
     /*
-     * compute correct Hsync & Vsync polarity 
+     * compute correct Hsync & Vsync polarity
      */
     if ((mode->Flags & (V_PHSYNC | V_NHSYNC))
         && (mode->Flags & (V_PVSYNC | V_NVSYNC))) {
@@ -1439,7 +1439,7 @@ vgaHWVBlankKGA(DisplayModePtr mode, vgaRegPtr regp, int nBits,
     CARD32 nExtBits = (nBits < 8) ? 0 : (nBits - 8);
     CARD32 ExtBitMask = ((1 << nExtBits) - 1) << 8;
 
-    /* If width is not known nBits should be 0. In this 
+    /* If width is not known nBits should be 0. In this
      * case BitMask is set to 0 so we can check for it. */
     CARD32 BitMask = (nBits < 7) ? 0 : ((1 << nExtBits) - 1);
     int VBlankStart = (mode->CrtcVBlankStart - 1) & 0xFF;
@@ -1885,7 +1885,7 @@ vgaHWHandleColormaps(ScreenPtr pScreen)
 }
 
 /* ----------------------- DDC support ------------------------*/
-/* 
+/*
  * Adjust v_active, v_blank, v_sync, v_sync_end, v_blank_end, v_total
  * to read out EDID at a faster rate. Allowed maximum is 25kHz with
  * 20 usec v_sync active. Set positive v_sync polarity, turn off lightpen

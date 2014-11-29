@@ -56,7 +56,7 @@ struct __GLXconfig {
 
     /* GLX */
     GLint visualID;
-    GLint visualType;     /**< One of the GLX X visual types. (i.e., 
+    GLint visualType;     /**< One of the GLX X visual types. (i.e.,
 			   * \c GLX_TRUE_COLOR, etc.)
 			   */
 

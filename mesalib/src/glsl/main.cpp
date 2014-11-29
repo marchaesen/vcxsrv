@@ -35,6 +35,7 @@
 #include "glsl_parser_extras.h"
 #include "ir_optimization.h"
 #include "program.h"
+#include "program/hash_table.h"
 #include "loop_analysis.h"
 #include "standalone_scaffolding.h"
 
@@ -357,6 +358,11 @@ main(int argc, char **argv)
    assert(whole_program != NULL);
    whole_program->InfoLog = ralloc_strdup(whole_program, "");
 
+   /* Created just to avoid segmentation faults */
+   whole_program->AttributeBindings = new string_to_uint_map;
+   whole_program->FragDataBindings = new string_to_uint_map;
+   whole_program->FragDataIndexBindings = new string_to_uint_map;
+
    for (/* empty */; argc > optind; optind++) {
       whole_program->Shaders =
 	 reralloc(whole_program, whole_program->Shaders,
@@ -414,6 +420,10 @@ main(int argc, char **argv)
 
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++)
       ralloc_free(whole_program->_LinkedShaders[i]);
+
+   delete whole_program->AttributeBindings;
+   delete whole_program->FragDataBindings;
+   delete whole_program->FragDataIndexBindings;
 
    ralloc_free(whole_program);
    _mesa_glsl_release_types();

@@ -6,19 +6,19 @@ software and its documentation for any purpose and without
 fee is hereby granted, provided that the above copyright
 notice appear in all copies and that both that copyright
 notice and this permission notice appear in supporting
-documentation, and that the name of Silicon Graphics not be 
-used in advertising or publicity pertaining to distribution 
+documentation, and that the name of Silicon Graphics not be
+used in advertising or publicity pertaining to distribution
 of the software without specific prior written permission.
-Silicon Graphics makes no representation about the suitability 
+Silicon Graphics makes no representation about the suitability
 of this software for any purpose. It is provided "as is"
 without any express or implied warranty.
 
-SILICON GRAPHICS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS 
-SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY 
+SILICON GRAPHICS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
 AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL SILICON
-GRAPHICS BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL 
-DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, 
-DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE 
+GRAPHICS BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL
+DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
 OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION  WITH
 THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
@@ -47,8 +47,8 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
          * XkbIndicatorsToUpdate(dev,changed,check_devs_rtrn)
          *
          * Given a keyboard and a set of state components that have changed,
-         * this function returns the indicators on the default keyboard 
-         * feedback that might be affected.   It also reports whether or not 
+         * this function returns the indicators on the default keyboard
+         * feedback that might be affected.   It also reports whether or not
          * any extension devices might be affected in check_devs_rtrn.
          */
 
@@ -85,10 +85,10 @@ XkbIndicatorsToUpdate(DeviceIntPtr dev,
          * Bool
          *XkbApplyLEDChangeToKeyboard(xkbi,map,on,change)
          *
-         * Some indicators "drive" the keyboard when their state is explicitly 
+         * Some indicators "drive" the keyboard when their state is explicitly
          * changed, as described in section 9.2.1 of the XKB protocol spec.
-         * This function updates the state and controls for the keyboard 
-         * specified by 'xkbi' to reflect any changes that are required 
+         * This function updates the state and controls for the keyboard
+         * specified by 'xkbi' to reflect any changes that are required
          * when the indicator described by 'map' is turned on or off.  The
          * extent of the changes is reported in change, which must be defined.
          */
@@ -357,9 +357,9 @@ XkbUpdateAllDeviceIndicators(XkbChangesPtr changes, XkbEventCausePtr cause)
          * attempted change.   If 'changes' is NULL, this function generates
          * XKB events to report any such changes to interested clients.
          *
-         * If 'cause' is non-NULL, it specifies the reason for the change, 
-         * as reported in some XKB events.   If it is NULL, this function 
-         * assumes that the change is the result of a core protocol 
+         * If 'cause' is non-NULL, it specifies the reason for the change,
+         * as reported in some XKB events.   If it is NULL, this function
+         * assumes that the change is the result of a core protocol
          * ChangeKeyboardMapping request.
          */
 
@@ -407,7 +407,7 @@ XkbSetIndicators(DeviceIntPtr dev,
          *
          * Applies the indicator maps for any indicators specified in
          * 'update' from the default keyboard feedback on the device
-         * specified by 'dev.' 
+         * specified by 'dev.'
          *
          * If 'changes' is NULL, this function generates and XKB events
          * required to report the necessary changes, otherwise it simply
@@ -442,9 +442,9 @@ XkbUpdateIndicators(DeviceIntPtr dev,
          * XkbCheckIndicatorMaps(dev,sli,which)
          *
          * Updates the 'indicator accelerators' for the indicators specified
-         * by 'which' in the feedback specified by 'sli.' The indicator 
-         * accelerators are internal to the server and are used to simplify 
-         * and speed up the process of figuring out which indicators might 
+         * by 'which' in the feedback specified by 'sli.' The indicator
+         * accelerators are internal to the server and are used to simplify
+         * and speed up the process of figuring out which indicators might
          * be affected by a particular change in keyboard state or controls.
          */
 
@@ -677,7 +677,7 @@ XkbCopySrvLedInfo(DeviceIntPtr from,
          *
          * Finds the XkbSrvLedInfoPtr for the specified 'class' and 'id'
          * on the device specified by 'dev.'   If the class and id specify
-         * a valid device feedback, this function returns the existing 
+         * a valid device feedback, this function returns the existing
          * feedback or allocates a new one.
          *
          */
@@ -839,7 +839,7 @@ XkbApplyLedNameChanges(DeviceIntPtr dev,
          *
          * Handles all of the secondary effects of the changes to the
          * feedback specified by 'sli' on the device specified by 'dev.'
-         * 
+         *
          * If 'changed_maps' specifies any indicators, this function generates
          * XkbExtensionDeviceNotify events and possibly IndicatorMapNotify
          * events to report the changes, and recalculates the effective

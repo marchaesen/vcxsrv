@@ -1,9 +1,9 @@
 /*
- * edid.h: defines to parse an EDID block 
+ * edid.h: defines to parse an EDID block
  *
- * This file contains all information to interpret a standard EDIC block 
- * transmitted by a display device via DDC (Display Data Channel). So far 
- * there is no information to deal with optional EDID blocks.  
+ * This file contains all information to interpret a standard EDIC block
+ * transmitted by a display device via DDC (Display Data Channel). So far
+ * there is no information to deal with optional EDID blocks.
  * DDC is a Trademark of VESA (Video Electronics Standard Association).
  *
  * Copyright 1998 by Egbert Eich <Egbert.Eich@Physik.TU-Darmstadt.DE>

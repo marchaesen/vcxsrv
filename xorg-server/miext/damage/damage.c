@@ -1591,7 +1591,7 @@ miDamageCreate(DamagePtr pDamage)
  * Since we can't know if a GC has been validated against one of the affected
  * children, just bump them all to be safe.
  */
-static int 
+static int
 damageRegisterVisit(WindowPtr pWin, void *data)
 {
     pWin->drawable.serialNumber = NEXT_SERIAL_NUMBER;

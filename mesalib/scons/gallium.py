@@ -301,6 +301,10 @@ def generate(env):
             cppdefines += ['HAVE_ALIAS']
         else:
             cppdefines += ['GLX_ALIAS_UNSUPPORTED']
+
+        if env['platform'] in ('linux', 'darwin'):
+            cppdefines += ['HAVE_XLOCALE_H']
+
     if env['platform'] == 'haiku':
         cppdefines += [
             'HAVE_PTHREAD',
@@ -374,22 +378,19 @@ def generate(env):
                 #'-march=pentium4',
             ]
             if distutils.version.LooseVersion(ccversion) >= distutils.version.LooseVersion('4.2') \
-               and (platform != 'windows' or env['build'] == 'debug' or True) \
                and platform != 'haiku':
                 # NOTE: We need to ensure stack is realigned given that we
                 # produce shared objects, and have no control over the stack
                 # alignment policy of the application. Therefore we need
                 # -mstackrealign ore -mincoming-stack-boundary=2.
                 #
-                # XXX: -O and -mstackrealign causes stack corruption on MinGW
-                #
                 # XXX: We could have SSE without -mstackrealign if we always used
                 # __attribute__((force_align_arg_pointer)), but that's not
                 # always the case.
                 ccflags += [
                     '-mstackrealign', # ensure stack is aligned
-                    '-mmmx', '-msse', '-msse2', # enable SIMD intrinsics
-                    #'-mfpmath=sse',
+                    '-msse', '-msse2', # enable SIMD intrinsics
+                    '-mfpmath=sse', # generate SSE floating-point arithmetic
                 ]
             if platform in ['windows', 'darwin']:
                 # Workaround http://gcc.gnu.org/bugzilla/show_bug.cgi?id=37216
@@ -468,7 +469,7 @@ def generate(env):
         ]
         if env['machine'] == 'x86':
             ccflags += [
-                #'/arch:SSE2', # use the SSE2 instructions
+                '/arch:SSE2', # use the SSE2 instructions (default since MSVC 2012)
             ]
         if platform == 'windows':
             ccflags += [
@@ -617,7 +618,7 @@ def generate(env):
     env.Tool('custom')
     createInstallMethods(env)
 
-    env.PkgCheckModules('X11', ['x11', 'xext', 'xdamage', 'xfixes'])
+    env.PkgCheckModules('X11', ['x11', 'xext', 'xdamage', 'xfixes', 'glproto >= 1.4.13'])
     env.PkgCheckModules('XCB', ['x11-xcb', 'xcb-glx >= 1.8.1', 'xcb-dri2 >= 1.8'])
     env.PkgCheckModules('XF86VIDMODE', ['xxf86vm'])
     env.PkgCheckModules('DRM', ['libdrm >= 2.4.38'])

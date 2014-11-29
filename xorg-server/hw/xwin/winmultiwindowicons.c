@@ -382,7 +382,7 @@ winXIconToHICON(Display * pDisplay, Window id, int iconSize)
     static int generation;
     uint32_t *icon, *icon_data = NULL;
     unsigned long int size;
-    unsigned long int type;
+    Atom type;
     int format;
     unsigned long int left;
 
@@ -465,7 +465,7 @@ winXIconToHICON(Display * pDisplay, Window id, int iconSize)
                 xImageIcon =
                     XGetImage(pDisplay, hints->icon_pixmap, 0, 0, width, height,
                               0xFFFFFFFF, ZPixmap);
-                winDebug("winXIconToHICON: id 0x%x icon Ximage 0x%x\n", id,
+                winDebug("winXIconToHICON: id 0x%x icon Ximage 0x%p\n", id,
                          xImageIcon);
 
                 if (hints->icon_mask)

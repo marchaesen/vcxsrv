@@ -93,7 +93,7 @@ typedef union {
     } major;
 } RecordMinorOpRec, *RecordMinorOpPtr;
 
-/*  RecordClientsAndProtocolRec, nicknamed RCAP - holds all the client and 
+/*  RecordClientsAndProtocolRec, nicknamed RCAP - holds all the client and
  *  protocol selections passed in a single CreateContext or RegisterClients.
  *  Generally, a context will have one of these from the create and an
  *  additional one for each RegisterClients.  RCAPs are freed when all their
@@ -260,7 +260,7 @@ RecordFlushReplyBuffer(RecordContextPtr pContext,
  *	  is its length in bytes.
  *	padlen is the number of pad bytes from a zeroed array.
  *	futurelen is the number of bytes that will be sent in subsequent
- *	  calls to this function to complete this protocol element.  
+ *	  calls to this function to complete this protocol element.
  *	  In those subsequent calls, futurelen will be -1 to indicate
  *	  that the current data is a continuation of the same protocol
  *	  element.
@@ -1020,8 +1020,8 @@ RecordUninstallHooks(RecordClientsAndProtocolPtr pRCAP, XID oneclient)
  *
  * Side Effects:
  *	Recording hooks needed by client will be uninstalled if the context
- *	is enabled.  The designated client will be removed from the 
- *	pRCAP->pClientIDs array.  If it was the only client on the RCAP, 
+ *	is enabled.  The designated client will be removed from the
+ *	pRCAP->pClientIDs array.  If it was the only client on the RCAP,
  *	the RCAP is removed from the context and freed.  (Invariant: RCAPs
  *	have at least one client.)
  */
@@ -1064,7 +1064,7 @@ RecordDeleteClientFromRCAP(RecordClientsAndProtocolPtr pRCAP, int position)
  *
  * Side Effects:
  *	Recording hooks needed by client will be installed if the context
- *	is enabled.  The designated client will be added to the 
+ *	is enabled.  The designated client will be added to the
  *	pRCAP->pClientIDs array, which may be realloced.
  *	pRCAP->clientIDsSeparatelyAllocated may be set to 1 if there
  *	is no more room to hold clients internal to the RCAP.
@@ -1173,8 +1173,8 @@ RecordSanityCheckClientSpecifiers(ClientPtr client, XID *clientspecs,
  *	pClientspecs is an array of CLIENTSPECs that have been sanity
  *	  checked.
  *	pNumClientspecs is a pointer to the number of elements in pClientspecs.
- *	excludespec, if non-zero, is the resource id base of a client that 
- *	  should not be included in the expansion of XRecordAllClients or 
+ *	excludespec, if non-zero, is the resource id base of a client that
+ *	  should not be included in the expansion of XRecordAllClients or
  *	  XRecordCurrentClients.
  *
  * Returns:
@@ -1379,7 +1379,7 @@ RecordSanityCheckRegisterClients(RecordContextPtr pContext, ClientPtr client,
 }                               /* end RecordSanityCheckRegisterClients */
 
 /* This is a tactical structure used to gather information about all the sets
- * (RecordSetPtr) that need to be created for an RCAP in the process of 
+ * (RecordSetPtr) that need to be created for an RCAP in the process of
  * digesting a list of RECORDRANGEs (converting it to the internal
  * representation).
  */
@@ -1447,7 +1447,7 @@ RecordAllocIntervals(SetInfoPtr psi, int nIntervals)
  * Returns:  BadAlloc if a memory allocation error occurred, else Success.
  *
  * Side Effects:
- *	The slice of pRanges indicated by byteoffset is stored in psi.  
+ *	The slice of pRanges indicated by byteoffset is stored in psi.
  *	If pExtSetInfo is non-NULL, minor opcode intervals are stored
  *	in an existing SetInfoRec if the major opcode interval matches, else
  *	they are stored in a new SetInfoRec, and *pnExtSetInfo is
@@ -2639,7 +2639,7 @@ SProcRecordDispatch(ClientPtr client)
 /* RecordConnectionSetupInfo
  *
  * Arguments:
- *	pContext is an enabled context that specifies recording of 
+ *	pContext is an enabled context that specifies recording of
  *	  connection setup info.
  *	pci holds the connection setup info.
  *

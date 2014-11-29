@@ -55,52 +55,6 @@ index_bytes(GLenum type, GLsizei count)
 
 
 /**
- * Find the max index in the given element/index buffer
- */
-GLuint
-_mesa_max_buffer_index(struct gl_context *ctx, GLuint count, GLenum type,
-                       const void *indices,
-                       struct gl_buffer_object *elementBuf)
-{
-   const GLubyte *map = NULL;
-   GLuint max = 0;
-   GLuint i;
-
-   if (_mesa_is_bufferobj(elementBuf)) {
-      /* elements are in a user-defined buffer object.  need to map it */
-      map = ctx->Driver.MapBufferRange(ctx, 0, elementBuf->Size,
-				       GL_MAP_READ_BIT, elementBuf,
-                                       MAP_INTERNAL);
-      /* Actual address is the sum of pointers */
-      indices = (const GLvoid *) ADD_POINTERS(map, (const GLubyte *) indices);
-   }
-
-   if (type == GL_UNSIGNED_INT) {
-      for (i = 0; i < count; i++)
-         if (((GLuint *) indices)[i] > max)
-            max = ((GLuint *) indices)[i];
-   }
-   else if (type == GL_UNSIGNED_SHORT) {
-      for (i = 0; i < count; i++)
-         if (((GLushort *) indices)[i] > max)
-            max = ((GLushort *) indices)[i];
-   }
-   else {
-      ASSERT(type == GL_UNSIGNED_BYTE);
-      for (i = 0; i < count; i++)
-         if (((GLubyte *) indices)[i] > max)
-            max = ((GLubyte *) indices)[i];
-   }
-
-   if (map) {
-      ctx->Driver.UnmapBuffer(ctx, elementBuf, MAP_INTERNAL);
-   }
-
-   return max;
-}
-
-
-/**
  * Check if OK to draw arrays/elements.
  */
 static GLboolean
@@ -749,14 +703,14 @@ _mesa_validate_DrawTransformFeedback(struct gl_context *ctx,
       return GL_FALSE;
    }
 
-   if (!obj->EndedAnytime) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glDrawTransformFeedback*");
-      return GL_FALSE;
-   }
-
    if (stream >= ctx->Const.MaxVertexStreams) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "glDrawTransformFeedbackStream*(index>=MaxVertexStream)");
+      return GL_FALSE;
+   }
+
+   if (!obj->EndedAnytime) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glDrawTransformFeedback*");
       return GL_FALSE;
    }
 

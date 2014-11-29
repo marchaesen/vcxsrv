@@ -928,12 +928,12 @@ SecurityReceive(CallbackListPtr *pcbl, void *unused, void *calldata)
  * Returns: nothing.
  *
  * Side Effects:
- * 
+ *
  * If a new client is connecting, its authorization ID is copied to
  * client->authID.  If this is a generated authorization, its reference
  * count is bumped, its timer is cancelled if it was running, and its
  * trustlevel is copied to TRUSTLEVEL(client).
- * 
+ *
  * If a client is disconnecting and the client was using a generated
  * authorization, the authorization's reference count is decremented, and
  * if it is now zero, the timer for this authorization is started.

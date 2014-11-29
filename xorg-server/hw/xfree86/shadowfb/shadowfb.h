@@ -26,7 +26,7 @@ extern _X_EXPORT Bool
  * ShadowFBInit2 is a more featureful refinement of the original shadowfb.
  * ShadowFBInit2 allows you to specify two callbacks, one to be called
  * immediately before an operation that modifies the framebuffer, and another
- * to be called immediately after.  
+ * to be called immediately after.
  *
  * Returns FALSE in the event of an error
  */

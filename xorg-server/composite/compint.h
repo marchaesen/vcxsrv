@@ -76,7 +76,7 @@
 
 /*
  *  enable this for debugging
- 
+
     #define COMPOSITE_DEBUG
  */
 
@@ -168,6 +168,7 @@ typedef struct _CompScreen {
     CompOverlayClientPtr pOverlayClients;
 
     GetImageProcPtr GetImage;
+    GetSpansProcPtr GetSpans;
     SourceValidateProcPtr SourceValidate;
 } CompScreenRec, *CompScreenPtr;
 

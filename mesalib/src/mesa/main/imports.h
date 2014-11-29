@@ -540,9 +540,6 @@ _mesa_half_is_negative(GLhalfARB h)
 extern char *
 _mesa_strdup( const char *s );
 
-extern float
-_mesa_strtof( const char *s, char **end );
-
 extern unsigned int
 _mesa_str_checksum(const char *str);
 

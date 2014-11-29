@@ -23,7 +23,7 @@
  */
 #include <ctype.h>
 #include <limits.h>
-#include "strtod.h"
+#include "util/strtod.h"
 #include "ast.h"
 #include "glsl_parser_extras.h"
 #include "glsl_parser.h"
@@ -450,24 +450,11 @@ layout		{
 			    return LITERAL_INTEGER(8);
 			}
 
-[0-9]+\.[0-9]+([eE][+-]?[0-9]+)?[fF]?	{
-			    yylval->real = glsl_strtof(yytext, NULL);
-			    return FLOATCONSTANT;
-			}
-\.[0-9]+([eE][+-]?[0-9]+)?[fF]?		{
-			    yylval->real = glsl_strtof(yytext, NULL);
-			    return FLOATCONSTANT;
-			}
-[0-9]+\.([eE][+-]?[0-9]+)?[fF]?		{
-			    yylval->real = glsl_strtof(yytext, NULL);
-			    return FLOATCONSTANT;
-			}
+[0-9]+\.[0-9]+([eE][+-]?[0-9]+)?[fF]?	|
+\.[0-9]+([eE][+-]?[0-9]+)?[fF]?		|
+[0-9]+\.([eE][+-]?[0-9]+)?[fF]?		|
 [0-9]+[eE][+-]?[0-9]+[fF]?		{
-			    yylval->real = glsl_strtof(yytext, NULL);
-			    return FLOATCONSTANT;
-			}
-[0-9]+[fF]		{
-			    yylval->real = glsl_strtof(yytext, NULL);
+			    yylval->real = _mesa_strtof(yytext, NULL);
 			    return FLOATCONSTANT;
 			}
 

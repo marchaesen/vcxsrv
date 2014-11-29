@@ -559,7 +559,7 @@ exaCompositeRects(CARD8 op,
         box.y2 = y2 < MAXSHORT ? y2 : MAXSHORT;
 
         /* The pixmap migration code relies on pendingDamage indicating
-         * the bounds of the current rendering, so we need to force 
+         * the bounds of the current rendering, so we need to force
          * the actual damage into that region before we do anything, and
          * (see use of DamagePendingRegion in exaCopyDirty)
          */
@@ -613,7 +613,7 @@ exaCompositeRects(CARD8 op,
     /************************************************************/
 
     if (!pMask) {
-        /* Now we have to flush the damage out from pendingDamage => damage 
+        /* Now we have to flush the damage out from pendingDamage => damage
          * Calling DamageRegionProcessPending has that effect.
          */
 

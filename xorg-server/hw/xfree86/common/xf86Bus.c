@@ -519,7 +519,7 @@ xf86GetDevFromEntity(int entityIndex, int instance)
 }
 
 /*
- * xf86AccessEnter() -- gets called to save the text mode VGA IO 
+ * xf86AccessEnter() -- gets called to save the text mode VGA IO
  * resources when reentering the server after a VT switch.
  */
 void

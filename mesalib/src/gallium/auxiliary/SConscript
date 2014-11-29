@@ -36,13 +36,13 @@ env.Depends('util/u_format_table.c', [
 
 source = env.ParseSourceList('Makefile.sources', [
     'C_SOURCES',
+    'VL_STUB_SOURCES',
     'GENERATED_SOURCES'
 ])
 
 if env['llvm']:
     source += env.ParseSourceList('Makefile.sources', [
         'GALLIVM_SOURCES',
-        'GALLIVM_CPP_SOURCES'
     ])
 
 gallium = env.ConvenienceLibrary(

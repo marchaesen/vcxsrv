@@ -2622,7 +2622,7 @@ GetPairedDevice(DeviceIntPtr dev)
  *   slave.
  * - MASTER_KEYBOARD: the master keyboard for this device or NULL for a
  *   floating slave
- * - MASTER_POINTER: the master keyboard for this device or NULL for a
+ * - MASTER_POINTER: the master pointer for this device or NULL for a
  *   floating slave
  * - POINTER_OR_FLOAT: the master pointer for this device or the device for
  *   a floating slave

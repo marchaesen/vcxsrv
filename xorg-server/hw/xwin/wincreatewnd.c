@@ -160,8 +160,8 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
         && !pScreenInfo->fMultiWindow
 #endif
         ) {
-        /* Try to handle startup via run.exe. run.exe instructs Windows to 
-         * hide all created windows. Detect this case and make sure the 
+        /* Try to handle startup via run.exe. run.exe instructs Windows to
+         * hide all created windows. Detect this case and make sure the
          * window is shown nevertheless */
         STARTUPINFO startupInfo;
 

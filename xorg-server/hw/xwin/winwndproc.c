@@ -403,7 +403,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         SetScrollInfo(hwnd, SB_VERT, &si, TRUE);
 
         /*
-         * NOTE: Scrollbars may have moved if they were at the 
+         * NOTE: Scrollbars may have moved if they were at the
          * far right/bottom, so we query their current position.
          */
 
@@ -621,7 +621,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         int iBorderHeight, iBorderWidth;
 
 #if CYGDEBUG
-        winDebug("winWindowProc - WM_GETMINMAXINFO - pScreenInfo: %08x\n",
+        winDebug("winWindowProc - WM_GETMINMAXINFO - pScreenInfo: %p\n",
                  s_pScreenInfo);
 #endif
 
@@ -1053,12 +1053,12 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (winIsFakeCtrl_L(message, wParam, lParam))
             return 0;
 
-        /* 
+        /*
          * Discard presses generated from Windows auto-repeat
          */
         if (lParam & (1 << 30)) {
             switch (wParam) {
-                /* ago: Pressing LControl while RControl is pressed is 
+                /* ago: Pressing LControl while RControl is pressed is
                  * Indicated as repeat. Fix this!
                  */
             case VK_CONTROL:

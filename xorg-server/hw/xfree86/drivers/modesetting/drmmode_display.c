@@ -116,7 +116,7 @@ dumb_bo_unmap(int fd, struct dumb_bo *bo)
 }
 #endif
 
-static int
+int
 dumb_bo_destroy(int fd, struct dumb_bo *bo)
 {
     struct drm_mode_destroy_dumb arg;
@@ -137,8 +137,8 @@ dumb_bo_destroy(int fd, struct dumb_bo *bo)
     return 0;
 }
 
-static struct dumb_bo *
-dumb_get_bo_from_handle(int fd, int handle, int pitch, int size)
+struct dumb_bo *
+dumb_get_bo_from_fd(int fd, int handle, int pitch, int size)
 {
     struct dumb_bo *bo;
     int ret;
@@ -164,7 +164,7 @@ drmmode_SetSlaveBO(PixmapPtr ppix,
     msPixmapPrivPtr ppriv = msGetPixmapPriv(drmmode, ppix);
 
     ppriv->backing_bo =
-        dumb_get_bo_from_handle(drmmode->fd, fd_handle, pitch, size);
+        dumb_get_bo_from_fd(drmmode->fd, fd_handle, pitch, size);
     if (!ppriv->backing_bo)
         return FALSE;
 
@@ -582,6 +582,17 @@ static const xf86CrtcFuncsRec drmmode_crtc_funcs = {
     .shadow_create = drmmode_shadow_create,
 };
 
+static uint32_t
+drmmode_crtc_vblank_pipe(int crtc_id)
+{
+    if (crtc_id > 1)
+        return crtc_id << DRM_VBLANK_HIGH_CRTC_SHIFT;
+    else if (crtc_id > 0)
+        return DRM_VBLANK_SECONDARY;
+    else
+        return 0;
+}
+
 static void
 drmmode_crtc_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, int num)
 {
@@ -596,6 +607,7 @@ drmmode_crtc_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, int num)
     drmmode_crtc->mode_crtc =
         drmModeGetCrtc(drmmode->fd, drmmode->mode_res->crtcs[num]);
     drmmode_crtc->drmmode = drmmode;
+    drmmode_crtc->vblank_pipe = drmmode_crtc_vblank_pipe(num);
     crtc->driver_private = drmmode_crtc;
 }
 
@@ -1182,6 +1194,11 @@ drmmode_xf86crtc_resize(ScrnInfoPtr scrn, int width, int height)
 
     xf86DrvMsg(scrn->scrnIndex, X_INFO,
                "Allocate new frame buffer %dx%d stride\n", width, height);
+
+    if (drmmode->triple_buffer_pixmap) {
+        screen->DestroyPixmap(drmmode->triple_buffer_pixmap);
+        drmmode->triple_buffer_pixmap = NULL;
+    }
 
     old_width = scrn->virtualX;
     old_height = scrn->virtualY;

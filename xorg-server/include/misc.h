@@ -26,13 +26,13 @@ Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -43,7 +43,7 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 
 Copyright 1992, 1993 Data General Corporation;
-Copyright 1992, 1993 OMRON Corporation  
+Copyright 1992, 1993 OMRON Corporation
 
 Permission to use, copy, modify, distribute, and sell this software and its
 documentation for any purpose is hereby granted without fee, provided that the
@@ -51,9 +51,9 @@ above copyright notice appear in all copies and that both that copyright
 notice and this permission notice appear in supporting documentation, and that
 neither the name OMRON or DATA GENERAL be used in advertising or publicity
 pertaining to distribution of the software without specific, written prior
-permission of the party whose name is to be used.  Neither OMRON or 
+permission of the party whose name is to be used.  Neither OMRON or
 DATA GENERAL make any representation about the suitability of this software
-for any purpose.  It is provided "as is" without express or implied warranty.  
+for any purpose.  It is provided "as is" without express or implied warranty.
 
 OMRON AND DATA GENERAL EACH DISCLAIM ALL WARRANTIES WITH REGARD TO THIS
 SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS,
@@ -67,7 +67,7 @@ OF THIS SOFTWARE.
 #ifndef MISC_H
 #define MISC_H 1
 /*
- *  X internal definitions 
+ *  X internal definitions
  *
  */
 
@@ -138,7 +138,7 @@ lswapl(uint32_t x)
 static inline uint16_t
 lswaps(uint16_t x)
 {
-    return ((x & 0xff) << 8) | ((x >> 8) & 0xff);
+    return (uint16_t)((x & 0xff) << 8) | ((x >> 8) & 0xff);
 }
 
 #undef min

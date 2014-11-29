@@ -251,7 +251,7 @@ fbdev2xfree_timing(struct fb_var_screeninfo *var, DisplayModePtr mode)
 /* open correct framebuffer device                                      */
 
 /**
- * Try to find the framebuffer device for a given PCI device 
+ * Try to find the framebuffer device for a given PCI device
  */
 static int
 fbdev_open_pci(struct pci_device *pPci, char **namep)

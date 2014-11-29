@@ -656,6 +656,7 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
     return ret;
 }
 
+_X_NORETURN
 static void _X_ATTRIBUTE_PRINTF(1, 0)
 xwl_log_handler(const char *format, va_list args)
 {

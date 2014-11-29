@@ -2715,7 +2715,7 @@ IdleTimeBlockHandler(void *pCounter, struct timeval **wt, void *LastSelectMask)
                 break;
             }
         }
-        /* 
+        /*
          * We've been called exactly on the idle time, but we have a
          * NegativeTransition trigger which requires a transition from an
          * idle time greater than this.  Schedule a wakeup for the next

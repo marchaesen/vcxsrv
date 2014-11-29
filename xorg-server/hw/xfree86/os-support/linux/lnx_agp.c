@@ -92,8 +92,8 @@ GARTInit(int screenNum)
     xf86ReleaseGART(-1);
 
 #if defined(linux)
-    /* Per Dave Jones, every effort will be made to keep the 
-     * agpgart interface backwards compatible, so allow all 
+    /* Per Dave Jones, every effort will be made to keep the
+     * agpgart interface backwards compatible, so allow all
      * future versions.
      */
     if (

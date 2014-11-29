@@ -233,13 +233,13 @@ DoCreateContext(__GLXclientState * cl, GLXContextID gcId,
     LEGAL_NEW_RESOURCE(gcId, client);
 
     /*
-     ** Find the display list space that we want to share.  
+     ** Find the display list space that we want to share.
      **
      ** NOTE: In a multithreaded X server, we would need to keep a reference
-     ** count for each display list so that if one client detroyed a list that 
-     ** another client was using, the list would not really be freed until it 
-     ** was no longer in use.  Since this sample implementation has no support 
-     ** for multithreaded servers, we don't do this.  
+     ** count for each display list so that if one client detroyed a list that
+     ** another client was using, the list would not really be freed until it
+     ** was no longer in use.  Since this sample implementation has no support
+     ** for multithreaded servers, we don't do this.
      */
     if (shareList == None) {
         shareglxc = 0;
@@ -992,7 +992,7 @@ __glXDisp_GetVisualConfigs(__GLXclientState * cl, GLbyte * pc)
         buf[p++] = modes->level;
 
         assert(p == GLX_VIS_CONFIG_UNPAIRED);
-        /* 
+        /*
          ** Add token/value pairs for extensions.
          */
         buf[p++] = GLX_VISUAL_CAVEAT_EXT;
@@ -1041,7 +1041,7 @@ __glXDisp_GetVisualConfigs(__GLXclientState * cl, GLbyte * pc)
  * and interface into the driver on the server-side to get GLXFBConfigs,
  * so we "invent" some based on the \c __GLXvisualConfig structures that
  * the driver does supply.
- * 
+ *
  * The reply format for both \c glXGetFBConfigs and \c glXGetFBConfigsSGIX
  * is the same, so this routine pulls double duty.
  */
@@ -2253,9 +2253,9 @@ __glXDisp_RenderLarge(__GLXclientState * cl, GLbyte * pc)
             /* NOTE: the two pad macros have been added below; they are needed
              ** because the client library pads the total byte count, but not
              ** the per-request byte counts.  The Protocol Encoding says the
-             ** total byte count should not be padded, so a proposal will be 
-             ** made to the ARB to relax the padding constraint on the total 
-             ** byte count, thus preserving backward compatibility.  Meanwhile, 
+             ** total byte count should not be padded, so a proposal will be
+             ** made to the ARB to relax the padding constraint on the total
+             ** byte count, thus preserving backward compatibility.  Meanwhile,
              ** the padding done below fixes a bug that did not allow
              ** large commands of odd sizes to be accepted by the server.
              */
@@ -2528,7 +2528,7 @@ __glXpresentCompleteNotify(WindowPtr window, CARD8 present_kind, CARD8 present_m
         glx_type = GLX_FLIP_COMPLETE_INTEL;
     else
         glx_type = GLX_BLIT_COMPLETE_INTEL;
-        
+
     __glXsendSwapEvent(drawable, glx_type, ust, msc, serial);
 }
 

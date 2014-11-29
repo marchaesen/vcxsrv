@@ -319,7 +319,7 @@ typedef struct _RootlessFrameProcs {
 Bool RootlessInit(ScreenPtr pScreen, RootlessFrameProcsPtr procs);
 
 /*
- * Return the frame ID for the physical window displaying the given window. 
+ * Return the frame ID for the physical window displaying the given window.
  *
  *  create      If true and the window has no frame, attempt to create one
  */

@@ -1072,7 +1072,7 @@ xf86DefaultScreenLimits(ScrnInfoPtr scrn, int *widthp, int *heightp,
 #define POSITION_UNSET	-100000
 
 /*
- * check if the user configured any outputs at all 
+ * check if the user configured any outputs at all
  * with either a position or a relative setting or a mode.
  */
 static Bool
@@ -1736,7 +1736,7 @@ xf86ProbeOutputModes(ScrnInfoPtr scrn, int maxX, int maxY)
             xf86ValidateModesReducedBlanking(scrn, default_modes);
 
         if (sync_source == sync_config) {
-            /* 
+            /*
              * Check output and config modes against sync range from config file
              */
             xf86ValidateModesSync(scrn, output_modes, &mon_rec);

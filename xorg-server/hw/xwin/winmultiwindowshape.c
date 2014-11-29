@@ -47,7 +47,7 @@ winSetShapeMultiWindow(WindowPtr pWin, int kind)
     winScreenPriv(pScreen);
 
 #if CYGMULTIWINDOW_DEBUG
-    ErrorF("winSetShapeMultiWindow - pWin: %08x kind: %i\n", pWin, kind);
+    ErrorF("winSetShapeMultiWindow - pWin: %p kind: %i\n", pWin, kind);
 #endif
 
     WIN_UNWRAP(SetShape);

@@ -45,7 +45,7 @@ glamor_upload_picture_to_texture(PicturePtr picture)
     return glamor_upload_pixmap_to_texture(pixmap);
 }
 
-/* 
+/*
  * We should already have drawable attached to it, if it has one.
  * Then set the attached pixmap to is_picture format, and set
  * the pict format.

@@ -2843,6 +2843,7 @@ struct gl_shader_program
 
    /* post-link info: */
    unsigned NumUserUniformStorage;
+   unsigned NumHiddenUniforms;
    struct gl_uniform_storage *UniformStorage;
 
    /**
@@ -3680,6 +3681,9 @@ struct gl_constants
 
    GLboolean FakeSWMSAA;
 
+   /** GL_KHR_context_flush_control */
+   GLenum ContextReleaseBehavior;
+
    struct gl_shader_compiler_options ShaderCompilerOptions[MESA_SHADER_STAGES];
 };
 
@@ -4390,6 +4394,7 @@ struct gl_context
    GLuint ErrorDebugCount;
 
    /* GL_ARB_debug_output/GL_KHR_debug */
+   mtx_t DebugMutex;
    struct gl_debug_state *Debug;
 
    GLenum RenderMode;        /**< either GL_RENDER, GL_SELECT, GL_FEEDBACK */

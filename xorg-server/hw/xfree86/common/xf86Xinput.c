@@ -1,6 +1,6 @@
 /*
  * Copyright 1995-1999 by Frederic Lepied, France. <Lepied@XFree86.org>
- *                                                                            
+ *
  * Permission to use, copy, modify, distribute, and sell this software and its
  * documentation for any purpose is  hereby granted without fee, provided that
  * the  above copyright   notice appear  in   all  copies and  that both  that
@@ -9,8 +9,8 @@
  * advertising or publicity pertaining to distribution of the software without
  * specific,  written      prior  permission.     Frederic  Lepied   makes  no
  * representations about the suitability of this software for any purpose.  It
- * is provided "as is" without express or implied warranty.                   
- *                                                                            
+ * is provided "as is" without express or implied warranty.
+ *
  * FREDERIC  LEPIED DISCLAIMS ALL   WARRANTIES WITH REGARD  TO  THIS SOFTWARE,
  * INCLUDING ALL IMPLIED   WARRANTIES OF MERCHANTABILITY  AND   FITNESS, IN NO
  * EVENT  SHALL FREDERIC  LEPIED BE   LIABLE   FOR ANY  SPECIAL, INDIRECT   OR
@@ -315,7 +315,7 @@ ApplyTransformationMatrix(DeviceIntPtr dev)
 /***********************************************************************
  *
  * xf86ProcessCommonOptions --
- * 
+ *
  *	Process global options.
  *
  ***********************************************************************
@@ -1077,7 +1077,7 @@ DeleteInputDeviceRequest(DeviceIntPtr pDev)
     OsReleaseSignals();
 }
 
-/* 
+/*
  * convenient functions to post events
  */
 
@@ -1401,7 +1401,7 @@ xf86FirstLocalDevice(void)
     return xf86InputDevs;
 }
 
-/* 
+/*
  * Cx     - raw data from touch screen
  * to_max - scaled highest dimension
  *          (remember, this is of rows - 1 because of 0 origin)
@@ -1475,7 +1475,7 @@ xf86InitValuatorDefaults(DeviceIntPtr dev, int axnum)
  * Device will be moved to the off_devices list, but it will still be there
  * until you really clean up after it.
  * Notifies the client about an inactive device.
- * 
+ *
  * @param panic True if device is unrecoverable and needs to be removed.
  */
 void
@@ -1493,7 +1493,7 @@ xf86DisableDevice(DeviceIntPtr dev, Bool panic)
 /**
  * Reactivate a device. Call this function from the driver if you just found
  * out that the read error wasn't quite that bad after all.
- * Device will be re-activated, and an event sent to the client. 
+ * Device will be re-activated, and an event sent to the client.
  */
 void
 xf86EnableDevice(DeviceIntPtr dev)

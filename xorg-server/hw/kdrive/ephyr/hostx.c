@@ -1,8 +1,8 @@
 /*
  * Xephyr - A kdrive X server thats runs in a host X window.
  *          Authored by Matthew Allum <mallum@o-hand.com>
- * 
- * Copyright © 2004 Nokia 
+ *
+ * Copyright © 2004 Nokia
  *
  * Permission to use, copy, modify, distribute, and sell this software and its
  * documentation for any purpose is hereby granted without fee, provided that
@@ -974,15 +974,15 @@ hostx_paint_rect(KdScreenInfo *screen,
         hostx_paint_debug_rect(screen, dx, dy, width, height);
     }
 
-    /* 
+    /*
      * If the depth of the ephyr server is less than that of the host,
      * the kdrive fb does not point to the ximage data but to a buffer
      * ( fb_data ), we shift the various bits from this onto the XImage
      * so they match the host.
      *
-     * Note, This code is pretty new ( and simple ) so may break on 
-     *       endian issues, 32 bpp host etc. 
-     *       Not sure if 8bpp case is right either. 
+     * Note, This code is pretty new ( and simple ) so may break on
+     *       endian issues, 32 bpp host etc.
+     *       Not sure if 8bpp case is right either.
      *       ... and it will be slower than the matching depth case.
      */
 

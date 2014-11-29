@@ -640,19 +640,6 @@ class ast_declarator_list;
 
 class ast_struct_specifier : public ast_node {
 public:
-   /**
-    * \brief Make a shallow copy of an ast_struct_specifier.
-    *
-    * Use only if the objects are allocated from the same context and will not
-    * be modified. Zeros the inherited ast_node's fields.
-    */
-   ast_struct_specifier(const ast_struct_specifier& that):
-      ast_node(), name(that.name), declarations(that.declarations),
-      is_declaration(that.is_declaration)
-   {
-      /* empty */
-   }
-
    ast_struct_specifier(const char *identifier,
 			ast_declarator_list *declarator_list);
    virtual void print(void) const;
@@ -670,22 +657,6 @@ public:
 
 class ast_type_specifier : public ast_node {
 public:
-   /**
-    * \brief Make a shallow copy of an ast_type_specifier, specifying array
-    *        fields.
-    *
-    * Use only if the objects are allocated from the same context and will not
-    * be modified. Zeros the inherited ast_node's fields.
-    */
-   ast_type_specifier(const ast_type_specifier *that,
-                      ast_array_specifier *array_specifier)
-      : ast_node(), type_name(that->type_name), structure(that->structure),
-        array_specifier(array_specifier),
-        default_precision(that->default_precision)
-   {
-      /* empty */
-   }
-
    /** Construct a type specifier from a type name */
    ast_type_specifier(const char *name) 
       : type_name(name), structure(NULL), array_specifier(NULL),

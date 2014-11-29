@@ -106,6 +106,7 @@ glamor_set_pixmap_texture(PixmapPtr pixmap, unsigned int tex)
         ErrorF("XXX fail to create fbo.\n");
         return;
     }
+    fbo->external = TRUE;
 
     glamor_pixmap_attach_fbo(pixmap, fbo);
 }

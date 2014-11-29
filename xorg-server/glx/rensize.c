@@ -129,12 +129,12 @@ __glXMap2fReqSize(const GLbyte * pc, Bool swap)
 
 /**
  * Calculate the size of an image.
- * 
+ *
  * The size of an image sent to the server from the client or sent from the
  * server to the client is calculated.  The size is based on the dimensions
  * of the image, the type of pixel data, padding in the image, and the
  * alignment requirements of the image.
- * 
+ *
  * \param format       Format of the pixels.  Same as the \c format parameter
  *                     to \c glTexImage1D
  * \param type         Type of the pixel data.  Same as the \c type parameter

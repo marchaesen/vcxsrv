@@ -44,8 +44,6 @@ libfb_la_SOURCES = 	\
 	fbseg.c		\
 	fbsetsp.c	\
 	fbsolid.c	\
-	fbstipple.c	\
-	fbtile.c	\
 	fbtrap.c	\
 	fbutil.c	\
 	fbwindow.c

@@ -521,6 +521,27 @@ exec_node_insert_list_before(struct exec_node *n, struct exec_list *before)
    exec_list_make_empty(before);
 }
 
+static inline void
+exec_list_validate(const struct exec_list *list)
+{
+   const struct exec_node *node;
+
+   assert(list->head->prev == (const struct exec_node *) &list->head);
+   assert(list->tail == NULL);
+   assert(list->tail_pred->next == (const struct exec_node *) &list->tail);
+
+   /* We could try to use one of the interators below for this but they all
+    * either require C++ or assume the exec_node is embedded in a structure
+    * which is not the case for this function.
+    */
+   for (node = exec_list_get_head_const(list);
+        !exec_node_is_tail_sentinel(node);
+        node = exec_node_get_next_const(node)) {
+      assert(node->next->prev == node);
+      assert(node->prev->next == node);
+   }
+}
+
 #ifdef __cplusplus
 inline void exec_list::make_empty()
 {

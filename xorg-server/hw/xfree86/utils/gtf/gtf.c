@@ -4,11 +4,11 @@
  *
  * Copyright (c) 2001, Andy Ritger  aritger@nvidia.com
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
- * 
+ *
  * o Redistributions of source code must retain the above copyright
  *   notice, this list of conditions and the following disclaimer.
  * o Redistributions in binary form must reproduce the above copyright
@@ -33,7 +33,7 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- * 
+ *
  *
  * This program is based on the Generalized Timing Formula(GTF TM)
  * Standard Version: 1.0, Revision: 1.0
@@ -52,7 +52,7 @@
  * of suitability for any purpose. The sample code contained within
  * this standard may be used without restriction.
  *
- * 
+ *
  *
  * The GTF EXCEL(TM) SPREADSHEET, a sample (and the definitive)
  * implementation of the GTF Timing Standard, is available at:
@@ -77,12 +77,12 @@
  * any experience with this, and 2) neither XServer modelines nor
  * fbset fb.modes provide an obvious way for margin timings to be
  * included in their mode descriptions (needs more investigation).
- * 
+ *
  * The GTF provides for computation of interlaced mode timings;
  * I've implemented the computations but not enabled them, yet.
  * I should probably enable and test this at some point.
  *
- * 
+ *
  *
  * TODO:
  *
@@ -95,7 +95,7 @@
  * o It would be nice if this were more general purpose to do things
  *   outside the scope of the GTF: like generate double scan mode
  *   timings, for example.
- *   
+ *
  * o Printing digits to the right of the decimal point when the
  *   digits are 0 annoys me.
  *
@@ -191,7 +191,7 @@ print_xf86_mode(mode * m)
  * to the portion of the hblank before and after the sync pulse
  * by conceptually wrapping the portion of the blank after the pulse
  * to infront of the visible region; ie:
- * 
+ *
  *
  * Timing description I'm accustomed to:
  *
@@ -202,7 +202,7 @@ print_xf86_mode(mode * m)
  *    |-------------------|_______|       |_______
  *
  *                        R       SS      SE     FL
- *       
+ *
  * 1: visible image
  * 2: blank before sync (aka front porch)
  * 3: sync pulse
@@ -216,10 +216,10 @@ print_xf86_mode(mode * m)
  * But the fb.modes format is:
  *
  *
- *    <--4--> <--------1--------> <--2--> <--3--> 
+ *    <--4--> <--------1--------> <--2--> <--3-->
  *                                       _________
  *    _______|-------------------|_______|       |
- *  
+ *
  * The fb.modes(8) manpage refers to <4> and <2> as the left and
  * right "margin" (as well as upper and lower margin in the vertical
  * direction) -- note that this has nothing to do with the term
@@ -312,7 +312,7 @@ vert_refresh(int h_pixels, int v_lines, float freq, int interlaced, int margins)
      *  by the calculation must be halved, as the computation calculates
      *  the number of vertical lines per field. In either case, the
      *  number of lines is rounded to the nearest integer.
-     *   
+     *
      *  [V LINES RND] = IF([INT RQD?]="y", ROUND([V LINES]/2,0),
      *                                     ROUND([V LINES],0))
      */
@@ -356,7 +356,7 @@ vert_refresh(int h_pixels, int v_lines, float freq, int interlaced, int margins)
     print_value(5, "[BOT MARGIN (LINES)]", bottom_margin);
 
     /*  6. If interlace is required, then set variable [INTERLACE]=0.5:
-     *   
+     *
      *  [INTERLACE]=(IF([INT RQD?]="y",0.5,0))
      */
 

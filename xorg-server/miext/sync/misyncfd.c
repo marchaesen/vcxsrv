@@ -77,7 +77,7 @@ _X_EXPORT Bool miSyncFdScreenInit(ScreenPtr pScreen,
 
     if (!miSyncSetup(pScreen))
         return FALSE;
-    
+
     if (!dixPrivateKeyRegistered(&syncFdScreenPrivateKey)) {
         if (!dixRegisterPrivateKey(&syncFdScreenPrivateKey, PRIVATE_SCREEN, 0))
             return FALSE;
@@ -94,6 +94,6 @@ _X_EXPORT Bool miSyncFdScreenInit(ScreenPtr pScreen,
     priv->funcs = *funcs;
 
     dixSetPrivate(&pScreen->devPrivates, &syncFdScreenPrivateKey, priv);
-    
+
     return TRUE;
 }

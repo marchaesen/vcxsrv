@@ -443,7 +443,7 @@ CMapInstallColormap(ColormapPtr pmap)
     (*pScreen->InstallColormap) (pmap);
     pScreen->InstallColormap = CMapInstallColormap;
 
-    /* Important. We let the lower layers, namely DGA, 
+    /* Important. We let the lower layers, namely DGA,
        overwrite the choice of Colormap to install */
     if (GetInstalledmiColormap(pmap->pScreen))
         pmap = GetInstalledmiColormap(pmap->pScreen);
@@ -958,7 +958,7 @@ CMapChangeGamma(ScrnInfoPtr pScrn, Gamma gamma)
             }
 
             if (pLink) {
-                /* need to trick CMapRefreshColors() into thinking 
+                /* need to trick CMapRefreshColors() into thinking
                    this is the currently installed map */
                 SetInstalledmiColormap(pScreen, pLink->cmap);
                 CMapReinstallMap(pLink->cmap);

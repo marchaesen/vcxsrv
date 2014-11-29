@@ -59,13 +59,39 @@
 #define X86_CPUEXT_3DNOW_EXT	(1<<30)
 #define X86_CPUEXT_3DNOW	(1<<31)
 
+#ifdef __MMX__
+#define cpu_has_mmx		1
+#else
 #define cpu_has_mmx		(_mesa_x86_cpu_features & X86_FEATURE_MMX)
+#endif
+
 #define cpu_has_mmxext		(_mesa_x86_cpu_features & X86_FEATURE_MMXEXT)
+
+#ifdef __SSE__
+#define cpu_has_xmm		1
+#else
 #define cpu_has_xmm		(_mesa_x86_cpu_features & X86_FEATURE_XMM)
+#endif
+
+#ifdef __SSE2__
+#define cpu_has_xmm2		1
+#else
 #define cpu_has_xmm2		(_mesa_x86_cpu_features & X86_FEATURE_XMM2)
+#endif
+
+#ifdef __3dNOW__
+#define cpu_has_3dnow		1
+#else
 #define cpu_has_3dnow		(_mesa_x86_cpu_features & X86_FEATURE_3DNOW)
+#endif
+
 #define cpu_has_3dnowext	(_mesa_x86_cpu_features & X86_FEATURE_3DNOWEXT)
+
+#ifdef __SSE4_1__
+#define cpu_has_sse4_1		1
+#else
 #define cpu_has_sse4_1		(_mesa_x86_cpu_features & X86_FEATURE_SSE4_1)
+#endif
 
 #endif
 

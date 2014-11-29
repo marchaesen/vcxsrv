@@ -185,7 +185,7 @@ winScreenInit(ScreenPtr pScreen, int argc, char **argv)
 
     /* Are we using multiple monitors? */
     if (pScreenInfo->fMultipleMonitors) {
-        /* 
+        /*
          * In this case, some of the defaults set in
          * winInitializeScreenDefaults() are not correct ...
          */
@@ -345,7 +345,7 @@ winFinishScreenInitFB(int i, ScreenPtr pScreen, int argc, char **argv)
          pVisual->vid != pScreen->rootVisual; pVisual++);
     pScreenPriv->pRootVisual = pVisual;
 
-    /* 
+    /*
      * Setup points to the block and wakeup handlers.  Pass a pointer
      * to the current screen as pWakeupdata.
      */

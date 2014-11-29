@@ -175,6 +175,12 @@ struct gl_uniform_storage {
     * arrays this is the first element in the array.
     */
    unsigned remap_location;
+
+   /**
+    * This is a compiler-generated uniform that should not be advertised
+    * via the API.
+    */
+   bool hidden;
 };
 
 #ifdef __cplusplus

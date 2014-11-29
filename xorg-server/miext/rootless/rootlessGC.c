@@ -297,7 +297,7 @@ RootlessCreateGC(GCPtr pGC)
  * All the others just unwrap and call.
  */
 
-// GCFUNC_UNRAP assumes funcs have been wrapped and 
+// GCFUNC_UNRAP assumes funcs have been wrapped and
 // does not assume ops have been wrapped
 #define GCFUNC_UNWRAP(pGC) \
     RootlessGCRec *gcrec = (RootlessGCRec *) \

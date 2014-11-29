@@ -774,8 +774,8 @@ _glamor_upload_bits_to_pixmap_texture(PixmapPtr pixmap, GLenum format,
             return FALSE;
         bits = glamor_color_convert_to_bits(bits, converted_bits, w, h,
                                             stride, no_alpha, revert, swap_rb);
-        free(converted_bits);
         if (bits == NULL) {
+            free(converted_bits);
             ErrorF("Failed to convert pixmap no_alpha %d,"
                    "revert mode %d, swap mode %d\n", no_alpha, revert, swap_rb);
             return FALSE;
@@ -808,44 +808,43 @@ _glamor_upload_bits_to_pixmap_texture(PixmapPtr pixmap, GLenum format,
                                           format, type,
                                           x + fbo_x_off, y + fbo_y_off, w, h,
                                           bits, pbo);
-        return TRUE;
+    } else {
+        ptexcoords = texcoords_inv;
+
+        pixmap_priv_get_dest_scale(pixmap_priv, &dst_xscale, &dst_yscale);
+        glamor_set_normalize_vcoords(pixmap_priv, dst_xscale,
+                                     dst_yscale,
+                                     x, y,
+                                     x + w, y + h,
+                                     vertices);
+        /* Slow path, we need to flip y or wire alpha to 1. */
+        glamor_make_current(glamor_priv);
+        glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_FLOAT,
+                              GL_FALSE, 2 * sizeof(float), vertices);
+        glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
+        glVertexAttribPointer(GLAMOR_VERTEX_SOURCE, 2, GL_FLOAT,
+                              GL_FALSE, 2 * sizeof(float), ptexcoords);
+        glEnableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
+
+        glamor_set_destination_pixmap_priv_nc(pixmap_priv);
+        __glamor_upload_pixmap_to_texture(pixmap, &tex,
+                                          format, type, 0, 0, w, h, bits, pbo);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, tex);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glUseProgram(glamor_priv->finish_access_prog[no_alpha]);
+        glUniform1i(glamor_priv->finish_access_revert[no_alpha], revert);
+        glUniform1i(glamor_priv->finish_access_swap_rb[no_alpha], swap_rb);
+
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+        glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
+        glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
+        glDeleteTextures(1, &tex);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
-
-    ptexcoords = texcoords_inv;
-
-    pixmap_priv_get_dest_scale(pixmap_priv, &dst_xscale, &dst_yscale);
-    glamor_set_normalize_vcoords(pixmap_priv, dst_xscale,
-                                 dst_yscale,
-                                 x, y,
-                                 x + w, y + h,
-                                 vertices);
-    /* Slow path, we need to flip y or wire alpha to 1. */
-    glamor_make_current(glamor_priv);
-    glVertexAttribPointer(GLAMOR_VERTEX_POS, 2, GL_FLOAT,
-                          GL_FALSE, 2 * sizeof(float), vertices);
-    glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
-    glVertexAttribPointer(GLAMOR_VERTEX_SOURCE, 2, GL_FLOAT,
-                          GL_FALSE, 2 * sizeof(float), ptexcoords);
-    glEnableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
-
-    glamor_set_destination_pixmap_priv_nc(pixmap_priv);
-    __glamor_upload_pixmap_to_texture(pixmap, &tex,
-                                      format, type, 0, 0, w, h, bits, pbo);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, tex);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glUseProgram(glamor_priv->finish_access_prog[no_alpha]);
-    glUniform1i(glamor_priv->finish_access_revert[no_alpha], revert);
-    glUniform1i(glamor_priv->finish_access_swap_rb[no_alpha], swap_rb);
-
-    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-
-    glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
-    glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
-    glDeleteTextures(1, &tex);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     if (need_free_bits)
         free(bits);

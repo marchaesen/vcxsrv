@@ -52,7 +52,7 @@
 #include "panoramiXsrv.h"
 #endif
 
-/* 
+/*
  * Delete the given overlay client list element from its screen list.
  */
 void
@@ -110,7 +110,7 @@ compCreateOverlayClient(ScreenPtr pScreen, ClientPtr pClient)
     pOc->pNext = cs->pOverlayClients;
     cs->pOverlayClients = pOc;
 
-    /* 
+    /*
      * Create a resource for this element so it can be deleted
      * when the client goes away.
      */

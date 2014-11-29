@@ -1077,9 +1077,9 @@ extern _X_EXPORT void xf86SlowBCopyToBus(unsigned char *, unsigned char *, int);
     (*xf86WriteMmio16)((CARD16)(val), base, offset)
 
 #elif defined(__powerpc__) || defined(__sparc__)
- /* 
+ /*
   * we provide byteswapping and no byteswapping functions here
-  * with byteswapping as default, 
+  * with byteswapping as default,
   * drivers that don't need byteswapping should define MMIO_IS_BE
   */
 #define MMIO_IN8(base, offset) xf86ReadMmio8(base, offset)

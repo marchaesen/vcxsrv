@@ -52,7 +52,7 @@ DeviceIntPtr g_pwinKeyboard;
 /*
  * All of our keys generate up and down transition notifications,
  * so all of our keys can be used as modifiers.
- * 
+ *
  * An example of a modifier is mapping the A key to the Control key.
  * A has to be a legal modifier.  I think.
  */

@@ -26,13 +26,13 @@ Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -66,7 +66,7 @@ SOFTWARE.
 extern int ffs(int);
 #endif
 
-/* MICOPYAREA -- public entry for the CopyArea request 
+/* MICOPYAREA -- public entry for the CopyArea request
  * For each rectangle in the source region
  *     get the pixels with GetSpans
  *     set them in the destination with SetSpans
@@ -253,7 +253,7 @@ miCopyArea(DrawablePtr pSrcDrawable,
 }
 
 /* MIGETPLANE -- gets a bitmap representing one plane of pDraw
- * A helper used for CopyPlane and XY format GetImage 
+ * A helper used for CopyPlane and XY format GetImage
  * No clever strategy here, we grab a scanline at a time, pull out the
  * bits and then stuff them in a 1 bit deep map.
  */
@@ -358,9 +358,9 @@ miGetPlane(DrawablePtr pDraw, int planeNum,     /* number of the bitPlane */
 }
 
 /* MIOPQSTIPDRAWABLE -- use pbits as an opaque stipple for pDraw.
- * Drawing through the clip mask we SetSpans() the bits into a 
+ * Drawing through the clip mask we SetSpans() the bits into a
  * bitmap and stipple those bits onto the destination drawable by doing a
- * PolyFillRect over the whole drawable, 
+ * PolyFillRect over the whole drawable,
  * then we invert the bitmap by copying it onto itself with an alu of
  * GXinvert, invert the foreground/background colors of the gc, and draw
  * the background bits.
@@ -504,10 +504,10 @@ miOpqStipDrawable(DrawablePtr pDraw, GCPtr pGC, RegionPtr prgnSrc,
 }
 
 /* MICOPYPLANE -- public entry for the CopyPlane request.
- * strategy: 
- * First build up a bitmap out of the bits requested 
+ * strategy:
+ * First build up a bitmap out of the bits requested
  * build a source clip
- * Use the bitmap we've built up as a Stipple for the destination 
+ * Use the bitmap we've built up as a Stipple for the destination
  */
 _X_COLD RegionPtr
 miCopyPlane(DrawablePtr pSrcDrawable,
@@ -670,16 +670,16 @@ miGetImage(DrawablePtr pDraw, int sx, int sy, int w, int h,
 
 /* MIPUTIMAGE -- public entry for the PutImage request
  * Here we benefit from knowing the format of the bits pointed to by pImage,
- * even if we don't know how pDraw represents them.  
- * Three different strategies are used depending on the format 
+ * even if we don't know how pDraw represents them.
+ * Three different strategies are used depending on the format
  * XYBitmap Format:
  * 	we just use the Opaque Stipple helper function to cover the destination
- * 	Note that this covers all the planes of the drawable with the 
+ * 	Note that this covers all the planes of the drawable with the
  *	foreground color (masked with the GC planemask) where there are 1 bits
  *	and the background color (masked with the GC planemask) where there are
  *	0 bits
  * XYPixmap format:
- *	what we're called with is a series of XYBitmaps, but we only want 
+ *	what we're called with is a series of XYBitmaps, but we only want
  *	each XYPixmap to update 1 plane, instead of updating all of them.
  * 	we set the foreground color to be all 1s and the background to all 0s
  *	then for each plane, we set the plane mask to only effect that one

@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 1998 Itai Nahshon, Michael Schimek
  *
- * The original code was derived from and inspired by 
+ * The original code was derived from and inspired by
  * the I2C driver from the Linux kernel.
  *      (c) 1998 Gerd Knorr <kraxel@cs.tu-berlin.de>
  */
@@ -52,7 +52,7 @@ I2CUDelay(I2CBusPtr b, int usec)
     if (usec > 0) {
         X_GETTIMEOFDAY(&begin);
         do {
-            /* It would be nice to use {xf86}usleep, 
+            /* It would be nice to use {xf86}usleep,
              * but usleep (1) takes >10000 usec !
              */
             X_GETTIMEOFDAY(&cur);
@@ -74,7 +74,7 @@ I2CUDelay(I2CBusPtr b, int usec)
 
 #define RISEFALLTIME 2          /* usec, actually 300 to 1000 ns according to the i2c specs */
 
-/* Some devices will hold SCL low to slow down the bus or until 
+/* Some devices will hold SCL low to slow down the bus or until
  * ready for transmission.
  *
  * This condition will be noticed when the master tries to raise
@@ -206,7 +206,7 @@ I2CReadBit(I2CBusPtr b, int *psda, int timeout)
 /* This is the default I2CPutByte function if not supplied by the driver.
  *
  * A single byte is sent to the device.
- * The function returns FALSE if a timeout occurs, you should send 
+ * The function returns FALSE if a timeout occurs, you should send
  * a stop condition afterwards to reset the bus.
  *
  * A timeout occurs,
@@ -267,7 +267,7 @@ I2CPutByte(I2CDevPtr d, I2CByte data)
  * A single byte is read from the device.
  * The function returns FALSE if a timeout occurs, you should send
  * a stop condition afterwards to reset the bus.
- * 
+ *
  * A timeout occurs,
  * if the slave pulls SCL to slow down the bus more than ByteTimeout usecs,
  * or slows down the bus for more than b->BitTimeout usecs for each bit.
@@ -275,7 +275,7 @@ I2CPutByte(I2CDevPtr d, I2CByte data)
  * ByteTimeout must be at least b->HoldTime, the other timeouts can be
  * zero according to the comment on I2CRaiseSCL.
  *
- * For the <last> byte in a sequence the acknowledge bit NACK (1), 
+ * For the <last> byte in a sequence the acknowledge bit NACK (1),
  * otherwise ACK (0) will be sent.
  */
 
@@ -311,11 +311,11 @@ I2CGetByte(I2CDevPtr d, I2CByte * data, Bool last)
  *
  * It creates the start condition, followed by the d->SlaveAddr.
  * Higher level functions must call this routine rather than
- * I2CStart/PutByte because a hardware I2C master may not be able 
+ * I2CStart/PutByte because a hardware I2C master may not be able
  * to send a slave address without a start condition.
  *
  * The same timeouts apply as with I2CPutByte and additional a
- * StartTimeout, similar to the ByteTimeout but for the start 
+ * StartTimeout, similar to the ByteTimeout but for the start
  * condition.
  *
  * In case of a timeout, the bus is left in a clean idle condition.
@@ -325,7 +325,7 @@ I2CGetByte(I2CDevPtr d, I2CByte * data, Bool last)
  * in the least significant byte. This is, the slave address must include the
  * R/_W flag as least significant bit.
  *
- * The most significant byte of the address will be sent _after_ the LSB, 
+ * The most significant byte of the address will be sent _after_ the LSB,
  * but only if the LSB indicates:
  * a) an 11 bit address, this is LSB = 1111 0xxx.
  * b) a 'general call address', this is LSB = 0000 000x - see the I2C specs
@@ -354,7 +354,7 @@ I2CAddress(I2CDevPtr d, I2CSlaveAddr addr)
  * ========================================================
  */
 
-/* Function for probing. Just send the slave address 
+/* Function for probing. Just send the slave address
  * and return true if the device responds. The slave address
  * must have the lsb set to reflect a read (1) or write (0) access.
  * Don't expect a read- or write-only device will respond otherwise.
@@ -403,7 +403,7 @@ xf86I2CProbeAddress(I2CBusPtr b, I2CSlaveAddr addr)
  *
  * The functions exits immediately when an error occures,
  * not proceeding any data left. However, step 3 will
- * be executed anyway to leave the bus in clean idle state. 
+ * be executed anyway to leave the bus in clean idle state.
  */
 
 static Bool
@@ -470,7 +470,7 @@ xf86I2CReadByte(I2CDevPtr d, I2CByte subaddr, I2CByte * pbyte)
     return xf86I2CWriteRead(d, &subaddr, 1, pbyte, 1);
 }
 
-/* Read bytes from subsequent registers determined by the 
+/* Read bytes from subsequent registers determined by the
  * sub-address of the first register.
  */
 
@@ -480,7 +480,7 @@ xf86I2CReadBytes(I2CDevPtr d, I2CByte subaddr, I2CByte * pbyte, int n)
     return xf86I2CWriteRead(d, &subaddr, 1, pbyte, n);
 }
 
-/* Read a word (high byte, then low byte) from one of the registers 
+/* Read a word (high byte, then low byte) from one of the registers
  * determined by its sub-address.
  */
 
@@ -511,7 +511,7 @@ xf86I2CWriteByte(I2CDevPtr d, I2CByte subaddr, I2CByte byte)
     return xf86I2CWriteRead(d, wb, 2, NULL, 0);
 }
 
-/* Write bytes to subsequent registers determined by the 
+/* Write bytes to subsequent registers determined by the
  * sub-address of the first register.
  */
 
@@ -537,7 +537,7 @@ xf86I2CWriteBytes(I2CDevPtr d, I2CByte subaddr,
     return r;
 }
 
-/* Write a word (high byte, then low byte) to one of the registers 
+/* Write a word (high byte, then low byte) to one of the registers
  * determined by its sub-address.
  */
 
@@ -553,7 +553,7 @@ xf86I2CWriteWord(I2CDevPtr d, I2CByte subaddr, unsigned short word)
     return xf86I2CWriteRead(d, wb, 3, NULL, 0);
 }
 
-/* Write a vector of bytes to not adjacent registers. This vector is, 
+/* Write a vector of bytes to not adjacent registers. This vector is,
  * 1st byte sub-address, 2nd byte value, 3rd byte sub-address asf.
  * This function is intended to initialize devices. Note this function
  * exits immediately when an error occurs, some registers may
@@ -637,7 +637,7 @@ xf86DestroyI2CDevRec(I2CDevPtr d, Bool unalloc)
 /* I2C transmissions are related to an I2CDevRec you must link to a
  * previously registered bus (see xf86I2CBusInit) before attempting
  * to read and write data. You may call xf86I2CProbeAddress first to
- * see if the device in question is present on this bus. 
+ * see if the device in question is present on this bus.
  *
  * xf86I2CDevInit will not allocate an I2CBusRec for you, instead you
  * may enter a pointer to a statically allocated I2CDevRec or the (modified)
@@ -779,9 +779,9 @@ xf86DestroyI2CBusRec(I2CBusPtr b, Bool unalloc, Bool devs_too)
 Bool
 xf86I2CBusInit(I2CBusPtr b)
 {
-    /* I2C buses must be identified by a unique scrnIndex 
-     * and name. If scrnIndex is unspecified (a negative value), 
-     * then the name must be unique throughout the server. 
+    /* I2C buses must be identified by a unique scrnIndex
+     * and name. If scrnIndex is unspecified (a negative value),
+     * then the name must be unique throughout the server.
      */
 
     if (b->BusName == NULL || xf86I2CFindBus(b->scrnIndex, b->BusName) != NULL)

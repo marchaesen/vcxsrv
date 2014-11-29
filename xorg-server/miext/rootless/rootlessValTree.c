@@ -29,19 +29,19 @@ used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
  *
- * Copyright 1987, 1988, 1989 by 
+ * Copyright 1987, 1988, 1989 by
  * Digital Equipment Corporation, Maynard, Massachusetts,
- * 
+ *
  *                         All Rights Reserved
- * 
- * Permission to use, copy, modify, and distribute this software and its 
- * documentation for any purpose and without fee is hereby granted, 
+ *
+ * Permission to use, copy, modify, and distribute this software and its
+ * documentation for any purpose and without fee is hereby granted,
  * provided that the above copyright notice appear in all copies and that
- * both that copyright notice and this permission notice appear in 
+ * both that copyright notice and this permission notice appear in
  * supporting documentation, and that the name of Digital not be
  * used in advertising or publicity pertaining to distribution of the
- * software without specific, written prior permission.  
- * 
+ * software without specific, written prior permission.
+ *
  * DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
  * ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
  * DIGITAL BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR
@@ -49,7 +49,7 @@ in this Software without prior written authorization from The Open Group.
  * WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
  * ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
  * SOFTWARE.
- * 
+ *
  ******************************************************************/
 
 /* The panoramix components contained the following notice */
@@ -80,7 +80,7 @@ dealings in this Software without prior written authorization from Digital
 Equipment Corporation.
 
 ******************************************************************/
- /* 
+ /*
   * Aug '86: Susan Angebranndt -- original code
   * July '87: Adam de Boor -- substantially modified and commented
   * Summer '89: Joel McCormack -- so fast you wouldn't believe it possible.
@@ -456,9 +456,9 @@ RootlessTreeObscured(WindowPtr pParent)
  *
  *-----------------------------------------------------------------------
  */
-/* 
+/*
    Quartz version: used for validate from root in rootless mode.
-   We need to make sure top-level windows don't clip each other, 
+   We need to make sure top-level windows don't clip each other,
    and that top-level windows aren't clipped to the root window.
 */
  /*ARGSUSED*/
@@ -491,9 +491,9 @@ RootlessMiValidateTree(WindowPtr pRoot, /* Parent to validate */
         ErrorF("ValidateTree: BUSTED!\n");
     }
 
-    /* 
-     * Recursively compute the clips for all children of the root. 
-     * They don't clip against each other or the root itself, so 
+    /*
+     * Recursively compute the clips for all children of the root.
+     * They don't clip against each other or the root itself, so
      * childClip is always reset to that child's size.
      */
 
@@ -520,7 +520,7 @@ RootlessMiValidateTree(WindowPtr pRoot, /* Parent to validate */
 
     RegionUninit(&childClip);
 
-    /* The root is never clipped by its children, so nothing on the root 
+    /* The root is never clipped by its children, so nothing on the root
        is ever exposed by moving or mapping its children. */
     RegionNull(&pRoot->valdata->after.exposed);
     RegionNull(&pRoot->valdata->after.borderExposed);

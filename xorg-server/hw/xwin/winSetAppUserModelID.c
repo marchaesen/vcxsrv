@@ -90,7 +90,7 @@ winSetAppUserModelID(HWND hWnd, const char *AppID)
         return;
     }
 
-    winDebug("winSetAppUserMOdelID - hwnd 0x%08x appid '%s'\n", hWnd, AppID);
+    winDebug("winSetAppUserMOdelID - hwnd 0x%p appid '%s'\n", hWnd, AppID);
 
     hr = g_pSHGetPropertyStoreForWindow(hWnd, &IID_IPropertyStore,
                                         (void **) &pps);

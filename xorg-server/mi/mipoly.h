@@ -55,7 +55,7 @@ from The Open Group.
  *     the polygon by incrementing the y coordinate.  We
  *     keep a list of edges which the current scanline crosses,
  *     sorted by x.  This list is called the Active Edge Table (AET)
- *     As we change the y-coordinate, we update each entry in 
+ *     As we change the y-coordinate, we update each entry in
  *     in the active edge table to reflect the edges new xcoord.
  *     This list must be sorted at each scanline in case
  *     two edges intersect.
@@ -171,23 +171,3 @@ typedef struct _ScanLineListBlock {
       pAET = pAET->next; \
    } \
 }
-
-/* mipolyutil.c */
-
-extern _X_EXPORT Bool miCreateETandAET(int /*count */ ,
-                                       DDXPointPtr /*pts */ ,
-                                       EdgeTable * /*ET*/,
-                                       EdgeTableEntry * /*AET*/,
-                                       EdgeTableEntry * /*pETEs */ ,
-                                       ScanLineListBlock *      /*pSLLBlock */
-    );
-
-extern _X_EXPORT void miloadAET(EdgeTableEntry * /*AET*/, EdgeTableEntry *      /*ETEs */
-    );
-
-extern _X_EXPORT void micomputeWAET(EdgeTableEntry * /*AET*/);
-
-extern _X_EXPORT int miInsertionSort(EdgeTableEntry * /*AET*/);
-
-extern _X_EXPORT void miFreeStorage(ScanLineListBlock * /*pSLLBlock */
-    );

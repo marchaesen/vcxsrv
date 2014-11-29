@@ -128,7 +128,7 @@ RootlessNativeWindowMoved(WindowPtr pWin)
         return;
     }
 
-    /* Don't want to do anything to the physical window (avoids 
+    /* Don't want to do anything to the physical window (avoids
        notification-response feedback loops) */
 
     no_configure_window = TRUE;
@@ -477,7 +477,7 @@ RootlessRealizeWindow(WindowPtr pWin)
 
 /*
  * RootlessFrameForWindow
- *  Returns the frame ID for the physical window displaying the given window. 
+ *  Returns the frame ID for the physical window displaying the given window.
  *  If CREATE is true and the window has no frame, attempt to create one.
  */
 RootlessFrameID
@@ -559,7 +559,7 @@ RootlessReorderWindow(WindowPtr pWin)
 
         RootlessStopDrawing(pWin, FALSE);
 
-        /* Find the next window above this one that has a mapped frame. 
+        /* Find the next window above this one that has a mapped frame.
          * Only include cases where the windows are in the same category of
          * hittability to ensure offscreen windows dont get restacked
          * relative to onscreen ones (but that the offscreen ones maintain

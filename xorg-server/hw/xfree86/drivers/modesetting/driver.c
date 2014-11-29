@@ -25,7 +25,7 @@
  *
  *
  * Original Author: Alan Hourihane <alanh@tungstengraphics.com>
- * Rewrite: Dave Airlie <airlied@redhat.com> 
+ * Rewrite: Dave Airlie <airlied@redhat.com>
  *
  */
 
@@ -788,7 +788,9 @@ PreInit(ScrnInfoPtr pScrn, int flags)
 
     try_enable_glamor(pScrn);
 
-    if (!ms->glamor) {
+    if (ms->glamor) {
+        xf86LoadSubModule(pScrn, "dri2");
+    } else {
         Bool prefer_shadow = TRUE;
 
         ret = drmGetCap(ms->fd, DRM_CAP_DUMB_PREFER_SHADOW, &value);
@@ -1107,6 +1109,21 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
     if (serverGeneration == 1)
         xf86ShowUnusedOptions(pScrn->scrnIndex, pScrn->options);
 
+    if (!ms_vblank_screen_init(pScreen)) {
+        xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+                   "Failed to initialize vblank support.\n");
+        return FALSE;
+    }
+
+#ifdef GLAMOR
+    if (ms->glamor) {
+        if (!ms_dri2_screen_init(pScreen)) {
+            xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+                       "Failed to initialize the DRI2 extension.\n");
+        }
+    }
+#endif
+
     return EnterVT(pScrn);
 }
 
@@ -1171,6 +1188,14 @@ CloseScreen(ScreenPtr pScreen)
 {
     ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     modesettingPtr ms = modesettingPTR(pScrn);
+
+#ifdef GLAMOR
+    if (ms->glamor) {
+        ms_dri2_close_screen(pScreen);
+    }
+#endif
+
+    ms_vblank_close_screen(pScreen);
 
     if (ms->damage) {
         DamageUnregister(ms->damage);

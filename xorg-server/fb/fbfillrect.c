@@ -74,7 +74,7 @@ fbPolyFillRect(DrawablePtr pDrawable, GCPtr pGC, int nrect, xRectangle *prect)
         }
         else {
             pbox = RegionRects(pClip);
-            /* 
+            /*
              * clip the rectangle to each box in the clip region
              * this is logically equivalent to calling Intersect()
              */

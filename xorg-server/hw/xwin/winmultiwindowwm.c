@@ -339,7 +339,7 @@ PopMessage(WMMsgQueuePtr pQueue, WMInfoPtr pWMInfo)
 
 #if 0
 /*
- * HaveMessage - 
+ * HaveMessage -
  */
 
 static Bool

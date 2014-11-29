@@ -1350,9 +1350,15 @@ ast_struct_specifier::ast_struct_specifier(const char *identifier,
 					   ast_declarator_list *declarator_list)
 {
    if (identifier == NULL) {
+      static mtx_t mutex = _MTX_INITIALIZER_NP;
       static unsigned anon_count = 1;
-      identifier = ralloc_asprintf(this, "#anon_struct_%04x", anon_count);
-      anon_count++;
+      unsigned count;
+
+      mtx_lock(&mutex);
+      count = anon_count++;
+      mtx_unlock(&mutex);
+
+      identifier = ralloc_asprintf(this, "#anon_struct_%04x", count);
    }
    name = identifier;
    this->declarations.push_degenerate_list_at_head(&declarator_list->link);

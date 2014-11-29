@@ -1,5 +1,5 @@
-/* xf86DDC.c 
- * 
+/* xf86DDC.c
+ *
  * Copyright 1998,1999 by Egbert Eich <Egbert.Eich@Physik.TU-Darmstadt.DE>
  */
 
@@ -212,10 +212,10 @@ TestDDC1(ScrnInfoPtr pScrn, unsigned int (*read_DDC) (ScrnInfoPtr))
     return count;
 }
 
-/* 
+/*
  * read EDID record , pass it to callback function to interpret.
  * callback function will store it for further use by calling
- * function; it will also decide if we need to reread it 
+ * function; it will also decide if we need to reread it
  */
 static unsigned char *
 EDIDRead_DDC1(ScrnInfoPtr pScrn, DDC1SetSpeedProc DDCSpeed,
@@ -328,7 +328,7 @@ DDC2Init(I2CBusPtr pBus)
     I2CDevPtr dev = NULL;
 
     /*
-     * Slow down the bus so that older monitors don't 
+     * Slow down the bus so that older monitors don't
      * miss things.
      */
     pBus->RiseFallTime = 20;

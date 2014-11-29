@@ -16,7 +16,7 @@
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL SuSE
  * BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
- * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN 
+ * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  * Author:  Keith Packard, SuSE, Inc.
@@ -129,7 +129,7 @@ typedef enum _PictFormatShort {
 } PictFormatShort;
 
 /*
- * For dynamic indexed visuals (GrayScale and PseudoColor), these control the 
+ * For dynamic indexed visuals (GrayScale and PseudoColor), these control the
  * selection of colors allocated for drawing to Pictures.  The default
  * policy depends on the size of the colormap:
  *
@@ -189,8 +189,8 @@ typedef pixman_fixed_1_16_t xFixed_1_16;
 typedef pixman_fixed_16_16_t xFixed_16_16;
 
 /*
- * An unadorned "xFixed" is the same as xFixed_16_16, 
- * (since it's quite common in the code) 
+ * An unadorned "xFixed" is the same as xFixed_16_16,
+ * (since it's quite common in the code)
  */
 typedef pixman_fixed_t xFixed;
 

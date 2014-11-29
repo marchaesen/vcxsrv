@@ -28,7 +28,7 @@ from the X Consortium.
 
 */
 
-/* 
+/*
 ** Machines with a 64 bit library interface and a 32 bit server require
 ** name changes to protect the guilty.
 */

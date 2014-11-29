@@ -596,7 +596,7 @@ DarwinSendPointerEvents(DeviceIntPtr pDev, int ev_type, int ev_button,
         QueuePointerEvents(pDev, ev_type, ev_button, POINTER_ABSOLUTE,
                            &valuators);
         DarwinPokeEQ();
-    } darwinEvents_unlock();   
+    } darwinEvents_unlock();
 }
 
 void
@@ -645,7 +645,7 @@ DarwinSendScrollEvents(double scroll_x, double scroll_y) {
         QueuePointerEvents(darwinPointer, MotionNotify, 0,
                            POINTER_RELATIVE, &valuators);
         DarwinPokeEQ();
-    } darwinEvents_unlock();    
+    } darwinEvents_unlock();
 }
 
 /* Send the appropriate KeyPress/KeyRelease events to GetKeyboardEvents to

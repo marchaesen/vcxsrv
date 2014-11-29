@@ -26,13 +26,13 @@ Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -235,7 +235,7 @@ miZeroLine(DrawablePtr pDraw, GCPtr pGC, int mode,      /* Origin or Previous */
                 length = abs(new_x2 - new_x1);
 
                 /* if we've clipped the endpoint, always draw the full length
-                 * of the segment, because then the capstyle doesn't matter 
+                 * of the segment, because then the capstyle doesn't matter
                  */
                 if (pt2_clipped)
                     length++;
@@ -295,7 +295,7 @@ miZeroLine(DrawablePtr pDraw, GCPtr pGC, int mode,      /* Origin or Previous */
                 length = abs(new_y2 - new_y1);
 
                 /* if we've clipped the endpoint, always draw the full length
-                 * of the segment, because then the capstyle doesn't matter 
+                 * of the segment, because then the capstyle doesn't matter
                  */
                 if (pt2_clipped)
                     length++;

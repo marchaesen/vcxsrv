@@ -49,13 +49,13 @@ Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts,
 
 			All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -135,7 +135,7 @@ Equipment Corporation.
 #include <X11/Xatom.h>          /* must come after server includes */
 
 /******
- * Window stuff for server 
+ * Window stuff for server
  *
  *    CreateRootWindow, CreateWindow, ChangeWindowAttributes,
  *    GetWindowAttributes, DeleteWindow, DestroySubWindows,
@@ -633,7 +633,7 @@ RealChildHead(WindowPtr pWin)
 
 /*****
  * CreateWindow
- *    Makes a window in response to client request 
+ *    Makes a window in response to client request
  *****/
 
 WindowPtr
@@ -1038,10 +1038,10 @@ SetRootWindowBackground(WindowPtr pWin, ScreenPtr pScreen, Mask *index2)
 
 /*****
  *  ChangeWindowAttributes
- *   
+ *
  *  The value-mask specifies which attributes are to be changed; the
  *  value-list contains one value for each one bit in the mask, from least
- *  to most significant bit in the mask.  
+ *  to most significant bit in the mask.
  *****/
 
 int
@@ -1459,8 +1459,8 @@ ChangeWindowAttributes(WindowPtr pWin, Mask vmask, XID *vlist, ClientPtr client)
     /* We SHOULD check for an error value here XXX */
     (*pScreen->ChangeWindowAttributes) (pWin, vmaskCopy);
 
-    /* 
-       If the border contents have changed, redraw the border. 
+    /*
+       If the border contents have changed, redraw the border.
        Note that this has to be done AFTER pScreen->ChangeWindowAttributes
        for the tile to be rotated, and the correct function selected.
      */
@@ -1814,7 +1814,7 @@ ResizeChildrenWinSize(WindowPtr pWin, int dx, int dy, int dw, int dh)
 
 /*
  * IsSiblingAboveMe
- *     returns Above if pSib above pMe in stack or Below otherwise 
+ *     returns Above if pSib above pMe in stack or Below otherwise
  */
 
 static int
@@ -1914,7 +1914,7 @@ IOverlapAnyWindow(WindowPtr pWin, BoxPtr box)
 }
 
 /*
- *   WhereDoIGoInTheStack() 
+ *   WhereDoIGoInTheStack()
  *	  Given pWin and pSib and the relationshipe smode, return
  *	  the window that pWin should go ABOVE.
  *	  If a pSib is specified:
@@ -1922,7 +1922,7 @@ IOverlapAnyWindow(WindowPtr pWin, BoxPtr box)
  *	      Below:  pWin is placed just below pSib
  *	      TopIf:  if pSib occludes pWin, then pWin is placed
  *		      at the top of the stack
- *	      BottomIf:	 if pWin occludes pSib, then pWin is 
+ *	      BottomIf:	 if pWin occludes pSib, then pWin is
  *			 placed at the bottom of the stack
  *	      Opposite: if pSib occludes pWin, then pWin is placed at the
  *			top of the stack, else if pWin occludes pSib, then
@@ -2316,7 +2316,7 @@ ConfigureWindow(WindowPtr pWin, Mask mask, XID *vlist, ClientPtr client)
  *    For RaiseLowest, raises the lowest mapped child (if any) that is
  *    obscured by another child to the top of the stack.  For LowerHighest,
  *    lowers the highest mapped child (if any) that is obscuring another
- *    child to the bottom of the stack.	 Exposure processing is performed 
+ *    child to the bottom of the stack.	 Exposure processing is performed
  *
  ******/
 
@@ -3243,7 +3243,7 @@ CheckWindowOptionalNeed(WindowPtr w)
         return;
     if (optional->userProps != NULL)
         return;
-    if (optional->backingBitPlanes != ~0L)
+    if (optional->backingBitPlanes != (CARD32)~0L)
         return;
     if (optional->backingPixel != 0)
         return;
@@ -3327,9 +3327,9 @@ MakeWindowOptional(WindowPtr pWin)
  * changing the window cursor (e.g. using XDefineCursor()) will not have any
  * visible effect. Only when one of the device cursors is set to None again,
  * this device's cursor will display the changed standard cursor.
- * 
+ *
  * CursorIsNone of the window struct is NOT modified if you set a device
- * cursor. 
+ * cursor.
  *
  * Assumption: If there is a node for a device in the list, the device has a
  * cursor. If the cursor is set to None, it is inherited by the parent.
@@ -3424,7 +3424,7 @@ ChangeWindowDeviceCursor(WindowPtr pWin, DeviceIntPtr pDev, CursorPtr pCursor)
     if (pOldCursor)
         FreeCursor(pOldCursor, (Cursor) 0);
 
-    /* FIXME: We SHOULD check for an error value here XXX  
+    /* FIXME: We SHOULD check for an error value here XXX
        (comment taken from ChangeWindowAttributes) */
     (*pScreen->ChangeWindowAttributes) (pWin, CWCursor);
 
@@ -3491,7 +3491,7 @@ WindowSeekDeviceCursor(WindowPtr pWin,
 }
 
 /* Return True if a parent has the same device cursor set or False if
- * otherwise 
+ * otherwise
  */
 static Bool
 WindowParentHasDeviceCursor(WindowPtr pWin,

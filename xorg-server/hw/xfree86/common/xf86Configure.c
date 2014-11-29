@@ -679,8 +679,8 @@ DoConfigure(void)
                 if (primary)
                     continue;
                 /* not primary: assign it to next device of same driver */
-                /* 
-                 * NOTE: we assume that devices in DevToConfig 
+                /*
+                 * NOTE: we assume that devices in DevToConfig
                  * and xf86Screens[] have the same order except
                  * for the primary device which always comes first.
                  */

@@ -36,6 +36,7 @@
 #endif
 
 #define GL_GLEXT_LEGACY
+#define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
 #undef GL_ARB_imaging
 #undef GL_VERSION_1_3
@@ -45,6 +46,8 @@
 #include <os.h>
 #include "glwindows.h"
 #include <glx/glxserver.h>
+
+extern void *glXGetProcAddressARB(const char *);
 
 static HMODULE hMod = NULL;
 

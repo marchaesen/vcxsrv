@@ -509,7 +509,7 @@ PanoramiXConfigureWindow(ClientPtr client)
         }
     }
 
-    /* have to go forward or you get expose events before 
+    /* have to go forward or you get expose events before
        ConfigureNotify events */
     FOR_NSCREENS_FORWARD(j) {
         stuff->window = win->info[j].id;
@@ -1037,7 +1037,7 @@ PanoramiXClearToBackground(ClientPtr client)
     return result;
 }
 
-/* 
+/*
     For Window to Pixmap copies you're screwed since each screen's
     pixmap will look like what it sees on its screen.  Unless the
     screens overlap and the window lies on each, the two copies

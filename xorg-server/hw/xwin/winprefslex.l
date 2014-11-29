@@ -37,8 +37,6 @@
 #include <string.h>
 #include "winprefsyacc.h"
 
-extern int yyparse(void);
-
 extern void ErrorF (const char* /*f*/, ...);
 
 /* Copy the parsed string, must be free()d in yacc parser */

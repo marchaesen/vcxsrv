@@ -110,80 +110,6 @@ fbPadPixmap(PixmapPtr pPixmap)
     fbFinishAccess(&pPixmap->drawable);
 }
 
-/*
- * Verify that 'bits' repeats every 'len' bits
- */
-static Bool
-fbBitsRepeat(FbBits bits, int len, int width)
-{
-    FbBits mask = FbBitsMask(0, len);
-    FbBits orig = bits & mask;
-    int i;
-
-    if (width > FB_UNIT)
-        width = FB_UNIT;
-    for (i = 0; i < width / len; i++) {
-        if ((bits & mask) != orig)
-            return FALSE;
-        bits = FbScrLeft(bits, len);
-    }
-    return TRUE;
-}
-
-/*
- * Check whether an entire bitmap line is a repetition of
- * the first 'len' bits
- */
-static Bool
-fbLineRepeat(FbBits * bits, int len, int width)
-{
-    FbBits first = bits[0];
-
-    if (!fbBitsRepeat(first, len, width))
-        return FALSE;
-    width = (width + FB_UNIT - 1) >> FB_SHIFT;
-    bits++;
-    while (--width)
-        if (READ(bits) != first)
-            return FALSE;
-    return TRUE;
-}
-
-/*
- * The even stipple code wants the first FB_UNIT/bpp bits on
- * each scanline to represent the entire stipple
- */
-static Bool
-fbCanEvenStipple(PixmapPtr pStipple, int bpp)
-{
-    int len = FB_UNIT / bpp;
-    FbBits *bits;
-    int stride;
-    int stip_bpp;
-    _X_UNUSED int stipXoff, stipYoff;
-    int h;
-
-    /* can't even stipple 24bpp drawables */
-    if ((bpp & (bpp - 1)) != 0)
-        return FALSE;
-    /* make sure the stipple width is a multiple of the even stipple width */
-    if (pStipple->drawable.width % len != 0)
-        return FALSE;
-    fbGetDrawable(&pStipple->drawable, bits, stride, stip_bpp, stipXoff,
-                  stipYoff);
-    h = pStipple->drawable.height;
-    /* check to see that the stipple repeats horizontally */
-    while (h--) {
-        if (!fbLineRepeat(bits, len, pStipple->drawable.width)) {
-            fbFinishAccess(&pStipple->drawable);
-            return FALSE;
-        }
-        bits += stride;
-    }
-    fbFinishAccess(&pStipple->drawable);
-    return TRUE;
-}
-
 void
 fbValidateGC(GCPtr pGC, unsigned long changes, DrawablePtr pDrawable)
 {
@@ -193,7 +119,7 @@ fbValidateGC(GCPtr pGC, unsigned long changes, DrawablePtr pDrawable)
     /*
      * if the client clip is different or moved OR the subwindowMode has
      * changed OR the window's clip has changed since the last validation
-     * we need to recompute the composite clip 
+     * we need to recompute the composite clip
      */
 
     if ((changes &
@@ -239,16 +165,7 @@ fbValidateGC(GCPtr pGC, unsigned long changes, DrawablePtr pDrawable)
             fbPadPixmap(pGC->tile.pixmap);
     }
     if (changes & GCStipple) {
-        pPriv->evenStipple = FALSE;
-
         if (pGC->stipple) {
-
-            /* can we do an even stipple ?? */
-            if (FbEvenStip(pGC->stipple->drawable.width,
-                           pDrawable->bitsPerPixel) &&
-                (fbCanEvenStipple(pGC->stipple, pDrawable->bitsPerPixel)))
-                pPriv->evenStipple = TRUE;
-
             if (pGC->stipple->drawable.width * pDrawable->bitsPerPixel <
                 FB_UNIT)
                 fbPadPixmap(pGC->stipple);

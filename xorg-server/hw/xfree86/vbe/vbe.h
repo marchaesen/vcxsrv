@@ -3,10 +3,10 @@
  *                   XFree86 vbe module
  *               Copyright 2000 Egbert Eich
  *
- * The mode query/save/set/restore functions from the vesa driver 
+ * The mode query/save/set/restore functions from the vesa driver
  * have been moved here.
  * Copyright (c) 2000 by Conectiva S.A. (http://www.conectiva.com)
- * Authors: Paulo César Pereira de Andrade <pcpa@conectiva.com.br> 
+ * Authors: Paulo César Pereira de Andrade <pcpa@conectiva.com.br>
  */
 
 #ifndef _VBE_H

@@ -1248,8 +1248,8 @@ transformAbsolute(DeviceIntPtr dev, ValuatorMask *mask)
     double x, y, ox, oy;
     int has_x, has_y;
 
-    has_x = valuator_mask_fetch_double(mask, 0, &ox);
-    has_y = valuator_mask_fetch_double(mask, 1, &oy);
+    has_x = valuator_mask_isset(mask, 0);
+    has_y = valuator_mask_isset(mask, 1);
 
     if (!has_x && !has_y)
         return;
@@ -1263,23 +1263,23 @@ transformAbsolute(DeviceIntPtr dev, ValuatorMask *mask)
 
         pixman_f_transform_invert(&invert, &dev->scale_and_transform);
         transform(&invert, &ox, &oy);
-
-        x = ox;
-        y = oy;
     }
 
-    if (valuator_mask_isset(mask, 0))
-        ox = x = valuator_mask_get_double(mask, 0);
+    if (has_x)
+        ox = valuator_mask_get_double(mask, 0);
 
-    if (valuator_mask_isset(mask, 1))
-        oy = y = valuator_mask_get_double(mask, 1);
+    if (has_y)
+        oy = valuator_mask_get_double(mask, 1);
+
+    x = ox;
+    y = oy;
 
     transform(&dev->scale_and_transform, &x, &y);
 
-    if (valuator_mask_isset(mask, 0) || ox != x)
+    if (has_x || ox != x)
         valuator_mask_set_double(mask, 0, x);
 
-    if (valuator_mask_isset(mask, 1) || oy != y)
+    if (has_y || oy != y)
         valuator_mask_set_double(mask, 1, y);
 }
 

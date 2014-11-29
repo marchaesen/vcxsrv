@@ -26,13 +26,13 @@ Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -181,11 +181,11 @@ static void FindColorInRootCmap(ColormapPtr /* pmap */ ,
 
 #define RGBMASK(vis) (vis->redMask | vis->greenMask | vis->blueMask | ALPHAMASK(vis))
 
-/* GetNextBitsOrBreak(bits, mask, base)  -- 
+/* GetNextBitsOrBreak(bits, mask, base)  --
  * (Suggestion: First read the macro, then read this explanation.
  *
  * Either generate the next value to OR in to a pixel or break out of this
- * while loop 
+ * while loop
  *
  * This macro is used when we're trying to generate all 2^n combinations of
  * bits in mask.  What we're doing here is counting in binary, except that
@@ -197,11 +197,11 @@ static void FindColorInRootCmap(ColormapPtr /* pmap */ ,
  * base has 1 bit set where the least significant bit of mask is set
  *
  * For example,if mask is 01010, base should be 0010 and we count like this:
- * 00010 (see this isn't so hard), 
+ * 00010 (see this isn't so hard),
  *     then we add base to bits and get 0100. (bits & ~mask) is (0100 & 0100) so
  *      we add that to bits getting (0100 + 0100) =
  * 01000 for our next value.
- *      then we add 0010 to get 
+ *      then we add 0010 to get
  * 01010 and we're done (easy as 1, 2, 3)
  */
 #define GetNextBitsOrBreak(bits, mask, base)	\
@@ -225,9 +225,9 @@ typedef struct _colorResource {
  * fShared should only be set if refcnt == AllocPrivate, and only in red map
  */
 
-/** 
- * Create and initialize the color map 
- * 
+/**
+ * Create and initialize the color map
+ *
  * \param mid    resource to use for this colormap
  * \param alloc  1 iff all entries are allocated writable
  */
@@ -370,7 +370,7 @@ CreateColormap(Colormap mid, ScreenPtr pScreen, VisualPtr pVisual,
     if (!AddResource(mid, RT_COLORMAP, (void *) pmap))
         return BadAlloc;
 
-    /*  
+    /*
      * Security creation/labeling check
      */
     i = XaceHook(XACE_RESOURCE_ACCESS, clients[client], mid, RT_COLORMAP,
@@ -1456,7 +1456,7 @@ FreePixels(ColormapPtr pmap, int client)
     }
 }
 
-/** 
+/**
  * Frees all of a client's colors and cells.
  *
  *  \param value  must conform to DeleteType
@@ -1574,7 +1574,7 @@ AllocColorPlanes(int client, ColormapPtr pmap, int colors,
         /* Allocate the proper pixels */
         /* XXX This is sort of bad, because of contig is set, we force all
          * r + g + b bits to be contiguous.  Should only force contiguity
-         * per mask 
+         * per mask
          */
         ok = AllocPseudo(client, pmap, colors, r + g + b, contig, pixels,
                          &mask, &ppixFirst);
@@ -1786,7 +1786,7 @@ AllocPseudo(int client, ColormapPtr pmap, int c, int r, Bool contig,
  * pixels are the unique pixels.  *pMask has the mask to Or with the
  * unique pixels to get the rest of them.
  *
- * Returns True iff all pixels could be allocated 
+ * Returns True iff all pixels could be allocated
  * All cells allocated will have refcnt set to AllocPrivate and shared to FALSE
  * (see AllocShared for why we care)
  */
@@ -2056,7 +2056,7 @@ AllocShared(ColormapPtr pmap, Pixel * ppix, int c, int r, int g, int b,
 }
 
 /** FreeColors
- * Free colors and/or cells (probably slow for large numbers) 
+ * Free colors and/or cells (probably slow for large numbers)
  */
 int
 FreeColors(ColormapPtr pmap, int client, int count, Pixel * pixels, Pixel mask)
@@ -2097,7 +2097,7 @@ FreeColors(ColormapPtr pmap, int client, int count, Pixel * pixels, Pixel mask)
 /**
  * Helper for FreeColors -- frees all combinations of *newpixels and mask bits
  * which the client has allocated in channel colormap cells of pmap.
- * doesn't change newpixels if it doesn't need to 
+ * doesn't change newpixels if it doesn't need to
  *
  *  \param pmap   which colormap head
  *  \param color  which sub-map, eg, RED, BLUE, PSEUDO

@@ -806,7 +806,7 @@ ListFonts(ClientPtr client, unsigned char *pattern, unsigned length,
     int i;
     LFclosurePtr c;
 
-    /* 
+    /*
      * The right error to return here would be BadName, however the
      * specification does not allow for a Name error on this request.
      * Perhaps a better solution would be to return a nil list, i.e.
@@ -1057,7 +1057,7 @@ StartListFontsWithInfo(ClientPtr client, int length, unsigned char *pattern,
     int i;
     LFWIclosurePtr c;
 
-    /* 
+    /*
      * The right error to return here would be BadName, however the
      * specification does not allow for a Name error on this request.
      * Perhaps a better solution would be to return a nil list, i.e.
@@ -1851,7 +1851,7 @@ GetClientResolutions(int *num)
     pScreen = screenInfo.screens[0];
     res.x_resolution = (pScreen->width * 25.4) / pScreen->mmWidth;
     /*
-     * XXX - we'll want this as long as bitmap instances are prevalent 
+     * XXX - we'll want this as long as bitmap instances are prevalent
      so that we can match them from scalable fonts
      */
     if (res.x_resolution < 88)

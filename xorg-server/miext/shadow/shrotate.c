@@ -259,7 +259,7 @@ shadowUpdateRotatePacked(ScreenPtr pScreen, shadowBufPtr pBuf)
                     p = pixelsPerBits;
                     /*
                      * Build one word of output from multiple inputs
-                     * 
+                     *
                      * Note that for 90/270 rotations, this will walk
                      * down the shadow hitting each scanline once.
                      * This is probably not very efficient.

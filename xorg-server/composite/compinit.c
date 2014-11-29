@@ -78,6 +78,7 @@ compCloseScreen(ScreenPtr pScreen)
     pScreen->PositionWindow = cs->PositionWindow;
 
     pScreen->GetImage = cs->GetImage;
+    pScreen->GetSpans = cs->GetSpans;
     pScreen->SourceValidate = cs->SourceValidate;
 
     free(cs);
@@ -151,6 +152,21 @@ compGetImage(DrawablePtr pDrawable,
 }
 
 static void
+compGetSpans(DrawablePtr pDrawable, int wMax, DDXPointPtr ppt, int *pwidth,
+             int nspans, char *pdstStart)
+{
+    ScreenPtr pScreen = pDrawable->pScreen;
+    CompScreenPtr cs = GetCompScreen(pScreen);
+
+    pScreen->GetSpans = cs->GetSpans;
+    if (pDrawable->type == DRAWABLE_WINDOW)
+        compPaintChildrenToWindow((WindowPtr) pDrawable);
+    (*pScreen->GetSpans) (pDrawable, wMax, ppt, pwidth, nspans, pdstStart);
+    cs->GetSpans = pScreen->GetSpans;
+    pScreen->GetSpans = compGetSpans;
+}
+
+static void
 compSourceValidate(DrawablePtr pDrawable,
                    int x, int y,
                    int width, int height, unsigned int subWindowMode)
@@ -193,7 +209,7 @@ compFindVisuallessDepth(ScreenPtr pScreen, int d)
         }
     }
     /*
-     * If there isn't one, then it's gonna be hard to have 
+     * If there isn't one, then it's gonna be hard to have
      * an associated visual
      */
     return 0;
@@ -431,6 +447,9 @@ compScreenInit(ScreenPtr pScreen)
 
     cs->GetImage = pScreen->GetImage;
     pScreen->GetImage = compGetImage;
+
+    cs->GetSpans = pScreen->GetSpans;
+    pScreen->GetSpans = compGetSpans;
 
     cs->SourceValidate = pScreen->SourceValidate;
     pScreen->SourceValidate = compSourceValidate;

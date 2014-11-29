@@ -984,17 +984,17 @@ extern _X_EXPORT void
 #endif                          /* _RANDRSTR_H_ */
 
 /*
- 
+
 randr extension implementation structure
 
 Query state:
     ProcRRGetScreenInfo/ProcRRGetScreenResources
 	RRGetInfo
- 
+
 	    • Request configuration from driver, either 1.0 or 1.2 style
 	    • These functions only record state changes, all
 	      other actions are pended until RRTellChanged is called
- 
+
 	    ->rrGetInfo
 	    1.0:
 		RRRegisterSize
@@ -1009,15 +1009,15 @@ Query state:
 		RROutputSetSubpixelOrder
 		RROutputSetClones
 		RRCrtcNotify
- 
+
 	• Must delay scanning configuration until after ->rrGetInfo returns
 	  because some drivers will call SetCurrentConfig in the middle
 	  of the ->rrGetInfo operation.
- 
+
 	1.0:
 
 	    • Scan old configuration, mirror to new structures
- 
+
 	    RRScanOldConfig
 		RRCrtcCreate
 		RROutputCreate
@@ -1027,16 +1027,16 @@ Query state:
 		RROldModeAdd	• This adds modes one-at-a-time
 		    RRModeGet
 		RRCrtcNotify
- 
+
 	• send events, reset pointer if necessary
- 
+
 	RRTellChanged
 	    WalkTree (sending events)
- 
+
 	    • when layout has changed:
 		RRPointerScreenConfigured
 		RRSendConfigNotify
- 
+
 Asynchronous state setting (1.2 only)
     When setting state asynchronously, the driver invokes the
     ->rrGetInfo function and then calls RRTellChanged to flush

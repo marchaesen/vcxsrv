@@ -214,7 +214,7 @@ xf86RecolorCursor(ScreenPtr pScreen, CursorPtr pCurs, Bool displayed)
     xf86CursorInfoPtr infoPtr = ScreenPriv->CursorInfoPtr;
 
 #ifdef ARGB_CURSOR
-    /* recoloring isn't applicable to ARGB cursors and drivers 
+    /* recoloring isn't applicable to ARGB cursors and drivers
        shouldn't have to ignore SetCursorColors requests */
     if (pCurs->bits->argb)
         return;

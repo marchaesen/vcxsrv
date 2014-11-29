@@ -126,7 +126,8 @@ void
 winClipboardInitMonitoredSelections(void)
 {
     /* Initialize static variables */
-    for (int i = 0; i < CLIP_NUM_SELECTIONS; ++i)
+    int i;
+    for (i = 0; i < CLIP_NUM_SELECTIONS; ++i)
       s_iOwners[i] = None;
 
     lastOwnedSelectionIndex = CLIP_OWN_NONE;

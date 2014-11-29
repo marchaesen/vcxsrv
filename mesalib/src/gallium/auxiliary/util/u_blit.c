@@ -188,7 +188,7 @@ set_vertex_shader(struct blit_state *ctx)
       const uint semantic_indexes[] = { 0, 0 };
       ctx->vs = util_make_vertex_passthrough_shader(ctx->pipe, 2,
                                                     semantic_names,
-                                                    semantic_indexes);
+                                                    semantic_indexes, FALSE);
    }
 
    cso_set_vertex_shader_handle(ctx->cso, ctx->vs);
@@ -559,11 +559,9 @@ util_blit_pixels_tex(struct blit_state *ctx,
    ctx->viewport.scale[0] = 0.5f * dst->width;
    ctx->viewport.scale[1] = 0.5f * dst->height;
    ctx->viewport.scale[2] = 0.5f;
-   ctx->viewport.scale[3] = 1.0f;
    ctx->viewport.translate[0] = 0.5f * dst->width;
    ctx->viewport.translate[1] = 0.5f * dst->height;
    ctx->viewport.translate[2] = 0.5f;
-   ctx->viewport.translate[3] = 0.0f;
    cso_set_viewport(ctx->cso, &ctx->viewport);
 
    /* texture */

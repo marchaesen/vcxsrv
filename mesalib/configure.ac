@@ -39,6 +39,7 @@ PRESENTPROTO_REQUIRED=1.0
 LIBUDEV_REQUIRED=151
 GLPROTO_REQUIRED=1.4.14
 LIBOMXIL_BELLAGIO_REQUIRED=0.0
+LIBVA_REQUIRED=0.35.0
 VDPAU_REQUIRED=0.4.1
 WAYLAND_REQUIRED=1.2.0
 XCB_REQUIRED=1.9.3
@@ -252,7 +253,16 @@ AC_SUBST([VISIBILITY_CXXFLAGS])
 dnl
 dnl Optional flags, check for compiler support
 dnl
-AX_CHECK_COMPILE_FLAG([-msse4.1], [SSE41_SUPPORTED=1], [SSE41_SUPPORTED=0])
+save_CFLAGS="$CFLAGS"
+CFLAGS="-msse4.1 $CFLAGS"
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+#include <smmintrin.h>
+int main () {
+    __m128i a = _mm_set1_epi32 (0), b = _mm_set1_epi32 (0), c;
+    c = _mm_max_epu32(a, b);
+    return 0;
+}]])], SSE41_SUPPORTED=1)
+CFLAGS="$save_CFLAGS"
 if test "x$SSE41_SUPPORTED" = x1; then
     DEFINES="$DEFINES -DUSE_SSE41"
 fi
@@ -527,6 +537,9 @@ if test "x$enable_asm" = xyes; then
     esac
 fi
 
+AC_CHECK_HEADER([xlocale.h], [DEFINES="$DEFINES -DHAVE_XLOCALE_H"])
+AC_CHECK_FUNC([strtof], [DEFINES="$DEFINES -DHAVE_STRTOF"])
+
 dnl Check to see if dlopen is in default libraries (like Solaris, which
 dnl has it in libc), or if libdl is needed to get it.
 AC_CHECK_FUNC([dlopen], [DEFINES="$DEFINES -DHAVE_DLOPEN"],
@@ -657,6 +670,11 @@ AC_ARG_ENABLE([gbm],
          [enable gbm library @<:@default=auto@:>@])],
    [enable_gbm="$enableval"],
    [enable_gbm=auto])
+AC_ARG_ENABLE([nine],
+    [AS_HELP_STRING([--enable-nine],
+        [enable build of the nine Direct3D9 API @<:@default=no@:>@])],
+    [enable_nine="$enableval"],
+    [enable_nine=no])
 
 AC_ARG_ENABLE([xvmc],
    [AS_HELP_STRING([--enable-xvmc],
@@ -694,20 +712,6 @@ AC_ARG_ENABLE([xlib-glx],
         [make GLX library Xlib-based instead of DRI-based @<:@default=disabled@:>@])],
     [enable_xlib_glx="$enableval"],
     [enable_xlib_glx=no])
-AC_ARG_ENABLE([gallium-egl],
-    [AS_HELP_STRING([--enable-gallium-egl],
-        [enable optional EGL state tracker (not required
-         for EGL support in Gallium with OpenGL and OpenGL ES)
-         @<:@default=disabled@:>@])],
-    [enable_gallium_egl="$enableval"],
-    [enable_gallium_egl=no])
-AC_ARG_ENABLE([gallium-gbm],
-    [AS_HELP_STRING([--enable-gallium-gbm],
-        [enable optional gbm state tracker (not required for
-         gbm support in Gallium)
-         @<:@default=auto@:>@])],
-    [enable_gallium_gbm="$enableval"],
-    [enable_gallium_gbm=auto])
 
 AC_ARG_ENABLE([r600-llvm-compiler],
     [AS_HELP_STRING([--enable-r600-llvm-compiler],
@@ -744,6 +748,7 @@ esac
 if test "x$enable_opengl" = xno -a \
         "x$enable_gles1" = xno -a \
         "x$enable_gles2" = xno -a \
+        "x$enable_nine" = xno -a \
         "x$enable_openvg" = xno -a \
         "x$enable_xa" = xno -a \
         "x$enable_xvmc" = xno -a \
@@ -1311,51 +1316,6 @@ AM_CONDITIONAL(HAVE_EGL, test "x$enable_egl" = xyes)
 AC_SUBST([EGL_LIB_DEPS])
 
 dnl
-dnl EGL Gallium configuration
-dnl
-if test "x$enable_gallium_egl" = xyes; then
-    if test -z "$with_gallium_drivers"; then
-        AC_MSG_ERROR([cannot enable egl_gallium without Gallium])
-    fi
-    if test "x$enable_egl" = xno; then
-        AC_MSG_ERROR([cannot enable egl_gallium without EGL])
-    fi
-    if test "x$have_libdrm" != xyes; then
-        AC_MSG_ERROR([egl_gallium requires libdrm >= $LIBDRM_REQUIRED])
-    fi
-# XXX: Uncomment once converted to use static/shared pipe-drivers
-#    enable_gallium_loader=$enable_shared_pipe_drivers
-fi
-AM_CONDITIONAL(HAVE_GALLIUM_EGL, test "x$enable_gallium_egl" = xyes)
-
-dnl
-dnl gbm Gallium configuration
-dnl
-if test "x$enable_gallium_gbm" = xauto; then
-    case "$enable_gbm$enable_gallium_egl$enable_dri$with_egl_platforms" in
-        yesyesyes*drm*)
-            enable_gallium_gbm=yes ;;
-         *)
-            enable_gallium_gbm=no ;;
-    esac
-fi
-if test "x$enable_gallium_gbm" = xyes; then
-    if test -z "$with_gallium_drivers"; then
-        AC_MSG_ERROR([cannot enable gbm_gallium without Gallium])
-    fi
-    if test "x$enable_gbm" = xno; then
-        AC_MSG_ERROR([cannot enable gbm_gallium without gbm])
-    fi
-
-    if test "x$enable_gallium_egl" != xyes; then
-        AC_MSG_ERROR([gbm_gallium is only used by egl_gallium])
-    fi
-
-    enable_gallium_loader=$enable_shared_pipe_drivers
-fi
-AM_CONDITIONAL(HAVE_GALLIUM_GBM, test "x$enable_gallium_gbm" = xyes)
-
-dnl
 dnl XA configuration
 dnl
 if test "x$enable_xa" = xyes; then
@@ -1383,9 +1343,9 @@ if test "x$enable_openvg" = xyes; then
     if test -z "$with_gallium_drivers"; then
         AC_MSG_ERROR([cannot enable OpenVG without Gallium])
     fi
-    if test "x$enable_gallium_egl" = xno; then
-        AC_MSG_ERROR([cannot enable OpenVG without egl_gallium])
-    fi
+
+    AC_MSG_ERROR([Cannot enable OpenVG, because egl_gallium has been removed and
+                  OpenVG hasn't been integrated into standard libEGL yet])
 
     EGL_CLIENT_APIS="$EGL_CLIENT_APIS "'$(VG_LIB)'
     VG_LIB_DEPS="$VG_LIB_DEPS $SELINUX_LIBS $PTHREAD_LIBS"
@@ -1399,47 +1359,72 @@ dnl Gallium G3DVL configuration
 dnl
 if test -n "$with_gallium_drivers" -a "x$with_gallium_drivers" != xswrast; then
     if test "x$enable_xvmc" = xauto; then
-	PKG_CHECK_EXISTS([xvmc], [enable_xvmc=yes], [enable_xvmc=no])
+	PKG_CHECK_EXISTS([xvmc >= $XVMC_REQUIRED], [enable_xvmc=yes], [enable_xvmc=no])
     fi
 
     if test "x$enable_vdpau" = xauto; then
-	PKG_CHECK_EXISTS([vdpau], [enable_vdpau=yes], [enable_vdpau=no])
+	PKG_CHECK_EXISTS([vdpau >= $VDPAU_REQUIRED], [enable_vdpau=yes], [enable_vdpau=no])
     fi
 
     if test "x$enable_omx" = xauto; then
-	PKG_CHECK_EXISTS([libomxil-bellagio], [enable_omx=yes], [enable_omx=no])
+	PKG_CHECK_EXISTS([libomxil-bellagio >= $LIBOMXIL_BELLAGIO_REQUIRED], [enable_omx=yes], [enable_omx=no])
     fi
 
     if test "x$enable_va" = xauto; then
-        PKG_CHECK_EXISTS([libva], [enable_va=yes], [enable_va=no])
+        PKG_CHECK_EXISTS([libva >= $LIBVA_REQUIRED], [enable_va=yes], [enable_va=no])
     fi
 fi
 
+if test "x$enable_xvmc" = xyes -o \
+        "x$enable_vdpau" = xyes -o \
+        "x$enable_omx" = xyes -o \
+        "x$enable_va" = xyes; then
+    PKG_CHECK_MODULES([VL], [x11-xcb xcb xcb-dri2 >= $XCBDRI2_REQUIRED])
+    need_gallium_vl=yes
+fi
+AM_CONDITIONAL(NEED_GALLIUM_VL, test "x$need_gallium_vl" = xyes)
+
 if test "x$enable_xvmc" = xyes; then
-    PKG_CHECK_MODULES([XVMC], [xvmc >= $XVMC_REQUIRED x11-xcb xcb xcb-dri2 >= $XCBDRI2_REQUIRED])
+    PKG_CHECK_MODULES([XVMC], [xvmc >= $XVMC_REQUIRED])
     enable_gallium_loader=$enable_shared_pipe_drivers
 fi
 AM_CONDITIONAL(HAVE_ST_XVMC, test "x$enable_xvmc" = xyes)
 
 if test "x$enable_vdpau" = xyes; then
-    PKG_CHECK_MODULES([VDPAU], [vdpau >= $VDPAU_REQUIRED x11-xcb xcb xcb-dri2 >= $XCBDRI2_REQUIRED],
-                      [VDPAU_LIBS="`$PKG_CONFIG --libs x11-xcb xcb xcb-dri2`"])
+    PKG_CHECK_MODULES([VDPAU], [vdpau >= $VDPAU_REQUIRED])
     enable_gallium_loader=$enable_shared_pipe_drivers
 fi
 AM_CONDITIONAL(HAVE_ST_VDPAU, test "x$enable_vdpau" = xyes)
 
 if test "x$enable_omx" = xyes; then
-    PKG_CHECK_MODULES([OMX], [libomxil-bellagio >= $LIBOMXIL_BELLAGIO_REQUIRED x11-xcb xcb xcb-dri2 >= $XCBDRI2_REQUIRED])
+    PKG_CHECK_MODULES([OMX], [libomxil-bellagio >= $LIBOMXIL_BELLAGIO_REQUIRED])
     enable_gallium_loader=$enable_shared_pipe_drivers
 fi
 AM_CONDITIONAL(HAVE_ST_OMX, test "x$enable_omx" = xyes)
 
 if test "x$enable_va" = xyes; then
-    PKG_CHECK_MODULES([VA], [libva >= 0.35.0 x11-xcb xcb-dri2 >= $XCBDRI2_REQUIRED],
-                      [VA_LIBS="`$PKG_CONFIG --libs x11-xcb xcb-dri2`"])
+    PKG_CHECK_MODULES([VA], [libva >= $LIBVA_REQUIRED])
     enable_gallium_loader=$enable_shared_pipe_drivers
 fi
 AM_CONDITIONAL(HAVE_ST_VA, test "x$enable_va" = xyes)
+
+dnl
+dnl Nine Direct3D9 configuration
+dnl
+if test "x$enable_nine" = xyes; then
+    if ! echo "$with_gallium_drivers" | grep -q 'swrast'; then
+        AC_MSG_ERROR([nine requires the gallium swrast driver])
+    fi
+    if test "x$with_gallium_drivers" == xswrast; then
+        AC_MSG_ERROR([nine requires at least one non-swrast gallium driver])
+    fi
+    if test "x$enable_dri3" = xno; then
+        AC_MSG_WARN([using nine together with wine requires DRI3 enabled system])
+    fi
+
+    enable_gallium_loader=$enable_shared_pipe_drivers
+fi
+AM_CONDITIONAL(HAVE_ST_NINE, test "x$enable_nine" = xyes)
 
 dnl
 dnl OpenCL configuration
@@ -1815,6 +1800,13 @@ AC_ARG_WITH([va-libdir],
     [VA_LIB_INSTALL_DIR="${libdir}/dri"])
 AC_SUBST([VA_LIB_INSTALL_DIR])
 
+AC_ARG_WITH([d3d-libdir],
+    [AS_HELP_STRING([--with-d3d-libdir=DIR],
+        [directory for the D3D modules @<:@${libdir}/d3d@:>@])],
+    [D3D_DRIVER_INSTALL_DIR="$withval"],
+    [D3D_DRIVER_INSTALL_DIR="${libdir}/d3d"])
+AC_SUBST([D3D_DRIVER_INSTALL_DIR])
+
 dnl
 dnl Gallium helper functions
 dnl
@@ -1970,7 +1962,7 @@ if test -n "$with_gallium_drivers"; then
 fi
 
 dnl Set LLVM_LIBS - This is done after the driver configuration so
-dnl that drivers can add additonal components to LLVM_COMPONENTS.
+dnl that drivers can add additional components to LLVM_COMPONENTS.
 dnl Previously, gallium drivers were updating LLVM_LIBS directly
 dnl by calling llvm-config --libs ${DRIVER_LLVM_COMPONENTS}, but
 dnl this was causing the same libraries to be appear multiple times
@@ -2003,11 +1995,16 @@ if test "x$MESA_LLVM" != x0; then
 	invocation and rebuild.])])
 
            dnl We don't need to update LLVM_LIBS in this case because the LLVM
-           dnl install uses a shared object for each compoenent and we have
+           dnl install uses a shared object for each component and we have
            dnl already added all of these objects to LLVM_LIBS.
         fi
     else
-        AC_MSG_WARN([Building mesa with staticly linked LLVM may cause compilation issues])
+        AC_MSG_WARN([Building mesa with statically linked LLVM may cause compilation issues])
+        dnl We need to link to llvm system libs when using static libs
+        dnl However, only llvm 3.5+ provides --system-libs
+        if test $LLVM_VERSION_MAJOR -eq 3 -a $LLVM_VERSION_MINOR -ge 5; then
+            LLVM_LIBS="$LLVM_LIBS `$LLVM_CONFIG --system-libs`"
+        fi
     fi
 fi
 
@@ -2094,6 +2091,11 @@ AM_CONDITIONAL(HAVE_X86_ASM, test "x$asm_arch" = xx86 -o "x$asm_arch" = xx86_64)
 AM_CONDITIONAL(HAVE_X86_64_ASM, test "x$asm_arch" = xx86_64)
 AM_CONDITIONAL(HAVE_SPARC_ASM, test "x$asm_arch" = xsparc)
 
+AC_SUBST([NINE_MAJOR], 1)
+AC_SUBST([NINE_MINOR], 0)
+AC_SUBST([NINE_TINY], 0)
+AC_SUBST([NINE_VERSION], "$NINE_MAJOR.$NINE_MINOR.$NINE_TINY")
+
 AC_SUBST([VDPAU_MAJOR], 1)
 AC_SUBST([VDPAU_MINOR], 0)
 
@@ -2162,9 +2164,8 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/drivers/vc4/kernel/Makefile
 		src/gallium/state_trackers/clover/Makefile
 		src/gallium/state_trackers/dri/Makefile
-		src/gallium/state_trackers/egl/Makefile
-		src/gallium/state_trackers/gbm/Makefile
 		src/gallium/state_trackers/glx/xlib/Makefile
+		src/gallium/state_trackers/nine/Makefile
 		src/gallium/state_trackers/omx/Makefile
 		src/gallium/state_trackers/osmesa/Makefile
 		src/gallium/state_trackers/va/Makefile
@@ -2172,6 +2173,8 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/state_trackers/vega/Makefile
 		src/gallium/state_trackers/xa/Makefile
 		src/gallium/state_trackers/xvmc/Makefile
+		src/gallium/targets/d3dadapter9/Makefile
+		src/gallium/targets/d3dadapter9/d3d.pc
 		src/gallium/targets/dri/Makefile
 		src/gallium/targets/egl-static/Makefile
 		src/gallium/targets/gbm/Makefile
@@ -2299,12 +2302,7 @@ if test "$enable_egl" = yes; then
         egl_drivers="$egl_drivers builtin:egl_dri2"
     fi
 
-    if test "x$enable_gallium_egl" = xyes; then
-        echo "        EGL drivers:    ${egl_drivers} egl_gallium"
-        echo "        EGL Gallium STs:$EGL_CLIENT_APIS"
-    else
-        echo "        EGL drivers:    $egl_drivers"
-    fi
+    echo "        EGL drivers:    $egl_drivers"
 fi
 
 echo ""

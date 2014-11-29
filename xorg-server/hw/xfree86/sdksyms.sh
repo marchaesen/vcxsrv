@@ -216,10 +216,7 @@ cat > sdksyms.c << EOF
 #include "mizerarc.h"
 #include "micoord.h"
 #include "mifillarc.h"
-#include "mispans.h"
-#include "miwideline.h"
 #include "mistruct.h"
-#include "mifpoly.h"
 #include "mioverlay.h"
 
 

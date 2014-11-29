@@ -155,12 +155,14 @@ _mesa_choose_tex_format(struct gl_context *ctx, GLenum target,
    case GL_ALPHA4:
    case GL_ALPHA8:
       RETURN_IF_SUPPORTED(MESA_FORMAT_A_UNORM8);
+      RETURN_IF_SUPPORTED(MESA_FORMAT_L8A8_UNORM);
       break;
 
    case GL_ALPHA12:
    case GL_ALPHA16:
       RETURN_IF_SUPPORTED(MESA_FORMAT_A_UNORM16);
       RETURN_IF_SUPPORTED(MESA_FORMAT_A_UNORM8);
+      RETURN_IF_SUPPORTED(MESA_FORMAT_L8A8_UNORM);
       break;
 
    /* Luminance formats */
@@ -224,6 +226,7 @@ _mesa_choose_tex_format(struct gl_context *ctx, GLenum target,
 
    case GL_COMPRESSED_ALPHA_ARB:
       RETURN_IF_SUPPORTED(MESA_FORMAT_A_UNORM8);
+      RETURN_IF_SUPPORTED(MESA_FORMAT_L8A8_UNORM);
       break;
    case GL_COMPRESSED_LUMINANCE_ARB:
       RETURN_IF_SUPPORTED(MESA_FORMAT_L_UNORM8);

@@ -26,13 +26,13 @@ Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -107,7 +107,7 @@ the region package can call this.
 #define RECTLIMIT 25            /* pick a number, any number > 8 */
 #endif
 
-/* miHandleExposures 
+/* miHandleExposures
     generate a region for exposures for areas that were copied from obscured or
 non-existent areas to non-obscured areas of the destination.  Paint the
 background for the region, if the destination is a window.
@@ -131,8 +131,8 @@ miHandleExposures(DrawablePtr pSrcDrawable, DrawablePtr pDstDrawable,
     RegionRec rgnExposed;       /* exposed region, calculated source-
                                    relative, made dst relative to
                                    intersect with visible parts of
-                                   dest and send events to client, 
-                                   and then screen relative to paint 
+                                   dest and send events to client,
+                                   and then screen relative to paint
                                    the window background
                                  */
     WindowPtr pSrcWin;
@@ -230,7 +230,7 @@ miHandleExposures(DrawablePtr pSrcDrawable, DrawablePtr pDstDrawable,
     RegionIntersect(&rgnExposed, &rgnExposed, prgnDstClip);
 
     /* intersect with client clip region. */
-    if (pGC->clientClipType == CT_REGION)
+    if (pGC->clientClip)
         RegionIntersect(&rgnExposed, &rgnExposed, pGC->clientClip);
 
     /*
@@ -564,7 +564,7 @@ miPaintWindow(WindowPtr pWin, RegionPtr prgn, int what)
 }
 
 /* MICLEARDRAWABLE -- sets the entire drawable to the background color of
- * the GC.  Useful when we have a scratch drawable and need to initialize 
+ * the GC.  Useful when we have a scratch drawable and need to initialize
  * it. */
 void
 miClearDrawable(DrawablePtr pDraw, GCPtr pGC)

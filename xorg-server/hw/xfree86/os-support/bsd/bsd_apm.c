@@ -53,7 +53,7 @@ bsdToXF86(int type)
 }
 
 /*
- * APM events can be requested direclty from /dev/apm 
+ * APM events can be requested direclty from /dev/apm
  */
 static int
 bsdPMGetEventFromOS(int fd, pmEvent * events, int num)

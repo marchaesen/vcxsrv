@@ -153,7 +153,7 @@ glamor_pixmap_fbo_cache_put(glamor_pixmap_fbo *fbo)
 #else
     n_format = cache_format(fbo->format);
 
-    if (fbo->fb == 0 || n_format == -1
+    if (fbo->fb == 0 || fbo->external || n_format == -1
         || fbo->glamor_priv->fbo_cache_watermark >= FBO_CACHE_THRESHOLD) {
         fbo->glamor_priv->tick += GLAMOR_CACHE_EXPIRE_MAX;
         glamor_fbo_expire(fbo->glamor_priv);
@@ -237,6 +237,7 @@ glamor_create_fbo_from_tex(glamor_screen_private *glamor_priv,
     fbo->tex = tex;
     fbo->width = w;
     fbo->height = h;
+    fbo->external = FALSE;
     fbo->format = format;
     fbo->glamor_priv = glamor_priv;
 

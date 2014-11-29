@@ -106,7 +106,7 @@ winPointerWarpCursor(DeviceIntPtr pDev, ScreenPtr pScreen, int x, int y)
         MapWindowPoints(pScreenPriv->hwndScreen,
                         HWND_DESKTOP, (LPPOINT) &rcClient, 2);
 
-        /* 
+        /*
          * Update the Windows cursor position so that we don't
          * immediately warp back to the current position.
          */
@@ -169,7 +169,7 @@ winLoadCursor(ScreenPtr pScreen, CursorPtr pCursor, int screen)
                   pCursor->bits->width, pCursor->bits->height,
                   pCursor->bits->xhot, pCursor->bits->yhot);
 
-    /* We can use only White and Black, so calc brightness of color 
+    /* We can use only White and Black, so calc brightness of color
      * Also check if the cursor is inverted */
     dForeY = BRIGHTNESS(pCursor->fore);
     dBackY = BRIGHTNESS(pCursor->back);
@@ -184,8 +184,8 @@ winLoadCursor(ScreenPtr pScreen, CursorPtr pCursor, int screen)
                       pCursor->bits->width, pCursor->bits->height);
     }
 
-    /* Get the number of bytes required to store the whole cursor image 
-     * This is roughly (sm_cx * sm_cy) / 8 
+    /* Get the number of bytes required to store the whole cursor image
+     * This is roughly (sm_cx * sm_cy) / 8
      * round up to 8 pixel boundary so we can convert whole bytes */
     nBytes =
         bits_to_bytes(pScreenPriv->cursor.sm_cx) * pScreenPriv->cursor.sm_cy;
@@ -199,7 +199,7 @@ winLoadCursor(ScreenPtr pScreen, CursorPtr pCursor, int screen)
     memset(pAnd, 0xFF, nBytes);
     pXor = calloc(1, nBytes);
 
-    /* Convert the X11 bitmap to a win32 bitmap 
+    /* Convert the X11 bitmap to a win32 bitmap
      * The first is for an empty mask */
     if (pCursor->bits->emptyMask) {
         int x, y, xmax = bits_to_bytes(nCX);

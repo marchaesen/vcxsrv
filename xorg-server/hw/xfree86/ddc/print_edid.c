@@ -21,7 +21,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  *
- * print_edid.c: print out all information retrieved from display device  
+ * print_edid.c: print out all information retrieved from display device
  */
 
 #ifdef HAVE_XORG_CONFIG_H

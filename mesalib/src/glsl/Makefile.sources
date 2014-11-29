@@ -59,6 +59,7 @@ LIBGLSL_FILES = \
 	$(GLSL_SRCDIR)/loop_controls.cpp \
 	$(GLSL_SRCDIR)/loop_unroll.cpp \
 	$(GLSL_SRCDIR)/lower_clip_distance.cpp \
+	$(GLSL_SRCDIR)/lower_const_arrays_to_uniforms.cpp \
 	$(GLSL_SRCDIR)/lower_discard.cpp \
 	$(GLSL_SRCDIR)/lower_discard_flow.cpp \
 	$(GLSL_SRCDIR)/lower_if_to_cond_assign.cpp \
@@ -104,8 +105,7 @@ LIBGLSL_FILES = \
 	$(GLSL_SRCDIR)/opt_swizzle_swizzle.cpp \
 	$(GLSL_SRCDIR)/opt_tree_grafting.cpp \
 	$(GLSL_SRCDIR)/opt_vectorize.cpp \
-	$(GLSL_SRCDIR)/s_expression.cpp \
-	$(GLSL_SRCDIR)/strtod.c
+	$(GLSL_SRCDIR)/s_expression.cpp
 
 # glsl_compiler
 

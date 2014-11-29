@@ -576,7 +576,7 @@ IBMramdac526LoadCursorImage(ScrnInfoPtr pScrn, unsigned char *src)
     RamDacRecPtr ramdacPtr = RAMDACSCRPTR(pScrn);
     int i;
 
-    /* 
+    /*
      * Output the cursor data.  The realize function has put the planes into
      * their correct order, so we can just blast this out.
      */
@@ -591,7 +591,7 @@ IBMramdac640LoadCursorImage(ScrnInfoPtr pScrn, unsigned char *src)
     RamDacRecPtr ramdacPtr = RAMDACSCRPTR(pScrn);
     int i;
 
-    /* 
+    /*
      * Output the cursor data.  The realize function has put the planes into
      * their correct order, so we can just blast this out.
      */

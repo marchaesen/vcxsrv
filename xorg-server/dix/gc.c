@@ -26,13 +26,13 @@ Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -87,22 +87,22 @@ ValidateGC(DrawablePtr pDraw, GC * pGC)
  * specified.  ddxen can call this too; they should normally pass
  * NullClient for the client since any access checking should have
  * already been done at a higher level.
- * 
+ *
  * If you have any XIDs, you must use ChangeGCXIDs:
- * 
+ *
  *     CARD32 v[2];
  *     v[0] = FillTiled;
  *     v[1] = pid;
  *     ChangeGCXIDs(client, pGC, GCFillStyle|GCTile, v);
- * 
+ *
  * However, if you need to pass a pointer to a pixmap or font, you must
  * use ChangeGC:
- * 
+ *
  *     ChangeGCVal v[2];
  *     v[0].val = FillTiled;
  *     v[1].ptr = pPixmap;
  *     ChangeGC(client, pGC, GCFillStyle|GCTile, v);
- * 
+ *
  * If you have neither XIDs nor pointers, you can use either function,
  * but ChangeGC will do less work.
  *
@@ -495,7 +495,6 @@ NewGCObject(ScreenPtr pScreen, int depth)
     pGC->graphicsExposures = TRUE;
     pGC->clipOrg.x = 0;
     pGC->clipOrg.y = 0;
-    pGC->clientClipType = CT_NONE;
     pGC->clientClip = (void *) NULL;
     pGC->numInDashList = 2;
     pGC->dash = DefaultDash;
@@ -791,7 +790,7 @@ since we can't create them without already having a GC.  any code
 using the tile or stipple has to set them explicitly anyway,
 since the state of the scratch gc is unknown.  This is OK
 because ChangeGC() has to be able to deal with NULL tiles and
-stipples anyway (in case the CreateGC() call has provided a 
+stipples anyway (in case the CreateGC() call has provided a
 value for them -- we can't set the default tile until the
 client-supplied attributes are installed, since the fgPixel
 is what fills the default tile.  (maybe this comment should
@@ -1033,7 +1032,7 @@ SetClipRects(GCPtr pGC, int xOrigin, int yOrigin, int nrects,
 }
 
 /*
-   sets reasonable defaults 
+   sets reasonable defaults
    if we can get a pre-allocated one, use it and mark it as used.
    if we can't, create one out of whole cloth (The Velveteen GC -- if
    you use it often enough it will become real.)
@@ -1067,7 +1066,7 @@ GetScratchGC(unsigned depth, ScreenPtr pScreen)
             pGC->graphicsExposures = FALSE;
             pGC->clipOrg.x = 0;
             pGC->clipOrg.y = 0;
-            if (pGC->clientClipType != CT_NONE)
+            if (pGC->clientClip)
                 (*pGC->funcs->ChangeClip) (pGC, CT_NONE, NULL, 0);
             pGC->stateChanges = GCAllBits;
             return pGC;

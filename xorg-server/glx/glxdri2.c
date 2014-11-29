@@ -187,7 +187,7 @@ __glXdriSwapEvent(ClientPtr client, void *data, int type, CARD64 ust,
         glx_type = GLX_FLIP_COMPLETE_INTEL;
         break;
     }
-    
+
     __glXsendSwapEvent(drawable, glx_type, ust, msc, sbc);
 }
 

@@ -22,7 +22,7 @@
  */
 
 /*
- * Some platforms don't bother with I/O permissions, 
+ * Some platforms don't bother with I/O permissions,
  * or the permissions are implicit with opening/enabling the console.
  */
 

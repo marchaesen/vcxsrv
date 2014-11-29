@@ -59,11 +59,13 @@ void *
 util_make_vertex_passthrough_shader(struct pipe_context *pipe,
                                     uint num_attribs,
                                     const uint *semantic_names,
-                                    const uint *semantic_indexes)
+                                    const uint *semantic_indexes,
+                                    bool window_space)
 {
    return util_make_vertex_passthrough_shader_with_so(pipe, num_attribs,
                                                       semantic_names,
-                                                      semantic_indexes, NULL);
+                                                      semantic_indexes,
+                                                      window_space, NULL);
 }
 
 void *
@@ -71,6 +73,7 @@ util_make_vertex_passthrough_shader_with_so(struct pipe_context *pipe,
                                     uint num_attribs,
                                     const uint *semantic_names,
                                     const uint *semantic_indexes,
+                                    bool window_space,
 				    const struct pipe_stream_output_info *so)
 {
    struct ureg_program *ureg;
@@ -79,6 +82,9 @@ util_make_vertex_passthrough_shader_with_so(struct pipe_context *pipe,
    ureg = ureg_create( TGSI_PROCESSOR_VERTEX );
    if (ureg == NULL)
       return NULL;
+
+   if (window_space)
+      ureg_property(ureg, TGSI_PROPERTY_VS_WINDOW_SPACE_POSITION, TRUE);
 
    for (i = 0; i < num_attribs; i++) {
       struct ureg_src src;
@@ -124,6 +130,76 @@ void *util_make_layered_clear_vertex_shader(struct pipe_context *pipe)
    return pipe->create_vs_state(pipe, &state);
 }
 
+/**
+ * Takes position and color, and outputs position, color, and instance id.
+ */
+void *util_make_layered_clear_helper_vertex_shader(struct pipe_context *pipe)
+{
+   static const char text[] =
+         "VERT\n"
+         "DCL IN[0]\n"
+         "DCL IN[1]\n"
+         "DCL SV[0], INSTANCEID\n"
+         "DCL OUT[0], POSITION\n"
+         "DCL OUT[1], GENERIC[0]\n"
+         "DCL OUT[2], GENERIC[1]\n"
+
+         "MOV OUT[0], IN[0]\n"
+         "MOV OUT[1], IN[1]\n"
+         "MOV OUT[2].x, SV[0].xxxx\n"
+         "END\n";
+   struct tgsi_token tokens[1000];
+   struct pipe_shader_state state = {tokens};
+
+   if (!tgsi_text_translate(text, tokens, Elements(tokens))) {
+      assert(0);
+      return NULL;
+   }
+   return pipe->create_vs_state(pipe, &state);
+}
+
+/**
+ * Takes position, color, and target layer, and emits vertices on that target
+ * layer, with the specified color.
+ */
+void *util_make_layered_clear_geometry_shader(struct pipe_context *pipe)
+{
+   static const char text[] =
+      "GEOM\n"
+      "PROPERTY GS_INPUT_PRIMITIVE TRIANGLES\n"
+      "PROPERTY GS_OUTPUT_PRIMITIVE TRIANGLE_STRIP\n"
+      "PROPERTY GS_MAX_OUTPUT_VERTICES 3\n"
+      "PROPERTY GS_INVOCATIONS 1\n"
+      "DCL IN[][0], POSITION\n" /* position */
+      "DCL IN[][1], GENERIC[0]\n" /* color */
+      "DCL IN[][2], GENERIC[1]\n" /* vs invocation */
+      "DCL OUT[0], POSITION\n"
+      "DCL OUT[1], GENERIC[0]\n"
+      "DCL OUT[2], LAYER\n"
+      "IMM[0] INT32 {0, 0, 0, 0}\n"
+
+      "MOV OUT[0], IN[0][0]\n"
+      "MOV OUT[1], IN[0][1]\n"
+      "MOV OUT[2].x, IN[0][2].xxxx\n"
+      "EMIT IMM[0].xxxx\n"
+      "MOV OUT[0], IN[1][0]\n"
+      "MOV OUT[1], IN[1][1]\n"
+      "MOV OUT[2].x, IN[1][2].xxxx\n"
+      "EMIT IMM[0].xxxx\n"
+      "MOV OUT[0], IN[2][0]\n"
+      "MOV OUT[1], IN[2][1]\n"
+      "MOV OUT[2].x, IN[2][2].xxxx\n"
+      "EMIT IMM[0].xxxx\n"
+      "END\n";
+   struct tgsi_token tokens[1000];
+   struct pipe_shader_state state = {tokens};
+
+   if (!tgsi_text_translate(text, tokens, Elements(tokens))) {
+      assert(0);
+      return NULL;
+   }
+   return pipe->create_gs_state(pipe, &state);
+}
 
 /**
  * Make simple fragment texture shader:

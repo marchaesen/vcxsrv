@@ -155,7 +155,7 @@ static const char GLServerExtensions[] =
     "GL_SUN_slice_accum ";
 
 /*
-** We have made the simplifying assuption that the same extensions are 
+** We have made the simplifying assuption that the same extensions are
 ** supported across all screens in a multi-screen system.
 */
 unsigned glxMajorVersion = SERVER_GLX_MAJOR_VERSION;

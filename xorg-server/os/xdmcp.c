@@ -562,7 +562,7 @@ XdmcpRegisterDisplayClass(const char *name, int length)
         DisplayClass.data[i] = (CARD8) name[i];
 }
 
-/* 
+/*
  * initialize XDMCP; create the socket, compute the display
  * number, set up the state machine
  */

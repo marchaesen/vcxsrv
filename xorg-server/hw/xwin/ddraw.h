@@ -1346,7 +1346,7 @@ extern "C" {
 /*****************************************************************************
  * IDirectDraw2 interface
  */
-/* Note: IDirectDraw2 cannot derive from IDirectDraw because the number of 
+/* Note: IDirectDraw2 cannot derive from IDirectDraw because the number of
  * arguments of SetDisplayMode has changed !
  */
 #undef INTERFACE
@@ -1742,7 +1742,7 @@ extern "C" {
 /*****************************************************************************
  * IDirectDrawSurface2 interface
  */
-/* Cannot inherit from IDirectDrawSurface because the LPDIRECTDRAWSURFACE parameters 
+/* Cannot inherit from IDirectDrawSurface because the LPDIRECTDRAWSURFACE parameters
  * have been converted to LPDIRECTDRAWSURFACE2.
  */
 #undef INTERFACE
@@ -1861,7 +1861,7 @@ extern "C" {
 /*****************************************************************************
  * IDirectDrawSurface3 interface
  */
-/* Cannot inherit from IDirectDrawSurface2 because the LPDIRECTDRAWSURFACE2 parameters 
+/* Cannot inherit from IDirectDrawSurface2 because the LPDIRECTDRAWSURFACE2 parameters
  * have been converted to LPDIRECTDRAWSURFACE3.
  */
 #undef INTERFACE

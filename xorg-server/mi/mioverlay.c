@@ -1667,7 +1667,7 @@ miOverlayComputeCompositeClip(GCPtr pGC, WindowPtr pWin)
         freeTmpClip = FALSE;
     }
     freeCompClip = pGC->freeCompClip;
-    if (pGC->clientClipType == CT_NONE) {
+    if (!pGC->clientClip) {
         if (freeCompClip)
             RegionDestroy(pGC->pCompositeClip);
         pGC->pCompositeClip = pregWin;

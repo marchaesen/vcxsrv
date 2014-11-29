@@ -35,7 +35,7 @@ typedef void (*FbDots) (FbBits * dst,
                         int xorg,
                         int yorg, int xoff, int yoff, FbBits and, FbBits xor);
 
-void
+static void
 fbDots(FbBits * dstOrig,
        FbStride dstStride,
        int dstBpp,

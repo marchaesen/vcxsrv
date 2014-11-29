@@ -1,8 +1,8 @@
 /*
  * Xephyr - A kdrive X server thats runs in a host X window.
  *          Authored by Matthew Allum <mallum@openedhand.com>
- * 
- * Copyright © 2004 Nokia 
+ *
+ * Copyright © 2004 Nokia
  *
  * Permission to use, copy, modify, distribute, and sell this software and its
  * documentation for any purpose is hereby granted without fee, provided that
@@ -313,8 +313,8 @@ ephyrShadowUpdate(ScreenPtr pScreen, shadowBufPtr pBuf)
     EPHYR_LOG("slow paint");
 
     /* FIXME: Slow Rotated/Reflected updates could be much
-     * much faster efficiently updating via tranforming 
-     * pBuf->pDamage  regions     
+     * much faster efficiently updating via tranforming
+     * pBuf->pDamage  regions
      */
     shadowUpdateRotatePacked(pScreen, pBuf);
     hostx_paint_rect(screen, 0, 0, 0, 0, screen->width, screen->height);
@@ -535,7 +535,7 @@ ephyrRandRSetConfig(ScreenPtr pScreen,
             goto bail4;
     }
     else {
-        /* Without shadow fb ( non rotated ) we need 
+        /* Without shadow fb ( non rotated ) we need
          * to use damage to efficiently update display
          * via signal regions what to copy from 'fb'.
          */
@@ -687,7 +687,7 @@ ephyrInitScreen(ScreenPtr pScreen)
 Bool
 ephyrFinishInitScreen(ScreenPtr pScreen)
 {
-    /* FIXME: Calling this even if not using shadow.  
+    /* FIXME: Calling this even if not using shadow.
      * Seems harmless enough. But may be safer elsewhere.
      */
     if (!shadowSetup(pScreen))
@@ -773,7 +773,7 @@ ephyrCloseScreen(ScreenPtr pScreen)
     ephyrUnsetInternalDamage(pScreen);
 }
 
-/*  
+/*
  * Port of Mark McLoughlin's Xnest fix for focus in + modifier bug.
  * See https://bugs.freedesktop.org/show_bug.cgi?id=3030
  */

@@ -43,6 +43,7 @@ struct dumb_bo {
 typedef struct {
     int fd;
     unsigned fb_id;
+    unsigned old_fb_id;
     drmModeResPtr mode_res;
     drmModeFBPtr mode_fb;
     int cpp;
@@ -58,17 +59,42 @@ typedef struct {
     Bool shadow_enable;
     void *shadow_fb;
 
+    /**
+     * A screen-sized pixmap when we're doing triple-buffered DRI2
+     * pageflipping.
+     *
+     * One is shared between all drawables that flip to the front
+     * buffer, and it only gets reallocated when root pixmap size
+     * changes.
+     */
+    PixmapPtr triple_buffer_pixmap;
+
+    /** The GEM name for triple_buffer_pixmap */
+    uint32_t triple_buffer_name;
+
     DevPrivateKeyRec pixmapPrivateKeyRec;
 } drmmode_rec, *drmmode_ptr;
 
 typedef struct {
     drmmode_ptr drmmode;
     drmModeCrtcPtr mode_crtc;
-    int hw_id;
+    uint32_t vblank_pipe;
     struct dumb_bo *cursor_bo;
     unsigned rotate_fb_id;
     uint16_t lut_r[256], lut_g[256], lut_b[256];
     DamagePtr slave_damage;
+
+    /**
+     * @{ MSC (vblank count) handling for the PRESENT extension.
+     *
+     * The kernel's vblank counters are 32 bits and apparently full of
+     * lies, and we need to give a reliable 64-bit msc for GL, so we
+     * have to track and convert to a userland-tracked 64-bit msc.
+     */
+    int32_t vblank_offset;
+    uint32_t msc_prev;
+    uint64_t msc_high;
+    /** @} */
 } drmmode_crtc_private_rec, *drmmode_crtc_private_ptr;
 
 typedef struct {
@@ -121,6 +147,9 @@ Bool drmmode_map_cursor_bos(ScrnInfoPtr pScrn, drmmode_ptr drmmode);
 void drmmode_free_bos(ScrnInfoPtr pScrn, drmmode_ptr drmmode);
 void drmmode_get_default_bpp(ScrnInfoPtr pScrn, drmmode_ptr drmmmode,
                              int *depth, int *bpp);
+struct dumb_bo *dumb_get_bo_from_fd(int drm_fd, int fd, int pitch, int size);
+int dumb_bo_destroy(int fd, struct dumb_bo *bo);
+
 
 #ifndef DRM_CAP_DUMB_PREFERRED_DEPTH
 #define DRM_CAP_DUMB_PREFERRED_DEPTH 3

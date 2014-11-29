@@ -1345,7 +1345,8 @@ _mesa_PopAttrib(void)
                if (xform->DepthClamp != ctx->Transform.DepthClamp)
                   _mesa_set_enable(ctx, GL_DEPTH_CLAMP,
                                    ctx->Transform.DepthClamp);
-               _mesa_ClipControl(xform->ClipOrigin, xform->ClipDepthMode);
+               if (ctx->Extensions.ARB_clip_control)
+                  _mesa_ClipControl(xform->ClipOrigin, xform->ClipDepthMode);
             }
             break;
          case GL_TEXTURE_BIT:

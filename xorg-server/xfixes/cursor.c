@@ -632,7 +632,7 @@ ReplaceCursor(CursorPtr pCursor, TestCursorFunc testCursor, void *closure)
     int resIndex;
     ReplaceCursorLookupRec rcl;
 
-    /* 
+    /*
      * Cursors exist only in the resource database, windows and grabs.
      * All of these are always pointed at by the resource database.  Walk
      * the whole thing looking for cursors
@@ -735,7 +735,7 @@ SProcXFixesChangeCursorByName(ClientPtr client)
 
 /*
  * Routines for manipulating the per-screen hide counts list.
- * This list indicates which clients have requested cursor hiding 
+ * This list indicates which clients have requested cursor hiding
  * for that screen.
  */
 
@@ -772,7 +772,7 @@ createCursorHideCount(ClientPtr pClient, ScreenPtr pScreen)
     pChc->pNext = cs->pCursorHideCounts;
     cs->pCursorHideCounts = pChc;
 
-    /* 
+    /*
      * Create a resource for this element so it can be deleted
      * when the client goes away.
      */
@@ -784,7 +784,7 @@ createCursorHideCount(ClientPtr pClient, ScreenPtr pScreen)
     return Success;
 }
 
-/* 
+/*
  * Delete the given hide-counts list element from its screen list.
  */
 static void
@@ -812,7 +812,7 @@ deleteCursorHideCount(CursorHideCountPtr pChcToDel, ScreenPtr pScreen)
     }
 }
 
-/* 
+/*
  * Delete all the hide-counts list elements for this screen.
  */
 static void
@@ -848,9 +848,9 @@ ProcXFixesHideCursor(ClientPtr client)
         return ret;
     }
 
-    /* 
-     * Has client hidden the cursor before on this screen? 
-     * If so, just increment the count. 
+    /*
+     * Has client hidden the cursor before on this screen?
+     * If so, just increment the count.
      */
 
     pChc = findCursorHideCount(client, pWin->drawable.pScreen);
@@ -859,8 +859,8 @@ ProcXFixesHideCursor(ClientPtr client)
         return Success;
     }
 
-    /* 
-     * This is the first time this client has hid the cursor 
+    /*
+     * This is the first time this client has hid the cursor
      * for this screen.
      */
     ret = XaceHook(XACE_SCREEN_ACCESS, client, pWin->drawable.pScreen,
@@ -912,7 +912,7 @@ ProcXFixesShowCursor(ClientPtr client)
         return rc;
     }
 
-    /* 
+    /*
      * Has client hidden the cursor on this screen?
      * If not, generate an error.
      */

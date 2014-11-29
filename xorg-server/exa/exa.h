@@ -233,7 +233,7 @@ typedef struct _ExaDriver {
      * @{
      */
     /**
-     * PrepareCopy() sets up the driver for doing a copy within video 
+     * PrepareCopy() sets up the driver for doing a copy within video
      * memory.
      *
      * @param pSrcPixmap source pixmap
@@ -471,7 +471,7 @@ typedef struct _ExaDriver {
      * UploadToScreen() can aid in pixmap migration, but is most important for
      * the performance of exaGlyphs() (antialiased font drawing) by allowing
      * pipelining of data uploads, avoiding a sync of the card after each glyph.
-     * 
+     *
      * @return TRUE if the driver successfully uploaded the data.  FALSE
      * indicates that EXA should fall back to doing the upload in software.
      *
@@ -512,7 +512,7 @@ typedef struct _ExaDriver {
      * migration, which is the read from framebuffer when evicting pixmaps from
      * framebuffer memory.  Thus, it is highly recommended, even though
      * implementations are typically complicated.
-     * 
+     *
      * @return TRUE if the driver successfully downloaded the data.  FALSE
      * indicates that EXA should fall back to doing the download in software.
      *
@@ -704,7 +704,7 @@ typedef struct _ExaDriver {
  * @{
  */
 /**
- * EXA_OFFSCREEN_PIXMAPS indicates to EXA that the driver can support 
+ * EXA_OFFSCREEN_PIXMAPS indicates to EXA that the driver can support
  * offscreen pixmaps.
  */
 #define EXA_OFFSCREEN_PIXMAPS		(1 << 0)

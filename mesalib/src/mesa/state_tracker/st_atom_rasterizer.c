@@ -72,7 +72,7 @@ static void update_raster_state( struct st_context *st )
    {
       raster->front_ccw = (ctx->Polygon.FrontFace == GL_CCW);
 
-      /* _NEW_VIEWPORT */
+      /* _NEW_TRANSFORM */
       if (ctx->Transform.ClipOrigin == GL_UPPER_LEFT) {
          raster->front_ccw ^= 1;
       }
@@ -246,12 +246,9 @@ static void update_raster_state( struct st_context *st )
    raster->half_pixel_center = 1;
    if (st_fb_orientation(ctx->DrawBuffer) == Y_0_TOP)
       raster->bottom_edge_rule = 1;
-   /* _NEW_VIEWPORT */
+   /* _NEW_TRANSFORM */
    if (ctx->Transform.ClipOrigin == GL_UPPER_LEFT)
       raster->bottom_edge_rule ^= 1;
-
-   /* _NEW_VIEWPORT */
-   raster->clip_halfz = (ctx->Transform.ClipDepthMode == GL_ZERO_TO_ONE);
 
    /* ST_NEW_RASTERIZER */
    raster->rasterizer_discard = ctx->RasterDiscard;
@@ -267,6 +264,7 @@ static void update_raster_state( struct st_context *st )
    /* _NEW_TRANSFORM */
    raster->depth_clip = !ctx->Transform.DepthClamp;
    raster->clip_plane_enable = ctx->Transform.ClipPlanesEnabled;
+   raster->clip_halfz = (ctx->Transform.ClipDepthMode == GL_ZERO_TO_ONE);
 
    cso_set_rasterizer(st->cso_context, raster);
 }
@@ -283,8 +281,7 @@ const struct st_tracked_state st_update_rasterizer = {
        _NEW_PROGRAM |
        _NEW_SCISSOR |
        _NEW_FRAG_CLAMP |
-       _NEW_TRANSFORM |
-       _NEW_VIEWPORT),      /* mesa state dependencies*/
+       _NEW_TRANSFORM),     /* mesa state dependencies*/
       (ST_NEW_VERTEX_PROGRAM |
        ST_NEW_RASTERIZER),  /* state tracker dependencies */
    },

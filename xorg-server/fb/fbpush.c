@@ -26,7 +26,7 @@
 
 #include "fb.h"
 
-void
+static void
 fbPushPattern(DrawablePtr pDrawable,
               GCPtr pGC,
               FbStip * src,
@@ -84,7 +84,7 @@ fbPushPattern(DrawablePtr pDrawable,
     }
 }
 
-void
+static void
 fbPushFill(DrawablePtr pDrawable,
            GCPtr pGC,
            FbStip * src,

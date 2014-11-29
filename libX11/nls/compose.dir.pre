@@ -1,7 +1,7 @@
 XCOMM
-XCOMM	This file contains compose table file name.
-XCOMM	The first word is the compose table file name and
-XCOMM	the second word is full locale name.
+XCOMM	This file contains compose table file names.
+XCOMM	The first word is the compose table file name
+XCOMM	and the second word is the full locale name.
 XCOMM
 XCOMM
 iso8859-1/Compose:		C
@@ -289,13 +289,12 @@ en_US.UTF-8/Compose:		ar_SY.UTF-8
 en_US.UTF-8/Compose:		ar_TN.UTF-8
 en_US.UTF-8/Compose:		ar_YE.UTF-8
 en_US.UTF-8/Compose:		as_IN.UTF-8
-en_US.UTF-8/Compose:		bo_IN.UTF-8
-en_US.UTF-8/Compose:		bs_BA.UTF-8
 en_US.UTF-8/Compose:		az_AZ.UTF-8
 en_US.UTF-8/Compose:		be_BY.UTF-8
 en_US.UTF-8/Compose:		bg_BG.UTF-8
-en_US.UTF-8/Compose:		bn_IN.UTF-8
 en_US.UTF-8/Compose:		bn_BD.UTF-8
+en_US.UTF-8/Compose:		bn_IN.UTF-8
+en_US.UTF-8/Compose:		bo_IN.UTF-8
 en_US.UTF-8/Compose:		br_FR.UTF-8
 en_US.UTF-8/Compose:		bs_BA.UTF-8
 en_US.UTF-8/Compose:		ca_AD.UTF-8
@@ -317,10 +316,10 @@ en_US.UTF-8/Compose:		en_AU.UTF-8
 en_US.UTF-8/Compose:		en_BE.UTF-8
 en_US.UTF-8/Compose:		en_BW.UTF-8
 en_US.UTF-8/Compose:		en_BZ.UTF-8
-en_US.UTF-8/Compose:		en_DK.UTF-8
 en_US.UTF-8/Compose:		en_CA.UTF-8
-en_US.UTF-8/Compose:		en_GB.UTF-8
+en_US.UTF-8/Compose:		en_DK.UTF-8
 en_US.UTF-8/Compose:		en_EN.UTF-8
+en_US.UTF-8/Compose:		en_GB.UTF-8
 en_US.UTF-8/Compose:		en_HK.UTF-8
 en_US.UTF-8/Compose:		en_IE.UTF-8
 en_US.UTF-8/Compose:		en_IN.UTF-8
@@ -458,16 +457,16 @@ en_US.UTF-8/Compose:		tr_TR.UTF-8
 en_US.UTF-8/Compose:		ts_ZA.UTF-8
 en_US.UTF-8/Compose:		tt_RU.UTF-8
 en_US.UTF-8/Compose:		uk_UA.UTF-8
-en_US.UTF-8/Compose:		ur_PK.UTF-8
 en_US.UTF-8/Compose:		ur_IN.UTF-8
+en_US.UTF-8/Compose:		ur_PK.UTF-8
 en_US.UTF-8/Compose:		uz_UZ.UTF-8
 en_US.UTF-8/Compose:		ve_ZA.UTF-8
 en_US.UTF-8/Compose:		vi_VN.UTF-8
 en_US.UTF-8/Compose:		wa_BE.UTF-8
-en_US.UTF-8/Compose:		yi_US.UTF-8
 en_US.UTF-8/Compose:		xh_ZA.UTF-8
+en_US.UTF-8/Compose:		yi_US.UTF-8
 zh_CN.UTF-8/Compose:		zh_CN.UTF-8
 zh_HK.UTF-8/Compose:		zh_HK.UTF-8
+en_US.UTF-8/Compose:		zh_SG.UTF-8
 zh_TW.UTF-8/Compose:		zh_TW.UTF-8
 en_US.UTF-8/Compose:		zu_ZA.UTF-8
-en_US.UTF-8/Compose:		zh_SG.UTF-8

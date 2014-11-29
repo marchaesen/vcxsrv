@@ -358,8 +358,8 @@ ResGetApproxPixmapBytes(PixmapPtr pix)
     bytesPerPixel = (float)pix->drawable.bitsPerPixel / 8.0;
     nPixels = pix->drawable.width * pix->drawable.height;
 
-    /* Divide by refcnt as pixmap could be shared between clients,  
-     * so total pixmap mem is shared between these. 
+    /* Divide by refcnt as pixmap could be shared between clients,
+     * so total pixmap mem is shared between these.
      */
     return (nPixels * bytesPerPixel) / pix->refcnt;
 }
@@ -375,7 +375,7 @@ ResFindResourcePixmaps(void *value, XID id, RESTYPE type, void *cdata)
     *bytes += size.pixmapRefSize;
 }
 
-static void 
+static void
 ResFindPixmaps(void *value, XID id, void *cdata)
 {
     unsigned long *bytes = (unsigned long *) cdata;
@@ -448,13 +448,13 @@ ProcXResQueryClientPixmapBytes(ClientPtr client)
     FindClientResourcesByType(clients[clientID], RT_PIXMAP, ResFindPixmaps,
                               (void *) (&bytes));
 
-    /* 
-     * Make sure win background pixmaps also held to account. 
+    /*
+     * Make sure win background pixmaps also held to account.
      */
     FindClientResourcesByType(clients[clientID], RT_WINDOW,
                               ResFindWindowPixmaps, (void *) (&bytes));
 
-    /* 
+    /*
      * GC Tile & Stipple pixmaps too.
      */
     FindClientResourcesByType(clients[clientID], RT_GC,

@@ -504,11 +504,9 @@ draw_bitmap_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
       vp.scale[0] =  0.5f * width;
       vp.scale[1] = height * (invert ? -0.5f : 0.5f);
       vp.scale[2] = 0.5f;
-      vp.scale[3] = 1.0f;
       vp.translate[0] = 0.5f * width;
       vp.translate[1] = 0.5f * height;
       vp.translate[2] = 0.5f;
-      vp.translate[3] = 0.0f;
       cso_set_viewport(cso, &vp);
    }
 
@@ -769,7 +767,8 @@ st_Bitmap(struct gl_context *ctx, GLint x, GLint y,
       const uint semantic_indexes[] = { 0, 0, 0 };
       st->bitmap.vs = util_make_vertex_passthrough_shader(st->pipe, 3,
                                                           semantic_names,
-                                                          semantic_indexes);
+                                                          semantic_indexes,
+                                                          FALSE);
    }
 
    if (UseBitmapCache && accum_bitmap(ctx, x, y, width, height, unpack, bitmap))

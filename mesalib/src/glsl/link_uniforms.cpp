@@ -585,6 +585,8 @@ private:
       this->uniforms[id].driver_storage = NULL;
       this->uniforms[id].storage = this->values;
       this->uniforms[id].atomic_buffer_index = -1;
+      this->uniforms[id].hidden =
+         current_var->data.how_declared == ir_var_hidden;
       if (this->ubo_block_index != -1) {
 	 this->uniforms[id].block_index = this->ubo_block_index;
 
@@ -806,6 +808,50 @@ link_set_image_access_qualifiers(struct gl_shader_program *prog)
    }
 }
 
+/**
+ * Sort the array of uniform storage so that the non-hidden uniforms are first
+ *
+ * This function sorts the list "in place."  This is important because some of
+ * the storage accessible from \c uniforms has \c uniforms as its \c ralloc
+ * context.  If \c uniforms is freed, some other storage will also be freed.
+ */
+static unsigned
+move_hidden_uniforms_to_end(struct gl_shader_program *prog,
+                            struct gl_uniform_storage *uniforms,
+                            unsigned num_elements)
+{
+   struct gl_uniform_storage *sorted_uniforms =
+      ralloc_array(prog, struct gl_uniform_storage, num_elements);
+   unsigned hidden_uniforms = 0;
+   unsigned j = 0;
+
+   /* Add the non-hidden uniforms. */
+   for (unsigned i = 0; i < num_elements; i++) {
+      if (!uniforms[i].hidden)
+         sorted_uniforms[j++] = uniforms[i];
+   }
+
+   /* Add and count the hidden uniforms. */
+   for (unsigned i = 0; i < num_elements; i++) {
+      if (uniforms[i].hidden) {
+         sorted_uniforms[j++] = uniforms[i];
+         hidden_uniforms++;
+      }
+   }
+
+   assert(prog->UniformHash != NULL);
+   prog->UniformHash->clear();
+   for (unsigned i = 0; i < num_elements; i++) {
+      if (sorted_uniforms[i].name != NULL)
+         prog->UniformHash->put(i, sorted_uniforms[i].name);
+   }
+
+   memcpy(uniforms, sorted_uniforms, sizeof(uniforms[0]) * num_elements);
+   ralloc_free(sorted_uniforms);
+
+   return hidden_uniforms;
+}
+
 void
 link_assign_uniform_locations(struct gl_shader_program *prog,
                               unsigned int boolean_true)
@@ -926,6 +972,9 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
              sizeof(prog->_LinkedShaders[i]->SamplerTargets));
    }
 
+   const unsigned hidden_uniforms =
+      move_hidden_uniforms_to_end(prog, uniforms, num_user_uniforms);
+
    /* Reserve all the explicit locations of the active uniforms. */
    for (unsigned i = 0; i < num_user_uniforms; i++) {
       if (uniforms[i].remap_location != UNMAPPED_UNIFORM_LOC) {
@@ -978,6 +1027,7 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
 #endif
 
    prog->NumUserUniformStorage = num_user_uniforms;
+   prog->NumHiddenUniforms = hidden_uniforms;
    prog->UniformStorage = uniforms;
 
    link_set_image_access_qualifiers(prog);

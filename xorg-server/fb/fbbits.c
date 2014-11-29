@@ -70,9 +70,6 @@
 #define POLYSEGMENT fbPolySegment16
 #define BITS	    CARD16
 #define BITS2	    CARD32
-#if FB_SHIFT == 6
-#define BITS4	    FbBits
-#endif
 
 #include "fbbits.h"
 
@@ -85,9 +82,6 @@
 #undef POLYSEGMENT
 #undef BITS
 #undef BITS2
-#if FB_SHIFT == 6
-#undef BITS4
-#endif
 
 #define BRESSOLID   fbBresSolid24
 #define BRESDASH    fbBresDash24
@@ -155,9 +149,6 @@
 #define POLYLINE    fbPolyline32
 #define POLYSEGMENT fbPolySegment32
 #define BITS	    CARD32
-#if FB_SHIFT == 6
-#define BITS2	    FbBits
-#endif
 
 #include "fbbits.h"
 
@@ -169,6 +160,3 @@
 #undef POLYLINE
 #undef POLYSEGMENT
 #undef BITS
-#if FB_SHIFT == 6
-#undef BITS2
-#endif

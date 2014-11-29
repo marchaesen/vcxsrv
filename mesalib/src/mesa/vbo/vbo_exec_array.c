@@ -36,6 +36,8 @@
 #include "main/enums.h"
 #include "main/macros.h"
 #include "main/transformfeedback.h"
+#include "main/sse_minmax.h"
+#include "x86/common_x86_asm.h"
 
 #include "vbo_context.h"
 
@@ -119,10 +121,16 @@ vbo_get_minmax_index(struct gl_context *ctx,
          }
       }
       else {
-         for (i = 0; i < count; i++) {
-            if (ui_indices[i] > max_ui) max_ui = ui_indices[i];
-            if (ui_indices[i] < min_ui) min_ui = ui_indices[i];
+#if defined(USE_SSE41)
+         if (cpu_has_sse4_1) {
+            _mesa_uint_array_min_max(ui_indices, &min_ui, &max_ui, count);
          }
+         else
+#endif
+            for (i = 0; i < count; i++) {
+               if (ui_indices[i] > max_ui) max_ui = ui_indices[i];
+               if (ui_indices[i] < min_ui) min_ui = ui_indices[i];
+            }
       }
       *min_index = min_ui;
       *max_index = max_ui;

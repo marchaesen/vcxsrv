@@ -5,11 +5,11 @@
  *
  * Copyright (c) 2001, Andy Ritger  aritger@nvidia.com
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
- * 
+ *
  * o Redistributions of source code must retain the above copyright
  *   notice, this list of conditions and the following disclaimer.
  * o Redistributions in binary form must reproduce the above copyright
@@ -50,7 +50,7 @@
  * of suitability for any purpose. The sample code contained within
  * this standard may be used without restriction.
  *
- * 
+ *
  *
  * The GTF EXCEL(TM) SPREADSHEET, a sample (and the definitive)
  * implementation of the GTF Timing Standard, is available at:
@@ -147,7 +147,7 @@ xf86GTFMode(int h_pixels, int v_lines, float freq, int interlaced, int margins)
      *  by the calculation must be halved, as the computation calculates
      *  the number of vertical lines per field. In either case, the
      *  number of lines is rounded to the nearest integer.
-     *   
+     *
      *  [V LINES RND] = IF([INT RQD?]="y", ROUND([V LINES]/2,0),
      *                                     ROUND([V LINES],0))
      */
@@ -183,7 +183,7 @@ xf86GTFMode(int h_pixels, int v_lines, float freq, int interlaced, int margins)
         margins ? rint(MARGIN_PERCENT / 100.0 * v_lines_rnd) : (0.0);
 
     /*  6. If interlace is required, then set variable [INTERLACE]=0.5:
-     *   
+     *
      *  [INTERLACE]=(IF([INT RQD?]="y",0.5,0))
      */
 

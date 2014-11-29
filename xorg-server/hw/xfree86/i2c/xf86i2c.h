@@ -1,4 +1,4 @@
-/* 
+/*
  *  Copyright (C) 1998 Itai Nahshon, Michael Schimek
  */
 

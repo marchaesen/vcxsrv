@@ -35,12 +35,6 @@ struct gl_context;
 struct gl_transform_feedback_object;
 
 
-extern GLuint
-_mesa_max_buffer_index(struct gl_context *ctx, GLuint count, GLenum type,
-                       const void *indices,
-                       struct gl_buffer_object *elementBuf);
-
-
 extern bool
 _mesa_is_valid_prim_mode(struct gl_context *ctx, GLenum mode);
 

@@ -155,7 +155,7 @@ winQueryRGBBitsAndMasks(ScreenPtr pScreen)
 
     /* Color masks for 8 bpp are standardized */
     if (GetDeviceCaps(pScreenPriv->hdcScreen, RASTERCAPS) & RC_PALETTE) {
-        /* 
+        /*
          * RGB BPP for 8 bit palletes is always 8
          * and the color masks are always 0.
          */
@@ -381,7 +381,7 @@ winAllocateFBShadowGDI(ScreenPtr pScreen)
 #if 0
         return FALSE;
 #else
-        /* ago: ignore this error. The blit fails with wine, but does not 
+        /* ago: ignore this error. The blit fails with wine, but does not
          * cause any problems later. */
 
         fReturn = TRUE;
@@ -474,7 +474,7 @@ winShadowUpdateGDI(ScreenPtr pScreen, shadowBufPtr pBuf)
 
     /*
      * Handle small regions with multiple blits,
-     * handle large regions by creating a clipping region and 
+     * handle large regions by creating a clipping region and
      * doing a single blit constrained to that clipping region.
      */
     if (!pScreenInfo->fMultiWindow &&
@@ -634,7 +634,7 @@ winCloseScreenShadowGDI(ScreenPtr pScreen)
 
 /*
  * Tell mi what sort of visuals we need.
- * 
+ *
  * Generally we only need one visual, as our screen can only
  * handle one format at a time, I believe.  You may want
  * to verify that last sentence.
@@ -815,7 +815,7 @@ winActivateAppShadowGDI(ScreenPtr pScreen)
      */
     if (pScreenPriv->fActive && pScreenInfo->fFullScreen) {
         /*
-         * Activating, attempt to bring our window 
+         * Activating, attempt to bring our window
          * to the top of the display
          */
         ShowWindow(pScreenPriv->hwndScreen, SW_RESTORE);

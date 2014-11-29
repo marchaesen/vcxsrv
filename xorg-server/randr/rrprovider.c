@@ -159,7 +159,7 @@ ProcRRGetProviderInfo (ClientPtr client)
     ScreenPtr provscreen;
     RRProvider *providers;
     uint32_t *prov_cap;
- 
+
     REQUEST_SIZE_MATCH(xRRGetProviderInfoReq);
     VERIFY_RR_PROVIDER(stuff->provider, provider, DixReadAccess);
 

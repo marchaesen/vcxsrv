@@ -270,7 +270,7 @@ winCreateColormap(ColormapPtr pmap)
      * FIXME: This is some evil hackery to help in handling some X clients
      * that expect the top pixel to be white.  This "help" only lasts until
      * some client overwrites the top colormap entry.
-     * 
+     *
      * We don't want to actually allocate the top entry, as that causes
      * problems with X clients that need 7 planes (128 colors) in the default
      * colormap, such as Magic 7.1.

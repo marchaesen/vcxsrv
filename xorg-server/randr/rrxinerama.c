@@ -23,7 +23,7 @@
  * This Xinerama implementation comes from the SiS driver which has
  * the following notice:
  */
-/* 
+/*
  * SiS driver main code
  *
  * Copyright (C) 2001-2005 by Thomas Winischhofer, Vienna, Austria.

@@ -706,7 +706,7 @@ extern FARPROC g_fpDirectDrawCreateClipper;
 	winPrivWinPtr pWinPriv = winGetWindowPriv(pWin)
 
 /*
- * wrapper macros 
+ * wrapper macros
  */
 #define _WIN_WRAP(priv, real, mem, func) {\
     priv->mem = real->mem; \

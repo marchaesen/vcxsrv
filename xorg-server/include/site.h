@@ -26,13 +26,13 @@ Copyright 1987 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -66,8 +66,8 @@ SOFTWARE.
 /*
  * The following constants are provided solely as a last line of defense.  The
  * normal build ALWAYS overrides them using a special rule given in
- * server/dix/Imakefile.  If you want to change either of these constants, 
- * you should set the DefaultFontPath or DefaultRGBDatabase configuration 
+ * server/dix/Imakefile.  If you want to change either of these constants,
+ * you should set the DefaultFontPath or DefaultRGBDatabase configuration
  * parameters.
  * DO NOT CHANGE THESE VALUES OR THE DIX IMAKEFILE!
  */
@@ -76,7 +76,7 @@ SOFTWARE.
 #endif
 
 /*
- * The following constants contain default values for all of the variables 
+ * The following constants contain default values for all of the variables
  * that can be initialized on the server command line or in the environment.
  */
 #define COMPILEDDEFAULTFONT	"fixed"

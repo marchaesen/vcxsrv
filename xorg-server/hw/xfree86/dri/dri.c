@@ -2292,11 +2292,11 @@ DRIAdjustFrame(ScrnInfoPtr pScrn, int x, int y)
     _DRIAdjustFrame(pScrn, pDRIPriv, x, y);
 }
 
-/* 
+/*
  * DRIMoveBuffersHelper swaps the regions rects in place leaving you
  * a region with the rects in the order that you need to blit them,
  * but it is possibly (likely) an invalid region afterwards.  If you
- * need to use the region again for anything you have to call 
+ * need to use the region again for anything you have to call
  * REGION_VALIDATE on it, or better yet, save a copy first.
  */
 

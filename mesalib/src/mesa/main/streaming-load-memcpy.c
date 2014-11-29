@@ -26,7 +26,6 @@
  *
  */
 
-#ifdef __SSE4_1__
 #include "main/macros.h"
 #include "main/streaming-load-memcpy.h"
 #include <smmintrin.h>
@@ -84,5 +83,3 @@ _mesa_streaming_load_memcpy(void *restrict dst, void *restrict src, size_t len)
       memcpy(d, s, len);
    }
 }
-
-#endif

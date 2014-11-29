@@ -188,7 +188,7 @@ CreateContext(__GLXclientState * cl,
 #endif
 
     /*
-     ** Find the display list space that we want to share.  
+     ** Find the display list space that we want to share.
      **
      */
     if (shareList == None) {
@@ -1751,7 +1751,7 @@ __glXGetVisualConfigs(__GLXclientState * cl, GLbyte * pc)
         buf[p++] = pGlxVisual->stencilSize;
         buf[p++] = pGlxVisual->auxBuffers;
         buf[p++] = pGlxVisual->level;
-        /* 
+        /*
          ** Add token/value pairs for extensions.
          */
         buf[p++] = GLX_VISUAL_CAVEAT_EXT;
@@ -3087,7 +3087,7 @@ __glXCreateWindow(__GLXclientState * cl, GLbyte * pc)
     void *val;
 
     /*
-     ** Check if windowId is valid 
+     ** Check if windowId is valid
      */
     rc = dixLookupDrawable(&pDraw, windowId, client, M_DRAWABLE_WINDOW,
                            DixAddAccess);
@@ -3112,7 +3112,7 @@ __glXCreateWindow(__GLXclientState * cl, GLbyte * pc)
     visId = pGlxFBConfig->associatedVisualId;
 
     /*
-     ** Check if the fbconfig supports rendering to windows 
+     ** Check if the fbconfig supports rendering to windows
      */
     if (!(pGlxFBConfig->drawableType & GLX_WINDOW_BIT)) {
         return BadMatch;
@@ -3134,7 +3134,7 @@ __glXCreateWindow(__GLXclientState * cl, GLbyte * pc)
         }
 
         /*
-         ** Check if color buffer depth of fbconfig matches depth 
+         ** Check if color buffer depth of fbconfig matches depth
          ** of window.
          */
         if (pVisual->nplanes != pDraw->depth) {
@@ -3144,7 +3144,7 @@ __glXCreateWindow(__GLXclientState * cl, GLbyte * pc)
     else
         /*
          ** The window was created with no visual that corresponds
-         ** to fbconfig 
+         ** to fbconfig
          */
         return BadMatch;
 
@@ -3561,7 +3561,7 @@ __glXGetDrawableAttributes(__GLXclientState * cl, GLbyte * pc)
         return __glXBadDrawable;
     }
 
-    /* if the drawable is a window or GLXWindow - 
+    /* if the drawable is a window or GLXWindow -
      * we need to find the base id on the back-end server
      */
     if (!be_drawable) {
@@ -3723,7 +3723,7 @@ __glXChangeDrawableAttributes(__GLXclientState * cl, GLbyte * pc)
         return __glXBadDrawable;
     }
 
-    /* if the drawable is a window or GLXWindow - 
+    /* if the drawable is a window or GLXWindow -
      * we need to find the base id on the back-end server
      */
     if (!be_drawable) {
