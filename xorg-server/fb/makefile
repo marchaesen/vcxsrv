@@ -11,6 +11,7 @@ CSRCS = 	\
 	fbbits.c	\
 	fbblt.c		\
 	fbbltone.c	\
+	fbcmap_mi.c     \
 	fbcopy.c	\
 	fbfill.c	\
 	fbfillrect.c	\
@@ -29,9 +30,6 @@ CSRCS = 	\
 	fbseg.c		\
 	fbsetsp.c	\
 	fbsolid.c	\
-	fbstipple.c	\
-	fbtile.c	\
 	fbtrap.c	\
 	fbutil.c	\
-	fbwindow.c \
-	fbcmap_mi.c
+	fbwindow.c
