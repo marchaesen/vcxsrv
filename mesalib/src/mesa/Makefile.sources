@@ -8,283 +8,526 @@ BUILDDIR = $(top_builddir)/src/mesa/
 
 # this is part of MAIN_FILES
 MAIN_ES_FILES = \
-	$(SRCDIR)main/es1_conversion.c
+	$(SRCDIR)main/es1_conversion.c \
+	$(SRCDIR)main/es1_conversion.h
 
 MAIN_FILES = \
-	$(SRCDIR)main/api_arrayelt.c \
-	$(BUILDDIR)main/api_exec.c \
-	$(SRCDIR)main/api_loopback.c \
-	$(SRCDIR)main/api_validate.c \
 	$(SRCDIR)main/accum.c \
+	$(SRCDIR)main/accum.h \
+	$(SRCDIR)main/api_arrayelt.c \
+	$(SRCDIR)main/api_arrayelt.h \
+	$(BUILDDIR)main/api_exec.c \
+	$(SRCDIR)main/api_exec.h \
+	$(SRCDIR)main/api_loopback.c \
+	$(SRCDIR)main/api_loopback.h \
+	$(SRCDIR)main/api_validate.c \
+	$(SRCDIR)main/api_validate.h \
 	$(SRCDIR)main/arbprogram.c \
-	$(SRCDIR)main/atifragshader.c \
-	$(SRCDIR)main/attrib.c \
+	$(SRCDIR)main/arbprogram.h \
 	$(SRCDIR)main/arrayobj.c \
+	$(SRCDIR)main/arrayobj.h \
+	$(SRCDIR)main/atifragshader.c \
+	$(SRCDIR)main/atifragshader.h \
+	$(SRCDIR)main/attrib.c \
+	$(SRCDIR)main/attrib.h \
+	$(SRCDIR)main/bitset.h \
 	$(SRCDIR)main/blend.c \
+	$(SRCDIR)main/blend.h \
 	$(SRCDIR)main/blit.c \
+	$(SRCDIR)main/blit.h \
 	$(SRCDIR)main/bufferobj.c \
+	$(SRCDIR)main/bufferobj.h \
 	$(SRCDIR)main/buffers.c \
+	$(SRCDIR)main/buffers.h \
 	$(SRCDIR)main/clear.c \
+	$(SRCDIR)main/clear.h \
 	$(SRCDIR)main/clip.c \
+	$(SRCDIR)main/clip.h \
+	$(SRCDIR)main/colormac.h \
 	$(SRCDIR)main/colortab.c \
+	$(SRCDIR)main/colortab.h \
 	$(SRCDIR)main/compute.c \
+	$(SRCDIR)main/compute.h \
+	$(SRCDIR)main/compiler.h \
 	$(SRCDIR)main/condrender.c \
+	$(SRCDIR)main/condrender.h \
+	$(SRCDIR)main/config.h \
 	$(SRCDIR)main/context.c \
+	$(SRCDIR)main/context.h \
 	$(SRCDIR)main/convolve.c \
+	$(SRCDIR)main/convolve.h \
 	$(SRCDIR)main/copyimage.c \
+	$(SRCDIR)main/copyimage.h \
+	$(SRCDIR)main/core.h \
 	$(SRCDIR)main/cpuinfo.c \
+	$(SRCDIR)main/cpuinfo.h \
+	$(SRCDIR)main/dd.h \
 	$(SRCDIR)main/debug.c \
+	$(SRCDIR)main/debug.h \
 	$(SRCDIR)main/depth.c \
+	$(SRCDIR)main/depth.h \
 	$(SRCDIR)main/dlist.c \
+	$(SRCDIR)main/dlist.h \
+	$(SRCDIR)main/dlopen.h \
 	$(SRCDIR)main/drawpix.c \
+	$(SRCDIR)main/drawpix.h \
 	$(SRCDIR)main/drawtex.c \
+	$(SRCDIR)main/drawtex.h \
 	$(SRCDIR)main/enable.c \
+	$(SRCDIR)main/enable.h \
+	$(BUILDDIR)main/enums.c \
+	$(SRCDIR)main/enums.h \
 	$(SRCDIR)main/errors.c \
+	$(SRCDIR)main/errors.h \
 	$(SRCDIR)main/eval.c \
+	$(SRCDIR)main/eval.h \
 	$(SRCDIR)main/execmem.c \
 	$(SRCDIR)main/extensions.c \
+	$(SRCDIR)main/extensions.h \
 	$(SRCDIR)main/fbobject.c \
+	$(SRCDIR)main/fbobject.h \
 	$(SRCDIR)main/feedback.c \
-	$(SRCDIR)main/ffvertex_prog.c \
+	$(SRCDIR)main/feedback.h \
 	$(SRCDIR)main/ff_fragment_shader.cpp \
+	$(SRCDIR)main/ffvertex_prog.c \
+	$(SRCDIR)main/ffvertex_prog.h \
 	$(SRCDIR)main/fog.c \
-	$(SRCDIR)main/formatquery.c \
-	$(SRCDIR)main/formats.c \
+	$(SRCDIR)main/fog.h \
 	$(SRCDIR)main/format_pack.c \
+	$(SRCDIR)main/format_pack.h \
+	$(SRCDIR)main/formatquery.c \
+	$(SRCDIR)main/formatquery.h \
+	$(SRCDIR)main/formats.c \
+	$(SRCDIR)main/formats.h \
 	$(SRCDIR)main/format_unpack.c \
+	$(SRCDIR)main/format_unpack.h \
 	$(SRCDIR)main/format_utils.c \
+	$(SRCDIR)main/format_utils.h \
 	$(SRCDIR)main/framebuffer.c \
+	$(SRCDIR)main/framebuffer.h \
 	$(SRCDIR)main/get.c \
+	$(SRCDIR)main/get.h \
 	$(SRCDIR)main/genmipmap.c \
+	$(SRCDIR)main/genmipmap.h \
 	$(SRCDIR)main/getstring.c \
 	$(SRCDIR)main/glformats.c \
+	$(SRCDIR)main/glformats.h \
+	$(SRCDIR)main/glheader.h \
 	$(SRCDIR)main/hash.c \
+	$(SRCDIR)main/hash.h \
 	$(SRCDIR)main/hint.c \
+	$(SRCDIR)main/hint.h \
 	$(SRCDIR)main/histogram.c \
+	$(SRCDIR)main/histogram.h \
 	$(SRCDIR)main/image.c \
+	$(SRCDIR)main/image.h \
 	$(SRCDIR)main/imports.c \
+	$(SRCDIR)main/imports.h \
 	$(SRCDIR)main/light.c \
+	$(SRCDIR)main/light.h \
 	$(SRCDIR)main/lines.c \
+	$(SRCDIR)main/lines.h \
+	$(SRCDIR)main/macros.h \
 	$(SRCDIR)main/matrix.c \
+	$(SRCDIR)main/matrix.h \
 	$(SRCDIR)main/mipmap.c \
+	$(SRCDIR)main/mipmap.h \
 	$(SRCDIR)main/mm.c \
+	$(SRCDIR)main/mm.h \
+	$(SRCDIR)main/mtypes.h \
 	$(SRCDIR)main/multisample.c \
-        $(SRCDIR)main/objectlabel.c \
+	$(SRCDIR)main/multisample.h \
+	$(SRCDIR)main/objectlabel.c \
+	$(SRCDIR)main/objectlabel.h \
 	$(SRCDIR)main/pack.c \
+	$(SRCDIR)main/pack.h \
+	$(SRCDIR)main/pack_tmp.h \
 	$(SRCDIR)main/pbo.c \
+	$(SRCDIR)main/pbo.h \
 	$(SRCDIR)main/performance_monitor.c \
+	$(SRCDIR)main/performance_monitor.h \
 	$(SRCDIR)main/pipelineobj.c \
+	$(SRCDIR)main/pipelineobj.h \
 	$(SRCDIR)main/pixel.c \
+	$(SRCDIR)main/pixel.h \
 	$(SRCDIR)main/pixelstore.c \
+	$(SRCDIR)main/pixelstore.h \
 	$(SRCDIR)main/pixeltransfer.c \
+	$(SRCDIR)main/pixeltransfer.h \
 	$(SRCDIR)main/points.c \
+	$(SRCDIR)main/points.h \
 	$(SRCDIR)main/polygon.c \
-	$(SRCDIR)main/queryobj.c \
+	$(SRCDIR)main/polygon.h \
 	$(SRCDIR)main/querymatrix.c \
+	$(SRCDIR)main/querymatrix.h \
+	$(SRCDIR)main/queryobj.c \
+	$(SRCDIR)main/queryobj.h \
 	$(SRCDIR)main/rastpos.c \
+	$(SRCDIR)main/rastpos.h \
 	$(SRCDIR)main/readpix.c \
+	$(SRCDIR)main/readpix.h \
 	$(SRCDIR)main/remap.c \
+	$(SRCDIR)main/remap.h \
 	$(SRCDIR)main/renderbuffer.c \
+	$(SRCDIR)main/renderbuffer.h \
 	$(SRCDIR)main/samplerobj.c \
+	$(SRCDIR)main/samplerobj.h \
 	$(SRCDIR)main/scissor.c \
+	$(SRCDIR)main/scissor.h \
 	$(SRCDIR)main/set.c \
+	$(SRCDIR)main/set.h \
 	$(SRCDIR)main/shaderapi.c \
+	$(SRCDIR)main/shaderapi.h \
 	$(SRCDIR)main/shaderimage.c \
+	$(SRCDIR)main/shaderimage.h \
 	$(SRCDIR)main/shaderobj.c \
+	$(SRCDIR)main/shaderobj.h \
 	$(SRCDIR)main/shader_query.cpp \
 	$(SRCDIR)main/shared.c \
+	$(SRCDIR)main/shared.h \
+	$(SRCDIR)main/simple_list.h \
 	$(SRCDIR)main/state.c \
+	$(SRCDIR)main/state.h \
 	$(SRCDIR)main/stencil.c \
+	$(SRCDIR)main/stencil.h \
 	$(SRCDIR)main/syncobj.c \
+	$(SRCDIR)main/syncobj.h \
 	$(SRCDIR)main/texcompress.c \
 	$(SRCDIR)main/texcompress_bptc.c \
+	$(SRCDIR)main/texcompress_bptc.h \
 	$(SRCDIR)main/texcompress_cpal.c \
-	$(SRCDIR)main/texcompress_rgtc.c \
-	$(SRCDIR)main/texcompress_s3tc.c \
-	$(SRCDIR)main/texcompress_fxt1.c \
+	$(SRCDIR)main/texcompress_cpal.h \
 	$(SRCDIR)main/texcompress_etc.c \
+	$(SRCDIR)main/texcompress_etc.h \
+	$(SRCDIR)main/texcompress_etc_tmp.h \
+	$(SRCDIR)main/texcompress_fxt1.c \
+	$(SRCDIR)main/texcompress_fxt1.h \
+	$(SRCDIR)main/texcompress.h \
+	$(SRCDIR)main/texcompress_rgtc.c \
+	$(SRCDIR)main/texcompress_rgtc.h \
+	$(SRCDIR)main/texcompress_s3tc.c \
+	$(SRCDIR)main/texcompress_s3tc.h \
 	$(SRCDIR)main/texenv.c \
+	$(SRCDIR)main/texenv.h \
+	$(SRCDIR)main/texenvprogram.h \
 	$(SRCDIR)main/texformat.c \
+	$(SRCDIR)main/texformat.h \
 	$(SRCDIR)main/texgen.c \
+	$(SRCDIR)main/texgen.h \
 	$(SRCDIR)main/texgetimage.c \
+	$(SRCDIR)main/texgetimage.h \
 	$(SRCDIR)main/teximage.c \
+	$(SRCDIR)main/teximage.h \
 	$(SRCDIR)main/texobj.c \
+	$(SRCDIR)main/texobj.h \
 	$(SRCDIR)main/texparam.c \
+	$(SRCDIR)main/texparam.h \
 	$(SRCDIR)main/texstate.c \
+	$(SRCDIR)main/texstate.h \
 	$(SRCDIR)main/texstorage.c \
+	$(SRCDIR)main/texstorage.h \
 	$(SRCDIR)main/texstore.c \
-        $(SRCDIR)main/textureview.c \
+	$(SRCDIR)main/texstore.h \
+	$(SRCDIR)main/textureview.c \
+	$(SRCDIR)main/textureview.h \
 	$(SRCDIR)main/texturebarrier.c \
+	$(SRCDIR)main/texturebarrier.h \
 	$(SRCDIR)main/transformfeedback.c \
-	$(SRCDIR)main/uniforms.c \
+	$(SRCDIR)main/transformfeedback.h \
 	$(SRCDIR)main/uniform_query.cpp \
+	$(SRCDIR)main/uniforms.c \
+	$(SRCDIR)main/uniforms.h \
 	$(SRCDIR)main/varray.c \
+	$(SRCDIR)main/varray.h \
 	$(SRCDIR)main/vdpau.c \
+	$(SRCDIR)main/vdpau.h \
 	$(SRCDIR)main/version.c \
+	$(SRCDIR)main/version.h \
 	$(SRCDIR)main/viewport.c \
+	$(SRCDIR)main/viewport.h \
 	$(SRCDIR)main/vtxfmt.c \
-	$(BUILDDIR)main/enums.c \
+	$(SRCDIR)main/vtxfmt.h \
 	$(MAIN_ES_FILES)
 
 MATH_FILES = \
+	$(SRCDIR)math/m_debug.h \
 	$(SRCDIR)math/m_debug_clip.c \
 	$(SRCDIR)math/m_debug_norm.c \
+	$(SRCDIR)math/m_debug_util.h \
 	$(SRCDIR)math/m_debug_xform.c \
 	$(SRCDIR)math/m_eval.c \
+	$(SRCDIR)math/m_eval.h \
 	$(SRCDIR)math/m_matrix.c \
+	$(SRCDIR)math/m_matrix.h \
+	$(SRCDIR)math/m_trans_tmp.h \
 	$(SRCDIR)math/m_translate.c \
-	$(SRCDIR)math/m_vector.c
+	$(SRCDIR)math/m_translate.h \
+	$(SRCDIR)math/m_vector.c \
+	$(SRCDIR)math/m_vector.h
 
 MATH_XFORM_FILES = \
-	$(SRCDIR)math/m_xform.c
+	$(SRCDIR)math/m_clip_tmp.h \
+	$(SRCDIR)math/m_copy_tmp.h \
+	$(SRCDIR)math/m_dotprod_tmp.h \
+	$(SRCDIR)math/m_norm_tmp.h \
+	$(SRCDIR)math/m_xform.c \
+	$(SRCDIR)math/m_xform.h \
+	$(SRCDIR)math/m_xform_tmp.h
 
 SWRAST_FILES = \
 	$(SRCDIR)swrast/s_aaline.c \
+	$(SRCDIR)swrast/s_aaline.h \
+	$(SRCDIR)swrast/s_aalinetemp.h \
 	$(SRCDIR)swrast/s_aatriangle.c \
+	$(SRCDIR)swrast/s_aatriangle.h \
+	$(SRCDIR)swrast/s_aatritemp.h \
 	$(SRCDIR)swrast/s_alpha.c \
+	$(SRCDIR)swrast/s_alpha.h \
 	$(SRCDIR)swrast/s_atifragshader.c \
+	$(SRCDIR)swrast/s_atifragshader.h \
 	$(SRCDIR)swrast/s_bitmap.c \
 	$(SRCDIR)swrast/s_blend.c \
+	$(SRCDIR)swrast/s_blend.h \
 	$(SRCDIR)swrast/s_blit.c \
+	$(SRCDIR)swrast/s_chan.h \
 	$(SRCDIR)swrast/s_clear.c \
-	$(SRCDIR)swrast/s_copypix.c \
 	$(SRCDIR)swrast/s_context.c \
+	$(SRCDIR)swrast/s_context.h \
+	$(SRCDIR)swrast/s_copypix.c \
 	$(SRCDIR)swrast/s_depth.c \
+	$(SRCDIR)swrast/s_depth.h \
 	$(SRCDIR)swrast/s_drawpix.c \
+	$(SRCDIR)swrast_setup/ss_tritmp.h \
+	$(SRCDIR)swrast_setup/ss_vb.h \
+	$(SRCDIR)swrast_setup/swrast_setup.h \
 	$(SRCDIR)swrast/s_feedback.c \
+	$(SRCDIR)swrast/s_feedback.h \
 	$(SRCDIR)swrast/s_fog.c \
+	$(SRCDIR)swrast/s_fog.h \
 	$(SRCDIR)swrast/s_fragprog.c \
+	$(SRCDIR)swrast/s_fragprog.h \
 	$(SRCDIR)swrast/s_lines.c \
+	$(SRCDIR)swrast/s_lines.h \
+	$(SRCDIR)swrast/s_linetemp.h \
 	$(SRCDIR)swrast/s_logic.c \
+	$(SRCDIR)swrast/s_logic.h \
 	$(SRCDIR)swrast/s_masking.c \
+	$(SRCDIR)swrast/s_masking.h \
 	$(SRCDIR)swrast/s_points.c \
+	$(SRCDIR)swrast/s_points.h \
 	$(SRCDIR)swrast/s_renderbuffer.c \
+	$(SRCDIR)swrast/s_renderbuffer.h \
 	$(SRCDIR)swrast/s_span.c \
+	$(SRCDIR)swrast/s_span.h \
 	$(SRCDIR)swrast/s_stencil.c \
+	$(SRCDIR)swrast/s_stencil.h \
 	$(SRCDIR)swrast/s_texcombine.c \
+	$(SRCDIR)swrast/s_texcombine.h \
 	$(SRCDIR)swrast/s_texfetch.c \
+	$(SRCDIR)swrast/s_texfetch.h \
+	$(SRCDIR)swrast/s_texfetch_tmp.h \
 	$(SRCDIR)swrast/s_texfilter.c \
+	$(SRCDIR)swrast/s_texfilter.h \
 	$(SRCDIR)swrast/s_texrender.c \
 	$(SRCDIR)swrast/s_texture.c \
 	$(SRCDIR)swrast/s_triangle.c \
-	$(SRCDIR)swrast/s_zoom.c
+	$(SRCDIR)swrast/s_triangle.h \
+	$(SRCDIR)swrast/s_tritemp.h \
+	$(SRCDIR)swrast/swrast.h \
+	$(SRCDIR)swrast/s_zoom.c \
+	$(SRCDIR)swrast/s_zoom.h
 
 SWRAST_SETUP_FILES = \
 	$(SRCDIR)swrast_setup/ss_context.c \
-	$(SRCDIR)swrast_setup/ss_triangle.c
+	$(SRCDIR)swrast_setup/ss_context.h \
+	$(SRCDIR)swrast_setup/ss_triangle.c \
+	$(SRCDIR)swrast_setup/ss_triangle.h
 
 TNL_FILES = \
 	$(SRCDIR)tnl/t_context.c \
-	$(SRCDIR)tnl/t_pipeline.c \
+	$(SRCDIR)tnl/t_context.h \
 	$(SRCDIR)tnl/t_draw.c \
+	$(SRCDIR)tnl/tnl.h \
+	$(SRCDIR)tnl/t_pipeline.c \
+	$(SRCDIR)tnl/t_pipeline.h \
 	$(SRCDIR)tnl/t_rasterpos.c \
+	$(SRCDIR)tnl/t_vb_cliptmp.h \
+	$(SRCDIR)tnl/t_vb_fog.c \
+	$(SRCDIR)tnl/t_vb_light.c \
+	$(SRCDIR)tnl/t_vb_lighttmp.h \
+	$(SRCDIR)tnl/t_vb_normals.c \
+	$(SRCDIR)tnl/t_vb_points.c \
 	$(SRCDIR)tnl/t_vb_program.c \
 	$(SRCDIR)tnl/t_vb_render.c \
+	$(SRCDIR)tnl/t_vb_rendertmp.h \
 	$(SRCDIR)tnl/t_vb_texgen.c \
 	$(SRCDIR)tnl/t_vb_texmat.c \
 	$(SRCDIR)tnl/t_vb_vertex.c \
-	$(SRCDIR)tnl/t_vb_fog.c \
-	$(SRCDIR)tnl/t_vb_light.c \
-	$(SRCDIR)tnl/t_vb_normals.c \
-	$(SRCDIR)tnl/t_vb_points.c \
-	$(SRCDIR)tnl/t_vp_build.c \
 	$(SRCDIR)tnl/t_vertex.c \
+	$(SRCDIR)tnl/t_vertex_generic.c \
+	$(SRCDIR)tnl/t_vertex.h \
 	$(SRCDIR)tnl/t_vertex_sse.c \
-	$(SRCDIR)tnl/t_vertex_generic.c
+	$(SRCDIR)tnl/t_vp_build.c \
+	$(SRCDIR)tnl/t_vp_build.h
 
 VBO_FILES = \
+	$(SRCDIR)vbo/vbo_attrib.h \
+	$(SRCDIR)vbo/vbo_attrib_tmp.h \
 	$(SRCDIR)vbo/vbo_context.c \
-	$(SRCDIR)vbo/vbo_exec.c \
+	$(SRCDIR)vbo/vbo_context.h \
 	$(SRCDIR)vbo/vbo_exec_api.c \
 	$(SRCDIR)vbo/vbo_exec_array.c \
+	$(SRCDIR)vbo/vbo_exec.c \
 	$(SRCDIR)vbo/vbo_exec_draw.c \
 	$(SRCDIR)vbo/vbo_exec_eval.c \
+	$(SRCDIR)vbo/vbo_exec.h \
+	$(SRCDIR)vbo/vbo.h \
 	$(SRCDIR)vbo/vbo_noop.c \
+	$(SRCDIR)vbo/vbo_noop.h \
 	$(SRCDIR)vbo/vbo_primitive_restart.c \
 	$(SRCDIR)vbo/vbo_rebase.c \
+	$(SRCDIR)vbo/vbo_save_api.c \
+	$(SRCDIR)vbo/vbo_save.c \
+	$(SRCDIR)vbo/vbo_save_draw.c \
+	$(SRCDIR)vbo/vbo_save.h \
+	$(SRCDIR)vbo/vbo_save_loopback.c \
 	$(SRCDIR)vbo/vbo_split.c \
 	$(SRCDIR)vbo/vbo_split_copy.c \
-	$(SRCDIR)vbo/vbo_split_inplace.c \
-	$(SRCDIR)vbo/vbo_save.c \
-	$(SRCDIR)vbo/vbo_save_api.c \
-	$(SRCDIR)vbo/vbo_save_draw.c \
-	$(SRCDIR)vbo/vbo_save_loopback.c
+	$(SRCDIR)vbo/vbo_split.h \
+	$(SRCDIR)vbo/vbo_split_inplace.c
 
 STATETRACKER_FILES = \
-	$(SRCDIR)state_tracker/st_atom.c \
 	$(SRCDIR)state_tracker/st_atom_array.c \
 	$(SRCDIR)state_tracker/st_atom_blend.c \
+	$(SRCDIR)state_tracker/st_atom.c \
 	$(SRCDIR)state_tracker/st_atom_clip.c \
 	$(SRCDIR)state_tracker/st_atom_constbuf.c \
+	$(SRCDIR)state_tracker/st_atom_constbuf.h \
 	$(SRCDIR)state_tracker/st_atom_depth.c \
 	$(SRCDIR)state_tracker/st_atom_framebuffer.c \
+	$(SRCDIR)state_tracker/st_atom.h \
 	$(SRCDIR)state_tracker/st_atom_msaa.c \
 	$(SRCDIR)state_tracker/st_atom_pixeltransfer.c \
+	$(SRCDIR)state_tracker/st_atom_rasterizer.c \
 	$(SRCDIR)state_tracker/st_atom_sampler.c \
 	$(SRCDIR)state_tracker/st_atom_scissor.c \
 	$(SRCDIR)state_tracker/st_atom_shader.c \
-	$(SRCDIR)state_tracker/st_atom_rasterizer.c \
+	$(SRCDIR)state_tracker/st_atom_shader.h \
 	$(SRCDIR)state_tracker/st_atom_stipple.c \
 	$(SRCDIR)state_tracker/st_atom_texture.c \
 	$(SRCDIR)state_tracker/st_atom_viewport.c \
+	$(SRCDIR)state_tracker/st_cache.h \
 	$(SRCDIR)state_tracker/st_cb_bitmap.c \
+	$(SRCDIR)state_tracker/st_cb_bitmap.h \
 	$(SRCDIR)state_tracker/st_cb_blit.c \
+	$(SRCDIR)state_tracker/st_cb_blit.h \
 	$(SRCDIR)state_tracker/st_cb_bufferobjects.c \
+	$(SRCDIR)state_tracker/st_cb_bufferobjects.h \
 	$(SRCDIR)state_tracker/st_cb_clear.c \
+	$(SRCDIR)state_tracker/st_cb_clear.h \
 	$(SRCDIR)state_tracker/st_cb_condrender.c \
-	$(SRCDIR)state_tracker/st_cb_flush.c \
+	$(SRCDIR)state_tracker/st_cb_condrender.h \
 	$(SRCDIR)state_tracker/st_cb_drawpixels.c \
+	$(SRCDIR)state_tracker/st_cb_drawpixels.h \
 	$(SRCDIR)state_tracker/st_cb_drawtex.c \
+	$(SRCDIR)state_tracker/st_cb_drawtex.h \
 	$(SRCDIR)state_tracker/st_cb_eglimage.c \
+	$(SRCDIR)state_tracker/st_cb_eglimage.h \
 	$(SRCDIR)state_tracker/st_cb_fbo.c \
+	$(SRCDIR)state_tracker/st_cb_fbo.h \
 	$(SRCDIR)state_tracker/st_cb_feedback.c \
+	$(SRCDIR)state_tracker/st_cb_feedback.h \
+	$(SRCDIR)state_tracker/st_cb_flush.c \
+	$(SRCDIR)state_tracker/st_cb_flush.h \
 	$(SRCDIR)state_tracker/st_cb_msaa.c \
+	$(SRCDIR)state_tracker/st_cb_msaa.h \
 	$(SRCDIR)state_tracker/st_cb_program.c \
+	$(SRCDIR)state_tracker/st_cb_program.h \
 	$(SRCDIR)state_tracker/st_cb_queryobj.c \
+	$(SRCDIR)state_tracker/st_cb_queryobj.h \
 	$(SRCDIR)state_tracker/st_cb_rasterpos.c \
+	$(SRCDIR)state_tracker/st_cb_rasterpos.h \
 	$(SRCDIR)state_tracker/st_cb_readpixels.c \
-	$(SRCDIR)state_tracker/st_cb_syncobj.c \
+	$(SRCDIR)state_tracker/st_cb_readpixels.h \
 	$(SRCDIR)state_tracker/st_cb_strings.c \
-	$(SRCDIR)state_tracker/st_cb_texture.c \
+	$(SRCDIR)state_tracker/st_cb_strings.h \
+	$(SRCDIR)state_tracker/st_cb_syncobj.c \
+	$(SRCDIR)state_tracker/st_cb_syncobj.h \
 	$(SRCDIR)state_tracker/st_cb_texturebarrier.c \
+	$(SRCDIR)state_tracker/st_cb_texturebarrier.h \
+	$(SRCDIR)state_tracker/st_cb_texture.c \
+	$(SRCDIR)state_tracker/st_cb_texture.h \
 	$(SRCDIR)state_tracker/st_cb_viewport.c \
+	$(SRCDIR)state_tracker/st_cb_viewport.h \
 	$(SRCDIR)state_tracker/st_cb_xformfb.c \
+	$(SRCDIR)state_tracker/st_cb_xformfb.h \
 	$(SRCDIR)state_tracker/st_context.c \
+	$(SRCDIR)state_tracker/st_context.h \
 	$(SRCDIR)state_tracker/st_debug.c \
+	$(SRCDIR)state_tracker/st_debug.h \
 	$(SRCDIR)state_tracker/st_draw.c \
 	$(SRCDIR)state_tracker/st_draw_feedback.c \
+	$(SRCDIR)state_tracker/st_draw.h \
 	$(SRCDIR)state_tracker/st_extensions.c \
+	$(SRCDIR)state_tracker/st_extensions.h \
 	$(SRCDIR)state_tracker/st_format.c \
+	$(SRCDIR)state_tracker/st_format.h \
 	$(SRCDIR)state_tracker/st_gen_mipmap.c \
+	$(SRCDIR)state_tracker/st_gen_mipmap.h \
+	$(SRCDIR)state_tracker/st_gl_api.h \
 	$(SRCDIR)state_tracker/st_glsl_to_tgsi.cpp \
+	$(SRCDIR)state_tracker/st_glsl_to_tgsi.h \
 	$(SRCDIR)state_tracker/st_manager.c \
+	$(SRCDIR)state_tracker/st_manager.h \
 	$(SRCDIR)state_tracker/st_mesa_to_tgsi.c \
+	$(SRCDIR)state_tracker/st_mesa_to_tgsi.h \
 	$(SRCDIR)state_tracker/st_program.c \
+	$(SRCDIR)state_tracker/st_program.h \
 	$(SRCDIR)state_tracker/st_texture.c \
-	$(SRCDIR)state_tracker/st_vdpau.c
+	$(SRCDIR)state_tracker/st_texture.h \
+	$(SRCDIR)state_tracker/st_vdpau.c \
+	$(SRCDIR)state_tracker/st_vdpau.h
 
 PROGRAM_FILES = \
 	$(SRCDIR)program/arbprogparse.c \
-	$(SRCDIR)program/prog_hash_table.c \
+	$(SRCDIR)program/arbprogparse.h \
+	$(SRCDIR)program/hash_table.h \
 	$(SRCDIR)program/ir_to_mesa.cpp \
-	$(SRCDIR)program/program.c \
-	$(SRCDIR)program/program_parse_extra.c \
+	$(SRCDIR)program/ir_to_mesa.h \
+	$(BUILDDIR)program/lex.yy.c \
 	$(SRCDIR)program/prog_cache.c \
+	$(SRCDIR)program/prog_cache.h \
 	$(SRCDIR)program/prog_execute.c \
+	$(SRCDIR)program/prog_execute.h \
+	$(SRCDIR)program/prog_hash_table.c \
 	$(SRCDIR)program/prog_instruction.c \
+	$(SRCDIR)program/prog_instruction.h \
 	$(SRCDIR)program/prog_noise.c \
-	$(SRCDIR)program/prog_optimize.c \
+	$(SRCDIR)program/prog_noise.h \
 	$(SRCDIR)program/prog_opt_constant_fold.c \
+	$(SRCDIR)program/prog_optimize.c \
+	$(SRCDIR)program/prog_optimize.h \
 	$(SRCDIR)program/prog_parameter.c \
+	$(SRCDIR)program/prog_parameter.h \
 	$(SRCDIR)program/prog_parameter_layout.c \
+	$(SRCDIR)program/prog_parameter_layout.h \
 	$(SRCDIR)program/prog_print.c \
-	$(SRCDIR)program/prog_statevars.c \
+	$(SRCDIR)program/prog_print.h \
+	$(SRCDIR)program/program.c \
+	$(SRCDIR)program/program.h \
 	$(SRCDIR)program/programopt.c \
+	$(SRCDIR)program/programopt.h \
+	$(SRCDIR)program/program_parse_extra.c \
+	$(BUILDDIR)program/program_parse.tab.c \
+	$(BUILDDIR)program/program_parse.tab.h \
+	$(SRCDIR)program/program_parser.h \
+	$(SRCDIR)program/prog_statevars.c \
+	$(SRCDIR)program/prog_statevars.h \
 	$(SRCDIR)program/sampler.cpp \
+	$(SRCDIR)program/sampler.h \
 	$(SRCDIR)program/string_to_uint_map.cpp \
 	$(SRCDIR)program/symbol_table.c \
-	$(BUILDDIR)program/lex.yy.c \
-	$(BUILDDIR)program/program_parse.tab.c
+	$(SRCDIR)program/symbol_table.h
 
 ASM_C_FILES =	\
 	$(SRCDIR)x86/common_x86.c \
@@ -292,21 +535,32 @@ ASM_C_FILES =	\
 	$(SRCDIR)x86/3dnow.c \
 	$(SRCDIR)x86/sse.c \
 	$(SRCDIR)x86/rtasm/x86sse.c \
+	$(SRCDIR)x86/rtasm/x86sse.h \
 	$(SRCDIR)sparc/sparc.c \
 	$(SRCDIR)x86-64/x86-64.c
 
 X86_FILES =			\
+	$(SRCDIR)x86/assyntax.h		\
+	$(SRCDIR)x86/clip_args.h	\
+	$(SRCDIR)x86/norm_args.h	\
+	$(SRCDIR)x86/xform_args.h	\
 	$(SRCDIR)x86/common_x86_asm.S	\
+	$(SRCDIR)x86/common_x86_asm.h	\
+	$(SRCDIR)x86/common_x86_features.h	\
+	$(SRCDIR)x86/x86_xform.h	\
 	$(SRCDIR)x86/x86_xform2.S	\
 	$(SRCDIR)x86/x86_xform3.S	\
 	$(SRCDIR)x86/x86_xform4.S	\
 	$(SRCDIR)x86/x86_cliptest.S	\
-	$(SRCDIR)x86/mmx_blend.S		\
+	$(SRCDIR)x86/mmx.h		\
+	$(SRCDIR)x86/mmx_blend.S	\
+	$(SRCDIR)x86/mmx_blendtmp.h	\
+	$(SRCDIR)x86/3dnow.h		\
 	$(SRCDIR)x86/3dnow_xform1.S	\
 	$(SRCDIR)x86/3dnow_xform2.S	\
 	$(SRCDIR)x86/3dnow_xform3.S	\
 	$(SRCDIR)x86/3dnow_xform4.S	\
-	$(SRCDIR)x86/3dnow_normal.S	\
+	$(SRCDIR)x86/sse.h		\
 	$(SRCDIR)x86/sse_xform1.S	\
 	$(SRCDIR)x86/sse_xform2.S	\
 	$(SRCDIR)x86/sse_xform3.S	\
@@ -315,19 +569,24 @@ X86_FILES =			\
 	$(SRCDIR)x86/read_rgba_span_x86.S
 
 X86_64_FILES =		\
+	$(SRCDIR)x86-64/x86-64.h	\
 	$(SRCDIR)x86-64/xform4.S
 
 SPARC_FILES =			\
+	$(SRCDIR)sparc/sparc.h		\
 	$(SRCDIR)sparc/sparc_clip.S	\
+	$(SRCDIR)sparc/sparc_matrix.h	\
 	$(SRCDIR)sparc/norm.S		\
 	$(SRCDIR)sparc/xform.S
 
 COMMON_DRIVER_FILES =			\
 	$(SRCDIR)drivers/common/driverfuncs.c	\
+	$(SRCDIR)drivers/common/driverfuncs.h	\
 	$(SRCDIR)drivers/common/meta_blit.c	\
 	$(SRCDIR)drivers/common/meta_copy_image.c	\
 	$(SRCDIR)drivers/common/meta_generate_mipmap.c	\
-	$(SRCDIR)drivers/common/meta.c
+	$(SRCDIR)drivers/common/meta.c \
+	$(SRCDIR)drivers/common/meta.h
 
 
 # Sources for building non-Gallium drivers

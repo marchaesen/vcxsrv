@@ -43,25 +43,24 @@ _mesa_valid_prim_mode(struct gl_context *ctx, GLenum mode, const char *name);
 
 
 extern GLboolean
-_mesa_validate_DrawArrays(struct gl_context *ctx,
-			  GLenum mode, GLint start, GLsizei count);
+_mesa_validate_DrawArrays(struct gl_context *ctx, GLenum mode, GLsizei count);
 
 extern GLboolean
 _mesa_validate_DrawElements(struct gl_context *ctx,
 			    GLenum mode, GLsizei count, GLenum type,
-			    const GLvoid *indices, GLint basevertex);
+			    const GLvoid *indices);
 
 extern GLboolean
 _mesa_validate_MultiDrawElements(struct gl_context *ctx,
                                  GLenum mode, const GLsizei *count,
                                  GLenum type, const GLvoid * const *indices,
-                                 GLuint primcount, const GLint *basevertex);
+                                 GLuint primcount);
 
 extern GLboolean
 _mesa_validate_DrawRangeElements(struct gl_context *ctx, GLenum mode,
 				 GLuint start, GLuint end,
 				 GLsizei count, GLenum type,
-				 const GLvoid *indices, GLint basevertex);
+				 const GLvoid *indices);
 
 
 extern GLboolean
@@ -71,8 +70,7 @@ _mesa_validate_DrawArraysInstanced(struct gl_context *ctx, GLenum mode, GLint fi
 extern GLboolean
 _mesa_validate_DrawElementsInstanced(struct gl_context *ctx,
                                      GLenum mode, GLsizei count, GLenum type,
-                                     const GLvoid *indices, GLsizei primcount,
-                                     GLint basevertex);
+                                     const GLvoid *indices, GLsizei primcount);
 
 extern GLboolean
 _mesa_validate_DrawTransformFeedback(struct gl_context *ctx,

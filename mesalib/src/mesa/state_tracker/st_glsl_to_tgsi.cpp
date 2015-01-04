@@ -44,10 +44,8 @@
 #include "main/mtypes.h"
 #include "main/shaderobj.h"
 #include "main/uniforms.h"
-#include "program/hash_table.h"
-
-extern "C" {
 #include "main/shaderapi.h"
+#include "program/hash_table.h"
 #include "program/prog_instruction.h"
 #include "program/prog_optimize.h"
 #include "program/prog_print.h"
@@ -67,7 +65,7 @@ extern "C" {
 #include "st_program.h"
 #include "st_glsl_to_tgsi.h"
 #include "st_mesa_to_tgsi.h"
-}
+
 
 #define PROGRAM_IMMEDIATE PROGRAM_FILE_MAX
 #define PROGRAM_ANY_CONST ((1 << PROGRAM_STATE_VAR) |    \
@@ -2288,6 +2286,37 @@ glsl_to_tgsi_visitor::process_move_condition(ir_rvalue *ir)
    bool switch_order = false;
 
    ir_expression *const expr = ir->as_expression();
+
+   if (native_integers) {
+      if ((expr != NULL) && (expr->get_num_operands() == 2)) {
+         enum glsl_base_type type = expr->operands[0]->type->base_type;
+         if (type == GLSL_TYPE_INT || type == GLSL_TYPE_UINT ||
+             type == GLSL_TYPE_BOOL) {
+            if (expr->operation == ir_binop_equal) {
+               if (expr->operands[0]->is_zero()) {
+                  src_ir = expr->operands[1];
+                  switch_order = true;
+               }
+               else if (expr->operands[1]->is_zero()) {
+                  src_ir = expr->operands[0];
+                  switch_order = true;
+               }
+            }
+            else if (expr->operation == ir_binop_nequal) {
+               if (expr->operands[0]->is_zero()) {
+                  src_ir = expr->operands[1];
+               }
+               else if (expr->operands[1]->is_zero()) {
+                  src_ir = expr->operands[0];
+               }
+            }
+         }
+      }
+
+      src_ir->accept(this);
+      return switch_order;
+   }
+
    if ((expr != NULL) && (expr->get_num_operands() == 2)) {
       bool zero_on_left = false;
 
@@ -2379,7 +2408,7 @@ glsl_to_tgsi_visitor::emit_block_mov(ir_assignment *ir, const struct glsl_type *
       const struct glsl_type *vec_type;
 
       vec_type = glsl_type::get_instance(GLSL_TYPE_FLOAT,
-					 type->vector_elements, 1);
+                                         type->vector_elements, 1);
 
       for (int i = 0; i < type->matrix_columns; i++) {
          emit_block_mov(ir, vec_type, l, r);
@@ -2447,7 +2476,7 @@ glsl_to_tgsi_visitor::visit(ir_assignment *ir)
             swizzles[i] = first_enabled_chan;
       }
       r.swizzle = MAKE_SWIZZLE4(swizzles[0], swizzles[1],
-        			swizzles[2], swizzles[3]);
+                                swizzles[2], swizzles[3]);
    }
 
    assert(l.file != PROGRAM_UNDEFINED);
@@ -2460,24 +2489,21 @@ glsl_to_tgsi_visitor::visit(ir_assignment *ir)
       for (i = 0; i < type_size(ir->lhs->type); i++) {
          st_src_reg l_src = st_src_reg(l);
          st_src_reg condition_temp = condition;
+         st_src_reg op1, op2;
          l_src.swizzle = swizzle_for_size(ir->lhs->type->vector_elements);
-         
-         if (native_integers) {
-            /* This is necessary because TGSI's CMP instruction expects the
-             * condition to be a float, and we store booleans as integers.
-             * TODO: really want to avoid i2f path and use UCMP. Requires
-             * changes to process_move_condition though too.
-             */
-            condition_temp = get_temp(glsl_type::vec4_type);
-            condition.negate = 0;
-            emit(ir, TGSI_OPCODE_I2F, st_dst_reg(condition_temp), condition);
-            condition_temp.swizzle = condition.swizzle;
-         }
-         
+
+         op1 = r;
+         op2 = l_src;
          if (switch_order) {
-            emit(ir, TGSI_OPCODE_CMP, l, condition_temp, l_src, r);
-         } else {
-            emit(ir, TGSI_OPCODE_CMP, l, condition_temp, r, l_src);
+            op1 = l_src;
+            op2 = r;
+         }
+
+         if (native_integers) {
+            emit(ir, TGSI_OPCODE_UCMP, l, condition_temp, op1, op2);
+         }
+         else {
+            emit(ir, TGSI_OPCODE_CMP, l, condition_temp, op1, op2);
          }
 
          l.index++;
@@ -3527,7 +3553,8 @@ glsl_to_tgsi_visitor::copy_propagate(void)
                first = copy_chan;
             } else {
                if (first->src[0].file != copy_chan->src[0].file ||
-        	   first->src[0].index != copy_chan->src[0].index) {
+                   first->src[0].index != copy_chan->src[0].index ||
+                   first->src[0].index2D != copy_chan->src[0].index2D) {
         	  good = false;
         	  break;
                }
@@ -4167,8 +4194,8 @@ const unsigned _mesa_sysval_to_semantic[SYSTEM_VALUE_MAX] = {
     */
    TGSI_SEMANTIC_VERTEXID,
    TGSI_SEMANTIC_INSTANCEID,
-   0,
-   0,
+   TGSI_SEMANTIC_VERTEXID_NOBASE,
+   TGSI_SEMANTIC_BASEVERTEX,
 
    /* Geometry shader
     */
@@ -4879,6 +4906,10 @@ st_translate_program(
           TGSI_SEMANTIC_SAMPLEMASK);
    assert(_mesa_sysval_to_semantic[SYSTEM_VALUE_INVOCATION_ID] ==
           TGSI_SEMANTIC_INVOCATIONID);
+   assert(_mesa_sysval_to_semantic[SYSTEM_VALUE_VERTEX_ID_ZERO_BASE] ==
+          TGSI_SEMANTIC_VERTEXID_NOBASE);
+   assert(_mesa_sysval_to_semantic[SYSTEM_VALUE_BASE_VERTEX] ==
+          TGSI_SEMANTIC_BASEVERTEX);
 
    t = CALLOC_STRUCT(st_translate);
    if (!t) {
@@ -5391,9 +5422,6 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
       if (!pscreen->get_param(pscreen, PIPE_CAP_TEXTURE_GATHER_OFFSETS))
          lower_offset_arrays(ir);
       do_mat_op_to_vec(ir);
-      /* Emit saturates in the vertex shader only if SM 3.0 is supported. */
-      bool vs_sm3 = (_mesa_shader_stage_to_program(prog->_LinkedShaders[i]->Stage) ==
-                         GL_VERTEX_PROGRAM_ARB) && st_context(ctx)->has_shader_model3;
       lower_instructions(ir,
                          MOD_TO_FRACT |
                          DIV_TO_MUL_RCP |
@@ -5404,7 +5432,7 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
                          BORROW_TO_ARITH |
                          (options->EmitNoPow ? POW_TO_EXP2 : 0) |
                          (!ctx->Const.NativeIntegers ? INT_DIV_TO_MUL_RCP : 0) |
-                         (vs_sm3 ? SAT_TO_CLAMP : 0));
+                         (options->EmitNoSat ? SAT_TO_CLAMP : 0));
 
       lower_ubo_reference(prog->_LinkedShaders[i], ir);
       do_vec_index_to_cond_assign(ir);

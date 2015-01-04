@@ -46,7 +46,8 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = dri.pc
 
 driincludedir = $(includedir)/GL/internal
-driinclude_HEADERS = $(top_srcdir)/include/GL/internal/dri_interface.h
+driinclude_HEADERS = \
+	$(top_srcdir)/include/GL/internal/dri_interface.h
 
 nodist_EXTRA_mesa_dri_drivers_la_SOURCES = dummy.cpp
 mesa_dri_drivers_la_SOURCES =
@@ -76,6 +77,12 @@ all-local: mesa_dri_drivers.la
 		ln -f $(top_builddir)/$(LIB_DIR)/mesa_dri_drivers.so \
 		      $(top_builddir)/$(LIB_DIR)/$$i; \
 	done;
+
+clean-local:
+	$(AM_V_GEN)$(RM) $(top_builddir)/$(LIB_DIR)/mesa_dri_drivers.so;
+	$(AM_V_GEN)for i in $(MEGADRIVERS); do \
+		$(RM) $(top_builddir)/$(LIB_DIR)/$$i; \
+	done;
 endif
 
 # hardlink each megadriver instance, but don't actually have
@@ -85,6 +92,11 @@ install-data-hook:
 		ln -f $(DESTDIR)$(dridir)/mesa_dri_drivers.so \
 		      $(DESTDIR)$(dridir)/$$i; \
 	done;
-	$(RM) -f $(DESTDIR)$(dridir)/mesa_dri_drivers.*
+	$(RM) $(DESTDIR)$(dridir)/mesa_dri_drivers.*
+
+uninstall-hook:
+	for i in $(MEGADRIVERS); do \
+		$(RM) $(DESTDIR)$(dridir)/$$i; \
+	done;
 
 endif

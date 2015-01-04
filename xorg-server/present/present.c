@@ -440,7 +440,7 @@ present_flip_notify(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
     DebugPresent(("\tn %lld %p %8lld: %08lx -> %08lx\n",
                   vblank->event_id, vblank, vblank->target_msc,
                   vblank->pixmap ? vblank->pixmap->drawable.id : 0,
-                  vblank->window->drawable.id));
+                  vblank->window ? vblank->window->drawable.id : 0));
 
     assert (vblank == screen_priv->flip_pending);
 
@@ -834,10 +834,13 @@ present_pixmap(WindowPtr window,
     vblank->notifies = notifies;
     vblank->num_notifies = num_notifies;
 
-    if (!screen_priv->info || !(screen_priv->info->capabilities & PresentCapabilityAsync))
+    if (!(options & PresentOptionAsync))
         vblank->sync_flip = TRUE;
 
     if (!(options & PresentOptionCopy) &&
+        !((options & PresentOptionAsync) &&
+          (!screen_priv->info ||
+           !(screen_priv->info->capabilities & PresentCapabilityAsync))) &&
         pixmap != NULL &&
         present_check_flip (target_crtc, window, pixmap, vblank->sync_flip, valid, x_off, y_off))
     {
@@ -859,28 +862,27 @@ present_pixmap(WindowPtr window,
     }
 
     if (pixmap)
-        DebugPresent(("q %lld %p %8lld: %08lx -> %08lx (crtc %p)\n",
+        DebugPresent(("q %lld %p %8lld: %08lx -> %08lx (crtc %p) flip %d vsync %d serial %d\n",
                       vblank->event_id, vblank, target_msc,
                       vblank->pixmap->drawable.id, vblank->window->drawable.id,
-                      target_crtc));
+                      target_crtc, vblank->flip, vblank->sync_flip, vblank->serial));
 
     xorg_list_add(&vblank->event_queue, &present_exec_queue);
     vblank->queued = TRUE;
     if ((pixmap && target_msc >= crtc_msc) || (!pixmap && target_msc > crtc_msc)) {
         ret = present_queue_vblank(screen, target_crtc, vblank->event_id, target_msc);
-        if (ret != Success) {
-            xorg_list_del(&vblank->event_queue);
-            vblank->queued = FALSE;
-            goto failure;
-        }
-    } else
-        present_execute(vblank, ust, crtc_msc);
+        if (ret == Success)
+            return Success;
+
+        DebugPresent(("present_queue_vblank failed\n"));
+    }
+
+    present_execute(vblank, ust, crtc_msc);
 
     return Success;
 
 no_mem:
     ret = BadAlloc;
-failure:
     vblank->notifies = NULL;
     present_vblank_destroy(vblank);
     return ret;
@@ -955,7 +957,7 @@ present_vblank_destroy(present_vblank_ptr vblank)
     DebugPresent(("\td %lld %p %8lld: %08lx -> %08lx\n",
                   vblank->event_id, vblank, vblank->target_msc,
                   vblank->pixmap ? vblank->pixmap->drawable.id : 0,
-                  vblank->window->drawable.id));
+                  vblank->window ? vblank->window->drawable.id : 0));
 
     /* Drop pixmap reference */
     if (vblank->pixmap)

@@ -126,7 +126,7 @@ glamor_pixmap_fbo_cache_get(glamor_screen_private *glamor_priv,
 #endif
 }
 
-void
+static void
 glamor_purge_fbo(glamor_pixmap_fbo *fbo)
 {
     glamor_make_current(fbo->glamor_priv);
@@ -540,8 +540,6 @@ glamor_pixmap_destroy_fbo(glamor_pixmap_private *priv)
         if (fbo)
             glamor_destroy_fbo(fbo);
     }
-
-    free(priv);
 }
 
 Bool

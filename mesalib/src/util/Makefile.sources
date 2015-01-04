@@ -1,10 +1,18 @@
 MESA_UTIL_FILES :=	\
+	format_srgb.h \
 	hash_table.c	\
+	hash_table.h \
+	macros.h \
 	ralloc.c \
+	ralloc.h \
 	register_allocate.c \
 	register_allocate.h \
 	rgtc.c \
-	strtod.cpp
+	rgtc.h \
+	strtod.cpp \
+	strtod.h \
+	texcompress_rgtc_tmp.h \
+	u_atomic.h
 
 MESA_UTIL_GENERATED_FILES = \
 	format_srgb.c

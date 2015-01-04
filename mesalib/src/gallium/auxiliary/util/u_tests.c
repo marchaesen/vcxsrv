@@ -248,7 +248,6 @@ tgsi_vs_window_space_position(struct pipe_context *ctx)
                                        cb->width0, cb->height0, red);
 
    /* Cleanup. */
-   cso_release_all(cso);
    cso_destroy_context(cso);
    ctx->delete_vs_state(ctx, vs);
    ctx->delete_fs_state(ctx, fs);

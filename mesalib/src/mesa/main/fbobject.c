@@ -599,6 +599,7 @@ fbo_incomplete(struct gl_context *ctx, const char *msg, int index)
    static GLuint msg_id;
 
    _mesa_gl_debug(ctx, &msg_id,
+                  MESA_DEBUG_SOURCE_API,
                   MESA_DEBUG_TYPE_OTHER,
                   MESA_DEBUG_SEVERITY_MEDIUM,
                   "FBO incomplete: %s [%d]\n", msg, index);
@@ -1429,6 +1430,9 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
    case GL_RGB8:
       return GL_RGB;
    case GL_RGB:
+      if (_mesa_is_gles3(ctx))
+         return GL_RGB;
+      /* fallthrough */
    case GL_R3_G3_B2:
    case GL_RGB4:
    case GL_RGB5:
@@ -1443,6 +1447,9 @@ _mesa_base_fbo_format(struct gl_context *ctx, GLenum internalFormat)
    case GL_RGBA8:
       return GL_RGBA;
    case GL_RGBA:
+      if (_mesa_is_gles3(ctx))
+         return GL_RGBA;
+      /* fallthrough */
    case GL_RGBA2:
    case GL_RGBA12:
    case GL_RGBA16:
@@ -3073,6 +3080,14 @@ invalidate_framebuffer_storage(GLenum target, GLsizei numAttachments,
          case GL_DEPTH_ATTACHMENT:
          case GL_STENCIL_ATTACHMENT:
             break;
+         case GL_DEPTH_STENCIL_ATTACHMENT:
+            /* GL_DEPTH_STENCIL_ATTACHMENT is a valid attachment point only
+             * in desktop and ES 3.0 profiles. Note that OES_packed_depth_stencil
+             * extension does not make this attachment point valid on ES 2.0.
+             */
+            if (_mesa_is_desktop_gl(ctx) || _mesa_is_gles3(ctx))
+               break;
+            /* fallthrough */
          case GL_COLOR_ATTACHMENT0:
          case GL_COLOR_ATTACHMENT1:
          case GL_COLOR_ATTACHMENT2:

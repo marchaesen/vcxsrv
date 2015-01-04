@@ -233,6 +233,9 @@ pointer_handle_button(void *data, struct wl_pointer *pointer, uint32_t serial,
     xwl_seat->xwl_screen->serial = serial;
 
     switch (button) {
+    case BTN_LEFT:
+        index = 1;
+        break;
     case BTN_MIDDLE:
         index = 2;
         break;
@@ -240,7 +243,9 @@ pointer_handle_button(void *data, struct wl_pointer *pointer, uint32_t serial,
         index = 3;
         break;
     default:
-        index = button - BTN_LEFT + 1;
+        /* Skip indexes 4-7: they are used for vertical and horizontal scroll.
+           The rest of the buttons go in order: BTN_SIDE becomes 8, etc. */
+        index = 8 + button - BTN_SIDE;
         break;
     }
 

@@ -208,15 +208,14 @@ glamor_xv_query_image_attributes(int id,
     switch (id) {
     case FOURCC_YV12:
     case FOURCC_I420:
-        *h = *h;
-        *w = *w;
-        size = *w;
+        *h = ALIGN(*h, 2);
+        size = ALIGN(*w, 4);
         if (pitches)
             pitches[0] = size;
         size *= *h;
         if (offsets)
             offsets[1] = size;
-        tmp = *w >> 1;
+        tmp = ALIGN(*w >> 1, 4);
         if (pitches)
             pitches[1] = pitches[2] = tmp;
         tmp *= (*h >> 1);
@@ -413,9 +412,6 @@ glamor_xv_put_image(glamor_port_private *port_priv,
 
     s2offset = s3offset = srcPitch2 = 0;
 
-    srcPitch = width;
-    srcPitch2 = width >> 1;
-
     if (!port_priv->src_pix[0] ||
         (width != port_priv->src_pix_w || height != port_priv->src_pix_h)) {
         int i;
@@ -439,11 +435,13 @@ glamor_xv_put_image(glamor_port_private *port_priv,
     }
 
     top = (src_y) & ~1;
-    nlines = (src_y + height) - top;
+    nlines = (src_y + src_h) - top;
 
     switch (id) {
     case FOURCC_YV12:
     case FOURCC_I420:
+        srcPitch = ALIGN(width, 4);
+        srcPitch2 = ALIGN(width >> 1, 4);
         s2offset = srcPitch * height;
         s3offset = s2offset + (srcPitch2 * ((height + 1) >> 1));
         s2offset += ((top >> 1) * srcPitch2);
@@ -454,18 +452,18 @@ glamor_xv_put_image(glamor_port_private *port_priv,
             s3offset = tmp;
         }
         glamor_upload_sub_pixmap_to_texture(port_priv->src_pix[0],
-                                            0, 0, srcPitch, nlines,
-                                            port_priv->src_pix[0]->devKind,
+                                            0, 0, width, nlines,
+                                            srcPitch,
                                             buf + (top * srcPitch), 0);
 
         glamor_upload_sub_pixmap_to_texture(port_priv->src_pix[1],
-                                            0, 0, srcPitch2, (nlines + 1) >> 1,
-                                            port_priv->src_pix[1]->devKind,
+                                            0, 0, width >> 1, (nlines + 1) >> 1,
+                                            srcPitch2,
                                             buf + s2offset, 0);
 
         glamor_upload_sub_pixmap_to_texture(port_priv->src_pix[2],
-                                            0, 0, srcPitch2, (nlines + 1) >> 1,
-                                            port_priv->src_pix[2]->devKind,
+                                            0, 0, width >> 1, (nlines + 1) >> 1,
+                                            srcPitch2,
                                             buf + s3offset, 0);
         break;
     default:

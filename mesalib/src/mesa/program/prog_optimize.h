@@ -29,6 +29,11 @@
 #include "main/glheader.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 struct gl_context;
 struct gl_program;
 struct prog_instruction;
@@ -45,5 +50,11 @@ _mesa_optimize_program(struct gl_context *ctx, struct gl_program *program);
 
 extern GLboolean
 _mesa_constant_fold(struct gl_program *prog);
+
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif

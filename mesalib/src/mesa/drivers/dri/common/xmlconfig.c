@@ -312,8 +312,7 @@ static unsigned char parseValue (driOptionValue *v, driOptionType type,
 	v->_float = strToF (string, &tail);
 	break;
       case DRI_STRING:
-	if (v->_string)
-	    free (v->_string);
+	free (v->_string);
 	v->_string = strndup(string, STRING_CONF_MAXLEN);
 	return GL_TRUE;
     }

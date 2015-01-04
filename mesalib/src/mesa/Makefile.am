@@ -62,6 +62,23 @@ include $(GLAPI)/glapi_gen.mk
 BUILDDIR = $(builddir)/
 include Makefile.sources
 
+EXTRA_DIST = \
+	drivers/haiku \
+	drivers/SConscript \
+	drivers/windows \
+	main/format_info.py \
+	main/format_parser.py \
+	main/formats.csv \
+	main/get_hash_generator.py \
+	main/get_hash_params.py \
+	program/program_lexer.l \
+	program/program_parse.y \
+	SConscript \
+	swrast/NOTES \
+	swrast_setup/NOTES \
+	tnl/NOTES \
+	tnl_dd
+
 BUILT_SOURCES = \
 	main/get_hash.h \
         main/format_info.c \
@@ -152,8 +169,10 @@ libmesagallium_la_LIBADD = \
 
 libmesa_sse41_la_SOURCES = \
 	main/streaming-load-memcpy.c \
-	main/sse_minmax.c
-libmesa_sse41_la_CFLAGS = $(AM_CFLAGS) -msse4.1
+	main/streaming-load-memcpy.h \
+	main/sse_minmax.c \
+	main/sse_minmax.h
+libmesa_sse41_la_CFLAGS = $(AM_CFLAGS) $(SSE41_CFLAGS)
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = gl.pc

@@ -2621,6 +2621,7 @@ hw/kdrive/linux/Makefile
 hw/kdrive/src/Makefile
 hw/xwayland/Makefile
 test/Makefile
+test/xi1/Makefile
 test/xi2/Makefile
 xserver.ent
 xorg-server.pc

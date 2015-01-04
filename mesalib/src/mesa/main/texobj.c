@@ -89,7 +89,7 @@ _mesa_lookup_texture_locked(struct gl_context *ctx, GLuint id)
  *
  * Called via ctx->Driver.NewTextureObject, unless overridden by a device
  * driver.
- * 
+ *
  * \param shared the shared GL state structure to contain the texture object
  * \param name integer name for the texture object
  * \param target either GL_TEXTURE_1D, GL_TEXTURE_2D, GL_TEXTURE_3D,
@@ -266,7 +266,6 @@ _mesa_delete_texture_object(struct gl_context *ctx,
    /* free this object */
    free(texObj);
 }
-
 
 
 /**
@@ -653,7 +652,8 @@ _mesa_test_texobj_completeness( const struct gl_context *ctx,
          if (height > 1 && t->Target != GL_TEXTURE_1D_ARRAY) {
             height /= 2;
          }
-         if (depth > 1 && t->Target != GL_TEXTURE_2D_ARRAY && t->Target != GL_TEXTURE_CUBE_MAP_ARRAY) {
+         if (depth > 1 && t->Target != GL_TEXTURE_2D_ARRAY
+             && t->Target != GL_TEXTURE_CUBE_MAP_ARRAY) {
             depth /= 2;
          }
 
@@ -675,22 +675,25 @@ _mesa_test_texobj_completeness( const struct gl_context *ctx,
                   return;
                }
                if (img->Width2 != width) {
-                  incomplete(t, MIPMAP, "TexImage[%d] bad width %u", i, img->Width2);
+                  incomplete(t, MIPMAP, "TexImage[%d] bad width %u", i,
+                             img->Width2);
                   return;
                }
                if (img->Height2 != height) {
-                  incomplete(t, MIPMAP, "TexImage[%d] bad height %u", i, img->Height2);
+                  incomplete(t, MIPMAP, "TexImage[%d] bad height %u", i,
+                             img->Height2);
                   return;
                }
                if (img->Depth2 != depth) {
-                  incomplete(t, MIPMAP, "TexImage[%d] bad depth %u", i, img->Depth2);
+                  incomplete(t, MIPMAP, "TexImage[%d] bad depth %u", i,
+                             img->Depth2);
                   return;
                }
 
                /* Extra checks for cube textures */
                if (face > 0) {
                   /* check that cube faces are the same size */
-                  if (img->Width2 != t->Image[0][i]->Width2 || 
+                  if (img->Width2 != t->Image[0][i]->Width2 ||
                       img->Height2 != t->Image[0][i]->Height2) {
 		     incomplete(t, MIPMAP, "CubeMap Image[n][i] bad size");
 		     return;
@@ -698,7 +701,7 @@ _mesa_test_texobj_completeness( const struct gl_context *ctx,
                }
             }
          }
-         
+
          if (width == 1 && height == 1 && depth == 1) {
             return;  /* found smallest needed mipmap, all done! */
          }
@@ -950,6 +953,7 @@ _mesa_total_texture_memory(struct gl_context *ctx)
    return total;
 }
 
+
 static struct gl_texture_object *
 invalidate_tex_image_error_check(struct gl_context *ctx, GLuint texture,
                                  GLint level, const char *name)
@@ -1022,7 +1026,7 @@ invalidate_tex_image_error_check(struct gl_context *ctx, GLuint texture,
  * Calls _mesa_HashFindFreeKeyBlock() to find a block of free texture
  * IDs which are stored in \p textures.  Corresponding empty texture
  * objects are also generated.
- */ 
+ */
 void GLAPIENTRY
 _mesa_GenTextures( GLsizei n, GLuint *textures )
 {
@@ -1155,6 +1159,7 @@ unbind_texobj_from_image_units(struct gl_context *ctx,
    }
 }
 
+
 /**
  * Unbinds all textures bound to the given texture image unit.
  */
@@ -1177,6 +1182,7 @@ unbind_textures_from_unit(struct gl_context *ctx, GLuint unit)
       ctx->NewState |= _NEW_TEXTURE;
    }
 }
+
 
 /**
  * Delete named textures.
@@ -1305,10 +1311,10 @@ _mesa_tex_target_to_index(const struct gl_context *ctx, GLenum target)
 
 /**
  * Bind a named texture to a texturing target.
- * 
+ *
  * \param target texture target.
  * \param texName texture name.
- * 
+ *
  * \sa glBindTexture().
  *
  * Determines the old texture object bound and returns immediately if rebinding
@@ -1350,7 +1356,9 @@ _mesa_BindTexture( GLenum target, GLuint texName )
       if (newTexObj) {
          /* error checking */
          if (newTexObj->Target != 0 && newTexObj->Target != target) {
-            /* the named texture object's target doesn't match the given target */
+            /* The named texture object's target doesn't match the
+             * given target
+             */
             _mesa_error( ctx, GL_INVALID_OPERATION,
                          "glBindTexture(target mismatch)" );
             return;
@@ -1361,7 +1369,8 @@ _mesa_BindTexture( GLenum target, GLuint texName )
       }
       else {
          if (ctx->API == API_OPENGL_CORE) {
-            _mesa_error(ctx, GL_INVALID_OPERATION, "glBindTexture(non-gen name)");
+            _mesa_error(ctx, GL_INVALID_OPERATION,
+                        "glBindTexture(non-gen name)");
             return;
          }
 
@@ -1526,13 +1535,13 @@ _mesa_BindTextures(GLuint first, GLsizei count, const GLuint *textures)
 
 /**
  * Set texture priorities.
- * 
+ *
  * \param n number of textures.
  * \param texName texture names.
  * \param priorities corresponding texture priorities.
- * 
+ *
  * \sa glPrioritizeTextures().
- * 
+ *
  * Looks up each texture in the hash, clamps the corresponding priority between
  * 0.0 and 1.0, and calls dd_function_table::PrioritizeTexture.
  */
@@ -1572,13 +1581,14 @@ _mesa_PrioritizeTextures( GLsizei n, const GLuint *texName,
 
 /**
  * See if textures are loaded in texture memory.
- * 
+ *
  * \param n number of textures to query.
  * \param texName array with the texture names.
  * \param residences array which will hold the residence status.
  *
- * \return GL_TRUE if all textures are resident and \p residences is left unchanged, 
- * 
+ * \return GL_TRUE if all textures are resident and
+ *                 residences is left unchanged,
+ *
  * Note: we assume all textures are always resident
  */
 GLboolean GLAPIENTRY
@@ -1614,7 +1624,7 @@ _mesa_AreTexturesResident(GLsizei n, const GLuint *texName,
          return GL_FALSE;
       }
    }
-   
+
    return allResident;
 }
 
@@ -1626,7 +1636,7 @@ _mesa_AreTexturesResident(GLsizei n, const GLuint *texName,
  *
  * \return GL_TRUE if texture name corresponds to a texture, or GL_FALSE
  * otherwise.
- * 
+ *
  * \sa glIsTexture().
  *
  * Calls _mesa_HashLookup().
@@ -1680,6 +1690,7 @@ _mesa_unlock_context_textures( struct gl_context *ctx )
    assert(ctx->Shared->TextureStateStamp == ctx->TextureStateTimestamp);
    mtx_unlock(&ctx->Shared->TexMutex);
 }
+
 
 void GLAPIENTRY
 _mesa_InvalidateTexSubImage(GLuint texture, GLint level, GLint xoffset,
@@ -1826,6 +1837,7 @@ _mesa_InvalidateTexSubImage(GLuint texture, GLint level, GLint xoffset,
     */
    return;
 }
+
 
 void GLAPIENTRY
 _mesa_InvalidateTexImage(GLuint texture, GLint level)

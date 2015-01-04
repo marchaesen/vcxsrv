@@ -20,6 +20,7 @@
 <!ENTITY fcstring SYSTEM "fcstring.sgml">
 <!ENTITY fcstrset SYSTEM "fcstrset.sgml">
 <!ENTITY fcvalue SYSTEM "fcvalue.sgml">
+<!ENTITY fcweight SYSTEM "fcweight.sgml">
 <!ENTITY version SYSTEM "version.sgml">
 ]>
 <!--
@@ -176,6 +177,7 @@ convenience for the application's rendering mechanism.
     scalable       FC_SCALABLE            Bool    Whether glyphs can be scaled
     scale          FC_SCALE               Double  Scale factor for point->pixel
                                                   conversions
+    color          FC_COLOR               Bool    Whether any glyphs have color
     dpi            FC_DPI                 Double  Target dots per inch
     rgba           FC_RGBA                Int     unknown, rgb, bgr, vrgb,
                                                   vbgr, none - subpixel geometry
@@ -535,6 +537,12 @@ pattern elements can be generated from font names.
 Provides for application-specified symbolic constants for font names.
     </para>
     &fcconstant;
+  </sect2>
+  <sect2><title>FcWeight</title>
+    <para>
+Maps weights to and from OpenType weights.
+    </para>
+  &fcweight;
   </sect2>
   <sect2><title>FcBlanks</title>
     <para>

@@ -5908,7 +5908,7 @@ ast_cs_input_layout::hir(exec_list *instructions,
     * declare it earlier).
     */
    ir_variable *var = new(state->symbols)
-      ir_variable(glsl_type::ivec3_type, "gl_WorkGroupSize", ir_var_auto);
+      ir_variable(glsl_type::uvec3_type, "gl_WorkGroupSize", ir_var_auto);
    var->data.how_declared = ir_var_declared_implicitly;
    var->data.read_only = true;
    instructions->push_tail(var);
@@ -5916,10 +5916,10 @@ ast_cs_input_layout::hir(exec_list *instructions,
    ir_constant_data data;
    memset(&data, 0, sizeof(data));
    for (int i = 0; i < 3; i++)
-      data.i[i] = this->local_size[i];
-   var->constant_value = new(var) ir_constant(glsl_type::ivec3_type, &data);
+      data.u[i] = this->local_size[i];
+   var->constant_value = new(var) ir_constant(glsl_type::uvec3_type, &data);
    var->constant_initializer =
-      new(var) ir_constant(glsl_type::ivec3_type, &data);
+      new(var) ir_constant(glsl_type::uvec3_type, &data);
    var->data.has_initializer = true;
 
    return NULL;

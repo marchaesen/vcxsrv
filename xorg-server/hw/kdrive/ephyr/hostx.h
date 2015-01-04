@@ -141,7 +141,7 @@ hostx_get_visual_masks(KdScreenInfo *screen,
                        CARD32 *rmsk, CARD32 *gmsk, CARD32 *bmsk);
 void
 
-hostx_set_cmap_entry(unsigned char idx,
+hostx_set_cmap_entry(ScreenPtr pScreen, unsigned char idx,
                      unsigned char r, unsigned char g, unsigned char b);
 
 void *hostx_screen_init(KdScreenInfo *screen,

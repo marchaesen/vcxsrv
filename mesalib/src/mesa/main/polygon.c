@@ -176,19 +176,18 @@ _mesa_PolygonMode( GLenum face, GLenum mode )
 
 
 /**
- * This routine updates the ctx->Polygon.Stipple state.
- * If we're getting the stipple data from a PBO, we map the buffer
- * in order to access the data.
- * In any case, we obey the current pixel unpacking parameters when fetching
- * the stipple data.
- *
- * In the future, this routine should be used as a fallback, called via
- * ctx->Driver.PolygonStipple().  We'll have to update all the DRI drivers
- * too.
+ * Called by glPolygonStipple.
  */
-void
-_mesa_polygon_stipple(struct gl_context *ctx, const GLubyte *pattern)
+void GLAPIENTRY
+_mesa_PolygonStipple(const GLubyte *pattern)
 {
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (MESA_VERBOSE & VERBOSE_API)
+      _mesa_debug(ctx, "glPolygonStipple\n");
+
+   FLUSH_VERTICES(ctx, _NEW_POLYGONSTIPPLE);
+
    pattern = _mesa_map_validate_pbo_source(ctx, 2,
                                            &ctx->Unpack, 32, 32, 1,
                                            GL_COLOR_INDEX, GL_BITMAP,
@@ -200,23 +199,6 @@ _mesa_polygon_stipple(struct gl_context *ctx, const GLubyte *pattern)
    _mesa_unpack_polygon_stipple(pattern, ctx->PolygonStipple, &ctx->Unpack);
 
    _mesa_unmap_pbo_source(ctx, &ctx->Unpack);
-}
-
-
-/**
- * Called by glPolygonStipple.
- */
-void GLAPIENTRY
-_mesa_PolygonStipple( const GLubyte *pattern )
-{
-   GET_CURRENT_CONTEXT(ctx);
-
-   if (MESA_VERBOSE&VERBOSE_API)
-      _mesa_debug(ctx, "glPolygonStipple\n");
-
-   FLUSH_VERTICES(ctx, _NEW_POLYGONSTIPPLE);
-
-   _mesa_polygon_stipple(ctx, pattern);
 
    if (ctx->Driver.PolygonStipple)
       ctx->Driver.PolygonStipple(ctx, pattern);

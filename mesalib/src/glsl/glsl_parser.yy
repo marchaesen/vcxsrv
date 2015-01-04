@@ -331,7 +331,18 @@ pragma_statement:
    | PRAGMA_OPTIMIZE_OFF EOL
    | PRAGMA_INVARIANT_ALL EOL
    {
-      if (!state->is_version(120, 100)) {
+      /* Pragma invariant(all) cannot be used in a fragment shader.
+       *
+       * Page 27 of the GLSL 1.20 spec, Page 53 of the GLSL ES 3.00 spec:
+       *
+       *     "It is an error to use this pragma in a fragment shader."
+       */
+      if (state->is_version(120, 300) &&
+          state->stage == MESA_SHADER_FRAGMENT) {
+         _mesa_glsl_error(& @1, state,
+                          "pragma `invariant(all)' cannot be used "
+                          "in a fragment shader.");
+      } else if (!state->is_version(120, 100)) {
          _mesa_glsl_warning(& @1, state,
                             "pragma `invariant(all)' not supported in %s "
                             "(GLSL ES 1.00 or GLSL 1.20 required)",
@@ -1591,6 +1602,17 @@ type_qualifier:
 
       $$ = $2;
       $$.flags.q.invariant = 1;
+
+      /* GLSL ES 3.00 spec, section 4.6.1 "The Invariant Qualifier":
+       *
+       * "Only variables output from a shader can be candidates for invariance.
+       * This includes user-defined output variables and the built-in output
+       * variables. As only outputs can be declared as invariant, an invariant
+       * output from one shader stage will still match an input of a subsequent
+       * stage without the input being declared as invariant."
+       */
+      if (state->es_shader && state->language_version >= 300 && $$.flags.q.in)
+         _mesa_glsl_error(&@1, state, "invariant qualifiers cannot be used with shader inputs");
    }
    | interpolation_qualifier type_qualifier
    {

@@ -46,6 +46,8 @@ DoSwapInterval(__GLXclientState * cl, GLbyte * pc, int do_swap)
     __GLXcontext *cx;
     GLint interval;
 
+    REQUEST_FIXED_SIZE(xGLXVendorPrivateReq, 4);
+
     cx = __glXLookupContextByTag(cl, tag);
 
     if ((cx == NULL) || (cx->pGlxScreen == NULL)) {

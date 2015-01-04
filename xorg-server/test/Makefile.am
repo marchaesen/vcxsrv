@@ -4,7 +4,7 @@ noinst_PROGRAMS = list string
 if XORG
 # Tests that require at least some DDX functions in order to fully link
 # For now, requires xf86 ddx, could be adjusted to use another
-SUBDIRS += xi2
+SUBDIRS += xi1 xi2
 noinst_PROGRAMS += xkb input xtest misc fixes xfree86 os signal-logging touch
 if RES
 noinst_PROGRAMS += hashtabletest

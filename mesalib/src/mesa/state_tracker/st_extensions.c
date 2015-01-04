@@ -674,6 +674,10 @@ void st_init_extensions(struct pipe_screen *screen,
       consts->NativeIntegers = GL_TRUE;
       consts->MaxClipPlanes = 8;
 
+      if (screen->get_param(screen, PIPE_CAP_VERTEXID_NOBASE)) {
+         consts->VertexID_is_zero_based = GL_TRUE;
+      }
+
       /* Extensions that either depend on GLSL 1.30 or are a subset thereof. */
       extensions->ARB_conservative_depth = GL_TRUE;
       extensions->ARB_shading_language_packing = GL_TRUE;
@@ -696,6 +700,9 @@ void st_init_extensions(struct pipe_screen *screen,
 
          extensions->EXT_shader_integer_mix = GL_TRUE;
       }
+
+      /* Integer textures make no sense before GLSL 1.30 */
+      extensions->EXT_texture_integer = GL_FALSE;
    }
 
    consts->UniformBooleanTrue = consts->NativeIntegers ? ~0 : fui(1.0f);

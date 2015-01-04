@@ -1523,18 +1523,22 @@ vbo_destroy_vertex_list(struct gl_context *ctx, void *data)
 
 
 static void
-vbo_print_vertex_list(struct gl_context *ctx, void *data)
+vbo_print_vertex_list(struct gl_context *ctx, void *data, FILE *f)
 {
    struct vbo_save_vertex_list *node = (struct vbo_save_vertex_list *) data;
    GLuint i;
+   struct gl_buffer_object *buffer = node->vertex_store ?
+      node->vertex_store->bufferobj : NULL;
    (void) ctx;
 
-   printf("VBO-VERTEX-LIST, %u vertices %d primitives, %d vertsize\n",
-          node->count, node->prim_count, node->vertex_size);
+   fprintf(f, "VBO-VERTEX-LIST, %u vertices %d primitives, %d vertsize "
+           "buffer %p\n",
+           node->count, node->prim_count, node->vertex_size,
+           buffer);
 
    for (i = 0; i < node->prim_count; i++) {
       struct _mesa_prim *prim = &node->prim[i];
-      printf("   prim %d: %s%s %d..%d %s %s\n",
+      fprintf(f, "   prim %d: %s%s %d..%d %s %s\n",
              i,
              _mesa_lookup_prim_by_nr(prim->mode),
              prim->weak ? " (weak)" : "",

@@ -75,29 +75,6 @@ _mesa_alloc_instructions(GLuint numInst)
 
 
 /**
- * Reallocate memory storing an array of program instructions.
- * This is used when we need to append additional instructions onto an
- * program.
- * \param oldInst  pointer to first of old/src instructions
- * \param numOldInst  number of instructions at <oldInst>
- * \param numNewInst  desired size of new instruction array.
- * \return  pointer to start of new instruction array.
- */
-struct prog_instruction *
-_mesa_realloc_instructions(struct prog_instruction *oldInst,
-                           GLuint numOldInst, GLuint numNewInst)
-{
-   struct prog_instruction *newInst;
-
-   newInst = (struct prog_instruction *)
-      realloc(oldInst,
-              numNewInst * sizeof(struct prog_instruction));
-
-   return newInst;
-}
-
-
-/**
  * Copy an array of program instructions.
  * \param dest  pointer to destination.
  * \param src  pointer to source.

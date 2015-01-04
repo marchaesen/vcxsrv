@@ -96,6 +96,12 @@ uint_hash(GLuint id)
    return id;
 }
 
+static uint32_t
+uint_key_hash(const void *key)
+{
+   return uint_hash((uintptr_t)key);
+}
+
 static void *
 uint_key(GLuint id)
 {
@@ -114,7 +120,8 @@ _mesa_NewHashTable(void)
    struct _mesa_HashTable *table = CALLOC_STRUCT(_mesa_HashTable);
 
    if (table) {
-      table->ht = _mesa_hash_table_create(NULL, uint_key_compare);
+      table->ht = _mesa_hash_table_create(NULL, uint_key_hash,
+                                          uint_key_compare);
       if (table->ht == NULL) {
          free(table);
          _mesa_error_no_memory(__func__);
@@ -175,7 +182,7 @@ _mesa_HashLookup_unlocked(struct _mesa_HashTable *table, GLuint key)
    if (key == DELETED_KEY_VALUE)
       return table->deleted_key_data;
 
-   entry = _mesa_hash_table_search(table->ht, uint_hash(key), uint_key(key));
+   entry = _mesa_hash_table_search(table->ht, uint_key(key));
    if (!entry)
       return NULL;
 
@@ -266,11 +273,11 @@ _mesa_HashInsert_unlocked(struct _mesa_HashTable *table, GLuint key, void *data)
    if (key == DELETED_KEY_VALUE) {
       table->deleted_key_data = data;
    } else {
-      entry = _mesa_hash_table_search(table->ht, hash, uint_key(key));
+      entry = _mesa_hash_table_search_pre_hashed(table->ht, hash, uint_key(key));
       if (entry) {
          entry->data = data;
       } else {
-         _mesa_hash_table_insert(table->ht, hash, uint_key(key), data);
+         _mesa_hash_table_insert_with_hash(table->ht, hash, uint_key(key), data);
       }
    }
 }
@@ -340,7 +347,7 @@ _mesa_HashRemove(struct _mesa_HashTable *table, GLuint key)
    if (key == DELETED_KEY_VALUE) {
       table->deleted_key_data = NULL;
    } else {
-      entry = _mesa_hash_table_search(table->ht, uint_hash(key), uint_key(key));
+      entry = _mesa_hash_table_search(table->ht, uint_key(key));
       _mesa_hash_table_remove(table->ht, entry);
    }
    mtx_unlock(&table->Mutex);

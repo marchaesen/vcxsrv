@@ -81,7 +81,7 @@ struct gl_list_instruction
    GLuint Size;
    void (*Execute)( struct gl_context *ctx, void *data );
    void (*Destroy)( struct gl_context *ctx, void *data );
-   void (*Print)( struct gl_context *ctx, void *data );
+   void (*Print)( struct gl_context *ctx, void *data, FILE *f );
 };
 
 
@@ -666,11 +666,11 @@ ext_opcode_execute(struct gl_context *ctx, Node *node)
 
 /** Print an extended opcode instruction */
 static GLint
-ext_opcode_print(struct gl_context *ctx, Node *node)
+ext_opcode_print(struct gl_context *ctx, Node *node, FILE *f)
 {
    const GLint i = node[0].opcode - OPCODE_EXT_0;
    GLint step;
-   ctx->ListExt->Opcode[i].Print(ctx, &node[1]);
+   ctx->ListExt->Opcode[i].Print(ctx, &node[1], f);
    step = ctx->ListExt->Opcode[i].Size;
    return step;
 }
@@ -1098,7 +1098,7 @@ _mesa_dlist_alloc_opcode(struct gl_context *ctx,
                          GLuint size,
                          void (*execute) (struct gl_context *, void *),
                          void (*destroy) (struct gl_context *, void *),
-                         void (*print) (struct gl_context *, void *))
+                         void (*print) (struct gl_context *, void *, FILE *))
 {
    if (ctx->ListExt->NumOpcodes < MAX_DLIST_EXT_OPCODES) {
       const GLuint i = ctx->ListExt->NumOpcodes++;
@@ -9716,16 +9716,24 @@ enum_string(GLenum k)
 /**
  * Print the commands in a display list.  For debugging only.
  * TODO: many commands aren't handled yet.
+ * \param fname  filename to write display list to.  If null, use stdout.
  */
 static void GLAPIENTRY
-print_list(struct gl_context *ctx, GLuint list)
+print_list(struct gl_context *ctx, GLuint list, const char *fname)
 {
    struct gl_display_list *dlist;
    Node *n;
    GLboolean done;
+   FILE *f = stdout;
+
+   if (fname) {
+      f = fopen(fname, "w");
+      if (!f)
+         return;
+   }
 
    if (!islist(ctx, list)) {
-      printf("%u is not a display list ID\n", list);
+      fprintf(f, "%u is not a display list ID\n", list);
       return;
    }
 
@@ -9735,199 +9743,202 @@ print_list(struct gl_context *ctx, GLuint list)
 
    n = dlist->Head;
 
-   printf("START-LIST %u, address %p\n", list, (void *) n);
+   fprintf(f, "START-LIST %u, address %p\n", list, (void *) n);
 
    done = n ? GL_FALSE : GL_TRUE;
    while (!done) {
       const OpCode opcode = n[0].opcode;
 
       if (is_ext_opcode(opcode)) {
-         n += ext_opcode_print(ctx, n);
+         n += ext_opcode_print(ctx, n, f);
       }
       else {
          switch (opcode) {
          case OPCODE_ACCUM:
-            printf("Accum %s %g\n", enum_string(n[1].e), n[2].f);
+            fprintf(f, "Accum %s %g\n", enum_string(n[1].e), n[2].f);
+            break;
+         case OPCODE_ACTIVE_TEXTURE:
+            fprintf(f, "ActiveTexture(%s)\n", enum_string(n[1].e));
             break;
          case OPCODE_BITMAP:
-            printf("Bitmap %d %d %g %g %g %g %p\n", n[1].i, n[2].i,
+            fprintf(f, "Bitmap %d %d %g %g %g %g %p\n", n[1].i, n[2].i,
                    n[3].f, n[4].f, n[5].f, n[6].f,
                    get_pointer(&n[7]));
             break;
          case OPCODE_CALL_LIST:
-            printf("CallList %d\n", (int) n[1].ui);
+            fprintf(f, "CallList %d\n", (int) n[1].ui);
             break;
          case OPCODE_CALL_LIST_OFFSET:
-            printf("CallList %d + offset %u = %u\n", (int) n[1].ui,
+            fprintf(f, "CallList %d + offset %u = %u\n", (int) n[1].ui,
                          ctx->List.ListBase, ctx->List.ListBase + n[1].ui);
             break;
          case OPCODE_DISABLE:
-            printf("Disable %s\n", enum_string(n[1].e));
+            fprintf(f, "Disable %s\n", enum_string(n[1].e));
             break;
          case OPCODE_ENABLE:
-            printf("Enable %s\n", enum_string(n[1].e));
+            fprintf(f, "Enable %s\n", enum_string(n[1].e));
             break;
          case OPCODE_FRUSTUM:
-            printf("Frustum %g %g %g %g %g %g\n",
+            fprintf(f, "Frustum %g %g %g %g %g %g\n",
                          n[1].f, n[2].f, n[3].f, n[4].f, n[5].f, n[6].f);
             break;
          case OPCODE_LINE_STIPPLE:
-            printf("LineStipple %d %x\n", n[1].i, (int) n[2].us);
+            fprintf(f, "LineStipple %d %x\n", n[1].i, (int) n[2].us);
             break;
          case OPCODE_LOAD_IDENTITY:
-            printf("LoadIdentity\n");
+            fprintf(f, "LoadIdentity\n");
             break;
          case OPCODE_LOAD_MATRIX:
-            printf("LoadMatrix\n");
-            printf("  %8f %8f %8f %8f\n",
+            fprintf(f, "LoadMatrix\n");
+            fprintf(f, "  %8f %8f %8f %8f\n",
                          n[1].f, n[5].f, n[9].f, n[13].f);
-            printf("  %8f %8f %8f %8f\n",
+            fprintf(f, "  %8f %8f %8f %8f\n",
                          n[2].f, n[6].f, n[10].f, n[14].f);
-            printf("  %8f %8f %8f %8f\n",
+            fprintf(f, "  %8f %8f %8f %8f\n",
                          n[3].f, n[7].f, n[11].f, n[15].f);
-            printf("  %8f %8f %8f %8f\n",
+            fprintf(f, "  %8f %8f %8f %8f\n",
                          n[4].f, n[8].f, n[12].f, n[16].f);
             break;
          case OPCODE_MULT_MATRIX:
-            printf("MultMatrix (or Rotate)\n");
-            printf("  %8f %8f %8f %8f\n",
+            fprintf(f, "MultMatrix (or Rotate)\n");
+            fprintf(f, "  %8f %8f %8f %8f\n",
                          n[1].f, n[5].f, n[9].f, n[13].f);
-            printf("  %8f %8f %8f %8f\n",
+            fprintf(f, "  %8f %8f %8f %8f\n",
                          n[2].f, n[6].f, n[10].f, n[14].f);
-            printf("  %8f %8f %8f %8f\n",
+            fprintf(f, "  %8f %8f %8f %8f\n",
                          n[3].f, n[7].f, n[11].f, n[15].f);
-            printf("  %8f %8f %8f %8f\n",
+            fprintf(f, "  %8f %8f %8f %8f\n",
                          n[4].f, n[8].f, n[12].f, n[16].f);
             break;
          case OPCODE_ORTHO:
-            printf("Ortho %g %g %g %g %g %g\n",
+            fprintf(f, "Ortho %g %g %g %g %g %g\n",
                          n[1].f, n[2].f, n[3].f, n[4].f, n[5].f, n[6].f);
             break;
          case OPCODE_POP_ATTRIB:
-            printf("PopAttrib\n");
+            fprintf(f, "PopAttrib\n");
             break;
          case OPCODE_POP_MATRIX:
-            printf("PopMatrix\n");
+            fprintf(f, "PopMatrix\n");
             break;
          case OPCODE_POP_NAME:
-            printf("PopName\n");
+            fprintf(f, "PopName\n");
             break;
          case OPCODE_PUSH_ATTRIB:
-            printf("PushAttrib %x\n", n[1].bf);
+            fprintf(f, "PushAttrib %x\n", n[1].bf);
             break;
          case OPCODE_PUSH_MATRIX:
-            printf("PushMatrix\n");
+            fprintf(f, "PushMatrix\n");
             break;
          case OPCODE_PUSH_NAME:
-            printf("PushName %d\n", (int) n[1].ui);
+            fprintf(f, "PushName %d\n", (int) n[1].ui);
             break;
          case OPCODE_RASTER_POS:
-            printf("RasterPos %g %g %g %g\n",
+            fprintf(f, "RasterPos %g %g %g %g\n",
                          n[1].f, n[2].f, n[3].f, n[4].f);
             break;
          case OPCODE_ROTATE:
-            printf("Rotate %g %g %g %g\n",
+            fprintf(f, "Rotate %g %g %g %g\n",
                          n[1].f, n[2].f, n[3].f, n[4].f);
             break;
          case OPCODE_SCALE:
-            printf("Scale %g %g %g\n", n[1].f, n[2].f, n[3].f);
+            fprintf(f, "Scale %g %g %g\n", n[1].f, n[2].f, n[3].f);
             break;
          case OPCODE_TRANSLATE:
-            printf("Translate %g %g %g\n", n[1].f, n[2].f, n[3].f);
+            fprintf(f, "Translate %g %g %g\n", n[1].f, n[2].f, n[3].f);
             break;
          case OPCODE_BIND_TEXTURE:
-            printf("BindTexture %s %d\n",
+            fprintf(f, "BindTexture %s %d\n",
                          _mesa_lookup_enum_by_nr(n[1].ui), n[2].ui);
             break;
          case OPCODE_SHADE_MODEL:
-            printf("ShadeModel %s\n", _mesa_lookup_enum_by_nr(n[1].ui));
+            fprintf(f, "ShadeModel %s\n", _mesa_lookup_enum_by_nr(n[1].ui));
             break;
          case OPCODE_MAP1:
-            printf("Map1 %s %.3f %.3f %d %d\n",
+            fprintf(f, "Map1 %s %.3f %.3f %d %d\n",
                          _mesa_lookup_enum_by_nr(n[1].ui),
                          n[2].f, n[3].f, n[4].i, n[5].i);
             break;
          case OPCODE_MAP2:
-            printf("Map2 %s %.3f %.3f %.3f %.3f %d %d %d %d\n",
+            fprintf(f, "Map2 %s %.3f %.3f %.3f %.3f %d %d %d %d\n",
                          _mesa_lookup_enum_by_nr(n[1].ui),
                          n[2].f, n[3].f, n[4].f, n[5].f,
                          n[6].i, n[7].i, n[8].i, n[9].i);
             break;
          case OPCODE_MAPGRID1:
-            printf("MapGrid1 %d %.3f %.3f\n", n[1].i, n[2].f, n[3].f);
+            fprintf(f, "MapGrid1 %d %.3f %.3f\n", n[1].i, n[2].f, n[3].f);
             break;
          case OPCODE_MAPGRID2:
-            printf("MapGrid2 %d %.3f %.3f, %d %.3f %.3f\n",
+            fprintf(f, "MapGrid2 %d %.3f %.3f, %d %.3f %.3f\n",
                          n[1].i, n[2].f, n[3].f, n[4].i, n[5].f, n[6].f);
             break;
          case OPCODE_EVALMESH1:
-            printf("EvalMesh1 %d %d\n", n[1].i, n[2].i);
+            fprintf(f, "EvalMesh1 %d %d\n", n[1].i, n[2].i);
             break;
          case OPCODE_EVALMESH2:
-            printf("EvalMesh2 %d %d %d %d\n",
+            fprintf(f, "EvalMesh2 %d %d %d %d\n",
                          n[1].i, n[2].i, n[3].i, n[4].i);
             break;
 
          case OPCODE_ATTR_1F_NV:
-            printf("ATTR_1F_NV attr %d: %f\n", n[1].i, n[2].f);
+            fprintf(f, "ATTR_1F_NV attr %d: %f\n", n[1].i, n[2].f);
             break;
          case OPCODE_ATTR_2F_NV:
-            printf("ATTR_2F_NV attr %d: %f %f\n",
+            fprintf(f, "ATTR_2F_NV attr %d: %f %f\n",
                          n[1].i, n[2].f, n[3].f);
             break;
          case OPCODE_ATTR_3F_NV:
-            printf("ATTR_3F_NV attr %d: %f %f %f\n",
+            fprintf(f, "ATTR_3F_NV attr %d: %f %f %f\n",
                          n[1].i, n[2].f, n[3].f, n[4].f);
             break;
          case OPCODE_ATTR_4F_NV:
-            printf("ATTR_4F_NV attr %d: %f %f %f %f\n",
+            fprintf(f, "ATTR_4F_NV attr %d: %f %f %f %f\n",
                          n[1].i, n[2].f, n[3].f, n[4].f, n[5].f);
             break;
          case OPCODE_ATTR_1F_ARB:
-            printf("ATTR_1F_ARB attr %d: %f\n", n[1].i, n[2].f);
+            fprintf(f, "ATTR_1F_ARB attr %d: %f\n", n[1].i, n[2].f);
             break;
          case OPCODE_ATTR_2F_ARB:
-            printf("ATTR_2F_ARB attr %d: %f %f\n",
+            fprintf(f, "ATTR_2F_ARB attr %d: %f %f\n",
                          n[1].i, n[2].f, n[3].f);
             break;
          case OPCODE_ATTR_3F_ARB:
-            printf("ATTR_3F_ARB attr %d: %f %f %f\n",
+            fprintf(f, "ATTR_3F_ARB attr %d: %f %f %f\n",
                          n[1].i, n[2].f, n[3].f, n[4].f);
             break;
          case OPCODE_ATTR_4F_ARB:
-            printf("ATTR_4F_ARB attr %d: %f %f %f %f\n",
+            fprintf(f, "ATTR_4F_ARB attr %d: %f %f %f %f\n",
                          n[1].i, n[2].f, n[3].f, n[4].f, n[5].f);
             break;
 
          case OPCODE_MATERIAL:
-            printf("MATERIAL %x %x: %f %f %f %f\n",
+            fprintf(f, "MATERIAL %x %x: %f %f %f %f\n",
                          n[1].i, n[2].i, n[3].f, n[4].f, n[5].f, n[6].f);
             break;
          case OPCODE_BEGIN:
-            printf("BEGIN %x\n", n[1].i);
+            fprintf(f, "BEGIN %x\n", n[1].i);
             break;
          case OPCODE_END:
-            printf("END\n");
+            fprintf(f, "END\n");
             break;
          case OPCODE_RECTF:
-            printf("RECTF %f %f %f %f\n", n[1].f, n[2].f, n[3].f,
+            fprintf(f, "RECTF %f %f %f %f\n", n[1].f, n[2].f, n[3].f,
                          n[4].f);
             break;
          case OPCODE_EVAL_C1:
-            printf("EVAL_C1 %f\n", n[1].f);
+            fprintf(f, "EVAL_C1 %f\n", n[1].f);
             break;
          case OPCODE_EVAL_C2:
-            printf("EVAL_C2 %f %f\n", n[1].f, n[2].f);
+            fprintf(f, "EVAL_C2 %f %f\n", n[1].f, n[2].f);
             break;
          case OPCODE_EVAL_P1:
-            printf("EVAL_P1 %d\n", n[1].i);
+            fprintf(f, "EVAL_P1 %d\n", n[1].i);
             break;
          case OPCODE_EVAL_P2:
-            printf("EVAL_P2 %d %d\n", n[1].i, n[2].i);
+            fprintf(f, "EVAL_P2 %d %d\n", n[1].i, n[2].i);
             break;
 
          case OPCODE_PROVOKING_VERTEX:
-            printf("ProvokingVertex %s\n",
+            fprintf(f, "ProvokingVertex %s\n",
                          _mesa_lookup_enum_by_nr(n[1].ui));
             break;
 
@@ -9935,15 +9946,15 @@ print_list(struct gl_context *ctx, GLuint list)
              * meta opcodes/commands
              */
          case OPCODE_ERROR:
-            printf("Error: %s %s\n", enum_string(n[1].e),
+            fprintf(f, "Error: %s %s\n", enum_string(n[1].e),
                    (const char *) get_pointer(&n[2]));
             break;
          case OPCODE_CONTINUE:
-            printf("DISPLAY-LIST-CONTINUE\n");
+            fprintf(f, "DISPLAY-LIST-CONTINUE\n");
             n = (Node *) get_pointer(&n[1]);
             break;
          case OPCODE_END_OF_LIST:
-            printf("END-LIST %u\n", list);
+            fprintf(f, "END-LIST %u\n", list);
             done = GL_TRUE;
             break;
          default:
@@ -9954,7 +9965,7 @@ print_list(struct gl_context *ctx, GLuint list)
                return;
             }
             else {
-               printf("command %d, %u operands\n", opcode,
+               fprintf(f, "command %d, %u operands\n", opcode,
                             InstSize[opcode]);
             }
          }
@@ -9964,6 +9975,10 @@ print_list(struct gl_context *ctx, GLuint list)
          }
       }
    }
+
+   fflush(f);
+   if (fname)
+      fclose(f);
 }
 
 
@@ -9977,7 +9992,7 @@ void
 mesa_print_display_list(GLuint list)
 {
    GET_CURRENT_CONTEXT(ctx);
-   print_list(ctx, list);
+   print_list(ctx, list, NULL);
 }
 
 

@@ -92,6 +92,13 @@ main (int argc, char *argv[])
 	  continue;
 	}
 
+      /* Look for -noprimary */
+      if (!strcmp (argv[i], "-noprimary"))
+	{
+	  fPrimarySelection = False;
+	  continue;
+	}
+
       /* Yack when we find a parameter that we don't know about */
       printf ("Unknown parameter: %s\nExiting.\n", argv[i]);
       exit (1);

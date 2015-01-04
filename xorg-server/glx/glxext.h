@@ -51,7 +51,6 @@
 #define GLX_RGBA_UNSIGNED_FLOAT_TYPE_EXT   0x20B1
 #endif
 
-extern GLboolean __glXFreeContext(__GLXcontext * glxc);
 extern void __glXFlushContextCache(void);
 
 extern Bool __glXAddContext(__GLXcontext * cx);

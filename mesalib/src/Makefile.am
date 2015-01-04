@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-SUBDIRS = gtest util mapi
+SUBDIRS = gtest util mapi/glapi/gen mapi
 
 if NEED_OPENGL_COMMON
 SUBDIRS += glsl mesa
@@ -32,7 +32,7 @@ SUBDIRS += glx
 endif
 
 if HAVE_EGL_PLATFORM_WAYLAND
-SUBDIRS += egl/wayland
+SUBDIRS += egl/wayland/wayland-egl egl/wayland/wayland-drm
 endif
 
 if HAVE_EGL_DRIVER_DRI2
@@ -51,4 +51,4 @@ if HAVE_GALLIUM
 SUBDIRS += gallium
 endif
 
-EXTRA_DIST = getopt
+EXTRA_DIST = egl/docs getopt hgl SConscript

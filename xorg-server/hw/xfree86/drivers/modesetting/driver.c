@@ -61,11 +61,6 @@
 
 #include "driver.h"
 
-#ifdef GLAMOR
-#define GLAMOR_FOR_XORG 1
-#include "glamor.h"
-#endif
-
 static void AdjustFrame(ScrnInfoPtr pScrn, int x, int y);
 static Bool CloseScreen(ScreenPtr pScreen);
 static Bool EnterVT(ScrnInfoPtr pScrn);
@@ -453,11 +448,12 @@ dispatch_dirty_region(ScrnInfoPtr scrn,
     modesettingPtr ms = modesettingPTR(scrn);
     RegionPtr dirty = DamageRegion(damage);
     unsigned num_cliprects = REGION_NUM_RECTS(dirty);
+    int ret = 0;
 
     if (num_cliprects) {
         drmModeClip *clip = malloc(num_cliprects * sizeof(drmModeClip));
         BoxPtr rect = REGION_RECTS(dirty);
-        int i, ret;
+        int i;
 
         if (!clip)
             return -ENOMEM;
@@ -474,12 +470,8 @@ dispatch_dirty_region(ScrnInfoPtr scrn,
         ret = drmModeDirtyFB(ms->fd, fb_id, clip, num_cliprects);
         free(clip);
         DamageEmpty(damage);
-        if (ret) {
-            if (ret == -EINVAL)
-                return ret;
-        }
     }
-    return 0;
+    return ret;
 }
 
 static void
@@ -593,7 +585,7 @@ try_enable_glamor(ScrnInfoPtr pScrn)
     Bool do_glamor = (!accel_method_str ||
                       strcmp(accel_method_str, "glamor") == 0);
 
-    ms->glamor = FALSE;
+    ms->drmmode.glamor = FALSE;
 
 #ifdef GLAMOR
     if (!do_glamor) {
@@ -604,7 +596,7 @@ try_enable_glamor(ScrnInfoPtr pScrn)
     if (xf86LoadSubModule(pScrn, GLAMOR_EGL_MODULE_NAME)) {
         if (glamor_egl_init(pScrn, ms->fd)) {
             xf86DrvMsg(pScrn->scrnIndex, X_INFO, "glamor initialized\n");
-            ms->glamor = TRUE;
+            ms->drmmode.glamor = TRUE;
         } else {
             xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
                        "glamor initialization failed\n");
@@ -788,7 +780,7 @@ PreInit(ScrnInfoPtr pScrn, int flags)
 
     try_enable_glamor(pScrn);
 
-    if (ms->glamor) {
+    if (ms->drmmode.glamor) {
         xf86LoadSubModule(pScrn, "dri2");
     } else {
         Bool prefer_shadow = TRUE;
@@ -861,7 +853,7 @@ msShadowWindow(ScreenPtr screen, CARD32 row, CARD32 offset, int mode,
     stride = (pScrn->displayWidth * pScrn->bitsPerPixel) / 8;
     *size = stride;
 
-    return ((uint8_t *) ms->drmmode.front_bo->ptr + row * stride + offset);
+    return ((uint8_t *) ms->drmmode.front_bo.dumb->ptr + row * stride + offset);
 }
 
 static void
@@ -877,7 +869,8 @@ CreateScreenResources(ScreenPtr pScreen)
     modesettingPtr ms = modesettingPTR(pScrn);
     PixmapPtr rootPixmap;
     Bool ret;
-    void *pixels;
+    void *pixels = NULL;
+    int err;
 
     pScreen->CreateScreenResources = ms->createScreenResources;
     ret = pScreen->CreateScreenResources(pScreen);
@@ -886,27 +879,19 @@ CreateScreenResources(ScreenPtr pScreen)
     if (!drmmode_set_desired_modes(pScrn, &ms->drmmode))
         return FALSE;
 
-#ifdef GLAMOR
-    if (ms->glamor) {
-        if (!glamor_egl_create_textured_screen_ext(pScreen,
-                                                   ms->drmmode.front_bo->handle,
-                                                   pScrn->displayWidth *
-                                                   pScrn->bitsPerPixel / 8,
-                                                   NULL)) {
-            xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-                       "glamor_egl_create_textured_screen_ext() failed\n");
-            return FALSE;
-        }
-    }
-#endif
+    if (!drmmode_glamor_handle_new_screen_pixmap(&ms->drmmode))
+        return FALSE;
 
     drmmode_uevent_init(pScrn, &ms->drmmode);
 
     if (!ms->drmmode.sw_cursor)
         drmmode_map_cursor_bos(pScrn, &ms->drmmode);
-    pixels = drmmode_map_front_bo(&ms->drmmode);
-    if (!pixels)
-        return FALSE;
+
+    if (!ms->drmmode.gbm) {
+        pixels = drmmode_map_front_bo(&ms->drmmode);
+        if (!pixels)
+            return FALSE;
+    }
 
     rootPixmap = pScreen->GetScreenPixmap(pScreen);
 
@@ -922,18 +907,22 @@ CreateScreenResources(ScreenPtr pScreen)
             return FALSE;
     }
 
-    ms->damage = DamageCreate(NULL, NULL, DamageReportNone, TRUE,
-                              pScreen, rootPixmap);
+    err = drmModeDirtyFB(ms->fd, ms->drmmode.fb_id, NULL, 0);
 
-    if (ms->damage) {
-        DamageRegister(&rootPixmap->drawable, ms->damage);
-        ms->dirty_enabled = TRUE;
-        xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Damage tracking initialized\n");
-    }
-    else {
-        xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-                   "Failed to create screen damage record\n");
-        return FALSE;
+    if (err != -EINVAL && err != -ENOSYS) {
+        ms->damage = DamageCreate(NULL, NULL, DamageReportNone, TRUE,
+                                  pScreen, rootPixmap);
+
+        if (ms->damage) {
+            DamageRegister(&rootPixmap->drawable, ms->damage);
+            ms->dirty_enabled = TRUE;
+            xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Damage tracking initialized\n");
+        }
+        else {
+            xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+                       "Failed to create screen damage record\n");
+            return FALSE;
+        }
     }
     return ret;
 }
@@ -996,6 +985,11 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
     if (!SetMaster(pScrn))
         return FALSE;
 
+#ifdef GLAMOR_HAS_GBM
+    if (ms->drmmode.glamor)
+        ms->drmmode.gbm = glamor_egl_get_gbm_device(pScreen);
+#endif
+
     /* HW dependent - FIXME */
     pScrn->displayWidth = pScrn->virtualX;
     if (!drmmode_create_initial_bos(pScrn, &ms->drmmode))
@@ -1053,7 +1047,7 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
     fbPictureInit(pScreen, NULL, 0);
 
 #ifdef GLAMOR
-    if (ms->glamor) {
+    if (ms->drmmode.glamor) {
         if (!glamor_init(pScreen,
                          GLAMOR_USE_EGL_SCREEN |
                          GLAMOR_USE_SCREEN |
@@ -1106,6 +1100,19 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
 
     xf86DPMSInit(pScreen, xf86DPMSSet, 0);
 
+#ifdef GLAMOR
+    if (ms->drmmode.glamor) {
+        XF86VideoAdaptorPtr     glamor_adaptor;
+
+        glamor_adaptor = glamor_xv_init(pScreen, 16);
+        if (glamor_adaptor != NULL)
+            xf86XVScreenInit(pScreen, &glamor_adaptor, 1);
+        else
+            xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+                       "Failed to initialize XV support.\n");
+    }
+#endif
+
     if (serverGeneration == 1)
         xf86ShowUnusedOptions(pScrn->scrnIndex, pScrn->options);
 
@@ -1116,10 +1123,15 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
     }
 
 #ifdef GLAMOR
-    if (ms->glamor) {
+    if (ms->drmmode.glamor) {
         if (!ms_dri2_screen_init(pScreen)) {
             xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
                        "Failed to initialize the DRI2 extension.\n");
+        }
+
+        if (!ms_present_screen_init(pScreen)) {
+            xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+                       "Failed to initialize the Present extension.\n");
         }
     }
 #endif
@@ -1190,7 +1202,7 @@ CloseScreen(ScreenPtr pScreen)
     modesettingPtr ms = modesettingPTR(pScrn);
 
 #ifdef GLAMOR
-    if (ms->glamor) {
+    if (ms->drmmode.glamor) {
         ms_dri2_close_screen(pScreen);
     }
 #endif

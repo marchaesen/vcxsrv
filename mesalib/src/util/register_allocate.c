@@ -79,7 +79,7 @@
 #include "main/bitset.h"
 #include "register_allocate.h"
 
-#define NO_REG ~0
+#define NO_REG ~0U
 
 struct ra_reg {
    BITSET_WORD *conflicts;
@@ -251,7 +251,7 @@ void
 ra_add_transitive_reg_conflict(struct ra_regs *regs,
 			       unsigned int base_reg, unsigned int reg)
 {
-   int i;
+   unsigned int i;
 
    ra_add_reg_conflict(regs, reg, base_reg);
 
@@ -328,7 +328,7 @@ ra_set_finalize(struct ra_regs *regs, unsigned int **q_values)
 
 	 for (rc = 0; rc < regs->count; rc++) {
 	    int conflicts = 0;
-	    int i;
+	    unsigned int i;
 
             if (!reg_belongs_to_class(rc, regs->classes[c]))
 	       continue;
@@ -374,7 +374,7 @@ ra_alloc_interference_graph(struct ra_regs *regs, unsigned int count)
    struct ra_graph *g;
    unsigned int i;
 
-   g = rzalloc(regs, struct ra_graph);
+   g = rzalloc(NULL, struct ra_graph);
    g->regs = regs;
    g->nodes = rzalloc_array(g, struct ra_node, count);
    g->count = count;
@@ -481,7 +481,7 @@ ra_simplify(struct ra_graph *g)
 	 }
       }
 
-      if (!progress && best_optimistic_node != ~0) {
+      if (!progress && best_optimistic_node != ~0U) {
 	 decrement_q(g, best_optimistic_node);
 	 g->stack[g->stack_count] = best_optimistic_node;
 	 g->stack_count++;
@@ -501,10 +501,10 @@ ra_simplify(struct ra_graph *g)
 static bool
 ra_select(struct ra_graph *g)
 {
-   int i;
    int start_search_reg = 0;
 
    while (g->stack_count != 0) {
+      unsigned int i;
       unsigned int ri;
       unsigned int r = -1;
       int n = g->stack[g->stack_count - 1];
@@ -585,7 +585,7 @@ ra_set_node_reg(struct ra_graph *g, unsigned int n, unsigned int reg)
 static float
 ra_get_spill_benefit(struct ra_graph *g, unsigned int n)
 {
-   int j;
+   unsigned int j;
    float benefit = 0;
    int n_class = g->nodes[n].class;
 

@@ -1296,6 +1296,10 @@ GetHosts(void **data, int *pnHosts, int *pLen, BOOL * pEnabled)
     for (host = validhosts; host; host = host->next) {
         nHosts++;
         n += pad_to_int32(host->len) + sizeof(xHostEntry);
+        /* Could check for INT_MAX, but in reality having more than 1mb of
+           hostnames in the access list is ridiculous */
+        if (n >= 1048576)
+            break;
     }
     if (n) {
         *data = ptr = malloc(n);
@@ -1304,6 +1308,8 @@ GetHosts(void **data, int *pnHosts, int *pLen, BOOL * pEnabled)
         }
         for (host = validhosts; host; host = host->next) {
             len = host->len;
+            if ((ptr + sizeof(xHostEntry) + len) > ((unsigned char *) *data + n))
+                break;
             ((xHostEntry *) ptr)->family = host->family;
             ((xHostEntry *) ptr)->length = len;
             ptr += sizeof(xHostEntry);

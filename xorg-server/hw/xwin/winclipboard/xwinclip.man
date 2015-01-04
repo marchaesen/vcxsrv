@@ -29,6 +29,9 @@ Specifies the X server display to connect to.
 .TP 8
 .B \-nounicodeclipboard
 Do not use unicode text on the clipboard.
+.TP 8
+.B \-noprimary
+Do not monitor the PRIMARY selection.
 
 .SH "SEE ALSO"
 XWin(1)

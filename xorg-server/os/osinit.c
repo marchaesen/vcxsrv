@@ -208,9 +208,11 @@ OsInit(void)
          * for failures to load libraries/modules at runtime so we can clean up
          * after ourselves.
          */
-        int failure_signal = SIGQUIT;
+        {
+            int failure_signal = SIGQUIT;
 
-        dlinfo(RTLD_SELF, RTLD_DI_SETSIGNAL, &failure_signal);
+            dlinfo(RTLD_SELF, RTLD_DI_SETSIGNAL, &failure_signal);
+        }
 #endif
 
 #if !defined(XQUARTZ)    /* STDIN is already /dev/null and STDOUT/STDERR is managed by console_redirect.c */

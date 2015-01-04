@@ -120,7 +120,7 @@ _mesa_add_parameter(struct gl_program_parameter_list *paramList,
       paramList->Size = paramList->Size + 4 * sz4;
 
       /* realloc arrays */
-      paramList->Parameters = (struct gl_program_parameter *)
+      paramList->Parameters =
          realloc(paramList->Parameters,
                  paramList->Size * sizeof(struct gl_program_parameter));
 

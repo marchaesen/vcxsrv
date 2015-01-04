@@ -63,7 +63,7 @@ SConscript([
 
 if not env['embedded']:
     SConscript('state_trackers/vega/SConscript')
-    if env['platform'] not in ('cygwin', 'darwin', 'freebsd', 'haiku', 'sunos'):
+    if env['platform'] not in ('cygwin', 'darwin', 'freebsd', 'sunos'):
         SConscript([
             'state_trackers/egl/SConscript',
             'targets/egl-static/SConscript',

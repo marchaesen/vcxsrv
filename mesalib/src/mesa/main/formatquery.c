@@ -115,29 +115,40 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
             internalformat, buffer);
       break;
    case GL_NUM_SAMPLE_COUNTS: {
-      /* The driver can return 0, and we should pass that along to the
-       * application.  The ARB decided that ARB_internalformat_query should
-       * behave as ARB_internalformat_query2 in this situation.
-       *
-       * The ARB_internalformat_query2 spec says:
-       *
-       *     "- NUM_SAMPLE_COUNTS: The number of sample counts that would be
-       *        returned by querying SAMPLES is returned in <params>.
-       *        * If <internalformat> is not color-renderable,
-       *          depth-renderable, or stencil-renderable (as defined in
-       *          section 4.4.4), or if <target> does not support multiple
-       *          samples (ie other than TEXTURE_2D_MULTISAMPLE,
-       *          TEXTURE_2D_MULTISAMPLE_ARRAY, or RENDERBUFFER), 0 is
-       *          returned."
-       */
-      const size_t num_samples =
-         ctx->Driver.QuerySamplesForFormat(ctx, target, internalformat, buffer);
+      if (_mesa_is_gles3(ctx) && _mesa_is_enum_format_integer(internalformat)) {
+         /* From GL ES 3.0 specification, section 6.1.15 page 236: "Since
+          * multisampling is not supported for signed and unsigned integer
+          * internal formats, the value of NUM_SAMPLE_COUNTS will be zero
+          * for such formats.
+          */
+         buffer[0] = 0;
+         count = 1;
+      } else {
+         size_t num_samples;
 
-      /* QuerySamplesForFormat writes some stuff to buffer, so we have to
-       * separately over-write it with the requested value.
-       */
-      buffer[0] = (GLint) num_samples;
-      count = 1;
+         /* The driver can return 0, and we should pass that along to the
+          * application.  The ARB decided that ARB_internalformat_query should
+          * behave as ARB_internalformat_query2 in this situation.
+          *
+          * The ARB_internalformat_query2 spec says:
+          *
+          *     "- NUM_SAMPLE_COUNTS: The number of sample counts that would be
+          *        returned by querying SAMPLES is returned in <params>.
+          *        * If <internalformat> is not color-renderable,
+          *          depth-renderable, or stencil-renderable (as defined in
+          *          section 4.4.4), or if <target> does not support multiple
+          *          samples (ie other than TEXTURE_2D_MULTISAMPLE,
+          *          TEXTURE_2D_MULTISAMPLE_ARRAY, or RENDERBUFFER), 0 is
+          *          returned."
+          */
+         num_samples =  ctx->Driver.QuerySamplesForFormat(ctx, target, internalformat, buffer);
+
+         /* QuerySamplesForFormat writes some stuff to buffer, so we have to
+          * separately over-write it with the requested value.
+          */
+         buffer[0] = (GLint) num_samples;
+         count = 1;
+      }
       break;
    }
    default:

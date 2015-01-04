@@ -298,15 +298,6 @@ fetch_vector1(const struct prog_src_register *source,
 }
 
 
-static GLuint
-fetch_vector1ui(const struct prog_src_register *source,
-                const struct gl_program_machine *machine)
-{
-   const GLuint *src = (GLuint *) get_src_register_pointer(source, machine);
-   return src[GET_SWZ(source->Swizzle, 0)];
-}
-
-
 /**
  * Fetch texel from texture.  Use partial derivatives when possible.
  */
@@ -485,71 +476,6 @@ store_vector4(const struct prog_instruction *inst,
 #endif
    }
 }
-
-
-/**
- * Store 4 uints into a register.  Observe the set-condition-code flags.
- */
-static void
-store_vector4ui(const struct prog_instruction *inst,
-                struct gl_program_machine *machine, const GLuint value[4])
-{
-   const struct prog_dst_register *dstReg = &(inst->DstReg);
-   GLuint writeMask = dstReg->WriteMask;
-   GLuint *dst = (GLuint *) get_dst_register_pointer(dstReg, machine);
-
-   if (dstReg->CondMask != COND_TR) {
-      /* condition codes may turn off some writes */
-      if (writeMask & WRITEMASK_X) {
-         if (!test_cc(machine->CondCodes[GET_SWZ(dstReg->CondSwizzle, 0)],
-                      dstReg->CondMask))
-            writeMask &= ~WRITEMASK_X;
-      }
-      if (writeMask & WRITEMASK_Y) {
-         if (!test_cc(machine->CondCodes[GET_SWZ(dstReg->CondSwizzle, 1)],
-                      dstReg->CondMask))
-            writeMask &= ~WRITEMASK_Y;
-      }
-      if (writeMask & WRITEMASK_Z) {
-         if (!test_cc(machine->CondCodes[GET_SWZ(dstReg->CondSwizzle, 2)],
-                      dstReg->CondMask))
-            writeMask &= ~WRITEMASK_Z;
-      }
-      if (writeMask & WRITEMASK_W) {
-         if (!test_cc(machine->CondCodes[GET_SWZ(dstReg->CondSwizzle, 3)],
-                      dstReg->CondMask))
-            writeMask &= ~WRITEMASK_W;
-      }
-   }
-
-   if (writeMask & WRITEMASK_X)
-      dst[0] = value[0];
-   if (writeMask & WRITEMASK_Y)
-      dst[1] = value[1];
-   if (writeMask & WRITEMASK_Z)
-      dst[2] = value[2];
-   if (writeMask & WRITEMASK_W)
-      dst[3] = value[3];
-
-   if (inst->CondUpdate) {
-      if (writeMask & WRITEMASK_X)
-         machine->CondCodes[0] = generate_cc((float)value[0]);
-      if (writeMask & WRITEMASK_Y)
-         machine->CondCodes[1] = generate_cc((float)value[1]);
-      if (writeMask & WRITEMASK_Z)
-         machine->CondCodes[2] = generate_cc((float)value[2]);
-      if (writeMask & WRITEMASK_W)
-         machine->CondCodes[3] = generate_cc((float)value[3]);
-#if DEBUG_PROG
-      printf("CondCodes=(%s,%s,%s,%s) for:\n",
-             _mesa_condcode_string(machine->CondCodes[0]),
-             _mesa_condcode_string(machine->CondCodes[1]),
-             _mesa_condcode_string(machine->CondCodes[2]),
-             _mesa_condcode_string(machine->CondCodes[3]));
-#endif
-   }
-}
-
 
 
 /**

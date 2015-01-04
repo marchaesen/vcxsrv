@@ -6,6 +6,7 @@ GLSL_BUILDDIR = $(top_builddir)/src/glsl
 # libglcpp
 
 LIBGLCPP_FILES = \
+	$(GLSL_SRCDIR)/glcpp/glcpp.h \
 	$(GLSL_SRCDIR)/glcpp/pp.c
 
 LIBGLCPP_GENERATED_FILES = \
@@ -15,47 +16,70 @@ LIBGLCPP_GENERATED_FILES = \
 # libglsl
 
 LIBGLSL_FILES = \
+	$(GLSL_SRCDIR)/ast.h \
 	$(GLSL_SRCDIR)/ast_array_index.cpp \
 	$(GLSL_SRCDIR)/ast_expr.cpp \
 	$(GLSL_SRCDIR)/ast_function.cpp \
 	$(GLSL_SRCDIR)/ast_to_hir.cpp \
 	$(GLSL_SRCDIR)/ast_type.cpp \
 	$(GLSL_SRCDIR)/builtin_functions.cpp \
+	$(GLSL_SRCDIR)/builtin_type_macros.h \
 	$(GLSL_SRCDIR)/builtin_types.cpp \
 	$(GLSL_SRCDIR)/builtin_variables.cpp \
 	$(GLSL_SRCDIR)/glsl_parser_extras.cpp \
-	$(GLSL_SRCDIR)/glsl_types.cpp \
+	$(GLSL_SRCDIR)/glsl_parser_extras.h \
 	$(GLSL_SRCDIR)/glsl_symbol_table.cpp \
+	$(GLSL_SRCDIR)/glsl_symbol_table.h \
+	$(GLSL_SRCDIR)/glsl_types.cpp \
+	$(GLSL_SRCDIR)/glsl_types.h \
 	$(GLSL_SRCDIR)/hir_field_selection.cpp \
 	$(GLSL_SRCDIR)/ir_basic_block.cpp \
+	$(GLSL_SRCDIR)/ir_basic_block.h \
 	$(GLSL_SRCDIR)/ir_builder.cpp \
+	$(GLSL_SRCDIR)/ir_builder.h \
 	$(GLSL_SRCDIR)/ir_clone.cpp \
 	$(GLSL_SRCDIR)/ir_constant_expression.cpp \
 	$(GLSL_SRCDIR)/ir.cpp \
+	$(GLSL_SRCDIR)/ir.h \
 	$(GLSL_SRCDIR)/ir_equals.cpp \
 	$(GLSL_SRCDIR)/ir_expression_flattening.cpp \
+	$(GLSL_SRCDIR)/ir_expression_flattening.h \
 	$(GLSL_SRCDIR)/ir_function_can_inline.cpp \
 	$(GLSL_SRCDIR)/ir_function_detect_recursion.cpp \
+	$(GLSL_SRCDIR)/ir_function_inlining.h \
 	$(GLSL_SRCDIR)/ir_function.cpp \
 	$(GLSL_SRCDIR)/ir_hierarchical_visitor.cpp \
+	$(GLSL_SRCDIR)/ir_hierarchical_visitor.h \
 	$(GLSL_SRCDIR)/ir_hv_accept.cpp \
 	$(GLSL_SRCDIR)/ir_import_prototypes.cpp \
+	$(GLSL_SRCDIR)/ir_optimization.h \
 	$(GLSL_SRCDIR)/ir_print_visitor.cpp \
+	$(GLSL_SRCDIR)/ir_print_visitor.h \
 	$(GLSL_SRCDIR)/ir_reader.cpp \
+	$(GLSL_SRCDIR)/ir_reader.h \
 	$(GLSL_SRCDIR)/ir_rvalue_visitor.cpp \
+	$(GLSL_SRCDIR)/ir_rvalue_visitor.h \
 	$(GLSL_SRCDIR)/ir_set_program_inouts.cpp \
+	$(GLSL_SRCDIR)/ir_uniform.h \
 	$(GLSL_SRCDIR)/ir_validate.cpp \
 	$(GLSL_SRCDIR)/ir_variable_refcount.cpp \
+	$(GLSL_SRCDIR)/ir_variable_refcount.h \
+	$(GLSL_SRCDIR)/ir_visitor.h \
 	$(GLSL_SRCDIR)/linker.cpp \
+	$(GLSL_SRCDIR)/linker.h \
 	$(GLSL_SRCDIR)/link_atomics.cpp \
 	$(GLSL_SRCDIR)/link_functions.cpp \
 	$(GLSL_SRCDIR)/link_interface_blocks.cpp \
 	$(GLSL_SRCDIR)/link_uniforms.cpp \
 	$(GLSL_SRCDIR)/link_uniform_initializers.cpp \
 	$(GLSL_SRCDIR)/link_uniform_block_active_visitor.cpp \
+	$(GLSL_SRCDIR)/link_uniform_block_active_visitor.h \
 	$(GLSL_SRCDIR)/link_uniform_blocks.cpp \
 	$(GLSL_SRCDIR)/link_varyings.cpp \
+	$(GLSL_SRCDIR)/link_varyings.h \
+	$(GLSL_SRCDIR)/list.h \
 	$(GLSL_SRCDIR)/loop_analysis.cpp \
+	$(GLSL_SRCDIR)/loop_analysis.h \
 	$(GLSL_SRCDIR)/loop_controls.cpp \
 	$(GLSL_SRCDIR)/loop_unroll.cpp \
 	$(GLSL_SRCDIR)/lower_clip_distance.cpp \
@@ -105,12 +129,15 @@ LIBGLSL_FILES = \
 	$(GLSL_SRCDIR)/opt_swizzle_swizzle.cpp \
 	$(GLSL_SRCDIR)/opt_tree_grafting.cpp \
 	$(GLSL_SRCDIR)/opt_vectorize.cpp \
-	$(GLSL_SRCDIR)/s_expression.cpp
+	$(GLSL_SRCDIR)/program.h \
+	$(GLSL_SRCDIR)/s_expression.cpp \
+	$(GLSL_SRCDIR)/s_expression.h
 
 # glsl_compiler
 
 GLSL_COMPILER_CXX_FILES = \
 	$(GLSL_SRCDIR)/standalone_scaffolding.cpp \
+	$(GLSL_SRCDIR)/standalone_scaffolding.h \
 	$(GLSL_SRCDIR)/main.cpp
 
 # libglsl generated sources

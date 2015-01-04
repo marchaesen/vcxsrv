@@ -36,3 +36,12 @@ mesautil = env.ConvenienceLibrary(
 
 env.Alias('mesautil', mesautil)
 Export('mesautil')
+
+
+# http://www.scons.org/wiki/UnitTests
+u_atomic_test = env.Program(
+    target = 'u_atomic_test',
+    source = ['u_atomic_test.c'],
+)
+alias = env.Alias("u_atomic_test", u_atomic_test, u_atomic_test[0].abspath)
+AlwaysBuild(alias)

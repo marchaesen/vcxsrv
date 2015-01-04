@@ -280,4 +280,10 @@ u_reduced_prims_for_vertices(int primitive, int vertices)
 
 const char *u_prim_name( unsigned pipe_prim );
 
+
+#ifdef __cplusplus
+}
+#endif
+
+
 #endif

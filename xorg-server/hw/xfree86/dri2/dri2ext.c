@@ -270,6 +270,9 @@ ProcDRI2GetBuffers(ClientPtr client)
     unsigned int *attachments;
 
     REQUEST_FIXED_SIZE(xDRI2GetBuffersReq, stuff->count * 4);
+    if (stuff->count > (INT_MAX / 4))
+        return BadLength;
+
     if (!validDrawable(client, stuff->drawable, DixReadAccess | DixWriteAccess,
                        &pDrawable, &status))
         return status;

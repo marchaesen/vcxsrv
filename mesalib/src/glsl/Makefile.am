@@ -30,6 +30,13 @@ AM_CPPFLAGS = \
 AM_CFLAGS = $(VISIBILITY_CFLAGS)
 AM_CXXFLAGS = $(VISIBILITY_CXXFLAGS)
 
+EXTRA_DIST = tests glcpp/tests README TODO glcpp/README	\
+	glsl_lexer.ll					\
+	glsl_parser.yy					\
+	glcpp/glcpp-lex.l				\
+	glcpp/glcpp-parse.y				\
+	SConscript
+
 include Makefile.sources
 
 TESTS = glcpp/tests/glcpp-test				\
@@ -77,6 +84,7 @@ tests_uniform_initializer_test_SOURCES =		\
 	tests/copy_constant_to_storage_tests.cpp	\
 	tests/set_uniform_initializer_tests.cpp		\
 	tests/uniform_initializer_utils.cpp		\
+	tests/uniform_initializer_utils.h		\
 	tests/common.c
 tests_uniform_initializer_test_CFLAGS =			\
 	$(PTHREAD_CFLAGS)
@@ -102,6 +110,7 @@ libglcpp_la_LIBADD =					\
 libglcpp_la_SOURCES =					\
 	glcpp/glcpp-lex.c				\
 	glcpp/glcpp-parse.c				\
+	glcpp/glcpp-parse.h				\
 	$(LIBGLCPP_FILES)
 
 glcpp_glcpp_SOURCES =					\
@@ -116,6 +125,7 @@ libglsl_la_LIBADD = libglcpp.la
 libglsl_la_SOURCES =					\
 	glsl_lexer.cpp					\
 	glsl_parser.cpp					\
+	glsl_parser.h					\
 	$(LIBGLSL_FILES)
 
 glsl_compiler_SOURCES = \
@@ -135,7 +145,8 @@ glsl_test_SOURCES = \
 	$(GLSL_SRCDIR)/standalone_scaffolding.cpp \
 	tests/common.c \
 	test.cpp \
-	test_optpass.cpp
+	test_optpass.cpp \
+	test_optpass.h
 
 glsl_test_LDADD = libglsl.la
 
@@ -198,3 +209,10 @@ CLEANFILES =						\
 	glcpp/glcpp-parse.h				\
 	glsl_parser.h					\
 	$(BUILT_SOURCES)
+
+clean-local:
+	$(RM) -r subtest-cr subtest-cr-lf subtest-lf subtest-lf-cr
+
+dist-hook:
+	$(RM) glcpp/tests/*.out
+	$(RM) glcpp/tests/subtest*/*.out

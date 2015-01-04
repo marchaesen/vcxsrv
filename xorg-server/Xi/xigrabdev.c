@@ -47,6 +47,11 @@ int
 SProcXIGrabDevice(ClientPtr client)
 {
     REQUEST(xXIGrabDeviceReq);
+    /*
+     * Check here for at least the length of the struct we swap, then
+     * let ProcXIGrabDevice check the full size after we swap mask_len.
+     */
+    REQUEST_AT_LEAST_SIZE(xXIGrabDeviceReq);
 
     swaps(&stuff->length);
     swaps(&stuff->deviceid);
@@ -71,7 +76,7 @@ ProcXIGrabDevice(ClientPtr client)
     unsigned int pointer_mode;
 
     REQUEST(xXIGrabDeviceReq);
-    REQUEST_AT_LEAST_SIZE(xXIGrabDeviceReq);
+    REQUEST_FIXED_SIZE(xXIGrabDeviceReq, ((size_t) stuff->mask_len) * 4);
 
     ret = dixLookupDevice(&dev, stuff->deviceid, client, DixGrabAccess);
     if (ret != Success)
@@ -131,6 +136,7 @@ int
 SProcXIUngrabDevice(ClientPtr client)
 {
     REQUEST(xXIUngrabDeviceReq);
+    REQUEST_SIZE_MATCH(xXIUngrabDeviceReq);
 
     swaps(&stuff->length);
     swaps(&stuff->deviceid);
@@ -148,6 +154,7 @@ ProcXIUngrabDevice(ClientPtr client)
     TimeStamp time;
 
     REQUEST(xXIUngrabDeviceReq);
+    REQUEST_SIZE_MATCH(xXIUngrabDeviceReq);
 
     ret = dixLookupDevice(&dev, stuff->deviceid, client, DixGetAttrAccess);
     if (ret != Success)

@@ -274,9 +274,8 @@ attach_shader(struct gl_context *ctx, GLuint program, GLuint shader)
    }
 
    /* grow list */
-   shProg->Shaders = (struct gl_shader **)
-      realloc(shProg->Shaders,
-              (n + 1) * sizeof(struct gl_shader *));
+   shProg->Shaders = realloc(shProg->Shaders,
+                             (n + 1) * sizeof(struct gl_shader *));
    if (!shProg->Shaders) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glAttachShader");
       return;

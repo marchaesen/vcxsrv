@@ -398,9 +398,8 @@ xwl_screen_init_glamor(struct xwl_screen *xwl_screen,
 }
 
 void
-glamor_egl_destroy_textured_pixmap(PixmapPtr pixmap)
+glamor_egl_destroy_pixmap_image(PixmapPtr pixmap)
 {
-    glamor_destroy_textured_pixmap(pixmap);
 }
 
 int

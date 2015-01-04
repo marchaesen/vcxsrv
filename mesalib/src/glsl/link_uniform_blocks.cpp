@@ -182,7 +182,8 @@ link_uniform_blocks(void *mem_ctx,
     * the hash is organized by block-name.
     */
    struct hash_table *block_hash =
-      _mesa_hash_table_create(mem_ctx, _mesa_key_string_equal);
+      _mesa_hash_table_create(mem_ctx, _mesa_key_hash_string,
+                              _mesa_key_string_equal);
 
    if (block_hash == NULL) {
       _mesa_error_no_memory(__func__);

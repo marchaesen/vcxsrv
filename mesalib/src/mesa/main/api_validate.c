@@ -57,58 +57,65 @@ index_bytes(GLenum type, GLsizei count)
 /**
  * Check if OK to draw arrays/elements.
  */
-static GLboolean
+static bool
 check_valid_to_render(struct gl_context *ctx, const char *function)
 {
    if (!_mesa_valid_to_render(ctx, function)) {
-      return GL_FALSE;
+      return false;
    }
 
    switch (ctx->API) {
    case API_OPENGLES2:
       /* For ES2, we can draw if we have a vertex program/shader). */
       if (!ctx->VertexProgram._Current)
-	 return GL_FALSE;
+	 return false;
       break;
 
    case API_OPENGLES:
       /* For OpenGL ES, only draw if we have vertex positions
        */
       if (!ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_POS].Enabled)
-	 return GL_FALSE;
+	 return false;
       break;
 
    case API_OPENGL_CORE:
-      if (ctx->Array.VAO == ctx->Array.DefaultVAO)
-         return GL_FALSE;
+      /* Section 10.4 (Drawing Commands Using Vertex Arrays) of the OpenGL 4.5
+       * Core Profile spec says:
+       *
+       *     "An INVALID_OPERATION error is generated if no vertex array
+       *     object is bound (see section 10.3.1)."
+       */
+      if (ctx->Array.VAO == ctx->Array.DefaultVAO) {
+         _mesa_error(ctx, GL_INVALID_OPERATION, "%s(no VAO bound)", function);
+         return false;
+      }
       /* fallthrough */
-   case API_OPENGL_COMPAT:
-      {
-         const struct gl_shader_program *vsProg =
-            ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX];
-         GLboolean haveVertexShader = (vsProg && vsProg->LinkStatus);
-         GLboolean haveVertexProgram = ctx->VertexProgram._Enabled;
-         if (haveVertexShader || haveVertexProgram) {
-            /* Draw regardless of whether or not we have any vertex arrays.
-             * (Ex: could draw a point using a constant vertex pos)
-             */
-            return GL_TRUE;
-         }
-         else {
-            /* Draw if we have vertex positions (GL_VERTEX_ARRAY or generic
-             * array [0]).
-             */
-            return (ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_POS].Enabled ||
-                    ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_GENERIC0].Enabled);
-         }
+   case API_OPENGL_COMPAT: {
+      const struct gl_shader_program *const vsProg =
+         ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX];
+      const bool haveVertexShader = (vsProg && vsProg->LinkStatus);
+      const bool haveVertexProgram = ctx->VertexProgram._Enabled;
+
+      if (haveVertexShader || haveVertexProgram) {
+         /* Draw regardless of whether or not we have any vertex arrays.
+          * (Ex: could draw a point using a constant vertex pos)
+          */
+         return true;
+      } else {
+         /* Draw if we have vertex positions (GL_VERTEX_ARRAY or generic
+          * array [0]).
+          */
+         return (ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_POS].Enabled ||
+                 ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_GENERIC0].Enabled);
       }
       break;
-
-   default:
-      assert(!"Invalid API value in check_valid_to_render()");
    }
 
-   return GL_TRUE;
+   default:
+      unreachable("Invalid API value in check_valid_to_render()");
+   }
+
+   return true;
 }
 
 
@@ -310,18 +317,12 @@ valid_elements_type(struct gl_context *ctx, GLenum type, const char *name)
    }
 }
 
-/**
- * Error checking for glDrawElements().  Includes parameter checking
- * and VBO bounds checking.
- * \return GL_TRUE if OK to render, GL_FALSE if error found
- */
-GLboolean
-_mesa_validate_DrawElements(struct gl_context *ctx,
-			    GLenum mode, GLsizei count, GLenum type,
-			    const GLvoid *indices, GLint basevertex)
+static bool
+validate_DrawElements_common(struct gl_context *ctx,
+                             GLenum mode, GLsizei count, GLenum type,
+                             const GLvoid *indices,
+                             const char *caller)
 {
-   FLUSH_CURRENT(ctx, 0);
-
    /* From the GLES3 specification, section 2.14.2 (Transform Feedback
     * Primitive Capture):
     *
@@ -331,44 +332,60 @@ _mesa_validate_DrawElements(struct gl_context *ctx,
     */
    if (_mesa_is_gles3(ctx) && _mesa_is_xfb_active_and_unpaused(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glDrawElements(transform feedback active)");
-      return GL_FALSE;
+                  "%s(transform feedback active)", caller);
+      return false;
    }
 
    if (count < 0) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glDrawElements(count)" );
-      return GL_FALSE;
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(count)", caller);
+      return false;
    }
 
-   if (!_mesa_valid_prim_mode(ctx, mode, "glDrawElements")) {
-      return GL_FALSE;
+   if (!_mesa_valid_prim_mode(ctx, mode, caller)) {
+      return false;
    }
 
-   if (!valid_elements_type(ctx, type, "glDrawElements"))
-      return GL_FALSE;
+   if (!valid_elements_type(ctx, type, caller))
+      return false;
 
-   if (!check_valid_to_render(ctx, "glDrawElements"))
-      return GL_FALSE;
+   if (!check_valid_to_render(ctx, caller))
+      return false;
 
    /* Vertex buffer object tests */
    if (_mesa_is_bufferobj(ctx->Array.VAO->IndexBufferObj)) {
       /* use indices in the buffer object */
       /* make sure count doesn't go outside buffer bounds */
       if (index_bytes(type, count) > ctx->Array.VAO->IndexBufferObj->Size) {
-         _mesa_warning(ctx, "glDrawElements index out of buffer bounds");
-         return GL_FALSE;
+         _mesa_warning(ctx, "%s index out of buffer bounds", caller);
+         return false;
       }
    }
    else {
       /* not using a VBO */
       if (!indices)
-         return GL_FALSE;
+         return false;
    }
 
    if (count == 0)
-      return GL_FALSE;
+      return false;
 
-   return GL_TRUE;
+   return true;
+}
+
+/**
+ * Error checking for glDrawElements().  Includes parameter checking
+ * and VBO bounds checking.
+ * \return GL_TRUE if OK to render, GL_FALSE if error found
+ */
+GLboolean
+_mesa_validate_DrawElements(struct gl_context *ctx,
+			    GLenum mode, GLsizei count, GLenum type,
+			    const GLvoid *indices)
+{
+   FLUSH_CURRENT(ctx, 0);
+
+   return validate_DrawElements_common(ctx, mode, count, type, indices,
+                                       "glDrawElements");
 }
 
 
@@ -381,7 +398,7 @@ GLboolean
 _mesa_validate_MultiDrawElements(struct gl_context *ctx,
                                  GLenum mode, const GLsizei *count,
                                  GLenum type, const GLvoid * const *indices,
-                                 GLuint primcount, const GLint *basevertex)
+                                 GLuint primcount)
 {
    unsigned i;
 
@@ -439,62 +456,17 @@ GLboolean
 _mesa_validate_DrawRangeElements(struct gl_context *ctx, GLenum mode,
 				 GLuint start, GLuint end,
 				 GLsizei count, GLenum type,
-				 const GLvoid *indices, GLint basevertex)
+				 const GLvoid *indices)
 {
    FLUSH_CURRENT(ctx, 0);
-
-   /* From the GLES3 specification, section 2.14.2 (Transform Feedback
-    * Primitive Capture):
-    *
-    *   The error INVALID_OPERATION is also generated by DrawElements,
-    *   DrawElementsInstanced, and DrawRangeElements while transform feedback
-    *   is active and not paused, regardless of mode.
-    */
-   if (_mesa_is_gles3(ctx) && _mesa_is_xfb_active_and_unpaused(ctx)) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glDrawElements(transform feedback active)");
-      return GL_FALSE;
-   }
-
-   if (count < 0) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glDrawRangeElements(count)" );
-      return GL_FALSE;
-   }
-
-   if (!_mesa_valid_prim_mode(ctx, mode, "glDrawRangeElements")) {
-      return GL_FALSE;
-   }
 
    if (end < start) {
       _mesa_error(ctx, GL_INVALID_VALUE, "glDrawRangeElements(end<start)");
       return GL_FALSE;
    }
 
-   if (!valid_elements_type(ctx, type, "glDrawRangeElements"))
-      return GL_FALSE;
-
-   if (!check_valid_to_render(ctx, "glDrawRangeElements"))
-      return GL_FALSE;
-
-   /* Vertex buffer object tests */
-   if (_mesa_is_bufferobj(ctx->Array.VAO->IndexBufferObj)) {
-      /* use indices in the buffer object */
-      /* make sure count doesn't go outside buffer bounds */
-      if (index_bytes(type, count) > ctx->Array.VAO->IndexBufferObj->Size) {
-         _mesa_warning(ctx, "glDrawRangeElements index out of buffer bounds");
-         return GL_FALSE;
-      }
-   }
-   else {
-      /* not using a VBO */
-      if (!indices)
-         return GL_FALSE;
-   }
-
-   if (count == 0)
-      return GL_FALSE;
-
-   return GL_TRUE;
+   return validate_DrawElements_common(ctx, mode, count, type, indices,
+                                       "glDrawRangeElements");
 }
 
 
@@ -504,8 +476,7 @@ _mesa_validate_DrawRangeElements(struct gl_context *ctx, GLenum mode,
  * \return GL_TRUE if OK to render, GL_FALSE if error found
  */
 GLboolean
-_mesa_validate_DrawArrays(struct gl_context *ctx,
-			  GLenum mode, GLint start, GLsizei count)
+_mesa_validate_DrawArrays(struct gl_context *ctx, GLenum mode, GLsizei count)
 {
    struct gl_transform_feedback_object *xfb_obj
       = ctx->TransformFeedback.CurrentObject;
@@ -621,67 +592,19 @@ _mesa_validate_DrawArraysInstanced(struct gl_context *ctx, GLenum mode, GLint fi
 GLboolean
 _mesa_validate_DrawElementsInstanced(struct gl_context *ctx,
                                      GLenum mode, GLsizei count, GLenum type,
-                                     const GLvoid *indices, GLsizei numInstances,
-                                     GLint basevertex)
+                                     const GLvoid *indices, GLsizei numInstances)
 {
    FLUSH_CURRENT(ctx, 0);
 
-   /* From the GLES3 specification, section 2.14.2 (Transform Feedback
-    * Primitive Capture):
-    *
-    *   The error INVALID_OPERATION is also generated by DrawElements,
-    *   DrawElementsInstanced, and DrawRangeElements while transform feedback
-    *   is active and not paused, regardless of mode.
-    */
-   if (_mesa_is_gles3(ctx) && _mesa_is_xfb_active_and_unpaused(ctx)) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glDrawElements(transform feedback active)");
-      return GL_FALSE;
-   }
-
-   if (count < 0) {
+   if (numInstances < 0) {
       _mesa_error(ctx, GL_INVALID_VALUE,
-                  "glDrawElementsInstanced(count=%d)", count);
+                  "glDrawElementsInstanced(numInstances=%d)", numInstances);
       return GL_FALSE;
    }
 
-   if (!_mesa_valid_prim_mode(ctx, mode, "glDrawElementsInstanced")) {
-      return GL_FALSE;
-   }
-
-   if (!valid_elements_type(ctx, type, "glDrawElementsInstanced"))
-      return GL_FALSE;
-
-   if (numInstances <= 0) {
-      if (numInstances < 0)
-         _mesa_error(ctx, GL_INVALID_VALUE,
-                     "glDrawElementsInstanced(numInstances=%d)", numInstances);
-      return GL_FALSE;
-   }
-
-   if (!check_valid_to_render(ctx, "glDrawElementsInstanced"))
-      return GL_FALSE;
-
-   /* Vertex buffer object tests */
-   if (_mesa_is_bufferobj(ctx->Array.VAO->IndexBufferObj)) {
-      /* use indices in the buffer object */
-      /* make sure count doesn't go outside buffer bounds */
-      if (index_bytes(type, count) > ctx->Array.VAO->IndexBufferObj->Size) {
-         _mesa_warning(ctx,
-                       "glDrawElementsInstanced index out of buffer bounds");
-         return GL_FALSE;
-      }
-   }
-   else {
-      /* not using a VBO */
-      if (!indices)
-         return GL_FALSE;
-   }
-
-   if (count == 0)
-      return GL_FALSE;
-
-   return GL_TRUE;
+   return validate_DrawElements_common(ctx, mode, count, type, indices,
+                                       "glDrawElementsInstanced")
+      && (numInstances > 0);
 }
 
 

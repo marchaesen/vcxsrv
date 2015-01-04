@@ -82,8 +82,6 @@ struct EphyrHostXVars {
     KdScreenInfo **screens;
 
     long damage_debug_msec;
-
-    unsigned long cmap[256];
 };
 
 /* memset ( missing> ) instead of below  */
@@ -751,9 +749,12 @@ hostx_calculate_color_shift(unsigned long mask)
 }
 
 void
-hostx_set_cmap_entry(unsigned char idx,
+hostx_set_cmap_entry(ScreenPtr pScreen, unsigned char idx,
                      unsigned char r, unsigned char g, unsigned char b)
 {
+    KdScreenPriv(pScreen);
+    KdScreenInfo *screen = pScreenPriv->screen;
+    EphyrScrPriv *scrpriv = screen->driver;
 /* need to calculate the shifts for RGB because server could be BGR. */
 /* XXX Not sure if this is correct for 8 on 16, but this works for 8 on 24.*/
     static int rshift, bshift, gshift = 0;
@@ -765,7 +766,7 @@ hostx_set_cmap_entry(unsigned char idx,
         gshift = hostx_calculate_color_shift(HostX.visual->green_mask);
         bshift = hostx_calculate_color_shift(HostX.visual->blue_mask);
     }
-    HostX.cmap[idx] = ((r << rshift) & HostX.visual->red_mask) |
+    scrpriv->cmap[idx] = ((r << rshift) & HostX.visual->red_mask) |
         ((g << gshift) & HostX.visual->green_mask) |
         ((b << bshift) & HostX.visual->blue_mask);
 }
@@ -1017,7 +1018,7 @@ hostx_paint_rect(KdScreenInfo *screen,
                     unsigned char pixel =
                         *(unsigned char *) (scrpriv->fb_data + idx);
                     xcb_image_put_pixel(scrpriv->ximg, x, y,
-                                        HostX.cmap[pixel]);
+                                        scrpriv->cmap[pixel]);
                     break;
                 }
                 default:

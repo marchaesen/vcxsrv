@@ -46,6 +46,7 @@ struct hash_entry {
 
 struct hash_table {
    struct hash_entry *table;
+   uint32_t (*key_hash_function)(const void *key);
    bool (*key_equals_function)(const void *a, const void *b);
    const void *deleted_key;
    uint32_t size;
@@ -58,6 +59,7 @@ struct hash_table {
 
 struct hash_table *
 _mesa_hash_table_create(void *mem_ctx,
+                        uint32_t (*key_hash_function)(const void *key),
                         bool (*key_equals_function)(const void *a,
                                                     const void *b));
 void _mesa_hash_table_destroy(struct hash_table *ht,
@@ -66,11 +68,15 @@ void _mesa_hash_table_set_deleted_key(struct hash_table *ht,
                                       const void *deleted_key);
 
 struct hash_entry *
-_mesa_hash_table_insert(struct hash_table *ht, uint32_t hash,
-                        const void *key, void *data);
+_mesa_hash_table_insert(struct hash_table *ht, const void *key, void *data);
 struct hash_entry *
-_mesa_hash_table_search(struct hash_table *ht, uint32_t hash,
-                        const void *key);
+_mesa_hash_table_insert_with_hash(struct hash_table *ht, uint32_t hash,
+                                  const void *key, void *data);
+struct hash_entry *
+_mesa_hash_table_search(struct hash_table *ht, const void *key);
+struct hash_entry *
+_mesa_hash_table_search_pre_hashed(struct hash_table *ht, uint32_t hash,
+                                  const void *key);
 void _mesa_hash_table_remove(struct hash_table *ht,
                              struct hash_entry *entry);
 
@@ -84,6 +90,11 @@ uint32_t _mesa_hash_data(const void *data, size_t size);
 uint32_t _mesa_hash_string(const char *key);
 bool _mesa_key_string_equal(const void *a, const void *b);
 bool _mesa_key_pointer_equal(const void *a, const void *b);
+
+static inline uint32_t _mesa_key_hash_string(const void *key)
+{
+   return _mesa_hash_string((const char *)key);
+}
 
 static inline uint32_t _mesa_hash_pointer(const void *pointer)
 {

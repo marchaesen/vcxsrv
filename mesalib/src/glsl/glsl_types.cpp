@@ -25,9 +25,8 @@
 #include "main/core.h" /* for Elements, MAX2 */
 #include "glsl_parser_extras.h"
 #include "glsl_types.h"
-extern "C" {
 #include "program/hash_table.h"
-}
+
 
 mtx_t glsl_type::mutex = _MTX_INITIALIZER_NP;
 hash_table *glsl_type::array_types = NULL;

@@ -42,6 +42,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include "hash_table.h"
 #include "ralloc.h"
@@ -110,6 +111,7 @@ entry_is_present(const struct hash_table *ht, struct hash_entry *entry)
 
 struct hash_table *
 _mesa_hash_table_create(void *mem_ctx,
+                        uint32_t (*key_hash_function)(const void *key),
                         bool (*key_equals_function)(const void *a,
                                                     const void *b))
 {
@@ -123,6 +125,7 @@ _mesa_hash_table_create(void *mem_ctx,
    ht->size = hash_sizes[ht->size_index].size;
    ht->rehash = hash_sizes[ht->size_index].rehash;
    ht->max_entries = hash_sizes[ht->size_index].max_entries;
+   ht->key_hash_function = key_hash_function;
    ht->key_equals_function = key_equals_function;
    ht->table = rzalloc_array(ht, struct hash_entry, ht->size);
    ht->entries = 0;
@@ -176,15 +179,8 @@ _mesa_hash_table_set_deleted_key(struct hash_table *ht, const void *deleted_key)
    ht->deleted_key = deleted_key;
 }
 
-/**
- * Finds a hash table entry with the given key and hash of that key.
- *
- * Returns NULL if no entry is found.  Note that the data pointer may be
- * modified by the user.
- */
-struct hash_entry *
-_mesa_hash_table_search(struct hash_table *ht, uint32_t hash,
-                        const void *key)
+static struct hash_entry *
+hash_table_search(struct hash_table *ht, uint32_t hash, const void *key)
 {
    uint32_t start_hash_address = hash % ht->size;
    uint32_t hash_address = start_hash_address;
@@ -209,6 +205,31 @@ _mesa_hash_table_search(struct hash_table *ht, uint32_t hash,
 
    return NULL;
 }
+
+/**
+ * Finds a hash table entry with the given key and hash of that key.
+ *
+ * Returns NULL if no entry is found.  Note that the data pointer may be
+ * modified by the user.
+ */
+struct hash_entry *
+_mesa_hash_table_search(struct hash_table *ht, const void *key)
+{
+   assert(ht->key_hash_function);
+   return hash_table_search(ht, ht->key_hash_function(key), key);
+}
+
+struct hash_entry *
+_mesa_hash_table_search_pre_hashed(struct hash_table *ht, uint32_t hash,
+                                  const void *key)
+{
+   assert(ht->key_hash_function == NULL || hash == ht->key_hash_function(key));
+   return hash_table_search(ht, hash, key);
+}
+
+static struct hash_entry *
+hash_table_insert(struct hash_table *ht, uint32_t hash,
+                  const void *key, void *data);
 
 static void
 _mesa_hash_table_rehash(struct hash_table *ht, int new_size_index)
@@ -235,22 +256,15 @@ _mesa_hash_table_rehash(struct hash_table *ht, int new_size_index)
    ht->deleted_entries = 0;
 
    hash_table_foreach(&old_ht, entry) {
-      _mesa_hash_table_insert(ht, entry->hash,
-                              entry->key, entry->data);
+      hash_table_insert(ht, entry->hash, entry->key, entry->data);
    }
 
    ralloc_free(old_ht.table);
 }
 
-/**
- * Inserts the key with the given hash into the table.
- *
- * Note that insertion may rearrange the table on a resize or rehash,
- * so previously found hash_entries are no longer valid after this function.
- */
-struct hash_entry *
-_mesa_hash_table_insert(struct hash_table *ht, uint32_t hash,
-                        const void *key, void *data)
+static struct hash_entry *
+hash_table_insert(struct hash_table *ht, uint32_t hash,
+                  const void *key, void *data)
 {
    uint32_t start_hash_address, hash_address;
 
@@ -304,6 +318,27 @@ _mesa_hash_table_insert(struct hash_table *ht, uint32_t hash,
     * application could ignore this result.
     */
    return NULL;
+}
+
+/**
+ * Inserts the key with the given hash into the table.
+ *
+ * Note that insertion may rearrange the table on a resize or rehash,
+ * so previously found hash_entries are no longer valid after this function.
+ */
+struct hash_entry *
+_mesa_hash_table_insert(struct hash_table *ht, const void *key, void *data)
+{
+   assert(ht->key_hash_function);
+   return hash_table_insert(ht, ht->key_hash_function(key), key, data);
+}
+
+struct hash_entry *
+_mesa_hash_table_insert_with_hash(struct hash_table *ht, uint32_t hash,
+                                  const void *key, void *data)
+{
+   assert(ht->key_hash_function == NULL || hash == ht->key_hash_function(key));
+   return hash_table_insert(ht, hash, key, data);
 }
 
 /**

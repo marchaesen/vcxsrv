@@ -31,6 +31,12 @@
 #include "main/glheader.h"
 #include "main/mtypes.h"
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 struct gl_program;
 struct gl_program_parameter_list;
 struct gl_shader;
@@ -113,6 +119,11 @@ _mesa_write_shader_to_file(const struct gl_shader *shader);
 
 extern void
 _mesa_append_uniforms_to_file(const struct gl_shader *shader);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif /* PROG_PRINT_H */

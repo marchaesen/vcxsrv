@@ -793,6 +793,10 @@ winUseMsg(void)
 #ifdef XWIN_CLIPBOARD
     ErrorF("-nounicodeclipboard\n"
            "\tDo not use Unicode clipboard even if on a NT-based platform.\n");
+
+    ErrorF("-[no]primary\n"
+           "\tWhen clipboard integration is enabled, map the X11 PRIMARY selection\n"
+           "\tto the Windows clipboard. Default is enabled.\n");
 #endif
 
     ErrorF("-refresh rate_in_Hz\n"

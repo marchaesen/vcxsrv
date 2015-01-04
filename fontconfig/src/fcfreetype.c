@@ -1277,13 +1277,28 @@ FcFreeTypeQueryFace (const FT_Face  face,
     if (!pat)
 	goto bail0;
 
-    if (!FcPatternAddBool (pat, FC_OUTLINE,
-			   (face->face_flags & FT_FACE_FLAG_SCALABLE) != 0))
-	goto bail1;
+    {
+	int has_outline = !!(face->face_flags & FT_FACE_FLAG_SCALABLE);
+	int has_color = 0;
 
-    if (!FcPatternAddBool (pat, FC_SCALABLE,
-			   (face->face_flags & FT_FACE_FLAG_SCALABLE) != 0))
-	goto bail1;
+#ifdef FT_FACE_FLAG_COLOR
+	has_color = !!(face->face_flags & FT_FACE_FLAG_COLOR);
+#endif
+
+	if (!FcPatternAddBool (pat, FC_OUTLINE, has_outline))
+	    goto bail1;
+
+#ifdef FT_FACE_FLAG_COLOR
+	if (!FcPatternAddBool (pat, FC_COLOR, has_color))
+	    goto bail1;
+#endif
+
+	/* All color fonts are designed to be scaled, even if they only have
+	 * bitmap strikes.  Client is responsible to scale the bitmaps.  This
+	 * is in constrast to non-color strikes... */
+	if (!FcPatternAddBool (pat, FC_SCALABLE, has_outline || has_color))
+	    goto bail1;
+    }
 
 
     /*
@@ -1556,7 +1571,8 @@ FcFreeTypeQueryFace (const FT_Face  face,
     }
     else
     {
-	strcpy (psname, tmp);
+	strncpy (psname, tmp, 255);
+	psname[255] = 0;
     }
     if (!FcPatternAddString (pat, FC_POSTSCRIPT_NAME, (const FcChar8 *)psname))
 	goto bail1;

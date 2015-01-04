@@ -43,19 +43,18 @@
 #include "linker.h"
 
 #include "main/mtypes.h"
+#include "main/shaderapi.h"
 #include "main/shaderobj.h"
 #include "main/uniforms.h"
-#include "program/hash_table.h"
 
-extern "C" {
-#include "main/shaderapi.h"
+#include "program/hash_table.h"
 #include "program/prog_instruction.h"
 #include "program/prog_optimize.h"
 #include "program/prog_print.h"
 #include "program/program.h"
 #include "program/prog_parameter.h"
 #include "program/sampler.h"
-}
+
 
 static int swizzle_for_size(int size);
 
@@ -2943,12 +2942,9 @@ _mesa_ir_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 
 	 /* Lowering */
 	 do_mat_op_to_vec(ir);
-	 GLenum target = _mesa_shader_stage_to_program(prog->_LinkedShaders[i]->Stage);
 	 lower_instructions(ir, (MOD_TO_FRACT | DIV_TO_MUL_RCP | EXP_TO_EXP2
 				 | LOG_TO_LOG2 | INT_DIV_TO_MUL_RCP
-				 | ((options->EmitNoPow) ? POW_TO_EXP2 : 0)
-				 | ((target == GL_VERTEX_PROGRAM_ARB) ? SAT_TO_CLAMP
-                                    : 0)));
+				 | ((options->EmitNoPow) ? POW_TO_EXP2 : 0)));
 
 	 progress = do_lower_jumps(ir, true, true, options->EmitNoMainReturn, options->EmitNoCont, options->EmitNoLoops) || progress;
 

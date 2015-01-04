@@ -75,6 +75,7 @@ EXTRA_DIST= \
 	glX_proto_size.py \
 	glX_server_table.py \
 	remap_helper.py \
+	SConscript \
 	gl_API.dtd
 
 ######################################################################
@@ -106,6 +107,7 @@ API_XML = \
 	gl_API.xml \
 	es_EXT.xml \
 	gl_and_es_API.xml \
+	gl_and_glX_API.xml \
 	ARB_base_instance.xml \
 	ARB_blend_func_extended.xml \
 	ARB_clear_buffer_object.xml \
@@ -176,6 +178,7 @@ API_XML = \
 	EXT_transform_feedback.xml \
 	INTEL_performance_query.xml \
 	KHR_debug.xml \
+	KHR_context_flush_control.xml \
 	NV_conditional_render.xml \
 	NV_primitive_restart.xml \
 	NV_texture_barrier.xml \

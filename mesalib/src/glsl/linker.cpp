@@ -76,10 +76,9 @@
 #include "ir_rvalue_visitor.h"
 #include "ir_uniform.h"
 
-extern "C" {
 #include "main/shaderobj.h"
 #include "main/enums.h"
-}
+
 
 void linker_error(gl_shader_program *, const char *, ...);
 
@@ -732,8 +731,27 @@ cross_validate_globals(struct gl_shader_program *prog,
 		   && ((var->type->length == 0)
 		       || (existing->type->length == 0))) {
 		  if (var->type->length != 0) {
+                     if (var->type->length <= existing->data.max_array_access) {
+                        linker_error(prog, "%s `%s' declared as type "
+                                     "`%s' but outermost dimension has an index"
+                                     " of `%i'\n",
+                                     mode_string(var),
+                                     var->name, var->type->name,
+                                     existing->data.max_array_access);
+                        return;
+                     }
 		     existing->type = var->type;
-		  }
+		  } else if (existing->type->length != 0
+                             && existing->type->length <=
+                                var->data.max_array_access) {
+                     linker_error(prog, "%s `%s' declared as type "
+                                  "`%s' but outermost dimension has an index"
+                                  " of `%i'\n",
+                                  mode_string(var),
+                                  var->name, existing->type->name,
+                                  var->data.max_array_access);
+                     return;
+                  }
                } else if (var->type->is_record()
 		   && existing->type->is_record()
 		   && existing->type->record_compare(var->type)) {
@@ -2745,6 +2763,21 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
 
    if (last >= 0 && last < MESA_SHADER_FRAGMENT) {
       gl_shader *const sh = prog->_LinkedShaders[last];
+
+      if (first == MESA_SHADER_GEOMETRY) {
+         /* There was no vertex shader, but we still have to assign varying
+          * locations for use by geometry shader inputs in SSO.
+          *
+          * If the shader is not separable (i.e., prog->SeparateShader is
+          * false), linking will have already failed when first is
+          * MESA_SHADER_GEOMETRY.
+          */
+         if (!assign_varying_locations(ctx, mem_ctx, prog,
+                                       NULL, sh,
+                                       num_tfeedback_decls, tfeedback_decls,
+                                       prog->Geom.VerticesIn))
+            goto done;
+      }
 
       if (num_tfeedback_decls != 0 || prog->SeparateShader) {
          /* There was no fragment shader, but we still have to assign varying

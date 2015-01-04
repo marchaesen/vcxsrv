@@ -41,6 +41,11 @@
 #include "st_glsl_to_tgsi.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /** Fragment program variant key */
 struct st_fp_variant_key
 {
@@ -346,5 +351,9 @@ st_destroy_program_variants(struct st_context *st);
 extern void
 st_print_current_vertex_program(void);
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

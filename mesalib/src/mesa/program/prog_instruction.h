@@ -385,10 +385,6 @@ extern struct prog_instruction *
 _mesa_alloc_instructions(GLuint numInst);
 
 extern struct prog_instruction *
-_mesa_realloc_instructions(struct prog_instruction *oldInst,
-                           GLuint numOldInst, GLuint numNewInst);
-
-extern struct prog_instruction *
 _mesa_copy_instructions(struct prog_instruction *dest,
                         const struct prog_instruction *src, GLuint n);
 

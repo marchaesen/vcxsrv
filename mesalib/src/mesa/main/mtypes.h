@@ -1657,6 +1657,20 @@ typedef enum {
    DRAW_ARRAYS
 } gl_draw_method;
 
+/**
+ * Enum for the OpenGL APIs we know about and may support.
+ *
+ * NOTE: This must match the api_enum table in
+ * src/mesa/main/get_hash_generator.py
+ */
+typedef enum
+{
+   API_OPENGL_COMPAT,      /* legacy / compatibility contexts */
+   API_OPENGLES,
+   API_OPENGLES2,
+   API_OPENGL_CORE,
+   API_OPENGL_LAST = API_OPENGL_CORE
+} gl_api;
 
 /**
  * Vertex array state
@@ -1701,8 +1715,9 @@ struct gl_array_attrib
    /** One of the DRAW_xxx flags, not consumed by drivers */
    gl_draw_method DrawMethod;
 
-   /** Legal array datatypes */
+   /** Legal array datatypes and the API for which they have been computed */
    GLbitfield LegalTypesMask;
+   gl_api LegalTypesMaskAPI;
 };
 
 
@@ -2990,6 +3005,7 @@ struct gl_shader_compiler_options
    GLboolean EmitNoMainReturn;            /**< Emit CONT/RET opcodes? */
    GLboolean EmitNoNoise;                 /**< Emit NOISE opcodes? */
    GLboolean EmitNoPow;                   /**< Emit POW opcodes? */
+   GLboolean EmitNoSat;                   /**< Emit SAT opcodes? */
    GLboolean LowerClipDistance; /**< Lower gl_ClipDistance from float[8] to vec4[2]? */
 
    /**
@@ -4037,21 +4053,6 @@ enum mesa_debug_severity {
 };
 
 /** @} */
-
-/**
- * Enum for the OpenGL APIs we know about and may support.
- *
- * NOTE: This must match the api_enum table in
- * src/mesa/main/get_hash_generator.py
- */
-typedef enum
-{
-   API_OPENGL_COMPAT,      /* legacy / compatibility contexts */
-   API_OPENGLES,
-   API_OPENGLES2,
-   API_OPENGL_CORE,
-   API_OPENGL_LAST = API_OPENGL_CORE
-} gl_api;
 
 /**
  * Driver-specific state flags.

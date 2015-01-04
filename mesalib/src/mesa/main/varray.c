@@ -258,11 +258,14 @@ update_array_format(struct gl_context *ctx,
    GLuint elementSize;
    GLenum format = GL_RGBA;
 
-   if (ctx->Array.LegalTypesMask == 0) {
-      /* One-time initialization.  We can't do this in _mesa_init_varrays()
-       * below because extensions are not yet enabled at that point.
+   if (ctx->Array.LegalTypesMask == 0 || ctx->Array.LegalTypesMaskAPI != ctx->API) {
+      /* Compute the LegalTypesMask only once, unless the context API has
+       * changed, in which case we want to compute it again.  We can't do this
+       * in _mesa_init_varrays() below because extensions are not yet enabled
+       * at that point.
        */
       ctx->Array.LegalTypesMask = get_legal_types_mask(ctx);
+      ctx->Array.LegalTypesMaskAPI = ctx->API;
    }
 
    legalTypesMask &= ctx->Array.LegalTypesMask;

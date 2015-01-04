@@ -32,6 +32,12 @@
 
 #include "main/glheader.h"
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 struct gl_context;
 
 /** Opaque type */
@@ -63,6 +69,11 @@ _mesa_shader_cache_insert(struct gl_context *ctx,
 			  struct gl_program_cache *cache,
 			  const void *key, GLuint keysize,
 			  struct gl_shader_program *program);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif /* PROG_CACHE_H */

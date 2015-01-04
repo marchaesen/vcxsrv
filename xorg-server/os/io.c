@@ -971,10 +971,11 @@ FlushClient(ClientPtr who, OsCommPtr oc, const void *__extraBuf, int extraCount)
             }
 
             if (notWritten > oco->size) {
-                unsigned char *obuf;
+                unsigned char *obuf = NULL;
 
-                obuf = (unsigned char *) realloc(oco->buf,
-                                                 notWritten + BUFSIZE);
+                if (notWritten + BUFSIZE <= INT_MAX) {
+                    obuf = realloc(oco->buf, notWritten + BUFSIZE);
+                }
                 if (!obuf) {
                     _XSERVTransDisconnect(oc->trans_conn);
                     _XSERVTransClose(oc->trans_conn);

@@ -210,6 +210,7 @@ proc_present_query_capabilities (ClientPtr client)
     RRCrtcPtr   crtc = NULL;
     int         r;
 
+    REQUEST_SIZE_MATCH(xPresentQueryCapabilitiesReq);
     r = dixLookupWindow(&window, stuff->target, client, DixGetAttrAccess);
     switch (r) {
     case Success:
@@ -254,6 +255,7 @@ static int
 sproc_present_query_version(ClientPtr client)
 {
     REQUEST(xPresentQueryVersionReq);
+    REQUEST_SIZE_MATCH(xPresentQueryVersionReq);
 
     swaps(&stuff->length);
     swapl(&stuff->majorVersion);
@@ -265,6 +267,7 @@ static int
 sproc_present_pixmap(ClientPtr client)
 {
     REQUEST(xPresentPixmapReq);
+    REQUEST_AT_LEAST_SIZE(xPresentPixmapReq);
 
     swaps(&stuff->length);
     swapl(&stuff->window);
@@ -284,6 +287,7 @@ static int
 sproc_present_notify_msc(ClientPtr client)
 {
     REQUEST(xPresentNotifyMSCReq);
+    REQUEST_SIZE_MATCH(xPresentNotifyMSCReq);
 
     swaps(&stuff->length);
     swapl(&stuff->window);
@@ -297,6 +301,7 @@ static int
 sproc_present_select_input (ClientPtr client)
 {
     REQUEST(xPresentSelectInputReq);
+    REQUEST_SIZE_MATCH(xPresentSelectInputReq);
 
     swaps(&stuff->length);
     swapl(&stuff->window);
@@ -308,6 +313,7 @@ static int
 sproc_present_query_capabilities (ClientPtr client)
 {
     REQUEST(xPresentQueryCapabilitiesReq);
+    REQUEST_SIZE_MATCH(xPresentQueryCapabilitiesReq);
     swaps(&stuff->length);
     swapl(&stuff->target);
     return (*proc_present_vector[stuff->presentReqType]) (client);

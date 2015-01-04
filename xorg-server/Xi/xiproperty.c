@@ -1013,10 +1013,9 @@ int
 SProcXListDeviceProperties(ClientPtr client)
 {
     REQUEST(xListDevicePropertiesReq);
+    REQUEST_SIZE_MATCH(xListDevicePropertiesReq);
 
     swaps(&stuff->length);
-
-    REQUEST_SIZE_MATCH(xListDevicePropertiesReq);
     return (ProcXListDeviceProperties(client));
 }
 
@@ -1037,10 +1036,10 @@ int
 SProcXDeleteDeviceProperty(ClientPtr client)
 {
     REQUEST(xDeleteDevicePropertyReq);
+    REQUEST_SIZE_MATCH(xDeleteDevicePropertyReq);
 
     swaps(&stuff->length);
     swapl(&stuff->property);
-    REQUEST_SIZE_MATCH(xDeleteDevicePropertyReq);
     return (ProcXDeleteDeviceProperty(client));
 }
 
@@ -1048,13 +1047,13 @@ int
 SProcXGetDeviceProperty(ClientPtr client)
 {
     REQUEST(xGetDevicePropertyReq);
+    REQUEST_SIZE_MATCH(xGetDevicePropertyReq);
 
     swaps(&stuff->length);
     swapl(&stuff->property);
     swapl(&stuff->type);
     swapl(&stuff->longOffset);
     swapl(&stuff->longLength);
-    REQUEST_SIZE_MATCH(xGetDevicePropertyReq);
     return (ProcXGetDeviceProperty(client));
 }
 
@@ -1253,11 +1252,10 @@ int
 SProcXIListProperties(ClientPtr client)
 {
     REQUEST(xXIListPropertiesReq);
+    REQUEST_SIZE_MATCH(xXIListPropertiesReq);
 
     swaps(&stuff->length);
     swaps(&stuff->deviceid);
-
-    REQUEST_SIZE_MATCH(xXIListPropertiesReq);
     return (ProcXIListProperties(client));
 }
 
@@ -1279,11 +1277,11 @@ int
 SProcXIDeleteProperty(ClientPtr client)
 {
     REQUEST(xXIDeletePropertyReq);
+    REQUEST_SIZE_MATCH(xXIDeletePropertyReq);
 
     swaps(&stuff->length);
     swaps(&stuff->deviceid);
     swapl(&stuff->property);
-    REQUEST_SIZE_MATCH(xXIDeletePropertyReq);
     return (ProcXIDeleteProperty(client));
 }
 
@@ -1291,6 +1289,7 @@ int
 SProcXIGetProperty(ClientPtr client)
 {
     REQUEST(xXIGetPropertyReq);
+    REQUEST_SIZE_MATCH(xXIGetPropertyReq);
 
     swaps(&stuff->length);
     swaps(&stuff->deviceid);
@@ -1298,7 +1297,6 @@ SProcXIGetProperty(ClientPtr client)
     swapl(&stuff->type);
     swapl(&stuff->offset);
     swapl(&stuff->len);
-    REQUEST_SIZE_MATCH(xXIGetPropertyReq);
     return (ProcXIGetProperty(client));
 }
 

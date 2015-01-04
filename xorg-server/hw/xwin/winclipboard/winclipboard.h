@@ -33,4 +33,6 @@ void winFixClipboardChain(void);
 
 void winClipboardWindowDestroy(void);
 
+extern Bool fPrimarySelection;
+
 #endif

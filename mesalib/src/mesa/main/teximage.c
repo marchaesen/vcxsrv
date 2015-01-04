@@ -1542,7 +1542,7 @@ _mesa_legal_texture_dimensions(struct gl_context *ctx, GLenum target,
       maxSize >>= level;
       if (width < 2 * border || width > 2 * border + maxSize)
          return GL_FALSE;
-      if (height < 1 || height > ctx->Const.MaxArrayTextureLayers)
+      if (height < 0 || height > ctx->Const.MaxArrayTextureLayers)
          return GL_FALSE;
       if (!ctx->Extensions.ARB_texture_non_power_of_two) {
          if (width > 0 && !_mesa_is_pow_two(width - 2 * border))

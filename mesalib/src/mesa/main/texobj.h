@@ -38,6 +38,11 @@
 #include "samplerobj.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /**
  * \name Internal functions
  */
@@ -210,6 +215,11 @@ extern void GLAPIENTRY
 _mesa_InvalidateTexImage(GLuint texture, GLint level);
 
 /*@}*/
+
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif

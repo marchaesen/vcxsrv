@@ -12,7 +12,7 @@ AC_INIT([Mesa], [MESA_VERSION],
 AC_CONFIG_AUX_DIR([bin])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_SYSTEM
-AM_INIT_AUTOMAKE([foreign])
+AM_INIT_AUTOMAKE([foreign tar-ustar dist-xz])
 
 # Support silent build rules, requires at least automake-1.11. Disable
 # by either passing --disable-silent-rules to configure or passing V=1
@@ -102,7 +102,7 @@ AC_COMPILE_IFELSE(
 
 AC_MSG_RESULT([$acv_mesa_CLANG])
 
-dnl If we're using GCC, make sure that it is at least version 3.3.0.  Older
+dnl If we're using GCC, make sure that it is at least version 4.2.0.  Older
 dnl versions are explictly not supported.
 GEN_ASM_OFFSETS=no
 if test "x$GCC" = xyes -a "x$acv_mesa_CLANG" = xno; then
@@ -116,9 +116,9 @@ if test "x$GCC" = xyes -a "x$acv_mesa_CLANG" = xno; then
         GCC_VERSION_MINOR=`echo $GCC_VERSION | cut -d. -f2`
     fi
 
-    if test $GCC_VERSION_MAJOR -lt 3 -o $GCC_VERSION_MAJOR -eq 3 -a $GCC_VERSION_MINOR -lt 3 ; then
+    if test $GCC_VERSION_MAJOR -lt 4 -o $GCC_VERSION_MAJOR -eq 4 -a $GCC_VERSION_MINOR -lt 2 ; then
         AC_MSG_RESULT([no])
-        AC_MSG_ERROR([If using GCC, version 3.3.0 or later is required.])
+        AC_MSG_ERROR([If using GCC, version 4.2.0 or later is required.])
     else
         AC_MSG_RESULT([yes])
     fi
@@ -253,8 +253,16 @@ AC_SUBST([VISIBILITY_CXXFLAGS])
 dnl
 dnl Optional flags, check for compiler support
 dnl
+SSE41_CFLAGS="-msse4.1"
+dnl Code compiled by GCC with -msse* assumes a 16 byte aligned
+dnl stack, but on x86-32 such alignment is not guaranteed.
+case "$target_cpu" in
+i?86)
+    SSE41_CFLAGS="$SSE41_CFLAGS -mstackrealign"
+    ;;
+esac
 save_CFLAGS="$CFLAGS"
-CFLAGS="-msse4.1 $CFLAGS"
+CFLAGS="$SSE41_CFLAGS $CFLAGS"
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 #include <smmintrin.h>
 int main () {
@@ -267,6 +275,7 @@ if test "x$SSE41_SUPPORTED" = x1; then
     DEFINES="$DEFINES -DUSE_SSE41"
 fi
 AM_CONDITIONAL([SSE41_SUPPORTED], [test x$SSE41_SUPPORTED = x1])
+AC_SUBST([SSE41_CFLAGS], $SSE41_CFLAGS)
 
 dnl Can't have static and shared libraries, default to static if user
 dnl explicitly requested. If both disabled, set to static since shared
@@ -1345,7 +1354,7 @@ if test "x$enable_openvg" = xyes; then
     fi
 
     AC_MSG_ERROR([Cannot enable OpenVG, because egl_gallium has been removed and
-                  OpenVG hasn't been integrated into standard libEGL yet])
+                  OpenVG has not been integrated into standard libEGL yet])
 
     EGL_CLIENT_APIS="$EGL_CLIENT_APIS "'$(VG_LIB)'
     VG_LIB_DEPS="$VG_LIB_DEPS $SELINUX_LIBS $PTHREAD_LIBS"
@@ -2137,7 +2146,6 @@ AC_CONFIG_FILES([Makefile
 		src/egl/drivers/dri2/Makefile
 		src/egl/main/Makefile
 		src/egl/main/egl.pc
-		src/egl/wayland/Makefile
 		src/egl/wayland/wayland-drm/Makefile
 		src/egl/wayland/wayland-egl/Makefile
 		src/egl/wayland/wayland-egl/wayland-egl.pc
@@ -2176,8 +2184,6 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/targets/d3dadapter9/Makefile
 		src/gallium/targets/d3dadapter9/d3d.pc
 		src/gallium/targets/dri/Makefile
-		src/gallium/targets/egl-static/Makefile
-		src/gallium/targets/gbm/Makefile
 		src/gallium/targets/libgl-xlib/Makefile
 		src/gallium/targets/omx/Makefile
 		src/gallium/targets/opencl/Makefile

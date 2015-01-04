@@ -208,7 +208,6 @@ listPossibleVideoDrivers(char *matches[], int nmatches)
     if (xf86Info.consoleFd >= 0 && (i < (nmatches - 1))) {
         struct vis_identifier visid;
         const char *cp;
-        extern char xf86SolarisFbDev[PATH_MAX];
         int iret;
 
         SYSCALL(iret = ioctl(xf86Info.consoleFd, VIS_GETIDENTIFIER, &visid));

@@ -120,6 +120,16 @@
         </variant>
         <variant>
           <configItem>
+            <name>pl</name>
+            <_description>Polish (Germany, eliminate dead keys)</_description>
+            <languageList>
+              <iso639Id>ger</iso639Id>
+              <iso639Id>pol</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
             <name>sun_type6</name>
             <_description>German (Sun Type 6/7)</_description>
           </configItem>

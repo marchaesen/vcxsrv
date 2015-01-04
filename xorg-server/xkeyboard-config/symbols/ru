@@ -478,11 +478,12 @@ xkb_symbols "srp" {
 };
 
 // Mari language layout
-// http://www.marlamuter.ru/
+// http://www.marlamuter.com/
+// Last edit by Viatcheslav Kileev (slavakileev@yandex.ru)
 partial alphanumeric_keys
 xkb_symbols "chm" {
 
-    include "ru(common)"
+    include "ru(winkeys)"
     name[Group1]= "Mari";
 
     key.type[group1]="FOUR_LEVEL_ALPHABETIC";
@@ -491,9 +492,7 @@ xkb_symbols "chm" {
     key <AD03> { [   Cyrillic_u,   Cyrillic_U,   U04F1,   U04F0  ] };
     key <AC02> { [ Cyrillic_yeru, Cyrillic_YERU, U04F9,   U04F8  ] };
     key <AD06> { [   Cyrillic_en,  Cyrillic_EN,  U04A5,   U04A4  ] };
-    key <AC11> { [   Cyrillic_e,   Cyrillic_E,   U04E9,   U04E8  ] };
-    key <AC10> { [  Cyrillic_zhe,  Cyrillic_ZHE, U04EB,   U04EA  ] };
-    key <AC01> { [   Cyrillic_ef,  Cyrillic_EF,  UF537,   UF536  ] };
+    key <AC07> { [   Cyrillic_o,   Cyrillic_O,   U04E7,   U04E6  ] };
 
     include "level3(ralt_switch)"
 };

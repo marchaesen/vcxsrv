@@ -300,12 +300,11 @@ device_removed(struct udev_device *device)
         const char *path = udev_device_get_devnode(device);
         dev_t devnum = udev_device_get_devnum(device);
 
-        if (strncmp(sysname,"card", 4) != 0)
-            return;
-        ErrorF("removing GPU device %s %s\n", syspath, path);
-        if (!path)
+        if ((strncmp(sysname,"card", 4) != 0) || (path == NULL))
             return;
 
+        LogMessage(X_INFO, "config/udev: removing GPU device %s %s\n",
+                   syspath, path);
         config_udev_odev_setup_attribs(path, syspath, major(devnum),
                                        minor(devnum), DeleteGPUDeviceRequest);
         /* Retry vtenter after a drm node removal */

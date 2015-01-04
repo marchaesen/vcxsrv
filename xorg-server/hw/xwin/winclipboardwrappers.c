@@ -44,12 +44,6 @@
 DISPATCH_PROC(winProcEstablishConnection);
 
 /*
- * References to external symbols
- */
-
-extern Bool g_fClipboard;
-
-/*
  * Wrapper for internal EstablishConnection function.
  * Initializes internal clients that must not be started until
  * an external client has connected.

@@ -182,8 +182,6 @@ initialize_context(struct gl_context *ctx, gl_api api)
       ctx->Const.MaxGeometryOutputVertices = 256;
       ctx->Const.MaxGeometryTotalOutputComponents = 1024;
 
-//      ctx->Const.MaxGeometryVaryingComponents = 64;
-
       ctx->Const.MaxVarying = 60 / 4;
       break;
    case 300:

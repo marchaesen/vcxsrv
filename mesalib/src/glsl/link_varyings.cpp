@@ -116,7 +116,7 @@ cross_validate_types_and_qualifiers(struct gl_shader_program *prog,
       return;
    }
 
-   if (input->data.invariant != output->data.invariant) {
+   if (!prog->IsES && input->data.invariant != output->data.invariant) {
       linker_error(prog,
                    "%s shader output `%s' %s invariant qualifier, "
                    "but %s shader input %s invariant qualifier\n",
@@ -835,9 +835,11 @@ varying_matches::record(ir_variable *producer_var, ir_variable *consumer_var)
        * regardless of where they appear.  We can trivially satisfy that
        * requirement by changing the interpolation type to flat here.
        */
-      producer_var->data.centroid = false;
-      producer_var->data.sample = false;
-      producer_var->data.interpolation = INTERP_QUALIFIER_FLAT;
+      if (producer_var) {
+         producer_var->data.centroid = false;
+         producer_var->data.sample = false;
+         producer_var->data.interpolation = INTERP_QUALIFIER_FLAT;
+      }
 
       if (consumer_var) {
          consumer_var->data.centroid = false;

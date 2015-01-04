@@ -38,7 +38,8 @@
 ir_variable_refcount_visitor::ir_variable_refcount_visitor()
 {
    this->mem_ctx = ralloc_context(NULL);
-   this->ht = _mesa_hash_table_create(NULL, _mesa_key_pointer_equal);
+   this->ht = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
+                                      _mesa_key_pointer_equal);
 }
 
 static void
@@ -70,15 +71,13 @@ ir_variable_refcount_visitor::get_variable_entry(ir_variable *var)
 {
    assert(var);
 
-   struct hash_entry *e = _mesa_hash_table_search(this->ht,
-						    _mesa_hash_pointer(var),
-						    var);
+   struct hash_entry *e = _mesa_hash_table_search(this->ht, var);
    if (e)
       return (ir_variable_refcount_entry *)e->data;
 
    ir_variable_refcount_entry *entry = new ir_variable_refcount_entry(var);
    assert(entry->referenced_count == 0);
-   _mesa_hash_table_insert(this->ht, _mesa_hash_pointer(var), var, entry);
+   _mesa_hash_table_insert(this->ht, var, entry);
 
    return entry;
 }

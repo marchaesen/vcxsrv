@@ -56,6 +56,8 @@ DoGetProgramString(struct __GLXclientStateRec *cl, GLbyte * pc,
     __GLXcontext *const cx = __glXForceCurrent(cl, req->contextTag, &error);
     ClientPtr client = cl->client;
 
+    REQUEST_FIXED_SIZE(xGLXVendorPrivateWithReplyReq, 8);
+
     pc += __GLX_VENDPRIV_HDR_SIZE;
     if (cx != NULL) {
         GLenum target;

@@ -78,7 +78,7 @@ SProcXChangeDeviceControl(ClientPtr client)
 
     REQUEST(xChangeDeviceControlReq);
     swaps(&stuff->length);
-    REQUEST_AT_LEAST_SIZE(xChangeDeviceControlReq);
+    REQUEST_AT_LEAST_EXTRA_SIZE(xChangeDeviceControlReq, sizeof(xDeviceCtl));
     swaps(&stuff->control);
     ctl = (xDeviceCtl *) &stuff[1];
     swaps(&ctl->control);
@@ -115,7 +115,7 @@ ProcXChangeDeviceControl(ClientPtr client)
     xDeviceEnableCtl *e;
 
     REQUEST(xChangeDeviceControlReq);
-    REQUEST_AT_LEAST_SIZE(xChangeDeviceControlReq);
+    REQUEST_AT_LEAST_EXTRA_SIZE(xChangeDeviceControlReq, sizeof(xDeviceCtl));
 
     len = stuff->length - bytes_to_int32(sizeof(xChangeDeviceControlReq));
     ret = dixLookupDevice(&dev, stuff->deviceid, client, DixManageAccess);
@@ -192,6 +192,10 @@ ProcXChangeDeviceControl(ClientPtr client)
         break;
     case DEVICE_ENABLE:
         e = (xDeviceEnableCtl *) &stuff[1];
+        if ((len != bytes_to_int32(sizeof(xDeviceEnableCtl)))) {
+            ret = BadLength;
+            goto out;
+        }
 
         if (IsXTestDevice(dev, NULL))
             status = !Success;

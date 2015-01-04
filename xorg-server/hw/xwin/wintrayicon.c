@@ -32,9 +32,13 @@
 #ifdef HAVE_XWIN_CONFIG_H
 #include <xwin-config.h>
 #endif
+
 #include "win.h"
 #include <shellapi.h>
 #include "winprefs.h"
+#ifdef XWIN_CLIPBOARD
+#include "winclipboard/winclipboard.h"
+#endif
 
 /*
  * Initialize the tray icon
@@ -169,6 +173,21 @@ winHandleIconMessage(HWND hwnd, UINT message,
             /* Remove Hide Root Window button */
             RemoveMenu(hmenuTray, ID_APP_HIDE_ROOT, MF_BYCOMMAND);
         }
+
+#ifdef XWIN_CLIPBOARD
+        if (g_fClipboard) {
+            /* Set menu state to indicate if 'Monitor Primary' is enabled or not */
+            MENUITEMINFO mii = { 0 };
+            mii.cbSize = sizeof(MENUITEMINFO);
+            mii.fMask = MIIM_STATE;
+            mii.fState = fPrimarySelection ? MFS_CHECKED : MFS_UNCHECKED;
+            SetMenuItemInfo(hmenuTray, ID_APP_MONITOR_PRIMARY, FALSE, &mii);
+        }
+        else {
+            /* Remove 'Monitor Primary' menu item */
+            RemoveMenu(hmenuTray, ID_APP_MONITOR_PRIMARY, MF_BYCOMMAND);
+        }
+#endif
 
         SetupRootMenu(hmenuTray);
 

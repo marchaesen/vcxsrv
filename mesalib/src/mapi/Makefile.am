@@ -19,7 +19,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-SUBDIRS = glapi/gen .
+SUBDIRS =
 TESTS =
 
 TOP = $(top_srcdir)
@@ -31,6 +31,13 @@ lib_LTLIBRARIES =
 check_PROGRAMS =
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA =
+
+EXTRA_DIST = \
+	es1api/ABI-check \
+	es2api/ABI-check \
+	mapi_abi.py \
+	glapi/SConscript \
+	shared-glapi/SConscript
 
 AM_CFLAGS = $(PTHREAD_CFLAGS)
 AM_CPPFLAGS =							\
@@ -62,9 +69,6 @@ shared_glapi_libglapi_la_LDFLAGS = \
 	$(GC_SECTIONS) \
 	$(LD_NO_UNDEFINED)
 
-shared-glapi/glapi_mapi_tmp.h : $(GLAPI)/gen/gl_and_es_API.xml $(glapi_gen_mapi_deps)
-	$(call glapi_gen_mapi,$<,shared-glapi)
-
 TESTS += shared-glapi-test
 check_PROGRAMS += shared-glapi-test
 
@@ -76,6 +80,9 @@ shared_glapi_test_LDADD = \
 	$(top_builddir)/src/mapi/shared-glapi/libglapi.la \
 	$(top_builddir)/src/gtest/libgtest.la
 endif
+
+shared-glapi/glapi_mapi_tmp.h : $(GLAPI)/gen/gl_and_es_API.xml $(glapi_gen_mapi_deps)
+	$(call glapi_gen_mapi,$<,shared-glapi)
 
 if HAVE_OPENGL
 noinst_LTLIBRARIES = glapi/libglapi.la
@@ -158,10 +165,10 @@ es1api_libGLESv1_CM_la_LDFLAGS = \
 if HAVE_SHARED_GLAPI
 es1api_libGLESv1_CM_la_LIBADD += shared-glapi/libglapi.la
 endif
+endif
 
 es1api/glapi_mapi_tmp.h: glapi/gen/gl_and_es_API.xml $(glapi_gen_mapi_deps)
 	$(call glapi_gen_mapi,$<,es1api)
-endif
 
 if HAVE_OPENGL_ES2
 TESTS += es2api/ABI-check
@@ -202,10 +209,10 @@ es2api_libGLESv2_la_LDFLAGS = \
 if HAVE_SHARED_GLAPI
 es2api_libGLESv2_la_LIBADD += shared-glapi/libglapi.la
 endif
+endif
 
 es2api/glapi_mapi_tmp.h: glapi/gen/gl_and_es_API.xml $(glapi_gen_mapi_deps)
 	$(call glapi_gen_mapi,$<,es2api)
-endif
 
 if HAVE_OPENVG
 SUBDIRS += vgapi

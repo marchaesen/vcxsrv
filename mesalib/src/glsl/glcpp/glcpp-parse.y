@@ -290,9 +290,10 @@ control_line_success:
 		macro_t *macro;
 		if (strcmp("__LINE__", $4) == 0
 		    || strcmp("__FILE__", $4) == 0
-		    || strcmp("__VERSION__", $4) == 0)
+		    || strcmp("__VERSION__", $4) == 0
+		    || strncmp("GL_", $4, 3) == 0)
 			glcpp_error(& @1, parser, "Built-in (pre-defined)"
-				    " macro names can not be undefined.");
+				    " macro names cannot be undefined.");
 
 		macro = hash_table_find (parser->defines, $4);
 		if (macro) {

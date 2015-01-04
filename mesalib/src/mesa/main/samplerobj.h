@@ -27,6 +27,11 @@
 #ifndef SAMPLEROBJ_H
 #define SAMPLEROBJ_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 struct dd_function_table;
 
 static inline struct gl_sampler_object *
@@ -102,5 +107,9 @@ void GLAPIENTRY
 _mesa_GetSamplerParameterIiv(GLuint sampler, GLenum pname, GLint *params);
 void GLAPIENTRY
 _mesa_GetSamplerParameterIuiv(GLuint sampler, GLenum pname, GLuint *params);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SAMPLEROBJ_H */

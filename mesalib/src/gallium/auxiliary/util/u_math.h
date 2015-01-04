@@ -541,7 +541,7 @@ unsigned ffs( unsigned u )
 static INLINE unsigned
 util_last_bit(unsigned u)
 {
-#if defined(__GNUC__) && ((__GNUC__ * 100 + __GNUC_MINOR__) >= 304)
+#if defined(__GNUC__)
    return u == 0 ? 0 : 32 - __builtin_clz(u);
 #else
    unsigned r = 0;
@@ -658,7 +658,7 @@ float_to_byte_tex(float f)
 static INLINE unsigned
 util_logbase2(unsigned n)
 {
-#if defined(PIPE_CC_GCC) && (PIPE_CC_GCC_VERSION >= 304)
+#if defined(PIPE_CC_GCC)
    return ((sizeof(unsigned) * 8 - 1) - __builtin_clz(n | 1));
 #else
    unsigned pos = 0;
@@ -678,7 +678,7 @@ util_logbase2(unsigned n)
 static INLINE unsigned
 util_next_power_of_two(unsigned x)
 {
-#if defined(PIPE_CC_GCC) && (PIPE_CC_GCC_VERSION >= 304)
+#if defined(PIPE_CC_GCC)
    if (x <= 1)
        return 1;
 
@@ -710,7 +710,7 @@ util_next_power_of_two(unsigned x)
 static INLINE unsigned
 util_bitcount(unsigned n)
 {
-#if defined(PIPE_CC_GCC) && (PIPE_CC_GCC_VERSION >= 304)
+#if defined(PIPE_CC_GCC)
    return __builtin_popcount(n);
 #else
    /* K&R classic bitcount.

@@ -14,5 +14,11 @@ all-local : .libs/install-mesa-links
 			ln -f $$f $(top_builddir)/$(LIB_DIR);	\
 		fi;						\
 	done && touch $@
+
+clean-local:
+	for f in $(notdir $(lib_LTLIBRARIES:%.la=.libs/%.$(LIB_EXT)*)); do \
+		$(RM) $(top_builddir)/$(LIB_DIR)/$$f;	\
+	done;
+
 endif
 endif

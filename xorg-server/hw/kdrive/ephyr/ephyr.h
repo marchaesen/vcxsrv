@@ -83,6 +83,7 @@ typedef struct _ephyrScrPriv {
 
     KdScreenInfo *screen;
     int mynum;                  /* Screen number */
+    unsigned long cmap[256];
 
     /**
      * Per-screen Xlib-using state for glamor (private to

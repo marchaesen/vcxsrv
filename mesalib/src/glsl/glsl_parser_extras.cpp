@@ -25,12 +25,10 @@
 #include <string.h>
 #include <assert.h>
 
-extern "C" {
 #include "main/core.h" /* for struct gl_context */
 #include "main/context.h"
 #include "main/shaderobj.h"
-}
-
+#include "util/u_atomic.h" /* for p_atomic_cmpxchg */
 #include "util/ralloc.h"
 #include "ast.h"
 #include "glsl_parser_extras.h"
@@ -50,7 +48,7 @@ glsl_compute_version_string(void *mem_ctx, bool is_es, unsigned version)
 
 
 static const unsigned known_desktop_glsl_versions[] =
-   { 110, 120, 130, 140, 150, 330, 400, 410, 420, 430, 440 };
+   { 110, 120, 130, 140, 150, 330, 400, 410, 420, 430, 440, 450 };
 
 
 _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
@@ -134,12 +132,21 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    this->Const.MaxFragmentImageUniforms = ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxImageUniforms;
    this->Const.MaxCombinedImageUniforms = ctx->Const.MaxCombinedImageUniforms;
 
+   /* ARB_viewport_array */
+   this->Const.MaxViewports = ctx->Const.MaxViewports;
+
    this->current_function = NULL;
    this->toplevel_ir = NULL;
    this->found_return = false;
    this->all_invariant = false;
    this->user_structures = NULL;
    this->num_user_structures = 0;
+
+   /* supported_versions should be large enough to support the known desktop
+    * GLSL versions plus 2 GLES versions (ES2 & ES3)
+    */
+   STATIC_ASSERT((ARRAY_SIZE(known_desktop_glsl_versions) + 2) ==
+                 ARRAY_SIZE(this->supported_versions));
 
    /* Populate the list of supported GLSL versions */
    /* FINISHME: Once the OpenGL 3.0 'forward compatible' context or
@@ -168,8 +175,6 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
       this->supported_versions[this->num_supported_versions].es = true;
       this->num_supported_versions++;
    }
-   assert(this->num_supported_versions
-          <= ARRAY_SIZE(this->supported_versions));
 
    /* Create a string for use in error messages to tell the user which GLSL
     * versions are supported.
@@ -1447,7 +1452,8 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
    const char *source = shader->Source;
 
    if (ctx->Const.GenerateTemporaryNames)
-      ir_variable::temporaries_allocate_names = true;
+      (void) p_atomic_cmpxchg(&ir_variable::temporaries_allocate_names,
+                              false, true);
 
    state->error = glcpp_preprocess(state, &source, &state->info_log,
                              &ctx->Extensions, ctx);

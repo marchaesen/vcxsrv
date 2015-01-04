@@ -1292,7 +1292,7 @@ ephyrPutColors(ScreenPtr pScreen, int n, xColorItem * pdefs)
         if (p > max)
             max = p;
 
-        hostx_set_cmap_entry(p,
+        hostx_set_cmap_entry(pScreen, p,
                              pdefs->red >> 8,
                              pdefs->green >> 8, pdefs->blue >> 8);
         pdefs++;
