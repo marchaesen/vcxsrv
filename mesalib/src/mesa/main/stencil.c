@@ -573,12 +573,24 @@ _mesa_init_stencil(struct gl_context *ctx)
    ctx->Stencil.Ref[0] = 0;
    ctx->Stencil.Ref[1] = 0;
    ctx->Stencil.Ref[2] = 0;
-   ctx->Stencil.ValueMask[0] = ~0U;
-   ctx->Stencil.ValueMask[1] = ~0U;
-   ctx->Stencil.ValueMask[2] = ~0U;
-   ctx->Stencil.WriteMask[0] = ~0U;
-   ctx->Stencil.WriteMask[1] = ~0U;
-   ctx->Stencil.WriteMask[2] = ~0U;
+
+   /* 4.1.4 Stencil Test section of the GL-ES 3.0 specification says:
+    *
+    *     "In the initial state, [...] the front and back stencil mask are both
+    *     set to the value 2^s − 1, where s is greater than or equal to the
+    *     number of bits in the deepest stencil buffer* supported by the GL
+    *     implementation."
+    *
+    * Since the maximum supported precision for stencil buffers is 8 bits,
+    * mask values should be initialized to 2^8 - 1 = 0xFF.
+    */
+   ctx->Stencil.ValueMask[0] = 0xFF;
+   ctx->Stencil.ValueMask[1] = 0xFF;
+   ctx->Stencil.ValueMask[2] = 0xFF;
+   ctx->Stencil.WriteMask[0] = 0xFF;
+   ctx->Stencil.WriteMask[1] = 0xFF;
+   ctx->Stencil.WriteMask[2] = 0xFF;
+
    ctx->Stencil.Clear = 0;
    ctx->Stencil._BackFace = 1;
 }

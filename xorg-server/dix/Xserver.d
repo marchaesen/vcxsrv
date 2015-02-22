@@ -31,6 +31,9 @@
 #include <sys/types.h>
 #endif
 
+typedef const uint8_t *const_uint8_p;
+typedef const double *const_double_p;
+
 provider Xserver {
 	/* reqType, data, length, client id, request buffer */
 	probe request__start(string, uint8_t, uint16_t, int, void *);
@@ -49,7 +52,7 @@ provider Xserver {
 	/* client id, event type, event* */
 	probe send__event(int, uint8_t, void *);
 	/* deviceid, type, button/keycode/touchid, flags, nvalues, mask, values */
-	probe input__event(int, int, uint32_t, uint32_t, int8_t, uint8_t*, double*);
+	probe input__event(int, int, uint32_t, uint32_t, int8_t, const_uint8_p, const_double_p);
 };
 
 #pragma D attributes Unstable/Unstable/Common provider Xserver provider

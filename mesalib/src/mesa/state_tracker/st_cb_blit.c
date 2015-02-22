@@ -73,6 +73,8 @@ st_adjust_blit_for_msaa_resolve(struct pipe_blit_info *blit)
 
 static void
 st_BlitFramebuffer(struct gl_context *ctx,
+                   struct gl_framebuffer *readFB,
+                   struct gl_framebuffer *drawFB,
                    GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
                    GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
                    GLbitfield mask, GLenum filter)
@@ -83,8 +85,6 @@ st_BlitFramebuffer(struct gl_context *ctx,
    const uint pFilter = ((filter == GL_NEAREST)
                          ? PIPE_TEX_FILTER_NEAREST
                          : PIPE_TEX_FILTER_LINEAR);
-   struct gl_framebuffer *readFB = ctx->ReadBuffer;
-   struct gl_framebuffer *drawFB = ctx->DrawBuffer;
    struct {
       GLint srcX0, srcY0, srcX1, srcY1;
       GLint dstX0, dstY0, dstX1, dstY1;
@@ -108,7 +108,7 @@ st_BlitFramebuffer(struct gl_context *ctx,
     *
     * XXX: This should depend on mask !
     */
-   if (!_mesa_clip_blit(ctx,
+   if (!_mesa_clip_blit(ctx, readFB, drawFB,
                         &clip.srcX0, &clip.srcY0, &clip.srcX1, &clip.srcY1,
                         &clip.dstX0, &clip.dstY0, &clip.dstX1, &clip.dstY1)) {
       return; /* nothing to draw/blit */

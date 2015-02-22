@@ -35,7 +35,6 @@ libloader_la_CPPFLAGS = \
 libloader_la_SOURCES = $(LOADER_C_FILES)
 libloader_la_LIBADD =
 
-if NEED_OPENGL_COMMON
 if HAVE_DRICOMMON
 libloader_la_CPPFLAGS += \
 	-I$(top_srcdir)/src/mesa/drivers/dri/common/ \
@@ -51,7 +50,6 @@ libloader_la_SOURCES += \
 libloader_la_LIBADD += \
 	-lm \
 	$(EXPAT_LIBS)
-endif
 endif
 
 if !HAVE_LIBDRM

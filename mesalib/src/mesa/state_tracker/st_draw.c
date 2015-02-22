@@ -40,6 +40,7 @@
 #include "main/image.h"
 #include "main/bufferobj.h"
 #include "main/macros.h"
+#include "main/varray.h"
 
 #include "vbo/vbo.h"
 
@@ -225,7 +226,7 @@ st_draw_vbo(struct gl_context *ctx,
       }
 
       info.indexed = TRUE;
-      if (min_index != ~0 && max_index != ~0) {
+      if (min_index != ~0U && max_index != ~0U) {
          info.min_index = min_index;
          info.max_index = max_index;
       }
@@ -234,7 +235,7 @@ st_draw_vbo(struct gl_context *ctx,
        * so we only set these fields for indexed drawing:
        */
       info.primitive_restart = ctx->Array._PrimitiveRestart;
-      info.restart_index = ctx->Array.RestartIndex;
+      info.restart_index = _mesa_primitive_restart_index(ctx, ib->type);
    }
    else {
       /* Transform feedback drawing is always non-indexed. */

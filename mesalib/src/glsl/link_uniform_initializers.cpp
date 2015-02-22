@@ -75,6 +75,11 @@ copy_constant_to_storage(union gl_constant_value *storage,
       case GLSL_TYPE_FLOAT:
 	 storage[i].f = val->value.f[i];
 	 break;
+      case GLSL_TYPE_DOUBLE:
+         /* XXX need to check on big-endian */
+         storage[i * 2].u = *(uint32_t *)&val->value.d[i];
+         storage[i * 2 + 1].u = *(((uint32_t *)&val->value.d[i]) + 1);
+         break;
       case GLSL_TYPE_BOOL:
 	 storage[i].b = val->value.b[i] ? boolean_true : 0;
 	 break;
@@ -200,6 +205,7 @@ set_uniform_initializer(void *mem_ctx, gl_shader_program *prog,
 	 val->array_elements[0]->type->base_type;
       const unsigned int elements = val->array_elements[0]->type->components();
       unsigned int idx = 0;
+      unsigned dmul = (base_type == GLSL_TYPE_DOUBLE) ? 2 : 1;
 
       assert(val->type->length >= storage->array_elements);
       for (unsigned int i = 0; i < storage->array_elements; i++) {
@@ -209,7 +215,7 @@ set_uniform_initializer(void *mem_ctx, gl_shader_program *prog,
                                   elements,
                                   boolean_true);
 
-	 idx += elements;
+	 idx += elements * dmul;
       }
    } else {
       copy_constant_to_storage(storage->storage,

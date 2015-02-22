@@ -90,7 +90,7 @@ def write_format_table(formats):
     print '#include "u_format_rgtc.h"'
     print '#include "u_format_latc.h"'
     print '#include "u_format_etc.h"'
-    print '#include "u_format_bptc.h"'
+    print '#include "u_format_fake.h"'
     print
     
     u_format_pack.generate(formats)

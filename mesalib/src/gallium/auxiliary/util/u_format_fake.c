@@ -1,5 +1,5 @@
 #include "u_format.h"
-#include "u_format_bptc.h"
+#include "u_format_fake.h"
 
 #define fake(format) \
 void \
@@ -24,3 +24,14 @@ fake(bptc_rgba_unorm)
 fake(bptc_srgba)
 fake(bptc_rgb_float)
 fake(bptc_rgb_ufloat)
+
+fake(etc2_rgb8)
+fake(etc2_srgb8)
+fake(etc2_rgb8a1)
+fake(etc2_srgb8a1)
+fake(etc2_rgba8)
+fake(etc2_srgba8)
+fake(etc2_r11_unorm)
+fake(etc2_r11_snorm)
+fake(etc2_rg11_unorm)
+fake(etc2_rg11_snorm)

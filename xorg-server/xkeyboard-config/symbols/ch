@@ -20,6 +20,7 @@ xkb_symbols "basic" {
 
     key <AD03> { [          e,          E,     EuroSign             ] };
     key <AD06> { [          z,          Z                           ] };
+    key <AD09> { [          o,          O,     oe,       OE         ] };
     key <AD11> { [ udiaeresis,     egrave,  bracketleft             ] };
     key <AD12> { [ dead_diaeresis, exclam, bracketright             ] };
 

@@ -1,0 +1,271 @@
+<?xml version="1.0"?>
+<!DOCTYPE OpenGLAPI SYSTEM "gl_API.dtd">
+
+<OpenGLAPI>
+<category name="GL_ARB_direct_state_access" number="164">
+   <enum name="TEXTURE_TARGET"  value="0x1006"/>
+   <enum name="QUERY_TARGET"    value="0x82EA"/>
+   <enum name="TEXTURE_BINDING" value="0x82EB"/>
+
+   <!-- Texture object functions -->
+
+   <function name="CreateTextures" offset="assign">
+      <param name="target" type="GLenum" />
+      <param name="n" type="GLsizei" />
+      <param name="textures" type="GLuint *" />
+   </function>
+
+   <function name="TextureBuffer" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="internalformat" type="GLenum" />
+      <param name="buffer" type="GLuint" />
+   </function>
+
+   <function name="TextureStorage1D" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="levels" type="GLsizei" />
+      <param name="internalformat" type="GLenum" />
+      <param name="width" type="GLsizei" />
+   </function>
+
+   <function name="TextureStorage2D" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="levels" type="GLsizei" />
+      <param name="internalformat" type="GLenum" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+   </function>
+
+   <function name="TextureStorage3D" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="levels" type="GLsizei" />
+      <param name="internalformat" type="GLenum" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="depth" type="GLsizei" />
+   </function>
+
+   <function name="TextureStorage2DMultisample" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="samples" type="GLsizei" />
+      <param name="internalformat" type="GLenum" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="fixedsamplelocations" type="GLboolean" />
+   </function>
+
+   <function name="TextureStorage3DMultisample" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="samples" type="GLsizei" />
+      <param name="internalformat" type="GLenum" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="depth" type="GLsizei" />
+      <param name="fixedsamplelocations" type="GLboolean" />
+   </function>
+
+   <function name="TextureSubImage1D" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="format" type="GLenum" />
+      <param name="type" type="GLenum" />
+      <param name="pixels" type="const GLvoid *" />
+   </function>
+
+   <function name="TextureSubImage2D" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="yoffset" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="format" type="GLenum" />
+      <param name="type" type="GLenum" />
+      <param name="pixels" type="const GLvoid *" />
+   </function>
+
+   <function name="TextureSubImage3D" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="yoffset" type="GLint" />
+      <param name="zoffset" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="depth" type="GLsizei" />
+      <param name="format" type="GLenum" />
+      <param name="type" type="GLenum" />
+      <param name="pixels" type="const GLvoid *" />
+   </function>
+
+   <function name="CompressedTextureSubImage1D" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="format" type="GLenum" />
+      <param name="imageSize" type="GLsizei" />
+      <param name="data" type="const GLvoid *" />
+   </function>
+
+   <function name="CompressedTextureSubImage2D" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="yoffset" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="format" type="GLenum" />
+      <param name="imageSize" type="GLsizei" />
+      <param name="data" type="const GLvoid *" />
+   </function>
+
+   <function name="CompressedTextureSubImage3D" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="yoffset" type="GLint" />
+      <param name="zoffset" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="depth" type="GLsizei" />
+      <param name="format" type="GLenum" />
+      <param name="imageSize" type="GLsizei" />
+      <param name="data" type="const GLvoid *" />
+   </function>
+
+   <function name="CopyTextureSubImage1D" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="x" type="GLint" />
+      <param name="y" type="GLint" />
+      <param name="width" type="GLsizei" />
+   </function>
+
+   <function name="CopyTextureSubImage2D" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="yoffset" type="GLint" />
+      <param name="x" type="GLint" />
+      <param name="y" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+   </function>
+
+   <function name="CopyTextureSubImage3D" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="yoffset" type="GLint" />
+      <param name="zoffset" type="GLint" />
+      <param name="x" type="GLint" />
+      <param name="y" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+   </function>
+
+   <function name="TextureParameterf" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="GLfloat" />
+   </function>
+
+   <function name="TextureParameterfv" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="const GLfloat *" />
+   </function>
+
+   <function name="TextureParameteri" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="GLint" />
+   </function>
+
+   <function name="TextureParameterIiv" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="pname" type="GLenum" />
+      <param name="params" type="const GLint *" />
+   </function>
+
+   <function name="TextureParameterIuiv" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="pname" type="GLenum" />
+      <param name="params" type="const GLuint *" />
+   </function>
+
+   <function name="TextureParameteriv" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="const GLint *" />
+   </function>
+
+   <function name="GenerateTextureMipmap" offset="assign">
+      <param name="texture" type="GLuint" />
+   </function>
+
+   <function name="BindTextureUnit" offset="assign">
+      <param name="unit" type="GLuint" />
+      <param name="texture" type="GLuint" />
+   </function>
+
+   <function name="GetTextureImage" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="level" type="GLint" />
+      <param name="format" type="GLenum" />
+      <param name="type" type="GLenum" />
+      <param name="bufSize" type="GLsizei" />
+      <param name="pixels" type="GLvoid *" />
+   </function>
+
+   <function name="GetCompressedTextureImage" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="level" type="GLint" />
+      <param name="bufSize" type="GLsizei" />
+      <param name="pixels" type="GLvoid *" />
+   </function>
+
+   <function name="GetTextureLevelParameterfv" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="level" type="GLint" />
+      <param name="pname" type="GLenum" />
+      <param name="params" type="GLfloat *" />
+   </function>
+
+   <function name="GetTextureLevelParameteriv" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="level" type="GLint" />
+      <param name="pname" type="GLenum" />
+      <param name="params" type="GLint *" />
+   </function>
+
+   <function name="GetTextureParameterfv" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="pname" type="GLenum" />
+      <param name="params" type="GLfloat *" />
+   </function>
+
+   <function name="GetTextureParameterIiv" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="pname" type="GLenum" />
+      <param name="params" type="GLint *" />
+   </function>
+
+   <function name="GetTextureParameterIuiv" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="pname" type="GLenum" />
+      <param name="params" type="GLuint *" />
+   </function>
+
+   <function name="GetTextureParameteriv" offset="assign">
+      <param name="texture" type="GLuint" />
+      <param name="pname" type="GLenum" />
+      <param name="params" type="GLint *" />
+   </function>
+
+</category>
+</OpenGLAPI>

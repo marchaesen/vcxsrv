@@ -690,7 +690,7 @@ free_matrix_stack( struct gl_matrix_stack *stack )
  */
 void _mesa_init_matrix( struct gl_context * ctx )
 {
-   GLint i;
+   GLuint i;
 
    /* Initialize matrix stacks */
    init_matrix_stack(&ctx->ModelviewMatrixStack, MAX_MODELVIEW_STACK_DEPTH,
@@ -701,7 +701,7 @@ void _mesa_init_matrix( struct gl_context * ctx )
       init_matrix_stack(&ctx->TextureMatrixStack[i], MAX_TEXTURE_STACK_DEPTH,
                         _NEW_TEXTURE_MATRIX);
    for (i = 0; i < Elements(ctx->ProgramMatrixStack); i++)
-      init_matrix_stack(&ctx->ProgramMatrixStack[i], 
+      init_matrix_stack(&ctx->ProgramMatrixStack[i],
 		        MAX_PROGRAM_MATRIX_STACK_DEPTH, _NEW_TRACK_MATRIX);
    ctx->CurrentStack = &ctx->ModelviewMatrixStack;
 
@@ -720,7 +720,7 @@ void _mesa_init_matrix( struct gl_context * ctx )
  */
 void _mesa_free_matrix_data( struct gl_context *ctx )
 {
-   GLint i;
+   GLuint i;
 
    free_matrix_stack(&ctx->ModelviewMatrixStack);
    free_matrix_stack(&ctx->ProjectionMatrixStack);

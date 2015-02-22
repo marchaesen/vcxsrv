@@ -198,6 +198,11 @@ string_to_uint_map_dtor(struct string_to_uint_map *);
 #ifdef __cplusplus
 }
 
+struct string_map_iterate_wrapper_closure {
+   void (*callback)(const char *key, unsigned value, void *closure);
+   void *closure;
+};
+
 /**
  * Map from a string (name) to an unsigned integer value
  *
@@ -226,6 +231,24 @@ public:
    {
       hash_table_call_foreach(this->ht, delete_key, NULL);
       hash_table_clear(this->ht);
+   }
+
+   /**
+    * Runs a passed callback for the hash
+    */
+   void iterate(void (*func)(const char *, unsigned, void *), void *closure)
+   {
+      struct string_map_iterate_wrapper_closure *wrapper;
+
+      wrapper = (struct string_map_iterate_wrapper_closure *)
+         malloc(sizeof(struct string_map_iterate_wrapper_closure));
+      if (wrapper == NULL)
+         return;
+
+      wrapper->callback = func;
+      wrapper->closure = closure;
+
+      hash_table_call_foreach(this->ht, subtract_one_wrapper, wrapper);
    }
 
    /**
@@ -279,6 +302,17 @@ private:
       (void) closure;
 
       free((char *)key);
+   }
+
+   static void subtract_one_wrapper(const void *key, void *data, void *closure)
+   {
+      struct string_map_iterate_wrapper_closure *wrapper =
+         (struct string_map_iterate_wrapper_closure *) closure;
+      unsigned value = (intptr_t) data;
+
+      value -= 1;
+
+      wrapper->callback((const char *) key, value, wrapper->closure);
    }
 
    struct hash_table *ht;

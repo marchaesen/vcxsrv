@@ -156,6 +156,9 @@ ir_copy_propagation_elements_visitor::visit_enter(ir_function_signature *ir)
 
    visit_list_elements(this, &ir->body);
 
+   ralloc_free(this->acp);
+   ralloc_free(this->kills);
+
    this->kills = orig_kills;
    this->acp = orig_acp;
    this->killed_all = orig_killed_all;
@@ -173,9 +176,9 @@ ir_copy_propagation_elements_visitor::visit_leave(ir_assignment *ir)
       kill_entry *k;
 
       if (lhs)
-	 k = new(mem_ctx) kill_entry(var, ir->write_mask);
+	 k = new(this->kills) kill_entry(var, ir->write_mask);
       else
-	 k = new(mem_ctx) kill_entry(var, ~0);
+	 k = new(this->kills) kill_entry(var, ~0);
 
       kill(k);
    }
@@ -334,7 +337,7 @@ ir_copy_propagation_elements_visitor::handle_if_block(exec_list *instructions)
 
    /* Populate the initial acp with a copy of the original */
    foreach_in_list(acp_entry, a, orig_acp) {
-      this->acp->push_tail(new(this->mem_ctx) acp_entry(a));
+      this->acp->push_tail(new(this->acp) acp_entry(a));
    }
 
    visit_list_elements(this, instructions);
@@ -345,6 +348,7 @@ ir_copy_propagation_elements_visitor::handle_if_block(exec_list *instructions)
 
    exec_list *new_kills = this->kills;
    this->kills = orig_kills;
+   ralloc_free(this->acp);
    this->acp = orig_acp;
    this->killed_all = this->killed_all || orig_killed_all;
 
@@ -354,6 +358,8 @@ ir_copy_propagation_elements_visitor::handle_if_block(exec_list *instructions)
    foreach_in_list_safe(kill_entry, k, new_kills) {
       kill(k);
    }
+
+   ralloc_free(new_kills);
 }
 
 ir_visitor_status
@@ -391,12 +397,15 @@ ir_copy_propagation_elements_visitor::visit_enter(ir_loop *ir)
 
    exec_list *new_kills = this->kills;
    this->kills = orig_kills;
+   ralloc_free(this->acp);
    this->acp = orig_acp;
    this->killed_all = this->killed_all || orig_killed_all;
 
    foreach_in_list_safe(kill_entry, k, new_kills) {
       kill(k);
    }
+
+   ralloc_free(new_kills);
 
    /* already descended into the children. */
    return visit_continue_with_parent;
@@ -423,6 +432,7 @@ ir_copy_propagation_elements_visitor::kill(kill_entry *k)
    if (k->next)
       k->remove();
 
+   ralloc_steal(this->kills, k);
    this->kills->push_tail(k);
 }
 

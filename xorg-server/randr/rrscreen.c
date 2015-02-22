@@ -322,8 +322,13 @@ static inline void swap_modeinfos(xRRModeInfo *modeinfos, int i)
     swapl(&modeinfos[i].modeFlags);
 }
 
-#define update_arrays(gpuscreen, pScrPriv) do {            \
+#define update_arrays(gpuscreen, pScrPriv, primary_crtc, has_primary) do {            \
     for (j = 0; j < pScrPriv->numCrtcs; j++) {             \
+        if (has_primary && \
+            primary_crtc == pScrPriv->crtcs[j]) { \
+            has_primary = 0;   \
+            continue; \
+        }\
         crtcs[crtc_count] = pScrPriv->crtcs[j]->id;        \
         if (client->swapped)                               \
             swapl(&crtcs[crtc_count]);                     \
@@ -366,9 +371,11 @@ rrGetMultiScreenResources(ClientPtr client, Bool query, ScreenPtr pScreen)
     unsigned long extraLen;
     CARD8 *extra;
     RRCrtc *crtcs;
+    RRCrtcPtr primary_crtc = NULL;
     RROutput *outputs;
     xRRModeInfo *modeinfos;
     CARD8 *names;
+    int has_primary = 0;
 
     /* we need to iterate all the GPU masters and all their output slaves */
     total_crtcs = 0;
@@ -426,18 +433,25 @@ rrGetMultiScreenResources(ClientPtr client, Bool query, ScreenPtr pScreen)
     modeinfos = (xRRModeInfo *)(outputs + total_outputs);
     names = (CARD8 *)(modeinfos + total_modes);
 
-    /* TODO primary */
     crtc_count = 0;
     output_count = 0;
     mode_count = 0;
 
     pScrPriv = rrGetScrPriv(pScreen);
-    update_arrays(pScreen, pScrPriv);
+    if (pScrPriv->primaryOutput && pScrPriv->primaryOutput->crtc) {
+        has_primary = 1;
+        primary_crtc = pScrPriv->primaryOutput->crtc;
+        crtcs[0] = pScrPriv->primaryOutput->crtc->id;
+        if (client->swapped)
+            swapl(&crtcs[0]);
+        crtc_count = 1;
+    }
+    update_arrays(pScreen, pScrPriv, primary_crtc, has_primary);
 
     xorg_list_for_each_entry(iter, &pScreen->output_slave_list, output_head) {
         pScrPriv = rrGetScrPriv(iter);
 
-        update_arrays(iter, pScrPriv);
+        update_arrays(iter, pScrPriv, primary_crtc, has_primary);
     }
 
     assert(bytes_to_int32((char *) names - (char *) extra) == rep.length);

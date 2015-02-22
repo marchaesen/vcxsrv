@@ -149,9 +149,7 @@ extern __GLXclientState *__glXClients[];
 typedef void (*__GLXdispatchRenderProcPtr) (GLbyte *);
 typedef int (*__GLXdispatchSingleProcPtr) (__GLXclientState *, GLbyte *);
 typedef int (*__GLXdispatchVendorPrivProcPtr) (__GLXclientState *, GLbyte *);
-extern __GLXdispatchSingleProcPtr __glXSingleTable[];
 extern __GLXdispatchVendorPrivProcPtr __glXVendorPrivTable_EXT[];
-extern __GLXdispatchSingleProcPtr __glXSwapSingleTable[];
 extern __GLXdispatchVendorPrivProcPtr __glXSwapVendorPrivTable_EXT[];
 extern __GLXdispatchRenderProcPtr __glXSwapRenderTable[];
 
@@ -192,9 +190,6 @@ extern RESTYPE __glXPbufferRes;
 */
 
 extern char *__glXcombine_strings(const char *, const char *);
-
-extern void __glXDisp_DrawArrays(GLbyte *);
-extern void __glXDispSwap_DrawArrays(GLbyte *);
 
 /*
 ** Routines for sending swapped replies.
@@ -286,9 +281,6 @@ extern int __glXConvolutionParameterivSize(GLenum pname);
 extern int __glXConvolutionParameterfvSize(GLenum pname);
 extern int __glXColorTableParameterfvSize(GLenum pname);
 extern int __glXColorTableParameterivSize(GLenum pname);
-
-extern void __glXFreeGLXWindow(__glXWindow * pGlxWindow);
-extern void __glXFreeGLXPbuffer(__glXPbuffer * pGlxPbuffer);
 
 extern int __glXVersionMajor;
 extern int __glXVersionMinor;

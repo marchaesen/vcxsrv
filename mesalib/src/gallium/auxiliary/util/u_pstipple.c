@@ -182,6 +182,8 @@ struct pstip_transform_context {
    int freeSampler;  /** an available sampler for the pstipple */
    int numImmed;
    uint coordOrigin;
+   unsigned fixedUnit;
+   bool hasFixedUnit;
 };
 
 
@@ -279,7 +281,8 @@ pstip_transform_prolog(struct tgsi_transform_context *ctx)
    }
 
    /* declare new sampler */
-   tgsi_transform_sampler_decl(ctx, pctx->freeSampler);
+   tgsi_transform_sampler_decl(ctx,
+         pctx->hasFixedUnit ? pctx->fixedUnit : pctx->freeSampler);
 
    /* Declare temp[0] reg if not already declared.
     * We can always use temp[0] since this code is before
@@ -318,7 +321,8 @@ pstip_transform_prolog(struct tgsi_transform_context *ctx)
    tgsi_transform_tex_2d_inst(ctx,
                               TGSI_FILE_TEMPORARY, texTemp,
                               TGSI_FILE_TEMPORARY, texTemp,
-                              pctx->freeSampler);
+                              pctx->hasFixedUnit ? pctx->fixedUnit
+                                                 : pctx->freeSampler);
 
    /* KILL_IF -texTemp;   # if -texTemp < 0, kill fragment */
    tgsi_transform_kill_inst(ctx,
@@ -330,12 +334,16 @@ pstip_transform_prolog(struct tgsi_transform_context *ctx)
 /**
  * Given a fragment shader, return a new fragment shader which
  * samples a stipple texture and executes KILL.
+ *
  * \param samplerUnitOut  returns the index of the sampler unit which
- *                        will be used to sample the stipple texture
+ *                        will be used to sample the stipple texture;
+ *                        if NULL, the fixed unit is used
+ * \param fixedUnit       fixed texture unit used for the stipple texture
  */
 struct tgsi_token *
 util_pstipple_create_fragment_shader(const struct tgsi_token *tokens,
-                                     unsigned *samplerUnitOut)
+                                     unsigned *samplerUnitOut,
+                                     unsigned fixedUnit)
 {
    struct pstip_transform_context transform;
    const uint newLen = tgsi_num_tokens(tokens) + NUM_NEW_TOKENS;
@@ -352,6 +360,8 @@ util_pstipple_create_fragment_shader(const struct tgsi_token *tokens,
    transform.wincoordInput = -1;
    transform.maxInput = -1;
    transform.coordOrigin = TGSI_FS_COORD_ORIGIN_UPPER_LEFT;
+   transform.hasFixedUnit = !samplerUnitOut;
+   transform.fixedUnit = fixedUnit;
    transform.base.prolog = pstip_transform_prolog;
    transform.base.transform_declaration = pstip_transform_decl;
    transform.base.transform_immediate = pstip_transform_immed;
@@ -368,9 +378,10 @@ util_pstipple_create_fragment_shader(const struct tgsi_token *tokens,
    tgsi_dump(new_fs->tokens, 0);
 #endif
 
-   assert(transform.freeSampler < PIPE_MAX_SAMPLERS);
-   *samplerUnitOut = transform.freeSampler;
+   if (samplerUnitOut) {
+      assert(transform.freeSampler < PIPE_MAX_SAMPLERS);
+      *samplerUnitOut = transform.freeSampler;
+   }
 
    return new_tokens;
 }
-

@@ -60,6 +60,9 @@ extern void _mesa_compile_error( struct gl_context *ctx, GLenum error, const cha
 
 extern void *_mesa_dlist_alloc(struct gl_context *ctx, GLuint opcode, GLuint sz);
 
+extern void *
+_mesa_dlist_alloc_aligned(struct gl_context *ctx, GLuint opcode, GLuint bytes);
+
 extern GLint _mesa_dlist_alloc_opcode( struct gl_context *ctx, GLuint sz,
                                        void (*execute)( struct gl_context *, void * ),
                                        void (*destroy)( struct gl_context *, void * ),

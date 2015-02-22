@@ -487,6 +487,7 @@ ProcRRGetOutputInfo(ClientPtr client)
         swapl(&rep.mmHeight);
         swaps(&rep.nCrtcs);
         swaps(&rep.nModes);
+        swaps(&rep.nPreferred);
         swaps(&rep.nClones);
         swaps(&rep.nameLength);
     }
@@ -540,7 +541,11 @@ ProcRRSetOutputPrimary(ClientPtr client)
     if (stuff->output) {
         VERIFY_RR_OUTPUT(stuff->output, output, DixReadAccess);
 
-        if (output->pScreen != pWin->drawable.pScreen) {
+        if (!output->pScreen->isGPU && output->pScreen != pWin->drawable.pScreen) {
+            client->errorValue = stuff->window;
+            return BadMatch;
+        }
+        if (output->pScreen->isGPU && output->pScreen->current_master != pWin->drawable.pScreen) {
             client->errorValue = stuff->window;
             return BadMatch;
         }

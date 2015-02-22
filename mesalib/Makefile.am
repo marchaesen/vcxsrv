@@ -21,7 +21,7 @@
 
 SUBDIRS = src
 
-DISTCHECK_CONFIGURE_FLAGS = \
+AM_DISTCHECK_CONFIGURE_FLAGS = \
 	--enable-dri3 \
 	--enable-gallium-tests \
 	--enable-gbm \

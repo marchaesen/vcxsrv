@@ -874,17 +874,17 @@ dmxInputScanForExtensions(DMXInputInfo * dmxInput, int doXI)
 {
     XExtensionVersion *ext;
     XDeviceInfo *devices;
-    Display *display;
+    Display *dsp;
     int num;
     int i, j;
     XextErrorHandler handler;
 
-    if (!(display = XOpenDisplay(dmxInput->name)))
+    if (!(dsp = XOpenDisplay(dmxInput->name)))
         return;
 
     /* Print out information about the XInput Extension. */
     handler = XSetExtensionErrorHandler(dmxInputExtensionErrorHandler);
-    ext = XGetExtensionVersion(display, INAME);
+    ext = XGetExtensionVersion(dsp, INAME);
     XSetExtensionErrorHandler(handler);
 
     if (!ext || ext == (XExtensionVersion *) NoSuchExtension) {
@@ -894,7 +894,7 @@ dmxInputScanForExtensions(DMXInputInfo * dmxInput, int doXI)
         dmxLogInput(dmxInput, "Locating devices on %s (%s version %d.%d)\n",
                     dmxInput->name, INAME,
                     ext->major_version, ext->minor_version);
-        devices = XListInputDevices(display, &num);
+        devices = XListInputDevices(dsp, &num);
 
         XFree(ext);
         ext = NULL;
@@ -956,7 +956,7 @@ dmxInputScanForExtensions(DMXInputInfo * dmxInput, int doXI)
         }
         XFreeDeviceList(devices);
     }
-    XCloseDisplay(display);
+    XCloseDisplay(dsp);
 }
 
 /** Re-initialize all the devices described in \a dmxInput.  Called from

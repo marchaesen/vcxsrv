@@ -26,11 +26,10 @@
  *
  * Determines if we can inline a function call using ir_function_inlining.cpp.
  *
- * The primary restriction is that we can't return from the function
- * other than as the last instruction.  We could potentially work
- * around this for some constructs by flattening control flow and
- * moving the return to the end, or by using breaks from a do {} while
- * (0) loop surrounding the function body.
+ * The primary restriction is that we can't return from the function other
+ * than as the last instruction.  In lower_jumps.cpp, we can lower return
+ * statements not at the end of the function to other control flow in order to
+ * deal with this restriction.
  */
 
 #include "ir.h"

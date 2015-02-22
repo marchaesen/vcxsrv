@@ -209,21 +209,14 @@ authorization from the authors.
 
     <request name="PrintSelectInput" opcode="15">
         <field type="PCONTEXT" name="context" />
-        <valueparam value-mask-type="CARD32"
-                    value-mask-name="event_mask"
-                    value-list-name="event_list" />
+        <field type="CARD32" name="event_mask" />
     </request>
 
     <request name="PrintInputSelected" opcode="16">
         <field type="PCONTEXT" name="context" />
         <reply>
-            <pad bytes="1" />
-            <valueparam value-mask-type="CARD32"
-                            value-mask-name="event_mask"
-                            value-list-name="event_list" />
-            <valueparam value-mask-type="CARD32"
-                            value-mask-name="all_events_mask"
-                            value-list-name="all_events_list" />
+           <field type="CARD32" name="event_mask" />
+           <field type="CARD32" name="all_events_mask" />
         </reply>
     </request>
 

@@ -87,5 +87,9 @@ TODO: document the other workarounds.
         <application name="Topogun (64-bit)" executable="topogun64">
             <option name="always_have_depth_buffer" value="true" />
         </application>
+
+        <application name="Dead Island" executable="DeadIslandGame">
+            <option name="allow_glsl_extension_directive_midshader" value="true" />
+        </application>
     </device>
 </driconf>

@@ -28,15 +28,29 @@
 
 
 #include "glheader.h"
+#include "compiler.h"
 
 struct gl_context;
 struct gl_pixelstore_attrib;
+struct gl_framebuffer;
 
 extern void
-_mesa_swap2( GLushort *p, GLuint n );
+_mesa_swap2_copy(GLushort *dst, GLushort *src, GLuint n);
 
 extern void
-_mesa_swap4( GLuint *p, GLuint n );
+_mesa_swap4_copy(GLuint *dst, GLuint *src, GLuint n);
+
+static inline void
+_mesa_swap2(GLushort *p, GLuint n)
+{
+   _mesa_swap2_copy(p, p, n);
+}
+
+static inline void
+_mesa_swap4(GLuint *p, GLuint n)
+{
+   _mesa_swap4_copy(p, p, n);
+}
 
 extern GLintptr
 _mesa_image_offset( GLuint dimensions,
@@ -127,6 +141,8 @@ _mesa_clip_to_region(GLint xmin, GLint ymin,
 
 extern GLboolean
 _mesa_clip_blit(struct gl_context *ctx,
+                const struct gl_framebuffer *readFb,
+                const struct gl_framebuffer *drawFb,
                 GLint *srcX0, GLint *srcY0, GLint *srcX1, GLint *srcY1,
                 GLint *dstX0, GLint *dstY0, GLint *dstX1, GLint *dstY1);
 

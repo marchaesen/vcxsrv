@@ -2206,7 +2206,7 @@ static const FcCharMap AdobeSymbol = {
 
 static const FcFontDecode fcFontDecoders[] = {
     { ft_encoding_unicode,	0,		(1 << 21) - 1 },
-    { ft_encoding_symbol,	&AdobeSymbol,	(1 << 16) - 1 },
+    { ft_encoding_symbol,	0,		(1 << 16) - 1 },
 };
 
 #define NUM_DECODE  (int) (sizeof (fcFontDecoders) / sizeof (fcFontDecoders[0]))

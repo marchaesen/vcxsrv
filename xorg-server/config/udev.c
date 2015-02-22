@@ -69,6 +69,24 @@ static const char *itoa(int i)
     return itoa_buf;
 }
 
+static Bool
+check_seat(struct udev_device *udev_device)
+{
+    const char *dev_seat;
+
+    dev_seat = udev_device_get_property_value(udev_device, "ID_SEAT");
+    if (!dev_seat)
+        dev_seat = "seat0";
+
+    if (SeatId && strcmp(dev_seat, SeatId))
+        return FALSE;
+
+    if (!SeatId && strcmp(dev_seat, "seat0"))
+        return FALSE;
+
+    return TRUE;
+}
+
 static void
 device_added(struct udev_device *udev_device)
 {
@@ -83,7 +101,6 @@ device_added(struct udev_device *udev_device)
     struct udev_list_entry *set, *entry;
     struct udev_device *parent;
     int rc;
-    const char *dev_seat;
     dev_t devnum;
 
     path = udev_device_get_devnode(udev_device);
@@ -93,14 +110,7 @@ device_added(struct udev_device *udev_device)
     if (!path || !syspath)
         return;
 
-    dev_seat = udev_device_get_property_value(udev_device, "ID_SEAT");
-    if (!dev_seat)
-        dev_seat = "seat0";
-
-    if (SeatId && strcmp(dev_seat, SeatId))
-        return;
-
-    if (!SeatId && strcmp(dev_seat, "seat0"))
+    if (!check_seat(udev_device))
         return;
 
     devnum = udev_device_get_devnum(udev_device);
@@ -504,6 +514,8 @@ config_udev_odev_probe(config_odev_probe_proc_ptr probe_callback)
         else if (strcmp(udev_device_get_subsystem(udev_device), "drm") != 0)
             goto no_probe;
         else if (strncmp(sysname, "card", 4) != 0)
+            goto no_probe;
+        else if (!check_seat(udev_device))
             goto no_probe;
 
         config_udev_odev_setup_attribs(path, syspath, major(devnum),

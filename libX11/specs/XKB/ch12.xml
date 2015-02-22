@@ -447,7 +447,7 @@ to find the symbol associated with a key for a particular state.
     </term>
     <listitem>
       <para>
-        backfilled with unconsumed modifiers
+        backfilled with consumed modifiers
       </para>
     </listitem>
   </varlistentry>
@@ -840,7 +840,7 @@ To translate a keycode to a key symbol and modifiers, use
     </term>
     <listitem>
       <para>
-        backfilled with unconsumed modifiers
+        backfilled with consumed modifiers
       </para>
     </listitem>
   </varlistentry>

@@ -458,6 +458,17 @@ layout		{
 			    return FLOATCONSTANT;
 			}
 
+[0-9]+\.[0-9]+([eE][+-]?[0-9]+)?(lf|LF)	|
+\.[0-9]+([eE][+-]?[0-9]+)?(lf|LF)	|
+[0-9]+\.([eE][+-]?[0-9]+)?(lf|LF)	|
+[0-9]+[eE][+-]?[0-9]+(lf|LF)		{
+			    if (!yyextra->is_version(400, 0) &&
+			        !yyextra->ARB_gpu_shader_fp64_enable)
+			        return ERROR_TOK;
+			    yylval->dreal = _mesa_strtod(yytext, NULL);
+			    return DOUBLECONSTANT;
+			}
+
 true			{
 			    yylval->n = 1;
 			    return BOOLCONSTANT;
@@ -489,7 +500,7 @@ external	KEYWORD(110, 100, 0, 0, EXTERNAL);
 interface	KEYWORD(110, 100, 0, 0, INTERFACE);
 long		KEYWORD(110, 100, 0, 0, LONG_TOK);
 short		KEYWORD(110, 100, 0, 0, SHORT_TOK);
-double		KEYWORD(110, 100, 400, 0, DOUBLE_TOK);
+double		KEYWORD_WITH_ALT(110, 100, 400, 0, yyextra->ARB_gpu_shader_fp64_enable, DOUBLE_TOK);
 half		KEYWORD(110, 100, 0, 0, HALF);
 fixed		KEYWORD(110, 100, 0, 0, FIXED_TOK);
 unsigned	KEYWORD(110, 100, 0, 0, UNSIGNED);
@@ -498,9 +509,21 @@ output		KEYWORD(110, 100, 0, 0, OUTPUT);
 hvec2		KEYWORD(110, 100, 0, 0, HVEC2);
 hvec3		KEYWORD(110, 100, 0, 0, HVEC3);
 hvec4		KEYWORD(110, 100, 0, 0, HVEC4);
-dvec2		KEYWORD(110, 100, 400, 0, DVEC2);
-dvec3		KEYWORD(110, 100, 400, 0, DVEC3);
-dvec4		KEYWORD(110, 100, 400, 0, DVEC4);
+dvec2		KEYWORD_WITH_ALT(110, 100, 400, 0, yyextra->ARB_gpu_shader_fp64_enable, DVEC2);
+dvec3		KEYWORD_WITH_ALT(110, 100, 400, 0, yyextra->ARB_gpu_shader_fp64_enable, DVEC3);
+dvec4		KEYWORD_WITH_ALT(110, 100, 400, 0, yyextra->ARB_gpu_shader_fp64_enable, DVEC4);
+dmat2		KEYWORD_WITH_ALT(110, 100, 400, 0, yyextra->ARB_gpu_shader_fp64_enable, DMAT2X2);
+dmat3		KEYWORD_WITH_ALT(110, 100, 400, 0, yyextra->ARB_gpu_shader_fp64_enable, DMAT3X3);
+dmat4		KEYWORD_WITH_ALT(110, 100, 400, 0, yyextra->ARB_gpu_shader_fp64_enable, DMAT4X4);
+dmat2x2		KEYWORD_WITH_ALT(110, 100, 400, 0, yyextra->ARB_gpu_shader_fp64_enable, DMAT2X2);
+dmat2x3		KEYWORD_WITH_ALT(110, 100, 400, 0, yyextra->ARB_gpu_shader_fp64_enable, DMAT2X3);
+dmat2x4		KEYWORD_WITH_ALT(110, 100, 400, 0, yyextra->ARB_gpu_shader_fp64_enable, DMAT2X4);
+dmat3x2		KEYWORD_WITH_ALT(110, 100, 400, 0, yyextra->ARB_gpu_shader_fp64_enable, DMAT3X2);
+dmat3x3		KEYWORD_WITH_ALT(110, 100, 400, 0, yyextra->ARB_gpu_shader_fp64_enable, DMAT3X3);
+dmat3x4		KEYWORD_WITH_ALT(110, 100, 400, 0, yyextra->ARB_gpu_shader_fp64_enable, DMAT3X4);
+dmat4x2		KEYWORD_WITH_ALT(110, 100, 400, 0, yyextra->ARB_gpu_shader_fp64_enable, DMAT4X2);
+dmat4x3		KEYWORD_WITH_ALT(110, 100, 400, 0, yyextra->ARB_gpu_shader_fp64_enable, DMAT4X3);
+dmat4x4		KEYWORD_WITH_ALT(110, 100, 400, 0, yyextra->ARB_gpu_shader_fp64_enable, DMAT4X4);
 fvec2		KEYWORD(110, 100, 0, 0, FVEC2);
 fvec3		KEYWORD(110, 100, 0, 0, FVEC3);
 fvec4		KEYWORD(110, 100, 0, 0, FVEC4);
@@ -544,7 +567,13 @@ subroutine	KEYWORD(0, 300, 0, 0, SUBROUTINE);
 [_a-zA-Z][_a-zA-Z0-9]*	{
 			    struct _mesa_glsl_parse_state *state = yyextra;
 			    void *ctx = state;	
-			    yylval->identifier = ralloc_strdup(ctx, yytext);
+			    if (state->es_shader && strlen(yytext) > 1024) {
+			       _mesa_glsl_error(yylloc, state,
+			                        "Identifier `%s' exceeds 1024 characters",
+			                        yytext);
+			    } else {
+			      yylval->identifier = ralloc_strdup(ctx, yytext);
+			    }
 			    return classify_identifier(state, yytext);
 			}
 

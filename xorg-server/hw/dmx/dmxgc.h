@@ -41,8 +41,8 @@
 
 /** GC private area. */
 typedef struct _dmxGCPriv {
-    GCOps *ops;
-    GCFuncs *funcs;
+    const GCOps *ops;
+    const GCFuncs *funcs;
     XlibGC gc;
     Bool msc;
 } dmxGCPrivRec, *dmxGCPrivPtr;

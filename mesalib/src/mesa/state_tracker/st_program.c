@@ -1095,7 +1095,7 @@ st_translate_geometry_program(struct st_context *st,
 
    /* find max output slot referenced to compute gs_num_outputs */
    for (attr = 0; attr < VARYING_SLOT_MAX; attr++) {
-      if (outputMapping[attr] != ~0 && outputMapping[attr] > maxSlot)
+      if (outputMapping[attr] != ~0U && outputMapping[attr] > maxSlot)
          maxSlot = outputMapping[attr];
    }
    gs_num_outputs = maxSlot + 1;

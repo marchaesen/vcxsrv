@@ -57,6 +57,7 @@
 #include "pipe/p_state.h"
 #include "pipe/p_context.h"
 #include "util/u_inlines.h"
+#include "util/u_memory.h"
 
 typedef unsigned char	GLubyte;	/* 1-byte unsigned */
 typedef struct tagSFG_Font SFG_Font;
@@ -373,24 +374,29 @@ static boolean
 util_font_create_fixed_8x13(struct pipe_context *pipe,
                             struct util_font *out_font)
 {
+   static const enum pipe_format formats[] = {
+      PIPE_FORMAT_I8_UNORM,
+      PIPE_FORMAT_L8_UNORM,
+      PIPE_FORMAT_R8_UNORM
+   };
    struct pipe_screen *screen = pipe->screen;
    struct pipe_resource tex_templ, *tex;
    struct pipe_transfer *transfer = NULL;
    char *map;
-   enum pipe_format tex_format;
+   enum pipe_format tex_format = PIPE_FORMAT_NONE;
    int i;
 
-   if (screen->is_format_supported(screen, PIPE_FORMAT_I8_UNORM,
+   for (i = 0; i < Elements(formats); i++) {
+      if (screen->is_format_supported(screen, formats[i],
                                    PIPE_TEXTURE_RECT, 0,
                                    PIPE_BIND_SAMPLER_VIEW)) {
-      tex_format = PIPE_FORMAT_I8_UNORM;
+         tex_format = formats[i];
+         break;
+      }
    }
-   else if (screen->is_format_supported(screen, PIPE_FORMAT_L8_UNORM,
-                                   PIPE_TEXTURE_RECT, 0,
-                                   PIPE_BIND_SAMPLER_VIEW)) {
-      tex_format = PIPE_FORMAT_L8_UNORM;
-   }
-   else {
+
+   if (tex_format == PIPE_FORMAT_NONE) {
+      debug_printf("Unable to find texture format for font.\n");
       return FALSE;
    }
 

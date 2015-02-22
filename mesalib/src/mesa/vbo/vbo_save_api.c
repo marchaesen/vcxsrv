@@ -375,10 +375,13 @@ _save_compile_vertex_list(struct gl_context *ctx)
     * being compiled.
     */
    node = (struct vbo_save_vertex_list *)
-      _mesa_dlist_alloc(ctx, save->opcode_vertex_list, sizeof(*node));
+      _mesa_dlist_alloc_aligned(ctx, save->opcode_vertex_list, sizeof(*node));
 
    if (!node)
       return;
+
+   /* Make sure the pointer is aligned to the size of a pointer */
+   assert((GLintptr) node % sizeof(void *) == 0);
 
    /* Duplicate our template, increment refcounts to the storage structs:
     */

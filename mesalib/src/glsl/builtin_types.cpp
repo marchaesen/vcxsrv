@@ -159,6 +159,20 @@ const static struct builtin_type_versions {
    T(mat4x2,                          120, 300)
    T(mat4x3,                          120, 300)
 
+   T(double,                          400, 999)
+   T(dvec2,                           400, 999)
+   T(dvec3,                           400, 999)
+   T(dvec4,                           400, 999)
+   T(dmat2,                           400, 999)
+   T(dmat3,                           400, 999)
+   T(dmat4,                           400, 999)
+   T(dmat2x3,                         400, 999)
+   T(dmat2x4,                         400, 999)
+   T(dmat3x2,                         400, 999)
+   T(dmat3x4,                         400, 999)
+   T(dmat4x2,                         400, 999)
+   T(dmat4x3,                         400, 999)
+
    T(sampler1D,                       110, 999)
    T(sampler2D,                       110, 100)
    T(sampler3D,                       110, 300)
@@ -360,6 +374,22 @@ _mesa_glsl_initialize_types(struct _mesa_glsl_parse_state *state)
 
    if (state->ARB_shader_atomic_counters_enable) {
       add_type(symbols, glsl_type::atomic_uint_type);
+   }
+
+   if (state->ARB_gpu_shader_fp64_enable) {
+      add_type(symbols, glsl_type::double_type);
+      add_type(symbols, glsl_type::dvec2_type);
+      add_type(symbols, glsl_type::dvec3_type);
+      add_type(symbols, glsl_type::dvec4_type);
+      add_type(symbols, glsl_type::dmat2_type);
+      add_type(symbols, glsl_type::dmat3_type);
+      add_type(symbols, glsl_type::dmat4_type);
+      add_type(symbols, glsl_type::dmat2x3_type);
+      add_type(symbols, glsl_type::dmat2x4_type);
+      add_type(symbols, glsl_type::dmat3x2_type);
+      add_type(symbols, glsl_type::dmat3x4_type);
+      add_type(symbols, glsl_type::dmat4x2_type);
+      add_type(symbols, glsl_type::dmat4x3_type);
    }
 }
 /** @} */

@@ -208,12 +208,12 @@ C_SOURCES := \
 	util/u_dump_state.c \
 	util/u_dynarray.h \
 	util/u_fifo.h \
-	util/u_format_bptc.c \
-	util/u_format_bptc.h \
 	util/u_format.c \
+	util/u_format.h \
 	util/u_format_etc.c \
 	util/u_format_etc.h \
-	util/u_format.h \
+	util/u_format_fake.c \
+	util/u_format_fake.h \
 	util/u_format_latc.c \
 	util/u_format_latc.h \
 	util/u_format_other.c \
@@ -273,7 +273,6 @@ C_SOURCES := \
 	util/u_ringbuffer.h \
 	util/u_sampler.c \
 	util/u_sampler.h \
-	util/u_simple_list.h \
 	util/u_simple_shaders.c \
 	util/u_simple_shaders.h \
 	util/u_slab.c \
@@ -335,9 +334,12 @@ VL_SOURCES := \
 	vl/vl_video_buffer.h \
 	vl/vl_vlc.h \
 	vl/vl_winsys.h \
-	vl/vl_winsys_dri.c \
 	vl/vl_zscan.c \
 	vl/vl_zscan.h
+
+# XXX: Nuke this as our dri targets no longer depend on VL.
+VL_WINSYS_SOURCES := \
+	vl/vl_winsys_dri.c
 
 VL_STUB_SOURCES := \
 	vl/vl_stubs.c

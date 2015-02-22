@@ -169,6 +169,9 @@ program_resource_visitor::recursion(const glsl_type *t, char **name,
       if (record_type == NULL && t->is_record())
          record_type = t;
 
+      if (t->is_record())
+         this->enter_record(t, *name, row_major);
+
       for (unsigned i = 0; i < t->length; i++) {
 	 const char *field = t->fields.structure[i].name;
 	 size_t new_length = name_length;
@@ -207,6 +210,11 @@ program_resource_visitor::recursion(const glsl_type *t, char **name,
           * record type pointer.
           */
          record_type = NULL;
+      }
+
+      if (t->is_record()) {
+         (*name)[name_length] = '\0';
+         this->leave_record(t, *name, row_major);
       }
    } else if (t->is_array() && (t->fields.array->is_record()
                                 || t->fields.array->is_interface())) {
@@ -247,6 +255,16 @@ program_resource_visitor::visit_field(const glsl_struct_field *field)
 {
    (void) field;
    /* empty */
+}
+
+void
+program_resource_visitor::enter_record(const glsl_type *, const char *, bool)
+{
+}
+
+void
+program_resource_visitor::leave_record(const glsl_type *, const char *, bool)
+{
 }
 
 namespace {
@@ -526,6 +544,20 @@ private:
       assert(!"Should not get here.");
    }
 
+   virtual void enter_record(const glsl_type *type, const char *name,
+                             bool row_major) {
+      assert(type->is_record());
+      this->ubo_byte_offset = glsl_align(
+            this->ubo_byte_offset, type->std140_base_alignment(row_major));
+   }
+
+   virtual void leave_record(const glsl_type *type, const char *name,
+                             bool row_major) {
+      assert(type->is_record());
+      this->ubo_byte_offset = glsl_align(
+            this->ubo_byte_offset, type->std140_base_alignment(row_major));
+   }
+
    virtual void visit_field(const glsl_type *type, const char *name,
                             bool row_major, const glsl_type *record_type,
                             bool last_field)
@@ -590,15 +622,10 @@ private:
       if (this->ubo_block_index != -1) {
 	 this->uniforms[id].block_index = this->ubo_block_index;
 
-	 const unsigned alignment = record_type
-	    ? record_type->std140_base_alignment(row_major)
-	    : type->std140_base_alignment(row_major);
+	 const unsigned alignment = type->std140_base_alignment(row_major);
 	 this->ubo_byte_offset = glsl_align(this->ubo_byte_offset, alignment);
 	 this->uniforms[id].offset = this->ubo_byte_offset;
 	 this->ubo_byte_offset += type->std140_size(row_major);
-
-         if (last_field)
-            this->ubo_byte_offset = glsl_align(this->ubo_byte_offset, 16);
 
 	 if (type->is_array()) {
 	    this->uniforms[id].array_stride =
@@ -608,7 +635,12 @@ private:
 	 }
 
 	 if (type->without_array()->is_matrix()) {
-	    this->uniforms[id].matrix_stride = 16;
+            const glsl_type *matrix = type->without_array();
+            const unsigned N = matrix->base_type == GLSL_TYPE_DOUBLE ? 8 : 4;
+            const unsigned items = row_major ? matrix->matrix_columns : matrix->vector_elements;
+
+            assert(items <= 4);
+            this->uniforms[id].matrix_stride = glsl_align(items * N, 16);
 	    this->uniforms[id].row_major = row_major;
 	 } else {
 	    this->uniforms[id].matrix_stride = 0;

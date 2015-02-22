@@ -249,17 +249,17 @@ glamor_block_handler(ScreenPtr screen)
 }
 
 static void
-_glamor_block_handler(void *data, OSTimePtr timeout, void *last_select_mask)
+_glamor_block_handler(ScreenPtr screen, void *timeout, void *readmask)
 {
-    glamor_screen_private *glamor_priv = data;
+    glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
+
+    screen->BlockHandler = glamor_priv->saved_procs.block_handler;
+    screen->BlockHandler(screen, timeout, readmask);
+    glamor_priv->saved_procs.block_handler = screen->BlockHandler;
+    screen->BlockHandler = _glamor_block_handler;
 
     glamor_make_current(glamor_priv);
     glFlush();
-}
-
-static void
-_glamor_wakeup_handler(void *data, int result, void *last_select_mask)
-{
 }
 
 static void
@@ -443,11 +443,9 @@ glamor_init(ScreenPtr screen, unsigned int flags)
         goto fail;
 
     if (flags & GLAMOR_USE_SCREEN) {
-        if (!RegisterBlockAndWakeupHandlers(_glamor_block_handler,
-                                            _glamor_wakeup_handler,
-                                            glamor_priv)) {
-            goto fail;
-        }
+
+        glamor_priv->saved_procs.block_handler = screen->BlockHandler;
+        screen->BlockHandler = _glamor_block_handler;
 
         glamor_priv->saved_procs.create_gc = screen->CreateGC;
         screen->CreateGC = glamor_create_gc;
@@ -597,6 +595,7 @@ glamor_close_screen(ScreenPtr screen)
             glamor_priv->saved_procs.change_window_attributes;
         screen->CopyWindow = glamor_priv->saved_procs.copy_window;
         screen->BitmapToRegion = glamor_priv->saved_procs.bitmap_to_region;
+        screen->BlockHandler = glamor_priv->saved_procs.block_handler;
     }
 #ifdef RENDER
     if (ps && (flags & GLAMOR_USE_PICTURE_SCREEN)) {

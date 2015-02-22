@@ -33,8 +33,17 @@
 
 
 #include "compiler.h"
+#include "enums.h"
+#include "macros.h"
 #include "mtypes.h"
 
+
+static inline struct gl_texture_unit *
+_mesa_get_tex_unit(struct gl_context *ctx, GLuint unit)
+{
+   ASSERT(unit < Elements(ctx->Texture.Unit));
+   return &(ctx->Texture.Unit[unit]);
+}
 
 /**
  * Return pointer to current texture unit.
@@ -43,8 +52,33 @@
 static inline struct gl_texture_unit *
 _mesa_get_current_tex_unit(struct gl_context *ctx)
 {
-   ASSERT(ctx->Texture.CurrentUnit < Elements(ctx->Texture.Unit));
-   return &(ctx->Texture.Unit[ctx->Texture.CurrentUnit]);
+   return _mesa_get_tex_unit(ctx, ctx->Texture.CurrentUnit);
+}
+
+static inline GLuint
+_mesa_max_tex_unit(struct gl_context *ctx)
+{
+   /* See OpenGL spec for glActiveTexture: */
+   return MAX2(ctx->Const.MaxCombinedTextureImageUnits,
+               ctx->Const.MaxTextureCoordUnits);
+}
+
+static inline struct gl_texture_unit *
+_mesa_get_tex_unit_err(struct gl_context *ctx, GLuint unit, const char *func)
+{
+   if (unit < _mesa_max_tex_unit(ctx))
+      return _mesa_get_tex_unit(ctx, unit);
+
+   /* Note: This error is a precedent set by glBindTextures. From the GL 4.5
+    * specification (30.10.2014) Section 8.1 ("Texture Objects"):
+    *
+    *    "An INVALID_OPERATION error is generated if first + count is greater
+    *     than the number of texture image units supported by the
+    *     implementation."
+    */
+   _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unit=%s)", func,
+               _mesa_lookup_enum_by_nr(GL_TEXTURE0+unit));
+   return NULL;
 }
 
 

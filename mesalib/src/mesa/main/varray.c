@@ -255,7 +255,7 @@ update_array_format(struct gl_context *ctx,
 {
    struct gl_vertex_attrib_array *array;
    GLbitfield typeBit;
-   GLuint elementSize;
+   GLint elementSize;
    GLenum format = GL_RGBA;
 
    if (ctx->Array.LegalTypesMask == 0 || ctx->Array.LegalTypesMaskAPI != ctx->API) {

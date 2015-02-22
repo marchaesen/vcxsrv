@@ -147,20 +147,13 @@ ms_dri2_crtc_covering_drawable(DrawablePtr pDraw)
     ScreenPtr pScreen = pDraw->pScreen;
     ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     BoxRec box, crtcbox;
-    xf86CrtcPtr crtc;
 
     box.x1 = pDraw->x;
     box.y1 = pDraw->y;
     box.x2 = box.x1 + pDraw->width;
     box.y2 = box.y1 + pDraw->height;
 
-    crtc = ms_covering_crtc(pScrn, &box, NULL, &crtcbox);
-
-    /* Make sure the CRTC is valid and this is the real front buffer */
-    if (crtc != NULL && !crtc->rotatedData)
-        return crtc;
-
-    return NULL;
+    return ms_covering_crtc(pScrn, &box, NULL, &crtcbox);
 }
 
 static Bool

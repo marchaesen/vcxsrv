@@ -31,18 +31,18 @@
 #ifndef BITSET_H
 #define BITSET_H
 
-#include "imports.h"
+#include "util/u_math.h"
 
 /****************************************************************************
  * generic bitset implementation
  */
 
-#define BITSET_WORD GLuint
+#define BITSET_WORD unsigned int
 #define BITSET_WORDBITS (sizeof (BITSET_WORD) * 8)
 
 /* bitset declarations
  */
-#define BITSET_WORDS(bits) (ALIGN(bits, BITSET_WORDBITS) / BITSET_WORDBITS)
+#define BITSET_WORDS(bits) (((bits) + BITSET_WORDBITS - 1) / BITSET_WORDBITS)
 #define BITSET_DECLARE(name, bits) BITSET_WORD name[BITSET_WORDS(bits)]
 
 /* bitset operations

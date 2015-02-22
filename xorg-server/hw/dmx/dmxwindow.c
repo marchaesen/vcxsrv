@@ -857,12 +857,8 @@ dmxResizeWindow(WindowPtr pWindow, int x, int y,
     ScreenPtr pScreen = pWindow->drawable.pScreen;
     DMXScreenInfo *dmxScreen = &dmxScreens[pScreen->myNum];
     dmxWinPrivPtr pWinPriv = DMX_GET_WINDOW_PRIV(pWindow);
-    dmxWinPrivPtr pSibPriv;
     unsigned int m;
     XWindowChanges c;
-
-    if (pSib)
-        pSibPriv = DMX_GET_WINDOW_PRIV(pSib);
 
     DMX_UNWRAP(ResizeWindow, dmxScreen, pScreen);
 #if 1

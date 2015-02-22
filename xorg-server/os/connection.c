@@ -113,17 +113,11 @@ SOFTWARE.
 #ifdef HAVE_GETPEERUCRED
 #include <ucred.h>
 #include <zone.h>
-#endif
-
-#ifdef XSERVER_DTRACE
-#include <sys/types.h>
-typedef const char *string;
-
-#ifndef HAVE_GETPEERUCRED
+#else
 #define zoneid_t int
 #endif
-#include "../dix/Xserver-dtrace.h"
-#endif
+
+#include "probes.h"
 
 static int lastfdesc;           /* maximum file descriptor */
 

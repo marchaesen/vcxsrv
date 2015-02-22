@@ -282,7 +282,6 @@
          <param name="infoLog" type="GLchar *" />
       </function>
 
-      <!-- depends on GL_ARB_gpu_shader_fp64
       <function name="ProgramUniform1d" offset="assign" static_dispatch="false">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
@@ -396,6 +395,5 @@
          <param name="count" type="GLsizei" />
          <param name="value" type="const GLdouble *" />
       </function>
-      -->
    </category>
 </OpenGLAPI>

@@ -806,7 +806,11 @@ ephyrUpdateModifierState(unsigned int state)
 
             for (key = 0; key < MAP_LENGTH; key++)
                 if (keyc->xkbInfo->desc->map->modmap[key] & mask) {
-                    if (key_is_down(pDev, key, KEY_PROCESSED))
+                    if (mask == XCB_MOD_MASK_LOCK) {
+                        KdEnqueueKeyboardEvent(ephyrKbd, key, FALSE);
+                        KdEnqueueKeyboardEvent(ephyrKbd, key, TRUE);
+                    }
+                    else if (key_is_down(pDev, key, KEY_PROCESSED))
                         KdEnqueueKeyboardEvent(ephyrKbd, key, TRUE);
 
                     if (--count == 0)
@@ -820,6 +824,8 @@ ephyrUpdateModifierState(unsigned int state)
             for (key = 0; key < MAP_LENGTH; key++)
                 if (keyc->xkbInfo->desc->map->modmap[key] & mask) {
                     KdEnqueueKeyboardEvent(ephyrKbd, key, FALSE);
+                    if (mask == XCB_MOD_MASK_LOCK)
+                        KdEnqueueKeyboardEvent(ephyrKbd, key, TRUE);
                     break;
                 }
     }

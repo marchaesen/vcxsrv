@@ -450,11 +450,8 @@ public:
     */
    inline bool is_interface_instance() const
    {
-      const glsl_type *const t = this->type;
-
-      return (t == this->interface_type)
-         || (t->is_array() && t->fields.array == this->interface_type);
-    }
+      return this->type->without_array() == this->interface_type;
+   }
 
    /**
     * Set this->interface_type on a newly created variable.
@@ -1269,6 +1266,13 @@ enum ir_expression_operation {
    ir_unop_u2f,         /**< Unsigned-to-float conversion. */
    ir_unop_i2u,         /**< Integer-to-unsigned conversion. */
    ir_unop_u2i,         /**< Unsigned-to-integer conversion. */
+   ir_unop_d2f,         /**< Double-to-float conversion. */
+   ir_unop_f2d,         /**< Float-to-double conversion. */
+   ir_unop_d2i,         /**< Double-to-integer conversion. */
+   ir_unop_i2d,         /**< Integer-to-double conversion. */
+   ir_unop_d2u,         /**< Double-to-unsigned conversion. */
+   ir_unop_u2d,         /**< Unsigned-to-double conversion. */
+   ir_unop_d2b,         /**< Double-to-boolean conversion. */
    ir_unop_bitcast_i2f, /**< Bit-identical int-to-float "conversion" */
    ir_unop_bitcast_f2i, /**< Bit-identical float-to-int "conversion" */
    ir_unop_bitcast_u2f, /**< Bit-identical uint-to-float "conversion" */
@@ -1345,6 +1349,18 @@ enum ir_expression_operation {
    /*@}*/
 
    ir_unop_saturate,
+
+   /**
+    * \name Double packing, part of ARB_gpu_shader_fp64.
+    */
+   /*@{*/
+   ir_unop_pack_double_2x32,
+   ir_unop_unpack_double_2x32,
+   /*@}*/
+
+   ir_unop_frexp_sig,
+   ir_unop_frexp_exp,
+
    ir_unop_noise,
 
    /**
@@ -2153,6 +2169,7 @@ union ir_constant_data {
       int i[16];
       float f[16];
       bool b[16];
+      double d[16];
 };
 
 
@@ -2163,6 +2180,7 @@ public:
    ir_constant(unsigned int u, unsigned vector_elements=1);
    ir_constant(int i, unsigned vector_elements=1);
    ir_constant(float f, unsigned vector_elements=1);
+   ir_constant(double d, unsigned vector_elements=1);
 
    /**
     * Construct an ir_constant from a list of ir_constant values
@@ -2209,6 +2227,7 @@ public:
    /*@{*/
    bool get_bool_component(unsigned i) const;
    float get_float_component(unsigned i) const;
+   double get_double_component(unsigned i) const;
    int get_int_component(unsigned i) const;
    unsigned get_uint_component(unsigned i) const;
    /*@}*/
@@ -2416,6 +2435,10 @@ _mesa_glsl_initialize_builtin_functions();
 extern ir_function_signature *
 _mesa_glsl_find_builtin_function(_mesa_glsl_parse_state *state,
                                  const char *name, exec_list *actual_parameters);
+
+extern ir_function *
+_mesa_glsl_find_builtin_function_by_name(_mesa_glsl_parse_state *state,
+                                         const char *name);
 
 extern gl_shader *
 _mesa_glsl_get_builtin_function_shader(void);

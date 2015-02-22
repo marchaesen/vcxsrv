@@ -31,11 +31,20 @@ libmesautil_la_CPPFLAGS = \
 	-I$(top_srcdir)/src \
 	-I$(top_srcdir)/src/mapi \
 	-I$(top_srcdir)/src/mesa \
+	-I$(top_srcdir)/src/gallium/include \
+	-I$(top_srcdir)/src/gallium/auxiliary \
+	$(SHA1_CFLAGS) \
 	$(VISIBILITY_CFLAGS)
 
 libmesautil_la_SOURCES = \
 	$(MESA_UTIL_FILES) \
 	$(MESA_UTIL_GENERATED_FILES)
+
+if ENABLE_SHADER_CACHE
+libmesautil_la_SOURCES += $(MESA_UTIL_SHADER_CACHE_FILES)
+endif
+
+libmesautil_la_LIBADD = $(SHA1_LIBS)
 
 check_PROGRAMS = u_atomic_test
 TESTS = $(check_PROGRAMS)

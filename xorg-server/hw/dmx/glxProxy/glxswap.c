@@ -39,9 +39,7 @@
 #include "dmxwindow.h"
 #include "glxserver.h"
 #include "glxswap.h"
-
-extern int __glXDoSwapBuffers(__GLXclientState * cl, XID drawId,
-                              GLXContextTag tag);
+#include "glxcmds.h"
 
 typedef struct _SwapGroup *SwapGroupPtr;
 

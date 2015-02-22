@@ -62,9 +62,20 @@ _mesa_lookup_shader_err(struct gl_context *ctx, GLuint name, const char *caller)
 
 
 extern void
-_mesa_reference_shader_program(struct gl_context *ctx,
+_mesa_reference_shader_program_(struct gl_context *ctx,
                                struct gl_shader_program **ptr,
                                struct gl_shader_program *shProg);
+
+static inline void
+_mesa_reference_shader_program(struct gl_context *ctx,
+                               struct gl_shader_program **ptr,
+                               struct gl_shader_program *shProg)
+{
+   if (*ptr != shProg)
+      _mesa_reference_shader_program_(ctx, ptr, shProg);
+}
+
+
 extern void
 _mesa_init_shader(struct gl_context *ctx, struct gl_shader *shader);
 

@@ -191,8 +191,13 @@ convenience for the application's rendering mechanism.
     fontversion    FC_FONTVERSION         Int     Version number of the font
     capability     FC_CAPABILITY          String  List of layout capabilities in
                                                   the font
+    fontformat     FC_FONTFORMAT          String  String name of the font format
     embolden       FC_EMBOLDEN            Bool    Rasterizer should
                                                   synthetically embolden the font
+    embeddedbitmap FC_EMBEDDED_BITMAP     Bool    Use the embedded bitmap instead
+                                                  of the outline
+    decorative     FC_DECORATIVE          Bool    Whether the style is a decorative
+                                                  variant
     fontfeatures   FC_FONT_FEATURES       String  List of extra feature tags in
                                                   OpenType to be enabled
     namelang       FC_NAMELANG            String  Language name to be used for the

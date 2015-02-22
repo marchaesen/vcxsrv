@@ -33,9 +33,9 @@
 
 #include <stdbool.h>
 #include "util/hash_table.h"
+#include "util/set.h"
 #include "context.h"
 #include "glformats.h"
-#include "set.h"
 #include "texobj.h"
 #include "teximage.h"
 #include "vdpau.h"
@@ -73,7 +73,8 @@ _mesa_VDPAUInitNV(const GLvoid *vdpDevice, const GLvoid *getProcAddress)
 
    ctx->vdpDevice = vdpDevice;
    ctx->vdpGetProcAddress = getProcAddress;
-   ctx->vdpSurfaces = _mesa_set_create(NULL, _mesa_key_pointer_equal);
+   ctx->vdpSurfaces = _mesa_set_create(NULL, _mesa_hash_pointer,
+                                       _mesa_key_pointer_equal);
 }
 
 static void
@@ -179,7 +180,7 @@ register_surface(struct gl_context *ctx, GLboolean isOutput,
       _mesa_reference_texobj(&surf->textures[i], tex);
    }
 
-   _mesa_set_add(ctx->vdpSurfaces, _mesa_hash_pointer(surf), surf);
+   _mesa_set_add(ctx->vdpSurfaces, surf);
 
    return (GLintptr)surf;
 }
@@ -227,7 +228,7 @@ _mesa_VDPAUIsSurfaceNV(GLintptr surface)
       return false;
    }
 
-   if (!_mesa_set_search(ctx->vdpSurfaces, _mesa_hash_pointer(surf), surf)) {
+   if (!_mesa_set_search(ctx->vdpSurfaces, surf)) {
       return false;
    }
 
@@ -251,7 +252,7 @@ _mesa_VDPAUUnregisterSurfaceNV(GLintptr surface)
    if (surface == 0)
       return;
 
-   entry = _mesa_set_search(ctx->vdpSurfaces, _mesa_hash_pointer(surf), surf);
+   entry = _mesa_set_search(ctx->vdpSurfaces, surf);
    if (!entry) {
       _mesa_error(ctx, GL_INVALID_VALUE, "VDPAUUnregisterSurfaceNV");
       return;
@@ -280,7 +281,7 @@ _mesa_VDPAUGetSurfaceivNV(GLintptr surface, GLenum pname, GLsizei bufSize,
       return;
    }
 
-   if (!_mesa_set_search(ctx->vdpSurfaces, _mesa_hash_pointer(surf), surf)) {
+   if (!_mesa_set_search(ctx->vdpSurfaces, surf)) {
       _mesa_error(ctx, GL_INVALID_VALUE, "VDPAUGetSurfaceivNV");
       return;
    }
@@ -312,7 +313,7 @@ _mesa_VDPAUSurfaceAccessNV(GLintptr surface, GLenum access)
       return;
    }
 
-   if (!_mesa_set_search(ctx->vdpSurfaces, _mesa_hash_pointer(surf), surf)) {
+   if (!_mesa_set_search(ctx->vdpSurfaces, surf)) {
       _mesa_error(ctx, GL_INVALID_VALUE, "VDPAUSurfaceAccessNV");
       return;
    }
@@ -346,7 +347,7 @@ _mesa_VDPAUMapSurfacesNV(GLsizei numSurfaces, const GLintptr *surfaces)
    for (i = 0; i < numSurfaces; ++i) {
       struct vdp_surface *surf = (struct vdp_surface *)surfaces[i];
 
-      if (!_mesa_set_search(ctx->vdpSurfaces, _mesa_hash_pointer(surf), surf)) {
+      if (!_mesa_set_search(ctx->vdpSurfaces, surf)) {
          _mesa_error(ctx, GL_INVALID_VALUE, "VDPAUSurfaceAccessNV");
          return;
       }
@@ -400,7 +401,7 @@ _mesa_VDPAUUnmapSurfacesNV(GLsizei numSurfaces, const GLintptr *surfaces)
    for (i = 0; i < numSurfaces; ++i) {
       struct vdp_surface *surf = (struct vdp_surface *)surfaces[i];
 
-      if (!_mesa_set_search(ctx->vdpSurfaces, _mesa_hash_pointer(surf), surf)) {
+      if (!_mesa_set_search(ctx->vdpSurfaces, surf)) {
          _mesa_error(ctx, GL_INVALID_VALUE, "VDPAUSurfaceAccessNV");
          return;
       }
@@ -422,7 +423,7 @@ _mesa_VDPAUUnmapSurfacesNV(GLsizei numSurfaces, const GLintptr *surfaces)
 
          _mesa_lock_texture(ctx, tex);
 
-         image = _mesa_select_tex_image(ctx, tex, surf->target, 0);
+         image = _mesa_select_tex_image(tex, surf->target, 0);
 
          ctx->Driver.VDPAUUnmapSurface(ctx, surf->target, surf->access,
                                        surf->output, tex, image,

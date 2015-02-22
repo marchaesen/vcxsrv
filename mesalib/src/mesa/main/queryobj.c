@@ -142,6 +142,18 @@ _mesa_init_query_object_functions(struct dd_function_table *driver)
    driver->CheckQuery = _mesa_check_query;
 }
 
+static struct gl_query_object **
+get_pipe_stats_binding_point(struct gl_context *ctx,
+                             GLenum target)
+{
+   if (!_mesa_is_desktop_gl(ctx) ||
+       !ctx->Extensions.ARB_pipeline_statistics_query)
+      return NULL;
+
+   const int which = target - GL_VERTICES_SUBMITTED_ARB;
+   assert(which < MAX_PIPELINE_STATISTICS);
+   return &ctx->Query.pipeline_stats[which];
+}
 
 /**
  * Return pointer to the query object binding point for the given target and
@@ -183,6 +195,38 @@ get_query_binding_point(struct gl_context *ctx, GLenum target, GLuint index)
          return &ctx->Query.PrimitivesWritten[index];
       else
          return NULL;
+
+   case GL_VERTICES_SUBMITTED_ARB:
+   case GL_PRIMITIVES_SUBMITTED_ARB:
+   case GL_VERTEX_SHADER_INVOCATIONS_ARB:
+   case GL_FRAGMENT_SHADER_INVOCATIONS_ARB:
+   case GL_CLIPPING_INPUT_PRIMITIVES_ARB:
+   case GL_CLIPPING_OUTPUT_PRIMITIVES_ARB:
+         return get_pipe_stats_binding_point(ctx, target);
+
+   case GL_GEOMETRY_SHADER_INVOCATIONS:
+      /* GL_GEOMETRY_SHADER_INVOCATIONS is defined in a non-sequential order */
+      target = GL_VERTICES_SUBMITTED_ARB + MAX_PIPELINE_STATISTICS - 1;
+      /* fallthrough */
+   case GL_GEOMETRY_SHADER_PRIMITIVES_EMITTED_ARB:
+      if (_mesa_has_geometry_shaders(ctx))
+         return get_pipe_stats_binding_point(ctx, target);
+      else
+         return NULL;
+
+   case GL_TESS_CONTROL_SHADER_PATCHES_ARB:
+   case GL_TESS_EVALUATION_SHADER_INVOCATIONS_ARB:
+      if (ctx->Extensions.ARB_tessellation_shader)
+         return get_pipe_stats_binding_point(ctx, target);
+      else
+         return NULL;
+
+   case GL_COMPUTE_SHADER_INVOCATIONS_ARB:
+      if (_mesa_has_compute_shaders(ctx))
+         return get_pipe_stats_binding_point(ctx, target);
+      else
+         return NULL;
+
    default:
       return NULL;
    }
@@ -553,6 +597,39 @@ _mesa_GetQueryIndexediv(GLenum target, GLuint index, GLenum pname,
          case GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN:
             *params = ctx->Const.QueryCounterBits.PrimitivesWritten;
             break;
+         case GL_VERTICES_SUBMITTED_ARB:
+            *params = ctx->Const.QueryCounterBits.VerticesSubmitted;
+            break;
+         case GL_PRIMITIVES_SUBMITTED_ARB:
+            *params = ctx->Const.QueryCounterBits.PrimitivesSubmitted;
+            break;
+         case GL_VERTEX_SHADER_INVOCATIONS_ARB:
+            *params = ctx->Const.QueryCounterBits.VsInvocations;
+            break;
+         case GL_TESS_CONTROL_SHADER_PATCHES_ARB:
+            *params = ctx->Const.QueryCounterBits.TessPatches;
+            break;
+         case GL_TESS_EVALUATION_SHADER_INVOCATIONS_ARB:
+            *params = ctx->Const.QueryCounterBits.TessInvocations;
+            break;
+         case GL_GEOMETRY_SHADER_INVOCATIONS:
+            *params = ctx->Const.QueryCounterBits.GsInvocations;
+            break;
+         case GL_GEOMETRY_SHADER_PRIMITIVES_EMITTED_ARB:
+            *params = ctx->Const.QueryCounterBits.GsPrimitives;
+            break;
+         case GL_FRAGMENT_SHADER_INVOCATIONS_ARB:
+            *params = ctx->Const.QueryCounterBits.FsInvocations;
+            break;
+         case GL_COMPUTE_SHADER_INVOCATIONS_ARB:
+            *params = ctx->Const.QueryCounterBits.ComputeInvocations;
+            break;
+         case GL_CLIPPING_INPUT_PRIMITIVES_ARB:
+            *params = ctx->Const.QueryCounterBits.ClInPrimitives;
+            break;
+         case GL_CLIPPING_OUTPUT_PRIMITIVES_ARB:
+            *params = ctx->Const.QueryCounterBits.ClOutPrimitives;
+            break;
          default:
             _mesa_problem(ctx,
                           "Unknown target in glGetQueryIndexediv(target = %s)",
@@ -771,6 +848,18 @@ _mesa_init_queryobj(struct gl_context *ctx)
    ctx->Const.QueryCounterBits.Timestamp = 64;
    ctx->Const.QueryCounterBits.PrimitivesGenerated = 64;
    ctx->Const.QueryCounterBits.PrimitivesWritten = 64;
+
+   ctx->Const.QueryCounterBits.VerticesSubmitted = 64;
+   ctx->Const.QueryCounterBits.PrimitivesSubmitted = 64;
+   ctx->Const.QueryCounterBits.VsInvocations = 64;
+   ctx->Const.QueryCounterBits.TessPatches = 64;
+   ctx->Const.QueryCounterBits.TessInvocations = 64;
+   ctx->Const.QueryCounterBits.GsInvocations = 64;
+   ctx->Const.QueryCounterBits.GsPrimitives = 64;
+   ctx->Const.QueryCounterBits.FsInvocations = 64;
+   ctx->Const.QueryCounterBits.ComputeInvocations = 64;
+   ctx->Const.QueryCounterBits.ClInPrimitives = 64;
+   ctx->Const.QueryCounterBits.ClOutPrimitives = 64;
 }
 
 

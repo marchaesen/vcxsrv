@@ -42,7 +42,7 @@
 #include "util/u_math.h"
 #include "util/u_memory.h"
 #include "util/u_cache.h"
-#include "util/u_simple_list.h"
+#include "util/simple_list.h"
 
 
 struct util_cache_entry

@@ -484,9 +484,13 @@ typedef enum
    /* ARB_uniform_buffer_object */
    OPCODE_UNIFORM_BLOCK_BINDING,
 
+   /* EXT_polygon_offset_clamp */
+   OPCODE_POLYGON_OFFSET_CLAMP,
+
    /* The following three are meta instructions */
    OPCODE_ERROR,                /* raise compiled-in error */
    OPCODE_CONTINUE,
+   OPCODE_NOP,                  /* No-op (used for 8-byte alignment */
    OPCODE_END_OF_LIST,
    OPCODE_EXT_0
 } OpCode;
@@ -545,13 +549,13 @@ union pointer
  * Save a 4 or 8-byte pointer at dest (and dest+1).
  */
 static inline void
-save_pointer(union gl_dlist_node *dest, void *src)
+save_pointer(Node *dest, void *src)
 {
    union pointer p;
    unsigned i;
 
    STATIC_ASSERT(POINTER_DWORDS == 1 || POINTER_DWORDS == 2);
-   STATIC_ASSERT(sizeof(union gl_dlist_node) == 4);
+   STATIC_ASSERT(sizeof(Node) == 4);
 
    p.ptr = src;
 
@@ -564,7 +568,7 @@ save_pointer(union gl_dlist_node *dest, void *src)
  * Retrieve a 4 or 8-byte pointer from node (node+1).
  */
 static inline void *
-get_pointer(const union gl_dlist_node *node)
+get_pointer(const Node *node)
 {
    union pointer p;
    unsigned i;
@@ -578,7 +582,7 @@ get_pointer(const union gl_dlist_node *node)
 
 /**
  * Used to store a 64-bit uint in a pair of "Nodes" for the sake of 32-bit
- * environment.  In 64-bit env, sizeof(Node)==8 anyway.
+ * environment.
  */
 union uint64_pair
 {
@@ -957,11 +961,8 @@ unpack_image(struct gl_context *ctx, GLuint dimensions,
       /* no PBO */
       GLvoid *image;
 
-      if (type == GL_BITMAP)
-         image = _mesa_unpack_bitmap(width, height, pixels, unpack);
-      else
-         image = _mesa_unpack_image(dimensions, width, height, depth,
-                                    format, type, pixels, unpack);
+      image = _mesa_unpack_image(dimensions, width, height, depth,
+                                 format, type, pixels, unpack);
       if (pixels && !image) {
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "display list construction");
       }
@@ -983,11 +984,8 @@ unpack_image(struct gl_context *ctx, GLuint dimensions,
       }
 
       src = ADD_POINTERS(map, pixels);
-      if (type == GL_BITMAP)
-         image = _mesa_unpack_bitmap(width, height, src, unpack);
-      else
-         image = _mesa_unpack_image(dimensions, width, height, depth,
-                                    format, type, src, unpack);
+      image = _mesa_unpack_image(dimensions, width, height, depth,
+                                 format, type, src, unpack);
 
       ctx->Driver.UnmapBuffer(ctx, unpack->BufferObj, MAP_INTERNAL);
 
@@ -1018,16 +1016,19 @@ memdup(const void *src, GLsizei bytes)
  * Allocate space for a display list instruction (opcode + payload space).
  * \param opcode  the instruction opcode (OPCODE_* value)
  * \param bytes   instruction payload size (not counting opcode)
- * \return pointer to allocated memory (the opcode space)
+ * \param align8  does the payload need to be 8-byte aligned?
+ *                This is only relevant in 64-bit environments.
+ * \return pointer to allocated memory (the payload will be at pointer+1)
  */
 static Node *
-dlist_alloc(struct gl_context *ctx, OpCode opcode, GLuint bytes)
+dlist_alloc(struct gl_context *ctx, OpCode opcode, GLuint bytes, bool align8)
 {
    const GLuint numNodes = 1 + (bytes + sizeof(Node) - 1) / sizeof(Node);
    const GLuint contNodes = 1 + POINTER_DWORDS;  /* size of continue info */
+   GLuint nopNode;
    Node *n;
 
-   if (opcode < (GLuint) OPCODE_EXT_0) {
+   if (opcode < OPCODE_EXT_0) {
       if (InstSize[opcode] == 0) {
          /* save instruction size now */
          InstSize[opcode] = numNodes;
@@ -1038,7 +1039,20 @@ dlist_alloc(struct gl_context *ctx, OpCode opcode, GLuint bytes)
       }
    }
 
-   if (ctx->ListState.CurrentPos + numNodes + contNodes > BLOCK_SIZE) {
+   if (sizeof(void *) > sizeof(Node) && align8
+       && ctx->ListState.CurrentPos % 2 == 0) {
+      /* The opcode would get placed at node[0] and the payload would start
+       * at node[1].  But the payload needs to be at an even offset (8-byte
+       * multiple).
+       */
+      nopNode = 1;
+   }
+   else {
+      nopNode = 0;
+   }
+
+   if (ctx->ListState.CurrentPos + nopNode + numNodes + contNodes
+       > BLOCK_SIZE) {
       /* This block is full.  Allocate a new block and chain to it */
       Node *newblock;
       n = ctx->ListState.CurrentBlock + ctx->ListState.CurrentPos;
@@ -1048,13 +1062,34 @@ dlist_alloc(struct gl_context *ctx, OpCode opcode, GLuint bytes)
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "Building display list");
          return NULL;
       }
+
+      /* a fresh block should be 8-byte aligned on 64-bit systems */
+      assert(((GLintptr) newblock) % sizeof(void *) == 0);
+
       save_pointer(&n[1], newblock);
       ctx->ListState.CurrentBlock = newblock;
       ctx->ListState.CurrentPos = 0;
+
+      /* Display list nodes are always 4 bytes.  If we need 8-byte alignment
+       * we have to insert a NOP so that the payload of the real opcode lands
+       * on an even location:
+       *   node[0] = OPCODE_NOP
+       *   node[1] = OPCODE_x;
+       *   node[2] = start of payload
+       */
+      nopNode = sizeof(void *) > sizeof(Node) && align8;
    }
 
    n = ctx->ListState.CurrentBlock + ctx->ListState.CurrentPos;
-   ctx->ListState.CurrentPos += numNodes;
+   if (nopNode) {
+      assert(ctx->ListState.CurrentPos % 2 == 0); /* even value */
+      n[0].opcode = OPCODE_NOP;
+      n++;
+      /* The "real" opcode will now be at an odd location and the payload
+       * will be at an even location.
+       */
+   }
+   ctx->ListState.CurrentPos += nopNode + numNodes;
 
    n[0].opcode = opcode;
 
@@ -1075,7 +1110,22 @@ dlist_alloc(struct gl_context *ctx, OpCode opcode, GLuint bytes)
 void *
 _mesa_dlist_alloc(struct gl_context *ctx, GLuint opcode, GLuint bytes)
 {
-   Node *n = dlist_alloc(ctx, (OpCode) opcode, bytes);
+   Node *n = dlist_alloc(ctx, (OpCode) opcode, bytes, false);
+   if (n)
+      return n + 1;  /* return pointer to payload area, after opcode */
+   else
+      return NULL;
+}
+
+
+/**
+ * Same as _mesa_dlist_alloc(), but return a pointer which is 8-byte
+ * aligned in 64-bit environments, 4-byte aligned otherwise.
+ */
+void *
+_mesa_dlist_alloc_aligned(struct gl_context *ctx, GLuint opcode, GLuint bytes)
+{
+   Node *n = dlist_alloc(ctx, (OpCode) opcode, bytes, true);
    if (n)
       return n + 1;  /* return pointer to payload area, after opcode */
    else
@@ -1125,7 +1175,7 @@ _mesa_dlist_alloc_opcode(struct gl_context *ctx,
 static inline Node *
 alloc_instruction(struct gl_context *ctx, OpCode opcode, GLuint nparams)
 {
-   return dlist_alloc(ctx, opcode, nparams * sizeof(Node));
+   return dlist_alloc(ctx, opcode, nparams * sizeof(Node), false);
 }
 
 
@@ -3144,6 +3194,22 @@ save_PolygonOffsetEXT(GLfloat factor, GLfloat bias)
    save_PolygonOffset(factor, ctx->DrawBuffer->_DepthMaxF * bias);
 }
 
+static void GLAPIENTRY
+save_PolygonOffsetClampEXT(GLfloat factor, GLfloat units, GLfloat clamp)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_POLYGON_OFFSET_CLAMP, 3);
+   if (n) {
+      n[1].f = factor;
+      n[2].f = units;
+      n[3].f = clamp;
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_PolygonOffsetClampEXT(ctx->Exec, (factor, units, clamp));
+   }
+}
 
 static void GLAPIENTRY
 save_PopAttrib(void)
@@ -7985,17 +8051,8 @@ execute_list(struct gl_context *ctx, GLuint list)
             CALL_LoadIdentity(ctx->Exec, ());
             break;
          case OPCODE_LOAD_MATRIX:
-            if (sizeof(Node) == sizeof(GLfloat)) {
-               CALL_LoadMatrixf(ctx->Exec, (&n[1].f));
-            }
-            else {
-               GLfloat m[16];
-               GLuint i;
-               for (i = 0; i < 16; i++) {
-                  m[i] = n[1 + i].f;
-               }
-               CALL_LoadMatrixf(ctx->Exec, (m));
-            }
+            STATIC_ASSERT(sizeof(Node) == sizeof(GLfloat));
+            CALL_LoadMatrixf(ctx->Exec, (&n[1].f));
             break;
          case OPCODE_LOAD_NAME:
             CALL_LoadName(ctx->Exec, (n[1].ui));
@@ -8041,17 +8098,7 @@ execute_list(struct gl_context *ctx, GLuint list)
             CALL_MatrixMode(ctx->Exec, (n[1].e));
             break;
          case OPCODE_MULT_MATRIX:
-            if (sizeof(Node) == sizeof(GLfloat)) {
-               CALL_MultMatrixf(ctx->Exec, (&n[1].f));
-            }
-            else {
-               GLfloat m[16];
-               GLuint i;
-               for (i = 0; i < 16; i++) {
-                  m[i] = n[1 + i].f;
-               }
-               CALL_MultMatrixf(ctx->Exec, (m));
-            }
+            CALL_MultMatrixf(ctx->Exec, (&n[1].f));
             break;
          case OPCODE_ORTHO:
             CALL_Ortho(ctx->Exec,
@@ -8095,6 +8142,9 @@ execute_list(struct gl_context *ctx, GLuint list)
             break;
          case OPCODE_POLYGON_OFFSET:
             CALL_PolygonOffset(ctx->Exec, (n[1].f, n[2].f));
+            break;
+         case OPCODE_POLYGON_OFFSET_CLAMP:
+            CALL_PolygonOffsetClampEXT(ctx->Exec, (n[1].f, n[2].f, n[3].f));
             break;
          case OPCODE_POP_ATTRIB:
             CALL_PopAttrib(ctx->Exec, ());
@@ -8648,84 +8698,34 @@ execute_list(struct gl_context *ctx, GLuint list)
             CALL_BindFragmentShaderATI(ctx->Exec, (n[1].i));
             break;
          case OPCODE_SET_FRAGMENT_SHADER_CONSTANTS_ATI:
-            {
-               GLfloat values[4];
-               GLuint i, dst = n[1].ui;
-
-               for (i = 0; i < 4; i++)
-                  values[i] = n[1 + i].f;
-               CALL_SetFragmentShaderConstantATI(ctx->Exec, (dst, values));
-            }
+            CALL_SetFragmentShaderConstantATI(ctx->Exec, (n[1].ui, &n[2].f));
             break;
          case OPCODE_ATTR_1F_NV:
             CALL_VertexAttrib1fNV(ctx->Exec, (n[1].e, n[2].f));
             break;
          case OPCODE_ATTR_2F_NV:
-            /* Really shouldn't have to do this - the Node structure
-             * is convenient, but it would be better to store the data
-             * packed appropriately so that it can be sent directly
-             * on.  With x86_64 becoming common, this will start to
-             * matter more.
-             */
-            if (sizeof(Node) == sizeof(GLfloat))
-               CALL_VertexAttrib2fvNV(ctx->Exec, (n[1].e, &n[2].f));
-            else
-               CALL_VertexAttrib2fNV(ctx->Exec, (n[1].e, n[2].f, n[3].f));
+            CALL_VertexAttrib2fvNV(ctx->Exec, (n[1].e, &n[2].f));
             break;
          case OPCODE_ATTR_3F_NV:
-            if (sizeof(Node) == sizeof(GLfloat))
-               CALL_VertexAttrib3fvNV(ctx->Exec, (n[1].e, &n[2].f));
-            else
-               CALL_VertexAttrib3fNV(ctx->Exec, (n[1].e, n[2].f, n[3].f,
-                                                 n[4].f));
+            CALL_VertexAttrib3fvNV(ctx->Exec, (n[1].e, &n[2].f));
             break;
          case OPCODE_ATTR_4F_NV:
-            if (sizeof(Node) == sizeof(GLfloat))
-               CALL_VertexAttrib4fvNV(ctx->Exec, (n[1].e, &n[2].f));
-            else
-               CALL_VertexAttrib4fNV(ctx->Exec, (n[1].e, n[2].f, n[3].f,
-                                                 n[4].f, n[5].f));
+            CALL_VertexAttrib4fvNV(ctx->Exec, (n[1].e, &n[2].f));
             break;
          case OPCODE_ATTR_1F_ARB:
             CALL_VertexAttrib1fARB(ctx->Exec, (n[1].e, n[2].f));
             break;
          case OPCODE_ATTR_2F_ARB:
-            /* Really shouldn't have to do this - the Node structure
-             * is convenient, but it would be better to store the data
-             * packed appropriately so that it can be sent directly
-             * on.  With x86_64 becoming common, this will start to
-             * matter more.
-             */
-            if (sizeof(Node) == sizeof(GLfloat))
-               CALL_VertexAttrib2fvARB(ctx->Exec, (n[1].e, &n[2].f));
-            else
-               CALL_VertexAttrib2fARB(ctx->Exec, (n[1].e, n[2].f, n[3].f));
+            CALL_VertexAttrib2fvARB(ctx->Exec, (n[1].e, &n[2].f));
             break;
          case OPCODE_ATTR_3F_ARB:
-            if (sizeof(Node) == sizeof(GLfloat))
-               CALL_VertexAttrib3fvARB(ctx->Exec, (n[1].e, &n[2].f));
-            else
-               CALL_VertexAttrib3fARB(ctx->Exec, (n[1].e, n[2].f, n[3].f,
-                                                  n[4].f));
+            CALL_VertexAttrib3fvARB(ctx->Exec, (n[1].e, &n[2].f));
             break;
          case OPCODE_ATTR_4F_ARB:
-            if (sizeof(Node) == sizeof(GLfloat))
-               CALL_VertexAttrib4fvARB(ctx->Exec, (n[1].e, &n[2].f));
-            else
-               CALL_VertexAttrib4fARB(ctx->Exec, (n[1].e, n[2].f, n[3].f,
-                                                  n[4].f, n[5].f));
+            CALL_VertexAttrib4fvARB(ctx->Exec, (n[1].e, &n[2].f));
             break;
          case OPCODE_MATERIAL:
-            if (sizeof(Node) == sizeof(GLfloat))
-               CALL_Materialfv(ctx->Exec, (n[1].e, n[2].e, &n[3].f));
-            else {
-               GLfloat f[4];
-               f[0] = n[3].f;
-               f[1] = n[4].f;
-               f[2] = n[5].f;
-               f[3] = n[6].f;
-               CALL_Materialfv(ctx->Exec, (n[1].e, n[2].e, f));
-            }
+            CALL_Materialfv(ctx->Exec, (n[1].e, n[2].e, &n[3].f));
             break;
          case OPCODE_BEGIN:
             CALL_Begin(ctx->Exec, (n[1].e));
@@ -8902,6 +8902,9 @@ execute_list(struct gl_context *ctx, GLuint list)
 
          case OPCODE_CONTINUE:
             n = (Node *) get_pointer(&n[1]);
+            break;
+         case OPCODE_NOP:
+            /* no-op */
             break;
          case OPCODE_END_OF_LIST:
             done = GL_TRUE;
@@ -9702,6 +9705,9 @@ _mesa_initialize_save_table(const struct gl_context *ctx)
    SET_ProgramUniformMatrix4x2fv(table, save_ProgramUniformMatrix4x2fv);
    SET_ProgramUniformMatrix3x4fv(table, save_ProgramUniformMatrix3x4fv);
    SET_ProgramUniformMatrix4x3fv(table, save_ProgramUniformMatrix4x3fv);
+
+   /* GL_EXT_polygon_offset_clamp */
+   SET_PolygonOffsetClampEXT(table, save_PolygonOffsetClampEXT);
 }
 
 
@@ -9953,6 +9959,9 @@ print_list(struct gl_context *ctx, GLuint list, const char *fname)
             fprintf(f, "DISPLAY-LIST-CONTINUE\n");
             n = (Node *) get_pointer(&n[1]);
             break;
+         case OPCODE_NOP:
+            fprintf(f, "NOP\n");
+            break;
          case OPCODE_END_OF_LIST:
             fprintf(f, "END-LIST %u\n", list);
             done = GL_TRUE;
@@ -10103,6 +10112,8 @@ _mesa_init_display_list(struct gl_context *ctx)
    ctx->List.ListBase = 0;
 
    save_vtxfmt_init(&ctx->ListState.ListVtxfmt);
+
+   InstSize[OPCODE_NOP] = 1;
 }
 
 

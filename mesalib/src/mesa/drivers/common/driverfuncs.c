@@ -101,7 +101,7 @@ _mesa_init_driver_functions(struct dd_function_table *driver)
    driver->TestProxyTexImage = _mesa_test_proxy_teximage;
    driver->CompressedTexImage = _mesa_store_compressed_teximage;
    driver->CompressedTexSubImage = _mesa_store_compressed_texsubimage;
-   driver->GetCompressedTexImage = _mesa_get_compressed_teximage;
+   driver->GetCompressedTexImage = _mesa_GetCompressedTexImage_sw;
    driver->BindTexture = NULL;
    driver->NewTextureObject = _mesa_new_texture_object;
    driver->DeleteTexture = _mesa_delete_texture_object;
@@ -210,7 +210,7 @@ _mesa_init_driver_functions(struct dd_function_table *driver)
    driver->EndCallList = NULL;
 
    /* GL_ARB_texture_storage */
-   driver->AllocTextureStorage = _mesa_alloc_texture_storage;
+   driver->AllocTextureStorage = _mesa_AllocTextureStorage_sw;
 
    /* GL_ARB_texture_view */
    driver->TextureView = NULL;

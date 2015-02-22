@@ -915,6 +915,7 @@ print_help(struct pipe_screen *screen)
    }
 
    puts("");
+   fflush(stdout);
 }
 
 struct hud_context *

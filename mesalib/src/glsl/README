@@ -187,7 +187,7 @@ You may also need to update the backends if they will see the new expr type:
 
 You can then use the new expression from builtins (if all backends
 would rather see it), or scan the IR and convert to use your new
-expression type (see ir_mod_to_fract, for example).
+expression type (see ir_mod_to_floor, for example).
 
 Q: How is memory management handled in the compiler?
 

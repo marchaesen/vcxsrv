@@ -80,7 +80,6 @@ dmxBEScreenInit(ScreenPtr pScreen)
 {
     DMXScreenInfo *dmxScreen = &dmxScreens[pScreen->myNum];
     XSetWindowAttributes attribs;
-    XGCValues gcvals;
     unsigned long mask;
     int i, j;
 

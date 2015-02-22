@@ -70,7 +70,7 @@ manpage.1: manpage.sgml
       <arg><option>--help</option></arg>
       <sbr>
       <group rep="repeat">
-          <arg><option><replaceable>fonts-cache-2-files</replaceable></option></arg>
+          <arg><option><replaceable>fonts-cache-%version%-files</replaceable></option></arg>
           <arg><option><replaceable>dirs</replaceable></option></arg>
       </group>
       

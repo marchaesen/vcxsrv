@@ -1576,6 +1576,12 @@
             <_description>Arabic (Buckwalter)</_description>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>mac</name>
+            <_description>Arabic (Macintosh)</_description>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>
@@ -6928,6 +6934,30 @@
           <name>japan:hztg_escape</name>
           <_description>Make Zenkaku Hankaku an additional ESC</_description>
        </configItem>
+      </option>
+    </group>
+    <group allowMultipleSelection="true">
+      <configItem>
+        <name>korean</name>
+        <_description>Korean Hangul/Hanja keys</_description>
+      </configItem>
+      <option>
+        <configItem>
+          <name>korean:hw_keys</name>
+          <_description>Hardware Hangul/Hanja keys</_description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
+          <name>korean:ralt_rctrl</name>
+          <_description>Right Alt as Hangul, right Ctrl as Hanja</_description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
+          <name>korean:rctrl_ralt</name>
+          <_description>Right Ctrl as Hangul, right Alt as Hanja</_description>
+        </configItem>
       </option>
     </group>
     <group allowMultipleSelection="false">

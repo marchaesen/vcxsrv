@@ -418,7 +418,7 @@ static GLuint make_state_key( struct gl_context *ctx,  struct state_key *key )
          continue;
 
       samp = _mesa_get_samplerobj(ctx, i);
-      format = texObj->Image[0][texObj->BaseLevel]->_BaseFormat;
+      format = _mesa_texture_base_format(texObj);
 
       key->unit[i].enabled = 1;
       key->enabled_units |= (1<<i);

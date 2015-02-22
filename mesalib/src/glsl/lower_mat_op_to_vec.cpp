@@ -354,6 +354,8 @@ ir_mat_op_to_vec_visitor::visit_leave(ir_assignment *orig_assign)
 
    /* OK, time to break down this matrix operation. */
    switch (orig_expr->operation) {
+   case ir_unop_d2f:
+   case ir_unop_f2d:
    case ir_unop_neg: {
       /* Apply the operation to each column.*/
       for (i = 0; i < matrix_columns; i++) {

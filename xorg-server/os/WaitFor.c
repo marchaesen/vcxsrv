@@ -121,9 +121,9 @@ struct _OsTimerRec {
     void *arg;
 };
 
-static void DoTimer(OsTimerPtr timer, CARD32 now, OsTimerPtr *prev);
+static void DoTimer(OsTimerPtr timer, CARD32 now, volatile OsTimerPtr *prev);
 static void CheckAllTimers(void);
-static OsTimerPtr timers = NULL;
+static volatile OsTimerPtr timers = NULL;
 
 /*****************
  * WaitForSomething:
@@ -263,11 +263,14 @@ WaitForSomething(int *pClientsReady)
                 if ((int) (timers->expires - now) <= 0)
                     expired = 1;
 
-                while (timers && (int) (timers->expires - now) <= 0)
-                    DoTimer(timers, now, &timers);
+                if (expired) {
+                    OsBlockSignals();
+                    while (timers && (int) (timers->expires - now) <= 0)
+                        DoTimer(timers, now, &timers);
+                    OsReleaseSignals();
 
-                if (expired)
                     return 0;
+                }
             }
         }
         else {
@@ -281,11 +284,14 @@ WaitForSomething(int *pClientsReady)
                     if ((int) (timers->expires - now) <= 0)
                         expired = 1;
 
-                    while (timers && (int) (timers->expires - now) <= 0)
-                        DoTimer(timers, now, &timers);
+                    if (expired) {
+                        OsBlockSignals();
+                        while (timers && (int) (timers->expires - now) <= 0)
+                            DoTimer(timers, now, &timers);
+                        OsReleaseSignals();
 
-                    if (expired)
                         return 0;
+                    }
                 }
             }
             if (someReady)
@@ -401,24 +407,25 @@ CheckAllTimers(void)
 }
 
 static void
-DoTimer(OsTimerPtr timer, CARD32 now, OsTimerPtr *prev)
+DoTimer(OsTimerPtr timer, CARD32 now, volatile OsTimerPtr *prev)
 {
     CARD32 newTime;
 
     OsBlockSignals();
     *prev = timer->next;
     timer->next = NULL;
+    OsReleaseSignals();
+
     newTime = (*timer->callback) (timer, now, timer->arg);
     if (newTime)
         TimerSet(timer, 0, newTime, timer->callback, timer->arg);
-    OsReleaseSignals();
 }
 
 OsTimerPtr
 TimerSet(OsTimerPtr timer, int flags, CARD32 millis,
          OsTimerCallback func, void *arg)
 {
-    register OsTimerPtr *prev;
+    volatile OsTimerPtr *prev;
     CARD32 now = GetTimeInMillis();
 
     if (!timer) {
@@ -470,7 +477,7 @@ Bool
 TimerForce(OsTimerPtr timer)
 {
     int rc = FALSE;
-    OsTimerPtr *prev;
+    volatile OsTimerPtr *prev;
 
     OsBlockSignals();
     for (prev = &timers; *prev; prev = &(*prev)->next) {
@@ -487,7 +494,7 @@ TimerForce(OsTimerPtr timer)
 void
 TimerCancel(OsTimerPtr timer)
 {
-    OsTimerPtr *prev;
+    volatile OsTimerPtr *prev;
 
     if (!timer)
         return;
@@ -515,8 +522,12 @@ TimerCheck(void)
 {
     CARD32 now = GetTimeInMillis();
 
-    while (timers && (int) (timers->expires - now) <= 0)
-        DoTimer(timers, now, &timers);
+    if (timers && (int) (timers->expires - now) <= 0) {
+        OsBlockSignals();
+        while (timers && (int) (timers->expires - now) <= 0)
+            DoTimer(timers, now, &timers);
+        OsReleaseSignals();
+    }
 }
 
 void

@@ -49,7 +49,8 @@ util_pstipple_create_sampler(struct pipe_context *pipe);
 
 struct tgsi_token *
 util_pstipple_create_fragment_shader(const struct tgsi_token *tokens,
-                                     unsigned *samplerUnitOut);
+                                     unsigned *samplerUnitOut,
+                                     unsigned fixed_unit);
 
 
 #endif

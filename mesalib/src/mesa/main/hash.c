@@ -277,7 +277,7 @@ _mesa_HashInsert_unlocked(struct _mesa_HashTable *table, GLuint key, void *data)
       if (entry) {
          entry->data = data;
       } else {
-         _mesa_hash_table_insert_with_hash(table->ht, hash, uint_key(key), data);
+         _mesa_hash_table_insert_pre_hashed(table->ht, hash, uint_key(key), data);
       }
    }
 }

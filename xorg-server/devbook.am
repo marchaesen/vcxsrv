@@ -20,6 +20,8 @@ noinst_DATA =
 # DocBook/XML file with chapters, appendix and images it includes
 dist_noinst_DATA = $(docbook) $(chapters)
 
+FILTER_XMLTO=$(SHELL) $(top_srcdir)/doc/filter-xmlto.sh $(XMLTO)
+
 if HAVE_STYLESHEETS
 
 XMLTO_HTML_FLAGS = 					\
@@ -29,12 +31,12 @@ XMLTO_HTML_FLAGS = 					\
 
 noinst_DATA += $(docbook:.xml=.html)
 %.html: %.xml  $(chapters)
-	$(AM_V_GEN)$(XMLTO) $(XMLTO_HTML_FLAGS) xhtml-nochunks $<
+	$(AM_V_GEN)$(FILTER_XMLTO) $(XMLTO_HTML_FLAGS) xhtml-nochunks $<
 
 if HAVE_XMLTO_TEXT
 noinst_DATA += $(docbook:.xml=.txt)
 %.txt: %.xml $(chapters)
-	$(AM_V_GEN)$(XMLTO) $(XMLTO_HTML_FLAGS) txt $<
+	$(AM_V_GEN)$(FILTER_XMLTO) $(XMLTO_HTML_FLAGS) txt $<
 endif HAVE_XMLTO_TEXT
 
 if HAVE_FOP
@@ -46,9 +48,9 @@ XMLTO_FO_FLAGS = 					\
 
 noinst_DATA += $(docbook:.xml=.pdf) $(docbook:.xml=.ps)
 %.pdf: %.xml $(chapters)
-	$(AM_V_GEN)$(XMLTO) $(XMLTO_FO_FLAGS) --with-fop pdf $<
+	$(AM_V_GEN)$(FILTER_XMLTO) $(XMLTO_FO_FLAGS) --with-fop pdf $<
 %.ps: %.xml $(chapters)
-	$(AM_V_GEN)$(XMLTO) $(XMLTO_FO_FLAGS) --with-fop ps $<
+	$(AM_V_GEN)$(FILTER_XMLTO) $(XMLTO_FO_FLAGS) --with-fop ps $<
 endif HAVE_FOP
 endif HAVE_STYLESHEETS
 

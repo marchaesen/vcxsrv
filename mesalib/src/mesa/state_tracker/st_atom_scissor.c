@@ -47,7 +47,7 @@ update_scissor( struct st_context *st )
    const struct gl_context *ctx = st->ctx;
    const struct gl_framebuffer *fb = ctx->DrawBuffer;
    GLint miny, maxy;
-   int i;
+   unsigned i;
    bool changed = false;
    for (i = 0 ; i < ctx->Const.MaxViewports; i++) {
       scissor[i].minx = 0;

@@ -408,7 +408,7 @@ find_next_use(const struct gl_program *prog,
             for (j = 0; j < numSrc; j++) {
                if (inst->SrcReg[j].RelAddr ||
                    (inst->SrcReg[j].File == PROGRAM_TEMPORARY &&
-                   inst->SrcReg[j].Index == index &&
+                   inst->SrcReg[j].Index == (GLint)index &&
                    (get_src_arg_mask(inst,j,NO_MASK) & mask)))
                   return READ;
             }
@@ -944,7 +944,7 @@ update_interval(GLint intBegin[], GLint intEnd[],
 		struct loop_info *loopStack, GLuint loopStackDepth,
 		GLuint index, GLuint ic)
 {
-   int i;
+   unsigned i;
    GLuint begin = ic;
    GLuint end = ic;
 

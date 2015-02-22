@@ -41,60 +41,9 @@ _mesa_pack_polygon_stipple(const GLuint pattern[32], GLubyte *dest,
                            const struct gl_pixelstore_attrib *packing);
 
 
-extern GLvoid *
-_mesa_unpack_bitmap(GLint width, GLint height, const GLubyte *pixels,
-                    const struct gl_pixelstore_attrib *packing);
-
 extern void
 _mesa_pack_bitmap(GLint width, GLint height, const GLubyte *source,
                   GLubyte *dest, const struct gl_pixelstore_attrib *packing);
-
-
-extern void
-_mesa_pack_rgba_span_float(struct gl_context *ctx, GLuint n,
-                           GLfloat rgba[][4],
-                           GLenum dstFormat, GLenum dstType, GLvoid *dstAddr,
-                           const struct gl_pixelstore_attrib *dstPacking,
-                           GLbitfield transferOps);
-
-
-extern void
-_mesa_unpack_color_span_ubyte(struct gl_context *ctx,
-                             GLuint n, GLenum dstFormat, GLubyte dest[],
-                             GLenum srcFormat, GLenum srcType,
-                             const GLvoid *source,
-                             const struct gl_pixelstore_attrib *srcPacking,
-                             GLbitfield transferOps);
-
-
-extern void
-_mesa_unpack_color_span_float(struct gl_context *ctx,
-                              GLuint n, GLenum dstFormat, GLfloat dest[],
-                              GLenum srcFormat, GLenum srcType,
-                              const GLvoid *source,
-                              const struct gl_pixelstore_attrib *srcPacking,
-                              GLbitfield transferOps);
-
-extern void
-_mesa_unpack_color_span_uint(struct gl_context *ctx,
-                             GLuint n, GLenum dstFormat, GLuint *dest,
-                             GLenum srcFormat, GLenum srcType,
-                             const GLvoid *source,
-                             const struct gl_pixelstore_attrib *srcPacking);
-
-extern void
-_mesa_unpack_index_span(struct gl_context *ctx, GLuint n,
-                        GLenum dstType, GLvoid *dest,
-                        GLenum srcType, const GLvoid *source,
-                        const struct gl_pixelstore_attrib *srcPacking,
-                        GLbitfield transferOps);
-
-
-extern void
-_mesa_pack_index_span(struct gl_context *ctx, GLuint n,
-                      GLenum dstType, GLvoid *dest, const GLuint *source,
-                      const struct gl_pixelstore_attrib *dstPacking,
-                      GLbitfield transferOps);
 
 
 extern void
@@ -136,23 +85,28 @@ _mesa_unpack_image(GLuint dimensions,
                    GLenum format, GLenum type, const GLvoid *pixels,
                    const struct gl_pixelstore_attrib *unpack);
 
-
-void
-_mesa_pack_rgba_span_from_uints(struct gl_context *ctx, GLuint n, GLuint rgba[][4],
-                                GLenum dstFormat, GLenum dstType,
-                                GLvoid *dstAddr);
-
-
-void
-_mesa_pack_rgba_span_from_ints(struct gl_context *ctx, GLuint n, GLint rgba[][4],
-                               GLenum dstFormat, GLenum dstType,
-                               GLvoid *dstAddr);
-
+extern void
+_mesa_pack_luminance_from_rgba_float(GLuint n, GLfloat rgba[][4],
+                                     GLvoid *dstAddr, GLenum dst_format,
+                                     GLbitfield transferOps);
 
 extern void
-_mesa_rebase_rgba_float(GLuint n, GLfloat rgba[][4], GLenum baseFormat);
+_mesa_pack_luminance_from_rgba_integer(GLuint n, GLuint rgba[][4], bool rgba_is_signed,
+                                       GLvoid *dstAddr, GLenum dst_format,
+                                       GLenum dst_type);
 
-extern void
-_mesa_rebase_rgba_uint(GLuint n, GLuint rgba[][4], GLenum baseFormat);
+extern GLfloat *
+_mesa_unpack_color_index_to_rgba_float(struct gl_context *ctx, GLuint dims,
+                                       const void *src, GLenum srcFormat, GLenum srcType,
+                                       int srcWidth, int srcHeight, int srcDepth,
+                                       const struct gl_pixelstore_attrib *srcPacking,
+                                       GLbitfield transferOps);
+
+extern GLubyte *
+_mesa_unpack_color_index_to_rgba_ubyte(struct gl_context *ctx, GLuint dims,
+                                       const void *src, GLenum srcFormat, GLenum srcType,
+                                       int srcWidth, int srcHeight, int srcDepth,
+                                       const struct gl_pixelstore_attrib *srcPacking,
+                                       GLbitfield transferOps);
 
 #endif

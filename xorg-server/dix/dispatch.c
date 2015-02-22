@@ -131,10 +131,7 @@ int ProcInitialConnection();
 
 #ifdef XSERVER_DTRACE
 #include "registry.h"
-#include <sys/types.h>
-typedef const char *string;
-
-#include "Xserver-dtrace.h"
+#include "probes.h"
 #endif
 
 #define mskcnt ((MAXCLIENTS + 31) / 32)

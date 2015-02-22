@@ -31,6 +31,7 @@
 #ifndef MACROS_H
 #define MACROS_H
 
+#include "util/u_math.h"
 #include "imports.h"
 
 
@@ -274,14 +275,6 @@ COPY_4UBV(GLubyte dst[4], const GLubyte src[4])
 #endif
 }
 
-/** Copy a 4-element float vector */
-static inline void
-COPY_4FV(GLfloat dst[4], const GLfloat src[4])
-{
-   /* memcpy seems to be most efficient */
-   memcpy(dst, src, sizeof(GLfloat) * 4);
-}
-
 /** Copy \p SZ elements into a 4-element vector */
 #define COPY_SZ_4V(DST, SZ, SRC)  \
 do {                              \
@@ -372,15 +365,6 @@ do {                                   \
       (DST)[2] *= S;                   \
       (DST)[3] *= S;                   \
 } while (0)
-
-/** Assignment */
-#define ASSIGN_4V( V, V0, V1, V2, V3 )  \
-do {                                    \
-    V[0] = V0;                          \
-    V[1] = V1;                          \
-    V[2] = V2;                          \
-    V[3] = V3;                          \
-} while(0)
 
 /*@}*/
 
@@ -808,7 +792,7 @@ DIFFERENT_SIGNS(GLfloat x, GLfloat y)
 
 
 /** Compute ceiling of integer quotient of A divided by B. */
-#define CEILING( A, B )  ( (A) % (B) == 0 ? (A)/(B) : (A)/(B)+1 )
+#define DIV_ROUND_UP( A, B )  ( (A) % (B) == 0 ? (A)/(B) : (A)/(B)+1 )
 
 
 /** casts to silence warnings with some compilers */

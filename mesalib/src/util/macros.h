@@ -82,7 +82,7 @@ do {                        \
 #endif
 
 #ifndef unreachable
-#define unreachable(str)
+#define unreachable(str) assert(!str)
 #endif
 
 /**

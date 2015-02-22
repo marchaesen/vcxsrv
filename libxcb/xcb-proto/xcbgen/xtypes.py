@@ -76,6 +76,7 @@ class Type(object):
                 return
 
         complex_type.fields.append(new_field)
+        new_field.parent = complex_type
 
     def make_fd_of(self, module, complex_type, fd_name):
         '''
@@ -184,8 +185,6 @@ class ListType(Type):
         if elt.tag == 'list':
             elts = list(elt)
             self.expr = Expression(elts[0] if len(elts) else elt, self)
-        elif elt.tag == 'valueparam':
-            self.expr = Expression(elt, self)
 
         self.size = member.size if member.fixed_size() else None
         self.nmemb = self.expr.nmemb if self.expr.fixed_size() else None
@@ -326,11 +325,6 @@ class ComplexType(Type):
             elif child.tag == 'list':
                 field_name = child.get('name')
                 fkey = child.get('type')
-                type = ListType(child, module.get_type(fkey), *self.lenfield_parent)
-                visible = True
-            elif child.tag == 'valueparam':
-                field_name = child.get('value-list-name')
-                fkey = 'CARD32'
                 type = ListType(child, module.get_type(fkey), *self.lenfield_parent)
                 visible = True
             elif child.tag == 'switch':

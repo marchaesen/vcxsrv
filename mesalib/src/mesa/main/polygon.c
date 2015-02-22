@@ -235,6 +235,23 @@ _mesa_GetPolygonStipple( GLubyte *dest )
    _mesa_GetnPolygonStippleARB(INT_MAX, dest);
 }
 
+void
+_mesa_polygon_offset_clamp(struct gl_context *ctx,
+                           GLfloat factor, GLfloat units, GLfloat clamp)
+{
+   if (ctx->Polygon.OffsetFactor == factor &&
+       ctx->Polygon.OffsetUnits == units &&
+       ctx->Polygon.OffsetClamp == clamp)
+      return;
+
+   FLUSH_VERTICES(ctx, _NEW_POLYGON);
+   ctx->Polygon.OffsetFactor = factor;
+   ctx->Polygon.OffsetUnits = units;
+   ctx->Polygon.OffsetClamp = clamp;
+
+   if (ctx->Driver.PolygonOffset)
+      ctx->Driver.PolygonOffset( ctx, factor, units, clamp );
+}
 
 void GLAPIENTRY
 _mesa_PolygonOffset( GLfloat factor, GLfloat units )
@@ -244,16 +261,7 @@ _mesa_PolygonOffset( GLfloat factor, GLfloat units )
    if (MESA_VERBOSE&VERBOSE_API)
       _mesa_debug(ctx, "glPolygonOffset %f %f\n", factor, units);
 
-   if (ctx->Polygon.OffsetFactor == factor &&
-       ctx->Polygon.OffsetUnits == units)
-      return;
-
-   FLUSH_VERTICES(ctx, _NEW_POLYGON);
-   ctx->Polygon.OffsetFactor = factor;
-   ctx->Polygon.OffsetUnits = units;
-
-   if (ctx->Driver.PolygonOffset)
-      ctx->Driver.PolygonOffset( ctx, factor, units );
+   _mesa_polygon_offset_clamp(ctx, factor, units, 0.0);
 }
 
 
@@ -263,6 +271,23 @@ _mesa_PolygonOffsetEXT( GLfloat factor, GLfloat bias )
    GET_CURRENT_CONTEXT(ctx);
    /* XXX mult by DepthMaxF here??? */
    _mesa_PolygonOffset(factor, bias * ctx->DrawBuffer->_DepthMaxF );
+}
+
+void GLAPIENTRY
+_mesa_PolygonOffsetClampEXT( GLfloat factor, GLfloat units, GLfloat clamp )
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (!ctx->Extensions.EXT_polygon_offset_clamp) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "unsupported function (glPolygonOffsetClampEXT) called");
+      return;
+   }
+
+   if (MESA_VERBOSE&VERBOSE_API)
+      _mesa_debug(ctx, "glPolygonOffsetClampEXT %f %f %f\n", factor, units, clamp);
+
+   _mesa_polygon_offset_clamp(ctx, factor, units, clamp);
 }
 
 
@@ -292,6 +317,7 @@ void _mesa_init_polygon( struct gl_context * ctx )
    ctx->Polygon.StippleFlag = GL_FALSE;
    ctx->Polygon.OffsetFactor = 0.0F;
    ctx->Polygon.OffsetUnits = 0.0F;
+   ctx->Polygon.OffsetClamp = 0.0F;
    ctx->Polygon.OffsetPoint = GL_FALSE;
    ctx->Polygon.OffsetLine = GL_FALSE;
    ctx->Polygon.OffsetFill = GL_FALSE;

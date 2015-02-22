@@ -76,7 +76,7 @@
 #include "main/imports.h"
 #include "main/macros.h"
 #include "main/mtypes.h"
-#include "main/bitset.h"
+#include "util/bitset.h"
 #include "register_allocate.h"
 
 #define NO_REG ~0U

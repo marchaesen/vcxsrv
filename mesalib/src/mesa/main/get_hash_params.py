@@ -343,6 +343,7 @@ descriptor=[
 
 # GL_ARB_ES3_compatibility
   [ "MAX_ELEMENT_INDEX", "CONTEXT_INT64(Const.MaxElementIndex), extra_ARB_ES3_compatibility_api_es3"],
+  [ "PRIMITIVE_RESTART_FIXED_INDEX", "CONTEXT_BOOL(Array.PrimitiveRestartFixedIndex), extra_ARB_ES3_compatibility_api_es3" ],
 
 # GL_ARB_fragment_shader
   [ "MAX_FRAGMENT_UNIFORM_COMPONENTS_ARB", "CONTEXT_INT(Const.Program[MESA_SHADER_FRAGMENT].MaxUniformComponents), extra_ARB_fragment_shader" ],
@@ -401,6 +402,11 @@ descriptor=[
 # GL_OES_EGL_image_external
   [ "TEXTURE_BINDING_EXTERNAL_OES", "LOC_CUSTOM, TYPE_INT, TEXTURE_EXTERNAL_INDEX, extra_OES_EGL_image_external" ],
   [ "TEXTURE_EXTERNAL_OES", "LOC_CUSTOM, TYPE_BOOLEAN, 0, extra_OES_EGL_image_external" ],
+]},
+
+{ "apis": ["GL", "GL_CORE", "GLES3"], "params": [
+# GL_ARB_sampler_objects / GL 3.3 / GLES 3.0
+  [ "SAMPLER_BINDING", "LOC_CUSTOM, TYPE_INT, GL_SAMPLER_BINDING, NO_EXTRA" ],
 ]},
 
 # Remaining enums are only in OpenGL
@@ -695,10 +701,6 @@ descriptor=[
   [ "SAMPLE_MASK", "CONTEXT_BOOL(Multisample.SampleMask), extra_ARB_texture_multisample" ],
   [ "MAX_SAMPLE_MASK_WORDS", "CONST(1), extra_ARB_texture_multisample" ],
 
-
-# GL_ARB_sampler_objects / GL 3.3
-  [ "SAMPLER_BINDING", "LOC_CUSTOM, TYPE_INT, GL_SAMPLER_BINDING, NO_EXTRA" ],
-
 # GL 3.0
   [ "CONTEXT_FLAGS", "CONTEXT_INT(Const.ContextFlags), extra_version_30" ],
 
@@ -811,6 +813,9 @@ descriptor=[
   [ "VIEWPORT_BOUNDS_RANGE", "CONTEXT_FLOAT2(Const.ViewportBounds), extra_ARB_viewport_array" ],
   [ "LAYER_PROVOKING_VERTEX", "CONTEXT_ENUM(Light.ProvokingVertex), extra_ARB_viewport_array" ],
   [ "VIEWPORT_INDEX_PROVOKING_VERTEX", "CONTEXT_ENUM(Light.ProvokingVertex), extra_ARB_viewport_array" ],
+
+# GL_EXT_polygon_offset_clamp
+  [ "POLYGON_OFFSET_CLAMP_EXT", "CONTEXT_FLOAT(Polygon.OffsetClamp), extra_EXT_polygon_offset_clamp" ],
 ]}
 
 ]

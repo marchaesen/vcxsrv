@@ -132,16 +132,18 @@ _swrast_Bitmap( struct gl_context *ctx,
 		const GLubyte *bitmap );
 
 extern void
-_swrast_CopyPixels( struct gl_context *ctx,
-		    GLint srcx, GLint srcy,
-		    GLint destx, GLint desty,
-		    GLsizei width, GLsizei height,
-		    GLenum type );
+_swrast_CopyPixels(struct gl_context *ctx,
+                   GLint srcx, GLint srcy,
+                   GLint destx, GLint desty,
+                   GLsizei width, GLsizei height,
+                   GLenum type);
 
 extern GLboolean
 swrast_fast_copy_pixels(struct gl_context *ctx,
-			GLint srcX, GLint srcY, GLsizei width, GLsizei height,
-			GLint dstX, GLint dstY, GLenum type);
+                        struct gl_framebuffer *srcFb,
+                        struct gl_framebuffer *dstFb,
+                        GLint srcX, GLint srcY, GLsizei width, GLsizei height,
+                        GLint dstX, GLint dstY, GLenum type);
 
 extern void
 _swrast_DrawPixels( struct gl_context *ctx,
@@ -153,6 +155,8 @@ _swrast_DrawPixels( struct gl_context *ctx,
 
 extern void
 _swrast_BlitFramebuffer(struct gl_context *ctx,
+                        struct gl_framebuffer *readFb,
+                        struct gl_framebuffer *drawFb,
                         GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
                         GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
                         GLbitfield mask, GLenum filter);

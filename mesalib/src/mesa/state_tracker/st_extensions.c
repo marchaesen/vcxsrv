@@ -411,7 +411,8 @@ void st_init_extensions(struct pipe_screen *screen,
                         struct st_config_options *options,
                         boolean has_lib_dxtc)
 {
-   int i, glsl_feature_level;
+   unsigned i;
+   int glsl_feature_level;
    GLboolean *extension_table = (GLboolean *) extensions;
 
    static const struct st_extension_cap_mapping cap_mapping[] = {
@@ -425,6 +426,7 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(ARB_instanced_arrays),             PIPE_CAP_VERTEX_ELEMENT_INSTANCE_DIVISOR  },
       { o(ARB_occlusion_query),              PIPE_CAP_OCCLUSION_QUERY                  },
       { o(ARB_occlusion_query2),             PIPE_CAP_OCCLUSION_QUERY                  },
+      { o(ARB_pipeline_statistics_query),    PIPE_CAP_QUERY_PIPELINE_STATISTICS        },
       { o(ARB_point_sprite),                 PIPE_CAP_POINT_SPRITE                     },
       { o(ARB_seamless_cube_map),            PIPE_CAP_SEAMLESS_CUBE_MAP                },
       { o(ARB_shader_stencil_export),        PIPE_CAP_SHADER_STENCIL_EXPORT            },
@@ -445,6 +447,7 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(EXT_texture_swizzle),              PIPE_CAP_TEXTURE_SWIZZLE                  },
       { o(EXT_transform_feedback),           PIPE_CAP_MAX_STREAM_OUTPUT_BUFFERS        },
 
+      { o(AMD_pinned_memory),                PIPE_CAP_RESOURCE_FROM_USER_MEMORY        },
       { o(AMD_seamless_cubemap_per_texture), PIPE_CAP_SEAMLESS_CUBE_MAP_PER_TEXTURE    },
       { o(ATI_separate_stencil),             PIPE_CAP_TWO_SIDED_STENCIL                },
       { o(ATI_texture_mirror_once),          PIPE_CAP_TEXTURE_MIRROR_CLAMP             },
@@ -463,6 +466,7 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(ARB_conditional_render_inverted),  PIPE_CAP_CONDITIONAL_RENDER_INVERTED      },
       { o(ARB_texture_view),                 PIPE_CAP_SAMPLER_VIEW_TARGET              },
       { o(ARB_clip_control),                 PIPE_CAP_CLIP_HALFZ                       },
+      { o(EXT_polygon_offset_clamp),         PIPE_CAP_POLYGON_OFFSET_CLAMP             },
    };
 
    /* Required: render target and sampler support */
@@ -705,7 +709,7 @@ void st_init_extensions(struct pipe_screen *screen,
       extensions->EXT_texture_integer = GL_FALSE;
    }
 
-   consts->UniformBooleanTrue = consts->NativeIntegers ? ~0 : fui(1.0f);
+   consts->UniformBooleanTrue = consts->NativeIntegers ? ~0U : fui(1.0f);
 
    /* Below are the cases which cannot be moved into tables easily. */
 
@@ -896,4 +900,10 @@ void st_init_extensions(struct pipe_screen *screen,
                                PIPE_VIDEO_CAP_SUPPORTS_INTERLACED)) {
       extensions->NV_vdpau_interop = GL_TRUE;
    }
+
+   if (screen->get_shader_param(screen, PIPE_SHADER_VERTEX,
+                                PIPE_SHADER_CAP_DOUBLES) &&
+       screen->get_shader_param(screen, PIPE_SHADER_FRAGMENT,
+                                PIPE_SHADER_CAP_DOUBLES))
+      extensions->ARB_gpu_shader_fp64 = GL_TRUE;
 }

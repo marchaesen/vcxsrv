@@ -30,8 +30,8 @@
 
 #include "pipe/p_compiler.h"
 
-struct pipe_context;
+struct pipe_screen;
 
-void util_run_tests(struct pipe_context *ctx);
+void util_run_tests(struct pipe_screen *screen);
 
 #endif

@@ -28,7 +28,8 @@
 #include "formats.h"
 #include "macros.h"
 #include "glformats.h"
-
+#include "c11/threads.h"
+#include "util/hash_table.h"
 
 /**
  * Information about texture formats.
@@ -71,6 +72,7 @@ struct gl_format_info
    GLubyte BytesPerBlock;
 
    uint8_t Swizzle[4];
+   mesa_array_format ArrayFormat;
 };
 
 #include "format_info.c"
@@ -213,17 +215,87 @@ _mesa_get_format_datatype(mesa_format format)
    return info->DataType;
 }
 
+static GLenum
+get_base_format_for_array_format(mesa_array_format format)
+{
+   uint8_t swizzle[4];
+   int num_channels;
+
+   _mesa_array_format_get_swizzle(format, swizzle);
+   num_channels = _mesa_array_format_get_num_channels(format);
+
+   switch (num_channels) {
+   case 4:
+      /* FIXME: RGBX formats have 4 channels, but their base format is GL_RGB.
+       * This is not really a problem for now because we only create array
+       * formats from GL format/type combinations, and these cannot specify
+       * RGBX formats.
+       */
+      return GL_RGBA;
+   case 3:
+      return GL_RGB;
+   case 2:
+      if (swizzle[0] == 0 &&
+          swizzle[1] == 0 &&
+          swizzle[2] == 0 &&
+          swizzle[3] == 1)
+         return GL_LUMINANCE_ALPHA;
+      if (swizzle[0] == 1 &&
+          swizzle[1] == 1 &&
+          swizzle[2] == 1 &&
+          swizzle[3] == 0)
+         return GL_LUMINANCE_ALPHA;
+      if (swizzle[0] == 0 &&
+          swizzle[1] == 1 &&
+          swizzle[2] == 4 &&
+          swizzle[3] == 5)
+         return GL_RG;
+      if (swizzle[0] == 1 &&
+          swizzle[1] == 0 &&
+          swizzle[2] == 4 &&
+          swizzle[3] == 5)
+         return GL_RG;
+      break;
+   case 1:
+      if (swizzle[0] == 0 &&
+          swizzle[1] == 0 &&
+          swizzle[2] == 0 &&
+          swizzle[3] == 5)
+         return GL_LUMINANCE;
+      if (swizzle[0] == 0 &&
+          swizzle[1] == 0 &&
+          swizzle[2] == 0 &&
+          swizzle[3] == 0)
+         return GL_INTENSITY;
+      if (swizzle[0] <= MESA_FORMAT_SWIZZLE_W)
+         return GL_RED;
+      if (swizzle[1] <= MESA_FORMAT_SWIZZLE_W)
+         return GL_GREEN;
+      if (swizzle[2] <= MESA_FORMAT_SWIZZLE_W)
+         return GL_BLUE;
+      if (swizzle[3] <= MESA_FORMAT_SWIZZLE_W)
+         return GL_ALPHA;
+      break;
+   }
+
+   unreachable("Unsupported format");
+}
 
 /**
  * Return the basic format for the given type.  The result will be one of
  * GL_RGB, GL_RGBA, GL_ALPHA, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_INTENSITY,
  * GL_YCBCR_MESA, GL_DEPTH_COMPONENT, GL_STENCIL_INDEX, GL_DEPTH_STENCIL.
+ * This functions accepts a mesa_format or a mesa_array_format.
  */
 GLenum
-_mesa_get_format_base_format(mesa_format format)
+_mesa_get_format_base_format(uint32_t format)
 {
-   const struct gl_format_info *info = _mesa_get_format_info(format);
-   return info->BaseFormat;
+   if (!_mesa_format_is_mesa_array_format(format)) {
+      const struct gl_format_info *info = _mesa_get_format_info(format);
+      return info->BaseFormat;
+   } else {
+      return get_base_format_for_array_format(format);
+   }
 }
 
 
@@ -269,6 +341,105 @@ _mesa_get_format_swizzle(mesa_format format, uint8_t swizzle_out[4])
    memcpy(swizzle_out, info->Swizzle, sizeof(info->Swizzle));
 }
 
+mesa_array_format
+_mesa_array_format_flip_channels(mesa_array_format format)
+{
+   int num_channels;
+   uint8_t swizzle[4];
+
+   num_channels = _mesa_array_format_get_num_channels(format);
+   _mesa_array_format_get_swizzle(format, swizzle);
+
+   if (num_channels == 1)
+      return format;
+
+   if (num_channels == 2) {
+      _mesa_array_format_set_swizzle(&format, swizzle[1], swizzle[0],
+                                     swizzle[2], swizzle[3]);
+      return format;
+   }
+
+   if (num_channels == 4) {
+      _mesa_array_format_set_swizzle(&format, swizzle[3], swizzle[2],
+                                     swizzle[1], swizzle[0]);
+      return format;
+   }
+
+   unreachable("Invalid array format");
+}
+
+uint32_t
+_mesa_format_to_array_format(mesa_format format)
+{
+   const struct gl_format_info *info = _mesa_get_format_info(format);
+   if (_mesa_little_endian())
+      return info->ArrayFormat;
+   else
+      return _mesa_array_format_flip_channels(info->ArrayFormat);
+}
+
+static struct hash_table *format_array_format_table;
+static once_flag format_array_format_table_exists = ONCE_FLAG_INIT;
+
+static bool
+array_formats_equal(const void *a, const void *b)
+{
+   return (intptr_t)a == (intptr_t)b;
+}
+
+static void
+format_array_format_table_init()
+{
+   const struct gl_format_info *info;
+   mesa_array_format array_format;
+   unsigned f;
+
+   format_array_format_table = _mesa_hash_table_create(NULL, NULL,
+                                                       array_formats_equal);
+
+   for (f = 1; f < MESA_FORMAT_COUNT; ++f) {
+      info = _mesa_get_format_info(f);
+      if (!info->ArrayFormat)
+         continue;
+
+      if (_mesa_little_endian()) {
+         array_format = info->ArrayFormat;
+      } else {
+         array_format = _mesa_array_format_flip_channels(info->ArrayFormat);
+      }
+
+      /* This can happen and does for some of the BGR formats.  Let's take
+       * the first one in the list.
+       */
+      if (_mesa_hash_table_search_pre_hashed(format_array_format_table,
+                                             array_format,
+                                             (void *)(intptr_t)array_format))
+         continue;
+
+      _mesa_hash_table_insert_pre_hashed(format_array_format_table,
+                                         array_format,
+                                         (void *)(intptr_t)array_format,
+                                         (void *)(intptr_t)f);
+   }
+}
+
+mesa_format
+_mesa_format_from_array_format(uint32_t array_format)
+{
+   struct hash_entry *entry;
+
+   assert(_mesa_format_is_mesa_array_format(array_format));
+
+   call_once(&format_array_format_table_exists, format_array_format_table_init);
+
+   entry = _mesa_hash_table_search_pre_hashed(format_array_format_table,
+                                              array_format,
+                                              (void *)(intptr_t)array_format);
+   if (entry)
+      return (intptr_t)entry->data;
+   else
+      return MESA_FORMAT_NONE;
+}
 
 /** Is the given format a compressed format? */
 GLboolean
@@ -344,6 +515,25 @@ _mesa_is_format_integer(mesa_format format)
    const struct gl_format_info *info = _mesa_get_format_info(format);
    return (info->DataType == GL_INT || info->DataType == GL_UNSIGNED_INT);
 }
+
+
+/**
+ * Return true if the given format is a color format.
+ */
+GLenum
+_mesa_is_format_color_format(mesa_format format)
+{
+   const struct gl_format_info *info = _mesa_get_format_info(format);
+   switch (info->BaseFormat) {
+   case GL_DEPTH_COMPONENT:
+   case GL_STENCIL_INDEX:
+   case GL_DEPTH_STENCIL:
+      return false;
+   default:
+      return true;
+   }
+}
+
 
 /**
  * Return color encoding for given format.
@@ -864,6 +1054,34 @@ _mesa_format_to_type_and_comps(mesa_format format,
       *comps = 1;
       return;
 
+   case MESA_FORMAT_R3G3B2_UNORM:
+      *datatype = GL_UNSIGNED_BYTE_2_3_3_REV;
+      *comps = 3;
+      return;
+   case MESA_FORMAT_A4B4G4R4_UNORM:
+      *datatype = GL_UNSIGNED_SHORT_4_4_4_4;
+      *comps = 4;
+      return;
+
+   case MESA_FORMAT_R4G4B4A4_UNORM:
+      *datatype = GL_UNSIGNED_SHORT_4_4_4_4;
+      *comps = 4;
+      return;
+   case MESA_FORMAT_R5G5B5A1_UNORM:
+      *datatype = GL_UNSIGNED_SHORT_1_5_5_5_REV;
+      *comps = 4;
+      return;
+   case MESA_FORMAT_A2B10G10R10_UNORM:
+   case MESA_FORMAT_A2B10G10R10_UINT:
+      *datatype = GL_UNSIGNED_INT_10_10_10_2;
+      *comps = 4;
+      return;
+   case MESA_FORMAT_A2R10G10B10_UNORM:
+   case MESA_FORMAT_A2R10G10B10_UINT:
+      *datatype = GL_UNSIGNED_INT_10_10_10_2;
+      *comps = 4;
+      return;
+
    case MESA_FORMAT_B2G3R3_UNORM:
       *datatype = GL_UNSIGNED_BYTE_3_3_2;
       *comps = 3;
@@ -1265,6 +1483,7 @@ _mesa_format_to_type_and_comps(mesa_format format,
       return;
 
    case MESA_FORMAT_B10G10R10X2_UNORM:
+   case MESA_FORMAT_R10G10B10X2_UNORM:
       *datatype = GL_UNSIGNED_INT_2_10_10_10_REV;
       *comps = 4;
       return;
@@ -1462,14 +1681,14 @@ _mesa_format_matches_format_and_type(mesa_format mesa_format,
       return format == GL_RGB && type == GL_UNSIGNED_BYTE && littleEndian;
 
    case MESA_FORMAT_B5G6R5_UNORM:
-      return format == GL_RGB && type == GL_UNSIGNED_SHORT_5_6_5 && !swapBytes;
+      return ((format == GL_RGB && type == GL_UNSIGNED_SHORT_5_6_5) ||
+              (format == GL_BGR && type == GL_UNSIGNED_SHORT_5_6_5_REV)) &&
+              !swapBytes;
 
    case MESA_FORMAT_R5G6B5_UNORM:
-      /* Some of the 16-bit MESA_FORMATs that would seem to correspond to
-       * GL_UNSIGNED_SHORT_* are byte-swapped instead of channel-reversed,
-       * according to formats.h, so they can't be matched.
-       */
-      return GL_FALSE;
+      return ((format == GL_BGR && type == GL_UNSIGNED_SHORT_5_6_5) ||
+              (format == GL_RGB && type == GL_UNSIGNED_SHORT_5_6_5_REV)) &&
+              !swapBytes;
 
    case MESA_FORMAT_B4G4R4A4_UNORM:
       return format == GL_BGRA && type == GL_UNSIGNED_SHORT_4_4_4_4_REV &&
@@ -1487,7 +1706,8 @@ _mesa_format_matches_format_and_type(mesa_format mesa_format,
          !swapBytes;
 
    case MESA_FORMAT_A1R5G5B5_UNORM:
-      return GL_FALSE;
+      return format == GL_BGRA && type == GL_UNSIGNED_SHORT_5_5_5_1 &&
+         !swapBytes;
 
    case MESA_FORMAT_L4A4_UNORM:
       return GL_FALSE;
@@ -1505,6 +1725,54 @@ _mesa_format_matches_format_and_type(mesa_format mesa_format,
 
    case MESA_FORMAT_B2G3R3_UNORM:
       return format == GL_RGB && type == GL_UNSIGNED_BYTE_3_3_2;
+
+   case MESA_FORMAT_R3G3B2_UNORM:
+      return format == GL_RGB && type == GL_UNSIGNED_BYTE_2_3_3_REV;
+
+   case MESA_FORMAT_A4B4G4R4_UNORM:
+      if (format == GL_RGBA && type == GL_UNSIGNED_SHORT_4_4_4_4 && !swapBytes)
+         return GL_TRUE;
+
+      if (format == GL_RGBA && type == GL_UNSIGNED_SHORT_4_4_4_4_REV && swapBytes)
+         return GL_TRUE;
+
+      if (format == GL_ABGR_EXT && type == GL_UNSIGNED_SHORT_4_4_4_4_REV && !swapBytes)
+         return GL_TRUE;
+
+      if (format == GL_ABGR_EXT && type == GL_UNSIGNED_SHORT_4_4_4_4 && swapBytes)
+         return GL_TRUE;
+
+      return GL_FALSE;
+
+   case MESA_FORMAT_R4G4B4A4_UNORM:
+      if (format == GL_ABGR_EXT && type == GL_UNSIGNED_SHORT_4_4_4_4 && !swapBytes)
+         return GL_TRUE;
+
+      if (format == GL_ABGR_EXT && type == GL_UNSIGNED_SHORT_4_4_4_4_REV && swapBytes)
+         return GL_TRUE;
+
+      if (format == GL_RGBA && type == GL_UNSIGNED_SHORT_4_4_4_4_REV && !swapBytes)
+         return GL_TRUE;
+
+      if (format == GL_RGBA && type == GL_UNSIGNED_SHORT_4_4_4_4 && swapBytes)
+         return GL_TRUE;
+
+      return GL_FALSE;
+
+   case MESA_FORMAT_R5G5B5A1_UNORM:
+      return format == GL_RGBA && type == GL_UNSIGNED_SHORT_1_5_5_5_REV;
+
+   case MESA_FORMAT_A2B10G10R10_UNORM:
+      return format == GL_RGBA && type == GL_UNSIGNED_INT_10_10_10_2;
+
+   case MESA_FORMAT_A2B10G10R10_UINT:
+      return format == GL_RGBA_INTEGER_EXT && type == GL_UNSIGNED_INT_10_10_10_2;
+
+   case MESA_FORMAT_A2R10G10B10_UNORM:
+      return format == GL_BGRA && type == GL_UNSIGNED_INT_10_10_10_2;
+
+   case MESA_FORMAT_A2R10G10B10_UINT:
+      return format == GL_BGRA_INTEGER_EXT && type == GL_UNSIGNED_INT_10_10_10_2;
 
    case MESA_FORMAT_A_UNORM8:
       return format == GL_ALPHA && type == GL_UNSIGNED_BYTE;
@@ -1867,6 +2135,7 @@ _mesa_format_matches_format_and_type(mesa_format mesa_format,
    case MESA_FORMAT_RGBX_UINT8:
    case MESA_FORMAT_RGBX_SINT8:
    case MESA_FORMAT_B10G10R10X2_UNORM:
+   case MESA_FORMAT_R10G10B10X2_UNORM:
    case MESA_FORMAT_RGBX_UNORM16:
    case MESA_FORMAT_RGBX_SNORM16:
    case MESA_FORMAT_RGBX_FLOAT16:

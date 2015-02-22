@@ -47,8 +47,4 @@ extern int __glXForwardAllWithReplySwapsv(__GLXclientState * cl, GLbyte * pc);
 extern int __glXForwardAllWithReplySwapiv(__GLXclientState * cl, GLbyte * pc);
 extern int __glXForwardAllWithReplySwapdv(__GLXclientState * cl, GLbyte * pc);
 
-extern int __glXDisp_ReadPixels(__GLXclientState * cl, GLbyte * pc);
-extern int __glXDispSwap_GetTexImage(__GLXclientState * cl, GLbyte * pc);
-extern int __glXDispSwap_GetColorTable(__GLXclientState * cl, GLbyte * pc);
-
 #endif

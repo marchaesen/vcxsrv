@@ -1,3 +1,35 @@
+dnl Copyright © 2011-2014 Intel Corporation
+dnl Copyright © 2011-2014 Emil Velikov <emil.l.velikov@gmail.com>
+dnl Copyright © 2007-2010 Dan Nicholson
+dnl Copyright © 2010-2014 Marek Olšák <maraeo@gmail.com>
+dnl Copyright © 2010-2014 Christian König
+dnl Copyright © 2012-2014 Tom Stellard <tstellar@gmail.com>
+dnl Copyright © 2009-2012 Jakob Bornecrantz
+dnl Copyright © 2009-2014 Jon TURNEY
+dnl Copyright © 2011-2012 Benjamin Franzke
+dnl Copyright © 2008-2014 David Airlie
+dnl Copyright © 2009-2013 Brian Paul
+dnl Copyright © 2003-2007 Keith Packard, Daniel Stone
+dnl
+dnl Permission is hereby granted, free of charge, to any person obtaining a
+dnl copy of this software and associated documentation files (the "Software"),
+dnl to deal in the Software without restriction, including without limitation
+dnl the rights to use, copy, modify, merge, publish, distribute, sublicense,
+dnl and/or sell copies of the Software, and to permit persons to whom the
+dnl Software is furnished to do so, subject to the following conditions:
+dnl
+dnl The above copyright notice and this permission notice (including the next
+dnl paragraph) shall be included in all copies or substantial portions of the
+dnl Software.
+dnl
+dnl THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+dnl IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+dnl FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+dnl THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+dnl LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+dnl FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+dnl DEALINGS IN THE SOFTWARE.
+dnl
 dnl Process this file with autoconf to create configure.
 
 AC_PREREQ([2.60])
@@ -73,8 +105,16 @@ AX_PROG_FLEX([],
 
 AC_CHECK_PROG(INDENT, indent, indent, cat)
 if test "x$INDENT" != "xcat"; then
-    AC_SUBST(INDENT_FLAGS, '-i4 -nut -br -brs -npcs -ce -TGLubyte -TGLbyte -TBool')
+    # Only GNU indent is supported
+    INDENT_VERSION=`indent --version | grep GNU`
+    if test $? -eq 0; then
+       AC_SUBST(INDENT_FLAGS, '-i4 -nut -br -brs -npcs -ce -TGLubyte -TGLbyte -TBool')
+    else
+       INDENT="cat"
+    fi
 fi
+
+AX_CHECK_PYTHON_MAKO_MODULE(0.3.4)
 
 AC_PROG_INSTALL
 
@@ -105,6 +145,7 @@ AC_MSG_RESULT([$acv_mesa_CLANG])
 dnl If we're using GCC, make sure that it is at least version 4.2.0.  Older
 dnl versions are explictly not supported.
 GEN_ASM_OFFSETS=no
+USE_GNU99=no
 if test "x$GCC" = xyes -a "x$acv_mesa_CLANG" = xno; then
     AC_MSG_CHECKING([whether gcc version is sufficient])
     major=0
@@ -123,6 +164,9 @@ if test "x$GCC" = xyes -a "x$acv_mesa_CLANG" = xno; then
         AC_MSG_RESULT([yes])
     fi
 
+    if test $GCC_VERSION_MAJOR -lt 4 -o $GCC_VERSION_MAJOR -eq 4 -a $GCC_VERSION_MINOR -lt 6 ; then
+        USE_GNU99=yes
+    fi
     if test "x$cross_compiling" = xyes; then
         GEN_ASM_OFFSETS=yes
     fi
@@ -181,7 +225,13 @@ esac
 
 dnl Add flags for gcc and g++
 if test "x$GCC" = xyes; then
-    CFLAGS="$CFLAGS -Wall -std=c99"
+    CFLAGS="$CFLAGS -Wall"
+
+    if test "x$USE_GNU99" = xyes; then
+	CFLAGS="$CFLAGS -std=gnu99"
+    else
+	CFLAGS="$CFLAGS -std=c99"
+    fi
 
     # Enable -Werror=implicit-function-declaration and
     # -Werror=missing-prototypes, if available, or otherwise, just
@@ -320,6 +370,8 @@ if test "x$enable_debug" = xyes; then
             CXXFLAGS="$CXXFLAGS -O0"
         fi
     fi
+else
+   DEFINES="$DEFINES -DNDEBUG"
 fi
 
 dnl
@@ -885,6 +937,144 @@ fi
 
 AC_SUBST([MESA_LLVM])
 
+# SHA1 hashing
+AC_ARG_WITH([sha1],
+        [AS_HELP_STRING([--with-sha1=libc|libmd|libnettle|libgcrypt|libcrypto|libsha1|CommonCrypto|CryptoAPI],
+        [choose SHA1 implementation])])
+case "x$with_sha1" in
+x | xlibc | xlibmd | xlibnettle | xlibgcrypt | xlibcrypto | xlibsha1 | xCommonCrypto | xCryptoAPI)
+  ;;
+*)
+        AC_MSG_ERROR([Illegal value for --with-sha1: $with_sha1])
+esac
+
+AC_CHECK_FUNC([SHA1Init], [HAVE_SHA1_IN_LIBC=yes])
+if test "x$with_sha1" = x && test "x$HAVE_SHA1_IN_LIBC" = xyes; then
+	with_sha1=libc
+fi
+if test "x$with_sha1" = xlibc && test "x$HAVE_SHA1_IN_LIBC" != xyes; then
+	AC_MSG_ERROR([sha1 in libc requested but not found])
+fi
+if test "x$with_sha1" = xlibc; then
+	AC_DEFINE([HAVE_SHA1_IN_LIBC], [1],
+		[Use libc SHA1 functions])
+	SHA1_LIBS=""
+fi
+AC_CHECK_FUNC([CC_SHA1_Init], [HAVE_SHA1_IN_COMMONCRYPTO=yes])
+if test "x$with_sha1" = x && test "x$HAVE_SHA1_IN_COMMONCRYPTO" = xyes; then
+	with_sha1=CommonCrypto
+fi
+if test "x$with_sha1" = xCommonCrypto && test "x$HAVE_SHA1_IN_COMMONCRYPTO" != xyes; then
+	AC_MSG_ERROR([CommonCrypto requested but not found])
+fi
+if test "x$with_sha1" = xCommonCrypto; then
+	AC_DEFINE([HAVE_SHA1_IN_COMMONCRYPTO], [1],
+		[Use CommonCrypto SHA1 functions])
+	SHA1_LIBS=""
+fi
+dnl stdcall functions cannot be tested with AC_CHECK_LIB
+AC_CHECK_HEADER([wincrypt.h], [HAVE_SHA1_IN_CRYPTOAPI=yes], [], [#include <windows.h>])
+if test "x$with_sha1" = x && test "x$HAVE_SHA1_IN_CRYPTOAPI" = xyes; then
+	with_sha1=CryptoAPI
+fi
+if test "x$with_sha1" = xCryptoAPI && test "x$HAVE_SHA1_IN_CRYPTOAPI" != xyes; then
+	AC_MSG_ERROR([CryptoAPI requested but not found])
+fi
+if test "x$with_sha1" = xCryptoAPI; then
+	AC_DEFINE([HAVE_SHA1_IN_CRYPTOAPI], [1],
+		[Use CryptoAPI SHA1 functions])
+	SHA1_LIBS=""
+fi
+AC_CHECK_LIB([md], [SHA1Init], [HAVE_LIBMD=yes])
+if test "x$with_sha1" = x && test "x$HAVE_LIBMD" = xyes; then
+	with_sha1=libmd
+fi
+if test "x$with_sha1" = xlibmd && test "x$HAVE_LIBMD" != xyes; then
+	AC_MSG_ERROR([libmd requested but not found])
+fi
+if test "x$with_sha1" = xlibmd; then
+	AC_DEFINE([HAVE_SHA1_IN_LIBMD], [1],
+	          [Use libmd SHA1 functions])
+	SHA1_LIBS=-lmd
+fi
+PKG_CHECK_MODULES([LIBSHA1], [libsha1], [HAVE_LIBSHA1=yes], [HAVE_LIBSHA1=no])
+if test "x$with_sha1" = x && test "x$HAVE_LIBSHA1" = xyes; then
+   with_sha1=libsha1
+fi
+if test "x$with_sha1" = xlibsha1 && test "x$HAVE_LIBSHA1" != xyes; then
+	AC_MSG_ERROR([libsha1 requested but not found])
+fi
+if test "x$with_sha1" = xlibsha1; then
+	AC_DEFINE([HAVE_SHA1_IN_LIBSHA1], [1],
+	          [Use libsha1 for SHA1])
+	SHA1_LIBS=-lsha1
+fi
+AC_CHECK_LIB([nettle], [nettle_sha1_init], [HAVE_LIBNETTLE=yes])
+if test "x$with_sha1" = x && test "x$HAVE_LIBNETTLE" = xyes; then
+	with_sha1=libnettle
+fi
+if test "x$with_sha1" = xlibnettle && test "x$HAVE_LIBNETTLE" != xyes; then
+	AC_MSG_ERROR([libnettle requested but not found])
+fi
+if test "x$with_sha1" = xlibnettle; then
+	AC_DEFINE([HAVE_SHA1_IN_LIBNETTLE], [1],
+	          [Use libnettle SHA1 functions])
+	SHA1_LIBS=-lnettle
+fi
+AC_CHECK_LIB([gcrypt], [gcry_md_open], [HAVE_LIBGCRYPT=yes])
+if test "x$with_sha1" = x && test "x$HAVE_LIBGCRYPT" = xyes; then
+	with_sha1=libgcrypt
+fi
+if test "x$with_sha1" = xlibgcrypt && test "x$HAVE_LIBGCRYPT" != xyes; then
+	AC_MSG_ERROR([libgcrypt requested but not found])
+fi
+if test "x$with_sha1" = xlibgcrypt; then
+	AC_DEFINE([HAVE_SHA1_IN_LIBGCRYPT], [1],
+	          [Use libgcrypt SHA1 functions])
+	SHA1_LIBS=-lgcrypt
+fi
+# We don't need all of the OpenSSL libraries, just libcrypto
+AC_CHECK_LIB([crypto], [SHA1_Init], [HAVE_LIBCRYPTO=yes])
+PKG_CHECK_MODULES([OPENSSL], [openssl], [HAVE_OPENSSL_PKC=yes],
+                  [HAVE_OPENSSL_PKC=no])
+if test "x$HAVE_LIBCRYPTO" = xyes || test "x$HAVE_OPENSSL_PKC" = xyes; then
+	if test "x$with_sha1" = x; then
+		with_sha1=libcrypto
+	fi
+else
+	if test "x$with_sha1" = xlibcrypto; then
+		AC_MSG_ERROR([OpenSSL libcrypto requested but not found])
+	fi
+fi
+if test "x$with_sha1" = xlibcrypto; then
+	if test "x$HAVE_LIBCRYPTO" = xyes; then
+		SHA1_LIBS=-lcrypto
+	else
+		SHA1_LIBS="$OPENSSL_LIBS"
+		SHA1_CFLAGS="$OPENSSL_CFLAGS"
+	fi
+fi
+AC_MSG_CHECKING([for SHA1 implementation])
+AC_MSG_RESULT([$with_sha1])
+AC_SUBST(SHA1_LIBS)
+AC_SUBST(SHA1_CFLAGS)
+
+# Allow user to configure out the shader-cache feature
+AC_ARG_ENABLE([shader-cache],
+    AS_HELP_STRING([--disable-shader-cache], [Disable binary shader cache]),
+    [enable_shader_cache="$enableval"],
+    [if test "x$with_sha1" != "x"; then
+        enable_shader_cache=yes
+     else
+        enable_shader_cache=no
+     fi])
+if test "x$with_sha1" = "x"; then
+    if test "x$enable_shader_cache" = "xyes"; then
+        AC_MSG_ERROR([Cannot enable shader cache (no SHA-1 implementation found)])
+    fi
+fi
+AM_CONDITIONAL([ENABLE_SHADER_CACHE], [test x$enable_shader_cache = xyes])
+
 # Check for libdrm
 PKG_CHECK_MODULES([LIBDRM], [libdrm >= $LIBDRM_REQUIRED],
                   [have_libdrm=yes], [have_libdrm=no])
@@ -1384,14 +1574,23 @@ if test -n "$with_gallium_drivers" -a "x$with_gallium_drivers" != xswrast; then
     fi
 fi
 
+if test "x$enable_dri" = xyes -o \
+        "x$enable_xvmc" = xyes -o \
+        "x$enable_vdpau" = xyes -o \
+        "x$enable_omx" = xyes -o \
+        "x$enable_va" = xyes; then
+    need_gallium_vl=yes
+fi
+AM_CONDITIONAL(NEED_GALLIUM_VL, test "x$need_gallium_vl" = xyes)
+
 if test "x$enable_xvmc" = xyes -o \
         "x$enable_vdpau" = xyes -o \
         "x$enable_omx" = xyes -o \
         "x$enable_va" = xyes; then
     PKG_CHECK_MODULES([VL], [x11-xcb xcb xcb-dri2 >= $XCBDRI2_REQUIRED])
-    need_gallium_vl=yes
+    need_gallium_vl_winsys=yes
 fi
-AM_CONDITIONAL(NEED_GALLIUM_VL, test "x$need_gallium_vl" = xyes)
+AM_CONDITIONAL(NEED_GALLIUM_VL_WINSYS, test "x$need_gallium_vl_winsys" = xyes)
 
 if test "x$enable_xvmc" = xyes; then
     PKG_CHECK_MODULES([XVMC], [xvmc >= $XVMC_REQUIRED])
@@ -1542,6 +1741,13 @@ if test "x$with_egl_platforms" != "x" -a "x$enable_egl" != xyes; then
     AC_MSG_ERROR([cannot build egl state tracker without EGL library])
 fi
 
+PKG_CHECK_MODULES([WAYLAND_SCANNER], [wayland_scanner],
+        WAYLAND_SCANNER=`$PKG_CONFIG --variable=wayland_scanner wayland_scanner`,
+        WAYLAND_SCANNER='')
+if test "x$WAYLAND_SCANNER" = x; then
+    AC_PATH_PROG([WAYLAND_SCANNER], [wayland-scanner])
+fi
+
 # Do per-EGL platform setups and checks
 egl_platforms=`IFS=', '; echo $with_egl_platforms`
 for plat in $egl_platforms; do
@@ -1549,9 +1755,9 @@ for plat in $egl_platforms; do
 	wayland)
 		PKG_CHECK_MODULES([WAYLAND], [wayland-client >= $WAYLAND_REQUIRED wayland-server >= $WAYLAND_REQUIRED])
 
-                WAYLAND_PREFIX=`$PKG_CONFIG --variable=prefix wayland-client`
-                AC_PATH_PROG([WAYLAND_SCANNER], [wayland-scanner],,
-                             [${WAYLAND_PREFIX}/bin$PATH_SEPARATOR$PATH])
+		if test "x$WAYLAND_SCANNER" = x; then
+			AC_MSG_ERROR([wayland-scanner is needed to compile the wayland egl platform])
+		fi
 		;;
 
 	x11)
@@ -1582,7 +1788,7 @@ done
 # libEGL wants to default to the first platform specified in
 # ./configure.  parse that here.
 if test "x$egl_platforms" != "x"; then
-    FIRST_PLATFORM_CAPS=`echo $egl_platforms | sed 's| .*||' | tr 'a-z' 'A-Z'`
+    FIRST_PLATFORM_CAPS=`echo $egl_platforms | sed 's| .*||' | tr '[[a-z]]' '[[A-Z]]'`
     EGL_NATIVE_PLATFORM="_EGL_PLATFORM_$FIRST_PLATFORM_CAPS"
 else
     EGL_NATIVE_PLATFORM="_EGL_INVALID_PLATFORM"
@@ -1724,7 +1930,7 @@ if test "x$enable_gallium_llvm" = xyes; then
         fi
 
         if test "x$enable_opencl" = xyes; then
-            LLVM_COMPONENTS="${LLVM_COMPONENTS} ipo linker instrumentation"
+            LLVM_COMPONENTS="${LLVM_COMPONENTS} all-targets ipo linker instrumentation"
             # LLVM 3.3 >= 177971 requires IRReader
             if $LLVM_CONFIG --components | grep -qw 'irreader'; then
                 LLVM_COMPONENTS="${LLVM_COMPONENTS} irreader"
@@ -2223,8 +2429,6 @@ AC_CONFIG_FILES([Makefile
 		src/mapi/es1api/glesv1_cm.pc
 		src/mapi/es2api/glesv2.pc
 		src/mapi/glapi/gen/Makefile
-		src/mapi/vgapi/Makefile
-		src/mapi/vgapi/vg.pc
 		src/mesa/Makefile
 		src/mesa/gl.pc
 		src/mesa/drivers/dri/dri.pc
@@ -2327,6 +2531,12 @@ else
     echo "        Gallium:         no"
 fi
 
+dnl Shader cache
+echo ""
+echo "        Shader cache:    $enable_shader_cache"
+if test "x$enable_shader_cache" = "xyes"; then
+    echo "        With SHA1 from:  $with_sha1"
+fi
 
 dnl Libraries
 echo ""

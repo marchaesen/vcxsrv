@@ -232,7 +232,7 @@ hash_table_insert(struct hash_table *ht, uint32_t hash,
                   const void *key, void *data);
 
 static void
-_mesa_hash_table_rehash(struct hash_table *ht, int new_size_index)
+_mesa_hash_table_rehash(struct hash_table *ht, unsigned new_size_index)
 {
    struct hash_table old_ht;
    struct hash_entry *table, *entry;
@@ -267,6 +267,7 @@ hash_table_insert(struct hash_table *ht, uint32_t hash,
                   const void *key, void *data)
 {
    uint32_t start_hash_address, hash_address;
+   struct hash_entry *available_entry = NULL;
 
    if (ht->entries >= ht->max_entries) {
       _mesa_hash_table_rehash(ht, ht->size_index + 1);
@@ -281,13 +282,11 @@ hash_table_insert(struct hash_table *ht, uint32_t hash,
       uint32_t double_hash;
 
       if (!entry_is_present(ht, entry)) {
-         if (entry_is_deleted(ht, entry))
-            ht->deleted_entries--;
-         entry->hash = hash;
-         entry->key = key;
-         entry->data = data;
-         ht->entries++;
-         return entry;
+         /* Stash the first available entry we find */
+         if (available_entry == NULL)
+            available_entry = entry;
+         if (entry_is_free(entry))
+            break;
       }
 
       /* Implement replacement when another insert happens
@@ -314,6 +313,16 @@ hash_table_insert(struct hash_table *ht, uint32_t hash,
       hash_address = (hash_address + double_hash) % ht->size;
    } while (hash_address != start_hash_address);
 
+   if (available_entry) {
+      if (entry_is_deleted(ht, available_entry))
+         ht->deleted_entries--;
+      available_entry->hash = hash;
+      available_entry->key = key;
+      available_entry->data = data;
+      ht->entries++;
+      return available_entry;
+   }
+
    /* We could hit here if a required resize failed. An unchecked-malloc
     * application could ignore this result.
     */
@@ -334,8 +343,8 @@ _mesa_hash_table_insert(struct hash_table *ht, const void *key, void *data)
 }
 
 struct hash_entry *
-_mesa_hash_table_insert_with_hash(struct hash_table *ht, uint32_t hash,
-                                  const void *key, void *data)
+_mesa_hash_table_insert_pre_hashed(struct hash_table *ht, uint32_t hash,
+                                   const void *key, void *data)
 {
    assert(ht->key_hash_function == NULL || hash == ht->key_hash_function(key));
    return hash_table_insert(ht, hash, key, data);
@@ -431,27 +440,18 @@ _mesa_hash_table_random_entry(struct hash_table *ht,
 uint32_t
 _mesa_hash_data(const void *data, size_t size)
 {
-   uint32_t hash = 2166136261ul;
-   const uint8_t *bytes = data;
-
-   while (size-- != 0) {
-      hash ^= *bytes;
-      hash = hash * 0x01000193;
-      bytes++;
-   }
-
-   return hash;
+   return _mesa_fnv32_1a_accumulate_block(_mesa_fnv32_1a_offset_bias,
+                                          data, size);
 }
 
 /** FNV-1a string hash implementation */
 uint32_t
 _mesa_hash_string(const char *key)
 {
-   uint32_t hash = 2166136261ul;
+   uint32_t hash = _mesa_fnv32_1a_offset_bias;
 
    while (*key != 0) {
-      hash ^= *key;
-      hash = hash * 0x01000193;
+      hash = _mesa_fnv32_1a_accumulate(hash, *key);
       key++;
    }
 

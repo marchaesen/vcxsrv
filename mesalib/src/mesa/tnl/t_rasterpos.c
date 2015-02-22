@@ -28,7 +28,7 @@
 #include "main/feedback.h"
 #include "main/light.h"
 #include "main/macros.h"
-#include "main/simple_list.h"
+#include "util/simple_list.h"
 #include "main/mtypes.h"
 
 #include "math/m_matrix.h"

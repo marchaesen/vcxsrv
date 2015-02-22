@@ -436,6 +436,17 @@ void ir_print_visitor::visit(ir_constant *ir)
                fprintf(f, "%f", ir->value.f[i]);
             break;
 	 case GLSL_TYPE_BOOL:  fprintf(f, "%d", ir->value.b[i]); break;
+	 case GLSL_TYPE_DOUBLE:
+            if (ir->value.d[i] == 0.0)
+               /* 0.0 == -0.0, so print with %f to get the proper sign. */
+               fprintf(f, "%.1f", ir->value.d[i]);
+            else if (fabs(ir->value.d[i]) < 0.000001)
+               fprintf(f, "%a", ir->value.d[i]);
+            else if (fabs(ir->value.d[i]) > 1000000.0)
+               fprintf(f, "%e", ir->value.d[i]);
+            else
+               fprintf(f, "%f", ir->value.d[i]);
+            break;
 	 default: assert(0);
 	 }
       }

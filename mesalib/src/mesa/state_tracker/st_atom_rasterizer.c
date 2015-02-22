@@ -155,6 +155,7 @@ static void update_raster_state( struct st_context *st )
       raster->offset_tri = ctx->Polygon.OffsetFill;
       raster->offset_units = ctx->Polygon.OffsetUnits;
       raster->offset_scale = ctx->Polygon.OffsetFactor;
+      raster->offset_clamp = ctx->Polygon.OffsetClamp;
    }
 
    raster->poly_smooth = ctx->Polygon.SmoothFlag;

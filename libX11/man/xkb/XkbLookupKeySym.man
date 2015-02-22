@@ -44,7 +44,7 @@ key for which symbols are to be found
 state for which symbol should be found
 .TP
 .I \- mods_rtrn
-backfilled with unconsumed modifiers
+backfilled with consumed modifiers
 .TP
 .I \- sym_rtrn
 backfilled with symbol associated with key + state

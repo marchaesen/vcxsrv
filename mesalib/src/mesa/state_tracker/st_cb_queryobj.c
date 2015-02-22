@@ -110,6 +110,19 @@ st_BeginQuery(struct gl_context *ctx, struct gl_query_object *q)
       else
          type = PIPE_QUERY_TIMESTAMP;
       break;
+   case GL_VERTICES_SUBMITTED_ARB:
+   case GL_PRIMITIVES_SUBMITTED_ARB:
+   case GL_VERTEX_SHADER_INVOCATIONS_ARB:
+   case GL_TESS_CONTROL_SHADER_PATCHES_ARB:
+   case GL_TESS_EVALUATION_SHADER_INVOCATIONS_ARB:
+   case GL_GEOMETRY_SHADER_INVOCATIONS:
+   case GL_GEOMETRY_SHADER_PRIMITIVES_EMITTED_ARB:
+   case GL_FRAGMENT_SHADER_INVOCATIONS_ARB:
+   case GL_COMPUTE_SHADER_INVOCATIONS_ARB:
+   case GL_CLIPPING_INPUT_PRIMITIVES_ARB:
+   case GL_CLIPPING_OUTPUT_PRIMITIVES_ARB:
+      type = PIPE_QUERY_PIPELINE_STATISTICS;
+      break;
    default:
       assert(0 && "unexpected query target in st_BeginQuery()");
       return;
@@ -178,6 +191,8 @@ get_query_result(struct pipe_context *pipe,
                  struct st_query_object *stq,
                  boolean wait)
 {
+   union pipe_query_result data;
+
    if (!stq->pq) {
       /* Only needed in case we failed to allocate the gallium query earlier.
        * Return TRUE so we don't spin on this forever.
@@ -185,11 +200,46 @@ get_query_result(struct pipe_context *pipe,
       return TRUE;
    }
 
-   if (!pipe->get_query_result(pipe,
-                               stq->pq,
-                               wait,
-                               (void *)&stq->base.Result)) {
+   if (!pipe->get_query_result(pipe, stq->pq, wait, &data))
       return FALSE;
+
+   switch (stq->base.Target) {
+   case GL_VERTICES_SUBMITTED_ARB:
+      stq->base.Result = data.pipeline_statistics.ia_vertices;
+      break;
+   case GL_PRIMITIVES_SUBMITTED_ARB:
+      stq->base.Result = data.pipeline_statistics.ia_primitives;
+      break;
+   case GL_VERTEX_SHADER_INVOCATIONS_ARB:
+      stq->base.Result = data.pipeline_statistics.vs_invocations;
+      break;
+   case GL_TESS_CONTROL_SHADER_PATCHES_ARB:
+      stq->base.Result = data.pipeline_statistics.hs_invocations;
+      break;
+   case GL_TESS_EVALUATION_SHADER_INVOCATIONS_ARB:
+      stq->base.Result = data.pipeline_statistics.ds_invocations;
+      break;
+   case GL_GEOMETRY_SHADER_INVOCATIONS:
+      stq->base.Result = data.pipeline_statistics.gs_invocations;
+      break;
+   case GL_GEOMETRY_SHADER_PRIMITIVES_EMITTED_ARB:
+      stq->base.Result = data.pipeline_statistics.gs_primitives;
+      break;
+   case GL_FRAGMENT_SHADER_INVOCATIONS_ARB:
+      stq->base.Result = data.pipeline_statistics.ps_invocations;
+      break;
+   case GL_COMPUTE_SHADER_INVOCATIONS_ARB:
+      stq->base.Result = data.pipeline_statistics.cs_invocations;
+      break;
+   case GL_CLIPPING_INPUT_PRIMITIVES_ARB:
+      stq->base.Result = data.pipeline_statistics.c_invocations;
+      break;
+   case GL_CLIPPING_OUTPUT_PRIMITIVES_ARB:
+      stq->base.Result = data.pipeline_statistics.c_primitives;
+      break;
+   default:
+      stq->base.Result = data.u64;
+      break;
    }
 
    if (stq->base.Target == GL_TIME_ELAPSED &&

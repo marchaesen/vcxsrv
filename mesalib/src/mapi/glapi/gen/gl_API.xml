@@ -8213,6 +8213,8 @@
 
 <xi:include href="ARB_gpu_shader5.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
+<xi:include href="ARB_gpu_shader_fp64.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
 <category name="GL_ARB_transform_feedback3" number="94">
   <enum name="MAX_TRANSFORM_FEEDBACK_BUFFERS" value="0x8E70"/>
   <enum name="MAX_VERTEX_STREAMS"             value="0x8E71"/>
@@ -8247,7 +8249,11 @@
 
 <xi:include href="ARB_separate_shader_objects.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
-<!-- ARB extensions #98...#108 -->
+<category name="GL_ARB_shader_precision" number="98">
+      <!-- No new functions, types, enums. -->
+</category>
+
+<!-- ARB extensions #99...#108 -->
 
 <xi:include href="ARB_ES2_compatibility.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
@@ -8375,11 +8381,18 @@
     <enum name="QUERY_BY_REGION_NO_WAIT_INVERTED"         value="0x8E1A"/>
 </category>
 
-<!-- ARB extensions 162 - 166 -->
+<!-- ARB extensions 162 - 163 -->
+
+<xi:include href="ARB_direct_state_access.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<!-- ARB extensions 165 - 166 -->
 
 <xi:include href="ARB_texture_barrier.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <xi:include href="KHR_context_flush_control.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<!-- ARB extension 171 -->
+<xi:include href="ARB_pipeline_statistics_query.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <!-- Non-ARB extensions sorted by extension number. -->
 
@@ -12848,7 +12861,22 @@
     <enum name="SKIP_DECODE_EXT"                      value="0x8A4A"/>
 </category>
 
+<category name="GL_AMD_pinned_memory" number="411">
+    <enum name="EXTERNAL_VIRTUAL_MEMORY_BUFFER_AMD"   value="0x9160"/>
+</category>
+
 <xi:include href="INTEL_performance_query.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<category name="GL_EXT_polygon_offset_clamp" number="460">
+    <enum name="POLYGON_OFFSET_CLAMP_EXT"             value="0x8E1B">
+        <size name="Get" mode="get"/>
+    </enum>
+    <function name="PolygonOffsetClampEXT" offset="assign">
+        <param name="factor" type="GLfloat"/>
+        <param name="units"  type="GLfloat"/>
+        <param name="clamp"  type="GLfloat"/>
+    </function>
+</category>
 
 <!-- Unnumbered extensions sorted by name. -->
 

@@ -29,6 +29,8 @@
 #include "main/condrender.h"
 #include "main/context.h"
 #include "main/format_pack.h"
+#include "main/format_utils.h"
+#include "main/glformats.h"
 #include "main/image.h"
 #include "main/imports.h"
 #include "main/macros.h"
@@ -414,7 +416,6 @@ draw_rgba_pixels( struct gl_context *ctx, GLint x, GLint y,
 {
    const GLint imgX = x, imgY = y;
    const GLboolean zoom = ctx->Pixel.ZoomX!=1.0 || ctx->Pixel.ZoomY!=1.0;
-   GLfloat *convImage = NULL;
    GLbitfield transferOps = ctx->_ImageTransferState;
    SWspan span;
 
@@ -452,6 +453,28 @@ draw_rgba_pixels( struct gl_context *ctx, GLint x, GLint y,
       GLint skipPixels = 0;
       /* use span array for temp color storage */
       GLfloat *rgba = (GLfloat *) span.array->attribs[VARYING_SLOT_COL0];
+      void *tempImage = NULL;
+
+      if (unpack->SwapBytes) {
+         /* We have to handle byte-swapping scenarios before calling
+          * _mesa_format_convert
+          */
+         GLint swapSize = _mesa_sizeof_packed_type(type);
+         if (swapSize == 2 || swapSize == 4) {
+            int components = _mesa_components_in_format(format);
+            int elementCount = width * height * components;
+            tempImage = malloc(elementCount * swapSize);
+            if (!tempImage) {
+               _mesa_error(ctx, GL_OUT_OF_MEMORY, "glDrawPixels");
+               return;
+            }
+            if (swapSize == 2)
+               _mesa_swap2_copy(tempImage, (GLushort *) pixels, elementCount);
+            else
+               _mesa_swap4_copy(tempImage, (GLuint *) pixels, elementCount);
+            pixels = tempImage;
+         }
+      }
 
       /* if the span is wider than SWRAST_MAX_WIDTH we have to do it in chunks */
       while (skipPixels < width) {
@@ -462,11 +485,15 @@ draw_rgba_pixels( struct gl_context *ctx, GLint x, GLint y,
                                                       type, 0, skipPixels);
          GLint row;
 
+         /* get image row as float/RGBA */
+         uint32_t srcMesaFormat = _mesa_format_from_format_and_type(format, type);
          for (row = 0; row < height; row++) {
-            /* get image row as float/RGBA */
-            _mesa_unpack_color_span_float(ctx, spanWidth, GL_RGBA, rgba,
-                                     format, type, source, unpack,
-                                     transferOps);
+            int dstRowStride = 4 * width * sizeof(float);
+            _mesa_format_convert(rgba, RGBA32_FLOAT, dstRowStride,
+                                 (void*)source, srcMesaFormat, srcStride,
+                                 spanWidth, 1, NULL);
+            if (transferOps)
+               _mesa_apply_rgba_transfer_ops(ctx, transferOps, spanWidth, (GLfloat (*)[4])rgba);
 	    /* Set these for each row since the _swrast_write_* functions
 	     * may change them while clipping/rendering.
 	     */
@@ -491,9 +518,9 @@ draw_rgba_pixels( struct gl_context *ctx, GLint x, GLint y,
 
       /* XXX this is ugly/temporary, to undo above change */
       span.array->ChanType = CHAN_TYPE;
-   }
 
-   free(convImage);
+      free(tempImage);
+   }
 
    swrast_render_finish(ctx);
 }

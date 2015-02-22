@@ -50,4 +50,6 @@ extern void __glXScreenReset(void);
 
 extern char *__glXGetServerString(unsigned int name);
 
+extern int glxIsExtensionSupported(const char *ext);
+
 #endif                          /* !__GLX_screens_h__ */

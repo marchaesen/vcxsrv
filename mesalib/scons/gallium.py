@@ -624,6 +624,9 @@ def generate(env):
     env.PkgCheckModules('DRM', ['libdrm >= 2.4.38'])
     env.PkgCheckModules('UDEV', ['libudev >= 151'])
 
+    if env['x11']:
+        env.Append(CPPPATH = env['X11_CPPPATH'])
+
     env['dri'] = env['x11'] and env['drm']
 
     # for debugging

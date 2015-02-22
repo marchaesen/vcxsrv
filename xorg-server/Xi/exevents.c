@@ -1403,7 +1403,7 @@ DeliverTouchEmulatedEvent(DeviceIntPtr dev, TouchPointInfoPtr ti,
 
             if (grab->ownerEvents) {
                 WindowPtr focus = NullWindow;
-                WindowPtr sprite_win = dev->spriteInfo->sprite->win;
+                WindowPtr sprite_win = DeepestSpriteWin(dev->spriteInfo->sprite);
 
                 deliveries = DeliverDeviceEvents(sprite_win, ptrev, grab, focus, dev);
             }
@@ -1429,8 +1429,9 @@ DeliverTouchEmulatedEvent(DeviceIntPtr dev, TouchPointInfoPtr ti,
     }
     else {
         GrabPtr devgrab = dev->deviceGrab.grab;
+        WindowPtr sprite_win = DeepestSpriteWin(dev->spriteInfo->sprite);
 
-        DeliverDeviceEvents(win, ptrev, grab, win, dev);
+        DeliverDeviceEvents(sprite_win, ptrev, grab, win, dev);
         /* FIXME: bad hack
          * Implicit passive grab activated in response to this event. Store
          * the event.

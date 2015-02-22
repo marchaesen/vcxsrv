@@ -89,7 +89,7 @@ _mesa_FeedbackBuffer( GLsizei size, GLenum type, GLfloat *buffer )
    ctx->Feedback.Type = type;
    ctx->Feedback.BufferSize = size;
    ctx->Feedback.Buffer = buffer;
-   ctx->Feedback.Count = 0;	              /* Becaues of this. */
+   ctx->Feedback.Count = 0;	              /* Because of this. */
 }
 
 

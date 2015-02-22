@@ -49,8 +49,8 @@ THE SOFTWARE.
 typedef struct _FontMap {
     int type;                   /* the type of the mapping */
     int pid, eid;               /* the identification of the mapping */
-    unsigned (*recode)(unsigned, void*); /* mapping function */
-    char *(*name)(unsigned, void*); /* function returning glyph names */
+    unsigned (*recode) (unsigned, void *);      /* mapping function */
+    char *(*name) (unsigned, void *);   /* function returning glyph names */
     void *client_data;          /* second parameter of the two above */
     struct _FontMap *next;      /* link to next element in list */
     /* The following was added for version 0.3 of the font interface. */
@@ -76,8 +76,8 @@ typedef struct _FontEnc {
 } FontEncRec, *FontEncPtr;
 
 typedef struct _FontMapReverse {
-  unsigned int (*reverse)(unsigned, void*);
-  void *data;
+    unsigned int (*reverse) (unsigned, void *);
+    void *data;
 } FontMapReverseRec, *FontMapReversePtr;
 
 
@@ -85,12 +85,12 @@ typedef struct _FontMapReverse {
 
 /* extract an encoding name from an XLFD name.  Returns a pointer to a
    *static* buffer, or NULL */
-char *FontEncFromXLFD(const char*, int);
+char *FontEncFromXLFD(const char *, int);
 
 /* find the encoding data for a given encoding name; second parameter
    is the filename of the font for which the encoding is needed.
    Returns NULL on failure. */
-FontEncPtr FontEncFind(const char*, const char*);
+FontEncPtr FontEncFind(const char *, const char *);
 
 /* Find a given mapping for an encoding.  This is only a convenience
    function, as clients are allowed to scavenge the data structures
@@ -109,7 +109,7 @@ char *FontEncName(unsigned, FontMapPtr);
 
 /* Return a pointer to the name of the system encodings directory. */
 /* This string is static and should not be modified. */
-char* FontEncDirectory(void);
+char *FontEncDirectory(void);
 
 /* Identify an encoding file.  If fileName doesn't exist, or is not an
    encoding file, return NULL, otherwise returns a NULL-terminated

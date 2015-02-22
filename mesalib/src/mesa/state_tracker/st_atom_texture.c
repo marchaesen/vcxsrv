@@ -35,6 +35,7 @@
 #include "main/macros.h"
 #include "main/mtypes.h"
 #include "main/samplerobj.h"
+#include "main/teximage.h"
 #include "main/texobj.h"
 #include "program/prog_instruction.h"
 
@@ -175,12 +176,11 @@ compute_texture_format_swizzle(GLenum baseFormat, GLenum depthMode,
 static unsigned
 get_texture_format_swizzle(const struct st_texture_object *stObj)
 {
-   const struct gl_texture_image *texImage =
-      stObj->base.Image[0][stObj->base.BaseLevel];
+   GLenum baseFormat = _mesa_texture_base_format(&stObj->base);
    unsigned tex_swizzle;
 
-   if (texImage) {
-      tex_swizzle = compute_texture_format_swizzle(texImage->_BaseFormat,
+   if (baseFormat != GL_NONE) {
+      tex_swizzle = compute_texture_format_swizzle(baseFormat,
                                                    stObj->base.DepthMode,
                                                    stObj->pt->format);
    }

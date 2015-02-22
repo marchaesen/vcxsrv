@@ -122,7 +122,7 @@ st_begin_transform_feedback(struct gl_context *ctx, GLenum mode,
    for (i = 0; i < max_num_targets; i++) {
       struct st_buffer_object *bo = st_buffer_object(sobj->base.Buffers[i]);
 
-      if (bo) {
+      if (bo && bo->buffer) {
          /* Check whether we need to recreate the target. */
          if (!sobj->targets[i] ||
              sobj->targets[i] == sobj->draw_count ||

@@ -5,21 +5,21 @@
 # 2005, 2006 Denis Barbier <barbier@linuxfr.org>
 # 2008 Marc Veillet <scouigne@gmail.com>
 # Marc Veillet <scouigne@gmail.com>, 2011.
-# Jean-Philippe Guérard <jean-philippe.guerard@corbeaunoir.org>, 2011-2013
+# Jean-Philippe Guérard <jean-philippe.guerard@corbeaunoir.org>, 2011-2015
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xkeyboard-config 2.12.99\n"
+"Project-Id-Version: xkeyboard-config 2.13.99\n"
 "Report-Msgid-Bugs-To: svu@users.sourceforge.net\n"
-"POT-Creation-Date: 2014-09-18 23:46+0100\n"
-"PO-Revision-Date: 2014-09-19 20:59+0200\n"
+"POT-Creation-Date: 2015-01-15 01:16+0000\n"
+"PO-Revision-Date: 2015-01-18 21:29+0100\n"
 "Last-Translator: Jean-Philippe Guérard <jean-philippe.guerard@corbeaunoir.org>\n"
 "Language-Team: French <traduc@traduc.org>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n!=1);\n"
+"Plural-Forms: nplurals=2; plural=(n>=2);\n"
 
 #: ../rules/base.xml.in.h:1
 msgid "Generic 101-key PC"
@@ -760,11 +760,11 @@ msgid "Htc Dream phone"
 msgstr "Htc Dream"
 
 #. Keyboard indicator for English layouts
-#: ../rules/base.xml.in.h:186 ../rules/base.extras.xml.in.h:46
+#: ../rules/base.xml.in.h:186 ../rules/base.extras.xml.in.h:47
 msgid "en"
 msgstr "en"
 
-#: ../rules/base.xml.in.h:187 ../rules/base.extras.xml.in.h:47
+#: ../rules/base.xml.in.h:187 ../rules/base.extras.xml.in.h:48
 msgid "English (US)"
 msgstr "Anglais (US)"
 
@@ -826,7 +826,7 @@ msgid "English (programmer Dvorak)"
 msgstr "Anglais (Dvorak pour programmeur)"
 
 #. Keyboard indicator for Russian layouts
-#: ../rules/base.xml.in.h:203 ../rules/base.extras.xml.in.h:69
+#: ../rules/base.xml.in.h:203 ../rules/base.extras.xml.in.h:70
 msgid "ru"
 msgstr "ru"
 
@@ -862,7 +862,7 @@ msgid "English (Workman, international with dead keys)"
 msgstr "Anglais (Workman, international avec touches mortes)"
 
 #. Keyboard indicator for Persian layouts
-#: ../rules/base.xml.in.h:212 ../rules/base.extras.xml.in.h:28
+#: ../rules/base.xml.in.h:212 ../rules/base.extras.xml.in.h:29
 msgid "fa"
 msgstr "fa"
 
@@ -902,11 +902,11 @@ msgid "Uzbek (Afghanistan, OLPC)"
 msgstr "Ouzbek (Afghanistan, OLPC)"
 
 #. Keyboard indicator for Arabic layouts
-#: ../rules/base.xml.in.h:224 ../rules/base.extras.xml.in.h:80
+#: ../rules/base.xml.in.h:224 ../rules/base.extras.xml.in.h:81
 msgid "ar"
 msgstr "ar"
 
-#: ../rules/base.xml.in.h:225 ../rules/base.extras.xml.in.h:81
+#: ../rules/base.xml.in.h:225 ../rules/base.extras.xml.in.h:82
 msgid "Arabic"
 msgstr "Arabe"
 
@@ -949,11 +949,11 @@ msgid "Albanian (Plisi D1)"
 msgstr "Albanais (Plisi D1)"
 
 #. Keyboard indicator for Armenian layouts
-#: ../rules/base.xml.in.h:237 ../rules/base.extras.xml.in.h:74
+#: ../rules/base.xml.in.h:237 ../rules/base.extras.xml.in.h:75
 msgid "hy"
 msgstr "hy"
 
-#: ../rules/base.xml.in.h:238 ../rules/base.extras.xml.in.h:75
+#: ../rules/base.xml.in.h:238 ../rules/base.extras.xml.in.h:76
 msgid "Armenian"
 msgstr "Arménien"
 
@@ -1029,11 +1029,11 @@ msgid "Belarusian (Latin)"
 msgstr "Biélorusse (latin)"
 
 #. Keyboard indicator for Belgian layouts
-#: ../rules/base.xml.in.h:260 ../rules/base.extras.xml.in.h:83
+#: ../rules/base.xml.in.h:260 ../rules/base.extras.xml.in.h:84
 msgid "be"
 msgstr "be"
 
-#: ../rules/base.xml.in.h:261 ../rules/base.extras.xml.in.h:84
+#: ../rules/base.xml.in.h:261 ../rules/base.extras.xml.in.h:85
 msgid "Belgian"
 msgstr "Belge"
 
@@ -1309,11 +1309,11 @@ msgid "Bosnian (US keyboard with Bosnian letters)"
 msgstr "Bosniaque (clavier US avec lettres bosniaques)"
 
 #. Keyboard indicator for Portuguese layouts
-#: ../rules/base.xml.in.h:338 ../rules/base.extras.xml.in.h:86
+#: ../rules/base.xml.in.h:338 ../rules/base.extras.xml.in.h:87
 msgid "pt"
 msgstr "pt"
 
-#: ../rules/base.xml.in.h:339 ../rules/base.extras.xml.in.h:87
+#: ../rules/base.xml.in.h:339 ../rules/base.extras.xml.in.h:88
 msgid "Portuguese (Brazil)"
 msgstr "Portugais (Brésil)"
 
@@ -1399,12 +1399,12 @@ msgid "Berber (Morocco, Tifinagh extended phonetic)"
 msgstr "Berbère (Maroc, Tifinagh étendu phonétique)"
 
 #. Keyboard indicator for Cameroon layouts
-#: ../rules/base.xml.in.h:363 ../rules/base.extras.xml.in.h:149
+#: ../rules/base.xml.in.h:363 ../rules/base.extras.xml.in.h:150
 msgid "cm"
 msgstr "cm"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Cameroun
-#: ../rules/base.xml.in.h:364 ../rules/base.extras.xml.in.h:150
+#: ../rules/base.xml.in.h:364 ../rules/base.extras.xml.in.h:151
 msgid "English (Cameroon)"
 msgstr "Anglais (Cameroun)"
 
@@ -1527,11 +1527,11 @@ msgid "Croatian (US keyboard with Croatian letters)"
 msgstr "Croate (clavier US avec lettres croates)"
 
 #. Keyboard indicator for Chech layouts
-#: ../rules/base.xml.in.h:398 ../rules/base.extras.xml.in.h:89
+#: ../rules/base.xml.in.h:398 ../rules/base.extras.xml.in.h:90
 msgid "cs"
 msgstr "cs"
 
-#: ../rules/base.xml.in.h:399 ../rules/base.extras.xml.in.h:90
+#: ../rules/base.xml.in.h:399 ../rules/base.extras.xml.in.h:91
 msgid "Czech"
 msgstr "Tchèque"
 
@@ -1560,11 +1560,11 @@ msgid "Czech (US Dvorak with CZ UCW support)"
 msgstr "Tchèque (Dvorak US avec support UCW CZ)"
 
 #. Keyboard indicator for Danish layouts
-#: ../rules/base.xml.in.h:406 ../rules/base.extras.xml.in.h:92
+#: ../rules/base.xml.in.h:406 ../rules/base.extras.xml.in.h:93
 msgid "da"
 msgstr "da"
 
-#: ../rules/base.xml.in.h:407 ../rules/base.extras.xml.in.h:93
+#: ../rules/base.xml.in.h:407 ../rules/base.extras.xml.in.h:94
 msgid "Danish"
 msgstr "Danois"
 
@@ -1589,11 +1589,11 @@ msgid "Danish (Dvorak)"
 msgstr "Danois (Dvorak)"
 
 #. Keyboard indicator for Dutch layouts
-#: ../rules/base.xml.in.h:414 ../rules/base.extras.xml.in.h:95
+#: ../rules/base.xml.in.h:414 ../rules/base.extras.xml.in.h:96
 msgid "nl"
 msgstr "nl"
 
-#: ../rules/base.xml.in.h:415 ../rules/base.extras.xml.in.h:96
+#: ../rules/base.xml.in.h:415 ../rules/base.extras.xml.in.h:97
 msgid "Dutch"
 msgstr "Néerlandais"
 
@@ -1619,11 +1619,11 @@ msgid "Dzongkha"
 msgstr "Dzongkha"
 
 #. Keyboard indicator for Estonian layouts
-#: ../rules/base.xml.in.h:423 ../rules/base.extras.xml.in.h:98
+#: ../rules/base.xml.in.h:423 ../rules/base.extras.xml.in.h:99
 msgid "et"
 msgstr "et"
 
-#: ../rules/base.xml.in.h:424 ../rules/base.extras.xml.in.h:99
+#: ../rules/base.xml.in.h:424 ../rules/base.extras.xml.in.h:100
 msgid "Estonian"
 msgstr "Estonien"
 
@@ -1640,7 +1640,7 @@ msgid "Estonian (US keyboard with Estonian letters)"
 msgstr "Estonien (clavier US avec lettres estoniennes)"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Persan
-#: ../rules/base.xml.in.h:428 ../rules/base.extras.xml.in.h:29
+#: ../rules/base.xml.in.h:428 ../rules/base.extras.xml.in.h:30
 msgid "Persian"
 msgstr "Persan"
 
@@ -1703,11 +1703,11 @@ msgid "Faroese (eliminate dead keys)"
 msgstr "Féroïen (sans touche morte)"
 
 #. Keyboard indicator for Finnish layouts
-#: ../rules/base.xml.in.h:446 ../rules/base.extras.xml.in.h:101
+#: ../rules/base.xml.in.h:446 ../rules/base.extras.xml.in.h:102
 msgid "fi"
 msgstr "fi"
 
-#: ../rules/base.xml.in.h:447 ../rules/base.extras.xml.in.h:102
+#: ../rules/base.xml.in.h:447 ../rules/base.extras.xml.in.h:103
 msgid "Finnish"
 msgstr "Finnois"
 
@@ -1731,7 +1731,7 @@ msgstr "Sami du Nord (Finlande)"
 msgid "Finnish (Macintosh)"
 msgstr "Finnois (Macintosh)"
 
-#: ../rules/base.xml.in.h:453 ../rules/base.extras.xml.in.h:104
+#: ../rules/base.xml.in.h:453 ../rules/base.extras.xml.in.h:105
 msgid "French"
 msgstr "Français"
 
@@ -1979,11 +1979,11 @@ msgid "German (legacy)"
 msgstr "Allemand (obsolète)"
 
 #. Keyboard indicator for Greek layouts
-#: ../rules/base.xml.in.h:518 ../rules/base.extras.xml.in.h:106
+#: ../rules/base.xml.in.h:518 ../rules/base.extras.xml.in.h:107
 msgid "gr"
 msgstr "gr"
 
-#: ../rules/base.xml.in.h:519 ../rules/base.extras.xml.in.h:107
+#: ../rules/base.xml.in.h:519 ../rules/base.extras.xml.in.h:108
 msgid "Greek"
 msgstr "Grec"
 
@@ -2121,11 +2121,11 @@ msgid "Icelandic (Dvorak)"
 msgstr "Islandais (Dvorak)"
 
 #. Keyboard indicator for Hebrew layouts
-#: ../rules/base.xml.in.h:555 ../rules/base.extras.xml.in.h:77
+#: ../rules/base.xml.in.h:555 ../rules/base.extras.xml.in.h:78
 msgid "he"
 msgstr "he"
 
-#: ../rules/base.xml.in.h:556 ../rules/base.extras.xml.in.h:78
+#: ../rules/base.xml.in.h:556 ../rules/base.extras.xml.in.h:79
 msgid "Hebrew"
 msgstr "Hébreu"
 
@@ -2143,11 +2143,11 @@ msgid "Hebrew (Biblical, Tiro)"
 msgstr "Hébreu (biblique, Tiro)"
 
 #. Keyboard indicator for Italian layouts
-#: ../rules/base.xml.in.h:561 ../rules/base.extras.xml.in.h:109
+#: ../rules/base.xml.in.h:561 ../rules/base.extras.xml.in.h:110
 msgid "it"
 msgstr "it"
 
-#: ../rules/base.xml.in.h:562 ../rules/base.extras.xml.in.h:110
+#: ../rules/base.xml.in.h:562 ../rules/base.extras.xml.in.h:111
 msgid "Italian"
 msgstr "Italien"
 
@@ -2177,11 +2177,11 @@ msgid "Italian (IBM 142)"
 msgstr "Italien (IBM 142)"
 
 #. Keyboard indicator for Japanese layouts
-#: ../rules/base.xml.in.h:570 ../rules/base.extras.xml.in.h:112
+#: ../rules/base.xml.in.h:570 ../rules/base.extras.xml.in.h:113
 msgid "ja"
 msgstr "ja"
 
-#: ../rules/base.xml.in.h:571 ../rules/base.extras.xml.in.h:113
+#: ../rules/base.xml.in.h:571 ../rules/base.extras.xml.in.h:114
 msgid "Japanese"
 msgstr "Japonais"
 
@@ -2266,7 +2266,7 @@ msgid "Lao (STEA proposed standard layout)"
 msgstr "Lao (disposition proposée par la STEA)"
 
 #. Keyboard indicator for Spanish layouts
-#: ../rules/base.xml.in.h:594 ../rules/base.extras.xml.in.h:125
+#: ../rules/base.xml.in.h:594 ../rules/base.extras.xml.in.h:126
 msgid "es"
 msgstr "es"
 
@@ -2287,12 +2287,12 @@ msgid "Spanish (Latin American, Sun dead keys)"
 msgstr "Espagnol (Amérique latine, touches mortes Sun)"
 
 #. Keyboard indicator for Lithuanian layouts
-#: ../rules/base.xml.in.h:600 ../rules/base.extras.xml.in.h:31
+#: ../rules/base.xml.in.h:600 ../rules/base.extras.xml.in.h:32
 msgid "lt"
 msgstr "lt"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Lituanien
-#: ../rules/base.xml.in.h:601 ../rules/base.extras.xml.in.h:32
+#: ../rules/base.xml.in.h:601 ../rules/base.extras.xml.in.h:33
 msgid "Lithuanian"
 msgstr "Lituanien"
 
@@ -2318,11 +2318,11 @@ msgid "Lithuanian (LEKPa)"
 msgstr "Lituanien (LEKPa)"
 
 #. Keyboard indicator for Latvian layouts
-#: ../rules/base.xml.in.h:608 ../rules/base.extras.xml.in.h:35
+#: ../rules/base.xml.in.h:608 ../rules/base.extras.xml.in.h:36
 msgid "lv"
 msgstr "lv"
 
-#: ../rules/base.xml.in.h:609 ../rules/base.extras.xml.in.h:36
+#: ../rules/base.xml.in.h:609 ../rules/base.extras.xml.in.h:37
 msgid "Latvian"
 msgstr "Letton"
 
@@ -2360,7 +2360,7 @@ msgid "Maori"
 msgstr "Maori"
 
 #. Keyboard indicator for Serbian layouts
-#: ../rules/base.xml.in.h:620 ../rules/base.extras.xml.in.h:66
+#: ../rules/base.xml.in.h:620 ../rules/base.extras.xml.in.h:67
 msgid "sr"
 msgstr "sr"
 
@@ -2436,12 +2436,12 @@ msgid "Mongolian"
 msgstr "Mongol"
 
 #. Keyboard indicator for Norwegian layouts
-#: ../rules/base.xml.in.h:641 ../rules/base.extras.xml.in.h:117
+#: ../rules/base.xml.in.h:641 ../rules/base.extras.xml.in.h:118
 msgid "no"
 msgstr "no"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Norv%C3%A9gien
-#: ../rules/base.xml.in.h:642 ../rules/base.extras.xml.in.h:118
+#: ../rules/base.xml.in.h:642 ../rules/base.extras.xml.in.h:119
 msgid "Norwegian"
 msgstr "Norvégien"
 
@@ -2478,12 +2478,12 @@ msgid "Norwegian (Colemak)"
 msgstr "Norvégien (Colemak)"
 
 #. Keyboard indicator for Polish layouts
-#: ../rules/base.xml.in.h:652 ../rules/base.extras.xml.in.h:55
+#: ../rules/base.xml.in.h:652 ../rules/base.extras.xml.in.h:56
 msgid "pl"
 msgstr "pl"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Polonais
-#: ../rules/base.xml.in.h:653 ../rules/base.extras.xml.in.h:56
+#: ../rules/base.xml.in.h:653 ../rules/base.extras.xml.in.h:57
 msgid "Polish"
 msgstr "Polonais"
 
@@ -2528,7 +2528,7 @@ msgstr "Russe (Pologne, Dvorak phonétique)"
 msgid "Polish (programmer Dvorak)"
 msgstr "Polonais (Dvorak pour le programmeur)"
 
-#: ../rules/base.xml.in.h:663 ../rules/base.extras.xml.in.h:120
+#: ../rules/base.xml.in.h:663 ../rules/base.extras.xml.in.h:121
 msgid "Portuguese"
 msgstr "Portugais"
 
@@ -2566,12 +2566,12 @@ msgid "Esperanto (Portugal, Nativo)"
 msgstr "Espéranto (Portugal, PT-Nativo)"
 
 #. Keyboard indicator for Romanian layouts
-#: ../rules/base.xml.in.h:673 ../rules/base.extras.xml.in.h:60
+#: ../rules/base.xml.in.h:673 ../rules/base.extras.xml.in.h:61
 msgid "ro"
 msgstr "ro"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Roumain
-#: ../rules/base.xml.in.h:674 ../rules/base.extras.xml.in.h:61
+#: ../rules/base.xml.in.h:674 ../rules/base.extras.xml.in.h:62
 msgid "Romanian"
 msgstr "Roumain"
 
@@ -2591,7 +2591,7 @@ msgstr "Roumain (standard, cédille)"
 msgid "Romanian (WinKeys)"
 msgstr "Roumain (touche Windows)"
 
-#: ../rules/base.xml.in.h:679 ../rules/base.extras.xml.in.h:70
+#: ../rules/base.xml.in.h:679 ../rules/base.extras.xml.in.h:71
 msgid "Russian"
 msgstr "Russe"
 
@@ -2677,1422 +2677,1446 @@ msgstr "Bachkir"
 msgid "Mari"
 msgstr "Mari"
 
-#: ../rules/base.xml.in.h:699 ../rules/base.extras.xml.in.h:67
+#: ../rules/base.xml.in.h:699
+msgid "Russian (phonetic azerty)"
+msgstr "Russe (azerty phonétique)"
+
+#: ../rules/base.xml.in.h:700
+msgid "Russian (phonetic French)"
+msgstr "Russe (français phonétique)"
+
+#: ../rules/base.xml.in.h:701 ../rules/base.extras.xml.in.h:68
 msgid "Serbian"
 msgstr "Serbe"
 
-#: ../rules/base.xml.in.h:700
+#: ../rules/base.xml.in.h:702
 msgid "Serbian (Cyrillic, ZE and ZHE swapped)"
 msgstr "Serbe (cyrillique, ZE et ZHE intervertis)"
 
-#: ../rules/base.xml.in.h:701
+#: ../rules/base.xml.in.h:703
 msgid "Serbian (Latin)"
 msgstr "Serbe (Latin)"
 
-#: ../rules/base.xml.in.h:702
+#: ../rules/base.xml.in.h:704
 msgid "Serbian (Latin Unicode)"
 msgstr "Serbe (latin, Unicode)"
 
-#: ../rules/base.xml.in.h:703
+#: ../rules/base.xml.in.h:705
 msgid "Serbian (Latin qwerty)"
 msgstr "Serbe (latin, qwerty)"
 
-#: ../rules/base.xml.in.h:704
+#: ../rules/base.xml.in.h:706
 msgid "Serbian (Latin Unicode qwerty)"
 msgstr "Serbe (latin, Unicode, qwerty)"
 
-#: ../rules/base.xml.in.h:705
+#: ../rules/base.xml.in.h:707
 msgid "Serbian (Cyrillic with guillemets)"
 msgstr "Serbe (cyrillique avec guillemets)"
 
-#: ../rules/base.xml.in.h:706
+#: ../rules/base.xml.in.h:708
 msgid "Serbian (Latin with guillemets)"
 msgstr "Serbe (Latin avec guillemets)"
 
-#: ../rules/base.xml.in.h:707
+#: ../rules/base.xml.in.h:709
 msgid "Pannonian Rusyn"
 msgstr "Ruthène pannonien"
 
 #. Keyboard indicator for Slovenian layouts
-#: ../rules/base.xml.in.h:709
+#: ../rules/base.xml.in.h:711
 msgid "sl"
 msgstr "sl"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Slov%C3%A8ne
-#: ../rules/base.xml.in.h:710
+#: ../rules/base.xml.in.h:712
 msgid "Slovenian"
 msgstr "Slovène"
 
-#: ../rules/base.xml.in.h:711
+#: ../rules/base.xml.in.h:713
 msgid "Slovenian (with guillemets for quotes)"
 msgstr "Slovène (guillemets typographiques à la place des guillemets simples)"
 
-#: ../rules/base.xml.in.h:712
+#: ../rules/base.xml.in.h:714
 msgid "Slovenian (US keyboard with Slovenian letters)"
 msgstr "Slovène (clavier US avec lettres slovènes)"
 
 #. Keyboard indicator for Slovak layouts
-#: ../rules/base.xml.in.h:714 ../rules/base.extras.xml.in.h:122
+#: ../rules/base.xml.in.h:716 ../rules/base.extras.xml.in.h:123
 msgid "sk"
 msgstr "sk"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Slovaque
-#: ../rules/base.xml.in.h:715 ../rules/base.extras.xml.in.h:123
+#: ../rules/base.xml.in.h:717 ../rules/base.extras.xml.in.h:124
 msgid "Slovak"
 msgstr "Slovaque"
 
-#: ../rules/base.xml.in.h:716
+#: ../rules/base.xml.in.h:718
 msgid "Slovak (extended Backslash)"
 msgstr "Slovaque (barre oblique inverse étendue)"
 
-#: ../rules/base.xml.in.h:717
+#: ../rules/base.xml.in.h:719
 msgid "Slovak (qwerty)"
 msgstr "Slovaque (qwerty)"
 
-#: ../rules/base.xml.in.h:718
+#: ../rules/base.xml.in.h:720
 msgid "Slovak (qwerty, extended Backslash)"
 msgstr "Slovaque (qwerty, barre oblique inverse étendue)"
 
-#: ../rules/base.xml.in.h:719 ../rules/base.extras.xml.in.h:126
+#: ../rules/base.xml.in.h:721 ../rules/base.extras.xml.in.h:127
 msgid "Spanish"
 msgstr "Espagnol"
 
-#: ../rules/base.xml.in.h:720
+#: ../rules/base.xml.in.h:722
 msgid "Spanish (eliminate dead keys)"
 msgstr "Espagnol (sans touche morte)"
 
-#: ../rules/base.xml.in.h:721
+#: ../rules/base.xml.in.h:723
 msgid "Spanish (Winkeys)"
 msgstr "Espagnol (touches Windows)"
 
-#: ../rules/base.xml.in.h:722
+#: ../rules/base.xml.in.h:724
 msgid "Spanish (include dead tilde)"
 msgstr "Espagnol (y compris la touche morte tilde)"
 
-#: ../rules/base.xml.in.h:723
+#: ../rules/base.xml.in.h:725
 msgid "Spanish (Sun dead keys)"
 msgstr "Espagnol (touches mortes Sun)"
 
-#: ../rules/base.xml.in.h:724
+#: ../rules/base.xml.in.h:726
 msgid "Spanish (Dvorak)"
 msgstr "Espagnol (Dvorak)"
 
-#: ../rules/base.xml.in.h:725
+#: ../rules/base.xml.in.h:727
 msgid "Asturian (Spain, with bottom-dot H and bottom-dot L)"
 msgstr "Asturien (Espagne, avec H point bas et L point bas)"
 
-#: ../rules/base.xml.in.h:726
+#: ../rules/base.xml.in.h:728
 msgid "Catalan (Spain, with middle-dot L)"
 msgstr "Catalan (Espagne, avec L point médian)"
 
-#: ../rules/base.xml.in.h:727
+#: ../rules/base.xml.in.h:729
 msgid "Spanish (Macintosh)"
 msgstr "Espagnol (Macintosh)"
 
 #. Keyboard indicator for Swedish layouts
-#: ../rules/base.xml.in.h:729 ../rules/base.extras.xml.in.h:128
+#: ../rules/base.xml.in.h:731 ../rules/base.extras.xml.in.h:129
 msgid "sv"
 msgstr "sv"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Su%C3%A9dois
-#: ../rules/base.xml.in.h:730 ../rules/base.extras.xml.in.h:129
+#: ../rules/base.xml.in.h:732 ../rules/base.extras.xml.in.h:130
 msgid "Swedish"
 msgstr "Suédois"
 
-#: ../rules/base.xml.in.h:731
+#: ../rules/base.xml.in.h:733
 msgid "Swedish (eliminate dead keys)"
 msgstr "Suédois (sans touche morte)"
 
-#: ../rules/base.xml.in.h:732
+#: ../rules/base.xml.in.h:734
 msgid "Swedish (Dvorak)"
 msgstr "Suédois (Dvorak)"
 
-#: ../rules/base.xml.in.h:733
+#: ../rules/base.xml.in.h:735
 msgid "Russian (Sweden, phonetic)"
 msgstr "Russe (Suède, phonétique)"
 
-#: ../rules/base.xml.in.h:734
+#: ../rules/base.xml.in.h:736
 msgid "Russian (Sweden, phonetic, eliminate dead keys)"
 msgstr "Russe (Suède, phonétique, sans touche morte)"
 
-#: ../rules/base.xml.in.h:735
+#: ../rules/base.xml.in.h:737
 msgid "Northern Saami (Sweden)"
 msgstr "Sami du Nord (Suède)"
 
-#: ../rules/base.xml.in.h:736
+#: ../rules/base.xml.in.h:738
 msgid "Swedish (Macintosh)"
 msgstr "Suédois (Macintosh)"
 
-#: ../rules/base.xml.in.h:737
+#: ../rules/base.xml.in.h:739
 msgid "Swedish (Svdvorak)"
 msgstr "Suédois (Svdvorak)"
 
-#: ../rules/base.xml.in.h:738
+#: ../rules/base.xml.in.h:740
 msgid "Swedish Sign Language"
 msgstr "Langue des signes suédoise"
 
-#: ../rules/base.xml.in.h:739 ../rules/base.extras.xml.in.h:132
+#: ../rules/base.xml.in.h:741 ../rules/base.extras.xml.in.h:133
 msgid "German (Switzerland)"
 msgstr "Allemand (Suisse)"
 
-#: ../rules/base.xml.in.h:740
+#: ../rules/base.xml.in.h:742
 msgid "German (Switzerland, legacy)"
 msgstr "Allemand (Suisse, obsolète)"
 
-#: ../rules/base.xml.in.h:741
+#: ../rules/base.xml.in.h:743
 msgid "German (Switzerland, eliminate dead keys)"
 msgstr "Allemand (Suisse, sans touche morte)"
 
-#: ../rules/base.xml.in.h:742
+#: ../rules/base.xml.in.h:744
 msgid "German (Switzerland, Sun dead keys)"
 msgstr "Allemand (Suisse, touches mortes Sun)"
 
-#: ../rules/base.xml.in.h:743
+#: ../rules/base.xml.in.h:745
 msgid "French (Switzerland)"
 msgstr "Français (Suisse)"
 
-#: ../rules/base.xml.in.h:744
+#: ../rules/base.xml.in.h:746
 msgid "French (Switzerland, eliminate dead keys)"
 msgstr "Français (Suisse, sans touche morte)"
 
-#: ../rules/base.xml.in.h:745
+#: ../rules/base.xml.in.h:747
 msgid "French (Switzerland, Sun dead keys)"
 msgstr "Français (Suisse, touches mortes Sun)"
 
-#: ../rules/base.xml.in.h:746
+#: ../rules/base.xml.in.h:748
 msgid "French (Switzerland, Macintosh)"
 msgstr "Français (Suisse, Macintosh)"
 
-#: ../rules/base.xml.in.h:747
+#: ../rules/base.xml.in.h:749
 msgid "German (Switzerland, Macintosh)"
 msgstr "Allemand (Suisse, Macintosh)"
 
-#: ../rules/base.xml.in.h:748
+#: ../rules/base.xml.in.h:750
 msgid "Arabic (Syria)"
 msgstr "Arabe (Syrie)"
 
 #. Keyboard indicator for Syriac layouts
-#: ../rules/base.xml.in.h:750
+#: ../rules/base.xml.in.h:752
 msgid "syc"
 msgstr "syc"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Syriaque
-#: ../rules/base.xml.in.h:751
+#: ../rules/base.xml.in.h:753
 msgid "Syriac"
 msgstr "Syriaque"
 
-#: ../rules/base.xml.in.h:752
+#: ../rules/base.xml.in.h:754
 msgid "Syriac (phonetic)"
 msgstr "Syriaque (phonétique)"
 
-#: ../rules/base.xml.in.h:753
+#: ../rules/base.xml.in.h:755
 msgid "Kurdish (Syria, Latin Q)"
 msgstr "Kurde (Syrie, Q latin)"
 
-#: ../rules/base.xml.in.h:754
+#: ../rules/base.xml.in.h:756
 msgid "Kurdish (Syria, F)"
 msgstr "Kurde (Syrie, F)"
 
-#: ../rules/base.xml.in.h:755
+#: ../rules/base.xml.in.h:757
 msgid "Kurdish (Syria, Latin Alt-Q)"
 msgstr "Kurde (Syrie, Alt-Q latin)"
 
 #. Keyboard indicator for Tajik layouts
-#: ../rules/base.xml.in.h:757
+#: ../rules/base.xml.in.h:759
 msgid "tg"
 msgstr "tg"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Tadjik
-#: ../rules/base.xml.in.h:758
+#: ../rules/base.xml.in.h:760
 msgid "Tajik"
 msgstr "Tadjik"
 
-#: ../rules/base.xml.in.h:759
+#: ../rules/base.xml.in.h:761
 msgid "Tajik (legacy)"
 msgstr "Tadjik (obsolète)"
 
 #. Keyboard indicator for Sinhala layouts
-#: ../rules/base.xml.in.h:761
+#: ../rules/base.xml.in.h:763
 msgid "si"
 msgstr "si"
 
-#: ../rules/base.xml.in.h:762
+#: ../rules/base.xml.in.h:764
 msgid "Sinhala (phonetic)"
 msgstr "Cingalais (phonétique)"
 
-#: ../rules/base.xml.in.h:763
+#: ../rules/base.xml.in.h:765
 msgid "Tamil (Sri Lanka, Unicode)"
 msgstr "Tamoul (Sri Lanka, Unicode)"
 
-#: ../rules/base.xml.in.h:764
+#: ../rules/base.xml.in.h:766
 msgid "Tamil (Sri Lanka, TAB Typewriter)"
 msgstr "Tamoul (Sri Lanka, machine à écrire, TAB)"
 
 #. Keyboard indicator for Thai layouts
-#: ../rules/base.xml.in.h:766
+#: ../rules/base.xml.in.h:768
 msgid "th"
 msgstr "th"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Tha%C3%AF_%28langue%29
-#: ../rules/base.xml.in.h:767
+#: ../rules/base.xml.in.h:769
 msgid "Thai"
 msgstr "Thaï"
 
-#: ../rules/base.xml.in.h:768
+#: ../rules/base.xml.in.h:770
 msgid "Thai (TIS-820.2538)"
 msgstr "Thaï (TIS-820.2538)"
 
-#: ../rules/base.xml.in.h:769
+#: ../rules/base.xml.in.h:771
 msgid "Thai (Pattachote)"
 msgstr "Thaï (Pattachote)"
 
 #. Keyboard indicator for Turkish layouts
-#: ../rules/base.xml.in.h:771 ../rules/base.extras.xml.in.h:135
+#: ../rules/base.xml.in.h:773 ../rules/base.extras.xml.in.h:136
 msgid "tr"
 msgstr "tr"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Turc
-#: ../rules/base.xml.in.h:772 ../rules/base.extras.xml.in.h:136
+#: ../rules/base.xml.in.h:774 ../rules/base.extras.xml.in.h:137
 msgid "Turkish"
 msgstr "Turc"
 
-#: ../rules/base.xml.in.h:773
+#: ../rules/base.xml.in.h:775
 msgid "Turkish (F)"
 msgstr "Turc (F)"
 
-#: ../rules/base.xml.in.h:774
+#: ../rules/base.xml.in.h:776
 msgid "Turkish (Alt-Q)"
 msgstr "Turc (Alt-Q)"
 
-#: ../rules/base.xml.in.h:775
+#: ../rules/base.xml.in.h:777
 msgid "Turkish (Sun dead keys)"
 msgstr "Turc (touches mortes Sun)"
 
-#: ../rules/base.xml.in.h:776
+#: ../rules/base.xml.in.h:778
 msgid "Kurdish (Turkey, Latin Q)"
 msgstr "Kurde (Turquie, Q latin)"
 
-#: ../rules/base.xml.in.h:777
+#: ../rules/base.xml.in.h:779
 msgid "Kurdish (Turkey, F)"
 msgstr "Kurde (Turquie, F)"
 
-#: ../rules/base.xml.in.h:778
+#: ../rules/base.xml.in.h:780
 msgid "Kurdish (Turkey, Latin Alt-Q)"
 msgstr "Kurde (Turquie, Alt-Q latin)"
 
-#: ../rules/base.xml.in.h:779
+#: ../rules/base.xml.in.h:781
 msgid "Turkish (international with dead keys)"
 msgstr "Turc (international avec touches mortes)"
 
 #. Keyboard indicator for Crimean Tatar layouts
-#: ../rules/base.xml.in.h:781 ../rules/base.extras.xml.in.h:62
+#: ../rules/base.xml.in.h:783 ../rules/base.extras.xml.in.h:63
 msgid "crh"
 msgstr "crh"
 
-#: ../rules/base.xml.in.h:782
+#: ../rules/base.xml.in.h:784
 msgid "Crimean Tatar (Turkish Q)"
 msgstr "Tatar de Crimée (Q turc)"
 
-#: ../rules/base.xml.in.h:783
+#: ../rules/base.xml.in.h:785
 msgid "Crimean Tatar (Turkish F)"
 msgstr "Tatar de Crimée (F turc)"
 
-#: ../rules/base.xml.in.h:784
+#: ../rules/base.xml.in.h:786
 msgid "Crimean Tatar (Turkish Alt-Q)"
 msgstr "Tatar de Crimée (Alt-Q turc)"
 
-#: ../rules/base.xml.in.h:785
+#: ../rules/base.xml.in.h:787
 msgid "Taiwanese"
 msgstr "Taïwanais"
 
-#: ../rules/base.xml.in.h:786
+#: ../rules/base.xml.in.h:788
 msgid "Taiwanese (indigenous)"
 msgstr "Taïwanais (indigène)"
 
 #. Keyboard indicator for Saisiyat layouts
-#: ../rules/base.xml.in.h:788
+#: ../rules/base.xml.in.h:790
 msgid "xsy"
 msgstr "xsy"
 
-#: ../rules/base.xml.in.h:789
+#: ../rules/base.xml.in.h:791
 msgid "Saisiyat (Taiwan)"
 msgstr "Saisiyat (Taïwan)"
 
 #. Keyboard indicator for Ukranian layouts
-#: ../rules/base.xml.in.h:791 ../rules/base.extras.xml.in.h:138
+#: ../rules/base.xml.in.h:793 ../rules/base.extras.xml.in.h:139
 msgid "uk"
 msgstr "uk"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Ukrainien
-#: ../rules/base.xml.in.h:792 ../rules/base.extras.xml.in.h:139
+#: ../rules/base.xml.in.h:794 ../rules/base.extras.xml.in.h:140
 msgid "Ukrainian"
 msgstr "Ukrainien"
 
-#: ../rules/base.xml.in.h:793
+#: ../rules/base.xml.in.h:795
 msgid "Ukrainian (phonetic)"
 msgstr "Ukrainien (phonétique)"
 
-#: ../rules/base.xml.in.h:794
+#: ../rules/base.xml.in.h:796
 msgid "Ukrainian (typewriter)"
 msgstr "Ukrainien (machine à écrire)"
 
-#: ../rules/base.xml.in.h:795
+#: ../rules/base.xml.in.h:797
 msgid "Ukrainian (WinKeys)"
 msgstr "Ukrainien (touches Windows)"
 
-#: ../rules/base.xml.in.h:796
+#: ../rules/base.xml.in.h:798
 msgid "Ukrainian (legacy)"
 msgstr "Ukrainien (obsolète)"
 
-#: ../rules/base.xml.in.h:797
+#: ../rules/base.xml.in.h:799
 msgid "Ukrainian (standard RSTU)"
 msgstr "Ukrainien (RSTU standard)"
 
-#: ../rules/base.xml.in.h:798
+#: ../rules/base.xml.in.h:800
 msgid "Russian (Ukraine, standard RSTU)"
 msgstr "Russe (Ukraine, RSTU standard)"
 
-#: ../rules/base.xml.in.h:799
+#: ../rules/base.xml.in.h:801
 msgid "Ukrainian (homophonic)"
 msgstr "Ukrainien (homophonique)"
 
-#: ../rules/base.xml.in.h:800 ../rules/base.extras.xml.in.h:141
+#: ../rules/base.xml.in.h:802 ../rules/base.extras.xml.in.h:142
 msgid "English (UK)"
 msgstr "Anglais (Royaume-Uni)"
 
-#: ../rules/base.xml.in.h:801
+#: ../rules/base.xml.in.h:803
 msgid "English (UK, extended WinKeys)"
 msgstr "Anglais (Royaume-Uni, touche Windows étendue)"
 
-#: ../rules/base.xml.in.h:802
+#: ../rules/base.xml.in.h:804
 msgid "English (UK, international with dead keys)"
 msgstr "Anglais (Royaume-Uni, international, avec touches mortes)"
 
-#: ../rules/base.xml.in.h:803
+#: ../rules/base.xml.in.h:805
 msgid "English (UK, Dvorak)"
 msgstr "Anglais (Royaume-Uni, Dvorak)"
 
-#: ../rules/base.xml.in.h:804
+#: ../rules/base.xml.in.h:806
 msgid "English (UK, Dvorak with UK punctuation)"
 msgstr "Anglais (Royaume-Uni, Dvorak, ponctuation britannique)"
 
-#: ../rules/base.xml.in.h:805
+#: ../rules/base.xml.in.h:807
 msgid "English (UK, Macintosh)"
 msgstr "Anglais (Royaume-Uni, Macintosh)"
 
-#: ../rules/base.xml.in.h:806
+#: ../rules/base.xml.in.h:808
 msgid "English (UK, Macintosh international)"
 msgstr "Anglais (Royaume-Uni, Macintosh international)"
 
 # http://colemak.com/
-#: ../rules/base.xml.in.h:807
+#: ../rules/base.xml.in.h:809
 msgid "English (UK, Colemak)"
 msgstr "Anglais (Royaume-Uni, Colemak)"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Ouzbek
-#: ../rules/base.xml.in.h:808
+#: ../rules/base.xml.in.h:810
 msgid "Uzbek"
 msgstr "Ouzbek"
 
-#: ../rules/base.xml.in.h:809
+#: ../rules/base.xml.in.h:811
 msgid "Uzbek (Latin)"
 msgstr "Ouzbek (latin)"
 
 #. Keyboard indicator for Vietnamese layouts
-#: ../rules/base.xml.in.h:811
+#: ../rules/base.xml.in.h:813
 msgid "vi"
 msgstr "vi"
 
-#: ../rules/base.xml.in.h:812
+#: ../rules/base.xml.in.h:814
 msgid "Vietnamese"
 msgstr "Vietnamien"
 
 #. Keyboard indicator for Korean layouts
-#: ../rules/base.xml.in.h:814 ../rules/base.extras.xml.in.h:143
+#: ../rules/base.xml.in.h:816 ../rules/base.extras.xml.in.h:144
 msgid "ko"
 msgstr "ko"
 
-#: ../rules/base.xml.in.h:815 ../rules/base.extras.xml.in.h:144
+#: ../rules/base.xml.in.h:817 ../rules/base.extras.xml.in.h:145
 msgid "Korean"
 msgstr "Coréen"
 
-#: ../rules/base.xml.in.h:816
+#: ../rules/base.xml.in.h:818
 msgid "Korean (101/104 key compatible)"
 msgstr "Coréen (compatible 101/104 touches)"
 
-#: ../rules/base.xml.in.h:817
+#: ../rules/base.xml.in.h:819
 msgid "Japanese (PC-98xx Series)"
 msgstr "Japonais (PC-98xx)"
 
 #. Keyboard indicator for Irish layouts
-#: ../rules/base.xml.in.h:819
+#: ../rules/base.xml.in.h:821
 msgid "ie"
 msgstr "ie"
 
-#: ../rules/base.xml.in.h:820
+#: ../rules/base.xml.in.h:822
 msgid "Irish"
 msgstr "Irlandais"
 
-#: ../rules/base.xml.in.h:821
+#: ../rules/base.xml.in.h:823
 msgid "CloGaelach"
 msgstr "Cló Gaelach"
 
-#: ../rules/base.xml.in.h:822
+#: ../rules/base.xml.in.h:824
 msgid "Irish (UnicodeExpert)"
 msgstr "Irlandais (UnicodeExpert)"
 
-#: ../rules/base.xml.in.h:823
+#: ../rules/base.xml.in.h:825
 msgid "Ogham"
 msgstr "Ogham"
 
-#: ../rules/base.xml.in.h:824
+#: ../rules/base.xml.in.h:826
 msgid "Ogham (IS434)"
 msgstr "Ogham (IS434)"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Ourdou
-#: ../rules/base.xml.in.h:825
+#: ../rules/base.xml.in.h:827
 msgid "Urdu (Pakistan)"
 msgstr "Ourdou (Pakistan)"
 
-#: ../rules/base.xml.in.h:826
+#: ../rules/base.xml.in.h:828
 msgid "Urdu (Pakistan, CRULP)"
 msgstr "Ourdou (Pakistan, CRULP)"
 
-#: ../rules/base.xml.in.h:827
+#: ../rules/base.xml.in.h:829
 msgid "Urdu (Pakistan, NLA)"
 msgstr "Ourdou (Pakistan, NLA)"
 
-#: ../rules/base.xml.in.h:828
+#: ../rules/base.xml.in.h:830
 msgid "Arabic (Pakistan)"
 msgstr "Arabe (Pakistan)"
 
 #. Keyboard indicator for Sindhi layouts
-#: ../rules/base.xml.in.h:830
+#: ../rules/base.xml.in.h:832
 msgid "sd"
 msgstr "sd"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Sindhi
-#: ../rules/base.xml.in.h:831
+#: ../rules/base.xml.in.h:833
 msgid "Sindhi"
 msgstr "Sindhî"
 
 #. Keyboard indicator for Dhivehi layouts
-#: ../rules/base.xml.in.h:833
+#: ../rules/base.xml.in.h:835
 msgid "dv"
 msgstr "dv"
 
-#: ../rules/base.xml.in.h:834
+#: ../rules/base.xml.in.h:836
 msgid "Dhivehi"
 msgstr "Divehi"
 
-#: ../rules/base.xml.in.h:835
+#: ../rules/base.xml.in.h:837
 msgid "English (South Africa)"
 msgstr "Anglais (Afrique du Sud)"
 
 #. Keyboard indicator for Esperanto layouts
-#: ../rules/base.xml.in.h:837
+#: ../rules/base.xml.in.h:839
 msgid "eo"
 msgstr "eo"
 
-#: ../rules/base.xml.in.h:838
+#: ../rules/base.xml.in.h:840
 msgid "Esperanto"
 msgstr "Espéranto"
 
-#: ../rules/base.xml.in.h:839
+#: ../rules/base.xml.in.h:841
 msgid "Esperanto (displaced semicolon and quote, obsolete)"
 msgstr "Espéranto (point-virgule et guillemets simples déplacés, obsolète)"
 
 #. Keyboard indicator for Nepali layouts
-#: ../rules/base.xml.in.h:841
+#: ../rules/base.xml.in.h:843
 msgid "ne"
 msgstr "ne"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/N%C3%A9palais
-#: ../rules/base.xml.in.h:842
+#: ../rules/base.xml.in.h:844
 msgid "Nepali"
 msgstr "Népalais"
 
-#: ../rules/base.xml.in.h:843
+#: ../rules/base.xml.in.h:845
 msgid "English (Nigeria)"
 msgstr "Anglais (Nigeria)"
 
 #. Keyboard indicator for Igbo layouts
-#: ../rules/base.xml.in.h:845
+#: ../rules/base.xml.in.h:847
 msgid "ig"
 msgstr "ig"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Igbo
-#: ../rules/base.xml.in.h:846
+#: ../rules/base.xml.in.h:848
 msgid "Igbo"
 msgstr "Igbo"
 
 #. Keyboard indicator for Yoruba layouts
-#: ../rules/base.xml.in.h:848
+#: ../rules/base.xml.in.h:850
 msgid "yo"
 msgstr "yo"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Yoruba
-#: ../rules/base.xml.in.h:849
+#: ../rules/base.xml.in.h:851
 msgid "Yoruba"
 msgstr "Yoruba"
 
 #. Keyboard indicator for Amharic layouts
-#: ../rules/base.xml.in.h:851
+#: ../rules/base.xml.in.h:853
 msgid "am"
 msgstr "am"
 
-#: ../rules/base.xml.in.h:852
+#: ../rules/base.xml.in.h:854
 msgid "Amharic"
 msgstr "Amharique"
 
 #. Keyboard indicator for Wolof layouts
-#: ../rules/base.xml.in.h:854
+#: ../rules/base.xml.in.h:856
 msgid "wo"
 msgstr "wo"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Wolof_%28langue%29
-#: ../rules/base.xml.in.h:855
+#: ../rules/base.xml.in.h:857
 msgid "Wolof"
 msgstr "Wolof"
 
 #. Keyboard indicator for Braille layouts
-#: ../rules/base.xml.in.h:857
+#: ../rules/base.xml.in.h:859
 msgid "brl"
 msgstr "brl"
 
-#: ../rules/base.xml.in.h:858
+#: ../rules/base.xml.in.h:860
 msgid "Braille"
 msgstr "Braille"
 
-#: ../rules/base.xml.in.h:859
+#: ../rules/base.xml.in.h:861
 msgid "Braille (left hand)"
 msgstr "Braille (main gauche)"
 
-#: ../rules/base.xml.in.h:860
+#: ../rules/base.xml.in.h:862
 msgid "Braille (right hand)"
 msgstr "Braille (main droite)"
 
 #. Keyboard indicator for Turkmen layouts
-#: ../rules/base.xml.in.h:862
+#: ../rules/base.xml.in.h:864
 msgid "tk"
 msgstr "tk"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Turkm%C3%A8ne
-#: ../rules/base.xml.in.h:863
+#: ../rules/base.xml.in.h:865
 msgid "Turkmen"
 msgstr "Turkmène"
 
-#: ../rules/base.xml.in.h:864
+#: ../rules/base.xml.in.h:866
 msgid "Turkmen (Alt-Q)"
 msgstr "Turkmène (Alt-Q)"
 
 #. Keyboard indicator for Bambara layouts
-#: ../rules/base.xml.in.h:866
+#: ../rules/base.xml.in.h:868
 msgid "bm"
 msgstr "bm"
 
-#: ../rules/base.xml.in.h:867
+#: ../rules/base.xml.in.h:869
 msgid "Bambara"
 msgstr "Bambara"
 
-#: ../rules/base.xml.in.h:868
+#: ../rules/base.xml.in.h:870
 msgid "French (Mali, alternative)"
 msgstr "Français (Mali, variante)"
 
-#: ../rules/base.xml.in.h:869
+#: ../rules/base.xml.in.h:871
 msgid "English (Mali, US Macintosh)"
 msgstr "Anglais (Mali, Macintosh US)"
 
-#: ../rules/base.xml.in.h:870
+#: ../rules/base.xml.in.h:872
 msgid "English (Mali, US international)"
 msgstr "Anglais (Mali, US international)"
 
 #. Keyboard indicator for Swahili layouts
-#: ../rules/base.xml.in.h:872
+#: ../rules/base.xml.in.h:874
 msgid "sw"
 msgstr "sw"
 
-#: ../rules/base.xml.in.h:873
+#: ../rules/base.xml.in.h:875
 msgid "Swahili (Tanzania)"
 msgstr "Swahili (Tanzanie)"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Swahili
-#: ../rules/base.xml.in.h:874
+#: ../rules/base.xml.in.h:876
 msgid "Swahili (Kenya)"
 msgstr "Swahili (Kenya)"
 
 # Langue bantoue.
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Kikuyu_%28langue%29
-#: ../rules/base.xml.in.h:875
+#: ../rules/base.xml.in.h:877
 msgid "Kikuyu"
 msgstr "Kikuyu"
 
 #. Keyboard indicator for Tswana layouts
-#: ../rules/base.xml.in.h:877
+#: ../rules/base.xml.in.h:879
 msgid "tn"
 msgstr "tn"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Tswana
-#: ../rules/base.xml.in.h:878
+#: ../rules/base.xml.in.h:880
 msgid "Tswana"
 msgstr "Tswana"
 
 #. Keyboard indicator for Filipino layouts
-#: ../rules/base.xml.in.h:880
+#: ../rules/base.xml.in.h:882
 msgid "ph"
 msgstr "ph"
 
-#: ../rules/base.xml.in.h:881
+#: ../rules/base.xml.in.h:883
 msgid "Filipino"
 msgstr "Filipino"
 
-#: ../rules/base.xml.in.h:882
+#: ../rules/base.xml.in.h:884
 msgid "Filipino (QWERTY Baybayin)"
 msgstr "Filipino (baybayin, qwerty)"
 
 # http://www.michaelcapewell.com/projects/keyboard/#The_Capewell-Dvorak_Layout
-#: ../rules/base.xml.in.h:883
+#: ../rules/base.xml.in.h:885
 msgid "Filipino (Capewell-Dvorak Latin)"
 msgstr "Filipino (Capewell-Dvorak, latin)"
 
 # http://www.michaelcapewell.com/projects/keyboard/#The_Capewell-Dvorak_Layout
-#: ../rules/base.xml.in.h:884
+#: ../rules/base.xml.in.h:886
 msgid "Filipino (Capewell-Dvorak Baybayin)"
 msgstr "Filipino (Capewell-Dvorak, baybayin)"
 
 # http://www.michaelcapewell.com/projects/keyboard/#The_QWERF_Layout
-#: ../rules/base.xml.in.h:885
+#: ../rules/base.xml.in.h:887
 msgid "Filipino (Capewell-QWERF 2006 Latin)"
 msgstr "Filipino (Capewell-QWERF 2006, latin)"
 
 # http://www.michaelcapewell.com/projects/keyboard/#The_QWERF_Layout
-#: ../rules/base.xml.in.h:886
+#: ../rules/base.xml.in.h:888
 msgid "Filipino (Capewell-QWERF 2006 Baybayin)"
 msgstr "Filipino (Capewell-QWERF 2006, baybayin)"
 
-#: ../rules/base.xml.in.h:887
+#: ../rules/base.xml.in.h:889
 msgid "Filipino (Colemak Latin)"
 msgstr "Filipino (Colemak, latin)"
 
-#: ../rules/base.xml.in.h:888
+#: ../rules/base.xml.in.h:890
 msgid "Filipino (Colemak Baybayin)"
 msgstr "Filipino (Colemak, baybayin)"
 
-#: ../rules/base.xml.in.h:889
+#: ../rules/base.xml.in.h:891
 msgid "Filipino (Dvorak Latin)"
 msgstr "Filipino (Dvorak, latin)"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Baybayin
-#: ../rules/base.xml.in.h:890
+#: ../rules/base.xml.in.h:892
 msgid "Filipino (Dvorak Baybayin)"
 msgstr "Filipino (Dvorak, baybayin)"
 
-#: ../rules/base.xml.in.h:891
+#: ../rules/base.xml.in.h:893
 msgid "md"
 msgstr "md"
 
-#: ../rules/base.xml.in.h:892
+#: ../rules/base.xml.in.h:894
 msgid "Moldavian"
 msgstr "Moldave"
 
-#: ../rules/base.xml.in.h:893
+#: ../rules/base.xml.in.h:895
 msgid "gag"
 msgstr "gag"
 
 # https://fr.wikipedia.org/wiki/Gagaouze 
-#: ../rules/base.xml.in.h:894
+#: ../rules/base.xml.in.h:896
 msgid "Moldavian (Gagauz)"
 msgstr "Moldave (Gagaouze)"
 
-#: ../rules/base.xml.in.h:895
+#: ../rules/base.xml.in.h:897
 msgid "Switching to another layout"
 msgstr "Passage à une autre disposition"
 
-#: ../rules/base.xml.in.h:896
+#: ../rules/base.xml.in.h:898
 msgid "Right Alt (while pressed)"
 msgstr "Alt droite (si enfoncé)"
 
-#: ../rules/base.xml.in.h:897
+#: ../rules/base.xml.in.h:899
 msgid "Left Alt (while pressed)"
 msgstr "Alt gauche (si enfoncé)"
 
-#: ../rules/base.xml.in.h:898
+#: ../rules/base.xml.in.h:900
 msgid "Left Win (while pressed)"
 msgstr "Windows gauche (si enfoncé)"
 
-#: ../rules/base.xml.in.h:899
+#: ../rules/base.xml.in.h:901
 msgid "Right Win (while pressed)"
 msgstr "Windows droite (si enfoncé)"
 
-#: ../rules/base.xml.in.h:900
+#: ../rules/base.xml.in.h:902
 msgid "Any Win key (while pressed)"
 msgstr "N'importe quelle touche Windows (enfoncée)"
 
-#: ../rules/base.xml.in.h:901
+#: ../rules/base.xml.in.h:903
 msgid "Caps Lock (while pressed), Alt+Caps Lock does the original capslock action"
 msgstr "Verr. maj. (si enfoncé), Alt+Verr. maj. joue le rôle original de Verr. maj."
 
-#: ../rules/base.xml.in.h:902
+#: ../rules/base.xml.in.h:904
 msgid "Right Ctrl (while pressed)"
 msgstr "Ctrl droite (si enfoncé)"
 
-#: ../rules/base.xml.in.h:903
+#: ../rules/base.xml.in.h:905
 msgid "Right Alt"
 msgstr "Alt droite"
 
-#: ../rules/base.xml.in.h:904
+#: ../rules/base.xml.in.h:906
 msgid "Left Alt"
 msgstr "Alt gauche"
 
-#: ../rules/base.xml.in.h:905
+#: ../rules/base.xml.in.h:907
 msgid "Caps Lock"
 msgstr "Verr. maj."
 
-#: ../rules/base.xml.in.h:906
+#: ../rules/base.xml.in.h:908
 msgid "Shift+Caps Lock"
 msgstr "Maj.+ Verr. maj."
 
-#: ../rules/base.xml.in.h:907
+#: ../rules/base.xml.in.h:909
 msgid "Caps Lock (to first layout), Shift+Caps Lock (to last layout)"
 msgstr "Verr. maj. (première disposition), Maj.+Verr. maj. (dernière disposition)"
 
-#: ../rules/base.xml.in.h:908
+#: ../rules/base.xml.in.h:910
 msgid "Left Win (to first layout), Right Win/Menu (to last layout)"
 msgstr "Touche Windows gauche (première disposition), touche Windows droite (dernière disposition)"
 
-#: ../rules/base.xml.in.h:909
+#: ../rules/base.xml.in.h:911
 msgid "Left Ctrl (to first layout), Right Ctrl (to last layout)"
 msgstr "Ctrl gauche (première disposition), Ctrl droit (dernière disposition)"
 
-#: ../rules/base.xml.in.h:910
+#: ../rules/base.xml.in.h:912
 msgid "Alt+Caps Lock"
 msgstr "Alt+Verr. maj."
 
-#: ../rules/base.xml.in.h:911
+#: ../rules/base.xml.in.h:913
 msgid "Both Shift keys together"
 msgstr "Les deux Maj. ensemble"
 
-#: ../rules/base.xml.in.h:912
+#: ../rules/base.xml.in.h:914
 msgid "Both Alt keys together"
 msgstr "Les deux Alt ensemble"
 
-#: ../rules/base.xml.in.h:913
+#: ../rules/base.xml.in.h:915
 msgid "Both Ctrl keys together"
 msgstr "Les deux Ctrl ensemble"
 
-#: ../rules/base.xml.in.h:914
+#: ../rules/base.xml.in.h:916
 msgid "Ctrl+Shift"
 msgstr "Ctrl+Maj."
 
-#: ../rules/base.xml.in.h:915
+#: ../rules/base.xml.in.h:917
 msgid "Left Ctrl+Left Shift"
 msgstr "Ctrl gauche+Maj. gauche"
 
-#: ../rules/base.xml.in.h:916
+#: ../rules/base.xml.in.h:918
 msgid "Right Ctrl+Right Shift"
 msgstr "Ctrl  droite + Maj. droite"
 
-#: ../rules/base.xml.in.h:917
+#: ../rules/base.xml.in.h:919
 msgid "Alt+Ctrl"
 msgstr "Alt+Ctrl"
 
-#: ../rules/base.xml.in.h:918
+#: ../rules/base.xml.in.h:920
 msgid "Alt+Shift"
 msgstr "Alt+Maj."
 
-#: ../rules/base.xml.in.h:919
+#: ../rules/base.xml.in.h:921
 msgid "Left Alt+Left Shift"
 msgstr "Alt gauche+Maj. gauche"
 
-#: ../rules/base.xml.in.h:920
+#: ../rules/base.xml.in.h:922
 msgid "Alt+Space"
 msgstr "Alt+Espace"
 
-#: ../rules/base.xml.in.h:921
+#: ../rules/base.xml.in.h:923
 msgid "Menu"
 msgstr "Menu"
 
-#: ../rules/base.xml.in.h:922
+#: ../rules/base.xml.in.h:924
 msgid "Left Win"
 msgstr "Touche Windows gauche"
 
-#: ../rules/base.xml.in.h:923
+#: ../rules/base.xml.in.h:925
 msgid "Win Key+Space"
 msgstr "Windows+Espace"
 
-#: ../rules/base.xml.in.h:924
+#: ../rules/base.xml.in.h:926
 msgid "Right Win"
 msgstr "Windows droite"
 
-#: ../rules/base.xml.in.h:925
+#: ../rules/base.xml.in.h:927
 msgid "Left Shift"
 msgstr "Maj. gauche"
 
-#: ../rules/base.xml.in.h:926
+#: ../rules/base.xml.in.h:928
 msgid "Right Shift"
 msgstr "Maj. droite"
 
-#: ../rules/base.xml.in.h:927
+#: ../rules/base.xml.in.h:929
 msgid "Left Ctrl"
 msgstr "Ctrl gauche"
 
-#: ../rules/base.xml.in.h:928
+#: ../rules/base.xml.in.h:930
 msgid "Right Ctrl"
 msgstr "Ctrl droite"
 
-#: ../rules/base.xml.in.h:929
+#: ../rules/base.xml.in.h:931
 msgid "Scroll Lock"
 msgstr "Arrêt défilement"
 
-#: ../rules/base.xml.in.h:930
+#: ../rules/base.xml.in.h:932
 msgid "LeftCtrl+LeftWin (to first layout), RightCtrl+Menu (to second layout)"
 msgstr "Ctrl gauche + Windows gauche (première disposition), Ctrl droit + Menu (seconde disposition)"
 
-#: ../rules/base.xml.in.h:931
+#: ../rules/base.xml.in.h:933
 msgid "Key to choose 3rd level"
 msgstr "Touche sélectionnant le niveau 3"
 
-#: ../rules/base.xml.in.h:932
+#: ../rules/base.xml.in.h:934
 msgid "Any Win key"
 msgstr "N'importe quelle touche Windows"
 
-#: ../rules/base.xml.in.h:933
+#: ../rules/base.xml.in.h:935
 msgid "Any Alt key"
 msgstr "N'importe quelle touche Alt"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/Touche_compose
-#: ../rules/base.xml.in.h:934
+#: ../rules/base.xml.in.h:936
 msgid "Right Alt, Shift+Right Alt key is Compose"
 msgstr "Alt droite, Maj. + Alt droite est la touche compose"
 
-#: ../rules/base.xml.in.h:935
+#: ../rules/base.xml.in.h:937
 msgid "Right Alt key never chooses 3rd level"
 msgstr "Alt droite ne sélectionne jamais le niveau 3"
 
-#: ../rules/base.xml.in.h:936
+#: ../rules/base.xml.in.h:938
 msgid "Enter on keypad"
 msgstr "Entrée sur le pavé numérique"
 
-#: ../rules/base.xml.in.h:937
+#: ../rules/base.xml.in.h:939
 msgid "Backslash"
 msgstr "Barre oblique inverse"
 
-#: ../rules/base.xml.in.h:938
+#: ../rules/base.xml.in.h:940
 msgid "&lt;Less/Greater&gt;"
 msgstr "&lt;Plus petit/Plus grand&gt;"
 
-#: ../rules/base.xml.in.h:939
+#: ../rules/base.xml.in.h:941
 msgid "Caps Lock chooses 3rd level, acts as onetime lock when pressed together with another 3rd-level-chooser"
 msgstr "Verr. maj. sélectionne le niveau 3 ; avec un autre sélecteur de niveau 3, enclenche une fois ce niveau"
 
-#: ../rules/base.xml.in.h:940
+#: ../rules/base.xml.in.h:942
 msgid "Backslash chooses 3rd level, acts as onetime lock when pressed together with another 3rd-level-chooser"
 msgstr "La barre oblique inverse sélectionne le niveau 3 ; avec un autre sélecteur de niveau 3, enclenche une fois ce niveau"
 
-#: ../rules/base.xml.in.h:941
+#: ../rules/base.xml.in.h:943
 msgid "&lt;Less/Greater&gt; chooses 3rd level, acts as onetime lock when pressed together with another 3rd-level-chooser"
 msgstr "&lt;Plus petit/Plus grand&gt; sélectionne le niveau 3 ; avec un autre sélecteur de niveau 3, enclenche une fois ce niveau"
 
-#: ../rules/base.xml.in.h:942
+#: ../rules/base.xml.in.h:944
 msgid "Ctrl key position"
 msgstr "Position de la touche Ctrl"
 
-#: ../rules/base.xml.in.h:943
+#: ../rules/base.xml.in.h:945
 msgid "Caps Lock as Ctrl"
 msgstr "Verr. maj. comme Ctrl"
 
-#: ../rules/base.xml.in.h:944
+#: ../rules/base.xml.in.h:946
 msgid "Left Ctrl as Meta"
 msgstr "Ctrl gauche comme Méta"
 
-#: ../rules/base.xml.in.h:945
+#: ../rules/base.xml.in.h:947
 msgid "Swap Ctrl and Caps Lock"
 msgstr "Intervertir Ctrl et Verr. maj."
 
-#: ../rules/base.xml.in.h:946
+#: ../rules/base.xml.in.h:948
 msgid "At left of 'A'"
 msgstr "À gauche du « A »"
 
-#: ../rules/base.xml.in.h:947
+#: ../rules/base.xml.in.h:949
 msgid "At bottom left"
 msgstr "En bas à gauche"
 
-#: ../rules/base.xml.in.h:948
+#: ../rules/base.xml.in.h:950
 msgid "Right Ctrl as Right Alt"
 msgstr "Ctrl droite comme Alt droite"
 
-#: ../rules/base.xml.in.h:949
+#: ../rules/base.xml.in.h:951
 msgid "Menu as Right Ctrl"
 msgstr "Menu comme Ctrl droite"
 
-#: ../rules/base.xml.in.h:950
+#: ../rules/base.xml.in.h:952
 msgid "Right Alt as Right Ctrl"
 msgstr "Alt droite comme Ctrl droite"
 
-#: ../rules/base.xml.in.h:951
+#: ../rules/base.xml.in.h:953
 msgid "Swap Left Alt key with Left Ctrl key"
 msgstr "Échange Alt. gauche et Ctrl gauche"
 
-#: ../rules/base.xml.in.h:952
+#: ../rules/base.xml.in.h:954
 msgid "Swap Left Win key with Left Ctrl key"
 msgstr "Échange Win gauche et Ctrl gauche"
 
-#: ../rules/base.xml.in.h:953
+#: ../rules/base.xml.in.h:955
 msgid "Swap Right Win key with Right Ctrl key"
 msgstr "Échange Win droite et Ctrl droite"
 
-#: ../rules/base.xml.in.h:954
+#: ../rules/base.xml.in.h:956
 msgid "Left Alt as Ctrl, Left Ctrl as Win, Left Win as Alt"
 msgstr "Alt. gauche pour Ctrl, Ctrl pour Win, Win gauche pour Alt."
 
 # https://bugzilla.gnome.org/show_bug.cgi?id=518156
-#: ../rules/base.xml.in.h:955
+#: ../rules/base.xml.in.h:957
 msgid "Use keyboard LED to show alternative layout"
 msgstr "Utiliser les voyants du clavier pour indiquer une disposition alternative"
 
-#: ../rules/base.xml.in.h:956
+#: ../rules/base.xml.in.h:958
 msgid "Num Lock"
 msgstr "Verr. Num."
 
-#: ../rules/base.xml.in.h:957
+#: ../rules/base.xml.in.h:959
 msgid "Layout of numeric keypad"
 msgstr "Disposition du pavé numérique"
 
-#: ../rules/base.xml.in.h:958
+#: ../rules/base.xml.in.h:960
 msgid "Legacy"
 msgstr "Obsolète"
 
-#: ../rules/base.xml.in.h:959
+#: ../rules/base.xml.in.h:961
 msgid "Unicode additions (arrows and math operators)"
 msgstr "Ajouts Unicode (opérateurs mathématiques et flèches)"
 
-#: ../rules/base.xml.in.h:960
+#: ../rules/base.xml.in.h:962
 msgid "Unicode additions (arrows and math operators; math operators on default level)"
 msgstr "Ajouts Unicode (opérateurs mathématiques et flèches ; opérateurs mathématiques au niveau par défaut)"
 
-#: ../rules/base.xml.in.h:961
+#: ../rules/base.xml.in.h:963
 msgid "Legacy Wang 724"
 msgstr "Wang 724 (clavier obsolète)"
 
-#: ../rules/base.xml.in.h:962
+#: ../rules/base.xml.in.h:964
 msgid "Wang 724 keypad with Unicode additions (arrows and math operators)"
 msgstr "Wang 724 avec ajouts Unicode (opérateurs mathématiques et flèches)"
 
-#: ../rules/base.xml.in.h:963
+#: ../rules/base.xml.in.h:965
 msgid "Wang 724 keypad with Unicode additions (arrows and math operators; math operators on default level)"
 msgstr "Wang 724 avec ajouts Unicode (opérateurs mathématiques et flèches ; opérateurs mathématiques au niveau par défaut)"
 
-#: ../rules/base.xml.in.h:964
+#: ../rules/base.xml.in.h:966
 msgid "Hexadecimal"
 msgstr "Hexadécimal"
 
-#: ../rules/base.xml.in.h:965
+#: ../rules/base.xml.in.h:967
 msgid "ATM/phone-style"
 msgstr "Clavier de type téléphonique"
 
-#: ../rules/base.xml.in.h:966
+#: ../rules/base.xml.in.h:968
 msgid "Numeric keypad delete key behaviour"
 msgstr "Comportement de la touche de Suppr. du pavé numérique"
 
-#: ../rules/base.xml.in.h:967
+#: ../rules/base.xml.in.h:969
 msgid "Legacy key with dot"
 msgstr "Touche obsolète avec point"
 
 #. Actually, with KP_SEPARATOR, as the old keypad(comma)
-#: ../rules/base.xml.in.h:969
+#: ../rules/base.xml.in.h:971
 msgid "Legacy key with comma"
 msgstr "Touche obsolète avec virgule"
 
-#: ../rules/base.xml.in.h:970
+#: ../rules/base.xml.in.h:972
 msgid "Four-level key with dot"
 msgstr "Touche à quatre niveaux avec point"
 
-#: ../rules/base.xml.in.h:971
+#: ../rules/base.xml.in.h:973
 msgid "Four-level key with dot, Latin-9 only"
 msgstr "Touche à quatre niveaux avec point, Latin-9 uniquement"
 
-#: ../rules/base.xml.in.h:972
+#: ../rules/base.xml.in.h:974
 msgid "Four-level key with comma"
 msgstr "Touche à quatre niveaux avec virgule"
 
 # Le momayyez est le séparateur décimal perse.
-#: ../rules/base.xml.in.h:973
+#: ../rules/base.xml.in.h:975
 msgid "Four-level key with momayyez"
 msgstr "Touche à quatre niveaux avec le séparateur décimal momayyez"
 
 #. This assumes the KP_ abstract symbols are actually useful for some apps
 #. The description needs to be rewritten
-#: ../rules/base.xml.in.h:976
+#: ../rules/base.xml.in.h:978
 msgid "Four-level key with abstract separators"
 msgstr "Touche à quatre niveaux avec le séparateur décimal abstrait"
 
-#: ../rules/base.xml.in.h:977
+#: ../rules/base.xml.in.h:979
 msgid "Semicolon on third level"
 msgstr "Point-virgule au niveau 3"
 
-#: ../rules/base.xml.in.h:978
+#: ../rules/base.xml.in.h:980
 msgid "Caps Lock key behavior"
 msgstr "Comportement de la touche Verr. maj."
 
-#: ../rules/base.xml.in.h:979
+#: ../rules/base.xml.in.h:981
 msgid "Caps Lock uses internal capitalization; Shift \"pauses\" Caps Lock"
 msgstr "Verr. maj. utilise la mise en majuscule interne ; Maj. annule temporairement Verr. maj."
 
-#: ../rules/base.xml.in.h:980
+#: ../rules/base.xml.in.h:982
 msgid "Caps Lock uses internal capitalization; Shift doesn't affect Caps Lock"
 msgstr "Verr. maj. utilise la mise en majuscule interne ; Maj. n'a pas d'effet sur Verr. maj."
 
-#: ../rules/base.xml.in.h:981
+#: ../rules/base.xml.in.h:983
 msgid "Caps Lock acts as Shift with locking; Shift \"pauses\" Caps Lock"
 msgstr "Verr. maj. agit comme un verrouillage de maj ; Maj. l'annule temporairement"
 
-#: ../rules/base.xml.in.h:982
+#: ../rules/base.xml.in.h:984
 msgid "Caps Lock acts as Shift with locking; Shift doesn't affect Caps Lock"
 msgstr "Verr. maj. agit comme Maj. quand il est verrouillé ; Maj. n'a pas d'effet sur verr. Maj."
 
-#: ../rules/base.xml.in.h:983
+#: ../rules/base.xml.in.h:985
 msgid "Caps Lock toggles normal capitalization of alphabetic characters"
 msgstr "Verr. maj. active ou désactive la mise en majuscule usuelle des caractères alphabétiques"
 
-#: ../rules/base.xml.in.h:984
+#: ../rules/base.xml.in.h:986
 msgid "Make Caps Lock an additional Num Lock"
 msgstr "Faire de Verr. maj. un Verr. Num. supplémentaire"
 
-#: ../rules/base.xml.in.h:985
+#: ../rules/base.xml.in.h:987
 msgid "Swap ESC and Caps Lock"
 msgstr "Intervertir Échap. et Verr. maj."
 
-#: ../rules/base.xml.in.h:986
+#: ../rules/base.xml.in.h:988
 msgid "Make Caps Lock an additional ESC"
 msgstr "Faire de Verr. maj. un Échap. supplémentaire."
 
-#: ../rules/base.xml.in.h:987
+#: ../rules/base.xml.in.h:989
 msgid "Make Caps Lock an additional Backspace"
 msgstr "Faire de Verr. maj. un Effacement. arriière supplémentaire."
 
-#: ../rules/base.xml.in.h:988
+#: ../rules/base.xml.in.h:990
 msgid "Make Caps Lock an additional Super"
 msgstr "Faire de Verr. maj. un Super supplémentaire."
 
-#: ../rules/base.xml.in.h:989
+#: ../rules/base.xml.in.h:991
 msgid "Make Caps Lock an additional Hyper"
 msgstr "Faire de Verr. maj. un Hyper supplémentaire"
 
-#: ../rules/base.xml.in.h:990
+#: ../rules/base.xml.in.h:992
 msgid "Caps Lock toggles ShiftLock (affects all keys)"
 msgstr "Verr. maj. bascule le blocage majuscule (affecte toutes les touches)"
 
-#: ../rules/base.xml.in.h:991
+#: ../rules/base.xml.in.h:993
 msgid "Caps Lock is disabled"
 msgstr "Verr. maj. est désactivé"
 
-#: ../rules/base.xml.in.h:992
+#: ../rules/base.xml.in.h:994
 msgid "Make Caps Lock an additional Ctrl"
 msgstr "Faire de Verr. maj. un Ctrl supplémentaire."
 
-#: ../rules/base.xml.in.h:993
+#: ../rules/base.xml.in.h:995
 msgid "Alt/Win key behavior"
 msgstr "Comportement des touches Alt et Windows"
 
-#: ../rules/base.xml.in.h:994
+#: ../rules/base.xml.in.h:996
 msgid "Add the standard behavior to Menu key"
 msgstr "Ajouter du comportement standard à la touche Menu"
 
-#: ../rules/base.xml.in.h:995
+#: ../rules/base.xml.in.h:997
 msgid "Alt and Meta are on Alt keys"
 msgstr "Alt et Meta sont sur les touches Alt"
 
-#: ../rules/base.xml.in.h:996
+#: ../rules/base.xml.in.h:998
 msgid "Alt is mapped to Win keys (and the usual Alt keys)"
 msgstr "Alt est placé sur les touches Windows (et les touches Alt habituelles)"
 
-#: ../rules/base.xml.in.h:997
+#: ../rules/base.xml.in.h:999
 msgid "Ctrl is mapped to Win keys (and the usual Ctrl keys)"
 msgstr "Ctrl est placé sur les touches Windows (et les touches Ctrl habituelles)"
 
-#: ../rules/base.xml.in.h:998
+#: ../rules/base.xml.in.h:1000
 msgid "Ctrl is mapped to Alt keys, Alt is mapped to Win keys"
 msgstr "Ctrl est placé sur les touches Alt, Alt sur les touches Windows"
 
-#: ../rules/base.xml.in.h:999
+#: ../rules/base.xml.in.h:1001
 msgid "Meta is mapped to Win keys"
 msgstr "Méta est placé sur les touches Windows"
 
-#: ../rules/base.xml.in.h:1000
+#: ../rules/base.xml.in.h:1002
 msgid "Meta is mapped to Left Win"
 msgstr "Méta est placé sur Windows gauche"
 
-#: ../rules/base.xml.in.h:1001
+#: ../rules/base.xml.in.h:1003
 msgid "Hyper is mapped to Win keys"
 msgstr "Hyper est placé sur les touches Windows"
 
-#: ../rules/base.xml.in.h:1002
+#: ../rules/base.xml.in.h:1004
 msgid "Alt is mapped to Right Win, Super to Menu"
 msgstr "Alt est placé sur Windows droite, Super sur Menu"
 
-#: ../rules/base.xml.in.h:1003
+#: ../rules/base.xml.in.h:1005
 msgid "Alt is swapped with Win"
 msgstr "Alt échangé avec Windows"
 
-#: ../rules/base.xml.in.h:1004
+#: ../rules/base.xml.in.h:1006
 msgid "Position of Compose key"
 msgstr "Position de la touche Compose"
 
-#: ../rules/base.xml.in.h:1005
+#: ../rules/base.xml.in.h:1007
 msgid "3rd level of Left Win"
 msgstr "Niveau 3 de la touche Windows de gauche"
 
-#: ../rules/base.xml.in.h:1006
+#: ../rules/base.xml.in.h:1008
 msgid "3rd level of Right Win"
 msgstr "Niveau 3 de la touche Windows de droite"
 
-#: ../rules/base.xml.in.h:1007
+#: ../rules/base.xml.in.h:1009
 msgid "3rd level of Menu"
 msgstr "Niveau 3 de menu"
 
-#: ../rules/base.xml.in.h:1008
+#: ../rules/base.xml.in.h:1010
 msgid "3rd level of Left Ctrl"
 msgstr "Niveau 3 de la touche Ctrl de gauche"
 
-#: ../rules/base.xml.in.h:1009
+#: ../rules/base.xml.in.h:1011
 msgid "3rd level of Right Ctrl"
 msgstr "Niveau 3 de la touche Ctrl de droite"
 
-#: ../rules/base.xml.in.h:1010
+#: ../rules/base.xml.in.h:1012
 msgid "3rd level of Caps Lock"
 msgstr "Niveau 3 de Verr. Maj."
 
-#: ../rules/base.xml.in.h:1011
+#: ../rules/base.xml.in.h:1013
 msgid "3rd level of &lt;Less/Greater&gt;"
 msgstr "Niveau 3 de &lt;Plus petit/Plus grand&gt;"
 
-#: ../rules/base.xml.in.h:1012
+#: ../rules/base.xml.in.h:1014
 msgid "Pause"
 msgstr "Pause"
 
-#: ../rules/base.xml.in.h:1013
+#: ../rules/base.xml.in.h:1015
 msgid "PrtSc"
 msgstr "Impr. Écr."
 
-#: ../rules/base.xml.in.h:1014
+#: ../rules/base.xml.in.h:1016
 msgid "Miscellaneous compatibility options"
 msgstr "Diverses options de compatibilité"
 
-#: ../rules/base.xml.in.h:1015
+#: ../rules/base.xml.in.h:1017
 msgid "Default numeric keypad keys"
 msgstr "Touches du pavé numérique par défaut"
 
-#: ../rules/base.xml.in.h:1016
+#: ../rules/base.xml.in.h:1018
 msgid "Numeric keypad keys always enter digits (as in Mac OS)"
 msgstr "Les touches du pavé numérique sont toujours numériques (comme sur Mac OS)"
 
-#: ../rules/base.xml.in.h:1017
-msgid "Shift with numeric keypad keys works as in MS Windows"
-msgstr "Maj. avec le pavé numérique se comporte comme dans Windows"
+#: ../rules/base.xml.in.h:1019
+msgid "NumLock on: digits, Shift switches to arrow keys, Numlock off: always arrow keys (as in MS Windows)"
+msgstr "Verr. maj. activé : chiffres ; maj. pour les flèches. Verr. maj. désactivé : flèches (comme Windows)"
 
-#: ../rules/base.xml.in.h:1018
+#: ../rules/base.xml.in.h:1020
 msgid "Shift does not cancel Num Lock, chooses 3rd level instead"
 msgstr "Maj. n'annule pas Verr. maj., mais sélectionne le niveau 3"
 
 # https://help.ubuntu.com/7.04/user-guide/C/prefs-hardware.html
-#: ../rules/base.xml.in.h:1019
+#: ../rules/base.xml.in.h:1021
 msgid "Special keys (Ctrl+Alt+&lt;key&gt;) handled in a server"
 msgstr "Les combinaisons spéciales (Ctrl+Alt+&lt;touche&gt;) sont traitées par le serveur X"
 
-#: ../rules/base.xml.in.h:1020
+#: ../rules/base.xml.in.h:1022
 msgid "Apple Aluminium Keyboard: emulate PC keys (Print, Scroll Lock, Pause, Num Lock)"
 msgstr "Clavier aluminium Apple : émulation des touches PC (Impr. écr. ; défil. ; pause ; Verr. Num.)"
 
-#: ../rules/base.xml.in.h:1021
+#: ../rules/base.xml.in.h:1023
 msgid "Shift cancels Caps Lock"
 msgstr "Maj. annule Verr. maj."
 
-#: ../rules/base.xml.in.h:1022
+#: ../rules/base.xml.in.h:1024
 msgid "Enable extra typographic characters"
 msgstr "Active des caractères typographiques supplémentaires"
 
-#: ../rules/base.xml.in.h:1023
+#: ../rules/base.xml.in.h:1025
 msgid "Both Shift keys together toggle Caps Lock"
 msgstr "Les deux touches Maj. activent ou désactivent Verr. maj."
 
-#: ../rules/base.xml.in.h:1024
+#: ../rules/base.xml.in.h:1026
 msgid "Both Shift keys together activate Caps Lock, one Shift key deactivates"
 msgstr "Les deux touches Maj. activent le verrouillage majuscule, une le désactive"
 
-#: ../rules/base.xml.in.h:1025
+#: ../rules/base.xml.in.h:1027
 msgid "Both Shift keys together toggle ShiftLock"
 msgstr "Les deux touches Maj. activent ou désactivent le blocage majuscule"
 
-#: ../rules/base.xml.in.h:1026
+#: ../rules/base.xml.in.h:1028
 msgid "Shift + NumLock toggles PointerKeys"
 msgstr "Maj. + VerrNum bascule le contrôle souris au clavier (PointerKeys) "
 
-#: ../rules/base.xml.in.h:1027
+#: ../rules/base.xml.in.h:1029
 msgid "Allow breaking grabs with keyboard actions (warning: security risk)"
 msgstr "Autorise des actions clavier à casser les captures (attention : faille de sécurité)"
 
-#: ../rules/base.xml.in.h:1028
+#: ../rules/base.xml.in.h:1030
 msgid "Allow grab and window tree logging"
 msgstr "Autorise l'enregistrement des captures et arborescences de fenêtres"
 
-#: ../rules/base.xml.in.h:1029
+#: ../rules/base.xml.in.h:1031
 msgid "Adding currency signs to certain keys"
 msgstr "Ajout des signes monétaires sur certaines touches"
 
-#: ../rules/base.xml.in.h:1030
+#: ../rules/base.xml.in.h:1032
 msgid "Euro on E"
 msgstr "Euro sur le E"
 
-#: ../rules/base.xml.in.h:1031
+#: ../rules/base.xml.in.h:1033
 msgid "Euro on 2"
 msgstr "Euro sur le 2"
 
-#: ../rules/base.xml.in.h:1032
+#: ../rules/base.xml.in.h:1034
 msgid "Euro on 4"
 msgstr "Euro sur le 4"
 
-#: ../rules/base.xml.in.h:1033
+#: ../rules/base.xml.in.h:1035
 msgid "Euro on 5"
 msgstr "Euro sur le 5"
 
-#: ../rules/base.xml.in.h:1034
+#: ../rules/base.xml.in.h:1036
 msgid "Rupee on 4"
 msgstr "Roupie sur le 4"
 
-#: ../rules/base.xml.in.h:1035
+#: ../rules/base.xml.in.h:1037
 msgid "Key to choose 5th level"
 msgstr "Touche sélectionnant le niveau 5"
 
-#: ../rules/base.xml.in.h:1036
+#: ../rules/base.xml.in.h:1038
 msgid "&lt;Less/Greater&gt; chooses 5th level, locks when pressed together with another 5th-level-chooser"
 msgstr "&lt;Plus petit/Plus grand&gt; sélectionne le niveau 5 ; se verrouille par un appui simultané avec un autre sélecteur de niveau 5"
 
-#: ../rules/base.xml.in.h:1037
+#: ../rules/base.xml.in.h:1039
 msgid "Right Alt chooses 5th level, locks when pressed together with another 5th-level-chooser"
 msgstr "Alt droite sélectionne le niveau 5 ; se verrouille par un appui simultané avec un autre sélecteur de niveau 5"
 
-#: ../rules/base.xml.in.h:1038
+#: ../rules/base.xml.in.h:1040
 msgid "Left Win chooses 5th level, locks when pressed together with another 5th-level-chooser"
 msgstr "Windows gauche sélectionne le niveau 5 ; se verrouille par un appui simultané avec un autre sélecteur de niveau 5"
 
-#: ../rules/base.xml.in.h:1039
+#: ../rules/base.xml.in.h:1041
 msgid "Right Win chooses 5th level, locks when pressed together with another 5th-level-chooser"
 msgstr "Windows droite sélectionne le niveau 5 ; se verrouille par un appui simultané avec un autre sélecteur du niveau 5"
 
-#: ../rules/base.xml.in.h:1040
+#: ../rules/base.xml.in.h:1042
 msgid "Using space key to input non-breakable space character"
 msgstr "Utiliser la barre d'espacement pour insérer une espace insécable"
 
-#: ../rules/base.xml.in.h:1041
+#: ../rules/base.xml.in.h:1043
 msgid "Usual space at any level"
 msgstr "L'espace habituelle quelque-soit le niveau"
 
-#: ../rules/base.xml.in.h:1042
+#: ../rules/base.xml.in.h:1044
 msgid "Non-breakable space character at second level"
 msgstr "Espace insécable au niveau 2"
 
-#: ../rules/base.xml.in.h:1043
+#: ../rules/base.xml.in.h:1045
 msgid "Non-breakable space character at third level"
 msgstr "Espace insécable au niveau 3"
 
-#: ../rules/base.xml.in.h:1044
+#: ../rules/base.xml.in.h:1046
 msgid "Non-breakable space character at third level, nothing at fourth level"
 msgstr "Espace insécable au niveau 3, rien au niveau 4"
 
-#: ../rules/base.xml.in.h:1045
+#: ../rules/base.xml.in.h:1047
 msgid "Non-breakable space character at third level, thin non-breakable space character at fourth level"
 msgstr "Espace insécable au niveau 3, espace fine insécable au niveau 4"
 
-#: ../rules/base.xml.in.h:1046
+#: ../rules/base.xml.in.h:1048
 msgid "Non-breakable space character at fourth level"
 msgstr "Espace insécable au niveau 4"
 
-#: ../rules/base.xml.in.h:1047
+#: ../rules/base.xml.in.h:1049
 msgid "Non-breakable space character at fourth level, thin non-breakable space character at sixth level"
 msgstr "Espace insécable au niveau 4, espace fine insécable au niveau 6"
 
-#: ../rules/base.xml.in.h:1048
+#: ../rules/base.xml.in.h:1050
 msgid "Non-breakable space character at fourth level, thin non-breakable space character at sixth level (via Ctrl+Shift)"
 msgstr "Espace insécable au niveau 4, espace fine insécable au niveau 6 (via Ctrl+Maj.)"
 
 # http://hapax.qc.ca/glossaire.htm
-#: ../rules/base.xml.in.h:1049
+#: ../rules/base.xml.in.h:1051
 msgid "Zero-width non-joiner character at second level"
 msgstr "Antiliant à chasse nulle au niveau 2"
 
-#: ../rules/base.xml.in.h:1050
+#: ../rules/base.xml.in.h:1052
 msgid "Zero-width non-joiner character at second level, zero-width joiner character at third level"
 msgstr "Antiliant à chasse nulle au niveau 2, liant à chasse nulle au niveau 3"
 
-#: ../rules/base.xml.in.h:1051
+#: ../rules/base.xml.in.h:1053
 msgid "Zero-width non-joiner character at second level, zero-width joiner character at third level, non-breakable space character at fourth level"
 msgstr "Antiliant à chasse nulle au niveau 2, liant à chasse nulle au niveau 3, espace insécable au niveau 4"
 
-#: ../rules/base.xml.in.h:1052
+#: ../rules/base.xml.in.h:1054
 msgid "Zero-width non-joiner character at second level, non-breakable space character at third level"
 msgstr "Antiliant à chasse nulle au niveau 2. espace insécable au niveau 3"
 
-#: ../rules/base.xml.in.h:1053
+#: ../rules/base.xml.in.h:1055
 msgid "Zero-width non-joiner character at second level, non-breakable space character at third level, nothing at fourth level"
 msgstr "Antiliant à chasse nulle au niveau 2. espace insécable au niveau 3, rien au niveau 4"
 
-#: ../rules/base.xml.in.h:1054
+#: ../rules/base.xml.in.h:1056
 msgid "Zero-width non-joiner character at second level, non-breakable space character at third level, zero-width joiner at fourth level"
 msgstr "Antiliant à chasse nulle au niveau 2. espace insécable au niveau 3, liant à chasse nulle au niveau 4"
 
-#: ../rules/base.xml.in.h:1055
+#: ../rules/base.xml.in.h:1057
 msgid "Zero-width non-joiner character at second level, non-breakable space character at third level, thin non-breakable space at fourth level"
 msgstr "Antiliant à chasse nulle au niveau 2. espace insécable au niveau 3, espace fine insécable au niveau 4"
 
-#: ../rules/base.xml.in.h:1056
+#: ../rules/base.xml.in.h:1058
 msgid "Zero-width non-joiner character at third level, zero-width joiner at fourth level"
 msgstr "Antiliant à chasse nulle au niveau 3, liant à chasse nulle au niveau 4"
 
-#: ../rules/base.xml.in.h:1057
+#: ../rules/base.xml.in.h:1059
 msgid "Japanese keyboard options"
 msgstr "Options des claviers japonais"
 
-#: ../rules/base.xml.in.h:1058
+#: ../rules/base.xml.in.h:1060
 msgid "Kana Lock key is locking"
 msgstr "La touche « verrouillage Kana » verrouille"
 
-#: ../rules/base.xml.in.h:1059
+#: ../rules/base.xml.in.h:1061
 msgid "NICOLA-F style Backspace"
 msgstr "Eff. Arr. du type NICOLA-F"
 
-#: ../rules/base.xml.in.h:1060
+#: ../rules/base.xml.in.h:1062
 msgid "Make Zenkaku Hankaku an additional ESC"
 msgstr "Faire du Zenkaku Hankaku un Échap. supplémentaire."
 
-#: ../rules/base.xml.in.h:1061
+#: ../rules/base.xml.in.h:1063
+msgid "Korean Hangul/Hanja keys"
+msgstr "Touches Hangeul/Hanja coréennes"
+
+#: ../rules/base.xml.in.h:1064
+msgid "Hardware Hangul/Hanja keys"
+msgstr "Touches Hangeul/Hanja matérielles"
+
+#: ../rules/base.xml.in.h:1065
+msgid "Right Alt as Hangul, right Ctrl as Hanja"
+msgstr "Alt droite pour le Hangeul, Ctrl droite pour le Hanja"
+
+#: ../rules/base.xml.in.h:1066
+msgid "Right Ctrl as Hangul, right Alt as Hanja"
+msgstr "Ctrl droite pour le Hangeul, Alt droite pour le Hanja"
+
+#: ../rules/base.xml.in.h:1067
 msgid "Adding Esperanto supersigned letters"
 msgstr "Ajout des lettres accentuées Espéranto"
 
-#: ../rules/base.xml.in.h:1062
+#: ../rules/base.xml.in.h:1068
 msgid "To the corresponding key in a Qwerty layout"
 msgstr "Vers la touche correspondante sur une disposition Qwerty."
 
-#: ../rules/base.xml.in.h:1063
+#: ../rules/base.xml.in.h:1069
 msgid "To the corresponding key in a Dvorak layout"
 msgstr "Vers la touche correspondante sur une disposition Dvorak."
 
-#: ../rules/base.xml.in.h:1064
+#: ../rules/base.xml.in.h:1070
 msgid "To the corresponding key in a Colemak layout"
 msgstr "Vers la touche correspondante sur une disposition Dvorak."
 
-#: ../rules/base.xml.in.h:1065
+#: ../rules/base.xml.in.h:1071
 msgid "Maintain key compatibility with old Solaris keycodes"
 msgstr "Rester compatible avec les anciens code clavier Solaris"
 
-#: ../rules/base.xml.in.h:1066
+#: ../rules/base.xml.in.h:1072
 msgid "Sun Key compatibility"
 msgstr "Compatibilité avec les touches Sun"
 
-#: ../rules/base.xml.in.h:1067
+#: ../rules/base.xml.in.h:1073
 msgid "Key sequence to kill the X server"
 msgstr "Séquence de touches pour tuer le serveur X"
 
-#: ../rules/base.xml.in.h:1068
+#: ../rules/base.xml.in.h:1074
 msgid "Ctrl + Alt + Backspace"
 msgstr "Ctrl + Alt + Eff. arrière"
 
@@ -4186,263 +4210,270 @@ msgid "German (with Hungarian letters and no dead keys)"
 msgstr "Allemand (avec les lettres hongroises, sans touche mortes)"
 
 #: ../rules/base.extras.xml.in.h:26
+msgid "Polish (Germany, eliminate dead keys)"
+msgstr "Polonais (Allemagne, sans touche morte)"
+
+#: ../rules/base.extras.xml.in.h:27
 msgid "German (Sun Type 6/7)"
 msgstr "Allemand (Sun type 6/7)"
 
 # http://www.adnw.de/
-#: ../rules/base.extras.xml.in.h:27
+#: ../rules/base.extras.xml.in.h:28
 msgid "German (Aus der Neo-Welt)"
 msgstr "Allemand (Aus der Neo-Welt)"
 
-#: ../rules/base.extras.xml.in.h:30
+#: ../rules/base.extras.xml.in.h:31
 msgid "Avestan"
 msgstr "Avestique"
 
-#: ../rules/base.extras.xml.in.h:33
+#: ../rules/base.extras.xml.in.h:34
 msgid "Lithuanian (US Dvorak with Lithuanian letters)"
 msgstr "Lituanien (Dvorak US avec lettres lituaniennes)"
 
-#: ../rules/base.extras.xml.in.h:34
+#: ../rules/base.extras.xml.in.h:35
 msgid "Lithuanian (Sun Type 6/7)"
 msgstr "Lituanien (Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:37
+#: ../rules/base.extras.xml.in.h:38
 msgid "Latvian (US Dvorak)"
 msgstr "Letton (Dvorak US)"
 
-#: ../rules/base.extras.xml.in.h:38
+#: ../rules/base.extras.xml.in.h:39
 msgid "Latvian (US Dvorak, Y variant)"
 msgstr "Letton (Dvorak US, variante Y)"
 
-#: ../rules/base.extras.xml.in.h:39
+#: ../rules/base.extras.xml.in.h:40
 msgid "Latvian (US Dvorak, minus variant)"
 msgstr "Letton (Dvorak US, variante moins)"
 
-#: ../rules/base.extras.xml.in.h:40
+#: ../rules/base.extras.xml.in.h:41
 msgid "Latvian (programmer US Dvorak)"
 msgstr "Letton (Dvorak pour le programmeur US)"
 
-#: ../rules/base.extras.xml.in.h:41
+#: ../rules/base.extras.xml.in.h:42
 msgid "Latvian (programmer US Dvorak, Y variant)"
 msgstr "Letton (Dvorak pour le programmeur US, variante Y)"
 
-#: ../rules/base.extras.xml.in.h:42
+#: ../rules/base.extras.xml.in.h:43
 msgid "Latvian (programmer US Dvorak, minus variant)"
 msgstr "Letton (Dvorak pour le programmeur US, variante moins)"
 
 # http://colemak.com/
-#: ../rules/base.extras.xml.in.h:43
+#: ../rules/base.extras.xml.in.h:44
 msgid "Latvian (US Colemak)"
 msgstr "Letton (Colemak US)"
 
-#: ../rules/base.extras.xml.in.h:44
+#: ../rules/base.extras.xml.in.h:45
 msgid "Latvian (US Colemak, apostrophe variant)"
 msgstr "Letton (Colemak US, variante apostrophe)"
 
 # http://colemak.com/
-#: ../rules/base.extras.xml.in.h:45
+#: ../rules/base.extras.xml.in.h:46
 msgid "Latvian (Sun Type 6/7)"
 msgstr "Letton (Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:48
+#: ../rules/base.extras.xml.in.h:49
 msgid "English (US, international AltGr Unicode combining)"
 msgstr "Anglais (US, international, AltGr combinatoire Unicode)"
 
-#: ../rules/base.extras.xml.in.h:49
+#: ../rules/base.extras.xml.in.h:50
 msgid "English (US, international AltGr Unicode combining, alternative)"
 msgstr "Anglais (US, international, AltGr combinatoire Unicode, variante)"
 
-#: ../rules/base.extras.xml.in.h:50
+#: ../rules/base.extras.xml.in.h:51
 msgid "Atsina"
 msgstr "Atsina"
 
 # https://secure.wikimedia.org/wikipedia/fr/wiki/C%C5%93ur_d%27Al%C3%A8ne_%28langue%29
-#: ../rules/base.extras.xml.in.h:51
+#: ../rules/base.extras.xml.in.h:52
 msgid "Coeur d'Alene Salish"
 msgstr "Salish Cœur d'Alène"
 
 # https://bugs.freedesktop.org/show_bug.cgi?id=47536
 # https://fr.wikipedia.org/wiki/Tch%C3%A8que
 # https://fr.wikipedia.org/wiki/Slovaque
-#: ../rules/base.extras.xml.in.h:52
+#: ../rules/base.extras.xml.in.h:53
 msgid "Czech Slovak and German (US)"
 msgstr "Tchèque, slovaque et allemand (US)"
 
-#: ../rules/base.extras.xml.in.h:53
+#: ../rules/base.extras.xml.in.h:54
 msgid "English (US, Sun Type 6/7)"
 msgstr "Anglais (US, Sun type 6/7)"
 
 # https://normanlayout.info/
-#: ../rules/base.extras.xml.in.h:54
+#: ../rules/base.extras.xml.in.h:55
 msgid "English (Norman)"
 msgstr "Anglais (Norman)"
 
-#: ../rules/base.extras.xml.in.h:57
+#: ../rules/base.extras.xml.in.h:58
 msgid "Polish (international with dead keys)"
 msgstr "Polonais (international avec touches mortes)"
 
 # http://colemak.com/
-#: ../rules/base.extras.xml.in.h:58
+#: ../rules/base.extras.xml.in.h:59
 msgid "Polish (Colemak)"
 msgstr "Polonais (Colemak)"
 
-#: ../rules/base.extras.xml.in.h:59
+#: ../rules/base.extras.xml.in.h:60
 msgid "Polish (Sun Type 6/7)"
 msgstr "Polonais (Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:63
+#: ../rules/base.extras.xml.in.h:64
 msgid "Crimean Tatar (Dobruja Q)"
 msgstr "Tatar de Crimée (Q dobroudja)"
 
-#: ../rules/base.extras.xml.in.h:64
+#: ../rules/base.extras.xml.in.h:65
 msgid "Romanian (ergonomic Touchtype)"
 msgstr "Roumain (ergonomique dactylographique)"
 
-#: ../rules/base.extras.xml.in.h:65
+#: ../rules/base.extras.xml.in.h:66
 msgid "Romanian (Sun Type 6/7)"
 msgstr "Roumain (Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:68
+#: ../rules/base.extras.xml.in.h:69
 msgid "Serbian (combining accents instead of dead keys)"
 msgstr "Serbe (accents combinatoires à la place des touches mortes)"
 
 # https://fr.wikipedia.org/wiki/Langue_liturgique_slave
-#: ../rules/base.extras.xml.in.h:71
+#: ../rules/base.extras.xml.in.h:72
 msgid "Church Slavonic"
 msgstr "Liturgique slave"
 
-#: ../rules/base.extras.xml.in.h:72
+#: ../rules/base.extras.xml.in.h:73
 msgid "Russian (with Ukrainian-Belorussian layout)"
 msgstr "Russe (Ukrainien-Biélorusse)"
 
-#: ../rules/base.extras.xml.in.h:73
+#: ../rules/base.extras.xml.in.h:74
 msgid "Russian (Sun Type 6/7)"
 msgstr "Russe (Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:76
+#: ../rules/base.extras.xml.in.h:77
 msgid "Armenian (OLPC phonetic)"
 msgstr "Arménien (phonétique OLPC)"
 
-#: ../rules/base.extras.xml.in.h:79
+#: ../rules/base.extras.xml.in.h:80
 msgid "Hebrew (Biblical, SIL phonetic)"
 msgstr "Hébreu (biblique, SIL, phonétique)"
 
-#: ../rules/base.extras.xml.in.h:82
+#: ../rules/base.extras.xml.in.h:83
 msgid "Arabic (Sun Type 6/7)"
 msgstr "Arabe (Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:85
+#: ../rules/base.extras.xml.in.h:86
 msgid "Belgian (Sun Type 6/7)"
 msgstr "Belge (Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:88
+#: ../rules/base.extras.xml.in.h:89
 msgid "Portuguese (Brazil, Sun Type 6/7)"
 msgstr "Portugais (Brésil, Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:91
+#: ../rules/base.extras.xml.in.h:92
 msgid "Czech (Sun Type 6/7)"
 msgstr "Tchèque (Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:94
+#: ../rules/base.extras.xml.in.h:95
 msgid "Danish (Sun Type 6/7)"
 msgstr "Danois (Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:97
+#: ../rules/base.extras.xml.in.h:98
 msgid "Dutch (Sun Type 6/7)"
 msgstr "Danois (Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:100
+#: ../rules/base.extras.xml.in.h:101
 msgid "Estonian (Sun Type 6/7)"
 msgstr "Estonien (Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:103
+#: ../rules/base.extras.xml.in.h:104
 msgid "Finnish (Sun Type 6/7)"
 msgstr "Finnois (Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:105
+#: ../rules/base.extras.xml.in.h:106
 msgid "French (Sun Type 6/7)"
 msgstr "Français (Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:108
+#: ../rules/base.extras.xml.in.h:109
 msgid "Greek (Sun Type 6/7)"
 msgstr "Grec (Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:111
+#: ../rules/base.extras.xml.in.h:112
 msgid "Italian (Sun Type 6/7)"
 msgstr "Italien (Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:114
+#: ../rules/base.extras.xml.in.h:115
 msgid "Japanese (Sun Type 6)"
 msgstr "Japonais (Sun type 6)"
 
-#: ../rules/base.extras.xml.in.h:115
+#: ../rules/base.extras.xml.in.h:116
 msgid "Japanese (Sun Type 7 - pc compatible)"
 msgstr "Japonais (Sun type 7 - compatible PC)"
 
-#: ../rules/base.extras.xml.in.h:116
+#: ../rules/base.extras.xml.in.h:117
 msgid "Japanese (Sun Type 7 - sun compatible)"
 msgstr "Japonais (Sun type 7 - compatible Sun)"
 
-#: ../rules/base.extras.xml.in.h:119
+#: ../rules/base.extras.xml.in.h:120
 msgid "Norwegian (Sun Type 6/7)"
 msgstr "Norvégien (Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:121
+#: ../rules/base.extras.xml.in.h:122
 msgid "Portuguese (Sun Type 6/7)"
 msgstr "Portugais (Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:124
+#: ../rules/base.extras.xml.in.h:125
 msgid "Slovak (Sun Type 6/7)"
 msgstr "Slovaque (Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:127
+#: ../rules/base.extras.xml.in.h:128
 msgid "Spanish (Sun Type 6/7)"
 msgstr "Espagnol (Sun type 6/7)"
 
 # https://bugs.freedesktop.org/show_bug.cgi?id=71852
-#: ../rules/base.extras.xml.in.h:130
+#: ../rules/base.extras.xml.in.h:131
 msgid "Swedish (Dvorak A5)"
 msgstr "Suédois (Dvorak A5)"
 
-#: ../rules/base.extras.xml.in.h:131
+#: ../rules/base.extras.xml.in.h:132
 msgid "Swedish (Sun Type 6/7)"
 msgstr "Suédois (Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:133
+#: ../rules/base.extras.xml.in.h:134
 msgid "German (Switzerland, Sun Type 6/7)"
 msgstr "Allemand (Suisse, Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:134
+#: ../rules/base.extras.xml.in.h:135
 msgid "French (Switzerland, Sun Type 6/7)"
 msgstr "Français (Suisse, Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:137
+#: ../rules/base.extras.xml.in.h:138
 msgid "Turkish (Sun Type 6/7)"
 msgstr "Turc (Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:140
+#: ../rules/base.extras.xml.in.h:141
 msgid "Ukrainian (Sun Type 6/7)"
 msgstr "Ukrainien (Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:142
+#: ../rules/base.extras.xml.in.h:143
 msgid "English (UK, Sun Type 6/7)"
 msgstr "Anglais (Royaume-Uni, Sun type 6/7)"
 
-#: ../rules/base.extras.xml.in.h:145
+#: ../rules/base.extras.xml.in.h:146
 msgid "Korean (Sun Type 6/7)"
 msgstr "Coréen (Sun type 6/7)"
 
 #. Keyboard indicator for European layouts
-#: ../rules/base.extras.xml.in.h:147
+#: ../rules/base.extras.xml.in.h:148
 msgid "eu"
 msgstr "eu"
 
 # https://bugs.freedesktop.org/show_bug.cgi?id=31658
 # http://eurkey.steffen.bruentjen.eu/
-#: ../rules/base.extras.xml.in.h:148
+#: ../rules/base.extras.xml.in.h:149
 msgid "EurKEY (US based layout with european letters)"
 msgstr "EurKEY (clavier US avec lettres européennes)"
 
-#: ../rules/base.extras.xml.in.h:151
+#: ../rules/base.extras.xml.in.h:152
 msgid "Mmuock"
 msgstr "M'mock"
+
+#~ msgid "Shift with numeric keypad keys works as in MS Windows"
+#~ msgstr "Maj. avec le pavé numérique se comporte comme dans Windows"

@@ -300,7 +300,8 @@ check_draw_elements_data(struct gl_context *ctx, GLsizei count, GLenum elemType,
 {
    struct gl_vertex_array_object *vao = ctx->Array.VAO;
    const void *elemMap;
-   GLint i, k;
+   GLint i;
+   GLuint k;
 
    if (_mesa_is_bufferobj(ctx->Array.VAO->IndexBufferObj)) {
       elemMap = ctx->Driver.MapBufferRange(ctx, 0,
@@ -596,7 +597,8 @@ vbo_draw_arrays(struct gl_context *ctx, GLenum mode, GLint start,
    prim[0].is_indirect = 0;
 
    /* Implement the primitive restart index */
-   if (ctx->Array.PrimitiveRestart && ctx->Array.RestartIndex < count) {
+   if (ctx->Array.PrimitiveRestart && !ctx->Array.PrimitiveRestartFixedIndex &&
+       ctx->Array.RestartIndex < count) {
       GLuint primCount = 0;
 
       if (ctx->Array.RestartIndex == start) {

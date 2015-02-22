@@ -93,6 +93,7 @@ struct st_context
    boolean has_time_elapsed;
    boolean has_shader_model3;
    boolean has_etc1;
+   boolean has_etc2;
    boolean prefer_blit_based_texture_transfer;
 
    boolean needs_texcoord_semantic;

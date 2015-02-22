@@ -1,6 +1,6 @@
 # xkeyboard-config Korean translation
 # This file is distributed under the same license as the xkeyboard-config package.
-# Changwoo Ryu <cwryu@debian.org>, 2007-2014.
+# Changwoo Ryu <cwryu@debian.org>, 2007-2015.
 #
 # - 주의
 #   - 한국에 수입해 판매되는 제품은 광고할 때 사용하는 표기를 그대로 사용
@@ -10,10 +10,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xkeyboard-config 2.12.99\n"
+"Project-Id-Version: xkeyboard-config 2.13.99\n"
 "Report-Msgid-Bugs-To: svu@users.sourceforge.net\n"
-"POT-Creation-Date: 2014-09-18 23:46+0100\n"
-"PO-Revision-Date: 2014-09-20 07:19+0900\n"
+"POT-Creation-Date: 2015-01-15 01:16+0000\n"
+"PO-Revision-Date: 2015-01-21 13:01+0900\n"
 "Last-Translator: Changwoo Ryu <cwryu@debian.org>\n"
 "Language-Team: Korean <translation-team-ko@lists.sourceforge.net>\n"
 "Language: ko\n"
@@ -785,11 +785,11 @@ msgid "Htc Dream phone"
 msgstr "HTC 드림 휴대전화"
 
 #. Keyboard indicator for English layouts
-#: ../rules/base.xml.in.h:186 ../rules/base.extras.xml.in.h:46
+#: ../rules/base.xml.in.h:186 ../rules/base.extras.xml.in.h:47
 msgid "en"
 msgstr "en"
 
-#: ../rules/base.xml.in.h:187 ../rules/base.extras.xml.in.h:47
+#: ../rules/base.xml.in.h:187 ../rules/base.extras.xml.in.h:48
 msgid "English (US)"
 msgstr "영어(미국)"
 
@@ -848,7 +848,7 @@ msgid "English (programmer Dvorak)"
 msgstr "영어(프로그래머 드보락)"
 
 #. Keyboard indicator for Russian layouts
-#: ../rules/base.xml.in.h:203 ../rules/base.extras.xml.in.h:69
+#: ../rules/base.xml.in.h:203 ../rules/base.extras.xml.in.h:70
 msgid "ru"
 msgstr "ru"
 
@@ -881,7 +881,7 @@ msgid "English (Workman, international with dead keys)"
 msgstr "영어(워크맨, 드보락 국제 버전, 데드키 포함)"
 
 #. Keyboard indicator for Persian layouts
-#: ../rules/base.xml.in.h:212 ../rules/base.extras.xml.in.h:28
+#: ../rules/base.xml.in.h:212 ../rules/base.extras.xml.in.h:29
 msgid "fa"
 msgstr "fa"
 
@@ -921,11 +921,11 @@ msgid "Uzbek (Afghanistan, OLPC)"
 msgstr "우즈베크어(아프가니스탄, OLPC)"
 
 #. Keyboard indicator for Arabic layouts
-#: ../rules/base.xml.in.h:224 ../rules/base.extras.xml.in.h:80
+#: ../rules/base.xml.in.h:224 ../rules/base.extras.xml.in.h:81
 msgid "ar"
 msgstr "ar"
 
-#: ../rules/base.xml.in.h:225 ../rules/base.extras.xml.in.h:81
+#: ../rules/base.xml.in.h:225 ../rules/base.extras.xml.in.h:82
 msgid "Arabic"
 msgstr "아랍어"
 
@@ -969,11 +969,11 @@ msgid "Albanian (Plisi D1)"
 msgstr "알바니아(Plisi D1)"
 
 #. Keyboard indicator for Armenian layouts
-#: ../rules/base.xml.in.h:237 ../rules/base.extras.xml.in.h:74
+#: ../rules/base.xml.in.h:237 ../rules/base.extras.xml.in.h:75
 msgid "hy"
 msgstr "hy"
 
-#: ../rules/base.xml.in.h:238 ../rules/base.extras.xml.in.h:75
+#: ../rules/base.xml.in.h:238 ../rules/base.extras.xml.in.h:76
 msgid "Armenian"
 msgstr "아르메니아"
 
@@ -1049,11 +1049,11 @@ msgid "Belarusian (Latin)"
 msgstr "벨라루스어(라틴)"
 
 #. Keyboard indicator for Belgian layouts
-#: ../rules/base.xml.in.h:260 ../rules/base.extras.xml.in.h:83
+#: ../rules/base.xml.in.h:260 ../rules/base.extras.xml.in.h:84
 msgid "be"
 msgstr "be"
 
-#: ../rules/base.xml.in.h:261 ../rules/base.extras.xml.in.h:84
+#: ../rules/base.xml.in.h:261 ../rules/base.extras.xml.in.h:85
 msgid "Belgian"
 msgstr "벨기에어"
 
@@ -1323,11 +1323,11 @@ msgid "Bosnian (US keyboard with Bosnian letters)"
 msgstr "보스니아어(미국식 키보드, 보스니아 문자 포함)"
 
 #. Keyboard indicator for Portuguese layouts
-#: ../rules/base.xml.in.h:338 ../rules/base.extras.xml.in.h:86
+#: ../rules/base.xml.in.h:338 ../rules/base.extras.xml.in.h:87
 msgid "pt"
 msgstr "pt"
 
-#: ../rules/base.xml.in.h:339 ../rules/base.extras.xml.in.h:87
+#: ../rules/base.xml.in.h:339 ../rules/base.extras.xml.in.h:88
 msgid "Portuguese (Brazil)"
 msgstr "포르투갈어(브라질)"
 
@@ -1420,11 +1420,11 @@ msgid "Berber (Morocco, Tifinagh extended phonetic)"
 msgstr "베르베르어(모로코, 티피나그 확장 음성 기호)"
 
 #. Keyboard indicator for Cameroon layouts
-#: ../rules/base.xml.in.h:363 ../rules/base.extras.xml.in.h:149
+#: ../rules/base.xml.in.h:363 ../rules/base.extras.xml.in.h:150
 msgid "cm"
 msgstr "cm"
 
-#: ../rules/base.xml.in.h:364 ../rules/base.extras.xml.in.h:150
+#: ../rules/base.xml.in.h:364 ../rules/base.extras.xml.in.h:151
 msgid "English (Cameroon)"
 msgstr "영어(카메룬)"
 
@@ -1545,11 +1545,11 @@ msgid "Croatian (US keyboard with Croatian letters)"
 msgstr "크로아티아어(미국식 키보드, 크로아티아 문자 포함)"
 
 #. Keyboard indicator for Chech layouts
-#: ../rules/base.xml.in.h:398 ../rules/base.extras.xml.in.h:89
+#: ../rules/base.xml.in.h:398 ../rules/base.extras.xml.in.h:90
 msgid "cs"
 msgstr "cs"
 
-#: ../rules/base.xml.in.h:399 ../rules/base.extras.xml.in.h:90
+#: ../rules/base.xml.in.h:399 ../rules/base.extras.xml.in.h:91
 msgid "Czech"
 msgstr "체코어"
 
@@ -1574,11 +1574,11 @@ msgid "Czech (US Dvorak with CZ UCW support)"
 msgstr "체코어(US 드보락, CZ UCW 지원)"
 
 #. Keyboard indicator for Danish layouts
-#: ../rules/base.xml.in.h:406 ../rules/base.extras.xml.in.h:92
+#: ../rules/base.xml.in.h:406 ../rules/base.extras.xml.in.h:93
 msgid "da"
 msgstr "da"
 
-#: ../rules/base.xml.in.h:407 ../rules/base.extras.xml.in.h:93
+#: ../rules/base.xml.in.h:407 ../rules/base.extras.xml.in.h:94
 msgid "Danish"
 msgstr "덴마크어"
 
@@ -1603,11 +1603,11 @@ msgid "Danish (Dvorak)"
 msgstr "덴마크어(드보락)"
 
 #. Keyboard indicator for Dutch layouts
-#: ../rules/base.xml.in.h:414 ../rules/base.extras.xml.in.h:95
+#: ../rules/base.xml.in.h:414 ../rules/base.extras.xml.in.h:96
 msgid "nl"
 msgstr "nl"
 
-#: ../rules/base.xml.in.h:415 ../rules/base.extras.xml.in.h:96
+#: ../rules/base.xml.in.h:415 ../rules/base.extras.xml.in.h:97
 msgid "Dutch"
 msgstr "네덜란드어"
 
@@ -1633,11 +1633,11 @@ msgid "Dzongkha"
 msgstr "종카어"
 
 #. Keyboard indicator for Estonian layouts
-#: ../rules/base.xml.in.h:423 ../rules/base.extras.xml.in.h:98
+#: ../rules/base.xml.in.h:423 ../rules/base.extras.xml.in.h:99
 msgid "et"
 msgstr "et"
 
-#: ../rules/base.xml.in.h:424 ../rules/base.extras.xml.in.h:99
+#: ../rules/base.xml.in.h:424 ../rules/base.extras.xml.in.h:100
 msgid "Estonian"
 msgstr "에스토니아어"
 
@@ -1653,7 +1653,7 @@ msgstr "에스토니아어(드보락)"
 msgid "Estonian (US keyboard with Estonian letters)"
 msgstr "에스토니아어(미국식 키보드, 에스토니아 문자 포함)"
 
-#: ../rules/base.xml.in.h:428 ../rules/base.extras.xml.in.h:29
+#: ../rules/base.xml.in.h:428 ../rules/base.extras.xml.in.h:30
 msgid "Persian"
 msgstr "페르시아어"
 
@@ -1716,11 +1716,11 @@ msgid "Faroese (eliminate dead keys)"
 msgstr "페로어(데드키 없음)"
 
 #. Keyboard indicator for Finnish layouts
-#: ../rules/base.xml.in.h:446 ../rules/base.extras.xml.in.h:101
+#: ../rules/base.xml.in.h:446 ../rules/base.extras.xml.in.h:102
 msgid "fi"
 msgstr "fi"
 
-#: ../rules/base.xml.in.h:447 ../rules/base.extras.xml.in.h:102
+#: ../rules/base.xml.in.h:447 ../rules/base.extras.xml.in.h:103
 msgid "Finnish"
 msgstr "핀란드어"
 
@@ -1744,7 +1744,7 @@ msgstr "북 사오미(핀란드)"
 msgid "Finnish (Macintosh)"
 msgstr "핀란드어(매킨토시)"
 
-#: ../rules/base.xml.in.h:453 ../rules/base.extras.xml.in.h:104
+#: ../rules/base.xml.in.h:453 ../rules/base.extras.xml.in.h:105
 msgid "French"
 msgstr "프랑스어"
 
@@ -1987,11 +1987,11 @@ msgid "German (legacy)"
 msgstr "독일어(구형)"
 
 #. Keyboard indicator for Greek layouts
-#: ../rules/base.xml.in.h:518 ../rules/base.extras.xml.in.h:106
+#: ../rules/base.xml.in.h:518 ../rules/base.extras.xml.in.h:107
 msgid "gr"
 msgstr "gr"
 
-#: ../rules/base.xml.in.h:519 ../rules/base.extras.xml.in.h:107
+#: ../rules/base.xml.in.h:519 ../rules/base.extras.xml.in.h:108
 msgid "Greek"
 msgstr "그리스어"
 
@@ -2127,11 +2127,11 @@ msgid "Icelandic (Dvorak)"
 msgstr "아이슬란드어(드보락)"
 
 #. Keyboard indicator for Hebrew layouts
-#: ../rules/base.xml.in.h:555 ../rules/base.extras.xml.in.h:77
+#: ../rules/base.xml.in.h:555 ../rules/base.extras.xml.in.h:78
 msgid "he"
 msgstr "he"
 
-#: ../rules/base.xml.in.h:556 ../rules/base.extras.xml.in.h:78
+#: ../rules/base.xml.in.h:556 ../rules/base.extras.xml.in.h:79
 msgid "Hebrew"
 msgstr "히브리어"
 
@@ -2148,11 +2148,11 @@ msgid "Hebrew (Biblical, Tiro)"
 msgstr "히브리어(성서 방식, Tiro)"
 
 #. Keyboard indicator for Italian layouts
-#: ../rules/base.xml.in.h:561 ../rules/base.extras.xml.in.h:109
+#: ../rules/base.xml.in.h:561 ../rules/base.extras.xml.in.h:110
 msgid "it"
 msgstr "it"
 
-#: ../rules/base.xml.in.h:562 ../rules/base.extras.xml.in.h:110
+#: ../rules/base.xml.in.h:562 ../rules/base.extras.xml.in.h:111
 msgid "Italian"
 msgstr "이탈리아어"
 
@@ -2182,11 +2182,11 @@ msgid "Italian (IBM 142)"
 msgstr "이탈리아어(IBM 142)"
 
 #. Keyboard indicator for Japanese layouts
-#: ../rules/base.xml.in.h:570 ../rules/base.extras.xml.in.h:112
+#: ../rules/base.xml.in.h:570 ../rules/base.extras.xml.in.h:113
 msgid "ja"
 msgstr "ja"
 
-#: ../rules/base.xml.in.h:571 ../rules/base.extras.xml.in.h:113
+#: ../rules/base.xml.in.h:571 ../rules/base.extras.xml.in.h:114
 msgid "Japanese"
 msgstr "일본어"
 
@@ -2263,7 +2263,7 @@ msgid "Lao (STEA proposed standard layout)"
 msgstr "라오어(STEA 제안 표준 키 배치)"
 
 #. Keyboard indicator for Spanish layouts
-#: ../rules/base.xml.in.h:594 ../rules/base.extras.xml.in.h:125
+#: ../rules/base.xml.in.h:594 ../rules/base.extras.xml.in.h:126
 msgid "es"
 msgstr "es"
 
@@ -2284,11 +2284,11 @@ msgid "Spanish (Latin American, Sun dead keys)"
 msgstr "스페인어(라틴 아메리카, 썬 데드키)"
 
 #. Keyboard indicator for Lithuanian layouts
-#: ../rules/base.xml.in.h:600 ../rules/base.extras.xml.in.h:31
+#: ../rules/base.xml.in.h:600 ../rules/base.extras.xml.in.h:32
 msgid "lt"
 msgstr "lt"
 
-#: ../rules/base.xml.in.h:601 ../rules/base.extras.xml.in.h:32
+#: ../rules/base.xml.in.h:601 ../rules/base.extras.xml.in.h:33
 msgid "Lithuanian"
 msgstr "리투아니아어"
 
@@ -2313,11 +2313,11 @@ msgid "Lithuanian (LEKPa)"
 msgstr "리투아니아어(LEKPa)"
 
 #. Keyboard indicator for Latvian layouts
-#: ../rules/base.xml.in.h:608 ../rules/base.extras.xml.in.h:35
+#: ../rules/base.xml.in.h:608 ../rules/base.extras.xml.in.h:36
 msgid "lv"
 msgstr "lv"
 
-#: ../rules/base.xml.in.h:609 ../rules/base.extras.xml.in.h:36
+#: ../rules/base.xml.in.h:609 ../rules/base.extras.xml.in.h:37
 msgid "Latvian"
 msgstr "라트비아어"
 
@@ -2355,7 +2355,7 @@ msgid "Maori"
 msgstr "마오리어"
 
 #. Keyboard indicator for Serbian layouts
-#: ../rules/base.xml.in.h:620 ../rules/base.extras.xml.in.h:66
+#: ../rules/base.xml.in.h:620 ../rules/base.extras.xml.in.h:67
 msgid "sr"
 msgstr "sr"
 
@@ -2427,11 +2427,11 @@ msgid "Mongolian"
 msgstr "몽골어"
 
 #. Keyboard indicator for Norwegian layouts
-#: ../rules/base.xml.in.h:641 ../rules/base.extras.xml.in.h:117
+#: ../rules/base.xml.in.h:641 ../rules/base.extras.xml.in.h:118
 msgid "no"
 msgstr "no"
 
-#: ../rules/base.xml.in.h:642 ../rules/base.extras.xml.in.h:118
+#: ../rules/base.xml.in.h:642 ../rules/base.extras.xml.in.h:119
 msgid "Norwegian"
 msgstr "노르웨이어"
 
@@ -2468,11 +2468,11 @@ msgid "Norwegian (Colemak)"
 msgstr "노르웨이어(콜맥)"
 
 #. Keyboard indicator for Polish layouts
-#: ../rules/base.xml.in.h:652 ../rules/base.extras.xml.in.h:55
+#: ../rules/base.xml.in.h:652 ../rules/base.extras.xml.in.h:56
 msgid "pl"
 msgstr "pl"
 
-#: ../rules/base.xml.in.h:653 ../rules/base.extras.xml.in.h:56
+#: ../rules/base.xml.in.h:653 ../rules/base.extras.xml.in.h:57
 msgid "Polish"
 msgstr "폴란드어"
 
@@ -2512,7 +2512,7 @@ msgstr "러시아어(폴란드, 음성 표기 드보락)"
 msgid "Polish (programmer Dvorak)"
 msgstr "폴란드어(프로그래머 드보락)"
 
-#: ../rules/base.xml.in.h:663 ../rules/base.extras.xml.in.h:120
+#: ../rules/base.xml.in.h:663 ../rules/base.extras.xml.in.h:121
 msgid "Portuguese"
 msgstr "포르투갈어"
 
@@ -2551,11 +2551,11 @@ msgid "Esperanto (Portugal, Nativo)"
 msgstr "에스페란토(포르투갈, 네이티브)"
 
 #. Keyboard indicator for Romanian layouts
-#: ../rules/base.xml.in.h:673 ../rules/base.extras.xml.in.h:60
+#: ../rules/base.xml.in.h:673 ../rules/base.extras.xml.in.h:61
 msgid "ro"
 msgstr "ro"
 
-#: ../rules/base.xml.in.h:674 ../rules/base.extras.xml.in.h:61
+#: ../rules/base.xml.in.h:674 ../rules/base.extras.xml.in.h:62
 msgid "Romanian"
 msgstr "루마니아어"
 
@@ -2575,7 +2575,7 @@ msgstr "루마니아어(표준 세디유)"
 msgid "Romanian (WinKeys)"
 msgstr "루마니아어(윈도우 키)"
 
-#: ../rules/base.xml.in.h:679 ../rules/base.extras.xml.in.h:70
+#: ../rules/base.xml.in.h:679 ../rules/base.extras.xml.in.h:71
 msgid "Russian"
 msgstr "러시아어"
 
@@ -2656,1406 +2656,1430 @@ msgstr "바시키르어"
 msgid "Mari"
 msgstr "마리어"
 
-#: ../rules/base.xml.in.h:699 ../rules/base.extras.xml.in.h:67
+#: ../rules/base.xml.in.h:699
+msgid "Russian (phonetic azerty)"
+msgstr "러시아어(음성 표기 AZERTY)"
+
+#: ../rules/base.xml.in.h:700
+msgid "Russian (phonetic French)"
+msgstr "러시아어(음성 표기 프랑스식)"
+
+#: ../rules/base.xml.in.h:701 ../rules/base.extras.xml.in.h:68
 msgid "Serbian"
 msgstr "세르비아어"
 
-#: ../rules/base.xml.in.h:700
+#: ../rules/base.xml.in.h:702
 msgid "Serbian (Cyrillic, ZE and ZHE swapped)"
 msgstr "세르비아어(키릴 문자, ZE와 ZHE 뒤바꾸기)"
 
-#: ../rules/base.xml.in.h:701
+#: ../rules/base.xml.in.h:703
 msgid "Serbian (Latin)"
 msgstr "세르비아어(라틴)"
 
-#: ../rules/base.xml.in.h:702
+#: ../rules/base.xml.in.h:704
 msgid "Serbian (Latin Unicode)"
 msgstr "세르비아어(라틴 유니코드)"
 
-#: ../rules/base.xml.in.h:703
+#: ../rules/base.xml.in.h:705
 msgid "Serbian (Latin qwerty)"
 msgstr "세르비아어(라틴 QWERTY)"
 
-#: ../rules/base.xml.in.h:704
+#: ../rules/base.xml.in.h:706
 msgid "Serbian (Latin Unicode qwerty)"
 msgstr "세르비아어(라틴 유니코드 QWERTY)"
 
-#: ../rules/base.xml.in.h:705
+#: ../rules/base.xml.in.h:707
 msgid "Serbian (Cyrillic with guillemets)"
 msgstr "세르비아어(키릴 문자, 각괄호 포함)"
 
-#: ../rules/base.xml.in.h:706
+#: ../rules/base.xml.in.h:708
 msgid "Serbian (Latin with guillemets)"
 msgstr "세르비아어(라틴, 각괄호 포함)"
 
-#: ../rules/base.xml.in.h:707
+#: ../rules/base.xml.in.h:709
 msgid "Pannonian Rusyn"
 msgstr "판노니아 루테니아"
 
 #. Keyboard indicator for Slovenian layouts
-#: ../rules/base.xml.in.h:709
+#: ../rules/base.xml.in.h:711
 msgid "sl"
 msgstr "sl"
 
-#: ../rules/base.xml.in.h:710
+#: ../rules/base.xml.in.h:712
 msgid "Slovenian"
 msgstr "슬로베니아어"
 
-#: ../rules/base.xml.in.h:711
+#: ../rules/base.xml.in.h:713
 msgid "Slovenian (with guillemets for quotes)"
 msgstr "슬로베니아어(따옴표에 각괄호 포함)"
 
-#: ../rules/base.xml.in.h:712
+#: ../rules/base.xml.in.h:714
 msgid "Slovenian (US keyboard with Slovenian letters)"
 msgstr "슬로베니아어(미국식 키보드, 슬로베니아 문자 포함)"
 
 #. Keyboard indicator for Slovak layouts
-#: ../rules/base.xml.in.h:714 ../rules/base.extras.xml.in.h:122
+#: ../rules/base.xml.in.h:716 ../rules/base.extras.xml.in.h:123
 msgid "sk"
 msgstr "sk"
 
-#: ../rules/base.xml.in.h:715 ../rules/base.extras.xml.in.h:123
+#: ../rules/base.xml.in.h:717 ../rules/base.extras.xml.in.h:124
 msgid "Slovak"
 msgstr "슬로바키아어"
 
-#: ../rules/base.xml.in.h:716
+#: ../rules/base.xml.in.h:718
 msgid "Slovak (extended Backslash)"
 msgstr "슬로바키아어(확장 백슬래시)"
 
-#: ../rules/base.xml.in.h:717
+#: ../rules/base.xml.in.h:719
 msgid "Slovak (qwerty)"
 msgstr "슬로바키아어(QWERTY)"
 
-#: ../rules/base.xml.in.h:718
+#: ../rules/base.xml.in.h:720
 msgid "Slovak (qwerty, extended Backslash)"
 msgstr "슬로바키아어(QWERTY, 백슬래시 확장)"
 
-#: ../rules/base.xml.in.h:719 ../rules/base.extras.xml.in.h:126
+#: ../rules/base.xml.in.h:721 ../rules/base.extras.xml.in.h:127
 msgid "Spanish"
 msgstr "스페인어"
 
-#: ../rules/base.xml.in.h:720
+#: ../rules/base.xml.in.h:722
 msgid "Spanish (eliminate dead keys)"
 msgstr "스페인어(데드키 없음)"
 
-#: ../rules/base.xml.in.h:721
+#: ../rules/base.xml.in.h:723
 msgid "Spanish (Winkeys)"
 msgstr "스페인어(윈도우 키)"
 
-#: ../rules/base.xml.in.h:722
+#: ../rules/base.xml.in.h:724
 msgid "Spanish (include dead tilde)"
 msgstr "스페인어(물결 데드키 포함)"
 
-#: ../rules/base.xml.in.h:723
+#: ../rules/base.xml.in.h:725
 msgid "Spanish (Sun dead keys)"
 msgstr "스페인어(썬 데드키)"
 
-#: ../rules/base.xml.in.h:724
+#: ../rules/base.xml.in.h:726
 msgid "Spanish (Dvorak)"
 msgstr "스페인어(드보락)"
 
 # 아스투리아스 - 스페인 지역
-#: ../rules/base.xml.in.h:725
+#: ../rules/base.xml.in.h:727
 msgid "Asturian (Spain, with bottom-dot H and bottom-dot L)"
 msgstr "아스투리아스어(스페인, 가운데점 H 및 가운데점 L 포함)"
 
-#: ../rules/base.xml.in.h:726
+#: ../rules/base.xml.in.h:728
 msgid "Catalan (Spain, with middle-dot L)"
 msgstr "카탈로니아어(스페인, 가운데점 L 포함)"
 
-#: ../rules/base.xml.in.h:727
+#: ../rules/base.xml.in.h:729
 msgid "Spanish (Macintosh)"
 msgstr "스페인어(매킨토시)"
 
 #. Keyboard indicator for Swedish layouts
-#: ../rules/base.xml.in.h:729 ../rules/base.extras.xml.in.h:128
+#: ../rules/base.xml.in.h:731 ../rules/base.extras.xml.in.h:129
 msgid "sv"
 msgstr "sv"
 
-#: ../rules/base.xml.in.h:730 ../rules/base.extras.xml.in.h:129
+#: ../rules/base.xml.in.h:732 ../rules/base.extras.xml.in.h:130
 msgid "Swedish"
 msgstr "스웨덴어"
 
-#: ../rules/base.xml.in.h:731
+#: ../rules/base.xml.in.h:733
 msgid "Swedish (eliminate dead keys)"
 msgstr "스웨덴어(데드키 없음)"
 
-#: ../rules/base.xml.in.h:732
+#: ../rules/base.xml.in.h:734
 msgid "Swedish (Dvorak)"
 msgstr "스웨덴어(드보락)"
 
-#: ../rules/base.xml.in.h:733
+#: ../rules/base.xml.in.h:735
 msgid "Russian (Sweden, phonetic)"
 msgstr "러시아어(스웨덴, 음성 표기)"
 
-#: ../rules/base.xml.in.h:734
+#: ../rules/base.xml.in.h:736
 msgid "Russian (Sweden, phonetic, eliminate dead keys)"
 msgstr "러시아어(스웨덴, 음성 표기, 데드키 없음)"
 
-#: ../rules/base.xml.in.h:735
+#: ../rules/base.xml.in.h:737
 msgid "Northern Saami (Sweden)"
 msgstr "북 사오미(스웨덴)"
 
-#: ../rules/base.xml.in.h:736
+#: ../rules/base.xml.in.h:738
 msgid "Swedish (Macintosh)"
 msgstr "스웨덴어(매킨토시)"
 
-#: ../rules/base.xml.in.h:737
+#: ../rules/base.xml.in.h:739
 msgid "Swedish (Svdvorak)"
 msgstr "스웨덴어(SV 드보락)"
 
-#: ../rules/base.xml.in.h:738
+#: ../rules/base.xml.in.h:740
 msgid "Swedish Sign Language"
 msgstr "스웨덴 기호 언어"
 
-#: ../rules/base.xml.in.h:739 ../rules/base.extras.xml.in.h:132
+#: ../rules/base.xml.in.h:741 ../rules/base.extras.xml.in.h:133
 msgid "German (Switzerland)"
 msgstr "독일어(스위스)"
 
-#: ../rules/base.xml.in.h:740
+#: ../rules/base.xml.in.h:742
 msgid "German (Switzerland, legacy)"
 msgstr "독일어(스위스, 구형)"
 
-#: ../rules/base.xml.in.h:741
+#: ../rules/base.xml.in.h:743
 msgid "German (Switzerland, eliminate dead keys)"
 msgstr "독일어(스위스, 데드키 없음)"
 
-#: ../rules/base.xml.in.h:742
+#: ../rules/base.xml.in.h:744
 msgid "German (Switzerland, Sun dead keys)"
 msgstr "독일어(스위스, 썬 데드키)"
 
-#: ../rules/base.xml.in.h:743
+#: ../rules/base.xml.in.h:745
 msgid "French (Switzerland)"
 msgstr "프랑스어(스위스)"
 
-#: ../rules/base.xml.in.h:744
+#: ../rules/base.xml.in.h:746
 msgid "French (Switzerland, eliminate dead keys)"
 msgstr "프랑스어(스위스, 데드키 없음)"
 
-#: ../rules/base.xml.in.h:745
+#: ../rules/base.xml.in.h:747
 msgid "French (Switzerland, Sun dead keys)"
 msgstr "프랑스어(스위스, 썬 데드키)"
 
-#: ../rules/base.xml.in.h:746
+#: ../rules/base.xml.in.h:748
 msgid "French (Switzerland, Macintosh)"
 msgstr "프랑스어(스위스, 매킨토시)"
 
-#: ../rules/base.xml.in.h:747
+#: ../rules/base.xml.in.h:749
 msgid "German (Switzerland, Macintosh)"
 msgstr "독일어(스위스, 매킨토시)"
 
-#: ../rules/base.xml.in.h:748
+#: ../rules/base.xml.in.h:750
 msgid "Arabic (Syria)"
 msgstr "아랍어(시리아)"
 
 #. Keyboard indicator for Syriac layouts
-#: ../rules/base.xml.in.h:750
+#: ../rules/base.xml.in.h:752
 msgid "syc"
 msgstr "syc"
 
-#: ../rules/base.xml.in.h:751
+#: ../rules/base.xml.in.h:753
 msgid "Syriac"
 msgstr "시리아어"
 
-#: ../rules/base.xml.in.h:752
+#: ../rules/base.xml.in.h:754
 msgid "Syriac (phonetic)"
 msgstr "시리아어(음성 기호)"
 
-#: ../rules/base.xml.in.h:753
+#: ../rules/base.xml.in.h:755
 msgid "Kurdish (Syria, Latin Q)"
 msgstr "쿠르드어(시리아, 라틴 Q)"
 
-#: ../rules/base.xml.in.h:754
+#: ../rules/base.xml.in.h:756
 msgid "Kurdish (Syria, F)"
 msgstr "쿠르드어(시리아, F)"
 
-#: ../rules/base.xml.in.h:755
+#: ../rules/base.xml.in.h:757
 msgid "Kurdish (Syria, Latin Alt-Q)"
 msgstr "쿠르드어(시리아, 라틴 Alt-Q)"
 
 #. Keyboard indicator for Tajik layouts
-#: ../rules/base.xml.in.h:757
+#: ../rules/base.xml.in.h:759
 msgid "tg"
 msgstr "tg"
 
-#: ../rules/base.xml.in.h:758
+#: ../rules/base.xml.in.h:760
 msgid "Tajik"
 msgstr "타지키스탄"
 
-#: ../rules/base.xml.in.h:759
+#: ../rules/base.xml.in.h:761
 msgid "Tajik (legacy)"
 msgstr "타지키스탄(구형)"
 
 #. Keyboard indicator for Sinhala layouts
-#: ../rules/base.xml.in.h:761
+#: ../rules/base.xml.in.h:763
 msgid "si"
 msgstr "si"
 
-#: ../rules/base.xml.in.h:762
+#: ../rules/base.xml.in.h:764
 msgid "Sinhala (phonetic)"
 msgstr "싱할라어(음성 기호)"
 
-#: ../rules/base.xml.in.h:763
+#: ../rules/base.xml.in.h:765
 msgid "Tamil (Sri Lanka, Unicode)"
 msgstr "타밀어(스리랑카, 유니코드)"
 
-#: ../rules/base.xml.in.h:764
+#: ../rules/base.xml.in.h:766
 msgid "Tamil (Sri Lanka, TAB Typewriter)"
 msgstr "타밀어(스리랑카, TAB 타자기)"
 
 #. Keyboard indicator for Thai layouts
-#: ../rules/base.xml.in.h:766
+#: ../rules/base.xml.in.h:768
 msgid "th"
 msgstr "th"
 
-#: ../rules/base.xml.in.h:767
+#: ../rules/base.xml.in.h:769
 msgid "Thai"
 msgstr "타이어"
 
-#: ../rules/base.xml.in.h:768
+#: ../rules/base.xml.in.h:770
 msgid "Thai (TIS-820.2538)"
 msgstr "타이어(TIS-820.2538)"
 
-#: ../rules/base.xml.in.h:769
+#: ../rules/base.xml.in.h:771
 msgid "Thai (Pattachote)"
 msgstr "타이어(Pattachote)"
 
 #. Keyboard indicator for Turkish layouts
-#: ../rules/base.xml.in.h:771 ../rules/base.extras.xml.in.h:135
+#: ../rules/base.xml.in.h:773 ../rules/base.extras.xml.in.h:136
 msgid "tr"
 msgstr "tr"
 
-#: ../rules/base.xml.in.h:772 ../rules/base.extras.xml.in.h:136
+#: ../rules/base.xml.in.h:774 ../rules/base.extras.xml.in.h:137
 msgid "Turkish"
 msgstr "터키어"
 
-#: ../rules/base.xml.in.h:773
+#: ../rules/base.xml.in.h:775
 msgid "Turkish (F)"
 msgstr "터키어(F)"
 
-#: ../rules/base.xml.in.h:774
+#: ../rules/base.xml.in.h:776
 msgid "Turkish (Alt-Q)"
 msgstr "터키어(Alt-Q)"
 
-#: ../rules/base.xml.in.h:775
+#: ../rules/base.xml.in.h:777
 msgid "Turkish (Sun dead keys)"
 msgstr "터키어(썬 데드키)"
 
-#: ../rules/base.xml.in.h:776
+#: ../rules/base.xml.in.h:778
 msgid "Kurdish (Turkey, Latin Q)"
 msgstr "쿠르드어(터키, 라틴 Q)"
 
-#: ../rules/base.xml.in.h:777
+#: ../rules/base.xml.in.h:779
 msgid "Kurdish (Turkey, F)"
 msgstr "쿠르드어(터키, F)"
 
-#: ../rules/base.xml.in.h:778
+#: ../rules/base.xml.in.h:780
 msgid "Kurdish (Turkey, Latin Alt-Q)"
 msgstr "쿠르드어(터키, 라틴 Alt-Q)"
 
-#: ../rules/base.xml.in.h:779
+#: ../rules/base.xml.in.h:781
 msgid "Turkish (international with dead keys)"
 msgstr "터키어(국제 버전, 데드키 포함)"
 
 #. Keyboard indicator for Crimean Tatar layouts
-#: ../rules/base.xml.in.h:781 ../rules/base.extras.xml.in.h:62
+#: ../rules/base.xml.in.h:783 ../rules/base.extras.xml.in.h:63
 msgid "crh"
 msgstr "crh"
 
-#: ../rules/base.xml.in.h:782
+#: ../rules/base.xml.in.h:784
 msgid "Crimean Tatar (Turkish Q)"
 msgstr "크림타타르(터키어 Q)"
 
-#: ../rules/base.xml.in.h:783
+#: ../rules/base.xml.in.h:785
 msgid "Crimean Tatar (Turkish F)"
 msgstr "크림타타르(터키어 F)"
 
-#: ../rules/base.xml.in.h:784
+#: ../rules/base.xml.in.h:786
 msgid "Crimean Tatar (Turkish Alt-Q)"
 msgstr "크림타타르(터키어 Alt-Q)"
 
-#: ../rules/base.xml.in.h:785
+#: ../rules/base.xml.in.h:787
 msgid "Taiwanese"
 msgstr "타이완"
 
-#: ../rules/base.xml.in.h:786
+#: ../rules/base.xml.in.h:788
 msgid "Taiwanese (indigenous)"
 msgstr "타이완(원주민)"
 
 #. Keyboard indicator for Saisiyat layouts
-#: ../rules/base.xml.in.h:788
+#: ../rules/base.xml.in.h:790
 msgid "xsy"
 msgstr "xsy"
 
 # 사이시얏트(賽夏族) - 타이완 원주민
-#: ../rules/base.xml.in.h:789
+#: ../rules/base.xml.in.h:791
 msgid "Saisiyat (Taiwan)"
 msgstr "사이시얏트(타이완)"
 
 #. Keyboard indicator for Ukranian layouts
-#: ../rules/base.xml.in.h:791 ../rules/base.extras.xml.in.h:138
+#: ../rules/base.xml.in.h:793 ../rules/base.extras.xml.in.h:139
 msgid "uk"
 msgstr "uk"
 
-#: ../rules/base.xml.in.h:792 ../rules/base.extras.xml.in.h:139
+#: ../rules/base.xml.in.h:794 ../rules/base.extras.xml.in.h:140
 msgid "Ukrainian"
 msgstr "우크라이나어"
 
-#: ../rules/base.xml.in.h:793
+#: ../rules/base.xml.in.h:795
 msgid "Ukrainian (phonetic)"
 msgstr "우크라이나어(음성 기호)"
 
-#: ../rules/base.xml.in.h:794
+#: ../rules/base.xml.in.h:796
 msgid "Ukrainian (typewriter)"
 msgstr "우크라이나어(타자기)"
 
-#: ../rules/base.xml.in.h:795
+#: ../rules/base.xml.in.h:797
 msgid "Ukrainian (WinKeys)"
 msgstr "우크라이나어(윈도우 키)"
 
-#: ../rules/base.xml.in.h:796
+#: ../rules/base.xml.in.h:798
 msgid "Ukrainian (legacy)"
 msgstr "우크라이나어(구형)"
 
-#: ../rules/base.xml.in.h:797
+#: ../rules/base.xml.in.h:799
 msgid "Ukrainian (standard RSTU)"
 msgstr "우크라이나어(표준 RSTU)"
 
-#: ../rules/base.xml.in.h:798
+#: ../rules/base.xml.in.h:800
 msgid "Russian (Ukraine, standard RSTU)"
 msgstr "러시아어(우크라이나, 표준 RSTU)"
 
-#: ../rules/base.xml.in.h:799
+#: ../rules/base.xml.in.h:801
 msgid "Ukrainian (homophonic)"
 msgstr "우크라이나어(homophonic)"
 
-#: ../rules/base.xml.in.h:800 ../rules/base.extras.xml.in.h:141
+#: ../rules/base.xml.in.h:802 ../rules/base.extras.xml.in.h:142
 msgid "English (UK)"
 msgstr "영어(영국)"
 
-#: ../rules/base.xml.in.h:801
+#: ../rules/base.xml.in.h:803
 msgid "English (UK, extended WinKeys)"
 msgstr "영어(영국, 확장 윈도우 키)"
 
-#: ../rules/base.xml.in.h:802
+#: ../rules/base.xml.in.h:804
 msgid "English (UK, international with dead keys)"
 msgstr "영어(영국, 국제 버전, 데드키 포함)"
 
-#: ../rules/base.xml.in.h:803
+#: ../rules/base.xml.in.h:805
 msgid "English (UK, Dvorak)"
 msgstr "영어(영국, 드보락)"
 
-#: ../rules/base.xml.in.h:804
+#: ../rules/base.xml.in.h:806
 msgid "English (UK, Dvorak with UK punctuation)"
 msgstr "영어(영국, 영국 문장 부호 포함 드보락)"
 
-#: ../rules/base.xml.in.h:805
+#: ../rules/base.xml.in.h:807
 msgid "English (UK, Macintosh)"
 msgstr "영어(영국, 매킨토시)"
 
-#: ../rules/base.xml.in.h:806
+#: ../rules/base.xml.in.h:808
 msgid "English (UK, Macintosh international)"
 msgstr "영어(영국, 매킨토시 국제 버전)"
 
-#: ../rules/base.xml.in.h:807
+#: ../rules/base.xml.in.h:809
 msgid "English (UK, Colemak)"
 msgstr "영어(영국, 콜맥)"
 
-#: ../rules/base.xml.in.h:808
+#: ../rules/base.xml.in.h:810
 msgid "Uzbek"
 msgstr "우즈베크어"
 
-#: ../rules/base.xml.in.h:809
+#: ../rules/base.xml.in.h:811
 msgid "Uzbek (Latin)"
 msgstr "우즈베크어(라틴)"
 
 #. Keyboard indicator for Vietnamese layouts
-#: ../rules/base.xml.in.h:811
+#: ../rules/base.xml.in.h:813
 msgid "vi"
 msgstr "vi"
 
-#: ../rules/base.xml.in.h:812
+#: ../rules/base.xml.in.h:814
 msgid "Vietnamese"
 msgstr "베트남어"
 
 #. Keyboard indicator for Korean layouts
-#: ../rules/base.xml.in.h:814 ../rules/base.extras.xml.in.h:143
+#: ../rules/base.xml.in.h:816 ../rules/base.extras.xml.in.h:144
 msgid "ko"
 msgstr "ko"
 
-#: ../rules/base.xml.in.h:815 ../rules/base.extras.xml.in.h:144
+#: ../rules/base.xml.in.h:817 ../rules/base.extras.xml.in.h:145
 msgid "Korean"
 msgstr "한국어"
 
-#: ../rules/base.xml.in.h:816
+#: ../rules/base.xml.in.h:818
 msgid "Korean (101/104 key compatible)"
 msgstr "한국어(101/104키 호환)"
 
-#: ../rules/base.xml.in.h:817
+#: ../rules/base.xml.in.h:819
 msgid "Japanese (PC-98xx Series)"
 msgstr "일본어(PC-98xx 시리즈)"
 
 #. Keyboard indicator for Irish layouts
-#: ../rules/base.xml.in.h:819
+#: ../rules/base.xml.in.h:821
 msgid "ie"
 msgstr "ie"
 
-#: ../rules/base.xml.in.h:820
+#: ../rules/base.xml.in.h:822
 msgid "Irish"
 msgstr "아일랜드"
 
 # 아일랜드 변종
-#: ../rules/base.xml.in.h:821
+#: ../rules/base.xml.in.h:823
 msgid "CloGaelach"
 msgstr "클로개라치어"
 
-#: ../rules/base.xml.in.h:822
+#: ../rules/base.xml.in.h:824
 msgid "Irish (UnicodeExpert)"
 msgstr "아일랜드(UnicodeExpert)"
 
-#: ../rules/base.xml.in.h:823
+#: ../rules/base.xml.in.h:825
 msgid "Ogham"
 msgstr "오검 문자"
 
 # 아일랜드 변종
-#: ../rules/base.xml.in.h:824
+#: ../rules/base.xml.in.h:826
 msgid "Ogham (IS434)"
 msgstr "오검 문자(IS434)"
 
 # Urdu - 인도 방언
-#: ../rules/base.xml.in.h:825
+#: ../rules/base.xml.in.h:827
 msgid "Urdu (Pakistan)"
 msgstr "우르두어(파키스탄)"
 
 # Urdu - 인도 방언
-#: ../rules/base.xml.in.h:826
+#: ../rules/base.xml.in.h:828
 msgid "Urdu (Pakistan, CRULP)"
 msgstr "우르두어(파키스탄, CRULP)"
 
 # Urdu - 인도 방언
-#: ../rules/base.xml.in.h:827
+#: ../rules/base.xml.in.h:829
 msgid "Urdu (Pakistan, NLA)"
 msgstr "우르두어(파키스탄, NLA)"
 
-#: ../rules/base.xml.in.h:828
+#: ../rules/base.xml.in.h:830
 msgid "Arabic (Pakistan)"
 msgstr "아랍어(파키스탄)"
 
 #. Keyboard indicator for Sindhi layouts
-#: ../rules/base.xml.in.h:830
+#: ../rules/base.xml.in.h:832
 msgid "sd"
 msgstr "sd"
 
 # 인도
-#: ../rules/base.xml.in.h:831
+#: ../rules/base.xml.in.h:833
 msgid "Sindhi"
 msgstr "신디어"
 
 #. Keyboard indicator for Dhivehi layouts
-#: ../rules/base.xml.in.h:833
+#: ../rules/base.xml.in.h:835
 msgid "dv"
 msgstr "dv"
 
 # 몰디브 공용어
-#: ../rules/base.xml.in.h:834
+#: ../rules/base.xml.in.h:836
 msgid "Dhivehi"
 msgstr "디베히어"
 
-#: ../rules/base.xml.in.h:835
+#: ../rules/base.xml.in.h:837
 msgid "English (South Africa)"
 msgstr "영어(남아공)"
 
 #. Keyboard indicator for Esperanto layouts
-#: ../rules/base.xml.in.h:837
+#: ../rules/base.xml.in.h:839
 msgid "eo"
 msgstr "eo"
 
-#: ../rules/base.xml.in.h:838
+#: ../rules/base.xml.in.h:840
 msgid "Esperanto"
 msgstr "에스페란토"
 
-#: ../rules/base.xml.in.h:839
+#: ../rules/base.xml.in.h:841
 msgid "Esperanto (displaced semicolon and quote, obsolete)"
 msgstr "에스페란토(세미콜론과 따옴표 없애기, 없어진 기능)"
 
 #. Keyboard indicator for Nepali layouts
-#: ../rules/base.xml.in.h:841
+#: ../rules/base.xml.in.h:843
 msgid "ne"
 msgstr "ne"
 
-#: ../rules/base.xml.in.h:842
+#: ../rules/base.xml.in.h:844
 msgid "Nepali"
 msgstr "네팔어"
 
-#: ../rules/base.xml.in.h:843
+#: ../rules/base.xml.in.h:845
 msgid "English (Nigeria)"
 msgstr "영어(나이지리아)"
 
 #. Keyboard indicator for Igbo layouts
-#: ../rules/base.xml.in.h:845
+#: ../rules/base.xml.in.h:847
 msgid "ig"
 msgstr "ig"
 
 # 나이지리아 변종
-#: ../rules/base.xml.in.h:846
+#: ../rules/base.xml.in.h:848
 msgid "Igbo"
 msgstr "이그보어"
 
 #. Keyboard indicator for Yoruba layouts
-#: ../rules/base.xml.in.h:848
+#: ../rules/base.xml.in.h:850
 msgid "yo"
 msgstr "yo"
 
 # 나이지리아 변종
-#: ../rules/base.xml.in.h:849
+#: ../rules/base.xml.in.h:851
 msgid "Yoruba"
 msgstr "요루바어"
 
 #. Keyboard indicator for Amharic layouts
-#: ../rules/base.xml.in.h:851
+#: ../rules/base.xml.in.h:853
 msgid "am"
 msgstr "am"
 
-#: ../rules/base.xml.in.h:852
+#: ../rules/base.xml.in.h:854
 msgid "Amharic"
 msgstr "암하라어"
 
 #. Keyboard indicator for Wolof layouts
-#: ../rules/base.xml.in.h:854
+#: ../rules/base.xml.in.h:856
 msgid "wo"
 msgstr "wo"
 
 # 월로프어 - 세네갈, 감비아, 모리타니에서 쓰이는 아프리카 언어
-#: ../rules/base.xml.in.h:855
+#: ../rules/base.xml.in.h:857
 msgid "Wolof"
 msgstr "월로프어"
 
 # Braille
 #. Keyboard indicator for Braille layouts
-#: ../rules/base.xml.in.h:857
+#: ../rules/base.xml.in.h:859
 msgid "brl"
 msgstr "brl"
 
-#: ../rules/base.xml.in.h:858
+#: ../rules/base.xml.in.h:860
 msgid "Braille"
 msgstr "점자"
 
-#: ../rules/base.xml.in.h:859
+#: ../rules/base.xml.in.h:861
 msgid "Braille (left hand)"
 msgstr "점자(왼손잡이)"
 
-#: ../rules/base.xml.in.h:860
+#: ../rules/base.xml.in.h:862
 msgid "Braille (right hand)"
 msgstr "점자(오른손잡이)"
 
 #. Keyboard indicator for Turkmen layouts
-#: ../rules/base.xml.in.h:862
+#: ../rules/base.xml.in.h:864
 msgid "tk"
 msgstr "tk"
 
-#: ../rules/base.xml.in.h:863
+#: ../rules/base.xml.in.h:865
 msgid "Turkmen"
 msgstr "투르크멘어"
 
-#: ../rules/base.xml.in.h:864
+#: ../rules/base.xml.in.h:866
 msgid "Turkmen (Alt-Q)"
 msgstr "투르크멘어(Alt-Q)"
 
 #. Keyboard indicator for Bambara layouts
-#: ../rules/base.xml.in.h:866
+#: ../rules/base.xml.in.h:868
 msgid "bm"
 msgstr "bm"
 
-#: ../rules/base.xml.in.h:867
+#: ../rules/base.xml.in.h:869
 msgid "Bambara"
 msgstr "밤바라어"
 
-#: ../rules/base.xml.in.h:868
+#: ../rules/base.xml.in.h:870
 msgid "French (Mali, alternative)"
 msgstr "프랑스어(말리, 다른 버전)"
 
-#: ../rules/base.xml.in.h:869
+#: ../rules/base.xml.in.h:871
 msgid "English (Mali, US Macintosh)"
 msgstr "영어(말리, 미국 매킨토시)"
 
-#: ../rules/base.xml.in.h:870
+#: ../rules/base.xml.in.h:872
 msgid "English (Mali, US international)"
 msgstr "영어(말리, 미국 국제 버전)"
 
 #. Keyboard indicator for Swahili layouts
-#: ../rules/base.xml.in.h:872
+#: ../rules/base.xml.in.h:874
 msgid "sw"
 msgstr "sw"
 
-#: ../rules/base.xml.in.h:873
+#: ../rules/base.xml.in.h:875
 msgid "Swahili (Tanzania)"
 msgstr "스와힐리어(탄자니아)"
 
-#: ../rules/base.xml.in.h:874
+#: ../rules/base.xml.in.h:876
 msgid "Swahili (Kenya)"
 msgstr "스와힐리어(케냐)"
 
 # http://en.wikipedia.org/wiki/Kikuyu#Language
-#: ../rules/base.xml.in.h:875
+#: ../rules/base.xml.in.h:877
 msgid "Kikuyu"
 msgstr "키쿠유어"
 
 #. Keyboard indicator for Tswana layouts
-#: ../rules/base.xml.in.h:877
+#: ../rules/base.xml.in.h:879
 msgid "tn"
 msgstr "tn"
 
-#: ../rules/base.xml.in.h:878
+#: ../rules/base.xml.in.h:880
 msgid "Tswana"
 msgstr "츠와나어"
 
 #. Keyboard indicator for Filipino layouts
-#: ../rules/base.xml.in.h:880
+#: ../rules/base.xml.in.h:882
 msgid "ph"
 msgstr "ph"
 
-#: ../rules/base.xml.in.h:881
+#: ../rules/base.xml.in.h:883
 msgid "Filipino"
 msgstr "필리핀어"
 
-#: ../rules/base.xml.in.h:882
+#: ../rules/base.xml.in.h:884
 msgid "Filipino (QWERTY Baybayin)"
 msgstr "필리핀어(QWERTY 베이베이인)"
 
-#: ../rules/base.xml.in.h:883
+#: ../rules/base.xml.in.h:885
 msgid "Filipino (Capewell-Dvorak Latin)"
 msgstr "필리핀어(케이프웰 드보락 라틴)"
 
-#: ../rules/base.xml.in.h:884
+#: ../rules/base.xml.in.h:886
 msgid "Filipino (Capewell-Dvorak Baybayin)"
 msgstr "필리핀어(케이프웰 드보락 베이베이인)"
 
-#: ../rules/base.xml.in.h:885
+#: ../rules/base.xml.in.h:887
 msgid "Filipino (Capewell-QWERF 2006 Latin)"
 msgstr "필리핀어(케이프웰 QWERF 2006 라틴)"
 
-#: ../rules/base.xml.in.h:886
+#: ../rules/base.xml.in.h:888
 msgid "Filipino (Capewell-QWERF 2006 Baybayin)"
 msgstr "필리핀어(케이프웰 QWERF 2006 베이베이인)"
 
-#: ../rules/base.xml.in.h:887
+#: ../rules/base.xml.in.h:889
 msgid "Filipino (Colemak Latin)"
 msgstr "필리핀어(콜맥 라틴)"
 
-#: ../rules/base.xml.in.h:888
+#: ../rules/base.xml.in.h:890
 msgid "Filipino (Colemak Baybayin)"
 msgstr "필리핀어(콜맥 베이베이인)"
 
-#: ../rules/base.xml.in.h:889
+#: ../rules/base.xml.in.h:891
 msgid "Filipino (Dvorak Latin)"
 msgstr "필리핀어(드보락 라틴)"
 
-#: ../rules/base.xml.in.h:890
+#: ../rules/base.xml.in.h:892
 msgid "Filipino (Dvorak Baybayin)"
 msgstr "필리핀어(드보락 베이베이인)"
 
-#: ../rules/base.xml.in.h:891
+#: ../rules/base.xml.in.h:893
 msgid "md"
 msgstr "md"
 
-#: ../rules/base.xml.in.h:892
+#: ../rules/base.xml.in.h:894
 msgid "Moldavian"
 msgstr "몰디브어"
 
-#: ../rules/base.xml.in.h:893
+#: ../rules/base.xml.in.h:895
 msgid "gag"
 msgstr "gag"
 
 # 가가우지아 지역의 몰디브어
-#: ../rules/base.xml.in.h:894
+#: ../rules/base.xml.in.h:896
 msgid "Moldavian (Gagauz)"
 msgstr "몰티브어(가가우지아)"
 
-#: ../rules/base.xml.in.h:895
+#: ../rules/base.xml.in.h:897
 msgid "Switching to another layout"
 msgstr "다른 키 배치로 전환"
 
-#: ../rules/base.xml.in.h:896
+#: ../rules/base.xml.in.h:898
 msgid "Right Alt (while pressed)"
 msgstr "오른쪽 Alt(누르고 있는 동안)"
 
-#: ../rules/base.xml.in.h:897
+#: ../rules/base.xml.in.h:899
 msgid "Left Alt (while pressed)"
 msgstr "왼쪽 Alt(누르고 있는 동안)"
 
-#: ../rules/base.xml.in.h:898
+#: ../rules/base.xml.in.h:900
 msgid "Left Win (while pressed)"
 msgstr "왼쪽 윈도우(누르고 있는 동안)"
 
-#: ../rules/base.xml.in.h:899
+#: ../rules/base.xml.in.h:901
 msgid "Right Win (while pressed)"
 msgstr "오른쪽 윈도우(누르고 있는 동안)"
 
-#: ../rules/base.xml.in.h:900
+#: ../rules/base.xml.in.h:902
 msgid "Any Win key (while pressed)"
 msgstr "모든 윈도우 키(누르고 있는 동안)"
 
-#: ../rules/base.xml.in.h:901
+#: ../rules/base.xml.in.h:903
 msgid "Caps Lock (while pressed), Alt+Caps Lock does the original capslock action"
 msgstr "Caps Lock(누르고 있는 동안), Alt+Caps Lock을 누르면 원래 Caps Lock 기능"
 
-#: ../rules/base.xml.in.h:902
+#: ../rules/base.xml.in.h:904
 msgid "Right Ctrl (while pressed)"
 msgstr "오른쪽 Ctrl(누르고 있는 동안)"
 
-#: ../rules/base.xml.in.h:903
+#: ../rules/base.xml.in.h:905
 msgid "Right Alt"
 msgstr "오른쪽 Alt"
 
-#: ../rules/base.xml.in.h:904
+#: ../rules/base.xml.in.h:906
 msgid "Left Alt"
 msgstr "왼쪽 Alt"
 
-#: ../rules/base.xml.in.h:905
+#: ../rules/base.xml.in.h:907
 msgid "Caps Lock"
 msgstr "Caps Lock"
 
-#: ../rules/base.xml.in.h:906
+#: ../rules/base.xml.in.h:908
 msgid "Shift+Caps Lock"
 msgstr "Shift+Caps Lock"
 
-#: ../rules/base.xml.in.h:907
+#: ../rules/base.xml.in.h:909
 msgid "Caps Lock (to first layout), Shift+Caps Lock (to last layout)"
 msgstr "Caps Lock(1번으로), Shift+Caps Lock(마지막으로)"
 
-#: ../rules/base.xml.in.h:908
+#: ../rules/base.xml.in.h:910
 msgid "Left Win (to first layout), Right Win/Menu (to last layout)"
 msgstr "왼쪽 윈도우(1번으로), 오른쪽 윈도우/메뉴(마지막으로)"
 
-#: ../rules/base.xml.in.h:909
+#: ../rules/base.xml.in.h:911
 msgid "Left Ctrl (to first layout), Right Ctrl (to last layout)"
 msgstr "왼쪽 Ctrl(1번 키보드 배치로), 오른쪽 Ctrl (마지막 키보드 배치로)"
 
-#: ../rules/base.xml.in.h:910
+#: ../rules/base.xml.in.h:912
 msgid "Alt+Caps Lock"
 msgstr "Alt+Caps Lock"
 
-#: ../rules/base.xml.in.h:911
+#: ../rules/base.xml.in.h:913
 msgid "Both Shift keys together"
 msgstr "Shift 키 2개 동시 누름"
 
-#: ../rules/base.xml.in.h:912
+#: ../rules/base.xml.in.h:914
 msgid "Both Alt keys together"
 msgstr "Alt 키 2개 동시 누름"
 
-#: ../rules/base.xml.in.h:913
+#: ../rules/base.xml.in.h:915
 msgid "Both Ctrl keys together"
 msgstr "Ctrl 키 2개 동시 누름"
 
-#: ../rules/base.xml.in.h:914
+#: ../rules/base.xml.in.h:916
 msgid "Ctrl+Shift"
 msgstr "Ctrl+Shift"
 
-#: ../rules/base.xml.in.h:915
+#: ../rules/base.xml.in.h:917
 msgid "Left Ctrl+Left Shift"
 msgstr "왼쪽 Ctrl+왼쪽 Shift"
 
-#: ../rules/base.xml.in.h:916
+#: ../rules/base.xml.in.h:918
 msgid "Right Ctrl+Right Shift"
 msgstr "오른쪽 Ctrl+오른쪽 Alt"
 
-#: ../rules/base.xml.in.h:917
+#: ../rules/base.xml.in.h:919
 msgid "Alt+Ctrl"
 msgstr "Alt+Ctrl"
 
-#: ../rules/base.xml.in.h:918
+#: ../rules/base.xml.in.h:920
 msgid "Alt+Shift"
 msgstr "Alt+Shift"
 
-#: ../rules/base.xml.in.h:919
+#: ../rules/base.xml.in.h:921
 msgid "Left Alt+Left Shift"
 msgstr "왼쪽 Alt+왼쪽 Shift"
 
-#: ../rules/base.xml.in.h:920
+#: ../rules/base.xml.in.h:922
 msgid "Alt+Space"
 msgstr "Alt+스페이스"
 
-#: ../rules/base.xml.in.h:921
+#: ../rules/base.xml.in.h:923
 msgid "Menu"
 msgstr "메뉴"
 
-#: ../rules/base.xml.in.h:922
+#: ../rules/base.xml.in.h:924
 msgid "Left Win"
 msgstr "왼쪽 윈도우"
 
-#: ../rules/base.xml.in.h:923
+#: ../rules/base.xml.in.h:925
 msgid "Win Key+Space"
 msgstr "윈도우 키+스페이스"
 
-#: ../rules/base.xml.in.h:924
+#: ../rules/base.xml.in.h:926
 msgid "Right Win"
 msgstr "오른쪽 윈도우"
 
-#: ../rules/base.xml.in.h:925
+#: ../rules/base.xml.in.h:927
 msgid "Left Shift"
 msgstr "왼쪽 Shift"
 
-#: ../rules/base.xml.in.h:926
+#: ../rules/base.xml.in.h:928
 msgid "Right Shift"
 msgstr "오른쪽 Shift"
 
-#: ../rules/base.xml.in.h:927
+#: ../rules/base.xml.in.h:929
 msgid "Left Ctrl"
 msgstr "왼쪽 Ctrl"
 
-#: ../rules/base.xml.in.h:928
+#: ../rules/base.xml.in.h:930
 msgid "Right Ctrl"
 msgstr "오른쪽 Ctrl"
 
-#: ../rules/base.xml.in.h:929
+#: ../rules/base.xml.in.h:931
 msgid "Scroll Lock"
 msgstr "Scroll Lock"
 
-#: ../rules/base.xml.in.h:930
+#: ../rules/base.xml.in.h:932
 msgid "LeftCtrl+LeftWin (to first layout), RightCtrl+Menu (to second layout)"
 msgstr "왼쪽 Ctrl+왼쪽 윈도우(1번 키보드 배치로), 오른쪽 Ctrl+Menu (2번째 키보드 배치로)"
 
-#: ../rules/base.xml.in.h:931
+#: ../rules/base.xml.in.h:933
 msgid "Key to choose 3rd level"
 msgstr "3번째 단계를 선택하는 키"
 
-#: ../rules/base.xml.in.h:932
+#: ../rules/base.xml.in.h:934
 msgid "Any Win key"
 msgstr "모든 윈도우 키"
 
-#: ../rules/base.xml.in.h:933
+#: ../rules/base.xml.in.h:935
 msgid "Any Alt key"
 msgstr "모든 Alt 키"
 
-#: ../rules/base.xml.in.h:934
+#: ../rules/base.xml.in.h:936
 msgid "Right Alt, Shift+Right Alt key is Compose"
 msgstr "오른쪽 Alt, Shift+오른쪽 Alt가 Compose"
 
-#: ../rules/base.xml.in.h:935
+#: ../rules/base.xml.in.h:937
 msgid "Right Alt key never chooses 3rd level"
 msgstr "오른쪽 Alt는 3번째 단계를 선택하지 않음"
 
-#: ../rules/base.xml.in.h:936
+#: ../rules/base.xml.in.h:938
 msgid "Enter on keypad"
 msgstr "키패드에 Enter"
 
-#: ../rules/base.xml.in.h:937
+#: ../rules/base.xml.in.h:939
 msgid "Backslash"
 msgstr "백슬래시"
 
-#: ../rules/base.xml.in.h:938
+#: ../rules/base.xml.in.h:940
 msgid "&lt;Less/Greater&gt;"
 msgstr "&lt; 및 &gt;"
 
-#: ../rules/base.xml.in.h:939
+#: ../rules/base.xml.in.h:941
 msgid "Caps Lock chooses 3rd level, acts as onetime lock when pressed together with another 3rd-level-chooser"
 msgstr "Caps Lock으로 3번째 단계 선택, 다른 3번째 단계 선택 키와 같이 누르면 고정"
 
-#: ../rules/base.xml.in.h:940
+#: ../rules/base.xml.in.h:942
 msgid "Backslash chooses 3rd level, acts as onetime lock when pressed together with another 3rd-level-chooser"
 msgstr "백슬래시로 3번째 단계 선택, 다른 3번째 단계 선택 키와 같이 누르면 고정"
 
-#: ../rules/base.xml.in.h:941
+#: ../rules/base.xml.in.h:943
 msgid "&lt;Less/Greater&gt; chooses 3rd level, acts as onetime lock when pressed together with another 3rd-level-chooser"
 msgstr "&lt; 및 &gt; 키로 3번째 단계 선택, 다른 3번째 단계 선택 키와 같이 누르면 고정"
 
-#: ../rules/base.xml.in.h:942
+#: ../rules/base.xml.in.h:944
 msgid "Ctrl key position"
 msgstr "Ctrl 키 위치"
 
-#: ../rules/base.xml.in.h:943
+#: ../rules/base.xml.in.h:945
 msgid "Caps Lock as Ctrl"
 msgstr "Caps Lock 키를 Ctrl 키로"
 
-#: ../rules/base.xml.in.h:944
+#: ../rules/base.xml.in.h:946
 msgid "Left Ctrl as Meta"
 msgstr "왼쪽 Ctrl 키를 Meta 키로"
 
-#: ../rules/base.xml.in.h:945
+#: ../rules/base.xml.in.h:947
 msgid "Swap Ctrl and Caps Lock"
 msgstr "Ctrl과 Caps Lock 뒤바꾸기"
 
-#: ../rules/base.xml.in.h:946
+#: ../rules/base.xml.in.h:948
 msgid "At left of 'A'"
 msgstr "'A' 왼쪽에"
 
-#: ../rules/base.xml.in.h:947
+#: ../rules/base.xml.in.h:949
 msgid "At bottom left"
 msgstr "맨 아래 왼쪽에"
 
-#: ../rules/base.xml.in.h:948
+#: ../rules/base.xml.in.h:950
 msgid "Right Ctrl as Right Alt"
 msgstr "오른쪽 Ctrl 키를 오른쪽 Alt 키로"
 
-#: ../rules/base.xml.in.h:949
+#: ../rules/base.xml.in.h:951
 msgid "Menu as Right Ctrl"
 msgstr "Menu 키를 오른쪽 Ctrl 키로"
 
-#: ../rules/base.xml.in.h:950
+#: ../rules/base.xml.in.h:952
 msgid "Right Alt as Right Ctrl"
 msgstr "오른쪽 Alt 키를 오른쪽 Ctrl 키로"
 
-#: ../rules/base.xml.in.h:951
+#: ../rules/base.xml.in.h:953
 msgid "Swap Left Alt key with Left Ctrl key"
 msgstr "왼쪽 Alt와 왼쪽 Ctrl 뒤바꾸기"
 
-#: ../rules/base.xml.in.h:952
+#: ../rules/base.xml.in.h:954
 msgid "Swap Left Win key with Left Ctrl key"
 msgstr "왼쪽 윈도우와 왼쪽 Ctrl 뒤바꾸기"
 
-#: ../rules/base.xml.in.h:953
+#: ../rules/base.xml.in.h:955
 msgid "Swap Right Win key with Right Ctrl key"
 msgstr "오른쪽 윈도우와 오른쪽 Ctrl 뒤바꾸기"
 
-#: ../rules/base.xml.in.h:954
+#: ../rules/base.xml.in.h:956
 msgid "Left Alt as Ctrl, Left Ctrl as Win, Left Win as Alt"
 msgstr "왼쪽 Alt를 Ctrl, 왼쪽 Ctrl을 윈도우, 왼쪽 윈도우를 Alt"
 
-#: ../rules/base.xml.in.h:955
+#: ../rules/base.xml.in.h:957
 msgid "Use keyboard LED to show alternative layout"
 msgstr "키보드 LED에서 다른 키보드 배치 사용 표시"
 
-#: ../rules/base.xml.in.h:956
+#: ../rules/base.xml.in.h:958
 msgid "Num Lock"
 msgstr "Num Lock"
 
-#: ../rules/base.xml.in.h:957
+#: ../rules/base.xml.in.h:959
 msgid "Layout of numeric keypad"
 msgstr "숫자 키패드의 키 배치"
 
-#: ../rules/base.xml.in.h:958
+#: ../rules/base.xml.in.h:960
 msgid "Legacy"
 msgstr "구형 방식"
 
-#: ../rules/base.xml.in.h:959
+#: ../rules/base.xml.in.h:961
 msgid "Unicode additions (arrows and math operators)"
 msgstr "유니코드 추가(화살표 및 수학 기호)"
 
-#: ../rules/base.xml.in.h:960
+#: ../rules/base.xml.in.h:962
 msgid "Unicode additions (arrows and math operators; math operators on default level)"
 msgstr "유니코드 추가(화살표 및 수학 기호, 수학 기호를 기본 단계에)"
 
-#: ../rules/base.xml.in.h:961
+#: ../rules/base.xml.in.h:963
 msgid "Legacy Wang 724"
 msgstr "구형 방식 Wang 724 키패드"
 
-#: ../rules/base.xml.in.h:962
+#: ../rules/base.xml.in.h:964
 msgid "Wang 724 keypad with Unicode additions (arrows and math operators)"
 msgstr "Wang 724 키패드, 유니코드 추가(화살표 및 수학 기호)"
 
-#: ../rules/base.xml.in.h:963
+#: ../rules/base.xml.in.h:965
 msgid "Wang 724 keypad with Unicode additions (arrows and math operators; math operators on default level)"
 msgstr "Wang 724 키패드, 유니코드 추가(화살표 및 수학 기호, 수학 기호를 기본 단계에)"
 
-#: ../rules/base.xml.in.h:964
+#: ../rules/base.xml.in.h:966
 msgid "Hexadecimal"
 msgstr "십육진법"
 
-#: ../rules/base.xml.in.h:965
+#: ../rules/base.xml.in.h:967
 msgid "ATM/phone-style"
 msgstr "ATM/전화기형태"
 
-#: ../rules/base.xml.in.h:966
+#: ../rules/base.xml.in.h:968
 msgid "Numeric keypad delete key behaviour"
 msgstr "숫자 키패드의 Delete 키 동작"
 
-#: ../rules/base.xml.in.h:967
+#: ../rules/base.xml.in.h:969
 msgid "Legacy key with dot"
 msgstr "구형 방식 키, 점 포함"
 
 #. Actually, with KP_SEPARATOR, as the old keypad(comma)
-#: ../rules/base.xml.in.h:969
+#: ../rules/base.xml.in.h:971
 msgid "Legacy key with comma"
 msgstr "구형 방식 키, 쉼표 포함"
 
-#: ../rules/base.xml.in.h:970
+#: ../rules/base.xml.in.h:972
 msgid "Four-level key with dot"
 msgstr "네번째 단계, 점 사용"
 
-#: ../rules/base.xml.in.h:971
+#: ../rules/base.xml.in.h:973
 msgid "Four-level key with dot, Latin-9 only"
 msgstr "네번째 단계, 점 사용, Latin-9 전용"
 
-#: ../rules/base.xml.in.h:972
+#: ../rules/base.xml.in.h:974
 msgid "Four-level key with comma"
 msgstr "네번째 단계, 쉼표 사용"
 
 # momayyez: http://en.wikipedia.org/wiki/Momayyez
-#: ../rules/base.xml.in.h:973
+#: ../rules/base.xml.in.h:975
 msgid "Four-level key with momayyez"
 msgstr "네번째 단계, 아랍식 쉼표(momayyez) 사용"
 
 #. This assumes the KP_ abstract symbols are actually useful for some apps
 #. The description needs to be rewritten
-#: ../rules/base.xml.in.h:976
+#: ../rules/base.xml.in.h:978
 msgid "Four-level key with abstract separators"
 msgstr "네번째 단계, 가상 구분 문자 사용"
 
-#: ../rules/base.xml.in.h:977
+#: ../rules/base.xml.in.h:979
 msgid "Semicolon on third level"
 msgstr "3번째 단계에서 세미콜론"
 
-#: ../rules/base.xml.in.h:978
+#: ../rules/base.xml.in.h:980
 msgid "Caps Lock key behavior"
 msgstr "Caps Lock 키 동작"
 
-#: ../rules/base.xml.in.h:979
+#: ../rules/base.xml.in.h:981
 msgid "Caps Lock uses internal capitalization; Shift \"pauses\" Caps Lock"
 msgstr "Caps Lock이 내부 대문자 기능 사용, Shift가 Caps Lock을 \"일시 중지\""
 
-#: ../rules/base.xml.in.h:980
+#: ../rules/base.xml.in.h:982
 msgid "Caps Lock uses internal capitalization; Shift doesn't affect Caps Lock"
 msgstr "Caps Lock이 내부 대문자 기능 사용, Shift가 Caps Lock 상태에 영향 없음"
 
-#: ../rules/base.xml.in.h:981
+#: ../rules/base.xml.in.h:983
 msgid "Caps Lock acts as Shift with locking; Shift \"pauses\" Caps Lock"
 msgstr "Caps Lock이 Shift처럼 동작하고 상태 고정, Shift가 Caps Lock을 \"일시 중지\""
 
-#: ../rules/base.xml.in.h:982
+#: ../rules/base.xml.in.h:984
 msgid "Caps Lock acts as Shift with locking; Shift doesn't affect Caps Lock"
 msgstr "Caps Lock이 Shift처럼 동작하고 상태 고정, Shift가 Caps Lock 상태에 영향 없음"
 
-#: ../rules/base.xml.in.h:983
+#: ../rules/base.xml.in.h:985
 msgid "Caps Lock toggles normal capitalization of alphabetic characters"
 msgstr "Caps Lock이 일반적인 알파벳 대문자 상태를 토글"
 
-#: ../rules/base.xml.in.h:984
+#: ../rules/base.xml.in.h:986
 msgid "Make Caps Lock an additional Num Lock"
 msgstr "Caps Lock을 추가 Num Lock으로 사용"
 
-#: ../rules/base.xml.in.h:985
+#: ../rules/base.xml.in.h:987
 msgid "Swap ESC and Caps Lock"
 msgstr "ESC와 Caps Lock 뒤바꾸기"
 
-#: ../rules/base.xml.in.h:986
+#: ../rules/base.xml.in.h:988
 msgid "Make Caps Lock an additional ESC"
 msgstr "Caps Lock을 추가 ESC로 사용"
 
-#: ../rules/base.xml.in.h:987
+#: ../rules/base.xml.in.h:989
 msgid "Make Caps Lock an additional Backspace"
 msgstr "Caps Lock을 추가 백스페이스로 사용"
 
-#: ../rules/base.xml.in.h:988
+#: ../rules/base.xml.in.h:990
 msgid "Make Caps Lock an additional Super"
 msgstr "Caps Lock을 추가 Super로 사용"
 
-#: ../rules/base.xml.in.h:989
+#: ../rules/base.xml.in.h:991
 msgid "Make Caps Lock an additional Hyper"
 msgstr "Caps Lock을 추가 Hyper로 사용"
 
-#: ../rules/base.xml.in.h:990
+#: ../rules/base.xml.in.h:992
 msgid "Caps Lock toggles ShiftLock (affects all keys)"
 msgstr "Caps Lock이 Shift 상태를 토글(모든 키가 영향을 받음)"
 
-#: ../rules/base.xml.in.h:991
+#: ../rules/base.xml.in.h:993
 msgid "Caps Lock is disabled"
 msgstr "Caps Lock 사용 안 함"
 
-#: ../rules/base.xml.in.h:992
+#: ../rules/base.xml.in.h:994
 msgid "Make Caps Lock an additional Ctrl"
 msgstr "Caps Lock을 추가 Ctrl로 사용"
 
-#: ../rules/base.xml.in.h:993
+#: ../rules/base.xml.in.h:995
 msgid "Alt/Win key behavior"
 msgstr "Alt/Win 키 동작"
 
-#: ../rules/base.xml.in.h:994
+#: ../rules/base.xml.in.h:996
 msgid "Add the standard behavior to Menu key"
 msgstr "메뉴 키에 기본 동작 추가"
 
-#: ../rules/base.xml.in.h:995
+#: ../rules/base.xml.in.h:997
 msgid "Alt and Meta are on Alt keys"
 msgstr "Alt와 Meta를 Alt 키에"
 
-#: ../rules/base.xml.in.h:996
+#: ../rules/base.xml.in.h:998
 msgid "Alt is mapped to Win keys (and the usual Alt keys)"
 msgstr "Alt 키를 윈도우 키로 매핑(일반 Alt 키로도 동작)"
 
-#: ../rules/base.xml.in.h:997
+#: ../rules/base.xml.in.h:999
 msgid "Ctrl is mapped to Win keys (and the usual Ctrl keys)"
 msgstr "Ctrl 키를 윈도우 키로 매핑(일반 Ctrl 키로도 동작)"
 
-#: ../rules/base.xml.in.h:998
+#: ../rules/base.xml.in.h:1000
 msgid "Ctrl is mapped to Alt keys, Alt is mapped to Win keys"
 msgstr "Ctrl 키를 윈도우 키로 매핑, Alt 키를 윈도우 키로 매핑"
 
-#: ../rules/base.xml.in.h:999
+#: ../rules/base.xml.in.h:1001
 msgid "Meta is mapped to Win keys"
 msgstr "메타 키를 윈도우 키로 매핑"
 
-#: ../rules/base.xml.in.h:1000
+#: ../rules/base.xml.in.h:1002
 msgid "Meta is mapped to Left Win"
 msgstr "메타 키를 왼쪽 윈도우 키로 매핑"
 
-#: ../rules/base.xml.in.h:1001
+#: ../rules/base.xml.in.h:1003
 msgid "Hyper is mapped to Win keys"
 msgstr "Hyper 키를 윈도우 키로 매핑"
 
-#: ../rules/base.xml.in.h:1002
+#: ../rules/base.xml.in.h:1004
 msgid "Alt is mapped to Right Win, Super to Menu"
 msgstr "Alt 키를 오른쪽 윈도우 키로 매핑, Super 키를 메뉴 키로 매핑"
 
-#: ../rules/base.xml.in.h:1003
+#: ../rules/base.xml.in.h:1005
 msgid "Alt is swapped with Win"
 msgstr "Alt와 윈도우 키 뒤바꾸기"
 
-#: ../rules/base.xml.in.h:1004
+#: ../rules/base.xml.in.h:1006
 msgid "Position of Compose key"
 msgstr "Compose 키의 위치"
 
-#: ../rules/base.xml.in.h:1005
+#: ../rules/base.xml.in.h:1007
 msgid "3rd level of Left Win"
 msgstr "3번째 단계에서 왼쪽 윈도우"
 
-#: ../rules/base.xml.in.h:1006
+#: ../rules/base.xml.in.h:1008
 msgid "3rd level of Right Win"
 msgstr "3번째 단계에서 오른쪽 윈도우"
 
-#: ../rules/base.xml.in.h:1007
+#: ../rules/base.xml.in.h:1009
 msgid "3rd level of Menu"
 msgstr "3번째 단계에서 메뉴"
 
-#: ../rules/base.xml.in.h:1008
+#: ../rules/base.xml.in.h:1010
 msgid "3rd level of Left Ctrl"
 msgstr "3번째 단계에서 왼쪽 Ctrl"
 
-#: ../rules/base.xml.in.h:1009
+#: ../rules/base.xml.in.h:1011
 msgid "3rd level of Right Ctrl"
 msgstr "3번째 단계에서 오른쪽 Ctrl"
 
-#: ../rules/base.xml.in.h:1010
+#: ../rules/base.xml.in.h:1012
 msgid "3rd level of Caps Lock"
 msgstr "3번째 단계에서 Caps Lock"
 
-#: ../rules/base.xml.in.h:1011
+#: ../rules/base.xml.in.h:1013
 msgid "3rd level of &lt;Less/Greater&gt;"
 msgstr "3번째 단계에서  &lt;Less/Greater&gt;"
 
-#: ../rules/base.xml.in.h:1012
+#: ../rules/base.xml.in.h:1014
 msgid "Pause"
 msgstr "Pause"
 
-#: ../rules/base.xml.in.h:1013
+#: ../rules/base.xml.in.h:1015
 msgid "PrtSc"
 msgstr "PrtSc"
 
-#: ../rules/base.xml.in.h:1014
+#: ../rules/base.xml.in.h:1016
 msgid "Miscellaneous compatibility options"
 msgstr "기타 호환성 옵션"
 
-#: ../rules/base.xml.in.h:1015
+#: ../rules/base.xml.in.h:1017
 msgid "Default numeric keypad keys"
 msgstr "기본 숫자 키패드 키"
 
-#: ../rules/base.xml.in.h:1016
+#: ../rules/base.xml.in.h:1018
 msgid "Numeric keypad keys always enter digits (as in Mac OS)"
 msgstr "숫자 키패드 키가 항상 숫자를 입력(맥 OS처럼 동작)"
 
-#: ../rules/base.xml.in.h:1017
-msgid "Shift with numeric keypad keys works as in MS Windows"
-msgstr "Shift와 동시에 숫자 키패드 키를 누르면 MS 윈도우와 동일하게 동작"
+#: ../rules/base.xml.in.h:1019
+msgid "NumLock on: digits, Shift switches to arrow keys, Numlock off: always arrow keys (as in MS Windows)"
+msgstr "NumLock 켜면: 숫자, Shift 누르면 화살표 키, NumLock 끔: 항상 화살표 키 (MS 윈도우 방식)"
 
-#: ../rules/base.xml.in.h:1018
+#: ../rules/base.xml.in.h:1020
 msgid "Shift does not cancel Num Lock, chooses 3rd level instead"
 msgstr "Shift를 누르면 Num Lock을 끄지 않고, 3번째 단계를 선택"
 
-#: ../rules/base.xml.in.h:1019
+#: ../rules/base.xml.in.h:1021
 msgid "Special keys (Ctrl+Alt+&lt;key&gt;) handled in a server"
 msgstr "특수 키는(Ctrl+Alt+&lt;키&gt;) 서버에서 처리"
 
-#: ../rules/base.xml.in.h:1020
+#: ../rules/base.xml.in.h:1022
 msgid "Apple Aluminium Keyboard: emulate PC keys (Print, Scroll Lock, Pause, Num Lock)"
 msgstr "Apple Aluminium Keyboard: PC 키 에뮬레이션(Print, Scroll_Lock, Pause, Num Lock)"
 
-#: ../rules/base.xml.in.h:1021
+#: ../rules/base.xml.in.h:1023
 msgid "Shift cancels Caps Lock"
 msgstr "Shift를 누르면 Caps Lock 끄기"
 
-#: ../rules/base.xml.in.h:1022
+#: ../rules/base.xml.in.h:1024
 msgid "Enable extra typographic characters"
 msgstr "추가 타이포그라피 문자 사용"
 
-#: ../rules/base.xml.in.h:1023
+#: ../rules/base.xml.in.h:1025
 msgid "Both Shift keys together toggle Caps Lock"
 msgstr "Shift 키 동시 눌러 Caps Lock 토글"
 
-#: ../rules/base.xml.in.h:1024
+#: ../rules/base.xml.in.h:1026
 msgid "Both Shift keys together activate Caps Lock, one Shift key deactivates"
 msgstr "Shift 키 동시 눌러 Caps Lock 켜기, Shift 키 한 개로 해제"
 
-#: ../rules/base.xml.in.h:1025
+#: ../rules/base.xml.in.h:1027
 msgid "Both Shift keys together toggle ShiftLock"
 msgstr "Shift 키 동시 눌러 ShiftLock 토글"
 
-#: ../rules/base.xml.in.h:1026
+#: ../rules/base.xml.in.h:1028
 msgid "Shift + NumLock toggles PointerKeys"
 msgstr "Shift + NumLock으로 PointerKeys 토글"
 
-#: ../rules/base.xml.in.h:1027
+#: ../rules/base.xml.in.h:1029
 msgid "Allow breaking grabs with keyboard actions (warning: security risk)"
 msgstr "키보드 동작으로 키 잡기 해제 허용(경고: 보안 위험)"
 
-#: ../rules/base.xml.in.h:1028
+#: ../rules/base.xml.in.h:1030
 msgid "Allow grab and window tree logging"
 msgstr "키 잡기 및 창 단계 기록 허용"
 
-#: ../rules/base.xml.in.h:1029
+#: ../rules/base.xml.in.h:1031
 msgid "Adding currency signs to certain keys"
 msgstr "화폐 기호를 특정 키에 추가"
 
-#: ../rules/base.xml.in.h:1030
+#: ../rules/base.xml.in.h:1032
 msgid "Euro on E"
 msgstr "유로를 E 키에"
 
-#: ../rules/base.xml.in.h:1031
+#: ../rules/base.xml.in.h:1033
 msgid "Euro on 2"
 msgstr "유로를 2 키에"
 
-#: ../rules/base.xml.in.h:1032
+#: ../rules/base.xml.in.h:1034
 msgid "Euro on 4"
 msgstr "유로를 4 키에"
 
-#: ../rules/base.xml.in.h:1033
+#: ../rules/base.xml.in.h:1035
 msgid "Euro on 5"
 msgstr "유로를 5 키에"
 
-#: ../rules/base.xml.in.h:1034
+#: ../rules/base.xml.in.h:1036
 msgid "Rupee on 4"
 msgstr "루피를 4 키에"
 
-#: ../rules/base.xml.in.h:1035
+#: ../rules/base.xml.in.h:1037
 msgid "Key to choose 5th level"
 msgstr "5번째 단계를 선택하는 키"
 
-#: ../rules/base.xml.in.h:1036
+#: ../rules/base.xml.in.h:1038
 msgid "&lt;Less/Greater&gt; chooses 5th level, locks when pressed together with another 5th-level-chooser"
 msgstr "&lt; 및 &gt; 키로 5번째 단계 선택, 다른 5번째 단계 선택 키와 같이 누르면 고정"
 
-#: ../rules/base.xml.in.h:1037
+#: ../rules/base.xml.in.h:1039
 msgid "Right Alt chooses 5th level, locks when pressed together with another 5th-level-chooser"
 msgstr "오른쪽 Alt로 5번째 단계 선택, 다른 5번째 단계 선택 키와 같이 누르면 고정"
 
-#: ../rules/base.xml.in.h:1038
+#: ../rules/base.xml.in.h:1040
 msgid "Left Win chooses 5th level, locks when pressed together with another 5th-level-chooser"
 msgstr "왼쪽 윈도우로 5번째 단계 선택, 다른 5번째 단계 선택 키와 같이 누르면 고정"
 
-#: ../rules/base.xml.in.h:1039
+#: ../rules/base.xml.in.h:1041
 msgid "Right Win chooses 5th level, locks when pressed together with another 5th-level-chooser"
 msgstr "오른쪽 윈도우로 5번째 단계 선택, 다른 5번째 단계 선택 키와 같이 누르면 고정"
 
-#: ../rules/base.xml.in.h:1040
+#: ../rules/base.xml.in.h:1042
 msgid "Using space key to input non-breakable space character"
 msgstr "스페이스 키가 강제 공백 출력."
 
-#: ../rules/base.xml.in.h:1041
+#: ../rules/base.xml.in.h:1043
 msgid "Usual space at any level"
 msgstr "모든 단계에서 일반 공백 문자"
 
-#: ../rules/base.xml.in.h:1042
+#: ../rules/base.xml.in.h:1044
 msgid "Non-breakable space character at second level"
 msgstr "2번째 단계에서 강제 공백 문자"
 
-#: ../rules/base.xml.in.h:1043
+#: ../rules/base.xml.in.h:1045
 msgid "Non-breakable space character at third level"
 msgstr "3번째 단계에서 강제 공백 문자"
 
-#: ../rules/base.xml.in.h:1044
+#: ../rules/base.xml.in.h:1046
 msgid "Non-breakable space character at third level, nothing at fourth level"
 msgstr "3번째 단계에서 강제 공백 문자, 4번째에서는 출력 없음."
 
-#: ../rules/base.xml.in.h:1045
+#: ../rules/base.xml.in.h:1047
 msgid "Non-breakable space character at third level, thin non-breakable space character at fourth level"
 msgstr "3번째 단계에서 강제 공백 문자, 4번째에서는 얇은 강제 공백 문자."
 
-#: ../rules/base.xml.in.h:1046
+#: ../rules/base.xml.in.h:1048
 msgid "Non-breakable space character at fourth level"
 msgstr "4번째 단계에서 강제 공백 문자"
 
-#: ../rules/base.xml.in.h:1047
+#: ../rules/base.xml.in.h:1049
 msgid "Non-breakable space character at fourth level, thin non-breakable space character at sixth level"
 msgstr "4번째 단계에서 강제 공백 문자, 6번째 단계에서 얇은 강제 공백 문자"
 
-#: ../rules/base.xml.in.h:1048
+#: ../rules/base.xml.in.h:1050
 msgid "Non-breakable space character at fourth level, thin non-breakable space character at sixth level (via Ctrl+Shift)"
 msgstr "4번째 단계에서 강제 공백 문자, 6번째 단계에서 얇은 강제 공백 문자(Ctrl+Shift 사용)"
 
-#: ../rules/base.xml.in.h:1049
+#: ../rules/base.xml.in.h:1051
 msgid "Zero-width non-joiner character at second level"
 msgstr "2번째 단계에서 폭 없는 연결 금지 문자"
 
-#: ../rules/base.xml.in.h:1050
+#: ../rules/base.xml.in.h:1052
 msgid "Zero-width non-joiner character at second level, zero-width joiner character at third level"
 msgstr "2번째 단계에서 폭 없는 연결 금지 문자, 3번째에서는 폭 없는 연결 문자"
 
-#: ../rules/base.xml.in.h:1051
+#: ../rules/base.xml.in.h:1053
 msgid "Zero-width non-joiner character at second level, zero-width joiner character at third level, non-breakable space character at fourth level"
 msgstr "2번째 단계에서 폭 없는 연결 금지 문자, 3번째에서는 폭 없는 연결 문자, 4번째에서는 강제 공백 문자"
 
-#: ../rules/base.xml.in.h:1052
+#: ../rules/base.xml.in.h:1054
 msgid "Zero-width non-joiner character at second level, non-breakable space character at third level"
 msgstr "2번째 단계에서 폭 없는 연결 금지 문자, 3번째에서는 강제 공백 문자"
 
-#: ../rules/base.xml.in.h:1053
+#: ../rules/base.xml.in.h:1055
 msgid "Zero-width non-joiner character at second level, non-breakable space character at third level, nothing at fourth level"
 msgstr "2번째 단계에서 폭 없는 연결 금지 문자, 3번째에서는 강제 공백 문자, 4번째에서는 없음"
 
-#: ../rules/base.xml.in.h:1054
+#: ../rules/base.xml.in.h:1056
 msgid "Zero-width non-joiner character at second level, non-breakable space character at third level, zero-width joiner at fourth level"
 msgstr "2번째 단계에서 폭 없는 연결 금지 문자, 3번째에서는 강제 공백 문자, 4번째에서는 폭 없는 연결 문자"
 
-#: ../rules/base.xml.in.h:1055
+#: ../rules/base.xml.in.h:1057
 msgid "Zero-width non-joiner character at second level, non-breakable space character at third level, thin non-breakable space at fourth level"
 msgstr "2번째 단계에서 폭 없는 연결 금지 문자, 3번째에서는 강제 공백 문자, 4번째에서는 얇은 강제 공백 문자"
 
-#: ../rules/base.xml.in.h:1056
+#: ../rules/base.xml.in.h:1058
 msgid "Zero-width non-joiner character at third level, zero-width joiner at fourth level"
 msgstr "3번째 단계에서 폭 없는 연결 금지 문자, 4번째에서는 폭 없는 연결 문자"
 
-#: ../rules/base.xml.in.h:1057
+#: ../rules/base.xml.in.h:1059
 msgid "Japanese keyboard options"
 msgstr "일본어 키보드 옵션"
 
-#: ../rules/base.xml.in.h:1058
+#: ../rules/base.xml.in.h:1060
 msgid "Kana Lock key is locking"
 msgstr "Kana Lock 키 상태 고정"
 
-#: ../rules/base.xml.in.h:1059
+#: ../rules/base.xml.in.h:1061
 msgid "NICOLA-F style Backspace"
 msgstr "NICOLA-F 방식 백스페이스"
 
-#: ../rules/base.xml.in.h:1060
+#: ../rules/base.xml.in.h:1062
 msgid "Make Zenkaku Hankaku an additional ESC"
 msgstr "Zenkaku Hankaku를 추가 ESC로 사용"
 
-#: ../rules/base.xml.in.h:1061
+#: ../rules/base.xml.in.h:1063
+msgid "Korean Hangul/Hanja keys"
+msgstr "한국어 한/영, 한자 키"
+
+#: ../rules/base.xml.in.h:1064
+msgid "Hardware Hangul/Hanja keys"
+msgstr "하드웨어 한/영, 한자 키"
+
+#: ../rules/base.xml.in.h:1065
+msgid "Right Alt as Hangul, right Ctrl as Hanja"
+msgstr "오른쪽 Alt 키를 한/영, 오른쪽 Ctrl 키를 한자 키로"
+
+#: ../rules/base.xml.in.h:1066
+msgid "Right Ctrl as Hangul, right Alt as Hanja"
+msgstr "오른쪽 Ctrl 키를 한/영, 오른쪽 Alt 키를 한자 키로"
+
+#: ../rules/base.xml.in.h:1067
 msgid "Adding Esperanto supersigned letters"
 msgstr "에스페란토 수퍼사인 문자 추가"
 
-#: ../rules/base.xml.in.h:1062
+#: ../rules/base.xml.in.h:1068
 msgid "To the corresponding key in a Qwerty layout"
 msgstr "QWERTY 키 배치에서 해당하는 키로"
 
-#: ../rules/base.xml.in.h:1063
+#: ../rules/base.xml.in.h:1069
 msgid "To the corresponding key in a Dvorak layout"
 msgstr "드보락 키 배치에서 해당하는 키로"
 
-#: ../rules/base.xml.in.h:1064
+#: ../rules/base.xml.in.h:1070
 msgid "To the corresponding key in a Colemak layout"
 msgstr "콜맥 키 배치에서 해당하는 키로"
 
-#: ../rules/base.xml.in.h:1065
+#: ../rules/base.xml.in.h:1071
 msgid "Maintain key compatibility with old Solaris keycodes"
 msgstr "과거 솔라리스 키코드와 키 호환성 유지"
 
-#: ../rules/base.xml.in.h:1066
+#: ../rules/base.xml.in.h:1072
 msgid "Sun Key compatibility"
 msgstr "썬 키 호환성"
 
-#: ../rules/base.xml.in.h:1067
+#: ../rules/base.xml.in.h:1073
 msgid "Key sequence to kill the X server"
 msgstr "X 서버를 멈추는 키 조합"
 
-#: ../rules/base.xml.in.h:1068
+#: ../rules/base.xml.in.h:1074
 msgid "Ctrl + Alt + Backspace"
 msgstr "Ctrl + Alt + 백스페이스"
 
@@ -4146,253 +4170,257 @@ msgid "German (with Hungarian letters and no dead keys)"
 msgstr "독일어(헝가리어 문자 포함, 데드키 없음)"
 
 #: ../rules/base.extras.xml.in.h:26
+msgid "Polish (Germany, eliminate dead keys)"
+msgstr "폴란드어(독일, 데드키 없음)"
+
+#: ../rules/base.extras.xml.in.h:27
 msgid "German (Sun Type 6/7)"
 msgstr "독일어(썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:27
+#: ../rules/base.extras.xml.in.h:28
 msgid "German (Aus der Neo-Welt)"
 msgstr "독일어(Aus der Neo-Welt)"
 
-#: ../rules/base.extras.xml.in.h:30
+#: ../rules/base.extras.xml.in.h:31
 msgid "Avestan"
 msgstr "아베스탄"
 
-#: ../rules/base.extras.xml.in.h:33
+#: ../rules/base.extras.xml.in.h:34
 msgid "Lithuanian (US Dvorak with Lithuanian letters)"
 msgstr "리투아니아어(미국식 드보락, 리투아니아 문자 포함)"
 
-#: ../rules/base.extras.xml.in.h:34
+#: ../rules/base.extras.xml.in.h:35
 msgid "Lithuanian (Sun Type 6/7)"
 msgstr "리투아니아어(썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:37
+#: ../rules/base.extras.xml.in.h:38
 msgid "Latvian (US Dvorak)"
 msgstr "라트비아어(미국 드보락)"
 
-#: ../rules/base.extras.xml.in.h:38
+#: ../rules/base.extras.xml.in.h:39
 msgid "Latvian (US Dvorak, Y variant)"
 msgstr "라트비아어(미국 드보락, Y 변종)"
 
-#: ../rules/base.extras.xml.in.h:39
+#: ../rules/base.extras.xml.in.h:40
 msgid "Latvian (US Dvorak, minus variant)"
 msgstr "라트비아어(미국 드보락, 빼기 기호 변종)"
 
-#: ../rules/base.extras.xml.in.h:40
+#: ../rules/base.extras.xml.in.h:41
 msgid "Latvian (programmer US Dvorak)"
 msgstr "라트비아어(프로그래머 미국식 드보락)"
 
-#: ../rules/base.extras.xml.in.h:41
+#: ../rules/base.extras.xml.in.h:42
 msgid "Latvian (programmer US Dvorak, Y variant)"
 msgstr "라트비아어(프로그래머 미국식 드보락, Y 변종)"
 
-#: ../rules/base.extras.xml.in.h:42
+#: ../rules/base.extras.xml.in.h:43
 msgid "Latvian (programmer US Dvorak, minus variant)"
 msgstr "라트비아어(프로그래머 미국식 드보락, 빼기 기호 변종)"
 
-#: ../rules/base.extras.xml.in.h:43
+#: ../rules/base.extras.xml.in.h:44
 msgid "Latvian (US Colemak)"
 msgstr "라트비아어(미국 콜맥)"
 
-#: ../rules/base.extras.xml.in.h:44
+#: ../rules/base.extras.xml.in.h:45
 msgid "Latvian (US Colemak, apostrophe variant)"
 msgstr "라트비아어(미국 콜맥, 아포스트로피 변종)"
 
-#: ../rules/base.extras.xml.in.h:45
+#: ../rules/base.extras.xml.in.h:46
 msgid "Latvian (Sun Type 6/7)"
 msgstr "라트비아어(썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:48
+#: ../rules/base.extras.xml.in.h:49
 msgid "English (US, international AltGr Unicode combining)"
 msgstr "영어(미국, 국제 버전 AltGr 유니코드 조합)"
 
-#: ../rules/base.extras.xml.in.h:49
+#: ../rules/base.extras.xml.in.h:50
 msgid "English (US, international AltGr Unicode combining, alternative)"
 msgstr "영어(미국, 국제 버전 AltGr 유니코드 조합, 다른 버전)"
 
 # 아스시나 - 미국 원주민 부족
-#: ../rules/base.extras.xml.in.h:50
+#: ../rules/base.extras.xml.in.h:51
 msgid "Atsina"
 msgstr "아트시나"
 
 # 쾨르디알렌 - 미국 원주민 부족
-#: ../rules/base.extras.xml.in.h:51
+#: ../rules/base.extras.xml.in.h:52
 msgid "Coeur d'Alene Salish"
 msgstr "쾨르디알렌 살리시어"
 
-#: ../rules/base.extras.xml.in.h:52
+#: ../rules/base.extras.xml.in.h:53
 msgid "Czech Slovak and German (US)"
 msgstr "체코어, 슬로바키아어 및 독일어(미국)"
 
-#: ../rules/base.extras.xml.in.h:53
+#: ../rules/base.extras.xml.in.h:54
 msgid "English (US, Sun Type 6/7)"
 msgstr "영어(미국, 썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:54
+#: ../rules/base.extras.xml.in.h:55
 msgid "English (Norman)"
 msgstr "영어(노르만)"
 
-#: ../rules/base.extras.xml.in.h:57
+#: ../rules/base.extras.xml.in.h:58
 msgid "Polish (international with dead keys)"
 msgstr "폴란드어(국제 버전, 데드키 포함)"
 
-#: ../rules/base.extras.xml.in.h:58
+#: ../rules/base.extras.xml.in.h:59
 msgid "Polish (Colemak)"
 msgstr "폴란드어(콜맥)"
 
-#: ../rules/base.extras.xml.in.h:59
+#: ../rules/base.extras.xml.in.h:60
 msgid "Polish (Sun Type 6/7)"
 msgstr "폴란드어(썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:63
+#: ../rules/base.extras.xml.in.h:64
 msgid "Crimean Tatar (Dobruja Q)"
 msgstr "크림타타르(Dobruca-1 Q)"
 
-#: ../rules/base.extras.xml.in.h:64
+#: ../rules/base.extras.xml.in.h:65
 msgid "Romanian (ergonomic Touchtype)"
 msgstr "루마니아어(어고노믹 터치 방식)"
 
-#: ../rules/base.extras.xml.in.h:65
+#: ../rules/base.extras.xml.in.h:66
 msgid "Romanian (Sun Type 6/7)"
 msgstr "루마니아어(썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:68
+#: ../rules/base.extras.xml.in.h:69
 msgid "Serbian (combining accents instead of dead keys)"
 msgstr "세르비아어(데드키 대신 조합으로 액센트 입력)"
 
-#: ../rules/base.extras.xml.in.h:71
+#: ../rules/base.extras.xml.in.h:72
 msgid "Church Slavonic"
 msgstr "교회 슬라브어"
 
-#: ../rules/base.extras.xml.in.h:72
+#: ../rules/base.extras.xml.in.h:73
 msgid "Russian (with Ukrainian-Belorussian layout)"
 msgstr "러시아어(우크라니아어 벨라루스어 키보드 배치)"
 
-#: ../rules/base.extras.xml.in.h:73
+#: ../rules/base.extras.xml.in.h:74
 msgid "Russian (Sun Type 6/7)"
 msgstr "러시아어(썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:76
+#: ../rules/base.extras.xml.in.h:77
 msgid "Armenian (OLPC phonetic)"
 msgstr "아르메니아(OLPC 음성 기호)"
 
-#: ../rules/base.extras.xml.in.h:79
+#: ../rules/base.extras.xml.in.h:80
 msgid "Hebrew (Biblical, SIL phonetic)"
 msgstr "히브리어(성서, SIL 음성 기호)"
 
-#: ../rules/base.extras.xml.in.h:82
+#: ../rules/base.extras.xml.in.h:83
 msgid "Arabic (Sun Type 6/7)"
 msgstr "아랍어(썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:85
+#: ../rules/base.extras.xml.in.h:86
 msgid "Belgian (Sun Type 6/7)"
 msgstr "벨기에어(썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:88
+#: ../rules/base.extras.xml.in.h:89
 msgid "Portuguese (Brazil, Sun Type 6/7)"
 msgstr "포르투갈어(브라질, 썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:91
+#: ../rules/base.extras.xml.in.h:92
 msgid "Czech (Sun Type 6/7)"
 msgstr "체코어(썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:94
+#: ../rules/base.extras.xml.in.h:95
 msgid "Danish (Sun Type 6/7)"
 msgstr "덴마크어(썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:97
+#: ../rules/base.extras.xml.in.h:98
 msgid "Dutch (Sun Type 6/7)"
 msgstr "네덜란드어(썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:100
+#: ../rules/base.extras.xml.in.h:101
 msgid "Estonian (Sun Type 6/7)"
 msgstr "에스토니아어(썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:103
+#: ../rules/base.extras.xml.in.h:104
 msgid "Finnish (Sun Type 6/7)"
 msgstr "핀란드어(썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:105
+#: ../rules/base.extras.xml.in.h:106
 msgid "French (Sun Type 6/7)"
 msgstr "프랑스어(썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:108
+#: ../rules/base.extras.xml.in.h:109
 msgid "Greek (Sun Type 6/7)"
 msgstr "그리스어(썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:111
+#: ../rules/base.extras.xml.in.h:112
 msgid "Italian (Sun Type 6/7)"
 msgstr "이탈리아어(썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:114
+#: ../rules/base.extras.xml.in.h:115
 msgid "Japanese (Sun Type 6)"
 msgstr "일본어(썬 타입 6)"
 
-#: ../rules/base.extras.xml.in.h:115
+#: ../rules/base.extras.xml.in.h:116
 msgid "Japanese (Sun Type 7 - pc compatible)"
 msgstr "일본어(썬 타입 7 - PC 호환)"
 
-#: ../rules/base.extras.xml.in.h:116
+#: ../rules/base.extras.xml.in.h:117
 msgid "Japanese (Sun Type 7 - sun compatible)"
 msgstr "일본어(썬 타입 7 - 썬 호환)"
 
-#: ../rules/base.extras.xml.in.h:119
+#: ../rules/base.extras.xml.in.h:120
 msgid "Norwegian (Sun Type 6/7)"
 msgstr "노르웨이어(썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:121
+#: ../rules/base.extras.xml.in.h:122
 msgid "Portuguese (Sun Type 6/7)"
 msgstr "포르투갈어(썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:124
+#: ../rules/base.extras.xml.in.h:125
 msgid "Slovak (Sun Type 6/7)"
 msgstr "슬로바키아어(썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:127
+#: ../rules/base.extras.xml.in.h:128
 msgid "Spanish (Sun Type 6/7)"
 msgstr "스페인어(썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:130
+#: ../rules/base.extras.xml.in.h:131
 msgid "Swedish (Dvorak A5)"
 msgstr "스웨덴어(드보락 A5)"
 
-#: ../rules/base.extras.xml.in.h:131
+#: ../rules/base.extras.xml.in.h:132
 msgid "Swedish (Sun Type 6/7)"
 msgstr "스웨덴어(썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:133
+#: ../rules/base.extras.xml.in.h:134
 msgid "German (Switzerland, Sun Type 6/7)"
 msgstr "독일어(스위스, 썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:134
+#: ../rules/base.extras.xml.in.h:135
 msgid "French (Switzerland, Sun Type 6/7)"
 msgstr "프랑스어(스위스, 썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:137
+#: ../rules/base.extras.xml.in.h:138
 msgid "Turkish (Sun Type 6/7)"
 msgstr "터키어(썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:140
+#: ../rules/base.extras.xml.in.h:141
 msgid "Ukrainian (Sun Type 6/7)"
 msgstr "우크라이나어(썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:142
+#: ../rules/base.extras.xml.in.h:143
 msgid "English (UK, Sun Type 6/7)"
 msgstr "영어(영국, 썬 타입 6/7)"
 
-#: ../rules/base.extras.xml.in.h:145
+#: ../rules/base.extras.xml.in.h:146
 msgid "Korean (Sun Type 6/7)"
 msgstr "한국어(썬 타입 6/7)"
 
 #. Keyboard indicator for European layouts
-#: ../rules/base.extras.xml.in.h:147
+#: ../rules/base.extras.xml.in.h:148
 msgid "eu"
 msgstr "eu"
 
-#: ../rules/base.extras.xml.in.h:148
+#: ../rules/base.extras.xml.in.h:149
 msgid "EurKEY (US based layout with european letters)"
 msgstr "유럽 키(미국식 기반 키 배치, 유럽 문자 포함)"
 
 # 카메룬 지방 언어
-#: ../rules/base.extras.xml.in.h:151
+#: ../rules/base.extras.xml.in.h:152
 msgid "Mmuock"
 msgstr "무오크"

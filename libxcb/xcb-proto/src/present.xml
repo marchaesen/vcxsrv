@@ -199,7 +199,15 @@ OF THIS SOFTWARE.
     <field type="CARD64" name="target_msc" />
     <field type="CARD64" name="divisor" />
     <field type="CARD64" name="remainder" />
-    <list type="Notify" name="notifies"/>
+    <list type="Notify" name="notifies">
+        <op op="/">
+            <op op="-">
+                <fieldref>length</fieldref>
+                <value>18</value>
+            </op>
+            <value>2</value>
+        </op>
+    </list>
   </event>
 
 </xcb>

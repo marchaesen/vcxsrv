@@ -513,9 +513,9 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
     int ret, bpc, green_bpc, i;
 
     xwl_screen = calloc(sizeof *xwl_screen, 1);
-    xwl_screen->wm_fd = -1;
     if (xwl_screen == NULL)
         return FALSE;
+    xwl_screen->wm_fd = -1;
 
     if (!dixRegisterPrivateKey(&xwl_screen_private_key, PRIVATE_SCREEN, 0))
         return FALSE;

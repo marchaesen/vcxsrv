@@ -225,7 +225,7 @@ _mesa_Clear( GLbitfield mask )
 
 
 /** Returned by make_color_buffer_mask() for errors */
-#define INVALID_MASK ~0x0
+#define INVALID_MASK ~0x0U
 
 
 /**

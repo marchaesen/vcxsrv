@@ -1,16 +1,17 @@
 # Vietnamese translation for X Keyboard Config.
-# Copyright © 2014 Free Software Foundation, Inc.
+# Bản dịch tiếng Việt dành cho xkeyboard-config.
+# Copyright © 2015 Free Software Foundation, Inc.
 # This file is distributed under the same license as the xkeyboard-config package.
 # Phan Vinh Thinh <teppi82@gmail.com>, 2005.
 # Clytie Siddall <clytie@riverland.net.au>, 2007-2010.
-# Trần Ngọc Quân <vnwildman@gmail.com>, 2014.
+# Trần Ngọc Quân <vnwildman@gmail.com>, 2014, 2015.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: xkeyboard-config 2.12.99\n"
+"Project-Id-Version: xkeyboard-config 2.13.99\n"
 "Report-Msgid-Bugs-To: svu@users.sourceforge.net\n"
-"POT-Creation-Date: 2014-09-18 23:46+0100\n"
-"PO-Revision-Date: 2014-09-21 08:40+0700\n"
+"POT-Creation-Date: 2015-01-15 01:16+0000\n"
+"PO-Revision-Date: 2015-01-16 14:54+0700\n"
 "Last-Translator: Trần Ngọc Quân <vnwildman@gmail.com>\n"
 "Language-Team: Vietnamese <translation-team-vi@lists.sourceforge.net>\n"
 "Language: vi\n"
@@ -18,7 +19,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: LocFactoryEditor 1.8\n"
 
 #: ../rules/base.xml.in.h:1
 msgid "Generic 101-key PC"
@@ -42,7 +42,7 @@ msgstr "Dell PC 101 phím"
 
 #: ../rules/base.xml.in.h:6
 msgid "Dell Latitude series laptop"
-msgstr "Xách tay Dell dãy Latitude"
+msgstr "Máy tính xách tay Dell sê-ri Latitude"
 
 #: ../rules/base.xml.in.h:7
 msgid "Dell Precision M65"
@@ -102,7 +102,7 @@ msgstr "Bàn phím Internet Brother"
 
 #: ../rules/base.xml.in.h:21
 msgid "BTC 5113RF Multimedia"
-msgstr "BTC 5113RF Phim nhạc"
+msgstr "BTC 5113RF đa phương tiện"
 
 #: ../rules/base.xml.in.h:22
 msgid "BTC 5126T"
@@ -277,7 +277,7 @@ msgstr "Genius KKB-2050HS"
 
 #: ../rules/base.xml.in.h:64
 msgid "Gyration"
-msgstr "Sự chuyển hồi"
+msgstr "Gyration"
 
 #: ../rules/base.xml.in.h:65
 msgid "HTC Dream"
@@ -541,7 +541,7 @@ msgstr "Samsung SDM 4510P"
 
 #: ../rules/base.xml.in.h:130
 msgid "Sanwa Supply SKB-KG3"
-msgstr ""
+msgstr "Sanwa áp dụng SKB-KG3"
 
 #: ../rules/base.xml.in.h:131
 msgid "SK-1300"
@@ -761,11 +761,11 @@ msgid "Htc Dream phone"
 msgstr "Điện thoại Htc Dream"
 
 #. Keyboard indicator for English layouts
-#: ../rules/base.xml.in.h:186 ../rules/base.extras.xml.in.h:46
+#: ../rules/base.xml.in.h:186 ../rules/base.extras.xml.in.h:47
 msgid "en"
 msgstr "en"
 
-#: ../rules/base.xml.in.h:187 ../rules/base.extras.xml.in.h:47
+#: ../rules/base.xml.in.h:187 ../rules/base.extras.xml.in.h:48
 msgid "English (US)"
 msgstr "Tiếng Anh (Mỹ)"
 
@@ -816,14 +816,14 @@ msgstr "Tiếng Anh (Dvorak cho người thuận tay phải)"
 
 #: ../rules/base.xml.in.h:200
 msgid "English (classic Dvorak)"
-msgstr "Tiếng Anh (Dvorak kinh điển)"
+msgstr "Tiếng Anh (Dvorak cổ điển)"
 
 #: ../rules/base.xml.in.h:201
 msgid "English (programmer Dvorak)"
 msgstr "Tiếng Anh (Dvorak dành cho người lập trình)"
 
 #. Keyboard indicator for Russian layouts
-#: ../rules/base.xml.in.h:203 ../rules/base.extras.xml.in.h:69
+#: ../rules/base.xml.in.h:203 ../rules/base.extras.xml.in.h:70
 msgid "ru"
 msgstr "ru"
 
@@ -841,11 +841,11 @@ msgstr "Tiếng Anh (Quốc tế với phím chết AltGr)"
 
 #: ../rules/base.xml.in.h:207
 msgid "English (the divide/multiply keys toggle the layout)"
-msgstr ""
+msgstr "Tiếng Anh (các phím chia/nhân bật tắt bố cục)"
 
 #: ../rules/base.xml.in.h:208
 msgid "Serbo-Croatian (US)"
-msgstr ""
+msgstr "Serbo-Crô-oát (Mỹ)"
 
 #: ../rules/base.xml.in.h:209
 msgid "English (Workman)"
@@ -856,7 +856,7 @@ msgid "English (Workman, international with dead keys)"
 msgstr "Tiếng Anh (Workman quốc tế với phím chết)"
 
 #. Keyboard indicator for Persian layouts
-#: ../rules/base.xml.in.h:212 ../rules/base.extras.xml.in.h:28
+#: ../rules/base.xml.in.h:212 ../rules/base.extras.xml.in.h:29
 msgid "fa"
 msgstr "fa"
 
@@ -895,11 +895,11 @@ msgid "Uzbek (Afghanistan, OLPC)"
 msgstr "Tiếng U-x-béc (Áp-ga-nít-xtan, OLPC)"
 
 #. Keyboard indicator for Arabic layouts
-#: ../rules/base.xml.in.h:224 ../rules/base.extras.xml.in.h:80
+#: ../rules/base.xml.in.h:224 ../rules/base.extras.xml.in.h:81
 msgid "ar"
 msgstr "ar"
 
-#: ../rules/base.xml.in.h:225 ../rules/base.extras.xml.in.h:81
+#: ../rules/base.xml.in.h:225 ../rules/base.extras.xml.in.h:82
 msgid "Arabic"
 msgstr "Ả Rập"
 
@@ -938,14 +938,14 @@ msgstr "Tiếng An-ba-ni"
 
 #: ../rules/base.xml.in.h:235
 msgid "Albanian (Plisi D1)"
-msgstr ""
+msgstr "Tiếng An-ba-ni (Plisi D1)"
 
 #. Keyboard indicator for Armenian layouts
-#: ../rules/base.xml.in.h:237 ../rules/base.extras.xml.in.h:74
+#: ../rules/base.xml.in.h:237 ../rules/base.extras.xml.in.h:75
 msgid "hy"
 msgstr "hy"
 
-#: ../rules/base.xml.in.h:238 ../rules/base.extras.xml.in.h:75
+#: ../rules/base.xml.in.h:238 ../rules/base.extras.xml.in.h:76
 msgid "Armenian"
 msgstr "Tiếng Ác-mê-ni"
 
@@ -966,9 +966,8 @@ msgid "Armenian (western)"
 msgstr "Tiếng Ác-mê-ni (miền tây)"
 
 #: ../rules/base.xml.in.h:243
-#, fuzzy
 msgid "Armenian (alternative eastern)"
-msgstr "Đông thay thế"
+msgstr "Tiếng Ác-mê-ni (miền đông thay thế)"
 
 #. Keyboard indicator for German layouts
 #: ../rules/base.xml.in.h:245 ../rules/base.extras.xml.in.h:22
@@ -981,7 +980,7 @@ msgstr "Tiếng Đức (Áo)"
 
 #: ../rules/base.xml.in.h:247
 msgid "German (Austria, eliminate dead keys)"
-msgstr "Tiếng Đức (Áo , phím chết loại trừ)"
+msgstr "Tiếng Đức (Áo, loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:248
 msgid "German (Austria, Sun dead keys)"
@@ -1022,11 +1021,11 @@ msgid "Belarusian (Latin)"
 msgstr "Tiếng Be-la-ru (La-tinh)"
 
 #. Keyboard indicator for Belgian layouts
-#: ../rules/base.xml.in.h:260 ../rules/base.extras.xml.in.h:83
+#: ../rules/base.xml.in.h:260 ../rules/base.extras.xml.in.h:84
 msgid "be"
 msgstr "be"
 
-#: ../rules/base.xml.in.h:261 ../rules/base.extras.xml.in.h:84
+#: ../rules/base.xml.in.h:261 ../rules/base.extras.xml.in.h:85
 msgid "Belgian"
 msgstr "Tiếng Bỉ"
 
@@ -1048,7 +1047,7 @@ msgstr "Tiếng Bỉ (ISO Xen kẽ)"
 
 #: ../rules/base.xml.in.h:266
 msgid "Belgian (eliminate dead keys)"
-msgstr "Tiếng Bỉ (phím chết loại trừ)"
+msgstr "Tiếng Bỉ (loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:267
 msgid "Belgian (Sun dead keys)"
@@ -1106,7 +1105,7 @@ msgstr "Tiếng Băng-la-đét (Ấn-độ, Baishakhi Inscript)"
 
 #: ../rules/base.xml.in.h:282
 msgid "Manipuri (Eeyek)"
-msgstr ""
+msgstr "Manipuri (Eeyek)"
 
 #. Keyboard indicator for Gujarati layouts
 #: ../rules/base.xml.in.h:284
@@ -1158,7 +1157,7 @@ msgstr "Tiếng Ma-lay-am (Lalitha)"
 
 #: ../rules/base.xml.in.h:298
 msgid "Malayalam (enhanced Inscript, with rupee sign)"
-msgstr ""
+msgstr "Tiếng Ma-lay-am (enhanced Inscript, with rupee sign)"
 
 #. Keyboard indicator for Oriya layouts
 #: ../rules/base.xml.in.h:300
@@ -1205,7 +1204,7 @@ msgstr "Te-lu-gu"
 
 #: ../rules/base.xml.in.h:312
 msgid "Telugu (KaGaPa phonetic)"
-msgstr ""
+msgstr "Te-lu-gu (ngữ âm KaGaPa)"
 
 #. Keyboard indicator for Urdu layouts
 #: ../rules/base.xml.in.h:314
@@ -1238,9 +1237,8 @@ msgid "Hindi (Wx)"
 msgstr "Hin-đi (Wx)"
 
 #: ../rules/base.xml.in.h:322
-#, fuzzy
 msgid "Hindi (KaGaPa phonetic)"
-msgstr "Ti-phi-nac ngữ âm"
+msgstr "Hin-đi (ngữ âm KaGaPa)"
 
 #. Keyboard indicator for Sanskrit layouts
 #: ../rules/base.xml.in.h:324
@@ -1248,9 +1246,8 @@ msgid "sa"
 msgstr "sa"
 
 #: ../rules/base.xml.in.h:325
-#, fuzzy
 msgid "Sanskrit (KaGaPa phonetic)"
-msgstr "Xy-ri ngữ âm"
+msgstr "Sanskrit (ngữ âm KaGaPa)"
 
 #. Keyboard indicator for Marathi layouts
 #: ../rules/base.xml.in.h:327
@@ -1258,12 +1255,10 @@ msgid "mr"
 msgstr "mr"
 
 #: ../rules/base.xml.in.h:328
-#, fuzzy
 msgid "Marathi (KaGaPa phonetic)"
-msgstr "Ngữ âm truyền thống"
+msgstr "Marathi (ngữ âm KaGaPa)"
 
 #: ../rules/base.xml.in.h:329
-#, fuzzy
 msgid "English (India, with rupee sign)"
 msgstr "Tiếng Anh (Mỹ với euro trên 5)"
 
@@ -1277,37 +1272,33 @@ msgid "Bosnian"
 msgstr "Tiếng Bô-xni-a"
 
 #: ../rules/base.xml.in.h:333
-#, fuzzy
 msgid "Bosnian (with guillemets for quotes)"
-msgstr "Dùng “chim uria” làm dấu trích dẫn"
+msgstr "Bo-x-ni-a (Dùng “guillemets” làm dấu trích dẫn)"
 
 #: ../rules/base.xml.in.h:334
-#, fuzzy
 msgid "Bosnian (with Bosnian digraphs)"
 msgstr "Dùng chữ ghép Bo-x-ni-a"
 
 #: ../rules/base.xml.in.h:335
-#, fuzzy
 msgid "Bosnian (US keyboard with Bosnian digraphs)"
-msgstr "Bàn phím Mỹ với các chữ ghép Bo-x-ni-a"
+msgstr "Bo-x-ni-a (Bàn phím Mỹ với các chữ ghép Bo-x-ni-a)"
 
 #: ../rules/base.xml.in.h:336
-#, fuzzy
 msgid "Bosnian (US keyboard with Bosnian letters)"
-msgstr "Đức (Bàn phím Mỹ với các chữ cái Đức)"
+msgstr "Bo-x-ni-a (Bàn phím Mỹ với các chữ cái Bo-x-ni-a)"
 
 #. Keyboard indicator for Portuguese layouts
-#: ../rules/base.xml.in.h:338 ../rules/base.extras.xml.in.h:86
+#: ../rules/base.xml.in.h:338 ../rules/base.extras.xml.in.h:87
 msgid "pt"
 msgstr "pt"
 
-#: ../rules/base.xml.in.h:339 ../rules/base.extras.xml.in.h:87
+#: ../rules/base.xml.in.h:339 ../rules/base.extras.xml.in.h:88
 msgid "Portuguese (Brazil)"
 msgstr "Bồ Đào Nha (Bra-xin)"
 
 #: ../rules/base.xml.in.h:340
 msgid "Portuguese (Brazil, eliminate dead keys)"
-msgstr "Bồ Đào Nha (Bra-xin, phím chết loại trừ)"
+msgstr "Bồ Đào Nha (Bra-xin, loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:341
 msgid "Portuguese (Brazil, Dvorak)"
@@ -1319,11 +1310,11 @@ msgstr "Bồ Đào Nha (Brazil, Nativo)"
 
 #: ../rules/base.xml.in.h:343
 msgid "Portuguese (Brazil, Nativo for US keyboards)"
-msgstr "Bồ Đào Nha (Bra-xin, Nativo cho bàn phím Mỹ"
+msgstr "Bồ Đào Nha (Bra-xin, Nativo cho bàn phím Mỹ)"
 
 #: ../rules/base.xml.in.h:344
 msgid "Esperanto (Brazil, Nativo)"
-msgstr "Quốc tế ngữ (Bra-xin, Dvorak)"
+msgstr "Quốc tế ngữ (Bra-xin, Nativo)"
 
 #. Keyboard indicator for Bulgarian layouts
 #: ../rules/base.xml.in.h:346
@@ -1365,36 +1356,31 @@ msgid "Berber (Morocco, Tifinagh)"
 msgstr "Berber (Ma Rốc, Tifinagh)"
 
 #: ../rules/base.xml.in.h:357
-#, fuzzy
 msgid "Berber (Morocco, Tifinagh alternative)"
-msgstr "Ti-phi-nac thay thế"
+msgstr "Berber (Ma Rốc, Ti-phi-nac thay thế)"
 
 #: ../rules/base.xml.in.h:358
-#, fuzzy
 msgid "Berber (Morocco, Tifinagh alternative phonetic)"
-msgstr "Ti-phi-nac ngữ âm thay thế"
+msgstr "Berber (Ma Rốc, Ti-phi-nac ngữ âm thay thế)"
 
 #: ../rules/base.xml.in.h:359
-#, fuzzy
 msgid "Berber (Morocco, Tifinagh extended)"
-msgstr "Ti-phi-nac mở rộng"
+msgstr "Berber (Ma Rốc, Ti-phi-nac mở rộng)"
 
 #: ../rules/base.xml.in.h:360
-#, fuzzy
 msgid "Berber (Morocco, Tifinagh phonetic)"
-msgstr "Ti-phi-nac ngữ âm"
+msgstr "Berber (Ma Rốc, Ti-phi-nac ngữ âm)"
 
 #: ../rules/base.xml.in.h:361
-#, fuzzy
 msgid "Berber (Morocco, Tifinagh extended phonetic)"
-msgstr "Ti-phi-nac mở rộng ngữ âm"
+msgstr "Berber (Ma Rốc, Ti-phi-nac mở rộng ngữ âm)"
 
 #. Keyboard indicator for Cameroon layouts
-#: ../rules/base.xml.in.h:363 ../rules/base.extras.xml.in.h:149
+#: ../rules/base.xml.in.h:363 ../rules/base.extras.xml.in.h:150
 msgid "cm"
 msgstr "cm"
 
-#: ../rules/base.xml.in.h:364 ../rules/base.extras.xml.in.h:150
+#: ../rules/base.xml.in.h:364 ../rules/base.extras.xml.in.h:151
 msgid "English (Cameroon)"
 msgstr "Tiếng Anh (Ca-mơ-run)"
 
@@ -1429,11 +1415,11 @@ msgstr "Pháp (Ca-na-đa)"
 
 #: ../rules/base.xml.in.h:373
 msgid "French (Canada, Dvorak)"
-msgstr "Pháp (Ca-na-đa, Dvorak)"
+msgstr "Tiếng Pháp (Ca-na-đa, Dvorak)"
 
 #: ../rules/base.xml.in.h:374
 msgid "French (Canada, legacy)"
-msgstr "Pháp (Ca-na-đa, cổ)"
+msgstr "Tiếng Pháp (Ca-na-đa, cổ)"
 
 #: ../rules/base.xml.in.h:375
 msgid "Canadian Multilingual"
@@ -1462,7 +1448,7 @@ msgstr "Tiếng Anh (Ca-na-đa)"
 
 #: ../rules/base.xml.in.h:382
 msgid "French (Democratic Republic of the Congo)"
-msgstr "Tiếng Pháp (Cộng Hoà Dân Chủ Công-gô)"
+msgstr "Tiếng Pháp (Cộng Hòa Dân Chủ Công-gô)"
 
 #. Keyboard indicator for Taiwanese layouts
 #: ../rules/base.xml.in.h:384
@@ -1496,30 +1482,30 @@ msgstr "hr"
 
 #: ../rules/base.xml.in.h:392
 msgid "Croatian"
-msgstr "Croát-chi-a"
+msgstr "Tiếng Croát-chi-a"
 
 #: ../rules/base.xml.in.h:393
 msgid "Croatian (with guillemets for quotes)"
-msgstr "Croát-chi-a (Dùng “guillemets” làm dấu trích dẫn)"
+msgstr "Tiếng Croát-chi-a (Dùng “guillemets” làm dấu trích dẫn)"
 
 #: ../rules/base.xml.in.h:394
 msgid "Croatian (with Croatian digraphs)"
-msgstr "Croát-chi-a (với chữ ghép Croát-chi-a)"
+msgstr "Tiếng Croát-chi-a (với chữ ghép Croát-chi-a)"
 
 #: ../rules/base.xml.in.h:395
 msgid "Croatian (US keyboard with Croatian digraphs)"
-msgstr "Croát-chi-a (Bàn phím Mỹ với các chữ ghép Croát-chi-a)"
+msgstr "Tiếng Croát-chi-a (Bàn phím Mỹ với các chữ ghép Croát-chi-a)"
 
 #: ../rules/base.xml.in.h:396
 msgid "Croatian (US keyboard with Croatian letters)"
 msgstr "Croát-chi-a (Bàn phím Mỹ với các chữ cái Croát-chi-a)"
 
 #. Keyboard indicator for Chech layouts
-#: ../rules/base.xml.in.h:398 ../rules/base.extras.xml.in.h:89
+#: ../rules/base.xml.in.h:398 ../rules/base.extras.xml.in.h:90
 msgid "cs"
 msgstr "cs"
 
-#: ../rules/base.xml.in.h:399 ../rules/base.extras.xml.in.h:90
+#: ../rules/base.xml.in.h:399 ../rules/base.extras.xml.in.h:91
 msgid "Czech"
 msgstr "Tiếng Séc"
 
@@ -1544,17 +1530,17 @@ msgid "Czech (US Dvorak with CZ UCW support)"
 msgstr "Tiếng Séc (Mỹ Dvorak cũng hỗ trợ CZ UCW)"
 
 #. Keyboard indicator for Danish layouts
-#: ../rules/base.xml.in.h:406 ../rules/base.extras.xml.in.h:92
+#: ../rules/base.xml.in.h:406 ../rules/base.extras.xml.in.h:93
 msgid "da"
 msgstr "da"
 
-#: ../rules/base.xml.in.h:407 ../rules/base.extras.xml.in.h:93
+#: ../rules/base.xml.in.h:407 ../rules/base.extras.xml.in.h:94
 msgid "Danish"
 msgstr "Tiếng Đan Mạch"
 
 #: ../rules/base.xml.in.h:408
 msgid "Danish (eliminate dead keys)"
-msgstr "Tiếng Đan Mạch ( phím chết loại trừ)"
+msgstr "Tiếng Đan Mạch ( loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:409
 msgid "Danish (Winkeys)"
@@ -1566,18 +1552,18 @@ msgstr "Tiếng Đan Mạch (Macintosh)"
 
 #: ../rules/base.xml.in.h:411
 msgid "Danish (Macintosh, eliminate dead keys)"
-msgstr "Tiếng Đan Mạch (Macintosh, phím chết loại trừ)"
+msgstr "Tiếng Đan Mạch (Macintosh, loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:412
 msgid "Danish (Dvorak)"
 msgstr "Tiếng Đan Mạch (Dvorak)"
 
 #. Keyboard indicator for Dutch layouts
-#: ../rules/base.xml.in.h:414 ../rules/base.extras.xml.in.h:95
+#: ../rules/base.xml.in.h:414 ../rules/base.extras.xml.in.h:96
 msgid "nl"
 msgstr "nl"
 
-#: ../rules/base.xml.in.h:415 ../rules/base.extras.xml.in.h:96
+#: ../rules/base.xml.in.h:415 ../rules/base.extras.xml.in.h:97
 msgid "Dutch"
 msgstr "Tiếng Hà Lan"
 
@@ -1603,17 +1589,17 @@ msgid "Dzongkha"
 msgstr "Tiếng Dzongkha"
 
 #. Keyboard indicator for Estonian layouts
-#: ../rules/base.xml.in.h:423 ../rules/base.extras.xml.in.h:98
+#: ../rules/base.xml.in.h:423 ../rules/base.extras.xml.in.h:99
 msgid "et"
 msgstr "et"
 
-#: ../rules/base.xml.in.h:424 ../rules/base.extras.xml.in.h:99
+#: ../rules/base.xml.in.h:424 ../rules/base.extras.xml.in.h:100
 msgid "Estonian"
 msgstr "Tiếng Et-tô-ni-a"
 
 #: ../rules/base.xml.in.h:425
 msgid "Estonian (eliminate dead keys)"
-msgstr "Et-tô-ni-a (phím chết loại trừ)"
+msgstr "Et-tô-ni-a (loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:426
 msgid "Estonian (Dvorak)"
@@ -1623,13 +1609,13 @@ msgstr "Et-tô-ni-a (Dvorak)"
 msgid "Estonian (US keyboard with Estonian letters)"
 msgstr "Et-tô-ni-a (bàn phím Mỹ với các chữ cái E-x-tô-ni-a)"
 
-#: ../rules/base.xml.in.h:428 ../rules/base.extras.xml.in.h:29
+#: ../rules/base.xml.in.h:428 ../rules/base.extras.xml.in.h:30
 msgid "Persian"
 msgstr "Tiếng Ba Tư"
 
 #: ../rules/base.xml.in.h:429
 msgid "Persian (with Persian keypad)"
-msgstr "Tiếng Ba Tư (có vùng phím Ba Tư"
+msgstr "Tiếng Ba Tư (có vùng phím Ba Tư)"
 
 #. Keyboard indicator for Kurdish layouts
 #: ../rules/base.xml.in.h:431
@@ -1638,19 +1624,19 @@ msgstr "ku"
 
 #: ../rules/base.xml.in.h:432
 msgid "Kurdish (Iran, Latin Q)"
-msgstr "Tiếng Kút (I ran, La-tinh Q)"
+msgstr "Tiếng Kuổ-đít (I ran, La-tinh Q)"
 
 #: ../rules/base.xml.in.h:433
 msgid "Kurdish (Iran, F)"
-msgstr "Tiếng Kút (I ran, F)"
+msgstr "Tiếng Kuổ-đít (I ran, F)"
 
 #: ../rules/base.xml.in.h:434
 msgid "Kurdish (Iran, Latin Alt-Q)"
-msgstr "Tiếng Kút (I ran, La-tinh Alt-Q"
+msgstr "Tiếng Kuổ-đít (I ran, La-tinh Alt-Q)"
 
 #: ../rules/base.xml.in.h:435
 msgid "Kurdish (Iran, Arabic-Latin)"
-msgstr "Kuổ-đít (Iran, A Rập La-tinh)"
+msgstr "Tiếng Kuổ-đít (Iran, A Rập La-tinh)"
 
 #: ../rules/base.xml.in.h:436
 msgid "Iraqi"
@@ -1683,14 +1669,14 @@ msgstr "Tiếng Pha-rô"
 
 #: ../rules/base.xml.in.h:444
 msgid "Faroese (eliminate dead keys)"
-msgstr "Tiếng Pha-rô (phím chết loại trừ)"
+msgstr "Tiếng Pha-rô (loại bỏ phím chết)"
 
 #. Keyboard indicator for Finnish layouts
-#: ../rules/base.xml.in.h:446 ../rules/base.extras.xml.in.h:101
+#: ../rules/base.xml.in.h:446 ../rules/base.extras.xml.in.h:102
 msgid "fi"
 msgstr "fi"
 
-#: ../rules/base.xml.in.h:447 ../rules/base.extras.xml.in.h:102
+#: ../rules/base.xml.in.h:447 ../rules/base.extras.xml.in.h:103
 msgid "Finnish"
 msgstr "Tiếng Phần Lan"
 
@@ -1714,13 +1700,13 @@ msgstr "Bắc Xa-mi (Phần Lan)"
 msgid "Finnish (Macintosh)"
 msgstr "Tiếng Phần Lan (Macintosh)"
 
-#: ../rules/base.xml.in.h:453 ../rules/base.extras.xml.in.h:104
+#: ../rules/base.xml.in.h:453 ../rules/base.extras.xml.in.h:105
 msgid "French"
 msgstr "Pháp"
 
 #: ../rules/base.xml.in.h:454
 msgid "French (eliminate dead keys)"
-msgstr "Tiếng Pháp (phím chết loại trừ)"
+msgstr "Tiếng Pháp (loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:455
 msgid "French (Sun dead keys)"
@@ -1736,7 +1722,7 @@ msgstr "Tiếng Pháp (thay thế, chỉ Latin-9)"
 
 #: ../rules/base.xml.in.h:458
 msgid "French (alternative, eliminate dead keys)"
-msgstr "Tiếng Pháp (thay thế, phím chết loại trừ)"
+msgstr "Tiếng Pháp (thay thế, loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:459
 msgid "French (alternative, Sun dead keys)"
@@ -1748,7 +1734,7 @@ msgstr "Tiếng Pháp (cũ, thay thế)"
 
 #: ../rules/base.xml.in.h:461
 msgid "French (legacy, alternative, eliminate dead keys)"
-msgstr "Tiếng Pháp (cổ, thay thế, phím chết loại trừ)"
+msgstr "Tiếng Pháp (cổ, thay thế, loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:462
 msgid "French (legacy, alternative, Sun dead keys)"
@@ -1784,7 +1770,7 @@ msgstr "Óc-khi-tanh (Pháp, AZERTY Tskapo)"
 
 #: ../rules/base.xml.in.h:470
 msgid "English (Ghana)"
-msgstr "Tiếng Anh (Cộng hoà Ga-na)"
+msgstr "Tiếng Anh (Cộng hòa Ga-na)"
 
 #: ../rules/base.xml.in.h:471
 msgid "English (Ghana, multilingual)"
@@ -1891,7 +1877,7 @@ msgstr "Tiếng Đức (dấu huyền chết)"
 
 #: ../rules/base.xml.in.h:502
 msgid "German (eliminate dead keys)"
-msgstr "Tiếng Đức (phím chết loại trừ)"
+msgstr "Tiếng Đức (loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:503
 msgid "German (T3)"
@@ -1903,7 +1889,7 @@ msgstr "Tiếng Ru-ma-ny (Đức)"
 
 #: ../rules/base.xml.in.h:505
 msgid "Romanian (Germany, eliminate dead keys)"
-msgstr "Tiếng Ru-ma-ny (Đức, phím chết loại trừ)"
+msgstr "Tiếng Ru-ma-ny (Đức, loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:506
 msgid "German (Dvorak)"
@@ -1923,7 +1909,7 @@ msgstr "Tiếng Đức (Macintosh)"
 
 #: ../rules/base.xml.in.h:510
 msgid "German (Macintosh, eliminate dead keys)"
-msgstr "Tiếng Đức (Macintosh, phím chết loại trừ)"
+msgstr "Tiếng Đức (Macintosh, loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:511
 msgid "Lower Sorbian"
@@ -1950,11 +1936,11 @@ msgid "German (legacy)"
 msgstr "Tiếng Đức (cổ)"
 
 #. Keyboard indicator for Greek layouts
-#: ../rules/base.xml.in.h:518 ../rules/base.extras.xml.in.h:106
+#: ../rules/base.xml.in.h:518 ../rules/base.extras.xml.in.h:107
 msgid "gr"
 msgstr "gr"
 
-#: ../rules/base.xml.in.h:519 ../rules/base.extras.xml.in.h:107
+#: ../rules/base.xml.in.h:519 ../rules/base.extras.xml.in.h:108
 msgid "Greek"
 msgstr "Hy Lạp"
 
@@ -1968,7 +1954,7 @@ msgstr "Hy Lạp (mở rộng)"
 
 #: ../rules/base.xml.in.h:522
 msgid "Greek (eliminate dead keys)"
-msgstr "Hy-lạp (phím chết loại trừ)"
+msgstr "Hy-lạp (loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:523
 msgid "Greek (polytonic)"
@@ -1989,7 +1975,7 @@ msgstr "Tiếng Hung Ga ri (tiêu chuẩn)"
 
 #: ../rules/base.xml.in.h:528
 msgid "Hungarian (eliminate dead keys)"
-msgstr "Tiếng Hung Ga ri (phím chết loại trừ)"
+msgstr "Tiếng Hung Ga ri (loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:529
 msgid "Hungarian (qwerty)"
@@ -2001,7 +1987,7 @@ msgstr "Tiếng Hung Ga ri (101/qwertz/dấu phẩy/Phím chết)"
 
 #: ../rules/base.xml.in.h:531
 msgid "Hungarian (101/qwertz/comma/eliminate dead keys)"
-msgstr "Tiếng Hung Ga ri (101/qwertz/dấu phẩy/Phím chết loại trừ)"
+msgstr "Tiếng Hung Ga ri (101/qwertz/dấu phẩy/loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:532
 msgid "Hungarian (101/qwertz/dot/dead keys)"
@@ -2009,7 +1995,7 @@ msgstr "Tiếng Hung Ga ri (101/qwertz/dấu chấm/Phím chết)"
 
 #: ../rules/base.xml.in.h:533
 msgid "Hungarian (101/qwertz/dot/eliminate dead keys)"
-msgstr "Tiếng Hung Ga ri (101/qwertz/dấu chấm/Phím chết loại trừ)"
+msgstr "Tiếng Hung Ga ri (101/qwertz/dấu chấm/loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:534
 msgid "Hungarian (101/qwerty/comma/dead keys)"
@@ -2017,7 +2003,7 @@ msgstr "Tiếng Hung Ga ri (101/qwerty/dấu phẩy/Phím chết)"
 
 #: ../rules/base.xml.in.h:535
 msgid "Hungarian (101/qwerty/comma/eliminate dead keys)"
-msgstr "Tiếng Hung Ga ri (101/qwerty/dấu phẩy/Phím chết loại trừ)"
+msgstr "Tiếng Hung Ga ri (101/qwerty/dấu phẩy/loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:536
 msgid "Hungarian (101/qwerty/dot/dead keys)"
@@ -2025,7 +2011,7 @@ msgstr "Tiếng Hung Ga ri (101/qwerty/dấu chấm/Phím chết)"
 
 #: ../rules/base.xml.in.h:537
 msgid "Hungarian (101/qwerty/dot/eliminate dead keys)"
-msgstr "Tiếng Hung Ga ri (101/qwerty/dấu chấm/Phím chết loại trừ)"
+msgstr "Tiếng Hung Ga ri (101/qwerty/dấu chấm/loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:538
 msgid "Hungarian (102/qwertz/comma/dead keys)"
@@ -2033,7 +2019,7 @@ msgstr "Tiếng Hung Ga ri (102/qwertz/dấu phẩy/Phím chết)"
 
 #: ../rules/base.xml.in.h:539
 msgid "Hungarian (102/qwertz/comma/eliminate dead keys)"
-msgstr "Hung-ga-ri (102/qwertz/dấu phẩy/Phím chết loại trừ)"
+msgstr "Hung-ga-ri (102/qwertz/dấu phẩy/loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:540
 msgid "Hungarian (102/qwertz/dot/dead keys)"
@@ -2041,7 +2027,7 @@ msgstr "Hung-ga-ri (102/qwertz/dấu chấm/Phím chết)"
 
 #: ../rules/base.xml.in.h:541
 msgid "Hungarian (102/qwertz/dot/eliminate dead keys)"
-msgstr "Hung-ga-ri (102/qwertz/dấu chấm/Phím chết loại trừ)"
+msgstr "Hung-ga-ri (102/qwertz/dấu chấm/loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:542
 msgid "Hungarian (102/qwerty/comma/dead keys)"
@@ -2049,7 +2035,7 @@ msgstr "Hung-ga-ri (102/qwerty/dấu phẩy/Phím chết)"
 
 #: ../rules/base.xml.in.h:543
 msgid "Hungarian (102/qwerty/comma/eliminate dead keys)"
-msgstr "Hung-ga-ri (102/qwerty/dấu phẩy/Phím chết loại trừ)"
+msgstr "Hung-ga-ri (102/qwerty/dấu phẩy/loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:544
 msgid "Hungarian (102/qwerty/dot/dead keys)"
@@ -2057,7 +2043,7 @@ msgstr "Hung-ga-ri (102/qwerty/dấu chấm/Phím chết)"
 
 #: ../rules/base.xml.in.h:545
 msgid "Hungarian (102/qwerty/dot/eliminate dead keys)"
-msgstr "Hung-ga-ri (102/qwerty/dấu chấm/Phím chết loại trừ)"
+msgstr "Hung-ga-ri (102/qwerty/dấu chấm/loại bỏ phím chết)"
 
 #. Keyboard indicator for Icelandic layouts
 #: ../rules/base.xml.in.h:547
@@ -2074,7 +2060,7 @@ msgstr "Ai-len (phím chết Sun)"
 
 #: ../rules/base.xml.in.h:550
 msgid "Icelandic (eliminate dead keys)"
-msgstr "Ai-len (phím chết loại trừ)"
+msgstr "Ai-len (loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:551
 msgid "Icelandic (Macintosh, legacy)"
@@ -2089,13 +2075,13 @@ msgid "Icelandic (Dvorak)"
 msgstr "Tiếng Ai-xơ-len (Dvorak)"
 
 #. Keyboard indicator for Hebrew layouts
-#: ../rules/base.xml.in.h:555 ../rules/base.extras.xml.in.h:77
+#: ../rules/base.xml.in.h:555 ../rules/base.extras.xml.in.h:78
 msgid "he"
 msgstr "he"
 
-#: ../rules/base.xml.in.h:556 ../rules/base.extras.xml.in.h:78
+#: ../rules/base.xml.in.h:556 ../rules/base.extras.xml.in.h:79
 msgid "Hebrew"
-msgstr "Tiếng Do Thái "
+msgstr "Tiếng Do Thái"
 
 #: ../rules/base.xml.in.h:557
 msgid "Hebrew (lyx)"
@@ -2110,17 +2096,17 @@ msgid "Hebrew (Biblical, Tiro)"
 msgstr "Hê-brơ (Do thái) cổ (Kinh thánh, Tiro)"
 
 #. Keyboard indicator for Italian layouts
-#: ../rules/base.xml.in.h:561 ../rules/base.extras.xml.in.h:109
+#: ../rules/base.xml.in.h:561 ../rules/base.extras.xml.in.h:110
 msgid "it"
 msgstr "it"
 
-#: ../rules/base.xml.in.h:562 ../rules/base.extras.xml.in.h:110
+#: ../rules/base.xml.in.h:562 ../rules/base.extras.xml.in.h:111
 msgid "Italian"
 msgstr "Tiếng Ý"
 
 #: ../rules/base.xml.in.h:563
 msgid "Italian (eliminate dead keys)"
-msgstr "Tiếng Ý (phím chết loại trừ)"
+msgstr "Tiếng Ý (loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:564
 msgid "Italian (Winkeys)"
@@ -2135,22 +2121,21 @@ msgid "Italian (US keyboard with Italian letters)"
 msgstr "Ý (Bàn phím Mỹ với các chữ cái Ý)"
 
 #: ../rules/base.xml.in.h:567
-#, fuzzy
 msgid "Georgian (Italy)"
-msgstr "Gi-oa-gi-a (Mkhedruli)"
+msgstr "Gi-oa-gi-a (Ý)"
 
 #: ../rules/base.xml.in.h:568
 msgid "Italian (IBM 142)"
 msgstr "Tiếng Ý (IBM 142)"
 
 #. Keyboard indicator for Japanese layouts
-#: ../rules/base.xml.in.h:570 ../rules/base.extras.xml.in.h:112
+#: ../rules/base.xml.in.h:570 ../rules/base.extras.xml.in.h:113
 msgid "ja"
 msgstr "ja"
 
-#: ../rules/base.xml.in.h:571 ../rules/base.extras.xml.in.h:113
+#: ../rules/base.xml.in.h:571 ../rules/base.extras.xml.in.h:114
 msgid "Japanese"
-msgstr "Tiếng Nhật "
+msgstr "Tiếng Nhật"
 
 #: ../rules/base.xml.in.h:572
 msgid "Japanese (Kana)"
@@ -2178,14 +2163,12 @@ msgid "ki"
 msgstr "ki"
 
 #: ../rules/base.xml.in.h:579
-#, fuzzy
 msgid "Kyrgyz"
-msgstr "Nước Cộng Hoà Khư-rơ-gư-xtanh"
+msgstr "Khư-rơ-gư-xtanh"
 
 #: ../rules/base.xml.in.h:580
-#, fuzzy
 msgid "Kyrgyz (phonetic)"
-msgstr "Mở rộng Ngữ âm"
+msgstr "Khư-rơ-gư-xtanh (ngữ âm)"
 
 #. Keyboard indicator for Khmer layouts
 #: ../rules/base.xml.in.h:582
@@ -2206,9 +2189,8 @@ msgid "Kazakh"
 msgstr "Tiếng Ca-dakh"
 
 #: ../rules/base.xml.in.h:587
-#, fuzzy
 msgid "Russian (Kazakhstan, with Kazakh)"
-msgstr "Nga có Kha-xắc"
+msgstr "Nga (Ka-zắc-tan, có Kha-xắc)"
 
 #: ../rules/base.xml.in.h:588
 msgid "Kazakh (with Russian)"
@@ -2228,7 +2210,7 @@ msgid "Lao (STEA proposed standard layout)"
 msgstr "Lào (bố cục STEA tiêu chuẩn dự kiến)"
 
 #. Keyboard indicator for Spanish layouts
-#: ../rules/base.xml.in.h:594 ../rules/base.extras.xml.in.h:125
+#: ../rules/base.xml.in.h:594 ../rules/base.extras.xml.in.h:126
 msgid "es"
 msgstr "es"
 
@@ -2238,22 +2220,22 @@ msgstr "Tiếng Tây Ban Nha (Mỹ La-tinh)"
 
 #: ../rules/base.xml.in.h:596
 msgid "Spanish (Latin American, eliminate dead keys)"
-msgstr "Tiếng Tây Ban Nha (Mỹ La-tinh, phím chết loại trừ)"
+msgstr "Tiếng Tây Ban Nha (Mỹ La-tinh, loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:597
 msgid "Spanish (Latin American, include dead tilde)"
-msgstr ""
+msgstr "Tiếng Tây Ban Nha (Mỹ La-tinh, có phím chết)"
 
 #: ../rules/base.xml.in.h:598
 msgid "Spanish (Latin American, Sun dead keys)"
 msgstr "Tiếng Tây Ban Nha (Mỹ La-tinh, phím chết sun)"
 
 #. Keyboard indicator for Lithuanian layouts
-#: ../rules/base.xml.in.h:600 ../rules/base.extras.xml.in.h:31
+#: ../rules/base.xml.in.h:600 ../rules/base.extras.xml.in.h:32
 msgid "lt"
 msgstr "lt"
 
-#: ../rules/base.xml.in.h:601 ../rules/base.extras.xml.in.h:32
+#: ../rules/base.xml.in.h:601 ../rules/base.extras.xml.in.h:33
 msgid "Lithuanian"
 msgstr "Tiếng Li-tu-a-ni"
 
@@ -2278,28 +2260,25 @@ msgid "Lithuanian (LEKPa)"
 msgstr "Tiếng Li-tu-a-ni (LEKPa)"
 
 #. Keyboard indicator for Latvian layouts
-#: ../rules/base.xml.in.h:608 ../rules/base.extras.xml.in.h:35
+#: ../rules/base.xml.in.h:608 ../rules/base.extras.xml.in.h:36
 msgid "lv"
 msgstr "lv"
 
-#: ../rules/base.xml.in.h:609 ../rules/base.extras.xml.in.h:36
+#: ../rules/base.xml.in.h:609 ../rules/base.extras.xml.in.h:37
 msgid "Latvian"
 msgstr "Tiếng Lát-vi-a"
 
 #: ../rules/base.xml.in.h:610
-#, fuzzy
 msgid "Latvian (apostrophe variant)"
-msgstr "Phương án hô ngữ (”)"
+msgstr "Tiếng Lát-vi-a (biến thể hô ngữ)"
 
 #: ../rules/base.xml.in.h:611
-#, fuzzy
 msgid "Latvian (tilde variant)"
-msgstr "Phương án dấu sóng (~)"
+msgstr "Tiếng Lát-vi-a (biến thể dấu sóng ~)"
 
 #: ../rules/base.xml.in.h:612
-#, fuzzy
 msgid "Latvian (F variant)"
-msgstr "Biến thể phông chữ"
+msgstr "Tiếng Lát-vi-a (biến thể F)"
 
 #: ../rules/base.xml.in.h:613
 msgid "Latvian (modern)"
@@ -2307,7 +2286,7 @@ msgstr "Tiếng Lát-vi-a (hiện đại)"
 
 #: ../rules/base.xml.in.h:614
 msgid "Latvian (ergonomic, ŪGJRMV)"
-msgstr ""
+msgstr "Tiếng Lát-vi-a  (công thái học, ŪGJRMV)"
 
 #: ../rules/base.xml.in.h:615
 msgid "Latvian (adapted)"
@@ -2323,48 +2302,41 @@ msgid "Maori"
 msgstr "Mao-ri"
 
 #. Keyboard indicator for Serbian layouts
-#: ../rules/base.xml.in.h:620 ../rules/base.extras.xml.in.h:66
+#: ../rules/base.xml.in.h:620 ../rules/base.extras.xml.in.h:67
 msgid "sr"
 msgstr "sr"
 
 #: ../rules/base.xml.in.h:621
 msgid "Montenegrin"
-msgstr ""
+msgstr "Montenegrin"
 
 #: ../rules/base.xml.in.h:622
-#, fuzzy
 msgid "Montenegrin (Cyrillic)"
-msgstr "Ki-rin/Tiếng Nga"
+msgstr "Montenegrin (Ki-rin)"
 
 #: ../rules/base.xml.in.h:623
-#, fuzzy
 msgid "Montenegrin (Cyrillic, ZE and ZHE swapped)"
-msgstr "Ki-rin, đổi chỗ Z và ZHE"
+msgstr "Montenegrin (Ki-rin, đổi chỗ Z và ZHE)"
 
 #: ../rules/base.xml.in.h:624
-#, fuzzy
 msgid "Montenegrin (Latin Unicode)"
-msgstr "La-tinh Unicode"
+msgstr "Montenegrin (La-tinh Unicode)"
 
 #: ../rules/base.xml.in.h:625
-#, fuzzy
 msgid "Montenegrin (Latin qwerty)"
-msgstr "La-tinh qwerty"
+msgstr "Montenegrin (La-tinh qwerty)"
 
 #: ../rules/base.xml.in.h:626
-#, fuzzy
 msgid "Montenegrin (Latin Unicode qwerty)"
-msgstr "La-tinh Unicode qwerty"
+msgstr "Montenegrin (La-tinh Unicode qwerty)"
 
 #: ../rules/base.xml.in.h:627
-#, fuzzy
 msgid "Montenegrin (Cyrillic with guillemets)"
-msgstr "Ki-rin với “chim uria”"
+msgstr "Montenegrin (Ki-rin có “guillemets”)"
 
 #: ../rules/base.xml.in.h:628
-#, fuzzy
 msgid "Montenegrin (Latin with guillemets)"
-msgstr "La-tinh với “chim uria”"
+msgstr "Montenegrin (La-tinh có “guillemets”)"
 
 #. Keyboard indicator for Macedonian layouts
 #: ../rules/base.xml.in.h:630
@@ -2377,7 +2349,7 @@ msgstr "Tiếng Maxêđôni"
 
 #: ../rules/base.xml.in.h:632
 msgid "Macedonian (eliminate dead keys)"
-msgstr "Maxêđôni (phím chết loại trừ)"
+msgstr "Maxêđôni (loại bỏ phím chết)"
 
 #. Keyboard indicator for Maltese layouts
 #: ../rules/base.xml.in.h:634
@@ -2386,7 +2358,7 @@ msgstr "mt"
 
 #: ../rules/base.xml.in.h:635
 msgid "Maltese"
-msgstr "Tiếng Mantơ "
+msgstr "Tiếng Mantơ"
 
 #: ../rules/base.xml.in.h:636
 msgid "Maltese (with US layout)"
@@ -2402,17 +2374,17 @@ msgid "Mongolian"
 msgstr "Tiếng Mông Cổ"
 
 #. Keyboard indicator for Norwegian layouts
-#: ../rules/base.xml.in.h:641 ../rules/base.extras.xml.in.h:117
+#: ../rules/base.xml.in.h:641 ../rules/base.extras.xml.in.h:118
 msgid "no"
 msgstr "no"
 
-#: ../rules/base.xml.in.h:642 ../rules/base.extras.xml.in.h:118
+#: ../rules/base.xml.in.h:642 ../rules/base.extras.xml.in.h:119
 msgid "Norwegian"
 msgstr "Tiếng Na-uy"
 
 #: ../rules/base.xml.in.h:643
 msgid "Norwegian (eliminate dead keys)"
-msgstr "Na Uy (phím chết loại trừ)"
+msgstr "Na Uy (loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:644
 msgid "Norwegian (Winkeys)"
@@ -2423,14 +2395,12 @@ msgid "Norwegian (Dvorak)"
 msgstr "Na Uy (Dvorak)"
 
 #: ../rules/base.xml.in.h:646
-#, fuzzy
 msgid "Northern Saami (Norway)"
-msgstr "Bắc Xa-mi"
+msgstr "Bắc Xa-mi (Na Uy)"
 
 #: ../rules/base.xml.in.h:647
-#, fuzzy
 msgid "Northern Saami (Norway, eliminate dead keys)"
-msgstr "Bắc Xa-mi, phím chết loại trừ"
+msgstr "Bắc Xa-mi (Na Uy, loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:648
 msgid "Norwegian (Macintosh)"
@@ -2438,20 +2408,20 @@ msgstr "Na Uy (Macintosh)"
 
 #: ../rules/base.xml.in.h:649
 msgid "Norwegian (Macintosh, eliminate dead keys)"
-msgstr "Na Uy (Macintosh, phím chết loại trừ)"
+msgstr "Na Uy (Macintosh, loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:650
 msgid "Norwegian (Colemak)"
-msgstr "Tiếng Na-uy (Colemak) "
+msgstr "Tiếng Na-uy (Colemak)"
 
 #. Keyboard indicator for Polish layouts
-#: ../rules/base.xml.in.h:652 ../rules/base.extras.xml.in.h:55
+#: ../rules/base.xml.in.h:652 ../rules/base.extras.xml.in.h:56
 msgid "pl"
 msgstr "pl"
 
-#: ../rules/base.xml.in.h:653 ../rules/base.extras.xml.in.h:56
+#: ../rules/base.xml.in.h:653 ../rules/base.extras.xml.in.h:57
 msgid "Polish"
-msgstr "Tiếng Ba Lan "
+msgstr "Tiếng Ba Lan"
 
 #: ../rules/base.xml.in.h:654
 msgid "Polish (legacy)"
@@ -2478,9 +2448,8 @@ msgid "Kashubian"
 msgstr "Kha-su-bi"
 
 #: ../rules/base.xml.in.h:660
-#, fuzzy
 msgid "Silesian"
-msgstr "Tiếng Ba Tư"
+msgstr "Silesian"
 
 #: ../rules/base.xml.in.h:661
 msgid "Russian (Poland, phonetic Dvorak)"
@@ -2490,13 +2459,13 @@ msgstr "Ru-man-ni (Ba Lan, ngữ âm Dvorak)"
 msgid "Polish (programmer Dvorak)"
 msgstr "Tiếng Ba Lan (dành cho người lập trình)"
 
-#: ../rules/base.xml.in.h:663 ../rules/base.extras.xml.in.h:120
+#: ../rules/base.xml.in.h:663 ../rules/base.extras.xml.in.h:121
 msgid "Portuguese"
 msgstr "Bồ Đào Nha"
 
 #: ../rules/base.xml.in.h:664
 msgid "Portuguese (eliminate dead keys)"
-msgstr "Bồ Đào Nha (phím chết loại trừ)"
+msgstr "Bồ Đào Nha (loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:665
 msgid "Portuguese (Sun dead keys)"
@@ -2508,7 +2477,7 @@ msgstr "Bồ Đào Nha (Macintosh)"
 
 #: ../rules/base.xml.in.h:667
 msgid "Portuguese (Macintosh, eliminate dead keys)"
-msgstr "Bồ Đào Nha (Macintosh, phím chết loại trừ)"
+msgstr "Bồ Đào Nha (Macintosh, loại bỏ phím chết)"
 
 #: ../rules/base.xml.in.h:668
 msgid "Portuguese (Macintosh, Sun dead keys)"
@@ -2527,11 +2496,11 @@ msgid "Esperanto (Portugal, Nativo)"
 msgstr "Ét-pê-ran-to (Bồ Đào Nha, Nguyên gốc)"
 
 #. Keyboard indicator for Romanian layouts
-#: ../rules/base.xml.in.h:673 ../rules/base.extras.xml.in.h:60
+#: ../rules/base.xml.in.h:673 ../rules/base.extras.xml.in.h:61
 msgid "ro"
 msgstr "ro"
 
-#: ../rules/base.xml.in.h:674 ../rules/base.extras.xml.in.h:61
+#: ../rules/base.xml.in.h:674 ../rules/base.extras.xml.in.h:62
 msgid "Romanian"
 msgstr "Tiếng Ru-ma-ni"
 
@@ -2551,7 +2520,7 @@ msgstr "Ru-man-ni (dấu phẩy tiêu chuẩn)"
 msgid "Romanian (WinKeys)"
 msgstr "Ru-man-ni (Có phím Windows)"
 
-#: ../rules/base.xml.in.h:679 ../rules/base.extras.xml.in.h:70
+#: ../rules/base.xml.in.h:679 ../rules/base.extras.xml.in.h:71
 msgid "Russian"
 msgstr "Nga"
 
@@ -2613,15 +2582,15 @@ msgstr "Kalmyk"
 
 #: ../rules/base.xml.in.h:694
 msgid "Russian (DOS)"
-msgstr "Nga (DOS)"
+msgstr "Tiếng Nga (DOS)"
 
 #: ../rules/base.xml.in.h:695
 msgid "Russian (Macintosh)"
-msgstr "Nga (Macintosh)"
+msgstr "Tiếng Nga (Macintosh)"
 
 #: ../rules/base.xml.in.h:696
 msgid "Serbian (Russia)"
-msgstr "Xéc-bi (Nga)"
+msgstr "Tiếng Xéc-bi (Nga)"
 
 #: ../rules/base.xml.in.h:697
 msgid "Bashkirian"
@@ -2631,1414 +2600,1414 @@ msgstr "Ba-s-khi-ri"
 msgid "Mari"
 msgstr "Tiếng Ma-ri"
 
-#: ../rules/base.xml.in.h:699 ../rules/base.extras.xml.in.h:67
-msgid "Serbian"
-msgstr "Xéc-bi"
+#: ../rules/base.xml.in.h:699
+msgid "Russian (phonetic azerty)"
+msgstr "Tiếng Nga (ngữ âm azerty)"
 
 #: ../rules/base.xml.in.h:700
-#, fuzzy
-msgid "Serbian (Cyrillic, ZE and ZHE swapped)"
-msgstr "Ki-rin, đổi chỗ Z và ZHE"
+msgid "Russian (phonetic French)"
+msgstr "Tiếng Nga (Pháp ngữ âm)"
 
-#: ../rules/base.xml.in.h:701
-#, fuzzy
+#: ../rules/base.xml.in.h:701 ../rules/base.extras.xml.in.h:68
+msgid "Serbian"
+msgstr "Tiếng Xéc-bi"
+
+#: ../rules/base.xml.in.h:702
+msgid "Serbian (Cyrillic, ZE and ZHE swapped)"
+msgstr "Tiếng Xéc-bi (Ki-rin, đổi chỗ Z và ZHE)"
+
+#: ../rules/base.xml.in.h:703
 msgid "Serbian (Latin)"
 msgstr "Tiếng Xéc-bi (La-tinh)"
 
-#: ../rules/base.xml.in.h:702
-#, fuzzy
-msgid "Serbian (Latin Unicode)"
-msgstr "La-tinh Unicode"
-
-#: ../rules/base.xml.in.h:703
-#, fuzzy
-msgid "Serbian (Latin qwerty)"
-msgstr "La-tinh qwerty"
-
 #: ../rules/base.xml.in.h:704
-#, fuzzy
-msgid "Serbian (Latin Unicode qwerty)"
-msgstr "La-tinh Unicode qwerty"
+msgid "Serbian (Latin Unicode)"
+msgstr "Tiếng Xéc-bi (La-tinh Unicode)"
 
 #: ../rules/base.xml.in.h:705
-#, fuzzy
-msgid "Serbian (Cyrillic with guillemets)"
-msgstr "Ki-rin với “chim uria”"
+msgid "Serbian (Latin qwerty)"
+msgstr "Tiếng Xéc-bi (La-tinh qwerty)"
 
 #: ../rules/base.xml.in.h:706
-#, fuzzy
-msgid "Serbian (Latin with guillemets)"
-msgstr "La-tinh với “chim uria”"
+msgid "Serbian (Latin Unicode qwerty)"
+msgstr "Tiếng Xéc-bi (La-tinh Unicode qwerty)"
 
 #: ../rules/base.xml.in.h:707
-#, fuzzy
+msgid "Serbian (Cyrillic with guillemets)"
+msgstr "Tiếng Xéc-bi (Ki-rin với “guillemets”)"
+
+#: ../rules/base.xml.in.h:708
+msgid "Serbian (Latin with guillemets)"
+msgstr "Tiếng Xéc-bi (La-tinh với “guillemets”)"
+
+#: ../rules/base.xml.in.h:709
 msgid "Pannonian Rusyn"
 msgstr "Đồng điệu Ru-xin Pa-non"
 
 #. Keyboard indicator for Slovenian layouts
-#: ../rules/base.xml.in.h:709
+#: ../rules/base.xml.in.h:711
 msgid "sl"
 msgstr "sl"
 
-#: ../rules/base.xml.in.h:710
+#: ../rules/base.xml.in.h:712
 msgid "Slovenian"
 msgstr "Tiếng Xlô-ven"
 
-#: ../rules/base.xml.in.h:711
-#, fuzzy
+#: ../rules/base.xml.in.h:713
 msgid "Slovenian (with guillemets for quotes)"
-msgstr "Dùng “chim uria” làm dấu trích dẫn"
+msgstr "Tiếng Xlô-ven (Dùng “guillemets” làm dấu trích dẫn)"
 
-#: ../rules/base.xml.in.h:712
-#, fuzzy
+#: ../rules/base.xml.in.h:714
 msgid "Slovenian (US keyboard with Slovenian letters)"
-msgstr "Đức (Bàn phím Mỹ với các chữ cái Đức)"
+msgstr "Tiếng Xlô-ven (Bàn phím Mỹ với các chữ cái Xlô-ven)"
 
 #. Keyboard indicator for Slovak layouts
-#: ../rules/base.xml.in.h:714 ../rules/base.extras.xml.in.h:122
+#: ../rules/base.xml.in.h:716 ../rules/base.extras.xml.in.h:123
 msgid "sk"
 msgstr "sk"
 
-#: ../rules/base.xml.in.h:715 ../rules/base.extras.xml.in.h:123
+#: ../rules/base.xml.in.h:717 ../rules/base.extras.xml.in.h:124
 msgid "Slovak"
-msgstr "Tiếng Xlô-vác "
-
-#: ../rules/base.xml.in.h:716
-msgid "Slovak (extended Backslash)"
-msgstr "Xlô vác (gạch ngược Mở rộng)"
-
-#: ../rules/base.xml.in.h:717
-msgid "Slovak (qwerty)"
-msgstr "Xlô vác (qwerty)"
+msgstr "Tiếng Xlô-vác"
 
 #: ../rules/base.xml.in.h:718
-msgid "Slovak (qwerty, extended Backslash)"
-msgstr "Xlô vác (qwerty, Gạch ngược mở rộng)"
+msgid "Slovak (extended Backslash)"
+msgstr "Tiếng Xlô vác (gạch ngược Mở rộng)"
 
-#: ../rules/base.xml.in.h:719 ../rules/base.extras.xml.in.h:126
-msgid "Spanish"
-msgstr "Tiếng Tây Ban Nha "
+#: ../rules/base.xml.in.h:719
+msgid "Slovak (qwerty)"
+msgstr "Tiếng Xlô vác (qwerty)"
 
 #: ../rules/base.xml.in.h:720
-msgid "Spanish (eliminate dead keys)"
-msgstr "Tây Ban Nha (phím chết loại trừ)"
+msgid "Slovak (qwerty, extended Backslash)"
+msgstr "Tiếng Xlô vác (qwerty, Gạch ngược mở rộng)"
 
-#: ../rules/base.xml.in.h:721
+#: ../rules/base.xml.in.h:721 ../rules/base.extras.xml.in.h:127
+msgid "Spanish"
+msgstr "Tiếng Tây Ban Nha"
+
+#: ../rules/base.xml.in.h:722
+msgid "Spanish (eliminate dead keys)"
+msgstr "Tây Ban Nha (loại bỏ phím chết)"
+
+#: ../rules/base.xml.in.h:723
 msgid "Spanish (Winkeys)"
 msgstr "Tây Ban Nha (Có phím Windows)"
 
-#: ../rules/base.xml.in.h:722
+#: ../rules/base.xml.in.h:724
 msgid "Spanish (include dead tilde)"
 msgstr "Tây Ban Nha (bao gồm dấu sóng chết)"
 
-#: ../rules/base.xml.in.h:723
+#: ../rules/base.xml.in.h:725
 msgid "Spanish (Sun dead keys)"
 msgstr "Tây Ban Nha (phím chết Sun)"
 
-#: ../rules/base.xml.in.h:724
+#: ../rules/base.xml.in.h:726
 msgid "Spanish (Dvorak)"
 msgstr "Tây Ban Nha (Dvorak)"
 
-#: ../rules/base.xml.in.h:725
-#, fuzzy
+#: ../rules/base.xml.in.h:727
 msgid "Asturian (Spain, with bottom-dot H and bottom-dot L)"
 msgstr "Biến thế Ax-tu-ri có H chấm dưới và L chấm dưới"
 
-#: ../rules/base.xml.in.h:726
+#: ../rules/base.xml.in.h:728
 msgid "Catalan (Spain, with middle-dot L)"
 msgstr "Ca-ta-lăng (Tây Ban Nha, có chữ L chấm giữa)"
 
-#: ../rules/base.xml.in.h:727
+#: ../rules/base.xml.in.h:729
 msgid "Spanish (Macintosh)"
 msgstr "Tây Ban Nha (Macintosh)"
 
 #. Keyboard indicator for Swedish layouts
-#: ../rules/base.xml.in.h:729 ../rules/base.extras.xml.in.h:128
+#: ../rules/base.xml.in.h:731 ../rules/base.extras.xml.in.h:129
 msgid "sv"
 msgstr "sv"
 
-#: ../rules/base.xml.in.h:730 ../rules/base.extras.xml.in.h:129
+#: ../rules/base.xml.in.h:732 ../rules/base.extras.xml.in.h:130
 msgid "Swedish"
 msgstr "Tiếng Thụy Điển"
 
-#: ../rules/base.xml.in.h:731
+#: ../rules/base.xml.in.h:733
 msgid "Swedish (eliminate dead keys)"
-msgstr "Thụy Điển (phím chết loại trừ)"
+msgstr "Thụy Điển (loại bỏ phím chết)"
 
-#: ../rules/base.xml.in.h:732
+#: ../rules/base.xml.in.h:734
 msgid "Swedish (Dvorak)"
 msgstr "Tiếng Thụy Điển (Dvorak)"
 
-#: ../rules/base.xml.in.h:733
-msgid "Russian (Sweden, phonetic)"
-msgstr "Nga (Thụy Điển, ngữ âm)"
-
-#: ../rules/base.xml.in.h:734
-msgid "Russian (Sweden, phonetic, eliminate dead keys)"
-msgstr "Nga (Thụy Điển, ngữ âm, phím chết loại trừ)"
-
 #: ../rules/base.xml.in.h:735
+msgid "Russian (Sweden, phonetic)"
+msgstr "Tiếng Nga (Thụy Điển, ngữ âm)"
+
+#: ../rules/base.xml.in.h:736
+msgid "Russian (Sweden, phonetic, eliminate dead keys)"
+msgstr "Tiếng Nga (Thụy Điển, ngữ âm, loại bỏ phím chết)"
+
+#: ../rules/base.xml.in.h:737
 msgid "Northern Saami (Sweden)"
 msgstr "Bắc Xa-mi (Thụy Điển)"
 
-#: ../rules/base.xml.in.h:736
+#: ../rules/base.xml.in.h:738
 msgid "Swedish (Macintosh)"
 msgstr "Thụy Điển (Macintosh)"
 
-#: ../rules/base.xml.in.h:737
+#: ../rules/base.xml.in.h:739
 msgid "Swedish (Svdvorak)"
 msgstr "Thụy Điển (Svdvorak)"
 
-#: ../rules/base.xml.in.h:738
+#: ../rules/base.xml.in.h:740
 msgid "Swedish Sign Language"
-msgstr ""
+msgstr "Thụy Điển ngôn ngữ ký hiệu"
 
-#: ../rules/base.xml.in.h:739 ../rules/base.extras.xml.in.h:132
+#: ../rules/base.xml.in.h:741 ../rules/base.extras.xml.in.h:133
 msgid "German (Switzerland)"
 msgstr "Đức (Thụy sỹ)"
 
-#: ../rules/base.xml.in.h:740
+#: ../rules/base.xml.in.h:742
 msgid "German (Switzerland, legacy)"
 msgstr "Đức (Thụy Sỹ, cũ)"
 
-#: ../rules/base.xml.in.h:741
+#: ../rules/base.xml.in.h:743
 msgid "German (Switzerland, eliminate dead keys)"
-msgstr "Đức (Thụy Sỹ, phím chết loại trừ)"
+msgstr "Đức (Thụy Sỹ, loại bỏ phím chết)"
 
-#: ../rules/base.xml.in.h:742
+#: ../rules/base.xml.in.h:744
 msgid "German (Switzerland, Sun dead keys)"
 msgstr "Đức (Thụy Sỹ, phím chết Sun)"
 
-#: ../rules/base.xml.in.h:743
+#: ../rules/base.xml.in.h:745
 msgid "French (Switzerland)"
 msgstr "Pháp (Thụy sỹ)"
 
-#: ../rules/base.xml.in.h:744
+#: ../rules/base.xml.in.h:746
 msgid "French (Switzerland, eliminate dead keys)"
-msgstr "Pháp (Thụy Sỹ, phím chết loại trừ)"
+msgstr "Pháp (Thụy Sỹ, loại bỏ phím chết)"
 
-#: ../rules/base.xml.in.h:745
+#: ../rules/base.xml.in.h:747
 msgid "French (Switzerland, Sun dead keys)"
 msgstr "Pháp (Thụy Sỹ, phím chết Sun)"
 
-#: ../rules/base.xml.in.h:746
+#: ../rules/base.xml.in.h:748
 msgid "French (Switzerland, Macintosh)"
 msgstr "Pháp (Thụy Sỹ, Macintosh)"
 
-#: ../rules/base.xml.in.h:747
+#: ../rules/base.xml.in.h:749
 msgid "German (Switzerland, Macintosh)"
 msgstr "Đức (Thụy Sỹ, Macintosh)"
 
-#: ../rules/base.xml.in.h:748
+#: ../rules/base.xml.in.h:750
 msgid "Arabic (Syria)"
 msgstr "Tiếng A Rập (Xy-ri)"
 
 #. Keyboard indicator for Syriac layouts
-#: ../rules/base.xml.in.h:750
+#: ../rules/base.xml.in.h:752
 msgid "syc"
 msgstr "syc"
 
-#: ../rules/base.xml.in.h:751
+#: ../rules/base.xml.in.h:753
 msgid "Syriac"
 msgstr "Xi-ri"
 
-#: ../rules/base.xml.in.h:752
-#, fuzzy
+#: ../rules/base.xml.in.h:754
 msgid "Syriac (phonetic)"
 msgstr "Mở rộng Ngữ âm"
 
-#: ../rules/base.xml.in.h:753
-#, fuzzy
+#: ../rules/base.xml.in.h:755
 msgid "Kurdish (Syria, Latin Q)"
 msgstr "Kuổ-đít (Iran, A Rập La-tinh)"
 
-#: ../rules/base.xml.in.h:754
-#, fuzzy
+#: ../rules/base.xml.in.h:756
 msgid "Kurdish (Syria, F)"
 msgstr "Tiếng A Rập (Xy-ri)"
 
-#: ../rules/base.xml.in.h:755
-#, fuzzy
+#: ../rules/base.xml.in.h:757
 msgid "Kurdish (Syria, Latin Alt-Q)"
 msgstr "Tiếng Iran (I-rắc, La-tinh Alt-Q)"
 
 #. Keyboard indicator for Tajik layouts
-#: ../rules/base.xml.in.h:757
+#: ../rules/base.xml.in.h:759
 msgid "tg"
 msgstr "tg"
 
-#: ../rules/base.xml.in.h:758
+#: ../rules/base.xml.in.h:760
 msgid "Tajik"
 msgstr "Tiếng Ta-gic"
 
-#: ../rules/base.xml.in.h:759
+#: ../rules/base.xml.in.h:761
 msgid "Tajik (legacy)"
 msgstr "Tiếng Ta-gíc (cổ)"
 
 #. Keyboard indicator for Sinhala layouts
-#: ../rules/base.xml.in.h:761
+#: ../rules/base.xml.in.h:763
 msgid "si"
 msgstr "si"
 
-#: ../rules/base.xml.in.h:762
-#, fuzzy
+#: ../rules/base.xml.in.h:764
 msgid "Sinhala (phonetic)"
 msgstr "Mở rộng Ngữ âm"
 
-#: ../rules/base.xml.in.h:763
-#, fuzzy
+#: ../rules/base.xml.in.h:765
 msgid "Tamil (Sri Lanka, Unicode)"
 msgstr "Ta-min Unicode"
 
-#: ../rules/base.xml.in.h:764
-#, fuzzy
+#: ../rules/base.xml.in.h:766
 msgid "Tamil (Sri Lanka, TAB Typewriter)"
 msgstr "Ta-min TAB máy chữ"
 
 #. Keyboard indicator for Thai layouts
-#: ../rules/base.xml.in.h:766
+#: ../rules/base.xml.in.h:768
 msgid "th"
 msgstr "th"
 
-#: ../rules/base.xml.in.h:767
+#: ../rules/base.xml.in.h:769
 msgid "Thai"
-msgstr "Tiếng Thái Lan "
+msgstr "Tiếng Thái Lan"
 
-#: ../rules/base.xml.in.h:768
+#: ../rules/base.xml.in.h:770
 msgid "Thai (TIS-820.2538)"
 msgstr "Thái (TIS-820.2538)"
 
-#: ../rules/base.xml.in.h:769
+#: ../rules/base.xml.in.h:771
 msgid "Thai (Pattachote)"
 msgstr "Thái Lan (Pattachote)"
 
 #. Keyboard indicator for Turkish layouts
-#: ../rules/base.xml.in.h:771 ../rules/base.extras.xml.in.h:135
+#: ../rules/base.xml.in.h:773 ../rules/base.extras.xml.in.h:136
 msgid "tr"
 msgstr "tr"
 
-#: ../rules/base.xml.in.h:772 ../rules/base.extras.xml.in.h:136
+#: ../rules/base.xml.in.h:774 ../rules/base.extras.xml.in.h:137
 msgid "Turkish"
 msgstr "Tiếng Thổ Nhĩ Kỳ"
 
-#: ../rules/base.xml.in.h:773
+#: ../rules/base.xml.in.h:775
 msgid "Turkish (F)"
 msgstr "Tiếng Thổ Nhĩ Kỳ (F)"
 
-#: ../rules/base.xml.in.h:774
+#: ../rules/base.xml.in.h:776
 msgid "Turkish (Alt-Q)"
 msgstr "Thổ nhĩ kỳ (Alt-Q)"
 
-#: ../rules/base.xml.in.h:775
-#, fuzzy
+#: ../rules/base.xml.in.h:777
 msgid "Turkish (Sun dead keys)"
 msgstr "Bồ Đào Nha (phím chết Sun)"
 
-#: ../rules/base.xml.in.h:776
-#, fuzzy
+#: ../rules/base.xml.in.h:778
 msgid "Kurdish (Turkey, Latin Q)"
 msgstr "Kuổ-đít (Iran, A Rập La-tinh)"
 
-#: ../rules/base.xml.in.h:777
-#, fuzzy
+#: ../rules/base.xml.in.h:779
 msgid "Kurdish (Turkey, F)"
-msgstr "Nước Cộng Hoà Thổ Nhĩ Kỳ"
+msgstr "Nước Cộng Hòa Thổ Nhĩ Kỳ"
 
-#: ../rules/base.xml.in.h:778
-#, fuzzy
+#: ../rules/base.xml.in.h:780
 msgid "Kurdish (Turkey, Latin Alt-Q)"
 msgstr "Tiếng Iran (I-rắc, La-tinh Alt-Q)"
 
-#: ../rules/base.xml.in.h:779
+#: ../rules/base.xml.in.h:781
 msgid "Turkish (international with dead keys)"
 msgstr "Thổ Nhĩ Kỳ (quốc tế với phím chết)"
 
 #. Keyboard indicator for Crimean Tatar layouts
-#: ../rules/base.xml.in.h:781 ../rules/base.extras.xml.in.h:62
+#: ../rules/base.xml.in.h:783 ../rules/base.extras.xml.in.h:63
 msgid "crh"
 msgstr "crh"
 
-#: ../rules/base.xml.in.h:782
+#: ../rules/base.xml.in.h:784
 msgid "Crimean Tatar (Turkish Q)"
 msgstr "Ta-tă Cợ-ri-mia (Thổ Nhĩ Kỳ Q)"
 
-#: ../rules/base.xml.in.h:783
+#: ../rules/base.xml.in.h:785
 msgid "Crimean Tatar (Turkish F)"
 msgstr "Ta-tă Cợ-ri-mia (Thổ Nhĩ Kỳ F)"
 
-#: ../rules/base.xml.in.h:784
+#: ../rules/base.xml.in.h:786
 msgid "Crimean Tatar (Turkish Alt-Q)"
 msgstr "Ta-tă Cợ-ri-mia (Thổ Nhĩ Kỳ Alt-Q)"
 
-#: ../rules/base.xml.in.h:785
+#: ../rules/base.xml.in.h:787
 msgid "Taiwanese"
 msgstr "Tiếng Đài Loan"
 
-#: ../rules/base.xml.in.h:786
+#: ../rules/base.xml.in.h:788
 msgid "Taiwanese (indigenous)"
 msgstr "Tiếng Đài Loan (bản địa)"
 
 #. Keyboard indicator for Saisiyat layouts
-#: ../rules/base.xml.in.h:788
+#: ../rules/base.xml.in.h:790
 msgid "xsy"
 msgstr "xsy"
 
-#: ../rules/base.xml.in.h:789
+#: ../rules/base.xml.in.h:791
 msgid "Saisiyat (Taiwan)"
 msgstr "Tiếng Saisiyat (Đài-loan)"
 
 #. Keyboard indicator for Ukranian layouts
-#: ../rules/base.xml.in.h:791 ../rules/base.extras.xml.in.h:138
+#: ../rules/base.xml.in.h:793 ../rules/base.extras.xml.in.h:139
 msgid "uk"
 msgstr "uk"
 
-#: ../rules/base.xml.in.h:792 ../rules/base.extras.xml.in.h:139
+#: ../rules/base.xml.in.h:794 ../rules/base.extras.xml.in.h:140
 msgid "Ukrainian"
-msgstr "Tiếng Ukraina "
-
-#: ../rules/base.xml.in.h:793
-msgid "Ukrainian (phonetic)"
-msgstr "U-crai-na (ngữ âm)"
-
-#: ../rules/base.xml.in.h:794
-msgid "Ukrainian (typewriter)"
-msgstr "U-crai-na (máy đánh chữ)"
+msgstr "Tiếng Ukraina"
 
 #: ../rules/base.xml.in.h:795
-msgid "Ukrainian (WinKeys)"
-msgstr "U-crai-na(Có phím Windows)"
+msgid "Ukrainian (phonetic)"
+msgstr "Tiếng U-crai-na (ngữ âm)"
 
 #: ../rules/base.xml.in.h:796
-msgid "Ukrainian (legacy)"
-msgstr "U-crai-na (cổ)"
+msgid "Ukrainian (typewriter)"
+msgstr "Tiếng U-crai-na (máy đánh chữ)"
 
 #: ../rules/base.xml.in.h:797
-msgid "Ukrainian (standard RSTU)"
-msgstr "U-crai-na (RSTU chuẩn)"
+msgid "Ukrainian (WinKeys)"
+msgstr "Tiếng U-crai-na(Có phím Windows)"
 
 #: ../rules/base.xml.in.h:798
-msgid "Russian (Ukraine, standard RSTU)"
-msgstr ""
+msgid "Ukrainian (legacy)"
+msgstr "Tiếng U-crai-na (cổ)"
 
 #: ../rules/base.xml.in.h:799
-#, fuzzy
-msgid "Ukrainian (homophonic)"
-msgstr "Đồng Că-bo-va-néc U-cợ-rainh"
+msgid "Ukrainian (standard RSTU)"
+msgstr "Tiếng U-crai-na (RSTU chuẩn)"
 
-#: ../rules/base.xml.in.h:800 ../rules/base.extras.xml.in.h:141
+#: ../rules/base.xml.in.h:800
+msgid "Russian (Ukraine, standard RSTU)"
+msgstr "Tiếng Nga (U-crai-na, RSTU chuẩn)"
+
+#: ../rules/base.xml.in.h:801
+msgid "Ukrainian (homophonic)"
+msgstr "U-crai-na (phát âm giống nhau)"
+
+#: ../rules/base.xml.in.h:802 ../rules/base.extras.xml.in.h:142
 msgid "English (UK)"
 msgstr "Tiếng Anh (UK)"
 
-#: ../rules/base.xml.in.h:801
+#: ../rules/base.xml.in.h:803
 msgid "English (UK, extended WinKeys)"
 msgstr "Tiếng Anh (UK, WinKeys)"
 
-#: ../rules/base.xml.in.h:802
+#: ../rules/base.xml.in.h:804
 msgid "English (UK, international with dead keys)"
-msgstr "Anh (Anh, quốc tế với phím chết)"
+msgstr "Tiếng Anh (Anh, quốc tế với phím chết)"
 
-#: ../rules/base.xml.in.h:803
+#: ../rules/base.xml.in.h:805
 msgid "English (UK, Dvorak)"
 msgstr "Tiếng Anh (UK, Dvorak)"
 
-#: ../rules/base.xml.in.h:804
+#: ../rules/base.xml.in.h:806
 msgid "English (UK, Dvorak with UK punctuation)"
-msgstr "Anh (Mỹ, Dvorak dấu chấm câu Anh Quốc)"
+msgstr "Tiếng Anh (Mỹ, Dvorak dấu chấm câu Anh Quốc)"
 
-#: ../rules/base.xml.in.h:805
+#: ../rules/base.xml.in.h:807
 msgid "English (UK, Macintosh)"
 msgstr "Tiếng Anh (UK, Macintosh)"
 
-#: ../rules/base.xml.in.h:806
-msgid "English (UK, Macintosh international)"
-msgstr "Anh (Anh, Macintosh quốc tế)"
-
-#: ../rules/base.xml.in.h:807
-msgid "English (UK, Colemak)"
-msgstr "Anh (UK, Colemak)"
-
 #: ../rules/base.xml.in.h:808
+msgid "English (UK, Macintosh international)"
+msgstr "Tiếng Anh (Anh, Macintosh quốc tế)"
+
+#: ../rules/base.xml.in.h:809
+msgid "English (UK, Colemak)"
+msgstr "Tiếng Anh (UK, Colemak)"
+
+#: ../rules/base.xml.in.h:810
 msgid "Uzbek"
 msgstr "Tiếng U-dơ-bếch"
 
-#: ../rules/base.xml.in.h:809
+#: ../rules/base.xml.in.h:811
 msgid "Uzbek (Latin)"
 msgstr "Tiếng U-x-béc (La-tinh)"
 
 #. Keyboard indicator for Vietnamese layouts
-#: ../rules/base.xml.in.h:811
+#: ../rules/base.xml.in.h:813
 msgid "vi"
 msgstr "vi"
 
-#: ../rules/base.xml.in.h:812
+#: ../rules/base.xml.in.h:814
 msgid "Vietnamese"
 msgstr "Tiếng Việt"
 
 #. Keyboard indicator for Korean layouts
-#: ../rules/base.xml.in.h:814 ../rules/base.extras.xml.in.h:143
+#: ../rules/base.xml.in.h:816 ../rules/base.extras.xml.in.h:144
 msgid "ko"
 msgstr "ko"
 
-#: ../rules/base.xml.in.h:815 ../rules/base.extras.xml.in.h:144
+#: ../rules/base.xml.in.h:817 ../rules/base.extras.xml.in.h:145
 msgid "Korean"
-msgstr "Tiếng Hàn Quốc "
+msgstr "Tiếng Hàn Quốc"
 
-#: ../rules/base.xml.in.h:816
+#: ../rules/base.xml.in.h:818
 msgid "Korean (101/104 key compatible)"
-msgstr "Hàn Quốc (tương thích với kiểu bàn phím 101/104)"
+msgstr "Tiếng Hàn Quốc (tương thích với kiểu bàn phím 101/104)"
 
-#: ../rules/base.xml.in.h:817
+#: ../rules/base.xml.in.h:819
 msgid "Japanese (PC-98xx Series)"
 msgstr "Tiếng Nhật (Sê-ri PC-98xx)"
 
 #. Keyboard indicator for Irish layouts
-#: ../rules/base.xml.in.h:819
+#: ../rules/base.xml.in.h:821
 msgid "ie"
 msgstr "ie"
 
-#: ../rules/base.xml.in.h:820
+#: ../rules/base.xml.in.h:822
 msgid "Irish"
 msgstr "Tiếng Ai-len"
 
-#: ../rules/base.xml.in.h:821
+#: ../rules/base.xml.in.h:823
 msgid "CloGaelach"
 msgstr "CloGaelach"
 
-#: ../rules/base.xml.in.h:822
+#: ../rules/base.xml.in.h:824
 msgid "Irish (UnicodeExpert)"
 msgstr "Ai-len (UnicodeExpert)"
 
-#: ../rules/base.xml.in.h:823
+#: ../rules/base.xml.in.h:825
 msgid "Ogham"
 msgstr "Og-âm"
 
-#: ../rules/base.xml.in.h:824
+#: ../rules/base.xml.in.h:826
 msgid "Ogham (IS434)"
 msgstr "Ogam (IS434)"
 
-#: ../rules/base.xml.in.h:825
+#: ../rules/base.xml.in.h:827
 msgid "Urdu (Pakistan)"
 msgstr "Tiếng Ua-đu (Pa-ki-x-thănh)"
 
-#: ../rules/base.xml.in.h:826
-msgid "Urdu (Pakistan, CRULP)"
-msgstr ""
-
-#: ../rules/base.xml.in.h:827
-msgid "Urdu (Pakistan, NLA)"
-msgstr ""
-
 #: ../rules/base.xml.in.h:828
+msgid "Urdu (Pakistan, CRULP)"
+msgstr "Tiếng Ua-đu (Pa-ki-x-thănh, CRULP)"
+
+#: ../rules/base.xml.in.h:829
+msgid "Urdu (Pakistan, NLA)"
+msgstr "Tiếng Ua-đu (Pa-ki-x-thănh, NLA)"
+
+#: ../rules/base.xml.in.h:830
 msgid "Arabic (Pakistan)"
 msgstr "Ả Rập (Pa-ki-x-thănh)"
 
 #. Keyboard indicator for Sindhi layouts
-#: ../rules/base.xml.in.h:830
+#: ../rules/base.xml.in.h:832
 msgid "sd"
 msgstr "sd"
 
-#: ../rules/base.xml.in.h:831
+#: ../rules/base.xml.in.h:833
 msgid "Sindhi"
 msgstr "Xin-đi"
 
 #. Keyboard indicator for Dhivehi layouts
-#: ../rules/base.xml.in.h:833
+#: ../rules/base.xml.in.h:835
 msgid "dv"
 msgstr "dv"
 
-#: ../rules/base.xml.in.h:834
+#: ../rules/base.xml.in.h:836
 msgid "Dhivehi"
 msgstr "Tiếng Đi-ve-hi"
 
-#: ../rules/base.xml.in.h:835
+#: ../rules/base.xml.in.h:837
 msgid "English (South Africa)"
 msgstr "Tiếng Anh (Nam Phi)"
 
 #. Keyboard indicator for Esperanto layouts
-#: ../rules/base.xml.in.h:837
+#: ../rules/base.xml.in.h:839
 msgid "eo"
 msgstr "eo"
 
-#: ../rules/base.xml.in.h:838
+#: ../rules/base.xml.in.h:840
 msgid "Esperanto"
 msgstr "Ét-pe-ran-tô"
 
-#: ../rules/base.xml.in.h:839
+#: ../rules/base.xml.in.h:841
 msgid "Esperanto (displaced semicolon and quote, obsolete)"
 msgstr "Ét-pe-ran-tô (hoán đổi dấu chấm phẩy và dấu nháy, cũ)"
 
 #. Keyboard indicator for Nepali layouts
-#: ../rules/base.xml.in.h:841
+#: ../rules/base.xml.in.h:843
 msgid "ne"
 msgstr "ne"
 
-#: ../rules/base.xml.in.h:842
+#: ../rules/base.xml.in.h:844
 msgid "Nepali"
 msgstr "Tiếng Nê-pan"
 
-#: ../rules/base.xml.in.h:843
+#: ../rules/base.xml.in.h:845
 msgid "English (Nigeria)"
 msgstr "Tiếng Anh (Nigeria)"
 
 #. Keyboard indicator for Igbo layouts
-#: ../rules/base.xml.in.h:845
+#: ../rules/base.xml.in.h:847
 msgid "ig"
 msgstr "ig"
 
-#: ../rules/base.xml.in.h:846
+#: ../rules/base.xml.in.h:848
 msgid "Igbo"
 msgstr "Ig-bô"
 
 #. Keyboard indicator for Yoruba layouts
-#: ../rules/base.xml.in.h:848
+#: ../rules/base.xml.in.h:850
 msgid "yo"
 msgstr "yo"
 
-#: ../rules/base.xml.in.h:849
+#: ../rules/base.xml.in.h:851
 msgid "Yoruba"
 msgstr "Yoa-ru-ba"
 
 #. Keyboard indicator for Amharic layouts
-#: ../rules/base.xml.in.h:851
+#: ../rules/base.xml.in.h:853
 msgid "am"
 msgstr "am"
 
-#: ../rules/base.xml.in.h:852
+#: ../rules/base.xml.in.h:854
 msgid "Amharic"
 msgstr "Tiếng Am-ha-ri"
 
 #. Keyboard indicator for Wolof layouts
-#: ../rules/base.xml.in.h:854
+#: ../rules/base.xml.in.h:856
 msgid "wo"
 msgstr "wo"
 
-#: ../rules/base.xml.in.h:855
-#, fuzzy
+#: ../rules/base.xml.in.h:857
 msgid "Wolof"
-msgstr "Tiếng Ou-o-loc"
+msgstr "Wolof"
 
 #. Keyboard indicator for Braille layouts
-#: ../rules/base.xml.in.h:857
+#: ../rules/base.xml.in.h:859
 msgid "brl"
 msgstr "brl"
 
-#: ../rules/base.xml.in.h:858
+#: ../rules/base.xml.in.h:860
 msgid "Braille"
 msgstr "Chữ nổi"
 
-#: ../rules/base.xml.in.h:859
+#: ../rules/base.xml.in.h:861
 msgid "Braille (left hand)"
 msgstr "Chữ nổi (tay trái)"
 
-#: ../rules/base.xml.in.h:860
+#: ../rules/base.xml.in.h:862
 msgid "Braille (right hand)"
 msgstr "Chữ nổi (tay phải)"
 
 #. Keyboard indicator for Turkmen layouts
-#: ../rules/base.xml.in.h:862
+#: ../rules/base.xml.in.h:864
 msgid "tk"
 msgstr "tk"
 
-#: ../rules/base.xml.in.h:863
+#: ../rules/base.xml.in.h:865
 msgid "Turkmen"
 msgstr "Tiếng Tuôcmen"
 
-#: ../rules/base.xml.in.h:864
+#: ../rules/base.xml.in.h:866
 msgid "Turkmen (Alt-Q)"
 msgstr "Tiếng Tuôcmen (Alt-Q)"
 
 #. Keyboard indicator for Bambara layouts
-#: ../rules/base.xml.in.h:866
+#: ../rules/base.xml.in.h:868
 msgid "bm"
 msgstr "bm"
 
-#: ../rules/base.xml.in.h:867
+#: ../rules/base.xml.in.h:869
 msgid "Bambara"
 msgstr "Tiếng Bam-ba-ra"
 
-#: ../rules/base.xml.in.h:868
+#: ../rules/base.xml.in.h:870
 msgid "French (Mali, alternative)"
 msgstr "Pháp (Mali, thay thế)"
 
-#: ../rules/base.xml.in.h:869
+#: ../rules/base.xml.in.h:871
 msgid "English (Mali, US Macintosh)"
 msgstr "Anh (Mali, Macintosh Mỹ)"
 
-#: ../rules/base.xml.in.h:870
+#: ../rules/base.xml.in.h:872
 msgid "English (Mali, US international)"
 msgstr "Anh (Mali, Mỹ quốc tế)"
 
 #. Keyboard indicator for Swahili layouts
-#: ../rules/base.xml.in.h:872
+#: ../rules/base.xml.in.h:874
 msgid "sw"
 msgstr "sw"
 
-#: ../rules/base.xml.in.h:873
+#: ../rules/base.xml.in.h:875
 msgid "Swahili (Tanzania)"
 msgstr "Tiếng Bantu (Tanzania)"
 
-#: ../rules/base.xml.in.h:874
+#: ../rules/base.xml.in.h:876
 msgid "Swahili (Kenya)"
 msgstr "Tiếng Bantu (Kenya)"
 
-#: ../rules/base.xml.in.h:875
+#: ../rules/base.xml.in.h:877
 msgid "Kikuyu"
 msgstr "Ki-ku-yu"
 
 #. Keyboard indicator for Tswana layouts
-#: ../rules/base.xml.in.h:877
+#: ../rules/base.xml.in.h:879
 msgid "tn"
 msgstr "tn"
 
-#: ../rules/base.xml.in.h:878
+#: ../rules/base.xml.in.h:880
 msgid "Tswana"
 msgstr "Tiếng T-xoua-na"
 
 #. Keyboard indicator for Filipino layouts
-#: ../rules/base.xml.in.h:880
+#: ../rules/base.xml.in.h:882
 msgid "ph"
 msgstr "ph"
 
-#: ../rules/base.xml.in.h:881
+#: ../rules/base.xml.in.h:883
 msgid "Filipino"
 msgstr "Tiếng Phi-li-pin"
 
-#: ../rules/base.xml.in.h:882
+#: ../rules/base.xml.in.h:884
 msgid "Filipino (QWERTY Baybayin)"
 msgstr "Tiếng Phi-li-pin (QWERTY Baybayin)"
 
-#: ../rules/base.xml.in.h:883
+#: ../rules/base.xml.in.h:885
 msgid "Filipino (Capewell-Dvorak Latin)"
 msgstr "Tiếng Phi-li-pin (Capewell-Dvorak Latin)"
 
-#: ../rules/base.xml.in.h:884
+#: ../rules/base.xml.in.h:886
 msgid "Filipino (Capewell-Dvorak Baybayin)"
 msgstr "Tiếng Phi-li-pin (Capewell-Dvorak Baybayin)"
 
-#: ../rules/base.xml.in.h:885
+#: ../rules/base.xml.in.h:887
 msgid "Filipino (Capewell-QWERF 2006 Latin)"
 msgstr "Tiếng Phi-li-pin (Capewell-QWERF 2006 Latin)"
 
-#: ../rules/base.xml.in.h:886
+#: ../rules/base.xml.in.h:888
 msgid "Filipino (Capewell-QWERF 2006 Baybayin)"
 msgstr "Tiếng Phi-li-pin (Capewell-QWERF 2006 Baybayin)"
 
-#: ../rules/base.xml.in.h:887
+#: ../rules/base.xml.in.h:889
 msgid "Filipino (Colemak Latin)"
 msgstr "Tiếng Phi-li-pin (Colemak Latin)"
 
-#: ../rules/base.xml.in.h:888
+#: ../rules/base.xml.in.h:890
 msgid "Filipino (Colemak Baybayin)"
 msgstr "Tiếng Phi-li-pin (Colemak Baybayin)"
 
-#: ../rules/base.xml.in.h:889
+#: ../rules/base.xml.in.h:891
 msgid "Filipino (Dvorak Latin)"
 msgstr "Tiếng Phi-li-pin (Dvorak Latin)"
 
-#: ../rules/base.xml.in.h:890
+#: ../rules/base.xml.in.h:892
 msgid "Filipino (Dvorak Baybayin)"
 msgstr "Tiếng Phi-li-pin (Dvorak Baybayin)"
 
-#: ../rules/base.xml.in.h:891
+#: ../rules/base.xml.in.h:893
 msgid "md"
 msgstr "md"
 
-#: ../rules/base.xml.in.h:892
+#: ../rules/base.xml.in.h:894
 msgid "Moldavian"
 msgstr "Tiếng Moa-đô-va"
 
-#: ../rules/base.xml.in.h:893
+#: ../rules/base.xml.in.h:895
 msgid "gag"
 msgstr "gag"
 
-#: ../rules/base.xml.in.h:894
+#: ../rules/base.xml.in.h:896
 msgid "Moldavian (Gagauz)"
 msgstr "Tiếng Mon-đa-vi (Gagauz)"
 
-#: ../rules/base.xml.in.h:895
+#: ../rules/base.xml.in.h:897
 msgid "Switching to another layout"
 msgstr "Chuyển sang bố cục khác"
 
-#: ../rules/base.xml.in.h:896
+#: ../rules/base.xml.in.h:898
 msgid "Right Alt (while pressed)"
 msgstr "Alt phải (trong khi bấm)"
 
-#: ../rules/base.xml.in.h:897
+#: ../rules/base.xml.in.h:899
 msgid "Left Alt (while pressed)"
 msgstr "Alt trái (trong khi bấm)"
 
-#: ../rules/base.xml.in.h:898
+#: ../rules/base.xml.in.h:900
 msgid "Left Win (while pressed)"
 msgstr "Win trái (trong khi bấm)"
 
-#: ../rules/base.xml.in.h:899
+#: ../rules/base.xml.in.h:901
 msgid "Right Win (while pressed)"
 msgstr "Win phải (trong khi bấm)"
 
-#: ../rules/base.xml.in.h:900
+#: ../rules/base.xml.in.h:902
 msgid "Any Win key (while pressed)"
 msgstr "Bất kỳ phím Win (trong khi bấm)"
 
-#: ../rules/base.xml.in.h:901
+#: ../rules/base.xml.in.h:903
 msgid "Caps Lock (while pressed), Alt+Caps Lock does the original capslock action"
-msgstr "CapsLock (trong khi bấm), Alt+CapsLock thì làm việc gốc khoá chữ hoa"
+msgstr "CapsLock (trong khi bấm), Alt+CapsLock thì làm việc gốc khóa chữ hoa"
 
-#: ../rules/base.xml.in.h:902
+#: ../rules/base.xml.in.h:904
 msgid "Right Ctrl (while pressed)"
 msgstr "Ctrl phải (trong khi bấm)"
 
-#: ../rules/base.xml.in.h:903
+#: ../rules/base.xml.in.h:905
 msgid "Right Alt"
 msgstr "Alt phải"
 
-#: ../rules/base.xml.in.h:904
+#: ../rules/base.xml.in.h:906
 msgid "Left Alt"
 msgstr "Alt trái"
 
-#: ../rules/base.xml.in.h:905
+#: ../rules/base.xml.in.h:907
 msgid "Caps Lock"
 msgstr "CapsLock"
 
-#: ../rules/base.xml.in.h:906
+#: ../rules/base.xml.in.h:908
 msgid "Shift+Caps Lock"
 msgstr "Shift+CapsLock"
 
-#: ../rules/base.xml.in.h:907
+#: ../rules/base.xml.in.h:909
 msgid "Caps Lock (to first layout), Shift+Caps Lock (to last layout)"
 msgstr "CapsLock (tới bố trí đầu tiên), Shift+CapsLock (tới bố trí cuối cùng)"
 
-#: ../rules/base.xml.in.h:908
+#: ../rules/base.xml.in.h:910
 msgid "Left Win (to first layout), Right Win/Menu (to last layout)"
 msgstr "Win trái (tới bố trí đầu tiên), Win phải/Trình đơn (tới bố trí cuối cùng)"
 
-#: ../rules/base.xml.in.h:909
+#: ../rules/base.xml.in.h:911
 msgid "Left Ctrl (to first layout), Right Ctrl (to last layout)"
 msgstr "Ctrl trái (tới bố trí đầu tiên), Ctrl phải (tới bố trí cuối cùng)"
 
-#: ../rules/base.xml.in.h:910
+#: ../rules/base.xml.in.h:912
 msgid "Alt+Caps Lock"
 msgstr "Alt+CapsLock"
 
-#: ../rules/base.xml.in.h:911
+#: ../rules/base.xml.in.h:913
 msgid "Both Shift keys together"
 msgstr "Cả hai phím Shift với nhau"
 
-#: ../rules/base.xml.in.h:912
+#: ../rules/base.xml.in.h:914
 msgid "Both Alt keys together"
 msgstr "Cả hai phím Alt với nhau"
 
-#: ../rules/base.xml.in.h:913
+#: ../rules/base.xml.in.h:915
 msgid "Both Ctrl keys together"
 msgstr "Cả hai phím Ctrl với nhau"
 
-#: ../rules/base.xml.in.h:914
+#: ../rules/base.xml.in.h:916
 msgid "Ctrl+Shift"
 msgstr "Ctrl+Shift"
 
-#: ../rules/base.xml.in.h:915
+#: ../rules/base.xml.in.h:917
 msgid "Left Ctrl+Left Shift"
 msgstr "Ctrl trái+Shift trái"
 
-#: ../rules/base.xml.in.h:916
+#: ../rules/base.xml.in.h:918
 msgid "Right Ctrl+Right Shift"
 msgstr "Ctrl phải + Shift phải"
 
-#: ../rules/base.xml.in.h:917
+#: ../rules/base.xml.in.h:919
 msgid "Alt+Ctrl"
 msgstr "Alt+Ctrl"
 
-#: ../rules/base.xml.in.h:918
+#: ../rules/base.xml.in.h:920
 msgid "Alt+Shift"
 msgstr "Alt+Shift"
 
-#: ../rules/base.xml.in.h:919
+#: ../rules/base.xml.in.h:921
 msgid "Left Alt+Left Shift"
 msgstr "Alt trái + Sift trái"
 
-#: ../rules/base.xml.in.h:920
+#: ../rules/base.xml.in.h:922
 msgid "Alt+Space"
 msgstr "Alt+Space"
 
-#: ../rules/base.xml.in.h:921
+#: ../rules/base.xml.in.h:923
 msgid "Menu"
 msgstr "Trình đơn"
 
-#: ../rules/base.xml.in.h:922
+#: ../rules/base.xml.in.h:924
 msgid "Left Win"
 msgstr "Win trái"
 
-#: ../rules/base.xml.in.h:923
+#: ../rules/base.xml.in.h:925
 msgid "Win Key+Space"
 msgstr "Phím Win+Space"
 
-#: ../rules/base.xml.in.h:924
+#: ../rules/base.xml.in.h:926
 msgid "Right Win"
 msgstr "Win phải"
 
-#: ../rules/base.xml.in.h:925
+#: ../rules/base.xml.in.h:927
 msgid "Left Shift"
 msgstr "Shift trái"
 
-#: ../rules/base.xml.in.h:926
+#: ../rules/base.xml.in.h:928
 msgid "Right Shift"
 msgstr "Shift phải"
 
-#: ../rules/base.xml.in.h:927
+#: ../rules/base.xml.in.h:929
 msgid "Left Ctrl"
 msgstr "Ctrl trái"
 
-#: ../rules/base.xml.in.h:928
+#: ../rules/base.xml.in.h:930
 msgid "Right Ctrl"
 msgstr "Ctrl phải"
 
-#: ../rules/base.xml.in.h:929
+#: ../rules/base.xml.in.h:931
 msgid "Scroll Lock"
 msgstr "Scroll Lock"
 
-#: ../rules/base.xml.in.h:930
+#: ../rules/base.xml.in.h:932
 msgid "LeftCtrl+LeftWin (to first layout), RightCtrl+Menu (to second layout)"
 msgstr "Ctrl trái + Win trái (chuyển đến bố trí đầu tiên), Ctrl phải+Menu (tới bố trí thứ hai)"
 
-#: ../rules/base.xml.in.h:931
+#: ../rules/base.xml.in.h:933
 msgid "Key to choose 3rd level"
 msgstr "Phím để chọn cấp ba"
 
-#: ../rules/base.xml.in.h:932
+#: ../rules/base.xml.in.h:934
 msgid "Any Win key"
 msgstr "Bất kỳ phím Win"
 
-#: ../rules/base.xml.in.h:933
+#: ../rules/base.xml.in.h:935
 msgid "Any Alt key"
 msgstr "Bất kỳ phím Alt"
 
-#: ../rules/base.xml.in.h:934
+#: ../rules/base.xml.in.h:936
 msgid "Right Alt, Shift+Right Alt key is Compose"
 msgstr "Alt phải, phím Shift+ Alt phải là Compose"
 
-#: ../rules/base.xml.in.h:935
+#: ../rules/base.xml.in.h:937
 msgid "Right Alt key never chooses 3rd level"
 msgstr "Phím Alt bên phải không bao giờ chọn bậc thứ 3"
 
-#: ../rules/base.xml.in.h:936
+#: ../rules/base.xml.in.h:938
 msgid "Enter on keypad"
 msgstr "Enter trên vùng phím"
 
-#: ../rules/base.xml.in.h:937
+#: ../rules/base.xml.in.h:939
 msgid "Backslash"
 msgstr "Gạch chéo ngược"
 
-#: ../rules/base.xml.in.h:938
+#: ../rules/base.xml.in.h:940
 msgid "&lt;Less/Greater&gt;"
 msgstr "&lt;Nhỏ/Lớn hơn&gt;"
 
-#: ../rules/base.xml.in.h:939
-msgid "Caps Lock chooses 3rd level, acts as onetime lock when pressed together with another 3rd-level-chooser"
-msgstr "Caps Lock chọn cấp 3, thực hiện khoá một lần khi bấm với một bộ chọn cấp 3 khác"
-
-#: ../rules/base.xml.in.h:940
-msgid "Backslash chooses 3rd level, acts as onetime lock when pressed together with another 3rd-level-chooser"
-msgstr "Backslash chọn cấp 3, thực hiện khoá một lần khi bấm với một bộ chọn cấp 3 khác"
-
 #: ../rules/base.xml.in.h:941
+msgid "Caps Lock chooses 3rd level, acts as onetime lock when pressed together with another 3rd-level-chooser"
+msgstr "Caps Lock chọn cấp 3, thực hiện khóa một lần khi bấm với một bộ chọn cấp 3 khác"
+
+#: ../rules/base.xml.in.h:942
+msgid "Backslash chooses 3rd level, acts as onetime lock when pressed together with another 3rd-level-chooser"
+msgstr "Backslash chọn cấp 3, thực hiện khóa một lần khi bấm với một bộ chọn cấp 3 khác"
+
+#: ../rules/base.xml.in.h:943
 msgid "&lt;Less/Greater&gt; chooses 3rd level, acts as onetime lock when pressed together with another 3rd-level-chooser"
 msgstr "&lt;Nhỏ/Lớn hơn&gt; chọn cấp 3, hành động một lần khóa khi bấm cùng với các chọn cấp 3 khác"
 
-#: ../rules/base.xml.in.h:942
+#: ../rules/base.xml.in.h:944
 msgid "Ctrl key position"
 msgstr "Vị trí phím Ctrl"
 
-#: ../rules/base.xml.in.h:943
+#: ../rules/base.xml.in.h:945
 msgid "Caps Lock as Ctrl"
 msgstr "Caps Lock là Ctrl"
 
-#: ../rules/base.xml.in.h:944
+#: ../rules/base.xml.in.h:946
 msgid "Left Ctrl as Meta"
 msgstr "Ctrl trái là Meta"
 
-#: ../rules/base.xml.in.h:945
+#: ../rules/base.xml.in.h:947
 msgid "Swap Ctrl and Caps Lock"
 msgstr "Trao đổi Ctrl và CapsLock"
 
-#: ../rules/base.xml.in.h:946
+#: ../rules/base.xml.in.h:948
 msgid "At left of 'A'"
 msgstr "Bên trái của “A”"
 
-#: ../rules/base.xml.in.h:947
+#: ../rules/base.xml.in.h:949
 msgid "At bottom left"
 msgstr "Dưới trái"
 
-#: ../rules/base.xml.in.h:948
+#: ../rules/base.xml.in.h:950
 msgid "Right Ctrl as Right Alt"
 msgstr "Ctrl phải làm Alt phải"
 
-#: ../rules/base.xml.in.h:949
+#: ../rules/base.xml.in.h:951
 msgid "Menu as Right Ctrl"
 msgstr "Ctrl phải làm Trình đơn"
 
-#: ../rules/base.xml.in.h:950
+#: ../rules/base.xml.in.h:952
 msgid "Right Alt as Right Ctrl"
 msgstr "Alt phải như là Ctrl phải"
 
-#: ../rules/base.xml.in.h:951
+#: ../rules/base.xml.in.h:953
 msgid "Swap Left Alt key with Left Ctrl key"
 msgstr "Hoán đổi Alt trái với phím Ctrl trái"
 
-#: ../rules/base.xml.in.h:952
+#: ../rules/base.xml.in.h:954
 msgid "Swap Left Win key with Left Ctrl key"
 msgstr "Hoán đổi Win trái với phím Ctrl trái"
 
-#: ../rules/base.xml.in.h:953
+#: ../rules/base.xml.in.h:955
 msgid "Swap Right Win key with Right Ctrl key"
 msgstr "Hoán đổi Win phải với phím Ctrl phải"
 
-#: ../rules/base.xml.in.h:954
+#: ../rules/base.xml.in.h:956
 msgid "Left Alt as Ctrl, Left Ctrl as Win, Left Win as Alt"
 msgstr "Alt trái là Ctrl, Ctrl trái là Win, Win trái là Alt"
 
-#: ../rules/base.xml.in.h:955
+#: ../rules/base.xml.in.h:957
 msgid "Use keyboard LED to show alternative layout"
 msgstr "Sử dụng đèn bàn phím để chỉ ra bố trí xen kẽ"
 
-#: ../rules/base.xml.in.h:956
+#: ../rules/base.xml.in.h:958
 msgid "Num Lock"
 msgstr "NumLock"
 
-#: ../rules/base.xml.in.h:957
+#: ../rules/base.xml.in.h:959
 msgid "Layout of numeric keypad"
 msgstr "Bố trí vùng phím số"
 
-#: ../rules/base.xml.in.h:958
+#: ../rules/base.xml.in.h:960
 msgid "Legacy"
 msgstr "Thừa tự"
 
-#: ../rules/base.xml.in.h:959
+#: ../rules/base.xml.in.h:961
 msgid "Unicode additions (arrows and math operators)"
 msgstr "Phần thêm Unicode (các mũi tên và toán tử toán học)"
 
-#: ../rules/base.xml.in.h:960
+#: ../rules/base.xml.in.h:962
 msgid "Unicode additions (arrows and math operators; math operators on default level)"
 msgstr "Phần thêm Unicode (các mũi tên và toán tử toán học; toán tử toán học ở mức mặc định)"
 
-#: ../rules/base.xml.in.h:961
+#: ../rules/base.xml.in.h:963
 msgid "Legacy Wang 724"
 msgstr "Wang 724 thừa tự"
 
-#: ../rules/base.xml.in.h:962
+#: ../rules/base.xml.in.h:964
 msgid "Wang 724 keypad with Unicode additions (arrows and math operators)"
 msgstr "Vùng phím Wang 724 có phần thêm Unicode (các mũi tên và toán tử toán học)"
 
-#: ../rules/base.xml.in.h:963
+#: ../rules/base.xml.in.h:965
 msgid "Wang 724 keypad with Unicode additions (arrows and math operators; math operators on default level)"
 msgstr "Vùng phím Wang 724 có phần thêm Unicode (các mũi tên và toán tử toán học; toán tử toán học ở mức mặc định)"
 
-#: ../rules/base.xml.in.h:964
+#: ../rules/base.xml.in.h:966
 msgid "Hexadecimal"
 msgstr "Thập lục"
 
-#: ../rules/base.xml.in.h:965
+#: ../rules/base.xml.in.h:967
 msgid "ATM/phone-style"
 msgstr "Kiểu điện thoại/ATM"
 
-#: ../rules/base.xml.in.h:966
+#: ../rules/base.xml.in.h:968
 msgid "Numeric keypad delete key behaviour"
-msgstr "Ứng xử phím xoá của vùng số"
+msgstr "Ứng xử phím xóa của vùng số"
 
-#: ../rules/base.xml.in.h:967
+#: ../rules/base.xml.in.h:969
 msgid "Legacy key with dot"
 msgstr "Phím thừa tự có chấm"
 
 #. Actually, with KP_SEPARATOR, as the old keypad(comma)
-#: ../rules/base.xml.in.h:969
+#: ../rules/base.xml.in.h:971
 msgid "Legacy key with comma"
 msgstr "Phím thừa tự có dấu phẩy"
 
-#: ../rules/base.xml.in.h:970
+#: ../rules/base.xml.in.h:972
 msgid "Four-level key with dot"
 msgstr "Phím bốn bậc có chấm"
 
-#: ../rules/base.xml.in.h:971
+#: ../rules/base.xml.in.h:973
 msgid "Four-level key with dot, Latin-9 only"
 msgstr "Phím bốn bậc có chấm, chỉ Latin-9"
 
-#: ../rules/base.xml.in.h:972
+#: ../rules/base.xml.in.h:974
 msgid "Four-level key with comma"
 msgstr "Phím bốn bậc có dấu phẩy"
 
-#: ../rules/base.xml.in.h:973
+#: ../rules/base.xml.in.h:975
 msgid "Four-level key with momayyez"
 msgstr "Phím bốn bậc có momayyez"
 
 #. This assumes the KP_ abstract symbols are actually useful for some apps
 #. The description needs to be rewritten
-#: ../rules/base.xml.in.h:976
+#: ../rules/base.xml.in.h:978
 msgid "Four-level key with abstract separators"
 msgstr "Phím bốn bậc có bộ phân cách ảo"
 
-#: ../rules/base.xml.in.h:977
+#: ../rules/base.xml.in.h:979
 msgid "Semicolon on third level"
 msgstr "Dấu chấm phẩy ở cấp ba"
 
-#: ../rules/base.xml.in.h:978
+#: ../rules/base.xml.in.h:980
 msgid "Caps Lock key behavior"
 msgstr "Đặc điểm của phím CapsLock"
 
-#: ../rules/base.xml.in.h:979
+#: ../rules/base.xml.in.h:981
 msgid "Caps Lock uses internal capitalization; Shift \"pauses\" Caps Lock"
 msgstr "CapsLock sử dụng chức năng viết hoa nội bộ; Shift “tạm dừng” CapsLock"
 
-#: ../rules/base.xml.in.h:980
+#: ../rules/base.xml.in.h:982
 msgid "Caps Lock uses internal capitalization; Shift doesn't affect Caps Lock"
 msgstr "CapsLock sử dụng chức năng viết hoa nội bộ; Shift không có tác động CapsLock"
 
-#: ../rules/base.xml.in.h:981
-msgid "Caps Lock acts as Shift with locking; Shift \"pauses\" Caps Lock"
-msgstr "CapsLock hoạt động như Shift mà cũng khoá; Shift “tạm dừng” CapsLock"
-
-#: ../rules/base.xml.in.h:982
-msgid "Caps Lock acts as Shift with locking; Shift doesn't affect Caps Lock"
-msgstr "CapsLock hoạt động như Shift mà cũng khoá; Shift không có tác động CapsLock"
-
 #: ../rules/base.xml.in.h:983
+msgid "Caps Lock acts as Shift with locking; Shift \"pauses\" Caps Lock"
+msgstr "CapsLock hoạt động như Shift mà cũng khóa; Shift “tạm dừng” CapsLock"
+
+#: ../rules/base.xml.in.h:984
+msgid "Caps Lock acts as Shift with locking; Shift doesn't affect Caps Lock"
+msgstr "CapsLock hoạt động như Shift mà cũng khóa; Shift không có tác động CapsLock"
+
+#: ../rules/base.xml.in.h:985
 msgid "Caps Lock toggles normal capitalization of alphabetic characters"
 msgstr "CapsLock bật tắt viết hoa thông thường của các ký tự chữ cái"
 
-#: ../rules/base.xml.in.h:984
+#: ../rules/base.xml.in.h:986
 msgid "Make Caps Lock an additional Num Lock"
 msgstr "Đặt CapsLock làm một phím NumLock bổ sung"
 
-#: ../rules/base.xml.in.h:985
+#: ../rules/base.xml.in.h:987
 msgid "Swap ESC and Caps Lock"
 msgstr "Trao đổi ESC và CapsLock"
 
-#: ../rules/base.xml.in.h:986
+#: ../rules/base.xml.in.h:988
 msgid "Make Caps Lock an additional ESC"
 msgstr "Đặt CapsLock làm một phím ESC bổ sung"
 
-#: ../rules/base.xml.in.h:987
+#: ../rules/base.xml.in.h:989
 msgid "Make Caps Lock an additional Backspace"
-msgstr "Đặt CapsLock làm một phím Xoá lùi bổ sung"
+msgstr "Đặt CapsLock làm một phím Xóa lùi bổ sung"
 
-#: ../rules/base.xml.in.h:988
+#: ../rules/base.xml.in.h:990
 msgid "Make Caps Lock an additional Super"
 msgstr "Đặt CapsLock làm một phím Super bổ sung"
 
-#: ../rules/base.xml.in.h:989
+#: ../rules/base.xml.in.h:991
 msgid "Make Caps Lock an additional Hyper"
 msgstr "Đặt CapsLock làm một phím Hyper bổ sung"
 
-#: ../rules/base.xml.in.h:990
+#: ../rules/base.xml.in.h:992
 msgid "Caps Lock toggles ShiftLock (affects all keys)"
 msgstr "CapsLock bật tắt ShiftLock (mọi phím đều bị ảnh hưởng)"
 
-#: ../rules/base.xml.in.h:991
+#: ../rules/base.xml.in.h:993
 msgid "Caps Lock is disabled"
 msgstr "CapsLock bị tắt"
 
-#: ../rules/base.xml.in.h:992
+#: ../rules/base.xml.in.h:994
 msgid "Make Caps Lock an additional Ctrl"
 msgstr "Đặt CapsLock làm một phím Ctrl bổ sung"
 
-#: ../rules/base.xml.in.h:993
+#: ../rules/base.xml.in.h:995
 msgid "Alt/Win key behavior"
 msgstr "Ứng xử phím Alt/Win"
 
-#: ../rules/base.xml.in.h:994
+#: ../rules/base.xml.in.h:996
 msgid "Add the standard behavior to Menu key"
 msgstr "Thêm ứng xử tiêu chuẩn vào phím trình đơn."
 
-#: ../rules/base.xml.in.h:995
+#: ../rules/base.xml.in.h:997
 msgid "Alt and Meta are on Alt keys"
 msgstr "Alt và Meta nằm trên các phím Alt"
 
-#: ../rules/base.xml.in.h:996
+#: ../rules/base.xml.in.h:998
 msgid "Alt is mapped to Win keys (and the usual Alt keys)"
 msgstr "Alt ánh xạ tới các phím Win (và các phím Alt thường dùng)"
 
-#: ../rules/base.xml.in.h:997
+#: ../rules/base.xml.in.h:999
 msgid "Ctrl is mapped to Win keys (and the usual Ctrl keys)"
 msgstr "Ctrl ánh xạ tới các phím Win (và các phím Ctrl thường dùng)"
 
-#: ../rules/base.xml.in.h:998
+#: ../rules/base.xml.in.h:1000
 msgid "Ctrl is mapped to Alt keys, Alt is mapped to Win keys"
 msgstr "Ctrl ánh xạ tới các phím Alt, phím Alt lại ánh xạ đến Win"
 
-#: ../rules/base.xml.in.h:999
+#: ../rules/base.xml.in.h:1001
 msgid "Meta is mapped to Win keys"
 msgstr "Meta ánh xạ tới các phím Win"
 
-#: ../rules/base.xml.in.h:1000
+#: ../rules/base.xml.in.h:1002
 msgid "Meta is mapped to Left Win"
 msgstr "Meta ánh xạ tới Win trái"
 
-#: ../rules/base.xml.in.h:1001
+#: ../rules/base.xml.in.h:1003
 msgid "Hyper is mapped to Win keys"
 msgstr "Hyper ánh xạ tới các phím Win"
 
-#: ../rules/base.xml.in.h:1002
+#: ../rules/base.xml.in.h:1004
 msgid "Alt is mapped to Right Win, Super to Menu"
 msgstr "Ánh xạ Alt sang phím Win bên phải và Super sang phím trình đơn"
 
-#: ../rules/base.xml.in.h:1003
+#: ../rules/base.xml.in.h:1005
 msgid "Alt is swapped with Win"
 msgstr "Alt được tráo đổi với phím Win"
 
-#: ../rules/base.xml.in.h:1004
+#: ../rules/base.xml.in.h:1006
 msgid "Position of Compose key"
 msgstr "Vị trí phím Compose"
 
-#: ../rules/base.xml.in.h:1005
+#: ../rules/base.xml.in.h:1007
 msgid "3rd level of Left Win"
 msgstr "Mức thứ 3 của phím Win trái"
 
-#: ../rules/base.xml.in.h:1006
+#: ../rules/base.xml.in.h:1008
 msgid "3rd level of Right Win"
 msgstr "Mức thứ 3 của phím Win phải"
 
-#: ../rules/base.xml.in.h:1007
+#: ../rules/base.xml.in.h:1009
 msgid "3rd level of Menu"
 msgstr "Mức thứ 3 của phím Menu"
 
-#: ../rules/base.xml.in.h:1008
+#: ../rules/base.xml.in.h:1010
 msgid "3rd level of Left Ctrl"
 msgstr "Mức thứ 3 của phím Ctrl trái"
 
-#: ../rules/base.xml.in.h:1009
+#: ../rules/base.xml.in.h:1011
 msgid "3rd level of Right Ctrl"
 msgstr "Mức thứ 3 của Ctrl phải"
 
-#: ../rules/base.xml.in.h:1010
+#: ../rules/base.xml.in.h:1012
 msgid "3rd level of Caps Lock"
 msgstr "Mức thứ 3 của phím Caps Lock"
 
-#: ../rules/base.xml.in.h:1011
+#: ../rules/base.xml.in.h:1013
 msgid "3rd level of &lt;Less/Greater&gt;"
 msgstr "Mức thứ 3 của &lt;Nhỏ/Lớn hơn&gt;"
 
-#: ../rules/base.xml.in.h:1012
+#: ../rules/base.xml.in.h:1014
 msgid "Pause"
 msgstr "Pause"
 
-#: ../rules/base.xml.in.h:1013
+#: ../rules/base.xml.in.h:1015
 msgid "PrtSc"
 msgstr "PrtSc"
 
-#: ../rules/base.xml.in.h:1014
+#: ../rules/base.xml.in.h:1016
 msgid "Miscellaneous compatibility options"
 msgstr "Tùy chọn tương thích khác"
 
-#: ../rules/base.xml.in.h:1015
+#: ../rules/base.xml.in.h:1017
 msgid "Default numeric keypad keys"
 msgstr "Các phím vùng số mặc định"
 
-#: ../rules/base.xml.in.h:1016
+#: ../rules/base.xml.in.h:1018
 msgid "Numeric keypad keys always enter digits (as in Mac OS)"
 msgstr "Phím vùng số luôn nhập số (như trên HDH Mac)"
 
-#: ../rules/base.xml.in.h:1017
-msgid "Shift with numeric keypad keys works as in MS Windows"
-msgstr "Shift với các phím vùng số làm việc như trong MS Windows"
+#: ../rules/base.xml.in.h:1019
+msgid "NumLock on: digits, Shift switches to arrow keys, Numlock off: always arrow keys (as in MS Windows)"
+msgstr "NumLock bật: chữ số, Shift chuyển thành phím mũi tên, Numlock tắt: luôn dùng phím mũi tên (giống như trong MS Windows)"
 
-#: ../rules/base.xml.in.h:1018
+#: ../rules/base.xml.in.h:1020
 msgid "Shift does not cancel Num Lock, chooses 3rd level instead"
 msgstr "Shift không hủy Numlock, chọn cấp 3 để thay thế"
 
-#: ../rules/base.xml.in.h:1019
+#: ../rules/base.xml.in.h:1021
 msgid "Special keys (Ctrl+Alt+&lt;key&gt;) handled in a server"
 msgstr "Các ký tự đặc biệt (Ctrl+Alt+&lt;key&gt;) được xử lý bằng một trình phục vụ"
 
-#: ../rules/base.xml.in.h:1020
+#: ../rules/base.xml.in.h:1022
 msgid "Apple Aluminium Keyboard: emulate PC keys (Print, Scroll Lock, Pause, Num Lock)"
-msgstr "Bàn phím nhôm Apple: mô phỏng phím PC: Print (In), Scroll_Lock (Khoá cuộn), Pause (Tạm dừng), NumLock (Khoá số)"
+msgstr "Bàn phím nhôm Apple: mô phỏng phím PC: Print (In), Scroll_Lock (Khóa cuộn), Pause (Tạm dừng), NumLock (Khóa số)"
 
-#: ../rules/base.xml.in.h:1021
+#: ../rules/base.xml.in.h:1023
 msgid "Shift cancels Caps Lock"
 msgstr "Shift thôi CapsLock"
 
-#: ../rules/base.xml.in.h:1022
+#: ../rules/base.xml.in.h:1024
 msgid "Enable extra typographic characters"
 msgstr "Bật thêm ký tự thuật in máy"
 
-#: ../rules/base.xml.in.h:1023
+#: ../rules/base.xml.in.h:1025
 msgid "Both Shift keys together toggle Caps Lock"
 msgstr "Cả hai phím Shift với nhau thì bật/tắt Caps Lock"
 
-#: ../rules/base.xml.in.h:1024
+#: ../rules/base.xml.in.h:1026
 msgid "Both Shift keys together activate Caps Lock, one Shift key deactivates"
 msgstr "Cả hai phím Shift với nhau thì kích hoạt Caps Lock, một Shift bỏ kích hoạt"
 
-#: ../rules/base.xml.in.h:1025
+#: ../rules/base.xml.in.h:1027
 msgid "Both Shift keys together toggle ShiftLock"
 msgstr "Cả hai phím Shift với nhau thì bật/tắt ShiftLock"
 
-#: ../rules/base.xml.in.h:1026
+#: ../rules/base.xml.in.h:1028
 msgid "Shift + NumLock toggles PointerKeys"
 msgstr "Shift + NumLock bật/tắt PointerKeys"
 
-#: ../rules/base.xml.in.h:1027
-msgid "Allow breaking grabs with keyboard actions (warning: security risk)"
-msgstr ""
-
-#: ../rules/base.xml.in.h:1028
-msgid "Allow grab and window tree logging"
-msgstr ""
-
 #: ../rules/base.xml.in.h:1029
+msgid "Allow breaking grabs with keyboard actions (warning: security risk)"
+msgstr "Cho bắt ngắt với thao tác của bàn phím (cảnh báo: tiềm ẩn nhiều rủi ro)"
+
+#: ../rules/base.xml.in.h:1030
+msgid "Allow grab and window tree logging"
+msgstr "Cho bắt và ghi nhật ký cây cửa sổ"
+
+#: ../rules/base.xml.in.h:1031
 msgid "Adding currency signs to certain keys"
 msgstr "Đang thêm ký hiệu tiền tệ vào phím nào đó"
 
-#: ../rules/base.xml.in.h:1030
+#: ../rules/base.xml.in.h:1032
 msgid "Euro on E"
 msgstr "Euro trên E"
 
-#: ../rules/base.xml.in.h:1031
+#: ../rules/base.xml.in.h:1033
 msgid "Euro on 2"
 msgstr "Euro trên 2"
 
-#: ../rules/base.xml.in.h:1032
+#: ../rules/base.xml.in.h:1034
 msgid "Euro on 4"
 msgstr "Euro trên 4"
 
-#: ../rules/base.xml.in.h:1033
+#: ../rules/base.xml.in.h:1035
 msgid "Euro on 5"
 msgstr "Euro trên 5"
 
-#: ../rules/base.xml.in.h:1034
+#: ../rules/base.xml.in.h:1036
 msgid "Rupee on 4"
 msgstr "Ru pi trên 4"
 
-#: ../rules/base.xml.in.h:1035
+#: ../rules/base.xml.in.h:1037
 msgid "Key to choose 5th level"
 msgstr "Phím để chọn cấp 5"
 
-#: ../rules/base.xml.in.h:1036
-msgid "&lt;Less/Greater&gt; chooses 5th level, locks when pressed together with another 5th-level-chooser"
-msgstr "&lt;Nhỏ/Lớn hơn&gt; chọn cấp năm, khoá khi bấm nhau với một bộ chọn cấp năm khác"
-
-#: ../rules/base.xml.in.h:1037
-msgid "Right Alt chooses 5th level, locks when pressed together with another 5th-level-chooser"
-msgstr "Alt phải chọn cấp 5, khoá khi bấm nhau với một bộ chọn cấp 5 khác"
-
 #: ../rules/base.xml.in.h:1038
-msgid "Left Win chooses 5th level, locks when pressed together with another 5th-level-chooser"
-msgstr "Win trái chọn cấp 5, khoá khi bấm nhau với một bộ chọn năm 5 khác"
+msgid "&lt;Less/Greater&gt; chooses 5th level, locks when pressed together with another 5th-level-chooser"
+msgstr "&lt;Nhỏ/Lớn hơn&gt; chọn cấp năm, khóa khi bấm nhau với một bộ chọn cấp năm khác"
 
 #: ../rules/base.xml.in.h:1039
-msgid "Right Win chooses 5th level, locks when pressed together with another 5th-level-chooser"
-msgstr "Win phải chọn cấp 5, khoá khi bấm nhau với một bộ chọn cấp 5 khác"
+msgid "Right Alt chooses 5th level, locks when pressed together with another 5th-level-chooser"
+msgstr "Alt phải chọn cấp 5, khóa khi bấm nhau với một bộ chọn cấp 5 khác"
 
 #: ../rules/base.xml.in.h:1040
+msgid "Left Win chooses 5th level, locks when pressed together with another 5th-level-chooser"
+msgstr "Win trái chọn cấp 5, khóa khi bấm nhau với một bộ chọn năm 5 khác"
+
+#: ../rules/base.xml.in.h:1041
+msgid "Right Win chooses 5th level, locks when pressed together with another 5th-level-chooser"
+msgstr "Win phải chọn cấp 5, khóa khi bấm nhau với một bộ chọn cấp 5 khác"
+
+#: ../rules/base.xml.in.h:1042
 msgid "Using space key to input non-breakable space character"
 msgstr "Dùng phím dài để nhập ký tự dấu cách không thể ngắt"
 
-#: ../rules/base.xml.in.h:1041
+#: ../rules/base.xml.in.h:1043
 msgid "Usual space at any level"
 msgstr "Dấu cách bình thường ở mọi bậc"
 
-#: ../rules/base.xml.in.h:1042
+#: ../rules/base.xml.in.h:1044
 msgid "Non-breakable space character at second level"
 msgstr "Ký tự dấu cách không thể ngắt ở bậc thứ hai"
 
-#: ../rules/base.xml.in.h:1043
+#: ../rules/base.xml.in.h:1045
 msgid "Non-breakable space character at third level"
 msgstr "Ký tự dấu cách không thể ngắt ở bậc thứ ba"
 
-#: ../rules/base.xml.in.h:1044
+#: ../rules/base.xml.in.h:1046
 msgid "Non-breakable space character at third level, nothing at fourth level"
 msgstr "Ký tự dấu cách không thể ngắt ở bậc thứ ba, không nhập gì ở bậc thứ tư"
 
-#: ../rules/base.xml.in.h:1045
+#: ../rules/base.xml.in.h:1047
 msgid "Non-breakable space character at third level, thin non-breakable space character at fourth level"
 msgstr "Ký tự dấu cách không thể ngắt ở bậc thứ ba, ký tự dấu cách không thể ngắt mảnh ở bậc thứ tư"
 
-#: ../rules/base.xml.in.h:1046
+#: ../rules/base.xml.in.h:1048
 msgid "Non-breakable space character at fourth level"
 msgstr "Ký tự dấu cách không thể ngắt ở bậc thứ tư"
 
-#: ../rules/base.xml.in.h:1047
+#: ../rules/base.xml.in.h:1049
 msgid "Non-breakable space character at fourth level, thin non-breakable space character at sixth level"
 msgstr "Ký tự dấu cách không thể ngắt ở bậc thứ tư, ký tự dấu cách không thể ngắt mảnh ở bậc thứ sáu"
 
-#: ../rules/base.xml.in.h:1048
+#: ../rules/base.xml.in.h:1050
 msgid "Non-breakable space character at fourth level, thin non-breakable space character at sixth level (via Ctrl+Shift)"
 msgstr "Ký tự dấu cách không thể ngắt ở bậc thứ tư, ký tự dấu cách không thể ngắt mảnh ở bậc thứ sáu (dùng Ctrl+Shift)"
 
-#: ../rules/base.xml.in.h:1049
+#: ../rules/base.xml.in.h:1051
 msgid "Zero-width non-joiner character at second level"
 msgstr "Ký tự không nối có chiều rộng không tại cấp 2"
 
-#: ../rules/base.xml.in.h:1050
+#: ../rules/base.xml.in.h:1052
 msgid "Zero-width non-joiner character at second level, zero-width joiner character at third level"
 msgstr "Ký tự không nối có chiều rộng không tại cấp 2, ký tự nối có chiều rộng không ở cấp 3"
 
-#: ../rules/base.xml.in.h:1051
+#: ../rules/base.xml.in.h:1053
 msgid "Zero-width non-joiner character at second level, zero-width joiner character at third level, non-breakable space character at fourth level"
 msgstr "Ký tự không nối có chiều rộng không tại cấp 2, ký tự nối có chiều rộng không ở cấp 3, ký tự dấu cách không thể ngắt ở cấp 4"
 
-#: ../rules/base.xml.in.h:1052
+#: ../rules/base.xml.in.h:1054
 msgid "Zero-width non-joiner character at second level, non-breakable space character at third level"
 msgstr "Ký tự không nối có chiều rộng không tại cấp 2, ký tự dấu cách không thể ngắt ở cấp 3"
 
-#: ../rules/base.xml.in.h:1053
+#: ../rules/base.xml.in.h:1055
 msgid "Zero-width non-joiner character at second level, non-breakable space character at third level, nothing at fourth level"
 msgstr "Ký tự không nối có chiều rộng không tại cấp 2, ký tự dấu cách không thể ngắt ở cấp 3, không có gì ở cấp 4"
 
-#: ../rules/base.xml.in.h:1054
+#: ../rules/base.xml.in.h:1056
 msgid "Zero-width non-joiner character at second level, non-breakable space character at third level, zero-width joiner at fourth level"
 msgstr "Ký tự không nối có chiều rộng không tại cấp 2, ký tự dấu cách không thể ngắt ở cấp 3, ký tự nối có chiều rộng không ở cấp 4"
 
-#: ../rules/base.xml.in.h:1055
+#: ../rules/base.xml.in.h:1057
 msgid "Zero-width non-joiner character at second level, non-breakable space character at third level, thin non-breakable space at fourth level"
 msgstr "Ký tự không nối có chiều rộng không tại cấp 2, ký tự dấu cách không thể ngắt ở cấp 3, ký tự dấu cách mảnh không thể ngắt ở cấp 4"
 
-#: ../rules/base.xml.in.h:1056
+#: ../rules/base.xml.in.h:1058
 msgid "Zero-width non-joiner character at third level, zero-width joiner at fourth level"
 msgstr "Ký tự không nối có chiều rộng không tại cấp 3, ký tự nối có chiều rộng không ở cấp 4"
 
-#: ../rules/base.xml.in.h:1057
+#: ../rules/base.xml.in.h:1059
 msgid "Japanese keyboard options"
 msgstr "Tùy chọn bàn phím tiếng Nhật"
 
-#: ../rules/base.xml.in.h:1058
-msgid "Kana Lock key is locking"
-msgstr "Phím Kana Lock sẽ khoá"
-
-#: ../rules/base.xml.in.h:1059
-msgid "NICOLA-F style Backspace"
-msgstr "Xoá lùi kiểu NICOLA-F"
-
 #: ../rules/base.xml.in.h:1060
+msgid "Kana Lock key is locking"
+msgstr "Phím Kana Lock sẽ khóa"
+
+#: ../rules/base.xml.in.h:1061
+msgid "NICOLA-F style Backspace"
+msgstr "Xóa lùi kiểu NICOLA-F"
+
+#: ../rules/base.xml.in.h:1062
 msgid "Make Zenkaku Hankaku an additional ESC"
 msgstr "Đặt Zenkaku Hankaku làm một phím ESC bổ sung"
 
-#: ../rules/base.xml.in.h:1061
+#: ../rules/base.xml.in.h:1063
+msgid "Korean Hangul/Hanja keys"
+msgstr "Phím Hangul/Hanja Hàn Quốc"
+
+#: ../rules/base.xml.in.h:1064
+msgid "Hardware Hangul/Hanja keys"
+msgstr "Phím Hangul/Hanja phần cứng"
+
+#: ../rules/base.xml.in.h:1065
+msgid "Right Alt as Hangul, right Ctrl as Hanja"
+msgstr "Alt phải như là Hangul, Ctrl phải là Hanja"
+
+#: ../rules/base.xml.in.h:1066
+msgid "Right Ctrl as Hangul, right Alt as Hanja"
+msgstr "Ctrl phải làmHangul, Alt phải là Hanja"
+
+#: ../rules/base.xml.in.h:1067
 msgid "Adding Esperanto supersigned letters"
 msgstr "Đang thêm các dấu mũ tiếng Ét-pe-ran-tô"
 
-#: ../rules/base.xml.in.h:1062
+#: ../rules/base.xml.in.h:1068
 msgid "To the corresponding key in a Qwerty layout"
 msgstr "Để tương ứng phím trên một bố trí Qwerty"
 
-#: ../rules/base.xml.in.h:1063
+#: ../rules/base.xml.in.h:1069
 msgid "To the corresponding key in a Dvorak layout"
 msgstr "Để tương ứng phím trên một bố trí Dvorak"
 
-#: ../rules/base.xml.in.h:1064
+#: ../rules/base.xml.in.h:1070
 msgid "To the corresponding key in a Colemak layout"
 msgstr "Để tương ứng phím trên một bố trí Colemak"
 
-#: ../rules/base.xml.in.h:1065
+#: ../rules/base.xml.in.h:1071
 msgid "Maintain key compatibility with old Solaris keycodes"
 msgstr "Bảo trì phím tương thích với mã Solaris cũ."
 
-#: ../rules/base.xml.in.h:1066
+#: ../rules/base.xml.in.h:1072
 msgid "Sun Key compatibility"
 msgstr "Tương thích phím Sun"
 
-#: ../rules/base.xml.in.h:1067
+#: ../rules/base.xml.in.h:1073
 msgid "Key sequence to kill the X server"
 msgstr "Dãy phím để giết trình phục vụ X"
 
-#: ../rules/base.xml.in.h:1068
+#: ../rules/base.xml.in.h:1074
 msgid "Ctrl + Alt + Backspace"
 msgstr "Ctrl + Alt + Backspace"
 
@@ -4127,256 +4096,263 @@ msgid "German (with Hungarian letters and no dead keys)"
 msgstr "Đức (có chữ Hung-ga-ri và không có phím chết"
 
 #: ../rules/base.extras.xml.in.h:26
+msgid "Polish (Germany, eliminate dead keys)"
+msgstr "Tiếng Ba Lan (Đức, loại bỏ phím chết)"
+
+#: ../rules/base.extras.xml.in.h:27
 msgid "German (Sun Type 6/7)"
 msgstr "Đức (Kiểu Sun 6/7)"
 
-#: ../rules/base.extras.xml.in.h:27
+#: ../rules/base.extras.xml.in.h:28
 msgid "German (Aus der Neo-Welt)"
 msgstr "Tiếng Đức (Aus der Neo-Welt)"
 
-#: ../rules/base.extras.xml.in.h:30
+#: ../rules/base.extras.xml.in.h:31
 msgid "Avestan"
 msgstr "A-ve-x-tanh"
 
-#: ../rules/base.extras.xml.in.h:33
+#: ../rules/base.extras.xml.in.h:34
 msgid "Lithuanian (US Dvorak with Lithuanian letters)"
 msgstr "Li-tu-a-nia (Bàn phím Dvorak Mỹ với các chữ cái Li-tu-a-nia)"
 
-#: ../rules/base.extras.xml.in.h:34
+#: ../rules/base.extras.xml.in.h:35
 msgid "Lithuanian (Sun Type 6/7)"
 msgstr "Lát-vi (Kiểu Sun 6/7)"
 
-#: ../rules/base.extras.xml.in.h:37
+#: ../rules/base.extras.xml.in.h:38
 msgid "Latvian (US Dvorak)"
 msgstr "Lát-vi-a (US Dvorak)"
 
-#: ../rules/base.extras.xml.in.h:38
+#: ../rules/base.extras.xml.in.h:39
 msgid "Latvian (US Dvorak, Y variant)"
 msgstr "Lát-vi-a (US Dvorak, biến thể Y)"
 
-#: ../rules/base.extras.xml.in.h:39
+#: ../rules/base.extras.xml.in.h:40
 msgid "Latvian (US Dvorak, minus variant)"
 msgstr "Lát-vi-a (US Dvorak, biến thể dấu trừ)"
 
-#: ../rules/base.extras.xml.in.h:40
+#: ../rules/base.extras.xml.in.h:41
 msgid "Latvian (programmer US Dvorak)"
 msgstr "Lát-vi-a (US Dvorak dành cho người lập trình)"
 
-#: ../rules/base.extras.xml.in.h:41
+#: ../rules/base.extras.xml.in.h:42
 msgid "Latvian (programmer US Dvorak, Y variant)"
 msgstr "Lát-vi-a (US Dvorak dành cho người lập trình, biến thể Y)"
 
-#: ../rules/base.extras.xml.in.h:42
+#: ../rules/base.extras.xml.in.h:43
 msgid "Latvian (programmer US Dvorak, minus variant)"
 msgstr "Lát-vi-a (US Dvorak dành cho người lập trình,biến thể dấu trừ)"
 
-#: ../rules/base.extras.xml.in.h:43
+#: ../rules/base.extras.xml.in.h:44
 msgid "Latvian (US Colemak)"
 msgstr "Lát-vi-a (US Colemak)"
 
-#: ../rules/base.extras.xml.in.h:44
+#: ../rules/base.extras.xml.in.h:45
 msgid "Latvian (US Colemak, apostrophe variant)"
 msgstr "Lát-vi-a (US Colemak, biến thể nháy đơn)"
 
-#: ../rules/base.extras.xml.in.h:45
+#: ../rules/base.extras.xml.in.h:46
 msgid "Latvian (Sun Type 6/7)"
 msgstr "Lát-vi-a (Kiểu Sun 6/7)"
 
-#: ../rules/base.extras.xml.in.h:48
+#: ../rules/base.extras.xml.in.h:49
 msgid "English (US, international AltGr Unicode combining)"
 msgstr "Anh (Mỹ, quốc tế tổ hợp Unicode AltGr)"
 
-#: ../rules/base.extras.xml.in.h:49
+#: ../rules/base.extras.xml.in.h:50
 msgid "English (US, international AltGr Unicode combining, alternative)"
 msgstr "Anh (Mỹ, Quốc tế tổ hợp Unicode AltGr, thay thế)"
 
-#: ../rules/base.extras.xml.in.h:50
+#: ../rules/base.extras.xml.in.h:51
 msgid "Atsina"
 msgstr "Át-xi-na"
 
-#: ../rules/base.extras.xml.in.h:51
+#: ../rules/base.extras.xml.in.h:52
 msgid "Coeur d'Alene Salish"
 msgstr "Coeur d'Alene Salish"
 
-#: ../rules/base.extras.xml.in.h:52
-msgid "Czech Slovak and German (US)"
-msgstr ""
-
 #: ../rules/base.extras.xml.in.h:53
+msgid "Czech Slovak and German (US)"
+msgstr "Slô-vác Séc và Đức (Mỹ)"
+
+#: ../rules/base.extras.xml.in.h:54
 msgid "English (US, Sun Type 6/7)"
 msgstr "Anh (Mỹ, Kiểu Sun 6/7)"
 
-#: ../rules/base.extras.xml.in.h:54
+#: ../rules/base.extras.xml.in.h:55
 msgid "English (Norman)"
 msgstr "Tiếng Anh (Norman)"
 
-#: ../rules/base.extras.xml.in.h:57
+#: ../rules/base.extras.xml.in.h:58
 msgid "Polish (international with dead keys)"
 msgstr "Ba Lan (quốc tế với phím chết)"
 
-#: ../rules/base.extras.xml.in.h:58
+#: ../rules/base.extras.xml.in.h:59
 msgid "Polish (Colemak)"
 msgstr "Ba Lan (Colemak)"
 
-#: ../rules/base.extras.xml.in.h:59
+#: ../rules/base.extras.xml.in.h:60
 msgid "Polish (Sun Type 6/7)"
 msgstr "Ba Lan (Sun kiểu 6/7)"
 
-#: ../rules/base.extras.xml.in.h:63
+#: ../rules/base.extras.xml.in.h:64
 msgid "Crimean Tatar (Dobruja Q)"
 msgstr "Tiếng Tác-ta (Dobruja Q)"
 
-#: ../rules/base.extras.xml.in.h:64
+#: ../rules/base.extras.xml.in.h:65
 msgid "Romanian (ergonomic Touchtype)"
 msgstr "Ru-ma-ni (Touchtype sinh thái công)"
 
-#: ../rules/base.extras.xml.in.h:65
+#: ../rules/base.extras.xml.in.h:66
 msgid "Romanian (Sun Type 6/7)"
 msgstr "Ru-ma-ni (Kiểu Sun 6/7)"
 
-#: ../rules/base.extras.xml.in.h:68
+#: ../rules/base.extras.xml.in.h:69
 msgid "Serbian (combining accents instead of dead keys)"
 msgstr "Xéc-bi (tổ hợp dấu phụ thay cho phím chết)"
 
-#: ../rules/base.extras.xml.in.h:71
+#: ../rules/base.extras.xml.in.h:72
 msgid "Church Slavonic"
 msgstr "Tiếng Xla-vơ nhà thơ"
 
-#: ../rules/base.extras.xml.in.h:72
-msgid "Russian (with Ukrainian-Belorussian layout)"
-msgstr ""
-
 #: ../rules/base.extras.xml.in.h:73
+msgid "Russian (with Ukrainian-Belorussian layout)"
+msgstr "Nga (với bố trí Ucrai-na Belorussian)"
+
+#: ../rules/base.extras.xml.in.h:74
 msgid "Russian (Sun Type 6/7)"
 msgstr "Nga (Kiểu Sun 6/7)"
 
-#: ../rules/base.extras.xml.in.h:76
+#: ../rules/base.extras.xml.in.h:77
 msgid "Armenian (OLPC phonetic)"
 msgstr "Ac-mê-ni (ngữ âm OLPC)"
 
-#: ../rules/base.extras.xml.in.h:79
+#: ../rules/base.extras.xml.in.h:80
 msgid "Hebrew (Biblical, SIL phonetic)"
 msgstr "Hê-brơ (Do thái) (Kinh thánh, ngữ âm SIL)"
 
-#: ../rules/base.extras.xml.in.h:82
+#: ../rules/base.extras.xml.in.h:83
 msgid "Arabic (Sun Type 6/7)"
 msgstr "Ả rập (Sun kiểu 6/7)"
 
-#: ../rules/base.extras.xml.in.h:85
+#: ../rules/base.extras.xml.in.h:86
 msgid "Belgian (Sun Type 6/7)"
 msgstr "Bỉ (Kiểu Sun 6/7)"
 
-#: ../rules/base.extras.xml.in.h:88
+#: ../rules/base.extras.xml.in.h:89
 msgid "Portuguese (Brazil, Sun Type 6/7)"
 msgstr "Bồ Đào Nha (Bra-xin, Kiểu Sun 6/7)"
 
-#: ../rules/base.extras.xml.in.h:91
+#: ../rules/base.extras.xml.in.h:92
 msgid "Czech (Sun Type 6/7)"
 msgstr "Séc (Sun kiểu 6/7)"
 
-#: ../rules/base.extras.xml.in.h:94
+#: ../rules/base.extras.xml.in.h:95
 msgid "Danish (Sun Type 6/7)"
 msgstr "Đan-mạch (Sun kiểu 6/7)"
 
-#: ../rules/base.extras.xml.in.h:97
+#: ../rules/base.extras.xml.in.h:98
 msgid "Dutch (Sun Type 6/7)"
 msgstr "Hà-lan (Sun kiểu 6/7)"
 
-#: ../rules/base.extras.xml.in.h:100
+#: ../rules/base.extras.xml.in.h:101
 msgid "Estonian (Sun Type 6/7)"
 msgstr "Ét-tôn-nia (Kiểu Sun 6/7)"
 
-#: ../rules/base.extras.xml.in.h:103
+#: ../rules/base.extras.xml.in.h:104
 msgid "Finnish (Sun Type 6/7)"
 msgstr "Phần Lan (Kiểu Sun 6/7)"
 
-#: ../rules/base.extras.xml.in.h:105
+#: ../rules/base.extras.xml.in.h:106
 msgid "French (Sun Type 6/7)"
 msgstr "Pháp (Sun kiểu 6/7)"
 
-#: ../rules/base.extras.xml.in.h:108
+#: ../rules/base.extras.xml.in.h:109
 msgid "Greek (Sun Type 6/7)"
 msgstr "Hy Lạp (Sun kiểu 6/7)"
 
-#: ../rules/base.extras.xml.in.h:111
+#: ../rules/base.extras.xml.in.h:112
 msgid "Italian (Sun Type 6/7)"
 msgstr "Ý (Kiểu Sun 6/7)"
 
-#: ../rules/base.extras.xml.in.h:114
+#: ../rules/base.extras.xml.in.h:115
 msgid "Japanese (Sun Type 6)"
 msgstr "Tiếng Nhật (Sun kiểu 6/7)"
 
-#: ../rules/base.extras.xml.in.h:115
+#: ../rules/base.extras.xml.in.h:116
 msgid "Japanese (Sun Type 7 - pc compatible)"
 msgstr "Nhật (Kiểu Sun 7 - tương thích pc)"
 
-#: ../rules/base.extras.xml.in.h:116
+#: ../rules/base.extras.xml.in.h:117
 msgid "Japanese (Sun Type 7 - sun compatible)"
 msgstr "Nhật (Kiểu Sun 7 - tương thích sun)"
 
-#: ../rules/base.extras.xml.in.h:119
+#: ../rules/base.extras.xml.in.h:120
 msgid "Norwegian (Sun Type 6/7)"
 msgstr "Na Uy (Kiểu Sun 6/7)"
 
-#: ../rules/base.extras.xml.in.h:121
+#: ../rules/base.extras.xml.in.h:122
 msgid "Portuguese (Sun Type 6/7)"
 msgstr "Bồ Đào Nha (Kiểu Sun 6/7)"
 
-#: ../rules/base.extras.xml.in.h:124
+#: ../rules/base.extras.xml.in.h:125
 msgid "Slovak (Sun Type 6/7)"
 msgstr "Tiếng X-lô-vác (Sun kiểu 6/7)"
 
-#: ../rules/base.extras.xml.in.h:127
+#: ../rules/base.extras.xml.in.h:128
 msgid "Spanish (Sun Type 6/7)"
 msgstr "Tây Ban Nha (Kiểu Sun 6/7)"
 
-#: ../rules/base.extras.xml.in.h:130
+#: ../rules/base.extras.xml.in.h:131
 msgid "Swedish (Dvorak A5)"
 msgstr "Tiếng Thụy Điển (Dvorak A5)"
 
-#: ../rules/base.extras.xml.in.h:131
+#: ../rules/base.extras.xml.in.h:132
 msgid "Swedish (Sun Type 6/7)"
 msgstr "Thụy Điển (Kiểu Sun 6/7)"
 
-#: ../rules/base.extras.xml.in.h:133
+#: ../rules/base.extras.xml.in.h:134
 msgid "German (Switzerland, Sun Type 6/7)"
 msgstr "Đức (Thụy Sỹ, Kiểu Sun 6/7)"
 
-#: ../rules/base.extras.xml.in.h:134
+#: ../rules/base.extras.xml.in.h:135
 msgid "French (Switzerland, Sun Type 6/7)"
 msgstr "Pháp (Thụy Sỹ, Kiểu Sun 6/7)"
 
-#: ../rules/base.extras.xml.in.h:137
+#: ../rules/base.extras.xml.in.h:138
 msgid "Turkish (Sun Type 6/7)"
 msgstr "Thổ Nhĩ Kỳ (Kiểu Sun 6/7)"
 
-#: ../rules/base.extras.xml.in.h:140
+#: ../rules/base.extras.xml.in.h:141
 msgid "Ukrainian (Sun Type 6/7)"
 msgstr "U-crai-na (Kiểu Sun 6/7)"
 
-#: ../rules/base.extras.xml.in.h:142
+#: ../rules/base.extras.xml.in.h:143
 msgid "English (UK, Sun Type 6/7)"
 msgstr "Tiếng Anh (UK, Kiểu Sun 6/7)"
 
-#: ../rules/base.extras.xml.in.h:145
+#: ../rules/base.extras.xml.in.h:146
 msgid "Korean (Sun Type 6/7)"
-msgstr "Tiếng Hàn Tiếng Ba Lan"
+msgstr "Tiếng Hàn (Kiểu Sun 6/7)"
 
 #. Keyboard indicator for European layouts
-#: ../rules/base.extras.xml.in.h:147
+#: ../rules/base.extras.xml.in.h:148
 msgid "eu"
 msgstr "eu"
 
-#: ../rules/base.extras.xml.in.h:148
+#: ../rules/base.extras.xml.in.h:149
 msgid "EurKEY (US based layout with european letters)"
-msgstr "EurKEY (Bố cụ Mỹ với các chữ cái châu âu)"
+msgstr "EurKEY (Bố cục Mỹ với các chữ cái châu âu)"
 
-#: ../rules/base.extras.xml.in.h:151
+#: ../rules/base.extras.xml.in.h:152
 msgid "Mmuock"
 msgstr "Mmuock"
 
+#~ msgid "Shift with numeric keypad keys works as in MS Windows"
+#~ msgstr "Shift với các phím vùng số làm việc như trong MS Windows"
+
 #~ msgid "&lt;Less/Greater&gt; chooses 5th level, locks when pressed together with another 5th-level-chooser, one press releases the lock"
-#~ msgstr "&lt;Nhỏ/Lớn hơn&gt; chọn cấp năm, khoá khi bấm nhau với một bộ chọn cấp năm khác, một cú bấm cũng buông khoá"
+#~ msgstr "&lt;Nhỏ/Lớn hơn&gt; chọn cấp năm, khóa khi bấm nhau với một bộ chọn cấp năm khác, một cú bấm cũng buông khóa"
 
 #~ msgid "(F)"
 #~ msgstr "(F)"

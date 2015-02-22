@@ -15,6 +15,7 @@
 #include "main/imports.h"
 #include "main/image.h"
 #include "main/macros.h"
+#include "main/teximage.h"
 #include "program/program.h"
 #include "program/prog_print.h"
 
@@ -196,7 +197,7 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
          if (ctx->Texture.Unit[i]._Current &&
              ctx->Texture.Unit[i]._Current->Target == GL_TEXTURE_2D) {
             struct gl_texture_object *obj = ctx->Texture.Unit[i]._Current;
-            struct gl_texture_image *img = obj->Image[0][obj->BaseLevel];
+            const struct gl_texture_image *img = _mesa_base_tex_image(obj);
             const GLfloat wt = (GLfloat) img->Width;
             const GLfloat ht = (GLfloat) img->Height;
             const GLfloat s0 = obj->CropRect[0] / wt;

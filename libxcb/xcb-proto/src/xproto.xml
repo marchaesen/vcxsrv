@@ -57,6 +57,7 @@ authorization from the authors.
     <type>GCONTEXT</type>
   </xidunion>
   
+  <typedef oldname="CARD32" newname="BOOL32" />
   <typedef oldname="CARD32" newname="VISUALID" />
 
   <typedef oldname="CARD32" newname="TIMESTAMP" />
@@ -64,6 +65,8 @@ authorization from the authors.
   <typedef oldname="CARD32" newname="KEYSYM" />
 
   <typedef oldname="CARD8" newname="KEYCODE" />
+ 
+  <typedef oldname="CARD32" newname="KEYCODE32" />
 
   <typedef oldname="CARD8" newname="BUTTON" />
 
@@ -1293,9 +1296,71 @@ parent's cursor will cause an immediate change in the displayed cursor.
     <field type="CARD16" name="border_width" />
     <field type="CARD16" name="class" enum="WindowClass" />
     <field type="VISUALID" name="visual" />
-    <valueparam value-mask-type="CARD32"
-                value-mask-name="value_mask"
-                value-list-name="value_list" />
+    <field type="CARD32" name="value_mask" mask="CW" />
+    <switch name="value_list">
+        <fieldref>value_mask</fieldref>
+        <bitcase>
+          <enumref ref="CW">BackPixmap</enumref>
+          <field type="PIXMAP" name="background_pixmap" altenum="BackPixmap"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">BackPixel</enumref>
+          <field type="CARD32" name="background_pixel" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">BorderPixmap</enumref>
+          <field type="PIXMAP" name="border_pixmap" altenum="Pixmap"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">BorderPixel</enumref>
+          <field type="CARD32" name="border_pixel" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">BitGravity</enumref>
+          <field type="CARD32" name="bit_gravity" enum="Gravity"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">WinGravity</enumref>
+          <field type="CARD32" name="win_gravity" enum="Gravity"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">BackingStore</enumref>
+          <field type="CARD32" name="backing_store" enum="BackingStore"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">BackingPlanes</enumref>
+          <field type="CARD32" name="backing_planes" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">BackingPixel</enumref>
+          <field type="CARD32" name="backing_pixel" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">OverrideRedirect</enumref>
+          <field type="BOOL32" name="override_redirect" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">SaveUnder</enumref>
+          <field type="BOOL32" name="save_under" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">EventMask</enumref>
+          <field type="CARD32" name="event_mask" mask="EventMask"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">DontPropagate</enumref>
+          <field type="CARD32" name="do_not_propogate_mask" mask="EventMask"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">Colormap</enumref>
+          <field type="COLORMAP" name="colormap" altenum="Colormap"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">Cursor</enumref>
+          <field type="CURSOR" name="cursor" altenum="Cursor"/>
+        </bitcase>
+    </switch>
+
     <doc>
       <brief>Creates a window</brief>
       <description><![CDATA[
@@ -1374,9 +1439,71 @@ The X server could not allocate the requested resources (no memory?).
   <request name="ChangeWindowAttributes" opcode="2">
     <pad bytes="1" />
     <field type="WINDOW" name="window" />
-    <valueparam value-mask-type="CARD32"
-                value-mask-name="value_mask"
-                value-list-name="value_list" />
+    <field type="CARD32" name="value_mask" mask="CW" />
+    <switch name="value_list">
+        <fieldref>value_mask</fieldref>
+        <bitcase>
+          <enumref ref="CW">BackPixmap</enumref>
+          <field type="PIXMAP" name="background_pixmap" altenum="BackPixmap"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">BackPixel</enumref>
+          <field type="CARD32" name="background_pixel" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">BorderPixmap</enumref>
+          <field type="PIXMAP" name="border_pixmap" altenum="Pixmap"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">BorderPixel</enumref>
+          <field type="CARD32" name="border_pixel" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">BitGravity</enumref>
+          <field type="CARD32" name="bit_gravity" enum="Gravity"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">WinGravity</enumref>
+          <field type="CARD32" name="win_gravity" enum="Gravity"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">BackingStore</enumref>
+          <field type="CARD32" name="backing_store" enum="BackingStore"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">BackingPlanes</enumref>
+          <field type="CARD32" name="backing_planes" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">BackingPixel</enumref>
+          <field type="CARD32" name="backing_pixel" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">OverrideRedirect</enumref>
+          <field type="BOOL32" name="override_redirect" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">SaveUnder</enumref>
+          <field type="BOOL32" name="save_under" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">EventMask</enumref>
+          <field type="CARD32" name="event_mask" mask="EventMask"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">DontPropagate</enumref>
+          <field type="CARD32" name="do_not_propogate_mask" mask="EventMask"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">Colormap</enumref>
+          <field type="COLORMAP" name="colormap" altenum="Colormap"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">Cursor</enumref>
+          <field type="CURSOR" name="cursor" altenum="Cursor"/>
+        </bitcase>
+    </switch>
+
     <doc>
       <brief>change window attributes</brief>
       <description><![CDATA[
@@ -1689,11 +1816,40 @@ The specified window does not exist.
   <request name="ConfigureWindow" opcode="12">
     <pad bytes="1" />
     <field type="WINDOW" name="window" />
-    <field type="CARD16" name="value_mask" />
+    <field type="CARD16" name="value_mask" mask="ConfigWindow" />
     <pad bytes="2" />
-    <valueparam value-mask-type="CARD16"
-                value-mask-name="value_mask"
-                value-list-name="value_list" />
+    <switch name="value_list">
+        <fieldref>value_mask</fieldref>
+        <bitcase>
+          <enumref ref="ConfigWindow">X</enumref>
+          <field type="INT32" name="x" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="ConfigWindow">Y</enumref>
+          <field type="INT32" name="y" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="ConfigWindow">Width</enumref>
+          <field type="CARD32" name="width" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="ConfigWindow">Height</enumref>
+          <field type="CARD32" name="height" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="ConfigWindow">BorderWidth</enumref>
+          <field type="CARD32" name="border_width" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="ConfigWindow">Sibling</enumref>
+          <field type="WINDOW" name="sibling" altenum="Window"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="ConfigWindow">StackMode</enumref>
+          <field type="CARD32" name="stack_mode" enum="StackMode"/>
+        </bitcase>
+    </switch>
+   
     <doc>
       <brief>Configures window attributes</brief>
       <description><![CDATA[
@@ -3883,9 +4039,102 @@ TODO
     <pad bytes="1" />
     <field type="GCONTEXT" name="cid" />
     <field type="DRAWABLE" name="drawable" />
-    <valueparam value-mask-type="CARD32"
-                value-mask-name="value_mask"
-                value-list-name="value_list" />
+    <field type="CARD32" name="value_mask" mask="GC" />
+    <switch name="value_list">
+        <fieldref>value_mask</fieldref>
+        <bitcase>
+          <enumref ref="GC">Function</enumref>
+          <field type="CARD32" name="function" enum="GX"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">PlaneMask</enumref>
+          <field type="CARD32" name="plane_mask" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">Foreground</enumref>
+          <field type="CARD32" name="foreground" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">Background</enumref>
+          <field type="CARD32" name="background" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">LineWidth</enumref>
+          <field type="CARD32" name="line_width" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">LineStyle</enumref>
+          <field type="CARD32" name="line_style" enum="LineStyle"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">CapStyle</enumref>
+          <field type="CARD32" name="cap_style" enum="CapStyle"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">JoinStyle</enumref>
+          <field type="CARD32" name="join_style" enum="JoinStyle"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">FillStyle</enumref>
+          <field type="CARD32" name="fill_style" enum="FillStyle"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">FillRule</enumref>
+          <field type="CARD32" name="fill_rule" enum="FillRule"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">Tile</enumref>
+          <field type="PIXMAP" name="tile" altenum="Pixmap"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">Stipple</enumref>
+          <field type="PIXMAP" name="stipple" altenum="Pixmap"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">TileStippleOriginX</enumref>
+          <field type="INT32" name="tile_stipple_x_origin" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">TileStippleOriginY</enumref>
+          <field type="INT32" name="tile_stipple_y_origin" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">Font</enumref>
+          <field type="FONT" name="font" altenum="Font"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">SubwindowMode</enumref>
+          <field type="CARD32" name="subwindow_mode" enum="SubwindowMode"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">GraphicsExposures</enumref>
+          <field type="BOOL32" name="graphics_exposures" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">ClipOriginX</enumref>
+          <field type="INT32" name="clip_x_origin" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">ClipOriginY</enumref>
+          <field type="INT32" name="clip_y_origin" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">ClipMask</enumref>
+          <field type="PIXMAP" name="clip_mask" altenum="Pixmap"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">DashOffset</enumref>
+          <field type="CARD32" name="dash_offset" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">DashList</enumref>
+          <field type="CARD32" name="dashes" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">ArcMode</enumref>
+          <field type="CARD32" name="arc_mode" enum="ArcMode"/>
+        </bitcase>
+    </switch>
     <doc>
       <brief>Creates a graphics context</brief>
       <description><![CDATA[
@@ -3924,9 +4173,102 @@ The X server could not allocate the requested resources (no memory?).
   <request name="ChangeGC" opcode="56">
     <pad bytes="1" />
     <field type="GCONTEXT" name="gc" />
-    <valueparam value-mask-type="CARD32"
-                value-mask-name="value_mask"
-                value-list-name="value_list" />
+    <field type="CARD32" name="value_mask" mask="GC" />
+    <switch name="value_list">
+        <fieldref>value_mask</fieldref>
+        <bitcase>
+          <enumref ref="GC">Function</enumref>
+          <field type="CARD32" name="function" enum="GX"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">PlaneMask</enumref>
+          <field type="CARD32" name="plane_mask" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">Foreground</enumref>
+          <field type="CARD32" name="foreground" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">Background</enumref>
+          <field type="CARD32" name="background" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">LineWidth</enumref>
+          <field type="CARD32" name="line_width" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">LineStyle</enumref>
+          <field type="CARD32" name="line_style" enum="LineStyle"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">CapStyle</enumref>
+          <field type="CARD32" name="cap_style" enum="CapStyle"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">JoinStyle</enumref>
+          <field type="CARD32" name="join_style" enum="JoinStyle"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">FillStyle</enumref>
+          <field type="CARD32" name="fill_style" enum="FillStyle"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">FillRule</enumref>
+          <field type="CARD32" name="fill_rule" enum="FillRule"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">Tile</enumref>
+          <field type="PIXMAP" name="tile" altenum="Pixmap"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">Stipple</enumref>
+          <field type="PIXMAP" name="stipple" altenum="Pixmap"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">TileStippleOriginX</enumref>
+          <field type="INT32" name="tile_stipple_x_origin" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">TileStippleOriginY</enumref>
+          <field type="INT32" name="tile_stipple_y_origin" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">Font</enumref>
+          <field type="FONT" name="font" altenum="Font"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">SubwindowMode</enumref>
+          <field type="CARD32" name="subwindow_mode" enum="SubwindowMode"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">GraphicsExposures</enumref>
+          <field type="BOOL32" name="graphics_exposures" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">ClipOriginX</enumref>
+          <field type="INT32" name="clip_x_origin" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">ClipOriginY</enumref>
+          <field type="INT32" name="clip_y_origin" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">ClipMask</enumref>
+          <field type="PIXMAP" name="clip_mask" altenum="Pixmap"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">DashOffset</enumref>
+          <field type="CARD32" name="dash_offset" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">DashList</enumref>
+          <field type="CARD32" name="dashes" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="GC">ArcMode</enumref>
+          <field type="CARD32" name="arc_mode" enum="ArcMode"/>
+        </bitcase>
+    </switch>
     <doc>
       <brief>change graphics context components</brief>
       <description><![CDATA[
@@ -4982,9 +5324,43 @@ sensitive!
 
   <request name="ChangeKeyboardControl" opcode="102">
     <pad bytes="1" />
-    <valueparam value-mask-type="CARD32"
-                value-mask-name="value_mask"
-                value-list-name="value_list" />
+    <field type="CARD32" name="value_mask" mask="KB" />
+    <switch name="value_list">
+        <fieldref>value_mask</fieldref>
+        <bitcase>
+          <enumref ref="KB">KeyClickPercent</enumref>
+          <field type="INT32" name="key_click_percent" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="KB">BellPercent</enumref>
+          <field type="INT32" name="bell_percent" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="KB">BellPitch</enumref>
+          <field type="INT32" name="bell_pitch" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="KB">BellDuration</enumref>
+          <field type="INT32" name="bell_duration" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="KB">Led</enumref>
+          <field type="CARD32" name="led" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="KB">LedMode</enumref>
+          <field type="CARD32" name="led_mode" enum="LedMode"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="KB">Key</enumref>
+          <field type="KEYCODE32" name="key" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="KB">AutoRepeatMode</enumref>
+          <field type="CARD32" name="auto_repeat_mode" enum="AutoRepeatMode"/>
+        </bitcase>
+    </switch>
+
   </request>
 
   <request name="GetKeyboardControl" opcode="103">

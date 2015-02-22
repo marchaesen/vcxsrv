@@ -51,6 +51,10 @@
  * Therefore, if \c head->next is \c NULL or \c tail_prev->prev is \c NULL,
  * the list is empty.
  *
+ * Do note that this means that the list nodes will contain pointers into the
+ * list structure itself and as a result you may not \c realloc() an  \c
+ * exec_list or any structure in which an \c exec_list is embedded.
+ *
  * To anyone familiar with "exec lists" on the Amiga, this structure should
  * be immediately recognizable.  See the following link for the original Amiga
  * operating system documentation on the subject.
@@ -534,9 +538,7 @@ exec_list_validate(const struct exec_list *list)
     * either require C++ or assume the exec_node is embedded in a structure
     * which is not the case for this function.
     */
-   for (node = exec_list_get_head_const(list);
-        !exec_node_is_tail_sentinel(node);
-        node = exec_node_get_next_const(node)) {
+   for (node = list->head; node->next != NULL; node = node->next) {
       assert(node->next->prev == node);
       assert(node->prev->next == node);
    }
@@ -638,6 +640,12 @@ inline void exec_node::insert_before(exec_list *before)
         __next != NULL;                              \
         __node = __next, __next = (__type *)__next->next)
 
+#define foreach_in_list_reverse_safe(__type, __node, __list) \
+   for (__type *__node = (__type *)(__list)->tail_pred,      \
+               *__prev = (__type *)__node->prev;             \
+        __prev != NULL;                                      \
+        __node = __prev, __prev = (__type *)__prev->prev)
+
 #define foreach_in_list_use_after(__type, __inst, __list) \
    __type *(__inst);                                      \
    for ((__inst) = (__type *)(__list)->head;              \
@@ -665,6 +673,12 @@ inline void exec_node::insert_before(exec_list *before)
 	(__node)->__field.next != NULL; 				\
 	(__node) = exec_node_data(__type, (__node)->__field.next, __field))
 
+#define foreach_list_typed_reverse(__type, __node, __field, __list)        \
+   for (__type * __node =                                                \
+           exec_node_data(__type, (__list)->tail_pred, __field);        \
+        (__node)->__field.prev != NULL;                                 \
+        (__node) = exec_node_data(__type, (__node)->__field.prev, __field))
+
 #define foreach_list_typed_safe(__type, __node, __field, __list)           \
    for (__type * __node =                                                  \
            exec_node_data(__type, (__list)->head, __field),                \
@@ -673,5 +687,14 @@ inline void exec_node::insert_before(exec_list *before)
         __next != NULL;                                                    \
         __node = __next, __next =                                          \
            exec_node_data(__type, (__next)->__field.next, __field))
+
+#define foreach_list_typed_safe_reverse(__type, __node, __field, __list)   \
+   for (__type * __node =                                                  \
+           exec_node_data(__type, (__list)->tail_pred, __field),           \
+               * __prev =                                                  \
+           exec_node_data(__type, (__node)->__field.prev, __field);        \
+        __prev != NULL;                                                    \
+        __node = __prev, __prev =                                          \
+           exec_node_data(__type, (__prev)->__field.prev, __field))
 
 #endif /* LIST_CONTAINER_H */

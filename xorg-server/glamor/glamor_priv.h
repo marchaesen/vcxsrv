@@ -215,6 +215,7 @@ struct glamor_saved_procs {
 #if XSYNC
     SyncScreenFuncsRec sync_screen_funcs;
 #endif
+    ScreenBlockHandlerProcPtr block_handler;
 };
 
 #define CACHE_FORMAT_COUNT 3

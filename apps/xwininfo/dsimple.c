@@ -205,6 +205,8 @@ xcb_window_t Select_Window(xcb_connection_t *dpy,
 	xcb_allow_events (dpy, XCB_ALLOW_SYNC_POINTER, XCB_TIME_CURRENT_TIME);
 	xcb_flush (dpy);
 	event = xcb_wait_for_event (dpy);
+	if (event == NULL)
+	    Fatal_Error ("Fatal IO error");
 	switch (event->response_type & 0x7f) {
 	case XCB_BUTTON_PRESS:
 	{

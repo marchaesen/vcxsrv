@@ -45,9 +45,14 @@ _mesa_GetActiveUniform(GLuint program, GLuint index,
                        GLenum *type, GLcharARB *nameOut)
 {
    GET_CURRENT_CONTEXT(ctx);
-   struct gl_shader_program *shProg =
-      _mesa_lookup_shader_program_err(ctx, program, "glGetActiveUniform");
+   struct gl_shader_program *shProg;
 
+   if (maxLength < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glGetActiveUniform(maxLength < 0)");
+      return;
+   }
+
+   shProg = _mesa_lookup_shader_program_err(ctx, program, "glGetActiveUniform");
    if (!shProg)
       return;
 
@@ -85,15 +90,15 @@ _mesa_GetActiveUniformsiv(GLuint program,
    struct gl_shader_program *shProg;
    GLsizei i;
 
-   shProg = _mesa_lookup_shader_program_err(ctx, program, "glGetActiveUniform");
-   if (!shProg)
-      return;
-
    if (uniformCount < 0) {
       _mesa_error(ctx, GL_INVALID_VALUE,
 		  "glGetActiveUniformsiv(uniformCount < 0)");
       return;
    }
+
+   shProg = _mesa_lookup_shader_program_err(ctx, program, "glGetActiveUniform");
+   if (!shProg)
+      return;
 
    for (i = 0; i < uniformCount; i++) {
       GLuint index = uniformIndices[i];
@@ -464,6 +469,9 @@ log_uniform(const void *values, enum glsl_base_type basicType,
       case GLSL_TYPE_FLOAT:
 	 printf("%g ", v[i].f);
 	 break;
+      case GLSL_TYPE_DOUBLE:
+         printf("%g ", *(double* )&v[i * 2].f);
+         break;
       default:
 	 assert(!"Should not get here.");
 	 break;
@@ -524,11 +532,12 @@ _mesa_propagate_uniforms_to_driver_storage(struct gl_uniform_storage *uni,
     */
    const unsigned components = MAX2(1, uni->type->vector_elements);
    const unsigned vectors = MAX2(1, uni->type->matrix_columns);
+   const int dmul = uni->type->base_type == GLSL_TYPE_DOUBLE ? 2 : 1;
 
    /* Store the data in the driver's requested type in the driver's storage
     * areas.
     */
-   unsigned src_vector_byte_stride = components * 4;
+   unsigned src_vector_byte_stride = components * 4 * dmul;
 
    for (i = 0; i < uni->num_driver_storage; i++) {
       struct gl_uniform_driver_storage *const store = &uni->driver_storage[i];
@@ -536,7 +545,7 @@ _mesa_propagate_uniforms_to_driver_storage(struct gl_uniform_storage *uni,
       const unsigned extra_stride =
 	 store->element_stride - (vectors * store->vector_stride);
       const uint8_t *src =
-	 (uint8_t *) (&uni->storage[array_index * (components * vectors)].i);
+	 (uint8_t *) (&uni->storage[array_index * (dmul * components * vectors)].i);
 
 #if 0
       printf("%s: %p[%d] components=%u vectors=%u count=%u vector_stride=%u "
@@ -603,6 +612,7 @@ _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
               unsigned src_components)
 {
    unsigned offset;
+   int size_mul = basicType == GLSL_TYPE_DOUBLE ? 2 : 1;
 
    struct gl_uniform_storage *const uni =
       validate_uniform_parameters(ctx, shProg, location, count,
@@ -618,7 +628,7 @@ _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
    bool match;
    switch (uni->type->base_type) {
    case GLSL_TYPE_BOOL:
-      match = true;
+      match = (basicType != GLSL_TYPE_DOUBLE);
       break;
    case GLSL_TYPE_SAMPLER:
    case GLSL_TYPE_IMAGE:
@@ -705,8 +715,8 @@ _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
    /* Store the data in the "actual type" backing storage for the uniform.
     */
    if (!uni->type->is_boolean()) {
-      memcpy(&uni->storage[components * offset], values,
-	     sizeof(uni->storage[0]) * components * count);
+      memcpy(&uni->storage[size_mul * components * offset], values,
+	     sizeof(uni->storage[0]) * components * count * size_mul);
    } else {
       const union gl_constant_value *src =
 	 (const union gl_constant_value *) values;
@@ -803,13 +813,14 @@ extern "C" void
 _mesa_uniform_matrix(struct gl_context *ctx, struct gl_shader_program *shProg,
 		     GLuint cols, GLuint rows,
                      GLint location, GLsizei count,
-                     GLboolean transpose, const GLfloat *values)
+                     GLboolean transpose,
+                     const GLvoid *values, GLenum type)
 {
    unsigned offset;
    unsigned vectors;
    unsigned components;
    unsigned elements;
-
+   int size_mul;
    struct gl_uniform_storage *const uni =
       validate_uniform_parameters(ctx, shProg, location, count,
                                   &offset, "glUniformMatrix");
@@ -821,6 +832,9 @@ _mesa_uniform_matrix(struct gl_context *ctx, struct gl_shader_program *shProg,
 		  "glUniformMatrix(non-matrix uniform)");
       return;
    }
+
+   assert(type == GL_FLOAT || type == GL_DOUBLE);
+   size_mul = type == GL_DOUBLE ? 2 : 1;
 
    assert(!uni->type->is_sampler());
    vectors = uni->type->matrix_columns;
@@ -847,7 +861,7 @@ _mesa_uniform_matrix(struct gl_context *ctx, struct gl_shader_program *shProg,
    }
 
    if (unlikely(ctx->_Shader->Flags & GLSL_UNIFORMS)) {
-      log_uniform(values, GLSL_TYPE_FLOAT, components, vectors, count,
+      log_uniform(values, uni->type->base_type, components, vectors, count,
 		  bool(transpose), shProg, location, uni);
    }
 
@@ -874,12 +888,27 @@ _mesa_uniform_matrix(struct gl_context *ctx, struct gl_shader_program *shProg,
 
    if (!transpose) {
       memcpy(&uni->storage[elements * offset], values,
-	     sizeof(uni->storage[0]) * elements * count);
-   } else {
+	     sizeof(uni->storage[0]) * elements * count * size_mul);
+   } else if (type == GL_FLOAT) {
       /* Copy and transpose the matrix.
        */
-      const float *src = values;
+      const float *src = (const float *)values;
       float *dst = &uni->storage[elements * offset].f;
+
+      for (int i = 0; i < count; i++) {
+	 for (unsigned r = 0; r < rows; r++) {
+	    for (unsigned c = 0; c < cols; c++) {
+	       dst[(c * components) + r] = src[c + (r * vectors)];
+	    }
+	 }
+
+	 dst += elements;
+	 src += elements;
+      }
+   } else {
+      assert(type == GL_DOUBLE);
+      const double *src = (const double *)values;
+      double *dst = (double *)&uni->storage[elements * offset].f;
 
       for (int i = 0; i < count; i++) {
 	 for (unsigned r = 0; r < rows; r++) {

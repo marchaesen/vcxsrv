@@ -295,9 +295,7 @@ _mesa_fetch_state(struct gl_context *ctx, const gl_state_index state[],
          const gl_state_index modifier = state[4];
          const GLfloat *m;
          GLuint row, i;
-         ASSERT(firstRow >= 0);
          ASSERT(firstRow < 4);
-         ASSERT(lastRow >= 0);
          ASSERT(lastRow < 4);
          if (mat == STATE_MODELVIEW_MATRIX) {
             matrix = ctx->ModelviewMatrixStack.Top;

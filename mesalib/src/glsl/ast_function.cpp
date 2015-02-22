@@ -573,6 +573,9 @@ convert_component(ir_rvalue *src, const glsl_type *desired_type)
 	 result = new(ctx) ir_expression(ir_unop_i2u,
 		  new(ctx) ir_expression(ir_unop_b2i, src));
 	 break;
+      case GLSL_TYPE_DOUBLE:
+	 result = new(ctx) ir_expression(ir_unop_d2u, src);
+	 break;
       }
       break;
    case GLSL_TYPE_INT:
@@ -586,6 +589,9 @@ convert_component(ir_rvalue *src, const glsl_type *desired_type)
       case GLSL_TYPE_BOOL:
 	 result = new(ctx) ir_expression(ir_unop_b2i, src);
 	 break;
+      case GLSL_TYPE_DOUBLE:
+	 result = new(ctx) ir_expression(ir_unop_d2i, src);
+	 break;
       }
       break;
    case GLSL_TYPE_FLOAT:
@@ -598,6 +604,9 @@ convert_component(ir_rvalue *src, const glsl_type *desired_type)
 	 break;
       case GLSL_TYPE_BOOL:
 	 result = new(ctx) ir_expression(ir_unop_b2f, desired_type, src, NULL);
+	 break;
+      case GLSL_TYPE_DOUBLE:
+	 result = new(ctx) ir_expression(ir_unop_d2f, desired_type, src, NULL);
 	 break;
       }
       break;
@@ -613,8 +622,27 @@ convert_component(ir_rvalue *src, const glsl_type *desired_type)
       case GLSL_TYPE_FLOAT:
 	 result = new(ctx) ir_expression(ir_unop_f2b, desired_type, src, NULL);
 	 break;
+      case GLSL_TYPE_DOUBLE:
+         result = new(ctx) ir_expression(ir_unop_d2b, desired_type, src, NULL);
+         break;
       }
       break;
+   case GLSL_TYPE_DOUBLE:
+      switch (b) {
+      case GLSL_TYPE_INT:
+         result = new(ctx) ir_expression(ir_unop_i2d, src);
+         break;
+      case GLSL_TYPE_UINT:
+         result = new(ctx) ir_expression(ir_unop_u2d, src);
+         break;
+      case GLSL_TYPE_BOOL:
+         result = new(ctx) ir_expression(ir_unop_f2d,
+                  new(ctx) ir_expression(ir_unop_b2f, src));
+         break;
+      case GLSL_TYPE_FLOAT:
+         result = new(ctx) ir_expression(ir_unop_f2d, desired_type, src, NULL);
+         break;
+      }
    }
 
    assert(result != NULL);
@@ -711,9 +739,9 @@ process_vec_mat_constructor(exec_list *instructions,
 
       /* Apply implicit conversions (not the scalar constructor rules!). See
        * the spec quote above. */
-      if (constructor_type->is_float()) {
+      if (constructor_type->base_type != result->type->base_type) {
          const glsl_type *desired_type =
-            glsl_type::get_instance(GLSL_TYPE_FLOAT,
+            glsl_type::get_instance(constructor_type->base_type,
                                     ir->type->vector_elements,
                                     ir->type->matrix_columns);
          if (result->type->can_implicitly_convert_to(desired_type, state)) {
@@ -847,13 +875,17 @@ process_array_constructor(exec_list *instructions,
    foreach_in_list_safe(ir_rvalue, ir, &actual_parameters) {
       ir_rvalue *result = ir;
 
+      const glsl_base_type element_base_type =
+         constructor_type->element_type()->base_type;
+
       /* Apply implicit conversions (not the scalar constructor rules!). See
        * the spec quote above. */
-      if (constructor_type->element_type()->is_float()) {
-	 const glsl_type *desired_type =
-	    glsl_type::get_instance(GLSL_TYPE_FLOAT,
-				    ir->type->vector_elements,
-				    ir->type->matrix_columns);
+      if (element_base_type != result->type->base_type) {
+         const glsl_type *desired_type =
+            glsl_type::get_instance(element_base_type,
+                                    ir->type->vector_elements,
+                                    ir->type->matrix_columns);
+
 	 if (result->type->can_implicitly_convert_to(desired_type, state)) {
 	    /* Even though convert_component() implements the constructor
 	     * conversion rules (not the implicit conversion rules), its safe
@@ -1012,6 +1044,9 @@ emit_inline_vector_constructor(const glsl_type *type,
 	       case GLSL_TYPE_FLOAT:
 		  data.f[i + base_component] = c->get_float_component(i);
 		  break;
+	       case GLSL_TYPE_DOUBLE:
+		  data.d[i + base_component] = c->get_double_component(i);
+		  break;
 	       case GLSL_TYPE_BOOL:
 		  data.b[i + base_component] = c->get_bool_component(i);
 		  break;
@@ -1167,16 +1202,21 @@ emit_inline_matrix_constructor(const glsl_type *type,
       /* Assign the scalar to the X component of a vec4, and fill the remaining
        * components with zero.
        */
+      glsl_base_type param_base_type = first_param->type->base_type;
+      assert(param_base_type == GLSL_TYPE_FLOAT ||
+             param_base_type == GLSL_TYPE_DOUBLE);
       ir_variable *rhs_var =
-	 new(ctx) ir_variable(glsl_type::vec4_type, "mat_ctor_vec",
-			      ir_var_temporary);
+         new(ctx) ir_variable(glsl_type::get_instance(param_base_type, 4, 1),
+                              "mat_ctor_vec",
+                              ir_var_temporary);
       instructions->push_tail(rhs_var);
 
       ir_constant_data zero;
-      zero.f[0] = 0.0;
-      zero.f[1] = 0.0;
-      zero.f[2] = 0.0;
-      zero.f[3] = 0.0;
+      for (unsigned i = 0; i < 4; i++)
+         if (param_base_type == GLSL_TYPE_FLOAT)
+            zero.f[i] = 0.0;
+         else
+            zero.d[i] = 0.0;
 
       ir_instruction *inst =
 	 new(ctx) ir_assignment(new(ctx) ir_dereference_variable(rhs_var),
@@ -1524,10 +1564,10 @@ ast_function_expression::hir(exec_list *instructions,
       }
 
 
-      /* Constructors for samplers are illegal.
+      /* Constructors for opaque types are illegal.
        */
-      if (constructor_type->is_sampler()) {
-	 _mesa_glsl_error(& loc, state, "cannot construct sampler type `%s'",
+      if (constructor_type->contains_opaque()) {
+	 _mesa_glsl_error(& loc, state, "cannot construct opaque type `%s'",
 			  constructor_type->name);
 	 return ir_rvalue::error_value(ctx);
       }

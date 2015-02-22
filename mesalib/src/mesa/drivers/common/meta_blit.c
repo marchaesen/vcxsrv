@@ -232,6 +232,7 @@ setup_glsl_msaa_blit_scaled_shader(struct gl_context *ctx,
 static void
 setup_glsl_msaa_blit_shader(struct gl_context *ctx,
                             struct blit_state *blit,
+                            const struct gl_framebuffer *drawFb,
                             struct gl_renderbuffer *src_rb,
                             GLenum target)
 {
@@ -267,7 +268,7 @@ setup_glsl_msaa_blit_shader(struct gl_context *ctx,
    /* Update the assert if we plan to support more than 16X MSAA. */
    assert(shader_offset >= 0 && shader_offset <= 4);
 
-   if (ctx->DrawBuffer->Visual.samples > 1) {
+   if (drawFb->Visual.samples > 1) {
       /* If you're calling meta_BlitFramebuffer with the destination
        * multisampled, this is the only path that will work -- swrast and
        * CopyTexImage won't work on it either.
@@ -508,9 +509,11 @@ setup_glsl_msaa_blit_shader(struct gl_context *ctx,
 static void
 setup_glsl_blit_framebuffer(struct gl_context *ctx,
                             struct blit_state *blit,
+                            const struct gl_framebuffer *drawFb,
                             struct gl_renderbuffer *src_rb,
                             GLenum target, GLenum filter,
-                            bool is_scaled_blit)
+                            bool is_scaled_blit,
+                            bool do_depth)
 {
    unsigned texcoord_size;
    bool is_target_multisample = target == GL_TEXTURE_2D_MULTISAMPLE ||
@@ -529,9 +532,11 @@ setup_glsl_blit_framebuffer(struct gl_context *ctx,
    if (is_target_multisample && is_filter_scaled_resolve && is_scaled_blit) {
       setup_glsl_msaa_blit_scaled_shader(ctx, blit, src_rb, target, filter);
    } else if (is_target_multisample) {
-      setup_glsl_msaa_blit_shader(ctx, blit, src_rb, target);
+      setup_glsl_msaa_blit_shader(ctx, blit, drawFb, src_rb, target);
    } else {
-      _mesa_meta_setup_blit_shader(ctx, target, &blit->shaders);
+      _mesa_meta_setup_blit_shader(ctx, target, do_depth,
+                                   do_depth ? &blit->shaders_with_depth
+                                            : &blit->shaders_without_depth);
    }
 }
 
@@ -543,12 +548,13 @@ setup_glsl_blit_framebuffer(struct gl_context *ctx,
  */
 static bool
 blitframebuffer_texture(struct gl_context *ctx,
+                        const struct gl_framebuffer *readFb,
+                        const struct gl_framebuffer *drawFb,
                         GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
                         GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
                         GLenum filter, GLint flipX, GLint flipY,
                         GLboolean glsl_version, GLboolean do_depth)
 {
-   const struct gl_framebuffer *readFb = ctx->ReadBuffer;
    int att_index = do_depth ? BUFFER_DEPTH : readFb->_ColorReadBufferIndex;
    const struct gl_renderbuffer_attachment *readAtt =
       &readFb->Attachment[att_index];
@@ -642,7 +648,8 @@ blitframebuffer_texture(struct gl_context *ctx,
    scaled_blit = dstW != srcW || dstH != srcH;
 
    if (glsl_version) {
-      setup_glsl_blit_framebuffer(ctx, blit, rb, target, filter, scaled_blit);
+      setup_glsl_blit_framebuffer(ctx, blit, drawFb, rb, target, filter, scaled_blit,
+                                  do_depth);
    }
    else {
       _mesa_meta_setup_ff_tnl_for_blit(&ctx->Meta->Blit.VAO,
@@ -677,7 +684,7 @@ blitframebuffer_texture(struct gl_context *ctx,
     */
    if (ctx->Extensions.EXT_texture_sRGB_decode) {
       if (_mesa_get_format_color_encoding(rb->Format) == GL_SRGB &&
-          ctx->DrawBuffer->Visual.sRGBCapable) {
+          drawFb->Visual.sRGBCapable) {
          _mesa_SamplerParameteri(fb_tex_blit.sampler,
                                  GL_TEXTURE_SRGB_DECODE_EXT, GL_DECODE_EXT);
          _mesa_set_framebuffer_srgb(ctx, GL_TRUE);
@@ -701,7 +708,7 @@ blitframebuffer_texture(struct gl_context *ctx,
 
       if (target == GL_TEXTURE_2D) {
          const struct gl_texture_image *texImage
-            = _mesa_select_tex_image(ctx, texObj, target, srcLevel);
+            = _mesa_select_tex_image(texObj, target, srcLevel);
          s0 = srcX0 / (float) texImage->Width;
          s1 = srcX1 / (float) texImage->Width;
          t0 = srcY0 / (float) texImage->Height;
@@ -869,6 +876,8 @@ _mesa_meta_setup_sampler(struct gl_context *ctx,
  */
 GLbitfield
 _mesa_meta_BlitFramebuffer(struct gl_context *ctx,
+                           const struct gl_framebuffer *readFb,
+                           const struct gl_framebuffer *drawFb,
                            GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
                            GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
                            GLbitfield mask, GLenum filter)
@@ -890,7 +899,7 @@ _mesa_meta_BlitFramebuffer(struct gl_context *ctx,
                                       ctx->Extensions.ARB_fragment_shader;
 
    /* Multisample texture blit support requires texture multisample. */
-   if (ctx->ReadBuffer->Visual.samples > 0 &&
+   if (readFb->Visual.samples > 0 &&
        !ctx->Extensions.ARB_texture_multisample) {
       return mask;
    }
@@ -898,7 +907,8 @@ _mesa_meta_BlitFramebuffer(struct gl_context *ctx,
    /* Clip a copy of the blit coordinates. If these differ from the input
     * coordinates, then we'll set the scissor.
     */
-   if (!_mesa_clip_blit(ctx, &clip.srcX0, &clip.srcY0, &clip.srcX1, &clip.srcY1,
+   if (!_mesa_clip_blit(ctx, readFb, drawFb,
+                        &clip.srcX0, &clip.srcY0, &clip.srcX1, &clip.srcY1,
                         &clip.dstX0, &clip.dstY0, &clip.dstX1, &clip.dstY1)) {
       /* clipped/scissored everything away */
       return 0;
@@ -926,7 +936,8 @@ _mesa_meta_BlitFramebuffer(struct gl_context *ctx,
 
    /* Try faster, direct texture approach first */
    if (mask & GL_COLOR_BUFFER_BIT) {
-      if (blitframebuffer_texture(ctx, srcX0, srcY0, srcX1, srcY1,
+      if (blitframebuffer_texture(ctx, readFb, drawFb,
+                                  srcX0, srcY0, srcX1, srcY1,
                                   dstX0, dstY0, dstX1, dstY1,
                                   filter, dstFlipX, dstFlipY,
                                   use_glsl_version, false)) {
@@ -935,7 +946,8 @@ _mesa_meta_BlitFramebuffer(struct gl_context *ctx,
    }
 
    if (mask & GL_DEPTH_BUFFER_BIT && use_glsl_version) {
-      if (blitframebuffer_texture(ctx, srcX0, srcY0, srcX1, srcY1,
+      if (blitframebuffer_texture(ctx, readFb, drawFb,
+                                  srcX0, srcY0, srcX1, srcY1,
                                   dstX0, dstY0, dstX1, dstY1,
                                   filter, dstFlipX, dstFlipY,
                                   use_glsl_version, true)) {
@@ -962,7 +974,8 @@ _mesa_meta_glsl_blit_cleanup(struct blit_state *blit)
       blit->VBO = 0;
    }
 
-   _mesa_meta_blit_shader_table_cleanup(&blit->shaders);
+   _mesa_meta_blit_shader_table_cleanup(&blit->shaders_with_depth);
+   _mesa_meta_blit_shader_table_cleanup(&blit->shaders_without_depth);
 
    _mesa_DeleteTextures(1, &blit->depthTex.TexObj);
    blit->depthTex.TexObj = 0;
@@ -970,20 +983,22 @@ _mesa_meta_glsl_blit_cleanup(struct blit_state *blit)
 
 void
 _mesa_meta_and_swrast_BlitFramebuffer(struct gl_context *ctx,
+                                      struct gl_framebuffer *readFb,
+                                      struct gl_framebuffer *drawFb,
                                       GLint srcX0, GLint srcY0,
                                       GLint srcX1, GLint srcY1,
                                       GLint dstX0, GLint dstY0,
                                       GLint dstX1, GLint dstY1,
                                       GLbitfield mask, GLenum filter)
 {
-   mask = _mesa_meta_BlitFramebuffer(ctx,
+   mask = _mesa_meta_BlitFramebuffer(ctx, readFb, drawFb,
                                      srcX0, srcY0, srcX1, srcY1,
                                      dstX0, dstY0, dstX1, dstY1,
                                      mask, filter);
    if (mask == 0x0)
       return;
 
-   _swrast_BlitFramebuffer(ctx,
+   _swrast_BlitFramebuffer(ctx, readFb, drawFb,
                            srcX0, srcY0, srcX1, srcY1,
                            dstX0, dstY0, dstX1, dstY1,
                            mask, filter);

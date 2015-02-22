@@ -95,9 +95,71 @@ Draft Standard Version 1.1
     <field type="BYTE" name="class" enum="WindowClass"/>
     <field type="CARD8" name="depth"/>
     <field type="VISUALID" name="visual"/>
-    <valueparam value-mask-type="CARD32"
-                value-mask-name="value_mask"
-                value-list-name="value_list" />
+    <field type="CARD32" name="value_mask" mask="CW" />
+    <switch name="value_list">
+        <fieldref>value_mask</fieldref>
+        <bitcase>
+          <enumref ref="CW">BackPixmap</enumref>
+          <field type="PIXMAP" name="background_pixmap" altenum="BackPixmap"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">BackPixel</enumref>
+          <field type="CARD32" name="background_pixel" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">BorderPixmap</enumref>
+          <field type="PIXMAP" name="border_pixmap" altenum="Pixmap"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">BorderPixel</enumref>
+          <field type="CARD32" name="border_pixel" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">BitGravity</enumref>
+          <field type="CARD32" name="bit_gravity" enum="Gravity"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">WinGravity</enumref>
+          <field type="CARD32" name="win_gravity" enum="Gravity"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">BackingStore</enumref>
+          <field type="CARD32" name="backing_store" enum="BackingStore"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">BackingPlanes</enumref>
+          <field type="CARD32" name="backing_planes" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">BackingPixel</enumref>
+          <field type="CARD32" name="backing_pixel" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">OverrideRedirect</enumref>
+          <field type="BOOL32" name="override_redirect" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">SaveUnder</enumref>
+          <field type="BOOL32" name="save_under" />
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">EventMask</enumref>
+          <field type="CARD32" name="event_mask" mask="EventMask"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">DontPropagate</enumref>
+          <field type="CARD32" name="do_not_propogate_mask" mask="EventMask"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">Colormap</enumref>
+          <field type="COLORMAP" name="colormap" altenum="Colormap"/>
+        </bitcase>
+        <bitcase>
+          <enumref ref="CW">Cursor</enumref>
+          <field type="CURSOR" name="cursor" altenum="Cursor"/>
+        </bitcase>
+    </switch>
+
   </request>
 
   <request name="UnsetAttributes" opcode="4">

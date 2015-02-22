@@ -49,7 +49,7 @@
 #include "pixmapstr.h"
 #include "migc.h"
 
-static GCFuncs dmxGCFuncs = {
+static const GCFuncs dmxGCFuncs = {
     dmxValidateGC,
     dmxChangeGC,
     dmxCopyGC,
@@ -59,7 +59,7 @@ static GCFuncs dmxGCFuncs = {
     dmxCopyClip,
 };
 
-static GCOps dmxGCOps = {
+static const GCOps dmxGCOps = {
     dmxFillSpans,
     dmxSetSpans,
     dmxPutImage,

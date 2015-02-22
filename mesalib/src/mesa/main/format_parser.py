@@ -24,6 +24,8 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+import sys
+
 VOID = 'x'
 UNSIGNED = 'u'
 SIGNED = 's'
@@ -101,6 +103,10 @@ class Channel:
    def is_power_of_two(self):
       """Returns true if the size of this channel is a power of two."""
       return is_power_of_two(self.size)
+
+   def datatype(self):
+      """Returns the datatype corresponding to a channel type and size"""
+      return _get_datatype(self.type, self.size)
 
 class Swizzle:
    """Describes a swizzle operation.
@@ -469,6 +475,49 @@ class Format:
             return channel
       return None
 
+   def datatype(self):
+      """Returns the datatype corresponding to a format's channel type and size"""
+      if self.layout == PACKED:
+         if self.block_size() == 8:
+            return 'uint8_t'
+         if self.block_size() == 16:
+            return 'uint16_t'
+         if self.block_size() == 32:
+            return 'uint32_t'
+         else:
+            assert False
+      else:
+         return _get_datatype(self.channel_type(), self.channel_size())
+
+def _get_datatype(type, size):
+   if type == FLOAT:
+      if size == 32:
+         return 'float'
+      elif size == 16:
+         return 'uint16_t'
+      else:
+         assert False
+   elif type == UNSIGNED:
+      if size <= 8:
+         return 'uint8_t'
+      elif size <= 16:
+         return 'uint16_t'
+      elif size <= 32:
+         return 'uint32_t'
+      else:
+         assert False
+   elif type == SIGNED:
+      if size <= 8:
+         return 'int8_t'
+      elif size <= 16:
+         return 'int16_t'
+      elif size <= 32:
+         return 'int32_t'
+      else:
+         assert False
+   else:
+      assert False
+
 def _parse_channels(fields, layout, colorspace, swizzle):
    channels = []
    for field in fields:
@@ -515,7 +564,10 @@ def parse(filename):
          block_height = int(fields[3])
          colorspace = fields[9]
 
-         swizzle = Swizzle(fields[8])
+         try:
+            swizzle = Swizzle(fields[8])
+         except:
+            sys.exit("error parsing swizzle for format " + name)
          channels = _parse_channels(fields[4:8], layout, colorspace, swizzle)
 
          yield Format(name, layout, block_width, block_height, channels, swizzle, colorspace)

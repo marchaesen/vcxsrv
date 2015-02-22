@@ -2375,6 +2375,7 @@ _glcpp_parser_handle_version_declaration(glcpp_parser_t *parser, intmax_t versio
 	if (parser->is_gles) {
 	   add_builtin_define(parser, "GL_ES", 1);
            add_builtin_define(parser, "GL_EXT_separate_shader_objects", 1);
+           add_builtin_define(parser, "GL_EXT_draw_buffers", 1);
 
 	   if (extensions != NULL) {
 	      if (extensions->OES_EGL_image_external)
@@ -2444,6 +2445,9 @@ _glcpp_parser_handle_version_declaration(glcpp_parser_t *parser, intmax_t versio
 	      if (extensions->ARB_gpu_shader5)
 	         add_builtin_define(parser, "GL_ARB_gpu_shader5", 1);
 
+              if (extensions->ARB_gpu_shader_fp64)
+                 add_builtin_define(parser, "GL_ARB_gpu_shader_fp64", 1);
+
 	      if (extensions->AMD_vertex_shader_layer)
 	         add_builtin_define(parser, "GL_AMD_vertex_shader_layer", 1);
 
@@ -2473,6 +2477,9 @@ _glcpp_parser_handle_version_declaration(glcpp_parser_t *parser, intmax_t versio
 
               if (extensions->ARB_derivative_control)
                  add_builtin_define(parser, "GL_ARB_derivative_control", 1);
+
+              if (extensions->ARB_shader_precision)
+                 add_builtin_define(parser, "GL_ARB_shader_precision", 1);
 	   }
 	}
 

@@ -150,6 +150,16 @@ GLenum
 _mesa_check_sample_count(struct gl_context *ctx, GLenum target,
                          GLenum internalFormat, GLsizei samples)
 {
+   /* Section 4.4 (Framebuffer objects) of the OpenGL 3.0 specification says:
+    *
+    *     "If internalformat is a signed or unsigned integer format and samples
+    *     is greater than zero, then the error INVALID_OPERATION is generated."
+    */
+   if (_mesa_is_gles3(ctx) && _mesa_is_enum_format_integer(internalFormat)) {
+      return GL_INVALID_OPERATION;
+   }
+
+
    /* If ARB_internalformat_query is supported, then treat its highest
     * returned sample count as the absolute maximum for this format; it is
     * allowed to exceed MAX_SAMPLES.

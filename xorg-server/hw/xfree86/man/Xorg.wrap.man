@@ -33,7 +33,7 @@ Xorg.wrap \- Xorg X server binary wrapper
 The Xorg X server may need root rights to function properly. To start the
 Xorg X server with these rights your system is using a suid root wrapper
 installed as __suid_wrapper_dir__/Xorg.wrap which will execute the real
-X server which is installed as __suid_wrapper_dir__/Xorg.bin .
+X server which is installed as __suid_wrapper_dir__/Xorg.
 .PP
 By default Xorg.wrap will autodetect if root rights are necessary, and
 if not it will drop its elevated rights before starting the real X server.

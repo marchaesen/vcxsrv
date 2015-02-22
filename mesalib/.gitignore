@@ -18,6 +18,7 @@
 *.tar
 *.tar.bz2
 *.tar.gz
+*.tar.xz
 *.trs
 *.zip
 *~

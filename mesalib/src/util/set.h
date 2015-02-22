@@ -43,6 +43,7 @@ struct set_entry {
 struct set {
    void *mem_ctx;
    struct set_entry *table;
+   uint32_t (*key_hash_function)(const void *key);
    bool (*key_equals_function)(const void *a, const void *b);
    uint32_t size;
    uint32_t rehash;
@@ -54,6 +55,7 @@ struct set {
 
 struct set *
 _mesa_set_create(void *mem_ctx,
+                 uint32_t (*key_hash_function)(const void *key),
                  bool (*key_equals_function)(const void *a,
                                              const void *b));
 void
@@ -61,11 +63,15 @@ _mesa_set_destroy(struct set *set,
                   void (*delete_function)(struct set_entry *entry));
 
 struct set_entry *
-_mesa_set_add(struct set *set, uint32_t hash, const void *key);
+_mesa_set_add(struct set *set, const void *key);
+struct set_entry *
+_mesa_set_add_pre_hashed(struct set *set, uint32_t hash, const void *key);
 
 struct set_entry *
-_mesa_set_search(const struct set *set, uint32_t hash,
-                 const void *key);
+_mesa_set_search(const struct set *set, const void *key);
+struct set_entry *
+_mesa_set_search_pre_hashed(const struct set *set, uint32_t hash,
+                            const void *key);
 
 void
 _mesa_set_remove(struct set *set, struct set_entry *entry);

@@ -193,9 +193,9 @@ _mesa_lookup_shader_err(struct gl_context *ctx, GLuint name, const char *caller)
  * Then set ptr to point to shProg, incrementing its refcount.
  */
 void
-_mesa_reference_shader_program(struct gl_context *ctx,
-                               struct gl_shader_program **ptr,
-                               struct gl_shader_program *shProg)
+_mesa_reference_shader_program_(struct gl_context *ctx,
+                                struct gl_shader_program **ptr,
+                                struct gl_shader_program *shProg)
 {
    assert(ptr);
    if (*ptr == shProg) {

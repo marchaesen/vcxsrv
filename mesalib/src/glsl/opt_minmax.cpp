@@ -133,6 +133,14 @@ compare_components(ir_constant *a, ir_constant *b)
          else
             foundequal = true;
          break;
+      case GLSL_TYPE_DOUBLE:
+         if (a->value.d[c0] < b->value.d[c1])
+            foundless = true;
+         else if (a->value.d[c0] > b->value.d[c1])
+            foundgreater = true;
+         else
+            foundequal = true;
+         break;
       default:
          unreachable("not reached");
       }
@@ -177,6 +185,11 @@ combine_constant(bool ismin, ir_constant *a, ir_constant *b)
          if ((ismin && b->value.f[i] < c->value.f[i]) ||
              (!ismin && b->value.f[i] > c->value.f[i]))
             c->value.f[i] = b->value.f[i];
+         break;
+      case GLSL_TYPE_DOUBLE:
+         if ((ismin && b->value.d[i] < c->value.d[i]) ||
+             (!ismin && b->value.d[i] > c->value.d[i]))
+            c->value.d[i] = b->value.d[i];
          break;
       default:
          assert(!"not reached");

@@ -65,8 +65,6 @@ static void
 CalcServerVersionAndExtensions(void)
 {
     int s;
-    xGLXQueryVersionReq *req;
-    xGLXQueryVersionReply reply;
     char **be_extensions;
     char *ext;
     char *denied_extensions;
@@ -80,6 +78,8 @@ CalcServerVersionAndExtensions(void)
     for (s = 0; s < __glXNumActiveScreens; s++) {
         DMXScreenInfo *dmxScreen = &dmxScreens[s];
         Display *dpy = dmxScreen->beDisplay;
+        xGLXQueryVersionReq *req;
+        xGLXQueryVersionReply reply;
 
         /* Send the glXQueryVersion request */
         LockDisplay(dpy);
@@ -335,7 +335,7 @@ __glXGetServerString(unsigned int name)
 }
 
 int
-glxIsExtensionSupported(char *ext)
+glxIsExtensionSupported(const char *ext)
 {
     return (strstr(ExtensionsString, ext) != NULL);
 }

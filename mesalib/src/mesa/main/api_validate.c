@@ -36,25 +36,6 @@
 
 
 /**
- * \return  number of bytes in array [count] of type.
- */
-static GLsizei
-index_bytes(GLenum type, GLsizei count)
-{
-   if (type == GL_UNSIGNED_INT) {
-      return count * sizeof(GLuint);
-   }
-   else if (type == GL_UNSIGNED_BYTE) {
-      return count * sizeof(GLubyte);
-   }
-   else {
-      ASSERT(type == GL_UNSIGNED_SHORT);
-      return count * sizeof(GLushort);
-   }
-}
-
-
-/**
  * Check if OK to draw arrays/elements.
  */
 static bool
@@ -67,9 +48,7 @@ check_valid_to_render(struct gl_context *ctx, const char *function)
    switch (ctx->API) {
    case API_OPENGLES2:
       /* For ES2, we can draw if we have a vertex program/shader). */
-      if (!ctx->VertexProgram._Current)
-	 return false;
-      break;
+      return ctx->VertexProgram._Current != NULL;
 
    case API_OPENGLES:
       /* For OpenGL ES, only draw if we have vertex positions
@@ -89,14 +68,21 @@ check_valid_to_render(struct gl_context *ctx, const char *function)
          _mesa_error(ctx, GL_INVALID_OPERATION, "%s(no VAO bound)", function);
          return false;
       }
-      /* fallthrough */
-   case API_OPENGL_COMPAT: {
-      const struct gl_shader_program *const vsProg =
-         ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX];
-      const bool haveVertexShader = (vsProg && vsProg->LinkStatus);
-      const bool haveVertexProgram = ctx->VertexProgram._Enabled;
 
-      if (haveVertexShader || haveVertexProgram) {
+      /* Section 7.3 (Program Objects) of the OpenGL 4.5 Core Profile spec
+       * says:
+       *
+       *     "If there is no active program for the vertex or fragment shader
+       *     stages, the results of vertex and/or fragment processing will be
+       *     undefined. However, this is not an error."
+       *
+       * The fragment shader is not tested here because other state (e.g.,
+       * GL_RASTERIZER_DISCARD) affects whether or not we actually care.
+       */
+      return ctx->VertexProgram._Current != NULL;
+
+   case API_OPENGL_COMPAT:
+      if (ctx->VertexProgram._Current != NULL) {
          /* Draw regardless of whether or not we have any vertex arrays.
           * (Ex: could draw a point using a constant vertex pos)
           */
@@ -109,7 +95,6 @@ check_valid_to_render(struct gl_context *ctx, const char *function)
                  ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_GENERIC0].Enabled);
       }
       break;
-   }
 
    default:
       unreachable("Invalid API value in check_valid_to_render()");
@@ -128,27 +113,21 @@ check_valid_to_render(struct gl_context *ctx, const char *function)
 bool
 _mesa_is_valid_prim_mode(struct gl_context *ctx, GLenum mode)
 {
-   switch (mode) {
-   case GL_POINTS:
-   case GL_LINES:
-   case GL_LINE_LOOP:
-   case GL_LINE_STRIP:
-   case GL_TRIANGLES:
-   case GL_TRIANGLE_STRIP:
-   case GL_TRIANGLE_FAN:
+   /* The overwhelmingly common case is (mode <= GL_TRIANGLE_FAN).  Test that
+    * first and exit.  You would think that a switch-statement would be the
+    * right approach, but at least GCC 4.7.2 generates some pretty dire code
+    * for the common case.
+    */
+   if (likely(mode <= GL_TRIANGLE_FAN))
       return true;
-   case GL_QUADS:
-   case GL_QUAD_STRIP:
-   case GL_POLYGON:
+
+   if (mode <= GL_POLYGON)
       return (ctx->API == API_OPENGL_COMPAT);
-   case GL_LINES_ADJACENCY:
-   case GL_LINE_STRIP_ADJACENCY:
-   case GL_TRIANGLES_ADJACENCY:
-   case GL_TRIANGLE_STRIP_ADJACENCY:
+
+   if (mode <= GL_TRIANGLE_STRIP_ADJACENCY)
       return _mesa_has_geometry_shaders(ctx);
-   default:
-      return false;
-   }
+
+   return false;
 }
 
 
@@ -351,20 +330,10 @@ validate_DrawElements_common(struct gl_context *ctx,
    if (!check_valid_to_render(ctx, caller))
       return false;
 
-   /* Vertex buffer object tests */
-   if (_mesa_is_bufferobj(ctx->Array.VAO->IndexBufferObj)) {
-      /* use indices in the buffer object */
-      /* make sure count doesn't go outside buffer bounds */
-      if (index_bytes(type, count) > ctx->Array.VAO->IndexBufferObj->Size) {
-         _mesa_warning(ctx, "%s index out of buffer bounds", caller);
-         return false;
-      }
-   }
-   else {
-      /* not using a VBO */
-      if (!indices)
-         return false;
-   }
+   /* Not using a VBO for indices, so avoid NULL pointer derefs later.
+    */
+   if (!_mesa_is_bufferobj(ctx->Array.VAO->IndexBufferObj) && indices == NULL)
+      return false;
 
    if (count == 0)
       return false;
@@ -422,21 +391,9 @@ _mesa_validate_MultiDrawElements(struct gl_context *ctx,
    if (!check_valid_to_render(ctx, "glMultiDrawElements"))
       return GL_FALSE;
 
-   /* Vertex buffer object tests */
-   if (_mesa_is_bufferobj(ctx->Array.VAO->IndexBufferObj)) {
-      /* use indices in the buffer object */
-      /* make sure count doesn't go outside buffer bounds */
-      for (i = 0; i < primcount; i++) {
-         if (index_bytes(type, count[i]) >
-             ctx->Array.VAO->IndexBufferObj->Size) {
-            _mesa_warning(ctx,
-                          "glMultiDrawElements index out of buffer bounds");
-            return GL_FALSE;
-         }
-      }
-   }
-   else {
-      /* not using a VBO */
+   /* Not using a VBO for indices, so avoid NULL pointer derefs later.
+    */
+   if (!_mesa_is_bufferobj(ctx->Array.VAO->IndexBufferObj)) {
       for (i = 0; i < primcount; i++) {
          if (!indices[i])
             return GL_FALSE;

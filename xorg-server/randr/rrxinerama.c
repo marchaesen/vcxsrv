@@ -344,15 +344,17 @@ ProcRRXineramaQueryScreens(ClientPtr client)
         ScreenPtr slave;
         rrScrPriv(pScreen);
         int has_primary = 0;
+        RRCrtcPtr primary_crtc = NULL;
 
         if (pScrPriv->primaryOutput && pScrPriv->primaryOutput->crtc) {
             has_primary = 1;
+            primary_crtc = pScrPriv->primaryOutput->crtc;
             RRXineramaWriteCrtc(client, pScrPriv->primaryOutput->crtc);
         }
 
         for (i = 0; i < pScrPriv->numCrtcs; i++) {
             if (has_primary &&
-                pScrPriv->primaryOutput->crtc == pScrPriv->crtcs[i]) {
+                primary_crtc == pScrPriv->crtcs[i]) {
                 has_primary = 0;
                 continue;
             }
@@ -362,8 +364,14 @@ ProcRRXineramaQueryScreens(ClientPtr client)
         xorg_list_for_each_entry(slave, &pScreen->output_slave_list, output_head) {
             rrScrPrivPtr pSlavePriv;
             pSlavePriv = rrGetScrPriv(slave);
-            for (i = 0; i < pSlavePriv->numCrtcs; i++)
+            for (i = 0; i < pSlavePriv->numCrtcs; i++) {
+                if (has_primary &&
+                    primary_crtc == pSlavePriv->crtcs[i]) {
+                    has_primary = 0;
+                    continue;
+                }
                 RRXineramaWriteCrtc(client, pSlavePriv->crtcs[i]);
+            }
         }
     }
 

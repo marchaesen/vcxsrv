@@ -54,6 +54,7 @@
 
 #include "main/teximage.h"
 #include "main/texformat.h"
+#include "main/texobj.h"
 #include "main/texstate.h"
 
 #include "swrast_priv.h"

@@ -205,6 +205,11 @@ struct _mesa_glsl_parse_state {
          || EXT_separate_shader_objects_enable;
    }
 
+   bool has_double() const
+   {
+      return ARB_gpu_shader_fp64_enable || is_version(400, 0);
+   }
+
    void process_version_directive(YYLTYPE *locp, int version,
                                   const char *ident);
 
@@ -414,6 +419,8 @@ struct _mesa_glsl_parse_state {
    bool ARB_fragment_layer_viewport_warn;
    bool ARB_gpu_shader5_enable;
    bool ARB_gpu_shader5_warn;
+   bool ARB_gpu_shader_fp64_enable;
+   bool ARB_gpu_shader_fp64_warn;
    bool ARB_sample_shading_enable;
    bool ARB_sample_shading_warn;
    bool ARB_separate_shader_objects_enable;
@@ -424,6 +431,8 @@ struct _mesa_glsl_parse_state {
    bool ARB_shader_bit_encoding_warn;
    bool ARB_shader_image_load_store_enable;
    bool ARB_shader_image_load_store_warn;
+   bool ARB_shader_precision_enable;
+   bool ARB_shader_precision_warn;
    bool ARB_shader_stencil_export_enable;
    bool ARB_shader_stencil_export_warn;
    bool ARB_shader_texture_lod_enable;
@@ -473,6 +482,8 @@ struct _mesa_glsl_parse_state {
    bool AMD_vertex_shader_layer_warn;
    bool AMD_vertex_shader_viewport_index_enable;
    bool AMD_vertex_shader_viewport_index_warn;
+   bool EXT_draw_buffers_enable;
+   bool EXT_draw_buffers_warn;
    bool EXT_separate_shader_objects_enable;
    bool EXT_separate_shader_objects_warn;
    bool EXT_shader_integer_mix_enable;
@@ -571,6 +582,9 @@ extern "C" {
  */
 extern const char *
 _mesa_shader_stage_to_string(unsigned stage);
+
+extern const char *
+_mesa_shader_stage_to_abbrev(unsigned stage);
 
 extern int glcpp_preprocess(void *ctx, const char **shader, char **info_log,
                       const struct gl_extensions *extensions, struct gl_context *gl_ctx);

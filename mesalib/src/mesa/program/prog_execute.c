@@ -123,7 +123,7 @@ get_src_register_pointer(const struct prog_src_register *source,
       return (GLfloat *) prog->Parameters->ParameterValues[reg];
 
    case PROGRAM_SYSTEM_VALUE:
-      assert(reg < Elements(machine->SystemValues));
+      assert(reg < (GLint) Elements(machine->SystemValues));
       return machine->SystemValues[reg];
 
    default:
@@ -1260,7 +1260,6 @@ _mesa_execute_program(struct gl_context * ctx,
                else if (swz == SWIZZLE_ONE)
                   result[i] = 1.0;
                else {
-                  ASSERT(swz >= 0);
                   ASSERT(swz <= 3);
                   result[i] = src[swz];
                }

@@ -178,7 +178,7 @@
 #define MAX_COMBINED_ATOMIC_BUFFERS    (MAX_UNIFORM_BUFFERS * 6)
 /* Size of an atomic counter in bytes according to ARB_shader_atomic_counters */
 #define ATOMIC_COUNTER_SIZE            4
-#define MAX_IMAGE_UNIFORMS             16
+#define MAX_IMAGE_UNIFORMS             32
 /* 6 is for vertex, hull, domain, geometry, fragment, and compute shader. */
 #define MAX_IMAGE_UNITS                (MAX_IMAGE_UNIFORMS * 6)
 /*@}*/
@@ -299,6 +299,9 @@
 #define MAX_COMPUTE_UNIFORM_COMPONENTS      512
 #define MAX_COMPUTE_IMAGE_UNIFORMS          8
 /*@}*/
+
+/** For GL_ARB_pipeline_statistics_query */
+#define MAX_PIPELINE_STATISTICS             11
 
 /*
  * Color channel component order

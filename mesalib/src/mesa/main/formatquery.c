@@ -89,8 +89,22 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
     *     "If the <internalformat> parameter to GetInternalformativ is not
     *     color-, depth- or stencil-renderable, then an INVALID_ENUM error is
     *     generated."
+    *
+    * Page 243 of the GLES 3.0.4 spec says this for GetInternalformativ:
+    *
+    *     "internalformat must be color-renderable, depth-renderable or
+    *     stencilrenderable (as defined in section 4.4.4)."
+    *
+    * Section 4.4.4 on page 212 of the same spec says:
+    *
+    *     "An internal format is color-renderable if it is one of the
+    *     formats from table 3.13 noted as color-renderable or if it
+    *     is unsized format RGBA or RGB."
+    *
+    * Therefore, we must accept GL_RGB and GL_RGBA here.
     */
-   if (_mesa_base_fbo_format(ctx, internalformat) == 0) {
+   if (internalformat != GL_RGB && internalformat != GL_RGBA &&
+       _mesa_base_fbo_format(ctx, internalformat) == 0) {
       _mesa_error(ctx, GL_INVALID_ENUM,
                   "glGetInternalformativ(internalformat=%s)",
                   _mesa_lookup_enum_by_nr(internalformat));

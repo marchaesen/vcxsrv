@@ -34,8 +34,17 @@
  */
 
 
-#ifndef _U_SIMPLE_LIST_H_
-#define _U_SIMPLE_LIST_H_
+#ifndef _SIMPLE_LIST_H
+#define _SIMPLE_LIST_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+struct simple_node {
+   struct simple_node *next;
+   struct simple_node *prev;
+};
 
 /**
  * Remove an element from list.
@@ -46,8 +55,7 @@
 do {						\
    (elem)->next->prev = (elem)->prev;		\
    (elem)->prev->next = (elem)->next;		\
-   (elem)->next = elem;                         \
-   (elem)->prev = elem;                         \
+   make_empty_list(elem);			\
 } while (0)
 
 /**
@@ -196,4 +204,8 @@ do {						\
 #define foreach_s(ptr, t, list)   \
         for(ptr=(list)->next,t=(ptr)->next; list != ptr; ptr=t, t=(t)->next)
 
-#endif /* _U_SIMPLE_LIST_H_ */
+#ifdef __cplusplus
+}
+#endif
+
+#endif

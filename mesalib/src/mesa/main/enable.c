@@ -34,7 +34,7 @@
 #include "enable.h"
 #include "errors.h"
 #include "light.h"
-#include "simple_list.h"
+#include "util/simple_list.h"
 #include "mtypes.h"
 #include "enums.h"
 #include "api_arrayelt.h"

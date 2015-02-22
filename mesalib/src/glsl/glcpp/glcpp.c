@@ -121,7 +121,7 @@ enum {
 	DISABLE_LINE_CONTINUATIONS_OPT = CHAR_MAX + 1
 };
 
-const static struct option
+static const struct option
 long_options[] = {
 	{"disable-line-continuations", no_argument, 0, DISABLE_LINE_CONTINUATIONS_OPT },
         {"debug",                      no_argument, 0, 'd'},

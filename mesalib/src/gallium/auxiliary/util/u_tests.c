@@ -30,9 +30,13 @@
 #include "util/u_draw_quad.h"
 #include "util/u_format.h"
 #include "util/u_inlines.h"
+#include "util/u_memory.h"
 #include "util/u_simple_shaders.h"
 #include "util/u_surface.h"
+#include "util/u_string.h"
 #include "util/u_tile.h"
+#include "tgsi/tgsi_strings.h"
+#include "tgsi/tgsi_text.h"
 #include "cso_cache/cso_context.h"
 #include <stdio.h>
 
@@ -138,15 +142,70 @@ util_set_interleaved_vertex_elements(struct cso_context *cso,
    free(velem);
 }
 
+static void *
+util_set_passthrough_vertex_shader(struct cso_context *cso,
+                                   struct pipe_context *ctx,
+                                   bool window_space)
+{
+   static const uint vs_attribs[] = {
+      TGSI_SEMANTIC_POSITION,
+      TGSI_SEMANTIC_GENERIC
+   };
+   static const uint vs_indices[] = {0, 0};
+   void *vs;
+
+   vs = util_make_vertex_passthrough_shader(ctx, 2, vs_attribs, vs_indices,
+                                            window_space);
+   cso_set_vertex_shader_handle(cso, vs);
+   return vs;
+}
+
+static void
+util_set_common_states_and_clear(struct cso_context *cso, struct pipe_context *ctx,
+                                 struct pipe_resource *cb)
+{
+   static const float clear_color[] = {0.1, 0.1, 0.1, 0.1};
+
+   util_set_framebuffer_cb0(cso, ctx, cb);
+   util_set_blend_normal(cso);
+   util_set_dsa_disable(cso);
+   util_set_rasterizer_normal(cso);
+   util_set_max_viewport(cso, cb);
+
+   ctx->clear(ctx, PIPE_CLEAR_COLOR0, (void*)clear_color, 0, 0);
+}
+
+static void
+util_draw_fullscreen_quad(struct cso_context *cso)
+{
+   static float vertices[] = {
+     -1, -1, 0, 1,   0, 0, 0, 0,
+     -1,  1, 0, 1,   0, 1, 0, 0,
+      1,  1, 0, 1,   1, 1, 0, 0,
+      1, -1, 0, 1,   1, 0, 0, 0
+   };
+   util_set_interleaved_vertex_elements(cso, 2);
+   util_draw_user_vertex_buffer(cso, vertices, PIPE_PRIM_QUADS, 4, 2);
+}
+
+/**
+ * Probe and test if the rectangle contains the expected color.
+ *
+ * If "num_expected_colors" > 1, at least one expected color must match
+ * the probed color. "expected" should be an array of 4*num_expected_colors
+ * floats.
+ */
 static bool
-util_probe_rect_rgba(struct pipe_context *ctx, struct pipe_resource *tex,
-                     unsigned offx, unsigned offy, unsigned w, unsigned h,
-                     const float *expected)
+util_probe_rect_rgba_multi(struct pipe_context *ctx, struct pipe_resource *tex,
+                           unsigned offx, unsigned offy, unsigned w,
+                           unsigned h,
+                           const float *expected,
+                           unsigned num_expected_colors)
 {
    struct pipe_transfer *transfer;
    void *map;
    float *pixels = malloc(w * h * 4 * sizeof(float));
-   int x,y,c;
+   int x,y,e,c;
    bool pass = true;
 
    map = pipe_transfer_map(ctx, tex, 0, 0, PIPE_TRANSFER_READ,
@@ -154,27 +213,68 @@ util_probe_rect_rgba(struct pipe_context *ctx, struct pipe_resource *tex,
    pipe_get_tile_rgba(transfer, map, 0, 0, w, h, pixels);
    pipe_transfer_unmap(ctx, transfer);
 
-   for (y = 0; y < h; y++) {
-      for (x = 0; x < w; x++) {
-         float *probe = &pixels[(y*w + x)*4];
+   for (e = 0; e < num_expected_colors; e++) {
+      for (y = 0; y < h; y++) {
+         for (x = 0; x < w; x++) {
+            float *probe = &pixels[(y*w + x)*4];
 
-         for (c = 0; c < 4; c++)
-            if (fabs(probe[c] - expected[c]) >= TOLERANCE) {
-               printf("Probe color at (%i,%i),  ", offx+x, offy+y);
-               printf("Expected: %.3f, %.3f, %.3f, %.3f,  ",
-                      expected[0], expected[1], expected[2], expected[3]);
-               printf("Got: %.3f, %.3f, %.3f, %.3f\n",
-                      probe[0], probe[1], probe[2], probe[2]);
-               pass = false;
-               goto done;
+            for (c = 0; c < 4; c++) {
+               if (fabs(probe[c] - expected[e*4+c]) >= TOLERANCE) {
+                  if (e < num_expected_colors-1)
+                     goto next_color; /* test the next expected color */
+
+                  printf("Probe color at (%i,%i),  ", offx+x, offy+y);
+                  printf("Expected: %.3f, %.3f, %.3f, %.3f,  ",
+                         expected[e*4], expected[e*4+1],
+                         expected[e*4+2], expected[e*4+3]);
+                  printf("Got: %.3f, %.3f, %.3f, %.3f\n",
+                         probe[0], probe[1], probe[2], probe[2]);
+                  pass = false;
+                  goto done;
+               }
             }
+         }
       }
+      break; /* this color was successful */
+
+   next_color:;
    }
 done:
 
    free(pixels);
    return pass;
 }
+
+static bool
+util_probe_rect_rgba(struct pipe_context *ctx, struct pipe_resource *tex,
+                     unsigned offx, unsigned offy, unsigned w, unsigned h,
+                     const float *expected)
+{
+   return util_probe_rect_rgba_multi(ctx, tex, offx, offy, w, h, expected, 1);
+}
+
+enum {
+   SKIP = -1,
+   FAIL = 0, /* also "false" */
+   PASS = 1 /* also "true" */
+};
+
+static void
+util_report_result_helper(int status, const char *name, ...)
+{
+   char buf[256];
+   va_list ap;
+
+   va_start(ap, name);
+   util_vsnprintf(buf, sizeof(buf), name, ap);
+   va_end(ap);
+
+   printf("Test(%s) = %s\n", buf,
+          status == SKIP ? "skip" :
+          status == PASS ? "pass" : "fail");
+}
+
+#define util_report_result(status) util_report_result_helper(status, __func__)
 
 /**
  * Test TGSI_PROPERTY_VS_WINDOW_SPACE_POSITION.
@@ -196,38 +296,18 @@ tgsi_vs_window_space_position(struct pipe_context *ctx)
    struct pipe_resource *cb;
    void *fs, *vs;
    bool pass = true;
-
-   static uint vs_attribs[] = {
-      TGSI_SEMANTIC_POSITION,
-      TGSI_SEMANTIC_GENERIC
-   };
-   static uint vs_indices[] = {0, 0};
-   static float vertices[] = {
-       0,   0, 0, 0,   1,  0, 0, 1,
-       0, 256, 0, 0,   1,  0, 0, 1,
-     256, 256, 0, 0,   1,  0, 0, 1,
-     256,   0, 0, 0,   1,  0, 0, 1,
-   };
-   static float red[] = {1, 0, 0, 1};
-   static float clear_color[] = {0.1, 0.1, 0.1, 0.1};
+   static const float red[] = {1, 0, 0, 1};
 
    if (!ctx->screen->get_param(ctx->screen,
                                PIPE_CAP_TGSI_VS_WINDOW_SPACE_POSITION)) {
-      printf("Test(%s) = skip\n", __func__);
+      util_report_result(SKIP);
       return;
    }
 
    cso = cso_create_context(ctx);
    cb = util_create_texture2d(ctx->screen, 256, 256,
                               PIPE_FORMAT_R8G8B8A8_UNORM);
-
-   /* Set states. */
-   util_set_framebuffer_cb0(cso, ctx, cb);
-   util_set_blend_normal(cso);
-   util_set_dsa_disable(cso);
-   util_set_rasterizer_normal(cso);
-   util_set_max_viewport(cso, cb);
-   util_set_interleaved_vertex_elements(cso, 2);
+   util_set_common_states_and_clear(cso, ctx, cb);
 
    /* Fragment shader. */
    fs = util_make_fragment_passthrough_shader(ctx, TGSI_SEMANTIC_GENERIC,
@@ -235,13 +315,19 @@ tgsi_vs_window_space_position(struct pipe_context *ctx)
    cso_set_fragment_shader_handle(cso, fs);
 
    /* Vertex shader. */
-   vs = util_make_vertex_passthrough_shader(ctx, 2, vs_attribs, vs_indices,
-                                            TRUE);
-   cso_set_vertex_shader_handle(cso, vs);
+   vs = util_set_passthrough_vertex_shader(cso, ctx, true);
 
-   /* Clear and draw. */
-   ctx->clear(ctx, PIPE_CLEAR_COLOR0, (void*)clear_color, 0, 0);
-   util_draw_user_vertex_buffer(cso, vertices, PIPE_PRIM_QUADS, 4, 2);
+   /* Draw. */
+   {
+      static float vertices[] = {
+          0,   0, 0, 0,   1,  0, 0, 1,
+          0, 256, 0, 0,   1,  0, 0, 1,
+        256, 256, 0, 0,   1,  0, 0, 1,
+        256,   0, 0, 0,   1,  0, 0, 1,
+      };
+      util_set_interleaved_vertex_elements(cso, 2);
+      util_draw_user_vertex_buffer(cso, vertices, PIPE_PRIM_QUADS, 4, 2);
+   }
 
    /* Probe pixels. */
    pass = pass && util_probe_rect_rgba(ctx, cb, 0, 0,
@@ -253,7 +339,114 @@ tgsi_vs_window_space_position(struct pipe_context *ctx)
    ctx->delete_fs_state(ctx, fs);
    pipe_resource_reference(&cb, NULL);
 
-   printf("Test(%s) = %s\n", __func__, pass ? "pass" : "fail");
+   util_report_result(pass);
+}
+
+static void
+null_sampler_view(struct pipe_context *ctx, unsigned tgsi_tex_target)
+{
+   struct cso_context *cso;
+   struct pipe_resource *cb;
+   void *fs, *vs;
+   bool pass = true;
+   /* 2 expected colors: */
+   static const float expected_tex[] = {0, 0, 0, 1,
+                                        0, 0, 0, 0};
+   static const float expected_buf[] = {0, 0, 0, 0};
+   const float *expected = tgsi_tex_target == TGSI_TEXTURE_BUFFER ?
+                              expected_buf : expected_tex;
+   unsigned num_expected = tgsi_tex_target == TGSI_TEXTURE_BUFFER ? 1 : 2;
+
+   if (tgsi_tex_target == TGSI_TEXTURE_BUFFER &&
+       !ctx->screen->get_param(ctx->screen, PIPE_CAP_TEXTURE_BUFFER_OBJECTS)) {
+      util_report_result_helper(SKIP, "%s: %s", __func__,
+                                tgsi_texture_names[tgsi_tex_target]);
+      return;
+   }
+
+   cso = cso_create_context(ctx);
+   cb = util_create_texture2d(ctx->screen, 256, 256,
+                              PIPE_FORMAT_R8G8B8A8_UNORM);
+   util_set_common_states_and_clear(cso, ctx, cb);
+
+   ctx->set_sampler_views(ctx, PIPE_SHADER_FRAGMENT, 0, 1, NULL);
+
+   /* Fragment shader. */
+   fs = util_make_fragment_tex_shader(ctx, tgsi_tex_target,
+                                      TGSI_INTERPOLATE_LINEAR);
+   cso_set_fragment_shader_handle(cso, fs);
+
+   /* Vertex shader. */
+   vs = util_set_passthrough_vertex_shader(cso, ctx, false);
+   util_draw_fullscreen_quad(cso);
+
+   /* Probe pixels. */
+   pass = pass && util_probe_rect_rgba_multi(ctx, cb, 0, 0,
+                                  cb->width0, cb->height0, expected,
+                                  num_expected);
+
+   /* Cleanup. */
+   cso_destroy_context(cso);
+   ctx->delete_vs_state(ctx, vs);
+   ctx->delete_fs_state(ctx, fs);
+   pipe_resource_reference(&cb, NULL);
+
+   util_report_result_helper(pass, "%s: %s", __func__,
+                             tgsi_texture_names[tgsi_tex_target]);
+}
+
+static void
+null_constant_buffer(struct pipe_context *ctx)
+{
+   struct cso_context *cso;
+   struct pipe_resource *cb;
+   void *fs, *vs;
+   bool pass = true;
+   static const float zero[] = {0, 0, 0, 0};
+
+   cso = cso_create_context(ctx);
+   cb = util_create_texture2d(ctx->screen, 256, 256,
+                              PIPE_FORMAT_R8G8B8A8_UNORM);
+   util_set_common_states_and_clear(cso, ctx, cb);
+
+   ctx->set_constant_buffer(ctx, PIPE_SHADER_FRAGMENT, 0, NULL);
+
+   /* Fragment shader. */
+   {
+      static const char *text = /* I don't like ureg... */
+            "FRAG\n"
+            "DCL CONST[0]\n"
+            "DCL OUT[0], COLOR\n"
+
+            "MOV OUT[0], CONST[0]\n"
+            "END\n";
+      struct tgsi_token tokens[1000];
+      struct pipe_shader_state state = {tokens};
+
+      if (!tgsi_text_translate(text, tokens, Elements(tokens))) {
+         puts("Can't compile a fragment shader.");
+         util_report_result(FAIL);
+         return;
+      }
+      fs = ctx->create_fs_state(ctx, &state);
+      cso_set_fragment_shader_handle(cso, fs);
+   }
+
+   /* Vertex shader. */
+   vs = util_set_passthrough_vertex_shader(cso, ctx, false);
+   util_draw_fullscreen_quad(cso);
+
+   /* Probe pixels. */
+   pass = pass && util_probe_rect_rgba(ctx, cb, 0, 0, cb->width0,
+                                       cb->height0, zero);
+
+   /* Cleanup. */
+   cso_destroy_context(cso);
+   ctx->delete_vs_state(ctx, vs);
+   ctx->delete_fs_state(ctx, fs);
+   pipe_resource_reference(&cb, NULL);
+
+   util_report_result(pass);
 }
 
 /**
@@ -261,7 +454,17 @@ tgsi_vs_window_space_position(struct pipe_context *ctx)
  * context_create.
  */
 void
-util_run_tests(struct pipe_context *ctx)
+util_run_tests(struct pipe_screen *screen)
 {
+   struct pipe_context *ctx = screen->context_create(screen, NULL);
+
    tgsi_vs_window_space_position(ctx);
+   null_sampler_view(ctx, TGSI_TEXTURE_2D);
+   null_sampler_view(ctx, TGSI_TEXTURE_BUFFER);
+   null_constant_buffer(ctx);
+
+   ctx->destroy(ctx);
+
+   puts("Done. Exiting..");
+   exit(0);
 }
