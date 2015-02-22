@@ -298,6 +298,23 @@ Expressions
   the structure containing this expression.  The identifier is the value of
   the "name" attribute on the referenced field.
 
+<paramref type="type">identifier</paramref>
+
+  A paramref is similar to a fieldref, but it refers to the value of
+  a field in the context which refers to the struct which contains the paramref.
+
+  So, it refers to a field outside of the structure where it is defined.
+  This has the following consequences:
+  * The generator cannot deduce its type.
+    So, it is mandatory to specify its type.
+  * The identifier-name must not be used as a field in the structure
+    which contaons the paramref.
+
+  For an example, see struct "DeviceTimeCoord" and request/reply
+  "GetDeviceMotionEvents" in xinput.xml, where paramref "num_axes"
+  in struct DeviceTimeCoord refers to field "num_axes" in
+  the DeviceTimeCoord reply.
+
 <value>integer</value>
 
   The value element represents a literal integer value in an expression.  The
@@ -322,9 +339,25 @@ Expressions
 
   This element represents a sumation of the elements of the referenced list.
 
+<sumof ref="identifier" >expression</sumof>
+
+  The expression is evaluated for each element of the referenced list,
+  in the context of this element.
+  This sumof element then represents a sumation of the results of these
+  evaluations.
+
+  expression will usually be a fieldref which references a field of
+  a list-element or an expression containing a fieldref,
+  such as popcount of a fieldref.
+
 <popcount>expression</popcount>
 
   This element represents the number of bits set in the expression.
+
+<listelement-ref/>
+
+  This element represents the current list-element when used inside
+  a list-iteration expression such as <sumof>.
 
 Documentation
 -------------

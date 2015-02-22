@@ -11,6 +11,8 @@ env.Prepend(CPPPATH = [
     '#src',
     '#src/mapi',
     '#src/mesa',
+    '#src/gallium/include',
+    '#src/gallium/auxiliary',
     '#src/glsl',
     '#src/glsl/glcpp',
 ])

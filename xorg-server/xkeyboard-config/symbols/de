@@ -637,6 +637,40 @@ xkb_symbols "ru" {
 };
 
 partial alphanumeric_keys
+xkb_symbols "pl" {
+
+    // Combined layout for entering both German and Polish symbols on a German physical
+    // keyboard. Based on German (eliminate dead keys) and Polish (basic). Polish diacritics
+    // on AltGr+"acelnosxz". EuroSign moved to AE04 (AltGr+dollar key) to avoid conflict
+    // with Polish eogonek.
+    //
+    // https://github.com/kontextify/xkeyboard-config
+
+    include "latin(type4)"
+ 
+    name[Group1]= "Polish (Germany, eliminate dead keys)";
+
+    include "de(nodeadkeys)"
+    key <AE04>	{ [         4,     dollar,   EuroSign,     currency ]	};
+
+    key <AD01>  { [         q,          Q ] };
+    key <AD02>  { [         w,          W ] };
+    key <AD03>	{ [         e,          E,      eogonek,      Eogonek ]	};
+    key <AD09>	{ [         o,          O,       oacute,       Oacute ]	};
+    key <AC01>	{ [         a,          A,      aogonek,      Aogonek ]	};
+    key <AC02>	{ [         s,          S,       sacute,       Sacute ]	};
+    key <AC04>  { [         f,          F ] };
+    key <AD06>	{ [         z,          Z,    zabovedot,    Zabovedot ]	};
+    key <AB02>	{ [         x,          X,       zacute,       Zacute ]	};
+    key <AB03>	{ [         c,          C,       cacute,       Cacute ]	};
+    key <AB06>	{ [         n,          N,       nacute,       Nacute ]	};
+
+    include "kpdl(comma)"
+
+    include "level3(ralt_switch)"
+};
+
+partial alphanumeric_keys
 xkb_symbols "htcdream" {
         include "inet(htcdream)"
 

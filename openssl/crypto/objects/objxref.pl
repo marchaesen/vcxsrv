@@ -39,7 +39,8 @@ my @xrkeys = keys %xref_tbl;
 
 my @srt1 = sort { $oid_tbl{$a} <=> $oid_tbl{$b}} @xrkeys;
 
-for(my $i = 0; $i <= $#srt1; $i++)
+my $i;
+for($i = 0; $i <= $#srt1; $i++)
 	{
 	$xref_tbl{$srt1[$i]}[2] = $i;
 	}
@@ -90,7 +91,10 @@ EOF
 
 foreach (@srt2)
 	{
-	my $x = $xref_tbl{$_}[2];
+	my ($p1, $p2, $x) = @{$xref_tbl{$_}};
+	# If digest or signature algorithm is "undef" then the algorithm
+	# needs special handling and is excluded from the cross reference table.
+	next if $p1 eq "undef" || $p2 eq "undef";
 	print "\t\&sigoid_srt\[$x\],\n";
 	}
 

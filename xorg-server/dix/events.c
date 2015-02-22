@@ -125,13 +125,7 @@ Equipment Corporation.
 #include <X11/extensions/XKBproto.h>
 #include "xkbsrv.h"
 #include "xace.h"
-
-#ifdef XSERVER_DTRACE
-#include <sys/types.h>
-typedef const char *string;
-
-#include "Xserver-dtrace.h"
-#endif
+#include "probes.h"
 
 #include <X11/extensions/XIproto.h>
 #include <X11/extensions/XI2proto.h>

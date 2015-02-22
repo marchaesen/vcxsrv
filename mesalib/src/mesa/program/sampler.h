@@ -23,6 +23,10 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+#ifndef SAMPLER_H
+#define SAMPLER_H
+
+
 int
 _mesa_get_sampler_uniform_value(class ir_dereference *sampler,
 				struct gl_shader_program *shader_program,
@@ -30,3 +34,6 @@ _mesa_get_sampler_uniform_value(class ir_dereference *sampler,
 
 class ir_rvalue *
 _mesa_get_sampler_array_nonconst_index(class ir_dereference *sampler);
+
+
+#endif /* SAMPLER_H */

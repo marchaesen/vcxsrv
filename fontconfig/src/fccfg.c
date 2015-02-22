@@ -367,6 +367,7 @@ FcConfigAddDirList (FcConfig *config, FcSetName set, FcStrSet *dirSet)
     FcStrList	    *dirlist;
     FcChar8	    *dir;
     FcCache	    *cache;
+    FcBool	     ret = FcFalse;
 
     dirlist = FcStrListCreate (dirSet);
     if (!dirlist)
@@ -381,9 +382,10 @@ FcConfigAddDirList (FcConfig *config, FcSetName set, FcStrSet *dirSet)
 	    continue;
 	FcConfigAddCache (config, cache, set, dirSet);
 	FcDirCacheUnload (cache);
+	ret = FcTrue;
     }
     FcStrListDone (dirlist);
-    return FcTrue;
+    return ret;
 }
 
 /*
@@ -2185,6 +2187,7 @@ FcConfigAppFontAddFile (FcConfig    *config,
     FcStrSet	*subdirs;
     FcStrList	*sublist;
     FcChar8	*subdir;
+    FcBool	 ret = FcFalse;
 
     if (!config)
     {
@@ -2218,12 +2221,13 @@ FcConfigAppFontAddFile (FcConfig    *config,
     {
 	while ((subdir = FcStrListNext (sublist)))
 	{
-	    FcConfigAppFontAddDir (config, subdir);
+	    if (FcConfigAppFontAddDir (config, subdir))
+		ret = FcTrue;
 	}
 	FcStrListDone (sublist);
     }
     FcStrSetDestroy (subdirs);
-    return FcTrue;
+    return ret;
 }
 
 FcBool
@@ -2232,6 +2236,7 @@ FcConfigAppFontAddDir (FcConfig	    *config,
 {
     FcFontSet	*set;
     FcStrSet	*dirs;
+    FcBool	 ret = FcTrue;
 
     if (!config)
     {
@@ -2250,8 +2255,8 @@ FcConfigAppFontAddDir (FcConfig	    *config,
 	set = FcFontSetCreate ();
 	if (!set)
 	{
-	    FcStrSetDestroy (dirs);
-	    return FcFalse;
+	    ret = FcFalse;
+	    goto bail;
 	}
 	FcConfigSetFonts (config, set, FcSetApplication);
     }
@@ -2259,12 +2264,10 @@ FcConfigAppFontAddDir (FcConfig	    *config,
     FcStrSetAddFilename (dirs, dir);
 
     if (!FcConfigAddDirList (config, FcSetApplication, dirs))
-    {
-	FcStrSetDestroy (dirs);
-	return FcFalse;
-    }
+	ret = FcFalse;
+bail:
     FcStrSetDestroy (dirs);
-    return FcTrue;
+    return ret;
 }
 
 void

@@ -67,6 +67,28 @@ private:
       assert(!"Should not get here.");
    }
 
+   virtual void enter_record(const glsl_type *type, const char *name,
+                             bool row_major) {
+      assert(type->is_record());
+      this->offset = glsl_align(
+            this->offset, type->std140_base_alignment(row_major));
+   }
+
+   virtual void leave_record(const glsl_type *type, const char *name,
+                             bool row_major) {
+      assert(type->is_record());
+
+      /* If this is the last field of a structure, apply rule #9.  The
+       * GL_ARB_uniform_buffer_object spec says:
+       *
+       *     "The structure may have padding at the end; the base offset of
+       *     the member following the sub-structure is rounded up to the next
+       *     multiple of the base alignment of the structure."
+       */
+      this->offset = glsl_align(
+            this->offset, type->std140_base_alignment(row_major));
+   }
+
    virtual void visit_field(const glsl_type *type, const char *name,
                             bool row_major, const glsl_type *record_type,
                             bool last_field)
@@ -97,27 +119,13 @@ private:
          v->IndexName = v->Name;
       }
 
-      const unsigned alignment = record_type
-         ? record_type->std140_base_alignment(v->RowMajor)
-         : type->std140_base_alignment(v->RowMajor);
+      const unsigned alignment = type->std140_base_alignment(v->RowMajor);
       unsigned size = type->std140_size(v->RowMajor);
 
       this->offset = glsl_align(this->offset, alignment);
       v->Offset = this->offset;
 
-      /* If this is the last field of a structure, apply rule #9.  The
-       * GL_ARB_uniform_buffer_object spec says:
-       *
-       *     "The structure may have padding at the end; the base offset of
-       *     the member following the sub-structure is rounded up to the next
-       *     multiple of the base alignment of the structure."
-       *
-       * last_field won't be set if this is the last field of a UBO that is
-       * not a named instance.
-       */
       this->offset += size;
-      if (last_field)
-         this->offset = glsl_align(this->offset, 16);
 
       /* From the GL_ARB_uniform_buffer_object spec:
        *
@@ -130,16 +138,6 @@ private:
        *      the base alignment required for a vec4."
        */
       this->buffer_size = glsl_align(this->offset, 16);
-   }
-
-   virtual void visit_field(const glsl_struct_field *field)
-   {
-      /* FINISHME: When support for doubles (dvec4, etc.) is added to the
-       * FINISHME: compiler, this may be incorrect for a structure in a UBO
-       * FINISHME: like struct s { struct { float f } s1; dvec4 v; };.
-       */
-      this->offset = glsl_align(this->offset,
-                                field->type->std140_base_alignment(false));
    }
 };
 
@@ -182,7 +180,8 @@ link_uniform_blocks(void *mem_ctx,
     * the hash is organized by block-name.
     */
    struct hash_table *block_hash =
-      _mesa_hash_table_create(mem_ctx, _mesa_key_string_equal);
+      _mesa_hash_table_create(mem_ctx, _mesa_key_hash_string,
+                              _mesa_key_string_equal);
 
    if (block_hash == NULL) {
       _mesa_error_no_memory(__func__);

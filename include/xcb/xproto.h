@@ -134,6 +134,17 @@ typedef struct xcb_fontable_iterator_t {
     int             index; /**<  */
 } xcb_fontable_iterator_t;
 
+typedef uint32_t xcb_bool32_t;
+
+/**
+ * @brief xcb_bool32_iterator_t
+ **/
+typedef struct xcb_bool32_iterator_t {
+    xcb_bool32_t *data; /**<  */
+    int           rem; /**<  */
+    int           index; /**<  */
+} xcb_bool32_iterator_t;
+
 typedef uint32_t xcb_visualid_t;
 
 /**
@@ -177,6 +188,17 @@ typedef struct xcb_keycode_iterator_t {
     int            rem; /**<  */
     int            index; /**<  */
 } xcb_keycode_iterator_t;
+
+typedef uint32_t xcb_keycode32_t;
+
+/**
+ * @brief xcb_keycode32_iterator_t
+ **/
+typedef struct xcb_keycode32_iterator_t {
+    xcb_keycode32_t *data; /**<  */
+    int              rem; /**<  */
+    int              index; /**<  */
+} xcb_keycode32_iterator_t;
 
 typedef uint8_t xcb_button_t;
 
@@ -1450,6 +1472,27 @@ typedef enum xcb_gravity_t {
     XCB_GRAVITY_STATIC = 10
 } xcb_gravity_t;
 
+/**
+ * @brief xcb_create_window_value_list_t
+ **/
+typedef struct xcb_create_window_value_list_t {
+    xcb_pixmap_t   background_pixmap; /**<  */
+    uint32_t       background_pixel; /**<  */
+    xcb_pixmap_t   border_pixmap; /**<  */
+    uint32_t       border_pixel; /**<  */
+    uint32_t       bit_gravity; /**<  */
+    uint32_t       win_gravity; /**<  */
+    uint32_t       backing_store; /**<  */
+    uint32_t       backing_planes; /**<  */
+    uint32_t       backing_pixel; /**<  */
+    xcb_bool32_t   override_redirect; /**<  */
+    xcb_bool32_t   save_under; /**<  */
+    uint32_t       event_mask; /**<  */
+    uint32_t       do_not_propogate_mask; /**<  */
+    xcb_colormap_t colormap; /**<  */
+    xcb_cursor_t   cursor; /**<  */
+} xcb_create_window_value_list_t;
+
 /** Opcode for xcb_create_window. */
 #define XCB_CREATE_WINDOW 1
 
@@ -1471,6 +1514,27 @@ typedef struct xcb_create_window_request_t {
     xcb_visualid_t visual; /**<  */
     uint32_t       value_mask; /**<  */
 } xcb_create_window_request_t;
+
+/**
+ * @brief xcb_change_window_attributes_value_list_t
+ **/
+typedef struct xcb_change_window_attributes_value_list_t {
+    xcb_pixmap_t   background_pixmap; /**<  */
+    uint32_t       background_pixel; /**<  */
+    xcb_pixmap_t   border_pixmap; /**<  */
+    uint32_t       border_pixel; /**<  */
+    uint32_t       bit_gravity; /**<  */
+    uint32_t       win_gravity; /**<  */
+    uint32_t       backing_store; /**<  */
+    uint32_t       backing_planes; /**<  */
+    uint32_t       backing_pixel; /**<  */
+    xcb_bool32_t   override_redirect; /**<  */
+    xcb_bool32_t   save_under; /**<  */
+    uint32_t       event_mask; /**<  */
+    uint32_t       do_not_propogate_mask; /**<  */
+    xcb_colormap_t colormap; /**<  */
+    xcb_cursor_t   cursor; /**<  */
+} xcb_change_window_attributes_value_list_t;
 
 /** Opcode for xcb_change_window_attributes. */
 #define XCB_CHANGE_WINDOW_ATTRIBUTES 2
@@ -1666,6 +1730,19 @@ typedef enum xcb_stack_mode_t {
     XCB_STACK_MODE_BOTTOM_IF = 3,
     XCB_STACK_MODE_OPPOSITE = 4
 } xcb_stack_mode_t;
+
+/**
+ * @brief xcb_configure_window_value_list_t
+ **/
+typedef struct xcb_configure_window_value_list_t {
+    int32_t      x; /**<  */
+    int32_t      y; /**<  */
+    uint32_t     width; /**<  */
+    uint32_t     height; /**<  */
+    uint32_t     border_width; /**<  */
+    xcb_window_t sibling; /**<  */
+    uint32_t     stack_mode; /**<  */
+} xcb_configure_window_value_list_t;
 
 /** Opcode for xcb_configure_window. */
 #define XCB_CONFIGURE_WINDOW 12
@@ -3151,6 +3228,35 @@ typedef enum xcb_arc_mode_t {
     XCB_ARC_MODE_PIE_SLICE = 1
 } xcb_arc_mode_t;
 
+/**
+ * @brief xcb_create_gc_value_list_t
+ **/
+typedef struct xcb_create_gc_value_list_t {
+    uint32_t     function; /**<  */
+    uint32_t     plane_mask; /**<  */
+    uint32_t     foreground; /**<  */
+    uint32_t     background; /**<  */
+    uint32_t     line_width; /**<  */
+    uint32_t     line_style; /**<  */
+    uint32_t     cap_style; /**<  */
+    uint32_t     join_style; /**<  */
+    uint32_t     fill_style; /**<  */
+    uint32_t     fill_rule; /**<  */
+    xcb_pixmap_t tile; /**<  */
+    xcb_pixmap_t stipple; /**<  */
+    int32_t      tile_stipple_x_origin; /**<  */
+    int32_t      tile_stipple_y_origin; /**<  */
+    xcb_font_t   font; /**<  */
+    uint32_t     subwindow_mode; /**<  */
+    xcb_bool32_t graphics_exposures; /**<  */
+    int32_t      clip_x_origin; /**<  */
+    int32_t      clip_y_origin; /**<  */
+    xcb_pixmap_t clip_mask; /**<  */
+    uint32_t     dash_offset; /**<  */
+    uint32_t     dashes; /**<  */
+    uint32_t     arc_mode; /**<  */
+} xcb_create_gc_value_list_t;
+
 /** Opcode for xcb_create_gc. */
 #define XCB_CREATE_GC 55
 
@@ -3165,6 +3271,35 @@ typedef struct xcb_create_gc_request_t {
     xcb_drawable_t drawable; /**<  */
     uint32_t       value_mask; /**<  */
 } xcb_create_gc_request_t;
+
+/**
+ * @brief xcb_change_gc_value_list_t
+ **/
+typedef struct xcb_change_gc_value_list_t {
+    uint32_t     function; /**<  */
+    uint32_t     plane_mask; /**<  */
+    uint32_t     foreground; /**<  */
+    uint32_t     background; /**<  */
+    uint32_t     line_width; /**<  */
+    uint32_t     line_style; /**<  */
+    uint32_t     cap_style; /**<  */
+    uint32_t     join_style; /**<  */
+    uint32_t     fill_style; /**<  */
+    uint32_t     fill_rule; /**<  */
+    xcb_pixmap_t tile; /**<  */
+    xcb_pixmap_t stipple; /**<  */
+    int32_t      tile_stipple_x_origin; /**<  */
+    int32_t      tile_stipple_y_origin; /**<  */
+    xcb_font_t   font; /**<  */
+    uint32_t     subwindow_mode; /**<  */
+    xcb_bool32_t graphics_exposures; /**<  */
+    int32_t      clip_x_origin; /**<  */
+    int32_t      clip_y_origin; /**<  */
+    xcb_pixmap_t clip_mask; /**<  */
+    uint32_t     dash_offset; /**<  */
+    uint32_t     dashes; /**<  */
+    uint32_t     arc_mode; /**<  */
+} xcb_change_gc_value_list_t;
 
 /** Opcode for xcb_change_gc. */
 #define XCB_CHANGE_GC 56
@@ -4259,6 +4394,20 @@ typedef enum xcb_auto_repeat_mode_t {
     XCB_AUTO_REPEAT_MODE_DEFAULT = 2
 } xcb_auto_repeat_mode_t;
 
+/**
+ * @brief xcb_change_keyboard_control_value_list_t
+ **/
+typedef struct xcb_change_keyboard_control_value_list_t {
+    int32_t         key_click_percent; /**<  */
+    int32_t         bell_percent; /**<  */
+    int32_t         bell_pitch; /**<  */
+    int32_t         bell_duration; /**<  */
+    uint32_t        led; /**<  */
+    uint32_t        led_mode; /**<  */
+    xcb_keycode32_t key; /**<  */
+    uint32_t        auto_repeat_mode; /**<  */
+} xcb_change_keyboard_control_value_list_t;
+
 /** Opcode for xcb_change_keyboard_control. */
 #define XCB_CHANGE_KEYBOARD_CONTROL 102
 
@@ -4972,6 +5121,29 @@ xcb_fontable_end (xcb_fontable_iterator_t i  /**< */);
 
 /**
  * Get the next element of the iterator
+ * @param i Pointer to a xcb_bool32_iterator_t
+ *
+ * Get the next element in the iterator. The member rem is
+ * decreased by one. The member data points to the next
+ * element. The member index is increased by sizeof(xcb_bool32_t)
+ */
+void
+xcb_bool32_next (xcb_bool32_iterator_t *i  /**< */);
+
+/**
+ * Return the iterator pointing to the last element
+ * @param i An xcb_bool32_iterator_t
+ * @return  The iterator pointing to the last element
+ *
+ * Set the current element in the iterator to the last element.
+ * The member rem is set to 0. The member data points to the
+ * last element.
+ */
+xcb_generic_iterator_t
+xcb_bool32_end (xcb_bool32_iterator_t i  /**< */);
+
+/**
+ * Get the next element of the iterator
  * @param i Pointer to a xcb_visualid_iterator_t
  *
  * Get the next element in the iterator. The member rem is
@@ -5061,6 +5233,29 @@ xcb_keycode_next (xcb_keycode_iterator_t *i  /**< */);
  */
 xcb_generic_iterator_t
 xcb_keycode_end (xcb_keycode_iterator_t i  /**< */);
+
+/**
+ * Get the next element of the iterator
+ * @param i Pointer to a xcb_keycode32_iterator_t
+ *
+ * Get the next element in the iterator. The member rem is
+ * decreased by one. The member data points to the next
+ * element. The member index is increased by sizeof(xcb_keycode32_t)
+ */
+void
+xcb_keycode32_next (xcb_keycode32_iterator_t *i  /**< */);
+
+/**
+ * Return the iterator pointing to the last element
+ * @param i An xcb_keycode32_iterator_t
+ * @return  The iterator pointing to the last element
+ *
+ * Set the current element in the iterator to the last element.
+ * The member rem is set to 0. The member data points to the
+ * last element.
+ */
+xcb_generic_iterator_t
+xcb_keycode32_end (xcb_keycode32_iterator_t i  /**< */);
 
 /**
  * Get the next element of the iterator
@@ -5455,6 +5650,20 @@ xcb_generic_iterator_t
 xcb_client_message_data_end (xcb_client_message_data_iterator_t i  /**< */);
 
 int
+xcb_create_window_value_list_serialize (void                                 **_buffer  /**< */,
+                                        uint32_t                               value_mask  /**< */,
+                                        const xcb_create_window_value_list_t  *_aux  /**< */);
+
+int
+xcb_create_window_value_list_unpack (const void                      *_buffer  /**< */,
+                                     uint32_t                         value_mask  /**< */,
+                                     xcb_create_window_value_list_t  *_aux  /**< */);
+
+int
+xcb_create_window_value_list_sizeof (const void  *_buffer  /**< */,
+                                     uint32_t     value_mask  /**< */);
+
+int
 xcb_create_window_sizeof (const void  *_buffer  /**< */);
 
 /**
@@ -5516,7 +5725,7 @@ xcb_create_window_checked (xcb_connection_t *c  /**< */,
                            uint16_t          _class  /**< */,
                            xcb_visualid_t    visual  /**< */,
                            uint32_t          value_mask  /**< */,
-                           const uint32_t   *value_list  /**< */);
+                           const void       *value_list  /**< */);
 
 /**
  * @brief Creates a window
@@ -5574,7 +5783,143 @@ xcb_create_window (xcb_connection_t *c  /**< */,
                    uint16_t          _class  /**< */,
                    xcb_visualid_t    visual  /**< */,
                    uint32_t          value_mask  /**< */,
-                   const uint32_t   *value_list  /**< */);
+                   const void       *value_list  /**< */);
+
+/**
+ * @brief Creates a window
+ *
+ * @param c The connection
+ * @param depth Specifies the new window's depth (TODO: what unit?).
+ * \n
+ * The special value `XCB_COPY_FROM_PARENT` means the depth is taken from the
+ * \a parent window.
+ * @param wid The ID with which you will refer to the new window, created by
+ * `xcb_generate_id`.
+ * @param parent The parent window of the new window.
+ * @param x The X coordinate of the new window.
+ * @param y The Y coordinate of the new window.
+ * @param width The width of the new window.
+ * @param height The height of the new window.
+ * @param border_width TODO:
+ * \n
+ * Must be zero if the `class` is `InputOnly` or a `xcb_match_error_t` occurs.
+ * @param _class A bitmask of #xcb_window_class_t values.
+ * @param _class \n
+ * @param visual Specifies the id for the new window's visual.
+ * \n
+ * The special value `XCB_COPY_FROM_PARENT` means the visual is taken from the
+ * \a parent window.
+ * @param value_mask A bitmask of #xcb_cw_t values.
+ * @return A cookie
+ *
+ * Creates an unmapped window as child of the specified \a parent window. A
+ * CreateNotify event will be generated. The new window is placed on top in the
+ * stacking order with respect to siblings.
+ * 
+ * The coordinate system has the X axis horizontal and the Y axis vertical with
+ * the origin [0, 0] at the upper-left corner. Coordinates are integral, in terms
+ * of pixels, and coincide with pixel centers. Each window and pixmap has its own
+ * coordinate system. For a window, the origin is inside the border at the inside,
+ * upper-left corner.
+ * 
+ * The created window is not yet displayed (mapped), call `xcb_map_window` to
+ * display it.
+ * 
+ * The created window will initially use the same cursor as its parent.
+ *
+ * This form can be used only if the request will not cause
+ * a reply to be generated. Any returned error will be
+ * saved for handling by xcb_request_check().
+ */
+xcb_void_cookie_t
+xcb_create_window_aux_checked (xcb_connection_t                     *c  /**< */,
+                               uint8_t                               depth  /**< */,
+                               xcb_window_t                          wid  /**< */,
+                               xcb_window_t                          parent  /**< */,
+                               int16_t                               x  /**< */,
+                               int16_t                               y  /**< */,
+                               uint16_t                              width  /**< */,
+                               uint16_t                              height  /**< */,
+                               uint16_t                              border_width  /**< */,
+                               uint16_t                              _class  /**< */,
+                               xcb_visualid_t                        visual  /**< */,
+                               uint32_t                              value_mask  /**< */,
+                               const xcb_create_window_value_list_t *value_list  /**< */);
+
+/**
+ * @brief Creates a window
+ *
+ * @param c The connection
+ * @param depth Specifies the new window's depth (TODO: what unit?).
+ * \n
+ * The special value `XCB_COPY_FROM_PARENT` means the depth is taken from the
+ * \a parent window.
+ * @param wid The ID with which you will refer to the new window, created by
+ * `xcb_generate_id`.
+ * @param parent The parent window of the new window.
+ * @param x The X coordinate of the new window.
+ * @param y The Y coordinate of the new window.
+ * @param width The width of the new window.
+ * @param height The height of the new window.
+ * @param border_width TODO:
+ * \n
+ * Must be zero if the `class` is `InputOnly` or a `xcb_match_error_t` occurs.
+ * @param _class A bitmask of #xcb_window_class_t values.
+ * @param _class \n
+ * @param visual Specifies the id for the new window's visual.
+ * \n
+ * The special value `XCB_COPY_FROM_PARENT` means the visual is taken from the
+ * \a parent window.
+ * @param value_mask A bitmask of #xcb_cw_t values.
+ * @return A cookie
+ *
+ * Creates an unmapped window as child of the specified \a parent window. A
+ * CreateNotify event will be generated. The new window is placed on top in the
+ * stacking order with respect to siblings.
+ * 
+ * The coordinate system has the X axis horizontal and the Y axis vertical with
+ * the origin [0, 0] at the upper-left corner. Coordinates are integral, in terms
+ * of pixels, and coincide with pixel centers. Each window and pixmap has its own
+ * coordinate system. For a window, the origin is inside the border at the inside,
+ * upper-left corner.
+ * 
+ * The created window is not yet displayed (mapped), call `xcb_map_window` to
+ * display it.
+ * 
+ * The created window will initially use the same cursor as its parent.
+ *
+ */
+xcb_void_cookie_t
+xcb_create_window_aux (xcb_connection_t                     *c  /**< */,
+                       uint8_t                               depth  /**< */,
+                       xcb_window_t                          wid  /**< */,
+                       xcb_window_t                          parent  /**< */,
+                       int16_t                               x  /**< */,
+                       int16_t                               y  /**< */,
+                       uint16_t                              width  /**< */,
+                       uint16_t                              height  /**< */,
+                       uint16_t                              border_width  /**< */,
+                       uint16_t                              _class  /**< */,
+                       xcb_visualid_t                        visual  /**< */,
+                       uint32_t                              value_mask  /**< */,
+                       const xcb_create_window_value_list_t *value_list  /**< */);
+
+void *
+xcb_create_window_value_list (const xcb_create_window_request_t *R  /**< */);
+
+int
+xcb_change_window_attributes_value_list_serialize (void                                            **_buffer  /**< */,
+                                                   uint32_t                                          value_mask  /**< */,
+                                                   const xcb_change_window_attributes_value_list_t  *_aux  /**< */);
+
+int
+xcb_change_window_attributes_value_list_unpack (const void                                 *_buffer  /**< */,
+                                                uint32_t                                    value_mask  /**< */,
+                                                xcb_change_window_attributes_value_list_t  *_aux  /**< */);
+
+int
+xcb_change_window_attributes_value_list_sizeof (const void  *_buffer  /**< */,
+                                                uint32_t     value_mask  /**< */);
 
 int
 xcb_change_window_attributes_sizeof (const void  *_buffer  /**< */);
@@ -5601,7 +5946,7 @@ xcb_void_cookie_t
 xcb_change_window_attributes_checked (xcb_connection_t *c  /**< */,
                                       xcb_window_t      window  /**< */,
                                       uint32_t          value_mask  /**< */,
-                                      const uint32_t   *value_list  /**< */);
+                                      const void       *value_list  /**< */);
 
 /**
  * @brief change window attributes
@@ -5622,7 +5967,55 @@ xcb_void_cookie_t
 xcb_change_window_attributes (xcb_connection_t *c  /**< */,
                               xcb_window_t      window  /**< */,
                               uint32_t          value_mask  /**< */,
-                              const uint32_t   *value_list  /**< */);
+                              const void       *value_list  /**< */);
+
+/**
+ * @brief change window attributes
+ *
+ * @param c The connection
+ * @param window The window to change.
+ * @param value_mask A bitmask of #xcb_cw_t values.
+ * @param value_mask \n
+ * @param value_list Values for each of the attributes specified in the bitmask \a value_mask. The
+ * order has to correspond to the order of possible \a value_mask bits. See the
+ * example.
+ * @return A cookie
+ *
+ * Changes the attributes specified by \a value_mask for the specified \a window.
+ *
+ * This form can be used only if the request will not cause
+ * a reply to be generated. Any returned error will be
+ * saved for handling by xcb_request_check().
+ */
+xcb_void_cookie_t
+xcb_change_window_attributes_aux_checked (xcb_connection_t                                *c  /**< */,
+                                          xcb_window_t                                     window  /**< */,
+                                          uint32_t                                         value_mask  /**< */,
+                                          const xcb_change_window_attributes_value_list_t *value_list  /**< */);
+
+/**
+ * @brief change window attributes
+ *
+ * @param c The connection
+ * @param window The window to change.
+ * @param value_mask A bitmask of #xcb_cw_t values.
+ * @param value_mask \n
+ * @param value_list Values for each of the attributes specified in the bitmask \a value_mask. The
+ * order has to correspond to the order of possible \a value_mask bits. See the
+ * example.
+ * @return A cookie
+ *
+ * Changes the attributes specified by \a value_mask for the specified \a window.
+ *
+ */
+xcb_void_cookie_t
+xcb_change_window_attributes_aux (xcb_connection_t                                *c  /**< */,
+                                  xcb_window_t                                     window  /**< */,
+                                  uint32_t                                         value_mask  /**< */,
+                                  const xcb_change_window_attributes_value_list_t *value_list  /**< */);
+
+void *
+xcb_change_window_attributes_value_list (const xcb_change_window_attributes_request_t *R  /**< */);
 
 /**
  * @brief Gets window attributes
@@ -5999,6 +6392,20 @@ xcb_unmap_subwindows (xcb_connection_t *c  /**< */,
                       xcb_window_t      window  /**< */);
 
 int
+xcb_configure_window_value_list_serialize (void                                    **_buffer  /**< */,
+                                           uint16_t                                  value_mask  /**< */,
+                                           const xcb_configure_window_value_list_t  *_aux  /**< */);
+
+int
+xcb_configure_window_value_list_unpack (const void                         *_buffer  /**< */,
+                                        uint16_t                            value_mask  /**< */,
+                                        xcb_configure_window_value_list_t  *_aux  /**< */);
+
+int
+xcb_configure_window_value_list_sizeof (const void  *_buffer  /**< */,
+                                        uint16_t     value_mask  /**< */);
+
+int
 xcb_configure_window_sizeof (const void  *_buffer  /**< */);
 
 /**
@@ -6021,7 +6428,7 @@ xcb_void_cookie_t
 xcb_configure_window_checked (xcb_connection_t *c  /**< */,
                               xcb_window_t      window  /**< */,
                               uint16_t          value_mask  /**< */,
-                              const uint32_t   *value_list  /**< */);
+                              const void       *value_list  /**< */);
 
 /**
  * @brief Configures window attributes
@@ -6040,7 +6447,51 @@ xcb_void_cookie_t
 xcb_configure_window (xcb_connection_t *c  /**< */,
                       xcb_window_t      window  /**< */,
                       uint16_t          value_mask  /**< */,
-                      const uint32_t   *value_list  /**< */);
+                      const void       *value_list  /**< */);
+
+/**
+ * @brief Configures window attributes
+ *
+ * @param c The connection
+ * @param window The window to configure.
+ * @param value_mask Bitmask of attributes to change.
+ * @param value_list New values, corresponding to the attributes in value_mask. The order has to
+ * correspond to the order of possible \a value_mask bits. See the example.
+ * @return A cookie
+ *
+ * Configures a window's size, position, border width and stacking order.
+ *
+ * This form can be used only if the request will not cause
+ * a reply to be generated. Any returned error will be
+ * saved for handling by xcb_request_check().
+ */
+xcb_void_cookie_t
+xcb_configure_window_aux_checked (xcb_connection_t                        *c  /**< */,
+                                  xcb_window_t                             window  /**< */,
+                                  uint16_t                                 value_mask  /**< */,
+                                  const xcb_configure_window_value_list_t *value_list  /**< */);
+
+/**
+ * @brief Configures window attributes
+ *
+ * @param c The connection
+ * @param window The window to configure.
+ * @param value_mask Bitmask of attributes to change.
+ * @param value_list New values, corresponding to the attributes in value_mask. The order has to
+ * correspond to the order of possible \a value_mask bits. See the example.
+ * @return A cookie
+ *
+ * Configures a window's size, position, border width and stacking order.
+ *
+ */
+xcb_void_cookie_t
+xcb_configure_window_aux (xcb_connection_t                        *c  /**< */,
+                          xcb_window_t                             window  /**< */,
+                          uint16_t                                 value_mask  /**< */,
+                          const xcb_configure_window_value_list_t *value_list  /**< */);
+
+void *
+xcb_configure_window_value_list (const xcb_configure_window_request_t *R  /**< */);
 
 /**
  * @brief Change window stacking order
@@ -6401,6 +6852,15 @@ xcb_change_property (xcb_connection_t *c  /**< */,
                      uint8_t           format  /**< */,
                      uint32_t          data_len  /**< */,
                      const void       *data  /**< */);
+
+void *
+xcb_change_property_data (const xcb_change_property_request_t *R  /**< */);
+
+int
+xcb_change_property_data_length (const xcb_change_property_request_t *R  /**< */);
+
+xcb_generic_iterator_t
+xcb_change_property_data_end (const xcb_change_property_request_t *R  /**< */);
 
 /**
  *
@@ -8087,6 +8547,15 @@ xcb_open_font (xcb_connection_t *c  /**< */,
                uint16_t          name_len  /**< */,
                const char       *name  /**< */);
 
+char *
+xcb_open_font_name (const xcb_open_font_request_t *R  /**< */);
+
+int
+xcb_open_font_name_length (const xcb_open_font_request_t *R  /**< */);
+
+xcb_generic_iterator_t
+xcb_open_font_name_end (const xcb_open_font_request_t *R  /**< */);
+
 /**
  *
  * @param c The connection
@@ -8563,6 +9032,12 @@ xcb_set_font_path (xcb_connection_t *c  /**< */,
                    const xcb_str_t  *font  /**< */);
 
 int
+xcb_set_font_path_font_length (const xcb_set_font_path_request_t *R  /**< */);
+
+xcb_str_iterator_t
+xcb_set_font_path_font_iterator (const xcb_set_font_path_request_t *R  /**< */);
+
+int
 xcb_get_font_path_sizeof (const void  *_buffer  /**< */);
 
 /**
@@ -8700,6 +9175,20 @@ xcb_free_pixmap (xcb_connection_t *c  /**< */,
                  xcb_pixmap_t      pixmap  /**< */);
 
 int
+xcb_create_gc_value_list_serialize (void                             **_buffer  /**< */,
+                                    uint32_t                           value_mask  /**< */,
+                                    const xcb_create_gc_value_list_t  *_aux  /**< */);
+
+int
+xcb_create_gc_value_list_unpack (const void                  *_buffer  /**< */,
+                                 uint32_t                     value_mask  /**< */,
+                                 xcb_create_gc_value_list_t  *_aux  /**< */);
+
+int
+xcb_create_gc_value_list_sizeof (const void  *_buffer  /**< */,
+                                 uint32_t     value_mask  /**< */);
+
+int
 xcb_create_gc_sizeof (const void  *_buffer  /**< */);
 
 /**
@@ -8723,7 +9212,7 @@ xcb_create_gc_checked (xcb_connection_t *c  /**< */,
                        xcb_gcontext_t    cid  /**< */,
                        xcb_drawable_t    drawable  /**< */,
                        uint32_t          value_mask  /**< */,
-                       const uint32_t   *value_list  /**< */);
+                       const void       *value_list  /**< */);
 
 /**
  * @brief Creates a graphics context
@@ -8743,7 +9232,67 @@ xcb_create_gc (xcb_connection_t *c  /**< */,
                xcb_gcontext_t    cid  /**< */,
                xcb_drawable_t    drawable  /**< */,
                uint32_t          value_mask  /**< */,
-               const uint32_t   *value_list  /**< */);
+               const void       *value_list  /**< */);
+
+/**
+ * @brief Creates a graphics context
+ *
+ * @param c The connection
+ * @param cid The ID with which you will refer to the graphics context, created by
+ * `xcb_generate_id`.
+ * @param drawable Drawable to get the root/depth from.
+ * @return A cookie
+ *
+ * Creates a graphics context. The graphics context can be used with any drawable
+ * that has the same root and depth as the specified drawable.
+ *
+ * This form can be used only if the request will not cause
+ * a reply to be generated. Any returned error will be
+ * saved for handling by xcb_request_check().
+ */
+xcb_void_cookie_t
+xcb_create_gc_aux_checked (xcb_connection_t                 *c  /**< */,
+                           xcb_gcontext_t                    cid  /**< */,
+                           xcb_drawable_t                    drawable  /**< */,
+                           uint32_t                          value_mask  /**< */,
+                           const xcb_create_gc_value_list_t *value_list  /**< */);
+
+/**
+ * @brief Creates a graphics context
+ *
+ * @param c The connection
+ * @param cid The ID with which you will refer to the graphics context, created by
+ * `xcb_generate_id`.
+ * @param drawable Drawable to get the root/depth from.
+ * @return A cookie
+ *
+ * Creates a graphics context. The graphics context can be used with any drawable
+ * that has the same root and depth as the specified drawable.
+ *
+ */
+xcb_void_cookie_t
+xcb_create_gc_aux (xcb_connection_t                 *c  /**< */,
+                   xcb_gcontext_t                    cid  /**< */,
+                   xcb_drawable_t                    drawable  /**< */,
+                   uint32_t                          value_mask  /**< */,
+                   const xcb_create_gc_value_list_t *value_list  /**< */);
+
+void *
+xcb_create_gc_value_list (const xcb_create_gc_request_t *R  /**< */);
+
+int
+xcb_change_gc_value_list_serialize (void                             **_buffer  /**< */,
+                                    uint32_t                           value_mask  /**< */,
+                                    const xcb_change_gc_value_list_t  *_aux  /**< */);
+
+int
+xcb_change_gc_value_list_unpack (const void                  *_buffer  /**< */,
+                                 uint32_t                     value_mask  /**< */,
+                                 xcb_change_gc_value_list_t  *_aux  /**< */);
+
+int
+xcb_change_gc_value_list_sizeof (const void  *_buffer  /**< */,
+                                 uint32_t     value_mask  /**< */);
 
 int
 xcb_change_gc_sizeof (const void  *_buffer  /**< */);
@@ -8770,7 +9319,7 @@ xcb_void_cookie_t
 xcb_change_gc_checked (xcb_connection_t *c  /**< */,
                        xcb_gcontext_t    gc  /**< */,
                        uint32_t          value_mask  /**< */,
-                       const uint32_t   *value_list  /**< */);
+                       const void       *value_list  /**< */);
 
 /**
  * @brief change graphics context components
@@ -8791,7 +9340,55 @@ xcb_void_cookie_t
 xcb_change_gc (xcb_connection_t *c  /**< */,
                xcb_gcontext_t    gc  /**< */,
                uint32_t          value_mask  /**< */,
-               const uint32_t   *value_list  /**< */);
+               const void       *value_list  /**< */);
+
+/**
+ * @brief change graphics context components
+ *
+ * @param c The connection
+ * @param gc The graphics context to change.
+ * @param value_mask A bitmask of #xcb_gc_t values.
+ * @param value_mask \n
+ * @param value_list Values for each of the components specified in the bitmask \a value_mask. The
+ * order has to correspond to the order of possible \a value_mask bits. See the
+ * example.
+ * @return A cookie
+ *
+ * Changes the components specified by \a value_mask for the specified graphics context.
+ *
+ * This form can be used only if the request will not cause
+ * a reply to be generated. Any returned error will be
+ * saved for handling by xcb_request_check().
+ */
+xcb_void_cookie_t
+xcb_change_gc_aux_checked (xcb_connection_t                 *c  /**< */,
+                           xcb_gcontext_t                    gc  /**< */,
+                           uint32_t                          value_mask  /**< */,
+                           const xcb_change_gc_value_list_t *value_list  /**< */);
+
+/**
+ * @brief change graphics context components
+ *
+ * @param c The connection
+ * @param gc The graphics context to change.
+ * @param value_mask A bitmask of #xcb_gc_t values.
+ * @param value_mask \n
+ * @param value_list Values for each of the components specified in the bitmask \a value_mask. The
+ * order has to correspond to the order of possible \a value_mask bits. See the
+ * example.
+ * @return A cookie
+ *
+ * Changes the components specified by \a value_mask for the specified graphics context.
+ *
+ */
+xcb_void_cookie_t
+xcb_change_gc_aux (xcb_connection_t                 *c  /**< */,
+                   xcb_gcontext_t                    gc  /**< */,
+                   uint32_t                          value_mask  /**< */,
+                   const xcb_change_gc_value_list_t *value_list  /**< */);
+
+void *
+xcb_change_gc_value_list (const xcb_change_gc_request_t *R  /**< */);
 
 /**
  *
@@ -8860,6 +9457,15 @@ xcb_set_dashes (xcb_connection_t *c  /**< */,
                 uint16_t          dashes_len  /**< */,
                 const uint8_t    *dashes  /**< */);
 
+uint8_t *
+xcb_set_dashes_dashes (const xcb_set_dashes_request_t *R  /**< */);
+
+int
+xcb_set_dashes_dashes_length (const xcb_set_dashes_request_t *R  /**< */);
+
+xcb_generic_iterator_t
+xcb_set_dashes_dashes_end (const xcb_set_dashes_request_t *R  /**< */);
+
 int
 xcb_set_clip_rectangles_sizeof (const void  *_buffer  /**< */,
                                 uint32_t     rectangles_len  /**< */);
@@ -8900,6 +9506,17 @@ xcb_set_clip_rectangles (xcb_connection_t      *c  /**< */,
                          int16_t                clip_y_origin  /**< */,
                          uint32_t               rectangles_len  /**< */,
                          const xcb_rectangle_t *rectangles  /**< */);
+
+xcb_rectangle_t *
+xcb_set_clip_rectangles_rectangles (const xcb_set_clip_rectangles_request_t *R  /**< */);
+
+int
+xcb_set_clip_rectangles_rectangles_length (const xcb_set_clip_rectangles_request_t *R  /**< */,
+                                           uint32_t rectangles_len /**< */);
+
+xcb_rectangle_iterator_t
+xcb_set_clip_rectangles_rectangles_iterator (const xcb_set_clip_rectangles_request_t *R  /**< */,
+                                             uint32_t rectangles_len /**< */);
 
 /**
  * @brief Destroys a graphics context
@@ -9116,6 +9733,17 @@ xcb_poly_point (xcb_connection_t  *c  /**< */,
                 uint32_t           points_len  /**< */,
                 const xcb_point_t *points  /**< */);
 
+xcb_point_t *
+xcb_poly_point_points (const xcb_poly_point_request_t *R  /**< */);
+
+int
+xcb_poly_point_points_length (const xcb_poly_point_request_t *R  /**< */,
+                              uint32_t points_len /**< */);
+
+xcb_point_iterator_t
+xcb_poly_point_points_iterator (const xcb_poly_point_request_t *R  /**< */,
+                                uint32_t points_len /**< */);
+
 int
 xcb_poly_line_sizeof (const void  *_buffer  /**< */,
                       uint32_t     points_len  /**< */);
@@ -9182,6 +9810,17 @@ xcb_poly_line (xcb_connection_t  *c  /**< */,
                xcb_gcontext_t     gc  /**< */,
                uint32_t           points_len  /**< */,
                const xcb_point_t *points  /**< */);
+
+xcb_point_t *
+xcb_poly_line_points (const xcb_poly_line_request_t *R  /**< */);
+
+int
+xcb_poly_line_points_length (const xcb_poly_line_request_t *R  /**< */,
+                             uint32_t points_len /**< */);
+
+xcb_point_iterator_t
+xcb_poly_line_points_iterator (const xcb_poly_line_request_t *R  /**< */,
+                               uint32_t points_len /**< */);
 
 /**
  * Get the next element of the iterator
@@ -9273,6 +9912,17 @@ xcb_poly_segment (xcb_connection_t    *c  /**< */,
                   uint32_t             segments_len  /**< */,
                   const xcb_segment_t *segments  /**< */);
 
+xcb_segment_t *
+xcb_poly_segment_segments (const xcb_poly_segment_request_t *R  /**< */);
+
+int
+xcb_poly_segment_segments_length (const xcb_poly_segment_request_t *R  /**< */,
+                                  uint32_t segments_len /**< */);
+
+xcb_segment_iterator_t
+xcb_poly_segment_segments_iterator (const xcb_poly_segment_request_t *R  /**< */,
+                                    uint32_t segments_len /**< */);
+
 int
 xcb_poly_rectangle_sizeof (const void  *_buffer  /**< */,
                            uint32_t     rectangles_len  /**< */);
@@ -9310,6 +9960,17 @@ xcb_poly_rectangle (xcb_connection_t      *c  /**< */,
                     uint32_t               rectangles_len  /**< */,
                     const xcb_rectangle_t *rectangles  /**< */);
 
+xcb_rectangle_t *
+xcb_poly_rectangle_rectangles (const xcb_poly_rectangle_request_t *R  /**< */);
+
+int
+xcb_poly_rectangle_rectangles_length (const xcb_poly_rectangle_request_t *R  /**< */,
+                                      uint32_t rectangles_len /**< */);
+
+xcb_rectangle_iterator_t
+xcb_poly_rectangle_rectangles_iterator (const xcb_poly_rectangle_request_t *R  /**< */,
+                                        uint32_t rectangles_len /**< */);
+
 int
 xcb_poly_arc_sizeof (const void  *_buffer  /**< */,
                      uint32_t     arcs_len  /**< */);
@@ -9346,6 +10007,17 @@ xcb_poly_arc (xcb_connection_t *c  /**< */,
               xcb_gcontext_t    gc  /**< */,
               uint32_t          arcs_len  /**< */,
               const xcb_arc_t  *arcs  /**< */);
+
+xcb_arc_t *
+xcb_poly_arc_arcs (const xcb_poly_arc_request_t *R  /**< */);
+
+int
+xcb_poly_arc_arcs_length (const xcb_poly_arc_request_t *R  /**< */,
+                          uint32_t arcs_len /**< */);
+
+xcb_arc_iterator_t
+xcb_poly_arc_arcs_iterator (const xcb_poly_arc_request_t *R  /**< */,
+                            uint32_t arcs_len /**< */);
 
 int
 xcb_fill_poly_sizeof (const void  *_buffer  /**< */,
@@ -9387,6 +10059,17 @@ xcb_fill_poly (xcb_connection_t  *c  /**< */,
                uint8_t            coordinate_mode  /**< */,
                uint32_t           points_len  /**< */,
                const xcb_point_t *points  /**< */);
+
+xcb_point_t *
+xcb_fill_poly_points (const xcb_fill_poly_request_t *R  /**< */);
+
+int
+xcb_fill_poly_points_length (const xcb_fill_poly_request_t *R  /**< */,
+                             uint32_t points_len /**< */);
+
+xcb_point_iterator_t
+xcb_fill_poly_points_iterator (const xcb_fill_poly_request_t *R  /**< */,
+                               uint32_t points_len /**< */);
 
 int
 xcb_poly_fill_rectangle_sizeof (const void  *_buffer  /**< */,
@@ -9453,6 +10136,17 @@ xcb_poly_fill_rectangle (xcb_connection_t      *c  /**< */,
                          uint32_t               rectangles_len  /**< */,
                          const xcb_rectangle_t *rectangles  /**< */);
 
+xcb_rectangle_t *
+xcb_poly_fill_rectangle_rectangles (const xcb_poly_fill_rectangle_request_t *R  /**< */);
+
+int
+xcb_poly_fill_rectangle_rectangles_length (const xcb_poly_fill_rectangle_request_t *R  /**< */,
+                                           uint32_t rectangles_len /**< */);
+
+xcb_rectangle_iterator_t
+xcb_poly_fill_rectangle_rectangles_iterator (const xcb_poly_fill_rectangle_request_t *R  /**< */,
+                                             uint32_t rectangles_len /**< */);
+
 int
 xcb_poly_fill_arc_sizeof (const void  *_buffer  /**< */,
                           uint32_t     arcs_len  /**< */);
@@ -9489,6 +10183,17 @@ xcb_poly_fill_arc (xcb_connection_t *c  /**< */,
                    xcb_gcontext_t    gc  /**< */,
                    uint32_t          arcs_len  /**< */,
                    const xcb_arc_t  *arcs  /**< */);
+
+xcb_arc_t *
+xcb_poly_fill_arc_arcs (const xcb_poly_fill_arc_request_t *R  /**< */);
+
+int
+xcb_poly_fill_arc_arcs_length (const xcb_poly_fill_arc_request_t *R  /**< */,
+                               uint32_t arcs_len /**< */);
+
+xcb_arc_iterator_t
+xcb_poly_fill_arc_arcs_iterator (const xcb_poly_fill_arc_request_t *R  /**< */,
+                                 uint32_t arcs_len /**< */);
 
 int
 xcb_put_image_sizeof (const void  *_buffer  /**< */,
@@ -9540,6 +10245,17 @@ xcb_put_image (xcb_connection_t *c  /**< */,
                uint8_t           depth  /**< */,
                uint32_t          data_len  /**< */,
                const uint8_t    *data  /**< */);
+
+uint8_t *
+xcb_put_image_data (const xcb_put_image_request_t *R  /**< */);
+
+int
+xcb_put_image_data_length (const xcb_put_image_request_t *R  /**< */,
+                           uint32_t data_len /**< */);
+
+xcb_generic_iterator_t
+xcb_put_image_data_end (const xcb_put_image_request_t *R  /**< */,
+                        uint32_t data_len /**< */);
 
 int
 xcb_get_image_sizeof (const void  *_buffer  /**< */);
@@ -9652,6 +10368,17 @@ xcb_poly_text_8 (xcb_connection_t *c  /**< */,
                  uint32_t          items_len  /**< */,
                  const uint8_t    *items  /**< */);
 
+uint8_t *
+xcb_poly_text_8_items (const xcb_poly_text_8_request_t *R  /**< */);
+
+int
+xcb_poly_text_8_items_length (const xcb_poly_text_8_request_t *R  /**< */,
+                              uint32_t items_len /**< */);
+
+xcb_generic_iterator_t
+xcb_poly_text_8_items_end (const xcb_poly_text_8_request_t *R  /**< */,
+                           uint32_t items_len /**< */);
+
 int
 xcb_poly_text_16_sizeof (const void  *_buffer  /**< */,
                          uint32_t     items_len  /**< */);
@@ -9692,6 +10419,17 @@ xcb_poly_text_16 (xcb_connection_t *c  /**< */,
                   int16_t           y  /**< */,
                   uint32_t          items_len  /**< */,
                   const uint8_t    *items  /**< */);
+
+uint8_t *
+xcb_poly_text_16_items (const xcb_poly_text_16_request_t *R  /**< */);
+
+int
+xcb_poly_text_16_items_length (const xcb_poly_text_16_request_t *R  /**< */,
+                               uint32_t items_len /**< */);
+
+xcb_generic_iterator_t
+xcb_poly_text_16_items_end (const xcb_poly_text_16_request_t *R  /**< */,
+                            uint32_t items_len /**< */);
 
 int
 xcb_image_text_8_sizeof (const void  *_buffer  /**< */);
@@ -9770,6 +10508,15 @@ xcb_image_text_8 (xcb_connection_t *c  /**< */,
                   int16_t           x  /**< */,
                   int16_t           y  /**< */,
                   const char       *string  /**< */);
+
+char *
+xcb_image_text_8_string (const xcb_image_text_8_request_t *R  /**< */);
+
+int
+xcb_image_text_8_string_length (const xcb_image_text_8_request_t *R  /**< */);
+
+xcb_generic_iterator_t
+xcb_image_text_8_string_end (const xcb_image_text_8_request_t *R  /**< */);
 
 int
 xcb_image_text_16_sizeof (const void  *_buffer  /**< */);
@@ -9850,6 +10597,15 @@ xcb_image_text_16 (xcb_connection_t   *c  /**< */,
                    int16_t             x  /**< */,
                    int16_t             y  /**< */,
                    const xcb_char2b_t *string  /**< */);
+
+xcb_char2b_t *
+xcb_image_text_16_string (const xcb_image_text_16_request_t *R  /**< */);
+
+int
+xcb_image_text_16_string_length (const xcb_image_text_16_request_t *R  /**< */);
+
+xcb_char2b_iterator_t
+xcb_image_text_16_string_iterator (const xcb_image_text_16_request_t *R  /**< */);
 
 /**
  *
@@ -10353,6 +11109,17 @@ xcb_free_colors (xcb_connection_t *c  /**< */,
                  uint32_t          pixels_len  /**< */,
                  const uint32_t   *pixels  /**< */);
 
+uint32_t *
+xcb_free_colors_pixels (const xcb_free_colors_request_t *R  /**< */);
+
+int
+xcb_free_colors_pixels_length (const xcb_free_colors_request_t *R  /**< */,
+                               uint32_t pixels_len /**< */);
+
+xcb_generic_iterator_t
+xcb_free_colors_pixels_end (const xcb_free_colors_request_t *R  /**< */,
+                            uint32_t pixels_len /**< */);
+
 /**
  * Get the next element of the iterator
  * @param i Pointer to a xcb_coloritem_iterator_t
@@ -10411,6 +11178,17 @@ xcb_store_colors (xcb_connection_t      *c  /**< */,
                   uint32_t               items_len  /**< */,
                   const xcb_coloritem_t *items  /**< */);
 
+xcb_coloritem_t *
+xcb_store_colors_items (const xcb_store_colors_request_t *R  /**< */);
+
+int
+xcb_store_colors_items_length (const xcb_store_colors_request_t *R  /**< */,
+                               uint32_t items_len /**< */);
+
+xcb_coloritem_iterator_t
+xcb_store_colors_items_iterator (const xcb_store_colors_request_t *R  /**< */,
+                                 uint32_t items_len /**< */);
+
 int
 xcb_store_named_color_sizeof (const void  *_buffer  /**< */);
 
@@ -10448,6 +11226,15 @@ xcb_store_named_color (xcb_connection_t *c  /**< */,
                        uint32_t          pixel  /**< */,
                        uint16_t          name_len  /**< */,
                        const char       *name  /**< */);
+
+char *
+xcb_store_named_color_name (const xcb_store_named_color_request_t *R  /**< */);
+
+int
+xcb_store_named_color_name_length (const xcb_store_named_color_request_t *R  /**< */);
+
+xcb_generic_iterator_t
+xcb_store_named_color_name_end (const xcb_store_named_color_request_t *R  /**< */);
 
 /**
  * Get the next element of the iterator
@@ -11014,6 +11801,15 @@ xcb_change_keyboard_mapping (xcb_connection_t   *c  /**< */,
                              uint8_t             keysyms_per_keycode  /**< */,
                              const xcb_keysym_t *keysyms  /**< */);
 
+xcb_keysym_t *
+xcb_change_keyboard_mapping_keysyms (const xcb_change_keyboard_mapping_request_t *R  /**< */);
+
+int
+xcb_change_keyboard_mapping_keysyms_length (const xcb_change_keyboard_mapping_request_t *R  /**< */);
+
+xcb_generic_iterator_t
+xcb_change_keyboard_mapping_keysyms_end (const xcb_change_keyboard_mapping_request_t *R  /**< */);
+
 int
 xcb_get_keyboard_mapping_sizeof (const void  *_buffer  /**< */);
 
@@ -11075,6 +11871,20 @@ xcb_get_keyboard_mapping_reply (xcb_connection_t                   *c  /**< */,
                                 xcb_generic_error_t               **e  /**< */);
 
 int
+xcb_change_keyboard_control_value_list_serialize (void                                           **_buffer  /**< */,
+                                                  uint32_t                                         value_mask  /**< */,
+                                                  const xcb_change_keyboard_control_value_list_t  *_aux  /**< */);
+
+int
+xcb_change_keyboard_control_value_list_unpack (const void                                *_buffer  /**< */,
+                                               uint32_t                                   value_mask  /**< */,
+                                               xcb_change_keyboard_control_value_list_t  *_aux  /**< */);
+
+int
+xcb_change_keyboard_control_value_list_sizeof (const void  *_buffer  /**< */,
+                                               uint32_t     value_mask  /**< */);
+
+int
 xcb_change_keyboard_control_sizeof (const void  *_buffer  /**< */);
 
 /**
@@ -11091,7 +11901,7 @@ xcb_change_keyboard_control_sizeof (const void  *_buffer  /**< */);
 xcb_void_cookie_t
 xcb_change_keyboard_control_checked (xcb_connection_t *c  /**< */,
                                      uint32_t          value_mask  /**< */,
-                                     const uint32_t   *value_list  /**< */);
+                                     const void       *value_list  /**< */);
 
 /**
  *
@@ -11104,7 +11914,39 @@ xcb_change_keyboard_control_checked (xcb_connection_t *c  /**< */,
 xcb_void_cookie_t
 xcb_change_keyboard_control (xcb_connection_t *c  /**< */,
                              uint32_t          value_mask  /**< */,
-                             const uint32_t   *value_list  /**< */);
+                             const void       *value_list  /**< */);
+
+/**
+ *
+ * @param c The connection
+ * @return A cookie
+ *
+ * Delivers a request to the X server.
+ *
+ * This form can be used only if the request will not cause
+ * a reply to be generated. Any returned error will be
+ * saved for handling by xcb_request_check().
+ */
+xcb_void_cookie_t
+xcb_change_keyboard_control_aux_checked (xcb_connection_t                               *c  /**< */,
+                                         uint32_t                                        value_mask  /**< */,
+                                         const xcb_change_keyboard_control_value_list_t *value_list  /**< */);
+
+/**
+ *
+ * @param c The connection
+ * @return A cookie
+ *
+ * Delivers a request to the X server.
+ *
+ */
+xcb_void_cookie_t
+xcb_change_keyboard_control_aux (xcb_connection_t                               *c  /**< */,
+                                 uint32_t                                        value_mask  /**< */,
+                                 const xcb_change_keyboard_control_value_list_t *value_list  /**< */);
+
+void *
+xcb_change_keyboard_control_value_list (const xcb_change_keyboard_control_request_t *R  /**< */);
 
 /**
  *
@@ -11369,6 +12211,15 @@ xcb_change_hosts (xcb_connection_t *c  /**< */,
                   uint16_t          address_len  /**< */,
                   const uint8_t    *address  /**< */);
 
+uint8_t *
+xcb_change_hosts_address (const xcb_change_hosts_request_t *R  /**< */);
+
+int
+xcb_change_hosts_address_length (const xcb_change_hosts_request_t *R  /**< */);
+
+xcb_generic_iterator_t
+xcb_change_hosts_address_end (const xcb_change_hosts_request_t *R  /**< */);
+
 int
 xcb_host_sizeof (const void  *_buffer  /**< */);
 
@@ -11585,6 +12436,15 @@ xcb_rotate_properties (xcb_connection_t *c  /**< */,
                        uint16_t          atoms_len  /**< */,
                        int16_t           delta  /**< */,
                        const xcb_atom_t *atoms  /**< */);
+
+xcb_atom_t *
+xcb_rotate_properties_atoms (const xcb_rotate_properties_request_t *R  /**< */);
+
+int
+xcb_rotate_properties_atoms_length (const xcb_rotate_properties_request_t *R  /**< */);
+
+xcb_generic_iterator_t
+xcb_rotate_properties_atoms_end (const xcb_rotate_properties_request_t *R  /**< */);
 
 /**
  *

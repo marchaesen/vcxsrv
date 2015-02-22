@@ -137,6 +137,9 @@ xwl_glamor_create_pixmap_for_bo(ScreenPtr screen, struct gbm_bo *bo, int depth)
 
     glGenTextures(1, &xwl_pixmap->texture);
     glBindTexture(GL_TEXTURE_2D, xwl_pixmap->texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
     glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, xwl_pixmap->image);
     glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -398,9 +401,8 @@ xwl_screen_init_glamor(struct xwl_screen *xwl_screen,
 }
 
 void
-glamor_egl_destroy_textured_pixmap(PixmapPtr pixmap)
+glamor_egl_destroy_pixmap_image(PixmapPtr pixmap)
 {
-    glamor_destroy_textured_pixmap(pixmap);
 }
 
 int

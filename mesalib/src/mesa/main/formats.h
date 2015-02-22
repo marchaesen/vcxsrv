@@ -36,7 +36,7 @@
 #include <GL/gl.h>
 #include <stdbool.h>
 #include <stdint.h>
-
+#include "compiler.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -80,6 +80,132 @@ enum {
    MESA_FORMAT_SWIZZLE_ONE = 5,
    MESA_FORMAT_SWIZZLE_NONE = 6,
 };
+
+/**
+ * An uint32_t that encodes the information necessary to represent an
+ * array format
+ */
+typedef uint32_t mesa_array_format;
+
+/**
+ * Encoding for valid array format data types
+ */
+enum mesa_array_format_datatype {
+   MESA_ARRAY_FORMAT_TYPE_UBYTE = 0x0,
+   MESA_ARRAY_FORMAT_TYPE_USHORT = 0x1,
+   MESA_ARRAY_FORMAT_TYPE_UINT = 0x2,
+   MESA_ARRAY_FORMAT_TYPE_BYTE = 0x4,
+   MESA_ARRAY_FORMAT_TYPE_SHORT = 0x5,
+   MESA_ARRAY_FORMAT_TYPE_INT = 0x6,
+   MESA_ARRAY_FORMAT_TYPE_HALF = 0xd,
+   MESA_ARRAY_FORMAT_TYPE_FLOAT = 0xe,
+};
+
+/**
+ * An enum useful to encode/decode information stored in a mesa_array_format
+ */
+enum {
+   MESA_ARRAY_FORMAT_TYPE_IS_SIGNED = 0x4,
+   MESA_ARRAY_FORMAT_TYPE_IS_FLOAT = 0x8,
+   MESA_ARRAY_FORMAT_TYPE_NORMALIZED = 0x10,
+   MESA_ARRAY_FORMAT_DATATYPE_MASK = 0xf,
+   MESA_ARRAY_FORMAT_TYPE_MASK = 0x1f,
+   MESA_ARRAY_FORMAT_TYPE_SIZE_MASK = 0x3,
+   MESA_ARRAY_FORMAT_NUM_CHANS_MASK = 0xe0,
+   MESA_ARRAY_FORMAT_SWIZZLE_X_MASK = 0x00700,
+   MESA_ARRAY_FORMAT_SWIZZLE_Y_MASK = 0x03800,
+   MESA_ARRAY_FORMAT_SWIZZLE_Z_MASK = 0x1c000,
+   MESA_ARRAY_FORMAT_SWIZZLE_W_MASK = 0xe0000,
+   MESA_ARRAY_FORMAT_BIT = 0x80000000
+};
+
+#define MESA_ARRAY_FORMAT(SIZE, SIGNED, IS_FLOAT, NORM, NUM_CHANS, \
+      SWIZZLE_X, SWIZZLE_Y, SWIZZLE_Z, SWIZZLE_W) (                \
+   (((SIZE >> 1)      ) & MESA_ARRAY_FORMAT_TYPE_SIZE_MASK) |      \
+   (((SIGNED)    << 2 ) & MESA_ARRAY_FORMAT_TYPE_IS_SIGNED) |      \
+   (((IS_FLOAT)  << 3 ) & MESA_ARRAY_FORMAT_TYPE_IS_FLOAT) |       \
+   (((NORM)      << 4 ) & MESA_ARRAY_FORMAT_TYPE_NORMALIZED) |     \
+   (((NUM_CHANS) << 5 ) & MESA_ARRAY_FORMAT_NUM_CHANS_MASK) |      \
+   (((SWIZZLE_X) << 8 ) & MESA_ARRAY_FORMAT_SWIZZLE_X_MASK) |      \
+   (((SWIZZLE_Y) << 11) & MESA_ARRAY_FORMAT_SWIZZLE_Y_MASK) |      \
+   (((SWIZZLE_Z) << 14) & MESA_ARRAY_FORMAT_SWIZZLE_Z_MASK) |      \
+   (((SWIZZLE_W) << 17) & MESA_ARRAY_FORMAT_SWIZZLE_W_MASK) |      \
+   MESA_ARRAY_FORMAT_BIT)
+
+/**
+ * Various helpers to access the data encoded in a mesa_array_format
+ */
+static inline bool
+_mesa_array_format_is_signed(mesa_array_format f)
+{
+   return (f & MESA_ARRAY_FORMAT_TYPE_IS_SIGNED) != 0;
+}
+
+static inline bool
+_mesa_array_format_is_float(mesa_array_format f)
+{
+   return (f & MESA_ARRAY_FORMAT_TYPE_IS_FLOAT) != 0;
+}
+
+static inline bool
+_mesa_array_format_is_normalized(mesa_array_format f)
+{
+   return (f & MESA_ARRAY_FORMAT_TYPE_NORMALIZED) !=0;
+}
+
+static inline enum mesa_array_format_datatype
+_mesa_array_format_get_datatype(mesa_array_format f)
+{
+   return (enum mesa_array_format_datatype)
+            (f & MESA_ARRAY_FORMAT_DATATYPE_MASK);
+}
+
+static inline int
+_mesa_array_format_datatype_get_size(enum mesa_array_format_datatype type)
+{
+   return 1 << (type & MESA_ARRAY_FORMAT_TYPE_SIZE_MASK);
+}
+
+static inline int
+_mesa_array_format_get_type_size(mesa_array_format f)
+{
+   return 1 << (f & MESA_ARRAY_FORMAT_TYPE_SIZE_MASK);
+}
+
+static inline int
+_mesa_array_format_get_num_channels(mesa_array_format f)
+{
+   return (f & MESA_ARRAY_FORMAT_NUM_CHANS_MASK) >> 5;
+}
+
+static inline void
+_mesa_array_format_get_swizzle(mesa_array_format f, uint8_t *swizzle)
+{
+   swizzle[0] = (f & MESA_ARRAY_FORMAT_SWIZZLE_X_MASK) >> 8;
+   swizzle[1] = (f & MESA_ARRAY_FORMAT_SWIZZLE_Y_MASK) >> 11;
+   swizzle[2] = (f & MESA_ARRAY_FORMAT_SWIZZLE_Z_MASK) >> 14;
+   swizzle[3] = (f & MESA_ARRAY_FORMAT_SWIZZLE_W_MASK) >> 17;
+}
+
+static inline void
+_mesa_array_format_set_swizzle(mesa_array_format *f,
+                               int32_t x, int32_t y, int32_t z, int32_t w)
+{
+   *f |= ((x << 8 ) & MESA_ARRAY_FORMAT_SWIZZLE_X_MASK) |
+         ((y << 11) & MESA_ARRAY_FORMAT_SWIZZLE_Y_MASK) |
+         ((z << 14) & MESA_ARRAY_FORMAT_SWIZZLE_Z_MASK) |
+         ((w << 17) & MESA_ARRAY_FORMAT_SWIZZLE_W_MASK);
+}
+
+/**
+ * A helper to know if the format stored in a uint32_t is a mesa_format
+ * or a mesa_array_format
+ */
+static inline bool
+_mesa_format_is_mesa_array_format(uint32_t f)
+{
+   return (f & MESA_ARRAY_FORMAT_BIT) != 0;
+}
 
 /**
  * Mesa texture/renderbuffer image formats.
@@ -139,9 +265,9 @@ typedef enum
     *   ** when type applies to all components
     *
     *  examples:                   msb <------ TEXEL BITS -----------> lsb
-    *  MESA_FORMAT_A8B8G8R8_UNORM, AAAA AAAA BBBB BBBB GGGG GGGG RRRR RRRR
-    *  MESA_FORMAT_R5G6B5_UNORM                        RRRR RGGG GGGB BBBB
-    *  MESA_FORMAT_B4G4R4X4_UNORM                      BBBB GGGG RRRR XXXX
+    *  MESA_FORMAT_A8B8G8R8_UNORM, RRRR RRRR GGGG GGGG BBBB BBBB AAAA AAAA
+    *  MESA_FORMAT_R5G6B5_UNORM                        BBBB BGGG GGGR RRRR
+    *  MESA_FORMAT_B4G4R4X4_UNORM                      XXXX RRRR GGGG BBBB
     *  MESA_FORMAT_Z32_FLOAT_S8X24_UINT
     *  MESA_FORMAT_R10G10B10A2_UINT
     *  MESA_FORMAT_R9G9B9E5_FLOAT
@@ -226,11 +352,20 @@ typedef enum
    MESA_FORMAT_B10G10R10A2_UNORM,/* AARR RRRR RRRR GGGG GGGG GGBB BBBB BBBB */
    MESA_FORMAT_B10G10R10X2_UNORM,/* xxRR RRRR RRRR GGGG GGGG GGBB BBBB BBBB */
    MESA_FORMAT_R10G10B10A2_UNORM,/* AABB BBBB BBBB GGGG GGGG GGRR RRRR RRRR */
+   MESA_FORMAT_R10G10B10X2_UNORM,/* xxBB BBBB BBBB GGGG GGGG GGRR RRRR RRRR */
 
    MESA_FORMAT_S8_UINT_Z24_UNORM,/* ZZZZ ZZZZ ZZZZ ZZZZ ZZZZ ZZZZ SSSS SSSS */
    MESA_FORMAT_X8_UINT_Z24_UNORM,/* ZZZZ ZZZZ ZZZZ ZZZZ ZZZZ ZZZZ xxxx xxxx */
    MESA_FORMAT_Z24_UNORM_S8_UINT,/* SSSS SSSS ZZZZ ZZZZ ZZZZ ZZZZ ZZZZ ZZZZ */
    MESA_FORMAT_Z24_UNORM_X8_UINT,/* xxxx xxxx ZZZZ ZZZZ ZZZZ ZZZZ ZZZZ ZZZZ */
+
+   /* Other formats */
+   MESA_FORMAT_R3G3B2_UNORM,                                   /* BBGG GRRR */
+   MESA_FORMAT_A4B4G4R4_UNORM,                       /* RRRR GGGG BBBB AAAA */
+   MESA_FORMAT_R4G4B4A4_UNORM,                       /* AAAA BBBB GGGG RRRR */
+   MESA_FORMAT_R5G5B5A1_UNORM,                       /* ABBB BBGG GGGR RRRR */
+   MESA_FORMAT_A2B10G10R10_UNORM,/* RRRR RRRR RRGG GGGG GGGG BBBB BBBB BBAA */
+   MESA_FORMAT_A2R10G10B10_UNORM,/* BBBB BBBB BBGG GGGG GGGG RRRR RRRR RRAA */
 
    MESA_FORMAT_YCBCR,            /*                     YYYY YYYY UorV UorV */
    MESA_FORMAT_YCBCR_REV,        /*                     UorV UorV YYYY YYYY */
@@ -326,6 +461,8 @@ typedef enum
    /* Packed signed/unsigned non-normalized integer formats */
    MESA_FORMAT_B10G10R10A2_UINT, /* AARR RRRR RRRR GGGG GGGG GGBB BBBB BBBB */
    MESA_FORMAT_R10G10B10A2_UINT, /* AABB BBBB BBBB GGGG GGGG GGRR RRRR RRRR */
+   MESA_FORMAT_A2B10G10R10_UINT, /* RRRR RRRR RRGG GGGG GGGG BBBB BBBB BBAA */
+   MESA_FORMAT_A2R10G10B10_UINT, /* BBBB BBBB BBGG GGGG GGGG RRRR RRRR RRAA */
 
    /* Array signed/unsigned non-normalized integer formats */
    MESA_FORMAT_A_UINT8,
@@ -461,13 +598,22 @@ extern GLenum
 _mesa_get_format_datatype(mesa_format format);
 
 extern GLenum
-_mesa_get_format_base_format(mesa_format format);
+_mesa_get_format_base_format(uint32_t format);
 
 extern void
 _mesa_get_format_block_size(mesa_format format, GLuint *bw, GLuint *bh);
 
+extern mesa_array_format
+_mesa_array_format_flip_channels(mesa_array_format format);
+
 extern void
 _mesa_get_format_swizzle(mesa_format format, uint8_t swizzle_out[4]);
+
+extern uint32_t
+_mesa_format_to_array_format(mesa_format format);
+
+extern mesa_format
+_mesa_format_from_array_format(uint32_t array_format);
 
 extern GLboolean
 _mesa_is_format_compressed(mesa_format format);
@@ -489,6 +635,9 @@ _mesa_is_format_integer(mesa_format format);
 
 extern bool
 _mesa_is_format_etc2(mesa_format format);
+
+GLenum
+_mesa_is_format_color_format(mesa_format format);
 
 extern GLenum
 _mesa_get_format_color_encoding(mesa_format format);

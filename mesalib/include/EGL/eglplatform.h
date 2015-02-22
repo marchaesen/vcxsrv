@@ -106,7 +106,7 @@ typedef void                        *EGLNativeDisplayType;
 
 #elif defined(__unix__)
 
-#ifdef MESA_EGL_NO_X11_HEADERS
+#if defined(MESA_EGL_NO_X11_HEADERS)
 
 typedef void            *EGLNativeDisplayType;
 typedef khronos_uintptr_t EGLNativePixmapType;
@@ -124,8 +124,16 @@ typedef Window   EGLNativeWindowType;
 
 #endif /* MESA_EGL_NO_X11_HEADERS */
 
+#elif __HAIKU__
+#include <kernel/image.h>
+typedef void				*EGLNativeDisplayType;
+typedef khronos_uintptr_t	 EGLNativePixmapType;
+typedef khronos_uintptr_t	 EGLNativeWindowType;
+
 #else
+
 #error "Platform not recognized"
+
 #endif
 
 /* EGL 1.2 types, renamed for consistency in EGL 1.3 */

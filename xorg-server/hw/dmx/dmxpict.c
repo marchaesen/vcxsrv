@@ -57,7 +57,6 @@
 #include "mipict.h"
 #include "fbpict.h"
 
-extern int RenderErrBase;
 extern int (*ProcRenderVector[RenderNumberRequests]) (ClientPtr);
 
 static int (*dmxSaveRenderVector[RenderNumberRequests]) (ClientPtr);

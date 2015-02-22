@@ -186,7 +186,8 @@ st_bufferobj_data(struct gl_context *ctx,
    struct st_buffer_object *st_obj = st_buffer_object(obj);
    unsigned bind, pipe_usage, pipe_flags = 0;
 
-   if (size && data && st_obj->buffer &&
+   if (target != GL_EXTERNAL_VIRTUAL_MEMORY_BUFFER_AMD &&
+       size && data && st_obj->buffer &&
        st_obj->Base.Size == size &&
        st_obj->Base.Usage == usage &&
        st_obj->Base.StorageFlags == storageFlags) {
@@ -256,8 +257,15 @@ st_bufferobj_data(struct gl_context *ctx,
          break;
       case GL_STREAM_DRAW:
       case GL_STREAM_COPY:
-         pipe_usage = PIPE_USAGE_STREAM;
-         break;
+         /* XXX: Remove this test and fall-through when we have PBO unpacking
+          * acceleration. Right now, PBO unpacking is done by the CPU, so we
+          * have to make sure CPU reads are fast.
+          */
+         if (target != GL_PIXEL_UNPACK_BUFFER_ARB) {
+            pipe_usage = PIPE_USAGE_STREAM;
+            break;
+         }
+         /* fall through */
       case GL_STATIC_READ:
       case GL_DYNAMIC_READ:
       case GL_STREAM_READ:
@@ -280,6 +288,7 @@ st_bufferobj_data(struct gl_context *ctx,
    }
 
    if (size != 0) {
+      struct pipe_screen *screen = pipe->screen;
       struct pipe_resource buffer;
 
       memset(&buffer, 0, sizeof buffer);
@@ -293,16 +302,22 @@ st_bufferobj_data(struct gl_context *ctx,
       buffer.depth0 = 1;
       buffer.array_size = 1;
 
-      st_obj->buffer = pipe->screen->resource_create(pipe->screen, &buffer);
+      if (target == GL_EXTERNAL_VIRTUAL_MEMORY_BUFFER_AMD) {
+         st_obj->buffer =
+            screen->resource_from_user_memory(screen, &buffer, (void*)data);
+      }
+      else {
+         st_obj->buffer = screen->resource_create(screen, &buffer);
+
+         if (st_obj->buffer && data)
+            pipe_buffer_write(pipe, st_obj->buffer, 0, size, data);
+      }
 
       if (!st_obj->buffer) {
          /* out of memory */
          st_obj->Base.Size = 0;
          return GL_FALSE;
       }
-
-      if (data)
-         pipe_buffer_write(pipe, st_obj->buffer, 0, size, data);
    }
 
    /* BufferData may change an array or uniform buffer, need to update it */

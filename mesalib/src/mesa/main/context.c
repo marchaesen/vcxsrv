@@ -118,7 +118,7 @@
 #include "scissor.h"
 #include "shared.h"
 #include "shaderobj.h"
-#include "simple_list.h"
+#include "util/simple_list.h"
 #include "state.h"
 #include "stencil.h"
 #include "texcompress_s3tc.h"
@@ -908,6 +908,9 @@ nop_glFlush(void)
 #endif
 
 
+extern void (*__glapi_noop_table[])(void);
+
+
 /**
  * Allocate and initialize a new dispatch table.  All the dispatch
  * function pointers will point at the _mesa_generic_nop() function
@@ -929,7 +932,13 @@ _mesa_alloc_dispatch_table(void)
       _glapi_proc *entry = (_glapi_proc *) table;
       GLint i;
       for (i = 0; i < numEntries; i++) {
+#if defined(_WIN32)
+         /* FIXME: This will not generate an error, but at least it won't
+          * corrupt the stack like _mesa_generic_nop does. */
+         entry[i] = __glapi_noop_table[i];
+#else
          entry[i] = (_glapi_proc) _mesa_generic_nop;
+#endif
       }
 
 #if defined(_WIN32)
@@ -1271,7 +1280,6 @@ _mesa_free_context_data( struct gl_context *ctx )
 
    _mesa_free_attrib_data(ctx);
    _mesa_free_buffer_objects(ctx);
-   _mesa_free_lighting_data( ctx );
    _mesa_free_eval_data( ctx );
    _mesa_free_texture_data( ctx );
    _mesa_free_matrix_data( ctx );
@@ -1903,48 +1911,68 @@ shader_linked_or_absent(struct gl_context *ctx,
 GLboolean
 _mesa_valid_to_render(struct gl_context *ctx, const char *where)
 {
-   bool from_glsl_shader[MESA_SHADER_COMPUTE] = { false };
    unsigned i;
 
    /* This depends on having up to date derived state (shaders) */
    if (ctx->NewState)
       _mesa_update_state(ctx);
 
-   for (i = 0; i < MESA_SHADER_COMPUTE; i++) {
-      if (!shader_linked_or_absent(ctx, ctx->_Shader->CurrentProgram[i],
-                                   &from_glsl_shader[i], where))
-         return GL_FALSE;
-   }
+   if (ctx->API == API_OPENGL_CORE || ctx->API == API_OPENGLES2) {
+      bool from_glsl_shader[MESA_SHADER_COMPUTE] = { false };
 
-   /* Any shader stages that are not supplied by the GLSL shader and have
-    * assembly shaders enabled must now be validated.
-    */
-   if (!from_glsl_shader[MESA_SHADER_VERTEX]
-       && ctx->VertexProgram.Enabled && !ctx->VertexProgram._Enabled) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-		  "%s(vertex program not valid)", where);
-      return GL_FALSE;
-   }
-
-   /* FINISHME: If GL_NV_geometry_program4 is ever supported, the current
-    * FINISHME: geometry program should validated here.
-    */
-   (void) from_glsl_shader[MESA_SHADER_GEOMETRY];
-
-   if (!from_glsl_shader[MESA_SHADER_FRAGMENT]) {
-      if (ctx->FragmentProgram.Enabled && !ctx->FragmentProgram._Enabled) {
-	 _mesa_error(ctx, GL_INVALID_OPERATION,
-		     "%s(fragment program not valid)", where);
-	 return GL_FALSE;
+      for (i = 0; i < MESA_SHADER_COMPUTE; i++) {
+         if (!shader_linked_or_absent(ctx, ctx->_Shader->CurrentProgram[i],
+                                      &from_glsl_shader[i], where))
+            return GL_FALSE;
       }
 
-      /* If drawing to integer-valued color buffers, there must be an
-       * active fragment shader (GL_EXT_texture_integer).
+      /* In OpenGL Core Profile and OpenGL ES 2.0 / 3.0, there are no assembly
+       * shaders.  Don't check state related to those.
        */
-      if (ctx->DrawBuffer && ctx->DrawBuffer->_IntegerColor) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "%s(integer format but no fragment shader)", where);
+   } else {
+      bool has_vertex_shader = false;
+      bool has_fragment_shader = false;
+
+      /* In OpenGL Compatibility Profile, there is only vertex shader and
+       * fragment shader.  We take this path also for API_OPENGLES because
+       * optimizing that path would make the other (more common) paths
+       * slightly slower.
+       */
+      if (!shader_linked_or_absent(ctx,
+                                   ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX],
+                                   &has_vertex_shader, where))
          return GL_FALSE;
+
+      if (!shader_linked_or_absent(ctx,
+                                   ctx->_Shader->CurrentProgram[MESA_SHADER_FRAGMENT],
+                                   &has_fragment_shader, where))
+         return GL_FALSE;
+
+      /* Any shader stages that are not supplied by the GLSL shader and have
+       * assembly shaders enabled must now be validated.
+       */
+      if (!has_vertex_shader
+          && ctx->VertexProgram.Enabled && !ctx->VertexProgram._Enabled) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "%s(vertex program not valid)", where);
+         return GL_FALSE;
+      }
+
+      if (!has_fragment_shader) {
+         if (ctx->FragmentProgram.Enabled && !ctx->FragmentProgram._Enabled) {
+            _mesa_error(ctx, GL_INVALID_OPERATION,
+                        "%s(fragment program not valid)", where);
+            return GL_FALSE;
+         }
+
+         /* If drawing to integer-valued color buffers, there must be an
+          * active fragment shader (GL_EXT_texture_integer).
+          */
+         if (ctx->DrawBuffer && ctx->DrawBuffer->_IntegerColor) {
+            _mesa_error(ctx, GL_INVALID_OPERATION,
+                        "%s(integer format but no fragment shader)", where);
+            return GL_FALSE;
+         }
       }
    }
 

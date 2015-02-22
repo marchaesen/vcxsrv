@@ -88,6 +88,14 @@ static int ms_box_area(BoxPtr box)
     return (int)(box->x2 - box->x1) * (int)(box->y2 - box->y1);
 }
 
+static Bool
+ms_crtc_on(xf86CrtcPtr crtc)
+{
+    drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
+
+    return crtc->enabled && drmmode_crtc->dpms_mode == DPMSModeOn;
+}
+
 /*
  * Return the crtc covering 'box'. If two crtcs cover a portion of
  * 'box', then prefer 'desired'. If 'desired' is NULL, then prefer the crtc
@@ -114,7 +122,7 @@ ms_covering_crtc(ScrnInfoPtr scrn,
         crtc = xf86_config->crtc[c];
 
         /* If the CRTC is off, treat it as not covering */
-        if (!crtc->enabled)
+        if (!ms_crtc_on(crtc))
             continue;
 
         ms_crtc_box(crtc, &crtc_box);
@@ -139,20 +147,13 @@ ms_dri2_crtc_covering_drawable(DrawablePtr pDraw)
     ScreenPtr pScreen = pDraw->pScreen;
     ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     BoxRec box, crtcbox;
-    xf86CrtcPtr crtc;
 
     box.x1 = pDraw->x;
     box.y1 = pDraw->y;
     box.x2 = box.x1 + pDraw->width;
     box.y2 = box.y1 + pDraw->height;
 
-    crtc = ms_covering_crtc(pScrn, &box, NULL, &crtcbox);
-
-    /* Make sure the CRTC is valid and this is the real front buffer */
-    if (crtc != NULL && !crtc->rotatedData)
-        return crtc;
-
-    return NULL;
+    return ms_covering_crtc(pScrn, &box, NULL, &crtcbox);
 }
 
 static Bool
@@ -319,6 +320,24 @@ ms_drm_abort_scrn(ScrnInfoPtr scrn)
     xorg_list_for_each_entry_safe(q, tmp, &ms_drm_queue, list) {
         if (q->scrn == scrn)
             ms_drm_abort_one(q);
+    }
+}
+
+/*
+ * Externally usable abort function that uses a callback to match a single
+ * queued entry to abort
+ */
+void
+ms_drm_abort(ScrnInfoPtr scrn, Bool (*match)(void *data, void *match_data),
+             void *match_data)
+{
+    struct ms_drm_queue *q;
+
+    xorg_list_for_each_entry(q, &ms_drm_queue, list) {
+        if (match(q->data, match_data)) {
+            ms_drm_abort_one(q);
+            break;
+        }
     }
 }
 

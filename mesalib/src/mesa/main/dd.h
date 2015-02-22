@@ -415,6 +415,22 @@ struct dd_function_table {
                             struct gl_texture_object *texObj,
                             struct gl_texture_object *origTexObj);
 
+   /** Sets the given buffer object as the texture's storage.  The given
+    * texture must have target GL_TEXTURE_1D, GL_TEXTURE_2D,
+    * GL_TEXTURE_RECTANGLE, and GL_TEXTURE_2D_ARRAY; have only a single
+    * mipmap level; be immutable; and must not have any assigned storage.
+    * The format and dimensions of the gl_texture_object will already be
+    * initialized.
+    *
+    * This function is used by the meta PBO texture upload path.
+    */
+   bool (*SetTextureStorageForBufferObject)(struct gl_context *ctx,
+                                            struct gl_texture_object *texObj,
+                                            struct gl_buffer_object *bufferObj,
+                                            uint32_t buffer_offset,
+                                            uint32_t row_stride,
+                                            bool read_only);
+
    /**
     * Map a renderbuffer into user space.
     * \param mode  bitmask of GL_MAP_READ_BIT, GL_MAP_WRITE_BIT and
@@ -563,7 +579,7 @@ struct dd_function_table {
    /** Select a polygon rasterization mode */
    void (*PolygonMode)(struct gl_context *ctx, GLenum face, GLenum mode);
    /** Set the scale and units used to calculate depth values */
-   void (*PolygonOffset)(struct gl_context *ctx, GLfloat factor, GLfloat units);
+   void (*PolygonOffset)(struct gl_context *ctx, GLfloat factor, GLfloat units, GLfloat clamp);
    /** Set the polygon stippling pattern */
    void (*PolygonStipple)(struct gl_context *ctx, const GLubyte *mask );
    /* Specifies the current buffer for reading */
@@ -697,6 +713,8 @@ struct dd_function_table {
                                struct gl_framebuffer *fb);
    /*@}*/
    void (*BlitFramebuffer)(struct gl_context *ctx,
+                           struct gl_framebuffer *readFb,
+                           struct gl_framebuffer *drawFb,
                            GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
                            GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
                            GLbitfield mask, GLenum filter);

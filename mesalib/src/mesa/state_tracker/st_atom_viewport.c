@@ -44,7 +44,7 @@ update_viewport( struct st_context *st )
 {
    struct gl_context *ctx = st->ctx;
    GLfloat yScale, yBias;
-   int i;
+   unsigned i;
    /* _NEW_BUFFERS
     */
    if (st_fb_orientation(ctx->DrawBuffer) == Y_0_TOP) {

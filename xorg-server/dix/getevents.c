@@ -68,12 +68,7 @@
 #include "exevents.h"
 #include "extnsionst.h"
 #include "listdev.h"            /* for sizing up DeviceClassesChangedEvent */
-
-#if XSERVER_DTRACE
-#include <sys/types.h>
-typedef const char *string;
-#include <Xserver-dtrace.h>
-#endif
+#include "probes.h"
 
 #ifdef _MSC_VER
 #include <math.h>
@@ -2060,7 +2055,7 @@ GetTouchEvents(InternalEvent *events, DeviceIntPtr dev, uint32_t ddx_touchid,
 
     event->root = scr->root->drawable.id;
 
-    event_set_root_coordinates(event, screenx, screeny);
+    event_set_root_coordinates(event, screenx - scr->x, screeny - scr->y);
     event->touchid = client_id;
     event->flags = flags;
 
@@ -2098,8 +2093,8 @@ GetDixTouchEnd(InternalEvent *ievent, DeviceIntPtr dev, TouchPointInfoPtr ti,
     /* Get screen event coordinates from the sprite.  Is this really the best
      * we can do? */
     event_set_root_coordinates(event,
-                               dev->last.valuators[0],
-                               dev->last.valuators[1]);
+                               dev->last.valuators[0] - scr->x,
+                               dev->last.valuators[1] - scr->y);
     event->touchid = ti->client_id;
     event->flags = flags;
 

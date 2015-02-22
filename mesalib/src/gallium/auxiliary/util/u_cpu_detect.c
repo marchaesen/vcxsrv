@@ -272,7 +272,7 @@ static INLINE uint64_t xgetbv(void)
 
 
 #if defined(PIPE_ARCH_X86)
-static INLINE boolean sse2_has_daz(void)
+PIPE_ALIGN_STACK static INLINE boolean sse2_has_daz(void)
 {
    struct {
       uint32_t pad1[7];
@@ -409,8 +409,12 @@ util_cpu_detect(void)
       }
 
       if (regs[0] >= 0x80000006) {
+         /* should we really do this if the clflush size above worked? */
+         unsigned int cacheline;
          cpuid(0x80000006, regs2);
-         util_cpu_caps.cacheline = regs2[2] & 0xFF;
+         cacheline = regs2[2] & 0xFF;
+         if (cacheline > 0)
+            util_cpu_caps.cacheline = cacheline;
       }
 
       if (!util_cpu_caps.has_sse) {

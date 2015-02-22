@@ -1,5 +1,6 @@
 SWRAST_DRIVER_FILES = \
-	swrast.c 
+	swrast.c \
+	swrast_priv.h
 
 SWRAST_C_FILES = \
 	$(SWRAST_DRIVER_FILES)

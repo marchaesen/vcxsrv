@@ -144,10 +144,7 @@ Equipment Corporation.
 #include "gcstruct.h"
 
 #ifdef XSERVER_DTRACE
-#include <sys/types.h>
-typedef const char *string;
-
-#include "Xserver-dtrace.h"
+#include "probes.h"
 
 #define TypeNameString(t) LookupResourceName(t)
 #endif

@@ -22,7 +22,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/** 
+/**
  * \file texstate.c
  *
  * Texture state handling.
@@ -40,7 +40,7 @@
 #include "teximage.h"
 #include "texstate.h"
 #include "mtypes.h"
-#include "bitset.h"
+#include "util/bitset.h"
 
 
 /**
@@ -153,7 +153,7 @@ _mesa_print_texunit_state( struct gl_context *ctx, GLuint unit )
 /**
  * Convert "classic" texture environment to ARB_texture_env_combine style
  * environments.
- * 
+ *
  * \param state  texture_env_combine state vector to be filled-in.
  * \param mode   Classic texture environment mode (i.e., \c GL_REPLACE,
  *               \c GL_BLEND, \c GL_DECAL, etc.).
@@ -186,7 +186,7 @@ calculate_derived_texenv( struct gl_tex_env_combine_state *state,
    case GL_YCBCR_MESA:
       state->SourceA[0] = GL_PREVIOUS;
       break;
-      
+
    default:
       _mesa_problem(NULL,
                     "Invalid texBaseFormat 0x%x in calculate_derived_texenv",
@@ -203,7 +203,7 @@ calculate_derived_texenv( struct gl_tex_env_combine_state *state,
       mode_rgb = (texBaseFormat == GL_ALPHA) ? GL_REPLACE : mode;
       mode_a   = mode;
       break;
-   
+
    case GL_DECAL:
       mode_rgb = GL_INTERPOLATE;
       mode_a   = GL_REPLACE;
@@ -272,7 +272,7 @@ calculate_derived_texenv( struct gl_tex_env_combine_state *state,
                     mode);
       return;
    }
-   
+
    state->ModeRGB = (state->SourceRGB[0] != GL_PREVIOUS)
        ? mode_rgb : GL_REPLACE;
    state->ModeA   = (state->SourceA[0]   != GL_PREVIOUS)
@@ -290,9 +290,7 @@ _mesa_ActiveTexture(GLenum texture)
    GLuint k;
    GET_CURRENT_CONTEXT(ctx);
 
-   /* See OpenGL spec for glActiveTexture: */
-   k = MAX2(ctx->Const.MaxCombinedTextureImageUnits,
-            ctx->Const.MaxTextureCoordUnits);
+   k = _mesa_max_tex_unit(ctx);
 
    ASSERT(k <= Elements(ctx->Texture.Unit));
 
@@ -769,11 +767,11 @@ _mesa_update_texture( struct gl_context *ctx, GLuint new_state )
 
 /**
  * Allocate the proxy textures for the given context.
- * 
+ *
  * \param ctx the context to allocate proxies for.
- * 
+ *
  * \return GL_TRUE on success, or GL_FALSE on failure
- * 
+ *
  * If run out of memory part way through the allocations, clean up and return
  * GL_FALSE.
  */
@@ -944,7 +942,7 @@ _mesa_free_texture_data(struct gl_context *ctx)
 
 /**
  * Update the default texture objects in the given context to reference those
- * specified in the shared state and release those referencing the old 
+ * specified in the shared state and release those referencing the old
  * shared state.
  */
 void

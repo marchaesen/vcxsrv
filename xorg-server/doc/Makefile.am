@@ -12,4 +12,4 @@ include $(top_srcdir)/devbook.am
 endif HAVE_XMLTO
 endif ENABLE_DEVEL_DOCS
 
-EXTRA_DIST = smartsched
+EXTRA_DIST = smartsched filter-xmlto.sh

@@ -55,6 +55,7 @@
 #include "extinit.h"
 #include "opaque.h"
 
+#include "dmx.h"
 #include "dmxextension.h"
 #include <X11/extensions/dmxproto.h>
 #include <X11/extensions/dmx.h>

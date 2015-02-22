@@ -85,9 +85,6 @@ _mesa_parse_arb_fragment_program(struct gl_context* ctx, GLenum target,
       return;
    }
 
-   if ((ctx->_Shader->Flags & GLSL_NO_OPT) == 0)
-      _mesa_optimize_program(ctx, &prog);
-
    free(program->Base.String);
 
    /* Copy the relevant contents of the arb_program struct into the

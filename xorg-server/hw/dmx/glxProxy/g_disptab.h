@@ -655,13 +655,32 @@ extern void __glXDispSwap_CopyConvolutionFilter2D(GLbyte *);
 extern void __glXDispSwap_SeparableFilter2D(GLbyte *);
 extern void __glXDispSwap_TexImage3D(GLbyte *);
 extern void __glXDispSwap_TexSubImage3D(GLbyte *);
-extern void __glXDispSwap_DrawArrays(GLbyte *);
 extern void __glXDispSwap_PrioritizeTextures(GLbyte *);
 extern void __glXDispSwap_CopyTexImage1D(GLbyte *);
 extern void __glXDispSwap_CopyTexImage2D(GLbyte *);
 extern void __glXDispSwap_CopyTexSubImage1D(GLbyte *);
 extern void __glXDispSwap_CopyTexSubImage2D(GLbyte *);
 extern void __glXDispSwap_CopyTexSubImage3D(GLbyte *);
+
+extern void __glXDispSwap_BindTexture(GLbyte *);
+extern void __glXDispSwap_BlendColor(GLbyte *);
+extern void __glXDispSwap_BlendEquation(GLbyte *);
+extern void __glXDispSwap_ColorTable(GLbyte *);
+extern void __glXDispSwap_ColorTableParameterfv(GLbyte *);
+extern void __glXDispSwap_ColorTableParameteriv(GLbyte *);
+extern void __glXDispSwap_CopyColorTable(GLbyte *);
+extern void __glXDispSwap_ConvolutionParameterf(GLbyte *);
+extern void __glXDispSwap_ConvolutionParameteri(GLbyte *);
+extern void __glXDispSwap_Histogram(GLbyte *);
+extern void __glXDispSwap_Minmax(GLbyte *);
+extern void __glXDispSwap_ResetHistogram(GLbyte *);
+extern void __glXDispSwap_ResetMinmax(GLbyte *);
+
+extern int __glXSwapCreateContextWithConfigSGIX(__GLXclientState *, GLbyte *);
+extern int __glXSwapBindSwapBarrierSGIX(__GLXclientState *, GLbyte *);
+extern int __glXSwapJoinSwapGroupSGIX(__GLXclientState *, GLbyte *);
+extern int __glXSwapQueryMaxSwapBarriersSGIX(__GLXclientState *, GLbyte *);
+extern int __glXSwapMakeCurrentReadSGI(__GLXclientState *, GLbyte *);
 
 #define __GLX_MIN_GLXCMD_OPCODE 1
 #define __GLX_MAX_GLXCMD_OPCODE 20

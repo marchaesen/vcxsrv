@@ -27,15 +27,14 @@
 #include "glsl_types.h"
 #include "ir_visitor.h"
 #include "../glsl/program.h"
-#include "program/hash_table.h"
 #include "ir_uniform.h"
 
-extern "C" {
 #include "main/compiler.h"
 #include "main/mtypes.h"
+#include "program/hash_table.h"
 #include "program/prog_parameter.h"
 #include "program/program.h"
-}
+
 
 class get_sampler_name : public ir_hierarchical_visitor
 {
@@ -104,7 +103,7 @@ public:
 };
 
 
-extern "C" int
+int
 _mesa_get_sampler_uniform_value(class ir_dereference *sampler,
 				struct gl_shader_program *shader_program,
 				const struct gl_program *prog)
@@ -136,7 +135,7 @@ _mesa_get_sampler_uniform_value(class ir_dereference *sampler,
 }
 
 
-extern "C" class ir_rvalue *
+class ir_rvalue *
 _mesa_get_sampler_array_nonconst_index(class ir_dereference *sampler)
 {
    ir_dereference_array *deref_arr = sampler->as_dereference_array();

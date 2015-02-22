@@ -128,6 +128,9 @@ ir_copy_propagation_visitor::visit_enter(ir_function_signature *ir)
 
    visit_list_elements(this, &ir->body);
 
+   ralloc_free(this->acp);
+   ralloc_free(this->kills);
+
    this->kills = orig_kills;
    this->acp = orig_acp;
    this->killed_all = orig_killed_all;
@@ -215,7 +218,7 @@ ir_copy_propagation_visitor::handle_if_block(exec_list *instructions)
 
    /* Populate the initial acp with a copy of the original */
    foreach_in_list(acp_entry, a, orig_acp) {
-      this->acp->push_tail(new(this->mem_ctx) acp_entry(a->lhs, a->rhs));
+      this->acp->push_tail(new(this->acp) acp_entry(a->lhs, a->rhs));
    }
 
    visit_list_elements(this, instructions);
@@ -226,12 +229,15 @@ ir_copy_propagation_visitor::handle_if_block(exec_list *instructions)
 
    exec_list *new_kills = this->kills;
    this->kills = orig_kills;
+   ralloc_free(this->acp);
    this->acp = orig_acp;
    this->killed_all = this->killed_all || orig_killed_all;
 
    foreach_in_list(kill_entry, k, new_kills) {
       kill(k->var);
    }
+
+   ralloc_free(new_kills);
 }
 
 ir_visitor_status
@@ -269,12 +275,15 @@ ir_copy_propagation_visitor::visit_enter(ir_loop *ir)
 
    exec_list *new_kills = this->kills;
    this->kills = orig_kills;
+   ralloc_free(this->acp);
    this->acp = orig_acp;
    this->killed_all = this->killed_all || orig_killed_all;
 
    foreach_in_list(kill_entry, k, new_kills) {
       kill(k->var);
    }
+
+   ralloc_free(new_kills);
 
    /* already descended into the children. */
    return visit_continue_with_parent;
@@ -294,7 +303,7 @@ ir_copy_propagation_visitor::kill(ir_variable *var)
 
    /* Add the LHS variable to the list of killed variables in this block.
     */
-   this->kills->push_tail(new(this->mem_ctx) kill_entry(var));
+   this->kills->push_tail(new(this->kills) kill_entry(var));
 }
 
 /**
@@ -322,7 +331,7 @@ ir_copy_propagation_visitor::add_copy(ir_assignment *ir)
 	 ir->condition = new(ralloc_parent(ir)) ir_constant(false);
 	 this->progress = true;
       } else {
-	 entry = new(this->mem_ctx) acp_entry(lhs_var, rhs_var);
+	 entry = new(this->acp) acp_entry(lhs_var, rhs_var);
 	 this->acp->push_tail(entry);
       }
    }

@@ -109,6 +109,11 @@ _mesa_GetActiveAttrib(GLhandleARB program, GLuint desired_index,
    GET_CURRENT_CONTEXT(ctx);
    struct gl_shader_program *shProg;
 
+   if (maxLength < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glGetActiveAttrib(maxLength < 0)");
+      return;
+   }
+
    shProg = _mesa_lookup_shader_program_err(ctx, program, "glGetActiveAttrib");
    if (!shProg)
       return;

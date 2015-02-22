@@ -79,7 +79,6 @@ xkb_symbols "kotoistus" {
     include "nbsp(level3)"
     include "kpdl(comma)"
     include "level3(ralt_switch)"
-    include "compose(rwin)"
 };
 
 partial alphanumeric_keys

@@ -28,17 +28,20 @@
 #define DRMMODE_DISPLAY_H
 
 #include "xf86drmMode.h"
-#ifdef HAVE_UDEV
+#ifdef CONFIG_UDEV_KMS
 #include "libudev.h"
 #endif
 
-struct dumb_bo {
-    uint32_t handle;
-    uint32_t size;
-    void *ptr;
-    int map_count;
-    uint32_t pitch;
-};
+#include "dumb_bo.h"
+
+struct gbm_device;
+
+typedef struct {
+    struct dumb_bo *dumb;
+#ifdef GLAMOR_HAS_GBM
+    struct gbm_bo *gbm;
+#endif
+} drmmode_bo;
 
 typedef struct {
     int fd;
@@ -48,14 +51,18 @@ typedef struct {
     drmModeFBPtr mode_fb;
     int cpp;
     ScrnInfoPtr scrn;
-#ifdef HAVE_UDEV
+
+    struct gbm_device *gbm;
+
+#ifdef CONFIG_UDEV_KMS
     struct udev_monitor *uevent_monitor;
     InputHandlerProc uevent_handler;
 #endif
     drmEventContext event_context;
-    struct dumb_bo *front_bo;
+    drmmode_bo front_bo;
     Bool sw_cursor;
 
+    Bool glamor;
     Bool shadow_enable;
     void *shadow_fb;
 
@@ -79,10 +86,14 @@ typedef struct {
     drmmode_ptr drmmode;
     drmModeCrtcPtr mode_crtc;
     uint32_t vblank_pipe;
+    int dpms_mode;
     struct dumb_bo *cursor_bo;
-    unsigned rotate_fb_id;
+    Bool cursor_up;
     uint16_t lut_r[256], lut_g[256], lut_b[256];
     DamagePtr slave_damage;
+
+    drmmode_bo rotate_bo;
+    unsigned rotate_fb_id;
 
     /**
      * @{ MSC (vblank count) handling for the PRESENT extension.
@@ -128,6 +139,8 @@ extern DevPrivateKeyRec msPixmapPrivateKeyRec;
 
 #define msGetPixmapPriv(drmmode, p) ((msPixmapPrivPtr)dixGetPrivateAddr(&(p)->devPrivates, &(drmmode)->pixmapPrivateKeyRec))
 
+uint32_t drmmode_bo_get_handle(drmmode_bo *bo);
+Bool drmmode_glamor_handle_new_screen_pixmap(drmmode_ptr drmmode);
 void *drmmode_map_slave_bo(drmmode_ptr drmmode, msPixmapPrivPtr ppriv);
 Bool drmmode_SetSlaveBO(PixmapPtr ppix,
                         drmmode_ptr drmmode,
@@ -147,8 +160,6 @@ Bool drmmode_map_cursor_bos(ScrnInfoPtr pScrn, drmmode_ptr drmmode);
 void drmmode_free_bos(ScrnInfoPtr pScrn, drmmode_ptr drmmode);
 void drmmode_get_default_bpp(ScrnInfoPtr pScrn, drmmode_ptr drmmmode,
                              int *depth, int *bpp);
-struct dumb_bo *dumb_get_bo_from_fd(int drm_fd, int fd, int pitch, int size);
-int dumb_bo_destroy(int fd, struct dumb_bo *bo);
 
 
 #ifndef DRM_CAP_DUMB_PREFERRED_DEPTH

@@ -42,7 +42,7 @@
 #include "macros.h"
 #include "mtypes.h"
 #include "performance_monitor.h"
-#include "bitset.h"
+#include "util/bitset.h"
 #include "util/ralloc.h"
 
 void

@@ -46,6 +46,7 @@ struct hash_entry {
 
 struct hash_table {
    struct hash_entry *table;
+   uint32_t (*key_hash_function)(const void *key);
    bool (*key_equals_function)(const void *a, const void *b);
    const void *deleted_key;
    uint32_t size;
@@ -58,6 +59,7 @@ struct hash_table {
 
 struct hash_table *
 _mesa_hash_table_create(void *mem_ctx,
+                        uint32_t (*key_hash_function)(const void *key),
                         bool (*key_equals_function)(const void *a,
                                                     const void *b));
 void _mesa_hash_table_destroy(struct hash_table *ht,
@@ -66,11 +68,15 @@ void _mesa_hash_table_set_deleted_key(struct hash_table *ht,
                                       const void *deleted_key);
 
 struct hash_entry *
-_mesa_hash_table_insert(struct hash_table *ht, uint32_t hash,
-                        const void *key, void *data);
+_mesa_hash_table_insert(struct hash_table *ht, const void *key, void *data);
 struct hash_entry *
-_mesa_hash_table_search(struct hash_table *ht, uint32_t hash,
-                        const void *key);
+_mesa_hash_table_insert_pre_hashed(struct hash_table *ht, uint32_t hash,
+                                   const void *key, void *data);
+struct hash_entry *
+_mesa_hash_table_search(struct hash_table *ht, const void *key);
+struct hash_entry *
+_mesa_hash_table_search_pre_hashed(struct hash_table *ht, uint32_t hash,
+                                  const void *key);
 void _mesa_hash_table_remove(struct hash_table *ht,
                              struct hash_entry *entry);
 
@@ -85,10 +91,34 @@ uint32_t _mesa_hash_string(const char *key);
 bool _mesa_key_string_equal(const void *a, const void *b);
 bool _mesa_key_pointer_equal(const void *a, const void *b);
 
+static inline uint32_t _mesa_key_hash_string(const void *key)
+{
+   return _mesa_hash_string((const char *)key);
+}
+
 static inline uint32_t _mesa_hash_pointer(const void *pointer)
 {
    return _mesa_hash_data(&pointer, sizeof(pointer));
 }
+
+static const uint32_t _mesa_fnv32_1a_offset_bias = 2166136261u;
+
+static inline uint32_t
+_mesa_fnv32_1a_accumulate_block(uint32_t hash, const void *data, size_t size)
+{
+   const uint8_t *bytes = (const uint8_t *)data;
+
+   while (size-- != 0) {
+      hash ^= *bytes;
+      hash = hash * 0x01000193;
+      bytes++;
+   }
+
+   return hash;
+}
+
+#define _mesa_fnv32_1a_accumulate(hash, expr) \
+   _mesa_fnv32_1a_accumulate_block(hash, &(expr), sizeof(expr))
 
 /**
  * This foreach function is safe against deletion (which just replaces

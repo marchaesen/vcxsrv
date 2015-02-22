@@ -39,6 +39,7 @@
 #include "main/imports.h"
 #include "main/image.h"
 #include "main/samplerobj.h"
+#include "main/teximage.h"
 
 #include "s_atifragshader.h"
 #include "s_alpha.h"
@@ -495,7 +496,7 @@ interpolate_texcoords(struct gl_context *ctx, SWspan *span)
          GLfloat q = span->attrStart[attr][3] + span->leftClip * dqdx;
 
          if (obj) {
-            const struct gl_texture_image *img = obj->Image[0][obj->BaseLevel];
+            const struct gl_texture_image *img = _mesa_base_tex_image(obj);
             const struct swrast_texture_image *swImg =
                swrast_texture_image_const(img);
             const struct gl_sampler_object *samp = _mesa_get_samplerobj(ctx, u);
@@ -932,19 +933,19 @@ clamp_colors(SWspan *span)
  * \param output  which fragment program color output is being processed
  */
 static inline void
-convert_color_type(SWspan *span, GLenum newType, GLuint output)
+convert_color_type(SWspan *span, GLenum srcType, GLenum newType, GLuint output)
 {
    GLvoid *src, *dst;
 
-   if (output > 0 || span->array->ChanType == GL_FLOAT) {
+   if (output > 0 || srcType == GL_FLOAT) {
       src = span->array->attribs[VARYING_SLOT_COL0 + output];
       span->array->ChanType = GL_FLOAT;
    }
-   else if (span->array->ChanType == GL_UNSIGNED_BYTE) {
+   else if (srcType == GL_UNSIGNED_BYTE) {
       src = span->array->rgba8;
    }
    else {
-      ASSERT(span->array->ChanType == GL_UNSIGNED_SHORT);
+      ASSERT(srcType == GL_UNSIGNED_SHORT);
       src = span->array->rgba16;
    }
 
@@ -978,7 +979,7 @@ shade_texture_span(struct gl_context *ctx, SWspan *span)
        ctx->ATIFragmentShader._Enabled) {
       /* programmable shading */
       if (span->primitive == GL_BITMAP && span->array->ChanType != GL_FLOAT) {
-         convert_color_type(span, GL_FLOAT, 0);
+         convert_color_type(span, span->array->ChanType, GL_FLOAT, 0);
       }
       else {
          span->array->rgba = (void *) span->array->attribs[VARYING_SLOT_COL0];
@@ -1313,6 +1314,8 @@ _swrast_write_rgba_span( struct gl_context *ctx, SWspan *span)
       const GLboolean multiFragOutputs = 
          _swrast_use_fragment_program(ctx)
          && fp->Base.OutputsWritten >= (1 << FRAG_RESULT_DATA0);
+      /* Save srcColorType because convert_color_type() can change it */
+      const GLenum srcColorType = span->array->ChanType;
       GLuint buf;
 
       for (buf = 0; buf < numBuffers; buf++) {
@@ -1324,17 +1327,18 @@ _swrast_write_rgba_span( struct gl_context *ctx, SWspan *span)
             /* re-use one of the attribute array buffers for rgbaSave */
             GLchan (*rgbaSave)[4] = (GLchan (*)[4]) span->array->attribs[0];
             struct swrast_renderbuffer *srb = swrast_renderbuffer(rb);
-            GLenum colorType = srb->ColorType;
+            const GLenum dstColorType = srb->ColorType;
 
-            assert(colorType == GL_UNSIGNED_BYTE ||
-                   colorType == GL_FLOAT);
+            assert(dstColorType == GL_UNSIGNED_BYTE ||
+                   dstColorType == GL_FLOAT);
 
             /* set span->array->rgba to colors for renderbuffer's datatype */
-            if (span->array->ChanType != colorType) {
-               convert_color_type(span, colorType, 0);
+            if (srcColorType != dstColorType) {
+               convert_color_type(span, srcColorType, dstColorType,
+                                  multiFragOutputs ? buf : 0);
             }
             else {
-               if (span->array->ChanType == GL_UNSIGNED_BYTE) {
+               if (srcColorType == GL_UNSIGNED_BYTE) {
                   span->array->rgba = span->array->rgba8;
                }
                else {

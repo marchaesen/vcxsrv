@@ -75,6 +75,7 @@ EXTRA_DIST= \
 	glX_proto_size.py \
 	glX_server_table.py \
 	remap_helper.py \
+	SConscript \
 	gl_API.dtd
 
 ######################################################################
@@ -106,6 +107,7 @@ API_XML = \
 	gl_API.xml \
 	es_EXT.xml \
 	gl_and_es_API.xml \
+	gl_and_glX_API.xml \
 	ARB_base_instance.xml \
 	ARB_blend_func_extended.xml \
 	ARB_clear_buffer_object.xml \
@@ -119,6 +121,7 @@ API_XML = \
 	ARB_debug_output.xml \
 	ARB_depth_buffer_float.xml \
 	ARB_depth_clamp.xml \
+	ARB_direct_state_access.xml \
 	ARB_draw_buffers.xml \
 	ARB_draw_buffers_blend.xml \
 	ARB_draw_elements_base_vertex.xml \
@@ -129,12 +132,14 @@ API_XML = \
 	ARB_framebuffer_object.xml \
 	ARB_geometry_shader4.xml \
 	ARB_get_program_binary.xml \
+	ARB_gpu_shader_fp64.xml \
 	ARB_gpu_shader5.xml \
 	ARB_instanced_arrays.xml \
 	ARB_internalformat_query.xml \
 	ARB_invalidate_subdata.xml \
 	ARB_map_buffer_range.xml \
 	ARB_multi_bind.xml \
+	ARB_pipeline_statistics_query.xml \
 	ARB_robustness.xml \
 	ARB_sample_shading.xml \
 	ARB_sampler_objects.xml \
@@ -176,6 +181,7 @@ API_XML = \
 	EXT_transform_feedback.xml \
 	INTEL_performance_query.xml \
 	KHR_debug.xml \
+	KHR_context_flush_control.xml \
 	NV_conditional_render.xml \
 	NV_primitive_restart.xml \
 	NV_texture_barrier.xml \

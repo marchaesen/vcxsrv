@@ -54,6 +54,8 @@ __glXDisp_ReadPixels(__GLXclientState * cl, GLbyte * pc)
     int error;
     char *answer, answerBuffer[200];
 
+    REQUEST_FIXED_SIZE(xGLXSingleReq, 28);
+
     cx = __glXForceCurrent(cl, __GLX_GET_SINGLE_CONTEXT_TAG(pc), &error);
     if (!cx) {
         return error;
@@ -68,7 +70,7 @@ __glXDisp_ReadPixels(__GLXclientState * cl, GLbyte * pc)
     lsbFirst = *(GLboolean *) (pc + 25);
     compsize = __glReadPixels_size(format, type, width, height);
     if (compsize < 0)
-        compsize = 0;
+        return BadLength;
 
     glPixelStorei(GL_PACK_SWAP_BYTES, swapBytes);
     glPixelStorei(GL_PACK_LSB_FIRST, lsbFirst);
@@ -103,6 +105,8 @@ __glXDisp_GetTexImage(__GLXclientState * cl, GLbyte * pc)
     char *answer, answerBuffer[200];
     GLint width = 0, height = 0, depth = 1;
 
+    REQUEST_FIXED_SIZE(xGLXSingleReq, 20);
+
     cx = __glXForceCurrent(cl, __GLX_GET_SINGLE_CONTEXT_TAG(pc), &error);
     if (!cx) {
         return error;
@@ -127,7 +131,7 @@ __glXDisp_GetTexImage(__GLXclientState * cl, GLbyte * pc)
     compsize =
         __glGetTexImage_size(target, level, format, type, width, height, depth);
     if (compsize < 0)
-        compsize = 0;
+        return BadLength;
 
     glPixelStorei(GL_PACK_SWAP_BYTES, swapBytes);
     __GLX_GET_ANSWER_BUFFER(answer, cl, compsize, 1);
@@ -159,6 +163,8 @@ __glXDisp_GetPolygonStipple(__GLXclientState * cl, GLbyte * pc)
     int error;
     GLubyte answerBuffer[200];
     char *answer;
+
+    REQUEST_FIXED_SIZE(xGLXSingleReq, 4);
 
     cx = __glXForceCurrent(cl, __GLX_GET_SINGLE_CONTEXT_TAG(pc), &error);
     if (!cx) {
@@ -220,15 +226,13 @@ GetSeparableFilter(__GLXclientState * cl, GLbyte * pc, GLXContextTag tag)
     compsize = __glGetTexImage_size(target, 1, format, type, width, 1, 1);
     compsize2 = __glGetTexImage_size(target, 1, format, type, height, 1, 1);
 
-    if (compsize < 0)
-        compsize = 0;
-    if (compsize2 < 0)
-        compsize2 = 0;
-    compsize = __GLX_PAD(compsize);
-    compsize2 = __GLX_PAD(compsize2);
+    if ((compsize = safe_pad(compsize)) < 0)
+        return BadLength;
+    if ((compsize2 = safe_pad(compsize2)) < 0)
+        return BadLength;
 
     glPixelStorei(GL_PACK_SWAP_BYTES, swapBytes);
-    __GLX_GET_ANSWER_BUFFER(answer, cl, compsize + compsize2, 1);
+    __GLX_GET_ANSWER_BUFFER(answer, cl, safe_add(compsize, compsize2), 1);
     __glXClearErrorOccured();
     glGetSeparableFilter(*(GLenum *) (pc + 0), *(GLenum *) (pc + 4),
                          *(GLenum *) (pc + 8), answer, answer + compsize, NULL);
@@ -252,7 +256,8 @@ int
 __glXDisp_GetSeparableFilter(__GLXclientState * cl, GLbyte * pc)
 {
     const GLXContextTag tag = __GLX_GET_SINGLE_CONTEXT_TAG(pc);
-
+    ClientPtr client = cl->client;
+    REQUEST_FIXED_SIZE(xGLXSingleReq, 16);
     return GetSeparableFilter(cl, pc + __GLX_SINGLE_HDR_SIZE, tag);
 }
 
@@ -260,7 +265,8 @@ int
 __glXDisp_GetSeparableFilterEXT(__GLXclientState * cl, GLbyte * pc)
 {
     const GLXContextTag tag = __GLX_GET_VENDPRIV_CONTEXT_TAG(pc);
-
+    ClientPtr client = cl->client;
+    REQUEST_FIXED_SIZE(xGLXVendorPrivateReq, 16);
     return GetSeparableFilter(cl, pc + __GLX_VENDPRIV_HDR_SIZE, tag);
 }
 
@@ -299,7 +305,7 @@ GetConvolutionFilter(__GLXclientState * cl, GLbyte * pc, GLXContextTag tag)
      */
     compsize = __glGetTexImage_size(target, 1, format, type, width, height, 1);
     if (compsize < 0)
-        compsize = 0;
+        return BadLength;
 
     glPixelStorei(GL_PACK_SWAP_BYTES, swapBytes);
     __GLX_GET_ANSWER_BUFFER(answer, cl, compsize, 1);
@@ -326,7 +332,8 @@ int
 __glXDisp_GetConvolutionFilter(__GLXclientState * cl, GLbyte * pc)
 {
     const GLXContextTag tag = __GLX_GET_SINGLE_CONTEXT_TAG(pc);
-
+    ClientPtr client = cl->client;
+    REQUEST_FIXED_SIZE(xGLXSingleReq, 16);
     return GetConvolutionFilter(cl, pc + __GLX_SINGLE_HDR_SIZE, tag);
 }
 
@@ -334,7 +341,8 @@ int
 __glXDisp_GetConvolutionFilterEXT(__GLXclientState * cl, GLbyte * pc)
 {
     const GLXContextTag tag = __GLX_GET_VENDPRIV_CONTEXT_TAG(pc);
-
+    ClientPtr client = cl->client;
+    REQUEST_FIXED_SIZE(xGLXVendorPrivateReq, 16);
     return GetConvolutionFilter(cl, pc + __GLX_VENDPRIV_HDR_SIZE, tag);
 }
 
@@ -368,7 +376,7 @@ GetHistogram(__GLXclientState * cl, GLbyte * pc, GLXContextTag tag)
      */
     compsize = __glGetTexImage_size(target, 1, format, type, width, 1, 1);
     if (compsize < 0)
-        compsize = 0;
+        return BadLength;
 
     glPixelStorei(GL_PACK_SWAP_BYTES, swapBytes);
     __GLX_GET_ANSWER_BUFFER(answer, cl, compsize, 1);
@@ -393,7 +401,8 @@ int
 __glXDisp_GetHistogram(__GLXclientState * cl, GLbyte * pc)
 {
     const GLXContextTag tag = __GLX_GET_SINGLE_CONTEXT_TAG(pc);
-
+    ClientPtr client = cl->client;
+    REQUEST_FIXED_SIZE(xGLXSingleReq, 16);
     return GetHistogram(cl, pc + __GLX_SINGLE_HDR_SIZE, tag);
 }
 
@@ -401,7 +410,8 @@ int
 __glXDisp_GetHistogramEXT(__GLXclientState * cl, GLbyte * pc)
 {
     const GLXContextTag tag = __GLX_GET_VENDPRIV_CONTEXT_TAG(pc);
-
+    ClientPtr client = cl->client;
+    REQUEST_FIXED_SIZE(xGLXVendorPrivateReq, 16);
     return GetHistogram(cl, pc + __GLX_VENDPRIV_HDR_SIZE, tag);
 }
 
@@ -429,7 +439,7 @@ GetMinmax(__GLXclientState * cl, GLbyte * pc, GLXContextTag tag)
 
     compsize = __glGetTexImage_size(target, 1, format, type, 2, 1, 1);
     if (compsize < 0)
-        compsize = 0;
+        return BadLength;
 
     glPixelStorei(GL_PACK_SWAP_BYTES, swapBytes);
     __GLX_GET_ANSWER_BUFFER(answer, cl, compsize, 1);
@@ -453,7 +463,8 @@ int
 __glXDisp_GetMinmax(__GLXclientState * cl, GLbyte * pc)
 {
     const GLXContextTag tag = __GLX_GET_SINGLE_CONTEXT_TAG(pc);
-
+    ClientPtr client = cl->client;
+    REQUEST_FIXED_SIZE(xGLXSingleReq, 16);
     return GetMinmax(cl, pc + __GLX_SINGLE_HDR_SIZE, tag);
 }
 
@@ -461,7 +472,8 @@ int
 __glXDisp_GetMinmaxEXT(__GLXclientState * cl, GLbyte * pc)
 {
     const GLXContextTag tag = __GLX_GET_VENDPRIV_CONTEXT_TAG(pc);
-
+    ClientPtr client = cl->client;
+    REQUEST_FIXED_SIZE(xGLXVendorPrivateReq, 16);
     return GetMinmax(cl, pc + __GLX_VENDPRIV_HDR_SIZE, tag);
 }
 
@@ -494,7 +506,7 @@ GetColorTable(__GLXclientState * cl, GLbyte * pc, GLXContextTag tag)
      */
     compsize = __glGetTexImage_size(target, 1, format, type, width, 1, 1);
     if (compsize < 0)
-        compsize = 0;
+        return BadLength;
 
     glPixelStorei(GL_PACK_SWAP_BYTES, swapBytes);
     __GLX_GET_ANSWER_BUFFER(answer, cl, compsize, 1);
@@ -520,7 +532,8 @@ int
 __glXDisp_GetColorTable(__GLXclientState * cl, GLbyte * pc)
 {
     const GLXContextTag tag = __GLX_GET_SINGLE_CONTEXT_TAG(pc);
-
+    ClientPtr client = cl->client;
+    REQUEST_FIXED_SIZE(xGLXSingleReq, 16);
     return GetColorTable(cl, pc + __GLX_SINGLE_HDR_SIZE, tag);
 }
 
@@ -528,6 +541,7 @@ int
 __glXDisp_GetColorTableSGI(__GLXclientState * cl, GLbyte * pc)
 {
     const GLXContextTag tag = __GLX_GET_VENDPRIV_CONTEXT_TAG(pc);
-
+    ClientPtr client = cl->client;
+    REQUEST_FIXED_SIZE(xGLXVendorPrivateReq, 16);
     return GetColorTable(cl, pc + __GLX_VENDPRIV_HDR_SIZE, tag);
 }

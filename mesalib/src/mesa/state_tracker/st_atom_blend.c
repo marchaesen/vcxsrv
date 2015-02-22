@@ -175,7 +175,7 @@ static GLboolean
 blend_per_rt(const struct gl_context *ctx)
 {
    if (ctx->Color.BlendEnabled &&
-      (ctx->Color.BlendEnabled != ((1 << ctx->Const.MaxDrawBuffers) - 1))) {
+      (ctx->Color.BlendEnabled != ((1U << ctx->Const.MaxDrawBuffers) - 1))) {
       /* This can only happen if GL_EXT_draw_buffers2 is enabled */
       return GL_TRUE;
    }

@@ -170,6 +170,12 @@ protected:
     */
    virtual void visit_field(const glsl_struct_field *field);
 
+   virtual void enter_record(const glsl_type *type, const char *name,
+                             bool row_major);
+
+   virtual void leave_record(const glsl_type *type, const char *name,
+                             bool row_major);
+
 private:
    /**
     * \param name_length  Length of the current name \b not including the

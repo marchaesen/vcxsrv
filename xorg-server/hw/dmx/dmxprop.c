@@ -220,7 +220,7 @@ dmxPropertyCheckOtherWindows(DMXScreenInfo * dmxScreen, Atom atom)
 
             if (XGetTextProperty(dpy, win, &tp, atom) && tp.nitems) {
                 dmxLog(dmxDebug, "On %s/%lu: %s\n",
-                       dmxScreen->name, win, tp.value);
+                       dmxScreen->name, (unsigned long) win, tp.value);
                 if (!strncmp((char *) tp.value, (char *) id,
                              strlen((char *) id))) {
                     int idx;
@@ -360,8 +360,8 @@ dmxPropertyWindow(DMXScreenInfo * dmxScreen)
         dmxScreen->next = (other->next ? other->next : other);
         other->next = (tmp ? tmp : dmxScreen);
         dmxLog(dmxDebug, "%d/%s/%lu and %d/%s/%lu are on the same backend\n",
-               dmxScreen->index, dmxScreen->name, dmxScreen->scrnWin,
-               other->index, other->name, other->scrnWin);
+               dmxScreen->index, dmxScreen->name, (unsigned long) dmxScreen->scrnWin,
+               other->index, other->name, (unsigned long) other->scrnWin);
     }
 
     snprintf(buf, sizeof(buf), ".%d,%lu", dmxScreen->index,

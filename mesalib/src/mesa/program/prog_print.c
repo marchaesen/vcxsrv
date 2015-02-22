@@ -82,7 +82,7 @@ _mesa_register_file_name(gl_register_file f)
  * Return ARB_v/f_prog-style input attrib string.
  */
 static const char *
-arb_input_attrib_string(GLint index, GLenum progType)
+arb_input_attrib_string(GLuint index, GLenum progType)
 {
    /*
     * These strings should match the VERT_ATTRIB_x and VARYING_SLOT_x tokens.
@@ -242,7 +242,7 @@ _mesa_print_fp_inputs(GLbitfield inputs)
  * Return ARB_v/f_prog-style output attrib string.
  */
 static const char *
-arb_output_attrib_string(GLint index, GLenum progType)
+arb_output_attrib_string(GLuint index, GLenum progType)
 {
    /*
     * These strings should match the VARYING_SLOT_x and FRAG_RESULT_x tokens.

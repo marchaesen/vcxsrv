@@ -54,6 +54,4 @@ extern Bool dmxUnrealizeFont(ScreenPtr pScreen, FontPtr pFont);
 extern Bool dmxBELoadFont(ScreenPtr pScreen, FontPtr pFont);
 extern Bool dmxBEFreeFont(ScreenPtr pScreen, FontPtr pFont);
 
-extern int dmxFontPrivateIndex;
-
 #endif                          /* DMXFONT_H */

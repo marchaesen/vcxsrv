@@ -44,7 +44,7 @@ static int isnormal(double x)
 {
    return _fpclass(x) == _FPCLASS_NN || _fpclass(x) == _FPCLASS_PN;
 }
-#elif defined(__SUNPRO_CC)
+#elif defined(__SUNPRO_CC) && !defined(isnormal)
 #include <ieeefp.h>
 static int isnormal(double x)
 {
@@ -53,13 +53,25 @@ static int isnormal(double x)
 #endif
 
 static float
-dot(ir_constant *op0, ir_constant *op1)
+dot_f(ir_constant *op0, ir_constant *op1)
 {
    assert(op0->type->is_float() && op1->type->is_float());
 
    float result = 0;
    for (unsigned c = 0; c < op0->type->components(); c++)
       result += op0->value.f[c] * op1->value.f[c];
+
+   return result;
+}
+
+static double
+dot_d(ir_constant *op0, ir_constant *op1)
+{
+   assert(op0->type->is_double() && op1->type->is_double());
+
+   double result = 0;
+   for (unsigned c = 0; c < op0->type->components(); c++)
+      result += op0->value.d[c] * op1->value.d[c];
 
    return result;
 }
@@ -660,32 +672,81 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	    data.b[0] = true;
       }
       break;
-
-   case ir_unop_trunc:
+   case ir_unop_d2f:
+      assert(op[0]->type->base_type == GLSL_TYPE_DOUBLE);
+      for (unsigned c = 0; c < op[0]->type->components(); c++) {
+	 data.f[c] = op[0]->value.d[c];
+      }
+      break;
+   case ir_unop_f2d:
       assert(op[0]->type->base_type == GLSL_TYPE_FLOAT);
       for (unsigned c = 0; c < op[0]->type->components(); c++) {
-	 data.f[c] = truncf(op[0]->value.f[c]);
+	 data.d[c] = op[0]->value.f[c];
+      }
+      break;
+   case ir_unop_d2i:
+      assert(op[0]->type->base_type == GLSL_TYPE_DOUBLE);
+      for (unsigned c = 0; c < op[0]->type->components(); c++) {
+	 data.i[c] = op[0]->value.d[c];
+      }
+      break;
+   case ir_unop_i2d:
+      assert(op[0]->type->base_type == GLSL_TYPE_INT);
+      for (unsigned c = 0; c < op[0]->type->components(); c++) {
+	 data.d[c] = op[0]->value.i[c];
+      }
+      break;
+   case ir_unop_d2u:
+      assert(op[0]->type->base_type == GLSL_TYPE_DOUBLE);
+      for (unsigned c = 0; c < op[0]->type->components(); c++) {
+	 data.u[c] = op[0]->value.d[c];
+      }
+      break;
+   case ir_unop_u2d:
+      assert(op[0]->type->base_type == GLSL_TYPE_UINT);
+      for (unsigned c = 0; c < op[0]->type->components(); c++) {
+	 data.d[c] = op[0]->value.u[c];
+      }
+      break;
+   case ir_unop_d2b:
+      assert(op[0]->type->base_type == GLSL_TYPE_DOUBLE);
+      for (unsigned c = 0; c < op[0]->type->components(); c++) {
+         data.b[c] = op[0]->value.d[c] != 0.0;
+      }
+      break;
+   case ir_unop_trunc:
+      for (unsigned c = 0; c < op[0]->type->components(); c++) {
+         if (op[0]->type->base_type == GLSL_TYPE_DOUBLE)
+            data.d[c] = trunc(op[0]->value.d[c]);
+         else
+            data.f[c] = truncf(op[0]->value.f[c]);
       }
       break;
 
    case ir_unop_round_even:
-      assert(op[0]->type->base_type == GLSL_TYPE_FLOAT);
       for (unsigned c = 0; c < op[0]->type->components(); c++) {
-	 data.f[c] = _mesa_round_to_even(op[0]->value.f[c]);
+         if (op[0]->type->base_type == GLSL_TYPE_DOUBLE)
+            data.d[c] = _mesa_round_to_even(op[0]->value.d[c]);
+         else
+            data.f[c] = _mesa_round_to_even(op[0]->value.f[c]);
       }
       break;
 
    case ir_unop_ceil:
-      assert(op[0]->type->base_type == GLSL_TYPE_FLOAT);
       for (unsigned c = 0; c < op[0]->type->components(); c++) {
-	 data.f[c] = ceilf(op[0]->value.f[c]);
+         if (op[0]->type->base_type == GLSL_TYPE_DOUBLE)
+            data.d[c] = ceil(op[0]->value.d[c]);
+         else
+            data.f[c] = ceilf(op[0]->value.f[c]);
       }
       break;
 
    case ir_unop_floor:
-      assert(op[0]->type->base_type == GLSL_TYPE_FLOAT);
       for (unsigned c = 0; c < op[0]->type->components(); c++) {
-	 data.f[c] = floorf(op[0]->value.f[c]);
+         if (op[0]->type->base_type == GLSL_TYPE_DOUBLE)
+            data.d[c] = floor(op[0]->value.d[c]);
+         else
+            data.f[c] = floorf(op[0]->value.f[c]);
       }
       break;
 
@@ -700,6 +761,9 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	    break;
 	 case GLSL_TYPE_FLOAT:
 	    data.f[c] = op[0]->value.f[c] - floor(op[0]->value.f[c]);
+	    break;
+	 case GLSL_TYPE_DOUBLE:
+	    data.d[c] = op[0]->value.d[c] - floor(op[0]->value.d[c]);
 	    break;
 	 default:
 	    assert(0);
@@ -735,6 +799,9 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	 case GLSL_TYPE_FLOAT:
 	    data.f[c] = -op[0]->value.f[c];
 	    break;
+	 case GLSL_TYPE_DOUBLE:
+	    data.d[c] = -op[0]->value.d[c];
+	    break;
 	 default:
 	    assert(0);
 	 }
@@ -755,6 +822,9 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	 case GLSL_TYPE_FLOAT:
 	    data.f[c] = fabs(op[0]->value.f[c]);
 	    break;
+	 case GLSL_TYPE_DOUBLE:
+	    data.d[c] = fabs(op[0]->value.d[c]);
+	    break;
 	 default:
 	    assert(0);
 	 }
@@ -773,6 +843,9 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	 case GLSL_TYPE_FLOAT:
 	    data.f[c] = float((op[0]->value.f[c] > 0)-(op[0]->value.f[c] < 0));
 	    break;
+	 case GLSL_TYPE_DOUBLE:
+	    data.d[c] = double((op[0]->value.d[c] > 0)-(op[0]->value.d[c] < 0));
+	    break;
 	 default:
 	    assert(0);
 	 }
@@ -780,7 +853,6 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
       break;
 
    case ir_unop_rcp:
-      assert(op[0]->type->base_type == GLSL_TYPE_FLOAT);
       for (unsigned c = 0; c < op[0]->type->components(); c++) {
 	 switch (this->type->base_type) {
 	 case GLSL_TYPE_UINT:
@@ -795,6 +867,10 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	    if (op[0]->value.f[c] != 0.0)
 	       data.f[c] = 1.0F / op[0]->value.f[c];
 	    break;
+	 case GLSL_TYPE_DOUBLE:
+	    if (op[0]->value.d[c] != 0.0)
+	       data.d[c] = 1.0 / op[0]->value.d[c];
+	    break;
 	 default:
 	    assert(0);
 	 }
@@ -802,16 +878,20 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
       break;
 
    case ir_unop_rsq:
-      assert(op[0]->type->base_type == GLSL_TYPE_FLOAT);
       for (unsigned c = 0; c < op[0]->type->components(); c++) {
-	 data.f[c] = 1.0F / sqrtf(op[0]->value.f[c]);
+         if (op[0]->type->base_type == GLSL_TYPE_DOUBLE)
+            data.d[c] = 1.0 / sqrt(op[0]->value.d[c]);
+         else
+            data.f[c] = 1.0F / sqrtf(op[0]->value.f[c]);
       }
       break;
 
    case ir_unop_sqrt:
-      assert(op[0]->type->base_type == GLSL_TYPE_FLOAT);
       for (unsigned c = 0; c < op[0]->type->components(); c++) {
-	 data.f[c] = sqrtf(op[0]->value.f[c]);
+         if (op[0]->type->base_type == GLSL_TYPE_DOUBLE)
+            data.d[c] = sqrt(op[0]->value.d[c]);
+         else
+            data.f[c] = sqrtf(op[0]->value.f[c]);
       }
       break;
 
@@ -927,7 +1007,10 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
       break;
 
    case ir_binop_dot:
-      data.f[0] = dot(op[0], op[1]);
+      if (op[0]->type->base_type == GLSL_TYPE_DOUBLE)
+         data.d[0] = dot_d(op[0], op[1]);
+      else
+         data.f[0] = dot_f(op[0], op[1]);
       break;
 
    case ir_binop_min:
@@ -945,6 +1028,9 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	    break;
 	 case GLSL_TYPE_FLOAT:
 	    data.f[c] = MIN2(op[0]->value.f[c0], op[1]->value.f[c1]);
+	    break;
+	 case GLSL_TYPE_DOUBLE:
+	    data.d[c] = MIN2(op[0]->value.d[c0], op[1]->value.d[c1]);
 	    break;
 	 default:
 	    assert(0);
@@ -968,6 +1054,9 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	 case GLSL_TYPE_FLOAT:
 	    data.f[c] = MAX2(op[0]->value.f[c0], op[1]->value.f[c1]);
 	    break;
+	 case GLSL_TYPE_DOUBLE:
+	    data.d[c] = MAX2(op[0]->value.d[c0], op[1]->value.d[c1]);
+	    break;
 	 default:
 	    assert(0);
 	 }
@@ -990,6 +1079,9 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	 case GLSL_TYPE_FLOAT:
 	    data.f[c] = op[0]->value.f[c0] + op[1]->value.f[c1];
 	    break;
+	 case GLSL_TYPE_DOUBLE:
+	    data.d[c] = op[0]->value.d[c0] + op[1]->value.d[c1];
+	    break;
 	 default:
 	    assert(0);
 	 }
@@ -1011,6 +1103,9 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	    break;
 	 case GLSL_TYPE_FLOAT:
 	    data.f[c] = op[0]->value.f[c0] - op[1]->value.f[c1];
+	    break;
+	 case GLSL_TYPE_DOUBLE:
+	    data.d[c] = op[0]->value.d[c0] - op[1]->value.d[c1];
 	    break;
 	 default:
 	    assert(0);
@@ -1036,6 +1131,9 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	    case GLSL_TYPE_FLOAT:
 	       data.f[c] = op[0]->value.f[c0] * op[1]->value.f[c1];
 	       break;
+	    case GLSL_TYPE_DOUBLE:
+	       data.d[c] = op[0]->value.d[c0] * op[1]->value.d[c1];
+	       break;
 	    default:
 	       assert(0);
 	    }
@@ -1059,7 +1157,10 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	 for (unsigned j = 0; j < p; j++) {
 	    for (unsigned i = 0; i < n; i++) {
 	       for (unsigned k = 0; k < m; k++) {
-		  data.f[i+n*j] += op[0]->value.f[i+n*k]*op[1]->value.f[k+m*j];
+                  if (op[0]->type->base_type == GLSL_TYPE_DOUBLE)
+                     data.d[i+n*j] += op[0]->value.d[i+n*k]*op[1]->value.d[k+m*j];
+                  else
+                     data.f[i+n*j] += op[0]->value.f[i+n*k]*op[1]->value.f[k+m*j];
 	       }
 	    }
 	 }
@@ -1090,6 +1191,9 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	    break;
 	 case GLSL_TYPE_FLOAT:
 	    data.f[c] = op[0]->value.f[c0] / op[1]->value.f[c1];
+	    break;
+	 case GLSL_TYPE_DOUBLE:
+	    data.d[c] = op[0]->value.d[c0] / op[1]->value.d[c1];
 	    break;
 	 default:
 	    assert(0);
@@ -1125,6 +1229,13 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	     */
 	    data.f[c] = op[0]->value.f[c0] - op[1]->value.f[c1]
 	       * floorf(op[0]->value.f[c0] / op[1]->value.f[c1]);
+	    break;
+	 case GLSL_TYPE_DOUBLE:
+	    /* We don't use fmod because it rounds toward zero; GLSL specifies
+	     * the use of floor.
+	     */
+	    data.d[c] = op[0]->value.d[c0] - op[1]->value.d[c1]
+	       * floor(op[0]->value.d[c0] / op[1]->value.d[c1]);
 	    break;
 	 default:
 	    assert(0);
@@ -1162,6 +1273,9 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	 case GLSL_TYPE_FLOAT:
 	    data.b[c] = op[0]->value.f[c] < op[1]->value.f[c];
 	    break;
+	 case GLSL_TYPE_DOUBLE:
+	    data.b[c] = op[0]->value.d[c] < op[1]->value.d[c];
+	    break;
 	 default:
 	    assert(0);
 	 }
@@ -1179,6 +1293,9 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	    break;
 	 case GLSL_TYPE_FLOAT:
 	    data.b[c] = op[0]->value.f[c] > op[1]->value.f[c];
+	    break;
+	 case GLSL_TYPE_DOUBLE:
+	    data.b[c] = op[0]->value.d[c] > op[1]->value.d[c];
 	    break;
 	 default:
 	    assert(0);
@@ -1198,6 +1315,9 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	 case GLSL_TYPE_FLOAT:
 	    data.b[c] = op[0]->value.f[c] <= op[1]->value.f[c];
 	    break;
+	 case GLSL_TYPE_DOUBLE:
+	    data.b[c] = op[0]->value.d[c] <= op[1]->value.d[c];
+	    break;
 	 default:
 	    assert(0);
 	 }
@@ -1215,6 +1335,9 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	    break;
 	 case GLSL_TYPE_FLOAT:
 	    data.b[c] = op[0]->value.f[c] >= op[1]->value.f[c];
+	    break;
+	 case GLSL_TYPE_DOUBLE:
+	    data.b[c] = op[0]->value.d[c] >= op[1]->value.d[c];
 	    break;
 	 default:
 	    assert(0);
@@ -1237,6 +1360,9 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	 case GLSL_TYPE_BOOL:
 	    data.b[c] = op[0]->value.b[c] == op[1]->value.b[c];
 	    break;
+	 case GLSL_TYPE_DOUBLE:
+	    data.b[c] = op[0]->value.d[c] == op[1]->value.d[c];
+	    break;
 	 default:
 	    assert(0);
 	 }
@@ -1257,6 +1383,9 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	    break;
 	 case GLSL_TYPE_BOOL:
 	    data.b[c] = op[0]->value.b[c] != op[1]->value.b[c];
+	    break;
+	 case GLSL_TYPE_DOUBLE:
+	    data.b[c] = op[0]->value.d[c] != op[1]->value.d[c];
 	    break;
 	 default:
 	    assert(0);
@@ -1368,6 +1497,9 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
       case GLSL_TYPE_FLOAT:
          data.f[0] = op[0]->value.f[c];
          break;
+      case GLSL_TYPE_DOUBLE:
+         data.d[0] = op[0]->value.d[c];
+         break;
       case GLSL_TYPE_BOOL:
          data.b[0] = op[0]->value.b[c];
          break;
@@ -1467,6 +1599,19 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
          data.f[c] = CLAMP(op[0]->value.f[c], 0.0f, 1.0f);
       }
       break;
+   case ir_unop_pack_double_2x32: {
+      /* XXX needs to be checked on big-endian */
+      uint64_t temp;
+      temp = (uint64_t)op[0]->value.u[0] | ((uint64_t)op[0]->value.u[1] << 32);
+      data.d[0] = *(double *)&temp;
+
+      break;
+   }
+   case ir_unop_unpack_double_2x32:
+      /* XXX needs to be checked on big-endian */
+      data.u[0] = *(uint32_t *)&op[0]->value.d[0];
+      data.u[1] = *((uint32_t *)&op[0]->value.d[0] + 1);
+      break;
 
    case ir_triop_bitfield_extract: {
       int offset = op[1]->value.i[0];
@@ -1516,40 +1661,65 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 
    case ir_binop_ldexp:
       for (unsigned c = 0; c < components; c++) {
-         data.f[c] = ldexp(op[0]->value.f[c], op[1]->value.i[c]);
-         /* Flush subnormal values to zero. */
-         if (!isnormal(data.f[c]))
-            data.f[c] = copysign(0.0f, op[0]->value.f[c]);
+         if (op[0]->type->base_type == GLSL_TYPE_DOUBLE) {
+            data.d[c] = ldexp(op[0]->value.d[c], op[1]->value.i[c]);
+            /* Flush subnormal values to zero. */
+            if (!isnormal(data.d[c]))
+               data.d[c] = copysign(0.0, op[0]->value.d[c]);
+         } else {
+            data.f[c] = ldexp(op[0]->value.f[c], op[1]->value.i[c]);
+            /* Flush subnormal values to zero. */
+            if (!isnormal(data.f[c]))
+               data.f[c] = copysign(0.0f, op[0]->value.f[c]);
+         }
       }
       break;
 
    case ir_triop_fma:
-      assert(op[0]->type->base_type == GLSL_TYPE_FLOAT);
-      assert(op[1]->type->base_type == GLSL_TYPE_FLOAT);
-      assert(op[2]->type->base_type == GLSL_TYPE_FLOAT);
+      assert(op[0]->type->base_type == GLSL_TYPE_FLOAT ||
+             op[0]->type->base_type == GLSL_TYPE_DOUBLE);
+      assert(op[1]->type->base_type == GLSL_TYPE_FLOAT ||
+             op[1]->type->base_type == GLSL_TYPE_DOUBLE);
+      assert(op[2]->type->base_type == GLSL_TYPE_FLOAT ||
+             op[2]->type->base_type == GLSL_TYPE_DOUBLE);
 
       for (unsigned c = 0; c < components; c++) {
-         data.f[c] = op[0]->value.f[c] * op[1]->value.f[c]
-                                       + op[2]->value.f[c];
+         if (op[0]->type->base_type == GLSL_TYPE_DOUBLE)
+            data.d[c] = op[0]->value.d[c] * op[1]->value.d[c]
+                                          + op[2]->value.d[c];
+         else
+            data.f[c] = op[0]->value.f[c] * op[1]->value.f[c]
+                                          + op[2]->value.f[c];
       }
       break;
 
    case ir_triop_lrp: {
-      assert(op[0]->type->base_type == GLSL_TYPE_FLOAT);
-      assert(op[1]->type->base_type == GLSL_TYPE_FLOAT);
-      assert(op[2]->type->base_type == GLSL_TYPE_FLOAT);
+      assert(op[0]->type->base_type == GLSL_TYPE_FLOAT ||
+             op[0]->type->base_type == GLSL_TYPE_DOUBLE);
+      assert(op[1]->type->base_type == GLSL_TYPE_FLOAT ||
+             op[1]->type->base_type == GLSL_TYPE_DOUBLE);
+      assert(op[2]->type->base_type == GLSL_TYPE_FLOAT ||
+             op[2]->type->base_type == GLSL_TYPE_DOUBLE);
 
       unsigned c2_inc = op[2]->type->is_scalar() ? 0 : 1;
       for (unsigned c = 0, c2 = 0; c < components; c2 += c2_inc, c++) {
-         data.f[c] = op[0]->value.f[c] * (1.0f - op[2]->value.f[c2]) +
-                     (op[1]->value.f[c] * op[2]->value.f[c2]);
+         if (op[0]->type->base_type == GLSL_TYPE_DOUBLE)
+            data.d[c] = op[0]->value.d[c] * (1.0 - op[2]->value.d[c2]) +
+               (op[1]->value.d[c] * op[2]->value.d[c2]);
+         else
+            data.f[c] = op[0]->value.f[c] * (1.0f - op[2]->value.f[c2]) +
+               (op[1]->value.f[c] * op[2]->value.f[c2]);
       }
       break;
    }
 
    case ir_triop_csel:
       for (unsigned c = 0; c < components; c++) {
-         data.u[c] = op[0]->value.b[c] ? op[1]->value.u[c]
+         if (op[1]->type->base_type == GLSL_TYPE_DOUBLE)
+            data.d[c] = op[0]->value.b[c] ? op[1]->value.d[c]
+                                       : op[2]->value.d[c];
+         else
+            data.u[c] = op[0]->value.b[c] ? op[1]->value.u[c]
                                        : op[2]->value.u[c];
       }
       break;
@@ -1571,6 +1741,9 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	 break;
       case GLSL_TYPE_BOOL:
 	 data.b[idx] = op[1]->value.b[0];
+	 break;
+      case GLSL_TYPE_DOUBLE:
+	 data.d[idx] = op[1]->value.d[0];
 	 break;
       default:
 	 assert(!"Should not get here.");
@@ -1618,6 +1791,9 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	 case GLSL_TYPE_FLOAT:
 	    data.f[c] = op[c]->value.f[0];
 	    break;
+	 case GLSL_TYPE_DOUBLE:
+	    data.d[c] = op[c]->value.d[0];
+	    break;
 	 default:
 	    assert(0);
 	 }
@@ -1659,6 +1835,7 @@ ir_swizzle::constant_expression_value(struct hash_table *variable_context)
 	 case GLSL_TYPE_INT:   data.u[i] = v->value.u[swiz_idx[i]]; break;
 	 case GLSL_TYPE_FLOAT: data.f[i] = v->value.f[swiz_idx[i]]; break;
 	 case GLSL_TYPE_BOOL:  data.b[i] = v->value.b[swiz_idx[i]]; break;
+	 case GLSL_TYPE_DOUBLE:data.d[i] = v->value.d[swiz_idx[i]]; break;
 	 default:              assert(!"Should not get here."); break;
 	 }
       }
@@ -1730,6 +1907,12 @@ ir_dereference_array::constant_expression_value(struct hash_table *variable_cont
 	 case GLSL_TYPE_FLOAT:
 	    for (unsigned i = 0; i < column_type->vector_elements; i++)
 	       data.f[i] = array->value.f[mat_idx + i];
+
+	    break;
+
+	 case GLSL_TYPE_DOUBLE:
+	    for (unsigned i = 0; i < column_type->vector_elements; i++)
+	       data.d[i] = array->value.d[mat_idx + i];
 
 	    break;
 

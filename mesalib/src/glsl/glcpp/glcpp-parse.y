@@ -290,9 +290,10 @@ control_line_success:
 		macro_t *macro;
 		if (strcmp("__LINE__", $4) == 0
 		    || strcmp("__FILE__", $4) == 0
-		    || strcmp("__VERSION__", $4) == 0)
+		    || strcmp("__VERSION__", $4) == 0
+		    || strncmp("GL_", $4, 3) == 0)
 			glcpp_error(& @1, parser, "Built-in (pre-defined)"
-				    " macro names can not be undefined.");
+				    " macro names cannot be undefined.");
 
 		macro = hash_table_find (parser->defines, $4);
 		if (macro) {
@@ -2374,6 +2375,7 @@ _glcpp_parser_handle_version_declaration(glcpp_parser_t *parser, intmax_t versio
 	if (parser->is_gles) {
 	   add_builtin_define(parser, "GL_ES", 1);
            add_builtin_define(parser, "GL_EXT_separate_shader_objects", 1);
+           add_builtin_define(parser, "GL_EXT_draw_buffers", 1);
 
 	   if (extensions != NULL) {
 	      if (extensions->OES_EGL_image_external)
@@ -2443,6 +2445,9 @@ _glcpp_parser_handle_version_declaration(glcpp_parser_t *parser, intmax_t versio
 	      if (extensions->ARB_gpu_shader5)
 	         add_builtin_define(parser, "GL_ARB_gpu_shader5", 1);
 
+              if (extensions->ARB_gpu_shader_fp64)
+                 add_builtin_define(parser, "GL_ARB_gpu_shader_fp64", 1);
+
 	      if (extensions->AMD_vertex_shader_layer)
 	         add_builtin_define(parser, "GL_AMD_vertex_shader_layer", 1);
 
@@ -2472,6 +2477,9 @@ _glcpp_parser_handle_version_declaration(glcpp_parser_t *parser, intmax_t versio
 
               if (extensions->ARB_derivative_control)
                  add_builtin_define(parser, "GL_ARB_derivative_control", 1);
+
+              if (extensions->ARB_shader_precision)
+                 add_builtin_define(parser, "GL_ARB_shader_precision", 1);
 	   }
 	}
 

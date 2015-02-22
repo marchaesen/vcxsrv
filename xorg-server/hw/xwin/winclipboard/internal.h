@@ -62,11 +62,13 @@ typedef int pid_t;
 #include "winmsg.h"
 
 #define WIN_XEVENTS_SUCCESS			0
-#define WIN_XEVENTS_CONVERT			2
-#define WIN_XEVENTS_NOTIFY			3
+#define WIN_XEVENTS_FAILED			1
+#define WIN_XEVENTS_NOTIFY_DATA			3
+#define WIN_XEVENTS_NOTIFY_TARGETS		4
 #define WIN_LOCAL_PROPERTY			"CYGX_CUT_BUFFER"
 
 #define WM_WM_REINIT                           (WM_USER + 200)
+#define WM_WM_QUIT                             (WM_USER + 201)
 
 /*
  * References to external symbols
@@ -95,6 +97,15 @@ void
  */
 
 
+typedef struct
+{
+    Atom atomClipboard;
+    Atom atomLocalProperty;
+    Atom atomUTF8String;
+    Atom atomCompoundText;
+    Atom atomTargets;
+} ClipboardAtoms;
+
 /*
  * winclipboardwndproc.c
  */
@@ -104,12 +115,33 @@ Bool winClipboardFlushWindowsMessageQueue(HWND hwnd);
 LRESULT CALLBACK
 winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
+typedef struct
+{
+  Display *pClipboardDisplay;
+  Window iClipboardWindow;
+  ClipboardAtoms *atoms;
+} ClipboardWindowCreationParams;
+
 /*
  * winclipboardxevents.c
  */
 
+typedef struct
+{
+  Bool fUseUnicode;
+  Atom *targetList;
+} ClipboardConversionData;
+
 int
 
 winClipboardFlushXEvents(HWND hwnd,
-                         int iWindow, Display * pDisplay, Bool fUnicodeSupport, Bool ClipboardOpened);
+                         Window iWindow, Display * pDisplay, ClipboardConversionData *data, ClipboardAtoms *atom);
+
+
+Atom
+winClipboardGetLastOwnedSelectionAtom(ClipboardAtoms *atoms);
+
+void
+winClipboardInitMonitoredSelections(void);
+
 #endif

@@ -21,6 +21,8 @@
 
 include Makefile.sources
 
+EXTRA_DIST = SConscript
+
 noinst_LTLIBRARIES = libloader.la
 
 libloader_la_CPPFLAGS = \
@@ -33,14 +35,14 @@ libloader_la_CPPFLAGS = \
 libloader_la_SOURCES = $(LOADER_C_FILES)
 libloader_la_LIBADD =
 
-if NEED_OPENGL_COMMON
 if HAVE_DRICOMMON
 libloader_la_CPPFLAGS += \
 	-I$(top_srcdir)/src/mesa/drivers/dri/common/ \
 	-I$(top_builddir)/src/mesa/drivers/dri/common/ \
 	-I$(top_srcdir)/src/mesa/ \
 	-I$(top_srcdir)/src/mapi/ \
-	-DUSE_DRICONF
+	-DUSE_DRICONF \
+	$(EXPAT_CFLAGS)
 
 libloader_la_SOURCES += \
 	$(top_srcdir)/src/mesa/drivers/dri/common/xmlconfig.c
@@ -48,7 +50,6 @@ libloader_la_SOURCES += \
 libloader_la_LIBADD += \
 	-lm \
 	$(EXPAT_LIBS)
-endif
 endif
 
 if !HAVE_LIBDRM

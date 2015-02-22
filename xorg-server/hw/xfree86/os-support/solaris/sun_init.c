@@ -46,15 +46,12 @@
 #define	SOL_CONSOLE_DEV	"/dev/console"
 
 static Bool KeepTty = FALSE;
-static Bool Protect0 = FALSE;
 static Bool UseConsole = FALSE;
 
 #ifdef HAS_USL_VTS
 static int VTnum = -1;
 static int xf86StartVT = -1;
 static int vtEnabled = 0;
-extern void xf86VTAcquire(int);
-extern void xf86VTRelease(int);
 #endif
 
 /* Device to open as xf86Info.consoleFd */
@@ -96,27 +93,6 @@ xf86OpenConsole(void)
         /* Check if we're run with euid==0 */
         if (geteuid() != 0)
             FatalError("xf86OpenConsole: Server must be suid root\n");
-
-        /* Protect page 0 to help find NULL dereferencing */
-        /* mprotect() doesn't seem to work */
-        if (Protect0) {
-            int fd = -1;
-
-            if ((fd = open("/dev/zero", O_RDONLY, 0)) < 0) {
-                xf86Msg(X_WARNING,
-                        "xf86OpenConsole: cannot open /dev/zero (%s)\n",
-                        strerror(errno));
-            }
-            else {
-                if (mmap(0, 0x1000, PROT_NONE,
-                         MAP_FIXED | MAP_SHARED, fd, 0) == MAP_FAILED)
-                    xf86Msg(X_WARNING,
-                            "xf86OpenConsole: failed to protect page 0 (%s)\n",
-                            strerror(errno));
-
-                close(fd);
-            }
-        }
 
 #ifdef HAS_USL_VTS
 
@@ -367,15 +343,6 @@ xf86ProcessArgument(int argc, char **argv, int i)
      */
     if (!strcmp(argv[i], "-keeptty")) {
         KeepTty = TRUE;
-        return 1;
-    }
-
-    /*
-     * Undocumented flag to protect page 0 from read/write to help catch NULL
-     * pointer dereferences.  This is purely a debugging flag.
-     */
-    if (!strcmp(argv[i], "-protect0")) {
-        Protect0 = TRUE;
         return 1;
     }
 

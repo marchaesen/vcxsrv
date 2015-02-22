@@ -52,7 +52,7 @@ typedef int		FcBool;
 
 #define FC_MAJOR	2
 #define FC_MINOR	11
-#define FC_REVISION	1
+#define FC_REVISION	92
 
 #define FC_VERSION	((FC_MAJOR * 10000) + (FC_MINOR * 100) + (FC_REVISION))
 
@@ -66,7 +66,7 @@ typedef int		FcBool;
  * it means multiple copies of the font information.
  */
 
-#define FC_CACHE_VERSION    "4"
+#define FC_CACHE_VERSION    "5"
 
 #define FcTrue		1
 #define FcFalse		0
@@ -94,6 +94,7 @@ typedef int		FcBool;
 #define FC_RASTERIZER	    "rasterizer"	/* String (deprecated) */
 #define FC_OUTLINE	    "outline"		/* Bool */
 #define FC_SCALABLE	    "scalable"		/* Bool */
+#define FC_COLOR	    "color"		/* Bool */
 #define FC_SCALE	    "scale"		/* double */
 #define FC_DPI		    "dpi"		/* double */
 #define FC_RGBA		    "rgba"		/* Int */

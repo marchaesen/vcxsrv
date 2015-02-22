@@ -47,9 +47,6 @@ extern int connBlockScreenStart;
 
 #ifdef PANORAMIX
 #include "panoramiXsrv.h"
-extern int PanoramiXPixWidth;
-extern int PanoramiXPixHeight;
-extern int PanoramiXNumScreens;
 #endif
 
 int dmxGlobalWidth, dmxGlobalHeight;

@@ -90,11 +90,11 @@ structure contains:
 typedef struct {
         int type;
         Display *display;       /\&* Display the event was read from */
+        XID resourceid;         /\&* resource id */
         unsigned long serial;           /\&* serial number of failed request */
         unsigned char error_code;       /\&* error code of failed request */
         unsigned char request_code;     /\&* Major op-code of failed request */
         unsigned char minor_code;       /\&* Minor op-code of failed request */
-        XID resourceid;         /\&* resource id */
 } XErrorEvent;
 .De
 .LP

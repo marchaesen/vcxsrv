@@ -468,6 +468,7 @@ set_renderbuffer_attachment(struct gl_context *ctx,
    remove_attachment(ctx, att);
    att->Type = GL_RENDERBUFFER_EXT;
    att->Texture = NULL; /* just to be safe */
+   att->Layered = GL_FALSE;
    att->Complete = GL_FALSE;
    _mesa_reference_renderbuffer(&att->Renderbuffer, rb);
 }
@@ -599,6 +600,7 @@ fbo_incomplete(struct gl_context *ctx, const char *msg, int index)
    static GLuint msg_id;
 
    _mesa_gl_debug(ctx, &msg_id,
+                  MESA_DEBUG_SOURCE_API,
                   MESA_DEBUG_TYPE_OTHER,
                   MESA_DEBUG_SEVERITY_MEDIUM,
                   "FBO incomplete: %s [%d]\n", msg, index);
@@ -779,6 +781,18 @@ test_attachment_completeness(const struct gl_context *ctx, GLenum format,
             att->Complete = GL_FALSE;
             return;
          }
+
+         /* OES_texture_float allows creation and use of floating point
+          * textures with GL_FLOAT, GL_HALF_FLOAT but it does not allow
+          * these textures to be used as a render target, this is done via
+          * GL_EXT_color_buffer(_half)_float with set of new sized types.
+          */
+         if (_mesa_is_gles(ctx) && (texImage->TexObject->_IsFloat ||
+                                    texImage->TexObject->_IsHalfFloat)) {
+            att_incomplete("bad internal format");
+            att->Complete = GL_FALSE;
+            return;
+         }
       }
       else if (format == GL_DEPTH) {
          if (baseFormat == GL_DEPTH_COMPONENT) {
@@ -885,6 +899,8 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
    GLuint max_layer_count = 0, att_layer_count;
    bool is_layered = false;
    GLenum layer_tex_target = 0;
+   bool has_depth_attachment = false;
+   bool has_stencil_attachment = false;
 
    assert(_mesa_is_user_fbo(fb));
 
@@ -922,6 +938,8 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
             fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT;
             fbo_incomplete(ctx, "depth attachment incomplete", -1);
             return;
+         } else if (att->Type != GL_NONE) {
+            has_depth_attachment = true;
          }
       }
       else if (i == -1) {
@@ -931,6 +949,8 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
             fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT;
             fbo_incomplete(ctx, "stencil attachment incomplete", -1);
             return;
+         } else if (att->Type != GL_NONE) {
+            has_stencil_attachment = true;
          }
       }
       else {
@@ -959,7 +979,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
          if (!is_format_color_renderable(ctx, attFormat,
                                          texImg->InternalFormat) &&
              !is_legal_depth_format(ctx, f)) {
-            fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT;
+            fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
             fbo_incomplete(ctx, "texture attachment incomplete", -1);
             return;
          }
@@ -1127,6 +1147,20 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
       }
    }
 
+   /* The OpenGL ES3 spec, in chapter 9.4. FRAMEBUFFER COMPLETENESS, says:
+    *
+    *    "Depth and stencil attachments, if present, are the same image."
+    *
+    * This restriction is not present in the OpenGL ES2 spec.
+    */
+   if (_mesa_is_gles3(ctx) &&
+       has_stencil_attachment && has_depth_attachment &&
+       !_mesa_has_depthstencil_combined(fb)) {
+      fb->_Status = GL_FRAMEBUFFER_UNSUPPORTED;
+      fbo_incomplete(ctx, "Depth and stencil attachments must be the same image", -1);
+      return;
+   }
+
    /* Provisionally set status = COMPLETE ... */
    fb->_Status = GL_FRAMEBUFFER_COMPLETE_EXT;
 
@@ -1289,6 +1323,11 @@ _mesa_DeleteRenderbuffers(GLsizei n, const GLuint *renderbuffers)
 {
    GLint i;
    GET_CURRENT_CONTEXT(ctx);
+
+   if (n < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glDeleteRenderbuffers(n < 0)");
+      return;
+   }
 
    FLUSH_VERTICES(ctx, _NEW_BUFFERS);
 
@@ -2176,6 +2215,11 @@ _mesa_DeleteFramebuffers(GLsizei n, const GLuint *framebuffers)
    GLint i;
    GET_CURRENT_CONTEXT(ctx);
 
+   if (n < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glDeleteFramebuffers(n < 0)");
+      return;
+   }
+
    FLUSH_VERTICES(ctx, _NEW_BUFFERS);
 
    for (i = 0; i < n; i++) {
@@ -2316,7 +2360,7 @@ reuse_framebuffer_texture_attachment(struct gl_framebuffer *fb,
 static void
 framebuffer_texture(struct gl_context *ctx, const char *caller, GLenum target,
                     GLenum attachment, GLenum textarget, GLuint texture,
-                    GLint level, GLint zoffset, GLboolean layered)
+                    GLint level, GLuint zoffset, GLboolean layered)
 {
    struct gl_renderbuffer_attachment *att;
    struct gl_texture_object *texObj = NULL;
@@ -2410,8 +2454,8 @@ framebuffer_texture(struct gl_context *ctx, const char *caller, GLenum target,
       }
 
       if (texObj->Target == GL_TEXTURE_3D) {
-         const GLint maxSize = 1 << (ctx->Const.Max3DTextureLevels - 1);
-         if (zoffset < 0 || zoffset >= maxSize) {
+         const GLuint maxSize = 1 << (ctx->Const.Max3DTextureLevels - 1);
+         if (zoffset >= maxSize) {
             _mesa_error(ctx, GL_INVALID_VALUE,
                         "glFramebufferTexture%s(zoffset)", caller);
             return;
@@ -2421,8 +2465,7 @@ framebuffer_texture(struct gl_context *ctx, const char *caller, GLenum target,
                (texObj->Target == GL_TEXTURE_2D_ARRAY_EXT) ||
                (texObj->Target == GL_TEXTURE_CUBE_MAP_ARRAY) ||
                (texObj->Target == GL_TEXTURE_2D_MULTISAMPLE_ARRAY)) {
-         if (zoffset < 0 ||
-             zoffset >= (GLint) ctx->Const.MaxArrayTextureLayers) {
+         if (zoffset >= ctx->Const.MaxArrayTextureLayers) {
             _mesa_error(ctx, GL_INVALID_VALUE,
                         "glFramebufferTexture%s(layer)", caller);
             return;
@@ -2759,7 +2802,7 @@ _mesa_GetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment,
 
       if (_mesa_is_gles3(ctx) && attachment != GL_BACK &&
           attachment != GL_DEPTH && attachment != GL_STENCIL) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
+         _mesa_error(ctx, GL_INVALID_ENUM,
                      "glGetFramebufferAttachmentParameteriv(attachment)");
          return;
       }
@@ -2862,7 +2905,8 @@ _mesa_GetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment,
          _mesa_error(ctx, err,
                      "glGetFramebufferAttachmentParameteriv(pname)");
       } else if (att->Type == GL_TEXTURE) {
-         if (att->Texture && att->Texture->Target == GL_TEXTURE_3D) {
+         if (att->Texture && (att->Texture->Target == GL_TEXTURE_3D ||
+             att->Texture->Target == GL_TEXTURE_2D_ARRAY)) {
             *params = att->Zoffset;
          }
          else {
@@ -2960,7 +3004,7 @@ _mesa_GetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment,
       }
       else if (att->Texture) {
          const struct gl_texture_image *texImage =
-            _mesa_select_tex_image(ctx, att->Texture, att->Texture->Target,
+            _mesa_select_tex_image(att->Texture, att->Texture->Target,
                                    att->TextureLevel);
          if (texImage) {
             *params = get_component_bits(pname, texImage->_BaseFormat,
@@ -3073,6 +3117,14 @@ invalidate_framebuffer_storage(GLenum target, GLsizei numAttachments,
          case GL_DEPTH_ATTACHMENT:
          case GL_STENCIL_ATTACHMENT:
             break;
+         case GL_DEPTH_STENCIL_ATTACHMENT:
+            /* GL_DEPTH_STENCIL_ATTACHMENT is a valid attachment point only
+             * in desktop and ES 3.0 profiles. Note that OES_packed_depth_stencil
+             * extension does not make this attachment point valid on ES 2.0.
+             */
+            if (_mesa_is_desktop_gl(ctx) || _mesa_is_gles3(ctx))
+               break;
+            /* fallthrough */
          case GL_COLOR_ATTACHMENT0:
          case GL_COLOR_ATTACHMENT1:
          case GL_COLOR_ATTACHMENT2:

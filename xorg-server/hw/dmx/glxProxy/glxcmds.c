@@ -61,7 +61,6 @@
 extern __GLXFBConfig **__glXFBConfigs;
 extern int __glXNumFBConfigs;
 
-extern int glxIsExtensionSupported(char *ext);
 extern int __glXGetFBConfigsSGIX(__GLXclientState * cl, GLbyte * pc);
 
 #define BE_TO_CLIENT_ERROR(x) \
@@ -3394,11 +3393,11 @@ __glXCreatePbuffer(__GLXclientState * cl, GLbyte * pc)
 
         /* Send attributes */
         if (attr != NULL) {
-            CARD32 *pc = (CARD32 *) (be_req + 1);
+            CARD32 *pca = (CARD32 *) (be_req + 1);
 
             while (numAttribs-- > 0) {
-                *pc++ = *attr++;        /* token */
-                *pc++ = *attr++;        /* value */
+                *pca++ = *attr++;        /* token */
+                *pca++ = *attr++;        /* value */
             }
         }
 

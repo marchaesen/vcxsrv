@@ -39,8 +39,6 @@
 #include "glxext.h"
 #include "glxvendor.h"
 
-extern int glxIsExtensionSupported(char *ext);
-
 int __glXSwapGetFBConfigsSGIX(__GLXclientState * cl, GLbyte * pc);
 
 /************************************************************************/

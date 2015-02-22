@@ -27,6 +27,10 @@
 #ifndef WINCLIPBOARD_H
 #define WINCLIPBOARD_H
 
+#include <x11/Xdefs.h>
+
 void winFixClipboardChain (int Removed);
+
+extern Bool fPrimarySelection;
 
 #endif

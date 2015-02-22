@@ -43,19 +43,18 @@
 #include "linker.h"
 
 #include "main/mtypes.h"
+#include "main/shaderapi.h"
 #include "main/shaderobj.h"
 #include "main/uniforms.h"
-#include "program/hash_table.h"
 
-extern "C" {
-#include "main/shaderapi.h"
+#include "program/hash_table.h"
 #include "program/prog_instruction.h"
 #include "program/prog_optimize.h"
 #include "program/prog_print.h"
 #include "program/program.h"
 #include "program/prog_parameter.h"
 #include "program/sampler.h"
-}
+
 
 static int swizzle_for_size(int size);
 
@@ -607,6 +606,20 @@ type_size(const struct glsl_type *type)
 	  */
 	 return 1;
       }
+      break;
+   case GLSL_TYPE_DOUBLE:
+      if (type->is_matrix()) {
+         if (type->vector_elements > 2)
+            return type->matrix_columns * 2;
+         else
+            return type->matrix_columns;
+      } else {
+         if (type->vector_elements > 2)
+            return 2;
+         else
+            return 1;
+      }
+      break;
    case GLSL_TYPE_ARRAY:
       assert(type->length > 0);
       return type_size(type->fields.array) * type->length;
@@ -1153,7 +1166,7 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
       assert(!"not reached: should be handled by ir_div_to_mul_rcp");
       break;
    case ir_binop_mod:
-      /* Floating point should be lowered by MOD_TO_FRACT in the compiler. */
+      /* Floating point should be lowered by MOD_TO_FLOOR in the compiler. */
       assert(ir->type->is_integer());
       emit(ir, OPCODE_MUL, result_dst, op[0], op[1]);
       break;
@@ -1349,6 +1362,7 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
    case ir_unop_pack_unorm_2x16:
    case ir_unop_pack_unorm_4x8:
    case ir_unop_pack_half_2x16:
+   case ir_unop_pack_double_2x32:
    case ir_unop_unpack_snorm_2x16:
    case ir_unop_unpack_snorm_4x8:
    case ir_unop_unpack_unorm_2x16:
@@ -1356,11 +1370,21 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
    case ir_unop_unpack_half_2x16:
    case ir_unop_unpack_half_2x16_split_x:
    case ir_unop_unpack_half_2x16_split_y:
+   case ir_unop_unpack_double_2x32:
    case ir_binop_pack_half_2x16_split:
    case ir_unop_bitfield_reverse:
    case ir_unop_bit_count:
    case ir_unop_find_msb:
    case ir_unop_find_lsb:
+   case ir_unop_d2f:
+   case ir_unop_f2d:
+   case ir_unop_d2i:
+   case ir_unop_i2d:
+   case ir_unop_d2u:
+   case ir_unop_u2d:
+   case ir_unop_d2b:
+   case ir_unop_frexp_sig:
+   case ir_unop_frexp_exp:
       assert(!"not supported");
       break;
    case ir_binop_min:
@@ -1450,6 +1474,7 @@ ir_to_mesa_visitor::visit(ir_swizzle *ir)
    ir->val->accept(this);
    src = this->result;
    assert(src.file != PROGRAM_UNDEFINED);
+   assert(ir->type->vector_elements > 0);
 
    for (i = 0; i < 4; i++) {
       if (i < ir->type->vector_elements) {
@@ -2385,6 +2410,8 @@ add_uniform_to_shader::visit_field(const glsl_type *type, const char *name,
 
    if (type->is_vector() || type->is_scalar()) {
       size = type->vector_elements;
+      if (type->is_double())
+         size *= 2;
    } else {
       size = type_size(type) * 4;
    }
@@ -2489,6 +2516,7 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
 	 enum gl_uniform_driver_format format = uniform_native;
 
 	 unsigned columns = 0;
+	 int dmul = 4 * sizeof(float);
 	 switch (storage->type->base_type) {
 	 case GLSL_TYPE_UINT:
 	    assert(ctx->Const.NativeIntegers);
@@ -2500,6 +2528,11 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
 	       (ctx->Const.NativeIntegers) ? uniform_native : uniform_int_float;
 	    columns = 1;
 	    break;
+
+	 case GLSL_TYPE_DOUBLE:
+	    if (storage->type->vector_elements > 2)
+               dmul *= 2;
+	    /* fallthrough */
 	 case GLSL_TYPE_FLOAT:
 	    format = uniform_native;
 	    columns = storage->type->matrix_columns;
@@ -2524,8 +2557,8 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
 	 }
 
 	 _mesa_uniform_attach_driver_storage(storage,
-					     4 * sizeof(float) * columns,
-					     4 * sizeof(float),
+					     dmul * columns,
+					     dmul,
 					     format,
 					     &params->ParameterValues[i]);
 
@@ -2943,12 +2976,9 @@ _mesa_ir_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 
 	 /* Lowering */
 	 do_mat_op_to_vec(ir);
-	 GLenum target = _mesa_shader_stage_to_program(prog->_LinkedShaders[i]->Stage);
-	 lower_instructions(ir, (MOD_TO_FRACT | DIV_TO_MUL_RCP | EXP_TO_EXP2
+	 lower_instructions(ir, (MOD_TO_FLOOR | DIV_TO_MUL_RCP | EXP_TO_EXP2
 				 | LOG_TO_LOG2 | INT_DIV_TO_MUL_RCP
-				 | ((options->EmitNoPow) ? POW_TO_EXP2 : 0)
-				 | ((target == GL_VERTEX_PROGRAM_ARB) ? SAT_TO_CLAMP
-                                    : 0)));
+				 | ((options->EmitNoPow) ? POW_TO_EXP2 : 0)));
 
 	 progress = do_lower_jumps(ir, true, true, options->EmitNoMainReturn, options->EmitNoCont, options->EmitNoLoops) || progress;
 

@@ -134,10 +134,15 @@
 #endif
 #include <sys/kd.h>
 #include <sys/vt.h>
+
+extern _X_HIDDEN void xf86VTAcquire(int);
+extern _X_HIDDEN void xf86VTRelease(int);
 #endif
 
 #if defined(sun)
 #include <sys/fbio.h>
+extern _X_HIDDEN char xf86SolarisFbDev[PATH_MAX];
+
 #include <sys/kbd.h>
 #include <sys/kbio.h>
 

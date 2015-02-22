@@ -210,6 +210,7 @@ static inline float conv_i2_to_norm_float(const struct gl_context *ctx, int i2)
       }								\
    } else if ((type) == GL_UNSIGNED_INT_10F_11F_11F_REV) {	\
       float res[4];						\
+      res[3] = 1;                                               \
       r11g11b10f_to_float3((arg), res);				\
       ATTR##val##FV((attr), res);				\
    } else							\

@@ -38,6 +38,7 @@
 #define _DMXPARSE_H_
 
 #include <stdio.h>              /* For FILE */
+#include <X11/Xfuncproto.h>     /* For _X_ATTRIBUTE_PRINTF */
 
 /** Stores tokens not stored in other structures (e.g., keywords and ;) */
 typedef struct _DMXConfigToken {
@@ -203,7 +204,7 @@ extern int yylex(void);
 extern int yydebug;
 extern void yyerror(const char *message);
 
-extern void dmxConfigLog(const char *format, ...);
+extern void dmxConfigLog(const char *format, ...) _X_ATTRIBUTE_PRINTF(1,0);
 extern void *dmxConfigAlloc(unsigned long bytes);
 extern void *dmxConfigRealloc(void *orig,
                               unsigned long orig_bytes, unsigned long bytes);

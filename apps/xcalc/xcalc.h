@@ -37,6 +37,10 @@ from the X Consortium.
 #ifndef _XCALC_H_
 #define _XCALC_H_
 
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
 #include <X11/Intrinsic.h>
 #include <X11/StringDefs.h>
 
@@ -50,13 +54,6 @@ from the X Consortium.
 #include <setjmp.h>
 #include <errno.h>
 #include <X11/Xlocale.h>
-
-
-#ifdef SIGNALRETURNSINT
-#define signal_t int
-#else
-#define signal_t void
-#endif
 
 #define kRECIP 0	/* reciprocal */
 #define kSQR   1	/* square */
@@ -118,8 +115,8 @@ extern XtActionsRec Actions[];
 extern int ActionsCount;
 
 /* math.c */
-extern signal_t fperr(int sig);
-extern signal_t illerr(int sig);
+extern void fperr(int sig) _X_NORETURN;
+extern void illerr(int sig) _X_NORETURN;
 extern void fail_op(void);
 extern int pre_op(int keynum);
 extern void post_op(void);
@@ -151,7 +148,7 @@ extern jmp_buf env;
 /* xcalc.c */
 extern void do_select(Time time);
 extern void draw(char *string);
-extern void Quit(void);
+extern void Quit(void) _X_NORETURN;
 extern void ringbell(void);
 extern void setflag(int indicator, Boolean on);
 

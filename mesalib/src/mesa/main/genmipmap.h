@@ -28,9 +28,15 @@
 
 #include "glheader.h"
 
+extern void
+_mesa_generate_texture_mipmap(struct gl_context *ctx,
+                              struct gl_texture_object *texObj, GLenum target,
+                              bool dsa);
 
 extern void GLAPIENTRY
 _mesa_GenerateMipmap(GLenum target);
 
+extern void GLAPIENTRY
+_mesa_GenerateTextureMipmap(GLuint texture);
 
 #endif /* GENMIPMAP_H */

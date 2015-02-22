@@ -24,7 +24,7 @@
 //from The Open Group.
 //
 // US/ASCII layout for a Fujitsu 138 key keyboard
-xkb_symbols {
+xkb_symbols "basic" {
     include "us(basic)"
 
     // A few alphanumeric keys are different

@@ -28,7 +28,6 @@
 
 #include <string.h>
 #include <assert.h>
-#include "main/mtypes.h" /* for gl_texture_index, C++'s enum rules are broken */
 
 #ifdef __cplusplus
 extern "C" {
@@ -51,6 +50,7 @@ enum glsl_base_type {
    GLSL_TYPE_UINT = 0,
    GLSL_TYPE_INT,
    GLSL_TYPE_FLOAT,
+   GLSL_TYPE_DOUBLE,
    GLSL_TYPE_BOOL,
    GLSL_TYPE_SAMPLER,
    GLSL_TYPE_IMAGE,
@@ -103,6 +103,7 @@ enum glsl_matrix_layout {
 #ifdef __cplusplus
 #include "GL/gl.h"
 #include "util/ralloc.h"
+#include "main/mtypes.h" /* for gl_texture_index, C++'s enum rules are broken */
 
 struct glsl_type {
    GLenum gl_type;
@@ -199,6 +200,7 @@ struct glsl_type {
     * @{
     */
    static const glsl_type *vec(unsigned components);
+   static const glsl_type *dvec(unsigned components);
    static const glsl_type *ivec(unsigned components);
    static const glsl_type *uvec(unsigned components);
    static const glsl_type *bvec(unsigned components);
@@ -242,6 +244,15 @@ struct glsl_type {
     */
    static const glsl_type *get_instance(unsigned base_type, unsigned rows,
 					unsigned columns);
+
+   /**
+    * Get the instance of a sampler type
+    */
+   static const glsl_type *get_sampler_instance(enum glsl_sampler_dim dim,
+                                                bool shadow,
+                                                bool array,
+                                                glsl_base_type type);
+
 
    /**
     * Get the instance of an array type
@@ -378,7 +389,7 @@ struct glsl_type {
    bool is_matrix() const
    {
       /* GLSL only has float matrices. */
-      return (matrix_columns > 1) && (base_type == GLSL_TYPE_FLOAT);
+      return (matrix_columns > 1) && (base_type == GLSL_TYPE_FLOAT || base_type == GLSL_TYPE_DOUBLE);
    }
 
    /**
@@ -386,7 +397,7 @@ struct glsl_type {
     */
    bool is_numeric() const
    {
-      return (base_type >= GLSL_TYPE_UINT) && (base_type <= GLSL_TYPE_FLOAT);
+      return (base_type >= GLSL_TYPE_UINT) && (base_type <= GLSL_TYPE_DOUBLE);
    }
 
    /**
@@ -404,11 +415,25 @@ struct glsl_type {
    bool contains_integer() const;
 
    /**
+    * Query whether or not type is a double type, or for struct and array
+    * types, contains a double type.
+    */
+   bool contains_double() const;
+
+   /**
     * Query whether or not a type is a float type
     */
    bool is_float() const
    {
       return base_type == GLSL_TYPE_FLOAT;
+   }
+
+   /**
+    * Query whether or not a type is a double type
+    */
+   bool is_double() const
+   {
+      return base_type == GLSL_TYPE_DOUBLE;
    }
 
    /**

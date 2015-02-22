@@ -27,13 +27,15 @@
  * 
  **************************************************************************/
 
-extern "C" {
 #include "glheader.h"
 #include "imports.h"
 #include "mtypes.h"
 #include "main/context.h"
 #include "main/macros.h"
 #include "main/samplerobj.h"
+#include "main/texenvprogram.h"
+#include "main/texobj.h"
+#include "main/uniforms.h"
 #include "program/program.h"
 #include "program/prog_parameter.h"
 #include "program/prog_cache.h"
@@ -41,10 +43,6 @@ extern "C" {
 #include "program/prog_print.h"
 #include "program/prog_statevars.h"
 #include "program/programopt.h"
-#include "texenvprogram.h"
-#include "texobj.h"
-}
-#include "main/uniforms.h"
 #include "../glsl/glsl_types.h"
 #include "../glsl/ir.h"
 #include "../glsl/ir_builder.h"
@@ -420,7 +418,7 @@ static GLuint make_state_key( struct gl_context *ctx,  struct state_key *key )
          continue;
 
       samp = _mesa_get_samplerobj(ctx, i);
-      format = texObj->Image[0][texObj->BaseLevel]->_BaseFormat;
+      format = _mesa_texture_base_format(texObj);
 
       key->unit[i].enabled = 1;
       key->enabled_units |= (1<<i);

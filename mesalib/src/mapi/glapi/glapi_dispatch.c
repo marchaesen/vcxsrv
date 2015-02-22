@@ -144,6 +144,28 @@ GL_API void GL_APIENTRY glTexParameterxv (GLenum target, GLenum pname, const GLf
 GL_API void GL_APIENTRY glTranslatex (GLfixed x, GLfixed y, GLfixed z);
 GL_API void GL_APIENTRY glPointSizePointerOES (GLenum type, GLsizei stride, const GLvoid *pointer);
 
+/* Enable frame pointer elimination on Windows, otherwise forgetting to add
+ * APIENTRY to _mesa_* entrypoints will not cause crashes on debug builds, as
+ * the initial ESP value is saved in the EBP in the function prologue, then
+ * restored on the epilogue, clobbering any corruption in the ESP pointer due
+ * to mismatch in the callee calling convention.
+ *
+ * On MSVC it's not sufficient to enable /Oy -- other optimizations must be
+ * enabled or frame pointer will be used regardless.
+ *
+ * We don't do this when NDEBUG is defined since, frame pointer omission
+ * optimization compiler flag are already specified on release builds, and
+ * because on profile builds we must have frame pointers or certain profilers
+ * might fail to unwind the stack.
+ */
+#if defined(_WIN32) && !defined(NDEBUG)
+#  if defined(_MSC_VER)
+#    pragma optimize( "gty", on )
+#  elif defined(__GNUC__)
+#    pragma GCC optimize ("omit-frame-pointer")
+#  endif
+#endif
+
 #include "glapi/glapitemp.h"
 
 #endif /* USE_X86_ASM */

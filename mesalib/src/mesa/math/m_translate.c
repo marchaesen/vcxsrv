@@ -30,7 +30,6 @@
 
 #include "main/glheader.h"
 #include "main/macros.h"
-#include "main/mtypes.h"		/* GLchan hack */
 
 #include "m_translate.h"
 
@@ -673,26 +672,6 @@ void _math_trans_4ub(GLubyte (*to)[4],
 		     GLuint n )
 {
    _math_trans_4ub_tab[size][TYPE_IDX(type)]( to, ptr, stride, start, n );
-}
-
-/**
- * Translate vector of values to GLchan [4].
- */
-void _math_trans_4chan( GLchan (*to)[4],
-			const void *ptr,
-			GLuint stride,
-			GLenum type,
-			GLuint size,
-			GLuint start,
-			GLuint n )
-{
-#if CHAN_TYPE == GL_UNSIGNED_BYTE
-   _math_trans_4ub( to, ptr, stride, type, size, start, n );
-#elif CHAN_TYPE == GL_UNSIGNED_SHORT
-   _math_trans_4us( to, ptr, stride, type, size, start, n );
-#elif CHAN_TYPE == GL_FLOAT
-   _math_trans_4fn( to, ptr, stride, type, size, start, n );
-#endif
 }
 
 /**

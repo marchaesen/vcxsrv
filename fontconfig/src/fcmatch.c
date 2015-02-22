@@ -284,6 +284,7 @@ typedef enum _FcMatcherPriority {
     PRI1(FILE),
     PRI1(FONTFORMAT),
     PRI1(SCALABLE),
+    PRI1(COLOR),
     PRI1(FOUNDRY),
     PRI1(CHARSET),
     PRI_FAMILY_STRONG,

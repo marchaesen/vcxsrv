@@ -53,32 +53,50 @@ libgalliumvl_stub_la_SOURCES = \
 
 if NEED_GALLIUM_VL
 
-noinst_LTLIBRARIES += libgalliumvl.la
-
-libgalliumvl_la_CFLAGS = \
+COMMON_VL_CFLAGS = \
 	$(AM_CFLAGS) \
 	$(VL_CFLAGS) \
+	$(DRI2PROTO_CFLAGS) \
 	$(LIBDRM_CFLAGS) \
 	$(GALLIUM_PIPE_LOADER_DEFINES) \
 	-DPIPE_SEARCH_DIR=\"$(libdir)/gallium-pipe\"
 
 if HAVE_GALLIUM_STATIC_TARGETS
-libgalliumvl_la_CFLAGS += \
+COMMON_VL_CFLAGS += \
 	-DGALLIUM_STATIC_TARGETS=1
 
 endif # HAVE_GALLIUM_STATIC_TARGETS
 
+noinst_LTLIBRARIES += libgalliumvl.la
+
+libgalliumvl_la_CFLAGS = \
+	$(COMMON_VL_CFLAGS)
+
 libgalliumvl_la_SOURCES = \
 	$(VL_SOURCES)
+
+if NEED_GALLIUM_VL_WINSYS
+
+noinst_LTLIBRARIES += libgalliumvlwinsys.la
+
+libgalliumvlwinsys_la_CFLAGS = \
+	$(COMMON_VL_CFLAGS)
+
+libgalliumvlwinsys_la_SOURCES = \
+	$(VL_WINSYS_SOURCES)
+
+endif
 
 endif
 
 EXTRA_DIST = \
-	Android.mk SConscript \
+	SConscript \
 	indices/u_indices.c \
 	indices/u_unfilled_indices.c \
 	indices/u_indices_gen.py \
 	indices/u_unfilled_gen.py \
+	postprocess/ADDING \
+	rbug/README \
 	target-helpers \
 	util/u_format.csv \
 	util/u_format_pack.py \

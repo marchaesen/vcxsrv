@@ -45,6 +45,8 @@
 /* #include "g_disptab_EXT.h" */
 #include "unpack.h"
 #include "glxutil.h"
+#include "glxcmds.h"
+#include "glxsingle.h"
 
 #include "GL/glxproto.h"
 
@@ -80,10 +82,6 @@
 #endif
 
 #define X_GLXSingle 0           /* needed by GetReqExtra */
-
-extern Display *GetBackEndDisplay(__GLXclientState * cl, int s);
-extern int GetCurrentBackEndTag(__GLXclientState * cl, GLXContextTag tag,
-                                int s);
 
 static int swap_vec_element_size = 0;
 

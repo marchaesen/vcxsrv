@@ -19,6 +19,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+AUTOMAKE_OPTIONS = subdir-objects
+
 SUBDIRS = . main/tests
 
 if HAVE_X11_DRIVER
@@ -36,8 +38,8 @@ endif
 gldir = $(includedir)/GL
 gl_HEADERS = $(top_srcdir)/include/GL/*.h
 
-.PHONY: $(BUILDDIR)main/git_sha1.h.tmp
-$(BUILDDIR)main/git_sha1.h.tmp:
+.PHONY: main/git_sha1.h.tmp
+main/git_sha1.h.tmp:
 	@touch main/git_sha1.h.tmp
 	@if test -d $(top_srcdir)/.git; then \
 		if which git > /dev/null; then \
@@ -47,7 +49,7 @@ $(BUILDDIR)main/git_sha1.h.tmp:
 		fi \
 	fi
 
-$(BUILDDIR)main/git_sha1.h: $(BUILDDIR)main/git_sha1.h.tmp
+main/git_sha1.h: main/git_sha1.h.tmp
 	@echo "updating main/git_sha1.h"
 	@if ! cmp -s main/git_sha1.h.tmp main/git_sha1.h; then \
 		mv main/git_sha1.h.tmp main/git_sha1.h ;\
@@ -55,27 +57,43 @@ $(BUILDDIR)main/git_sha1.h: $(BUILDDIR)main/git_sha1.h.tmp
 		rm main/git_sha1.h.tmp ;\
 	fi
 
-# include glapi_gen.mk for generating glapi headers for GLES
-GLAPI = $(top_srcdir)/src/mapi/glapi/gen
-include $(GLAPI)/glapi_gen.mk
-
-BUILDDIR = $(builddir)/
 include Makefile.sources
+
+EXTRA_DIST = \
+	drivers/haiku \
+	drivers/SConscript \
+	drivers/windows \
+	main/format_info.py \
+	main/format_pack.py \
+	main/format_parser.py \
+	main/format_unpack.py \
+	main/formats.csv \
+	main/get_hash_generator.py \
+	main/get_hash_params.py \
+	program/program_lexer.l \
+	program/program_parse.y \
+	SConscript \
+	swrast/NOTES \
+	swrast_setup/NOTES \
+	tnl/NOTES \
+	tnl_dd
 
 BUILT_SOURCES = \
 	main/get_hash.h \
         main/format_info.c \
-	$(BUILDDIR)main/git_sha1.h \
-	$(BUILDDIR)program/program_parse.tab.c \
-	$(BUILDDIR)program/lex.yy.c
+	main/git_sha1.h \
+	main/format_pack.c \
+	main/format_unpack.c \
+	program/program_parse.tab.c \
+	program/lex.yy.c
 CLEANFILES = \
 	$(BUILT_SOURCES) \
-	$(BUILDDIR)program/program_parse.tab.h \
-	$(BUILDDIR)main/git_sha1.h.tmp
+	program/program_parse.tab.h \
+	main/git_sha1.h.tmp
 
 GET_HASH_GEN = main/get_hash_generator.py
 
-main/get_hash.h: $(GLAPI)/gl_and_es_API.xml main/get_hash_params.py 	\
+main/get_hash.h: ../mapi/glapi/gen/gl_and_es_API.xml main/get_hash_params.py 	\
 		 $(GET_HASH_GEN) Makefile
 	$(AM_V_GEN)set -e;						\
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/$(GET_HASH_GEN)		\
@@ -88,6 +106,22 @@ main/format_info.c: main/formats.csv                                    \
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/main/format_info.py        \
                    $< > $@.tmp;                                         \
 	mv $@.tmp $@;
+
+main/format_pack.c: main/format_pack.py main/formats.csv		\
+                    main/format_parser.py
+	$(AM_V_GEN)set -e;						\
+	$(PYTHON2) $(PYTHON_FLAGS)					\
+			$(srcdir)/main/format_pack.py			\
+			$(srcdir)/main/formats.csv			\
+		| $(INDENT) $(INDENT_FLAGS) > $@;
+
+main/format_unpack.c: main/format_unpack.py main/formats.csv	\
+                      main/format_parser.py
+	$(AM_V_GEN)set -e;						\
+	$(PYTHON2) $(PYTHON_FLAGS)					\
+			$(srcdir)/main/format_unpack.py			\
+			$(srcdir)/main/formats.csv			\
+		| $(INDENT) $(INDENT_FLAGS) > $@;
 
 main/formats.c: main/format_info.c
 
@@ -152,19 +186,21 @@ libmesagallium_la_LIBADD = \
 
 libmesa_sse41_la_SOURCES = \
 	main/streaming-load-memcpy.c \
-	main/sse_minmax.c
-libmesa_sse41_la_CFLAGS = $(AM_CFLAGS) -msse4.1
+	main/streaming-load-memcpy.h \
+	main/sse_minmax.c \
+	main/sse_minmax.h
+libmesa_sse41_la_CFLAGS = $(AM_CFLAGS) $(SSE41_CFLAGS)
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = gl.pc
 
-$(BUILDDIR)program/lex.yy.c: program/program_lexer.l
+program/lex.yy.c: program/program_lexer.l
 	$(AM_V_at)$(MKDIR_P) program
 	$(AM_V_GEN) $(LEX) --never-interactive --outfile=$@ $<
 
-$(BUILDDIR)program/program_parse.tab.c $(BUILDDIR)program/program_parse.tab.h: program/program_parse.y
+program/program_parse.tab.c program/program_parse.tab.h: program/program_parse.y
 	$(AM_V_at)$(MKDIR_P) program
-	$(AM_V_GEN) $(YACC) -p "_mesa_program_" -v -d --output=$(BUILDDIR)program/program_parse.tab.c $<
+	$(AM_V_GEN) $(YACC) -p "_mesa_program_" -v -d --output=program/program_parse.tab.c $<
 
 if GEN_ASM_OFFSETS
 matypes.h: $(gen_matypes_SOURCES)

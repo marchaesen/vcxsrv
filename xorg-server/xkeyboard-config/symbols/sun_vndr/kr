@@ -58,12 +58,28 @@ partial alphanumeric_keys
 	include "kr(kr104)"
 };
 
-partial alphanumeric_keys
-	xkb_symbols "koreankeys" {
-	include "kr(koreankeys)"
+partial function_keys
+	xkb_symbols "hw_keys" {
+	include "kr(hw_keys)"
 };
 
-partial alphanumeric_keys
-	xkb_symbols "koreankeys_raltctl" {
-	include "kr(koreankeys_raltctl)"
+partial function_keys
+	xkb_symbols "ralt_hangul" {
+	include "kr(ralt_hangul)"
 };
+
+partial function_keys
+	xkb_symbols "rctrl_hangul" {
+	include "kr(rctrl_hangul)"
+};
+
+partial function_keys
+	xkb_symbols "ralt_hanja" {
+	include "kr(ralt_hanja)"
+};
+
+partial function_keys
+	xkb_symbols "rctrl_hanja" {
+	include "kr(rctrl_hanja)"
+};
+

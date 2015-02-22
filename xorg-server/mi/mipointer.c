@@ -598,8 +598,8 @@ miPointerSetPosition(DeviceIntPtr pDev, int mode, double *screenx,
         int constrained_x, constrained_y;
         int current_x, current_y; /* current position in per-screen coord */
 
-        current_x = MIPOINTER(pDev)->x - pScreen->y;
-        current_y = MIPOINTER(pDev)->y - pScreen->x;
+        current_x = MIPOINTER(pDev)->x - pScreen->x;
+        current_y = MIPOINTER(pDev)->y - pScreen->y;
 
         input_constrain_cursor(pDev, pScreen,
                                current_x, current_y, x, y,

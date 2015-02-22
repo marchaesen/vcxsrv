@@ -193,6 +193,7 @@ enum ast_operators {
    ast_uint_constant,
    ast_float_constant,
    ast_bool_constant,
+   ast_double_constant,
 
    ast_sequence,
    ast_aggregate
@@ -240,6 +241,7 @@ public:
       float float_constant;
       unsigned uint_constant;
       int bool_constant;
+      double double_constant;
    } primary_expression;
 
 

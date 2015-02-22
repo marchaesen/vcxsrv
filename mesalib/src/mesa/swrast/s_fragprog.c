@@ -25,6 +25,7 @@
 #include "main/glheader.h"
 #include "main/colormac.h"
 #include "main/samplerobj.h"
+#include "main/teximage.h"
 #include "program/prog_instruction.h"
 
 #include "s_context.h"
@@ -116,8 +117,7 @@ fetch_texel_deriv( struct gl_context *ctx, const GLfloat texcoord[4],
    const struct gl_texture_object *texObj = texUnit->_Current;
 
    if (texObj) {
-      const struct gl_texture_image *texImg =
-         texObj->Image[0][texObj->BaseLevel];
+      const struct gl_texture_image *texImg = _mesa_base_tex_image(texObj);
       const struct swrast_texture_image *swImg =
          swrast_texture_image_const(texImg);
       const struct gl_sampler_object *samp = _mesa_get_samplerobj(ctx, unit);

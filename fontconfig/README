@@ -1,11 +1,92 @@
                               Fontconfig
              Font configuration and customization library
-                            Version 2.11.1
-                              2014-03-24
+                      Version 2.11.92 (2.12 RC2)
+                              2015-01-13
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://bugs.freedesktop.org in the fontconfig module.
+
+2.11.92 (2.12 RC2)
+
+Akira TAGOH (1):
+      Add missing docs
+
+2.11.91 (2.12 RC1)
+
+Akira TAGOH (28):
+      Bug 71287 - size specific design selection support in OS/2 table version 5
+      Fix a build issue with freetype <2.5.1
+      Fix missing docs
+      Fix a typo
+      Fix fc-cache fail with -r
+      Rebase ja.orth against Joyo kanji characters
+      Allow the modification on FcTypeVoid with FcTypeLangSet and FcTypeCharSet
+      Workaround another race condition issue
+      Read the config files and fonts on the sysroot when --sysroot is given to fc-cache
+      Fix a segfault
+      Update CaseFolding.txt to Unicode 7.0
+      Don't read/write from/to the XDG dirs if the home directory is disabled
+      Rework for 5004e8e01f5de30ad01904e57ea0eda006ab3a0c
+      Fix a crash when no sysroot is given and failed to load the default fonts.conf
+      Fix a gcc warning
+      Don't add duplicate lang
+      fallback to the another method to lock when link() failed
+      Increase the refcount in FcConfigSetCurrent()
+      Fix the memory leak in fc-cat
+      Note FcConfigSetCurrent() increases the refcount in document
+      Add FcRangeGetDouble()
+      Revert "Bug 73291 - poppler does not show fl ligature"
+      Update aliases for new URW fonts
+      Returns False if no fonts found
+      fc-cache: make a fail if no fonts processed on a given path
+      fc-cache: Add an option to raise an error if no fonts found
+      Bump the cache version to 5
+      Fix a typo
+
+Behdad Esfahbod (39):
+      Remove unused code
+      Simplify hash code
+      Further simplify hash code
+      Rewrite hashing to use FT_Stream directly
+      Allow passing NULL for file to FcFreeTypeQueryFace()
+      [ko.orth] Remove U+3164 HANGUL FILLER
+      Deprecate FC_HASH and don't compute it
+      Remove unused FcHash code now that FC_HASH is deprecated
+      Update list of blanks to Unicode 6.3.0
+      Update blanks to Unicode 7.0
+      Change charset parse/unparse format to be human readable
+      Minor
+      Fix charset unparse after recent changes
+      Comments
+      Remove HASH from matching priorities
+      Fixup previous commit
+      Update mingw32 MemoryBarrier from HarfBuzz
+      More mingw32 MemoryBarrier() fixup
+      Symlinks fix for DESTDIR
+      Revert "Symlinks fix for DESTDIR"
+      Call FcInitDebug from FcFreeTypeQueryFace
+      Decode MacRoman encoding in name table without iconv
+      Ouch, fix buffer
+      Use lang=und instead of lang=xx for "undetermined"
+      Remove unused regex code
+      Improve / cleanup namelang matching
+      Add FC_WEIGHT_DEMILIGHT
+      Change DemiLight from 65 to 55
+      Linearly interpolate weight values
+      Export recently added API
+      Remove unneeded FcPublic
+      Fix assertion failure
+      If OS/2 table says weight is 1 to 9, multiply by 100
+      Trebuchet MS is a sans-serif font, not serif
+      Fix previous commit
+      Revert "[fcmatch] When matching, reserve score 0 for when elements don't exist"
+      Fix buffer overflow in copying PS name
+      Add FC_COLOR
+      Treat color fonts as scalable
+
+Nick Alcock (1):
+      Generate documentation for FcWeight* functions.
 
 2.11.1
 

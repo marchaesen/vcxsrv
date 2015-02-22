@@ -98,8 +98,20 @@ def generate(env):
             'HAVE_STDINT_H',
         ])
         env.Prepend(LIBPATH = [os.path.join(llvm_dir, 'lib')])
-        if True:
-            # 3.2
+        # LIBS should match the output of `llvm-config --libs engine mcjit bitwriter x86asmprinter`
+        if llvm_version >= distutils.version.LooseVersion('3.5'):
+            env.Prepend(LIBS = [
+                'LLVMBitWriter', 'LLVMMCJIT', 'LLVMRuntimeDyld',
+                'LLVMX86Disassembler', 'LLVMX86AsmParser', 'LLVMX86CodeGen',
+                'LLVMSelectionDAG', 'LLVMAsmPrinter', 'LLVMX86Desc',
+                'LLVMObject', 'LLVMMCParser', 'LLVMBitReader', 'LLVMX86Info',
+                'LLVMX86AsmPrinter', 'LLVMX86Utils', 'LLVMJIT',
+                'LLVMExecutionEngine', 'LLVMCodeGen', 'LLVMScalarOpts',
+                'LLVMInstCombine', 'LLVMTransformUtils', 'LLVMipa',
+                'LLVMAnalysis', 'LLVMTarget', 'LLVMMC', 'LLVMCore',
+                'LLVMSupport'
+            ])
+        else:
             env.Prepend(LIBS = [
                 'LLVMBitWriter', 'LLVMX86Disassembler', 'LLVMX86AsmParser',
                 'LLVMX86CodeGen', 'LLVMX86Desc', 'LLVMSelectionDAG',

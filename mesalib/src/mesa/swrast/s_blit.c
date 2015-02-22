@@ -107,14 +107,14 @@ RESAMPLE(resample_row_16, GLuint, 4)
  */
 static void
 blit_nearest(struct gl_context *ctx,
+             struct gl_framebuffer *readFb,
+             struct gl_framebuffer *drawFb,
              GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
              GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
              GLbitfield buffer)
 {
    struct gl_renderbuffer *readRb, *drawRb = NULL;
    struct gl_renderbuffer_attachment *readAtt = NULL, *drawAtt = NULL;
-   struct gl_framebuffer *readFb = ctx->ReadBuffer;
-   struct gl_framebuffer *drawFb = ctx->DrawBuffer;
    GLuint numDrawBuffers = 0;
    GLuint i;
 
@@ -508,11 +508,11 @@ resample_linear_row_float(GLint srcWidth, GLint dstWidth,
  */
 static void
 blit_linear(struct gl_context *ctx,
+            struct gl_framebuffer *readFb,
+            struct gl_framebuffer *drawFb,
             GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
             GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1)
 {
-   struct gl_framebuffer *drawFb = ctx->DrawBuffer;
-   struct gl_framebuffer *readFb = ctx->ReadBuffer;
    struct gl_renderbuffer *readRb = readFb->_ColorReadBuffer;
    struct gl_renderbuffer_attachment *readAtt =
       &readFb->Attachment[readFb->_ColorReadBufferIndex];
@@ -733,6 +733,8 @@ fail_no_memory:
  */
 void
 _swrast_BlitFramebuffer(struct gl_context *ctx,
+                        struct gl_framebuffer *readFb,
+                        struct gl_framebuffer *drawFb,
                         GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
                         GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
                         GLbitfield mask, GLenum filter)
@@ -756,7 +758,7 @@ _swrast_BlitFramebuffer(struct gl_context *ctx,
    if (!_mesa_check_conditional_render(ctx))
       return; /* Do not blit */
 
-   if (!_mesa_clip_blit(ctx, &srcX0, &srcY0, &srcX1, &srcY1,
+   if (!_mesa_clip_blit(ctx, readFb, drawFb, &srcX0, &srcY0, &srcX1, &srcY1,
                         &dstX0, &dstY0, &dstX1, &dstY1)) {
       return;
    }
@@ -775,33 +777,34 @@ _swrast_BlitFramebuffer(struct gl_context *ctx,
        dstY0 < dstY1) {
       for (i = 0; i < 3; i++) {
          if (mask & buffers[i]) {
-	    if (swrast_fast_copy_pixels(ctx,
-					srcX0, srcY0,
-					srcX1 - srcX0, srcY1 - srcY0,
-					dstX0, dstY0,
-					buffer_enums[i])) {
-	       mask &= ~buffers[i];
-	    }
-	 }
+            if (swrast_fast_copy_pixels(ctx,
+                                        readFb, drawFb,
+                                        srcX0, srcY0,
+                                        srcX1 - srcX0, srcY1 - srcY0,
+                                        dstX0, dstY0,
+                                        buffer_enums[i])) {
+               mask &= ~buffers[i];
+            }
+         }
       }
 
       if (!mask)
-	 return;
+         return;
    }
 
    if (filter == GL_NEAREST) {
       for (i = 0; i < 3; i++) {
-	 if (mask & buffers[i]) {
-	    blit_nearest(ctx,  srcX0, srcY0, srcX1, srcY1,
-			 dstX0, dstY0, dstX1, dstY1, buffers[i]);
-	 }
+          if (mask & buffers[i]) {
+             blit_nearest(ctx, readFb, drawFb, srcX0, srcY0, srcX1, srcY1,
+                          dstX0, dstY0, dstX1, dstY1, buffers[i]);
+          }
       }
    }
    else {
       ASSERT(filter == GL_LINEAR);
       if (mask & GL_COLOR_BUFFER_BIT) {  /* depth/stencil not allowed */
-	 blit_linear(ctx,  srcX0, srcY0, srcX1, srcY1,
-		     dstX0, dstY0, dstX1, dstY1);
+         blit_linear(ctx, readFb, drawFb, srcX0, srcY0, srcX1, srcY1,
+                     dstX0, dstY0, dstX1, dstY1);
       }
    }
 

@@ -156,6 +156,9 @@ GetScreenPrime(ScreenPtr master, int prime_id)
         DRI2ScreenPtr ds;
 
         ds = DRI2GetScreen(slave);
+        if (ds == NULL)
+            continue;
+
         if (ds->prime_id == prime_id)
             return slave;
     }
@@ -1573,15 +1576,15 @@ DRI2ScreenInit(ScreenPtr pScreen, DRI2InfoPtr info)
 
     if (info->version == 3 || info->numDrivers == 0) {
         /* Driver too old: use the old-style driverName field */
-        ds->numDrivers = 1;
-        ds->driverNames = malloc(sizeof(*ds->driverNames));
+        ds->numDrivers = info->driverName ? 1 : 2;
+        ds->driverNames = malloc(ds->numDrivers * sizeof(*ds->driverNames));
         if (!ds->driverNames)
             goto err_out;
 
         if (info->driverName) {
             ds->driverNames[0] = info->driverName;
         } else {
-            ds->driverNames[0] = dri2_probe_driver_name(pScreen, info);
+            ds->driverNames[0] = ds->driverNames[1] = dri2_probe_driver_name(pScreen, info);
             if (!ds->driverNames[0])
                 return FALSE;
         }

@@ -1248,8 +1248,10 @@ _mesa_PopAttrib(void)
                _mesa_FrontFace(polygon->FrontFace);
                _mesa_PolygonMode(GL_FRONT, polygon->FrontMode);
                _mesa_PolygonMode(GL_BACK, polygon->BackMode);
-               _mesa_PolygonOffset(polygon->OffsetFactor,
-                                   polygon->OffsetUnits);
+               _mesa_polygon_offset_clamp(ctx,
+                                          polygon->OffsetFactor,
+                                          polygon->OffsetUnits,
+                                          polygon->OffsetClamp);
                _mesa_set_enable(ctx, GL_POLYGON_SMOOTH, polygon->SmoothFlag);
                _mesa_set_enable(ctx, GL_POLYGON_STIPPLE, polygon->StippleFlag);
                _mesa_set_enable(ctx, GL_CULL_FACE, polygon->CullFlag);

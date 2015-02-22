@@ -174,7 +174,7 @@ on remote hosts, when that information is available and it's useful to do so.
 .SH OPTIONS CONTROLLING WINDOWS INTEGRATION
 .TP 8
 .B \-[no]clipboard
-Enables [disables] the integration between the Cygwin/X clipboard and
+Enables [disables] the integration between the X11 clipboard and
 \fIWindows\fP clipboard.  The default is enabled.
 .TP 8
 .B "\-emulate3buttons [\fItimeout\fP]"
@@ -199,6 +199,10 @@ also to be hidden when it is over an inactive Cygwin/X window.  This
 prevents the \fIWindows\fP mouse cursor from being drawn on top of the X
 cursor.
 This parameter has no effect unless \fB-swcursor\fP is also specified.
+.TP 8
+.B \-[no]primary
+Clipboard integration may [will not] use the PRIMARY selection.
+The default is enabled.
 .TP 8
 .B \-swcursor
 Disable the usage of the \fIWindows\fP cursor and use the X11 software cursor instead.

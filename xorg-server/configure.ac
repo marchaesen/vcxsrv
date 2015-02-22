@@ -26,9 +26,9 @@ dnl
 dnl Process this file with autoconf to create configure.
 
 AC_PREREQ(2.60)
-AC_INIT([xorg-server], 1.16.99.901, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
-RELEASE_DATE="2014-10-28"
-RELEASE_NAME="Chanterelle"
+AC_INIT([xorg-server], 1.17.99.0, [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], xorg-server)
+RELEASE_DATE="2015-02-02"
+RELEASE_NAME="Côte de veau"
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
@@ -923,7 +923,7 @@ if test "x$SUID_WRAPPER" = xyes; then
         PKG_CHECK_MODULES([LIBDRM], $LIBDRM)
         dnl This is a define so that if some platforms want to put the wrapper
         dnl somewhere else this can be easily changed
-        AC_DEFINE_DIR(SUID_WRAPPER_DIR, libexecdir, [Where to install Xorg.bin and Xorg.wrap])
+        AC_DEFINE_DIR(SUID_WRAPPER_DIR, libexecdir, [Where to install the Xorg binary and Xorg.wrap])
         SETUID="no"
 fi
 AM_CONDITIONAL(SUID_WRAPPER, [test "x$SUID_WRAPPER" = xyes])
@@ -2621,6 +2621,7 @@ hw/kdrive/linux/Makefile
 hw/kdrive/src/Makefile
 hw/xwayland/Makefile
 test/Makefile
+test/xi1/Makefile
 test/xi2/Makefile
 xserver.ent
 xorg-server.pc

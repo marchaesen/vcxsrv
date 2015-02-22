@@ -584,6 +584,29 @@ class gl_parameter(object):
         else:
             return str(s)
 
+    def size_arg_string(self, use_parens = 1):
+        s = self.size()
+        if self.counter or self.count_parameter_list:
+            list = [ "compsize" ]
+
+            if self.counter and self.count_parameter_list:
+                list.append( self.counter )
+            elif self.counter:
+                list = [ self.counter ]
+
+            if s > 1:
+                list.append( str(s) )
+
+            if len(list) > 1 and use_parens :
+                return "safe_mul(%s)" % (string.join(list, " , "))
+            else:
+                return string.join(list, " , ")
+
+        elif self.is_image():
+            return "compsize"
+        else:
+            return str(s)
+
 
     def format_string(self):
         if self.type_expr.original_string == "GLenum":

@@ -29,7 +29,7 @@
 #include "main/light.h"
 #include "main/macros.h"
 #include "main/imports.h"
-#include "main/simple_list.h"
+#include "util/simple_list.h"
 #include "main/mtypes.h"
 
 #include "math/m_translate.h"

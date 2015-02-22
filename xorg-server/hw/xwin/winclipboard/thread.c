@@ -35,16 +35,26 @@
 #else
 #define HAS_WINSOCK 1
 #endif
+
+/*
+ * Including any server header might define the macro _XSERVER64 on 64 bit machines.
+ * That macro must _NOT_ be defined for Xlib client code, otherwise bad things happen.
+ * So let's undef that macro if necessary.
+ */
+#ifdef _XSERVER64
+#undef _XSERVER64
+#endif
+
 #include <sys/types.h>
 #include <signal.h>
 #include <pthread.h>
-#include "winclipboard.h"
 #include "windisplay.h"
 #ifdef __CYGWIN__
 #include <errno.h>
 #endif
 #include "misc.h"
 #include "winmsg.h"
+#include "winclipboard.h"
 #include "internal.h"
 
 /* Clipboard module constants */
@@ -90,7 +100,7 @@ Bool g_fUseUnicode = FALSE;
  */
 
 static HWND
-winClipboardCreateMessagingWindow(void);
+winClipboardCreateMessagingWindow(Display *pDisplay, Window iWindow, ClipboardAtoms *atoms);
 
 static int
  winClipboardErrorHandler(Display * pDisplay, XErrorEvent * pErr);
@@ -107,7 +117,7 @@ winClipboardThreadExit(void *arg);
 Bool
 winClipboardProc(Bool fUseUnicode, char *szDisplay)
 {
-    Atom atomClipboard;
+    ClipboardAtoms atoms;
     int iReturn;
     HWND hwnd = NULL;
     int iConnectionNumber = 0;
@@ -125,6 +135,7 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
     int iSelectError;
 
     pthread_cleanup_push(&winClipboardThreadExit, NULL);
+    ClipboardConversionData data;
 
     winDebug ("winClipboardProc - Hello\n");
 
@@ -191,12 +202,15 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
     iMaxDescriptor = iConnectionNumber + 1;
 #endif
 
-    /* Create atom */
-    atomClipboard = XInternAtom(pDisplay, "CLIPBOARD", False);
-    XInternAtom (pDisplay, WIN_LOCAL_PROPERTY, False);
-    XInternAtom (pDisplay, "UTF8_STRING", False);
-    XInternAtom (pDisplay, "COMPOUND_TEXT", False);
-    XInternAtom (pDisplay, "TARGETS", False);
+    if (!XFixesQueryExtension(pDisplay, &xfixes_event_base, &xfixes_error_base))
+      ErrorF ("winClipboardProc - XFixes extension not present\n");
+
+    /* Create atoms */
+    atoms.atomClipboard = XInternAtom(pDisplay, "CLIPBOARD", False);
+    atoms.atomLocalProperty = XInternAtom (pDisplay, "CYGX_CUT_BUFFER", False);
+    atoms.atomUTF8String = XInternAtom (pDisplay, "UTF8_STRING", False);
+    atoms.atomCompoundText = XInternAtom (pDisplay, "COMPOUND_TEXT", False);
+    atoms.atomTargets = XInternAtom (pDisplay, "TARGETS", False);
 
     /* Create a messaging window */
     iWindow = XCreateSimpleWindow(pDisplay,
@@ -217,6 +231,20 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
     if (XSelectInput(pDisplay, iWindow, PropertyChangeMask) == BadWindow)
         ErrorF("winClipboardProc - XSelectInput generated BadWindow "
                "on messaging window\n");
+
+    XFixesSelectSelectionInput (pDisplay,
+                                iWindow,
+                                XA_PRIMARY,
+                                XFixesSetSelectionOwnerNotifyMask |
+                                XFixesSelectionWindowDestroyNotifyMask |
+                                XFixesSelectionClientCloseNotifyMask);
+
+    XFixesSelectSelectionInput (pDisplay,
+                                iWindow,
+                                atoms.atomClipboard,
+                                XFixesSetSelectionOwnerNotifyMask |
+                                XFixesSelectionWindowDestroyNotifyMask |
+                                XFixesSelectionClientCloseNotifyMask);
 
     /* Save the window in the screen privates */
     g_iClipboardWindow = iWindow;
@@ -248,28 +276,28 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
         }
     }
 
-    /* Pre-flush X events */
-    /*
-     * NOTE: Apparently you'll freeze if you don't do this,
-     *       because there may be events in local data structures
-     *       already.
-     */
-    //winClipboardFlushXEvents(hwnd, iWindow, pDisplay, fUseUnicode);
-
-    /* Pre-flush Windows messages */
-    winDebug ("Start flushing \n");
-    if (!winClipboardFlushWindowsMessageQueue(hwnd))
-    {
-      ErrorF ("winClipboardFlushWindowsMessageQueue - returned 0\n");
-      goto thread_errorexit;
-    }
-
+    data.fUseUnicode = fUseUnicode;
     winDebug ("winClipboardProc - Started\n");
     /* Signal that the clipboard client has started */
     g_fClipboardStarted = TRUE;
 
-    /* Loop for X events */
+    /* Loop for events */
     while (1) {
+
+        /* Process X events */
+        winClipboardFlushXEvents(hwnd,
+                                 iWindow, pDisplay, &data, &atoms);
+
+        /* Process Windows messages */
+        if (!winClipboardFlushWindowsMessageQueue(hwnd)) {
+          ErrorF("winClipboardProc - winClipboardFlushWindowsMessageQueue trapped "
+                       "WM_QUIT message, exiting main loop.\n");
+          break;
+        }
+
+        /* We need to ensure that all pending requests are sent */
+        XFlush(pDisplay);
+
         /* Setup the file descriptor set */
         /*
          * NOTE: You have to do this before every call to select
@@ -316,13 +344,10 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
             break;
         }
 
-        /* Branch on which descriptor became active */
-//        if (FD_ISSET (iConnectionNumber, &fdsRead)) {
-//            Also do it when no read since winClipboardFlushXEvents
-//            is sending the output.
-            /* Process X events */
-            winClipboardFlushXEvents(hwnd, iWindow, pDisplay, fUseUnicode, FALSE);
-//        }
+        if (FD_ISSET(iConnectionNumber, &fdsRead)) {
+            winDebug
+                ("winClipboardProc - X connection ready, pumping X event queue\n");
+        }
 
 #ifdef HAS_DEVWINDOWS
         /* Check for Windows event ready */
@@ -331,14 +356,16 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
         if (1)
 #endif
         {
-            /* Process Windows messages */
-            if (!winClipboardFlushWindowsMessageQueue(hwnd)) {
-                ErrorF("winClipboardProc - "
-                       "winClipboardFlushWindowsMessageQueue trapped "
-                       "WM_QUIT message, exiting main loop.\n");
-                break;
-            }
+            winDebug
+                ("winClipboardProc - /dev/windows ready, pumping Windows message queue\n");
         }
+
+#ifdef HAS_DEVWINDOWS
+        if (!(FD_ISSET(iConnectionNumber, &fdsRead)) &&
+            !(FD_ISSET(fdMessageQueue, &fdsRead))) {
+            winDebug("winClipboardProc - Spurious wake, select() returned %d\n", iReturn);
+        }
+#endif
     }
 
     /* Close our X window */
@@ -360,8 +387,11 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
 
 #if 0
     /*
-     * FIXME: XCloseDisplay hangs if we call it, as of 2004/03/26.  The
-     * XSync and XSelectInput calls did not help.
+     * FIXME: XCloseDisplay hangs if we call it
+     *
+     * XCloseDisplay() calls XSync(), so any outstanding errors are reported.
+     * If we are built into the server, this can deadlock if the server is
+     * in the process of exiting and waiting for this thread to exit.
      */
 
     /* Discard any remaining events */
@@ -407,9 +437,10 @@ commonexit:
  */
 
 HWND
-winClipboardCreateMessagingWindow(void)
+winClipboardCreateMessagingWindow(Display *pDisplay, Window iWindow, ClipboardAtoms *atoms)
 {
     WNDCLASSEX wc;
+    ClipboardWindowCreationParams cwcp;
     HWND hwnd;
 
     /* Setup our window class */
@@ -427,6 +458,11 @@ winClipboardCreateMessagingWindow(void)
     wc.hIconSm = 0;
     RegisterClassEx(&wc);
 
+    /* Information to be passed to WM_CREATE */
+    cwcp.pClipboardDisplay = pDisplay;
+    cwcp.iClipboardWindow = iWindow;
+    cwcp.atoms = atoms;
+
     /* Create the window */
     hwnd = CreateWindowExA(0,   /* Extended styles */
                            WIN_CLIPBOARD_WINDOW_CLASS,  /* Class name */
@@ -439,7 +475,7 @@ winClipboardCreateMessagingWindow(void)
                            (HWND) NULL, /* No parent or owner window */
                            (HMENU) NULL,        /* No menu */
                            GetModuleHandle(NULL),       /* Instance handle */
-                           NULL);       /* Creation data */
+                           &cwcp);       /* Creation data */
     assert(hwnd != NULL);
 
     /* I'm not sure, but we may need to call this to start message processing */

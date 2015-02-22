@@ -326,6 +326,17 @@ _mesa_has_geometry_shaders(const struct gl_context *ctx)
 }
 
 
+/**
+ * Checks if the context supports compute shaders.
+ */
+static inline bool
+_mesa_has_compute_shaders(const struct gl_context *ctx)
+{
+   return (ctx->API == API_OPENGL_CORE && ctx->Extensions.ARB_compute_shader) ||
+      (ctx->API == API_OPENGLES2 && ctx->Version >= 31);
+}
+
+
 #ifdef __cplusplus
 }
 #endif

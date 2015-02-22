@@ -27,7 +27,205 @@
 
 #include "context.h"
 #include "glformats.h"
+#include "formats.h"
+#include "enums.h"
 
+enum {
+   ZERO = 4,
+   ONE = 5
+};
+
+enum {
+   IDX_LUMINANCE = 0,
+   IDX_ALPHA,
+   IDX_INTENSITY,
+   IDX_LUMINANCE_ALPHA,
+   IDX_RGB,
+   IDX_RGBA,
+   IDX_RED,
+   IDX_GREEN,
+   IDX_BLUE,
+   IDX_BGR,
+   IDX_BGRA,
+   IDX_ABGR,
+   IDX_RG,
+   MAX_IDX
+};
+
+#define MAP1(x)       MAP4(x, ZERO, ZERO, ZERO)
+#define MAP2(x,y)     MAP4(x, y, ZERO, ZERO)
+#define MAP3(x,y,z)   MAP4(x, y, z, ZERO)
+#define MAP4(x,y,z,w) { x, y, z, w, ZERO, ONE }
+
+static const struct {
+   GLubyte format_idx;
+   GLubyte to_rgba[6];
+   GLubyte from_rgba[6];
+} mappings[MAX_IDX] =
+{
+   {
+      IDX_LUMINANCE,
+      MAP4(0,0,0,ONE),
+      MAP1(0)
+   },
+
+   {
+      IDX_ALPHA,
+      MAP4(ZERO, ZERO, ZERO, 0),
+      MAP1(3)
+   },
+
+   {
+      IDX_INTENSITY,
+      MAP4(0, 0, 0, 0),
+      MAP1(0),
+   },
+
+   {
+      IDX_LUMINANCE_ALPHA,
+      MAP4(0,0,0,1),
+      MAP2(0,3)
+   },
+
+   {
+      IDX_RGB,
+      MAP4(0,1,2,ONE),
+      MAP3(0,1,2)
+   },
+
+   {
+      IDX_RGBA,
+      MAP4(0,1,2,3),
+      MAP4(0,1,2,3),
+   },
+
+   {
+      IDX_RED,
+      MAP4(0, ZERO, ZERO, ONE),
+      MAP1(0),
+   },
+
+   {
+      IDX_GREEN,
+      MAP4(ZERO, 0, ZERO, ONE),
+      MAP1(1),
+   },
+
+   {
+      IDX_BLUE,
+      MAP4(ZERO, ZERO, 0, ONE),
+      MAP1(2),
+   },
+
+   {
+      IDX_BGR,
+      MAP4(2,1,0,ONE),
+      MAP3(2,1,0)
+   },
+
+   {
+      IDX_BGRA,
+      MAP4(2,1,0,3),
+      MAP4(2,1,0,3)
+   },
+
+   {
+      IDX_ABGR,
+      MAP4(3,2,1,0),
+      MAP4(3,2,1,0)
+   },
+
+   {
+      IDX_RG,
+      MAP4(0, 1, ZERO, ONE),
+      MAP2(0, 1)
+   },
+};
+
+/**
+ * Convert a GL image format enum to an IDX_* value (see above).
+ */
+static int
+get_map_idx(GLenum value)
+{
+   switch (value) {
+   case GL_LUMINANCE:
+   case GL_LUMINANCE_INTEGER_EXT:
+      return IDX_LUMINANCE;
+   case GL_ALPHA:
+   case GL_ALPHA_INTEGER:
+      return IDX_ALPHA;
+   case GL_INTENSITY:
+      return IDX_INTENSITY;
+   case GL_LUMINANCE_ALPHA:
+   case GL_LUMINANCE_ALPHA_INTEGER_EXT:
+      return IDX_LUMINANCE_ALPHA;
+   case GL_RGB:
+   case GL_RGB_INTEGER:
+      return IDX_RGB;
+   case GL_RGBA:
+   case GL_RGBA_INTEGER:
+      return IDX_RGBA;
+   case GL_RED:
+   case GL_RED_INTEGER:
+      return IDX_RED;
+   case GL_GREEN:
+      return IDX_GREEN;
+   case GL_BLUE:
+      return IDX_BLUE;
+   case GL_BGR:
+   case GL_BGR_INTEGER:
+      return IDX_BGR;
+   case GL_BGRA:
+   case GL_BGRA_INTEGER:
+      return IDX_BGRA;
+   case GL_ABGR_EXT:
+      return IDX_ABGR;
+   case GL_RG:
+   case GL_RG_INTEGER:
+      return IDX_RG;
+   default:
+      _mesa_problem(NULL, "Unexpected inFormat %s",
+                    _mesa_lookup_enum_by_nr(value));
+      return 0;
+   }
+}
+
+/**
+ * When promoting texture formats (see below) we need to compute the
+ * mapping of dest components back to source components.
+ * This function does that.
+ * \param inFormat  the incoming format of the texture
+ * \param outFormat  the final texture format
+ * \return map[6]  a full 6-component map
+ */
+void
+_mesa_compute_component_mapping(GLenum inFormat, GLenum outFormat, GLubyte *map)
+{
+   const int inFmt = get_map_idx(inFormat);
+   const int outFmt = get_map_idx(outFormat);
+   const GLubyte *in2rgba = mappings[inFmt].to_rgba;
+   const GLubyte *rgba2out = mappings[outFmt].from_rgba;
+   int i;
+
+   for (i = 0; i < 4; i++)
+      map[i] = in2rgba[rgba2out[i]];
+
+   map[ZERO] = ZERO;
+   map[ONE] = ONE;
+
+#if 0
+   printf("from %x/%s to %x/%s map %d %d %d %d %d %d\n",
+	  inFormat, _mesa_lookup_enum_by_nr(inFormat),
+	  outFormat, _mesa_lookup_enum_by_nr(outFormat),
+	  map[0],
+	  map[1],
+	  map[2],
+	  map[3],
+	  map[4],
+	  map[5]);
+#endif
+}
 
 /**
  * \return GL_TRUE if type is packed pixel type, GL_FALSE otherwise.
@@ -93,6 +291,7 @@ _mesa_sizeof_type(GLenum type)
    case GL_DOUBLE:
       return sizeof(GLdouble);
    case GL_HALF_FLOAT_ARB:
+   case GL_HALF_FLOAT_OES:
       return sizeof(GLhalfARB);
    case GL_FIXED:
       return sizeof(GLfixed);
@@ -125,6 +324,7 @@ _mesa_sizeof_packed_type(GLenum type)
    case GL_INT:
       return sizeof(GLint);
    case GL_HALF_FLOAT_ARB:
+   case GL_HALF_FLOAT_OES:
       return sizeof(GLhalfARB);
    case GL_FLOAT:
       return sizeof(GLfloat);
@@ -241,6 +441,7 @@ _mesa_bytes_per_pixel(GLenum format, GLenum type)
    case GL_FLOAT:
       return comps * sizeof(GLfloat);
    case GL_HALF_FLOAT_ARB:
+   case GL_HALF_FLOAT_OES:
       return comps * sizeof(GLhalfARB);
    case GL_UNSIGNED_BYTE_3_3_2:
    case GL_UNSIGNED_BYTE_2_3_3_REV:
@@ -258,18 +459,29 @@ _mesa_bytes_per_pixel(GLenum format, GLenum type)
          return -1;  /* error */
    case GL_UNSIGNED_SHORT_4_4_4_4:
    case GL_UNSIGNED_SHORT_4_4_4_4_REV:
+      if (format == GL_RGBA || format == GL_BGRA || format == GL_ABGR_EXT ||
+          format == GL_RGBA_INTEGER_EXT || format == GL_BGRA_INTEGER_EXT)
+         return sizeof(GLushort);
+      else
+         return -1;
    case GL_UNSIGNED_SHORT_5_5_5_1:
    case GL_UNSIGNED_SHORT_1_5_5_5_REV:
-      if (format == GL_RGBA || format == GL_BGRA || format == GL_ABGR_EXT ||
+      if (format == GL_RGBA || format == GL_BGRA ||
           format == GL_RGBA_INTEGER_EXT || format == GL_BGRA_INTEGER_EXT)
          return sizeof(GLushort);
       else
          return -1;
    case GL_UNSIGNED_INT_8_8_8_8:
    case GL_UNSIGNED_INT_8_8_8_8_REV:
+      if (format == GL_RGBA || format == GL_BGRA || format == GL_ABGR_EXT ||
+          format == GL_RGBA_INTEGER_EXT || format == GL_BGRA_INTEGER_EXT ||
+          format == GL_RGB)
+         return sizeof(GLuint);
+      else
+         return -1;
    case GL_UNSIGNED_INT_10_10_10_2:
    case GL_UNSIGNED_INT_2_10_10_10_REV:
-      if (format == GL_RGBA || format == GL_BGRA || format == GL_ABGR_EXT ||
+      if (format == GL_RGBA || format == GL_BGRA ||
           format == GL_RGBA_INTEGER_EXT || format == GL_BGRA_INTEGER_EXT ||
           format == GL_RGB)
          return sizeof(GLuint);
@@ -1403,15 +1615,25 @@ _mesa_error_check_format_and_type(const struct gl_context *ctx,
 
    case GL_UNSIGNED_SHORT_4_4_4_4:
    case GL_UNSIGNED_SHORT_4_4_4_4_REV:
-   case GL_UNSIGNED_SHORT_5_5_5_1:
-   case GL_UNSIGNED_SHORT_1_5_5_5_REV:
    case GL_UNSIGNED_INT_8_8_8_8:
    case GL_UNSIGNED_INT_8_8_8_8_REV:
-   case GL_UNSIGNED_INT_10_10_10_2:
-   case GL_UNSIGNED_INT_2_10_10_10_REV:
       if (format == GL_RGBA ||
           format == GL_BGRA ||
           format == GL_ABGR_EXT) {
+         break; /* OK */
+      }
+      if ((format == GL_RGBA_INTEGER_EXT || format == GL_BGRA_INTEGER_EXT) &&
+          ctx->Extensions.ARB_texture_rgb10_a2ui) {
+         break; /* OK */
+      }
+      return GL_INVALID_OPERATION;
+
+   case GL_UNSIGNED_SHORT_5_5_5_1:
+   case GL_UNSIGNED_SHORT_1_5_5_5_REV:
+   case GL_UNSIGNED_INT_10_10_10_2:
+   case GL_UNSIGNED_INT_2_10_10_10_REV:
+      if (format == GL_RGBA ||
+          format == GL_BGRA) {
          break; /* OK */
       }
       if ((format == GL_RGBA_INTEGER_EXT || format == GL_BGRA_INTEGER_EXT) &&
@@ -1447,6 +1669,18 @@ _mesa_error_check_format_and_type(const struct gl_context *ctx,
          return GL_INVALID_OPERATION;
       }
       return GL_NO_ERROR;
+
+   case GL_HALF_FLOAT_OES:
+      switch (format) {
+      case GL_RGBA:
+      case GL_RGB:
+      case GL_LUMINANCE_ALPHA:
+      case GL_LUMINANCE:
+      case GL_ALPHA:
+         return GL_NO_ERROR;
+      default:
+         return GL_INVALID_OPERATION;
+      }
 
    default:
       ; /* fall-through */
@@ -1561,7 +1795,6 @@ _mesa_error_check_format_and_type(const struct gl_context *ctx,
 
       case GL_RGBA:
       case GL_BGRA:
-      case GL_ABGR_EXT:
          switch (type) {
             case GL_BYTE:
             case GL_UNSIGNED_BYTE:
@@ -1578,6 +1811,25 @@ _mesa_error_check_format_and_type(const struct gl_context *ctx,
             case GL_UNSIGNED_INT_8_8_8_8_REV:
             case GL_UNSIGNED_INT_10_10_10_2:
             case GL_UNSIGNED_INT_2_10_10_10_REV:
+            case GL_HALF_FLOAT:
+               return GL_NO_ERROR;
+            default:
+               return GL_INVALID_ENUM;
+         }
+
+      case GL_ABGR_EXT:
+         switch (type) {
+            case GL_BYTE:
+            case GL_UNSIGNED_BYTE:
+            case GL_SHORT:
+            case GL_UNSIGNED_SHORT:
+            case GL_INT:
+            case GL_UNSIGNED_INT:
+            case GL_FLOAT:
+            case GL_UNSIGNED_SHORT_4_4_4_4:
+            case GL_UNSIGNED_SHORT_4_4_4_4_REV:
+            case GL_UNSIGNED_INT_8_8_8_8:
+            case GL_UNSIGNED_INT_8_8_8_8_REV:
             case GL_HALF_FLOAT:
                return GL_NO_ERROR;
             default:
@@ -1782,7 +2034,8 @@ _mesa_es_error_check_format_and_type(GLenum format, GLenum type,
  * \return error code, or GL_NO_ERROR.
  */
 GLenum
-_mesa_es3_error_check_format_and_type(GLenum format, GLenum type,
+_mesa_es3_error_check_format_and_type(const struct gl_context *ctx,
+                                      GLenum format, GLenum type,
                                       GLenum internalFormat)
 {
    switch (format) {
@@ -1847,11 +2100,17 @@ _mesa_es3_error_check_format_and_type(GLenum format, GLenum type,
          case GL_RGBA16F:
          case GL_RGBA32F:
             break;
+         case GL_RGBA:
+            if (ctx->Extensions.OES_texture_float && internalFormat == format)
+               break;
          default:
             return GL_INVALID_OPERATION;
          }
          break;
 
+      case GL_HALF_FLOAT_OES:
+         if (ctx->Extensions.OES_texture_half_float && internalFormat == format)
+            break;
       default:
          return GL_INVALID_OPERATION;
       }
@@ -1956,9 +2215,17 @@ _mesa_es3_error_check_format_and_type(GLenum format, GLenum type,
          case GL_R11F_G11F_B10F:
          case GL_RGB9_E5:
             break;
+         case GL_RGB:
+            if (ctx->Extensions.OES_texture_float && internalFormat == format)
+               break;
          default:
             return GL_INVALID_OPERATION;
          }
+         break;
+
+      case GL_HALF_FLOAT_OES:
+         if (!ctx->Extensions.OES_texture_half_float || internalFormat != format)
+            return GL_INVALID_OPERATION;
          break;
 
       case GL_UNSIGNED_INT_2_10_10_10_REV:
@@ -2200,10 +2467,289 @@ _mesa_es3_error_check_format_and_type(GLenum format, GLenum type,
    case GL_ALPHA:
    case GL_LUMINANCE:
    case GL_LUMINANCE_ALPHA:
-      if (type != GL_UNSIGNED_BYTE || format != internalFormat)
-         return GL_INVALID_OPERATION;
-      break;
+      switch (type) {
+      case GL_FLOAT:
+         if (ctx->Extensions.OES_texture_float && internalFormat == format)
+            break;
+      case GL_HALF_FLOAT_OES:
+         if (ctx->Extensions.OES_texture_half_float && internalFormat == format)
+            break;
+      default:
+         if (type != GL_UNSIGNED_BYTE || format != internalFormat)
+            return GL_INVALID_OPERATION;
+      }
    }
 
    return GL_NO_ERROR;
+}
+
+static void
+set_swizzle(uint8_t *swizzle, int x, int y, int z, int w)
+{
+   swizzle[MESA_FORMAT_SWIZZLE_X] = x;
+   swizzle[MESA_FORMAT_SWIZZLE_Y] = y;
+   swizzle[MESA_FORMAT_SWIZZLE_Z] = z;
+   swizzle[MESA_FORMAT_SWIZZLE_W] = w;
+}
+
+static bool
+get_swizzle_from_gl_format(GLenum format, uint8_t *swizzle)
+{
+   switch (format) {
+   case GL_RGBA:
+   case GL_RGBA_INTEGER_EXT:
+      set_swizzle(swizzle, 0, 1, 2, 3);
+      return true;
+   case GL_BGRA:
+   case GL_BGRA_INTEGER_EXT:
+      set_swizzle(swizzle, 2, 1, 0, 3);
+      return true;
+   case GL_ABGR_EXT:
+      set_swizzle(swizzle, 3, 2, 1, 0);
+      return true;
+   case GL_RGB:
+   case GL_RGB_INTEGER_EXT:
+      set_swizzle(swizzle, 0, 1, 2, 5);
+      return true;
+   case GL_BGR:
+   case GL_BGR_INTEGER_EXT:
+      set_swizzle(swizzle, 2, 1, 0, 5);
+      return true;
+   case GL_LUMINANCE_ALPHA:
+   case GL_LUMINANCE_ALPHA_INTEGER_EXT:
+      set_swizzle(swizzle, 0, 0, 0, 1);
+      return true;
+   case GL_RG:
+   case GL_RG_INTEGER:
+      set_swizzle(swizzle, 0, 1, 4, 5);
+      return true;
+   case GL_RED:
+   case GL_RED_INTEGER_EXT:
+      set_swizzle(swizzle, 0, 4, 4, 5);
+      return true;
+   case GL_GREEN:
+   case GL_GREEN_INTEGER_EXT:
+      set_swizzle(swizzle, 4, 0, 4, 5);
+      return true;
+   case GL_BLUE:
+   case GL_BLUE_INTEGER_EXT:
+      set_swizzle(swizzle, 4, 4, 0, 5);
+      return true;
+   case GL_ALPHA:
+   case GL_ALPHA_INTEGER_EXT:
+      set_swizzle(swizzle, 4, 4, 4, 0);
+      return true;
+   case GL_LUMINANCE:
+   case GL_LUMINANCE_INTEGER_EXT:
+      set_swizzle(swizzle, 0, 0, 0, 5);
+      return true;
+   case GL_INTENSITY:
+      set_swizzle(swizzle, 0, 0, 0, 0);
+      return true;
+   default:
+      return false;
+   }
+}
+
+/**
+* Take an OpenGL format (GL_RGB, GL_RGBA, etc), OpenGL data type (GL_INT,
+* GL_FOAT, etc) and return a matching mesa_array_format or a mesa_format
+* otherwise (for non-array formats).
+*
+* This function will typically be used to compute a mesa format from a GL type
+* so we can then call _mesa_format_convert. This function does
+* not consider byte swapping, so it returns types assuming that no byte
+* swapping is involved. If byte swapping is involved then clients are supposed
+* to handle that on their side before calling _mesa_format_convert.
+*
+* This function returns an uint32_t that can pack a mesa_format or a
+* mesa_array_format. Clients must check the mesa array format bit
+* (MESA_ARRAY_FORMAT_BIT) on the return value to know if the returned
+* format is a mesa_array_format or a mesa_format.
+*/
+uint32_t
+_mesa_format_from_format_and_type(GLenum format, GLenum type)
+{
+   mesa_array_format array_format;
+
+   bool is_array_format = true;
+   uint8_t swizzle[4];
+   bool normalized = false, is_float = false, is_signed = false;
+   int num_channels = 0, type_size = 0;
+
+   /* Extract array format type information from the OpenGL data type */
+   switch (type) {
+   case GL_UNSIGNED_BYTE:
+      type_size = 1;
+      break;
+   case GL_BYTE:
+      type_size = 1;
+      is_signed = true;
+      break;
+   case GL_UNSIGNED_SHORT:
+      type_size = 2;
+      break;
+   case GL_SHORT:
+      type_size = 2;
+      is_signed = true;
+      break;
+   case GL_UNSIGNED_INT:
+      type_size = 4;
+      break;
+   case GL_INT:
+      type_size = 4;
+      is_signed = true;
+      break;
+   case GL_HALF_FLOAT:
+   case GL_HALF_FLOAT_OES:
+      type_size = 2;
+      is_signed = true;
+      is_float = true;
+      break;
+   case GL_FLOAT:
+      type_size = 4;
+      is_signed = true;
+      is_float = true;
+      break;
+   default:
+      is_array_format = false;
+      break;
+   }
+
+   /* Extract array format swizzle information from the OpenGL format */
+   if (is_array_format)
+      is_array_format = get_swizzle_from_gl_format(format, swizzle);
+
+   /* If this is an array format type after checking data type and format,
+    * create the array format
+    */
+   if (is_array_format) {
+      normalized = !_mesa_is_enum_format_integer(format);
+      num_channels = _mesa_components_in_format(format);
+
+      array_format =
+         MESA_ARRAY_FORMAT(type_size, is_signed, is_float,
+                           normalized, num_channels,
+                           swizzle[0], swizzle[1], swizzle[2], swizzle[3]);
+
+      if (!_mesa_little_endian())
+         array_format = _mesa_array_format_flip_channels(array_format);
+
+      return array_format;
+   }
+
+   /* Otherwise this is not an array format, so return the mesa_format
+    * matching the OpenGL format and data type
+    */
+   switch (type) {
+   case GL_UNSIGNED_SHORT_5_6_5:
+     if (format == GL_RGB)
+         return MESA_FORMAT_B5G6R5_UNORM;
+      else if (format == GL_BGR)
+         return MESA_FORMAT_R5G6B5_UNORM;
+      break;
+   case GL_UNSIGNED_SHORT_5_6_5_REV:
+      if (format == GL_RGB)
+         return MESA_FORMAT_R5G6B5_UNORM;
+      else if (format == GL_BGR)
+         return MESA_FORMAT_B5G6R5_UNORM;
+      break;
+   case GL_UNSIGNED_SHORT_4_4_4_4:
+      if (format == GL_RGBA)
+         return MESA_FORMAT_A4B4G4R4_UNORM;
+      else if (format == GL_BGRA)
+         return MESA_FORMAT_A4R4G4B4_UNORM;
+      else if (format == GL_ABGR_EXT)
+         return MESA_FORMAT_R4G4B4A4_UNORM;
+      break;
+   case GL_UNSIGNED_SHORT_4_4_4_4_REV:
+      if (format == GL_RGBA)
+         return MESA_FORMAT_R4G4B4A4_UNORM;
+      else if (format == GL_BGRA)
+         return MESA_FORMAT_B4G4R4A4_UNORM;
+      else if (format == GL_ABGR_EXT)
+         return MESA_FORMAT_A4B4G4R4_UNORM;
+      break;
+   case GL_UNSIGNED_SHORT_5_5_5_1:
+      if (format == GL_RGBA)
+         return MESA_FORMAT_A1B5G5R5_UNORM;
+      else if (format == GL_BGRA)
+         return MESA_FORMAT_A1R5G5B5_UNORM;
+      break;
+   case GL_UNSIGNED_SHORT_1_5_5_5_REV:
+      if (format == GL_RGBA)
+         return MESA_FORMAT_R5G5B5A1_UNORM;
+      else if (format == GL_BGRA)
+         return MESA_FORMAT_B5G5R5A1_UNORM;
+      break;
+   case GL_UNSIGNED_BYTE_3_3_2:
+      if (format == GL_RGB)
+         return MESA_FORMAT_B2G3R3_UNORM;
+      break;
+   case GL_UNSIGNED_BYTE_2_3_3_REV:
+      if (format == GL_RGB)
+         return MESA_FORMAT_R3G3B2_UNORM;
+      break;
+   case GL_UNSIGNED_INT_5_9_9_9_REV:
+      if (format == GL_RGB)
+         return MESA_FORMAT_R9G9B9E5_FLOAT;
+      break;
+   case GL_UNSIGNED_INT_10_10_10_2:
+      if (format == GL_RGBA)
+         return MESA_FORMAT_A2B10G10R10_UNORM;
+      else if (format == GL_RGBA_INTEGER)
+         return MESA_FORMAT_A2B10G10R10_UINT;
+      else if (format == GL_BGRA)
+         return MESA_FORMAT_A2R10G10B10_UNORM;
+      else if (format == GL_BGRA_INTEGER)
+         return MESA_FORMAT_A2R10G10B10_UINT;
+      break;
+   case GL_UNSIGNED_INT_2_10_10_10_REV:
+      if (format == GL_RGB)
+         return MESA_FORMAT_R10G10B10X2_UNORM;
+      if (format == GL_RGBA)
+         return MESA_FORMAT_R10G10B10A2_UNORM;
+      else if (format == GL_RGBA_INTEGER)
+         return MESA_FORMAT_R10G10B10A2_UINT;
+      else if (format == GL_BGRA)
+         return MESA_FORMAT_B10G10R10A2_UNORM;
+      else if (format == GL_BGRA_INTEGER)
+         return MESA_FORMAT_B10G10R10A2_UINT;
+      break;
+   case GL_UNSIGNED_INT_8_8_8_8:
+      if (format == GL_RGBA)
+         return MESA_FORMAT_A8B8G8R8_UNORM;
+      else if (format == GL_BGRA)
+         return MESA_FORMAT_A8R8G8B8_UNORM;
+      else if (format == GL_ABGR_EXT)
+         return MESA_FORMAT_R8G8B8A8_UNORM;
+      break;
+   case GL_UNSIGNED_INT_8_8_8_8_REV:
+      if (format == GL_RGBA)
+         return MESA_FORMAT_R8G8B8A8_UNORM;
+      else if (format == GL_BGRA)
+         return MESA_FORMAT_B8G8R8A8_UNORM;
+      else if (format == GL_ABGR_EXT)
+         return MESA_FORMAT_A8B8G8R8_UNORM;
+      break;
+   case GL_UNSIGNED_SHORT_8_8_MESA:
+      if (format == GL_YCBCR_MESA)
+         return MESA_FORMAT_YCBCR;
+      break;
+   case GL_UNSIGNED_SHORT_8_8_REV_MESA:
+      if (format == GL_YCBCR_MESA)
+         return MESA_FORMAT_YCBCR_REV;
+      break;
+   case GL_UNSIGNED_INT_10F_11F_11F_REV:
+      if (format == GL_RGB)
+         return MESA_FORMAT_R11G11B10_FLOAT;
+   default:
+      break;
+   }
+
+   /* If we got here it means that we could not find a Mesa format that
+    * matches the GL format/type provided. We may need to add a new Mesa
+    * format in that case.
+    */
+   unreachable("Unsupported format");
 }

@@ -33,6 +33,14 @@
 #include <xf86Crtc.h>
 #include <damage.h>
 
+#ifdef GLAMOR
+#define GLAMOR_FOR_XORG 1
+#include "glamor.h"
+#ifdef GLAMOR_HAS_GBM
+#include <gbm.h>
+#endif
+#endif
+
 #include "drmmode_display.h"
 #define DRV_ERROR(msg)	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, msg);
 
@@ -97,7 +105,6 @@ typedef struct _modesettingRec {
     Bool dirty_enabled;
 
     uint32_t cursor_width, cursor_height;
-    Bool glamor;
 } modesettingRec, *modesettingPtr;
 
 #define modesettingPTR(p) ((modesettingPtr)((p)->driverPrivate))
@@ -106,6 +113,10 @@ uint32_t ms_drm_queue_alloc(xf86CrtcPtr crtc,
                             void *data,
                             ms_drm_handler_proc handler,
                             ms_drm_abort_proc abort);
+
+void ms_drm_abort(ScrnInfoPtr scrn,
+                  Bool (*match)(void *data, void *match_data),
+                  void *match_data);
 
 xf86CrtcPtr ms_dri2_crtc_covering_drawable(DrawablePtr pDraw);
 xf86CrtcPtr ms_covering_crtc(ScrnInfoPtr scrn, BoxPtr box,
@@ -122,3 +133,5 @@ void ms_dri2_close_screen(ScreenPtr screen);
 
 Bool ms_vblank_screen_init(ScreenPtr screen);
 void ms_vblank_close_screen(ScreenPtr screen);
+
+Bool ms_present_screen_init(ScreenPtr screen);

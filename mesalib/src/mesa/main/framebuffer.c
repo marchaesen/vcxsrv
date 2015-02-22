@@ -345,7 +345,7 @@ update_framebuffer_size(struct gl_context *ctx, struct gl_framebuffer *fb)
       }
    }
 
-   if (minWidth != ~0) {
+   if (minWidth != ~0U) {
       fb->Width = minWidth;
       fb->Height = minHeight;
    }

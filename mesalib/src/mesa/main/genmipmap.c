@@ -36,21 +36,20 @@
 #include "mtypes.h"
 #include "teximage.h"
 #include "texobj.h"
-
+#include "hash.h"
 
 /**
- * Generate all the mipmap levels below the base level.
- * Note: this GL function would be more useful if one could specify a
- * cube face, a set of array slices, etc.
+ * Implements glGenerateMipmap and glGenerateTextureMipmap.
+ * Generates all the mipmap levels below the base level.
  */
-void GLAPIENTRY
-_mesa_GenerateMipmap(GLenum target)
+void
+_mesa_generate_texture_mipmap(struct gl_context *ctx,
+                              struct gl_texture_object *texObj, GLenum target,
+                              bool dsa)
 {
    struct gl_texture_image *srcImage;
-   struct gl_texture_object *texObj;
    GLboolean error;
-
-   GET_CURRENT_CONTEXT(ctx);
+   const char *suffix = dsa ? "Texture" : "";
 
    FLUSH_VERTICES(ctx, 0);
 
@@ -83,12 +82,10 @@ _mesa_GenerateMipmap(GLenum target)
    }
 
    if (error) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "glGenerateMipmapEXT(target=%s)",
-                  _mesa_lookup_enum_by_nr(target));
+      _mesa_error(ctx, GL_INVALID_ENUM, "glGenerate%sMipmap(target=%s)",
+                  suffix, _mesa_lookup_enum_by_nr(target));
       return;
    }
-
-   texObj = _mesa_get_current_tex_object(ctx, target);
 
    if (texObj->BaseLevel >= texObj->MaxLevel) {
       /* nothing to do */
@@ -98,17 +95,17 @@ _mesa_GenerateMipmap(GLenum target)
    if (texObj->Target == GL_TEXTURE_CUBE_MAP &&
        !_mesa_cube_complete(texObj)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glGenerateMipmap(incomplete cube map)");
+                  "glGenerate%sMipmap(incomplete cube map)", suffix);
       return;
    }
 
    _mesa_lock_texture(ctx, texObj);
 
-   srcImage = _mesa_select_tex_image(ctx, texObj, target, texObj->BaseLevel);
+   srcImage = _mesa_select_tex_image(texObj, target, texObj->BaseLevel);
    if (!srcImage) {
       _mesa_unlock_texture(ctx, texObj);
       _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glGenerateMipmap(zero size base image)");
+                  "glGenerate%sMipmap(zero size base image)", suffix);
       return;
    }
 
@@ -117,19 +114,53 @@ _mesa_GenerateMipmap(GLenum target)
        _mesa_is_stencil_format(srcImage->InternalFormat)) {
       _mesa_unlock_texture(ctx, texObj);
       _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glGenerateMipmap(invalid internal format)");
+                  "glGenerate%sMipmap(invalid internal format)", suffix);
       return;
    }
 
    if (target == GL_TEXTURE_CUBE_MAP) {
       GLuint face;
-      for (face = 0; face < 6; face++)
-	 ctx->Driver.GenerateMipmap(ctx,
-				    GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB + face,
-				    texObj);
+      for (face = 0; face < 6; face++) {
+         ctx->Driver.GenerateMipmap(ctx,
+                      GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB + face, texObj);
+      }
    }
    else {
       ctx->Driver.GenerateMipmap(ctx, target, texObj);
    }
    _mesa_unlock_texture(ctx, texObj);
+}
+
+/**
+ * Generate all the mipmap levels below the base level.
+ * Note: this GL function would be more useful if one could specify a
+ * cube face, a set of array slices, etc.
+ */
+void GLAPIENTRY
+_mesa_GenerateMipmap(GLenum target)
+{
+   struct gl_texture_object *texObj;
+   GET_CURRENT_CONTEXT(ctx);
+
+   texObj = _mesa_get_current_tex_object(ctx, target);
+   if (!texObj)
+      return;
+
+   _mesa_generate_texture_mipmap(ctx, texObj, target, false);
+}
+
+/**
+ * Generate all the mipmap levels below the base level.
+ */
+void GLAPIENTRY
+_mesa_GenerateTextureMipmap(GLuint texture)
+{
+   struct gl_texture_object *texObj;
+   GET_CURRENT_CONTEXT(ctx);
+
+   texObj = _mesa_lookup_texture_err(ctx, texture, "glGenerateTextureMipmap");
+   if (!texObj)
+      return;
+
+   _mesa_generate_texture_mipmap(ctx, texObj, texObj->Target, true);
 }

@@ -40,7 +40,6 @@
 
 
 #include "pipe/p_compiler.h"
-#include "util/u_debug.h"
 
 
 #ifdef __cplusplus
@@ -530,6 +529,7 @@ unsigned ffs( unsigned u )
 }
 #elif defined(__MINGW32__) || defined(PIPE_OS_ANDROID)
 #define ffs __builtin_ffs
+#define ffsll __builtin_ffsll
 #endif
 
 #endif /* FFS_DEFINED */
@@ -541,7 +541,7 @@ unsigned ffs( unsigned u )
 static INLINE unsigned
 util_last_bit(unsigned u)
 {
-#if defined(__GNUC__) && ((__GNUC__ * 100 + __GNUC_MINOR__) >= 304)
+#if defined(__GNUC__)
    return u == 0 ? 0 : 32 - __builtin_clz(u);
 #else
    unsigned r = 0;
@@ -561,14 +561,10 @@ util_last_bit(unsigned u)
 static INLINE unsigned
 util_last_bit_signed(int i)
 {
-#if defined(__GNUC__) && ((__GNUC__ * 100 + __GNUC_MINOR__) >= 407) && !defined(__INTEL_COMPILER)
-   return 31 - __builtin_clrsb(i);
-#else
    if (i >= 0)
       return util_last_bit(i);
    else
       return util_last_bit(~(unsigned)i);
-#endif
 }
 
 /* Destructively loop over all of the bits in a mask as in:
@@ -587,6 +583,15 @@ u_bit_scan(unsigned *mask)
    return i;
 }
 
+#ifndef _MSC_VER
+static INLINE int
+u_bit_scan64(uint64_t *mask)
+{
+   int i = ffsll(*mask) - 1;
+   *mask &= ~(1llu << i);
+   return i;
+}
+#endif
 
 /**
  * Return float bits.
@@ -602,9 +607,9 @@ fui( float f )
 static INLINE float
 uif(uint32_t ui)
 {
-        union fi fi;
-        fi.ui = ui;
-        return fi.f;
+   union fi fi;
+   fi.ui = ui;
+   return fi.f;
 }
 
 
@@ -658,7 +663,7 @@ float_to_byte_tex(float f)
 static INLINE unsigned
 util_logbase2(unsigned n)
 {
-#if defined(PIPE_CC_GCC) && (PIPE_CC_GCC_VERSION >= 304)
+#if defined(PIPE_CC_GCC)
    return ((sizeof(unsigned) * 8 - 1) - __builtin_clz(n | 1));
 #else
    unsigned pos = 0;
@@ -678,7 +683,7 @@ util_logbase2(unsigned n)
 static INLINE unsigned
 util_next_power_of_two(unsigned x)
 {
-#if defined(PIPE_CC_GCC) && (PIPE_CC_GCC_VERSION >= 304)
+#if defined(PIPE_CC_GCC)
    if (x <= 1)
        return 1;
 
@@ -710,7 +715,7 @@ util_next_power_of_two(unsigned x)
 static INLINE unsigned
 util_bitcount(unsigned n)
 {
-#if defined(PIPE_CC_GCC) && (PIPE_CC_GCC_VERSION >= 304)
+#if defined(PIPE_CC_GCC)
    return __builtin_popcount(n);
 #else
    /* K&R classic bitcount.

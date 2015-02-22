@@ -172,6 +172,7 @@ get_conversion_operation(const glsl_type *to, const glsl_type *from,
       switch (from->base_type) {
       case GLSL_TYPE_INT: return ir_unop_i2f;
       case GLSL_TYPE_UINT: return ir_unop_u2f;
+      case GLSL_TYPE_DOUBLE: return ir_unop_d2f;
       default: return (ir_expression_operation)0;
       }
 
@@ -181,6 +182,16 @@ get_conversion_operation(const glsl_type *to, const glsl_type *from,
       switch (from->base_type) {
          case GLSL_TYPE_INT: return ir_unop_i2u;
          default: return (ir_expression_operation)0;
+      }
+
+   case GLSL_TYPE_DOUBLE:
+      if (!state->has_double())
+         return (ir_expression_operation)0;
+      switch (from->base_type) {
+      case GLSL_TYPE_INT: return ir_unop_i2d;
+      case GLSL_TYPE_UINT: return ir_unop_u2d;
+      case GLSL_TYPE_FLOAT: return ir_unop_f2d;
+      default: return (ir_expression_operation)0;
       }
 
    default: return (ir_expression_operation)0;
@@ -340,8 +351,10 @@ arithmetic_result_type(ir_rvalue * &value_a, ir_rvalue * &value_b,
     * type of both operands must be float.
     */
    assert(type_a->is_matrix() || type_b->is_matrix());
-   assert(type_a->base_type == GLSL_TYPE_FLOAT);
-   assert(type_b->base_type == GLSL_TYPE_FLOAT);
+   assert(type_a->base_type == GLSL_TYPE_FLOAT ||
+          type_a->base_type == GLSL_TYPE_DOUBLE);
+   assert(type_b->base_type == GLSL_TYPE_FLOAT ||
+          type_b->base_type == GLSL_TYPE_DOUBLE);
 
    /*   "* The operator is add (+), subtract (-), or divide (/), and the
     *      operands are matrices with the same number of rows and the same
@@ -959,6 +972,7 @@ do_comparison(void *mem_ctx, int operation, ir_rvalue *op0, ir_rvalue *op1)
    case GLSL_TYPE_UINT:
    case GLSL_TYPE_INT:
    case GLSL_TYPE_BOOL:
+   case GLSL_TYPE_DOUBLE:
       return new(mem_ctx) ir_expression(operation, op0, op1);
 
    case GLSL_TYPE_ARRAY: {
@@ -1597,13 +1611,11 @@ ast_expression::do_hir(exec_list *instructions,
       }
 
       ir_constant *cond_val = op[0]->constant_expression_value();
-      ir_constant *then_val = op[1]->constant_expression_value();
-      ir_constant *else_val = op[2]->constant_expression_value();
 
       if (then_instructions.is_empty()
           && else_instructions.is_empty()
-          && (cond_val != NULL) && (then_val != NULL) && (else_val != NULL)) {
-         result = (cond_val->value.b[0]) ? then_val : else_val;
+          && cond_val != NULL) {
+         result = cond_val->value.b[0] ? op[1] : op[2];
       } else {
          ir_variable *const tmp =
             new(ctx) ir_variable(type, "conditional_tmp", ir_var_temporary);
@@ -1746,6 +1758,10 @@ ast_expression::do_hir(exec_list *instructions,
 
    case ast_bool_constant:
       result = new(ctx) ir_constant(bool(this->primary_expression.bool_constant));
+      break;
+
+   case ast_double_constant:
+      result = new(ctx) ir_constant(this->primary_expression.double_constant);
       break;
 
    case ast_sequence: {
@@ -2561,6 +2577,8 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
             break;
          _mesa_glsl_error(loc, state,
                           "varying variables may not be of type struct");
+         break;
+      case GLSL_TYPE_DOUBLE:
          break;
       default:
          _mesa_glsl_error(loc, state, "illegal type for a varying variable");
@@ -3603,6 +3621,51 @@ ast_declarator_list::hir(exec_list *instructions,
 
             handle_geometry_shader_input_decl(state, loc, var);
          }
+      } else if (var->data.mode == ir_var_shader_out) {
+         const glsl_type *check_type = var->type->without_array();
+
+         /* From section 4.3.6 (Output variables) of the GLSL 4.40 spec:
+          *
+          *     It is a compile-time error to declare a vertex, tessellation
+          *     evaluation, tessellation control, or geometry shader output
+          *     that contains any of the following:
+          *
+          *     * A Boolean type (bool, bvec2 ...)
+          *     * An opaque type
+          */
+         if (check_type->is_boolean() || check_type->contains_opaque())
+            _mesa_glsl_error(&loc, state,
+                             "%s shader output cannot have type %s",
+                             _mesa_shader_stage_to_string(state->stage),
+                             check_type->name);
+
+         /* From section 4.3.6 (Output variables) of the GLSL 4.40 spec:
+          *
+          *     It is a compile-time error to declare a fragment shader output
+          *     that contains any of the following:
+          *
+          *     * A Boolean type (bool, bvec2 ...)
+          *     * A double-precision scalar or vector (double, dvec2 ...)
+          *     * An opaque type
+          *     * Any matrix type
+          *     * A structure
+          */
+         if (state->stage == MESA_SHADER_FRAGMENT) {
+            if (check_type->is_record() || check_type->is_matrix())
+               _mesa_glsl_error(&loc, state,
+                                "fragment shader output "
+                                "cannot have struct or array type");
+            switch (check_type->base_type) {
+            case GLSL_TYPE_UINT:
+            case GLSL_TYPE_INT:
+            case GLSL_TYPE_FLOAT:
+               break;
+            default:
+               _mesa_glsl_error(&loc, state,
+                                "fragment shader output cannot have "
+                                "type %s", check_type->name);
+            }
+         }
       }
 
       /* Integer fragment inputs must be qualified with 'flat'.  In GLSL ES,
@@ -3647,6 +3710,15 @@ ast_declarator_list::hir(exec_list *instructions,
                           var_type);
       }
 
+      /* Double fragment inputs must be qualified with 'flat'. */
+      if (var->type->contains_double() &&
+          var->data.interpolation != INTERP_QUALIFIER_FLAT &&
+          state->stage == MESA_SHADER_FRAGMENT &&
+          var->data.mode == ir_var_shader_in) {
+         _mesa_glsl_error(&loc, state, "if a fragment input is (or contains) "
+                          "a double, then it must be qualified with 'flat'",
+                          var_type);
+      }
 
       /* Interpolation qualifiers cannot be applied to 'centroid' and
        * 'centroid varying'.
@@ -4131,6 +4203,27 @@ ast_function::hir(exec_list *instructions,
       }
 
       emit_function(state, f);
+   }
+
+   /* From GLSL ES 3.0 spec, chapter 6.1 "Function Definitions", page 71:
+    *
+    * "A shader cannot redefine or overload built-in functions."
+    *
+    * While in GLSL ES 1.0 specification, chapter 8 "Built-in Functions":
+    *
+    * "User code can overload the built-in functions but cannot redefine
+    * them."
+    */
+   if (state->es_shader && state->language_version >= 300) {
+      /* Local shader has no exact candidates; check the built-ins. */
+      _mesa_glsl_initialize_builtin_functions();
+      if (_mesa_glsl_find_builtin_function_by_name(state, name)) {
+         YYLTYPE loc = this->get_location();
+         _mesa_glsl_error(& loc, state,
+                          "A shader cannot redefine or overload built-in "
+                          "function `%s' in GLSL ES 3.00", name);
+         return NULL;
+      }
    }
 
    /* Verify that this function's signature either doesn't match a previously
@@ -5203,6 +5296,13 @@ ast_process_structure_or_interface_block(exec_list *instructions,
                              "members");
          }
 
+         if (qual->flags.q.constant) {
+            YYLTYPE loc = decl_list->get_location();
+            _mesa_glsl_error(&loc, state,
+                             "const storage qualifier cannot be applied "
+                             "to struct or interface block members");
+         }
+
          field_type = process_array_type(&loc, decl_type,
                                          decl->array_specifier, state);
          fields[i].type = field_type;
@@ -5383,6 +5483,14 @@ ast_interface_block::hir(exec_list *instructions,
 {
    YYLTYPE loc = this->get_location();
 
+   /* Interface blocks must be declared at global scope */
+   if (state->current_function != NULL) {
+      _mesa_glsl_error(&loc, state,
+                       "Interface block `%s' must be declared "
+                       "at global scope",
+                       this->block_name);
+   }
+
    /* The ast_interface_block has a list of ast_declarator_lists.  We
     * need to turn those into ir_variables with an association
     * with this uniform block.
@@ -5443,8 +5551,22 @@ ast_interface_block::hir(exec_list *instructions,
 
    state->struct_specifier_depth--;
 
-   if (!redeclaring_per_vertex)
+   if (!redeclaring_per_vertex) {
       validate_identifier(this->block_name, loc, state);
+
+      /* From section 4.3.9 ("Interface Blocks") of the GLSL 4.50 spec:
+       *
+       *     "Block names have no other use within a shader beyond interface
+       *     matching; it is a compile-time error to use a block name at global
+       *     scope for anything other than as a block name."
+       */
+      ir_variable *var = state->symbols->get_variable(this->block_name);
+      if (var && !var->type->is_interface()) {
+         _mesa_glsl_error(&loc, state, "Block name `%s' is "
+                          "already used in the scope.",
+                          this->block_name);
+      }
+   }
 
    const glsl_type *earlier_per_vertex = NULL;
    if (redeclaring_per_vertex) {
@@ -5908,7 +6030,7 @@ ast_cs_input_layout::hir(exec_list *instructions,
     * declare it earlier).
     */
    ir_variable *var = new(state->symbols)
-      ir_variable(glsl_type::ivec3_type, "gl_WorkGroupSize", ir_var_auto);
+      ir_variable(glsl_type::uvec3_type, "gl_WorkGroupSize", ir_var_auto);
    var->data.how_declared = ir_var_declared_implicitly;
    var->data.read_only = true;
    instructions->push_tail(var);
@@ -5916,10 +6038,10 @@ ast_cs_input_layout::hir(exec_list *instructions,
    ir_constant_data data;
    memset(&data, 0, sizeof(data));
    for (int i = 0; i < 3; i++)
-      data.i[i] = this->local_size[i];
-   var->constant_value = new(var) ir_constant(glsl_type::ivec3_type, &data);
+      data.u[i] = this->local_size[i];
+   var->constant_value = new(var) ir_constant(glsl_type::uvec3_type, &data);
    var->constant_initializer =
-      new(var) ir_constant(glsl_type::ivec3_type, &data);
+      new(var) ir_constant(glsl_type::uvec3_type, &data);
    var->data.has_initializer = true;
 
    return NULL;

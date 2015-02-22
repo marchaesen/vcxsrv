@@ -38,13 +38,12 @@
 
 #include "compiler.h"
 #include "glheader.h"
+#include "mtypes.h"
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "mtypes.h"
 
 struct _glapi_table;
 
@@ -72,14 +71,16 @@ _mesa_debug( const struct gl_context *ctx, const char *fmtString, ... ) PRINTFLI
 extern void
 _mesa_gl_debug(struct gl_context *ctx,
                GLuint *id,
+               enum mesa_debug_source source,
                enum mesa_debug_type type,
                enum mesa_debug_severity severity,
-               const char *fmtString, ...) PRINTFLIKE(5, 6);
+               const char *fmtString, ...) PRINTFLIKE(6, 7);
 
 #define _mesa_perf_debug(ctx, sev, ...) do {                              \
    static GLuint msg_id = 0;                                              \
    if (unlikely(ctx->Const.ContextFlags & GL_CONTEXT_FLAG_DEBUG_BIT)) {   \
       _mesa_gl_debug(ctx, &msg_id,                                        \
+                     MESA_DEBUG_SOURCE_API,                               \
                      MESA_DEBUG_TYPE_PERFORMANCE,                         \
                      sev,                                                 \
                      __VA_ARGS__);                                        \

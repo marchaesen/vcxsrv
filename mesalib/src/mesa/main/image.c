@@ -41,36 +41,45 @@
 
 
 /**
- * Flip the order of the 2 bytes in each word in the given array.
+ * Flip the order of the 2 bytes in each word in the given array (src) and
+ * store the result in another array (dst). For in-place byte-swapping this
+ * function can be called with the same array for src and dst.
  *
- * \param p array.
+ * \param dst the array where byte-swapped data will be stored.
+ * \param src the array with the source data we want to byte-swap.
  * \param n number of words.
  */
 void
-_mesa_swap2( GLushort *p, GLuint n )
+_mesa_swap2_copy( GLushort *dst, GLushort *src, GLuint n )
 {
    GLuint i;
    for (i = 0; i < n; i++) {
-      p[i] = (p[i] >> 8) | ((p[i] << 8) & 0xff00);
+      dst[i] = (src[i] >> 8) | ((src[i] << 8) & 0xff00);
    }
 }
 
 
 
 /*
- * Flip the order of the 4 bytes in each word in the given array.
+ * Flip the order of the 4 bytes in each word in the given array (src) and
+ * store the result in another array (dst). For in-place byte-swapping this
+ * function can be called with the same array for src and dst.
+ *
+ * \param dst the array where byte-swapped data will be stored.
+ * \param src the array with the source data we want to byte-swap.
+ * \param n number of words.
  */
 void
-_mesa_swap4( GLuint *p, GLuint n )
+_mesa_swap4_copy( GLuint *dst, GLuint *src, GLuint n )
 {
    GLuint i, a, b;
    for (i = 0; i < n; i++) {
-      b = p[i];
+      b = src[i];
       a =  (b >> 24)
 	| ((b >> 8) & 0xff00)
 	| ((b << 8) & 0xff0000)
 	| ((b << 24) & 0xff000000);
-      p[i] = a;
+      dst[i] = a;
    }
 }
 
@@ -142,7 +151,7 @@ _mesa_image_offset( GLuint dimensions,
       assert(format == GL_COLOR_INDEX || format == GL_STENCIL_INDEX);
 
       bytes_per_row = alignment
-                    * CEILING( comp_per_pixel*pixels_per_row, 8*alignment );
+                    * DIV_ROUND_UP( comp_per_pixel*pixels_per_row, 8*alignment );
 
       bytes_per_image = bytes_per_row * rows_per_image;
 
@@ -852,19 +861,21 @@ clip_left_or_bottom(GLint *srcX0, GLint *srcX1,
  */
 GLboolean
 _mesa_clip_blit(struct gl_context *ctx,
+                const struct gl_framebuffer *readFb,
+                const struct gl_framebuffer *drawFb,
                 GLint *srcX0, GLint *srcY0, GLint *srcX1, GLint *srcY1,
                 GLint *dstX0, GLint *dstY0, GLint *dstX1, GLint *dstY1)
 {
    const GLint srcXmin = 0;
-   const GLint srcXmax = ctx->ReadBuffer->Width;
+   const GLint srcXmax = readFb->Width;
    const GLint srcYmin = 0;
-   const GLint srcYmax = ctx->ReadBuffer->Height;
+   const GLint srcYmax = readFb->Height;
 
    /* these include scissor bounds */
-   const GLint dstXmin = ctx->DrawBuffer->_Xmin;
-   const GLint dstXmax = ctx->DrawBuffer->_Xmax;
-   const GLint dstYmin = ctx->DrawBuffer->_Ymin;
-   const GLint dstYmax = ctx->DrawBuffer->_Ymax;
+   const GLint dstXmin = drawFb->_Xmin;
+   const GLint dstXmax = drawFb->_Xmax;
+   const GLint dstYmin = drawFb->_Ymin;
+   const GLint dstYmax = drawFb->_Ymax;
 
    /*
    printf("PreClipX:  src: %d .. %d  dst: %d .. %d\n",

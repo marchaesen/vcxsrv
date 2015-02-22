@@ -36,7 +36,7 @@ glamor_egl_screen_init(ScreenPtr screen, struct glamor_context *glamor_ctx)
 }
 
 void
-glamor_egl_destroy_textured_pixmap(PixmapPtr pixmap)
+glamor_egl_destroy_pixmap_image(PixmapPtr pixmap)
 {
 }
 

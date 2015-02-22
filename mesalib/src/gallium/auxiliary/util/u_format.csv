@@ -186,6 +186,17 @@ PIPE_FORMAT_LATC2_SNORM           , rgtc, 4, 4, x128,     ,     ,     , xxxy, rg
 
 PIPE_FORMAT_ETC1_RGB8             ,  etc, 4, 4, x64,      ,     ,     , xyz1, rgb
 
+PIPE_FORMAT_ETC2_RGB8             ,  etc, 4, 4, x64,      ,     ,     , xyz1, rgb
+PIPE_FORMAT_ETC2_SRGB8            ,  etc, 4, 4, x64,      ,     ,     , xyz1, srgb
+PIPE_FORMAT_ETC2_RGB8A1           ,  etc, 4, 4, x64,      ,     ,     , xyzw, rgb
+PIPE_FORMAT_ETC2_SRGB8A1          ,  etc, 4, 4, x64,      ,     ,     , xyzw, srgb
+PIPE_FORMAT_ETC2_RGBA8            ,  etc, 4, 4, x128,     ,     ,     , xyzw, rgb
+PIPE_FORMAT_ETC2_SRGBA8           ,  etc, 4, 4, x128,     ,     ,     , xyzw, srgb
+PIPE_FORMAT_ETC2_R11_UNORM        ,  etc, 4, 4, x64,      ,     ,     , x001, rgb
+PIPE_FORMAT_ETC2_R11_SNORM        ,  etc, 4, 4, x64,      ,     ,     , x001, rgb
+PIPE_FORMAT_ETC2_RG11_UNORM       ,  etc, 4, 4, x128,     ,     ,     , xy01, rgb
+PIPE_FORMAT_ETC2_RG11_SNORM       ,  etc, 4, 4, x128,     ,     ,     , xy01, rgb
+
 PIPE_FORMAT_BPTC_RGBA_UNORM       , bptc, 4, 4, x128,     ,     ,     , xyzw, rgb
 PIPE_FORMAT_BPTC_SRGBA            , bptc, 4, 4, x128,     ,     ,     , xyzw, srgb
 PIPE_FORMAT_BPTC_RGB_FLOAT        , bptc, 4, 4, x128,     ,     ,     , xyz1, rgb

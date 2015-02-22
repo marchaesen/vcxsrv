@@ -274,9 +274,8 @@ attach_shader(struct gl_context *ctx, GLuint program, GLuint shader)
    }
 
    /* grow list */
-   shProg->Shaders = (struct gl_shader **)
-      realloc(shProg->Shaders,
-              (n + 1) * sizeof(struct gl_shader *));
+   shProg->Shaders = realloc(shProg->Shaders,
+                             (n + 1) * sizeof(struct gl_shader *));
    if (!shProg->Shaders) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glAttachShader");
       return;
@@ -308,7 +307,7 @@ create_shader(struct gl_context *ctx, GLenum type)
 }
 
 
-static GLuint 
+static GLuint
 create_shader_program(struct gl_context *ctx)
 {
    GLuint name;
@@ -327,8 +326,9 @@ create_shader_program(struct gl_context *ctx)
 
 
 /**
- * Named w/ "2" to indicate OpenGL 2.x vs GL_ARB_fragment_programs's
- * DeleteProgramARB.
+ * Delete a shader program.  Actually, just decrement the program's
+ * reference count and mark it as DeletePending.
+ * Used to implement glDeleteProgram() and glDeleteObjectARB().
  */
 static void
 delete_shader_program(struct gl_context *ctx, GLuint name)
@@ -431,9 +431,7 @@ detach_shader(struct gl_context *ctx, GLuint program, GLuint shader)
    /* not found */
    {
       GLenum err;
-      if (is_shader(ctx, shader))
-         err = GL_INVALID_OPERATION;
-      else if (is_program(ctx, shader))
+      if (is_shader(ctx, shader) || is_program(ctx, shader))
          err = GL_INVALID_OPERATION;
       else
          err = GL_INVALID_VALUE;
@@ -450,8 +448,16 @@ static void
 get_attached_shaders(struct gl_context *ctx, GLuint program, GLsizei maxCount,
                      GLsizei *count, GLuint *obj)
 {
-   struct gl_shader_program *shProg =
+   struct gl_shader_program *shProg;
+
+   if (maxCount < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glGetAttachedShaders(maxCount < 0)");
+      return;
+   }
+
+   shProg =
       _mesa_lookup_shader_program_err(ctx, program, "glGetAttachedShaders");
+
    if (shProg) {
       GLuint i;
       for (i = 0; i < (GLuint) maxCount && i < shProg->NumShaders; i++) {
@@ -513,7 +519,8 @@ check_gs_query(struct gl_context *ctx, const struct gl_shader_program *shProg)
  * programs (see glGetProgramivARB).
  */
 static void
-get_programiv(struct gl_context *ctx, GLuint program, GLenum pname, GLint *params)
+get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
+              GLint *params)
 {
    struct gl_shader_program *shProg
       = _mesa_lookup_shader_program(ctx, program);
@@ -533,7 +540,8 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname, GLint *param
    /* Are uniform buffer objects available in this context?
     */
    const bool has_ubo =
-      (ctx->API == API_OPENGL_COMPAT && ctx->Extensions.ARB_uniform_buffer_object)
+      (ctx->API == API_OPENGL_COMPAT &&
+       ctx->Extensions.ARB_uniform_buffer_object)
       || ctx->API == API_OPENGL_CORE
       || _mesa_is_gles3(ctx);
 
@@ -601,7 +609,8 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname, GLint *param
       for (i = 0; i < shProg->TransformFeedback.NumVarying; i++) {
          /* Add one for the terminating NUL character.
           */
-         const GLint len = strlen(shProg->TransformFeedback.VaryingNames[i]) + 1;
+         const GLint len =
+            strlen(shProg->TransformFeedback.VaryingNames[i]) + 1;
 
          if (len > max_len)
             max_len = len;
@@ -755,8 +764,7 @@ static void
 get_program_info_log(struct gl_context *ctx, GLuint program, GLsizei bufSize,
                      GLsizei *length, GLchar *infoLog)
 {
-   struct gl_shader_program *shProg
-      = _mesa_lookup_shader_program(ctx, program);
+   struct gl_shader_program *shProg = _mesa_lookup_shader_program(ctx, program);
    if (!shProg) {
       _mesa_error(ctx, GL_INVALID_VALUE, "glGetProgramInfoLog(program)");
       return;
@@ -786,6 +794,12 @@ get_shader_source(struct gl_context *ctx, GLuint shader, GLsizei maxLength,
                   GLsizei *length, GLchar *sourceOut)
 {
    struct gl_shader *sh;
+
+   if (maxLength < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glGetShaderSource(bufSize < 0)");
+      return;
+   }
+
    sh = _mesa_lookup_shader_err(ctx, shader, "glGetShaderSource");
    if (!sh) {
       return;
@@ -871,7 +885,6 @@ compile_shader(struct gl_context *ctx, GLuint shaderObj)
          }
          fflush(stderr);
       }
-
    }
 
    if (!sh->CompileStatus) {
@@ -918,7 +931,7 @@ link_program(struct gl_context *ctx, GLuint program)
 
    _mesa_glsl_link_shader(ctx, shProg);
 
-   if (shProg->LinkStatus == GL_FALSE && 
+   if (shProg->LinkStatus == GL_FALSE &&
        (ctx->_Shader->Flags & GLSL_REPORT_ERRORS)) {
       _mesa_debug(ctx, "Error linking program %u:\n%s\n",
                   shProg->Name, shProg->InfoLog);
@@ -986,8 +999,7 @@ _mesa_active_program(struct gl_context *ctx, struct gl_shader_program *shProg,
    }
 }
 
-/**
- */
+
 static void
 use_shader_program(struct gl_context *ctx, GLenum type,
                    struct gl_shader_program *shProg,
@@ -1034,6 +1046,7 @@ use_shader_program(struct gl_context *ctx, GLenum type,
    }
 }
 
+
 /**
  * Use the named shader program for subsequent rendering.
  */
@@ -1071,14 +1084,13 @@ validate_shader_program(const struct gl_shader_program *shProg,
 
      any active sampler in the current program object refers to a texture
      image unit where fixed-function fragment processing accesses a
-     texture target that does not match the sampler type, or 
+     texture target that does not match the sampler type, or
 
      the sum of the number of active samplers in the program and the
      number of texture image units enabled for fixed-function fragment
      processing exceeds the combined limit on the total number of texture
      image units allowed.
    */
-
 
    /*
     * Check: any two active samplers in the current program object are of
@@ -1673,7 +1685,7 @@ _mesa_ShaderBinary(GLint n, const GLuint* shaders, GLenum binaryformat,
    (void) binaryformat;
    (void) binary;
    (void) length;
-   _mesa_error(ctx, GL_INVALID_OPERATION, __FUNCTION__);
+   _mesa_error(ctx, GL_INVALID_OPERATION, "glShaderBinary");
 }
 
 
@@ -1682,30 +1694,46 @@ _mesa_GetProgramBinary(GLuint program, GLsizei bufSize, GLsizei *length,
                        GLenum *binaryFormat, GLvoid *binary)
 {
    struct gl_shader_program *shProg;
+   GLsizei length_dummy;
    GET_CURRENT_CONTEXT(ctx);
-
-   shProg = _mesa_lookup_shader_program_err(ctx, program, "glGetProgramBinary");
-   if (!shProg)
-      return;
-
-   if (!shProg->LinkStatus) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glGetProgramBinary(program %u not linked)",
-                  shProg->Name);
-      return;
-   }
 
    if (bufSize < 0){
       _mesa_error(ctx, GL_INVALID_VALUE, "glGetProgramBinary(bufSize < 0)");
       return;
    }
 
+   shProg = _mesa_lookup_shader_program_err(ctx, program, "glGetProgramBinary");
+   if (!shProg)
+      return;
+
    /* The ARB_get_program_binary spec says:
     *
     *     "If <length> is NULL, then no length is returned."
+    *
+    * Ensure that length always points to valid storage to avoid multiple NULL
+    * pointer checks below.
     */
    if (length != NULL)
+      length = &length_dummy;
+
+
+   /* The ARB_get_program_binary spec says:
+    *
+    *     "When a program object's LINK_STATUS is FALSE, its program binary
+    *     length is zero, and a call to GetProgramBinary will generate an
+    *     INVALID_OPERATION error.
+    */
+   if (!shProg->LinkStatus) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glGetProgramBinary(program %u not linked)",
+                  shProg->Name);
       *length = 0;
+      return;
+   }
+
+   *length = 0;
+   _mesa_error(ctx, GL_INVALID_OPERATION,
+               "glGetProgramBinary(driver supports zero binary formats)");
 
    (void) binaryFormat;
    (void) binary;
@@ -1724,8 +1752,31 @@ _mesa_ProgramBinary(GLuint program, GLenum binaryFormat,
 
    (void) binaryFormat;
    (void) binary;
-   (void) length;
-   _mesa_error(ctx, GL_INVALID_OPERATION, __FUNCTION__);
+
+   /* Section 2.3.1 (Errors) of the OpenGL 4.5 spec says:
+    *
+    *     "If a negative number is provided where an argument of type sizei or
+    *     sizeiptr is specified, an INVALID_VALUE error is generated."
+    */
+   if (length < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glProgramBinary(length < 0)");
+      return;
+   }
+
+   /* The ARB_get_program_binary spec says:
+    *
+    *     "<binaryFormat> and <binary> must be those returned by a previous
+    *     call to GetProgramBinary, and <length> must be the length of the
+    *     program binary as returned by GetProgramBinary or GetProgramiv with
+    *     <pname> PROGRAM_BINARY_LENGTH. Loading the program binary will fail,
+    *     setting the LINK_STATUS of <program> to FALSE, if these conditions
+    *     are not met."
+    *
+    * Since any value of binaryFormat passed "is not one of those specified as
+    * allowable for [this] command, an INVALID_ENUM error is generated."
+    */
+   shProg->LinkStatus = GL_FALSE;
+   _mesa_error(ctx, GL_INVALID_ENUM, "glProgramBinary");
 }
 
 
@@ -1756,12 +1807,7 @@ _mesa_ProgramParameteri(GLuint program, GLenum pname, GLint value)
        *     ProgramParameteri is not TRUE or FALSE."
        */
       if (value != GL_TRUE && value != GL_FALSE) {
-         _mesa_error(ctx, GL_INVALID_VALUE,
-                     "glProgramParameteri(pname=%s, value=%d): "
-                     "value must be 0 or 1.",
-                     _mesa_lookup_enum_by_nr(pname),
-                     value);
-         return;
+         goto invalid_value;
       }
 
       /* No need to notify the driver.  Any changes will actually take effect
@@ -1792,23 +1838,25 @@ _mesa_ProgramParameteri(GLuint program, GLenum pname, GLint value)
        * Chapter 7.3 Program Objects
        */
       if (value != GL_TRUE && value != GL_FALSE) {
-         _mesa_error(ctx, GL_INVALID_VALUE,
-                     "glProgramParameteri(pname=%s, value=%d): "
-                     "value must be 0 or 1.",
-                     _mesa_lookup_enum_by_nr(pname),
-                     value);
-         return;
+         goto invalid_value;
       }
       shProg->SeparateShader = value;
       return;
 
    default:
-      break;
+      _mesa_error(ctx, GL_INVALID_ENUM, "glProgramParameteri(pname=%s)",
+                  _mesa_lookup_enum_by_nr(pname));
+      return;
    }
 
-   _mesa_error(ctx, GL_INVALID_ENUM, "glProgramParameteri(pname=%s)",
-               _mesa_lookup_enum_by_nr(pname));
+invalid_value:
+   _mesa_error(ctx, GL_INVALID_VALUE,
+               "glProgramParameteri(pname=%s, value=%d): "
+               "value must be 0 or 1.",
+               _mesa_lookup_enum_by_nr(pname),
+               value);
 }
+
 
 void
 _mesa_use_shader_program(struct gl_context *ctx, GLenum type,

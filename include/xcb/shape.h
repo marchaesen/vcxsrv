@@ -441,6 +441,17 @@ xcb_shape_rectangles (xcb_connection_t      *c  /**< */,
                       uint32_t               rectangles_len  /**< */,
                       const xcb_rectangle_t *rectangles  /**< */);
 
+xcb_rectangle_t *
+xcb_shape_rectangles_rectangles (const xcb_shape_rectangles_request_t *R  /**< */);
+
+int
+xcb_shape_rectangles_rectangles_length (const xcb_shape_rectangles_request_t *R  /**< */,
+                                        uint32_t rectangles_len /**< */);
+
+xcb_rectangle_iterator_t
+xcb_shape_rectangles_rectangles_iterator (const xcb_shape_rectangles_request_t *R  /**< */,
+                                          uint32_t rectangles_len /**< */);
+
 /**
  *
  * @param c The connection

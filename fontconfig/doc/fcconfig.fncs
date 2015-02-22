@@ -219,8 +219,9 @@ If <parameter>config</parameter> is NULL, the current configuration is used.
 @PURPOSE@	Add font file to font database
 @DESC@
 Adds an application-specific font to the configuration. Returns FcFalse
-if the fonts cannot be added (due to allocation failure). Otherwise returns FcTrue.
-If <parameter>config</parameter> is NULL, the current configuration is used.
+if the fonts cannot be added (due to allocation failure or no fonts found).
+Otherwise returns FcTrue. If <parameter>config</parameter> is NULL,
+the current configuration is used.
 @@
 
 @RET@           FcBool
@@ -231,8 +232,9 @@ If <parameter>config</parameter> is NULL, the current configuration is used.
 @DESC@
 Scans the specified directory for fonts, adding each one found to the
 application-specific set of fonts. Returns FcFalse
-if the fonts cannot be added (due to allocation failure). Otherwise returns FcTrue.
-If <parameter>config</parameter> is NULL, the current configuration is used.
+if the fonts cannot be added (due to allocation failure or no fonts found).
+Otherwise returns FcTrue. If <parameter>config</parameter> is NULL,
+the current configuration is used.
 @@
 
 @RET@           void

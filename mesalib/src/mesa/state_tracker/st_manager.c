@@ -685,7 +685,7 @@ st_api_create_context(struct st_api *stapi, struct st_manager *smapi,
    if (attribs->major > 1 || attribs->minor > 0) {
       /* Is the actual version less than the requested version?
        */
-      if (st->ctx->Version < attribs->major * 10 + attribs->minor) {
+      if (st->ctx->Version < attribs->major * 10U + attribs->minor) {
 	 *error = ST_CONTEXT_ERROR_BAD_VERSION;
          st_destroy_context(st);
          return NULL;

@@ -48,4 +48,11 @@ extern GLint __glTexGeniv_size(GLenum e);
 extern GLint __glTexParameterfv_size(GLenum e);
 extern GLint __glTexParameteriv_size(GLenum e);
 
+extern GLint __glCallLists_size(GLsizei n, GLenum type);
+extern GLint __glDrawPixels_size(GLenum format, GLenum type, GLsizei w, GLsizei h);
+extern GLint __glBitmap_size(GLsizei w, GLsizei h);
+extern GLint __glTexImage1D_size(GLenum format, GLenum type, GLsizei w);
+extern GLint __glTexImage2D_size(GLenum format, GLenum type, GLsizei w, GLsizei h);
+extern GLint __glTexImage3D_size(GLenum format, GLenum type, GLsizei w, GLsizei h, GLsizei d);
+
 #endif                          /* !__compsize_h__ */

@@ -37,8 +37,12 @@
 #define INT_TO_FIXED(x) ((GLfixed) ((x) << 16))
 #define FLOAT_TO_FIXED(x) ((GLfixed) ((x) * 65536.0))
 
-#if defined(_MSC_VER)
-#if _MSC_VER < 1800  /* Not required on VS2013 and above. */
+#if defined(fpclassify)
+/* ISO C99 says that fpclassify is a macro.  Assume that any implementation
+ * of fpclassify, whether it's in a C99 compiler or not, will be a macro.
+ */
+#elif defined(_MSC_VER)
+/* Not required on VS2013 and above. */
 /* Oddly, the fpclassify() function doesn't exist in such a form
  * on MSVC.  This is an implementation using slightly different
  * lower-level Windows functions.
@@ -71,16 +75,8 @@ fpclassify(double x)
             return FP_NAN;
     }
 }
-#endif  /* _MSC_VER < 1800 */
 
-#elif defined(__APPLE__) || defined(__CYGWIN__) || defined(__FreeBSD__) || \
-     defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__) || \
-     (defined(__sun) && defined(__C99FEATURES__)) || defined(__MINGW32__) || \
-     (defined(__sun) && defined(__GNUC__)) || defined(ANDROID) || defined(__HAIKU__)
-
-/* fpclassify is available. */
-
-#elif !defined(_XOPEN_SOURCE) || _XOPEN_SOURCE < 600
+#else
 
 enum {FP_NAN, FP_INFINITE, FP_ZERO, FP_SUBNORMAL, FP_NORMAL}
 fpclassify(double x)

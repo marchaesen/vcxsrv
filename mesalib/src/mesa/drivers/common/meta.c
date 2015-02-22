@@ -243,6 +243,7 @@ _mesa_meta_compile_and_link_program(struct gl_context *ctx,
 void
 _mesa_meta_setup_blit_shader(struct gl_context *ctx,
                              GLenum target,
+                             bool do_depth,
                              struct blit_shader_table *table)
 {
    char *vs_source, *fs_source;
@@ -292,10 +293,11 @@ _mesa_meta_setup_blit_shader(struct gl_context *ctx,
                 "void main()\n"
                 "{\n"
                 "   gl_FragColor = %s(texSampler, %s);\n"
-                "   gl_FragDepth = gl_FragColor.x;\n"
+                "%s"
                 "}\n",
                 fs_preprocess, shader->type, fs_input,
-                shader->func, shader->texcoords);
+                shader->func, shader->texcoords,
+                do_depth ?  "   gl_FragDepth = gl_FragColor.x;\n" : "");
 
    _mesa_meta_compile_and_link_program(ctx, vs_source, fs_source,
                                        ralloc_asprintf(mem_ctx, "%s blit",
@@ -825,15 +827,18 @@ _mesa_meta_end(struct gl_context *ctx)
    const GLbitfield state = save->SavedState;
    int i;
 
-   /* After starting a new occlusion query, initialize the results to the
-    * values saved previously. The driver will then continue to increment
-    * these values.
-    */
+   /* Grab the result of the old occlusion query before starting it again. The
+    * old result is added to the result of the new query so the driver will
+    * continue adding where it left off. */
    if (state & MESA_META_OCCLUSION_QUERY) {
       if (save->CurrentOcclusionObject) {
-         _mesa_BeginQuery(save->CurrentOcclusionObject->Target,
-                          save->CurrentOcclusionObject->Id);
-         ctx->Query.CurrentOcclusionObject->Result = save->CurrentOcclusionObject->Result;
+         struct gl_query_object *q = save->CurrentOcclusionObject;
+         GLuint64EXT result;
+         if (!q->Ready)
+            ctx->Driver.WaitQuery(ctx, q);
+         result = q->Result;
+         _mesa_BeginQuery(q->Target, q->Id);
+         ctx->Query.CurrentOcclusionObject->Result += result;
       }
    }
 
@@ -1209,16 +1214,6 @@ _mesa_meta_end(struct gl_context *ctx)
    ctx->Meta->SaveStackDepth--;
 
    ctx->API = save->API;
-}
-
-
-/**
- * Determine whether Mesa is currently in a meta state.
- */
-GLboolean
-_mesa_meta_in_progress(struct gl_context *ctx)
-{
-   return ctx->Meta->SaveStackDepth != 0;
 }
 
 
@@ -2801,7 +2796,8 @@ copytexsubimage_using_blit_framebuffer(struct gl_context *ctx, GLuint dims,
     * are too strict for CopyTexImage.  We know meta will be fine with format
     * changes.
     */
-   mask = _mesa_meta_BlitFramebuffer(ctx, x, y,
+   mask = _mesa_meta_BlitFramebuffer(ctx, ctx->ReadBuffer, ctx->DrawBuffer,
+                                     x, y,
                                      x + width, y + height,
                                      xoffset, yoffset,
                                      xoffset + width, yoffset + height,
@@ -3045,7 +3041,7 @@ decompress_texture_image(struct gl_context *ctx,
       _mesa_meta_setup_vertex_objects(&decompress->VAO, &decompress->VBO, true,
                                       2, 4, 0);
 
-      _mesa_meta_setup_blit_shader(ctx, target, &decompress->shaders);
+      _mesa_meta_setup_blit_shader(ctx, target, false, &decompress->shaders);
    } else {
       _mesa_meta_setup_ff_tnl_for_blit(&decompress->VAO, &decompress->VBO, 3);
    }
@@ -3177,7 +3173,7 @@ _mesa_meta_GetTexImage(struct gl_context *ctx,
 {
    if (_mesa_is_format_compressed(texImage->TexFormat)) {
       GLuint slice;
-      bool result;
+      bool result = true;
 
       for (slice = 0; slice < texImage->Depth; slice++) {
          void *dst;
@@ -3208,7 +3204,7 @@ _mesa_meta_GetTexImage(struct gl_context *ctx,
          return;
    }
 
-   _mesa_get_teximage(ctx, format, type, pixels, texImage);
+   _mesa_GetTexImage_sw(ctx, format, type, pixels, texImage);
 }
 
 

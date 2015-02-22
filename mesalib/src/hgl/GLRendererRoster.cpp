@@ -144,7 +144,7 @@ GLRendererRoster::AddPath(const char* path)
 	entry_ref ref;
 	BEntry entry;
 	while (directory.GetNextRef(&ref) == B_OK) {
-		entry.SetTo(&ref);
+		entry.SetTo(&ref, true);
 		if (entry.InitCheck() == B_OK && !entry.IsFile())
 			continue;
 
@@ -187,7 +187,7 @@ GLRendererRoster::AddRenderer(BGLRenderer* renderer,
 status_t
 GLRendererRoster::CreateRenderer(const entry_ref& ref)
 {
-	BEntry entry(&ref);
+	BEntry entry(&ref, true);
 	node_ref nodeRef;
 	status_t status = entry.GetNodeRef(&nodeRef);
 	if (status < B_OK)

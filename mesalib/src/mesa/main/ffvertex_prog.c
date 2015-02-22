@@ -302,7 +302,7 @@ struct ureg {
 struct tnl_program {
    const struct state_key *state;
    struct gl_vertex_program *program;
-   GLint max_inst;  /** number of instructions allocated for program */
+   GLuint max_inst;  /** number of instructions allocated for program */
    GLboolean mvp_with_dp4;
 
    GLuint temp_in_use;
@@ -578,7 +578,7 @@ static void emit_op3fn(struct tnl_program *p,
    GLuint nr;
    struct prog_instruction *inst;
 
-   assert((GLint) p->program->Base.NumInstructions <= p->max_inst);
+   assert(p->program->Base.NumInstructions <= p->max_inst);
 
    if (p->program->Base.NumInstructions == p->max_inst) {
       /* need to extend the program's instruction array */

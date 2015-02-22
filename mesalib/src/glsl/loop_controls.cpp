@@ -102,9 +102,10 @@ calculate_iterations(ir_rvalue *from, ir_rvalue *to, ir_rvalue *increment,
       return -1;
 
    if (!iter->type->is_integer()) {
+      const ir_expression_operation op = iter->type->is_double()
+         ? ir_unop_d2i : ir_unop_f2i;
       ir_rvalue *cast =
-	 new(mem_ctx) ir_expression(ir_unop_f2i, glsl_type::int_type, iter,
-				    NULL);
+         new(mem_ctx) ir_expression(op, glsl_type::int_type, iter, NULL);
 
       iter = cast->constant_expression_value();
    }
@@ -133,6 +134,9 @@ calculate_iterations(ir_rvalue *from, ir_rvalue *to, ir_rvalue *increment,
          break;
       case GLSL_TYPE_FLOAT:
          iter = new(mem_ctx) ir_constant(float(iter_value + bias[i]));
+         break;
+      case GLSL_TYPE_DOUBLE:
+         iter = new(mem_ctx) ir_constant(double(iter_value + bias[i]));
          break;
       default:
           unreachable(!"Unsupported type for loop iterator.");

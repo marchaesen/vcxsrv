@@ -53,6 +53,7 @@ extern void __glXFlushContextCache(void);
 
 extern void __glXFreeGLXWindow(__glXWindow * pGlxWindow);
 extern void __glXFreeGLXPixmap(__GLXpixmap * pGlxPixmap);
+extern void __glXFreeGLXPbuffer(__glXPbuffer * pGlxPbuffer);
 
 extern void __glXNoSuchRenderOpcode(GLbyte *);
 extern int __glXNoSuchSingleOpcode(__GLXclientState *, GLbyte *);

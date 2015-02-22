@@ -399,6 +399,16 @@ struct IDirect3DVolume9 : public IUnknown
 	virtual HRESULT WINAPI UnlockBox() = 0;
 };
 
+struct IDirect3DVolumeTexture9 : public IDirect3DBaseTexture9
+{
+    virtual HRESULT WINAPI GetLevelDesc(UINT Level, D3DVOLUME_DESC *pDesc) = 0;
+    virtual HRESULT WINAPI GetVolumeLevel(UINT Level, IDirect3DVolume9 **ppVolumeLevel) = 0;
+    virtual HRESULT WINAPI LockBox(UINT Level, D3DLOCKED_BOX *pLockedVolume, const D3DBOX *pBox, DWORD Flags) = 0;
+    virtual HRESULT WINAPI UnlockBox(UINT Level) = 0;
+    virtual HRESULT WINAPI AddDirtyBox(const D3DBOX *pDirtyBox) = 0;
+};
+
+
 #else /* __cplusplus */
 
 extern const GUID IID_IDirect3D9;

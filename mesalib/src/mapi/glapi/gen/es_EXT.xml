@@ -837,4 +837,13 @@
     </function>
 </category>
 
+<!-- 151. GL_EXT_draw_buffers -->
+<category name="GL_EXT_draw_buffers" number="151">
+    <function name="DrawBuffersEXT" alias="DrawBuffers"
+              static_dispatch="false" es2="2.0">
+        <param name="n" type="GLsizei" counter="true"/>
+        <param name="bufs" type="const GLenum *" count="n"/>
+    </function>
+</category>
+
 </OpenGLAPI>

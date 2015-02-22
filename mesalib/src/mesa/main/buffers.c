@@ -301,7 +301,7 @@ _mesa_DrawBuffer(GLenum buffer)
 void GLAPIENTRY
 _mesa_DrawBuffers(GLsizei n, const GLenum *buffers)
 {
-   GLint output;
+   GLuint output;
    GLbitfield usedBufferMask, supportedMask;
    GLbitfield destMask[MAX_DRAW_BUFFERS];
    GET_CURRENT_CONTEXT(ctx);
@@ -326,8 +326,9 @@ _mesa_DrawBuffers(GLsizei n, const GLenum *buffers)
    /* From the ES 3.0 specification, page 180:
     * "If the GL is bound to the default framebuffer, then n must be 1
     *  and the constant must be BACK or NONE."
+    * (same restriction applies with GL_EXT_draw_buffers specification)
     */
-   if (_mesa_is_gles3(ctx) && _mesa_is_winsys_fbo(ctx->DrawBuffer) &&
+   if (ctx->API == API_OPENGLES2 && _mesa_is_winsys_fbo(ctx->DrawBuffer) &&
        (n != 1 || (buffers[0] != GL_NONE && buffers[0] != GL_BACK))) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "glDrawBuffers(buffer)");
       return;
@@ -335,6 +336,20 @@ _mesa_DrawBuffers(GLsizei n, const GLenum *buffers)
 
    /* complicated error checking... */
    for (output = 0; output < n; output++) {
+      /* Section 4.2 (Whole Framebuffer Operations) of the OpenGL 3.0
+       * specification says:
+       *
+       *     "Each buffer listed in bufs must be BACK, NONE, or one of the values
+       *      from table 4.3 (NONE, COLOR_ATTACHMENTi)"
+       */
+      if (_mesa_is_gles3(ctx) && buffers[output] != GL_NONE &&
+          buffers[output] != GL_BACK &&
+          (buffers[output] < GL_COLOR_ATTACHMENT0 ||
+           buffers[output] >= GL_COLOR_ATTACHMENT0 + ctx->Const.MaxColorAttachments)) {
+         _mesa_error(ctx, GL_INVALID_ENUM, "glDrawBuffers(buffer)");
+         return;
+      }
+
       if (buffers[output] == GL_NONE) {
          destMask[output] = 0x0;
       }
@@ -399,8 +414,9 @@ _mesa_DrawBuffers(GLsizei n, const GLenum *buffers)
          /* ES 3.0 is even more restrictive.  From the ES 3.0 spec, page 180:
           * "If the GL is bound to a framebuffer object, the ith buffer listed
           *  in bufs must be COLOR_ATTACHMENTi or NONE. [...] INVALID_OPERATION."
+          * (same restriction applies with GL_EXT_draw_buffers specification)
           */
-         if (_mesa_is_gles3(ctx) && _mesa_is_user_fbo(ctx->DrawBuffer) &&
+         if (ctx->API == API_OPENGLES2 && _mesa_is_user_fbo(ctx->DrawBuffer) &&
              buffers[output] != GL_NONE &&
              buffers[output] != GL_COLOR_ATTACHMENT0 + output) {
             _mesa_error(ctx, GL_INVALID_OPERATION, "glDrawBuffers(buffer)");

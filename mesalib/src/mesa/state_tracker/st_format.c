@@ -443,21 +443,25 @@ st_mesa_format_to_pipe_format(struct st_context *st, mesa_format mesaFormat)
     * The destination formats mustn't be changed, because they are also
     * destination formats of the unpack/decompression function. */
    case MESA_FORMAT_ETC2_RGB8:
-   case MESA_FORMAT_ETC2_RGBA8_EAC:
-   case MESA_FORMAT_ETC2_RGB8_PUNCHTHROUGH_ALPHA1:
-      return PIPE_FORMAT_R8G8B8A8_UNORM;
+      return st->has_etc2 ? PIPE_FORMAT_ETC2_RGB8 : PIPE_FORMAT_R8G8B8A8_UNORM;
    case MESA_FORMAT_ETC2_SRGB8:
+      return st->has_etc2 ? PIPE_FORMAT_ETC2_SRGB8 : PIPE_FORMAT_B8G8R8A8_SRGB;
+   case MESA_FORMAT_ETC2_RGBA8_EAC:
+      return st->has_etc2 ? PIPE_FORMAT_ETC2_RGBA8 : PIPE_FORMAT_R8G8B8A8_UNORM;
    case MESA_FORMAT_ETC2_SRGB8_ALPHA8_EAC:
-   case MESA_FORMAT_ETC2_SRGB8_PUNCHTHROUGH_ALPHA1:
-      return PIPE_FORMAT_B8G8R8A8_SRGB;
+      return st->has_etc2 ? PIPE_FORMAT_ETC2_SRGBA8 : PIPE_FORMAT_B8G8R8A8_SRGB;
    case MESA_FORMAT_ETC2_R11_EAC:
-      return PIPE_FORMAT_R16_UNORM;
+      return st->has_etc2 ? PIPE_FORMAT_ETC2_R11_UNORM : PIPE_FORMAT_R16_UNORM;
    case MESA_FORMAT_ETC2_RG11_EAC:
-      return PIPE_FORMAT_R16G16_UNORM;
+      return st->has_etc2 ? PIPE_FORMAT_ETC2_RG11_UNORM : PIPE_FORMAT_R16G16_UNORM;
    case MESA_FORMAT_ETC2_SIGNED_R11_EAC:
-      return PIPE_FORMAT_R16_SNORM;
+      return st->has_etc2 ? PIPE_FORMAT_ETC2_R11_SNORM : PIPE_FORMAT_R16_SNORM;
    case MESA_FORMAT_ETC2_SIGNED_RG11_EAC:
-      return PIPE_FORMAT_R16G16_SNORM;
+      return st->has_etc2 ? PIPE_FORMAT_ETC2_RG11_SNORM : PIPE_FORMAT_R16G16_SNORM;
+   case MESA_FORMAT_ETC2_RGB8_PUNCHTHROUGH_ALPHA1:
+      return st->has_etc2 ? PIPE_FORMAT_ETC2_RGB8A1 : PIPE_FORMAT_R8G8B8A8_UNORM;
+   case MESA_FORMAT_ETC2_SRGB8_PUNCHTHROUGH_ALPHA1:
+      return st->has_etc2 ? PIPE_FORMAT_ETC2_SRGB8A1 : PIPE_FORMAT_B8G8R8A8_SRGB;
 
    default:
       return PIPE_FORMAT_NONE;
@@ -856,6 +860,27 @@ st_pipe_format_to_mesa_format(enum pipe_format format)
    case PIPE_FORMAT_XRGB8888_SRGB:
       return MESA_FORMAT_X8R8G8B8_SRGB;
 
+   case PIPE_FORMAT_ETC2_RGB8:
+      return MESA_FORMAT_ETC2_RGB8;
+   case PIPE_FORMAT_ETC2_SRGB8:
+      return MESA_FORMAT_ETC2_SRGB8;
+   case PIPE_FORMAT_ETC2_RGB8A1:
+      return MESA_FORMAT_ETC2_RGB8_PUNCHTHROUGH_ALPHA1;
+   case PIPE_FORMAT_ETC2_SRGB8A1:
+      return MESA_FORMAT_ETC2_SRGB8_PUNCHTHROUGH_ALPHA1;
+   case PIPE_FORMAT_ETC2_RGBA8:
+      return MESA_FORMAT_ETC2_RGBA8_EAC;
+   case PIPE_FORMAT_ETC2_SRGBA8:
+      return MESA_FORMAT_ETC2_SRGB8_ALPHA8_EAC;
+   case PIPE_FORMAT_ETC2_R11_UNORM:
+      return MESA_FORMAT_ETC2_R11_EAC;
+   case PIPE_FORMAT_ETC2_R11_SNORM:
+      return MESA_FORMAT_ETC2_SIGNED_R11_EAC;
+   case PIPE_FORMAT_ETC2_RG11_UNORM:
+      return MESA_FORMAT_ETC2_RG11_EAC;
+   case PIPE_FORMAT_ETC2_RG11_SNORM:
+      return MESA_FORMAT_ETC2_SIGNED_RG11_EAC;
+
    default:
       return MESA_FORMAT_NONE;
    }
@@ -894,6 +919,9 @@ test_format_conversion(struct st_context *st)
 
       /* ETC formats are translated differently, skip them. */
       if (i == PIPE_FORMAT_ETC1_RGB8 && !st->has_etc1)
+         continue;
+
+      if (_mesa_is_format_etc2(mf) && !st->has_etc2)
          continue;
 
       if (mf != MESA_FORMAT_NONE) {
@@ -1797,7 +1825,8 @@ st_choose_format(struct st_context *st, GLenum internalFormat,
                  unsigned bindings, boolean allow_dxt)
 {
    struct pipe_screen *screen = st->pipe->screen;
-   int i, j;
+   unsigned i;
+   int j;
    enum pipe_format pf;
 
 #ifdef DEBUG

@@ -24,7 +24,7 @@ THE SOFTWARE.
 /* Used by the files `fontenc.h' and `encparse.h' */
 
 typedef struct _FontEncSimpleMap {
-    unsigned len;                 /* might be 0x10000 */
+    unsigned len;               /* might be 0x10000 */
     unsigned short row_size;
     unsigned short first;
     const unsigned short *map;
@@ -36,9 +36,9 @@ typedef struct _FontEncSimpleName {
     char **map;
 } FontEncSimpleNameRec, *FontEncSimpleNamePtr;
 
-unsigned FontEncSimpleRecode(unsigned, void*);
-unsigned FontEncUndefinedRecode(unsigned, void*);
-char *FontEncSimpleName(unsigned, void*);
-char *FontEncUndefinedName(unsigned, void*);
+unsigned FontEncSimpleRecode(unsigned, void *);
+unsigned FontEncUndefinedRecode(unsigned, void *);
+char *FontEncSimpleName(unsigned, void *);
+char *FontEncUndefinedName(unsigned, void *);
 
-FontEncPtr FontEncReallyLoad(const char*, const char*);
+FontEncPtr FontEncReallyLoad(const char *, const char *);

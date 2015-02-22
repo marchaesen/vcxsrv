@@ -52,7 +52,7 @@ optimize_dead_builtin_variables(exec_list *instructions,
           && var->data.how_declared != ir_var_declared_implicitly)
          continue;
 
-      if (strncmp(var->name, "gl_", 3) != 0)
+      if (!is_gl_identifier(var->name))
          continue;
 
       /* gl_ModelViewProjectionMatrix and gl_Vertex are special because they

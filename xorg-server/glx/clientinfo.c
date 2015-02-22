@@ -33,18 +33,22 @@ static int
 set_client_info(__GLXclientState * cl, xGLXSetClientInfoARBReq * req,
                 unsigned bytes_per_version)
 {
+    ClientPtr client = cl->client;
     char *gl_extensions;
     char *glx_extensions;
+    int size;
+
+    REQUEST_AT_LEAST_SIZE(xGLXSetClientInfoARBReq);
 
     /* Verify that the size of the packet matches the size inferred from the
      * sizes specified for the various fields.
      */
-    const unsigned expected_size = sz_xGLXSetClientInfoARBReq
-        + (req->numVersions * bytes_per_version)
-        + __GLX_PAD(req->numGLExtensionBytes)
-        + __GLX_PAD(req->numGLXExtensionBytes);
+    size = sz_xGLXSetClientInfoARBReq;
+    size = safe_add(size, safe_mul(req->numVersions, bytes_per_version));
+    size = safe_add(size, safe_pad(req->numGLExtensionBytes));
+    size = safe_add(size, safe_pad(req->numGLXExtensionBytes));
 
-    if (req->length != (expected_size / 4))
+    if (size < 0 || req->length != (size / 4))
         return BadLength;
 
     /* Verify that the actual length of the GL extension string matches what's
@@ -80,7 +84,10 @@ __glXDisp_SetClientInfoARB(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDispSwap_SetClientInfoARB(__GLXclientState * cl, GLbyte * pc)
 {
+    ClientPtr client = cl->client;
     xGLXSetClientInfoARBReq *req = (xGLXSetClientInfoARBReq *) pc;
+
+    REQUEST_AT_LEAST_SIZE(xGLXSetClientInfoARBReq);
 
     req->length = bswap_16(req->length);
     req->numVersions = bswap_32(req->numVersions);
@@ -99,7 +106,10 @@ __glXDisp_SetClientInfo2ARB(__GLXclientState * cl, GLbyte * pc)
 int
 __glXDispSwap_SetClientInfo2ARB(__GLXclientState * cl, GLbyte * pc)
 {
+    ClientPtr client = cl->client;
     xGLXSetClientInfoARBReq *req = (xGLXSetClientInfoARBReq *) pc;
+
+    REQUEST_AT_LEAST_SIZE(xGLXSetClientInfoARBReq);
 
     req->length = bswap_16(req->length);
     req->numVersions = bswap_32(req->numVersions);

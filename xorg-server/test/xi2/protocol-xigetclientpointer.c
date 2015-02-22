@@ -124,6 +124,11 @@ test_XIGetClientPointer(void)
     request.win = INVALID_WINDOW_ID;
     request_XIGetClientPointer(&client_request, &request, BadWindow);
 
+    printf("Testing invalid length\n");
+    client_request.req_len -= 4;
+    request_XIGetClientPointer(&client_request, &request, BadLength);
+    client_request.req_len += 4;
+
     test_data.cp_is_set = FALSE;
 
     printf("Testing window None, unset ClientPointer.\n");

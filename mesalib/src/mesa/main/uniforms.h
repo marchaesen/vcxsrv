@@ -254,6 +254,95 @@ _mesa_GetActiveUniformsiv(GLuint program,
 void GLAPIENTRY
 _mesa_GetUniformiv(GLuint, GLint, GLint *);
 
+void GLAPIENTRY
+_mesa_Uniform1d(GLint, GLdouble);
+void GLAPIENTRY
+_mesa_Uniform2d(GLint, GLdouble, GLdouble);
+void GLAPIENTRY
+_mesa_Uniform3d(GLint, GLdouble, GLdouble, GLdouble);
+void GLAPIENTRY
+_mesa_Uniform4d(GLint, GLdouble, GLdouble, GLdouble, GLdouble);
+
+void GLAPIENTRY
+_mesa_Uniform1dv(GLint, GLsizei, const GLdouble *);
+void GLAPIENTRY
+_mesa_Uniform2dv(GLint, GLsizei, const GLdouble *);
+void GLAPIENTRY
+_mesa_Uniform3dv(GLint, GLsizei, const GLdouble *);
+void GLAPIENTRY
+_mesa_Uniform4dv(GLint, GLsizei, const GLdouble *);
+
+void GLAPIENTRY
+_mesa_UniformMatrix2dv(GLint, GLsizei, GLboolean, const GLdouble *);
+void GLAPIENTRY
+_mesa_UniformMatrix3dv(GLint, GLsizei, GLboolean, const GLdouble *);
+void GLAPIENTRY
+_mesa_UniformMatrix4dv(GLint, GLsizei, GLboolean, const GLdouble *);
+void GLAPIENTRY
+_mesa_UniformMatrix2x3dv(GLint location, GLsizei count, GLboolean transpose,
+                         const GLdouble *value);
+void GLAPIENTRY
+_mesa_UniformMatrix3x2dv(GLint location, GLsizei count, GLboolean transpose,
+                         const GLdouble *value);
+void GLAPIENTRY
+_mesa_UniformMatrix2x4dv(GLint location, GLsizei count, GLboolean transpose,
+                         const GLdouble *value);
+void GLAPIENTRY
+_mesa_UniformMatrix4x2dv(GLint location, GLsizei count, GLboolean transpose,
+                         const GLdouble *value);
+void GLAPIENTRY
+_mesa_UniformMatrix3x4dv(GLint location, GLsizei count, GLboolean transpose,
+                         const GLdouble *value);
+void GLAPIENTRY
+_mesa_UniformMatrix4x3dv(GLint location, GLsizei count, GLboolean transpose,
+                         const GLdouble *value);
+
+void GLAPIENTRY
+_mesa_ProgramUniform1d(GLuint program, GLint, GLdouble);
+void GLAPIENTRY
+_mesa_ProgramUniform2d(GLuint program, GLint, GLdouble, GLdouble);
+void GLAPIENTRY
+_mesa_ProgramUniform3d(GLuint program, GLint, GLdouble, GLdouble, GLdouble);
+void GLAPIENTRY
+_mesa_ProgramUniform4d(GLuint program, GLint, GLdouble, GLdouble, GLdouble, GLdouble);
+
+void GLAPIENTRY
+_mesa_ProgramUniform1dv(GLuint program, GLint, GLsizei, const GLdouble *);
+void GLAPIENTRY
+_mesa_ProgramUniform2dv(GLuint program, GLint, GLsizei, const GLdouble *);
+void GLAPIENTRY
+_mesa_ProgramUniform3dv(GLuint program, GLint, GLsizei, const GLdouble *);
+void GLAPIENTRY
+_mesa_ProgramUniform4dv(GLuint program, GLint, GLsizei, const GLdouble *);
+
+void GLAPIENTRY
+_mesa_ProgramUniformMatrix2dv(GLuint program, GLint, GLsizei, GLboolean,
+                              const GLdouble *);
+void GLAPIENTRY
+_mesa_ProgramUniformMatrix3dv(GLuint program, GLint, GLsizei, GLboolean,
+                              const GLdouble *);
+void GLAPIENTRY
+_mesa_ProgramUniformMatrix4dv(GLuint program, GLint, GLsizei, GLboolean,
+                              const GLdouble *);
+void GLAPIENTRY
+_mesa_ProgramUniformMatrix2x3dv(GLuint program, GLint location, GLsizei count,
+                                GLboolean transpose, const GLdouble *value);
+void GLAPIENTRY
+_mesa_ProgramUniformMatrix3x2dv(GLuint program, GLint location, GLsizei count,
+                                GLboolean transpose, const GLdouble *value);
+void GLAPIENTRY
+_mesa_ProgramUniformMatrix2x4dv(GLuint program, GLint location, GLsizei count,
+                                GLboolean transpose, const GLdouble *value);
+void GLAPIENTRY
+_mesa_ProgramUniformMatrix4x2dv(GLuint program, GLint location, GLsizei count,
+                                GLboolean transpose, const GLdouble *value);
+void GLAPIENTRY
+_mesa_ProgramUniformMatrix3x4dv(GLuint program, GLint location, GLsizei count,
+                                GLboolean transpose, const GLdouble *value);
+void GLAPIENTRY
+_mesa_ProgramUniformMatrix4x3dv(GLuint program, GLint location, GLsizei count,
+                                GLboolean transpose, const GLdouble *value);
+
 long
 _mesa_parse_program_resource_name(const GLchar *name,
                                   const GLchar **out_base_name_end);
@@ -273,7 +362,8 @@ void
 _mesa_uniform_matrix(struct gl_context *ctx, struct gl_shader_program *shProg,
 		     GLuint cols, GLuint rows,
                      GLint location, GLsizei count,
-                     GLboolean transpose, const GLfloat *values);
+                     GLboolean transpose,
+                     const GLvoid *values, GLenum type);
 
 void
 _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,

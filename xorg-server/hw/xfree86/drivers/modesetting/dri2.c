@@ -43,8 +43,6 @@
 #include "dri2.h"
 
 #ifdef GLAMOR
-#define GLAMOR_FOR_XORG 1
-#include "glamor.h"
 
 enum ms_dri2_frame_event_type {
     MS_DRI2_QUEUE_SWAP,

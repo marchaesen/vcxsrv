@@ -28,8 +28,6 @@
 
 #include "main/compiler.h"
 #include "main/glheader.h"
-#include "main/mtypes.h"		/* hack for GLchan */
-#include "swrast/s_chan.h"
 
 /**
  * Array translation.
@@ -75,14 +73,6 @@ extern void _math_trans_4ub(GLubyte (*to)[4],
 			    GLuint size,
 			    GLuint start,
 			    GLuint n );
-
-extern void _math_trans_4chan( GLchan (*to)[4],
-			       const void *ptr,
-			       GLuint stride,
-			       GLenum type,
-			       GLuint size,
-			       GLuint start,
-			       GLuint n );
 
 extern void _math_trans_4us(GLushort (*to)[4],
 			    const void *ptr,

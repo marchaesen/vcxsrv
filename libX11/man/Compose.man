@@ -88,16 +88,18 @@ comment at the end of the line:
 .PP
 Each event consists of a specified input keysym, and optional modifier states:
 .RS
-[\fIMODIFIER_LIST\fP] \fB<\fP\fIkeysym\fP\fB>\fP
+[([\fB!\fP] ([\fB~\fP] \fIMODIFIER\fP)...) | \fBNone\fP] \fB<\fP\fIkeysym\fP\fB>\fP
 .RE
 .PP
-Each modifier consists of a specified modifier and a state:
-.RS
-(\fB!\fP \fIMODIFIER\fP ) | \fBNone\fP
-.RE
-Modifiers may be preceded by a
+If the modifier list is preceded by
+.RB \*q "!" \*q
+it must match exactly.
+MODIFIER may be one of Ctrl, Lock, Caps, Shift, Alt or Meta.
+Each modifier may be preceded by a
 .RB \*q "~" \*q
-character to indicate that the modifier must not be present.
+character to indicate that the modifier must not be present. If
+.RB \*q "None" \*q
+is specified, no modifier may be present.
 .PP
 The result specifies a string, keysym, or both, that the X client receives
 as input when the sequence of events is input:

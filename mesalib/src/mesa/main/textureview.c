@@ -355,7 +355,7 @@ _mesa_set_texture_view_state(struct gl_context *ctx,
    struct gl_texture_image *texImage;
 
    /* Get a reference to what will become this View's base level */
-   texImage = _mesa_select_tex_image(ctx, texObj, target, 0);
+   texImage = _mesa_select_tex_image(texObj, target, 0);
 
    /* When an immutable texture is created via glTexStorage or glTexImageMultisample,
     * TEXTURE_IMMUTABLE_FORMAT becomes TRUE.
@@ -527,8 +527,7 @@ _mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
       faceTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_X + minlayer;
 
    /* Get a reference to what will become this View's base level */
-   origTexImage = _mesa_select_tex_image(ctx, origTexObj,
-                                         faceTarget, minlevel);
+   origTexImage = _mesa_select_tex_image(origTexObj, faceTarget, minlevel);
    width = origTexImage->Width;
    height = origTexImage->Height;
    depth = origTexImage->Depth;

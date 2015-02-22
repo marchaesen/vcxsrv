@@ -45,11 +45,8 @@ static void
 set_label(struct gl_context *ctx, char **labelPtr, const char *label,
           int length, const char *caller)
 {
-   if (*labelPtr) {
-      /* free old label string */
-      free(*labelPtr);
-      *labelPtr = NULL;
-   }
+   free(*labelPtr);
+   *labelPtr = NULL;
 
    /* set new label string */
    if (label) {
@@ -61,7 +58,7 @@ set_label(struct gl_context *ctx, char **labelPtr, const char *label,
                         MAX_LABEL_LENGTH);
 
          /* explicit length */
-         *labelPtr = (char *) malloc(length+1);
+         *labelPtr = malloc(length+1);
          if (*labelPtr) {
             memcpy(*labelPtr, label, length);
             /* length is not required to include the null terminator so

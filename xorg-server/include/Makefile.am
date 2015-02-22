@@ -71,6 +71,7 @@ EXTRA_DIST = 	\
 	busfault.h dbus-core.h \
 	dix-config-apple-verbatim.h \
 	dixfontstubs.h eventconvert.h eventstr.h inpututils.h \
+	probes.h \
 	protocol-versions.h \
 	systemd-logind.h \
 	xsha1.h

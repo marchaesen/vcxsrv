@@ -28,6 +28,12 @@
 
 #include "main/mtypes.h"
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 extern void
 _mesa_insert_mvp_code(struct gl_context *ctx, struct gl_vertex_program *vprog);
 
@@ -45,11 +51,9 @@ _mesa_count_texture_instructions(struct gl_program *prog);
 extern void
 _mesa_remove_output_reads(struct gl_program *prog, gl_register_file type);
 
-extern void
-_mesa_nop_fragment_program(struct gl_context *ctx, struct gl_fragment_program *prog);
 
-extern void
-_mesa_nop_vertex_program(struct gl_context *ctx, struct gl_vertex_program *prog);
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* PROGRAMOPT_H */

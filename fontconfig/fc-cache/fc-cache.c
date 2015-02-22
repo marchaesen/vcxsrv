@@ -65,6 +65,7 @@
 #define _GNU_SOURCE
 #include <getopt.h>
 const struct option longopts[] = {
+    {"error-on-no-fonts", 0, 0, 'E'},
     {"force", 0, 0, 'f'},
     {"really-force", 0, 0, 'r'},
     {"sysroot", required_argument, 0, 'y'},
@@ -86,16 +87,17 @@ usage (char *program, int error)
 {
     FILE *file = error ? stderr : stdout;
 #if HAVE_GETOPT_LONG
-    fprintf (file, "usage: %s [-frsvVh] [-y SYSROOT] [--force|--really-force] [--sysroot=SYSROOT] [--system-only] [--verbose] [--version] [--help] [dirs]\n",
+    fprintf (file, "usage: %s [-EfrsvVh] [-y SYSROOT] [--error-on-no-fonts] [--force|--really-force] [--sysroot=SYSROOT] [--system-only] [--verbose] [--version] [--help] [dirs]\n",
 	     program);
 #else
-    fprintf (file, "usage: %s [-frsvVh] [-y SYSROOT] [dirs]\n",
+    fprintf (file, "usage: %s [-EfrsvVh] [-y SYSROOT] [dirs]\n",
 	     program);
 #endif
     fprintf (file, "Build font information caches in [dirs]\n"
 	     "(all directories in font configuration by default).\n");
     fprintf (file, "\n");
 #if HAVE_GETOPT_LONG
+    fprintf (file, "  -E, --error-on-no-fonts  raise an error if no fonts in a directory\n");
     fprintf (file, "  -f, --force              scan directories with apparently valid caches\n");
     fprintf (file, "  -r, --really-force       erase all existing caches, then rescan\n");
     fprintf (file, "  -s, --system-only        scan system-wide directories only\n");
@@ -104,6 +106,8 @@ usage (char *program, int error)
     fprintf (file, "  -V, --version            display font config version and exit\n");
     fprintf (file, "  -h, --help               display this help and exit\n");
 #else
+    fprintf (file, "  -E         (error-on-no-fonts)\n");
+    fprintf (file, "                       raise an error if no fonts in a directory\n");
     fprintf (file, "  -f         (force)   scan directories with apparently valid caches\n");
     fprintf (file, "  -r,   (really force) erase all existing caches, then rescan\n");
     fprintf (file, "  -s         (system)  scan system-wide directories only\n");
@@ -118,7 +122,7 @@ usage (char *program, int error)
 static FcStrSet *processed_dirs;
 
 static int
-scanDirs (FcStrList *list, FcConfig *config, FcBool force, FcBool really_force, FcBool verbose, FcBool recursive, int *changed, FcStrSet *updateDirs)
+scanDirs (FcStrList *list, FcConfig *config, FcBool force, FcBool really_force, FcBool verbose, FcBool recursive, FcBool error_on_no_fonts, int *changed, FcStrSet *updateDirs)
 {
     int		    ret = 0;
     const FcChar8   *dir;
@@ -126,7 +130,7 @@ scanDirs (FcStrList *list, FcConfig *config, FcBool force, FcBool really_force, 
     FcStrList	    *sublist;
     FcCache	    *cache;
     struct stat	    statb;
-    FcBool	    was_valid;
+    FcBool	    was_valid, was_processed = FcFalse;
     int		    i;
     const FcChar8   *sysroot = FcConfigGetSysRoot (config);
 
@@ -175,6 +179,7 @@ scanDirs (FcStrList *list, FcConfig *config, FcBool force, FcBool really_force, 
 	    fprintf (stderr, "\"%s\": not a directory, skipping\n", dir);
 	    continue;
 	}
+	was_processed = FcTrue;
 
 	if (really_force)
 	    FcDirCacheUnlink (dir, config);
@@ -250,12 +255,14 @@ scanDirs (FcStrList *list, FcConfig *config, FcBool force, FcBool really_force, 
 		continue;
 	    }
 	    FcStrSetAdd (processed_dirs, dir);
-	    ret += scanDirs (sublist, config, force, really_force, verbose, recursive, changed, updateDirs);
+	    ret += scanDirs (sublist, config, force, really_force, verbose, recursive, error_on_no_fonts, changed, updateDirs);
 	    FcStrListDone (sublist);
 	}
 	else
 	    FcDirCacheUnload (cache);
     }
+    if (error_on_no_fonts && !was_processed)
+	ret++;
     return ret;
 }
 
@@ -289,6 +296,7 @@ main (int argc, char **argv)
     FcBool	force = FcFalse;
     FcBool	really_force = FcFalse;
     FcBool	systemOnly = FcFalse;
+    FcBool	error_on_no_fonts = FcFalse;
     FcConfig	*config;
     FcChar8     *sysroot = NULL;
     int		i;
@@ -298,12 +306,15 @@ main (int argc, char **argv)
     int		c;
 
 #if HAVE_GETOPT_LONG
-    while ((c = getopt_long (argc, argv, "frsy:Vvh", longopts, NULL)) != -1)
+    while ((c = getopt_long (argc, argv, "Efrsy:Vvh", longopts, NULL)) != -1)
 #else
-    while ((c = getopt (argc, argv, "frsy:Vvh")) != -1)
+    while ((c = getopt (argc, argv, "Efrsy:Vvh")) != -1)
 #endif
     {
 	switch (c) {
+	case 'E':
+	    error_on_no_fonts = FcTrue;
+	    break;
 	case 'r':
 	    really_force = FcTrue;
 	    /* fall through */
@@ -384,13 +395,13 @@ main (int argc, char **argv)
 
     updateDirs = FcStrSetCreate ();
     changed = 0;
-    ret = scanDirs (list, config, force, really_force, verbose, FcTrue, &changed, updateDirs);
+    ret = scanDirs (list, config, force, really_force, verbose, FcTrue, error_on_no_fonts, &changed, updateDirs);
     /* Update the directory cache again to avoid the race condition as much as possible */
     FcStrListDone (list);
     list = FcStrListCreate (updateDirs);
     if (list)
     {
-	ret += scanDirs (list, config, FcTrue, FcFalse, verbose, FcFalse, &changed, NULL);
+	ret += scanDirs (list, config, FcTrue, FcFalse, verbose, FcFalse, error_on_no_fonts, &changed, NULL);
 	FcStrListDone (list);
     }
     FcStrSetDestroy (updateDirs);

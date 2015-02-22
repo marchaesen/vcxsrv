@@ -1,10 +1,26 @@
+MESA_UTIL_SHADER_CACHE_FILES := \
+	mesa-sha1.c \
+	mesa-sha1.h
+
 MESA_UTIL_FILES :=	\
+	bitset.h \
+	format_srgb.h \
 	hash_table.c	\
+	hash_table.h \
+	macros.h \
 	ralloc.c \
+	ralloc.h \
 	register_allocate.c \
 	register_allocate.h \
 	rgtc.c \
-	strtod.cpp
+	rgtc.h \
+	set.c \
+	set.h \
+	simple_list.h \
+	strtod.cpp \
+	strtod.h \
+	texcompress_rgtc_tmp.h \
+	u_atomic.h
 
 MESA_UTIL_GENERATED_FILES = \
 	format_srgb.c

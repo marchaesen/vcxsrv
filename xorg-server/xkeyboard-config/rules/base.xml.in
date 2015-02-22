@@ -1576,6 +1576,12 @@
             <_description>Arabic (Buckwalter)</_description>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>mac</name>
+            <_description>Arabic (Macintosh)</_description>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>
@@ -2568,7 +2574,7 @@
             <_shortDescription>ug</_shortDescription>
             <_description>Uyghur</_description>
             <languageList>
-              <iso639Id>ug</iso639Id>
+              <iso639Id>uig</iso639Id>
             </languageList>
           </configItem>
         </variant>
@@ -6628,7 +6634,7 @@
       <option>
         <configItem>
           <name>numpad:microsoft</name>
-          <_description>Shift with numeric keypad keys works as in MS Windows</_description>
+          <_description>NumLock on: digits, Shift switches to arrow keys, Numlock off: always arrow keys (as in MS Windows)</_description>
         </configItem>
       </option>
       <option>
@@ -6928,6 +6934,30 @@
           <name>japan:hztg_escape</name>
           <_description>Make Zenkaku Hankaku an additional ESC</_description>
        </configItem>
+      </option>
+    </group>
+    <group allowMultipleSelection="true">
+      <configItem>
+        <name>korean</name>
+        <_description>Korean Hangul/Hanja keys</_description>
+      </configItem>
+      <option>
+        <configItem>
+          <name>korean:hw_keys</name>
+          <_description>Hardware Hangul/Hanja keys</_description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
+          <name>korean:ralt_rctrl</name>
+          <_description>Right Alt as Hangul, right Ctrl as Hanja</_description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
+          <name>korean:rctrl_ralt</name>
+          <_description>Right Ctrl as Hangul, right Alt as Hanja</_description>
+        </configItem>
       </option>
     </group>
     <group allowMultipleSelection="false">

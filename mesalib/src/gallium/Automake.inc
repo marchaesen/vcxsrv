@@ -32,6 +32,7 @@ GALLIUM_DRIVER_CXXFLAGS = \
 	$(VISIBILITY_CXXFLAGS)
 
 GALLIUM_TARGET_CFLAGS = \
+	-I$(top_srcdir)/src \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/src/loader \
 	-I$(top_srcdir)/src/gallium/include \
@@ -50,6 +51,7 @@ GALLIUM_COMMON_LIB_DEPS = \
 	$(DLOPEN_LIBS)
 
 GALLIUM_WINSYS_CFLAGS = \
+	-I$(top_srcdir)/src \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/src/gallium/include \
 	-I$(top_srcdir)/src/gallium/auxiliary \

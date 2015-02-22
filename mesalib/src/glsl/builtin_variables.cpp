@@ -724,6 +724,10 @@ builtin_variable_generator::generate_constants()
       add_const("gl_MaxCombinedImageUniforms",
                 state->Const.MaxCombinedImageUniforms);
    }
+
+   if (state->is_version(410, 0) ||
+       state->ARB_viewport_array_enable)
+      add_const("gl_MaxViewports", state->Const.MaxViewports);
 }
 
 

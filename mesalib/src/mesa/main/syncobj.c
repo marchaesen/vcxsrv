@@ -63,8 +63,8 @@
 #include "get.h"
 #include "dispatch.h"
 #include "mtypes.h"
-#include "set.h"
 #include "util/hash_table.h"
+#include "util/set.h"
 
 #include "syncobj.h"
 
@@ -173,9 +173,7 @@ _mesa_validate_sync(struct gl_context *ctx,
                     const struct gl_sync_object *syncObj)
 {
    return (syncObj != NULL)
-      && _mesa_set_search(ctx->Shared->SyncObjects,
-                          _mesa_hash_pointer(syncObj),
-                          syncObj) != NULL
+      && _mesa_set_search(ctx->Shared->SyncObjects, syncObj) != NULL
       && (syncObj->Type == GL_SYNC_FENCE)
       && !syncObj->DeletePending;
 }
@@ -198,9 +196,7 @@ _mesa_unref_sync_object(struct gl_context *ctx, struct gl_sync_object *syncObj)
    mtx_lock(&ctx->Shared->Mutex);
    syncObj->RefCount--;
    if (syncObj->RefCount == 0) {
-      entry = _mesa_set_search(ctx->Shared->SyncObjects,
-                               _mesa_hash_pointer(syncObj),
-                               syncObj);
+      entry = _mesa_set_search(ctx->Shared->SyncObjects, syncObj);
       assert (entry != NULL);
       _mesa_set_remove(ctx->Shared->SyncObjects, entry);
       mtx_unlock(&ctx->Shared->Mutex);
@@ -289,9 +285,7 @@ _mesa_FenceSync(GLenum condition, GLbitfield flags)
       ctx->Driver.FenceSync(ctx, syncObj, condition, flags);
 
       mtx_lock(&ctx->Shared->Mutex);
-      _mesa_set_add(ctx->Shared->SyncObjects,
-                    _mesa_hash_pointer(syncObj),
-                    syncObj);
+      _mesa_set_add(ctx->Shared->SyncObjects, syncObj);
       mtx_unlock(&ctx->Shared->Mutex);
 
       return (GLsync) syncObj;

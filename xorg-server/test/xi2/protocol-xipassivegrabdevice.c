@@ -139,6 +139,7 @@ request_XIPassiveGrabDevice(ClientPtr client, xXIPassiveGrabDeviceReq * req,
     int local_modifiers;
     int mask_len;
 
+    client_request.req_len = req->length;
     rc = ProcXIPassiveGrabDevice(&client_request);
     assert(rc == error);
 
@@ -190,6 +191,13 @@ test_XIPassiveGrabDevice(void)
     request_XIPassiveGrabDevice(&client_request, request, BadDevice,
                                 request->deviceid);
 
+    printf("Testing invalid length\n");
+    request->length -= 2;
+    request_XIPassiveGrabDevice(&client_request, request, BadLength,
+                                client_request.errorValue);
+    /* re-init request since swapped length test leaves some values swapped */
+    request_init(request, XIPassiveGrabDevice);
+    request->grab_window = CLIENT_WINDOW_ID;
     request->deviceid = XIAllMasterDevices;
 
     printf("Testing invalid grab types\n");

@@ -25,7 +25,6 @@
  *
  */
 
-#ifdef __SSE4_1__
 #include "main/sse_minmax.h"
 #include <smmintrin.h>
 #include <stdint.h>
@@ -93,5 +92,3 @@ _mesa_uint_array_min_max(const unsigned *ui_indices, unsigned *min_index,
    *min_index = min_ui;
    *max_index = max_ui;
 }
-
-#endif

@@ -30,7 +30,7 @@
 #include "enums.h"
 #include "light.h"
 #include "macros.h"
-#include "simple_list.h"
+#include "util/simple_list.h"
 #include "mtypes.h"
 #include "math/m_matrix.h"
 
@@ -1206,13 +1206,4 @@ _mesa_init_lighting( struct gl_context *ctx )
    ctx->_NeedEyeCoords = GL_FALSE;
    ctx->_ForceEyeCoords = GL_FALSE;
    ctx->_ModelViewInvScale = 1.0;
-}
-
-
-/**
- * Deallocate malloc'd lighting state attached to given context.
- */
-void
-_mesa_free_lighting_data( struct gl_context *ctx )
-{
 }

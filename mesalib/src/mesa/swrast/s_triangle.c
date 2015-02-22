@@ -37,6 +37,7 @@
 #include "main/mtypes.h"
 #include "main/state.h"
 #include "main/samplerobj.h"
+#include "main/teximage.h"
 #include "program/prog_instruction.h"
 
 #include "s_aatriangle.h"
@@ -127,7 +128,7 @@ _swrast_culltriangle( struct gl_context *ctx,
    const struct gl_texture_object *obj = 				\
       ctx->Texture.Unit[0].CurrentTex[TEXTURE_2D_INDEX];		\
    const struct gl_texture_image *texImg =				\
-      obj->Image[0][obj->BaseLevel];					\
+      _mesa_base_tex_image(obj);					\
    const struct swrast_texture_image *swImg =				\
       swrast_texture_image_const(texImg);				\
    const GLfloat twidth = (GLfloat) texImg->Width;			\
@@ -185,7 +186,7 @@ _swrast_culltriangle( struct gl_context *ctx,
    const struct gl_texture_object *obj = 				\
       ctx->Texture.Unit[0].CurrentTex[TEXTURE_2D_INDEX];		\
    const struct gl_texture_image *texImg = 				\
-       obj->Image[0][obj->BaseLevel]; 					\
+      _mesa_base_tex_image(obj);					\
    const struct swrast_texture_image *swImg =				\
       swrast_texture_image_const(texImg);				\
    const GLfloat twidth = (GLfloat) texImg->Width;			\
@@ -542,7 +543,7 @@ affine_span(struct gl_context *ctx, SWspan *span,
    const struct gl_texture_object *obj = 				\
       ctx->Texture.Unit[0].CurrentTex[TEXTURE_2D_INDEX];		\
    const struct gl_texture_image *texImg = 				\
-      obj->Image[0][obj->BaseLevel]; 					\
+      _mesa_base_tex_image(obj);					\
    const struct swrast_texture_image *swImg =				\
       swrast_texture_image_const(texImg);				\
    const GLfloat twidth = (GLfloat) texImg->Width;			\
@@ -811,7 +812,7 @@ fast_persp_span(struct gl_context *ctx, SWspan *span,
    const struct gl_texture_object *obj = 				\
       ctx->Texture.Unit[0].CurrentTex[TEXTURE_2D_INDEX];		\
    const struct gl_texture_image *texImg = 				\
-      obj->Image[0][obj->BaseLevel];			 		\
+      _mesa_base_tex_image(obj);					\
    const struct swrast_texture_image *swImg =				\
       swrast_texture_image_const(texImg);				\
    info.texture = (const GLchan *) swImg->ImageSlices[0];		\
@@ -1059,7 +1060,7 @@ _swrast_choose_triangle( struct gl_context *ctx )
          else
             samp = NULL;
 
-         texImg = texObj2D ? texObj2D->Image[0][texObj2D->BaseLevel] : NULL;
+         texImg = texObj2D ? _mesa_base_tex_image(texObj2D) : NULL;
          swImg = swrast_texture_image_const(texImg);
 
          format = texImg ? texImg->TexFormat : MESA_FORMAT_NONE;

@@ -194,6 +194,9 @@ ir_constant_propagation_visitor::handle_rvalue(ir_rvalue **rvalue)
       case GLSL_TYPE_FLOAT:
 	 data.f[i] = found->constant->value.f[rhs_channel];
 	 break;
+      case GLSL_TYPE_DOUBLE:
+	 data.d[i] = found->constant->value.d[rhs_channel];
+	 break;
       case GLSL_TYPE_INT:
 	 data.i[i] = found->constant->value.i[rhs_channel];
 	 break;

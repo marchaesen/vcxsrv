@@ -41,6 +41,9 @@
 #include "servermd.h"
 #include "picturestr.h"
 #include "xace.h"
+#ifdef PANORAMIX
+#include "panoramiXsrv.h"
+#endif
 
 DevPrivateKeyRec PictureScreenPrivateKeyRec;
 DevPrivateKeyRec PictureWindowPrivateKeyRec;
@@ -1007,6 +1010,38 @@ CreateConicalGradientPicture(Picture pid, xPointFixed * center, xFixed angle,
     return pPicture;
 }
 
+static int
+cpAlphaMap(void **result, XID id, ScreenPtr screen, ClientPtr client, Mask mode)
+{
+#ifdef PANORAMIX
+    if (!noPanoramiXExtension) {
+        PanoramiXRes *res;
+        int err = dixLookupResourceByType((void **)&res, id, XRT_PICTURE,
+                                          client, mode);
+        if (err != Success)
+            return err;
+        id = res->info[screen->myNum].id;
+    }
+#endif
+    return dixLookupResourceByType(result, id, PictureType, client, mode);
+}
+
+static int
+cpClipMask(void **result, XID id, ScreenPtr screen, ClientPtr client, Mask mode)
+{
+#ifdef PANORAMIX
+    if (!noPanoramiXExtension) {
+        PanoramiXRes *res;
+        int err = dixLookupResourceByType((void **)&res, id, XRT_PIXMAP,
+                                          client, mode);
+        if (err != Success)
+            return err;
+        id = res->info[screen->myNum].id;
+    }
+#endif
+    return dixLookupResourceByType(result, id, RT_PIXMAP, client, mode);
+}
+
 #define NEXT_VAL(_type) (vlist ? (_type) *vlist++ : (_type) ulist++->val)
 
 #define NEXT_PTR(_type) ((_type) ulist++->ptr)
@@ -1053,9 +1088,8 @@ ChangePicture(PicturePtr pPicture,
                 if (pid == None)
                     pAlpha = 0;
                 else {
-                    error = dixLookupResourceByType((void **) &pAlpha, pid,
-                                                    PictureType, client,
-                                                    DixReadAccess);
+                    error = cpAlphaMap((void **) &pAlpha, pid, pScreen,
+                                       client, DixReadAccess);
                     if (error != Success) {
                         client->errorValue = pid;
                         break;
@@ -1112,9 +1146,8 @@ ChangePicture(PicturePtr pPicture,
                 }
                 else {
                     clipType = CT_PIXMAP;
-                    error = dixLookupResourceByType((void **) &pPixmap, pid,
-                                                    RT_PIXMAP, client,
-                                                    DixReadAccess);
+                    error = cpClipMask((void **) &pPixmap, pid, pScreen,
+                                       client, DixReadAccess);
                     if (error != Success) {
                         client->errorValue = pid;
                         break;

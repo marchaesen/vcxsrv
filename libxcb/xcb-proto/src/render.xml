@@ -280,16 +280,122 @@ for licensing information.
     <field type="PICTURE" name="pid" />
     <field type="DRAWABLE" name="drawable" />
     <field type="PICTFORMAT" name="format" />
-    <valueparam value-mask-type="CARD32"
-                value-mask-name="value_mask"
-                value-list-name="value_list" />
+    <field type="CARD32" name="value_mask" mask="CP"/>
+    <switch name="value_list">
+      <fieldref>value_mask</fieldref>
+      <bitcase>
+        <enumref ref="CP">Repeat</enumref>
+        <field type="CARD32" name="repeat" enum="Repeat"/>
+      </bitcase>
+      <bitcase>
+        <enumref ref="CP">AlphaMap</enumref>
+        <field type="PICTURE" name="alphamap" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CP">AlphaXOrigin</enumref>
+        <field type="INT32" name="alphaxorigin" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CP">AlphaYOrigin</enumref>
+        <field type="INT32" name="alphayorigin" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CP">ClipXOrigin</enumref>
+        <field type="INT32" name="clipxorigin" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CP">ClipYOrigin</enumref>
+        <field type="INT32" name="clipyorigin" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CP">ClipMask</enumref>
+        <field type="PIXMAP" name="clipmask" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CP">GraphicsExposure</enumref>
+        <field type="CARD32" name="graphicsexposure" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CP">SubwindowMode</enumref>
+        <field type="CARD32" name="subwindowmode" enum="SubwindowMode"/>
+      </bitcase>
+      <bitcase>
+        <enumref ref="CP">PolyEdge</enumref>
+        <field type="CARD32" name="polyedge" enum="PolyEdge"/>
+      </bitcase>
+      <bitcase>
+        <enumref ref="CP">PolyMode</enumref>
+        <field type="CARD32" name="polymode" enum="PolyMode"/>
+      </bitcase>
+      <bitcase>
+        <enumref ref="CP">Dither</enumref>
+        <field type="ATOM" name="dither" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CP">ComponentAlpha</enumref>
+        <field type="CARD32" name="componentalpha" />
+      </bitcase>
+    </switch>
   </request>
 
   <request name="ChangePicture" opcode="5">
     <field type="PICTURE" name="picture" />
-    <valueparam value-mask-type="CARD32"
-                value-mask-name="value_mask"
-                value-list-name="value_list" />
+    <field type="CARD32" name="value_mask" mask="CP"/>
+    <switch name="value_list">
+      <fieldref>value_mask</fieldref>
+      <bitcase>
+        <enumref ref="CP">Repeat</enumref>
+        <field type="CARD32" name="repeat" enum="Repeat"/>
+      </bitcase>
+      <bitcase>
+        <enumref ref="CP">AlphaMap</enumref>
+        <field type="PICTURE" name="alphamap" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CP">AlphaXOrigin</enumref>
+        <field type="INT32" name="alphaxorigin" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CP">AlphaYOrigin</enumref>
+        <field type="INT32" name="alphayorigin" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CP">ClipXOrigin</enumref>
+        <field type="INT32" name="clipxorigin" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CP">ClipYOrigin</enumref>
+        <field type="INT32" name="clipyorigin" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CP">ClipMask</enumref>
+        <field type="PIXMAP" name="clipmask" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CP">GraphicsExposure</enumref>
+        <field type="CARD32" name="graphicsexposure" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CP">SubwindowMode</enumref>
+        <field type="CARD32" name="subwindowmode" enum="SubwindowMode"/>
+      </bitcase>
+      <bitcase>
+        <enumref ref="CP">PolyEdge</enumref>
+        <field type="CARD32" name="polyedge" enum="PolyEdge"/>
+      </bitcase>
+      <bitcase>
+        <enumref ref="CP">PolyMode</enumref>
+        <field type="CARD32" name="polymode" enum="PolyMode"/>
+      </bitcase>
+      <bitcase>
+        <enumref ref="CP">Dither</enumref>
+        <field type="ATOM" name="dither" />
+      </bitcase>
+      <bitcase>
+        <enumref ref="CP">ComponentAlpha</enumref>
+        <field type="CARD32" name="componentalpha" />
+      </bitcase>
+    </switch>
   </request>
 
   <request name="SetPictureClipRectangles" opcode="6">

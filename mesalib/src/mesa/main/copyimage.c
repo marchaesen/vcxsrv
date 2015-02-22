@@ -152,7 +152,7 @@ prepare_target(struct gl_context *ctx, GLuint name, GLenum *target, int level,
          return false;
       }
 
-      *tex_image = _mesa_select_tex_image(ctx, *tex_obj, *target, level);
+      *tex_image = _mesa_select_tex_image(*tex_obj, *target, level);
       if (!*tex_image) {
          _mesa_error(ctx, GL_INVALID_VALUE,
                      "glCopyImageSubData(%sLevel = %u)", dbg_prefix, level);

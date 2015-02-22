@@ -33,6 +33,12 @@
 #include "state_tracker/st_api.h"
 #include "main/fbobject.h"
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 struct bitmap_cache;
 struct dd_function_table;
 struct draw_context;
@@ -87,6 +93,7 @@ struct st_context
    boolean has_time_elapsed;
    boolean has_shader_model3;
    boolean has_etc1;
+   boolean has_etc2;
    boolean prefer_blit_based_texture_transfer;
 
    boolean needs_texcoord_semantic;
@@ -277,5 +284,9 @@ st_create_context(gl_api api, struct pipe_context *pipe,
 extern void
 st_destroy_context(struct st_context *st);
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -130,7 +130,7 @@ dmxConfigPopState(void)
     dmxConfigNewline();
 }
 
-static void
+static void _X_ATTRIBUTE_PRINTF(4, 5)
 dmxConfigOutput(int addSpace, int doNewline, const char *comment,
                 const char *format, ...)
 {
@@ -261,32 +261,20 @@ dmxConfigPrintString(DMXConfigStringPtr p, int quote)
 static int
 dmxConfigPrintPair(DMXConfigPairPtr p, int addSpace)
 {
-    const char *format = NULL;
-
     if (!p)
         return 0;
-    switch (p->token) {
-    case T_ORIGIN:
-        format = "@%dx%d";
-        break;
-    case T_DIMENSION:
-        format = "%dx%d";
-        break;
-    case T_OFFSET:
-        format = "%c%d%c%d";
-        break;
-    }
     if (p->token == T_OFFSET) {
         if (!p->comment && !p->x && !p->y && p->xsign >= 0 && p->ysign >= 0)
             return 0;
-        dmxConfigOutput(addSpace, 0, p->comment, format,
+        dmxConfigOutput(addSpace, 0, p->comment, "%c%d%c%d",
                         p->xsign < 0 ? '-' : '+', p->x,
                         p->ysign < 0 ? '-' : '+', p->y);
     }
     else {
         if (!p->comment && !p->x && !p->y)
             return 0;
-        dmxConfigOutput(addSpace, 0, p->comment, format, p->x, p->y);
+        dmxConfigOutput(addSpace, 0, p->comment, "%s%dx%d",
+                        (p->token == T_ORIGIN) ? "@" : "", p->x, p->y);
     }
     return 1;
 }

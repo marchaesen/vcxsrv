@@ -207,9 +207,12 @@ libudev_get_pci_id_for_fd(int fd, int *vendor_id, int *chip_id)
    }
 
    pci_id = udev_device_get_property_value(parent, "PCI_ID");
-   if (pci_id == NULL ||
-       sscanf(pci_id, "%x:%x", vendor_id, chip_id) != 2) {
-      log_(_LOADER_WARNING, "MESA-LOADER: malformed or no PCI ID\n");
+   if (pci_id == NULL) {
+      log_(_LOADER_INFO, "MESA-LOADER: no PCI ID\n");
+      *chip_id = -1;
+      goto out;
+   } else if (sscanf(pci_id, "%x:%x", vendor_id, chip_id) != 2) {
+      log_(_LOADER_WARNING, "MESA-LOADER: malformed PCI ID\n");
       *chip_id = -1;
       goto out;
    }

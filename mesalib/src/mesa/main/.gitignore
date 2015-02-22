@@ -10,3 +10,5 @@ get_hash.h
 get_hash.h.tmp
 format_info.c
 glapitable.h
+format_pack.c
+format_unpack.c

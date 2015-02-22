@@ -19,21 +19,41 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+AUTOMAKE_OPTIONS = subdir-objects
+
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/src \
 	-I$(top_srcdir)/src/mapi \
 	-I$(top_srcdir)/src/mesa/ \
+	-I$(top_srcdir)/src/gallium/include \
+	-I$(top_srcdir)/src/gallium/auxiliary \
 	-I$(top_srcdir)/src/glsl/glcpp \
+	-I$(top_srcdir)/src/glsl/nir \
 	-I$(top_srcdir)/src/gtest/include \
+	-I$(top_builddir)/src/glsl/nir \
 	$(DEFINES)
 AM_CFLAGS = $(VISIBILITY_CFLAGS)
 AM_CXXFLAGS = $(VISIBILITY_CXXFLAGS)
+
+EXTRA_DIST = tests glcpp/tests README TODO glcpp/README	\
+	glsl_lexer.ll					\
+	glsl_parser.yy					\
+	glcpp/glcpp-lex.l				\
+	glcpp/glcpp-parse.y				\
+	nir/nir_algebraic.py				\
+	nir/nir_constant_expressions.py			\
+	nir/nir_opcodes.py				\
+	nir/nir_opcodes_c.py				\
+	nir/nir_opcodes_h.py				\
+	nir/nir_opt_algebraic.py			\
+	SConscript
 
 include Makefile.sources
 
 TESTS = glcpp/tests/glcpp-test				\
 	glcpp/tests/glcpp-test-cr-lf			\
+	tests/blob-test					\
 	tests/general-ir-test				\
 	tests/optimization-test				\
 	tests/sampler-types-test                        \
@@ -47,17 +67,20 @@ noinst_LTLIBRARIES = libglsl.la libglcpp.la
 check_PROGRAMS =					\
 	glcpp/glcpp					\
 	glsl_test					\
+	tests/blob-test					\
 	tests/general-ir-test				\
 	tests/sampler-types-test			\
 	tests/uniform-initializer-test
 
 noinst_PROGRAMS = glsl_compiler
 
+tests_blob_test_SOURCES =				\
+	tests/blob_test.c
+tests_blob_test_LDADD =					\
+	$(top_builddir)/src/glsl/libglsl.la
+
 tests_general_ir_test_SOURCES =		\
-	$(top_srcdir)/src/mesa/main/imports.c		\
-	$(top_srcdir)/src/mesa/program/prog_hash_table.c\
-	$(top_srcdir)/src/mesa/program/symbol_table.c	\
-	$(GLSL_SRCDIR)/standalone_scaffolding.cpp \
+	standalone_scaffolding.cpp			\
 	tests/builtin_variable_test.cpp			\
 	tests/invalidate_locations_test.cpp		\
 	tests/general_ir_test.cpp			\
@@ -68,26 +91,24 @@ tests_general_ir_test_CFLAGS =				\
 tests_general_ir_test_LDADD =				\
 	$(top_builddir)/src/gtest/libgtest.la		\
 	$(top_builddir)/src/glsl/libglsl.la		\
+	$(top_builddir)/src/libglsl_util.la		\
 	$(PTHREAD_LIBS)
 
 tests_uniform_initializer_test_SOURCES =		\
-	$(top_srcdir)/src/mesa/main/imports.c		\
-	$(top_srcdir)/src/mesa/program/prog_hash_table.c\
-	$(top_srcdir)/src/mesa/program/symbol_table.c	\
 	tests/copy_constant_to_storage_tests.cpp	\
 	tests/set_uniform_initializer_tests.cpp		\
 	tests/uniform_initializer_utils.cpp		\
+	tests/uniform_initializer_utils.h		\
 	tests/common.c
 tests_uniform_initializer_test_CFLAGS =			\
 	$(PTHREAD_CFLAGS)
 tests_uniform_initializer_test_LDADD =			\
 	$(top_builddir)/src/gtest/libgtest.la		\
 	$(top_builddir)/src/glsl/libglsl.la		\
+	$(top_builddir)/src/libglsl_util.la		\
 	$(PTHREAD_LIBS)
 
 tests_sampler_types_test_SOURCES =			\
-	$(top_srcdir)/src/mesa/program/prog_hash_table.c\
-	$(top_srcdir)/src/mesa/program/symbol_table.c	\
 	tests/sampler_types_test.cpp			\
 	tests/common.c
 tests_sampler_types_test_CFLAGS =			\
@@ -95,6 +116,7 @@ tests_sampler_types_test_CFLAGS =			\
 tests_sampler_types_test_LDADD =			\
 	$(top_builddir)/src/gtest/libgtest.la		\
 	$(top_builddir)/src/glsl/libglsl.la		\
+	$(top_builddir)/src/libglsl_util.la		\
 	$(PTHREAD_LIBS)
 
 libglcpp_la_LIBADD =					\
@@ -102,42 +124,44 @@ libglcpp_la_LIBADD =					\
 libglcpp_la_SOURCES =					\
 	glcpp/glcpp-lex.c				\
 	glcpp/glcpp-parse.c				\
+	glcpp/glcpp-parse.h				\
 	$(LIBGLCPP_FILES)
 
 glcpp_glcpp_SOURCES =					\
 	glcpp/glcpp.c					\
-	tests/common.c					\
-	$(top_srcdir)/src/mesa/program/prog_hash_table.c
+	tests/common.c
 glcpp_glcpp_LDADD =					\
 	libglcpp.la					\
+	$(top_builddir)/src/libglsl_util.la		\
 	-lm
 
 libglsl_la_LIBADD = libglcpp.la
 libglsl_la_SOURCES =					\
 	glsl_lexer.cpp					\
 	glsl_parser.cpp					\
-	$(LIBGLSL_FILES)
+	glsl_parser.h					\
+	$(LIBGLSL_FILES)				\
+	$(NIR_FILES)
 
 glsl_compiler_SOURCES = \
-	$(top_srcdir)/src/mesa/main/imports.c \
-	$(top_srcdir)/src/mesa/program/prog_hash_table.c \
-	$(top_srcdir)/src/mesa/program/symbol_table.c \
 	$(GLSL_COMPILER_CXX_FILES)
 
 glsl_compiler_LDADD =					\
 	libglsl.la					\
+	$(top_builddir)/src/libglsl_util.la		\
 	$(PTHREAD_LIBS)
 
 glsl_test_SOURCES = \
-	$(top_srcdir)/src/mesa/main/imports.c \
-	$(top_srcdir)/src/mesa/program/prog_hash_table.c \
-	$(top_srcdir)/src/mesa/program/symbol_table.c \
-	$(GLSL_SRCDIR)/standalone_scaffolding.cpp \
+	standalone_scaffolding.cpp \
 	tests/common.c \
 	test.cpp \
-	test_optpass.cpp
+	test_optpass.cpp \
+	test_optpass.h
 
-glsl_test_LDADD = libglsl.la
+glsl_test_LDADD =					\
+	libglsl.la					\
+	$(top_builddir)/src/libglsl_util.la		\
+	$(PTHREAD_LIBS)
 
 # We write our own rules for yacc and lex below. We'd rather use automake,
 # but automake makes it especially difficult for a number of reasons:
@@ -170,14 +194,14 @@ am__v_YACC_0 = @echo "  YACC    " $@;
 am__v_YACC_1 =
 
 glsl_parser.cpp glsl_parser.h: glsl_parser.yy
-	$(AM_V_YACC) $(YACC) $(YFLAGS) -o $@ -p "_mesa_glsl_" --defines=$(GLSL_BUILDDIR)/glsl_parser.h $<
+	$(AM_V_YACC) $(YACC) $(YFLAGS) -o $@ -p "_mesa_glsl_" --defines=$(builddir)/glsl_parser.h $<
 
 glsl_lexer.cpp: glsl_lexer.ll
 	$(AM_V_LEX) $(LEX) $(LFLAGS) -o $@ $<
 
 glcpp/glcpp-parse.c glcpp/glcpp-parse.h: glcpp/glcpp-parse.y
 	$(AM_V_at)$(MKDIR_P) glcpp
-	$(AM_V_YACC) $(YACC) $(YFLAGS) -o $@ -p "glcpp_parser_" --defines=$(GLSL_BUILDDIR)/glcpp/glcpp-parse.h $<
+	$(AM_V_YACC) $(YACC) $(YFLAGS) -o $@ -p "glcpp_parser_" --defines=$(builddir)/glcpp/glcpp-parse.h $<
 
 glcpp/glcpp-lex.c: glcpp/glcpp-lex.l
 	$(AM_V_at)$(MKDIR_P) glcpp
@@ -193,8 +217,42 @@ BUILT_SOURCES =						\
 	glsl_parser.cpp					\
 	glsl_lexer.cpp					\
 	glcpp/glcpp-parse.c				\
-	glcpp/glcpp-lex.c
+	glcpp/glcpp-lex.c				\
+	nir/nir_builder_opcodes.h				\
+	nir/nir_constant_expressions.c			\
+	nir/nir_opcodes.c				\
+	nir/nir_opcodes.h				\
+	nir/nir_opt_algebraic.c
 CLEANFILES =						\
 	glcpp/glcpp-parse.h				\
 	glsl_parser.h					\
 	$(BUILT_SOURCES)
+
+clean-local:
+	$(RM) -r subtest-cr subtest-cr-lf subtest-lf subtest-lf-cr
+
+dist-hook:
+	$(RM) glcpp/tests/*.out
+	$(RM) glcpp/tests/subtest*/*.out
+
+nir/nir_builder_opcodes.h: nir/nir_opcodes.py nir/nir_builder_opcodes_h.py
+	$(MKDIR_P) nir;							\
+	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/nir/nir_builder_opcodes_h.py > $@
+
+nir/nir_constant_expressions.c: nir/nir_opcodes.py nir/nir_constant_expressions.py nir/nir_constant_expressions.h
+	$(MKDIR_P) nir;							\
+	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/nir/nir_constant_expressions.py > $@
+
+nir/nir_opcodes.h: nir/nir_opcodes.py nir/nir_opcodes_h.py
+	$(MKDIR_P) nir;							\
+	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/nir/nir_opcodes_h.py > $@
+
+nir/nir.h: nir/nir_opcodes.h
+
+nir/nir_opcodes.c: nir/nir_opcodes.py nir/nir_opcodes_c.py
+	$(MKDIR_P) nir;							\
+	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/nir/nir_opcodes_c.py > $@
+
+nir/nir_opt_algebraic.c: nir/nir_opt_algebraic.py nir/nir_algebraic.py
+	$(MKDIR_P) nir;							\
+	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/nir/nir_opt_algebraic.py > $@

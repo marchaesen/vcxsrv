@@ -181,6 +181,16 @@ prints a usage message.
 .B \-I
 causes all remaining command line arguments to be ignored.
 .TP 8
+.B \-iglx
+Prohibit creating indirect GLX contexts.  Indirect GLX is of limited use,
+since it lacks support for many modern OpenGL features and extensions;
+it's slower than direct contexts; and it opens a large attack surface for
+protocol parsing errors.
+This is the default unless +iglx is specified.
+.TP 8
+.B +iglx
+Allow creating indirect GLX contexts.
+.TP 8
 .B \-maxbigreqsize \fIsize\fP
 sets the maximum big request to
 .I size

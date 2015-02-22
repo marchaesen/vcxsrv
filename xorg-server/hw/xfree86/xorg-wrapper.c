@@ -255,18 +255,18 @@ int main(int argc, char *argv[])
         }
     }
 
-    snprintf(buf, sizeof(buf), "%s/Xorg.bin", SUID_WRAPPER_DIR);
+    snprintf(buf, sizeof(buf), "%s/Xorg", SUID_WRAPPER_DIR);
 
     /* Check if the server is executable by our real uid */
     if (access(buf, X_OK) != 0) {
-        fprintf(stderr, "%s: Missing execute permissions for %s/Xorg.bin: %s\n",
-            progname, SUID_WRAPPER_DIR, strerror(errno));
+        fprintf(stderr, "%s: Missing execute permissions for %s: %s\n",
+            progname, buf, strerror(errno));
         exit(1);
     }
 
     argv[0] = buf;
     (void) execv(argv[0], argv);
-    fprintf(stderr, "%s: Failed to execute %s/Xorg.bin: %s\n",
-        progname, SUID_WRAPPER_DIR, strerror(errno));
+    fprintf(stderr, "%s: Failed to execute %s: %s\n",
+        progname, buf, strerror(errno));
     exit(1);
 }

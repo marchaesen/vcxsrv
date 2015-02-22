@@ -189,7 +189,8 @@ _mesa_meta_CopyImageSubData_uncompressed(struct gl_context *ctx,
     * We have already created views to ensure that the texture formats
     * match.
     */
-   ctx->Driver.BlitFramebuffer(ctx, src_x, src_y,
+   ctx->Driver.BlitFramebuffer(ctx, ctx->ReadBuffer, ctx->DrawBuffer,
+                               src_x, src_y,
                                src_x + src_width, src_y + src_height,
                                dst_x, dst_y,
                                dst_x + src_width, dst_y + src_height,

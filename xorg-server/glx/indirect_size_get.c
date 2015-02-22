@@ -829,6 +829,7 @@ __glGetBooleanv_size( GLenum e )
         case GL_MIN_PROGRAM_TEXEL_OFFSET:
         case GL_MAX_PROGRAM_TEXEL_OFFSET:
         case GL_RGBA_INTEGER_MODE_EXT:
+        case GL_POLYGON_OFFSET_CLAMP_EXT:
             return __glGetBooleanv_variable_size( e );
         default: return 0;
     }

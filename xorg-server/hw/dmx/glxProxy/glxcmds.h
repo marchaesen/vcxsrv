@@ -33,5 +33,11 @@ extern int __glXCreateContextWithConfigSGIX(__GLXclientState * cl, GLbyte * pc);
 extern int __glXJoinSwapGroupSGIX(__GLXclientState * cl, GLbyte * pc);
 extern int __glXMakeCurrentReadSGI(__GLXclientState * cl, GLbyte * pc);
 extern int __glXQueryMaxSwapBarriersSGIX(__GLXclientState * cl, GLbyte * pc);
+extern int __glXDoSwapBuffers(__GLXclientState * cl, XID drawId,
+                              GLXContextTag tag);
+
+extern Display *GetBackEndDisplay(__GLXclientState * cl, int s);
+extern int GetCurrentBackEndTag(__GLXclientState * cl, GLXContextTag tag,
+                                int s);
 
 #endif                          /* !__GLX_cmds_h__ */

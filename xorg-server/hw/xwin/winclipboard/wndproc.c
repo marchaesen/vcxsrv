@@ -45,6 +45,7 @@
 
 #include <sys/types.h>
 #include <sys/time.h>
+#include <limits.h>
 #include "winclipboard.h"
 #include "misc.h"
 #include "winmsg.h"
@@ -76,24 +77,15 @@ extern Bool g_fClipboardPrimary;
 
 static int
 winProcessXEventsTimeout(HWND hwnd, int iWindow, Display * pDisplay,
-                         Bool fUseUnicode, int iTimeoutSec)
+                         ClipboardConversionData *data, ClipboardAtoms *atoms, int iTimeoutSec)
 {
     int iConnNumber;
     struct timeval tv;
     int iReturn;
     DWORD dwStopTime = GetTickCount() + iTimeoutSec * 1000;
 
-  /* Make sure the output messages are sent before waiting on a response. */
-  iReturn = winClipboardFlushXEvents (hwnd,
-                                      iWindow,
-                                      pDisplay,
-                                      fUseUnicode,
-                                      TRUE);
-  if (WIN_XEVENTS_NOTIFY == iReturn)
-    {
-      /* Bail out if notify processed */
-      return iReturn;
-    }
+    winDebug("winProcessXEventsTimeout () - pumping X events for %d seconds\n",
+             iTimeoutSec);
 
     /* Get our connection number */
     iConnNumber = ConnectionNumber(pDisplay);
@@ -102,6 +94,19 @@ winProcessXEventsTimeout(HWND hwnd, int iWindow, Display * pDisplay,
     while (1) {
         fd_set fdsRead;
         long remainingTime;
+
+        /* Process X events */
+        iReturn = winClipboardFlushXEvents(hwnd, iWindow, pDisplay, data, atoms);
+
+        winDebug("winProcessXEventsTimeout () - winClipboardFlushXEvents returned %d\n", iReturn);
+
+        if ((WIN_XEVENTS_NOTIFY_DATA == iReturn) || (WIN_XEVENTS_NOTIFY_TARGETS == iReturn) || (WIN_XEVENTS_FAILED == iReturn)) {
+          /* Bail out */
+          return iReturn;
+        }
+
+        /* We need to ensure that all pending requests are sent */
+        XFlush(pDisplay);
 
         /* Setup the file descriptor set */
         FD_ZERO(&fdsRead);
@@ -130,24 +135,8 @@ winProcessXEventsTimeout(HWND hwnd, int iWindow, Display * pDisplay,
             break;
         }
 
-        /* Branch on which descriptor became active */
-        if (FD_ISSET(iConnNumber, &fdsRead)) {
-            /* Process X events */
-            /* Exit when we see that server is shutting down */
-            iReturn = winClipboardFlushXEvents(hwnd,
-                                               iWindow, pDisplay, fUseUnicode, TRUE);
-
-            winDebug
-                ("winProcessXEventsTimeout () - winClipboardFlushXEvents returned %d\n",
-                 iReturn);
-
-            if (WIN_XEVENTS_NOTIFY == iReturn) {
-                /* Bail out if notify processed */
-                return iReturn;
-            }
-        }
-        else {
-            winDebug("winProcessXEventsTimeout - Spurious wake\n");
+        if (!FD_ISSET(iConnNumber, &fdsRead)) {
+            winDebug("winProcessXEventsTimeout - Spurious wake, select() returned %d\n", iReturn);
         }
     }
 
@@ -162,6 +151,7 @@ LRESULT CALLBACK
 winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     static HWND s_hwndNextViewer;
+    static Bool fRunning;
 
     /* Branch on message type */
     switch (message) {
@@ -174,6 +164,13 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         s_hwndNextViewer = NULL;
         g_hwndClipboard = NULL;
+    }
+        return 0;
+
+    case WM_WM_QUIT:
+    {
+        winDebug("winClipboardWindowProc - WM_WM_QUIT\n");
+        fRunning = FALSE;
         PostQuitMessage(0);
     }
         return 0;
@@ -185,6 +182,7 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         winDebug("winClipboardWindowProc - WM_CREATE\n");
 
+        fRunning = TRUE;
         /* Add ourselves to the clipboard viewer chain */
         s_hwndNextViewer = SetClipboardViewer (hwnd);
         #ifdef _DEBUG
@@ -300,6 +298,10 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             return 0;
         }
 
+        /* Bail when shutting down */
+        if (!fRunning)
+            return 0;
+
         /*
          * Do not take ownership of the X11 selections when something
          * other than CF_TEXT or CF_UNICODETEXT has been copied
@@ -406,92 +408,153 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         winDebug("winClipboardWindowProc - WM_DESTROYCLIPBOARD - Ignored.\n");
         return 0;
 
-    case WM_RENDERFORMAT:
     case WM_RENDERALLFORMATS:
+        winDebug("winClipboardWindowProc - WM_RENDERALLFORMATS - Hello.\n");
+
+        /*
+          WM_RENDERALLFORMATS is sent as we are shutting down, to render the
+          clipboard so it's contents remains available to other applications.
+
+          Unfortunately, this can't work without major changes. The server is
+          already waiting for us to stop, so we can't ask for the rendering of
+          clipboard text now.
+        */
+
+        return 0;
+
+    case WM_RENDERFORMAT:
     {
         int iReturn;
         Display *pDisplay = g_pClipboardDisplay;
         Window iWindow = g_iClipboardWindow;
         Bool fConvertToUnicode;
+        Bool pasted = FALSE;
+        Atom selection;
+        ClipboardConversionData data;
+        int best_target = 0;
 
-        winDebug("winClipboardWindowProc - WM_RENDER*FORMAT - Hello.\n");
+        winDebug("winClipboardWindowProc - WM_RENDERFORMAT %d - Hello.\n",
+                 wParam);
 
         /* Flag whether to convert to Unicode or not */
-        if (message == WM_RENDERALLFORMATS)
-            fConvertToUnicode = FALSE;
-        else
-            fConvertToUnicode = (CF_UNICODETEXT == wParam);
+        fConvertToUnicode = (CF_UNICODETEXT == wParam);
 
-        /* Request the selection contents */
-        iReturn = XConvertSelection(pDisplay,
-                                    g_atomLastOwnedSelection,
-                                    XInternAtom(pDisplay,
-                                                "COMPOUND_TEXT", False),
-                                    XInternAtom(pDisplay,
-                                                WIN_LOCAL_PROPERTY, False),
-                                    iWindow, CurrentTime);
-        if (iReturn == BadAtom || iReturn == BadWindow) {
-            ErrorF ("winClipboardWindowProc - WM_RENDER*FORMAT - "
-                          "XConvertSelection () failed\n");
-            break;
+        selection = winClipboardGetLastOwnedSelectionAtom(atoms);
+        if (selection == None) {
+            ErrorF("winClipboardWindowProc - no monitored selection is owned\n");
+            goto fake_paste;
         }
 
-        /* Special handling for WM_RENDERALLFORMATS */
-        if (message == WM_RENDERALLFORMATS) {
-            /* We must open and empty the clipboard */
-            if (!OpenClipboard(hwnd)) {
-                ErrorF ("winClipboardWindowProc - WM_RENDER*FORMATS - "
-                              "OpenClipboard () failed: %08x\n",
-                              GetLastError());
-                break;
-            }
+        winDebug("winClipboardWindowProc - requesting targets for selection from owner\n");
 
-            if (!EmptyClipboard()) {
-                ErrorF ("winClipboardWindowProc - WM_RENDER*FORMATS - "
-                              "EmptyClipboard () failed: %08x\n",
-                              GetLastError());
-                CloseClipboard ();
-                break;
-            }
-        }
+        /* Request the selection's supported conversion targets */
+        XConvertSelection(pDisplay,
+                          selection,
+                          atoms->atomTargets,
+                          atoms->atomLocalProperty,
+                          iWindow, CurrentTime);
 
-        /* Process the SelectionNotify event */
+        /* Process X events */
+        data.fUseUnicode = fConvertToUnicode;
         iReturn = winProcessXEventsTimeout(hwnd,
                                            iWindow,
                                            pDisplay,
-                                           fConvertToUnicode, WIN_POLL_TIMEOUT);
+                                           &data,
+                                           atoms,
+                                           WIN_POLL_TIMEOUT);
+
+        if (WIN_XEVENTS_NOTIFY_TARGETS != iReturn) {
+            ErrorF
+                ("winClipboardWindowProc - timed out waiting for WIN_XEVENTS_NOTIFY_TARGETS\n");
+            goto fake_paste;
+        }
+
+        /* Choose the most preferred target */
+        {
+            struct target_priority
+            {
+                Atom target;
+                unsigned int priority;
+            };
+
+            struct target_priority target_priority_table[] =
+                {
+                    { atoms->atomCompoundText, 0 },
+#ifdef X_HAVE_UTF8_STRING
+                    { atoms->atomUTF8String,   1 },
+#endif
+                    { XA_STRING,               2 },
+                };
+
+            int best_priority = INT_MAX;
+
+            int i,j;
+            for (i = 0 ; data.targetList[i] != 0; i++)
+                {
+                    for (j = 0; j < sizeof(target_priority_table)/sizeof(struct target_priority); j ++)
+                        {
+                            if ((data.targetList[i] == target_priority_table[j].target) &&
+                                (target_priority_table[j].priority < best_priority))
+                                {
+                                    best_target = target_priority_table[j].target;
+                                    best_priority = target_priority_table[j].priority;
+                                }
+                        }
+                }
+        }
+
+        free(data.targetList);
+        data.targetList = 0;
+
+        winDebug("winClipboardWindowProc - best target is %d\n", best_target);
+
+        /* No useful targets found */
+        if (best_target == 0)
+          goto fake_paste;
+
+        winDebug("winClipboardWindowProc - requesting selection from owner\n");
+
+        /* Request the selection contents */
+        XConvertSelection(pDisplay,
+                          selection,
+                          best_target,
+                          atoms->atomLocalProperty,
+                          iWindow, CurrentTime);
+
+        /* Process X events */
+        iReturn = winProcessXEventsTimeout(hwnd,
+                                           iWindow,
+                                           pDisplay,
+                                           &data,
+                                           atoms,
+                                           WIN_POLL_TIMEOUT);
 
         /*
-         * The last call to winProcessXEventsTimeout
-         * from above had better have seen a notify event, or else we
-         * are dealing with a buggy or old X11 app.  In these cases we
-         * have to paste some fake data to the Win32 clipboard to
-         * satisfy the requirement that we write something to it.
+         * winProcessXEventsTimeout had better have seen a notify event,
+         * or else we are dealing with a buggy or old X11 app.
          */
-        if (WIN_XEVENTS_NOTIFY != iReturn) {
-            ErrorF("winClipboardWindowProc - winProcessXEventsTimeout should have returned WIN_XEVENTS_NOTIFY was %d\n",iReturn);
+        if (WIN_XEVENTS_NOTIFY_DATA != iReturn) {
+            ErrorF
+                ("winClipboardWindowProc - timed out waiting for WIN_XEVENTS_NOTIFY_DATA\n");
+        }
+        else {
+            pasted = TRUE;
+        }
+
+         /*
+          * If we couldn't get the data from the X clipboard, we
+          * have to paste some fake data to the Win32 clipboard to
+          * satisfy the requirement that we write something to it.
+          */
+    fake_paste:
+        if (!pasted)
+          {
             /* Paste no data, to satisfy required call to SetClipboardData */
             SetClipboardData(CF_UNICODETEXT, NULL);
             SetClipboardData(CF_TEXT, NULL);
+          }
 
-            ErrorF
-                ("winClipboardWindowProc - timed out waiting for WIN_XEVENTS_NOTIFY\n");
-        }
-
-        /* Special handling for WM_RENDERALLFORMATS */
-        if (message == WM_RENDERALLFORMATS) {
-            /* We must close the clipboard */
-
-            if (!CloseClipboard()) {
-                ErrorF (
-                              "winClipboardWindowProc - WM_RENDERALLFORMATS - "
-                              "CloseClipboard () failed: %08x\n",
-                              GetLastError());
-                break;
-            }
-        }
-
-        winDebug("winClipboardWindowProc - WM_RENDER*FORMAT - Returning.\n");
+        winDebug("winClipboardWindowProc - WM_RENDERFORMAT - Returning.\n");
         return 0;
     }
     }

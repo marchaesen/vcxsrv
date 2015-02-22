@@ -246,9 +246,15 @@ util_make_fragment_tex_shader_writemask(struct pipe_context *pipe,
       ureg_MOV( ureg, out, imm );
    }
 
-   ureg_TEX( ureg, 
-             ureg_writemask(out, writemask),
-             tex_target, tex, sampler );
+   if (tex_target == TGSI_TEXTURE_BUFFER)
+      ureg_TXF(ureg,
+               ureg_writemask(out, writemask),
+               tex_target, tex, sampler);
+   else
+      ureg_TEX(ureg,
+               ureg_writemask(out, writemask),
+               tex_target, tex, sampler);
+
    ureg_END( ureg );
 
    return ureg_create_shader_and_destroy( ureg, pipe );

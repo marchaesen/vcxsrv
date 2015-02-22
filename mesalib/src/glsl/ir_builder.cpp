@@ -246,9 +246,19 @@ ir_expression *borrow(operand a, operand b)
    return expr(ir_binop_borrow, a, b);
 }
 
+ir_expression *trunc(operand a)
+{
+   return expr(ir_unop_trunc, a);
+}
+
 ir_expression *round_even(operand a)
 {
    return expr(ir_unop_round_even, a);
+}
+
+ir_expression *fract(operand a)
+{
+   return expr(ir_unop_fract, a);
 }
 
 /* dot for vectors, mul for scalars */
@@ -512,6 +522,24 @@ ir_expression *
 interpolate_at_sample(operand a, operand b)
 {
    return expr(ir_binop_interpolate_at_sample, a, b);
+}
+
+ir_expression *
+f2d(operand a)
+{
+   return expr(ir_unop_f2d, a);
+}
+
+ir_expression *
+i2d(operand a)
+{
+   return expr(ir_unop_i2d, a);
+}
+
+ir_expression *
+u2d(operand a)
+{
+   return expr(ir_unop_u2d, a);
 }
 
 ir_expression *

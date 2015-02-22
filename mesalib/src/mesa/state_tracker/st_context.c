@@ -136,6 +136,8 @@ st_destroy_context_priv(struct st_context *st)
    if (st->constbuf_uploader) {
       u_upload_destroy(st->constbuf_uploader);
    }
+
+   cso_destroy_context(st->cso_context);
    free( st );
 }
 
@@ -228,6 +230,9 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
    st->has_etc1 = screen->is_format_supported(screen, PIPE_FORMAT_ETC1_RGB8,
                                               PIPE_TEXTURE_2D, 0,
                                               PIPE_BIND_SAMPLER_VIEW);
+   st->has_etc2 = screen->is_format_supported(screen, PIPE_FORMAT_ETC2_RGB8,
+                                              PIPE_TEXTURE_2D, 0,
+                                              PIPE_BIND_SAMPLER_VIEW);
    st->prefer_blit_based_texture_transfer = screen->get_param(screen,
                               PIPE_CAP_PREFER_BLIT_BASED_TEXTURE_TRANSFER);
 
@@ -271,6 +276,8 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
     */
    st->ctx->Point.MaxSize = MAX2(ctx->Const.MaxPointSize,
                                  ctx->Const.MaxPointSizeAA);
+   /* For vertex shaders, make sure not to emit saturate when SM 3.0 is not supported */
+   ctx->Const.ShaderCompilerOptions[MESA_SHADER_VERTEX].EmitNoSat = !st->has_shader_model3;
 
    _mesa_compute_version(ctx);
 
@@ -346,14 +353,10 @@ destroy_tex_sampler_cb(GLuint id, void *data, void *userData)
 void st_destroy_context( struct st_context *st )
 {
    struct pipe_context *pipe = st->pipe;
-   struct cso_context *cso = st->cso_context;
    struct gl_context *ctx = st->ctx;
    GLuint i;
 
    _mesa_HashWalk(ctx->Shared->TexObjects, destroy_tex_sampler_cb, st);
-
-   /* need to unbind and destroy CSO objects before anything else */
-   cso_release_all(st->cso_context);
 
    st_reference_fragprog(st, &st->fp, NULL);
    st_reference_geomprog(st, &st->gp, NULL);
@@ -383,8 +386,6 @@ void st_destroy_context( struct st_context *st )
     * afterwards. */
    st_destroy_context_priv(st);
    st = NULL;
-
-   cso_destroy_context(cso);
 
    pipe->destroy( pipe );
 

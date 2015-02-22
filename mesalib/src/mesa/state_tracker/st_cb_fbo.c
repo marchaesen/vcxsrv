@@ -408,9 +408,9 @@ st_update_renderbuffer_surface(struct st_context *st,
 {
    struct pipe_context *pipe = st->pipe;
    struct pipe_resource *resource = strb->texture;
-   int rtt_width = strb->Base.Width;
-   int rtt_height = strb->Base.Height;
-   int rtt_depth = strb->Base.Depth;
+   unsigned rtt_width = strb->Base.Width;
+   unsigned rtt_height = strb->Base.Height;
+   unsigned rtt_depth = strb->Base.Depth;
    /*
     * For winsys fbo, it is possible that the renderbuffer is sRGB-capable but
     * the format of strb->texture is linear (because we have no control over

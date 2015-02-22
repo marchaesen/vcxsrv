@@ -490,7 +490,7 @@ void glWindowPos4fMESA( GLfloat x, GLfloat y, GLfloat z, GLfloat w )
  */
 void _mesa_init_rastpos( struct gl_context * ctx )
 {
-   int i;
+   unsigned i;
 
    ASSIGN_4V( ctx->Current.RasterPos, 0.0, 0.0, 0.0, 1.0 );
    ctx->Current.RasterDistance = 0.0;

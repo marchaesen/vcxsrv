@@ -1,3 +1,5 @@
 LOADER_C_FILES := \
 	loader.c \
-	pci_id_driver_map.c
+	loader.h \
+	pci_id_driver_map.c \
+	pci_id_driver_map.h

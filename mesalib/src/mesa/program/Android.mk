@@ -39,8 +39,6 @@ endef
 # Import the following variables:
 #     PROGRAM_FILES
 include $(MESA_TOP)/src/mesa/Makefile.sources
-SRCDIR :=
-BUILDDIR :=
 
 include $(CLEAR_VARS)
 

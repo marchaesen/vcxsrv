@@ -38,6 +38,11 @@
 #include "samplerobj.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /**
  * \name Internal functions
  */
@@ -45,6 +50,9 @@
 
 extern struct gl_texture_object *
 _mesa_lookup_texture(struct gl_context *ctx, GLuint id);
+
+extern struct gl_texture_object *
+_mesa_lookup_texture_err(struct gl_context *ctx, GLuint id, const char* func);
 
 extern void
 _mesa_begin_texture_lookups(struct gl_context *ctx);
@@ -54,6 +62,9 @@ _mesa_end_texture_lookups(struct gl_context *ctx);
 
 extern struct gl_texture_object *
 _mesa_lookup_texture_locked(struct gl_context *ctx, GLuint id);
+
+extern struct gl_texture_object *
+_mesa_get_current_tex_object(struct gl_context *ctx, GLenum target);
 
 extern struct gl_texture_object *
 _mesa_new_texture_object( struct gl_context *ctx, GLuint name, GLenum target );
@@ -88,6 +99,24 @@ _mesa_reference_texobj(struct gl_texture_object **ptr,
 {
    if (*ptr != tex)
       _mesa_reference_texobj_(ptr, tex);
+}
+
+/**
+ * Lock a texture for updating.  See also _mesa_lock_context_textures().
+ */
+static inline void
+_mesa_lock_texture(struct gl_context *ctx, struct gl_texture_object *texObj)
+{
+   mtx_lock(&ctx->Shared->TexMutex);
+   ctx->Shared->TextureStateStamp++;
+   (void) texObj;
+}
+
+static inline void
+_mesa_unlock_texture(struct gl_context *ctx, struct gl_texture_object *texObj)
+{
+   (void) texObj;
+   mtx_unlock(&ctx->Shared->TexMutex);
 }
 
 
@@ -149,6 +178,10 @@ _mesa_test_texobj_completeness( const struct gl_context *ctx,
                                 struct gl_texture_object *obj );
 
 extern GLboolean
+_mesa_cube_level_complete(const struct gl_texture_object *texObj,
+                          const GLint level);
+
+extern GLboolean
 _mesa_cube_complete(const struct gl_texture_object *texObj);
 
 extern void
@@ -160,11 +193,26 @@ _mesa_get_fallback_texture(struct gl_context *ctx, gl_texture_index tex);
 extern GLuint
 _mesa_total_texture_memory(struct gl_context *ctx);
 
+extern GLenum
+_mesa_texture_base_format(const struct gl_texture_object *texObj);
+
 extern void
 _mesa_unlock_context_textures( struct gl_context *ctx );
 
 extern void
 _mesa_lock_context_textures( struct gl_context *ctx );
+
+extern struct gl_texture_object *
+_mesa_create_nameless_texture(struct gl_context *ctx, GLenum target);
+
+extern void
+_mesa_delete_nameless_texture(struct gl_context *ctx,
+                              struct gl_texture_object *texObj);
+
+extern void
+_mesa_bind_texture_unit(struct gl_context *ctx,
+                        GLuint unit,
+                        struct gl_texture_object *texObj);
 
 /*@}*/
 
@@ -174,8 +222,10 @@ _mesa_lock_context_textures( struct gl_context *ctx );
 /*@{*/
 
 extern void GLAPIENTRY
-_mesa_GenTextures( GLsizei n, GLuint *textures );
+_mesa_GenTextures(GLsizei n, GLuint *textures);
 
+extern void GLAPIENTRY
+_mesa_CreateTextures(GLenum target, GLsizei n, GLuint *textures);
 
 extern void GLAPIENTRY
 _mesa_DeleteTextures( GLsizei n, const GLuint *textures );
@@ -184,6 +234,8 @@ _mesa_DeleteTextures( GLsizei n, const GLuint *textures );
 extern void GLAPIENTRY
 _mesa_BindTexture( GLenum target, GLuint texture );
 
+extern void GLAPIENTRY
+_mesa_BindTextureUnit(GLuint unit, GLuint texture);
 
 extern void GLAPIENTRY
 _mesa_BindTextures( GLuint first, GLsizei count, const GLuint *textures );
@@ -210,6 +262,11 @@ extern void GLAPIENTRY
 _mesa_InvalidateTexImage(GLuint texture, GLint level);
 
 /*@}*/
+
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif

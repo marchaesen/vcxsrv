@@ -13,6 +13,7 @@ env.Append(CPPPATH = [
 ])
 
 env.Prepend(LIBS = [
+    mesautil,
     glsl,
     mesa,
 ])

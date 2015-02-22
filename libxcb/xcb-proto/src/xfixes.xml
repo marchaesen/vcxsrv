@@ -291,13 +291,13 @@ authorization from the authors.
       <field type="ATOM"   name="cursor_atom" altenum="Atom" />
       <field type="CARD16" name="nbytes" />
       <pad bytes="2" />
-      <list  type="char"   name="name"><fieldref>nbytes</fieldref></list>
       <list  type="CARD32" name="cursor_image">
         <op op="*">
           <fieldref>width</fieldref>
           <fieldref>height</fieldref>
         </op>
       </list>
+      <list  type="char"   name="name"><fieldref>nbytes</fieldref></list>
     </reply>
   </request>
 

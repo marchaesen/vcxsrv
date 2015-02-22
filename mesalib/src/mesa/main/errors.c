@@ -134,7 +134,7 @@ static const GLenum debug_severity_enums[] = {
 static enum mesa_debug_source
 gl_enum_to_debug_source(GLenum e)
 {
-   int i;
+   unsigned i;
 
    for (i = 0; i < Elements(debug_source_enums); i++) {
       if (debug_source_enums[i] == e)
@@ -146,7 +146,7 @@ gl_enum_to_debug_source(GLenum e)
 static enum mesa_debug_type
 gl_enum_to_debug_type(GLenum e)
 {
-   int i;
+   unsigned i;
 
    for (i = 0; i < Elements(debug_type_enums); i++) {
       if (debug_type_enums[i] == e)
@@ -158,7 +158,7 @@ gl_enum_to_debug_type(GLenum e)
 static enum mesa_debug_severity
 gl_enum_to_debug_severity(GLenum e)
 {
-   int i;
+   unsigned i;
 
    for (i = 0; i < Elements(debug_severity_enums); i++) {
       if (debug_severity_enums[i] == e)
@@ -633,7 +633,7 @@ debug_fetch_message(const struct gl_debug_state *debug)
  * Delete the oldest debug messages out of the log.
  */
 static void
-debug_delete_messages(struct gl_debug_state *debug, unsigned count)
+debug_delete_messages(struct gl_debug_state *debug, int count)
 {
    struct gl_debug_log *log = &debug->Log;
 
@@ -1395,6 +1395,7 @@ should_output(struct gl_context *ctx, GLenum error, const char *fmtString)
 void
 _mesa_gl_debug(struct gl_context *ctx,
                GLuint *id,
+               enum mesa_debug_source source,
                enum mesa_debug_type type,
                enum mesa_debug_severity severity,
                const char *fmtString, ...)
@@ -1409,7 +1410,7 @@ _mesa_gl_debug(struct gl_context *ctx,
    len = _mesa_vsnprintf(s, MAX_DEBUG_MESSAGE_LENGTH, fmtString, args);
    va_end(args);
 
-   log_msg(ctx, MESA_DEBUG_SOURCE_API, type, *id, severity, len, s);
+   log_msg(ctx, source, type, *id, severity, len, s);
 }
 
 

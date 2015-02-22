@@ -140,7 +140,8 @@ public:
 
    void handle_rvalue(ir_rvalue **rvalue);
    void emit_ubo_loads(ir_dereference *deref, ir_variable *base_offset,
-		       unsigned int deref_offset, bool row_major);
+                       unsigned int deref_offset, bool row_major,
+                       int matrix_columns);
    ir_expression *ubo_load(const struct glsl_type *type,
 			   ir_rvalue *offset);
 
@@ -265,6 +266,7 @@ lower_ubo_reference_visitor::handle_rvalue(ir_rvalue **rvalue)
    ir_rvalue *offset = new(mem_ctx) ir_constant(0u);
    unsigned const_offset = 0;
    bool row_major = is_dereferenced_thing_row_major(deref);
+   int matrix_columns = 1;
 
    /* Calculate the offset to the start of the region of the UBO
     * dereferenced by *rvalue.  This may be a variable offset if an
@@ -288,6 +290,9 @@ lower_ubo_reference_visitor::handle_rvalue(ir_rvalue **rvalue)
 	     * vector) is handled below in emit_ubo_loads.
 	     */
 	    array_stride = 4;
+            if (deref_array->array->type->is_double())
+               array_stride *= 2;
+            matrix_columns = deref_array->array->type->matrix_columns;
          } else if (deref_array->type->is_interface()) {
             /* We're processing an array dereference of an interface instance
 	     * array.  The thing being dereferenced *must* be a variable
@@ -334,15 +339,6 @@ lower_ubo_reference_visitor::handle_rvalue(ir_rvalue **rvalue)
 	 const glsl_type *struct_type = deref_record->record->type;
 	 unsigned intra_struct_offset = 0;
 
-         /* glsl_type::std140_base_alignment doesn't grok interfaces.  Use
-          * 16-bytes for the alignment because that is the general minimum of
-          * std140.
-          */
-         const unsigned struct_alignment = struct_type->is_interface()
-            ? 16
-            : struct_type->std140_base_alignment(row_major);
-
-
 	 for (unsigned int i = 0; i < struct_type->length; i++) {
 	    const glsl_type *type = struct_type->fields.structure[i].type;
 
@@ -372,7 +368,7 @@ lower_ubo_reference_visitor::handle_rvalue(ir_rvalue **rvalue)
              */
             if (type->without_array()->is_record()) {
                intra_struct_offset = glsl_align(intra_struct_offset,
-                                                struct_alignment);
+                                                field_align);
 
             }
 	 }
@@ -405,7 +401,7 @@ lower_ubo_reference_visitor::handle_rvalue(ir_rvalue **rvalue)
    base_ir->insert_before(assign(load_offset, offset));
 
    deref = new(mem_ctx) ir_dereference_variable(load_var);
-   emit_ubo_loads(deref, load_offset, const_offset, row_major);
+   emit_ubo_loads(deref, load_offset, const_offset, row_major, matrix_columns);
    *rvalue = deref;
 
    progress = true;
@@ -436,7 +432,8 @@ void
 lower_ubo_reference_visitor::emit_ubo_loads(ir_dereference *deref,
 					    ir_variable *base_offset,
                                             unsigned int deref_offset,
-                                            bool row_major)
+                                            bool row_major,
+                                            int matrix_columns)
 {
    if (deref->type->is_record()) {
       unsigned int field_offset = 0;
@@ -453,7 +450,7 @@ lower_ubo_reference_visitor::emit_ubo_loads(ir_dereference *deref,
                        field->type->std140_base_alignment(row_major));
 
 	 emit_ubo_loads(field_deref, base_offset, deref_offset + field_offset,
-                        row_major);
+                        row_major, 1);
 
 	 field_offset += field->type->std140_size(row_major);
       }
@@ -472,7 +469,7 @@ lower_ubo_reference_visitor::emit_ubo_loads(ir_dereference *deref,
 					      element);
 	 emit_ubo_loads(element_deref, base_offset,
 			deref_offset + i * array_stride,
-                        row_major);
+                        row_major, 1);
       }
       return;
    }
@@ -488,14 +485,18 @@ lower_ubo_reference_visitor::emit_ubo_loads(ir_dereference *deref,
             /* For a row-major matrix, the next column starts at the next
              * element.
              */
-            emit_ubo_loads(col_deref, base_offset, deref_offset + i * 4,
-                           row_major);
+            int size_mul = deref->type->is_double() ? 8 : 4;
+            emit_ubo_loads(col_deref, base_offset, deref_offset + i * size_mul,
+                           row_major, deref->type->matrix_columns);
          } else {
             /* std140 always rounds the stride of arrays (and matrices) to a
-             * vec4, so matrices are always 16 between columns/rows.
+             * vec4, so matrices are always 16 between columns/rows. With
+             * doubles, they will be 32 apart when there are more than 2 rows.
              */
-            emit_ubo_loads(col_deref, base_offset, deref_offset + i * 16,
-                           row_major);
+            int size_mul = (deref->type->is_double() &&
+                            deref->type->vector_elements > 2) ? 32 : 16;
+            emit_ubo_loads(col_deref, base_offset, deref_offset + i * size_mul,
+                           row_major, deref->type->matrix_columns);
          }
       }
       return;
@@ -510,16 +511,24 @@ lower_ubo_reference_visitor::emit_ubo_loads(ir_dereference *deref,
       base_ir->insert_before(assign(deref->clone(mem_ctx, NULL),
 				    ubo_load(deref->type, offset)));
    } else {
+      unsigned N = deref->type->is_double() ? 8 : 4;
+
       /* We're dereffing a column out of a row-major matrix, so we
        * gather the vector from each stored row.
       */
-      assert(deref->type->base_type == GLSL_TYPE_FLOAT);
+      assert(deref->type->base_type == GLSL_TYPE_FLOAT ||
+             deref->type->base_type == GLSL_TYPE_DOUBLE);
       /* Matrices, row_major or not, are stored as if they were
        * arrays of vectors of the appropriate size in std140.
        * Arrays have their strides rounded up to a vec4, so the
-       * matrix stride is always 16.
+       * matrix stride is always 16. However a double matrix may either be 16
+       * or 32 depending on the number of columns.
        */
-      unsigned matrix_stride = 16;
+      assert(matrix_columns <= 4);
+      unsigned matrix_stride = glsl_align(matrix_columns * N, 16);
+
+      const glsl_type *ubo_type = deref->type->base_type == GLSL_TYPE_FLOAT ?
+         glsl_type::float_type : glsl_type::double_type;
 
       for (unsigned i = 0; i < deref->type->vector_elements; i++) {
 	 ir_rvalue *chan_offset =
@@ -527,7 +536,7 @@ lower_ubo_reference_visitor::emit_ubo_loads(ir_dereference *deref,
 		new(mem_ctx) ir_constant(deref_offset + i * matrix_stride));
 
 	 base_ir->insert_before(assign(deref->clone(mem_ctx, NULL),
-				       ubo_load(glsl_type::float_type,
+				       ubo_load(ubo_type,
 						chan_offset),
 				       (1U << i)));
       }

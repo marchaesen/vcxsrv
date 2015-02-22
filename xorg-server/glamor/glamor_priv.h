@@ -215,6 +215,7 @@ struct glamor_saved_procs {
 #if XSYNC
     SyncScreenFuncsRec sync_screen_funcs;
 #endif
+    ScreenBlockHandlerProcPtr block_handler;
 };
 
 #define CACHE_FORMAT_COUNT 3
@@ -306,7 +307,6 @@ typedef struct glamor_screen_private {
     int linear_max_nstops;
     int radial_max_nstops;
 
-    PixmapPtr *back_pixmap;
     int screen_fbo;
     struct glamor_saved_procs saved_procs;
     char delayed_fallback_string[GLAMOR_DELAYED_STRING_MAX + 1];
@@ -654,7 +654,6 @@ glamor_pixmap_fbo *glamor_create_fbo(glamor_screen_private *glamor_priv, int w,
                                      int h, GLenum format, int flag);
 void glamor_destroy_fbo(glamor_pixmap_fbo *fbo);
 void glamor_pixmap_destroy_fbo(glamor_pixmap_private *priv);
-void glamor_purge_fbo(glamor_pixmap_fbo *fbo);
 
 void glamor_init_pixmap_fbo(ScreenPtr screen);
 void glamor_fini_pixmap_fbo(ScreenPtr screen);

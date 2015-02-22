@@ -149,7 +149,12 @@ update_vp( struct st_context *st )
    key.passthrough_edgeflags = st->vertdata_edgeflags;
 
    key.clamp_color = st->clamp_vert_color_in_shader &&
-                     st->ctx->Light._ClampVertexColor;
+                     st->ctx->Light._ClampVertexColor &&
+                     (stvp->Base.Base.OutputsWritten &
+                      (VARYING_SLOT_COL0 |
+                       VARYING_SLOT_COL1 |
+                       VARYING_SLOT_BFC0 |
+                       VARYING_SLOT_BFC1));
 
    st->vp_variant = st_get_vp_variant(st, stvp, &key);
 

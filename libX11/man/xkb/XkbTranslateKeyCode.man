@@ -44,7 +44,7 @@ keycode to translate
 modifiers to apply when translating key
 .TP
 .I \- mods_rtrn
-backfilled with unconsumed modifiers
+backfilled with consumed modifiers
 .TP
 .I \- keysym_rtrn
 keysym resulting from translation

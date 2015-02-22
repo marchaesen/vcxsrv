@@ -33,6 +33,7 @@
 #ifdef HAVE_XWIN_CONFIG_H
 #include <xwin-config.h>
 #endif
+
 #include "win.h"
 #include "dixstruct.h"
 #include <X11/Xatom.h>
@@ -52,18 +53,12 @@
 DISPATCH_PROC(winProcEstablishConnection);
 DISPATCH_PROC(winProcSetSelectionOwner);
 
-/*
- * References to external symbols
- */
-
 extern Bool g_fClipboardLaunched;
 extern Bool g_fClipboardStarted;
-extern Bool g_fClipboard;
 extern Window g_iClipboardWindow;
 extern Atom g_atomLastOwnedSelection;
 extern HWND g_hwndClipboard;
 extern Bool		g_fClipboardPrimary;
-
 
 /*
  * Wrapper for internal EstablishConnection function.

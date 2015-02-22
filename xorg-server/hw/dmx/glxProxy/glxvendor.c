@@ -44,6 +44,8 @@
 /* #include "g_disptab_EXT.h" */
 #include "unpack.h"
 #include "glxutil.h"
+#include "glxcmds.h"
+#include "glxvendor.h"
 
 #include "GL/glxproto.h"
 
@@ -77,10 +79,6 @@
 	dpy->bufptr += SIZEOF(x/**/name/**/Req);\
 	dpy->request++
 #endif
-
-extern Display *GetBackEndDisplay(__GLXclientState * cl, int s);
-extern int GetCurrentBackEndTag(__GLXclientState * cl, GLXContextTag tag,
-                                int s);
 
 static int swap_vec_element_size = 0;
 

@@ -19,13 +19,13 @@
 .\" FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 .\" DEALINGS IN THE SOFTWARE.
 .\"
-.TH XkbChangeTypesOfKey __libmansuffix__ __xorgversion__ "XKB FUNCTIONS"
+.TH XkbGetKeyBehaviors __libmansuffix__ __xorgversion__ "XKB FUNCTIONS"
 .SH NAME
-XkbChangeTypesOfKey \- Obtain the behaviors (the behaviors array) for a subset of the keys in 
+XkbGetKeyBehaviors \- Obtain the behaviors (the behaviors array) for a subset of the keys in
 a keyboard description from the server
 .SH SYNOPSIS
 .HP
-.B Status XkbChangeTypesOfKey
+.B Status XkbGetKeyBehaviors
 .BI "(\^Display *" "dpy" "\^,"
 .BI "unsigned int " "first" "\^,"
 .BI "unsigned int " "num" "\^,"

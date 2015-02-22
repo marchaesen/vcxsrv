@@ -381,6 +381,12 @@ gs_streams(const _mesa_glsl_parse_state *state)
    return gpu_shader5(state) && gs_only(state);
 }
 
+static bool
+fp64(const _mesa_glsl_parse_state *state)
+{
+   return state->has_double();
+}
+
 /** @} */
 
 /******************************************************************************/
@@ -436,6 +442,7 @@ private:
    ir_constant *imm(float f, unsigned vector_elements=1);
    ir_constant *imm(int i, unsigned vector_elements=1);
    ir_constant *imm(unsigned u, unsigned vector_elements=1);
+   ir_constant *imm(double d, unsigned vector_elements=1);
    ir_constant *imm(const glsl_type *type, const ir_constant_data &);
    ir_dereference_variable *var_ref(ir_variable *var);
    ir_dereference_array *array_ref(ir_variable *var, int i);
@@ -526,29 +533,29 @@ private:
    B1(log)
    B1(exp2)
    B1(log2)
-   B1(sqrt)
-   B1(inversesqrt)
-   B1(abs)
-   B1(sign)
-   B1(floor)
-   B1(trunc)
-   B1(round)
-   B1(roundEven)
-   B1(ceil)
-   B1(fract)
+   BA1(sqrt)
+   BA1(inversesqrt)
+   BA1(abs)
+   BA1(sign)
+   BA1(floor)
+   BA1(trunc)
+   BA1(round)
+   BA1(roundEven)
+   BA1(ceil)
+   BA1(fract)
    B2(mod)
-   B1(modf)
+   BA1(modf)
    BA2(min)
    BA2(max)
    BA2(clamp)
-   B2(mix_lrp)
+   BA2(mix_lrp)
    ir_function_signature *_mix_sel(builtin_available_predicate avail,
                                    const glsl_type *val_type,
                                    const glsl_type *blend_type);
-   B2(step)
-   B2(smoothstep)
-   B1(isnan)
-   B1(isinf)
+   BA2(step)
+   BA2(smoothstep)
+   BA1(isnan)
+   BA1(isinf)
    B1(floatBitsToInt)
    B1(floatBitsToUint)
    B1(intBitsToFloat)
@@ -563,24 +570,27 @@ private:
    ir_function_signature *_unpackSnorm4x8(builtin_available_predicate avail);
    ir_function_signature *_packHalf2x16(builtin_available_predicate avail);
    ir_function_signature *_unpackHalf2x16(builtin_available_predicate avail);
-   B1(length)
-   B1(distance);
-   B1(dot);
-   B1(cross);
-   B1(normalize);
+   ir_function_signature *_packDouble2x32(builtin_available_predicate avail);
+   ir_function_signature *_unpackDouble2x32(builtin_available_predicate avail);
+
+   BA1(length)
+   BA1(distance);
+   BA1(dot);
+   BA1(cross);
+   BA1(normalize);
    B0(ftransform);
-   B1(faceforward);
-   B1(reflect);
-   B1(refract);
-   B1(matrixCompMult);
-   B1(outerProduct);
-   B0(determinant_mat2);
-   B0(determinant_mat3);
-   B0(determinant_mat4);
-   B0(inverse_mat2);
-   B0(inverse_mat3);
-   B0(inverse_mat4);
-   B1(transpose);
+   BA1(faceforward);
+   BA1(reflect);
+   BA1(refract);
+   BA1(matrixCompMult);
+   BA1(outerProduct);
+   BA1(determinant_mat2);
+   BA1(determinant_mat3);
+   BA1(determinant_mat4);
+   BA1(inverse_mat2);
+   BA1(inverse_mat3);
+   BA1(inverse_mat4);
+   BA1(transpose);
    BA1(lessThan);
    BA1(lessThanEqual);
    BA1(greaterThan);
@@ -644,9 +654,10 @@ private:
    B1(bitCount)
    B1(findLSB)
    B1(findMSB)
-   B1(fma_mesa)
+   BA1(fma)
    B2(ldexp)
    B2(frexp)
+   B2(dfrexp)
    B1(uaddCarry)
    B1(usubBorrow)
    B1(mulExtended)
@@ -815,6 +826,42 @@ builtin_builder::create_builtins()
                 _##NAME(glsl_type::vec4_type),  \
                 NULL);
 
+#define FD(NAME)                                 \
+   add_function(#NAME,                          \
+                _##NAME(always_available, glsl_type::float_type), \
+                _##NAME(always_available, glsl_type::vec2_type),  \
+                _##NAME(always_available, glsl_type::vec3_type),  \
+                _##NAME(always_available, glsl_type::vec4_type),  \
+                _##NAME(fp64, glsl_type::double_type),  \
+                _##NAME(fp64, glsl_type::dvec2_type),    \
+                _##NAME(fp64, glsl_type::dvec3_type),     \
+                _##NAME(fp64, glsl_type::dvec4_type),      \
+                NULL);
+
+#define FD130(NAME)                                 \
+   add_function(#NAME,                          \
+                _##NAME(v130, glsl_type::float_type), \
+                _##NAME(v130, glsl_type::vec2_type),  \
+                _##NAME(v130, glsl_type::vec3_type),                  \
+                _##NAME(v130, glsl_type::vec4_type),  \
+                _##NAME(fp64, glsl_type::double_type),  \
+                _##NAME(fp64, glsl_type::dvec2_type),    \
+                _##NAME(fp64, glsl_type::dvec3_type),     \
+                _##NAME(fp64, glsl_type::dvec4_type),      \
+                NULL);
+
+#define FDGS5(NAME)                                 \
+   add_function(#NAME,                          \
+                _##NAME(gpu_shader5, glsl_type::float_type), \
+                _##NAME(gpu_shader5, glsl_type::vec2_type),  \
+                _##NAME(gpu_shader5, glsl_type::vec3_type),                  \
+                _##NAME(gpu_shader5, glsl_type::vec4_type),  \
+                _##NAME(fp64, glsl_type::double_type),  \
+                _##NAME(fp64, glsl_type::dvec2_type),    \
+                _##NAME(fp64, glsl_type::dvec3_type),     \
+                _##NAME(fp64, glsl_type::dvec4_type),      \
+                NULL);
+
 #define FI(NAME)                                \
    add_function(#NAME,                          \
                 _##NAME(glsl_type::float_type), \
@@ -827,7 +874,23 @@ builtin_builder::create_builtins()
                 _##NAME(glsl_type::ivec4_type), \
                 NULL);
 
-#define FIU(NAME)                                                 \
+#define FID(NAME)                                \
+   add_function(#NAME,                          \
+                _##NAME(always_available, glsl_type::float_type), \
+                _##NAME(always_available, glsl_type::vec2_type),  \
+                _##NAME(always_available, glsl_type::vec3_type),  \
+                _##NAME(always_available, glsl_type::vec4_type),  \
+                _##NAME(always_available, glsl_type::int_type),   \
+                _##NAME(always_available, glsl_type::ivec2_type), \
+                _##NAME(always_available, glsl_type::ivec3_type), \
+                _##NAME(always_available, glsl_type::ivec4_type), \
+                _##NAME(fp64, glsl_type::double_type), \
+                _##NAME(fp64, glsl_type::dvec2_type),  \
+                _##NAME(fp64, glsl_type::dvec3_type),  \
+                _##NAME(fp64, glsl_type::dvec4_type),  \
+                NULL);
+
+#define FIUD(NAME)                                                 \
    add_function(#NAME,                                            \
                 _##NAME(always_available, glsl_type::float_type), \
                 _##NAME(always_available, glsl_type::vec2_type),  \
@@ -843,6 +906,10 @@ builtin_builder::create_builtins()
                 _##NAME(v130, glsl_type::uvec2_type),             \
                 _##NAME(v130, glsl_type::uvec3_type),             \
                 _##NAME(v130, glsl_type::uvec4_type),             \
+                _##NAME(fp64, glsl_type::double_type), \
+                _##NAME(fp64, glsl_type::dvec2_type),  \
+                _##NAME(fp64, glsl_type::dvec3_type),  \
+                _##NAME(fp64, glsl_type::dvec4_type),  \
                 NULL);
 
 #define IU(NAME)                                \
@@ -858,7 +925,7 @@ builtin_builder::create_builtins()
                 _##NAME(glsl_type::uvec4_type), \
                 NULL);
 
-#define FIUB(NAME)                                                \
+#define FIUBD(NAME)                                                \
    add_function(#NAME,                                            \
                 _##NAME(always_available, glsl_type::float_type), \
                 _##NAME(always_available, glsl_type::vec2_type),  \
@@ -879,9 +946,14 @@ builtin_builder::create_builtins()
                 _##NAME(always_available, glsl_type::bvec2_type), \
                 _##NAME(always_available, glsl_type::bvec3_type), \
                 _##NAME(always_available, glsl_type::bvec4_type), \
+                                                                  \
+                _##NAME(fp64, glsl_type::double_type),  \
+                _##NAME(fp64, glsl_type::dvec2_type), \
+                _##NAME(fp64, glsl_type::dvec3_type), \
+                _##NAME(fp64, glsl_type::dvec4_type), \
                 NULL);
 
-#define FIU2_MIXED(NAME)                                                                 \
+#define FIUD2_MIXED(NAME)                                                                 \
    add_function(#NAME,                                                                   \
                 _##NAME(always_available, glsl_type::float_type, glsl_type::float_type), \
                 _##NAME(always_available, glsl_type::vec2_type,  glsl_type::float_type), \
@@ -909,6 +981,14 @@ builtin_builder::create_builtins()
                 _##NAME(v130, glsl_type::uvec2_type, glsl_type::uvec2_type),             \
                 _##NAME(v130, glsl_type::uvec3_type, glsl_type::uvec3_type),             \
                 _##NAME(v130, glsl_type::uvec4_type, glsl_type::uvec4_type),             \
+                                                                                         \
+                _##NAME(fp64, glsl_type::double_type, glsl_type::double_type),           \
+                _##NAME(fp64, glsl_type::dvec2_type, glsl_type::double_type),           \
+                _##NAME(fp64, glsl_type::dvec3_type, glsl_type::double_type),           \
+                _##NAME(fp64, glsl_type::dvec4_type, glsl_type::double_type),           \
+                _##NAME(fp64, glsl_type::dvec2_type, glsl_type::dvec2_type),           \
+                _##NAME(fp64, glsl_type::dvec3_type, glsl_type::dvec3_type),           \
+                _##NAME(fp64, glsl_type::dvec4_type, glsl_type::dvec4_type),           \
                 NULL);
 
    F(radians)
@@ -941,16 +1021,16 @@ builtin_builder::create_builtins()
    F(log)
    F(exp2)
    F(log2)
-   F(sqrt)
-   F(inversesqrt)
-   FI(abs)
-   FI(sign)
-   F(floor)
-   F(trunc)
-   F(round)
-   F(roundEven)
-   F(ceil)
-   F(fract)
+   FD(sqrt)
+   FD(inversesqrt)
+   FID(abs)
+   FID(sign)
+   FD(floor)
+   FD(trunc)
+   FD(round)
+   FD(roundEven)
+   FD(ceil)
+   FD(fract)
 
    add_function("mod",
                 _mod(glsl_type::float_type, glsl_type::float_type),
@@ -961,28 +1041,51 @@ builtin_builder::create_builtins()
                 _mod(glsl_type::vec2_type,  glsl_type::vec2_type),
                 _mod(glsl_type::vec3_type,  glsl_type::vec3_type),
                 _mod(glsl_type::vec4_type,  glsl_type::vec4_type),
+
+                _mod(glsl_type::double_type, glsl_type::double_type),
+                _mod(glsl_type::dvec2_type,  glsl_type::double_type),
+                _mod(glsl_type::dvec3_type,  glsl_type::double_type),
+                _mod(glsl_type::dvec4_type,  glsl_type::double_type),
+
+                _mod(glsl_type::dvec2_type,  glsl_type::dvec2_type),
+                _mod(glsl_type::dvec3_type,  glsl_type::dvec3_type),
+                _mod(glsl_type::dvec4_type,  glsl_type::dvec4_type),
                 NULL);
 
-   F(modf)
+   FD(modf)
 
-   FIU2_MIXED(min)
-   FIU2_MIXED(max)
-   FIU2_MIXED(clamp)
+   FIUD2_MIXED(min)
+   FIUD2_MIXED(max)
+   FIUD2_MIXED(clamp)
 
    add_function("mix",
-                _mix_lrp(glsl_type::float_type, glsl_type::float_type),
-                _mix_lrp(glsl_type::vec2_type,  glsl_type::float_type),
-                _mix_lrp(glsl_type::vec3_type,  glsl_type::float_type),
-                _mix_lrp(glsl_type::vec4_type,  glsl_type::float_type),
+                _mix_lrp(always_available, glsl_type::float_type, glsl_type::float_type),
+                _mix_lrp(always_available, glsl_type::vec2_type,  glsl_type::float_type),
+                _mix_lrp(always_available, glsl_type::vec3_type,  glsl_type::float_type),
+                _mix_lrp(always_available, glsl_type::vec4_type,  glsl_type::float_type),
 
-                _mix_lrp(glsl_type::vec2_type,  glsl_type::vec2_type),
-                _mix_lrp(glsl_type::vec3_type,  glsl_type::vec3_type),
-                _mix_lrp(glsl_type::vec4_type,  glsl_type::vec4_type),
+                _mix_lrp(always_available, glsl_type::vec2_type,  glsl_type::vec2_type),
+                _mix_lrp(always_available, glsl_type::vec3_type,  glsl_type::vec3_type),
+                _mix_lrp(always_available, glsl_type::vec4_type,  glsl_type::vec4_type),
+
+                _mix_lrp(fp64, glsl_type::double_type, glsl_type::double_type),
+                _mix_lrp(fp64, glsl_type::dvec2_type,  glsl_type::double_type),
+                _mix_lrp(fp64, glsl_type::dvec3_type,  glsl_type::double_type),
+                _mix_lrp(fp64, glsl_type::dvec4_type,  glsl_type::double_type),
+
+                _mix_lrp(fp64, glsl_type::dvec2_type,  glsl_type::dvec2_type),
+                _mix_lrp(fp64, glsl_type::dvec3_type,  glsl_type::dvec3_type),
+                _mix_lrp(fp64, glsl_type::dvec4_type,  glsl_type::dvec4_type),
 
                 _mix_sel(v130, glsl_type::float_type, glsl_type::bool_type),
                 _mix_sel(v130, glsl_type::vec2_type,  glsl_type::bvec2_type),
                 _mix_sel(v130, glsl_type::vec3_type,  glsl_type::bvec3_type),
                 _mix_sel(v130, glsl_type::vec4_type,  glsl_type::bvec4_type),
+
+                _mix_sel(fp64, glsl_type::double_type, glsl_type::bool_type),
+                _mix_sel(fp64, glsl_type::dvec2_type,  glsl_type::bvec2_type),
+                _mix_sel(fp64, glsl_type::dvec3_type,  glsl_type::bvec3_type),
+                _mix_sel(fp64, glsl_type::dvec4_type,  glsl_type::bvec4_type),
 
                 _mix_sel(shader_integer_mix, glsl_type::int_type,   glsl_type::bool_type),
                 _mix_sel(shader_integer_mix, glsl_type::ivec2_type, glsl_type::bvec2_type),
@@ -1001,29 +1104,45 @@ builtin_builder::create_builtins()
                 NULL);
 
    add_function("step",
-                _step(glsl_type::float_type, glsl_type::float_type),
-                _step(glsl_type::float_type, glsl_type::vec2_type),
-                _step(glsl_type::float_type, glsl_type::vec3_type),
-                _step(glsl_type::float_type, glsl_type::vec4_type),
+                _step(always_available, glsl_type::float_type, glsl_type::float_type),
+                _step(always_available, glsl_type::float_type, glsl_type::vec2_type),
+                _step(always_available, glsl_type::float_type, glsl_type::vec3_type),
+                _step(always_available, glsl_type::float_type, glsl_type::vec4_type),
 
-                _step(glsl_type::vec2_type,  glsl_type::vec2_type),
-                _step(glsl_type::vec3_type,  glsl_type::vec3_type),
-                _step(glsl_type::vec4_type,  glsl_type::vec4_type),
+                _step(always_available, glsl_type::vec2_type,  glsl_type::vec2_type),
+                _step(always_available, glsl_type::vec3_type,  glsl_type::vec3_type),
+                _step(always_available, glsl_type::vec4_type,  glsl_type::vec4_type),
+                _step(fp64, glsl_type::double_type, glsl_type::double_type),
+                _step(fp64, glsl_type::double_type, glsl_type::dvec2_type),
+                _step(fp64, glsl_type::double_type, glsl_type::dvec3_type),
+                _step(fp64, glsl_type::double_type, glsl_type::dvec4_type),
+
+                _step(fp64, glsl_type::dvec2_type,  glsl_type::dvec2_type),
+                _step(fp64, glsl_type::dvec3_type,  glsl_type::dvec3_type),
+                _step(fp64, glsl_type::dvec4_type,  glsl_type::dvec4_type),
                 NULL);
 
    add_function("smoothstep",
-                _smoothstep(glsl_type::float_type, glsl_type::float_type),
-                _smoothstep(glsl_type::float_type, glsl_type::vec2_type),
-                _smoothstep(glsl_type::float_type, glsl_type::vec3_type),
-                _smoothstep(glsl_type::float_type, glsl_type::vec4_type),
+                _smoothstep(always_available, glsl_type::float_type, glsl_type::float_type),
+                _smoothstep(always_available, glsl_type::float_type, glsl_type::vec2_type),
+                _smoothstep(always_available, glsl_type::float_type, glsl_type::vec3_type),
+                _smoothstep(always_available, glsl_type::float_type, glsl_type::vec4_type),
 
-                _smoothstep(glsl_type::vec2_type,  glsl_type::vec2_type),
-                _smoothstep(glsl_type::vec3_type,  glsl_type::vec3_type),
-                _smoothstep(glsl_type::vec4_type,  glsl_type::vec4_type),
+                _smoothstep(always_available, glsl_type::vec2_type,  glsl_type::vec2_type),
+                _smoothstep(always_available, glsl_type::vec3_type,  glsl_type::vec3_type),
+                _smoothstep(always_available, glsl_type::vec4_type,  glsl_type::vec4_type),
+                _smoothstep(fp64, glsl_type::double_type, glsl_type::double_type),
+                _smoothstep(fp64, glsl_type::double_type, glsl_type::dvec2_type),
+                _smoothstep(fp64, glsl_type::double_type, glsl_type::dvec3_type),
+                _smoothstep(fp64, glsl_type::double_type, glsl_type::dvec4_type),
+
+                _smoothstep(fp64, glsl_type::dvec2_type,  glsl_type::dvec2_type),
+                _smoothstep(fp64, glsl_type::dvec3_type,  glsl_type::dvec3_type),
+                _smoothstep(fp64, glsl_type::dvec4_type,  glsl_type::dvec4_type),
                 NULL);
  
-   F(isnan)
-   F(isinf)
+   FD130(isnan)
+   FD130(isinf)
 
    F(floatBitsToInt)
    F(floatBitsToUint)
@@ -1050,68 +1169,106 @@ builtin_builder::create_builtins()
    add_function("unpackSnorm4x8",  _unpackSnorm4x8(shader_packing_or_gpu_shader5),         NULL);
    add_function("packHalf2x16",    _packHalf2x16(shader_packing_or_es3),                   NULL);
    add_function("unpackHalf2x16",  _unpackHalf2x16(shader_packing_or_es3),                 NULL);
+   add_function("packDouble2x32",    _packDouble2x32(fp64),                   NULL);
+   add_function("unpackDouble2x32",  _unpackDouble2x32(fp64),                 NULL);
 
-   F(length)
-   F(distance)
-   F(dot)
 
-   add_function("cross", _cross(glsl_type::vec3_type), NULL);
+   FD(length)
+   FD(distance)
+   FD(dot)
 
-   F(normalize)
+   add_function("cross", _cross(always_available, glsl_type::vec3_type), 
+                _cross(fp64, glsl_type::dvec3_type), NULL);
+
+   FD(normalize)
    add_function("ftransform", _ftransform(), NULL);
-   F(faceforward)
-   F(reflect)
-   F(refract)
+   FD(faceforward)
+   FD(reflect)
+   FD(refract)
    // ...
    add_function("matrixCompMult",
-                _matrixCompMult(glsl_type::mat2_type),
-                _matrixCompMult(glsl_type::mat3_type),
-                _matrixCompMult(glsl_type::mat4_type),
-                _matrixCompMult(glsl_type::mat2x3_type),
-                _matrixCompMult(glsl_type::mat2x4_type),
-                _matrixCompMult(glsl_type::mat3x2_type),
-                _matrixCompMult(glsl_type::mat3x4_type),
-                _matrixCompMult(glsl_type::mat4x2_type),
-                _matrixCompMult(glsl_type::mat4x3_type),
+                _matrixCompMult(always_available, glsl_type::mat2_type),
+                _matrixCompMult(always_available, glsl_type::mat3_type),
+                _matrixCompMult(always_available, glsl_type::mat4_type),
+                _matrixCompMult(always_available, glsl_type::mat2x3_type),
+                _matrixCompMult(always_available, glsl_type::mat2x4_type),
+                _matrixCompMult(always_available, glsl_type::mat3x2_type),
+                _matrixCompMult(always_available, glsl_type::mat3x4_type),
+                _matrixCompMult(always_available, glsl_type::mat4x2_type),
+                _matrixCompMult(always_available, glsl_type::mat4x3_type),
+                _matrixCompMult(fp64, glsl_type::dmat2_type),
+                _matrixCompMult(fp64, glsl_type::dmat3_type),
+                _matrixCompMult(fp64, glsl_type::dmat4_type),
+                _matrixCompMult(fp64, glsl_type::dmat2x3_type),
+                _matrixCompMult(fp64, glsl_type::dmat2x4_type),
+                _matrixCompMult(fp64, glsl_type::dmat3x2_type),
+                _matrixCompMult(fp64, glsl_type::dmat3x4_type),
+                _matrixCompMult(fp64, glsl_type::dmat4x2_type),
+                _matrixCompMult(fp64, glsl_type::dmat4x3_type),
                 NULL);
    add_function("outerProduct",
-                _outerProduct(glsl_type::mat2_type),
-                _outerProduct(glsl_type::mat3_type),
-                _outerProduct(glsl_type::mat4_type),
-                _outerProduct(glsl_type::mat2x3_type),
-                _outerProduct(glsl_type::mat2x4_type),
-                _outerProduct(glsl_type::mat3x2_type),
-                _outerProduct(glsl_type::mat3x4_type),
-                _outerProduct(glsl_type::mat4x2_type),
-                _outerProduct(glsl_type::mat4x3_type),
+                _outerProduct(v120, glsl_type::mat2_type),
+                _outerProduct(v120, glsl_type::mat3_type),
+                _outerProduct(v120, glsl_type::mat4_type),
+                _outerProduct(v120, glsl_type::mat2x3_type),
+                _outerProduct(v120, glsl_type::mat2x4_type),
+                _outerProduct(v120, glsl_type::mat3x2_type),
+                _outerProduct(v120, glsl_type::mat3x4_type),
+                _outerProduct(v120, glsl_type::mat4x2_type),
+                _outerProduct(v120, glsl_type::mat4x3_type),
+                _outerProduct(fp64, glsl_type::dmat2_type),
+                _outerProduct(fp64, glsl_type::dmat3_type),
+                _outerProduct(fp64, glsl_type::dmat4_type),
+                _outerProduct(fp64, glsl_type::dmat2x3_type),
+                _outerProduct(fp64, glsl_type::dmat2x4_type),
+                _outerProduct(fp64, glsl_type::dmat3x2_type),
+                _outerProduct(fp64, glsl_type::dmat3x4_type),
+                _outerProduct(fp64, glsl_type::dmat4x2_type),
+                _outerProduct(fp64, glsl_type::dmat4x3_type),
                 NULL);
    add_function("determinant",
-                _determinant_mat2(),
-                _determinant_mat3(),
-                _determinant_mat4(),
+                _determinant_mat2(v120, glsl_type::mat2_type),
+                _determinant_mat3(v120, glsl_type::mat3_type),
+                _determinant_mat4(v120, glsl_type::mat4_type),
+                _determinant_mat2(fp64, glsl_type::dmat2_type),
+                _determinant_mat3(fp64, glsl_type::dmat3_type),
+                _determinant_mat4(fp64, glsl_type::dmat4_type),
+
                 NULL);
    add_function("inverse",
-                _inverse_mat2(),
-                _inverse_mat3(),
-                _inverse_mat4(),
+                _inverse_mat2(v120, glsl_type::mat2_type),
+                _inverse_mat3(v120, glsl_type::mat3_type),
+                _inverse_mat4(v120, glsl_type::mat4_type),
+                _inverse_mat2(fp64, glsl_type::dmat2_type),
+                _inverse_mat3(fp64, glsl_type::dmat3_type),
+                _inverse_mat4(fp64, glsl_type::dmat4_type),
                 NULL);
    add_function("transpose",
-                _transpose(glsl_type::mat2_type),
-                _transpose(glsl_type::mat3_type),
-                _transpose(glsl_type::mat4_type),
-                _transpose(glsl_type::mat2x3_type),
-                _transpose(glsl_type::mat2x4_type),
-                _transpose(glsl_type::mat3x2_type),
-                _transpose(glsl_type::mat3x4_type),
-                _transpose(glsl_type::mat4x2_type),
-                _transpose(glsl_type::mat4x3_type),
+                _transpose(v120, glsl_type::mat2_type),
+                _transpose(v120, glsl_type::mat3_type),
+                _transpose(v120, glsl_type::mat4_type),
+                _transpose(v120, glsl_type::mat2x3_type),
+                _transpose(v120, glsl_type::mat2x4_type),
+                _transpose(v120, glsl_type::mat3x2_type),
+                _transpose(v120, glsl_type::mat3x4_type),
+                _transpose(v120, glsl_type::mat4x2_type),
+                _transpose(v120, glsl_type::mat4x3_type),
+                _transpose(fp64, glsl_type::dmat2_type),
+                _transpose(fp64, glsl_type::dmat3_type),
+                _transpose(fp64, glsl_type::dmat4_type),
+                _transpose(fp64, glsl_type::dmat2x3_type),
+                _transpose(fp64, glsl_type::dmat2x4_type),
+                _transpose(fp64, glsl_type::dmat3x2_type),
+                _transpose(fp64, glsl_type::dmat3x4_type),
+                _transpose(fp64, glsl_type::dmat4x2_type),
+                _transpose(fp64, glsl_type::dmat4x3_type),
                 NULL);
-   FIU(lessThan)
-   FIU(lessThanEqual)
-   FIU(greaterThan)
-   FIU(greaterThanEqual)
-   FIUB(notEqual)
-   FIUB(equal)
+   FIUD(lessThan)
+   FIUD(lessThanEqual)
+   FIUD(greaterThan)
+   FIUD(greaterThanEqual)
+   FIUBD(notEqual)
+   FIUBD(equal)
 
    add_function("any",
                 _any(glsl_type::bvec2_type),
@@ -2180,13 +2337,17 @@ builtin_builder::create_builtins()
    IU(bitCount)
    IU(findLSB)
    IU(findMSB)
-   F(fma_mesa)
+   FDGS5(fma)
 
    add_function("ldexp",
                 _ldexp(glsl_type::float_type, glsl_type::int_type),
                 _ldexp(glsl_type::vec2_type,  glsl_type::ivec2_type),
                 _ldexp(glsl_type::vec3_type,  glsl_type::ivec3_type),
                 _ldexp(glsl_type::vec4_type,  glsl_type::ivec4_type),
+                _ldexp(glsl_type::double_type, glsl_type::int_type),
+                _ldexp(glsl_type::dvec2_type,  glsl_type::ivec2_type),
+                _ldexp(glsl_type::dvec3_type,  glsl_type::ivec3_type),
+                _ldexp(glsl_type::dvec4_type,  glsl_type::ivec4_type),
                 NULL);
 
    add_function("frexp",
@@ -2194,6 +2355,10 @@ builtin_builder::create_builtins()
                 _frexp(glsl_type::vec2_type,  glsl_type::ivec2_type),
                 _frexp(glsl_type::vec3_type,  glsl_type::ivec3_type),
                 _frexp(glsl_type::vec4_type,  glsl_type::ivec4_type),
+                _dfrexp(glsl_type::double_type, glsl_type::int_type),
+                _dfrexp(glsl_type::dvec2_type,  glsl_type::ivec2_type),
+                _dfrexp(glsl_type::dvec3_type,  glsl_type::ivec3_type),
+                _dfrexp(glsl_type::dvec4_type,  glsl_type::ivec4_type),
                 NULL);
    add_function("uaddCarry",
                 _uaddCarry(glsl_type::uint_type),
@@ -2310,8 +2475,8 @@ builtin_builder::create_builtins()
 
 #undef F
 #undef FI
-#undef FIU
-#undef FIUB
+#undef FIUD
+#undef FIUBD
 #undef FIU2_MIXED
 }
 
@@ -2470,10 +2635,18 @@ builtin_builder::imm(unsigned u, unsigned vector_elements)
 }
 
 ir_constant *
+builtin_builder::imm(double d, unsigned vector_elements)
+{
+   return new(mem_ctx) ir_constant(d, vector_elements);
+}
+
+ir_constant *
 builtin_builder::imm(const glsl_type *type, const ir_constant_data &data)
 {
    return new(mem_ctx) ir_constant(type, &data);
 }
+
+#define IMM_FP(type, val) (type->base_type == GLSL_TYPE_DOUBLE) ? imm(val) : imm((float)val)
 
 ir_dereference_variable *
 builtin_builder::var_ref(ir_variable *var)
@@ -2548,6 +2721,13 @@ ir_function_signature *                         \
 builtin_builder::_##NAME(const glsl_type *type) \
 {                                               \
    return unop(&AVAIL, OPCODE, type, type);     \
+}
+
+#define UNOPA(NAME, OPCODE)               \
+ir_function_signature *                         \
+builtin_builder::_##NAME(builtin_available_predicate avail, const glsl_type *type) \
+{                                               \
+   return unop(avail, OPCODE, type, type);     \
 }
 
 ir_function_signature *
@@ -2855,19 +3035,19 @@ UNOP(exp,         ir_unop_exp,  always_available)
 UNOP(log,         ir_unop_log,  always_available)
 UNOP(exp2,        ir_unop_exp2, always_available)
 UNOP(log2,        ir_unop_log2, always_available)
-UNOP(sqrt,        ir_unop_sqrt, always_available)
-UNOP(inversesqrt, ir_unop_rsq,  always_available)
+UNOPA(sqrt,        ir_unop_sqrt)
+UNOPA(inversesqrt, ir_unop_rsq)
 
 /** @} */
 
-UNOP(abs,       ir_unop_abs,        always_available)
-UNOP(sign,      ir_unop_sign,       always_available)
-UNOP(floor,     ir_unop_floor,      always_available)
-UNOP(trunc,     ir_unop_trunc,      v130)
-UNOP(round,     ir_unop_round_even, always_available)
-UNOP(roundEven, ir_unop_round_even, always_available)
-UNOP(ceil,      ir_unop_ceil,       always_available)
-UNOP(fract,     ir_unop_fract,      always_available)
+UNOPA(abs,       ir_unop_abs)
+UNOPA(sign,      ir_unop_sign)
+UNOPA(floor,     ir_unop_floor)
+UNOPA(trunc,     ir_unop_trunc)
+UNOPA(round,     ir_unop_round_even)
+UNOPA(roundEven, ir_unop_round_even)
+UNOPA(ceil,      ir_unop_ceil)
+UNOPA(fract,     ir_unop_fract)
 
 ir_function_signature *
 builtin_builder::_mod(const glsl_type *x_type, const glsl_type *y_type)
@@ -2876,11 +3056,11 @@ builtin_builder::_mod(const glsl_type *x_type, const glsl_type *y_type)
 }
 
 ir_function_signature *
-builtin_builder::_modf(const glsl_type *type)
+builtin_builder::_modf(builtin_available_predicate avail, const glsl_type *type)
 {
    ir_variable *x = in_var(type, "x");
    ir_variable *i = out_var(type, "i");
-   MAKE_SIG(type, v130, 2, x, i);
+   MAKE_SIG(type, avail, 2, x, i);
 
    ir_variable *t = body.make_temp(type, "t");
    body.emit(assign(t, expr(ir_unop_trunc, x)));
@@ -2919,12 +3099,12 @@ builtin_builder::_clamp(builtin_available_predicate avail,
 }
 
 ir_function_signature *
-builtin_builder::_mix_lrp(const glsl_type *val_type, const glsl_type *blend_type)
+builtin_builder::_mix_lrp(builtin_available_predicate avail, const glsl_type *val_type, const glsl_type *blend_type)
 {
    ir_variable *x = in_var(val_type, "x");
    ir_variable *y = in_var(val_type, "y");
    ir_variable *a = in_var(blend_type, "a");
-   MAKE_SIG(val_type, always_available, 3, x, y, a);
+   MAKE_SIG(val_type, avail, 3, x, y, a);
 
    body.emit(ret(lrp(x, y, a)));
 
@@ -2954,26 +3134,37 @@ builtin_builder::_mix_sel(builtin_available_predicate avail,
 }
 
 ir_function_signature *
-builtin_builder::_step(const glsl_type *edge_type, const glsl_type *x_type)
+builtin_builder::_step(builtin_available_predicate avail, const glsl_type *edge_type, const glsl_type *x_type)
 {
    ir_variable *edge = in_var(edge_type, "edge");
    ir_variable *x = in_var(x_type, "x");
-   MAKE_SIG(x_type, always_available, 2, edge, x);
+   MAKE_SIG(x_type, avail, 2, edge, x);
 
    ir_variable *t = body.make_temp(x_type, "t");
    if (x_type->vector_elements == 1) {
       /* Both are floats */
-      body.emit(assign(t, b2f(gequal(x, edge))));
+      if (edge_type->base_type == GLSL_TYPE_DOUBLE)
+         body.emit(assign(t, f2d(b2f(gequal(x, edge)))));
+      else
+         body.emit(assign(t, b2f(gequal(x, edge))));
    } else if (edge_type->vector_elements == 1) {
       /* x is a vector but edge is a float */
       for (int i = 0; i < x_type->vector_elements; i++) {
-         body.emit(assign(t, b2f(gequal(swizzle(x, i, 1), edge)), 1 << i));
+         if (edge_type->base_type == GLSL_TYPE_DOUBLE)
+            body.emit(assign(t, f2d(b2f(gequal(swizzle(x, i, 1), edge))), 1 << i));
+         else
+            body.emit(assign(t, b2f(gequal(swizzle(x, i, 1), edge)), 1 << i));
       }
    } else {
       /* Both are vectors */
       for (int i = 0; i < x_type->vector_elements; i++) {
-         body.emit(assign(t, b2f(gequal(swizzle(x, i, 1), swizzle(edge, i, 1))),
-                          1 << i));
+         if (edge_type->base_type == GLSL_TYPE_DOUBLE)
+            body.emit(assign(t, f2d(b2f(gequal(swizzle(x, i, 1), swizzle(edge, i, 1)))),
+                             1 << i));
+         else
+            body.emit(assign(t, b2f(gequal(swizzle(x, i, 1), swizzle(edge, i, 1))),
+                             1 << i));
+
       }
    }
    body.emit(ret(t));
@@ -2982,12 +3173,12 @@ builtin_builder::_step(const glsl_type *edge_type, const glsl_type *x_type)
 }
 
 ir_function_signature *
-builtin_builder::_smoothstep(const glsl_type *edge_type, const glsl_type *x_type)
+builtin_builder::_smoothstep(builtin_available_predicate avail, const glsl_type *edge_type, const glsl_type *x_type)
 {
    ir_variable *edge0 = in_var(edge_type, "edge0");
    ir_variable *edge1 = in_var(edge_type, "edge1");
    ir_variable *x = in_var(x_type, "x");
-   MAKE_SIG(x_type, always_available, 3, edge0, edge1, x);
+   MAKE_SIG(x_type, avail, 3, edge0, edge1, x);
 
    /* From the GLSL 1.10 specification:
     *
@@ -2998,18 +3189,18 @@ builtin_builder::_smoothstep(const glsl_type *edge_type, const glsl_type *x_type
 
    ir_variable *t = body.make_temp(x_type, "t");
    body.emit(assign(t, clamp(div(sub(x, edge0), sub(edge1, edge0)),
-                             imm(0.0f), imm(1.0f))));
+                             IMM_FP(x_type, 0.0), IMM_FP(x_type, 1.0))));
 
-   body.emit(ret(mul(t, mul(t, sub(imm(3.0f), mul(imm(2.0f), t))))));
+   body.emit(ret(mul(t, mul(t, sub(IMM_FP(x_type, 3.0), mul(IMM_FP(x_type, 2.0), t))))));
 
    return sig;
 }
 
 ir_function_signature *
-builtin_builder::_isnan(const glsl_type *type)
+builtin_builder::_isnan(builtin_available_predicate avail, const glsl_type *type)
 {
    ir_variable *x = in_var(type, "x");
-   MAKE_SIG(glsl_type::bvec(type->vector_elements), v130, 1, x);
+   MAKE_SIG(glsl_type::bvec(type->vector_elements), avail, 1, x);
 
    body.emit(ret(nequal(x, x)));
 
@@ -3017,10 +3208,10 @@ builtin_builder::_isnan(const glsl_type *type)
 }
 
 ir_function_signature *
-builtin_builder::_isinf(const glsl_type *type)
+builtin_builder::_isinf(builtin_available_predicate avail, const glsl_type *type)
 {
    ir_variable *x = in_var(type, "x");
-   MAKE_SIG(glsl_type::bvec(type->vector_elements), v130, 1, x);
+   MAKE_SIG(glsl_type::bvec(type->vector_elements), avail, 1, x);
 
    ir_constant_data infinities;
    for (int i = 0; i < type->vector_elements; i++) {
@@ -3160,10 +3351,28 @@ builtin_builder::_unpackHalf2x16(builtin_available_predicate avail)
 }
 
 ir_function_signature *
-builtin_builder::_length(const glsl_type *type)
+builtin_builder::_packDouble2x32(builtin_available_predicate avail)
+{
+   ir_variable *v = in_var(glsl_type::uvec2_type, "v");
+   MAKE_SIG(glsl_type::double_type, avail, 1, v);
+   body.emit(ret(expr(ir_unop_pack_double_2x32, v)));
+   return sig;
+}
+
+ir_function_signature *
+builtin_builder::_unpackDouble2x32(builtin_available_predicate avail)
+{
+   ir_variable *p = in_var(glsl_type::double_type, "p");
+   MAKE_SIG(glsl_type::uvec2_type, avail, 1, p);
+   body.emit(ret(expr(ir_unop_unpack_double_2x32, p)));
+   return sig;
+}
+
+ir_function_signature *
+builtin_builder::_length(builtin_available_predicate avail, const glsl_type *type)
 {
    ir_variable *x = in_var(type, "x");
-   MAKE_SIG(glsl_type::float_type, always_available, 1, x);
+   MAKE_SIG(type->get_base_type(), avail, 1, x);
 
    body.emit(ret(sqrt(dot(x, x))));
 
@@ -3171,11 +3380,11 @@ builtin_builder::_length(const glsl_type *type)
 }
 
 ir_function_signature *
-builtin_builder::_distance(const glsl_type *type)
+builtin_builder::_distance(builtin_available_predicate avail, const glsl_type *type)
 {
    ir_variable *p0 = in_var(type, "p0");
    ir_variable *p1 = in_var(type, "p1");
-   MAKE_SIG(glsl_type::float_type, always_available, 2, p0, p1);
+   MAKE_SIG(type->get_base_type(), avail, 2, p0, p1);
 
    if (type->vector_elements == 1) {
       body.emit(ret(abs(sub(p0, p1))));
@@ -3189,21 +3398,21 @@ builtin_builder::_distance(const glsl_type *type)
 }
 
 ir_function_signature *
-builtin_builder::_dot(const glsl_type *type)
+builtin_builder::_dot(builtin_available_predicate avail, const glsl_type *type)
 {
    if (type->vector_elements == 1)
-      return binop(ir_binop_mul, always_available, type, type, type);
+      return binop(ir_binop_mul, avail, type, type, type);
 
-   return binop(ir_binop_dot, always_available,
-                glsl_type::float_type, type, type);
+   return binop(ir_binop_dot, avail,
+                type->get_base_type(), type, type);
 }
 
 ir_function_signature *
-builtin_builder::_cross(const glsl_type *type)
+builtin_builder::_cross(builtin_available_predicate avail, const glsl_type *type)
 {
    ir_variable *a = in_var(type, "a");
    ir_variable *b = in_var(type, "b");
-   MAKE_SIG(type, always_available, 2, a, b);
+   MAKE_SIG(type, avail, 2, a, b);
 
    int yzx = MAKE_SWIZZLE4(SWIZZLE_Y, SWIZZLE_Z, SWIZZLE_X, 0);
    int zxy = MAKE_SWIZZLE4(SWIZZLE_Z, SWIZZLE_X, SWIZZLE_Y, 0);
@@ -3215,10 +3424,10 @@ builtin_builder::_cross(const glsl_type *type)
 }
 
 ir_function_signature *
-builtin_builder::_normalize(const glsl_type *type)
+builtin_builder::_normalize(builtin_available_predicate avail, const glsl_type *type)
 {
    ir_variable *x = in_var(type, "x");
-   MAKE_SIG(type, always_available, 1, x);
+   MAKE_SIG(type, avail, 1, x);
 
    if (type->vector_elements == 1) {
       body.emit(ret(sign(x)));
@@ -3248,41 +3457,41 @@ builtin_builder::_ftransform()
 }
 
 ir_function_signature *
-builtin_builder::_faceforward(const glsl_type *type)
+builtin_builder::_faceforward(builtin_available_predicate avail, const glsl_type *type)
 {
    ir_variable *N = in_var(type, "N");
    ir_variable *I = in_var(type, "I");
    ir_variable *Nref = in_var(type, "Nref");
-   MAKE_SIG(type, always_available, 3, N, I, Nref);
+   MAKE_SIG(type, avail, 3, N, I, Nref);
 
-   body.emit(if_tree(less(dot(Nref, I), imm(0.0f)),
+   body.emit(if_tree(less(dot(Nref, I), IMM_FP(type, 0.0)),
                      ret(N), ret(neg(N))));
 
    return sig;
 }
 
 ir_function_signature *
-builtin_builder::_reflect(const glsl_type *type)
+builtin_builder::_reflect(builtin_available_predicate avail, const glsl_type *type)
 {
    ir_variable *I = in_var(type, "I");
    ir_variable *N = in_var(type, "N");
-   MAKE_SIG(type, always_available, 2, I, N);
+   MAKE_SIG(type, avail, 2, I, N);
 
    /* I - 2 * dot(N, I) * N */
-   body.emit(ret(sub(I, mul(imm(2.0f), mul(dot(N, I), N)))));
+   body.emit(ret(sub(I, mul(IMM_FP(type, 2.0), mul(dot(N, I), N)))));
 
    return sig;
 }
 
 ir_function_signature *
-builtin_builder::_refract(const glsl_type *type)
+builtin_builder::_refract(builtin_available_predicate avail, const glsl_type *type)
 {
    ir_variable *I = in_var(type, "I");
    ir_variable *N = in_var(type, "N");
-   ir_variable *eta = in_var(glsl_type::float_type, "eta");
-   MAKE_SIG(type, always_available, 3, I, N, eta);
+   ir_variable *eta = in_var(type->get_base_type(), "eta");
+   MAKE_SIG(type, avail, 3, I, N, eta);
 
-   ir_variable *n_dot_i = body.make_temp(glsl_type::float_type, "n_dot_i");
+   ir_variable *n_dot_i = body.make_temp(type->get_base_type(), "n_dot_i");
    body.emit(assign(n_dot_i, dot(N, I)));
 
    /* From the GLSL 1.10 specification:
@@ -3292,11 +3501,11 @@ builtin_builder::_refract(const glsl_type *type)
     * else
     *    return eta * I - (eta * dot(N, I) + sqrt(k)) * N
     */
-   ir_variable *k = body.make_temp(glsl_type::float_type, "k");
-   body.emit(assign(k, sub(imm(1.0f),
-                           mul(eta, mul(eta, sub(imm(1.0f),
+   ir_variable *k = body.make_temp(type->get_base_type(), "k");
+   body.emit(assign(k, sub(IMM_FP(type, 1.0),
+                           mul(eta, mul(eta, sub(IMM_FP(type, 1.0),
                                                  mul(n_dot_i, n_dot_i)))))));
-   body.emit(if_tree(less(k, imm(0.0f)),
+   body.emit(if_tree(less(k, IMM_FP(type, 0.0)),
                      ret(ir_constant::zero(mem_ctx, type)),
                      ret(sub(mul(eta, I),
                              mul(add(mul(eta, n_dot_i), sqrt(k)), N)))));
@@ -3305,11 +3514,11 @@ builtin_builder::_refract(const glsl_type *type)
 }
 
 ir_function_signature *
-builtin_builder::_matrixCompMult(const glsl_type *type)
+builtin_builder::_matrixCompMult(builtin_available_predicate avail, const glsl_type *type)
 {
    ir_variable *x = in_var(type, "x");
    ir_variable *y = in_var(type, "y");
-   MAKE_SIG(type, always_available, 2, x, y);
+   MAKE_SIG(type, avail, 2, x, y);
 
    ir_variable *z = body.make_temp(type, "z");
    for (int i = 0; i < type->matrix_columns; i++) {
@@ -3321,11 +3530,19 @@ builtin_builder::_matrixCompMult(const glsl_type *type)
 }
 
 ir_function_signature *
-builtin_builder::_outerProduct(const glsl_type *type)
+builtin_builder::_outerProduct(builtin_available_predicate avail, const glsl_type *type)
 {
-   ir_variable *c = in_var(glsl_type::vec(type->vector_elements), "c");
-   ir_variable *r = in_var(glsl_type::vec(type->matrix_columns), "r");
-   MAKE_SIG(type, v120, 2, c, r);
+   ir_variable *c;
+   ir_variable *r;
+
+   if (type->base_type == GLSL_TYPE_DOUBLE) {
+      r = in_var(glsl_type::dvec(type->matrix_columns), "r");
+      c = in_var(glsl_type::dvec(type->vector_elements), "c");
+   } else {
+      r = in_var(glsl_type::vec(type->matrix_columns), "r");
+      c = in_var(glsl_type::vec(type->vector_elements), "c");
+   }
+   MAKE_SIG(type, avail, 2, c, r);
 
    ir_variable *m = body.make_temp(type, "m");
    for (int i = 0; i < type->matrix_columns; i++) {
@@ -3337,15 +3554,15 @@ builtin_builder::_outerProduct(const glsl_type *type)
 }
 
 ir_function_signature *
-builtin_builder::_transpose(const glsl_type *orig_type)
+builtin_builder::_transpose(builtin_available_predicate avail, const glsl_type *orig_type)
 {
    const glsl_type *transpose_type =
-      glsl_type::get_instance(GLSL_TYPE_FLOAT,
+      glsl_type::get_instance(orig_type->base_type,
                               orig_type->matrix_columns,
                               orig_type->vector_elements);
 
    ir_variable *m = in_var(orig_type, "m");
-   MAKE_SIG(transpose_type, v120, 1, m);
+   MAKE_SIG(transpose_type, avail, 1, m);
 
    ir_variable *t = body.make_temp(transpose_type, "t");
    for (int i = 0; i < orig_type->matrix_columns; i++) {
@@ -3361,10 +3578,10 @@ builtin_builder::_transpose(const glsl_type *orig_type)
 }
 
 ir_function_signature *
-builtin_builder::_determinant_mat2()
+builtin_builder::_determinant_mat2(builtin_available_predicate avail, const glsl_type *type)
 {
-   ir_variable *m = in_var(glsl_type::mat2_type, "m");
-   MAKE_SIG(glsl_type::float_type, v120, 1, m);
+   ir_variable *m = in_var(type, "m");
+   MAKE_SIG(type->get_base_type(), avail, 1, m);
 
    body.emit(ret(sub(mul(matrix_elt(m, 0, 0), matrix_elt(m, 1, 1)),
                      mul(matrix_elt(m, 1, 0), matrix_elt(m, 0, 1)))));
@@ -3373,10 +3590,10 @@ builtin_builder::_determinant_mat2()
 }
 
 ir_function_signature *
-builtin_builder::_determinant_mat3()
+builtin_builder::_determinant_mat3(builtin_available_predicate avail, const glsl_type *type)
 {
-   ir_variable *m = in_var(glsl_type::mat3_type, "m");
-   MAKE_SIG(glsl_type::float_type, v120, 1, m);
+   ir_variable *m = in_var(type, "m");
+   MAKE_SIG(type->get_base_type(), avail, 1, m);
 
    ir_expression *f1 =
       sub(mul(matrix_elt(m, 1, 1), matrix_elt(m, 2, 2)),
@@ -3398,30 +3615,31 @@ builtin_builder::_determinant_mat3()
 }
 
 ir_function_signature *
-builtin_builder::_determinant_mat4()
+builtin_builder::_determinant_mat4(builtin_available_predicate avail, const glsl_type *type)
 {
-   ir_variable *m = in_var(glsl_type::mat4_type, "m");
-   MAKE_SIG(glsl_type::float_type, v120, 1, m);
+   ir_variable *m = in_var(type, "m");
+   const glsl_type *btype = type->get_base_type();
+   MAKE_SIG(btype, avail, 1, m);
 
-   ir_variable *SubFactor00 = body.make_temp(glsl_type::float_type, "SubFactor00");
-   ir_variable *SubFactor01 = body.make_temp(glsl_type::float_type, "SubFactor01");
-   ir_variable *SubFactor02 = body.make_temp(glsl_type::float_type, "SubFactor02");
-   ir_variable *SubFactor03 = body.make_temp(glsl_type::float_type, "SubFactor03");
-   ir_variable *SubFactor04 = body.make_temp(glsl_type::float_type, "SubFactor04");
-   ir_variable *SubFactor05 = body.make_temp(glsl_type::float_type, "SubFactor05");
-   ir_variable *SubFactor06 = body.make_temp(glsl_type::float_type, "SubFactor06");
-   ir_variable *SubFactor07 = body.make_temp(glsl_type::float_type, "SubFactor07");
-   ir_variable *SubFactor08 = body.make_temp(glsl_type::float_type, "SubFactor08");
-   ir_variable *SubFactor09 = body.make_temp(glsl_type::float_type, "SubFactor09");
-   ir_variable *SubFactor10 = body.make_temp(glsl_type::float_type, "SubFactor10");
-   ir_variable *SubFactor11 = body.make_temp(glsl_type::float_type, "SubFactor11");
-   ir_variable *SubFactor12 = body.make_temp(glsl_type::float_type, "SubFactor12");
-   ir_variable *SubFactor13 = body.make_temp(glsl_type::float_type, "SubFactor13");
-   ir_variable *SubFactor14 = body.make_temp(glsl_type::float_type, "SubFactor14");
-   ir_variable *SubFactor15 = body.make_temp(glsl_type::float_type, "SubFactor15");
-   ir_variable *SubFactor16 = body.make_temp(glsl_type::float_type, "SubFactor16");
-   ir_variable *SubFactor17 = body.make_temp(glsl_type::float_type, "SubFactor17");
-   ir_variable *SubFactor18 = body.make_temp(glsl_type::float_type, "SubFactor18");
+   ir_variable *SubFactor00 = body.make_temp(btype, "SubFactor00");
+   ir_variable *SubFactor01 = body.make_temp(btype, "SubFactor01");
+   ir_variable *SubFactor02 = body.make_temp(btype, "SubFactor02");
+   ir_variable *SubFactor03 = body.make_temp(btype, "SubFactor03");
+   ir_variable *SubFactor04 = body.make_temp(btype, "SubFactor04");
+   ir_variable *SubFactor05 = body.make_temp(btype, "SubFactor05");
+   ir_variable *SubFactor06 = body.make_temp(btype, "SubFactor06");
+   ir_variable *SubFactor07 = body.make_temp(btype, "SubFactor07");
+   ir_variable *SubFactor08 = body.make_temp(btype, "SubFactor08");
+   ir_variable *SubFactor09 = body.make_temp(btype, "SubFactor09");
+   ir_variable *SubFactor10 = body.make_temp(btype, "SubFactor10");
+   ir_variable *SubFactor11 = body.make_temp(btype, "SubFactor11");
+   ir_variable *SubFactor12 = body.make_temp(btype, "SubFactor12");
+   ir_variable *SubFactor13 = body.make_temp(btype, "SubFactor13");
+   ir_variable *SubFactor14 = body.make_temp(btype, "SubFactor14");
+   ir_variable *SubFactor15 = body.make_temp(btype, "SubFactor15");
+   ir_variable *SubFactor16 = body.make_temp(btype, "SubFactor16");
+   ir_variable *SubFactor17 = body.make_temp(btype, "SubFactor17");
+   ir_variable *SubFactor18 = body.make_temp(btype, "SubFactor18");
 
    body.emit(assign(SubFactor00, sub(mul(matrix_elt(m, 2, 2), matrix_elt(m, 3, 3)), mul(matrix_elt(m, 3, 2), matrix_elt(m, 2, 3)))));
    body.emit(assign(SubFactor01, sub(mul(matrix_elt(m, 2, 1), matrix_elt(m, 3, 3)), mul(matrix_elt(m, 3, 1), matrix_elt(m, 2, 3)))));
@@ -3443,7 +3661,7 @@ builtin_builder::_determinant_mat4()
    body.emit(assign(SubFactor17, sub(mul(matrix_elt(m, 1, 0), matrix_elt(m, 2, 2)), mul(matrix_elt(m, 2, 0), matrix_elt(m, 1, 2)))));
    body.emit(assign(SubFactor18, sub(mul(matrix_elt(m, 1, 0), matrix_elt(m, 2, 1)), mul(matrix_elt(m, 2, 0), matrix_elt(m, 1, 1)))));
 
-   ir_variable *adj_0 = body.make_temp(glsl_type::vec4_type, "adj_0");
+   ir_variable *adj_0 = body.make_temp(btype == glsl_type::float_type ? glsl_type::vec4_type : glsl_type::dvec4_type, "adj_0");
 
    body.emit(assign(adj_0,
                     add(sub(mul(matrix_elt(m, 1, 1), SubFactor00),
@@ -3472,12 +3690,12 @@ builtin_builder::_determinant_mat4()
 }
 
 ir_function_signature *
-builtin_builder::_inverse_mat2()
+builtin_builder::_inverse_mat2(builtin_available_predicate avail, const glsl_type *type)
 {
-   ir_variable *m = in_var(glsl_type::mat2_type, "m");
-   MAKE_SIG(glsl_type::mat2_type, v120, 1, m);
+   ir_variable *m = in_var(type, "m");
+   MAKE_SIG(type, avail, 1, m);
 
-   ir_variable *adj = body.make_temp(glsl_type::mat2_type, "adj");
+   ir_variable *adj = body.make_temp(type, "adj");
    body.emit(assign(array_ref(adj, 0), matrix_elt(m, 1, 1), 1 << 0));
    body.emit(assign(array_ref(adj, 0), neg(matrix_elt(m, 0, 1)), 1 << 1));
    body.emit(assign(array_ref(adj, 1), neg(matrix_elt(m, 1, 0)), 1 << 0));
@@ -3492,14 +3710,15 @@ builtin_builder::_inverse_mat2()
 }
 
 ir_function_signature *
-builtin_builder::_inverse_mat3()
+builtin_builder::_inverse_mat3(builtin_available_predicate avail, const glsl_type *type)
 {
-   ir_variable *m = in_var(glsl_type::mat3_type, "m");
-   MAKE_SIG(glsl_type::mat3_type, v120, 1, m);
+   ir_variable *m = in_var(type, "m");
+   const glsl_type *btype = type->get_base_type();
+   MAKE_SIG(type, avail, 1, m);
 
-   ir_variable *f11_22_21_12 = body.make_temp(glsl_type::float_type, "f11_22_21_12");
-   ir_variable *f10_22_20_12 = body.make_temp(glsl_type::float_type, "f10_22_20_12");
-   ir_variable *f10_21_20_11 = body.make_temp(glsl_type::float_type, "f10_21_20_11");
+   ir_variable *f11_22_21_12 = body.make_temp(btype, "f11_22_21_12");
+   ir_variable *f10_22_20_12 = body.make_temp(btype, "f10_22_20_12");
+   ir_variable *f10_21_20_11 = body.make_temp(btype, "f10_21_20_11");
 
    body.emit(assign(f11_22_21_12,
                     sub(mul(matrix_elt(m, 1, 1), matrix_elt(m, 2, 2)),
@@ -3511,7 +3730,7 @@ builtin_builder::_inverse_mat3()
                     sub(mul(matrix_elt(m, 1, 0), matrix_elt(m, 2, 1)),
                         mul(matrix_elt(m, 2, 0), matrix_elt(m, 1, 1)))));
 
-   ir_variable *adj = body.make_temp(glsl_type::mat3_type, "adj");
+   ir_variable *adj = body.make_temp(type, "adj");
    body.emit(assign(array_ref(adj, 0), f11_22_21_12, WRITEMASK_X));
    body.emit(assign(array_ref(adj, 1), neg(f10_22_20_12), WRITEMASK_X));
    body.emit(assign(array_ref(adj, 2), f10_21_20_11, WRITEMASK_X));
@@ -3553,30 +3772,31 @@ builtin_builder::_inverse_mat3()
 }
 
 ir_function_signature *
-builtin_builder::_inverse_mat4()
+builtin_builder::_inverse_mat4(builtin_available_predicate avail, const glsl_type *type)
 {
-   ir_variable *m = in_var(glsl_type::mat4_type, "m");
-   MAKE_SIG(glsl_type::mat4_type, v120, 1, m);
+   ir_variable *m = in_var(type, "m");
+   const glsl_type *btype = type->get_base_type();
+   MAKE_SIG(type, avail, 1, m);
 
-   ir_variable *SubFactor00 = body.make_temp(glsl_type::float_type, "SubFactor00");
-   ir_variable *SubFactor01 = body.make_temp(glsl_type::float_type, "SubFactor01");
-   ir_variable *SubFactor02 = body.make_temp(glsl_type::float_type, "SubFactor02");
-   ir_variable *SubFactor03 = body.make_temp(glsl_type::float_type, "SubFactor03");
-   ir_variable *SubFactor04 = body.make_temp(glsl_type::float_type, "SubFactor04");
-   ir_variable *SubFactor05 = body.make_temp(glsl_type::float_type, "SubFactor05");
-   ir_variable *SubFactor06 = body.make_temp(glsl_type::float_type, "SubFactor06");
-   ir_variable *SubFactor07 = body.make_temp(glsl_type::float_type, "SubFactor07");
-   ir_variable *SubFactor08 = body.make_temp(glsl_type::float_type, "SubFactor08");
-   ir_variable *SubFactor09 = body.make_temp(glsl_type::float_type, "SubFactor09");
-   ir_variable *SubFactor10 = body.make_temp(glsl_type::float_type, "SubFactor10");
-   ir_variable *SubFactor11 = body.make_temp(glsl_type::float_type, "SubFactor11");
-   ir_variable *SubFactor12 = body.make_temp(glsl_type::float_type, "SubFactor12");
-   ir_variable *SubFactor13 = body.make_temp(glsl_type::float_type, "SubFactor13");
-   ir_variable *SubFactor14 = body.make_temp(glsl_type::float_type, "SubFactor14");
-   ir_variable *SubFactor15 = body.make_temp(glsl_type::float_type, "SubFactor15");
-   ir_variable *SubFactor16 = body.make_temp(glsl_type::float_type, "SubFactor16");
-   ir_variable *SubFactor17 = body.make_temp(glsl_type::float_type, "SubFactor17");
-   ir_variable *SubFactor18 = body.make_temp(glsl_type::float_type, "SubFactor18");
+   ir_variable *SubFactor00 = body.make_temp(btype, "SubFactor00");
+   ir_variable *SubFactor01 = body.make_temp(btype, "SubFactor01");
+   ir_variable *SubFactor02 = body.make_temp(btype, "SubFactor02");
+   ir_variable *SubFactor03 = body.make_temp(btype, "SubFactor03");
+   ir_variable *SubFactor04 = body.make_temp(btype, "SubFactor04");
+   ir_variable *SubFactor05 = body.make_temp(btype, "SubFactor05");
+   ir_variable *SubFactor06 = body.make_temp(btype, "SubFactor06");
+   ir_variable *SubFactor07 = body.make_temp(btype, "SubFactor07");
+   ir_variable *SubFactor08 = body.make_temp(btype, "SubFactor08");
+   ir_variable *SubFactor09 = body.make_temp(btype, "SubFactor09");
+   ir_variable *SubFactor10 = body.make_temp(btype, "SubFactor10");
+   ir_variable *SubFactor11 = body.make_temp(btype, "SubFactor11");
+   ir_variable *SubFactor12 = body.make_temp(btype, "SubFactor12");
+   ir_variable *SubFactor13 = body.make_temp(btype, "SubFactor13");
+   ir_variable *SubFactor14 = body.make_temp(btype, "SubFactor14");
+   ir_variable *SubFactor15 = body.make_temp(btype, "SubFactor15");
+   ir_variable *SubFactor16 = body.make_temp(btype, "SubFactor16");
+   ir_variable *SubFactor17 = body.make_temp(btype, "SubFactor17");
+   ir_variable *SubFactor18 = body.make_temp(btype, "SubFactor18");
 
    body.emit(assign(SubFactor00, sub(mul(matrix_elt(m, 2, 2), matrix_elt(m, 3, 3)), mul(matrix_elt(m, 3, 2), matrix_elt(m, 2, 3)))));
    body.emit(assign(SubFactor01, sub(mul(matrix_elt(m, 2, 1), matrix_elt(m, 3, 3)), mul(matrix_elt(m, 3, 1), matrix_elt(m, 2, 3)))));
@@ -3598,7 +3818,7 @@ builtin_builder::_inverse_mat4()
    body.emit(assign(SubFactor17, sub(mul(matrix_elt(m, 1, 0), matrix_elt(m, 2, 2)), mul(matrix_elt(m, 2, 0), matrix_elt(m, 1, 2)))));
    body.emit(assign(SubFactor18, sub(mul(matrix_elt(m, 1, 0), matrix_elt(m, 2, 1)), mul(matrix_elt(m, 2, 0), matrix_elt(m, 1, 1)))));
 
-   ir_variable *adj = body.make_temp(glsl_type::mat4_type, "adj");
+   ir_variable *adj = body.make_temp(btype == glsl_type::float_type ? glsl_type::mat4_type : glsl_type::dmat4_type, "adj");
    body.emit(assign(array_ref(adj, 0),
                     add(sub(mul(matrix_elt(m, 1, 1), SubFactor00),
                             mul(matrix_elt(m, 1, 2), SubFactor01)),
@@ -4270,12 +4490,12 @@ builtin_builder::_findMSB(const glsl_type *type)
 }
 
 ir_function_signature *
-builtin_builder::_fma_mesa(const glsl_type *type)
+builtin_builder::_fma(builtin_available_predicate avail, const glsl_type *type)
 {
    ir_variable *a = in_var(type, "a");
    ir_variable *b = in_var(type, "b");
    ir_variable *c = in_var(type, "c");
-   MAKE_SIG(type, gpu_shader5, 3, a, b, c);
+   MAKE_SIG(type, avail, 3, a, b, c);
 
    body.emit(ret(ir_builder::fma(a, b, c)));
 
@@ -4285,7 +4505,20 @@ builtin_builder::_fma_mesa(const glsl_type *type)
 ir_function_signature *
 builtin_builder::_ldexp(const glsl_type *x_type, const glsl_type *exp_type)
 {
-   return binop(ir_binop_ldexp, gpu_shader5, x_type, x_type, exp_type);
+   return binop(ir_binop_ldexp, x_type->base_type == GLSL_TYPE_DOUBLE ? fp64 : gpu_shader5, x_type, x_type, exp_type);
+}
+
+ir_function_signature *
+builtin_builder::_dfrexp(const glsl_type *x_type, const glsl_type *exp_type)
+{
+   ir_variable *x = in_var(x_type, "x");
+   ir_variable *exponent = out_var(exp_type, "exp");
+   MAKE_SIG(x_type, fp64, 2, x, exponent);
+
+   body.emit(assign(exponent, expr(ir_unop_frexp_exp, x)));
+
+   body.emit(ret(expr(ir_unop_frexp_sig, x)));
+   return sig;
 }
 
 ir_function_signature *
@@ -4616,6 +4849,17 @@ _mesa_glsl_find_builtin_function(_mesa_glsl_parse_state *state,
    s = builtins.find(state, name, actual_parameters);
    mtx_unlock(&builtins_lock);
    return s;
+}
+
+ir_function *
+_mesa_glsl_find_builtin_function_by_name(_mesa_glsl_parse_state *state,
+                                         const char *name)
+{
+   ir_function *f;
+   mtx_lock(&builtins_lock);
+   f = builtins.shader->symbols->get_function(name);
+   mtx_unlock(&builtins_lock);
+   return f;
 }
 
 gl_shader *
