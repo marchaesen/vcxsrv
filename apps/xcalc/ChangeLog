@@ -1,3 +1,149 @@
+commit 0fba659f91bebe1f92f4de2660bf806fd049350b
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Jan 19 21:26:22 2015 -0800
+
+    xcalc 1.0.6
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit a647c9bd255c136f9e6e3e274ecf4253e9ead6d6
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Aug 7 19:20:44 2014 -0700
+
+    Replace index() call with strchr()
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit a91574fe283263a3f9d91fb257ecb2c5b0a97541
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Jun 2 22:10:55 2014 -0700
+
+    autogen.sh: Honor NOCONFIGURE=1
+    
+    See http://people.gnome.org/~walters/docs/build-api.txt
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 6387133e231ec16da4204fddaffafe70d077e5d8
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Jun 2 22:10:55 2014 -0700
+
+    configure: Drop AM_MAINTAINER_MODE
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 8afe5270310698d24fff370276c7fd91eb816720
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Tue Dec 17 08:24:45 2013 -0500
+
+    Replace signal_t with void
+    
+    Now that Imake SIGNALRETURNSINT has been removed, the signal handler
+    function return type can only be void.
+    
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 40911339c45a880abbe6ad60dac4718a402d88ab
+Author: Gaetan Nadon <memsize@videotron.ca>
+Date:   Mon Dec 16 10:04:46 2013 -0500
+
+    Assume signal handlers return void, as C89 requires
+    
+    Drops use of Imake's obsolete SIGNALRETURNSINT.
+    
+    Reviewd-by: Mark Kettenis <kettenis@openbsd.org>
+    Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
+
+commit 25454313c637f2b6983ba289deed96141cec8000
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Jul 9 23:01:23 2013 -0700
+
+    Mark functions noreturn as suggested by gcc -Wmissing-noreturn
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit de0e13ada857191a59c0e8f985d2317a7c41f43b
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Jul 9 22:56:02 2013 -0700
+
+    Rename "e" arguments to "ev" to avoid shadowing e() function
+    
+    Resolves many gcc warnings of the form:
+    actions.c: In function ‘add’:
+    actions.c:142:35: warning: declaration of ‘e’ shadows a global declaration
+    actions.c:57:13: warning: shadowed declaration is here [-Wshadow]
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 40da34202dffa96197c6248a9d80894611e27921
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Jul 9 22:53:07 2013 -0700
+
+    Remove redundant redeclaration of ‘factorial’
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 1de8253f0ede02ec87d28b028de97da79adc12e2
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Jul 9 22:49:21 2013 -0700
+
+    Replace sprintf & strcpy calls with snprintf & strlcpy
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 3d58c22c4c2729d52b5278c0e6350c0f9f44cfa8
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Jul 6 20:45:40 2013 -0700
+
+    Remove unused min & max macros from math.c
+    
+    Flagged by clang:
+    
+     math.c:33:9: warning: macro is not used [-Wunused-macros]
+     #define min(a,b) ((a) < (b) ? (a) : (b))
+             ^
+     math.c:34:9: warning: macro is not used [-Wunused-macros]
+     #define max(a,b) ((a) > (b) ? (a) : (b))
+             ^
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 3e6d23bb9d57ae3d19e9eb47ced654669fca4d7c
+Author: Stéphane Aulery <lkppo@free.fr>
+Date:   Sun Jul 7 02:02:46 2013 +0200
+
+    Use the new M_E symbol from math.h
+    
+    Use the new M_E symbol from math.h and fix and a value of the same
+    accuracy if it's necessary to redefine M_E.
+    
+    Signed-off-by: Stéphane Aulery <lkppo@free.fr>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit f3b065f03a7b68310b489d5d97b11985ef36e977
+Author: Stéphane Aulery <lkppo@free.fr>
+Date:   Sun Jul 7 02:02:38 2013 +0200
+
+    Use the new M_PI symbol from math.h
+    
+    Use the new M_PI symbol from math.h and fix and a value of the same
+    accuracy if it's necessary to redefine M_PI.
+    
+    Signed-off-by: Stéphane Aulery <lkppo@free.fr>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit b9a89876666a42ad8692e8384a5a826456e6ae56
+Author: Stéphane Aulery <lkppo@free.fr>
+Date:   Sat Jul 6 15:39:07 2013 +0200
+
+    Drop CRAY support
+    
+    Signed-off-by: Stéphane Aulery <lkppo@free.fr>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
 commit 7e67bcb9563302f4e89be7a2afb1ae30c185689e
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Mon Jan 14 23:08:54 2013 -0800

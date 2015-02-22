@@ -3,29 +3,6 @@
  *
  * The XFree86 keysym range is 0x10080001 - 0x1008FFFF.
  *
- * When adding new entries, the xc/lib/XKeysymDB file should also be
- * updated to make the new entries visible to Xlib.
- */
-
-/*
- * ModeLock
- *
- * This one is old, and not really used any more since XKB offers this
- * functionality.
- */
-
-#define XF86XK_ModeLock		0x1008FF01	/* Mode Switch Lock */
-
-/*
- * Note, 0x1008FF07 - 0x1008FF0F are free and should be used for misc new
- * keysyms that don't fit into any of the groups below.
- *
- * 0x1008FF64, 0x1008FF6F, 0x1008FF71, 0x1008FF83 are no longer used,
- * and should be used first for new keysyms.
- *
- * Check in keysymdef.h for generic symbols before adding new XFree86-specific
- * symbols here.
- *
  * X.Org will not be adding to the XF86 set of keysyms, though they have
  * been adopted and are considered a "standard" part of X keysym definitions.
  * XFree86 never properly commented these keysyms, so we have done our
@@ -36,6 +13,14 @@
  * these archives, these are from memory and usage.
  */
 
+/*
+ * ModeLock
+ *
+ * This one is old, and not really used any more since XKB offers this
+ * functionality.
+ */
+
+#define XF86XK_ModeLock		0x1008FF01	/* Mode Switch Lock */
 
 /* Backlight controls. */
 #define XF86XK_MonBrightnessUp   0x1008FF02  /* Monitor/panel brightness */

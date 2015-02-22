@@ -1,3 +1,58 @@
+commit 303b137a55bb2d092b008439570a323c89a41d70
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Dec 30 21:15:09 2014 -0800
+
+    xproto 7.0.27
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit ffd4a13042d24cb5c913207585191801a9a1603e
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Jul 18 17:08:25 2014 -0700
+
+    Use clang's __has_attribute to check for attribute support
+    
+    Hopefully other compilers will start adopting this so we don't have to
+    maintain ever growing matrixes of compiler/version checks for all the
+    attributes we use.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+
+commit 9b895b428576c4d6b4d43c77940c44604f9c1a2c
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Jul 15 13:51:02 2014 -0700
+
+    Do not suggest adding new keysyms to XF86keysym.h
+    
+    As noted in the comment in the file, X.Org controls the main X11 keysym
+    definitions, so adds new keysyms there, not in the XFree86 vendor space.
+    
+    Reported-by: Gioele Barabucci <gioele@svario.it>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Daniel Stone <daniels@collabora.com>
+
+commit 25f1134b4a2bd8018f153158cfc7c9ae255b5d6e
+Author: Michael Haubenwallner <michael.haubenwallner@ssi-schaefer.com>
+Date:   Wed Jun 25 18:08:22 2014 +0200
+
+    Bug #80528: make it build on AIX
+    
+    https://bugs.freedesktop.org/show_bug.cgi?id=80528
+    
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 068fd2cb19b6c0434f63b427158506e2ec3c6206
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri May 9 19:23:58 2014 -0700
+
+    Enable use of __attribute__((deprecated)) with Solaris Studio 12.4 compiler
+    
+    Support for this attribute is added in the 12.4 beta release.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
 commit 03cbbf6c3e811c026c86e3a60d2f9af56606e155
 Author: Julien Cristau <jcristau@debian.org>
 Date:   Mon Apr 14 15:36:00 2014 +0200

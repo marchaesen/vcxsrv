@@ -18,43 +18,19 @@
 
 #include "xcalc.h"
 
-#ifdef _CRAY		/* kludge around Cray STDC compiler */
-double (*log_p)() = log;
-#define log ((*log_p))
-double (*exp_p)() = exp;
-#define exp ((*exp_p))
-double (*sqrt_p)() = sqrt;
-#define sqrt ((*sqrt_p))
-double (*log10_p)() = log10;
-#define log10 ((*log10_p))
-double (*atan2_p)() = atan2;
-#define atan2 ((*atan2_p))
-double (*asin_p)() = asin;
-#define asin ((*asin_p))
-double (*acos_p)() = acos;
-#define acos ((*acos_p))
-double (*atan_p)() = atan;
-#define atan ((*atan_p))
-double (*sin_p)() = sin;
-#define sin ((*sin_p))
-double (*cos_p)() = cos;
-#define cos ((*cos_p))
-double (*tan_p)() = tan;
-#define tan ((*tan_p))
-double (*pow_p)() = pow;
-#define pow ((*pow_p))
-#endif /* _CRAY */
-
-#ifndef PI		/* sometimes defined in math.h */
-#define PI          3.14159265358979
+#ifndef M_PI        /* sometimes defined in math.h */
+#define M_PI        3.14159265358979323846
 #endif
-#define E           2.71828182845904
+
+#ifndef M_E         /* sometimes defined in math.h */
+#define M_E           2.7182818284590452354
+#endif
+
 #define MAXDISP     11
 #define DEG 0		/* DRG mode.  used for trig calculations */
 #define RAD 1
 #define GRAD 2
-#define min(a,b) ((a) < (b) ? (a) : (b))
-#define max(a,b) ((a) > (b) ? (a) : (b))
+
 #define True	1
 #define False   0
 
@@ -69,8 +45,8 @@ jmp_buf env;
 
 static int flagINV, flagPAREN, flagM, drgmode;	/* display flags */
 
-static double drg2rad=PI/180.0;  /* Conversion factors for trig funcs */
-static double rad2drg=180.0/PI;
+static double drg2rad=M_PI/180.0;  /* Conversion factors for trig funcs */
+static double rad2drg=180.0/M_PI;
 static int entered=1;  /* true if display contains a valid number.
                           if==2, then use 'dnum', rather than the string
                           stored in the display.  (for accuracy)
@@ -101,6 +77,17 @@ static double PopNum(void);
 static void   RollNum(int dir);
 static void   ClearStacks(void);
 static int    priority(int op);
+
+#ifndef HAVE_STRLCPY
+/* Close enough for the short strings copied in xcalc */
+static inline size_t
+strlcpy(char *dst, const char *src, size_t size)
+{
+    strncpy(dst, src, size);
+    dst[size - 1] = '\0';
+    return strlen(src);
+}
+#endif
 
 /*
  * The following is to deal with the unfortunate assumption that if errno
@@ -147,9 +134,9 @@ static volatile int SignalKind;
 void fail_op(void)
 {
     if (SignalKind == SIGFPE)
-	strcpy(dispstr, "math error");
+	strlcpy(dispstr, "math error", sizeof(dispstr));
     else if (SignalKind == SIGILL)
-	strcpy(dispstr, "illegal operand");
+	strlcpy(dispstr, "illegal operand", sizeof(dispstr));
 
     entered=3;
     DrawDisplay();
@@ -157,7 +144,7 @@ void fail_op(void)
 }
 
 /*ARGSUSED*/
-signal_t fperr(int sig)
+void fperr(int sig)
 {
 #if defined(SYSV) || defined(SVR4) || defined(linux)
     signal(SIGFPE, fperr);
@@ -168,7 +155,7 @@ signal_t fperr(int sig)
 
 /* for VAX BSD4.3 */
 /*ARGSUSED*/
-signal_t illerr(int sig)
+void illerr(int sig)
 {
     /* not reset when caught? */
     signal(SIGILL, illerr);
@@ -187,7 +174,7 @@ void post_op(void)
 #endif
 #ifndef IEEE
     if (errno) {
-        strcpy(dispstr,"error");
+        strlcpy(dispstr, "error", sizeof(dispstr));
         DrawDisplay();
         entered=3;
         errno=0;
@@ -198,19 +185,18 @@ void post_op(void)
 static void
 DrawDisplay(void)
 {
-    if ((int) strlen(dispstr) > 12) {	 /* strip out some decimal digits */
-        char tmp[32];
-        char *estr = index(dispstr,'e');  /* search for exponent part */
+    if (strlen(dispstr) > 12) {           /* strip out some decimal digits */
+        char *estr = strchr(dispstr,'e'); /* search for exponent part */
         if (!estr) dispstr[12]='\0';      /* no exp, just trunc. */
         else {
-            if ((int) strlen(estr) <= 4)
-                sprintf(tmp,"%.8s",dispstr); /* leftmost 8 chars */
-            else
-                sprintf(tmp,"%.7s",dispstr); /* leftmost 7 chars */
-            strcat (tmp,estr);            /* plus exponent */
-            strcpy (dispstr,tmp);
-            }
+            char tmp[32];
+            if (strlen(estr) <= 4)        /* leftmost 8 chars plus exponent */
+                snprintf(tmp, sizeof(tmp), "%.8s%s", dispstr, estr);
+            else                          /* leftmost 7 chars plus exponent */
+                snprintf(tmp, sizeof(tmp), "%.7s%s", dispstr, estr);
+            strlcpy(dispstr, tmp, sizeof(dispstr));
         }
+    }
     draw(dispstr);
     setflag(XCalc_MEMORY, (flagM));
     setflag(XCalc_INVERSE, (flagINV));
@@ -252,7 +238,7 @@ numeric(int keynum)
       case kRCL:
 	PushNum(dnum);
 	dnum = mem[cell];
-	sprintf(dispstr, "%.8g", dnum);
+	snprintf(dispstr, sizeof(dispstr), "%.8g", dnum);
 	lift_enabled = 1;
         entered = 1;
 	clrdisp++;
@@ -338,7 +324,7 @@ bkspf(void)
   }
   else
   {
-      strcpy(dispstr, "0");
+      strlcpy(dispstr, "0", sizeof(dispstr));
       dnum = 0.0;
       clrdisp++;
       flagINV = 0;
@@ -353,7 +339,7 @@ decf(void)
   if (clrdisp) {
       if (rpn && lift_enabled)
 	PushNum(dnum);
-      strcpy(dispstr,"0");
+      strlcpy(dispstr, "0", sizeof(dispstr));
   }
   if (!Dpoint) {
 #ifndef X_LOCALE
@@ -375,7 +361,7 @@ eef(void)
   if (clrdisp) {
       if (rpn && lift_enabled)
 	PushNum(dnum);
-      strcpy(dispstr, rpn ? "1" : "0");
+      strlcpy(dispstr, rpn ? "1" : "0", sizeof(dispstr));
   }
   if (!exponent) {
     strcat(dispstr,"E+");
@@ -398,7 +384,7 @@ clearf(void)
   exponent=Dpoint=0;
   clrdisp=1;
   entered=1;
-  strcpy(dispstr,"0");
+  strlcpy(dispstr, "0", sizeof(dispstr));
   DrawDisplay();
 }
 
@@ -421,8 +407,8 @@ negf(void)
     strcpy(dispstr,dispstr+1);  /* move str left once */
   else {			/* not neg-ed.  add a '-' */
     char tmp[32];
-    sprintf(tmp,"-%s",dispstr);
-    strcpy(dispstr,tmp);
+    snprintf(tmp, sizeof(tmp), "-%s", dispstr);
+    strlcpy(dispstr, tmp, sizeof(dispstr));
   }
   if (entered==2)
     dnum = -1.0 * dnum;
@@ -482,7 +468,7 @@ twoop(int keynum)
 	}
       PushNum(acc);
       PushOp(keynum);
-      sprintf(dispstr,"%.8g",acc);
+      snprintf(dispstr, sizeof(dispstr), "%.8g", acc);
       DrawDisplay();
       dnum=acc;
     }
@@ -514,7 +500,7 @@ twof(int keynum)
   case kPOW: acc =  pow(acc,dnum);  break;
   case kXXY: PushNum(dnum);
   }
-  sprintf(dispstr, "%.8g", acc);
+  snprintf(dispstr, sizeof(dispstr), "%.8g", acc);
   DrawDisplay();
   clrdisp++;
   Dpoint = exponent = 0;
@@ -580,7 +566,7 @@ equf(void)
     PushNum(dnum);
   }
 
-  sprintf(dispstr,"%.8g",dnum);
+  snprintf(dispstr, sizeof(dispstr), "%.8g", dnum);
   DrawDisplay();
 }
 
@@ -605,7 +591,7 @@ rollf(void)
   RollNum(flagINV);
   flagINV=0;
   clrdisp++;
-  sprintf(dispstr, "%.8g", dnum);
+  snprintf(dispstr, sizeof(dispstr), "%.8g", dnum);
   DrawDisplay();
 }
 
@@ -649,7 +635,7 @@ rparf(void)
   (void) PopNum();
   flagPAREN--;
   entered=2;
-  sprintf(dispstr,"%.8g",dnum);
+  snprintf(dispstr, sizeof(dispstr), "%.8g", dnum);
   DrawDisplay();
 }
 
@@ -660,27 +646,27 @@ drgf(void)
     if (entered==1)
       parse_double(dispstr,"%lf",&dnum);
     switch (drgmode) {
-    case DEG:  dnum=dnum*PI/180.0;    break;
-    case RAD:  dnum=dnum*200.0/PI;    break;
+    case DEG:  dnum=dnum*M_PI/180.0;    break;
+    case RAD:  dnum=dnum*200.0/M_PI;    break;
     case GRAD: dnum=dnum*90.0/100.0;  break;
     }
     entered=2;
     clrdisp=1;
     flagINV=0;
-    sprintf(dispstr,"%.8g",dnum);
+    snprintf(dispstr, sizeof(dispstr), "%.8g", dnum);
   }
 
   flagINV=0;
   drgmode = (drgmode + 1) % 3;
   switch (drgmode) {
-  case DEG:  drg2rad=PI / 180.0;
-	     rad2drg=180.0 / PI;
+  case DEG:  drg2rad=M_PI / 180.0;
+	     rad2drg=180.0 / M_PI;
 	     break;
   case RAD:  drg2rad=1.0;
 	     rad2drg=1.0;
 	     break;
-  case GRAD: drg2rad=PI / 200.0;
-	     rad2drg=200.0 / PI;
+  case GRAD: drg2rad=M_PI / 200.0;
+	     rad2drg=200.0 / M_PI;
 	     break;
   }
   DrawDisplay();
@@ -715,8 +701,8 @@ oneop(int keynum)
   entered = 2;
 
   switch (keynum) {  /* do the actual math fn. */
-  case kE:     if (rpn && memop != kENTR) PushNum(dnum); dnum=E;  break;
-  case kPI:    if (rpn && memop != kENTR) PushNum(dnum); dnum=PI;  break;
+  case kE:     if (rpn && memop != kENTR) PushNum(dnum); dnum=M_E;  break;
+  case kPI:    if (rpn && memop != kENTR) PushNum(dnum); dnum=M_PI;  break;
   case kRECIP: dnum=1.0/dnum;  break;
   case kSQR:   flagINV = !flagINV; /* fall through to */
   case kSQRT:  if (flagINV) dnum=dnum*dnum;
@@ -746,7 +732,7 @@ oneop(int keynum)
   case kEXC:   dtmp=dnum; dnum=mem[0];  mem[0]=dtmp;
 	       flagM=!(mem[0]==0.0);  break;
   case kFACT:  if (floor(dnum)!=dnum || dnum<0.0 || dnum>500.0) {
-		 strcpy(dispstr,"error");
+                 strlcpy(dispstr, "error", sizeof(dispstr));
 		 entered=3;
 		 break;
 	       }
@@ -766,7 +752,7 @@ oneop(int keynum)
   clrdisp=1;
   flagINV=0;
   lift_enabled = 1;
-  sprintf(dispstr,"%.8g",dnum);
+  snprintf(dispstr, sizeof(dispstr), "%.8g", dnum);
   DrawDisplay();
 }
 
@@ -799,8 +785,11 @@ static void
 PushOp(int op)
 /*******/
 {
-  if (opsp==STACKMAX) {strcpy(dispstr,"stack error");  entered=3;}
-  else opstack[opsp++]=op;
+  if (opsp==STACKMAX) {
+      strlcpy(dispstr, "stack error", sizeof(dispstr));
+      entered=3;
+  } else
+      opstack[opsp++]=op;
 }
 
 /*******/
@@ -809,7 +798,7 @@ PopOp(void)
 /*******/
 {
   if (opsp==0) {
-      strcpy(dispstr,"stack error");
+      strlcpy(dispstr, "stack error", sizeof(dispstr));
       entered=3;
       return(kNOP);
   } else
@@ -845,7 +834,7 @@ PushNum(double num)
       return;
   }
   if (numsp==STACKMAX) {
-      strcpy(dispstr,"stack error");
+      strlcpy(dispstr, "stack error", sizeof(dispstr));
       entered=3;
   } else
     numstack[numsp++]=num;
@@ -863,7 +852,7 @@ PopNum(void)
 	return(tmp);
     }
     if (numsp==0) {
-	strcpy(dispstr,"stack error");
+	strlcpy(dispstr, "stack error", sizeof(dispstr));
 	entered=3;
 	return 0.0;
     } else
@@ -932,9 +921,9 @@ ResetCalc(void)
     setflag(XCalc_RADIAN, False);
     setflag(XCalc_GRADAM, False);
     setflag(XCalc_DEGREE, True);
-    strcpy(dispstr,"0");
+    strlcpy(dispstr, "0", sizeof(dispstr));
     draw(dispstr);
     ClearStacks();
-    drg2rad=PI/180.0;
-    rad2drg=180.0/PI;
+    drg2rad=M_PI/180.0;
+    rad2drg=180.0/M_PI;
 }
