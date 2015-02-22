@@ -54,6 +54,7 @@ libXau git version
 libXaw-1.0.12
 libXdmcp git version
 libXext git version
+libXfixes-5.0
 libXfont-1.5.0
 libXft git version
 libXinerama git version
