@@ -107,9 +107,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\formats.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\mesa\main\format_unpack.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\main\framebuffer.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -656,9 +653,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\texstorage.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\mesa\main\format_pack.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\main\errors.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -690,9 +684,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\mesa\program\prog_hash_table.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\src\mesa\main\set.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\glsl\lower_packed_varyings.cpp">
@@ -819,6 +810,18 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\glsl\lower_const_arrays_to_uniforms.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\util\set.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\mesa\main\format_pack.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\mesa\main\format_unpack.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\mapi\glapi\glapi_nop.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

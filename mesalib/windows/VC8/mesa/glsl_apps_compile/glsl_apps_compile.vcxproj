@@ -113,7 +113,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\src\mesa;..\..\..\..\src\glsl;..\..\..\..\src\mapi;..\..\..\..\..\include;..\..\..\..\..;..\..\..\..\src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\src\mesa;..\..\..\..\src\glsl;..\..\..\..\src\mapi;..\..\..\..\..\include;..\..\..\..\..;..\..\..\..\src;..\..\..\..\src\gallium\auxiliary;..\..\..\..\src\gallium\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -152,7 +152,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\src\mesa;..\..\..\..\src\glsl;..\..\..\..\src\mapi;..\..\..\..\..\include;..\..\..\..\..;..\..\..\..\src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\include;..\..\..\..\src\mesa;..\..\..\..\src\glsl;..\..\..\..\src\mapi;..\..\..\..\..\include;..\..\..\..\..;..\..\..\..\src;..\..\..\..\src\gallium\auxiliary;..\..\..\..\src\gallium\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

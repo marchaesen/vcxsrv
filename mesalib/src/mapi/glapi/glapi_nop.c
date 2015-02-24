@@ -40,6 +40,8 @@
 
 #include "glapi/glapi_priv.h"
 
+#undef _GLAPI_EXPORT
+#define _GLAPI_EXPORT
 
 void _GLAPI_EXPORT
 _glapi_noop_enable_warnings(unsigned char enable)
@@ -116,4 +118,4 @@ NoOpGeneric(void)
 #define DISPATCH_TABLE_NAME __glapi_noop_table
 #define UNUSED_TABLE_NAME __unused_noop_functions
 
-#include "glapi/glapitemp.h"
+#include "glapi/gen/glapitemp.h"

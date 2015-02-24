@@ -701,7 +701,7 @@ class CMyWizard : public CWizard
             if (config.clipboard)
                 buffer += "-clipboard ";
             if (!config.clipboardprimary)
-                buffer += "-noclipboardprimary ";
+                buffer += "-noprimary ";
             if (config.wgl)
                 buffer += "-wgl ";
             else

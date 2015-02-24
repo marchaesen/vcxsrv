@@ -34,6 +34,7 @@ INCLUDENOSERVLIBFILES =  \
  $(MHMAKECONF)\pixman\pixman\$(NOSERVOBJDIR)\libpixman-1.lib \
  $(MHMAKECONF)\libXdmcp\$(NOSERVOBJDIR)\libXdmcp.lib \
  $(MHMAKECONF)\libXau\$(NOSERVOBJDIR)\libXau.lib \
+ $(MHMAKECONF)\libXfixes\src\$(NOSERVOBJDIR)\libXfixes.lib \
  $(MHMAKECONF)\libXfont\src\util\$(NOSERVOBJDIR)\libutil.lib \
  $(MHMAKECONF)\libXfont\src\fc\$(NOSERVOBJDIR)\libfc.lib \
  $(MHMAKECONF)\libXfont\src\fontfile\$(NOSERVOBJDIR)\libfontfile.lib \

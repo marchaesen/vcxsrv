@@ -52,7 +52,8 @@ DEPS:=$(wildcard ..\..\..\src\mesa\swrast\*.c) \
       ..\..\..\src\mesa\main\api_exec.c \
       ..\..\..\src\mesa\main\get_hash.h \
       ..\..\..\src\mesa\main\format_info.c \
-      ..\..\..\src\util\format_srgb.c \
+      ..\..\..\src\mesa\main\format_unpack.c \
+      ..\..\..\src\mesa\main\format_pack.c \
       ..\..\..\src\mesa\main\remap_helper.h \
       ..\..\..\src\mesa\drivers\dri\common\xmlpool\options.h
 
@@ -83,6 +84,12 @@ GEN_FORMAT_INFO=../../../src/mesa/main/format_info.py
 
 ..\..\..\src\util\format_srgb.c: ..\..\..\src\util\format_srgb.py
 	python $< > $@
+
+..\..\..\src\mesa\main\format_unpack.c: ..\..\..\src\mesa\main\format_unpack.py  ..\..\..\src\mesa\main\formats.csv
+	python ..\..\..\src\mesa\main\format_unpack.py  ..\..\..\src\mesa\main\formats.csv > $@ 
+
+..\..\..\src\mesa\main\format_pack.c: ..\..\..\src\mesa\main\format_pack.py  ..\..\..\src\mesa\main\formats.csv
+	python ..\..\..\src\mesa\main\format_pack.py  ..\..\..\src\mesa\main\formats.csv > $@ 
 
 REMAP_HELPER = ../../../src/mapi/glapi/gen/remap_helper.py
 ..\..\..\src\mesa\main\remap_helper.h: ..\..\..\src\mapi\glapi\gen\gl_and_es_API.xml $(REMAP_HELPER)

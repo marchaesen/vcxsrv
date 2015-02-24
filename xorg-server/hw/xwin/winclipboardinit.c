@@ -111,12 +111,6 @@ winInitClipboard(void)
 {
     winDebug("winInitClipboard ()\n");
 
-    /* Wrap some internal server functions */
-    if (ProcVector[X_SetSelectionOwner] != winProcSetSelectionOwner) {
-        winProcSetSelectionOwnerOrig = ProcVector[X_SetSelectionOwner];
-        ProcVector[X_SetSelectionOwner] = winProcSetSelectionOwner;
-    }
-
     /* Spawn a thread for the Clipboard module */
     if (pthread_create(&g_ptClipboardProc, NULL, winClipboardThreadProc, NULL)) {
         /* Bail if thread creation failed */

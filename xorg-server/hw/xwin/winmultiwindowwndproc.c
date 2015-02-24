@@ -328,7 +328,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     static Bool s_fTracking = FALSE;
     Bool needRestack = FALSE;
     LRESULT ret;
-    static Bool	hasEnteredSizeMove = FALSE;
+    static Bool hasEnteredSizeMove = FALSE;
 
     winDebugWin32Message("winTopLevelWindowProc", hwnd, message, wParam,
                          lParam);
@@ -586,7 +586,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_MOUSELEAVE:
        /* We can't do anything without privates */
         if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
-	          break;
+            break;
         /* Mouse has left our client area */
 
         /* Flag that we are no longer tracking */
@@ -813,8 +813,9 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             /* Tell our Window Manager thread to activate the window */
             wmMsg.msg = WM_WM_ACTIVATE;
-            if (fWMMsgInitialized && pWin->realized && !pWin->overrideRedirect /* for OOo menus */)
-	              winSendMessageToWM (s_pScreenPriv->pWMInfo, &wmMsg);
+            if (fWMMsgInitialized &&
+                pWin->realized && !pWin->overrideRedirect /* for OOo menus */)
+                    winSendMessageToWM(s_pScreenPriv->pWMInfo, &wmMsg);
         }
         /* Prevent the mouse wheel from stalling when another window is minimized */
         if (HIWORD(wParam) == 0 && LOWORD(wParam) == WA_ACTIVE &&

@@ -1,0 +1,75 @@
+.\"
+.\"
+.\" Copyright © 2002 Keith Packard, member of The XFree86 Project, Inc.
+.\"
+.\" Permission to use, copy, modify, distribute, and sell this software and its
+.\" documentation for any purpose is hereby granted without fee, provided that
+.\" the above copyright notice appear in all copies and that both that
+.\" copyright notice and this permission notice appear in supporting
+.\" documentation, and that the name of Keith Packard not be used in
+.\" advertising or publicity pertaining to distribution of the software without
+.\" specific, written prior permission.  Keith Packard makes no
+.\" representations about the suitability of this software for any purpose.  It
+.\" is provided "as is" without express or implied warranty.
+.\"
+.\" KEITH PACKARD DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
+.\" INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
+.\" EVENT SHALL KEITH PACKARD BE LIABLE FOR ANY SPECIAL, INDIRECT OR
+.\" CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+.\" DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+.\" TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+.\" PERFORMANCE OF THIS SOFTWARE.
+.\"
+.de TQ
+.br
+.ns
+.TP \\$1
+..
+.TH XFIXES __libmansuffix__ __xorgversion__
+
+.SH NAME
+XFixes \- Augmented versions of core protocol requests
+.SH SYNTAX
+\&#include <X11/extensions/Xfixes.h>
+.nf    
+.sp
+Bool XFixesQueryExtension \^(\^Display *\fIdpy\fP, 
+	int *\fIevent_base_return\fP, int *\fIerror_base_return\fP\^);
+.sp
+Status XFixesQueryVersion \^(\^Display *\fIdpy\fP,
+	int *\fImajor_version_return\fP,
+	int *\fIminor_version_return\fP\^);
+.sp
+void XFixesChangeSaveSet \^(\^Display *dpy,
+	Window \fIwindow\fP,
+	int \fImode\fP,
+	int \fItarget\fP,
+	int \fImap\fP);
+.fi
+.SH ARGUMENTS
+.IP \fIdisplay\fP 1i
+Specifies the connection to the X server.
+.IP \fIwindow\fP 1i
+Specifies which window.
+.IP \fImode\fP 1i
+Specifies the save set operation (SetModeInsert/SetModeDelete).
+.IP \fItarget\fP 1i
+Specifies the target when executing the save set
+(SaveSetNearest/SaveSetRoot).  In SaveSetNearest mode, the save set member
+window will be reparented to the nearest window not owned by the save set
+client.  In SaveSetRoot mode, the save set member window will be reparented
+to the root window.
+.IP \fImap\fP 1i
+Specifies the map mode (SaveSetMap/SaveSetUnmap) which selects whether the
+save setmember window will be mapped or unmapped during save set processing.
+.SH DESCRIPTION
+.B Xfixes
+is a simple library designed to interface the X Fixes
+Extension.  This extension provides application with work arounds for
+various limitations in the core protocol.
+.SH RESTRICTIONS
+.B Xfixes
+will remain upward compatible after the current 1.0 release.
+.SH AUTHORS
+Keith Packard, member of the XFree86 Project, Inc. and
+HP, Owen Taylor, member of the Gnome Foundation and Redhat, Inc.

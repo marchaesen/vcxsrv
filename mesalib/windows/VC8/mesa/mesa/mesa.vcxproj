@@ -116,7 +116,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <OmitFramePointers>true</OmitFramePointers>
       <WholeProgramOptimization>true</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>../../../../include;../../../../src/mesa;../../../../src/glsl;../../../../src/mapi;../../../../src/mesa/main;../../../../src/mesa/shader;../../../../src/mesa/shader/slang;../../../../../include;../../../../..;../../../../src/gallium/auxiliary;../../../../src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../../include;../../../../src/mesa;../../../../src/glsl;../../../../src/mapi;../../../../src/mesa/main;../../../../src/mesa/shader;../../../../src/mesa/shader/slang;../../../../../include;../../../../..;../../../../src/gallium/auxiliary;../../../../src;../../../../src/gallium/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NDEBUG;WIN32;_LIB;_DLL;_GDI32_;BUILD_GL32;WIN32_THREADS;MESA_MINWARN;_CRT_SECURE_NO_DEPRECATE;INSERVER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -162,7 +162,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../../../include;../../../../src/mesa;../../../../src/glsl;../../../../src/mapi;../../../../src/mesa/main;../../../../src/mesa/shader;../../../../src/mesa/shader/slang;../../../../../include;../../../../..;../../../../src/gallium/auxiliary;../../../../src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../../include;../../../../src/mesa;../../../../src/glsl;../../../../src/mapi;../../../../src/mesa/main;../../../../src/mesa/shader;../../../../src/mesa/shader/slang;../../../../../include;../../../../..;../../../../src/gallium/auxiliary;../../../../src;../../../../src/gallium/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_DEBUG;DEBUG;WIN32;_LIB;_DLL;_GDI32_;BUILD_GL32;WIN32_THREADS;MESA_MINWARN;_CRT_SECURE_NO_DEPRECATE;INSERVER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -298,6 +298,7 @@
     <ClCompile Include="..\..\..\..\src\glsl\opt_tree_grafting.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_vectorize.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\s_expression.cpp" />
+    <ClCompile Include="..\..\..\..\src\mapi\glapi\glapi_nop.c" />
     <ClCompile Include="..\..\..\..\src\mesa\drivers\common\meta_blit.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\accum.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\api_arrayelt.c" />
@@ -314,6 +315,7 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\es1_conversion.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\formatquery.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\format_pack.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\main\format_unpack.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\format_utils.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\genmipmap.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\glformats.c" />
@@ -324,7 +326,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\pixeltransfer.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\querymatrix.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\remap.c" />
-    <ClCompile Include="..\..\..\..\src\mesa\main\set.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\shaderapi.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\shaderimage.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\shaderobj.c" />
@@ -366,7 +367,6 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\ffvertex_prog.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\fog.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\formats.c" />
-    <ClCompile Include="..\..\..\..\src\mesa\main\format_unpack.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\framebuffer.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\get.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\getstring.c" />
@@ -475,6 +475,7 @@
     <ClCompile Include="..\..\..\..\src\util\hash_table.c" />
     <ClCompile Include="..\..\..\..\src\util\ralloc.c" />
     <ClCompile Include="..\..\..\..\src\util\rgtc.c" />
+    <ClCompile Include="..\..\..\..\src\util\set.c" />
     <ClCompile Include="..\..\..\..\src\util\strtod.cpp" />
   </ItemGroup>
   <ItemGroup>

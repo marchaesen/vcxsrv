@@ -207,6 +207,8 @@ libxkbfile/include/X11/extensions/XKBbells.h      X11/extensions/XKBbells.h
 libxkbfile/include/X11/extensions/XKBconfig.h     X11/extensions/XKBconfig.h
 libxkbfile/include/X11/extensions/XKBrules.h      X11/extensions/XKBrules.h
 libxkbfile/include/X11/extensions/XKMformat.h     X11/extensions/XKMformat.h
+
+libXfixes/include/X11/extensions/Xfixes.h         X11/extensions/Xfixes.h
 """
 
 Files=FilesStr.split()

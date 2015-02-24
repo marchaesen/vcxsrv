@@ -133,7 +133,6 @@ typedef struct
 } ClipboardConversionData;
 
 int
-
 winClipboardFlushXEvents(HWND hwnd,
                          Window iWindow, Display * pDisplay, ClipboardConversionData *data, ClipboardAtoms *atom);
 

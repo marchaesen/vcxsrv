@@ -734,30 +734,6 @@ ddxProcessArgument(int argc, char *argv[], int i)
         /* Indicate that we have processed this argument */
         return 1;
     }
-    
-  /*
-   * Look for the '-clipboard' argument
-   */
-  if (IS_OPTION ("-clipboardprimary"))
-    {
-      /* Now the default, we still accept the arg for backwards compatibility */
-      g_fClipboardPrimary = TRUE;
-
-      /* Indicate that we have processed this argument */
-      return 1;
-    }
-
-  /*
-   * Look for the '-noclipboard' argument
-   */
-  if (IS_OPTION ("-noclipboardprimary"))
-    {
-      g_fClipboardPrimary = FALSE;
-
-      /* Indicate that we have processed this argument */
-      return 1;
-    }
-    
 #endif
 
     /*
@@ -1046,7 +1022,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
     if (IS_OPTION("-logverbose")) {
         CHECK_ARGS(1);
         g_iLogVerbose = atoi(argv[++i]);
-	LogSetParameter(XLOG_VERBOSITY, g_iLogVerbose);
+        LogSetParameter(XLOG_VERBOSITY, g_iLogVerbose);
         return 2;
     }
 

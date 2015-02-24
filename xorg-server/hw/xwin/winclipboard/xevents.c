@@ -34,6 +34,7 @@
 #include <xwin-config.h>
 #endif
 #include "winclipboard.h"
+#include "winglobals.h"
 #include "misc.h"
 #include "winmsg.h"
 /*
@@ -50,7 +51,7 @@
 #include <wchar.h>
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
-//#include <X11/extensions/Xfixes.h>
+#include <X11/extensions/Xfixes.h>
 
 #include "winclipboard.h"
 #include "internal.h"
@@ -70,8 +71,6 @@
 
 extern int xfixes_event_base;
 Bool fPrimarySelection = TRUE;
-
-extern Bool g_fClipboardPrimary;
 
 /*
  * Local variables
@@ -308,22 +307,23 @@ winClipboardFlushXEvents(HWND hwnd,
                 break;
             }
 
-              /* Access the clipboard */
-            if (!ClipboardOpened)
-            {
-              if (!OpenClipboard (hwnd))
-              {
-                ErrorF ("winClipboardFlushXEvents - SelectionRequest - "
+            /* Close clipboard if we have it open already */
+            if (GetOpenClipboardWindow() == hwnd) {
+                CloseClipboard();
+            }
+
+            /* Access the clipboard */
+            if (!OpenClipboard(hwnd)) {
+                ErrorF("winClipboardFlushXEvents - SelectionRequest - "
                        "OpenClipboard () failed: %08lx\n", GetLastError());
 
                 /* Abort */
                 fAbort = TRUE;
                 goto winClipboardFlushXEvents_SelectionRequest_Done;
-              }
-	  
-              /* Indicate that clipboard was opened */
-              fCloseClipboard = TRUE;
             }
+
+            /* Indicate that clipboard was opened */
+            fCloseClipboard = TRUE;
 
             /* Check that clipboard format is available */
             if (data->fUseUnicode && !IsClipboardFormatAvailable(CF_UNICODETEXT)) {
@@ -374,13 +374,13 @@ winClipboardFlushXEvents(HWND hwnd,
                 hGlobal = GetClipboardData(CF_TEXT);
             }
             if (!hGlobal) {
-                if (GetLastError()==ERROR_CLIPBOARD_NOT_OPEN && ClipboardOpened)
+                if (GetLastError()==ERROR_CLIPBOARD_NOT_OPEN && g_fClipboardStarted)
                 {
                     ErrorF("We should not have received a SelectionRequest????\n"
                             "The owner is the clipboard, but in reality it was"
                             "an X window\n");
                     /* Set the owner to None */
-                    if (g_fClipboardPrimary) XSetSelectionOwner (pDisplay, XA_PRIMARY, None, CurrentTime);
+                    if (fPrimarySelection) XSetSelectionOwner (pDisplay, XA_PRIMARY, None, CurrentTime);
                     XSetSelectionOwner (pDisplay, XInternAtom (pDisplay, "CLIPBOARD", False), None, CurrentTime);
                 }
                 ErrorF ("winClipboardFlushXEvents - SelectionRequest - "
@@ -470,11 +470,9 @@ winClipboardFlushXEvents(HWND hwnd,
             /* Release the clipboard data */
             GlobalUnlock(hGlobal);
             pszGlobalData = NULL;
-            if (fCloseClipboard)
-            {
-                fCloseClipboard = FALSE;
-                CloseClipboard ();
-            }
+            fCloseClipboard = FALSE;
+            CloseClipboard();
+
             /* Clean up */
             XFree(xtpText.value);
             xtpText.value = NULL;

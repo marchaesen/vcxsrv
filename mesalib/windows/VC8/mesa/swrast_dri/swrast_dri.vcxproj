@@ -127,7 +127,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../../../../include;../../../../src/mesa;../../../../src/glsl;../../../../src/mapi;../../../../src/mesa/main;../../../../src/mesa/shader;../../../../src/mesa/shader/slang;../../../../../include;../../../../src/mesa/drivers/dri/common;../../../../../expat/lib;../../../../..;../../../../src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../../include;../../../../src/mesa;../../../../src/glsl;../../../../src/mapi;../../../../src/mesa/main;../../../../src/mesa/shader;../../../../src/mesa/shader/slang;../../../../../include;../../../../src/mesa/drivers/dri/common;../../../../../expat/lib;../../../../..;../../../../src;../../../../src/gallium/auxiliary;../../../../src/gallium/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_DEBUG;DEBUG;WIN32;_DLL;SWRAST_DRI_EXPORTS;_GDI32_;BUILD_GL32;WIN32_THREADS;MESA_MINWARN;_CRT_SECURE_NO_DEPRECATE;INSERVER;__NOT_HAVE_DRM_H;XML_STATIC;COMPILED_FROM_DSP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -206,7 +206,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <OmitFramePointers>true</OmitFramePointers>
       <WholeProgramOptimization>true</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>../../../../include;../../../../src/mesa;../../../../src/glsl;../../../../src/mapi;../../../../src/mesa/main;../../../../src/mesa/shader;../../../../src/mesa/shader/slang;../../../../../include;../../../../src/mesa/drivers/dri/common;../../../../../expat/lib;../../../../..;../../../../src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../../include;../../../../src/mesa;../../../../src/glsl;../../../../src/mapi;../../../../src/mesa/main;../../../../src/mesa/shader;../../../../src/mesa/shader/slang;../../../../../include;../../../../src/mesa/drivers/dri/common;../../../../../expat/lib;../../../../..;../../../../src;../../../../src/gallium/auxiliary;../../../../src/gallium/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NDEBUG;WIN32;_DLL;SWRAST_DRI_EXPORTS;_GDI32_;BUILD_GL32;WIN32_THREADS;MESA_MINWARN;_CRT_SECURE_NO_DEPRECATE;INSERVER;__NOT_HAVE_DRM_H;XML_STATIC;COMPILED_FROM_DSP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>
