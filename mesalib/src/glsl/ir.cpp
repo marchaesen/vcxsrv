@@ -618,8 +618,8 @@ static const char *const operator_strs[] = {
 
 const char *ir_expression::operator_string(ir_expression_operation op)
 {
-   assert((unsigned int) op < Elements(operator_strs));
-   assert(Elements(operator_strs) == (ir_quadop_vector + 1));
+   assert((unsigned int) op < ARRAY_SIZE(operator_strs));
+   assert(ARRAY_SIZE(operator_strs) == (ir_quadop_vector + 1));
    return operator_strs[op];
 }
 
@@ -1707,7 +1707,7 @@ const char *const ir_variable::warn_extension_table[] = {
 void
 ir_variable::enable_extension_warning(const char *extension)
 {
-   for (unsigned i = 0; i < Elements(warn_extension_table); i++) {
+   for (unsigned i = 0; i < ARRAY_SIZE(warn_extension_table); i++) {
       if (strcmp(warn_extension_table[i], extension) == 0) {
          this->data.warn_extension_index = i;
          return;

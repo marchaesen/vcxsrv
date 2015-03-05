@@ -72,13 +72,13 @@ struct dri_context
     __DRIcontext *cPriv;
 };
 
-static INLINE struct dri_context *
+static inline struct dri_context *
 dri_context(__DRIcontext * driContextPriv)
 {
     return (struct dri_context *)driContextPriv->driverPrivate;
 }
 
-static INLINE struct dri_context *
+static inline struct dri_context *
 swrast_context(struct gl_context *ctx)
 {
     return (struct dri_context *) ctx;
@@ -96,13 +96,13 @@ struct dri_drawable
     char *row;
 };
 
-static INLINE struct dri_drawable *
+static inline struct dri_drawable *
 dri_drawable(__DRIdrawable * driDrawPriv)
 {
     return (struct dri_drawable *)driDrawPriv->driverPrivate;
 }
 
-static INLINE struct dri_drawable *
+static inline struct dri_drawable *
 swrast_drawable(struct gl_framebuffer *fb)
 {
     return (struct dri_drawable *) fb;
@@ -122,7 +122,7 @@ struct dri_swrast_renderbuffer {
     GLuint bpp;
 };
 
-static INLINE struct dri_swrast_renderbuffer *
+static inline struct dri_swrast_renderbuffer *
 dri_swrast_renderbuffer(struct gl_renderbuffer *rb)
 {
     return (struct dri_swrast_renderbuffer *) rb;

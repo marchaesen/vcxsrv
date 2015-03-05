@@ -122,5 +122,5 @@ format_info_deps := \
 	$(LOCAL_PATH)/main/format_parser.py \
 	$(FORMAT_INFO)
 
-$(intermediates)/main/format_info.c: $(format_info_deps)
+$(intermediates)/main/format_info.h: $(format_info_deps)
 	@$(MESA_PYTHON2) $(FORMAT_INFO) $< > $@

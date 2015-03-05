@@ -280,7 +280,7 @@ compute_pass_fail_masks(GLuint n, const GLubyte origMask[],
 {
    GLuint i;
    for (i = 0; i < n; i++) {
-      ASSERT(newMask[i] == 0 || newMask[i] == 1);
+      assert(newMask[i] == 0 || newMask[i] == 1);
       passMask[i] = origMask[i] & newMask[i];
       failMask[i] = origMask[i] & (newMask[i] ^ 1);
    }

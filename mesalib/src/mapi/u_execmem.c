@@ -32,8 +32,8 @@
  */
 
 
-#include "u_compiler.h"
-#include "u_thread.h"
+#include "c99_compat.h"
+#include "c11/threads.h"
 #include "u_execmem.h"
 
 

@@ -28,6 +28,7 @@
  */
 
 
+#include <stdio.h>
 #include "bufferobj.h"
 #include "colortab.h"
 #include "context.h"
@@ -265,7 +266,7 @@ _mesa_initialize_texture_object( struct gl_context *ctx,
                                  struct gl_texture_object *obj,
                                  GLuint name, GLenum target )
 {
-   ASSERT(target == 0 ||
+   assert(target == 0 ||
           target == GL_TEXTURE_1D ||
           target == GL_TEXTURE_2D ||
           target == GL_TEXTURE_3D ||
@@ -541,11 +542,11 @@ _mesa_reference_texobj_(struct gl_texture_object **ptr,
       GLboolean deleteFlag = GL_FALSE;
       struct gl_texture_object *oldTex = *ptr;
 
-      ASSERT(valid_texture_object(oldTex));
+      assert(valid_texture_object(oldTex));
       (void) valid_texture_object; /* silence warning in release builds */
 
       mtx_lock(&oldTex->Mutex);
-      ASSERT(oldTex->RefCount > 0);
+      assert(oldTex->RefCount > 0);
       oldTex->RefCount--;
 
       deleteFlag = (oldTex->RefCount == 0);
@@ -568,7 +569,7 @@ _mesa_reference_texobj_(struct gl_texture_object **ptr,
 
    if (tex) {
       /* reference new texture */
-      ASSERT(valid_texture_object(tex));
+      assert(valid_texture_object(tex));
       mtx_lock(&tex->Mutex);
       if (tex->RefCount == 0) {
          /* this texture's being deleted (look just above) */
@@ -730,7 +731,7 @@ _mesa_test_texobj_completeness( const struct gl_context *ctx,
       return;
    }
 
-   ASSERT(maxLevels > 0);
+   assert(maxLevels > 0);
 
    t->_MaxLevel = MIN3(t->MaxLevel,
                        /* 'p' in the GL spec */
@@ -1724,7 +1725,7 @@ _mesa_BindTexture( GLenum target, GLuint texName )
    _mesa_reference_texobj(&texUnit->CurrentTex[targetIndex], newTexObj);
    ctx->Texture.NumCurrentTexUsed = MAX2(ctx->Texture.NumCurrentTexUsed,
                                          ctx->Texture.CurrentUnit + 1);
-   ASSERT(texUnit->CurrentTex[targetIndex]);
+   assert(texUnit->CurrentTex[targetIndex]);
 
    if (texName != 0)
       texUnit->_BoundTextures |= (1 << targetIndex);
@@ -1773,7 +1774,7 @@ _mesa_bind_texture_unit(struct gl_context *ctx,
 
    _mesa_reference_texobj(&texUnit->CurrentTex[texObj->TargetIndex],
                           texObj);
-   ASSERT(texUnit->CurrentTex[texObj->TargetIndex]);
+   assert(texUnit->CurrentTex[texObj->TargetIndex]);
    ctx->Texture.NumCurrentTexUsed = MAX2(ctx->Texture.NumCurrentTexUsed,
                                          unit + 1);
    texUnit->_BoundTextures |= (1 << texObj->TargetIndex);

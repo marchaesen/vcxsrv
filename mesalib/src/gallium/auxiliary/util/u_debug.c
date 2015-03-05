@@ -402,31 +402,28 @@ void debug_print_format(const char *msg, unsigned fmt )
 #endif
 
 
-
-static const struct debug_named_value pipe_prim_names[] = {
-#ifdef DEBUG
-   DEBUG_NAMED_VALUE(PIPE_PRIM_POINTS),
-   DEBUG_NAMED_VALUE(PIPE_PRIM_LINES),
-   DEBUG_NAMED_VALUE(PIPE_PRIM_LINE_LOOP),
-   DEBUG_NAMED_VALUE(PIPE_PRIM_LINE_STRIP),
-   DEBUG_NAMED_VALUE(PIPE_PRIM_TRIANGLES),
-   DEBUG_NAMED_VALUE(PIPE_PRIM_TRIANGLE_STRIP),
-   DEBUG_NAMED_VALUE(PIPE_PRIM_TRIANGLE_FAN),
-   DEBUG_NAMED_VALUE(PIPE_PRIM_QUADS),
-   DEBUG_NAMED_VALUE(PIPE_PRIM_QUAD_STRIP),
-   DEBUG_NAMED_VALUE(PIPE_PRIM_POLYGON),
-   DEBUG_NAMED_VALUE(PIPE_PRIM_LINES_ADJACENCY),
-   DEBUG_NAMED_VALUE(PIPE_PRIM_LINE_STRIP_ADJACENCY),
-   DEBUG_NAMED_VALUE(PIPE_PRIM_TRIANGLES_ADJACENCY),
-   DEBUG_NAMED_VALUE(PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY),
-#endif
-   DEBUG_NAMED_VALUE_END
-};
-
-
-const char *u_prim_name( unsigned prim )
+/** Return string name of given primitive type */
+const char *
+u_prim_name(unsigned prim)
 {
-   return debug_dump_enum(pipe_prim_names, prim);
+   static const struct debug_named_value names[] = {
+      DEBUG_NAMED_VALUE(PIPE_PRIM_POINTS),
+      DEBUG_NAMED_VALUE(PIPE_PRIM_LINES),
+      DEBUG_NAMED_VALUE(PIPE_PRIM_LINE_LOOP),
+      DEBUG_NAMED_VALUE(PIPE_PRIM_LINE_STRIP),
+      DEBUG_NAMED_VALUE(PIPE_PRIM_TRIANGLES),
+      DEBUG_NAMED_VALUE(PIPE_PRIM_TRIANGLE_STRIP),
+      DEBUG_NAMED_VALUE(PIPE_PRIM_TRIANGLE_FAN),
+      DEBUG_NAMED_VALUE(PIPE_PRIM_QUADS),
+      DEBUG_NAMED_VALUE(PIPE_PRIM_QUAD_STRIP),
+      DEBUG_NAMED_VALUE(PIPE_PRIM_POLYGON),
+      DEBUG_NAMED_VALUE(PIPE_PRIM_LINES_ADJACENCY),
+      DEBUG_NAMED_VALUE(PIPE_PRIM_LINE_STRIP_ADJACENCY),
+      DEBUG_NAMED_VALUE(PIPE_PRIM_TRIANGLES_ADJACENCY),
+      DEBUG_NAMED_VALUE(PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY),
+      DEBUG_NAMED_VALUE_END
+   };
+   return debug_dump_enum(names, prim);
 }
 
 
@@ -722,38 +719,75 @@ error1:
 void
 debug_print_transfer_flags(const char *msg, unsigned usage)
 {
-#define FLAG(x)  { x, #x }
-   static const struct {
-      unsigned bit;
-      const char *name;
-   } flags[] = {
-      FLAG(PIPE_TRANSFER_READ),
-      FLAG(PIPE_TRANSFER_WRITE),
-      FLAG(PIPE_TRANSFER_MAP_DIRECTLY),
-      FLAG(PIPE_TRANSFER_DISCARD_RANGE),
-      FLAG(PIPE_TRANSFER_DONTBLOCK),
-      FLAG(PIPE_TRANSFER_UNSYNCHRONIZED),
-      FLAG(PIPE_TRANSFER_FLUSH_EXPLICIT),
-      FLAG(PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE)
+   static const struct debug_named_value names[] = {
+      DEBUG_NAMED_VALUE(PIPE_TRANSFER_READ),
+      DEBUG_NAMED_VALUE(PIPE_TRANSFER_WRITE),
+      DEBUG_NAMED_VALUE(PIPE_TRANSFER_MAP_DIRECTLY),
+      DEBUG_NAMED_VALUE(PIPE_TRANSFER_DISCARD_RANGE),
+      DEBUG_NAMED_VALUE(PIPE_TRANSFER_DONTBLOCK),
+      DEBUG_NAMED_VALUE(PIPE_TRANSFER_UNSYNCHRONIZED),
+      DEBUG_NAMED_VALUE(PIPE_TRANSFER_FLUSH_EXPLICIT),
+      DEBUG_NAMED_VALUE(PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE),
+      DEBUG_NAMED_VALUE(PIPE_TRANSFER_PERSISTENT),
+      DEBUG_NAMED_VALUE(PIPE_TRANSFER_COHERENT),
+      DEBUG_NAMED_VALUE_END
    };
-   unsigned i;
 
-   debug_printf("%s ", msg);
-
-   for (i = 0; i < Elements(flags); i++) {
-      if (usage & flags[i].bit) {
-         debug_printf("%s", flags[i].name);
-         usage &= ~flags[i].bit;
-         if (usage) {
-            debug_printf(" | ");
-         }
-      }
-   }
-
-   debug_printf("\n");
-#undef FLAG
+   debug_printf("%s: %s\n", msg, debug_dump_flags(names, usage));
 }
 
+
+/**
+ * Print PIPE_BIND_x flags with a message.
+ */
+void
+debug_print_bind_flags(const char *msg, unsigned usage)
+{
+   static const struct debug_named_value names[] = {
+      DEBUG_NAMED_VALUE(PIPE_BIND_DEPTH_STENCIL),
+      DEBUG_NAMED_VALUE(PIPE_BIND_RENDER_TARGET),
+      DEBUG_NAMED_VALUE(PIPE_BIND_BLENDABLE),
+      DEBUG_NAMED_VALUE(PIPE_BIND_SAMPLER_VIEW),
+      DEBUG_NAMED_VALUE(PIPE_BIND_VERTEX_BUFFER),
+      DEBUG_NAMED_VALUE(PIPE_BIND_INDEX_BUFFER),
+      DEBUG_NAMED_VALUE(PIPE_BIND_CONSTANT_BUFFER),
+      DEBUG_NAMED_VALUE(PIPE_BIND_DISPLAY_TARGET),
+      DEBUG_NAMED_VALUE(PIPE_BIND_TRANSFER_WRITE),
+      DEBUG_NAMED_VALUE(PIPE_BIND_TRANSFER_READ),
+      DEBUG_NAMED_VALUE(PIPE_BIND_STREAM_OUTPUT),
+      DEBUG_NAMED_VALUE(PIPE_BIND_CURSOR),
+      DEBUG_NAMED_VALUE(PIPE_BIND_CUSTOM),
+      DEBUG_NAMED_VALUE(PIPE_BIND_GLOBAL),
+      DEBUG_NAMED_VALUE(PIPE_BIND_SHADER_RESOURCE),
+      DEBUG_NAMED_VALUE(PIPE_BIND_COMPUTE_RESOURCE),
+      DEBUG_NAMED_VALUE(PIPE_BIND_COMMAND_ARGS_BUFFER),
+      DEBUG_NAMED_VALUE(PIPE_BIND_SCANOUT),
+      DEBUG_NAMED_VALUE(PIPE_BIND_SHARED),
+      DEBUG_NAMED_VALUE(PIPE_BIND_LINEAR),
+      DEBUG_NAMED_VALUE_END
+   };
+
+   debug_printf("%s: %s\n", msg, debug_dump_flags(names, usage));
+}
+
+
+/**
+ * Print PIPE_USAGE_x enum values with a message.
+ */
+void
+debug_print_usage_enum(const char *msg, unsigned usage)
+{
+   static const struct debug_named_value names[] = {
+      DEBUG_NAMED_VALUE(PIPE_USAGE_DEFAULT),
+      DEBUG_NAMED_VALUE(PIPE_USAGE_IMMUTABLE),
+      DEBUG_NAMED_VALUE(PIPE_USAGE_DYNAMIC),
+      DEBUG_NAMED_VALUE(PIPE_USAGE_STREAM),
+      DEBUG_NAMED_VALUE(PIPE_USAGE_STAGING),
+      DEBUG_NAMED_VALUE_END
+   };
+
+   debug_printf("%s: %s\n", msg, debug_dump_enum(names, usage));
+}
 
 
 #endif

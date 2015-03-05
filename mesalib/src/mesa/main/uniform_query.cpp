@@ -762,7 +762,7 @@ _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
 	  * been modified.
 	  */
 	 bool changed = false;
-	 for (unsigned j = 0; j < Elements(prog->SamplerUnits); j++) {
+	 for (unsigned j = 0; j < ARRAY_SIZE(prog->SamplerUnits); j++) {
 	    if ((sh->active_samplers & (1U << j)) != 0
 		&& (prog->SamplerUnits[j] != sh->SamplerUnits[j])) {
 	       changed = true;

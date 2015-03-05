@@ -108,7 +108,7 @@ GLboolean
 _mesa_texstore_etc1_rgb8(TEXSTORE_PARAMS)
 {
    /* GL_ETC1_RGB8_OES is only valid in glCompressedTexImage2D */
-   ASSERT(0);
+   assert(0);
 
    return GL_FALSE;
 }
@@ -1099,7 +1099,7 @@ etc2_unpack_srgb8_punchthrough_alpha1(uint8_t *dst_row,
 GLboolean
 _mesa_texstore_etc2_rgb8(TEXSTORE_PARAMS)
 {
-   ASSERT(0);
+   assert(0);
 
    return GL_FALSE;
 }
@@ -1107,7 +1107,7 @@ _mesa_texstore_etc2_rgb8(TEXSTORE_PARAMS)
 GLboolean
 _mesa_texstore_etc2_srgb8(TEXSTORE_PARAMS)
 {
-   ASSERT(0);
+   assert(0);
 
    return GL_FALSE;
 }
@@ -1115,7 +1115,7 @@ _mesa_texstore_etc2_srgb8(TEXSTORE_PARAMS)
 GLboolean
 _mesa_texstore_etc2_rgba8_eac(TEXSTORE_PARAMS)
 {
-   ASSERT(0);
+   assert(0);
 
    return GL_FALSE;
 }
@@ -1123,7 +1123,7 @@ _mesa_texstore_etc2_rgba8_eac(TEXSTORE_PARAMS)
 GLboolean
 _mesa_texstore_etc2_srgb8_alpha8_eac(TEXSTORE_PARAMS)
 {
-   ASSERT(0);
+   assert(0);
 
    return GL_FALSE;
 }
@@ -1131,7 +1131,7 @@ _mesa_texstore_etc2_srgb8_alpha8_eac(TEXSTORE_PARAMS)
 GLboolean
 _mesa_texstore_etc2_r11_eac(TEXSTORE_PARAMS)
 {
-   ASSERT(0);
+   assert(0);
 
    return GL_FALSE;
 }
@@ -1139,7 +1139,7 @@ _mesa_texstore_etc2_r11_eac(TEXSTORE_PARAMS)
 GLboolean
 _mesa_texstore_etc2_signed_r11_eac(TEXSTORE_PARAMS)
 {
-   ASSERT(0);
+   assert(0);
 
    return GL_FALSE;
 }
@@ -1147,7 +1147,7 @@ _mesa_texstore_etc2_signed_r11_eac(TEXSTORE_PARAMS)
 GLboolean
 _mesa_texstore_etc2_rg11_eac(TEXSTORE_PARAMS)
 {
-   ASSERT(0);
+   assert(0);
 
    return GL_FALSE;
 }
@@ -1155,7 +1155,7 @@ _mesa_texstore_etc2_rg11_eac(TEXSTORE_PARAMS)
 GLboolean
 _mesa_texstore_etc2_signed_rg11_eac(TEXSTORE_PARAMS)
 {
-   ASSERT(0);
+   assert(0);
 
    return GL_FALSE;
 }
@@ -1163,7 +1163,7 @@ _mesa_texstore_etc2_signed_rg11_eac(TEXSTORE_PARAMS)
 GLboolean
 _mesa_texstore_etc2_rgb8_punchthrough_alpha1(TEXSTORE_PARAMS)
 {
-   ASSERT(0);
+   assert(0);
 
    return GL_FALSE;
 }
@@ -1171,7 +1171,7 @@ _mesa_texstore_etc2_rgb8_punchthrough_alpha1(TEXSTORE_PARAMS)
 GLboolean
 _mesa_texstore_etc2_srgb8_punchthrough_alpha1(TEXSTORE_PARAMS)
 {
-   ASSERT(0);
+   assert(0);
 
    return GL_FALSE;
 }

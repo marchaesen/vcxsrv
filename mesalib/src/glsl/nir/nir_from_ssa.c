@@ -26,6 +26,7 @@
  */
 
 #include "nir.h"
+#include "nir_vla.h"
 
 /*
  * This file implements an out-of-SSA pass as described in "Revisiting
@@ -181,7 +182,7 @@ merge_merge_sets(merge_set *a, merge_set *b)
 static bool
 merge_sets_interfere(merge_set *a, merge_set *b)
 {
-   merge_node *dom[a->size + b->size];
+   NIR_VLA(merge_node *, dom, a->size + b->size);
    int dom_idx = -1;
 
    struct exec_node *an = exec_list_get_head(&a->nodes);
@@ -508,6 +509,13 @@ get_register_for_ssa_def(nir_ssa_def *def, struct from_ssa_state *state)
       reg->num_components = def->num_components;
       reg->num_array_elems = 0;
 
+      /* This register comes from an SSA definition that was not part of a
+       * phi-web.  Therefore, we know it has a single unique definition
+       * that dominates all of its uses.  Therefore, we can copy the
+       * parent_instr from the SSA def safely.
+       */
+      reg->parent_instr = def->parent_instr;
+
       _mesa_hash_table_insert(state->ssa_table, def, reg);
       return reg;
    }
@@ -666,21 +674,16 @@ resolve_parallel_copy(nir_parallel_copy_instr *pcopy,
    }
 
    /* The register/source corresponding to the given index */
-   nir_src values[num_copies * 2];
-   memset(values, 0, sizeof values);
+   NIR_VLA_ZERO(nir_src, values, num_copies * 2);
 
-   /* The current location of a given piece of data */
-   int loc[num_copies * 2];
+   /* The current location of a given piece of data.  We will use -1 for "null" */
+   NIR_VLA_FILL(int, loc, num_copies * 2, -1);
 
-   /* The piece of data that the given piece of data is to be copied from */
-   int pred[num_copies * 2];
-
-   /* Initialize loc and pred.  We will use -1 for "null" */
-   memset(loc, -1, sizeof loc);
-   memset(pred, -1, sizeof pred);
+   /* The piece of data that the given piece of data is to be copied from.  We will use -1 for "null" */
+   NIR_VLA_FILL(int, pred, num_copies * 2, -1);
 
    /* The destinations we have yet to properly fill */
-   int to_do[num_copies * 2];
+   NIR_VLA(int, to_do, num_copies * 2);
    int to_do_idx = -1;
 
    /* Now we set everything up:
@@ -730,7 +733,7 @@ resolve_parallel_copy(nir_parallel_copy_instr *pcopy,
    }
 
    /* Currently empty destinations we can go ahead and fill */
-   int ready[num_copies * 2];
+   NIR_VLA(int, ready, num_copies * 2);
    int ready_idx = -1;
 
    /* Mark the ones that are ready for copying.  We know an index is a

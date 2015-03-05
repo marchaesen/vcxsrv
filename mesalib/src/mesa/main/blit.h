@@ -26,7 +26,6 @@
 #ifndef BLIT_H
 #define BLIT_H
 
-#include "compiler.h"
 #include "glheader.h"
 
 

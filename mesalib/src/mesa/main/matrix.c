@@ -176,7 +176,7 @@ _mesa_MatrixMode( GLenum mode )
          return;
       }
 #endif
-      ASSERT(ctx->Texture.CurrentUnit < Elements(ctx->TextureMatrixStack));
+      assert(ctx->Texture.CurrentUnit < ARRAY_SIZE(ctx->TextureMatrixStack));
       ctx->CurrentStack = &ctx->TextureMatrixStack[ctx->Texture.CurrentUnit];
       break;
    case GL_MATRIX0_ARB:
@@ -697,10 +697,10 @@ void _mesa_init_matrix( struct gl_context * ctx )
                      _NEW_MODELVIEW);
    init_matrix_stack(&ctx->ProjectionMatrixStack, MAX_PROJECTION_STACK_DEPTH,
                      _NEW_PROJECTION);
-   for (i = 0; i < Elements(ctx->TextureMatrixStack); i++)
+   for (i = 0; i < ARRAY_SIZE(ctx->TextureMatrixStack); i++)
       init_matrix_stack(&ctx->TextureMatrixStack[i], MAX_TEXTURE_STACK_DEPTH,
                         _NEW_TEXTURE_MATRIX);
-   for (i = 0; i < Elements(ctx->ProgramMatrixStack); i++)
+   for (i = 0; i < ARRAY_SIZE(ctx->ProgramMatrixStack); i++)
       init_matrix_stack(&ctx->ProgramMatrixStack[i],
 		        MAX_PROGRAM_MATRIX_STACK_DEPTH, _NEW_TRACK_MATRIX);
    ctx->CurrentStack = &ctx->ModelviewMatrixStack;
@@ -724,9 +724,9 @@ void _mesa_free_matrix_data( struct gl_context *ctx )
 
    free_matrix_stack(&ctx->ModelviewMatrixStack);
    free_matrix_stack(&ctx->ProjectionMatrixStack);
-   for (i = 0; i < Elements(ctx->TextureMatrixStack); i++)
+   for (i = 0; i < ARRAY_SIZE(ctx->TextureMatrixStack); i++)
       free_matrix_stack(&ctx->TextureMatrixStack[i]);
-   for (i = 0; i < Elements(ctx->ProgramMatrixStack); i++)
+   for (i = 0; i < ARRAY_SIZE(ctx->ProgramMatrixStack); i++)
       free_matrix_stack(&ctx->ProgramMatrixStack[i]);
    /* combined Modelview*Projection matrix */
    _math_matrix_dtr( &ctx->_ModelProjectMatrix );

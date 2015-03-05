@@ -53,8 +53,8 @@ compute_zoomed_bounds(struct gl_context *ctx, GLint imageX, GLint imageY,
    const struct gl_framebuffer *fb = ctx->DrawBuffer;
    GLint c0, c1, r0, r1;
 
-   ASSERT(spanX >= imageX);
-   ASSERT(spanY >= imageY);
+   assert(spanX >= imageX);
+   assert(spanY >= imageY);
 
    /*
     * Compute destination columns: [c0, c1)
@@ -149,12 +149,12 @@ zoom_span( struct gl_context *ctx, GLint imgX, GLint imgY, const SWspan *span,
    }
 
    zoomedWidth = x1 - x0;
-   ASSERT(zoomedWidth > 0);
-   ASSERT(zoomedWidth <= SWRAST_MAX_WIDTH);
+   assert(zoomedWidth > 0);
+   assert(zoomedWidth <= SWRAST_MAX_WIDTH);
 
    /* no pixel arrays! must be horizontal spans. */
-   ASSERT((span->arrayMask & SPAN_XY) == 0);
-   ASSERT(span->primitive == GL_BITMAP);
+   assert((span->arrayMask & SPAN_XY) == 0);
+   assert(span->primitive == GL_BITMAP);
 
    INIT_SPAN(zoomed, GL_BITMAP);
    zoomed.x = x0;
@@ -184,7 +184,7 @@ zoom_span( struct gl_context *ctx, GLint imgX, GLint imgY, const SWspan *span,
       zoomed.interpMask = span->interpMask & ~SPAN_RGBA;
       zoomed.arrayMask |= SPAN_RGBA;
       zoomed.arrayAttribs |= VARYING_BIT_COL0;  /* we'll produce these values */
-      ASSERT(span->arrayMask & SPAN_RGBA);
+      assert(span->arrayMask & SPAN_RGBA);
    }
    else if (format == GL_DEPTH_COMPONENT) {
       /* Copy color info */
@@ -199,7 +199,7 @@ zoom_span( struct gl_context *ctx, GLint imgX, GLint imgY, const SWspan *span,
       /* we'll generate an array of depth values */
       zoomed.interpMask = span->interpMask & ~SPAN_Z;
       zoomed.arrayMask |= SPAN_Z;
-      ASSERT(span->arrayMask & SPAN_Z);
+      assert(span->arrayMask & SPAN_Z);
    }
    else {
       _mesa_problem(ctx, "Bad format in zoom_span");
@@ -213,8 +213,8 @@ zoom_span( struct gl_context *ctx, GLint imgX, GLint imgY, const SWspan *span,
          GLint i;
          for (i = 0; i < zoomedWidth; i++) {
             GLint j = unzoom_x(ctx->Pixel.ZoomX, imgX, x0 + i) - span->x;
-            ASSERT(j >= 0);
-            ASSERT(j < (GLint) span->end);
+            assert(j >= 0);
+            assert(j < (GLint) span->end);
             COPY_4UBV(zoomed.array->rgba8[i], rgba[j]);
          }
       }
@@ -223,8 +223,8 @@ zoom_span( struct gl_context *ctx, GLint imgX, GLint imgY, const SWspan *span,
          GLint i;
          for (i = 0; i < zoomedWidth; i++) {
             GLint j = unzoom_x(ctx->Pixel.ZoomX, imgX, x0 + i) - span->x;
-            ASSERT(j >= 0);
-            ASSERT(j < (GLint) span->end);
+            assert(j >= 0);
+            assert(j < (GLint) span->end);
             COPY_4V(zoomed.array->rgba16[i], rgba[j]);
          }
       }
@@ -233,8 +233,8 @@ zoom_span( struct gl_context *ctx, GLint imgX, GLint imgY, const SWspan *span,
          GLint i;
          for (i = 0; i < zoomedWidth; i++) {
             GLint j = unzoom_x(ctx->Pixel.ZoomX, imgX, x0 + i) - span->x;
-            ASSERT(j >= 0);
-            ASSERT(j < (GLint) span->end);
+            assert(j >= 0);
+            assert(j < (GLint) span->end);
             COPY_4V(zoomed.array->attribs[VARYING_SLOT_COL0][i], rgba[j]);
          }
       }
@@ -245,8 +245,8 @@ zoom_span( struct gl_context *ctx, GLint imgX, GLint imgY, const SWspan *span,
          GLint i;
          for (i = 0; i < zoomedWidth; i++) {
             GLint j = unzoom_x(ctx->Pixel.ZoomX, imgX, x0 + i) - span->x;
-            ASSERT(j >= 0);
-            ASSERT(j < (GLint) span->end);
+            assert(j >= 0);
+            assert(j < (GLint) span->end);
             zoomed.array->rgba8[i][0] = rgb[j][0];
             zoomed.array->rgba8[i][1] = rgb[j][1];
             zoomed.array->rgba8[i][2] = rgb[j][2];
@@ -258,8 +258,8 @@ zoom_span( struct gl_context *ctx, GLint imgX, GLint imgY, const SWspan *span,
          GLint i;
          for (i = 0; i < zoomedWidth; i++) {
             GLint j = unzoom_x(ctx->Pixel.ZoomX, imgX, x0 + i) - span->x;
-            ASSERT(j >= 0);
-            ASSERT(j < (GLint) span->end);
+            assert(j >= 0);
+            assert(j < (GLint) span->end);
             zoomed.array->rgba16[i][0] = rgb[j][0];
             zoomed.array->rgba16[i][1] = rgb[j][1];
             zoomed.array->rgba16[i][2] = rgb[j][2];
@@ -271,8 +271,8 @@ zoom_span( struct gl_context *ctx, GLint imgX, GLint imgY, const SWspan *span,
          GLint i;
          for (i = 0; i < zoomedWidth; i++) {
             GLint j = unzoom_x(ctx->Pixel.ZoomX, imgX, x0 + i) - span->x;
-            ASSERT(j >= 0);
-            ASSERT(j < (GLint) span->end);
+            assert(j >= 0);
+            assert(j < (GLint) span->end);
             zoomed.array->attribs[VARYING_SLOT_COL0][i][0] = rgb[j][0];
             zoomed.array->attribs[VARYING_SLOT_COL0][i][1] = rgb[j][1];
             zoomed.array->attribs[VARYING_SLOT_COL0][i][2] = rgb[j][2];
@@ -285,8 +285,8 @@ zoom_span( struct gl_context *ctx, GLint imgX, GLint imgY, const SWspan *span,
       GLint i;
       for (i = 0; i < zoomedWidth; i++) {
          GLint j = unzoom_x(ctx->Pixel.ZoomX, imgX, x0 + i) - span->x;
-         ASSERT(j >= 0);
-         ASSERT(j < (GLint) span->end);
+         assert(j >= 0);
+         assert(j < (GLint) span->end);
          zoomed.array->z[i] = zValues[j];
       }
       /* Now, fall into the RGB path below */
@@ -372,8 +372,8 @@ _swrast_write_zoomed_stencil_span(struct gl_context *ctx, GLint imgX, GLint imgY
    }
 
    zoomedWidth = x1 - x0;
-   ASSERT(zoomedWidth > 0);
-   ASSERT(zoomedWidth <= SWRAST_MAX_WIDTH);
+   assert(zoomedWidth > 0);
+   assert(zoomedWidth <= SWRAST_MAX_WIDTH);
 
    zoomedVals = malloc(zoomedWidth * sizeof(GLubyte));
    if (!zoomedVals)
@@ -382,8 +382,8 @@ _swrast_write_zoomed_stencil_span(struct gl_context *ctx, GLint imgX, GLint imgY
    /* zoom the span horizontally */
    for (i = 0; i < zoomedWidth; i++) {
       GLint j = unzoom_x(ctx->Pixel.ZoomX, imgX, x0 + i) - spanX;
-      ASSERT(j >= 0);
-      ASSERT(j < width);
+      assert(j >= 0);
+      assert(j < width);
       zoomedVals[i] = stencil[j];
    }
 
@@ -417,8 +417,8 @@ _swrast_write_zoomed_z_span(struct gl_context *ctx, GLint imgX, GLint imgY,
    }
 
    zoomedWidth = x1 - x0;
-   ASSERT(zoomedWidth > 0);
-   ASSERT(zoomedWidth <= SWRAST_MAX_WIDTH);
+   assert(zoomedWidth > 0);
+   assert(zoomedWidth <= SWRAST_MAX_WIDTH);
 
    zoomedVals = malloc(zoomedWidth * sizeof(GLuint));
    if (!zoomedVals)
@@ -427,8 +427,8 @@ _swrast_write_zoomed_z_span(struct gl_context *ctx, GLint imgX, GLint imgY,
    /* zoom the span horizontally */
    for (i = 0; i < zoomedWidth; i++) {
       GLint j = unzoom_x(ctx->Pixel.ZoomX, imgX, x0 + i) - spanX;
-      ASSERT(j >= 0);
-      ASSERT(j < width);
+      assert(j >= 0);
+      assert(j < width);
       zoomedVals[i] = zVals[j];
    }
 

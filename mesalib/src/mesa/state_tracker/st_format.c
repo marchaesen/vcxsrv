@@ -1855,7 +1855,7 @@ st_choose_format(struct st_context *st, GLenum internalFormat,
       return pf;
 
    /* search table for internalFormat */
-   for (i = 0; i < Elements(format_map); i++) {
+   for (i = 0; i < ARRAY_SIZE(format_map); i++) {
       const struct format_mapping *mapping = &format_map[i];
       for (j = 0; mapping->glFormats[j]; j++) {
          if (mapping->glFormats[j] == internalFormat) {

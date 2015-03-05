@@ -58,7 +58,7 @@ extern int ST_DEBUG;
 
 void st_debug_init( void );
 
-static INLINE void
+static inline void
 ST_DBG( unsigned flag, const char *fmt, ... )
 {
     if (ST_DEBUG & flag)

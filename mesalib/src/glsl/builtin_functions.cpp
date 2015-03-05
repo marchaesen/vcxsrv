@@ -2549,7 +2549,7 @@ builtin_builder::add_image_function(const char *name,
    };
    ir_function *f = new(mem_ctx) ir_function(name);
 
-   for (unsigned i = 0; i < Elements(types); ++i) {
+   for (unsigned i = 0; i < ARRAY_SIZE(types); ++i) {
       if (types[i]->sampler_type != GLSL_TYPE_FLOAT ||
           (flags & IMAGE_FUNCTION_SUPPORTS_FLOAT_DATA_TYPE))
          f->add_signature(_image(types[i], intrinsic_name,

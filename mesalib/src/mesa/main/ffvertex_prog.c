@@ -479,7 +479,7 @@ static struct ureg register_const4f( struct tnl_program *p,
    values[3].f = s3;
    idx = _mesa_add_unnamed_constant( p->program->Base.Parameters, values, 4,
                                      &swizzle );
-   ASSERT(swizzle == SWIZZLE_NOOP);
+   assert(swizzle == SWIZZLE_NOOP);
    return make_ureg(PROGRAM_CONSTANT, idx);
 }
 
@@ -530,7 +530,7 @@ static void emit_arg( struct prog_src_register *src,
    src->Abs = 0;
    src->RelAddr = 0;
    /* Check that bitfield sizes aren't exceeded */
-   ASSERT(src->Index == reg.idx);
+   assert(src->Index == reg.idx);
 }
 
 
@@ -544,7 +544,7 @@ static void emit_dst( struct prog_dst_register *dst,
    dst->CondMask = COND_TR;  /* always pass cond test */
    dst->CondSwizzle = SWIZZLE_NOOP;
    /* Check that bitfield sizes aren't exceeded */
-   ASSERT(dst->Index == reg.idx);
+   assert(dst->Index == reg.idx);
 }
 
 

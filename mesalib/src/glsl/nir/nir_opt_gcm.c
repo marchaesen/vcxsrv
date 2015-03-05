@@ -121,9 +121,11 @@ gcm_pin_instructions_block(nir_block *block, void *void_state)
          case nir_op_fddy_coarse:
             /* These can only go in uniform control flow; pin them for now */
             instr->pass_flags = GCM_INSTR_PINNED;
+            break;
 
          default:
             instr->pass_flags = 0;
+            break;
          }
          break;
 
@@ -134,9 +136,11 @@ gcm_pin_instructions_block(nir_block *block, void *void_state)
          case nir_texop_lod:
             /* These two take implicit derivatives so they need to be pinned */
             instr->pass_flags = GCM_INSTR_PINNED;
+            break;
 
          default:
             instr->pass_flags = 0;
+            break;
          }
          break;
 

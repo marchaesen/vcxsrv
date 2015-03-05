@@ -8,6 +8,8 @@ Import('*')
 
 env = env.Clone()
 
+env.MSVC2013Compat()
+
 env.Append(CPPDEFINES = [
     'MAPI_MODE_UTIL',
 ])
@@ -25,6 +27,7 @@ if env['platform'] == 'windows':
         env.Append(CPPDEFINES = ['_GLAPI_NO_EXPORTS'])
 
 env.Append(CPPPATH = [
+    '#/src',
     '#/src/mapi',
     '#/src/mesa',
     Dir('..'), # src/mapi build path

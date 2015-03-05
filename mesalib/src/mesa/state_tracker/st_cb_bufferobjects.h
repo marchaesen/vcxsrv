@@ -48,7 +48,7 @@ struct st_buffer_object
 
 
 /** cast wrapper */
-static INLINE struct st_buffer_object *
+static inline struct st_buffer_object *
 st_buffer_object(struct gl_buffer_object *obj)
 {
    return (struct st_buffer_object *) obj;

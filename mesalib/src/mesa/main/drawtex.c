@@ -46,7 +46,7 @@ draw_texture(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
    if (ctx->NewState)
       _mesa_update_state(ctx);
 
-   ASSERT(ctx->Driver.DrawTex);
+   assert(ctx->Driver.DrawTex);
    ctx->Driver.DrawTex(ctx, x, y, z, width, height);
 
    _mesa_set_vp_override(ctx, GL_FALSE);

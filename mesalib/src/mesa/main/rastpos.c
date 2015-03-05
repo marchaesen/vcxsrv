@@ -266,7 +266,7 @@ window_pos3f(GLfloat x, GLfloat y, GLfloat z)
    {
       GLuint texSet;
       for (texSet = 0; texSet < ctx->Const.MaxTextureCoordUnits; texSet++) {
-         assert(texSet < Elements(ctx->Current.RasterTexCoords));
+         assert(texSet < ARRAY_SIZE(ctx->Current.RasterTexCoords));
          COPY_4FV( ctx->Current.RasterTexCoords[texSet],
                   ctx->Current.Attrib[VERT_ATTRIB_TEX0 + texSet] );
       }
@@ -496,7 +496,7 @@ void _mesa_init_rastpos( struct gl_context * ctx )
    ctx->Current.RasterDistance = 0.0;
    ASSIGN_4V( ctx->Current.RasterColor, 1.0, 1.0, 1.0, 1.0 );
    ASSIGN_4V( ctx->Current.RasterSecondaryColor, 0.0, 0.0, 0.0, 1.0 );
-   for (i = 0; i < Elements(ctx->Current.RasterTexCoords); i++)
+   for (i = 0; i < ARRAY_SIZE(ctx->Current.RasterTexCoords); i++)
       ASSIGN_4V( ctx->Current.RasterTexCoords[i], 0.0, 0.0, 0.0, 1.0 );
    ctx->Current.RasterPosValid = GL_TRUE;
 }

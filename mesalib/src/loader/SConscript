@@ -2,6 +2,8 @@ Import('*')
 
 env = env.Clone()
 
+env.MSVC2013Compat()
+
 env.Prepend(CPPPATH = [
     '#include'
 ])

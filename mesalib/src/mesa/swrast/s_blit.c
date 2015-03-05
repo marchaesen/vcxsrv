@@ -52,8 +52,8 @@ NAME(GLint srcWidth, GLint dstWidth,			\
    if (flip) {						\
       for (dstCol = 0; dstCol < dstWidth; dstCol++) {	\
          GLint srcCol = (dstCol * srcWidth) / dstWidth;	\
-         ASSERT(srcCol >= 0);				\
-         ASSERT(srcCol < srcWidth);			\
+         assert(srcCol >= 0);				\
+         assert(srcCol < srcWidth);			\
          srcCol = srcWidth - 1 - srcCol; /* flip */	\
          if (SIZE == 1) {				\
             dst[dstCol] = src[srcCol];			\
@@ -73,8 +73,8 @@ NAME(GLint srcWidth, GLint dstWidth,			\
    else {						\
       for (dstCol = 0; dstCol < dstWidth; dstCol++) {	\
          GLint srcCol = (dstCol * srcWidth) / dstWidth;	\
-         ASSERT(srcCol >= 0);				\
-         ASSERT(srcCol < srcWidth);			\
+         assert(srcCol >= 0);				\
+         assert(srcCol < srcWidth);			\
          if (SIZE == 1) {				\
             dst[dstCol] = src[srcCol];			\
          }						\
@@ -299,8 +299,8 @@ blit_nearest(struct gl_context *ctx,
          GLint srcRow = IROUND(srcRowF);
          GLubyte *dstRowStart = dstMap + dstRowStride * dstRow;
 
-         ASSERT(srcRow >= 0);
-         ASSERT(srcRow < srcHeight);
+         assert(srcRow >= 0);
+         assert(srcRow < srcHeight);
 
          if (invertY) {
             srcRow = srcHeight - 1 - srcRow;
@@ -412,8 +412,8 @@ resample_linear_row_ub(GLint srcWidth, GLint dstWidth,
       GLfloat colWeight = srcCol - srcCol0; /* fractional part of srcCol */
       GLfloat red, green, blue, alpha;
 
-      ASSERT(srcCol0 < srcWidth);
-      ASSERT(srcCol1 <= srcWidth);
+      assert(srcCol0 < srcWidth);
+      assert(srcCol1 <= srcWidth);
 
       if (srcCol1 == srcWidth) {
          /* last column fudge */
@@ -467,8 +467,8 @@ resample_linear_row_float(GLint srcWidth, GLint dstWidth,
       GLfloat colWeight = srcCol - srcCol0; /* fractional part of srcCol */
       GLfloat red, green, blue, alpha;
 
-      ASSERT(srcCol0 < srcWidth);
-      ASSERT(srcCol1 <= srcWidth);
+      assert(srcCol0 < srcWidth);
+      assert(srcCol1 <= srcWidth);
 
       if (srcCol1 == srcWidth) {
          /* last column fudge */
@@ -801,7 +801,7 @@ _swrast_BlitFramebuffer(struct gl_context *ctx,
       }
    }
    else {
-      ASSERT(filter == GL_LINEAR);
+      assert(filter == GL_LINEAR);
       if (mask & GL_COLOR_BUFFER_BIT) {  /* depth/stencil not allowed */
          blit_linear(ctx, readFb, drawFb, srcX0, srcY0, srcX1, srcY1,
                      dstX0, dstY0, dstX1, dstY1);

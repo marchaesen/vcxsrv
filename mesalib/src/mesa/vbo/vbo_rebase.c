@@ -46,6 +46,7 @@
  * of zero.
  */
 
+#include <stdio.h>
 #include "main/glheader.h"
 #include "main/imports.h"
 #include "main/mtypes.h"

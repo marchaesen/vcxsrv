@@ -26,6 +26,7 @@
 
 #include "nir.h"
 #include "nir_worklist.h"
+#include "nir_vla.h"
 
 /*
  * Basic liveness analysis.  This works only in SSA form.
@@ -130,8 +131,8 @@ static bool
 propagate_across_edge(nir_block *pred, nir_block *succ,
                       struct live_variables_state *state)
 {
-   BITSET_WORD live[state->bitset_words];
-   memcpy(live, succ->live_in, sizeof live);
+   NIR_VLA(BITSET_WORD, live, state->bitset_words);
+   memcpy(live, succ->live_in, state->bitset_words * sizeof *live);
 
    nir_foreach_instr(succ, instr) {
       if (instr->type != nir_instr_type_phi)

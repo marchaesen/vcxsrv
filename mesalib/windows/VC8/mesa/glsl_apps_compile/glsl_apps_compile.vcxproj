@@ -106,7 +106,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;_CRT_SECURE_NO_WARNINGS;INSERVER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;_CRT_SECURE_NO_WARNINGS;INSERVER;%(PreprocessorDefinitions);_USE_MATH_DEFINES</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader>
@@ -146,7 +146,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;_CRT_SECURE_NO_WARNINGS;INSERVER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;_CRT_SECURE_NO_WARNINGS;INSERVER;%(PreprocessorDefinitions);_USE_MATH_DEFINES</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
@@ -235,6 +235,7 @@
     <ClCompile Include="..\..\..\..\src\glsl\main.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_algebraic.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_array_splitting.cpp" />
+    <ClCompile Include="..\..\..\..\src\glsl\opt_conditional_discard.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_constant_folding.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_constant_propagation.cpp" />
     <ClCompile Include="..\..\..\..\src\glsl\opt_constant_variable.cpp" />

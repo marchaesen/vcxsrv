@@ -19,6 +19,7 @@ XCBPROTO_XCBINCLUDEDIR = ..\xcb-proto\src
 
 XMLFILES := $(notdir $(wildcard $(XCBPROTO_XCBINCLUDEDIR)\*.xml))
 XMLFILES := $(filter-out xkb.xml, $(XMLFILES))
+XMLFILES := $(filter-out xprint.xml, $(XMLFILES))
 
 EXTSOURCES := $(XMLFILES:%.xml=%.c)
 CSRCS += $(EXTSOURCES)

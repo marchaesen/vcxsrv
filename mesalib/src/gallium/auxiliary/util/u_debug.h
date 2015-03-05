@@ -467,6 +467,12 @@ void debug_dump_float_rgba_bmp(const char *filename,
 void
 debug_print_transfer_flags(const char *msg, unsigned usage);
 
+void
+debug_print_bind_flags(const char *msg, unsigned usage);
+
+void
+debug_print_usage_enum(const char *msg, unsigned usage);
+
 
 #ifdef	__cplusplus
 }

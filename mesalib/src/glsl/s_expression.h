@@ -39,8 +39,8 @@
 #define SX_AS_INT(x)    SX_AS_(int, x)
 
 /* Pattern matching macros */
-#define MATCH(list, pat) s_match(list, Elements(pat), pat, false)
-#define PARTIAL_MATCH(list, pat) s_match(list, Elements(pat), pat, true)
+#define MATCH(list, pat) s_match(list, ARRAY_SIZE(pat), pat, false)
+#define PARTIAL_MATCH(list, pat) s_match(list, ARRAY_SIZE(pat), pat, true)
 
 /* For our purposes, S-Expressions are:
  * - <int>

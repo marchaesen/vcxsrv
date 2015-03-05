@@ -26,6 +26,7 @@
  *    Gareth Hughes
  */
 
+#include "c99_math.h"
 #include "main/glheader.h"
 #include "main/context.h"
 #include "main/macros.h"
@@ -165,7 +166,7 @@ static void ref_norm_transform_normalize( const GLmatrix *mat,
 	    /* Hmmm, don't know how we could test the precalculated
 	     * length case...
 	     */
-            scale = INV_SQRTF( len );
+            scale = 1.0f / sqrtf(len);
 	    SCALE_SCALAR_3V( out[i], scale, t );
          } else {
             out[i][0] = out[i][1] = out[i][2] = 0;
@@ -241,7 +242,7 @@ static int test_norm_function( normal_func func, int mtype, long *cycles )
       ASSIGN_3V( d2[i], 0.0, 0.0, 0.0 );
       for ( j = 0 ; j < 3 ; j++ )
          s[i][j] = rnd();
-      length[i] = INV_SQRTF( LEN_SQUARED_3FV( s[i] ) );
+      length[i] = 1.0f / sqrtf( LEN_SQUARED_3FV( s[i] ) );
    }
 
    source->data = (GLfloat(*)[4]) s;

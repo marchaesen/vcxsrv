@@ -29,7 +29,7 @@
  * ushorts, uints, etc.
  */
 
-
+#include <stdio.h>
 #include "glheader.h"
 #include "imports.h"
 #include "blend.h"
@@ -223,8 +223,8 @@ _mesa_free_framebuffer_data(struct gl_framebuffer *fb)
       if (att->Texture) {
          _mesa_reference_texobj(&att->Texture, NULL);
       }
-      ASSERT(!att->Renderbuffer);
-      ASSERT(!att->Texture);
+      assert(!att->Renderbuffer);
+      assert(!att->Texture);
       att->Type = GL_NONE;
    }
 }
@@ -245,7 +245,7 @@ _mesa_reference_framebuffer_(struct gl_framebuffer **ptr,
       struct gl_framebuffer *oldFb = *ptr;
 
       mtx_lock(&oldFb->Mutex);
-      ASSERT(oldFb->RefCount > 0);
+      assert(oldFb->RefCount > 0);
       oldFb->RefCount--;
       deleteFlag = (oldFb->RefCount == 0);
       mtx_unlock(&oldFb->Mutex);
@@ -296,8 +296,8 @@ _mesa_resize_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
          /* only resize if size is changing */
          if (rb->Width != width || rb->Height != height) {
             if (rb->AllocStorage(ctx, rb, rb->InternalFormat, width, height)) {
-               ASSERT(rb->Width == width);
-               ASSERT(rb->Height == height);
+               assert(rb->Width == width);
+               assert(rb->Height == height);
             }
             else {
                _mesa_error(ctx, GL_OUT_OF_MEMORY, "Resizing framebuffer");
@@ -402,8 +402,8 @@ _mesa_scissor_bounding_box(const struct gl_context *ctx,
       }
    }
 
-   ASSERT(bbox[0] <= bbox[1]);
-   ASSERT(bbox[2] <= bbox[3]);
+   assert(bbox[0] <= bbox[1]);
+   assert(bbox[2] <= bbox[3]);
 }
 
 /**
@@ -621,8 +621,8 @@ update_color_read_buffer(struct gl_context *ctx, struct gl_framebuffer *fb)
       fb->_ColorReadBuffer = NULL; /* legal! */
    }
    else {
-      ASSERT(fb->_ColorReadBufferIndex >= 0);
-      ASSERT(fb->_ColorReadBufferIndex < BUFFER_COUNT);
+      assert(fb->_ColorReadBufferIndex >= 0);
+      assert(fb->_ColorReadBufferIndex < BUFFER_COUNT);
       fb->_ColorReadBuffer
          = fb->Attachment[fb->_ColorReadBufferIndex].Renderbuffer;
    }
@@ -756,7 +756,7 @@ renderbuffer_exists(struct gl_context *ctx,
          if (!readBuf) {
             return GL_FALSE;
          }
-         ASSERT(_mesa_get_format_bits(readBuf->Format, GL_RED_BITS) > 0 ||
+         assert(_mesa_get_format_bits(readBuf->Format, GL_RED_BITS) > 0 ||
                 _mesa_get_format_bits(readBuf->Format, GL_ALPHA_BITS) > 0 ||
                 _mesa_get_format_bits(readBuf->Format, GL_TEXTURE_LUMINANCE_SIZE) > 0 ||
                 _mesa_get_format_bits(readBuf->Format, GL_TEXTURE_INTENSITY_SIZE) > 0 ||

@@ -26,8 +26,6 @@
 #ifndef COLORTAB_H
 #define COLORTAB_H
 
-
-#include "compiler.h"
 #include "glheader.h"
 
 struct _glapi_table;

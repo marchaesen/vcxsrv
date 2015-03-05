@@ -34,6 +34,7 @@
  */
 
 
+#include "c99_math.h"
 #include "main/glheader.h"
 #include "main/imports.h"
 #include "main/macros.h"
@@ -376,9 +377,9 @@ static GLboolean invert_matrix_general( GLmatrix *mat )
    r3[7] = 1.0, r3[4] = r3[5] = r3[6] = 0.0;
 
    /* choose pivot - or die */
-   if (FABSF(r3[0])>FABSF(r2[0])) SWAP_ROWS(r3, r2);
-   if (FABSF(r2[0])>FABSF(r1[0])) SWAP_ROWS(r2, r1);
-   if (FABSF(r1[0])>FABSF(r0[0])) SWAP_ROWS(r1, r0);
+   if (fabsf(r3[0])>fabsf(r2[0])) SWAP_ROWS(r3, r2);
+   if (fabsf(r2[0])>fabsf(r1[0])) SWAP_ROWS(r2, r1);
+   if (fabsf(r1[0])>fabsf(r0[0])) SWAP_ROWS(r1, r0);
    if (0.0 == r0[0])  return GL_FALSE;
 
    /* eliminate first variable     */
@@ -396,8 +397,8 @@ static GLboolean invert_matrix_general( GLmatrix *mat )
    if (s != 0.0) { r1[7] -= m1 * s; r2[7] -= m2 * s; r3[7] -= m3 * s; }
 
    /* choose pivot - or die */
-   if (FABSF(r3[1])>FABSF(r2[1])) SWAP_ROWS(r3, r2);
-   if (FABSF(r2[1])>FABSF(r1[1])) SWAP_ROWS(r2, r1);
+   if (fabsf(r3[1])>fabsf(r2[1])) SWAP_ROWS(r3, r2);
+   if (fabsf(r2[1])>fabsf(r1[1])) SWAP_ROWS(r2, r1);
    if (0.0 == r1[1])  return GL_FALSE;
 
    /* eliminate second variable */
@@ -410,7 +411,7 @@ static GLboolean invert_matrix_general( GLmatrix *mat )
    s = r1[7]; if (0.0 != s) { r2[7] -= m2 * s; r3[7] -= m3 * s; }
 
    /* choose pivot - or die */
-   if (FABSF(r3[2])>FABSF(r2[2])) SWAP_ROWS(r3, r2);
+   if (fabsf(r3[2])>fabsf(r2[2])) SWAP_ROWS(r3, r2);
    if (0.0 == r2[2])  return GL_FALSE;
 
    /* eliminate third variable */
@@ -508,7 +509,7 @@ static GLboolean invert_matrix_3d_general( GLmatrix *mat )
 
    det = pos + neg;
 
-   if (FABSF(det) < 1e-25)
+   if (fabsf(det) < 1e-25)
       return GL_FALSE;
 
    det = 1.0F / det;
@@ -798,8 +799,8 @@ _math_matrix_rotate( GLmatrix *mat,
    GLfloat m[16];
    GLboolean optimized;
 
-   s = (GLfloat) sin( angle * DEG2RAD );
-   c = (GLfloat) cos( angle * DEG2RAD );
+   s = (GLfloat) sin( angle * M_PI / 180.0 );
+   c = (GLfloat) cos( angle * M_PI / 180.0 );
 
    memcpy(m, Identity, sizeof(GLfloat)*16);
    optimized = GL_FALSE;
@@ -1069,7 +1070,7 @@ _math_matrix_scale( GLmatrix *mat, GLfloat x, GLfloat y, GLfloat z )
    m[2] *= x;   m[6] *= y;   m[10] *= z;
    m[3] *= x;   m[7] *= y;   m[11] *= z;
 
-   if (FABSF(x - y) < 1e-8 && FABSF(x - z) < 1e-8)
+   if (fabsf(x - y) < 1e-8 && fabsf(x - z) < 1e-8)
       mat->flags |= MAT_FLAG_UNIFORM_SCALE;
    else
       mat->flags |= MAT_FLAG_GENERAL_SCALE;

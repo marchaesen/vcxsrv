@@ -463,8 +463,8 @@ unpack_float_z_X8_UINT_Z24_UNORM(GLuint n, const void *src, GLfloat *dst)
    GLuint i;
    for (i = 0; i < n; i++) {
       dst[i] = (GLfloat) ((s[i] >> 8) * scale);
-      ASSERT(dst[i] >= 0.0F);
-      ASSERT(dst[i] <= 1.0F);
+      assert(dst[i] >= 0.0F);
+      assert(dst[i] <= 1.0F);
    }
 }
 
@@ -477,8 +477,8 @@ unpack_float_z_Z24_UNORM_X8_UINT(GLuint n, const void *src, GLfloat *dst)
    GLuint i;
    for (i = 0; i < n; i++) {
       dst[i] = (GLfloat) ((s[i] & 0x00ffffff) * scale);
-      ASSERT(dst[i] >= 0.0F);
-      ASSERT(dst[i] <= 1.0F);
+      assert(dst[i] >= 0.0F);
+      assert(dst[i] <= 1.0F);
    }
 }
 

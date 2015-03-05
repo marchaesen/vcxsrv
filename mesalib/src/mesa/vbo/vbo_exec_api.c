@@ -115,7 +115,7 @@ static void vbo_exec_wrap_buffers( struct vbo_exec_context *exec )
  */
 void vbo_exec_vtx_wrap( struct vbo_exec_context *exec )
 {
-   GLfloat *data = exec->vtx.copied.buffer;
+   fi_type *data = exec->vtx.copied.buffer;
    GLuint i;
 
    /* Run pipeline on current vertices, copy wrapped vertices
@@ -159,9 +159,9 @@ static void vbo_exec_copy_to_current( struct vbo_exec_context *exec )
           * ctx->Current.Attrib and ctx->Light.Material.Attrib arrays.
           */
 	 GLfloat *current = (GLfloat *)vbo->currval[i].Ptr;
-         GLfloat tmp[4];
+         fi_type tmp[4];
 
-         COPY_CLEAN_4V_TYPE_AS_FLOAT(tmp,
+         COPY_CLEAN_4V_TYPE_AS_UNION(tmp,
                                      exec->vtx.attrsz[i],
                                      exec->vtx.attrptr[i],
                                      exec->vtx.attrtype[i]);
@@ -214,7 +214,7 @@ vbo_exec_copy_from_current(struct vbo_exec_context *exec)
    GLint i;
 
    for (i = VBO_ATTRIB_POS + 1; i < VBO_ATTRIB_MAX; i++) {
-      const GLfloat *current = (GLfloat *) vbo->currval[i].Ptr;
+      const fi_type *current = (fi_type *) vbo->currval[i].Ptr;
       switch (exec->vtx.attrsz[i]) {
       case 4: exec->vtx.attrptr[i][3] = current[3];
       case 3: exec->vtx.attrptr[i][2] = current[2];
@@ -240,7 +240,7 @@ vbo_exec_wrap_upgrade_vertex(struct vbo_exec_context *exec,
    struct gl_context *ctx = exec->ctx;
    struct vbo_context *vbo = vbo_context(ctx);
    const GLint lastcount = exec->vtx.vert_count;
-   GLfloat *old_attrptr[VBO_ATTRIB_MAX];
+   fi_type *old_attrptr[VBO_ATTRIB_MAX];
    const GLuint old_vtx_size = exec->vtx.vertex_size; /* floats per vertex */
    const GLuint oldSize = exec->vtx.attrsz[attr];
    GLuint i;
@@ -287,7 +287,7 @@ vbo_exec_wrap_upgrade_vertex(struct vbo_exec_context *exec,
    if (unlikely(oldSize)) {
       /* Size changed, recalculate all the attrptr[] values
        */
-      GLfloat *tmp = exec->vtx.vertex;
+      fi_type *tmp = exec->vtx.vertex;
 
       for (i = 0 ; i < VBO_ATTRIB_MAX ; i++) {
 	 if (exec->vtx.attrsz[i]) {
@@ -306,7 +306,7 @@ vbo_exec_wrap_upgrade_vertex(struct vbo_exec_context *exec,
    else {
       /* Just have to append the new attribute at the end */
       exec->vtx.attrptr[attr] = exec->vtx.vertex +
-	 exec->vtx.vertex_size - newSize;
+        exec->vtx.vertex_size - newSize;
    }
 
    /* Replay stored vertices to translate them
@@ -315,8 +315,8 @@ vbo_exec_wrap_upgrade_vertex(struct vbo_exec_context *exec,
     * -- No need to replay - just copy piecewise
     */
    if (unlikely(exec->vtx.copied.nr)) {
-      GLfloat *data = exec->vtx.copied.buffer;
-      GLfloat *dest = exec->vtx.buffer_ptr;
+      fi_type *data = exec->vtx.copied.buffer;
+      fi_type *dest = exec->vtx.buffer_ptr;
       GLuint j;
 
       assert(exec->vtx.buffer_ptr == exec->vtx.buffer_map);
@@ -331,13 +331,13 @@ vbo_exec_wrap_upgrade_vertex(struct vbo_exec_context *exec,
 
 	       if (j == attr) {
 		  if (oldSize) {
-		     GLfloat tmp[4];
-                     COPY_CLEAN_4V_TYPE_AS_FLOAT(tmp, oldSize,
+		     fi_type tmp[4];
+		     COPY_CLEAN_4V_TYPE_AS_UNION(tmp, oldSize,
                                                  data + old_offset,
                                                  exec->vtx.attrtype[j]);
 		     COPY_SZ_4V(dest + new_offset, newSize, tmp);
 		  } else {
-		     GLfloat *current = (GLfloat *)vbo->currval[j].Ptr;
+		     fi_type *current = (fi_type *)vbo->currval[j].Ptr;
 		     COPY_SZ_4V(dest + new_offset, sz, current);
 		  }
 	       }
@@ -376,14 +376,14 @@ vbo_exec_fixup_vertex(struct gl_context *ctx, GLuint attr, GLuint newSize)
    }
    else if (newSize < exec->vtx.active_sz[attr]) {
       GLuint i;
-      const GLfloat *id =
-            vbo_get_default_vals_as_float(exec->vtx.attrtype[attr]);
+      const fi_type *id =
+            vbo_get_default_vals_as_union(exec->vtx.attrtype[attr]);
 
       /* New size is smaller - just need to fill in some
        * zeros.  Don't need to flush or wrap.
        */
       for (i = newSize; i <= exec->vtx.attrsz[attr]; i++)
-	 exec->vtx.attrptr[attr][i-1] = id[i-1];
+        exec->vtx.attrptr[attr][i-1] = id[i-1];
    }
 
    exec->vtx.active_sz[attr] = newSize;
@@ -401,7 +401,7 @@ vbo_exec_fixup_vertex(struct gl_context *ctx, GLuint attr, GLuint newSize)
  * This macro is used to implement all the glVertex, glColor, glTexCoord,
  * glVertexAttrib, etc functions.
  */
-#define ATTR( A, N, T, V0, V1, V2, V3 )					\
+#define ATTR_UNION( A, N, T, V0, V1, V2, V3 )				\
 do {									\
    struct vbo_exec_context *exec = &vbo_context(ctx)->exec;		\
 									\
@@ -412,12 +412,12 @@ do {									\
       vbo_exec_fixup_vertex(ctx, A, N);					\
    									\
    {									\
-      GLfloat *dest = exec->vtx.attrptr[A];				\
+      fi_type *dest = exec->vtx.attrptr[A];			\
       if (N>0) dest[0] = V0;						\
       if (N>1) dest[1] = V1;						\
       if (N>2) dest[2] = V2;						\
       if (N>3) dest[3] = V3;						\
-      exec->vtx.attrtype[A] = T;                                        \
+      exec->vtx.attrtype[A] = T;					\
    }									\
 									\
    if ((A) == 0) {							\
@@ -1036,7 +1036,7 @@ void vbo_exec_vtx_init( struct vbo_exec_context *exec )
                                  &exec->vtx.bufferobj,
                                  ctx->Shared->NullBufferObj);
 
-   ASSERT(!exec->vtx.buffer_map);
+   assert(!exec->vtx.buffer_map);
    exec->vtx.buffer_map = _mesa_align_malloc(VBO_VERT_BUFFER_SIZE, 64);
    exec->vtx.buffer_ptr = exec->vtx.buffer_map;
 
@@ -1044,16 +1044,16 @@ void vbo_exec_vtx_init( struct vbo_exec_context *exec )
    _mesa_noop_vtxfmt_init(&exec->vtxfmt_noop);
 
    for (i = 0 ; i < VBO_ATTRIB_MAX ; i++) {
-      ASSERT(i < Elements(exec->vtx.attrsz));
+      assert(i < ARRAY_SIZE(exec->vtx.attrsz));
       exec->vtx.attrsz[i] = 0;
-      ASSERT(i < Elements(exec->vtx.attrtype));
+      assert(i < ARRAY_SIZE(exec->vtx.attrtype));
       exec->vtx.attrtype[i] = GL_FLOAT;
-      ASSERT(i < Elements(exec->vtx.active_sz));
+      assert(i < ARRAY_SIZE(exec->vtx.active_sz));
       exec->vtx.active_sz[i] = 0;
    }
    for (i = 0 ; i < VERT_ATTRIB_MAX; i++) {
-      ASSERT(i < Elements(exec->vtx.inputs));
-      ASSERT(i < Elements(exec->vtx.arrays));
+      assert(i < ARRAY_SIZE(exec->vtx.inputs));
+      assert(i < ARRAY_SIZE(exec->vtx.arrays));
       exec->vtx.inputs[i] = &exec->vtx.arrays[i];
    }
    
@@ -1099,7 +1099,7 @@ void vbo_exec_vtx_destroy( struct vbo_exec_context *exec )
    /* True VBOs should already be unmapped
     */
    if (exec->vtx.buffer_map) {
-      ASSERT(exec->vtx.bufferobj->Name == 0 ||
+      assert(exec->vtx.bufferobj->Name == 0 ||
              exec->vtx.bufferobj->Name == IMM_BUFFER_NAME);
       if (exec->vtx.bufferobj->Name == 0) {
          _mesa_align_free(exec->vtx.buffer_map);
@@ -1110,7 +1110,7 @@ void vbo_exec_vtx_destroy( struct vbo_exec_context *exec )
 
    /* Drop any outstanding reference to the vertex buffer
     */
-   for (i = 0; i < Elements(exec->vtx.arrays); i++) {
+   for (i = 0; i < ARRAY_SIZE(exec->vtx.arrays); i++) {
       _mesa_reference_buffer_object(ctx,
                                     &exec->vtx.arrays[i].BufferObj,
                                     NULL);

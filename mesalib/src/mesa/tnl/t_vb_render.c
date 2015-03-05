@@ -38,6 +38,7 @@
  */
 
 
+#include <stdio.h>
 #include "main/glheader.h"
 #include "main/context.h"
 #include "main/enums.h"
@@ -271,22 +272,22 @@ static GLboolean run_render( struct gl_context *ctx,
     * that window coordinates are guarenteed not to change before
     * rendering.
     */
-   ASSERT(tnl->Driver.Render.Start);
+   assert(tnl->Driver.Render.Start);
 
    tnl->Driver.Render.Start( ctx );
 
-   ASSERT(tnl->Driver.Render.BuildVertices);
-   ASSERT(tnl->Driver.Render.PrimitiveNotify);
-   ASSERT(tnl->Driver.Render.Points);
-   ASSERT(tnl->Driver.Render.Line);
-   ASSERT(tnl->Driver.Render.Triangle);
-   ASSERT(tnl->Driver.Render.Quad);
-   ASSERT(tnl->Driver.Render.ResetLineStipple);
-   ASSERT(tnl->Driver.Render.Interp);
-   ASSERT(tnl->Driver.Render.CopyPV);
-   ASSERT(tnl->Driver.Render.ClippedLine);
-   ASSERT(tnl->Driver.Render.ClippedPolygon);
-   ASSERT(tnl->Driver.Render.Finish);
+   assert(tnl->Driver.Render.BuildVertices);
+   assert(tnl->Driver.Render.PrimitiveNotify);
+   assert(tnl->Driver.Render.Points);
+   assert(tnl->Driver.Render.Line);
+   assert(tnl->Driver.Render.Triangle);
+   assert(tnl->Driver.Render.Quad);
+   assert(tnl->Driver.Render.ResetLineStipple);
+   assert(tnl->Driver.Render.Interp);
+   assert(tnl->Driver.Render.CopyPV);
+   assert(tnl->Driver.Render.ClippedLine);
+   assert(tnl->Driver.Render.ClippedPolygon);
+   assert(tnl->Driver.Render.Finish);
 
    tnl->Driver.Render.BuildVertices( ctx, 0, VB->Count, ~0 );
 

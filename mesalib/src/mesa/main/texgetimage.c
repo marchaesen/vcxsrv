@@ -375,7 +375,7 @@ get_tex_rgba_uncompressed(struct gl_context *ctx, GLuint dimensions,
    GLuint height = texImage->Height;
    GLuint depth = texImage->Depth;
    GLuint img;
-   GLboolean dst_is_integer = _mesa_is_enum_format_integer(format);
+   GLboolean dst_is_integer;
    uint32_t dst_format;
    int dst_stride;
    uint8_t rebaseSwizzle[4];
@@ -423,6 +423,7 @@ get_tex_rgba_uncompressed(struct gl_context *ctx, GLuint dimensions,
     * integer then transferOps do not apply.
     */
    assert(!transferOps || (transferOps && !dst_is_integer));
+   (void) dst_is_integer; /* silence unused var warning */
 
    for (img = 0; img < depth; img++) {
       GLubyte *srcMap;

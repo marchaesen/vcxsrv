@@ -69,7 +69,7 @@ struct feedback_stage
  * GL Feedback functions
  **********************************************************************/
 
-static INLINE struct feedback_stage *
+static inline struct feedback_stage *
 feedback_stage( struct draw_stage *stage )
 {
    return (struct feedback_stage *)stage;

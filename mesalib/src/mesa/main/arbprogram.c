@@ -118,8 +118,8 @@ _mesa_BindProgramARB(GLenum target, GLuint id)
    }
 
    /* Never null pointers */
-   ASSERT(ctx->VertexProgram.Current);
-   ASSERT(ctx->FragmentProgram.Current);
+   assert(ctx->VertexProgram.Current);
+   assert(ctx->FragmentProgram.Current);
 
    if (ctx->Driver.BindProgram)
       ctx->Driver.BindProgram(ctx, target, newProg);
@@ -524,7 +524,7 @@ _mesa_ProgramLocalParameter4fARB(GLenum target, GLuint index,
 
    if (get_local_param_pointer(ctx, "glProgramLocalParameterARB",
 			       target, index, &param)) {
-      ASSERT(index < MAX_PROGRAM_LOCAL_PARAMS);
+      assert(index < MAX_PROGRAM_LOCAL_PARAMS);
       ASSIGN_4V(param, x, y, z, w);
    }
 }
@@ -639,8 +639,8 @@ _mesa_GetProgramivARB(GLenum target, GLenum pname, GLint *params)
       return;
    }
 
-   ASSERT(prog);
-   ASSERT(limits);
+   assert(prog);
+   assert(limits);
 
    /* Queries supported for both vertex and fragment programs */
    switch (pname) {
@@ -817,7 +817,7 @@ _mesa_GetProgramStringARB(GLenum target, GLenum pname, GLvoid *string)
       return;
    }
 
-   ASSERT(prog);
+   assert(prog);
 
    if (pname != GL_PROGRAM_STRING_ARB) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glGetProgramStringARB(pname)");

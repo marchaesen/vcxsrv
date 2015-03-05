@@ -135,6 +135,13 @@ ir_rvalue_base_visitor::rvalue_visit(ir_call *ir)
 }
 
 ir_visitor_status
+ir_rvalue_base_visitor::rvalue_visit(ir_discard *ir)
+{
+   handle_rvalue(&ir->condition);
+   return visit_continue;
+}
+
+ir_visitor_status
 ir_rvalue_base_visitor::rvalue_visit(ir_return *ir)
 {
    handle_rvalue(&ir->value);;
@@ -205,6 +212,12 @@ ir_rvalue_visitor::visit_leave(ir_call *ir)
 }
 
 ir_visitor_status
+ir_rvalue_visitor::visit_leave(ir_discard *ir)
+{
+   return rvalue_visit(ir);
+}
+
+ir_visitor_status
 ir_rvalue_visitor::visit_leave(ir_return *ir)
 {
    return rvalue_visit(ir);
@@ -266,6 +279,12 @@ ir_rvalue_enter_visitor::visit_enter(ir_assignment *ir)
 
 ir_visitor_status
 ir_rvalue_enter_visitor::visit_enter(ir_call *ir)
+{
+   return rvalue_visit(ir);
+}
+
+ir_visitor_status
+ir_rvalue_enter_visitor::visit_enter(ir_discard *ir)
 {
    return rvalue_visit(ir);
 }

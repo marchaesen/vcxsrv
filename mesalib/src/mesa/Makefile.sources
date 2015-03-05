@@ -86,6 +86,7 @@ MAIN_FILES = \
 	main/ffvertex_prog.h \
 	main/fog.c \
 	main/fog.h \
+	main/format_info.h \
 	main/format_pack.h \
 	main/format_pack.c \
 	main/format_unpack.h \
@@ -100,6 +101,7 @@ MAIN_FILES = \
 	main/framebuffer.h \
 	main/get.c \
 	main/get.h \
+	main/get_hash.h \
 	main/genmipmap.c \
 	main/genmipmap.h \
 	main/getstring.c \

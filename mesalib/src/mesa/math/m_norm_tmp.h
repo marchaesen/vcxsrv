@@ -68,7 +68,7 @@ TAG(transform_normalize_normals)( const GLmatrix *mat,
 	 {
 	    GLdouble len = tx*tx + ty*ty + tz*tz;
 	    if (len > 1e-20) {
-	       GLfloat scale = INV_SQRTF(len);
+	       GLfloat scale = 1.0f / sqrtf(len);
 	       out[i][0] = tx * scale;
 	       out[i][1] = ty * scale;
 	       out[i][2] = tz * scale;
@@ -135,7 +135,7 @@ TAG(transform_normalize_normals_no_rot)( const GLmatrix *mat,
 	 {
 	    GLdouble len = tx*tx + ty*ty + tz*tz;
 	    if (len > 1e-20) {
-	       GLfloat scale = INV_SQRTF(len);
+	       GLfloat scale = 1.0f / sqrtf(len);
 	       out[i][0] = tx * scale;
 	       out[i][1] = ty * scale;
 	       out[i][2] = tz * scale;
@@ -322,7 +322,7 @@ TAG(normalize_normals)( const GLmatrix *mat,
 	 const GLfloat x = from[0], y = from[1], z = from[2];
 	 GLdouble len = x * x + y * y + z * z;
 	 if (len > 1e-50) {
-	    len = INV_SQRTF(len);
+	    len = 1.0f / sqrtf(len);
 	    out[i][0] = (GLfloat)(x * len);
 	    out[i][1] = (GLfloat)(y * len);
 	    out[i][2] = (GLfloat)(z * len);

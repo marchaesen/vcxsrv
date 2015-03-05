@@ -118,7 +118,7 @@ _mesa_image_offset( GLuint dimensions,
    GLint skipimages;       /* for 3-D volume images */
    GLintptr offset;
 
-   ASSERT(dimensions >= 1 && dimensions <= 3);
+   assert(dimensions >= 1 && dimensions <= 3);
 
    alignment = packing->Alignment;
    if (packing->RowLength > 0) {
@@ -174,7 +174,7 @@ _mesa_image_offset( GLuint dimensions,
       if (remainder > 0)
          bytes_per_row += (alignment - remainder);
 
-      ASSERT(bytes_per_row % alignment == 0);
+      assert(bytes_per_row % alignment == 0);
 
       bytes_per_image = bytes_per_row * rows_per_image;
 
@@ -288,7 +288,7 @@ _mesa_image_row_stride( const struct gl_pixelstore_attrib *packing,
 {
    GLint bytesPerRow, remainder;
 
-   ASSERT(packing);
+   assert(packing);
 
    if (type == GL_BITMAP) {
       if (packing->RowLength == 0) {
@@ -336,7 +336,7 @@ _mesa_image_image_stride( const struct gl_pixelstore_attrib *packing,
 {
    GLint bytesPerRow, bytesPerImage, remainder;
 
-   ASSERT(packing);
+   assert(packing);
 
    if (type == GL_BITMAP) {
       if (packing->RowLength == 0) {
@@ -476,7 +476,7 @@ _mesa_convert_colors(GLenum srcType, const GLvoid *src,
    if (!tempBuffer)
       return;
 
-   ASSERT(srcType != dstType);
+   assert(srcType != dstType);
 
    switch (srcType) {
    case GL_UNSIGNED_BYTE:
@@ -499,7 +499,7 @@ _mesa_convert_colors(GLenum srcType, const GLvoid *src,
          const GLubyte (*src1)[4] = (const GLubyte (*)[4]) src;
          GLfloat (*dst4)[4] = (GLfloat (*)[4]) (useTemp ? tempBuffer : dst);
          GLuint i;
-         ASSERT(dstType == GL_FLOAT);
+         assert(dstType == GL_FLOAT);
          for (i = 0; i < count; i++) {
             if (!mask || mask[i]) {
                dst4[i][RCOMP] = UBYTE_TO_FLOAT(src1[i][RCOMP]);
@@ -532,7 +532,7 @@ _mesa_convert_colors(GLenum srcType, const GLvoid *src,
          const GLushort (*src2)[4] = (const GLushort (*)[4]) src;
          GLfloat (*dst4)[4] = (GLfloat (*)[4]) (useTemp ? tempBuffer : dst);
          GLuint i;
-         ASSERT(dstType == GL_FLOAT);
+         assert(dstType == GL_FLOAT);
          for (i = 0; i < count; i++) {
             if (!mask || mask[i]) {
                dst4[i][RCOMP] = USHORT_TO_FLOAT(src2[i][RCOMP]);
@@ -561,7 +561,7 @@ _mesa_convert_colors(GLenum srcType, const GLvoid *src,
          const GLfloat (*src4)[4] = (const GLfloat (*)[4]) src;
          GLushort (*dst2)[4] = (GLushort (*)[4]) (useTemp ? tempBuffer : dst);
          GLuint i;
-         ASSERT(dstType == GL_UNSIGNED_SHORT);
+         assert(dstType == GL_UNSIGNED_SHORT);
          for (i = 0; i < count; i++) {
             if (!mask || mask[i]) {
                UNCLAMPED_FLOAT_TO_USHORT(dst2[i][RCOMP], src4[i][RCOMP]);
@@ -607,8 +607,8 @@ _mesa_clip_drawpixels(const struct gl_context *ctx,
       unpack->RowLength = *width;
    }
 
-   ASSERT(ctx->Pixel.ZoomX == 1.0F);
-   ASSERT(ctx->Pixel.ZoomY == 1.0F || ctx->Pixel.ZoomY == -1.0F);
+   assert(ctx->Pixel.ZoomX == 1.0F);
+   assert(ctx->Pixel.ZoomY == 1.0F || ctx->Pixel.ZoomY == -1.0F);
 
    /* left clipping */
    if (*destX < buffer->_Xmin) {
@@ -792,20 +792,20 @@ clip_right_or_top(GLint *srcX0, GLint *srcX1,
 
    if (*dstX1 > maxValue) {
       /* X1 outside right edge */
-      ASSERT(*dstX0 < maxValue); /* X0 should be inside right edge */
+      assert(*dstX0 < maxValue); /* X0 should be inside right edge */
       t = (GLfloat) (maxValue - *dstX0) / (GLfloat) (*dstX1 - *dstX0);
       /* chop off [t, 1] part */
-      ASSERT(t >= 0.0 && t <= 1.0);
+      assert(t >= 0.0 && t <= 1.0);
       *dstX1 = maxValue;
       bias = (*srcX0 < *srcX1) ? 0.5F : -0.5F;
       *srcX1 = *srcX0 + (GLint) (t * (*srcX1 - *srcX0) + bias);
    }
    else if (*dstX0 > maxValue) {
       /* X0 outside right edge */
-      ASSERT(*dstX1 < maxValue); /* X1 should be inside right edge */
+      assert(*dstX1 < maxValue); /* X1 should be inside right edge */
       t = (GLfloat) (maxValue - *dstX1) / (GLfloat) (*dstX0 - *dstX1);
       /* chop off [t, 1] part */
-      ASSERT(t >= 0.0 && t <= 1.0);
+      assert(t >= 0.0 && t <= 1.0);
       *dstX0 = maxValue;
       bias = (*srcX0 < *srcX1) ? -0.5F : 0.5F;
       *srcX0 = *srcX1 + (GLint) (t * (*srcX0 - *srcX1) + bias);
@@ -825,20 +825,20 @@ clip_left_or_bottom(GLint *srcX0, GLint *srcX1,
 
    if (*dstX0 < minValue) {
       /* X0 outside left edge */
-      ASSERT(*dstX1 > minValue); /* X1 should be inside left edge */
+      assert(*dstX1 > minValue); /* X1 should be inside left edge */
       t = (GLfloat) (minValue - *dstX0) / (GLfloat) (*dstX1 - *dstX0);
       /* chop off [0, t] part */
-      ASSERT(t >= 0.0 && t <= 1.0);
+      assert(t >= 0.0 && t <= 1.0);
       *dstX0 = minValue;
       bias = (*srcX0 < *srcX1) ? 0.5F : -0.5F;
       *srcX0 = *srcX0 + (GLint) (t * (*srcX1 - *srcX0) + bias);
    }
    else if (*dstX1 < minValue) {
       /* X1 outside left edge */
-      ASSERT(*dstX0 > minValue); /* X0 should be inside left edge */
+      assert(*dstX0 > minValue); /* X0 should be inside left edge */
       t = (GLfloat) (minValue - *dstX1) / (GLfloat) (*dstX0 - *dstX1);
       /* chop off [0, t] part */
-      ASSERT(t >= 0.0 && t <= 1.0);
+      assert(t >= 0.0 && t <= 1.0);
       *dstX1 = minValue;
       bias = (*srcX0 < *srcX1) ? -0.5F : 0.5F;
       *srcX1 = *srcX1 + (GLint) (t * (*srcX0 - *srcX1) + bias);
@@ -936,25 +936,25 @@ _mesa_clip_blit(struct gl_context *ctx,
           *srcY0, *srcY1, *dstY0, *dstY1);
    */
 
-   ASSERT(*dstX0 >= dstXmin);
-   ASSERT(*dstX0 <= dstXmax);
-   ASSERT(*dstX1 >= dstXmin);
-   ASSERT(*dstX1 <= dstXmax);
+   assert(*dstX0 >= dstXmin);
+   assert(*dstX0 <= dstXmax);
+   assert(*dstX1 >= dstXmin);
+   assert(*dstX1 <= dstXmax);
 
-   ASSERT(*dstY0 >= dstYmin);
-   ASSERT(*dstY0 <= dstYmax);
-   ASSERT(*dstY1 >= dstYmin);
-   ASSERT(*dstY1 <= dstYmax);
+   assert(*dstY0 >= dstYmin);
+   assert(*dstY0 <= dstYmax);
+   assert(*dstY1 >= dstYmin);
+   assert(*dstY1 <= dstYmax);
 
-   ASSERT(*srcX0 >= srcXmin);
-   ASSERT(*srcX0 <= srcXmax);
-   ASSERT(*srcX1 >= srcXmin);
-   ASSERT(*srcX1 <= srcXmax);
+   assert(*srcX0 >= srcXmin);
+   assert(*srcX0 <= srcXmax);
+   assert(*srcX1 >= srcXmin);
+   assert(*srcX1 <= srcXmax);
 
-   ASSERT(*srcY0 >= srcYmin);
-   ASSERT(*srcY0 <= srcYmax);
-   ASSERT(*srcY1 >= srcYmin);
-   ASSERT(*srcY1 <= srcYmax);
+   assert(*srcY0 >= srcYmin);
+   assert(*srcY0 <= srcYmax);
+   assert(*srcY1 >= srcYmin);
+   assert(*srcY1 <= srcYmax);
 
    return GL_TRUE;
 }

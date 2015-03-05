@@ -430,12 +430,12 @@ _mesa_choose_tex_format(struct gl_context *ctx, GLenum target,
 
    case GL_RGB9_E5:
       /* GL_EXT_texture_shared_exponent -- just one format to support */
-      ASSERT(ctx->TextureFormatSupported[MESA_FORMAT_R9G9B9E5_FLOAT]);
+      assert(ctx->TextureFormatSupported[MESA_FORMAT_R9G9B9E5_FLOAT]);
       return MESA_FORMAT_R9G9B9E5_FLOAT;
 
    case GL_R11F_G11F_B10F:
       /* GL_EXT_texture_packed_float -- just one format to support */
-      ASSERT(ctx->TextureFormatSupported[MESA_FORMAT_R11G11B10_FLOAT]);
+      assert(ctx->TextureFormatSupported[MESA_FORMAT_R11G11B10_FLOAT]);
       return MESA_FORMAT_R11G11B10_FLOAT;
 
    case GL_DEPTH_STENCIL_EXT:
@@ -445,10 +445,10 @@ _mesa_choose_tex_format(struct gl_context *ctx, GLenum target,
       break;
 
    case GL_DEPTH_COMPONENT32F:
-      ASSERT(ctx->TextureFormatSupported[MESA_FORMAT_Z_FLOAT32]);
+      assert(ctx->TextureFormatSupported[MESA_FORMAT_Z_FLOAT32]);
       return MESA_FORMAT_Z_FLOAT32;
    case GL_DEPTH32F_STENCIL8:
-      ASSERT(ctx->TextureFormatSupported[MESA_FORMAT_Z32_FLOAT_S8X24_UINT]);
+      assert(ctx->TextureFormatSupported[MESA_FORMAT_Z32_FLOAT_S8X24_UINT]);
       return MESA_FORMAT_Z32_FLOAT_S8X24_UINT;
 
    case GL_RED_SNORM:

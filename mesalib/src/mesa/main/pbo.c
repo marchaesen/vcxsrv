@@ -182,7 +182,7 @@ _mesa_map_validate_pbo_source(struct gl_context *ctx,
                               GLsizei clientMemSize,
                               const GLvoid *ptr, const char *where)
 {
-   ASSERT(dimensions == 1 || dimensions == 2 || dimensions == 3);
+   assert(dimensions == 1 || dimensions == 2 || dimensions == 3);
 
    if (!_mesa_validate_pbo_access(dimensions, unpack, width, height, depth,
                                   format, type, clientMemSize, ptr)) {
@@ -220,7 +220,7 @@ void
 _mesa_unmap_pbo_source(struct gl_context *ctx,
                        const struct gl_pixelstore_attrib *unpack)
 {
-   ASSERT(unpack != &ctx->Pack); /* catch pack/unpack mismatch */
+   assert(unpack != &ctx->Pack); /* catch pack/unpack mismatch */
    if (_mesa_is_bufferobj(unpack->BufferObj)) {
       ctx->Driver.UnmapBuffer(ctx, unpack->BufferObj, MAP_INTERNAL);
    }
@@ -279,7 +279,7 @@ _mesa_map_validate_pbo_dest(struct gl_context *ctx,
                             GLenum format, GLenum type, GLsizei clientMemSize,
                             GLvoid *ptr, const char *where)
 {
-   ASSERT(dimensions == 1 || dimensions == 2 || dimensions == 3);
+   assert(dimensions == 1 || dimensions == 2 || dimensions == 3);
 
    if (!_mesa_validate_pbo_access(dimensions, unpack, width, height, depth,
                                   format, type, clientMemSize, ptr)) {
@@ -317,7 +317,7 @@ void
 _mesa_unmap_pbo_dest(struct gl_context *ctx,
                      const struct gl_pixelstore_attrib *pack)
 {
-   ASSERT(pack != &ctx->Unpack); /* catch pack/unpack mismatch */
+   assert(pack != &ctx->Unpack); /* catch pack/unpack mismatch */
    if (_mesa_is_bufferobj(pack->BufferObj)) {
       ctx->Driver.UnmapBuffer(ctx, pack->BufferObj, MAP_INTERNAL);
    }

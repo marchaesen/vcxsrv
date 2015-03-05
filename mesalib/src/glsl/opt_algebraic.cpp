@@ -744,48 +744,65 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
        * a saturate operation
        */
       for (int op = 0; op < 2; op++) {
-         ir_expression *minmax = op_expr[op];
+         ir_expression *inner_expr = op_expr[op];
          ir_constant *outer_const = op_const[1 - op];
          ir_expression_operation op_cond = (ir->operation == ir_binop_max) ?
             ir_binop_min : ir_binop_max;
 
-         if (!minmax || !outer_const || (minmax->operation != op_cond))
+         if (!inner_expr || !outer_const || (inner_expr->operation != op_cond))
             continue;
+
+         /* One of these has to be a constant */
+         if (!inner_expr->operands[0]->as_constant() &&
+             !inner_expr->operands[1]->as_constant())
+            break;
 
          /* Found a min(max) combination. Now try to see if its operands
           * meet our conditions that we can do just a single saturate operation
           */
          for (int minmax_op = 0; minmax_op < 2; minmax_op++) {
-            ir_rvalue *inner_val_a = minmax->operands[minmax_op];
-            ir_rvalue *inner_val_b = minmax->operands[1 - minmax_op];
+            ir_rvalue *x = inner_expr->operands[minmax_op];
+            ir_rvalue *y = inner_expr->operands[1 - minmax_op];
 
-            if (!inner_val_a || !inner_val_b)
+            ir_constant *inner_const = y->as_constant();
+            if (!inner_const)
                continue;
 
-            /* Found a {min|max} ({max|min} (x, 0.0), 1.0) operation and its variations */
-            if ((outer_const->is_one() && inner_val_a->is_zero()) ||
-                (inner_val_a->is_one() && outer_const->is_zero()))
-               return saturate(inner_val_b);
+            /* min(max(x, 0.0), 1.0) is sat(x) */
+            if (ir->operation == ir_binop_min &&
+                inner_const->is_zero() &&
+                outer_const->is_one())
+               return saturate(x);
 
-            /* Found a {min|max} ({max|min} (x, 0.0), b) where b < 1.0
-             * and its variations
-             */
-            if (is_less_than_one(outer_const) && inner_val_b->is_zero())
-               return expr(ir_binop_min, saturate(inner_val_a), outer_const);
+            /* max(min(x, 1.0), 0.0) is sat(x) */
+            if (ir->operation == ir_binop_max &&
+                inner_const->is_one() &&
+                outer_const->is_zero())
+               return saturate(x);
 
-            if (!inner_val_b->as_constant())
-               continue;
+            /* min(max(x, 0.0), b) where b < 1.0 is sat(min(x, b)) */
+            if (ir->operation == ir_binop_min &&
+                inner_const->is_zero() &&
+                is_less_than_one(outer_const))
+               return saturate(expr(ir_binop_min, x, outer_const));
 
-            if (is_less_than_one(inner_val_b->as_constant()) && outer_const->is_zero())
-               return expr(ir_binop_min, saturate(inner_val_a), inner_val_b);
+            /* max(min(x, b), 0.0) where b < 1.0 is sat(min(x, b)) */
+            if (ir->operation == ir_binop_max &&
+                is_less_than_one(inner_const) &&
+                outer_const->is_zero())
+               return saturate(expr(ir_binop_min, x, inner_const));
 
-            /* Found a {min|max} ({max|min} (x, b), 1.0), where b > 0.0
-             * and its variations
-             */
-            if (outer_const->is_one() && is_greater_than_zero(inner_val_b->as_constant()))
-               return expr(ir_binop_max, saturate(inner_val_a), inner_val_b);
-            if (inner_val_b->as_constant()->is_one() && is_greater_than_zero(outer_const))
-               return expr(ir_binop_max, saturate(inner_val_a), outer_const);
+            /* max(min(x, 1.0), b) where b > 0.0 is sat(max(x, b)) */
+            if (ir->operation == ir_binop_max &&
+                inner_const->is_one() &&
+                is_greater_than_zero(outer_const))
+               return saturate(expr(ir_binop_max, x, outer_const));
+
+            /* min(max(x, b), 1.0) where b > 0.0 is sat(max(x, b)) */
+            if (ir->operation == ir_binop_min &&
+                is_greater_than_zero(inner_const) &&
+                outer_const->is_one())
+               return saturate(expr(ir_binop_max, x, inner_const));
          }
       }
 
@@ -849,6 +866,7 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
             one = new(mem_ctx) ir_constant(1.0, op2_components);
             break;
          default:
+            one = NULL;
             unreachable("unexpected type");
          }
 

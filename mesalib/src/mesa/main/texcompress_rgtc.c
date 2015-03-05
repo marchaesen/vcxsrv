@@ -86,7 +86,7 @@ _mesa_texstore_red_rgtc1(TEXSTORE_PARAMS)
    GLint dstRowDiff, redRowStride;
    GLubyte *tempImageSlices[1];
 
-   ASSERT(dstFormat == MESA_FORMAT_R_RGTC1_UNORM ||
+   assert(dstFormat == MESA_FORMAT_R_RGTC1_UNORM ||
           dstFormat == MESA_FORMAT_L_LATC1_UNORM);
 
    tempImage = malloc(srcWidth * srcHeight * 1 * sizeof(GLubyte));
@@ -139,7 +139,7 @@ _mesa_texstore_signed_red_rgtc1(TEXSTORE_PARAMS)
    GLint dstRowDiff, redRowStride;
    GLfloat *tempImageSlices[1];
 
-   ASSERT(dstFormat == MESA_FORMAT_R_RGTC1_SNORM ||
+   assert(dstFormat == MESA_FORMAT_R_RGTC1_SNORM ||
           dstFormat == MESA_FORMAT_L_LATC1_SNORM);
 
    redRowStride = 1 * srcWidth * sizeof(GLfloat);
@@ -193,7 +193,7 @@ _mesa_texstore_rg_rgtc2(TEXSTORE_PARAMS)
    mesa_format tempFormat;
    GLubyte *tempImageSlices[1];
 
-   ASSERT(dstFormat == MESA_FORMAT_RG_RGTC2_UNORM ||
+   assert(dstFormat == MESA_FORMAT_RG_RGTC2_UNORM ||
           dstFormat == MESA_FORMAT_LA_LATC2_UNORM);
 
    if (baseInternalFormat == GL_RG)
@@ -258,7 +258,7 @@ _mesa_texstore_signed_rg_rgtc2(TEXSTORE_PARAMS)
    mesa_format tempFormat;
    GLfloat *tempImageSlices[1];
 
-   ASSERT(dstFormat == MESA_FORMAT_RG_RGTC2_SNORM ||
+   assert(dstFormat == MESA_FORMAT_RG_RGTC2_SNORM ||
           dstFormat == MESA_FORMAT_LA_LATC2_SNORM);
 
    if (baseInternalFormat == GL_RG)

@@ -56,21 +56,21 @@ _mesa_init_program(struct gl_context *ctx)
     * If this assertion fails, we need to increase the field
     * size for register indexes (see INST_INDEX_BITS).
     */
-   ASSERT(ctx->Const.Program[MESA_SHADER_VERTEX].MaxUniformComponents / 4
+   assert(ctx->Const.Program[MESA_SHADER_VERTEX].MaxUniformComponents / 4
           <= (1 << INST_INDEX_BITS));
-   ASSERT(ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxUniformComponents / 4
+   assert(ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxUniformComponents / 4
           <= (1 << INST_INDEX_BITS));
 
-   ASSERT(ctx->Const.Program[MESA_SHADER_VERTEX].MaxTemps <= (1 << INST_INDEX_BITS));
-   ASSERT(ctx->Const.Program[MESA_SHADER_VERTEX].MaxLocalParams <= (1 << INST_INDEX_BITS));
-   ASSERT(ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxTemps <= (1 << INST_INDEX_BITS));
-   ASSERT(ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxLocalParams <= (1 << INST_INDEX_BITS));
+   assert(ctx->Const.Program[MESA_SHADER_VERTEX].MaxTemps <= (1 << INST_INDEX_BITS));
+   assert(ctx->Const.Program[MESA_SHADER_VERTEX].MaxLocalParams <= (1 << INST_INDEX_BITS));
+   assert(ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxTemps <= (1 << INST_INDEX_BITS));
+   assert(ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxLocalParams <= (1 << INST_INDEX_BITS));
 
-   ASSERT(ctx->Const.Program[MESA_SHADER_VERTEX].MaxUniformComponents <= 4 * MAX_UNIFORMS);
-   ASSERT(ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxUniformComponents <= 4 * MAX_UNIFORMS);
+   assert(ctx->Const.Program[MESA_SHADER_VERTEX].MaxUniformComponents <= 4 * MAX_UNIFORMS);
+   assert(ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxUniformComponents <= 4 * MAX_UNIFORMS);
 
-   ASSERT(ctx->Const.Program[MESA_SHADER_VERTEX].MaxAddressOffset <= (1 << INST_INDEX_BITS));
-   ASSERT(ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxAddressOffset <= (1 << INST_INDEX_BITS));
+   assert(ctx->Const.Program[MESA_SHADER_VERTEX].MaxAddressOffset <= (1 << INST_INDEX_BITS));
+   assert(ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxAddressOffset <= (1 << INST_INDEX_BITS));
 
    /* If this fails, increase prog_instruction::TexSrcUnit size */
    STATIC_ASSERT(MAX_TEXTURE_UNITS <= (1 << 5));
@@ -364,8 +364,8 @@ void
 _mesa_delete_program(struct gl_context *ctx, struct gl_program *prog)
 {
    (void) ctx;
-   ASSERT(prog);
-   ASSERT(prog->RefCount==0);
+   assert(prog);
+   assert(prog->RefCount==0);
 
    if (prog == &_mesa_DummyProgram)
       return;
@@ -414,12 +414,12 @@ _mesa_reference_program_(struct gl_context *ctx,
    if (*ptr && prog) {
       /* sanity check */
       if ((*ptr)->Target == GL_VERTEX_PROGRAM_ARB)
-         ASSERT(prog->Target == GL_VERTEX_PROGRAM_ARB);
+         assert(prog->Target == GL_VERTEX_PROGRAM_ARB);
       else if ((*ptr)->Target == GL_FRAGMENT_PROGRAM_ARB)
-         ASSERT(prog->Target == GL_FRAGMENT_PROGRAM_ARB ||
+         assert(prog->Target == GL_FRAGMENT_PROGRAM_ARB ||
                 prog->Target == GL_FRAGMENT_PROGRAM_NV);
       else if ((*ptr)->Target == MESA_GEOMETRY_PROGRAM)
-         ASSERT(prog->Target == MESA_GEOMETRY_PROGRAM);
+         assert(prog->Target == MESA_GEOMETRY_PROGRAM);
    }
 #endif
 
@@ -434,14 +434,14 @@ _mesa_reference_program_(struct gl_context *ctx,
               ((*ptr)->Target == MESA_GEOMETRY_PROGRAM ? "GP" : "FP")),
              (*ptr)->RefCount - 1);
 #endif
-      ASSERT((*ptr)->RefCount > 0);
+      assert((*ptr)->RefCount > 0);
       (*ptr)->RefCount--;
 
       deleteFlag = ((*ptr)->RefCount == 0);
       /*mtx_lock(&(*ptr)->Mutex);*/
 
       if (deleteFlag) {
-         ASSERT(ctx);
+         assert(ctx);
          ctx->Driver.DeleteProgram(ctx, *ptr);
       }
 
@@ -733,7 +733,7 @@ _mesa_combine_programs(struct gl_context *ctx,
    GLbitfield64 inputsB;
    GLuint i;
 
-   ASSERT(progA->Target == progB->Target);
+   assert(progA->Target == progB->Target);
 
    newInst = _mesa_alloc_instructions(newLength);
    if (!newInst)
@@ -867,14 +867,14 @@ _mesa_find_used_registers(const struct gl_program *prog,
       const GLuint n = _mesa_num_inst_src_regs(inst->Opcode);
 
       if (inst->DstReg.File == file) {
-         ASSERT(inst->DstReg.Index < usedSize);
+         assert(inst->DstReg.Index < usedSize);
          if(inst->DstReg.Index < usedSize)
             used[inst->DstReg.Index] = GL_TRUE;
       }
 
       for (j = 0; j < n; j++) {
          if (inst->SrcReg[j].File == file) {
-            ASSERT(inst->SrcReg[j].Index < (GLint) usedSize);
+            assert(inst->SrcReg[j].Index < (GLint) usedSize);
             if (inst->SrcReg[j].Index < (GLint) usedSize)
                used[inst->SrcReg[j].Index] = GL_TRUE;
          }

@@ -227,7 +227,7 @@ static const struct gl_builtin_uniform_element gl_NormalMatrix_elements[] = {
 
 #undef MATRIX
 
-#define STATEVAR(name) {#name, name ## _elements, Elements(name ## _elements)}
+#define STATEVAR(name) {#name, name ## _elements, ARRAY_SIZE(name ## _elements)}
 
 static const struct gl_builtin_uniform_desc _mesa_builtin_uniform_desc[] = {
    STATEVAR(gl_NumSamples),

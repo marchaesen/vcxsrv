@@ -41,13 +41,7 @@
 
 #include "pipe/p_compiler.h"
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
-#include <math.h>
+#include "c99_math.h"
 #include <float.h>
 #include <stdarg.h>
 
@@ -56,152 +50,14 @@ extern "C" {
 #endif
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #ifndef M_SQRT2
 #define M_SQRT2 1.41421356237309504880
 #endif
-
-
-#if defined(_MSC_VER)
-
-#if _MSC_VER < 1400 && !defined(__cplusplus)
-
-static INLINE float cosf( float f )
-{
-   return (float) cos( (double) f );
-}
-
-static INLINE float sinf( float f )
-{
-   return (float) sin( (double) f );
-}
-
-static INLINE float ceilf( float f )
-{
-   return (float) ceil( (double) f );
-}
-
-static INLINE float floorf( float f )
-{
-   return (float) floor( (double) f );
-}
-
-static INLINE float powf( float f, float g )
-{
-   return (float) pow( (double) f, (double) g );
-}
-
-static INLINE float sqrtf( float f )
-{
-   return (float) sqrt( (double) f );
-}
-
-static INLINE float fabsf( float f )
-{
-   return (float) fabs( (double) f );
-}
-
-static INLINE float logf( float f )
-{
-   return (float) log( (double) f );
-}
-
-#else
-/* Work-around an extra semi-colon in VS 2005 logf definition */
-#ifdef logf
-#undef logf
-#define logf(x) ((float)log((double)(x)))
-#endif /* logf */
-
-#if _MSC_VER < 1800
-#define isfinite(x) _finite((double)(x))
-#define isnan(x) _isnan((double)(x))
-#endif /* _MSC_VER < 1800 */
-#endif /* _MSC_VER < 1400 && !defined(__cplusplus) */
-
-#if _MSC_VER < 1800
-static INLINE double log2( double x )
-{
-   const double invln2 = 1.442695041;
-   return log( x ) * invln2;
-}
-
-static INLINE double
-round(double x)
-{
-   return x >= 0.0 ? floor(x + 0.5) : ceil(x - 0.5);
-}
-
-static INLINE float
-roundf(float x)
-{
-   return x >= 0.0f ? floorf(x + 0.5f) : ceilf(x - 0.5f);
-}
-#endif
-
-#ifndef INFINITY
-#define INFINITY (DBL_MAX + DBL_MAX)
-#endif
-
-#ifndef NAN
-#define NAN (INFINITY - INFINITY)
-#endif
-
-#endif /* _MSC_VER */
-
-
-#if __STDC_VERSION__ < 199901L && (!defined(__cplusplus) || defined(_MSC_VER))
-static INLINE long int
-lrint(double d)
-{
-   long int rounded = (long int)(d + 0.5);
-
-   if (d - floor(d) == 0.5) {
-      if (rounded % 2 != 0)
-         rounded += (d > 0) ? -1 : 1;
-   }
-
-   return rounded;
-}
-
-static INLINE long int
-lrintf(float f)
-{
-   long int rounded = (long int)(f + 0.5f);
-
-   if (f - floorf(f) == 0.5f) {
-      if (rounded % 2 != 0)
-         rounded += (f > 0) ? -1 : 1;
-   }
-
-   return rounded;
-}
-
-static INLINE long long int
-llrint(double d)
-{
-   long long int rounded = (long long int)(d + 0.5);
-
-   if (d - floor(d) == 0.5) {
-      if (rounded % 2 != 0)
-         rounded += (d > 0) ? -1 : 1;
-   }
-
-   return rounded;
-}
-
-static INLINE long long int
-llrintf(float f)
-{
-   long long int rounded = (long long int)(f + 0.5f);
-
-   if (f - floorf(f) == 0.5f) {
-      if (rounded % 2 != 0)
-         rounded += (f > 0) ? -1 : 1;
-   }
-
-   return rounded;
-}
-#endif /* C99 */
 
 #define POW2_TABLE_SIZE_LOG2 9
 #define POW2_TABLE_SIZE (1 << POW2_TABLE_SIZE_LOG2)
@@ -499,7 +355,7 @@ util_half_inf_sign(int16_t x)
 #ifndef FFS_DEFINED
 #define FFS_DEFINED 1
 
-#if defined(_MSC_VER) && _MSC_VER >= 1300 && (_M_IX86 || _M_AMD64 || _M_IA64)
+#if defined(_MSC_VER) && (_M_IX86 || _M_AMD64 || _M_IA64)
 unsigned char _BitScanForward(unsigned long* Index, unsigned long Mask);
 #pragma intrinsic(_BitScanForward)
 static INLINE
@@ -541,7 +397,7 @@ unsigned ffs( unsigned u )
 static INLINE unsigned
 util_last_bit(unsigned u)
 {
-#if defined(__GNUC__)
+#if defined(HAVE___BUILTIN_CLZ)
    return u == 0 ? 0 : 32 - __builtin_clz(u);
 #else
    unsigned r = 0;
@@ -663,7 +519,7 @@ float_to_byte_tex(float f)
 static INLINE unsigned
 util_logbase2(unsigned n)
 {
-#if defined(PIPE_CC_GCC)
+#if defined(HAVE___BUILTIN_CLZ)
    return ((sizeof(unsigned) * 8 - 1) - __builtin_clz(n | 1));
 #else
    unsigned pos = 0;
@@ -683,7 +539,7 @@ util_logbase2(unsigned n)
 static INLINE unsigned
 util_next_power_of_two(unsigned x)
 {
-#if defined(PIPE_CC_GCC)
+#if defined(HAVE___BUILTIN_CLZ)
    if (x <= 1)
        return 1;
 
@@ -715,7 +571,7 @@ util_next_power_of_two(unsigned x)
 static INLINE unsigned
 util_bitcount(unsigned n)
 {
-#if defined(PIPE_CC_GCC)
+#if defined(HAVE___BUILTIN_POPCOUNT)
    return __builtin_popcount(n);
 #else
    /* K&R classic bitcount.
@@ -724,8 +580,8 @@ util_bitcount(unsigned n)
     * Requires only one iteration per set bit, instead of
     * one iteration per bit less than highest set bit.
     */
-   unsigned bits = 0;
-   for (bits; n; bits++) {
+   unsigned bits;
+   for (bits = 0; n; bits++) {
       n &= n - 1;
    }
    return bits;
@@ -784,8 +640,7 @@ util_bitreverse(unsigned n)
 static INLINE uint32_t
 util_bswap32(uint32_t n)
 {
-/* We need the gcc version checks for non-autoconf build system */
-#if defined(HAVE___BUILTIN_BSWAP32) || (defined(PIPE_CC_GCC) && (PIPE_CC_GCC_VERSION >= 403))
+#if defined(HAVE___BUILTIN_BSWAP32)
    return __builtin_bswap32(n);
 #else
    return (n >> 24) |

@@ -119,9 +119,9 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    this->Const.MaxAtomicBufferBindings = ctx->Const.MaxAtomicBufferBindings;
 
    /* Compute shader constants */
-   for (unsigned i = 0; i < Elements(this->Const.MaxComputeWorkGroupCount); i++)
+   for (unsigned i = 0; i < ARRAY_SIZE(this->Const.MaxComputeWorkGroupCount); i++)
       this->Const.MaxComputeWorkGroupCount[i] = ctx->Const.MaxComputeWorkGroupCount[i];
-   for (unsigned i = 0; i < Elements(this->Const.MaxComputeWorkGroupSize); i++)
+   for (unsigned i = 0; i < ARRAY_SIZE(this->Const.MaxComputeWorkGroupSize); i++)
       this->Const.MaxComputeWorkGroupSize[i] = ctx->Const.MaxComputeWorkGroupSize[i];
 
    this->Const.MaxImageUnits = ctx->Const.MaxImageUnits;
@@ -636,7 +636,7 @@ void _mesa_glsl_extension::set_flags(_mesa_glsl_parse_state *state,
  */
 static const _mesa_glsl_extension *find_extension(const char *name)
 {
-   for (unsigned i = 0; i < Elements(_mesa_glsl_supported_extensions); ++i) {
+   for (unsigned i = 0; i < ARRAY_SIZE(_mesa_glsl_supported_extensions); ++i) {
       if (strcmp(name, _mesa_glsl_supported_extensions[i].name) == 0) {
          return &_mesa_glsl_supported_extensions[i];
       }
@@ -674,7 +674,7 @@ _mesa_glsl_process_extension(const char *name, YYLTYPE *name_locp,
 	 return false;
       } else {
          for (unsigned i = 0;
-              i < Elements(_mesa_glsl_supported_extensions); ++i) {
+              i < ARRAY_SIZE(_mesa_glsl_supported_extensions); ++i) {
             const _mesa_glsl_extension *extension
                = &_mesa_glsl_supported_extensions[i];
             if (extension->compatible_with_state(state)) {
@@ -1627,6 +1627,7 @@ do_common_optimization(exec_list *ir, bool linked,
    }
    progress = do_if_simplification(ir) || progress;
    progress = opt_flatten_nested_if_blocks(ir) || progress;
+   progress = opt_conditional_discard(ir) || progress;
    progress = do_copy_propagation(ir) || progress;
    progress = do_copy_propagation_elements(ir) || progress;
 

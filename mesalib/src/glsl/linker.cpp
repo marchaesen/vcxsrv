@@ -64,6 +64,7 @@
  * \author Ian Romanick <ian.d.romanick@intel.com>
  */
 
+#include <ctype.h>
 #include "main/core.h"
 #include "glsl_symbol_table.h"
 #include "glsl_parser_extras.h"
@@ -680,6 +681,45 @@ validate_geometry_shader_emissions(struct gl_context *ctx,
    }
 }
 
+bool
+validate_intrastage_arrays(struct gl_shader_program *prog,
+                           ir_variable *const var,
+		           ir_variable *const existing)
+{
+   /* Consider the types to be "the same" if both types are arrays
+    * of the same type and one of the arrays is implicitly sized.
+    * In addition, set the type of the linked variable to the
+    * explicitly sized array.
+    */
+   if (var->type->is_array() && existing->type->is_array() &&
+       (var->type->fields.array == existing->type->fields.array) &&
+       ((var->type->length == 0)|| (existing->type->length == 0))) {
+      if (var->type->length != 0) {
+         if (var->type->length <= existing->data.max_array_access) {
+            linker_error(prog, "%s `%s' declared as type "
+                         "`%s' but outermost dimension has an index"
+                         " of `%i'\n",
+                         mode_string(var),
+                         var->name, var->type->name,
+                         existing->data.max_array_access);
+         }
+         existing->type = var->type;
+         return true;
+      } else if (existing->type->length != 0) {
+         if(existing->type->length <= var->data.max_array_access) {
+            linker_error(prog, "%s `%s' declared as type "
+                         "`%s' but outermost dimension has an index"
+                         " of `%i'\n",
+                         mode_string(var),
+                         var->name, existing->type->name,
+                         var->data.max_array_access);
+         }
+         return true;
+      }
+   }
+   return false;
+}
+
 
 /**
  * Perform validation of global variables used across multiple shaders
@@ -719,50 +759,23 @@ cross_validate_globals(struct gl_shader_program *prog,
 	  */
 	 ir_variable *const existing = variables.get_variable(var->name);
 	 if (existing != NULL) {
-	    if (var->type != existing->type) {
-	       /* Consider the types to be "the same" if both types are arrays
-		* of the same type and one of the arrays is implicitly sized.
-		* In addition, set the type of the linked variable to the
-		* explicitly sized array.
-		*/
-	       if (var->type->is_array()
-		   && existing->type->is_array()
-		   && (var->type->fields.array == existing->type->fields.array)
-		   && ((var->type->length == 0)
-		       || (existing->type->length == 0))) {
-		  if (var->type->length != 0) {
-                     if (var->type->length <= existing->data.max_array_access) {
-                        linker_error(prog, "%s `%s' declared as type "
-                                     "`%s' but outermost dimension has an index"
-                                     " of `%i'\n",
-                                     mode_string(var),
-                                     var->name, var->type->name,
-                                     existing->data.max_array_access);
-                        return;
-                     }
-		     existing->type = var->type;
-		  } else if (existing->type->length != 0
-                             && existing->type->length <=
-                                var->data.max_array_access) {
+            /* Check if types match. Interface blocks have some special
+             * rules so we handle those elsewhere.
+             */
+           if (var->type != existing->type &&
+                !var->is_interface_instance()) {
+	       if (!validate_intrastage_arrays(prog, var, existing)) {
+                  if (var->type->is_record() && existing->type->is_record()
+                      && existing->type->record_compare(var->type)) {
+                     existing->type = var->type;
+                  } else {
                      linker_error(prog, "%s `%s' declared as type "
-                                  "`%s' but outermost dimension has an index"
-                                  " of `%i'\n",
+                                  "`%s' and type `%s'\n",
                                   mode_string(var),
-                                  var->name, existing->type->name,
-                                  var->data.max_array_access);
+                                  var->name, var->type->name,
+                                  existing->type->name);
                      return;
                   }
-               } else if (var->type->is_record()
-		   && existing->type->is_record()
-		   && existing->type->record_compare(var->type)) {
-		  existing->type = var->type;
-	       } else {
-		  linker_error(prog, "%s `%s' declared as type "
-			       "`%s' and type `%s'\n",
-			       mode_string(var),
-			       var->name, var->type->name,
-			       existing->type->name);
-		  return;
 	       }
 	    }
 

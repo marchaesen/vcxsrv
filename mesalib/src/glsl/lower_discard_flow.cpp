@@ -90,7 +90,14 @@ ir_visitor_status
 lower_discard_flow_visitor::visit_enter(ir_discard *ir)
 {
    ir_dereference *lhs = new(mem_ctx) ir_dereference_variable(discarded);
-   ir_rvalue *rhs = new(mem_ctx) ir_constant(true);
+   ir_rvalue *rhs;
+   if (ir->condition) {
+      /* discarded <- condition, use (var_ref discarded) as the condition */
+      rhs = ir->condition;
+      ir->condition = new(mem_ctx) ir_dereference_variable(discarded);
+   } else {
+      rhs = new(mem_ctx) ir_constant(true);
+   }
    ir_assignment *assign = new(mem_ctx) ir_assignment(lhs, rhs);
    ir->insert_before(assign);
 

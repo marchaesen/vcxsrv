@@ -146,12 +146,13 @@ static struct gl_query_object **
 get_pipe_stats_binding_point(struct gl_context *ctx,
                              GLenum target)
 {
-	const int which = target - GL_VERTICES_SUBMITTED_ARB;
-	if (!_mesa_is_desktop_gl(ctx) ||
+   const int which = target - GL_VERTICES_SUBMITTED_ARB;
+   assert(which < MAX_PIPELINE_STATISTICS);
+
+   if (!_mesa_is_desktop_gl(ctx) ||
        !ctx->Extensions.ARB_pipeline_statistics_query)
       return NULL;
 
-   assert(which < MAX_PIPELINE_STATISTICS);
    return &ctx->Query.pipeline_stats[which];
 }
 
@@ -403,6 +404,22 @@ _mesa_BeginQueryIndexed(GLenum target, GLuint index, GLuint id)
       if (q->Active) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "glBeginQuery{Indexed}(query already active)");
+         return;
+      }
+
+      /* Section 2.14 Asynchronous Queries, page 84 of the OpenGL ES 3.0.4
+       * spec states:
+       *
+       *     "BeginQuery generates an INVALID_OPERATION error if any of the
+       *      following conditions hold: [...] id is the name of an
+       *      existing query object whose type does not match target; [...]
+       *
+       * Similar wording exists in the OpenGL 4.5 spec, section 4.2. QUERY
+       * OBJECTS AND ASYNCHRONOUS QUERIES, page 43.
+       */
+      if (q->EverBound && q->Target != target) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glBeginQuery{Indexed}(target mismatch)");
          return;
       }
    }
@@ -666,7 +683,7 @@ _mesa_GetQueryObjectiv(GLuint id, GLenum pname, GLint *params)
    if (id)
       q = _mesa_lookup_query_object(ctx, id);
 
-   if (!q || q->Active) {
+   if (!q || q->Active || !q->EverBound) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glGetQueryObjectivARB(id=%d is invalid or active)", id);
       return;
@@ -717,7 +734,7 @@ _mesa_GetQueryObjectuiv(GLuint id, GLenum pname, GLuint *params)
    if (id)
       q = _mesa_lookup_query_object(ctx, id);
 
-   if (!q || q->Active) {
+   if (!q || q->Active || !q->EverBound) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glGetQueryObjectuivARB(id=%d is invalid or active)", id);
       return;
@@ -771,7 +788,7 @@ _mesa_GetQueryObjecti64v(GLuint id, GLenum pname, GLint64EXT *params)
    if (id)
       q = _mesa_lookup_query_object(ctx, id);
 
-   if (!q || q->Active) {
+   if (!q || q->Active || !q->EverBound) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glGetQueryObjectui64vARB(id=%d is invalid or active)", id);
       return;
@@ -811,7 +828,7 @@ _mesa_GetQueryObjectui64v(GLuint id, GLenum pname, GLuint64EXT *params)
    if (id)
       q = _mesa_lookup_query_object(ctx, id);
 
-   if (!q || q->Active) {
+   if (!q || q->Active || !q->EverBound) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glGetQueryObjectuui64vARB(id=%d is invalid or active)", id);
       return;

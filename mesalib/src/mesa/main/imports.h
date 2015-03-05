@@ -36,6 +36,9 @@
 #define IMPORTS_H
 
 
+#include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
 #include "compiler.h"
 #include "glheader.h"
 #include "errors.h"
@@ -79,83 +82,12 @@ typedef union { GLfloat f; GLint i; GLuint u; } fi_type;
 
 
 
-/**********************************************************************
- * Math macros
- */
-
-#define MAX_GLUSHORT	0xffff
-#define MAX_GLUINT	0xffffffff
-
-/* Degrees to radians conversion: */
-#define DEG2RAD (M_PI/180.0)
-
-
-/**
- * \name Work-arounds for platforms that lack C99 math functions
- */
-/*@{*/
-#if (!defined(_XOPEN_SOURCE) || (_XOPEN_SOURCE < 600)) && !defined(_ISOC99_SOURCE) \
-   && (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L)) \
-   && (!defined(_MSC_VER) || (_MSC_VER < 1400))
-#define acosf(f) ((float) acos(f))
-#define asinf(f) ((float) asin(f))
-#define atan2f(x,y) ((float) atan2(x,y))
-#define atanf(f) ((float) atan(f))
-#define ceilf(f) ((float) ceil(f))
-#define cosf(f) ((float) cos(f))
-#define coshf(f) ((float) cosh(f))
-#define expf(f) ((float) exp(f))
-#define exp2f(f) ((float) exp2(f))
-#define floorf(f) ((float) floor(f))
-#define logf(f) ((float) log(f))
-
-#ifdef ANDROID
-#define log2f(f) (logf(f) * (float) (1.0 / M_LN2))
-#else
-#define log2f(f) ((float) log2(f))
-#endif
-
-#define powf(x,y) ((float) pow(x,y))
-#define sinf(f) ((float) sin(f))
-#define sinhf(f) ((float) sinh(f))
-#define sqrtf(f) ((float) sqrt(f))
-#define tanf(f) ((float) tan(f))
-#define tanhf(f) ((float) tanh(f))
-#define acoshf(f) ((float) acosh(f))
-#define asinhf(f) ((float) asinh(f))
-#define atanhf(f) ((float) atanh(f))
-#endif
-
 #if defined(_MSC_VER)
 #if _MSC_VER < 1800  /* Not req'd on VS2013 and above */
-static inline float truncf(float x) { return x < 0.0f ? ceilf(x) : floorf(x); }
-static inline float exp2f(float x) { return powf(2.0f, x); }
-static inline float log2f(float x) { return logf(x) * 1.442695041f; }
-static inline float asinhf(float x) { return logf(x + sqrtf(x * x + 1.0f)); }
-static inline float acoshf(float x) { return logf(x + sqrtf(x * x - 1.0f)); }
-static inline float atanhf(float x) { return (logf(1.0f + x) - logf(1.0f - x)) / 2.0f; }
-static inline int isblank(int ch) { return ch == ' ' || ch == '\t'; }
 #define strtoll(p, e, b) _strtoi64(p, e, b)
 #endif /* _MSC_VER < 1800 */
 #endif
 /*@}*/
-
-
-/*
- * signbit() is a macro on Linux.  Not available on Windows.
- */
-#ifndef signbit
-#define signbit(x) ((x) < 0.0f)
-#endif
-
-
-/** single-precision inverse square root */
-static inline float
-INV_SQRTF(float x)
-{
-   /* XXX we could try Quake's fast inverse square root function here */
-   return 1.0F / sqrtf(x);
-}
 
 
 /***
@@ -188,6 +120,14 @@ static inline GLfloat LOG2(GLfloat x)
 
 
 
+/**
+ * finite macro.
+ */
+#if defined(_MSC_VER)
+#  define finite _finite
+#endif
+
+
 /***
  *** IS_INF_OR_NAN: test if float is infinite or NaN
  ***/
@@ -199,35 +139,6 @@ static inline GLfloat LOG2(GLfloat x)
 #define IS_INF_OR_NAN(x)        (!isfinite(x))
 #else
 #define IS_INF_OR_NAN(x)        (!finite(x))
-#endif
-
-
-/***
- *** CEILF: ceiling of float
- *** FLOORF: floor of float
- *** FABSF: absolute value of float
- *** LOGF: the natural logarithm (base e) of the value
- *** EXPF: raise e to the value
- *** LDEXPF: multiply value by an integral power of two
- *** FREXPF: extract mantissa and exponent from value
- ***/
-#if defined(__gnu_linux__)
-/* C99 functions */
-#define CEILF(x)   ceilf(x)
-#define FLOORF(x)  floorf(x)
-#define FABSF(x)   fabsf(x)
-#define LOGF(x)    logf(x)
-#define EXPF(x)    expf(x)
-#define LDEXPF(x,y)  ldexpf(x,y)
-#define FREXPF(x,y)  frexpf(x,y)
-#else
-#define CEILF(x)   ((GLfloat) ceil(x))
-#define FLOORF(x)  ((GLfloat) floor(x))
-#define FABSF(x)   ((GLfloat) fabs(x))
-#define LOGF(x)    ((GLfloat) log(x))
-#define EXPF(x)    ((GLfloat) exp(x))
-#define LDEXPF(x,y)  ((GLfloat) ldexp(x,y))
-#define FREXPF(x,y)  ((GLfloat) frexp(x,y))
 #endif
 
 

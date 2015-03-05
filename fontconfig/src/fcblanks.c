@@ -41,6 +41,8 @@ FcBlanksCreate (void)
 void
 FcBlanksDestroy (FcBlanks *b)
 {
+    if (b->sblank == -1)
+	return;
     if (b->blanks)
 	free (b->blanks);
     free (b);
@@ -56,6 +58,11 @@ FcBlanksAdd (FcBlanks *b, FcChar32 ucs4)
 	if (b->blanks[sblank] == ucs4)
 	    return FcTrue;
 
+    if (b->sblank == -1)
+    {
+	fprintf (stderr, "Unable to update the static FcBlanks: 0x%04x\n", ucs4);
+	return FcTrue;
+    }
     if (b->nblank == b->sblank)
     {
 	sblank = b->sblank + 32;
@@ -75,11 +82,26 @@ FcBlanksAdd (FcBlanks *b, FcChar32 ucs4)
 FcBool
 FcBlanksIsMember (FcBlanks *b, FcChar32 ucs4)
 {
-    int	i;
+    int lower = 0, higher = b->nblank, middle;
 
-    for (i = 0; i < b->nblank; i++)
-	if (b->blanks[i] == ucs4)
+    if (b->nblank == 0 ||
+	b->blanks[0] > ucs4 ||
+	b->blanks[b->nblank - 1] < ucs4)
+	return FcFalse;
+    while (1)
+    {
+	middle = (lower + higher) / 2;
+	if (b->blanks[middle] == ucs4)
 	    return FcTrue;
+	if (middle == lower ||
+	    middle == higher)
+	    break;
+	if (b->blanks[middle] < ucs4)
+	    lower = middle + 1;
+	else
+	    higher = middle - 1;
+    }
+
     return FcFalse;
 }
 #define __fcblanks__

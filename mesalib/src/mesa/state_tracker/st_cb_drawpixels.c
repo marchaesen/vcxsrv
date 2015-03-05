@@ -201,7 +201,7 @@ st_make_drawpix_z_stencil_program(struct st_context *st,
    GLuint ic = 0;
    const GLuint shaderIndex = write_depth * 2 + write_stencil;
 
-   assert(shaderIndex < Elements(st->drawpix.shaders));
+   assert(shaderIndex < ARRAY_SIZE(st->drawpix.shaders));
 
    if (st->drawpix.shaders[shaderIndex]) {
       /* already have the proper shader */
@@ -1684,7 +1684,7 @@ st_destroy_drawpix(struct st_context *st)
 {
    GLuint i;
 
-   for (i = 0; i < Elements(st->drawpix.shaders); i++) {
+   for (i = 0; i < ARRAY_SIZE(st->drawpix.shaders); i++) {
       if (st->drawpix.shaders[i])
          _mesa_reference_fragprog(st->ctx, &st->drawpix.shaders[i], NULL);
    }

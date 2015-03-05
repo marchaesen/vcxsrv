@@ -563,8 +563,14 @@ nir_visitor::visit(ir_discard *ir)
     * discards will be immediately followed by a return.
     */
 
-   nir_intrinsic_instr *discard =
-      nir_intrinsic_instr_create(this->shader, nir_intrinsic_discard);
+   nir_intrinsic_instr *discard;
+   if (ir->condition) {
+      discard = nir_intrinsic_instr_create(this->shader,
+                                           nir_intrinsic_discard_if);
+      discard->src[0] = evaluate_rvalue(ir->condition);
+   } else {
+      discard = nir_intrinsic_instr_create(this->shader, nir_intrinsic_discard);
+   }
    nir_instr_insert_after_cf_list(this->cf_node_list, &discard->instr);
 }
 

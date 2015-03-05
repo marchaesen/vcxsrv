@@ -112,13 +112,6 @@ is required if applications mix OpenGL and OpenGL ES.</p>
 
 </dd>
 
-<dt><code>--enable-openvg</code></dt>
-<dd>
-
-<p>OpenVG must be explicitly enabled by this option.</p>
-
-</dd>
-
 </dl>
 
 <h2>Use EGL</h2>
@@ -212,38 +205,15 @@ the X server directly using (XCB-)DRI2 protocol.</p>
 
 </dd>
 
-<dt><code>egl_gallium</code></dt>
-<dd>
-
-<p>This driver is based on Gallium3D.  It supports all rendering APIs and
-hardware supported by Gallium3D.  It is the only driver that supports OpenVG.
-The supported platforms are X11, DRM, FBDEV, and GDI.</p>
-
-<p>This driver comes with its own hardware drivers
-(<code>pipe_&lt;hw&gt;</code>) and client API modules
-(<code>st_&lt;api&gt;</code>).</p>
-
-</dd>
-
 <h2>Packaging</h2>
 
 <p>The ABI between the main library and its drivers are not stable.  Nor is
-there a plan to stabilize it at the moment.  Of the EGL drivers,
-<code>egl_gallium</code> has its own hardware drivers and client API modules.
-They are considered internal to <code>egl_gallium</code> and there is also no
-stable ABI between them.  These should be kept in mind when packaging for
-distribution.</p>
-
-<p>Generally, <code>egl_dri2</code> is preferred over <code>egl_gallium</code>
-when the system already has DRI drivers.  As <code>egl_gallium</code> is loaded
-before <code>egl_dri2</code> when both are available, <code>egl_gallium</code>
-is disabled by default.</p>
+there a plan to stabilize it at the moment.</p>
 
 <h2>Developers</h2>
 
-<p>The sources of the main library and the classic drivers can be found at
-<code>src/egl/</code>.  The sources of the <code>egl</code> state tracker can
-be found at <code>src/gallium/state_trackers/egl/</code>.</p>
+<p>The sources of the main library and drivers can be found at
+<code>src/egl/</code>.</p>
 
 <h3>Lifetime of Display Resources</h3>
 

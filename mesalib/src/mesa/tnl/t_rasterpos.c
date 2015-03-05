@@ -23,6 +23,7 @@
  */
 
 
+#include "c99_math.h"
 #include "main/glheader.h"
 #include "main/colormac.h"
 #include "main/feedback.h"
@@ -271,7 +272,7 @@ compute_texgen(struct gl_context *ctx, const GLfloat vObj[4], const GLfloat vEye
    rz = u[2] - normal[2] * two_nu;
    m = rx * rx + ry * ry + (rz + 1.0F) * (rz + 1.0F);
    if (m > 0.0F)
-      mInv = 0.5F * INV_SQRTF(m);
+      mInv = 0.5F * (1.0f / sqrtf(m));
    else
       mInv = 0.0F;
 

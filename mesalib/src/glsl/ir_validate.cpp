@@ -61,6 +61,7 @@ public:
    virtual ir_visitor_status visit(ir_variable *v);
    virtual ir_visitor_status visit(ir_dereference_variable *ir);
 
+   virtual ir_visitor_status visit_enter(ir_discard *ir);
    virtual ir_visitor_status visit_enter(ir_if *ir);
 
    virtual ir_visitor_status visit_enter(ir_function *ir);
@@ -126,6 +127,20 @@ ir_validate::visit_enter(class ir_dereference_array *ir)
    if (!ir->array_index->type->is_integer()) {
       printf("ir_dereference_array @ %p does not have integer index: %s\n",
              (void *) ir, ir->array_index->type->name);
+      abort();
+   }
+
+   return visit_continue;
+}
+
+ir_visitor_status
+ir_validate::visit_enter(ir_discard *ir)
+{
+   if (ir->condition && ir->condition->type != glsl_type::bool_type) {
+      printf("ir_discard condition %s type instead of bool.\n",
+	     ir->condition->type->name);
+      ir->print();
+      printf("\n");
       abort();
    }
 

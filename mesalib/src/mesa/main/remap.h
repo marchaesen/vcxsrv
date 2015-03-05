@@ -27,8 +27,6 @@
 #define REMAP_H
 
 
-#include "main/compiler.h"
-
 struct gl_function_pool_remap {
    int pool_index;
    int remap_index;

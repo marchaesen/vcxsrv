@@ -25,6 +25,7 @@
  *    Brian Paul
  */
 
+#include "c99_math.h"
 #include "main/glheader.h"
 #include "main/mtypes.h"
 #include "main/dd.h"
@@ -62,9 +63,9 @@ run_point_stage(struct gl_context *ctx, struct tnl_pipeline_stage *stage)
       GLuint i;
 
       for (i = 0; i < VB->Count; i++) {
-         const GLfloat dist = FABSF(*eyeCoord);
+         const GLfloat dist = fabsf(*eyeCoord);
          const GLfloat q = p0 + dist * (p1 + dist * p2);
-         const GLfloat atten = (q != 0.0F) ? INV_SQRTF(q) : 1.0F;
+         const GLfloat atten = (q != 0.0F) ? (1.0f / sqrtf(q)) : 1.0F;
          size[i][0] = pointSize * atten; /* clamping done in rasterization */
          eyeCoord += eyeCoordStride;
       }

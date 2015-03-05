@@ -15,13 +15,10 @@
 #    this mode, compile MAPI_BRIDGE_FILES with MAPI_MODE_BRIDGE defined.
 
 MAPI_UTIL_FILES = \
-	u_compiler.h \
 	u_current.c \
 	u_current.h \
 	u_execmem.c \
-	u_execmem.h \
-	u_macros.h \
-	u_thread.h
+	u_execmem.h
 
 MAPI_BRIDGE_FILES = \
 	entry.c \

@@ -23,6 +23,7 @@
  */
 
 
+#include <stdio.h>
 #include "imports.h"
 #include "mtypes.h"
 #include "version.h"

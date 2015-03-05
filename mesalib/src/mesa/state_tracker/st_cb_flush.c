@@ -47,7 +47,7 @@
 
 
 /** Check if we have a front color buffer and if it's been drawn to. */
-static INLINE GLboolean
+static inline GLboolean
 is_front_buffer_dirty(struct st_context *st)
 {
    struct gl_framebuffer *fb = st->ctx->DrawBuffer;

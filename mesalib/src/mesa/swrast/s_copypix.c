@@ -158,7 +158,7 @@ copy_rgba_pixels(struct gl_context *ctx, GLint srcx, GLint srcy,
       p = NULL;
    }
 
-   ASSERT(width < SWRAST_MAX_WIDTH);
+   assert(width < SWRAST_MAX_WIDTH);
 
    for (row = 0; row < height; row++, sy += stepy, dy += stepy) {
       GLvoid *rgba = span.array->attribs[VARYING_SLOT_COL0];
@@ -468,7 +468,7 @@ swrast_fast_copy_pixels(struct gl_context *ctx,
       dstRb = dstFb->Attachment[BUFFER_DEPTH].Renderbuffer;
    }
    else {
-      ASSERT(type == GL_DEPTH_STENCIL_EXT);
+      assert(type == GL_DEPTH_STENCIL_EXT);
       /* XXX correct? */
       srcRb = srcFb->Attachment[BUFFER_DEPTH].Renderbuffer;
       dstRb = dstFb->Attachment[BUFFER_DEPTH].Renderbuffer;

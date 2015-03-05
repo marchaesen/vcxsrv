@@ -63,6 +63,7 @@ reg_create(void *mem_ctx, struct exec_list *list)
 {
    nir_register *reg = ralloc(mem_ctx, nir_register);
 
+   reg->parent_instr = NULL;
    reg->uses = _mesa_set_create(mem_ctx, _mesa_hash_pointer,
                                 _mesa_key_pointer_equal);
    reg->defs = _mesa_set_create(mem_ctx, _mesa_hash_pointer,

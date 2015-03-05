@@ -168,6 +168,12 @@ struct ra_graph {
 
    unsigned int *stack;
    unsigned int stack_count;
+
+   /**
+    * Tracks the start of the set of optimistically-colored registers in the
+    * stack.
+    */
+   unsigned int stack_optimistic_start;
 };
 
 /**
@@ -454,6 +460,7 @@ static void
 ra_simplify(struct ra_graph *g)
 {
    bool progress = true;
+   unsigned int stack_optimistic_start = UINT_MAX;
    int i;
 
    while (progress) {
@@ -482,6 +489,9 @@ ra_simplify(struct ra_graph *g)
       }
 
       if (!progress && best_optimistic_node != ~0U) {
+         if (stack_optimistic_start == UINT_MAX)
+            stack_optimistic_start = g->stack_count;
+
 	 decrement_q(g, best_optimistic_node);
 	 g->stack[g->stack_count] = best_optimistic_node;
 	 g->stack_count++;
@@ -489,6 +499,8 @@ ra_simplify(struct ra_graph *g)
 	 progress = true;
       }
    }
+
+   g->stack_optimistic_start = stack_optimistic_start;
 }
 
 /**
@@ -542,7 +554,17 @@ ra_select(struct ra_graph *g)
       g->nodes[n].reg = r;
       g->stack_count--;
 
-      if (g->regs->round_robin)
+      /* Rotate the starting point except for any nodes above the lowest
+       * optimistically colorable node.  The likelihood that we will succeed
+       * at allocating optimistically colorable nodes is highly dependent on
+       * the way that the previous nodes popped off the stack are laid out.
+       * The round-robin strategy increases the fragmentation of the register
+       * file and decreases the number of nearby nodes assigned to the same
+       * color, what increases the likelihood of spilling with respect to the
+       * dense packing strategy.
+       */
+      if (g->regs->round_robin &&
+          g->stack_count - 1 <= g->stack_optimistic_start)
          start_search_reg = r + 1;
    }
 

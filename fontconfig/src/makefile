@@ -13,6 +13,7 @@ $(OBJDIR)\fcobjshash.h: $(OBJDIR)\fcobjshash.gperf
 load_makefile NORELDBG=1 ..\fc-case\makefile
 load_makefile NORELDBG=1 ..\fc-glyphname\makefile
 load_makefile NORELDBG=1 ..\fc-lang\makefile
+load_makefile NORELDBG=1 ..\fc-blanks\makefile
 
 CSRCS = \
 	fcatomic.c \

@@ -187,7 +187,7 @@ _mesa_reference_pipeline_object_(struct gl_context *ctx,
       struct gl_pipeline_object *oldObj = *ptr;
 
       mtx_lock(&oldObj->Mutex);
-      ASSERT(oldObj->RefCount > 0);
+      assert(oldObj->RefCount > 0);
       oldObj->RefCount--;
       deleteFlag = (oldObj->RefCount == 0);
       mtx_unlock(&oldObj->Mutex);
@@ -198,7 +198,7 @@ _mesa_reference_pipeline_object_(struct gl_context *ctx,
 
       *ptr = NULL;
    }
-   ASSERT(!*ptr);
+   assert(!*ptr);
 
    if (obj) {
       /* reference new pipeline object */
@@ -471,7 +471,7 @@ _mesa_DeleteProgramPipelines(GLsizei n, const GLuint *pipelines)
          lookup_pipeline_object(ctx, pipelines[i]);
 
       if (obj) {
-         ASSERT(obj->Name == pipelines[i]);
+         assert(obj->Name == pipelines[i]);
 
          /* If the pipeline object is currently bound, the spec says "If an
           * object that is currently bound is deleted, the binding for that

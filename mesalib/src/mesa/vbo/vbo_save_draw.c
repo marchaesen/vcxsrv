@@ -47,8 +47,8 @@ _playback_copy_to_current(struct gl_context *ctx,
                           const struct vbo_save_vertex_list *node)
 {
    struct vbo_context *vbo = vbo_context(ctx);
-   GLfloat vertex[VBO_ATTRIB_MAX * 4];
-   GLfloat *data;
+   fi_type vertex[VBO_ATTRIB_MAX * 4];
+   fi_type *data;
    GLuint i, offset;
 
    if (node->current_size == 0)
@@ -75,10 +75,10 @@ _playback_copy_to_current(struct gl_context *ctx,
 
    for (i = VBO_ATTRIB_POS+1 ; i < VBO_ATTRIB_MAX ; i++) {
       if (node->attrsz[i]) {
-	 GLfloat *current = (GLfloat *)vbo->currval[i].Ptr;
-         GLfloat tmp[4];
+	 fi_type *current = (fi_type *)vbo->currval[i].Ptr;
+         fi_type tmp[4];
 
-         COPY_CLEAN_4V_TYPE_AS_FLOAT(tmp,
+         COPY_CLEAN_4V_TYPE_AS_UNION(tmp,
                                      node->attrsz[i],
                                      data,
                                      node->attrtype[i]);

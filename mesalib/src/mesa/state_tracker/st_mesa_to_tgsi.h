@@ -62,9 +62,6 @@ st_translate_mesa_program(
    boolean passthrough_edgeflags,
    boolean clamp_color);
 
-void
-st_free_tokens(const struct tgsi_token *tokens);
-
 unsigned
 st_translate_texture_target(GLuint textarget, GLboolean shadow);
 

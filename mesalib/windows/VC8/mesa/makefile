@@ -52,7 +52,7 @@ DEPS:=$(wildcard ..\..\..\src\mesa\swrast\*.c) \
       ..\..\..\src\mesa\main\enums.c \
       ..\..\..\src\mesa\main\api_exec.c \
       ..\..\..\src\mesa\main\get_hash.h \
-      ..\..\..\src\mesa\main\format_info.c \
+      ..\..\..\src\mesa\main\format_info.h \
       ..\..\..\src\mesa\main\format_unpack.c \
       ..\..\..\src\mesa\main\format_pack.c \
       ..\..\..\src\util\format_srgb.c \
@@ -82,7 +82,7 @@ GET_HASH_GEN = ../../../src/mesa/main/get_hash_generator.py
 	python $(GET_HASH_GEN) -f $(subst $/,/,$<) > $@
 
 GEN_FORMAT_INFO=../../../src/mesa/main/format_info.py
-..\..\..\src\mesa\main\format_info.c: ..\..\..\src\mesa\main\formats.csv ..\..\..\src\mesa\main\format_parser.py $(GEN_FORMAT_INFO)
+..\..\..\src\mesa\main\format_info.h: ..\..\..\src\mesa\main\formats.csv ..\..\..\src\mesa\main\format_parser.py $(GEN_FORMAT_INFO)
 	python $(GEN_FORMAT_INFO) $< > $@
 
 ..\..\..\src\util\format_srgb.c: ..\..\..\src\util\format_srgb.py

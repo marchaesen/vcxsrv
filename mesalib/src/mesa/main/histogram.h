@@ -36,9 +36,8 @@
 #ifndef HISTOGRAM_H
 #define HISTOGRAM_H
 
-#include "compiler.h"
+#include "glheader.h"
 
-struct _glapi_table;
 
 void GLAPIENTRY
 _mesa_GetnMinmaxARB(GLenum target, GLboolean reset, GLenum format,

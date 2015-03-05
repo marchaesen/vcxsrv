@@ -816,25 +816,8 @@ typedef int GLclampx;
 
         return header
 
-class VGAPIPrinter(ABIPrinter):
-    """OpenVG API Printer"""
-
-    def __init__(self, entries):
-        super(VGAPIPrinter, self).__init__(entries)
-
-        self.api_defines = ['VG_VGEXT_PROTOTYPES']
-        self.api_headers = ['"VG/openvg.h"', '"VG/vgext.h"']
-        self.api_call = 'VG_API_CALL'
-        self.api_entry = 'VG_API_ENTRY'
-        self.api_attrs = 'VG_API_EXIT'
-
-        self.prefix_lib = 'vg'
-        self.prefix_app = 'vega'
-        self.prefix_noop = 'noop'
-        self.prefix_warn = 'vg'
-
 def parse_args():
-    printers = ['vgapi', 'glapi', 'es1api', 'es2api', 'shared-glapi']
+    printers = ['glapi', 'es1api', 'es2api', 'shared-glapi']
     modes = ['lib', 'app']
 
     parser = OptionParser(usage='usage: %prog [options] <filename>')
@@ -853,7 +836,6 @@ def parse_args():
 
 def main():
     printers = {
-        'vgapi': VGAPIPrinter,
         'glapi': GLAPIPrinter,
         'es1api': ES1APIPrinter,
         'es2api': ES2APIPrinter,

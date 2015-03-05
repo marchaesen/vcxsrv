@@ -182,20 +182,20 @@ arb_input_attrib_string(GLuint index, GLenum progType)
    };
 
    /* sanity checks */
-   STATIC_ASSERT(Elements(vertAttribs) == VERT_ATTRIB_MAX);
-   STATIC_ASSERT(Elements(fragAttribs) == VARYING_SLOT_MAX);
+   STATIC_ASSERT(ARRAY_SIZE(vertAttribs) == VERT_ATTRIB_MAX);
+   STATIC_ASSERT(ARRAY_SIZE(fragAttribs) == VARYING_SLOT_MAX);
    assert(strcmp(vertAttribs[VERT_ATTRIB_TEX0], "vertex.texcoord[0]") == 0);
    assert(strcmp(vertAttribs[VERT_ATTRIB_GENERIC15], "vertex.attrib[15]") == 0);
    assert(strcmp(fragAttribs[VARYING_SLOT_TEX0], "fragment.texcoord[0]") == 0);
    assert(strcmp(fragAttribs[VARYING_SLOT_VAR0+15], "fragment.varying[15]") == 0);
 
    if (progType == GL_VERTEX_PROGRAM_ARB) {
-      assert(index < Elements(vertAttribs));
+      assert(index < ARRAY_SIZE(vertAttribs));
       return vertAttribs[index];
    }
    else {
       assert(progType == GL_FRAGMENT_PROGRAM_ARB);
-      assert(index < Elements(fragAttribs));
+      assert(index < ARRAY_SIZE(fragAttribs));
       return fragAttribs[index];
    }
 }
@@ -321,19 +321,19 @@ arb_output_attrib_string(GLuint index, GLenum progType)
    };
 
    /* sanity checks */
-   STATIC_ASSERT(Elements(vertResults) == VARYING_SLOT_MAX);
-   STATIC_ASSERT(Elements(fragResults) == FRAG_RESULT_MAX);
+   STATIC_ASSERT(ARRAY_SIZE(vertResults) == VARYING_SLOT_MAX);
+   STATIC_ASSERT(ARRAY_SIZE(fragResults) == FRAG_RESULT_MAX);
    assert(strcmp(vertResults[VARYING_SLOT_POS], "result.position") == 0);
    assert(strcmp(vertResults[VARYING_SLOT_VAR0], "result.varying[0]") == 0);
    assert(strcmp(fragResults[FRAG_RESULT_DATA0], "result.color[0]") == 0);
 
    if (progType == GL_VERTEX_PROGRAM_ARB) {
-      assert(index < Elements(vertResults));
+      assert(index < ARRAY_SIZE(vertResults));
       return vertResults[index];
    }
    else {
       assert(progType == GL_FRAGMENT_PROGRAM_ARB);
-      assert(index < Elements(fragResults));
+      assert(index < ARRAY_SIZE(fragResults));
       return fragResults[index];
    }
 }

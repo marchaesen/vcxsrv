@@ -347,8 +347,8 @@ init_format_extensions(struct pipe_screen *screen,
    GLboolean *extension_table = (GLboolean *) extensions;
    unsigned i;
    int j;
-   int num_formats = Elements(mapping->format);
-   int num_ext = Elements(mapping->extension_offset);
+   int num_formats = ARRAY_SIZE(mapping->format);
+   int num_ext = ARRAY_SIZE(mapping->extension_offset);
 
    for (i = 0; i < num_mappings; i++) {
       int num_supported = 0;
@@ -630,7 +630,7 @@ void st_init_extensions(struct pipe_screen *screen,
    extensions->OES_draw_texture = GL_TRUE;
 
    /* Expose the extensions which directly correspond to gallium caps. */
-   for (i = 0; i < Elements(cap_mapping); i++) {
+   for (i = 0; i < ARRAY_SIZE(cap_mapping); i++) {
       if (screen->get_param(screen, cap_mapping[i].cap)) {
          extension_table[cap_mapping[i].extension_offset] = GL_TRUE;
       }
@@ -638,16 +638,16 @@ void st_init_extensions(struct pipe_screen *screen,
 
    /* Expose the extensions which directly correspond to gallium formats. */
    init_format_extensions(screen, extensions, rendertarget_mapping,
-                          Elements(rendertarget_mapping), PIPE_TEXTURE_2D,
+                          ARRAY_SIZE(rendertarget_mapping), PIPE_TEXTURE_2D,
                           PIPE_BIND_RENDER_TARGET | PIPE_BIND_SAMPLER_VIEW);
    init_format_extensions(screen, extensions, depthstencil_mapping,
-                          Elements(depthstencil_mapping), PIPE_TEXTURE_2D,
+                          ARRAY_SIZE(depthstencil_mapping), PIPE_TEXTURE_2D,
                           PIPE_BIND_DEPTH_STENCIL | PIPE_BIND_SAMPLER_VIEW);
    init_format_extensions(screen, extensions, texture_mapping,
-                          Elements(texture_mapping), PIPE_TEXTURE_2D,
+                          ARRAY_SIZE(texture_mapping), PIPE_TEXTURE_2D,
                           PIPE_BIND_SAMPLER_VIEW);
    init_format_extensions(screen, extensions, vertex_mapping,
-                          Elements(vertex_mapping), PIPE_BUFFER,
+                          ARRAY_SIZE(vertex_mapping), PIPE_BUFFER,
                           PIPE_BIND_VERTEX_BUFFER);
 
    /* Figure out GLSL support. */
@@ -758,22 +758,22 @@ void st_init_extensions(struct pipe_screen *screen,
       };
 
       consts->MaxSamples =
-         get_max_samples_for_formats(screen, Elements(color_formats),
+         get_max_samples_for_formats(screen, ARRAY_SIZE(color_formats),
                                      color_formats, 16,
                                      PIPE_BIND_RENDER_TARGET);
 
       consts->MaxColorTextureSamples =
-         get_max_samples_for_formats(screen, Elements(color_formats),
+         get_max_samples_for_formats(screen, ARRAY_SIZE(color_formats),
                                      color_formats, consts->MaxSamples,
                                      PIPE_BIND_SAMPLER_VIEW);
 
       consts->MaxDepthTextureSamples =
-         get_max_samples_for_formats(screen, Elements(depth_formats),
+         get_max_samples_for_formats(screen, ARRAY_SIZE(depth_formats),
                                      depth_formats, consts->MaxSamples,
                                      PIPE_BIND_SAMPLER_VIEW);
 
       consts->MaxIntegerSamples =
-         get_max_samples_for_formats(screen, Elements(int_formats),
+         get_max_samples_for_formats(screen, ARRAY_SIZE(int_formats),
                                      int_formats, consts->MaxSamples,
                                      PIPE_BIND_SAMPLER_VIEW);
    }
@@ -831,7 +831,7 @@ void st_init_extensions(struct pipe_screen *screen,
          extensions->ARB_texture_buffer_range = GL_TRUE;
 
       init_format_extensions(screen, extensions, tbo_rgb32,
-                             Elements(tbo_rgb32), PIPE_BUFFER,
+                             ARRAY_SIZE(tbo_rgb32), PIPE_BUFFER,
                              PIPE_BIND_SAMPLER_VIEW);
    }
 

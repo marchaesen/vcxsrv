@@ -21,10 +21,9 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <stdio.h>
-
 #include "fcint.h"
 #include "fcarch.h"
+#include <stdio.h>
 
 FC_ASSERT_STATIC (1 == sizeof (char));
 FC_ASSERT_STATIC (2 == sizeof (FcChar16));

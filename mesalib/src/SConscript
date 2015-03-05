@@ -27,8 +27,6 @@ if env['platform'] in ['haiku']:
 
 SConscript('mesa/SConscript')
 
-SConscript('mapi/vgapi/SConscript')
-
 if not env['embedded']:
     if env['platform'] not in ('cygwin', 'darwin', 'freebsd', 'haiku', 'windows'):
         SConscript('glx/SConscript')

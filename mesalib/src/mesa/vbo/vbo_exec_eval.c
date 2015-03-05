@@ -35,20 +35,20 @@
 
 static void clear_active_eval1( struct vbo_exec_context *exec, GLuint attr ) 
 {
-   assert(attr < Elements(exec->eval.map1));
+   assert(attr < ARRAY_SIZE(exec->eval.map1));
    exec->eval.map1[attr].map = NULL;
 }
 
 static void clear_active_eval2( struct vbo_exec_context *exec, GLuint attr ) 
 {
-   assert(attr < Elements(exec->eval.map2));
+   assert(attr < ARRAY_SIZE(exec->eval.map2));
    exec->eval.map2[attr].map = NULL;
 }
 
 static void set_active_eval1( struct vbo_exec_context *exec, GLuint attr, GLuint dim, 
 			      struct gl_1d_map *map )
 {
-   assert(attr < Elements(exec->eval.map1));
+   assert(attr < ARRAY_SIZE(exec->eval.map1));
    if (!exec->eval.map1[attr].map) {
       exec->eval.map1[attr].map = map;
       exec->eval.map1[attr].sz = dim;
@@ -58,7 +58,7 @@ static void set_active_eval1( struct vbo_exec_context *exec, GLuint attr, GLuint
 static void set_active_eval2( struct vbo_exec_context *exec, GLuint attr, GLuint dim, 
 			      struct gl_2d_map *map )
 {
-   assert(attr < Elements(exec->eval.map2));
+   assert(attr < ARRAY_SIZE(exec->eval.map2));
    if (!exec->eval.map2[attr].map) {
       exec->eval.map2[attr].map = map;
       exec->eval.map2[attr].sz = dim;
@@ -130,11 +130,12 @@ void vbo_exec_do_EvalCoord1f(struct vbo_exec_context *exec, GLfloat u)
       struct gl_1d_map *map = exec->eval.map1[attr].map;
       if (map) {
 	 GLfloat uu = (u - map->u1) * map->du;
-	 GLfloat data[4];
+	 fi_type data[4];
 
-	 ASSIGN_4V(data, 0, 0, 0, 1);
+	 ASSIGN_4V(data, FLOAT_AS_UNION(0), FLOAT_AS_UNION(0),
+		   FLOAT_AS_UNION(0), FLOAT_AS_UNION(1));
 
-	 _math_horner_bezier_curve(map->Points, data, uu, 
+	 _math_horner_bezier_curve(map->Points, &data[0].f, uu,
 				   exec->eval.map1[attr].sz, 
 				   map->Order);
 
@@ -176,12 +177,13 @@ void vbo_exec_do_EvalCoord2f( struct vbo_exec_context *exec,
       if (map) {
 	 GLfloat uu = (u - map->u1) * map->du;
 	 GLfloat vv = (v - map->v1) * map->dv;
-	 GLfloat data[4];
+	 fi_type data[4];
 
-	 ASSIGN_4V(data, 0, 0, 0, 1);
+	 ASSIGN_4V(data, FLOAT_AS_UNION(0), FLOAT_AS_UNION(0),
+		   FLOAT_AS_UNION(0), FLOAT_AS_UNION(1));
 
 	 _math_horner_bezier_surf(map->Points, 
-				  data, 
+				  &data[0].f,
 				  uu, vv, 
 				  exec->eval.map2[attr].sz, 
 				  map->Uorder, map->Vorder);
@@ -203,7 +205,7 @@ void vbo_exec_do_EvalCoord2f( struct vbo_exec_context *exec,
       ASSIGN_4V(vertex, 0, 0, 0, 1);
 
       if (exec->ctx->Eval.AutoNormal) {
-	 GLfloat normal[4];
+	 fi_type normal[4];
          GLfloat du[4], dv[4];
 
          _math_de_casteljau_surf(map->Points, vertex, du, dv, uu, vv, 
@@ -221,11 +223,11 @@ void vbo_exec_do_EvalCoord2f( struct vbo_exec_context *exec,
 	 }
 
 
-         CROSS3(normal, du, dv);
-         NORMALIZE_3FV(normal);
-	 normal[3] = 1.0;
+         CROSS3(&normal[0].f, du, dv);
+         NORMALIZE_3FV(&normal[0].f);
+	 normal[3] = FLOAT_AS_UNION(1.0);
 
-	 COPY_SZ_4V( exec->vtx.attrptr[VBO_ATTRIB_NORMAL],
+ 	 COPY_SZ_4V( exec->vtx.attrptr[VBO_ATTRIB_NORMAL],
 		     exec->vtx.attrsz[VBO_ATTRIB_NORMAL],
 		     normal );
 

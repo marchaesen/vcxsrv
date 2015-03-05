@@ -6,6 +6,8 @@ from sys import executable as python_cmd
 
 env = env.Clone()
 
+env.MSVC2008Compat()
+
 env.Prepend(CPPPATH = [
     '#include',
     '#src',

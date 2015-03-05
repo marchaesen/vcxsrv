@@ -56,7 +56,6 @@
 #define XCB_REPLY 1
 #define XCB_XGE_EVENT 35
 
-
 struct event_list {
     xcb_generic_event_t *event;
     struct event_list *next;

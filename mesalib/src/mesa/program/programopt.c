@@ -335,7 +335,7 @@ _mesa_append_fog_code(struct gl_context *ctx,
       inst++;
    }
    else {
-      ASSERT(fog_mode == GL_EXP || fog_mode == GL_EXP2);
+      assert(fog_mode == GL_EXP || fog_mode == GL_EXP2);
       /* fogPRefOpt.z = d/ln(2), fogPRefOpt.w = d/sqrt(ln(2) */
       /* EXP: MUL fogFactorTemp.x, fogPRefOpt.z, fragment.fogcoord.x; */
       /* EXP2: MUL fogFactorTemp.x, fogPRefOpt.w, fragment.fogcoord.x; */

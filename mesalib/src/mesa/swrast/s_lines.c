@@ -67,7 +67,7 @@ draw_wide_line( struct gl_context *ctx, SWspan *span, GLboolean xMajor )
                                      ctx->Const.MaxLineWidth);
    GLint start;
 
-   ASSERT(span->end < SWRAST_MAX_WIDTH);
+   assert(span->end < SWRAST_MAX_WIDTH);
 
    if (width & 1)
       start = width / 2;
@@ -233,7 +233,7 @@ _swrast_choose_line( struct gl_context *ctx )
       if (ctx->Line.SmoothFlag) {
          /* antialiased lines */
          _swrast_choose_aa_line_function(ctx);
-         ASSERT(swrast->Line);
+         assert(swrast->Line);
       }
       else if (ctx->Texture._EnabledCoordUnits
                || _swrast_use_fragment_program(ctx)
@@ -252,8 +252,8 @@ _swrast_choose_line( struct gl_context *ctx )
 #endif
       }
       else {
-         ASSERT(!ctx->Depth.Test);
-         ASSERT(ctx->Line.Width == 1.0);
+         assert(!ctx->Depth.Test);
+         assert(ctx->Line.Width == 1.0);
          /* simple lines */
          USE(simple_no_z_rgba_line);
       }
@@ -262,7 +262,7 @@ _swrast_choose_line( struct gl_context *ctx )
       USE(_swrast_feedback_line);
    }
    else {
-      ASSERT(ctx->RenderMode == GL_SELECT);
+      assert(ctx->RenderMode == GL_SELECT);
       USE(_swrast_select_line);
    }
 }

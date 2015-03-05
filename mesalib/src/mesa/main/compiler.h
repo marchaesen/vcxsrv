@@ -35,14 +35,6 @@
 
 
 #include <assert.h>
-#include <ctype.h>
-#include <math.h>
-#include <limits.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <float.h>
-#include <stdarg.h>
 
 #include "util/macros.h"
 
@@ -52,12 +44,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-
-/**
- * Get standard integer types
- */
-#include <stdint.h>
 
 
 /**
@@ -78,14 +64,6 @@ extern "C" {
 
 
 /**
- * finite macro.
- */
-#if defined(_MSC_VER)
-#  define finite _finite
-#endif
-
-
-/**
  * Disable assorted warnings
  */
 #if defined(_WIN32) && !defined(__CYGWIN__)
@@ -101,33 +79,6 @@ extern "C" {
 #      pragma warning( disable : 4550 ) /* 'function' undefined; assuming extern returning int */
 #      pragma warning( disable : 4761 ) /* integral size mismatch in argument; conversion supplied */
 #    endif
-#  endif
-#endif
-
-
-
-/* XXX: Use standard `inline` keyword instead */
-#ifndef INLINE
-#  define INLINE inline
-#endif
-
-
-/**
- * PUBLIC/USED macros
- *
- * If we build the library with gcc's -fvisibility=hidden flag, we'll
- * use the PUBLIC macro to mark functions that are to be exported.
- *
- * We also need to define a USED attribute, so the optimizer doesn't 
- * inline a static function that we later use in an alias. - ajax
- */
-#ifndef PUBLIC
-#  if defined(__GNUC__) || (defined(__SUNPRO_C) && (__SUNPRO_C >= 0x590))
-#    define PUBLIC __attribute__((visibility("default")))
-#    define USED __attribute__((used))
-#  else
-#    define PUBLIC
-#    define USED
 #  endif
 #endif
 
@@ -174,11 +125,6 @@ static inline GLuint CPU_TO_LE32(GLuint x)
 
 
 
-#if !defined(CAPI) && defined(_WIN32)
-#define CAPI _cdecl
-#endif
-
-
 /**
  * Create a macro so that asm functions can be linked into compilers other
  * than GNU C
@@ -196,41 +142,6 @@ static inline GLuint CPU_TO_LE32(GLuint x)
 #endif
 #endif
 
-#ifdef USE_X86_ASM
-#define _NORMAPI _ASMAPI
-#define _NORMAPIP _ASMAPIP
-#else
-#define _NORMAPI
-#define _NORMAPIP *
-#endif
-
-
-/* Turn off macro checking systems used by other libraries */
-#ifdef CHECK
-#undef CHECK
-#endif
-
-
-/**
- * ASSERT macro
- */
-#if defined(DEBUG)
-#  define ASSERT(X)   assert(X)
-#else
-#  define ASSERT(X)
-#endif
-
-
-/*
- * A trick to suppress uninitialized variable warning without generating any
- * code
- */
-#define uninitialized_var(x) x = x
-
-#ifndef NULL
-#define NULL 0
-#endif
-
 
 /**
  * LONGSTRING macro
@@ -242,111 +153,8 @@ static inline GLuint CPU_TO_LE32(GLuint x)
 # define LONGSTRING __extension__
 #endif
 
-
-#ifndef M_PI
-#define M_PI (3.14159265358979323846)
-#endif
-
-#ifndef M_E
-#define M_E (2.7182818284590452354)
-#endif
-
-#ifndef M_LOG2E
-#define M_LOG2E     (1.4426950408889634074)
-#endif
-
-#ifndef ONE_DIV_SQRT_LN2
-#define ONE_DIV_SQRT_LN2 (1.201122408786449815)
-#endif
-
-#ifndef FLT_MAX_EXP
-#define FLT_MAX_EXP 128
-#endif
-
 #define IEEE_ONE 0x3f800000
 
-/**
- * START/END_FAST_MATH macros:
- *
- * START_FAST_MATH: Set x86 FPU to faster, 32-bit precision mode (and save
- *                  original mode to a temporary).
- * END_FAST_MATH: Restore x86 FPU to original mode.
- */
-#if defined(__GNUC__) && defined(__i386__)
-/*
- * Set the x86 FPU control word to guarentee only 32 bits of precision
- * are stored in registers.  Allowing the FPU to store more introduces
- * differences between situations where numbers are pulled out of memory
- * vs. situations where the compiler is able to optimize register usage.
- *
- * In the worst case, we force the compiler to use a memory access to
- * truncate the float, by specifying the 'volatile' keyword.
- */
-/* Hardware default: All exceptions masked, extended double precision,
- * round to nearest (IEEE compliant):
- */
-#define DEFAULT_X86_FPU		0x037f
-/* All exceptions masked, single precision, round to nearest:
- */
-#define FAST_X86_FPU		0x003f
-/* The fldcw instruction will cause any pending FP exceptions to be
- * raised prior to entering the block, and we clear any pending
- * exceptions before exiting the block.  Hence, asm code has free
- * reign over the FPU while in the fast math block.
- */
-#if defined(NO_FAST_MATH)
-#define START_FAST_MATH(x)						\
-do {									\
-   static GLuint mask = DEFAULT_X86_FPU;				\
-   __asm__ ( "fnstcw %0" : "=m" (*&(x)) );				\
-   __asm__ ( "fldcw %0" : : "m" (mask) );				\
-} while (0)
-#else
-#define START_FAST_MATH(x)						\
-do {									\
-   static GLuint mask = FAST_X86_FPU;					\
-   __asm__ ( "fnstcw %0" : "=m" (*&(x)) );				\
-   __asm__ ( "fldcw %0" : : "m" (mask) );				\
-} while (0)
-#endif
-/* Restore original FPU mode, and clear any exceptions that may have
- * occurred in the FAST_MATH block.
- */
-#define END_FAST_MATH(x)						\
-do {									\
-   __asm__ ( "fnclex ; fldcw %0" : : "m" (*&(x)) );			\
-} while (0)
-
-#elif defined(_MSC_VER) && defined(_M_IX86)
-#define DEFAULT_X86_FPU		0x037f /* See GCC comments above */
-#define FAST_X86_FPU		0x003f /* See GCC comments above */
-#if defined(NO_FAST_MATH)
-#define START_FAST_MATH(x) do {\
-	static GLuint mask = DEFAULT_X86_FPU;\
-	__asm fnstcw word ptr [x]\
-	__asm fldcw word ptr [mask]\
-} while(0)
-#else
-#define START_FAST_MATH(x) do {\
-	static GLuint mask = FAST_X86_FPU;\
-	__asm fnstcw word ptr [x]\
-	__asm fldcw word ptr [mask]\
-} while(0)
-#endif
-#define END_FAST_MATH(x) do {\
-	__asm fnclex\
-	__asm fldcw word ptr [x]\
-} while(0)
-
-#else
-#define START_FAST_MATH(x)  x = 0
-#define END_FAST_MATH(x)  (void)(x)
-#endif
-
-
-#ifndef Elements
-#define Elements(x) (sizeof(x)/sizeof(*(x)))
-#endif
 
 #ifdef __cplusplus
 }

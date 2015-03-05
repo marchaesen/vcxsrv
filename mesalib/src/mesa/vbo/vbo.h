@@ -35,6 +35,10 @@
 #include <stdbool.h>
 #include "main/glheader.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct gl_client_array;
 struct gl_context;
 struct gl_transform_feedback_object;
@@ -227,5 +231,9 @@ _es_VertexAttrib3fv(GLuint indx, const GLfloat* values);
 
 void GLAPIENTRY
 _es_VertexAttrib4fv(GLuint indx, const GLfloat* values);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif

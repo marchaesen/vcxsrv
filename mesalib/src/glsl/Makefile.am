@@ -33,8 +33,12 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/gtest/include \
 	-I$(top_builddir)/src/glsl/nir \
 	$(DEFINES)
-AM_CFLAGS = $(VISIBILITY_CFLAGS)
-AM_CXXFLAGS = $(VISIBILITY_CXXFLAGS)
+AM_CFLAGS = \
+	$(VISIBILITY_CFLAGS) \
+	$(MSVC2013_COMPAT_CFLAGS)
+AM_CXXFLAGS = \
+	$(VISIBILITY_CXXFLAGS) \
+	$(MSVC2013_COMPAT_CXXFLAGS)
 
 EXTRA_DIST = tests glcpp/tests README TODO glcpp/README	\
 	glsl_lexer.ll					\

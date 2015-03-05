@@ -93,7 +93,7 @@ reference_transform_feedback_object(struct gl_transform_feedback_object **ptr,
       /* Unreference the old object */
       struct gl_transform_feedback_object *oldObj = *ptr;
 
-      ASSERT(oldObj->RefCount > 0);
+      assert(oldObj->RefCount > 0);
       oldObj->RefCount--;
 
       if (oldObj->RefCount == 0) {
@@ -104,7 +104,7 @@ reference_transform_feedback_object(struct gl_transform_feedback_object **ptr,
 
       *ptr = NULL;
    }
-   ASSERT(!*ptr);
+   assert(!*ptr);
 
    if (obj) {
       /* reference new object */
@@ -143,7 +143,7 @@ void
 _mesa_init_transform_feedback(struct gl_context *ctx)
 {
    /* core mesa expects this, even a dummy one, to be available */
-   ASSERT(ctx->Driver.NewTransformFeedback);
+   assert(ctx->Driver.NewTransformFeedback);
 
    ctx->TransformFeedback.DefaultObject =
       ctx->Driver.NewTransformFeedback(ctx, 0);
@@ -185,7 +185,7 @@ void
 _mesa_free_transform_feedback(struct gl_context *ctx)
 {
    /* core mesa expects this, even a dummy one, to be available */
-   ASSERT(ctx->Driver.NewTransformFeedback);
+   assert(ctx->Driver.NewTransformFeedback);
 
    _mesa_reference_buffer_object(ctx,
                                  &ctx->TransformFeedback.CurrentBuffer,
@@ -235,7 +235,7 @@ delete_transform_feedback(struct gl_context *ctx,
 {
    GLuint i;
 
-   for (i = 0; i < Elements(obj->Buffers); i++) {
+   for (i = 0; i < ARRAY_SIZE(obj->Buffers); i++) {
       _mesa_reference_buffer_object(ctx, &obj->Buffers[i], NULL);
    }
 

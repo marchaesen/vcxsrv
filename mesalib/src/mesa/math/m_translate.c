@@ -84,10 +84,6 @@ typedef void (*trans_3fn_func)(GLfloat (*to)[3],
 #define MAX_TYPES TYPE_IDX(GL_DOUBLE)+1      /* 0xa + 1 */
 
 
-/* This macro is used on other systems, so undefine it for this module */
-
-#undef	CHECK
-
 static trans_1f_func  _math_trans_1f_tab[MAX_TYPES];
 static trans_1ui_func _math_trans_1ui_tab[MAX_TYPES];
 static trans_1ub_func _math_trans_1ub_tab[MAX_TYPES];
@@ -108,7 +104,6 @@ static trans_4f_func  _math_trans_4fn_tab[5][MAX_TYPES];
 #define STRIDE stride
 #define NEXT_F f += stride
 #define NEXT_F2
-#define CHECK
 
 
 
@@ -604,7 +599,6 @@ static void init_translate_raw(void)
 #undef CLASS
 #endif
 #undef ARGS
-#undef CHECK
 #undef SRC_START
 #undef DST_START
 #undef NEXT_F

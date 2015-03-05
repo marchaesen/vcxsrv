@@ -1986,282 +1986,16 @@ bail:
 #warning "No FT_Get_Next_Char: Please install freetype version 2.1.0 or newer"
 #endif
 
-typedef struct _FcCharEnt {
-    FcChar16	    bmp;
-    unsigned char   encode;
-} FcCharEnt;
-
-struct _FcCharMap {
-    const FcCharEnt *ent;
-    int		    nent;
+static const FT_Encoding fcFontEncodings[] = {
+    FT_ENCODING_UNICODE,
+    FT_ENCODING_MS_SYMBOL
 };
 
-typedef struct _FcFontDecode {
-    FT_Encoding	    encoding;
-    const FcCharMap *map;
-    FcChar32	    max;
-} FcFontDecode;
-
-static const FcCharEnt AdobeSymbolEnt[] = {
-    { 0x0020, 0x20 }, /* SPACE	# space */
-    { 0x0021, 0x21 }, /* EXCLAMATION MARK	# exclam */
-    { 0x0023, 0x23 }, /* NUMBER SIGN	# numbersign */
-    { 0x0025, 0x25 }, /* PERCENT SIGN	# percent */
-    { 0x0026, 0x26 }, /* AMPERSAND	# ampersand */
-    { 0x0028, 0x28 }, /* LEFT PARENTHESIS	# parenleft */
-    { 0x0029, 0x29 }, /* RIGHT PARENTHESIS	# parenright */
-    { 0x002B, 0x2B }, /* PLUS SIGN	# plus */
-    { 0x002C, 0x2C }, /* COMMA	# comma */
-    { 0x002E, 0x2E }, /* FULL STOP	# period */
-    { 0x002F, 0x2F }, /* SOLIDUS	# slash */
-    { 0x0030, 0x30 }, /* DIGIT ZERO	# zero */
-    { 0x0031, 0x31 }, /* DIGIT ONE	# one */
-    { 0x0032, 0x32 }, /* DIGIT TWO	# two */
-    { 0x0033, 0x33 }, /* DIGIT THREE	# three */
-    { 0x0034, 0x34 }, /* DIGIT FOUR	# four */
-    { 0x0035, 0x35 }, /* DIGIT FIVE	# five */
-    { 0x0036, 0x36 }, /* DIGIT SIX	# six */
-    { 0x0037, 0x37 }, /* DIGIT SEVEN	# seven */
-    { 0x0038, 0x38 }, /* DIGIT EIGHT	# eight */
-    { 0x0039, 0x39 }, /* DIGIT NINE	# nine */
-    { 0x003A, 0x3A }, /* COLON	# colon */
-    { 0x003B, 0x3B }, /* SEMICOLON	# semicolon */
-    { 0x003C, 0x3C }, /* LESS-THAN SIGN	# less */
-    { 0x003D, 0x3D }, /* EQUALS SIGN	# equal */
-    { 0x003E, 0x3E }, /* GREATER-THAN SIGN	# greater */
-    { 0x003F, 0x3F }, /* QUESTION MARK	# question */
-    { 0x005B, 0x5B }, /* LEFT SQUARE BRACKET	# bracketleft */
-    { 0x005D, 0x5D }, /* RIGHT SQUARE BRACKET	# bracketright */
-    { 0x005F, 0x5F }, /* LOW LINE	# underscore */
-    { 0x007B, 0x7B }, /* LEFT CURLY BRACKET	# braceleft */
-    { 0x007C, 0x7C }, /* VERTICAL LINE	# bar */
-    { 0x007D, 0x7D }, /* RIGHT CURLY BRACKET	# braceright */
-    { 0x00A0, 0x20 }, /* NO-BREAK SPACE	# space */
-    { 0x00AC, 0xD8 }, /* NOT SIGN	# logicalnot */
-    { 0x00B0, 0xB0 }, /* DEGREE SIGN	# degree */
-    { 0x00B1, 0xB1 }, /* PLUS-MINUS SIGN	# plusminus */
-    { 0x00B5, 0x6D }, /* MICRO SIGN	# mu */
-    { 0x00D7, 0xB4 }, /* MULTIPLICATION SIGN	# multiply */
-    { 0x00F7, 0xB8 }, /* DIVISION SIGN	# divide */
-    { 0x0192, 0xA6 }, /* LATIN SMALL LETTER F WITH HOOK	# florin */
-    { 0x0391, 0x41 }, /* GREEK CAPITAL LETTER ALPHA	# Alpha */
-    { 0x0392, 0x42 }, /* GREEK CAPITAL LETTER BETA	# Beta */
-    { 0x0393, 0x47 }, /* GREEK CAPITAL LETTER GAMMA	# Gamma */
-    { 0x0394, 0x44 }, /* GREEK CAPITAL LETTER DELTA	# Delta */
-    { 0x0395, 0x45 }, /* GREEK CAPITAL LETTER EPSILON	# Epsilon */
-    { 0x0396, 0x5A }, /* GREEK CAPITAL LETTER ZETA	# Zeta */
-    { 0x0397, 0x48 }, /* GREEK CAPITAL LETTER ETA	# Eta */
-    { 0x0398, 0x51 }, /* GREEK CAPITAL LETTER THETA	# Theta */
-    { 0x0399, 0x49 }, /* GREEK CAPITAL LETTER IOTA	# Iota */
-    { 0x039A, 0x4B }, /* GREEK CAPITAL LETTER KAPPA	# Kappa */
-    { 0x039B, 0x4C }, /* GREEK CAPITAL LETTER LAMDA	# Lambda */
-    { 0x039C, 0x4D }, /* GREEK CAPITAL LETTER MU	# Mu */
-    { 0x039D, 0x4E }, /* GREEK CAPITAL LETTER NU	# Nu */
-    { 0x039E, 0x58 }, /* GREEK CAPITAL LETTER XI	# Xi */
-    { 0x039F, 0x4F }, /* GREEK CAPITAL LETTER OMICRON	# Omicron */
-    { 0x03A0, 0x50 }, /* GREEK CAPITAL LETTER PI	# Pi */
-    { 0x03A1, 0x52 }, /* GREEK CAPITAL LETTER RHO	# Rho */
-    { 0x03A3, 0x53 }, /* GREEK CAPITAL LETTER SIGMA	# Sigma */
-    { 0x03A4, 0x54 }, /* GREEK CAPITAL LETTER TAU	# Tau */
-    { 0x03A5, 0x55 }, /* GREEK CAPITAL LETTER UPSILON	# Upsilon */
-    { 0x03A6, 0x46 }, /* GREEK CAPITAL LETTER PHI	# Phi */
-    { 0x03A7, 0x43 }, /* GREEK CAPITAL LETTER CHI	# Chi */
-    { 0x03A8, 0x59 }, /* GREEK CAPITAL LETTER PSI	# Psi */
-    { 0x03A9, 0x57 }, /* GREEK CAPITAL LETTER OMEGA	# Omega */
-    { 0x03B1, 0x61 }, /* GREEK SMALL LETTER ALPHA	# alpha */
-    { 0x03B2, 0x62 }, /* GREEK SMALL LETTER BETA	# beta */
-    { 0x03B3, 0x67 }, /* GREEK SMALL LETTER GAMMA	# gamma */
-    { 0x03B4, 0x64 }, /* GREEK SMALL LETTER DELTA	# delta */
-    { 0x03B5, 0x65 }, /* GREEK SMALL LETTER EPSILON	# epsilon */
-    { 0x03B6, 0x7A }, /* GREEK SMALL LETTER ZETA	# zeta */
-    { 0x03B7, 0x68 }, /* GREEK SMALL LETTER ETA	# eta */
-    { 0x03B8, 0x71 }, /* GREEK SMALL LETTER THETA	# theta */
-    { 0x03B9, 0x69 }, /* GREEK SMALL LETTER IOTA	# iota */
-    { 0x03BA, 0x6B }, /* GREEK SMALL LETTER KAPPA	# kappa */
-    { 0x03BB, 0x6C }, /* GREEK SMALL LETTER LAMDA	# lambda */
-    { 0x03BC, 0x6D }, /* GREEK SMALL LETTER MU	# mu */
-    { 0x03BD, 0x6E }, /* GREEK SMALL LETTER NU	# nu */
-    { 0x03BE, 0x78 }, /* GREEK SMALL LETTER XI	# xi */
-    { 0x03BF, 0x6F }, /* GREEK SMALL LETTER OMICRON	# omicron */
-    { 0x03C0, 0x70 }, /* GREEK SMALL LETTER PI	# pi */
-    { 0x03C1, 0x72 }, /* GREEK SMALL LETTER RHO	# rho */
-    { 0x03C2, 0x56 }, /* GREEK SMALL LETTER FINAL SIGMA	# sigma1 */
-    { 0x03C3, 0x73 }, /* GREEK SMALL LETTER SIGMA	# sigma */
-    { 0x03C4, 0x74 }, /* GREEK SMALL LETTER TAU	# tau */
-    { 0x03C5, 0x75 }, /* GREEK SMALL LETTER UPSILON	# upsilon */
-    { 0x03C6, 0x66 }, /* GREEK SMALL LETTER PHI	# phi */
-    { 0x03C7, 0x63 }, /* GREEK SMALL LETTER CHI	# chi */
-    { 0x03C8, 0x79 }, /* GREEK SMALL LETTER PSI	# psi */
-    { 0x03C9, 0x77 }, /* GREEK SMALL LETTER OMEGA	# omega */
-    { 0x03D1, 0x4A }, /* GREEK THETA SYMBOL	# theta1 */
-    { 0x03D2, 0xA1 }, /* GREEK UPSILON WITH HOOK SYMBOL	# Upsilon1 */
-    { 0x03D5, 0x6A }, /* GREEK PHI SYMBOL	# phi1 */
-    { 0x03D6, 0x76 }, /* GREEK PI SYMBOL	# omega1 */
-    { 0x2022, 0xB7 }, /* BULLET	# bullet */
-    { 0x2026, 0xBC }, /* HORIZONTAL ELLIPSIS	# ellipsis */
-    { 0x2032, 0xA2 }, /* PRIME	# minute */
-    { 0x2033, 0xB2 }, /* DOUBLE PRIME	# second */
-    { 0x2044, 0xA4 }, /* FRACTION SLASH	# fraction */
-    { 0x20AC, 0xA0 }, /* EURO SIGN	# Euro */
-    { 0x2111, 0xC1 }, /* BLACK-LETTER CAPITAL I	# Ifraktur */
-    { 0x2118, 0xC3 }, /* SCRIPT CAPITAL P	# weierstrass */
-    { 0x211C, 0xC2 }, /* BLACK-LETTER CAPITAL R	# Rfraktur */
-    { 0x2126, 0x57 }, /* OHM SIGN	# Omega */
-    { 0x2135, 0xC0 }, /* ALEF SYMBOL	# aleph */
-    { 0x2190, 0xAC }, /* LEFTWARDS ARROW	# arrowleft */
-    { 0x2191, 0xAD }, /* UPWARDS ARROW	# arrowup */
-    { 0x2192, 0xAE }, /* RIGHTWARDS ARROW	# arrowright */
-    { 0x2193, 0xAF }, /* DOWNWARDS ARROW	# arrowdown */
-    { 0x2194, 0xAB }, /* LEFT RIGHT ARROW	# arrowboth */
-    { 0x21B5, 0xBF }, /* DOWNWARDS ARROW WITH CORNER LEFTWARDS	# carriagereturn */
-    { 0x21D0, 0xDC }, /* LEFTWARDS DOUBLE ARROW	# arrowdblleft */
-    { 0x21D1, 0xDD }, /* UPWARDS DOUBLE ARROW	# arrowdblup */
-    { 0x21D2, 0xDE }, /* RIGHTWARDS DOUBLE ARROW	# arrowdblright */
-    { 0x21D3, 0xDF }, /* DOWNWARDS DOUBLE ARROW	# arrowdbldown */
-    { 0x21D4, 0xDB }, /* LEFT RIGHT DOUBLE ARROW	# arrowdblboth */
-    { 0x2200, 0x22 }, /* FOR ALL	# universal */
-    { 0x2202, 0xB6 }, /* PARTIAL DIFFERENTIAL	# partialdiff */
-    { 0x2203, 0x24 }, /* THERE EXISTS	# existential */
-    { 0x2205, 0xC6 }, /* EMPTY SET	# emptyset */
-    { 0x2206, 0x44 }, /* INCREMENT	# Delta */
-    { 0x2207, 0xD1 }, /* NABLA	# gradient */
-    { 0x2208, 0xCE }, /* ELEMENT OF	# element */
-    { 0x2209, 0xCF }, /* NOT AN ELEMENT OF	# notelement */
-    { 0x220B, 0x27 }, /* CONTAINS AS MEMBER	# suchthat */
-    { 0x220F, 0xD5 }, /* N-ARY PRODUCT	# product */
-    { 0x2211, 0xE5 }, /* N-ARY SUMMATION	# summation */
-    { 0x2212, 0x2D }, /* MINUS SIGN	# minus */
-    { 0x2215, 0xA4 }, /* DIVISION SLASH	# fraction */
-    { 0x2217, 0x2A }, /* ASTERISK OPERATOR	# asteriskmath */
-    { 0x221A, 0xD6 }, /* SQUARE ROOT	# radical */
-    { 0x221D, 0xB5 }, /* PROPORTIONAL TO	# proportional */
-    { 0x221E, 0xA5 }, /* INFINITY	# infinity */
-    { 0x2220, 0xD0 }, /* ANGLE	# angle */
-    { 0x2227, 0xD9 }, /* LOGICAL AND	# logicaland */
-    { 0x2228, 0xDA }, /* LOGICAL OR	# logicalor */
-    { 0x2229, 0xC7 }, /* INTERSECTION	# intersection */
-    { 0x222A, 0xC8 }, /* UNION	# union */
-    { 0x222B, 0xF2 }, /* INTEGRAL	# integral */
-    { 0x2234, 0x5C }, /* THEREFORE	# therefore */
-    { 0x223C, 0x7E }, /* TILDE OPERATOR	# similar */
-    { 0x2245, 0x40 }, /* APPROXIMATELY EQUAL TO	# congruent */
-    { 0x2248, 0xBB }, /* ALMOST EQUAL TO	# approxequal */
-    { 0x2260, 0xB9 }, /* NOT EQUAL TO	# notequal */
-    { 0x2261, 0xBA }, /* IDENTICAL TO	# equivalence */
-    { 0x2264, 0xA3 }, /* LESS-THAN OR EQUAL TO	# lessequal */
-    { 0x2265, 0xB3 }, /* GREATER-THAN OR EQUAL TO	# greaterequal */
-    { 0x2282, 0xCC }, /* SUBSET OF	# propersubset */
-    { 0x2283, 0xC9 }, /* SUPERSET OF	# propersuperset */
-    { 0x2284, 0xCB }, /* NOT A SUBSET OF	# notsubset */
-    { 0x2286, 0xCD }, /* SUBSET OF OR EQUAL TO	# reflexsubset */
-    { 0x2287, 0xCA }, /* SUPERSET OF OR EQUAL TO	# reflexsuperset */
-    { 0x2295, 0xC5 }, /* CIRCLED PLUS	# circleplus */
-    { 0x2297, 0xC4 }, /* CIRCLED TIMES	# circlemultiply */
-    { 0x22A5, 0x5E }, /* UP TACK	# perpendicular */
-    { 0x22C5, 0xD7 }, /* DOT OPERATOR	# dotmath */
-    { 0x2320, 0xF3 }, /* TOP HALF INTEGRAL	# integraltp */
-    { 0x2321, 0xF5 }, /* BOTTOM HALF INTEGRAL	# integralbt */
-    { 0x2329, 0xE1 }, /* LEFT-POINTING ANGLE BRACKET	# angleleft */
-    { 0x232A, 0xF1 }, /* RIGHT-POINTING ANGLE BRACKET	# angleright */
-    { 0x25CA, 0xE0 }, /* LOZENGE	# lozenge */
-    { 0x2660, 0xAA }, /* BLACK SPADE SUIT	# spade */
-    { 0x2663, 0xA7 }, /* BLACK CLUB SUIT	# club */
-    { 0x2665, 0xA9 }, /* BLACK HEART SUIT	# heart */
-    { 0x2666, 0xA8 }, /* BLACK DIAMOND SUIT	# diamond */
-    { 0xF6D9, 0xD3 }, /* COPYRIGHT SIGN SERIF	# copyrightserif (CUS) */
-    { 0xF6DA, 0xD2 }, /* REGISTERED SIGN SERIF	# registerserif (CUS) */
-    { 0xF6DB, 0xD4 }, /* TRADE MARK SIGN SERIF	# trademarkserif (CUS) */
-    { 0xF8E5, 0x60 }, /* RADICAL EXTENDER	# radicalex (CUS) */
-    { 0xF8E6, 0xBD }, /* VERTICAL ARROW EXTENDER	# arrowvertex (CUS) */
-    { 0xF8E7, 0xBE }, /* HORIZONTAL ARROW EXTENDER	# arrowhorizex (CUS) */
-    { 0xF8E8, 0xE2 }, /* REGISTERED SIGN SANS SERIF	# registersans (CUS) */
-    { 0xF8E9, 0xE3 }, /* COPYRIGHT SIGN SANS SERIF	# copyrightsans (CUS) */
-    { 0xF8EA, 0xE4 }, /* TRADE MARK SIGN SANS SERIF	# trademarksans (CUS) */
-    { 0xF8EB, 0xE6 }, /* LEFT PAREN TOP	# parenlefttp (CUS) */
-    { 0xF8EC, 0xE7 }, /* LEFT PAREN EXTENDER	# parenleftex (CUS) */
-    { 0xF8ED, 0xE8 }, /* LEFT PAREN BOTTOM	# parenleftbt (CUS) */
-    { 0xF8EE, 0xE9 }, /* LEFT SQUARE BRACKET TOP	# bracketlefttp (CUS) */
-    { 0xF8EF, 0xEA }, /* LEFT SQUARE BRACKET EXTENDER	# bracketleftex (CUS) */
-    { 0xF8F0, 0xEB }, /* LEFT SQUARE BRACKET BOTTOM	# bracketleftbt (CUS) */
-    { 0xF8F1, 0xEC }, /* LEFT CURLY BRACKET TOP	# bracelefttp (CUS) */
-    { 0xF8F2, 0xED }, /* LEFT CURLY BRACKET MID	# braceleftmid (CUS) */
-    { 0xF8F3, 0xEE }, /* LEFT CURLY BRACKET BOTTOM	# braceleftbt (CUS) */
-    { 0xF8F4, 0xEF }, /* CURLY BRACKET EXTENDER	# braceex (CUS) */
-    { 0xF8F5, 0xF4 }, /* INTEGRAL EXTENDER	# integralex (CUS) */
-    { 0xF8F6, 0xF6 }, /* RIGHT PAREN TOP	# parenrighttp (CUS) */
-    { 0xF8F7, 0xF7 }, /* RIGHT PAREN EXTENDER	# parenrightex (CUS) */
-    { 0xF8F8, 0xF8 }, /* RIGHT PAREN BOTTOM	# parenrightbt (CUS) */
-    { 0xF8F9, 0xF9 }, /* RIGHT SQUARE BRACKET TOP	# bracketrighttp (CUS) */
-    { 0xF8FA, 0xFA }, /* RIGHT SQUARE BRACKET EXTENDER	# bracketrightex (CUS) */
-    { 0xF8FB, 0xFB }, /* RIGHT SQUARE BRACKET BOTTOM	# bracketrightbt (CUS) */
-    { 0xF8FC, 0xFC }, /* RIGHT CURLY BRACKET TOP	# bracerighttp (CUS) */
-    { 0xF8FD, 0xFD }, /* RIGHT CURLY BRACKET MID	# bracerightmid (CUS) */
-    { 0xF8FE, 0xFE }, /* RIGHT CURLY BRACKET BOTTOM	# bracerightbt (CUS) */
-};
-
-static const FcCharMap AdobeSymbol = {
-    AdobeSymbolEnt,
-    sizeof (AdobeSymbolEnt) / sizeof (AdobeSymbolEnt[0]),
-};
-
-static const FcFontDecode fcFontDecoders[] = {
-    { ft_encoding_unicode,	0,		(1 << 21) - 1 },
-    { ft_encoding_symbol,	0,		(1 << 16) - 1 },
-};
-
-#define NUM_DECODE  (int) (sizeof (fcFontDecoders) / sizeof (fcFontDecoders[0]))
+#define NUM_DECODE  (int) (sizeof (fcFontEncodings) / sizeof (fcFontEncodings[0]))
 
 static const FcChar32	prefer_unicode[] = {
     0x20ac,	/* EURO SIGN */
 };
-
-#define NUM_PREFER_UNICODE  (int) (sizeof (prefer_unicode) / sizeof (prefer_unicode[0]))
-
-FcChar32
-FcFreeTypeUcs4ToPrivate (FcChar32 ucs4, const FcCharMap *map)
-{
-    int		low, high, mid;
-    FcChar16	bmp;
-
-    low = 0;
-    high = map->nent - 1;
-    if (ucs4 < map->ent[low].bmp || map->ent[high].bmp < ucs4)
-	return ~0;
-    while (low <= high)
-    {
-	mid = (high + low) >> 1;
-	bmp = map->ent[mid].bmp;
-	if (ucs4 == bmp)
-	    return (FT_ULong) map->ent[mid].encode;
-	if (ucs4 < bmp)
-	    high = mid - 1;
-	else
-	    low = mid + 1;
-    }
-    return ~0;
-}
-
-FcChar32
-FcFreeTypePrivateToUcs4 (FcChar32 private, const FcCharMap *map)
-{
-    int	    i;
-
-    for (i = 0; i < map->nent; i++)
-	if (map->ent[i].encode == private)
-	    return (FcChar32) map->ent[i].bmp;
-    return ~0;
-}
-
-const FcCharMap *
-FcFreeTypeGetPrivateMap (FT_Encoding encoding)
-{
-    int	i;
-
-    for (i = 0; i < NUM_DECODE; i++)
-	if (fcFontDecoders[i].encoding == encoding)
-	    return fcFontDecoders[i].map;
-    return 0;
-}
 
 #include "../fc-glyphname/fcglyphname.h"
 
@@ -2390,8 +2124,6 @@ FcFreeTypeCharIndex (FT_Face face, FcChar32 ucs4)
 {
     int		    initial, offset, decode;
     FT_UInt	    glyphindex;
-    FcChar32	    charcode;
-    int		    p;
 
     initial = 0;
 
@@ -2404,35 +2136,21 @@ FcFreeTypeCharIndex (FT_Face face, FcChar32 ucs4)
     if (face->charmap)
     {
 	for (; initial < NUM_DECODE; initial++)
-	    if (fcFontDecoders[initial].encoding == face->charmap->encoding)
+	    if (fcFontEncodings[initial] == face->charmap->encoding)
 		break;
 	if (initial == NUM_DECODE)
 	    initial = 0;
     }
-    for (p = 0; p < NUM_PREFER_UNICODE; p++)
-	if (ucs4 == prefer_unicode[p])
-	{
-	    initial = 0;
-	    break;
-	}
     /*
      * Check each encoding for the glyph, starting with the current one
      */
     for (offset = 0; offset < NUM_DECODE; offset++)
     {
 	decode = (initial + offset) % NUM_DECODE;
-	if (!face->charmap || face->charmap->encoding != fcFontDecoders[decode].encoding)
-	    if (FT_Select_Charmap (face, fcFontDecoders[decode].encoding) != 0)
+	if (!face->charmap || face->charmap->encoding != fcFontEncodings[decode])
+	    if (FT_Select_Charmap (face, fcFontEncodings[decode]) != 0)
 		continue;
-	if (fcFontDecoders[decode].map)
-	{
-	    charcode = FcFreeTypeUcs4ToPrivate (ucs4, fcFontDecoders[decode].map);
-	    if (charcode == ~0U)
-		continue;
-	}
-	else
-	    charcode = ucs4;
-	glyphindex = FT_Get_Char_Index (face, (FT_ULong) charcode);
+	glyphindex = FT_Get_Char_Index (face, (FT_ULong) ucs4);
 	if (glyphindex)
 	    return glyphindex;
     }
@@ -2525,9 +2243,7 @@ FcFreeTypeCharSetAndSpacingForSize (FT_Face face, FcBlanks *blanks, int *spacing
 #endif
     FcCharSet	    *fcs;
     FcCharLeaf	    *leaf;
-    const FcCharMap *map;
     int		    o;
-    int		    i;
     FT_UInt	    glyph;
     FT_Pos	    advance, advance_one = 0, advance_two = 0;
     FcBool	    has_advance = FcFalse, fixed_advance = FcTrue, dual_advance = FcFalse;
@@ -2550,62 +2266,9 @@ FcFreeTypeCharSetAndSpacingForSize (FT_Face face, FcBlanks *blanks, int *spacing
 #endif
     for (o = 0; o < NUM_DECODE; o++)
     {
-	if (FT_Select_Charmap (face, fcFontDecoders[o].encoding) != 0)
+	if (FT_Select_Charmap (face, fcFontEncodings[o]) != 0)
 	    continue;
-	map = fcFontDecoders[o].map;
-	if (map)
-	{
-	    /*
-	     * Non-Unicode tables are easy; there's a list of all possible
-	     * characters
-	     */
-	    for (i = 0; i < map->nent; i++)
-	    {
-		ucs4 = map->ent[i].bmp;
-		glyph = FT_Get_Char_Index (face, map->ent[i].encode);
-		if (glyph &&
-		    FcFreeTypeCheckGlyph (face, ucs4, glyph, blanks, &advance, using_strike))
-		{
-		    /*
-		     * ignore glyphs with zero advance. They’re
-		     * combining characters, and while their behaviour
-		     * isn’t well defined for monospaced applications in
-		     * Unicode, there are many fonts which include
-		     * zero-width combining characters in otherwise
-		     * monospaced fonts.
-		     */
-		    if (advance)
-		    {
-			if (!has_advance)
-			{
-			    has_advance = FcTrue;
-			    advance_one = advance;
-			}
-			else if (!APPROXIMATELY_EQUAL (advance, advance_one))
-			{
-			    if (fixed_advance)
-			    {
-				dual_advance = FcTrue;
-				fixed_advance = FcFalse;
-				advance_two = advance;
-			    }
-			    else if (!APPROXIMATELY_EQUAL (advance, advance_two))
-				dual_advance = FcFalse;
-			}
-		    }
 
-		    leaf = FcCharSetFindLeafCreate (fcs, ucs4);
-		    if (!leaf)
-			goto bail1;
-		    leaf->map[(ucs4 & 0xff) >> 5] |= (1 << (ucs4 & 0x1f));
-#ifdef CHECK
-		    if (ucs4 > font_max)
-			font_max = ucs4;
-#endif
-		}
-	    }
-	}
-	else
 	{
             page = ~0;
             leaf = NULL;
