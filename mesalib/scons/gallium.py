@@ -87,6 +87,25 @@ def createInstallMethods(env):
     env.AddMethod(install_shared_library, 'InstallSharedLibrary')
 
 
+def msvc2013_compat(env):
+    if env['gcc']:
+        env.Append(CCFLAGS = [
+            '-Werror=vla',
+            '-Werror=pointer-arith',
+        ])
+
+def msvc2008_compat(env):
+    msvc2013_compat(env)
+    if env['gcc']:
+        env.Append(CFLAGS = [
+            '-Werror=declaration-after-statement',
+        ])
+
+def createMSVCCompatMethods(env):
+    env.AddMethod(msvc2013_compat, 'MSVC2013Compat')
+    env.AddMethod(msvc2008_compat, 'MSVC2008Compat')
+
+
 def num_jobs():
     try:
         return int(os.environ['NUMBER_OF_PROCESSORS'])
@@ -283,6 +302,7 @@ def generate(env):
             '_SVID_SOURCE',
             '_BSD_SOURCE',
             '_GNU_SOURCE',
+            '_DEFAULT_SOURCE',
             'HAVE_PTHREAD',
             'HAVE_POSIX_MEMALIGN',
         ]
@@ -342,6 +362,25 @@ def generate(env):
         print 'warning: Floating-point textures enabled.'
         print 'warning: Please consult docs/patents.txt with your lawyer before building Mesa.'
         cppdefines += ['TEXTURE_FLOAT_ENABLED']
+    if gcc_compat:
+        ccversion = env['CCVERSION']
+        cppdefines += [
+            'HAVE___BUILTIN_EXPECT',
+            'HAVE___BUILTIN_FFS',
+            'HAVE___BUILTIN_FFSLL',
+            'HAVE_FUNC_ATTRIBUTE_FLATTEN',
+            # GCC 3.0
+            'HAVE_FUNC_ATTRIBUTE_FORMAT',
+            'HAVE_FUNC_ATTRIBUTE_PACKED',
+            # GCC 3.4
+            'HAVE___BUILTIN_CTZ',
+            'HAVE___BUILTIN_POPCOUNT',
+            'HAVE___BUILTIN_POPCOUNTLL',
+            'HAVE___BUILTIN_CLZ',
+            'HAVE___BUILTIN_CLZLL',
+        ]
+        if distutils.version.LooseVersion(ccversion) >= distutils.version.LooseVersion('4.5'):
+            cppdefines += ['HAVE___BUILTIN_UNREACHABLE']
     env.Append(CPPDEFINES = cppdefines)
 
     # C compiler options
@@ -377,8 +416,7 @@ def generate(env):
                 '-m32',
                 #'-march=pentium4',
             ]
-            if distutils.version.LooseVersion(ccversion) >= distutils.version.LooseVersion('4.2') \
-               and platform != 'haiku':
+            if platform != 'haiku':
                 # NOTE: We need to ensure stack is realigned given that we
                 # produce shared objects, and have no control over the stack
                 # alignment policy of the application. Therefore we need
@@ -419,13 +457,6 @@ def generate(env):
             '-Wmissing-prototypes',
             '-std=gnu99',
         ]
-        if distutils.version.LooseVersion(ccversion) >= distutils.version.LooseVersion('4.2'):
-            ccflags += [
-                '-Wpointer-arith',
-            ]
-            cflags += [
-                '-Wdeclaration-after-statement',
-            ]
     if icc:
         cflags += [
             '-std=gnu99',
@@ -584,30 +615,6 @@ def generate(env):
             env.Append(CCFLAGS = ['-fopenmp'])
             env.Append(LIBS = ['gomp'])
 
-    if gcc_compat:
-        ccversion = env['CCVERSION']
-        cppdefines += [
-            'HAVE___BUILTIN_EXPECT',
-            'HAVE___BUILTIN_FFS',
-            'HAVE___BUILTIN_FFSLL',
-            'HAVE_FUNC_ATTRIBUTE_FLATTEN',
-        ]
-        if distutils.version.LooseVersion(ccversion) >= distutils.version.LooseVersion('3'):
-            cppdefines += [
-                'HAVE_FUNC_ATTRIBUTE_FORMAT',
-                'HAVE_FUNC_ATTRIBUTE_PACKED',
-            ]
-        if distutils.version.LooseVersion(ccversion) >= distutils.version.LooseVersion('3.4'):
-            cppdefines += [
-                'HAVE___BUILTIN_CTZ',
-                'HAVE___BUILTIN_POPCOUNT',
-                'HAVE___BUILTIN_POPCOUNTLL',
-                'HAVE___BUILTIN_CLZ',
-                'HAVE___BUILTIN_CLZLL',
-            ]
-        if distutils.version.LooseVersion(ccversion) >= distutils.version.LooseVersion('4.5'):
-            cppdefines += ['HAVE___BUILTIN_UNREACHABLE']
-
     # Load tools
     env.Tool('lex')
     env.Tool('yacc')
@@ -617,6 +624,7 @@ def generate(env):
     # Custom builders and methods
     env.Tool('custom')
     createInstallMethods(env)
+    createMSVCCompatMethods(env)
 
     env.PkgCheckModules('X11', ['x11', 'xext', 'xdamage', 'xfixes', 'glproto >= 1.4.13'])
     env.PkgCheckModules('XCB', ['x11-xcb', 'xcb-glx >= 1.8.1', 'xcb-dri2 >= 1.8'])

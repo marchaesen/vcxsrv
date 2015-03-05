@@ -36,6 +36,7 @@
 
 #include <stdint.h>             /* uint32_t */
 #include <stdbool.h>
+#include "c11/threads.h"
 
 #include "main/glheader.h"
 #include "main/config.h"

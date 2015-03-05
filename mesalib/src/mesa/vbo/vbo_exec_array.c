@@ -26,6 +26,7 @@
  * 
  **************************************************************************/
 
+#include <stdio.h>
 #include "main/glheader.h"
 #include "main/context.h"
 #include "main/state.h"
@@ -181,8 +182,7 @@ vbo_get_minmax_index(struct gl_context *ctx,
       break;
    }
    default:
-      assert(0);
-      break;
+      unreachable("not reached");
    }
 
    if (_mesa_is_bufferobj(ib->obj)) {
@@ -331,7 +331,7 @@ check_draw_elements_data(struct gl_context *ctx, GLsizei count, GLenum elemType,
       }
 
       /* check element j of each enabled array */
-      for (k = 0; k < Elements(vao->_VertexAttrib); k++) {
+      for (k = 0; k < ARRAY_SIZE(vao->_VertexAttrib); k++) {
          check_array_data(ctx, &vao->_VertexAttrib[k], k, j);
       }
    }
@@ -341,7 +341,7 @@ check_draw_elements_data(struct gl_context *ctx, GLsizei count, GLenum elemType,
                               MAP_INTERNAL);
    }
 
-   for (k = 0; k < Elements(vao->_VertexAttrib); k++) {
+   for (k = 0; k < ARRAY_SIZE(vao->_VertexAttrib); k++) {
       unmap_array_buffer(ctx, &vao->_VertexAttrib[k]);
    }
 }

@@ -82,7 +82,7 @@ setup_glsl_msaa_blit_scaled_shader(struct gl_context *ctx,
    y_scale = samples * 0.5;
 
    /* We expect only power of 2 samples in source multisample buffer. */
-   assert((samples & (samples - 1)) == 0);
+   assert(samples > 0 && (samples & (samples - 1)) == 0);
    while (samples >> (shader_offset + 1)) {
       shader_offset++;
    }
@@ -133,6 +133,8 @@ setup_glsl_msaa_blit_scaled_shader(struct gl_context *ctx,
       sample_map = ctx->Const.SampleMap8x;
       break;
    default:
+      sample_number = NULL;
+      sample_map = NULL;
       _mesa_problem(ctx, "Unsupported sample count %d\n", samples);
       unreachable("Unsupported sample count");
    }
@@ -261,7 +263,7 @@ setup_glsl_msaa_blit_shader(struct gl_context *ctx,
    }
 
    /* We expect only power of 2 samples in source multisample buffer. */
-   assert((samples & (samples - 1)) == 0);
+   assert(samples > 0 && (samples & (samples - 1)) == 0);
    while (samples >> (shader_offset + 1)) {
       shader_offset++;
    }

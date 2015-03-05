@@ -29,6 +29,7 @@
  */
 
 
+#include "c11/threads.h"
 #include "glapi/glapi_priv.h"
 #include "u_execmem.h"
 
@@ -120,11 +121,9 @@ fill_in_entrypoint_offset(_glapi_proc entrypoint, unsigned int offset)
 
 #if defined(GLX_USE_TLS)
    *((unsigned int *)(code +  8)) = 4 * offset;
-#elif defined(THREADS)
+#else
    *((unsigned int *)(code + 11)) = 4 * offset;
    *((unsigned int *)(code + 22)) = 4 * offset;
-#else
-   *((unsigned int *)(code +  7)) = 4 * offset;
 #endif
 }
 
@@ -338,7 +337,7 @@ void
 init_glapi_relocs_once( void )
 {
 #if defined(HAVE_PTHREAD) || defined(GLX_USE_TLS)
-   static pthread_once_t once_control = PTHREAD_ONCE_INIT;
-   pthread_once( & once_control, init_glapi_relocs );
+   static once_flag flag = ONCE_FLAG_INIT;
+   call_once(&flag, init_glapi_relocs);
 #endif
 }

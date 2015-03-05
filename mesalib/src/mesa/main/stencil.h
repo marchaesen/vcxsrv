@@ -33,6 +33,7 @@
 
 
 #include "glheader.h"
+#include "macros.h"
 
 struct gl_context;
 

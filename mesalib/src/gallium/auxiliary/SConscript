@@ -8,6 +8,10 @@ env.Append(CPPPATH = [
     'util',
 ])
 
+env = env.Clone()
+
+env.MSVC2008Compat()
+
 env.CodeGenerate(
     target = 'indices/u_indices_gen.c', 
     script = 'indices/u_indices_gen.py', 

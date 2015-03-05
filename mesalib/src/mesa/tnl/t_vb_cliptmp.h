@@ -155,7 +155,7 @@ TAG(clip_line)( struct gl_context *ctx, GLuint v0, GLuint v1, GLubyte mask )
       newvert++;
    }
    else {
-      ASSERT(t0 == 0.0);
+      assert(t0 == 0.0);
    }
 
    /* Note: we need to use vertex v0_orig when computing the new
@@ -174,7 +174,7 @@ TAG(clip_line)( struct gl_context *ctx, GLuint v0, GLuint v1, GLubyte mask )
       newvert++;
    }
    else {
-      ASSERT(t1 == 0.0);
+      assert(t1 == 0.0);
    }
 
    tnl->Driver.Render.ClippedLine( ctx, v0, v1 );
@@ -239,7 +239,7 @@ TAG(clip_tri)( struct gl_context *ctx, GLuint v0, GLuint v1, GLuint v2, GLubyte 
 
    if (ctx->Light.ShadeModel == GL_FLAT) {
       if (pv != inlist[0]) {
-	 ASSERT( inlist[0] >= VB->Count );
+	 assert( inlist[0] >= VB->Count );
 	 tnl->Driver.Render.CopyPV( ctx, inlist[0], pv );
       }
    }
@@ -302,7 +302,7 @@ TAG(clip_quad)( struct gl_context *ctx, GLuint v0, GLuint v1, GLuint v2, GLuint 
 
    if (ctx->Light.ShadeModel == GL_FLAT) {
       if (pv != inlist[0]) {
-	 ASSERT( inlist[0] >= VB->Count );
+	 assert( inlist[0] >= VB->Count );
 	 tnl->Driver.Render.CopyPV( ctx, inlist[0], pv );
       }
    }

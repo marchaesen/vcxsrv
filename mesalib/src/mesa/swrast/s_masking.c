@@ -46,8 +46,8 @@ _swrast_mask_rgba_span(struct gl_context *ctx, struct gl_renderbuffer *rb,
    const GLuint n = span->end;
    void *rbPixels;
 
-   ASSERT(n < SWRAST_MAX_WIDTH);
-   ASSERT(span->arrayMask & SPAN_RGBA);
+   assert(n < SWRAST_MAX_WIDTH);
+   assert(span->arrayMask & SPAN_RGBA);
 
    rbPixels = _swrast_get_dest_rgba(ctx, rb, span);
 

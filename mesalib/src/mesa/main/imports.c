@@ -42,8 +42,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
-
+#include <stdio.h>
+#include <stdarg.h>
+#include "c99_math.h"
 #include "imports.h"
 #include "context.h"
 #include "mtypes.h"
@@ -92,7 +93,7 @@ _mesa_align_malloc(size_t bytes, unsigned long alignment)
 #else
    uintptr_t ptr, buf;
 
-   ASSERT( alignment > 0 );
+   assert( alignment > 0 );
 
    ptr = (uintptr_t)malloc(bytes + alignment + sizeof(void *));
    if (!ptr)
@@ -141,7 +142,7 @@ _mesa_align_calloc(size_t bytes, unsigned long alignment)
 #else
    uintptr_t ptr, buf;
 
-   ASSERT( alignment > 0 );
+   assert( alignment > 0 );
 
    ptr = (uintptr_t)calloc(1, bytes + alignment + sizeof(void *));
    if (!ptr)

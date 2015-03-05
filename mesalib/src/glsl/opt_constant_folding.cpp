@@ -50,6 +50,7 @@ public:
       /* empty */
    }
 
+   virtual ir_visitor_status visit_enter(ir_discard *ir);
    virtual ir_visitor_status visit_enter(ir_assignment *ir);
    virtual ir_visitor_status visit_enter(ir_call *ir);
 
@@ -91,6 +92,29 @@ ir_constant_folding_visitor::handle_rvalue(ir_rvalue **rvalue)
    } else {
       (*rvalue)->accept(this);
    }
+}
+
+ir_visitor_status
+ir_constant_folding_visitor::visit_enter(ir_discard *ir)
+{
+   if (ir->condition) {
+      ir->condition->accept(this);
+      handle_rvalue(&ir->condition);
+
+      ir_constant *const_val = ir->condition->as_constant();
+      /* If the condition is constant, either remove the condition or
+       * remove the never-executed assignment.
+       */
+      if (const_val) {
+         if (const_val->value.b[0])
+            ir->condition = NULL;
+         else
+            ir->remove();
+         this->progress = true;
+      }
+   }
+
+   return visit_continue_with_parent;
 }
 
 ir_visitor_status

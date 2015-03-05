@@ -55,7 +55,7 @@ _mesa_BeginConditionalRender(GLuint queryId, GLenum mode)
       return;
    }
 
-   ASSERT(ctx->Query.CondRenderMode == GL_NONE);
+   assert(ctx->Query.CondRenderMode == GL_NONE);
 
    /* Section 2.14 (Conditional Rendering) of the OpenGL 3.0 spec says:
     *
@@ -70,7 +70,7 @@ _mesa_BeginConditionalRender(GLuint queryId, GLenum mode)
                   "glBeginConditionalRender(bad queryId=%u)", queryId);
       return;
    }
-   ASSERT(q->Id == queryId);
+   assert(q->Id == queryId);
 
    switch (mode) {
    case GL_QUERY_WAIT:

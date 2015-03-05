@@ -33,6 +33,11 @@
  * MSVC hacks.
  */
 #if defined(_MSC_VER)
+
+#  if _MSC_VER < 1500
+#    error "Microsoft Visual Studio 2008 or higher required"
+#  endif
+
    /*
     * Visual Studio 2012 will complain if we define the `inline` keyword, but
     * actually it only supports the keyword on C++.
@@ -116,11 +121,7 @@
 #  elif defined(__GNUC__)
 #    define __func__ __FUNCTION__
 #  elif defined(_MSC_VER)
-#    if _MSC_VER >= 1300
-#      define __func__ __FUNCTION__
-#    else
-#      define __func__ "<unknown>"
-#    endif
+#    define __func__ __FUNCTION__
 #  else
 #    define __func__ "<unknown>"
 #  endif

@@ -27,13 +27,7 @@
 #ifndef API_LOOPBACK_H
 #define API_LOOPBACK_H
 
-#include "main/compiler.h"
-#include "main/glheader.h" // ?
-#include "main/macros.h" // ?
-#include "main/mtypes.h" // ?
-#include "glapi/glapi.h" // ?
-#include "main/dispatch.h" // ?
-#include "main/context.h" // ?
+#include "main/glheader.h"
 
 struct _glapi_table;
 struct gl_context;

@@ -371,8 +371,8 @@ _mesa_HashDeleteAll(struct _mesa_HashTable *table,
 {
    struct hash_entry *entry;
 
-   ASSERT(table);
-   ASSERT(callback);
+   assert(table);
+   assert(callback);
    mtx_lock(&table->Mutex);
    table->InDeleteAll = GL_TRUE;
    hash_table_foreach(table->ht, entry) {
@@ -401,7 +401,7 @@ _mesa_HashClone(const struct _mesa_HashTable *table)
    struct hash_entry *entry;
    struct _mesa_HashTable *clonetable;
 
-   ASSERT(table);
+   assert(table);
    mtx_lock(&table2->Mutex);
 
    clonetable = _mesa_NewHashTable();
@@ -437,8 +437,8 @@ _mesa_HashWalk(const struct _mesa_HashTable *table,
    struct _mesa_HashTable *table2 = (struct _mesa_HashTable *) table;
    struct hash_entry *entry;
 
-   ASSERT(table);
-   ASSERT(callback);
+   assert(table);
+   assert(callback);
    mtx_lock(&table2->WalkMutex);
    hash_table_foreach(table->ht, entry) {
       callback((uintptr_t)entry->key, entry->data, userData);

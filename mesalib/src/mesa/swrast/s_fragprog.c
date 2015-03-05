@@ -273,7 +273,7 @@ _swrast_exec_fragment_program( struct gl_context *ctx, SWspan *span )
 
    /* incoming colors should be floats */
    if (program->Base.InputsRead & VARYING_BIT_COL0) {
-      ASSERT(span->array->ChanType == GL_FLOAT);
+      assert(span->array->ChanType == GL_FLOAT);
    }
 
    run_program(ctx, span, 0, span->end);

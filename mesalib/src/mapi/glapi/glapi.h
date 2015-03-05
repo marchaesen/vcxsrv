@@ -44,7 +44,7 @@
 #ifndef _GLAPI_H
 #define _GLAPI_H
 
-#include "u_thread.h"
+#include "util/macros.h"
 
 
 #ifdef __cplusplus
@@ -102,20 +102,11 @@ _GLAPI_EXPORT extern const void *_glapi_Context;
 _GLAPI_EXPORT extern struct _glapi_table *_glapi_Dispatch;
 _GLAPI_EXPORT extern void *_glapi_Context;
 
-# ifdef THREADS
-
-#  define GET_DISPATCH() \
+#define GET_DISPATCH() \
      (likely(_glapi_Dispatch) ? _glapi_Dispatch : _glapi_get_dispatch())
 
-#  define GET_CURRENT_CONTEXT(C)  struct gl_context *C = (struct gl_context *) \
+#define GET_CURRENT_CONTEXT(C)  struct gl_context *C = (struct gl_context *) \
      (likely(_glapi_Context) ? _glapi_Context : _glapi_get_context())
-
-# else
-
-#  define GET_DISPATCH() _glapi_Dispatch
-#  define GET_CURRENT_CONTEXT(C)  struct gl_context *C = (struct gl_context *) _glapi_Context
-
-# endif
 
 #endif /* defined (GLX_USE_TLS) */
 

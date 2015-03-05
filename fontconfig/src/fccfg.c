@@ -27,6 +27,7 @@
 #include "fcint.h"
 #include <dirent.h>
 #include <sys/types.h>
+#include "../fc-blanks/fcblanks.h"
 
 #if defined (_WIN32) && !defined (R_OK)
 #define R_OK 4
@@ -109,7 +110,7 @@ FcConfigCreate (void)
     if (!config->cacheDirs)
 	goto bail8;
 
-    config->blanks = 0;
+    config->blanks = &fcBlanks;
 
     config->substPattern = 0;
     config->substFont = 0;
@@ -1545,7 +1546,9 @@ FcConfigSubstituteWithPat (FcConfig    *config,
 	    FcStrList *l = FcStrListCreate (strs);
 	    FcChar8 *lang;
 	    FcValue v;
+	    FcLangSet *lsund = FcLangSetCreate ();
 
+	    FcLangSetAdd (lsund, (const FcChar8 *)"und");
 	    FcStrSetDestroy (strs);
 	    while (l && (lang = FcStrListNext (l)))
 	    {
@@ -1569,10 +1572,16 @@ FcConfigSubstituteWithPat (FcConfig    *config,
 			    FcLangSetDestroy (ls);
 			    if (b)
 				goto bail_lang;
+			    if (FcLangSetContains (vv.u.l, lsund))
+				goto bail_lang;
 			}
 			else
+			{
 			    if (FcStrCmpIgnoreCase (vv.u.s, lang) == 0)
 				goto bail_lang;
+			    if (FcStrCmpIgnoreCase (vv.u.s, (const FcChar8 *)"und") == 0)
+				goto bail_lang;
+			}
 		    }
 		}
 		v.type = FcTypeString;
@@ -1582,6 +1591,7 @@ FcConfigSubstituteWithPat (FcConfig    *config,
 	    }
 	bail_lang:
 	    FcStrListDone (l);
+	    FcLangSetDestroy (lsund);
 	}
 	if (FcPatternObjectGet (p, FC_PRGNAME_OBJECT, 0, &v) == FcResultNoMatch)
 	{

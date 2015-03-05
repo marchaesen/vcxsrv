@@ -153,8 +153,8 @@ do_row(GLenum datatype, GLuint comps, GLint srcWidth,
    const GLuint k0 = (srcWidth == dstWidth) ? 0 : 1;
    const GLuint colStride = (srcWidth == dstWidth) ? 1 : 2;
 
-   ASSERT(comps >= 1);
-   ASSERT(comps <= 4);
+   assert(comps >= 1);
+   assert(comps <= 4);
 
    /* This assertion is no longer valid with non-power-of-2 textures
    assert(srcWidth == dstWidth || srcWidth == 2 * dstWidth);
@@ -788,8 +788,8 @@ do_row_3D(GLenum datatype, GLuint comps, GLint srcWidth,
    const GLuint colStride = (srcWidth == dstWidth) ? 1 : 2;
    GLuint i, j, k;
 
-   ASSERT(comps >= 1);
-   ASSERT(comps <= 4);
+   assert(comps >= 1);
+   assert(comps <= 4);
 
    if ((datatype == GL_UNSIGNED_BYTE) && (comps == 4)) {
       DECLARE_ROW_POINTERS(GLubyte, 4);
@@ -1650,7 +1650,7 @@ make_3d_mipmap(GLenum datatype, GLuint comps, GLint border,
       }
       else {
          /* average border pixels from adjacent src image pairs */
-         ASSERT(srcDepthNB == 2 * dstDepthNB);
+         assert(srcDepthNB == 2 * dstDepthNB);
          for (img = 0; img < dstDepthNB; img++) {
             const GLubyte *srcA, *srcB;
             GLubyte *dst;
@@ -1902,7 +1902,7 @@ generate_mipmap_uncompressed(struct gl_context *ctx, GLenum target,
 
       /* get src image parameters */
       srcImage = _mesa_select_tex_image(texObj, target, level);
-      ASSERT(srcImage);
+      assert(srcImage);
       srcWidth = srcImage->Width;
       srcHeight = srcImage->Height;
       srcDepth = srcImage->Depth;
@@ -2097,7 +2097,7 @@ generate_mipmap_compressed(struct gl_context *ctx, GLenum target,
 
       /* get src image parameters */
       srcImage = _mesa_select_tex_image(texObj, target, level);
-      ASSERT(srcImage);
+      assert(srcImage);
       srcWidth = srcImage->Width;
       srcHeight = srcImage->Height;
       srcDepth = srcImage->Depth;
@@ -2192,12 +2192,12 @@ _mesa_generate_mipmap(struct gl_context *ctx, GLenum target,
    struct gl_texture_image *srcImage;
    GLint maxLevel;
 
-   ASSERT(texObj);
+   assert(texObj);
    srcImage = _mesa_select_tex_image(texObj, target, texObj->BaseLevel);
-   ASSERT(srcImage);
+   assert(srcImage);
 
    maxLevel = _mesa_max_texture_levels(ctx, texObj->Target) - 1;
-   ASSERT(maxLevel >= 0);  /* bad target */
+   assert(maxLevel >= 0);  /* bad target */
 
    maxLevel = MIN2(maxLevel, texObj->MaxLevel);
 

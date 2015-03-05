@@ -64,7 +64,7 @@ struct rastpos_stage
 };
 
 
-static INLINE struct rastpos_stage *
+static inline struct rastpos_stage *
 rastpos_stage( struct draw_stage *stage )
 {
    return (struct rastpos_stage *) stage;
@@ -191,7 +191,7 @@ new_draw_rastpos_stage(struct gl_context *ctx, struct draw_context *draw)
    rs->stage.destroy = rastpos_destroy;
    rs->ctx = ctx;
 
-   for (i = 0; i < Elements(rs->array); i++) {
+   for (i = 0; i < ARRAY_SIZE(rs->array); i++) {
       rs->array[i].Size = 4;
       rs->array[i].Type = GL_FLOAT;
       rs->array[i].Format = GL_RGBA;

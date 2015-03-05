@@ -86,10 +86,8 @@ get_entrypoint_address(unsigned int functionOffset);
 #if defined(USE_X86_ASM)
 # if defined(GLX_USE_TLS)
 #  define DISPATCH_FUNCTION_SIZE  16
-# elif defined(THREADS)
-#  define DISPATCH_FUNCTION_SIZE  32
 # else
-#  define DISPATCH_FUNCTION_SIZE  16
+#  define DISPATCH_FUNCTION_SIZE  32
 # endif
 #endif
 

@@ -158,7 +158,7 @@ ir_call::clone(void *mem_ctx, struct hash_table *ht) const
 ir_expression *
 ir_expression::clone(void *mem_ctx, struct hash_table *ht) const
 {
-   ir_rvalue *op[Elements(this->operands)] = { NULL, };
+   ir_rvalue *op[ARRAY_SIZE(this->operands)] = { NULL, };
    unsigned int i;
 
    for (i = 0; i < get_num_operands(); i++) {

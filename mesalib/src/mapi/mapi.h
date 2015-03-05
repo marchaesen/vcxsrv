@@ -28,8 +28,6 @@
 #ifndef _MAPI_H_
 #define _MAPI_H_
 
-#include "u_compiler.h"
-
 #ifdef _WIN32
 #ifdef MAPI_DLL_EXPORTS
 #define MAPI_EXPORT __declspec(dllexport)

@@ -66,6 +66,9 @@ _mesa_base_tex_format( struct gl_context *ctx, GLint internalFormat );
 extern GLboolean
 _mesa_is_proxy_texture(GLenum target);
 
+extern bool
+_mesa_is_array_texture(GLenum target);
+
 extern struct gl_texture_image *
 _mesa_new_texture_image( struct gl_context *ctx );
 

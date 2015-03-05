@@ -570,8 +570,8 @@ _mesa_compressed_image_address(GLint col, GLint row, GLint img,
 
    _mesa_get_format_block_size(mesaFormat, &bw, &bh);
 
-   ASSERT(col % bw == 0);
-   ASSERT(row % bh == 0);
+   assert(col % bw == 0);
+   assert(row % bh == 0);
 
    offset = ((width + bw - 1) / bw) * (row / bh) + col / bw;
    offset *= blockSize;

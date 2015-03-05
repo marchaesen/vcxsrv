@@ -26,6 +26,7 @@
  * New (3.1) transformation code written by Keith Whitwell.
  */
 
+#include <stdio.h>
 
 #include "main/glheader.h"
 #include "main/imports.h"

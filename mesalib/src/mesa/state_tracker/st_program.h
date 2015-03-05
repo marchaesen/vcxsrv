@@ -203,49 +203,31 @@ struct st_geometry_program
    struct gl_geometry_program Base;  /**< The Mesa geometry program */
    struct glsl_to_tgsi_visitor* glsl_to_tgsi;
 
-   /** map GP input back to VP output */
-   GLuint input_map[PIPE_MAX_SHADER_INPUTS];
-
-   /** maps a Mesa VARYING_SLOT_x to a packed TGSI input index */
-   GLuint input_to_index[VARYING_SLOT_MAX];
-   /** maps a TGSI input index back to a Mesa VARYING_SLOT_x */
-   GLuint index_to_input[PIPE_MAX_SHADER_INPUTS];
-
-   GLuint num_inputs;
-
-   GLuint input_to_slot[VARYING_SLOT_MAX];  /**< Maps VARYING_SLOT_x to slot */
-   GLuint num_input_slots;
-
-   ubyte input_semantic_name[PIPE_MAX_SHADER_INPUTS];
-   ubyte input_semantic_index[PIPE_MAX_SHADER_INPUTS];
-
-   struct pipe_shader_state tgsi;
-
    struct st_gp_variant *variants;
 };
 
 
 
-static INLINE struct st_fragment_program *
+static inline struct st_fragment_program *
 st_fragment_program( struct gl_fragment_program *fp )
 {
    return (struct st_fragment_program *)fp;
 }
 
 
-static INLINE struct st_vertex_program *
+static inline struct st_vertex_program *
 st_vertex_program( struct gl_vertex_program *vp )
 {
    return (struct st_vertex_program *)vp;
 }
 
-static INLINE struct st_geometry_program *
+static inline struct st_geometry_program *
 st_geometry_program( struct gl_geometry_program *gp )
 {
    return (struct st_geometry_program *)gp;
 }
 
-static INLINE void
+static inline void
 st_reference_vertprog(struct st_context *st,
                       struct st_vertex_program **ptr,
                       struct st_vertex_program *prog)
@@ -255,7 +237,7 @@ st_reference_vertprog(struct st_context *st,
                            (struct gl_program *) prog);
 }
 
-static INLINE void
+static inline void
 st_reference_geomprog(struct st_context *st,
                       struct st_geometry_program **ptr,
                       struct st_geometry_program *prog)
@@ -265,7 +247,7 @@ st_reference_geomprog(struct st_context *st,
                            (struct gl_program *) prog);
 }
 
-static INLINE void
+static inline void
 st_reference_fragprog(struct st_context *st,
                       struct st_fragment_program **ptr,
                       struct st_fragment_program *prog)
@@ -278,7 +260,7 @@ st_reference_fragprog(struct st_context *st,
 /**
  * This defines mapping from Mesa VARYING_SLOTs to TGSI GENERIC slots.
  */
-static INLINE unsigned
+static inline unsigned
 st_get_generic_varying_index(struct st_context *st, GLuint attr)
 {
    if (attr >= VARYING_SLOT_VAR0) {
@@ -339,10 +321,6 @@ st_release_fp_variants( struct st_context *st,
 extern void
 st_release_gp_variants(struct st_context *st,
                        struct st_geometry_program *stgp);
-
-
-extern void
-st_print_shaders(struct gl_context *ctx);
 
 extern void
 st_destroy_program_variants(struct st_context *st);

@@ -103,7 +103,7 @@ _mesa_PointParameterfv( GLenum pname, const GLfloat *params)
     * If point parameters aren't supported, then this function shouldn't even
     * exist.
     */
-   ASSERT(!(ctx->Extensions.ARB_point_sprite
+   assert(!(ctx->Extensions.ARB_point_sprite
             || ctx->Extensions.NV_point_sprite)
           || ctx->Extensions.EXT_point_parameters);
 
@@ -253,7 +253,7 @@ _mesa_init_point(struct gl_context *ctx)
 
    ctx->Point.SpriteRMode = GL_ZERO; /* GL_NV_point_sprite (only!) */
    ctx->Point.SpriteOrigin = GL_UPPER_LEFT; /* GL_ARB_point_sprite */
-   for (i = 0; i < Elements(ctx->Point.CoordReplace); i++) {
+   for (i = 0; i < ARRAY_SIZE(ctx->Point.CoordReplace); i++) {
       ctx->Point.CoordReplace[i] = GL_FALSE; /* GL_ARB/NV_point_sprite */
    }
 }

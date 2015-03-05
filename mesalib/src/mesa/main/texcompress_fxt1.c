@@ -61,7 +61,7 @@ _mesa_texstore_rgb_fxt1(TEXSTORE_PARAMS)
    GLubyte *dst;
    const GLubyte *tempImage = NULL;
 
-   ASSERT(dstFormat == MESA_FORMAT_RGB_FXT1);
+   assert(dstFormat == MESA_FORMAT_RGB_FXT1);
 
    if (srcFormat != GL_RGB ||
        srcType != GL_UNSIGNED_BYTE ||
@@ -116,7 +116,7 @@ _mesa_texstore_rgba_fxt1(TEXSTORE_PARAMS)
    GLubyte *dst;
    const GLubyte *tempImage = NULL;
 
-   ASSERT(dstFormat == MESA_FORMAT_RGBA_FXT1);
+   assert(dstFormat == MESA_FORMAT_RGBA_FXT1);
 
    if (srcFormat != GL_RGBA ||
        srcType != GL_UNSIGNED_BYTE ||
@@ -1264,12 +1264,12 @@ upscale_teximage2d(GLsizei inWidth, GLsizei inHeight,
 {
    GLint i, j, k;
 
-   ASSERT(outWidth >= inWidth);
-   ASSERT(outHeight >= inHeight);
+   assert(outWidth >= inWidth);
+   assert(outHeight >= inHeight);
 #if 0
-   ASSERT(inWidth == 1 || inWidth == 2 || inHeight == 1 || inHeight == 2);
-   ASSERT((outWidth & 3) == 0);
-   ASSERT((outHeight & 3) == 0);
+   assert(inWidth == 1 || inWidth == 2 || inHeight == 1 || inHeight == 2);
+   assert((outWidth & 3) == 0);
+   assert((outHeight & 3) == 0);
 #endif
 
    for (i = 0; i < outHeight; i++) {

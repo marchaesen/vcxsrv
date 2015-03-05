@@ -89,7 +89,7 @@ _mesa_reference_sampler_object_(struct gl_context *ctx,
       struct gl_sampler_object *oldSamp = *ptr;
 
       /*mtx_lock(&oldSamp->Mutex);*/
-      ASSERT(oldSamp->RefCount > 0);
+      assert(oldSamp->RefCount > 0);
       oldSamp->RefCount--;
 #if 0
       printf("SamplerObj %p %d DECR to %d\n",
@@ -99,13 +99,13 @@ _mesa_reference_sampler_object_(struct gl_context *ctx,
       /*mtx_unlock(&oldSamp->Mutex);*/
 
       if (deleteFlag) {
-	 ASSERT(ctx->Driver.DeleteSamplerObject);
+	 assert(ctx->Driver.DeleteSamplerObject);
          ctx->Driver.DeleteSamplerObject(ctx, oldSamp);
       }
 
       *ptr = NULL;
    }
-   ASSERT(!*ptr);
+   assert(!*ptr);
 
    if (samp) {
       /* reference new sampler */

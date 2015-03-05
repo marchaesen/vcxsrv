@@ -30,6 +30,7 @@
 #include "standalone_scaffolding.h"
 
 #include <assert.h>
+#include <stdio.h>
 #include <string.h>
 #include "util/ralloc.h"
 

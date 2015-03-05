@@ -55,7 +55,7 @@ _swrast_Bitmap( struct gl_context *ctx, GLint px, GLint py,
    GLuint count = 0;
    SWspan span;
 
-   ASSERT(ctx->RenderMode == GL_RENDER);
+   assert(ctx->RenderMode == GL_RENDER);
 
    if (!_mesa_check_conditional_render(ctx))
       return; /* don't draw */
@@ -154,8 +154,8 @@ _swrast_Bitmap( struct gl_context *ctx, GLint px, GLint py,
    GLint row, col;
    SWspan span;
 
-   ASSERT(ctx->RenderMode == GL_RENDER);
-   ASSERT(bitmap);
+   assert(ctx->RenderMode == GL_RENDER);
+   assert(bitmap);
 
    swrast_render_start(ctx);
 

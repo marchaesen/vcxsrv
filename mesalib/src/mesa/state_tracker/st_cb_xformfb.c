@@ -59,7 +59,7 @@ struct st_transform_feedback_object {
    struct pipe_stream_output_target *draw_count;
 };
 
-static INLINE struct st_transform_feedback_object *
+static inline struct st_transform_feedback_object *
 st_transform_feedback_object(struct gl_transform_feedback_object *obj)
 {
    return (struct st_transform_feedback_object *) obj;
@@ -95,7 +95,7 @@ st_delete_transform_feedback(struct gl_context *ctx,
       pipe_so_target_reference(&sobj->targets[i], NULL);
    }
 
-   for (i = 0; i < Elements(sobj->base.Buffers); i++) {
+   for (i = 0; i < ARRAY_SIZE(sobj->base.Buffers); i++) {
       _mesa_reference_buffer_object(ctx, &sobj->base.Buffers[i], NULL);
    }
 
@@ -115,8 +115,8 @@ st_begin_transform_feedback(struct gl_context *ctx, GLenum mode,
    unsigned i, max_num_targets;
    unsigned offsets[PIPE_MAX_SO_BUFFERS] = {0};
 
-   max_num_targets = MIN2(Elements(sobj->base.Buffers),
-                          Elements(sobj->targets));
+   max_num_targets = MIN2(ARRAY_SIZE(sobj->base.Buffers),
+                          ARRAY_SIZE(sobj->targets));
 
    /* Convert the transform feedback state into the gallium representation. */
    for (i = 0; i < max_num_targets; i++) {
@@ -185,7 +185,7 @@ st_transform_feedback_get_draw_target(struct gl_transform_feedback_object *obj)
          st_transform_feedback_object(obj);
    unsigned i;
 
-   for (i = 0; i < Elements(sobj->targets); i++) {
+   for (i = 0; i < ARRAY_SIZE(sobj->targets); i++) {
       if (sobj->targets[i]) {
          return sobj->targets[i];
       }

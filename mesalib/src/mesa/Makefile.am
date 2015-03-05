@@ -62,7 +62,6 @@ include Makefile.sources
 EXTRA_DIST = \
 	drivers/haiku \
 	drivers/SConscript \
-	drivers/windows \
 	main/format_info.py \
 	main/format_pack.py \
 	main/format_parser.py \
@@ -80,7 +79,7 @@ EXTRA_DIST = \
 
 BUILT_SOURCES = \
 	main/get_hash.h \
-        main/format_info.c \
+	main/format_info.h \
 	main/git_sha1.h \
 	main/format_pack.c \
 	main/format_unpack.c \
@@ -94,13 +93,13 @@ CLEANFILES = \
 GET_HASH_GEN = main/get_hash_generator.py
 
 main/get_hash.h: ../mapi/glapi/gen/gl_and_es_API.xml main/get_hash_params.py 	\
-		 $(GET_HASH_GEN) Makefile
+		 $(GET_HASH_GEN)
 	$(AM_V_GEN)set -e;						\
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/$(GET_HASH_GEN)		\
 		-f $< > $@.tmp;						\
 	mv $@.tmp $@;
 
-main/format_info.c: main/formats.csv                                    \
+main/format_info.h: main/formats.csv                                    \
                     main/format_parser.py main/format_info.py
 	$(AM_V_GEN)set -e;						\
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/main/format_info.py        \
@@ -123,7 +122,7 @@ main/format_unpack.c: main/format_unpack.py main/formats.csv	\
 			$(srcdir)/main/formats.csv			\
 		| $(INDENT) $(INDENT_FLAGS) > $@;
 
-main/formats.c: main/format_info.c
+main/formats.c: main/format_info.h
 
 noinst_LTLIBRARIES = $(ARCH_LIBS)
 if NEED_LIBMESA
@@ -136,8 +135,14 @@ noinst_LTLIBRARIES += libmesagallium.la
 endif
 
 AM_CPPFLAGS = $(DEFINES) $(INCLUDE_DIRS)
-AM_CFLAGS = $(LLVM_CFLAGS) $(VISIBILITY_CFLAGS)
-AM_CXXFLAGS = $(LLVM_CFLAGS) $(VISIBILITY_CXXFLAGS)
+AM_CFLAGS = \
+	$(LLVM_CFLAGS) \
+	$(VISIBILITY_CFLAGS) \
+	$(MSVC2013_COMPAT_CFLAGS)
+AM_CXXFLAGS = \
+	$(LLVM_CFLAGS) \
+	$(VISIBILITY_CXXFLAGS) \
+	$(MSVC2013_COMPAT_CXXFLAGS)
 
 ARCH_LIBS =
 

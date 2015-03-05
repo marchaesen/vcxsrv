@@ -217,8 +217,8 @@ comp_to_swizzle(GLenum comp)
 static void
 set_swizzle_component(GLuint *swizzle, GLuint comp, GLuint swz)
 {
-   ASSERT(comp < 4);
-   ASSERT(swz <= SWIZZLE_NIL);
+   assert(comp < 4);
+   assert(swz <= SWIZZLE_NIL);
    {
       GLuint mask = 0x7 << (3 * comp);
       GLuint s = (*swizzle & ~mask) | (swz << (3 * comp));
@@ -537,7 +537,7 @@ set_tex_parameteri(struct gl_context *ctx,
                         "glTex%sParameter(swizzle 0x%x)", suffix, params[0]);
             return GL_FALSE;
          }
-         ASSERT(comp < 4);
+         assert(comp < 4);
 
          flush(ctx);
          texObj->Swizzle[comp] = params[0];

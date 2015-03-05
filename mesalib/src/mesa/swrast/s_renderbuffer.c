@@ -153,7 +153,7 @@ soft_renderbuffer_storage(struct gl_context *ctx, struct gl_renderbuffer *rb,
    }
    else {
       /* the internalFormat should have been error checked long ago */
-      ASSERT(rb->_BaseFormat);
+      assert(rb->_BaseFormat);
    }
 
    return GL_TRUE;

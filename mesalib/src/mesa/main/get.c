@@ -497,12 +497,12 @@ print_table_stats(int api)
    };
    const char *api_name;
 
-   api_name = api < Elements(api_names) ? api_names[api] : "N/A";
+   api_name = api < ARRAY_SIZE(api_names) ? api_names[api] : "N/A";
    count = 0;
-   mask = Elements(table(api)) - 1;
+   mask = ARRAY_SIZE(table(api)) - 1;
    memset(collisions, 0, sizeof collisions);
 
-   for (i = 0; i < Elements(table(api)); i++) {
+   for (i = 0; i < ARRAY_SIZE(table(api)); i++) {
       if (!table(api)[i])
          continue;
       count++;
@@ -523,8 +523,8 @@ print_table_stats(int api)
    }
 
    printf("number of enums for %s: %d (total %ld)\n",
-         api_name, count, Elements(values));
-   for (i = 0; i < Elements(collisions) - 1; i++)
+         api_name, count, ARRAY_SIZE(values));
+   for (i = 0; i < ARRAY_SIZE(collisions) - 1; i++)
       if (collisions[i] > 0)
          printf("  %d enums with %d %scollisions\n",
                collisions[i], i, i == 10 ? "or more " : "");
@@ -758,7 +758,7 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
    case GL_COMPRESSED_TEXTURE_FORMATS_ARB:
       v->value_int_n.n = 
 	 _mesa_get_compressed_formats(ctx, v->value_int_n.ints);
-      ASSERT(v->value_int_n.n <= (int) ARRAY_SIZE(v->value_int_n.ints));
+      assert(v->value_int_n.n <= (int) ARRAY_SIZE(v->value_int_n.ints));
       break;
 
    case GL_MAX_VARYING_FLOATS_ARB:
@@ -1195,11 +1195,11 @@ find_value(const char *func, GLenum pname, void **p, union value *v)
     * value since it's compatible with GLES2 its entry in table_set[] is at the
     * end.
     */
-   STATIC_ASSERT(Elements(table_set) == API_OPENGL_LAST + 2);
+   STATIC_ASSERT(ARRAY_SIZE(table_set) == API_OPENGL_LAST + 2);
    if (_mesa_is_gles3(ctx)) {
       api = API_OPENGL_LAST + 1;
    }
-   mask = Elements(table(api)) - 1;
+   mask = ARRAY_SIZE(table(api)) - 1;
    hash = (pname * prime_factor);
    while (1) {
       int idx = table(api)[hash & mask];

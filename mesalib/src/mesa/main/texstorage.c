@@ -171,7 +171,7 @@ clear_texture_fields(struct gl_context *ctx,
    GLint level;
    GLuint face;
 
-   for (level = 0; level < Elements(texObj->Image[0]); level++) {
+   for (level = 0; level < ARRAY_SIZE(texObj->Image[0]); level++) {
       for (face = 0; face < numFaces; face++) {
          struct gl_texture_image *texImage =
             get_tex_image(ctx, texObj, face, level);

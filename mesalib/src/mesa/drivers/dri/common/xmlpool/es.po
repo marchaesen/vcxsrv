@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: es\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-09-25 22:29-0600\n"
-"PO-Revision-Date: 2014-09-26 14:22-0700\n"
+"POT-Creation-Date: 2015-02-07 02:08-0700\n"
+"PO-Revision-Date: 2015-02-23 14:54-0700\n"
 "Last-Translator: Alex Henrie <alexhenrie24@gmail.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
 "Language: es\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 1.6.9\n"
+"X-Generator: Poedit 1.7.4\n"
 
 #: t_options.h:56
 msgid "Debugging"
@@ -301,11 +301,11 @@ msgstr "Habilitar la extensión GL_ARB_vertex_program"
 
 #: t_options.h:323
 msgid "Miscellaneous"
-msgstr "Misceláneo"
+msgstr "Misceláneos"
 
 #: t_options.h:327
 msgid "Create all visuals with a depth buffer"
-msgstr "Crear todos los visuales con buffer de profundidad"
+msgstr "Crear todos los visuales con búfer de profundidad"
 
 #: t_options.h:337
 msgid "Initialization"
@@ -314,3 +314,19 @@ msgstr "Inicialización"
 #: t_options.h:341
 msgid "Define the graphic device to use if possible"
 msgstr "Define el dispositivo de gráficos que usar si es posible"
+
+#: t_options.h:350
+msgid "Gallium Nine"
+msgstr "Gallium Nine"
+
+#: t_options.h:354
+msgid ""
+"Define the throttling value. -1 for no throttling, -2 for default (usually "
+"2), 0 for glfinish behaviour"
+msgstr ""
+"Define el valor de regulación. -1 para no regular, -2 para el por defecto "
+"(generalmente 2), 0 para el comportamiento de glfinish"
+
+#: t_options.h:359
+msgid "Use an additional thread to submit buffers."
+msgstr "Usar un hilo adicional para entregar los búfer."

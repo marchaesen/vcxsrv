@@ -28,6 +28,22 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "util/u_format_r11g11b10f.h"
 #include "main/varray.h"
 
+
+/* ATTR */
+#define ATTR( A, N, T, V0, V1, V2, V3 ) \
+        ATTR_##T((A), (N), (T), (V0), (V1), (V2), (V3))
+
+#define ATTR_GL_UNSIGNED_INT( A, N, T, V0, V1, V2, V3 ) \
+    ATTR_UNION(A, N, T, UINT_AS_UNION(V0), UINT_AS_UNION(V1), \
+        UINT_AS_UNION(V2), UINT_AS_UNION(V3))
+#define ATTR_GL_INT( A, N, T, V0, V1, V2, V3 ) \
+    ATTR_UNION(A, N, T, INT_AS_UNION(V0), INT_AS_UNION(V1), \
+        INT_AS_UNION(V2), INT_AS_UNION(V3))
+#define ATTR_GL_FLOAT( A, N, T, V0, V1, V2, V3 ) \
+    ATTR_UNION(A, N, T, FLOAT_AS_UNION(V0), FLOAT_AS_UNION(V1),\
+        FLOAT_AS_UNION(V2), FLOAT_AS_UNION(V3))
+
+
 /* float */
 #define ATTR1FV( A, V ) ATTR( A, 1, GL_FLOAT, (V)[0], 0, 0, 1 )
 #define ATTR2FV( A, V ) ATTR( A, 2, GL_FLOAT, (V)[0], (V)[1], 0, 1 )
@@ -41,8 +57,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 /* int */
 #define ATTRI( A, N, X, Y, Z, W) ATTR( A, N, GL_INT, \
-                                       INT_AS_FLT(X), INT_AS_FLT(Y), \
-                                       INT_AS_FLT(Z), INT_AS_FLT(W) )
+                                       X, Y, Z, W )
 
 #define ATTR2IV( A, V ) ATTRI( A, 2, (V)[0], (V)[1], 0, 1 )
 #define ATTR3IV( A, V ) ATTRI( A, 3, (V)[0], (V)[1], (V)[2], 1 )
@@ -56,8 +71,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 /* uint */
 #define ATTRUI( A, N, X, Y, Z, W) ATTR( A, N, GL_UNSIGNED_INT, \
-                                        UINT_AS_FLT(X), UINT_AS_FLT(Y), \
-                                        UINT_AS_FLT(Z), UINT_AS_FLT(W) )
+                                        X, Y, Z, W )
 
 #define ATTR2UIV( A, V ) ATTRUI( A, 2, (V)[0], (V)[1], 0, 1 )
 #define ATTR3UIV( A, V ) ATTRUI( A, 3, (V)[0], (V)[1], (V)[2], 1 )

@@ -523,7 +523,7 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
               GLint *params)
 {
    struct gl_shader_program *shProg
-      = _mesa_lookup_shader_program(ctx, program);
+      = _mesa_lookup_shader_program_err(ctx, program, "glGetProgramiv(program)");
 
    /* Is transform feedback available in this context?
     */
@@ -546,7 +546,6 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
       || _mesa_is_gles3(ctx);
 
    if (!shProg) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glGetProgramiv(program)");
       return;
    }
 
@@ -764,11 +763,25 @@ static void
 get_program_info_log(struct gl_context *ctx, GLuint program, GLsizei bufSize,
                      GLsizei *length, GLchar *infoLog)
 {
-   struct gl_shader_program *shProg = _mesa_lookup_shader_program(ctx, program);
-   if (!shProg) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glGetProgramInfoLog(program)");
+   struct gl_shader_program *shProg;
+
+   /* Section 2.5 GL Errors (page 18) of the OpenGL ES 3.0.4 spec and
+    * section 2.3.1 (Errors) of the OpenGL 4.5 spec say:
+    *
+    *     "If a negative number is provided where an argument of type sizei or
+    *     sizeiptr is specified, an INVALID_VALUE error is generated."
+    */
+   if (bufSize < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glGetProgramInfoLog(bufSize < 0)");
       return;
    }
+
+   shProg = _mesa_lookup_shader_program_err(ctx, program,
+                                            "glGetProgramInfoLog(program)");
+   if (!shProg) {
+      return;
+   }
+
    _mesa_copy_string(infoLog, bufSize, length, shProg->InfoLog);
 }
 
@@ -777,11 +790,24 @@ static void
 get_shader_info_log(struct gl_context *ctx, GLuint shader, GLsizei bufSize,
                     GLsizei *length, GLchar *infoLog)
 {
-   struct gl_shader *sh = _mesa_lookup_shader(ctx, shader);
-   if (!sh) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glGetShaderInfoLog(shader)");
+   struct gl_shader *sh;
+
+   /* Section 2.5 GL Errors (page 18) of the OpenGL ES 3.0.4 spec and
+    * section 2.3.1 (Errors) of the OpenGL 4.5 spec say:
+    *
+    *     "If a negative number is provided where an argument of type sizei or
+    *     sizeiptr is specified, an INVALID_VALUE error is generated."
+    */
+   if (bufSize < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "glGetShaderInfoLog(bufSize < 0)");
       return;
    }
+
+   sh = _mesa_lookup_shader_err(ctx, shader, "glGetShaderInfoLog(shader)");
+   if (!sh) {
+      return;
+   }
+
    _mesa_copy_string(infoLog, bufSize, length, sh->InfoLog);
 }
 
@@ -1713,7 +1739,7 @@ _mesa_GetProgramBinary(GLuint program, GLsizei bufSize, GLsizei *length,
     * Ensure that length always points to valid storage to avoid multiple NULL
     * pointer checks below.
     */
-   if (length != NULL)
+   if (length == NULL)
       length = &length_dummy;
 
 

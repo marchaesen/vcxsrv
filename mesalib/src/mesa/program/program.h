@@ -210,7 +210,7 @@ _mesa_program_enum_to_shader_stage(GLenum v)
    case GL_COMPUTE_PROGRAM_NV:
       return MESA_SHADER_COMPUTE;
    default:
-      ASSERT(0);
+      assert(0);
       return ~0;
    }
 }

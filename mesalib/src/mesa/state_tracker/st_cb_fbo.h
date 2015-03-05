@@ -65,7 +65,7 @@ struct st_renderbuffer
 };
 
 
-static INLINE struct st_renderbuffer *
+static inline struct st_renderbuffer *
 st_renderbuffer(struct gl_renderbuffer *rb)
 {
    return (struct st_renderbuffer *) rb;

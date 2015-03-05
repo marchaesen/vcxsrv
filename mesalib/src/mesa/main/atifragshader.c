@@ -255,7 +255,7 @@ _mesa_BindFragmentShaderATI(GLuint id)
    /* do actual bind */
    ctx->ATIFragmentShader.Current = newProg;
 
-   ASSERT(ctx->ATIFragmentShader.Current);
+   assert(ctx->ATIFragmentShader.Current);
    if (newProg)
       newProg->RefCount++;
 

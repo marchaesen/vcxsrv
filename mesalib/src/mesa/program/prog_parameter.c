@@ -241,8 +241,8 @@ _mesa_add_typed_unnamed_constant(struct gl_program_parameter_list *paramList,
                            GLenum datatype, GLuint *swizzleOut)
 {
    GLint pos;
-   ASSERT(size >= 1);
-   ASSERT(size <= 4);
+   assert(size >= 1);
+   assert(size <= 4);
 
    if (swizzleOut &&
        _mesa_lookup_parameter_constant(paramList, values,
@@ -528,7 +528,7 @@ _mesa_clone_parameter_list(const struct gl_program_parameter_list *list)
       GLuint size = MIN2(p->Size, 4);
       GLint j = _mesa_add_parameter(clone, p->Type, p->Name, size, p->DataType,
                                     list->ParameterValues[i], NULL);
-      ASSERT(j >= 0);
+      assert(j >= 0);
       pCopy = clone->Parameters + j;
       /* copy state indexes */
       if (p->Type == PROGRAM_STATE_VAR) {

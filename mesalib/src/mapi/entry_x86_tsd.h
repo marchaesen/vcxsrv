@@ -25,7 +25,6 @@
  *    Chia-I Wu <olv@lunarg.com>
  */
 
-#include "u_macros.h"
 
 #define X86_ENTRY_SIZE 32
 

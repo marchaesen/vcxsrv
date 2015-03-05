@@ -25,6 +25,9 @@ include Makefile.sources
 
 noinst_LTLIBRARIES = libmesautil.la
 
+AM_CPPFLAGS = \
+	-I$(top_srcdir)/include
+
 libmesautil_la_CPPFLAGS = \
 	$(DEFINES) \
 	-I$(top_srcdir)/include \
@@ -34,7 +37,8 @@ libmesautil_la_CPPFLAGS = \
 	-I$(top_srcdir)/src/gallium/include \
 	-I$(top_srcdir)/src/gallium/auxiliary \
 	$(SHA1_CFLAGS) \
-	$(VISIBILITY_CFLAGS)
+	$(VISIBILITY_CFLAGS) \
+	$(MSVC2008_COMPAT_CFLAGS)
 
 libmesautil_la_SOURCES = \
 	$(MESA_UTIL_FILES) \

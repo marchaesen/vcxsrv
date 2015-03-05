@@ -2249,7 +2249,9 @@ FcParseInclude (FcConfigParse *parse)
     FcChar8	    *s;
     const FcChar8   *attr;
     FcBool	    ignore_missing = FcFalse;
+#ifndef _WIN32
     FcBool	    deprecated = FcFalse;
+#endif
     FcChar8	    *prefix = NULL, *p;
     static FcChar8  *userdir = NULL;
     static FcChar8  *userconf = NULL;
@@ -2263,9 +2265,11 @@ FcParseInclude (FcConfigParse *parse)
     attr = FcConfigGetAttribute (parse, "ignore_missing");
     if (attr && FcConfigLexBool (parse, (FcChar8 *) attr) == FcTrue)
 	ignore_missing = FcTrue;
+#ifndef _WIN32
     attr = FcConfigGetAttribute (parse, "deprecated");
     if (attr && FcConfigLexBool (parse, (FcChar8 *) attr) == FcTrue)
         deprecated = FcTrue;
+#endif
     attr = FcConfigGetAttribute (parse, "prefix");
     if (attr && FcStrCmp (attr, (const FcChar8 *)"xdg") == 0)
     {

@@ -104,9 +104,9 @@ st_bufferobj_subdata(struct gl_context *ctx,
    struct st_buffer_object *st_obj = st_buffer_object(obj);
 
    /* we may be called from VBO code, so double-check params here */
-   ASSERT(offset >= 0);
-   ASSERT(size >= 0);
-   ASSERT(offset + size <= obj->Size);
+   assert(offset >= 0);
+   assert(size >= 0);
+   assert(offset + size <= obj->Size);
 
    if (!size)
       return;
@@ -148,9 +148,9 @@ st_bufferobj_get_subdata(struct gl_context *ctx,
    struct st_buffer_object *st_obj = st_buffer_object(obj);
 
    /* we may be called from VBO code, so double-check params here */
-   ASSERT(offset >= 0);
-   ASSERT(size >= 0);
-   ASSERT(offset + size <= obj->Size);
+   assert(offset >= 0);
+   assert(size >= 0);
+   assert(offset + size <= obj->Size);
 
    if (!size)
       return;

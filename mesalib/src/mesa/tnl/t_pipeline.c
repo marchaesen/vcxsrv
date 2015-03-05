@@ -112,6 +112,84 @@ static GLuint check_output_changes( struct gl_context *ctx )
 #endif
 }
 
+/**
+ * START/END_FAST_MATH macros:
+ *
+ * START_FAST_MATH: Set x86 FPU to faster, 32-bit precision mode (and save
+ *                  original mode to a temporary).
+ * END_FAST_MATH: Restore x86 FPU to original mode.
+ */
+#if defined(__GNUC__) && defined(__i386__)
+/*
+ * Set the x86 FPU control word to guarentee only 32 bits of precision
+ * are stored in registers.  Allowing the FPU to store more introduces
+ * differences between situations where numbers are pulled out of memory
+ * vs. situations where the compiler is able to optimize register usage.
+ *
+ * In the worst case, we force the compiler to use a memory access to
+ * truncate the float, by specifying the 'volatile' keyword.
+ */
+/* Hardware default: All exceptions masked, extended double precision,
+ * round to nearest (IEEE compliant):
+ */
+#define DEFAULT_X86_FPU		0x037f
+/* All exceptions masked, single precision, round to nearest:
+ */
+#define FAST_X86_FPU		0x003f
+/* The fldcw instruction will cause any pending FP exceptions to be
+ * raised prior to entering the block, and we clear any pending
+ * exceptions before exiting the block.  Hence, asm code has free
+ * reign over the FPU while in the fast math block.
+ */
+#if defined(NO_FAST_MATH)
+#define START_FAST_MATH(x)						\
+do {									\
+   static GLuint mask = DEFAULT_X86_FPU;				\
+   __asm__ ( "fnstcw %0" : "=m" (*&(x)) );				\
+   __asm__ ( "fldcw %0" : : "m" (mask) );				\
+} while (0)
+#else
+#define START_FAST_MATH(x)						\
+do {									\
+   static GLuint mask = FAST_X86_FPU;					\
+   __asm__ ( "fnstcw %0" : "=m" (*&(x)) );				\
+   __asm__ ( "fldcw %0" : : "m" (mask) );				\
+} while (0)
+#endif
+/* Restore original FPU mode, and clear any exceptions that may have
+ * occurred in the FAST_MATH block.
+ */
+#define END_FAST_MATH(x)						\
+do {									\
+   __asm__ ( "fnclex ; fldcw %0" : : "m" (*&(x)) );			\
+} while (0)
+
+#elif defined(_MSC_VER) && defined(_M_IX86)
+#define DEFAULT_X86_FPU		0x037f /* See GCC comments above */
+#define FAST_X86_FPU		0x003f /* See GCC comments above */
+#if defined(NO_FAST_MATH)
+#define START_FAST_MATH(x) do {\
+	static GLuint mask = DEFAULT_X86_FPU;\
+	__asm fnstcw word ptr [x]\
+	__asm fldcw word ptr [mask]\
+} while(0)
+#else
+#define START_FAST_MATH(x) do {\
+	static GLuint mask = FAST_X86_FPU;\
+	__asm fnstcw word ptr [x]\
+	__asm fldcw word ptr [mask]\
+} while(0)
+#endif
+#define END_FAST_MATH(x) do {\
+	__asm fnclex\
+	__asm fldcw word ptr [x]\
+} while(0)
+
+#else
+#define START_FAST_MATH(x)  x = 0
+#define END_FAST_MATH(x)  (void)(x)
+#endif
+
 
 void _tnl_run_pipeline( struct gl_context *ctx )
 {

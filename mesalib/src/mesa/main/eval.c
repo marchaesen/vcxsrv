@@ -309,7 +309,7 @@ map1(GLenum target, GLfloat u1, GLfloat u2, GLint ustride,
    GLfloat *pnts;
    struct gl_1d_map *map = NULL;
 
-   ASSERT(type == GL_FLOAT || type == GL_DOUBLE);
+   assert(type == GL_FLOAT || type == GL_DOUBLE);
 
    if (u1 == u2) {
       _mesa_error( ctx, GL_INVALID_VALUE, "glMap1(u1,u2)" );
@@ -391,7 +391,7 @@ map2( GLenum target, GLfloat u1, GLfloat u2, GLint ustride, GLint uorder,
    GLfloat *pnts;
    struct gl_2d_map *map = NULL;
 
-   ASSERT(type == GL_FLOAT || type == GL_DOUBLE);
+   assert(type == GL_FLOAT || type == GL_DOUBLE);
 
    if (u1==u2) {
       _mesa_error( ctx, GL_INVALID_VALUE, "glMap2(u1,u2)" );
@@ -505,7 +505,7 @@ _mesa_GetnMapdvARB( GLenum target, GLenum query, GLsizei bufSize, GLdouble *v )
 
    map1d = get_1d_map(ctx, target);
    map2d = get_2d_map(ctx, target);
-   ASSERT(map1d || map2d);
+   assert(map1d || map2d);
 
    switch (query) {
       case GL_COEFF:
@@ -595,7 +595,7 @@ _mesa_GetnMapfvARB( GLenum target, GLenum query, GLsizei bufSize, GLfloat *v )
 
    map1d = get_1d_map(ctx, target);
    map2d = get_2d_map(ctx, target);
-   ASSERT(map1d || map2d);
+   assert(map1d || map2d);
 
    switch (query) {
       case GL_COEFF:
@@ -687,7 +687,7 @@ _mesa_GetnMapivARB( GLenum target, GLenum query, GLsizei bufSize, GLint *v )
 
    map1d = get_1d_map(ctx, target);
    map2d = get_2d_map(ctx, target);
-   ASSERT(map1d || map2d);
+   assert(map1d || map2d);
 
    switch (query) {
       case GL_COEFF:

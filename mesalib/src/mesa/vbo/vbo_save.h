@@ -40,7 +40,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 struct vbo_save_copied_vtx {
-   GLfloat buffer[VBO_ATTRIB_MAX * 4 * VBO_MAX_COPIED_VERTS];
+   fi_type buffer[VBO_ATTRIB_MAX * 4 * VBO_MAX_COPIED_VERTS];
    GLuint nr;
 };
 
@@ -69,7 +69,7 @@ struct vbo_save_vertex_list {
     * Keep this in regular (non-VBO) memory to avoid repeated
     * map/unmap of the VBO when updating GL current data.
     */
-   GLfloat *current_data;
+   fi_type *current_data;
    GLuint current_size;
 
    GLuint buffer_offset;
@@ -107,7 +107,7 @@ struct vbo_save_vertex_list {
  */
 struct vbo_save_vertex_store {
    struct gl_buffer_object *bufferobj;
-   GLfloat *buffer;
+   fi_type *buffer;
    GLuint used;
    GLuint refcount;
 };
@@ -133,7 +133,7 @@ struct vbo_save_context {
 
    GLboolean out_of_memory;  /**< True if last VBO allocation failed */
 
-   GLfloat *buffer;
+   fi_type *buffer;
    GLuint count;
    GLuint wrap_count;
    GLuint replay_flags;
@@ -144,9 +144,9 @@ struct vbo_save_context {
    struct vbo_save_vertex_store *vertex_store;
    struct vbo_save_primitive_store *prim_store;
 
-   GLfloat *buffer_ptr;		   /* cursor, points into buffer */
-   GLfloat vertex[VBO_ATTRIB_MAX*4];	   /* current values */
-   GLfloat *attrptr[VBO_ATTRIB_MAX];
+   fi_type *buffer_ptr;		   /* cursor, points into buffer */
+   fi_type vertex[VBO_ATTRIB_MAX*4];	   /* current values */
+   fi_type *attrptr[VBO_ATTRIB_MAX];
    GLuint vert_count;
    GLuint max_vert;
    GLboolean dangling_attr_ref;
@@ -155,7 +155,7 @@ struct vbo_save_context {
 
    struct vbo_save_copied_vtx copied;
    
-   GLfloat *current[VBO_ATTRIB_MAX]; /* points into ctx->ListState */
+   fi_type *current[VBO_ATTRIB_MAX]; /* points into ctx->ListState */
    GLubyte *currentsz[VBO_ATTRIB_MAX];
 };
 
@@ -186,7 +186,7 @@ void vbo_save_playback_vertex_list( struct gl_context *ctx, void *data );
 
 void vbo_save_api_init( struct vbo_save_context *save );
 
-GLfloat *
+fi_type *
 vbo_save_map_vertex_store(struct gl_context *ctx,
                           struct vbo_save_vertex_store *vertex_store);
 

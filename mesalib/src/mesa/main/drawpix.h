@@ -26,9 +26,7 @@
 #define DRAWPIX_H
 
 
-#include "compiler.h"
-
-struct _glapi_table;
+#include "glheader.h"
 
 
 void GLAPIENTRY

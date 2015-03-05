@@ -127,7 +127,7 @@ _mesa_readpixels_needs_slow_path(const struct gl_context *ctx, GLenum format,
          _mesa_get_read_renderbuffer_for_format(ctx, format);
    GLenum srcType;
 
-   ASSERT(rb);
+   assert(rb);
 
    /* There are different rules depending on the base format. */
    switch (format) {
@@ -180,7 +180,7 @@ readpixels_can_use_memcpy(const struct gl_context *ctx, GLenum format, GLenum ty
    struct gl_renderbuffer *rb =
          _mesa_get_read_renderbuffer_for_format(ctx, format);
 
-   ASSERT(rb);
+   assert(rb);
 
    if (_mesa_readpixels_needs_slow_path(ctx, format, type, GL_FALSE)) {
       return GL_FALSE;
@@ -313,10 +313,10 @@ read_depth_pixels( struct gl_context *ctx,
       return;
 
    /* clipping should have been done already */
-   ASSERT(x >= 0);
-   ASSERT(y >= 0);
-   ASSERT(x + width <= (GLint) rb->Width);
-   ASSERT(y + height <= (GLint) rb->Height);
+   assert(x >= 0);
+   assert(y >= 0);
+   assert(x + width <= (GLint) rb->Width);
+   assert(y + height <= (GLint) rb->Height);
 
    if (type == GL_UNSIGNED_INT &&
        read_uint_depth_pixels(ctx, x, y, width, height, type, pixels, packing)) {
@@ -594,6 +594,7 @@ read_rgba_pixels( struct gl_context *ctx,
       _mesa_format_convert(dst, dst_format, dst_stride,
                            luminance, luminance_format, luminance_stride,
                            width, height, NULL);
+      free(luminance);
    } else {
       _mesa_pack_luminance_from_rgba_integer(width * height, src, !src_is_uint,
                                              dst, format, type);

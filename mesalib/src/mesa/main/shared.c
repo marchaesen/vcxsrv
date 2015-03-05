@@ -105,7 +105,7 @@ _mesa_alloc_shared_state(struct gl_context *ctx)
          GL_TEXTURE_2D,
          GL_TEXTURE_1D
       };
-      STATIC_ASSERT(Elements(targets) == NUM_TEXTURE_TARGETS);
+      STATIC_ASSERT(ARRAY_SIZE(targets) == NUM_TEXTURE_TARGETS);
       shared->DefaultTex[i] = ctx->Driver.NewTextureObject(ctx, 0, targets[i]);
    }
 
@@ -159,7 +159,7 @@ delete_program_cb(GLuint id, void *data, void *userData)
    struct gl_program *prog = (struct gl_program *) data;
    struct gl_context *ctx = (struct gl_context *) userData;
    if(prog != &_mesa_DummyProgram) {
-      ASSERT(prog->RefCount == 1); /* should only be referenced by hash table */
+      assert(prog->RefCount == 1); /* should only be referenced by hash table */
       prog->RefCount = 0;  /* now going away */
       ctx->Driver.DeleteProgram(ctx, prog);
    }
@@ -223,7 +223,7 @@ delete_shader_cb(GLuint id, void *data, void *userData)
    }
    else {
       struct gl_shader_program *shProg = (struct gl_shader_program *) data;
-      ASSERT(shProg->Type == GL_SHADER_PROGRAM_MESA);
+      assert(shProg->Type == GL_SHADER_PROGRAM_MESA);
       ctx->Driver.DeleteShaderProgram(ctx, shProg);
    }
 }
@@ -346,7 +346,7 @@ free_shared_state(struct gl_context *ctx, struct gl_shared_state *shared)
     * Free texture objects (after FBOs since some textures might have
     * been bound to FBOs).
     */
-   ASSERT(ctx->Driver.DeleteTexture);
+   assert(ctx->Driver.DeleteTexture);
    /* the default textures */
    for (i = 0; i < NUM_TEXTURE_TARGETS; i++) {
       ctx->Driver.DeleteTexture(ctx, shared->DefaultTex[i]);

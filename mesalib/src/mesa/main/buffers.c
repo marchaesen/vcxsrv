@@ -502,7 +502,7 @@ _mesa_drawbuffers(struct gl_context *ctx, GLuint n, const GLenum *buffers,
       GLuint output;
       for (output = 0; output < n; output++) {
          mask[output] = draw_buffer_enum_to_bitmask(ctx, buffers[output]);
-         ASSERT(mask[output] != BAD_MASK);
+         assert(mask[output] != BAD_MASK);
          mask[output] &= supportedMask;
       }
       destMask = mask;
@@ -533,7 +533,7 @@ _mesa_drawbuffers(struct gl_context *ctx, GLuint n, const GLenum *buffers,
          if (destMask[buf]) {
             GLint bufIndex = ffs(destMask[buf]) - 1;
             /* only one bit should be set in the destMask[buf] field */
-            ASSERT(_mesa_bitcount(destMask[buf]) == 1);
+            assert(_mesa_bitcount(destMask[buf]) == 1);
             if (fb->_ColorDrawBufferIndexes[buf] != bufIndex) {
 	       updated_drawbuffers(ctx);
                fb->_ColorDrawBufferIndexes[buf] = bufIndex;

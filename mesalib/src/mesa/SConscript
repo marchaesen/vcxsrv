@@ -10,6 +10,8 @@ from sys import executable as python_cmd
 
 env = env.Clone()
 
+env.MSVC2013Compat()
+
 env.Append(CPPPATH = [
     '#/src',
     '#/src/mapi',
@@ -62,7 +64,7 @@ get_hash_header = env.CodeGenerate(
 )
 
 format_info = env.CodeGenerate(
-      target = 'main/format_info.c',
+      target = 'main/format_info.h',
       script = 'main/format_info.py',
       source = 'main/formats.csv',
       command = python_cmd + ' $SCRIPT ' + ' $SOURCE > $TARGET'

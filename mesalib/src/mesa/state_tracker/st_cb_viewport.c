@@ -39,7 +39,7 @@
  * We'll only return non-null for window system framebuffers.
  * Note that this function may fail.
  */
-static INLINE struct st_framebuffer *
+static inline struct st_framebuffer *
 st_ws_framebuffer(struct gl_framebuffer *fb)
 {
    /* FBO cannot be casted.  See st_new_framebuffer */

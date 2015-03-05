@@ -99,14 +99,14 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 static GLuint
 _save_copy_vertices(struct gl_context *ctx,
                     const struct vbo_save_vertex_list *node,
-                    const GLfloat * src_buffer)
+                    const fi_type * src_buffer)
 {
    struct vbo_save_context *save = &vbo_context(ctx)->save;
    const struct _mesa_prim *prim = &node->prim[node->prim_count - 1];
    GLuint nr = prim->count;
    GLuint sz = save->vertex_size;
-   const GLfloat *src = src_buffer + prim->start * sz;
-   GLfloat *dst = save->copied.buffer;
+   const fi_type *src = src_buffer + prim->start * sz;
+   fi_type *dst = save->copied.buffer;
    GLuint ovf, i;
 
    if (prim->end)
@@ -233,7 +233,7 @@ free_vertex_store(struct gl_context *ctx,
 }
 
 
-GLfloat *
+fi_type *
 vbo_save_map_vertex_store(struct gl_context *ctx,
                           struct vbo_save_vertex_store *vertex_store)
 {
@@ -249,7 +249,7 @@ vbo_save_map_vertex_store(struct gl_context *ctx,
       /* Map the remaining free space in the VBO */
       GLintptr offset = vertex_store->used * sizeof(GLfloat);
       GLsizeiptr size = vertex_store->bufferobj->Size - offset;
-      GLfloat *range = (GLfloat *)
+      fi_type *range = (fi_type *)
          ctx->Driver.MapBufferRange(ctx, offset, size, access,
                                     vertex_store->bufferobj,
                                     MAP_INTERNAL);
@@ -549,7 +549,7 @@ static void
 _save_wrap_filled_vertex(struct gl_context *ctx)
 {
    struct vbo_save_context *save = &vbo_context(ctx)->save;
-   GLfloat *data = save->copied.buffer;
+   fi_type *data = save->copied.buffer;
    GLuint i;
 
    /* Emit a glEnd to close off the last vertex list.
@@ -578,7 +578,7 @@ _save_copy_to_current(struct gl_context *ctx)
    for (i = VBO_ATTRIB_POS + 1; i < VBO_ATTRIB_MAX; i++) {
       if (save->attrsz[i]) {
          save->currentsz[i][0] = save->attrsz[i];
-         COPY_CLEAN_4V_TYPE_AS_FLOAT(save->current[i], save->attrsz[i],
+         COPY_CLEAN_4V_TYPE_AS_UNION(save->current[i], save->attrsz[i],
                                      save->attrptr[i], save->attrtype[i]);
       }
    }
@@ -620,7 +620,7 @@ _save_upgrade_vertex(struct gl_context *ctx, GLuint attr, GLuint newsz)
    struct vbo_save_context *save = &vbo_context(ctx)->save;
    GLuint oldsz;
    GLuint i;
-   GLfloat *tmp;
+   fi_type *tmp;
 
    /* Store the current run of vertices, and emit a GL_END.  Emit a
     * BEGIN in the new buffer.
@@ -669,8 +669,8 @@ _save_upgrade_vertex(struct gl_context *ctx, GLuint attr, GLuint newsz)
     * and will need fixup at runtime.
     */
    if (save->copied.nr) {
-      const GLfloat *data = save->copied.buffer;
-      GLfloat *dest = save->buffer;
+      const fi_type *data = save->copied.buffer;
+      fi_type *dest = save->buffer;
       GLuint j;
 
       /* Need to note this and fix up at runtime (or loopback):
@@ -685,7 +685,7 @@ _save_upgrade_vertex(struct gl_context *ctx, GLuint attr, GLuint newsz)
             if (save->attrsz[j]) {
                if (j == attr) {
                   if (oldsz) {
-                     COPY_CLEAN_4V_TYPE_AS_FLOAT(dest, oldsz, data,
+                     COPY_CLEAN_4V_TYPE_AS_UNION(dest, oldsz, data,
                                                  save->attrtype[j]);
                      data += oldsz;
                      dest += newsz;
@@ -729,7 +729,7 @@ save_fixup_vertex(struct gl_context *ctx, GLuint attr, GLuint sz)
    }
    else if (sz < save->active_sz[attr]) {
       GLuint i;
-      const GLfloat *id = vbo_get_default_vals_as_float(save->attrtype[attr]);
+      const fi_type *id = vbo_get_default_vals_as_union(save->attrtype[attr]);
 
       /* New size is equal or smaller - just need to fill in some
        * zeros.
@@ -772,7 +772,7 @@ _save_reset_vertex(struct gl_context *ctx)
  * 3f version won't otherwise set color[3] to 1.0 -- this is the job
  * of the chooser function when switching between Color4f and Color3f.
  */
-#define ATTR(A, N, T, V0, V1, V2, V3)				\
+#define ATTR_UNION(A, N, T, V0, V1, V2, V3)			\
 do {								\
    struct vbo_save_context *save = &vbo_context(ctx)->save;	\
 								\
@@ -780,12 +780,12 @@ do {								\
       save_fixup_vertex(ctx, A, N);				\
 								\
    {								\
-      GLfloat *dest = save->attrptr[A];				\
+      fi_type *dest = save->attrptr[A];		\
       if (N>0) dest[0] = V0;					\
       if (N>1) dest[1] = V1;					\
       if (N>2) dest[2] = V2;					\
       if (N>3) dest[3] = V3;					\
-      save->attrtype[A] = T;                                    \
+      save->attrtype[A] = T;					\
    }								\
 								\
    if ((A) == 0) {						\
@@ -1564,16 +1564,16 @@ _save_current_init(struct gl_context *ctx)
 
    for (i = VBO_ATTRIB_POS; i <= VBO_ATTRIB_GENERIC15; i++) {
       const GLuint j = i - VBO_ATTRIB_POS;
-      ASSERT(j < VERT_ATTRIB_MAX);
+      assert(j < VERT_ATTRIB_MAX);
       save->currentsz[i] = &ctx->ListState.ActiveAttribSize[j];
-      save->current[i] = ctx->ListState.CurrentAttrib[j];
+      save->current[i] = (fi_type *) ctx->ListState.CurrentAttrib[j];
    }
 
    for (i = VBO_ATTRIB_FIRST_MATERIAL; i <= VBO_ATTRIB_LAST_MATERIAL; i++) {
       const GLuint j = i - VBO_ATTRIB_FIRST_MATERIAL;
-      ASSERT(j < MAT_ATTRIB_MAX);
+      assert(j < MAT_ATTRIB_MAX);
       save->currentsz[i] = &ctx->ListState.ActiveMaterialSize[j];
-      save->current[i] = ctx->ListState.CurrentMaterial[j];
+      save->current[i] = (fi_type *) ctx->ListState.CurrentMaterial[j];
    }
 }
 

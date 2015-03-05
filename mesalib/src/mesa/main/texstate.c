@@ -28,6 +28,7 @@
  * Texture state handling.
  */
 
+#include <stdio.h>
 #include "glheader.h"
 #include "bufferobj.h"
 #include "colormac.h"
@@ -68,8 +69,8 @@ _mesa_copy_texture_state( const struct gl_context *src, struct gl_context *dst )
 {
    GLuint u, tex;
 
-   ASSERT(src);
-   ASSERT(dst);
+   assert(src);
+   assert(dst);
 
    dst->Texture.CurrentUnit = src->Texture.CurrentUnit;
    dst->Texture._GenFlags = src->Texture._GenFlags;
@@ -292,7 +293,7 @@ _mesa_ActiveTexture(GLenum texture)
 
    k = _mesa_max_tex_unit(ctx);
 
-   ASSERT(k <= Elements(ctx->Texture.Unit));
+   assert(k <= ARRAY_SIZE(ctx->Texture.Unit));
 
    if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
       _mesa_debug(ctx, "glActiveTexture %s\n",
@@ -363,7 +364,7 @@ update_texture_matrices( struct gl_context *ctx )
    ctx->Texture._TexMatEnabled = 0x0;
 
    for (u = 0; u < ctx->Const.MaxTextureCoordUnits; u++) {
-      ASSERT(u < Elements(ctx->TextureMatrixStack));
+      assert(u < ARRAY_SIZE(ctx->TextureMatrixStack));
       if (_math_matrix_is_dirty(ctx->TextureMatrixStack[u].Top)) {
 	 _math_matrix_analyse( ctx->TextureMatrixStack[u].Top );
 
@@ -501,7 +502,7 @@ update_texgen(struct gl_context *ctx)
 	 ctx->Texture._GenFlags |= texUnit->_GenFlags;
       }
 
-      ASSERT(unit < Elements(ctx->TextureMatrixStack));
+      assert(unit < ARRAY_SIZE(ctx->TextureMatrixStack));
       if (ctx->TextureMatrixStack[unit].Top->type != MATRIX_IDENTITY)
 	 ctx->Texture._TexMatEnabled |= ENABLE_TEXMAT(unit);
    }
@@ -797,7 +798,7 @@ alloc_proxy_textures( struct gl_context *ctx )
    };
    GLint tgt;
 
-   STATIC_ASSERT(Elements(targets) == NUM_TEXTURE_TARGETS);
+   STATIC_ASSERT(ARRAY_SIZE(targets) == NUM_TEXTURE_TARGETS);
    assert(targets[TEXTURE_2D_INDEX] == GL_TEXTURE_2D);
    assert(targets[TEXTURE_CUBE_INDEX] == GL_TEXTURE_CUBE_MAP);
 
@@ -882,10 +883,19 @@ _mesa_init_texture(struct gl_context *ctx)
     *     "OpenGL ES 3.0 requires that all cube map filtering be
     *     seamless. OpenGL ES 2.0 specified that a single cube map face be
     *     selected and used for filtering."
+    *
+    * Unfortunatley, a call to _mesa_is_gles3 below will only work if
+    * the driver has already computed and set ctx->Version, however drivers
+    * seem to call _mesa_initialize_context (which calls this) early
+    * in the CreateContext hook and _mesa_compute_version much later (since
+    * it needs information about available extensions). So, we will
+    * enable seamless cubemaps by default since GLES2. This should work
+    * for most implementations and drivers that don't support seamless
+    * cubemaps for GLES2 can still disable it.
     */
-   ctx->Texture.CubeMapSeamless = _mesa_is_gles3(ctx);
+   ctx->Texture.CubeMapSeamless = ctx->API == API_OPENGLES2;
 
-   for (u = 0; u < Elements(ctx->Texture.Unit); u++)
+   for (u = 0; u < ARRAY_SIZE(ctx->Texture.Unit); u++)
       init_texture_unit(ctx, u);
 
    /* After we're done initializing the context's texture state the default
@@ -918,7 +928,7 @@ _mesa_free_texture_data(struct gl_context *ctx)
    GLuint u, tgt;
 
    /* unreference current textures */
-   for (u = 0; u < Elements(ctx->Texture.Unit); u++) {
+   for (u = 0; u < ARRAY_SIZE(ctx->Texture.Unit); u++) {
       /* The _Current texture could account for another reference */
       _mesa_reference_texobj(&ctx->Texture.Unit[u]._Current, NULL);
 
@@ -934,7 +944,7 @@ _mesa_free_texture_data(struct gl_context *ctx)
    /* GL_ARB_texture_buffer_object */
    _mesa_reference_buffer_object(ctx, &ctx->Texture.BufferObject, NULL);
 
-   for (u = 0; u < Elements(ctx->Texture.Unit); u++) {
+   for (u = 0; u < ARRAY_SIZE(ctx->Texture.Unit); u++) {
       _mesa_reference_sampler_object(ctx, &ctx->Texture.Unit[u].Sampler, NULL);
    }
 }
@@ -950,7 +960,7 @@ _mesa_update_default_objects_texture(struct gl_context *ctx)
 {
    GLuint u, tex;
 
-   for (u = 0; u < Elements(ctx->Texture.Unit); u++) {
+   for (u = 0; u < ARRAY_SIZE(ctx->Texture.Unit); u++) {
       struct gl_texture_unit *texUnit = &ctx->Texture.Unit[u];
       for (tex = 0; tex < NUM_TEXTURE_TARGETS; tex++) {
          _mesa_reference_texobj(&texUnit->CurrentTex[tex],

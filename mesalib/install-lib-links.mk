@@ -19,6 +19,7 @@ clean-local:
 	for f in $(notdir $(lib_LTLIBRARIES:%.la=.libs/%.$(LIB_EXT)*)); do \
 		$(RM) $(top_builddir)/$(LIB_DIR)/$$f;	\
 	done;
+	$(RM) .install-mesa-links
 
 endif
 endif

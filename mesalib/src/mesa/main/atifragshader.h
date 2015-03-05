@@ -8,10 +8,9 @@
 #ifndef ATIFRAGSHADER_H
 #define ATIFRAGSHADER_H
 
-#include "compiler.h"
 #include "glheader.h"
 
-struct _glapi_table;
+
 struct gl_context;
 
 #define MAX_NUM_INSTRUCTIONS_PER_PASS_ATI 8

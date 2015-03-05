@@ -60,7 +60,7 @@ int driDispatchRemapTable[driDispatchRemapTable_size];
 const char *
 _mesa_get_function_spec(GLint func_index)
 {
-   if (func_index < Elements(_mesa_function_pool))
+   if (func_index < ARRAY_SIZE(_mesa_function_pool))
       return _mesa_function_pool + func_index;
    else
       return NULL;
@@ -197,7 +197,7 @@ _mesa_do_init_remap_table(const char *pool,
       const char *spec;
 
       /* sanity check */
-      ASSERT(i == remap[i].remap_index);
+      assert(i == remap[i].remap_index);
       spec = _mesa_function_pool + remap[i].pool_index;
 
       offset = _mesa_map_function_spec(spec);

@@ -373,7 +373,7 @@ draw_depth_pixels( struct gl_context *ctx, GLint x, GLint y,
       while (skipPixels < width) {
          const GLint spanWidth = MIN2(width - skipPixels, SWRAST_MAX_WIDTH);
          GLint row;
-         ASSERT(span.end <= SWRAST_MAX_WIDTH);
+         assert(span.end <= SWRAST_MAX_WIDTH);
          for (row = 0; row < height; row++) {
             const GLvoid *zSrc = _mesa_image_address2d(unpack,
                                                       pixels, width, height,
@@ -595,8 +595,8 @@ draw_depth_stencil_pixels(struct gl_context *ctx, GLint x, GLint y,
    
    depthRb = ctx->ReadBuffer->Attachment[BUFFER_DEPTH].Renderbuffer;
    stencilRb = ctx->ReadBuffer->Attachment[BUFFER_STENCIL].Renderbuffer;
-   ASSERT(depthRb);
-   ASSERT(stencilRb);
+   assert(depthRb);
+   assert(stencilRb);
 
    if (depthRb == stencilRb &&
        (depthRb->Format == MESA_FORMAT_S8_UINT_Z24_UNORM ||

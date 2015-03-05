@@ -171,25 +171,25 @@ extern GLfloat _mesa_ubyte_to_float_color_tab[256];
 	ub = ((GLubyte) F_TO_I((f) * 255.0F))
 #endif
 
-static inline GLfloat INT_AS_FLT(GLint i)
-{
-   fi_type tmp;
-   tmp.i = i;
-   return tmp.f;
-}
-
-static inline GLfloat UINT_AS_FLT(GLuint u)
+static fi_type UINT_AS_UNION(GLuint u)
 {
    fi_type tmp;
    tmp.u = u;
-   return tmp.f;
+   return tmp;
 }
 
-static inline unsigned FLT_AS_UINT(float f)
+static inline fi_type INT_AS_UNION(GLint i)
+{
+   fi_type tmp;
+   tmp.i = i;
+   return tmp;
+}
+
+static inline fi_type FLOAT_AS_UNION(GLfloat f)
 {
    fi_type tmp;
    tmp.f = f;
-   return tmp.u;
+   return tmp;
 }
 
 /**
@@ -604,24 +604,26 @@ do {				\
  * The default values are chosen based on \p type.
  */
 static inline void
-COPY_CLEAN_4V_TYPE_AS_FLOAT(GLfloat dst[4], int sz, const GLfloat src[4],
+COPY_CLEAN_4V_TYPE_AS_UNION(fi_type dst[4], int sz, const fi_type src[4],
                             GLenum type)
 {
    switch (type) {
    case GL_FLOAT:
-      ASSIGN_4V(dst, 0, 0, 0, 1);
+      ASSIGN_4V(dst, FLOAT_AS_UNION(0), FLOAT_AS_UNION(0),
+                FLOAT_AS_UNION(0), FLOAT_AS_UNION(1));
       break;
    case GL_INT:
-      ASSIGN_4V(dst, INT_AS_FLT(0), INT_AS_FLT(0),
-                     INT_AS_FLT(0), INT_AS_FLT(1));
+      ASSIGN_4V(dst, INT_AS_UNION(0), INT_AS_UNION(0),
+                INT_AS_UNION(0), INT_AS_UNION(1));
       break;
    case GL_UNSIGNED_INT:
-      ASSIGN_4V(dst, UINT_AS_FLT(0), UINT_AS_FLT(0),
-                     UINT_AS_FLT(0), UINT_AS_FLT(1));
+      ASSIGN_4V(dst, UINT_AS_UNION(0), UINT_AS_UNION(0),
+                UINT_AS_UNION(0), UINT_AS_UNION(1));
       break;
    default:
-      ASSIGN_4V(dst, 0.0f, 0.0f, 0.0f, 1.0f); /* silence warnings */
-      ASSERT(!"Unexpected type in COPY_CLEAN_4V_TYPE_AS_FLOAT macro");
+      ASSIGN_4V(dst, FLOAT_AS_UNION(0), FLOAT_AS_UNION(0),
+                FLOAT_AS_UNION(0), FLOAT_AS_UNION(1)); /* silence warnings */
+      assert(!"Unexpected type in COPY_CLEAN_4V_TYPE_AS_UNION macro");
    }
    COPY_SZ_4V(dst, sz, src);
 }
@@ -775,7 +777,7 @@ NORMALIZE_3FV(GLfloat v[3])
 {
    GLfloat len = (GLfloat) LEN_SQUARED_3FV(v);
    if (len) {
-      len = INV_SQRTF(len);
+      len = 1.0f / sqrtf(len);
       v[0] *= len;
       v[1] *= len;
       v[2] *= len;
@@ -801,10 +803,6 @@ DIFFERENT_SIGNS(GLfloat x, GLfloat y)
 #define ENUM_TO_DOUBLE(E)  ((GLdouble)(GLint)(E))
 #define ENUM_TO_BOOLEAN(E) ((E) ? GL_TRUE : GL_FALSE)
 
-/* Compute the size of an array */
-#ifndef ARRAY_SIZE
-#  define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
-#endif
 
 /* Stringify */
 #define STRINGIFY(x) #x

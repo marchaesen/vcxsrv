@@ -50,18 +50,20 @@ struct interface_block_definition
     * represents either the interface instance (for named interfaces), or a
     * member of the interface (for unnamed interfaces).
     */
-   explicit interface_block_definition(const ir_variable *var)
-      : type(var->get_interface_type()),
-        instance_name(NULL),
-        array_size(-1)
+   explicit interface_block_definition(ir_variable *var)
+      : var(var),
+        type(var->get_interface_type()),
+        instance_name(NULL)
    {
       if (var->is_interface_instance()) {
          instance_name = var->name;
-         if (var->type->is_array())
-            array_size = var->type->length;
       }
       explicitly_declared = (var->data.how_declared != ir_var_declared_implicitly);
    }
+   /**
+    * Interface block ir_variable
+    */
+   ir_variable *var;
 
    /**
     * Interface block type
@@ -72,12 +74,6 @@ struct interface_block_definition
     * For a named interface block, the instance name.  Otherwise NULL.
     */
    const char *instance_name;
-
-   /**
-    * For an interface block array, the array size (or 0 if unsized).
-    * Otherwise -1.
-    */
-   int array_size;
 
    /**
     * True if this interface block was explicitly declared in the shader;
@@ -95,7 +91,8 @@ struct interface_block_definition
 bool
 intrastage_match(interface_block_definition *a,
                  const interface_block_definition *b,
-                 ir_variable_mode mode)
+                 ir_variable_mode mode,
+                 struct gl_shader_program *prog)
 {
    /* Types must match. */
    if (a->type != b->type) {
@@ -120,18 +117,13 @@ intrastage_match(interface_block_definition *a,
       return false;
    }
 
-   /* Array vs. nonarray must be consistent, and sizes must be
-    * consistent, with the exception that unsized arrays match sized
-    * arrays.
+   /* If a block is an array then it must match across the shader.
+    * Unsized arrays are also processed and matched agaist sized arrays.
     */
-   if ((a->array_size == -1) != (b->array_size == -1))
+   if (b->var->type != a->var->type &&
+       (b->instance_name != NULL || a->instance_name != NULL) &&
+       !validate_intrastage_arrays(prog, b->var, a->var))
       return false;
-   if (b->array_size != 0) {
-      if (a->array_size == 0)
-         a->array_size = b->array_size;
-      else if (a->array_size != b->array_size)
-         return false;
-   }
 
    return true;
 }
@@ -153,8 +145,8 @@ interstage_match(const interface_block_definition *producer,
    /* Unsized arrays should not occur during interstage linking.  They
     * should have all been assigned a size by link_intrastage_shaders.
     */
-   assert(consumer->array_size != 0);
-   assert(producer->array_size != 0);
+   assert(!consumer->var->type->is_unsized_array());
+   assert(!producer->var->type->is_unsized_array());
 
    /* Types must match. */
    if (consumer->type != producer->type) {
@@ -165,20 +157,27 @@ interstage_match(const interface_block_definition *producer,
       if (consumer->explicitly_declared || producer->explicitly_declared)
          return false;
    }
+
+   /* Ignore outermost array if geom shader */
+   const glsl_type *consumer_instance_type;
    if (extra_array_level) {
-      /* Consumer must be an array, and producer must not. */
-      if (consumer->array_size == -1)
-         return false;
-      if (producer->array_size != -1)
-         return false;
+      consumer_instance_type = consumer->var->type->fields.array;
    } else {
-      /* Array vs. nonarray must be consistent, and sizes must be consistent.
-       * Since unsized arrays have been ruled out, we can check this by just
-       * making sure the sizes are equal.
-       */
-      if (consumer->array_size != producer->array_size)
+      consumer_instance_type = consumer->var->type;
+   }
+
+   /* If a block is an array then it must match across shaders.
+    * Since unsized arrays have been ruled out, we can check this by just
+    * making sure the types are equal.
+    */
+   if ((consumer->instance_name != NULL &&
+        consumer_instance_type->is_array()) ||
+       (producer->instance_name != NULL &&
+        producer->var->type->is_array())) {
+      if (consumer_instance_type != producer->var->type)
          return false;
    }
+
    return true;
 }
 
@@ -298,7 +297,8 @@ validate_intrastage_interface_blocks(struct gl_shader_program *prog,
              */
             definitions->store(def);
          } else if (!intrastage_match(prev_def, &def,
-                                      (ir_variable_mode) var->data.mode)) {
+                                      (ir_variable_mode) var->data.mode,
+                                      prog)) {
             linker_error(prog, "definitions of interface block `%s' do not"
                          " match\n", iface_type->name);
             return;
@@ -374,7 +374,7 @@ validate_interstage_uniform_blocks(struct gl_shader_program *prog,
              * uniform matchin rules (for uniforms, it is as though all
              * shaders are in the same shader stage).
              */
-            if (!intrastage_match(old_def, &new_def, ir_var_uniform)) {
+            if (!intrastage_match(old_def, &new_def, ir_var_uniform, prog)) {
                linker_error(prog, "definitions of interface block `%s' do not "
                             "match\n", var->get_interface_type()->name);
                return;

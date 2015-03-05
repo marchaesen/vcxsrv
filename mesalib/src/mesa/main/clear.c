@@ -218,7 +218,7 @@ _mesa_Clear( GLbitfield mask )
          bufferMask |= BUFFER_BIT_ACCUM;
       }
 
-      ASSERT(ctx->Driver.Clear);
+      assert(ctx->Driver.Clear);
       ctx->Driver.Clear(ctx, bufferMask);
    }
 }

@@ -1548,7 +1548,7 @@ _ae_update_state(struct gl_context *ctx)
           */
          at->array = attribArray;
          at->binding = &vao->VertexBinding[attribArray->VertexBinding];
-         ASSERT(!at->array->Normalized);
+         assert(!at->array->Normalized);
          at->func = AttribFuncsNV[at->array->Normalized]
                                  [at->array->Size-1]
                                  [TYPE_IDX(at->array->Type)];
@@ -1610,8 +1610,8 @@ _ae_update_state(struct gl_context *ctx)
 
    check_vbo(actx, vao->IndexBufferObj);
 
-   ASSERT(at - actx->attribs <= VERT_ATTRIB_MAX);
-   ASSERT(aa - actx->arrays < 32);
+   assert(at - actx->attribs <= VERT_ATTRIB_MAX);
+   assert(aa - actx->arrays < 32);
    at->func = NULL;  /* terminate the list */
    aa->offset = -1;  /* terminate the list */
 

@@ -257,9 +257,9 @@ extract_uint_indexes(GLuint n, GLuint indexes[],
                      GLenum srcFormat, GLenum srcType, const GLvoid *src,
                      const struct gl_pixelstore_attrib *unpack )
 {
-   ASSERT(srcFormat == GL_COLOR_INDEX || srcFormat == GL_STENCIL_INDEX);
+   assert(srcFormat == GL_COLOR_INDEX || srcFormat == GL_STENCIL_INDEX);
 
-   ASSERT(srcType == GL_BITMAP ||
+   assert(srcType == GL_BITMAP ||
           srcType == GL_UNSIGNED_BYTE ||
           srcType == GL_BYTE ||
           srcType == GL_UNSIGNED_SHORT ||
@@ -503,7 +503,7 @@ _mesa_unpack_stencil_span( struct gl_context *ctx, GLuint n,
                            const struct gl_pixelstore_attrib *srcPacking,
                            GLbitfield transferOps )
 {
-   ASSERT(srcType == GL_BITMAP ||
+   assert(srcType == GL_BITMAP ||
           srcType == GL_UNSIGNED_BYTE ||
           srcType == GL_BYTE ||
           srcType == GL_UNSIGNED_SHORT ||
@@ -516,7 +516,7 @@ _mesa_unpack_stencil_span( struct gl_context *ctx, GLuint n,
           srcType == GL_FLOAT ||
           srcType == GL_FLOAT_32_UNSIGNED_INT_24_8_REV);
 
-   ASSERT(dstType == GL_UNSIGNED_BYTE ||
+   assert(dstType == GL_UNSIGNED_BYTE ||
           dstType == GL_UNSIGNED_SHORT ||
           dstType == GL_UNSIGNED_INT ||
           dstType == GL_FLOAT_32_UNSIGNED_INT_24_8_REV);
@@ -988,7 +988,7 @@ _mesa_unpack_depth_span( struct gl_context *ctx, GLuint n,
    else if (dstType == GL_UNSIGNED_SHORT) {
       GLushort *zValues = (GLushort *) dest;
       GLuint i;
-      ASSERT(depthMax <= 0xffff);
+      assert(depthMax <= 0xffff);
       for (i = 0; i < n; i++) {
          zValues[i] = (GLushort) (depthValues[i] * (GLfloat) depthMax);
       }
@@ -1004,7 +1004,7 @@ _mesa_unpack_depth_span( struct gl_context *ctx, GLuint n,
       }
    }
    else {
-      ASSERT(0);
+      assert(0);
    }
 
    free(depthTemp);
@@ -1487,20 +1487,20 @@ _mesa_pack_luminance_from_rgba_integer(GLuint n,
          case GL_UNSIGNED_BYTE: {
             GLbyte *dst = (GLbyte *) dstAddr;
             dst[i] = lum32;
+            break;
          }
-         break;
          case GL_SHORT:
          case GL_UNSIGNED_SHORT: {
             GLshort *dst = (GLshort *) dstAddr;
             dst[i] = lum32;
+            break;
          }
-         break;
          case GL_INT:
          case GL_UNSIGNED_INT: {
             GLint *dst = (GLint *) dstAddr;
             dst[i] = lum32;
+            break;
          }
-         break;
          }
       }
       return;
@@ -1525,21 +1525,22 @@ _mesa_pack_luminance_from_rgba_integer(GLuint n,
             GLbyte *dst = (GLbyte *) dstAddr;
             dst[2*i] = lum32;
             dst[2*i+1] = alpha;
+            break;
          }
          case GL_SHORT:
          case GL_UNSIGNED_SHORT: {
             GLshort *dst = (GLshort *) dstAddr;
             dst[i] = lum32;
             dst[2*i+1] = alpha;
+            break;
          }
-         break;
          case GL_INT:
          case GL_UNSIGNED_INT: {
             GLint *dst = (GLint *) dstAddr;
             dst[i] = lum32;
             dst[2*i+1] = alpha;
+            break;
          }
-         break;
          }
       }
       return;

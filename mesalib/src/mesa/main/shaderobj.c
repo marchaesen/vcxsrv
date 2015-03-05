@@ -67,7 +67,7 @@ _mesa_reference_shader(struct gl_context *ctx, struct gl_shader **ptr,
       GLboolean deleteFlag = GL_FALSE;
       struct gl_shader *old = *ptr;
 
-      ASSERT(old->RefCount > 0);
+      assert(old->RefCount > 0);
       old->RefCount--;
       /*printf("SHADER DECR %p (%d) to %d\n",
         (void*) old, old->Name, old->RefCount);*/
@@ -207,7 +207,7 @@ _mesa_reference_shader_program_(struct gl_context *ctx,
       GLboolean deleteFlag = GL_FALSE;
       struct gl_shader_program *old = *ptr;
 
-      ASSERT(old->RefCount > 0);
+      assert(old->RefCount > 0);
       old->RefCount--;
 #if 0
       printf("ShaderProgram %p ID=%u  RefCount-- to %d\n",

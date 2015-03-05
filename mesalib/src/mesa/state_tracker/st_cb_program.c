@@ -143,11 +143,6 @@ st_delete_program(struct gl_context *ctx, struct gl_program *prog)
          
          if (stgp->glsl_to_tgsi)
             free_glsl_to_tgsi_visitor(stgp->glsl_to_tgsi);
-
-         if (stgp->tgsi.tokens) {
-            st_free_tokens((void *) stgp->tgsi.tokens);
-            stgp->tgsi.tokens = NULL;
-         }
       }
       break;
    case GL_FRAGMENT_PROGRAM_ARB:
@@ -206,11 +201,6 @@ st_program_string_notify( struct gl_context *ctx,
       struct st_geometry_program *stgp = (struct st_geometry_program *) prog;
 
       st_release_gp_variants(st, stgp);
-
-      if (stgp->tgsi.tokens) {
-         st_free_tokens((void *) stgp->tgsi.tokens);
-         stgp->tgsi.tokens = NULL;
-      }
 
       if (st->gp == stgp)
 	 st->dirty.st |= ST_NEW_GEOMETRY_PROGRAM;

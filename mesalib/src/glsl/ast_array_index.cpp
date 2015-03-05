@@ -83,11 +83,9 @@ update_max_array_access(ir_rvalue *ir, int idx, YYLTYPE *loc,
 
       if (deref_var != NULL) {
          if (deref_var->var->is_interface_instance()) {
-            const glsl_type *interface_type =
-               deref_var->var->get_interface_type();
             unsigned field_index =
                deref_record->record->type->field_index(deref_record->field);
-            assert(field_index < interface_type->length);
+            assert(field_index < deref_var->var->get_interface_type()->length);
 
             unsigned *const max_ifc_array_access =
                deref_var->var->get_max_ifc_array_access();

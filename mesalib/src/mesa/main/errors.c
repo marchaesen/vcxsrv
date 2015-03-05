@@ -28,6 +28,8 @@
  */
 
 
+#include <stdarg.h>
+#include <stdio.h>
 #include "errors.h"
 #include "enums.h"
 #include "imports.h"
@@ -136,7 +138,7 @@ gl_enum_to_debug_source(GLenum e)
 {
    unsigned i;
 
-   for (i = 0; i < Elements(debug_source_enums); i++) {
+   for (i = 0; i < ARRAY_SIZE(debug_source_enums); i++) {
       if (debug_source_enums[i] == e)
          break;
    }
@@ -148,7 +150,7 @@ gl_enum_to_debug_type(GLenum e)
 {
    unsigned i;
 
-   for (i = 0; i < Elements(debug_type_enums); i++) {
+   for (i = 0; i < ARRAY_SIZE(debug_type_enums); i++) {
       if (debug_type_enums[i] == e)
          break;
    }
@@ -160,7 +162,7 @@ gl_enum_to_debug_severity(GLenum e)
 {
    unsigned i;
 
-   for (i = 0; i < Elements(debug_severity_enums); i++) {
+   for (i = 0; i < ARRAY_SIZE(debug_severity_enums); i++) {
       if (debug_severity_enums[i] == e)
          break;
    }
@@ -1465,7 +1467,7 @@ _mesa_error( struct gl_context *ctx, GLenum error, const char *fmtString, ... )
          /* Too long error message. Whoever calls _mesa_error should use
           * shorter strings.
           */
-         ASSERT(0);
+         assert(0);
          return;
       }
 
@@ -1473,7 +1475,7 @@ _mesa_error( struct gl_context *ctx, GLenum error, const char *fmtString, ... )
                            _mesa_lookup_enum_by_nr(error), s);
       if (len >= MAX_DEBUG_MESSAGE_LENGTH) {
          /* Same as above. */
-         ASSERT(0);
+         assert(0);
          return;
       }
 

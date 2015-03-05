@@ -1018,7 +1018,7 @@ void
 ir_to_mesa_visitor::visit(ir_expression *ir)
 {
    unsigned int operand;
-   src_reg op[Elements(ir->operands)];
+   src_reg op[ARRAY_SIZE(ir->operands)];
    src_reg result_src;
    dst_reg result_dst;
 

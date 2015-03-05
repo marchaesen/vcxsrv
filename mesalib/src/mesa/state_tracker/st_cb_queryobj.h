@@ -49,7 +49,7 @@ struct st_query_object
 /**
  * Cast wrapper
  */
-static INLINE struct st_query_object *
+static inline struct st_query_object *
 st_query_object(struct gl_query_object *q)
 {
    return (struct st_query_object *) q;

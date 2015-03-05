@@ -114,7 +114,7 @@ _mesa_shader_enum_to_shader_stage(GLenum v)
    case GL_COMPUTE_SHADER:
       return MESA_SHADER_COMPUTE;
    default:
-      ASSERT(0 && "bad value in _mesa_shader_enum_to_shader_stage()");
+      assert(0 && "bad value in _mesa_shader_enum_to_shader_stage()");
       return MESA_SHADER_VERTEX;
    }
 }

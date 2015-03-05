@@ -23,7 +23,7 @@
  */
 
 
-
+#include "c99_math.h"
 #include "main/glheader.h"
 #include "main/colormac.h"
 #include "main/light.h"
@@ -123,7 +123,7 @@ validate_shine_table( struct gl_context *ctx, GLuint side, GLfloat shininess )
    struct tnl_shine_tab *list = tnl->_ShineTabList;
    struct tnl_shine_tab *s;
 
-   ASSERT(side < 2);
+   assert(side < 2);
 
    foreach(s, list)
       if ( s->shininess == shininess )

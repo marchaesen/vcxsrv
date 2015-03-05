@@ -23,6 +23,7 @@
  */
 
 
+#include "c99_math.h"
 #include "main/glheader.h"
 #include "main/imports.h"
 #include "main/macros.h"
@@ -203,7 +204,7 @@ compute_lambda(const GLfloat sPlane[4], const GLfloat tPlane[4],
    if (rho2 == 0.0F)
       return 0.0;
    else
-      return (GLfloat) (LOGF(rho2) * 1.442695 * 0.5);/* 1.442695 = 1/log(2) */
+      return logf(rho2) * 1.442695f * 0.5f;/* 1.442695 = 1/log(2) */
 }
 
 
@@ -477,7 +478,7 @@ _swrast_choose_aa_line_function(struct gl_context *ctx)
 {
    SWcontext *swrast = SWRAST_CONTEXT(ctx);
 
-   ASSERT(ctx->Line.SmoothFlag);
+   assert(ctx->Line.SmoothFlag);
 
    if (ctx->Texture._EnabledCoordUnits != 0
        || _swrast_use_fragment_program(ctx)

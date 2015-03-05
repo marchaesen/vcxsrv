@@ -25,6 +25,8 @@
  *    Keith Whitwell <keithw@vmware.com>
  */
 
+#include <stdio.h>
+
 #include "main/glheader.h"
 #include "main/context.h"
 #include "main/colormac.h"

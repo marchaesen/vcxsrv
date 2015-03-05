@@ -28,7 +28,6 @@
 #ifndef _ENTRY_H_
 #define _ENTRY_H_
 
-#include "u_compiler.h"
 
 typedef void (*mapi_func)(void);
 

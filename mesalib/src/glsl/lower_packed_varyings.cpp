@@ -146,7 +146,11 @@
 
 #include "glsl_symbol_table.h"
 #include "ir.h"
+#include "ir_builder.h"
 #include "ir_optimization.h"
+#include "program/prog_instruction.h"
+
+using namespace ir_builder;
 
 namespace {
 
@@ -163,13 +167,14 @@ public:
    lower_packed_varyings_visitor(void *mem_ctx, unsigned locations_used,
                                  ir_variable_mode mode,
                                  unsigned gs_input_vertices,
-                                 exec_list *out_instructions);
+                                 exec_list *out_instructions,
+                                 exec_list *out_variables);
 
    void run(exec_list *instructions);
 
 private:
-   ir_assignment *bitwise_assign_pack(ir_rvalue *lhs, ir_rvalue *rhs);
-   ir_assignment *bitwise_assign_unpack(ir_rvalue *lhs, ir_rvalue *rhs);
+   void bitwise_assign_pack(ir_rvalue *lhs, ir_rvalue *rhs);
+   void bitwise_assign_unpack(ir_rvalue *lhs, ir_rvalue *rhs);
    unsigned lower_rvalue(ir_rvalue *rvalue, unsigned fine_location,
                          ir_variable *unpacked_var, const char *name,
                          bool gs_input_toplevel, unsigned vertex_index);
@@ -221,13 +226,19 @@ private:
     * appropriate place in the shader once the visitor has finished running.
     */
    exec_list *out_instructions;
+
+   /**
+    * Exec list into which the visitor should insert any new variables.
+    */
+   exec_list *out_variables;
 };
 
 } /* anonymous namespace */
 
 lower_packed_varyings_visitor::lower_packed_varyings_visitor(
       void *mem_ctx, unsigned locations_used, ir_variable_mode mode,
-      unsigned gs_input_vertices, exec_list *out_instructions)
+      unsigned gs_input_vertices, exec_list *out_instructions,
+      exec_list *out_variables)
    : mem_ctx(mem_ctx),
      locations_used(locations_used),
      packed_varyings((ir_variable **)
@@ -235,7 +246,8 @@ lower_packed_varyings_visitor::lower_packed_varyings_visitor(
                                         locations_used)),
      mode(mode),
      gs_input_vertices(gs_input_vertices),
-     out_instructions(out_instructions)
+     out_instructions(out_instructions),
+     out_variables(out_variables)
 {
 }
 
@@ -274,6 +286,7 @@ lower_packed_varyings_visitor::run(exec_list *instructions)
    }
 }
 
+#define SWIZZLE_ZWZW MAKE_SWIZZLE4(SWIZZLE_Z, SWIZZLE_W, SWIZZLE_Z, SWIZZLE_W)
 
 /**
  * Make an ir_assignment from \c rhs to \c lhs, performing appropriate
@@ -281,7 +294,7 @@ lower_packed_varyings_visitor::run(exec_list *instructions)
  *
  * This function is called when packing varyings.
  */
-ir_assignment *
+void
 lower_packed_varyings_visitor::bitwise_assign_pack(ir_rvalue *lhs,
                                                    ir_rvalue *rhs)
 {
@@ -300,12 +313,28 @@ lower_packed_varyings_visitor::bitwise_assign_pack(ir_rvalue *lhs,
          rhs = new(this->mem_ctx)
             ir_expression(ir_unop_bitcast_f2i, lhs->type, rhs);
          break;
+      case GLSL_TYPE_DOUBLE:
+         assert(rhs->type->vector_elements <= 2);
+         if (rhs->type->vector_elements == 2) {
+            ir_variable *t = new(mem_ctx) ir_variable(lhs->type, "pack", ir_var_temporary);
+
+            assert(lhs->type->vector_elements == 4);
+            this->out_variables->push_tail(t);
+            this->out_instructions->push_tail(
+                  assign(t, u2i(expr(ir_unop_unpack_double_2x32, swizzle_x(rhs->clone(mem_ctx, NULL)))), 0x3));
+            this->out_instructions->push_tail(
+                  assign(t,  u2i(expr(ir_unop_unpack_double_2x32, swizzle_y(rhs))), 0xc));
+            rhs = deref(t).val;
+         } else {
+            rhs = u2i(expr(ir_unop_unpack_double_2x32, rhs));
+         }
+         break;
       default:
          assert(!"Unexpected type conversion while lowering varyings");
          break;
       }
    }
-   return new(this->mem_ctx) ir_assignment(lhs, rhs);
+   this->out_instructions->push_tail(new (this->mem_ctx) ir_assignment(lhs, rhs));
 }
 
 
@@ -315,7 +344,7 @@ lower_packed_varyings_visitor::bitwise_assign_pack(ir_rvalue *lhs,
  *
  * This function is called when unpacking varyings.
  */
-ir_assignment *
+void
 lower_packed_varyings_visitor::bitwise_assign_unpack(ir_rvalue *lhs,
                                                      ir_rvalue *rhs)
 {
@@ -334,12 +363,27 @@ lower_packed_varyings_visitor::bitwise_assign_unpack(ir_rvalue *lhs,
          rhs = new(this->mem_ctx)
             ir_expression(ir_unop_bitcast_i2f, lhs->type, rhs);
          break;
+      case GLSL_TYPE_DOUBLE:
+         assert(lhs->type->vector_elements <= 2);
+         if (lhs->type->vector_elements == 2) {
+            ir_variable *t = new(mem_ctx) ir_variable(lhs->type, "unpack", ir_var_temporary);
+            assert(rhs->type->vector_elements == 4);
+            this->out_variables->push_tail(t);
+            this->out_instructions->push_tail(
+                  assign(t, expr(ir_unop_pack_double_2x32, i2u(swizzle_xy(rhs->clone(mem_ctx, NULL)))), 0x1));
+            this->out_instructions->push_tail(
+                  assign(t, expr(ir_unop_pack_double_2x32, i2u(swizzle(rhs->clone(mem_ctx, NULL), SWIZZLE_ZWZW, 2))), 0x2));
+            rhs = deref(t).val;
+         } else {
+            rhs = expr(ir_unop_pack_double_2x32, i2u(rhs));
+         }
+         break;
       default:
          assert(!"Unexpected type conversion while lowering varyings");
          break;
       }
    }
-   return new(this->mem_ctx) ir_assignment(lhs, rhs);
+   this->out_instructions->push_tail(new(this->mem_ctx) ir_assignment(lhs, rhs));
 }
 
 
@@ -372,6 +416,7 @@ lower_packed_varyings_visitor::lower_rvalue(ir_rvalue *rvalue,
                                             bool gs_input_toplevel,
                                             unsigned vertex_index)
 {
+   unsigned dmul = rvalue->type->is_double() ? 2 : 1;
    /* When gs_input_toplevel is set, we should be looking at a geometry shader
     * input array.
     */
@@ -405,17 +450,26 @@ lower_packed_varyings_visitor::lower_rvalue(ir_rvalue *rvalue,
       return this->lower_arraylike(rvalue, rvalue->type->matrix_columns,
                                    fine_location, unpacked_var, name,
                                    false, vertex_index);
-   } else if (rvalue->type->vector_elements + fine_location % 4 > 4) {
+   } else if (rvalue->type->vector_elements * dmul +
+              fine_location % 4 > 4) {
       /* This vector is going to be "double parked" across two varying slots,
-       * so handle it as two separate assignments.
+       * so handle it as two separate assignments. For doubles, a dvec3/dvec4
+       * can end up being spread over 3 slots. However the second splitting
+       * will happen later, here we just always want to split into 2.
        */
-      unsigned left_components = 4 - fine_location % 4;
-      unsigned right_components
-         = rvalue->type->vector_elements - left_components;
+      unsigned left_components, right_components;
       unsigned left_swizzle_values[4] = { 0, 0, 0, 0 };
       unsigned right_swizzle_values[4] = { 0, 0, 0, 0 };
       char left_swizzle_name[4] = { 0, 0, 0, 0 };
       char right_swizzle_name[4] = { 0, 0, 0, 0 };
+
+      left_components = 4 - fine_location % 4;
+      if (rvalue->type->is_double()) {
+         /* We might actually end up with 0 left components! */
+         left_components /= 2;
+      }
+      right_components = rvalue->type->vector_elements - left_components;
+
       for (unsigned i = 0; i < left_components; i++) {
          left_swizzle_values[i] = i;
          left_swizzle_name[i] = "xyzw"[i];
@@ -433,9 +487,13 @@ lower_packed_varyings_visitor::lower_rvalue(ir_rvalue *rvalue,
          = ralloc_asprintf(this->mem_ctx, "%s.%s", name, left_swizzle_name);
       char *right_name
          = ralloc_asprintf(this->mem_ctx, "%s.%s", name, right_swizzle_name);
-      fine_location = this->lower_rvalue(left_swizzle, fine_location,
-                                         unpacked_var, left_name, false,
-                                         vertex_index);
+      if (left_components)
+         fine_location = this->lower_rvalue(left_swizzle, fine_location,
+                                            unpacked_var, left_name, false,
+                                            vertex_index);
+      else
+         /* Top up the fine location to the next slot */
+         fine_location++;
       return this->lower_rvalue(right_swizzle, fine_location, unpacked_var,
                                 right_name, false, vertex_index);
    } else {
@@ -443,7 +501,7 @@ lower_packed_varyings_visitor::lower_rvalue(ir_rvalue *rvalue,
        * varying.
        */
       unsigned swizzle_values[4] = { 0, 0, 0, 0 };
-      unsigned components = rvalue->type->vector_elements;
+      unsigned components = rvalue->type->vector_elements * dmul;
       unsigned location = fine_location / 4;
       unsigned location_frac = fine_location % 4;
       for (unsigned i = 0; i < components; ++i)
@@ -454,13 +512,9 @@ lower_packed_varyings_visitor::lower_rvalue(ir_rvalue *rvalue,
       ir_swizzle *swizzle = new(this->mem_ctx)
          ir_swizzle(packed_deref, swizzle_values, components);
       if (this->mode == ir_var_shader_out) {
-         ir_assignment *assignment
-            = this->bitwise_assign_pack(swizzle, rvalue);
-         this->out_instructions->push_tail(assignment);
+         this->bitwise_assign_pack(swizzle, rvalue);
       } else {
-         ir_assignment *assignment
-            = this->bitwise_assign_unpack(rvalue, swizzle);
-         this->out_instructions->push_tail(assignment);
+         this->bitwise_assign_unpack(rvalue, swizzle);
       }
       return fine_location + components;
    }
@@ -598,7 +652,7 @@ lower_packed_varyings_visitor::needs_lowering(ir_variable *var)
    }
    if (type->is_array())
       type = type->fields.array;
-   if (type->vector_elements == 4)
+   if (type->vector_elements == 4 && !type->is_double())
       return false;
    return true;
 }
@@ -657,9 +711,11 @@ lower_packed_varyings(void *mem_ctx, unsigned locations_used,
    exec_list void_parameters;
    ir_function_signature *main_func_sig
       = main_func->matching_signature(NULL, &void_parameters, false);
-   exec_list new_instructions;
+   exec_list new_instructions, new_variables;
    lower_packed_varyings_visitor visitor(mem_ctx, locations_used, mode,
-                                         gs_input_vertices, &new_instructions);
+                                         gs_input_vertices,
+                                         &new_instructions,
+                                         &new_variables);
    visitor.run(instructions);
    if (mode == ir_var_shader_out) {
       if (shader->Stage == MESA_SHADER_GEOMETRY) {
@@ -667,15 +723,22 @@ lower_packed_varyings(void *mem_ctx, unsigned locations_used,
           * to EmitVertex()
           */
          lower_packed_varyings_gs_splicer splicer(mem_ctx, &new_instructions);
+
+         /* Add all the variables in first. */
+         main_func_sig->body.head->insert_before(&new_variables);
+
+         /* Now update all the EmitVertex instances */
          splicer.run(instructions);
       } else {
          /* For other shader types, outputs need to be lowered at the end of
           * main()
           */
+         main_func_sig->body.append_list(&new_variables);
          main_func_sig->body.append_list(&new_instructions);
       }
    } else {
       /* Shader inputs need to be lowered at the beginning of main() */
       main_func_sig->body.head->insert_before(&new_instructions);
+      main_func_sig->body.head->insert_before(&new_variables);
    }
 }

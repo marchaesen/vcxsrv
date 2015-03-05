@@ -73,7 +73,7 @@ _mesa_parse_arb_fragment_program(struct gl_context* ctx, GLenum target,
    struct asm_parser_state state;
    GLuint i;
 
-   ASSERT(target == GL_FRAGMENT_PROGRAM_ARB);
+   assert(target == GL_FRAGMENT_PROGRAM_ARB);
 
    memset(&prog, 0, sizeof(prog));
    memset(&state, 0, sizeof(state));
@@ -166,7 +166,7 @@ _mesa_parse_arb_vertex_program(struct gl_context *ctx, GLenum target,
    struct gl_program prog;
    struct asm_parser_state state;
 
-   ASSERT(target == GL_VERTEX_PROGRAM_ARB);
+   assert(target == GL_VERTEX_PROGRAM_ARB);
 
    memset(&prog, 0, sizeof(prog));
    memset(&state, 0, sizeof(state));

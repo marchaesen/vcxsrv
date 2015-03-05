@@ -147,10 +147,7 @@ util_format_z16_unorm_unpack_z_float(float *dst_row, unsigned dst_stride,
       float *dst = dst_row;
       const uint16_t *src = (const uint16_t *)src_row;
       for(x = 0; x < width; ++x) {
-         uint16_t value = *src++;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap16(value);
-#endif
+         uint16_t value = util_cpu_to_le16(*src++);
          *dst++ = z16_unorm_to_z32_float(value);
       }
       src_row += src_stride/sizeof(*src_row);
@@ -170,10 +167,7 @@ util_format_z16_unorm_pack_z_float(uint8_t *dst_row, unsigned dst_stride,
       for(x = 0; x < width; ++x) {
          uint16_t value;
          value = z32_float_to_z16_unorm(*src++);
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap16(value);
-#endif
-         *dst++ = value;
+         *dst++ = util_le16_to_cpu(value);
       }
       dst_row += dst_stride/sizeof(*dst_row);
       src_row += src_stride/sizeof(*src_row);
@@ -190,10 +184,7 @@ util_format_z16_unorm_unpack_z_32unorm(uint32_t *dst_row, unsigned dst_stride,
       uint32_t *dst = dst_row;
       const uint16_t *src = (const uint16_t *)src_row;
       for(x = 0; x < width; ++x) {
-         uint16_t value = *src++;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap16(value);
-#endif
+         uint16_t value = util_cpu_to_le16(*src++);
          *dst++ = z16_unorm_to_z32_unorm(value);
       }
       src_row += src_stride/sizeof(*src_row);
@@ -213,10 +204,7 @@ util_format_z16_unorm_pack_z_32unorm(uint8_t *dst_row, unsigned dst_stride,
       for(x = 0; x < width; ++x) {
          uint16_t value;
          value = z32_unorm_to_z16_unorm(*src++);
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap16(value);
-#endif
-         *dst++ = value;
+         *dst++ = util_le16_to_cpu(value);
       }
       dst_row += dst_stride/sizeof(*dst_row);
       src_row += src_stride/sizeof(*src_row);
@@ -233,10 +221,7 @@ util_format_z32_unorm_unpack_z_float(float *dst_row, unsigned dst_stride,
       float *dst = dst_row;
       const uint32_t *src = (const uint32_t *)src_row;
       for(x = 0; x < width; ++x) {
-         uint32_t value = *src++;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
+         uint32_t value = util_cpu_to_le32(*src++);
          *dst++ = z32_unorm_to_z32_float(value);
       }
       src_row += src_stride/sizeof(*src_row);
@@ -256,10 +241,7 @@ util_format_z32_unorm_pack_z_float(uint8_t *dst_row, unsigned dst_stride,
       for(x = 0; x < width; ++x) {
          uint32_t value;
          value = z32_float_to_z32_unorm(*src++);
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
-         *dst++ = value;
+         *dst++ = util_le32_to_cpu(value);
       }
       dst_row += dst_stride/sizeof(*dst_row);
       src_row += src_stride/sizeof(*src_row);
@@ -362,10 +344,7 @@ util_format_z24_unorm_s8_uint_unpack_z_float(float *dst_row, unsigned dst_stride
       float *dst = dst_row;
       const uint32_t *src = (const uint32_t *)src_row;
       for(x = 0; x < width; ++x) {
-         uint32_t value = *src++;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
+         uint32_t value =  util_cpu_to_le32(*src++);
          *dst++ = z24_unorm_to_z32_float(value & 0xffffff);
       }
       src_row += src_stride/sizeof(*src_row);
@@ -383,16 +362,10 @@ util_format_z24_unorm_s8_uint_pack_z_float(uint8_t *dst_row, unsigned dst_stride
       const float *src = src_row;
       uint32_t *dst = (uint32_t *)dst_row;
       for(x = 0; x < width; ++x) {
-         uint32_t value = *dst;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
+         uint32_t value = util_le32_to_cpu(*dst);
          value &= 0xff000000;
          value |= z32_float_to_z24_unorm(*src++);
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
-         *dst++ = value;
+         *dst++ = util_cpu_to_le32(value);
       }
       dst_row += dst_stride/sizeof(*dst_row);
       src_row += src_stride/sizeof(*src_row);
@@ -409,10 +382,7 @@ util_format_z24_unorm_s8_uint_unpack_z_32unorm(uint32_t *dst_row, unsigned dst_s
       uint32_t *dst = dst_row;
       const uint32_t *src = (const uint32_t *)src_row;
       for(x = 0; x < width; ++x) {
-         uint32_t value = *src++;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
+         uint32_t value = util_cpu_to_le32(*src++);
          *dst++ = z24_unorm_to_z32_unorm(value & 0xffffff);
       }
       src_row += src_stride/sizeof(*src_row);
@@ -430,16 +400,10 @@ util_format_z24_unorm_s8_uint_pack_z_32unorm(uint8_t *dst_row, unsigned dst_stri
       const uint32_t *src = src_row;
       uint32_t *dst = (uint32_t *)dst_row;
       for(x = 0; x < width; ++x) {
-         uint32_t value= *dst;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
+         uint32_t value = util_le32_to_cpu(*dst);
          value &= 0xff000000;
          value |= z32_unorm_to_z24_unorm(*src++);
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
-         *dst++ = value;
+         *dst++ = util_cpu_to_le32(value);
       }
       dst_row += dst_stride/sizeof(*dst_row);
       src_row += src_stride/sizeof(*src_row);
@@ -456,10 +420,7 @@ util_format_z24_unorm_s8_uint_unpack_s_8uint(uint8_t *dst_row, unsigned dst_stri
       uint8_t *dst = dst_row;
       const uint32_t *src = (const uint32_t *)src_row;
       for(x = 0; x < width; ++x) {
-         uint32_t value = *src++;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
+         uint32_t value = util_cpu_to_le32(*src++);
          *dst++ = value >> 24;
       }
       src_row += src_stride/sizeof(*src_row);
@@ -477,16 +438,10 @@ util_format_z24_unorm_s8_uint_pack_s_8uint(uint8_t *dst_row, unsigned dst_stride
       const uint8_t *src = src_row;
       uint32_t *dst = (uint32_t *)dst_row;
       for(x = 0; x < width; ++x) {
-         uint32_t value = *dst;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
+         uint32_t value = util_le32_to_cpu(*dst);
          value &= 0x00ffffff;
          value |= *src++ << 24;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
-         *dst++ = value;
+         *dst++ = util_cpu_to_le32(value);
       }
       dst_row += dst_stride/sizeof(*dst_row);
       src_row += src_stride/sizeof(*src_row);
@@ -503,10 +458,7 @@ util_format_s8_uint_z24_unorm_unpack_z_float(float *dst_row, unsigned dst_stride
       float *dst = dst_row;
       const uint32_t *src = (const uint32_t *)src_row;
       for(x = 0; x < width; ++x) {
-         uint32_t value = *src++;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
+         uint32_t value = util_cpu_to_le32(*src++);
          *dst++ = z24_unorm_to_z32_float(value >> 8);
       }
       src_row += src_stride/sizeof(*src_row);
@@ -524,16 +476,10 @@ util_format_s8_uint_z24_unorm_pack_z_float(uint8_t *dst_row, unsigned dst_stride
       const float *src = src_row;
       uint32_t *dst = (uint32_t *)dst_row;
       for(x = 0; x < width; ++x) {
-         uint32_t value = *dst;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
+         uint32_t value = util_le32_to_cpu(*dst);
          value &= 0x000000ff;
          value |= z32_float_to_z24_unorm(*src++) << 8;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
-         *dst++ = value;
+         *dst++ = util_cpu_to_le32(value);
       }
       dst_row += dst_stride/sizeof(*dst_row);
       src_row += src_stride/sizeof(*src_row);
@@ -550,10 +496,7 @@ util_format_s8_uint_z24_unorm_unpack_z_32unorm(uint32_t *dst_row, unsigned dst_s
       uint32_t *dst = dst_row;
       const uint32_t *src = (const uint32_t *)src_row;
       for(x = 0; x < width; ++x) {
-         uint32_t value = *src++;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
+         uint32_t value = util_cpu_to_le32(*src++);
          *dst++ = z24_unorm_to_z32_unorm(value >> 8);
       }
       src_row += src_stride/sizeof(*src_row);
@@ -571,16 +514,10 @@ util_format_s8_uint_z24_unorm_pack_z_32unorm(uint8_t *dst_row, unsigned dst_stri
       const uint32_t *src = src_row;
       uint32_t *dst = (uint32_t *)dst_row;
       for(x = 0; x < width; ++x) {
-         uint32_t value = *dst;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
+         uint32_t value = util_le32_to_cpu(*dst);
          value &= 0x000000ff;
          value |= *src++ & 0xffffff00;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
-         *dst++ = value;
+         *dst++ = util_cpu_to_le32(value);
       }
       dst_row += dst_stride/sizeof(*dst_row);
       src_row += src_stride/sizeof(*src_row);
@@ -597,10 +534,7 @@ util_format_s8_uint_z24_unorm_unpack_s_8uint(uint8_t *dst_row, unsigned dst_stri
       uint8_t *dst = dst_row;
       const uint32_t *src = (const uint32_t *)src_row;
       for(x = 0; x < width; ++x) {
-         uint32_t value = *src++;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
+         uint32_t value = util_cpu_to_le32(*src++);
          *dst++ = value & 0xff;
       }
       src_row += src_stride/sizeof(*src_row);
@@ -618,16 +552,10 @@ util_format_s8_uint_z24_unorm_pack_s_8uint(uint8_t *dst_row, unsigned dst_stride
       const uint8_t *src = src_row;
       uint32_t *dst = (uint32_t *)dst_row;
       for(x = 0; x < width; ++x) {
-         uint32_t value = *dst;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
+         uint32_t value = util_le32_to_cpu(*dst);
          value &= 0xffffff00;
          value |= *src++;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
-         *dst++ = value;
+         *dst++ = util_cpu_to_le32(value);
       }
       dst_row += dst_stride/sizeof(*dst_row);
       src_row += src_stride/sizeof(*src_row);
@@ -644,10 +572,7 @@ util_format_z24x8_unorm_unpack_z_float(float *dst_row, unsigned dst_stride,
       float *dst = dst_row;
       const uint32_t *src = (const uint32_t *)src_row;
       for(x = 0; x < width; ++x) {
-         uint32_t value = *src++;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
+         uint32_t value = util_cpu_to_le32(*src++);
          *dst++ = z24_unorm_to_z32_float(value & 0xffffff);
       }
       src_row += src_stride/sizeof(*src_row);
@@ -667,10 +592,7 @@ util_format_z24x8_unorm_pack_z_float(uint8_t *dst_row, unsigned dst_stride,
       for(x = 0; x < width; ++x) {
          uint32_t value;
          value = z32_float_to_z24_unorm(*src++);
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
-         *dst++ = value;
+         *dst++ = util_le32_to_cpu(value);
       }
       dst_row += dst_stride/sizeof(*dst_row);
       src_row += src_stride/sizeof(*src_row);
@@ -687,10 +609,7 @@ util_format_z24x8_unorm_unpack_z_32unorm(uint32_t *dst_row, unsigned dst_stride,
       uint32_t *dst = dst_row;
       const uint32_t *src = (const uint32_t *)src_row;
       for(x = 0; x < width; ++x) {
-         uint32_t value = *src++;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
+         uint32_t value = util_cpu_to_le32(*src++);
          *dst++ = z24_unorm_to_z32_unorm(value & 0xffffff);
       }
       src_row += src_stride/sizeof(*src_row);
@@ -710,10 +629,7 @@ util_format_z24x8_unorm_pack_z_32unorm(uint8_t *dst_row, unsigned dst_stride,
       for(x = 0; x < width; ++x) {
          uint32_t value;
          value = z32_unorm_to_z24_unorm(*src++);
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
-         *dst++ = value;
+         *dst++ = util_cpu_to_le32(value);
       }
       dst_row += dst_stride/sizeof(*dst_row);
       src_row += src_stride/sizeof(*src_row);
@@ -730,10 +646,7 @@ util_format_x8z24_unorm_unpack_z_float(float *dst_row, unsigned dst_stride,
       float *dst = dst_row;
       const uint32_t *src = (uint32_t *)src_row;
       for(x = 0; x < width; ++x) {
-         uint32_t value = *src++;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
+         uint32_t value = util_cpu_to_le32(*src++);
          *dst++ = z24_unorm_to_z32_float(value >> 8);
       }
       src_row += src_stride/sizeof(*src_row);
@@ -753,10 +666,7 @@ util_format_x8z24_unorm_pack_z_float(uint8_t *dst_row, unsigned dst_stride,
       for(x = 0; x < width; ++x) {
          uint32_t value;
          value = z32_float_to_z24_unorm(*src++) << 8;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
-         *dst++ = value;
+         *dst++ = util_cpu_to_le32(value);
       }
       dst_row += dst_stride/sizeof(*dst_row);
       src_row += src_stride/sizeof(*src_row);
@@ -773,10 +683,7 @@ util_format_x8z24_unorm_unpack_z_32unorm(uint32_t *dst_row, unsigned dst_stride,
       uint32_t *dst = dst_row;
       const uint32_t *src = (const uint32_t *)src_row;
       for(x = 0; x < width; ++x) {
-         uint32_t value = *src++;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
+         uint32_t value = util_cpu_to_le32(*src++);
          *dst++ = z24_unorm_to_z32_unorm(value >> 8);
       }
       src_row += src_stride/sizeof(*src_row);
@@ -796,10 +703,7 @@ util_format_x8z24_unorm_pack_z_32unorm(uint8_t *dst_row, unsigned dst_stride,
       for(x = 0; x < width; ++x) {
          uint32_t value;
          value = z32_unorm_to_z24_unorm(*src++) << 8;
-#ifdef PIPE_ARCH_BIG_ENDIAN
-         value = util_bswap32(value);
-#endif
-         *dst++ = value;
+         *dst++ = util_cpu_to_le32(value);
       }
       dst_row += dst_stride/sizeof(*dst_row);
       src_row += src_stride/sizeof(*src_row);

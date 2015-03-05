@@ -30,6 +30,7 @@ libloader_la_CPPFLAGS = \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/src \
 	$(VISIBILITY_CFLAGS) \
+	$(MSVC2013_COMPAT_CFLAGS) \
 	$(LIBUDEV_CFLAGS)
 
 libloader_la_SOURCES = $(LOADER_C_FILES)

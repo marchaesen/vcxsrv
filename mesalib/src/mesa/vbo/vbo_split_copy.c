@@ -29,6 +29,8 @@
 /* Split indexed primitives with per-vertex copying.
  */
 
+#include <stdio.h>
+
 #include "main/glheader.h"
 #include "main/bufferobj.h"
 #include "main/imports.h"

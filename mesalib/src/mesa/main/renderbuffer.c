@@ -172,7 +172,7 @@ _mesa_reference_renderbuffer_(struct gl_renderbuffer **ptr,
       struct gl_renderbuffer *oldRb = *ptr;
 
       mtx_lock(&oldRb->Mutex);
-      ASSERT(oldRb->RefCount > 0);
+      assert(oldRb->RefCount > 0);
       oldRb->RefCount--;
       /*printf("RB DECR %p (%d) to %d\n", (void*) oldRb, oldRb->Name, oldRb->RefCount);*/
       deleteFlag = (oldRb->RefCount == 0);

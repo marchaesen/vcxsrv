@@ -38,6 +38,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "vbo.h"
 #include "vbo_attrib.h"
 
+#include "main/imports.h"
 
 /**
  * Max number of primitives (number of glBegin/End pairs) per VBO.
@@ -71,7 +72,7 @@ struct vbo_exec_eval2_map {
 
 
 struct vbo_exec_copied_vtx {
-   GLfloat buffer[VBO_ATTRIB_MAX * 4 * VBO_MAX_COPIED_VERTS];
+   fi_type buffer[VBO_ATTRIB_MAX * 4 * VBO_MAX_COPIED_VERTS];
    GLuint nr;
 };
 
@@ -91,10 +92,10 @@ struct vbo_exec_context
       struct _mesa_prim prim[VBO_MAX_PRIM];
       GLuint prim_count;
 
-      GLfloat *buffer_map;
-      GLfloat *buffer_ptr;              /* cursor, points into buffer */
+      fi_type *buffer_map;
+      fi_type *buffer_ptr;              /* cursor, points into buffer */
       GLuint   buffer_used;             /* in bytes */
-      GLfloat vertex[VBO_ATTRIB_MAX*4]; /* current vertex */
+      fi_type vertex[VBO_ATTRIB_MAX*4]; /* current vertex */
 
       GLuint vert_count;
       GLuint max_vert;
@@ -104,7 +105,7 @@ struct vbo_exec_context
       GLenum attrtype[VBO_ATTRIB_MAX];
       GLubyte active_sz[VBO_ATTRIB_MAX];
 
-      GLfloat *attrptr[VBO_ATTRIB_MAX]; 
+      fi_type *attrptr[VBO_ATTRIB_MAX];
       struct gl_client_array arrays[VERT_ATTRIB_MAX];
 
       /* According to program mode, the values above plus current

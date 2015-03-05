@@ -29,7 +29,6 @@
 #include <string.h>
 
 #include "u_current.h"
-#include "u_thread.h"
 #include "mapi.h"
 #include "stub.h"
 #include "table.h"

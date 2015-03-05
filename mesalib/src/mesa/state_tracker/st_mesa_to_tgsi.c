@@ -172,7 +172,7 @@ dst_register( struct st_translate *t,
       else
          assert(index < VARYING_SLOT_MAX);
 
-      assert(t->outputMapping[index] < Elements(t->outputs));
+      assert(t->outputMapping[index] < ARRAY_SIZE(t->outputs));
 
       return t->outputs[t->outputMapping[index]];
 
@@ -200,7 +200,7 @@ src_register( struct st_translate *t,
 
    case PROGRAM_TEMPORARY:
       assert(index >= 0);
-      assert(index < Elements(t->temps));
+      assert(index < ARRAY_SIZE(t->temps));
       if (ureg_dst_is_undef(t->temps[index]))
          t->temps[index] = ureg_DECL_temporary( t->ureg );
       return ureg_src(t->temps[index]);
@@ -216,18 +216,18 @@ src_register( struct st_translate *t,
          return t->constants[index];
 
    case PROGRAM_INPUT:
-      assert(t->inputMapping[index] < Elements(t->inputs));
+      assert(t->inputMapping[index] < ARRAY_SIZE(t->inputs));
       return t->inputs[t->inputMapping[index]];
 
    case PROGRAM_OUTPUT:
-      assert(t->outputMapping[index] < Elements(t->outputs));
+      assert(t->outputMapping[index] < ARRAY_SIZE(t->outputs));
       return ureg_src(t->outputs[t->outputMapping[index]]); /* not needed? */
 
    case PROGRAM_ADDRESS:
       return ureg_src(t->address[index]);
 
    case PROGRAM_SYSTEM_VALUE:
-      assert(index < Elements(t->systemValues));
+      assert(index < ARRAY_SIZE(t->systemValues));
       return t->systemValues[index];
 
    default:
@@ -1027,8 +1027,8 @@ st_translate_mesa_program(
    unsigned i;
    enum pipe_error ret = PIPE_OK;
 
-   assert(numInputs <= Elements(t->inputs));
-   assert(numOutputs <= Elements(t->outputs));
+   assert(numInputs <= ARRAY_SIZE(t->inputs));
+   assert(numOutputs <= ARRAY_SIZE(t->outputs));
 
    t = &translate;
    memset(t, 0, sizeof *t);
@@ -1253,15 +1253,4 @@ out:
    }
 
    return ret;
-}
-
-
-/**
- * Tokens cannot be free with free otherwise the builtin gallium
- * malloc debugging will get confused.
- */
-void
-st_free_tokens(const struct tgsi_token *tokens)
-{
-   ureg_free_tokens(tokens);
 }

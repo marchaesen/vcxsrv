@@ -1060,7 +1060,7 @@ void
 _mesa_set_enablei(struct gl_context *ctx, GLenum cap,
                   GLuint index, GLboolean state)
 {
-   ASSERT(state == 0 || state == 1);
+   assert(state == 0 || state == 1);
    switch (cap) {
    case GL_BLEND:
       if (!ctx->Extensions.EXT_draw_buffers2) {

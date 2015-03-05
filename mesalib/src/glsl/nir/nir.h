@@ -66,6 +66,7 @@ name(const in_type *parent)                              \
 struct nir_function_overload;
 struct nir_function;
 struct nir_shader;
+struct nir_instr;
 
 
 /**
@@ -386,6 +387,14 @@ typedef struct {
     */
    bool is_packed;
 
+   /**
+    * If this pointer is non-NULL then this register has exactly one
+    * definition and that definition dominates all of its uses.  This is
+    * set by the out-of-SSA pass so that backends can get SSA-like
+    * information even once they have gone out of SSA.
+    */
+   struct nir_instr *parent_instr;
+
    /** set of nir_instr's where this register is used (read from) */
    struct set *uses;
 
@@ -408,7 +417,7 @@ typedef enum {
    nir_instr_type_parallel_copy,
 } nir_instr_type;
 
-typedef struct {
+typedef struct nir_instr {
    struct exec_node node;
    nir_instr_type type;
    struct nir_block *block;

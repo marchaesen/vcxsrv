@@ -140,7 +140,7 @@ sprite_point(struct gl_context *ctx, const SWvertex *vert)
          if (attr >= VARYING_SLOT_TEX0 && attr <= VARYING_SLOT_TEX7) {
             /* a texcoord attribute */
             const GLuint u = attr - VARYING_SLOT_TEX0;
-            ASSERT(u < Elements(ctx->Point.CoordReplace));
+            assert(u < ARRAY_SIZE(ctx->Point.CoordReplace));
             if (ctx->Point.CoordReplace[u]) {
                tCoords[numTcoords++] = attr;
 
@@ -504,7 +504,7 @@ pixel_point(struct gl_context *ctx, const SWvertex *vert)
    span->array->z[count] = (GLint) (vert->attrib[VARYING_SLOT_POS][2] + 0.5F);
 
    span->end = count + 1;
-   ASSERT(span->end <= SWRAST_MAX_WIDTH);
+   assert(span->end <= SWRAST_MAX_WIDTH);
 }
 
 

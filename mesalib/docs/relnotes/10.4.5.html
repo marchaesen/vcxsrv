@@ -1,0 +1,114 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 10.4.5 Release Notes / February 21, 2015</h1>
+
+<p>
+Mesa 10.4.5 is a bug fix release which fixes bugs found since the 10.4.4 release.
+</p>
+<p>
+Mesa 10.4.5 implements the OpenGL 3.3 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 3.3.  OpenGL
+3.3 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+<h2>SHA256 checksums</h2>
+<pre>
+e12bbdaee9a758617e8ebd0bb0e987f72addd11db2e4da25ba695e386cd63843  MesaLib-10.4.5.tar.gz
+bf60000700a9d58e3aca2bfeee7e781053b0d839e61a95b1883e05a2dee247a0  MesaLib-10.4.5.tar.bz2
+3b926de8eee500bb67cf85332c51292f826cc539b8636382aadbb8e70c76527a  MesaLib-10.4.5.zip
+</pre>
+
+<h2>New features</h2>
+<p>None</p>
+
+<h2>Bug fixes</h2>
+
+<p>This list is likely incomplete.</p>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=82477">Bug 82477</a> - [softpipe] piglit fp-long-alu regression</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=88658">Bug 88658</a> - (bisected) Slow video playback on Kabini</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=89069">Bug 89069</a> - Lack of grass in The Talos Principle on radeonsi (native\wine\nine)</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Carl Worth (1):</p>
+<ul>
+  <li>Revert use of Mesa IR optimizer for ARB_fragment_programs</li>
+</ul>
+
+<p>Emil Velikov (3):</p>
+<ul>
+  <li>docs: Add sha256 sums for the 10.4.4 release</li>
+  <li>get-pick-list.sh: Require explicit "10.4" for nominating stable patches</li>
+  <li>Update version to 10.4.5</li>
+</ul>
+
+<p>Ilia Mirkin (3):</p>
+<ul>
+  <li>nvc0: bail out of 2d blits with non-A8_UNORM alpha formats</li>
+  <li>st/mesa: treat resource-less xfb buffers as if they weren't there</li>
+  <li>nvc0: allow holes in xfb target lists</li>
+</ul>
+
+<p>Jeremy Huddleston Sequoia (2):</p>
+<ul>
+  <li>darwin: build fix</li>
+  <li>darwin: build fix</li>
+</ul>
+
+<p>Kenneth Graunke (4):</p>
+<ul>
+  <li>i965: Override swizzles for integer luminance formats.</li>
+  <li>i965: Use a gl_color_union for sampler border color.</li>
+  <li>i965: Fix integer border color on Haswell.</li>
+  <li>glsl: Reduce memory consumption of copy propagation passes.</li>
+</ul>
+
+<p>Laura Ekstrand (1):</p>
+<ul>
+  <li>main: Fixed _mesa_GetCompressedTexImage_sw to copy slices correctly.</li>
+</ul>
+
+<p>Marek Olšák (5):</p>
+<ul>
+  <li>r600g,radeonsi: don't append to streamout buffers that haven't been used yet</li>
+  <li>radeonsi: fix instanced arrays with non-zero start instance</li>
+  <li>radeonsi: small fix in SPI state</li>
+  <li>mesa: fix AtomicBuffer typo in _mesa_DeleteBuffers</li>
+  <li>radeonsi: fix a crash if a stencil ref state is set before a DSA state</li>
+</ul>
+
+<p>Michel Dänzer (2):</p>
+<ul>
+  <li>st/mesa: Don't use PIPE_USAGE_STREAM for GL_PIXEL_UNPACK_BUFFER_ARB</li>
+  <li>Revert "radeon/llvm: enable unsafe math for graphics shaders"</li>
+</ul>
+
+
+</div>
+</body>
+</html>

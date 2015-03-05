@@ -108,7 +108,7 @@ static void init_mat_currval(struct gl_context *ctx)
       &vbo->currval[VBO_ATTRIB_MAT_FRONT_AMBIENT];
    GLuint i;
 
-   ASSERT(NR_MAT_ATTRIBS == MAT_ATTRIB_MAX);
+   assert(NR_MAT_ATTRIBS == MAT_ATTRIB_MAX);
 
    memset(arrays, 0, sizeof(*arrays) * NR_MAT_ATTRIBS);
 
@@ -172,14 +172,14 @@ GLboolean _vbo_CreateContext( struct gl_context *ctx )
       GLuint i;
 
       /* identity mapping */
-      for (i = 0; i < Elements(vbo->map_vp_none); i++) 
+      for (i = 0; i < ARRAY_SIZE(vbo->map_vp_none); i++) 
 	 vbo->map_vp_none[i] = i;
       /* map material attribs to generic slots */
       for (i = 0; i < NR_MAT_ATTRIBS; i++) 
 	 vbo->map_vp_none[VERT_ATTRIB_GENERIC(i)]
             = VBO_ATTRIB_MAT_FRONT_AMBIENT + i;
 
-      for (i = 0; i < Elements(vbo->map_vp_arb); i++)
+      for (i = 0; i < ARRAY_SIZE(vbo->map_vp_arb); i++)
 	 vbo->map_vp_arb[i] = i;
    }
 

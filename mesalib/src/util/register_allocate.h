@@ -27,6 +27,12 @@
 
 #include <stdbool.h>
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 struct ra_class;
 struct ra_regs;
 
@@ -77,3 +83,7 @@ void ra_set_node_spill_cost(struct ra_graph *g, unsigned int n, float cost);
 int ra_get_best_spill_node(struct ra_graph *g);
 /** @} */
 
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif

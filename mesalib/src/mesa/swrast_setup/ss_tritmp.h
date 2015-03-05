@@ -142,8 +142,8 @@ static void TAG(triangle)(struct gl_context *ctx, GLuint e0, GLuint e1, GLuint e
 	    const GLfloat ez = z[0] - z[2];
 	    const GLfloat fz = z[1] - z[2];
 	    const GLfloat oneOverArea = 1.0F / cc;
-	    const GLfloat dzdx = FABSF((ey * fz - ez * fy) * oneOverArea);
-	    const GLfloat dzdy = FABSF((ez * fx - ex * fz) * oneOverArea);
+	    const GLfloat dzdx = fabsf((ey * fz - ez * fy) * oneOverArea);
+	    const GLfloat dzdy = fabsf((ez * fx - ex * fz) * oneOverArea);
 	    offset += MAX2(dzdx, dzdy) * ctx->Polygon.OffsetFactor;
 	 }
          /* new Z values */

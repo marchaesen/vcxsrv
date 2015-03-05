@@ -76,7 +76,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
  * This function is basically a cast wrapper to avoid warnings when building
  * in 64-bit mode.
  */
-static INLINE unsigned
+static inline unsigned
 pointer_to_offset(const void *ptr)
 {
    return (unsigned) (((GLsizeiptr) ptr) & 0xffffffffUL);

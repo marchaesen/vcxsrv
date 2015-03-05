@@ -1,6 +1,10 @@
 #ifndef _U_CURRENT_H_
 #define _U_CURRENT_H_
 
+#include "c99_compat.h"
+#include "util/macros.h"
+
+
 #if defined(MAPI_MODE_UTIL) || defined(MAPI_MODE_GLAPI) || \
     defined(MAPI_MODE_BRIDGE)
 
@@ -23,8 +27,6 @@
 #define u_current_table_tsd _gl_DispatchTSD
 
 #else /* MAPI_MODE_UTIL || MAPI_MODE_GLAPI || MAPI_MODE_BRIDGE */
-
-#include "u_compiler.h"
 
 struct mapi_table;
 
@@ -63,7 +65,7 @@ u_current_set_context(const void *ptr);
 void *
 u_current_get_context_internal(void);
 
-static INLINE const struct mapi_table *
+static inline const struct mapi_table *
 u_current_get_table(void)
 {
 #ifdef GLX_USE_TLS
@@ -74,7 +76,7 @@ u_current_get_table(void)
 #endif
 }
 
-static INLINE const void *
+static inline const void *
 u_current_get_context(void)
 {
 #ifdef GLX_USE_TLS

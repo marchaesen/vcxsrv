@@ -42,6 +42,7 @@
 #ifdef HAVE_SYS_MOUNT_H
 #include <sys/mount.h>
 #endif
+#include <errno.h>
 
 #ifdef _WIN32
 #ifdef __GNUC__
@@ -164,21 +165,86 @@ FcDirChecksumScandirFilter(const struct dirent *entry)
 }
 #endif
 
-#ifdef HAVE_SCANDIR
 static int
 FcDirChecksumScandirSorter(const struct dirent **lhs, const struct dirent **rhs)
 {
     return strcmp((*lhs)->d_name, (*rhs)->d_name);
 }
-#elif HAVE_SCANDIR_VOID_P
-static int
-FcDirChecksumScandirSorter(const void *a, const void *b)
-{
-    const struct dirent *lhs = a, *rhs = b;
 
-    return strcmp(lhs->d_name, rhs->d_name);
+static void
+free_dirent (struct dirent **p)
+{
+    struct dirent **x;
+
+    for (x = p; *x != NULL; x++)
+	free (*x);
+
+    free (p);
 }
-#endif
+
+int
+FcScandir (const char		*dirp,
+	   struct dirent	***namelist,
+	   int (*filter) (const struct dirent *),
+	   int (*compar) (const struct dirent **, const struct dirent **));
+
+int
+FcScandir (const char		*dirp,
+	   struct dirent	***namelist,
+	   int (*filter) (const struct dirent *),
+	   int (*compar) (const struct dirent **, const struct dirent **))
+{
+    DIR *d;
+    struct dirent *dent, *p, **dlist, **dlp;
+    size_t lsize = 128, n = 0;
+
+    d = opendir (dirp);
+    if (!d)
+	return -1;
+
+    dlist = (struct dirent **) malloc (sizeof (struct dirent *) * lsize);
+    if (!dlist)
+    {
+	closedir (d);
+	errno = ENOMEM;
+
+	return -1;
+    }
+    *dlist = NULL;
+    while ((dent = readdir (d)))
+    {
+	if (!filter || (filter) (dent))
+	{
+	    size_t dentlen = FcPtrToOffset (dent, dent->d_name) + strlen (dent->d_name) + 1;
+	    dentlen = ((dentlen + ALIGNOF_VOID_P - 1) & ~(ALIGNOF_VOID_P - 1));
+	    p = (struct dirent *) malloc (dentlen);
+	    memcpy (p, dent, dentlen);
+	    if ((n + 1) >= lsize)
+	    {
+		lsize += 128;
+		dlp = (struct dirent **) realloc (dlist, sizeof (struct dirent *) * lsize);
+		if (!dlp)
+		{
+		    free_dirent (dlist);
+		    closedir (d);
+		    errno = ENOMEM;
+
+		    return -1;
+		}
+		dlist = dlp;
+	    }
+	    dlist[n++] = p;
+	    dlist[n] = NULL;
+	}
+    }
+    closedir (d);
+
+    qsort (dlist, n, sizeof (struct dirent *), (int (*) (const void *, const void *))compar);
+
+    *namelist = dlist;
+
+    return n;
+}
 
 static int
 FcDirChecksum (const FcChar8 *dir, time_t *checksum)
@@ -191,7 +257,7 @@ FcDirChecksum (const FcChar8 *dir, time_t *checksum)
 
     Adler32Init (&ctx);
 
-    n = scandir ((const char *)dir, &files,
+    n = FcScandir ((const char *)dir, &files,
 #ifdef HAVE_STRUCT_DIRENT_D_TYPE
 		 &FcDirChecksumScandirFilter,
 #else

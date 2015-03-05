@@ -573,7 +573,7 @@ set_fetch_functions(const struct gl_sampler_object *samp,
    }
 #endif
 
-   STATIC_ASSERT(Elements(texfetch_funcs) == MESA_FORMAT_COUNT);
+   STATIC_ASSERT(ARRAY_SIZE(texfetch_funcs) == MESA_FORMAT_COUNT);
 
    if (samp->sRGBDecode == GL_SKIP_DECODE_EXT &&
        _mesa_get_format_color_encoding(format) == GL_SRGB) {
@@ -598,7 +598,7 @@ set_fetch_functions(const struct gl_sampler_object *samp,
 
    texImage->FetchCompressedTexel = _mesa_get_compressed_fetch_func(format);
 
-   ASSERT(texImage->FetchTexel);
+   assert(texImage->FetchTexel);
 }
 
 void

@@ -68,6 +68,8 @@ INTRINSIC(interp_var_at_offset, 1, ARR(2), true, 0, 1, 0,
 #define BARRIER(name) INTRINSIC(name, 0, ARR(), false, 0, 0, 0, 0)
 
 BARRIER(discard)
+/** A conditional discard, with a single boolean source. */
+INTRINSIC(discard_if, 1, ARR(1), false, 0, 0, 0, 0)
 
 INTRINSIC(emit_vertex,   0, ARR(), false, 0, 0, 1, 0)
 INTRINSIC(end_primitive, 0, ARR(), false, 0, 0, 1, 0)

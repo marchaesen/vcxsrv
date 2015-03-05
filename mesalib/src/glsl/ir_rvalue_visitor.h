@@ -36,6 +36,7 @@ public:
    ir_visitor_status rvalue_visit(ir_call *);
    ir_visitor_status rvalue_visit(ir_dereference_array *);
    ir_visitor_status rvalue_visit(ir_dereference_record *);
+   ir_visitor_status rvalue_visit(ir_discard *);
    ir_visitor_status rvalue_visit(ir_expression *);
    ir_visitor_status rvalue_visit(ir_if *);
    ir_visitor_status rvalue_visit(ir_return *);
@@ -54,6 +55,7 @@ public:
    virtual ir_visitor_status visit_leave(ir_call *);
    virtual ir_visitor_status visit_leave(ir_dereference_array *);
    virtual ir_visitor_status visit_leave(ir_dereference_record *);
+   virtual ir_visitor_status visit_leave(ir_discard *);
    virtual ir_visitor_status visit_leave(ir_expression *);
    virtual ir_visitor_status visit_leave(ir_if *);
    virtual ir_visitor_status visit_leave(ir_return *);
@@ -70,6 +72,7 @@ public:
    virtual ir_visitor_status visit_enter(ir_call *);
    virtual ir_visitor_status visit_enter(ir_dereference_array *);
    virtual ir_visitor_status visit_enter(ir_dereference_record *);
+   virtual ir_visitor_status visit_enter(ir_discard *);
    virtual ir_visitor_status visit_enter(ir_expression *);
    virtual ir_visitor_status visit_enter(ir_if *);
    virtual ir_visitor_status visit_enter(ir_return *);

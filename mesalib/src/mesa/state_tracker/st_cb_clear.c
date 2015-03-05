@@ -102,7 +102,7 @@ st_destroy_clear(struct st_context *st)
 /**
  * Helper function to set the fragment shaders.
  */
-static INLINE void
+static inline void
 set_fragment_shader(struct st_context *st)
 {
    if (!st->clear.fs)
@@ -118,7 +118,7 @@ set_fragment_shader(struct st_context *st)
 /**
  * Helper function to set the vertex shader.
  */
-static INLINE void
+static inline void
 set_vertex_shader(struct st_context *st)
 {
    /* vertex shader - still required to provide the linkage between
@@ -381,7 +381,7 @@ clear_with_quad(struct gl_context *ctx, unsigned clear_buffers)
 /**
  * Return if the scissor must be enabled during the clear.
  */
-static INLINE GLboolean
+static inline GLboolean
 is_scissor_enabled(struct gl_context *ctx, struct gl_renderbuffer *rb)
 {
    return (ctx->Scissor.EnableFlags & 1) &&
@@ -395,7 +395,7 @@ is_scissor_enabled(struct gl_context *ctx, struct gl_renderbuffer *rb)
 /**
  * Return if all of the color channels are masked.
  */
-static INLINE GLboolean
+static inline GLboolean
 is_color_disabled(struct gl_context *ctx, int i)
 {
    return !ctx->Color.ColorMask[i][0] &&
@@ -408,7 +408,7 @@ is_color_disabled(struct gl_context *ctx, int i)
 /**
  * Return if any of the color channels are masked.
  */
-static INLINE GLboolean
+static inline GLboolean
 is_color_masked(struct gl_context *ctx, int i)
 {
    return !ctx->Color.ColorMask[i][0] ||
@@ -421,7 +421,7 @@ is_color_masked(struct gl_context *ctx, int i)
 /**
  * Return if all of the stencil bits are masked.
  */
-static INLINE GLboolean
+static inline GLboolean
 is_stencil_disabled(struct gl_context *ctx, struct gl_renderbuffer *rb)
 {
    const GLuint stencilMax = 0xff;
@@ -434,7 +434,7 @@ is_stencil_disabled(struct gl_context *ctx, struct gl_renderbuffer *rb)
 /**
  * Return if any of the stencil bits are masked.
  */
-static INLINE GLboolean
+static inline GLboolean
 is_stencil_masked(struct gl_context *ctx, struct gl_renderbuffer *rb)
 {
    const GLuint stencilMax = 0xff;

@@ -35,6 +35,7 @@
  */
 
 
+#include "c99_math.h"
 #include "main/glheader.h"
 #include "main/colormac.h"
 #include "main/macros.h"
@@ -123,7 +124,7 @@ get_src_register_pointer(const struct prog_src_register *source,
       return (GLfloat *) prog->Parameters->ParameterValues[reg];
 
    case PROGRAM_SYSTEM_VALUE:
-      assert(reg < (GLint) Elements(machine->SystemValues));
+      assert(reg < (GLint) ARRAY_SIZE(machine->SystemValues));
       return machine->SystemValues[reg];
 
    default:
@@ -190,10 +191,10 @@ fetch_vector4(const struct prog_src_register *source,
       COPY_4V(result, src);
    }
    else {
-      ASSERT(GET_SWZ(source->Swizzle, 0) <= 3);
-      ASSERT(GET_SWZ(source->Swizzle, 1) <= 3);
-      ASSERT(GET_SWZ(source->Swizzle, 2) <= 3);
-      ASSERT(GET_SWZ(source->Swizzle, 3) <= 3);
+      assert(GET_SWZ(source->Swizzle, 0) <= 3);
+      assert(GET_SWZ(source->Swizzle, 1) <= 3);
+      assert(GET_SWZ(source->Swizzle, 2) <= 3);
+      assert(GET_SWZ(source->Swizzle, 3) <= 3);
       result[0] = src[GET_SWZ(source->Swizzle, 0)];
       result[1] = src[GET_SWZ(source->Swizzle, 1)];
       result[2] = src[GET_SWZ(source->Swizzle, 2)];
@@ -201,13 +202,13 @@ fetch_vector4(const struct prog_src_register *source,
    }
 
    if (source->Abs) {
-      result[0] = FABSF(result[0]);
-      result[1] = FABSF(result[1]);
-      result[2] = FABSF(result[2]);
-      result[3] = FABSF(result[3]);
+      result[0] = fabsf(result[0]);
+      result[1] = fabsf(result[1]);
+      result[2] = fabsf(result[2]);
+      result[3] = fabsf(result[3]);
    }
    if (source->Negate) {
-      ASSERT(source->Negate == NEGATE_XYZW);
+      assert(source->Negate == NEGATE_XYZW);
       result[0] = -result[0];
       result[1] = -result[1];
       result[2] = -result[2];
@@ -259,13 +260,13 @@ fetch_vector4_deriv(struct gl_context * ctx,
       result[3] = deriv[GET_SWZ(source->Swizzle, 3)];
       
       if (source->Abs) {
-         result[0] = FABSF(result[0]);
-         result[1] = FABSF(result[1]);
-         result[2] = FABSF(result[2]);
-         result[3] = FABSF(result[3]);
+         result[0] = fabsf(result[0]);
+         result[1] = fabsf(result[1]);
+         result[2] = fabsf(result[2]);
+         result[3] = fabsf(result[3]);
       }
       if (source->Negate) {
-         ASSERT(source->Negate == NEGATE_XYZW);
+         assert(source->Negate == NEGATE_XYZW);
          result[0] = -result[0];
          result[1] = -result[1];
          result[2] = -result[2];
@@ -290,7 +291,7 @@ fetch_vector1(const struct prog_src_register *source,
    result[0] = src[GET_SWZ(source->Swizzle, 0)];
 
    if (source->Abs) {
-      result[0] = FABSF(result[0]);
+      result[0] = fabsf(result[0]);
    }
    if (source->Negate) {
       result[0] = -result[0];
@@ -520,10 +521,10 @@ _mesa_execute_program(struct gl_context * ctx,
          {
             GLfloat a[4], result[4];
             fetch_vector4(&inst->SrcReg[0], machine, a);
-            result[0] = FABSF(a[0]);
-            result[1] = FABSF(a[1]);
-            result[2] = FABSF(a[2]);
-            result[3] = FABSF(a[3]);
+            result[0] = fabsf(a[0]);
+            result[1] = fabsf(a[1]);
+            result[2] = fabsf(a[2]);
+            result[3] = fabsf(a[3]);
             store_vector4(inst, machine, result);
          }
          break;
@@ -556,12 +557,12 @@ _mesa_execute_program(struct gl_context * ctx,
          break;
       case OPCODE_BGNLOOP:
          /* no-op */
-         ASSERT(program->Instructions[inst->BranchTarget].Opcode
+         assert(program->Instructions[inst->BranchTarget].Opcode
                 == OPCODE_ENDLOOP);
          break;
       case OPCODE_ENDLOOP:
          /* subtract 1 here since pc is incremented by for(pc) loop */
-         ASSERT(program->Instructions[inst->BranchTarget].Opcode
+         assert(program->Instructions[inst->BranchTarget].Opcode
                 == OPCODE_BGNLOOP);
          pc = inst->BranchTarget - 1;   /* go to matching BNGLOOP */
          break;
@@ -570,7 +571,7 @@ _mesa_execute_program(struct gl_context * ctx,
       case OPCODE_ENDSUB:      /* end subroutine */
          break;
       case OPCODE_BRK:         /* break out of loop (conditional) */
-         ASSERT(program->Instructions[inst->BranchTarget].Opcode
+         assert(program->Instructions[inst->BranchTarget].Opcode
                 == OPCODE_ENDLOOP);
          if (eval_condition(machine, inst)) {
             /* break out of loop */
@@ -579,7 +580,7 @@ _mesa_execute_program(struct gl_context * ctx,
          }
          break;
       case OPCODE_CONT:        /* continue loop (conditional) */
-         ASSERT(program->Instructions[inst->BranchTarget].Opcode
+         assert(program->Instructions[inst->BranchTarget].Opcode
                 == OPCODE_ENDLOOP);
          if (eval_condition(machine, inst)) {
             /* continue at ENDLOOP */
@@ -708,7 +709,7 @@ _mesa_execute_program(struct gl_context * ctx,
          {
             GLfloat t[4], q[4], floor_t0;
             fetch_vector1(&inst->SrcReg[0], machine, t);
-            floor_t0 = FLOORF(t[0]);
+            floor_t0 = floorf(t[0]);
             if (floor_t0 > FLT_MAX_EXP) {
                SET_POS_INFINITY(q[0]);
                SET_POS_INFINITY(q[2]);
@@ -718,7 +719,7 @@ _mesa_execute_program(struct gl_context * ctx,
                q[2] = 0.0F;
             }
             else {
-               q[0] = LDEXPF(1.0, (int) floor_t0);
+               q[0] = ldexpf(1.0, (int) floor_t0);
                /* Note: GL_NV_vertex_program expects 
                 * result.z = result.x * APPX(result.y)
                 * We do what the ARB extension says.
@@ -747,10 +748,10 @@ _mesa_execute_program(struct gl_context * ctx,
          {
             GLfloat a[4], result[4];
             fetch_vector4(&inst->SrcReg[0], machine, a);
-            result[0] = FLOORF(a[0]);
-            result[1] = FLOORF(a[1]);
-            result[2] = FLOORF(a[2]);
-            result[3] = FLOORF(a[3]);
+            result[0] = floorf(a[0]);
+            result[1] = floorf(a[1]);
+            result[2] = floorf(a[2]);
+            result[3] = floorf(a[3]);
             store_vector4(inst, machine, result);
          }
          break;
@@ -758,17 +759,17 @@ _mesa_execute_program(struct gl_context * ctx,
          {
             GLfloat a[4], result[4];
             fetch_vector4(&inst->SrcReg[0], machine, a);
-            result[0] = a[0] - FLOORF(a[0]);
-            result[1] = a[1] - FLOORF(a[1]);
-            result[2] = a[2] - FLOORF(a[2]);
-            result[3] = a[3] - FLOORF(a[3]);
+            result[0] = a[0] - floorf(a[0]);
+            result[1] = a[1] - floorf(a[1]);
+            result[2] = a[2] - floorf(a[2]);
+            result[3] = a[3] - floorf(a[3]);
             store_vector4(inst, machine, result);
          }
          break;
       case OPCODE_IF:
          {
             GLboolean cond;
-            ASSERT(program->Instructions[inst->BranchTarget].Opcode
+            assert(program->Instructions[inst->BranchTarget].Opcode
                    == OPCODE_ELSE ||
                    program->Instructions[inst->BranchTarget].Opcode
                    == OPCODE_ENDIF);
@@ -797,7 +798,7 @@ _mesa_execute_program(struct gl_context * ctx,
          break;
       case OPCODE_ELSE:
          /* goto ENDIF */
-         ASSERT(program->Instructions[inst->BranchTarget].Opcode
+         assert(program->Instructions[inst->BranchTarget].Opcode
                 == OPCODE_ENDIF);
          assert(inst->BranchTarget >= 0);
          pc = inst->BranchTarget;
@@ -874,7 +875,7 @@ _mesa_execute_program(struct gl_context * ctx,
          {
             GLfloat t[4], q[4], abs_t0;
             fetch_vector1(&inst->SrcReg[0], machine, t);
-            abs_t0 = FABSF(t[0]);
+            abs_t0 = fabsf(t[0]);
             if (abs_t0 != 0.0F) {
                if (IS_INF_OR_NAN(abs_t0))
                {
@@ -884,7 +885,7 @@ _mesa_execute_program(struct gl_context * ctx,
                }
                else {
                   int exponent;
-                  GLfloat mantissa = FREXPF(t[0], &exponent);
+                  GLfloat mantissa = frexpf(t[0], &exponent);
                   q[0] = (GLfloat) (exponent - 1);
                   q[1] = (GLfloat) (2.0 * mantissa); /* map [.5, 1) -> [1, 2) */
 
@@ -1083,8 +1084,8 @@ _mesa_execute_program(struct gl_context * ctx,
          {
             GLfloat a[4], result[4];
             fetch_vector1(&inst->SrcReg[0], machine, a);
-            a[0] = FABSF(a[0]);
-            result[0] = result[1] = result[2] = result[3] = INV_SQRTF(a[0]);
+            a[0] = fabsf(a[0]);
+            result[0] = result[1] = result[2] = result[3] = 1.0f / sqrtf(a[0]);
             store_vector4(inst, machine, result);
             if (DEBUG_PROG) {
                printf("RSQ %g = 1/sqrt(|%g|)\n", result[0], a[0]);
@@ -1260,7 +1261,7 @@ _mesa_execute_program(struct gl_context * ctx,
                else if (swz == SWIZZLE_ONE)
                   result[i] = 1.0;
                else {
-                  ASSERT(swz <= 3);
+                  assert(swz <= 3);
                   result[i] = src[swz];
                }
                if (source->Negate & (1 << i))
@@ -1357,7 +1358,7 @@ _mesa_execute_program(struct gl_context * ctx,
 
             fetch_vector4(&inst->SrcReg[0], machine, texcoord);
             /* Not so sure about this test - if texcoord[3] is
-             * zero, we'd probably be fine except for an ASSERT in
+             * zero, we'd probably be fine except for an assert in
              * IROUND_POS() which gets triggered by the inf values created.
              */
             if (texcoord[3] != 0.0) {

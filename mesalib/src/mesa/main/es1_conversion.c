@@ -55,7 +55,7 @@ _mesa_ClipPlanef(GLenum plane, const GLfloat *equation)
    unsigned int i;
    GLdouble converted_equation[4];
 
-   for (i = 0; i < Elements(converted_equation); i++) {
+   for (i = 0; i < ARRAY_SIZE(converted_equation); i++) {
       converted_equation[i] = (GLdouble) (equation[i]);
    }
 
@@ -68,7 +68,7 @@ _mesa_ClipPlanex(GLenum plane, const GLfixed *equation)
    unsigned int i;
    GLdouble converted_equation[4];
 
-   for (i = 0; i < Elements(converted_equation); i++) {
+   for (i = 0; i < ARRAY_SIZE(converted_equation); i++) {
       converted_equation[i] = (GLdouble) (equation[i] / 65536.0);
    }
 
@@ -117,7 +117,7 @@ _mesa_DrawTexxvOES(const GLfixed *coords)
     unsigned int i;
     GLfloat converted_coords[5];
 
-    for (i = 0; i < Elements(converted_coords); i++) {
+    for (i = 0; i < ARRAY_SIZE(converted_coords); i++) {
         converted_coords[i] = (GLfloat) (coords[i] / 65536.0f);
     }
 
@@ -206,7 +206,7 @@ _mesa_GetClipPlanef(GLenum plane, GLfloat *equation)
    GLdouble converted_equation[4];
 
    _mesa_GetClipPlane(plane, converted_equation);
-   for (i = 0; i < Elements(converted_equation); i++) {
+   for (i = 0; i < ARRAY_SIZE(converted_equation); i++) {
       equation[i] = (GLfloat) (converted_equation[i]);
    }
 }
@@ -218,7 +218,7 @@ _mesa_GetClipPlanex(GLenum plane, GLfixed *equation)
    GLdouble converted_equation[4];
 
    _mesa_GetClipPlane(plane, converted_equation);
-   for (i = 0; i < Elements(converted_equation); i++) {
+   for (i = 0; i < ARRAY_SIZE(converted_equation); i++) {
       equation[i] = (GLfixed) (converted_equation[i] * 65536);
    }
 }
@@ -549,7 +549,7 @@ _mesa_LoadMatrixx(const GLfixed *m)
    unsigned int i;
    GLfloat converted_m[16];
 
-   for (i = 0; i < Elements(converted_m); i++) {
+   for (i = 0; i < ARRAY_SIZE(converted_m); i++) {
       converted_m[i] = (GLfloat) (m[i] / 65536.0f);
    }
 
@@ -617,7 +617,7 @@ _mesa_MultMatrixx(const GLfixed *m)
    unsigned int i;
    GLfloat converted_m[16];
 
-   for (i = 0; i < Elements(converted_m); i++) {
+   for (i = 0; i < ARRAY_SIZE(converted_m); i++) {
       converted_m[i] = (GLfloat) (m[i] / 65536.0f);
    }
 
@@ -825,7 +825,7 @@ _mesa_TexEnvxv(GLenum target, GLenum pname, const GLfixed *params)
       unsigned int i;
       GLfloat converted_params[4];
 
-      for (i = 0; i < Elements(converted_params); i++) {
+      for (i = 0; i < ARRAY_SIZE(converted_params); i++) {
          converted_params[i] = (GLfloat) (params[i] / 65536.0f);
       }
 

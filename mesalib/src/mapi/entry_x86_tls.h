@@ -26,7 +26,6 @@
  */
 
 #include <string.h>
-#include "u_macros.h"
 
 __asm__(".text");
 
@@ -113,7 +112,7 @@ entry_generate(int slot)
       0xff, 0xa0, 0x34, 0x12, 0x00, 0x00, /* jmp *0x1234(%eax) */
       0x90, 0x90, 0x90, 0x90              /* nop's */
    };
-   void *code;
+   char *code;
    mapi_func entry;
 
    code = u_execmem_alloc(sizeof(code_templ));

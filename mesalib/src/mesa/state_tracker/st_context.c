@@ -117,8 +117,8 @@ st_destroy_context_priv(struct st_context *st)
    st_destroy_drawpix(st);
    st_destroy_drawtex(st);
 
-   for (shader = 0; shader < Elements(st->state.sampler_views); shader++) {
-      for (i = 0; i < Elements(st->state.sampler_views[0]); i++) {
+   for (shader = 0; shader < ARRAY_SIZE(st->state.sampler_views); shader++) {
+      for (i = 0; i < ARRAY_SIZE(st->state.sampler_views[0]); i++) {
          pipe_sampler_view_release(st->pipe,
                                    &st->state.sampler_views[shader][i]);
       }
@@ -200,7 +200,7 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
    /* Vertex element objects used for drawing rectangles for glBitmap,
     * glDrawPixels, glClear, etc.
     */
-   for (i = 0; i < Elements(st->velems_util_draw); i++) {
+   for (i = 0; i < ARRAY_SIZE(st->velems_util_draw); i++) {
       memset(&st->velems_util_draw[i], 0, sizeof(struct pipe_vertex_element));
       st->velems_util_draw[i].src_offset = i * 4 * sizeof(float);
       st->velems_util_draw[i].instance_divisor = 0;

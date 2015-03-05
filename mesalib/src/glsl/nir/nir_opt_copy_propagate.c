@@ -53,22 +53,6 @@ static bool is_move(nir_alu_instr *instr)
 
 }
 
-static bool
-is_swizzleless_move(nir_alu_instr *instr)
-{
-   if (!is_move(instr))
-      return false;
-
-   for (unsigned i = 0; i < 4; i++) {
-      if (!((instr->dest.write_mask >> i) & 1))
-         break;
-      if (instr->src[0].swizzle[i] != i)
-         return false;
-   }
-
-   return true;
-}
-
 static bool is_vec(nir_alu_instr *instr)
 {
    for (unsigned i = 0; i < nir_op_infos[instr->op].num_inputs; i++)
@@ -78,6 +62,35 @@ static bool is_vec(nir_alu_instr *instr)
    return instr->op == nir_op_vec2 ||
           instr->op == nir_op_vec3 ||
           instr->op == nir_op_vec4;
+}
+
+static bool
+is_swizzleless_move(nir_alu_instr *instr)
+{
+   if (is_move(instr)) {
+      for (unsigned i = 0; i < 4; i++) {
+         if (!((instr->dest.write_mask >> i) & 1))
+            break;
+         if (instr->src[0].swizzle[i] != i)
+            return false;
+      }
+      return true;
+   } else if (is_vec(instr)) {
+      nir_ssa_def *def = NULL;
+      for (unsigned i = 0; i < nir_op_infos[instr->op].num_inputs; i++) {
+         if (instr->src[i].swizzle[0] != i)
+            return false;
+
+         if (def == NULL) {
+            def = instr->src[i].src.ssa;
+         } else if (instr->src[i].src.ssa != def) {
+            return false;
+         }
+      }
+      return true;
+   } else {
+      return false;
+   }
 }
 
 typedef struct {

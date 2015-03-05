@@ -30,6 +30,7 @@
  */
 
 #include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -485,6 +486,7 @@ driIndexConfigAttrib(const __DRIconfig *config, int index,
  * Currently only the following queries are supported by this function:
  *
  *     - \c __DRI2_RENDERER_VERSION
+ *     - \c __DRI2_RENDERER_PREFERRED_PROFILE
  *     - \c __DRI2_RENDERER_OPENGL_CORE_PROFILE_VERSION
  *     - \c __DRI2_RENDERER_OPENGL_COMPATIBLITY_PROFILE_VERSION
  *     - \c __DRI2_RENDERER_ES_PROFILE_VERSION

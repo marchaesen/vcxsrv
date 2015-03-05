@@ -212,8 +212,8 @@ NAME( struct gl_context *ctx, const SWvertex *vert0, const SWvertex *vert1 )
 #endif
    }
 
-   ASSERT(dx >= 0);
-   ASSERT(dy >= 0);
+   assert(dx >= 0);
+   assert(dy >= 0);
 
    numPixels = MAX2(dx, dy);
 

@@ -94,6 +94,6 @@ __bitset_ffs(const BITSET_WORD *x, int n)
    return 0;
 }
 
-#define BITSET_FFS(x) __bitset_ffs(x, Elements(x))
+#define BITSET_FFS(x) __bitset_ffs(x, ARRAY_SIZE(x))
 
 #endif

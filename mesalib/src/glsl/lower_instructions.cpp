@@ -124,7 +124,7 @@
  * Converts double trunc, ceil, floor, round to fract
  */
 
-#include "main/core.h" /* for M_LOG2E */
+#include "c99_math.h"
 #include "program/prog_instruction.h" /* for swizzle */
 #include "glsl_types.h"
 #include "ir.h"

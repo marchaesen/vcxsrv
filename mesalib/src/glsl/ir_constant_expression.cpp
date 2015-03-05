@@ -506,7 +506,7 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
    if (this->type->is_error())
       return NULL;
 
-   ir_constant *op[Elements(this->operands)] = { NULL, };
+   ir_constant *op[ARRAY_SIZE(this->operands)] = { NULL, };
    ir_constant_data data;
 
    memset(&data, 0, sizeof(data));

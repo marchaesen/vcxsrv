@@ -24,6 +24,7 @@
  */
 
 
+#include "c99_math.h"
 #include "glheader.h"
 #include "imports.h"
 #include "context.h"
@@ -101,7 +102,7 @@ _mesa_light(struct gl_context *ctx, GLuint lnum, GLenum pname, const GLfloat *pa
 {
    struct gl_light *light;
 
-   ASSERT(lnum < MAX_LIGHTS);
+   assert(lnum < MAX_LIGHTS);
    light = &ctx->Light.Light[lnum];
 
    switch (pname) {
@@ -142,20 +143,20 @@ _mesa_light(struct gl_context *ctx, GLuint lnum, GLenum pname, const GLfloat *pa
       COPY_3V(light->SpotDirection, params);
       break;
    case GL_SPOT_EXPONENT:
-      ASSERT(params[0] >= 0.0);
-      ASSERT(params[0] <= ctx->Const.MaxSpotExponent);
+      assert(params[0] >= 0.0);
+      assert(params[0] <= ctx->Const.MaxSpotExponent);
       if (light->SpotExponent == params[0])
 	 return;
       FLUSH_VERTICES(ctx, _NEW_LIGHT);
       light->SpotExponent = params[0];
       break;
    case GL_SPOT_CUTOFF:
-      ASSERT(params[0] == 180.0 || (params[0] >= 0.0 && params[0] <= 90.0));
+      assert(params[0] == 180.0 || (params[0] >= 0.0 && params[0] <= 90.0));
       if (light->SpotCutoff == params[0])
          return;
       FLUSH_VERTICES(ctx, _NEW_LIGHT);
       light->SpotCutoff = params[0];
-      light->_CosCutoff = (GLfloat) (cos(light->SpotCutoff * DEG2RAD));
+      light->_CosCutoff = (GLfloat) (cos(light->SpotCutoff * M_PI / 180.0));
       if (light->_CosCutoff < 0)
          light->_CosCutoff = 0;
       if (light->SpotCutoff != 180.0F)
@@ -164,21 +165,21 @@ _mesa_light(struct gl_context *ctx, GLuint lnum, GLenum pname, const GLfloat *pa
          light->_Flags &= ~LIGHT_SPOT;
       break;
    case GL_CONSTANT_ATTENUATION:
-      ASSERT(params[0] >= 0.0);
+      assert(params[0] >= 0.0);
       if (light->ConstantAttenuation == params[0])
 	 return;
       FLUSH_VERTICES(ctx, _NEW_LIGHT);
       light->ConstantAttenuation = params[0];
       break;
    case GL_LINEAR_ATTENUATION:
-      ASSERT(params[0] >= 0.0);
+      assert(params[0] >= 0.0);
       if (light->LinearAttenuation == params[0])
 	 return;
       FLUSH_VERTICES(ctx, _NEW_LIGHT);
       light->LinearAttenuation = params[0];
       break;
    case GL_QUADRATIC_ATTENUATION:
-      ASSERT(params[0] >= 0.0);
+      assert(params[0] >= 0.0);
       if (light->QuadraticAttenuation == params[0])
 	 return;
       FLUSH_VERTICES(ctx, _NEW_LIGHT);
@@ -808,7 +809,7 @@ _mesa_GetMaterialiv( GLenum face, GLenum pname, GLint *params )
    GLuint f;
    GLfloat (*mat)[4] = ctx->Light.Material.Attrib;
 
-   ASSERT(ctx->API == API_OPENGL_COMPAT);
+   assert(ctx->API == API_OPENGL_COMPAT);
 
    FLUSH_VERTICES(ctx, 0); /* update materials */
    FLUSH_CURRENT(ctx, 0); /* update ctx->Light.Material from vertex buffer */
@@ -1025,9 +1026,9 @@ update_modelview_scale( struct gl_context *ctx )
       GLfloat f = m[2] * m[2] + m[6] * m[6] + m[10] * m[10];
       if (f < 1e-12) f = 1.0;
       if (ctx->_NeedEyeCoords)
-	 ctx->_ModelViewInvScale = (GLfloat) INV_SQRTF(f);
+	 ctx->_ModelViewInvScale = 1.0f / sqrtf(f);
       else
-	 ctx->_ModelViewInvScale = (GLfloat) sqrtf(f);
+	 ctx->_ModelViewInvScale = sqrtf(f);
    }
 }
 

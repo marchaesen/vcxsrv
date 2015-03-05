@@ -275,7 +275,7 @@ update_viewport_matrix(struct gl_context *ctx)
    const GLfloat depthMax = ctx->DrawBuffer->_DepthMaxF;
    unsigned i;
 
-   ASSERT(depthMax > 0);
+   assert(depthMax > 0);
 
    /* Compute scale and bias values. This is really driver-specific
     * and should be maintained elsewhere if at all.

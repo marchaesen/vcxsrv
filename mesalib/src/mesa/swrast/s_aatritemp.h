@@ -284,7 +284,7 @@
             /* (cx,cy) = center of fragment */
             const GLfloat cx = ix + 0.5F, cy = iy + 0.5F;
             SWspanarrays *array = span.array;
-            ASSERT(ix >= 0);
+            assert(ix >= 0);
             array->coverage[ix] = coverage;
 #ifdef DO_Z
             array->z[ix] = (GLuint) solve_plane(cx, cy, zPlane);

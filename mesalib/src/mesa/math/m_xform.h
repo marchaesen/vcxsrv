@@ -119,7 +119,7 @@ typedef void (*vec_copy_func)( GLvector4f *to,
 /*
  * Functions for transformation of normals in the VB.
  */
-typedef void (_NORMAPIP normal_func)( const GLmatrix *mat,
+typedef void (_XFORMAPIP normal_func)( const GLmatrix *mat,
 				      GLfloat scale,
 				      const GLvector4f *in,
 				      const GLfloat lengths[],

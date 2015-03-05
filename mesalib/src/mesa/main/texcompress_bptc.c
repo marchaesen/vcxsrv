@@ -1630,7 +1630,7 @@ texstore_bptc_rgb_float(TEXSTORE_PARAMS,
 GLboolean
 _mesa_texstore_bptc_rgb_signed_float(TEXSTORE_PARAMS)
 {
-   ASSERT(dstFormat == MESA_FORMAT_BPTC_RGB_SIGNED_FLOAT);
+   assert(dstFormat == MESA_FORMAT_BPTC_RGB_SIGNED_FLOAT);
 
    return texstore_bptc_rgb_float(ctx, dims, baseInternalFormat,
                                   dstFormat, dstRowStride, dstSlices,
@@ -1643,7 +1643,7 @@ _mesa_texstore_bptc_rgb_signed_float(TEXSTORE_PARAMS)
 GLboolean
 _mesa_texstore_bptc_rgb_unsigned_float(TEXSTORE_PARAMS)
 {
-   ASSERT(dstFormat == MESA_FORMAT_BPTC_RGB_UNSIGNED_FLOAT);
+   assert(dstFormat == MESA_FORMAT_BPTC_RGB_UNSIGNED_FLOAT);
 
    return texstore_bptc_rgb_float(ctx, dims, baseInternalFormat,
                                   dstFormat, dstRowStride, dstSlices,

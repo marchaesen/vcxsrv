@@ -188,7 +188,7 @@ texture_combine( struct gl_context *ctx, GLuint unit,
             /* ARB_texture_env_crossbar source */
             {
                const GLuint srcUnit = srcRGB - GL_TEXTURE0;
-               ASSERT(srcUnit < ctx->Const.MaxTextureUnits);
+               assert(srcUnit < ctx->Const.MaxTextureUnits);
                if (!ctx->Texture.Unit[srcUnit]._Current)
                   goto end;
                argRGB[term] = get_texel_array(swrast, srcUnit);
@@ -278,7 +278,7 @@ texture_combine( struct gl_context *ctx, GLuint unit,
             /* ARB_texture_env_crossbar source */
             {
                const GLuint srcUnit = srcA - GL_TEXTURE0;
-               ASSERT(srcUnit < ctx->Const.MaxTextureUnits);
+               assert(srcUnit < ctx->Const.MaxTextureUnits);
                if (!ctx->Texture.Unit[srcUnit]._Current)
                   goto end;
                argA[term] = get_texel_array(swrast, srcUnit);
@@ -628,7 +628,7 @@ _swrast_texture_span( struct gl_context *ctx, SWspan *span )
       return;
    }
 
-   ASSERT(span->end <= SWRAST_MAX_WIDTH);
+   assert(span->end <= SWRAST_MAX_WIDTH);
 
    /*
     * Save copy of the incoming fragment colors (the GL_PRIMARY_COLOR)

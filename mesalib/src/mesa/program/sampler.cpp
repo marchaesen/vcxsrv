@@ -29,7 +29,6 @@
 #include "../glsl/program.h"
 #include "ir_uniform.h"
 
-#include "main/compiler.h"
 #include "main/mtypes.h"
 #include "program/hash_table.h"
 #include "program/prog_parameter.h"

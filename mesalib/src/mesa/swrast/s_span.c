@@ -31,6 +31,7 @@
  * \author Brian Paul
  */
 
+#include "c99_math.h"
 #include "main/glheader.h"
 #include "main/colormac.h"
 #include "main/format_pack.h"
@@ -205,7 +206,7 @@ interpolate_active_attribs(struct gl_context *ctx, SWspan *span,
             v3 += dv3dx;
             w += dwdx;
          }
-         ASSERT((span->arrayAttribs & BITFIELD64_BIT(attr)) == 0);
+         assert((span->arrayAttribs & BITFIELD64_BIT(attr)) == 0);
          span->arrayAttribs |= BITFIELD64_BIT(attr);
       }
    ATTRIB_LOOP_END
@@ -223,7 +224,7 @@ interpolate_int_colors(struct gl_context *ctx, SWspan *span)
    const GLuint n = span->end;
    GLuint i;
 
-   ASSERT(!(span->arrayMask & SPAN_RGBA));
+   assert(!(span->arrayMask & SPAN_RGBA));
 #endif
 
    switch (span->array->ChanType) {
@@ -336,7 +337,7 @@ interpolate_float_colors(SWspan *span)
    }
    else {
       /* interpolate red/green/blue/alpha to get float colors */
-      ASSERT(span->interpMask & SPAN_RGBA);
+      assert(span->interpMask & SPAN_RGBA);
       if (span->interpMask & SPAN_FLAT) {
          GLfloat r = FixedToFloat(span->red);
          GLfloat g = FixedToFloat(span->green);
@@ -383,7 +384,7 @@ _swrast_span_interpolate_z( const struct gl_context *ctx, SWspan *span )
    const GLuint n = span->end;
    GLuint i;
 
-   ASSERT(!(span->arrayMask & SPAN_Z));
+   assert(!(span->arrayMask & SPAN_Z));
 
    if (ctx->DrawBuffer->Visual.depthBits <= 16) {
       GLfixed zval = span->z;
@@ -443,10 +444,10 @@ _swrast_compute_lambda(GLfloat dsdx, GLfloat dsdy, GLfloat dtdx, GLfloat dtdy,
    GLfloat dsdy2 = (s + dsdy) / (q + dqdy) - s * invQ;
    GLfloat dtdy2 = (t + dtdy) / (q + dqdy) - t * invQ;
    GLfloat maxU, maxV, rho, lambda;
-   dsdx2 = FABSF(dsdx2);
-   dsdy2 = FABSF(dsdy2);
-   dtdx2 = FABSF(dtdx2);
-   dtdy2 = FABSF(dtdy2);
+   dsdx2 = fabsf(dsdx2);
+   dsdy2 = fabsf(dsdy2);
+   dtdx2 = fabsf(dtdx2);
+   dtdy2 = fabsf(dtdy2);
    maxU = MAX2(dsdx2, dsdy2) * texW;
    maxV = MAX2(dtdx2, dtdy2) * texH;
    rho = MAX2(maxU, maxV);
@@ -658,7 +659,7 @@ stipple_polygon_span(struct gl_context *ctx, SWspan *span)
 {
    GLubyte *mask = span->array->mask;
 
-   ASSERT(ctx->Polygon.StippleFlag);
+   assert(ctx->Polygon.StippleFlag);
 
    if (span->arrayMask & SPAN_XY) {
       /* arrays of x/y pixel coords */
@@ -748,7 +749,7 @@ clip_span( struct gl_context *ctx, SWspan *span )
 
       /* Clip to right */
       if (x + n > xmax) {
-         ASSERT(x < xmax);
+         assert(x < xmax);
          n = span->end = xmax - x;
       }
 
@@ -757,8 +758,8 @@ clip_span( struct gl_context *ctx, SWspan *span )
          const GLint leftClip = xmin - x;
          GLuint i;
 
-         ASSERT(leftClip > 0);
-         ASSERT(x + n > xmin);
+         assert(leftClip > 0);
+         assert(x + n > xmin);
 
          /* Clip 'leftClip' pixels from the left side.
           * The span->leftClip field will be applied when we interpolate
@@ -813,10 +814,10 @@ clip_span( struct gl_context *ctx, SWspan *span )
          span->writeAll = GL_FALSE;
       }
 
-      ASSERT(span->x >= xmin);
-      ASSERT(span->x + span->end <= xmax);
-      ASSERT(span->y >= ymin);
-      ASSERT(span->y < ymax);
+      assert(span->x >= xmin);
+      assert(span->x + span->end <= xmax);
+      assert(span->y >= ymin);
+      assert(span->y < ymax);
 
       return GL_TRUE;  /* some pixels visible */
    }
@@ -837,9 +838,9 @@ add_specular(struct gl_context *ctx, SWspan *span)
    GLfloat (*col1)[4] = span->array->attribs[VARYING_SLOT_COL1];
    GLuint i;
 
-   ASSERT(!_swrast_use_fragment_program(ctx));
-   ASSERT(span->arrayMask & SPAN_RGBA);
-   ASSERT(swrast->_ActiveAttribMask & VARYING_BIT_COL1);
+   assert(!_swrast_use_fragment_program(ctx));
+   assert(span->arrayMask & SPAN_RGBA);
+   assert(swrast->_ActiveAttribMask & VARYING_BIT_COL1);
    (void) swrast; /* silence warning */
 
    if (span->array->ChanType == GL_FLOAT) {
@@ -859,8 +860,8 @@ add_specular(struct gl_context *ctx, SWspan *span)
       interpolate_active_attribs(ctx, span, VARYING_BIT_COL1);
    }
 
-   ASSERT(span->arrayAttribs & VARYING_BIT_COL0);
-   ASSERT(span->arrayAttribs & VARYING_BIT_COL1);
+   assert(span->arrayAttribs & VARYING_BIT_COL0);
+   assert(span->arrayAttribs & VARYING_BIT_COL1);
 
    for (i = 0; i < span->end; i++) {
       if (mask[i]) {
@@ -887,8 +888,8 @@ apply_aa_coverage(SWspan *span)
       for (i = 0; i < span->end; i++) {
          const GLfloat a = rgba[i][ACOMP] * coverage[i];
          rgba[i][ACOMP] = (GLubyte) CLAMP(a, 0.0, 255.0);
-         ASSERT(coverage[i] >= 0.0);
-         ASSERT(coverage[i] <= 1.0);
+         assert(coverage[i] >= 0.0);
+         assert(coverage[i] <= 1.0);
       }
    }
    else if (span->array->ChanType == GL_UNSIGNED_SHORT) {
@@ -916,7 +917,7 @@ clamp_colors(SWspan *span)
 {
    GLfloat (*rgba)[4] = span->array->attribs[VARYING_SLOT_COL0];
    GLuint i;
-   ASSERT(span->array->ChanType == GL_FLOAT);
+   assert(span->array->ChanType == GL_FLOAT);
    for (i = 0; i < span->end; i++) {
       rgba[i][RCOMP] = CLAMP(rgba[i][RCOMP], 0.0F, 1.0F);
       rgba[i][GCOMP] = CLAMP(rgba[i][GCOMP], 0.0F, 1.0F);
@@ -945,7 +946,7 @@ convert_color_type(SWspan *span, GLenum srcType, GLenum newType, GLuint output)
       src = span->array->rgba8;
    }
    else {
-      ASSERT(srcType == GL_UNSIGNED_SHORT);
+      assert(srcType == GL_UNSIGNED_SHORT);
       src = span->array->rgba16;
    }
 
@@ -1008,7 +1009,7 @@ shade_texture_span(struct gl_context *ctx, SWspan *span)
          _swrast_exec_fragment_program(ctx, span);
       }
       else {
-         ASSERT(ctx->ATIFragmentShader._Enabled);
+         assert(ctx->ATIFragmentShader._Enabled);
          _swrast_exec_fragment_shader(ctx, span);
       }
    }
@@ -1147,7 +1148,7 @@ _swrast_write_rgba_span( struct gl_context *ctx, SWspan *span)
           span->interpMask, span->arrayMask);
    */
 
-   ASSERT(span->primitive == GL_POINT ||
+   assert(span->primitive == GL_POINT ||
           span->primitive == GL_LINE ||
 	  span->primitive == GL_POLYGON ||
           span->primitive == GL_BITMAP);
@@ -1167,7 +1168,7 @@ _swrast_write_rgba_span( struct gl_context *ctx, SWspan *span)
       return;
    }
 
-   ASSERT(span->end <= SWRAST_MAX_WIDTH);
+   assert(span->end <= SWRAST_MAX_WIDTH);
 
    /* Depth bounds test */
    if (ctx->Depth.BoundsTest && fb->Visual.depthBits > 0) {
@@ -1229,8 +1230,8 @@ _swrast_write_rgba_span( struct gl_context *ctx, SWspan *span)
       }
       else if (fb->Visual.depthBits > 0) {
          /* Just regular depth testing */
-         ASSERT(ctx->Depth.Test);
-         ASSERT(span->arrayMask & SPAN_Z);
+         assert(ctx->Depth.Test);
+         assert(span->arrayMask & SPAN_Z);
          if (!_swrast_depth_test_span(ctx, span)) {
             /* all fragments failed test */
             goto end;
@@ -1272,7 +1273,7 @@ _swrast_write_rgba_span( struct gl_context *ctx, SWspan *span)
    }
 #endif
 
-   ASSERT(span->arrayMask & SPAN_RGBA);
+   assert(span->arrayMask & SPAN_RGBA);
 
    if (span->primitive == GL_BITMAP || !swrast->SpecularVertexAdd) {
       /* Add primary and specular (diffuse + specular) colors */
@@ -1353,7 +1354,7 @@ _swrast_write_rgba_span( struct gl_context *ctx, SWspan *span)
                       4 * span->end * sizeof(GLchan));
             }
 
-            ASSERT(rb->_BaseFormat == GL_RGBA ||
+            assert(rb->_BaseFormat == GL_RGBA ||
                    rb->_BaseFormat == GL_RGB ||
                    rb->_BaseFormat == GL_RED ||
                    rb->_BaseFormat == GL_RG ||
@@ -1457,8 +1458,8 @@ _swrast_read_rgba_span( struct gl_context *ctx, struct gl_renderbuffer *rb,
          length = (GLint) n;
       }
 
-      ASSERT(rb);
-      ASSERT(rb->_BaseFormat == GL_RGBA ||
+      assert(rb);
+      assert(rb->_BaseFormat == GL_RGBA ||
 	     rb->_BaseFormat == GL_RGB ||
 	     rb->_BaseFormat == GL_RG ||
 	     rb->_BaseFormat == GL_RED ||
@@ -1468,6 +1469,7 @@ _swrast_read_rgba_span( struct gl_context *ctx, struct gl_renderbuffer *rb,
 	     rb->_BaseFormat == GL_ALPHA);
 
       assert(srb->Map);
+      (void) srb; /* silence unused var warning */
 
       src = _swrast_pixel_address(rb, x + skip, y);
 

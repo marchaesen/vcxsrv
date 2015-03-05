@@ -27,7 +27,6 @@
 #define TEXGEN_H
 
 
-#include "compiler.h"
 #include "glheader.h"
 
 struct _glapi_table;
