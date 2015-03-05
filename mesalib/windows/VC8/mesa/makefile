@@ -1,3 +1,4 @@
+
 MHMAKESLNFILE=mesavc10.sln
 BUILDCMD=MSBuild.exe $(MHMAKESLNFILE) /t:Build
 
@@ -54,6 +55,8 @@ DEPS:=$(wildcard ..\..\..\src\mesa\swrast\*.c) \
       ..\..\..\src\mesa\main\format_info.c \
       ..\..\..\src\mesa\main\format_unpack.c \
       ..\..\..\src\mesa\main\format_pack.c \
+      ..\..\..\src\util\format_srgb.c \
+      ..\..\..\src\mapi\glapi\gen\glapiTemp.h \
       ..\..\..\src\mesa\main\remap_helper.h \
       ..\..\..\src\mesa\drivers\dri\common\xmlpool\options.h
 
@@ -94,6 +97,9 @@ GEN_FORMAT_INFO=../../../src/mesa/main/format_info.py
 REMAP_HELPER = ../../../src/mapi/glapi/gen/remap_helper.py
 ..\..\..\src\mesa\main\remap_helper.h: ..\..\..\src\mapi\glapi\gen\gl_and_es_API.xml $(REMAP_HELPER)
 	python $(REMAP_HELPER) -f $(subst $/,/,$<) > $@
+
+..\..\..\src\mapi\glapi\gen\glapiTemp.h: ../../../src/mapi/glapi/gen/gl_apitemp.py
+	cd  ..\..\..\src\mapi\glapi\gen & python gl_apitemp.py -f gl_and_es_API.xml > glapiTemp.h
 
 $(TARGETDIR)\Debug\swrast_dri.dll: $(DEPS)
 	$(DBGBUILDCMD)
