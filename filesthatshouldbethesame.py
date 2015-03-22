@@ -90,6 +90,7 @@ xorg-server/hw/xwin/glx/wglext.h                  mesalib/include/GL/wglext.h
 
 mesalib/src/mapi/glapi/glapi.h                      xorg-server/glx/glapi.h
 mesalib/src/mapi/glapi/gen/glapitable.h             mesalib/src/mesa/main/glapitable.h
+mesalib/src/util/macros.h                           xorg-server/glx/util/macros.h
 mesalib/src/mesa/main/glapitable.h                  xorg-server/glx/glapitable.h
 mesalib/src/mapi/glapi/gen/glprocs.h                xorg-server/glx/glprocs.h
 mesalib/src/mapi/glapi/gen/dispatch.h               xorg-server/glx/dispatch.h

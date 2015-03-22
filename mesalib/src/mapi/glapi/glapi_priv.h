@@ -26,9 +26,6 @@
 #ifndef _GLAPI_PRIV_H
 #define _GLAPI_PRIV_H
 
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
 
 #ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>

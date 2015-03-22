@@ -29,7 +29,6 @@
 #include "xkbpath.h"
 #include <X11/keysym.h>
 #include <X11/extensions/XKBgeom.h>
-#include <X11/Xalloca.h>
 #include <limits.h>
 #include <stdlib.h>
 

@@ -104,7 +104,7 @@ readIntVec(struct pci_device *dev, unsigned char *buf, int len)
 {
     void *map;
 
-    if (!pci_device_map_legacy(dev, 0, len, 0, &map))
+    if (pci_device_map_legacy(dev, 0, len, 0, &map))
         return FALSE;
 
     memcpy(buf, map, len);

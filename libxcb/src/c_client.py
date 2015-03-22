@@ -1,12 +1,9 @@
 #!/usr/bin/env python
-from xml.etree.cElementTree import *
-from os.path import basename
-from functools import reduce
+from __future__ import print_function
 import getopt
 import os
 import sys
 import errno
-import time
 import re
 
 # Jump to the bottom of this file for the main routine
@@ -530,7 +527,6 @@ def _c_type_setup(self, name, postfix):
                 if not module.namespace.is_ext or self.name[:2] == module.namespace.prefix:
                     finished_sizeof.append(self.c_sizeof_name)
                     _c_serialize('sizeof', self)
-# _c_type_setup()
 
 # Functions for querying field properties
 def _c_field_needs_list_accessor(field):
@@ -591,7 +587,6 @@ def _c_helper_fieldaccess_expr(prefix, field=None):
             prefix_str += last_sep + _cpp(field.field_name)
 
     return prefix_str
-# _c_absolute_name
 
 def _c_helper_field_mapping(complex_type, prefix, flat=False):
     """
@@ -607,7 +602,7 @@ def _c_helper_field_mapping(complex_type, prefix, flat=False):
             else:
                 bitcase_prefix = prefix
 
-            if (True==flat and not b.type.has_name) or False==flat:
+            if (flat and not b.type.has_name) or not flat:
                 all_fields.update(_c_helper_field_mapping(b.type, bitcase_prefix, flat))
     else:
         for f in complex_type.fields:
@@ -616,7 +611,7 @@ def _c_helper_field_mapping(complex_type, prefix, flat=False):
                 raise Exception("field name %s has been registered before" % f.field_name)
 
             all_fields[f.field_name] = (fname, f)
-            if f.type.is_container and flat==False:
+            if f.type.is_container and not flat:
                 if f.type.is_case_or_bitcase and not f.type.has_name:
                     new_prefix = prefix
                 elif f.type.is_switch and len(f.type.parents)>1:
@@ -627,7 +622,6 @@ def _c_helper_field_mapping(complex_type, prefix, flat=False):
                 all_fields.update(_c_helper_field_mapping(f.type, new_prefix, flat))
 
     return all_fields
-# _c_field_mapping()
 
 def _c_helper_resolve_field_names (prefix):
     """
@@ -648,7 +642,6 @@ def _c_helper_resolve_field_names (prefix):
         all_fields.update(_c_helper_field_mapping(obj, tmp_prefix, flat=True))
 
     return all_fields
-# _c_helper_resolve_field_names
 
 def get_expr_fields(self):
     """
@@ -693,13 +686,12 @@ def get_expr_fields(self):
         prefix.append(('', '', self))
 
     all_fields = _c_helper_resolve_field_names (prefix)
-    resolved_fields_names = list(filter(lambda x: x in all_fields.keys(), unresolved_fields_names))
+    resolved_fields_names = [x for x in unresolved_fields_names if x in all_fields]
     if len(unresolved_fields_names) != len(resolved_fields_names):
         raise Exception("could not resolve all fields for %s" % self.name)
 
     resolved_fields = [all_fields[n][1] for n in resolved_fields_names]
     return resolved_fields
-# get_expr_fields()
 
 def resolve_expr_fields(complex_obj):
     """
@@ -722,7 +714,6 @@ def resolve_expr_fields(complex_obj):
         if e not in all_fields and e not in unresolved:
             unresolved.append(e)
     return unresolved
-# resolve_expr_fields()
 
 def resolve_expr_fields_list(self, parents):
     """
@@ -826,7 +817,6 @@ def get_serialize_params(context, self, buffer_var='_buffer', aux_var='_aux'):
                 add_param(params, (p.c_field_const_type, '*', p.c_field_name))
 
     return (param_fields, wire_fields, params)
-# get_serialize_params()
 
 def _c_serialize_helper_insert_padding(context, code_lines, space, postpone, is_case_or_bitcase):
     code_lines.append('%s    /* insert padding */' % space)
@@ -837,7 +827,6 @@ def _c_serialize_helper_insert_padding(context, code_lines, space, postpone, is_
     else:
         code_lines.append(
             '%s    xcb_pad = -xcb_block_len & (xcb_align_to - 1);' % space)
-#    code_lines.append('%s    printf("automatically inserting padding: %%%%d\\n", xcb_pad);' % space)
     code_lines.append('%s    xcb_buffer_len += xcb_block_len + xcb_pad;' % space)
 
     if not postpone:
@@ -859,7 +848,6 @@ def _c_serialize_helper_insert_padding(context, code_lines, space, postpone, is_
 
     # keep tracking of xcb_parts entries for serialize
     return 1
-# _c_serialize_helper_insert_padding()
 
 def _c_serialize_helper_switch(context, self, complex_name,
                                code_lines, temp_vars,
@@ -912,14 +900,12 @@ def _c_serialize_helper_switch(context, self, complex_name,
 #        code_lines.append('%s    xcb_buffer_len += xcb_block_len + xcb_pad;' % space)
 
     return count
-# _c_serialize_helper_switch
 
 def _c_serialize_helper_switch_field(context, self, field, c_switch_variable, prefix):
     """
     handle switch by calling _serialize() or _unpack(), depending on context
     """
     # switch is handled by this function as a special case
-    param_fields, wire_fields, params = get_serialize_params(context, self)
     field_mapping = _c_helper_field_mapping(self, prefix)
     prefix_str = _c_helper_fieldaccess_expr(prefix)
 
@@ -956,7 +942,6 @@ def _c_serialize_helper_switch_field(context, self, field, c_switch_variable, pr
         length = "%s(xcb_tmp, %s)" % (field.type.c_sizeof_name, my_c_field_names)
 
     return length
-# _c_serialize_helper_switch_field()
 
 def _c_get_additional_type_params(type):
     """
@@ -980,8 +965,8 @@ def _c_serialize_helper_list_field(context, self, field,
     param_names = [p[2] for p in params]
 
     expr_fields_names = [f.field_name for f in get_expr_fields(field.type)]
-    resolved = list(filter(lambda x: x in param_names, expr_fields_names))
-    unresolved = list(filter(lambda x: x not in param_names, expr_fields_names))
+    resolved = [x for x in expr_fields_names if x in param_names]
+    unresolved = [x for x in expr_fields_names if x not in param_names]
 
     field_mapping = {}
     for r in resolved:
@@ -994,8 +979,8 @@ def _c_serialize_helper_list_field(context, self, field,
                             field.c_field_name)
 
         field_mapping.update(_c_helper_resolve_field_names(prefix))
-        resolved += list(filter(lambda x: x in field_mapping, unresolved))
-        unresolved = list(filter(lambda x: x not in field_mapping, unresolved))
+        resolved += [x for x in unresolved if x in field_mapping]
+        unresolved = [x for x in unresolved if x not in field_mapping]
         if len(unresolved)>0:
             raise Exception('could not resolve the length fields required for list %s' % field.c_field_name)
 
@@ -1041,7 +1026,6 @@ def _c_serialize_helper_list_field(context, self, field,
             code_lines.append('%s    xcb_block_len = xcb_parts[xcb_parts_idx].iov_len;' % space)
 
     return length
-# _c_serialize_helper_list_field()
 
 def _c_serialize_helper_fields_fixed_size(context, self, field,
                                           code_lines, temp_vars,
@@ -1051,7 +1035,7 @@ def _c_serialize_helper_fields_fixed_size(context, self, field,
         code_lines.append('%s    /* %s.%s */' % (space, self.c_type, field.c_field_name))
     else:
         scoped_name = [p[2].c_type if idx==0 else p[0] for idx, p in enumerate(prefix)]
-        typename = reduce(lambda x,y: "%s.%s" % (x, y), scoped_name)
+        typename = ".".join(scoped_name)
         code_lines.append('%s    /* %s.%s */' % (space, typename, field.c_field_name))
 
     abs_field_name = _c_helper_fieldaccess_expr(prefix, field)
@@ -1111,7 +1095,6 @@ def _c_serialize_helper_fields_fixed_size(context, self, field,
                 length = '%d' % field.type.nmemb
 
     return (value, length)
-# _c_serialize_helper_fields_fixed_size()
 
 def _c_serialize_helper_fields_variable_size(context, self, field,
                                              code_lines, temp_vars,
@@ -1164,7 +1147,6 @@ def _c_serialize_helper_fields_variable_size(context, self, field,
         length = "%s(%s)" % (field.type.c_sizeof_name, var_field_name)
 
     return (value, length)
-# _c_serialize_helper_fields_variable_size
 
 def _c_serialize_helper_fields(context, self,
                                code_lines, temp_vars,
@@ -1266,7 +1248,6 @@ def _c_serialize_helper_fields(context, self,
     _c_pre.pop_indent()
 
     return count
-# _c_serialize_helper_fields()
 
 def _c_serialize_helper(context, complex_type,
                         code_lines, temp_vars,
@@ -1306,7 +1287,6 @@ def _c_serialize_helper(context, complex_type,
     count += _c_serialize_helper_insert_padding(context, code_lines, space, False, self.is_switch)
 
     return count
-# _c_serialize_helper()
 
 def _c_serialize(context, self):
     """
@@ -1340,8 +1320,7 @@ def _c_serialize(context, self):
         if not field.type.fixed_size() or self.is_switch:
             variable_size_fields += 1
     # determine maxtypelen
-    for p in params:
-        maxtypelen = max(maxtypelen, len(p[0]) + len(p[1]))
+    maxtypelen = max(len(p[0]) + len(p[1]) for p in params)
 
     # write to .c/.h
     indent = ' '*(len(func_name)+2)
@@ -1352,7 +1331,7 @@ def _c_serialize(context, self):
         param_str.append("%s%s%s  %s%s  /**< */" % (indent, typespec, spacing, pointerspec, field_name))
     # insert function name
     param_str[0] = "%s (%s" % (func_name, param_str[0].strip())
-    param_str = list(map(lambda x: "%s," % x, param_str))
+    param_str = ["%s," % x for x in param_str]
     for s in param_str[:-1]:
         _hc(s)
     _h("%s);" % param_str[-1].rstrip(','))
@@ -1408,13 +1387,13 @@ def _c_serialize(context, self):
         if self.is_switch:
             # switch: call _unpack()
             _c('    %s _aux;', self.c_type)
-            _c('    return %s(%s, &_aux);', self.c_unpack_name, reduce(lambda x,y: "%s, %s" % (x, y), param_names))
+            _c('    return %s(%s, &_aux);', self.c_unpack_name, ", ".join(param_names))
             _c('}')
             _c_pre.redirect_end()
             return
         elif self.c_var_followed_by_fixed_fields:
             # special case: call _unserialize()
-            _c('    return %s(%s, NULL);', self.c_unserialize_name, reduce(lambda x,y: "%s, %s" % (x, y), param_names))
+            _c('    return %s(%s, NULL);', self.c_unserialize_name, ", ".join(param_names))
             _c('}')
             _c_pre.redirect_end()
             return
@@ -1441,7 +1420,7 @@ def _c_serialize(context, self):
         if not (self.is_switch or self.c_var_followed_by_fixed_fields):
 
             # look if we have to declare an '_aux' variable at all
-            if len(list(filter(lambda x: x.find('_aux')!=-1, code_lines)))>0:
+            if any('_aux' in x for x in code_lines):
                 if not self.c_var_followed_by_fixed_fields:
                     _c('    const %s *_aux = (%s *)_buffer;', self.c_type, self.c_type)
                 else:
@@ -1515,7 +1494,6 @@ def _c_serialize(context, self):
     _c('')
     _c('    return xcb_buffer_len;')
     _c('}')
-# _c_serialize()
 
 def _c_iterator_get_end(field, accum):
     '''
@@ -1673,7 +1651,6 @@ def _c_accessor_get_expr(expr, field_mapping):
         return c_name
     elif expr.op == 'sumof':
         # locate the referenced list object
-        list_obj = expr.lenfield_type
         field = None
         for f in expr.lenfield_parent.fields:
             if f.field_name == expr.lenfield_name:
@@ -1814,14 +1791,13 @@ def _c_accessors_list(self, field):
     '''
 
     def get_align_pad(field):
-            prev = field.prev_varsized_field
-            prev_prev = field.prev_varsized_field.prev_varsized_field
+        prev = field.prev_varsized_field
+        prev_prev = field.prev_varsized_field.prev_varsized_field
 
-            if (prev.type.is_pad and prev.type.align > 0 and prev_prev is not None):
-                return (prev_prev, '((-prev.index) & (%d - 1))' % prev.type.align)
-            else:
-                return (prev, None)
-
+        if prev.type.is_pad and prev.type.align > 0 and prev_prev is not None:
+            return (prev_prev, '((-prev.index) & (%d - 1))' % prev.type.align)
+        else:
+            return (prev, None)
 
     list = field.type
     c_type = self.c_type
@@ -1858,8 +1834,7 @@ def _c_accessors_list(self, field):
         fields.update(_c_helper_field_mapping(toplevel_switch, [('S', '->', toplevel_switch)], flat=True))
 
         # initialize prefix for everything "below" S
-        prefix_str = '/* %s */ S' % toplevel_switch.name[-1]
-        prefix = [(prefix_str, '->', toplevel_switch)]
+        prefix = [('S', '->', toplevel_switch)]
 
         # look for fields in the remaining containers
         for p in parents[2:] + [self]:
@@ -2072,12 +2047,8 @@ def _c_complex(self, force_packed = False):
     struct_fields = []
     maxtypelen = 0
 
-    varfield = None
     for field in self.fields:
-        if not field.type.fixed_size() and not self.is_switch and not self.is_union:
-            varfield = field.c_field_name
-            continue
-        if field.wire:
+        if field.wire and (field.type.fixed_size() or self.is_switch or self.is_union):
             struct_fields.append(field)
 
     for field in struct_fields:
@@ -2131,7 +2102,7 @@ def c_union(self, name):
     _c_complex(self)
     _c_iterator(self, name)
 
-def _c_request_helper(self, name, cookie_type, void, regular, aux=False, reply_fds=False):
+def _c_request_helper(self, name, void, regular, aux=False, reply_fds=False):
     '''
     Declares a request function.
     '''
@@ -2269,7 +2240,7 @@ def _c_request_helper(self, name, cookie_type, void, regular, aux=False, reply_f
         _h(' * placed in the event queue.')
     _h(' */')
     _c('')
-    _hc('%s', cookie_type)
+    _hc('%s', func_cookie)
 
     spacing = ' ' * (maxtypelen - len('xcb_connection_t'))
     comma = ',' if len(param_fields) else ');'
@@ -2306,10 +2277,10 @@ def _c_request_helper(self, name, cookie_type, void, regular, aux=False, reply_f
 
     _c('{')
     _c('    static const xcb_protocol_request_t xcb_req = {')
-    _c('        /* count */ %d,', count)
-    _c('        /* ext */ %s,', func_ext_global)
-    _c('        /* opcode */ %s,', self.c_request_name.upper())
-    _c('        /* isvoid */ %d', 1 if void else 0)
+    _c('        .count = %d,', count)
+    _c('        .ext = %s,', func_ext_global)
+    _c('        .opcode = %s,', self.c_request_name.upper())
+    _c('        .isvoid = %d', 1 if void else 0)
     _c('    };')
     _c('')
 
@@ -2329,8 +2300,6 @@ def _c_request_helper(self, name, cookie_type, void, regular, aux=False, reply_f
         _c('    unsigned int xcb_tmp_len;')
         _c('    char *xcb_tmp;')
     _c('')
-    # simple request call tracing
-#    _c('    printf("in function %s\\n");' % func_name)
 
     # fixed size fields
     for field in wire_fields:
@@ -2352,7 +2321,7 @@ def _c_request_helper(self, name, cookie_type, void, regular, aux=False, reply_f
         serialize_args = get_serialize_params(context, type_obj,
                                               c_field_name,
                                               aux_var)[2]
-        return reduce(lambda x,y: "%s, %s" % (x,y), [a[2] for a in serialize_args])
+        return ", ".join(a[2] for a in serialize_args)
 
     # calls in order to free dyn. all. memory
     free_calls = []
@@ -2380,7 +2349,6 @@ def _c_request_helper(self, name, cookie_type, void, regular, aux=False, reply_f
                         else:
                             list_length = _c_accessor_get_expr(field.type.expr, None)
 
-                            length = ''
                             _c("    xcb_parts[%d].iov_len = 0;" % count)
                             _c("    xcb_tmp = (char *)%s;", field.c_field_name)
                             _c("    for(i=0; i<%s; i++) {" % list_length)
@@ -2527,10 +2495,7 @@ def _c_reply(self, name):
     _c('}')
 
 def _c_reply_has_fds(self):
-    for field in self.fields:
-        if field.isfd:
-            return True
-    return False
+    return any(field.isfd for field in self.fields)
 
 def _c_reply_fds(self, name):
     '''
@@ -2582,7 +2547,7 @@ def _c_cookie(self, name):
     _h('    unsigned int sequence; /**<  */')
     _h('} %s;', self.c_cookie_type)
 
-def _man_request(self, name, cookie_type, void, aux):
+def _man_request(self, name, void, aux):
     param_fields = [f for f in self.fields if f.visible]
 
     func_name = self.c_request_name if not aux else self.c_aux_name
@@ -2628,7 +2593,8 @@ def _man_request(self, name, cookie_type, void, aux):
     f.write('.SS Request function\n')
     f.write('.HP\n')
     base_func_name = self.c_request_name if not aux else self.c_aux_name
-    f.write('%s \\fB%s\\fP(xcb_connection_t\\ *\\fIconn\\fP, %s\n' % (cookie_type, base_func_name, prototype))
+    func_cookie = 'xcb_void_cookie_t' if void else self.c_cookie_type
+    f.write('%s \\fB%s\\fP(xcb_connection_t\\ *\\fIconn\\fP, %s\n' % (func_cookie, base_func_name, prototype))
     create_link('%s_%s' % (base_func_name, ('checked' if void else 'unchecked')))
     if not void:
         f.write('.PP\n')
@@ -2675,8 +2641,7 @@ def _man_request(self, name, cookie_type, void, aux):
                 for field in b.type.fields:
                     _c_complex_field(self, field, space)
                 if b.type.has_name:
-                    print >> sys.stderr, 'ERROR: New unhandled documentation case'
-                    pass
+                    print('ERROR: New unhandled documentation case\n', file=sys.stderr)
 
         f.write('} \\fB%s\\fP;\n' % self.reply.c_type)
         f.write('.fi\n')
@@ -2745,8 +2710,6 @@ def _man_request(self, name, cookie_type, void, aux):
             # 'R': parents[0] is always the 'toplevel' container type
             params.append(('const %s *\\fIreply\\fP' % parents[0].c_type, parents[0]))
             fields.update(_c_helper_field_mapping(parents[0], [('R', '->', parents[0])], flat=True))
-            # auxiliary object for 'R' parameters
-            R_obj = parents[0]
 
             if switch_obj is not None:
                 # now look where the fields are defined that are needed to evaluate
@@ -2759,8 +2722,7 @@ def _man_request(self, name, cookie_type, void, aux):
                 fields.update(_c_helper_field_mapping(toplevel_switch, [('S', '->', toplevel_switch)], flat=True))
 
                 # initialize prefix for everything "below" S
-                prefix_str = '/* %s */ S' % toplevel_switch.name[-1]
-                prefix = [(prefix_str, '->', toplevel_switch)]
+                prefix = [('S', '->', toplevel_switch)]
 
                 # look for fields in the remaining containers
                 for p in parents[2:] + [self]:
@@ -2769,9 +2731,6 @@ def _man_request(self, name, cookie_type, void, aux):
                     if not p.is_case_or_bitcase or (p.is_case_or_bitcase and p.has_name):
                         prefix.append((p.name[-1], '.', p))
                     fields.update(_c_helper_field_mapping(p, prefix, flat=True))
-
-                # auxiliary object for 'S' parameter
-                S_obj = parents[1]
 
             if list.member.fixed_size():
                 idx = 1 if switch_obj is not None else 0
@@ -2931,7 +2890,7 @@ def _man_request(self, name, cookie_type, void, aux):
                  'handle errors in the event loop instead, use '
                  '\\fI%s_unchecked\\fP. See \\fBxcb-requests(%s)\\fP for '
                  'details.\n') %
-                (cookie_type, self.c_reply_name, base_func_name, section))
+                (self.c_cookie_type, self.c_reply_name, base_func_name, section))
     f.write('.SH ERRORS\n')
     if hasattr(self, "doc") and self.doc:
         for errtype, errtext in sorted(self.doc.errors.items()):
@@ -3013,7 +2972,7 @@ def _man_event(self, name):
             spacing = ' ' * (maxtypelen - len(field.c_field_type))
             f.write('%s    %s%s \\fI%s\\fP%s;\n' % (space, field.c_field_type, spacing, field.c_field_name, field.c_subscript))
         else:
-            print >> sys.stderr, 'ERROR: New unhandled documentation case'
+            print('ERROR: New unhandled documentation case', file=sys.stderr)
 
     if not self.is_switch:
         for field in struct_fields:
@@ -3026,7 +2985,7 @@ def _man_event(self, name):
             for field in b.type.fields:
                 _c_complex_field(self, field, space)
             if b.type.has_name:
-                print >> sys.stderr, 'ERROR: New unhandled documentation case'
+                print('ERROR: New unhandled documentation case', file=sys.stderr)
                 pass
 
     f.write('} \\fB%s\\fP;\n' % self.c_type)
@@ -3121,11 +3080,11 @@ def c_request(self, name):
         _c_complex(self.reply)
         # Request prototypes
         has_fds = _c_reply_has_fds(self.reply)
-        _c_request_helper(self, name, self.c_cookie_type, False, True, False, has_fds)
-        _c_request_helper(self, name, self.c_cookie_type, False, False, False, has_fds)
+        _c_request_helper(self, name, void=False, regular=True, aux=False, reply_fds=has_fds)
+        _c_request_helper(self, name, void=False, regular=False, aux=False, reply_fds=has_fds)
         if self.c_need_aux:
-            _c_request_helper(self, name, self.c_cookie_type, False, True, True, has_fds)
-            _c_request_helper(self, name, self.c_cookie_type, False, False, True, has_fds)
+            _c_request_helper(self, name, void=False, regular=True, aux=True, reply_fs=has_fds)
+            _c_request_helper(self, name, void=False, regular=False, aux=True, reply_fs=has_fds)
         # Reply accessors
         _c_accessors(self.reply, name + ('reply',), name)
         _c_reply(self, name)
@@ -3133,17 +3092,16 @@ def c_request(self, name):
             _c_reply_fds(self, name)
     else:
         # Request prototypes
-        _c_request_helper(self, name, 'xcb_void_cookie_t', True, False)
-        _c_request_helper(self, name, 'xcb_void_cookie_t', True, True)
+        _c_request_helper(self, name, void=True, regular=False)
+        _c_request_helper(self, name, void=True, regular=True)
         if self.c_need_aux:
-            _c_request_helper(self, name, 'xcb_void_cookie_t', True, False, True)
-            _c_request_helper(self, name, 'xcb_void_cookie_t', True, True, True)
+            _c_request_helper(self, name, void=True, regular=False, aux=True)
+            _c_request_helper(self, name, void=True, regular=True, aux=True)
         _c_accessors(self, name, name)
 
     # We generate the manpage afterwards because _c_type_setup has been called.
     # TODO: what about aux helpers?
-    cookie_type = self.c_cookie_type if self.reply else 'xcb_void_cookie_t'
-    _man_request(self, name, cookie_type, not self.reply, False)
+    _man_request(self, name, void=not self.reply, aux=False)
 
 def c_event(self, name):
     '''

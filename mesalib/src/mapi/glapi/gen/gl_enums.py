@@ -157,6 +157,12 @@ _mesa_lookup_prim_by_nr(GLuint nr)
 
         string_offsets = {}
         i = 0;
+        print '#if defined(__GNUC__)'
+        print '# define LONGSTRING __extension__'
+        print '#else'
+        print '# define LONGSTRING'
+        print '#endif'
+        print ''
         print 'LONGSTRING static const char enum_string_table[] = '
         for enum, name in enum_table:
             print '   "%s\\0"' % (name)

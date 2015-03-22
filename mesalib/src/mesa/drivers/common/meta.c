@@ -247,9 +247,9 @@ _mesa_meta_setup_blit_shader(struct gl_context *ctx,
                              struct blit_shader_table *table)
 {
    char *vs_source, *fs_source;
-   void *const mem_ctx = ralloc_context(NULL);
    struct blit_shader *shader = choose_blit_shader(target, table);
    const char *vs_input, *vs_output, *fs_input, *vs_preprocess, *fs_preprocess;
+   void *mem_ctx;
 
    if (ctx->Const.GLSLVersion < 130) {
       vs_preprocess = "";
@@ -272,6 +272,8 @@ _mesa_meta_setup_blit_shader(struct gl_context *ctx,
       _mesa_UseProgram(shader->shader_prog);
       return;
    }
+
+   mem_ctx = ralloc_context(NULL);
 
    vs_source = ralloc_asprintf(mem_ctx,
                 "%s\n"

@@ -821,10 +821,10 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\format_unpack.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\mapi\glapi\glapi_nop.c">
+    <ClCompile Include="..\..\..\..\src\glsl\opt_conditional_discard.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\glsl\opt_conditional_discard.cpp">
+    <ClCompile Include="..\..\..\..\src\mapi\glapi\glapi_nop.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

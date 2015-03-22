@@ -1027,15 +1027,14 @@ _mesa_active_program(struct gl_context *ctx, struct gl_shader_program *shProg,
 
 
 static void
-use_shader_program(struct gl_context *ctx, GLenum type,
+use_shader_program(struct gl_context *ctx, gl_shader_stage stage,
                    struct gl_shader_program *shProg,
                    struct gl_pipeline_object *shTarget)
 {
    struct gl_shader_program **target;
-   gl_shader_stage stage = _mesa_shader_enum_to_shader_stage(type);
 
    target = &shTarget->CurrentProgram[stage];
-   if ((shProg == NULL) || (shProg->_LinkedShaders[stage] == NULL))
+   if ((shProg != NULL) && (shProg->_LinkedShaders[stage] == NULL))
       shProg = NULL;
 
    if (*target != shProg) {
@@ -1048,17 +1047,17 @@ use_shader_program(struct gl_context *ctx, GLenum type,
        * it from that binding point as well.  This ensures that the correct
        * semantics of glDeleteProgram are maintained.
        */
-      switch (type) {
-      case GL_VERTEX_SHADER:
+      switch (stage) {
+      case MESA_SHADER_VERTEX:
 	 /* Empty for now. */
 	 break;
-      case GL_GEOMETRY_SHADER_ARB:
+      case MESA_SHADER_GEOMETRY:
 	 /* Empty for now. */
 	 break;
-      case GL_COMPUTE_SHADER:
+      case MESA_SHADER_COMPUTE:
          /* Empty for now. */
          break;
-      case GL_FRAGMENT_SHADER:
+      case MESA_SHADER_FRAGMENT:
          if (*target == ctx->_Shader->_CurrentFragmentProgram) {
 	    _mesa_reference_shader_program(ctx,
                                            &ctx->_Shader->_CurrentFragmentProgram,
@@ -1079,10 +1078,9 @@ use_shader_program(struct gl_context *ctx, GLenum type,
 void
 _mesa_use_program(struct gl_context *ctx, struct gl_shader_program *shProg)
 {
-   use_shader_program(ctx, GL_VERTEX_SHADER, shProg, &ctx->Shader);
-   use_shader_program(ctx, GL_GEOMETRY_SHADER_ARB, shProg, &ctx->Shader);
-   use_shader_program(ctx, GL_FRAGMENT_SHADER, shProg, &ctx->Shader);
-   use_shader_program(ctx, GL_COMPUTE_SHADER, shProg, &ctx->Shader);
+   int i;
+   for (i = 0; i < MESA_SHADER_STAGES; i++)
+      use_shader_program(ctx, i, shProg, &ctx->Shader);
    _mesa_active_program(ctx, shProg, "glUseProgram");
 
    if (ctx->Driver.UseProgram)
@@ -1460,7 +1458,7 @@ read_shader(const char *fname)
 
    fclose(f);
 
-   shader = _mesa_strdup(buffer);
+   shader = strdup(buffer);
    free(buffer);
 
    return shader;
@@ -1889,7 +1887,8 @@ _mesa_use_shader_program(struct gl_context *ctx, GLenum type,
                          struct gl_shader_program *shProg,
                          struct gl_pipeline_object *shTarget)
 {
-   use_shader_program(ctx, type, shProg, shTarget);
+   gl_shader_stage stage = _mesa_shader_enum_to_shader_stage(type);
+   use_shader_program(ctx, stage, shProg, shTarget);
 
    if (ctx->Driver.UseProgram)
       ctx->Driver.UseProgram(ctx, shProg);

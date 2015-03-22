@@ -12,7 +12,6 @@ SConscript('auxiliary/SConscript')
 
 # These are common and work across all platforms
 SConscript([
-    'drivers/galahad/SConscript',
     'drivers/llvmpipe/SConscript',
     'drivers/rbug/SConscript',
     'drivers/softpipe/SConscript',

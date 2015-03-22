@@ -88,8 +88,11 @@ types such as <code>EGLNativeDisplayType</code> or
 <code>EGLNativeWindowType</code> defined for.</p>
 
 <p>The available platforms are <code>x11</code>, <code>drm</code>,
-<code>fbdev</code>, and <code>gdi</code>.  The <code>gdi</code> platform can
-only be built with SCons.  Unless for special needs, the build system should
+<code>wayland</code>, <code>null</code>, <code>android</code>,
+<code>haiku</code>, and <code>gdi</code>.  The <code>android</code> platform
+can only be built as a system component, part of AOSP, while the
+<code>haiku</code> and <code>gdi</code> platforms can only be built with SCons.
+Unless for special needs, the build system should
 select the right platforms automatically.</p>
 
 </dd>

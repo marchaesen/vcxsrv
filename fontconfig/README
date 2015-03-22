@@ -1,11 +1,44 @@
                               Fontconfig
              Font configuration and customization library
-                      Version 2.11.92 (2.12 RC2)
-                              2015-01-13
+                      Version 2.11.93 (2.12 RC3)
+                              2015-03-09
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://bugs.freedesktop.org in the fontconfig module.
+
+2.11.93 (2.12 RC3)
+
+Akira TAGOH (18):
+      Fix a typo in docs
+      Add pkg.m4 to git
+      Fix a build fail on some non-POSIX platforms
+      ifdef'd the unnecessary code for win32
+      Fix pointer cast warning on win32
+      filter can be null
+      Copy the real size of struct dirent
+      Rework again to copy the struct dirent
+      Hardcode the blanks in the library
+      Update the script to recognize the escaped space
+      Fix a build issue when $(srcdir) != $(builddir)
+      Don't add FC_LANG when it has "und"
+      Fix the array allocation
+      Improve the performance on searching blanks
+      Fix a segfault when OOM happened.
+      Fix a bug in the previous change forFcBlanksIsMember()
+      Fix an infinite loop in FcBlanksIsMember()
+      Fix a trivial bug for dist
+
+Alan Coopersmith (1):
+      Fix configure to work with Solaris Studio compilers
+
+Behdad Esfahbod (3):
+      Fix symbol cmap handling
+      Remove dead code after previous commit
+      Simplify some more
+
+Michael Haubenwallner (1):
+      Ensure config.h is included first, bug#89336.
 
 2.11.92 (2.12 RC2)
 

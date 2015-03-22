@@ -432,9 +432,6 @@ _mesa_fls(unsigned int n)
 #endif
 }
 
-extern int
-_mesa_round_to_even(float val);
-
 extern GLhalfARB
 _mesa_float_to_half(float f);
 
@@ -446,9 +443,6 @@ _mesa_half_is_negative(GLhalfARB h)
 {
    return h & 0x8000;
 }
-
-extern char *
-_mesa_strdup( const char *s );
 
 extern unsigned int
 _mesa_str_checksum(const char *str);

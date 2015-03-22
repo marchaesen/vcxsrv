@@ -132,6 +132,11 @@ def generate(env):
             # Some of the LLVM C headers use the inline keyword without
             # defining it.
             env.Append(CPPDEFINES = [('inline', '__inline')])
+            # Match some of the warning options from llvm/cmake/modules/HandleLLVMOptions.cmake
+            env.AppendUnique(CXXFLAGS = [
+                '/wd4355', # 'this' : used in base member initializer list
+                '/wd4624', # 'derived class' : destructor could not be generated because a base class destructor is inaccessible
+            ])
             if env['build'] in ('debug', 'checked'):
                 # LLVM libraries are static, build with /MT, and they
                 # automatically link agains LIBCMT. When we're doing a

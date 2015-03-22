@@ -76,7 +76,7 @@ set_label(struct gl_context *ctx, char **labelPtr, const char *label,
                 MAX_LABEL_LENGTH);
 
          /* null-terminated string */
-         *labelPtr = _mesa_strdup(label);
+         *labelPtr = strdup(label);
       }
    }
 }

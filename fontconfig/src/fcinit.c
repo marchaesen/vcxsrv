@@ -209,6 +209,8 @@ FcInitBringUptoDate (void)
     FcConfig	*config = FcConfigGetCurrent ();
     time_t	now;
 
+    if (!config)
+	return FcFalse;
     /*
      * rescanInterval == 0 disables automatic up to date
      */

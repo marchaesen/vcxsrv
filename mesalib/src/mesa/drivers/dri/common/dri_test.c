@@ -76,6 +76,17 @@ _glapi_get_dispatch_table_size(void)
 	return 0;
 }
 
+PUBLIC void
+_glapi_set_nop_handler(_glapi_nop_handler_proc func)
+{
+}
+
+PUBLIC struct _glapi_table *
+_glapi_new_nop_table(unsigned num_entries)
+{
+	return NULL;
+}
+
 #ifndef NO_MAIN
 int main(int argc, char** argv)
 {

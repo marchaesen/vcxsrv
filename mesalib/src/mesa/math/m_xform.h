@@ -32,14 +32,6 @@
 #include "math/m_matrix.h"
 #include "math/m_vector.h"
 
-#ifdef USE_X86_ASM
-#define _XFORMAPI _ASMAPI
-#define _XFORMAPIP _ASMAPIP
-#else
-#define _XFORMAPI
-#define _XFORMAPIP *
-#endif
-
 
 extern void
 _math_init_transformation(void);
@@ -99,12 +91,12 @@ init_c_cliptest(void);
 #define CLIP_FRUSTUM_BITS    0x3f
 
 
-typedef GLvector4f * (_XFORMAPIP clip_func)( GLvector4f *vClip,
-					     GLvector4f *vProj,
-					     GLubyte clipMask[],
-					     GLubyte *orMask,
-					     GLubyte *andMask,
-					     GLboolean viewport_z_clip );
+typedef GLvector4f * (*clip_func)(GLvector4f *vClip,
+                                  GLvector4f *vProj,
+                                  GLubyte clipMask[],
+                                  GLubyte *orMask,
+                                  GLubyte *andMask,
+                                  GLboolean viewport_z_clip);
 
 typedef void (*dotprod_func)( GLfloat *out,
 			      GLuint out_stride,
@@ -119,11 +111,11 @@ typedef void (*vec_copy_func)( GLvector4f *to,
 /*
  * Functions for transformation of normals in the VB.
  */
-typedef void (_XFORMAPIP normal_func)( const GLmatrix *mat,
-				      GLfloat scale,
-				      const GLvector4f *in,
-				      const GLfloat lengths[],
-				      GLvector4f *dest );
+typedef void (*normal_func)(const GLmatrix *mat,
+                            GLfloat scale,
+                            const GLvector4f *in,
+                            const GLfloat lengths[],
+                            GLvector4f *dest);
 
 
 /* Flags for selecting a normal transformation function.
@@ -141,9 +133,9 @@ typedef void (_XFORMAPIP normal_func)( const GLmatrix *mat,
  *     when the mask byte is zero.  This is always present as a
  *     parameter, to allow a unified interface.
  */
-typedef void (_XFORMAPIP transform_func)( GLvector4f *to_vec,
-					  const GLfloat m[16],
-					  const GLvector4f *from_vec );
+typedef void (*transform_func)(GLvector4f *to_vec,
+                               const GLfloat m[16],
+                               const GLvector4f *from_vec);
 
 
 extern dotprod_func  _mesa_dotprod_tab[5];

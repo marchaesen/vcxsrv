@@ -95,6 +95,8 @@ ATOMIC(read, NIR_INTRINSIC_CAN_ELIMINATE)
 
 SYSTEM_VALUE(front_face, 1)
 SYSTEM_VALUE(vertex_id, 1)
+SYSTEM_VALUE(vertex_id_zero_base, 1)
+SYSTEM_VALUE(base_vertex, 1)
 SYSTEM_VALUE(instance_id, 1)
 SYSTEM_VALUE(sample_id, 1)
 SYSTEM_VALUE(sample_pos, 2)

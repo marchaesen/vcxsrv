@@ -626,9 +626,18 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
          if (!is_vec_zero(zero))
             continue;
 
-         return new(mem_ctx) ir_expression(ir->operation,
-                                           add->operands[0],
-                                           neg(add->operands[1]));
+         /* Depending of the zero position we want to optimize
+          * (0 cmp x+y) into (-x cmp y) or (x+y cmp 0) into (x cmp -y)
+          */
+         if (add_pos == 1) {
+            return new(mem_ctx) ir_expression(ir->operation,
+                                              neg(add->operands[0]),
+                                              add->operands[1]);
+         } else {
+            return new(mem_ctx) ir_expression(ir->operation,
+                                              add->operands[0],
+                                              neg(add->operands[1]));
+         }
       }
       break;
 

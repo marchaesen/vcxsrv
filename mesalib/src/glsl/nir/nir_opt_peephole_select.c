@@ -52,36 +52,66 @@ struct peephole_select_state {
 };
 
 static bool
-are_all_move_to_phi(nir_block *block)
+block_check_for_allowed_instrs(nir_block *block)
 {
    nir_foreach_instr(block, instr) {
-      if (instr->type != nir_instr_type_alu)
-         return false;
+      switch (instr->type) {
+      case nir_instr_type_intrinsic: {
+         nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
 
-      /* It must be a move operation */
-      nir_alu_instr *mov = nir_instr_as_alu(instr);
-      if (mov->op != nir_op_fmov && mov->op != nir_op_imov)
-         return false;
+         switch (intrin->intrinsic) {
+         case nir_intrinsic_load_var:
+            switch (intrin->variables[0]->var->data.mode) {
+            case nir_var_shader_in:
+            case nir_var_uniform:
+               break;
 
-      /* Can't handle saturate */
-      if (mov->dest.saturate)
-         return false;
+            default:
+               return false;
+            }
+            break;
 
-      /* It must be SSA */
-      if (!mov->dest.dest.is_ssa)
-         return false;
-
-      /* It cannot have any if-uses */
-      if (mov->dest.dest.ssa.if_uses->entries != 0)
-         return false;
-
-      /* The only uses of this definition must be phi's in the successor */
-      struct set_entry *entry;
-      set_foreach(mov->dest.dest.ssa.uses, entry) {
-         const nir_instr *dest_instr = entry->key;
-         if (dest_instr->type != nir_instr_type_phi ||
-             dest_instr->block != block->successors[0])
+         default:
             return false;
+         }
+
+         break;
+      }
+
+      case nir_instr_type_load_const:
+         break;
+
+      case nir_instr_type_alu: {
+         /* It must be a move operation */
+         nir_alu_instr *mov = nir_instr_as_alu(instr);
+         if (mov->op != nir_op_fmov && mov->op != nir_op_imov)
+            return false;
+
+         /* Can't handle saturate */
+         if (mov->dest.saturate)
+            return false;
+
+         /* It must be SSA */
+         if (!mov->dest.dest.is_ssa)
+            return false;
+
+         /* It cannot have any if-uses */
+         if (mov->dest.dest.ssa.if_uses->entries != 0)
+            return false;
+
+         /* The only uses of this definition must be phi's in the successor */
+         struct set_entry *entry;
+         set_foreach(mov->dest.dest.ssa.uses, entry) {
+            const nir_instr *dest_instr = entry->key;
+            if (dest_instr->type != nir_instr_type_phi ||
+                dest_instr->block != block->successors[0])
+               return false;
+         }
+         break;
+      }
+
+      default:
+         return false;
       }
    }
 
@@ -119,8 +149,9 @@ nir_opt_peephole_select_block(nir_block *block, void *void_state)
    nir_block *then_block = nir_cf_node_as_block(then_node);
    nir_block *else_block = nir_cf_node_as_block(else_node);
 
-   /* ... and those blocks must only contain move-to-phi. */
-   if (!are_all_move_to_phi(then_block) || !are_all_move_to_phi(else_block))
+   /* ... and those blocks must only contain "allowed" instructions. */
+   if (!block_check_for_allowed_instrs(then_block) ||
+       !block_check_for_allowed_instrs(else_block))
       return true;
 
    /* At this point, we know that the previous CFG node is an if-then
@@ -128,6 +159,25 @@ nir_opt_peephole_select_block(nir_block *block, void *void_state)
     * just remove that entire CF node and replace all of the phi nodes with
     * selects.
     */
+
+   nir_block *prev_block = nir_cf_node_as_block(nir_cf_node_prev(prev_node));
+   assert(prev_block->cf_node.type == nir_cf_node_block);
+
+   /* First, we move the remaining instructions from the blocks to the
+    * block before.  We have already guaranteed that this is safe by
+    * calling block_check_for_allowed_instrs()
+    */
+   nir_foreach_instr_safe(then_block, instr) {
+      exec_node_remove(&instr->node);
+      instr->block = prev_block;
+      exec_list_push_tail(&prev_block->instr_list, &instr->node);
+   }
+
+   nir_foreach_instr_safe(else_block, instr) {
+      exec_node_remove(&instr->node);
+      instr->block = prev_block;
+      exec_list_push_tail(&prev_block->instr_list, &instr->node);
+   }
 
    nir_foreach_instr_safe(block, instr) {
       if (instr->type != nir_instr_type_phi)
@@ -145,19 +195,7 @@ nir_opt_peephole_select_block(nir_block *block, void *void_state)
          assert(src->src.is_ssa);
 
          unsigned idx = src->pred == then_block ? 1 : 2;
-
-         if (src->src.ssa->parent_instr->block == src->pred) {
-            /* We already know that this instruction must be a move with
-             * this phi's in this block as its only users.
-             */
-            nir_alu_instr *mov = nir_instr_as_alu(src->src.ssa->parent_instr);
-            assert(mov->instr.type == nir_instr_type_alu);
-            assert(mov->op == nir_op_fmov || mov->op == nir_op_imov);
-
-            nir_alu_src_copy(&sel->src[idx], &mov->src[0], state->mem_ctx);
-         } else {
-            nir_src_copy(&sel->src[idx].src, &src->src, state->mem_ctx);
-         }
+         nir_src_copy(&sel->src[idx].src, &src->src, state->mem_ctx);
       }
 
       nir_ssa_dest_init(&sel->instr, &sel->dest.dest,

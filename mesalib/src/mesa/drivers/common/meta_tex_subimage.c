@@ -150,9 +150,6 @@ _mesa_meta_pbo_TexSubImage(struct gl_context *ctx, GLuint dims,
    bool success = false;
    int z;
 
-   /* XXX: This should probably be passed in from somewhere */
-   const char *where = "_mesa_meta_pbo_TexSubImage";
-
    if (!_mesa_is_bufferobj(packing->BufferObj) && !create_pbo)
       return false;
 
@@ -164,19 +161,6 @@ _mesa_meta_pbo_TexSubImage(struct gl_context *ctx, GLuint dims,
 
    if (ctx->_ImageTransferState)
       return false;
-
-   if (!_mesa_validate_pbo_access(dims, packing, width, height, depth,
-                                  format, type, INT_MAX, pixels)) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "%s(out of bounds PBO access)", where);
-      return true;
-   }
-
-   if (_mesa_check_disallowed_mapping(packing->BufferObj)) {
-      /* buffer is mapped - that's an error */
-      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(PBO is mapped)", where);
-      return true;
-   }
 
    /* For arrays, use a tall (height * depth) 2D texture but taking into
     * account the inter-image padding specified with the image height packing
@@ -277,9 +261,6 @@ _mesa_meta_pbo_GetTexSubImage(struct gl_context *ctx, GLuint dims,
    bool success = false;
    int z;
 
-   /* XXX: This should probably be passed in from somewhere */
-   const char *where = "_mesa_meta_pbo_GetTexSubImage";
-
    if (!_mesa_is_bufferobj(packing->BufferObj))
       return false;
 
@@ -291,19 +272,6 @@ _mesa_meta_pbo_GetTexSubImage(struct gl_context *ctx, GLuint dims,
 
    if (ctx->_ImageTransferState)
       return false;
-
-   if (!_mesa_validate_pbo_access(dims, packing, width, height, depth,
-                                  format, type, INT_MAX, pixels)) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "%s(out of bounds PBO access)", where);
-      return true;
-   }
-
-   if (_mesa_check_disallowed_mapping(packing->BufferObj)) {
-      /* buffer is mapped - that's an error */
-      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(PBO is mapped)", where);
-      return true;
-   }
 
    /* For arrays, use a tall (height * depth) 2D texture but taking into
     * account the inter-image padding specified with the image height packing

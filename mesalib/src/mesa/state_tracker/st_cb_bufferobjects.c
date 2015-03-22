@@ -485,8 +485,8 @@ st_clear_buffer_subdata(struct gl_context *ctx,
    static const char zeros[16] = {0};
 
    if (!pipe->clear_buffer) {
-      _mesa_buffer_clear_subdata(ctx, offset, size,
-                                 clearValue, clearValueSize, bufObj);
+      _mesa_ClearBufferSubData_sw(ctx, offset, size,
+                                  clearValue, clearValueSize, bufObj);
       return;
    }
 

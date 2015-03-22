@@ -41,6 +41,14 @@ struct mapi_table;
 
 extern const mapi_func table_noop_array[];
 
+
+typedef void (*nop_handler_proc)(const char *name);
+
+
+void
+table_set_noop_handler(nop_handler_proc func);
+
+
 /**
  * Get the no-op dispatch table.
  */

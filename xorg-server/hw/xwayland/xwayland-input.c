@@ -323,7 +323,6 @@ keyboard_handle_key(void *data, struct wl_keyboard *keyboard, uint32_t serial,
 {
     struct xwl_seat *xwl_seat = data;
     uint32_t *k, *end;
-    ValuatorMask mask;
 
     xwl_seat->xwl_screen->serial = serial;
 
@@ -338,9 +337,8 @@ keyboard_handle_key(void *data, struct wl_keyboard *keyboard, uint32_t serial,
         *k = key;
     }
 
-    valuator_mask_zero(&mask);
     QueueKeyboardEvents(xwl_seat->keyboard,
-                        state ? KeyPress : KeyRelease, key + 8, &mask);
+                        state ? KeyPress : KeyRelease, key + 8);
 }
 
 static void
@@ -393,16 +391,14 @@ keyboard_handle_enter(void *data, struct wl_keyboard *keyboard,
                       struct wl_surface *surface, struct wl_array *keys)
 {
     struct xwl_seat *xwl_seat = data;
-    ValuatorMask mask;
     uint32_t *k;
 
     xwl_seat->xwl_screen->serial = serial;
     xwl_seat->keyboard_focus = surface;
 
     wl_array_copy(&xwl_seat->keys, keys);
-    valuator_mask_zero(&mask);
     wl_array_for_each(k, &xwl_seat->keys)
-        QueueKeyboardEvents(xwl_seat->keyboard, KeyPress, *k + 8, &mask);
+        QueueKeyboardEvents(xwl_seat->keyboard, KeyPress, *k + 8);
 }
 
 static void
@@ -410,14 +406,12 @@ keyboard_handle_leave(void *data, struct wl_keyboard *keyboard,
                       uint32_t serial, struct wl_surface *surface)
 {
     struct xwl_seat *xwl_seat = data;
-    ValuatorMask mask;
     uint32_t *k;
 
     xwl_seat->xwl_screen->serial = serial;
 
-    valuator_mask_zero(&mask);
     wl_array_for_each(k, &xwl_seat->keys)
-        QueueKeyboardEvents(xwl_seat->keyboard, KeyRelease, *k + 8, &mask);
+        QueueKeyboardEvents(xwl_seat->keyboard, KeyRelease, *k + 8);
 
     xwl_seat->keyboard_focus = NULL;
 }

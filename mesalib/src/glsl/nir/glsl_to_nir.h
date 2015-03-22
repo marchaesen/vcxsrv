@@ -32,8 +32,8 @@
 extern "C" {
 #endif
 
-nir_shader *glsl_to_nir(exec_list * ir, _mesa_glsl_parse_state *state,
-                        bool native_integers);
+nir_shader *glsl_to_nir(struct gl_shader *sh,
+                        const nir_shader_compiler_options *options);
 
 #ifdef __cplusplus
 }

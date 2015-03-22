@@ -119,6 +119,7 @@ public:
    /*@{*/
    class ir_rvalue *as_rvalue()
    {
+      assume(this != NULL);
       if (ir_type == ir_type_dereference_array ||
           ir_type == ir_type_dereference_record ||
           ir_type == ir_type_dereference_variable ||
@@ -132,6 +133,7 @@ public:
 
    class ir_dereference *as_dereference()
    {
+      assume(this != NULL);
       if (ir_type == ir_type_dereference_array ||
           ir_type == ir_type_dereference_record ||
           ir_type == ir_type_dereference_variable)
@@ -141,6 +143,7 @@ public:
 
    class ir_jump *as_jump()
    {
+      assume(this != NULL);
       if (ir_type == ir_type_loop_jump ||
           ir_type == ir_type_return ||
           ir_type == ir_type_discard)
@@ -151,6 +154,7 @@ public:
    #define AS_CHILD(TYPE) \
    class ir_##TYPE * as_##TYPE() \
    { \
+      assume(this != NULL);                                         \
       return ir_type == ir_type_##TYPE ? (ir_##TYPE *) this : NULL; \
    }
    AS_CHILD(variable)

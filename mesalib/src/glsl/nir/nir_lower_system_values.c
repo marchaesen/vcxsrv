@@ -49,6 +49,12 @@ convert_instr(nir_intrinsic_instr *instr)
    case SYSTEM_VALUE_VERTEX_ID:
       op = nir_intrinsic_load_vertex_id;
       break;
+   case SYSTEM_VALUE_VERTEX_ID_ZERO_BASE:
+      op = nir_intrinsic_load_vertex_id_zero_base;
+      break;
+   case SYSTEM_VALUE_BASE_VERTEX:
+      op = nir_intrinsic_load_base_vertex;
+      break;
    case SYSTEM_VALUE_INSTANCE_ID:
       op = nir_intrinsic_load_instance_id;
       break;

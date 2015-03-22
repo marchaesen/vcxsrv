@@ -28,6 +28,7 @@ template = """\
 
 #include <math.h>
 #include "main/core.h"
+#include "util/rounding.h" /* for _mesa_roundeven */
 #include "nir_constant_expressions.h"
 
 #if defined(_MSC_VER) && (_MSC_VER < 1800)
@@ -68,8 +69,8 @@ pack_snorm_1x8(float x)
      * We must first cast the float to an int, because casting a negative
      * float to a uint is undefined.
      */
-   return (uint8_t) (int8_t)
-          _mesa_round_to_even(CLAMP(x, -1.0f, +1.0f) * 127.0f);
+   return (uint8_t) (int)
+          _mesa_roundevenf(CLAMP(x, -1.0f, +1.0f) * 127.0f);
 }
 
 /**
@@ -90,8 +91,8 @@ pack_snorm_1x16(float x)
      * We must first cast the float to an int, because casting a negative
      * float to a uint is undefined.
      */
-   return (uint16_t) (int16_t)
-          _mesa_round_to_even(CLAMP(x, -1.0f, +1.0f) * 32767.0f);
+   return (uint16_t) (int)
+          _mesa_roundevenf(CLAMP(x, -1.0f, +1.0f) * 32767.0f);
 }
 
 /**
@@ -145,7 +146,8 @@ pack_unorm_1x8(float x)
      *
      *       packUnorm4x8: round(clamp(c, 0, +1) * 255.0)
      */
-   return (uint8_t) _mesa_round_to_even(CLAMP(x, 0.0f, 1.0f) * 255.0f);
+   return (uint8_t) (int)
+          _mesa_roundevenf(CLAMP(x, 0.0f, 1.0f) * 255.0f);
 }
 
 /**
@@ -163,7 +165,8 @@ pack_unorm_1x16(float x)
      *
      *       packUnorm2x16: round(clamp(c, 0, +1) * 65535.0)
      */
-   return (uint16_t) _mesa_round_to_even(CLAMP(x, 0.0f, 1.0f) * 65535.0f);
+   return (uint16_t) (int)
+          _mesa_roundevenf(CLAMP(x, 0.0f, 1.0f) * 65535.0f);
 }
 
 /**

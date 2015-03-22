@@ -2542,8 +2542,9 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
 	 goto done;
       }
 
-      prog->ARB_fragment_coord_conventions_enable |=
-         prog->Shaders[i]->ARB_fragment_coord_conventions_enable;
+      if (prog->Shaders[i]->ARB_fragment_coord_conventions_enable) {
+         prog->ARB_fragment_coord_conventions_enable = true;
+      }
 
       gl_shader_stage shader_type = prog->Shaders[i]->Stage;
       shader_list[shader_type][num_shaders[shader_type]] = prog->Shaders[i];

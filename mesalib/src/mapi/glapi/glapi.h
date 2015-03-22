@@ -76,6 +76,8 @@ struct _glapi_table;
 
 typedef void (*_glapi_proc)(void); /* generic function pointer */
 
+typedef void (*_glapi_nop_handler_proc)(const char *name);
+
 typedef void (*_glapi_warning_func)(void *ctx, const char *str, ...);
 
 
@@ -177,6 +179,14 @@ _glapi_get_proc_address(const char *funcName);
 
 extern struct _glapi_table *
 _glapi_create_table_from_handle(void *handle, const char *symbol_prefix);
+
+
+void
+_glapi_set_nop_handler(_glapi_nop_handler_proc func);
+
+/** Return pointer to new dispatch table filled with no-op functions */
+struct _glapi_table *
+_glapi_new_nop_table(unsigned num_entries);
 
 
 

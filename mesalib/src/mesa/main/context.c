@@ -882,18 +882,35 @@ update_default_objects(struct gl_context *ctx)
 
 
 /**
- * This is the default function we plug into all dispatch table slots
- * This helps prevents a segfault when someone calls a GL function without
- * first checking if the extension's supported.
+ * This function is called by the glapi no-op functions.  For each OpenGL
+ * function/entrypoint there's a simple no-op function.  These "no-op"
+ * functions call this function.
+ *
+ * If there's a current OpenGL context for the calling thread, we record a
+ * GL_INVALID_OPERATION error.  This can happen either because the app's
+ * calling an unsupported extension function, or calling an illegal function
+ * (such as glClear between glBegin/glEnd).
+ *
+ * If there's no current OpenGL context for the calling thread, we can
+ * print a message to stderr.
+ *
+ * \param name  the name of the OpenGL function, without the "gl" prefix
  */
-int
-_mesa_generic_nop(void)
+static void
+nop_handler(const char *name)
 {
    GET_CURRENT_CONTEXT(ctx);
-   _mesa_error(ctx, GL_INVALID_OPERATION,
-               "unsupported function called "
-               "(unsupported extension or deprecated function?)");
-   return 0;
+   if (ctx) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "gl%s(invalid call)", name);
+   }
+#if defined(DEBUG)
+   else if (getenv("MESA_DEBUG") || getenv("LIBGL_DEBUG")) {
+      fprintf(stderr,
+              "GL User Error: gl%s called without a rendering context\n",
+              name);
+      fflush(stderr);
+   }
+#endif
 }
 
 
@@ -909,16 +926,13 @@ nop_glFlush(void)
 #endif
 
 
-extern void (*__glapi_noop_table[])(void);
-
-
 /**
- * Allocate and initialize a new dispatch table.  All the dispatch
- * function pointers will point at the _mesa_generic_nop() function
- * which raises GL_INVALID_OPERATION.
+ * Allocate and initialize a new dispatch table.  The table will be
+ * populated with pointers to "no-op" functions.  In turn, the no-op
+ * functions will call nop_handler() above.
  */
-struct _glapi_table *
-_mesa_alloc_dispatch_table(void)
+static struct _glapi_table *
+alloc_dispatch_table(void)
 {
    /* Find the larger of Mesa's dispatch table and libGL's dispatch table.
     * In practice, this'll be the same for stand-alone Mesa.  But for DRI
@@ -926,23 +940,10 @@ _mesa_alloc_dispatch_table(void)
     * DRI drivers.
     */
    GLint numEntries = MAX2(_glapi_get_dispatch_table_size(), _gloffset_COUNT);
-   struct _glapi_table *table;
+   struct _glapi_table *table = _glapi_new_nop_table(numEntries);
 
-   table = malloc(numEntries * sizeof(_glapi_proc));
+#if defined(_WIN32)
    if (table) {
-      _glapi_proc *entry = (_glapi_proc *) table;
-      GLint i;
-      for (i = 0; i < numEntries; i++) {
-#if defined(_WIN32)
-         /* FIXME: This will not generate an error, but at least it won't
-          * corrupt the stack like _mesa_generic_nop does. */
-         entry[i] = __glapi_noop_table[i];
-#else
-         entry[i] = (_glapi_proc) _mesa_generic_nop;
-#endif
-      }
-
-#if defined(_WIN32)
       /* This is a special case for Windows in the event that
        * wglGetProcAddress is called between glBegin/End().
        *
@@ -960,8 +961,11 @@ _mesa_alloc_dispatch_table(void)
        * assertion passes and the test continues.
        */
       SET_Flush(table, nop_glFlush);
-#endif
    }
+#endif
+
+   _glapi_set_nop_handler(nop_handler);
+
    return table;
 }
 
@@ -997,7 +1001,7 @@ create_beginend_table(const struct gl_context *ctx)
 {
    struct _glapi_table *table;
 
-   table = _mesa_alloc_dispatch_table();
+   table = alloc_dispatch_table();
    if (!table)
       return NULL;
 
@@ -1136,7 +1140,7 @@ _mesa_initialize_context(struct gl_context *ctx,
       goto fail;
 
    /* setup the API dispatch tables with all nop functions */
-   ctx->OutsideBeginEnd = _mesa_alloc_dispatch_table();
+   ctx->OutsideBeginEnd = alloc_dispatch_table();
    if (!ctx->OutsideBeginEnd)
       goto fail;
    ctx->Exec = ctx->OutsideBeginEnd;
@@ -1163,7 +1167,7 @@ _mesa_initialize_context(struct gl_context *ctx,
    switch (ctx->API) {
    case API_OPENGL_COMPAT:
       ctx->BeginEnd = create_beginend_table(ctx);
-      ctx->Save = _mesa_alloc_dispatch_table();
+      ctx->Save = alloc_dispatch_table();
       if (!ctx->BeginEnd || !ctx->Save)
          goto fail;
 

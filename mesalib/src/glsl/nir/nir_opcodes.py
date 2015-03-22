@@ -183,7 +183,7 @@ unop("ftrunc", tfloat, "truncf(src0)")
 unop("fceil", tfloat, "ceilf(src0)")
 unop("ffloor", tfloat, "floorf(src0)")
 unop("ffract", tfloat, "src0 - floorf(src0)")
-unop("fround_even", tfloat, "_mesa_round_to_even(src0)")
+unop("fround_even", tfloat, "_mesa_roundevenf(src0)")
 
 
 # Trigonometric operations.

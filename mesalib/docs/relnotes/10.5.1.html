@@ -1,0 +1,217 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 10.5.1 Release Notes / March 13, 2015</h1>
+
+<p>
+Mesa 10.5.1 is a bug fix release which fixes bugs found since the 10.5.0 release.
+</p>
+<p>
+Mesa 10.5.1 implements the OpenGL 3.3 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 3.3.  OpenGL
+3.3 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+b5b6256a6d46023e16a675257fd11a0f94d7b3e60a76cf112952da3d0fef8e9b  mesa-10.5.1.tar.gz
+ffc51943d15c6812ee7611d053d8980a683fbd6a4986cff567b12cc66637d679  mesa-10.5.1.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+<h2>Bug fixes</h2>
+
+<p>This list is likely incomplete.</p>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=79202">Bug 79202</a> - valgrind errors in glsl-fs-uniform-array-loop-unroll.shader_test; random code generation</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=84613">Bug 84613</a> - [G965, bisected] piglit regressions : glslparsertest.glsl2</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=86747">Bug 86747</a> - Noise in Football Manager 2014 textures</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=86974">Bug 86974</a> - INTEL_DEBUG=shader_time always asserts in fs_generator::generate_code() when Mesa is built with --enable-debug (= with asserts)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=88246">Bug 88246</a> - Commit 2881b12 causes 43 DrawElements test regressions</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=88793">Bug 88793</a> - [BDW/BSW Bisected]Piglit/shaders_glsl-max-varyings fails</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=88883">Bug 88883</a> - ir-a2xx.c: variable changed in assert statement</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=88885">Bug 88885</a> - Transform feedback uses incorrect interleaving if a previous draw did not write gl_Position</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=89095">Bug 89095</a> - [SNB/IVB/BYT Bisected]Webglc conformance/glsl/functions/glsl-function-mix-float.html fails</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=89156">Bug 89156</a> - r300g: GL_COMPRESSED_RED_RGTC1 / ATI1N support broken</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=89224">Bug 89224</a> - Incorrect rendering of Unigine Valley running in VM on VMware Workstation</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=89292">Bug 89292</a> - [regression,bisected] incomplete screenshots in some cases</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=89311">Bug 89311</a> - [regression, bisected] dEQP: Added entry points for glCompressedTextureSubImage*D.</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=89312">Bug 89312</a> - [regression, bisected] main: Added entry points for CopyTextureSubImage*D. (d6b7c40cecfe01)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=89315">Bug 89315</a> - [HSW, regression, bisected] i965/fs: Emit MAD instructions when possible.</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=89317">Bug 89317</a> - [HSW, regression, bisected] i965: Add LINTERP/CINTERP to can_do_cmod() (d91390634)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=89416">Bug 89416</a> - UE4Editor crash after load project</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=89430">Bug 89430</a> - [g965][bisected] arb_copy_image-targets gl_texture* tests fail</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Andrey Sudnik (1):</p>
+<ul>
+  <li>i965/vec4: Don't lose the saturate modifier in copy propagation.</li>
+</ul>
+
+<p>Chris Forbes (1):</p>
+<ul>
+  <li>i965/gs: Check newly-generated GS-out VUE map against correct stage</li>
+</ul>
+
+<p>Daniel Stone (1):</p>
+<ul>
+  <li>egl: Take alpha bits into account when selecting GBM formats</li>
+</ul>
+
+<p>Emil Velikov (5):</p>
+<ul>
+  <li>docs: Add sha256 sums for the 10.5.0 release</li>
+  <li>egl/main: no longer export internal function</li>
+  <li>cherry-ignore: ignore a few more commits picked without -x</li>
+  <li>mapi: fix commit 90411b56f6bc817e229d8801ac0adad6d4e3fb7a</li>
+  <li>Update version to 10.5.1</li>
+</ul>
+
+<p>Frank Henigman (1):</p>
+<ul>
+  <li>intel: fix EGLImage renderbuffer _BaseFormat</li>
+</ul>
+
+<p>Iago Toral Quiroga (1):</p>
+<ul>
+  <li>i965: Fix out-of-bounds accesses into pull_constant_loc array</li>
+</ul>
+
+<p>Ian Romanick (1):</p>
+<ul>
+  <li>i965/fs/nir: Use emit_math for nir_op_fpow</li>
+</ul>
+
+<p>Ilia Mirkin (3):</p>
+<ul>
+  <li>freedreno: move fb state copy after checking for size change</li>
+  <li>freedreno/ir3: fix array count returned by TXQ</li>
+  <li>freedreno/ir3: get the # of miplevels from getinfo</li>
+</ul>
+
+<p>Jason Ekstrand (2):</p>
+<ul>
+  <li>meta/TexSubImage: Stash everything other than PIXEL_TRANSFER/store in meta_begin</li>
+  <li>main/base_tex_format: Properly handle STENCIL_INDEX1/4/16</li>
+</ul>
+
+<p>Kenneth Graunke (8):</p>
+<ul>
+  <li>i965: Split Gen4-5 BlitFramebuffer code; prefer BLT over Meta.</li>
+  <li>glsl: Mark array access when copying to a temporary for the ?: operator.</li>
+  <li>i965/fs: Set force_writemask_all on shader_time instructions.</li>
+  <li>i965/fs: Set smear on shader_time diff register.</li>
+  <li>i965/fs: Make emit_shader_time_write return rather than emit.</li>
+  <li>i965/fs: Make get_timestamp() pass back the MOV rather than emitting it.</li>
+  <li>i965/fs: Make emit_shader_time_end() insert before EOT.</li>
+  <li>i965/fs: Don't issue FB writes for bound but unwritten color targets.</li>
+</ul>
+
+<p>Laura Ekstrand (2):</p>
+<ul>
+  <li>main: Fix target checking for CompressedTexSubImage*D.</li>
+  <li>main: Fix target checking for CopyTexSubImage*D.</li>
+</ul>
+
+<p>Marc-Andre Lureau (1):</p>
+<ul>
+  <li>gallium/auxiliary/indices: fix start param</li>
+</ul>
+
+<p>Marek Olšák (3):</p>
+<ul>
+  <li>r300g: fix RGTC1 and LATC1 SNORM formats</li>
+  <li>r300g: fix a crash when resolving into an sRGB texture</li>
+  <li>r300g: fix sRGB-&gt;sRGB blits</li>
+</ul>
+
+<p>Matt Turner (12):</p>
+<ul>
+  <li>i965/vec4: Fix implementation of i2b.</li>
+  <li>mesa: Indent break statements and add a missing one.</li>
+  <li>mesa: Free memory allocated for luminance in readpixels.</li>
+  <li>mesa: Correct backwards NULL check.</li>
+  <li>i965: Consider scratch writes to have side effects.</li>
+  <li>i965/fs: Don't use backend_visitor::instructions after creating the CFG.</li>
+  <li>r300g: Use PATH_MAX instead of limiting ourselves to 100 chars.</li>
+  <li>r300g: Check return value of snprintf().</li>
+  <li>i965/fs: Don't propagate cmod to inst with different type.</li>
+  <li>i965: Tell intel_get_memcpy() which direction the memcpy() is going.</li>
+  <li>Revert SHA1 additions.</li>
+  <li>i965: Avoid applying negate to wrong MAD source.</li>
+</ul>
+
+<p>Neil Roberts (4):</p>
+<ul>
+  <li>meta: In pbo_{Get,}TexSubImage don't repeatedly rebind the source tex</li>
+  <li>Revert "common: Fix PBOs for 1D_ARRAY."</li>
+  <li>meta: Allow GL_UN/PACK_IMAGE_HEIGHT in _mesa_meta_pbo_Get/TexSubImage</li>
+  <li>meta: Fix the y offset for 1D_ARRAY in _mesa_meta_pbo_TexSubImage</li>
+</ul>
+
+<p>Rob Clark (11):</p>
+<ul>
+  <li>freedreno/ir3: fix silly typo for binning pass shaders</li>
+  <li>freedreno/a2xx: fix increment in assert</li>
+  <li>freedreno/a4xx: bit of cleanup</li>
+  <li>freedreno: update generated headers</li>
+  <li>freedreno/a4xx: set PC_PRIM_VTX_CNTL.VAROUT properly</li>
+  <li>freedreno: update generated headers</li>
+  <li>freedreno/a4xx: aniso filtering</li>
+  <li>freedreno/ir3: fix up cat6 instruction encodings</li>
+  <li>freedreno/ir3: add support for memory (cat6) instructions</li>
+  <li>freedreno/ir3: handle flat bypass for a4xx</li>
+  <li>freedreno/ir3: fix failed assert in grouping</li>
+</ul>
+
+<p>Stefan Dösinger (1):</p>
+<ul>
+  <li>r300g: Fix the ATI1N swizzle (RGTC1 and LATC1)</li>
+</ul>
+
+</div>
+</body>
+</html>

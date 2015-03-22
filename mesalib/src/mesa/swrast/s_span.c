@@ -788,7 +788,7 @@ clip_span( struct gl_context *ctx, SWspan *span )
          memmove(ARRAY, ARRAY + (SHIFT), (LEN) * sizeof(ARRAY[0]))
 
          for (i = 0; i < VARYING_SLOT_MAX; i++) {
-            if (span->arrayAttribs & (1 << i)) {
+            if (span->arrayAttribs & BITFIELD64_BIT(i)) {
                /* shift array elements left by 'leftClip' */
                SHIFT_ARRAY(span->array->attribs[i], leftClip, n - leftClip);
             }

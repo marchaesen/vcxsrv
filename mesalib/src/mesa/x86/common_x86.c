@@ -68,12 +68,12 @@ static int detection_debug = GL_FALSE;
 
 /* No reason for this to be public.
  */
-extern GLuint	_ASMAPI _mesa_x86_has_cpuid(void);
-extern void	_ASMAPI _mesa_x86_cpuid(GLuint op, GLuint *reg_eax, GLuint *reg_ebx, GLuint *reg_ecx, GLuint *reg_edx);
-extern GLuint	_ASMAPI _mesa_x86_cpuid_eax(GLuint op);
-extern GLuint	_ASMAPI _mesa_x86_cpuid_ebx(GLuint op);
-extern GLuint	_ASMAPI _mesa_x86_cpuid_ecx(GLuint op);
-extern GLuint	_ASMAPI _mesa_x86_cpuid_edx(GLuint op);
+extern GLuint _mesa_x86_has_cpuid(void);
+extern void _mesa_x86_cpuid(GLuint op, GLuint *reg_eax, GLuint *reg_ebx, GLuint *reg_ecx, GLuint *reg_edx);
+extern GLuint _mesa_x86_cpuid_eax(GLuint op);
+extern GLuint _mesa_x86_cpuid_ebx(GLuint op);
+extern GLuint _mesa_x86_cpuid_ecx(GLuint op);
+extern GLuint _mesa_x86_cpuid_edx(GLuint op);
 
 
 #if defined(USE_SSE_ASM)

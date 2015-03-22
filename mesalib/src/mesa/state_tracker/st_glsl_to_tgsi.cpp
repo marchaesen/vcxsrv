@@ -332,6 +332,7 @@ public:
    int glsl_version;
    bool native_integers;
    bool have_sqrt;
+   bool have_fma;
 
    variable_storage *find_variable_storage(ir_variable *var);
 
@@ -836,6 +837,7 @@ glsl_to_tgsi_visitor::get_opcode(ir_instruction *ir, unsigned op,
       case3fid(ADD, UADD, DADD);
       case3fid(MUL, UMUL, DMUL);
       case3fid(MAD, UMAD, DMAD);
+      case3fid(FMA, UMAD, DFMA);
       case3(DIV, IDIV, UDIV);
       case4d(MAX, IMAX, UMAX, DMAX);
       case4d(MIN, IMIN, UMIN, DMIN);
@@ -2222,10 +2224,11 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
       emit(ir, TGSI_OPCODE_IMUL_HI, result_dst, op[0], op[1]);
       break;
    case ir_triop_fma:
-      /* NOTE: Perhaps there should be a special opcode that enforces fused
-       * mul-add. Just use MAD for now.
-       */
-      emit(ir, TGSI_OPCODE_MAD, result_dst, op[0], op[1], op[2]);
+      /* In theory, MAD is incorrect here. */
+      if (have_fma)
+         emit(ir, TGSI_OPCODE_FMA, result_dst, op[0], op[1], op[2]);
+      else
+         emit(ir, TGSI_OPCODE_MAD, result_dst, op[0], op[1], op[2]);
       break;
    case ir_unop_interpolate_at_centroid:
       emit(ir, TGSI_OPCODE_INTERP_CENTROID, result_dst, op[0]);
@@ -5564,6 +5567,8 @@ get_mesa_program(struct gl_context *ctx,
 
    v->have_sqrt = pscreen->get_shader_param(pscreen, ptarget,
                                             PIPE_SHADER_CAP_TGSI_SQRT_SUPPORTED);
+   v->have_fma = pscreen->get_shader_param(pscreen, ptarget,
+                                           PIPE_SHADER_CAP_TGSI_FMA_SUPPORTED);
 
    _mesa_copy_linked_program_data(shader->Stage, shader_program, prog);
    _mesa_generate_parameters_list_for_uniforms(shader_program, shader,

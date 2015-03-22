@@ -79,7 +79,7 @@ _mesa_init_program(struct gl_context *ctx)
    STATIC_ASSERT(NUM_TEXTURE_TARGETS <= (1 << 4));
 
    ctx->Program.ErrorPos = -1;
-   ctx->Program.ErrorString = _mesa_strdup("");
+   ctx->Program.ErrorString = strdup("");
 
    ctx->VertexProgram.Enabled = GL_FALSE;
    ctx->VertexProgram.PointSizeEnabled =
@@ -176,7 +176,7 @@ _mesa_set_program_error(struct gl_context *ctx, GLint pos, const char *string)
    free((void *) ctx->Program.ErrorString);
    if (!string)
       string = "";
-   ctx->Program.ErrorString = _mesa_strdup(string);
+   ctx->Program.ErrorString = strdup(string);
 }
 
 
@@ -483,7 +483,7 @@ _mesa_clone_program(struct gl_context *ctx, const struct gl_program *prog)
    assert(clone->Target == prog->Target);
    assert(clone->RefCount == 1);
 
-   clone->String = (GLubyte *) _mesa_strdup((char *) prog->String);
+   clone->String = (GLubyte *) strdup((char *) prog->String);
    clone->Format = prog->Format;
    clone->Instructions = _mesa_alloc_instructions(prog->NumInstructions);
    if (!clone->Instructions) {

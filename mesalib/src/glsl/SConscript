@@ -24,22 +24,26 @@ env.Prepend(LIBS = [mesautil])
 # Make glcpp-parse.h and glsl_parser.h reachable from the include path.
 env.Append(CPPPATH = [Dir('.').abspath, Dir('glcpp').abspath])
 
-env.Append(YACCFLAGS = '-d -p "glcpp_parser_"')
+glcpp_env = env.Clone()
+glcpp_env.Append(YACCFLAGS = [
+    '-d',
+    '-p', 'glcpp_parser_'
+])
 
-parser_env = env.Clone()
-parser_env.Append(YACCFLAGS = [
+glsl_env = env.Clone()
+glsl_env.Append(YACCFLAGS = [
     '--defines=%s' % File('glsl_parser.h').abspath,
     '-p', '_mesa_glsl_',
 ])
 
 # without this line scons will expect "glsl_parser.hpp" instead of
 # "glsl_parser.h", causing glsl_parser.cpp to be regenerated every time
-parser_env['YACCHXXFILESUFFIX'] = '.h'
+glsl_env['YACCHXXFILESUFFIX'] = '.h'
 
-glcpp_lexer = env.CFile('glcpp/glcpp-lex.c', 'glcpp/glcpp-lex.l')
-glcpp_parser = env.CFile('glcpp/glcpp-parse.c', 'glcpp/glcpp-parse.y')
-glsl_lexer = parser_env.CXXFile('glsl_lexer.cpp', 'glsl_lexer.ll')
-glsl_parser = parser_env.CXXFile('glsl_parser.cpp', 'glsl_parser.yy')
+glcpp_lexer = glcpp_env.CFile('glcpp/glcpp-lex.c', 'glcpp/glcpp-lex.l')
+glcpp_parser = glcpp_env.CFile('glcpp/glcpp-parse.c', 'glcpp/glcpp-parse.y')
+glsl_lexer = glsl_env.CXXFile('glsl_lexer.cpp', 'glsl_lexer.ll')
+glsl_parser = glsl_env.CXXFile('glsl_parser.cpp', 'glsl_parser.yy')
 
 # common generated sources
 glsl_sources = [

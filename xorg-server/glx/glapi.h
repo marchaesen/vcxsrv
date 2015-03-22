@@ -44,7 +44,7 @@
 #ifndef _GLAPI_H
 #define _GLAPI_H
 
-#include "u_thread.h"
+#include "util/macros.h"
 
 
 #ifdef __cplusplus
@@ -75,6 +75,8 @@ extern "C" {
 struct _glapi_table;
 
 typedef void (*_glapi_proc)(void); /* generic function pointer */
+
+typedef void (*_glapi_nop_handler_proc)(const char *name);
 
 typedef void (*_glapi_warning_func)(void *ctx, const char *str, ...);
 
@@ -123,20 +125,11 @@ _GLAPI_EXPORT extern const void *_glapi_Context;
 SERVEXTERN struct _glapi_table *_glapi_Dispatch;
 SERVEXTERN void *_glapi_Context;
 
-# ifdef THREADS
-
-#  define GET_DISPATCH() \
+#define GET_DISPATCH() \
      (likely(_glapi_Dispatch) ? _glapi_Dispatch : _glapi_get_dispatch())
 
-#  define GET_CURRENT_CONTEXT(C)  struct gl_context *C = (struct gl_context *) \
+#define GET_CURRENT_CONTEXT(C)  struct gl_context *C = (struct gl_context *) \
      (likely(_glapi_Context) ? _glapi_Context : _glapi_get_context())
-
-# else
-
-#  define GET_DISPATCH() _glapi_Dispatch
-#  define GET_CURRENT_CONTEXT(C)  struct gl_context *C = (struct gl_context *) _glapi_Context
-
-# endif
 
 #endif /* defined (GLX_USE_TLS) */
 
@@ -186,6 +179,14 @@ _glapi_get_proc_address(const char *funcName);
 
 extern struct _glapi_table *
 _glapi_create_table_from_handle(void *handle, const char *symbol_prefix);
+
+
+void
+_glapi_set_nop_handler(_glapi_nop_handler_proc func);
+
+/** Return pointer to new dispatch table filled with no-op functions */
+struct _glapi_table *
+_glapi_new_nop_table(unsigned num_entries);
 
 
 

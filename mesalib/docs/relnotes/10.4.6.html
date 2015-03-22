@@ -1,0 +1,143 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 10.4.6 Release Notes / March 06, 2015</h1>
+
+<p>
+Mesa 10.4.6 is a bug fix release which fixes bugs found since the 10.4.5 release.
+</p>
+<p>
+Mesa 10.4.6 implements the OpenGL 3.3 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 3.3.  OpenGL
+3.3 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+<h2>SHA256 checksums</h2>
+<pre>
+46c9082142e811c01e49a2c332a9ac0a1eb98f2908985fb9df216539d7eaeaf4  MesaLib-10.4.6.tar.gz
+d8baedd20e79ccd98a5a7b05e23d59a30892e68de1fcc057ca6873dafca02735  MesaLib-10.4.6.tar.bz2
+6aded6eac7f0d4d55117b8b581d8424710bbb4c768fc90f7b881f29311a751aa  MesaLib-10.4.6.zip
+</pre>
+
+<h2>New features</h2>
+<p>None</p>
+
+<h2>Bug fixes</h2>
+
+<p>This list is likely incomplete.</p>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=45348">Bug 45348</a> - [swrast] piglit fbo-drawbuffers-arbfp regression</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=84613">Bug 84613</a> - [G965, bisected] piglit regressions : glslparsertest.glsl2</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=87516">Bug 87516</a> - glProgramBinary violates spec</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=88885">Bug 88885</a> - Transform feedback uses incorrect interleaving if a previous draw did not write gl_Position</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=89180">Bug 89180</a> - [IVB regression] Rendering issues in Mass Effect through VMware Workstation</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Abdiel Janulgue (2):</p>
+<ul>
+  <li>glsl: Don't optimize min/max into saturate when EmitNoSat is set</li>
+  <li>st/mesa: For vertex shaders, don't emit saturate when SM 3.0 is unsupported</li>
+</ul>
+
+<p>Andreas Boll (1):</p>
+<ul>
+  <li>glx: Fix returned values of GLX_RENDERER_PREFERRED_PROFILE_MESA</li>
+</ul>
+
+<p>Brian Paul (2):</p>
+<ul>
+  <li>swrast: fix multiple color buffer writing</li>
+  <li>st/mesa: fix sampler view reference counting bug in glDraw/CopyPixels</li>
+</ul>
+
+<p>Chris Forbes (1):</p>
+<ul>
+  <li>i965/gs: Check newly-generated GS-out VUE map against correct stage</li>
+</ul>
+
+<p>Eduardo Lima Mitev (1):</p>
+<ul>
+  <li>mesa: Fix error validating args for TexSubImage3D</li>
+</ul>
+
+<p>Emil Velikov (6):</p>
+<ul>
+  <li>docs: Add sha256 sums for the 10.4.5 release</li>
+  <li>install-lib-links: remove the .install-lib-links file</li>
+  <li>Revert "mesa: Correct backwards NULL check."</li>
+  <li>mesa: cherry-pick the second half of commit 2aa71e9485a</li>
+  <li>Revert "gallivm: Update for RTDyldMemoryManager becoming an unique_ptr."</li>
+  <li>Update version to 10.4.6</li>
+</ul>
+
+<p>Ian Romanick (3):</p>
+<ul>
+  <li>mesa: Add missing error checks in _mesa_ProgramBinary</li>
+  <li>mesa: Ensure that length is set to zero in _mesa_GetProgramBinary</li>
+  <li>mesa: Always generate GL_INVALID_OPERATION in _mesa_GetProgramBinary</li>
+</ul>
+
+<p>Jonathan Gray (1):</p>
+<ul>
+  <li>auxilary/os: correct sysctl use in os_get_total_physical_memory()</li>
+</ul>
+
+<p>José Fonseca (1):</p>
+<ul>
+  <li>gallivm: Update for RTDyldMemoryManager becoming an unique_ptr.</li>
+</ul>
+
+<p>Leo Liu (1):</p>
+<ul>
+  <li>st/omx/dec/h264: fix picture out-of-order with poc type 0 v2</li>
+</ul>
+
+<p>Lucas Stach (1):</p>
+<ul>
+  <li>install-lib-links: don't depend on .libs directory</li>
+</ul>
+
+<p>Marek Olšák (2):</p>
+<ul>
+  <li>vbo: fix an unitialized-variable warning</li>
+  <li>radeonsi: fix point sprites</li>
+</ul>
+
+<p>Matt Turner (4):</p>
+<ul>
+  <li>glsl: Rewrite and fix min/max to saturate optimization.</li>
+  <li>mesa: Correct backwards NULL check.</li>
+  <li>i965/fs: Don't use backend_visitor::instructions after creating the CFG.</li>
+  <li>mesa: Correct backwards NULL check.</li>
+</ul>
+
+
+</div>
+</body>
+</html>

@@ -41,5 +41,5 @@ CSRCS = \
         swap_interval.c \
         xfont.c
 
-INCLUDES := $(MHMAKECONF)\mesalib\include $(INCLUDES)
+INCLUDES := $(MHMAKECONF)\mesalib\include . $(INCLUDES)
 

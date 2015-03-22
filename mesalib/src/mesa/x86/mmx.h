@@ -31,27 +31,27 @@
 
 struct gl_context;
 
-extern void _ASMAPI
+extern void
 _mesa_mmx_blend_transparency( struct gl_context *ctx, GLuint n, const GLubyte mask[],
                               GLvoid *rgba, const GLvoid *dest,
                               GLenum chanType );
 
-extern void _ASMAPI
+extern void
 _mesa_mmx_blend_add( struct gl_context *ctx, GLuint n, const GLubyte mask[],
                      GLvoid *rgba, const GLvoid *dest,
                      GLenum chanType );
 
-extern void _ASMAPI
+extern void
 _mesa_mmx_blend_min( struct gl_context *ctx, GLuint n, const GLubyte mask[],
                      GLvoid *rgba, const GLvoid *dest,
                      GLenum chanType );
 
-extern void _ASMAPI
+extern void
 _mesa_mmx_blend_max( struct gl_context *ctx, GLuint n, const GLubyte mask[],
                      GLvoid *rgba, const GLvoid *dest,
                      GLenum chanType );
 
-extern void _ASMAPI
+extern void
 _mesa_mmx_blend_modulate( struct gl_context *ctx, GLuint n, const GLubyte mask[],
                           GLvoid *rgba, const GLvoid *dest,
                           GLenum chanType );

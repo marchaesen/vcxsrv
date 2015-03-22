@@ -32,6 +32,7 @@ $(BLANKS_H): $(TMPL) $(BLANKSPY)
 	mv $(BLANKS_H).tmp $(BLANKS_H) || ($(RM) $(BLANKS_H).tmp && false)
 
 EXTRA_DIST = 		\
+	$(BLANKSPY)	\
 	$(BLANKS_H)	\
 	$(TMPL)		\
 	$(NULL)

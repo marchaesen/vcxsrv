@@ -201,7 +201,7 @@ static bool
 shader_packing_or_es3(const _mesa_glsl_parse_state *state)
 {
    return state->ARB_shading_language_packing_enable ||
-          state->is_version(400, 300);
+          state->is_version(420, 300);
 }
 
 static bool

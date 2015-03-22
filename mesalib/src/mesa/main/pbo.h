@@ -92,4 +92,18 @@ _mesa_unmap_teximage_pbo(struct gl_context *ctx,
                          const struct gl_pixelstore_attrib *unpack);
 
 
+extern bool
+_mesa_validate_pbo_source(struct gl_context *ctx, GLuint dimensions,
+                          const struct gl_pixelstore_attrib *unpack,
+                          GLsizei width, GLsizei height, GLsizei depth,
+                          GLenum format, GLenum type,
+                          GLsizei clientMemSize,
+                          const GLvoid *ptr, const char *where);
+
+extern bool
+_mesa_validate_pbo_source_compressed(struct gl_context *ctx, GLuint dimensions,
+                                     const struct gl_pixelstore_attrib *unpack,
+                                     GLsizei imageSize, const GLvoid *ptr,
+                                     const char *where);
+
 #endif

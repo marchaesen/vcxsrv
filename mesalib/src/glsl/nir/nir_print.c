@@ -228,7 +228,7 @@ print_var_decl(nir_variable *var, print_var_state *state, FILE *fp)
    if (var->data.mode == nir_var_shader_in ||
        var->data.mode == nir_var_shader_out ||
        var->data.mode == nir_var_uniform) {
-      fprintf(fp, " (%u)", var->data.driver_location);
+      fprintf(fp, " (%u, %u)", var->data.location, var->data.driver_location);
    }
 
    fprintf(fp, "\n");
@@ -844,22 +844,16 @@ nir_print_shader(nir_shader *shader, FILE *fp)
    print_var_state state;
    init_print_state(&state);
 
-   for (unsigned i = 0; i < shader->num_user_structures; i++) {
-      glsl_print_struct(shader->user_structures[i], fp);
+   foreach_list_typed(nir_variable, var, node, &shader->uniforms) {
+      print_var_decl(var, &state, fp);
    }
 
-   struct hash_entry *entry;
-
-   hash_table_foreach(shader->uniforms, entry) {
-      print_var_decl((nir_variable *) entry->data, &state, fp);
+   foreach_list_typed(nir_variable, var, node, &shader->inputs) {
+      print_var_decl(var, &state, fp);
    }
 
-   hash_table_foreach(shader->inputs, entry) {
-      print_var_decl((nir_variable *) entry->data, &state, fp);
-   }
-
-   hash_table_foreach(shader->outputs, entry) {
-      print_var_decl((nir_variable *) entry->data, &state, fp);
+   foreach_list_typed(nir_variable, var, node, &shader->outputs) {
+      print_var_decl(var, &state, fp);
    }
 
    foreach_list_typed(nir_variable, var, node, &shader->globals) {

@@ -89,7 +89,7 @@ _mesa_copy_instructions(struct prog_instruction *dest,
    memcpy(dest, src, n * sizeof(struct prog_instruction));
    for (i = 0; i < n; i++) {
       if (src[i].Comment)
-         dest[i].Comment = _mesa_strdup(src[i].Comment);
+         dest[i].Comment = strdup(src[i].Comment);
    }
    return dest;
 }

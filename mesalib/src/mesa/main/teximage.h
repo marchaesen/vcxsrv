@@ -181,13 +181,14 @@ _mesa_texture_sub_image(struct gl_context *ctx, GLuint dims,
 extern void
 _mesa_compressed_texture_sub_image(struct gl_context *ctx, GLuint dims, 
                                    struct gl_texture_object *texObj, 
+                                   struct gl_texture_image *texImage,
                                    GLenum target, GLint level,
                                    GLint xoffset, GLint yoffset,
                                    GLint zoffset,
                                    GLsizei width, GLsizei height,
                                    GLsizei depth,
                                    GLenum format, GLsizei imageSize,
-                                   const GLvoid *data, bool dsa);
+                                   const GLvoid *data);
 
 extern void
 _mesa_copy_texture_sub_image(struct gl_context *ctx, GLuint dims,
@@ -195,7 +196,8 @@ _mesa_copy_texture_sub_image(struct gl_context *ctx, GLuint dims,
                              GLenum target, GLint level,
                              GLint xoffset, GLint yoffset, GLint zoffset,
                              GLint x, GLint y,
-                             GLsizei width, GLsizei height, bool dsa);
+                             GLsizei width, GLsizei height,
+                             const char *caller);
 
 extern void
 _mesa_texture_image_multisample(struct gl_context *ctx, GLuint dims,
@@ -208,11 +210,11 @@ _mesa_texture_image_multisample(struct gl_context *ctx, GLuint dims,
 
 extern void
 _mesa_texture_buffer_range(struct gl_context *ctx,
-                           struct gl_texture_object *texObj, GLenum target, 
+                           struct gl_texture_object *texObj,
                            GLenum internalFormat,
                            struct gl_buffer_object *bufObj,
-                           GLintptr offset, GLsizeiptr size, bool range,
-                           bool dsa);
+                           GLintptr offset, GLsizeiptr size,
+                           const char *caller);
 /*@}*/
 
 
@@ -407,6 +409,10 @@ _mesa_TexBufferRange(GLenum target, GLenum internalFormat, GLuint buffer,
 
 extern void GLAPIENTRY
 _mesa_TextureBuffer(GLuint texture, GLenum internalFormat, GLuint buffer);
+
+extern void GLAPIENTRY
+_mesa_TextureBufferRange(GLuint texture, GLenum internalFormat, GLuint buffer,
+                         GLintptr offset, GLsizeiptr size);
 
 
 extern void GLAPIENTRY

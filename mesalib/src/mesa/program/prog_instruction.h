@@ -366,11 +366,11 @@ struct prog_instruction
     */
    GLint BranchTarget;
 
-   /** for debugging purposes */
-   const char *Comment;
-
    /** for driver use (try to remove someday) */
    GLint Aux;
+
+   /** for debugging purposes */
+   const char *Comment;
 };
 
 

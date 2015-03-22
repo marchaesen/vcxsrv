@@ -33,17 +33,11 @@ nir_shader_create(void *mem_ctx, const nir_shader_compiler_options *options)
 {
    nir_shader *shader = ralloc(mem_ctx, nir_shader);
 
-   shader->uniforms = _mesa_hash_table_create(shader, _mesa_key_hash_string,
-                                              _mesa_key_string_equal);
-   shader->inputs = _mesa_hash_table_create(shader, _mesa_key_hash_string,
-                                            _mesa_key_string_equal);
-   shader->outputs = _mesa_hash_table_create(shader, _mesa_key_hash_string,
-                                             _mesa_key_string_equal);
+   exec_list_make_empty(&shader->uniforms);
+   exec_list_make_empty(&shader->inputs);
+   exec_list_make_empty(&shader->outputs);
 
    shader->options = options;
-
-   shader->num_user_structures = 0;
-   shader->user_structures = NULL;
 
    exec_list_make_empty(&shader->functions);
    exec_list_make_empty(&shader->registers);

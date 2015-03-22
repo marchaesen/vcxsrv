@@ -47,20 +47,20 @@ DECLARE_XFORM_GROUP( 3dnow, 3 )
 DECLARE_XFORM_GROUP( 3dnow, 4 )
 
 
-extern void _ASMAPI
+extern void
 _mesa_v16_3dnow_general_xform( GLfloat *first_vert,
 			       const GLfloat *m,
 			       const GLfloat *src,
 			       GLuint src_stride,
 			       GLuint count );
 
-extern void _ASMAPI
+extern void
 _mesa_3dnow_project_vertices( GLfloat *first,
 			      GLfloat *last,
 			      const GLfloat *m,
 			      GLuint stride );
 
-extern void _ASMAPI
+extern void
 _mesa_3dnow_project_clipped_vertices( GLfloat *first,
 				      GLfloat *last,
 				      const GLfloat *m,

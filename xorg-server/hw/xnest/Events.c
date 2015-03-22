@@ -103,7 +103,7 @@ void
 xnestQueueKeyEvent(int type, unsigned int keycode)
 {
     lastEventTime = GetTimeInMillis();
-    QueueKeyboardEvents(xnestKeyboardDevice, type, keycode, NULL);
+    QueueKeyboardEvents(xnestKeyboardDevice, type, keycode);
 }
 
 void

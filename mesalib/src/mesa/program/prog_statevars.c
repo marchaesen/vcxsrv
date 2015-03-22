@@ -1045,7 +1045,7 @@ _mesa_program_state_string(const gl_state_index state[STATE_LENGTH])
       break;
    }
 
-   return _mesa_strdup(str);
+   return strdup(str);
 }
 
 

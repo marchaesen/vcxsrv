@@ -403,7 +403,7 @@ xf86ReleaseKeys(DeviceIntPtr pDev)
          i < keyc->xkbInfo->desc->max_key_code; i++) {
         if (key_is_down(pDev, i, KEY_POSTED)) {
             OsBlockSIGIO();
-            QueueKeyboardEvents(pDev, KeyRelease, i, NULL);
+            QueueKeyboardEvents(pDev, KeyRelease, i);
             OsReleaseSIGIO();
         }
     }
