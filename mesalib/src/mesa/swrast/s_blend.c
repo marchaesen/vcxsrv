@@ -48,9 +48,6 @@
 #if defined(USE_MMX_ASM)
 #include "x86/mmx.h"
 #include "x86/common_x86_asm.h"
-#define _BLENDAPI _ASMAPI
-#else
-#define _BLENDAPI
 #endif
 
 
@@ -69,7 +66,7 @@
  * No-op means the framebuffer values remain unchanged.
  * Any chanType ok.
  */
-static void _BLENDAPI
+static void
 blend_noop(struct gl_context *ctx, GLuint n, const GLubyte mask[],
            GLvoid *src, const GLvoid *dst, GLenum chanType)
 {
@@ -97,7 +94,7 @@ blend_noop(struct gl_context *ctx, GLuint n, const GLubyte mask[],
  * Special case for glBlendFunc(GL_ONE, GL_ZERO)
  * Any chanType ok.
  */
-static void _BLENDAPI
+static void
 blend_replace(struct gl_context *ctx, GLuint n, const GLubyte mask[],
               GLvoid *src, const GLvoid *dst, GLenum chanType)
 {
@@ -117,7 +114,7 @@ blend_replace(struct gl_context *ctx, GLuint n, const GLubyte mask[],
  * Common transparency blending mode:
  * glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA).
  */
-static void _BLENDAPI
+static void
 blend_transparency_ubyte(struct gl_context *ctx, GLuint n, const GLubyte mask[],
                          GLvoid *src, const GLvoid *dst, GLenum chanType)
 {
@@ -162,7 +159,7 @@ blend_transparency_ubyte(struct gl_context *ctx, GLuint n, const GLubyte mask[],
 }
 
 
-static void _BLENDAPI
+static void
 blend_transparency_ushort(struct gl_context *ctx, GLuint n, const GLubyte mask[],
                           GLvoid *src, const GLvoid *dst, GLenum chanType)
 {
@@ -200,7 +197,7 @@ blend_transparency_ushort(struct gl_context *ctx, GLuint n, const GLubyte mask[]
 }
 
 
-static void _BLENDAPI
+static void
 blend_transparency_float(struct gl_context *ctx, GLuint n, const GLubyte mask[],
                          GLvoid *src, const GLvoid *dst, GLenum chanType)
 {
@@ -242,7 +239,7 @@ blend_transparency_float(struct gl_context *ctx, GLuint n, const GLubyte mask[],
  * Add src and dest: glBlendFunc(GL_ONE, GL_ONE).
  * Any chanType ok.
  */
-static void _BLENDAPI
+static void
 blend_add(struct gl_context *ctx, GLuint n, const GLubyte mask[],
           GLvoid *src, const GLvoid *dst, GLenum chanType)
 {
@@ -308,7 +305,7 @@ blend_add(struct gl_context *ctx, GLuint n, const GLubyte mask[],
  * Blend min function.
  * Any chanType ok.
  */
-static void _BLENDAPI
+static void
 blend_min(struct gl_context *ctx, GLuint n, const GLubyte mask[],
           GLvoid *src, const GLvoid *dst, GLenum chanType)
 {
@@ -361,7 +358,7 @@ blend_min(struct gl_context *ctx, GLuint n, const GLubyte mask[],
  * Blend max function.
  * Any chanType ok.
  */
-static void _BLENDAPI
+static void
 blend_max(struct gl_context *ctx, GLuint n, const GLubyte mask[],
           GLvoid *src, const GLvoid *dst, GLenum chanType)
 {
@@ -415,7 +412,7 @@ blend_max(struct gl_context *ctx, GLuint n, const GLubyte mask[],
  * Modulate:  result = src * dest
  * Any chanType ok.
  */
-static void _BLENDAPI
+static void
 blend_modulate(struct gl_context *ctx, GLuint n, const GLubyte mask[],
                GLvoid *src, const GLvoid *dst, GLenum chanType)
 {

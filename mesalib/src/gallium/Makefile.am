@@ -11,7 +11,6 @@ SUBDIRS += auxiliary
 ##
 
 SUBDIRS += \
-	drivers/galahad \
 	drivers/noop \
 	drivers/trace \
 	drivers/rbug
@@ -96,14 +95,6 @@ if HAVE_DRI2
 SUBDIRS += winsys/sw/kms-dri
 endif
 
-if HAVE_EGL_PLATFORM_FBDEV
-SUBDIRS += winsys/sw/fbdev
-endif
-
-if HAVE_EGL_PLATFORM_WAYLAND
-SUBDIRS += winsys/sw/wayland
-endif
-
 SUBDIRS += winsys/sw/wrapper
 
 ##
@@ -114,8 +105,6 @@ EXTRA_DIST = \
 	docs \
 	README.portability \
 	SConscript \
-	state_trackers/gbm \
-	targets/gbm \
 	winsys/sw/gdi \
 	winsys/sw/hgl
 

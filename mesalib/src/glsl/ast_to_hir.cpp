@@ -1617,6 +1617,12 @@ ast_expression::do_hir(exec_list *instructions,
           && cond_val != NULL) {
          result = cond_val->value.b[0] ? op[1] : op[2];
       } else {
+         /* The copy to conditional_tmp reads the whole array. */
+         if (type->is_array()) {
+            mark_whole_array_access(op[1]);
+            mark_whole_array_access(op[2]);
+         }
+
          ir_variable *const tmp =
             new(ctx) ir_variable(type, "conditional_tmp", ir_var_temporary);
          instructions->push_tail(tmp);

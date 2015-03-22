@@ -40,7 +40,7 @@
  * \param andMask bitwise-AND of clipMask values
  * \return proj_vec pointer
  */
-static GLvector4f * _XFORMAPI TAG(cliptest_points4)( GLvector4f *clip_vec,
+static GLvector4f * TAG(cliptest_points4)( GLvector4f *clip_vec,
                                                      GLvector4f *proj_vec,
                                                      GLubyte clipMask[],
                                                      GLubyte *orMask,
@@ -120,7 +120,7 @@ static GLvector4f * _XFORMAPI TAG(cliptest_points4)( GLvector4f *clip_vec,
  * \param andMask bitwise-AND of clipMask values
  * \return clip_vec pointer
  */
-static GLvector4f * _XFORMAPI TAG(cliptest_np_points4)( GLvector4f *clip_vec,
+static GLvector4f * TAG(cliptest_np_points4)( GLvector4f *clip_vec,
 							GLvector4f *proj_vec,
 							GLubyte clipMask[],
 							GLubyte *orMask,
@@ -177,7 +177,7 @@ static GLvector4f * _XFORMAPI TAG(cliptest_np_points4)( GLvector4f *clip_vec,
 }
 
 
-static GLvector4f * _XFORMAPI TAG(cliptest_points3)( GLvector4f *clip_vec,
+static GLvector4f * TAG(cliptest_points3)( GLvector4f *clip_vec,
                                                      GLvector4f *proj_vec,
                                                      GLubyte clipMask[],
                                                      GLubyte *orMask,
@@ -213,7 +213,7 @@ static GLvector4f * _XFORMAPI TAG(cliptest_points3)( GLvector4f *clip_vec,
 }
 
 
-static GLvector4f * _XFORMAPI TAG(cliptest_points2)( GLvector4f *clip_vec,
+static GLvector4f * TAG(cliptest_points2)( GLvector4f *clip_vec,
                                                      GLvector4f *proj_vec,
                                                      GLubyte clipMask[],
                                                      GLubyte *orMask,

@@ -55,13 +55,7 @@ struct st_texture_image
 {
    struct gl_texture_image base;
 
-   /** Used to store texture data that doesn't fit in the parent
-    * object's mipmap buffer.
-    */
-   GLubyte *TexData;
-
    /* If stImage->pt != NULL, image data is stored here.
-    * Else if stImage->TexData != NULL, image is stored there.
     * Else there is no image data.
     */
    struct pipe_resource *pt;
@@ -229,16 +223,6 @@ st_texture_image_unmap(struct st_context *st,
  */
 extern const GLuint *
 st_texture_depth_offsets(struct pipe_resource *pt, GLuint level);
-
-
-/* Upload an image into a texture
- */
-extern void
-st_texture_image_data(struct st_context *st,
-                      struct pipe_resource *dst,
-                      GLuint face, GLuint level, void *src,
-                      GLuint src_row_pitch, GLuint src_image_pitch);
-
 
 /* Copy an image between two textures
  */

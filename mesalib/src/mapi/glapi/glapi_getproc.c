@@ -30,11 +30,15 @@
  */
 
 
+#include <assert.h>
+#include <string.h>
+#include <stdlib.h>
 #include "glapi/glapi_priv.h"
 #include "glapi/glapitable.h"
 
 
 #define FIRST_DYNAMIC_OFFSET (sizeof(struct _glapi_table) / sizeof(void *))
+
 
 
 /**********************************************************************

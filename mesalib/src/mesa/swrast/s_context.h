@@ -58,10 +58,10 @@ typedef void (*texture_sample_func)(struct gl_context *ctx,
                                     GLuint n, const GLfloat texcoords[][4],
                                     const GLfloat lambda[], GLfloat rgba[][4]);
 
-typedef void (_ASMAPIP blend_func)( struct gl_context *ctx, GLuint n,
-                                    const GLubyte mask[],
-                                    GLvoid *src, const GLvoid *dst,
-                                    GLenum chanType);
+typedef void (*blend_func)(struct gl_context *ctx, GLuint n,
+                           const GLubyte mask[],
+                           GLvoid *src, const GLvoid *dst,
+                           GLenum chanType);
 
 typedef void (*swrast_point_func)( struct gl_context *ctx, const SWvertex *);
 

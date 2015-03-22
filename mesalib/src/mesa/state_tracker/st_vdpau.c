@@ -66,7 +66,7 @@ st_vdpau_map_surface(struct gl_context *ctx, GLenum target, GLenum access,
    struct pipe_sampler_view templ, **sampler_view;
    mesa_format texFormat;
 
-   getProcAddr = ctx->vdpGetProcAddress;
+   getProcAddr = (void *)ctx->vdpGetProcAddress;
    if (output) {
       VdpOutputSurfaceGallium *f;
       

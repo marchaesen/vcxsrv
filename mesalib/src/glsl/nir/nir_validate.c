@@ -931,17 +931,19 @@ nir_validate_shader(nir_shader *shader)
 
    state.shader = shader;
 
-   struct hash_entry *entry;
-   hash_table_foreach(shader->uniforms, entry) {
-      validate_var_decl((nir_variable *) entry->data, true, &state);
+   exec_list_validate(&shader->uniforms);
+   foreach_list_typed(nir_variable, var, node, &shader->uniforms) {
+      validate_var_decl(var, true, &state);
    }
 
-   hash_table_foreach(shader->inputs, entry) {
-     validate_var_decl((nir_variable *) entry->data, true, &state);
+   exec_list_validate(&shader->inputs);
+   foreach_list_typed(nir_variable, var, node, &shader->inputs) {
+     validate_var_decl(var, true, &state);
    }
 
-   hash_table_foreach(shader->outputs, entry) {
-      validate_var_decl((nir_variable *) entry->data, true, &state);
+   exec_list_validate(&shader->outputs);
+   foreach_list_typed(nir_variable, var, node, &shader->outputs) {
+     validate_var_decl(var, true, &state);
    }
 
    exec_list_validate(&shader->globals);

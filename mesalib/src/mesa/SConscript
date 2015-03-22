@@ -39,18 +39,13 @@ else:
 # parse Makefile.sources
 source_lists = env.ParseSourceList('Makefile.sources')
 
-env.Append(YACCFLAGS = '-d -p "_mesa_program_"')
-program_lex = env.CFile('program/lex.yy.c', 'program/program_lexer.l')
-program_parse = env.CFile('program/program_parse.tab.c',
-                          'program/program_parse.y')
-program_sources = source_lists['PROGRAM_FILES'] + [
-    program_lex,
-    program_parse[0],
-]
+env.Append(YACCFLAGS = ['-d', '-p', '_mesa_program_'])
+env.CFile('program/lex.yy.c', 'program/program_lexer.l')
+env.CFile('program/program_parse.tab.c', 'program/program_parse.y')
 
 mesa_sources = (
     source_lists['MESA_FILES'] +
-    program_sources +
+    source_lists['PROGRAM_FILES'] +
     source_lists['STATETRACKER_FILES']
 )
 
@@ -135,7 +130,9 @@ def write_git_sha1_h_file(filename):
         (commit, foo) = subprocess.Popen(args, stdout=subprocess.PIPE).communicate()
     except:
         # git log command didn't work
-        if not os.path.exists(filename):
+        dirname = os.path.dirname(filename)
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
             # create an empty file if none already exists
             f = open(filename, "w")
             f.close()

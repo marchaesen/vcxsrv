@@ -76,15 +76,12 @@ type_size(const struct glsl_type *type)
    return 0;
 }
 
-static void
-assign_var_locations(struct hash_table *ht, unsigned *size)
+void
+nir_assign_var_locations_scalar(struct exec_list *var_list, unsigned *size)
 {
    unsigned location = 0;
 
-   struct hash_entry *entry;
-   hash_table_foreach(ht, entry) {
-      nir_variable *var = (nir_variable *) entry->data;
-
+   foreach_list_typed(nir_variable, var, node, var_list) {
       /*
        * UBO's have their own address spaces, so don't count them towards the
        * number of global uniforms
@@ -99,14 +96,6 @@ assign_var_locations(struct hash_table *ht, unsigned *size)
    *size = location;
 }
 
-static void
-assign_var_locations_shader(nir_shader *shader)
-{
-   assign_var_locations(shader->inputs, &shader->num_inputs);
-   assign_var_locations(shader->outputs, &shader->num_outputs);
-   assign_var_locations(shader->uniforms, &shader->num_uniforms);
-}
-
 static bool
 deref_has_indirect(nir_deref_var *deref)
 {
@@ -119,6 +108,77 @@ deref_has_indirect(nir_deref_var *deref)
    }
 
    return false;
+}
+
+static bool
+mark_indirect_uses_block(nir_block *block, void *void_state)
+{
+   struct set *indirect_set = void_state;
+
+   nir_foreach_instr(block, instr) {
+      if (instr->type != nir_instr_type_intrinsic)
+         continue;
+
+      nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+
+      for (unsigned i = 0;
+           i < nir_intrinsic_infos[intrin->intrinsic].num_variables; i++) {
+         if (deref_has_indirect(intrin->variables[i]))
+            _mesa_set_add(indirect_set, intrin->variables[i]->var);
+      }
+   }
+
+   return true;
+}
+
+/* Identical to nir_assign_var_locations_packed except that it assigns
+ * locations to the variables that are used 100% directly first and then
+ * assigns locations to variables that are used indirectly.
+ */
+void
+nir_assign_var_locations_scalar_direct_first(nir_shader *shader,
+                                             struct exec_list *var_list,
+                                             unsigned *direct_size,
+                                             unsigned *size)
+{
+   struct set *indirect_set = _mesa_set_create(NULL, _mesa_hash_pointer,
+                                               _mesa_key_pointer_equal);
+
+   nir_foreach_overload(shader, overload) {
+      if (overload->impl)
+         nir_foreach_block(overload->impl, mark_indirect_uses_block,
+                           indirect_set);
+   }
+
+   unsigned location = 0;
+
+   foreach_list_typed(nir_variable, var, node, var_list) {
+      if (var->data.mode == nir_var_uniform && var->interface_type != NULL)
+         continue;
+
+      if (_mesa_set_search(indirect_set, var))
+         continue;
+
+      var->data.driver_location = location;
+      location += type_size(var->type);
+   }
+
+   *direct_size = location;
+
+   foreach_list_typed(nir_variable, var, node, var_list) {
+      if (var->data.mode == nir_var_uniform && var->interface_type != NULL)
+         continue;
+
+      if (!_mesa_set_search(indirect_set, var))
+         continue;
+
+      var->data.driver_location = location;
+      location += type_size(var->type);
+   }
+
+   *size = location;
+
+   _mesa_set_destroy(indirect_set, NULL);
 }
 
 static unsigned
@@ -307,8 +367,6 @@ nir_lower_io_impl(nir_function_impl *impl)
 void
 nir_lower_io(nir_shader *shader)
 {
-   assign_var_locations_shader(shader);
-
    nir_foreach_overload(shader, overload) {
       if (overload->impl)
          nir_lower_io_impl(overload->impl);

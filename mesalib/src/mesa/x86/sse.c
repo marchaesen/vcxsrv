@@ -46,35 +46,35 @@ DECLARE_XFORM_GROUP( sse, 3 )
 
 #if 1
 /* Some functions are not written in SSE-assembly, because the fpu ones are faster */
-extern void _ASMAPI _mesa_sse_transform_normals_no_rot( NORM_ARGS );
-extern void _ASMAPI _mesa_sse_transform_rescale_normals( NORM_ARGS );
-extern void _ASMAPI _mesa_sse_transform_rescale_normals_no_rot( NORM_ARGS );
+extern void _mesa_sse_transform_normals_no_rot( NORM_ARGS );
+extern void _mesa_sse_transform_rescale_normals( NORM_ARGS );
+extern void _mesa_sse_transform_rescale_normals_no_rot( NORM_ARGS );
 
-extern void _ASMAPI _mesa_sse_transform_points4_general( XFORM_ARGS );
-extern void _ASMAPI _mesa_sse_transform_points4_3d( XFORM_ARGS );
+extern void _mesa_sse_transform_points4_general( XFORM_ARGS );
+extern void _mesa_sse_transform_points4_3d( XFORM_ARGS );
 /* XXX this function segfaults, see below */
-extern void _ASMAPI _mesa_sse_transform_points4_identity( XFORM_ARGS );
+extern void _mesa_sse_transform_points4_identity( XFORM_ARGS );
 /* XXX this one works, see below */
-extern void _ASMAPI _mesa_x86_transform_points4_identity( XFORM_ARGS );
+extern void _mesa_x86_transform_points4_identity( XFORM_ARGS );
 #else
 DECLARE_NORM_GROUP( sse )
 #endif
 
 
-extern void _ASMAPI
+extern void
 _mesa_v16_sse_general_xform( GLfloat *first_vert,
 			     const GLfloat *m,
 			     const GLfloat *src,
 			     GLuint src_stride,
 			     GLuint count );
 
-extern void _ASMAPI
+extern void
 _mesa_sse_project_vertices( GLfloat *first,
 			    GLfloat *last,
 			    const GLfloat *m,
 			    GLuint stride );
 
-extern void _ASMAPI
+extern void
 _mesa_sse_project_clipped_vertices( GLfloat *first,
 				    GLfloat *last,
 				    const GLfloat *m,

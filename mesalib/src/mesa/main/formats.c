@@ -388,7 +388,7 @@ array_formats_equal(const void *a, const void *b)
 }
 
 static void
-format_array_format_table_init()
+format_array_format_table_init(void)
 {
    const struct gl_format_info *info;
    mesa_array_format array_format;

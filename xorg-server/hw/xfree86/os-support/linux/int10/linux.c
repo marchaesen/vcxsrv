@@ -75,7 +75,7 @@ readLegacy(struct pci_device *dev, unsigned char *buf, int base, int len)
 {
     void *map;
 
-    if (!pci_device_map_legacy(dev, base, len, 0, &map))
+    if (pci_device_map_legacy(dev, base, len, 0, &map))
         return FALSE;
 
     memcpy(buf, map, len);

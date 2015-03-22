@@ -45,6 +45,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include "c99_math.h"
+#include "util/rounding.h" /* for _mesa_roundeven */
 #include "imports.h"
 #include "context.h"
 #include "mtypes.h"
@@ -307,26 +308,6 @@ _mesa_bitcount_64(uint64_t n)
 #endif
 
 
-/* Using C99 rounding functions for roundToEven() implementation is
- * difficult, because round(), rint, and nearbyint() are affected by
- * fesetenv(), which the application may have done for its own
- * purposes.  Mesa's IROUND macro is close to what we want, but it
- * rounds away from 0 on n + 0.5.
- */
-int
-_mesa_round_to_even(float val)
-{
-   int rounded = IROUND(val);
-
-   if (val - floor(val) == 0.5) {
-      if (rounded % 2 != 0)
-         rounded += val > 0 ? -1 : 1;
-   }
-
-   return rounded;
-}
-
-
 /**
  * Convert a 4-byte float to a 2-byte half float.
  *
@@ -388,7 +369,7 @@ _mesa_float_to_half(float val)
           * or normal.
           */
          e = 0;
-         m = _mesa_round_to_even((1 << 24) * fabsf(fi.f));
+         m = (int) _mesa_roundevenf((1 << 24) * fabsf(fi.f));
       }
       else if (new_exp > 15) {
          /* map this value to infinity */
@@ -402,7 +383,7 @@ _mesa_float_to_half(float val)
           * either normal or infinite.
           */
          e = new_exp + 15;
-         m = _mesa_round_to_even(flt_m / (float) (1 << 13));
+         m = (int) _mesa_roundevenf(flt_m / (float) (1 << 13));
       }
    }
 
@@ -481,24 +462,6 @@ _mesa_half_to_float(GLhalfARB val)
 /** \name String */
 /*@{*/
 
-/**
- * Implemented using malloc() and strcpy.
- * Note that NULL is handled accordingly.
- */
-char *
-_mesa_strdup( const char *s )
-{
-   if (s) {
-      size_t l = strlen(s);
-      char *s2 = malloc(l + 1);
-      if (s2)
-         strcpy(s2, s);
-      return s2;
-   }
-   else {
-      return NULL;
-   }
-}
 
 /** Compute simple checksum/hash for a string */
 unsigned int

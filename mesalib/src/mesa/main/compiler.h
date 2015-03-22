@@ -57,29 +57,6 @@ extern "C" {
 # elif !defined(__sparc__) && defined(__sparc)
 #  define __sparc__
 # endif
-# if !defined(__volatile)
-#  define __volatile volatile
-# endif
-#endif
-
-
-/**
- * Disable assorted warnings
- */
-#if defined(_WIN32) && !defined(__CYGWIN__)
-#  if !defined(__GNUC__) /* mingw environment */
-#    pragma warning( disable : 4068 ) /* unknown pragma */
-#    pragma warning( disable : 4710 ) /* function 'foo' not inlined */
-#    pragma warning( disable : 4711 ) /* function 'foo' selected for automatic inline expansion */
-#    pragma warning( disable : 4127 ) /* conditional expression is constant */
-#    if defined(MESA_MINWARN)
-#      pragma warning( disable : 4244 ) /* '=' : conversion from 'const double ' to 'float ', possible loss of data */
-#      pragma warning( disable : 4018 ) /* '<' : signed/unsigned mismatch */
-#      pragma warning( disable : 4305 ) /* '=' : truncation from 'const double ' to 'float ' */
-#      pragma warning( disable : 4550 ) /* 'function' undefined; assuming extern returning int */
-#      pragma warning( disable : 4761 ) /* integral size mismatch in argument; conversion supplied */
-#    endif
-#  endif
 #endif
 
 
@@ -101,14 +78,6 @@ extern "C" {
 #elif defined(__APPLE__)
 #include <CoreFoundation/CFByteOrder.h>
 #define CPU_TO_LE32( x )	CFSwapInt32HostToLittle( x )
-#elif (defined(_AIX))
-static inline GLuint CPU_TO_LE32(GLuint x)
-{
-   return (((x & 0x000000ff) << 24) |
-           ((x & 0x0000ff00) <<  8) |
-           ((x & 0x00ff0000) >>  8) |
-           ((x & 0xff000000) >> 24));
-}
 #elif defined(__OpenBSD__)
 #include <sys/types.h>
 #define CPU_TO_LE32( x )	htole32( x )
@@ -124,34 +93,6 @@ static inline GLuint CPU_TO_LE32(GLuint x)
 #define LE32_TO_CPU( x )	CPU_TO_LE32( x )
 
 
-
-/**
- * Create a macro so that asm functions can be linked into compilers other
- * than GNU C
- */
-#ifndef _ASMAPI
-#if defined(_WIN32)
-#define _ASMAPI __cdecl
-#else
-#define _ASMAPI
-#endif
-#ifdef	PTR_DECL_IN_FRONT
-#define	_ASMAPIP * _ASMAPI
-#else
-#define	_ASMAPIP _ASMAPI *
-#endif
-#endif
-
-
-/**
- * LONGSTRING macro
- * gcc -pedantic warns about long string literals, LONGSTRING silences that.
- */
-#if !defined(__GNUC__)
-# define LONGSTRING
-#else
-# define LONGSTRING __extension__
-#endif
 
 #define IEEE_ONE 0x3f800000
 

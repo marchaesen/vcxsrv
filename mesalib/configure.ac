@@ -46,6 +46,13 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_SYSTEM
 AM_INIT_AUTOMAKE([foreign tar-ustar dist-xz])
 
+dnl We only support native Windows builds (MinGW/MSVC) through SCons.
+case "$host_os" in
+mingw*)
+    AC_MSG_ERROR([MinGW build not supported through autoconf/automake, use SCons instead])
+    ;;
+esac
+
 # Support silent build rules, requires at least automake-1.11. Disable
 # by either passing --disable-silent-rules to configure or passing V=1
 # to make
@@ -61,7 +68,7 @@ AC_SUBST([OSMESA_VERSION])
 dnl Versions for external dependencies
 LIBDRM_REQUIRED=2.4.38
 LIBDRM_RADEON_REQUIRED=2.4.56
-LIBDRM_INTEL_REQUIRED=2.4.52
+LIBDRM_INTEL_REQUIRED=2.4.60
 LIBDRM_NVVIEUX_REQUIRED=2.4.33
 LIBDRM_NOUVEAU_REQUIRED="2.4.33 libdrm >= 2.4.41"
 LIBDRM_FREEDRENO_REQUIRED=2.4.57
@@ -79,6 +86,7 @@ XCBDRI2_REQUIRED=1.8
 XCBGLX_REQUIRED=1.8.1
 XSHMFENCE_REQUIRED=1.1
 XVMC_REQUIRED=1.0.6
+PYTHON_MAKO_REQUIRED=0.3.4
 
 dnl Check for progs
 AC_PROG_CPP
@@ -114,7 +122,12 @@ if test "x$INDENT" != "xcat"; then
     fi
 fi
 
-AX_CHECK_PYTHON_MAKO_MODULE(0.3.4)
+AX_CHECK_PYTHON_MAKO_MODULE($PYTHON_MAKO_REQUIRED)
+if test -n "$PYTHON2" -a "x$acv_mako_found" = "xyes"; then
+    AC_MSG_RESULT(yes)
+else
+    AC_MSG_ERROR([Python mako module v$PYTHON_MAKO_REQUIRED or higher not found])
+fi
 
 AC_PROG_INSTALL
 
@@ -189,6 +202,7 @@ AX_GCC_FUNC_ATTRIBUTE([flatten])
 AX_GCC_FUNC_ATTRIBUTE([format])
 AX_GCC_FUNC_ATTRIBUTE([malloc])
 AX_GCC_FUNC_ATTRIBUTE([packed])
+AX_GCC_FUNC_ATTRIBUTE([unused])
 
 AM_CONDITIONAL([GEN_ASM_OFFSETS], test "x$GEN_ASM_OFFSETS" = xyes)
 
@@ -271,8 +285,20 @@ if test "x$GCC" = xyes; then
     # - non-Linux/Posix OpenGL portions needs to build on MSVC 2013 (which
     #   supports most of C99)
     # - the rest has no compiler compiler restrictions
-    MSVC2013_COMPAT_CFLAGS="-Werror=vla -Werror=pointer-arith"
-    MSVC2013_COMPAT_CXXFLAGS="-Werror=vla -Werror=pointer-arith"
+    MSVC2013_COMPAT_CFLAGS="-Werror=pointer-arith"
+    MSVC2013_COMPAT_CXXFLAGS="-Werror=pointer-arith"
+
+    # Enable -Werror=vla if compiler supports it
+    save_CFLAGS="$CFLAGS"
+    AC_MSG_CHECKING([whether $CC supports -Werror=vla])
+    CFLAGS="$CFLAGS -Werror=vla"
+    AC_LINK_IFELSE([AC_LANG_PROGRAM()],
+		   [MSVC2013_COMPAT_CFLAGS="$MSVC2013_COMPAT_CFLAGS -Werror=vla";
+		    MSVC2013_COMPAT_CXXFLAGS="$MSVC2013_COMPAT_CXXFLAGS -Werror=vla";
+		    AC_MSG_RESULT([yes])],
+		    AC_MSG_RESULT([no]));
+    CFLAGS="$save_CFLAGS"
+
     MSVC2008_COMPAT_CFLAGS="$MSVC2013_COMPAT_CFLAGS -Werror=declaration-after-statement"
     MSVC2008_COMPAT_CXXFLAGS="$MSVC2013_COMPAT_CXXFLAGS"
 fi
@@ -632,7 +658,7 @@ AC_CHECK_FUNCS([dladdr])
 LIBS="$save_LIBS"
 
 case "$host_os" in
-darwin*|mingw*)
+darwin*)
     ;;
 *)
     AC_CHECK_FUNCS([clock_gettime], [CLOCK_LIB=],
@@ -646,13 +672,10 @@ dnl See if posix_memalign is available
 AC_CHECK_FUNC([posix_memalign], [DEFINES="$DEFINES -DHAVE_POSIX_MEMALIGN"])
 
 dnl Check for pthreads
-case "$host_os" in
-mingw*)
-    ;;
-*)
-    AX_PTHREAD
-    ;;
-esac
+AX_PTHREAD
+if test "x$ax_pthread_ok" = xno; then
+    AC_MSG_ERROR([Building mesa on this platform requires pthreads])
+fi
 dnl AX_PTHREADS leaves PTHREAD_LIBS empty for gcc and sets PTHREAD_CFLAGS
 dnl to -pthread, which causes problems if we need -lpthread to appear in
 dnl pkgconfig files.
@@ -883,7 +906,7 @@ AM_CONDITIONAL(HAVE_DRI_GLX, test "x$enable_glx" = xyes -a \
 case "$host_os" in
 darwin*)
     dri_platform='apple' ;;
-gnu*|mingw*|cygwin*)
+gnu*|cygwin*)
     dri_platform='none' ;;
 *)
     dri_platform='drm' ;;
@@ -1759,7 +1782,7 @@ for plat in $egl_platforms; do
 			AC_MSG_ERROR([EGL platform drm requires libdrm >= $LIBDRM_REQUIRED])
 		;;
 
-	android|fbdev|gdi|null)
+	android|gdi|null)
 		;;
 
 	*)
@@ -1788,7 +1811,6 @@ fi
 AM_CONDITIONAL(HAVE_EGL_PLATFORM_X11, echo "$egl_platforms" | grep -q 'x11')
 AM_CONDITIONAL(HAVE_EGL_PLATFORM_WAYLAND, echo "$egl_platforms" | grep -q 'wayland')
 AM_CONDITIONAL(HAVE_EGL_PLATFORM_DRM, echo "$egl_platforms" | grep -q 'drm')
-AM_CONDITIONAL(HAVE_EGL_PLATFORM_FBDEV, echo "$egl_platforms" | grep -q 'fbdev')
 AM_CONDITIONAL(HAVE_EGL_PLATFORM_NULL, echo "$egl_platforms" | grep -q 'null')
 
 AM_CONDITIONAL(HAVE_EGL_DRIVER_DRI2, test "x$HAVE_EGL_DRIVER_DRI2" != "x")
@@ -2347,7 +2369,6 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/auxiliary/Makefile
 		src/gallium/auxiliary/pipe-loader/Makefile
 		src/gallium/drivers/freedreno/Makefile
-		src/gallium/drivers/galahad/Makefile
 		src/gallium/drivers/i915/Makefile
 		src/gallium/drivers/ilo/Makefile
 		src/gallium/drivers/llvmpipe/Makefile
@@ -2396,10 +2417,8 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/winsys/radeon/drm/Makefile
 		src/gallium/winsys/svga/drm/Makefile
 		src/gallium/winsys/sw/dri/Makefile
-		src/gallium/winsys/sw/fbdev/Makefile
 		src/gallium/winsys/sw/kms-dri/Makefile
 		src/gallium/winsys/sw/null/Makefile
-		src/gallium/winsys/sw/wayland/Makefile
 		src/gallium/winsys/sw/wrapper/Makefile
 		src/gallium/winsys/sw/xlib/Makefile
 		src/gallium/winsys/vc4/drm/Makefile

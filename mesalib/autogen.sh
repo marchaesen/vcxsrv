@@ -6,8 +6,8 @@ test -z "$srcdir" && srcdir=.
 ORIGDIR=`pwd`
 cd "$srcdir"
 
-autoreconf -v --install || exit 1
-cd $ORIGDIR || exit $?
+autoreconf --force --verbose --install || exit 1
+cd "$ORIGDIR" || exit $?
 
 if test -z "$NOCONFIGURE"; then
     "$srcdir"/configure "$@"

@@ -82,7 +82,7 @@ nir_block_worklist_push_head(nir_block_worklist *w, nir_block *block)
 }
 
 nir_block *
-nir_block_worklist_peek_head(nir_block_worklist *w)
+nir_block_worklist_peek_head(const nir_block_worklist *w)
 {
    assert(w->count > 0);
 
@@ -114,18 +114,18 @@ nir_block_worklist_push_tail(nir_block_worklist *w, nir_block *block)
 
    w->count++;
 
-   unsigned tail = w->start = (w->start + w->count - 1) % w->size;
+   unsigned tail = (w->start + w->count - 1) % w->size;
 
    w->blocks[tail] = block;
    BITSET_SET(w->blocks_present, block->index);
 }
 
 nir_block *
-nir_block_worklist_peek_tail(nir_block_worklist *w)
+nir_block_worklist_peek_tail(const nir_block_worklist *w)
 {
    assert(w->count > 0);
 
-   unsigned tail = w->start = (w->start + w->count - 1) % w->size;
+   unsigned tail = (w->start + w->count - 1) % w->size;
 
    return w->blocks[tail];
 }
@@ -135,7 +135,7 @@ nir_block_worklist_pop_tail(nir_block_worklist *w)
 {
    assert(w->count > 0);
 
-   unsigned tail = w->start = (w->start + w->count - 1) % w->size;
+   unsigned tail = (w->start + w->count - 1) % w->size;
 
    w->count--;
 

@@ -1392,7 +1392,7 @@ InvalidHost(register struct sockaddr *saddr, int len, ClientPtr client)
     }
     for (host = validhosts; host; host = host->next) {
         if (host->family == FamilyServerInterpreted) {
-            if (addr && siAddrMatch(family, addr, len, host, client)) {
+            if (siAddrMatch(family, addr, len, host, client)) {
                 return 0;
             }
         }

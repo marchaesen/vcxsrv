@@ -1049,21 +1049,18 @@ event_set_root_coordinates(DeviceEvent *event, double x, double y)
  *
  * This function is not reentrant. Disable signals before calling.
  *
- * FIXME: flags for relative/abs motion?
- *
  * @param device The device to generate the event for
  * @param type Event type, one of KeyPress or KeyRelease
  * @param keycode Key code of the pressed/released key
- * @param mask Valuator mask for valuators present for this event.
  *
  */
 void
 QueueKeyboardEvents(DeviceIntPtr device, int type,
-                    int keycode, const ValuatorMask *mask)
+                    int keycode)
 {
     int nevents;
 
-    nevents = GetKeyboardEvents(InputEventList, device, type, keycode, mask);
+    nevents = GetKeyboardEvents(InputEventList, device, type, keycode);
     queueEventList(device, InputEventList, nevents);
 }
 
@@ -1078,20 +1075,17 @@ QueueKeyboardEvents(DeviceIntPtr device, int type,
  */
 int
 GetKeyboardEvents(InternalEvent *events, DeviceIntPtr pDev, int type,
-                  int key_code, const ValuatorMask *mask_in)
+                  int key_code)
 {
     int num_events = 0;
     CARD32 ms = 0;
     DeviceEvent *event;
     RawDeviceEvent *raw;
-    ValuatorMask mask;
 
 #if XSERVER_DTRACE
     if (XSERVER_INPUT_EVENT_ENABLED()) {
-        XSERVER_INPUT_EVENT(pDev->id, type, key_code, 0,
-                            mask_in ? mask_in->last_bit + 1 : 0,
-                            mask_in ? mask_in->mask : NULL,
-                            mask_in ? mask_in->valuators : NULL);
+        XSERVER_INPUT_EVENT(pDev->id, type, key_code, 0, 0,
+                            NULL, NULL);
     }
 #endif
 
@@ -1103,11 +1097,6 @@ GetKeyboardEvents(InternalEvent *events, DeviceIntPtr pDev, int type,
         (type != KeyPress && type != KeyRelease) ||
         (key_code < 8 || key_code > 255))
         return 0;
-
-    if (mask_in && valuator_mask_size(mask_in) > 1) {
-        ErrorF("[dix] the server does not handle valuator masks with "
-               "keyboard events. This is a bug. You may fix it.\n");
-    }
 
     num_events = 1;
 
@@ -1130,14 +1119,7 @@ GetKeyboardEvents(InternalEvent *events, DeviceIntPtr pDev, int type,
     events++;
     num_events++;
 
-    valuator_mask_copy(&mask, mask_in);
-
     init_raw(pDev, raw, ms, type, key_code);
-    set_raw_valuators(raw, &mask, raw->valuators.data_raw);
-
-    clipValuators(pDev, &mask);
-
-    set_raw_valuators(raw, &mask, raw->valuators.data);
 
     event = &events->device_event;
     init_device_event(event, pDev, ms);
@@ -1150,18 +1132,6 @@ GetKeyboardEvents(InternalEvent *events, DeviceIntPtr pDev, int type,
     else if (type == KeyRelease) {
         event->type = ET_KeyRelease;
         set_key_up(pDev, key_code, KEY_POSTED);
-    }
-
-    clipValuators(pDev, &mask);
-
-    set_valuators(pDev, event, &mask);
-
-    if (!IsFloating(pDev)) {
-        DeviceIntPtr master = GetMaster(pDev, MASTER_POINTER);
-
-        event_set_root_coordinates(event,
-                                   master->last.valuators[0],
-                                   master->last.valuators[1]);
     }
 
     return num_events;

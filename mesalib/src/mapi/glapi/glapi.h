@@ -80,6 +80,9 @@ extern "C" {
 #endif
 
 typedef void (*_glapi_proc)(void);
+
+typedef void (*_glapi_nop_handler_proc)(const char *name);
+
 struct _glapi_table;
 
 
@@ -157,6 +160,14 @@ _glapi_get_proc_name(unsigned int offset);
 
 _GLAPI_EXPORT struct _glapi_table *
 _glapi_create_table_from_handle(void *handle, const char *symbol_prefix);
+
+
+_GLAPI_EXPORT void
+_glapi_set_nop_handler(_glapi_nop_handler_proc func);
+
+/** Return pointer to new dispatch table filled with no-op functions */
+_GLAPI_EXPORT struct _glapi_table *
+_glapi_new_nop_table(unsigned num_entries);
 
 
 /** Deprecated function */

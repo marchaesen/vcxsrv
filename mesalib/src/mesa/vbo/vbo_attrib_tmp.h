@@ -30,35 +30,30 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 /* ATTR */
-#define ATTR( A, N, T, V0, V1, V2, V3 ) \
-        ATTR_##T((A), (N), (T), (V0), (V1), (V2), (V3))
-
-#define ATTR_GL_UNSIGNED_INT( A, N, T, V0, V1, V2, V3 ) \
-    ATTR_UNION(A, N, T, UINT_AS_UNION(V0), UINT_AS_UNION(V1), \
-        UINT_AS_UNION(V2), UINT_AS_UNION(V3))
-#define ATTR_GL_INT( A, N, T, V0, V1, V2, V3 ) \
-    ATTR_UNION(A, N, T, INT_AS_UNION(V0), INT_AS_UNION(V1), \
+#define ATTRI( A, N, V0, V1, V2, V3 ) \
+    ATTR_UNION(A, N, GL_INT, INT_AS_UNION(V0), INT_AS_UNION(V1), \
         INT_AS_UNION(V2), INT_AS_UNION(V3))
-#define ATTR_GL_FLOAT( A, N, T, V0, V1, V2, V3 ) \
-    ATTR_UNION(A, N, T, FLOAT_AS_UNION(V0), FLOAT_AS_UNION(V1),\
+#define ATTRUI( A, N, V0, V1, V2, V3 ) \
+    ATTR_UNION(A, N, GL_UNSIGNED_INT, UINT_AS_UNION(V0), UINT_AS_UNION(V1), \
+        UINT_AS_UNION(V2), UINT_AS_UNION(V3))
+#define ATTRF( A, N, V0, V1, V2, V3 ) \
+    ATTR_UNION(A, N, GL_FLOAT, FLOAT_AS_UNION(V0), FLOAT_AS_UNION(V1),\
         FLOAT_AS_UNION(V2), FLOAT_AS_UNION(V3))
 
 
 /* float */
-#define ATTR1FV( A, V ) ATTR( A, 1, GL_FLOAT, (V)[0], 0, 0, 1 )
-#define ATTR2FV( A, V ) ATTR( A, 2, GL_FLOAT, (V)[0], (V)[1], 0, 1 )
-#define ATTR3FV( A, V ) ATTR( A, 3, GL_FLOAT, (V)[0], (V)[1], (V)[2], 1 )
-#define ATTR4FV( A, V ) ATTR( A, 4, GL_FLOAT, (V)[0], (V)[1], (V)[2], (V)[3] )
+#define ATTR1FV( A, V ) ATTRF( A, 1, (V)[0], 0, 0, 1 )
+#define ATTR2FV( A, V ) ATTRF( A, 2, (V)[0], (V)[1], 0, 1 )
+#define ATTR3FV( A, V ) ATTRF( A, 3, (V)[0], (V)[1], (V)[2], 1 )
+#define ATTR4FV( A, V ) ATTRF( A, 4, (V)[0], (V)[1], (V)[2], (V)[3] )
 
-#define ATTR1F( A, X )          ATTR( A, 1, GL_FLOAT, X, 0, 0, 1 )
-#define ATTR2F( A, X, Y )       ATTR( A, 2, GL_FLOAT, X, Y, 0, 1 )
-#define ATTR3F( A, X, Y, Z )    ATTR( A, 3, GL_FLOAT, X, Y, Z, 1 )
-#define ATTR4F( A, X, Y, Z, W ) ATTR( A, 4, GL_FLOAT, X, Y, Z, W )
+#define ATTR1F( A, X )          ATTRF( A, 1, X, 0, 0, 1 )
+#define ATTR2F( A, X, Y )       ATTRF( A, 2, X, Y, 0, 1 )
+#define ATTR3F( A, X, Y, Z )    ATTRF( A, 3, X, Y, Z, 1 )
+#define ATTR4F( A, X, Y, Z, W ) ATTRF( A, 4, X, Y, Z, W )
+
 
 /* int */
-#define ATTRI( A, N, X, Y, Z, W) ATTR( A, N, GL_INT, \
-                                       X, Y, Z, W )
-
 #define ATTR2IV( A, V ) ATTRI( A, 2, (V)[0], (V)[1], 0, 1 )
 #define ATTR3IV( A, V ) ATTRI( A, 3, (V)[0], (V)[1], (V)[2], 1 )
 #define ATTR4IV( A, V ) ATTRI( A, 4, (V)[0], (V)[1], (V)[2], (V)[3] )
@@ -70,9 +65,6 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 /* uint */
-#define ATTRUI( A, N, X, Y, Z, W) ATTR( A, N, GL_UNSIGNED_INT, \
-                                        X, Y, Z, W )
-
 #define ATTR2UIV( A, V ) ATTRUI( A, 2, (V)[0], (V)[1], 0, 1 )
 #define ATTR3UIV( A, V ) ATTRUI( A, 3, (V)[0], (V)[1], (V)[2], 1 )
 #define ATTR4UIV( A, V ) ATTRUI( A, 4, (V)[0], (V)[1], (V)[2], (V)[3] )
@@ -82,7 +74,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define ATTR3UI( A, X, Y, Z )    ATTRUI( A, 3, X, Y, Z, 1 )
 #define ATTR4UI( A, X, Y, Z, W ) ATTRUI( A, 4, X, Y, Z, W )
 
-#define MAT_ATTR( A, N, V ) ATTR( A, N, GL_FLOAT, (V)[0], (V)[1], (V)[2], (V)[3] )
+#define MAT_ATTR( A, N, V ) ATTRF( A, N, (V)[0], (V)[1], (V)[2], (V)[3] )
 
 static inline float conv_ui10_to_norm_float(unsigned ui10)
 {
@@ -94,20 +86,20 @@ static inline float conv_ui2_to_norm_float(unsigned ui2)
    return ui2 / 3.0f;
 }
 
-#define ATTRUI10_1( A, UI ) ATTR( A, 1, GL_FLOAT, (UI) & 0x3ff, 0, 0, 1 )
-#define ATTRUI10_2( A, UI ) ATTR( A, 2, GL_FLOAT, (UI) & 0x3ff, ((UI) >> 10) & 0x3ff, 0, 1 )
-#define ATTRUI10_3( A, UI ) ATTR( A, 3, GL_FLOAT, (UI) & 0x3ff, ((UI) >> 10) & 0x3ff, ((UI) >> 20) & 0x3ff, 1 )
-#define ATTRUI10_4( A, UI ) ATTR( A, 4, GL_FLOAT, (UI) & 0x3ff, ((UI) >> 10) & 0x3ff, ((UI) >> 20) & 0x3ff, ((UI) >> 30) & 0x3 )
+#define ATTRUI10_1( A, UI ) ATTRF( A, 1, (UI) & 0x3ff, 0, 0, 1 )
+#define ATTRUI10_2( A, UI ) ATTRF( A, 2, (UI) & 0x3ff, ((UI) >> 10) & 0x3ff, 0, 1 )
+#define ATTRUI10_3( A, UI ) ATTRF( A, 3, (UI) & 0x3ff, ((UI) >> 10) & 0x3ff, ((UI) >> 20) & 0x3ff, 1 )
+#define ATTRUI10_4( A, UI ) ATTRF( A, 4, (UI) & 0x3ff, ((UI) >> 10) & 0x3ff, ((UI) >> 20) & 0x3ff, ((UI) >> 30) & 0x3 )
 
-#define ATTRUI10N_1( A, UI ) ATTR( A, 1, GL_FLOAT, conv_ui10_to_norm_float((UI) & 0x3ff), 0, 0, 1 )
-#define ATTRUI10N_2( A, UI ) ATTR( A, 2, GL_FLOAT, \
+#define ATTRUI10N_1( A, UI ) ATTRF( A, 1, conv_ui10_to_norm_float((UI) & 0x3ff), 0, 0, 1 )
+#define ATTRUI10N_2( A, UI ) ATTRF( A, 2, \
 				   conv_ui10_to_norm_float((UI) & 0x3ff), \
 				   conv_ui10_to_norm_float(((UI) >> 10) & 0x3ff), 0, 1 )
-#define ATTRUI10N_3( A, UI ) ATTR( A, 3, GL_FLOAT, \
+#define ATTRUI10N_3( A, UI ) ATTRF( A, 3, \
 				   conv_ui10_to_norm_float((UI) & 0x3ff), \
 				   conv_ui10_to_norm_float(((UI) >> 10) & 0x3ff), \
 				   conv_ui10_to_norm_float(((UI) >> 20) & 0x3ff), 1 )
-#define ATTRUI10N_4( A, UI ) ATTR( A, 4, GL_FLOAT, \
+#define ATTRUI10N_4( A, UI ) ATTRF( A, 4, \
 				   conv_ui10_to_norm_float((UI) & 0x3ff), \
 				   conv_ui10_to_norm_float(((UI) >> 10) & 0x3ff), \
 				   conv_ui10_to_norm_float(((UI) >> 20) & 0x3ff), \
@@ -180,30 +172,30 @@ static inline float conv_i2_to_norm_float(const struct gl_context *ctx, int i2)
    }
 }
 
-#define ATTRI10_1( A, I10 ) ATTR( A, 1, GL_FLOAT, conv_i10_to_i((I10) & 0x3ff), 0, 0, 1 )
-#define ATTRI10_2( A, I10 ) ATTR( A, 2, GL_FLOAT, \
+#define ATTRI10_1( A, I10 ) ATTRF( A, 1, conv_i10_to_i((I10) & 0x3ff), 0, 0, 1 )
+#define ATTRI10_2( A, I10 ) ATTRF( A, 2, \
 				conv_i10_to_i((I10) & 0x3ff),		\
 				conv_i10_to_i(((I10) >> 10) & 0x3ff), 0, 1 )
-#define ATTRI10_3( A, I10 ) ATTR( A, 3, GL_FLOAT, \
+#define ATTRI10_3( A, I10 ) ATTRF( A, 3, \
 				conv_i10_to_i((I10) & 0x3ff),	    \
 				conv_i10_to_i(((I10) >> 10) & 0x3ff), \
 				conv_i10_to_i(((I10) >> 20) & 0x3ff), 1 )
-#define ATTRI10_4( A, I10 ) ATTR( A, 4, GL_FLOAT, \
+#define ATTRI10_4( A, I10 ) ATTRF( A, 4, \
 				conv_i10_to_i((I10) & 0x3ff),		\
 				conv_i10_to_i(((I10) >> 10) & 0x3ff), \
 				conv_i10_to_i(((I10) >> 20) & 0x3ff), \
 				conv_i2_to_i(((I10) >> 30) & 0x3))
 
 
-#define ATTRI10N_1(ctx, A, I10) ATTR(A, 1, GL_FLOAT, conv_i10_to_norm_float(ctx, (I10) & 0x3ff), 0, 0, 1 )
-#define ATTRI10N_2(ctx, A, I10) ATTR(A, 2, GL_FLOAT, \
+#define ATTRI10N_1(ctx, A, I10) ATTRF(A, 1, conv_i10_to_norm_float(ctx, (I10) & 0x3ff), 0, 0, 1 )
+#define ATTRI10N_2(ctx, A, I10) ATTRF(A, 2, \
 				conv_i10_to_norm_float(ctx, (I10) & 0x3ff),		\
 				conv_i10_to_norm_float(ctx, ((I10) >> 10) & 0x3ff), 0, 1 )
-#define ATTRI10N_3(ctx, A, I10) ATTR(A, 3, GL_FLOAT, \
+#define ATTRI10N_3(ctx, A, I10) ATTRF(A, 3, \
 				conv_i10_to_norm_float(ctx, (I10) & 0x3ff),	    \
 				conv_i10_to_norm_float(ctx, ((I10) >> 10) & 0x3ff), \
 				conv_i10_to_norm_float(ctx, ((I10) >> 20) & 0x3ff), 1 )
-#define ATTRI10N_4(ctx, A, I10) ATTR(A, 4, GL_FLOAT, \
+#define ATTRI10N_4(ctx, A, I10) ATTRF(A, 4, \
 				conv_i10_to_norm_float(ctx, (I10) & 0x3ff),		\
 				conv_i10_to_norm_float(ctx, ((I10) >> 10) & 0x3ff), \
 				conv_i10_to_norm_float(ctx, ((I10) >> 20) & 0x3ff), \

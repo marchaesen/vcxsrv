@@ -201,13 +201,13 @@ void GLAPIENTRY
 _mesa_ScissorIndexed(GLuint index, GLint left, GLint bottom,
                      GLsizei width, GLsizei height)
 {
-   ScissorIndexed(index, left, bottom, width, height, "glScissorIndexd");
+   ScissorIndexed(index, left, bottom, width, height, "glScissorIndexed");
 }
 
 void GLAPIENTRY
 _mesa_ScissorIndexedv(GLuint index, const GLint *v)
 {
-   ScissorIndexed(index, v[0], v[1], v[2], v[3], "glScissorIndexdv");
+   ScissorIndexed(index, v[0], v[1], v[2], v[3], "glScissorIndexedv");
 }
 
 /**

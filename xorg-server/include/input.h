@@ -448,12 +448,11 @@ extern _X_EXPORT void QueuePointerEvents(DeviceIntPtr pDev,
 extern _X_EXPORT int GetKeyboardEvents(InternalEvent *events,
                                        DeviceIntPtr pDev,
                                        int type,
-                                       int key_code, const ValuatorMask *mask);
+                                       int key_code);
 
 extern _X_EXPORT void QueueKeyboardEvents(DeviceIntPtr pDev,
                                           int type,
-                                          int key_code,
-                                          const ValuatorMask *mask);
+                                          int key_code);
 
 extern int GetTouchEvents(InternalEvent *events,
                           DeviceIntPtr pDev,
@@ -505,7 +504,7 @@ extern int AttachDevice(ClientPtr client,
                         DeviceIntPtr slave, DeviceIntPtr master);
 
 extern _X_EXPORT DeviceIntPtr GetPairedDevice(DeviceIntPtr kbd);
-extern DeviceIntPtr GetMaster(DeviceIntPtr dev, int type);
+extern _X_EXPORT DeviceIntPtr GetMaster(DeviceIntPtr dev, int type);
 
 extern _X_EXPORT int AllocDevicePair(ClientPtr client,
                                      const char *name,

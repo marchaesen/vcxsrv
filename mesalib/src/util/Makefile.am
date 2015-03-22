@@ -50,7 +50,9 @@ endif
 
 libmesautil_la_LIBADD = $(SHA1_LIBS)
 
-check_PROGRAMS = u_atomic_test
+roundeven_test_LDADD = -lm
+
+check_PROGRAMS = u_atomic_test roundeven_test
 TESTS = $(check_PROGRAMS)
 
 BUILT_SOURCES = $(MESA_UTIL_GENERATED_FILES)

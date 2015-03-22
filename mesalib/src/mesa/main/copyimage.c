@@ -33,6 +33,12 @@
 #include "texobj.h"
 #include "fbobject.h"
 #include "textureview.h"
+#include "glformats.h"
+
+enum mesa_block_class {
+   BLOCK_CLASS_128_BITS,
+   BLOCK_CLASS_64_BITS
+};
 
 static bool
 prepare_target(struct gl_context *ctx, GLuint name, GLenum *target, int level,
@@ -253,6 +259,124 @@ check_region_bounds(struct gl_context *ctx, struct gl_texture_image *tex_image,
    return true;
 }
 
+static bool
+compressed_format_compatible(struct gl_context *ctx,
+                             GLenum compressedFormat, GLenum otherFormat)
+{
+   enum mesa_block_class compressedClass, otherClass;
+
+   /* Two view-incompatible compressed formats are never compatible. */
+   if (_mesa_is_compressed_format(ctx, otherFormat)) {
+      return false;
+   }
+
+   /*
+    * From ARB_copy_image spec:
+    *    Table 4.X.1 (Compatible internal formats for copying between
+    *                 compressed and uncompressed internal formats)
+    *    ---------------------------------------------------------------------
+    *    | Texel / | Uncompressed      |                                     |
+    *    | Block   | internal format   | Compressed internal format          |
+    *    | size    |                   |                                     |
+    *    ---------------------------------------------------------------------
+    *    | 128-bit | RGBA32UI,         | COMPRESSED_RGBA_S3TC_DXT3_EXT,      |
+    *    |         | RGBA32I,          | COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT,|
+    *    |         | RGBA32F           | COMPRESSED_RGBA_S3TC_DXT5_EXT,      |
+    *    |         |                   | COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT,|
+    *    |         |                   | COMPRESSED_RG_RGTC2,                |
+    *    |         |                   | COMPRESSED_SIGNED_RG_RGTC2,         |
+    *    |         |                   | COMPRESSED_RGBA_BPTC_UNORM,         |
+    *    |         |                   | COMPRESSED_SRGB_ALPHA_BPTC_UNORM,   |
+    *    |         |                   | COMPRESSED_RGB_BPTC_SIGNED_FLOAT,   |
+    *    |         |                   | COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT  |
+    *    ---------------------------------------------------------------------
+    *    | 64-bit  | RGBA16F, RG32F,   | COMPRESSED_RGB_S3TC_DXT1_EXT,       |
+    *    |         | RGBA16UI, RG32UI, | COMPRESSED_SRGB_S3TC_DXT1_EXT,      |
+    *    |         | RGBA16I, RG32I,   | COMPRESSED_RGBA_S3TC_DXT1_EXT,      |
+    *    |         | RGBA16,           | COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT,|
+    *    |         | RGBA16_SNORM      | COMPRESSED_RED_RGTC1,               |
+    *    |         |                   | COMPRESSED_SIGNED_RED_RGTC1         |
+    *    ---------------------------------------------------------------------
+    */
+
+   switch (compressedFormat) {
+      case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+      case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT:
+      case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+      case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+      case GL_COMPRESSED_RG_RGTC2:
+      case GL_COMPRESSED_SIGNED_RG_RGTC2:
+      case GL_COMPRESSED_RGBA_BPTC_UNORM:
+      case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
+      case GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT:
+      case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT:
+         compressedClass = BLOCK_CLASS_128_BITS;
+         break;
+      case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
+      case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+      case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+      case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+      case GL_COMPRESSED_RED_RGTC1:
+      case GL_COMPRESSED_SIGNED_RED_RGTC1:
+         compressedClass = BLOCK_CLASS_64_BITS;
+         break;
+      default:
+         return false;
+   }
+
+   switch (otherFormat) {
+      case GL_RGBA32UI:
+      case GL_RGBA32I:
+      case GL_RGBA32F:
+         otherClass = BLOCK_CLASS_128_BITS;
+         break;
+      case GL_RGBA16F:
+      case GL_RG32F:
+      case GL_RGBA16UI:
+      case GL_RG32UI:
+      case GL_RGBA16I:
+      case GL_RG32I:
+      case GL_RGBA16:
+      case GL_RGBA16_SNORM:
+         otherClass = BLOCK_CLASS_64_BITS;
+         break;
+      default:
+         return false;
+   }
+
+   return compressedClass == otherClass;
+}
+
+static bool
+copy_format_compatible(struct gl_context *ctx,
+                                GLenum srcFormat, GLenum dstFormat)
+{
+   /*
+    * From ARB_copy_image spec:
+    *    For the purposes of CopyImageSubData, two internal formats
+    *    are considered compatible if any of the following conditions are
+    *    met:
+    *    * the formats are the same,
+    *    * the formats are considered compatible according to the
+    *      compatibility rules used for texture views as defined in
+    *      section 3.9.X. In particular, if both internal formats are listed
+    *      in the same entry of Table 3.X.2, they are considered compatible, or
+    *    * one format is compressed and the other is uncompressed and
+    *      Table 4.X.1 lists the two formats in the same row.
+    */
+
+   if (_mesa_texture_view_compatible_format(ctx, srcFormat, dstFormat)) {
+      /* Also checks if formats are equal. */
+      return true;
+   } else if (_mesa_is_compressed_format(ctx, srcFormat)) {
+      return compressed_format_compatible(ctx, srcFormat, dstFormat);
+   } else if (_mesa_is_compressed_format(ctx, dstFormat)) {
+      return compressed_format_compatible(ctx, dstFormat, srcFormat);
+   }
+
+   return false;
+}
+
 void GLAPIENTRY
 _mesa_CopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel,
                        GLint srcX, GLint srcY, GLint srcZ,
@@ -265,7 +389,7 @@ _mesa_CopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel,
    struct gl_texture_object *srcTexObj, *dstTexObj;
    struct gl_texture_image *srcTexImage, *dstTexImage;
    GLuint src_bw, src_bh, dst_bw, dst_bh;
-   int i, srcNewZ, dstNewZ, Bpt;
+   int i, srcNewZ, dstNewZ;
 
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glCopyImageSubData(%u, %s, %d, %d, %d, %d, "
@@ -306,15 +430,6 @@ _mesa_CopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel,
       goto cleanup;
    }
 
-   /* Very simple sanity check.  This is sufficient if one of the textures
-    * is compressed. */
-   Bpt = _mesa_get_format_bytes(srcTexImage->TexFormat);
-   if (_mesa_get_format_bytes(dstTexImage->TexFormat) != Bpt) {
-      _mesa_error(ctx, GL_INVALID_VALUE,
-                  "glCopyImageSubData(internalFormat mismatch)");
-      goto cleanup;
-   }
-
    if (!check_region_bounds(ctx, srcTexImage, srcX, srcY, srcZ,
                             srcWidth, srcHeight, srcDepth, "src"))
       goto cleanup;
@@ -324,17 +439,11 @@ _mesa_CopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel,
                             (srcHeight / src_bh) * dst_bh, srcDepth, "dst"))
       goto cleanup;
 
-   if (_mesa_is_format_compressed(srcTexImage->TexFormat)) {
-      /* XXX: Technically, we should probaby do some more specific checking
-       * here.  However, this should be sufficient for all compressed
-       * formats that mesa supports since it is a direct memory copy.
-       */
-   } else if (_mesa_is_format_compressed(dstTexImage->TexFormat)) {
-   } else if (_mesa_texture_view_compatible_format(ctx,
-                                                   srcTexImage->InternalFormat,
-                                                   dstTexImage->InternalFormat)) {
-   } else {
-      return; /* Error logged by _mesa_texture_view_compatible_format */
+   if (!copy_format_compatible(ctx, srcTexImage->InternalFormat,
+                               dstTexImage->InternalFormat)) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glCopyImageSubData(internalFormat mismatch)");
+      goto cleanup;
    }
 
    for (i = 0; i < srcDepth; ++i) {

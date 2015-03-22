@@ -260,8 +260,8 @@ validate_uniform_parameters(struct gl_context *ctx,
    if (uni->array_elements == 0) {
       if (count > 1) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "%s(count > 1 for non-array, location=%d)",
-                     caller, location);
+                     "%s(count = %u for non-array \"%s\"@%d)",
+                     caller, count, uni->name, location);
          return NULL;
       }
 
@@ -601,6 +601,46 @@ _mesa_propagate_uniforms_to_driver_storage(struct gl_uniform_storage *uni,
    }
 }
 
+
+/**
+ * Return printable string for a given GLSL_TYPE_x
+ */
+static const char *
+glsl_type_name(enum glsl_base_type type)
+{
+   switch (type) {
+   case GLSL_TYPE_UINT:
+      return "uint";
+   case GLSL_TYPE_INT:
+      return "int";
+   case GLSL_TYPE_FLOAT:
+      return "float";
+   case GLSL_TYPE_DOUBLE:
+      return "double";
+   case GLSL_TYPE_BOOL:
+      return "bool";
+   case GLSL_TYPE_SAMPLER:
+      return "sampler";
+   case GLSL_TYPE_IMAGE:
+      return "image";
+   case GLSL_TYPE_ATOMIC_UINT:
+      return "atomic_uint";
+   case GLSL_TYPE_STRUCT:
+      return "struct";
+   case GLSL_TYPE_INTERFACE:
+      return "interface";
+   case GLSL_TYPE_ARRAY:
+      return "array";
+   case GLSL_TYPE_VOID:
+      return "void";
+   case GLSL_TYPE_ERROR:
+      return "error";
+   default:
+      return "other";
+   }
+}
+
+
 /**
  * Called via glUniform*() functions.
  */
@@ -620,10 +660,27 @@ _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
    if (uni == NULL)
       return;
 
+   if (uni->type->is_matrix()) {
+      /* Can't set matrix uniforms (like mat4) with glUniform */
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glUniform%u(uniform \"%s\"@%d is matrix)",
+                  src_components, uni->name, location);
+      return;
+   }
+
    /* Verify that the types are compatible.
     */
    const unsigned components = uni->type->is_sampler()
       ? 1 : uni->type->vector_elements;
+
+   if (components != src_components) {
+      /* glUniformN() must match float/vecN type */
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glUniform%u(\"%s\"@%u has %u components, not %u)",
+                  src_components, uni->name, location,
+                  components, src_components);
+      return;
+   }
 
    bool match;
    switch (uni->type->base_type) {
@@ -639,8 +696,12 @@ _mesa_uniform(struct gl_context *ctx, struct gl_shader_program *shProg,
       break;
    }
 
-   if (uni->type->is_matrix() || components != src_components || !match) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glUniform(type mismatch)");
+   if (!match) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glUniform%u(\"%s\"@%d is %s, not %s)",
+                  src_components, uni->name, location,
+                  glsl_type_name(uni->type->base_type),
+                  glsl_type_name(basicType));
       return;
    }
 

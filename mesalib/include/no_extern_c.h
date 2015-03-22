@@ -1,7 +1,7 @@
-/*
- * Mesa 3-D graphics library
+/**************************************************************************
  *
- * Copyright (C) 1999-2008  Brian Paul   All Rights Reserved.
+ * Copyright 2014 VMware, Inc.
+ * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -20,26 +20,29 @@
  * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
+ *
+ **************************************************************************/
+
+
+/*
+ * Including system's headers inside `extern "C" { ... }` is not safe, as system
+ * headers may have C++ code in them, and C++ code inside extern "C"
+ * leads to syntatically incorrect code.
+ *
+ * This is because putting code inside extern "C" won't make __cplusplus define
+ * go away, that is, the system header being included thinks is free to use C++
+ * as it sees fits.
+ *
+ * Including non-system headers inside extern "C"  is not safe either, because
+ * non-system headers end up including system headers, hence fall in the above
+ * case too.
+ *
+ * Conclusion, includes inside extern "C" is simply not portable.
+ *
+ *
+ * This header helps surface these issues.
  */
 
-
-#ifndef API_EXEC_H
-#define API_EXEC_H
-
 #ifdef __cplusplus
-extern "C" {
-#endif
-
-struct gl_context;
-
-extern void
-_mesa_initialize_exec_table(struct gl_context *ctx);
-
-extern void
-_mesa_initialize_dispatch_tables(struct gl_context *ctx);
-
-#ifdef __cplusplus
-} // extern "C"
-#endif
-
+template<class T> class _IncludeInsideExternCNotPortable;
 #endif

@@ -30,14 +30,22 @@
  * This file defines a special dispatch table which is loaded with no-op
  * functions.
  *
- * When there's no current rendering context, calling a GL function like
- * glBegin() is a no-op.  Apps should never normally do this.  So as a
- * debugging aid, each of the no-op functions will emit a warning to
- * stderr if the MESA_DEBUG or LIBGL_DEBUG env var is set.
+ * Mesa can register a "no-op handler function" which will be called in
+ * the event that a no-op function is called.
+ *
+ * In the past, the dispatch table was loaded with pointers to a single
+ * no-op function.  But that broke on Windows because the GL entrypoints
+ * use __stdcall convention.  __stdcall means the callee cleans up the
+ * stack.  So one no-op function can't properly clean up the stack.  This
+ * would lead to crashes.
+ *
+ * Another benefit of unique no-op functions is we can accurately report
+ * the function's name in an error message.
  */
 
 
-
+#include <stdlib.h>
+#include <string.h>
 #include "glapi/glapi_priv.h"
 
 
@@ -51,25 +59,32 @@ _glapi_set_warning_func(_glapi_proc func)
 {
 }
 
-/*
- * When GLAPIENTRY is __stdcall (i.e. Windows), the stack is popped by the
- * callee making the number/type of arguments significant.
+
+/**
+ * We'll jump though this function pointer whenever a no-op function
+ * is called.
  */
-#if defined(_WIN32) || defined(DEBUG)
+static _glapi_nop_handler_proc nop_handler = NULL;
+
+
+/**
+ * Register the no-op handler call-back function.
+ */
+void
+_glapi_set_nop_handler(_glapi_nop_handler_proc func)
+{
+   nop_handler = func;
+}
+
 
 /**
  * Called by each of the no-op GL entrypoints.
  */
-static int
-Warn(const char *func)
+static void
+nop(const char *func)
 {
-#if defined(DEBUG)
-   if (getenv("MESA_DEBUG") || getenv("LIBGL_DEBUG")) {
-      fprintf(stderr, "GL User Error: gl%s called without a rendering context\n",
-              func);
-   }
-#endif
-   return 0;
+   if (nop_handler)
+      nop_handler(func);
 }
 
 
@@ -79,7 +94,8 @@ Warn(const char *func)
 static GLint
 NoOpUnused(void)
 {
-   return Warn(" function");
+   nop("unused GL entry point");
+   return 0;
 }
 
 /*
@@ -89,31 +105,28 @@ NoOpUnused(void)
 #define KEYWORD1_ALT static
 #define KEYWORD2 GLAPIENTRY
 #define NAME(func)  NoOp##func
-#define DISPATCH(func, args, msg)  Warn(#func);
-#define RETURN_DISPATCH(func, args, msg)  Warn(#func); return 0
+#define DISPATCH(func, args, msg)  nop(#func);
+#define RETURN_DISPATCH(func, args, msg)  nop(#func); return 0
 
 
 /*
  * Defines for the table of no-op entry points.
  */
 #define TABLE_ENTRY(name) (_glapi_proc) NoOp##name
-
-#else
-
-static int
-NoOpGeneric(void)
-{
-   if (getenv("MESA_DEBUG") || getenv("LIBGL_DEBUG")) {
-      fprintf(stderr, "GL User Error: calling GL function without a rendering context\n");
-   }
-   return 0;
-}
-
-#define TABLE_ENTRY(name) (_glapi_proc) NoOpGeneric
-
-#endif
-
 #define DISPATCH_TABLE_NAME __glapi_noop_table
 #define UNUSED_TABLE_NAME __unused_noop_functions
 
 #include "glapi/glapitemp.h"
+
+
+/** Return pointer to new dispatch table filled with no-op functions */
+struct _glapi_table *
+_glapi_new_nop_table(unsigned num_entries)
+{
+   struct _glapi_table *table = malloc(num_entries * sizeof(_glapi_proc));
+   if (table) {
+      memcpy(table, __glapi_noop_table,
+             num_entries * sizeof(_glapi_proc));
+   }
+   return table;
+}

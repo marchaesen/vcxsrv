@@ -54,7 +54,7 @@ DECLARE_XFORM_GROUP( x86, 3 )
 DECLARE_XFORM_GROUP( x86, 4 )
 
 
-extern GLvector4f * _ASMAPI
+extern GLvector4f *
 _mesa_x86_cliptest_points4( GLvector4f *clip_vec,
 			    GLvector4f *proj_vec,
 			    GLubyte clipMask[],
@@ -62,7 +62,7 @@ _mesa_x86_cliptest_points4( GLvector4f *clip_vec,
 			    GLubyte *andMask,
 			    GLboolean viewport_z_clip );
 
-extern GLvector4f * _ASMAPI
+extern GLvector4f *
 _mesa_x86_cliptest_points4_np( GLvector4f *clip_vec,
 			       GLvector4f *proj_vec,
 			       GLubyte clipMask[],
@@ -70,7 +70,7 @@ _mesa_x86_cliptest_points4_np( GLvector4f *clip_vec,
 			       GLubyte *andMask,
 			       GLboolean viewport_z_clip );
 
-extern void _ASMAPI
+extern void
 _mesa_v16_x86_cliptest_points4( GLfloat *first_vert,
 				GLfloat *last_vert,
 				GLubyte *or_mask,
@@ -78,7 +78,7 @@ _mesa_v16_x86_cliptest_points4( GLfloat *first_vert,
 				GLubyte *clip_mask,
 				GLboolean viewport_z_clip );
 
-extern void _ASMAPI
+extern void
 _mesa_v16_x86_general_xform( GLfloat *dest,
 			     const GLfloat *m,
 			     const GLfloat *src,

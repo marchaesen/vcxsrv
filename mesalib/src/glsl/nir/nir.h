@@ -1370,17 +1370,23 @@ typedef struct nir_shader_compiler_options {
    bool lower_fsqrt;
    /** lowers fneg and ineg to fsub and isub. */
    bool lower_negate;
+
+   /**
+    * Does the driver support real 32-bit integers?  (Otherwise, integers
+    * are simulated by floats.)
+    */
+   bool native_integers;
 } nir_shader_compiler_options;
 
 typedef struct nir_shader {
    /** hash table of name -> uniform nir_variable */
-   struct hash_table *uniforms;
+   struct exec_list uniforms;
 
    /** hash table of name -> input nir_variable */
-   struct hash_table *inputs;
+   struct exec_list inputs;
 
    /** hash table of name -> output nir_variable */
-   struct hash_table *outputs;
+   struct exec_list outputs;
 
    /** Set of driver-specific options for the shader.
     *
@@ -1399,10 +1405,6 @@ typedef struct nir_shader {
 
    /** list of global register in the shader */
    struct exec_list registers;
-
-   /** structures used in this shader */
-   unsigned num_user_structures;
-   struct glsl_type **user_structures;
 
    /** next available global register index */
    unsigned reg_alloc;
@@ -1574,6 +1576,13 @@ void nir_lower_var_copies(nir_shader *shader);
 void nir_lower_global_vars_to_local(nir_shader *shader);
 
 void nir_lower_locals_to_regs(nir_shader *shader);
+
+void nir_assign_var_locations_scalar(struct exec_list *var_list,
+                                     unsigned *size);
+void nir_assign_var_locations_scalar_direct_first(nir_shader *shader,
+                                                  struct exec_list *var_list,
+                                                  unsigned *direct_size,
+                                                  unsigned *size);
 
 void nir_lower_io(nir_shader *shader);
 

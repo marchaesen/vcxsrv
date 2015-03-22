@@ -35,6 +35,13 @@ struct deref_node {
 
    bool lower_to_ssa;
 
+   /* Only valid for things that end up in the direct list.
+    * Note that multiple nir_deref_vars may correspond to this node, but they
+    * will all be equivalent, so any is as good as the other.
+    */
+   nir_deref_var *deref;
+   struct exec_node direct_derefs_link;
+
    struct set *loads;
    struct set *stores;
    struct set *copies;
@@ -69,7 +76,7 @@ struct lower_variables_state {
     * wildcards and no indirects, these are precisely the derefs that we
     * can actually consider lowering.
     */
-   struct hash_table *direct_deref_nodes;
+   struct exec_list direct_deref_nodes;
 
    /* Controls whether get_deref_node will add variables to the
     * direct_deref_nodes table.  This is turned on when we are initially
@@ -82,88 +89,6 @@ struct lower_variables_state {
    /* A hash table mapping phi nodes to deref_state data */
    struct hash_table *phi_table;
 };
-
-/* The following two functions implement a hash and equality check for
- * variable dreferences.  When the hash or equality function encounters an
- * array, all indirects are treated as equal and are never equal to a
- * direct dereference or a wildcard.
- */
-static uint32_t
-hash_deref(const void *void_deref)
-{
-   uint32_t hash = _mesa_fnv32_1a_offset_bias;
-
-   const nir_deref_var *deref_var = void_deref;
-   hash = _mesa_fnv32_1a_accumulate(hash, deref_var->var);
-
-   for (const nir_deref *deref = deref_var->deref.child;
-        deref; deref = deref->child) {
-      switch (deref->deref_type) {
-      case nir_deref_type_array: {
-         nir_deref_array *deref_array = nir_deref_as_array(deref);
-
-         hash = _mesa_fnv32_1a_accumulate(hash, deref_array->deref_array_type);
-
-         if (deref_array->deref_array_type == nir_deref_array_type_direct)
-            hash = _mesa_fnv32_1a_accumulate(hash, deref_array->base_offset);
-         break;
-      }
-      case nir_deref_type_struct: {
-         nir_deref_struct *deref_struct = nir_deref_as_struct(deref);
-         hash = _mesa_fnv32_1a_accumulate(hash, deref_struct->index);
-         break;
-      }
-      default:
-         assert("Invalid deref chain");
-      }
-   }
-
-   return hash;
-}
-
-static bool
-derefs_equal(const void *void_a, const void *void_b)
-{
-   const nir_deref_var *a_var = void_a;
-   const nir_deref_var *b_var = void_b;
-
-   if (a_var->var != b_var->var)
-      return false;
-
-   for (const nir_deref *a = a_var->deref.child, *b = b_var->deref.child;
-        a != NULL; a = a->child, b = b->child) {
-      if (a->deref_type != b->deref_type)
-         return false;
-
-      switch (a->deref_type) {
-      case nir_deref_type_array: {
-         nir_deref_array *a_arr = nir_deref_as_array(a);
-         nir_deref_array *b_arr = nir_deref_as_array(b);
-
-         if (a_arr->deref_array_type != b_arr->deref_array_type)
-            return false;
-
-         if (a_arr->deref_array_type == nir_deref_array_type_direct &&
-             a_arr->base_offset != b_arr->base_offset)
-            return false;
-         break;
-      }
-      case nir_deref_type_struct:
-         if (nir_deref_as_struct(a)->index != nir_deref_as_struct(b)->index)
-            return false;
-         break;
-      default:
-         assert("Invalid deref chain");
-         return false;
-      }
-
-      assert((a->child == NULL) == (b->child == NULL));
-      if((a->child == NULL) != (b->child == NULL))
-         return false;
-   }
-
-   return true;
-}
 
 static int
 type_get_length(const struct glsl_type *type)
@@ -195,6 +120,8 @@ deref_node_create(struct deref_node *parent,
    struct deref_node *node = rzalloc_size(mem_ctx, size);
    node->type = type;
    node->parent = parent;
+   node->deref = NULL;
+   exec_node_init(&node->direct_derefs_link);
 
    return node;
 }
@@ -297,8 +224,14 @@ get_deref_node(nir_deref_var *deref, struct lower_variables_state *state)
 
    assert(node);
 
-   if (is_direct && state->add_to_direct_deref_nodes)
-      _mesa_hash_table_insert(state->direct_deref_nodes, deref, node);
+   /* Only insert if it isn't already in the list. */
+   if (is_direct && state->add_to_direct_deref_nodes &&
+       node->direct_derefs_link.next == NULL) {
+      node->deref = deref;
+      assert(deref->var != NULL);
+      exec_list_push_tail(&state->direct_deref_nodes,
+                          &node->direct_derefs_link);
+   }
 
    return node;
 }
@@ -917,10 +850,8 @@ insert_phi_nodes(struct lower_variables_state *state)
    unsigned w_start, w_end;
    unsigned iter_count = 0;
 
-   struct hash_entry *deref_entry;
-   hash_table_foreach(state->direct_deref_nodes, deref_entry) {
-      struct deref_node *node = deref_entry->data;
-
+   foreach_list_typed(struct deref_node, node, direct_derefs_link,
+                      &state->direct_deref_nodes) {
       if (node->stores == NULL)
          continue;
 
@@ -1014,8 +945,7 @@ nir_lower_vars_to_ssa_impl(nir_function_impl *impl)
    state.deref_var_nodes = _mesa_hash_table_create(state.dead_ctx,
                                                    _mesa_hash_pointer,
                                                    _mesa_key_pointer_equal);
-   state.direct_deref_nodes = _mesa_hash_table_create(state.dead_ctx,
-                                                      hash_deref, derefs_equal);
+   exec_list_make_empty(&state.direct_deref_nodes);
    state.phi_table = _mesa_hash_table_create(state.dead_ctx,
                                              _mesa_hash_pointer,
                                              _mesa_key_pointer_equal);
@@ -1035,18 +965,17 @@ nir_lower_vars_to_ssa_impl(nir_function_impl *impl)
    /* We're about to iterate through direct_deref_nodes.  Don't modify it. */
    state.add_to_direct_deref_nodes = false;
 
-   struct hash_entry *entry;
-   hash_table_foreach(state.direct_deref_nodes, entry) {
-      nir_deref_var *deref = (void *)entry->key;
-      struct deref_node *node = entry->data;
+   foreach_list_typed_safe(struct deref_node, node, direct_derefs_link,
+                           &state.direct_deref_nodes) {
+      nir_deref_var *deref = node->deref;
 
       if (deref->var->data.mode != nir_var_local) {
-         _mesa_hash_table_remove(state.direct_deref_nodes, entry);
+         exec_node_remove(&node->direct_derefs_link);
          continue;
       }
 
       if (deref_may_be_aliased(deref, &state)) {
-         _mesa_hash_table_remove(state.direct_deref_nodes, entry);
+         exec_node_remove(&node->direct_derefs_link);
          continue;
       }
 

@@ -74,13 +74,13 @@ nir_block_worklist_is_empty(const nir_block_worklist *w)
 
 void nir_block_worklist_push_head(nir_block_worklist *w, nir_block *block);
 
-nir_block *nir_block_worklist_peek_head(nir_block_worklist *w);
+nir_block *nir_block_worklist_peek_head(const nir_block_worklist *w);
 
 nir_block *nir_block_worklist_pop_head(nir_block_worklist *w);
 
 void nir_block_worklist_push_tail(nir_block_worklist *w, nir_block *block);
 
-nir_block *nir_block_worklist_peek_tail(nir_block_worklist *w);
+nir_block *nir_block_worklist_peek_tail(const nir_block_worklist *w);
 
 nir_block *nir_block_worklist_pop_tail(nir_block_worklist *w);
 

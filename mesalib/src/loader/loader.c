@@ -64,6 +64,7 @@
  *    Rob Clark <robclark@freedesktop.org>
  */
 
+#include <sys/stat.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -80,7 +81,6 @@
 #endif
 #endif
 #ifdef HAVE_SYSFS
-#include <sys/stat.h>
 #include <sys/types.h>
 #endif
 #include "loader.h"

@@ -409,7 +409,7 @@ _swrast_validate_point( struct gl_context *ctx, const SWvertex *v0 )
  * Called via swrast->BlendFunc.  Examine GL state to choose a blending
  * function, then call it.
  */
-static void _ASMAPI
+static void
 _swrast_validate_blend_func(struct gl_context *ctx, GLuint n, const GLubyte mask[],
                             GLvoid *src, const GLvoid *dst,
                             GLenum chanType )

@@ -421,7 +421,7 @@ ProcXTestFakeInput(ClientPtr client)
     case KeyPress:
     case KeyRelease:
         nevents =
-            GetKeyboardEvents(xtest_evlist, dev, type, ev->u.u.detail, NULL);
+            GetKeyboardEvents(xtest_evlist, dev, type, ev->u.u.detail);
         break;
     }
 

@@ -35,7 +35,7 @@
 
 #  define alloca _alloca
 
-#elif defined(__sun)
+#elif defined(__sun) || defined(__CYGWIN__)
 
 #  include <alloca.h>
 

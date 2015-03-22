@@ -693,15 +693,16 @@ struct gl_colorbuffer_attrib
     * \name Logic op
     */
    /*@{*/
-   GLenum LogicOp;			/**< Logic operator */
    GLboolean IndexLogicOpEnabled;	/**< Color index logic op enabled flag */
    GLboolean ColorLogicOpEnabled;	/**< RGBA logic op enabled flag */
+   GLenum LogicOp;			/**< Logic operator */
+
    /*@}*/
 
    GLboolean DitherFlag;		/**< Dither enable flag */
 
-   GLenum ClampFragmentColor; /**< GL_TRUE, GL_FALSE or GL_FIXED_ONLY_ARB */
    GLboolean _ClampFragmentColor; /** < with GL_FIXED_ONLY_ARB resolved */
+   GLenum ClampFragmentColor; /**< GL_TRUE, GL_FALSE or GL_FIXED_ONLY_ARB */
    GLenum ClampReadColor;     /**< GL_TRUE, GL_FALSE or GL_FIXED_ONLY_ARB */
 
    GLboolean sRGBEnabled;    /**< Framebuffer sRGB blending/updating requested */
@@ -799,6 +800,7 @@ struct gl_eval_attrib
 struct gl_fog_attrib
 {
    GLboolean Enabled;		/**< Fog enabled flag */
+   GLboolean ColorSumEnabled;
    GLfloat ColorUnclamped[4];            /**< Fog color */
    GLfloat Color[4];		/**< Fog color */
    GLfloat Density;		/**< Density >= 0.0 */
@@ -806,7 +808,6 @@ struct gl_fog_attrib
    GLfloat End;			/**< End distance in eye coords */
    GLfloat Index;		/**< Fog index */
    GLenum Mode;			/**< Fog mode */
-   GLboolean ColorSumEnabled;
    GLenum FogCoordinateSource;  /**< GL_EXT_fog_coord */
    GLfloat _Scale;		/**< (End == Start) ? 1.0 : 1.0 / (End - Start) */
    GLenum FogDistanceMode;     /**< GL_NV_fog_distance */
@@ -846,16 +847,17 @@ struct gl_light_attrib
    struct gl_material Material;
 
    GLboolean Enabled;			/**< Lighting enabled flag */
+   GLboolean ColorMaterialEnabled;
+
    GLenum ShadeModel;			/**< GL_FLAT or GL_SMOOTH */
    GLenum ProvokingVertex;              /**< GL_EXT_provoking_vertex */
    GLenum ColorMaterialFace;		/**< GL_FRONT, BACK or FRONT_AND_BACK */
    GLenum ColorMaterialMode;		/**< GL_AMBIENT, GL_DIFFUSE, etc */
    GLbitfield _ColorMaterialBitmask;	/**< bitmask formed from Face and Mode */
-   GLboolean ColorMaterialEnabled;
-   GLenum ClampVertexColor;             /**< GL_TRUE, GL_FALSE, GL_FIXED_ONLY */
-   GLboolean _ClampVertexColor;
 
-   struct gl_light EnabledList;         /**< List sentinel */
+
+   GLboolean _ClampVertexColor;
+   GLenum ClampVertexColor;             /**< GL_TRUE, GL_FALSE, GL_FIXED_ONLY */
 
    /** 
     * Derived state for optimizations: 
@@ -863,6 +865,8 @@ struct gl_light_attrib
    /*@{*/
    GLboolean _NeedEyeCoords;		
    GLboolean _NeedVertices;		/**< Use fast shader? */
+   struct gl_light EnabledList;         /**< List sentinel */
+
    GLfloat _BaseColor[2][3];
    /*@}*/
 };
@@ -900,13 +904,15 @@ struct gl_multisample_attrib
    GLboolean SampleAlphaToCoverage;
    GLboolean SampleAlphaToOne;
    GLboolean SampleCoverage;
-   GLfloat SampleCoverageValue;
    GLboolean SampleCoverageInvert;
    GLboolean SampleShading;
-   GLfloat MinSampleShadingValue;
 
    /* ARB_texture_multisample / GL3.2 additions */
    GLboolean SampleMask;
+
+   GLfloat SampleCoverageValue;
+   GLfloat MinSampleShadingValue;
+
    /** The GL spec defines this as an array but >32x MSAA is madness */
    GLbitfield SampleMaskValue;
 };
@@ -977,11 +983,11 @@ struct gl_pixel_attrib
  */
 struct gl_point_attrib
 {
-   GLboolean SmoothFlag;	/**< True if GL_POINT_SMOOTH is enabled */
    GLfloat Size;		/**< User-specified point size */
    GLfloat Params[3];		/**< GL_EXT_point_parameters */
    GLfloat MinSize, MaxSize;	/**< GL_EXT_point_parameters */
    GLfloat Threshold;		/**< GL_EXT_point_parameters */
+   GLboolean SmoothFlag;	/**< True if GL_POINT_SMOOTH is enabled */
    GLboolean _Attenuated;	/**< True if Params != [1, 0, 0] */
    GLboolean PointSprite;	/**< GL_NV/ARB_point_sprite */
    GLboolean CoordReplace[MAX_TEXTURE_COORD_UNITS]; /**< GL_ARB_point_sprite*/
@@ -1347,6 +1353,9 @@ struct gl_texture_unit
 
    GLfloat LodBias;		/**< for biasing mipmap levels */
 
+   /** Texture targets that have a non-default texture bound */
+   GLbitfield _BoundTextures;
+
    /** Current sampler object (GL_ARB_sampler_objects) */
    struct gl_sampler_object *Sampler;
 
@@ -1373,8 +1382,6 @@ struct gl_texture_unit
    /** Points to highest priority, complete and enabled texture object */
    struct gl_texture_object *_Current;
 
-   /** Texture targets that have a non-default texture bound */
-   GLbitfield _BoundTextures;
 };
 
 
@@ -1384,15 +1391,14 @@ struct gl_texture_unit
 struct gl_texture_attrib
 {
    GLuint CurrentUnit;   /**< GL_ACTIVE_TEXTURE */
-   struct gl_texture_unit Unit[MAX_COMBINED_TEXTURE_IMAGE_UNITS];
+
+   /** GL_ARB_seamless_cubemap */
+   GLboolean CubeMapSeamless;
 
    struct gl_texture_object *ProxyTex[NUM_TEXTURE_TARGETS];
 
    /** GL_ARB_texture_buffer_object */
    struct gl_buffer_object *BufferObject;
-
-   /** GL_ARB_seamless_cubemap */
-   GLboolean CubeMapSeamless;
 
    /** Texture coord units/sets used for fragment texturing */
    GLbitfield _EnabledCoordUnits;
@@ -1411,6 +1417,8 @@ struct gl_texture_attrib
 
    /** Largest index + 1 of texture units that have had any CurrentTex set. */
    GLint NumCurrentTexUsed;
+
+   struct gl_texture_unit Unit[MAX_COMBINED_TEXTURE_IMAGE_UNITS];
 };
 
 
@@ -1536,12 +1544,12 @@ struct gl_client_array
    GLenum Format;               /**< default: GL_RGBA, but may be GL_BGRA */
    GLsizei Stride;		/**< user-specified stride */
    GLsizei StrideB;		/**< actual stride in bytes */
+   GLuint _ElementSize;         /**< size of each element in bytes */
    const GLubyte *Ptr;          /**< Points to array data */
    GLboolean Enabled;		/**< Enabled flag is a boolean */
    GLboolean Normalized;        /**< GL_ARB_vertex_program */
    GLboolean Integer;           /**< Integer-valued? */
    GLuint InstanceDivisor;      /**< GL_ARB_instanced_arrays */
-   GLuint _ElementSize;         /**< size of each element in bytes */
 
    struct gl_buffer_object *BufferObj;/**< GL_ARB_vertex_buffer_object */
 };
@@ -1600,9 +1608,11 @@ struct gl_vertex_array_object
 {
    /** Name of the VAO as received from glGenVertexArray. */
    GLuint Name;
-   GLchar *Label;       /**< GL_KHR_debug */
 
    GLint RefCount;
+
+   GLchar *Label;       /**< GL_KHR_debug */
+
    mtx_t Mutex;
 
    /**
@@ -1707,6 +1717,9 @@ struct gl_array_attrib
    GLuint RestartIndex;
    /*@}*/
 
+   /** One of the DRAW_xxx flags, not consumed by drivers */
+   gl_draw_method DrawMethod;
+
    /* GL_ARB_vertex_buffer_object */
    struct gl_buffer_object *ArrayBufferObj;
 
@@ -1715,9 +1728,6 @@ struct gl_array_attrib
     * The array pointer is set up only by the VBO module.
     */
    const struct gl_client_array **_DrawArrays; /**< 0..VERT_ATTRIB_MAX-1 */
-
-   /** One of the DRAW_xxx flags, not consumed by drivers */
-   gl_draw_method DrawMethod;
 
    /** Legal array datatypes and the API for which they have been computed */
    GLbitfield LegalTypesMask;
@@ -1880,21 +1890,13 @@ struct gl_transform_feedback_info
 struct gl_transform_feedback_object
 {
    GLuint Name;  /**< AKA the object ID */
-   GLchar *Label;     /**< GL_KHR_debug */
    GLint RefCount;
+   GLchar *Label;     /**< GL_KHR_debug */
    GLboolean Active;  /**< Is transform feedback enabled? */
    GLboolean Paused;  /**< Is transform feedback paused? */
    GLboolean EndedAnytime; /**< Has EndTransformFeedback been called
                                 at least once? */
    GLboolean EverBound; /**< Has this object been bound? */
-
-   /**
-    * The shader program active when BeginTransformFeedback() was called.
-    * When active and unpaused, this equals ctx->Shader.CurrentProgram[stage],
-    * where stage is the pipeline stage that is the source of data for
-    * transform feedback.
-    */
-   struct gl_shader_program *shader_program;
 
    /**
     * GLES: if Active is true, remaining number of primitives which can be
@@ -1906,6 +1908,14 @@ struct gl_transform_feedback_object
     * Not tracked for desktop GL since it's unnecessary.
     */
    unsigned GlesRemainingPrims;
+
+   /**
+    * The shader program active when BeginTransformFeedback() was called.
+    * When active and unpaused, this equals ctx->Shader.CurrentProgram[stage],
+    * where stage is the pipeline stage that is the source of data for
+    * transform feedback.
+    */
+   struct gl_shader_program *shader_program;
 
    /** The feedback buffers */
    GLuint BufferNames[MAX_FEEDBACK_BUFFERS];
@@ -2229,8 +2239,9 @@ enum gl_frag_depth_layout
 struct gl_program
 {
    GLuint Id;
-   GLubyte *String;  /**< Null-terminated program text */
    GLint RefCount;
+   GLubyte *String;  /**< Null-terminated program text */
+
    GLenum Target;    /**< GL_VERTEX/FRAGMENT_PROGRAM_ARB, GL_GEOMETRY_PROGRAM_NV */
    GLenum Format;    /**< String encoding format */
 
@@ -2533,18 +2544,20 @@ struct gl_shader
    GLenum Type;
    gl_shader_stage Stage;
    GLuint Name;  /**< AKA the handle */
-   GLchar *Label;   /**< GL_KHR_debug */
    GLint RefCount;  /**< Reference count */
+   GLchar *Label;   /**< GL_KHR_debug */
    GLboolean DeletePending;
    GLboolean CompileStatus;
-   const GLchar *Source;  /**< Source code string */
+   bool IsES;              /**< True if this shader uses GLSL ES */
+
    GLuint SourceChecksum;       /**< for debug/logging purposes */
+   const GLchar *Source;  /**< Source code string */
+
    struct gl_program *Program;  /**< Post-compile assembly code */
    GLchar *InfoLog;
    struct gl_sl_pragmas Pragmas;
 
    unsigned Version;       /**< GLSL version used for linking */
-   GLboolean IsES;         /**< True if this shader uses GLSL ES */
 
    /**
     * \name Sampler tracking
@@ -2588,8 +2601,8 @@ struct gl_shader
     *
     * These fields are only set post-linking.
     */
-   struct gl_uniform_block *UniformBlocks;
    unsigned NumUniformBlocks;
+   struct gl_uniform_block *UniformBlocks;
 
    struct exec_list *ir;
    struct glsl_symbol_table *symbols;
@@ -2879,8 +2892,8 @@ struct gl_shader_program
     */
    unsigned LastClipDistanceArraySize;
 
-   struct gl_uniform_block *UniformBlocks;
    unsigned NumUniformBlocks;
+   struct gl_uniform_block *UniformBlocks;
 
    /**
     * Indices into the _LinkedShaders's UniformBlocks[] array for each stage
@@ -2911,7 +2924,7 @@ struct gl_shader_program
    GLchar *InfoLog;
 
    unsigned Version;       /**< GLSL version used for linking */
-   GLboolean IsES;         /**< True if this program uses GLSL ES */
+   bool IsES;              /**< True if this program uses GLSL ES */
 
    /**
     * Per-stage shaders resulting from the first stage of linking.
@@ -3036,7 +3049,7 @@ struct gl_shader_compiler_options
 
    struct gl_sl_pragmas DefaultPragmas; /**< Default #pragma settings */
 
-   struct nir_shader_compiler_options *NirOptions;
+   const struct nir_shader_compiler_options *NirOptions;
 };
 
 
@@ -3265,9 +3278,10 @@ struct gl_framebuffer
     * polygon face orientation, and polygon stipple will have to be inverted.
     */
    GLuint Name;
+   GLint RefCount;
+
    GLchar *Label;       /**< GL_KHR_debug */
 
-   GLint RefCount;
    GLboolean DeletePending;
 
    /**
@@ -3301,6 +3315,13 @@ struct gl_framebuffer
    GLboolean _AllColorBuffersFixedPoint; /* no integer, no float */
    GLboolean _HasSNormOrFloatColorBuffer;
 
+   /**
+    * The maximum number of layers in the framebuffer, or 0 if the framebuffer
+    * is not layered.  For cube maps and cube map arrays, each cube face
+    * counts as a layer.
+    */
+   GLuint MaxNumLayers;
+
    /** Array of all renderbuffer attachments, indexed by BUFFER_* tokens. */
    struct gl_renderbuffer_attachment Attachment[BUFFER_COUNT];
 
@@ -3316,13 +3337,6 @@ struct gl_framebuffer
    GLint _ColorReadBufferIndex; /* -1 = None */
    struct gl_renderbuffer *_ColorDrawBuffers[MAX_DRAW_BUFFERS];
    struct gl_renderbuffer *_ColorReadBuffer;
-
-   /**
-    * The maximum number of layers in the framebuffer, or 0 if the framebuffer
-    * is not layered.  For cube maps and cube map arrays, each cube face
-    * counts as a layer.
-    */
-   GLuint MaxNumLayers;
 
    /** Delete this framebuffer */
    void (*Delete)(struct gl_framebuffer *fb);
@@ -4161,6 +4175,13 @@ struct gl_image_unit
    GLboolean Layered;
 
    /**
+    * GL_TRUE if the state of this image unit is valid and access from
+    * the shader is allowed.  Otherwise loads from this unit should
+    * return zero and stores should have no effect.
+    */
+   GLboolean _Valid;
+
+   /**
     * Layer of the texture object bound to this unit, or zero if the
     * whole level is bound.
     */
@@ -4184,12 +4205,6 @@ struct gl_image_unit
     */
    mesa_format _ActualFormat;
 
-   /**
-    * GL_TRUE if the state of this image unit is valid and access from
-    * the shader is allowed.  Otherwise loads from this unit should
-    * return zero and stores should have no effect.
-    */
-   GLboolean _Valid;
 };
 
 /**

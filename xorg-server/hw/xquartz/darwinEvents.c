@@ -456,8 +456,7 @@ DarwinInputReleaseButtonsAndKeys(DeviceIntPtr pDev)
         if (pDev->key) {
             for (i = 0; i < NUM_KEYCODES; i++) {
                 if (BitIsOn(pDev->key->down, i + MIN_KEYCODE)) {
-                    QueueKeyboardEvents(pDev, KeyRelease, i + MIN_KEYCODE,
-                                        NULL);
+                    QueueKeyboardEvents(pDev, KeyRelease, i + MIN_KEYCODE);
                 }
             }
         }
@@ -611,8 +610,7 @@ DarwinSendKeyboardEvents(int ev_type, int keycode)
 
     darwinEvents_lock();
     {
-        QueueKeyboardEvents(darwinKeyboard, ev_type, keycode + MIN_KEYCODE,
-                            NULL);
+        QueueKeyboardEvents(darwinKeyboard, ev_type, keycode + MIN_KEYCODE);
         DarwinPokeEQ();
     } darwinEvents_unlock();
 }

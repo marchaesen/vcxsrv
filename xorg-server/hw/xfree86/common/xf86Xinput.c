@@ -1326,47 +1326,21 @@ xf86PostButtonEventM(DeviceIntPtr device,
 }
 
 void
-xf86PostKeyEvent(DeviceIntPtr device,
-                 unsigned int key_code,
-                 int is_down,
-                 int is_absolute, int first_valuator, int num_valuators, ...)
+xf86PostKeyEvent(DeviceIntPtr device, unsigned int key_code, int is_down)
 {
-    va_list var;
-    int i = 0;
-    ValuatorMask mask;
-
-    XI_VERIFY_VALUATORS(num_valuators);
-
-    valuator_mask_zero(&mask);
-
-    va_start(var, num_valuators);
-    for (i = 0; i < num_valuators; i++)
-        valuator_mask_set(&mask, first_valuator + i, va_arg(var, int));
-
-    va_end(var);
-
-    xf86PostKeyEventM(device, key_code, is_down, is_absolute, &mask);
+    xf86PostKeyEventM(device, key_code, is_down);
 }
 
 void
 xf86PostKeyEventP(DeviceIntPtr device,
                   unsigned int key_code,
-                  int is_down,
-                  int is_absolute,
-                  int first_valuator, int num_valuators, const int *valuators)
+                  int is_down)
 {
-    ValuatorMask mask;
-
-    XI_VERIFY_VALUATORS(num_valuators);
-
-    valuator_mask_set_range(&mask, first_valuator, num_valuators, valuators);
-    xf86PostKeyEventM(device, key_code, is_down, is_absolute, &mask);
+    xf86PostKeyEventM(device, key_code, is_down);
 }
 
 void
-xf86PostKeyEventM(DeviceIntPtr device,
-                  unsigned int key_code,
-                  int is_down, int is_absolute, const ValuatorMask *mask)
+xf86PostKeyEventM(DeviceIntPtr device, unsigned int key_code, int is_down)
 {
 #if XFreeXDGA
     DeviceIntPtr pointer;
@@ -1382,8 +1356,7 @@ xf86PostKeyEventM(DeviceIntPtr device,
     }
 #endif
 
-    QueueKeyboardEvents(device,
-                        is_down ? KeyPress : KeyRelease, key_code, mask);
+    QueueKeyboardEvents(device, is_down ? KeyPress : KeyRelease, key_code);
 }
 
 void
@@ -1392,7 +1365,7 @@ xf86PostKeyboardEvent(DeviceIntPtr device, unsigned int key_code, int is_down)
     ValuatorMask mask;
 
     valuator_mask_zero(&mask);
-    xf86PostKeyEventM(device, key_code, is_down, 0, &mask);
+    xf86PostKeyEventM(device, key_code, is_down);
 }
 
 InputInfoPtr

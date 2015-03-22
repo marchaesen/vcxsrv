@@ -513,8 +513,13 @@ CloseWellKnownConnections(void)
 {
     int i;
 
-    for (i = 0; i < ListenTransCount; i++)
-        _XSERVTransClose(ListenTransConns[i]);
+    for (i = 0; i < ListenTransCount; i++) {
+        if (ListenTransConns[i] != NULL) {
+            _XSERVTransClose(ListenTransConns[i]);
+            ListenTransConns[i] = NULL;
+        }
+    }
+    ListenTransCount = 0;
 }
 
 static void

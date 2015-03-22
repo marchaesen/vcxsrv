@@ -39,13 +39,13 @@
 			const GLvector4f *from_vec
 
 #define DECLARE_XFORM_GROUP( pfx, sz ) \
-extern void _ASMAPI _mesa_##pfx##_transform_points##sz##_general( XFORM_ARGS );		\
-extern void _ASMAPI _mesa_##pfx##_transform_points##sz##_identity( XFORM_ARGS );	\
-extern void _ASMAPI _mesa_##pfx##_transform_points##sz##_3d_no_rot( XFORM_ARGS );	\
-extern void _ASMAPI _mesa_##pfx##_transform_points##sz##_perspective( XFORM_ARGS );	\
-extern void _ASMAPI _mesa_##pfx##_transform_points##sz##_2d( XFORM_ARGS );		\
-extern void _ASMAPI _mesa_##pfx##_transform_points##sz##_2d_no_rot( XFORM_ARGS );	\
-extern void _ASMAPI _mesa_##pfx##_transform_points##sz##_3d( XFORM_ARGS );
+extern void _mesa_##pfx##_transform_points##sz##_general( XFORM_ARGS );		\
+extern void _mesa_##pfx##_transform_points##sz##_identity( XFORM_ARGS );	\
+extern void _mesa_##pfx##_transform_points##sz##_3d_no_rot( XFORM_ARGS );	\
+extern void _mesa_##pfx##_transform_points##sz##_perspective( XFORM_ARGS );	\
+extern void _mesa_##pfx##_transform_points##sz##_2d( XFORM_ARGS );		\
+extern void _mesa_##pfx##_transform_points##sz##_2d_no_rot( XFORM_ARGS );	\
+extern void _mesa_##pfx##_transform_points##sz##_3d( XFORM_ARGS );
 
 #define ASSIGN_XFORM_GROUP( pfx, sz )					\
    _mesa_transform_tab[sz][MATRIX_GENERAL] =				\
@@ -75,14 +75,14 @@ extern void _ASMAPI _mesa_##pfx##_transform_points##sz##_3d( XFORM_ARGS );
 			GLvector4f *dest
 
 #define DECLARE_NORM_GROUP( pfx ) \
-extern void _ASMAPI _mesa_##pfx##_rescale_normals( NORM_ARGS );				\
-extern void _ASMAPI _mesa_##pfx##_normalize_normals( NORM_ARGS );			\
-extern void _ASMAPI _mesa_##pfx##_transform_normals( NORM_ARGS );			\
-extern void _ASMAPI _mesa_##pfx##_transform_normals_no_rot( NORM_ARGS );		\
-extern void _ASMAPI _mesa_##pfx##_transform_rescale_normals( NORM_ARGS );		\
-extern void _ASMAPI _mesa_##pfx##_transform_rescale_normals_no_rot( NORM_ARGS );	\
-extern void _ASMAPI _mesa_##pfx##_transform_normalize_normals( NORM_ARGS );		\
-extern void _ASMAPI _mesa_##pfx##_transform_normalize_normals_no_rot( NORM_ARGS );
+extern void _mesa_##pfx##_rescale_normals( NORM_ARGS );				\
+extern void _mesa_##pfx##_normalize_normals( NORM_ARGS );			\
+extern void _mesa_##pfx##_transform_normals( NORM_ARGS );			\
+extern void _mesa_##pfx##_transform_normals_no_rot( NORM_ARGS );		\
+extern void _mesa_##pfx##_transform_rescale_normals( NORM_ARGS );		\
+extern void _mesa_##pfx##_transform_rescale_normals_no_rot( NORM_ARGS );	\
+extern void _mesa_##pfx##_transform_normalize_normals( NORM_ARGS );		\
+extern void _mesa_##pfx##_transform_normalize_normals_no_rot( NORM_ARGS );
 
 #define ASSIGN_NORM_GROUP( pfx )					\
    _mesa_normal_tab[NORM_RESCALE] =					\

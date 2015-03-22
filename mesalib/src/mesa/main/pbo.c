@@ -80,7 +80,7 @@ _mesa_validate_pbo_access(GLuint dimensions,
     */
    if (!_mesa_is_bufferobj(pack->BufferObj)) {
       offset = 0;
-      size = clientMemSize;
+      size = (clientMemSize == INT_MAX) ? UINTPTR_MAX : clientMemSize;
    } else {
       offset = (uintptr_t)ptr;
       size = pack->BufferObj->Size;
@@ -164,11 +164,87 @@ _mesa_map_pbo_source(struct gl_context *ctx,
    return buf;
 }
 
+/**
+ * Perform PBO validation for read operations with uncompressed textures.
+ * If any GL errors are detected, false is returned, otherwise returns true.
+ * \sa _mesa_validate_pbo_access
+ */
+bool
+_mesa_validate_pbo_source(struct gl_context *ctx, GLuint dimensions,
+                          const struct gl_pixelstore_attrib *unpack,
+                          GLsizei width, GLsizei height, GLsizei depth,
+                          GLenum format, GLenum type,
+                          GLsizei clientMemSize,
+                          const GLvoid *ptr, const char *where)
+{
+   assert(dimensions == 1 || dimensions == 2 || dimensions == 3);
+
+   if (!_mesa_validate_pbo_access(dimensions, unpack, width, height, depth,
+                                  format, type, clientMemSize, ptr)) {
+      if (_mesa_is_bufferobj(unpack->BufferObj)) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "%s(out of bounds PBO access)",
+                     where);
+      } else {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "%s(out of bounds access: bufSize (%d) is too small)",
+                     where, clientMemSize);
+      }
+      return false;
+   }
+
+   if (!_mesa_is_bufferobj(unpack->BufferObj)) {
+      /* non-PBO access: no further validation to be done */
+      return true;
+   }
+
+   if (_mesa_check_disallowed_mapping(unpack->BufferObj)) {
+      /* buffer is already mapped - that's an error */
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(PBO is mapped)",
+                  where);
+      return false;
+   }
+
+   return true;
+}
 
 /**
- * Combine PBO-read validation and mapping.
+ * Perform PBO validation for read operations with compressed textures.
+ * If any GL errors are detected, false is returned, otherwise returns true.
+ */
+bool
+_mesa_validate_pbo_source_compressed(struct gl_context *ctx, GLuint dimensions,
+                                     const struct gl_pixelstore_attrib *unpack,
+                                     GLsizei imageSize, const GLvoid *pixels,
+                                     const char *where)
+{
+   if (!_mesa_is_bufferobj(unpack->BufferObj)) {
+      /* not using a PBO */
+      return true;
+   }
+
+   if ((const GLubyte *) pixels + imageSize >
+       ((const GLubyte *) 0) + unpack->BufferObj->Size) {
+      /* out of bounds read! */
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(invalid PBO access)",
+                  where);
+      return false;
+   }
+
+   if (_mesa_check_disallowed_mapping(unpack->BufferObj)) {
+      /* buffer is already mapped - that's an error */
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(PBO is mapped)",
+                  where);
+      return false;
+   }
+
+   return true;
+}
+
+/**
+ * Perform PBO-read mapping.
  * If any GL errors are detected, they'll be recorded and NULL returned.
- * \sa _mesa_validate_pbo_access
+ * \sa _mesa_validate_pbo_source
  * \sa _mesa_map_pbo_source
  * A call to this function should have a matching call to
  * _mesa_unmap_pbo_source().
@@ -182,30 +258,10 @@ _mesa_map_validate_pbo_source(struct gl_context *ctx,
                               GLsizei clientMemSize,
                               const GLvoid *ptr, const char *where)
 {
-   assert(dimensions == 1 || dimensions == 2 || dimensions == 3);
-
-   if (!_mesa_validate_pbo_access(dimensions, unpack, width, height, depth,
-                                  format, type, clientMemSize, ptr)) {
-      if (_mesa_is_bufferobj(unpack->BufferObj)) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "%s(out of bounds PBO access)", where);
-      } else {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "%s(out of bounds access: bufSize (%d) is too small)",
-                     where, clientMemSize);
-      }
-      return NULL;
-   }
-
-   if (!_mesa_is_bufferobj(unpack->BufferObj)) {
-      /* non-PBO access: no further validation to be done */
-      return ptr;
-   }
-
-   if (_mesa_check_disallowed_mapping(unpack->BufferObj)) {
-      /* buffer is already mapped - that's an error */
-      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(PBO is mapped)", where);
-      return NULL;
+   if (!_mesa_validate_pbo_source(ctx, dimensions, unpack,
+                                  width, height, depth, format, type,
+                                  clientMemSize, ptr, where)) {
+     return NULL;
    }
 
    ptr = _mesa_map_pbo_source(ctx, unpack, ptr);
@@ -381,16 +437,15 @@ _mesa_validate_pbo_compressed_teximage(struct gl_context *ctx,
 {
    GLubyte *buf;
 
+   if (!_mesa_validate_pbo_source_compressed(ctx, dimensions, packing,
+                                             imageSize, pixels, funcName)) {
+     /* error is already set during validation */
+      return NULL;
+   }
+
    if (!_mesa_is_bufferobj(packing->BufferObj)) {
       /* not using a PBO - return pointer unchanged */
       return pixels;
-   }
-   if ((const GLubyte *) pixels + imageSize >
-       ((const GLubyte *) 0) + packing->BufferObj->Size) {
-      /* out of bounds read! */
-      _mesa_error(ctx, GL_INVALID_OPERATION, "%s%uD(invalid PBO access)",
-                  funcName, dimensions);
-      return NULL;
    }
 
    buf = (GLubyte*) ctx->Driver.MapBufferRange(ctx, 0,
@@ -398,11 +453,11 @@ _mesa_validate_pbo_compressed_teximage(struct gl_context *ctx,
 					       GL_MAP_READ_BIT,
 					       packing->BufferObj,
                                                MAP_INTERNAL);
-   if (!buf) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "%s%uD(PBO is mapped)", funcName,
-                  dimensions);
-      return NULL;
-   }
+
+   /* Validation above already checked that PBO is not mapped, so buffer
+    * should not be null.
+    */
+   assert(buf);
 
    return ADD_POINTERS(buf, pixels);
 }

@@ -684,7 +684,7 @@ inline void exec_node::insert_before(exec_list *before)
            exec_node_data(__type, (__list)->head, __field),                \
                * __next =                                                  \
            exec_node_data(__type, (__node)->__field.next, __field);        \
-        __next != NULL;                                                    \
+        (__node)->__field.next != NULL;                                    \
         __node = __next, __next =                                          \
            exec_node_data(__type, (__next)->__field.next, __field))
 
@@ -693,7 +693,7 @@ inline void exec_node::insert_before(exec_list *before)
            exec_node_data(__type, (__list)->tail_pred, __field),           \
                * __prev =                                                  \
            exec_node_data(__type, (__node)->__field.prev, __field);        \
-        __prev != NULL;                                                    \
+        (__node)->__field.prev != NULL;                                    \
         __node = __prev, __prev =                                          \
            exec_node_data(__type, (__prev)->__field.prev, __field))
 

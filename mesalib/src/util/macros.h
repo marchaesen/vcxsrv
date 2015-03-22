@@ -73,15 +73,13 @@ do {                        \
    assert(!str);            \
    __builtin_unreachable(); \
 } while (0)
-#elif _MSC_VER >= 1200
+#elif defined (_MSC_VER)
 #define unreachable(str)    \
 do {                        \
    assert(!str);            \
    __assume(0);             \
 } while (0)
-#endif
-
-#ifndef unreachable
+#else
 #define unreachable(str) assert(!str)
 #endif
 
@@ -99,7 +97,7 @@ do {                       \
 #define assume(expr) ((expr) ? ((void) 0) \
                              : (assert(!"assumption failed"), \
                                 __builtin_unreachable()))
-#elif _MSC_VER >= 1200
+#elif defined (_MSC_VER)
 #define assume(expr) __assume(expr)
 #else
 #define assume(expr) assert(expr)
@@ -176,6 +174,12 @@ do {                       \
 #    define PUBLIC
 #    define USED
 #  endif
+#endif
+
+#ifdef HAVE_FUNC_ATTRIBUTE_UNUSED
+#define UNUSED __attribute__((unused))
+#else
+#define UNUSED
 #endif
 
 

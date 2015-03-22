@@ -488,12 +488,9 @@ dmxTranslateAndEnqueueExtEvent(DMXLocalInputInfoPtr dmxLocal,
     switch (type) {
     case XI_DeviceKeyPress:
     case XI_DeviceKeyRelease:
-        EXTRACT_VALUATORS(ke, valuators);
-        valuator_mask_set_range(&mask, ke->first_axis, ke->axes_count,
-                                valuators);
         if (block)
             OsBlockSIGIO();
-        QueueKeyboardEvents(pDevice, event, ke->keycode, &mask);
+        QueueKeyboardEvents(pDevice, event, ke->keycode);
         if (block)
             OsReleaseSIGIO();
         break;
@@ -718,7 +715,7 @@ dmxEnqueue(DevicePtr pDev, int type, int detail, KeySym keySym,
             detail = dmxFixup(pDev, detail, keySym);
 
         /*ErrorF("KEY %d  sym %d\n", detail, (int) keySym); */
-        QueueKeyboardEvents(p, type, detail, NULL);
+        QueueKeyboardEvents(p, type, detail);
         return;
 
     case ButtonPress:

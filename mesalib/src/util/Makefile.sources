@@ -14,6 +14,7 @@ MESA_UTIL_FILES :=	\
 	register_allocate.h \
 	rgtc.c \
 	rgtc.h \
+	rounding.h \
 	set.c \
 	set.h \
 	simple_list.h \

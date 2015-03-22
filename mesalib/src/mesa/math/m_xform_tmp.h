@@ -70,7 +70,7 @@
  *     driver-specific vertex format.
  */
 
-static void _XFORMAPI
+static void
 TAG(transform_points1_general)( GLvector4f *to_vec,
 				const GLfloat m[16],
 				const GLvector4f *from_vec )
@@ -96,7 +96,7 @@ TAG(transform_points1_general)( GLvector4f *to_vec,
    to_vec->count = from_vec->count;
 }
 
-static void _XFORMAPI
+static void
 TAG(transform_points1_identity)( GLvector4f *to_vec,
 				 const GLfloat m[16],
 				 const GLvector4f *from_vec )
@@ -116,7 +116,7 @@ TAG(transform_points1_identity)( GLvector4f *to_vec,
    to_vec->count = from_vec->count;
 }
 
-static void _XFORMAPI
+static void
 TAG(transform_points1_2d)( GLvector4f *to_vec,
 			   const GLfloat m[16],
 			   const GLvector4f *from_vec )
@@ -138,7 +138,7 @@ TAG(transform_points1_2d)( GLvector4f *to_vec,
    to_vec->count = from_vec->count;
 }
 
-static void _XFORMAPI
+static void
 TAG(transform_points1_2d_no_rot)( GLvector4f *to_vec,
 				  const GLfloat m[16],
 				  const GLvector4f *from_vec )
@@ -159,7 +159,7 @@ TAG(transform_points1_2d_no_rot)( GLvector4f *to_vec,
    to_vec->count = from_vec->count;
 }
 
-static void _XFORMAPI
+static void
 TAG(transform_points1_3d)( GLvector4f *to_vec,
 			   const GLfloat m[16],
 			   const GLvector4f *from_vec )
@@ -183,7 +183,7 @@ TAG(transform_points1_3d)( GLvector4f *to_vec,
 }
 
 
-static void _XFORMAPI
+static void
 TAG(transform_points1_3d_no_rot)( GLvector4f *to_vec,
 				  const GLfloat m[16],
 				  const GLvector4f *from_vec )
@@ -206,7 +206,7 @@ TAG(transform_points1_3d_no_rot)( GLvector4f *to_vec,
    to_vec->count = from_vec->count;
 }
 
-static void _XFORMAPI
+static void
 TAG(transform_points1_perspective)( GLvector4f *to_vec,
 				    const GLfloat m[16],
 				    const GLvector4f *from_vec )
@@ -236,7 +236,7 @@ TAG(transform_points1_perspective)( GLvector4f *to_vec,
  * present early in the geometry pipeline and throughout the
  * texture pipeline.
  */
-static void _XFORMAPI
+static void
 TAG(transform_points2_general)( GLvector4f *to_vec,
 				const GLfloat m[16],
 				const GLvector4f *from_vec )
@@ -262,7 +262,7 @@ TAG(transform_points2_general)( GLvector4f *to_vec,
    to_vec->count = from_vec->count;
 }
 
-static void _XFORMAPI
+static void
 TAG(transform_points2_identity)( GLvector4f *to_vec,
 				 const GLfloat m[16],
 				 const GLvector4f *from_vec )
@@ -283,7 +283,7 @@ TAG(transform_points2_identity)( GLvector4f *to_vec,
    to_vec->count = from_vec->count;
 }
 
-static void _XFORMAPI
+static void
 TAG(transform_points2_2d)( GLvector4f *to_vec,
 			   const GLfloat m[16],
 			   const GLvector4f *from_vec )
@@ -305,7 +305,7 @@ TAG(transform_points2_2d)( GLvector4f *to_vec,
    to_vec->count = from_vec->count;
 }
 
-static void _XFORMAPI
+static void
 TAG(transform_points2_2d_no_rot)( GLvector4f *to_vec,
 				  const GLfloat m[16],
 				  const GLvector4f *from_vec )
@@ -326,7 +326,7 @@ TAG(transform_points2_2d_no_rot)( GLvector4f *to_vec,
    to_vec->count = from_vec->count;
 }
 
-static void _XFORMAPI
+static void
 TAG(transform_points2_3d)( GLvector4f *to_vec,
 			   const GLfloat m[16],
 			   const GLvector4f *from_vec )
@@ -353,7 +353,7 @@ TAG(transform_points2_3d)( GLvector4f *to_vec,
 /* I would actually say this was a fairly important function, from
  * a texture transformation point of view.
  */
-static void _XFORMAPI
+static void
 TAG(transform_points2_3d_no_rot)( GLvector4f *to_vec,
 				  const GLfloat m[16],
 				  const GLvector4f *from_vec )
@@ -382,7 +382,7 @@ TAG(transform_points2_3d_no_rot)( GLvector4f *to_vec,
 }
 
 
-static void _XFORMAPI
+static void
 TAG(transform_points2_perspective)( GLvector4f *to_vec,
 				    const GLfloat m[16],
 				    const GLvector4f *from_vec )
@@ -407,7 +407,7 @@ TAG(transform_points2_perspective)( GLvector4f *to_vec,
 
 
 
-static void _XFORMAPI
+static void
 TAG(transform_points3_general)( GLvector4f *to_vec,
 				const GLfloat m[16],
 				const GLvector4f *from_vec )
@@ -433,7 +433,7 @@ TAG(transform_points3_general)( GLvector4f *to_vec,
    to_vec->count = from_vec->count;
 }
 
-static void _XFORMAPI
+static void
 TAG(transform_points3_identity)( GLvector4f *to_vec,
 				 const GLfloat m[16],
 				 const GLvector4f *from_vec )
@@ -455,7 +455,7 @@ TAG(transform_points3_identity)( GLvector4f *to_vec,
    to_vec->count = from_vec->count;
 }
 
-static void _XFORMAPI
+static void
 TAG(transform_points3_2d)( GLvector4f *to_vec,
 			   const GLfloat m[16],
 			   const GLvector4f *from_vec )
@@ -478,7 +478,7 @@ TAG(transform_points3_2d)( GLvector4f *to_vec,
    to_vec->count = from_vec->count;
 }
 
-static void _XFORMAPI
+static void
 TAG(transform_points3_2d_no_rot)( GLvector4f *to_vec,
 				  const GLfloat m[16],
 				  const GLvector4f *from_vec )
@@ -500,7 +500,7 @@ TAG(transform_points3_2d_no_rot)( GLvector4f *to_vec,
    to_vec->count = from_vec->count;
 }
 
-static void _XFORMAPI
+static void
 TAG(transform_points3_3d)( GLvector4f *to_vec,
 			   const GLfloat m[16],
 			   const GLvector4f *from_vec )
@@ -526,7 +526,7 @@ TAG(transform_points3_3d)( GLvector4f *to_vec,
 
 /* previously known as ortho...
  */
-static void _XFORMAPI
+static void
 TAG(transform_points3_3d_no_rot)( GLvector4f *to_vec,
 				  const GLfloat m[16],
 				  const GLvector4f *from_vec )
@@ -549,7 +549,7 @@ TAG(transform_points3_3d_no_rot)( GLvector4f *to_vec,
    to_vec->count = from_vec->count;
 }
 
-static void _XFORMAPI
+static void
 TAG(transform_points3_perspective)( GLvector4f *to_vec,
 				    const GLfloat m[16],
 				    const GLvector4f *from_vec )
@@ -575,7 +575,7 @@ TAG(transform_points3_perspective)( GLvector4f *to_vec,
 
 
 
-static void _XFORMAPI
+static void
 TAG(transform_points4_general)( GLvector4f *to_vec,
 				const GLfloat m[16],
 				const GLvector4f *from_vec )
@@ -601,7 +601,7 @@ TAG(transform_points4_general)( GLvector4f *to_vec,
    to_vec->count = from_vec->count;
 }
 
-static void _XFORMAPI
+static void
 TAG(transform_points4_identity)( GLvector4f *to_vec,
 				 const GLfloat m[16],
 				 const GLvector4f *from_vec )
@@ -624,7 +624,7 @@ TAG(transform_points4_identity)( GLvector4f *to_vec,
    to_vec->count = from_vec->count;
 }
 
-static void _XFORMAPI
+static void
 TAG(transform_points4_2d)( GLvector4f *to_vec,
 			   const GLfloat m[16],
 			   const GLvector4f *from_vec )
@@ -648,7 +648,7 @@ TAG(transform_points4_2d)( GLvector4f *to_vec,
    to_vec->count = from_vec->count;
 }
 
-static void _XFORMAPI
+static void
 TAG(transform_points4_2d_no_rot)( GLvector4f *to_vec,
 				  const GLfloat m[16],
 				  const GLvector4f *from_vec )
@@ -671,7 +671,7 @@ TAG(transform_points4_2d_no_rot)( GLvector4f *to_vec,
    to_vec->count = from_vec->count;
 }
 
-static void _XFORMAPI
+static void
 TAG(transform_points4_3d)( GLvector4f *to_vec,
 			   const GLfloat m[16],
 			   const GLvector4f *from_vec )
@@ -696,7 +696,7 @@ TAG(transform_points4_3d)( GLvector4f *to_vec,
    to_vec->count = from_vec->count;
 }
 
-static void _XFORMAPI
+static void
 TAG(transform_points4_3d_no_rot)( GLvector4f *to_vec,
 				  const GLfloat m[16],
 				  const GLvector4f *from_vec )
@@ -720,7 +720,7 @@ TAG(transform_points4_3d_no_rot)( GLvector4f *to_vec,
    to_vec->count = from_vec->count;
 }
 
-static void _XFORMAPI
+static void
 TAG(transform_points4_perspective)( GLvector4f *to_vec,
 				    const GLfloat m[16],
 				    const GLvector4f *from_vec )
@@ -753,7 +753,7 @@ static transform_func TAG(transform_tab_4)[7];
  * optimized routines overwriting the arrays.  This only occurs during
  * startup.
  */
-static void _XFORMAPI TAG(init_c_transformations)( void )
+static void TAG(init_c_transformations)( void )
 {
 #define TAG_TAB   _mesa_transform_tab
 #define TAG_TAB_1 TAG(transform_tab_1)

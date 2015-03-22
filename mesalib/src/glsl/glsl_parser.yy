@@ -34,6 +34,10 @@
 #include "glsl_types.h"
 #include "main/context.h"
 
+#ifdef _MSC_VER
+#pragma warning( disable : 4065 ) // switch statement contains 'default' but no 'case' labels
+#endif
+
 #undef yyerror
 
 static void yyerror(YYLTYPE *loc, _mesa_glsl_parse_state *st, const char *msg)

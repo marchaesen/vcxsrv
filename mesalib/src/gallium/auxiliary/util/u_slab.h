@@ -81,7 +81,16 @@ void util_slab_destroy(struct util_slab_mempool *pool);
 void util_slab_set_thread_safety(struct util_slab_mempool *pool,
                                  enum util_slab_threading threading);
 
-#define util_slab_alloc(pool)     (pool)->alloc(pool)
-#define util_slab_free(pool, ptr) (pool)->free(pool, ptr)
+static inline void *
+util_slab_alloc(struct util_slab_mempool *pool)
+{
+   return pool->alloc(pool);
+}
+
+static inline void
+util_slab_free(struct util_slab_mempool *pool, void *ptr)
+{
+   pool->free(pool, ptr);
+}
 
 #endif

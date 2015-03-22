@@ -35,6 +35,7 @@
 
 #include <math.h>
 #include "main/core.h" /* for MAX2, MIN2, CLAMP */
+#include "util/rounding.h" /* for _mesa_roundeven */
 #include "ir.h"
 #include "glsl_types.h"
 #include "program/hash_table.h"
@@ -245,8 +246,8 @@ pack_snorm_1x8(float x)
      * We must first cast the float to an int, because casting a negative
      * float to a uint is undefined.
      */
-   return (uint8_t) (int8_t)
-          _mesa_round_to_even(CLAMP(x, -1.0f, +1.0f) * 127.0f);
+   return (uint8_t) (int)
+          _mesa_roundevenf(CLAMP(x, -1.0f, +1.0f) * 127.0f);
 }
 
 /**
@@ -267,8 +268,8 @@ pack_snorm_1x16(float x)
      * We must first cast the float to an int, because casting a negative
      * float to a uint is undefined.
      */
-   return (uint16_t) (int16_t)
-          _mesa_round_to_even(CLAMP(x, -1.0f, +1.0f) * 32767.0f);
+   return (uint16_t) (int)
+          _mesa_roundevenf(CLAMP(x, -1.0f, +1.0f) * 32767.0f);
 }
 
 /**
@@ -322,7 +323,7 @@ pack_unorm_1x8(float x)
      *
      *       packUnorm4x8: round(clamp(c, 0, +1) * 255.0)
      */
-   return (uint8_t) _mesa_round_to_even(CLAMP(x, 0.0f, 1.0f) * 255.0f);
+   return (uint8_t) (int) _mesa_roundevenf(CLAMP(x, 0.0f, 1.0f) * 255.0f);
 }
 
 /**
@@ -340,7 +341,8 @@ pack_unorm_1x16(float x)
      *
      *       packUnorm2x16: round(clamp(c, 0, +1) * 65535.0)
      */
-   return (uint16_t) _mesa_round_to_even(CLAMP(x, 0.0f, 1.0f) * 65535.0f);
+   return (uint16_t) (int)
+          _mesa_roundevenf(CLAMP(x, 0.0f, 1.0f) * 65535.0f);
 }
 
 /**
@@ -733,9 +735,9 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
    case ir_unop_round_even:
       for (unsigned c = 0; c < op[0]->type->components(); c++) {
          if (op[0]->type->base_type == GLSL_TYPE_DOUBLE)
-            data.d[c] = _mesa_round_to_even(op[0]->value.d[c]);
+            data.d[c] = _mesa_roundeven(op[0]->value.d[c]);
          else
-            data.f[c] = _mesa_round_to_even(op[0]->value.f[c]);
+            data.f[c] = _mesa_roundevenf(op[0]->value.f[c]);
       }
       break;
 

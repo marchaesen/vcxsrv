@@ -43,7 +43,7 @@ namespace {
 class nir_visitor : public ir_visitor
 {
 public:
-   nir_visitor(nir_shader *shader, bool supports_ints);
+   nir_visitor(nir_shader *shader, gl_shader_stage stage);
    ~nir_visitor();
 
    virtual void visit(ir_variable *);
@@ -83,6 +83,7 @@ private:
    bool supports_ints;
 
    nir_shader *shader;
+   gl_shader_stage stage;
    nir_function_impl *impl;
    exec_list *cf_node_list;
    nir_instr *result; /* result of the expression tree last visited */
@@ -124,59 +125,24 @@ private:
 
 }; /* end of anonymous namespace */
 
-static const nir_shader_compiler_options default_options = {
-};
-
 nir_shader *
-glsl_to_nir(exec_list *ir, _mesa_glsl_parse_state *state,
-            bool native_integers)
+glsl_to_nir(struct gl_shader *sh, const nir_shader_compiler_options *options)
 {
-   const nir_shader_compiler_options *options;
-
-   if (state) {
-      struct gl_context *ctx = state->ctx;
-      struct gl_shader_compiler_options *gl_options =
-         &ctx->Const.ShaderCompilerOptions[state->stage];
-
-      if (!gl_options->NirOptions) {
-         nir_shader_compiler_options *new_options =
-            rzalloc(ctx, nir_shader_compiler_options);
-         options = gl_options->NirOptions = new_options;
-
-         if (gl_options->EmitNoPow)
-            new_options->lower_fpow = true;
-      } else {
-         options = gl_options->NirOptions;
-      }
-   } else {
-      options = &default_options;
-   }
-
    nir_shader *shader = nir_shader_create(NULL, options);
 
-   if (state) {
-      shader->num_user_structures = state->num_user_structures;
-      shader->user_structures = ralloc_array(shader, glsl_type *,
-                                             shader->num_user_structures);
-      memcpy(shader->user_structures, state->user_structures,
-            shader->num_user_structures * sizeof(glsl_type *));
-   } else {
-      shader->num_user_structures = 0;
-      shader->user_structures = NULL;
-   }
-
-   nir_visitor v1(shader, native_integers);
+   nir_visitor v1(shader, sh->Stage);
    nir_function_visitor v2(&v1);
-   v2.run(ir);
-   visit_exec_list(ir, &v1);
+   v2.run(sh->ir);
+   visit_exec_list(sh->ir, &v1);
 
    return shader;
 }
 
-nir_visitor::nir_visitor(nir_shader *shader, bool supports_ints)
+nir_visitor::nir_visitor(nir_shader *shader, gl_shader_stage stage)
 {
-   this->supports_ints = supports_ints;
+   this->supports_ints = shader->options->native_integers;
    this->shader = shader;
+   this->stage = stage;
    this->is_global = true;
    this->var_table = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
                                              _mesa_key_pointer_equal);
@@ -285,7 +251,8 @@ nir_visitor::visit(ir_variable *ir)
       break;
 
    case ir_var_shader_in:
-      if (ir->data.location == VARYING_SLOT_FACE) {
+      if (stage == MESA_SHADER_FRAGMENT &&
+          ir->data.location == VARYING_SLOT_FACE) {
          /* For whatever reason, GLSL IR makes gl_FrontFacing an input */
          var->data.location = SYSTEM_VALUE_FRONT_FACE;
          var->data.mode = nir_var_system_value;
@@ -385,15 +352,15 @@ nir_visitor::visit(ir_variable *ir)
       break;
 
    case nir_var_shader_in:
-      _mesa_hash_table_insert(shader->inputs, var->name, var);
+      exec_list_push_tail(&shader->inputs, &var->node);
       break;
 
    case nir_var_shader_out:
-      _mesa_hash_table_insert(shader->outputs, var->name, var);
+      exec_list_push_tail(&shader->outputs, &var->node);
       break;
 
    case nir_var_uniform:
-      _mesa_hash_table_insert(shader->uniforms, var->name, var);
+      exec_list_push_tail(&shader->uniforms, &var->node);
       break;
 
    case nir_var_system_value:

@@ -1831,7 +1831,7 @@ KdEnqueueKeyboardEvent(KdKeyboardInfo * ki,
         else
             type = KeyPress;
 
-        QueueKeyboardEvents(ki->dixdev, type, key_code, NULL);
+        QueueKeyboardEvents(ki->dixdev, type, key_code);
     }
     else {
         ErrorF("driver %s wanted to post scancode %d outside of [%d, %d]!\n",
