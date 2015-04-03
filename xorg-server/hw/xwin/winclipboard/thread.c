@@ -359,29 +359,6 @@ winClipboardProc(Bool fUseUnicode, char *szDisplay)
                    "Bailing.\n", iReturn);
             break;
         }
-
-        if (FD_ISSET(iConnectionNumber, &fdsRead)) {
-            winDebug
-                ("winClipboardProc - X connection ready, pumping X event queue\n");
-        }
-
-#ifdef HAS_DEVWINDOWS
-        /* Check for Windows event ready */
-        if (FD_ISSET(fdMessageQueue, &fdsRead))
-#else
-        if (1)
-#endif
-        {
-            winDebug
-                ("winClipboardProc - /dev/windows ready, pumping Windows message queue\n");
-        }
-
-#ifdef HAS_DEVWINDOWS
-        if (!(FD_ISSET(iConnectionNumber, &fdsRead)) &&
-            !(FD_ISSET(fdMessageQueue, &fdsRead))) {
-            winDebug("winClipboardProc - Spurious wake, select() returned %d\n", iReturn);
-        }
-#endif
     }
 
     /* Close our X window */

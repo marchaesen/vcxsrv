@@ -170,6 +170,7 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         s_hwndNextViewer = NULL;
         g_hwndClipboard = NULL;
+        PostMessage(hwnd, WM_WM_QUIT, 0L, 0L);
     }
         return 0;
 

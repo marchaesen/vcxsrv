@@ -64,7 +64,7 @@ XGetWindowProperty(
     req->delete = delete;
     req->longOffset = offset;
     req->longLength = length;
-    error.sequenceNumber = dpy->request;
+    error.sequenceNumber = (CARD16)(dpy->request&0xffff);
 
     if (!_XReply (dpy, (xReply *) &reply, 0, xFalse)) {
 	UnlockDisplay(dpy);
