@@ -40,8 +40,6 @@
 
 #include "systemd-logind.h"
 
-#define DBUS_TIMEOUT 500 /* Wait max 0.5 seconds */
-
 struct systemd_logind_info {
     DBusConnection *conn;
     char *session;
@@ -130,7 +128,7 @@ systemd_logind_take_fd(int _major, int _minor, const char *path,
     }
 
     reply = dbus_connection_send_with_reply_and_block(info->conn, msg,
-                                                      DBUS_TIMEOUT, &error);
+                                                      DBUS_TIMEOUT_USE_DEFAULT, &error);
     if (!reply) {
         LogMessage(X_ERROR, "systemd-logind: failed to take device %s: %s\n",
                    path, error.message);
@@ -207,7 +205,7 @@ systemd_logind_release_fd(int _major, int _minor, int fd)
     }
 
     reply = dbus_connection_send_with_reply_and_block(info->conn, msg,
-                                                      DBUS_TIMEOUT, &error);
+                                                      DBUS_TIMEOUT_USE_DEFAULT, &error);
     if (!reply)
         LogMessage(X_ERROR, "systemd-logind: failed to release device: %s\n",
                    error.message);
@@ -289,7 +287,7 @@ systemd_logind_ack_pause(struct systemd_logind_info *info,
     }
 
     reply = dbus_connection_send_with_reply_and_block(info->conn, msg,
-                                                      DBUS_TIMEOUT, &error);
+                                                      DBUS_TIMEOUT_USE_DEFAULT, &error);
     if (!reply)
         LogMessage(X_ERROR, "systemd-logind: failed to ack pause: %s\n",
                    error.message);
@@ -312,6 +310,9 @@ message_filter(DBusConnection * connection, DBusMessage * message, void *data)
     DBusError error;
     dbus_int32_t major, minor;
     char *pause_str;
+
+    if (dbus_message_get_type (message) != DBUS_MESSAGE_TYPE_SIGNAL)
+        return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
     dbus_error_init(&error);
 
@@ -454,7 +455,7 @@ connect_hook(DBusConnection *connection, void *data)
     }
 
     reply = dbus_connection_send_with_reply_and_block(connection, msg,
-                                                      DBUS_TIMEOUT, &error);
+                                                      DBUS_TIMEOUT_USE_DEFAULT, &error);
     if (!reply) {
         LogMessage(X_ERROR, "systemd-logind: failed to get session: %s\n",
                    error.message);
@@ -489,7 +490,7 @@ connect_hook(DBusConnection *connection, void *data)
     }
 
     reply = dbus_connection_send_with_reply_and_block(connection, msg,
-                                                      DBUS_TIMEOUT, &error);
+                                                      DBUS_TIMEOUT_USE_DEFAULT, &error);
     if (!reply) {
         LogMessage(X_ERROR, "systemd-logind: TakeControl failed: %s\n",
                    error.message);
@@ -561,7 +562,7 @@ systemd_logind_release_control(struct systemd_logind_info *info)
     }
 
     reply = dbus_connection_send_with_reply_and_block(info->conn, msg,
-                                                      DBUS_TIMEOUT, &error);
+                                                      DBUS_TIMEOUT_USE_DEFAULT, &error);
     if (!reply) {
         LogMessage(X_ERROR, "systemd-logind: ReleaseControl failed: %s\n",
                    error.message);

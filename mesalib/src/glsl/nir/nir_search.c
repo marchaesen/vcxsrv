@@ -218,8 +218,8 @@ match_expression(const nir_search_expression *expr, nir_alu_instr *instr,
    if (matched)
       return true;
 
-   if (nir_op_infos[instr->op].num_inputs == 2 &&
-       (nir_op_infos[instr->op].algebraic_properties & NIR_OP_IS_COMMUTATIVE)) {
+   if (nir_op_infos[instr->op].algebraic_properties & NIR_OP_IS_COMMUTATIVE) {
+      assert(nir_op_infos[instr->op].num_inputs == 2);
       if (!match_value(expr->srcs[0], instr, 1, num_components,
                        swizzle, state))
          return false;

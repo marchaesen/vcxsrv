@@ -3833,6 +3833,12 @@
             <_description>Spanish (Latin American, Sun dead keys)</_description>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>dvorak</name>
+            <_description>Spanish (Latin American, Dvorak)</_description>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>

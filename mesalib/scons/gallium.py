@@ -549,6 +549,7 @@ def generate(env):
             env.Append(CCFLAGS = [
                 '/analyze',
                 #'/analyze:log', '${TARGET.base}.xml',
+                '/wd28251', # Inconsistent annotation for function
             ])
         if env['clang']:
             # scan-build will produce more comprehensive output

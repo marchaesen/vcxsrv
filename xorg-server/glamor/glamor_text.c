@@ -210,7 +210,6 @@ glamor_text(DrawablePtr drawable, GCPtr gc,
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
     glVertexAttribDivisor(GLAMOR_VERTEX_POS, 0);
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
-    glDisable(GL_COLOR_LOGIC_OP);
 
     return x;
 }
@@ -286,32 +285,16 @@ glamor_poly_text(DrawablePtr drawable, GCPtr gc,
     prog = glamor_use_program_fill(pixmap, gc, &glamor_priv->poly_text_progs, &glamor_facet_poly_text);
 
     if (!prog)
-        goto bail_ctx;
+        goto bail;
 
     x = glamor_text(drawable, gc, glamor_font, prog,
                     x, y, count, chars, charinfo, sixteen);
 
-    glDisable(GL_COLOR_LOGIC_OP);
-
     *final_pos = x;
     return TRUE;
 
-bail_ctx:
-    glDisable(GL_COLOR_LOGIC_OP);
 bail:
     return FALSE;
-}
-
-Bool
-glamor_poly_text8_nf(DrawablePtr drawable, GCPtr gc,
-                     int x, int y, int count, char *chars, int *final_pos)
-{
-    if (glamor_poly_text(drawable, gc, x, y, count, chars, FALSE, final_pos))
-        return TRUE;
-    if (glamor_ddx_fallback_check_pixmap(drawable) && glamor_ddx_fallback_check_gc(gc))
-        return FALSE;
-    *final_pos = miPolyText8(drawable, gc, x, y, count, chars);
-    return TRUE;
 }
 
 int
@@ -323,19 +306,6 @@ glamor_poly_text8(DrawablePtr drawable, GCPtr gc,
     if (glamor_poly_text(drawable, gc, x, y, count, chars, FALSE, &final_pos))
         return final_pos;
     return miPolyText8(drawable, gc, x, y, count, chars);
-}
-
-Bool
-glamor_poly_text16_nf(DrawablePtr drawable, GCPtr gc,
-                      int x, int y, int count, unsigned short *chars, int *final_pos)
-{
-    if (glamor_poly_text(drawable, gc, x, y, count, (char *) chars, TRUE, final_pos))
-        return TRUE;
-
-    if (glamor_ddx_fallback_check_pixmap(drawable) && glamor_ddx_fallback_check_gc(gc))
-        return FALSE;
-    *final_pos = miPolyText16(drawable, gc, x, y, count, chars);
-    return TRUE;
 }
 
 int
@@ -493,15 +463,7 @@ glamor_image_text(DrawablePtr drawable, GCPtr gc,
     return TRUE;
 
 bail:
-    glDisable(GL_COLOR_LOGIC_OP);
     return FALSE;
-}
-
-Bool
-glamor_image_text8_nf(DrawablePtr drawable, GCPtr gc,
-                   int x, int y, int count, char *chars)
-{
-    return glamor_image_text(drawable, gc, x, y, count, chars, FALSE);
 }
 
 void
@@ -510,13 +472,6 @@ glamor_image_text8(DrawablePtr drawable, GCPtr gc,
 {
     if (!glamor_image_text(drawable, gc, x, y, count, chars, FALSE))
         miImageText8(drawable, gc, x, y, count, chars);
-}
-
-Bool
-glamor_image_text16_nf(DrawablePtr drawable, GCPtr gc,
-                       int x, int y, int count, unsigned short *chars)
-{
-    return glamor_image_text(drawable, gc, x, y, count, (char *) chars, TRUE);
 }
 
 void

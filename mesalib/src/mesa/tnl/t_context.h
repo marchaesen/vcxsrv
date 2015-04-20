@@ -514,6 +514,7 @@ typedef struct
    /* Clipspace/ndc/window vertex managment:
     */
    struct tnl_clipspace clipspace;
+   GLmatrix _WindowMap;
 
    /* Probably need a better configuration mechanism:
     */

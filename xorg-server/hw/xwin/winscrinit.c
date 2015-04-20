@@ -216,15 +216,19 @@ winScreenInit(ScreenPtr pScreen, int argc, char **argv)
         winDebug("winScreenInit - Using software cursor\n");  
 #endif
 
-    /*
-       Note the screen origin in a normalized coordinate space where (0,0) is at the top left
-       of the native virtual desktop area
-     */
-    pScreen->x = pScreenInfo->dwInitialX - GetSystemMetrics(SM_XVIRTUALSCREEN);
-    pScreen->y = pScreenInfo->dwInitialY - GetSystemMetrics(SM_YVIRTUALSCREEN);
+    if (!noPanoramiXExtension) {
+        /*
+           Note the screen origin in a normalized coordinate space where (0,0) is at the top left
+           of the native virtual desktop area
+         */
+        pScreen->x =
+            pScreenInfo->dwInitialX - GetSystemMetrics(SM_XVIRTUALSCREEN);
+        pScreen->y =
+            pScreenInfo->dwInitialY - GetSystemMetrics(SM_YVIRTUALSCREEN);
 
-    winDebug("Screen %d added at virtual desktop coordinate (%d,%d).\n",
-           pScreen->myNum, pScreen->x, pScreen->y);
+        winDebug("Screen %d added at virtual desktop coordinate (%d,%d).\n",
+               pScreen->myNum, pScreen->x, pScreen->y);
+    }
     winDebug("winScreenInit - returning\n");
 
     return TRUE;
@@ -306,8 +310,6 @@ winFinishScreenInitFB(int i, ScreenPtr pScreen, int argc, char **argv)
     if (pScreenInfo->dwDepth == 8
         && (pScreenInfo->dwEngine == WIN_SERVER_SHADOW_GDI
             || (pScreenInfo->dwEngine == WIN_SERVER_SHADOW_DDNL
-                && pScreenInfo->fFullScreen)
-            || (pScreenInfo->dwEngine == WIN_SERVER_SHADOW_DD
                 && pScreenInfo->fFullScreen))) {
         winSetColormapFunctions(pScreen);
 
@@ -377,7 +379,6 @@ winFinishScreenInitFB(int i, ScreenPtr pScreen, int argc, char **argv)
 
     /* Initialize the shadow framebuffer layer */
     if ((pScreenInfo->dwEngine == WIN_SERVER_SHADOW_GDI
-         || pScreenInfo->dwEngine == WIN_SERVER_SHADOW_DD
          || pScreenInfo->dwEngine == WIN_SERVER_SHADOW_DDNL)
 #ifdef XWIN_MULTIWINDOWEXTWM
         && !pScreenInfo->fMWExtWM

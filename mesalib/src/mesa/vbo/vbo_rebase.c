@@ -142,7 +142,7 @@ void vbo_rebase_prims( struct gl_context *ctx,
    assert(min_index != 0);
 
    if (0)
-      printf("%s %d..%d\n", __FUNCTION__, min_index, max_index);
+      printf("%s %d..%d\n", __func__, min_index, max_index);
 
 
    /* XXX this path is disabled for now.

@@ -69,19 +69,9 @@ glamor_create_picture(PicturePtr picture)
         glamor_set_pixmap_type(pixmap, GLAMOR_MEMORY);
         pixmap_priv = glamor_get_pixmap_private(pixmap);
     }
-    else {
-        if (GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv)) {
-            /* If the picture format is not compatible with glamor fbo format,
-             * we have to mark this pixmap as a separated texture, and don't
-             * fallback to DDX layer. */
-            if (pixmap_priv->type == GLAMOR_TEXTURE_DRM
-                && !glamor_pict_format_is_compatible(picture))
-                glamor_set_pixmap_type(pixmap, GLAMOR_SEPARATE_TEXTURE);
-        }
-    }
 
-    pixmap_priv->base.is_picture = 1;
-    pixmap_priv->base.picture = picture;
+    pixmap_priv->is_picture = 1;
+    pixmap_priv->picture = picture;
 
     return miCreatePicture(picture);
 }
@@ -99,8 +89,8 @@ glamor_destroy_picture(PicturePtr picture)
     pixmap_priv = glamor_get_pixmap_private(pixmap);
 
     if (pixmap_priv) {
-        pixmap_priv->base.is_picture = 0;
-        pixmap_priv->base.picture = NULL;
+        pixmap_priv->is_picture = 0;
+        pixmap_priv->picture = NULL;
     }
     miDestroyPicture(picture);
 }
@@ -109,5 +99,5 @@ void
 glamor_picture_format_fixup(PicturePtr picture,
                             glamor_pixmap_private *pixmap_priv)
 {
-    pixmap_priv->base.picture = picture;
+    pixmap_priv->picture = picture;
 }

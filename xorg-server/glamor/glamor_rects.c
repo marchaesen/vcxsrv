@@ -65,7 +65,7 @@ glamor_poly_fill_rect_gl(DrawablePtr drawable,
                                        &glamor_facet_polyfillrect_130);
 
         if (!prog)
-            goto bail_ctx;
+            goto bail;
 
         /* Set up the vertex buffers for the points */
 
@@ -87,7 +87,7 @@ glamor_poly_fill_rect_gl(DrawablePtr drawable,
                                        &glamor_facet_polyfillrect_120);
 
         if (!prog)
-            goto bail_ctx;
+            goto bail;
 
         /* Set up the vertex buffers for the points */
 
@@ -126,27 +126,17 @@ glamor_poly_fill_rect_gl(DrawablePtr drawable,
             if (glamor_priv->glsl_version >= 130)
                 glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, nrect);
             else {
-                if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
-                    glDrawArrays(GL_QUADS, 0, nrect * 4);
-                } else {
-                    int i;
-                    for (i = 0; i < nrect; i++) {
-                        glDrawArrays(GL_TRIANGLE_FAN, i * 4, 4);
-                    }
-                }
+                glamor_glDrawArrays_GL_QUADS(glamor_priv, nrect);
             }
         }
     }
 
     glDisable(GL_SCISSOR_TEST);
-    glDisable(GL_COLOR_LOGIC_OP);
     if (glamor_priv->glsl_version >= 130)
         glVertexAttribDivisor(GLAMOR_VERTEX_POS, 0);
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
 
     return TRUE;
-bail_ctx:
-    glDisable(GL_COLOR_LOGIC_OP);
 bail:
     return FALSE;
 }
@@ -172,16 +162,4 @@ glamor_poly_fill_rect(DrawablePtr drawable,
     if (glamor_poly_fill_rect_gl(drawable, gc, nrect, prect))
         return;
     glamor_poly_fill_rect_bail(drawable, gc, nrect, prect);
-}
-
-Bool
-glamor_poly_fill_rect_nf(DrawablePtr drawable,
-                         GCPtr gc, int nrect, xRectangle *prect)
-{
-    if (glamor_poly_fill_rect_gl(drawable, gc, nrect, prect))
-        return TRUE;
-    if (glamor_ddx_fallback_check_pixmap(drawable) && glamor_ddx_fallback_check_gc(gc))
-        return FALSE;
-    glamor_poly_fill_rect_bail(drawable, gc, nrect, prect);
-    return TRUE;
 }

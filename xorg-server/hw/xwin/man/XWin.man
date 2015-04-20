@@ -76,6 +76,9 @@ preceeding \fB\-screen\fP parameter.
 .B \-[no]multimonitors or \-[no]multiplemonitors
 Create a screen 0 that covers all monitors [the primary monitor] on a system with
 multiple monitors.
+Fake XINERAMA data is created describing the individual monitors,
+(This is similar to the 'merged framebuffer' or 'pseudo-xinerama' mode provided by
+some drivers for the xorg X server).
 This option is currently enabled by default in \fB\-multiwindow\fP mode.
 .TP 8
 .B "\-screen \fIscreen_number\fP [\fIW\fP \fIH\fP [\fIX\fP \fIY\fP] | [[\fIW\fPx\fIH\fP[+\fIX\fP+\fIY\fP]][@\fIM\fP]] ] "
@@ -167,9 +170,10 @@ on its own is equivalent to \fB\-resize=randr\fP
 
 .SH OPTIONS FOR MULTIWINDOW MODE
 .TP 8
-.B \-hostintitle
+.B \-[no]hostintitle
 Add the host name to the window title for X applications which are running
 on remote hosts, when that information is available and it's useful to do so.
+The default is enabled.
 
 .SH OPTIONS CONTROLLING WINDOWS INTEGRATION
 .TP 8
@@ -244,9 +248,6 @@ functionality does not provide a benefit at any number of boxes; we
 can only determine the usefulness of this feature through testing.
 This option probably has limited effect on current \fIWindows\fP versions
 as they already perform GDI batching.
-This parameter works in conjunction with engines 1, 2, and 4 (Shadow
-GDI, Shadow DirectDraw, and Shadow DirectDraw Non-Locking,
-respectively).
 .TP 8
 .B "\-engine \fIengine_type_id\fP"
 This option, which is intended for Cygwin/X developers,
@@ -261,8 +262,6 @@ The engine type ids are:
 .RS
 .IP 1 4
 Shadow GDI
-.IP 2 4
-Shadow DirectDraw
 .IP 4 4
 Shadow DirectDraw Non-Locking
 .RE

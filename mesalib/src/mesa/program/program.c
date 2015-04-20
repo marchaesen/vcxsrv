@@ -37,6 +37,7 @@
 #include "prog_cache.h"
 #include "prog_parameter.h"
 #include "prog_instruction.h"
+#include "util/ralloc.h"
 
 
 /**
@@ -378,6 +379,10 @@ _mesa_delete_program(struct gl_context *ctx, struct gl_program *prog)
    }
    if (prog->Parameters) {
       _mesa_free_parameter_list(prog->Parameters);
+   }
+
+   if (prog->nir) {
+      ralloc_free(prog->nir);
    }
 
    free(prog);

@@ -32,8 +32,6 @@
 
 #include "glamor_priv.h"
 
-#ifdef RENDER
-
 #define LINEAR_SMALL_STOPS (6 + 2)
 #define LINEAR_LARGE_STOPS (16 + 2)
 
@@ -684,9 +682,9 @@ _glamor_gradient_set_pixmap_destination(ScreenPtr screen,
         return 0;
     }
 
-    glamor_set_destination_pixmap_priv_nc(pixmap_priv);
+    glamor_set_destination_pixmap_priv_nc(glamor_priv, pixmap, pixmap_priv);
 
-    pixmap_priv_get_dest_scale(pixmap_priv, xscale, yscale);
+    pixmap_priv_get_dest_scale(pixmap, pixmap_priv, xscale, yscale);
 
     DEBUGF("xscale = %f, yscale = %f,"
            " x_source = %d, y_source = %d, width = %d, height = %d\n",
@@ -994,6 +992,8 @@ glamor_generate_radial_gradient_picture(ScreenPtr screen,
         (screen, glamor_priv, dst_picture, &xscale, &yscale, x_source, y_source,
          vertices, tex_vertices, 0))
         goto GRADIENT_FAIL;
+
+    glamor_set_alu(screen, GXcopy);
 
     /* Set all the stops and colors to shader. */
     if (stops_count > RADIAL_SMALL_STOPS) {
@@ -1311,6 +1311,8 @@ glamor_generate_linear_gradient_picture(ScreenPtr screen,
          vertices, tex_vertices, 1))
         goto GRADIENT_FAIL;
 
+    glamor_set_alu(screen, GXcopy);
+
     /* Normalize the PTs. */
     glamor_set_normalize_pt(xscale, yscale,
                             pixman_fixed_to_double(src_picture->pSourcePict->
@@ -1473,5 +1475,3 @@ glamor_generate_linear_gradient_picture(ScreenPtr screen,
 }
 
 #endif                          /* End of GLAMOR_GRADIENT_SHADER */
-
-#endif                          /* End of RENDER */

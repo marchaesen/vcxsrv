@@ -8,5 +8,6 @@ get_hash.h
 get_hash.h.tmp
 format_info.h
 glapitable.h
+format_info.c
 format_pack.c
 format_unpack.c

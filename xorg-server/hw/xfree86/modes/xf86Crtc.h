@@ -70,6 +70,17 @@ typedef enum _xf86OutputStatus {
     XF86OutputStatusUnknown
 } xf86OutputStatus;
 
+struct xf86CrtcTileInfo {
+    uint32_t group_id;
+    uint32_t flags;
+    uint32_t num_h_tile;
+    uint32_t num_v_tile;
+    uint32_t tile_h_loc;
+    uint32_t tile_v_loc;
+    uint32_t tile_h_size;
+    uint32_t tile_v_size;
+};
+
 typedef struct _xf86CrtcFuncs {
    /**
     * Turns the crtc on/off, or sets intermediate power levels if available.
@@ -226,7 +237,7 @@ typedef struct _xf86CrtcFuncs {
 
 } xf86CrtcFuncsRec, *xf86CrtcFuncsPtr;
 
-#define XF86_CRTC_VERSION 5
+#define XF86_CRTC_VERSION 6
 
 struct _xf86Crtc {
     /**
@@ -500,7 +511,7 @@ typedef struct _xf86OutputFuncs {
      (*destroy) (xf86OutputPtr output);
 } xf86OutputFuncsRec, *xf86OutputFuncsPtr;
 
-#define XF86_OUTPUT_VERSION 2
+#define XF86_OUTPUT_VERSION 3
 
 struct _xf86Output {
     /**
@@ -615,6 +626,8 @@ struct _xf86Output {
     BoxRec initialTotalArea;
     BoxRec initialTrackingArea;
     INT16 initialBorder[4];
+
+    struct xf86CrtcTileInfo tile_info;
 };
 
 typedef struct _xf86ProviderFuncs {
@@ -879,6 +892,15 @@ xf86SetSingleMode(ScrnInfoPtr pScrn, DisplayModePtr desired, Rotation rotation);
  */
 extern _X_EXPORT void
  xf86OutputSetEDID(xf86OutputPtr output, xf86MonPtr edid_mon);
+
+/**
+ * Set the TILE information for the specified output
+ */
+extern _X_EXPORT void
+xf86OutputSetTile(xf86OutputPtr output, struct xf86CrtcTileInfo *tile_info);
+
+extern _X_EXPORT Bool
+xf86OutputParseKMSTile(const char *tile_data, int tile_length, struct xf86CrtcTileInfo *tile_info);
 
 /**
  * Return the list of modes supported by the EDID information

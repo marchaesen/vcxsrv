@@ -115,6 +115,9 @@ extern void GLAPIENTRY
 _mesa_GenRenderbuffers(GLsizei n, GLuint *renderbuffers);
 
 extern void GLAPIENTRY
+_mesa_CreateRenderbuffers(GLsizei n, GLuint *renderbuffers);
+
+extern void GLAPIENTRY
 _mesa_RenderbufferStorage(GLenum target, GLenum internalformat,
                              GLsizei width, GLsizei height);
 
@@ -128,11 +131,24 @@ _es_RenderbufferStorageEXT(GLenum target, GLenum internalFormat,
 			   GLsizei width, GLsizei height);
 
 extern void GLAPIENTRY
+_mesa_NamedRenderbufferStorage(GLuint renderbuffer, GLenum internalformat,
+                               GLsizei width, GLsizei height);
+
+extern void GLAPIENTRY
+_mesa_NamedRenderbufferStorageMultisample(GLuint renderbuffer, GLsizei samples,
+                                          GLenum internalformat,
+                                          GLsizei width, GLsizei height);
+
+extern void GLAPIENTRY
 _mesa_EGLImageTargetRenderbufferStorageOES(GLenum target, GLeglImageOES image);
 
 extern void GLAPIENTRY
 _mesa_GetRenderbufferParameteriv(GLenum target, GLenum pname,
                                     GLint *params);
+
+void GLAPIENTRY
+_mesa_GetNamedRenderbufferParameteriv(GLuint renderbuffer, GLenum pname,
+                                      GLint *params);
 
 extern GLboolean GLAPIENTRY
 _mesa_IsFramebuffer(GLuint framebuffer);

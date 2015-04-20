@@ -49,7 +49,6 @@ public:
    {
       instructions = insts;
       progress = false;
-      index = 0;
    }
 
    bool run()
@@ -63,7 +62,6 @@ public:
 private:
    exec_list *instructions;
    bool progress;
-   unsigned index;
 };
 
 void
@@ -82,7 +80,7 @@ lower_const_array_visitor::handle_rvalue(ir_rvalue **rvalue)
 
    void *mem_ctx = ralloc_parent(con);
 
-   char *uniform_name = ralloc_asprintf(mem_ctx, "constarray__%d", index++);
+   char *uniform_name = ralloc_asprintf(mem_ctx, "constarray__%p", dra);
 
    ir_variable *uni =
       new(mem_ctx) ir_variable(con->type, uniform_name, ir_var_uniform);

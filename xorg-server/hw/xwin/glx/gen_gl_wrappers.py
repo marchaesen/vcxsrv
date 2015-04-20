@@ -219,6 +219,36 @@ if dispatchheader :
 
     del dispatch['glby_offset']
 
+def ParseCmdRettype(cmd):
+    proto=noneStr(cmd.elem.find('proto'))
+    rettype=noneStr(proto.text)
+    if rettype.lower()!="void ":
+        plist = ([t for t in proto.itertext()])
+        rettype = ''.join(plist[:-1])
+    rettype=rettype.strip()
+    return rettype
+
+def ParseCmdParams(cmd):
+    params = cmd.elem.findall('param')
+    plist=[]
+    for param in params:
+        # construct the formal parameter definition from ptype and name
+        # elements, also using any text found around these in the
+        # param element, in the order it appears in the document
+        paramtype = ''
+        # also extract the formal parameter name from the name element
+        paramname = ''
+        for t in param.iter():
+            if t.tag == 'ptype' or t.tag == 'param':
+                paramtype = paramtype + noneStr(t.text)
+            if t.tag == 'name':
+                paramname = t.text + '_'
+                paramtype = paramtype + ' ' + paramname
+            if t.tail is not None:
+                paramtype = paramtype + t.tail.strip()
+        plist.append((paramtype, paramname))
+    return plist
+
 class PreResolveOutputGenerator(OutputGenerator):
     def __init__(self,
                  errFile = sys.stderr,
@@ -281,28 +311,15 @@ class MyOutputGenerator(OutputGenerator):
             return
 
         self.wrappers[name]=1
+        rettype=ParseCmdRettype(cmd)
 
-        proto=noneStr(cmd.elem.find('proto'))
-        rettype=noneStr(proto.text)
-        if rettype.lower()!="void ":
-            plist = ([t for t in proto.itertext()])
-            rettype = ''.join(plist[:-1])
-            #ptype=proto.find("ptype")
-            #if ptype!=None:
-            #    rettype = (noneStr(ptype.text))+" "
         if staticwrappers: self.outFile.write("static ")
-        self.outFile.write("%s__stdcall %sWrapper("%(rettype, name))
-        params = cmd.elem.findall('param')
-        plist=[]
-        for param in params:
-            paramlist = ([t for t in param.itertext()])
-            paramtype = ''.join(paramlist[:-1])
-            paramname = paramlist[-1]
-            plist.append((paramtype, paramname))
+        self.outFile.write("%s __stdcall %sWrapper("%(rettype, name))
+        plist=ParseCmdParams(cmd)
         Comma=""
         if len(plist):
             for ptype, pname in plist:
-                self.outFile.write("%s%s%s_"%(Comma, ptype, pname))
+                self.outFile.write("%s%s"%(Comma, ptype))
                 Comma=", "
         else:
             self.outFile.write("void")
@@ -323,7 +340,7 @@ class MyOutputGenerator(OutputGenerator):
                 self.outFile.write("  return %s( "%(name))
             Comma=""
             for ptype, pname in plist:
-                self.outFile.write("%s%s_"%(Comma, pname))
+                self.outFile.write("%s%s"%(Comma, pname))
                 Comma=", "
         else:
             if rettype.lower()=="void ":
@@ -348,7 +365,7 @@ class MyOutputGenerator(OutputGenerator):
   return RESOLVED_PROC(PFN%sPROC)( """%(name.upper()))
             Comma=""
             for ptype, pname in plist:
-                self.outFile.write("%s%s_"%(Comma, pname))
+                self.outFile.write("%s%s"%(Comma, pname))
                 Comma=", "
         self.outFile.write(" );\n}\n\n")
 

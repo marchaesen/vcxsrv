@@ -1,6 +1,5 @@
 
 #include "main/context.h"
-#include "main/colormac.h"
 #include "main/fbobject.h"
 #include "main/macros.h"
 #include "main/teximage.h"

@@ -50,6 +50,7 @@
 #define RRCrtc CARD32
 #define RRProvider CARD32
 #define RRModeFlags CARD32
+#define Atom CARD32
 
 #define Rotation CARD16
 #define SizeID CARD16
@@ -1012,6 +1013,63 @@ typedef struct {
 } xRRSetPanningReply;
 #define sz_xRRSetPanningReply	32
 
+typedef struct {
+    Atom	name B32;
+    BOOL	primary;
+    BOOL	automatic;
+    CARD16	noutput B16;
+    INT16	x B16;
+    INT16	y B16;
+    CARD16	width B16;
+    CARD16	height B16;
+    CARD32	widthInMillimeters B32;
+    CARD32	heightInMillimeters B32;
+} xRRMonitorInfo;
+#define sz_xRRMonitorInfo	24
+
+typedef struct {
+    CARD8	reqType;
+    CARD8	randrReqType;
+    CARD16	length B16;
+    Window	window B32;
+    BOOL	get_active;
+    CARD8	pad;
+    CARD16	pad2;
+} xRRGetMonitorsReq;
+#define sz_xRRGetMonitorsReq	12
+
+typedef struct {
+    BYTE	type;
+    CARD8	status;
+    CARD16	sequenceNumber B16;
+    CARD32	length B32;
+    Time	timestamp B32;
+    CARD32	nmonitors B32;
+    CARD32	noutputs B32;
+    CARD32      pad1 B32;
+    CARD32      pad2 B32;
+    CARD32      pad3 B32;
+} xRRGetMonitorsReply;
+#define sz_xRRGetMonitorsReply	32
+
+typedef struct {
+    CARD8	reqType;
+    CARD8	randrReqType;
+    CARD16	length B16;
+    Window	window B32;
+    xRRMonitorInfo	monitor;
+} xRRSetMonitorReq;
+#define sz_xRRSetMonitorReq	32
+
+typedef struct {
+    CARD8	reqType;
+    CARD8	randrReqType;
+    CARD16	length B16;
+    Window	window B32;
+    Atom	name B32;
+} xRRDeleteMonitorReq;
+#define sz_xRRDeleteMonitorReq	12
+
 #undef RRModeFlags
 #undef RRCrtc
 #undef RRMode
@@ -1033,5 +1091,6 @@ typedef struct {
 #undef Rotation
 #undef SizeID
 #undef SubpixelOrder
+#undef Atom
 
 #endif /* _XRANDRP_H_ */

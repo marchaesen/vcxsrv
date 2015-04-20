@@ -7,6 +7,47 @@
    <enum name="QUERY_TARGET"    value="0x82EA"/>
    <enum name="TEXTURE_BINDING" value="0x82EB"/>
 
+   <!-- Transform Feedback object functions -->
+
+  <function name="CreateTransformFeedbacks" offset="assign">
+      <param name="n" type="GLsizei" />
+      <param name="ids" type="GLuint *" />
+   </function>
+
+   <function name="TransformFeedbackBufferBase" offset="assign">
+      <param name="xfb" type="GLuint" />
+      <param name="index" type="GLuint" />
+      <param name="buffer" type="GLuint" />
+   </function>
+
+   <function name="TransformFeedbackBufferRange" offset="assign">
+      <param name="xfb" type="GLuint" />
+      <param name="index" type="GLuint" />
+      <param name="buffer" type="GLuint" />
+      <param name="offset" type="GLintptr" />
+      <param name="size" type="GLsizeiptr" />
+   </function>
+
+   <function name="GetTransformFeedbackiv" offset="assign">
+      <param name="xfb" type="GLuint" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="GLint *" />
+   </function>
+
+   <function name="GetTransformFeedbacki_v" offset="assign">
+      <param name="xfb" type="GLuint" />
+      <param name="pname" type="GLenum" />
+      <param name="index" type="GLuint" />
+      <param name="param" type="GLint *" />
+   </function>
+
+   <function name="GetTransformFeedbacki64_v" offset="assign">
+      <param name="xfb" type="GLuint" />
+      <param name="pname" type="GLenum" />
+      <param name="index" type="GLuint" />
+      <param name="param" type="GLint64 *" />
+   </function>
+
    <!-- Buffer object functions -->
 
    <function name="CreateBuffers" offset="assign">
@@ -109,6 +150,34 @@
       <param name="offset" type="GLintptr" />
       <param name="size" type="GLsizeiptr" />
       <param name="data" type="GLvoid *" />
+   </function>
+
+   <!-- Renderbuffer object functions -->
+
+   <function name="CreateRenderbuffers" offset="assign">
+      <param name="n" type="GLsizei" />
+      <param name="renderbuffers" type="GLuint *" />
+   </function>
+
+   <function name="NamedRenderbufferStorage" offset="assign">
+      <param name="renderbuffer" type="GLuint" />
+      <param name="internalformat" type="GLenum" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+   </function>
+
+   <function name="NamedRenderbufferStorageMultisample" offset="assign">
+      <param name="renderbuffer" type="GLuint" />
+      <param name="samples" type="GLsizei" />
+      <param name="internalformat" type="GLenum" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+   </function>
+
+   <function name="GetNamedRenderbufferParameteriv" offset="assign">
+      <param name="renderbuffer" type="GLuint" />
+      <param name="pname" type="GLenum" />
+      <param name="params" type="GLint *" />
    </function>
 
    <!-- Texture object functions -->
@@ -379,5 +448,54 @@
       <param name="params" type="GLint *" />
    </function>
 
+   <!-- Sampler object functions -->
+
+   <function name="CreateSamplers" offset="assign">
+      <param name="n" type="GLsizei" />
+      <param name="samplers" type="GLuint *" />
+   </function>
+
+   <!-- Program Pipeline object functions -->
+
+   <function name="CreateProgramPipelines" offset="assign">
+      <param name="n" type="GLsizei" />
+      <param name="pipelines" type="GLuint *" />
+   </function>
+
+   <!-- Query object functions -->
+
+   <function name="CreateQueries" offset="assign">
+      <param name="target" type="GLenum" />
+      <param name="n" type="GLsizei" />
+      <param name="ids" type="GLuint *" />
+   </function>
+
+   <function name="GetQueryBufferObjectiv" offset="assign">
+      <param name="id" type="GLuint" />
+      <param name="buffer" type="GLuint" />
+      <param name="pname" type="GLenum" />
+      <param name="offset" type="GLintptr" />
+   </function>
+
+   <function name="GetQueryBufferObjectuiv" offset="assign">
+      <param name="id" type="GLuint" />
+      <param name="buffer" type="GLuint" />
+      <param name="pname" type="GLenum" />
+      <param name="offset" type="GLintptr" />
+   </function>
+
+   <function name="GetQueryBufferObjecti64v" offset="assign">
+      <param name="id" type="GLuint" />
+      <param name="buffer" type="GLuint" />
+      <param name="pname" type="GLenum" />
+      <param name="offset" type="GLintptr" />
+   </function>
+
+   <function name="GetQueryBufferObjectui64v" offset="assign">
+      <param name="id" type="GLuint" />
+      <param name="buffer" type="GLuint" />
+      <param name="pname" type="GLenum" />
+      <param name="offset" type="GLintptr" />
+   </function>
 </category>
 </OpenGLAPI>

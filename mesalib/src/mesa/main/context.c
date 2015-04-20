@@ -1288,7 +1288,6 @@ _mesa_free_context_data( struct gl_context *ctx )
    _mesa_free_eval_data( ctx );
    _mesa_free_texture_data( ctx );
    _mesa_free_matrix_data( ctx );
-   _mesa_free_viewport_data( ctx );
    _mesa_free_pipeline_data(ctx);
    _mesa_free_program_data(ctx);
    _mesa_free_shader_state(ctx);
@@ -1449,17 +1448,10 @@ _mesa_copy_context( const struct gl_context *src, struct gl_context *dst,
       dst->Transform = src->Transform;
    }
    if (mask & GL_VIEWPORT_BIT) {
-      /* Cannot use memcpy, because of pointers in GLmatrix _WindowMap */
       unsigned i;
       for (i = 0; i < src->Const.MaxViewports; i++) {
-         dst->ViewportArray[i].X = src->ViewportArray[i].X;
-         dst->ViewportArray[i].Y = src->ViewportArray[i].Y;
-         dst->ViewportArray[i].Width = src->ViewportArray[i].Width;
-         dst->ViewportArray[i].Height = src->ViewportArray[i].Height;
-         dst->ViewportArray[i].Near = src->ViewportArray[i].Near;
-         dst->ViewportArray[i].Far = src->ViewportArray[i].Far;
-         _math_matrix_copy(&dst->ViewportArray[i]._WindowMap,
-                           &src->ViewportArray[i]._WindowMap);
+         /* OK to memcpy */
+         dst->ViewportArray[i] = src->ViewportArray[i];
       }
    }
 

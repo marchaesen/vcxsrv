@@ -108,6 +108,9 @@ SOFTWARE.
 #include "misc.h"
 #include "extension.h"
 #include "extinit.h"
+#ifdef INXQUARTZ
+#include "nonsdk_extinit.h"
+#endif
 #include "micmap.h"
 #include "globals.h"
 

@@ -263,6 +263,19 @@ cross_validate_outputs_to_inputs(struct gl_shader_program *prog,
          if (output != NULL) {
             cross_validate_types_and_qualifiers(prog, input, output,
                                                 consumer->Stage, producer->Stage);
+         } else {
+            /* Check for input vars with unmatched output vars in prev stage
+             * taking into account that interface blocks could have a matching
+             * output but with different name, so we ignore them.
+             */
+            assert(!input->data.assigned);
+            if (input->data.used && !input->get_interface_type() &&
+                !input->data.explicit_location && !prog->SeparateShader)
+               linker_error(prog,
+                            "%s shader input `%s' "
+                            "has no matching output in the previous stage\n",
+                            _mesa_shader_stage_to_string(consumer->Stage),
+                            input->name);
          }
       }
    }

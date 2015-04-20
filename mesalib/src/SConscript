@@ -12,7 +12,8 @@ if env['hostonly']:
     # compilation
     Return()
 
-SConscript('loader/SConscript')
+if env['platform'] != 'windows':
+    SConscript('loader/SConscript')
 
 # When env['gles'] is set, the targets defined in mapi/glapi/SConscript are not
 # used.  libgl-xlib and libgl-gdi adapt themselves to use the targets defined
@@ -30,7 +31,7 @@ SConscript('mesa/SConscript')
 if not env['embedded']:
     if env['platform'] not in ('cygwin', 'darwin', 'freebsd', 'haiku', 'windows'):
         SConscript('glx/SConscript')
-    if env['platform'] not in ['darwin', 'haiku', 'sunos']:
+    if env['platform'] not in ['darwin', 'haiku', 'sunos', 'windows']:
         if env['dri']:
             SConscript('egl/drivers/dri2/SConscript')
         SConscript('egl/main/SConscript')

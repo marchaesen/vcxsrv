@@ -509,12 +509,13 @@ get_register_for_ssa_def(nir_ssa_def *def, struct from_ssa_state *state)
       reg->num_components = def->num_components;
       reg->num_array_elems = 0;
 
-      /* This register comes from an SSA definition that was not part of a
-       * phi-web.  Therefore, we know it has a single unique definition
-       * that dominates all of its uses.  Therefore, we can copy the
+      /* This register comes from an SSA definition that is defined and not
+       * part of a phi-web.  Therefore, we know it has a single unique
+       * definition that dominates all of its uses; we can copy the
        * parent_instr from the SSA def safely.
        */
-      reg->parent_instr = def->parent_instr;
+      if (def->parent_instr->type != nir_instr_type_ssa_undef)
+         reg->parent_instr = def->parent_instr;
 
       _mesa_hash_table_insert(state->ssa_table, def, reg);
       return reg;

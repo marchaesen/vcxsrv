@@ -23,8 +23,8 @@
  */
 
 #include <assert.h>
-#include <limits>
 #include <stdio.h>
+#include <math.h>
 #include "s_expression.h"
 
 s_symbol::s_symbol(const char *str, size_t n)
@@ -70,7 +70,7 @@ read_atom(void *ctx, const char *&src, char *&symbol_buffer)
    // requires strtof to parse '+INF' as +Infinity, but we still support some
    // non-C99-compliant compilers (e.g. MSVC).
    if (n == 4 && strncmp(src, "+INF", 4) == 0) {
-      expr = new(ctx) s_float(std::numeric_limits<float>::infinity());
+      expr = new(ctx) s_float(INFINITY);
    } else {
       // Check if the atom is a number.
       char *float_end = NULL;

@@ -29,7 +29,6 @@
 
 #include "main/glheader.h"
 #include "main/context.h"
-#include "main/colormac.h"
 #include "main/macros.h"
 
 #include "s_alpha.h"

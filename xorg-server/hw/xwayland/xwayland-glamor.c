@@ -549,11 +549,7 @@ xwl_glamor_init(struct xwl_screen *xwl_screen)
         return FALSE;
     }
 
-    if (!glamor_init(xwl_screen->screen,
-                     GLAMOR_INVERTED_Y_AXIS |
-                     GLAMOR_USE_EGL_SCREEN |
-                     GLAMOR_USE_SCREEN |
-                     GLAMOR_USE_PICTURE_SCREEN)) {
+    if (!glamor_init(xwl_screen->screen, GLAMOR_USE_EGL_SCREEN)) {
         ErrorF("Failed to initialize glamor\n");
         return FALSE;
     }

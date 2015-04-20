@@ -375,66 +375,14 @@ arithmetic_result_type(ir_rvalue * &value_a, ir_rvalue * &value_b,
       if (type_a == type_b)
          return type_a;
    } else {
-      if (type_a->is_matrix() && type_b->is_matrix()) {
-         /* Matrix multiply.  The columns of A must match the rows of B.  Given
-          * the other previously tested constraints, this means the vector type
-          * of a row from A must be the same as the vector type of a column from
-          * B.
-          */
-         if (type_a->row_type() == type_b->column_type()) {
-            /* The resulting matrix has the number of columns of matrix B and
-             * the number of rows of matrix A.  We get the row count of A by
-             * looking at the size of a vector that makes up a column.  The
-             * transpose (size of a row) is done for B.
-             */
-            const glsl_type *const type =
-               glsl_type::get_instance(type_a->base_type,
-                                       type_a->column_type()->vector_elements,
-                                       type_b->row_type()->vector_elements);
-            assert(type != glsl_type::error_type);
+      const glsl_type *type = glsl_type::get_mul_type(type_a, type_b);
 
-            return type;
-         }
-      } else if (type_a->is_matrix()) {
-         /* A is a matrix and B is a column vector.  Columns of A must match
-          * rows of B.  Given the other previously tested constraints, this
-          * means the vector type of a row from A must be the same as the
-          * vector the type of B.
-          */
-         if (type_a->row_type() == type_b) {
-            /* The resulting vector has a number of elements equal to
-             * the number of rows of matrix A. */
-            const glsl_type *const type =
-               glsl_type::get_instance(type_a->base_type,
-                                       type_a->column_type()->vector_elements,
-                                       1);
-            assert(type != glsl_type::error_type);
-
-            return type;
-         }
-      } else {
-         assert(type_b->is_matrix());
-
-         /* A is a row vector and B is a matrix.  Columns of A must match rows
-          * of B.  Given the other previously tested constraints, this means
-          * the type of A must be the same as the vector type of a column from
-          * B.
-          */
-         if (type_a == type_b->column_type()) {
-            /* The resulting vector has a number of elements equal to
-             * the number of columns of matrix B. */
-            const glsl_type *const type =
-               glsl_type::get_instance(type_a->base_type,
-                                       type_b->row_type()->vector_elements,
-                                       1);
-            assert(type != glsl_type::error_type);
-
-            return type;
-         }
+      if (type == glsl_type::error_type) {
+         _mesa_glsl_error(loc, state,
+                          "size mismatch for matrix multiplication");
       }
 
-      _mesa_glsl_error(loc, state, "size mismatch for matrix multiplication");
-      return glsl_type::error_type;
+      return type;
    }
 
 
@@ -5776,6 +5724,9 @@ ast_interface_block::hir(exec_list *instructions,
       var->data.matrix_layout = matrix_layout == GLSL_MATRIX_LAYOUT_INHERITED
          ? GLSL_MATRIX_LAYOUT_COLUMN_MAJOR : matrix_layout;
 
+      if (var_mode == ir_var_shader_in || var_mode == ir_var_uniform)
+         var->data.read_only = true;
+
       if (state->stage == MESA_SHADER_GEOMETRY && var_mode == ir_var_shader_in)
          handle_geometry_shader_input_decl(state, loc, var);
 
@@ -5815,6 +5766,9 @@ ast_interface_block::hir(exec_list *instructions,
          var->data.centroid = fields[i].centroid;
          var->data.sample = fields[i].sample;
          var->init_interface_type(block_type);
+
+         if (var_mode == ir_var_shader_in || var_mode == ir_var_uniform)
+            var->data.read_only = true;
 
          if (fields[i].matrix_layout == GLSL_MATRIX_LAYOUT_INHERITED) {
             var->data.matrix_layout = matrix_layout == GLSL_MATRIX_LAYOUT_INHERITED

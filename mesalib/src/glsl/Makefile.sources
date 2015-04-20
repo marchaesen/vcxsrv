@@ -22,6 +22,7 @@ NIR_FILES = \
 	nir/glsl_to_nir.h \
 	nir/nir.c \
 	nir/nir.h \
+	nir/nir_builder.h \
 	nir/nir_constant_expressions.h \
 	nir/nir_dominance.c \
 	nir/nir_from_ssa.c \
@@ -32,21 +33,25 @@ NIR_FILES = \
 	nir/nir_lower_atomics.c \
 	nir/nir_lower_global_vars_to_local.c \
 	nir/nir_lower_locals_to_regs.c \
+	nir/nir_lower_idiv.c \
 	nir/nir_lower_io.c \
 	nir/nir_lower_phis_to_scalar.c \
 	nir/nir_lower_samplers.cpp \
 	nir/nir_lower_system_values.c \
+	nir/nir_lower_tex_projector.c \
 	nir/nir_lower_to_source_mods.c \
 	nir/nir_lower_vars_to_ssa.c \
 	nir/nir_lower_var_copies.c \
 	nir/nir_lower_vec_to_movs.c \
 	nir/nir_metadata.c \
+	nir/nir_normalize_cubemap_coords.c \
 	nir/nir_opt_constant_folding.c \
 	nir/nir_opt_copy_propagate.c \
 	nir/nir_opt_cse.c \
 	nir/nir_opt_dce.c \
 	nir/nir_opt_gcm.c \
 	nir/nir_opt_global_to_local.c \
+	nir/nir_opt_peephole_ffma.c \
 	nir/nir_opt_peephole_select.c \
 	nir/nir_opt_remove_phis.c \
 	nir/nir_print.c \
@@ -54,9 +59,11 @@ NIR_FILES = \
 	nir/nir_search.c \
 	nir/nir_search.h \
 	nir/nir_split_var_copies.c \
+	nir/nir_sweep.c \
 	nir/nir_to_ssa.c \
 	nir/nir_types.h \
 	nir/nir_validate.c \
+	nir/nir_vla.h \
 	nir/nir_worklist.c \
 	nir/nir_worklist.h \
 	nir/nir_types.cpp \
@@ -183,7 +190,8 @@ LIBGLSL_FILES = \
 	opt_vectorize.cpp \
 	program.h \
 	s_expression.cpp \
-	s_expression.h
+	s_expression.h \
+	shader_enums.h
 
 # glsl_compiler
 

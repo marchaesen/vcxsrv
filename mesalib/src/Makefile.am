@@ -53,7 +53,13 @@ if HAVE_GALLIUM
 SUBDIRS += gallium
 endif
 
-EXTRA_DIST = egl/docs getopt hgl SConscript
+EXTRA_DIST = \
+	egl/drivers/haiku \
+	egl/docs \
+	getopt hgl SConscript
+
+AM_CFLAGS = $(VISIBILITY_CFLAGS)
+AM_CXXFLAGS = $(VISIBILITY_CXXFLAGS)
 
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/include/ \

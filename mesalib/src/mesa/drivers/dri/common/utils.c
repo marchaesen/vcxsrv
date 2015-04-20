@@ -227,7 +227,7 @@ driCreateConfigs(mesa_format format,
       break;
    default:
       fprintf(stderr, "[%s:%u] Unknown framebuffer type %s (%d).\n",
-              __FUNCTION__, __LINE__,
+              __func__, __LINE__,
               _mesa_get_format_name(format), format);
       return NULL;
    }

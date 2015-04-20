@@ -33,7 +33,6 @@
  */
 
 
-#include "main/colormac.h"
 #include "main/macros.h"
 #include "main/texcompress.h"
 #include "main/texcompress_fxt1.h"

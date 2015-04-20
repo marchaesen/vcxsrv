@@ -565,6 +565,41 @@ static int SProcRRGetProviderProperty(ClientPtr client)
     return ProcRandrVector[stuff->randrReqType] (client);
 }
 
+static int SProcRRGetMonitors(ClientPtr client) {
+    REQUEST(xRRGetMonitorsReq);
+
+    REQUEST_SIZE_MATCH(xRRGetMonitorsReq);
+    swaps(&stuff->length);
+    swapl(&stuff->window);
+    return ProcRandrVector[stuff->randrReqType] (client);
+}
+
+static int SProcRRSetMonitor(ClientPtr client) {
+    REQUEST(xRRSetMonitorReq);
+
+    REQUEST_AT_LEAST_SIZE(xRRGetMonitorsReq);
+    swaps(&stuff->length);
+    swapl(&stuff->window);
+    swapl(&stuff->monitor.name);
+    swaps(&stuff->monitor.noutput);
+    swaps(&stuff->monitor.x);
+    swaps(&stuff->monitor.y);
+    swaps(&stuff->monitor.width);
+    swaps(&stuff->monitor.height);
+    SwapRestL(stuff);
+    return ProcRandrVector[stuff->randrReqType] (client);
+}
+
+static int SProcRRDeleteMonitor(ClientPtr client) {
+    REQUEST(xRRDeleteMonitorReq);
+
+    REQUEST_SIZE_MATCH(xRRDeleteMonitorReq);
+    swaps(&stuff->length);
+    swapl(&stuff->window);
+    swapl(&stuff->name);
+    return ProcRandrVector[stuff->randrReqType] (client);
+}
+
 int (*SProcRandrVector[RRNumberRequests]) (ClientPtr) = {
     SProcRRQueryVersion,        /* 0 */
 /* we skip 1 to make old clients fail pretty immediately */
@@ -614,4 +649,7 @@ int (*SProcRandrVector[RRNumberRequests]) (ClientPtr) = {
         SProcRRChangeProviderProperty,  /* 39 */
         SProcRRDeleteProviderProperty,  /* 40 */
         SProcRRGetProviderProperty,     /* 41 */
+        SProcRRGetMonitors,            /* 42 */
+        SProcRRSetMonitor,             /* 43 */
+        SProcRRDeleteMonitor,          /* 44 */
 };

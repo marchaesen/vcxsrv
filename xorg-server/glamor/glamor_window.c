@@ -79,16 +79,16 @@ glamor_set_window_pixmap(WindowPtr win, PixmapPtr pPixmap)
 
         pixmap_priv = glamor_get_pixmap_private(old);
         if (GLAMOR_PIXMAP_PRIV_IS_PICTURE(pixmap_priv) &&
-            pixmap_priv->base.picture->pDrawable == (DrawablePtr) win) {
-            pic = pixmap_priv->base.picture;
-            pixmap_priv->base.is_picture = 0;
-            pixmap_priv->base.picture = NULL;
+            pixmap_priv->picture->pDrawable == (DrawablePtr) win) {
+            pic = pixmap_priv->picture;
+            pixmap_priv->is_picture = 0;
+            pixmap_priv->picture = NULL;
         }
 
         pixmap_priv = glamor_get_pixmap_private(pPixmap);
         if (pixmap_priv) {
-            pixmap_priv->base.is_picture = ! !pic;
-            pixmap_priv->base.picture = pic;
+            pixmap_priv->is_picture = ! !pic;
+            pixmap_priv->picture = pic;
         }
     }
 

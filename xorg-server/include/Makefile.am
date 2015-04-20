@@ -33,6 +33,7 @@ sdk_HEADERS =		\
 	misc.h		\
 	miscstruct.h	\
 	opaque.h	\
+	nonsdk_extinit.h	\
 	optionstr.h	\
 	os.h		\
 	pixmap.h	\

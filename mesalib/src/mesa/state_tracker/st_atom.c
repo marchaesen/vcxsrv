@@ -183,7 +183,7 @@ void st_validate_state( struct st_context *st )
    if (state->st == 0)
       return;
 
-   /*printf("%s %x/%x\n", __FUNCTION__, state->mesa, state->st);*/
+   /*printf("%s %x/%x\n", __func__, state->mesa, state->st);*/
 
 #ifdef DEBUG
    if (1) {

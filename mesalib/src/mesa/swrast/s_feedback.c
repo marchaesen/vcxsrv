@@ -23,7 +23,6 @@
  */
 
 #include "main/glheader.h"
-#include "main/colormac.h"
 #include "main/feedback.h"
 #include "main/macros.h"
 

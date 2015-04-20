@@ -619,13 +619,13 @@ static void emit_op3fn(struct tnl_program *p,
 
 
 #define emit_op3(p, op, dst, mask, src0, src1, src2) \
-   emit_op3fn(p, op, dst, mask, src0, src1, src2, __FUNCTION__, __LINE__)
+   emit_op3fn(p, op, dst, mask, src0, src1, src2, __func__, __LINE__)
 
 #define emit_op2(p, op, dst, mask, src0, src1) \
-    emit_op3fn(p, op, dst, mask, src0, src1, undef, __FUNCTION__, __LINE__)
+    emit_op3fn(p, op, dst, mask, src0, src1, undef, __func__, __LINE__)
 
 #define emit_op1(p, op, dst, mask, src0) \
-    emit_op3fn(p, op, dst, mask, src0, undef, undef, __FUNCTION__, __LINE__)
+    emit_op3fn(p, op, dst, mask, src0, undef, undef, __func__, __LINE__)
 
 
 static struct ureg make_temp( struct tnl_program *p, struct ureg reg )

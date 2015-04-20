@@ -187,6 +187,18 @@ convert_linear_to_srgb (double component);
 void
 initialize_palette (pixman_indexed_t *palette, uint32_t depth, int is_rgb);
 
+pixman_format_code_t
+format_from_string (const char *s);
+
+void
+list_formats (void);
+
+void
+list_operators (void);
+
+pixman_op_t
+operator_from_string (const char *s);
+
 const char *
 operator_name (pixman_op_t op);
 

@@ -827,6 +827,9 @@
     <ClCompile Include="..\..\..\..\src\mapi\glapi\glapi_nop.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\mesa\main\program_resource.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\..\..\..\src\mesa\program\program_lexer.l">

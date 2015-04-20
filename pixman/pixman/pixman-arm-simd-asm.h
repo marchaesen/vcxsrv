@@ -211,8 +211,8 @@
         PF  add,    SCRATCH, base, WK0, lsl #bpp_shift-dst_bpp_shift
         PF  and,    SCRATCH, SCRATCH, #31
         PF  rsb,    SCRATCH, SCRATCH, WK0, lsl #bpp_shift-dst_bpp_shift
-        PF  sub,    SCRATCH, SCRATCH, #1    /* so now ranges are -16..-1 / 0..31 / 32..63 */
-        PF  movs,   SCRATCH, SCRATCH, #32-6 /* so this sets         NC   /  nc   /   Nc   */
+        PF  sub,    SCRATCH, SCRATCH, #1        /* so now ranges are -16..-1 / 0..31 / 32..63 */
+        PF  movs,   SCRATCH, SCRATCH, lsl #32-6 /* so this sets         NC   /  nc   /   Nc   */
         PF  bcs,    61f
         PF  bpl,    60f
         PF  pld,    [ptr, #32*(prefetch_distance+2)]

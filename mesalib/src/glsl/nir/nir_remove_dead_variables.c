@@ -98,22 +98,14 @@ add_var_use_shader(nir_shader *shader, struct set *live)
 }
 
 static void
-remove_dead_local_vars(nir_function_impl *impl, struct set *live)
+remove_dead_vars(struct exec_list *var_list, struct set *live)
 {
-   foreach_list_typed_safe(nir_variable, var, node, &impl->locals) {
+   foreach_list_typed_safe(nir_variable, var, node, var_list) {
       struct set_entry *entry = _mesa_set_search(live, var);
-      if (entry == NULL)
+      if (entry == NULL) {
          exec_node_remove(&var->node);
-   }
-}
-
-static void
-remove_dead_global_vars(nir_shader *shader, struct set *live)
-{
-   foreach_list_typed_safe(nir_variable, var, node, &shader->globals) {
-      struct set_entry *entry = _mesa_set_search(live, var);
-      if (entry == NULL)
-         exec_node_remove(&var->node);
+         ralloc_free(var);
+      }
    }
 }
 
@@ -125,11 +117,11 @@ nir_remove_dead_variables(nir_shader *shader)
 
    add_var_use_shader(shader, live);
 
-   remove_dead_global_vars(shader, live);
+   remove_dead_vars(&shader->globals, live);
 
    nir_foreach_overload(shader, overload) {
       if (overload->impl)
-         remove_dead_local_vars(overload->impl, live);
+         remove_dead_vars(&overload->impl->locals, live);
    }
 
    _mesa_set_destroy(live, NULL);

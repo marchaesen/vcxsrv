@@ -5,6 +5,7 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <float.h>
+#include <ctype.h>
 
 #ifdef HAVE_GETTIMEOFDAY
 #include <sys/time.h>
@@ -948,71 +949,332 @@ initialize_palette (pixman_indexed_t *palette, uint32_t depth, int is_rgb)
     }
 }
 
+struct operator_entry {
+    pixman_op_t		 op;
+    const char		*name;
+    pixman_bool_t	 is_alias;
+};
+
+typedef struct operator_entry operator_entry_t;
+
+static const operator_entry_t op_list[] =
+{
+#define ENTRY(op)							\
+    { PIXMAN_OP_##op, "PIXMAN_OP_" #op, FALSE }
+#define ALIAS(op, nam)							\
+    { PIXMAN_OP_##op, nam, TRUE }
+
+    /* operator_name () will return the first hit in this table,
+     * so keep the list properly ordered between entries and aliases.
+     * Aliases are not listed by list_operators ().
+     */
+
+    ENTRY (CLEAR),
+    ENTRY (SRC),
+    ENTRY (DST),
+    ENTRY (OVER),
+    ENTRY (OVER_REVERSE),
+    ALIAS (OVER_REVERSE,		"overrev"),
+    ENTRY (IN),
+    ENTRY (IN_REVERSE),
+    ALIAS (IN_REVERSE,			"inrev"),
+    ENTRY (OUT),
+    ENTRY (OUT_REVERSE),
+    ALIAS (OUT_REVERSE,			"outrev"),
+    ENTRY (ATOP),
+    ENTRY (ATOP_REVERSE),
+    ALIAS (ATOP_REVERSE,		"atoprev"),
+    ENTRY (XOR),
+    ENTRY (ADD),
+    ENTRY (SATURATE),
+
+    ENTRY (DISJOINT_CLEAR),
+    ENTRY (DISJOINT_SRC),
+    ENTRY (DISJOINT_DST),
+    ENTRY (DISJOINT_OVER),
+    ENTRY (DISJOINT_OVER_REVERSE),
+    ENTRY (DISJOINT_IN),
+    ENTRY (DISJOINT_IN_REVERSE),
+    ENTRY (DISJOINT_OUT),
+    ENTRY (DISJOINT_OUT_REVERSE),
+    ENTRY (DISJOINT_ATOP),
+    ENTRY (DISJOINT_ATOP_REVERSE),
+    ENTRY (DISJOINT_XOR),
+
+    ENTRY (CONJOINT_CLEAR),
+    ENTRY (CONJOINT_SRC),
+    ENTRY (CONJOINT_DST),
+    ENTRY (CONJOINT_OVER),
+    ENTRY (CONJOINT_OVER_REVERSE),
+    ENTRY (CONJOINT_IN),
+    ENTRY (CONJOINT_IN_REVERSE),
+    ENTRY (CONJOINT_OUT),
+    ENTRY (CONJOINT_OUT_REVERSE),
+    ENTRY (CONJOINT_ATOP),
+    ENTRY (CONJOINT_ATOP_REVERSE),
+    ENTRY (CONJOINT_XOR),
+
+    ENTRY (MULTIPLY),
+    ENTRY (SCREEN),
+    ENTRY (OVERLAY),
+    ENTRY (DARKEN),
+    ENTRY (LIGHTEN),
+    ENTRY (COLOR_DODGE),
+    ENTRY (COLOR_BURN),
+    ENTRY (HARD_LIGHT),
+    ENTRY (SOFT_LIGHT),
+    ENTRY (DIFFERENCE),
+    ENTRY (EXCLUSION),
+    ENTRY (HSL_HUE),
+    ENTRY (HSL_SATURATION),
+    ENTRY (HSL_COLOR),
+    ENTRY (HSL_LUMINOSITY),
+
+    ALIAS (NONE, "<invalid operator 'none'>")
+
+#undef ENTRY
+#undef ALIAS
+};
+
+struct format_entry
+{
+    pixman_format_code_t format;
+    const char		*name;
+    pixman_bool_t	 is_alias;
+};
+
+typedef struct format_entry format_entry_t;
+
+static const format_entry_t format_list[] =
+{
+#define ENTRY(f)							\
+    { PIXMAN_##f, #f, FALSE }
+#define ALIAS(f, nam)							\
+    { PIXMAN_##f, nam, TRUE }
+
+    /* format_name () will return the first hit in this table,
+     * so keep the list properly ordered between entries and aliases.
+     * Aliases are not listed by list_formats ().
+     */
+
+/* 32bpp formats */
+    ENTRY (a8r8g8b8),
+    ALIAS (a8r8g8b8,		"8888"),
+    ENTRY (x8r8g8b8),
+    ALIAS (x8r8g8b8,		"x888"),
+    ENTRY (a8b8g8r8),
+    ENTRY (x8b8g8r8),
+    ENTRY (b8g8r8a8),
+    ENTRY (b8g8r8x8),
+    ENTRY (r8g8b8a8),
+    ENTRY (r8g8b8x8),
+    ENTRY (x14r6g6b6),
+    ENTRY (x2r10g10b10),
+    ALIAS (x2r10g10b10,		"2x10"),
+    ENTRY (a2r10g10b10),
+    ALIAS (a2r10g10b10,		"2a10"),
+    ENTRY (x2b10g10r10),
+    ENTRY (a2b10g10r10),
+
+/* sRGB formats */
+    ENTRY (a8r8g8b8_sRGB),
+
+/* 24bpp formats */
+    ENTRY (r8g8b8),
+    ALIAS (r8g8b8,		"0888"),
+    ENTRY (b8g8r8),
+
+/* 16 bpp formats */
+    ENTRY (r5g6b5),
+    ALIAS (r5g6b5,		"0565"),
+    ENTRY (b5g6r5),
+
+    ENTRY (a1r5g5b5),
+    ALIAS (a1r5g5b5,		"1555"),
+    ENTRY (x1r5g5b5),
+    ENTRY (a1b5g5r5),
+    ENTRY (x1b5g5r5),
+    ENTRY (a4r4g4b4),
+    ALIAS (a4r4g4b4,		"4444"),
+    ENTRY (x4r4g4b4),
+    ENTRY (a4b4g4r4),
+    ENTRY (x4b4g4r4),
+
+/* 8bpp formats */
+    ENTRY (a8),
+    ALIAS (a8,			"8"),
+    ENTRY (r3g3b2),
+    ENTRY (b2g3r3),
+    ENTRY (a2r2g2b2),
+    ALIAS (a2r2g2b2,		"2222"),
+    ENTRY (a2b2g2r2),
+
+    ALIAS (c8,			"x4c4 / c8"),
+    /* ENTRY (c8), */
+    ALIAS (g8,			"x4g4 / g8"),
+    /* ENTRY (g8), */
+
+    ENTRY (x4a4),
+
+    /* These format codes are identical to c8 and g8, respectively. */
+    /* ENTRY (x4c4), */
+    /* ENTRY (x4g4), */
+
+/* 4 bpp formats */
+    ENTRY (a4),
+    ENTRY (r1g2b1),
+    ENTRY (b1g2r1),
+    ENTRY (a1r1g1b1),
+    ENTRY (a1b1g1r1),
+
+    ALIAS (c4,			"c4"),
+    /* ENTRY (c4), */
+    ALIAS (g4,			"g4"),
+    /* ENTRY (g4), */
+
+/* 1bpp formats */
+    ENTRY (a1),
+
+    ALIAS (g1,			"g1"),
+    /* ENTRY (g1), */
+
+/* YUV formats */
+    ALIAS (yuy2,		"yuy2"),
+    /* ENTRY (yuy2), */
+    ALIAS (yv12,		"yv12"),
+    /* ENTRY (yv12), */
+
+/* Fake formats, not in pixman_format_code_t enum */
+    ALIAS (null,		"null"),
+    ALIAS (solid,		"solid"),
+    ALIAS (solid,		"n"),
+    ALIAS (pixbuf,		"pixbuf"),
+    ALIAS (rpixbuf,		"rpixbuf"),
+    ALIAS (unknown,		"unknown"),
+
+#undef ENTRY
+#undef ALIAS
+};
+
+pixman_format_code_t
+format_from_string (const char *s)
+{
+    int i;
+
+    for (i = 0; i < ARRAY_LENGTH (format_list); ++i)
+    {
+        const format_entry_t *ent = &format_list[i];
+
+        if (strcasecmp (ent->name, s) == 0)
+            return ent->format;
+    }
+
+    return PIXMAN_null;
+}
+
+static void
+emit (const char *s, int *n_chars)
+{
+    *n_chars += printf ("%s,", s);
+    if (*n_chars > 60)
+    {
+        printf ("\n    ");
+        *n_chars = 0;
+    }
+    else
+    {
+        printf (" ");
+        (*n_chars)++;
+    }
+}
+
+void
+list_formats (void)
+{
+    int n_chars;
+    int i;
+
+    printf ("Formats:\n    ");
+
+    n_chars = 0;
+    for (i = 0; i < ARRAY_LENGTH (format_list); ++i)
+    {
+        const format_entry_t *ent = &format_list[i];
+
+        if (ent->is_alias)
+            continue;
+
+        emit (ent->name, &n_chars);
+    }
+
+    printf ("\n\n");
+}
+
+void
+list_operators (void)
+{
+    char short_name [128] = { 0 };
+    int i, n_chars;
+
+    printf ("Operators:\n    ");
+
+    n_chars = 0;
+    for (i = 0; i < ARRAY_LENGTH (op_list); ++i)
+    {
+        const operator_entry_t *ent = &op_list[i];
+        int j;
+
+        if (ent->is_alias)
+            continue;
+
+        snprintf (short_name, sizeof (short_name) - 1, "%s",
+                  ent->name + strlen ("PIXMAN_OP_"));
+
+        for (j = 0; short_name[j] != '\0'; ++j)
+            short_name[j] = tolower (short_name[j]);
+
+        emit (short_name, &n_chars);
+    }
+
+    printf ("\n\n");
+}
+
+pixman_op_t
+operator_from_string (const char *s)
+{
+    int i;
+
+    for (i = 0; i < ARRAY_LENGTH (op_list); ++i)
+    {
+        const operator_entry_t *ent = &op_list[i];
+
+        if (ent->is_alias)
+        {
+            if (strcasecmp (ent->name, s) == 0)
+                return ent->op;
+        }
+        else
+        {
+            if (strcasecmp (ent->name + strlen ("PIXMAN_OP_"), s) == 0)
+                return ent->op;
+        }
+    }
+
+    return PIXMAN_OP_NONE;
+}
+
 const char *
 operator_name (pixman_op_t op)
 {
-    switch (op)
+    int i;
+
+    for (i = 0; i < ARRAY_LENGTH (op_list); ++i)
     {
-    case PIXMAN_OP_CLEAR: return "PIXMAN_OP_CLEAR";
-    case PIXMAN_OP_SRC: return "PIXMAN_OP_SRC";
-    case PIXMAN_OP_DST: return "PIXMAN_OP_DST";
-    case PIXMAN_OP_OVER: return "PIXMAN_OP_OVER";
-    case PIXMAN_OP_OVER_REVERSE: return "PIXMAN_OP_OVER_REVERSE";
-    case PIXMAN_OP_IN: return "PIXMAN_OP_IN";
-    case PIXMAN_OP_IN_REVERSE: return "PIXMAN_OP_IN_REVERSE";
-    case PIXMAN_OP_OUT: return "PIXMAN_OP_OUT";
-    case PIXMAN_OP_OUT_REVERSE: return "PIXMAN_OP_OUT_REVERSE";
-    case PIXMAN_OP_ATOP: return "PIXMAN_OP_ATOP";
-    case PIXMAN_OP_ATOP_REVERSE: return "PIXMAN_OP_ATOP_REVERSE";
-    case PIXMAN_OP_XOR: return "PIXMAN_OP_XOR";
-    case PIXMAN_OP_ADD: return "PIXMAN_OP_ADD";
-    case PIXMAN_OP_SATURATE: return "PIXMAN_OP_SATURATE";
+        const operator_entry_t *ent = &op_list[i];
 
-    case PIXMAN_OP_DISJOINT_CLEAR: return "PIXMAN_OP_DISJOINT_CLEAR";
-    case PIXMAN_OP_DISJOINT_SRC: return "PIXMAN_OP_DISJOINT_SRC";
-    case PIXMAN_OP_DISJOINT_DST: return "PIXMAN_OP_DISJOINT_DST";
-    case PIXMAN_OP_DISJOINT_OVER: return "PIXMAN_OP_DISJOINT_OVER";
-    case PIXMAN_OP_DISJOINT_OVER_REVERSE: return "PIXMAN_OP_DISJOINT_OVER_REVERSE";
-    case PIXMAN_OP_DISJOINT_IN: return "PIXMAN_OP_DISJOINT_IN";
-    case PIXMAN_OP_DISJOINT_IN_REVERSE: return "PIXMAN_OP_DISJOINT_IN_REVERSE";
-    case PIXMAN_OP_DISJOINT_OUT: return "PIXMAN_OP_DISJOINT_OUT";
-    case PIXMAN_OP_DISJOINT_OUT_REVERSE: return "PIXMAN_OP_DISJOINT_OUT_REVERSE";
-    case PIXMAN_OP_DISJOINT_ATOP: return "PIXMAN_OP_DISJOINT_ATOP";
-    case PIXMAN_OP_DISJOINT_ATOP_REVERSE: return "PIXMAN_OP_DISJOINT_ATOP_REVERSE";
-    case PIXMAN_OP_DISJOINT_XOR: return "PIXMAN_OP_DISJOINT_XOR";
-
-    case PIXMAN_OP_CONJOINT_CLEAR: return "PIXMAN_OP_CONJOINT_CLEAR";
-    case PIXMAN_OP_CONJOINT_SRC: return "PIXMAN_OP_CONJOINT_SRC";
-    case PIXMAN_OP_CONJOINT_DST: return "PIXMAN_OP_CONJOINT_DST";
-    case PIXMAN_OP_CONJOINT_OVER: return "PIXMAN_OP_CONJOINT_OVER";
-    case PIXMAN_OP_CONJOINT_OVER_REVERSE: return "PIXMAN_OP_CONJOINT_OVER_REVERSE";
-    case PIXMAN_OP_CONJOINT_IN: return "PIXMAN_OP_CONJOINT_IN";
-    case PIXMAN_OP_CONJOINT_IN_REVERSE: return "PIXMAN_OP_CONJOINT_IN_REVERSE";
-    case PIXMAN_OP_CONJOINT_OUT: return "PIXMAN_OP_CONJOINT_OUT";
-    case PIXMAN_OP_CONJOINT_OUT_REVERSE: return "PIXMAN_OP_CONJOINT_OUT_REVERSE";
-    case PIXMAN_OP_CONJOINT_ATOP: return "PIXMAN_OP_CONJOINT_ATOP";
-    case PIXMAN_OP_CONJOINT_ATOP_REVERSE: return "PIXMAN_OP_CONJOINT_ATOP_REVERSE";
-    case PIXMAN_OP_CONJOINT_XOR: return "PIXMAN_OP_CONJOINT_XOR";
-
-    case PIXMAN_OP_MULTIPLY: return "PIXMAN_OP_MULTIPLY";
-    case PIXMAN_OP_SCREEN: return "PIXMAN_OP_SCREEN";
-    case PIXMAN_OP_OVERLAY: return "PIXMAN_OP_OVERLAY";
-    case PIXMAN_OP_DARKEN: return "PIXMAN_OP_DARKEN";
-    case PIXMAN_OP_LIGHTEN: return "PIXMAN_OP_LIGHTEN";
-    case PIXMAN_OP_COLOR_DODGE: return "PIXMAN_OP_COLOR_DODGE";
-    case PIXMAN_OP_COLOR_BURN: return "PIXMAN_OP_COLOR_BURN";
-    case PIXMAN_OP_HARD_LIGHT: return "PIXMAN_OP_HARD_LIGHT";
-    case PIXMAN_OP_SOFT_LIGHT: return "PIXMAN_OP_SOFT_LIGHT";
-    case PIXMAN_OP_DIFFERENCE: return "PIXMAN_OP_DIFFERENCE";
-    case PIXMAN_OP_EXCLUSION: return "PIXMAN_OP_EXCLUSION";
-    case PIXMAN_OP_HSL_HUE: return "PIXMAN_OP_HSL_HUE";
-    case PIXMAN_OP_HSL_SATURATION: return "PIXMAN_OP_HSL_SATURATION";
-    case PIXMAN_OP_HSL_COLOR: return "PIXMAN_OP_HSL_COLOR";
-    case PIXMAN_OP_HSL_LUMINOSITY: return "PIXMAN_OP_HSL_LUMINOSITY";
-
-    case PIXMAN_OP_NONE:
-	return "<invalid operator 'none'>";
-    };
+        if (ent->op == op)
+            return ent->name;
+    }
 
     return "<unknown operator>";
 }
@@ -1020,92 +1282,15 @@ operator_name (pixman_op_t op)
 const char *
 format_name (pixman_format_code_t format)
 {
-    switch (format)
+    int i;
+
+    for (i = 0; i < ARRAY_LENGTH (format_list); ++i)
     {
-/* 32bpp formats */
-    case PIXMAN_a8r8g8b8: return "a8r8g8b8";
-    case PIXMAN_x8r8g8b8: return "x8r8g8b8";
-    case PIXMAN_a8b8g8r8: return "a8b8g8r8";
-    case PIXMAN_x8b8g8r8: return "x8b8g8r8";
-    case PIXMAN_b8g8r8a8: return "b8g8r8a8";
-    case PIXMAN_b8g8r8x8: return "b8g8r8x8";
-    case PIXMAN_r8g8b8a8: return "r8g8b8a8";
-    case PIXMAN_r8g8b8x8: return "r8g8b8x8";
-    case PIXMAN_x14r6g6b6: return "x14r6g6b6";
-    case PIXMAN_x2r10g10b10: return "x2r10g10b10";
-    case PIXMAN_a2r10g10b10: return "a2r10g10b10";
-    case PIXMAN_x2b10g10r10: return "x2b10g10r10";
-    case PIXMAN_a2b10g10r10: return "a2b10g10r10";
+        const format_entry_t *ent = &format_list[i];
 
-/* sRGB formats */
-    case PIXMAN_a8r8g8b8_sRGB: return "a8r8g8b8_sRGB";
-
-/* 24bpp formats */
-    case PIXMAN_r8g8b8: return "r8g8b8";
-    case PIXMAN_b8g8r8: return "b8g8r8";
-
-/* 16bpp formats */
-    case PIXMAN_r5g6b5: return "r5g6b5";
-    case PIXMAN_b5g6r5: return "b5g6r5";
-
-    case PIXMAN_a1r5g5b5: return "a1r5g5b5";
-    case PIXMAN_x1r5g5b5: return "x1r5g5b5";
-    case PIXMAN_a1b5g5r5: return "a1b5g5r5";
-    case PIXMAN_x1b5g5r5: return "x1b5g5r5";
-    case PIXMAN_a4r4g4b4: return "a4r4g4b4";
-    case PIXMAN_x4r4g4b4: return "x4r4g4b4";
-    case PIXMAN_a4b4g4r4: return "a4b4g4r4";
-    case PIXMAN_x4b4g4r4: return "x4b4g4r4";
-
-/* 8bpp formats */
-    case PIXMAN_a8: return "a8";
-    case PIXMAN_r3g3b2: return "r3g3b2";
-    case PIXMAN_b2g3r3: return "b2g3r3";
-    case PIXMAN_a2r2g2b2: return "a2r2g2b2";
-    case PIXMAN_a2b2g2r2: return "a2b2g2r2";
-
-#if 0
-    case PIXMAN_x4c4: return "x4c4";
-    case PIXMAN_g8: return "g8";
-#endif
-    case PIXMAN_c8: return "x4c4 / c8";
-    case PIXMAN_x4g4: return "x4g4 / g8";
-
-    case PIXMAN_x4a4: return "x4a4";
-
-/* 4bpp formats */
-    case PIXMAN_a4: return "a4";
-    case PIXMAN_r1g2b1: return "r1g2b1";
-    case PIXMAN_b1g2r1: return "b1g2r1";
-    case PIXMAN_a1r1g1b1: return "a1r1g1b1";
-    case PIXMAN_a1b1g1r1: return "a1b1g1r1";
-
-    case PIXMAN_c4: return "c4";
-    case PIXMAN_g4: return "g4";
-
-/* 1bpp formats */
-    case PIXMAN_a1: return "a1";
-
-    case PIXMAN_g1: return "g1";
-
-/* YUV formats */
-    case PIXMAN_yuy2: return "yuy2";
-    case PIXMAN_yv12: return "yv12";
-    };
-
-    /* Fake formats.
-     *
-     * This is separate switch to prevent GCC from complaining
-     * that the values are not in the pixman_format_code_t enum.
-     */
-    switch ((uint32_t)format)
-    {
-    case PIXMAN_null: return "null"; 
-    case PIXMAN_solid: return "solid"; 
-    case PIXMAN_pixbuf: return "pixbuf"; 
-    case PIXMAN_rpixbuf: return "rpixbuf"; 
-    case PIXMAN_unknown: return "unknown"; 
-    };
+        if (ent->format == format)
+            return ent->name;
+    }
 
     return "<unknown format>";
 };

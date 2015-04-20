@@ -23,7 +23,7 @@
  */
 
 #include "main/glheader.h"
-#include "main/colormac.h"
+#include "main/macros.h"
 #include "main/samplerobj.h"
 #include "main/teximage.h"
 #include "program/prog_instruction.h"

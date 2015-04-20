@@ -31,8 +31,6 @@
 #include <stdio.h>
 #include "glheader.h"
 #include "bufferobj.h"
-#include "colormac.h"
-#include "colortab.h"
 #include "context.h"
 #include "enums.h"
 #include "macros.h"

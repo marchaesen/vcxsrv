@@ -1333,6 +1333,7 @@ create_buffers(GLsizei n, GLuint *buffers, bool dsa)
          buf = ctx->Driver.NewBufferObject(ctx, buffers[i]);
          if (!buf) {
             _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s", func);
+            mtx_unlock(&ctx->Shared->Mutex);
             return;
          }
       }
@@ -3885,8 +3886,10 @@ _mesa_BindBufferRange(GLenum target, GLuint index,
 
    switch (target) {
    case GL_TRANSFORM_FEEDBACK_BUFFER:
-      _mesa_bind_buffer_range_transform_feedback(ctx, index, bufObj,
-						 offset, size);
+      _mesa_bind_buffer_range_transform_feedback(ctx,
+                                                 ctx->TransformFeedback.CurrentObject,
+                                                 index, bufObj, offset, size,
+                                                 false);
       return;
    case GL_UNIFORM_BUFFER:
       bind_buffer_range_uniform_buffer(ctx, index, bufObj, offset, size);
@@ -3950,7 +3953,9 @@ _mesa_BindBufferBase(GLenum target, GLuint index, GLuint buffer)
 
    switch (target) {
    case GL_TRANSFORM_FEEDBACK_BUFFER:
-      _mesa_bind_buffer_base_transform_feedback(ctx, index, bufObj);
+      _mesa_bind_buffer_base_transform_feedback(ctx,
+                                                ctx->TransformFeedback.CurrentObject,
+                                                index, bufObj, false);
       return;
    case GL_UNIFORM_BUFFER:
       bind_buffer_base_uniform_buffer(ctx, index, bufObj);

@@ -28,34 +28,13 @@
 
 #include "glamor_priv.h"
 
-static Bool
-_glamor_add_traps(PicturePtr pPicture,
-                  INT16 x_off,
-                  INT16 y_off, int ntrap, xTrap *traps, Bool fallback)
+void
+glamor_add_traps(PicturePtr pPicture,
+                 INT16 x_off,
+                 INT16 y_off, int ntrap, xTrap *traps)
 {
-    if (!fallback
-        && (!pPicture->pDrawable
-            || glamor_ddx_fallback_check_pixmap(pPicture->pDrawable)))
-        return FALSE;
-
     if (glamor_prepare_access_picture(pPicture, GLAMOR_ACCESS_RW)) {
         fbAddTraps(pPicture, x_off, y_off, ntrap, traps);
     }
     glamor_finish_access_picture(pPicture);
-
-    return TRUE;
-}
-
-void
-glamor_add_traps(PicturePtr pPicture,
-                 INT16 x_off, INT16 y_off, int ntrap, xTrap *traps)
-{
-    _glamor_add_traps(pPicture, x_off, y_off, ntrap, traps, TRUE);
-}
-
-Bool
-glamor_add_traps_nf(PicturePtr pPicture,
-                    INT16 x_off, INT16 y_off, int ntrap, xTrap *traps)
-{
-    return _glamor_add_traps(pPicture, x_off, y_off, ntrap, traps, FALSE);
 }

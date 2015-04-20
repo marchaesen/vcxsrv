@@ -476,7 +476,7 @@ _mesa_PassTexCoordATI(GLuint dst, GLuint coord, GLenum swizzle)
    curI->swizzle = swizzle;
 
 #if MESA_DEBUG_ATI_FS
-   _mesa_debug(ctx, "%s(%s, %s, %s)\n", __FUNCTION__,
+   _mesa_debug(ctx, "%s(%s, %s, %s)\n", __func__,
 	       _mesa_lookup_enum_by_nr(dst), _mesa_lookup_enum_by_nr(coord),
 	       _mesa_lookup_enum_by_nr(swizzle));
 #endif
@@ -549,7 +549,7 @@ _mesa_SampleMapATI(GLuint dst, GLuint interp, GLenum swizzle)
    curI->swizzle = swizzle;
 
 #if MESA_DEBUG_ATI_FS
-   _mesa_debug(ctx, "%s(%s, %s, %s)\n", __FUNCTION__,
+   _mesa_debug(ctx, "%s(%s, %s, %s)\n", __func__,
 	       _mesa_lookup_enum_by_nr(dst), _mesa_lookup_enum_by_nr(interp),
 	       _mesa_lookup_enum_by_nr(swizzle));
 #endif

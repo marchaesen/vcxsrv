@@ -36,6 +36,11 @@
 
 #include "u_atomic.h"
 
+#ifdef _MSC_VER
+#pragma warning( disable : 28112 ) /* Accessing a local variable via an Interlocked function */
+#pragma warning( disable : 28113 ) /* A variable which is accessed via an Interlocked function must always be accessed via an Interlocked function */
+#endif
+
 
 /* Test only assignment-like operations, which are supported on all types */
 #define test_atomic_assign(type, ones) \

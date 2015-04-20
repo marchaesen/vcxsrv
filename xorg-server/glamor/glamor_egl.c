@@ -239,7 +239,6 @@ glamor_egl_create_textured_screen(ScreenPtr screen, int handle, int stride)
                    "Failed to create textured screen.");
         return FALSE;
     }
-
     glamor_set_screen_pixmap(screen_pixmap, NULL);
     return TRUE;
 }
@@ -272,7 +271,7 @@ glamor_egl_set_pixmap_image(PixmapPtr pixmap, EGLImageKHR image)
         glamor_get_pixmap_private(pixmap);
     EGLImageKHR old;
 
-    old = pixmap_priv->base.image;
+    old = pixmap_priv->image;
     if (old) {
         ScreenPtr                               screen = pixmap->drawable.pScreen;
         ScrnInfoPtr                             scrn = xf86ScreenToScrn(screen);
@@ -280,7 +279,7 @@ glamor_egl_set_pixmap_image(PixmapPtr pixmap, EGLImageKHR image)
 
         eglDestroyImageKHR(glamor_egl->display, old);
     }
-    pixmap_priv->base.image = image;
+    pixmap_priv->image = image;
 }
 
 Bool
@@ -420,7 +419,7 @@ glamor_egl_dri3_fd_name_from_tex(ScreenPtr screen,
 
     glamor_make_current(glamor_priv);
 
-    image = pixmap_priv->base.image;
+    image = pixmap_priv->image;
     if (!image) {
         image = eglCreateImageKHR(glamor_egl->display,
                                   glamor_egl->context,
@@ -536,7 +535,7 @@ glamor_egl_destroy_pixmap_image(PixmapPtr pixmap)
     struct glamor_pixmap_private *pixmap_priv =
         glamor_get_pixmap_private(pixmap);
 
-    if (pixmap_priv && pixmap_priv->base.image) {
+    if (pixmap_priv && pixmap_priv->image) {
         ScrnInfoPtr scrn = xf86ScreenToScrn(pixmap->drawable.pScreen);
         struct glamor_egl_screen_private *glamor_egl =
             glamor_egl_get_screen_private(scrn);
@@ -545,8 +544,8 @@ glamor_egl_destroy_pixmap_image(PixmapPtr pixmap)
          * a texture. we must call glFlush to make sure the
          * operation on that texture has been done.*/
         glamor_block_handler(pixmap->drawable.pScreen);
-        eglDestroyImageKHR(glamor_egl->display, pixmap_priv->base.image);
-        pixmap_priv->base.image = NULL;
+        eglDestroyImageKHR(glamor_egl->display, pixmap_priv->image);
+        pixmap_priv->image = NULL;
     }
 }
 
@@ -561,13 +560,12 @@ glamor_egl_exchange_buffers(PixmapPtr front, PixmapPtr back)
 
     glamor_pixmap_exchange_fbos(front, back);
 
-    temp = back_priv->base.image;
-    back_priv->base.image = front_priv->base.image;
-    front_priv->base.image = temp;
+    temp = back_priv->image;
+    back_priv->image = front_priv->image;
+    front_priv->image = temp;
 
     glamor_set_pixmap_type(front, GLAMOR_TEXTURE_DRM);
     glamor_set_pixmap_type(back, GLAMOR_TEXTURE_DRM);
-
 }
 
 void
@@ -589,8 +587,8 @@ glamor_egl_close_screen(ScreenPtr screen)
     screen_pixmap = screen->GetScreenPixmap(screen);
     pixmap_priv = glamor_get_pixmap_private(screen_pixmap);
 
-    eglDestroyImageKHR(glamor_egl->display, pixmap_priv->base.image);
-    pixmap_priv->base.image = NULL;
+    eglDestroyImageKHR(glamor_egl->display, pixmap_priv->image);
+    pixmap_priv->image = NULL;
 
     screen->CloseScreen = glamor_egl->saved_close_screen;
 

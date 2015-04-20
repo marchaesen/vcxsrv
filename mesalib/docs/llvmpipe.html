@@ -58,15 +58,37 @@ It's the fastest software rasterizer for Mesa.
 </pre>
 
    <p>
-	 For Windows you will need to build LLVM from source with MSVC or MINGW
-	 (either natively or through cross compilers) and CMake, and set the LLVM
-	 environment variable to the directory you installed it to.
+   For Windows you will need to build LLVM from source with MSVC or MINGW
+   (either natively or through cross compilers) and CMake, and set the LLVM
+   environment variable to the directory you installed it to.
 
    LLVM will be statically linked, so when building on MSVC it needs to be
    built with a matching CRT as Mesa, and you'll need to pass
-   -DLLVM_USE_CRT_RELEASE=MTd for debug and checked builds,
-   -DLLVM_USE_CRT_RELEASE=MTd for profile and release builds.
+   <code>-DLLVM_USE_CRT_xxx=yyy</code> as described below.
+   </p>
 
+   <table border="1">
+     <tr>
+       <th rowspan="2">LLVM build-type</th>
+       <th colspan="2" align="center">Mesa build-type</th>
+     </tr>
+     <tr>
+       <th>debug,checked</th>
+       <th>release,profile</th>
+     </tr>
+     <tr>
+       <th>Debug</th>
+       <td><code>-DLLVM_USE_CRT_DEBUG=MTd</code></td>
+       <td><code>-DLLVM_USE_CRT_DEBUG=MT</code></td>
+     </tr>
+     <tr>
+       <th>Release</th>
+       <td><code>-DLLVM_USE_CRT_RELEASE=MTd</code></td>
+       <td><code>-DLLVM_USE_CRT_RELEASE=MT</code></td>
+     </tr>
+   </table>
+
+   <p>
    You can build only the x86 target by passing -DLLVM_TARGETS_TO_BUILD=X86
    to cmake.
    </p>

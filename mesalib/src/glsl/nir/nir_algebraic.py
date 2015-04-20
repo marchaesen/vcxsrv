@@ -181,11 +181,22 @@ _algebraic_pass_template = mako.template.Template("""
 #include "nir.h"
 #include "nir_search.h"
 
+#ifndef NIR_OPT_ALGEBRAIC_STRUCT_DEFS
+#define NIR_OPT_ALGEBRAIC_STRUCT_DEFS
+
 struct transform {
    const nir_search_expression *search;
    const nir_search_value *replace;
    unsigned condition_offset;
 };
+
+struct opt_state {
+   void *mem_ctx;
+   bool progress;
+   const bool *condition_flags;
+};
+
+#endif
 
 % for (opcode, xform_list) in xform_dict.iteritems():
 % for xform in xform_list:
@@ -199,12 +210,6 @@ static const struct transform ${pass_name}_${opcode}_xforms[] = {
 % endfor
 };
 % endfor
-
-struct opt_state {
-   void *mem_ctx;
-   bool progress;
-   const bool *condition_flags;
-};
 
 static bool
 ${pass_name}_block(nir_block *block, void *void_state)

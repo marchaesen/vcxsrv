@@ -789,7 +789,14 @@ NORMALIZE_3FV(GLfloat v[3])
 static inline GLboolean
 DIFFERENT_SIGNS(GLfloat x, GLfloat y)
 {
+#ifdef _MSC_VER
+#pragma warning( push )
+#pragma warning( disable : 6334 ) /* sizeof operator applied to an expression with an operator may yield unexpected results */
+#endif
    return signbit(x) != signbit(y);
+#ifdef _MSC_VER
+#pragma warning( pop )
+#endif
 }
 
 

@@ -1049,10 +1049,7 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
 
 #ifdef GLAMOR
     if (ms->drmmode.glamor) {
-        if (!glamor_init(pScreen,
-                         GLAMOR_USE_EGL_SCREEN |
-                         GLAMOR_USE_SCREEN |
-                         GLAMOR_USE_PICTURE_SCREEN)) {
+        if (!glamor_init(pScreen, GLAMOR_USE_EGL_SCREEN)) {
             xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
                        "Failed to initialize glamor at ScreenInit() time.\n");
             return FALSE;

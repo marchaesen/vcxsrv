@@ -251,8 +251,6 @@ C_SOURCES := \
 	util/u_keymap.h \
 	util/u_linear.c \
 	util/u_linear.h \
-	util/u_linkage.c \
-	util/u_linkage.h \
 	util/u_math.c \
 	util/u_math.h \
 	util/u_memory.h \
@@ -303,6 +301,10 @@ C_SOURCES := \
 	util/u_vbuf.c \
 	util/u_vbuf.h \
 	util/u_video.h
+
+NIR_SOURCES := \
+	nir/tgsi_to_nir.c \
+	nir/tgsi_to_nir.h
 
 VL_SOURCES := \
 	vl/vl_compositor.c \

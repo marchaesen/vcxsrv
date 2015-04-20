@@ -54,6 +54,7 @@
 
 #ifdef _WIN32
 #include <mbstring.h>
+extern FcChar8 fontconfig_instprefix[];
 #endif
 
 static void
@@ -2188,7 +2189,25 @@ FcParseCacheDir (FcConfigParse *parse)
 	data = prefix;
     }
 #ifdef _WIN32
-    if (strcmp ((const char *) data, "WINDOWSTEMPDIR_FONTCONFIG_CACHE") == 0)
+    else if (data[0] == '/' && fontconfig_instprefix[0] != '\0')
+    {
+	size_t plen = strlen ((const char *)fontconfig_instprefix);
+	size_t dlen = strlen ((const char *)data);
+
+	prefix = malloc (plen + 1 + dlen + 1);
+	if (!prefix)
+	{
+	    FcConfigMessage (parse, FcSevereError, "out of memory");
+	    goto bail;
+	}
+	strcpy ((char *) prefix, (char *) fontconfig_instprefix);
+	prefix[plen] = FC_DIR_SEPARATOR;
+	memcpy (&prefix[plen + 1], data, dlen);
+	prefix[plen + 1 + dlen] = 0;
+	FcStrFree (data);
+	data = prefix;
+    }
+    else if (strcmp ((const char *) data, "WINDOWSTEMPDIR_FONTCONFIG_CACHE") == 0)
     {
 	int rc;
 	FcStrFree (data);
@@ -2266,8 +2285,8 @@ FcParseInclude (FcConfigParse *parse)
     attr = FcConfigGetAttribute (parse, "ignore_missing");
     if (attr && FcConfigLexBool (parse, (FcChar8 *) attr) == FcTrue)
 	ignore_missing = FcTrue;
-#ifndef _WIN32
     attr = FcConfigGetAttribute (parse, "deprecated");
+#ifndef _WIN32
     if (attr && FcConfigLexBool (parse, (FcChar8 *) attr) == FcTrue)
         deprecated = FcTrue;
 #endif

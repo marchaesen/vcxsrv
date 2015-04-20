@@ -63,6 +63,17 @@ public:
       var = NULL;
    }
 
+   void init(ir_instruction *base_ir, ir_rvalue **val)
+   {
+      this->val = val;
+      this->base_ir = base_ir;
+      this->var = NULL;
+
+      assert(val);
+      assert(*val);
+      assert(base_ir);
+   }
+
    /**
     * The pointer to the expression that we might be able to reuse
     *
@@ -116,6 +127,18 @@ private:
    ir_rvalue *try_cse(ir_rvalue *rvalue);
    void add_to_ae(ir_rvalue **rvalue);
 
+   /**
+    * Move all nodes from the ae list to the free list
+    */
+   void empty_ae_list();
+
+   /**
+    * Get and initialize a new ae_entry
+    *
+    * This will either come from the free list or be freshly allocated.
+    */
+   ae_entry *get_ae_entry(ir_rvalue **rvalue);
+
    /** List of ae_entry: The available expressions to reuse */
    exec_list *ae;
 
@@ -126,6 +149,11 @@ private:
     * right.
     */
    exec_list *validate_instructions;
+
+   /**
+    * List of available-for-use ae_entry objects.
+    */
+   exec_list free_ae_entries;
 };
 
 /**
@@ -322,6 +350,25 @@ cse_visitor::try_cse(ir_rvalue *rvalue)
    return NULL;
 }
 
+void
+cse_visitor::empty_ae_list()
+{
+   free_ae_entries.append_list(ae);
+}
+
+ae_entry *
+cse_visitor::get_ae_entry(ir_rvalue **rvalue)
+{
+   ae_entry *entry = (ae_entry *) free_ae_entries.pop_head();
+   if (entry) {
+      entry->init(base_ir, rvalue);
+   } else {
+      entry = new(mem_ctx) ae_entry(base_ir, rvalue);
+   }
+
+   return entry;
+}
+
 /** Add the rvalue to the list of available expressions for CSE. */
 void
 cse_visitor::add_to_ae(ir_rvalue **rvalue)
@@ -332,7 +379,7 @@ cse_visitor::add_to_ae(ir_rvalue **rvalue)
       printf("\n");
    }
 
-   ae->push_tail(new(mem_ctx) ae_entry(base_ir, rvalue));
+   ae->push_tail(get_ae_entry(rvalue));
 
    if (debug)
       dump_ae(ae);
@@ -370,33 +417,33 @@ cse_visitor::visit_enter(ir_if *ir)
 {
    handle_rvalue(&ir->condition);
 
-   ae->make_empty();
+   empty_ae_list();
    visit_list_elements(this, &ir->then_instructions);
 
-   ae->make_empty();
+   empty_ae_list();
    visit_list_elements(this, &ir->else_instructions);
 
-   ae->make_empty();
+   empty_ae_list();
    return visit_continue_with_parent;
 }
 
 ir_visitor_status
 cse_visitor::visit_enter(ir_function_signature *ir)
 {
-   ae->make_empty();
+   empty_ae_list();
    visit_list_elements(this, &ir->body);
 
-   ae->make_empty();
+   empty_ae_list();
    return visit_continue_with_parent;
 }
 
 ir_visitor_status
 cse_visitor::visit_enter(ir_loop *ir)
 {
-   ae->make_empty();
+   empty_ae_list();
    visit_list_elements(this, &ir->body_instructions);
 
-   ae->make_empty();
+   empty_ae_list();
    return visit_continue_with_parent;
 }
 

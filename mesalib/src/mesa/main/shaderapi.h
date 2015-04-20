@@ -219,6 +219,51 @@ extern GLuint GLAPIENTRY
 _mesa_CreateShaderProgramv(GLenum type, GLsizei count,
                            const GLchar* const *strings);
 
+/* GL_ARB_program_resource_query */
+extern const char*
+_mesa_program_resource_name(struct gl_program_resource *res);
+
+extern unsigned
+_mesa_program_resource_array_size(struct gl_program_resource *res);
+
+extern GLuint
+_mesa_program_resource_index(struct gl_shader_program *shProg,
+                             struct gl_program_resource *res);
+
+extern struct gl_program_resource *
+_mesa_program_resource_find_name(struct gl_shader_program *shProg,
+                                 GLenum programInterface, const char *name);
+
+extern struct gl_program_resource *
+_mesa_program_resource_find_index(struct gl_shader_program *shProg,
+                                  GLenum programInterface, GLuint index);
+
+extern bool
+_mesa_get_program_resource_name(struct gl_shader_program *shProg,
+                                GLenum programInterface, GLuint index,
+                                GLsizei bufSize, GLsizei *length,
+                                GLchar *name, const char *caller);
+
+extern GLint
+_mesa_program_resource_location(struct gl_shader_program *shProg,
+                                GLenum programInterface, const char *name);
+
+extern GLint
+_mesa_program_resource_location_index(struct gl_shader_program *shProg,
+                                      GLenum programInterface, const char *name);
+
+extern unsigned
+_mesa_program_resource_prop(struct gl_shader_program *shProg,
+                            struct gl_program_resource *res, GLuint index,
+                            const GLenum prop, GLint *val, const char *caller);
+
+extern void
+_mesa_get_program_resourceiv(struct gl_shader_program *shProg,
+                             GLenum programInterface, GLuint index,
+                             GLsizei propCount, const GLenum *props,
+                             GLsizei bufSize, GLsizei *length,
+                             GLint *params);
+
 #ifdef __cplusplus
 }
 #endif

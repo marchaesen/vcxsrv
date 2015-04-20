@@ -276,6 +276,12 @@ struct glsl_type {
 						  const char *block_name);
 
    /**
+    * Get the type resulting from a multiplication of \p type_a * \p type_b
+    */
+   static const glsl_type *get_mul_type(const glsl_type *type_a,
+                                        const glsl_type *type_b);
+
+   /**
     * Query the total number of scalars that make up a scalar, vector or matrix
     */
    unsigned components() const

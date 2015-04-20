@@ -26,7 +26,8 @@ INCLUDELIBFILES =  \
  Xi\$(OBJDIR)\libXi.lib \
  xkb\$(OBJDIR)\libxkb.lib \
  render\$(OBJDIR)\librender.lib \
- present\$(OBJDIR)\libpresent.lib
+ present\$(OBJDIR)\libpresent.lib \
+ pseudoramiX\$(OBJDIR)\libPseudoramiX.lib
 
 INCLUDENOSERVLIBFILES =  \
  $(MHMAKECONF)\libX11\$(NOSERVOBJDIR)\libX11.lib \

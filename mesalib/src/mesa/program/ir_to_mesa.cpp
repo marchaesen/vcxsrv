@@ -303,9 +303,6 @@ public:
    void emit_scalar(ir_instruction *ir, enum prog_opcode op,
 		    dst_reg dst, src_reg src0, src_reg src1);
 
-   void emit_scs(ir_instruction *ir, enum prog_opcode op,
-		 dst_reg dst, const src_reg &src);
-
    bool try_emit_mad(ir_expression *ir,
 			  int mul_operand);
    bool try_emit_mad_for_and_not(ir_expression *ir,
@@ -477,101 +474,6 @@ ir_to_mesa_visitor::emit_scalar(ir_instruction *ir, enum prog_opcode op,
    undef.swizzle = SWIZZLE_XXXX;
 
    emit_scalar(ir, op, dst, src0, undef);
-}
-
-/**
- * Emit an OPCODE_SCS instruction
- *
- * The \c SCS opcode functions a bit differently than the other Mesa (or
- * ARB_fragment_program) opcodes.  Instead of splatting its result across all
- * four components of the destination, it writes one value to the \c x
- * component and another value to the \c y component.
- *
- * \param ir        IR instruction being processed
- * \param op        Either \c OPCODE_SIN or \c OPCODE_COS depending on which
- *                  value is desired.
- * \param dst       Destination register
- * \param src       Source register
- */
-void
-ir_to_mesa_visitor::emit_scs(ir_instruction *ir, enum prog_opcode op,
-			     dst_reg dst,
-			     const src_reg &src)
-{
-   /* Vertex programs cannot use the SCS opcode.
-    */
-   if (this->prog->Target == GL_VERTEX_PROGRAM_ARB) {
-      emit_scalar(ir, op, dst, src);
-      return;
-   }
-
-   const unsigned component = (op == OPCODE_SIN) ? 0 : 1;
-   const unsigned scs_mask = (1U << component);
-   int done_mask = ~dst.writemask;
-   src_reg tmp;
-
-   assert(op == OPCODE_SIN || op == OPCODE_COS);
-
-   /* If there are compnents in the destination that differ from the component
-    * that will be written by the SCS instrution, we'll need a temporary.
-    */
-   if (scs_mask != unsigned(dst.writemask)) {
-      tmp = get_temp(glsl_type::vec4_type);
-   }
-
-   for (unsigned i = 0; i < 4; i++) {
-      unsigned this_mask = (1U << i);
-      src_reg src0 = src;
-
-      if ((done_mask & this_mask) != 0)
-	 continue;
-
-      /* The source swizzle specified which component of the source generates
-       * sine / cosine for the current component in the destination.  The SCS
-       * instruction requires that this value be swizzle to the X component.
-       * Replace the current swizzle with a swizzle that puts the source in
-       * the X component.
-       */
-      unsigned src0_swiz = GET_SWZ(src.swizzle, i);
-
-      src0.swizzle = MAKE_SWIZZLE4(src0_swiz, src0_swiz,
-				   src0_swiz, src0_swiz);
-      for (unsigned j = i + 1; j < 4; j++) {
-	 /* If there is another enabled component in the destination that is
-	  * derived from the same inputs, generate its value on this pass as
-	  * well.
-	  */
-	 if (!(done_mask & (1 << j)) &&
-	     GET_SWZ(src0.swizzle, j) == src0_swiz) {
-	    this_mask |= (1 << j);
-	 }
-      }
-
-      if (this_mask != scs_mask) {
-	 ir_to_mesa_instruction *inst;
-	 dst_reg tmp_dst = dst_reg(tmp);
-
-	 /* Emit the SCS instruction.
-	  */
-	 inst = emit(ir, OPCODE_SCS, tmp_dst, src0);
-	 inst->dst.writemask = scs_mask;
-
-	 /* Move the result of the SCS instruction to the desired location in
-	  * the destination.
-	  */
-	 tmp.swizzle = MAKE_SWIZZLE4(component, component,
-				     component, component);
-	 inst = emit(ir, OPCODE_SCS, dst, tmp);
-	 inst->dst.writemask = this_mask;
-      } else {
-	 /* Emit the SCS instruction to write directly to the destination.
-	  */
-	 ir_to_mesa_instruction *inst = emit(ir, OPCODE_SCS, dst, src0);
-	 inst->dst.writemask = scs_mask;
-      }
-
-      done_mask |= this_mask;
-   }
 }
 
 src_reg
@@ -1121,12 +1023,6 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
       break;
    case ir_unop_cos:
       emit_scalar(ir, OPCODE_COS, result_dst, op[0]);
-      break;
-   case ir_unop_sin_reduced:
-      emit_scs(ir, OPCODE_SIN, result_dst, op[0]);
-      break;
-   case ir_unop_cos_reduced:
-      emit_scs(ir, OPCODE_COS, result_dst, op[0]);
       break;
 
    case ir_unop_dFdx:

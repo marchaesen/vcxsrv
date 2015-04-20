@@ -315,6 +315,12 @@ _mesa_clear_shader_program_data(struct gl_shader_program *shProg)
    ralloc_free(shProg->AtomicBuffers);
    shProg->AtomicBuffers = NULL;
    shProg->NumAtomicBuffers = 0;
+
+   if (shProg->ProgramResourceList) {
+      ralloc_free(shProg->ProgramResourceList);
+      shProg->ProgramResourceList = NULL;
+      shProg->NumProgramResourceList = 0;
+   }
 }
 
 

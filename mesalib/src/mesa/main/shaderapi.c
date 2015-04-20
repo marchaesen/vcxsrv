@@ -882,10 +882,9 @@ compile_shader(struct gl_context *ctx, GLuint shaderObj)
       sh->CompileStatus = GL_FALSE;
    } else {
       if (ctx->_Shader->Flags & GLSL_DUMP) {
-         fprintf(stderr, "GLSL source for %s shader %d:\n",
+         _mesa_log("GLSL source for %s shader %d:\n",
                  _mesa_shader_stage_to_string(sh->Stage), sh->Name);
-         fprintf(stderr, "%s\n", sh->Source);
-         fflush(stderr);
+         _mesa_log("%s\n", sh->Source);
       }
 
       /* this call will set the shader->CompileStatus field to indicate if
@@ -899,27 +898,25 @@ compile_shader(struct gl_context *ctx, GLuint shaderObj)
 
       if (ctx->_Shader->Flags & GLSL_DUMP) {
          if (sh->CompileStatus) {
-            fprintf(stderr, "GLSL IR for shader %d:\n", sh->Name);
-            _mesa_print_ir(stderr, sh->ir, NULL);
-            fprintf(stderr, "\n\n");
+            _mesa_log("GLSL IR for shader %d:\n", sh->Name);
+            _mesa_print_ir(_mesa_get_log_file(), sh->ir, NULL);
+            _mesa_log("\n\n");
          } else {
-            fprintf(stderr, "GLSL shader %d failed to compile.\n", sh->Name);
+            _mesa_log("GLSL shader %d failed to compile.\n", sh->Name);
          }
          if (sh->InfoLog && sh->InfoLog[0] != 0) {
-            fprintf(stderr, "GLSL shader %d info log:\n", sh->Name);
-            fprintf(stderr, "%s\n", sh->InfoLog);
+            _mesa_log("GLSL shader %d info log:\n", sh->Name);
+            _mesa_log("%s\n", sh->InfoLog);
          }
-         fflush(stderr);
       }
    }
 
    if (!sh->CompileStatus) {
       if (ctx->_Shader->Flags & GLSL_DUMP_ON_ERROR) {
-         fprintf(stderr, "GLSL source for %s shader %d:\n",
+         _mesa_log("GLSL source for %s shader %d:\n",
                  _mesa_shader_stage_to_string(sh->Stage), sh->Name);
-         fprintf(stderr, "%s\n", sh->Source);
-         fprintf(stderr, "Info Log:\n%s\n", sh->InfoLog);
-         fflush(stderr);
+         _mesa_log("%s\n", sh->Source);
+         _mesa_log("Info Log:\n%s\n", sh->InfoLog);
       }
 
       if (ctx->_Shader->Flags & GLSL_REPORT_ERRORS) {

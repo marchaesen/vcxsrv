@@ -45,3 +45,4 @@ manifest.txt
 .libs/
 Makefile
 Makefile.in
+.install-mesa-links

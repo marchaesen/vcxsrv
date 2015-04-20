@@ -159,11 +159,11 @@ glamor_dash_setup(DrawablePtr drawable, GCPtr gc)
                                        &glamor_priv->on_off_dash_line_progs,
                                        &glamor_facet_on_off_dash_lines);
         if (!prog)
-            goto bail_ctx;
+            goto bail;
         break;
     case LineDoubleDash:
         if (gc->fillStyle != FillSolid)
-            goto bail_ctx;
+            goto bail;
 
         prog = &glamor_priv->double_dash_line_prog;
 
@@ -171,32 +171,30 @@ glamor_dash_setup(DrawablePtr drawable, GCPtr gc)
             if (!glamor_build_program(screen, prog,
                                       &glamor_facet_double_dash_lines,
                                       NULL))
-                goto bail_ctx;
+                goto bail;
         }
 
         if (!glamor_use_program(pixmap, gc, prog, NULL))
-            goto bail_ctx;
+            goto bail;
 
         glamor_set_color(pixmap, gc->fgPixel, prog->fg_uniform);
         glamor_set_color(pixmap, gc->bgPixel, prog->bg_uniform);
         break;
 
     default:
-        goto bail_ctx;
+        goto bail;
     }
 
 
     /* Set the dash pattern as texture 1 */
 
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, dash_priv->base.fbo->tex);
+    glBindTexture(GL_TEXTURE_2D, dash_priv->fbo->tex);
     glUniform1i(prog->dash_uniform, 1);
     glUniform1f(prog->dash_length_uniform, dash_pixmap->drawable.width);
 
     return prog;
 
-bail_ctx:
-    glDisable(GL_COLOR_LOGIC_OP);
 bail:
     return NULL;
 }
@@ -230,7 +228,6 @@ glamor_dash_loop(DrawablePtr drawable, GCPtr gc, glamor_program *prog,
     }
 
     glDisable(GL_SCISSOR_TEST);
-    glDisable(GL_COLOR_LOGIC_OP);
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
 }
 

@@ -325,6 +325,7 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\performance_monitor.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\pipelineobj.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\pixeltransfer.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\main\program_resource.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\querymatrix.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\remap.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\shaderapi.c" />

@@ -102,19 +102,6 @@ glamor_put_image(DrawablePtr drawable, GCPtr gc, int depth, int x, int y,
     glamor_put_image_bail(drawable, gc, depth, x, y, w, h, leftPad, format, bits);
 }
 
-Bool
-glamor_put_image_nf(DrawablePtr drawable, GCPtr gc, int depth, int x, int y,
-                    int w, int h, int leftPad, int format, char *bits)
-{
-    if (glamor_put_image_gl(drawable, gc, depth, x, y, w, h, leftPad, format, bits))
-        return TRUE;
-    if (glamor_ddx_fallback_check_pixmap(drawable) &&
-        glamor_ddx_fallback_check_gc(gc))
-        return FALSE;
-    glamor_put_image_bail(drawable, gc, depth, x, y, w, h, leftPad, format, bits);
-    return TRUE;
-}
-
 static Bool
 glamor_get_image_gl(DrawablePtr drawable, int x, int y, int w, int h,
                     unsigned int format, unsigned long plane_mask, char *d)
@@ -162,18 +149,4 @@ glamor_get_image(DrawablePtr drawable, int x, int y, int w, int h,
     if (glamor_get_image_gl(drawable, x, y, w, h, format, plane_mask, d))
         return;
     glamor_get_image_bail(drawable, x, y, w, h, format, plane_mask, d);
-}
-
-Bool
-glamor_get_image_nf(DrawablePtr drawable, int x, int y, int w, int h,
-                    unsigned int format, unsigned long plane_mask, char *d)
-{
-    if (glamor_get_image_gl(drawable, x, y, w, h, format, plane_mask, d))
-        return TRUE;
-
-    if (glamor_ddx_fallback_check_pixmap(drawable))
-        return FALSE;
-
-    glamor_get_image_bail(drawable, x, y, w, h, format, plane_mask, d);
-    return TRUE;
 }

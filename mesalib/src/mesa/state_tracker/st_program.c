@@ -185,9 +185,6 @@ st_prepare_vertex_program(struct gl_context *ctx,
    if (stvp->Base.IsPositionInvariant)
       _mesa_insert_mvp_code(ctx, &stvp->Base);
 
-   if (!stvp->glsl_to_tgsi)
-      assert(stvp->Base.Base.NumInstructions > 1);
-
    /*
     * Determine number of inputs, the mappings between VERT_ATTRIB_x
     * and TGSI generic input indexes, plus input attrib semantic info.
@@ -403,7 +400,7 @@ st_translate_vertex_program(struct st_context *st,
    return vpv;
 
 fail:
-   debug_printf("%s: failed to translate Mesa program:\n", __FUNCTION__);
+   debug_printf("%s: failed to translate Mesa program:\n", __func__);
    _mesa_print_program(&stvp->Base.Base);
    debug_assert(0);
 
@@ -1316,5 +1313,49 @@ st_print_current_vertex_program(void)
          debug_printf("variant %p\n", stv);
          tgsi_dump(stv->tgsi.tokens, 0);
       }
+   }
+}
+
+
+/**
+ * Compile one shader variant.
+ */
+void
+st_precompile_shader_variant(struct st_context *st,
+                             struct gl_program *prog)
+{
+   switch (prog->Target) {
+   case GL_VERTEX_PROGRAM_ARB: {
+      struct st_vertex_program *p = (struct st_vertex_program *)prog;
+      struct st_vp_variant_key key;
+
+      memset(&key, 0, sizeof(key));
+      key.st = st;
+      st_get_vp_variant(st, p, &key);
+      break;
+   }
+
+   case GL_GEOMETRY_PROGRAM_NV: {
+      struct st_geometry_program *p = (struct st_geometry_program *)prog;
+      struct st_gp_variant_key key;
+
+      memset(&key, 0, sizeof(key));
+      key.st = st;
+      st_get_gp_variant(st, p, &key);
+      break;
+   }
+
+   case GL_FRAGMENT_PROGRAM_ARB: {
+      struct st_fragment_program *p = (struct st_fragment_program *)prog;
+      struct st_fp_variant_key key;
+
+      memset(&key, 0, sizeof(key));
+      key.st = st;
+      st_get_fp_variant(st, p, &key);
+      break;
+   }
+
+   default:
+      assert(0);
    }
 }

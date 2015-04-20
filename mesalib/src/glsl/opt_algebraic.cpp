@@ -290,6 +290,20 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
    ir_expression *op_expr[4] = {NULL, NULL, NULL, NULL};
    unsigned int i;
 
+   if (ir->operation == ir_binop_mul &&
+       ir->operands[0]->type->is_matrix() &&
+       ir->operands[1]->type->is_vector()) {
+      ir_expression *matrix_mul = ir->operands[0]->as_expression();
+
+      if (matrix_mul && matrix_mul->operation == ir_binop_mul &&
+         matrix_mul->operands[0]->type->is_matrix() &&
+         matrix_mul->operands[1]->type->is_matrix()) {
+
+         return mul(matrix_mul->operands[0],
+                    mul(matrix_mul->operands[1], ir->operands[1]));
+      }
+   }
+
    assert(ir->get_num_operands() <= 4);
    for (i = 0; i < ir->get_num_operands(); i++) {
       if (ir->operands[i]->type->is_matrix())
@@ -421,6 +435,18 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
       break;
    }
 
+   case ir_unop_saturate:
+      if (op_expr[0] && op_expr[0]->operation == ir_binop_add) {
+         ir_expression *b2f_0 = op_expr[0]->operands[0]->as_expression();
+         ir_expression *b2f_1 = op_expr[0]->operands[1]->as_expression();
+
+         if (b2f_0 && b2f_0->operation == ir_unop_b2f &&
+             b2f_1 && b2f_1->operation == ir_unop_b2f) {
+            return b2f(logic_or(b2f_0->operands[0], b2f_1->operands[0]));
+         }
+      }
+      break;
+
    case ir_binop_add:
       if (is_vec_zero(op_const[0]))
 	 return ir->operands[1];
@@ -518,6 +544,10 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
       if (is_vec_negative_one(op_const[1]))
          return neg(ir->operands[0]);
 
+      if (op_expr[0] && op_expr[0]->operation == ir_unop_b2f &&
+          op_expr[1] && op_expr[1]->operation == ir_unop_b2f) {
+         return b2f(logic_and(op_expr[0]->operands[0], op_expr[1]->operands[0]));
+      }
 
       /* Reassociate multiplication of constants so that we can do
        * constant folding.
@@ -544,6 +574,8 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
             continue;
 
          ir_expression *add_expr = floor_expr->operands[0]->as_expression();
+         if (!add_expr)
+            continue;
 
          for (int j = 0; j < 2; j++) {
             ir_expression *abs_expr = add_expr->operands[j]->as_expression();

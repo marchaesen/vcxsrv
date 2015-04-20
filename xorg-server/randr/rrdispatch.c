@@ -254,4 +254,7 @@ int (*ProcRandrVector[RRNumberRequests]) (ClientPtr) = {
         ProcRRChangeProviderProperty, /* 39 */
         ProcRRDeleteProviderProperty, /* 40 */
         ProcRRGetProviderProperty,    /* 41 */
+        ProcRRGetMonitors,            /* 42 */
+        ProcRRSetMonitor,             /* 43 */
+        ProcRRDeleteMonitor,          /* 44 */
 };

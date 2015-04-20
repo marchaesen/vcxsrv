@@ -68,7 +68,7 @@ glamor_fill_spans_gl(DrawablePtr drawable,
                                        &glamor_facet_fillspans_130);
 
         if (!prog)
-            goto bail_ctx;
+            goto bail;
 
         /* Set up the vertex buffers for the points */
 
@@ -93,7 +93,7 @@ glamor_fill_spans_gl(DrawablePtr drawable,
                                        &glamor_facet_fillspans_120);
 
         if (!prog)
-            goto bail_ctx;
+            goto bail;
 
         /* Set up the vertex buffers for the points */
 
@@ -134,27 +134,17 @@ glamor_fill_spans_gl(DrawablePtr drawable,
             if (glamor_priv->glsl_version >= 130)
                 glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, n);
             else {
-                if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
-                    glDrawArrays(GL_QUADS, 0, 4 * n);
-                } else {
-                    int i;
-                    for (i = 0; i < n; i++) {
-                        glDrawArrays(GL_TRIANGLE_FAN, i * 4, 4);
-                    }
-                }
+                glamor_glDrawArrays_GL_QUADS(glamor_priv, nbox);
             }
         }
     }
 
     glDisable(GL_SCISSOR_TEST);
-    glDisable(GL_COLOR_LOGIC_OP);
     if (glamor_priv->glsl_version >= 130)
         glVertexAttribDivisor(GLAMOR_VERTEX_POS, 0);
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
 
     return TRUE;
-bail_ctx:
-    glDisable(GL_COLOR_LOGIC_OP);
 bail:
     return FALSE;
 }
@@ -180,21 +170,6 @@ glamor_fill_spans(DrawablePtr drawable,
     if (glamor_fill_spans_gl(drawable, gc, n, points, widths, sorted))
         return;
     glamor_fill_spans_bail(drawable, gc, n, points, widths, sorted);
-}
-
-Bool
-glamor_fill_spans_nf(DrawablePtr drawable,
-                     GCPtr gc,
-                     int n, DDXPointPtr points, int *widths, int sorted)
-{
-    if (glamor_fill_spans_gl(drawable, gc, n, points, widths, sorted))
-        return TRUE;
-
-    if (glamor_ddx_fallback_check_pixmap(drawable) && glamor_ddx_fallback_check_gc(gc))
-        return FALSE;
-
-    glamor_fill_spans_bail(drawable, gc, n, points, widths, sorted);
-    return TRUE;
 }
 
 static Bool
@@ -226,7 +201,7 @@ glamor_get_spans_gl(DrawablePtr drawable, int wmax,
         BoxPtr                  box = glamor_pixmap_box_at(pixmap_priv, box_x, box_y);
         glamor_pixmap_fbo       *fbo = glamor_pixmap_fbo_at(pixmap_priv, box_x, box_y);
 
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo->fb);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo->fb);
         glPixelStorei(GL_PACK_ALIGNMENT, 4);
 
         d = dst;
@@ -280,20 +255,6 @@ glamor_get_spans(DrawablePtr drawable, int wmax,
     if (glamor_get_spans_gl(drawable, wmax, points, widths, count, dst))
         return;
     glamor_get_spans_bail(drawable, wmax, points, widths, count, dst);
-}
-
-Bool
-glamor_get_spans_nf(DrawablePtr drawable, int wmax,
-                    DDXPointPtr points, int *widths, int count, char *dst)
-{
-    if (glamor_get_spans_gl(drawable, wmax, points, widths, count, dst))
-        return TRUE;
-
-    if (glamor_ddx_fallback_check_pixmap(drawable))
-        return FALSE;
-
-    glamor_get_spans_bail(drawable, wmax, points, widths, count, dst);
-    return TRUE;
 }
 
 static Bool
@@ -414,18 +375,4 @@ glamor_set_spans(DrawablePtr drawable, GCPtr gc, char *src,
     if (glamor_set_spans_gl(drawable, gc, src, points, widths, numPoints, sorted))
         return;
     glamor_set_spans_bail(drawable, gc, src, points, widths, numPoints, sorted);
-}
-
-Bool
-glamor_set_spans_nf(DrawablePtr drawable, GCPtr gc, char *src,
-                    DDXPointPtr points, int *widths, int numPoints, int sorted)
-{
-    if (glamor_set_spans_gl(drawable, gc, src, points, widths, numPoints, sorted))
-        return TRUE;
-
-    if (glamor_ddx_fallback_check_pixmap(drawable) && glamor_ddx_fallback_check_gc(gc))
-        return FALSE;
-
-    glamor_set_spans_bail(drawable, gc, src, points, widths, numPoints, sorted);
-    return TRUE;
 }

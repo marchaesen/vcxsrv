@@ -45,7 +45,7 @@ vbo_exec_debug_verts( struct vbo_exec_context *exec )
    GLuint i;
 
    printf("%s: %u vertices %d primitives, %d vertsize\n",
-	  __FUNCTION__,
+	  __func__,
 	  count,
 	  exec->vtx.prim_count,
 	  exec->vtx.vertex_size);
@@ -402,7 +402,7 @@ vbo_exec_vtx_flush(struct vbo_exec_context *exec, GLboolean keepUnmapped)
          }
 
          if (0)
-            printf("%s %d %d\n", __FUNCTION__, exec->vtx.prim_count,
+            printf("%s %d %d\n", __func__, exec->vtx.prim_count,
 		   exec->vtx.vert_count);
 
 	 vbo_context(ctx)->draw_prims( ctx, 

@@ -269,28 +269,6 @@ update_program_constants(struct gl_context *ctx)
 
 
 
-static void
-update_viewport_matrix(struct gl_context *ctx)
-{
-   const GLfloat depthMax = ctx->DrawBuffer->_DepthMaxF;
-   unsigned i;
-
-   assert(depthMax > 0);
-
-   /* Compute scale and bias values. This is really driver-specific
-    * and should be maintained elsewhere if at all.
-    * NOTE: RasterPos uses this.
-    */
-   for (i = 0; i < ctx->Const.MaxViewports; i++) {
-      double scale[3], translate[3];
-
-      _mesa_get_viewport_xform(ctx, i, scale, translate);
-      _math_matrix_viewport(&ctx->ViewportArray[i]._WindowMap,
-                            scale, translate, depthMax);
-   }
-}
-
-
 /**
  * Update the ctx->Polygon._FrontBit flag.
  */
@@ -407,9 +385,6 @@ _mesa_update_state_locked( struct gl_context *ctx )
    if (new_state & _NEW_PIXEL)
       _mesa_update_pixel( ctx, new_state );
 
-   if (new_state & (_NEW_BUFFERS | _NEW_VIEWPORT))
-      update_viewport_matrix(ctx);
-
    if (new_state & (_NEW_MULTISAMPLE | _NEW_BUFFERS))
       update_multisample( ctx );
 
@@ -507,7 +482,7 @@ _mesa_set_varying_vp_inputs( struct gl_context *ctx,
           ctx->FragmentProgram._TexEnvProgram) {
          ctx->NewState |= _NEW_VARYING_VP_INPUTS;
       }
-      /*printf("%s %x\n", __FUNCTION__, varying_inputs);*/
+      /*printf("%s %x\n", __func__, varying_inputs);*/
    }
 }
 

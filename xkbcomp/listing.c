@@ -109,6 +109,7 @@ SOFTWARE.
 #endif
 
 #ifdef WIN32
+# define WIN32_LEAN_AND_MEAN
 # include <X11/Xwindows.h>
 # define FileName(file) file.cFileName
 # undef TEXT

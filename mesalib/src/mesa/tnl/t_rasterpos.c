@@ -25,12 +25,12 @@
 
 #include "c99_math.h"
 #include "main/glheader.h"
-#include "main/colormac.h"
 #include "main/feedback.h"
 #include "main/light.h"
 #include "main/macros.h"
 #include "util/simple_list.h"
 #include "main/mtypes.h"
+#include "main/viewport.h"
 
 #include "math/m_matrix.h"
 #include "tnl/tnl.h"
@@ -378,6 +378,7 @@ _tnl_RasterPos(struct gl_context *ctx, const GLfloat vObj[4])
       GLfloat eye[4], clip[4], ndc[3], d;
       GLfloat *norm, eyenorm[3];
       GLfloat *objnorm = ctx->Current.Attrib[VERT_ATTRIB_NORMAL];
+      double scale[3], translate[3];
 
       /* apply modelview matrix:  eye = MV * obj */
       TRANSFORM_POINT( eye, ctx->ModelviewMatrixStack.Top->m, vObj );
@@ -410,13 +411,10 @@ _tnl_RasterPos(struct gl_context *ctx, const GLfloat vObj[4])
       ndc[1] = clip[1] * d;
       ndc[2] = clip[2] * d;
       /* wincoord = viewport_mapping(ndc) */
-      ctx->Current.RasterPos[0] = (ndc[0] * ctx->ViewportArray[0]._WindowMap.m[MAT_SX]
-                                   + ctx->ViewportArray[0]._WindowMap.m[MAT_TX]);
-      ctx->Current.RasterPos[1] = (ndc[1] * ctx->ViewportArray[0]._WindowMap.m[MAT_SY]
-                                   + ctx->ViewportArray[0]._WindowMap.m[MAT_TY]);
-      ctx->Current.RasterPos[2] = (ndc[2] * ctx->ViewportArray[0]._WindowMap.m[MAT_SZ]
-                                   + ctx->ViewportArray[0]._WindowMap.m[MAT_TZ])
-                                  / ctx->DrawBuffer->_DepthMaxF;
+      _mesa_get_viewport_xform(ctx, 0, scale, translate);
+      ctx->Current.RasterPos[0] = ndc[0] * scale[0] + translate[0];
+      ctx->Current.RasterPos[1] = ndc[1] * scale[1] + translate[1];
+      ctx->Current.RasterPos[2] = ndc[2] * scale[2] + translate[2];
       ctx->Current.RasterPos[3] = clip[3];
 
       if (ctx->Transform.DepthClamp) {

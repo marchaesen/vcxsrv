@@ -109,6 +109,31 @@ public:
    virtual ir_instruction *clone(void *mem_ctx,
 				 struct hash_table *ht) const = 0;
 
+   bool is_rvalue() const
+   {
+      return ir_type == ir_type_dereference_array ||
+             ir_type == ir_type_dereference_record ||
+             ir_type == ir_type_dereference_variable ||
+             ir_type == ir_type_constant ||
+             ir_type == ir_type_expression ||
+             ir_type == ir_type_swizzle ||
+             ir_type == ir_type_texture;
+   }
+
+   bool is_dereference() const
+   {
+      return ir_type == ir_type_dereference_array ||
+             ir_type == ir_type_dereference_record ||
+             ir_type == ir_type_dereference_variable;
+   }
+
+   bool is_jump() const
+   {
+      return ir_type == ir_type_loop_jump ||
+             ir_type == ir_type_return ||
+             ir_type == ir_type_discard;
+   }
+
    /**
     * \name IR instruction downcast functions
     *
@@ -117,45 +142,33 @@ public:
     * Additional downcast functions will be added as needed.
     */
    /*@{*/
-   class ir_rvalue *as_rvalue()
-   {
-      assume(this != NULL);
-      if (ir_type == ir_type_dereference_array ||
-          ir_type == ir_type_dereference_record ||
-          ir_type == ir_type_dereference_variable ||
-          ir_type == ir_type_constant ||
-          ir_type == ir_type_expression ||
-          ir_type == ir_type_swizzle ||
-          ir_type == ir_type_texture)
-         return (class ir_rvalue *) this;
-      return NULL;
+   #define AS_BASE(TYPE)                                \
+   class ir_##TYPE *as_##TYPE()                         \
+   {                                                    \
+      assume(this != NULL);                             \
+      return is_##TYPE() ? (ir_##TYPE *) this : NULL;   \
+   }                                                    \
+   const class ir_##TYPE *as_##TYPE() const             \
+   {                                                    \
+      assume(this != NULL);                             \
+      return is_##TYPE() ? (ir_##TYPE *) this : NULL;   \
    }
 
-   class ir_dereference *as_dereference()
-   {
-      assume(this != NULL);
-      if (ir_type == ir_type_dereference_array ||
-          ir_type == ir_type_dereference_record ||
-          ir_type == ir_type_dereference_variable)
-         return (class ir_dereference *) this;
-      return NULL;
-   }
-
-   class ir_jump *as_jump()
-   {
-      assume(this != NULL);
-      if (ir_type == ir_type_loop_jump ||
-          ir_type == ir_type_return ||
-          ir_type == ir_type_discard)
-         return (class ir_jump *) this;
-      return NULL;
-   }
+   AS_BASE(rvalue)
+   AS_BASE(dereference)
+   AS_BASE(jump)
+   #undef AS_BASE
 
    #define AS_CHILD(TYPE) \
    class ir_##TYPE * as_##TYPE() \
    { \
       assume(this != NULL);                                         \
       return ir_type == ir_type_##TYPE ? (ir_##TYPE *) this : NULL; \
+   }                                                                      \
+   const class ir_##TYPE * as_##TYPE() const                              \
+   {                                                                      \
+      assume(this != NULL);                                               \
+      return ir_type == ir_type_##TYPE ? (const ir_##TYPE *) this : NULL; \
    }
    AS_CHILD(variable)
    AS_CHILD(function)
@@ -183,7 +196,8 @@ public:
     * in particular.  No support for other instruction types (assignments,
     * jumps, calls, etc.) is planned.
     */
-   virtual bool equals(ir_instruction *ir, enum ir_node_type ignore = ir_type_unset);
+   virtual bool equals(const ir_instruction *ir,
+                       enum ir_node_type ignore = ir_type_unset) const;
 
 protected:
    ir_instruction(enum ir_node_type t)
@@ -1300,8 +1314,6 @@ enum ir_expression_operation {
    /*@{*/
    ir_unop_sin,
    ir_unop_cos,
-   ir_unop_sin_reduced,    /**< Reduced range sin. [-pi, pi] */
-   ir_unop_cos_reduced,    /**< Reduced range cos. [-pi, pi] */
    /*@}*/
 
    /**
@@ -1598,7 +1610,8 @@ public:
     */
    ir_expression(int op, ir_rvalue *op0, ir_rvalue *op1, ir_rvalue *op2);
 
-   virtual bool equals(ir_instruction *ir, enum ir_node_type ignore = ir_type_unset);
+   virtual bool equals(const ir_instruction *ir,
+                       enum ir_node_type ignore = ir_type_unset) const;
 
    virtual ir_expression *clone(void *mem_ctx, struct hash_table *ht) const;
 
@@ -1909,7 +1922,8 @@ public:
 
    virtual ir_visitor_status accept(ir_hierarchical_visitor *);
 
-   virtual bool equals(ir_instruction *ir, enum ir_node_type ignore = ir_type_unset);
+   virtual bool equals(const ir_instruction *ir,
+                       enum ir_node_type ignore = ir_type_unset) const;
 
    /**
     * Return a string representing the ir_texture_opcode.
@@ -2010,7 +2024,8 @@ public:
 
    virtual ir_visitor_status accept(ir_hierarchical_visitor *);
 
-   virtual bool equals(ir_instruction *ir, enum ir_node_type ignore = ir_type_unset);
+   virtual bool equals(const ir_instruction *ir,
+                       enum ir_node_type ignore = ir_type_unset) const;
 
    bool is_lvalue() const
    {
@@ -2063,7 +2078,8 @@ public:
 
    virtual ir_constant *constant_expression_value(struct hash_table *variable_context = NULL);
 
-   virtual bool equals(ir_instruction *ir, enum ir_node_type ignore = ir_type_unset);
+   virtual bool equals(const ir_instruction *ir,
+                       enum ir_node_type ignore = ir_type_unset) const;
 
    /**
     * Get the variable that is ultimately referenced by an r-value
@@ -2109,7 +2125,8 @@ public:
 
    virtual ir_constant *constant_expression_value(struct hash_table *variable_context = NULL);
 
-   virtual bool equals(ir_instruction *ir, enum ir_node_type ignore = ir_type_unset);
+   virtual bool equals(const ir_instruction *ir,
+                       enum ir_node_type ignore = ir_type_unset) const;
 
    /**
     * Get the variable that is ultimately referenced by an r-value
@@ -2219,7 +2236,8 @@ public:
 
    virtual ir_visitor_status accept(ir_hierarchical_visitor *);
 
-   virtual bool equals(ir_instruction *ir, enum ir_node_type ignore = ir_type_unset);
+   virtual bool equals(const ir_instruction *ir,
+                       enum ir_node_type ignore = ir_type_unset) const;
 
    /**
     * Get a particular component of a constant as a specific type

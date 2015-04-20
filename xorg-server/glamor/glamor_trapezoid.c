@@ -32,7 +32,6 @@
 
 #include "glamor_priv.h"
 
-#ifdef RENDER
 #include "mipict.h"
 #include "fbpict.h"
 
@@ -155,18 +154,3 @@ glamor_trapezoids(CARD8 op,
 
     FreePicture(picture, 0);
 }
-
-Bool
-glamor_trapezoids_nf(CARD8 op,
-                     PicturePtr src, PicturePtr dst,
-                     PictFormatPtr mask_format, INT16 x_src, INT16 y_src,
-                     int ntrap, xTrapezoid *traps)
-{
-    DEBUGF("x_src = %d, y_src = %d, ntrap = %d\n", x_src, y_src, ntrap);
-
-    glamor_trapezoids(op, src, dst, mask_format, x_src,
-                      y_src, ntrap, traps);
-    return TRUE;
-}
-
-#endif                          /* RENDER */

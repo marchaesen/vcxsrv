@@ -214,6 +214,8 @@ ephyr_glamor_damage_redisplay(struct ephyr_glamor *glamor,
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glUseProgram(glamor->texture_shader);
     glViewport(0, 0, glamor->width, glamor->height);
+    if (!ephyr_glamor_gles2)
+        glDisable(GL_COLOR_LOGIC_OP);
 
     glVertexAttribPointer(glamor->texture_shader_position_loc,
                           2, GL_FLOAT, FALSE, 0, position);

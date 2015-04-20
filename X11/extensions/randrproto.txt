@@ -1,5 +1,5 @@
 	       The X Resize, Rotate and Reflect Extension
-			     Version 1.4.1
+			     Version 1.5.0
 			       2015-03-14
 
 			      Jim Gettys
@@ -149,7 +149,44 @@ be dynamically configured to provide support for:
 
  4) multiple GPU rendering - This replaces Xinerama.
 
-1.99 Acknowledgements
+1.5. Introduction to version 1.5 of the extension
+
+Version 1.5 adds an optional TILE property to outputs.
+
+   • An optional TILE property.
+     This property is used to denote individual tiles in a tiled monitor
+     configuration, as exposed via DisplayID v1.3.
+
+Version 1.5 adds monitors
+
+ • A 'Monitor' is a rectangular subset of the screen which represents
+   a coherent collection of pixels presented to the user.
+
+ • Each Monitor is be associated with a list of outputs (which may be
+   empty).
+
+ • When clients define monitors, the associated outputs are removed from
+   existing Monitors. If removing the output causes the list for that
+   monitor to become empty, that monitor will be deleted.
+
+ • For active CRTCs that have no output associated with any
+   client-defined Monitor, one server-defined monitor will
+   automatically be defined of the first Output associated with them.
+
+ • When defining a monitor, setting the geometry to all zeros will
+   cause that monitor to dynamically track the bounding box of the
+   active outputs associated with them
+
+This new object separates the physical configuration of the hardware
+from the logical subsets  the screen that applications should
+consider as single viewable areas.
+
+1.5.1. Relationship between Monitors and Xinerama
+
+Xinerama's information now comes from the Monitors instead of directly
+from the CRTCs. The Monitor marked as Primary will be listed first.
+
+1.99 Acknowledgments
 
 Our thanks to the contributors to the design found on the xpert mailing
 list, in particular:
@@ -162,7 +199,9 @@ David Dawes for XFree86 DDX integration work
 Thomas Winischhofer for the hardware-accelerated SiS rotation implementation
 Matthew Tippett and Kevin Martin for splitting outputs and CRTCs to more
 fully expose what video hardware can do
-Dave Airlie for the 1.4.0 protocol changes.
+Dave Airlie for the 1.4.0 protocol changes and for working through the
+implications of MST monitors and encouraging the introduction of the
+'Monitor' concept.
 
 			      ❧❧❧❧❧❧❧❧❧❧❧
 
@@ -262,7 +301,7 @@ RRCONFIGSTATUS { Success
 	configuration is unsupported by the hardware. The goal is to make
 	these limitations expressed by the protocol, but when that isn't
 	possible it is correct to return this error value. If, as a
-	implementor, you find this error code required, please submit the
+	implementer, you find this error code required, please submit the
 	hardware constraints that exist so that a future version of the
 	extension can correctly capture the configuration constraints in
 	your system.
@@ -362,6 +401,21 @@ PROVIDER_CAPS { SourceOutput, SinkOutput, SourceOffload, SinkOffload }
 	SinkOutput: This device can sink output buffers.
 	SourceOffload: This device can source offload buffers.
 	SinkOffload: This device can sink offload buffers.
+
+			      ❧❧❧❧❧❧❧❧❧❧❧
+
+5.6. Protocol Types added in version 1.5 of the extension
+
+MONITORINFO { name: ATOM
+              primary: BOOL
+	      automatic: BOOL
+	      x: INT16
+	      y: INT16
+	      width: CARD16
+	      height: CARD16
+	      width-in-millimeters: CARD32
+	      height-in-millimeters: CARD32
+	      outputs: LISTofOUTPUT }
 
 			      ❧❧❧❧❧❧❧❧❧❧❧
 
@@ -1539,6 +1593,79 @@ dynamic changes in the display environment.
 
 
 			      ❧❧❧❧❧❧❧❧❧❧❧
+
+7.5. Extension Requests added in version 1.5 of the extension.
+
+┌───
+    RRGetMonitors
+	window : WINDOW
+	get_active : BOOL
+     ▶
+	timestamp: TIMESTAMP
+	monitors: LISTofMONITORINFO
+└───
+	Errors: Window
+
+	Returns the list of Monitors for the screen containing
+	'window'. If 'get_active' is set it returns only active
+	monitors (non-0x0 monitors).  'get_active' should always
+	be set by toolkits, and not by configuration clients.
+
+	'timestamp' indicates the server time when the list of
+	monitors last changed.
+
+┌───
+    RRSetMonitor
+	window : WINDOW
+	info: MONITORINFO
+└───
+	Errors: Window, Output, Atom, Value
+
+	Create a new monitor. Any existing Monitor of the same name is deleted.
+
+	'name' must be a valid atom or an Atom error results.
+
+	'name' must not match the name of any Output on the screen, or
+	a Value error results.
+
+	If 'info.outputs' is non-empty, and if x, y, width, height are all
+	zero, then the Monitor geometry will be dynamically defined to
+	be the bounding box of the geometry of the active CRTCs
+	associated with them.
+
+	If 'name' matches an existing Monitor on the screen, the
+	existing one will be deleted as if RRDeleteMonitor were called.
+
+	For each output in 'info.outputs, each one is removed from all
+	pre-existing Monitors. If removing the output causes the list of
+	outputs for that Monitor to become empty, then that Monitor will
+	be deleted as if RRDeleteMonitor were called.
+
+	Only one monitor per screen may be primary. If 'info.primary'
+	is true, then the primary value will be set to false on all
+	other monitors on the screen.
+
+	RRSetMonitor generates a ConfigureNotify event on the root
+	window of the screen.
+
+┌───
+    RRDeleteMonitor
+	window : WINDOW
+	name: ATOM
+└───
+	Errors: Window, Atom, Value
+
+	Deletes the named Monitor.
+
+	'name' must be a valid atom or an Atom error results.
+
+	'name' must match the name of a Monitor on the screen, or a
+	Value error results.
+
+	RRDeleteMonitor generates a ConfigureNotify event on the root
+	window of the screen.
+
+			      ❧❧❧❧❧❧❧❧❧❧❧
 8. Extension Events
 
 Clients MAY select for ConfigureNotify on the root window to be
@@ -1968,6 +2095,26 @@ doesn't handle a mandatory property correctly.
 	unique identifiers.  When such an identifier is available, this property
 	contains its raw bytes.
 
+    "TILE"			aka RR_PROPERTY_RANDR_TILE
+	Type:			INTEGER
+	Format:			32
+	Num items:		8
+	Flags:			Immutable
+	Range/List:		-
+
+        Tile monitors have an array of values describing the tiling,
+        based on DisplayID v1.3
+
+	The 8 elements are:
+        0: group id - The tile group identifier
+        1: flags - flags for tile group
+		0x1 = single monitor enclosure
+        2: number of horizontal tiles in tile group
+        3: number of vertical tiles in tile group
+        4: horizontal tile location for this tile
+        5: vertical tile location for this tile
+        6: horizontal tile size for this tile
+        7: vertical tile size for this tile
 
 9.2 Properties introduced with version 1.2 of the RandR extension
 
@@ -2008,6 +2155,11 @@ Property			Immutable	Mandatory since
 ────────			─────────	───────────────
 GUID				yes		not mandatory
 
+9.7 Properties introduced with version 1.5 of the RandR extension
+
+Property			Immutable	Mandatory since
+────────			─────────	───────────────
+TILE				yes		not mandatory
 			      ❧❧❧❧❧❧❧❧❧❧❧
 
 10. Extension Versioning
@@ -2043,6 +2195,8 @@ list of what each version provided:
 	     Added standard properties.
 
         1.4: Added provider objects for handling multi-GPU systems.
+
+	1.5: Added Monitors
 
 Compatibility between 0.0 and 1.0 was *NOT* preserved, and 0.0 clients
 will fail against 1.0 servers. The wire encoding op-codes were
@@ -2192,6 +2346,23 @@ A.1 Common Types
 	0x00000002	SinkOutput
 	0x00000004	SourceOffload
 	0x00000008	SinkOffload
+└───
+
+A.1.1 Common Types added in version 1.5 of the protocol
+
+┌───
+    MONITORINFO (16 + 4*n)
+	4	ATOM		name
+	1	BOOL		primary
+	1	BOOL		automatic
+	2	CARD16		ncrtcs
+	2	INT16		x
+	2	INT16		y
+	2	CARD16		width in pixels
+	2	CARD16		height in pixels
+	4	CARD32		width in millimeters
+	4	CARD32		height in millimeters
+	4*n	CRTC		crtcs
 └───
 
 A.2 Protocol Requests
@@ -2930,6 +3101,42 @@ A.2.3 Protocol Requests added with version 1.4
 					(n is a multiple of 2 for format = 16)
 					(n is a multiple of 4 for format = 32)
 	p				unused, p=pad(n)
+└───
+
+A.2.4 Protocol Requests added with version 1.5
+
+┌───
+    RRGetMonitors
+	1	CARD8			major opcode
+	1	42			RandR opcode
+	2	2			request length
+	4	WINDOW			window
+     ▶
+	1	1			Reply
+	1				unused
+	2	CARD16			sequence number
+	4	6*n + o			reply length
+	4	TIMESTAMP		timestamp
+	4	n			nmonitors
+	4	o			noutputs
+	12				unused
+	n*24+o*4 LISTofMONITORINFO	monitors
+└───
+┌───
+    RRSetMonitor
+	1	CARD8			major opcode
+	1	43			RandR opcode
+	2	6 + o			request length
+	4	WINDOW			window
+	24+o	MONITORINFO		monitorinfo
+└───
+┌───
+    RRDeleteMonitor
+	1	CARD8			major opcode
+	1	44			RandR opcode
+	2	3			request length
+	4	WINDOW			window
+	4	ATOM			name
 └───
 
 A.3 Protocol Events
