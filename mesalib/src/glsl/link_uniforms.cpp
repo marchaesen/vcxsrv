@@ -547,6 +547,8 @@ private:
    virtual void enter_record(const glsl_type *type, const char *name,
                              bool row_major) {
       assert(type->is_record());
+      if (this->ubo_block_index == -1)
+         return;
       this->ubo_byte_offset = glsl_align(
             this->ubo_byte_offset, type->std140_base_alignment(row_major));
    }
@@ -554,6 +556,8 @@ private:
    virtual void leave_record(const glsl_type *type, const char *name,
                              bool row_major) {
       assert(type->is_record());
+      if (this->ubo_block_index == -1)
+         return;
       this->ubo_byte_offset = glsl_align(
             this->ubo_byte_offset, type->std140_base_alignment(row_major));
    }

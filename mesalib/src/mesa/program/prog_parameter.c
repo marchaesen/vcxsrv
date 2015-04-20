@@ -190,40 +190,6 @@ _mesa_add_parameter(struct gl_program_parameter_list *paramList,
 
 
 /**
- * Add a new named constant to the parameter list.
- * This will be used when the program contains something like this:
- *    PARAM myVals = { 0, 1, 2, 3 };
- *
- * \param paramList  the parameter list
- * \param name  the name for the constant
- * \param values  four float values
- * \return index/position of the new parameter in the parameter list
- */
-GLint
-_mesa_add_named_constant(struct gl_program_parameter_list *paramList,
-                         const char *name, const gl_constant_value values[4],
-                         GLuint size)
-{
-   /* first check if this is a duplicate constant */
-   GLint pos;
-   for (pos = 0; pos < (GLint)paramList->NumParameters; pos++) {
-      const gl_constant_value *pvals = paramList->ParameterValues[pos];
-      if (pvals[0].u == values[0].u &&
-          pvals[1].u == values[1].u &&
-          pvals[2].u == values[2].u &&
-          pvals[3].u == values[3].u &&
-          strcmp(paramList->Parameters[pos].Name, name) == 0) {
-         /* Same name and value is already in the param list - reuse it */
-         return pos;
-      }
-   }
-   /* not found, add new parameter */
-   return _mesa_add_parameter(paramList, PROGRAM_CONSTANT, name,
-                              size, GL_NONE, values, NULL);
-}
-
-
-/**
  * Add a new unnamed constant to the parameter list.  This will be used
  * when a fragment/vertex program contains something like this:
  *    MOV r, { 0, 1, 2, 3 };
@@ -303,28 +269,6 @@ _mesa_add_unnamed_constant(struct gl_program_parameter_list *paramList,
                                            swizzleOut);
 }
 
-#if 0 /* not used yet */
-/**
- * Returns the number of 4-component registers needed to store a piece
- * of GL state.  For matrices this may be as many as 4 registers,
- * everything else needs
- * just 1 register.
- */
-static GLuint
-sizeof_state_reference(const GLint *stateTokens)
-{
-   if (stateTokens[0] == STATE_MATRIX) {
-      GLuint rows = stateTokens[4] - stateTokens[3] + 1;
-      assert(rows >= 1);
-      assert(rows <= 4);
-      return rows;
-   }
-   else {
-      return 1;
-   }
-}
-#endif
-
 
 /**
  * Add a new state reference to the parameter list.
@@ -361,22 +305,6 @@ _mesa_add_state_reference(struct gl_program_parameter_list *paramList,
    free(name);
 
    return index;
-}
-
-
-/**
- * Lookup a parameter value by name in the given parameter list.
- * \return pointer to the float[4] values.
- */
-gl_constant_value *
-_mesa_lookup_parameter_value(const struct gl_program_parameter_list *paramList,
-                             GLsizei nameLen, const char *name)
-{
-   GLint i = _mesa_lookup_parameter_index(paramList, nameLen, name);
-   if (i < 0)
-      return NULL;
-   else
-      return paramList->ParameterValues[i];
 }
 
 

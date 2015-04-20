@@ -443,7 +443,7 @@ hostx_init(void)
     else
 #endif
         HostX.conn = xcb_connect(NULL, &HostX.screen);
-    if (xcb_connection_has_error(HostX.conn)) {
+    if (!HostX.conn || xcb_connection_has_error(HostX.conn)) {
         fprintf(stderr, "\nXephyr cannot open host display. Is DISPLAY set?\n");
         exit(1);
     }
@@ -1407,9 +1407,10 @@ ephyr_glamor_init(ScreenPtr screen)
     ephyr_glamor_set_window_size(scrpriv->glamor,
                                  scrpriv->win_width, scrpriv->win_height);
 
-    glamor_init(screen,
-                GLAMOR_USE_SCREEN |
-                GLAMOR_USE_PICTURE_SCREEN);
+    if (!glamor_init(screen, 0)) {
+        FatalError("Failed to initialize glamor\n");
+        return FALSE;
+    }
 
     return TRUE;
 }

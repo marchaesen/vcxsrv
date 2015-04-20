@@ -53,7 +53,6 @@
 
 #include "glheader.h"
 #include "bufferobj.h"
-#include "colormac.h"
 #include "format_pack.h"
 #include "format_utils.h"
 #include "image.h"

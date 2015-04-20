@@ -163,11 +163,6 @@ extern void SELinuxExtensionInit(void);
 extern void XTestExtensionInit(void);
 #endif
 
-#ifdef INXQUARTZ
-extern _X_EXPORT Bool noPseudoramiXExtension;
-extern void PseudoramiXExtensionInit(void);
-#endif
-
 #if defined(XV)
 #include <X11/extensions/Xv.h>
 #include <X11/extensions/XvMC.h>

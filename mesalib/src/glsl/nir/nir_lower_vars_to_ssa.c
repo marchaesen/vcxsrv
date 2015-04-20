@@ -642,7 +642,7 @@ add_phi_sources(nir_block *block, nir_block *pred,
 
       struct deref_node *node = entry->data;
 
-      nir_phi_src *src = ralloc(state->mem_ctx, nir_phi_src);
+      nir_phi_src *src = ralloc(phi, nir_phi_src);
       src->pred = pred;
       src->src.is_ssa = true;
       src->src.ssa = get_ssa_def_for_block(node, pred, state);

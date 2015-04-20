@@ -35,6 +35,7 @@
 #include "math/m_translate.h"
 #include "math/m_xform.h"
 #include "main/state.h"
+#include "main/viewport.h"
 
 #include "tnl.h"
 #include "t_context.h"
@@ -68,6 +69,8 @@ _tnl_CreateContext( struct gl_context *ctx )
    } else {
       _tnl_install_pipeline( ctx, _tnl_default_pipeline );
    }
+
+   _math_matrix_ctr(&tnl->_WindowMap);
 
    tnl->NeedNdcCoords = GL_TRUE;
    tnl->AllowVertexFog = GL_TRUE;
@@ -107,6 +110,8 @@ _tnl_DestroyContext( struct gl_context *ctx )
 {
    struct tnl_shine_tab *s, *tmps;
    TNLcontext *tnl = TNL_CONTEXT(ctx);
+
+   _math_matrix_dtr(&tnl->_WindowMap);
 
    /* Free lighting shininess exponentiation table */
    foreach_s( s, tmps, tnl->_ShineTabList ) {
@@ -181,6 +186,13 @@ _tnl_InvalidateState( struct gl_context *ctx, GLuint new_state )
             tnl->render_inputs_bitset |= BITFIELD64_BIT(_TNL_ATTRIB_GENERIC(i));
          }
       }
+   }
+
+   if (new_state & (_NEW_VIEWPORT | _NEW_BUFFERS)) {
+      double scale[3], translate[3];
+      _mesa_get_viewport_xform(ctx, 0, scale, translate);
+      _math_matrix_viewport(&tnl->_WindowMap, scale, translate,
+                            ctx->DrawBuffer->_DepthMaxF);
    }
 }
 

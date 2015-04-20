@@ -84,6 +84,8 @@ static int ProcRRXineramaIsActive(ClientPtr client);
 static int ProcRRXineramaQueryScreens(ClientPtr client);
 static int SProcRRXineramaDispatch(ClientPtr client);
 
+Bool noRRXineramaExtension = FALSE;
+
 /* Proc */
 
 int
@@ -147,35 +149,10 @@ ProcRRXineramaGetState(ClientPtr client)
     return Success;
 }
 
-static Bool
-RRXineramaCrtcActive(RRCrtcPtr crtc)
-{
-    return crtc->mode != NULL && crtc->numOutputs > 0;
-}
-
 static int
 RRXineramaScreenCount(ScreenPtr pScreen)
 {
-    int i, n;
-    ScreenPtr slave;
-
-    n = 0;
-    if (rrGetScrPriv(pScreen)) {
-        rrScrPriv(pScreen);
-        for (i = 0; i < pScrPriv->numCrtcs; i++)
-            if (RRXineramaCrtcActive(pScrPriv->crtcs[i]))
-                n++;
-    }
-
-    xorg_list_for_each_entry(slave, &pScreen->output_slave_list, output_head) {
-        rrScrPrivPtr pSlavePriv;
-        pSlavePriv = rrGetScrPriv(slave);
-        for (i = 0; i < pSlavePriv->numCrtcs; i++)
-            if (RRXineramaCrtcActive(pSlavePriv->crtcs[i]))
-                n++;
-    }
-
-    return n;
+    return RRMonitorCountList(pScreen);
 }
 
 static Bool
@@ -274,42 +251,16 @@ ProcRRXineramaIsActive(ClientPtr client)
 }
 
 static void
-RRXineramaWriteCrtc(ClientPtr client, RRCrtcPtr crtc)
+RRXineramaWriteMonitor(ClientPtr client, RRMonitorPtr monitor)
 {
     xXineramaScreenInfo scratch;
 
-    if (RRXineramaCrtcActive(crtc)) {
-        ScreenPtr pScreen = crtc->pScreen;
-        rrScrPrivPtr pScrPriv = rrGetScrPriv(pScreen);
-        BoxRec panned_area;
+    scratch.x_org = monitor->geometry.box.x1;
+    scratch.y_org = monitor->geometry.box.y1;
+    scratch.width = monitor->geometry.box.x2 - monitor->geometry.box.x1;
+    scratch.height = monitor->geometry.box.y2 - monitor->geometry.box.y1;
 
-        /* Check to see if crtc is panned and return the full area when applicable. */
-        if (pScrPriv && pScrPriv->rrGetPanning &&
-            pScrPriv->rrGetPanning(pScreen, crtc, &panned_area, NULL, NULL) &&
-            (panned_area.x2 > panned_area.x1) &&
-            (panned_area.y2 > panned_area.y1)) {
-            scratch.x_org = panned_area.x1;
-            scratch.y_org = panned_area.y1;
-            scratch.width = panned_area.x2 - panned_area.x1;
-            scratch.height = panned_area.y2 - panned_area.y1;
-        }
-        else {
-            int width, height;
-
-            RRCrtcGetScanoutSize(crtc, &width, &height);
-            scratch.x_org = crtc->x;
-            scratch.y_org = crtc->y;
-            scratch.width = width;
-            scratch.height = height;
-        }
-        if (client->swapped) {
-            swaps(&scratch.x_org);
-            swaps(&scratch.y_org);
-            swaps(&scratch.width);
-            swaps(&scratch.height);
-        }
-        WriteToClient(client, sz_XineramaScreenInfo, &scratch);
-    }
+    WriteToClient(client, sz_XineramaScreenInfo, &scratch);
 }
 
 int
@@ -317,21 +268,23 @@ ProcRRXineramaQueryScreens(ClientPtr client)
 {
     xXineramaQueryScreensReply rep;
     ScreenPtr pScreen = screenInfo.screens[RR_XINERAMA_SCREEN];
-    int n = 0;
-    int i;
+    int m;
+    RRMonitorPtr monitors = NULL;
+    int nmonitors = 0;
 
     REQUEST_SIZE_MATCH(xXineramaQueryScreensReq);
 
     if (RRXineramaScreenActive(pScreen)) {
         RRGetInfo(pScreen, FALSE);
-        n = RRXineramaScreenCount(pScreen);
+        if (!RRMonitorMakeList(pScreen, TRUE, &monitors, &nmonitors))
+            return BadAlloc;
     }
 
     rep = (xXineramaQueryScreensReply) {
         .type = X_Reply,
         .sequenceNumber = client->sequence,
-        .length = bytes_to_int32(n * sz_XineramaScreenInfo),
-        .number = n
+        .length = bytes_to_int32(nmonitors * sz_XineramaScreenInfo),
+        .number = nmonitors
     };
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
@@ -340,40 +293,11 @@ ProcRRXineramaQueryScreens(ClientPtr client)
     }
     WriteToClient(client, sizeof(xXineramaQueryScreensReply), &rep);
 
-    if (n) {
-        ScreenPtr slave;
-        rrScrPriv(pScreen);
-        int has_primary = 0;
-        RRCrtcPtr primary_crtc = NULL;
+    for (m = 0; m < nmonitors; m++)
+        RRXineramaWriteMonitor(client, &monitors[m]);
 
-        if (pScrPriv->primaryOutput && pScrPriv->primaryOutput->crtc) {
-            has_primary = 1;
-            primary_crtc = pScrPriv->primaryOutput->crtc;
-            RRXineramaWriteCrtc(client, pScrPriv->primaryOutput->crtc);
-        }
-
-        for (i = 0; i < pScrPriv->numCrtcs; i++) {
-            if (has_primary &&
-                primary_crtc == pScrPriv->crtcs[i]) {
-                has_primary = 0;
-                continue;
-            }
-            RRXineramaWriteCrtc(client, pScrPriv->crtcs[i]);
-        }
-
-        xorg_list_for_each_entry(slave, &pScreen->output_slave_list, output_head) {
-            rrScrPrivPtr pSlavePriv;
-            pSlavePriv = rrGetScrPriv(slave);
-            for (i = 0; i < pSlavePriv->numCrtcs; i++) {
-                if (has_primary &&
-                    primary_crtc == pSlavePriv->crtcs[i]) {
-                    has_primary = 0;
-                    continue;
-                }
-                RRXineramaWriteCrtc(client, pSlavePriv->crtcs[i]);
-            }
-        }
-    }
+    if (monitors)
+        RRMonitorFreeList(monitors, nmonitors);
 
     return Success;
 }
@@ -487,6 +411,9 @@ RRXineramaExtensionInit(void)
     if (!noPanoramiXExtension)
         return;
 #endif
+
+    if (noRRXineramaExtension)
+      return;
 
     /*
      * Xinerama isn't capable enough to have multiple protocol screens each

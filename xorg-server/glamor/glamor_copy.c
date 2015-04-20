@@ -42,7 +42,7 @@ use_copyarea(PixmapPtr dst, GCPtr gc, glamor_program *prog, void *arg)
     glBindTexture(GL_TEXTURE_2D, src->tex);
 
     glUniform2f(prog->fill_offset_uniform, args->dx, args->dy);
-    glUniform2f(prog->fill_size_uniform, src->width, src->height);
+    glUniform2f(prog->fill_size_inv_uniform, 1.0f/src->width, 1.0f/src->height);
 
     return TRUE;
 }
@@ -51,7 +51,7 @@ static const glamor_facet glamor_facet_copyarea = {
     "copy_area",
     .vs_vars = "attribute vec2 primitive;\n",
     .vs_exec = (GLAMOR_POS(gl_Position, primitive.xy)
-                "       fill_pos = (fill_offset + primitive.xy) / fill_size;\n"),
+                "       fill_pos = (fill_offset + primitive.xy) * fill_size_inv;\n"),
     .fs_exec = "       gl_FragColor = texture2D(sampler, fill_pos);\n",
     .locations = glamor_program_location_fill,
     .use = use_copyarea,
@@ -71,7 +71,7 @@ use_copyplane(PixmapPtr dst, GCPtr gc, glamor_program *prog, void *arg)
     glBindTexture(GL_TEXTURE_2D, src->tex);
 
     glUniform2f(prog->fill_offset_uniform, args->dx, args->dy);
-    glUniform2f(prog->fill_size_uniform, src->width, src->height);
+    glUniform2f(prog->fill_size_inv_uniform, 1.0f/src->width, 1.0f/src->height);
 
     glamor_set_color(dst, gc->fgPixel, prog->fg_uniform);
     glamor_set_color(dst, gc->bgPixel, prog->bg_uniform);
@@ -134,7 +134,7 @@ static const glamor_facet glamor_facet_copyplane = {
     .version = 130,
     .vs_vars = "attribute vec2 primitive;\n",
     .vs_exec = (GLAMOR_POS(gl_Position, (primitive.xy))
-                "       fill_pos = (fill_offset + primitive.xy) / fill_size;\n"),
+                "       fill_pos = (fill_offset + primitive.xy) * fill_size_inv;\n"),
     .fs_exec = ("       uvec4 bits = uvec4(round(texture2D(sampler, fill_pos) * bitmul));\n"
                 "       if ((bits & bitplane) != uvec4(0,0,0,0))\n"
                 "               gl_FragColor = fg;\n"
@@ -315,7 +315,6 @@ glamor_copy_fbo_fbo_draw(DrawablePtr src,
     struct copy_args args;
     glamor_program *prog;
     const glamor_facet *copy_facet;
-    Bool set_scissor;
     int n;
 
     glamor_make_current(glamor_priv);
@@ -367,9 +366,7 @@ glamor_copy_fbo_fbo_draw(DrawablePtr src,
 
     glamor_get_drawable_deltas(src, src_pixmap, &src_off_x, &src_off_y);
 
-    set_scissor = src_priv->type == GLAMOR_TEXTURE_LARGE;
-    if (set_scissor)
-        glEnable(GL_SCISSOR_TEST);
+    glEnable(GL_SCISSOR_TEST);
 
     glamor_pixmap_loop(src_priv, src_box_x, src_box_y) {
         BoxPtr src_box = glamor_pixmap_box_at(src_priv, src_box_x, src_box_y);
@@ -385,30 +382,20 @@ glamor_copy_fbo_fbo_draw(DrawablePtr src,
             glamor_set_destination_drawable(dst, dst_box_x, dst_box_y, FALSE, FALSE,
                                             prog->matrix_uniform, &dst_off_x, &dst_off_y);
 
-            if (set_scissor)
-                glScissor(dst_off_x - args.dx,
-                          dst_off_y - args.dy,
-                          src_box->x2 - src_box->x1,
-                          src_box->y2 - src_box->y1);
+            glScissor(dst_off_x - args.dx,
+                      dst_off_y - args.dy,
+                      src_box->x2 - src_box->x1,
+                      src_box->y2 - src_box->y1);
 
-            if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP)
-                glDrawArrays(GL_QUADS, 0, nbox * 4);
-            else {
-                int i;
-                for (i = 0; i < nbox; i++)
-                    glDrawArrays(GL_TRIANGLE_FAN, i*4, 4);
-            }
+            glamor_glDrawArrays_GL_QUADS(glamor_priv, nbox);
         }
     }
-    if (set_scissor)
-        glDisable(GL_SCISSOR_TEST);
+    glDisable(GL_SCISSOR_TEST);
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
 
-    glDisable(GL_COLOR_LOGIC_OP);
     return TRUE;
 
 bail_ctx:
-    glDisable(GL_COLOR_LOGIC_OP);
     return FALSE;
 }
 
@@ -452,7 +439,6 @@ glamor_copy_fbo_fbo_temp(DrawablePtr src,
 
     if (!glamor_set_alu(screen, gc ? gc->alu : GXcopy))
         goto bail_ctx;
-    glDisable(GL_COLOR_LOGIC_OP);
 
     /* Find the size of the area to copy
      */
@@ -521,7 +507,6 @@ bail:
     return FALSE;
 
 bail_ctx:
-    glDisable(GL_COLOR_LOGIC_OP);
     return FALSE;
 }
 
@@ -708,40 +693,4 @@ glamor_copy_window(WindowPtr window, DDXPointRec old_origin, RegionPtr src_regio
                  0, &dst_region, dx, dy, glamor_copy, 0, 0);
 
     RegionUninit(&dst_region);
-}
-
-Bool
-glamor_copy_n_to_n_nf(DrawablePtr src,
-                      DrawablePtr dst,
-                      GCPtr gc,
-                      BoxPtr box,
-                      int nbox,
-                      int dx,
-                      int dy,
-                      Bool reverse,
-                      Bool upsidedown, Pixel bitplane,
-                      void *closure)
-{
-    if (glamor_copy_gl(src, dst, gc, box, nbox, dx, dy, reverse, upsidedown, bitplane, closure))
-        return TRUE;
-    if (glamor_ddx_fallback_check_pixmap(src) && glamor_ddx_fallback_check_pixmap(dst))
-        return FALSE;
-    glamor_copy_bail(src, dst, gc, box, nbox, dx, dy, reverse, upsidedown, bitplane, closure);
-    return TRUE;
-}
-
-Bool
-glamor_copy_plane_nf(DrawablePtr src, DrawablePtr dst, GCPtr gc,
-                     int srcx, int srcy, int w, int h, int dstx, int dsty,
-                     unsigned long bitplane, RegionPtr *region)
-{
-    if (glamor_ddx_fallback_check_pixmap(src) &&
-        glamor_ddx_fallback_check_pixmap(dst) &&
-        glamor_ddx_fallback_check_gc(gc))
-        return FALSE;
-
-    *region = glamor_copy_plane(src, dst, gc,
-                                srcx, srcy, w, h, dstx, dsty,
-                                bitplane);
-    return TRUE;
 }

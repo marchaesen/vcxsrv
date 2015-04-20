@@ -94,8 +94,10 @@ glamor_sync_init(ScreenPtr screen)
 			return FALSE;
 	}
 
+#ifdef HAVE_XSHMFENCE
 	if (!miSyncShmScreenInit(screen))
 		return FALSE;
+#endif
 
 	screen_funcs = miSyncGetScreenFuncs(screen);
 	glamor->saved_procs.sync_screen_funcs.CreateFence = screen_funcs->CreateFence;

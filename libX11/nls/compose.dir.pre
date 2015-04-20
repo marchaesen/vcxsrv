@@ -389,7 +389,7 @@ km_KH.UTF-8/Compose:		km_KH.UTF-8
 en_US.UTF-8/Compose:		kn_IN.UTF-8
 ko_KR.UTF-8/Compose:		ko_KR.UTF-8
 en_US.UTF-8/Compose:		ks_IN.UTF-8
-en_US.UTF-8/Compose:		ks_IN@devanagari.UTF-8
+en_US.UTF-8/Compose:		ks_IN.UTF-8@devanagari
 en_US.UTF-8/Compose:		ku_TR.UTF-8
 en_US.UTF-8/Compose:		kw_GB.UTF-8
 en_US.UTF-8/Compose:		ky_KG.UTF-8
@@ -429,7 +429,7 @@ en_US.UTF-8/Compose:		ru_UA.UTF-8
 en_US.UTF-8/Compose:		rw_RW.UTF-8
 en_US.UTF-8/Compose:		sa_IN.UTF-8
 en_US.UTF-8/Compose:		sd_IN.UTF-8
-en_US.UTF-8/Compose:		sd_IN@devanagari.UTF-8
+en_US.UTF-8/Compose:		sd_IN.UTF-8@devanagari
 en_US.UTF-8/Compose:		se_NO.UTF-8
 en_US.UTF-8/Compose:		sh_BA.UTF-8
 en_US.UTF-8/Compose:		sh_YU.UTF-8

@@ -660,6 +660,11 @@ miPolyFillArc(DrawablePtr pDraw, GCPtr pGC, int narcs_all, xArc * parcs)
             if (narcs && nspans + arc->height > MAX_SPANS_PER_LOOP)
                 break;
             nspans += arc->height;
+
+            /* A pie-slice arc may add another pile of spans */
+            if (pGC->arcMode == ArcPieSlice &&
+                (-FULLCIRCLE < arc->angle2 && arc->angle2 < FULLCIRCLE))
+                nspans += (arc->height + 1) >> 1;
         }
 
         pts = points = malloc (sizeof (DDXPointRec) * nspans +

@@ -40,12 +40,12 @@ const glamor_facet glamor_fill_solid = {
 static Bool
 use_tile(PixmapPtr pixmap, GCPtr gc, glamor_program *prog, void *arg)
 {
-    return glamor_set_tiled(pixmap, gc, prog->fill_offset_uniform, prog->fill_size_uniform);
+    return glamor_set_tiled(pixmap, gc, prog->fill_offset_uniform, prog->fill_size_inv_uniform);
 }
 
 static const glamor_facet glamor_fill_tile = {
     .name = "tile",
-    .vs_exec =  "       fill_pos = (fill_offset + primitive.xy + pos) / fill_size;\n",
+    .vs_exec =  "       fill_pos = (fill_offset + primitive.xy + pos) * fill_size_inv;\n",
     .fs_exec =  "       gl_FragColor = texture2D(sampler, fill_pos);\n",
     .locations = glamor_program_location_fill,
     .use = use_tile,
@@ -56,12 +56,12 @@ use_stipple(PixmapPtr pixmap, GCPtr gc, glamor_program *prog, void *arg)
 {
     return glamor_set_stippled(pixmap, gc, prog->fg_uniform,
                                prog->fill_offset_uniform,
-                               prog->fill_size_uniform);
+                               prog->fill_size_inv_uniform);
 }
 
 static const glamor_facet glamor_fill_stipple = {
     .name = "stipple",
-    .vs_exec =  "       fill_pos = (fill_offset + primitive.xy + pos) / fill_size;\n",
+    .vs_exec =  "       fill_pos = (fill_offset + primitive.xy + pos) * fill_size_inv;\n",
     .fs_exec = ("       float a = texture2D(sampler, fill_pos).w;\n"
                 "       if (a == 0.0)\n"
                 "               discard;\n"
@@ -81,7 +81,7 @@ use_opaque_stipple(PixmapPtr pixmap, GCPtr gc, glamor_program *prog, void *arg)
 
 static const glamor_facet glamor_fill_opaque_stipple = {
     .name = "opaque_stipple",
-    .vs_exec =  "       fill_pos = (fill_offset + primitive.xy + pos) / fill_size;\n",
+    .vs_exec =  "       fill_pos = (fill_offset + primitive.xy + pos) * fill_size_inv;\n",
     .fs_exec = ("       float a = texture2D(sampler, fill_pos).w;\n"
                 "       if (a == 0.0)\n"
                 "               gl_FragColor = bg;\n"
@@ -116,10 +116,10 @@ static glamor_location_var location_vars[] = {
     {
         .location = glamor_program_location_fill,
         .vs_vars = ("uniform vec2 fill_offset;\n"
-                    "uniform vec2 fill_size;\n"
+                    "uniform vec2 fill_size_inv;\n"
                     "varying vec2 fill_pos;\n"),
         .fs_vars = ("uniform sampler2D sampler;\n"
-                    "uniform vec2 fill_size;\n"
+                    "uniform vec2 fill_size_inv;\n"
                     "varying vec2 fill_pos;\n")
     },
     {
@@ -336,15 +336,12 @@ glamor_build_program(ScreenPtr          screen,
     prog->fg_uniform = glamor_get_uniform(prog, glamor_program_location_fg, "fg");
     prog->bg_uniform = glamor_get_uniform(prog, glamor_program_location_bg, "bg");
     prog->fill_offset_uniform = glamor_get_uniform(prog, glamor_program_location_fill, "fill_offset");
-    prog->fill_size_uniform = glamor_get_uniform(prog, glamor_program_location_fill, "fill_size");
+    prog->fill_size_inv_uniform = glamor_get_uniform(prog, glamor_program_location_fill, "fill_size_inv");
     prog->font_uniform = glamor_get_uniform(prog, glamor_program_location_font, "font");
     prog->bitplane_uniform = glamor_get_uniform(prog, glamor_program_location_bitplane, "bitplane");
     prog->bitmul_uniform = glamor_get_uniform(prog, glamor_program_location_bitplane, "bitmul");
     prog->dash_uniform = glamor_get_uniform(prog, glamor_program_location_dash, "dash");
     prog->dash_length_uniform = glamor_get_uniform(prog, glamor_program_location_dash, "dash_length");
-
-    if (glGetError() != GL_NO_ERROR)
-        goto fail;
 
     free(version_string);
     free(fs_vars);

@@ -73,8 +73,8 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    this->uses_builtin_functions = false;
 
    /* Set default language version and extensions */
-   this->language_version = ctx->Const.ForceGLSLVersion ?
-                            ctx->Const.ForceGLSLVersion : 110;
+   this->language_version = 110;
+   this->forced_language_version = ctx->Const.ForceGLSLVersion;
    this->es_shader = false;
    this->ARB_texture_rectangle_enable = true;
 
@@ -320,11 +320,14 @@ _mesa_glsl_parse_state::process_version_directive(YYLTYPE *locp, int version,
       this->ARB_texture_rectangle_enable = false;
    }
 
-   this->language_version = version;
+   if (this->forced_language_version)
+      this->language_version = this->forced_language_version;
+   else
+      this->language_version = version;
 
    bool supported = false;
    for (unsigned i = 0; i < this->num_supported_versions; i++) {
-      if (this->supported_versions[i].ver == (unsigned) version
+      if (this->supported_versions[i].ver == this->language_version
           && this->supported_versions[i].es == this->es_shader) {
          supported = true;
          break;

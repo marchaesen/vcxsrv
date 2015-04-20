@@ -44,12 +44,15 @@ EXTRA_DIST = \
 	scons \
 	SConstruct
 
-noinst_HEADERS =					\
-	include/c99_compat.h				\
-	include/c99					\
-	include/c11					\
-	include/D3D9					\
-	include/HaikuGL					\
+noinst_HEADERS = \
+	include/c99_alloca.h \
+	include/c99_compat.h \
+	include/c99_math.h \
+	include/c99 \
+	include/c11 \
+	include/D3D9 \
+	include/HaikuGL \
+	include/no_extern_c.h \
 	include/pci_ids
 
 # We list some directories in EXTRA_DIST, but don't actually want to include

@@ -325,18 +325,20 @@ _pixman_compute_composite_region32 (pixman_region32_t * region,
     return TRUE;
 }
 
-typedef struct
+typedef struct box_48_16 box_48_16_t;
+
+struct box_48_16
 {
-    pixman_fixed_48_16_t	x1;
-    pixman_fixed_48_16_t	y1;
-    pixman_fixed_48_16_t	x2;
-    pixman_fixed_48_16_t	y2;
-} box_48_16_t;
+    pixman_fixed_48_16_t        x1;
+    pixman_fixed_48_16_t        y1;
+    pixman_fixed_48_16_t        x2;
+    pixman_fixed_48_16_t        y2;
+};
 
 static pixman_bool_t
-compute_transformed_extents (pixman_transform_t *transform,
+compute_transformed_extents (pixman_transform_t   *transform,
 			     const pixman_box32_t *extents,
-			     box_48_16_t *transformed)
+			     box_48_16_t          *transformed)
 {
     pixman_fixed_48_16_t tx1, ty1, tx2, ty2;
     pixman_fixed_t x1, y1, x2, y2;

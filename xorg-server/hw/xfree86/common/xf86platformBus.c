@@ -153,8 +153,10 @@ xf86_check_platform_slot(const struct xf86_platform_device *pd)
     for (i = 0; i < xf86NumEntities; i++) {
         const EntityPtr u = xf86Entities[i];
 
-        if (pd->pdev && u->bus.type == BUS_PCI)
-            return !MATCH_PCI_DEVICES(pd->pdev, u->bus.id.pci);
+        if (pd->pdev && u->bus.type == BUS_PCI &&
+            MATCH_PCI_DEVICES(pd->pdev, u->bus.id.pci)) {
+            return FALSE;
+        }
         if ((u->bus.type == BUS_PLATFORM) && (pd == u->bus.id.plat)) {
             return FALSE;
         }
@@ -426,6 +428,10 @@ xf86platformProbeDev(DriverPtr drvp)
 
     /* find the main device or any device specificed in xorg.conf */
     for (i = 0; i < numDevs; i++) {
+        /* skip inactive devices */
+        if (!devList[i]->active)
+            continue;
+
         for (j = 0; j < xf86_num_platform_devices; j++) {
             if (devList[i]->busID && *devList[i]->busID) {
                 if (xf86PlatformDeviceCheckBusID(&xf86_platform_devices[j], devList[i]->busID))
@@ -449,10 +455,14 @@ xf86platformProbeDev(DriverPtr drvp)
             continue;
     }
 
-    /* if autoaddgpu devices is enabled then go find a few more and add them as GPU screens */
-    if (xf86Info.autoAddGPU && numDevs) {
+    /* if autoaddgpu devices is enabled then go find any unclaimed platform
+     * devices and add them as GPU screens */
+    if (xf86Info.autoAddGPU) {
         for (j = 0; j < xf86_num_platform_devices; j++) {
-            probeSingleDevice(&xf86_platform_devices[j], drvp, devList[0], PLATFORM_PROBE_GPU_SCREEN);
+            if (probeSingleDevice(&xf86_platform_devices[j], drvp,
+                                  devList ?  devList[0] : NULL,
+                                  PLATFORM_PROBE_GPU_SCREEN))
+                foundScreen = TRUE;
         }
     }
 

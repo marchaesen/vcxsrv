@@ -48,6 +48,11 @@
 #include <netdir.h>
 #endif
 
+#define XSERV_t
+#define TRANS_SERVER
+#define TRANS_REOPEN
+#include <X11/Xtrans/Xtrans.h>
+
 #ifdef XDMCP
 #undef REQUEST
 
@@ -242,6 +247,14 @@ XdmcpUseMsg(void)
     ErrorF("-displayID display-id  manufacturer display ID for request\n");
 }
 
+static void
+XdmcpDefaultListen(void)
+{
+    /* Even when configured --disable-listen-tcp, we should listen on tcp in
+       XDMCP modes */
+    _XSERVTransListen("tcp");
+}
+
 int
 XdmcpOptions(int argc, char **argv, int i)
 {
@@ -249,11 +262,13 @@ XdmcpOptions(int argc, char **argv, int i)
         get_manager_by_name(argc, argv, i++);
         XDM_INIT_STATE = XDM_QUERY;
         AccessUsingXdmcp();
+        XdmcpDefaultListen();
         return i + 1;
     }
     if (strcmp(argv[i], "-broadcast") == 0) {
         XDM_INIT_STATE = XDM_BROADCAST;
         AccessUsingXdmcp();
+        XdmcpDefaultListen();
         return i + 1;
     }
 #if defined(IPv6) && defined(AF_INET6)
@@ -261,6 +276,7 @@ XdmcpOptions(int argc, char **argv, int i)
         i = get_mcast_options(argc, argv, ++i);
         XDM_INIT_STATE = XDM_MULTICAST;
         AccessUsingXdmcp();
+        XdmcpDefaultListen();
         return i + 1;
     }
 #endif
@@ -268,6 +284,7 @@ XdmcpOptions(int argc, char **argv, int i)
         get_manager_by_name(argc, argv, i++);
         XDM_INIT_STATE = XDM_INDIRECT;
         AccessUsingXdmcp();
+        XdmcpDefaultListen();
         return i + 1;
     }
     if (strcmp(argv[i], "-port") == 0) {

@@ -19,6 +19,7 @@
 <p>
 This page lists known issues with
 <a href="http://www.spec.org/gwpg/gpc.static/vp11info.html" target="_main">SPEC Viewperf 11</a>
+and <a href="https://www.spec.org/gwpg/gpc.static/vp12info.html" target="_main">SPEC Viewperf 12</a>
 when running on Mesa-based drivers.
 </p>
 
@@ -40,13 +41,15 @@ These issues have been reported to the SPEC organization in the hope that
 they'll be fixed in the future.
 </p>
 
+<h2><u>Viewperf 11</u></h2>
+
 <p>
-Some of the Viewperf tests use a lot of memory.
+Some of the Viewperf 11 tests use a lot of memory.
 At least 2GB of RAM is recommended.
 </p>
 
 
-<h2>Catia-03 test 2</h2>
+<h3>Catia-03 test 2</h3>
 
 <p>
 This test creates over 38000 vertex buffer objects.  On some systems
@@ -59,7 +62,7 @@ either in Viewperf or the Mesa driver.
 
 
 
-<h2>Catia-03 tests 3, 4, 8</h2>
+<h3>Catia-03 tests 3, 4, 8</h3>
 
 <p>
 These tests use features of the
@@ -79,7 +82,7 @@ Subsequent drawing calls become no-ops and the rendering is incorrect.
 
 
 
-<h2>sw-02 tests 1, 2, 4, 6</h2>
+<h3>sw-02 tests 1, 2, 4, 6</h3>
 
 <p>
 These tests depend on the
@@ -99,7 +102,7 @@ color.  This is probably due to some uninitialized state somewhere.
 
 
 
-<h2>sw-02 test 6</h2>
+<h3>sw-02 test 6</h3>
 
 <p>
 The lines drawn in this test appear in a random color.
@@ -111,7 +114,7 @@ situation, we get a random color.
 
 
 
-<h2>Lightwave-01 test 3</h2>
+<h3>Lightwave-01 test 3</h3>
 
 <p>
 This test uses a number of mipmapped textures, but the textures are
@@ -172,7 +175,7 @@ However, we have no plans to implement this work-around in Mesa.
 </p>
 
 
-<h2>Maya-03 test 2</h2>
+<h3>Maya-03 test 2</h3>
 
 <p>
 This test makes some unusual calls to glRotate.  For example:
@@ -204,7 +207,7 @@ and with a semi-random color (between white and black) since GL_FOG is enabled.
 </p>
 
 
-<h2>Proe-05 test 1</h2>
+<h3>Proe-05 test 1</h3>
 
 <p>
 This uses depth testing but there's two problems:
@@ -232,7 +235,7 @@ glClear is called so clearing the depth buffer would be a no-op anyway.
 </p>
 
 
-<h2>Proe-05 test 6</h2>
+<h3>Proe-05 test 6</h3>
 
 <p>
 This test draws an engine model with a two-pass algorithm.
@@ -259,6 +262,79 @@ the pixels produced by these two rendering states will match.
 To achieve invariance, both passes should enable polygon stipple and
 blending with appropriate patterns/modes to ensure the same fragments
 are produced in both passes.
+</p>
+
+<h2><u>Viewperf 12</u></h2>
+
+<p>
+Note that Viewperf 12 only runs on 64-bit Windows 7 or later.
+</p>
+
+<h3>catia-04</h3>
+
+<p>
+One of the catia tests calls wglGetProcAddress() to get some
+GL_EXT_direct_state_access functions (such as glBindMultiTextureEXT) and some
+GL_NV_half_float functions (such as glMultiTexCoord3hNV).
+If the extension/function is not supported, wglGetProcAddress() can return NULL.
+Unfortunately, Viewperf doesn't check for null pointers and crashes when it
+later tries to use the pointer.
+</p>
+
+<p>
+Another catia test uses OpenGL 3.1's primitive restart feature.
+But when Viewperf creates an OpenGL context, it doesn't request version 3.1
+If the driver returns version 3.0 or earlier all the calls related to primitive
+restart generate an OpenGL error.
+Some of the rendering is then incorrect.
+</p>
+
+
+<h3>energy-01</h3>
+
+<p>
+This test creates a 3D luminance texture of size 1K x 1K x 1K.
+If the OpenGL driver/device doesn't support a texture of this size
+the glTexImage3D() call will fail with GL_INVALID_VALUE or GL_OUT_OF_MEMORY
+and all that's rendered is plain white polygons.
+Ideally, the test would use a proxy texture to determine the max 3D
+texture size.  But it does not do that.
+</p>
+
+<h3>maya-04</h3>
+
+<p>
+This test generates many GL_INVALID_OPERATION errors in its calls to
+glUniform().
+Causes include:
+<ul>
+<li> Trying to set float uniforms with glUniformi()
+<li> Trying to set float uniforms with glUniform3f()
+<li> Trying to set matrix uniforms with glUniform() instead of glUniformMatrix().
+</ul>
+<p>
+Apparently, the indexes returned by glGetUniformLocation() were hard-coded
+into the application trace when it was created.
+Since different implementations of glGetUniformLocation() may return different
+values for any given uniform name, subsequent calls to glUniform() will be
+invalid since they refer to the wrong uniform variables.
+This causes many OpenGL errors and leads to incorrect rendering.
+</p>
+
+<h3>medical-01</h3>
+
+<p>
+This test uses a single GLSL fragment shader which contains a GLSL 1.20
+array initializer statement, but it neglects to specify
+<code>#version 120</code> at the top of the shader code.
+So, the shader does not compile and all that's rendered is plain white polygons.
+</p>
+
+<h3>showcase-01</h3>
+
+<p>
+This is actually a DX11 test based on Autodesk's Showcase product.
+As such, it won't run with Mesa.
 </p>
 
 

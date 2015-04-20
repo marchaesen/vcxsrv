@@ -150,6 +150,15 @@ GLenum
 _mesa_check_sample_count(struct gl_context *ctx, GLenum target,
                          GLenum internalFormat, GLsizei samples)
 {
+   /* Section 2.5 (GL Errors) of OpenGL 3.0 specification, page 16:
+    *
+    * "If a negative number is provided where an argument of type sizei or
+    * sizeiptr is specified, the error INVALID VALUE is generated."
+    */
+   if (samples < 0) {
+      return GL_INVALID_VALUE;
+   }
+
    /* Section 4.4 (Framebuffer objects), page 198 of the OpenGL ES 3.0.0
     * specification says:
     *

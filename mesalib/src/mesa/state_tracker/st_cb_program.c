@@ -41,6 +41,7 @@
 #include "draw/draw_context.h"
 
 #include "st_context.h"
+#include "st_debug.h"
 #include "st_program.h"
 #include "st_mesa_to_tgsi.h"
 #include "st_cb_program.h"
@@ -213,6 +214,9 @@ st_program_string_notify( struct gl_context *ctx,
       if (st->vp == stvp)
 	 st->dirty.st |= ST_NEW_VERTEX_PROGRAM;
    }
+
+   if (ST_DEBUG & DEBUG_PRECOMPILE)
+      st_precompile_shader_variant(st, prog);
 
    /* XXX check if program is legal, within limits */
    return GL_TRUE;

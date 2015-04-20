@@ -28,7 +28,8 @@
  * can't access a's vtable in that case.
  */
 static bool
-possibly_null_equals(ir_instruction *a, ir_instruction *b, enum ir_node_type ignore)
+possibly_null_equals(const ir_instruction *a, const ir_instruction *b,
+                     enum ir_node_type ignore)
 {
    if (!a || !b)
       return !a && !b;
@@ -41,13 +42,13 @@ possibly_null_equals(ir_instruction *a, ir_instruction *b, enum ir_node_type ign
  * about.
  */
 bool
-ir_instruction::equals(ir_instruction *, enum ir_node_type)
+ir_instruction::equals(const ir_instruction *, enum ir_node_type) const
 {
    return false;
 }
 
 bool
-ir_constant::equals(ir_instruction *ir, enum ir_node_type)
+ir_constant::equals(const ir_instruction *ir, enum ir_node_type) const
 {
    const ir_constant *other = ir->as_constant();
    if (!other)
@@ -65,7 +66,8 @@ ir_constant::equals(ir_instruction *ir, enum ir_node_type)
 }
 
 bool
-ir_dereference_variable::equals(ir_instruction *ir, enum ir_node_type)
+ir_dereference_variable::equals(const ir_instruction *ir,
+                                enum ir_node_type) const
 {
    const ir_dereference_variable *other = ir->as_dereference_variable();
    if (!other)
@@ -75,7 +77,8 @@ ir_dereference_variable::equals(ir_instruction *ir, enum ir_node_type)
 }
 
 bool
-ir_dereference_array::equals(ir_instruction *ir, enum ir_node_type ignore)
+ir_dereference_array::equals(const ir_instruction *ir,
+                             enum ir_node_type ignore) const
 {
    const ir_dereference_array *other = ir->as_dereference_array();
    if (!other)
@@ -94,7 +97,8 @@ ir_dereference_array::equals(ir_instruction *ir, enum ir_node_type ignore)
 }
 
 bool
-ir_swizzle::equals(ir_instruction *ir, enum ir_node_type ignore)
+ir_swizzle::equals(const ir_instruction *ir,
+                   enum ir_node_type ignore) const
 {
    const ir_swizzle *other = ir->as_swizzle();
    if (!other)
@@ -116,7 +120,7 @@ ir_swizzle::equals(ir_instruction *ir, enum ir_node_type ignore)
 }
 
 bool
-ir_texture::equals(ir_instruction *ir, enum ir_node_type ignore)
+ir_texture::equals(const ir_instruction *ir, enum ir_node_type ignore) const
 {
    const ir_texture *other = ir->as_texture();
    if (!other)
@@ -179,7 +183,7 @@ ir_texture::equals(ir_instruction *ir, enum ir_node_type ignore)
 }
 
 bool
-ir_expression::equals(ir_instruction *ir, enum ir_node_type ignore)
+ir_expression::equals(const ir_instruction *ir, enum ir_node_type ignore) const
 {
    const ir_expression *other = ir->as_expression();
    if (!other)

@@ -1377,24 +1377,13 @@ link_fs_input_layout_qualifiers(struct gl_shader_program *prog,
        *   "If gl_FragCoord is redeclared in any fragment shader in a program,
        *    it must be redeclared in all the fragment shaders in that program
        *    that have a static use gl_FragCoord."
-       *
-       * Exclude the case when one of the 'linked_shader' or 'shader' redeclares
-       * gl_FragCoord with no layout qualifiers but the other one doesn't
-       * redeclare it. If we strictly follow GLSL 1.50 spec's language, it
-       * should be a link error. But, generating link error for this case will
-       * be a wrong behaviour which spec didn't intend to do and it could also
-       * break some applications.
        */
       if ((linked_shader->redeclares_gl_fragcoord
            && !shader->redeclares_gl_fragcoord
-           && shader->uses_gl_fragcoord
-           && (linked_shader->origin_upper_left
-               || linked_shader->pixel_center_integer))
+           && shader->uses_gl_fragcoord)
           || (shader->redeclares_gl_fragcoord
               && !linked_shader->redeclares_gl_fragcoord
-              && linked_shader->uses_gl_fragcoord
-              && (shader->origin_upper_left
-                  || shader->pixel_center_integer))) {
+              && linked_shader->uses_gl_fragcoord)) {
              linker_error(prog, "fragment shader defined with conflicting "
                          "layout qualifiers for gl_FragCoord\n");
       }
@@ -2503,6 +2492,194 @@ check_explicit_uniform_locations(struct gl_context *ctx,
    delete uniform_map;
 }
 
+static bool
+add_program_resource(struct gl_shader_program *prog, GLenum type,
+                     const void *data, uint8_t stages)
+{
+   assert(data);
+
+   /* If resource already exists, do not add it again. */
+   for (unsigned i = 0; i < prog->NumProgramResourceList; i++)
+      if (prog->ProgramResourceList[i].Data == data)
+         return true;
+
+   prog->ProgramResourceList =
+      reralloc(prog,
+               prog->ProgramResourceList,
+               gl_program_resource,
+               prog->NumProgramResourceList + 1);
+
+   if (!prog->ProgramResourceList) {
+      linker_error(prog, "Out of memory during linking.\n");
+      return false;
+   }
+
+   struct gl_program_resource *res =
+      &prog->ProgramResourceList[prog->NumProgramResourceList];
+
+   res->Type = type;
+   res->Data = data;
+   res->StageReferences = stages;
+
+   prog->NumProgramResourceList++;
+
+   return true;
+}
+
+/**
+ * Function builds a stage reference bitmask from variable name.
+ */
+static uint8_t
+build_stageref(struct gl_shader_program *shProg, const char *name)
+{
+   uint8_t stages = 0;
+
+   /* Note, that we assume MAX 8 stages, if there will be more stages, type
+    * used for reference mask in gl_program_resource will need to be changed.
+    */
+   assert(MESA_SHADER_STAGES < 8);
+
+   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
+      struct gl_shader *sh = shProg->_LinkedShaders[i];
+      if (!sh)
+         continue;
+      ir_variable *var = sh->symbols->get_variable(name);
+      if (var)
+         stages |= (1 << i);
+   }
+   return stages;
+}
+
+static bool
+add_interface_variables(struct gl_shader_program *shProg,
+                        struct gl_shader *sh, GLenum programInterface)
+{
+   foreach_in_list(ir_instruction, node, sh->ir) {
+      ir_variable *var = node->as_variable();
+
+      if (!var)
+         continue;
+
+      switch (var->data.mode) {
+      /* From GL 4.3 core spec, section 11.1.1 (Vertex Attributes):
+       * "For GetActiveAttrib, all active vertex shader input variables
+       * are enumerated, including the special built-in inputs gl_VertexID
+       * and gl_InstanceID."
+       */
+      case ir_var_system_value:
+         if (var->data.location != SYSTEM_VALUE_VERTEX_ID &&
+             var->data.location != SYSTEM_VALUE_VERTEX_ID_ZERO_BASE &&
+             var->data.location != SYSTEM_VALUE_INSTANCE_ID)
+         continue;
+      case ir_var_shader_in:
+         if (programInterface != GL_PROGRAM_INPUT)
+            continue;
+         break;
+      case ir_var_shader_out:
+         if (programInterface != GL_PROGRAM_OUTPUT)
+            continue;
+         break;
+      default:
+         continue;
+      };
+
+      if (!add_program_resource(shProg, programInterface, var,
+                                build_stageref(shProg, var->name)))
+         return false;
+   }
+   return true;
+}
+
+/**
+ * Builds up a list of program resources that point to existing
+ * resource data.
+ */
+static void
+build_program_resource_list(struct gl_context *ctx,
+                            struct gl_shader_program *shProg)
+{
+   /* Rebuild resource list. */
+   if (shProg->ProgramResourceList) {
+      ralloc_free(shProg->ProgramResourceList);
+      shProg->ProgramResourceList = NULL;
+      shProg->NumProgramResourceList = 0;
+   }
+
+   int input_stage = MESA_SHADER_STAGES, output_stage = 0;
+
+   /* Determine first input and final output stage. These are used to
+    * detect which variables should be enumerated in the resource list
+    * for GL_PROGRAM_INPUT and GL_PROGRAM_OUTPUT.
+    */
+   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
+      if (!shProg->_LinkedShaders[i])
+         continue;
+      if (input_stage == MESA_SHADER_STAGES)
+         input_stage = i;
+      output_stage = i;
+   }
+
+   /* Empty shader, no resources. */
+   if (input_stage == MESA_SHADER_STAGES && output_stage == 0)
+      return;
+
+   /* Add inputs and outputs to the resource list. */
+   if (!add_interface_variables(shProg, shProg->_LinkedShaders[input_stage],
+                                GL_PROGRAM_INPUT))
+      return;
+
+   if (!add_interface_variables(shProg, shProg->_LinkedShaders[output_stage],
+                                GL_PROGRAM_OUTPUT))
+      return;
+
+   /* Add transform feedback varyings. */
+   if (shProg->LinkedTransformFeedback.NumVarying > 0) {
+      for (int i = 0; i < shProg->LinkedTransformFeedback.NumVarying; i++) {
+         uint8_t stageref =
+            build_stageref(shProg,
+                           shProg->LinkedTransformFeedback.Varyings[i].Name);
+         if (!add_program_resource(shProg, GL_TRANSFORM_FEEDBACK_VARYING,
+                                   &shProg->LinkedTransformFeedback.Varyings[i],
+                                   stageref))
+         return;
+      }
+   }
+
+   /* Add uniforms from uniform storage. */
+   for (unsigned i = 0; i < shProg->NumUserUniformStorage; i++) {
+      /* Do not add uniforms internally used by Mesa. */
+      if (shProg->UniformStorage[i].hidden)
+         continue;
+
+      uint8_t stageref =
+         build_stageref(shProg, shProg->UniformStorage[i].name);
+      if (!add_program_resource(shProg, GL_UNIFORM,
+                                &shProg->UniformStorage[i], stageref))
+         return;
+   }
+
+   /* Add program uniform blocks. */
+   for (unsigned i = 0; i < shProg->NumUniformBlocks; i++) {
+      if (!add_program_resource(shProg, GL_UNIFORM_BLOCK,
+          &shProg->UniformBlocks[i], 0))
+         return;
+   }
+
+   /* Add atomic counter buffers. */
+   for (unsigned i = 0; i < shProg->NumAtomicBuffers; i++) {
+      if (!add_program_resource(shProg, GL_ATOMIC_COUNTER_BUFFER,
+                                &shProg->AtomicBuffers[i], 0))
+         return;
+   }
+
+   /* TODO - following extensions will require more resource types:
+    *
+    *    GL_ARB_shader_storage_buffer_object
+    *    GL_ARB_shader_subroutine
+    */
+}
+
+
 void
 link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
 {
@@ -2737,10 +2914,18 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       goto done;
    }
 
-   unsigned first;
-   for (first = 0; first <= MESA_SHADER_FRAGMENT; first++) {
-      if (prog->_LinkedShaders[first] != NULL)
-	 break;
+   unsigned first, last;
+
+   first = MESA_SHADER_STAGES;
+   last = 0;
+
+   /* Determine first and last stage. */
+   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
+      if (!prog->_LinkedShaders[i])
+         continue;
+      if (first == MESA_SHADER_STAGES)
+         first = i;
+      last = i;
    }
 
    if (num_tfeedback_decls != 0) {
@@ -2769,13 +2954,9 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
     * ensures that inter-shader outputs written to in an earlier stage are
     * eliminated if they are (transitively) not used in a later stage.
     */
-   int last, next;
-   for (last = MESA_SHADER_FRAGMENT; last >= 0; last--) {
-      if (prog->_LinkedShaders[last] != NULL)
-         break;
-   }
+   int next;
 
-   if (last >= 0 && last < MESA_SHADER_FRAGMENT) {
+   if (first < MESA_SHADER_FRAGMENT) {
       gl_shader *const sh = prog->_LinkedShaders[last];
 
       if (first == MESA_SHADER_GEOMETRY) {
@@ -2787,13 +2968,14 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
           * MESA_SHADER_GEOMETRY.
           */
          if (!assign_varying_locations(ctx, mem_ctx, prog,
-                                       NULL, sh,
+                                       NULL, prog->_LinkedShaders[first],
                                        num_tfeedback_decls, tfeedback_decls,
                                        prog->Geom.VerticesIn))
             goto done;
       }
 
-      if (num_tfeedback_decls != 0 || prog->SeparateShader) {
+      if (last != MESA_SHADER_FRAGMENT &&
+         (num_tfeedback_decls != 0 || prog->SeparateShader)) {
          /* There was no fragment shader, but we still have to assign varying
           * locations for use by transform feedback.
           */
@@ -2904,6 +3086,10 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
 	 linker_error(prog, "program lacks a fragment shader\n");
       }
    }
+
+   build_program_resource_list(ctx, prog);
+   if (!prog->LinkStatus)
+      goto done;
 
    /* FINISHME: Assign fragment shader output locations. */
 

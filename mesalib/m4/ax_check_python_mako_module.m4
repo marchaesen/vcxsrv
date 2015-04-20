@@ -54,8 +54,10 @@ else:
     " | $PYTHON2 -
 
     if test $? -ne 0 ; then
+       AC_MSG_RESULT(no)
        AC_SUBST(acv_mako_found, 'no')
     else
+       AC_MSG_RESULT(yes)
        AC_SUBST(acv_mako_found, 'yes')
     fi
 ])

@@ -598,7 +598,7 @@ static void update_array(struct st_context *st)
 const struct st_tracked_state st_update_array = {
    "st_update_array",					/* name */
    {							/* dirty */
-      0,                                                /* mesa */
+      _NEW_CURRENT_ATTRIB,                              /* mesa */
       ST_NEW_VERTEX_ARRAYS | ST_NEW_VERTEX_PROGRAM,     /* st */
    },
    update_array						/* update */

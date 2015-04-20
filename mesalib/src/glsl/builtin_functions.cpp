@@ -60,7 +60,7 @@
 #include "ir_builder.h"
 #include "glsl_parser_extras.h"
 #include "program/prog_instruction.h"
-#include <limits>
+#include <math.h>
 
 #define M_PIf   ((float) M_PI)
 #define M_PI_2f ((float) M_PI_2)
@@ -3215,7 +3215,7 @@ builtin_builder::_isinf(builtin_available_predicate avail, const glsl_type *type
 
    ir_constant_data infinities;
    for (int i = 0; i < type->vector_elements; i++) {
-      infinities.f[i] = std::numeric_limits<float>::infinity();
+      infinities.f[i] = INFINITY;
    }
 
    body.emit(ret(equal(abs(x), imm(type, infinities))));

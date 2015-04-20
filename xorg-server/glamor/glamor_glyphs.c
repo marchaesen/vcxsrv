@@ -1166,11 +1166,9 @@ static void
 glamor_glyphs_flush_mask(struct glyphs_flush_mask_arg *arg)
 {
     if (arg->buffer->count > 0) {
-#ifdef RENDER
         glamor_composite_glyph_rects(PictOpAdd, arg->buffer->source,
                                      NULL, arg->mask,
                                      arg->buffer->count, arg->buffer->rects);
-#endif
     }
     arg->buffer->count = 0;
     arg->buffer->source = NULL;
@@ -1768,16 +1766,4 @@ glamor_glyphs(CARD8 op,
 {
     _glamor_glyphs(op, src, dst, mask_format, x_src,
                    y_src, nlist, list, glyphs, TRUE);
-}
-
-Bool
-glamor_glyphs_nf(CARD8 op,
-                 PicturePtr src,
-                 PicturePtr dst,
-                 PictFormatPtr mask_format,
-                 INT16 x_src,
-                 INT16 y_src, int nlist, GlyphListPtr list, GlyphPtr *glyphs)
-{
-    return _glamor_glyphs(op, src, dst, mask_format, x_src,
-                          y_src, nlist, list, glyphs, FALSE);
 }

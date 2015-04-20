@@ -51,6 +51,8 @@ _mesa_free_queryobj_data(struct gl_context *ctx);
 void GLAPIENTRY
 _mesa_GenQueries(GLsizei n, GLuint *ids);
 void GLAPIENTRY
+_mesa_CreateQueries(GLenum target, GLsizei n, GLuint *ids);
+void GLAPIENTRY
 _mesa_DeleteQueries(GLsizei n, const GLuint *ids);
 GLboolean GLAPIENTRY
 _mesa_IsQuery(GLuint id);
@@ -77,5 +79,17 @@ void GLAPIENTRY
 _mesa_GetQueryObjecti64v(GLuint id, GLenum pname, GLint64EXT *params);
 void GLAPIENTRY
 _mesa_GetQueryObjectui64v(GLuint id, GLenum pname, GLuint64EXT *params);
+void GLAPIENTRY
+_mesa_GetQueryBufferObjectiv(GLuint id, GLuint buffer, GLenum pname,
+                             GLintptr offset);
+void GLAPIENTRY
+_mesa_GetQueryBufferObjectuiv(GLuint id, GLuint buffer, GLenum pname,
+                              GLintptr offset);
+void GLAPIENTRY
+_mesa_GetQueryBufferObjecti64v(GLuint id, GLuint buffer, GLenum pname,
+                               GLintptr offset);
+void GLAPIENTRY
+_mesa_GetQueryBufferObjectui64v(GLuint id, GLuint buffer, GLenum pname,
+                                GLintptr offset);
 
 #endif /* QUERYOBJ_H */

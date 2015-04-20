@@ -292,6 +292,7 @@ en_US.UTF-8/XLC_LOCALE:			ar_YE.UTF-8
 en_US.UTF-8/XLC_LOCALE:			as_IN.UTF-8
 en_US.UTF-8/XLC_LOCALE:			az_AZ.UTF-8
 en_US.UTF-8/XLC_LOCALE:			be_BY.UTF-8
+en_US.UTF-8/XLC_LOCALE:			be_BY.UTF-8@latin
 en_US.UTF-8/XLC_LOCALE:			bg_BG.UTF-8
 en_US.UTF-8/XLC_LOCALE:			bn_BD.UTF-8
 en_US.UTF-8/XLC_LOCALE:			bn_IN.UTF-8
@@ -389,7 +390,7 @@ en_US.UTF-8/XLC_LOCALE:			kl_GL.UTF-8
 en_US.UTF-8/XLC_LOCALE:			km_KH.UTF-8
 en_US.UTF-8/XLC_LOCALE:			kn_IN.UTF-8
 en_US.UTF-8/XLC_LOCALE:                 ks_IN.UTF-8
-en_US.UTF-8/XLC_LOCALE:                 ks_IN@devanagari.UTF-8
+en_US.UTF-8/XLC_LOCALE:                 ks_IN.UTF-8@devanagari
 ko_KR.UTF-8/XLC_LOCALE:			ko_KR.UTF-8
 en_US.UTF-8/XLC_LOCALE:			ku_TR.UTF-8
 en_US.UTF-8/XLC_LOCALE:			kw_GB.UTF-8
@@ -429,7 +430,7 @@ en_US.UTF-8/XLC_LOCALE:			ru_UA.UTF-8
 en_US.UTF-8/XLC_LOCALE:         	rw_RW.UTF-8
 en_US.UTF-8/XLC_LOCALE:                 sa_IN.UTF-8
 en_US.UTF-8/XLC_LOCALE:                 sd_IN.UTF-8
-en_US.UTF-8/XLC_LOCALE:                 sd_IN@devanagari.UTF-8
+en_US.UTF-8/XLC_LOCALE:                 sd_IN.UTF-8@devanagari
 en_US.UTF-8/XLC_LOCALE:			se_NO.UTF-8
 en_US.UTF-8/XLC_LOCALE:			sh_BA.UTF-8
 en_US.UTF-8/XLC_LOCALE:			sh_YU.UTF-8
@@ -440,6 +441,7 @@ en_US.UTF-8/XLC_LOCALE:			sq_AL.UTF-8
 en_US.UTF-8/XLC_LOCALE:			sr_CS.UTF-8
 en_US.UTF-8/XLC_LOCALE:			sr_ME.UTF-8
 en_US.UTF-8/XLC_LOCALE:			sr_RS.UTF-8
+en_US.UTF-8/XLC_LOCALE:			sr_RS.UTF-8@latin
 en_US.UTF-8/XLC_LOCALE:			sr_YU.UTF-8
 en_US.UTF-8/XLC_LOCALE:			ss_ZA.UTF-8
 en_US.UTF-8/XLC_LOCALE:			st_ZA.UTF-8

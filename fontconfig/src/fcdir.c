@@ -136,8 +136,8 @@ FcFileScanFontConfig (FcFontSet		*set,
 		ret = FcFalse;
 	    }
 	}
-	else if (font)
-	    FcPatternDestroy (font);
+	else
+	    ret = FcFalse;
 	id++;
     } while (font && ret && id < count);
     return ret;

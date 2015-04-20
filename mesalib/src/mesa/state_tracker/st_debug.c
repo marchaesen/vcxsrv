@@ -56,6 +56,7 @@ static const struct debug_named_value st_debug_flags[] = {
    { "draw",     DEBUG_DRAW, NULL },
    { "buffer",   DEBUG_BUFFER, NULL },
    { "wf",       DEBUG_WIREFRAME, NULL },
+   { "precompile",  DEBUG_PRECOMPILE, NULL },
    DEBUG_NAMED_VALUE_END
 };
 

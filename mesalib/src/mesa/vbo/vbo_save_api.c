@@ -763,7 +763,7 @@ _save_reset_vertex(struct gl_context *ctx)
 
 
 
-#define ERROR(err)   _mesa_compile_error(ctx, err, __FUNCTION__);
+#define ERROR(err)   _mesa_compile_error(ctx, err, __func__);
 
 
 /* Only one size for each attribute may be active at once.  Eg. if

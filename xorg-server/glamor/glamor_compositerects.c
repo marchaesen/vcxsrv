@@ -246,7 +246,7 @@ glamor_composite_rectangles(CARD8 op,
         goto done;
     }
     else {
-        if (_X_LIKELY(priv->type != GLAMOR_TEXTURE_LARGE)) {
+        if (_X_LIKELY(glamor_pixmap_priv_is_small(priv))) {
             int error;
 
             source = CreateSolidPicture(0, color, &error);
@@ -254,7 +254,7 @@ glamor_composite_rectangles(CARD8 op,
                 goto done;
             if (glamor_composite_clipped_region(op, source,
                                                 NULL, dst,
-                                                NULL, NULL, priv,
+                                                NULL, NULL, pixmap,
                                                 &region, 0, 0, 0, 0, 0, 0))
                 goto done;
         }

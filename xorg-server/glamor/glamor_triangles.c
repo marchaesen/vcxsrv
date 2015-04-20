@@ -28,29 +28,6 @@
 
 #include "glamor_priv.h"
 
-static Bool
-_glamor_triangles(CARD8 op,
-                  PicturePtr pSrc,
-                  PicturePtr pDst,
-                  PictFormatPtr maskFormat,
-                  INT16 xSrc, INT16 ySrc, int ntris, xTriangle * tris,
-                  Bool fallback)
-{
-    if (!fallback && glamor_ddx_fallback_check_pixmap(pDst->pDrawable)
-        && (!pSrc->pDrawable
-            || glamor_ddx_fallback_check_pixmap(pSrc->pDrawable)))
-        return FALSE;
-
-    if (glamor_prepare_access_picture(pDst, GLAMOR_ACCESS_RW) &&
-        glamor_prepare_access_picture(pSrc, GLAMOR_ACCESS_RO)) {
-        fbTriangles(op, pSrc, pDst, maskFormat, xSrc, ySrc, ntris, tris);
-    }
-    glamor_finish_access_picture(pSrc);
-    glamor_finish_access_picture(pDst);
-
-    return TRUE;
-}
-
 void
 glamor_triangles(CARD8 op,
                  PicturePtr pSrc,
@@ -58,17 +35,10 @@ glamor_triangles(CARD8 op,
                  PictFormatPtr maskFormat,
                  INT16 xSrc, INT16 ySrc, int ntris, xTriangle * tris)
 {
-    _glamor_triangles(op, pSrc, pDst, maskFormat,
-                      xSrc, ySrc, ntris, tris, TRUE);
-}
-
-Bool
-glamor_triangles_nf(CARD8 op,
-                    PicturePtr pSrc,
-                    PicturePtr pDst,
-                    PictFormatPtr maskFormat,
-                    INT16 xSrc, INT16 ySrc, int ntris, xTriangle * tris)
-{
-    return _glamor_triangles(op, pSrc, pDst, maskFormat,
-                             xSrc, ySrc, ntris, tris, FALSE);
+    if (glamor_prepare_access_picture(pDst, GLAMOR_ACCESS_RW) &&
+        glamor_prepare_access_picture(pSrc, GLAMOR_ACCESS_RO)) {
+        fbTriangles(op, pSrc, pDst, maskFormat, xSrc, ySrc, ntris, tris);
+    }
+    glamor_finish_access_picture(pSrc);
+    glamor_finish_access_picture(pDst);
 }

@@ -55,6 +55,14 @@ AC_PROG_LN_S
 # Checks for libraries.
 AC_SEARCH_LIBS([recvfrom],[socket])
 
+case $host_os in
+     *mingw*)
+        AC_CHECK_LIB([ws2_32],[main])
+        ;;
+     *)
+        ;;
+esac
+
 # Checks for library functions.
 AC_CHECK_LIB([bsd], [arc4random_buf])
 AC_CHECK_FUNCS([srand48 lrand48 arc4random_buf])

@@ -101,7 +101,6 @@
 
 #define WIN_SERVER_NONE		0x0L    /* 0 */
 #define WIN_SERVER_SHADOW_GDI	0x1L    /* 1 */
-#define WIN_SERVER_SHADOW_DD	0x2L    /* 2 */
 #define WIN_SERVER_SHADOW_DDNL	0x4L    /* 4 */
 
 #define AltMapIndex		Mod1MapIndex
@@ -468,35 +467,20 @@ typedef struct _winPrivScreenRec {
     int iE3BCachedPress;
     Bool fE3BFakeButton2Sent;
 
-    /* Privates used by shadow fb GDI server */
+    /* Privates used by shadow fb GDI engine */
     HBITMAP hbmpShadow;
     HDC hdcScreen;
     HDC hdcShadow;
     HWND hwndScreen;
     BITMAPINFOHEADER *pbmih;
 
-    /* Privates used by shadow fb and primary fb DirectDraw servers */
+    /* Privates used by shadow fb DirectDraw Nonlocking engine */
     LPDIRECTDRAW pdd;
-    LPDIRECTDRAWSURFACE2 pddsPrimary;
-    LPDIRECTDRAW2 pdd2;
-
-    /* Privates used by shadow fb DirectDraw server */
-    LPDIRECTDRAWSURFACE2 pddsShadow;
-    LPDDSURFACEDESC pddsdShadow;
-
-    /* Privates used by primary fb DirectDraw server */
-    LPDIRECTDRAWSURFACE2 pddsOffscreen;
-    LPDDSURFACEDESC pddsdOffscreen;
-    LPDDSURFACEDESC pddsdPrimary;
-
-    /* Privates used by shadow fb DirectDraw Nonlocking server */
     LPDIRECTDRAW4 pdd4;
     LPDIRECTDRAWSURFACE4 pddsShadow4;
     LPDIRECTDRAWSURFACE4 pddsPrimary4;
-    BOOL fRetryCreateSurface;
-
-    /* Privates used by both shadow fb DirectDraw servers */
     LPDIRECTDRAWCLIPPER pddcPrimary;
+    BOOL fRetryCreateSurface;
 
 #ifdef XWIN_MULTIWINDOWEXTWM
     /* Privates used by multi-window external window manager */
@@ -921,13 +905,6 @@ Bool
  winFinishScreenInitFB(int i, ScreenPtr pScreen, int argc, char **argv);
 
 /*
- * winshaddd.c
- */
-
-Bool
- winSetEngineFunctionsShadowDD(ScreenPtr pScreen);
-
-/*
  * winshadddnl.c
  */
 
@@ -1217,6 +1194,12 @@ winDoRandRScreenSetSize(ScreenPtr pScreen,
  */
 Bool
 winCreateMsgWindowThread(void);
+
+/*
+ * winos.c
+ */
+void
+winOS(void);
 
 /*
  * END DDX and DIX Function Prototypes

@@ -43,6 +43,8 @@ glamor_set_destination_drawable(DrawablePtr     drawable,
                                 int             *p_off_x,
                                 int             *p_off_y)
 {
+    ScreenPtr screen = drawable->pScreen;
+    glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
     PixmapPtr pixmap = glamor_get_drawable_pixmap(drawable);
     glamor_pixmap_private *pixmap_priv = glamor_get_pixmap_private(pixmap);
     int off_x, off_y;
@@ -95,7 +97,7 @@ glamor_set_destination_drawable(DrawablePtr     drawable,
                 scale_x, (off_x + center_adjust) * scale_x - 1.0f,
                 scale_y, (off_y + center_adjust) * scale_y - 1.0f);
 
-    glamor_set_destination_pixmap_fbo(glamor_pixmap_fbo_at(pixmap_priv, box_x, box_y),
+    glamor_set_destination_pixmap_fbo(glamor_priv, glamor_pixmap_fbo_at(pixmap_priv, box_x, box_y),
                                       0, 0, w, h);
 }
 
@@ -158,7 +160,7 @@ glamor_set_texture(PixmapPtr    pixmap,
                    int          off_x,
                    int          off_y,
                    GLint        offset_uniform,
-                   GLint        size_uniform)
+                   GLint        size_inv_uniform)
 {
     glamor_pixmap_private *texture_priv;
 
@@ -167,14 +169,14 @@ glamor_set_texture(PixmapPtr    pixmap,
     if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(texture_priv))
         return FALSE;
 
-    if (texture_priv->type == GLAMOR_TEXTURE_LARGE)
+    if (glamor_pixmap_priv_is_large(texture_priv))
         return FALSE;
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture_priv->base.fbo->tex);
+    glBindTexture(GL_TEXTURE_2D, texture_priv->fbo->tex);
 
     glUniform2f(offset_uniform, off_x, off_y);
-    glUniform2f(size_uniform, texture->drawable.width, texture->drawable.height);
+    glUniform2f(size_inv_uniform, 1.0f/texture->drawable.width, 1.0f/texture->drawable.height);
     return TRUE;
 }
 
@@ -182,7 +184,7 @@ Bool
 glamor_set_tiled(PixmapPtr      pixmap,
                  GCPtr          gc,
                  GLint          offset_uniform,
-                 GLint          size_uniform)
+                 GLint          size_inv_uniform)
 {
     if (!glamor_set_alu(pixmap->drawable.pScreen, gc->alu))
         return FALSE;
@@ -195,7 +197,7 @@ glamor_set_tiled(PixmapPtr      pixmap,
                               -gc->patOrg.x,
                               -gc->patOrg.y,
                               offset_uniform,
-                              size_uniform);
+                              size_inv_uniform);
 }
 
 static PixmapPtr

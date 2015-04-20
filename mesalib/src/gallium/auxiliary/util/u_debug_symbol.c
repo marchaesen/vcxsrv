@@ -82,18 +82,10 @@ getDbgHelpProcAddress(LPCSTR lpProcName)
          hModule = LoadLibraryA("mgwhelp.dll");
          if (!hModule) {
             _debug_printf("warning: mgwhelp.dll not found: symbol names will not be resolved\n"
-                          "warning: download it from http://code.google.com/p/jrfonseca/wiki/DrMingw#MgwHelp\n");
+                          "warning: download it from https://github.com/jrfonseca/drmingw/#mgwhelp\n");
          }
       }
-
-      /*
-       * bfdhelp.dll was the predecessor of mgwhelp.dll.  It is available from
-       * http://people.freedesktop.org/~jrfonseca/bfdhelp/ for now.
-       */
-      if (!hModule) {
-         hModule = LoadLibraryA("bfdhelp.dll");
-      }
-   #endif
+#endif
 
       /*
        * Fallback to the real DbgHelp.

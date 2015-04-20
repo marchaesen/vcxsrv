@@ -40,11 +40,11 @@ typedef unsigned long	XRandrModeFlags;
 
 #define RANDR_NAME		"RANDR"
 #define RANDR_MAJOR		1
-#define RANDR_MINOR		4
+#define RANDR_MINOR		5
 
 #define RRNumberErrors		4
 #define RRNumberEvents		2
-#define RRNumberRequests	42
+#define RRNumberRequests	45
 
 #define X_RRQueryVersion	0
 /* we skip 1 to make old clients fail pretty immediately */
@@ -103,6 +103,11 @@ typedef unsigned long	XRandrModeFlags;
 #define X_RRChangeProviderProperty    39
 #define X_RRDeleteProviderProperty    40
 #define X_RRGetProviderProperty	      41
+
+/* v1.5 */
+#define X_RRGetMonitors		      42
+#define X_RRSetMonitor		      43
+#define X_RRDeleteMonitor	      44
 
 /* Event selection bits */
 #define RRScreenChangeNotifyMask  (1L << 0)
@@ -181,6 +186,7 @@ typedef unsigned long	XRandrModeFlags;
 #define RR_PROPERTY_BORDER		"Border"
 #define RR_PROPERTY_BORDER_DIMENSIONS	"BorderDimensions"
 #define RR_PROPERTY_GUID		"GUID"
+#define RR_PROPERTY_RANDR_TILE		"TILE"
 
 /* roles this device can carry out */
 #define RR_Capability_None 0

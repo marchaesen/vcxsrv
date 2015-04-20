@@ -143,6 +143,12 @@ glsl_void_type(void)
 }
 
 const glsl_type *
+glsl_float_type(void)
+{
+   return glsl_type::float_type;
+}
+
+const glsl_type *
 glsl_vec4_type(void)
 {
    return glsl_type::vec4_type;

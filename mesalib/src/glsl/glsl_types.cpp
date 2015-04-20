@@ -825,6 +825,73 @@ glsl_type::get_interface_instance(const glsl_struct_field *fields,
 
 
 const glsl_type *
+glsl_type::get_mul_type(const glsl_type *type_a, const glsl_type *type_b)
+{
+   if (type_a == type_b) {
+      return type_a;
+   } else if (type_a->is_matrix() && type_b->is_matrix()) {
+      /* Matrix multiply.  The columns of A must match the rows of B.  Given
+       * the other previously tested constraints, this means the vector type
+       * of a row from A must be the same as the vector type of a column from
+       * B.
+       */
+      if (type_a->row_type() == type_b->column_type()) {
+         /* The resulting matrix has the number of columns of matrix B and
+          * the number of rows of matrix A.  We get the row count of A by
+          * looking at the size of a vector that makes up a column.  The
+          * transpose (size of a row) is done for B.
+          */
+         const glsl_type *const type =
+            get_instance(type_a->base_type,
+                         type_a->column_type()->vector_elements,
+                         type_b->row_type()->vector_elements);
+         assert(type != error_type);
+
+         return type;
+      }
+   } else if (type_a->is_matrix()) {
+      /* A is a matrix and B is a column vector.  Columns of A must match
+       * rows of B.  Given the other previously tested constraints, this
+       * means the vector type of a row from A must be the same as the
+       * vector the type of B.
+       */
+      if (type_a->row_type() == type_b) {
+         /* The resulting vector has a number of elements equal to
+          * the number of rows of matrix A. */
+         const glsl_type *const type =
+            get_instance(type_a->base_type,
+                         type_a->column_type()->vector_elements,
+                         1);
+         assert(type != error_type);
+
+         return type;
+      }
+   } else {
+      assert(type_b->is_matrix());
+
+      /* A is a row vector and B is a matrix.  Columns of A must match rows
+       * of B.  Given the other previously tested constraints, this means
+       * the type of A must be the same as the vector type of a column from
+       * B.
+       */
+      if (type_a == type_b->column_type()) {
+         /* The resulting vector has a number of elements equal to
+          * the number of columns of matrix B. */
+         const glsl_type *const type =
+            get_instance(type_a->base_type,
+                         type_b->row_type()->vector_elements,
+                         1);
+         assert(type != error_type);
+
+         return type;
+      }
+   }
+
+   return error_type;
+}
+
+
+const glsl_type *
 glsl_type::field_type(const char *name) const
 {
    if (this->base_type != GLSL_TYPE_STRUCT
@@ -1075,15 +1142,6 @@ glsl_type::std140_base_alignment(bool row_major) const
 			       field_type->std140_base_alignment(field_row_major));
       }
       return base_alignment;
-   }
-
-   /* A sampler may never occur in a UBO (without bindless of some sort),
-    * however it is convenient to use this alignment function even with
-    * regular uniforms. This allows use of this function on uniform structs
-    * that contain samplers.
-    */
-   if (this->is_sampler()) {
-      return 0;
    }
 
    assert(!"not reached");

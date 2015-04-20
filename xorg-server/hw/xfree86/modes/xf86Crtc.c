@@ -3026,6 +3026,27 @@ xf86OutputSetEDIDProperty(xf86OutputPtr output, void *data, int data_len)
     }
 }
 
+#define TILE_ATOM_NAME		"TILE"
+/* changing this in the future could be tricky as people may hardcode 8 */
+#define TILE_PROP_NUM_ITEMS		8
+static void
+xf86OutputSetTileProperty(xf86OutputPtr output)
+{
+    Atom tile_atom = MakeAtom(TILE_ATOM_NAME, sizeof(TILE_ATOM_NAME) - 1, TRUE);
+
+    /* This may get called before the RandR resources have been created */
+    if (output->randr_output == NULL)
+        return;
+
+    if (output->tile_info.group_id != 0) {
+        RRChangeOutputProperty(output->randr_output, tile_atom, XA_INTEGER, 32,
+                               PropModeReplace, TILE_PROP_NUM_ITEMS, (uint32_t *)&output->tile_info, FALSE, TRUE);
+    }
+    else {
+        RRDeleteOutputProperty(output->randr_output, tile_atom);
+    }
+}
+
 #endif
 
 /* Pull out a phyiscal size from a detailed timing if available. */
@@ -3069,6 +3090,38 @@ handle_detailed_physical_size(struct detailed_monitor_section
                        det_mon->section.d_timings.h_size,
                        det_mon->section.d_timings.v_size);
     }
+}
+
+Bool
+xf86OutputParseKMSTile(const char *tile_data, int tile_length,
+                       struct xf86CrtcTileInfo *tile_info)
+{
+    int ret;
+
+    ret = sscanf(tile_data, "%d:%d:%d:%d:%d:%d:%d:%d",
+                 &tile_info->group_id,
+                 &tile_info->flags,
+                 &tile_info->num_h_tile,
+                 &tile_info->num_v_tile,
+                 &tile_info->tile_h_loc,
+                 &tile_info->tile_v_loc,
+                 &tile_info->tile_h_size,
+                 &tile_info->tile_v_size);
+    if (ret != 8)
+        return FALSE;
+    return TRUE;
+}
+
+void
+xf86OutputSetTile(xf86OutputPtr output, struct xf86CrtcTileInfo *tile_info)
+{
+    if (tile_info)
+        output->tile_info = *tile_info;
+    else
+        memset(&output->tile_info, 0, sizeof(output->tile_info));
+#ifdef RANDR_12_INTERFACE
+    xf86OutputSetTileProperty(output);
+#endif
 }
 
 /**

@@ -98,6 +98,8 @@ RRCloseScreen(ScreenPtr pScreen)
     if (pScrPriv->provider)
         RRProviderDestroy(pScrPriv->provider);
 
+    RRMonitorClose(pScreen);
+
     free(pScrPriv->crtcs);
     free(pScrPriv->outputs);
     free(pScrPriv);
@@ -332,6 +334,8 @@ RRScreenInit(ScreenPtr pScreen)
     pScrPriv->outputs = NULL;
     pScrPriv->numCrtcs = 0;
     pScrPriv->crtcs = NULL;
+
+    RRMonitorInit(pScreen);
 
     RRNScreens += 1;            /* keep count of screens that implement randr */
     return TRUE;

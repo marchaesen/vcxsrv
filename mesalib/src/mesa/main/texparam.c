@@ -32,7 +32,6 @@
 #include <stdbool.h>
 #include "main/glheader.h"
 #include "main/blend.h"
-#include "main/colormac.h"
 #include "main/context.h"
 #include "main/enums.h"
 #include "main/formats.h"

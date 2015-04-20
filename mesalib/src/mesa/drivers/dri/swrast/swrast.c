@@ -326,7 +326,7 @@ choose_pixel_format(const struct gl_config *v)
 	     && v->blueMask  == 0xc0)
 	return PF_R3G3B2;
 
-    _mesa_problem( NULL, "unexpected format in %s", __FUNCTION__ );
+    _mesa_problem( NULL, "unexpected format in %s", __func__ );
     return 0;
 }
 

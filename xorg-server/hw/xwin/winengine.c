@@ -54,15 +54,8 @@ static HMODULE g_hmodDirectDraw = NULL;
 void
 winDetectSupportedEngines(void)
 {
-    OSVERSIONINFO osvi;
-
     /* Initialize the engine support flags */
     g_dwEnginesSupported = WIN_SERVER_SHADOW_GDI;
-
-    /* Get operating system version information */
-    ZeroMemory(&osvi, sizeof(osvi));
-    osvi.dwOSVersionInfoSize = sizeof(osvi);
-    GetVersionEx(&osvi);
 
     /* Do we have DirectDraw? */
     if (g_hmodDirectDraw != NULL) {
@@ -84,12 +77,6 @@ winDetectSupportedEngines(void)
             winErrorFVerb(2,
                           "winDetectSupportedEngines - DirectDraw not installed\n");
             return;
-        }
-        else {
-            /* We have DirectDraw */
-            winErrorFVerb(2,
-                          "winDetectSupportedEngines - DirectDraw installed, allowing ShadowDD\n");
-            g_dwEnginesSupported |= WIN_SERVER_SHADOW_DD;
         }
 
         /* Try to query for DirectDraw4 interface */
@@ -187,9 +174,6 @@ winSetEngine(ScreenPtr pScreen)
         case WIN_SERVER_SHADOW_GDI:
             winSetEngineFunctionsShadowGDI(pScreen);
             break;
-        case WIN_SERVER_SHADOW_DD:
-            winSetEngineFunctionsShadowDD(pScreen);
-            break;
         case WIN_SERVER_SHADOW_DDNL:
             winSetEngineFunctionsShadowDDNL(pScreen);
             break;
@@ -206,16 +190,6 @@ winSetEngine(ScreenPtr pScreen)
 
         /* Set engine function pointers */
         winSetEngineFunctionsShadowDDNL(pScreen);
-        return TRUE;
-    }
-
-    /* ShadowDD is next in line */
-    if (g_dwEnginesSupported & WIN_SERVER_SHADOW_DD) {
-        winErrorFVerb(2, "winSetEngine - Using Shadow DirectDraw\n");
-        pScreenInfo->dwEngine = WIN_SERVER_SHADOW_DD;
-
-        /* Set engine function pointers */
-        winSetEngineFunctionsShadowDD(pScreen);
         return TRUE;
     }
 

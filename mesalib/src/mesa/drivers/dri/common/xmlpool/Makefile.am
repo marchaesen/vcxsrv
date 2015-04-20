@@ -52,14 +52,19 @@ POT=xmlpool.pot
 
 .PHONY: all clean pot po mo
 
-EXTRA_DIST = gen_xmlpool.py options.h t_options.h $(POS) SConscript
-BUILT_SOURCES = options.h
-CLEANFILES = $(MOS) options.h
+EXTRA_DIST = \
+	gen_xmlpool.py \
+	options.h \
+	t_options.h \
+	$(POS) \
+	$(MOS) \
+	SConscript
 
-# All generated files are cleaned up.
-clean:
-	-rm -f $(POT) options.h *~
-	-rm -rf $(LANGS)
+BUILT_SOURCES = options.h
+CLEANFILES = \
+	options.h
+	$(POS) \
+	$(MOS)
 
 # Default target options.h
 options.h: LOCALEDIR := .

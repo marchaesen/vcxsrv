@@ -34,6 +34,7 @@
 #include "util/set.h"
 #include "util/bitset.h"
 #include "nir_types.h"
+#include "glsl/shader_enums.h"
 #include <stdio.h>
 
 #include "nir_opcodes.h"
@@ -527,6 +528,16 @@ nir_src_for_reg(nir_register *reg)
    src.reg.base_offset = 0;
 
    return src;
+}
+
+static inline nir_instr *
+nir_src_get_parent_instr(const nir_src *src)
+{
+   if (src->is_ssa) {
+      return src->ssa->parent_instr;
+   } else {
+      return src->reg.reg->parent_instr;
+   }
 }
 
 static inline nir_dest
@@ -1365,11 +1376,17 @@ typedef struct nir_function {
 
 typedef struct nir_shader_compiler_options {
    bool lower_ffma;
+   bool lower_flrp;
    bool lower_fpow;
    bool lower_fsat;
    bool lower_fsqrt;
    /** lowers fneg and ineg to fsub and isub. */
    bool lower_negate;
+   /** lowers fsub and isub to fadd+fneg and iadd+ineg. */
+   bool lower_sub;
+
+   /* lower {slt,sge,seq,sne} to {flt,fge,feq,fne} + b2f: */
+   bool lower_scmp;
 
    /**
     * Does the driver support real 32-bit integers?  (Otherwise, integers
@@ -1414,6 +1431,9 @@ typedef struct nir_shader {
     * access plus one
     */
    unsigned num_inputs, num_uniforms, num_outputs;
+
+   /** the number of uniforms that are only accessed directly */
+   unsigned num_direct_uniforms;
 } nir_shader;
 
 #define nir_foreach_overload(shader, overload)                        \
@@ -1466,26 +1486,26 @@ void nir_metadata_require(nir_function_impl *impl, nir_metadata required);
 void nir_metadata_preserve(nir_function_impl *impl, nir_metadata preserved);
 
 /** creates an instruction with default swizzle/writemask/etc. with NULL registers */
-nir_alu_instr *nir_alu_instr_create(void *mem_ctx, nir_op op);
+nir_alu_instr *nir_alu_instr_create(nir_shader *shader, nir_op op);
 
-nir_jump_instr *nir_jump_instr_create(void *mem_ctx, nir_jump_type type);
+nir_jump_instr *nir_jump_instr_create(nir_shader *shader, nir_jump_type type);
 
-nir_load_const_instr *nir_load_const_instr_create(void *mem_ctx,
+nir_load_const_instr *nir_load_const_instr_create(nir_shader *shader,
                                                   unsigned num_components);
 
-nir_intrinsic_instr *nir_intrinsic_instr_create(void *mem_ctx,
+nir_intrinsic_instr *nir_intrinsic_instr_create(nir_shader *shader,
                                                 nir_intrinsic_op op);
 
-nir_call_instr *nir_call_instr_create(void *mem_ctx,
+nir_call_instr *nir_call_instr_create(nir_shader *shader,
                                       nir_function_overload *callee);
 
-nir_tex_instr *nir_tex_instr_create(void *mem_ctx, unsigned num_srcs);
+nir_tex_instr *nir_tex_instr_create(nir_shader *shader, unsigned num_srcs);
 
-nir_phi_instr *nir_phi_instr_create(void *mem_ctx);
+nir_phi_instr *nir_phi_instr_create(nir_shader *shader);
 
-nir_parallel_copy_instr *nir_parallel_copy_instr_create(void *mem_ctx);
+nir_parallel_copy_instr *nir_parallel_copy_instr_create(nir_shader *shader);
 
-nir_ssa_undef_instr *nir_ssa_undef_instr_create(void *mem_ctx,
+nir_ssa_undef_instr *nir_ssa_undef_instr_create(nir_shader *shader,
                                                 unsigned num_components);
 
 nir_deref_var *nir_deref_var_create(void *mem_ctx, nir_variable *var);
@@ -1550,7 +1570,7 @@ void nir_print_instr(const nir_instr *instr, FILE *fp);
 #ifdef DEBUG
 void nir_validate_shader(nir_shader *shader);
 #else
-static inline void nir_validate_shader(nir_shader *shader) { }
+static inline void nir_validate_shader(nir_shader *shader) { (void) shader; }
 #endif /* DEBUG */
 
 void nir_calc_dominance_impl(nir_function_impl *impl);
@@ -1596,13 +1616,17 @@ void nir_lower_alu_to_scalar(nir_shader *shader);
 void nir_lower_phis_to_scalar(nir_shader *shader);
 
 void nir_lower_samplers(nir_shader *shader,
-                        struct gl_shader_program *shader_program,
-                        struct gl_program *prog);
+                        const struct gl_shader_program *shader_program,
+                        gl_shader_stage stage);
 
 void nir_lower_system_values(nir_shader *shader);
+void nir_lower_tex_projector(nir_shader *shader);
+void nir_lower_idiv(nir_shader *shader);
 
 void nir_lower_atomics(nir_shader *shader);
 void nir_lower_to_source_mods(nir_shader *shader);
+
+void nir_normalize_cubemap_coords(nir_shader *shader);
 
 void nir_live_variables_impl(nir_function_impl *impl);
 bool nir_ssa_defs_interfere(nir_ssa_def *a, nir_ssa_def *b);
@@ -1612,6 +1636,7 @@ void nir_convert_to_ssa(nir_shader *shader);
 void nir_convert_from_ssa(nir_shader *shader);
 
 bool nir_opt_algebraic(nir_shader *shader);
+bool nir_opt_algebraic_late(nir_shader *shader);
 bool nir_opt_constant_folding(nir_shader *shader);
 
 bool nir_opt_global_to_local(nir_shader *shader);
@@ -1630,6 +1655,8 @@ bool nir_opt_peephole_select(nir_shader *shader);
 bool nir_opt_peephole_ffma(nir_shader *shader);
 
 bool nir_opt_remove_phis(nir_shader *shader);
+
+void nir_sweep(nir_shader *shader);
 
 #ifdef __cplusplus
 } /* extern "C" */

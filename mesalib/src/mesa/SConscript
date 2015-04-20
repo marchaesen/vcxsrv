@@ -130,9 +130,10 @@ def write_git_sha1_h_file(filename):
         (commit, foo) = subprocess.Popen(args, stdout=subprocess.PIPE).communicate()
     except:
         # git log command didn't work
-        dirname = os.path.dirname(filename)
-        if not os.path.exists(dirname):
-            os.makedirs(dirname)
+        if not os.path.exists(filename):
+            dirname = os.path.dirname(filename)
+            if not os.path.exists(dirname):
+                os.makedirs(dirname)
             # create an empty file if none already exists
             f = open(filename, "w")
             f.close()

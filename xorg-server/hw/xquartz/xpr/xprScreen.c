@@ -54,6 +54,8 @@
 #include "damage.h"
 #endif
 
+#include "nonsdk_extinit.h"
+
 #if MAC_OS_X_VERSION_MIN_REQUIRED < 1090
 // From NSApplication.h
 extern const double NSAppKitVersionNumber;

@@ -102,7 +102,7 @@ stub_add_dynamic(const char *name)
    if (!stub->addr)
       return NULL;
 
-   stub->name = (const void *) name;
+   stub->name = (const void *) strdup(name);
    /* to be fixed later */
    stub->slot = -1;
 

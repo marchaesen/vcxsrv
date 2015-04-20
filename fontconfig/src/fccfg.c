@@ -1843,6 +1843,7 @@ FcConfigSubstitute (FcConfig	*config,
 #if defined (_WIN32)
 
 static FcChar8 fontconfig_path[1000] = ""; /* MT-dontcare */
+FcChar8 fontconfig_instprefix[1000] = ""; /* MT-dontcare */
 
 #  if (defined (PIC) || defined (DLL_EXPORT))
 
@@ -1877,6 +1878,7 @@ DllMain (HINSTANCE hinstDLL,
 	  if (p && (FcStrCmpIgnoreCase (p + 1, (const FcChar8 *) "bin") == 0 ||
 		    FcStrCmpIgnoreCase (p + 1, (const FcChar8 *) "lib") == 0))
 	      *p = '\0';
+	  strcat ((char *) fontconfig_instprefix, (char *) fontconfig_path);
 	  strcat ((char *) fontconfig_path, "\\etc\\fonts");
       }
       else
@@ -2227,7 +2229,9 @@ FcConfigAppFontAddFile (FcConfig    *config,
 	FcStrSetDestroy (subdirs);
 	return FcFalse;
     }
-    if ((sublist = FcStrListCreate (subdirs)))
+    if (subdirs->num == 0)
+	ret = FcTrue;
+    else if ((sublist = FcStrListCreate (subdirs)))
     {
 	while ((subdir = FcStrListNext (sublist)))
 	{

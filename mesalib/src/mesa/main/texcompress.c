@@ -32,7 +32,6 @@
 
 #include "glheader.h"
 #include "imports.h"
-#include "colormac.h"
 #include "context.h"
 #include "formats.h"
 #include "mtypes.h"

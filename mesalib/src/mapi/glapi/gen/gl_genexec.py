@@ -92,6 +92,7 @@ header = """/**
 #include "main/pixelstore.h"
 #include "main/points.h"
 #include "main/polygon.h"
+#include "main/program_resource.h"
 #include "main/querymatrix.h"
 #include "main/queryobj.h"
 #include "main/readpix.h"

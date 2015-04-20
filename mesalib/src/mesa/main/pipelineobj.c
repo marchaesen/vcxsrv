@@ -498,16 +498,18 @@ _mesa_DeleteProgramPipelines(GLsizei n, const GLuint *pipelines)
  * \param n       Number of IDs to generate.
  * \param pipelines  pipeline of \c n locations to store the IDs.
  */
-void GLAPIENTRY
-_mesa_GenProgramPipelines(GLsizei n, GLuint *pipelines)
+static void
+create_program_pipelines(struct gl_context *ctx, GLsizei n, GLuint *pipelines,
+                         bool dsa)
 {
-   GET_CURRENT_CONTEXT(ctx);
-
+   const char *func;
    GLuint first;
    GLint i;
 
+   func = dsa ? "glCreateProgramPipelines" : "glGenProgramPipelines";
+
    if (n < 0) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glGenProgramPipelines(n<0)");
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s (n < 0)", func);
       return;
    }
 
@@ -523,14 +525,35 @@ _mesa_GenProgramPipelines(GLsizei n, GLuint *pipelines)
 
       obj = _mesa_new_pipeline_object(ctx, name);
       if (!obj) {
-         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glGenProgramPipelines");
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s", func);
          return;
+      }
+
+      if (dsa) {
+         /* make dsa-allocated objects behave like program objects */
+         obj->EverBound = GL_TRUE;
       }
 
       save_pipeline_object(ctx, obj);
       pipelines[i] = first + i;
    }
 
+}
+
+void GLAPIENTRY
+_mesa_GenProgramPipelines(GLsizei n, GLuint *pipelines)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   create_program_pipelines(ctx, n, pipelines, false);
+}
+
+void GLAPIENTRY
+_mesa_CreateProgramPipelines(GLsizei n, GLuint *pipelines)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   create_program_pipelines(ctx, n, pipelines, true);
 }
 
 /**

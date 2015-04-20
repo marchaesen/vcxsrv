@@ -58,8 +58,8 @@ SOFTWARE.
 #include	<X11/Xmu/CurUtil.h>
 #include	<X11/Xmu/CharSet.h>
 
-#ifndef X_NOT_POSIX
 #include <stdlib.h>
+
 #ifdef _POSIX_SOURCE
 #include <limits.h>
 #else
@@ -67,7 +67,7 @@ SOFTWARE.
 #include <limits.h>
 #undef _POSIX_SOURCE
 #endif
-#endif /* X_NOT_POSIX */
+
 #ifndef PATH_MAX
 #ifdef WIN32
 #define PATH_MAX 512

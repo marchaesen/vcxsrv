@@ -60,7 +60,7 @@ struct _glamor_program {
     GLint                       matrix_uniform;
     GLint                       fg_uniform;
     GLint                       bg_uniform;
-    GLint                       fill_size_uniform;
+    GLint                       fill_size_inv_uniform;
     GLint                       fill_offset_uniform;
     GLint                       font_uniform;
     GLint                       bitplane_uniform;

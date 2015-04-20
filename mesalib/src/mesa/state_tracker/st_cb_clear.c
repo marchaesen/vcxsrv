@@ -247,7 +247,7 @@ clear_with_quad(struct gl_context *ctx, unsigned clear_buffers)
       util_framebuffer_get_num_layers(&st->state.framebuffer);
 
    /*
-   printf("%s %s%s%s %f,%f %f,%f\n", __FUNCTION__, 
+   printf("%s %s%s%s %f,%f %f,%f\n", __func__,
 	  color ? "color, " : "",
 	  depth ? "depth, " : "",
 	  stencil ? "stencil" : "",

@@ -433,6 +433,30 @@ _mesa_fls(unsigned int n)
 #endif
 }
 
+/**
+ * Find the last (most significant) bit set in a uint64_t value.
+ *
+ * Essentially ffsll() in the reverse direction.
+ */
+static inline unsigned int
+_mesa_flsll(uint64_t n)
+{
+#ifdef HAVE___BUILTIN_CLZLL
+   return n == 0 ? 0 : 64 - __builtin_clzll(n);
+#else
+   unsigned int v = 1;
+
+   if (n == 0)
+      return 0;
+
+   while (n >>= 1)
+       v++;
+
+   return v;
+#endif
+}
+
+
 extern GLhalfARB
 _mesa_float_to_half(float f);
 

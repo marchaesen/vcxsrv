@@ -32,6 +32,9 @@ extern "C" {
 #endif
 
 
+#include "mtypes.h"
+
+
 struct dd_function_table;
 
 static inline struct gl_sampler_object *
@@ -79,6 +82,8 @@ _mesa_init_sampler_object_functions(struct dd_function_table *driver);
 
 void GLAPIENTRY
 _mesa_GenSamplers(GLsizei count, GLuint *samplers);
+void GLAPIENTRY
+_mesa_CreateSamplers(GLsizei count, GLuint *samplers);
 void GLAPIENTRY
 _mesa_DeleteSamplers(GLsizei count, const GLuint *samplers);
 GLboolean GLAPIENTRY

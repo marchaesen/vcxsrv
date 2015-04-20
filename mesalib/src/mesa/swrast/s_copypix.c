@@ -25,7 +25,6 @@
 
 #include "main/glheader.h"
 #include "main/context.h"
-#include "main/colormac.h"
 #include "main/condrender.h"
 #include "main/macros.h"
 #include "main/pixeltransfer.h"

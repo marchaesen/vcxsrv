@@ -31,7 +31,7 @@
 
 
 #include "glheader.h"
-#include "colormac.h"
+#include "macros.h"
 #include "pixeltransfer.h"
 #include "imports.h"
 #include "mtypes.h"

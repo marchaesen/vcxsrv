@@ -92,7 +92,7 @@
 
 
 #ifndef MAX_GLUINT
-#define MAX_GLUINT	0xffffffff
+#define MAX_GLUINT	0xffffffffu
 #endif
 
 
@@ -156,7 +156,7 @@ static void NAME(struct gl_context *ctx, const SWvertex *v0,
 #endif
 
    /*
-   printf("%s()\n", __FUNCTION__);
+   printf("%s()\n", __func__);
    printf("  %g, %g, %g\n",
           v0->attrib[VARYING_SLOT_POS][0],
           v0->attrib[VARYING_SLOT_POS][1],

@@ -37,20 +37,19 @@ struct cse_state {
 };
 
 static bool
-nir_alu_srcs_equal(nir_alu_src src1, nir_alu_src src2, uint8_t read_mask)
+nir_alu_srcs_equal(nir_alu_instr *alu1, nir_alu_instr *alu2, unsigned src1,
+                   unsigned src2)
 {
-   if (src1.abs != src2.abs || src1.negate != src2.negate)
+   if (alu1->src[src1].abs != alu2->src[src2].abs ||
+       alu1->src[src1].negate != alu2->src[src2].negate)
       return false;
 
-   for (int i = 0; i < 4; ++i) {
-      if (!(read_mask & (1 << i)))
-         continue;
-
-      if (src1.swizzle[i] != src2.swizzle[i])
+   for (unsigned i = 0; i < nir_ssa_alu_instr_src_components(alu1, src1); i++) {
+      if (alu1->src[src1].swizzle[i] != alu2->src[src2].swizzle[i])
          return false;
    }
 
-   return nir_srcs_equal(src1.src, src2.src);
+   return nir_srcs_equal(alu1->src[src1].src, alu2->src[src2].src);
 }
 
 static bool
@@ -73,10 +72,17 @@ nir_instrs_equal(nir_instr *instr1, nir_instr *instr2)
       if (alu1->dest.dest.ssa.num_components != alu2->dest.dest.ssa.num_components)
          return false;
 
-      for (unsigned i = 0; i < nir_op_infos[alu1->op].num_inputs; i++) {
-         if (!nir_alu_srcs_equal(alu1->src[i], alu2->src[i],
-                                 (1 << alu1->dest.dest.ssa.num_components) - 1))
-            return false;
+      if (nir_op_infos[alu1->op].algebraic_properties & NIR_OP_IS_COMMUTATIVE) {
+         assert(nir_op_infos[alu1->op].num_inputs == 2);
+         return (nir_alu_srcs_equal(alu1, alu2, 0, 0) &&
+                 nir_alu_srcs_equal(alu1, alu2, 1, 1)) ||
+                (nir_alu_srcs_equal(alu1, alu2, 0, 1) &&
+                 nir_alu_srcs_equal(alu1, alu2, 1, 0));
+      } else {
+         for (unsigned i = 0; i < nir_op_infos[alu1->op].num_inputs; i++) {
+            if (!nir_alu_srcs_equal(alu1, alu2, i, i))
+               return false;
+         }
       }
       return true;
    }
@@ -154,12 +160,14 @@ nir_instrs_equal(nir_instr *instr1, nir_instr *instr2)
 static bool
 src_is_ssa(nir_src *src, void *data)
 {
+   (void) data;
    return src->is_ssa;
 }
 
 static bool
 dest_is_ssa(nir_dest *dest, void *data)
 {
+   (void) data;
    return dest->is_ssa;
 }
 

@@ -46,15 +46,15 @@
 #ifndef RALLOC_H
 #define RALLOC_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stddef.h>
 #include <stdarg.h>
 #include <stdbool.h>
 
 #include "macros.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * \def ralloc(ctx, type)
@@ -233,6 +233,13 @@ void ralloc_free(void *ptr);
  * memory is allocated out of a temporary context.
  */
 void ralloc_steal(const void *new_ctx, void *ptr);
+
+/**
+ * Reparent all children from one context to another.
+ *
+ * This effectively calls ralloc_steal(new_ctx, child) for all children of \p old_ctx.
+ */
+void ralloc_adopt(const void *new_ctx, void *old_ctx);
 
 /**
  * Return the given pointer's ralloc context.

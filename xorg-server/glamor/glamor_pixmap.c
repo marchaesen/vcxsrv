@@ -63,31 +63,36 @@ glamor_pixmap_fini(ScreenPtr screen)
 }
 
 void
-glamor_set_destination_pixmap_fbo(glamor_pixmap_fbo *fbo, int x0, int y0,
+glamor_set_destination_pixmap_fbo(glamor_screen_private *glamor_priv,
+                                  glamor_pixmap_fbo *fbo, int x0, int y0,
                                   int width, int height)
 {
-    glamor_make_current(fbo->glamor_priv);
+    glamor_make_current(glamor_priv);
 
     glBindFramebuffer(GL_FRAMEBUFFER, fbo->fb);
     glViewport(x0, y0, width, height);
 }
 
 void
-glamor_set_destination_pixmap_priv_nc(glamor_pixmap_private *pixmap_priv)
+glamor_set_destination_pixmap_priv_nc(glamor_screen_private *glamor_priv,
+                                      PixmapPtr pixmap,
+                                      glamor_pixmap_private *pixmap_priv)
 {
     int w, h;
 
-    PIXMAP_PRIV_GET_ACTUAL_SIZE(pixmap_priv, w, h);
-    glamor_set_destination_pixmap_fbo(pixmap_priv->base.fbo, 0, 0, w, h);
+    PIXMAP_PRIV_GET_ACTUAL_SIZE(pixmap, pixmap_priv, w, h);
+    glamor_set_destination_pixmap_fbo(glamor_priv, pixmap_priv->fbo, 0, 0, w, h);
 }
 
 int
-glamor_set_destination_pixmap_priv(glamor_pixmap_private *pixmap_priv)
+glamor_set_destination_pixmap_priv(glamor_screen_private *glamor_priv,
+                                   PixmapPtr pixmap,
+                                   glamor_pixmap_private *pixmap_priv)
 {
     if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv))
         return -1;
 
-    glamor_set_destination_pixmap_priv_nc(pixmap_priv);
+    glamor_set_destination_pixmap_priv_nc(glamor_priv, pixmap, pixmap_priv);
     return 0;
 }
 
@@ -96,8 +101,10 @@ glamor_set_destination_pixmap(PixmapPtr pixmap)
 {
     int err;
     glamor_pixmap_private *pixmap_priv = glamor_get_pixmap_private(pixmap);
+    ScreenPtr screen = pixmap->drawable.pScreen;
+    glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
 
-    err = glamor_set_destination_pixmap_priv(pixmap_priv);
+    err = glamor_set_destination_pixmap_priv(glamor_priv, pixmap, pixmap_priv);
     return err;
 }
 
@@ -471,7 +478,7 @@ glamor_get_tex_format_type_from_pixmap(PixmapPtr pixmap,
 
     pixmap_priv = glamor_get_pixmap_private(pixmap);
     if (GLAMOR_PIXMAP_PRIV_IS_PICTURE(pixmap_priv))
-        pict_format = pixmap_priv->base.picture->format;
+        pict_format = pixmap_priv->picture->format;
     else
         pict_format = format_for_depth(pixmap->drawable.depth);
 
@@ -717,7 +724,6 @@ __glamor_upload_pixmap_to_texture(PixmapPtr pixmap, unsigned int *tex,
     }
 
     glBindTexture(GL_TEXTURE_2D, *tex);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
@@ -742,6 +748,7 @@ _glamor_upload_bits_to_pixmap_texture(PixmapPtr pixmap, GLenum format,
                                       int swap_rb, int x, int y, int w, int h,
                                       int stride, void *bits, int pbo)
 {
+    ScreenPtr screen = pixmap->drawable.pScreen;
     glamor_pixmap_private *pixmap_priv = glamor_get_pixmap_private(pixmap);
     glamor_screen_private *glamor_priv =
         glamor_get_screen_private(pixmap->drawable.pScreen);
@@ -793,25 +800,25 @@ _glamor_upload_bits_to_pixmap_texture(PixmapPtr pixmap, GLenum format,
     if (no_alpha == 0
         && revert == REVERT_NONE && swap_rb == SWAP_NONE_UPLOADING
 #ifdef WALKAROUND_LARGE_TEXTURE_MAP
-        && pixmap_priv->type != GLAMOR_TEXTURE_LARGE
+        && glamor_pixmap_priv_is_small(pixmap_priv)
 #endif
         ) {
         int fbo_x_off, fbo_y_off;
 
-        assert(pixmap_priv->base.fbo->tex);
+        assert(pixmap_priv->fbo->tex);
         pixmap_priv_get_fbo_off(pixmap_priv, &fbo_x_off, &fbo_y_off);
 
         assert(x + fbo_x_off >= 0 && y + fbo_y_off >= 0);
-        assert(x + fbo_x_off + w <= pixmap_priv->base.fbo->width);
-        assert(y + fbo_y_off + h <= pixmap_priv->base.fbo->height);
-        __glamor_upload_pixmap_to_texture(pixmap, &pixmap_priv->base.fbo->tex,
+        assert(x + fbo_x_off + w <= pixmap_priv->fbo->width);
+        assert(y + fbo_y_off + h <= pixmap_priv->fbo->height);
+        __glamor_upload_pixmap_to_texture(pixmap, &pixmap_priv->fbo->tex,
                                           format, type,
                                           x + fbo_x_off, y + fbo_y_off, w, h,
                                           bits, pbo);
     } else {
         ptexcoords = texcoords_inv;
 
-        pixmap_priv_get_dest_scale(pixmap_priv, &dst_xscale, &dst_yscale);
+        pixmap_priv_get_dest_scale(pixmap, pixmap_priv, &dst_xscale, &dst_yscale);
         glamor_set_normalize_vcoords(pixmap_priv, dst_xscale,
                                      dst_yscale,
                                      x, y,
@@ -826,7 +833,8 @@ _glamor_upload_bits_to_pixmap_texture(PixmapPtr pixmap, GLenum format,
                               GL_FALSE, 2 * sizeof(float), ptexcoords);
         glEnableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
 
-        glamor_set_destination_pixmap_priv_nc(pixmap_priv);
+        glamor_set_destination_pixmap_priv_nc(glamor_priv, pixmap, pixmap_priv);
+        glamor_set_alu(screen, GXcopy);
         __glamor_upload_pixmap_to_texture(pixmap, &tex,
                                           format, type, 0, 0, w, h, bits, pbo);
         glActiveTexture(GL_TEXTURE0);
@@ -868,17 +876,17 @@ glamor_pixmap_upload_prepare(PixmapPtr pixmap, GLenum format, int no_alpha,
     pixmap_priv = glamor_get_pixmap_private(pixmap);
     glamor_priv = glamor_get_screen_private(pixmap->drawable.pScreen);
 
-    if (pixmap_priv->base.gl_fbo != GLAMOR_FBO_UNATTACHED)
+    if (pixmap_priv->gl_fbo != GLAMOR_FBO_UNATTACHED)
         return 0;
 
-    if (pixmap_priv->base.fbo
-        && (pixmap_priv->base.fbo->width < pixmap->drawable.width
-            || pixmap_priv->base.fbo->height < pixmap->drawable.height)) {
+    if (pixmap_priv->fbo
+        && (pixmap_priv->fbo->width < pixmap->drawable.width
+            || pixmap_priv->fbo->height < pixmap->drawable.height)) {
         fbo = glamor_pixmap_detach_fbo(pixmap_priv);
-        glamor_destroy_fbo(fbo);
+        glamor_destroy_fbo(glamor_priv, fbo);
     }
 
-    if (pixmap_priv->base.fbo && pixmap_priv->base.fbo->fb)
+    if (pixmap_priv->fbo && pixmap_priv->fbo->fb)
         return 0;
 
     if (!(no_alpha || (revert == REVERT_NORMAL)
@@ -889,8 +897,8 @@ glamor_pixmap_upload_prepare(PixmapPtr pixmap, GLenum format, int no_alpha,
     }
 
     if ((flag == GLAMOR_CREATE_FBO_NO_FBO
-         && pixmap_priv->base.fbo && pixmap_priv->base.fbo->tex)
-        || (flag == 0 && pixmap_priv->base.fbo && pixmap_priv->base.fbo->fb))
+         && pixmap_priv->fbo && pixmap_priv->fbo->tex)
+        || (flag == 0 && pixmap_priv->fbo && pixmap_priv->fbo->fb))
         return 0;
 
     if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP)
@@ -928,6 +936,8 @@ Bool
 glamor_upload_sub_pixmap_to_texture(PixmapPtr pixmap, int x, int y, int w,
                                     int h, int stride, void *bits, int pbo)
 {
+    ScreenPtr screen = pixmap->drawable.pScreen;
+    glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
     GLenum format, type;
     int no_alpha, revert, swap_rb;
     glamor_pixmap_private *pixmap_priv;
@@ -945,10 +955,10 @@ glamor_upload_sub_pixmap_to_texture(PixmapPtr pixmap, int x, int y, int w,
         return FALSE;
 
     pixmap_priv = glamor_get_pixmap_private(pixmap);
-    force_clip = pixmap_priv->base.glamor_priv->gl_flavor != GLAMOR_GL_DESKTOP
-        && !glamor_check_fbo_size(pixmap_priv->base.glamor_priv, w, h);
+    force_clip = glamor_priv->gl_flavor != GLAMOR_GL_DESKTOP
+        && !glamor_check_fbo_size(glamor_priv, w, h);
 
-    if (pixmap_priv->type == GLAMOR_TEXTURE_LARGE || force_clip) {
+    if (glamor_pixmap_priv_is_large(pixmap_priv) || force_clip) {
         RegionRec region;
         BoxRec box;
         int n_region;
@@ -966,14 +976,14 @@ glamor_upload_sub_pixmap_to_texture(PixmapPtr pixmap, int x, int y, int w,
         RegionInitBoxes(&region, &box, 1);
         if (!force_clip)
             clipped_regions =
-                glamor_compute_clipped_regions(pixmap_priv, &region, &n_region,
+                glamor_compute_clipped_regions(pixmap, &region, &n_region,
                                                0, 0, 0);
         else
             clipped_regions =
-                glamor_compute_clipped_regions_ext(pixmap_priv, &region,
+                glamor_compute_clipped_regions_ext(pixmap, &region,
                                                    &n_region,
-                                                   pixmap_priv->large.block_w,
-                                                   pixmap_priv->large.block_h,
+                                                   pixmap_priv->block_w,
+                                                   pixmap_priv->block_h,
                                                    0,
                                                    0);
         DEBUGF("prepare upload %dx%d to a large pixmap %p\n", w, h, pixmap);
@@ -1044,10 +1054,10 @@ glamor_upload_pixmap_to_texture(PixmapPtr pixmap)
 
     pixmap_priv = glamor_get_pixmap_private(pixmap);
 
-    if ((pixmap_priv->base.fbo)
-        && (pixmap_priv->base.fbo->pbo_valid)) {
+    if ((pixmap_priv->fbo)
+        && (pixmap_priv->fbo->pbo_valid)) {
         data = NULL;
-        pbo = pixmap_priv->base.fbo->pbo;
+        pbo = pixmap_priv->fbo->pbo;
     }
     else {
         data = pixmap->devPrivate.ptr;
@@ -1118,11 +1128,12 @@ glamor_es2_pixmap_read_prepare(PixmapPtr source, int x, int y, int w, int h,
     glEnableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, source_priv->base.fbo->tex);
+    glBindTexture(GL_TEXTURE_2D, source_priv->fbo->tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    glamor_set_destination_pixmap_fbo(temp_fbo, 0, 0, w, h);
+    glamor_set_destination_pixmap_fbo(glamor_priv, temp_fbo, 0, 0, w, h);
+    glamor_set_alu(screen, GXcopy);
     glUseProgram(glamor_priv->finish_access_prog[no_alpha]);
     glUniform1i(glamor_priv->finish_access_revert[no_alpha], revert);
     glUniform1i(glamor_priv->finish_access_swap_rb[no_alpha], swap_rb);
@@ -1132,63 +1143,4 @@ glamor_es2_pixmap_read_prepare(PixmapPtr source, int x, int y, int w, int h,
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
     return temp_fbo;
-}
-
-/* fixup a fbo to the exact size as the pixmap. */
-/* XXX LARGE pixmap? */
-Bool
-glamor_fixup_pixmap_priv(ScreenPtr screen, glamor_pixmap_private *pixmap_priv)
-{
-    glamor_pixmap_fbo *old_fbo;
-    glamor_pixmap_fbo *new_fbo = NULL;
-    PixmapPtr scratch = NULL;
-    glamor_pixmap_private *scratch_priv;
-    DrawablePtr drawable;
-    GCPtr gc = NULL;
-    int ret = FALSE;
-
-    drawable = &pixmap_priv->base.pixmap->drawable;
-
-    if (!GLAMOR_PIXMAP_FBO_NOT_EXACT_SIZE(pixmap_priv))
-        return TRUE;
-
-    old_fbo = pixmap_priv->base.fbo;
-
-    if (!old_fbo)
-        return FALSE;
-
-    gc = GetScratchGC(drawable->depth, screen);
-    if (!gc)
-        goto fail;
-
-    scratch = glamor_create_pixmap(screen, drawable->width, drawable->height,
-                                   drawable->depth, GLAMOR_CREATE_PIXMAP_FIXUP);
-
-    scratch_priv = glamor_get_pixmap_private(scratch);
-
-    if (!scratch_priv->base.fbo)
-        goto fail;
-
-    ValidateGC(&scratch->drawable, gc);
-    glamor_copy_area(drawable,
-                     &scratch->drawable,
-                     gc, 0, 0, drawable->width, drawable->height, 0, 0);
-    old_fbo = glamor_pixmap_detach_fbo(pixmap_priv);
-    new_fbo = glamor_pixmap_detach_fbo(scratch_priv);
-    glamor_pixmap_attach_fbo(pixmap_priv->base.pixmap, new_fbo);
-    glamor_pixmap_attach_fbo(scratch, old_fbo);
-
-    DEBUGF("old %dx%d type %d\n",
-           drawable->width, drawable->height, pixmap_priv->type);
-    DEBUGF("copy tex %d  %dx%d to tex %d %dx%d \n",
-           old_fbo->tex, old_fbo->width, old_fbo->height, new_fbo->tex,
-           new_fbo->width, new_fbo->height);
-    ret = TRUE;
- fail:
-    if (gc)
-        FreeScratchGC(gc);
-    if (scratch)
-        glamor_destroy_pixmap(scratch);
-
-    return ret;
 }

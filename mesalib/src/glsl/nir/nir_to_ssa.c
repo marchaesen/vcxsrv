@@ -47,7 +47,7 @@ insert_trivial_phi(nir_register *reg, nir_block *block, void *mem_ctx)
    set_foreach(block->predecessors, entry) {
       nir_block *pred = (nir_block *) entry->key;
 
-      nir_phi_src *src = ralloc(mem_ctx, nir_phi_src);
+      nir_phi_src *src = ralloc(instr, nir_phi_src);
       src->pred = pred;
       src->src.is_ssa = false;
       src->src.reg.base_offset = 0;

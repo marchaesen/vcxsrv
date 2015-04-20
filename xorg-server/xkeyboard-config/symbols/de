@@ -43,6 +43,7 @@ xkb_symbols "basic" {
     key <AB08>  { [     comma,  semicolon,       periodcentered,     multiply	] };
     key <AB09>	{ [    period,      colon,                U2026,     division 	] };
     key <AB10>	{ [     minus, underscore,               endash,     emdash	] };
+    key <LSGT>	{ [     less,     greater,                  bar,     NoSymbol   ] };
 
     include "kpdl(comma)"
 

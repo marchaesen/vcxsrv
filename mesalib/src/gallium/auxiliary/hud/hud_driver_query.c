@@ -157,7 +157,8 @@ hud_pipe_query_install(struct hud_pane *pane, struct pipe_context *pipe,
    if (!gr)
       return;
 
-   strcpy(gr->name, name);
+   strncpy(gr->name, name, sizeof(gr->name));
+   gr->name[sizeof(gr->name) - 1] = '\0';
    gr->query_data = CALLOC_STRUCT(query_info);
    if (!gr->query_data) {
       FREE(gr);

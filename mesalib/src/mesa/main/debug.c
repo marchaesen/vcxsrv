@@ -26,11 +26,11 @@
 #include <stdio.h>
 #include "mtypes.h"
 #include "attrib.h"
-#include "colormac.h"
 #include "enums.h"
 #include "formats.h"
 #include "hash.h"
 #include "imports.h"
+#include "macros.h"
 #include "debug.h"
 #include "get.h"
 #include "pixelstore.h"

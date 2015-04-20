@@ -80,6 +80,7 @@ typedef struct _rrProperty RRPropertyRec, *RRPropertyPtr;
 typedef struct _rrCrtc RRCrtcRec, *RRCrtcPtr;
 typedef struct _rrOutput RROutputRec, *RROutputPtr;
 typedef struct _rrProvider RRProviderRec, *RRProviderPtr;
+typedef struct _rrMonitor RRMonitorRec, *RRMonitorPtr;
 
 struct _rrMode {
     int refcnt;
@@ -167,6 +168,22 @@ struct _rrProvider {
     Bool changed;
     struct _rrProvider *offload_sink;
     struct _rrProvider *output_source;
+};
+
+typedef struct _rrMonitorGeometry {
+    BoxRec box;
+    CARD32 mmWidth;
+    CARD32 mmHeight;
+} RRMonitorGeometryRec, *RRMonitorGeometryPtr;
+
+struct _rrMonitor {
+    Atom name;
+    ScreenPtr pScreen;
+    int numOutputs;
+    RROutput *outputs;
+    Bool primary;
+    Bool automatic;
+    RRMonitorGeometryRec geometry;
 };
 
 #if RANDR_12_INTERFACE
@@ -337,6 +354,9 @@ typedef struct _rrScrPriv {
     RRProviderPtr provider;
 
     RRProviderDestroyProcPtr rrProviderDestroy;
+
+    int numMonitors;
+    RRMonitorPtr *monitors;
 
 } rrScrPrivRec, *rrScrPrivPtr;
 
@@ -980,6 +1000,30 @@ extern _X_EXPORT int
 extern _X_EXPORT void
  RRXineramaExtensionInit(void);
 #endif
+
+void
+RRMonitorInit(ScreenPtr screen);
+
+Bool
+RRMonitorMakeList(ScreenPtr screen, Bool get_active, RRMonitorPtr *monitors_ret, int *nmon_ret);
+
+int
+RRMonitorCountList(ScreenPtr screen);
+
+void
+RRMonitorFreeList(RRMonitorPtr monitors, int nmon);
+
+void
+RRMonitorClose(ScreenPtr screen);
+
+int
+ProcRRGetMonitors(ClientPtr client);
+
+int
+ProcRRSetMonitor(ClientPtr client);
+
+int
+ProcRRDeleteMonitor(ClientPtr client);
 
 #endif                          /* _RANDRSTR_H_ */
 

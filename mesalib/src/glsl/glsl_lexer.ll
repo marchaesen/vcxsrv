@@ -36,14 +36,13 @@ static int classify_identifier(struct _mesa_glsl_parse_state *, const char *);
 
 #define YY_USER_ACTION						\
    do {								\
-      yylloc->source = 0;					\
       yylloc->first_column = yycolumn + 1;			\
       yylloc->first_line = yylloc->last_line = yylineno + 1;	\
       yycolumn += yyleng;					\
       yylloc->last_column = yycolumn + 1;			\
    } while(0);
 
-#define YY_USER_INIT yylineno = 0; yycolumn = 0;
+#define YY_USER_INIT yylineno = 0; yycolumn = 0; yylloc->source = 0;
 
 /* A macro for handling reserved words and keywords across language versions.
  *
@@ -188,6 +187,15 @@ HASH		^{SPC}#{SPC}
 				    * one-based.
 				    */
 				   yylineno = strtol(ptr, &ptr, 0) - 1;
+
+                                   /* From GLSL 3.30 and GLSL ES on, after processing the
+                                    * line directive (including its new-line), the implementation
+                                    * will behave as if it is compiling at the line number passed
+                                    * as argument. It was line number + 1 in older specifications.
+                                    */
+                                   if (yyextra->is_version(330, 100))
+                                      yylineno--;
+
 				   yylloc->source = strtol(ptr, NULL, 0);
 				}
 {HASH}line{SPCP}{INT}{SPC}$	{
@@ -203,6 +211,14 @@ HASH		^{SPC}#{SPC}
 				    * one-based.
 				    */
 				   yylineno = strtol(ptr, &ptr, 0) - 1;
+
+                                   /* From GLSL 3.30 and GLSL ES on, after processing the
+                                    * line directive (including its new-line), the implementation
+                                    * will behave as if it is compiling at the line number passed
+                                    * as argument. It was line number + 1 in older specifications.
+                                    */
+                                   if (yyextra->is_version(330, 100))
+                                      yylineno--;
 				}
 ^{SPC}#{SPC}pragma{SPCP}debug{SPC}\({SPC}on{SPC}\) {
 				  BEGIN PP;

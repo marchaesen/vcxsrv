@@ -329,6 +329,9 @@ st_destroy_program_variants(struct st_context *st);
 extern void
 st_print_current_vertex_program(void);
 
+extern void
+st_precompile_shader_variant(struct st_context *st,
+                             struct gl_program *prog);
 
 #ifdef __cplusplus
 }

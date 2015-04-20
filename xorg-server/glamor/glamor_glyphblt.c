@@ -60,7 +60,7 @@ glamor_poly_glyph_blt_gl(DrawablePtr drawable, GCPtr gc,
                                    &glamor_priv->poly_glyph_blt_progs,
                                    &glamor_facet_poly_glyph_blt);
     if (!prog)
-        goto bail_ctx;
+        goto bail;
 
     glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
 
@@ -138,12 +138,9 @@ glamor_poly_glyph_blt_gl(DrawablePtr drawable, GCPtr gc,
         }
     }
 
-    glDisable(GL_COLOR_LOGIC_OP);
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
 
     return TRUE;
-bail_ctx:
-    glDisable(GL_COLOR_LOGIC_OP);
 bail:
     return FALSE;
 }
@@ -158,32 +155,6 @@ glamor_poly_glyph_blt(DrawablePtr drawable, GCPtr gc,
         return;
     miPolyGlyphBlt(drawable, gc, start_x, y, nglyph,
                    ppci, pglyph_base);
-}
-
-Bool
-glamor_poly_glyph_blt_nf(DrawablePtr drawable, GCPtr gc,
-                         int start_x, int y, unsigned int nglyph,
-                         CharInfoPtr *ppci, void *pglyph_base)
-{
-    if (glamor_poly_glyph_blt_gl(drawable, gc, start_x, y, nglyph, ppci,
-                                 pglyph_base))
-        return TRUE;
-    if (glamor_ddx_fallback_check_pixmap(drawable) &&
-        glamor_ddx_fallback_check_gc(gc)) {
-        return FALSE;
-    }
-    miPolyGlyphBlt(drawable, gc, start_x, y, nglyph,
-                   ppci, pglyph_base);
-    return TRUE;
-}
-
-Bool
-glamor_image_glyph_blt_nf(DrawablePtr drawable, GCPtr gc,
-                          int start_x, int y, unsigned int nglyph,
-                          CharInfoPtr *ppci, void *pglyph_base)
-{
-    miImageGlyphBlt(drawable, gc, start_x, y, nglyph, ppci, pglyph_base);
-    return TRUE;
 }
 
 static Bool
@@ -217,7 +188,7 @@ glamor_push_pixels_gl(GCPtr gc, PixmapPtr bitmap,
                                    &glamor_priv->poly_glyph_blt_progs,
                                    &glamor_facet_poly_glyph_blt);
     if (!prog)
-        goto bail_ctx;
+        goto bail;
 
     glEnableVertexAttribArray(GLAMOR_VERTEX_POS);
 
@@ -256,12 +227,9 @@ glamor_push_pixels_gl(GCPtr gc, PixmapPtr bitmap,
         glDrawArrays(GL_POINTS, 0, num_points);
     }
 
-    glDisable(GL_COLOR_LOGIC_OP);
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
     return TRUE;
 
-bail_ctx:
-    glDisable(GL_COLOR_LOGIC_OP);
 bail:
     return FALSE;
 }
@@ -274,22 +242,4 @@ glamor_push_pixels(GCPtr pGC, PixmapPtr pBitmap,
         return;
 
     miPushPixels(pGC, pBitmap, pDrawable, w, h, x, y);
-}
-
-Bool
-glamor_push_pixels_nf(GCPtr gc, PixmapPtr bitmap,
-                      DrawablePtr drawable, int w, int h, int x, int y)
-{
-    if (glamor_push_pixels_gl(gc, bitmap, drawable, w, h, x, y))
-        return TRUE;
-
-    if (glamor_ddx_fallback_check_pixmap(drawable) &&
-        glamor_ddx_fallback_check_pixmap(&bitmap->drawable) &&
-        glamor_ddx_fallback_check_gc(gc))
-    {
-        return FALSE;
-    }
-
-    miPushPixels(gc, bitmap, drawable, w, h, x, y);
-    return TRUE;
 }

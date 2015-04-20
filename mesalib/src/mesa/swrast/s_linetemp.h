@@ -106,7 +106,7 @@ NAME( struct gl_context *ctx, const SWvertex *vert0, const SWvertex *vert1 )
    }
 
    /*
-   printf("%s():\n", __FUNCTION__);
+   printf("%s():\n", __func__);
    printf(" (%f, %f, %f) -> (%f, %f, %f)\n",
           vert0->attrib[VARYING_SLOT_POS][0],
           vert0->attrib[VARYING_SLOT_POS][1],
@@ -154,7 +154,7 @@ NAME( struct gl_context *ctx, const SWvertex *vert0, const SWvertex *vert1 )
       return;
 
    /*
-   printf("%s %d,%d  %g %g %g %g  %g %g %g %g\n", __FUNCTION__, dx, dy,
+   printf("%s %d,%d  %g %g %g %g  %g %g %g %g\n", __func__, dx, dy,
           vert0->attrib[VARYING_SLOT_COL1][0],
           vert0->attrib[VARYING_SLOT_COL1][1],
           vert0->attrib[VARYING_SLOT_COL1][2],

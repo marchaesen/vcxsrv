@@ -383,12 +383,26 @@ unsigned ffs( unsigned u )
 
    return i;
 }
-#elif defined(__MINGW32__) || defined(PIPE_OS_ANDROID)
+#elif defined(__MINGW32__) || defined(PIPE_OS_ANDROID) || \
+    defined(HAVE___BUILTIN_FFS)
 #define ffs __builtin_ffs
-#define ffsll __builtin_ffsll
 #endif
 
 #endif /* FFS_DEFINED */
+
+/**
+ * Find first bit set in long long.  Least significant bit is 1.
+ * Return 0 if no bits set.
+ */
+#ifndef FFSLL_DEFINED
+#define FFSLL_DEFINED 1
+
+#if defined(__MINGW32__) || defined(PIPE_OS_ANDROID) || \
+    defined(HAVE___BUILTIN_FFSLL)
+#define ffsll __builtin_ffsll
+#endif
+
+#endif /* FFSLL_DEFINED */
 
 /**
  * Find last bit set in a word.  The least significant bit is 1.

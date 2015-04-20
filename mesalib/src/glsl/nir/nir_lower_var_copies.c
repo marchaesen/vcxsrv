@@ -148,13 +148,10 @@ emit_copy_load_store(nir_intrinsic_instr *copy_instr,
 
       unsigned num_components = glsl_get_vector_elements(src_tail->type);
 
-      nir_deref *src_deref = nir_copy_deref(mem_ctx, &src_head->deref);
-      nir_deref *dest_deref = nir_copy_deref(mem_ctx, &dest_head->deref);
-
       nir_intrinsic_instr *load =
          nir_intrinsic_instr_create(mem_ctx, nir_intrinsic_load_var);
       load->num_components = num_components;
-      load->variables[0] = nir_deref_as_var(src_deref);
+      load->variables[0] = nir_deref_as_var(nir_copy_deref(load, &src_head->deref));
       nir_ssa_dest_init(&load->instr, &load->dest, num_components, NULL);
 
       nir_instr_insert_before(&copy_instr->instr, &load->instr);
@@ -162,7 +159,8 @@ emit_copy_load_store(nir_intrinsic_instr *copy_instr,
       nir_intrinsic_instr *store =
          nir_intrinsic_instr_create(mem_ctx, nir_intrinsic_store_var);
       store->num_components = num_components;
-      store->variables[0] = nir_deref_as_var(dest_deref);
+      store->variables[0] = nir_deref_as_var(nir_copy_deref(store, &dest_head->deref));
+
       store->src[0].is_ssa = true;
       store->src[0].ssa = &load->dest.ssa;
 

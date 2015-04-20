@@ -355,6 +355,7 @@ vpnprintf(char *string, int size_in, const char *f, va_list args)
     uint64_t ui;
     int64_t si;
     size_t size = size_in;
+    int precision;
 
     for (; f_idx < f_len && s_idx < size - 1; f_idx++) {
         int length_modifier = 0;
@@ -365,9 +366,29 @@ vpnprintf(char *string, int size_in, const char *f, va_list args)
 
         f_idx++;
 
-        /* silently swallow digit length modifiers */
-        while (f_idx < f_len && ((f[f_idx] >= '0' && f[f_idx] <= '9') || f[f_idx] == '.'))
+        /* silently swallow minimum field width */
+        if (f[f_idx] == '*') {
             f_idx++;
+            va_arg(args, int);
+        } else {
+            while (f_idx < f_len && ((f[f_idx] >= '0' && f[f_idx] <= '9')))
+                f_idx++;
+        }
+
+        /* is there a precision? */
+        precision = size;
+        if (f[f_idx] == '.') {
+            f_idx++;
+            if (f[f_idx] == '*') {
+                f_idx++;
+                /* precision is supplied in an int argument */
+                precision = va_arg(args, int);
+            } else {
+                /* silently swallow precision digits */
+                while (f_idx < f_len && ((f[f_idx] >= '0' && f[f_idx] <= '9')))
+                    f_idx++;
+            }
+        }
 
         /* non-digit length modifiers */
         if (f_idx < f_len) {
@@ -383,9 +404,8 @@ vpnprintf(char *string, int size_in, const char *f, va_list args)
         switch (f[f_idx]) {
         case 's':
             string_arg = va_arg(args, char*);
-            p_len = strlen_sigsafe(string_arg);
 
-            for (i = 0; i < p_len && s_idx < size - 1; i++)
+            for (i = 0; string_arg[i] != 0 && s_idx < size - 1 && s_idx < precision; i++)
                 string[s_idx++] = string_arg[i];
             break;
 

@@ -1249,7 +1249,7 @@ out:
    free(t->constants);
 
    if (t->error) {
-      debug_printf("%s: translate error flag set\n", __FUNCTION__);
+      debug_printf("%s: translate error flag set\n", __func__);
    }
 
    return ret;

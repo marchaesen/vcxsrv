@@ -24,6 +24,13 @@ test_pthread_LDADD = $(top_builddir)/src/libfontconfig.la
 # to meaningfully test anything, and we are not installed yet.
 #TESTS += test-pthread
 endif
+check_PROGRAMS += test-bz89617
+test_bz89617_CFLAGS = \
+	-DSRCDIR="\"$(abs_srcdir)\""
+
+test_bz89617_LDADD = $(top_builddir)/src/libfontconfig.la
+TESTS += test-bz89617
+
 noinst_PROGRAMS = $(check_PROGRAMS)
 
 if !OS_WIN32

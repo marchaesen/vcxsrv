@@ -66,3 +66,64 @@ xkb_symbols "deadtilde" {
 
     key <AD12>	{ [      plus,   asterisk,   dead_tilde,  dead_macron ]	};
 };
+
+// Latin American Spanish Dvorak mapping (note R-H exchange)
+partial alphanumeric_keys
+xkb_symbols "dvorak" {
+
+    name[Group1]="Spanish (Latin American, Dvorak)";
+
+    key <TLDE> {[          bar,     degree,        notsign,      notsign ]};
+    key <AE01> {[            1,     exclam,            bar,   exclamdown ]};
+    key <AE02> {[            2,   quotedbl,             at,    oneeighth ]};
+    key <AE03> {[            3, numbersign, periodcentered,     sterling ]};
+    key <AE04> {[            4,     dollar,     asciitilde,       dollar ]};
+    key <AE05> {[            5,    percent,        onehalf, threeeighths ]};
+    key <AE06> {[            6,  ampersand,        notsign,  fiveeighths ]};
+    key <AE07> {[            7,      slash,      braceleft, seveneighths ]};
+    key <AE08> {[            8,  parenleft,    bracketleft,    trademark ]};
+    key <AE09> {[            9, parenright,   bracketright,    plusminus ]};
+    key <AE10> {[            0,      equal,     braceright,       degree ]};
+    key <AE11> {[   apostrophe,   question,      backslash, questiondown ]};
+    key <AE12> {[ questiondown, exclamdown,   dead_cedilla,  dead_ogonek ]};
+
+    key <AD01> {[     period,          colon,             at                 ]};
+    key <AD02> {[      comma,      semicolon                                 ]};
+    key <AD03> {[     ntilde,         Ntilde,        lstroke,        Lstroke ]};
+    key <AD04> {[          p,              P,      paragraph                 ]};
+    key <AD05> {[          y,              Y,            yen                 ]};
+    key <AD06> {[          f,              F,         tslash,         Tslash ]};
+    key <AD07> {[          g,              G,        dstroke,        Dstroke ]};
+    key <AD08> {[          c,              C,           cent,      copyright ]};
+    key <AD09> {[          h,              H,        hstroke,        Hstroke ]};
+    key <AD10> {[          l,              L,       sterling                 ]};
+    key <AD11> {[ dead_acute, dead_diaeresis, dead_diaeresis, dead_abovering ]};
+    key <AD12> {[       plus,       asterisk,     asciitilde,    dead_macron ]};
+
+    key <AC01> {[          a,            A,              ae,         AE ]};
+    key <AC02> {[          o,            O,          oslash,     Oslash ]};
+    key <AC03> {[          e,            E,        EuroSign             ]};
+    key <AC04> {[          u,            U,           aring,      Aring ]};
+    key <AC05> {[          i,            I,              oe,         OE ]};
+    key <AC06> {[          d,            D,             eth,        ETH ]};
+    key <AC07> {[          r,            R,      registered,  trademark ]};
+    key <AC08> {[          t,            T,           thorn,      THORN ]};
+    key <AC09> {[          n,            N,             eng,        ENG ]};
+    key <AC10> {[          s,            S,          ssharp,    section ]};
+    key <AC11> {[  braceleft,  bracketleft, dead_circumflex,  braceleft ]};
+    key <BKSL> {[ braceright, bracketright,      dead_grave, braceright ]};
+
+    key <LSGT> {[       less,    greater, guillemotleft, guillemotright ]};
+    key <AB01> {[      minus, underscore,        hyphen, macron         ]};
+    key <AB02> {[          q,          Q,      currency                 ]};
+    key <AB03> {[          j,          J                                ]};
+    key <AB04> {[          k,          K,           kra                 ]};
+    key <AB05> {[          x,          X,       multiply, division      ]};
+    key <AB06> {[          b,          B                                ]};
+    key <AB07> {[          m,          M,            mu                 ]};
+    key <AB08> {[          w,          W                                ]};
+    key <AB09> {[          v,          V                                ]};
+    key <AB10> {[          z,          Z                                ]};
+
+    include "level3(ralt_switch)"
+};

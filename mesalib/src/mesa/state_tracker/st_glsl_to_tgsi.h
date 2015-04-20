@@ -22,17 +22,18 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+#include "pipe/p_defines.h"
+#include "main/mtypes.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "main/glheader.h"
-#include "tgsi/tgsi_ureg.h"
 
 struct gl_context;
 struct gl_shader;
 struct gl_shader_program;
 struct glsl_to_tgsi_visitor;
+struct ureg_program;
 
 enum pipe_error st_translate_program(
    struct gl_context *ctx,

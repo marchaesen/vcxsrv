@@ -271,6 +271,32 @@ ralloc_steal(const void *new_ctx, void *ptr)
    add_child(parent, info);
 }
 
+void
+ralloc_adopt(const void *new_ctx, void *old_ctx)
+{
+   ralloc_header *new_info, *old_info, *child;
+
+   if (unlikely(old_ctx == NULL))
+      return;
+
+   old_info = get_header(old_ctx);
+   new_info = get_header(new_ctx);
+
+   /* If there are no children, bail. */
+   if (unlikely(old_info->child == NULL))
+      return;
+
+   /* Set all the children's parent to new_ctx; get a pointer to the last child. */
+   for (child = old_info->child; child->next != NULL; child = child->next) {
+      child->parent = new_info;
+   }
+
+   /* Connect the two lists together; parent them to new_ctx; make old_ctx empty. */
+   child->next = new_info->child;
+   new_info->child = old_info->child;
+   old_info->child = NULL;
+}
+
 void *
 ralloc_parent(const void *ptr)
 {

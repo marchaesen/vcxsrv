@@ -46,6 +46,7 @@ EXTRA_DIST = tests glcpp/tests README TODO glcpp/README	\
 	glcpp/glcpp-lex.l				\
 	glcpp/glcpp-parse.y				\
 	nir/nir_algebraic.py				\
+	nir/nir_builder_opcodes_h.py			\
 	nir/nir_constant_expressions.py			\
 	nir/nir_opcodes.py				\
 	nir/nir_opcodes_c.py				\
@@ -67,7 +68,7 @@ TESTS_ENVIRONMENT= \
 	export PYTHON2=$(PYTHON2); \
 	export PYTHON_FLAGS=$(PYTHON_FLAGS);
 
-noinst_LTLIBRARIES = libglsl.la libglcpp.la
+noinst_LTLIBRARIES = libnir.la libglsl.la libglcpp.la
 check_PROGRAMS =					\
 	glcpp/glcpp					\
 	glsl_test					\
@@ -145,6 +146,12 @@ libglsl_la_SOURCES =					\
 	glsl_parser.cpp					\
 	glsl_parser.h					\
 	$(LIBGLSL_FILES)				\
+	$(NIR_FILES)
+
+libnir_la_SOURCES =					\
+	glsl_types.cpp					\
+	builtin_types.cpp				\
+	glsl_symbol_table.cpp				\
 	$(NIR_FILES)
 
 glsl_compiler_SOURCES = \
@@ -250,8 +257,6 @@ nir/nir_constant_expressions.c: nir/nir_opcodes.py nir/nir_constant_expressions.
 nir/nir_opcodes.h: nir/nir_opcodes.py nir/nir_opcodes_h.py
 	$(MKDIR_P) nir;							\
 	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/nir/nir_opcodes_h.py > $@
-
-nir/nir.h: nir/nir_opcodes.h
 
 nir/nir_opcodes.c: nir/nir_opcodes.py nir/nir_opcodes_c.py
 	$(MKDIR_P) nir;							\

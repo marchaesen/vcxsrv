@@ -188,8 +188,8 @@ split_var_copy_instr(nir_intrinsic_instr *old_copy,
           * belongs to the copy instruction and b) the deref chains may
           * have some of the same links due to the way we constructed them
           */
-         nir_deref *src = nir_copy_deref(state->mem_ctx, src_head);
-         nir_deref *dest = nir_copy_deref(state->mem_ctx, dest_head);
+         nir_deref *src = nir_copy_deref(new_copy, src_head);
+         nir_deref *dest = nir_copy_deref(new_copy, dest_head);
 
          new_copy->variables[0] = nir_deref_as_var(dest);
          new_copy->variables[1] = nir_deref_as_var(src);

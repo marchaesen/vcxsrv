@@ -30,40 +30,25 @@
  * Translate GLSL IR to TGSI.
  */
 
-#include <stdio.h>
-#include "main/compiler.h"
-#include "ir.h"
-#include "ir_visitor.h"
-#include "ir_expression_flattening.h"
-#include "glsl_types.h"
-#include "glsl_parser_extras.h"
-#include "../glsl/program.h"
-#include "ir_optimization.h"
-#include "ast.h"
+#include "st_glsl_to_tgsi.h"
 
-#include "main/mtypes.h"
+#include "glsl_parser_extras.h"
+#include "ir_optimization.h"
+
+#include "main/errors.h"
 #include "main/shaderobj.h"
 #include "main/uniforms.h"
 #include "main/shaderapi.h"
-#include "program/hash_table.h"
 #include "program/prog_instruction.h"
-#include "program/prog_optimize.h"
-#include "program/prog_print.h"
-#include "program/program.h"
-#include "program/prog_parameter.h"
 #include "program/sampler.h"
 
-#include "pipe/p_compiler.h"
 #include "pipe/p_context.h"
 #include "pipe/p_screen.h"
-#include "pipe/p_shader_tokens.h"
-#include "pipe/p_state.h"
-#include "util/u_math.h"
 #include "tgsi/tgsi_ureg.h"
 #include "tgsi/tgsi_info.h"
-#include "st_context.h"
+#include "util/u_math.h"
+#include "util/u_memory.h"
 #include "st_program.h"
-#include "st_glsl_to_tgsi.h"
 #include "st_mesa_to_tgsi.h"
 
 
@@ -328,6 +313,7 @@ public:
    int num_address_regs;
    int samplers_used;
    bool indirect_addr_consts;
+   int wpos_transform_const;
 
    int glsl_version;
    bool native_integers;
@@ -440,9 +426,6 @@ public:
                     st_dst_reg dst, st_src_reg src0, st_src_reg src1);
 
    void emit_arl(ir_instruction *ir, st_dst_reg dst, st_src_reg src0);
-
-   void emit_scs(ir_instruction *ir, unsigned op,
-                 st_dst_reg dst, const st_src_reg &src);
 
    bool try_emit_mad(ir_expression *ir,
               int mul_operand);
@@ -964,101 +947,6 @@ glsl_to_tgsi_visitor::emit_arl(ir_instruction *ir,
       this->num_address_regs = dst.index + 1;
 
    emit(NULL, op, dst, src0);
-}
-
-/**
- * Emit an TGSI_OPCODE_SCS instruction
- *
- * The \c SCS opcode functions a bit differently than the other TGSI opcodes.
- * Instead of splatting its result across all four components of the
- * destination, it writes one value to the \c x component and another value to
- * the \c y component.
- *
- * \param ir        IR instruction being processed
- * \param op        Either \c TGSI_OPCODE_SIN or \c TGSI_OPCODE_COS depending
- *                  on which value is desired.
- * \param dst       Destination register
- * \param src       Source register
- */
-void
-glsl_to_tgsi_visitor::emit_scs(ir_instruction *ir, unsigned op,
-                               st_dst_reg dst,
-                               const st_src_reg &src)
-{
-   /* Vertex programs cannot use the SCS opcode.
-    */
-   if (this->prog->Target == GL_VERTEX_PROGRAM_ARB) {
-      emit_scalar(ir, op, dst, src);
-      return;
-   }
-
-   const unsigned component = (op == TGSI_OPCODE_SIN) ? 0 : 1;
-   const unsigned scs_mask = (1U << component);
-   int done_mask = ~dst.writemask;
-   st_src_reg tmp;
-
-   assert(op == TGSI_OPCODE_SIN || op == TGSI_OPCODE_COS);
-
-   /* If there are compnents in the destination that differ from the component
-    * that will be written by the SCS instrution, we'll need a temporary.
-    */
-   if (scs_mask != unsigned(dst.writemask)) {
-      tmp = get_temp(glsl_type::vec4_type);
-   }
-
-   for (unsigned i = 0; i < 4; i++) {
-      unsigned this_mask = (1U << i);
-      st_src_reg src0 = src;
-
-      if ((done_mask & this_mask) != 0)
-         continue;
-
-      /* The source swizzle specified which component of the source generates
-       * sine / cosine for the current component in the destination.  The SCS
-       * instruction requires that this value be swizzle to the X component.
-       * Replace the current swizzle with a swizzle that puts the source in
-       * the X component.
-       */
-      unsigned src0_swiz = GET_SWZ(src.swizzle, i);
-
-      src0.swizzle = MAKE_SWIZZLE4(src0_swiz, src0_swiz,
-                                   src0_swiz, src0_swiz);
-      for (unsigned j = i + 1; j < 4; j++) {
-         /* If there is another enabled component in the destination that is
-          * derived from the same inputs, generate its value on this pass as
-          * well.
-          */
-         if (!(done_mask & (1 << j)) &&
-             GET_SWZ(src0.swizzle, j) == src0_swiz) {
-            this_mask |= (1 << j);
-         }
-      }
-
-      if (this_mask != scs_mask) {
-         glsl_to_tgsi_instruction *inst;
-         st_dst_reg tmp_dst = st_dst_reg(tmp);
-
-         /* Emit the SCS instruction.
-          */
-         inst = emit(ir, TGSI_OPCODE_SCS, tmp_dst, src0);
-         inst->dst[0].writemask = scs_mask;
-
-         /* Move the result of the SCS instruction to the desired location in
-          * the destination.
-          */
-         tmp.swizzle = MAKE_SWIZZLE4(component, component,
-                                     component, component);
-         inst = emit(ir, TGSI_OPCODE_SCS, dst, tmp);
-         inst->dst[0].writemask = this_mask;
-      } else {
-         /* Emit the SCS instruction to write directly to the destination.
-          */
-         glsl_to_tgsi_instruction *inst = emit(ir, TGSI_OPCODE_SCS, dst, src0);
-         inst->dst[0].writemask = scs_mask;
-      }
-
-      done_mask |= this_mask;
-   }
 }
 
 int
@@ -1610,12 +1498,6 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
       break;
    case ir_unop_cos:
       emit_scalar(ir, TGSI_OPCODE_COS, result_dst, op[0]);
-      break;
-   case ir_unop_sin_reduced:
-      emit_scs(ir, TGSI_OPCODE_SIN, result_dst, op[0]);
-      break;
-   case ir_unop_cos_reduced:
-      emit_scs(ir, TGSI_OPCODE_COS, result_dst, op[0]);
       break;
    case ir_unop_saturate: {
       glsl_to_tgsi_instruction *inst;
@@ -3134,7 +3016,7 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
       break;
    case ir_query_levels:
       opcode = TGSI_OPCODE_TXQ;
-      lod_info = st_src_reg(PROGRAM_IMMEDIATE, 0, GLSL_TYPE_INT);
+      lod_info = undef_src;
       levels_src = get_temp(ir->type);
       break;
    case ir_txf:
@@ -3456,6 +3338,7 @@ glsl_to_tgsi_visitor::glsl_to_tgsi_visitor()
    num_address_regs = 0;
    samplers_used = 0;
    indirect_addr_consts = false;
+   wpos_transform_const = -1;
    glsl_version = 0;
    native_integers = false;
    mem_ctx = ralloc_context(NULL);
@@ -3465,6 +3348,7 @@ glsl_to_tgsi_visitor::glsl_to_tgsi_visitor()
    shader = NULL;
    options = NULL;
    have_sqrt = false;
+   have_fma = false;
 }
 
 glsl_to_tgsi_visitor::~glsl_to_tgsi_visitor()
@@ -3937,6 +3821,7 @@ glsl_to_tgsi_visitor::copy_propagate(void)
              inst->dst[0].index == inst->src[0].index) &&
           !inst->dst[0].reladdr &&
           !inst->saturate &&
+          inst->src[0].file != PROGRAM_ARRAY &&
           !inst->src[0].reladdr &&
           !inst->src[0].reladdr2 &&
           !inst->src[0].negate) {
@@ -4464,7 +4349,9 @@ struct st_translate {
 
    struct ureg_dst arrays[MAX_ARRAYS];
    struct ureg_src *constants;
+   int num_constants;
    struct ureg_src *immediates;
+   int num_immediates;
    struct ureg_dst outputs[PIPE_MAX_SHADER_OUTPUTS];
    struct ureg_src inputs[PIPE_MAX_SHADER_INPUTS];
    struct ureg_dst address[3];
@@ -4666,7 +4553,7 @@ src_register(struct st_translate *t, const st_src_reg *reg)
 {
    switch(reg->file) {
    case PROGRAM_UNDEFINED:
-      return ureg_src_undef();
+      return ureg_imm4f(t->ureg, 0, 0, 0, 0);
 
    case PROGRAM_TEMPORARY:
    case PROGRAM_ARRAY:
@@ -4674,17 +4561,18 @@ src_register(struct st_translate *t, const st_src_reg *reg)
 
    case PROGRAM_UNIFORM:
       assert(reg->index >= 0);
-      return t->constants[reg->index];
+      return reg->index < t->num_constants ?
+               t->constants[reg->index] : ureg_imm4f(t->ureg, 0, 0, 0, 0);
    case PROGRAM_STATE_VAR:
    case PROGRAM_CONSTANT:       /* ie, immediate */
       if (reg->has_index2)
          return ureg_src_register(TGSI_FILE_CONSTANT, reg->index);
-      else if (reg->index < 0)
-         return ureg_DECL_constant(t->ureg, 0);
       else
-         return t->constants[reg->index];
+         return reg->index >= 0 && reg->index < t->num_constants ?
+                  t->constants[reg->index] : ureg_imm4f(t->ureg, 0, 0, 0, 0);
 
    case PROGRAM_IMMEDIATE:
+      assert(reg->index >= 0 && reg->index < t->num_immediates);
       return t->immediates[reg->index];
 
    case PROGRAM_INPUT:
@@ -4805,6 +4693,7 @@ translate_tex_offset(struct st_translate *t,
 
    switch (in_offset->file) {
    case PROGRAM_IMMEDIATE:
+      assert(in_offset->index >= 0 && in_offset->index < t->num_immediates);
       imm_src = t->immediates[in_offset->index];
 
       offset.File = imm_src.File;
@@ -4867,10 +4756,8 @@ compile_tgsi_instruction(struct st_translate *t,
                              inst->saturate,
                              clamp_dst_color_output);
 
-   for (i = 0; i < num_src; i++) {
-      assert(inst->src[i].file != PROGRAM_UNDEFINED);
+   for (i = 0; i < num_src; i++)
       src[i] = translate_src(t, &inst->src[i]);
-   }
 
    switch(inst->op) {
    case TGSI_OPCODE_BGNLOOP:
@@ -4939,28 +4826,19 @@ compile_tgsi_instruction(struct st_translate *t,
  */
 static void
 emit_wpos_adjustment( struct st_translate *t,
-                      const struct gl_program *program,
+                      int wpos_transform_const,
                       boolean invert,
                       GLfloat adjX, GLfloat adjY[2])
 {
    struct ureg_program *ureg = t->ureg;
 
+   assert(wpos_transform_const >= 0);
+
    /* Fragment program uses fragment position input.
     * Need to replace instances of INPUT[WPOS] with temp T
-    * where T = INPUT[WPOS] by y is inverted.
+    * where T = INPUT[WPOS] is inverted by Y.
     */
-   static const gl_state_index wposTransformState[STATE_LENGTH]
-      = { STATE_INTERNAL, STATE_FB_WPOS_Y_TRANSFORM,
-          (gl_state_index)0, (gl_state_index)0, (gl_state_index)0 };
-
-   /* XXX: note we are modifying the incoming shader here!  Need to
-    * do this before emitting the constant decls below, or this
-    * will be missed:
-    */
-   unsigned wposTransConst = _mesa_add_state_reference(program->Parameters,
-                                                       wposTransformState);
-
-   struct ureg_src wpostrans = ureg_DECL_constant( ureg, wposTransConst );
+   struct ureg_src wpostrans = ureg_DECL_constant(ureg, wpos_transform_const);
    struct ureg_dst wpos_temp = ureg_DECL_temporary( ureg );
    struct ureg_src wpos_input = t->inputs[t->inputMapping[VARYING_SLOT_POS]];
 
@@ -5024,7 +4902,8 @@ static void
 emit_wpos(struct st_context *st,
           struct st_translate *t,
           const struct gl_program *program,
-          struct ureg_program *ureg)
+          struct ureg_program *ureg,
+          int wpos_transform_const)
 {
    const struct gl_fragment_program *fp =
       (const struct gl_fragment_program *) program;
@@ -5121,7 +5000,7 @@ emit_wpos(struct st_context *st,
 
    /* we invert after adjustment so that we avoid the MOV to temporary,
     * and reuse the adjustment ADD instead */
-   emit_wpos_adjustment(t, program, invert, adjX, adjY);
+   emit_wpos_adjustment(t, wpos_transform_const, invert, adjX, adjY);
 }
 
 /**
@@ -5238,15 +5117,6 @@ st_translate_program(
    t->outputMapping = outputMapping;
    t->ureg = ureg;
 
-   if (program->shader_program) {
-      for (i = 0; i < program->shader_program->NumUserUniformStorage; i++) {
-         struct gl_uniform_storage *const storage =
-               &program->shader_program->UniformStorage[i];
-
-         _mesa_uniform_detach_all_driver_storage(storage);
-      }
-   }
-
    /*
     * Declare input attributes.
     */
@@ -5260,10 +5130,9 @@ st_translate_program(
       }
 
       if (proginfo->InputsRead & VARYING_BIT_POS) {
-         /* Must do this after setting up t->inputs, and before
-          * emitting constant references, below:
-          */
-          emit_wpos(st_context(ctx), t, proginfo, ureg);
+          /* Must do this after setting up t->inputs. */
+          emit_wpos(st_context(ctx), t, proginfo, ureg,
+                    program->wpos_transform_const);
       }
 
       if (proginfo->InputsRead & VARYING_BIT_FACE)
@@ -5400,6 +5269,7 @@ st_translate_program(
          ret = PIPE_ERROR_OUT_OF_MEMORY;
          goto out;
       }
+      t->num_constants = proginfo->Parameters->NumParameters;
 
       for (i = 0; i < proginfo->Parameters->NumParameters; i++) {
          switch (proginfo->Parameters->Parameters[i].Type) {
@@ -5451,6 +5321,8 @@ st_translate_program(
       ret = PIPE_ERROR_OUT_OF_MEMORY;
       goto out;
    }
+   t->num_immediates = program->num_immediates;
+
    i = 0;
    foreach_in_list(immediate_storage, imm, &program->immediates) {
       assert(i < program->num_immediates);
@@ -5479,33 +5351,21 @@ st_translate_program(
                        t->insn[t->labels[i].branch_target]);
    }
 
-   if (program->shader_program) {
-      /* This has to be done last.  Any operation the can cause
-       * prog->ParameterValues to get reallocated (e.g., anything that adds a
-       * program constant) has to happen before creating this linkage.
-       */
-      for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
-         if (program->shader_program->_LinkedShaders[i] == NULL)
-            continue;
-
-         _mesa_associate_uniform_storage(ctx, program->shader_program,
-               program->shader_program->_LinkedShaders[i]->Program->Parameters);
-      }
-   }
-
 out:
    if (t) {
       free(t->temps);
       free(t->insn);
       free(t->labels);
       free(t->constants);
+      t->num_constants = 0;
       free(t->immediates);
+      t->num_immediates = 0;
 
       if (t->error) {
-         debug_printf("%s: translate error flag set\n", __FUNCTION__);
+         debug_printf("%s: translate error flag set\n", __func__);
       }
 
-      free(t);
+      FREE(t);
    }
 
    return ret;
@@ -5634,14 +5494,12 @@ get_mesa_program(struct gl_context *ctx,
    v->emit(NULL, TGSI_OPCODE_END);
 
    if (ctx->_Shader->Flags & GLSL_DUMP) {
-      printf("\n");
-      printf("GLSL IR for linked %s program %d:\n",
+      _mesa_log("\n");
+      _mesa_log("GLSL IR for linked %s program %d:\n",
              _mesa_shader_stage_to_string(shader->Stage),
              shader_program->Name);
-      _mesa_print_ir(stdout, shader->ir, NULL);
-      printf("\n");
-      printf("\n");
-      fflush(stdout);
+      _mesa_print_ir(_mesa_get_log_file(), shader->ir, NULL);
+      _mesa_log("\n\n");
    }
 
    prog->Instructions = NULL;
@@ -5649,6 +5507,17 @@ get_mesa_program(struct gl_context *ctx,
 
    do_set_program_inouts(shader->ir, prog, shader->Stage);
    count_resources(v, prog);
+
+   /* This must be done before the uniform storage is associated. */
+   if (shader->Type == GL_FRAGMENT_SHADER &&
+       prog->InputsRead & VARYING_BIT_POS){
+      static const gl_state_index wposTransformState[STATE_LENGTH] = {
+         STATE_INTERNAL, STATE_FB_WPOS_Y_TRANSFORM
+      };
+
+      v->wpos_transform_const = _mesa_add_state_reference(prog->Parameters,
+                                                          wposTransformState);
+   }
 
    _mesa_reference_program(ctx, &shader->Program, prog);
 

@@ -1,7 +1,5 @@
 Import('*')
 
-SConscript('osmesa/SConscript')
-
 if env['x11']:
     SConscript('x11/SConscript')
 

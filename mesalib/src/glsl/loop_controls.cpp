@@ -139,7 +139,7 @@ calculate_iterations(ir_rvalue *from, ir_rvalue *to, ir_rvalue *increment,
          iter = new(mem_ctx) ir_constant(double(iter_value + bias[i]));
          break;
       default:
-          unreachable(!"Unsupported type for loop iterator.");
+          unreachable("Unsupported type for loop iterator.");
       }
 
       ir_expression *const mul =

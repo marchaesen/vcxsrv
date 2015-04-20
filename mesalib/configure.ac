@@ -123,10 +123,17 @@ if test "x$INDENT" != "xcat"; then
 fi
 
 AX_CHECK_PYTHON_MAKO_MODULE($PYTHON_MAKO_REQUIRED)
-if test -n "$PYTHON2" -a "x$acv_mako_found" = "xyes"; then
-    AC_MSG_RESULT(yes)
+
+if test -z "$PYTHON2"; then
+    if test ! -f "$srcdir/src/util/format_srgb.c"; then
+        AC_MSG_ERROR([Python not found - unable to generate sources])
+    fi
 else
-    AC_MSG_ERROR([Python mako module v$PYTHON_MAKO_REQUIRED or higher not found])
+    if test "x$acv_mako_found" = xno; then
+        if test ! -f "$srcdir/src/mesa/main/format_unpack.c"; then
+            AC_MSG_ERROR([Python mako module v$PYTHON_MAKO_REQUIRED or higher not found])
+        fi
+    fi
 fi
 
 AC_PROG_INSTALL
@@ -223,7 +230,7 @@ _SAVE_LDFLAGS="$LDFLAGS"
 _SAVE_CPPFLAGS="$CPPFLAGS"
 
 dnl Compiler macros
-DEFINES="-DUSE_EXTERNAL_DXTN_LIB=1"
+DEFINES=""
 AC_SUBST([DEFINES])
 case "$host_os" in
 linux*|*-gnu*|gnu*)
@@ -1634,7 +1641,7 @@ if test "x$enable_nine" = xyes; then
     if ! echo "$with_gallium_drivers" | grep -q 'swrast'; then
         AC_MSG_ERROR([nine requires the gallium swrast driver])
     fi
-    if test "x$with_gallium_drivers" == xswrast; then
+    if test "x$with_gallium_drivers" = xswrast; then
         AC_MSG_ERROR([nine requires at least one non-swrast gallium driver])
     fi
     if test "x$enable_dri3" = xno; then
@@ -1648,19 +1655,6 @@ AM_CONDITIONAL(HAVE_ST_NINE, test "x$enable_nine" = xyes)
 dnl
 dnl OpenCL configuration
 dnl
-
-AC_ARG_WITH([libclc-path],
-   [AS_HELP_STRING([--with-libclc-path],
-         [DEPRECATED: See http://dri.freedesktop.org/wiki/GalliumCompute#How_to_Install])],
-   [LIBCLC_PATH="$withval"],
-   [LIBCLC_PATH=''])
-
-if test -n "$LIBCLC_PATH"; then
-   AC_MSG_ERROR([The --with-libclc-path option has been deprecated.
-                  Please review the updated build instructions for clover:
-		  http://dri.freedesktop.org/wiki/GalliumCompute])
-fi
-
 
 AC_ARG_WITH([clang-libdir],
    [AS_HELP_STRING([--with-clang-libdir],
@@ -1825,21 +1819,6 @@ if ! echo "$egl_platforms" | grep -q 'x11'; then
     GL_PC_CFLAGS="$GL_PC_CFLAGS -DMESA_EGL_NO_X11_HEADERS"
 fi
 
-AC_ARG_WITH([max-width],
-    [AS_HELP_STRING([--with-max-width=N],
-                    [Maximum framebuffer width (4096)])],
-    [DEFINES="${DEFINES} -DMAX_WIDTH=${withval}";
-     AS_IF([test "${withval}" -gt "4096"],
-           [AC_MSG_WARN([Large framebuffer: see s_tritemp.h comments.])])]
-)
-AC_ARG_WITH([max-height],
-    [AS_HELP_STRING([--with-max-height=N],
-                    [Maximum framebuffer height (4096)])],
-    [DEFINES="${DEFINES} -DMAX_HEIGHT=${withval}";
-     AS_IF([test "${withval}" -gt "4096"],
-           [AC_MSG_WARN([Large framebuffer: see s_tritemp.h comments.])])]
-)
-
 dnl
 dnl Gallium LLVM
 dnl
@@ -1885,6 +1864,13 @@ strip_unwanted_llvm_flags() {
 	-e 's/-fPIC\>//g' \
 	-e 's/-fstack-protector-strong\>//g'
 }
+
+llvm_check_version_for() {
+    if test "${LLVM_VERSION_INT}${LLVM_VERSION_PATCH}" -lt "${1}0${2}${3}"; then
+        AC_MSG_ERROR([LLVM $1.$2.$3 or newer is required for $4])
+    fi
+}
+
 
 
 if test -z "$with_gallium_drivers"; then
@@ -1940,22 +1926,10 @@ if test "x$enable_gallium_llvm" = xyes; then
         fi
 
         if test "x$enable_opencl" = xyes; then
+            llvm_check_version_for "3" "5" "0" "opencl"
+
             LLVM_COMPONENTS="${LLVM_COMPONENTS} all-targets ipo linker instrumentation"
-            # LLVM 3.3 >= 177971 requires IRReader
-            if $LLVM_CONFIG --components | grep -qw 'irreader'; then
-                LLVM_COMPONENTS="${LLVM_COMPONENTS} irreader"
-            fi
-            # LLVM 3.4 requires Option
-            if $LLVM_CONFIG --components | grep -qw 'option'; then
-                LLVM_COMPONENTS="${LLVM_COMPONENTS} option"
-            fi
-            # Current OpenCL/Clover and LLVM 3.5 require ObjCARCOpts and ProfileData
-            if $LLVM_CONFIG --components | grep -qw 'objcarcopts'; then
-                LLVM_COMPONENTS="${LLVM_COMPONENTS} objcarcopts"
-            fi
-            if $LLVM_CONFIG --components | grep -qw 'profiledata'; then
-                LLVM_COMPONENTS="${LLVM_COMPONENTS} profiledata"
-            fi
+            LLVM_COMPONENTS="${LLVM_COMPONENTS} irreader option objcarcopts profiledata"
         fi
         DEFINES="${DEFINES} -DHAVE_LLVM=0x0$LLVM_VERSION_INT -DLLVM_VERSION_PATCH=$LLVM_VERSION_PATCH"
         MESA_LLVM=1
@@ -2079,12 +2053,7 @@ radeon_llvm_check() {
     if test "x$enable_gallium_llvm" != "xyes"; then
         AC_MSG_ERROR([--enable-gallium-llvm is required when building $1])
     fi
-    LLVM_REQUIRED_VERSION_MAJOR="3"
-    LLVM_REQUIRED_VERSION_MINOR="4"
-    LLVM_REQUIRED_VERSION_PATCH="2"
-    if test "${LLVM_VERSION_INT}${LLVM_VERSION_PATCH}" -lt "${LLVM_REQUIRED_VERSION_MAJOR}0${LLVM_REQUIRED_VERSION_MINOR}${LLVM_REQUIRED_VERSION_PATCH}"; then
-        AC_MSG_ERROR([LLVM $LLVM_REQUIRED_VERSION_MAJOR.$LLVM_REQUIRED_VERSION_MINOR.$LLVM_REQUIRED_VERSION_PATCH or newer is required for $1])
-    fi
+    llvm_check_version_for "3" "4" "2" $1 
     if test true && $LLVM_CONFIG --targets-built | grep -qvw 'R600' ; then
         AC_MSG_ERROR([LLVM R600 Target not enabled.  You can enable it when building the LLVM
                       sources with the --enable-experimental-targets=R600
@@ -2564,6 +2533,7 @@ if test "x$MESA_LLVM" = x1; then
     echo "        LLVM_CFLAGS:     $LLVM_CFLAGS"
     echo "        LLVM_CXXFLAGS:   $LLVM_CXXFLAGS"
     echo "        LLVM_CPPFLAGS:   $LLVM_CPPFLAGS"
+    echo "        LLVM_LDFLAGS:    $LLVM_LDFLAGS"
     echo ""
 fi
 echo "        PYTHON2:         $PYTHON2"

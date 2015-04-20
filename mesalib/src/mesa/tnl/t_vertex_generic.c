@@ -28,7 +28,7 @@
 
 #include "main/glheader.h"
 #include "main/context.h"
-#include "main/colormac.h"
+#include "main/macros.h"
 #include "util/simple_list.h"
 #include "swrast/s_chan.h"
 #include "t_context.h"
@@ -36,7 +36,7 @@
 
 
 #if 0
-#define DEBUG_INSERT printf("%s\n", __FUNCTION__)
+#define DEBUG_INSERT printf("%s\n", __func__)
 #else
 #define DEBUG_INSERT
 #endif

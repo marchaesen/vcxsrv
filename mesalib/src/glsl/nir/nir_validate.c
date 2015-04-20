@@ -295,6 +295,8 @@ validate_alu_instr(nir_alu_instr *instr, validate_state *state)
 static void
 validate_deref_chain(nir_deref *deref, validate_state *state)
 {
+   assert(deref->child == NULL || ralloc_parent(deref->child) == deref);
+
    nir_deref *parent = NULL;
    while (deref != NULL) {
       switch (deref->deref_type) {
@@ -336,9 +338,10 @@ validate_var_use(nir_variable *var, validate_state *state)
 }
 
 static void
-validate_deref_var(nir_deref_var *deref, validate_state *state)
+validate_deref_var(void *parent_mem_ctx, nir_deref_var *deref, validate_state *state)
 {
    assert(deref != NULL);
+   assert(ralloc_parent(deref) == parent_mem_ctx);
    assert(deref->deref.type == deref->var->type);
 
    validate_var_use(deref->var, state);
@@ -386,7 +389,7 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
 
    unsigned num_vars = nir_intrinsic_infos[instr->intrinsic].num_variables;
    for (unsigned i = 0; i < num_vars; i++) {
-      validate_deref_var(instr->variables[i], state);
+      validate_deref_var(instr, instr->variables[i], state);
    }
 
    switch (instr->intrinsic) {
@@ -423,7 +426,7 @@ validate_tex_instr(nir_tex_instr *instr, validate_state *state)
    }
 
    if (instr->sampler != NULL)
-      validate_deref_var(instr->sampler, state);
+      validate_deref_var(instr, instr->sampler, state);
 }
 
 static void
@@ -438,10 +441,10 @@ validate_call_instr(nir_call_instr *instr, validate_state *state)
 
    for (unsigned i = 0; i < instr->num_params; i++) {
       assert(instr->callee->params[i].type == instr->params[i]->deref.type);
-      validate_deref_var(instr->params[i], state);
+      validate_deref_var(instr, instr->params[i], state);
    }
 
-   validate_deref_var(instr->return_deref, state);
+   validate_deref_var(instr, instr->return_deref, state);
 }
 
 static void
@@ -680,8 +683,7 @@ validate_cf_node(nir_cf_node *node, validate_state *state)
       break;
 
    default:
-      assert(!"Invalid ALU instruction type");
-      break;
+      unreachable("Invalid CF node type");
    }
 }
 
