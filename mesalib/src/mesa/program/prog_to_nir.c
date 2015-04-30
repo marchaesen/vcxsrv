@@ -222,12 +222,23 @@ ptn_get_src(struct ptn_compile *c, const struct prog_src_register *prog_src)
    }
 
    nir_ssa_def *def;
-   if (!HAS_EXTENDED_SWIZZLE(prog_src->Swizzle)) {
+   if (!HAS_EXTENDED_SWIZZLE(prog_src->Swizzle) &&
+       (prog_src->Negate == NEGATE_NONE || prog_src->Negate == NEGATE_XYZW)) {
+      /* The simple non-SWZ case. */
       for (int i = 0; i < 4; i++)
          src.swizzle[i] = GET_SWZ(prog_src->Swizzle, i);
 
       def = nir_fmov_alu(b, src, 4);
+
+      if (prog_src->Abs)
+         def = nir_fabs(b, def);
+
+      if (prog_src->Negate)
+         def = nir_fneg(b, def);
    } else {
+      /* The SWZ instruction allows per-component zero/one swizzles, and also
+       * per-component negation.
+       */
       nir_ssa_def *chans[4];
       for (int i = 0; i < 4; i++) {
          int swizzle = GET_SWZ(prog_src->Swizzle, i);
@@ -246,15 +257,15 @@ ptn_get_src(struct ptn_compile *c, const struct prog_src_register *prog_src)
 
             chans[i] = &mov->dest.dest.ssa;
          }
+
+         if (prog_src->Abs)
+            chans[i] = nir_fabs(b, chans[i]);
+
+         if (prog_src->Negate & (1 << i))
+            chans[i] = nir_fneg(b, chans[i]);
       }
       def = nir_vec4(b, chans[0], chans[1], chans[2], chans[3]);
    }
-
-   if (prog_src->Abs)
-      def = nir_fabs(b, def);
-
-   if (prog_src->Negate)
-      def = nir_fneg(b, def);
 
    return def;
 }

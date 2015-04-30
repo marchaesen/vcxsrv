@@ -738,24 +738,27 @@ glsl_type::record_key_compare(const void *a, const void *b)
 }
 
 
+/**
+ * Generate an integer hash value for a glsl_type structure type.
+ */
 unsigned
 glsl_type::record_key_hash(const void *a)
 {
    const glsl_type *const key = (glsl_type *) a;
-   char hash_key[128];
-   unsigned size = 0;
-
-   size = snprintf(hash_key, sizeof(hash_key), "%08x", key->length);
+   uintptr_t hash = key->length;
+   unsigned retval;
 
    for (unsigned i = 0; i < key->length; i++) {
-      if (size >= sizeof(hash_key))
-	 break;
-
-      size += snprintf(& hash_key[size], sizeof(hash_key) - size,
-		       "%p", (void *) key->fields.structure[i].type);
+      /* casting pointer to uintptr_t */
+      hash = (hash * 13 ) + (uintptr_t) key->fields.structure[i].type;
    }
 
-   return hash_table_string_hash(& hash_key);
+   if (sizeof(hash) == 8)
+      retval = (hash & 0xffffffff) ^ ((uint64_t) hash >> 32);
+   else
+      retval = hash;
+
+   return retval;
 }
 
 

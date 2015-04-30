@@ -322,7 +322,7 @@ will be used to store the cache files.  If it starts with '~', it refers to
 a directory in the users home directory.  If 'prefix' is set to "xdg", the value in the XDG_CACHE_HOME environment variable will be added as the path prefix. please see XDG Base Directory Specification for more details.
 The default directory is ``$XDG_CACHE_HOME/fontconfig'' and it contains the cache files
 named ``<literal>&lt;hash value&gt;</literal>-<literal>&lt;architecture&gt;</literal>.cache-<literal>&lt;version&gt;</literal>'',
-where <literal>&lt;version&gt;</literal> is the font configureation file
+where <literal>&lt;version&gt;</literal> is the font configuration file
 version number (currently 5).
   </para></refsect2>
   <refsect2><title><literal>&lt;include ignore_missing="no" prefix="default"&gt;</literal></title><para>

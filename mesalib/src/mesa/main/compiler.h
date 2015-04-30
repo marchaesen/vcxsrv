@@ -60,11 +60,6 @@ extern "C" {
 #endif
 
 
-/* XXX: Use standard `__func__` instead */
-#ifndef __FUNCTION__
-#  define __FUNCTION__ __func__
-#endif
-
 /**
  * Either define MESA_BIG_ENDIAN or MESA_LITTLE_ENDIAN, and CPU_TO_LE32.
  * Do not use these unless absolutely necessary!

@@ -91,5 +91,9 @@ TODO: document the other workarounds.
         <application name="Dead Island" executable="DeadIslandGame">
             <option name="allow_glsl_extension_directive_midshader" value="true" />
         </application>
+
+        <application name="Second Life" executable="do-not-directly-run-secondlife-bin">
+            <option name="allow_glsl_extension_directive_midshader" value="true" />
+        </application>
     </device>
 </driconf>

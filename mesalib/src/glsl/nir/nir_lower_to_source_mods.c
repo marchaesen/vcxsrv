@@ -67,6 +67,13 @@ nir_lower_to_source_mods_block(nir_block *block, void *state)
             continue;
          }
 
+         /* We can only do a rewrite if the source we are copying is SSA.
+          * Otherwise, moving the read might invalidly reorder reads/writes
+          * on a register.
+          */
+         if (!parent->src[0].src.is_ssa)
+            continue;
+
          nir_instr_rewrite_src(instr, &alu->src[i].src, parent->src[0].src);
          if (alu->src[i].abs) {
             /* abs trumps both neg and abs, do nothing */

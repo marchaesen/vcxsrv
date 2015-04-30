@@ -1657,7 +1657,7 @@ _mesa_get_fixed_func_vertex_program(struct gl_context *ctx)
    struct gl_vertex_program *prog;
    struct state_key key;
 
-   /* Grab all the relevent state and put it in a single structure:
+   /* Grab all the relevant state and put it in a single structure:
     */
    make_state_key(ctx, &key);
 

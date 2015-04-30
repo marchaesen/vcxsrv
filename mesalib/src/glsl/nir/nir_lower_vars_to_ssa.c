@@ -55,7 +55,7 @@ struct deref_node {
 };
 
 struct lower_variables_state {
-   void *mem_ctx;
+   nir_shader *shader;
    void *dead_ctx;
    nir_function_impl *impl;
 
@@ -90,34 +90,14 @@ struct lower_variables_state {
    struct hash_table *phi_table;
 };
 
-static int
-type_get_length(const struct glsl_type *type)
-{
-   switch (glsl_get_base_type(type)) {
-   case GLSL_TYPE_STRUCT:
-   case GLSL_TYPE_ARRAY:
-      return glsl_get_length(type);
-   case GLSL_TYPE_FLOAT:
-   case GLSL_TYPE_INT:
-   case GLSL_TYPE_UINT:
-   case GLSL_TYPE_BOOL:
-      if (glsl_type_is_matrix(type))
-         return glsl_get_matrix_columns(type);
-      else
-         return glsl_get_vector_elements(type);
-   default:
-      unreachable("Invalid deref base type");
-   }
-}
-
 static struct deref_node *
 deref_node_create(struct deref_node *parent,
-                  const struct glsl_type *type, void *mem_ctx)
+                  const struct glsl_type *type, nir_shader *shader)
 {
    size_t size = sizeof(struct deref_node) +
-                 type_get_length(type) * sizeof(struct deref_node *);
+                 glsl_get_length(type) * sizeof(struct deref_node *);
 
-   struct deref_node *node = rzalloc_size(mem_ctx, size);
+   struct deref_node *node = rzalloc_size(shader, size);
    node->type = type;
    node->parent = parent;
    node->deref = NULL;
@@ -165,7 +145,7 @@ get_deref_node(nir_deref_var *deref, struct lower_variables_state *state)
       case nir_deref_type_struct: {
          nir_deref_struct *deref_struct = nir_deref_as_struct(tail);
 
-         assert(deref_struct->index < type_get_length(node->type));
+         assert(deref_struct->index < glsl_get_length(node->type));
 
          if (node->children[deref_struct->index] == NULL)
             node->children[deref_struct->index] =
@@ -184,7 +164,7 @@ get_deref_node(nir_deref_var *deref, struct lower_variables_state *state)
              * out-of-bounds offset.  We need to handle this at least
              * somewhat gracefully.
              */
-            if (arr->base_offset >= type_get_length(node->type))
+            if (arr->base_offset >= glsl_get_length(node->type))
                return NULL;
 
             if (node->children[arr->base_offset] == NULL)
@@ -315,6 +295,10 @@ deref_may_be_aliased_node(struct deref_node *node, nir_deref *deref,
       case nir_deref_type_array: {
          nir_deref_array *arr = nir_deref_as_array(deref->child);
          if (arr->deref_array_type == nir_deref_array_type_indirect)
+            return true;
+
+         /* If there is an indirect at this level, we're aliased. */
+         if (node->indirect)
             return true;
 
          assert(arr->deref_array_type == nir_deref_array_type_direct);
@@ -465,7 +449,7 @@ lower_copies_to_load_store(struct deref_node *node,
    set_foreach(node->copies, copy_entry) {
       nir_intrinsic_instr *copy = (void *)copy_entry->key;
 
-      nir_lower_var_copy_instr(copy, state->mem_ctx);
+      nir_lower_var_copy_instr(copy, state->shader);
 
       for (unsigned i = 0; i < 2; ++i) {
          struct deref_node *arg_node =
@@ -483,67 +467,6 @@ lower_copies_to_load_store(struct deref_node *node,
    }
 
    return true;
-}
-
-/* Returns a load_const instruction that represents the constant
- * initializer for the given deref chain.  The caller is responsible for
- * ensuring that there actually is a constant initializer.
- */
-static nir_load_const_instr *
-get_const_initializer_load(const nir_deref_var *deref,
-                           struct lower_variables_state *state)
-{
-   nir_constant *constant = deref->var->constant_initializer;
-   const nir_deref *tail = &deref->deref;
-   unsigned matrix_offset = 0;
-   while (tail->child) {
-      switch (tail->child->deref_type) {
-      case nir_deref_type_array: {
-         nir_deref_array *arr = nir_deref_as_array(tail->child);
-         assert(arr->deref_array_type == nir_deref_array_type_direct);
-         if (glsl_type_is_matrix(tail->type)) {
-            assert(arr->deref.child == NULL);
-            matrix_offset = arr->base_offset;
-         } else {
-            constant = constant->elements[arr->base_offset];
-         }
-         break;
-      }
-
-      case nir_deref_type_struct: {
-         constant = constant->elements[nir_deref_as_struct(tail->child)->index];
-         break;
-      }
-
-      default:
-         unreachable("Invalid deref child type");
-      }
-
-      tail = tail->child;
-   }
-
-   nir_load_const_instr *load =
-      nir_load_const_instr_create(state->mem_ctx,
-                                  glsl_get_vector_elements(tail->type));
-
-   matrix_offset *= load->def.num_components;
-   for (unsigned i = 0; i < load->def.num_components; i++) {
-      switch (glsl_get_base_type(tail->type)) {
-      case GLSL_TYPE_FLOAT:
-      case GLSL_TYPE_INT:
-      case GLSL_TYPE_UINT:
-         load->value.u[i] = constant->value.u[matrix_offset + i];
-         break;
-      case GLSL_TYPE_BOOL:
-         load->value.u[i] = constant->value.b[matrix_offset + i] ?
-                             NIR_TRUE : NIR_FALSE;
-         break;
-      default:
-         unreachable("Invalid immediate type");
-      }
-   }
-
-   return load;
 }
 
 /** Pushes an SSA def onto the def stack for the given node
@@ -614,7 +537,7 @@ get_ssa_def_for_block(struct deref_node *node, nir_block *block,
     * given block.  This means that we need to add an undef and use that.
     */
    nir_ssa_undef_instr *undef =
-      nir_ssa_undef_instr_create(state->mem_ctx,
+      nir_ssa_undef_instr_create(state->shader,
                                  glsl_get_vector_elements(node->type));
    nir_instr_insert_before_cf_list(&state->impl->body, &undef->instr);
    def_stack_push(node, &undef->def, state);
@@ -694,7 +617,7 @@ rename_variables_block(nir_block *block, struct lower_variables_state *state)
                 * should result in an undefined value.
                 */
                nir_ssa_undef_instr *undef =
-                  nir_ssa_undef_instr_create(state->mem_ctx,
+                  nir_ssa_undef_instr_create(state->shader,
                                              intrin->num_components);
 
                nir_instr_insert_before(&intrin->instr, &undef->instr);
@@ -702,14 +625,14 @@ rename_variables_block(nir_block *block, struct lower_variables_state *state)
 
                nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
                                         nir_src_for_ssa(&undef->def),
-                                        state->mem_ctx);
+                                        state->shader);
                continue;
             }
 
             if (!node->lower_to_ssa)
                continue;
 
-            nir_alu_instr *mov = nir_alu_instr_create(state->mem_ctx,
+            nir_alu_instr *mov = nir_alu_instr_create(state->shader,
                                                       nir_op_imov);
             mov->src[0].src.is_ssa = true;
             mov->src[0].src.ssa = get_ssa_def_for_block(node, block, state);
@@ -727,7 +650,7 @@ rename_variables_block(nir_block *block, struct lower_variables_state *state)
 
             nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
                                      nir_src_for_ssa(&mov->dest.dest.ssa),
-                                     state->mem_ctx);
+                                     state->shader);
             break;
          }
 
@@ -750,7 +673,7 @@ rename_variables_block(nir_block *block, struct lower_variables_state *state)
 
             assert(intrin->src[0].is_ssa);
 
-            nir_alu_instr *mov = nir_alu_instr_create(state->mem_ctx,
+            nir_alu_instr *mov = nir_alu_instr_create(state->shader,
                                                       nir_op_imov);
             mov->src[0].src.is_ssa = true;
             mov->src[0].src.ssa = intrin->src[0].ssa;
@@ -887,7 +810,7 @@ insert_phi_nodes(struct lower_variables_state *state)
                continue;
 
             if (has_already[next->index] < iter_count) {
-               nir_phi_instr *phi = nir_phi_instr_create(state->mem_ctx);
+               nir_phi_instr *phi = nir_phi_instr_create(state->shader);
                nir_ssa_dest_init(&phi->instr, &phi->dest,
                                  glsl_get_vector_elements(node->type), NULL);
                nir_instr_insert_before_block(next, &phi->instr);
@@ -938,8 +861,8 @@ nir_lower_vars_to_ssa_impl(nir_function_impl *impl)
 {
    struct lower_variables_state state;
 
-   state.mem_ctx = ralloc_parent(impl);
-   state.dead_ctx = ralloc_context(state.mem_ctx);
+   state.shader = impl->overload->function->shader;
+   state.dead_ctx = ralloc_context(state.shader);
    state.impl = impl;
 
    state.deref_var_nodes = _mesa_hash_table_create(state.dead_ctx,
@@ -983,7 +906,8 @@ nir_lower_vars_to_ssa_impl(nir_function_impl *impl)
       progress = true;
 
       if (deref->var->constant_initializer) {
-         nir_load_const_instr *load = get_const_initializer_load(deref, &state);
+         nir_load_const_instr *load =
+            nir_deref_get_const_initializer_load(state.shader, deref);
          nir_ssa_def_init(&load->instr, &load->def,
                           glsl_get_vector_elements(node->type), NULL);
          nir_instr_insert_before_cf_list(&impl->body, &load->instr);

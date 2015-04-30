@@ -894,14 +894,14 @@ update_default_objects(struct gl_context *ctx)
  * If there's no current OpenGL context for the calling thread, we can
  * print a message to stderr.
  *
- * \param name  the name of the OpenGL function, without the "gl" prefix
+ * \param name  the name of the OpenGL function
  */
 static void
 nop_handler(const char *name)
 {
    GET_CURRENT_CONTEXT(ctx);
    if (ctx) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "gl%s(invalid call)", name);
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(invalid call)", name);
    }
 #if defined(DEBUG)
    else if (getenv("MESA_DEBUG") || getenv("LIBGL_DEBUG")) {
@@ -936,7 +936,7 @@ alloc_dispatch_table(void)
 {
    /* Find the larger of Mesa's dispatch table and libGL's dispatch table.
     * In practice, this'll be the same for stand-alone Mesa.  But for DRI
-    * Mesa we do this to accomodate different versions of libGL and various
+    * Mesa we do this to accommodate different versions of libGL and various
     * DRI drivers.
     */
    GLint numEntries = MAX2(_glapi_get_dispatch_table_size(), _gloffset_COUNT);

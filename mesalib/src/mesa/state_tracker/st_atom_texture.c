@@ -287,16 +287,22 @@ st_get_texture_sampler_view_from_stobj(struct st_context *st,
 				       enum pipe_format format)
 {
    struct pipe_sampler_view **sv;
-
+   const struct st_texture_image *firstImage;
    if (!stObj || !stObj->pt) {
       return NULL;
    }
 
    sv = st_texture_get_sampler_view(st, stObj);
 
-   if (stObj->base.StencilSampling &&
-       util_format_is_depth_and_stencil(format))
-      format = util_format_stencil_only(format);
+   if (util_format_is_depth_and_stencil(format)) {
+      if (stObj->base.StencilSampling)
+         format = util_format_stencil_only(format);
+      else {
+         firstImage = st_texture_image_const(_mesa_base_tex_image(&stObj->base));
+         if (firstImage->base._BaseFormat == GL_STENCIL_INDEX)
+            format = util_format_stencil_only(format);
+      }
+   }
 
    /* if sampler view has changed dereference it */
    if (*sv) {

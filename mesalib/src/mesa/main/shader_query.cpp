@@ -291,7 +291,6 @@ _mesa_GetAttribLocation(GLhandleARB program, const GLcharARB * name)
    return (loc >= 0) ? loc : -1;
 }
 
-
 unsigned
 _mesa_count_active_attribs(struct gl_shader_program *shProg)
 {
@@ -300,19 +299,15 @@ _mesa_count_active_attribs(struct gl_shader_program *shProg)
       return 0;
    }
 
-   exec_list *const ir = shProg->_LinkedShaders[MESA_SHADER_VERTEX]->ir;
-   unsigned i = 0;
-
-   foreach_in_list(ir_instruction, node, ir) {
-      const ir_variable *const var = node->as_variable();
-
-      if (!is_active_attrib(var))
-         continue;
-
-      i++;
+   struct gl_program_resource *res = shProg->ProgramResourceList;
+   unsigned count = 0;
+   for (unsigned j = 0; j < shProg->NumProgramResourceList; j++, res++) {
+      if (res->Type == GL_PROGRAM_INPUT &&
+          res->StageReferences & (1 << MESA_SHADER_VERTEX) &&
+          is_active_attrib(RESOURCE_VAR(res)))
+         count++;
    }
-
-   return i;
+   return count;
 }
 
 
@@ -324,20 +319,16 @@ _mesa_longest_attribute_name_length(struct gl_shader_program *shProg)
       return 0;
    }
 
-   exec_list *const ir = shProg->_LinkedShaders[MESA_SHADER_VERTEX]->ir;
+   struct gl_program_resource *res = shProg->ProgramResourceList;
    size_t longest = 0;
+   for (unsigned j = 0; j < shProg->NumProgramResourceList; j++, res++) {
+      if (res->Type == GL_PROGRAM_INPUT &&
+          res->StageReferences & (1 << MESA_SHADER_VERTEX)) {
 
-   foreach_in_list(ir_instruction, node, ir) {
-      const ir_variable *const var = node->as_variable();
-
-      if (var == NULL
-	  || var->data.mode != ir_var_shader_in
-	  || var->data.location == -1)
-	 continue;
-
-      const size_t len = strlen(var->name);
-      if (len >= longest)
-	 longest = len + 1;
+          const size_t length = strlen(RESOURCE_VAR(res)->name);
+          if (length >= longest)
+             longest = length + 1;
+      }
    }
 
    return longest;
@@ -537,6 +528,7 @@ array_index_of_resource(struct gl_program_resource *res,
       return get_matching_index(RESOURCE_VAR(res), name);
    default:
       assert(!"support for resource type not implemented");
+      return -1;
    }
 }
 
@@ -634,7 +626,7 @@ _mesa_program_resource_find_index(struct gl_shader_program *shProg,
       case GL_ATOMIC_COUNTER_BUFFER:
          if (_mesa_program_resource_index(shProg, res) == index)
             return res;
-
+         break;
       case GL_TRANSFORM_FEEDBACK_VARYING:
       case GL_PROGRAM_INPUT:
       case GL_PROGRAM_OUTPUT:
@@ -860,13 +852,23 @@ get_buffer_property(struct gl_shader_program *shProg,
          *val = RESOURCE_UBO(res)->UniformBufferSize;
          return 1;
       case GL_NUM_ACTIVE_VARIABLES:
-         *val = RESOURCE_UBO(res)->NumUniforms;
+         *val = 0;
+         for (unsigned i = 0; i < RESOURCE_UBO(res)->NumUniforms; i++) {
+            const char *iname = RESOURCE_UBO(res)->Uniforms[i].IndexName;
+            struct gl_program_resource *uni =
+               _mesa_program_resource_find_name(shProg, GL_UNIFORM, iname);
+            if (!uni)
+               continue;
+            (*val)++;
+         }
          return 1;
       case GL_ACTIVE_VARIABLES:
          for (unsigned i = 0; i < RESOURCE_UBO(res)->NumUniforms; i++) {
             const char *iname = RESOURCE_UBO(res)->Uniforms[i].IndexName;
             struct gl_program_resource *uni =
                _mesa_program_resource_find_name(shProg, GL_UNIFORM, iname);
+            if (!uni)
+               continue;
             *val++ =
                _mesa_program_resource_index(shProg, uni);
          }

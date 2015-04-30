@@ -574,7 +574,7 @@ generic_%u_byte( GLint rop, const void * ptr )
         print '    struct glx_context * const gc = __glXGetCurrentContext();'
 
         # The only reason that single and vendor private commands need
-        # a variable called 'dpy' is becuase they use the SyncHandle
+        # a variable called 'dpy' is because they use the SyncHandle
         # macro.  For whatever brain-dead reason, that macro is hard-
         # coded to use a variable called 'dpy' instead of taking a
         # parameter.

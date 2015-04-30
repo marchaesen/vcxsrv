@@ -1997,7 +1997,8 @@ _mesa_legal_texture_base_format_for_target(struct gl_context *ctx,
                                            const char *caller)
 {
    if (_mesa_base_tex_format(ctx, internalFormat) == GL_DEPTH_COMPONENT
-       || _mesa_base_tex_format(ctx, internalFormat) == GL_DEPTH_STENCIL) {
+       || _mesa_base_tex_format(ctx, internalFormat) == GL_DEPTH_STENCIL
+       || _mesa_base_tex_format(ctx, internalFormat) == GL_STENCIL_INDEX) {
       /* Section 3.8.3 (Texture Image Specification) of the OpenGL 3.3 Core
        * Profile spec says:
        *
@@ -3319,7 +3320,9 @@ teximage(struct gl_context *ctx, GLboolean compressed, GLuint dims,
 
       if (!sizeOK) {
          _mesa_error(ctx, GL_OUT_OF_MEMORY,
-                     "glTexImage%uD(image too large)", dims);
+                     "glTexImage%uD(image too large: %d x %d x %d, %s format)",
+                     dims, width, height, depth,
+                     _mesa_lookup_enum_by_nr(internalFormat));
          return;
       }
 

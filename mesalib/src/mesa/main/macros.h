@@ -31,6 +31,7 @@
 #ifndef MACROS_H
 #define MACROS_H
 
+#include "util/macros.h"
 #include "util/u_math.h"
 #include "imports.h"
 
@@ -798,10 +799,6 @@ DIFFERENT_SIGNS(GLfloat x, GLfloat y)
 #pragma warning( pop )
 #endif
 }
-
-
-/** Compute ceiling of integer quotient of A divided by B. */
-#define DIV_ROUND_UP( A, B )  ( (A) % (B) == 0 ? (A)/(B) : (A)/(B)+1 )
 
 
 /** casts to silence warnings with some compilers */

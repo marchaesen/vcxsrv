@@ -175,6 +175,51 @@ get_tex_depth_stencil(struct gl_context *ctx, GLuint dimensions,
    }
 }
 
+/**
+ * glGetTexImage for stencil pixels.
+ */
+static void
+get_tex_stencil(struct gl_context *ctx, GLuint dimensions,
+                GLenum format, GLenum type, GLvoid *pixels,
+                struct gl_texture_image *texImage)
+{
+   const GLint width = texImage->Width;
+   const GLint height = texImage->Height;
+   const GLint depth = texImage->Depth;
+   GLint img, row;
+
+   assert(format == GL_STENCIL_INDEX);
+
+   for (img = 0; img < depth; img++) {
+      GLubyte *srcMap;
+      GLint rowstride;
+
+      /* map src texture buffer */
+      ctx->Driver.MapTextureImage(ctx, texImage, img,
+                                  0, 0, width, height, GL_MAP_READ_BIT,
+                                  &srcMap, &rowstride);
+
+      if (srcMap) {
+         for (row = 0; row < height; row++) {
+            const GLubyte *src = srcMap + row * rowstride;
+            void *dest = _mesa_image_address(dimensions, &ctx->Pack, pixels,
+                                             width, height, format, type,
+                                             img, row, 0);
+            _mesa_unpack_ubyte_stencil_row(texImage->TexFormat,
+                                           width,
+                                           (const GLuint *) src,
+                                           dest);
+         }
+
+         ctx->Driver.UnmapTextureImage(ctx, texImage, img);
+      }
+      else {
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glGetTexImage");
+         break;
+      }
+   }
+}
+
 
 /**
  * glGetTexImage for YCbCr pixels.
@@ -285,7 +330,7 @@ get_tex_rgba_compressed(struct gl_context *ctx, GLuint dimensions,
    }
 
    /* Depending on the base format involved we may need to apply a rebase
-    * tranaform (for example: if we download to a Luminance format we want
+    * transform (for example: if we download to a Luminance format we want
     * G=0 and B=0).
     */
    if (baseFormat == GL_LUMINANCE ||
@@ -388,7 +433,7 @@ get_tex_rgba_uncompressed(struct gl_context *ctx, GLuint dimensions,
    }
 
    /* Depending on the base format involved we may need to apply a rebase
-    * tranaform (for example: if we download to a Luminance format we want
+    * transform (for example: if we download to a Luminance format we want
     * G=0 and B=0).
     */
    if (texImage->_BaseFormat == GL_LUMINANCE ||
@@ -684,6 +729,9 @@ _mesa_GetTexImage_sw(struct gl_context *ctx,
    else if (format == GL_DEPTH_STENCIL_EXT) {
       get_tex_depth_stencil(ctx, dimensions, format, type, pixels, texImage);
    }
+   else if (format == GL_STENCIL_INDEX) {
+      get_tex_stencil(ctx, dimensions, format, type, pixels, texImage);
+   }
    else if (format == GL_YCBCR_MESA) {
       get_tex_ycbcr(ctx, dimensions, format, type, pixels, texImage);
    }
@@ -879,7 +927,7 @@ getteximage_error_check(struct gl_context *ctx,
                   "glGetTex%sImage(format mismatch)", suffix);
       return GL_TRUE;
    }
-   else if (_mesa_is_enum_format_integer(format) !=
+   else if (!_mesa_is_stencil_format(format) && _mesa_is_enum_format_integer(format) !=
             _mesa_is_format_integer(texImage->TexFormat)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glGetTex%sImage(format mismatch)", suffix);

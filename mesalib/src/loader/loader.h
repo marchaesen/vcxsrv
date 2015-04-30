@@ -43,7 +43,7 @@ loader_get_device_name_for_fd(int fd);
 
 /* Function to get a different device than the one we are to use by default,
  * if the user requests so and it is possible. The initial fd will be closed
- * if neccessary. The returned fd is potentially a render-node.
+ * if necessary. The returned fd is potentially a render-node.
  */
 
 int

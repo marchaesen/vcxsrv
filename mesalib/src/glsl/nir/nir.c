@@ -589,6 +589,66 @@ nir_copy_deref(void *mem_ctx, nir_deref *deref)
    return NULL;
 }
 
+/* Returns a load_const instruction that represents the constant
+ * initializer for the given deref chain.  The caller is responsible for
+ * ensuring that there actually is a constant initializer.
+ */
+nir_load_const_instr *
+nir_deref_get_const_initializer_load(nir_shader *shader, nir_deref_var *deref)
+{
+   nir_constant *constant = deref->var->constant_initializer;
+   assert(constant);
+
+   const nir_deref *tail = &deref->deref;
+   unsigned matrix_offset = 0;
+   while (tail->child) {
+      switch (tail->child->deref_type) {
+      case nir_deref_type_array: {
+         nir_deref_array *arr = nir_deref_as_array(tail->child);
+         assert(arr->deref_array_type == nir_deref_array_type_direct);
+         if (glsl_type_is_matrix(tail->type)) {
+            assert(arr->deref.child == NULL);
+            matrix_offset = arr->base_offset;
+         } else {
+            constant = constant->elements[arr->base_offset];
+         }
+         break;
+      }
+
+      case nir_deref_type_struct: {
+         constant = constant->elements[nir_deref_as_struct(tail->child)->index];
+         break;
+      }
+
+      default:
+         unreachable("Invalid deref child type");
+      }
+
+      tail = tail->child;
+   }
+
+   nir_load_const_instr *load =
+      nir_load_const_instr_create(shader, glsl_get_vector_elements(tail->type));
+
+   matrix_offset *= load->def.num_components;
+   for (unsigned i = 0; i < load->def.num_components; i++) {
+      switch (glsl_get_base_type(tail->type)) {
+      case GLSL_TYPE_FLOAT:
+      case GLSL_TYPE_INT:
+      case GLSL_TYPE_UINT:
+         load->value.u[i] = constant->value.u[matrix_offset + i];
+         break;
+      case GLSL_TYPE_BOOL:
+         load->value.u[i] = constant->value.b[matrix_offset + i] ?
+                             NIR_TRUE : NIR_FALSE;
+         break;
+      default:
+         unreachable("Invalid immediate type");
+      }
+   }
+
+   return load;
+}
 
 /**
  * \name Control flow modification
@@ -1800,33 +1860,37 @@ src_does_not_use_reg(nir_src *src, void *void_reg)
 void
 nir_instr_rewrite_src(nir_instr *instr, nir_src *src, nir_src new_src)
 {
-   if (src->is_ssa) {
-      nir_ssa_def *old_ssa = src->ssa;
-      *src = new_src;
-      if (old_ssa && nir_foreach_src(instr, src_does_not_use_def, old_ssa)) {
-         struct set_entry *entry = _mesa_set_search(old_ssa->uses, instr);
-         assert(entry);
-         _mesa_set_remove(old_ssa->uses, entry);
-      }
-   } else {
-      if (src->reg.indirect)
-         nir_instr_rewrite_src(instr, src->reg.indirect, new_src);
+   nir_src old_src = *src;
+   *src = new_src;
 
-      nir_register *old_reg = src->reg.reg;
-      *src = new_src;
-      if (old_reg && nir_foreach_src(instr, src_does_not_use_reg, old_reg)) {
-         struct set_entry *entry = _mesa_set_search(old_reg->uses, instr);
-         assert(entry);
-         _mesa_set_remove(old_reg->uses, entry);
+   for (nir_src *iter_src = &old_src; iter_src;
+        iter_src = iter_src->is_ssa ? NULL : iter_src->reg.indirect) {
+      if (iter_src->is_ssa) {
+         nir_ssa_def *ssa = iter_src->ssa;
+         if (ssa && nir_foreach_src(instr, src_does_not_use_def, ssa)) {
+            struct set_entry *entry = _mesa_set_search(ssa->uses, instr);
+            assert(entry);
+            _mesa_set_remove(ssa->uses, entry);
+         }
+      } else {
+         nir_register *reg = iter_src->reg.reg;
+         if (reg && nir_foreach_src(instr, src_does_not_use_reg, reg)) {
+            struct set_entry *entry = _mesa_set_search(reg->uses, instr);
+            assert(entry);
+            _mesa_set_remove(reg->uses, entry);
+         }
       }
    }
 
-   if (new_src.is_ssa) {
-      if (new_src.ssa)
-         _mesa_set_add(new_src.ssa->uses, instr);
-   } else {
-      if (new_src.reg.reg)
-         _mesa_set_add(new_src.reg.reg->uses, instr);
+   for (nir_src *iter_src = &new_src; iter_src;
+        iter_src = iter_src->is_ssa ? NULL : iter_src->reg.indirect) {
+      if (iter_src->is_ssa) {
+         if (iter_src->ssa)
+            _mesa_set_add(iter_src->ssa->uses, instr);
+      } else {
+         if (iter_src->reg.reg)
+            _mesa_set_add(iter_src->reg.reg->uses, instr);
+      }
    }
 }
 

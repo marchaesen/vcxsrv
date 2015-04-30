@@ -645,7 +645,7 @@ _swrast_texture_span( struct gl_context *ctx, SWspan *span )
 
    /*
     * Must do all texture sampling before combining in order to
-    * accomodate GL_ARB_texture_env_crossbar.
+    * accommodate GL_ARB_texture_env_crossbar.
     */
    for (unit = 0; unit < ctx->Const.MaxTextureUnits; unit++) {
       const struct gl_texture_unit *texUnit = &ctx->Texture.Unit[unit];

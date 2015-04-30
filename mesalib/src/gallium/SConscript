@@ -60,6 +60,11 @@ SConscript([
 ])
 
 if not env['embedded']:
+    SConscript([
+        'state_trackers/osmesa/SConscript',
+        'targets/osmesa/SConscript',
+    ])
+
     if env['x11']:
         SConscript([
             'state_trackers/glx/xlib/SConscript',

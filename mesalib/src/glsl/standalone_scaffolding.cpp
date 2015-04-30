@@ -189,9 +189,6 @@ void initialize_context_to_defaults(struct gl_context *ctx, gl_api api)
    options.MaxUnrollIterations = 32;
    options.MaxIfDepth = UINT_MAX;
 
-   /* Default pragma settings */
-   options.DefaultPragmas.Optimize = true;
-
    for (int sh = 0; sh < MESA_SHADER_STAGES; ++sh)
       memcpy(&ctx->Const.ShaderCompilerOptions[sh], &options, sizeof(options));
 }

@@ -152,7 +152,7 @@ void st_init_flush_functions(struct dd_function_table *functions)
     * Finish() is identical to Flush() in all cases - no differences in
     * rendering or ReadPixels are visible if we opt not to wait here.
     *
-    * Only set this up on windows to avoid suprise elsewhere.
+    * Only set this up on Windows to avoid surprise elsewhere.
     */
 #ifdef PIPE_OS_WINDOWS
    functions->Finish = st_glFlush;

@@ -64,26 +64,6 @@ get_deref_tail(nir_deref *deref)
    return deref;
 }
 
-static int
-type_get_length(const struct glsl_type *type)
-{
-   switch (glsl_get_base_type(type)) {
-   case GLSL_TYPE_STRUCT:
-   case GLSL_TYPE_ARRAY:
-      return glsl_get_length(type);
-   case GLSL_TYPE_FLOAT:
-   case GLSL_TYPE_INT:
-   case GLSL_TYPE_UINT:
-   case GLSL_TYPE_BOOL:
-      if (glsl_type_is_matrix(type))
-         return glsl_get_matrix_columns(type);
-      else
-         return glsl_get_vector_elements(type);
-   default:
-      unreachable("Invalid deref base type");
-   }
-}
-
 /* This function recursively walks the given deref chain and replaces the
  * given copy instruction with an equivalent sequence load/store
  * operations.
@@ -121,9 +101,9 @@ emit_copy_load_store(nir_intrinsic_instr *copy_instr,
       nir_deref_array *src_arr = nir_deref_as_array(src_arr_parent->child);
       nir_deref_array *dest_arr = nir_deref_as_array(dest_arr_parent->child);
 
-      unsigned length = type_get_length(src_arr_parent->type);
+      unsigned length = glsl_get_length(src_arr_parent->type);
       /* The wildcards should represent the same number of elements */
-      assert(length == type_get_length(dest_arr_parent->type));
+      assert(length == glsl_get_length(dest_arr_parent->type));
       assert(length > 0);
 
       /* Walk over all of the elements that this wildcard refers to and

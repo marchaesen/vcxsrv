@@ -186,6 +186,7 @@ static const struct extension extension_table[] = {
    { "GL_ARB_texture_rectangle",                   o(NV_texture_rectangle),                    GL,             2004 },
    { "GL_ARB_texture_rgb10_a2ui",                  o(ARB_texture_rgb10_a2ui),                  GL,             2009 },
    { "GL_ARB_texture_rg",                          o(ARB_texture_rg),                          GL,             2008 },
+   { "GL_ARB_texture_stencil8",                    o(ARB_texture_stencil8),                    GL,             2013 },
    { "GL_ARB_texture_storage",                     o(dummy_true),                              GL,             2011 },
    { "GL_ARB_texture_storage_multisample",         o(ARB_texture_multisample),                 GL,             2012 },
    { "GL_ARB_texture_view",                        o(ARB_texture_view),                        GL,             2012 },
@@ -297,6 +298,7 @@ static const struct extension extension_table[] = {
    { "GL_OES_depth_texture",                       o(ARB_depth_texture),                                  ES2, 2006 },
    { "GL_OES_depth_texture_cube_map",              o(OES_depth_texture_cube_map),                         ES2, 2012 },
    { "GL_OES_draw_texture",                        o(OES_draw_texture),                             ES1,       2004 },
+   { "GL_OES_EGL_sync",                            o(dummy_true),                                   ES1 | ES2, 2010 },
    /*  FIXME: Mesa expects GL_OES_EGL_image to be available in OpenGL contexts. */
    { "GL_OES_EGL_image",                           o(OES_EGL_image),                           GL | ES1 | ES2, 2006 },
    { "GL_OES_EGL_image_external",                  o(OES_EGL_image_external),                       ES1 | ES2, 2010 },

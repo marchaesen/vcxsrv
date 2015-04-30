@@ -187,7 +187,7 @@ class PrintGenericStubs(gl_XML.gl_print_base):
 
         # The x86-64 ABI divides function parameters into a couple
         # classes.  For the OpenGL interface, the only ones that are
-        # relevent are INTEGER and SSE.  Basically, the first 8
+        # relevant are INTEGER and SSE.  Basically, the first 8
         # GLfloat or GLdouble parameters are placed in %xmm0 - %xmm7,
         # the first 6 non-GLfloat / non-GLdouble parameters are placed
         # in registers listed in int_parameters.

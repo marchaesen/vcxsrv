@@ -341,13 +341,13 @@ x32_s8_get_tile_rgba(const unsigned *src,
    unsigned i, j;
 
    for (i = 0; i < h; i++) {
-      float *pRow = p;
+      uint32_t *pRow = (uint32_t *)p;
       for (j = 0; j < w; j++, pRow += 4) {
          src++;
          pRow[0] =
          pRow[1] =
          pRow[2] =
-         pRow[3] = (float)(*src++ & 0xff);
+         pRow[3] = (*src++ & 0xff);
       }
       p += dst_stride;
    }

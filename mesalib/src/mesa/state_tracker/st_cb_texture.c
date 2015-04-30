@@ -950,7 +950,7 @@ st_GetTexImage(struct gl_context * ctx,
 
    /* XXX Fallback to _mesa_GetTexImage_sw for depth-stencil formats
     * due to an incomplete stencil blit implementation in some drivers. */
-   if (format == GL_DEPTH_STENCIL) {
+   if (format == GL_DEPTH_STENCIL || format == GL_STENCIL_INDEX) {
       goto fallback;
    }
 
