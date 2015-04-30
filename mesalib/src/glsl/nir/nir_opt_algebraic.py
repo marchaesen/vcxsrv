@@ -144,6 +144,7 @@ optimizations = [
    (('fexp',  ('fmul', ('flog', a), b)),  ('fpow', a, b), '!options->lower_fpow'), # e^(ln(a)*b) = a^b
    (('fpow', a, 1.0), a),
    (('fpow', a, 2.0), ('fmul', a, a)),
+   (('fpow', a, 4.0), ('fmul', ('fmul', a, a), ('fmul', a, a))),
    (('fpow', 2.0, a), ('fexp2', a)),
    (('fsqrt', ('fexp2', a)), ('fexp2', ('fmul', 0.5, a))),
    (('fsqrt', ('fexp', a)), ('fexp', ('fmul', 0.5, a))),

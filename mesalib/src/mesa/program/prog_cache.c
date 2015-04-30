@@ -77,7 +77,7 @@ hash_key(const void *key, GLuint key_size)
 
 
 /**
- * Rebuild/expand the hash table to accomodate more entries
+ * Rebuild/expand the hash table to accommodate more entries
  */
 static void
 rehash(struct gl_program_cache *cache)

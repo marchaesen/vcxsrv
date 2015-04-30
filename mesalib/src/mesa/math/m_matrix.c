@@ -50,7 +50,7 @@
 /*@{*/
 #define MAT_FLAG_IDENTITY       0     /**< is an identity matrix flag.
                                        *   (Not actually used - the identity
-                                       *   matrix is identified by the absense
+                                       *   matrix is identified by the absence
                                        *   of all other flags.)
                                        */
 #define MAT_FLAG_GENERAL        0x1   /**< is a general matrix flag */

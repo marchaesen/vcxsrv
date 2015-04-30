@@ -569,9 +569,36 @@ hud_pane_set_max_value(struct hud_pane *pane, uint64_t value)
    pane->yscale = -(int)pane->inner_height / (float)pane->max_value;
 }
 
+static void
+hud_pane_update_dyn_ceiling(struct hud_graph *gr, struct hud_pane *pane)
+{
+   unsigned i;
+   float tmp = 0.0f;
+
+   if (pane->dyn_ceil_last_ran != gr->index) {
+      LIST_FOR_EACH_ENTRY(gr, &pane->graph_list, head) {
+         for (i = 0; i <  gr->num_vertices; ++i) {
+            tmp = gr->vertices[i * 2 + 1] > tmp ?
+                  gr->vertices[i * 2 + 1] : tmp;
+         }
+      }
+
+      /* Avoid setting it lower than the initial starting height. */
+      tmp = tmp > pane->initial_max_value ? tmp : pane->initial_max_value;
+      hud_pane_set_max_value(pane, tmp);
+   }
+
+   /*
+    * Mark this adjustment run so we could avoid repeating a full update
+    * again needlessly in case the pane has more than one graph.
+    */
+   pane->dyn_ceil_last_ran = gr->index;
+}
+
 static struct hud_pane *
 hud_pane_create(unsigned x1, unsigned y1, unsigned x2, unsigned y2,
-                unsigned period, uint64_t max_value)
+                unsigned period, uint64_t max_value, uint64_t ceiling,
+                boolean dyn_ceiling)
 {
    struct hud_pane *pane = CALLOC_STRUCT(hud_pane);
 
@@ -590,6 +617,10 @@ hud_pane_create(unsigned x1, unsigned y1, unsigned x2, unsigned y2,
    pane->inner_height = pane->inner_y2 - pane->inner_y1;
    pane->period = period;
    pane->max_num_vertices = (x2 - x1 + 2) / 2;
+   pane->ceiling = ceiling;
+   pane->dyn_ceiling = dyn_ceiling;
+   pane->dyn_ceil_last_ran = 0;
+   pane->initial_max_value = max_value;
    hud_pane_set_max_value(pane, max_value);
    LIST_INITHEAD(&pane->graph_list);
    return pane;
@@ -633,6 +664,9 @@ hud_pane_add_graph(struct hud_pane *pane, struct hud_graph *gr)
 void
 hud_graph_add_value(struct hud_graph *gr, uint64_t value)
 {
+   gr->current_value = value;
+   value = value > gr->pane->ceiling ? gr->pane->ceiling : value;
+
    if (gr->index == gr->pane->max_num_vertices) {
       gr->vertices[0] = 0;
       gr->vertices[1] = gr->vertices[(gr->index-1)*2+1];
@@ -646,7 +680,9 @@ hud_graph_add_value(struct hud_graph *gr, uint64_t value)
       gr->num_vertices++;
    }
 
-   gr->current_value = value;
+   if (gr->pane->dyn_ceiling == true) {
+      hud_pane_update_dyn_ceiling(gr, gr->pane);
+   }
    if (value > gr->pane->max_value) {
       hud_pane_set_max_value(gr->pane, value);
    }
@@ -683,6 +719,69 @@ parse_string(const char *s, char *out)
    return i;
 }
 
+static char *
+read_pane_settings(char *str, unsigned * const x, unsigned * const y,
+               unsigned * const width, unsigned * const height,
+               uint64_t * const ceiling, boolean * const dyn_ceiling)
+{
+   char *ret = str;
+   unsigned tmp;
+
+   while (*str == '.') {
+      ++str;
+      switch (*str) {
+      case 'x':
+         ++str;
+         *x = strtoul(str, &ret, 10);
+         str = ret;
+         break;
+
+      case 'y':
+         ++str;
+         *y = strtoul(str, &ret, 10);
+         str = ret;
+         break;
+
+      case 'w':
+         ++str;
+         tmp = strtoul(str, &ret, 10);
+         *width = tmp > 80 ? tmp : 80; /* 80 is chosen arbitrarily */
+         str = ret;
+         break;
+
+      /*
+       * Prevent setting height to less than 50. If the height is set to less,
+       * the text of the Y axis labels on the graph will start overlapping.
+       */
+      case 'h':
+         ++str;
+         tmp = strtoul(str, &ret, 10);
+         *height = tmp > 50 ? tmp : 50;
+         str = ret;
+         break;
+
+      case 'c':
+         ++str;
+         tmp = strtoul(str, &ret, 10);
+         *ceiling = tmp > 10 ? tmp : 10;
+         str = ret;
+         break;
+
+      case 'd':
+         ++str;
+         ret = str;
+         *dyn_ceiling = true;
+         break;
+
+      default:
+         fprintf(stderr, "gallium_hud: syntax error: unexpected '%c'\n", *str);
+      }
+
+   }
+
+   return ret;
+}
+
 static boolean
 has_occlusion_query(struct pipe_screen *screen)
 {
@@ -705,11 +804,15 @@ static void
 hud_parse_env_var(struct hud_context *hud, const char *env)
 {
    unsigned num, i;
-   char name[256], s[256];
+   char name_a[256], s[256];
+   char *name;
    struct hud_pane *pane = NULL;
    unsigned x = 10, y = 10;
    unsigned width = 251, height = 100;
    unsigned period = 500 * 1000;  /* default period (1/2 second) */
+   uint64_t ceiling = UINT64_MAX;
+   unsigned column_width = 251;
+   boolean dyn_ceiling = false;
    const char *period_env;
 
    /*
@@ -725,11 +828,23 @@ hud_parse_env_var(struct hud_context *hud, const char *env)
       }
    }
 
-   while ((num = parse_string(env, name)) != 0) {
+   while ((num = parse_string(env, name_a)) != 0) {
       env += num;
 
+      /* check for explicit location, size and etc. settings */
+      name = read_pane_settings(name_a, &x, &y, &width, &height, &ceiling,
+                         &dyn_ceiling);
+
+     /*
+      * Keep track of overall column width to avoid pane overlapping in case
+      * later we create a new column while the bottom pane in the current
+      * column is less wide than the rest of the panes in it.
+      */
+     column_width = width > column_width ? width : column_width;
+
       if (!pane) {
-         pane = hud_pane_create(x, y, x + width, y + height, period, 10);
+         pane = hud_pane_create(x, y, x + width, y + height, period, 10,
+                         ceiling, dyn_ceiling);
          if (!pane)
             return;
       }
@@ -807,6 +922,7 @@ hud_parse_env_var(struct hud_context *hud, const char *env)
 
          if (num && sscanf(s, "%u", &i) == 1) {
             hud_pane_set_max_value(pane, i);
+            pane->initial_max_value = i;
          }
          else {
             fprintf(stderr, "gallium_hud: syntax error: unexpected '%c' (%i) "
@@ -826,6 +942,7 @@ hud_parse_env_var(struct hud_context *hud, const char *env)
       case ',':
          env++;
          y += height + hud->font.glyph_height * (pane->num_graphs + 2);
+         height = 100;
 
          if (pane && pane->num_graphs) {
             LIST_ADDTAIL(&pane->head, &hud->pane_list);
@@ -836,17 +953,27 @@ hud_parse_env_var(struct hud_context *hud, const char *env)
       case ';':
          env++;
          y = 10;
-         x += width + hud->font.glyph_width * 7;
+         x += column_width + hud->font.glyph_width * 7;
+         height = 100;
 
          if (pane && pane->num_graphs) {
             LIST_ADDTAIL(&pane->head, &hud->pane_list);
             pane = NULL;
          }
+
+         /* Starting a new column; reset column width. */
+         column_width = 251;
          break;
 
       default:
          fprintf(stderr, "gallium_hud: syntax error: unexpected '%c'\n", *env);
       }
+
+      /* Reset to defaults for the next pane in case these were modified. */
+      width = 251;
+      ceiling = UINT64_MAX;
+      dyn_ceiling = false;
+
    }
 
    if (pane) {
@@ -877,6 +1004,30 @@ print_help(struct pipe_screen *screen)
    puts("  ';' creates a new pane at the top of the next column.");
    puts("");
    puts("  Example: GALLIUM_HUD=\"cpu,fps;primitives-generated\"");
+   puts("");
+   puts("  Additionally, by prepending '.[identifier][value]' modifiers to");
+   puts("  a name, it is possible to explicitly set the location and size");
+   puts("  of a pane, along with limiting overall maximum value of the");
+   puts("  Y axis and activating dynamic readjustment of the Y axis.");
+   puts("  Several modifiers may be applied to the same pane simultaneously.");
+   puts("");
+   puts("  'x[value]' sets the location of the pane on the x axis relative");
+   puts("             to the upper-left corner of the viewport, in pixels.");
+   puts("  'y[value]' sets the location of the pane on the y axis relative");
+   puts("             to the upper-left corner of the viewport, in pixels.");
+   puts("  'w[value]' sets width of the graph pixels.");
+   puts("  'h[value]' sets height of the graph in pixels.");
+   puts("  'c[value]' sets the ceiling of the value of the Y axis.");
+   puts("             If the graph needs to draw values higher than");
+   puts("             the ceiling allows, the value is clamped.");
+   puts("  'd' activates dynamic Y axis readjustment to set the value of");
+   puts("      the Y axis to match the highest value still visible in the graph.");
+   puts("");
+   puts("  If 'c' and 'd' modifiers are used simultaneously, both are in effect:");
+   puts("  the Y axis does not go above the restriction imposed by 'c' while");
+   puts("  still adjusting the value of the Y axis down when appropriate.");
+   puts("");
+   puts("  Example: GALLIUM_HUD=\".w256.h64.x1600.y520.d.c1000fps+cpu,.datom-count\"");
    puts("");
    puts("  Available names:");
    puts("    fps");

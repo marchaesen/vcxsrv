@@ -30,7 +30,6 @@
 
 #include <stdio.h>
 #include "bufferobj.h"
-#include "colortab.h"
 #include "context.h"
 #include "enums.h"
 #include "fbobject.h"

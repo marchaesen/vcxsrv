@@ -811,7 +811,7 @@ _mesa_format_image_size(mesa_format format, GLsizei width,
 
 /**
  * Same as _mesa_format_image_size() but returns a 64-bit value to
- * accomodate very large textures.
+ * accommodate very large textures.
  */
 uint64_t
 _mesa_format_image_size64(mesa_format format, GLsizei width,

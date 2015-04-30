@@ -37,6 +37,7 @@ OTHERPROGRAMS =                 \
 	radial-perf-test	\
         check-formats           \
 	scaling-bench		\
+	affine-bench            \
 	$(NULL)
 
 # Utility functions

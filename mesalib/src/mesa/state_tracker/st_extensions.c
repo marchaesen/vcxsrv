@@ -650,12 +650,15 @@ void st_init_extensions(struct pipe_screen *screen,
                           ARRAY_SIZE(vertex_mapping), PIPE_BUFFER,
                           PIPE_BIND_VERTEX_BUFFER);
 
+   if (extensions->ARB_stencil_texturing)
+      extensions->ARB_texture_stencil8 = GL_TRUE;
+
    /* Figure out GLSL support. */
    glsl_feature_level = screen->get_param(screen, PIPE_CAP_GLSL_FEATURE_LEVEL);
 
    consts->GLSLVersion = glsl_feature_level;
-   if (glsl_feature_level >= 330)
-      consts->GLSLVersion = 330;
+   if (glsl_feature_level >= 410)
+      consts->GLSLVersion = 410;
 
    _mesa_override_glsl_version(consts);
 
@@ -666,6 +669,8 @@ void st_init_extensions(struct pipe_screen *screen,
 
    if (glsl_feature_level >= 400)
       extensions->ARB_gpu_shader5 = GL_TRUE;
+   if (glsl_feature_level >= 410)
+      extensions->ARB_shader_precision = GL_TRUE;
 
    /* This extension needs full OpenGL 3.2, but we don't know if that's
     * supported at this point. Only check the GLSL version. */

@@ -1942,11 +1942,6 @@ st_ChooseTextureFormat(struct gl_context *ctx, GLenum target,
                        GLint internalFormat,
                        GLenum format, GLenum type)
 {
-   const boolean want_renderable =
-      internalFormat == 3 || internalFormat == 4 ||
-      internalFormat == GL_RGB || internalFormat == GL_RGBA ||
-      internalFormat == GL_RGB8 || internalFormat == GL_RGBA8 ||
-      internalFormat == GL_BGRA;
    struct st_context *st = st_context(ctx);
    enum pipe_format pFormat;
    unsigned bindings;
@@ -1962,15 +1957,17 @@ st_ChooseTextureFormat(struct gl_context *ctx, GLenum target,
    }
 
    /* GL textures may wind up being render targets, but we don't know
-    * that in advance.  Specify potential render target flags now.
+    * that in advance.  Specify potential render target flags now for formats
+    * that we know should always be renderable.
     */
    bindings = PIPE_BIND_SAMPLER_VIEW;
-   if (want_renderable) {
-      if (_mesa_is_depth_or_stencil_format(internalFormat))
-	 bindings |= PIPE_BIND_DEPTH_STENCIL;
-      else
+   if (_mesa_is_depth_or_stencil_format(internalFormat))
+      bindings |= PIPE_BIND_DEPTH_STENCIL;
+   else if (internalFormat == 3 || internalFormat == 4 ||
+            internalFormat == GL_RGB || internalFormat == GL_RGBA ||
+            internalFormat == GL_RGB8 || internalFormat == GL_RGBA8 ||
+            internalFormat == GL_BGRA)
 	 bindings |= PIPE_BIND_RENDER_TARGET;
-   }
 
    /* GLES allows the driver to choose any format which matches
     * the format+type combo, because GLES only supports unsized internal

@@ -103,7 +103,7 @@ Mesa Version History
 	- Stencil-related functions now work in display lists
     Changes:
 	- renamed aux.h as glaux.h (MS-DOS names can't start with aux)
-	- most filenames are in 8.3 format to accomodate MS-DOS
+	- most filenames are in 8.3 format to accommodate MS-DOS
 	- use GLubytes to store arrays of colors instead of GLints
 
 1.2.2   August 2, 1995
@@ -1007,7 +1007,7 @@ Mesa Version History
 	- glGetTexImage was using pixel unpacking instead of packing params
 	- auto-mipmap generation for cube maps was incorrect
     Changes:
-	- max texture units reduced to six to accomodate texture rectangles
+	- max texture units reduced to six to accommodate texture rectangles
 	- removed unfinished GL_MESA_sprite_point extension code
 
 

@@ -533,6 +533,8 @@ print_load_const_instr(nir_load_const_instr *instr, unsigned tabs, FILE *fp)
 
       fprintf(fp, "0x%08x /* %f */", instr->value.u[i], instr->value.f[i]);
    }
+
+   fprintf(fp, ")");
 }
 
 static void

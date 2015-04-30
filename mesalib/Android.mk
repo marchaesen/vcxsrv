@@ -34,6 +34,13 @@ MESA_TOP := $(call my-dir)
 MESA_ANDROID_MAJOR_VERSION := $(word 1, $(subst ., , $(PLATFORM_VERSION)))
 MESA_ANDROID_MINOR_VERSION := $(word 2, $(subst ., , $(PLATFORM_VERSION)))
 MESA_ANDROID_VERSION := $(MESA_ANDROID_MAJOR_VERSION).$(MESA_ANDROID_MINOR_VERSION)
+ifeq ($(filter 1 2 3 4,$(MESA_ANDROID_MAJOR_VERSION)),)
+MESA_LOLLIPOP_BUILD := true
+else
+define local-generated-sources-dir
+$(call local-intermediates-dir)
+endef
+endif
 
 MESA_COMMON_MK := $(MESA_TOP)/Android.common.mk
 MESA_PYTHON2 := python
@@ -94,7 +101,6 @@ ifeq ($(strip $(MESA_BUILD_GALLIUM)),true)
 SUBDIRS += src/gallium
 endif
 
-mkfiles := $(patsubst %,$(MESA_TOP)/%/Android.mk,$(SUBDIRS))
-include $(mkfiles)
+include $(call all-named-subdir-makefiles,$(SUBDIRS))
 
 endif

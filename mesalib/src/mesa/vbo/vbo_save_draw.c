@@ -278,7 +278,7 @@ vbo_save_playback_vertex_list(struct gl_context *ctx, void *data)
          goto end;
       }
       else if (save->replay_flags) {
-	 /* Various degnerate cases: translate into immediate mode
+	 /* Various degenerate cases: translate into immediate mode
 	  * calls rather than trying to execute in place.
 	  */
 	 vbo_save_loopback_vertex_list( ctx, node );

@@ -982,9 +982,9 @@ rw_RW.ISO-8859-1:           rw_RW.ISO8859-1
 rw_RW.utf8:                 rw_RW.UTF-8
 sd:						sd_IN.UTF-8
 sd_IN.utf8:					sd_IN.UTF-8
-sd@devanagari:					sd_INUTF-8@devanagari
-sd_IN@devanagari:				sd_INUTF-8@devanagari
-sd_IN.utf8@devanagari:				sd_INUTF-8@devanagari
+sd@devanagari:					sd_IN.UTF-8@devanagari
+sd_IN@devanagari:				sd_IN.UTF-8@devanagari
+sd_IN.utf8@devanagari:				sd_IN.UTF-8@devanagari
 se_NO:						se_NO.UTF-8
 se_NO.utf8:					se_NO.UTF-8
 XCOMM sh was the old ISO code for Serbo-Croatian (now individual sr and hr).

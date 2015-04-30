@@ -33,14 +33,13 @@ LOCAL_SRC_FILES := \
 	$(VL_STUB_SOURCES)
 
 LOCAL_C_INCLUDES := \
-	$(GALLIUM_TOP)/auxiliary/util \
-	$(MESA_TOP)/src
+	$(GALLIUM_TOP)/auxiliary/util
 
 LOCAL_MODULE := libmesa_gallium
 
 # generate sources
 LOCAL_MODULE_CLASS := STATIC_LIBRARIES
-intermediates := $(call local-intermediates-dir)
+intermediates := $(call local-generated-sources-dir)
 LOCAL_GENERATED_SOURCES := $(addprefix $(intermediates)/, $(GENERATED_SOURCES))
 
 $(LOCAL_GENERATED_SOURCES): PRIVATE_PYTHON := $(MESA_PYTHON2)

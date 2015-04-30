@@ -57,7 +57,7 @@ class glx_enum_function(object):
         # Fill self.count and self.enums using the dictionary of enums
         # that was passed in.  The generic Get functions (e.g.,
         # GetBooleanv and friends) are handled specially here.  In
-        # the data the generic Get functions are refered to as "Get".
+        # the data the generic Get functions are referred to as "Get".
 
         if func_name in ["GetIntegerv", "GetBooleanv", "GetFloatv", "GetDoublev"]:
             match_name = "Get"

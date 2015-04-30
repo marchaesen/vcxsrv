@@ -540,7 +540,12 @@ struct glsl_type {
     */
    const glsl_type *without_array() const
    {
-      return this->is_array() ? this->fields.array : this;
+      const glsl_type *t = this;
+
+      while (t->is_array())
+         t = t->fields.array;
+
+      return t;
    }
 
    /**

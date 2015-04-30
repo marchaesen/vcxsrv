@@ -27,13 +27,16 @@ ifeq ($(LOCAL_MODULE_CLASS),)
 LOCAL_MODULE_CLASS := STATIC_LIBRARIES
 endif
 
-intermediates := $(call local-intermediates-dir)
+intermediates := $(call local-generated-sources-dir)
 
 # This is the list of auto-generated files: sources and headers
 sources := \
 	main/enums.c \
 	main/api_exec.c \
 	main/dispatch.h \
+	main/format_pack.c \
+	main/format_unpack.c \
+	main/format_info.h \
 	main/remap_helper.h \
 	main/get_hash.h
 
@@ -124,3 +127,21 @@ format_info_deps := \
 
 $(intermediates)/main/format_info.h: $(format_info_deps)
 	@$(MESA_PYTHON2) $(FORMAT_INFO) $< > $@
+
+FORMAT_PACK := $(LOCAL_PATH)/main/format_pack.py
+format_pack_deps := \
+	$(LOCAL_PATH)/main/formats.csv \
+	$(LOCAL_PATH)/main/format_parser.py \
+	$(FORMAT_PACK)
+
+$(intermediates)/main/format_pack.c: $(format_pack_deps)
+	$(hide) $(MESA_PYTHON2) $(FORMAT_PACK) $< > $@
+
+FORMAT_UNPACK := $(LOCAL_PATH)/main/format_unpack.py
+format_unpack_deps := \
+	$(LOCAL_PATH)/main/formats.csv \
+	$(LOCAL_PATH)/main/format_parser.py \
+	$(FORMAT_UNPACK)
+
+$(intermediates)/main/format_unpack.c: $(format_unpack_deps)
+	$(hide) $(MESA_PYTHON2) $(FORMAT_UNPACK) $< > $@

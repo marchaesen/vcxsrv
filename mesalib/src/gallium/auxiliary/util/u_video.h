@@ -38,6 +38,7 @@ extern "C" {
 /* u_reduce_video_profile() needs these */
 #include "pipe/p_compiler.h"
 #include "util/u_debug.h"
+#include "util/u_math.h"
 
 static INLINE enum pipe_video_format
 u_reduce_video_profile(enum pipe_video_profile profile)
@@ -144,6 +145,41 @@ u_copy_swap422_packed(void *const *destination_data,
       dst += stride;
       src += src_stride;
    }
+}
+
+static INLINE uint32_t
+u_get_h264_level(uint32_t width, uint32_t height, uint32_t *max_reference)
+{
+   uint32_t max_dpb_mbs;
+
+   width = align(width, 16);
+   height = align(height, 16);
+
+   /* Max references will be used for caculation of number of DPB buffers
+      in the UVD driver, limitation of max references is 16. Some client
+      like mpv application for VA-API, it requires references more than that,
+      so we have to set max of references to 16 here. */
+   *max_reference = MIN2(*max_reference, 16);
+   max_dpb_mbs = (width / 16) * (height / 16) * *max_reference;
+
+   /* The calculation is based on "Decoded picture buffering" section
+      from http://en.wikipedia.org/wiki/H.264/MPEG-4_AVC */
+   if (max_dpb_mbs <= 8100)
+      return 30;
+   else if (max_dpb_mbs <= 18000)
+      return 31;
+   else if (max_dpb_mbs <= 20480)
+      return 32;
+   else if (max_dpb_mbs <= 32768)
+      return 41;
+   else if (max_dpb_mbs <= 34816)
+      return 42;
+   else if (max_dpb_mbs <= 110400)
+      return 50;
+   else if (max_dpb_mbs <= 184320)
+      return 51;
+   else
+      return 52;
 }
 
 #ifdef __cplusplus

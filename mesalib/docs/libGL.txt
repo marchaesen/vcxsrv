@@ -49,7 +49,7 @@ stderr if the LIBGL_DEBUG environment variable is defined.
 libGL.so is thread safe.  The overhead of thread safety for common,
 single-thread clients is negligible.  However, the overhead of thread
 safety for multi-threaded clients is significant.  Each GL API call
-requires two calls to pthread_get_specific() which can noticably
+requires two calls to pthread_get_specific() which can noticeably
 impact performance.  Warning:  libGL.so is thread safe but individual
 DRI drivers may not be.  Please consult the documentation for a driver
 to learn if it is thread safe.

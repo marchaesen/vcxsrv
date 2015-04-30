@@ -130,7 +130,7 @@ ir_call::generate_inline(ir_instruction *next_ir)
 	 parameters[i] = sig_param->clone(ctx, ht);
 	 parameters[i]->data.mode = ir_var_auto;
 
-	 /* Remove the read-only decoration becuase we're going to write
+	 /* Remove the read-only decoration because we're going to write
 	  * directly to this variable.  If the cloned variable is left
 	  * read-only and the inlined function is inside a loop, the loop
 	  * analysis code will get confused.

@@ -49,5 +49,11 @@ _mesa_TextureBarrierNV(void)
 {
    GET_CURRENT_CONTEXT(ctx);
 
+   if (!ctx->Extensions.NV_texture_barrier) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glTextureBarrier(not supported)");
+      return;
+   }
+
    ctx->Driver.TextureBarrier(ctx);
 }

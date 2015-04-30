@@ -813,8 +813,10 @@ test_attachment_completeness(const struct gl_context *ctx, GLenum format,
          if (ctx->Extensions.ARB_depth_texture &&
              baseFormat == GL_DEPTH_STENCIL) {
             /* OK */
-         }
-         else {
+         } else if (ctx->Extensions.ARB_texture_stencil8 &&
+                    baseFormat == GL_STENCIL_INDEX) {
+            /* OK */
+         } else {
             /* no such thing as stencil-only textures */
             att_incomplete("illegal stencil texture");
             att->Complete = GL_FALSE;
@@ -978,7 +980,8 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
 
          if (!is_format_color_renderable(ctx, attFormat,
                                          texImg->InternalFormat) &&
-             !is_legal_depth_format(ctx, f)) {
+             !is_legal_depth_format(ctx, f) &&
+             f != GL_STENCIL_INDEX) {
             fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
             fbo_incomplete(ctx, "texture attachment incomplete", -1);
             return;

@@ -182,5 +182,7 @@ do {                       \
 #define UNUSED
 #endif
 
+/** Compute ceiling of integer quotient of A divided by B. */
+#define DIV_ROUND_UP( A, B )  ( (A) % (B) == 0 ? (A)/(B) : (A)/(B)+1 )
 
 #endif /* UTIL_MACROS_H */

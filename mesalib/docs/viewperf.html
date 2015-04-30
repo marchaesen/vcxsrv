@@ -329,6 +329,13 @@ array initializer statement, but it neglects to specify
 <code>#version 120</code> at the top of the shader code.
 So, the shader does not compile and all that's rendered is plain white polygons.
 </p>
+<p>
+Also, the test tries to create a very large 3D texture that may exceed
+the device driver's limit.
+When this happens, the glTexImage3D call fails and all that's rendered is
+a white box.
+</p>
+
 
 <h3>showcase-01</h3>
 

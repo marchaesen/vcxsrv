@@ -41,7 +41,6 @@
 #include "main/bufferobj.h"
 #include "main/buffers.h"
 #include "main/clear.h"
-#include "main/colortab.h"
 #include "main/condrender.h"
 #include "main/depth.h"
 #include "main/enable.h"

@@ -34,16 +34,24 @@ include $(LOCAL_PATH)/Makefile.sources
 LOCAL_MODULE := libmesa_dri_common
 LOCAL_MODULE_CLASS := STATIC_LIBRARIES
 
-intermediates := $(call local-intermediates-dir)
+intermediates := $(call local-generated-sources-dir)
 
 LOCAL_C_INCLUDES := \
-    $(intermediates) \
     $(MESA_DRI_C_INCLUDES)
+
+LOCAL_EXPORT_C_INCLUDE_DIRS := $(intermediates)
+
+# swrast only
+ifeq ($(MESA_GPU_DRIVERS),swrast)
+LOCAL_CFLAGS := -D__NOT_HAVE_DRM_H
+else
+LOCAL_SHARED_LIBRARIES := libdrm
+endif
 
 LOCAL_SRC_FILES := $(DRI_COMMON_FILES)
 
-LOCAL_GENERATED_SOURCES := \
-    $(intermediates)/xmlpool/options.h
+MESA_DRI_OPTIONS_H := $(intermediates)/xmlpool/options.h
+LOCAL_GENERATED_SOURCES := $(MESA_DRI_OPTIONS_H)
 
 #
 # Generate options.h from gettext translations.
@@ -73,15 +81,14 @@ $(intermediates)/xmlpool/%/LC_MESSAGES/options.mo: $(intermediates)/xmlpool/%.po
 	mkdir -p $(dir $@)
 	msgfmt -o $@ $<
 
-$(intermediates)/xmlpool/options.h: PRIVATE_SCRIPT := $(LOCAL_PATH)/xmlpool/gen_xmlpool.py
-$(intermediates)/xmlpool/options.h: PRIVATE_LOCALEDIR := $(intermediates)/xmlpool
-$(intermediates)/xmlpool/options.h: PRIVATE_TEMPLATE_HEADER := $(LOCAL_PATH)/xmlpool/t_options.h
-$(intermediates)/xmlpool/options.h: PRIVATE_MO_FILES := $(MESA_DRI_OPTIONS_LANGS:%=$(intermediates)/xmlpool/%/LC_MESSAGES/options.mo)
+$(MESA_DRI_OPTIONS_H): PRIVATE_SCRIPT := $(LOCAL_PATH)/xmlpool/gen_xmlpool.py
+$(MESA_DRI_OPTIONS_H): PRIVATE_LOCALEDIR := $(intermediates)/xmlpool
+$(MESA_DRI_OPTIONS_H): PRIVATE_TEMPLATE_HEADER := $(LOCAL_PATH)/xmlpool/t_options.h
+$(MESA_DRI_OPTIONS_H): PRIVATE_MO_FILES := $(MESA_DRI_OPTIONS_LANGS:%=$(intermediates)/xmlpool/%/LC_MESSAGES/options.mo)
 .SECONDEXPANSION:
-$(intermediates)/xmlpool/options.h: $$(PRIVATE_SCRIPT) $$(PRIVATE_TEMPLATE_HEADER) $$(PRIVATE_MO_FILES)
-	mkdir -p $(dir $@)
-	mkdir -p $(PRIVATE_LOCALEDIR)
-	$(MESA_PYTHON2) $(PRIVATE_SCRIPT) $(PRIVATE_TEMPLATE_HEADER) \
+$(MESA_DRI_OPTIONS_H): $$(PRIVATE_SCRIPT) $$(PRIVATE_TEMPLATE_HEADER) $$(PRIVATE_MO_FILES)
+	@mkdir -p $(dir $@)
+	$(hide) $(MESA_PYTHON2) $(PRIVATE_SCRIPT) $(PRIVATE_TEMPLATE_HEADER) \
 		$(PRIVATE_LOCALEDIR) $(MESA_DRI_OPTIONS_LANGS) > $@
 
 include $(MESA_COMMON_MK)
@@ -98,6 +105,13 @@ LOCAL_MODULE := libmesa_megadriver_stub
 LOCAL_MODULE_CLASS := STATIC_LIBRARIES
 LOCAL_C_INCLUDES := \
     $(MESA_DRI_C_INCLUDES)
+
+# swrast only
+ifeq ($(MESA_GPU_DRIVERS),swrast)
+LOCAL_CFLAGS := -D__NOT_HAVE_DRM_H
+else
+LOCAL_SHARED_LIBRARIES := libdrm
+endif
 
 LOCAL_SRC_FILES := $(megadriver_stub_FILES)
 

@@ -46,6 +46,7 @@ demos/tri-test
 pixman/pixman-srgb.c
 pixman/pixman-version.h
 test/a1-trap-test
+test/affine-bench
 test/affine-test
 test/alpha-loop
 test/alphamap

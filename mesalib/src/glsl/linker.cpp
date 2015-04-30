@@ -2570,7 +2570,8 @@ add_interface_variables(struct gl_shader_program *shProg,
          if (var->data.location != SYSTEM_VALUE_VERTEX_ID &&
              var->data.location != SYSTEM_VALUE_VERTEX_ID_ZERO_BASE &&
              var->data.location != SYSTEM_VALUE_INSTANCE_ID)
-         continue;
+            continue;
+         /* FALLTHROUGH */
       case ir_var_shader_in:
          if (programInterface != GL_PROGRAM_INPUT)
             continue;

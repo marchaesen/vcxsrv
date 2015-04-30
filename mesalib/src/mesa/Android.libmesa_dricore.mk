@@ -49,21 +49,18 @@ endif # MESA_ENABLE_ASM
 
 ifeq ($(ARCH_X86_HAVE_SSE4_1),true)
 LOCAL_SRC_FILES += \
-	$(SRCDIR)main/streaming-load-memcpy.c \
-	$(SRCDIR)main/sse_minmax.c
-LOCAL_CFLAGS := -msse4.1
-endif
-
-ifeq ($(ARCH_X86_HAVE_SSE4_1),true)
-LOCAL_CFLAGS += \
+	main/streaming-load-memcpy.c \
+	mesa/main/sse_minmax.c
+LOCAL_CFLAGS := \
+	-msse4.1 \
        -DUSE_SSE41
 endif
 
 LOCAL_C_INCLUDES := \
-	$(call intermediates-dir-for STATIC_LIBRARIES,libmesa_program,,) \
-	$(MESA_TOP)/src \
 	$(MESA_TOP)/src/mapi \
+	$(MESA_TOP)/src/mesa/main \
 	$(MESA_TOP)/src/glsl \
+	$(MESA_TOP)/src/gallium/include \
 	$(MESA_TOP)/src/gallium/auxiliary
 
 LOCAL_WHOLE_STATIC_LIBRARIES := \

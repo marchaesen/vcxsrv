@@ -40,7 +40,7 @@ struct tnl_clipspace;
 
 
 /* It will probably be necessary to allow drivers to specify new
- * emit-styles to cover all the wierd and wacky things out there.
+ * emit-styles to cover all the weird and wacky things out there.
  */
 enum tnl_attr_format {
    EMIT_1F,

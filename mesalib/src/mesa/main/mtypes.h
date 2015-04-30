@@ -2365,16 +2365,6 @@ struct gl_ati_fragment_shader_state
 };
 
 
-/** Set by #pragma directives */
-struct gl_sl_pragmas
-{
-   GLboolean IgnoreOptimize;  /**< ignore #pragma optimize(on/off) ? */
-   GLboolean IgnoreDebug;     /**< ignore #pragma debug(on/off) ? */
-   GLboolean Optimize;  /**< defaults on */
-   GLboolean Debug;     /**< defaults off */
-};
-
-
 /**
  * A GLSL vertex or fragment shader object.
  */
@@ -2397,7 +2387,6 @@ struct gl_shader
 
    struct gl_program *Program;  /**< Post-compile assembly code */
    GLchar *InfoLog;
-   struct gl_sl_pragmas Pragmas;
 
    unsigned Version;       /**< GLSL version used for linking */
 
@@ -2902,8 +2891,6 @@ struct gl_shader_compiler_options
     *     matrix * vector operations, such as position transformation.
     */
    GLboolean OptimizeForAOS;
-
-   struct gl_sl_pragmas DefaultPragmas; /**< Default #pragma settings */
 
    const struct nir_shader_compiler_options *NirOptions;
 };

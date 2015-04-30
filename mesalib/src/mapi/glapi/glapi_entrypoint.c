@@ -29,6 +29,8 @@
  */
 
 
+#include <string.h>
+
 #include "c11/threads.h"
 #include "glapi/glapi_priv.h"
 #include "u_execmem.h"

@@ -642,7 +642,7 @@ emit_copy(nir_parallel_copy_instr *pcopy, nir_src src, nir_src dest_src,
  *
  * The algorithm works by playing this little shell game with the values.
  * We start by recording where every source value is and which source value
- * each destination value should recieve.  We then grab any copy whose
+ * each destination value should receive.  We then grab any copy whose
  * destination is "empty", i.e. not used as a source, and do the following:
  *  - Find where its source value currently lives
  *  - Emit the move instruction

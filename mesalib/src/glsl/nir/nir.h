@@ -960,7 +960,8 @@ typedef struct {
 static inline unsigned
 nir_tex_instr_dest_size(nir_tex_instr *instr)
 {
-   if (instr->op == nir_texop_txs) {
+   switch (instr->op) {
+   case nir_texop_txs: {
       unsigned ret;
       switch (instr->sampler_dim) {
          case GLSL_SAMPLER_DIM_1D:
@@ -985,13 +986,18 @@ nir_tex_instr_dest_size(nir_tex_instr *instr)
       return ret;
    }
 
-   if (instr->op == nir_texop_query_levels)
+   case nir_texop_lod:
       return 2;
 
-   if (instr->is_shadow && instr->is_new_style_shadow)
+   case nir_texop_query_levels:
       return 1;
 
-   return 4;
+   default:
+      if (instr->is_shadow && instr->is_new_style_shadow)
+         return 1;
+
+      return 4;
+   }
 }
 
 static inline unsigned
@@ -1513,6 +1519,9 @@ nir_deref_array *nir_deref_array_create(void *mem_ctx);
 nir_deref_struct *nir_deref_struct_create(void *mem_ctx, unsigned field_index);
 
 nir_deref *nir_copy_deref(void *mem_ctx, nir_deref *deref);
+
+nir_load_const_instr *
+nir_deref_get_const_initializer_load(nir_shader *shader, nir_deref_var *deref);
 
 void nir_instr_insert_before(nir_instr *instr, nir_instr *before);
 void nir_instr_insert_after(nir_instr *instr, nir_instr *after);
