@@ -101,9 +101,12 @@ update_program(struct gl_context *ctx)
       ctx->_Shader->CurrentProgram[MESA_SHADER_GEOMETRY];
    struct gl_shader_program *fsProg =
       ctx->_Shader->CurrentProgram[MESA_SHADER_FRAGMENT];
+   const struct gl_shader_program *csProg =
+      ctx->_Shader->CurrentProgram[MESA_SHADER_COMPUTE];
    const struct gl_vertex_program *prevVP = ctx->VertexProgram._Current;
    const struct gl_fragment_program *prevFP = ctx->FragmentProgram._Current;
    const struct gl_geometry_program *prevGP = ctx->GeometryProgram._Current;
+   const struct gl_compute_program *prevCP = ctx->ComputeProgram._Current;
    GLbitfield new_state = 0x0;
 
    /*
@@ -199,6 +202,16 @@ update_program(struct gl_context *ctx)
       _mesa_reference_vertprog(ctx, &ctx->VertexProgram._Current, NULL);
    }
 
+   if (csProg && csProg->LinkStatus
+       && csProg->_LinkedShaders[MESA_SHADER_COMPUTE]) {
+      /* Use GLSL compute shader */
+      _mesa_reference_compprog(ctx, &ctx->ComputeProgram._Current,
+                               gl_compute_program(csProg->_LinkedShaders[MESA_SHADER_COMPUTE]->Program));
+   } else {
+      /* no compute program */
+      _mesa_reference_compprog(ctx, &ctx->ComputeProgram._Current, NULL);
+   }
+
    /* Let the driver know what's happening:
     */
    if (ctx->FragmentProgram._Current != prevFP) {
@@ -222,6 +235,14 @@ update_program(struct gl_context *ctx)
       if (ctx->Driver.BindProgram) {
          ctx->Driver.BindProgram(ctx, GL_VERTEX_PROGRAM_ARB,
                             (struct gl_program *) ctx->VertexProgram._Current);
+      }
+   }
+
+   if (ctx->ComputeProgram._Current != prevCP) {
+      new_state |= _NEW_PROGRAM;
+      if (ctx->Driver.BindProgram) {
+         ctx->Driver.BindProgram(ctx, GL_COMPUTE_PROGRAM_NV,
+                                 (struct gl_program *) ctx->ComputeProgram._Current);
       }
    }
 
@@ -368,10 +389,10 @@ _mesa_update_state_locked( struct gl_context *ctx )
       update_frontbit( ctx );
 
    if (new_state & _NEW_BUFFERS)
-      _mesa_update_framebuffer(ctx);
+      _mesa_update_framebuffer(ctx, ctx->ReadBuffer, ctx->DrawBuffer);
 
    if (new_state & (_NEW_SCISSOR | _NEW_BUFFERS | _NEW_VIEWPORT))
-      _mesa_update_draw_buffer_bounds( ctx );
+      _mesa_update_draw_buffer_bounds(ctx, ctx->DrawBuffer);
 
    if (new_state & _NEW_LIGHT)
       _mesa_update_lighting( ctx );

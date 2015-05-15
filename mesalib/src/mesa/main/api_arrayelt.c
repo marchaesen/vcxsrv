@@ -1258,12 +1258,37 @@ VertexAttribI4uiv(GLuint index, const GLuint *v)
    CALL_VertexAttribI4uivEXT(GET_DISPATCH(), (index, v));
 }
 
+/* GL_DOUBLE unconverted attributes */
+
+static void GLAPIENTRY
+VertexAttribL1dv(GLuint index, const GLdouble *v)
+{
+   CALL_VertexAttribL1dv(GET_DISPATCH(), (index, v));
+}
+
+static void GLAPIENTRY
+VertexAttribL2dv(GLuint index, const GLdouble *v)
+{
+   CALL_VertexAttribL2dv(GET_DISPATCH(), (index, v));
+}
+
+static void GLAPIENTRY
+VertexAttribL3dv(GLuint index, const GLdouble *v)
+{
+   CALL_VertexAttribL3dv(GET_DISPATCH(), (index, v));
+}
+
+static void GLAPIENTRY
+VertexAttribL4dv(GLuint index, const GLdouble *v)
+{
+   CALL_VertexAttribL4dv(GET_DISPATCH(), (index, v));
+}
 
 /*
  * Array [unnormalized/normalized/integer][size][type] of VertexAttrib
  * functions
  */
-static attrib_func AttribFuncsARB[3][4][NUM_TYPES] = {
+static attrib_func AttribFuncsARB[4][4][NUM_TYPES] = {
    {
       /* non-normalized */
       {
@@ -1405,7 +1430,55 @@ static attrib_func AttribFuncsARB[3][4][NUM_TYPES] = {
          NULL, /* GL_FLOAT */
          NULL  /* GL_DOUBLE */
       }
+   },
+   {
+      /* double-valued */
+      {
+         /* size 1 */
+         NULL,
+         NULL,
+         NULL,
+         NULL,
+         NULL,
+         NULL,
+         NULL,
+         (attrib_func) VertexAttribL1dv,
+      },
+      {
+         /* size 2 */
+         NULL,
+         NULL,
+         NULL,
+         NULL,
+         NULL,
+         NULL,
+         NULL,
+         (attrib_func) VertexAttribL2dv,
+      },
+      {
+         /* size 3 */
+         NULL,
+         NULL,
+         NULL,
+         NULL,
+         NULL,
+         NULL,
+         NULL,
+         (attrib_func) VertexAttribL3dv,
+      },
+      {
+         /* size 4 */
+         NULL,
+         NULL,
+         NULL,
+         NULL,
+         NULL,
+         NULL,
+         NULL,
+         (attrib_func) VertexAttribL4dv,
+      }
    }
+
 };
 
 
@@ -1571,7 +1644,9 @@ _ae_update_state(struct gl_context *ctx)
           * change from one execution of _ae_ArrayElement() to
           * the next.  Doing so caused UT to break.
           */
-         if (at->array->Integer)
+         if (at->array->Doubles)
+            intOrNorm = 3;
+         else if (at->array->Integer)
             intOrNorm = 2;
          else if (at->array->Normalized)
             intOrNorm = 1;

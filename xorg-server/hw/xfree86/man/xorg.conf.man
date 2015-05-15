@@ -1906,6 +1906,7 @@ sections have the following format:
 .B  "Section \*qScreen\*q"
 .BI "    Identifier \*q" name \*q
 .BI "    Device     \*q" devid \*q
+.BI "    GPUDevice  \*q" devid \*q
 .BI "    Monitor    \*q" monid \*q
 .I  "    entries"
 .I  "    ..."
@@ -1948,6 +1949,18 @@ must match the
 of a
 .B Device
 section in the config file.
+.TP 7
+.BI "GPUDevice  \*q" device\-id \*q
+This entry specifies the
+.B Device
+section to be used as a secondary GPU device for this screen.  When multiple graphics cards are
+present, this is what ties a specific secondary card to a screen.  The
+.I device\-id
+must match the
+.B Identifier
+of a
+.B Device
+section in the config file. This can be specified up to 4 times for a single screen.
 .TP 7
 .BI "Monitor  \*q" monitor\-id \*q
 specifies which monitor description is to be used for this screen.

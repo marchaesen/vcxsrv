@@ -309,7 +309,7 @@ InitConnectionLimits(void)
 
 #if !defined(WIN32)
     if (!ConnectionTranslation)
-        ConnectionTranslation = (int *) xnfalloc(sizeof(int) * (lastfdesc + 1));
+        ConnectionTranslation = xnfallocarray(lastfdesc + 1, sizeof(int));
 #else
     InitConnectionTranslation();
 #endif
@@ -429,7 +429,9 @@ CreateWellKnownSockets(void)
         display = dynamic_display;
     }
 
-    ListenTransFds = malloc(ListenTransCount * sizeof (int));
+    ListenTransFds = xallocarray(ListenTransCount, sizeof (int));
+    if (ListenTransFds == NULL)
+        FatalError ("Failed to create listening socket array");
 
     for (i = 0; i < ListenTransCount; i++) {
         int fd = _XSERVTransGetConnectionNumber(ListenTransConns[i]);
@@ -1291,11 +1293,10 @@ ListenOnOpenFD(int fd, int noxauth)
 
     /* Allocate space to store it */
     ListenTransFds =
-        (int *) realloc(ListenTransFds, (ListenTransCount + 1) * sizeof(int));
+        xnfreallocarray(ListenTransFds, ListenTransCount + 1, sizeof(int));
     ListenTransConns =
-        (XtransConnInfo *) realloc(ListenTransConns,
-                                   (ListenTransCount +
-                                    1) * sizeof(XtransConnInfo));
+        xnfreallocarray(ListenTransConns, ListenTransCount + 1,
+                        sizeof(XtransConnInfo));
 
     /* Store it */
     ListenTransConns[ListenTransCount] = ciptr;

@@ -1188,8 +1188,8 @@ dmxBERestoreRenderGlyph(void *value, XID id, void *n)
 
     /* Now allocate the memory we need */
     images = calloc(len_images, sizeof(char));
-    gids = malloc(glyphSet->hash.tableEntries * sizeof(Glyph));
-    glyphs = malloc(glyphSet->hash.tableEntries * sizeof(XGlyphInfo));
+    gids = xallocarray(glyphSet->hash.tableEntries, sizeof(Glyph));
+    glyphs = xallocarray(glyphSet->hash.tableEntries, sizeof(XGlyphInfo));
 
     pos = images;
     ctr = 0;

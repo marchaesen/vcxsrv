@@ -1303,6 +1303,12 @@ create_buffers(GLsizei n, GLuint *buffers, bool dsa)
 
    const char *func = dsa ? "glCreateBuffers" : "glGenBuffers";
 
+   if (dsa && !ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(GL_ARB_direct_state_access is not supported)", func);
+      return;
+   }
+
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "%s(%d)\n", func, n);
 
@@ -1477,6 +1483,13 @@ _mesa_NamedBufferStorage(GLuint buffer, GLsizeiptr size, const GLvoid *data,
    GET_CURRENT_CONTEXT(ctx);
    struct gl_buffer_object *bufObj;
 
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glNamedBufferStorage(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return;
+   }
+
    bufObj = _mesa_lookup_bufferobj_err(ctx, buffer, "glNamedBufferStorage");
    if (!bufObj)
       return;
@@ -1603,6 +1616,13 @@ _mesa_NamedBufferData(GLuint buffer, GLsizeiptr size, const GLvoid *data,
    GET_CURRENT_CONTEXT(ctx);
    struct gl_buffer_object *bufObj;
 
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glNamedBufferData(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return;
+   }
+
    bufObj = _mesa_lookup_bufferobj_err(ctx, buffer, "glNamedBufferData");
    if (!bufObj)
       return;
@@ -1673,6 +1693,13 @@ _mesa_NamedBufferSubData(GLuint buffer, GLintptr offset,
    GET_CURRENT_CONTEXT(ctx);
    struct gl_buffer_object *bufObj;
 
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glNamedBufferSubData(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return;
+   }
+
    bufObj = _mesa_lookup_bufferobj_err(ctx, buffer, "glNamedBufferSubData");
    if (!bufObj)
       return;
@@ -1709,6 +1736,13 @@ _mesa_GetNamedBufferSubData(GLuint buffer, GLintptr offset,
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_buffer_object *bufObj;
+
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glGetNamedBufferSubData(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return;
+   }
 
    bufObj = _mesa_lookup_bufferobj_err(ctx, buffer,
                                        "glGetNamedBufferSubData");
@@ -1805,6 +1839,13 @@ _mesa_ClearNamedBufferData(GLuint buffer, GLenum internalformat,
    GET_CURRENT_CONTEXT(ctx);
    struct gl_buffer_object *bufObj;
 
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glClearNamedBufferData(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return;
+   }
+
    bufObj = _mesa_lookup_bufferobj_err(ctx, buffer, "glClearNamedBufferData");
    if (!bufObj)
       return;
@@ -1841,6 +1882,13 @@ _mesa_ClearNamedBufferSubData(GLuint buffer, GLenum internalformat,
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_buffer_object *bufObj;
+
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glClearNamedBufferSubData(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return;
+   }
 
    bufObj = _mesa_lookup_bufferobj_err(ctx, buffer,
                                        "glClearNamedBufferSubData");
@@ -1929,6 +1977,13 @@ _mesa_UnmapNamedBuffer(GLuint buffer)
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_buffer_object *bufObj;
+
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glUnmapNamedBuffer(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return GL_FALSE;
+   }
 
    bufObj = _mesa_lookup_bufferobj_err(ctx, buffer, "glUnmapNamedBuffer");
    if (!bufObj)
@@ -2039,6 +2094,13 @@ _mesa_GetNamedBufferParameteriv(GLuint buffer, GLenum pname, GLint *params)
    struct gl_buffer_object *bufObj;
    GLint64 parameter;
 
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glGetNamedBufferParameteriv(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return;
+   }
+
    bufObj = _mesa_lookup_bufferobj_err(ctx, buffer,
                                        "glGetNamedBufferParameteriv");
    if (!bufObj)
@@ -2058,6 +2120,13 @@ _mesa_GetNamedBufferParameteri64v(GLuint buffer, GLenum pname,
    GET_CURRENT_CONTEXT(ctx);
    struct gl_buffer_object *bufObj;
    GLint64 parameter;
+
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glGetNamedBufferParameteri64v(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return;
+   }
 
    bufObj = _mesa_lookup_bufferobj_err(ctx, buffer,
                                        "glGetNamedBufferParameteri64v");
@@ -2097,6 +2166,13 @@ _mesa_GetNamedBufferPointerv(GLuint buffer, GLenum pname, GLvoid **params)
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_buffer_object *bufObj;
+
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glGetNamedBufferPointerv(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return;
+   }
 
    if (pname != GL_BUFFER_MAP_POINTER) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glGetNamedBufferPointerv(pname != "
@@ -2211,6 +2287,13 @@ _mesa_CopyNamedBufferSubData(GLuint readBuffer, GLuint writeBuffer,
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_buffer_object *src, *dst;
+
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glCopyNamedBufferSubData(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return;
+   }
 
    src = _mesa_lookup_bufferobj_err(ctx, readBuffer,
                                     "glCopyNamedBufferSubData");
@@ -2430,6 +2513,13 @@ _mesa_MapNamedBufferRange(GLuint buffer, GLintptr offset, GLsizeiptr length,
    GET_CURRENT_CONTEXT(ctx);
    struct gl_buffer_object *bufObj;
 
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glMapNamedBufferRange(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return NULL;
+   }
+
    if (!ctx->Extensions.ARB_map_buffer_range) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glMapNamedBufferRange("
@@ -2496,6 +2586,13 @@ _mesa_MapNamedBuffer(GLuint buffer, GLenum access)
    GET_CURRENT_CONTEXT(ctx);
    struct gl_buffer_object *bufObj;
    GLbitfield accessFlags;
+
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glMapNamedBuffer(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return NULL;
+   }
 
    if (!get_map_buffer_access_flags(ctx, access, &accessFlags)) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glMapNamedBuffer(invalid access)");
@@ -2586,6 +2683,14 @@ _mesa_FlushMappedNamedBufferRange(GLuint buffer, GLintptr offset,
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_buffer_object *bufObj;
+
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glFlushMappedNamedBufferRange(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return;
+   }
+
 
    bufObj = _mesa_lookup_bufferobj_err(ctx, buffer,
                                        "glFlushMappedNamedBufferRange");

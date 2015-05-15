@@ -614,27 +614,135 @@ nir_visitor::visit(ir_call *ir)
          op = nir_intrinsic_atomic_counter_inc_var;
       } else if (strcmp(ir->callee_name(), "__intrinsic_atomic_predecrement") == 0) {
          op = nir_intrinsic_atomic_counter_dec_var;
+      } else if (strcmp(ir->callee_name(), "__intrinsic_image_load") == 0) {
+         op = nir_intrinsic_image_load;
+      } else if (strcmp(ir->callee_name(), "__intrinsic_image_store") == 0) {
+         op = nir_intrinsic_image_store;
+      } else if (strcmp(ir->callee_name(), "__intrinsic_image_atomic_add") == 0) {
+         op = nir_intrinsic_image_atomic_add;
+      } else if (strcmp(ir->callee_name(), "__intrinsic_image_atomic_min") == 0) {
+         op = nir_intrinsic_image_atomic_min;
+      } else if (strcmp(ir->callee_name(), "__intrinsic_image_atomic_max") == 0) {
+         op = nir_intrinsic_image_atomic_max;
+      } else if (strcmp(ir->callee_name(), "__intrinsic_image_atomic_and") == 0) {
+         op = nir_intrinsic_image_atomic_and;
+      } else if (strcmp(ir->callee_name(), "__intrinsic_image_atomic_or") == 0) {
+         op = nir_intrinsic_image_atomic_or;
+      } else if (strcmp(ir->callee_name(), "__intrinsic_image_atomic_xor") == 0) {
+         op = nir_intrinsic_image_atomic_xor;
+      } else if (strcmp(ir->callee_name(), "__intrinsic_image_atomic_exchange") == 0) {
+         op = nir_intrinsic_image_atomic_exchange;
+      } else if (strcmp(ir->callee_name(), "__intrinsic_image_atomic_comp_swap") == 0) {
+         op = nir_intrinsic_image_atomic_comp_swap;
+      } else if (strcmp(ir->callee_name(), "__intrinsic_memory_barrier") == 0) {
+         op = nir_intrinsic_memory_barrier;
       } else {
          unreachable("not reached");
       }
 
       nir_intrinsic_instr *instr = nir_intrinsic_instr_create(shader, op);
-      ir_dereference *param =
-         (ir_dereference *) ir->actual_parameters.get_head();
-      instr->variables[0] = evaluate_deref(&instr->instr, param);
-      nir_ssa_dest_init(&instr->instr, &instr->dest, 1, NULL);
+
+      switch (op) {
+      case nir_intrinsic_atomic_counter_read_var:
+      case nir_intrinsic_atomic_counter_inc_var:
+      case nir_intrinsic_atomic_counter_dec_var: {
+         ir_dereference *param =
+            (ir_dereference *) ir->actual_parameters.get_head();
+         instr->variables[0] = evaluate_deref(&instr->instr, param);
+         nir_ssa_dest_init(&instr->instr, &instr->dest, 1, NULL);
+         break;
+      }
+      case nir_intrinsic_image_load:
+      case nir_intrinsic_image_store:
+      case nir_intrinsic_image_atomic_add:
+      case nir_intrinsic_image_atomic_min:
+      case nir_intrinsic_image_atomic_max:
+      case nir_intrinsic_image_atomic_and:
+      case nir_intrinsic_image_atomic_or:
+      case nir_intrinsic_image_atomic_xor:
+      case nir_intrinsic_image_atomic_exchange:
+      case nir_intrinsic_image_atomic_comp_swap: {
+         nir_ssa_undef_instr *instr_undef =
+            nir_ssa_undef_instr_create(shader, 1);
+         nir_instr_insert_after_cf_list(this->cf_node_list,
+                                        &instr_undef->instr);
+
+         /* Set the image variable dereference. */
+         exec_node *param = ir->actual_parameters.get_head();
+         ir_dereference *image = (ir_dereference *)param;
+         const glsl_type *type =
+            image->variable_referenced()->type->without_array();
+
+         instr->variables[0] = evaluate_deref(&instr->instr, image);
+         param = param->get_next();
+
+         /* Set the address argument, extending the coordinate vector to four
+          * components.
+          */
+         const nir_src src_addr = evaluate_rvalue((ir_dereference *)param);
+         nir_alu_instr *instr_addr = nir_alu_instr_create(shader, nir_op_vec4);
+         nir_ssa_dest_init(&instr_addr->instr, &instr_addr->dest.dest, 4, NULL);
+
+         for (int i = 0; i < 4; i++) {
+            if (i < type->coordinate_components()) {
+               instr_addr->src[i].src = src_addr;
+               instr_addr->src[i].swizzle[0] = i;
+            } else {
+               instr_addr->src[i].src = nir_src_for_ssa(&instr_undef->def);
+            }
+         }
+
+         nir_instr_insert_after_cf_list(cf_node_list, &instr_addr->instr);
+         instr->src[0] = nir_src_for_ssa(&instr_addr->dest.dest.ssa);
+         param = param->get_next();
+
+         /* Set the sample argument, which is undefined for single-sample
+          * images.
+          */
+         if (type->sampler_dimensionality == GLSL_SAMPLER_DIM_MS) {
+            instr->src[1] = evaluate_rvalue((ir_dereference *)param);
+            param = param->get_next();
+         } else {
+            instr->src[1] = nir_src_for_ssa(&instr_undef->def);
+         }
+
+         /* Set the intrinsic parameters. */
+         if (!param->is_tail_sentinel()) {
+            instr->src[2] = evaluate_rvalue((ir_dereference *)param);
+            param = param->get_next();
+         }
+
+         if (!param->is_tail_sentinel()) {
+            instr->src[3] = evaluate_rvalue((ir_dereference *)param);
+            param = param->get_next();
+         }
+
+         /* Set the intrinsic destination. */
+         if (ir->return_deref)
+            nir_ssa_dest_init(&instr->instr, &instr->dest,
+                              ir->return_deref->type->vector_elements, NULL);
+         break;
+      }
+      case nir_intrinsic_memory_barrier:
+         break;
+      default:
+         unreachable("not reached");
+      }
 
       nir_instr_insert_after_cf_list(this->cf_node_list, &instr->instr);
 
-      nir_intrinsic_instr *store_instr =
-         nir_intrinsic_instr_create(shader, nir_intrinsic_store_var);
-      store_instr->num_components = 1;
+      if (ir->return_deref) {
+         nir_intrinsic_instr *store_instr =
+            nir_intrinsic_instr_create(shader, nir_intrinsic_store_var);
+         store_instr->num_components = ir->return_deref->type->vector_elements;
 
-      store_instr->variables[0] = evaluate_deref(&store_instr->instr, ir->return_deref);
-      store_instr->src[0].is_ssa = true;
-      store_instr->src[0].ssa = &instr->dest.ssa;
+         store_instr->variables[0] =
+            evaluate_deref(&store_instr->instr, ir->return_deref);
+         store_instr->src[0] = nir_src_for_ssa(&instr->dest.ssa);
 
-      nir_instr_insert_after_cf_list(this->cf_node_list, &store_instr->instr);
+         nir_instr_insert_after_cf_list(this->cf_node_list,
+                                        &store_instr->instr);
+      }
 
       return;
    }
@@ -824,7 +932,7 @@ nir_visitor::evaluate_rvalue(ir_rvalue* ir)
    nir_dest *dest = get_instr_dest(this->result);
 
    assert(dest->is_ssa);
-   nir_src src;
+   nir_src src = NIR_SRC_INIT;
    src.is_ssa = true;
    src.ssa = &dest->ssa;
 
@@ -1038,8 +1146,8 @@ nir_visitor::visit(ir_expression *ir)
    case ir_unop_rcp:  emit(nir_op_frcp, dest_size, srcs);  break;
    case ir_unop_rsq:  emit(nir_op_frsq, dest_size, srcs);  break;
    case ir_unop_sqrt: emit(nir_op_fsqrt, dest_size, srcs); break;
-   case ir_unop_exp:  emit(nir_op_fexp, dest_size, srcs);  break;
-   case ir_unop_log:  emit(nir_op_flog, dest_size, srcs);  break;
+   case ir_unop_exp:  unreachable("ir_unop_exp should have been lowered");
+   case ir_unop_log:  unreachable("ir_unop_log should have been lowered");
    case ir_unop_exp2: emit(nir_op_fexp2, dest_size, srcs); break;
    case ir_unop_log2: emit(nir_op_flog2, dest_size, srcs); break;
    case ir_unop_i2f:

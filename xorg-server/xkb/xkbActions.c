@@ -1103,8 +1103,8 @@ _XkbNextFreeFilter(XkbSrvInfoPtr xkbi)
         }
     }
     xkbi->szFilters *= 2;
-    xkbi->filters = realloc(xkbi->filters,
-                            xkbi->szFilters * sizeof(XkbFilterRec));
+    xkbi->filters = reallocarray(xkbi->filters,
+                                 xkbi->szFilters, sizeof(XkbFilterRec));
     /* 6/21/93 (ef) -- XXX! deal with allocation failure */
     memset(&xkbi->filters[xkbi->szFilters / 2], 0,
            (xkbi->szFilters / 2) * sizeof(XkbFilterRec));

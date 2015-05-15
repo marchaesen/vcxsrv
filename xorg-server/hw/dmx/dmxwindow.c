@@ -969,7 +969,7 @@ dmxDoSetShape(WindowPtr pWindow)
     if (wBoundingShape(pWindow)) {
         pBox = RegionRects(wBoundingShape(pWindow));
         nRect = nBox = RegionNumRects(wBoundingShape(pWindow));
-        pRectFirst = pRect = malloc(nRect * sizeof(*pRect));
+        pRectFirst = pRect = xallocarray(nRect, sizeof(*pRect));
         while (nBox--) {
             pRect->x = pBox->x1;
             pRect->y = pBox->y1;
@@ -992,7 +992,7 @@ dmxDoSetShape(WindowPtr pWindow)
     if (wClipShape(pWindow)) {
         pBox = RegionRects(wClipShape(pWindow));
         nRect = nBox = RegionNumRects(wClipShape(pWindow));
-        pRectFirst = pRect = malloc(nRect * sizeof(*pRect));
+        pRectFirst = pRect = xallocarray(nRect, sizeof(*pRect));
         while (nBox--) {
             pRect->x = pBox->x1;
             pRect->y = pBox->y1;

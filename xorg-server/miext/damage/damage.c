@@ -1293,7 +1293,7 @@ damageText(DrawablePtr pDrawable,
     if (!checkGCDamage(pDrawable, pGC))
         return;
 
-    charinfo = malloc(count * sizeof(CharInfoPtr));
+    charinfo = xallocarray(count, sizeof(CharInfoPtr));
     if (!charinfo)
         return;
 

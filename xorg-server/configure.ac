@@ -219,7 +219,7 @@ dnl Checks for library functions.
 AC_CHECK_FUNCS([backtrace ffs geteuid getuid issetugid getresuid \
 	getdtablesize getifaddrs getpeereid getpeerucred getprogname getzoneid \
 	mmap seteuid shmctl64 strncasecmp vasprintf vsnprintf walkcontext])
-AC_REPLACE_FUNCS([strcasecmp strcasestr strlcat strlcpy strndup])
+AC_REPLACE_FUNCS([reallocarray strcasecmp strcasestr strlcat strlcpy strndup])
 
 AC_CHECK_DECLS([program_invocation_short_name], [], [], [[#include <errno.h>]])
 
@@ -560,17 +560,7 @@ dnl GLX build options
 AC_ARG_ENABLE(aiglx,          AS_HELP_STRING([--enable-aiglx], [Build accelerated indirect GLX (default: enabled)]),
                                 [AIGLX=$enableval],
                                 [AIGLX=yes])
-XORG_TLS
-AC_ARG_ENABLE(glx-tls,        AS_HELP_STRING([--enable-glx-tls], [Build GLX with TLS support (default: auto)]),
-                                [GLX_USE_TLS=$enableval
-                                 if test "x$GLX_USE_TLS" = "xyes" && test "${ac_cv_tls}" = "none" ; then
-                                   AC_MSG_ERROR([GLX with TLS support requested, but the compiler does not support it.])
-                                 fi],
-                                [GLX_USE_TLS=no
-                                 if test "${ac_cv_tls}" != "none" ; then
-                                   GLX_USE_TLS=yes
-                                 fi])
-AC_SUBST(GLX_TLS, ${GLX_USE_TLS})
+
 AC_ARG_WITH(khronos-spec-dir, AS_HELP_STRING([--with-khronos-spec-dir=PATH], [Path to Khronos OpenGL registry database files (default: auto)]),
 				[KHRONOS_SPEC_DIR="${withval}"],
 				[KHRONOS_SPEC_DIR=auto])
@@ -1324,10 +1314,6 @@ if test "x$AIGLX" = xyes -a \( "x$DRI2" = xyes \); then
 fi
 AM_CONDITIONAL(AIGLX_DRI_LOADER, { test "x$DRI2" = xyes; } && test "x$AIGLX" = xyes)
 
-if test "x$GLX_USE_TLS" = xyes ; then
-	GLX_DEFINES="-DGLX_USE_TLS -DPTHREADS"
-	GLX_SYS_LIBS="$GLX_SYS_LIBS -lpthread"
-fi
 AC_SUBST([GLX_DEFINES])
 AC_SUBST([GLX_SYS_LIBS])
 
@@ -1976,7 +1962,7 @@ if test "x$XORG" = xyes; then
 		  sparc*)	
 			SOLARIS_INOUT_ARCH="sparcv8plus"
 			;;
-		  i*86)	
+		  i*86|x86_64*)
 			if test x$SOLARIS_64 = xyes ; then
 				SOLARIS_INOUT_ARCH="amd64"
 			else
@@ -2003,11 +1989,6 @@ if test "x$XORG" = xyes; then
 		[Your OS is unknown.],
 		[If you are interested in porting Xorg to your platform,],
 		[please email xorg@lists.freedesktop.org.]))])
-		;;
-	esac
-
-	case $host_cpu in
-	  i*86)
 		;;
 	esac
 
@@ -2423,7 +2404,8 @@ if test "$KDRIVE" = yes; then
 	    fi
 	    ;;
     esac
-    KDRIVE_LOCAL_LIBS="$MAIN_LIB $DIX_LIB $KDRIVE_LIB"
+    KDRIVE_MAIN_LIB="$MAIN_LIB"
+    KDRIVE_LOCAL_LIBS="$DIX_LIB $KDRIVE_LIB"
     KDRIVE_LOCAL_LIBS="$KDRIVE_LOCAL_LIBS $FB_LIB $MI_LIB $KDRIVE_PURE_LIBS"
     KDRIVE_LOCAL_LIBS="$KDRIVE_LOCAL_LIBS $KDRIVE_OS_LIB"
     KDRIVE_LIBS="$KDRIVE_LOCAL_LIBS $XSERVER_SYS_LIBS $GLX_SYS_LIBS $DLOPEN_LIBS $TSLIB_LIBS"
@@ -2435,6 +2417,7 @@ AC_SUBST([KDRIVE_INCS])
 AC_SUBST([KDRIVE_PURE_INCS])
 AC_SUBST([KDRIVE_CFLAGS])
 AC_SUBST([KDRIVE_PURE_LIBS])
+AC_SUBST([KDRIVE_MAIN_LIB])
 AC_SUBST([KDRIVE_LOCAL_LIBS])
 AC_SUBST([KDRIVE_LIBS])
 AM_CONDITIONAL(KDRIVELINUX, [test "x$KDRIVELINUX" = xyes])

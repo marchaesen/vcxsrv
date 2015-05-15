@@ -73,6 +73,14 @@ match_value(const nir_search_value *value, nir_alu_instr *instr, unsigned src,
 {
    uint8_t new_swizzle[4];
 
+   /* If the source is an explicitly sized source, then we need to reset
+    * both the number of components and the swizzle.
+    */
+   if (nir_op_infos[instr->op].input_sizes[src] != 0) {
+      num_components = nir_op_infos[instr->op].input_sizes[src];
+      swizzle = identity_swizzle;
+   }
+
    for (int i = 0; i < num_components; ++i)
       new_swizzle[i] = instr->src[src].swizzle[swizzle[i]];
 
@@ -90,6 +98,7 @@ match_value(const nir_search_value *value, nir_alu_instr *instr, unsigned src,
 
    case nir_search_value_variable: {
       nir_search_variable *var = nir_search_value_as_variable(value);
+      assert(var->variable < NIR_SEARCH_MAX_VARIABLES);
 
       if (state->variables_seen & (1 << var->variable)) {
          if (!nir_srcs_equal(state->variables[var->variable].src,
@@ -198,16 +207,13 @@ match_expression(const nir_search_expression *expr, nir_alu_instr *instr,
       }
    }
 
+   /* Stash off the current variables_seen bitmask.  This way we can
+    * restore it prior to matching in the commutative case below.
+    */
+   unsigned variables_seen_stash = state->variables_seen;
+
    bool matched = true;
    for (unsigned i = 0; i < nir_op_infos[instr->op].num_inputs; i++) {
-      /* If the source is an explicitly sized source, then we need to reset
-       * both the number of components and the swizzle.
-       */
-      if (nir_op_infos[instr->op].input_sizes[i] != 0) {
-         num_components = nir_op_infos[instr->op].input_sizes[i];
-         swizzle = identity_swizzle;
-      }
-
       if (!match_value(expr->srcs[i], instr, i, num_components,
                        swizzle, state)) {
          matched = false;
@@ -220,6 +226,13 @@ match_expression(const nir_search_expression *expr, nir_alu_instr *instr,
 
    if (nir_op_infos[instr->op].algebraic_properties & NIR_OP_IS_COMMUTATIVE) {
       assert(nir_op_infos[instr->op].num_inputs == 2);
+
+      /* Restore the variables_seen bitmask.  If we don't do this, then we
+       * could end up with an erroneous failure due to variables found in the
+       * first match attempt above not matching those in the second.
+       */
+      state->variables_seen = variables_seen_stash;
+
       if (!match_value(expr->srcs[0], instr, 1, num_components,
                        swizzle, state))
          return false;
@@ -276,7 +289,7 @@ construct_value(const nir_search_value *value, nir_alu_type type,
       const nir_search_variable *var = nir_search_value_as_variable(value);
       assert(state->variables_seen & (1 << var->variable));
 
-      nir_alu_src val;
+      nir_alu_src val = { NIR_SRC_INIT };
       nir_alu_src_copy(&val, &state->variables[var->variable], mem_ctx);
 
       assert(!var->is_constant);

@@ -1187,9 +1187,9 @@ miFillSppPoly(DrawablePtr dst, GCPtr pgc, int count,    /* number of points */
     y = ymax - ymin + 1;
     if ((count < 3) || (y <= 0))
         return;
-    ptsOut = FirstPoint = malloc(sizeof(DDXPointRec) * y);
-    width = FirstWidth = malloc(sizeof(int) * y);
-    Marked = malloc(sizeof(int) * count);
+    ptsOut = FirstPoint = xallocarray(y, sizeof(DDXPointRec));
+    width = FirstWidth = xallocarray(y, sizeof(int));
+    Marked = xallocarray(count, sizeof(int));
 
     if (!ptsOut || !width || !Marked) {
         free(Marked);
@@ -1679,8 +1679,7 @@ miGetArcPts(SppArcPtr parc,     /* points to an arc */
     count++;
 
     cdt = 2 * miDcos(dt);
-    if (!(poly = (SppPointPtr) realloc((void *) *ppPts,
-                                       (cpt + count) * sizeof(SppPointRec))))
+    if (!(poly = reallocarray(*ppPts, cpt + count, sizeof(SppPointRec))))
         return 0;
     *ppPts = poly;
 
@@ -1737,7 +1736,7 @@ addCap(miArcCapPtr * capsp, int *ncapsp, int *sizep, int end, int arcIndex)
 
     if (*ncapsp == *sizep) {
         newsize = *sizep + ADD_REALLOC_STEP;
-        cap = (miArcCapPtr) realloc(*capsp, newsize * sizeof(**capsp));
+        cap = reallocarray(*capsp, newsize, sizeof(**capsp));
         if (!cap)
             return;
         *sizep = newsize;
@@ -1760,7 +1759,7 @@ addJoin(miArcJoinPtr * joinsp,
 
     if (*njoinsp == *sizep) {
         newsize = *sizep + ADD_REALLOC_STEP;
-        join = (miArcJoinPtr) realloc(*joinsp, newsize * sizeof(**joinsp));
+        join = reallocarray(*joinsp, newsize, sizeof(**joinsp));
         if (!join)
             return;
         *sizep = newsize;
@@ -1784,7 +1783,7 @@ addArc(miArcDataPtr * arcsp, int *narcsp, int *sizep, xArc * xarc)
 
     if (*narcsp == *sizep) {
         newsize = *sizep + ADD_REALLOC_STEP;
-        arc = (miArcDataPtr) realloc(*arcsp, newsize * sizeof(**arcsp));
+        arc = reallocarray(*arcsp, newsize, sizeof(**arcsp));
         if (!arc)
             return NULL;
         *sizep = newsize;
@@ -1890,10 +1889,10 @@ miComputeArcs(xArc * parcs, int narcs, GCPtr pGC)
     isDoubleDash = (pGC->lineStyle == LineDoubleDash);
     dashOffset = pGC->dashOffset;
 
-    data = malloc(narcs * sizeof(struct arcData));
+    data = xallocarray(narcs, sizeof(struct arcData));
     if (!data)
         return NULL;
-    arcs = malloc(sizeof(*arcs) * (isDoubleDash ? 2 : 1));
+    arcs = xallocarray(isDoubleDash ? 2 : 1, sizeof(*arcs));
     if (!arcs) {
         free(data);
         return NULL;
@@ -3081,8 +3080,8 @@ fillSpans(DrawablePtr pDrawable, GCPtr pGC)
 
     if (nspans == 0)
         return;
-    xSpan = xSpans = malloc(nspans * sizeof(DDXPointRec));
-    xWidth = xWidths = malloc(nspans * sizeof(int));
+    xSpan = xSpans = xallocarray(nspans, sizeof(DDXPointRec));
+    xWidth = xWidths = xallocarray(nspans, sizeof(int));
     if (xSpans && xWidths) {
         i = 0;
         f = finalSpans;
@@ -3136,7 +3135,7 @@ realFindSpan(int y)
         else
             change = SPAN_REALLOC;
         newSize = finalSize + change;
-        newSpans = malloc(newSize * sizeof(struct finalSpan *));
+        newSpans = xallocarray(newSize, sizeof(struct finalSpan *));
         if (!newSpans)
             return NULL;
         newMiny = finalMiny;

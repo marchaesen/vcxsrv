@@ -1,8 +1,8 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2006 VMware, Inc., Bismarck, ND. USA.
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -10,36 +10,37 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE COPYRIGHT HOLDERS, AUTHORS AND/OR ITS SUPPLIERS BE LIABLE FOR ANY CLAIM, 
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR 
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE 
+ * THE COPYRIGHT HOLDERS, AUTHORS AND/OR ITS SUPPLIERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  **************************************************************************/
 
 /**
  * \file
  * List macros heavily inspired by the Linux kernel
  * list handling. No list looping yet.
- * 
+ *
  * Is not threadsafe, so common operations need to
  * be protected using an external mutex.
  */
 
-#ifndef _U_DOUBLE_LIST_H_
-#define _U_DOUBLE_LIST_H_
+#ifndef _UTIL_LIST_H_
+#define _UTIL_LIST_H_
 
 
+#include <stdbool.h>
 #include <stddef.h>
-#include "pipe/p_compiler.h"
+#include <assert.h>
 
 
 struct list_head
@@ -48,13 +49,13 @@ struct list_head
     struct list_head *next;
 };
 
-static INLINE void list_inithead(struct list_head *item)
+static inline void list_inithead(struct list_head *item)
 {
     item->prev = item;
     item->next = item;
 }
 
-static INLINE void list_add(struct list_head *item, struct list_head *list)
+static inline void list_add(struct list_head *item, struct list_head *list)
 {
     item->prev = list;
     item->next = list->next;
@@ -62,7 +63,7 @@ static INLINE void list_add(struct list_head *item, struct list_head *list)
     list->next = item;
 }
 
-static INLINE void list_addtail(struct list_head *item, struct list_head *list)
+static inline void list_addtail(struct list_head *item, struct list_head *list)
 {
     item->next = list;
     item->prev = list->prev;
@@ -70,7 +71,7 @@ static INLINE void list_addtail(struct list_head *item, struct list_head *list)
     list->prev = item;
 }
 
-static INLINE void list_replace(struct list_head *from, struct list_head *to)
+static inline void list_replace(struct list_head *from, struct list_head *to)
 {
     to->prev = from->prev;
     to->next = from->next;
@@ -78,19 +79,41 @@ static INLINE void list_replace(struct list_head *from, struct list_head *to)
     from->prev->next = to;
 }
 
-static INLINE void list_del(struct list_head *item)
+static inline void list_del(struct list_head *item)
 {
     item->prev->next = item->next;
     item->next->prev = item->prev;
     item->prev = item->next = NULL;
 }
 
-static INLINE void list_delinit(struct list_head *item)
+static inline void list_delinit(struct list_head *item)
 {
     item->prev->next = item->next;
     item->next->prev = item->prev;
     item->next = item;
     item->prev = item;
+}
+
+static inline bool list_empty(struct list_head *list)
+{
+   return list->next == list;
+}
+
+static inline unsigned list_length(struct list_head *list)
+{
+   struct list_head *node;
+   unsigned length = 0;
+   for (node = list->next; node != list; node = node->next)
+      length++;
+   return length;
+}
+
+static inline void list_validate(struct list_head *list)
+{
+   struct list_head *node;
+   assert(list->next->prev == list && list->prev->next == list);
+   for (node = list->next; node != list; node = node->next)
+      assert(node->next->prev == node && node->prev->next == node);
 }
 
 #define LIST_INITHEAD(__item) list_inithead(__item)
@@ -144,4 +167,38 @@ static INLINE void list_delinit(struct list_head *item)
 	&pos->member != (head);						\
 	pos = container_of(pos->member.prev, pos, member))
 
-#endif /*_U_DOUBLE_LIST_H_*/
+#define list_for_each_entry(type, pos, head, member)                    \
+   for (type *pos = LIST_ENTRY(type, (head)->next, member);             \
+	&pos->member != (head);                                         \
+	pos = LIST_ENTRY(type, pos->member.next, member))
+
+#define list_for_each_entry_safe(type, pos, head, member)               \
+   for (type *pos = LIST_ENTRY(type, (head)->next, member),             \
+	     *__next = LIST_ENTRY(type, pos->member.next, member);      \
+	&pos->member != (head);                                         \
+	pos = __next,                                                   \
+        __next = LIST_ENTRY(type, __next->member.next, member))
+
+#define list_for_each_entry_rev(type, pos, head, member)                \
+   for (type *pos = LIST_ENTRY(type, (head)->prev, member);             \
+	&pos->member != (head);                                         \
+	pos = LIST_ENTRY(type, pos->member.prev, member))
+
+#define list_for_each_entry_safe_rev(type, pos, head, member)           \
+   for (type *pos = LIST_ENTRY(type, (head)->prev, member),             \
+	     *__prev = LIST_ENTRY(type, pos->member.prev, member);      \
+	&pos->member != (head);                                         \
+	pos = __prev,                                                   \
+        __prev = LIST_ENTRY(type, __prev->member.prev, member))
+
+#define list_for_each_entry_from(type, pos, start, head, member)        \
+   for (type *pos = LIST_ENTRY(type, (start), member);                  \
+	&pos->member != (head);                                         \
+	pos = LIST_ENTRY(type, pos->member.next, member))
+
+#define list_for_each_entry_from_rev(type, pos, start, head, member)    \
+   for (type *pos = LIST_ENTRY(type, (start), member);                  \
+	&pos->member != (head);                                         \
+	pos = LIST_ENTRY(type, pos->member.prev, member))
+
+#endif /*_UTIL_LIST_H_*/

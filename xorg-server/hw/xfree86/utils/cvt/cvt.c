@@ -54,11 +54,11 @@ XNFalloc(unsigned long n)
 
 /* xnfcalloc implementation used by the server code we built in */
 void *
-XNFcalloc(unsigned long n)
+XNFcallocarray(size_t nmemb, size_t size)
 {
     void *r;
 
-    r = calloc(1, n);
+    r = calloc(nmemb, size);
     if (!r) {
         perror("calloc failed");
         exit(1);

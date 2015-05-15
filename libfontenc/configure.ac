@@ -21,7 +21,7 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([libfontenc], [1.1.2],
+AC_INIT([libfontenc], [1.1.3],
         [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [libfontenc])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])

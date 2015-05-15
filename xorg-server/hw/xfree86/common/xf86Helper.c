@@ -77,8 +77,8 @@ xf86AddDriver(DriverPtr driver, void *module, int flags)
         xf86NumDrivers = 0;
 
     xf86NumDrivers++;
-    xf86DriverList = xnfrealloc(xf86DriverList,
-                                xf86NumDrivers * sizeof(DriverPtr));
+    xf86DriverList = xnfreallocarray(xf86DriverList,
+                                     xf86NumDrivers, sizeof(DriverPtr));
     xf86DriverList[xf86NumDrivers - 1] = xnfalloc(sizeof(DriverRec));
     if (flags & HaveDriverFuncs)
         *xf86DriverList[xf86NumDrivers - 1] = *driver;
@@ -117,9 +117,9 @@ xf86AddInputDriver(InputDriverPtr driver, void *module, int flags)
         xf86NumInputDrivers = 0;
 
     xf86NumInputDrivers++;
-    xf86InputDriverList = xnfrealloc(xf86InputDriverList,
-                                     xf86NumInputDrivers *
-                                     sizeof(InputDriverPtr));
+    xf86InputDriverList = xnfreallocarray(xf86InputDriverList,
+                                          xf86NumInputDrivers,
+                                          sizeof(InputDriverPtr));
     xf86InputDriverList[xf86NumInputDrivers - 1] =
         xnfalloc(sizeof(InputDriverRec));
     *xf86InputDriverList[xf86NumInputDrivers - 1] = *driver;
@@ -173,7 +173,8 @@ xf86AllocateScreen(DriverPtr drv, int flags)
         if (xf86GPUScreens == NULL)
             xf86NumGPUScreens = 0;
         i = xf86NumGPUScreens++;
-        xf86GPUScreens = xnfrealloc(xf86GPUScreens, xf86NumGPUScreens * sizeof(ScrnInfoPtr));
+        xf86GPUScreens = xnfreallocarray(xf86GPUScreens, xf86NumGPUScreens,
+                                         sizeof(ScrnInfoPtr));
         xf86GPUScreens[i] = xnfcalloc(sizeof(ScrnInfoRec), 1);
         pScrn = xf86GPUScreens[i];
         pScrn->scrnIndex = i + GPU_SCREEN_OFFSET;      /* Changes when a screen is removed */
@@ -183,7 +184,8 @@ xf86AllocateScreen(DriverPtr drv, int flags)
             xf86NumScreens = 0;
 
         i = xf86NumScreens++;
-        xf86Screens = xnfrealloc(xf86Screens, xf86NumScreens * sizeof(ScrnInfoPtr));
+        xf86Screens = xnfreallocarray(xf86Screens, xf86NumScreens,
+                                      sizeof(ScrnInfoPtr));
         xf86Screens[i] = xnfcalloc(sizeof(ScrnInfoRec), 1);
         pScrn = xf86Screens[i];
 
@@ -293,16 +295,16 @@ xf86AllocateScrnInfoPrivateIndex(void)
     idx = xf86ScrnInfoPrivateCount++;
     for (i = 0; i < xf86NumScreens; i++) {
         pScr = xf86Screens[i];
-        nprivs = xnfrealloc(pScr->privates,
-                            xf86ScrnInfoPrivateCount * sizeof(DevUnion));
+        nprivs = xnfreallocarray(pScr->privates,
+                                 xf86ScrnInfoPrivateCount, sizeof(DevUnion));
         /* Zero the new private */
         memset(&nprivs[idx], 0, sizeof(DevUnion));
         pScr->privates = nprivs;
     }
     for (i = 0; i < xf86NumGPUScreens; i++) {
         pScr = xf86GPUScreens[i];
-        nprivs = xnfrealloc(pScr->privates,
-                            xf86ScrnInfoPrivateCount * sizeof(DevUnion));
+        nprivs = xnfreallocarray(pScr->privates,
+                                 xf86ScrnInfoPrivateCount, sizeof(DevUnion));
         /* Zero the new private */
         memset(&nprivs[idx], 0, sizeof(DevUnion));
         pScr->privates = nprivs;
@@ -636,8 +638,8 @@ xf86SetDepthBpp(ScrnInfoPtr scrp, int depth, int dummy, int fbbpp,
     if (i == scrp->confScreen->numdisplays) {
         scrp->confScreen->numdisplays++;
         scrp->confScreen->displays =
-            xnfrealloc(scrp->confScreen->displays,
-                       scrp->confScreen->numdisplays * sizeof(DispRec));
+            xnfreallocarray(scrp->confScreen->displays,
+                            scrp->confScreen->numdisplays, sizeof(DispRec));
         xf86DrvMsg(scrp->scrnIndex, X_INFO,
                    "Creating default Display subsection in Screen section\n"
                    "\t\"%s\" for depth/fbbpp %d/%d\n",
@@ -1367,7 +1369,7 @@ xf86MatchDevice(const char *drivername, GDevPtr ** sectlist)
 {
     GDevPtr gdp, *pgdp = NULL;
     confScreenPtr screensecptr;
-    int i, j;
+    int i, j, k;
 
     if (sectlist)
         *sectlist = NULL;
@@ -1408,8 +1410,19 @@ xf86MatchDevice(const char *drivername, GDevPtr ** sectlist)
             /*
              * we have a matching driver that wasn't claimed, yet
              */
-            pgdp = xnfrealloc(pgdp, (i + 2) * sizeof(GDevPtr));
+            pgdp = xnfreallocarray(pgdp, i + 2, sizeof(GDevPtr));
             pgdp[i++] = screensecptr->device;
+        }
+        for (k = 0; k < screensecptr->num_gpu_devices; k++) {
+            if ((screensecptr->gpu_devices[k]->driver != NULL)
+            && (xf86NameCmp(screensecptr->gpu_devices[k]->driver, drivername) == 0)
+                && (!screensecptr->gpu_devices[k]->claimed)) {
+                /*
+                 * we have a matching driver that wasn't claimed, yet
+                 */
+                pgdp = xnfrealloc(pgdp, (i + 2) * sizeof(GDevPtr));
+                pgdp[i++] = screensecptr->gpu_devices[k];
+            }
         }
     }
 
@@ -1420,7 +1433,7 @@ xf86MatchDevice(const char *drivername, GDevPtr ** sectlist)
         if (gdp->driver && !gdp->claimed &&
             !xf86NameCmp(gdp->driver, drivername)) {
             /* we have a matching driver that wasn't claimed yet */
-            pgdp = xnfrealloc(pgdp, (i + 2) * sizeof(GDevPtr));
+            pgdp = xnfreallocarray(pgdp, i + 2, sizeof(GDevPtr));
             pgdp[i++] = gdp;
         }
         j++;

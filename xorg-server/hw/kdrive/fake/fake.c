@@ -158,7 +158,7 @@ fakeMapFramebuffer(KdScreenInfo * screen)
     priv->bytes_per_line =
         ((screen->width * screen->fb.bitsPerPixel + 31) >> 5) << 2;
     free(priv->base);
-    priv->base = malloc(priv->bytes_per_line * screen->height);
+    priv->base = xallocarray(priv->bytes_per_line, screen->height);
 
     if (scrpriv->shadow) {
         if (!KdShadowFbAlloc

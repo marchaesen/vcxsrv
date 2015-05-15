@@ -237,7 +237,8 @@ struct st_framebuffer
 };
 
 
-extern void st_init_driver_functions(struct dd_function_table *functions);
+extern void st_init_driver_functions(struct pipe_screen *screen,
+                                     struct dd_function_table *functions);
 
 void st_invalidate_state(struct gl_context * ctx, GLuint new_state);
 

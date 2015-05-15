@@ -1306,6 +1306,7 @@ void util_blitter_default_src_texture(struct pipe_sampler_view *src_templ,
                                       unsigned srclevel)
 {
     memset(src_templ, 0, sizeof(*src_templ));
+    src_templ->target = src->target;
     src_templ->format = util_format_linear(src->format);
     src_templ->u.tex.first_level = srclevel;
     src_templ->u.tex.last_level = srclevel;

@@ -451,7 +451,7 @@ dispatch_dirty_region(ScrnInfoPtr scrn,
     int ret = 0;
 
     if (num_cliprects) {
-        drmModeClip *clip = malloc(num_cliprects * sizeof(drmModeClip));
+        drmModeClip *clip = xallocarray(num_cliprects, sizeof(drmModeClip));
         BoxPtr rect = REGION_RECTS(dirty);
         int i;
 

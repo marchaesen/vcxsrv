@@ -1074,19 +1074,19 @@ RecordAddClientToRCAP(RecordClientsAndProtocolPtr pRCAP, XID clientspec)
 {
     if (pRCAP->numClients == pRCAP->sizeClients) {
         if (pRCAP->clientIDsSeparatelyAllocated) {
-            XID *pNewIDs = (XID *) realloc(pRCAP->pClientIDs,
-                                           (pRCAP->sizeClients +
-                                            CLIENT_ARRAY_GROWTH_INCREMENT) *
-                                           sizeof(XID));
+            XID *pNewIDs =
+                reallocarray(pRCAP->pClientIDs,
+                             pRCAP->sizeClients + CLIENT_ARRAY_GROWTH_INCREMENT,
+                             sizeof(XID));
             if (!pNewIDs)
                 return;
             pRCAP->pClientIDs = pNewIDs;
             pRCAP->sizeClients += CLIENT_ARRAY_GROWTH_INCREMENT;
         }
         else {
-            XID *pNewIDs = (XID *) malloc((pRCAP->sizeClients +
-                                           CLIENT_ARRAY_GROWTH_INCREMENT) *
-                                          sizeof(XID));
+            XID *pNewIDs =
+                xallocarray(pRCAP->sizeClients + CLIENT_ARRAY_GROWTH_INCREMENT,
+                            sizeof(XID));
             if (!pNewIDs)
                 return;
             memcpy(pNewIDs, pRCAP->pClientIDs, pRCAP->numClients * sizeof(XID));
@@ -1217,7 +1217,7 @@ RecordCanonicalizeClientSpecifiers(XID *pClientspecs, int *pNumClientspecs,
     for (i = 0; i < numClients; i++) {
         if (pClientspecs[i] == XRecordAllClients || pClientspecs[i] == XRecordCurrentClients) { /* expand All/Current */
             int j, nc;
-            XID *pCanon = (XID *) malloc(sizeof(XID) * (currentMaxClients + 1));
+            XID *pCanon = xallocarray(currentMaxClients + 1, sizeof(XID));
 
             if (!pCanon)
                 return NULL;
@@ -1421,8 +1421,7 @@ static int
 RecordAllocIntervals(SetInfoPtr psi, int nIntervals)
 {
     assert(!psi->intervals);
-    psi->intervals = (RecordSetInterval *)
-        malloc(nIntervals * sizeof(RecordSetInterval));
+    psi->intervals = xallocarray(nIntervals, sizeof(RecordSetInterval));
     if (!psi->intervals)
         return BadAlloc;
     memset(psi->intervals, 0, nIntervals * sizeof(RecordSetInterval));
@@ -1584,7 +1583,7 @@ RecordRegisterClients(RecordContextPtr pContext, ClientPtr client,
      * range for extension replies.
      */
     maxSets = PREDEFSETS + 2 * stuff->nRanges;
-    si = (SetInfoPtr) malloc(sizeof(SetInfoRec) * maxSets);
+    si = xallocarray(maxSets, sizeof(SetInfoRec));
     if (!si) {
         err = BadAlloc;
         goto bailout;
@@ -1853,8 +1852,8 @@ ProcRecordCreateContext(ClientPtr client)
 
     /* make sure there is room in ppAllContexts to store the new context */
 
-    ppNewAllContexts = (RecordContextPtr *)
-        realloc(ppAllContexts, sizeof(RecordContextPtr) * (numContexts + 1));
+    ppNewAllContexts =
+        reallocarray(ppAllContexts, numContexts + 1, sizeof(RecordContextPtr));
     if (!ppNewAllContexts)
         goto bailout;
     ppAllContexts = ppNewAllContexts;
@@ -1971,8 +1970,7 @@ RecordAllocRanges(GetContextRangeInfoPtr pri, int nRanges)
 #define SZINCR 8
 
     newsize = max(pri->size + SZINCR, nRanges);
-    pNewRange = (xRecordRange *) realloc(pri->pRanges,
-                                         newsize * sizeof(xRecordRange));
+    pNewRange = reallocarray(pri->pRanges, newsize, sizeof(xRecordRange));
     if (!pNewRange)
         return BadAlloc;
 
@@ -2150,9 +2148,7 @@ ProcRecordGetContext(ClientPtr client)
 
     /* allocate and initialize space for record range info */
 
-    pRangeInfo =
-        (GetContextRangeInfoPtr) malloc(nRCAPs *
-                                        sizeof(GetContextRangeInfoRec));
+    pRangeInfo = xallocarray(nRCAPs, sizeof(GetContextRangeInfoRec));
     if (!pRangeInfo && nRCAPs > 0)
         return BadAlloc;
     for (i = 0; i < nRCAPs; i++) {
@@ -2733,7 +2729,8 @@ RecordAClientStateChange(CallbackListPtr *pcbl, void *nulldata,
 
         /* RecordDisableContext modifies contents of ppAllContexts. */
         numContextsCopy = numContexts;
-        ppAllContextsCopy = malloc(numContextsCopy * sizeof(RecordContextPtr));
+        ppAllContextsCopy = xallocarray(numContextsCopy,
+                                        sizeof(RecordContextPtr));
         assert(ppAllContextsCopy);
         memcpy(ppAllContextsCopy, ppAllContexts,
                numContextsCopy * sizeof(RecordContextPtr));

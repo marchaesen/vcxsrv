@@ -159,7 +159,7 @@ xwl_output_create(struct xwl_screen *xwl_screen, uint32_t id)
 
     xwl_output = calloc(sizeof *xwl_output, 1);
     if (xwl_output == NULL) {
-        ErrorF("create_output ENOMEM");
+        ErrorF("create_output ENOMEM\n");
         return NULL;
     }
 
@@ -168,7 +168,7 @@ xwl_output_create(struct xwl_screen *xwl_screen, uint32_t id)
     wl_output_add_listener(xwl_output->output, &output_listener, xwl_output);
 
     if (snprintf(name, sizeof name, "XWAYLAND%d", serial++) < 0) {
-        ErrorF("create_output ENOMEM");
+        ErrorF("create_output ENOMEM\n");
         free(xwl_output);
         return NULL;
     }

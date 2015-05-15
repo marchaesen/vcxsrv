@@ -646,7 +646,7 @@ _mesa_GetTexEnvfv( GLenum target, GLenum pname, GLfloat *params )
       if (pname == GL_TEXTURE_ENV_COLOR) {
          if(ctx->NewState & (_NEW_BUFFERS | _NEW_FRAG_CLAMP))
             _mesa_update_state(ctx);
-         if (_mesa_get_clamp_fragment_color(ctx))
+         if (_mesa_get_clamp_fragment_color(ctx, ctx->DrawBuffer))
             COPY_4FV( params, texUnit->EnvColor );
          else
             COPY_4FV( params, texUnit->EnvColorUnclamped );

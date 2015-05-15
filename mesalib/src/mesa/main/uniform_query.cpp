@@ -347,7 +347,8 @@ _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,
 	      &&
 	      (uni->type->base_type == GLSL_TYPE_INT
 	       || uni->type->base_type == GLSL_TYPE_UINT
-	       || uni->type->base_type == GLSL_TYPE_SAMPLER))) {
+               || uni->type->base_type == GLSL_TYPE_SAMPLER
+               || uni->type->base_type == GLSL_TYPE_IMAGE))) {
 	 memcpy(paramsOut, src, bytes);
       } else {
 	 union gl_constant_value *const dst =
@@ -366,6 +367,7 @@ _mesa_get_uniform(struct gl_context *ctx, GLuint program, GLint location,
 		  break;
 	       case GLSL_TYPE_INT:
 	       case GLSL_TYPE_SAMPLER:
+               case GLSL_TYPE_IMAGE:
 		  dst[i].f = (float) src[i].i;
 		  break;
 	       case GLSL_TYPE_BOOL:

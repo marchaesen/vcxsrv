@@ -14,7 +14,7 @@ libglamor_la_SOURCES = \
 	glamor_font.c \
 	glamor_font.h \
 	glamor_glx.c \
-	glamor_glyphs.c \
+	glamor_composite_glyphs.c \
 	glamor_image.c \
 	glamor_lines.c \
 	glamor_segs.c \

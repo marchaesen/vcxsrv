@@ -853,7 +853,7 @@ ScreenSaverSetAttributes(ClientPtr client)
         goto bail;
     }
     /* over allocate for override redirect */
-    pAttr->values = values = malloc((len + 1) * sizeof(unsigned long));
+    pAttr->values = values = xallocarray(len + 1, sizeof(unsigned long));
     if (!values) {
         ret = BadAlloc;
         goto bail;

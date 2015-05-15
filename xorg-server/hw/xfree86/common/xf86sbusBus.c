@@ -68,7 +68,7 @@ CheckSbusDevice(const char *device, int fbNum)
     if (!sbusDeviceTable[i].devId)
         return;
     xf86SbusInfo =
-        xnfrealloc(xf86SbusInfo, sizeof(psdp) * (++xf86nSbusInfo + 1));
+        xnfreallocarray(xf86SbusInfo, ++xf86nSbusInfo + 1, sizeof(psdp));
     xf86SbusInfo[xf86nSbusInfo] = NULL;
     xf86SbusInfo[xf86nSbusInfo - 1] = psdp = xnfcalloc(sizeof(sbusDevice), 1);
     psdp->devId = sbusDeviceTable[i].devId;
@@ -406,8 +406,8 @@ xf86MatchSbusInstances(const char *driverName, int sbusDevId,
         if (psdp->fd == -2)
             continue;
         ++allocatedInstances;
-        instances = xnfrealloc(instances,
-                               allocatedInstances * sizeof(struct Inst));
+        instances = xnfreallocarray(instances,
+                                    allocatedInstances, sizeof(struct Inst));
         instances[allocatedInstances - 1].sbus = psdp;
         instances[allocatedInstances - 1].dev = NULL;
         instances[allocatedInstances - 1].claimed = FALSE;
@@ -532,7 +532,7 @@ xf86MatchSbusInstances(const char *driverName, int sbusDevId,
 
         /* Allocate an entry in the lists to be returned */
         numFound++;
-        retEntities = xnfrealloc(retEntities, numFound * sizeof(int));
+        retEntities = xnfreallocarray(retEntities, numFound, sizeof(int));
         retEntities[numFound - 1]
             = xf86ClaimSbusSlot(psdp, drvp, instances[i].dev,
                                 instances[i].dev->active ? TRUE : FALSE);
@@ -648,7 +648,7 @@ xf86SbusCmapLoadPalette(ScrnInfoPtr pScrn, int numColors, int *indices,
         return;
     fbcmap.count = 0;
     fbcmap.index = indices[0];
-    fbcmap.red = data = malloc(numColors * 3);
+    fbcmap.red = data = xallocarray(numColors, 3);
     if (!data)
         return;
     fbcmap.green = data + numColors;

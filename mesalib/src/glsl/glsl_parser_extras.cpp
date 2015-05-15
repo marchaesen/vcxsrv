@@ -117,6 +117,16 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    this->Const.MaxFragmentAtomicCounters = ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxAtomicCounters;
    this->Const.MaxCombinedAtomicCounters = ctx->Const.MaxCombinedAtomicCounters;
    this->Const.MaxAtomicBufferBindings = ctx->Const.MaxAtomicBufferBindings;
+   this->Const.MaxVertexAtomicCounterBuffers =
+      ctx->Const.Program[MESA_SHADER_VERTEX].MaxAtomicBuffers;
+   this->Const.MaxGeometryAtomicCounterBuffers =
+      ctx->Const.Program[MESA_SHADER_GEOMETRY].MaxAtomicBuffers;
+   this->Const.MaxFragmentAtomicCounterBuffers =
+      ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxAtomicBuffers;
+   this->Const.MaxCombinedAtomicCounterBuffers =
+      ctx->Const.MaxCombinedAtomicBuffers;
+   this->Const.MaxAtomicCounterBufferSize =
+      ctx->Const.MaxAtomicBufferSize;
 
    /* Compute shader constants */
    for (unsigned i = 0; i < ARRAY_SIZE(this->Const.MaxComputeWorkGroupCount); i++)
@@ -143,9 +153,9 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    this->num_user_structures = 0;
 
    /* supported_versions should be large enough to support the known desktop
-    * GLSL versions plus 2 GLES versions (ES2 & ES3)
+    * GLSL versions plus 3 GLES versions (ES 1.00, ES 3.00, and ES 3.10))
     */
-   STATIC_ASSERT((ARRAY_SIZE(known_desktop_glsl_versions) + 2) ==
+   STATIC_ASSERT((ARRAY_SIZE(known_desktop_glsl_versions) + 3) ==
                  ARRAY_SIZE(this->supported_versions));
 
    /* Populate the list of supported GLSL versions */
@@ -172,6 +182,11 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    }
    if (_mesa_is_gles3(ctx) || ctx->Extensions.ARB_ES3_compatibility) {
       this->supported_versions[this->num_supported_versions].ver = 300;
+      this->supported_versions[this->num_supported_versions].es = true;
+      this->num_supported_versions++;
+   }
+   if (_mesa_is_gles31(ctx)) {
+      this->supported_versions[this->num_supported_versions].ver = 310;
       this->supported_versions[this->num_supported_versions].es = true;
       this->num_supported_versions++;
    }
@@ -212,7 +227,7 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    this->gs_input_size = 0;
    this->in_qualifier = new(this) ast_type_qualifier();
    this->out_qualifier = new(this) ast_type_qualifier();
-   this->early_fragment_tests = false;
+   this->fs_early_fragment_tests = false;
    memset(this->atomic_counter_offsets, 0,
           sizeof(this->atomic_counter_offsets));
    this->allow_extension_directive_midshader =
@@ -565,6 +580,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(ARB_texture_query_lod,          true,  false,     ARB_texture_query_lod),
    EXT(ARB_texture_rectangle,          true,  false,     dummy_true),
    EXT(ARB_uniform_buffer_object,      true,  false,     ARB_uniform_buffer_object),
+   EXT(ARB_vertex_attrib_64bit,        true,  false,     ARB_vertex_attrib_64bit),
    EXT(ARB_viewport_array,             true,  false,     ARB_viewport_array),
 
    /* KHR extensions go here, sorted alphabetically.
@@ -1418,6 +1434,7 @@ set_shader_inout_layout(struct gl_shader *shader,
       assert(!state->fs_redeclares_gl_fragcoord);
       assert(!state->fs_pixel_center_integer);
       assert(!state->fs_origin_upper_left);
+      assert(!state->fs_early_fragment_tests);
    }
 
    switch (shader->Stage) {
@@ -1460,6 +1477,7 @@ set_shader_inout_layout(struct gl_shader *shader,
       shader->origin_upper_left = state->fs_origin_upper_left;
       shader->ARB_fragment_coord_conventions_enable =
          state->ARB_fragment_coord_conventions_enable;
+      shader->EarlyFragmentTests = state->fs_early_fragment_tests;
       break;
 
    default:

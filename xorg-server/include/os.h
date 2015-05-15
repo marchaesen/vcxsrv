@@ -69,11 +69,15 @@ typedef struct _NewClientRec *NewClientPtr;
 
 #ifndef xnfalloc
 #define xnfalloc(size) XNFalloc((unsigned long)(size))
-#define xnfcalloc(_num, _size) XNFcalloc((unsigned long)(_num)*(unsigned long)(_size))
+#define xnfcalloc(_num, _size) XNFcallocarray((_num), (_size))
 #define xnfrealloc(ptr, size) XNFrealloc((void *)(ptr), (unsigned long)(size))
 
 #define xstrdup(s) Xstrdup(s)
 #define xnfstrdup(s) XNFstrdup(s)
+
+#define xallocarray(num, size) reallocarray(NULL, (num), (size))
+#define xnfallocarray(num, size) XNFreallocarray(NULL, (num), (size))
+#define xnfreallocarray(ptr, num, size) XNFreallocarray((ptr), (num), (size))
 #endif
 
 #include <stdio.h>
@@ -222,7 +226,14 @@ XNFalloc(unsigned long /*amount */ );
  * enough memory.
  */
 extern _X_EXPORT void *
-XNFcalloc(unsigned long /*amount */ );
+XNFcalloc(unsigned long /*amount */ ) _X_DEPRECATED;
+
+/*
+ * This function calloc(3)s buffer, terminating the server if there is not
+ * enough memory or the arguments overflow when multiplied
+ */
+extern _X_EXPORT void *
+XNFcallocarray(size_t nmemb, size_t size);
 
 /*
  * This function realloc(3)s passed buffer, terminating the server if there is
@@ -230,6 +241,13 @@ XNFcalloc(unsigned long /*amount */ );
  */
 extern _X_EXPORT void *
 XNFrealloc(void * /*ptr */ , unsigned long /*amount */ );
+
+/*
+ * This function reallocarray(3)s passed buffer, terminating the server if
+ * there is not enough memory or the arguments overflow when multiplied.
+ */
+extern _X_EXPORT void *
+XNFreallocarray(void *ptr, size_t nmemb, size_t size);
 
 /*
  * This function strdup(3)s passed string. The only difference from the library
@@ -510,7 +528,14 @@ ddxGiveUp(enum ExitCode error);
 extern _X_EXPORT int
 TimeSinceLastInputEvent(void);
 
-/* strcasecmp.c */
+/* Function fallbacks provided by AC_REPLACE_FUNCS in configure.ac */
+
+#ifndef HAVE_REALLOCARRAY
+#define reallocarray xreallocarray
+extern _X_EXPORT void *
+reallocarray(void *optr, size_t nmemb, size_t size);
+#endif
+
 #ifndef HAVE_STRCASECMP
 #define strcasecmp xstrcasecmp
 extern _X_EXPORT int

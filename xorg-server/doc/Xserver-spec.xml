@@ -1992,7 +1992,7 @@ regions, these blocks may need to be reallocated by your region
 software.  For instance, in the sample server, a RegionRec has some
 header information and a pointer to a dynamically allocated rectangle
 list.  Periodically, the rectangle list needs to be expanded with
-Xrealloc(), whereupon the new pointer is remembered in the RegionRec.</para>
+realloc(), whereupon the new pointer is remembered in the RegionRec.</para>
 <para>
 Most of the region operations come in two forms: a function pointer in
 the Screen structure, and a macro.  The server can be compiled so that
@@ -2598,7 +2598,7 @@ VisualRec data structure along with other display characteristics like the
 depth and other numbers.</para>
 <para>
 The allowable DepthRec's and VisualRec's are pointed to by fields in the ScreenRec.
-These are set up when InitOutput() is called; you should Xalloc() appropriate blocks
+These are set up when InitOutput() is called; you should malloc() appropriate blocks
 or use static variables initialized to the correct values.</para>
 </section>
 <section>
@@ -3897,7 +3897,7 @@ for CT_NONE, etc. are in Xserver/include/gc.h.)  This routine is
 responsible for incrementing any necessary reference counts (e.g. for
 a pixmap clip mask) for the new clipmask and freeing anything that
 used to be in the GC's clipMask field.  The lists of rectangles passed
-in can be freed with Xfree(), the regions can be destroyed with the
+in can be freed with free(), the regions can be destroyed with the
 RegionDestroy field in the screen, and pixmaps can be destroyed by
 calling the screen's DestroyPixmap function.  DIX and MI code expect
 what they pass in to this to be freed or otherwise inaccessible, and
@@ -5104,9 +5104,6 @@ mi and fb implementations.</para>
 <row><entry><function>WaitForSomething</function></entry><entry><literal>os</literal></entry><entry><para></para></entry></row>
 <row><entry><function>WindowExposures</function></entry><entry><literal>mi</literal></entry><entry><para>Window</para></entry></row>
 <row><entry><function>WriteToClient</function></entry><entry><literal>os</literal></entry><entry><para></para></entry></row>
-<row><entry><function>Xalloc</function></entry><entry><literal>os</literal></entry><entry><para></para></entry></row>
-<row><entry><function>Xfree</function></entry><entry><literal>os</literal></entry><entry><para></para></entry></row>
-<row><entry><function>Xrealloc</function></entry><entry><literal>os</literal></entry><entry><para></para></entry></row>
 	    </tbody>
 	  </tgroup>
 	</table>

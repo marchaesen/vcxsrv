@@ -42,7 +42,7 @@
 
 #include "util/u_debug.h" 
 #include "util/u_debug_stack.h" 
-#include "util/u_double_list.h" 
+#include "util/list.h"
 
 
 #define DEBUG_MEMORY_MAGIC 0x6e34090aU 

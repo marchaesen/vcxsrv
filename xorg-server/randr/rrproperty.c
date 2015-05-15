@@ -140,7 +140,6 @@ RRChangeOutputProperty(RROutputPtr output, Atom property, Atom type,
     RRPropertyPtr prop;
     rrScrPrivPtr pScrPriv = rrGetScrPriv(output->pScreen);
     int size_in_bytes;
-    int total_size;
     unsigned long total_len;
     RRPropertyValuePtr prop_value;
     RRPropertyValueRec new_value;
@@ -180,9 +179,8 @@ RRChangeOutputProperty(RROutputPtr output, Atom property, Atom type,
     if (mode == PropModeReplace || len > 0) {
         void *new_data = NULL, *old_data = NULL;
 
-        total_size = total_len * size_in_bytes;
-        new_value.data = (void *) malloc(total_size);
-        if (!new_value.data && total_size) {
+        new_value.data = xallocarray(total_len, size_in_bytes);
+        if (!new_value.data && total_len && size_in_bytes) {
             if (add)
                 RRDestroyOutputProperty(prop);
             return BadAlloc;
@@ -350,7 +348,7 @@ RRConfigureOutputProperty(RROutputPtr output, Atom property,
         return BadMatch;
     }
 
-    new_values = malloc(num_values * sizeof(INT32));
+    new_values = xallocarray(num_values, sizeof(INT32));
     if (!new_values && num_values) {
         if (add)
             RRDestroyOutputProperty(prop);
@@ -400,7 +398,7 @@ ProcRRListOutputProperties(ClientPtr client)
     for (prop = output->properties; prop; prop = prop->next)
         numProps++;
     if (numProps)
-        if (!(pAtoms = (Atom *) malloc(numProps * sizeof(Atom))))
+        if (!(pAtoms = xallocarray(numProps, sizeof(Atom))))
             return BadAlloc;
 
     rep = (xRRListOutputPropertiesReply) {
@@ -447,7 +445,7 @@ ProcRRQueryOutputProperty(ClientPtr client)
         return BadName;
 
     if (prop->num_valid) {
-        extra = malloc(prop->num_valid * sizeof(INT32));
+        extra = xallocarray(prop->num_valid, sizeof(INT32));
         if (!extra)
             return BadAlloc;
     }

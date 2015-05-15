@@ -160,7 +160,7 @@ struct _mesa_glsl_parse_state {
    {
       if (!this->has_separate_shader_objects()) {
          const char *const requirement = this->es_shader
-            ? "GL_EXT_separate_shader_objects extension"
+            ? "GL_EXT_separate_shader_objects extension or GLSL ES 310"
             : "GL_ARB_separate_shader_objects extension or GLSL 420";
 
          _mesa_glsl_error(locp, this, "%s explicit location requires %s",
@@ -175,15 +175,24 @@ struct _mesa_glsl_parse_state {
                                                 const ir_variable *)
    {
       if (!this->has_explicit_attrib_location() ||
-          !this->ARB_explicit_uniform_location_enable) {
+          !this->has_explicit_uniform_location()) {
+         const char *const requirement = this->es_shader
+            ? "GLSL ES 310"
+            : "GL_ARB_explicit_uniform_location and either "
+              "GL_ARB_explicit_attrib_location or GLSL 330.";
+
          _mesa_glsl_error(locp, this,
-                          "uniform explicit location requires "
-                          "GL_ARB_explicit_uniform_location and either "
-                          "GL_ARB_explicit_attrib_location or GLSL 330.");
+                          "uniform explicit location requires %s",
+                          requirement);
          return false;
       }
 
       return true;
+   }
+
+   bool has_atomic_counters() const
+   {
+      return ARB_shader_atomic_counters_enable || is_version(420, 310);
    }
 
    bool has_explicit_attrib_stream() const
@@ -196,6 +205,11 @@ struct _mesa_glsl_parse_state {
       return ARB_explicit_attrib_location_enable || is_version(330, 300);
    }
 
+   bool has_explicit_uniform_location() const
+   {
+      return ARB_explicit_uniform_location_enable || is_version(430, 310);
+   }
+
    bool has_uniform_buffer_objects() const
    {
       return ARB_uniform_buffer_object_enable || is_version(140, 300);
@@ -203,7 +217,7 @@ struct _mesa_glsl_parse_state {
 
    bool has_separate_shader_objects() const
    {
-      return ARB_separate_shader_objects_enable || is_version(410, 0)
+      return ARB_separate_shader_objects_enable || is_version(410, 310)
          || EXT_separate_shader_objects_enable;
    }
 
@@ -224,7 +238,7 @@ struct _mesa_glsl_parse_state {
    struct {
       unsigned ver;
       bool es;
-   } supported_versions[14];
+   } supported_versions[15];
 
    bool es_shader;
    unsigned language_version;
@@ -338,6 +352,16 @@ struct _mesa_glsl_parse_state {
       unsigned MaxFragmentAtomicCounters;
       unsigned MaxCombinedAtomicCounters;
       unsigned MaxAtomicBufferBindings;
+
+      /* These are also atomic counter related, but they weren't added to
+       * until atomic counters were added to core in GLSL 4.20 and GLSL ES
+       * 3.10.
+       */
+      unsigned MaxVertexAtomicCounterBuffers;
+      unsigned MaxGeometryAtomicCounterBuffers;
+      unsigned MaxFragmentAtomicCounterBuffers;
+      unsigned MaxCombinedAtomicCounterBuffers;
+      unsigned MaxAtomicCounterBufferSize;
 
       /* ARB_compute_shader */
       unsigned MaxComputeWorkGroupCount[3];
@@ -458,6 +482,8 @@ struct _mesa_glsl_parse_state {
    bool ARB_texture_rectangle_warn;
    bool ARB_uniform_buffer_object_enable;
    bool ARB_uniform_buffer_object_warn;
+   bool ARB_vertex_attrib_64bit_enable;
+   bool ARB_vertex_attrib_64bit_warn;
    bool ARB_viewport_array_enable;
    bool ARB_viewport_array_warn;
 
@@ -510,7 +536,7 @@ struct _mesa_glsl_parse_state {
     */
    unsigned gs_input_size;
 
-   bool early_fragment_tests;
+   bool fs_early_fragment_tests;
 
    /** Atomic counter offsets by binding */
    unsigned atomic_counter_offsets[MAX_COMBINED_ATOMIC_BUFFERS];

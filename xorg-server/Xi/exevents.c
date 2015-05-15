@@ -471,9 +471,9 @@ DeepCopyKeyboardClasses(DeviceIntPtr from, DeviceIntPtr to)
 
             oldTrace = to->focus->trace;
             memcpy(to->focus, from->focus, sizeof(FocusClassRec));
-            to->focus->trace = realloc(oldTrace,
-                                       to->focus->traceSize *
-                                       sizeof(WindowPtr));
+            to->focus->trace = reallocarray(oldTrace,
+                                            to->focus->traceSize,
+                                            sizeof(WindowPtr));
             if (!to->focus->trace && to->focus->traceSize)
                 FatalError("[Xi] no memory for trace.\n");
             memcpy(to->focus->trace, from->focus->trace,

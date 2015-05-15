@@ -204,6 +204,8 @@ else\
 "Multiple \"%s\" lines."
 #define MUST_BE_OCTAL_MSG \
 "The number \"%d\" given in this section must be in octal (0xxx) format."
+#define GPU_DEVICE_TOO_MANY \
+"More than %d GPU devices defined."
 
 /* Warning messages */
 #define OBSOLETE_MSG \

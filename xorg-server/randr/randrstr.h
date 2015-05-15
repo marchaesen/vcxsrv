@@ -1016,6 +1016,15 @@ RRMonitorFreeList(RRMonitorPtr monitors, int nmon);
 void
 RRMonitorClose(ScreenPtr screen);
 
+RRMonitorPtr
+RRMonitorAlloc(int noutput);
+
+int
+RRMonitorAdd(ClientPtr client, ScreenPtr screen, RRMonitorPtr monitor);
+
+void
+RRMonitorFree(RRMonitorPtr monitor);
+
 int
 ProcRRGetMonitors(ClientPtr client);
 

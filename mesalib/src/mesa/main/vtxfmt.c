@@ -206,6 +206,18 @@ install_vtxfmt(struct gl_context *ctx, struct _glapi_table *tab,
       SET_VertexAttribP3uiv(tab, vfmt->VertexAttribP3uiv);
       SET_VertexAttribP4uiv(tab, vfmt->VertexAttribP4uiv);
    }
+
+   if (_mesa_is_desktop_gl(ctx)) {
+      SET_VertexAttribL1d(tab, vfmt->VertexAttribL1d);
+      SET_VertexAttribL2d(tab, vfmt->VertexAttribL2d);
+      SET_VertexAttribL3d(tab, vfmt->VertexAttribL3d);
+      SET_VertexAttribL4d(tab, vfmt->VertexAttribL4d);
+
+      SET_VertexAttribL1dv(tab, vfmt->VertexAttribL1dv);
+      SET_VertexAttribL2dv(tab, vfmt->VertexAttribL2dv);
+      SET_VertexAttribL3dv(tab, vfmt->VertexAttribL3dv);
+      SET_VertexAttribL4dv(tab, vfmt->VertexAttribL4dv);
+   }
 }
 
 

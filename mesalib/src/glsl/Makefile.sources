@@ -22,6 +22,7 @@ NIR_FILES = \
 	nir/glsl_to_nir.h \
 	nir/nir.c \
 	nir/nir.h \
+	nir/nir_array.h \
 	nir/nir_builder.h \
 	nir/nir_constant_expressions.h \
 	nir/nir_dominance.c \

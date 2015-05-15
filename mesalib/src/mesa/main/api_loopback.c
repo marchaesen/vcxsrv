@@ -84,6 +84,10 @@
 
 #define ATTRIBI_4UI(index,x,y,z,w)   CALL_VertexAttribI4uiEXT(GET_DISPATCH(), (index,x,y,z,w))
 
+#define ATTRIB1_D(index,x)         CALL_VertexAttribL1d(GET_DISPATCH(), (index,x))
+#define ATTRIB2_D(index,x,y)       CALL_VertexAttribL2d(GET_DISPATCH(), (index,x,y))
+#define ATTRIB3_D(index,x,y,z)     CALL_VertexAttribL3d(GET_DISPATCH(), (index,x,y,z))
+#define ATTRIB4_D(index,x,y,z,w)    CALL_VertexAttribL4d(GET_DISPATCH(), (index,x,y,z,w))
 
 void GLAPIENTRY
 _mesa_Color3b( GLbyte red, GLbyte green, GLbyte blue )
@@ -1490,8 +1494,53 @@ _mesa_VertexAttribI4usv(GLuint index, const GLushort *v)
    ATTRIBI_4UI(index, v[0], v[1], v[2], v[3]);
 }
 
+void GLAPIENTRY
+_mesa_VertexAttribL1d(GLuint index, GLdouble x)
+{
+   ATTRIB1_D(index, x);
+}
 
+void GLAPIENTRY
+_mesa_VertexAttribL2d(GLuint index, GLdouble x, GLdouble y)
+{
+   ATTRIB2_D(index, x, y);
+}
 
+void GLAPIENTRY
+_mesa_VertexAttribL3d(GLuint index, GLdouble x, GLdouble y, GLdouble z)
+{
+   ATTRIB3_D(index, x, y, z);
+}
+
+void GLAPIENTRY
+_mesa_VertexAttribL4d(GLuint index, GLdouble x, GLdouble y, GLdouble z, GLdouble w)
+{
+   ATTRIB4_D(index, x, y, z, w);
+}
+
+void GLAPIENTRY
+_mesa_VertexAttribL1dv(GLuint index, const GLdouble *v)
+{
+   ATTRIB1_D(index, v[0]);
+}
+
+void GLAPIENTRY
+_mesa_VertexAttribL2dv(GLuint index, const GLdouble *v)
+{
+   ATTRIB2_D(index, v[0], v[1]);
+}
+
+void GLAPIENTRY
+_mesa_VertexAttribL3dv(GLuint index, const GLdouble *v)
+{
+   ATTRIB3_D(index, v[0], v[1], v[2]);
+}
+
+void GLAPIENTRY
+_mesa_VertexAttribL4dv(GLuint index, const GLdouble *v)
+{
+   ATTRIB4_D(index, v[0], v[1], v[2], v[3]);
+}
 
 /*
  * This code never registers handlers for any of the entry points
@@ -1723,5 +1772,16 @@ _mesa_loopback_init_api_table(const struct gl_context *ctx,
       SET_VertexAttribI4sv(dest, _mesa_VertexAttribI4sv);
       SET_VertexAttribI4ubv(dest, _mesa_VertexAttribI4ubv);
       SET_VertexAttribI4usv(dest, _mesa_VertexAttribI4usv);
+
+      /* GL 4.1 / GL_ARB_vertex_attrib_64bit */
+      SET_VertexAttribL1d(dest, _mesa_VertexAttribL1d);
+      SET_VertexAttribL2d(dest, _mesa_VertexAttribL2d);
+      SET_VertexAttribL3d(dest, _mesa_VertexAttribL3d);
+      SET_VertexAttribL4d(dest, _mesa_VertexAttribL4d);
+
+      SET_VertexAttribL1dv(dest, _mesa_VertexAttribL1dv);
+      SET_VertexAttribL2dv(dest, _mesa_VertexAttribL2dv);
+      SET_VertexAttribL3dv(dest, _mesa_VertexAttribL3dv);
+      SET_VertexAttribL4dv(dest, _mesa_VertexAttribL4dv);
    }
 }

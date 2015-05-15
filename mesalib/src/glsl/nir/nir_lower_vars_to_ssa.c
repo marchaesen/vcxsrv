@@ -567,10 +567,11 @@ add_phi_sources(nir_block *block, nir_block *pred,
 
       nir_phi_src *src = ralloc(phi, nir_phi_src);
       src->pred = pred;
+      src->src.parent_instr = &phi->instr;
       src->src.is_ssa = true;
       src->src.ssa = get_ssa_def_for_block(node, pred, state);
 
-      _mesa_set_add(src->src.ssa->uses, instr);
+      list_addtail(&src->src.use_link, &src->src.ssa->uses);
 
       exec_list_push_tail(&phi->srcs, &src->node);
    }

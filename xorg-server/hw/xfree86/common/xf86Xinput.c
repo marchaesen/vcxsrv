@@ -867,8 +867,9 @@ xf86NewInputDevice(InputInfoPtr pInfo, DeviceIntPtr *pdev, BOOL enable)
         if (fd != -1) {
             if (paused) {
                 /* Put on new_input_devices list for delayed probe */
-                new_input_devices = xnfrealloc(new_input_devices,
-                            sizeof(pInfo) * (new_input_devices_count + 1));
+                new_input_devices = xnfreallocarray(new_input_devices,
+                                                    new_input_devices_count + 1,
+                                                    sizeof(pInfo));
                 new_input_devices[new_input_devices_count] = pInfo;
                 new_input_devices_count++;
                 systemd_logind_release_fd(pInfo->major, pInfo->minor, fd);

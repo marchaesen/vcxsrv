@@ -35,7 +35,7 @@
 
 #include "glamor_priv.h"
 
-const Bool
+Bool
 glamor_get_drawable_location(const DrawablePtr drawable)
 {
     PixmapPtr pixmap = glamor_get_drawable_pixmap(drawable);

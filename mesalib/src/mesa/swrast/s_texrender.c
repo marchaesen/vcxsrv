@@ -72,7 +72,7 @@ update_wrapper(struct gl_context *ctx, struct gl_renderbuffer_attachment *att)
  * \param fb  the framebuffer object the texture is being bound to
  * \param att  the fb attachment point of the texture
  *
- * \sa _mesa_framebuffer_renderbuffer
+ * \sa _mesa_FramebufferRenderbuffer_sw
  */
 void
 _swrast_render_texture(struct gl_context *ctx,

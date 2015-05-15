@@ -28,8 +28,25 @@
 #define SHADERIMAGE_H
 
 #include "glheader.h"
+#include "formats.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct gl_context;
+
+/**
+ * Get the matching mesa_format for a shader image format GL enum.
+ */
+mesa_format
+_mesa_get_shader_image_format(GLenum format);
+
+/**
+ * Initialize a context's shader image units to the default state.
+ */
+void
+_mesa_init_image_units(struct gl_context *ctx);
 
 /**
  * Recalculate the \c _Valid flag of a context's shader image units.
@@ -50,5 +67,9 @@ _mesa_BindImageTextures(GLuint first, GLsizei count, const GLuint *textures);
 
 void GLAPIENTRY
 _mesa_MemoryBarrier(GLbitfield barriers);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

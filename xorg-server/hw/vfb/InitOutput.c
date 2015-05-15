@@ -292,7 +292,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
 
         if (vfbNumScreens <= screenNum) {
             vfbScreens =
-                realloc(vfbScreens, sizeof(*vfbScreens) * (screenNum + 1));
+                reallocarray(vfbScreens, screenNum + 1, sizeof(*vfbScreens));
             if (!vfbScreens)
                 FatalError("Not enough memory for screen %d\n", screenNum);
             for (; vfbNumScreens <= screenNum; ++vfbNumScreens)
@@ -407,9 +407,9 @@ vfbInstallColormap(ColormapPtr pmap)
         swapcopy32(pXWDHeader->bits_per_rgb, pVisual->bitsPerRGBValue);
         swapcopy32(pXWDHeader->colormap_entries, pVisual->ColormapEntries);
 
-        ppix = (Pixel *) malloc(entries * sizeof(Pixel));
-        prgb = (xrgb *) malloc(entries * sizeof(xrgb));
-        defs = (xColorItem *) malloc(entries * sizeof(xColorItem));
+        ppix = xallocarray(entries, sizeof(Pixel));
+        prgb = xallocarray(entries, sizeof(xrgb));
+        defs = xallocarray(entries, sizeof(xColorItem));
 
         for (i = 0; i < entries; i++)
             ppix[i] = i;

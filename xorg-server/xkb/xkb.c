@@ -2216,12 +2216,11 @@ SetKeyBehaviors(XkbSrvInfoPtr xkbi,
     }
 
     if (maxRG > (int) xkbi->nRadioGroups) {
-        int sz = maxRG * sizeof(XkbRadioGroupRec);
-
         if (xkbi->radioGroups)
-            xkbi->radioGroups = realloc(xkbi->radioGroups, sz);
+            xkbi->radioGroups = reallocarray(xkbi->radioGroups, maxRG,
+                                             sizeof(XkbRadioGroupRec));
         else
-            xkbi->radioGroups = calloc(1, sz);
+            xkbi->radioGroups = calloc(maxRG, sizeof(XkbRadioGroupRec));
         if (xkbi->radioGroups) {
             if (xkbi->nRadioGroups)
                 memset(&xkbi->radioGroups[xkbi->nRadioGroups], 0,
@@ -2700,14 +2699,15 @@ XkbSendCompatMap(ClientPtr client,
     char *data;
     int size;
 
-    size = rep->length * 4;
-    if (size > 0) {
-        data = malloc(size);
+    if (rep->length > 0) {
+        data = xallocarray(rep->length, 4);
         if (data) {
             register unsigned i, bit;
             xkbModsWireDesc *grp;
             XkbSymInterpretPtr sym = &compat->sym_interpret[rep->firstSI];
             xkbSymInterpretWireDesc *wire = (xkbSymInterpretWireDesc *) data;
+
+            size = rep->length * 4;
 
             for (i = 0; i < rep->nSI; i++, sym++, wire++) {
                 wire->sym = sym->sym;
@@ -2856,9 +2856,9 @@ _XkbSetCompatMap(ClientPtr client, DeviceIntPtr dev,
 
         if ((unsigned) (req->firstSI + req->nSI) > compat->num_si) {
             compat->num_si = req->firstSI + req->nSI;
-            compat->sym_interpret = realloc(compat->sym_interpret,
-                                            compat->num_si *
-                                            sizeof(XkbSymInterpretRec));
+            compat->sym_interpret = reallocarray(compat->sym_interpret,
+                                                 compat->num_si,
+                                                 sizeof(XkbSymInterpretRec));
             if (!compat->sym_interpret) {
                 compat->num_si = 0;
                 return BadAlloc;
@@ -3086,13 +3086,14 @@ XkbSendIndicatorMap(ClientPtr client,
     register int i;
     register unsigned bit;
 
-    length = rep->length * 4;
-    if (length > 0) {
+    if (rep->length > 0) {
         CARD8 *to;
 
-        to = map = malloc(length);
+        to = map = xallocarray(rep->length, 4);
         if (map) {
             xkbIndicatorMapWireDesc *wire = (xkbIndicatorMapWireDesc *) to;
+
+            length = rep->length * 4;
 
             for (i = 0, bit = 1; i < XkbNumIndicators; i++, bit <<= 1) {
                 if (rep->which & bit) {
@@ -4863,7 +4864,6 @@ XkbComputeGetGeometryReplySize(XkbGeometryPtr geom,
     }
     return Success;
 }
-
 static int
 XkbSendGeometry(ClientPtr client,
                 XkbGeometryPtr geom, xkbGetGeometryReply * rep, Bool freeGeom)
@@ -4872,10 +4872,10 @@ XkbSendGeometry(ClientPtr client,
     int len;
 
     if (geom != NULL) {
-        len = rep->length * 4;
-        start = desc = malloc(len);
+        start = desc = xallocarray(rep->length, 4);
         if (!start)
             return BadAlloc;
+        len = rep->length * 4;
         desc = XkbWriteCountedString(desc, geom->label_font, client->swapped);
         if (rep->nProperties > 0)
             desc = XkbWriteGeomProperties(desc, geom, client->swapped);

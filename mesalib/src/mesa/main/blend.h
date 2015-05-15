@@ -37,6 +37,7 @@
 #include "formats.h"
 
 struct gl_context;
+struct gl_framebuffer;
 
 
 extern void GLAPIENTRY
@@ -101,19 +102,24 @@ extern void GLAPIENTRY
 _mesa_ClampColor(GLenum target, GLenum clamp);
 
 extern GLboolean
-_mesa_get_clamp_fragment_color(const struct gl_context *ctx);
+_mesa_get_clamp_fragment_color(const struct gl_context *ctx,
+                               const struct gl_framebuffer *drawFb);
 
 extern GLboolean
-_mesa_get_clamp_vertex_color(const struct gl_context *ctx);
+_mesa_get_clamp_vertex_color(const struct gl_context *ctx,
+                             const struct gl_framebuffer *drawFb);
 
 extern GLboolean
-_mesa_get_clamp_read_color(const struct gl_context *ctx);
+_mesa_get_clamp_read_color(const struct gl_context *ctx,
+                           const struct gl_framebuffer *readFb);
 
 extern void
-_mesa_update_clamp_fragment_color(struct gl_context *ctx);
+_mesa_update_clamp_fragment_color(struct gl_context *ctx,
+                                  const struct gl_framebuffer *drawFb);
 
 extern void
-_mesa_update_clamp_vertex_color(struct gl_context *ctx);
+_mesa_update_clamp_vertex_color(struct gl_context *ctx,
+                                const struct gl_framebuffer *drawFb);
 
 extern mesa_format
 _mesa_get_render_format(const struct gl_context *ctx, mesa_format format);

@@ -43,7 +43,7 @@ static int
 xwl_pointer_proc(DeviceIntPtr device, int what)
 {
 #define NBUTTONS 10
-#define NAXES 2
+#define NAXES 4
     BYTE map[NBUTTONS + 1];
     int i = 0;
     Atom btn_labels[NBUTTONS] = { 0 };
@@ -67,8 +67,10 @@ xwl_pointer_proc(DeviceIntPtr device, int what)
 
         axes_labels[0] = XIGetKnownProperty(AXIS_LABEL_PROP_ABS_X);
         axes_labels[1] = XIGetKnownProperty(AXIS_LABEL_PROP_ABS_Y);
+        axes_labels[2] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_HWHEEL);
+        axes_labels[3] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_WHEEL);
 
-        if (!InitValuatorClassDeviceStruct(device, 2, btn_labels,
+        if (!InitValuatorClassDeviceStruct(device, NAXES, btn_labels,
                                            GetMotionHistorySize(), Absolute))
             return BadValue;
 
@@ -77,6 +79,13 @@ xwl_pointer_proc(DeviceIntPtr device, int what)
                                0, 0xFFFF, 10000, 0, 10000, Absolute);
         InitValuatorAxisStruct(device, 1, axes_labels[1],
                                0, 0xFFFF, 10000, 0, 10000, Absolute);
+        InitValuatorAxisStruct(device, 2, axes_labels[2],
+                               NO_AXIS_LIMITS, NO_AXIS_LIMITS, 0, 0, 0, Relative);
+        InitValuatorAxisStruct(device, 3, axes_labels[3],
+                               NO_AXIS_LIMITS, NO_AXIS_LIMITS, 0, 0, 0, Relative);
+
+        SetScrollValuator(device, 2, SCROLL_TYPE_HORIZONTAL, 1.0, SCROLL_FLAG_NONE);
+        SetScrollValuator(device, 3, SCROLL_TYPE_VERTICAL, 1.0, SCROLL_FLAG_PREFERRED);
 
         if (!InitPtrFeedbackClassDeviceStruct(device, xwl_pointer_control))
             return BadValue;
@@ -259,54 +268,24 @@ pointer_handle_axis(void *data, struct wl_pointer *pointer,
                     uint32_t time, uint32_t axis, wl_fixed_t value)
 {
     struct xwl_seat *xwl_seat = data;
-    int index, count;
-    int i, val;
+    int index;
     const int divisor = 10;
     ValuatorMask mask;
 
-    if (time - xwl_seat->scroll_time > 2000) {
-        xwl_seat->vertical_scroll = 0;
-        xwl_seat->horizontal_scroll = 0;
-    }
-    xwl_seat->scroll_time = time;
-
-    /* FIXME: Need to do proper smooth scrolling here! */
     switch (axis) {
     case WL_POINTER_AXIS_VERTICAL_SCROLL:
-        xwl_seat->vertical_scroll += value / divisor;
-        val = wl_fixed_to_int(xwl_seat->vertical_scroll);
-        xwl_seat->vertical_scroll -= wl_fixed_from_int(val);
-
-        if (val <= -1)
-            index = 4;
-        else if (val >= 1)
-            index = 5;
-        else
-            return;
+        index = 3;
         break;
     case WL_POINTER_AXIS_HORIZONTAL_SCROLL:
-        xwl_seat->horizontal_scroll += value / divisor;
-        val = wl_fixed_to_int(xwl_seat->horizontal_scroll);
-        xwl_seat->horizontal_scroll -= wl_fixed_from_int(val);
-
-        if (val <= -1)
-            index = 6;
-        else if (val >= 1)
-            index = 7;
-        else
-            return;
+        index = 2;
         break;
     default:
         return;
     }
 
     valuator_mask_zero(&mask);
-
-    count = abs(val);
-    for (i = 0; i < count; i++) {
-        QueuePointerEvents(xwl_seat->pointer, ButtonPress, index, 0, &mask);
-        QueuePointerEvents(xwl_seat->pointer, ButtonRelease, index, 0, &mask);
-    }
+    valuator_mask_set_double(&mask, index, wl_fixed_to_double(value) / divisor);
+    QueuePointerEvents(xwl_seat->pointer, MotionNotify, 0, POINTER_RELATIVE, &mask);
 }
 
 static const struct wl_pointer_listener pointer_listener = {
@@ -561,7 +540,7 @@ create_input_device(struct xwl_screen *xwl_screen, uint32_t id)
 
     xwl_seat = calloc(sizeof *xwl_seat, 1);
     if (xwl_seat == NULL) {
-        ErrorF("create_input ENOMEM");
+        ErrorF("create_input ENOMEM\n");
         return;
     }
 

@@ -33,5 +33,4 @@ AM_CFLAGS = -DUSESTDRES -DHAVE_SYSV_IPC $(XORG_CFLAGS) $(DIX_CFLAGS)
 
 AM_CPPFLAGS = $(XORG_INCS) 
 
-EXTRA_DIST = solaris-amd64.S solaris-ia32.S solaris-sparcv8plus.S \
-	apSolaris.shar sun_inout.s
+EXTRA_DIST = solaris-amd64.S solaris-ia32.S solaris-sparcv8plus.S sun_inout.s

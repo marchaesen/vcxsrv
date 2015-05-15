@@ -154,40 +154,7 @@ enum glamor_gl_flavor {
     GLAMOR_GL_ES2               // OPENGL ES2.0 API
 };
 
-#define GLAMOR_NUM_GLYPH_CACHE_FORMATS 2
-
 #define GLAMOR_COMPOSITE_VBO_VERT_CNT (64*1024)
-
-typedef struct {
-    PicturePtr picture;         /* Where the glyphs of the cache are stored */
-    GlyphPtr *glyphs;
-    uint16_t count;
-    uint16_t evict;
-} glamor_glyph_cache_t;
-
-#define CACHE_PICTURE_SIZE 1024
-#define GLYPH_MIN_SIZE 8
-#define GLYPH_MAX_SIZE	64
-#define GLYPH_CACHE_SIZE ((CACHE_PICTURE_SIZE) * CACHE_PICTURE_SIZE / (GLYPH_MIN_SIZE * GLYPH_MIN_SIZE))
-
-#define MASK_CACHE_MAX_SIZE 32
-#define MASK_CACHE_WIDTH (CACHE_PICTURE_SIZE / MASK_CACHE_MAX_SIZE)
-#define MASK_CACHE_MASK ((1LL << (MASK_CACHE_WIDTH)) - 1)
-
-struct glamor_glyph_mask_cache_entry {
-    int idx;
-    int width;
-    int height;
-    int x;
-    int y;
-};
-
-typedef struct {
-    PixmapPtr pixmap;
-    struct glamor_glyph_mask_cache_entry mcache[MASK_CACHE_WIDTH];
-    unsigned int free_bitmap;
-    unsigned int cleared_bitmap;
-} glamor_glyph_mask_cache_t;
 
 struct glamor_saved_procs {
     CloseScreenProcPtr close_screen;
@@ -208,7 +175,6 @@ struct glamor_saved_procs {
     AddTrapsProcPtr addtraps;
     CreatePictureProcPtr create_picture;
     DestroyPictureProcPtr destroy_picture;
-    UnrealizeGlyphProcPtr unrealize_glyph;
     SetWindowPixmapProcPtr set_window_pixmap;
 #if XSYNC
     SyncScreenFuncsRec sync_screen_funcs;
@@ -274,6 +240,14 @@ typedef struct glamor_screen_private {
     glamor_program_fill on_off_dash_line_progs;
     glamor_program      double_dash_line_prog;
 
+    /* glamor composite_glyphs shaders */
+    glamor_program_render       glyphs_program;
+    struct glamor_glyph_atlas   *glyph_atlas_a;
+    struct glamor_glyph_atlas   *glyph_atlas_argb;
+    int                         glyph_atlas_dim;
+    int                         glyph_max_dim;
+    char                        *glyph_defines;
+
     /* vertext/elment_index buffer object for render */
     GLuint vbo, ebo;
     /** Next offset within the VBO that glamor_get_vbo_space() will use. */
@@ -292,9 +266,6 @@ typedef struct glamor_screen_private {
     glamor_composite_shader composite_shader[SHADER_SOURCE_COUNT]
         [SHADER_MASK_COUNT]
         [SHADER_IN_COUNT];
-    glamor_glyph_cache_t glyphCaches[GLAMOR_NUM_GLYPH_CACHE_FORMATS];
-    glamor_glyph_mask_cache_t *mask_cache[GLAMOR_NUM_GLYPH_CACHE_FORMATS];
-    Bool glyph_caches_realized;
 
     /* shaders to restore a texture to another texture. */
     GLint finish_access_prog[2];
@@ -638,10 +609,10 @@ glamor_get_gc_private(GCPtr gc)
  * pixel values for pDrawable.
  */
 static inline Bool
-glamor_pm_is_solid(DrawablePtr drawable, unsigned long planemask)
+glamor_pm_is_solid(int depth, unsigned long planemask)
 {
-    return (planemask & FbFullMask(drawable->depth)) ==
-        FbFullMask(drawable->depth);
+    return (planemask & FbFullMask(depth)) ==
+        FbFullMask(depth);
 }
 
 extern int glamor_debug_level;
@@ -676,7 +647,7 @@ glamor_pixmap_fbo *glamor_create_fbo_array(glamor_screen_private *glamor_priv,
 void glamor_init_finish_access_shaders(ScreenPtr screen);
 void glamor_fini_finish_access_shaders(ScreenPtr screen);
 
-const Bool glamor_get_drawable_location(const DrawablePtr drawable);
+Bool glamor_get_drawable_location(const DrawablePtr drawable);
 void glamor_get_drawable_deltas(DrawablePtr drawable, PixmapPtr pixmap,
                                 int *x, int *y);
 GLint glamor_compile_glsl_prog(GLenum type, const char *source);
@@ -701,22 +672,11 @@ glamor_pixmap_fbo *glamor_es2_pixmap_read_prepare(PixmapPtr source, int x,
                                                   int swap_rb);
 
 Bool glamor_set_alu(ScreenPtr screen, unsigned char alu);
-Bool glamor_set_planemask(PixmapPtr pixmap, unsigned long planemask);
+Bool glamor_set_planemask(int depth, unsigned long planemask);
 RegionPtr glamor_bitmap_to_region(PixmapPtr pixmap);
 
 void
 glamor_track_stipple(GCPtr gc);
-
-/* glamor_glyphs.c */
-Bool glamor_realize_glyph_caches(ScreenPtr screen);
-void glamor_glyph_unrealize(ScreenPtr screen, GlyphPtr glyph);
-void glamor_glyphs_fini(ScreenPtr screen);
-void glamor_glyphs(CARD8 op,
-                   PicturePtr pSrc,
-                   PicturePtr pDst,
-                   PictFormatPtr maskFormat,
-                   INT16 xSrc,
-                   INT16 ySrc, int nlist, GlyphListPtr list, GlyphPtr *glyphs);
 
 /* glamor_render.c */
 Bool glamor_composite_clipped_region(CARD8 op,
@@ -744,10 +704,6 @@ void glamor_composite(CARD8 op,
 
 void glamor_init_composite_shaders(ScreenPtr screen);
 void glamor_fini_composite_shaders(ScreenPtr screen);
-void glamor_composite_glyph_rects(CARD8 op,
-                                  PicturePtr src, PicturePtr mask,
-                                  PicturePtr dst, int nrect,
-                                  glamor_composite_rect_t *rects);
 void glamor_composite_rects(CARD8 op,
                             PicturePtr pDst,
                             xRenderColor *color, int nRect, xRectangle *rects);
@@ -994,6 +950,22 @@ void glamor_composite_rectangles(CARD8 op,
                                  xRenderColor *color,
                                  int num_rects, xRectangle *rects);
 
+/* glamor_composite_glyphs.c */
+Bool
+glamor_composite_glyphs_init(ScreenPtr pScreen);
+
+void
+glamor_composite_glyphs_fini(ScreenPtr pScreen);
+
+void
+glamor_composite_glyphs(CARD8 op,
+                        PicturePtr src,
+                        PicturePtr dst,
+                        PictFormatPtr mask_format,
+                        INT16 x_src,
+                        INT16 y_src, int nlist,
+                        GlyphListPtr list, GlyphPtr *glyphs);
+
 /* glamor_sync.c */
 Bool
 glamor_sync_init(ScreenPtr screen);
@@ -1077,8 +1049,6 @@ void glamor_xv_render(glamor_port_private *port_priv);
 #if 0
 #define MAX_FBO_SIZE 32         /* For test purpose only. */
 #endif
-//#define GLYPHS_NO_EDEGEMAP_OVERLAP_CHECK
-#define GLYPHS_EDEGE_OVERLAP_LOOSE_CHECK
 
 #include "glamor_font.h"
 

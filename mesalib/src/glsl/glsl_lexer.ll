@@ -409,7 +409,7 @@ restrict	KEYWORD_WITH_ALT(420, 300, 420, 0, yyextra->ARB_shader_image_load_store
 readonly	KEYWORD_WITH_ALT(420, 300, 420, 0, yyextra->ARB_shader_image_load_store_enable, READONLY);
 writeonly	KEYWORD_WITH_ALT(420, 300, 420, 0, yyextra->ARB_shader_image_load_store_enable, WRITEONLY);
 
-atomic_uint     KEYWORD_WITH_ALT(420, 300, 420, 0, yyextra->ARB_shader_atomic_counters_enable, ATOMIC_UINT);
+atomic_uint     KEYWORD_WITH_ALT(420, 300, 420, 310, yyextra->ARB_shader_atomic_counters_enable, ATOMIC_UINT);
 
 struct		return STRUCT;
 void		return VOID_TOK;

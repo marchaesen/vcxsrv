@@ -23,6 +23,7 @@ TESTPROGRAMS =			      \
 	composite-traps-test	      \
 	region-contains-test	      \
 	glyph-test		      \
+	solid-test		      \
 	stress-test		      \
 	blitters-test		      \
 	affine-test		      \

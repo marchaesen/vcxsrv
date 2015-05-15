@@ -440,6 +440,7 @@ typedef struct _confxvadaptrec {
     void *options;
 } confXvAdaptorRec, *confXvAdaptorPtr;
 
+#define MAX_GPUDEVICES 4
 typedef struct _confscreenrec {
     const char *id;
     int screennum;
@@ -453,6 +454,9 @@ typedef struct _confscreenrec {
     int numxvadaptors;
     confXvAdaptorPtr xvadaptors;
     void *options;
+
+    int num_gpu_devices;
+    GDevPtr gpu_devices[MAX_GPUDEVICES];
 } confScreenRec, *confScreenPtr;
 
 typedef enum {
@@ -511,6 +515,9 @@ typedef struct _confdrirec {
 #define NUM_RESERVED_INTS		16
 #define NUM_RESERVED_POINTERS		14
 #define NUM_RESERVED_FUNCS		10
+
+/* let clients know they can use this */
+#define XF86_SCRN_HAS_PREFER_CLONE 1
 
 typedef void *(*funcPointer) (void);
 
@@ -767,6 +774,9 @@ typedef struct _ScrnInfoRec {
     /* Storage for clockRanges and adjustFlags for use with the VidMode ext */
     ClockRangePtr clockRanges;
     int adjustFlags;
+
+    /* initial rightof support disable */
+    int                 preferClone;
 
     /*
      * These can be used when the minor ABI version is incremented.

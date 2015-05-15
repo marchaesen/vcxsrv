@@ -244,14 +244,14 @@ _mesa_fetch_state(struct gl_context *ctx, const gl_state_index state[],
       {
          /* state[1] is the texture unit */
          const GLuint unit = (GLuint) state[1];
-         if (_mesa_get_clamp_fragment_color(ctx))
+         if (_mesa_get_clamp_fragment_color(ctx, ctx->DrawBuffer))
             COPY_4V(value, ctx->Texture.Unit[unit].EnvColor);
          else
             COPY_4V(value, ctx->Texture.Unit[unit].EnvColorUnclamped);
       }
       return;
    case STATE_FOG_COLOR:
-      if (_mesa_get_clamp_fragment_color(ctx))
+      if (_mesa_get_clamp_fragment_color(ctx, ctx->DrawBuffer))
          COPY_4V(value, ctx->Fog.Color);
       else
          COPY_4V(value, ctx->Fog.ColorUnclamped);

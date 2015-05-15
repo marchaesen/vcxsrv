@@ -62,8 +62,12 @@ manpage.1: manpage.sgml
     <cmdsynopsis>
       <command>&dhpackage;</command>
 
-      <arg><option>-Vh</option></arg>
+      <arg><option>-Vbh</option></arg>
       <sbr>
+      <group>
+	<arg><option>-b</option></arg>
+	<arg><option>--ignore-blanks</option></arg>
+      </group>
       <group>
         <arg><option>-f</option> <option><replaceable>format</replaceable></option></arg>
         <arg><option>--format</option> <option><replaceable>format</replaceable></option></arg>
@@ -90,6 +94,14 @@ manpage.1: manpage.sgml
       options is included below.</para>
 
     <variablelist>
+      <varlistentry>
+	<term><option>-b</option>
+	  <option>--ignore-blanks</option>
+	</term>
+	<listitem>
+	  <para>Ignore blanks to compute languages</para>
+	</listitem>
+      </varlistentry>
       <varlistentry>
         <term><option>-f</option>
           <option>--format</option>

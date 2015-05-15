@@ -143,6 +143,7 @@ typedef enum {
     /* Screen tokens */
     OBSDRIVER,
     MDEVICE,
+    GDEVICE,
     MONITOR,
     SCREENNO,
     DEFAULTDEPTH,

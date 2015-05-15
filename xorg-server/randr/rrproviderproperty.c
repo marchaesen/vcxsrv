@@ -350,7 +350,7 @@ RRConfigureProviderProperty(RRProviderPtr provider, Atom property,
         return BadMatch;
     }
 
-    new_values = malloc(num_values * sizeof(INT32));
+    new_values = xallocarray(num_values, sizeof(INT32));
     if (!new_values && num_values) {
         if (add)
             RRDestroyProviderProperty(prop);
@@ -400,7 +400,7 @@ ProcRRListProviderProperties(ClientPtr client)
     for (prop = provider->properties; prop; prop = prop->next)
         numProps++;
     if (numProps)
-        if (!(pAtoms = (Atom *) malloc(numProps * sizeof(Atom))))
+        if (!(pAtoms = xallocarray(numProps, sizeof(Atom))))
             return BadAlloc;
 
     rep = (xRRListProviderPropertiesReply) {
@@ -445,7 +445,7 @@ ProcRRQueryProviderProperty(ClientPtr client)
         return BadName;
 
     if (prop->num_valid) {
-        extra = malloc(prop->num_valid * sizeof(INT32));
+        extra = xallocarray(prop->num_valid, sizeof(INT32));
         if (!extra)
             return BadAlloc;
     }

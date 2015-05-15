@@ -99,6 +99,16 @@ public:
          }
          else {
             this->fragdata_usage |= 1 << index->get_uint_component(0);
+            /* Don't lower fragdata array if the output variable
+             * is not a float variable (or float vector) because it will
+             * generate wrong register assignments because of different
+             * data types.
+             */
+            if (var->type->gl_type != GL_FLOAT &&
+                var->type->gl_type != GL_FLOAT_VEC2 &&
+                var->type->gl_type != GL_FLOAT_VEC3 &&
+                var->type->gl_type != GL_FLOAT_VEC4)
+               this->lower_fragdata_array = false;
          }
 
          /* Don't visit the leaves of ir_dereference_array. */

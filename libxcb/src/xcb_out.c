@@ -177,7 +177,7 @@ uint32_t xcb_get_maximum_request_length(xcb_connection_t *c)
     return c->out.maximum_request_length.value;
 }
 
-unsigned int xcb_send_request(xcb_connection_t *c, int flags, struct iovec *vector, const xcb_protocol_request_t *req)
+uint64_t xcb_send_request64(xcb_connection_t *c, int flags, struct iovec *vector, const xcb_protocol_request_t *req)
 {
     uint64_t request;
     uint32_t prefix[2];
@@ -284,6 +284,12 @@ unsigned int xcb_send_request(xcb_connection_t *c, int flags, struct iovec *vect
     request = c->has_error ? 0 : c->out.request;
     pthread_mutex_unlock(&c->iolock);
     return request;
+}
+
+/* request number are actually uint64_t internally but keep API compat with unsigned int */
+unsigned int xcb_send_request(xcb_connection_t *c, int flags, struct iovec *vector, const xcb_protocol_request_t *req)
+{
+    return xcb_send_request64(c, flags, vector, req);
 }
 
 void

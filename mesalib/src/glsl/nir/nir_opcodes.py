@@ -153,8 +153,6 @@ unop("fsat", tfloat, "(src0 > 1.0f) ? 1.0f : ((src0 <= 0.0f) ? 0.0f : src0)")
 unop("frcp", tfloat, "1.0f / src0")
 unop("frsq", tfloat, "1.0f / sqrtf(src0)")
 unop("fsqrt", tfloat, "sqrtf(src0)")
-unop("fexp", tfloat, "expf(src0)") # < e^x
-unop("flog", tfloat, "logf(src0)") # log base e
 unop("fexp2", tfloat, "exp2f(src0)")
 unop("flog2", tfloat, "log2f(src0)")
 unop_convert("f2i", tfloat, tint, "src0") # Float-to-integer conversion.

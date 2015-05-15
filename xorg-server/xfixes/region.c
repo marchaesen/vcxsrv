@@ -777,7 +777,7 @@ ProcXFixesExpandRegion(ClientPtr client)
     nBoxes = RegionNumRects(pSource);
     pSrc = RegionRects(pSource);
     if (nBoxes) {
-        pTmp = malloc(nBoxes * sizeof(BoxRec));
+        pTmp = xallocarray(nBoxes, sizeof(BoxRec));
         if (!pTmp)
             return BadAlloc;
         for (i = 0; i < nBoxes; i++) {

@@ -129,7 +129,7 @@ glamor_set_solid(PixmapPtr      pixmap,
     CARD32      pixel;
     int         alu = use_alu ? gc->alu : GXcopy;
 
-    if (!glamor_set_planemask(pixmap, gc->planemask))
+    if (!glamor_set_planemask(gc->depth, gc->planemask))
         return FALSE;
 
     pixel = gc->fgPixel;
@@ -155,12 +155,7 @@ glamor_set_solid(PixmapPtr      pixmap,
 }
 
 Bool
-glamor_set_texture(PixmapPtr    pixmap,
-                   PixmapPtr    texture,
-                   int          off_x,
-                   int          off_y,
-                   GLint        offset_uniform,
-                   GLint        size_inv_uniform)
+glamor_set_texture_pixmap(PixmapPtr texture)
 {
     glamor_pixmap_private *texture_priv;
 
@@ -174,6 +169,23 @@ glamor_set_texture(PixmapPtr    pixmap,
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture_priv->fbo->tex);
+
+    /* we're not setting the sampler uniform here as we always use
+     * GL_TEXTURE0, and the default value for uniforms is zero. So,
+     * save a bit of CPU time by taking advantage of that.
+     */
+    return TRUE;
+}
+
+Bool
+glamor_set_texture(PixmapPtr    texture,
+                   int          off_x,
+                   int          off_y,
+                   GLint        offset_uniform,
+                   GLint        size_inv_uniform)
+{
+    if (!glamor_set_texture_pixmap(texture))
+        return FALSE;
 
     glUniform2f(offset_uniform, off_x, off_y);
     glUniform2f(size_inv_uniform, 1.0f/texture->drawable.width, 1.0f/texture->drawable.height);
@@ -189,11 +201,10 @@ glamor_set_tiled(PixmapPtr      pixmap,
     if (!glamor_set_alu(pixmap->drawable.pScreen, gc->alu))
         return FALSE;
 
-    if (!glamor_set_planemask(pixmap, gc->planemask))
+    if (!glamor_set_planemask(gc->depth, gc->planemask))
         return FALSE;
 
-    return glamor_set_texture(pixmap,
-                              gc->tile.pixmap,
+    return glamor_set_texture(gc->tile.pixmap,
                               -gc->patOrg.x,
                               -gc->patOrg.y,
                               offset_uniform,
@@ -274,8 +285,7 @@ glamor_set_stippled(PixmapPtr      pixmap,
     if (!glamor_set_solid(pixmap, gc, TRUE, fg_uniform))
         return FALSE;
 
-    return glamor_set_texture(pixmap,
-                              stipple,
+    return glamor_set_texture(stipple,
                               -gc->patOrg.x,
                               -gc->patOrg.y,
                               offset_uniform,

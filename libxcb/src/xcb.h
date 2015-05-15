@@ -378,6 +378,26 @@ xcb_generic_error_t *xcb_request_check(xcb_connection_t *c, xcb_void_cookie_t co
  */
 void xcb_discard_reply(xcb_connection_t *c, unsigned int sequence);
 
+/**
+ * @brief Discards the reply for a request, given by a 64bit sequence number
+ * @param c: The connection to the X server.
+ * @param sequence: 64-bit sequence number as returned by xcb_send_request64().
+ *
+ * Discards the reply for a request. Additionally, any error generated
+ * by the request is also discarded (unless it was an _unchecked request
+ * and the error has already arrived).
+ *
+ * This function will not block even if the reply is not yet available.
+ *
+ * Note that the sequence really does have to come from xcb_send_request64();
+ * the cookie sequence number is defined as "unsigned" int and therefore
+ * not 64-bit on all platforms.
+ * This function is not designed to operate on socket-handoff replies.
+ *
+ * Unlike its xcb_discard_reply() counterpart, the given sequence number is not
+ * automatically "widened" to 64-bit.
+ */
+void xcb_discard_reply64(xcb_connection_t *c, uint64_t sequence);
 
 /* xcb_ext.c */
 

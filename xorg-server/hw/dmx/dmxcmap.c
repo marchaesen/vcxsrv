@@ -177,7 +177,7 @@ dmxStoreColors(ColormapPtr pColormap, int ndef, xColorItem * pdef)
     dmxColormapPrivPtr pCmapPriv = DMX_GET_COLORMAP_PRIV(pColormap);
 
     if (dmxScreen->beDisplay && (pColormap->pVisual->class & DynamicClass)) {
-        XColor *color = malloc(sizeof(*color) * ndef);
+        XColor *color = xallocarray(ndef, sizeof(*color));
         int i;
 
         if (color) {

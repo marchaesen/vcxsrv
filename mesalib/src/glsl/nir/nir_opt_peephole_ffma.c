@@ -41,12 +41,11 @@ struct peephole_ffma_state {
 static inline bool
 are_all_uses_fadd(nir_ssa_def *def)
 {
-   if (def->if_uses->entries > 0)
+   if (!list_empty(&def->if_uses))
       return false;
 
-   struct set_entry *use_iter;
-   set_foreach(def->uses, use_iter) {
-      nir_instr *use_instr = (nir_instr *)use_iter->key;
+   nir_foreach_use(def, use_src) {
+      nir_instr *use_instr = use_src->parent_instr;
 
       if (use_instr->type != nir_instr_type_alu)
          return false;
@@ -220,7 +219,7 @@ nir_opt_peephole_ffma_block(nir_block *block, void *void_state)
                                state->mem_ctx);
 
       nir_instr_insert_before(&add->instr, &ffma->instr);
-      assert(add->dest.dest.ssa.uses->entries == 0);
+      assert(list_empty(&add->dest.dest.ssa.uses));
       nir_instr_remove(&add->instr);
 
       state->progress = true;

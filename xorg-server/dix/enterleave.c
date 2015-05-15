@@ -714,7 +714,7 @@ DeliverStateNotifyEvent(DeviceIntPtr dev, WindowPtr win)
         }
     }
 
-    sev = ev = (deviceStateNotify *) malloc(evcount * sizeof(xEvent));
+    sev = ev = xallocarray(evcount, sizeof(xEvent));
     FixDeviceStateNotify(dev, ev, NULL, NULL, NULL, first);
 
     if (b != NULL) {

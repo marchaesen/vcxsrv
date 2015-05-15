@@ -448,14 +448,34 @@ draw_rgba_pixels( struct gl_context *ctx, GLint x, GLint y,
    {
       const GLbitfield interpMask = span.interpMask;
       const GLbitfield arrayMask = span.arrayMask;
-      const GLint srcStride
-         = _mesa_image_row_stride(unpack, width, format, type);
       GLint skipPixels = 0;
       /* use span array for temp color storage */
       GLfloat *rgba = (GLfloat *) span.array->attribs[VARYING_SLOT_COL0];
       void *tempImage = NULL;
 
-      if (unpack->SwapBytes) {
+      /* We have to deal with GL_COLOR_INDEX manually because
+       * _mesa_format_convert does not handle this format. So what we do here is
+       * convert it to RGBA ubyte first and then convert from that to dst as
+       * usual.
+       */
+      if (format == GL_COLOR_INDEX) {
+         /* This will handle byte swapping and transferops if needed */
+         tempImage =
+            _mesa_unpack_color_index_to_rgba_ubyte(ctx, 2,
+                                                   pixels, format, type,
+                                                   width, height, 1,
+                                                   unpack,
+                                                   transferOps);
+         if (!tempImage) {
+            _mesa_error(ctx, GL_OUT_OF_MEMORY, "glDrawPixels");
+            return;
+         }
+
+         transferOps = 0;
+         pixels = tempImage;
+         format = GL_RGBA;
+         type = GL_UNSIGNED_BYTE;
+      } else if (unpack->SwapBytes) {
          /* We have to handle byte-swapping scenarios before calling
           * _mesa_format_convert
           */
@@ -475,6 +495,9 @@ draw_rgba_pixels( struct gl_context *ctx, GLint x, GLint y,
             pixels = tempImage;
          }
       }
+
+      const GLint srcStride
+         = _mesa_image_row_stride(unpack, width, format, type);
 
       /* if the span is wider than SWRAST_MAX_WIDTH we have to do it in chunks */
       while (skipPixels < width) {

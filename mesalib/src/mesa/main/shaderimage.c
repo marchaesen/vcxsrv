@@ -58,8 +58,8 @@
 # define MESA_FORMAT_SIGNED_RG_8 MESA_FORMAT_R8G8_SNORM
 #endif
 
-static mesa_format
-get_image_format(GLenum format)
+mesa_format
+_mesa_get_shader_image_format(GLenum format)
 {
    switch (format) {
    case GL_RGBA32F:
@@ -331,19 +331,33 @@ get_image_format_class(mesa_format format)
    }
 }
 
+void
+_mesa_init_image_units(struct gl_context *ctx)
+{
+   unsigned i;
+
+   for (i = 0; i < ARRAY_SIZE(ctx->ImageUnits); ++i) {
+      struct gl_image_unit *u = &ctx->ImageUnits[i];
+      u->Access = GL_READ_ONLY;
+      u->Format = GL_R8;
+      u->_ActualFormat = _mesa_get_shader_image_format(u->Format);
+   }
+}
+
 static GLboolean
 validate_image_unit(struct gl_context *ctx, struct gl_image_unit *u)
 {
    struct gl_texture_object *t = u->TexObj;
-   struct gl_texture_image *img;
+   mesa_format tex_format;
 
-   if (!t || u->Level < t->BaseLevel ||
-       u->Level > t->_MaxLevel)
+   if (!t)
       return GL_FALSE;
 
    _mesa_test_texobj_completeness(ctx, t);
 
-   if ((u->Level == t->BaseLevel && !t->_BaseComplete) ||
+   if (u->Level < t->BaseLevel ||
+       u->Level > t->_MaxLevel ||
+       (u->Level == t->BaseLevel && !t->_BaseComplete) ||
        (u->Level != t->BaseLevel && !t->_MipmapComplete))
       return GL_FALSE;
 
@@ -351,25 +365,32 @@ validate_image_unit(struct gl_context *ctx, struct gl_image_unit *u)
        u->Layer >= _mesa_get_texture_layers(t, u->Level))
       return GL_FALSE;
 
-   if (t->Target == GL_TEXTURE_CUBE_MAP)
-      img = t->Image[u->Layer][u->Level];
-   else
-      img = t->Image[0][u->Level];
+   if (t->Target == GL_TEXTURE_BUFFER) {
+      tex_format = _mesa_get_shader_image_format(t->BufferObjectFormat);
 
-   if (!img || img->Border ||
-       get_image_format_class(img->TexFormat) == IMAGE_FORMAT_CLASS_NONE ||
-       img->NumSamples > ctx->Const.MaxImageSamples)
+   } else {
+      struct gl_texture_image *img = (t->Target == GL_TEXTURE_CUBE_MAP ?
+                                      t->Image[u->Layer][u->Level] :
+                                      t->Image[0][u->Level]);
+
+      if (!img || img->Border || img->NumSamples > ctx->Const.MaxImageSamples)
+         return GL_FALSE;
+
+      tex_format = _mesa_get_shader_image_format(img->InternalFormat);
+   }
+
+   if (!tex_format)
       return GL_FALSE;
 
    switch (t->ImageFormatCompatibilityType) {
    case GL_IMAGE_FORMAT_COMPATIBILITY_BY_SIZE:
-      if (_mesa_get_format_bytes(img->TexFormat) !=
+      if (_mesa_get_format_bytes(tex_format) !=
           _mesa_get_format_bytes(u->_ActualFormat))
          return GL_FALSE;
       break;
 
    case GL_IMAGE_FORMAT_COMPATIBILITY_BY_CLASS:
-      if (get_image_format_class(img->TexFormat) !=
+      if (get_image_format_class(tex_format) !=
           get_image_format_class(u->_ActualFormat))
          return GL_FALSE;
       break;
@@ -421,7 +442,7 @@ validate_bind_image_texture(struct gl_context *ctx, GLuint unit,
       return GL_FALSE;
    }
 
-   if (!get_image_format(format)) {
+   if (!_mesa_get_shader_image_format(format)) {
       _mesa_error(ctx, GL_INVALID_VALUE, "glBindImageTexture(format)");
       return GL_FALSE;
    }
@@ -435,7 +456,6 @@ _mesa_BindImageTexture(GLuint unit, GLuint texture, GLint level,
                        GLenum format)
 {
    GET_CURRENT_CONTEXT(ctx);
-   struct gl_texture_object *t = NULL;
    struct gl_image_unit *u;
 
    if (!validate_bind_image_texture(ctx, unit, texture, level,
@@ -448,34 +468,34 @@ _mesa_BindImageTexture(GLuint unit, GLuint texture, GLint level,
    ctx->NewDriverState |= ctx->DriverFlags.NewImageUnits;
 
    if (texture) {
-      t = _mesa_lookup_texture(ctx, texture);
+      struct gl_texture_object *t = _mesa_lookup_texture(ctx, texture);
+
       if (!t) {
          _mesa_error(ctx, GL_INVALID_VALUE, "glBindImageTexture(texture)");
          return;
       }
 
       _mesa_reference_texobj(&u->TexObj, t);
-      u->Level = level;
-      u->Access = access;
-      u->Format = format;
-      u->_ActualFormat = get_image_format(format);
-
-      if (_mesa_tex_target_is_layered(t->Target)) {
-         u->Layered = layered;
-         u->Layer = (layered ? 0 : layer);
-      } else {
-         u->Layered = GL_FALSE;
-         u->Layer = 0;
-      }
-
    } else {
       _mesa_reference_texobj(&u->TexObj, NULL);
    }
 
+   u->Level = level;
+   u->Access = access;
+   u->Format = format;
+   u->_ActualFormat = _mesa_get_shader_image_format(format);
    u->_Valid = validate_image_unit(ctx, u);
 
+   if (u->TexObj && _mesa_tex_target_is_layered(u->TexObj->Target)) {
+      u->Layered = layered;
+      u->Layer = (layered ? 0 : layer);
+   } else {
+      u->Layered = GL_FALSE;
+      u->Layer = 0;
+   }
+
    if (ctx->Driver.BindImageTexture)
-      ctx->Driver.BindImageTexture(ctx, u, t, level, layered,
+      ctx->Driver.BindImageTexture(ctx, u, u->TexObj, level, layered,
                                    layer, access, format);
 }
 
@@ -535,8 +555,7 @@ _mesa_BindImageTextures(GLuint first, GLsizei count, const GLuint *textures)
 
       if (texture != 0) {
          struct gl_texture_object *texObj;
-         struct gl_texture_image *image;
-         mesa_format actualFormat;
+         GLenum tex_format;
 
          if (!u->TexObj || u->TexObj->Name != texture) {
             texObj = _mesa_lookup_texture_locked(ctx, texture);
@@ -557,25 +576,30 @@ _mesa_BindImageTextures(GLuint first, GLsizei count, const GLuint *textures)
             texObj = u->TexObj;
          }
 
-         image = texObj->Image[0][0];
+         if (texObj->Target == GL_TEXTURE_BUFFER) {
+            tex_format = texObj->BufferObjectFormat;
+         } else {
+            struct gl_texture_image *image = texObj->Image[0][0];
 
-         if (!image || image->Width == 0 || image->Height == 0 || image->Depth == 0) {
-            /* The ARB_multi_bind spec says:
-             *
-             *    "An INVALID_OPERATION error is generated if the width,
-             *     height, or depth of the level zero texture image of
-             *     any texture in <textures> is zero (per binding)."
-             */
-            _mesa_error(ctx, GL_INVALID_OPERATION,
-                        "glBindImageTextures(the width, height or depth "
-                        "of the level zero texture image of "
-                        "textures[%d]=%u is zero)", i, texture);
-            continue;
+            if (!image || image->Width == 0 || image->Height == 0 ||
+                image->Depth == 0) {
+               /* The ARB_multi_bind spec says:
+                *
+                *    "An INVALID_OPERATION error is generated if the width,
+                *     height, or depth of the level zero texture image of
+                *     any texture in <textures> is zero (per binding)."
+                */
+               _mesa_error(ctx, GL_INVALID_OPERATION,
+                           "glBindImageTextures(the width, height or depth "
+                           "of the level zero texture image of "
+                           "textures[%d]=%u is zero)", i, texture);
+               continue;
+            }
+
+            tex_format = image->InternalFormat;
          }
 
-         actualFormat = get_image_format(image->InternalFormat);
-
-         if (actualFormat == MESA_FORMAT_NONE) {
+         if (_mesa_get_shader_image_format(tex_format) == MESA_FORMAT_NONE) {
             /* The ARB_multi_bind spec says:
              *
              *   "An INVALID_OPERATION error is generated if the internal
@@ -586,7 +610,7 @@ _mesa_BindImageTextures(GLuint first, GLsizei count, const GLuint *textures)
                         "glBindImageTextures(the internal format %s of "
                         "the level zero texture image of textures[%d]=%u "
                         "is not supported)",
-                        _mesa_lookup_enum_by_nr(image->InternalFormat),
+                        _mesa_lookup_enum_by_nr(tex_format),
                         i, texture);
             continue;
          }
@@ -597,8 +621,8 @@ _mesa_BindImageTextures(GLuint first, GLsizei count, const GLuint *textures)
          u->Layered = _mesa_tex_target_is_layered(texObj->Target);
          u->Layer = 0;
          u->Access = GL_READ_WRITE;
-         u->Format = image->InternalFormat;
-         u->_ActualFormat = actualFormat;
+         u->Format = tex_format;
+         u->_ActualFormat = _mesa_get_shader_image_format(tex_format);
          u->_Valid = validate_image_unit(ctx, u);
       } else {
          /* Unbind the texture from the unit */

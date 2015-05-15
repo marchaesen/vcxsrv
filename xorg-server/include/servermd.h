@@ -52,6 +52,8 @@ SOFTWARE.
 #error xserver code must include dix-config.h before any other headers
 #endif
 
+#include <X11/Xarch.h>		/* for X_LITTLE_ENDIAN/X_BIG_ENDIAN */
+
 #if X_BYTE_ORDER == X_LITTLE_ENDIAN
 #define IMAGE_BYTE_ORDER        LSBFirst
 #define BITMAP_BIT_ORDER        LSBFirst

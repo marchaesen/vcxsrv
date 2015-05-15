@@ -221,7 +221,7 @@ list_atoms(DeviceIntPtr dev, int *natoms, Atom **atoms_return)
     if (nprops) {
         Atom *a;
 
-        atoms = malloc(nprops * sizeof(Atom));
+        atoms = xallocarray(nprops, sizeof(Atom));
         if (!atoms)
             return BadAlloc;
         a = atoms;
@@ -687,7 +687,6 @@ XIChangeDeviceProperty(DeviceIntPtr dev, Atom property, Atom type,
 {
     XIPropertyPtr prop;
     int size_in_bytes;
-    int total_size;
     unsigned long total_len;
     XIPropertyValuePtr prop_value;
     XIPropertyValueRec new_value;
@@ -725,9 +724,8 @@ XIChangeDeviceProperty(DeviceIntPtr dev, Atom property, Atom type,
     if (mode == PropModeReplace || len > 0) {
         void *new_data = NULL, *old_data = NULL;
 
-        total_size = total_len * size_in_bytes;
-        new_value.data = (void *) malloc(total_size);
-        if (!new_value.data && total_size) {
+        new_value.data = xallocarray(total_len, size_in_bytes);
+        if (!new_value.data && total_len && size_in_bytes) {
             if (add)
                 XIDestroyDeviceProperty(prop);
             return BadAlloc;

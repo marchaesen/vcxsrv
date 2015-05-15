@@ -91,8 +91,8 @@ glamor_prep_pixmap_box(PixmapPtr pixmap, glamor_access_t access, BoxPtr box)
                          pixmap->devKind * pixmap->drawable.height, NULL,
                          gl_usage);
         } else {
-            pixmap->devPrivate.ptr = malloc(pixmap->devKind *
-                                            pixmap->drawable.height);
+            pixmap->devPrivate.ptr = xallocarray(pixmap->devKind,
+                                                 pixmap->drawable.height);
             if (!pixmap->devPrivate.ptr)
                 return FALSE;
         }

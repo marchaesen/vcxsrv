@@ -671,7 +671,7 @@ miZeroPolyArc(DrawablePtr pDraw, GCPtr pGC, int narcs, xArc * parcs)
     numPts = maxPts << 2;
     dospans = (pGC->fillStyle != FillSolid);
     if (dospans) {
-        widths = malloc(sizeof(int) * numPts);
+        widths = xallocarray(numPts, sizeof(int));
         if (!widths)
             return;
         maxw = 0;
@@ -687,7 +687,7 @@ miZeroPolyArc(DrawablePtr pDraw, GCPtr pGC, int narcs, xArc * parcs)
                    (unsigned char *) pGC->dash, (int) pGC->numInDashList,
                    &dinfo.dashOffsetInit);
     }
-    points = malloc(sizeof(DDXPointRec) * numPts);
+    points = xallocarray(numPts, sizeof(DDXPointRec));
     if (!points) {
         if (dospans) {
             free(widths);

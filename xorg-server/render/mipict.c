@@ -510,7 +510,7 @@ miTriStrip(CARD8 op,
     int ntri;
 
     ntri = npoints - 2;
-    tris = malloc(ntri * sizeof(xTriangle));
+    tris = xallocarray(ntri, sizeof(xTriangle));
     if (!tris)
         return;
 
@@ -535,7 +535,7 @@ miTriFan(CARD8 op,
     int ntri;
 
     ntri = npoints - 2;
-    tris = malloc(ntri * sizeof(xTriangle));
+    tris = xallocarray(ntri, sizeof(xTriangle));
     if (!tris)
         return;
 

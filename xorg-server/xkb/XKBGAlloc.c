@@ -409,7 +409,7 @@ XkbGeomRealloc(void **buffer, int szItems, int nrItems,
         return FALSE;
     /* Check if there is need to resize. */
     if (nrItems != szItems)
-        if (!(items = realloc(items, nrItems * itemSize)))
+        if (!(items = reallocarray(items, nrItems, itemSize)))
             return FALSE;
     /* Clear specified items to zero. */
     switch (clearance) {

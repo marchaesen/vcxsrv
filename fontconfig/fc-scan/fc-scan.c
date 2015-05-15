@@ -52,6 +52,7 @@
 #define _GNU_SOURCE
 #include <getopt.h>
 static const struct option longopts[] = {
+    {"ignore-blanks", 0, 0, 'b'},
     {"format", 1, 0, 'f'},
     {"version", 0, 0, 'V'},
     {"help", 0, 0, 'h'},
@@ -69,22 +70,24 @@ usage (char *program, int error)
 {
     FILE *file = error ? stderr : stdout;
 #if HAVE_GETOPT_LONG
-    fprintf (file, "usage: %s [-Vh] [-f FORMAT] [--format FORMAT] [--version] [--help] font-file...\n",
+    fprintf (file, "usage: %s [-Vbh] [-f FORMAT] [--ignore-blanks] [--format FORMAT] [--version] [--help] font-file...\n",
 	     program);
 #else
-    fprintf (file, "usage: %s [-Vh] [-f FORMAT] font-file...\n",
+    fprintf (file, "usage: %s [-Vbh] [-f FORMAT] font-file...\n",
 	     program);
 #endif
     fprintf (file, "Scan font files and directories, and print resulting pattern(s)\n");
     fprintf (file, "\n");
 #if HAVE_GETOPT_LONG
+    fprintf (file, "  -b, --ignore-blanks  ignore blanks to compute languages\n");
     fprintf (file, "  -f, --format=FORMAT  use the given output format\n");
     fprintf (file, "  -V, --version        display font config version and exit\n");
     fprintf (file, "  -h, --help           display this help and exit\n");
 #else
-    fprintf (file, "  -f FORMAT  (format)  use the given output format\n");
-    fprintf (file, "  -V         (version) display font config version and exit\n");
-    fprintf (file, "  -h         (help)    display this help and exit\n");
+    fprintf (file, "  -b         (ignore-blanks) ignore blanks to compute languages\n");
+    fprintf (file, "  -f FORMAT  (format)        use the given output format\n");
+    fprintf (file, "  -V         (version)       display font config version and exit\n");
+    fprintf (file, "  -h         (help)          display this help and exit\n");
 #endif
     exit (error);
 }
@@ -94,17 +97,22 @@ main (int argc, char **argv)
 {
     FcChar8     *format = NULL;
     int		i;
+    int		ignore_blanks = 0;
     FcFontSet   *fs;
+    FcBlanks    *blanks = NULL;
 #if HAVE_GETOPT_LONG || HAVE_GETOPT
     int		c;
 
 #if HAVE_GETOPT_LONG
-    while ((c = getopt_long (argc, argv, "f:Vh", longopts, NULL)) != -1)
+    while ((c = getopt_long (argc, argv, "bf:Vh", longopts, NULL)) != -1)
 #else
-    while ((c = getopt (argc, argv, "f:Vh")) != -1)
+    while ((c = getopt (argc, argv, "bf:Vh")) != -1)
 #endif
     {
 	switch (c) {
+	case 'b':
+	    ignore_blanks = 1;
+	    break;
 	case 'f':
 	    format = (FcChar8 *) strdup (optarg);
 	    break;
@@ -127,20 +135,22 @@ main (int argc, char **argv)
 	usage (argv[0], 1);
 
     fs = FcFontSetCreate ();
+    if (!ignore_blanks)
+	blanks = FcConfigGetBlanks (NULL);
 
     for (; i < argc; i++)
     {
 	const FcChar8 *file = (FcChar8*) argv[i];
 
 	if (!FcFileIsDir (file))
-	    FcFileScan (fs, NULL, NULL, NULL, file, FcTrue);
+	    FcFileScan (fs, NULL, NULL, blanks, file, FcTrue);
 	else
 	{
 	    FcStrSet *dirs = FcStrSetCreate ();
 	    FcStrList *strlist = FcStrListCreate (dirs);
 	    do
 	    {
-		FcDirScan (fs, dirs, NULL, NULL, file, FcTrue);
+		FcDirScan (fs, dirs, NULL, blanks, file, FcTrue);
 	    }
 	    while ((file = FcStrListNext (strlist)));
 	    FcStrListDone (strlist);

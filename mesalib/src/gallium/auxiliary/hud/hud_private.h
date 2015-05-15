@@ -29,7 +29,7 @@
 #define HUD_PRIVATE_H
 
 #include "pipe/p_context.h"
-#include "util/u_double_list.h"
+#include "util/list.h"
 
 struct hud_graph {
    /* initialized by common code */

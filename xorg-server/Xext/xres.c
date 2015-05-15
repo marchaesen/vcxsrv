@@ -223,7 +223,7 @@ ProcXResQueryClients(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xXResQueryClientsReq);
 
-    current_clients = malloc(currentMaxClients * sizeof(int));
+    current_clients = xallocarray(currentMaxClients, sizeof(int));
 
     num_clients = 0;
     for (i = 0; i < currentMaxClients; i++) {

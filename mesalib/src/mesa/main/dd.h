@@ -1005,6 +1005,13 @@ struct dd_function_table {
 
    void (*MemoryBarrier)(struct gl_context *ctx, GLbitfield barriers);
    /** @} */
+
+   /**
+    * \name GL_ARB_compute_shader interface
+    */
+   /*@{*/
+   void (*DispatchCompute)(struct gl_context *ctx, const GLuint *num_groups);
+   /*@}*/
 };
 
 
@@ -1167,6 +1174,19 @@ typedef struct {
    void (GLAPIENTRYP VertexAttribP4uiv)( GLuint index, GLenum type,
 					 GLboolean normalized,
 					 const GLuint *value);
+
+   /* GL_ARB_vertex_attrib_64bit / GL 4.1 */
+   void (GLAPIENTRYP VertexAttribL1d)( GLuint index, GLdouble x);
+   void (GLAPIENTRYP VertexAttribL2d)( GLuint index, GLdouble x, GLdouble y);
+   void (GLAPIENTRYP VertexAttribL3d)( GLuint index, GLdouble x, GLdouble y, GLdouble z);
+   void (GLAPIENTRYP VertexAttribL4d)( GLuint index, GLdouble x, GLdouble y, GLdouble z, GLdouble w);
+
+
+   void (GLAPIENTRYP VertexAttribL1dv)( GLuint index, const GLdouble *v);
+   void (GLAPIENTRYP VertexAttribL2dv)( GLuint index, const GLdouble *v);
+   void (GLAPIENTRYP VertexAttribL3dv)( GLuint index, const GLdouble *v);
+   void (GLAPIENTRYP VertexAttribL4dv)( GLuint index, const GLdouble *v);
+
 } GLvertexformat;
 
 

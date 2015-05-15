@@ -49,6 +49,10 @@ typedef void *GLeglImageOES;
 #include "glapi/glapi.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* getproc */
 
 extern void
@@ -105,5 +109,9 @@ get_entrypoint_address(unsigned int functionOffset);
  */
 #define MAX_EXTENSION_FUNCS 256
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

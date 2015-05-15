@@ -327,8 +327,8 @@ KdXVInitAdaptors(ScreenPtr pScreen, KdVideoAdaptorPtr infoPtr, int number)
                         void *moreSpace;
 
                         totFormat *= 2;
-                        moreSpace = realloc(pFormat,
-                                            totFormat * sizeof(XvFormatRec));
+                        moreSpace = reallocarray(pFormat, totFormat,
+                                                 sizeof(XvFormatRec));
                         if (!moreSpace)
                             break;
                         pFormat = moreSpace;

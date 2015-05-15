@@ -1,6 +1,5 @@
 // Based on <http://eurkey.steffen.bruentjen.eu/>
 // Copyright: Copyright 2012 Steffen Bruentjen (eurkey (at) steffen dot bruentjen dot de)
-// License: GPLv3 <http://www.gnu.org/licenses/gpl-3.0.html>
 // modified by Christoph Roeper <spam (at) roeper dot biz> (use firstName to mail)
 
 default  partial alphanumeric_keys modifier_keys 

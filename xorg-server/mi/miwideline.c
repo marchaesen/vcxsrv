@@ -189,19 +189,16 @@ miSubtractSpans(SpanGroup * spanGroup, Spans * sub)
                                 int *newwid;
 
 #define EXTRA 8
-                                newPt =
-                                    (DDXPointPtr) realloc(spans->points,
-                                                          (spans->count +
-                                                           EXTRA) *
-                                                          sizeof(DDXPointRec));
+                                newPt = reallocarray(spans->points,
+                                                     spans->count + EXTRA,
+                                                     sizeof(DDXPointRec));
                                 if (!newPt)
                                     break;
                                 spansPt = newPt + (spansPt - spans->points);
                                 spans->points = newPt;
-                                newwid =
-                                    (int *) realloc(spans->widths,
-                                                    (spans->count +
-                                                     EXTRA) * sizeof(int));
+                                newwid = reallocarray(spans->widths,
+                                                      spans->count + EXTRA,
+                                                      sizeof(int));
                                 if (!newwid)
                                     break;
                                 spansWid = newwid + (spansWid - spans->widths);
@@ -240,8 +237,8 @@ miAppendSpans(SpanGroup * spanGroup, SpanGroup * otherGroup, Spans * spans)
     if (spansCount > 0) {
         if (spanGroup->size == spanGroup->count) {
             spanGroup->size = (spanGroup->size + 8) * 2;
-            spanGroup->group = (Spans *)
-                realloc(spanGroup->group, sizeof(Spans) * spanGroup->size);
+            spanGroup->group =
+                reallocarray(spanGroup->group, sizeof(Spans), spanGroup->size);
         }
 
         spanGroup->group[spanGroup->count] = *spans;
@@ -456,8 +453,8 @@ miFillUniqueSpanGroup(DrawablePtr pDraw, GCPtr pGC, SpanGroup * spanGroup)
         ylength = spanGroup->ymax - ymin + 1;
 
         /* Allocate Spans for y buckets */
-        yspans = malloc(ylength * sizeof(Spans));
-        ysizes = malloc(ylength * sizeof(int));
+        yspans = xallocarray(ylength, sizeof(Spans));
+        ysizes = xallocarray(ylength, sizeof(int));
 
         if (!yspans || !ysizes) {
             free(yspans);
@@ -491,12 +488,11 @@ miFillUniqueSpanGroup(DrawablePtr pDraw, GCPtr pGC, SpanGroup * spanGroup)
                         int *newwidths;
 
                         ysizes[index] = (ysizes[index] + 8) * 2;
-                        newpoints = (DDXPointPtr) realloc(newspans->points,
-                                                          ysizes[index] *
-                                                          sizeof(DDXPointRec));
-                        newwidths =
-                            (int *) realloc(newspans->widths,
-                                            ysizes[index] * sizeof(int));
+                        newpoints = reallocarray(newspans->points,
+                                                 ysizes[index],
+                                                 sizeof(DDXPointRec));
+                        newwidths = reallocarray(newspans->widths,
+                                                 ysizes[index], sizeof(int));
                         if (!newpoints || !newwidths) {
                             for (i = 0; i < ylength; i++) {
                                 free(yspans[i].points);
@@ -525,8 +521,8 @@ miFillUniqueSpanGroup(DrawablePtr pDraw, GCPtr pGC, SpanGroup * spanGroup)
         }                       /* for i thorough Spans */
 
         /* Now sort by x and uniquify each bucket into the final array */
-        points = malloc(count * sizeof(DDXPointRec));
-        widths = malloc(count * sizeof(int));
+        points = xallocarray(count, sizeof(DDXPointRec));
+        widths = xallocarray(count, sizeof(int));
         if (!points || !widths) {
             for (i = 0; i < ylength; i++) {
                 free(yspans[i].points);
@@ -573,10 +569,10 @@ miFillUniqueSpanGroup(DrawablePtr pDraw, GCPtr pGC, SpanGroup * spanGroup)
 static Bool
 InitSpans(Spans * spans, size_t nspans)
 {
-    spans->points = malloc(nspans * sizeof(*spans->points));
+    spans->points = xallocarray(nspans, sizeof(*spans->points));
     if (!spans->points)
         return FALSE;
-    spans->widths = malloc(nspans * sizeof(*spans->widths));
+    spans->widths = xallocarray(nspans, sizeof(*spans->widths));
     if (!spans->widths) {
         free(spans->points);
         return FALSE;

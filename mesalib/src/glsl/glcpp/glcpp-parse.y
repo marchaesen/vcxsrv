@@ -2448,6 +2448,9 @@ _glcpp_parser_handle_version_declaration(glcpp_parser_t *parser, intmax_t versio
               if (extensions->ARB_gpu_shader_fp64)
                  add_builtin_define(parser, "GL_ARB_gpu_shader_fp64", 1);
 
+	      if (extensions->ARB_vertex_attrib_64bit)
+	         add_builtin_define(parser, "GL_ARB_vertex_attrib_64bit", 1);
+
 	      if (extensions->AMD_vertex_shader_layer)
 	         add_builtin_define(parser, "GL_AMD_vertex_shader_layer", 1);
 

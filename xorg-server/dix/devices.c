@@ -177,6 +177,9 @@ DeviceSetProperty(DeviceIntPtr dev, Atom property, XIPropertyValuePtr prop,
             if (!isfinite(f[i]))
                 return BadValue;
 
+	if (!dev->valuator)
+		return BadMatch;
+
         if (!checkonly)
             DeviceSetTransform(dev, f);
     }
@@ -1469,8 +1472,8 @@ InitStringFeedbackClassDeviceStruct(DeviceIntPtr dev,
     feedc->ctrl.num_symbols_displayed = 0;
     feedc->ctrl.max_symbols = max_symbols;
     feedc->ctrl.symbols_supported =
-        malloc(sizeof(KeySym) * num_symbols_supported);
-    feedc->ctrl.symbols_displayed = malloc(sizeof(KeySym) * max_symbols);
+        xallocarray(num_symbols_supported, sizeof(KeySym));
+    feedc->ctrl.symbols_displayed = xallocarray(max_symbols, sizeof(KeySym));
     if (!feedc->ctrl.symbols_supported || !feedc->ctrl.symbols_displayed) {
         free(feedc->ctrl.symbols_supported);
         free(feedc->ctrl.symbols_displayed);

@@ -458,9 +458,9 @@ miInitVisuals(VisualPtr * visualp, DepthPtr * depthp, int *nvisualp,
         ndepth++;
         nvisual += visuals->count;
     }
-    depth = malloc(ndepth * sizeof(DepthRec));
-    visual = malloc(nvisual * sizeof(VisualRec));
-    preferredCVCs = malloc(ndepth * sizeof(int));
+    depth = xallocarray(ndepth, sizeof(DepthRec));
+    visual = xallocarray(nvisual, sizeof(VisualRec));
+    preferredCVCs = xallocarray(ndepth, sizeof(int));
     if (!depth || !visual || !preferredCVCs) {
         free(depth);
         free(visual);
@@ -481,7 +481,7 @@ miInitVisuals(VisualPtr * visualp, DepthPtr * depthp, int *nvisualp,
         prefp++;
         vid = NULL;
         if (nvtype) {
-            vid = malloc(nvtype * sizeof(VisualID));
+            vid = xallocarray(nvtype, sizeof(VisualID));
             if (!vid) {
                 free(depth);
                 free(visual);

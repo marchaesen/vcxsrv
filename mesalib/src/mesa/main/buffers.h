@@ -36,26 +36,51 @@
 #include "glheader.h"
 
 struct gl_context;
+struct gl_framebuffer;
+
+extern void
+_mesa_draw_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
+                  GLenum buffer, const char *caller);
 
 extern void GLAPIENTRY
 _mesa_DrawBuffer( GLenum mode );
 
 extern void GLAPIENTRY
-_mesa_DrawBuffers(GLsizei n, const GLenum *buffers);
+_mesa_NamedFramebufferDrawBuffer(GLuint framebuffer, GLenum buf);
 
 extern void
-_mesa_drawbuffers(struct gl_context *ctx, GLuint n, const GLenum *buffers,
+_mesa_draw_buffers(struct gl_context *ctx, struct gl_framebuffer *fb,
+                   GLsizei n, const GLenum *buffers, const char *caller);
+
+extern void GLAPIENTRY
+_mesa_DrawBuffers(GLsizei n, const GLenum *buffers);
+
+extern void GLAPIENTRY
+_mesa_NamedFramebufferDrawBuffers(GLuint framebuffer, GLsizei n,
+                                  const GLenum *bufs);
+
+extern void
+_mesa_drawbuffers(struct gl_context *ctx, struct gl_framebuffer *fb,
+                  GLuint n, const GLenum *buffers,
                   const GLbitfield *destMask);
 
 extern void
-_mesa_readbuffer(struct gl_context *ctx, GLenum buffer, GLint bufferIndex);
+_mesa_readbuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
+                 GLenum buffer, GLint bufferIndex);
 
 extern void
 _mesa_update_draw_buffers(struct gl_context *ctx);
 
 
+extern void
+_mesa_read_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
+                  GLenum buffer, const char *caller);
+
 extern void GLAPIENTRY
 _mesa_ReadBuffer( GLenum mode );
+
+extern void GLAPIENTRY
+_mesa_NamedFramebufferReadBuffer(GLuint framebuffer, GLenum src);
 
 
 #endif

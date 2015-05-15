@@ -242,16 +242,16 @@ read_buffer_enum_to_index(GLenum buffer)
  *
  * See the GL_EXT_framebuffer_object spec for more info.
  */
-void GLAPIENTRY
-_mesa_DrawBuffer(GLenum buffer)
+void
+_mesa_draw_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
+                  GLenum buffer, const char *caller)
 {
    GLbitfield destMask;
-   GET_CURRENT_CONTEXT(ctx);
 
    FLUSH_VERTICES(ctx, 0);
 
    if (MESA_VERBOSE & VERBOSE_API) {
-      _mesa_debug(ctx, "glDrawBuffer %s\n", _mesa_lookup_enum_by_nr(buffer));
+      _mesa_debug(ctx, "%s %s\n", caller, _mesa_lookup_enum_by_nr(buffer));
    }
 
    if (buffer == GL_NONE) {
@@ -259,33 +259,67 @@ _mesa_DrawBuffer(GLenum buffer)
    }
    else {
       const GLbitfield supportedMask
-         = supported_buffer_bitmask(ctx, ctx->DrawBuffer);
+         = supported_buffer_bitmask(ctx, fb);
       destMask = draw_buffer_enum_to_bitmask(ctx, buffer);
       if (destMask == BAD_MASK) {
          /* totally bogus buffer */
-         _mesa_error(ctx, GL_INVALID_ENUM,
-                     "glDrawBuffer(buffer=0x%x)", buffer);
+         _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid buffer %s)", caller,
+                     _mesa_lookup_enum_by_nr(buffer));
          return;
       }
       destMask &= supportedMask;
       if (destMask == 0x0) {
          /* none of the named color buffers exist! */
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glDrawBuffer(buffer=0x%x)", buffer);
+         _mesa_error(ctx, GL_INVALID_OPERATION, "%s(invalid buffer %s)",
+                     caller, _mesa_lookup_enum_by_nr(buffer));
          return;
       }
    }
 
    /* if we get here, there's no error so set new state */
-   _mesa_drawbuffers(ctx, 1, &buffer, &destMask);
+   _mesa_drawbuffers(ctx, fb, 1, &buffer, &destMask);
 
-   /*
-    * Call device driver function.
-    */
-   if (ctx->Driver.DrawBuffers)
-      ctx->Driver.DrawBuffers(ctx, 1, &buffer);
-   else if (ctx->Driver.DrawBuffer)
-      ctx->Driver.DrawBuffer(ctx, buffer);
+   /* Call device driver function only if fb is the bound draw buffer */
+   if (fb == ctx->DrawBuffer) {
+      if (ctx->Driver.DrawBuffers)
+         ctx->Driver.DrawBuffers(ctx, 1, &buffer);
+      else if (ctx->Driver.DrawBuffer)
+         ctx->Driver.DrawBuffer(ctx, buffer);
+   }
+}
+
+
+void GLAPIENTRY
+_mesa_DrawBuffer(GLenum buffer)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   _mesa_draw_buffer(ctx, ctx->DrawBuffer, buffer, "glDrawBuffer");
+}
+
+
+void GLAPIENTRY
+_mesa_NamedFramebufferDrawBuffer(GLuint framebuffer, GLenum buf)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_framebuffer *fb;
+
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glNamedFramebufferDrawBuffer(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return;
+   }
+
+   if (framebuffer) {
+      fb = _mesa_lookup_framebuffer_err(ctx, framebuffer,
+                                        "glNamedFramebufferDrawBuffer");
+      if (!fb)
+         return;
+   }
+   else
+      fb = ctx->WinSysDrawBuffer;
+
+   _mesa_draw_buffer(ctx, fb, buf, "glNamedFramebufferDrawBuffer");
 }
 
 
@@ -298,13 +332,13 @@ _mesa_DrawBuffer(GLenum buffer)
  *                 names cannot specify more than one buffer.  For example,
  *                 GL_FRONT_AND_BACK is illegal.
  */
-void GLAPIENTRY
-_mesa_DrawBuffers(GLsizei n, const GLenum *buffers)
+void
+_mesa_draw_buffers(struct gl_context *ctx, struct gl_framebuffer *fb,
+                   GLsizei n, const GLenum *buffers, const char *caller)
 {
    GLuint output;
    GLbitfield usedBufferMask, supportedMask;
    GLbitfield destMask[MAX_DRAW_BUFFERS];
-   GET_CURRENT_CONTEXT(ctx);
 
    FLUSH_VERTICES(ctx, 0);
 
@@ -315,12 +349,18 @@ _mesa_DrawBuffers(GLsizei n, const GLenum *buffers)
     * "An INVALID_VALUE error is generated if n is greater than
     *  MAX_DRAW_BUFFERS."
     */
-   if (n < 0 || n > (GLsizei) ctx->Const.MaxDrawBuffers) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glDrawBuffersARB(n)");
+   if (n < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(n < 0)", caller);
       return;
    }
 
-   supportedMask = supported_buffer_bitmask(ctx, ctx->DrawBuffer);
+   if (n > (GLsizei) ctx->Const.MaxDrawBuffers) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "%s(n > maximum number of draw buffers)", caller);
+      return;
+   }
+
+   supportedMask = supported_buffer_bitmask(ctx, fb);
    usedBufferMask = 0x0;
 
    /* From the ES 3.0 specification, page 180:
@@ -328,9 +368,9 @@ _mesa_DrawBuffers(GLsizei n, const GLenum *buffers)
     *  and the constant must be BACK or NONE."
     * (same restriction applies with GL_EXT_draw_buffers specification)
     */
-   if (ctx->API == API_OPENGLES2 && _mesa_is_winsys_fbo(ctx->DrawBuffer) &&
+   if (ctx->API == API_OPENGLES2 && _mesa_is_winsys_fbo(fb) &&
        (n != 1 || (buffers[0] != GL_NONE && buffers[0] != GL_BACK))) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glDrawBuffers(buffer)");
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(invalid buffers)", caller);
       return;
    }
 
@@ -362,9 +402,11 @@ _mesa_DrawBuffers(GLsizei n, const GLenum *buffers)
           *     or equal to the value of MAX_COLOR_ATTACHMENTS, then the error
           *     INVALID_OPERATION results."
           */
-         if (_mesa_is_user_fbo(ctx->DrawBuffer) && buffers[output] >=
+         if (_mesa_is_user_fbo(fb) && buffers[output] >=
              GL_COLOR_ATTACHMENT0 + ctx->Const.MaxDrawBuffers) {
-            _mesa_error(ctx, GL_INVALID_OPERATION, "glDrawBuffersARB(buffer)");
+            _mesa_error(ctx, GL_INVALID_OPERATION,
+                        "%s(buffers[%d] >= maximum number of draw buffers)",
+                        caller, output);
             return;
          }
 
@@ -375,9 +417,10 @@ _mesa_DrawBuffers(GLsizei n, const GLenum *buffers)
           *  4.5 or 4.6.  Otherwise, an INVALID_ENUM error is generated.
           */
          if (destMask[output] == BAD_MASK) {
-            _mesa_error(ctx, GL_INVALID_ENUM, "glDrawBuffersARB(buffer)");
+            _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid buffer %s)",
+                        caller, _mesa_lookup_enum_by_nr(buffers[output]));
             return;
-         }         
+         }
 
          /* From the OpenGL 4.0 specification, page 256:
           * "For both the default framebuffer and framebuffer objects, the
@@ -390,7 +433,8 @@ _mesa_DrawBuffers(GLsizei n, const GLenum *buffers)
           *  but the Khronos conformance tests expect INVALID_ENUM.
           */
          if (_mesa_bitcount(destMask[output]) > 1) {
-            _mesa_error(ctx, GL_INVALID_ENUM, "glDrawBuffersARB(buffer)");
+            _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid buffer %s)",
+                        caller, _mesa_lookup_enum_by_nr(buffers[output]));
             return;
          }
 
@@ -407,7 +451,8 @@ _mesa_DrawBuffers(GLsizei n, const GLenum *buffers)
          destMask[output] &= supportedMask;
          if (destMask[output] == 0) {
             _mesa_error(ctx, GL_INVALID_OPERATION,
-                        "glDrawBuffersARB(unsupported buffer)");
+                        "%s(unsupported buffer %s)",
+                        caller, _mesa_lookup_enum_by_nr(buffers[output]));
             return;
          }
 
@@ -416,10 +461,12 @@ _mesa_DrawBuffers(GLsizei n, const GLenum *buffers)
           *  in bufs must be COLOR_ATTACHMENTi or NONE. [...] INVALID_OPERATION."
           * (same restriction applies with GL_EXT_draw_buffers specification)
           */
-         if (ctx->API == API_OPENGLES2 && _mesa_is_user_fbo(ctx->DrawBuffer) &&
+         if (ctx->API == API_OPENGLES2 && _mesa_is_user_fbo(fb) &&
              buffers[output] != GL_NONE &&
              buffers[output] != GL_COLOR_ATTACHMENT0 + output) {
-            _mesa_error(ctx, GL_INVALID_OPERATION, "glDrawBuffers(buffer)");
+            _mesa_error(ctx, GL_INVALID_OPERATION,
+                        "%s(unsupported buffer %s)",
+                        caller, _mesa_lookup_enum_by_nr(buffers[output]));
             return;
          }
 
@@ -430,7 +477,8 @@ _mesa_DrawBuffers(GLsizei n, const GLenum *buffers)
           */
          if (destMask[output] & usedBufferMask) {
             _mesa_error(ctx, GL_INVALID_OPERATION,
-                        "glDrawBuffersARB(duplicated buffer)");
+                        "%s(duplicated buffer %s)",
+                        caller, _mesa_lookup_enum_by_nr(buffers[output]));
             return;
          }
 
@@ -440,17 +488,55 @@ _mesa_DrawBuffers(GLsizei n, const GLenum *buffers)
    }
 
    /* OK, if we get here, there were no errors so set the new state */
-   _mesa_drawbuffers(ctx, n, buffers, destMask);
+   _mesa_drawbuffers(ctx, fb, n, buffers, destMask);
 
    /*
-    * Call device driver function.  Note that n can be equal to 0,
+    * Call device driver function if fb is the bound draw buffer.
+    * Note that n can be equal to 0,
     * in which case we don't want to reference buffers[0], which
     * may not be valid.
     */
-   if (ctx->Driver.DrawBuffers)
-      ctx->Driver.DrawBuffers(ctx, n, buffers);
-   else if (ctx->Driver.DrawBuffer)
-      ctx->Driver.DrawBuffer(ctx, n > 0 ? buffers[0] : GL_NONE);
+   if (fb == ctx->DrawBuffer) {
+      if (ctx->Driver.DrawBuffers)
+         ctx->Driver.DrawBuffers(ctx, n, buffers);
+      else if (ctx->Driver.DrawBuffer)
+         ctx->Driver.DrawBuffer(ctx, n > 0 ? buffers[0] : GL_NONE);
+   }
+}
+
+
+void GLAPIENTRY
+_mesa_DrawBuffers(GLsizei n, const GLenum *buffers)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   _mesa_draw_buffers(ctx, ctx->DrawBuffer, n, buffers, "glDrawBuffers");
+}
+
+
+void GLAPIENTRY
+_mesa_NamedFramebufferDrawBuffers(GLuint framebuffer, GLsizei n,
+                                  const GLenum *bufs)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_framebuffer *fb;
+
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glNamedFramebufferDrawBuffers(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return;
+   }
+
+   if (framebuffer) {
+      fb = _mesa_lookup_framebuffer_err(ctx, framebuffer,
+                                        "glNamedFramebufferDrawBuffers");
+      if (!fb)
+         return;
+   }
+   else
+      fb = ctx->WinSysDrawBuffer;
+
+   _mesa_draw_buffers(ctx, fb, n, bufs, "glNamedFramebufferDrawBuffers");
 }
 
 
@@ -459,13 +545,11 @@ _mesa_DrawBuffers(GLsizei n, const GLenum *buffers)
  * actual change.
  */
 static void
-updated_drawbuffers(struct gl_context *ctx)
+updated_drawbuffers(struct gl_context *ctx, struct gl_framebuffer *fb)
 {
    FLUSH_VERTICES(ctx, _NEW_BUFFERS);
 
    if (ctx->API == API_OPENGL_COMPAT && !ctx->Extensions.ARB_ES2_compatibility) {
-      struct gl_framebuffer *fb = ctx->DrawBuffer;
-
       /* Flag the FBO as requiring validation. */
       if (_mesa_is_user_fbo(fb)) {
 	 fb->_Status = 0;
@@ -482,6 +566,7 @@ updated_drawbuffers(struct gl_context *ctx)
  * so nothing should go wrong at this point.
  *
  * \param ctx  current context
+ * \param fb   the desired draw buffer
  * \param n    number of color outputs to set
  * \param buffers  array[n] of colorbuffer names, like GL_LEFT.
  * \param destMask  array[n] of BUFFER_BIT_* bitmasks which correspond to the
@@ -489,10 +574,9 @@ updated_drawbuffers(struct gl_context *ctx)
  *                  BUFFER_BIT_FRONT_LEFT | BUFFER_BIT_BACK_LEFT).
  */
 void
-_mesa_drawbuffers(struct gl_context *ctx, GLuint n, const GLenum *buffers,
-                  const GLbitfield *destMask)
+_mesa_drawbuffers(struct gl_context *ctx, struct gl_framebuffer *fb,
+                  GLuint n, const GLenum *buffers, const GLbitfield *destMask)
 {
-   struct gl_framebuffer *fb = ctx->DrawBuffer;
    GLbitfield mask[MAX_DRAW_BUFFERS];
    GLuint buf;
 
@@ -518,7 +602,7 @@ _mesa_drawbuffers(struct gl_context *ctx, GLuint n, const GLenum *buffers,
       while (destMask0) {
          GLint bufIndex = ffs(destMask0) - 1;
          if (fb->_ColorDrawBufferIndexes[count] != bufIndex) {
-            updated_drawbuffers(ctx);
+            updated_drawbuffers(ctx, fb);
             fb->_ColorDrawBufferIndexes[count] = bufIndex;
          }
          count++;
@@ -535,14 +619,14 @@ _mesa_drawbuffers(struct gl_context *ctx, GLuint n, const GLenum *buffers,
             /* only one bit should be set in the destMask[buf] field */
             assert(_mesa_bitcount(destMask[buf]) == 1);
             if (fb->_ColorDrawBufferIndexes[buf] != bufIndex) {
-	       updated_drawbuffers(ctx);
+	       updated_drawbuffers(ctx, fb);
                fb->_ColorDrawBufferIndexes[buf] = bufIndex;
             }
             count = buf + 1;
          }
          else {
             if (fb->_ColorDrawBufferIndexes[buf] != -1) {
-	       updated_drawbuffers(ctx);
+	       updated_drawbuffers(ctx, fb);
                fb->_ColorDrawBufferIndexes[buf] = -1;
             }
          }
@@ -554,7 +638,7 @@ _mesa_drawbuffers(struct gl_context *ctx, GLuint n, const GLenum *buffers,
    /* set remaining outputs to -1 (GL_NONE) */
    for (buf = fb->_NumColorDrawBuffers; buf < ctx->Const.MaxDrawBuffers; buf++) {
       if (fb->_ColorDrawBufferIndexes[buf] != -1) {
-         updated_drawbuffers(ctx);
+         updated_drawbuffers(ctx, fb);
          fb->_ColorDrawBufferIndexes[buf] = -1;
       }
    }
@@ -566,7 +650,7 @@ _mesa_drawbuffers(struct gl_context *ctx, GLuint n, const GLenum *buffers,
       /* also set context drawbuffer state */
       for (buf = 0; buf < ctx->Const.MaxDrawBuffers; buf++) {
          if (ctx->Color.DrawBuffer[buf] != fb->ColorDrawBuffer[buf]) {
-	    updated_drawbuffers(ctx);
+	    updated_drawbuffers(ctx, fb);
             ctx->Color.DrawBuffer[buf] = fb->ColorDrawBuffer[buf];
          }
       }
@@ -585,7 +669,7 @@ _mesa_update_draw_buffers(struct gl_context *ctx)
    /* should be a window system FBO */
    assert(_mesa_is_winsys_fbo(ctx->DrawBuffer));
 
-   _mesa_drawbuffers(ctx, ctx->Const.MaxDrawBuffers,
+   _mesa_drawbuffers(ctx, ctx->DrawBuffer, ctx->Const.MaxDrawBuffers,
                      ctx->Color.DrawBuffer, NULL);
 }
 
@@ -598,11 +682,10 @@ _mesa_update_draw_buffers(struct gl_context *ctx)
  * \param bufferIndex  the numerical index corresponding to 'buffer'
  */
 void
-_mesa_readbuffer(struct gl_context *ctx, GLenum buffer, GLint bufferIndex)
+_mesa_readbuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
+                 GLenum buffer, GLint bufferIndex)
 {
-   struct gl_framebuffer *fb = ctx->ReadBuffer;
-
-   if (_mesa_is_winsys_fbo(fb)) {
+   if ((fb == ctx->ReadBuffer) && _mesa_is_winsys_fbo(fb)) {
       /* Only update the per-context READ_BUFFER state if we're bound to
        * a window-system framebuffer.
        */
@@ -621,23 +704,17 @@ _mesa_readbuffer(struct gl_context *ctx, GLenum buffer, GLint bufferIndex)
  * Called by glReadBuffer to set the source renderbuffer for reading pixels.
  * \param mode color buffer such as GL_FRONT, GL_BACK, etc.
  */
-void GLAPIENTRY
-_mesa_ReadBuffer(GLenum buffer)
+void
+_mesa_read_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
+                  GLenum buffer, const char *caller)
 {
-   struct gl_framebuffer *fb;
    GLbitfield supportedMask;
    GLint srcBuffer;
-   GET_CURRENT_CONTEXT(ctx);
 
    FLUSH_VERTICES(ctx, 0);
 
    if (MESA_VERBOSE & VERBOSE_API)
-      _mesa_debug(ctx, "glReadBuffer %s\n", _mesa_lookup_enum_by_nr(buffer));
-
-   fb = ctx->ReadBuffer;
-
-   if (MESA_VERBOSE & VERBOSE_API)
-      _mesa_debug(ctx, "glReadBuffer %s\n", _mesa_lookup_enum_by_nr(buffer));
+      _mesa_debug(ctx, "%s %s\n", caller, _mesa_lookup_enum_by_nr(buffer));
 
    if (buffer == GL_NONE) {
       /* This is legal--it means that no buffer should be bound for reading. */
@@ -648,24 +725,60 @@ _mesa_ReadBuffer(GLenum buffer)
       srcBuffer = read_buffer_enum_to_index(buffer);
       if (srcBuffer == -1) {
          _mesa_error(ctx, GL_INVALID_ENUM,
-                     "glReadBuffer(buffer=0x%x)", buffer);
+                     "%s(invalid buffer %s)", caller,
+                     _mesa_lookup_enum_by_nr(buffer));
          return;
       }
       supportedMask = supported_buffer_bitmask(ctx, fb);
       if (((1 << srcBuffer) & supportedMask) == 0) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glReadBuffer(buffer=0x%x)", buffer);
+                     "%s(invalid buffer %s)", caller,
+                     _mesa_lookup_enum_by_nr(buffer));
          return;
       }
    }
 
    /* OK, all error checking has been completed now */
 
-   _mesa_readbuffer(ctx, buffer, srcBuffer);
+   _mesa_readbuffer(ctx, fb, buffer, srcBuffer);
 
-   /*
-    * Call device driver function.
-    */
-   if (ctx->Driver.ReadBuffer)
-      (*ctx->Driver.ReadBuffer)(ctx, buffer);
+   /* Call the device driver function only if fb is the bound read buffer */
+   if (fb == ctx->ReadBuffer) {
+      if (ctx->Driver.ReadBuffer)
+         (*ctx->Driver.ReadBuffer)(ctx, buffer);
+   }
+}
+
+
+void GLAPIENTRY
+_mesa_ReadBuffer(GLenum buffer)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   _mesa_read_buffer(ctx, ctx->ReadBuffer, buffer, "glReadBuffer");
+}
+
+
+void GLAPIENTRY
+_mesa_NamedFramebufferReadBuffer(GLuint framebuffer, GLenum src)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_framebuffer *fb;
+
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glNamedFramebufferReadBuffer(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return;
+   }
+
+   if (framebuffer) {
+      fb = _mesa_lookup_framebuffer_err(ctx, framebuffer,
+                                        "glNamedFramebufferReadBuffer");
+      if (!fb)
+         return;
+   }
+   else
+      fb = ctx->WinSysReadBuffer;
+
+   _mesa_read_buffer(ctx, fb, src, "glNamedFramebufferReadBuffer");
 }

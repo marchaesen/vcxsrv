@@ -146,9 +146,26 @@ vbo_attrtype_to_integer_flag(GLenum format)
 {
    switch (format) {
    case GL_FLOAT:
+   case GL_DOUBLE:
       return GL_FALSE;
    case GL_INT:
    case GL_UNSIGNED_INT:
+      return GL_TRUE;
+   default:
+      assert(0);
+      return GL_FALSE;
+   }
+}
+
+static inline GLboolean
+vbo_attrtype_to_double_flag(GLenum format)
+{
+   switch (format) {
+   case GL_FLOAT:
+   case GL_INT:
+   case GL_UNSIGNED_INT:
+      return GL_FALSE;
+   case GL_DOUBLE:
       return GL_TRUE;
    default:
       assert(0);

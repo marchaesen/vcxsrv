@@ -1,0 +1,95 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 10.5.5 Release Notes / May 11, 2015</h1>
+
+<p>
+Mesa 10.5.5 is a bug fix release which fixes bugs found since the 10.5.4 release.
+</p>
+<p>
+Mesa 10.5.5 implements the OpenGL 3.3 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 3.3.  OpenGL
+3.3 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+c10f00fd792b8290dd51ebcc48a9016c4cafab19ec205423c6fcadfd7f3a59f2  mesa-10.5.5.tar.gz
+4ac4e4ea3414f1cadb1467f2f173f9e56170d31e8674f7953a46f0549d319f28  mesa-10.5.5.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+<h2>Bug fixes</h2>
+
+<p>This list is likely incomplete.</p>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=88521">Bug 88521</a> - GLBenchmark 2.7 TRex renders with artifacts on Gen8 with !UXA</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=89455">Bug 89455</a> - [NVC0/Gallium] Unigine Heaven black and white boxes</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=89689">Bug 89689</a> - [Regression] Weston on DRM backend won't start with new version of mesa</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90130">Bug 90130</a> - gl_PrimitiveId seems to reset at 340</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Boyan Ding (1):</p>
+<ul>
+  <li>i965: Add XRGB8888 format to intel_screen_make_configs</li>
+</ul>
+
+<p>Emil Velikov (3):</p>
+<ul>
+  <li>docs: Add sha256 sums for the 10.5.4 release</li>
+  <li>r300: do not link against libdrm_intel</li>
+  <li>Update version to 10.5.5</li>
+</ul>
+
+<p>Ilia Mirkin (4):</p>
+<ul>
+  <li>nvc0/ir: flush denorms to zero in non-compute shaders</li>
+  <li>gk110/ir: fix set with a register dest to not auto-set the abs flag</li>
+  <li>nvc0/ir: fix predicated PFETCH emission</li>
+  <li>nv50/ir: fix asFlow() const helper for OP_JOIN</li>
+</ul>
+
+<p>Kenneth Graunke (2):</p>
+<ul>
+  <li>i965: Make intel_emit_linear_blit handle Gen8+ alignment restrictions.</li>
+  <li>i965: Disallow linear blits that are not cacheline aligned.</li>
+</ul>
+
+<p>Roland Scheidegger (1):</p>
+<ul>
+  <li>draw: fix prim ids when there's no gs</li>
+</ul>
+
+
+</div>
+</body>
+</html>

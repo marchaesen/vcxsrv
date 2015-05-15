@@ -269,18 +269,16 @@ lower_locals_to_regs_block(nir_block *block, void *void_state)
 static nir_block *
 compute_reg_usedef_lca(nir_register *reg)
 {
-   struct set_entry *entry;
    nir_block *lca = NULL;
 
-   set_foreach(reg->defs, entry)
-      lca = nir_dominance_lca(lca, ((nir_instr *)entry->key)->block);
+   list_for_each_entry(nir_dest, def_dest, &reg->defs, reg.def_link)
+      lca = nir_dominance_lca(lca, def_dest->reg.parent_instr->block);
 
-   set_foreach(reg->uses, entry)
-      lca = nir_dominance_lca(lca, ((nir_instr *)entry->key)->block);
+   list_for_each_entry(nir_src, use_src, &reg->uses, use_link)
+      lca = nir_dominance_lca(lca, use_src->parent_instr->block);
 
-   set_foreach(reg->if_uses, entry) {
-      nir_if *if_stmt = (nir_if *)entry->key;
-      nir_cf_node *prev_node = nir_cf_node_prev(&if_stmt->cf_node);
+   list_for_each_entry(nir_src, use_src, &reg->if_uses, use_link) {
+      nir_cf_node *prev_node = nir_cf_node_prev(&use_src->parent_if->cf_node);
       assert(prev_node->type == nir_cf_node_block);
       lca = nir_dominance_lca(lca, nir_cf_node_as_block(prev_node));
    }

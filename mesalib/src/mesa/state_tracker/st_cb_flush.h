@@ -37,7 +37,8 @@ struct pipe_fence_handle;
 struct st_context;
 
 extern void
-st_init_flush_functions(struct dd_function_table *functions);
+st_init_flush_functions(struct pipe_screen *screen,
+                        struct dd_function_table *functions);
 
 extern void
 st_flush(struct st_context *st,

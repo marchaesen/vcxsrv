@@ -190,7 +190,7 @@ xnestDestroyGC(GCPtr pGC)
 void
 xnestChangeClip(GCPtr pGC, int type, void *pValue, int nRects)
 {
-    int i, size;
+    int i;
     BoxPtr pBox;
     XRectangle *pRects;
 
@@ -204,8 +204,7 @@ xnestChangeClip(GCPtr pGC, int type, void *pValue, int nRects)
 
     case CT_REGION:
         nRects = RegionNumRects((RegionPtr) pValue);
-        size = nRects * sizeof(*pRects);
-        pRects = (XRectangle *) malloc(size);
+        pRects = xallocarray(nRects, sizeof(*pRects));
         pBox = RegionRects((RegionPtr) pValue);
         for (i = nRects; i-- > 0;) {
             pRects[i].x = pBox[i].x1;

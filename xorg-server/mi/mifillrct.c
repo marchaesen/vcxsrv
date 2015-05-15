@@ -100,8 +100,8 @@ miPolyFillRect(DrawablePtr pDrawable, GCPtr pGC, int nrectFill, /* number of rec
             maxheight = max(maxheight, prect->height);
     }
 
-    pptFirst = malloc(maxheight * sizeof(DDXPointRec));
-    pwFirst = malloc(maxheight * sizeof(int));
+    pptFirst = xallocarray(maxheight, sizeof(DDXPointRec));
+    pwFirst = xallocarray(maxheight, sizeof(int));
     if (!pptFirst || !pwFirst) {
         free(pwFirst);
         free(pptFirst);

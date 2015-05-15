@@ -747,13 +747,13 @@ PanoramiXMaybeAddDepth(DepthPtr pDepth)
 
     j = PanoramiXNumDepths;
     PanoramiXNumDepths++;
-    PanoramiXDepths = realloc(PanoramiXDepths,
-                              PanoramiXNumDepths * sizeof(DepthRec));
+    PanoramiXDepths = reallocarray(PanoramiXDepths,
+                                   PanoramiXNumDepths, sizeof(DepthRec));
     PanoramiXDepths[j].depth = pDepth->depth;
     PanoramiXDepths[j].numVids = 0;
     /* XXX suboptimal, should grow these dynamically */
     if (pDepth->numVids)
-        PanoramiXDepths[j].vids = malloc(sizeof(VisualID) * pDepth->numVids);
+        PanoramiXDepths[j].vids = xallocarray(pDepth->numVids, sizeof(VisualID));
     else
         PanoramiXDepths[j].vids = NULL;
 }
@@ -789,8 +789,8 @@ PanoramiXMaybeAddVisual(VisualPtr pVisual)
     /* found a matching visual on all screens, add it to the subset list */
     j = PanoramiXNumVisuals;
     PanoramiXNumVisuals++;
-    PanoramiXVisuals = realloc(PanoramiXVisuals,
-                               PanoramiXNumVisuals * sizeof(VisualRec));
+    PanoramiXVisuals = reallocarray(PanoramiXVisuals,
+                                    PanoramiXNumVisuals, sizeof(VisualRec));
 
     memcpy(&PanoramiXVisuals[j], pVisual, sizeof(VisualRec));
 

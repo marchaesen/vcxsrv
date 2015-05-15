@@ -118,7 +118,7 @@ ProcXGetDeviceDontPropagateList(ClientPtr client)
             ClassFromMask(NULL, others->dontPropagateMask[i], i, &count, COUNT);
         if (count) {
             rep.count = count;
-            buf = (XEventClass *) malloc(rep.count * sizeof(XEventClass));
+            buf = xallocarray(rep.count, sizeof(XEventClass));
             rep.length = bytes_to_int32(rep.count * sizeof(XEventClass));
 
             tbuf = buf;

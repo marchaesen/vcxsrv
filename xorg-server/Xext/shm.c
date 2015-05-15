@@ -260,7 +260,7 @@ ShmDestroyPixmap(PixmapPtr pPixmap)
     pScreen->DestroyPixmap = ShmDestroyPixmap;
 
     if (shmdesc)
-	ShmDetachSegment(shmdesc, pPixmap->drawable.id);
+	ShmDetachSegment(shmdesc, 0);
 
     return ret;
 }
@@ -427,7 +427,7 @@ ProcShmAttach(ClientPtr client)
 
  /*ARGSUSED*/ static int
 ShmDetachSegment(void *value, /* must conform to DeleteType */
-                 XID shmseg)
+                 XID unused)
 {
     ShmDescPtr shmdesc = (ShmDescPtr) value;
     ShmDescPtr *prev;
@@ -971,6 +971,12 @@ ProcPanoramiXShmCreatePixmap(ClientPtr client)
                                                        stuff->offset);
 
         if (pMap) {
+            result = XaceHook(XACE_RESOURCE_ACCESS, client, stuff->pid,
+                              RT_PIXMAP, pMap, RT_NONE, NULL, DixCreateAccess);
+            if (result != Success) {
+                pDraw->pScreen->DestroyPixmap(pMap);
+                return result;
+            }
             dixSetPrivate(&pMap->devPrivates, shmPixmapPrivateKey, shmdesc);
             shmdesc->refcnt++;
             pMap->drawable.serialNumber = NEXT_SERIAL_NUMBER;

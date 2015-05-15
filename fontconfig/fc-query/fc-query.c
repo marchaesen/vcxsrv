@@ -52,6 +52,7 @@
 #define _GNU_SOURCE
 #include <getopt.h>
 static const struct option longopts[] = {
+    {"ignore-blanks", 0, 0, 'b'},
     {"index", 1, 0, 'i'},
     {"format", 1, 0, 'f'},
     {"version", 0, 0, 'V'},
@@ -70,24 +71,26 @@ usage (char *program, int error)
 {
     FILE *file = error ? stderr : stdout;
 #if HAVE_GETOPT_LONG
-    fprintf (file, "usage: %s [-Vh] [-i index] [-f FORMAT] [--index index] [--format FORMAT] [--version] [--help] font-file...\n",
+    fprintf (file, "usage: %s [-Vbh] [-i index] [-f FORMAT] [--ignore-blanks] [--index index] [--format FORMAT] [--version] [--help] font-file...\n",
 	     program);
 #else
-    fprintf (file, "usage: %s [-Vh] [-i index] [-f FORMAT] font-file...\n",
+    fprintf (file, "usage: %s [-Vbh] [-i index] [-f FORMAT] font-file...\n",
 	     program);
 #endif
     fprintf (file, "Query font files and print resulting pattern(s)\n");
     fprintf (file, "\n");
 #if HAVE_GETOPT_LONG
+    fprintf (file, "  -b, --ignore-blanks  ignore blanks to compute langauges\n");
     fprintf (file, "  -i, --index INDEX    display the INDEX face of each font file only\n");
     fprintf (file, "  -f, --format=FORMAT  use the given output format\n");
     fprintf (file, "  -V, --version        display font config version and exit\n");
     fprintf (file, "  -h, --help           display this help and exit\n");
 #else
-    fprintf (file, "  -i INDEX   (index)   display the INDEX face of each font file only\n");
-    fprintf (file, "  -f FORMAT  (format)  use the given output format\n");
-    fprintf (file, "  -V         (version) display font config version and exit\n");
-    fprintf (file, "  -h         (help)    display this help and exit\n");
+    fprintf (file, "  -b         (ignore-blanks) ignore blanks to compute languages\n");
+    fprintf (file, "  -i INDEX   (index)         display the INDEX face of each font file only\n");
+    fprintf (file, "  -f FORMAT  (format)        use the given output format\n");
+    fprintf (file, "  -V         (version)       display font config version and exit\n");
+    fprintf (file, "  -h         (help)          display this help and exit\n");
 #endif
     exit (error);
 }
@@ -97,19 +100,24 @@ main (int argc, char **argv)
 {
     int		index_set = 0;
     int		set_index = 0;
+    int		ignore_blanks = 0;
     FcChar8     *format = NULL;
+    FcBlanks    *blanks = NULL;
     int		err = 0;
     int		i;
 #if HAVE_GETOPT_LONG || HAVE_GETOPT
     int		c;
 
 #if HAVE_GETOPT_LONG
-    while ((c = getopt_long (argc, argv, "i:f:Vh", longopts, NULL)) != -1)
+    while ((c = getopt_long (argc, argv, "bi:f:Vh", longopts, NULL)) != -1)
 #else
-    while ((c = getopt (argc, argv, "i:f:Vh")) != -1)
+    while ((c = getopt (argc, argv, "bi:f:Vh")) != -1)
 #endif
     {
 	switch (c) {
+	case 'b':
+	    ignore_blanks = 1;
+	    break;
 	case 'i':
 	    index_set = 1;
 	    set_index = atoi (optarg);
@@ -135,6 +143,8 @@ main (int argc, char **argv)
     if (i == argc)
 	usage (argv[0], 1);
 
+    if (!ignore_blanks)
+	blanks = FcConfigGetBlanks (NULL);
     for (; i < argc; i++)
     {
 	int index;
@@ -145,7 +155,7 @@ main (int argc, char **argv)
 	do {
 	    FcPattern *pat;
 
-	    pat = FcFreeTypeQuery ((FcChar8 *) argv[i], index, NULL, &count);
+	    pat = FcFreeTypeQuery ((FcChar8 *) argv[i], index, blanks, &count);
 	    if (pat)
 	    {
 		if (format)

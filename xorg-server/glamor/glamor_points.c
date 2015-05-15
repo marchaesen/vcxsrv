@@ -60,7 +60,8 @@ glamor_poly_point_gl(DrawablePtr drawable, GCPtr gc, int mode, int npt, DDXPoint
     if (!prog->prog) {
         if (!glamor_build_program(screen, prog,
                                   &glamor_facet_point,
-                                  &glamor_fill_solid))
+                                  &glamor_fill_solid,
+                                  NULL, NULL))
             goto bail;
     }
 

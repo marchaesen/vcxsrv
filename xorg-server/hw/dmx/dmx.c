@@ -427,7 +427,7 @@ ProcDMXChangeScreensAttributes(ClientPtr client)
     if (!_DMXXineramaActive())
         goto noxinerama;
 
-    if (!(attribs = malloc(stuff->screenCount * sizeof(*attribs))))
+    if (!(attribs = xallocarray(stuff->screenCount, sizeof(*attribs))))
         return BadAlloc;
 
     for (i = 0; i < stuff->screenCount; i++) {
@@ -624,18 +624,18 @@ ProcDMXGetWindowAttributes(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xDMXGetWindowAttributesReq);
 
-    if (!(screens = malloc(count * sizeof(*screens))))
+    if (!(screens = xallocarray(count, sizeof(*screens))))
         return BadAlloc;
-    if (!(windows = malloc(count * sizeof(*windows)))) {
+    if (!(windows = xallocarray(count, sizeof(*windows)))) {
         free(screens);
         return BadAlloc;
     }
-    if (!(pos = malloc(count * sizeof(*pos)))) {
+    if (!(pos = xallocarray(count, sizeof(*pos)))) {
         free(windows);
         free(screens);
         return BadAlloc;
     }
-    if (!(vis = malloc(count * sizeof(*vis)))) {
+    if (!(vis = xallocarray(count, sizeof(*vis)))) {
         free(pos);
         free(windows);
         free(screens);

@@ -203,7 +203,7 @@ miPointerScreenFuncRec dmxPointerCursorFuncs = {
 static int *
 dmxSLCreate(void)
 {
-    int *list = malloc(dmxNumScreens * sizeof(*list));
+    int *list = xallocarray(dmxNumScreens, sizeof(*list));
     int i;
 
     for (i = 0; i < dmxNumScreens; i++)

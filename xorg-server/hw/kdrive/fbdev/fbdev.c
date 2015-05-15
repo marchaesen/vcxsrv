@@ -677,7 +677,7 @@ fbdevCreateColormap(ColormapPtr pmap)
     case FB_VISUAL_STATIC_PSEUDOCOLOR:
         pVisual = pmap->pVisual;
         nent = pVisual->ColormapEntries;
-        pdefs = malloc(nent * sizeof(xColorItem));
+        pdefs = xallocarray(nent, sizeof(xColorItem));
         if (!pdefs)
             return FALSE;
         for (i = 0; i < nent; i++)

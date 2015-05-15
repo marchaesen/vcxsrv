@@ -62,9 +62,8 @@ __glXDisp_FeedbackBuffer(__GLXclientState * cl, GLbyte * pc)
     size = *(GLsizei *) (pc + 0);
     type = *(GLenum *) (pc + 4);
     if (cx->feedbackBufSize < size) {
-        cx->feedbackBuf = (GLfloat *) realloc(cx->feedbackBuf,
-                                              (size_t) size
-                                              * __GLX_SIZE_FLOAT32);
+        cx->feedbackBuf = reallocarray(cx->feedbackBuf,
+                                       (size_t) size, __GLX_SIZE_FLOAT32);
         if (!cx->feedbackBuf) {
             cl->client->errorValue = size;
             return BadAlloc;
@@ -94,8 +93,8 @@ __glXDisp_SelectBuffer(__GLXclientState * cl, GLbyte * pc)
     pc += __GLX_SINGLE_HDR_SIZE;
     size = *(GLsizei *) (pc + 0);
     if (cx->selectBufSize < size) {
-        cx->selectBuf = (GLuint *) realloc(cx->selectBuf,
-                                           (size_t) size * __GLX_SIZE_CARD32);
+        cx->selectBuf = reallocarray(cx->selectBuf,
+                                     (size_t) size, __GLX_SIZE_CARD32);
         if (!cx->selectBuf) {
             cl->client->errorValue = size;
             return BadAlloc;

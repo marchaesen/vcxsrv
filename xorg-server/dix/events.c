@@ -1057,6 +1057,7 @@ MonthChangedOrBadTime(CARD32 *ms)
 void
 NoticeTime(const DeviceIntPtr dev, TimeStamp time)
 {
+    currentTime = time;
     lastDeviceEventTime[XIAllDevices].time = currentTime;
     lastDeviceEventTime[dev->id].time = currentTime;
 
@@ -4785,8 +4786,8 @@ SetInputFocus(ClientPtr client,
             depth++;
         if (depth > focus->traceSize) {
             focus->traceSize = depth + 1;
-            focus->trace = realloc(focus->trace,
-                                   focus->traceSize * sizeof(WindowPtr));
+            focus->trace = reallocarray(focus->trace, focus->traceSize,
+                                        sizeof(WindowPtr));
         }
         focus->traceGood = depth;
         for (pWin = focusWin, depth--; pWin; pWin = pWin->parent, depth--)

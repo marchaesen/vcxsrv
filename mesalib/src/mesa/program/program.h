@@ -138,6 +138,15 @@ _mesa_reference_geomprog(struct gl_context *ctx,
                            (struct gl_program *) prog);
 }
 
+static inline void
+_mesa_reference_compprog(struct gl_context *ctx,
+                         struct gl_compute_program **ptr,
+                         struct gl_compute_program *prog)
+{
+   _mesa_reference_program(ctx, (struct gl_program **) ptr,
+                           (struct gl_program *) prog);
+}
+
 extern struct gl_program *
 _mesa_clone_program(struct gl_context *ctx, const struct gl_program *prog);
 
@@ -273,6 +282,19 @@ static inline const struct gl_geometry_program *
 gl_geometry_program_const(const struct gl_program *prog)
 {
    return (const struct gl_geometry_program *) prog;
+}
+
+
+static inline struct gl_compute_program *
+gl_compute_program(struct gl_program *prog)
+{
+   return (struct gl_compute_program *) prog;
+}
+
+static inline const struct gl_compute_program *
+gl_compute_program_const(const struct gl_program *prog)
+{
+   return (const struct gl_compute_program *) prog;
 }
 
 

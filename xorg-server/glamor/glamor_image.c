@@ -49,7 +49,7 @@ glamor_put_image_gl(DrawablePtr drawable, GCPtr gc, int depth, int x, int y,
     if (gc->alu != GXcopy)
         goto bail;
 
-    if (!glamor_pm_is_solid(&pixmap->drawable, gc->planemask))
+    if (!glamor_pm_is_solid(gc->depth, gc->planemask))
         goto bail;
 
     if (format == XYPixmap && drawable->depth == 1 && leftPad == 0)
@@ -116,7 +116,7 @@ glamor_get_image_gl(DrawablePtr drawable, int x, int y, int w, int h,
     if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv))
         goto bail;
 
-    if (format != ZPixmap || !glamor_pm_is_solid(drawable, plane_mask))
+    if (format != ZPixmap || !glamor_pm_is_solid(drawable->depth, plane_mask))
         goto bail;
 
     glamor_get_drawable_deltas(drawable, pixmap, &off_x, &off_y);

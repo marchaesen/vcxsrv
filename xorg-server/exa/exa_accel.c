@@ -386,7 +386,7 @@ exaHWCopyNtoN(DrawablePtr pSrcDrawable,
     exaGetDrawableDeltas(pSrcDrawable, pSrcPixmap, &src_off_x, &src_off_y);
     exaGetDrawableDeltas(pDstDrawable, pDstPixmap, &dst_off_x, &dst_off_y);
 
-    rects = malloc(nbox * sizeof(xRectangle));
+    rects = xallocarray(nbox, sizeof(xRectangle));
 
     if (rects) {
         int i;
@@ -626,7 +626,7 @@ exaPolyPoint(DrawablePtr pDrawable, GCPtr pGC, int mode, int npt,
         return;
     }
 
-    prect = malloc(sizeof(xRectangle) * npt);
+    prect = xallocarray(npt, sizeof(xRectangle));
     for (i = 0; i < npt; i++) {
         prect[i].x = ppt[i].x;
         prect[i].y = ppt[i].y;
@@ -667,7 +667,7 @@ exaPolylines(DrawablePtr pDrawable, GCPtr pGC, int mode, int npt,
         return;
     }
 
-    prect = malloc(sizeof(xRectangle) * (npt - 1));
+    prect = xallocarray(npt - 1, sizeof(xRectangle));
     x1 = ppt[0].x;
     y1 = ppt[0].y;
     /* If we have any non-horizontal/vertical, fall back. */
@@ -738,7 +738,7 @@ exaPolySegment(DrawablePtr pDrawable, GCPtr pGC, int nseg, xSegment * pSeg)
         }
     }
 
-    prect = malloc(sizeof(xRectangle) * nseg);
+    prect = xallocarray(nseg, sizeof(xRectangle));
     for (i = 0; i < nseg; i++) {
         if (pSeg[i].x1 < pSeg[i].x2) {
             prect[i].x = pSeg[i].x1;

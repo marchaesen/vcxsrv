@@ -1413,6 +1413,8 @@ link_fs_input_layout_qualifiers(struct gl_shader_program *prog,
          linked_shader->origin_upper_left = shader->origin_upper_left;
          linked_shader->pixel_center_integer = shader->pixel_center_integer;
       }
+
+      linked_shader->EarlyFragmentTests |= shader->EarlyFragmentTests;
    }
 }
 
@@ -1975,6 +1977,7 @@ assign_attribute_or_color_locations(gl_shader_program *prog,
    } to_assign[16];
 
    unsigned num_attr = 0;
+   unsigned total_attribs_size = 0;
 
    foreach_in_list(ir_instruction, node, sh->ir) {
       ir_variable *const var = node->as_variable();
@@ -2016,12 +2019,41 @@ assign_attribute_or_color_locations(gl_shader_program *prog,
 	 }
       }
 
+      const unsigned slots = var->type->count_attribute_slots();
+
+      /* From GL4.5 core spec, section 11.1.1 (Vertex Attributes):
+       *
+       * "A program with more than the value of MAX_VERTEX_ATTRIBS active
+       * attribute variables may fail to link, unless device-dependent
+       * optimizations are able to make the program fit within available
+       * hardware resources. For the purposes of this test, attribute variables
+       * of the type dvec3, dvec4, dmat2x3, dmat2x4, dmat3, dmat3x4, dmat4x3,
+       * and dmat4 may count as consuming twice as many attributes as equivalent
+       * single-precision types. While these types use the same number of
+       * generic attributes as their single-precision equivalents,
+       * implementations are permitted to consume two single-precision vectors
+       * of internal storage for each three- or four-component double-precision
+       * vector."
+       * Until someone has a good reason in Mesa, enforce that now.
+       */
+      if (target_index == MESA_SHADER_VERTEX) {
+	 total_attribs_size += slots;
+	 if (var->type->without_array() == glsl_type::dvec3_type ||
+	     var->type->without_array() == glsl_type::dvec4_type ||
+	     var->type->without_array() == glsl_type::dmat2x3_type ||
+	     var->type->without_array() == glsl_type::dmat2x4_type ||
+	     var->type->without_array() == glsl_type::dmat3_type ||
+	     var->type->without_array() == glsl_type::dmat3x4_type ||
+	     var->type->without_array() == glsl_type::dmat4x3_type ||
+	     var->type->without_array() == glsl_type::dmat4_type)
+	    total_attribs_size += slots;
+      }
+
       /* If the variable is not a built-in and has a location statically
        * assigned in the shader (presumably via a layout qualifier), make sure
        * that it doesn't collide with other assigned locations.  Otherwise,
        * add it to the list of variables that need linker-assigned locations.
        */
-      const unsigned slots = var->type->count_attribute_slots();
       if (var->data.location != -1) {
 	 if (var->data.location >= generic_base && var->data.index < 1) {
 	    /* From page 61 of the OpenGL 4.0 spec:
@@ -2139,6 +2171,15 @@ assign_attribute_or_color_locations(gl_shader_program *prog,
       to_assign[num_attr].slots = slots;
       to_assign[num_attr].var = var;
       num_attr++;
+   }
+
+   if (target_index == MESA_SHADER_VERTEX) {
+      if (total_attribs_size > max_index) {
+	 linker_error(prog,
+		      "attempt to use %d vertex attribute slots only %d available ",
+		      total_attribs_size, max_index);
+	 return false;
+      }
    }
 
    /* If all of the attributes were assigned locations by the application (or
@@ -2556,6 +2597,7 @@ add_interface_variables(struct gl_shader_program *shProg,
 {
    foreach_in_list(ir_instruction, node, sh->ir) {
       ir_variable *var = node->as_variable();
+      uint8_t mask = 0;
 
       if (!var)
          continue;
@@ -2571,6 +2613,10 @@ add_interface_variables(struct gl_shader_program *shProg,
              var->data.location != SYSTEM_VALUE_VERTEX_ID_ZERO_BASE &&
              var->data.location != SYSTEM_VALUE_INSTANCE_ID)
             continue;
+         /* Mark special built-in inputs referenced by the vertex stage so
+          * that they are considered active by the shader queries.
+          */
+         mask = (1 << (MESA_SHADER_VERTEX));
          /* FALLTHROUGH */
       case ir_var_shader_in:
          if (programInterface != GL_PROGRAM_INPUT)
@@ -2585,7 +2631,7 @@ add_interface_variables(struct gl_shader_program *shProg,
       };
 
       if (!add_program_resource(shProg, programInterface, var,
-                                build_stageref(shProg, var->name)))
+                                build_stageref(shProg, var->name) | mask))
          return false;
    }
    return true;

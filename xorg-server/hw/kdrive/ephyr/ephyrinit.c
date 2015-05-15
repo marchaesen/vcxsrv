@@ -52,6 +52,13 @@ void processScreenOrOutputArg(const char *screen_size, const char *output, char 
 void processOutputArg(const char *output, char *parent_id);
 void processScreenArg(const char *screen_size, char *parent_id);
 
+int
+main(int argc, char *argv[], char *envp[])
+{
+    hostx_use_resname(basename(argv[0]), 0);
+    return dix_main(argc, argv, envp);
+}
+
 void
 InitCard(char *name)
 {
@@ -208,10 +215,6 @@ ddxProcessArgument(int argc, char **argv, int i)
     static char *parent = NULL;
 
     EPHYR_DBG("mark argv[%d]='%s'", i, argv[i]);
-
-    if (i == 1) {
-        hostx_use_resname(basename(argv[0]), 0);
-    }
 
     if (!strcmp(argv[i], "-parent")) {
         if (i + 1 < argc) {

@@ -949,7 +949,7 @@ StartFrameResize(WindowPtr pWin, Bool gravity,
             copy_rect_width = copy_rect.x2 - copy_rect.x1;
             copy_rect_height = copy_rect.y2 - copy_rect.y1;
             copy_rowbytes = ((copy_rect_width * Bpp) + 31) & ~31;
-            gResizeDeathBits = malloc(copy_rowbytes * copy_rect_height);
+            gResizeDeathBits = xallocarray(copy_rowbytes, copy_rect_height);
 
             if (copy_rect_width * copy_rect_height >
                 rootless_CopyBytes_threshold &&
@@ -998,7 +998,7 @@ StartFrameResize(WindowPtr pWin, Bool gravity,
 
         RootlessStartDrawing(pWin);
 
-        gResizeDeathBits = malloc(winRec->bytesPerRow * winRec->height);
+        gResizeDeathBits = xallocarray(winRec->bytesPerRow, winRec->height);
 
         memcpy(gResizeDeathBits, winRec->pixelData,
                winRec->bytesPerRow * winRec->height);

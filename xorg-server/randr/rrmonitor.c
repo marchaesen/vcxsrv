@@ -389,13 +389,13 @@ RRMonitorCountList(ScreenPtr screen)
     return nmon;
 }
 
-static void
+void
 RRMonitorFree(RRMonitorPtr monitor)
 {
     free(monitor);
 }
 
-static RRMonitorPtr
+RRMonitorPtr
 RRMonitorAlloc(int noutput)
 {
     RRMonitorPtr        monitor;
@@ -451,7 +451,7 @@ RRMonitorMatchesOutputName(ScreenPtr screen, Atom name)
     return FALSE;
 }
 
-static int
+int
 RRMonitorAdd(ClientPtr client, ScreenPtr screen, RRMonitorPtr monitor)
 {
     rrScrPrivPtr        pScrPriv = rrGetScrPriv(screen);
@@ -494,8 +494,9 @@ RRMonitorAdd(ClientPtr client, ScreenPtr screen, RRMonitorPtr monitor)
      * needs to not have any side-effects on failure
      */
     if (pScrPriv->numMonitors)
-        monitors = realloc(pScrPriv->monitors,
-                           (pScrPriv->numMonitors + 1) * sizeof (RRMonitorPtr));
+        monitors = reallocarray(pScrPriv->monitors,
+                                pScrPriv->numMonitors + 1,
+                                sizeof (RRMonitorPtr));
     else
         monitors = malloc(sizeof (RRMonitorPtr));
 

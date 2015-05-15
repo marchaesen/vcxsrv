@@ -412,8 +412,8 @@ miFillConvexPoly(DrawablePtr dst, GCPtr pgc, int count, DDXPointPtr ptsIn)
     dy = ymax - ymin + 1;
     if ((count < 3) || (dy < 0))
         return TRUE;
-    ptsOut = FirstPoint = malloc(sizeof(DDXPointRec) * dy);
-    width = FirstWidth = malloc(sizeof(int) * dy);
+    ptsOut = FirstPoint = xallocarray(dy, sizeof(DDXPointRec));
+    width = FirstWidth = xallocarray(dy, sizeof(int));
     if (!FirstPoint || !FirstWidth) {
         free(FirstWidth);
         free(FirstPoint);

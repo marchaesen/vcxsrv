@@ -45,6 +45,7 @@
 extern "C" {
 #endif
 
+#define ST_DOUBLE_ATTRIB_PLACEHOLDER 0xffffffff
 
 /** Fragment program variant key */
 struct st_fp_variant_key

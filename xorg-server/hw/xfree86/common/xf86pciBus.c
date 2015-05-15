@@ -103,9 +103,9 @@ xf86PciProbe(void)
     while ((info = pci_device_next(iter)) != NULL) {
         if (PCIINFOCLASSES(info->device_class)) {
             num++;
-            xf86PciVideoInfo = xnfrealloc(xf86PciVideoInfo,
-                                          (sizeof(struct pci_device *)
-                                           * (num + 1)));
+            xf86PciVideoInfo = xnfreallocarray(xf86PciVideoInfo,
+                                               num + 1,
+                                               sizeof(struct pci_device *));
             xf86PciVideoInfo[num] = NULL;
             xf86PciVideoInfo[num - 1] = info;
 
@@ -679,7 +679,7 @@ xf86MatchPciInstances(const char *driverName, int vendorID,
         }
 
         pci_iterator_destroy(iter);
-        instances = xnfalloc(max_entries * sizeof(struct Inst));
+        instances = xnfallocarray(max_entries, sizeof(struct Inst));
     }
 
     iter = pci_slot_match_iterator_create(NULL);
@@ -976,7 +976,7 @@ xf86MatchPciInstances(const char *driverName, int vendorID,
 
         /* Allocate an entry in the lists to be returned */
         numFound++;
-        retEntities = xnfrealloc(retEntities, numFound * sizeof(int));
+        retEntities = xnfreallocarray(retEntities, numFound, sizeof(int));
         retEntities[numFound - 1] = xf86ClaimPciSlot(pPci, drvp,
                                                      instances[i].chip,
                                                      instances[i].dev,

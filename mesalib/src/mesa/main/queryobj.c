@@ -284,6 +284,13 @@ _mesa_CreateQueries(GLenum target, GLsizei n, GLuint *ids)
 {
    GET_CURRENT_CONTEXT(ctx);
 
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glCreateQueries(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return;
+   }
+
    switch (target) {
    case GL_SAMPLES_PASSED:
    case GL_ANY_SAMPLES_PASSED:
@@ -776,6 +783,9 @@ _mesa_GetQueryObjectiv(GLuint id, GLenum pname, GLint *params)
             ctx->Driver.CheckQuery( ctx, q );
          *params = q->Ready;
          break;
+      case GL_QUERY_TARGET:
+         *params = q->Target;
+         break;
       default:
          _mesa_error(ctx, GL_INVALID_ENUM, "glGetQueryObjectivARB(pname)");
          return;
@@ -827,6 +837,9 @@ _mesa_GetQueryObjectuiv(GLuint id, GLenum pname, GLuint *params)
             ctx->Driver.CheckQuery( ctx, q );
          *params = q->Ready;
          break;
+      case GL_QUERY_TARGET:
+         *params = q->Target;
+         break;
       default:
          _mesa_error(ctx, GL_INVALID_ENUM, "glGetQueryObjectuivARB(pname)");
          return;
@@ -867,6 +880,9 @@ _mesa_GetQueryObjecti64v(GLuint id, GLenum pname, GLint64EXT *params)
             ctx->Driver.CheckQuery( ctx, q );
          *params = q->Ready;
          break;
+      case GL_QUERY_TARGET:
+         *params = q->Target;
+         break;
       default:
          _mesa_error(ctx, GL_INVALID_ENUM, "glGetQueryObjecti64vARB(pname)");
          return;
@@ -906,6 +922,9 @@ _mesa_GetQueryObjectui64v(GLuint id, GLenum pname, GLuint64EXT *params)
          if (!q->Ready)
             ctx->Driver.CheckQuery( ctx, q );
          *params = q->Ready;
+         break;
+      case GL_QUERY_TARGET:
+         *params = q->Target;
          break;
       default:
          _mesa_error(ctx, GL_INVALID_ENUM, "glGetQueryObjectui64vARB(pname)");

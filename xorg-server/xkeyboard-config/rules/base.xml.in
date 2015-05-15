@@ -4938,6 +4938,13 @@
             </languageList>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>us</name>
+            <shortDescription>us</shortDescription>
+            <_description>Singhala (US keyboard with Singhala letters)</_description>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>

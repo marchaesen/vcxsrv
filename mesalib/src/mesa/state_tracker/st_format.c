@@ -991,7 +991,7 @@ static const struct format_mapping format_map[] = {
    {
       { GL_RGB10, 0 },
       { PIPE_FORMAT_B10G10R10X2_UNORM, PIPE_FORMAT_B10G10R10A2_UNORM,
-        DEFAULT_RGB_FORMATS }
+        PIPE_FORMAT_R10G10B10A2_UNORM, DEFAULT_RGB_FORMATS }
    },
    {
       { GL_RGB10_A2, 0 },

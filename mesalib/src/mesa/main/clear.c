@@ -34,6 +34,8 @@
 #include "clear.h"
 #include "context.h"
 #include "enums.h"
+#include "fbobject.h"
+#include "get.h"
 #include "macros.h"
 #include "mtypes.h"
 #include "state.h"
@@ -400,6 +402,32 @@ _mesa_ClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint *value)
 
 
 /**
+ * The ClearBuffer framework is so complicated and so riddled with the
+ * assumption that the framebuffer is bound that, for now, we will just fake
+ * direct state access clearing for the user.
+ */
+void GLAPIENTRY
+_mesa_ClearNamedFramebufferiv(GLuint framebuffer, GLenum buffer,
+                              GLint drawbuffer, const GLint *value)
+{
+   GLint oldfb;
+
+   GET_CURRENT_CONTEXT(ctx);
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glClearNamedFramebufferiv(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return;
+   }
+
+   _mesa_GetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &oldfb);
+   _mesa_BindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer);
+   _mesa_ClearBufferiv(buffer, drawbuffer, value);
+   _mesa_BindFramebuffer(GL_DRAW_FRAMEBUFFER, (GLuint) oldfb);
+}
+
+
+/**
  * New in GL 3.0
  * Clear unsigned integer color buffer (not depth, not stencil).
  */
@@ -468,6 +496,32 @@ _mesa_ClearBufferuiv(GLenum buffer, GLint drawbuffer, const GLuint *value)
                   _mesa_lookup_enum_by_nr(buffer));
       return;
    }
+}
+
+
+/**
+ * The ClearBuffer framework is so complicated and so riddled with the
+ * assumption that the framebuffer is bound that, for now, we will just fake
+ * direct state access clearing for the user.
+ */
+void GLAPIENTRY
+_mesa_ClearNamedFramebufferuiv(GLuint framebuffer, GLenum buffer,
+                               GLint drawbuffer, const GLuint *value)
+{
+   GLint oldfb;
+
+   GET_CURRENT_CONTEXT(ctx);
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glClearNamedFramebufferuiv(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return;
+   }
+
+   _mesa_GetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &oldfb);
+   _mesa_BindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer);
+   _mesa_ClearBufferuiv(buffer, drawbuffer, value);
+   _mesa_BindFramebuffer(GL_DRAW_FRAMEBUFFER, (GLuint) oldfb);
 }
 
 
@@ -565,6 +619,32 @@ _mesa_ClearBufferfv(GLenum buffer, GLint drawbuffer, const GLfloat *value)
 
 
 /**
+ * The ClearBuffer framework is so complicated and so riddled with the
+ * assumption that the framebuffer is bound that, for now, we will just fake
+ * direct state access clearing for the user.
+ */
+void GLAPIENTRY
+_mesa_ClearNamedFramebufferfv(GLuint framebuffer, GLenum buffer,
+                              GLint drawbuffer, const GLfloat *value)
+{
+   GLint oldfb;
+
+   GET_CURRENT_CONTEXT(ctx);
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glClearNamedFramebufferfv(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return;
+   }
+
+   _mesa_GetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &oldfb);
+   _mesa_BindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer);
+   _mesa_ClearBufferfv(buffer, drawbuffer, value);
+   _mesa_BindFramebuffer(GL_DRAW_FRAMEBUFFER, (GLuint) oldfb);
+}
+
+
+/**
  * New in GL 3.0
  * Clear depth/stencil buffer only.
  */
@@ -625,4 +705,30 @@ _mesa_ClearBufferfi(GLenum buffer, GLint drawbuffer,
       ctx->Depth.Clear = clearDepthSave;
       ctx->Stencil.Clear = clearStencilSave;
    }
+}
+
+
+/**
+ * The ClearBuffer framework is so complicated and so riddled with the
+ * assumption that the framebuffer is bound that, for now, we will just fake
+ * direct state access clearing for the user.
+ */
+void GLAPIENTRY
+_mesa_ClearNamedFramebufferfi(GLuint framebuffer, GLenum buffer,
+                              GLfloat depth, GLint stencil)
+{
+   GLint oldfb;
+
+   GET_CURRENT_CONTEXT(ctx);
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glClearNamedFramebufferfi(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return;
+   }
+
+   _mesa_GetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &oldfb);
+   _mesa_BindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer);
+   _mesa_ClearBufferfi(buffer, 0, depth, stencil);
+   _mesa_BindFramebuffer(GL_DRAW_FRAMEBUFFER, (GLuint) oldfb);
 }
