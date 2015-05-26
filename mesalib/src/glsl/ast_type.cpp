@@ -293,11 +293,7 @@ ast_type_qualifier::merge_in_qualifier(YYLTYPE *loc,
       valid_in_mask.flags.q.invocations = 1;
       break;
    case MESA_SHADER_FRAGMENT:
-      if (q.flags.q.early_fragment_tests) {
-         state->early_fragment_tests = true;
-      } else {
-         _mesa_glsl_error(loc, state, "invalid input layout qualifier");
-      }
+      valid_in_mask.flags.q.early_fragment_tests = 1;
       break;
    case MESA_SHADER_COMPUTE:
       create_cs_ast |=
@@ -343,6 +339,10 @@ ast_type_qualifier::merge_in_qualifier(YYLTYPE *loc,
    } else if (q.flags.q.invocations) {
       this->flags.q.invocations = 1;
       this->invocations = q.invocations;
+   }
+
+   if (q.flags.q.early_fragment_tests) {
+      state->fs_early_fragment_tests = true;
    }
 
    if (create_gs_ast) {

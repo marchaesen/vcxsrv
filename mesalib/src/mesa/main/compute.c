@@ -31,9 +31,27 @@ _mesa_DispatchCompute(GLuint num_groups_x,
                       GLuint num_groups_z)
 {
    GET_CURRENT_CONTEXT(ctx);
+   int i;
+   struct gl_shader_program *prog;
+   const GLuint num_groups[3] = { num_groups_x, num_groups_y, num_groups_z };
 
    if (ctx->Extensions.ARB_compute_shader) {
-      assert(!"TODO");
+      for (i = 0; i < 3; i++) {
+         if (num_groups[i] > ctx->Const.MaxComputeWorkGroupCount[i]) {
+            _mesa_error(ctx, GL_INVALID_VALUE,
+                        "glDispatchCompute(num_groups_%c)", 'x' + i);
+            return;
+         }
+      }
+      if (!_mesa_valid_to_render(ctx, "glDispatchCompute"))
+         return;
+      prog = ctx->Shader.CurrentProgram[MESA_SHADER_COMPUTE];
+      if (prog == NULL || prog->_LinkedShaders[MESA_SHADER_COMPUTE] == NULL) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glDispatchCompute(no active compute shader)");
+         return;
+      }
+      ctx->Driver.DispatchCompute(ctx, num_groups);
    } else {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "unsupported function (glDispatchCompute) called");

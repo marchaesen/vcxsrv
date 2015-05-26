@@ -89,9 +89,8 @@ insert_phi_nodes(nir_function_impl *impl)
       w_start = w_end = 0;
       iter_count++;
 
-      struct set_entry *entry;
-      set_foreach(reg->defs, entry) {
-         nir_instr *def = (nir_instr *) entry->key;
+      nir_foreach_def(reg, dest) {
+         nir_instr *def = dest->reg.parent_instr;
          if (work[def->block->index] < iter_count)
             W[w_end++] = def->block;
          work[def->block->index] = iter_count;
@@ -99,6 +98,7 @@ insert_phi_nodes(nir_function_impl *impl)
 
       while (w_start != w_end) {
          nir_block *cur = W[w_start++];
+         struct set_entry *entry;
          set_foreach(cur->dom_frontier, entry) {
             nir_block *next = (nir_block *) entry->key;
 
@@ -190,13 +190,12 @@ rewrite_use(nir_src *src, void *_state)
    if (state->states[index].stack == NULL)
       return true;
 
-   src->is_ssa = true;
-   src->ssa = get_ssa_src(src->reg.reg, state);
-
+   nir_ssa_def *def = get_ssa_src(src->reg.reg, state);
    if (state->parent_instr)
-      _mesa_set_add(src->ssa->uses, state->parent_instr);
+      nir_instr_rewrite_src(state->parent_instr, src, nir_src_for_ssa(def));
    else
-      _mesa_set_add(src->ssa->if_uses, state->parent_if);
+      nir_if_rewrite_condition(state->parent_if, nir_src_for_ssa(def));
+
    return true;
 }
 
@@ -219,6 +218,7 @@ rewrite_def_forwards(nir_dest *dest, void *_state)
       name = ralloc_asprintf(state->mem_ctx, "%s_%u", dest->reg.reg->name,
                              state->states[index].num_defs);
 
+   list_del(&dest->reg.def_link);
    nir_ssa_dest_init(state->parent_instr, dest, reg->num_components, name);
 
    /* push our SSA destination on the stack */
@@ -270,6 +270,7 @@ rewrite_alu_instr_forward(nir_alu_instr *instr, rewrite_state *state)
                                 reg->name, state->states[index].num_defs);
 
       instr->dest.write_mask = (1 << num_components) - 1;
+      list_del(&instr->dest.dest.reg.def_link);
       nir_ssa_dest_init(&instr->instr, &instr->dest.dest, num_components, name);
 
       if (nir_op_infos[instr->op].output_size == 0) {
@@ -484,7 +485,7 @@ init_rewrite_state(nir_function_impl *impl, rewrite_state *state)
           * called after phi nodes are inserted so we can count phi node
           * definitions too.
           */
-         unsigned stack_size = reg->defs->entries;
+         unsigned stack_size = list_length(&reg->defs);
 
          state->states[reg->index].stack = ralloc_array(state->states,
                                                         nir_ssa_def *,

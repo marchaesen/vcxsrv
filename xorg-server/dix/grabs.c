@@ -594,10 +594,10 @@ DeletePassiveGrabFromList(GrabPtr pMinuendGrab)
         i++;
     if (!i)
         return TRUE;
-    deletes = malloc(i * sizeof(GrabPtr));
-    adds = malloc(i * sizeof(GrabPtr));
-    updates = malloc(i * sizeof(Mask **));
-    details = malloc(i * sizeof(Mask *));
+    deletes = xallocarray(i, sizeof(GrabPtr));
+    adds = xallocarray(i, sizeof(GrabPtr));
+    updates = xallocarray(i, sizeof(Mask **));
+    details = xallocarray(i, sizeof(Mask *));
     if (!deletes || !adds || !updates || !details) {
         free(details);
         free(updates);

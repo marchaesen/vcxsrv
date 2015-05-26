@@ -1558,6 +1558,18 @@ ast_expression::do_hir(exec_list *instructions,
          error_emitted = true;
       }
 
+      /* From section 4.1.7 of the GLSL 4.50 spec (Opaque Types):
+       *
+       *  "Except for array indexing, structure member selection, and
+       *   parentheses, opaque variables are not allowed to be operands in
+       *   expressions; such use results in a compile-time error."
+       */
+      if (type->contains_opaque()) {
+         _mesa_glsl_error(&loc, state, "opaque variables cannot be operands "
+                          "of the ?: operator");
+         error_emitted = true;
+      }
+
       ir_constant *cond_val = op[0]->constant_expression_value();
 
       if (then_instructions.is_empty()
@@ -2357,6 +2369,14 @@ apply_image_qualifier_to_variable(const struct ast_type_qualifier *qual,
 
          var->data.image_format = GL_NONE;
       }
+   } else if (qual->flags.q.read_only ||
+              qual->flags.q.write_only ||
+              qual->flags.q.coherent ||
+              qual->flags.q._volatile ||
+              qual->flags.q.restrict_flag ||
+              qual->flags.q.explicit_image_format) {
+      _mesa_glsl_error(loc, state, "memory qualifiers may only be applied to "
+                       "images");
    }
 }
 
@@ -2781,8 +2801,21 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
       validate_matrix_layout_for_type(state, loc, var->type, var);
    }
 
-   if (var->type->contains_image())
-      apply_image_qualifier_to_variable(qual, var, state, loc);
+   apply_image_qualifier_to_variable(qual, var, state, loc);
+
+   /* From section 4.4.1.3 of the GLSL 4.50 specification (Fragment Shader
+    * Inputs):
+    *
+    *  "Fragment shaders also allow the following layout qualifier on in only
+    *   (not with variable declarations)
+    *     layout-qualifier-id
+    *        early_fragment_tests
+    *   [...]"
+    */
+   if (qual->flags.q.early_fragment_tests) {
+      _mesa_glsl_error(loc, state, "early_fragment_tests layout qualifier only "
+                       "valid in fragment shader input layout declaration.");
+   }
 }
 
 /**
@@ -3540,6 +3573,9 @@ ast_declarator_list::hir(exec_list *instructions,
             case GLSL_TYPE_UINT:
             case GLSL_TYPE_INT:
                if (state->is_version(120, 300))
+                  break;
+            case GLSL_TYPE_DOUBLE:
+               if (check_type->base_type == GLSL_TYPE_DOUBLE && (state->is_version(410, 0) || state->ARB_vertex_attrib_64bit_enable))
                   break;
             /* FALLTHROUGH */
             default:

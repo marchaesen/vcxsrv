@@ -440,7 +440,7 @@ sparcPromAssignNodes(void)
     for (i = 0, j = 0; i < 32; i++)
         if (devicePtrs[i] && devicePtrs[i]->fbNum == -1)
             j++;
-    xf86SbusInfo = xnfrealloc(xf86SbusInfo, sizeof(psdp) * (n + j + 1));
+    xf86SbusInfo = xnfreallocarray(xf86SbusInfo, n + j + 1, sizeof(psdp));
     for (i = 0, psdpp = xf86SbusInfo; i < 32; i++)
         if (devicePtrs[i]) {
             if (devicePtrs[i]->fbNum == -1) {

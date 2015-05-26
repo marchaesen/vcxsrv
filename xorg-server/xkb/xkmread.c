@@ -64,7 +64,7 @@ XkmInsureSize(void *oldPtr, int oldCount, int *newCountRtrn, int elemSize)
         oldPtr = calloc(newCount, elemSize);
     }
     else if (oldCount < newCount) {
-        oldPtr = realloc(oldPtr, newCount * elemSize);
+        oldPtr = reallocarray(oldPtr, newCount, elemSize);
         if (oldPtr != NULL) {
             char *tmp = (char *) oldPtr;
 

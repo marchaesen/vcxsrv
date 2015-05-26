@@ -8253,7 +8253,9 @@
       <!-- No new functions, types, enums. -->
 </category>
 
-<!-- ARB extensions #99...#108 -->
+<xi:include href="ARB_vertex_attrib_64bit.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<!-- ARB extensions #100...#108 -->
 
 <xi:include href="ARB_ES2_compatibility.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 

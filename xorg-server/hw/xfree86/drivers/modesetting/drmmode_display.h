@@ -47,7 +47,6 @@ typedef struct {
     int fd;
     unsigned fb_id;
     unsigned old_fb_id;
-    drmModeResPtr mode_res;
     drmModeFBPtr mode_fb;
     int cpp;
     ScrnInfoPtr scrn;
@@ -121,6 +120,7 @@ typedef struct {
     drmModeConnectorPtr mode_output;
     drmModeEncoderPtr *mode_encoders;
     drmModePropertyBlobPtr edid_blob;
+    drmModePropertyBlobPtr tile_blob;
     int dpms_enum_id;
     int num_props;
     drmmode_prop_ptr props;

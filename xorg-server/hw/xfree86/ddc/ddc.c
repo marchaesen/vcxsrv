@@ -437,7 +437,7 @@ xf86DoEEDID(ScrnInfoPtr pScrn, I2CBusPtr pBus, Bool complete)
         int i, n = EDID_block[0x7e];
 
         if (complete && n) {
-            EDID_block = realloc(EDID_block, EDID1_LEN * (1 + n));
+            EDID_block = reallocarray(EDID_block, 1 + n, EDID1_LEN);
 
             for (i = 0; i < n; i++)
                 DDC2Read(dev, i + 1, EDID_block + (EDID1_LEN * (1 + i)));

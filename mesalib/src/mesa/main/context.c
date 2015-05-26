@@ -118,6 +118,7 @@
 #include "scissor.h"
 #include "shared.h"
 #include "shaderobj.h"
+#include "shaderimage.h"
 #include "util/simple_list.h"
 #include "state.h"
 #include "stencil.h"
@@ -821,6 +822,7 @@ init_attrib_groups(struct gl_context *ctx)
    _mesa_init_feedback( ctx );
    _mesa_init_fog( ctx );
    _mesa_init_hint( ctx );
+   _mesa_init_image_units( ctx );
    _mesa_init_line( ctx );
    _mesa_init_lighting( ctx );
    _mesa_init_matrix( ctx );
@@ -1563,7 +1565,8 @@ handle_first_current(struct gl_context *ctx)
          else
             buffer = GL_FRONT;
 
-         _mesa_drawbuffers(ctx, 1, &buffer, NULL /* destMask */);
+         _mesa_drawbuffers(ctx, ctx->DrawBuffer, 1, &buffer,
+                           NULL /* destMask */);
       }
 
       if (ctx->ReadBuffer != _mesa_get_incomplete_framebuffer()) {
@@ -1576,7 +1579,7 @@ handle_first_current(struct gl_context *ctx)
             bufferIndex = BUFFER_FRONT_LEFT;
          }
 
-         _mesa_readbuffer(ctx, buffer, bufferIndex);
+         _mesa_readbuffer(ctx, ctx->ReadBuffer, buffer, bufferIndex);
       }
    }
 

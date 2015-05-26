@@ -172,7 +172,7 @@ _mesa_init_driver_functions(struct dd_function_table *driver)
    driver->UnmapRenderbuffer = _swrast_unmap_soft_renderbuffer;
    driver->RenderTexture = _swrast_render_texture;
    driver->FinishRenderTexture = _swrast_finish_render_texture;
-   driver->FramebufferRenderbuffer = _mesa_framebuffer_renderbuffer;
+   driver->FramebufferRenderbuffer = _mesa_FramebufferRenderbuffer_sw;
    driver->ValidateFramebuffer = _mesa_validate_framebuffer;
 
    driver->BlitFramebuffer = _swrast_BlitFramebuffer;

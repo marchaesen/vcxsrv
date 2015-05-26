@@ -259,6 +259,7 @@ typedef struct {
     XF86ConfVideoAdaptorPtr al_adaptor;
 } XF86ConfAdaptorLinkRec, *XF86ConfAdaptorLinkPtr;
 
+#define CONF_MAXGPUDEVICES 4
 typedef struct {
     GenericListRec list;
     const char *scrn_identifier;
@@ -276,6 +277,10 @@ typedef struct {
     char *scrn_comment;
     int scrn_virtualX, scrn_virtualY;
     char *match_seat;
+
+    int num_gpu_devices;
+    const char *scrn_gpu_device_str[CONF_MAXGPUDEVICES];
+    XF86ConfDevicePtr scrn_gpu_devices[CONF_MAXGPUDEVICES];
 } XF86ConfScreenRec, *XF86ConfScreenPtr;
 
 typedef struct {

@@ -89,11 +89,11 @@ InputLineAddChar(InputLine * line, int ch)
 {
     if (line->num_line >= line->sz_line) {
         if (line->line == line->buf) {
-            line->line = malloc(line->sz_line * 2);
+            line->line = xallocarray(line->sz_line, 2);
             memcpy(line->line, line->buf, line->sz_line);
         }
         else {
-            line->line = realloc((char *) line->line, line->sz_line * 2);
+            line->line = reallocarray(line->line, line->sz_line, 2);
         }
         line->sz_line *= 2;
     }
@@ -897,8 +897,8 @@ XkbRF_AddRule(XkbRF_RulesPtr rules)
     }
     else if (rules->num_rules >= rules->sz_rules) {
         rules->sz_rules *= 2;
-        rules->rules = realloc(rules->rules,
-                               rules->sz_rules * sizeof(XkbRF_RuleRec));
+        rules->rules = reallocarray(rules->rules,
+                                    rules->sz_rules, sizeof(XkbRF_RuleRec));
     }
     if (!rules->rules) {
         rules->sz_rules = rules->num_rules = 0;
@@ -919,8 +919,8 @@ XkbRF_AddGroup(XkbRF_RulesPtr rules)
     }
     else if (rules->num_groups >= rules->sz_groups) {
         rules->sz_groups *= 2;
-        rules->groups = realloc(rules->groups,
-                                rules->sz_groups * sizeof(XkbRF_GroupRec));
+        rules->groups = reallocarray(rules->groups,
+                                     rules->sz_groups, sizeof(XkbRF_GroupRec));
     }
     if (!rules->groups) {
         rules->sz_groups = rules->num_groups = 0;

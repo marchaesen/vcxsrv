@@ -31,14 +31,16 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 /* ATTR */
 #define ATTRI( A, N, V0, V1, V2, V3 ) \
-    ATTR_UNION(A, N, GL_INT, INT_AS_UNION(V0), INT_AS_UNION(V1), \
+    ATTR_UNION(A, N, GL_INT, fi_type, INT_AS_UNION(V0), INT_AS_UNION(V1), \
         INT_AS_UNION(V2), INT_AS_UNION(V3))
 #define ATTRUI( A, N, V0, V1, V2, V3 ) \
-    ATTR_UNION(A, N, GL_UNSIGNED_INT, UINT_AS_UNION(V0), UINT_AS_UNION(V1), \
+    ATTR_UNION(A, N, GL_UNSIGNED_INT, fi_type, UINT_AS_UNION(V0), UINT_AS_UNION(V1), \
         UINT_AS_UNION(V2), UINT_AS_UNION(V3))
 #define ATTRF( A, N, V0, V1, V2, V3 ) \
-    ATTR_UNION(A, N, GL_FLOAT, FLOAT_AS_UNION(V0), FLOAT_AS_UNION(V1),\
+    ATTR_UNION(A, N, GL_FLOAT, fi_type, FLOAT_AS_UNION(V0), FLOAT_AS_UNION(V1),\
         FLOAT_AS_UNION(V2), FLOAT_AS_UNION(V3))
+#define ATTRD( A, N, V0, V1, V2, V3 ) \
+    ATTR_UNION(A, N, GL_DOUBLE, double, V0, V1, V2, V3)
 
 
 /* float */
@@ -231,6 +233,19 @@ static inline float conv_i2_to_norm_float(const struct gl_context *ctx, int i2)
       } else								\
 	 ERROR(GL_INVALID_VALUE);					\
    } while(0)
+
+
+/* Doubles */
+#define ATTR1DV( A, V ) ATTRD( A, 1, (V)[0], 0, 0, 1 )
+#define ATTR2DV( A, V ) ATTRD( A, 2, (V)[0], (V)[1], 0, 1 )
+#define ATTR3DV( A, V ) ATTRD( A, 3, (V)[0], (V)[1], (V)[2], 1 )
+#define ATTR4DV( A, V ) ATTRD( A, 4, (V)[0], (V)[1], (V)[2], (V)[3] )
+
+#define ATTR1D( A, X )          ATTRD( A, 1, X, 0, 0, 1 )
+#define ATTR2D( A, X, Y )       ATTRD( A, 2, X, Y, 0, 1 )
+#define ATTR3D( A, X, Y, Z )    ATTRD( A, 3, X, Y, Z, 1 )
+#define ATTR4D( A, X, Y, Z, W ) ATTRD( A, 4, X, Y, Z, W )
+
 
 static void GLAPIENTRY
 TAG(Vertex2f)(GLfloat x, GLfloat y)
@@ -1187,6 +1202,104 @@ TAG(VertexAttribP4uiv)(GLuint index, GLenum type, GLboolean normalized,
    GET_CURRENT_CONTEXT(ctx);
    ERROR_IF_NOT_PACKED_TYPE(ctx, type, "glVertexAttribP4uiv");
    ATTR_UI_INDEX(ctx, 4, type, normalized, index, *value);
+}
+
+
+
+static void GLAPIENTRY
+TAG(VertexAttribL1d)(GLuint index, GLdouble x)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+      ATTR1D(0, x);
+   else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
+      ATTR1D(VBO_ATTRIB_GENERIC0 + index, x);
+   else
+      ERROR(GL_INVALID_VALUE);
+}
+
+static void GLAPIENTRY
+TAG(VertexAttribL1dv)(GLuint index, const GLdouble * v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+      ATTR1DV(0, v);
+   else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
+      ATTR1DV(VBO_ATTRIB_GENERIC0 + index, v);
+   else
+      ERROR(GL_INVALID_VALUE);
+}
+
+static void GLAPIENTRY
+TAG(VertexAttribL2d)(GLuint index, GLdouble x, GLdouble y)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+      ATTR2D(0, x, y);
+   else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
+      ATTR2D(VBO_ATTRIB_GENERIC0 + index, x, y);
+   else
+      ERROR(GL_INVALID_VALUE);
+}
+
+static void GLAPIENTRY
+TAG(VertexAttribL2dv)(GLuint index, const GLdouble * v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+      ATTR2DV(0, v);
+   else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
+      ATTR2DV(VBO_ATTRIB_GENERIC0 + index, v);
+   else
+      ERROR(GL_INVALID_VALUE);
+}
+
+static void GLAPIENTRY
+TAG(VertexAttribL3d)(GLuint index, GLdouble x, GLdouble y, GLdouble z)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+      ATTR3D(0, x, y, z);
+   else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
+      ATTR3D(VBO_ATTRIB_GENERIC0 + index, x, y, z);
+   else
+      ERROR(GL_INVALID_VALUE);
+}
+
+static void GLAPIENTRY
+TAG(VertexAttribL3dv)(GLuint index, const GLdouble * v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+      ATTR3DV(0, v);
+   else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
+      ATTR3DV(VBO_ATTRIB_GENERIC0 + index, v);
+   else
+      ERROR(GL_INVALID_VALUE);
+}
+
+static void GLAPIENTRY
+TAG(VertexAttribL4d)(GLuint index, GLdouble x, GLdouble y, GLdouble z, GLdouble w)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+      ATTR4D(0, x, y, z, w);
+   else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
+      ATTR4D(VBO_ATTRIB_GENERIC0 + index, x, y, z, w);
+   else
+      ERROR(GL_INVALID_VALUE);
+}
+
+static void GLAPIENTRY
+TAG(VertexAttribL4dv)(GLuint index, const GLdouble * v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   if (index == 0 && _mesa_attr_zero_aliases_vertex(ctx))
+      ATTR4DV(0, v);
+   else if (index < MAX_VERTEX_GENERIC_ATTRIBS)
+      ATTR4DV(VBO_ATTRIB_GENERIC0 + index, v);
+   else
+      ERROR(GL_INVALID_VALUE);
 }
 
 

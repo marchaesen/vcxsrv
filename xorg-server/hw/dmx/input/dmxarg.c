@@ -86,7 +86,7 @@ void
 dmxArgAdd(dmxArg a, const char *string)
 {
     if (a->argm <= a->argc + 2)
-        a->argv = realloc(a->argv, sizeof(*a->argv) * (a->argm *= 2));
+        a->argv = reallocarray(a->argv, (a->argm *= 2), sizeof(*a->argv));
     a->argv[a->argc++] = strdup(string);
     a->argv[a->argc] = NULL;
 }

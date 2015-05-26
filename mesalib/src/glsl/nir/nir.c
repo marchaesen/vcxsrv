@@ -58,12 +58,9 @@ reg_create(void *mem_ctx, struct exec_list *list)
    nir_register *reg = ralloc(mem_ctx, nir_register);
 
    reg->parent_instr = NULL;
-   reg->uses = _mesa_set_create(reg, _mesa_hash_pointer,
-                                _mesa_key_pointer_equal);
-   reg->defs = _mesa_set_create(reg, _mesa_hash_pointer,
-                                _mesa_key_pointer_equal);
-   reg->if_uses = _mesa_set_create(reg, _mesa_hash_pointer,
-                                   _mesa_key_pointer_equal);
+   list_inithead(&reg->uses);
+   list_inithead(&reg->defs);
+   list_inithead(&reg->if_uses);
 
    reg->num_components = 0;
    reg->num_array_elems = 0;
@@ -1070,11 +1067,14 @@ update_if_uses(nir_cf_node *node)
 
    nir_if *if_stmt = nir_cf_node_as_if(node);
 
-   struct set *if_uses_set = if_stmt->condition.is_ssa ?
-                             if_stmt->condition.ssa->if_uses :
-                             if_stmt->condition.reg.reg->uses;
-
-   _mesa_set_add(if_uses_set, if_stmt);
+   if_stmt->condition.parent_if = if_stmt;
+   if (if_stmt->condition.is_ssa) {
+      list_addtail(&if_stmt->condition.use_link,
+                   &if_stmt->condition.ssa->if_uses);
+   } else {
+      list_addtail(&if_stmt->condition.use_link,
+                   &if_stmt->condition.reg.reg->if_uses);
+   }
 }
 
 void
@@ -1227,16 +1227,7 @@ cleanup_cf_node(nir_cf_node *node)
       foreach_list_typed(nir_cf_node, child, node, &if_stmt->else_list)
          cleanup_cf_node(child);
 
-      struct set *if_uses;
-      if (if_stmt->condition.is_ssa) {
-         if_uses = if_stmt->condition.ssa->if_uses;
-      } else {
-         if_uses = if_stmt->condition.reg.reg->if_uses;
-      }
-
-      struct set_entry *entry = _mesa_set_search(if_uses, if_stmt);
-      assert(entry);
-      _mesa_set_remove(if_uses, entry);
+      list_del(&if_stmt->condition.use_link);
       break;
    }
 
@@ -1293,9 +1284,9 @@ add_use_cb(nir_src *src, void *state)
 {
    nir_instr *instr = state;
 
-   struct set *uses_set = src->is_ssa ? src->ssa->uses : src->reg.reg->uses;
-
-   _mesa_set_add(uses_set, instr);
+   src->parent_instr = instr;
+   list_addtail(&src->use_link,
+                src->is_ssa ? &src->ssa->uses : &src->reg.reg->uses);
 
    return true;
 }
@@ -1320,8 +1311,10 @@ add_reg_def_cb(nir_dest *dest, void *state)
 {
    nir_instr *instr = state;
 
-   if (!dest->is_ssa)
-      _mesa_set_add(dest->reg.reg->defs, instr);
+   if (!dest->is_ssa) {
+      dest->reg.parent_instr = instr;
+      list_addtail(&dest->reg.def_link, &dest->reg.reg->defs);
+   }
 
    return true;
 }
@@ -1436,13 +1429,7 @@ nir_instr_insert_after_cf_list(struct exec_list *list, nir_instr *after)
 static bool
 remove_use_cb(nir_src *src, void *state)
 {
-   nir_instr *instr = state;
-
-   struct set *uses_set = src->is_ssa ? src->ssa->uses : src->reg.reg->uses;
-
-   struct set_entry *entry = _mesa_set_search(uses_set, instr);
-   if (entry)
-      _mesa_set_remove(uses_set, entry);
+   list_del(&src->use_link);
 
    return true;
 }
@@ -1450,16 +1437,8 @@ remove_use_cb(nir_src *src, void *state)
 static bool
 remove_def_cb(nir_dest *dest, void *state)
 {
-   nir_instr *instr = state;
-
-   if (dest->is_ssa)
-      return true;
-
-   nir_register *reg = dest->reg.reg;
-
-   struct set_entry *entry = _mesa_set_search(reg->defs, instr);
-   if (entry)
-      _mesa_set_remove(reg->defs, entry);
+   if (!dest->is_ssa)
+      list_del(&dest->reg.def_link);
 
    return true;
 }
@@ -1834,64 +1813,77 @@ nir_srcs_equal(nir_src src1, nir_src src2)
 }
 
 static bool
-src_does_not_use_def(nir_src *src, void *void_def)
+src_is_valid(const nir_src *src)
 {
-   nir_ssa_def *def = void_def;
+   return src->is_ssa ? (src->ssa != NULL) : (src->reg.reg != NULL);
+}
 
-   if (src->is_ssa) {
-      return src->ssa != def;
-   } else {
-      return true;
+static void
+src_remove_all_uses(nir_src *src)
+{
+   for (; src; src = src->is_ssa ? NULL : src->reg.indirect) {
+      if (!src_is_valid(src))
+         continue;
+
+      list_del(&src->use_link);
    }
 }
 
-static bool
-src_does_not_use_reg(nir_src *src, void *void_reg)
+static void
+src_add_all_uses(nir_src *src, nir_instr *parent_instr, nir_if *parent_if)
 {
-   nir_register *reg = void_reg;
+   for (; src; src = src->is_ssa ? NULL : src->reg.indirect) {
+      if (!src_is_valid(src))
+         continue;
 
-   if (src->is_ssa) {
-      return true;
-   } else {
-      return src->reg.reg != reg;
+      if (parent_instr) {
+         src->parent_instr = parent_instr;
+         if (src->is_ssa)
+            list_addtail(&src->use_link, &src->ssa->uses);
+         else
+            list_addtail(&src->use_link, &src->reg.reg->uses);
+      } else {
+         assert(parent_if);
+         src->parent_if = parent_if;
+         if (src->is_ssa)
+            list_addtail(&src->use_link, &src->ssa->if_uses);
+         else
+            list_addtail(&src->use_link, &src->reg.reg->if_uses);
+      }
    }
 }
 
 void
 nir_instr_rewrite_src(nir_instr *instr, nir_src *src, nir_src new_src)
 {
-   nir_src old_src = *src;
+   assert(!src_is_valid(src) || src->parent_instr == instr);
+
+   src_remove_all_uses(src);
    *src = new_src;
+   src_add_all_uses(src, instr, NULL);
+}
 
-   for (nir_src *iter_src = &old_src; iter_src;
-        iter_src = iter_src->is_ssa ? NULL : iter_src->reg.indirect) {
-      if (iter_src->is_ssa) {
-         nir_ssa_def *ssa = iter_src->ssa;
-         if (ssa && nir_foreach_src(instr, src_does_not_use_def, ssa)) {
-            struct set_entry *entry = _mesa_set_search(ssa->uses, instr);
-            assert(entry);
-            _mesa_set_remove(ssa->uses, entry);
-         }
-      } else {
-         nir_register *reg = iter_src->reg.reg;
-         if (reg && nir_foreach_src(instr, src_does_not_use_reg, reg)) {
-            struct set_entry *entry = _mesa_set_search(reg->uses, instr);
-            assert(entry);
-            _mesa_set_remove(reg->uses, entry);
-         }
-      }
-   }
+void
+nir_instr_move_src(nir_instr *dest_instr, nir_src *dest, nir_src *src)
+{
+   assert(!src_is_valid(dest) || dest->parent_instr == dest_instr);
 
-   for (nir_src *iter_src = &new_src; iter_src;
-        iter_src = iter_src->is_ssa ? NULL : iter_src->reg.indirect) {
-      if (iter_src->is_ssa) {
-         if (iter_src->ssa)
-            _mesa_set_add(iter_src->ssa->uses, instr);
-      } else {
-         if (iter_src->reg.reg)
-            _mesa_set_add(iter_src->reg.reg->uses, instr);
-      }
-   }
+   src_remove_all_uses(dest);
+   src_remove_all_uses(src);
+   *dest = *src;
+   *src = NIR_SRC_INIT;
+   src_add_all_uses(dest, dest_instr, NULL);
+}
+
+void
+nir_if_rewrite_condition(nir_if *if_stmt, nir_src new_src)
+{
+   nir_src *src = &if_stmt->condition;
+   assert(!src_is_valid(src) || src->parent_if == if_stmt);
+
+   src_remove_all_uses(src);
+   *src = new_src;
+   src_add_all_uses(src, NULL, if_stmt);
 }
 
 void
@@ -1900,10 +1892,8 @@ nir_ssa_def_init(nir_instr *instr, nir_ssa_def *def,
 {
    def->name = name;
    def->parent_instr = instr;
-   def->uses = _mesa_set_create(instr, _mesa_hash_pointer,
-                                _mesa_key_pointer_equal);
-   def->if_uses = _mesa_set_create(instr, _mesa_hash_pointer,
-                                   _mesa_key_pointer_equal);
+   list_inithead(&def->uses);
+   list_inithead(&def->if_uses);
    def->num_components = num_components;
 
    if (instr->block) {
@@ -1924,57 +1914,23 @@ nir_ssa_dest_init(nir_instr *instr, nir_dest *dest,
    nir_ssa_def_init(instr, &dest->ssa, num_components, name);
 }
 
-struct ssa_def_rewrite_state {
-   void *mem_ctx;
-   nir_ssa_def *old;
-   nir_src new_src;
-};
-
-static bool
-ssa_def_rewrite_uses_src(nir_src *src, void *void_state)
-{
-   struct ssa_def_rewrite_state *state = void_state;
-
-   if (src->is_ssa && src->ssa == state->old)
-      nir_src_copy(src, &state->new_src, state->mem_ctx);
-
-   return true;
-}
-
 void
 nir_ssa_def_rewrite_uses(nir_ssa_def *def, nir_src new_src, void *mem_ctx)
 {
-   struct ssa_def_rewrite_state state;
-   state.mem_ctx = mem_ctx;
-   state.old = def;
-   state.new_src = new_src;
-
    assert(!new_src.is_ssa || def != new_src.ssa);
 
-   struct set *new_uses, *new_if_uses;
-   if (new_src.is_ssa) {
-      new_uses = new_src.ssa->uses;
-      new_if_uses = new_src.ssa->if_uses;
-   } else {
-      new_uses = new_src.reg.reg->uses;
-      new_if_uses = new_src.reg.reg->if_uses;
+   nir_foreach_use_safe(def, use_src) {
+      nir_instr *src_parent_instr = use_src->parent_instr;
+      list_del(&use_src->use_link);
+      nir_src_copy(use_src, &new_src, mem_ctx);
+      src_add_all_uses(use_src, src_parent_instr, NULL);
    }
 
-   struct set_entry *entry;
-   set_foreach(def->uses, entry) {
-      nir_instr *instr = (nir_instr *)entry->key;
-
-      _mesa_set_remove(def->uses, entry);
-      nir_foreach_src(instr, ssa_def_rewrite_uses_src, &state);
-      _mesa_set_add(new_uses, instr);
-   }
-
-   set_foreach(def->if_uses, entry) {
-      nir_if *if_use = (nir_if *)entry->key;
-
-      _mesa_set_remove(def->if_uses, entry);
-      nir_src_copy(&if_use->condition, &new_src, mem_ctx);
-      _mesa_set_add(new_if_uses, if_use);
+   nir_foreach_if_use_safe(def, use_src) {
+      nir_if *src_parent_if = use_src->parent_if;
+      list_del(&use_src->use_link);
+      nir_src_copy(use_src, &new_src, mem_ctx);
+      src_add_all_uses(use_src, NULL, src_parent_if);
    }
 }
 

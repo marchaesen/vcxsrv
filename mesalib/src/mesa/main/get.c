@@ -909,13 +909,13 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
       break;
 
    case GL_FOG_COLOR:
-      if (_mesa_get_clamp_fragment_color(ctx))
+      if (_mesa_get_clamp_fragment_color(ctx, ctx->DrawBuffer))
          COPY_4FV(v->value_float_4, ctx->Fog.Color);
       else
          COPY_4FV(v->value_float_4, ctx->Fog.ColorUnclamped);
       break;
    case GL_COLOR_CLEAR_VALUE:
-      if (_mesa_get_clamp_fragment_color(ctx)) {
+      if (_mesa_get_clamp_fragment_color(ctx, ctx->DrawBuffer)) {
          v->value_float_4[0] = CLAMP(ctx->Color.ClearColor.f[0], 0.0F, 1.0F);
          v->value_float_4[1] = CLAMP(ctx->Color.ClearColor.f[1], 0.0F, 1.0F);
          v->value_float_4[2] = CLAMP(ctx->Color.ClearColor.f[2], 0.0F, 1.0F);
@@ -924,13 +924,13 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
          COPY_4FV(v->value_float_4, ctx->Color.ClearColor.f);
       break;
    case GL_BLEND_COLOR_EXT:
-      if (_mesa_get_clamp_fragment_color(ctx))
+      if (_mesa_get_clamp_fragment_color(ctx, ctx->DrawBuffer))
          COPY_4FV(v->value_float_4, ctx->Color.BlendColor);
       else
          COPY_4FV(v->value_float_4, ctx->Color.BlendColorUnclamped);
       break;
    case GL_ALPHA_TEST_REF:
-      if (_mesa_get_clamp_fragment_color(ctx))
+      if (_mesa_get_clamp_fragment_color(ctx, ctx->DrawBuffer))
          v->value_float = ctx->Color.AlphaRef;
       else
          v->value_float = ctx->Color.AlphaRefUnclamped;
@@ -1911,6 +1911,7 @@ find_value_indexed(const char *func, GLenum pname, GLuint index, union value *v)
       if (index >= ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs)
           goto invalid_value;
       v->value_int = ctx->Array.VAO->VertexBinding[VERT_ATTRIB_GENERIC(index)].Stride;
+      return TYPE_INT;
 
    /* ARB_shader_image_load_store */
    case GL_IMAGE_BINDING_NAME: {

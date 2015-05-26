@@ -78,7 +78,6 @@ ServerBitsFromGlyph(FontPtr pfont, unsigned ch, CursorMetricPtr cm,
     GCPtr pGC;
     xRectangle rect;
     PixmapPtr ppix;
-    long nby;
     char *pbits;
     ChangeGCVal gcval[3];
     unsigned char char2b[2];
@@ -88,8 +87,7 @@ ServerBitsFromGlyph(FontPtr pfont, unsigned ch, CursorMetricPtr cm,
     char2b[1] = (unsigned char) (ch & 0xff);
 
     pScreen = screenInfo.screens[0];
-    nby = BitmapBytePad(cm->width) * (long) cm->height;
-    pbits = calloc(1, nby);
+    pbits = calloc(BitmapBytePad(cm->width), cm->height);
     if (!pbits)
         return BadAlloc;
 

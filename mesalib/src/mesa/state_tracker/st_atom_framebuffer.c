@@ -134,7 +134,10 @@ update_framebuffer_state( struct st_context *st )
    else {
       strb = st_renderbuffer(fb->Attachment[BUFFER_STENCIL].Renderbuffer);
       if (strb) {
-         assert(strb->surface);
+         if (strb->is_rtt) {
+            /* rendering to a GL texture, may have to update surface */
+            st_update_renderbuffer_surface(st, strb);
+         }
          pipe_surface_reference(&framebuffer->zsbuf, strb->surface);
          update_framebuffer_size(framebuffer, strb->surface);
       }

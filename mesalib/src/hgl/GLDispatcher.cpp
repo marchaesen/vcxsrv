@@ -1,6 +1,6 @@
 /*
  * Copyright 1998-1999 Precision Insight, Inc., Cedar Park, Texas.
- * Copyright 2000-2012 Haiku, Inc. All Rights Reserved.
+ * Copyright 2000-2015 Haiku, Inc. All Rights Reserved.
  * Distributed under the terms of the MIT License.
  *
  * Authors:
@@ -10,10 +10,11 @@
  */
 
 
-extern "C" {
 #include "glapi/glapi.h"
 #include "glapi/glapi_priv.h"
 
+
+extern "C" {
 /*
  * NOTE: this file portion implements C-based dispatch of the OpenGL entrypoints
  * (glAccum, glBegin, etc).

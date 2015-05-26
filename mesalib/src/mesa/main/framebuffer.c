@@ -312,7 +312,7 @@ _mesa_resize_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
 
    if (ctx) {
       /* update scissor / window bounds */
-      _mesa_update_draw_buffer_bounds(ctx);
+      _mesa_update_draw_buffer_bounds(ctx, ctx->DrawBuffer);
       /* Signal new buffer state so that swrast will update its clipping
        * info (the CLIP_BIT flag).
        */
@@ -413,9 +413,9 @@ _mesa_scissor_bounding_box(const struct gl_context *ctx,
  * \param ctx  the GL context.
  */
 void
-_mesa_update_draw_buffer_bounds(struct gl_context *ctx)
+_mesa_update_draw_buffer_bounds(struct gl_context *ctx,
+                                struct gl_framebuffer *buffer)
 {
-   struct gl_framebuffer *buffer = ctx->DrawBuffer;
    int bbox[4];
 
    if (!buffer)
@@ -652,7 +652,7 @@ update_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb)
        * context state (GL_READ_BUFFER too).
        */
       if (fb->ColorDrawBuffer[0] != ctx->Color.DrawBuffer[0]) {
-         _mesa_drawbuffers(ctx, ctx->Const.MaxDrawBuffers,
+         _mesa_drawbuffers(ctx, fb, ctx->Const.MaxDrawBuffers,
                            ctx->Color.DrawBuffer, NULL);
       }
    }
@@ -678,24 +678,21 @@ update_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb)
 
 
 /**
- * Update state related to the current draw/read framebuffers.
+ * Update state related to the draw/read framebuffers.
  */
 void
-_mesa_update_framebuffer(struct gl_context *ctx)
+_mesa_update_framebuffer(struct gl_context *ctx,
+                         struct gl_framebuffer *readFb,
+                         struct gl_framebuffer *drawFb)
 {
-   struct gl_framebuffer *drawFb;
-   struct gl_framebuffer *readFb;
-
    assert(ctx);
-   drawFb = ctx->DrawBuffer;
-   readFb = ctx->ReadBuffer;
 
    update_framebuffer(ctx, drawFb);
    if (readFb != drawFb)
       update_framebuffer(ctx, readFb);
 
-   _mesa_update_clamp_vertex_color(ctx);
-   _mesa_update_clamp_fragment_color(ctx);
+   _mesa_update_clamp_vertex_color(ctx, drawFb);
+   _mesa_update_clamp_fragment_color(ctx, drawFb);
 }
 
 

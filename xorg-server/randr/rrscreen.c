@@ -399,8 +399,6 @@ rrGetMultiScreenResources(ClientPtr client, Bool query, ScreenPtr pScreen)
         update_totals(iter, pScrPriv);
     }
 
-    ErrorF("reporting %d %d %d %d\n", total_crtcs, total_outputs, total_modes, total_name_len);
-
     pScrPriv = rrGetScrPriv(pScreen);
 
     rep.type = X_Reply;
@@ -414,8 +412,9 @@ rrGetMultiScreenResources(ClientPtr client, Bool query, ScreenPtr pScreen)
     rep.nbytesNames = total_name_len;
 
 
-    rep.length = (total_crtcs + total_outputs + total_modes * bytes_to_int32(SIZEOF(xRRModeInfo)) +
-                  bytes_to_int32(rep.nbytesNames));
+    rep.length = (total_crtcs + total_outputs +
+                  total_modes * bytes_to_int32(SIZEOF(xRRModeInfo)) +
+                  bytes_to_int32(total_name_len));
 
     extraLen = rep.length << 2;
     if (extraLen) {

@@ -231,8 +231,7 @@ static inline nir_ssa_def *
 nir_swizzle(nir_builder *build, nir_ssa_def *src, unsigned swiz[4],
             unsigned num_components, bool use_fmov)
 {
-   nir_alu_src alu_src;
-   memset(&alu_src, 0, sizeof(alu_src));
+   nir_alu_src alu_src = { NIR_SRC_INIT };
    alu_src.src = nir_src_for_ssa(src);
    for (int i = 0; i < 4; i++)
       alu_src.swizzle[i] = swiz[i];
@@ -251,8 +250,7 @@ nir_ssa_for_src(nir_builder *build, nir_src src, int num_components)
    if (src.is_ssa && src.ssa->num_components == num_components)
       return src.ssa;
 
-   nir_alu_src alu;
-   memset(&alu, 0, sizeof(alu));
+   nir_alu_src alu = { NIR_SRC_INIT };
    alu.src = src;
    for (int j = 0; j < 4; j++)
       alu.swizzle[j] = j;

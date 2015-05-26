@@ -80,7 +80,7 @@ XkbAllocClientMap(XkbDescPtr xkb, unsigned which, unsigned nTotalTypes)
             XkbKeyTypeRec *prev_types = map->types;
 
             map->types =
-                realloc(map->types, nTotalTypes * sizeof(XkbKeyTypeRec));
+                reallocarray(map->types, nTotalTypes, sizeof(XkbKeyTypeRec));
             if (map->types == NULL) {
                 free(prev_types);
                 map->num_types = map->size_types = 0;
@@ -177,7 +177,7 @@ XkbAllocServerMap(XkbDescPtr xkb, unsigned which, unsigned nNewActions)
             XkbAction *prev_acts = map->acts;
 
             need = map->num_acts + nNewActions;
-            map->acts = realloc(map->acts, need * sizeof(XkbAction));
+            map->acts = reallocarray(map->acts, need, sizeof(XkbAction));
             if (map->acts == NULL) {
                 free(prev_acts);
                 map->num_acts = map->size_acts = 0;
@@ -309,7 +309,7 @@ XkbResizeKeyType(XkbDescPtr xkb,
 
         if ((map_count > type->map_count) || (type->map == NULL))
             type->map =
-                realloc(type->map, map_count * sizeof(XkbKTMapEntryRec));
+                reallocarray(type->map, map_count, sizeof(XkbKTMapEntryRec));
         if (!type->map) {
             free(prev_map);
             return BadAlloc;
@@ -318,8 +318,8 @@ XkbResizeKeyType(XkbDescPtr xkb,
             XkbModsRec *prev_preserve = type->preserve;
 
             if ((map_count > type->map_count) || (type->preserve == NULL)) {
-                type->preserve = realloc(type->preserve,
-                                         map_count * sizeof(XkbModsRec));
+                type->preserve = reallocarray(type->preserve,
+                                              map_count, sizeof(XkbModsRec));
             }
             if (!type->preserve) {
                 free(prev_preserve);
@@ -336,8 +336,8 @@ XkbResizeKeyType(XkbDescPtr xkb,
     if ((new_num_lvls > type->num_levels) || (type->level_names == NULL)) {
         Atom *prev_level_names = type->level_names;
 
-        type->level_names = realloc(type->level_names,
-                                    new_num_lvls * sizeof(Atom));
+        type->level_names = reallocarray(type->level_names,
+                                         new_num_lvls, sizeof(Atom));
         if (!type->level_names) {
             free(prev_level_names);
             return BadAlloc;
@@ -659,9 +659,9 @@ XkbChangeKeycodeRange(XkbDescPtr xkb,
             if (xkb->map->key_sym_map) {
                 XkbSymMapRec *prev_key_sym_map = xkb->map->key_sym_map;
 
-                xkb->map->key_sym_map = realloc(xkb->map->key_sym_map,
-                                                (maxKC +
-                                                 1) * sizeof(XkbSymMapRec));
+                xkb->map->key_sym_map = reallocarray(xkb->map->key_sym_map,
+                                                     maxKC + 1,
+                                                     sizeof(XkbSymMapRec));
                 if (!xkb->map->key_sym_map) {
                     free(prev_key_sym_map);
                     return BadAlloc;
@@ -680,8 +680,9 @@ XkbChangeKeycodeRange(XkbDescPtr xkb,
             if (xkb->map->modmap) {
                 unsigned char *prev_modmap = xkb->map->modmap;
 
-                xkb->map->modmap = realloc(xkb->map->modmap,
-                                           (maxKC + 1) * sizeof(unsigned char));
+                xkb->map->modmap = reallocarray(xkb->map->modmap,
+                                                maxKC + 1,
+                                                sizeof(unsigned char));
                 if (!xkb->map->modmap) {
                     free(prev_modmap);
                     return BadAlloc;
@@ -702,9 +703,9 @@ XkbChangeKeycodeRange(XkbDescPtr xkb,
             if (xkb->server->behaviors) {
                 XkbBehavior *prev_behaviors = xkb->server->behaviors;
 
-                xkb->server->behaviors = realloc(xkb->server->behaviors,
-                                                 (maxKC +
-                                                  1) * sizeof(XkbBehavior));
+                xkb->server->behaviors = reallocarray(xkb->server->behaviors,
+                                                      maxKC + 1,
+                                                      sizeof(XkbBehavior));
                 if (!xkb->server->behaviors) {
                     free(prev_behaviors);
                     return BadAlloc;
@@ -724,9 +725,9 @@ XkbChangeKeycodeRange(XkbDescPtr xkb,
             if (xkb->server->key_acts) {
                 unsigned short *prev_key_acts = xkb->server->key_acts;
 
-                xkb->server->key_acts = realloc(xkb->server->key_acts,
-                                                (maxKC +
-                                                 1) * sizeof(unsigned short));
+                xkb->server->key_acts = reallocarray(xkb->server->key_acts,
+                                                     maxKC + 1,
+                                                     sizeof(unsigned short));
                 if (!xkb->server->key_acts) {
                     free(prev_key_acts);
                     return BadAlloc;
@@ -746,9 +747,9 @@ XkbChangeKeycodeRange(XkbDescPtr xkb,
             if (xkb->server->vmodmap) {
                 unsigned short *prev_vmodmap = xkb->server->vmodmap;
 
-                xkb->server->vmodmap = realloc(xkb->server->vmodmap,
-                                               (maxKC +
-                                                1) * sizeof(unsigned short));
+                xkb->server->vmodmap = reallocarray(xkb->server->vmodmap,
+                                                    maxKC + 1,
+                                                    sizeof(unsigned short));
                 if (!xkb->server->vmodmap) {
                     free(prev_vmodmap);
                     return BadAlloc;
@@ -769,8 +770,8 @@ XkbChangeKeycodeRange(XkbDescPtr xkb,
         if ((xkb->names) && (xkb->names->keys)) {
             XkbKeyNameRec *prev_keys = xkb->names->keys;
 
-            xkb->names->keys = realloc(xkb->names->keys,
-                                       (maxKC + 1) * sizeof(XkbKeyNameRec));
+            xkb->names->keys = reallocarray(xkb->names->keys,
+                                            maxKC + 1, sizeof(XkbKeyNameRec));
             if (!xkb->names->keys) {
                 free(prev_keys);
                 return BadAlloc;

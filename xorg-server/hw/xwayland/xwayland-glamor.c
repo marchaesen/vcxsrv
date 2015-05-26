@@ -310,7 +310,7 @@ xwl_drm_init_egl(struct xwl_screen *xwl_screen)
     }
 
     if (!epoxy_has_gl_extension("GL_OES_EGL_image")) {
-        ErrorF("GL_OES_EGL_image no available");
+        ErrorF("GL_OES_EGL_image not available\n");
         return;
     }
 
@@ -329,7 +329,7 @@ xwl_drm_handle_device(void *data, struct wl_drm *drm, const char *device)
 
    xwl_screen->drm_fd = open(xwl_screen->device_name, O_RDWR | O_CLOEXEC);
    if (xwl_screen->drm_fd == -1) {
-       ErrorF("wayland-egl: could not open %s (%s)",
+       ErrorF("wayland-egl: could not open %s (%s)\n",
 	      xwl_screen->device_name, strerror(errno));
        return;
    }

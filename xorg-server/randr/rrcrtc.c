@@ -65,8 +65,8 @@ RRCrtcCreate(ScreenPtr pScreen, void *devPrivate)
 
     /* make space for the crtc pointer */
     if (pScrPriv->numCrtcs)
-        crtcs = realloc(pScrPriv->crtcs,
-                        (pScrPriv->numCrtcs + 1) * sizeof(RRCrtcPtr));
+        crtcs = reallocarray(pScrPriv->crtcs,
+                             pScrPriv->numCrtcs + 1, sizeof(RRCrtcPtr));
     else
         crtcs = malloc(sizeof(RRCrtcPtr));
     if (!crtcs)
@@ -176,10 +176,10 @@ RRCrtcNotify(RRCrtcPtr crtc,
 
         if (numOutputs) {
             if (crtc->numOutputs)
-                newoutputs = realloc(crtc->outputs,
-                                     numOutputs * sizeof(RROutputPtr));
+                newoutputs = reallocarray(crtc->outputs,
+                                          numOutputs, sizeof(RROutputPtr));
             else
-                newoutputs = malloc(numOutputs * sizeof(RROutputPtr));
+                newoutputs = xallocarray(numOutputs, sizeof(RROutputPtr));
             if (!newoutputs)
                 return FALSE;
         }
@@ -395,7 +395,7 @@ rrCreateSharedPixmap(RRCrtcPtr crtc, int width, int height,
     Bool ret;
     int depth;
     PixmapPtr mscreenpix;
-    PixmapPtr protopix = crtc->pScreen->current_master->GetScreenPixmap(crtc->pScreen->current_master);
+    PixmapPtr protopix = master->GetScreenPixmap(master);
     rrScrPriv(crtc->pScreen);
 
     /* create a pixmap on the master screen,
@@ -429,7 +429,7 @@ rrCreateSharedPixmap(RRCrtcPtr crtc, int width, int height,
 
     ret = pScrPriv->rrCrtcSetScanoutPixmap(crtc, spix);
     if (ret == FALSE) {
-        ErrorF("failed to set shadow slave pixmap\n");
+        ErrorF("randr: failed to set shadow slave pixmap\n");
         return FALSE;
     }
 
@@ -458,18 +458,20 @@ rrCheckPixmapBounding(ScreenPtr pScreen,
     /* have to iterate all the crtcs of the attached gpu masters
        and all their output slaves */
     for (c = 0; c < pScrPriv->numCrtcs; c++) {
-        if (pScrPriv->crtcs[c] == rr_crtc) {
+        RRCrtcPtr crtc = pScrPriv->crtcs[c];
+
+        if (crtc == rr_crtc) {
             newbox.x1 = x;
             newbox.x2 = x + w;
             newbox.y1 = y;
             newbox.y2 = y + h;
         } else {
-            if (!pScrPriv->crtcs[c]->mode)
+            if (!crtc->mode)
                 continue;
-            newbox.x1 = pScrPriv->crtcs[c]->x;
-            newbox.x2 = pScrPriv->crtcs[c]->x + pScrPriv->crtcs[c]->mode->mode.width;
-            newbox.y1 = pScrPriv->crtcs[c]->y;
-            newbox.y2 = pScrPriv->crtcs[c]->y + pScrPriv->crtcs[c]->mode->mode.height;
+            newbox.x1 = crtc->x;
+            newbox.x2 = crtc->x + crtc->mode->mode.width;
+            newbox.y1 = crtc->y;
+            newbox.y2 = crtc->y + crtc->mode->mode.height;
         }
         RegionInit(&new_crtc_region, &newbox, 1);
         RegionUnion(&total_region, &total_region, &new_crtc_region);
@@ -478,19 +480,21 @@ rrCheckPixmapBounding(ScreenPtr pScreen,
     xorg_list_for_each_entry(slave, &pScreen->output_slave_list, output_head) {
         rrScrPrivPtr    slave_priv = rrGetScrPriv(slave);
         for (c = 0; c < slave_priv->numCrtcs; c++) {
-            if (slave_priv->crtcs[c] == rr_crtc) {
+            RRCrtcPtr slave_crtc = slave_priv->crtcs[c];
+
+            if (slave_crtc == rr_crtc) {
                 newbox.x1 = x;
                 newbox.x2 = x + w;
                 newbox.y1 = y;
                 newbox.y2 = y + h;
             }
             else {
-                if (!slave_priv->crtcs[c]->mode)
+                if (!slave_crtc->mode)
                     continue;
-                newbox.x1 = slave_priv->crtcs[c]->x;
-                newbox.x2 = slave_priv->crtcs[c]->x + slave_priv->crtcs[c]->mode->mode.width;
-                newbox.y1 = slave_priv->crtcs[c]->y;
-                newbox.y2 = slave_priv->crtcs[c]->y + slave_priv->crtcs[c]->mode->mode.height;
+                newbox.x1 = slave_crtc->x;
+                newbox.x2 = slave_crtc->x + slave_crtc->mode->mode.width;
+                newbox.y1 = slave_crtc->y;
+                newbox.y2 = slave_crtc->y + slave_crtc->mode->mode.height;
             }
             RegionInit(&new_crtc_region, &newbox, 1);
             RegionUnion(&total_region, &total_region, &new_crtc_region);
@@ -503,7 +507,6 @@ rrCheckPixmapBounding(ScreenPtr pScreen,
 
     if (new_width == screen_pixmap->drawable.width &&
         new_height == screen_pixmap->drawable.height) {
-        ErrorF("adjust shatters %d %d\n", newsize->x1, newsize->x2);
     } else {
         pScrPriv->rrScreenSetSize(pScreen, new_width, new_height, 0, 0);
     }
@@ -558,7 +561,6 @@ RRCrtcSet(RRCrtcPtr crtc,
                 width = mode->mode.width;
                 height = mode->mode.height;
             }
-            ErrorF("have a master to look out for\n");
             ret = rrCheckPixmapBounding(master, crtc,
                                         x, y, width, height);
             if (!ret)
@@ -566,8 +568,6 @@ RRCrtcSet(RRCrtcPtr crtc,
 
             if (pScreen->current_master) {
                 ret = rrCreateSharedPixmap(crtc, width, height, x, y);
-                ErrorF("need to create shared pixmap %d", ret);
-
             }
         }
 #if RANDR_12_INTERFACE
@@ -799,7 +799,7 @@ RRCrtcGammaSetSize(RRCrtcPtr crtc, int size)
     if (size == crtc->gammaSize)
         return TRUE;
     if (size) {
-        gamma = malloc(size * 3 * sizeof(CARD16));
+        gamma = xallocarray(size, 3 * sizeof(CARD16));
         if (!gamma)
             return FALSE;
     }
@@ -1028,7 +1028,7 @@ ProcRRSetCrtcConfig(ClientPtr client)
             return BadMatch;
     }
     if (numOutputs) {
-        outputs = malloc(numOutputs * sizeof(RROutputPtr));
+        outputs = xallocarray(numOutputs, sizeof(RROutputPtr));
         if (!outputs)
             return BadAlloc;
     }
@@ -1573,7 +1573,8 @@ ProcRRGetCrtcTransform(ClientPtr client)
     return Success;
 }
 
-static Bool check_all_screen_crtcs(ScreenPtr pScreen, int *x, int *y)
+static Bool
+check_all_screen_crtcs(ScreenPtr pScreen, int *x, int *y)
 {
     rrScrPriv(pScreen);
     int i;
@@ -1593,7 +1594,8 @@ static Bool check_all_screen_crtcs(ScreenPtr pScreen, int *x, int *y)
     return FALSE;
 }
 
-static Bool constrain_all_screen_crtcs(DeviceIntPtr pDev, ScreenPtr pScreen, int *x, int *y)
+static Bool
+constrain_all_screen_crtcs(DeviceIntPtr pDev, ScreenPtr pScreen, int *x, int *y)
 {
     rrScrPriv(pScreen);
     int i;

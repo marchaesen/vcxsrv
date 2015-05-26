@@ -372,7 +372,7 @@ _mesa_glsl_initialize_types(struct _mesa_glsl_parse_state *state)
       add_type(symbols, glsl_type::uimage2DMSArray_type);
    }
 
-   if (state->ARB_shader_atomic_counters_enable) {
+   if (state->has_atomic_counters()) {
       add_type(symbols, glsl_type::atomic_uint_type);
    }
 

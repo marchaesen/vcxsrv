@@ -159,27 +159,36 @@ static void vbo_exec_copy_to_current( struct vbo_exec_context *exec )
           * ctx->Current.Attrib and ctx->Light.Material.Attrib arrays.
           */
 	 GLfloat *current = (GLfloat *)vbo->currval[i].Ptr;
-         fi_type tmp[4];
+         fi_type tmp[8]; /* space for doubles */
+         int dmul = exec->vtx.attrtype[i] == GL_DOUBLE ? 2 : 1;
 
-         COPY_CLEAN_4V_TYPE_AS_UNION(tmp,
-                                     exec->vtx.attrsz[i],
-                                     exec->vtx.attrptr[i],
-                                     exec->vtx.attrtype[i]);
-         
+         if (exec->vtx.attrtype[i] == GL_DOUBLE) {
+            memset(tmp, 0, sizeof(tmp));
+            memcpy(tmp, exec->vtx.attrptr[i], exec->vtx.attrsz[i] * sizeof(GLfloat));
+         } else {
+            COPY_CLEAN_4V_TYPE_AS_UNION(tmp,
+                                        exec->vtx.attrsz[i],
+                                        exec->vtx.attrptr[i],
+                                        exec->vtx.attrtype[i]);
+         }
+
          if (exec->vtx.attrtype[i] != vbo->currval[i].Type ||
-             memcmp(current, tmp, sizeof(tmp)) != 0) {
-            memcpy(current, tmp, sizeof(tmp));
+             memcmp(current, tmp, 4 * sizeof(GLfloat) * dmul) != 0) {
+            memcpy(current, tmp, 4 * sizeof(GLfloat) * dmul);
 	 
             /* Given that we explicitly state size here, there is no need
              * for the COPY_CLEAN above, could just copy 16 bytes and be
              * done.  The only problem is when Mesa accesses ctx->Current
              * directly.
              */
-            vbo->currval[i].Size = exec->vtx.attrsz[i];
-            vbo->currval[i]._ElementSize = vbo->currval[i].Size * sizeof(GLfloat);
+            /* Size here is in components - not bytes */
+            vbo->currval[i].Size = exec->vtx.attrsz[i] / dmul;
+            vbo->currval[i]._ElementSize = vbo->currval[i].Size * sizeof(GLfloat) * dmul;
             vbo->currval[i].Type = exec->vtx.attrtype[i];
             vbo->currval[i].Integer =
                   vbo_attrtype_to_integer_flag(exec->vtx.attrtype[i]);
+            vbo->currval[i].Doubles =
+                  vbo_attrtype_to_double_flag(exec->vtx.attrtype[i]);
 
             /* This triggers rather too much recalculation of Mesa state
              * that doesn't get used (eg light positions).
@@ -214,13 +223,17 @@ vbo_exec_copy_from_current(struct vbo_exec_context *exec)
    GLint i;
 
    for (i = VBO_ATTRIB_POS + 1; i < VBO_ATTRIB_MAX; i++) {
-      const fi_type *current = (fi_type *) vbo->currval[i].Ptr;
-      switch (exec->vtx.attrsz[i]) {
-      case 4: exec->vtx.attrptr[i][3] = current[3];
-      case 3: exec->vtx.attrptr[i][2] = current[2];
-      case 2: exec->vtx.attrptr[i][1] = current[1];
-      case 1: exec->vtx.attrptr[i][0] = current[0];
-	 break;
+      if (exec->vtx.attrtype[i] == GL_DOUBLE) {
+         memcpy(exec->vtx.attrptr[i], vbo->currval[i].Ptr, exec->vtx.attrsz[i] * sizeof(GLfloat));
+      } else {
+         const fi_type *current = (fi_type *) vbo->currval[i].Ptr;
+         switch (exec->vtx.attrsz[i]) {
+         case 4: exec->vtx.attrptr[i][3] = current[3];
+         case 3: exec->vtx.attrptr[i][2] = current[2];
+         case 2: exec->vtx.attrptr[i][1] = current[1];
+         case 1: exec->vtx.attrptr[i][0] = current[0];
+            break;
+         }
       }
    }
 }
@@ -364,11 +377,11 @@ vbo_exec_wrap_upgrade_vertex(struct vbo_exec_context *exec,
  * glTexCoord4f() call.  We promote the array from size=2 to size=4.
  */
 static void
-vbo_exec_fixup_vertex(struct gl_context *ctx, GLuint attr, GLuint newSize)
+vbo_exec_fixup_vertex(struct gl_context *ctx, GLuint attr, GLuint newSize, GLenum newType)
 {
    struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
 
-   if (newSize > exec->vtx.attrsz[attr]) {
+   if (newSize > exec->vtx.attrsz[attr] || newType != exec->vtx.attrtype[attr]) {
       /* New size is larger.  Need to flush existing vertices and get
        * an enlarged vertex format.
        */
@@ -401,18 +414,19 @@ vbo_exec_fixup_vertex(struct gl_context *ctx, GLuint attr, GLuint newSize)
  * This macro is used to implement all the glVertex, glColor, glTexCoord,
  * glVertexAttrib, etc functions.
  */
-#define ATTR_UNION( A, N, T, V0, V1, V2, V3 )				\
+#define ATTR_UNION( A, N, T, C, V0, V1, V2, V3 )                        \
 do {									\
    struct vbo_exec_context *exec = &vbo_context(ctx)->exec;		\
-									\
+   int sz = (sizeof(C) / sizeof(GLfloat));                              \
    if (unlikely(!(ctx->Driver.NeedFlush & FLUSH_UPDATE_CURRENT)))	\
       ctx->Driver.BeginVertices( ctx );					\
-   									\
-   if (unlikely(exec->vtx.active_sz[A] != N))				\
-      vbo_exec_fixup_vertex(ctx, A, N);					\
-   									\
+                                                                        \
+   if (unlikely(exec->vtx.active_sz[A] != N * sz) ||                    \
+       unlikely(exec->vtx.attrtype[A] != T))                            \
+      vbo_exec_fixup_vertex(ctx, A, N * sz, T);                         \
+                                                                        \
    {									\
-      fi_type *dest = exec->vtx.attrptr[A];			\
+      C *dest = (C *)exec->vtx.attrptr[A];                              \
       if (N>0) dest[0] = V0;						\
       if (N>1) dest[1] = V1;						\
       if (N>2) dest[2] = V2;						\
@@ -437,7 +451,6 @@ do {									\
 	 vbo_exec_vtx_wrap( exec );					\
    }									\
 } while (0)
-
 
 #define ERROR(err) _mesa_error( ctx, err, __func__ )
 #define TAG(x) vbo_##x
@@ -575,7 +588,7 @@ static void GLAPIENTRY vbo_exec_EvalCoord1f( GLfloat u )
       for (i = 0; i <= VBO_ATTRIB_TEX7; i++) {
 	 if (exec->eval.map1[i].map) 
 	    if (exec->vtx.active_sz[i] != exec->eval.map1[i].sz)
-	       vbo_exec_fixup_vertex( ctx, i, exec->eval.map1[i].sz );
+	       vbo_exec_fixup_vertex( ctx, i, exec->eval.map1[i].sz, GL_FLOAT );
       }
    }
 
@@ -602,12 +615,12 @@ static void GLAPIENTRY vbo_exec_EvalCoord2f( GLfloat u, GLfloat v )
       for (i = 0; i <= VBO_ATTRIB_TEX7; i++) {
 	 if (exec->eval.map2[i].map) 
 	    if (exec->vtx.active_sz[i] != exec->eval.map2[i].sz)
-	       vbo_exec_fixup_vertex( ctx, i, exec->eval.map2[i].sz );
+	       vbo_exec_fixup_vertex( ctx, i, exec->eval.map2[i].sz, GL_FLOAT );
       }
 
       if (ctx->Eval.AutoNormal) 
 	 if (exec->vtx.active_sz[VBO_ATTRIB_NORMAL] != 3)
-	    vbo_exec_fixup_vertex( ctx, VBO_ATTRIB_NORMAL, 3 );
+	    vbo_exec_fixup_vertex( ctx, VBO_ATTRIB_NORMAL, 3, GL_FLOAT );
    }
 
    memcpy( exec->vtx.copied.buffer, exec->vtx.vertex, 
@@ -968,6 +981,16 @@ static void vbo_exec_vtxfmt_init( struct vbo_exec_context *exec )
    vfmt->VertexAttribP3uiv = vbo_VertexAttribP3uiv;
    vfmt->VertexAttribP4ui = vbo_VertexAttribP4ui;
    vfmt->VertexAttribP4uiv = vbo_VertexAttribP4uiv;
+
+   vfmt->VertexAttribL1d = vbo_VertexAttribL1d;
+   vfmt->VertexAttribL2d = vbo_VertexAttribL2d;
+   vfmt->VertexAttribL3d = vbo_VertexAttribL3d;
+   vfmt->VertexAttribL4d = vbo_VertexAttribL4d;
+
+   vfmt->VertexAttribL1dv = vbo_VertexAttribL1dv;
+   vfmt->VertexAttribL2dv = vbo_VertexAttribL2dv;
+   vfmt->VertexAttribL3dv = vbo_VertexAttribL3dv;
+   vfmt->VertexAttribL4dv = vbo_VertexAttribL4dv;
 }
 
 

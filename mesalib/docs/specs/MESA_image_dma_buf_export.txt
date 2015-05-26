@@ -16,19 +16,19 @@ Contact
 
 Status
 
-    Proposal
+    Complete, shipping.
 
 Version
 
-    Version 2, Mar 30, 2015
+    Version 3, May 5, 2015
 
 Number
 
-    EGL Extension #not assigned
+    EGL Extension #87
 
 Dependencies
 
-    Reguires EGL 1.4 or later.  This extension is written against the
+    Requires EGL 1.4 or later.  This extension is written against the
     wording of the EGL 1.4 specification.
 
     EGL_KHR_base_image is required.
@@ -43,7 +43,8 @@ Overview
     file descriptor or multiple file descriptors, in the case of multi-plane
     YUV image, from an EGLImage.
 
-    It is designed to provide the complementary functionality to EGL_EXT_image_dma_buf_import.
+    It is designed to provide the complementary functionality to
+    EGL_EXT_image_dma_buf_import.
 
 IP Status
 
@@ -51,10 +52,12 @@ IP Status
 
 New Types
 
-    This is a 64 bit unsigned integer.
+    This extension uses the 64-bit unsigned integer type EGLuint64KHR
+    first introduced by the EGL_KHR_stream extension, but does not
+    depend on that extension. The typedef may be reproduced separately
+    for this extension, if not already present in eglext.h.
 
-    typedef khronos_uint64_t EGLuint64MESA;
-
+    typedef khronos_uint64_t EGLuint64KHR;
 
 New Procedures and Functions
 
@@ -62,7 +65,7 @@ New Procedures and Functions
                                   EGLImageKHR image,
 				  int *fourcc,
 				  int *num_planes,
-				  EGLuint64MESA *modifiers);
+				  EGLuint64KHR *modifiers);
 
     EGLBoolean eglExportDMABUFImageMESA(EGLDisplay dpy,
                                         EGLImageKHR image,
@@ -89,7 +92,7 @@ Additions to the EGL 1.4 Specification:
                                   EGLImageKHR image,
 				  int *fourcc,
 				  int *num_planes,
-				  EGLuint64MESA *modifiers);
+				  EGLuint64KHR *modifiers);
 
     is used to retrieve the pixel format of the buffer, as specified by
     drm_fourcc.h, the number of planes in the image and the Linux
@@ -135,6 +138,8 @@ to dup the fd extra times to make the interface sane.
 
 Revision History
 
+    Version 3, May, 2015
+        Just use the KHR 64-bit type.
     Version 2, March, 2015
         Add a query interface (Dave Airlie)
     Version 1, June 3, 2014

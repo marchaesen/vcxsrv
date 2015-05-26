@@ -163,6 +163,7 @@ API_XML = \
 	ARB_texture_view.xml \
 	ARB_uniform_buffer_object.xml \
 	ARB_vertex_array_object.xml \
+	ARB_vertex_attrib_64bit.xml \
 	ARB_vertex_attrib_binding.xml \
 	ARB_viewport_array.xml \
 	AMD_draw_buffers_blend.xml \

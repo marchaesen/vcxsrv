@@ -1318,14 +1318,14 @@ ProcRenderCompositeGlyphs(ClientPtr client)
     if (nglyph <= NLOCALGLYPH)
         glyphsBase = glyphsLocal;
     else {
-        glyphsBase = (GlyphPtr *) malloc(nglyph * sizeof(GlyphPtr));
+        glyphsBase = xallocarray(nglyph, sizeof(GlyphPtr));
         if (!glyphsBase)
             return BadAlloc;
     }
     if (nlist <= NLOCALDELTA)
         listsBase = listsLocal;
     else {
-        listsBase = (GlyphListPtr) malloc(nlist * sizeof(GlyphListRec));
+        listsBase = xallocarray(nlist, sizeof(GlyphListRec));
         if (!listsBase) {
             rc = BadAlloc;
             goto bail;
@@ -1793,7 +1793,7 @@ ProcRenderCreateAnimCursor(ClientPtr client)
     ncursor =
         (client->req_len -
          (bytes_to_int32(sizeof(xRenderCreateAnimCursorReq)))) >> 1;
-    cursors = malloc(ncursor * (sizeof(CursorPtr) + sizeof(CARD32)));
+    cursors = xallocarray(ncursor, sizeof(CursorPtr) + sizeof(CARD32));
     if (!cursors)
         return BadAlloc;
     deltas = (CARD32 *) (cursors + ncursor);

@@ -352,8 +352,8 @@ NewExtensionModuleList(int size)
         numExtensionModules = 0;
 
     n = numExtensionModules + size;
-    ExtensionModuleList = realloc(ExtensionModuleList,
-                                  n * sizeof(ExtensionModule));
+    ExtensionModuleList = reallocarray(ExtensionModuleList, n,
+                                       sizeof(ExtensionModule));
     if (ExtensionModuleList == NULL) {
         ExtensionModuleList = save;
         return NULL;

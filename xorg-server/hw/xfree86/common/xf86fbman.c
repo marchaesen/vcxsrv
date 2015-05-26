@@ -317,16 +317,17 @@ localRegisterFreeBoxCallback(ScreenPtr pScreen,
 
     offman = (FBManagerPtr) dixLookupPrivate(&pScreen->devPrivates,
                                              xf86FBScreenKey);
-    newCallbacks = realloc(offman->FreeBoxesUpdateCallback,
-                           sizeof(FreeBoxCallbackProcPtr) *
-                           (offman->NumCallbacks + 1));
+    newCallbacks = reallocarray(offman->FreeBoxesUpdateCallback,
+                                offman->NumCallbacks + 1,
+                                sizeof(FreeBoxCallbackProcPtr));
     if (!newCallbacks)
         return FALSE;
     else
         offman->FreeBoxesUpdateCallback = newCallbacks;
 
-    newPrivates = realloc(offman->devPrivates,
-                          sizeof(DevUnion) * (offman->NumCallbacks + 1));
+    newPrivates = reallocarray(offman->devPrivates,
+                               offman->NumCallbacks + 1,
+                               sizeof(DevUnion));
     if (!newPrivates)
         return FALSE;
     else

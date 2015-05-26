@@ -397,7 +397,7 @@ dmxChangeClip(GCPtr pGC, int type, void *pvalue, int nrects)
     } else {
         if (dmxScreen->beDisplay) {
             nRects = RegionNumRects((RegionPtr) pGC->clientClip);
-            pRects = malloc(nRects * sizeof(*pRects));
+            pRects = xallocarray(nRects, sizeof(*pRects));
             pBox = RegionRects((RegionPtr) pGC->clientClip);
 
             for (i = 0; i < nRects; i++) {

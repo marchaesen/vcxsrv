@@ -34,9 +34,8 @@ global_to_local(nir_register *reg)
 
    assert(reg->is_global);
 
-   struct set_entry *entry;
-   set_foreach(reg->defs, entry) {
-      nir_instr *instr = (nir_instr *) entry->key;
+   nir_foreach_def(reg, def_dest) {
+      nir_instr *instr = def_dest->reg.parent_instr;
       nir_function_impl *instr_impl =
          nir_cf_node_get_function(&instr->block->cf_node);
       if (impl != NULL) {
@@ -47,8 +46,8 @@ global_to_local(nir_register *reg)
       }
    }
 
-   set_foreach(reg->uses, entry) {
-      nir_instr *instr = (nir_instr *) entry->key;
+   nir_foreach_use(reg, use_src) {
+      nir_instr *instr = use_src->parent_instr;
       nir_function_impl *instr_impl =
          nir_cf_node_get_function(&instr->block->cf_node);
       if (impl != NULL) {
@@ -59,8 +58,8 @@ global_to_local(nir_register *reg)
       }
    }
 
-   set_foreach(reg->if_uses, entry) {
-      nir_if *if_stmt = (nir_if *) entry->key;
+   nir_foreach_if_use(reg, use_src) {
+      nir_if *if_stmt = use_src->parent_if;
       nir_function_impl *if_impl = nir_cf_node_get_function(&if_stmt->cf_node);
       if (impl != NULL) {
          if (impl != if_impl)

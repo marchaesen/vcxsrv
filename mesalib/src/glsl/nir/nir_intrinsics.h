@@ -68,6 +68,13 @@ INTRINSIC(interp_var_at_offset, 1, ARR(2), true, 0, 1, 0,
 #define BARRIER(name) INTRINSIC(name, 0, ARR(), false, 0, 0, 0, 0)
 
 BARRIER(discard)
+
+/*
+ * Memory barrier with semantics analogous to the memoryBarrier() GLSL
+ * intrinsic.
+ */
+BARRIER(memory_barrier)
+
 /** A conditional discard, with a single boolean source. */
 INTRINSIC(discard_if, 1, ARR(1), false, 0, 0, 0, 0)
 
@@ -88,6 +95,33 @@ INTRINSIC(end_primitive, 0, ARR(), false, 0, 0, 1, 0)
 ATOMIC(inc, 0)
 ATOMIC(dec, 0)
 ATOMIC(read, NIR_INTRINSIC_CAN_ELIMINATE)
+
+/*
+ * Image load, store and atomic intrinsics.
+ *
+ * All image intrinsics take an image target passed as a nir_variable.  Image
+ * variables contain a number of memory and layout qualifiers that influence
+ * the semantics of the intrinsic.
+ *
+ * All image intrinsics take a four-coordinate vector and a sample index as
+ * first two sources, determining the location within the image that will be
+ * accessed by the intrinsic.  Components not applicable to the image target
+ * in use are undefined.  Image store takes an additional four-component
+ * argument with the value to be written, and image atomic operations take
+ * either one or two additional scalar arguments with the same meaning as in
+ * the ARB_shader_image_load_store specification.
+ */
+INTRINSIC(image_load, 2, ARR(4, 1), true, 4, 1, 0,
+          NIR_INTRINSIC_CAN_ELIMINATE)
+INTRINSIC(image_store, 3, ARR(4, 1, 4), false, 0, 1, 0, 0)
+INTRINSIC(image_atomic_add, 3, ARR(4, 1, 1), true, 1, 1, 0, 0)
+INTRINSIC(image_atomic_min, 3, ARR(4, 1, 1), true, 1, 1, 0, 0)
+INTRINSIC(image_atomic_max, 3, ARR(4, 1, 1), true, 1, 1, 0, 0)
+INTRINSIC(image_atomic_and, 3, ARR(4, 1, 1), true, 1, 1, 0, 0)
+INTRINSIC(image_atomic_or, 3, ARR(4, 1, 1), true, 1, 1, 0, 0)
+INTRINSIC(image_atomic_xor, 3, ARR(4, 1, 1), true, 1, 1, 0, 0)
+INTRINSIC(image_atomic_exchange, 3, ARR(4, 1, 1), true, 1, 1, 0, 0)
+INTRINSIC(image_atomic_comp_swap, 4, ARR(4, 1, 1, 1), true, 1, 1, 0, 0)
 
 #define SYSTEM_VALUE(name, components) \
    INTRINSIC(load_##name, 0, ARR(), true, components, 0, 0, \

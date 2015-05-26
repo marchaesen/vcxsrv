@@ -49,6 +49,10 @@ typedef void *GLeglImageOES;
 #include "glapi/glapi.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* getproc */
 
 extern void
@@ -95,4 +99,8 @@ get_entrypoint_address(unsigned int functionOffset);
 #endif
 
 
+
+#ifdef __cplusplus
+}
+#endif
 #endif

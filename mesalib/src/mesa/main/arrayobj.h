@@ -49,6 +49,9 @@ extern struct gl_vertex_array_object *
 _mesa_lookup_vao(struct gl_context *ctx, GLuint id);
 
 extern struct gl_vertex_array_object *
+_mesa_lookup_vao_err(struct gl_context *ctx, GLuint id, const char *caller);
+
+extern struct gl_vertex_array_object *
 _mesa_new_vao(struct gl_context *ctx, GLuint name);
 
 extern void
@@ -93,6 +96,12 @@ void GLAPIENTRY _mesa_GenVertexArrays(GLsizei n, GLuint *arrays);
 
 void GLAPIENTRY _mesa_GenVertexArraysAPPLE(GLsizei n, GLuint *buffer);
 
+void GLAPIENTRY _mesa_CreateVertexArrays(GLsizei n, GLuint *arrays);
+
 GLboolean GLAPIENTRY _mesa_IsVertexArray( GLuint id );
+
+void GLAPIENTRY _mesa_VertexArrayElementBuffer(GLuint vaobj, GLuint buffer);
+
+void GLAPIENTRY _mesa_GetVertexArrayiv(GLuint vaobj, GLenum pname, GLint *param);
 
 #endif /* ARRAYOBJ_H */

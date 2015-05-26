@@ -30,6 +30,7 @@
 #include "util/hash_table.h"
 #include "../list.h"
 #include "GL/gl.h" /* GLenum */
+#include "util/list.h"
 #include "util/ralloc.h"
 #include "util/set.h"
 #include "util/bitset.h"
@@ -397,13 +398,13 @@ typedef struct {
    struct nir_instr *parent_instr;
 
    /** set of nir_instr's where this register is used (read from) */
-   struct set *uses;
+   struct list_head uses;
 
    /** set of nir_instr's where this register is defined (written to) */
-   struct set *defs;
+   struct list_head defs;
 
    /** set of nir_if's where this register is used as a condition */
-   struct set *if_uses;
+   struct list_head if_uses;
 } nir_register;
 
 typedef enum {
@@ -462,10 +463,10 @@ typedef struct {
    nir_instr *parent_instr;
 
    /** set of nir_instr's where this register is used (read from) */
-   struct set *uses;
+   struct list_head uses;
 
    /** set of nir_if's where this register is used as a condition */
-   struct set *if_uses;
+   struct list_head if_uses;
 
    uint8_t num_components;
 } nir_ssa_def;
@@ -481,6 +482,9 @@ typedef struct {
 } nir_reg_src;
 
 typedef struct {
+   nir_instr *parent_instr;
+   struct list_head def_link;
+
    nir_register *reg;
    struct nir_src *indirect; /** < NULL for no indirect offset */
    unsigned base_offset;
@@ -488,7 +492,16 @@ typedef struct {
    /* TODO def-use chain goes here */
 } nir_reg_dest;
 
+struct nir_if;
+
 typedef struct nir_src {
+   union {
+      nir_instr *parent_instr;
+      struct nir_if *parent_if;
+   };
+
+   struct list_head use_link;
+
    union {
       nir_reg_src reg;
       nir_ssa_def *ssa;
@@ -496,6 +509,20 @@ typedef struct nir_src {
 
    bool is_ssa;
 } nir_src;
+
+#define NIR_SRC_INIT (nir_src) { { NULL } }
+
+#define nir_foreach_use(reg_or_ssa_def, src) \
+   list_for_each_entry(nir_src, src, &(reg_or_ssa_def)->uses, use_link)
+
+#define nir_foreach_use_safe(reg_or_ssa_def, src) \
+   list_for_each_entry_safe(nir_src, src, &(reg_or_ssa_def)->uses, use_link)
+
+#define nir_foreach_if_use(reg_or_ssa_def, src) \
+   list_for_each_entry(nir_src, src, &(reg_or_ssa_def)->if_uses, use_link)
+
+#define nir_foreach_if_use_safe(reg_or_ssa_def, src) \
+   list_for_each_entry_safe(nir_src, src, &(reg_or_ssa_def)->if_uses, use_link)
 
 typedef struct {
    union {
@@ -506,10 +533,18 @@ typedef struct {
    bool is_ssa;
 } nir_dest;
 
+#define NIR_DEST_INIT (nir_dest) { { { NULL } } }
+
+#define nir_foreach_def(reg, dest) \
+   list_for_each_entry(nir_dest, dest, &(reg)->defs, reg.def_link)
+
+#define nir_foreach_def_safe(reg, dest) \
+   list_for_each_entry_safe(nir_dest, dest, &(reg)->defs, reg.def_link)
+
 static inline nir_src
 nir_src_for_ssa(nir_ssa_def *def)
 {
-   nir_src src;
+   nir_src src = NIR_SRC_INIT;
 
    src.is_ssa = true;
    src.ssa = def;
@@ -520,7 +555,7 @@ nir_src_for_ssa(nir_ssa_def *def)
 static inline nir_src
 nir_src_for_reg(nir_register *reg)
 {
-   nir_src src;
+   nir_src src = NIR_SRC_INIT;
 
    src.is_ssa = false;
    src.reg.reg = reg;
@@ -543,12 +578,9 @@ nir_src_get_parent_instr(const nir_src *src)
 static inline nir_dest
 nir_dest_for_reg(nir_register *reg)
 {
-   nir_dest dest;
+   nir_dest dest = NIR_DEST_INIT;
 
-   dest.is_ssa = false;
    dest.reg.reg = reg;
-   dest.reg.indirect = NULL;
-   dest.reg.base_offset = 0;
 
    return dest;
 }
@@ -1207,7 +1239,7 @@ nir_block_last_instr(nir_block *block)
 #define nir_foreach_instr_safe(block, instr) \
    foreach_list_typed_safe(nir_instr, instr, node, &(block)->instr_list)
 
-typedef struct {
+typedef struct nir_if {
    nir_cf_node cf_node;
    nir_src condition;
 
@@ -1548,6 +1580,8 @@ bool nir_foreach_src(nir_instr *instr, nir_foreach_src_cb cb, void *state);
 nir_const_value *nir_src_as_const_value(nir_src src);
 bool nir_srcs_equal(nir_src src1, nir_src src2);
 void nir_instr_rewrite_src(nir_instr *instr, nir_src *src, nir_src new_src);
+void nir_instr_move_src(nir_instr *dest_instr, nir_src *dest, nir_src *src);
+void nir_if_rewrite_condition(nir_if *if_stmt, nir_src new_src);
 
 void nir_ssa_dest_init(nir_instr *instr, nir_dest *dest,
                        unsigned num_components, const char *name);

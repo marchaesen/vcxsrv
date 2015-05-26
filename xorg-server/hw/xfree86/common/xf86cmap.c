@@ -166,10 +166,10 @@ xf86HandleColormaps(ScreenPtr pScreen,
 
     elements = 1 << sigRGBbits;
 
-    if (!(gamma = malloc(elements * sizeof(LOCO))))
+    if (!(gamma = xallocarray(elements, sizeof(LOCO))))
         return FALSE;
 
-    if (!(indices = malloc(maxColors * sizeof(int)))) {
+    if (!(indices = xallocarray(maxColors, sizeof(int)))) {
         free(gamma);
         return FALSE;
     }
@@ -270,7 +270,7 @@ CMapAllocateColormapPrivate(ColormapPtr pmap)
     else
         numColors = 1 << pmap->pVisual->nplanes;
 
-    if (!(colors = malloc(numColors * sizeof(LOCO))))
+    if (!(colors = xallocarray(numColors, sizeof(LOCO))))
         return FALSE;
 
     if (!(pColPriv = malloc(sizeof(CMapColormapRec)))) {

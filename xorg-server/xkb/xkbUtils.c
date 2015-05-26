@@ -946,8 +946,8 @@ _XkbCopyClientMap(XkbDescPtr src, XkbDescPtr dst)
 
         if (src->map->syms) {
             if (src->map->size_syms != dst->map->size_syms) {
-                tmp = realloc(dst->map->syms,
-                              src->map->size_syms * sizeof(KeySym));
+                tmp = reallocarray(dst->map->syms,
+                                   src->map->size_syms, sizeof(KeySym));
                 if (!tmp)
                     return FALSE;
                 dst->map->syms = tmp;
@@ -965,8 +965,8 @@ _XkbCopyClientMap(XkbDescPtr src, XkbDescPtr dst)
 
         if (src->map->key_sym_map) {
             if (src->max_key_code != dst->max_key_code) {
-                tmp = realloc(dst->map->key_sym_map,
-                              (src->max_key_code + 1) * sizeof(XkbSymMapRec));
+                tmp = reallocarray(dst->map->key_sym_map,
+                                   src->max_key_code + 1, sizeof(XkbSymMapRec));
                 if (!tmp)
                     return FALSE;
                 dst->map->key_sym_map = tmp;
@@ -983,8 +983,8 @@ _XkbCopyClientMap(XkbDescPtr src, XkbDescPtr dst)
             if (src->map->num_types > dst->map->size_types ||
                 !dst->map->types || !dst->map->size_types) {
                 if (dst->map->types && dst->map->size_types) {
-                    tmp = realloc(dst->map->types,
-                                  src->map->num_types * sizeof(XkbKeyTypeRec));
+                    tmp = reallocarray(dst->map->types, src->map->num_types,
+                                       sizeof(XkbKeyTypeRec));
                     if (!tmp)
                         return FALSE;
                     dst->map->types = tmp;
@@ -1020,8 +1020,8 @@ _XkbCopyClientMap(XkbDescPtr src, XkbDescPtr dst)
                     if (stype->num_levels != dtype->num_levels &&
                         dtype->num_levels && dtype->level_names &&
                         i < dst->map->num_types) {
-                        tmp = realloc(dtype->level_names,
-                                      stype->num_levels * sizeof(Atom));
+                        tmp = reallocarray(dtype->level_names,
+                                           stype->num_levels, sizeof(Atom));
                         if (!tmp)
                             continue;
                         dtype->level_names = tmp;
@@ -1053,17 +1053,17 @@ _XkbCopyClientMap(XkbDescPtr src, XkbDescPtr dst)
                         if (stype->map_count != dtype->map_count &&
                             dtype->map_count && dtype->map &&
                             i < dst->map->num_types) {
-                            tmp = realloc(dtype->map,
-                                          stype->map_count *
-                                          sizeof(XkbKTMapEntryRec));
+                            tmp = reallocarray(dtype->map,
+                                               stype->map_count,
+                                               sizeof(XkbKTMapEntryRec));
                             if (!tmp)
                                 return FALSE;
                             dtype->map = tmp;
                         }
                         else if (!dtype->map_count || !dtype->map ||
                                  i >= dst->map->num_types) {
-                            tmp = malloc(stype->map_count *
-                                         sizeof(XkbKTMapEntryRec));
+                            tmp = xallocarray(stype->map_count,
+                                              sizeof(XkbKTMapEntryRec));
                             if (!tmp)
                                 return FALSE;
                             dtype->map = tmp;
@@ -1082,16 +1082,17 @@ _XkbCopyClientMap(XkbDescPtr src, XkbDescPtr dst)
                         if (stype->map_count != dtype->map_count &&
                             dtype->map_count && dtype->preserve &&
                             i < dst->map->num_types) {
-                            tmp = realloc(dtype->preserve,
-                                          stype->map_count *
-                                          sizeof(XkbModsRec));
+                            tmp = reallocarray(dtype->preserve,
+                                               stype->map_count,
+                                               sizeof(XkbModsRec));
                             if (!tmp)
                                 return FALSE;
                             dtype->preserve = tmp;
                         }
                         else if (!dtype->preserve || !dtype->map_count ||
                                  i >= dst->map->num_types) {
-                            tmp = malloc(stype->map_count * sizeof(XkbModsRec));
+                            tmp = xallocarray(stype->map_count,
+                                              sizeof(XkbModsRec));
                             if (!tmp)
                                 return FALSE;
                             dtype->preserve = tmp;
@@ -1192,8 +1193,8 @@ _XkbCopyServerMap(XkbDescPtr src, XkbDescPtr dst)
 
         if (src->server->acts) {
             if (src->server->size_acts != dst->server->size_acts) {
-                tmp = realloc(dst->server->acts,
-                              src->server->size_acts * sizeof(XkbAction));
+                tmp = reallocarray(dst->server->acts,
+                                   src->server->size_acts, sizeof(XkbAction));
                 if (!tmp)
                     return FALSE;
                 dst->server->acts = tmp;
@@ -1210,8 +1211,8 @@ _XkbCopyServerMap(XkbDescPtr src, XkbDescPtr dst)
 
         if (src->server->key_acts) {
             if (src->max_key_code != dst->max_key_code) {
-                tmp = realloc(dst->server->key_acts,
-                              (src->max_key_code + 1) * sizeof(unsigned short));
+                tmp = reallocarray(dst->server->key_acts,
+                                   src->max_key_code + 1, sizeof(unsigned short));
                 if (!tmp)
                     return FALSE;
                 dst->server->key_acts = tmp;
@@ -1226,8 +1227,8 @@ _XkbCopyServerMap(XkbDescPtr src, XkbDescPtr dst)
 
         if (src->server->behaviors) {
             if (src->max_key_code != dst->max_key_code) {
-                tmp = realloc(dst->server->behaviors,
-                              (src->max_key_code + 1) * sizeof(XkbBehavior));
+                tmp = reallocarray(dst->server->behaviors,
+                                   src->max_key_code + 1, sizeof(XkbBehavior));
                 if (!tmp)
                     return FALSE;
                 dst->server->behaviors = tmp;
@@ -1244,8 +1245,8 @@ _XkbCopyServerMap(XkbDescPtr src, XkbDescPtr dst)
 
         if (src->server->vmodmap) {
             if (src->max_key_code != dst->max_key_code) {
-                tmp = realloc(dst->server->vmodmap,
-                              (src->max_key_code + 1) * sizeof(unsigned short));
+                tmp = reallocarray(dst->server->vmodmap,
+                                   src->max_key_code + 1, sizeof(unsigned short));
                 if (!tmp)
                     return FALSE;
                 dst->server->vmodmap = tmp;
@@ -1281,8 +1282,8 @@ _XkbCopyNames(XkbDescPtr src, XkbDescPtr dst)
 
         if (src->names->keys) {
             if (src->max_key_code != dst->max_key_code) {
-                tmp = realloc(dst->names->keys,
-                              (src->max_key_code + 1) * sizeof(XkbKeyNameRec));
+                tmp = reallocarray(dst->names->keys, src->max_key_code + 1,
+                                   sizeof(XkbKeyNameRec));
                 if (!tmp)
                     return FALSE;
                 dst->names->keys = tmp;
@@ -1297,9 +1298,9 @@ _XkbCopyNames(XkbDescPtr src, XkbDescPtr dst)
 
         if (src->names->num_key_aliases) {
             if (src->names->num_key_aliases != dst->names->num_key_aliases) {
-                tmp = realloc(dst->names->key_aliases,
-                              src->names->num_key_aliases *
-                              sizeof(XkbKeyAliasRec));
+                tmp = reallocarray(dst->names->key_aliases,
+                                   src->names->num_key_aliases,
+                                   sizeof(XkbKeyAliasRec));
                 if (!tmp)
                     return FALSE;
                 dst->names->key_aliases = tmp;
@@ -1315,8 +1316,8 @@ _XkbCopyNames(XkbDescPtr src, XkbDescPtr dst)
 
         if (src->names->num_rg) {
             if (src->names->num_rg != dst->names->num_rg) {
-                tmp = realloc(dst->names->radio_groups,
-                              src->names->num_rg * sizeof(Atom));
+                tmp = reallocarray(dst->names->radio_groups,
+                                   src->names->num_rg, sizeof(Atom));
                 if (!tmp)
                     return FALSE;
                 dst->names->radio_groups = tmp;
@@ -1366,8 +1367,9 @@ _XkbCopyCompat(XkbDescPtr src, XkbDescPtr dst)
 
         if (src->compat->sym_interpret && src->compat->num_si) {
             if (src->compat->num_si != dst->compat->size_si) {
-                tmp = realloc(dst->compat->sym_interpret,
-                              src->compat->num_si * sizeof(XkbSymInterpretRec));
+                tmp = reallocarray(dst->compat->sym_interpret,
+                                   src->compat->num_si,
+                                   sizeof(XkbSymInterpretRec));
                 if (!tmp)
                     return FALSE;
                 dst->compat->sym_interpret = tmp;
@@ -1582,8 +1584,8 @@ _XkbCopyGeom(XkbDescPtr src, XkbDescPtr dst)
                          j < sshape->num_outlines;
                          j++, soutline++, doutline++) {
                         if (soutline->num_points) {
-                            tmp = malloc(soutline->num_points *
-                                         sizeof(XkbPointRec));
+                            tmp = xallocarray(soutline->num_points,
+                                              sizeof(XkbPointRec));
                             if (!tmp)
                                 return FALSE;
                             doutline->points = tmp;
@@ -1710,7 +1712,7 @@ _XkbCopyGeom(XkbDescPtr src, XkbDescPtr dst)
                 for (j = 0, srow = ssection->rows, drow = dsection->rows;
                      j < ssection->num_rows; j++, srow++, drow++) {
                     if (srow->num_keys) {
-                        tmp = malloc(srow->num_keys * sizeof(XkbKeyRec));
+                        tmp = xallocarray(srow->num_keys, sizeof(XkbKeyRec));
                         if (!tmp)
                             return FALSE;
                         drow->keys = tmp;

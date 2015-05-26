@@ -83,7 +83,7 @@ get_readpixels_transfer_ops(const struct gl_context *ctx, mesa_format texFormat,
    if (uses_blit) {
       /* For blit-based ReadPixels packing, the clamping is done automatically
        * unless the type is float. */
-      if (_mesa_get_clamp_read_color(ctx) &&
+      if (_mesa_get_clamp_read_color(ctx, ctx->ReadBuffer) &&
           (type == GL_FLOAT || type == GL_HALF_FLOAT)) {
          transferOps |= IMAGE_CLAMP_BIT;
       }
@@ -91,7 +91,7 @@ get_readpixels_transfer_ops(const struct gl_context *ctx, mesa_format texFormat,
    else {
       /* For CPU-based ReadPixels packing, the clamping must always be done
        * for non-float types, */
-      if (_mesa_get_clamp_read_color(ctx) ||
+      if (_mesa_get_clamp_read_color(ctx, ctx->ReadBuffer) ||
           (type != GL_FLOAT && type != GL_HALF_FLOAT)) {
          transferOps |= IMAGE_CLAMP_BIT;
       }

@@ -33,6 +33,7 @@ libos_la_SOURCES = 	\
 	xsha1.c		\
 	xstrans.c	\
 	xprintf.c	\
+	reallocarray.c  \
 	$(XORG_SRCS)
 
 if SECURE_RPC

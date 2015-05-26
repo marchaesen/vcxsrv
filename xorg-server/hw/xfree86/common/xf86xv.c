@@ -131,8 +131,8 @@ xf86XVRegisterGenericAdaptorDriver(xf86XVInitGenericAdaptorPtr InitFunc)
 {
     xf86XVInitGenericAdaptorPtr *newdrivers;
 
-    newdrivers = realloc(GenDrivers, sizeof(xf86XVInitGenericAdaptorPtr) *
-                         (1 + NumGenDrivers));
+    newdrivers = reallocarray(GenDrivers, 1 + NumGenDrivers,
+                              sizeof(xf86XVInitGenericAdaptorPtr));
     if (!newdrivers)
         return 0;
     GenDrivers = newdrivers;
@@ -159,7 +159,7 @@ xf86XVListGenericAdaptors(ScrnInfoPtr pScrn, XF86VideoAdaptorPtr ** adaptors)
         n = (*GenDrivers[i]) (pScrn, &DrivAdap);
         if (0 == n)
             continue;
-        new = realloc(*adaptors, sizeof(XF86VideoAdaptorPtr) * (num + n));
+        new = reallocarray(*adaptors, num + n, sizeof(XF86VideoAdaptorPtr));
         if (NULL == new)
             continue;
         *adaptors = new;
@@ -436,8 +436,8 @@ xf86XVInitAdaptors(ScreenPtr pScreen, XF86VideoAdaptorPtr * infoPtr, int number)
                         void *moreSpace;
 
                         totFormat *= 2;
-                        moreSpace = realloc(pFormat,
-                                            totFormat * sizeof(XvFormatRec));
+                        moreSpace = reallocarray(pFormat, totFormat,
+                                                 sizeof(XvFormatRec));
                         if (!moreSpace)
                             break;
                         pFormat = moreSpace;

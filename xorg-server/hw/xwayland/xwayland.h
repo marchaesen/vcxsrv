@@ -122,10 +122,6 @@ struct xwl_seat {
     struct xorg_list link;
     CursorPtr x_cursor;
 
-    wl_fixed_t horizontal_scroll;
-    wl_fixed_t vertical_scroll;
-    uint32_t scroll_time;
-
     size_t keymap_size;
     char *keymap;
     struct wl_surface *keyboard_focus;

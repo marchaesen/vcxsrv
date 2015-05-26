@@ -60,7 +60,7 @@ xf86_dga_get_modes(ScreenPtr pScreen)
     if (!num)
         return FALSE;
 
-    modes = malloc(num * sizeof(DGAModeRec));
+    modes = xallocarray(num, sizeof(DGAModeRec));
     if (!modes)
         return FALSE;
 

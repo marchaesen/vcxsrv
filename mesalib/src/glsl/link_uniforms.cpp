@@ -544,7 +544,7 @@ private:
       assert(!"Should not get here.");
    }
 
-   virtual void enter_record(const glsl_type *type, const char *name,
+   virtual void enter_record(const glsl_type *type, const char *,
                              bool row_major) {
       assert(type->is_record());
       if (this->ubo_block_index == -1)
@@ -553,7 +553,7 @@ private:
             this->ubo_byte_offset, type->std140_base_alignment(row_major));
    }
 
-   virtual void leave_record(const glsl_type *type, const char *name,
+   virtual void leave_record(const glsl_type *type, const char *,
                              bool row_major) {
       assert(type->is_record());
       if (this->ubo_block_index == -1)
@@ -564,7 +564,7 @@ private:
 
    virtual void visit_field(const glsl_type *type, const char *name,
                             bool row_major, const glsl_type *record_type,
-                            bool last_field)
+                            bool /* last_field */)
    {
       assert(!type->without_array()->is_record());
       assert(!type->without_array()->is_interface());

@@ -54,7 +54,7 @@ ht_create(int             keySize,
     ht->elements = 0;
     ht->bucketBits = INITHASHSIZE;
     numBuckets = 1 << ht->bucketBits;
-    ht->buckets = malloc(numBuckets * sizeof(*ht->buckets));
+    ht->buckets = xallocarray(numBuckets, sizeof(*ht->buckets));
     ht->cdata = cdata;
 
     if (ht->buckets) {
@@ -92,7 +92,7 @@ double_size(HashTable ht)
     int newNumBuckets = 1 << newBucketBits;
     int c;
 
-    newBuckets = malloc(newNumBuckets * sizeof(*ht->buckets));
+    newBuckets = xallocarray(newNumBuckets, sizeof(*ht->buckets));
     if (newBuckets) {
         for (c = 0; c < newNumBuckets; ++c) {
             xorg_list_init(&newBuckets[c]);

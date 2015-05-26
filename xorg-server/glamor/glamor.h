@@ -105,8 +105,6 @@ extern _X_EXPORT void glamor_set_screen_pixmap(PixmapPtr screen_pixmap,
 
 extern _X_EXPORT uint32_t glamor_get_pixmap_texture(PixmapPtr pixmap);
 
-extern _X_EXPORT Bool glamor_glyphs_init(ScreenPtr pScreen);
-
 extern _X_EXPORT void glamor_set_pixmap_texture(PixmapPtr pixmap,
                                                 unsigned int tex);
 

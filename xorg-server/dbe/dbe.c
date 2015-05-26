@@ -287,11 +287,10 @@ ProcDbeAllocateBackBufferName(ClientPtr client)
             }
 
             /* malloc/realloc a new array and initialize all elements to 0. */
-            pDbeWindowPriv->IDs = (XID *) realloc(pIDs,
-                                                  (pDbeWindowPriv->
-                                                   maxAvailableIDs +
-                                                   DBE_INCR_MAX_IDS) *
-                                                  sizeof(XID));
+            pDbeWindowPriv->IDs =
+                reallocarray(pIDs,
+                             pDbeWindowPriv->maxAvailableIDs + DBE_INCR_MAX_IDS,
+                             sizeof(XID));
             if (!pDbeWindowPriv->IDs) {
                 return BadAlloc;
             }
@@ -470,7 +469,7 @@ ProcDbeSwapBuffers(ClientPtr client)
     dbeSwapInfo = (xDbeSwapInfo *) &stuff[1];
 
     /* Allocate array to record swap information. */
-    swapInfo = (DbeSwapInfoPtr) malloc(nStuff * sizeof(DbeSwapInfoRec));
+    swapInfo = xallocarray(nStuff, sizeof(DbeSwapInfoRec));
     if (swapInfo == NULL) {
         return BadAlloc;
     }
@@ -580,8 +579,7 @@ ProcDbeGetVisualInfo(ClientPtr client)
         return BadAlloc;
     /* Make sure any specified drawables are valid. */
     if (stuff->n != 0) {
-        if (!(pDrawables = (DrawablePtr *) malloc(stuff->n *
-                                                  sizeof(DrawablePtr)))) {
+        if (!(pDrawables = xallocarray(stuff->n, sizeof(DrawablePtr)))) {
             return BadAlloc;
         }
 

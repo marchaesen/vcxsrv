@@ -223,8 +223,8 @@ compRegisterAlternateVisuals(CompScreenPtr cs, VisualID * vids, int nVisuals)
 {
     VisualID *p;
 
-    p = realloc(cs->alternateVisuals,
-                sizeof(VisualID) * (cs->numAlternateVisuals + nVisuals));
+    p = reallocarray(cs->alternateVisuals,
+                     cs->numAlternateVisuals + nVisuals, sizeof(VisualID));
     if (p == NULL)
         return FALSE;
 
@@ -253,8 +253,8 @@ CompositeRegisterImplicitRedirectionException(ScreenPtr pScreen,
     CompScreenPtr cs = GetCompScreen(pScreen);
     CompImplicitRedirectException *p;
 
-    p = realloc(cs->implicitRedirectExceptions,
-                sizeof(p[0]) * (cs->numImplicitRedirectExceptions + 1));
+    p = reallocarray(cs->implicitRedirectExceptions,
+                     cs->numImplicitRedirectExceptions + 1, sizeof(p[0]));
     if (p == NULL)
         return FALSE;
 

@@ -837,7 +837,7 @@ initGradient(SourcePictPtr pGradient, int stopCount,
         dpos = stopPoints[i];
     }
 
-    pGradient->gradient.stops = malloc(stopCount * sizeof(PictGradientStop));
+    pGradient->gradient.stops = xallocarray(stopCount, sizeof(PictGradientStop));
     if (!pGradient->gradient.stops) {
         *error = BadAlloc;
         return;

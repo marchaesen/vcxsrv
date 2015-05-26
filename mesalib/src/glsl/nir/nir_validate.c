@@ -97,50 +97,47 @@ typedef struct {
 static void validate_src(nir_src *src, validate_state *state);
 
 static void
-validate_reg_src(nir_reg_src *src, validate_state *state)
+validate_reg_src(nir_src *src, validate_state *state)
 {
-   assert(src->reg != NULL);
+   assert(src->reg.reg != NULL);
 
    struct hash_entry *entry;
-   entry = _mesa_hash_table_search(state->regs, src->reg);
+   entry = _mesa_hash_table_search(state->regs, src->reg.reg);
    assert(entry);
 
    reg_validate_state *reg_state = (reg_validate_state *) entry->data;
 
    if (state->instr) {
-      _mesa_set_add(reg_state->uses, state->instr);
-
-      assert(_mesa_set_search(src->reg->uses, state->instr));
+      _mesa_set_add(reg_state->uses, src);
    } else {
       assert(state->if_stmt);
-      _mesa_set_add(reg_state->if_uses, state->if_stmt);
-
-      assert(_mesa_set_search(src->reg->if_uses, state->if_stmt));
+      _mesa_set_add(reg_state->if_uses, src);
    }
 
-   if (!src->reg->is_global) {
+   if (!src->reg.reg->is_global) {
       assert(reg_state->where_defined == state->impl &&
              "using a register declared in a different function");
    }
 
-   assert((src->reg->num_array_elems == 0 ||
-          src->base_offset < src->reg->num_array_elems) &&
+   assert((src->reg.reg->num_array_elems == 0 ||
+          src->reg.base_offset < src->reg.reg->num_array_elems) &&
           "definitely out-of-bounds array access");
 
-   if (src->indirect) {
-      assert(src->reg->num_array_elems != 0);
-      assert((src->indirect->is_ssa || src->indirect->reg.indirect == NULL) &&
+   if (src->reg.indirect) {
+      assert(src->reg.reg->num_array_elems != 0);
+      assert((src->reg.indirect->is_ssa ||
+              src->reg.indirect->reg.indirect == NULL) &&
              "only one level of indirection allowed");
-      validate_src(src->indirect, state);
+      validate_src(src->reg.indirect, state);
    }
 }
 
 static void
-validate_ssa_src(nir_ssa_def *def, validate_state *state)
+validate_ssa_src(nir_src *src, validate_state *state)
 {
-   assert(def != NULL);
+   assert(src->ssa != NULL);
 
-   struct hash_entry *entry = _mesa_hash_table_search(state->ssa_defs, def);
+   struct hash_entry *entry = _mesa_hash_table_search(state->ssa_defs, src->ssa);
 
    assert(entry);
 
@@ -150,14 +147,10 @@ validate_ssa_src(nir_ssa_def *def, validate_state *state)
           "using an SSA value defined in a different function");
 
    if (state->instr) {
-      _mesa_set_add(def_state->uses, state->instr);
-
-      assert(_mesa_set_search(def->uses, state->instr));
+      _mesa_set_add(def_state->uses, src);
    } else {
       assert(state->if_stmt);
-      _mesa_set_add(def_state->if_uses, state->if_stmt);
-
-      assert(_mesa_set_search(def->if_uses, state->if_stmt));
+      _mesa_set_add(def_state->if_uses, src);
    }
 
    /* TODO validate that the use is dominated by the definition */
@@ -166,10 +159,15 @@ validate_ssa_src(nir_ssa_def *def, validate_state *state)
 static void
 validate_src(nir_src *src, validate_state *state)
 {
-   if (src->is_ssa)
-      validate_ssa_src(src->ssa, state);
+   if (state->instr)
+      assert(src->parent_instr == state->instr);
    else
-      validate_reg_src(&src->reg, state);
+      assert(src->parent_if == state->if_stmt);
+
+   if (src->is_ssa)
+      validate_ssa_src(src, state);
+   else
+      validate_reg_src(src, state);
 }
 
 static void
@@ -201,8 +199,7 @@ validate_reg_dest(nir_reg_dest *dest, validate_state *state)
 {
    assert(dest->reg != NULL);
 
-   struct set_entry *entry = _mesa_set_search(dest->reg->defs, state->instr);
-   assert(entry && "definition not in nir_register.defs");
+   assert(dest->parent_instr == state->instr);
 
    struct hash_entry *entry2;
    entry2 = _mesa_hash_table_search(state->regs, dest->reg);
@@ -210,7 +207,7 @@ validate_reg_dest(nir_reg_dest *dest, validate_state *state)
    assert(entry2);
 
    reg_validate_state *reg_state = (reg_validate_state *) entry2->data;
-   _mesa_set_add(reg_state->defs, state->instr);
+   _mesa_set_add(reg_state->defs, dest);
 
    if (!dest->reg->is_global) {
       assert(reg_state->where_defined == state->impl &&
@@ -236,7 +233,12 @@ validate_ssa_def(nir_ssa_def *def, validate_state *state)
    assert(!BITSET_TEST(state->ssa_defs_found, def->index));
    BITSET_SET(state->ssa_defs_found, def->index);
 
+   assert(def->parent_instr == state->instr);
+
    assert(def->num_components <= 4);
+
+   list_validate(&def->uses);
+   list_validate(&def->if_uses);
 
    ssa_def_validate_state *def_state = ralloc(state->ssa_defs,
                                               ssa_def_validate_state);
@@ -699,6 +701,10 @@ prevalidate_reg_decl(nir_register *reg, bool is_global, validate_state *state)
    assert(!BITSET_TEST(state->regs_found, reg->index));
    BITSET_SET(state->regs_found, reg->index);
 
+   list_validate(&reg->uses);
+   list_validate(&reg->defs);
+   list_validate(&reg->if_uses);
+
    reg_validate_state *reg_state = ralloc(state->regs, reg_validate_state);
    reg_state->uses = _mesa_set_create(reg_state, _mesa_hash_pointer,
                                       _mesa_key_pointer_equal);
@@ -719,47 +725,47 @@ postvalidate_reg_decl(nir_register *reg, validate_state *state)
 
    reg_validate_state *reg_state = (reg_validate_state *) entry->data;
 
-   if (reg_state->uses->entries != reg->uses->entries) {
+   nir_foreach_use(reg, src) {
+      struct set_entry *entry = _mesa_set_search(reg_state->uses, src);
+      assert(entry);
+      _mesa_set_remove(reg_state->uses, entry);
+   }
+
+   if (reg_state->uses->entries != 0) {
       printf("extra entries in register uses:\n");
       struct set_entry *entry;
-      set_foreach(reg->uses, entry) {
-         struct set_entry *entry2 =
-            _mesa_set_search(reg_state->uses, entry->key);
-
-         if (entry2 == NULL) {
-            printf("%p\n", entry->key);
-         }
-      }
+      set_foreach(reg_state->uses, entry)
+         printf("%p\n", entry->key);
 
       abort();
    }
 
-   if (reg_state->if_uses->entries != reg->if_uses->entries) {
+   nir_foreach_if_use(reg, src) {
+      struct set_entry *entry = _mesa_set_search(reg_state->if_uses, src);
+      assert(entry);
+      _mesa_set_remove(reg_state->if_uses, entry);
+   }
+
+   if (reg_state->if_uses->entries != 0) {
       printf("extra entries in register if_uses:\n");
       struct set_entry *entry;
-      set_foreach(reg->if_uses, entry) {
-         struct set_entry *entry2 =
-            _mesa_set_search(reg_state->if_uses, entry->key);
-
-         if (entry2 == NULL) {
-            printf("%p\n", entry->key);
-         }
-      }
+      set_foreach(reg_state->if_uses, entry)
+         printf("%p\n", entry->key);
 
       abort();
    }
 
-   if (reg_state->defs->entries != reg->defs->entries) {
+   nir_foreach_def(reg, src) {
+      struct set_entry *entry = _mesa_set_search(reg_state->defs, src);
+      assert(entry);
+      _mesa_set_remove(reg_state->defs, entry);
+   }
+
+   if (reg_state->defs->entries != 0) {
       printf("extra entries in register defs:\n");
       struct set_entry *entry;
-      set_foreach(reg->defs, entry) {
-         struct set_entry *entry2 =
-            _mesa_set_search(reg_state->defs, entry->key);
-
-         if (entry2 == NULL) {
-            printf("%p\n", entry->key);
-         }
-      }
+      set_foreach(reg_state->defs, entry)
+         printf("%p\n", entry->key);
 
       abort();
    }
@@ -788,32 +794,32 @@ postvalidate_ssa_def(nir_ssa_def *def, void *void_state)
    struct hash_entry *entry = _mesa_hash_table_search(state->ssa_defs, def);
    ssa_def_validate_state *def_state = (ssa_def_validate_state *)entry->data;
 
-   if (def_state->uses->entries != def->uses->entries) {
-      printf("extra entries in SSA def uses:\n");
-      struct set_entry *entry;
-      set_foreach(def->uses, entry) {
-         struct set_entry *entry2 =
-            _mesa_set_search(def_state->uses, entry->key);
+   nir_foreach_use(def, src) {
+      struct set_entry *entry = _mesa_set_search(def_state->uses, src);
+      assert(entry);
+      _mesa_set_remove(def_state->uses, entry);
+   }
 
-         if (entry2 == NULL) {
-            printf("%p\n", entry->key);
-         }
-      }
+   if (def_state->uses->entries != 0) {
+      printf("extra entries in register uses:\n");
+      struct set_entry *entry;
+      set_foreach(def_state->uses, entry)
+         printf("%p\n", entry->key);
 
       abort();
    }
 
-   if (def_state->if_uses->entries != def->if_uses->entries) {
-      printf("extra entries in SSA def uses:\n");
-      struct set_entry *entry;
-      set_foreach(def->if_uses, entry) {
-         struct set_entry *entry2 =
-            _mesa_set_search(def_state->if_uses, entry->key);
+   nir_foreach_if_use(def, src) {
+      struct set_entry *entry = _mesa_set_search(def_state->if_uses, src);
+      assert(entry);
+      _mesa_set_remove(def_state->if_uses, entry);
+   }
 
-         if (entry2 == NULL) {
-            printf("%p\n", entry->key);
-         }
-      }
+   if (def_state->if_uses->entries != 0) {
+      printf("extra entries in register uses:\n");
+      struct set_entry *entry;
+      set_foreach(def_state->if_uses, entry)
+         printf("%p\n", entry->key);
 
       abort();
    }

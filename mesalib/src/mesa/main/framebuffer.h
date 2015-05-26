@@ -77,14 +77,17 @@ _mesa_scissor_bounding_box(const struct gl_context *ctx,
                            unsigned idx, int *bbox);
 
 extern void 
-_mesa_update_draw_buffer_bounds(struct gl_context *ctx);
+_mesa_update_draw_buffer_bounds(struct gl_context *ctx,
+                                struct gl_framebuffer *drawFb);
 
 extern void
 _mesa_update_framebuffer_visual(struct gl_context *ctx,
 				struct gl_framebuffer *fb);
 
 extern void
-_mesa_update_framebuffer(struct gl_context *ctx);
+_mesa_update_framebuffer(struct gl_context *ctx,
+                         struct gl_framebuffer *readFb,
+                         struct gl_framebuffer *drawFb);
 
 extern GLboolean
 _mesa_source_buffer_exists(struct gl_context *ctx, GLenum format);

@@ -814,8 +814,8 @@ dmxInputCopyLocal(DMXInputInfo * dmxInput, DMXLocalInputInfoPtr s)
     dmxLocal->deviceId = -1;
 
     ++dmxInput->numDevs;
-    dmxInput->devs = realloc(dmxInput->devs,
-                             dmxInput->numDevs * sizeof(*dmxInput->devs));
+    dmxInput->devs = reallocarray(dmxInput->devs,
+                                  dmxInput->numDevs, sizeof(*dmxInput->devs));
     dmxInput->devs[dmxInput->numDevs - 1] = dmxLocal;
 
     return dmxLocal;

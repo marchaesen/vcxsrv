@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<!DOCTYPE OpenGLAPI SYSTEM "gl_API.dtd">
+
+<OpenGLAPI>
+
+<category name="GL_ARB_vertex_attrib_64bit" number="99">
+
+    <function name="VertexAttribL1d" offset="assign">
+        <param name="index" type="GLuint"/>
+        <param name="x" type="GLdouble"/>
+    </function>
+
+    <function name="VertexAttribL2d" offset="assign">
+        <param name="index" type="GLuint"/>
+        <param name="x" type="GLdouble"/>
+        <param name="y" type="GLdouble"/>
+    </function>
+
+    <function name="VertexAttribL3d" offset="assign">
+        <param name="index" type="GLuint"/>
+        <param name="x" type="GLdouble"/>
+        <param name="y" type="GLdouble"/>
+        <param name="z" type="GLdouble"/>
+    </function>
+
+    <function name="VertexAttribL4d" offset="assign">
+        <param name="index" type="GLuint"/>
+        <param name="x" type="GLdouble"/>
+        <param name="y" type="GLdouble"/>
+        <param name="z" type="GLdouble"/>
+        <param name="w" type="GLdouble"/>
+    </function>
+
+    <function name="VertexAttribL1dv" offset="assign">
+        <param name="index" type="GLuint"/>
+        <param name="v" type="const GLdouble *"/>
+    </function>
+
+    <function name="VertexAttribL2dv" offset="assign">
+        <param name="index" type="GLuint"/>
+        <param name="v" type="const GLdouble *"/>
+    </function>
+
+    <function name="VertexAttribL3dv" offset="assign">
+        <param name="index" type="GLuint"/>
+        <param name="v" type="const GLdouble *"/>
+    </function>
+
+    <function name="VertexAttribL4dv" offset="assign">
+        <param name="index" type="GLuint"/>
+        <param name="v" type="const GLdouble *"/>
+    </function>
+
+    <function name="VertexAttribLPointer" offset="assign">
+        <param name="index" type="GLuint"/>
+        <param name="size" type="GLint"/>
+        <param name="type" type="GLenum"/>
+        <param name="stride" type="GLsizei"/>
+        <param name="pointer" type="const GLvoid *"/>
+    </function>
+
+    <function name="GetVertexAttribLdv" offset="assign">
+        <param name="index" type="GLuint"/>
+        <param name="pname" type="GLenum"/>
+        <param name="params" type="GLdouble *"/>
+    </function>
+</category>
+
+</OpenGLAPI>
+

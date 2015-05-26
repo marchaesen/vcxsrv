@@ -186,6 +186,14 @@ consider as single viewable areas.
 Xinerama's information now comes from the Monitors instead of directly
 from the CRTCs. The Monitor marked as Primary will be listed first.
 
+1.5.2. Clarification of Output lifetimes
+
+With dynamic connectors being a possibility with the introduction of
+DisplayPort multistream (MST), a lot of RandR clients can't handle the
+XID BadMatch when a RandR output disappears. This is to clarify that
+going forward the X server will not remove outputs dynamically,
+just mark them as disconnected.
+
 1.99 Acknowledgments
 
 Our thanks to the contributors to the design found on the xpert mailing

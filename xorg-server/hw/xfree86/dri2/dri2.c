@@ -1577,7 +1577,7 @@ DRI2ScreenInit(ScreenPtr pScreen, DRI2InfoPtr info)
     if (info->version == 3 || info->numDrivers == 0) {
         /* Driver too old: use the old-style driverName field */
         ds->numDrivers = info->driverName ? 1 : 2;
-        ds->driverNames = malloc(ds->numDrivers * sizeof(*ds->driverNames));
+        ds->driverNames = xallocarray(ds->numDrivers, sizeof(*ds->driverNames));
         if (!ds->driverNames)
             goto err_out;
 
@@ -1591,7 +1591,7 @@ DRI2ScreenInit(ScreenPtr pScreen, DRI2InfoPtr info)
     }
     else {
         ds->numDrivers = info->numDrivers;
-        ds->driverNames = malloc(info->numDrivers * sizeof(*ds->driverNames));
+        ds->driverNames = xallocarray(info->numDrivers, sizeof(*ds->driverNames));
         if (!ds->driverNames)
             goto err_out;
         memcpy(ds->driverNames, info->driverNames,

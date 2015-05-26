@@ -103,8 +103,7 @@ AddExtension(const char *name, int NumEvents, int NumErrors,
         return ((ExtensionEntry *) NULL);
     }
     i = NumExtensions;
-    newexts = (ExtensionEntry **) realloc(extensions,
-                                          (i + 1) * sizeof(ExtensionEntry *));
+    newexts = reallocarray(extensions, i + 1, sizeof(ExtensionEntry *));
     if (!newexts) {
         free((void *) ext->name);
         dixFreePrivates(ext->devPrivates, PRIVATE_EXTENSION);
@@ -153,8 +152,7 @@ AddExtensionAlias(const char *alias, ExtensionEntry * ext)
 
     if (!ext)
         return FALSE;
-    aliases = realloc(ext->aliases,
-                      (ext->num_aliases + 1) * sizeof(char *));
+    aliases = reallocarray(ext->aliases, ext->num_aliases + 1, sizeof(char *));
     if (!aliases)
         return FALSE;
     ext->aliases = aliases;

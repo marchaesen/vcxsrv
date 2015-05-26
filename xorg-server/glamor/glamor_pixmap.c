@@ -109,9 +109,9 @@ glamor_set_destination_pixmap(PixmapPtr pixmap)
 }
 
 Bool
-glamor_set_planemask(PixmapPtr pixmap, unsigned long planemask)
+glamor_set_planemask(int depth, unsigned long planemask)
 {
-    if (glamor_pm_is_solid(&pixmap->drawable, planemask)) {
+    if (glamor_pm_is_solid(depth, planemask)) {
         return GL_TRUE;
     }
 
@@ -775,7 +775,7 @@ _glamor_upload_bits_to_pixmap_texture(PixmapPtr pixmap, GLenum format,
         if (pixmap->drawable.depth == 1)
             stride = (((w * 8 + 7) / 8) + 3) & ~3;
 
-        converted_bits = malloc(h * stride);
+        converted_bits = xallocarray(h, stride);
 
         if (converted_bits == NULL)
             return FALSE;
@@ -966,7 +966,7 @@ glamor_upload_sub_pixmap_to_texture(PixmapPtr pixmap, int x, int y, int w,
         void *sub_bits;
         int i, j;
 
-        sub_bits = malloc(h * stride);
+        sub_bits = xallocarray(h, stride);
         if (sub_bits == NULL)
             return FALSE;
         box.x1 = x;

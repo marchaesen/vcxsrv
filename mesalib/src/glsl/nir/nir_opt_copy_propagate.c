@@ -93,62 +93,6 @@ is_swizzleless_move(nir_alu_instr *instr)
    }
 }
 
-typedef struct {
-   nir_ssa_def *def;
-   bool found;
-} search_def_state;
-
-static bool
-search_def(nir_src *src, void *_state)
-{
-   search_def_state *state = (search_def_state *) _state;
-
-   if (src->is_ssa && src->ssa == state->def)
-      state->found = true;
-
-   return true;
-}
-
-static void
-rewrite_src_instr(nir_src *src, nir_ssa_def *new_def, nir_instr *parent_instr)
-{
-   nir_ssa_def *old_def = src->ssa;
-
-   src->ssa = new_def;
-
-   /*
-    * The instruction could still use the old definition in one of its other
-    * sources, so only remove the instruction from the uses if there are no
-    * more uses left.
-    */
-
-   search_def_state search_state;
-   search_state.def = old_def;
-   search_state.found = false;
-   nir_foreach_src(parent_instr, search_def, &search_state);
-   if (!search_state.found) {
-      struct set_entry *entry = _mesa_set_search(old_def->uses, parent_instr);
-      assert(entry);
-      _mesa_set_remove(old_def->uses, entry);
-   }
-
-   _mesa_set_add(new_def->uses, parent_instr);
-}
-
-static void
-rewrite_src_if(nir_if *if_stmt, nir_ssa_def *new_def)
-{
-   nir_ssa_def *old_def = if_stmt->condition.ssa;
-
-   if_stmt->condition.ssa = new_def;
-
-   struct set_entry *entry = _mesa_set_search(old_def->if_uses, if_stmt);
-   assert(entry);
-   _mesa_set_remove(old_def->if_uses, entry);
-
-   _mesa_set_add(new_def->if_uses, if_stmt);
-}
-
 static bool
 copy_prop_src(nir_src *src, nir_instr *parent_instr, nir_if *parent_if)
 {
@@ -178,10 +122,14 @@ copy_prop_src(nir_src *src, nir_instr *parent_instr, nir_if *parent_if)
          return false;
    }
 
-   if (parent_instr)
-      rewrite_src_instr(src, alu_instr->src[0].src.ssa, parent_instr);
-   else
-      rewrite_src_if(parent_if, alu_instr->src[0].src.ssa);
+   if (parent_instr) {
+      nir_instr_rewrite_src(parent_instr, src,
+                            nir_src_for_ssa(alu_instr->src[0].src.ssa));
+   } else {
+      assert(src == &parent_if->condition);
+      nir_if_rewrite_condition(parent_if,
+                               nir_src_for_ssa(alu_instr->src[0].src.ssa));
+   }
 
    return true;
 }
@@ -234,7 +182,8 @@ copy_prop_alu_src(nir_alu_instr *parent_alu_instr, unsigned index)
    for (unsigned i = 0; i < 4; i++)
       src->swizzle[i] = new_swizzle[i];
 
-   rewrite_src_instr(&src->src, def, &parent_alu_instr->instr);
+   nir_instr_rewrite_src(&parent_alu_instr->instr, &src->src,
+                         nir_src_for_ssa(def));
 
    return true;
 }

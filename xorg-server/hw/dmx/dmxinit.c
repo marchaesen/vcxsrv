@@ -438,7 +438,7 @@ dmxGetColormaps(DMXScreenInfo * dmxScreen)
     int i;
 
     dmxScreen->beNumDefColormaps = dmxScreen->beNumVisuals;
-    dmxScreen->beDefColormaps = malloc(dmxScreen->beNumDefColormaps *
+    dmxScreen->beDefColormaps = xallocarray(dmxScreen->beNumDefColormaps,
                                        sizeof(*dmxScreen->beDefColormaps));
 
     for (i = 0; i < dmxScreen->beNumDefColormaps; i++)
@@ -793,7 +793,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
                 nconfigs = dmxScreen->numGlxVisuals;
             }
 
-            configprivs = malloc(nconfigs * sizeof(dmxGlxVisualPrivate *));
+            configprivs = xallocarray(nconfigs, sizeof(dmxGlxVisualPrivate *));
 
             if (configs != NULL && configprivs != NULL) {
                 int j;

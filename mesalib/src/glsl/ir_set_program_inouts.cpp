@@ -105,13 +105,10 @@ mark(struct gl_program *prog, ir_variable *var, int offset, int len,
       int idx = var->data.location + var->data.index + offset + i;
       GLbitfield64 bitfield = BITFIELD64_BIT(idx);
 
-      /* dvec3 and dvec4 take up 2 slots */
-      if (dual_slot) {
-         idx += i;
-         bitfield |= bitfield << 1;
-      }
       if (var->data.mode == ir_var_shader_in) {
-	 prog->InputsRead |= bitfield;
+         prog->InputsRead |= bitfield;
+         if (dual_slot)
+            prog->DoubleInputsRead |= bitfield;
          if (is_fragment_shader) {
             gl_fragment_program *fprog = (gl_fragment_program *) prog;
             fprog->InterpQualifier[idx] =
@@ -120,13 +117,6 @@ mark(struct gl_program *prog, ir_variable *var, int offset, int len,
                fprog->IsCentroid |= bitfield;
             if (var->data.sample)
                fprog->IsSample |= bitfield;
-
-            /* Set the InterpQualifier of the next slot to the same as the
-             * current one, since dvec3 and dvec4 spans 2 slots.
-             */
-            if (dual_slot)
-               fprog->InterpQualifier[idx + 1] =
-                  (glsl_interp_qualifier) var->data.interpolation;
          }
       } else if (var->data.mode == ir_var_system_value) {
          prog->SystemValuesRead |= bitfield;

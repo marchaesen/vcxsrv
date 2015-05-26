@@ -535,7 +535,7 @@ miPaintWindow(WindowPtr pWin, RegionPtr prgn, int what)
         gcmask |= GCFillStyle | GCTile | GCTileStipXOrigin | GCTileStipYOrigin;
     }
 
-    prect = malloc(RegionNumRects(prgn) * sizeof(xRectangle));
+    prect = xallocarray(RegionNumRects(prgn), sizeof(xRectangle));
     if (!prect)
         return;
 

@@ -126,7 +126,7 @@ static Bool configScreen(confScreenPtr screenp, XF86ConfScreenPtr conf_screen,
                          int scrnum, MessageType from);
 static Bool configMonitor(MonPtr monitorp, XF86ConfMonitorPtr conf_monitor);
 static Bool configDevice(GDevPtr devicep, XF86ConfDevicePtr conf_device,
-                         Bool active);
+                         Bool active, Bool gpu);
 static Bool configInput(InputInfoPtr pInfo, XF86ConfInputPtr conf_input,
                         MessageType from);
 static Bool configDisplay(DispPtr displayp, XF86ConfDisplayPtr conf_display);
@@ -363,8 +363,8 @@ xf86ModulelistFromConfig(void ***optlist)
     /*
      * allocate the memory and walk the list again to fill in the pointers
      */
-    modulearray = xnfalloc((count + 1) * sizeof(char *));
-    optarray = xnfalloc((count + 1) * sizeof(void *));
+    modulearray = xnfallocarray(count + 1, sizeof(char *));
+    optarray = xnfallocarray(count + 1, sizeof(void *));
     count = 0;
     if (xf86configptr->conf_modules) {
         modp = xf86configptr->conf_modules->mod_load_lst;
@@ -390,7 +390,7 @@ const char **
 xf86DriverlistFromConfig(void)
 {
     int count = 0;
-    int j;
+    int j, k;
     const char **modulearray;
     screenLayoutPtr slp;
 
@@ -411,8 +411,10 @@ xf86DriverlistFromConfig(void)
      */
     if (xf86ConfigLayout.screens) {
         slp = xf86ConfigLayout.screens;
-        while ((slp++)->screen) {
+        while (slp->screen) {
             count++;
+            count += slp->screen->num_gpu_devices;
+            slp++;
         }
     }
 
@@ -429,12 +431,16 @@ xf86DriverlistFromConfig(void)
     /*
      * allocate the memory and walk the list again to fill in the pointers
      */
-    modulearray = xnfalloc((count + 1) * sizeof(char *));
+    modulearray = xnfallocarray(count + 1, sizeof(char *));
     count = 0;
     slp = xf86ConfigLayout.screens;
     while (slp->screen) {
         modulearray[count] = slp->screen->device->driver;
         count++;
+        for (k = 0; k < slp->screen->num_gpu_devices; k++) {
+            modulearray[count] = slp->screen->gpu_devices[k]->driver;
+            count++;
+        }
         slp++;
     }
 
@@ -493,7 +499,7 @@ xf86InputDriverlistFromConfig(void)
     /*
      * allocate the memory and walk the list again to fill in the pointers
      */
-    modulearray = xnfalloc((count + 1) * sizeof(char *));
+    modulearray = xnfallocarray(count + 1, sizeof(char *));
     count = 0;
     idp = xf86ConfigLayout.inputs;
     while (idp && *idp) {
@@ -1086,7 +1092,7 @@ addDevice(InputInfoPtr * list, InputInfoPtr pInfo)
     for (devs = list; devs && *devs; devs++)
         count++;
 
-    list = xnfrealloc(list, (count + 1) * sizeof(InputInfoPtr));
+    list = xnfreallocarray(list, count + 1, sizeof(InputInfoPtr));
     list[count] = NULL;
 
     list[count - 1] = pInfo;
@@ -1502,7 +1508,7 @@ configLayout(serverLayoutPtr servlayoutp, XF86ConfLayoutPtr conf_layout,
     if (!count)                 /* alloc enough storage even if no screen is specified */
         count = 1;
 
-    slp = xnfcalloc(1, (count + 1) * sizeof(screenLayoutRec));
+    slp = xnfcalloc((count + 1), sizeof(screenLayoutRec));
     slp[count].screen = NULL;
     /*
      * now that we have storage, loop over the list again and fill in our
@@ -1626,12 +1632,12 @@ configLayout(serverLayoutPtr servlayoutp, XF86ConfLayoutPtr conf_layout,
     }
     DebugF("Found %d inactive devices in the layout section %s\n",
            count, conf_layout->lay_identifier);
-    gdp = xnfalloc((count + 1) * sizeof(GDevRec));
+    gdp = xnfallocarray(count + 1, sizeof(GDevRec));
     gdp[count].identifier = NULL;
     idp = conf_layout->lay_inactive_lst;
     count = 0;
     while (idp) {
-        if (!configDevice(&gdp[count], idp->inactive_device, FALSE))
+        if (!configDevice(&gdp[count], idp->inactive_device, FALSE, FALSE))
             goto bail;
         count++;
         idp = (XF86ConfInactivePtr) idp->list.next;
@@ -1746,7 +1752,7 @@ configXvAdaptor(confXvAdaptorPtr adaptor, XF86ConfVideoAdaptorPtr conf_adaptor)
         count++;
         conf_port = (XF86ConfVideoPortPtr) conf_port->list.next;
     }
-    adaptor->ports = xnfalloc((count) * sizeof(confXvPortRec));
+    adaptor->ports = xnfallocarray(count, sizeof(confXvPortRec));
     adaptor->numports = count;
     count = 0;
     conf_port = conf_adaptor->va_port_lst;
@@ -1769,6 +1775,7 @@ configScreen(confScreenPtr screenp, XF86ConfScreenPtr conf_screen, int scrnum,
     XF86ConfAdaptorLinkPtr conf_adaptor;
     Bool defaultMonitor = FALSE;
     XF86ConfScreenRec local_conf_screen;
+    int i;
 
     if (!conf_screen) {
         memset(&local_conf_screen, 0, sizeof(local_conf_screen));
@@ -1811,12 +1818,41 @@ configScreen(confScreenPtr screenp, XF86ConfScreenPtr conf_screen, int scrnum,
         xf86Msg(X_DEFAULT, "No device specified for screen \"%s\".\n"
                 "\tUsing the first device section listed.\n", screenp->id);
     }
-    if (configDevice(screenp->device, conf_screen->scrn_device, TRUE)) {
+    if (configDevice(screenp->device, conf_screen->scrn_device, TRUE, FALSE)) {
         screenp->device->myScreenSection = screenp;
     }
     else {
         screenp->device = NULL;
     }
+
+    if (conf_screen->num_gpu_devices == 0 && xf86configptr->conf_device_lst) {
+        XF86ConfDevicePtr sdevice = xf86configptr->conf_device_lst->list.next;
+
+        for (i = 0; i < MAX_GPUDEVICES; i++) {
+            if (!sdevice)
+                break;
+
+            FIND_SUITABLE (XF86ConfDevicePtr, sdevice, conf_screen->scrn_gpu_devices[i]);
+            if (!conf_screen->scrn_gpu_devices[i])
+                break;
+            screenp->gpu_devices[i] = xnfcalloc(1, sizeof(GDevRec));
+            if (configDevice(screenp->gpu_devices[i], conf_screen->scrn_gpu_devices[i], TRUE, TRUE)) {
+                screenp->gpu_devices[i]->myScreenSection = screenp;
+            }
+            sdevice = conf_screen->scrn_gpu_devices[i]->list.next;
+        }
+        screenp->num_gpu_devices = i;
+
+    } else {
+        for (i = 0; i < conf_screen->num_gpu_devices; i++) {
+            screenp->gpu_devices[i] = xnfcalloc(1, sizeof(GDevRec));
+            if (configDevice(screenp->gpu_devices[i], conf_screen->scrn_gpu_devices[i], TRUE, TRUE)) {
+                screenp->gpu_devices[i]->myScreenSection = screenp;
+            }
+        }
+        screenp->num_gpu_devices = conf_screen->num_gpu_devices;
+    }
+
     screenp->options = conf_screen->scrn_option_lst;
 
     /*
@@ -1827,7 +1863,7 @@ configScreen(confScreenPtr screenp, XF86ConfScreenPtr conf_screen, int scrnum,
         count++;
         dispptr = (XF86ConfDisplayPtr) dispptr->list.next;
     }
-    screenp->displays = xnfalloc((count) * sizeof(DispRec));
+    screenp->displays = xnfallocarray(count, sizeof(DispRec));
     screenp->numdisplays = count;
 
     /* Fill in the default Virtual size, if any */
@@ -1857,7 +1893,7 @@ configScreen(confScreenPtr screenp, XF86ConfScreenPtr conf_screen, int scrnum,
         count++;
         conf_adaptor = (XF86ConfAdaptorLinkPtr) conf_adaptor->list.next;
     }
-    screenp->xvadaptors = xnfalloc((count) * sizeof(confXvAdaptorRec));
+    screenp->xvadaptors = xnfallocarray(count, sizeof(confXvAdaptorRec));
     screenp->numxvadaptors = 0;
     conf_adaptor = conf_screen->scrn_adaptor_lst;
     while (conf_adaptor) {
@@ -2096,7 +2132,7 @@ configDisplay(DispPtr displayp, XF86ConfDisplayPtr conf_display)
         count++;
         modep = (XF86ModePtr) modep->list.next;
     }
-    displayp->modes = xnfalloc((count + 1) * sizeof(char *));
+    displayp->modes = xnfallocarray(count + 1, sizeof(char *));
     modep = conf_display->disp_mode_lst;
     count = 0;
     while (modep) {
@@ -2110,7 +2146,7 @@ configDisplay(DispPtr displayp, XF86ConfDisplayPtr conf_display)
 }
 
 static Bool
-configDevice(GDevPtr devicep, XF86ConfDevicePtr conf_device, Bool active)
+configDevice(GDevPtr devicep, XF86ConfDevicePtr conf_device, Bool active, Bool gpu)
 {
     int i;
 
@@ -2118,10 +2154,14 @@ configDevice(GDevPtr devicep, XF86ConfDevicePtr conf_device, Bool active)
         return FALSE;
     }
 
-    if (active)
-        xf86Msg(X_CONFIG, "|   |-->Device \"%s\"\n",
-                conf_device->dev_identifier);
-    else
+    if (active) {
+        if (gpu)
+            xf86Msg(X_CONFIG, "|   |-->GPUDevice \"%s\"\n",
+                    conf_device->dev_identifier);
+        else
+            xf86Msg(X_CONFIG, "|   |-->Device \"%s\"\n",
+                    conf_device->dev_identifier);
+    } else
         xf86Msg(X_CONFIG, "|-->Inactive Device \"%s\"\n",
                 conf_device->dev_identifier);
 

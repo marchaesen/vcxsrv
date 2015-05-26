@@ -31,7 +31,7 @@ glamor_solid_boxes(PixmapPtr pixmap,
     xRectangle *rect;
     int n;
 
-    rect = malloc(nbox * sizeof (xRectangle));
+    rect = xallocarray(nbox, sizeof(xRectangle));
     if (!rect)
         return;
     for (n = 0; n < nbox; n++) {

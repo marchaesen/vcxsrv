@@ -772,7 +772,7 @@ _save_reset_vertex(struct gl_context *ctx)
  * 3f version won't otherwise set color[3] to 1.0 -- this is the job
  * of the chooser function when switching between Color4f and Color3f.
  */
-#define ATTR_UNION(A, N, T, V0, V1, V2, V3)			\
+#define ATTR_UNION(A, N, T, C, V0, V1, V2, V3)			\
 do {								\
    struct vbo_save_context *save = &vbo_context(ctx)->save;	\
 								\
@@ -780,7 +780,7 @@ do {								\
       save_fixup_vertex(ctx, A, N);				\
 								\
    {								\
-      fi_type *dest = save->attrptr[A];		\
+      C *dest = (C *)save->attrptr[A];                          \
       if (N>0) dest[0] = V0;					\
       if (N>1) dest[1] = V1;					\
       if (N>2) dest[2] = V2;					\
@@ -1371,6 +1371,16 @@ _save_vtxfmt_init(struct gl_context *ctx)
    vfmt->VertexAttribP2uiv = _save_VertexAttribP2uiv;
    vfmt->VertexAttribP3uiv = _save_VertexAttribP3uiv;
    vfmt->VertexAttribP4uiv = _save_VertexAttribP4uiv;
+
+   vfmt->VertexAttribL1d = _save_VertexAttribL1d;
+   vfmt->VertexAttribL2d = _save_VertexAttribL2d;
+   vfmt->VertexAttribL3d = _save_VertexAttribL3d;
+   vfmt->VertexAttribL4d = _save_VertexAttribL4d;
+
+   vfmt->VertexAttribL1dv = _save_VertexAttribL1dv;
+   vfmt->VertexAttribL2dv = _save_VertexAttribL2dv;
+   vfmt->VertexAttribL3dv = _save_VertexAttribL3dv;
+   vfmt->VertexAttribL4dv = _save_VertexAttribL4dv;
 
    /* This will all require us to fallback to saving the list as opcodes:
     */

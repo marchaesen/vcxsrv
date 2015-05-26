@@ -136,6 +136,12 @@ v140(const _mesa_glsl_parse_state *state)
 }
 
 static bool
+es31(const _mesa_glsl_parse_state *state)
+{
+   return state->is_version(0, 310);
+}
+
+static bool
 texture_rectangle(const _mesa_glsl_parse_state *state)
 {
    return state->ARB_texture_rectangle_enable;
@@ -194,7 +200,8 @@ shader_bit_encoding(const _mesa_glsl_parse_state *state)
 static bool
 shader_integer_mix(const _mesa_glsl_parse_state *state)
 {
-   return v130(state) && state->EXT_shader_integer_mix_enable;
+   return state->is_version(450, 310) ||
+          (v130(state) && state->EXT_shader_integer_mix_enable);
 }
 
 static bool
@@ -219,10 +226,17 @@ gpu_shader5(const _mesa_glsl_parse_state *state)
 }
 
 static bool
-shader_packing_or_gpu_shader5(const _mesa_glsl_parse_state *state)
+gpu_shader5_or_es31(const _mesa_glsl_parse_state *state)
+{
+   return state->is_version(400, 310) || state->ARB_gpu_shader5_enable;
+}
+
+static bool
+shader_packing_or_es31_or_gpu_shader5(const _mesa_glsl_parse_state *state)
 {
    return state->ARB_shading_language_packing_enable ||
-          gpu_shader5(state);
+          state->ARB_gpu_shader5_enable ||
+          state->is_version(400, 310);
 }
 
 static bool
@@ -297,15 +311,24 @@ texture_gather(const _mesa_glsl_parse_state *state)
           state->ARB_gpu_shader5_enable;
 }
 
+static bool
+texture_gather_or_es31(const _mesa_glsl_parse_state *state)
+{
+   return state->is_version(400, 310) ||
+          state->ARB_texture_gather_enable ||
+          state->ARB_gpu_shader5_enable;
+}
+
 /* Only ARB_texture_gather but not GLSL 4.0 or ARB_gpu_shader5.
  * used for relaxation of const offset requirements.
  */
 static bool
-texture_gather_only(const _mesa_glsl_parse_state *state)
+texture_gather_only_or_es31(const _mesa_glsl_parse_state *state)
 {
    return !state->is_version(400, 0) &&
           !state->ARB_gpu_shader5_enable &&
-          state->ARB_texture_gather_enable;
+          (state->ARB_texture_gather_enable ||
+           state->is_version(0, 310));
 }
 
 /* Desktop GL or OES_standard_derivatives + fragment shader only */
@@ -359,7 +382,7 @@ tex3d_lod(const _mesa_glsl_parse_state *state)
 static bool
 shader_atomic_counters(const _mesa_glsl_parse_state *state)
 {
-   return state->ARB_shader_atomic_counters_enable;
+   return state->has_atomic_counters();
 }
 
 static bool
@@ -1161,12 +1184,12 @@ builtin_builder::create_builtins()
 
    add_function("packUnorm2x16",   _packUnorm2x16(shader_packing_or_es3_or_gpu_shader5),   NULL);
    add_function("packSnorm2x16",   _packSnorm2x16(shader_packing_or_es3),                  NULL);
-   add_function("packUnorm4x8",    _packUnorm4x8(shader_packing_or_gpu_shader5),           NULL);
-   add_function("packSnorm4x8",    _packSnorm4x8(shader_packing_or_gpu_shader5),           NULL);
+   add_function("packUnorm4x8",    _packUnorm4x8(shader_packing_or_es31_or_gpu_shader5),   NULL);
+   add_function("packSnorm4x8",    _packSnorm4x8(shader_packing_or_es31_or_gpu_shader5),   NULL);
    add_function("unpackUnorm2x16", _unpackUnorm2x16(shader_packing_or_es3_or_gpu_shader5), NULL);
    add_function("unpackSnorm2x16", _unpackSnorm2x16(shader_packing_or_es3),                NULL);
-   add_function("unpackUnorm4x8",  _unpackUnorm4x8(shader_packing_or_gpu_shader5),         NULL);
-   add_function("unpackSnorm4x8",  _unpackSnorm4x8(shader_packing_or_gpu_shader5),         NULL);
+   add_function("unpackUnorm4x8",  _unpackUnorm4x8(shader_packing_or_es31_or_gpu_shader5), NULL);
+   add_function("unpackSnorm4x8",  _unpackSnorm4x8(shader_packing_or_es31_or_gpu_shader5), NULL);
    add_function("packHalf2x16",    _packHalf2x16(shader_packing_or_es3),                   NULL);
    add_function("unpackHalf2x16",  _unpackHalf2x16(shader_packing_or_es3),                 NULL);
    add_function("packDouble2x32",    _packDouble2x32(fp64),                   NULL);
@@ -2202,61 +2225,69 @@ builtin_builder::create_builtins()
                 NULL);
 
    add_function("textureGather",
-                _texture(ir_tg4, texture_gather, glsl_type::vec4_type, glsl_type::sampler2D_type, glsl_type::vec2_type),
-                _texture(ir_tg4, texture_gather, glsl_type::ivec4_type, glsl_type::isampler2D_type, glsl_type::vec2_type),
-                _texture(ir_tg4, texture_gather, glsl_type::uvec4_type, glsl_type::usampler2D_type, glsl_type::vec2_type),
+                _texture(ir_tg4, texture_gather_or_es31, glsl_type::vec4_type, glsl_type::sampler2D_type, glsl_type::vec2_type),
+                _texture(ir_tg4, texture_gather_or_es31, glsl_type::ivec4_type, glsl_type::isampler2D_type, glsl_type::vec2_type),
+                _texture(ir_tg4, texture_gather_or_es31, glsl_type::uvec4_type, glsl_type::usampler2D_type, glsl_type::vec2_type),
 
                 _texture(ir_tg4, gpu_shader5, glsl_type::vec4_type, glsl_type::sampler2DRect_type, glsl_type::vec2_type),
                 _texture(ir_tg4, gpu_shader5, glsl_type::ivec4_type, glsl_type::isampler2DRect_type, glsl_type::vec2_type),
                 _texture(ir_tg4, gpu_shader5, glsl_type::uvec4_type, glsl_type::usampler2DRect_type, glsl_type::vec2_type),
 
-                _texture(ir_tg4, texture_gather, glsl_type::vec4_type, glsl_type::sampler2DArray_type, glsl_type::vec3_type),
-                _texture(ir_tg4, texture_gather, glsl_type::ivec4_type, glsl_type::isampler2DArray_type, glsl_type::vec3_type),
-                _texture(ir_tg4, texture_gather, glsl_type::uvec4_type, glsl_type::usampler2DArray_type, glsl_type::vec3_type),
+                _texture(ir_tg4, texture_gather_or_es31, glsl_type::vec4_type, glsl_type::sampler2DArray_type, glsl_type::vec3_type),
+                _texture(ir_tg4, texture_gather_or_es31, glsl_type::ivec4_type, glsl_type::isampler2DArray_type, glsl_type::vec3_type),
+                _texture(ir_tg4, texture_gather_or_es31, glsl_type::uvec4_type, glsl_type::usampler2DArray_type, glsl_type::vec3_type),
 
-                _texture(ir_tg4, texture_gather, glsl_type::vec4_type, glsl_type::samplerCube_type, glsl_type::vec3_type),
-                _texture(ir_tg4, texture_gather, glsl_type::ivec4_type, glsl_type::isamplerCube_type, glsl_type::vec3_type),
-                _texture(ir_tg4, texture_gather, glsl_type::uvec4_type, glsl_type::usamplerCube_type, glsl_type::vec3_type),
+                _texture(ir_tg4, texture_gather_or_es31, glsl_type::vec4_type, glsl_type::samplerCube_type, glsl_type::vec3_type),
+                _texture(ir_tg4, texture_gather_or_es31, glsl_type::ivec4_type, glsl_type::isamplerCube_type, glsl_type::vec3_type),
+                _texture(ir_tg4, texture_gather_or_es31, glsl_type::uvec4_type, glsl_type::usamplerCube_type, glsl_type::vec3_type),
 
                 _texture(ir_tg4, texture_gather, glsl_type::vec4_type, glsl_type::samplerCubeArray_type, glsl_type::vec4_type),
                 _texture(ir_tg4, texture_gather, glsl_type::ivec4_type, glsl_type::isamplerCubeArray_type, glsl_type::vec4_type),
                 _texture(ir_tg4, texture_gather, glsl_type::uvec4_type, glsl_type::usamplerCubeArray_type, glsl_type::vec4_type),
 
-                _texture(ir_tg4, gpu_shader5, glsl_type::vec4_type, glsl_type::sampler2D_type, glsl_type::vec2_type, TEX_COMPONENT),
-                _texture(ir_tg4, gpu_shader5, glsl_type::ivec4_type, glsl_type::isampler2D_type, glsl_type::vec2_type, TEX_COMPONENT),
-                _texture(ir_tg4, gpu_shader5, glsl_type::uvec4_type, glsl_type::usampler2D_type, glsl_type::vec2_type, TEX_COMPONENT),
+                _texture(ir_tg4, gpu_shader5_or_es31, glsl_type::vec4_type, glsl_type::sampler2D_type, glsl_type::vec2_type, TEX_COMPONENT),
+                _texture(ir_tg4, gpu_shader5_or_es31, glsl_type::ivec4_type, glsl_type::isampler2D_type, glsl_type::vec2_type, TEX_COMPONENT),
+                _texture(ir_tg4, gpu_shader5_or_es31, glsl_type::uvec4_type, glsl_type::usampler2D_type, glsl_type::vec2_type, TEX_COMPONENT),
 
                 _texture(ir_tg4, gpu_shader5, glsl_type::vec4_type, glsl_type::sampler2DRect_type, glsl_type::vec2_type, TEX_COMPONENT),
                 _texture(ir_tg4, gpu_shader5, glsl_type::ivec4_type, glsl_type::isampler2DRect_type, glsl_type::vec2_type, TEX_COMPONENT),
                 _texture(ir_tg4, gpu_shader5, glsl_type::uvec4_type, glsl_type::usampler2DRect_type, glsl_type::vec2_type, TEX_COMPONENT),
 
-                _texture(ir_tg4, gpu_shader5, glsl_type::vec4_type, glsl_type::sampler2DArray_type, glsl_type::vec3_type, TEX_COMPONENT),
-                _texture(ir_tg4, gpu_shader5, glsl_type::ivec4_type, glsl_type::isampler2DArray_type, glsl_type::vec3_type, TEX_COMPONENT),
-                _texture(ir_tg4, gpu_shader5, glsl_type::uvec4_type, glsl_type::usampler2DArray_type, glsl_type::vec3_type, TEX_COMPONENT),
+                _texture(ir_tg4, gpu_shader5_or_es31, glsl_type::vec4_type, glsl_type::sampler2DArray_type, glsl_type::vec3_type, TEX_COMPONENT),
+                _texture(ir_tg4, gpu_shader5_or_es31, glsl_type::ivec4_type, glsl_type::isampler2DArray_type, glsl_type::vec3_type, TEX_COMPONENT),
+                _texture(ir_tg4, gpu_shader5_or_es31, glsl_type::uvec4_type, glsl_type::usampler2DArray_type, glsl_type::vec3_type, TEX_COMPONENT),
 
-                _texture(ir_tg4, gpu_shader5, glsl_type::vec4_type, glsl_type::samplerCube_type, glsl_type::vec3_type, TEX_COMPONENT),
-                _texture(ir_tg4, gpu_shader5, glsl_type::ivec4_type, glsl_type::isamplerCube_type, glsl_type::vec3_type, TEX_COMPONENT),
-                _texture(ir_tg4, gpu_shader5, glsl_type::uvec4_type, glsl_type::usamplerCube_type, glsl_type::vec3_type, TEX_COMPONENT),
+                _texture(ir_tg4, gpu_shader5_or_es31, glsl_type::vec4_type, glsl_type::samplerCube_type, glsl_type::vec3_type, TEX_COMPONENT),
+                _texture(ir_tg4, gpu_shader5_or_es31, glsl_type::ivec4_type, glsl_type::isamplerCube_type, glsl_type::vec3_type, TEX_COMPONENT),
+                _texture(ir_tg4, gpu_shader5_or_es31, glsl_type::uvec4_type, glsl_type::usamplerCube_type, glsl_type::vec3_type, TEX_COMPONENT),
 
                 _texture(ir_tg4, gpu_shader5, glsl_type::vec4_type, glsl_type::samplerCubeArray_type, glsl_type::vec4_type, TEX_COMPONENT),
                 _texture(ir_tg4, gpu_shader5, glsl_type::ivec4_type, glsl_type::isamplerCubeArray_type, glsl_type::vec4_type, TEX_COMPONENT),
                 _texture(ir_tg4, gpu_shader5, glsl_type::uvec4_type, glsl_type::usamplerCubeArray_type, glsl_type::vec4_type, TEX_COMPONENT),
 
-                _texture(ir_tg4, gpu_shader5, glsl_type::vec4_type, glsl_type::sampler2DShadow_type, glsl_type::vec2_type),
-                _texture(ir_tg4, gpu_shader5, glsl_type::vec4_type, glsl_type::sampler2DArrayShadow_type, glsl_type::vec3_type),
-                _texture(ir_tg4, gpu_shader5, glsl_type::vec4_type, glsl_type::samplerCubeShadow_type, glsl_type::vec3_type),
+                _texture(ir_tg4, gpu_shader5_or_es31, glsl_type::vec4_type, glsl_type::sampler2DShadow_type, glsl_type::vec2_type),
+                _texture(ir_tg4, gpu_shader5_or_es31, glsl_type::vec4_type, glsl_type::sampler2DArrayShadow_type, glsl_type::vec3_type),
+                _texture(ir_tg4, gpu_shader5_or_es31, glsl_type::vec4_type, glsl_type::samplerCubeShadow_type, glsl_type::vec3_type),
                 _texture(ir_tg4, gpu_shader5, glsl_type::vec4_type, glsl_type::samplerCubeArrayShadow_type, glsl_type::vec4_type),
                 _texture(ir_tg4, gpu_shader5, glsl_type::vec4_type, glsl_type::sampler2DRectShadow_type, glsl_type::vec2_type),
                 NULL);
 
    add_function("textureGatherOffset",
-                _texture(ir_tg4, texture_gather_only, glsl_type::vec4_type, glsl_type::sampler2D_type, glsl_type::vec2_type, TEX_OFFSET),
-                _texture(ir_tg4, texture_gather_only, glsl_type::ivec4_type, glsl_type::isampler2D_type, glsl_type::vec2_type, TEX_OFFSET),
-                _texture(ir_tg4, texture_gather_only, glsl_type::uvec4_type, glsl_type::usampler2D_type, glsl_type::vec2_type, TEX_OFFSET),
+                _texture(ir_tg4, texture_gather_only_or_es31, glsl_type::vec4_type, glsl_type::sampler2D_type, glsl_type::vec2_type, TEX_OFFSET),
+                _texture(ir_tg4, texture_gather_only_or_es31, glsl_type::ivec4_type, glsl_type::isampler2D_type, glsl_type::vec2_type, TEX_OFFSET),
+                _texture(ir_tg4, texture_gather_only_or_es31, glsl_type::uvec4_type, glsl_type::usampler2D_type, glsl_type::vec2_type, TEX_OFFSET),
 
-                _texture(ir_tg4, texture_gather_only, glsl_type::vec4_type, glsl_type::sampler2DArray_type, glsl_type::vec3_type, TEX_OFFSET),
-                _texture(ir_tg4, texture_gather_only, glsl_type::ivec4_type, glsl_type::isampler2DArray_type, glsl_type::vec3_type, TEX_OFFSET),
-                _texture(ir_tg4, texture_gather_only, glsl_type::uvec4_type, glsl_type::usampler2DArray_type, glsl_type::vec3_type, TEX_OFFSET),
+                _texture(ir_tg4, texture_gather_only_or_es31, glsl_type::vec4_type, glsl_type::sampler2DArray_type, glsl_type::vec3_type, TEX_OFFSET),
+                _texture(ir_tg4, texture_gather_only_or_es31, glsl_type::ivec4_type, glsl_type::isampler2DArray_type, glsl_type::vec3_type, TEX_OFFSET),
+                _texture(ir_tg4, texture_gather_only_or_es31, glsl_type::uvec4_type, glsl_type::usampler2DArray_type, glsl_type::vec3_type, TEX_OFFSET),
+
+                _texture(ir_tg4, es31, glsl_type::vec4_type, glsl_type::sampler2D_type, glsl_type::vec2_type, TEX_OFFSET | TEX_COMPONENT),
+                _texture(ir_tg4, es31, glsl_type::ivec4_type, glsl_type::isampler2D_type, glsl_type::vec2_type, TEX_OFFSET | TEX_COMPONENT),
+                _texture(ir_tg4, es31, glsl_type::uvec4_type, glsl_type::usampler2D_type, glsl_type::vec2_type, TEX_OFFSET | TEX_COMPONENT),
+
+                _texture(ir_tg4, es31, glsl_type::vec4_type, glsl_type::sampler2DArray_type, glsl_type::vec3_type, TEX_OFFSET | TEX_COMPONENT),
+                _texture(ir_tg4, es31, glsl_type::ivec4_type, glsl_type::isampler2DArray_type, glsl_type::vec3_type, TEX_OFFSET | TEX_COMPONENT),
+                _texture(ir_tg4, es31, glsl_type::uvec4_type, glsl_type::usampler2DArray_type, glsl_type::vec3_type, TEX_OFFSET | TEX_COMPONENT),
 
                 _texture(ir_tg4, gpu_shader5, glsl_type::vec4_type, glsl_type::sampler2D_type, glsl_type::vec2_type, TEX_OFFSET_NONCONST),
                 _texture(ir_tg4, gpu_shader5, glsl_type::ivec4_type, glsl_type::isampler2D_type, glsl_type::vec2_type, TEX_OFFSET_NONCONST),
@@ -2285,6 +2316,9 @@ builtin_builder::create_builtins()
                 _texture(ir_tg4, gpu_shader5, glsl_type::vec4_type, glsl_type::sampler2DShadow_type, glsl_type::vec2_type, TEX_OFFSET_NONCONST),
                 _texture(ir_tg4, gpu_shader5, glsl_type::vec4_type, glsl_type::sampler2DArrayShadow_type, glsl_type::vec3_type, TEX_OFFSET_NONCONST),
                 _texture(ir_tg4, gpu_shader5, glsl_type::vec4_type, glsl_type::sampler2DRectShadow_type, glsl_type::vec2_type, TEX_OFFSET_NONCONST),
+
+                _texture(ir_tg4, es31, glsl_type::vec4_type, glsl_type::sampler2DShadow_type, glsl_type::vec2_type, TEX_OFFSET),
+                _texture(ir_tg4, es31, glsl_type::vec4_type, glsl_type::sampler2DArrayShadow_type, glsl_type::vec3_type, TEX_OFFSET),
                 NULL);
 
    add_function("textureGatherOffsets",
@@ -4445,7 +4479,7 @@ builtin_builder::_bitfieldExtract(const glsl_type *type)
    ir_variable *value  = in_var(type, "value");
    ir_variable *offset = in_var(glsl_type::int_type, "offset");
    ir_variable *bits   = in_var(glsl_type::int_type, "bits");
-   MAKE_SIG(type, gpu_shader5, 3, value, offset, bits);
+   MAKE_SIG(type, gpu_shader5_or_es31, 3, value, offset, bits);
 
    body.emit(ret(expr(ir_triop_bitfield_extract, value, offset, bits)));
 
@@ -4459,33 +4493,33 @@ builtin_builder::_bitfieldInsert(const glsl_type *type)
    ir_variable *insert = in_var(type, "insert");
    ir_variable *offset = in_var(glsl_type::int_type, "offset");
    ir_variable *bits   = in_var(glsl_type::int_type, "bits");
-   MAKE_SIG(type, gpu_shader5, 4, base, insert, offset, bits);
+   MAKE_SIG(type, gpu_shader5_or_es31, 4, base, insert, offset, bits);
 
    body.emit(ret(bitfield_insert(base, insert, offset, bits)));
 
    return sig;
 }
 
-UNOP(bitfieldReverse, ir_unop_bitfield_reverse, gpu_shader5)
+UNOP(bitfieldReverse, ir_unop_bitfield_reverse, gpu_shader5_or_es31)
 
 ir_function_signature *
 builtin_builder::_bitCount(const glsl_type *type)
 {
-   return unop(gpu_shader5, ir_unop_bit_count,
+   return unop(gpu_shader5_or_es31, ir_unop_bit_count,
                glsl_type::ivec(type->vector_elements), type);
 }
 
 ir_function_signature *
 builtin_builder::_findLSB(const glsl_type *type)
 {
-   return unop(gpu_shader5, ir_unop_find_lsb,
+   return unop(gpu_shader5_or_es31, ir_unop_find_lsb,
                glsl_type::ivec(type->vector_elements), type);
 }
 
 ir_function_signature *
 builtin_builder::_findMSB(const glsl_type *type)
 {
-   return unop(gpu_shader5, ir_unop_find_msb,
+   return unop(gpu_shader5_or_es31, ir_unop_find_msb,
                glsl_type::ivec(type->vector_elements), type);
 }
 
@@ -4505,7 +4539,7 @@ builtin_builder::_fma(builtin_available_predicate avail, const glsl_type *type)
 ir_function_signature *
 builtin_builder::_ldexp(const glsl_type *x_type, const glsl_type *exp_type)
 {
-   return binop(ir_binop_ldexp, x_type->base_type == GLSL_TYPE_DOUBLE ? fp64 : gpu_shader5, x_type, x_type, exp_type);
+   return binop(ir_binop_ldexp, x_type->base_type == GLSL_TYPE_DOUBLE ? fp64 : gpu_shader5_or_es31, x_type, x_type, exp_type);
 }
 
 ir_function_signature *
@@ -4526,7 +4560,7 @@ builtin_builder::_frexp(const glsl_type *x_type, const glsl_type *exp_type)
 {
    ir_variable *x = in_var(x_type, "x");
    ir_variable *exponent = out_var(exp_type, "exp");
-   MAKE_SIG(x_type, gpu_shader5, 2, x, exponent);
+   MAKE_SIG(x_type, gpu_shader5_or_es31, 2, x, exponent);
 
    const unsigned vec_elem = x_type->vector_elements;
    const glsl_type *bvec = glsl_type::get_instance(GLSL_TYPE_BOOL, vec_elem, 1);
@@ -4575,7 +4609,7 @@ builtin_builder::_uaddCarry(const glsl_type *type)
    ir_variable *x = in_var(type, "x");
    ir_variable *y = in_var(type, "y");
    ir_variable *carry = out_var(type, "carry");
-   MAKE_SIG(type, gpu_shader5, 3, x, y, carry);
+   MAKE_SIG(type, gpu_shader5_or_es31, 3, x, y, carry);
 
    body.emit(assign(carry, ir_builder::carry(x, y)));
    body.emit(ret(add(x, y)));
@@ -4589,7 +4623,7 @@ builtin_builder::_usubBorrow(const glsl_type *type)
    ir_variable *x = in_var(type, "x");
    ir_variable *y = in_var(type, "y");
    ir_variable *borrow = out_var(type, "borrow");
-   MAKE_SIG(type, gpu_shader5, 3, x, y, borrow);
+   MAKE_SIG(type, gpu_shader5_or_es31, 3, x, y, borrow);
 
    body.emit(assign(borrow, ir_builder::borrow(x, y)));
    body.emit(ret(sub(x, y)));
@@ -4607,7 +4641,7 @@ builtin_builder::_mulExtended(const glsl_type *type)
    ir_variable *y = in_var(type, "y");
    ir_variable *msb = out_var(type, "msb");
    ir_variable *lsb = out_var(type, "lsb");
-   MAKE_SIG(glsl_type::void_type, gpu_shader5, 4, x, y, msb, lsb);
+   MAKE_SIG(glsl_type::void_type, gpu_shader5_or_es31, 4, x, y, msb, lsb);
 
    body.emit(assign(msb, imul_high(x, y)));
    body.emit(assign(lsb, mul(x, y)));

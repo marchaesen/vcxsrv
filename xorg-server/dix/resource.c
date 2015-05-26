@@ -510,7 +510,7 @@ CreateNewResourceType(DeleteType deleteFunc, const char *name)
 
     if (next & lastResourceClass)
         return 0;
-    types = realloc(resourceTypes, (next + 1) * sizeof(*resourceTypes));
+    types = reallocarray(resourceTypes, next + 1, sizeof(*resourceTypes));
     if (!types)
         return 0;
 
@@ -834,10 +834,10 @@ RebuildTable(int client)
      */
 
     j = 2 * clientTable[client].buckets;
-    tails = malloc(j * sizeof(ResourcePtr *));
+    tails =  xallocarray(j, sizeof(ResourcePtr *));
     if (!tails)
         return;
-    resources = malloc(j * sizeof(ResourcePtr));
+    resources =  xallocarray(j, sizeof(ResourcePtr));
     if (!resources) {
         free(tails);
         return;

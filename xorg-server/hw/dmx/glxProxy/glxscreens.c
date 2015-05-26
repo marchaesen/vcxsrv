@@ -129,7 +129,7 @@ CalcServerVersionAndExtensions(void)
     /*
      * read extensions strings of all back-end servers
      */
-    be_extensions = (char **) malloc(__glXNumActiveScreens * sizeof(char *));
+    be_extensions = xallocarray(__glXNumActiveScreens, sizeof(char *));
     if (!be_extensions)
         return;
 
@@ -237,10 +237,9 @@ __glXScreenInit(GLint numscreens)
            // find the set of FBConfigs that are present on all back-end
            // servers - only those configs will be supported
          */
-        __glXFBConfigs = (__GLXFBConfig **) malloc(dmxScreen0->numFBConfigs *
-                                                   (numscreens +
-                                                    1) *
-                                                   sizeof(__GLXFBConfig *));
+        __glXFBConfigs =
+            xallocarray(dmxScreen0->numFBConfigs * (numscreens + 1),
+                        sizeof(__GLXFBConfig *));
         __glXNumFBConfigs = 0;
 
         for (c = 0; c < dmxScreen0->numFBConfigs; c++) {

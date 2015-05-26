@@ -1148,10 +1148,20 @@ XNFalloc(unsigned long amount)
     return ptr;
 }
 
+/* The original XNFcalloc was used with the xnfcalloc macro which multiplied
+ * the arguments at the call site without allowing calloc to check for overflow.
+ * XNFcallocarray was added to fix that without breaking ABI.
+ */
 void *
 XNFcalloc(unsigned long amount)
 {
-    void *ret = calloc(1, amount);
+    return XNFcallocarray(1, amount);
+}
+
+void *
+XNFcallocarray(size_t nmemb, size_t size)
+{
+    void *ret = calloc(nmemb, size);
 
     if (!ret)
         FatalError("XNFcalloc: Out of memory");
@@ -1165,6 +1175,16 @@ XNFrealloc(void *ptr, unsigned long amount)
 
     if (!ret)
         FatalError("XNFrealloc: Out of memory");
+    return ret;
+}
+
+void *
+XNFreallocarray(void *ptr, size_t nmemb, size_t size)
+{
+    void *ret = reallocarray(ptr, nmemb, size);
+
+    if (!ret)
+        FatalError("XNFreallocarray: Out of memory");
     return ret;
 }
 
@@ -1698,7 +1718,7 @@ Fclose(void *iop)
 #include <X11/Xwindows.h>
 
 const char *
-Win32TempDir()
+Win32TempDir(void)
 {
     static char buffer[PATH_MAX];
 
@@ -2039,7 +2059,7 @@ xstrtokenize(const char *str, const char *separators)
     if (!tmp)
         goto error;
     for (tok = strtok(tmp, separators); tok; tok = strtok(NULL, separators)) {
-        nlist = realloc(list, (num + 2) * sizeof(*list));
+        nlist = reallocarray(list, num + 2, sizeof(*list));
         if (!nlist)
             goto error;
         list = nlist;
@@ -2149,7 +2169,7 @@ FormatUInt64Hex(uint64_t num, char *string)
     string[len] = '\0';
 }
 
-#ifndef _MSC_VER
+#if !defined(WIN32) || defined(__CYGWIN__)
 /* Move a file descriptor out of the way of our select mask; this
  * is useful for file descriptors which will never appear in the
  * select mask to avoid reducing the number of clients that can

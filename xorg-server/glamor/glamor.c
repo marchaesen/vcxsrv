@@ -1,5 +1,5 @@
 /*
- * Copyright © 2008 Intel Corporation
+ * Copyright © 2008,2011 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
  * Authors:
  *    Eric Anholt <eric@anholt.net>
  *    Zhigang Gong <zhigang.gong@linux.intel.com>
- *
+ *    Chad Versace <chad.versace@linux.intel.com>
  */
 
 /** @file glamor.c
@@ -288,16 +288,6 @@ glamor_create_screen_resources(ScreenPtr screen)
         ret = screen->CreateScreenResources(screen);
     screen->CreateScreenResources = glamor_create_screen_resources;
 
-    if (!glamor_glyphs_init(screen)) {
-        ErrorF("Failed to initialize glyphs\n");
-        ret = FALSE;
-    }
-
-    if (!glamor_realize_glyph_caches(screen)) {
-        ErrorF("Failed to initialize glyph cache\n");
-        ret = FALSE;
-    }
-
     return ret;
 }
 
@@ -336,7 +326,11 @@ glamor_init(ScreenPtr screen, unsigned int flags)
 {
     glamor_screen_private *glamor_priv;
     int gl_version;
+    int glsl_major, glsl_minor;
     int max_viewport_size[2];
+    const char *shading_version_string;
+    int shading_version_offset;
+
     PictureScreenPtr ps = GetPictureScreenIfSet(screen);
 
     if (flags & ~GLAMOR_VALID_FLAGS) {
@@ -380,14 +374,40 @@ glamor_init(ScreenPtr screen, unsigned int flags)
 
     gl_version = epoxy_gl_version();
 
-    /* Would be nice to have a cleaner test for GLSL 1.30 support,
-     * but for now this should suffice
-     */
-    if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP && gl_version >= 30)
-        glamor_priv->glsl_version = 130;
-    else
-        glamor_priv->glsl_version = 120;
+    shading_version_string = (char *) glGetString(GL_SHADING_LANGUAGE_VERSION);
 
+    if (!shading_version_string) {
+        LogMessage(X_WARNING,
+                   "glamor%d: Failed to get GLSL version\n",
+                   screen->myNum);
+        goto fail;
+    }
+
+    shading_version_offset = 0;
+    if (strncmp("OpenGL ES GLSL ES ", shading_version_string, 18) == 0)
+        shading_version_offset = 18;
+
+    if (sscanf(shading_version_string + shading_version_offset,
+               "%i.%i",
+               &glsl_major,
+               &glsl_minor) != 2) {
+        LogMessage(X_WARNING,
+                   "glamor%d: Failed to parse GLSL version string %s\n",
+                   screen->myNum, shading_version_string);
+        goto fail;
+    }
+    glamor_priv->glsl_version = glsl_major * 100 + glsl_minor;
+
+    if (glamor_priv->gl_flavor == GLAMOR_GL_ES2) {
+        /* Force us back to the base version of our programs on an ES
+         * context, anyway.  Basically glamor only uses desktop 1.20
+         * or 1.30 currently.  1.30's new features are also present in
+         * ES 3.0, but our glamor_program.c constructions use a lot of
+         * compatibility features (to reduce the diff between 1.20 and
+         * 1.30 programs).
+         */
+        glamor_priv->glsl_version = 120;
+    }
 
     /* We'd like to require GL_ARB_map_buffer_range or
      * GL_OES_map_buffer_range, since it offers more information to
@@ -479,6 +499,11 @@ glamor_init(ScreenPtr screen, unsigned int flags)
     glamor_priv->saved_procs.block_handler = screen->BlockHandler;
     screen->BlockHandler = _glamor_block_handler;
 
+    if (!glamor_composite_glyphs_init(screen)) {
+        ErrorF("Failed to initialize composite masks\n");
+        goto fail;
+    }
+
     glamor_priv->saved_procs.create_gc = screen->CreateGC;
     screen->CreateGC = glamor_create_gc;
 
@@ -520,10 +545,7 @@ glamor_init(ScreenPtr screen, unsigned int flags)
     ps->CompositeRects = miCompositeRects;
 
     glamor_priv->saved_procs.glyphs = ps->Glyphs;
-    ps->Glyphs = glamor_glyphs;
-
-    glamor_priv->saved_procs.unrealize_glyph = ps->UnrealizeGlyph;
-    ps->UnrealizeGlyph = glamor_glyph_unrealize;
+    ps->Glyphs = glamor_composite_glyphs;
 
     glamor_priv->saved_procs.create_picture = ps->CreatePicture;
     ps->CreatePicture = glamor_create_picture;
@@ -604,7 +626,7 @@ glamor_close_screen(ScreenPtr screen)
 
     glamor_priv = glamor_get_screen_private(screen);
     glamor_sync_close(screen);
-    glamor_glyphs_fini(screen);
+    glamor_composite_glyphs_fini(screen);
     screen->CloseScreen = glamor_priv->saved_procs.close_screen;
     screen->CreateScreenResources =
         glamor_priv->saved_procs.create_screen_resources;
@@ -625,7 +647,6 @@ glamor_close_screen(ScreenPtr screen)
     ps->CreatePicture = glamor_priv->saved_procs.create_picture;
     ps->CompositeRects = glamor_priv->saved_procs.composite_rects;
     ps->Glyphs = glamor_priv->saved_procs.glyphs;
-    ps->UnrealizeGlyph = glamor_priv->saved_procs.unrealize_glyph;
     screen->SetWindowPixmap = glamor_priv->saved_procs.set_window_pixmap;
 
     screen_pixmap = screen->GetScreenPixmap(screen);

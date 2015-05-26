@@ -7,6 +7,7 @@ MESA_UTIL_FILES :=	\
 	format_srgb.h \
 	hash_table.c	\
 	hash_table.h \
+	list.h \
 	macros.h \
 	ralloc.c \
 	ralloc.h \

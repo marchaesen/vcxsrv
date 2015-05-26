@@ -197,7 +197,6 @@ C_SOURCES := \
 	util/u_dirty_surfaces.h \
 	util/u_dl.c \
 	util/u_dl.h \
-	util/u_double_list.h \
 	util/u_draw.c \
 	util/u_draw.h \
 	util/u_draw_quad.c \

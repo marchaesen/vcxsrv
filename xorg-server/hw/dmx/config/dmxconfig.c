@@ -204,8 +204,8 @@ dmxConfigAddDisplay(const char *name,
 {
     DMXScreenInfo *dmxScreen;
 
-    if (!(dmxScreens = realloc(dmxScreens,
-                               (dmxNumScreens + 1) * sizeof(*dmxScreens))))
+    if (!(dmxScreens = reallocarray(dmxScreens, dmxNumScreens + 1,
+                                    sizeof(*dmxScreens))))
         dmxLog(dmxFatal,
                "dmxConfigAddDisplay: realloc failed for screen %d (%s)\n",
                dmxNumScreens, name);
@@ -234,8 +234,8 @@ dmxConfigAddInput(const char *name, int core)
 {
     DMXInputInfo *dmxInput;
 
-    if (!(dmxInputs = realloc(dmxInputs,
-                              (dmxNumInputs + 1) * sizeof(*dmxInputs))))
+    if (!(dmxInputs = reallocarray(dmxInputs, dmxNumInputs + 1,
+                                   sizeof(*dmxInputs))))
         dmxLog(dmxFatal,
                "dmxConfigAddInput: realloc failed for input %d (%s)\n",
                dmxNumInputs, name);
@@ -341,7 +341,7 @@ dmxConfigCopyFromOption(DMXConfigOptionPtr o)
     for (pt = o->option; pt; pt = pt->next) {
         if (pt->string) {
             ++argc;
-            argv = realloc(argv, (argc + 1) * sizeof(*argv));
+            argv = reallocarray(argv, argc + 1, sizeof(*argv));
             argv[argc] = (char *) pt->string;
         }
     }

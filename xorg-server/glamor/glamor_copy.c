@@ -53,7 +53,7 @@ static const glamor_facet glamor_facet_copyarea = {
     .vs_exec = (GLAMOR_POS(gl_Position, primitive.xy)
                 "       fill_pos = (fill_offset + primitive.xy) * fill_size_inv;\n"),
     .fs_exec = "       gl_FragColor = texture2D(sampler, fill_pos);\n",
-    .locations = glamor_program_location_fill,
+    .locations = glamor_program_location_fillsamp | glamor_program_location_fillpos,
     .use = use_copyarea,
 };
 
@@ -140,7 +140,7 @@ static const glamor_facet glamor_facet_copyplane = {
                 "               gl_FragColor = fg;\n"
                 "       else\n"
                 "               gl_FragColor = bg;\n"),
-    .locations = glamor_program_location_fill|glamor_program_location_fg|glamor_program_location_bg|glamor_program_location_bitplane,
+    .locations = glamor_program_location_fillsamp|glamor_program_location_fillpos|glamor_program_location_fg|glamor_program_location_bg|glamor_program_location_bitplane,
     .use = use_copyplane,
 };
 
@@ -212,7 +212,7 @@ glamor_copy_cpu_fbo(DrawablePtr src,
     if (gc && gc->alu != GXcopy)
         goto bail;
 
-    if (gc && !glamor_pm_is_solid(dst, gc->planemask))
+    if (gc && !glamor_pm_is_solid(gc->depth, gc->planemask))
         goto bail;
 
     glamor_make_current(glamor_priv);
@@ -262,7 +262,7 @@ glamor_copy_fbo_cpu(DrawablePtr src,
     if (gc && gc->alu != GXcopy)
         goto bail;
 
-    if (gc && !glamor_pm_is_solid(dst, gc->planemask))
+    if (gc && !glamor_pm_is_solid(gc->depth, gc->planemask))
         goto bail;
 
     glamor_make_current(glamor_priv);
@@ -319,7 +319,7 @@ glamor_copy_fbo_fbo_draw(DrawablePtr src,
 
     glamor_make_current(glamor_priv);
 
-    if (gc && !glamor_set_planemask(dst_pixmap, gc->planemask))
+    if (gc && !glamor_set_planemask(gc->depth, gc->planemask))
         goto bail_ctx;
 
     if (!glamor_set_alu(screen, gc ? gc->alu : GXcopy))
@@ -338,7 +338,7 @@ glamor_copy_fbo_fbo_draw(DrawablePtr src,
 
     if (!prog->prog) {
         if (!glamor_build_program(screen, prog,
-                                  copy_facet, NULL))
+                                  copy_facet, NULL, NULL, NULL))
             goto bail_ctx;
     }
 
@@ -419,7 +419,6 @@ glamor_copy_fbo_fbo_temp(DrawablePtr src,
 {
     ScreenPtr screen = dst->pScreen;
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
-    PixmapPtr dst_pixmap = glamor_get_drawable_pixmap(dst);
     PixmapPtr tmp_pixmap;
     BoxRec bounds;
     int n;
@@ -434,7 +433,7 @@ glamor_copy_fbo_fbo_temp(DrawablePtr src,
      */
     glamor_make_current(glamor_priv);
 
-    if (gc && !glamor_set_planemask(dst_pixmap, gc->planemask))
+    if (gc && !glamor_set_planemask(gc->depth, gc->planemask))
         goto bail_ctx;
 
     if (!glamor_set_alu(screen, gc ? gc->alu : GXcopy))

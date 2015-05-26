@@ -88,3 +88,97 @@ xkb_symbols "tam_TAB" {
     name[Group1]= "Tamil (Sri Lanka, TAB Typewriter)";
 };
 
+// SINGHALA - US, SUBSTITUTES SOME AND ADDS SOME
+// =============================================
+//
+// This started as an upgrade to the first romanized version of
+// Singhala called PTS Pali created in the 1860s. PTS requires
+// dots and bars on letters that are rare in fonts, and impossible
+// to type. Its singular purpose was to print Tripitaka, the
+// collection of Buddhist discourses.
+//
+// This version covers the entire newer Singhala phoneme chart
+// (Hodiya) that became standard just before the end of the 19th
+// century. All the phonemes map to the SBCS. It is easy and
+// faster than English to type. It overcomes the setback of
+// Unicode Sinhala that it is not compatible with Pali and
+// Sanskrit because it encodes two ligatures as base letters and
+// the SLS1134 specification matching shape and morpheme sets
+// violating Sanskrit orthography.
+//
+// Most importantly, this romanized version of Singhala has a
+// companion orthographic font that displays the text in the
+// native script and a JavaScript converts it to Unicode Sinhala
+// and back dramatically increasing Singhala seen on the web due
+// to its ease of use
+//
+// Dedication:
+// Thomas William Rhys Davids, Ven. Udagama Sumangala
+// Rev. Fr. A. M. Gunasekara, Rev. Fr. Theodore G. Perera
+// Ven. Mettavihari
+//
+// Maintainer:
+// JC Ahangama - sing@ahangama.com
+//
+partial alphanumeric_keys modifier_keys
+xkb_symbols "us" {
+  include "us(basic)"
+  name[Group1]= "Singhala (US keyboard with Singhala letters)";
+//
+//                   UNSHIFTED,         SHIFT,           ALT
+//                   --------------------------------------------
+//
+  key <AB01> { [             z,    VoidSymbol,    VoidSymbol ] };
+  key <AB02> { [             x,    VoidSymbol,    VoidSymbol ] };
+  key <AB03> { [             c,      ccedilla,    VoidSymbol ] };
+  key <AB04> { [             v,    VoidSymbol,    VoidSymbol ] };
+  key <AB05> { [             b,             B,    VoidSymbol ] };
+  key <AB06> { [             n,             N,        ntilde ] };
+  key <AB07> { [             m,    VoidSymbol,    VoidSymbol ] };
+  key <AB08> { [         comma,          less,           UAB ] };
+  key <AB09> { [        period,       greater,           UBB ] };
+  key <AB10> { [         slash,      question,         U200C ] };
+
+  key <AC01> { [             a,        aacute,    adiaeresis ] };
+  key <AC02> { [             s,    VoidSymbol,    VoidSymbol ] };
+  key <AC03> { [             d,             D,    VoidSymbol ] };
+  key <AC04> { [         thorn,             f,    VoidSymbol ] };
+  key <AC05> { [             g,             G,    VoidSymbol ] };
+  key <AC06> { [             h,    VoidSymbol,    VoidSymbol ] };
+  key <AC07> { [             j,      ccedilla,    VoidSymbol ] };
+  key <AC08> { [             k,    VoidSymbol,    VoidSymbol ] };
+  key <AC09> { [             l,             L,   ocircumflex ] };
+  key <AC10> { [     semicolon,         colon,    VoidSymbol ] };
+  key <AC11> { [    apostrophe,      quotedbl,    VoidSymbol ] };
+
+  key <AD01> { [           eth,           ETH,             q ] };
+  key <AD02> { [            ae,         acute,    VoidSymbol ] };
+  key <AD03> { [             e,        eacute,    ediaeresis ] };
+  key <AD04> { [             r,   ucircumflex,    VoidSymbol ] };
+  key <AD05> { [             t,    VoidSymbol,    VoidSymbol ] };
+  key <AD06> { [             y,    VoidSymbol,    VoidSymbol ] };
+  key <AD07> { [             u,        uacute,    udiaeresis ] };
+  key <AD08> { [             i,        iacute,    idiaeresis ] };
+  key <AD09> { [             o,        oacute,    odiaeresis ] };
+  key <AD10> { [             p,    VoidSymbol,    VoidSymbol ] };
+  key <AD11> { [   bracketleft,     braceleft,    VoidSymbol ] };
+  key <AD12> { [  bracketright,    braceright,    VoidSymbol ] };
+
+  key <AE01> { [           one,        exclam,   dead_macron ] };
+  key <AE02> { [           two,            at, dead_belowdot ] };
+  key <AE03> { [         three,    numbersign, dead_abovedot ] };
+  key <AE04> { [          four,        dollar,      currency ] };
+  key <AE05> { [          five,       percent,           UB0 ] };
+  key <AE06> { [           six,   asciicircum,    onequarter ] };
+  key <AE07> { [         seven,     ampersand,       onehalf ] };
+  key <AE08> { [         eight,      asterisk, threequarters ] };
+  key <AE09> { [          nine,     parenleft,    VoidSymbol ] };
+  key <AE10> { [          zero,    parenright,    VoidSymbol ] };
+  key <AE11> { [         minus,    underscore,         U2014 ] };
+  key <AE12> { [         equal,          plus,    VoidSymbol ] };
+
+  key <BKSL> { [     backslash,           bar,    VoidSymbol ] };
+  key <SPCE> { [         space,  nobreakspace,    VoidSymbol ] };
+  key <TLDE> { [         grave,    asciitilde,    VoidSymbol ] };
+  include "level3(alt_switch)"
+};

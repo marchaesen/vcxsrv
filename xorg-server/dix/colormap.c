@@ -300,7 +300,7 @@ CreateColormap(Colormap mid, ScreenPtr pScreen, VisualPtr pVisual,
         for (pent = &pmap->red[size - 1]; pent >= pmap->red; pent--)
             pent->refcnt = AllocPrivate;
         pmap->freeRed = 0;
-        ppix = malloc(size * sizeof(Pixel));
+        ppix = xallocarray(size, sizeof(Pixel));
         if (!ppix) {
             free(pmap);
             return BadAlloc;
@@ -341,7 +341,7 @@ CreateColormap(Colormap mid, ScreenPtr pScreen, VisualPtr pVisual,
             for (pent = &pmap->green[size - 1]; pent >= pmap->green; pent--)
                 pent->refcnt = AllocPrivate;
             pmap->freeGreen = 0;
-            ppix = malloc(size * sizeof(Pixel));
+            ppix = xallocarray(size, sizeof(Pixel));
             if (!ppix) {
                 free(pmap->clientPixelsRed[client]);
                 free(pmap);
@@ -356,7 +356,7 @@ CreateColormap(Colormap mid, ScreenPtr pScreen, VisualPtr pVisual,
             for (pent = &pmap->blue[size - 1]; pent >= pmap->blue; pent--)
                 pent->refcnt = AllocPrivate;
             pmap->freeBlue = 0;
-            ppix = malloc(size * sizeof(Pixel));
+            ppix = xallocarray(size, sizeof(Pixel));
             if (!ppix) {
                 free(pmap->clientPixelsGreen[client]);
                 free(pmap->clientPixelsRed[client]);
@@ -706,7 +706,7 @@ UpdateColors(ColormapPtr pmap)
 
     pVisual = pmap->pVisual;
     size = pVisual->ColormapEntries;
-    defs = malloc(size * sizeof(xColorItem));
+    defs = xallocarray(size, sizeof(xColorItem));
     if (!defs)
         return;
     n = 0;
@@ -796,8 +796,8 @@ AllocColor(ColormapPtr pmap,
         *pgreen = pmap->red[pixR].co.local.green;
         *pblue = pmap->red[pixR].co.local.blue;
         npix = pmap->numPixelsRed[client];
-        ppix = (Pixel *) realloc(pmap->clientPixelsRed[client],
-                                 (npix + 1) * sizeof(Pixel));
+        ppix = reallocarray(pmap->clientPixelsRed[client],
+                            npix + 1, sizeof(Pixel));
         if (!ppix)
             return BadAlloc;
         ppix[npix] = pixR;
@@ -818,22 +818,22 @@ AllocColor(ColormapPtr pmap,
         *pgreen = pmap->green[pixG].co.local.green;
         *pblue = pmap->blue[pixB].co.local.blue;
         npix = pmap->numPixelsRed[client];
-        ppix = (Pixel *) realloc(pmap->clientPixelsRed[client],
-                                 (npix + 1) * sizeof(Pixel));
+        ppix = reallocarray(pmap->clientPixelsRed[client],
+                            npix + 1, sizeof(Pixel));
         if (!ppix)
             return BadAlloc;
         ppix[npix] = pixR;
         pmap->clientPixelsRed[client] = ppix;
         npix = pmap->numPixelsGreen[client];
-        ppix = (Pixel *) realloc(pmap->clientPixelsGreen[client],
-                                 (npix + 1) * sizeof(Pixel));
+        ppix = reallocarray(pmap->clientPixelsGreen[client],
+                            npix + 1, sizeof(Pixel));
         if (!ppix)
             return BadAlloc;
         ppix[npix] = pixG;
         pmap->clientPixelsGreen[client] = ppix;
         npix = pmap->numPixelsBlue[client];
-        ppix = (Pixel *) realloc(pmap->clientPixelsBlue[client],
-                                 (npix + 1) * sizeof(Pixel));
+        ppix = reallocarray(pmap->clientPixelsBlue[client],
+                            npix + 1, sizeof(Pixel));
         if (!ppix)
             return BadAlloc;
         ppix[npix] = pixB;
@@ -1283,7 +1283,7 @@ FindColor(ColormapPtr pmap, EntryPtr pentFirst, int size, xrgb * prgb,
         break;
     }
     npix = nump[client];
-    ppix = (Pixel *) realloc(pixp[client], (npix + 1) * sizeof(Pixel));
+    ppix = reallocarray(pixp[client], npix + 1, sizeof(Pixel));
     if (!ppix) {
         pent->refcnt--;
         if (!pent->fShared)
@@ -1651,9 +1651,9 @@ AllocDirect(int client, ColormapPtr pmap, int c, int r, int g, int b,
     for (p = pixels; p < pixels + c; p++)
         *p = 0;
 
-    ppixRed = malloc(npixR * sizeof(Pixel));
-    ppixGreen = malloc(npixG * sizeof(Pixel));
-    ppixBlue = malloc(npixB * sizeof(Pixel));
+    ppixRed = xallocarray(npixR, sizeof(Pixel));
+    ppixGreen = xallocarray(npixG, sizeof(Pixel));
+    ppixBlue = xallocarray(npixB, sizeof(Pixel));
     if (!ppixRed || !ppixGreen || !ppixBlue) {
         free(ppixBlue);
         free(ppixGreen);
@@ -1666,19 +1666,19 @@ AllocDirect(int client, ColormapPtr pmap, int c, int r, int g, int b,
     okB = AllocCP(pmap, pmap->blue, c, b, contig, ppixBlue, pbmask);
 
     if (okR && okG && okB) {
-        rpix = (Pixel *) realloc(pmap->clientPixelsRed[client],
-                                 (pmap->numPixelsRed[client] + (c << r)) *
-                                 sizeof(Pixel));
+        rpix = reallocarray(pmap->clientPixelsRed[client],
+                            pmap->numPixelsRed[client] + (c << r),
+                            sizeof(Pixel));
         if (rpix)
             pmap->clientPixelsRed[client] = rpix;
-        gpix = (Pixel *) realloc(pmap->clientPixelsGreen[client],
-                                 (pmap->numPixelsGreen[client] + (c << g)) *
-                                 sizeof(Pixel));
+        gpix = reallocarray(pmap->clientPixelsGreen[client],
+                            pmap->numPixelsGreen[client] + (c << g),
+                            sizeof(Pixel));
         if (gpix)
             pmap->clientPixelsGreen[client] = gpix;
-        bpix = (Pixel *) realloc(pmap->clientPixelsBlue[client],
-                                 (pmap->numPixelsBlue[client] + (c << b)) *
-                                 sizeof(Pixel));
+        bpix = reallocarray(pmap->clientPixelsBlue[client],
+                            pmap->numPixelsBlue[client] + (c << b),
+                            sizeof(Pixel));
         if (bpix)
             pmap->clientPixelsBlue[client] = bpix;
     }
@@ -1751,7 +1751,7 @@ AllocPseudo(int client, ColormapPtr pmap, int c, int r, Bool contig,
     npix = c << r;
     if ((r >= 32) || (npix > pmap->freeRed) || (npix < c))
         return BadAlloc;
-    if (!(ppixTemp = malloc(npix * sizeof(Pixel))))
+    if (!(ppixTemp = xallocarray(npix, sizeof(Pixel))))
         return BadAlloc;
     ok = AllocCP(pmap, pmap->red, c, r, contig, ppixTemp, pmask);
 
@@ -1759,9 +1759,8 @@ AllocPseudo(int client, ColormapPtr pmap, int c, int r, Bool contig,
 
         /* all the allocated pixels are added to the client pixel list,
          * but only the unique ones are returned to the client */
-        ppix = (Pixel *) realloc(pmap->clientPixelsRed[client],
-                                 (pmap->numPixelsRed[client] +
-                                  npix) * sizeof(Pixel));
+        ppix = reallocarray(pmap->clientPixelsRed[client],
+                            pmap->numPixelsRed[client] + npix, sizeof(Pixel));
         if (!ppix) {
             for (p = ppixTemp; p < ppixTemp + npix; p++)
                 pmap->red[*p].refcnt = 0;
@@ -1964,7 +1963,7 @@ AllocShared(ColormapPtr pmap, Pixel * ppix, int c, int r, int g, int b,
 
     npixClientNew = c << (r + g + b);
     npixShared = (c << r) + (c << g) + (c << b);
-    psharedList = malloc(npixShared * sizeof(SHAREDCOLOR *));
+    psharedList = xallocarray(npixShared, sizeof(SHAREDCOLOR *));
     if (!psharedList)
         return FALSE;
     ppshared = psharedList;
@@ -2208,7 +2207,7 @@ FreeCo(ColormapPtr pmap, int client, int color, int npixIn, Pixel * ppixIn,
                     npix++;
                 }
             }
-            pptr = (Pixel *) realloc(ppixClient, npixNew * sizeof(Pixel));
+            pptr = reallocarray(ppixClient, npixNew, sizeof(Pixel));
             if (pptr)
                 ppixClient = pptr;
             npixClient = npixNew;
@@ -2473,8 +2472,8 @@ IsMapInstalled(Colormap map, WindowPtr pWin)
     Colormap *pmaps;
     int imap, nummaps, found;
 
-    pmaps =
-        malloc(pWin->drawable.pScreen->maxInstalledCmaps * sizeof(Colormap));
+    pmaps = xallocarray(pWin->drawable.pScreen->maxInstalledCmaps,
+                        sizeof(Colormap));
     if (!pmaps)
         return FALSE;
     nummaps = (*pWin->drawable.pScreen->ListInstalledColormaps)
@@ -2525,8 +2524,8 @@ ResizeVisualArray(ScreenPtr pScreen, int new_visual_count, DepthPtr depth)
     first_new_vid = depth->numVids;
     first_new_visual = pScreen->numVisuals;
 
-    vids =
-        realloc(depth->vids, (depth->numVids + new_visual_count) * sizeof(XID));
+    vids = reallocarray(depth->vids, depth->numVids + new_visual_count,
+                        sizeof(XID));
     if (!vids)
         return FALSE;
 
@@ -2534,7 +2533,7 @@ ResizeVisualArray(ScreenPtr pScreen, int new_visual_count, DepthPtr depth)
     depth->vids = vids;
 
     numVisuals = pScreen->numVisuals + new_visual_count;
-    visuals = realloc(pScreen->visuals, numVisuals * sizeof(VisualRec));
+    visuals = reallocarray(pScreen->visuals, numVisuals, sizeof(VisualRec));
     if (!visuals) {
         return FALSE;
     }

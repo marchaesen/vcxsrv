@@ -36,7 +36,7 @@ void my_example(xcb_connection *conn) {
     cookie = xcb_intern_atom(conn, 0, strlen("_NET_WM_NAME"), "_NET_WM_NAME");
     /* ... do other work here if possible ... */
     if ((reply = xcb_intern_atom_reply(conn, cookie, NULL))) {
-        printf("The _NET_WM_NAME atom has ID %u\n", reply->atom);
+        printf("The _NET_WM_NAME atom has ID %u\\n", reply->atom);
     }
     free(reply);
 }
@@ -118,7 +118,7 @@ void my_example(xcb_connection *conn, xcb_window_t window) {
     cookie = xcb_intern_atom(c, 0, strlen("_NET_WM_NAME"), "_NET_WM_NAME");
     /* ... do other work here if possible ... */
     if ((reply = xcb_intern_atom_reply(c, cookie, &error))) {
-        printf("The _NET_WM_NAME atom has ID %u\n", reply->atom);
+        printf("The _NET_WM_NAME atom has ID %u\\n", reply->atom);
         free(reply);
     } else {
         fprintf(stderr, "X11 Error %d\\n", error->error_code);
@@ -138,7 +138,7 @@ void my_example(xcb_connection *conn, xcb_window_t window) {
                                        "_NET_WM_NAME");
     /* ... do other work here if possible ... */
     if ((reply = xcb_intern_atom_reply(c, cookie, NULL))) {
-        printf("The _NET_WM_NAME atom has ID %u\n", reply->atom);
+        printf("The _NET_WM_NAME atom has ID %u\\n", reply->atom);
         free(reply);
     }
 

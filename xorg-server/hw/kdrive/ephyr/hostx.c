@@ -131,8 +131,8 @@ hostx_add_screen(KdScreenInfo *screen, unsigned long win_id, int screen_num, Boo
     int index = HostX.n_screens;
 
     HostX.n_screens += 1;
-    HostX.screens = realloc(HostX.screens,
-                            HostX.n_screens * sizeof(HostX.screens[0]));
+    HostX.screens = reallocarray(HostX.screens,
+                                 HostX.n_screens, sizeof(HostX.screens[0]));
     HostX.screens[index] = screen;
 
     scrpriv->screen = screen;
@@ -183,7 +183,7 @@ hostx_set_win_title(KdScreenInfo *screen, const char *extra_text)
 
         memset(buf, 0, BUF_LEN + 1);
         snprintf(buf, BUF_LEN, "Xephyr on %s.%d %s",
-                 HostX.server_dpy_name,
+                 HostX.server_dpy_name ? HostX.server_dpy_name : ":0",
                  scrpriv->mynum, (extra_text != NULL) ? extra_text : "");
 
         xcb_icccm_set_wm_name(HostX.conn,
@@ -808,7 +808,7 @@ hostx_screen_init(KdScreenInfo *screen,
     }
 
     EPHYR_DBG("host_screen=%p x=%d, y=%d, wxh=%dx%d, buffer_height=%d",
-              host_screen, x, y, width, height, buffer_height);
+              screen, x, y, width, height, buffer_height);
 
     if (scrpriv->ximg != NULL) {
         /* Free up the image data if previously used
@@ -884,8 +884,13 @@ __asm int 3;
                                                     ~0,
                                                     NULL);
 
+        /* Match server byte order so that the image can be converted to
+         * the native byte order by xcb_image_put() before drawing */
+        if (host_depth_matches_server(scrpriv))
+            scrpriv->ximg->byte_order = IMAGE_BYTE_ORDER;
+
         scrpriv->ximg->data =
-            malloc(scrpriv->ximg->stride * buffer_height);
+            xallocarray(scrpriv->ximg->stride, buffer_height);
     }
 
     {
@@ -951,7 +956,7 @@ __asm int 3;
         *bits_per_pixel = scrpriv->server_depth;
 
         EPHYR_DBG("server bpp %i", bytes_per_pixel);
-        scrpriv->fb_data = malloc (stride * buffer_height);
+        scrpriv->fb_data = xallocarray (stride, buffer_height);
         return scrpriv->fb_data;
     }
 }
@@ -1056,8 +1061,11 @@ hostx_paint_rect(KdScreenInfo *screen,
 #endif
     }
     else {
-        xcb_image_put(HostX.conn, scrpriv->win, HostX.gc, scrpriv->ximg,
-                      dx, dy, 0);
+        /* This is slow and could be done better */
+        xcb_image_t *img = xcb_image_native (HostX.conn, scrpriv->ximg, 1);
+        xcb_image_put(HostX.conn, scrpriv->win, HostX.gc, img, 0, 0, 0);
+        if (scrpriv->ximg != img)
+            xcb_image_destroy(img);
     }
 
     xcb_aux_sync(HostX.conn);
@@ -1174,9 +1182,9 @@ hostx_get_visuals_info(EphyrHostVisualInfo ** a_visuals, int *a_num_entries)
         for (; depths.rem; xcb_depth_next(&depths)) {
             xcb_visualtype_t *visuals = xcb_depth_visuals(depths.data);
             EphyrHostVisualInfo *tmp_visuals =
-                realloc(host_visuals,
-                        (nb_items + depths.data->visuals_len)
-                        * sizeof(EphyrHostVisualInfo));
+                reallocarray(host_visuals,
+                             nb_items + depths.data->visuals_len,
+                             sizeof(EphyrHostVisualInfo));
             if (!tmp_visuals) {
                 goto out;
             }

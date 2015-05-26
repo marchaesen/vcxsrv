@@ -777,9 +777,9 @@ miSpriteTrace(SpritePtr pSprite, int x, int y)
             ) {
             if (pSprite->spriteTraceGood >= pSprite->spriteTraceSize) {
                 pSprite->spriteTraceSize += 10;
-                pSprite->spriteTrace = realloc(pSprite->spriteTrace,
-                                               pSprite->spriteTraceSize *
-                                               sizeof(WindowPtr));
+                pSprite->spriteTrace = reallocarray(pSprite->spriteTrace,
+                                                    pSprite->spriteTraceSize,
+                                                    sizeof(WindowPtr));
             }
             pSprite->spriteTrace[pSprite->spriteTraceGood++] = pWin;
             pWin = pWin->firstChild;

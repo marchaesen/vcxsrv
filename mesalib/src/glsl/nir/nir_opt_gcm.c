@@ -279,9 +279,8 @@ gcm_schedule_late_def(nir_ssa_def *def, void *void_state)
 
    nir_block *lca = NULL;
 
-   struct set_entry *entry;
-   set_foreach(def->uses, entry) {
-      nir_instr *use_instr = (nir_instr *)entry->key;
+   nir_foreach_use(def, use_src) {
+      nir_instr *use_instr = use_src->parent_instr;
 
       gcm_schedule_late_instr(use_instr, state);
 
@@ -304,8 +303,8 @@ gcm_schedule_late_def(nir_ssa_def *def, void *void_state)
       }
    }
 
-   set_foreach(def->if_uses, entry) {
-      nir_if *if_stmt = (nir_if *)entry->key;
+   nir_foreach_if_use(def, use_src) {
+      nir_if *if_stmt = use_src->parent_if;
 
       /* For if statements, we consider the block to be the one immediately
        * preceding the if CF node.
@@ -377,9 +376,8 @@ gcm_place_instr(nir_instr *instr, struct gcm_state *state);
 static bool
 gcm_place_instr_def(nir_ssa_def *def, void *state)
 {
-   struct set_entry *entry;
-   set_foreach(def->uses, entry)
-      gcm_place_instr((nir_instr *)entry->key, state);
+   nir_foreach_use(def, use_src)
+      gcm_place_instr(use_src->parent_instr, state);
 
    return false;
 }

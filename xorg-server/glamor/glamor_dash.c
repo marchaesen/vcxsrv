@@ -170,7 +170,7 @@ glamor_dash_setup(DrawablePtr drawable, GCPtr gc)
         if (!prog->prog) {
             if (!glamor_build_program(screen, prog,
                                       &glamor_facet_double_dash_lines,
-                                      NULL))
+                                      NULL, NULL, NULL))
                 goto bail;
         }
 

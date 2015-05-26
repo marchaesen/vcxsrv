@@ -121,6 +121,27 @@ _mesa_lookup_renderbuffer(struct gl_context *ctx, GLuint id)
 
 
 /**
+ * A convenience function for direct state access that throws
+ * GL_INVALID_OPERATION if the renderbuffer doesn't exist.
+ */
+struct gl_renderbuffer *
+_mesa_lookup_renderbuffer_err(struct gl_context *ctx, GLuint id,
+                              const char *func)
+{
+   struct gl_renderbuffer *rb;
+
+   rb = _mesa_lookup_renderbuffer(ctx, id);
+   if (!rb || rb == &DummyRenderbuffer) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(non-existent renderbuffer %u)", func, id);
+      return NULL;
+   }
+
+   return rb;
+}
+
+
+/**
  * Helper routine for getting a gl_framebuffer.
  */
 struct gl_framebuffer *
@@ -133,6 +154,27 @@ _mesa_lookup_framebuffer(struct gl_context *ctx, GLuint id)
 
    fb = (struct gl_framebuffer *)
       _mesa_HashLookup(ctx->Shared->FrameBuffers, id);
+   return fb;
+}
+
+
+/**
+ * A convenience function for direct state access that throws
+ * GL_INVALID_OPERATION if the framebuffer doesn't exist.
+ */
+struct gl_framebuffer *
+_mesa_lookup_framebuffer_err(struct gl_context *ctx, GLuint id,
+                             const char *func)
+{
+   struct gl_framebuffer *fb;
+
+   fb = _mesa_lookup_framebuffer(ctx, id);
+   if (!fb || fb == &DummyFramebuffer) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(non-existent framebuffer %u)", func, id);
+      return NULL;
+   }
+
    return fb;
 }
 
@@ -423,7 +465,7 @@ set_texture_attachment(struct gl_context *ctx,
                        struct gl_framebuffer *fb,
                        struct gl_renderbuffer_attachment *att,
                        struct gl_texture_object *texObj,
-                       GLenum texTarget, GLuint level, GLuint zoffset,
+                       GLenum texTarget, GLuint level, GLuint layer,
                        GLboolean layered)
 {
    struct gl_renderbuffer *rb = att->Renderbuffer;
@@ -447,7 +489,7 @@ set_texture_attachment(struct gl_context *ctx,
    /* always update these fields */
    att->TextureLevel = level;
    att->CubeMapFace = _mesa_tex_target_to_face(texTarget);
-   att->Zoffset = zoffset;
+   att->Zoffset = layer;
    att->Layered = layered;
    att->Complete = GL_FALSE;
 
@@ -479,9 +521,10 @@ set_renderbuffer_attachment(struct gl_context *ctx,
  * Attach a renderbuffer object to a framebuffer object.
  */
 void
-_mesa_framebuffer_renderbuffer(struct gl_context *ctx,
-                               struct gl_framebuffer *fb,
-                               GLenum attachment, struct gl_renderbuffer *rb)
+_mesa_FramebufferRenderbuffer_sw(struct gl_context *ctx,
+                                 struct gl_framebuffer *fb,
+                                 GLenum attachment,
+                                 struct gl_renderbuffer *rb)
 {
    struct gl_renderbuffer_attachment *att;
 
@@ -1446,6 +1489,14 @@ void GLAPIENTRY
 _mesa_CreateRenderbuffers(GLsizei n, GLuint *renderbuffers)
 {
    GET_CURRENT_CONTEXT(ctx);
+
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glCreateRenderbuffers(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return;
+   }
+
    create_render_buffers(ctx, n, renderbuffers, true);
 }
 
@@ -1886,6 +1937,12 @@ renderbuffer_storage_named(GLuint renderbuffer, GLenum internalFormat,
 {
    GET_CURRENT_CONTEXT(ctx);
 
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(GL_ARB_direct_state_access is not supported)", func);
+      return;
+   }
+
    if (MESA_VERBOSE & VERBOSE_API) {
       if (samples == NO_SAMPLES)
          _mesa_debug(ctx, "%s(%u, %s, %d, %d)\n",
@@ -2139,6 +2196,13 @@ _mesa_GetNamedRenderbufferParameteriv(GLuint renderbuffer, GLenum pname,
                                       GLint *params)
 {
    GET_CURRENT_CONTEXT(ctx);
+
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glGetNamedRenderbufferParameteriv("
+                  "GL_ARB_direct_state_access is not supported)");
+      return;
+   }
 
    struct gl_renderbuffer *rb = _mesa_lookup_renderbuffer(ctx, renderbuffer);
    if (!rb || rb == &DummyRenderbuffer) {
@@ -2396,15 +2460,29 @@ _mesa_DeleteFramebuffers(GLsizei n, const GLuint *framebuffers)
 }
 
 
-void GLAPIENTRY
-_mesa_GenFramebuffers(GLsizei n, GLuint *framebuffers)
+/**
+ * This is the implementation for glGenFramebuffers and glCreateFramebuffers.
+ * It is not exposed to the rest of Mesa to encourage the use of
+ * nameless buffers in driver internals.
+ */
+static void
+create_framebuffers(GLsizei n, GLuint *framebuffers, bool dsa)
 {
    GET_CURRENT_CONTEXT(ctx);
    GLuint first;
    GLint i;
+   struct gl_framebuffer *fb;
+
+   const char *func = dsa ? "glCreateFramebuffers" : "glGenFramebuffers";
+
+   if (dsa && !ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(GL_ARB_direct_state_access is not supported)", func);
+      return;
+   }
 
    if (n < 0) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glGenFramebuffersEXT(n)");
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(n < 0)", func);
       return;
    }
 
@@ -2416,31 +2494,43 @@ _mesa_GenFramebuffers(GLsizei n, GLuint *framebuffers)
    for (i = 0; i < n; i++) {
       GLuint name = first + i;
       framebuffers[i] = name;
-      /* insert dummy placeholder into hash table */
+
+      if (dsa) {
+         fb = ctx->Driver.NewFramebuffer(ctx, framebuffers[i]);
+         if (!fb) {
+            _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s", func);
+            return;
+         }
+      }
+      else
+         fb = &DummyFramebuffer;
+
       mtx_lock(&ctx->Shared->Mutex);
-      _mesa_HashInsert(ctx->Shared->FrameBuffers, name, &DummyFramebuffer);
+      _mesa_HashInsert(ctx->Shared->FrameBuffers, name, fb);
       mtx_unlock(&ctx->Shared->Mutex);
    }
 }
 
 
-GLenum GLAPIENTRY
-_mesa_CheckFramebufferStatus(GLenum target)
+void GLAPIENTRY
+_mesa_GenFramebuffers(GLsizei n, GLuint *framebuffers)
 {
-   struct gl_framebuffer *buffer;
-   GET_CURRENT_CONTEXT(ctx);
+   create_framebuffers(n, framebuffers, false);
+}
 
+
+void GLAPIENTRY
+_mesa_CreateFramebuffers(GLsizei n, GLuint *framebuffers)
+{
+   create_framebuffers(n, framebuffers, true);
+}
+
+
+GLenum
+_mesa_check_framebuffer_status(struct gl_context *ctx,
+                               struct gl_framebuffer *buffer)
+{
    ASSERT_OUTSIDE_BEGIN_END_WITH_RETVAL(ctx, 0);
-
-   if (MESA_VERBOSE & VERBOSE_API)
-      _mesa_debug(ctx, "glCheckFramebufferStatus(%s)\n",
-                  _mesa_lookup_enum_by_nr(target));
-
-   buffer = get_framebuffer_target(ctx, target);
-   if (!buffer) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "glCheckFramebufferStatus(target)");
-      return 0;
-   }
 
    if (_mesa_is_winsys_fbo(buffer)) {
       /* EGL_KHR_surfaceless_context allows the winsys FBO to be incomplete. */
@@ -2458,6 +2548,74 @@ _mesa_CheckFramebufferStatus(GLenum target)
    }
 
    return buffer->_Status;
+}
+
+
+GLenum GLAPIENTRY
+_mesa_CheckFramebufferStatus(GLenum target)
+{
+   struct gl_framebuffer *fb;
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (MESA_VERBOSE & VERBOSE_API)
+      _mesa_debug(ctx, "glCheckFramebufferStatus(%s)\n",
+                  _mesa_lookup_enum_by_nr(target));
+
+   fb = get_framebuffer_target(ctx, target);
+   if (!fb) {
+      _mesa_error(ctx, GL_INVALID_ENUM,
+                  "glCheckFramebufferStatus(invalid target %s)",
+                  _mesa_lookup_enum_by_nr(target));
+      return 0;
+   }
+
+   return _mesa_check_framebuffer_status(ctx, fb);
+}
+
+
+GLenum GLAPIENTRY
+_mesa_CheckNamedFramebufferStatus(GLuint framebuffer, GLenum target)
+{
+   struct gl_framebuffer *fb;
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glCheckNamedFramebufferStatus(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return 0;
+   }
+
+   /* Validate the target (for conformance's sake) and grab a reference to the
+    * default framebuffer in case framebuffer = 0.
+    * Section 9.4 Framebuffer Completeness of the OpenGL 4.5 core spec
+    * (30.10.2014, PDF page 336) says:
+    *    "If framebuffer is zero, then the status of the default read or
+    *    draw framebuffer (as determined by target) is returned."
+    */
+   switch (target) {
+      case GL_DRAW_FRAMEBUFFER:
+      case GL_FRAMEBUFFER:
+         fb = ctx->WinSysDrawBuffer;
+         break;
+      case GL_READ_FRAMEBUFFER:
+         fb = ctx->WinSysReadBuffer;
+         break;
+      default:
+         _mesa_error(ctx, GL_INVALID_ENUM,
+                     "glCheckNamedFramebufferStatus(invalid target %s)",
+                     _mesa_lookup_enum_by_nr(target));
+         return 0;
+   }
+
+   if (framebuffer) {
+      fb = _mesa_lookup_framebuffer_err(ctx, framebuffer,
+                                        "glCheckNamedFramebufferStatus");
+      if (!fb)
+         return 0;
+   }
+
+   return _mesa_check_framebuffer_status(ctx, fb);
 }
 
 
@@ -2487,144 +2645,301 @@ reuse_framebuffer_texture_attachment(struct gl_framebuffer *fb,
 
 
 /**
- * Common code called by glFramebufferTexture1D/2D/3D() and
- * glFramebufferTextureLayer().
+ * Common code called by gl*FramebufferTexture*() to retrieve the correct
+ * texture object pointer.
  *
- * \param textarget is the textarget that was passed to the
- * glFramebufferTexture...() function, or 0 if the corresponding function
- * doesn't have a textarget parameter.
+ * \param texObj where the pointer to the texture object is returned.  Note
+ * that a successful call may return texObj = NULL.
  *
- * \param layered is true if this function was called from
- * glFramebufferTexture(), false otherwise.
+ * \return true if no errors, false if errors
  */
-static void
-framebuffer_texture(struct gl_context *ctx, const char *caller, GLenum target,
-                    GLenum attachment, GLenum textarget, GLuint texture,
-                    GLint level, GLuint zoffset, GLboolean layered)
+static bool
+get_texture_for_framebuffer(struct gl_context *ctx, GLuint texture,
+                            bool layered, const char *caller,
+                            struct gl_texture_object **texObj)
+{
+   *texObj = NULL; /* This will get returned if texture = 0. */
+
+   if (!texture)
+      return true;
+
+   *texObj = _mesa_lookup_texture(ctx, texture);
+   if (*texObj == NULL || (*texObj)->Target == 0) {
+      /* Can't render to a non-existent texture object.
+       *
+       * The OpenGL 4.5 core spec (02.02.2015) in Section 9.2 Binding and
+       * Managing Framebuffer Objects specifies a different error
+       * depending upon the calling function (PDF pages 325-328).
+       * *FramebufferTexture (where layered = GL_TRUE) throws invalid
+       * value, while the other commands throw invalid operation (where
+       * layered = GL_FALSE).
+       */
+      const GLenum error = layered ? GL_INVALID_VALUE :
+                           GL_INVALID_OPERATION;
+      _mesa_error(ctx, error,
+                  "%s(non-existent texture %u)", caller, texture);
+      return false;
+   }
+
+   return true;
+}
+
+
+/**
+ * Common code called by gl*FramebufferTexture() to verify the texture target
+ * and decide whether or not the attachment should truly be considered
+ * layered.
+ *
+ * \param layered true if attachment should be considered layered, false if
+ * not
+ *
+ * \return true if no errors, false if errors
+ */
+static bool
+check_layered_texture_target(struct gl_context *ctx, GLenum target,
+                             const char *caller, GLboolean *layered)
+{
+   *layered = GL_TRUE;
+
+   switch (target) {
+   case GL_TEXTURE_3D:
+   case GL_TEXTURE_1D_ARRAY_EXT:
+   case GL_TEXTURE_2D_ARRAY_EXT:
+   case GL_TEXTURE_CUBE_MAP:
+   case GL_TEXTURE_CUBE_MAP_ARRAY:
+   case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+      return true;
+   case GL_TEXTURE_1D:
+   case GL_TEXTURE_2D:
+   case GL_TEXTURE_RECTANGLE:
+   case GL_TEXTURE_2D_MULTISAMPLE:
+      /* These texture types are valid to pass to
+       * glFramebufferTexture(), but since they aren't layered, it
+       * is equivalent to calling glFramebufferTexture{1D,2D}().
+       */
+      *layered = GL_FALSE;
+      return true;
+   }
+
+   _mesa_error(ctx, GL_INVALID_OPERATION,
+               "%s(invalid texture target %s)", caller,
+               _mesa_lookup_enum_by_nr(target));
+   return false;
+}
+
+
+/**
+ * Common code called by gl*FramebufferTextureLayer() to verify the texture
+ * target.
+ *
+ * \return true if no errors, false if errors
+ */
+static bool
+check_texture_target(struct gl_context *ctx, GLenum target,
+                     const char *caller)
+{
+   /* We're being called by glFramebufferTextureLayer().
+    * The only legal texture types for that function are 3D,
+    * cube-map, and 1D/2D/cube-map array textures.
+    */
+   switch (target) {
+   case GL_TEXTURE_3D:
+   case GL_TEXTURE_1D_ARRAY:
+   case GL_TEXTURE_2D_ARRAY:
+   case GL_TEXTURE_CUBE_MAP_ARRAY:
+   case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+      return true;
+   case GL_TEXTURE_CUBE_MAP:
+      /* This target is valid in TextureLayer when ARB_direct_state_access
+       * or OpenGL 4.5 is supported.
+       */
+      return ctx->Extensions.ARB_direct_state_access;
+   }
+
+   _mesa_error(ctx, GL_INVALID_OPERATION,
+               "%s(invalid texture target %s)", caller,
+               _mesa_lookup_enum_by_nr(target));
+   return false;
+}
+
+
+/**
+ * Common code called by glFramebufferTexture*D() to verify the texture
+ * target.
+ *
+ * \return true if no errors, false if errors
+ */
+static bool
+check_textarget(struct gl_context *ctx, int dims, GLenum target,
+                GLenum textarget, const char *caller)
+{
+   bool err = false;
+
+   switch (dims) {
+   case 1:
+      switch (textarget) {
+      case GL_TEXTURE_1D:
+         break;
+      case GL_TEXTURE_1D_ARRAY:
+         err = !ctx->Extensions.EXT_texture_array;
+         break;
+      default:
+         err = true;
+      }
+      break;
+   case 2:
+      switch (textarget) {
+      case GL_TEXTURE_2D:
+         break;
+      case GL_TEXTURE_RECTANGLE:
+         err = _mesa_is_gles(ctx)
+            || !ctx->Extensions.NV_texture_rectangle;
+         break;
+      case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
+      case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+      case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+      case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+      case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+      case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
+         err = !ctx->Extensions.ARB_texture_cube_map;
+         break;
+      case GL_TEXTURE_2D_ARRAY:
+         err = (_mesa_is_gles(ctx) && ctx->Version < 30)
+               || !ctx->Extensions.EXT_texture_array;
+         break;
+      case GL_TEXTURE_2D_MULTISAMPLE:
+      case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+         err = _mesa_is_gles(ctx)
+               || !ctx->Extensions.ARB_texture_multisample;
+         break;
+      default:
+         err = true;
+      }
+      break;
+   case 3:
+      if (textarget != GL_TEXTURE_3D)
+         err = true;
+      break;
+   default:
+      err = true;
+   }
+
+   if (err) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(invalid textarget %s)",
+                  caller, _mesa_lookup_enum_by_nr(textarget));
+      return false;
+   }
+
+   /* Make sure textarget is consistent with the texture's type */
+   err = (target == GL_TEXTURE_CUBE_MAP) ?
+          !_mesa_is_cube_face(textarget): (target != textarget);
+
+   if (err) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(mismatched texture target)", caller);
+      return false;
+   }
+
+   return true;
+}
+
+
+/**
+ * Common code called by gl*FramebufferTextureLayer() and
+ * glFramebufferTexture3D() to validate the layer.
+ *
+ * \return true if no errors, false if errors
+ */
+static bool
+check_layer(struct gl_context *ctx, GLenum target, GLint layer,
+            const char *caller)
+{
+   /* Page 306 (page 328 of the PDF) of the OpenGL 4.5 (Core Profile)
+    * spec says:
+    *
+    *    "An INVALID_VALUE error is generated if texture is non-zero
+    *     and layer is negative."
+    */
+   if (layer < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "%s(layer %u < 0)", caller, layer);
+      return false;
+   }
+
+   if (target == GL_TEXTURE_3D) {
+      const GLuint maxSize = 1 << (ctx->Const.Max3DTextureLevels - 1);
+      if (layer >= maxSize) {
+         _mesa_error(ctx, GL_INVALID_VALUE,
+                     "%s(invalid layer %u)", caller, layer);
+         return false;
+      }
+   }
+   else if ((target == GL_TEXTURE_1D_ARRAY) ||
+            (target == GL_TEXTURE_2D_ARRAY) ||
+            (target == GL_TEXTURE_CUBE_MAP_ARRAY) ||
+            (target == GL_TEXTURE_2D_MULTISAMPLE_ARRAY)) {
+      if (layer >= ctx->Const.MaxArrayTextureLayers) {
+         _mesa_error(ctx, GL_INVALID_VALUE,
+                     "%s(layer %u >= GL_MAX_ARRAY_TEXTURE_LAYERS)",
+                     caller, layer);
+         return false;
+      }
+   }
+   else if (target == GL_TEXTURE_CUBE_MAP) {
+      if (layer >= 6) {
+         _mesa_error(ctx, GL_INVALID_VALUE,
+                     "%s(layer %u >= 6)", caller, layer);
+         return false;
+      }
+   }
+
+   return true;
+}
+
+
+/**
+ * Common code called by all gl*FramebufferTexture*() entry points to verify
+ * the level.
+ *
+ * \return true if no errors, false if errors
+ */
+static bool
+check_level(struct gl_context *ctx, GLenum target, GLint level,
+            const char *caller)
+{
+   if ((level < 0) ||
+       (level >= _mesa_max_texture_levels(ctx, target))) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "%s(invalid level %d)", caller, level);
+      return false;
+   }
+
+   return true;
+}
+
+
+void
+_mesa_framebuffer_texture(struct gl_context *ctx, struct gl_framebuffer *fb,
+                          GLenum attachment,
+                          struct gl_texture_object *texObj, GLenum textarget,
+                          GLint level, GLuint layer, GLboolean layered,
+                          const char *caller)
 {
    struct gl_renderbuffer_attachment *att;
-   struct gl_texture_object *texObj = NULL;
-   struct gl_framebuffer *fb;
-   GLenum maxLevelsTarget;
 
-   fb = get_framebuffer_target(ctx, target);
-   if (!fb) {
-      _mesa_error(ctx, GL_INVALID_ENUM,
-                  "glFramebufferTexture%s(target=0x%x)", caller, target);
-      return;
-   }
-
-   /* check framebuffer binding */
+   /* The window-system framebuffer object is immutable */
    if (_mesa_is_winsys_fbo(fb)) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glFramebufferTexture%s", caller);
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(window-system framebuffer)",
+                  caller);
       return;
    }
 
-   /* The textarget, level, and zoffset parameters are only validated if
-    * texture is non-zero.
-    */
-   if (texture) {
-      GLboolean err = GL_TRUE;
-
-      texObj = _mesa_lookup_texture(ctx, texture);
-      if (texObj != NULL) {
-         if (textarget == 0) {
-            if (layered) {
-               /* We're being called by glFramebufferTexture() and textarget
-                * is not used.
-                */
-               switch (texObj->Target) {
-               case GL_TEXTURE_3D:
-               case GL_TEXTURE_1D_ARRAY_EXT:
-               case GL_TEXTURE_2D_ARRAY_EXT:
-               case GL_TEXTURE_CUBE_MAP:
-               case GL_TEXTURE_CUBE_MAP_ARRAY:
-               case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
-                  err = false;
-                  break;
-               case GL_TEXTURE_1D:
-               case GL_TEXTURE_2D:
-               case GL_TEXTURE_RECTANGLE:
-               case GL_TEXTURE_2D_MULTISAMPLE:
-                  /* These texture types are valid to pass to
-                   * glFramebufferTexture(), but since they aren't layered, it
-                   * is equivalent to calling glFramebufferTexture{1D,2D}().
-                   */
-                  err = false;
-                  layered = false;
-                  textarget = texObj->Target;
-                  break;
-               default:
-                  err = true;
-                  break;
-               }
-            } else {
-               /* We're being called by glFramebufferTextureLayer() and
-                * textarget is not used.  The only legal texture types for
-                * that function are 3D and 1D/2D arrays textures.
-                */
-               err = (texObj->Target != GL_TEXTURE_3D) &&
-                  (texObj->Target != GL_TEXTURE_1D_ARRAY_EXT) &&
-                  (texObj->Target != GL_TEXTURE_2D_ARRAY_EXT) &&
-                  (texObj->Target != GL_TEXTURE_CUBE_MAP_ARRAY) &&
-                  (texObj->Target != GL_TEXTURE_2D_MULTISAMPLE_ARRAY);
-            }
-         }
-         else {
-            /* Make sure textarget is consistent with the texture's type */
-            err = (texObj->Target == GL_TEXTURE_CUBE_MAP)
-                ? !_mesa_is_cube_face(textarget)
-                : (texObj->Target != textarget);
-         }
-      }
-      else {
-         /* can't render to a non-existant texture */
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glFramebufferTexture%s(non existant texture)",
-                     caller);
-         return;
-      }
-
-      if (err) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glFramebufferTexture%s(texture target mismatch)",
-                     caller);
-         return;
-      }
-
-      if (texObj->Target == GL_TEXTURE_3D) {
-         const GLuint maxSize = 1 << (ctx->Const.Max3DTextureLevels - 1);
-         if (zoffset >= maxSize) {
-            _mesa_error(ctx, GL_INVALID_VALUE,
-                        "glFramebufferTexture%s(zoffset)", caller);
-            return;
-         }
-      }
-      else if ((texObj->Target == GL_TEXTURE_1D_ARRAY_EXT) ||
-               (texObj->Target == GL_TEXTURE_2D_ARRAY_EXT) ||
-               (texObj->Target == GL_TEXTURE_CUBE_MAP_ARRAY) ||
-               (texObj->Target == GL_TEXTURE_2D_MULTISAMPLE_ARRAY)) {
-         if (zoffset >= ctx->Const.MaxArrayTextureLayers) {
-            _mesa_error(ctx, GL_INVALID_VALUE,
-                        "glFramebufferTexture%s(layer)", caller);
-            return;
-         }
-      }
-
-      maxLevelsTarget = textarget ? textarget : texObj->Target;
-      if ((level < 0) ||
-          (level >= _mesa_max_texture_levels(ctx, maxLevelsTarget))) {
-         _mesa_error(ctx, GL_INVALID_VALUE,
-                     "glFramebufferTexture%s(level)", caller);
-         return;
-      }
-   }
-
+   /* Not a hash lookup, so we can afford to get the attachment here. */
    att = get_attachment(ctx, fb, attachment);
    if (att == NULL) {
-      _mesa_error(ctx, GL_INVALID_ENUM,
-                  "glFramebufferTexture%s(attachment)", caller);
+      _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid attachment %s)", caller,
+                  _mesa_lookup_enum_by_nr(attachment));
       return;
    }
 
@@ -2637,7 +2952,7 @@ framebuffer_texture(struct gl_context *ctx, const char *caller, GLenum target,
           level == fb->Attachment[BUFFER_STENCIL].TextureLevel &&
           _mesa_tex_target_to_face(textarget) ==
           fb->Attachment[BUFFER_STENCIL].CubeMapFace &&
-          zoffset == fb->Attachment[BUFFER_STENCIL].Zoffset) {
+          layer == fb->Attachment[BUFFER_STENCIL].Zoffset) {
          /* The texture object is already attached to the stencil attachment
           * point. Don't create a new renderbuffer; just reuse the stencil
           * attachment's. This is required to prevent a GL error in
@@ -2650,13 +2965,14 @@ framebuffer_texture(struct gl_context *ctx, const char *caller, GLenum target,
                  level == fb->Attachment[BUFFER_DEPTH].TextureLevel &&
                  _mesa_tex_target_to_face(textarget) ==
                  fb->Attachment[BUFFER_DEPTH].CubeMapFace &&
-                 zoffset == fb->Attachment[BUFFER_DEPTH].Zoffset) {
+                 layer == fb->Attachment[BUFFER_DEPTH].Zoffset) {
          /* As above, but with depth and stencil transposed. */
          reuse_framebuffer_texture_attachment(fb, BUFFER_STENCIL,
                                               BUFFER_DEPTH);
       } else {
          set_texture_attachment(ctx, fb, att, texObj, textarget,
-                                      level, zoffset, layered);
+                                level, layer, layered);
+
          if (attachment == GL_DEPTH_STENCIL_ATTACHMENT) {
             /* Above we created a new renderbuffer and attached it to the
              * depth attachment point. Now attach it to the stencil attachment
@@ -2692,36 +3008,50 @@ framebuffer_texture(struct gl_context *ctx, const char *caller, GLenum target,
 }
 
 
+static void
+framebuffer_texture_with_dims(int dims, GLenum target,
+                              GLenum attachment, GLenum textarget,
+                              GLuint texture, GLint level, GLint layer,
+                              const char *caller)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_framebuffer *fb;
+   struct gl_texture_object *texObj;
+
+   /* Get the framebuffer object */
+   fb = get_framebuffer_target(ctx, target);
+   if (!fb) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid target %s)", caller,
+                  _mesa_lookup_enum_by_nr(target));
+      return;
+   }
+
+   /* Get the texture object */
+   if (!get_texture_for_framebuffer(ctx, texture, false, caller, &texObj))
+      return;
+
+   if (texObj) {
+      if (!check_textarget(ctx, dims, texObj->Target, textarget, caller))
+         return;
+
+      if ((dims == 3) && !check_layer(ctx, texObj->Target, layer, caller))
+         return;
+   }
+
+   if (!check_level(ctx, textarget, level, caller))
+      return;
+
+   _mesa_framebuffer_texture(ctx, fb, attachment, texObj, textarget, level,
+                             layer, GL_FALSE, caller);
+}
+
+
 void GLAPIENTRY
 _mesa_FramebufferTexture1D(GLenum target, GLenum attachment,
                            GLenum textarget, GLuint texture, GLint level)
 {
-   GET_CURRENT_CONTEXT(ctx);
-
-   if (texture != 0) {
-      GLboolean error;
-
-      switch (textarget) {
-      case GL_TEXTURE_1D:
-         error = GL_FALSE;
-         break;
-      case GL_TEXTURE_1D_ARRAY:
-         error = !ctx->Extensions.EXT_texture_array;
-         break;
-      default:
-         error = GL_TRUE;
-      }
-
-      if (error) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glFramebufferTexture1D(textarget=%s)",
-                     _mesa_lookup_enum_by_nr(textarget));
-         return;
-      }
-   }
-
-   framebuffer_texture(ctx, "1D", target, attachment, textarget, texture,
-                       level, 0, GL_FALSE);
+   framebuffer_texture_with_dims(1, target, attachment, textarget, texture,
+                                 level, 0, "glFramebufferTexture1D");
 }
 
 
@@ -2729,68 +3059,18 @@ void GLAPIENTRY
 _mesa_FramebufferTexture2D(GLenum target, GLenum attachment,
                            GLenum textarget, GLuint texture, GLint level)
 {
-   GET_CURRENT_CONTEXT(ctx);
-
-   if (texture != 0) {
-      GLboolean error;
-
-      switch (textarget) {
-      case GL_TEXTURE_2D:
-         error = GL_FALSE;
-         break;
-      case GL_TEXTURE_RECTANGLE:
-         error = _mesa_is_gles(ctx)
-            || !ctx->Extensions.NV_texture_rectangle;
-         break;
-      case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
-      case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
-      case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
-      case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
-      case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
-      case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
-         error = !ctx->Extensions.ARB_texture_cube_map;
-         break;
-      case GL_TEXTURE_2D_ARRAY:
-         error = (_mesa_is_gles(ctx) && ctx->Version < 30)
-            || !ctx->Extensions.EXT_texture_array;
-         break;
-      case GL_TEXTURE_2D_MULTISAMPLE:
-      case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
-         error = _mesa_is_gles(ctx)
-            || !ctx->Extensions.ARB_texture_multisample;
-         break;
-      default:
-         error = GL_TRUE;
-      }
-
-      if (error) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glFramebufferTexture2D(textarget=%s)",
-                     _mesa_lookup_enum_by_nr(textarget));
-         return;
-      }
-   }
-
-   framebuffer_texture(ctx, "2D", target, attachment, textarget, texture,
-                       level, 0, GL_FALSE);
+   framebuffer_texture_with_dims(2, target, attachment, textarget, texture,
+                                 level, 0, "glFramebufferTexture2D");
 }
 
 
 void GLAPIENTRY
 _mesa_FramebufferTexture3D(GLenum target, GLenum attachment,
                            GLenum textarget, GLuint texture,
-                           GLint level, GLint zoffset)
+                           GLint level, GLint layer)
 {
-   GET_CURRENT_CONTEXT(ctx);
-
-   if ((texture != 0) && (textarget != GL_TEXTURE_3D)) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glFramebufferTexture3D(textarget)");
-      return;
-   }
-
-   framebuffer_texture(ctx, "3D", target, attachment, textarget, texture,
-                       level, zoffset, GL_FALSE);
+   framebuffer_texture_with_dims(3, target, attachment, textarget, texture,
+                                 level, layer, "glFramebufferTexture3D");
 }
 
 
@@ -2799,9 +3079,92 @@ _mesa_FramebufferTextureLayer(GLenum target, GLenum attachment,
                               GLuint texture, GLint level, GLint layer)
 {
    GET_CURRENT_CONTEXT(ctx);
+   struct gl_framebuffer *fb;
+   struct gl_texture_object *texObj;
+   GLenum textarget = 0;
 
-   framebuffer_texture(ctx, "Layer", target, attachment, 0, texture,
-                       level, layer, GL_FALSE);
+   const char *func = "glFramebufferTextureLayer";
+
+   /* Get the framebuffer object */
+   fb = get_framebuffer_target(ctx, target);
+   if (!fb) {
+      _mesa_error(ctx, GL_INVALID_ENUM,
+                  "glFramebufferTextureLayer(invalid target %s)",
+                  _mesa_lookup_enum_by_nr(target));
+      return;
+   }
+
+   /* Get the texture object */
+   if (!get_texture_for_framebuffer(ctx, texture, false, func, &texObj))
+      return;
+
+   if (texObj) {
+      if (!check_texture_target(ctx, texObj->Target, func))
+         return;
+
+      if (!check_layer(ctx, texObj->Target, layer, func))
+         return;
+
+      if (!check_level(ctx, texObj->Target, level, func))
+         return;
+
+      if (texObj->Target == GL_TEXTURE_CUBE_MAP) {
+         assert(layer >= 0 && layer < 6);
+         textarget = GL_TEXTURE_CUBE_MAP_POSITIVE_X + layer;
+         layer = 0;
+      }
+   }
+
+   _mesa_framebuffer_texture(ctx, fb, attachment, texObj, textarget, level,
+                             layer, GL_FALSE, func);
+}
+
+
+void GLAPIENTRY
+_mesa_NamedFramebufferTextureLayer(GLuint framebuffer, GLenum attachment,
+                                   GLuint texture, GLint level, GLint layer)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_framebuffer *fb;
+   struct gl_texture_object *texObj;
+   GLenum textarget = 0;
+
+   const char *func = "glNamedFramebufferTextureLayer";
+
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(GL_ARB_direct_state_access is not supported)", func);
+      return;
+   }
+
+   /* Get the framebuffer object */
+   fb = _mesa_lookup_framebuffer_err(ctx, framebuffer, func);
+   if (!fb)
+      return;
+
+   /* Get the texture object */
+   if (!get_texture_for_framebuffer(ctx, texture, false, func, &texObj))
+      return;
+
+   if (texObj) {
+      if (!check_texture_target(ctx, texObj->Target, func))
+         return;
+
+      if (!check_layer(ctx, texObj->Target, layer, func))
+         return;
+
+      if (!check_level(ctx, texObj->Target, level, func))
+         return;
+
+      if (texObj->Target == GL_TEXTURE_CUBE_MAP) {
+         assert(layer >= 0 && layer < 6);
+         textarget = GL_TEXTURE_CUBE_MAP_POSITIVE_X + layer;
+         layer = 0;
+      }
+   }
+
+   _mesa_framebuffer_texture(ctx, fb, attachment, texObj, textarget, level,
+                             layer, GL_FALSE, func);
 }
 
 
@@ -2810,72 +3173,112 @@ _mesa_FramebufferTexture(GLenum target, GLenum attachment,
                          GLuint texture, GLint level)
 {
    GET_CURRENT_CONTEXT(ctx);
+   struct gl_framebuffer *fb;
+   struct gl_texture_object *texObj;
+   GLboolean layered;
 
-   if (_mesa_has_geometry_shaders(ctx)) {
-      framebuffer_texture(ctx, "", target, attachment, 0, texture,
-                          level, 0, GL_TRUE);
-   } else {
+   const char *func = "FramebufferTexture";
+
+   if (!_mesa_has_geometry_shaders(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "unsupported function (glFramebufferTexture) called");
+      return;
    }
+
+   /* Get the framebuffer object */
+   fb = get_framebuffer_target(ctx, target);
+   if (!fb) {
+      _mesa_error(ctx, GL_INVALID_ENUM,
+                  "glFramebufferTexture(invalid target %s)",
+                  _mesa_lookup_enum_by_nr(target));
+      return;
+   }
+
+   /* Get the texture object */
+   if (!get_texture_for_framebuffer(ctx, texture, true, func, &texObj))
+      return;
+
+   if (texObj) {
+      if (!check_layered_texture_target(ctx, texObj->Target, func, &layered))
+         return;
+
+      if (!check_level(ctx, texObj->Target, level, func))
+         return;
+   }
+
+   _mesa_framebuffer_texture(ctx, fb, attachment, texObj, 0, level,
+                             0, layered, func);
 }
 
 
 void GLAPIENTRY
-_mesa_FramebufferRenderbuffer(GLenum target, GLenum attachment,
-                              GLenum renderbufferTarget,
-                              GLuint renderbuffer)
+_mesa_NamedFramebufferTexture(GLuint framebuffer, GLenum attachment,
+                              GLuint texture, GLint level)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_framebuffer *fb;
+   struct gl_texture_object *texObj;
+   GLboolean layered;
+
+   const char *func = "glNamedFramebufferTexture";
+
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(GL_ARB_direct_state_access is not supported)", func);
+      return;
+   }
+
+   if (!_mesa_has_geometry_shaders(ctx)) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "unsupported function (glNamedFramebufferTexture) called");
+      return;
+   }
+
+   /* Get the framebuffer object */
+   fb = _mesa_lookup_framebuffer_err(ctx, framebuffer, func);
+   if (!fb)
+      return;
+
+   /* Get the texture object */
+   if (!get_texture_for_framebuffer(ctx, texture, true, func, &texObj))
+      return;
+
+   if (texObj) {
+      if (!check_layered_texture_target(ctx, texObj->Target, func,
+                                        &layered))
+         return;
+
+      if (!check_level(ctx, texObj->Target, level, func))
+         return;
+   }
+
+   _mesa_framebuffer_texture(ctx, fb, attachment, texObj, 0, level,
+                             0, layered, func);
+}
+
+
+void
+_mesa_framebuffer_renderbuffer(struct gl_context *ctx,
+                               struct gl_framebuffer *fb,
+                               GLenum attachment,
+                               struct gl_renderbuffer *rb,
+                               const char *func)
 {
    struct gl_renderbuffer_attachment *att;
-   struct gl_framebuffer *fb;
-   struct gl_renderbuffer *rb;
-   GET_CURRENT_CONTEXT(ctx);
-
-   fb = get_framebuffer_target(ctx, target);
-   if (!fb) {
-      _mesa_error(ctx, GL_INVALID_ENUM,
-                  "glFramebufferRenderbuffer(target)");
-      return;
-   }
-
-   if (renderbufferTarget != GL_RENDERBUFFER_EXT) {
-      _mesa_error(ctx, GL_INVALID_ENUM,
-                  "glFramebufferRenderbuffer(renderbufferTarget)");
-      return;
-   }
 
    if (_mesa_is_winsys_fbo(fb)) {
       /* Can't attach new renderbuffers to a window system framebuffer */
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glFramebufferRenderbuffer");
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(window-system framebuffer)", func);
       return;
    }
 
    att = get_attachment(ctx, fb, attachment);
    if (att == NULL) {
       _mesa_error(ctx, GL_INVALID_ENUM,
-                  "glFramebufferRenderbuffer(invalid attachment %s)",
+                  "%s(invalid attachment %s)", func,
                   _mesa_lookup_enum_by_nr(attachment));
       return;
-   }
-
-   if (renderbuffer) {
-      rb = _mesa_lookup_renderbuffer(ctx, renderbuffer);
-      if (!rb) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glFramebufferRenderbuffer(non-existant"
-                     " renderbuffer %u)", renderbuffer);
-         return;
-      }
-      else if (rb == &DummyRenderbuffer) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glFramebufferRenderbuffer(renderbuffer %u)",
-                     renderbuffer);
-         return;
-      }
-   }
-   else {
-      /* remove renderbuffer attachment */
-      rb = NULL;
    }
 
    if (attachment == GL_DEPTH_STENCIL_ATTACHMENT &&
@@ -2884,8 +3287,7 @@ _mesa_FramebufferRenderbuffer(GLenum target, GLenum attachment,
       const GLenum baseFormat = _mesa_get_format_base_format(rb->Format);
       if (baseFormat != GL_DEPTH_STENCIL) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glFramebufferRenderbuffer(renderbuffer"
-                     " is not DEPTH_STENCIL format)");
+                     "%s(renderbuffer is not DEPTH_STENCIL format)", func);
          return;
       }
    }
@@ -2903,23 +3305,98 @@ _mesa_FramebufferRenderbuffer(GLenum target, GLenum attachment,
 
 
 void GLAPIENTRY
-_mesa_GetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment,
-                                          GLenum pname, GLint *params)
+_mesa_FramebufferRenderbuffer(GLenum target, GLenum attachment,
+                              GLenum renderbuffertarget,
+                              GLuint renderbuffer)
+{
+   struct gl_framebuffer *fb;
+   struct gl_renderbuffer *rb;
+   GET_CURRENT_CONTEXT(ctx);
+
+   fb = get_framebuffer_target(ctx, target);
+   if (!fb) {
+      _mesa_error(ctx, GL_INVALID_ENUM,
+                  "glFramebufferRenderbuffer(invalid target %s)",
+                  _mesa_lookup_enum_by_nr(target));
+      return;
+   }
+
+   if (renderbuffertarget != GL_RENDERBUFFER) {
+      _mesa_error(ctx, GL_INVALID_ENUM,
+                  "glFramebufferRenderbuffer(renderbuffertarget is not "
+                  "GL_RENDERBUFFER)");
+      return;
+   }
+
+   if (renderbuffer) {
+      rb = _mesa_lookup_renderbuffer_err(ctx, renderbuffer,
+                                         "glFramebufferRenderbuffer");
+      if (!rb)
+         return;
+   }
+   else {
+      /* remove renderbuffer attachment */
+      rb = NULL;
+   }
+
+   _mesa_framebuffer_renderbuffer(ctx, fb, attachment, rb,
+                                  "glFramebufferRenderbuffer");
+}
+
+
+void GLAPIENTRY
+_mesa_NamedFramebufferRenderbuffer(GLuint framebuffer, GLenum attachment,
+                                   GLenum renderbuffertarget,
+                                   GLuint renderbuffer)
+{
+   struct gl_framebuffer *fb;
+   struct gl_renderbuffer *rb;
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glNamedFramebufferRenderbuffer(GL_ARB_direct_state_access "
+                  "is not supported)");
+      return;
+   }
+
+   fb = _mesa_lookup_framebuffer_err(ctx, framebuffer,
+                                     "glNamedFramebufferRenderbuffer");
+
+   if (renderbuffertarget != GL_RENDERBUFFER) {
+      _mesa_error(ctx, GL_INVALID_ENUM,
+                  "glNamedFramebufferRenderbuffer(renderbuffertarget is not "
+                  "GL_RENDERBUFFER)");
+      return;
+   }
+
+   if (renderbuffer) {
+      rb = _mesa_lookup_renderbuffer_err(ctx, renderbuffer,
+                                         "glNamedFramebufferRenderbuffer");
+      if (!rb)
+         return;
+   }
+   else {
+      /* remove renderbuffer attachment */
+      rb = NULL;
+   }
+
+   _mesa_framebuffer_renderbuffer(ctx, fb, attachment, rb,
+                                  "glNamedFramebufferRenderbuffer");
+}
+
+
+void
+_mesa_get_framebuffer_attachment_parameter(struct gl_context *ctx,
+                                           struct gl_framebuffer *buffer,
+                                           GLenum attachment, GLenum pname,
+                                           GLint *params, const char *caller)
 {
    const struct gl_renderbuffer_attachment *att;
-   struct gl_framebuffer *buffer;
    GLenum err;
-   GET_CURRENT_CONTEXT(ctx);
 
    /* The error differs in GL and GLES. */
    err = _mesa_is_desktop_gl(ctx) ? GL_INVALID_OPERATION : GL_INVALID_ENUM;
-
-   buffer = get_framebuffer_target(ctx, target);
-   if (!buffer) {
-      _mesa_error(ctx, GL_INVALID_ENUM,
-                  "glGetFramebufferAttachmentParameteriv(target)");
-      return;
-   }
 
    if (_mesa_is_winsys_fbo(buffer)) {
       /* Page 126 (page 136 of the PDF) of the OpenGL ES 2.0.25 spec
@@ -2936,14 +3413,15 @@ _mesa_GetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment,
            !ctx->Extensions.ARB_framebuffer_object)
           && !_mesa_is_gles3(ctx)) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glGetFramebufferAttachmentParameteriv(bound FBO = 0)");
+                     "%s(window-system framebuffer)", caller);
          return;
       }
 
       if (_mesa_is_gles3(ctx) && attachment != GL_BACK &&
           attachment != GL_DEPTH && attachment != GL_STENCIL) {
          _mesa_error(ctx, GL_INVALID_ENUM,
-                     "glGetFramebufferAttachmentParameteriv(attachment)");
+                     "%s(invalid attachment %s)", caller,
+                     _mesa_lookup_enum_by_nr(attachment));
          return;
       }
       /* the default / window-system FBO */
@@ -2955,8 +3433,8 @@ _mesa_GetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment,
    }
 
    if (att == NULL) {
-      _mesa_error(ctx, GL_INVALID_ENUM,
-                  "glGetFramebufferAttachmentParameteriv(attachment)");
+      _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid attachment %s)", caller,
+                  _mesa_lookup_enum_by_nr(attachment));
       return;
    }
 
@@ -2970,9 +3448,8 @@ _mesa_GetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment,
           *    attachment, since it does not have a single format."
           */
          _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glGetFramebufferAttachmentParameteriv("
-                     "GL_FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE"
-                     " is invalid for depth+stencil attachment)");
+                     "%s(GL_FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE"
+                     " is invalid for depth+stencil attachment)", caller);
          return;
       }
       /* the depth and stencil attachments must point to the same buffer */
@@ -2980,8 +3457,7 @@ _mesa_GetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment,
       stencilAtt = get_attachment(ctx, buffer, GL_STENCIL_ATTACHMENT);
       if (depthAtt->Renderbuffer != stencilAtt->Renderbuffer) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glGetFramebufferAttachmentParameteriv(DEPTH/STENCIL"
-                     " attachments differ)");
+                     "%s(DEPTH/STENCIL attachments differ)", caller);
          return;
       }
    }
@@ -3014,8 +3490,8 @@ _mesa_GetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment,
          *params = att->TextureLevel;
       }
       else if (att->Type == GL_NONE) {
-         _mesa_error(ctx, err,
-                     "glGetFramebufferAttachmentParameteriv(pname)");
+         _mesa_error(ctx, err, "%s(invalid pname %s)", caller,
+                     _mesa_lookup_enum_by_nr(pname));
       }
       else {
          goto invalid_pname_enum;
@@ -3031,8 +3507,8 @@ _mesa_GetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment,
          }
       }
       else if (att->Type == GL_NONE) {
-         _mesa_error(ctx, err,
-                     "glGetFramebufferAttachmentParameteriv(pname)");
+         _mesa_error(ctx, err, "%s(invalid pname %s)", caller,
+                     _mesa_lookup_enum_by_nr(pname));
       }
       else {
          goto invalid_pname_enum;
@@ -3042,8 +3518,8 @@ _mesa_GetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment,
       if (ctx->API == API_OPENGLES) {
          goto invalid_pname_enum;
       } else if (att->Type == GL_NONE) {
-         _mesa_error(ctx, err,
-                     "glGetFramebufferAttachmentParameteriv(pname)");
+         _mesa_error(ctx, err, "%s(invalid pname %s)", caller,
+                     _mesa_lookup_enum_by_nr(pname));
       } else if (att->Type == GL_TEXTURE) {
          if (att->Texture && (att->Texture->Target == GL_TEXTURE_3D ||
              att->Texture->Target == GL_TEXTURE_2D_ARRAY)) {
@@ -3064,8 +3540,8 @@ _mesa_GetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment,
          goto invalid_pname_enum;
       }
       else if (att->Type == GL_NONE) {
-         _mesa_error(ctx, err,
-                     "glGetFramebufferAttachmentParameteriv(pname)");
+         _mesa_error(ctx, err, "%s(invalid pname %s)", caller,
+                     _mesa_lookup_enum_by_nr(pname));
       }
       else {
          if (ctx->Extensions.EXT_framebuffer_sRGB) {
@@ -3087,8 +3563,8 @@ _mesa_GetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment,
          goto invalid_pname_enum;
       }
       else if (att->Type == GL_NONE) {
-         _mesa_error(ctx, err,
-                     "glGetFramebufferAttachmentParameteriv(pname)");
+         _mesa_error(ctx, err, "%s(invalid pname %s)", caller,
+                     _mesa_lookup_enum_by_nr(pname));
       }
       else {
          mesa_format format = att->Renderbuffer->Format;
@@ -3103,9 +3579,9 @@ _mesa_GetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment,
          if (_mesa_is_gles3(ctx) &&
              attachment == GL_DEPTH_STENCIL_ATTACHMENT) {
             _mesa_error(ctx, GL_INVALID_OPERATION,
-                        "glGetFramebufferAttachmentParameteriv(cannot query "
+                        "%s(cannot query "
                         "GL_FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE of "
-                        "GL_DEPTH_STENCIL_ATTACHMENT");
+                        "GL_DEPTH_STENCIL_ATTACHMENT)", caller);
             return;
          }
 
@@ -3139,8 +3615,8 @@ _mesa_GetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment,
          goto invalid_pname_enum;
       }
       else if (att->Type == GL_NONE) {
-         _mesa_error(ctx, err,
-                     "glGetFramebufferAttachmentParameteriv(pname)");
+         _mesa_error(ctx, err, "%s(invalid pname %s)", caller,
+                     _mesa_lookup_enum_by_nr(pname));
       }
       else if (att->Texture) {
          const struct gl_texture_image *texImage =
@@ -3159,8 +3635,7 @@ _mesa_GetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment,
                                       att->Renderbuffer->Format);
       }
       else {
-         _mesa_problem(ctx, "glGetFramebufferAttachmentParameterivEXT:"
-                       " invalid FBO attachment structure");
+         _mesa_problem(ctx, "%s: invalid FBO attachment structure", caller);
       }
       return;
    case GL_FRAMEBUFFER_ATTACHMENT_LAYERED:
@@ -3169,8 +3644,8 @@ _mesa_GetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment,
       } else if (att->Type == GL_TEXTURE) {
          *params = att->Layered;
       } else if (att->Type == GL_NONE) {
-         _mesa_error(ctx, err,
-                     "glGetFramebufferAttachmentParameteriv(pname)");
+         _mesa_error(ctx, err, "%s(invalid pname %s)", caller,
+                     _mesa_lookup_enum_by_nr(pname));
       } else {
          goto invalid_pname_enum;
       }
@@ -3182,30 +3657,145 @@ _mesa_GetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment,
    return;
 
 invalid_pname_enum:
-   _mesa_error(ctx, GL_INVALID_ENUM,
-               "glGetFramebufferAttachmentParameteriv(pname)");
+   _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid pname %s)", caller,
+               _mesa_lookup_enum_by_nr(pname));
    return;
 }
 
 
+void GLAPIENTRY
+_mesa_GetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment,
+                                          GLenum pname, GLint *params)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_framebuffer *buffer;
+
+   buffer = get_framebuffer_target(ctx, target);
+   if (!buffer) {
+      _mesa_error(ctx, GL_INVALID_ENUM,
+                  "glGetFramebufferAttachmentParameteriv(invalid target %s)",
+                  _mesa_lookup_enum_by_nr(target));
+      return;
+   }
+
+   _mesa_get_framebuffer_attachment_parameter(ctx, buffer, attachment, pname,
+                                              params,
+                                    "glGetFramebufferAttachmentParameteriv");
+}
+
+
+void GLAPIENTRY
+_mesa_GetNamedFramebufferAttachmentParameteriv(GLuint framebuffer,
+                                               GLenum attachment,
+                                               GLenum pname, GLint *params)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_framebuffer *buffer;
+
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glGetNamedFramebufferAttachmentParameteriv("
+                  "GL_ARB_direct_state_access is not supported)");
+      return;
+   }
+
+   if (framebuffer) {
+      buffer = _mesa_lookup_framebuffer_err(ctx, framebuffer,
+                              "glGetNamedFramebufferAttachmentParameteriv");
+      if (!buffer)
+         return;
+   }
+   else {
+      /*
+       * Section 9.2 Binding and Managing Framebuffer Objects of the OpenGL
+       * 4.5 core spec (30.10.2014, PDF page 314):
+       *    "If framebuffer is zero, then the default draw framebuffer is
+       *    queried."
+       */
+      buffer = ctx->WinSysDrawBuffer;
+   }
+
+   _mesa_get_framebuffer_attachment_parameter(ctx, buffer, attachment, pname,
+                                              params,
+                              "glGetNamedFramebufferAttachmentParameteriv");
+}
+
+
+void GLAPIENTRY
+_mesa_NamedFramebufferParameteri(GLuint framebuffer, GLenum pname,
+                                 GLint param)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   (void) framebuffer;
+   (void) pname;
+   (void) param;
+
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glNamedFramebufferParameteri("
+                  "GL_ARB_direct_state_access is not supported)");
+      return;
+   }
+
+   _mesa_error(ctx, GL_INVALID_OPERATION,
+               "glNamedFramebufferParameteri not supported "
+               "(ARB_framebuffer_no_attachments not implemented)");
+}
+
+
+void GLAPIENTRY
+_mesa_GetNamedFramebufferParameteriv(GLuint framebuffer, GLenum pname,
+                                     GLint *param)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   (void) framebuffer;
+   (void) pname;
+   (void) param;
+
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glNamedFramebufferParameteriv("
+                  "GL_ARB_direct_state_access is not supported)");
+      return;
+   }
+
+   _mesa_error(ctx, GL_INVALID_OPERATION,
+               "glGetNamedFramebufferParameteriv not supported "
+               "(ARB_framebuffer_no_attachments not implemented)");
+}
+
+
 static void
-invalidate_framebuffer_storage(GLenum target, GLsizei numAttachments,
+invalidate_framebuffer_storage(struct gl_context *ctx,
+                               struct gl_framebuffer *fb,
+                               GLsizei numAttachments,
                                const GLenum *attachments, GLint x, GLint y,
                                GLsizei width, GLsizei height, const char *name)
 {
    int i;
-   struct gl_framebuffer *fb;
-   GET_CURRENT_CONTEXT(ctx);
 
-   fb = get_framebuffer_target(ctx, target);
-   if (!fb) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "%s(target)", name);
-      return;
-   }
-
+   /* Section 17.4 Whole Framebuffer Operations of the OpenGL 4.5 Core
+    * Spec (2.2.2015, PDF page 522) says:
+    *    "An INVALID_VALUE error is generated if numAttachments, width, or
+    *    height is negative."
+    */
    if (numAttachments < 0) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "%s(numAttachments < 0)", name);
+      return;
+   }
+
+   if (width < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "%s(width < 0)", name);
+      return;
+   }
+
+   if (height < 0) {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+                  "%s(height < 0)", name);
       return;
    }
 
@@ -3301,7 +3891,8 @@ invalidate_framebuffer_storage(GLenum target, GLsizei numAttachments,
    return;
 
 invalid_enum:
-   _mesa_error(ctx, GL_INVALID_ENUM, "%s(attachment)", name);
+   _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid attachment %s)", name,
+               _mesa_lookup_enum_by_nr(attachments[i]));
    return;
 }
 
@@ -3311,9 +3902,56 @@ _mesa_InvalidateSubFramebuffer(GLenum target, GLsizei numAttachments,
                                const GLenum *attachments, GLint x, GLint y,
                                GLsizei width, GLsizei height)
 {
-   invalidate_framebuffer_storage(target, numAttachments, attachments,
+   struct gl_framebuffer *fb;
+   GET_CURRENT_CONTEXT(ctx);
+
+   fb = get_framebuffer_target(ctx, target);
+   if (!fb) {
+      _mesa_error(ctx, GL_INVALID_ENUM,
+                  "glInvalidateSubFramebuffer(invalid target %s)",
+                  _mesa_lookup_enum_by_nr(target));
+      return;
+   }
+
+   invalidate_framebuffer_storage(ctx, fb, numAttachments, attachments,
                                   x, y, width, height,
                                   "glInvalidateSubFramebuffer");
+}
+
+
+void GLAPIENTRY
+_mesa_InvalidateNamedFramebufferSubData(GLuint framebuffer,
+                                        GLsizei numAttachments,
+                                        const GLenum *attachments,
+                                        GLint x, GLint y,
+                                        GLsizei width, GLsizei height)
+{
+   struct gl_framebuffer *fb;
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glInvalidateNamedFramebufferSubData("
+                  "GL_ARB_direct_state_access is not supported)");
+      return;
+   }
+
+   /* The OpenGL 4.5 core spec (02.02.2015) says (in Section 17.4 Whole
+    * Framebuffer Operations, PDF page 522): "If framebuffer is zero, the
+    * default draw framebuffer is affected."
+    */
+   if (framebuffer) {
+      fb = _mesa_lookup_framebuffer_err(ctx, framebuffer,
+                                        "glInvalidateNamedFramebufferSubData");
+      if (!fb)
+         return;
+   }
+   else
+      fb = ctx->WinSysDrawBuffer;
+
+   invalidate_framebuffer_storage(ctx, fb, numAttachments, attachments,
+                                  x, y, width, height,
+                                  "glInvalidateNamedFramebufferSubData");
 }
 
 
@@ -3321,6 +3959,17 @@ void GLAPIENTRY
 _mesa_InvalidateFramebuffer(GLenum target, GLsizei numAttachments,
                             const GLenum *attachments)
 {
+   struct gl_framebuffer *fb;
+   GET_CURRENT_CONTEXT(ctx);
+
+   fb = get_framebuffer_target(ctx, target);
+   if (!fb) {
+      _mesa_error(ctx, GL_INVALID_ENUM,
+                  "glInvalidateFramebuffer(invalid target %s)",
+                  _mesa_lookup_enum_by_nr(target));
+      return;
+   }
+
    /* The GL_ARB_invalidate_subdata spec says:
     *
     *     "The command
@@ -3333,10 +3982,57 @@ _mesa_InvalidateFramebuffer(GLenum target, GLsizei numAttachments,
     *     <width>, <height> equal to 0, 0, <MAX_VIEWPORT_DIMS[0]>,
     *     <MAX_VIEWPORT_DIMS[1]> respectively."
     */
-   invalidate_framebuffer_storage(target, numAttachments, attachments,
+   invalidate_framebuffer_storage(ctx, fb, numAttachments, attachments,
                                   0, 0,
                                   MAX_VIEWPORT_WIDTH, MAX_VIEWPORT_HEIGHT,
                                   "glInvalidateFramebuffer");
+}
+
+
+void GLAPIENTRY
+_mesa_InvalidateNamedFramebufferData(GLuint framebuffer,
+                                     GLsizei numAttachments,
+                                     const GLenum *attachments)
+{
+   struct gl_framebuffer *fb;
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (!ctx->Extensions.ARB_direct_state_access) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glInvalidateNamedFramebufferData("
+                  "GL_ARB_direct_state_access is not supported)");
+      return;
+   }
+
+   /* The OpenGL 4.5 core spec (02.02.2015) says (in Section 17.4 Whole
+    * Framebuffer Operations, PDF page 522): "If framebuffer is zero, the
+    * default draw framebuffer is affected."
+    */
+   if (framebuffer) {
+      fb = _mesa_lookup_framebuffer_err(ctx, framebuffer,
+                                        "glInvalidateNamedFramebufferData");
+      if (!fb)
+         return;
+   }
+   else
+      fb = ctx->WinSysDrawBuffer;
+
+   /* The GL_ARB_invalidate_subdata spec says:
+    *
+    *     "The command
+    *
+    *        void InvalidateFramebuffer(enum target,
+    *                                   sizei numAttachments,
+    *                                   const enum *attachments);
+    *
+    *     is equivalent to the command InvalidateSubFramebuffer with <x>, <y>,
+    *     <width>, <height> equal to 0, 0, <MAX_VIEWPORT_DIMS[0]>,
+    *     <MAX_VIEWPORT_DIMS[1]> respectively."
+    */
+   invalidate_framebuffer_storage(ctx, fb, numAttachments, attachments,
+                                  0, 0,
+                                  MAX_VIEWPORT_WIDTH, MAX_VIEWPORT_HEIGHT,
+                                  "glInvalidateNamedFramebufferData");
 }
 
 

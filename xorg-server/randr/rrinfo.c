@@ -55,8 +55,8 @@ RROldModeAdd(RROutputPtr output, RRScreenSizePtr size, int refresh)
         }
 
     if (output->numModes)
-        modes = realloc(output->modes,
-                        (output->numModes + 1) * sizeof(RRModePtr));
+        modes = reallocarray(output->modes,
+                             output->numModes + 1, sizeof(RRModePtr));
     else
         modes = malloc(sizeof(RRModePtr));
     if (!modes) {
@@ -266,8 +266,8 @@ RRRegisterSize(ScreenPtr pScreen,
     for (i = 0; i < pScrPriv->nSizes; i++)
         if (RRScreenSizeMatches(&tmp, &pScrPriv->pSizes[i]))
             return &pScrPriv->pSizes[i];
-    pNew = realloc(pScrPriv->pSizes,
-                   (pScrPriv->nSizes + 1) * sizeof(RRScreenSize));
+    pNew = reallocarray(pScrPriv->pSizes,
+                        pScrPriv->nSizes + 1, sizeof(RRScreenSize));
     if (!pNew)
         return 0;
     pNew[pScrPriv->nSizes++] = tmp;
@@ -289,7 +289,7 @@ RRRegisterRate(ScreenPtr pScreen, RRScreenSizePtr pSize, int rate)
         if (pSize->pRates[i].rate == rate)
             return TRUE;
 
-    pNew = realloc(pSize->pRates, (pSize->nRates + 1) * sizeof(RRScreenRate));
+    pNew = reallocarray(pSize->pRates, pSize->nRates + 1, sizeof(RRScreenRate));
     if (!pNew)
         return FALSE;
     pRate = &pNew[pSize->nRates++];

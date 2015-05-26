@@ -67,7 +67,7 @@ PictureGetFilterId(const char *filter, int len, Bool makeit)
     memcpy(name, filter, len);
     name[len] = '\0';
     if (filterNames)
-        names = realloc(filterNames, (nfilterNames + 1) * sizeof(char *));
+        names = reallocarray(filterNames, nfilterNames + 1, sizeof(char *));
     else
         names = malloc(sizeof(char *));
     if (!names) {
@@ -145,7 +145,7 @@ PictureAddFilter(ScreenPtr pScreen,
             return -1;
     if (ps->filters)
         filters =
-            realloc(ps->filters, (ps->nfilters + 1) * sizeof(PictFilterRec));
+            reallocarray(ps->filters, ps->nfilters + 1, sizeof(PictFilterRec));
     else
         filters = malloc(sizeof(PictFilterRec));
     if (!filters)
@@ -177,9 +177,9 @@ PictureSetFilterAlias(ScreenPtr pScreen, const char *filter, const char *alias)
         PictFilterAliasPtr aliases;
 
         if (ps->filterAliases)
-            aliases = realloc(ps->filterAliases,
-                              (ps->nfilterAliases + 1) *
-                              sizeof(PictFilterAliasRec));
+            aliases = reallocarray(ps->filterAliases,
+                                   ps->nfilterAliases + 1,
+                                   sizeof(PictFilterAliasRec));
         else
             aliases = malloc(sizeof(PictFilterAliasRec));
         if (!aliases)
@@ -336,7 +336,7 @@ SetPicturePictFilter(PicturePtr pPicture, PictFilterPtr pFilter,
         return BadMatch;
 
     if (nparams != pPicture->filter_nparams) {
-        xFixed *new_params = malloc(nparams * sizeof(xFixed));
+        xFixed *new_params = xallocarray(nparams, sizeof(xFixed));
 
         if (!new_params && nparams)
             return BadAlloc;

@@ -653,19 +653,46 @@ builtin_variable_generator::generate_constants()
       add_const("gl_MaxTextureCoords", state->Const.MaxTextureCoords);
    }
 
-   if (state->ARB_shader_atomic_counters_enable) {
+   if (state->has_atomic_counters()) {
       add_const("gl_MaxVertexAtomicCounters",
                 state->Const.MaxVertexAtomicCounters);
-      add_const("gl_MaxGeometryAtomicCounters",
-                state->Const.MaxGeometryAtomicCounters);
       add_const("gl_MaxFragmentAtomicCounters",
                 state->Const.MaxFragmentAtomicCounters);
       add_const("gl_MaxCombinedAtomicCounters",
                 state->Const.MaxCombinedAtomicCounters);
       add_const("gl_MaxAtomicCounterBindings",
                 state->Const.MaxAtomicBufferBindings);
-      add_const("gl_MaxTessControlAtomicCounters", 0);
-      add_const("gl_MaxTessEvaluationAtomicCounters", 0);
+
+      /* When Mesa adds support for GL_OES_geometry_shader and
+       * GL_OES_tessellation_shader, this will need to change.
+       */
+      if (!state->es_shader) {
+         add_const("gl_MaxGeometryAtomicCounters",
+                   state->Const.MaxGeometryAtomicCounters);
+         add_const("gl_MaxTessControlAtomicCounters", 0);
+         add_const("gl_MaxTessEvaluationAtomicCounters", 0);
+      }
+   }
+
+   if (state->is_version(420, 310)) {
+      add_const("gl_MaxVertexAtomicCounterBuffers",
+                state->Const.MaxVertexAtomicCounterBuffers);
+      add_const("gl_MaxFragmentAtomicCounterBuffers",
+                state->Const.MaxFragmentAtomicCounterBuffers);
+      add_const("gl_MaxCombinedAtomicCounterBuffers",
+                state->Const.MaxCombinedAtomicCounterBuffers);
+      add_const("gl_MaxAtomicCounterBufferSize",
+                state->Const.MaxAtomicCounterBufferSize);
+
+      /* When Mesa adds support for GL_OES_geometry_shader and
+       * GL_OES_tessellation_shader, this will need to change.
+       */
+      if (!state->es_shader) {
+         add_const("gl_MaxGeometryAtomicCounterBuffers",
+                   state->Const.MaxGeometryAtomicCounterBuffers);
+         add_const("gl_MaxTessControlAtomicCounterBuffers", 0);
+         add_const("gl_MaxTessEvaluationAtomicCounterBuffers", 0);
+      }
    }
 
    if (state->is_version(430, 0) || state->ARB_compute_shader_enable) {

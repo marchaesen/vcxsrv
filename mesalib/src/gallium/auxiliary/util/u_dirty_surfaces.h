@@ -29,7 +29,7 @@
 
 #include "pipe/p_state.h"
 
-#include "util/u_double_list.h"
+#include "util/list.h"
 #include "util/u_math.h"
 
 struct pipe_context;

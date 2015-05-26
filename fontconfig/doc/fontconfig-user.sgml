@@ -120,7 +120,7 @@ convenience for the applications' rendering mechanism.
   outline         Bool    Whether the glyphs are outlines
   scalable        Bool    Whether glyphs can be scaled
   color           Bool    Whether any glyphs have color
-  scale           Double  Scale factor for point->pixel conversions
+  scale           Double  Scale factor for point->pixel conversions (deprecated)
   dpi             Double  Target dots per inch
   rgba            Int     unknown, rgb, bgr, vrgb, vbgr,
                           none - subpixel geometry

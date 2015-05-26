@@ -595,6 +595,7 @@ glamor_egl_close_screen(ScreenPtr screen)
     return screen->CloseScreen(screen);
 }
 
+#ifdef DRI3
 static int
 glamor_dri3_open_client(ClientPtr client,
                         ScreenPtr screen,
@@ -651,12 +652,12 @@ static dri3_screen_info_rec glamor_dri3_info = {
     .pixmap_from_fd = glamor_pixmap_from_fd,
     .fd_from_pixmap = glamor_fd_from_pixmap,
 };
+#endif /* DRI3 */
 
 void
 glamor_egl_screen_init(ScreenPtr screen, struct glamor_context *glamor_ctx)
 {
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
-    glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
     struct glamor_egl_screen_private *glamor_egl =
         glamor_egl_get_screen_private(scrn);
 
@@ -668,7 +669,9 @@ glamor_egl_screen_init(ScreenPtr screen, struct glamor_context *glamor_ctx)
 
     glamor_ctx->make_current = glamor_egl_make_current;
 
+#ifdef DRI3
     if (glamor_egl->dri3_capable) {
+    	glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
         /* Tell the core that we have the interfaces for import/export
          * of pixmaps.
          */
@@ -691,6 +694,7 @@ glamor_egl_screen_init(ScreenPtr screen, struct glamor_context *glamor_ctx)
             }
         }
     }
+#endif
 }
 
 static void

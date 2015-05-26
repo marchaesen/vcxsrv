@@ -1240,11 +1240,11 @@ ProcXF86VidModeGetMonitor(ClientPtr client)
                        pad_to_int32(rep.modelLength));
     rep.nhsync = nHsync;
     rep.nvsync = nVrefresh;
-    hsyncdata = malloc(nHsync * sizeof(CARD32));
+    hsyncdata = xallocarray(nHsync, sizeof(CARD32));
     if (!hsyncdata) {
         return BadAlloc;
     }
-    vsyncdata = malloc(nVrefresh * sizeof(CARD32));
+    vsyncdata = xallocarray(nVrefresh, sizeof(CARD32));
 
     if (!vsyncdata) {
         free(hsyncdata);
@@ -1512,9 +1512,9 @@ ProcXF86VidModeGetGammaRamp(ClientPtr client)
     length = (stuff->size + 1) & ~1;
 
     if (stuff->size) {
-        ramplen = length * 3 * sizeof(CARD16);
-        if (!(ramp = malloc(ramplen)))
+        if (!(ramp = xallocarray(length, 3 * sizeof(CARD16))))
             return BadAlloc;
+        ramplen = length * 3 * sizeof(CARD16);
 
         if (!VidModeGetGammaRamp(stuff->screen, stuff->size,
                                  ramp, ramp + length, ramp + (length * 2))) {

@@ -1211,7 +1211,8 @@ _mesa_meta_end(struct gl_context *ctx)
       _mesa_BindRenderbuffer(GL_RENDERBUFFER, save->RenderbufferName);
 
    if (state & MESA_META_DRAW_BUFFERS) {
-      _mesa_drawbuffers(ctx, ctx->Const.MaxDrawBuffers, save->ColorDrawBuffers, NULL);
+      _mesa_drawbuffers(ctx, ctx->DrawBuffer, ctx->Const.MaxDrawBuffers,
+                        save->ColorDrawBuffers, NULL);
    }
 
    ctx->Meta->SaveStackDepth--;

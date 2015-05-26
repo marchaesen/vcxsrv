@@ -279,7 +279,7 @@ glamor_set_spans_gl(DrawablePtr drawable, GCPtr gc, char *src,
     if (gc->alu != GXcopy)
         goto bail;
 
-    if (!glamor_pm_is_solid(&pixmap->drawable, gc->planemask))
+    if (!glamor_pm_is_solid(gc->depth, gc->planemask))
         goto bail;
 
     glamor_get_drawable_deltas(drawable, pixmap, &off_x, &off_y);

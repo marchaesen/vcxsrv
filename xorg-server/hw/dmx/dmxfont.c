@@ -72,7 +72,7 @@ dmxGetFontPath(int *npaths)
 
     newfp = malloc(*npaths + len);
     c = (unsigned char *) newfp;
-    fp = malloc(*npaths * sizeof(*fp));
+    fp = xallocarray(*npaths, sizeof(*fp));
 
     memmove(newfp, paths + 1, *npaths + len - 1);
     l = *paths;
@@ -306,7 +306,7 @@ dmxBELoadFont(ScreenPtr pScreen, FontPtr pFont)
         if (!dmxFontPath)
             dmxLog(dmxWarning, "No default font path is set.\n");
 
-        goodfps = malloc(npaths * sizeof(*goodfps));
+        goodfps = xallocarray(npaths, sizeof(*goodfps));
 
         dmxLog(dmxError,
                "The DMX server failed to set the following font paths on "
@@ -354,7 +354,7 @@ dmxBELoadFont(ScreenPtr pScreen, FontPtr pFont)
                 return FALSE;
             }
 
-            newfp = malloc(len * sizeof(*newfp));
+            newfp = xallocarray(len, sizeof(*newfp));
             for (i = 0; i < npaths; i++) {
                 if (goodfps[i]) {
                     int n = strlen(fp[i]);

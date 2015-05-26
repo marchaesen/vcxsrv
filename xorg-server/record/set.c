@@ -303,9 +303,7 @@ IntervalListCreateSet(RecordSetInterval * pIntervals, int nIntervals,
     CARD16 first;
 
     if (nIntervals > 0) {
-        stackIntervals =
-            (RecordSetInterval *) malloc(sizeof(RecordSetInterval) *
-                                         nIntervals);
+        stackIntervals = xallocarray(nIntervals, sizeof(RecordSetInterval));
         if (!stackIntervals)
             return NULL;
 

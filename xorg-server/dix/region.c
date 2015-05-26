@@ -1247,7 +1247,7 @@ RegionValidate(RegionPtr badreg, Bool *pOverlap)
         if (sizeRI == numRI) {
             /* Oops, allocate space for new region information */
             sizeRI <<= 1;
-            rit = (RegionInfo *) realloc(ri, sizeRI * sizeof(RegionInfo));
+            rit = (RegionInfo *) reallocarray(ri, sizeRI, sizeof(RegionInfo));
             if (!rit)
                 goto bail;
             ri = rit;

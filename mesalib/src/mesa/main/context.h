@@ -285,7 +285,7 @@ do {									\
 /**
  * Checks if the context is for Desktop GL (Compatibility or Core)
  */
-static inline GLboolean
+static inline bool
 _mesa_is_desktop_gl(const struct gl_context *ctx)
 {
    return ctx->API == API_OPENGL_COMPAT || ctx->API == API_OPENGL_CORE;
@@ -295,7 +295,7 @@ _mesa_is_desktop_gl(const struct gl_context *ctx)
 /**
  * Checks if the context is for any GLES version
  */
-static inline GLboolean
+static inline bool
 _mesa_is_gles(const struct gl_context *ctx)
 {
    return ctx->API == API_OPENGLES || ctx->API == API_OPENGLES2;
@@ -303,9 +303,9 @@ _mesa_is_gles(const struct gl_context *ctx)
 
 
 /**
- * Checks if the context is for GLES 3.x
+ * Checks if the context is for GLES 3.0 or later
  */
-static inline GLboolean
+static inline bool
 _mesa_is_gles3(const struct gl_context *ctx)
 {
    return ctx->API == API_OPENGLES2 && ctx->Version >= 30;
@@ -313,9 +313,19 @@ _mesa_is_gles3(const struct gl_context *ctx)
 
 
 /**
+ * Checks if the context is for GLES 3.1 or later
+ */
+static inline bool
+_mesa_is_gles31(const struct gl_context *ctx)
+{
+   return ctx->API == API_OPENGLES2 && ctx->Version >= 31;
+}
+
+
+/**
  * Checks if the context supports geometry shaders.
  */
-static inline GLboolean
+static inline bool
 _mesa_has_geometry_shaders(const struct gl_context *ctx)
 {
    return _mesa_is_desktop_gl(ctx) &&

@@ -187,6 +187,7 @@ hud_driver_query_install(struct hud_pane *pane, struct pipe_context *pipe,
    struct pipe_screen *screen = pipe->screen;
    struct pipe_driver_query_info query;
    unsigned num_queries, i;
+   boolean uses_byte_units;
    boolean found = FALSE;
 
    if (!screen->get_driver_query_info)
@@ -205,7 +206,9 @@ hud_driver_query_install(struct hud_pane *pane, struct pipe_context *pipe,
    if (!found)
       return FALSE;
 
+   uses_byte_units = query.type == PIPE_DRIVER_QUERY_TYPE_BYTES;
    hud_pipe_query_install(pane, pipe, query.name, query.query_type, 0,
-                      query.max_value, query.uses_byte_units);
+                          query.max_value.u64, uses_byte_units);
+
    return TRUE;
 }

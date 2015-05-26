@@ -37,7 +37,6 @@
 struct from_ssa_state {
    void *mem_ctx;
    void *dead_ctx;
-   struct hash_table *ssa_table;
    struct hash_table *merge_node_table;
    nir_instr *instr;
    nir_function_impl *impl;
@@ -344,45 +343,31 @@ isolate_phi_nodes_block(nir_block *block, void *void_state)
             get_parallel_copy_at_end_of_block(src->pred);
          assert(pcopy);
 
-         nir_parallel_copy_entry *entry = ralloc(state->dead_ctx,
-                                                 nir_parallel_copy_entry);
-         exec_list_push_tail(&pcopy->entries, &entry->node);
-
-         nir_src_copy(&entry->src, &src->src, state->dead_ctx);
-         _mesa_set_add(src->src.ssa->uses, &pcopy->instr);
-
+         nir_parallel_copy_entry *entry = rzalloc(state->dead_ctx,
+                                                  nir_parallel_copy_entry);
          nir_ssa_dest_init(&pcopy->instr, &entry->dest,
                            phi->dest.ssa.num_components, src->src.ssa->name);
+         exec_list_push_tail(&pcopy->entries, &entry->node);
 
-         struct set_entry *use_entry =
-            _mesa_set_search(src->src.ssa->uses, instr);
-         if (use_entry)
-            /* It is possible that a phi node can use the same source twice
-             * but for different basic blocks.  If that happens, entry will
-             * be NULL because we already deleted it.  This is safe
-             * because, by the time the loop is done, we will have deleted
-             * all of the sources of the phi from their respective use sets
-             * and moved them to the parallel copy definitions.
-             */
-            _mesa_set_remove(src->src.ssa->uses, use_entry);
+         assert(src->src.is_ssa);
+         nir_instr_rewrite_src(&pcopy->instr, &entry->src, src->src);
 
-         src->src.ssa = &entry->dest.ssa;
-         _mesa_set_add(entry->dest.ssa.uses, instr);
+         nir_instr_rewrite_src(&phi->instr, &src->src,
+                               nir_src_for_ssa(&entry->dest.ssa));
       }
 
-      nir_parallel_copy_entry *entry = ralloc(state->dead_ctx,
-                                              nir_parallel_copy_entry);
-      exec_list_push_tail(&block_pcopy->entries, &entry->node);
-
+      nir_parallel_copy_entry *entry = rzalloc(state->dead_ctx,
+                                               nir_parallel_copy_entry);
       nir_ssa_dest_init(&block_pcopy->instr, &entry->dest,
                         phi->dest.ssa.num_components, phi->dest.ssa.name);
+      exec_list_push_tail(&block_pcopy->entries, &entry->node);
+
       nir_ssa_def_rewrite_uses(&phi->dest.ssa,
                                nir_src_for_ssa(&entry->dest.ssa),
                                state->mem_ctx);
 
-      entry->src.is_ssa = true;
-      entry->src.ssa = &phi->dest.ssa;
-      _mesa_set_add(phi->dest.ssa.uses, &block_pcopy->instr);
+      nir_instr_rewrite_src(&block_pcopy->instr, &entry->src,
+                            nir_src_for_ssa(&phi->dest.ssa));
    }
 
    return true;
@@ -415,7 +400,7 @@ coalesce_phi_nodes_block(nir_block *block, void *void_state)
 }
 
 static void
-agressive_coalesce_parallel_copy(nir_parallel_copy_instr *pcopy,
+aggressive_coalesce_parallel_copy(nir_parallel_copy_instr *pcopy,
                                  struct from_ssa_state *state)
 {
    nir_foreach_parallel_copy_entry(pcopy, entry) {
@@ -444,7 +429,7 @@ agressive_coalesce_parallel_copy(nir_parallel_copy_instr *pcopy,
 }
 
 static bool
-agressive_coalesce_block(nir_block *block, void *void_state)
+aggressive_coalesce_block(nir_block *block, void *void_state)
 {
    struct from_ssa_state *state = void_state;
 
@@ -457,7 +442,7 @@ agressive_coalesce_block(nir_block *block, void *void_state)
 
          start_pcopy = nir_instr_as_parallel_copy(instr);
 
-         agressive_coalesce_parallel_copy(start_pcopy, state);
+         aggressive_coalesce_parallel_copy(start_pcopy, state);
 
          break;
       }
@@ -467,17 +452,21 @@ agressive_coalesce_block(nir_block *block, void *void_state)
       get_parallel_copy_at_end_of_block(block);
 
    if (end_pcopy && end_pcopy != start_pcopy)
-      agressive_coalesce_parallel_copy(end_pcopy, state);
+      aggressive_coalesce_parallel_copy(end_pcopy, state);
 
    return true;
 }
 
-static nir_register *
-get_register_for_ssa_def(nir_ssa_def *def, struct from_ssa_state *state)
+static bool
+rewrite_ssa_def(nir_ssa_def *def, void *void_state)
 {
+   struct from_ssa_state *state = void_state;
+   nir_register *reg;
+
    struct hash_entry *entry =
       _mesa_hash_table_search(state->merge_node_table, def);
    if (entry) {
+      /* In this case, we're part of a phi web.  Use the web's register. */
       merge_node *node = (merge_node *)entry->data;
 
       /* If it doesn't have a register yet, create one.  Note that all of
@@ -491,20 +480,15 @@ get_register_for_ssa_def(nir_ssa_def *def, struct from_ssa_state *state)
          node->set->reg->num_array_elems = 0;
       }
 
-      return node->set->reg;
-   }
-
-   entry = _mesa_hash_table_search(state->ssa_table, def);
-   if (entry) {
-      return (nir_register *)entry->data;
+      reg = node->set->reg;
    } else {
       /* We leave load_const SSA values alone.  They act as immediates to
        * the backend.  If it got coalesced into a phi, that's ok.
        */
       if (def->parent_instr->type == nir_instr_type_load_const)
-         return NULL;
+         return true;
 
-      nir_register *reg = nir_local_reg_create(state->impl);
+      reg = nir_local_reg_create(state->impl);
       reg->name = def->name;
       reg->num_components = def->num_components;
       reg->num_array_elems = 0;
@@ -516,57 +500,24 @@ get_register_for_ssa_def(nir_ssa_def *def, struct from_ssa_state *state)
        */
       if (def->parent_instr->type != nir_instr_type_ssa_undef)
          reg->parent_instr = def->parent_instr;
-
-      _mesa_hash_table_insert(state->ssa_table, def, reg);
-      return reg;
-   }
-}
-
-static bool
-rewrite_ssa_src(nir_src *src, void *void_state)
-{
-   struct from_ssa_state *state = void_state;
-
-   if (src->is_ssa) {
-      nir_register *reg = get_register_for_ssa_def(src->ssa, state);
-
-      if (reg == NULL) {
-         assert(src->ssa->parent_instr->type == nir_instr_type_load_const);
-         return true;
-      }
-
-      memset(src, 0, sizeof *src);
-      src->reg.reg = reg;
-
-      /* We don't need to remove it from the uses set because that is going
-       * away.  We just need to add it to the one for the register. */
-      _mesa_set_add(reg->uses, state->instr);
    }
 
-   return true;
-}
+   nir_ssa_def_rewrite_uses(def, nir_src_for_reg(reg), state->mem_ctx);
+   assert(list_empty(&def->uses) && list_empty(&def->if_uses));
 
-static bool
-rewrite_ssa_dest(nir_dest *dest, void *void_state)
-{
-   struct from_ssa_state *state = void_state;
+   if (def->parent_instr->type == nir_instr_type_ssa_undef)
+      return true;
 
-   if (dest->is_ssa) {
-      nir_register *reg = get_register_for_ssa_def(&dest->ssa, state);
+   assert(def->parent_instr->type != nir_instr_type_load_const);
 
-      if (reg == NULL) {
-         assert(dest->ssa.parent_instr->type == nir_instr_type_load_const);
-         return true;
-      }
+   /* At this point we know a priori that this SSA def is part of a
+    * nir_dest.  We can use exec_node_data to get the dest pointer.
+    */
+   nir_dest *dest = exec_node_data(nir_dest, def, ssa);
 
-      _mesa_set_destroy(dest->ssa.uses, NULL);
-      _mesa_set_destroy(dest->ssa.if_uses, NULL);
-
-      memset(dest, 0, sizeof *dest);
-      dest->reg.reg = reg;
-
-      _mesa_set_add(reg->defs, state->instr);
-   }
+   *dest = nir_dest_for_reg(reg);
+   dest->reg.parent_instr = state->instr;
+   list_addtail(&dest->reg.def_link, &reg->defs);
 
    return true;
 }
@@ -581,8 +532,7 @@ resolve_registers_block(nir_block *block, void *void_state)
 
    nir_foreach_instr_safe(block, instr) {
       state->instr = instr;
-      nir_foreach_src(instr, rewrite_ssa_src, state);
-      nir_foreach_dest(instr, rewrite_ssa_dest, state);
+      nir_foreach_ssa_def(instr, rewrite_ssa_def, state);
 
       if (instr->type == nir_instr_type_ssa_undef ||
           instr->type == nir_instr_type_phi) {
@@ -591,23 +541,6 @@ resolve_registers_block(nir_block *block, void *void_state)
       }
    }
    state->instr = NULL;
-
-   nir_if *following_if = nir_block_get_following_if(block);
-   if (following_if && following_if->condition.is_ssa) {
-      nir_register *reg = get_register_for_ssa_def(following_if->condition.ssa,
-                                                   state);
-      if (reg) {
-         memset(&following_if->condition, 0, sizeof following_if->condition);
-         following_if->condition.reg.reg = reg;
-
-         _mesa_set_add(reg->if_uses, following_if);
-      } else {
-         /* FIXME: We really shouldn't hit this.  We should be doing
-          * constant control flow propagation.
-          */
-         assert(following_if->condition.ssa->parent_instr->type == nir_instr_type_load_const);
-      }
-   }
 
    return true;
 }
@@ -853,10 +786,8 @@ nir_convert_from_ssa_impl(nir_function_impl *impl)
                               nir_metadata_dominance);
 
    nir_foreach_block(impl, coalesce_phi_nodes_block, &state);
-   nir_foreach_block(impl, agressive_coalesce_block, &state);
+   nir_foreach_block(impl, aggressive_coalesce_block, &state);
 
-   state.ssa_table = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                                             _mesa_key_pointer_equal);
    nir_foreach_block(impl, resolve_registers_block, &state);
 
    nir_foreach_block(impl, resolve_parallel_copies_block, &state);
@@ -865,7 +796,6 @@ nir_convert_from_ssa_impl(nir_function_impl *impl)
                                nir_metadata_dominance);
 
    /* Clean up dead instructions and the hash tables */
-   _mesa_hash_table_destroy(state.ssa_table, NULL);
    _mesa_hash_table_destroy(state.merge_node_table, NULL);
    ralloc_free(state.dead_ctx);
 }

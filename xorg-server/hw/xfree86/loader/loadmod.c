@@ -142,7 +142,7 @@ InitPathList(const char *path)
             if (addslash)
                 len++;
             save = list;
-            list = realloc(list, (n + 2) * sizeof(char *));
+            list = reallocarray(list, n + 2, sizeof(char *));
             if (!list) {
                 if (save) {
                     save[n] = NULL;
@@ -244,7 +244,7 @@ InitPatterns(const char **patternlist)
         for (i = 0, s = patternlist; *s; i++, s++)
             if (*s == DEFAULT_LIST)
                 i += sizeof(stdPatterns) / sizeof(stdPatterns[0]) - 1 - 1;
-        patterns = malloc((i + 1) * sizeof(PatternRec));
+        patterns = xallocarray(i + 1, sizeof(PatternRec));
         if (!patterns) {
             return NULL;
         }
@@ -323,7 +323,7 @@ InitSubdirs(const char **subdirlist)
                 }
             }
         }
-        subdirs = malloc((i * 2 + 1) * sizeof(char *));
+        subdirs = xallocarray(i * 2 + 1, sizeof(char *));
         if (!subdirs) {
             free(tmp_subdirlist);
             return NULL;
@@ -530,8 +530,8 @@ LoaderListDirs(const char **subdirlist, const char **patternlist)
                             match[1].rm_so != -1) {
                             len = match[1].rm_eo - match[1].rm_so;
                             save = listing;
-                            listing = realloc(listing,
-                                              (n + 2) * sizeof(char *));
+                            listing = reallocarray(listing, n + 2,
+                                                   sizeof(char *));
                             if (!listing) {
                                 if (save) {
                                     save[n] = NULL;

@@ -523,6 +523,20 @@ void *xcb_wait_for_reply(xcb_connection_t *c, unsigned int request, xcb_generic_
     return ret;
 }
 
+void *xcb_wait_for_reply64(xcb_connection_t *c, uint64_t request, xcb_generic_error_t **e)
+{
+    void *ret;
+    if(e)
+        *e = 0;
+    if(c->has_error)
+        return 0;
+
+    pthread_mutex_lock(&c->iolock);
+    ret = wait_for_reply(c, request, e);
+    pthread_mutex_unlock(&c->iolock);
+    return ret;
+}
+
 int *xcb_get_reply_fds(xcb_connection_t *c, void *reply, size_t reply_size)
 {
     return (int *) (&((char *) reply)[reply_size]);
@@ -595,6 +609,20 @@ void xcb_discard_reply(xcb_connection_t *c, unsigned int sequence)
     pthread_mutex_unlock(&c->iolock);
 }
 
+void xcb_discard_reply64(xcb_connection_t *c, uint64_t sequence)
+{
+    if(c->has_error)
+        return;
+
+    /* If an error occurred when issuing the request, fail immediately. */
+    if(!sequence)
+        return;
+
+    pthread_mutex_lock(&c->iolock);
+    discard_reply(c, sequence);
+    pthread_mutex_unlock(&c->iolock);
+}
+
 int xcb_poll_for_reply(xcb_connection_t *c, unsigned int request, void **reply, xcb_generic_error_t **error)
 {
     int ret;
@@ -608,6 +636,23 @@ int xcb_poll_for_reply(xcb_connection_t *c, unsigned int request, void **reply, 
     assert(reply != 0);
     pthread_mutex_lock(&c->iolock);
     ret = poll_for_reply(c, widen(c, request), reply, error);
+    pthread_mutex_unlock(&c->iolock);
+    return ret;
+}
+
+int xcb_poll_for_reply64(xcb_connection_t *c, uint64_t request, void **reply, xcb_generic_error_t **error)
+{
+    int ret;
+    if(c->has_error)
+    {
+        *reply = 0;
+        if(error)
+            *error = 0;
+        return 1; /* would not block */
+    }
+    assert(reply != 0);
+    pthread_mutex_lock(&c->iolock);
+    ret = poll_for_reply(c, request, reply, error);
     pthread_mutex_unlock(&c->iolock);
     return ret;
 }

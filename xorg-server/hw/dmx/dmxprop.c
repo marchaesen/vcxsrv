@@ -171,7 +171,7 @@ dmxPropertyCheckOtherServers(DMXScreenInfo * dmxScreen, Atom atom)
                     dmxLogOutputWarning(dmxScreen,
                                         "%s also running on %s\n",
                                         tp.value, dmxScreen->name);
-                    list = realloc(list, ++count * sizeof(*list));
+                    list = reallocarray(list, ++count, sizeof(*list));
                     list[count - 1] = malloc(tp.nitems + 2);
                     strncpy(list[count - 1], (char *) tp.value, tp.nitems + 1);
                 }

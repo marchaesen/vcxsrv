@@ -431,8 +431,8 @@ EphyrDuplicateVisual(unsigned int a_screen,
          * extend the list of visual IDs in that entry,
          * so to add a_new_id in there.
          */
-        vids = realloc(cur_depth->vids,
-                       (cur_depth->numVids + 1) * sizeof(VisualID));
+        vids = reallocarray(cur_depth->vids,
+                            cur_depth->numVids + 1, sizeof(VisualID));
         if (!vids) {
             EPHYR_LOG_ERROR("failed to realloc numids\n");
             goto out;

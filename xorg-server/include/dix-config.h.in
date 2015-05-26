@@ -149,6 +149,9 @@
 /* Define to 1 if you have the <ndir.h> header file, and it defines `DIR'. */
 #undef HAVE_NDIR_H
 
+/* Define to 1 if you have the `reallocarray' function. */
+#undef HAVE_REALLOCARRAY
+
 /* Define to 1 if you have the <rpcsvc/dbm.h> header file. */
 #undef HAVE_RPCSVC_DBM_H
 
@@ -388,8 +391,14 @@
 /* Vendor name */
 #undef XVENDORNAME
 
+/* Number of bits in a file offset, on hosts where this is settable. */
+#undef _FILE_OFFSET_BITS
+
 /* Enable GNU and other extensions to the C environment for GLIBC */
 #undef _GNU_SOURCE
+
+/* Define for large files, on AIX-style hosts. */
+#undef _LARGE_FILES
 
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const
@@ -453,9 +462,6 @@
 
 /* Define to __typeof__ if your compiler spells it that way. */
 #undef typeof
-
-/* The compiler supported TLS storage class, prefering initial-exec if tls_model is supported */
-#undef TLS
 
 /* Correctly set _XSERVER64 for OSX fat binaries */
 #ifdef __APPLE__

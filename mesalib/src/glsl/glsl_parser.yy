@@ -215,6 +215,7 @@ static bool match_layout_qualifier(const char *s1, const char *s2,
 %type <type_qualifier> layout_qualifier
 %type <type_qualifier> layout_qualifier_id_list layout_qualifier_id
 %type <type_qualifier> interface_block_layout_qualifier
+%type <type_qualifier> memory_qualifier
 %type <type_qualifier> interface_qualifier
 %type <type_specifier> type_specifier
 %type <type_specifier> type_specifier_nonarray
@@ -1001,6 +1002,11 @@ parameter_qualifier:
       $$ = $2;
       $$.precision = $1;
    }
+   | memory_qualifier parameter_qualifier
+   {
+      $$ = $1;
+      $$.merge_qualifier(&@1, state, $2);
+   }
 
 parameter_direction_qualifier:
    IN_TOK
@@ -1361,6 +1367,21 @@ layout_qualifier_id:
 
          if (!$$.flags.i &&
              match_layout_qualifier($1, "early_fragment_tests", state) == 0) {
+            /* From section 4.4.1.3 of the GLSL 4.50 specification
+             * (Fragment Shader Inputs):
+             *
+             *  "Fragment shaders also allow the following layout
+             *   qualifier on in only (not with variable declarations)
+             *     layout-qualifier-id
+             *        early_fragment_tests
+             *   [...]"
+             */
+            if (state->stage != MESA_SHADER_FRAGMENT) {
+               _mesa_glsl_error(& @1, state,
+                                "early_fragment_tests layout qualifier only "
+                                "valid in fragment shaders");
+            }
+
             $$.flags.q.early_fragment_tests = 1;
          }
       }
@@ -1405,13 +1426,13 @@ layout_qualifier_id:
       }
 
       if ((state->ARB_shading_language_420pack_enable ||
-           state->ARB_shader_atomic_counters_enable) &&
+           state->has_atomic_counters()) &&
           match_layout_qualifier("binding", $1, state) == 0) {
          $$.flags.q.explicit_binding = 1;
          $$.binding = $3;
       }
 
-      if (state->ARB_shader_atomic_counters_enable &&
+      if (state->has_atomic_counters() &&
           match_layout_qualifier("offset", $1, state) == 0) {
          $$.flags.q.explicit_offset = 1;
          $$.offset = $3;
@@ -1582,6 +1603,7 @@ type_qualifier:
    | storage_qualifier
    | interpolation_qualifier
    | layout_qualifier
+   | memory_qualifier
    | precision_qualifier
    {
       memset(&$$, 0, sizeof($$));
@@ -1719,6 +1741,11 @@ type_qualifier:
       $$ = $2;
       $$.precision = $1;
    }
+   | memory_qualifier type_qualifier
+   {
+      $$ = $1;
+      $$.merge_qualifier(&@1, state, $2);
+   }
    ;
 
 auxiliary_storage_qualifier:
@@ -1779,7 +1806,10 @@ storage_qualifier:
       memset(& $$, 0, sizeof($$));
       $$.flags.q.uniform = 1;
    }
-   | COHERENT
+   ;
+
+memory_qualifier:
+   COHERENT
    {
       memset(& $$, 0, sizeof($$));
       $$.flags.q.coherent = 1;
