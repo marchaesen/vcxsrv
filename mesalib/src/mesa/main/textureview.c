@@ -167,7 +167,7 @@ static const struct internal_format_class_info s3tc_compatible_internal_formats[
  * \return VIEW_CLASS if internalformat found in table, false otherwise.
  */
 static GLenum
-lookup_view_class(struct gl_context *ctx, GLenum internalformat)
+lookup_view_class(const struct gl_context *ctx, GLenum internalformat)
 {
    GLuint i;
 
@@ -176,9 +176,11 @@ lookup_view_class(struct gl_context *ctx, GLenum internalformat)
          return compatible_internal_formats[i].view_class;
    }
 
-   if (ctx->Extensions.EXT_texture_compression_s3tc && ctx->Extensions.EXT_texture_sRGB) {
+   if (ctx->Extensions.EXT_texture_compression_s3tc &&
+       ctx->Extensions.EXT_texture_sRGB) {
       for (i = 0; i < ARRAY_SIZE(s3tc_compatible_internal_formats); i++) {
-         if (s3tc_compatible_internal_formats[i].internal_format == internalformat)
+         if (s3tc_compatible_internal_formats[i].internal_format
+             == internalformat)
             return s3tc_compatible_internal_formats[i].view_class;
       }
    }
@@ -226,7 +228,8 @@ initialize_texture_fields(struct gl_context *ctx,
                                     0, internalFormat, texFormat);
       }
 
-      _mesa_next_mipmap_level_size(target, 0, levelWidth, levelHeight, levelDepth,
+      _mesa_next_mipmap_level_size(target, 0,
+                                   levelWidth, levelHeight, levelDepth,
                                    &levelWidth, &levelHeight, &levelDepth);
    }
 
@@ -320,8 +323,8 @@ target_valid(struct gl_context *ctx, GLenum origTarget, GLenum newTarget)
  * If an error is found, record it with _mesa_error()
  * \return false if any error, true otherwise.
  */
-GLboolean
-_mesa_texture_view_compatible_format(struct gl_context *ctx,
+bool
+_mesa_texture_view_compatible_format(const struct gl_context *ctx,
                                      GLenum origInternalFormat,
                                      GLenum newInternalFormat)
 {
@@ -334,15 +337,16 @@ _mesa_texture_view_compatible_format(struct gl_context *ctx,
     * or an INVALID_OPERATION error is generated.
     */
    if (origInternalFormat == newInternalFormat)
-      return GL_TRUE;
+      return true;
 
    origViewClass = lookup_view_class(ctx, origInternalFormat);
    newViewClass = lookup_view_class(ctx, newInternalFormat);
    if ((origViewClass == newViewClass) && origViewClass != false)
-      return GL_TRUE;
+      return true;
 
-   return GL_FALSE;
+   return false;
 }
+
 /**
  * Helper function for TexStorage and teximagemultisample to set immutable
  * texture state needed by ARB_texture_view.
@@ -357,17 +361,19 @@ _mesa_set_texture_view_state(struct gl_context *ctx,
    /* Get a reference to what will become this View's base level */
    texImage = _mesa_select_tex_image(texObj, target, 0);
 
-   /* When an immutable texture is created via glTexStorage or glTexImageMultisample,
+   /* When an immutable texture is created via glTexStorage or
+    * glTexImageMultisample,
     * TEXTURE_IMMUTABLE_FORMAT becomes TRUE.
     * TEXTURE_IMMUTABLE_LEVELS and TEXTURE_VIEW_NUM_LEVELS become levels.
     * If the texture target is TEXTURE_1D_ARRAY then
     * TEXTURE_VIEW_NUM_LAYERS becomes height.
     * If the texture target is TEXTURE_2D_ARRAY, TEXTURE_CUBE_MAP_ARRAY,
-    * or TEXTURE_2D_MULTISAMPLE_ARRAY then TEXTURE_VIEW_NUM_LAYERS becomes depth.
+    * or TEXTURE_2D_MULTISAMPLE_ARRAY then TEXTURE_VIEW_NUM_LAYERS becomes
+    * depth.
     * If the texture target is TEXTURE_CUBE_MAP, then
     * TEXTURE_VIEW_NUM_LAYERS becomes 6.
     * For any other texture target, TEXTURE_VIEW_NUM_LAYERS becomes 1.
-    * 
+    *
     * ARB_texture_multisample: Multisample textures do
     * not have multiple image levels.
     */
@@ -401,7 +407,6 @@ _mesa_set_texture_view_state(struct gl_context *ctx,
    case GL_TEXTURE_CUBE_MAP:
       texObj->NumLayers = 6;
       break;
-
    }
 }
 
@@ -435,16 +440,20 @@ _mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
                   minlevel, numlevels, minlayer, numlayers);
 
    if (origtexture == 0) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glTextureView(origtexture = %u)", origtexture);
+      _mesa_error(ctx, GL_INVALID_VALUE, "glTextureView(origtexture = %u)",
+                  origtexture);
       return;
    }
 
    /* Need original texture information to validate arguments */
    origTexObj = _mesa_lookup_texture(ctx, origtexture);
 
-   /* If <origtexture> is not the name of a texture, INVALID_VALUE is generated. */
+   /* If <origtexture> is not the name of a texture, INVALID_VALUE
+    * is generated.
+    */
    if (!origTexObj) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glTextureView(origtexture = %u)", origtexture);
+      _mesa_error(ctx, GL_INVALID_VALUE, "glTextureView(origtexture = %u)",
+                  origtexture);
       return;
    }
 
@@ -452,7 +461,8 @@ _mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
     * INVALID_OPERATION is generated.
     */
    if (!origTexObj->Immutable) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glTextureView(origtexture not immutable)");
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glTextureView(origtexture not immutable)");
       return;
    }
 
@@ -467,7 +477,8 @@ _mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
     */
    texObj = _mesa_lookup_texture(ctx, texture);
    if (texObj == NULL) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glTextureView(texture = %u non-gen name)", texture);
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glTextureView(texture = %u non-gen name)", texture);
       return;
    }
 
@@ -475,7 +486,8 @@ _mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
     * the error INVALID_OPERATION is generated.
     */
    if (texObj->Target) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glTextureView(texture = %u already bound)", texture);
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glTextureView(texture = %u already bound)", texture);
       return;
    }
 
@@ -484,33 +496,35 @@ _mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
       return; /* error was recorded */
    }
 
-   /* minlevel and minlayer are relative to the view of origtexture
+   /* minlevel and minlayer are relative to the view of origtexture.
     * If minlevel or minlayer is greater than level or layer, respectively,
-    * of origtexture return INVALID_VALUE.
+    * return INVALID_VALUE.
     */
    newViewMinLevel = origTexObj->MinLevel + minlevel;
    newViewMinLayer = origTexObj->MinLayer + minlayer;
    if (newViewMinLevel >= (origTexObj->MinLevel + origTexObj->NumLevels)) {
       _mesa_error(ctx, GL_INVALID_VALUE,
-                  "glTextureView(new minlevel (%d) > orig minlevel (%d) + orig numlevels (%d))",
+                  "glTextureView(new minlevel (%d) > orig minlevel (%d)"
+                  " + orig numlevels (%d))",
                   newViewMinLevel, origTexObj->MinLevel, origTexObj->NumLevels);
       return;
    }
 
    if (newViewMinLayer >= (origTexObj->MinLayer + origTexObj->NumLayers)) {
       _mesa_error(ctx, GL_INVALID_VALUE,
-                  "glTextureView(new minlayer (%d) > orig minlayer (%d) + orig numlayers (%d))",
+                  "glTextureView(new minlayer (%d) > orig minlayer (%d)"
+                  " + orig numlayers (%d))",
                   newViewMinLayer, origTexObj->MinLayer, origTexObj->NumLayers);
       return;
    }
 
    if (!_mesa_texture_view_compatible_format(ctx,
-                                             origTexObj->Image[0][0]->InternalFormat,
-                                             internalformat)) {
+                                   origTexObj->Image[0][0]->InternalFormat,
+                                   internalformat)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glTextureView(internalformat %s not compatible with origtexture %s)",
-                  _mesa_lookup_enum_by_nr(internalformat),
-                  _mesa_lookup_enum_by_nr(origTexObj->Image[0][0]->InternalFormat));
+          "glTextureView(internalformat %s not compatible with origtexture %s)",
+          _mesa_lookup_enum_by_nr(internalformat),
+          _mesa_lookup_enum_by_nr(origTexObj->Image[0][0]->InternalFormat));
       return;
    }
 
@@ -569,14 +583,16 @@ _mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
    dimensionsOK = _mesa_legal_texture_dimensions(ctx, target, 0,
                                                  width, height, depth, 0);
    if (!dimensionsOK) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glTextureView(invalid width or height or depth)");
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glTextureView(invalid width or height or depth)");
       return;
    }
 
    sizeOK = ctx->Driver.TestProxyTexImage(ctx, target, 0, texFormat,
                                           width, height, depth, 0);
    if (!sizeOK) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glTextureView(invalid texture size)");
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glTextureView(invalid texture size)");
       return;
    }
 
@@ -591,17 +607,19 @@ _mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
    case GL_TEXTURE_RECTANGLE:
    case GL_TEXTURE_2D_MULTISAMPLE:
       if (numlayers != 1) {
-         _mesa_error(ctx, GL_INVALID_VALUE, "glTextureView(numlayers %d != 1)", numlayers);
+         _mesa_error(ctx, GL_INVALID_VALUE, "glTextureView(numlayers %d != 1)",
+                     numlayers);
          return;
       }
       break;
 
    case GL_TEXTURE_CUBE_MAP:
-      /* If the new texture's target is TEXTURE_CUBE_MAP, the clamped <numlayers>
-       * must be equal to 6.
+      /* If the new texture's target is TEXTURE_CUBE_MAP, the clamped
+       * <numlayers> must be equal to 6.
        */
       if (newViewNumLayers != 6) {
-         _mesa_error(ctx, GL_INVALID_VALUE, "glTextureView(clamped numlayers %d != 6)",
+         _mesa_error(ctx, GL_INVALID_VALUE,
+                     "glTextureView(clamped numlayers %d != 6)",
                      newViewNumLayers);
          return;
       }
@@ -615,7 +633,8 @@ _mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
        */
       if ((newViewNumLayers % 6) != 0) {
          _mesa_error(ctx, GL_INVALID_VALUE,
-                     "glTextureView(clamped numlayers %d is not a multiple of 6)",
+                     "glTextureView(clamped numlayers %d is not"
+                     " a multiple of 6)",
                      newViewNumLayers);
          return;
       }
@@ -628,7 +647,8 @@ _mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
     */
    if ((target == GL_TEXTURE_CUBE_MAP || target == GL_TEXTURE_CUBE_MAP_ARRAY) &&
        (origTexImage->Width != origTexImage->Height)) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glTextureView(origtexture width (%d) != height (%d))",
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glTextureView(origtexture width (%d) != height (%d))",
                   origTexImage->Width, origTexImage->Height);
       return;
    }
@@ -662,7 +682,8 @@ _mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
    texObj->ImmutableLevels = origTexObj->ImmutableLevels;
    texObj->Target = target;
 
-   if (ctx->Driver.TextureView != NULL && !ctx->Driver.TextureView(ctx, texObj, origTexObj)) {
+   if (ctx->Driver.TextureView != NULL &&
+       !ctx->Driver.TextureView(ctx, texObj, origTexObj)) {
       return; /* driver recorded error */
    }
 }

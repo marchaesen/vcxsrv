@@ -207,7 +207,7 @@ install_vtxfmt(struct gl_context *ctx, struct _glapi_table *tab,
       SET_VertexAttribP4uiv(tab, vfmt->VertexAttribP4uiv);
    }
 
-   if (_mesa_is_desktop_gl(ctx)) {
+   if (ctx->API == API_OPENGL_CORE) {
       SET_VertexAttribL1d(tab, vfmt->VertexAttribL1d);
       SET_VertexAttribL2d(tab, vfmt->VertexAttribL2d);
       SET_VertexAttribL3d(tab, vfmt->VertexAttribL3d);

@@ -69,4 +69,5 @@ FC_OBJECT (PRGNAME,		FcTypeString,	NULL)
 FC_OBJECT (HASH,		FcTypeString,	NULL)	/* deprecated */
 FC_OBJECT (POSTSCRIPT_NAME,	FcTypeString,	FcComparePostScript)
 FC_OBJECT (COLOR,		FcTypeBool,	FcCompareBool)
+FC_OBJECT (SYMBOL,		FcTypeBool,	FcCompareBool)
 /* ^-------------- Add new objects here. */

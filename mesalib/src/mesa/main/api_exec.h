@@ -38,6 +38,9 @@ _mesa_initialize_exec_table(struct gl_context *ctx);
 extern void
 _mesa_initialize_dispatch_tables(struct gl_context *ctx);
 
+extern struct _glapi_table *
+_mesa_new_nop_table(unsigned numEntries);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif

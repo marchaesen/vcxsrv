@@ -13,21 +13,21 @@
 
     <enum name="BUFFER_OBJECT_APPLE"          value="0x85B3"/>
 
-    <function name="ObjectPurgeableAPPLE" offset="assign">
+    <function name="ObjectPurgeableAPPLE">
         <param name="objectType" type="GLenum"/>
         <param name="name" type="GLuint"/>
         <param name="option" type="GLenum"/>
 	<return type="GLenum"/>
     </function>
 
-    <function name="ObjectUnpurgeableAPPLE" offset="assign">
+    <function name="ObjectUnpurgeableAPPLE">
         <param name="objectType" type="GLenum"/>
         <param name="name" type="GLuint"/>
         <param name="option" type="GLenum"/>
 	<return type="GLenum"/>
     </function>
 
-    <function name="GetObjectParameterivAPPLE" offset="assign">
+    <function name="GetObjectParameterivAPPLE">
         <param name="objectType" type="GLenum"/>
         <param name="name" type="GLuint"/>
         <param name="pname" type="GLenum"/>

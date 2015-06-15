@@ -1199,7 +1199,8 @@ FcFreeTypeQueryFace (const FT_Face  face,
     const char	    *tmp;
 
     FcRange	    *r = NULL;
-    double	    lower_size = 0.0L, upper_size = DBL_MAX;
+
+    FcBool	    symbol = FcFalse;
 
     FcInitDebug (); /* We might be called with no initizalization whatsoever. */
 
@@ -1615,13 +1616,12 @@ FcFreeTypeQueryFace (const FT_Face  face,
 #if defined (HAVE_TT_OS2_USUPPEROPTICALPOINTSIZE) && defined (HAVE_TT_OS2_USLOWEROPTICALPOINTSIZE)
     if (os2 && os2->version >= 0x0005 && os2->version != 0xffff)
     {
+	double lower_size, upper_size;
+
 	/* usLowerPointSize and usUpperPointSize is actually twips */
 	lower_size = os2->usLowerOpticalPointSize / 20.0L;
 	upper_size = os2->usUpperOpticalPointSize / 20.0L;
-    }
-#endif
-    if (os2)
-    {
+
 	r = FcRangeCreateDouble (lower_size, upper_size);
 	if (!FcPatternAddRange (pat, FC_SIZE, r))
 	{
@@ -1630,20 +1630,7 @@ FcFreeTypeQueryFace (const FT_Face  face,
 	}
 	FcRangeDestroy (r);
     }
-    else
-    {
-	for (i = 0; i < face->num_fixed_sizes; i++)
-	{
-	    double d = FcGetPixelSize (face, i);
-	    r = FcRangeCreateDouble (d, d);
-	    if (!FcPatternAddRange (pat, FC_SIZE, r))
-	    {
-		FcRangeDestroy (r);
-		goto bail1;
-	    }
-	    FcRangeDestroy (r);
-	}
-    }
+#endif
 
     /*
      * Type 1: Check for FontInfo dictionary information
@@ -1803,6 +1790,11 @@ FcFreeTypeQueryFace (const FT_Face  face,
     if (!cs)
 	goto bail1;
 
+    /* The FcFreeTypeCharSetAndSpacing() chose the encoding; test it for symbol. */
+    symbol = face->charmap && face->charmap->encoding == FT_ENCODING_MS_SYMBOL;
+    if (!FcPatternAddBool (pat, FC_SYMBOL, symbol))
+	goto bail1;
+
 #if HAVE_FT_GET_BDF_PROPERTY
     /* For PCF fonts, override the computed spacing with the one from
        the property */
@@ -1835,9 +1827,18 @@ FcFreeTypeQueryFace (const FT_Face  face,
     if (!FcPatternAddCharSet (pat, FC_CHARSET, cs))
 	goto bail2;
 
-    ls = FcFreeTypeLangSet (cs, exclusiveLang);
-    if (!ls)
-	goto bail2;
+    if (!symbol)
+    {
+	ls = FcFreeTypeLangSet (cs, exclusiveLang);
+	if (!ls)
+	    goto bail2;
+    }
+    else
+    {
+	/* Symbol fonts don't cover any language, even though they
+	 * claim to support Latin1 range. */
+	ls = FcLangSetCreate ();
+    }
 
     if (!FcPatternAddLangSet (pat, FC_LANG, ls))
     {
@@ -2093,6 +2094,22 @@ FcFreeTypeCharIndex (FT_Face face, FcChar32 ucs4)
 	glyphindex = FT_Get_Char_Index (face, (FT_ULong) ucs4);
 	if (glyphindex)
 	    return glyphindex;
+	if (ucs4 < 0x100 && face->charmap &&
+	    face->charmap->encoding == FT_ENCODING_MS_SYMBOL)
+	{
+	    /* For symbol-encoded OpenType fonts, we duplicate the
+	     * U+F000..F0FF range at U+0000..U+00FF.  That's what
+	     * Windows seems to do, and that's hinted about at:
+	     * http://www.microsoft.com/typography/otspec/recom.htm
+	     * under "Non-Standard (Symbol) Fonts".
+	     *
+	     * See thread with subject "Webdings and other MS symbol
+	     * fonts don't display" on mailing list from May 2015.
+	     */
+	    glyphindex = FT_Get_Char_Index (face, (FT_ULong) ucs4 + 0xF000);
+	    if (glyphindex)
+		return glyphindex;
+	}
     }
 #if HAVE_FT_HAS_PS_GLYPH_NAMES
     /*
@@ -2253,6 +2270,23 @@ FcFreeTypeCharSetAndSpacingForSize (FT_Face face, FcBlanks *blanks, int *spacing
 		}
 		ucs4 = FT_Get_Next_Char (face, ucs4, &glyph);
 	    }
+	    if (fcFontEncodings[o] == FT_ENCODING_MS_SYMBOL)
+	    {
+		/* For symbol-encoded OpenType fonts, we duplicate the
+		 * U+F000..F0FF range at U+0000..U+00FF.  That's what
+		 * Windows seems to do, and that's hinted about at:
+		 * http://www.microsoft.com/typography/otspec/recom.htm
+		 * under "Non-Standard (Symbol) Fonts".
+		 *
+		 * See thread with subject "Webdings and other MS symbol
+		 * fonts don't display" on mailing list from May 2015.
+		 */
+		for (ucs4 = 0xF000; ucs4 < 0xF100; ucs4++)
+		{
+		    if (FcCharSetHasChar (fcs, ucs4))
+			FcCharSetAddChar (fcs, ucs4 - 0xF000);
+		}
+	    }
 #ifdef CHECK
 	    for (ucs4 = 0; ucs4 < 0x10000; ucs4++)
 	    {
@@ -2267,6 +2301,8 @@ FcFreeTypeCharSetAndSpacingForSize (FT_Face face, FcBlanks *blanks, int *spacing
 	    }
 #endif
 	}
+
+       break;
     }
 #if HAVE_FT_HAS_PS_GLYPH_NAMES
     /*

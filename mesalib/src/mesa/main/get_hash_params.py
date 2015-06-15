@@ -409,6 +409,12 @@ descriptor=[
   [ "SAMPLER_BINDING", "LOC_CUSTOM, TYPE_INT, GL_SAMPLER_BINDING, NO_EXTRA" ],
 ]},
 
+# Enums in OpenGL Core profile and ES 3.1
+{ "apis": ["GL_CORE", "GLES3"], "params": [
+# GL_ARB_draw_indirect / GLES 3.1
+  [ "DRAW_INDIRECT_BUFFER_BINDING", "LOC_CUSTOM, TYPE_INT, 0, extra_ARB_draw_indirect_es31" ],
+]},
+
 # Remaining enums are only in OpenGL
 { "apis": ["GL", "GL_CORE"], "params": [
   [ "ACCUM_RED_BITS", "BUFFER_INT(Visual.accumRedBits), NO_EXTRA" ],
@@ -804,8 +810,6 @@ descriptor=[
 { "apis": ["GL_CORE"], "params": [
 # GL_ARB_texture_buffer_range
   [ "TEXTURE_BUFFER_OFFSET_ALIGNMENT", "CONTEXT_INT(Const.TextureBufferOffsetAlignment), extra_ARB_texture_buffer_range" ],
-# GL_ARB_draw_indirect
-  [ "DRAW_INDIRECT_BUFFER_BINDING", "LOC_CUSTOM, TYPE_INT, 0, extra_ARB_draw_indirect" ],
 
 # GL_ARB_viewport_array
   [ "MAX_VIEWPORTS", "CONTEXT_INT(Const.MaxViewports), extra_ARB_viewport_array" ],

@@ -265,6 +265,8 @@ clear_with_quad(struct gl_context *ctx, unsigned clear_buffers)
    cso_save_fragment_shader(st->cso_context);
    cso_save_stream_outputs(st->cso_context);
    cso_save_vertex_shader(st->cso_context);
+   cso_save_tessctrl_shader(st->cso_context);
+   cso_save_tesseval_shader(st->cso_context);
    cso_save_geometry_shader(st->cso_context);
    cso_save_vertex_elements(st->cso_context);
    cso_save_aux_vertex_buffer_slot(st->cso_context);
@@ -347,6 +349,8 @@ clear_with_quad(struct gl_context *ctx, unsigned clear_buffers)
    }
 
    set_fragment_shader(st);
+   cso_set_tessctrl_shader_handle(st->cso_context, NULL);
+   cso_set_tesseval_shader_handle(st->cso_context, NULL);
 
    if (num_layers > 1)
       set_vertex_shader_layered(st);
@@ -371,6 +375,8 @@ clear_with_quad(struct gl_context *ctx, unsigned clear_buffers)
    cso_restore_viewport(st->cso_context);
    cso_restore_fragment_shader(st->cso_context);
    cso_restore_vertex_shader(st->cso_context);
+   cso_restore_tessctrl_shader(st->cso_context);
+   cso_restore_tesseval_shader(st->cso_context);
    cso_restore_geometry_shader(st->cso_context);
    cso_restore_vertex_elements(st->cso_context);
    cso_restore_aux_vertex_buffer_slot(st->cso_context);

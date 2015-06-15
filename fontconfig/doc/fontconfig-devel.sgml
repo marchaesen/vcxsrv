@@ -177,6 +177,7 @@ convenience for the application's rendering mechanism.
     scalable       FC_SCALABLE            Bool    Whether glyphs can be scaled
     scale          FC_SCALE               Double  Scale factor for point->pixel
                                                   conversions (deprecated)
+    symbol         FC_SYMBOL              Bool    Whether font uses MS symbol-font encoding
     color          FC_COLOR               Bool    Whether any glyphs have color
     dpi            FC_DPI                 Double  Target dots per inch
     rgba           FC_RGBA                Int     unknown, rgb, bgr, vrgb,

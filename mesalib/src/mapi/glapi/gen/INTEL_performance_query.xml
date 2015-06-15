@@ -5,21 +5,21 @@
 
 <category name="GL_INTEL_performance_query" number="443">
 
-  <function name="GetFirstPerfQueryIdINTEL" offset="assign" static_dispatch="false" es2="2.0">
+  <function name="GetFirstPerfQueryIdINTEL" es2="2.0">
     <param name="queryId" type="GLuint *"/>
   </function>
 
-  <function name="GetNextPerfQueryIdINTEL" offset="assign" static_dispatch="false" es2="2.0">
+  <function name="GetNextPerfQueryIdINTEL" es2="2.0">
     <param name="queryId" type="GLuint"/>
     <param name="nextQueryId" type="GLuint *"/>
   </function>
 
-  <function name="GetPerfQueryIdByNameINTEL" offset="assign" static_dispatch="false" es2="2.0">
+  <function name="GetPerfQueryIdByNameINTEL" es2="2.0">
     <param name="queryName" type="GLchar *"/>
     <param name="queryId" type="GLuint *"/>
   </function>
 
-  <function name="GetPerfQueryInfoINTEL" offset="assign" static_dispatch="false" es2="2.0">
+  <function name="GetPerfQueryInfoINTEL" es2="2.0">
     <param name="queryId" type="GLuint"/>
     <param name="queryNameLength" type="GLuint"/>
     <param name="queryName" type="GLchar *"/>
@@ -29,7 +29,7 @@
     <param name="capsMask" type="GLuint *"/>
   </function>
 
-  <function name="GetPerfCounterInfoINTEL" offset="assign" static_dispatch="false" es2="2.0">
+  <function name="GetPerfCounterInfoINTEL" es2="2.0">
     <param name="queryId" type="GLuint"/>
     <param name="counterId" type="GLuint"/>
     <param name="counterNameLength" type="GLuint"/>
@@ -43,24 +43,24 @@
     <param name="rawCounterMaxValue" type="GLuint64 *"/>
   </function>
 
-  <function name="CreatePerfQueryINTEL" offset="assign" static_dispatch="false" es2="2.0">
+  <function name="CreatePerfQueryINTEL" es2="2.0">
     <param name="queryId" type="GLuint"/>
     <param name="queryHandle" type="GLuint *"/>
   </function>
 
-  <function name="DeletePerfQueryINTEL" offset="assign" static_dispatch="false" es2="2.0">
+  <function name="DeletePerfQueryINTEL" es2="2.0">
     <param name="queryHandle" type="GLuint"/>
   </function>
 
-  <function name="BeginPerfQueryINTEL" offset="assign" static_dispatch="false" es2="2.0">
+  <function name="BeginPerfQueryINTEL" es2="2.0">
     <param name="queryHandle" type="GLuint"/>
   </function>
 
-  <function name="EndPerfQueryINTEL" offset="assign" static_dispatch="false" es2="2.0">
+  <function name="EndPerfQueryINTEL" es2="2.0">
     <param name="queryHandle" type="GLuint"/>
   </function>
 
-  <function name="GetPerfQueryDataINTEL" offset="assign" static_dispatch="false" es2="2.0">
+  <function name="GetPerfQueryDataINTEL" es2="2.0">
     <param name="queryHandle" type="GLuint"/>
     <param name="flags" type="GLuint"/>
     <param name="dataSize" type="GLsizei"/>

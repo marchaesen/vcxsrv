@@ -8,8 +8,7 @@
 
     <enum name="NUM_SAMPLE_COUNTS"                        value="0x9380"/>
 
-    <function name="GetInternalformativ" offset="assign" static_dispatch="false"
-              es2="3.0">
+    <function name="GetInternalformativ" es2="3.0">
         <param name="target" type="GLenum"/>
         <param name="internalformat" type="GLenum"/>
         <param name="pname" type="GLenum"/>

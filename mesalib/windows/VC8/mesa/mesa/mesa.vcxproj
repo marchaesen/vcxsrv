@@ -373,6 +373,7 @@
     <ClCompile Include="..\..\..\..\src\mesa\main\get.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\getstring.c" />
     <ClCompile Include="..\..\..\..\src\mesa\main\hash.c" />
+    <ClCompile Include="..\..\..\..\src\mesa\program\dummy_errors.c" />
     <ClCompile Include="..\..\..\..\src\mesa\program\ir_to_mesa.cpp" />
     <ClCompile Include="..\..\..\..\src\mesa\program\prog_hash_table.c" />
     <ClCompile Include="..\..\..\..\src\mesa\program\string_to_uint_map.cpp" />

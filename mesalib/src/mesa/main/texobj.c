@@ -1317,13 +1317,6 @@ _mesa_CreateTextures(GLenum target, GLsizei n, GLuint *textures)
    GLint targetIndex;
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glCreateTextures(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
-
    /*
     * The 4.5 core profile spec (30.10.2014) doesn't specify what
     * glCreateTextures should do with invalid targets, which was probably an
@@ -1814,13 +1807,6 @@ _mesa_BindTextureUnit(GLuint unit, GLuint texture)
    if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
       _mesa_debug(ctx, "glBindTextureUnit %s %d\n",
                   _mesa_lookup_enum_by_nr(GL_TEXTURE0+unit), (GLint) texture);
-
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glBindTextureUnit(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
 
    /* Section 8.1 (Texture Objects) of the OpenGL 4.5 core profile spec
     * (20141030) says:

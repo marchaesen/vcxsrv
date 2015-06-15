@@ -496,12 +496,12 @@ parseline(
             token = nexttoken(fp, tokenbuf, &lastch);
             if (token != KEY && token != STRING)
                 goto error;
-            if ((filename = TransFileName(im, tokenbuf)) == NULL)
-                goto error;
             if (++depth > 100)
                 goto error;
+            if ((filename = TransFileName(im, tokenbuf)) == NULL)
+                goto error;
             infp = _XFopenFile(filename, "r");
-                Xfree(filename);
+            Xfree(filename);
             if (infp == NULL)
                 goto error;
             parsestringfile(infp, im, depth);

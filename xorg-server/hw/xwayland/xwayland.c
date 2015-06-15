@@ -483,7 +483,7 @@ listen_on_fds(struct xwl_screen *xwl_screen)
     int i;
 
     for (i = 0; i < xwl_screen->listen_fd_count; i++)
-        ListenOnOpenFD(xwl_screen->listen_fds[i], TRUE);
+        ListenOnOpenFD(xwl_screen->listen_fds[i], FALSE);
 }
 
 static void
@@ -702,4 +702,6 @@ InitOutput(ScreenInfo * screen_info, int argc, char **argv)
     if (AddScreen(xwl_screen_init, argc, argv) == -1) {
         FatalError("Couldn't add screen\n");
     }
+
+    LocalAccessScopeUser();
 }

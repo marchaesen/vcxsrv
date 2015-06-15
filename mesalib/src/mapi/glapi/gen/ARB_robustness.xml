@@ -20,26 +20,26 @@
 
     <enum name="CONTEXT_FLAG_ROBUST_ACCESS_BIT_ARB"       value="0x00000004"/>
 
-    <function name="GetGraphicsResetStatusARB" offset="assign">
+    <function name="GetGraphicsResetStatusARB">
         <return type="GLenum"/>
     </function>
 
 <!-- OpenGL 1.0 sized buffer queries -->
-    <function name="GetnMapdvARB" offset="assign" deprecated="3.1">
+    <function name="GetnMapdvARB" deprecated="3.1">
         <param name="target" type="GLenum"/>
         <param name="query" type="GLenum"/>
         <param name="bufSize" type="GLsizei"/>
         <param name="v" type="GLdouble *" output="true"/>
     </function>
 
-    <function name="GetnMapfvARB" offset="assign" deprecated="3.1">
+    <function name="GetnMapfvARB" deprecated="3.1">
         <param name="target" type="GLenum"/>
         <param name="query" type="GLenum"/>
         <param name="bufSize" type="GLsizei"/>
         <param name="v" type="GLfloat *" output="true"/>
     </function>
 
-    <function name="GetnMapivARB" offset="assign" deprecated="3.1">
+    <function name="GetnMapivARB" deprecated="3.1">
         <param name="target" type="GLenum"/>
         <param name="query" type="GLenum"/>
         <param name="bufSize" type="GLsizei"/>
@@ -48,19 +48,19 @@
 
 
 
-    <function name="GetnPixelMapfvARB" offset="assign" deprecated="3.1">
+    <function name="GetnPixelMapfvARB" deprecated="3.1">
         <param name="map" type="GLenum"/>
         <param name="bufSize" type="GLsizei"/>
         <param name="values" type="GLfloat *" output="true"/>
     </function>
 
-    <function name="GetnPixelMapuivARB" offset="assign" deprecated="3.1">
+    <function name="GetnPixelMapuivARB" deprecated="3.1">
         <param name="map" type="GLenum"/>
         <param name="bufSize" type="GLsizei"/>
         <param name="values" type="GLuint *" output="true"/>
     </function>
 
-    <function name="GetnPixelMapusvARB" offset="assign" deprecated="3.1">
+    <function name="GetnPixelMapusvARB" deprecated="3.1">
         <param name="map" type="GLenum"/>
         <param name="bufSize" type="GLsizei"/>
         <param name="values" type="GLushort *" output="true"/>
@@ -68,12 +68,12 @@
 
 
 
-    <function name="GetnPolygonStippleARB" offset="assign">
+    <function name="GetnPolygonStippleARB">
         <param name="bufSize" type="GLsizei"/>
         <param name="pattern" type="GLubyte *" output="true"/>
     </function>
 
-    <function name="GetnTexImageARB" offset="assign">
+    <function name="GetnTexImageARB">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="format" type="GLenum"/>
@@ -82,7 +82,7 @@
         <param name="img" type="GLvoid *" output="true"/>
     </function>
 
-    <function name="ReadnPixelsARB" offset="assign">
+    <function name="ReadnPixelsARB">
         <param name="x" type="GLint"/>
         <param name="y" type="GLint"/>
         <param name="width" type="GLsizei"/>
@@ -95,7 +95,7 @@
 
 
 <!-- ARB_imaging sized buffer queries -->
-    <function name="GetnColorTableARB" offset="assign" deprecated="3.1">
+    <function name="GetnColorTableARB" deprecated="3.1">
         <param name="target" type="GLenum"/>
         <param name="format" type="GLenum"/>
         <param name="type" type="GLenum"/>
@@ -103,7 +103,7 @@
         <param name="table" type="GLvoid *" output="true"/>
     </function>
 
-    <function name="GetnConvolutionFilterARB" offset="assign" deprecated="3.1">
+    <function name="GetnConvolutionFilterARB" deprecated="3.1">
         <param name="target" type="GLenum"/>
         <param name="format" type="GLenum"/>
         <param name="type" type="GLenum"/>
@@ -111,7 +111,7 @@
         <param name="image" type="GLvoid *" output="true"/>
     </function>
 
-    <function name="GetnSeparableFilterARB" offset="assign" deprecated="3.1">
+    <function name="GetnSeparableFilterARB" deprecated="3.1">
         <param name="target" type="GLenum"/>
         <param name="format" type="GLenum"/>
         <param name="type" type="GLenum"/>
@@ -122,7 +122,7 @@
         <param name="span" type="GLvoid *" output="true"/>
     </function>
 
-    <function name="GetnHistogramARB" offset="assign" deprecated="3.1">
+    <function name="GetnHistogramARB" deprecated="3.1">
         <param name="target" type="GLenum"/>
         <param name="reset" type="GLboolean"/>
         <param name="format" type="GLenum"/>
@@ -131,7 +131,7 @@
         <param name="values" type="GLvoid *" output="true"/>
     </function>
 
-    <function name="GetnMinmaxARB" offset="assign" deprecated="3.1">
+    <function name="GetnMinmaxARB" deprecated="3.1">
         <param name="target" type="GLenum"/>
         <param name="reset" type="GLboolean"/>
         <param name="format" type="GLenum"/>
@@ -142,7 +142,7 @@
 
 
 <!-- OpenGL 1.3 sized buffer queries -->
-    <function name="GetnCompressedTexImageARB" offset="assign">
+    <function name="GetnCompressedTexImageARB">
         <param name="target" type="GLenum"/>
         <param name="lod" type="GLint"/>
         <param name="bufSize" type="GLsizei"/>
@@ -151,28 +151,28 @@
 
 
 <!-- OpenGL 2.0 sized buffer queries -->
-    <function name="GetnUniformfvARB" offset="assign">
+    <function name="GetnUniformfvARB">
         <param name="program" type="GLuint"/>
         <param name="location" type="GLint"/>
         <param name="bufSize" type="GLsizei"/>
         <param name="params" type="GLfloat *" output="true"/>
     </function>
 
-    <function name="GetnUniformivARB" offset="assign">
+    <function name="GetnUniformivARB">
         <param name="program" type="GLuint"/>
         <param name="location" type="GLint"/>
         <param name="bufSize" type="GLsizei"/>
         <param name="params" type="GLint *" output="true"/>
     </function>
 
-    <function name="GetnUniformuivARB" offset="assign">
+    <function name="GetnUniformuivARB">
         <param name="program" type="GLuint"/>
         <param name="location" type="GLint"/>
         <param name="bufSize" type="GLsizei"/>
         <param name="params" type="GLuint *" output="true"/>
     </function>
 
-    <function name="GetnUniformdvARB" offset="assign">
+    <function name="GetnUniformdvARB">
         <param name="program" type="GLuint"/>
         <param name="location" type="GLint"/>
         <param name="bufSize" type="GLsizei"/>

@@ -1,10 +1,10 @@
 ./glX_server_table.py -f gl_and_glX_API.xml > indirect_table.c
-./glX_proto_size.py -m size_h --only-set -h _INDIRECT_SIZE_H_ > indirect_size.h
+./glX_proto_size.py -m size_h --only-set --header-tag _INDIRECT_SIZE_H_ > indirect_size.h
 ./glX_proto_size.py -m size_c --only-set > indirect_size.c
-./glX_proto_size.py -m size_h --only-get -h _INDIRECT_SIZE_GET_H_ > indirect_size_get.h
+./glX_proto_size.py -m size_h --only-get --header-tag _INDIRECT_SIZE_GET_H_ > indirect_size_get.h
 ./glX_proto_size.py -m size_c --only-get > indirect_size_get.c
 ./glX_proto_size.py -m reqsize_c > indirect_reqsize.c
-./glX_proto_size.py -m reqsize_h --only-get -h _INDIRECT_SIZE_GET_H_ > indirect_reqsize.h
+./glX_proto_size.py -m reqsize_h --only-get --header-tag _INDIRECT_SIZE_GET_H_ > indirect_reqsize.h
 ./glX_proto_recv.py -m dispatch_c > indirect_dispatch.c
 ./glX_proto_recv.py -m dispatch_c -s > indirect_dispatch_swap.c
 ./glX_proto_recv.py -m dispatch_h -f gl_and_glX_API.xml -s > indirect_dispatch.h

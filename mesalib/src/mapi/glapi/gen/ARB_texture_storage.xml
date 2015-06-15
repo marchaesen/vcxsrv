@@ -10,14 +10,14 @@
 
   <enum name="TEXTURE_IMMUTABLE_FORMAT" value="0x912F"/>
 
-  <function name="TexStorage1D" offset="assign">
+  <function name="TexStorage1D">
     <param name="target" type="GLenum"/>
     <param name="levels" type="GLsizei"/>
     <param name="internalFormat" type="GLenum"/>
     <param name="width" type="GLsizei"/>
   </function>
 
-  <function name="TexStorage2D" offset="assign" es2="3.0">
+  <function name="TexStorage2D" es2="3.0">
     <param name="target" type="GLenum"/>
     <param name="levels" type="GLsizei"/>
     <param name="internalFormat" type="GLenum"/>
@@ -25,7 +25,7 @@
     <param name="height" type="GLsizei"/>
   </function>
 
-  <function name="TexStorage3D" offset="assign" es2="3.0">
+  <function name="TexStorage3D" es2="3.0">
     <param name="target" type="GLenum"/>
     <param name="levels" type="GLsizei"/>
     <param name="internalFormat" type="GLenum"/>
@@ -34,7 +34,7 @@
     <param name="depth" type="GLsizei"/>
   </function>
 
-  <function name="TextureStorage1DEXT" offset="assign">
+  <function name="TextureStorage1DEXT">
     <param name="texture" type="GLuint"/>
     <param name="target" type="GLenum"/>
     <param name="levels" type="GLsizei"/>
@@ -42,7 +42,7 @@
     <param name="width" type="GLsizei"/>
   </function>
 
-  <function name="TextureStorage2DEXT" offset="assign">
+  <function name="TextureStorage2DEXT">
     <param name="texture" type="GLuint"/>
     <param name="target" type="GLenum"/>
     <param name="levels" type="GLsizei"/>
@@ -51,7 +51,7 @@
     <param name="height" type="GLsizei"/>
   </function>
 
-  <function name="TextureStorage3DEXT" offset="assign">
+  <function name="TextureStorage3DEXT">
     <param name="texture" type="GLuint"/>
     <param name="target" type="GLenum"/>
     <param name="levels" type="GLsizei"/>

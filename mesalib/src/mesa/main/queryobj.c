@@ -284,13 +284,6 @@ _mesa_CreateQueries(GLenum target, GLsizei n, GLuint *ids)
 {
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glCreateQueries(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
-
    switch (target) {
    case GL_SAMPLES_PASSED:
    case GL_ANY_SAMPLES_PASSED:

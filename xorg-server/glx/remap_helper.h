@@ -2845,7 +2845,7 @@ static const char _mesa_function_pool[] =
    "glSampleMaskSGIS\0"
    "glSampleMaskEXT\0"
    "\0"
-   /* _mesa_function_pool[21047]: FramebufferTextureFaceARB (will be remapped) */
+   /* _mesa_function_pool[21047]: FramebufferTextureFaceARB (dynamic) */
    "iiiii\0"
    "glFramebufferTextureFaceARB\0"
    "\0"
@@ -6974,7 +6974,6 @@ static const struct gl_function_pool_remap MESA_remap_table_functions[] = {
    { 28219, IsRenderbuffer_remap_index },
    {   669, RenderbufferStorage_remap_index },
    { 16529, RenderbufferStorageMultisample_remap_index },
-   { 21047, FramebufferTextureFaceARB_remap_index },
    {  5802, FlushMappedBufferRange_remap_index },
    { 34313, MapBufferRange_remap_index },
    { 14518, BindVertexArray_remap_index },

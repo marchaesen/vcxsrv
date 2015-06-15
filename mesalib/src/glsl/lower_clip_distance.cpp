@@ -114,7 +114,7 @@ lower_clip_distance_visitor::visit(ir_variable *ir)
       return visit_continue;
    assert (ir->type->is_array());
 
-   if (!ir->type->element_type()->is_array()) {
+   if (!ir->type->fields.array->is_array()) {
       /* 1D gl_ClipDistance (used for vertex and geometry output, and fragment
        * input).
        */
@@ -123,7 +123,7 @@ lower_clip_distance_visitor::visit(ir_variable *ir)
 
       this->progress = true;
       this->old_clip_distance_1d_var = ir;
-      assert (ir->type->element_type() == glsl_type::float_type);
+      assert (ir->type->fields.array == glsl_type::float_type);
       unsigned new_size = (ir->type->array_size() + 3) / 4;
 
       /* Clone the old var so that we inherit all of its properties */
@@ -148,8 +148,8 @@ lower_clip_distance_visitor::visit(ir_variable *ir)
 
       this->progress = true;
       this->old_clip_distance_2d_var = ir;
-      assert (ir->type->element_type()->element_type() == glsl_type::float_type);
-      unsigned new_size = (ir->type->element_type()->array_size() + 3) / 4;
+      assert (ir->type->fields.array->fields.array == glsl_type::float_type);
+      unsigned new_size = (ir->type->fields.array->array_size() + 3) / 4;
 
       /* Clone the old var so that we inherit all of its properties */
       this->new_clip_distance_2d_var = ir->clone(ralloc_parent(ir), NULL);

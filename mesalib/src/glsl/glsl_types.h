@@ -228,18 +228,6 @@ struct glsl_type {
    const glsl_type *get_scalar_type() const;
 
    /**
-    * Query the type of elements in an array
-    *
-    * \return
-    * Pointer to the type of elements in the array for array types, or \c NULL
-    * for non-array types.
-    */
-   const glsl_type *element_type() const
-   {
-      return is_array() ? fields.array : NULL;
-   }
-
-   /**
     * Get the instance of a built-in scalar, vector, or matrix type
     */
    static const glsl_type *get_instance(unsigned base_type, unsigned rows,
@@ -556,7 +544,7 @@ struct glsl_type {
       if (base_type == GLSL_TYPE_ATOMIC_UINT)
          return ATOMIC_COUNTER_SIZE;
       else if (is_array())
-         return length * element_type()->atomic_size();
+         return length * fields.array->atomic_size();
       else
          return 0;
    }

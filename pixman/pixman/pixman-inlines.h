@@ -747,7 +747,8 @@ fast_composite_scaled_nearest  ## scale_func_name (pixman_implementation_t *imp,
 #define SIMPLE_NEAREST_SOLID_MASK_FAST_PATH(op,s,d,func)		\
     SIMPLE_NEAREST_SOLID_MASK_FAST_PATH_COVER (op,s,d,func),		\
     SIMPLE_NEAREST_SOLID_MASK_FAST_PATH_NONE (op,s,d,func),		\
-    SIMPLE_NEAREST_SOLID_MASK_FAST_PATH_PAD (op,s,d,func)
+    SIMPLE_NEAREST_SOLID_MASK_FAST_PATH_PAD (op,s,d,func),              \
+    SIMPLE_NEAREST_SOLID_MASK_FAST_PATH_NORMAL (op,s,d,func)
 
 /*****************************************************************************/
 

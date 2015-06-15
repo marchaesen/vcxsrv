@@ -29,8 +29,8 @@
 #ifndef TEXTUREVIEW_H
 #define TEXTUREVIEW_H
 
-GLboolean
-_mesa_texture_view_compatible_format(struct gl_context *ctx,
+bool
+_mesa_texture_view_compatible_format(const struct gl_context *ctx,
                                      GLenum origInternalFormat,
                                      GLenum newInternalFormat);
 
@@ -41,7 +41,8 @@ _mesa_TextureView(GLuint texture, GLenum target, GLuint origtexture,
                   GLuint minlayer, GLuint numlayers);
 
 extern void
-_mesa_set_texture_view_state(struct gl_context *ctx, struct gl_texture_object *texObj,
-                       GLenum target, GLuint levels);
+_mesa_set_texture_view_state(struct gl_context *ctx,
+                             struct gl_texture_object *texObj,
+                             GLenum target, GLuint levels);
 
 #endif /* TEXTUREVIEW_H */

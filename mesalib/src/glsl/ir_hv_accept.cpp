@@ -429,3 +429,9 @@ ir_end_primitive::accept(ir_hierarchical_visitor *v)
 
    return (s == visit_stop) ? s : v->visit_leave(this);
 }
+
+ir_visitor_status
+ir_barrier::accept(ir_hierarchical_visitor *v)
+{
+   return v->visit(this);
+}

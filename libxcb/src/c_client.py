@@ -630,8 +630,7 @@ def _c_helper_resolve_field_names (prefix):
     all_fields = {}
     tmp_prefix = []
     # look for fields in the remaining containers
-    for idx, p in enumerate(prefix):
-        name, sep, obj = p
+    for idx, (name, sep, obj) in enumerate(prefix):
         if ''==sep:
             # sep can be preset in prefix, if not, make a sensible guess
             sep = '.' if (obj.is_switch or obj.is_case_or_bitcase) else '->'
@@ -1034,7 +1033,7 @@ def _c_serialize_helper_fields_fixed_size(context, self, field,
     if not self.is_case_or_bitcase:
         code_lines.append('%s    /* %s.%s */' % (space, self.c_type, field.c_field_name))
     else:
-        scoped_name = [p[2].c_type if idx==0 else p[0] for idx, p in enumerate(prefix)]
+        scoped_name = [obj.c_type if idx==0 else name for idx, (name, _, obj) in enumerate(prefix)]
         typename = ".".join(scoped_name)
         code_lines.append('%s    /* %s.%s */' % (space, typename, field.c_field_name))
 
@@ -1328,7 +1327,7 @@ def _c_serialize(context, self):
     for p in params:
         typespec, pointerspec, field_name = p
         spacing = ' '*(maxtypelen-len(typespec)-len(pointerspec))
-        param_str.append("%s%s%s  %s%s  /**< */" % (indent, typespec, spacing, pointerspec, field_name))
+        param_str.append("%s%s%s  %s%s" % (indent, typespec, spacing, pointerspec, field_name))
     # insert function name
     param_str[0] = "%s (%s" % (func_name, param_str[0].strip())
     param_str = ["%s," % x for x in param_str]
@@ -1521,9 +1520,9 @@ def _c_iterator(self, name):
     _h(' * @brief %s', self.c_iterator_type)
     _h(' **/')
     _h('typedef struct %s {', self.c_iterator_type)
-    _h('    %s *data; /**<  */', self.c_type)
-    _h('    int%s rem; /**<  */', ' ' * (len(self.c_type) - 2))
-    _h('    int%s index; /**<  */', ' ' * (len(self.c_type) - 2))
+    _h('    %s *data;', self.c_type)
+    _h('    int%s rem;', ' ' * (len(self.c_type) - 2))
+    _h('    int%s index;', ' ' * (len(self.c_type) - 2))
     # add additional params of the type "self" as fields to the iterator struct
     # so that they can be passed to the sizeof-function by the iterator's next-function
     params = _c_get_additional_type_params(self)
@@ -1547,8 +1546,8 @@ def _c_iterator(self, name):
     _h(' */')
     _c('')
     _hc('void')
-    _h('%s (%s *i  /**< */);', self.c_next_name, self.c_iterator_type)
-    _c('%s (%s *i  /**< */)', self.c_next_name, self.c_iterator_type)
+    _h('%s (%s *i);', self.c_next_name, self.c_iterator_type)
+    _c('%s (%s *i)', self.c_next_name, self.c_iterator_type)
     _c('{')
 
     if not self.fixed_size():
@@ -1593,8 +1592,8 @@ def _c_iterator(self, name):
     _h(' */')
     _c('')
     _hc('xcb_generic_iterator_t')
-    _h('%s (%s i  /**< */);', self.c_end_name, self.c_iterator_type)
-    _c('%s (%s i  /**< */)', self.c_end_name, self.c_iterator_type)
+    _h('%s (%s i);', self.c_end_name, self.c_iterator_type)
+    _c('%s (%s i)', self.c_end_name, self.c_iterator_type)
     _c('{')
     _c('    xcb_generic_iterator_t ret;')
 
@@ -1750,8 +1749,8 @@ def _c_accessors_field(self, field):
     if field.type.is_simple:
         _hc('')
         _hc('%s', field.c_field_type)
-        _h('%s (const %s *R  /**< */);', field.c_accessor_name, c_type)
-        _c('%s (const %s *R  /**< */)', field.c_accessor_name, c_type)
+        _h('%s (const %s *R);', field.c_accessor_name, c_type)
+        _c('%s (const %s *R)', field.c_accessor_name, c_type)
         _c('{')
         if field.prev_varsized_field is None:
             _c('    return (%s *) (R + 1);', field.c_field_type)
@@ -1768,8 +1767,8 @@ def _c_accessors_field(self, field):
             return_type = '%s *' % field.c_field_type
 
         _hc(return_type)
-        _h('%s (const %s *R  /**< */);', field.c_accessor_name, c_type)
-        _c('%s (const %s *R  /**< */)', field.c_accessor_name, c_type)
+        _h('%s (const %s *R);', field.c_accessor_name, c_type)
+        _c('%s (const %s *R)', field.c_accessor_name, c_type)
         _c('{')
         if field.prev_varsized_field is None:
             _c('    return (%s) (R + 1);', return_type)
@@ -1868,7 +1867,7 @@ def _c_accessors_list(self, field):
         if len(additional_params) == 0:
             return ''
         else:
-            return (',\n' + indent).join([''] + ['%s %s /**< */' % p for p in additional_params])
+            return (',\n' + indent).join([''] + ['%s %s' % p for p in additional_params])
 
     _h_setlevel(1)
     _c_setlevel(1)
@@ -1877,8 +1876,8 @@ def _c_accessors_list(self, field):
         _hc('')
         _hc('%s *', field.c_field_type)
 
-        _h('%s (%s  /**< */);', field.c_accessor_name, params[idx][0])
-        _c('%s (%s  /**< */)', field.c_accessor_name, params[idx][0])
+        _h('%s (%s);', field.c_accessor_name, params[idx][0])
+        _c('%s (%s)', field.c_accessor_name, params[idx][0])
 
         _c('{')
         if switch_obj is not None:
@@ -1903,12 +1902,12 @@ def _c_accessors_list(self, field):
     spacing = ' '*(len(field.c_length_name)+2)
     add_param_str = additional_params_to_str(spacing)
     if switch_obj is not None:
-        _hc('%s (const %s *R  /**< */,', field.c_length_name, R_obj.c_type)
-        _h('%sconst %s *S /**< */%s);', spacing, S_obj.c_type, add_param_str)
-        _c('%sconst %s *S  /**< */%s)', spacing, S_obj.c_type, add_param_str)
+        _hc('%s (const %s *R,', field.c_length_name, R_obj.c_type)
+        _h('%sconst %s *S%s);', spacing, S_obj.c_type, add_param_str)
+        _c('%sconst %s *S%s)', spacing, S_obj.c_type, add_param_str)
     else:
-        _h('%s (const %s *R  /**< */%s);', field.c_length_name, c_type, add_param_str)
-        _c('%s (const %s *R  /**< */%s)', field.c_length_name, c_type, add_param_str)
+        _h('%s (const %s *R%s);', field.c_length_name, c_type, add_param_str)
+        _c('%s (const %s *R%s)', field.c_length_name, c_type, add_param_str)
     _c('{')
     length = _c_accessor_get_expr(field.type.expr, fields)
     _c('    return %s;', length)
@@ -1920,12 +1919,12 @@ def _c_accessors_list(self, field):
         spacing = ' '*(len(field.c_end_name)+2)
         add_param_str = additional_params_to_str(spacing)
         if switch_obj is not None:
-            _hc('%s (const %s *R  /**< */,', field.c_end_name, R_obj.c_type)
-            _h('%sconst %s *S /**< */%s);', spacing, S_obj.c_type, add_param_str)
-            _c('%sconst %s *S  /**< */%s)', spacing, S_obj.c_type, add_param_str)
+            _hc('%s (const %s *R,', field.c_end_name, R_obj.c_type)
+            _h('%sconst %s *S%s);', spacing, S_obj.c_type, add_param_str)
+            _c('%sconst %s *S%s)', spacing, S_obj.c_type, add_param_str)
         else:
-            _h('%s (const %s *R  /**< */%s);', field.c_end_name, c_type, add_param_str)
-            _c('%s (const %s *R  /**< */%s)', field.c_end_name, c_type, add_param_str)
+            _h('%s (const %s *R%s);', field.c_end_name, c_type, add_param_str)
+            _c('%s (const %s *R%s)', field.c_end_name, c_type, add_param_str)
         _c('{')
         _c('    xcb_generic_iterator_t i;')
 
@@ -1953,12 +1952,12 @@ def _c_accessors_list(self, field):
         spacing = ' '*(len(field.c_iterator_name)+2)
         add_param_str = additional_params_to_str(spacing)
         if switch_obj is not None:
-            _hc('%s (const %s *R  /**< */,', field.c_iterator_name, R_obj.c_type)
-            _h('%sconst %s *S /**< */%s);', spacing, S_obj.c_type, add_param_str)
-            _c('%sconst %s *S  /**< */%s)', spacing, S_obj.c_type, add_param_str)
+            _hc('%s (const %s *R,', field.c_iterator_name, R_obj.c_type)
+            _h('%sconst %s *S%s);', spacing, S_obj.c_type, add_param_str)
+            _c('%sconst %s *S%s)', spacing, S_obj.c_type, add_param_str)
         else:
-            _h('%s (const %s *R  /**< */%s);', field.c_iterator_name, c_type, add_param_str)
-            _c('%s (const %s *R  /**< */%s)', field.c_iterator_name, c_type, add_param_str)
+            _h('%s (const %s *R%s);', field.c_iterator_name, c_type, add_param_str)
+            _c('%s (const %s *R%s)', field.c_iterator_name, c_type, add_param_str)
         _c('{')
         _c('    %s i;', field.c_iterator_type)
 
@@ -2064,10 +2063,10 @@ def _c_complex(self, force_packed = False):
             # necessary for unserialize to work
             (self.is_switch and field.type.is_switch)):
             spacing = ' ' * (maxtypelen - len(field.c_field_type))
-            _h('%s    %s%s %s%s; /**<  */', space, field.c_field_type, spacing, field.c_field_name, field.c_subscript)
+            _h('%s    %s%s %s%s;', space, field.c_field_type, spacing, field.c_field_name, field.c_subscript)
         else:
             spacing = ' ' * (maxtypelen - (len(field.c_field_type) + 1))
-            _h('%s    %s%s *%s%s; /**<  */', space, field.c_field_type, spacing, field.c_field_name, field.c_subscript)
+            _h('%s    %s%s *%s%s;', space, field.c_field_type, spacing, field.c_field_name, field.c_subscript)
 
     if not self.is_switch:
         for field in struct_fields:
@@ -2244,9 +2243,9 @@ def _c_request_helper(self, name, void, regular, aux=False, reply_fds=False):
 
     spacing = ' ' * (maxtypelen - len('xcb_connection_t'))
     comma = ',' if len(param_fields) else ');'
-    _h('%s (xcb_connection_t%s *c  /**< */%s', func_name, spacing, comma)
+    _h('%s (xcb_connection_t%s *c%s', func_name, spacing, comma)
     comma = ',' if len(param_fields) else ')'
-    _c('%s (xcb_connection_t%s *c  /**< */%s', func_name, spacing, comma)
+    _c('%s (xcb_connection_t%s *c%s', func_name, spacing, comma)
 
     func_spacing = ' ' * (len(func_name) + 2)
     count = len(param_fields)
@@ -2259,10 +2258,10 @@ def _c_request_helper(self, name, void, regular, aux=False, reply_fds=False):
             c_pointer = '*'
         spacing = ' ' * (maxtypelen - len(c_field_const_type))
         comma = ',' if count else ');'
-        _h('%s%s%s %s%s  /**< */%s', func_spacing, c_field_const_type,
+        _h('%s%s%s %s%s%s', func_spacing, c_field_const_type,
            spacing, c_pointer, field.c_field_name, comma)
         comma = ',' if count else ')'
-        _c('%s%s%s %s%s  /**< */%s', func_spacing, c_field_const_type,
+        _c('%s%s%s %s%s%s', func_spacing, c_field_const_type,
            spacing, c_pointer, field.c_field_name, comma)
 
     count = 2
@@ -2292,13 +2291,16 @@ def _c_request_helper(self, name, void, regular, aux=False, reply_fds=False):
         _c('    void *xcb_aux = 0;')
 
 
-    for idx, f in enumerate(serial_fields):
+    for idx, _ in enumerate(serial_fields):
         if aux:
             _c('    void *xcb_aux%d = 0;' % (idx))
     if list_with_var_size_elems:
         _c('    unsigned int i;')
         _c('    unsigned int xcb_tmp_len;')
         _c('    char *xcb_tmp;')
+    num_fds = len([field for field in param_fields if field.isfd])
+    if num_fds > 0:
+        _c('    int fds[%d];' % (num_fds))
     _c('')
 
     # fixed size fields
@@ -2399,11 +2401,16 @@ def _c_request_helper(self, name, void, regular, aux=False, reply_fds=False):
         # no padding necessary - _serialize() keeps track of padding automatically
 
     _c('')
+    fd_index = 0
     for field in param_fields:
         if field.isfd:
-            _c('    xcb_send_fd(c, %s);', field.c_field_name)
+            _c('    fds[%d] = %s;', fd_index, field.c_field_name)
+            fd_index = fd_index + 1
 
-    _c('    xcb_ret.sequence = xcb_send_request(c, %s, xcb_parts + 2, &xcb_req);', func_flags)
+    if num_fds == 0:
+        _c('    xcb_ret.sequence = xcb_send_request(c, %s, xcb_parts + 2, &xcb_req);', func_flags)
+    else:
+        _c('    xcb_ret.sequence = xcb_send_request_with_fds(c, %s, xcb_parts + 2, &xcb_req, %d, fds);', func_flags, num_fds)
 
     # free dyn. all. data, if any
     for f in free_calls:
@@ -2458,10 +2465,10 @@ def _c_reply(self, name):
     _h(' */')
     _c('')
     _hc('%s *', self.c_reply_type)
-    _hc('%s (xcb_connection_t%s  *c  /**< */,', self.c_reply_name, spacing1)
+    _hc('%s (xcb_connection_t%s  *c,', self.c_reply_name, spacing1)
     _hc('%s%s   cookie  /**< */,', spacing3, self.c_cookie_type)
-    _h('%sxcb_generic_error_t%s **e  /**< */);', spacing3, spacing2)
-    _c('%sxcb_generic_error_t%s **e  /**< */)', spacing3, spacing2)
+    _h('%sxcb_generic_error_t%s **e);', spacing3, spacing2)
+    _c('%sxcb_generic_error_t%s **e)', spacing3, spacing2)
     _c('{')
 
     if len(unserialize_fields)>0:
@@ -2516,8 +2523,8 @@ def _c_reply_fds(self, name):
     _c('')
     _hc('int *')
     _hc('%s (xcb_connection_t%s  *c  /**< */,', self.c_reply_fds_name, spacing1)
-    _h('%s%s  *reply  /**< */);', spacing3, self.c_reply_type)
-    _c('%s%s  *reply  /**< */)', spacing3, self.c_reply_type)
+    _h('%s%s  *reply);', spacing3, self.c_reply_type)
+    _c('%s%s  *reply)', spacing3, self.c_reply_type)
     _c('{')
 
     _c('    return xcb_get_reply_fds(c, reply, sizeof(%s) + 4 * reply->length);', self.c_reply_type)
@@ -2544,7 +2551,7 @@ def _c_cookie(self, name):
     _h(' * @brief %s', self.c_cookie_type)
     _h(' **/')
     _h('typedef struct %s {', self.c_cookie_type)
-    _h('    unsigned int sequence; /**<  */')
+    _h('    unsigned int sequence;')
     _h('} %s;', self.c_cookie_type)
 
 def _man_request(self, name, void, aux):

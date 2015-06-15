@@ -47,7 +47,7 @@ int *actualCount)	/* RETURN */
     int count = 0;
     xListFontsReply rep;
     register xListFontsReq *req;
-    unsigned long rlen;
+    unsigned long rlen = 0;
 
     LockDisplay(dpy);
     GetReq(ListFonts, req);

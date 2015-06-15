@@ -5,25 +5,25 @@
 
 <category name="GL_ARB_gpu_shader_fp64" number="89">
 
-    <function name="Uniform1d" offset="assign">
+    <function name="Uniform1d">
         <param name="location" type="GLint"/>
         <param name="x" type="GLdouble"/>
     </function>
 
-    <function name="Uniform2d" offset="assign">
+    <function name="Uniform2d">
         <param name="location" type="GLint"/>
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
     </function>
 
-    <function name="Uniform3d" offset="assign">
+    <function name="Uniform3d">
         <param name="location" type="GLint"/>
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
         <param name="z" type="GLdouble"/>
     </function>
 
-    <function name="Uniform4d" offset="assign">
+    <function name="Uniform4d">
         <param name="location" type="GLint"/>
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
@@ -31,94 +31,94 @@
         <param name="w" type="GLdouble"/>
     </function>
 
-    <function name="Uniform1dv" offset="assign">
+    <function name="Uniform1dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="value" type="const GLdouble *"/>
     </function>
 
-    <function name="Uniform2dv" offset="assign">
+    <function name="Uniform2dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="value" type="const GLdouble *"/>
     </function>
 
-    <function name="Uniform3dv" offset="assign">
+    <function name="Uniform3dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="value" type="const GLdouble *"/>
     </function>
 
-    <function name="Uniform4dv" offset="assign">
+    <function name="Uniform4dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="value" type="const GLdouble *"/>
     </function>
 
-    <function name="UniformMatrix2dv" offset="assign">
-        <param name="location" type="GLint"/>
-        <param name="count" type="GLsizei"/>
-        <param name="transpose" type="GLboolean"/>
-        <param name="value" type="const GLdouble *"/>
-    </function>
-
-    <function name="UniformMatrix3dv" offset="assign">
+    <function name="UniformMatrix2dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
         <param name="value" type="const GLdouble *"/>
     </function>
 
-    <function name="UniformMatrix4dv" offset="assign">
+    <function name="UniformMatrix3dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
         <param name="value" type="const GLdouble *"/>
     </function>
 
-    <function name="UniformMatrix2x3dv" offset="assign">
+    <function name="UniformMatrix4dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
         <param name="value" type="const GLdouble *"/>
     </function>
 
-    <function name="UniformMatrix2x4dv" offset="assign">
+    <function name="UniformMatrix2x3dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
         <param name="value" type="const GLdouble *"/>
     </function>
 
-    <function name="UniformMatrix3x2dv" offset="assign">
+    <function name="UniformMatrix2x4dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
         <param name="value" type="const GLdouble *"/>
     </function>
 
-    <function name="UniformMatrix3x4dv" offset="assign">
+    <function name="UniformMatrix3x2dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
         <param name="value" type="const GLdouble *"/>
     </function>
 
-    <function name="UniformMatrix4x2dv" offset="assign">
+    <function name="UniformMatrix3x4dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
         <param name="value" type="const GLdouble *"/>
     </function>
 
-    <function name="UniformMatrix4x3dv" offset="assign">
+    <function name="UniformMatrix4x2dv">
         <param name="location" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <param name="transpose" type="GLboolean"/>
         <param name="value" type="const GLdouble *"/>
     </function>
 
-    <function name="GetUniformdv" offset="assign">
+    <function name="UniformMatrix4x3dv">
+        <param name="location" type="GLint"/>
+        <param name="count" type="GLsizei"/>
+        <param name="transpose" type="GLboolean"/>
+        <param name="value" type="const GLdouble *"/>
+    </function>
+
+    <function name="GetUniformdv">
         <param name="program" type="GLuint"/>
         <param name="location" type="GLint"/>
         <param name="params" type="GLdouble *"/>

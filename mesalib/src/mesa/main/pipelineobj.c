@@ -553,12 +553,6 @@ _mesa_CreateProgramPipelines(GLsizei n, GLuint *pipelines)
 {
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glCreateProgramPipelines("
-                  "GL_ARB_direct_state_access is not supported)");
-      return;
-   }
-
    create_program_pipelines(ctx, n, pipelines, true);
 }
 

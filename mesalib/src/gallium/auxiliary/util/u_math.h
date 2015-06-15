@@ -42,6 +42,7 @@
 #include "pipe/p_compiler.h"
 
 #include "c99_math.h"
+#include <assert.h>
 #include <float.h>
 #include <stdarg.h>
 
@@ -413,6 +414,25 @@ util_last_bit(unsigned u)
 {
 #if defined(HAVE___BUILTIN_CLZ)
    return u == 0 ? 0 : 32 - __builtin_clz(u);
+#else
+   unsigned r = 0;
+   while (u) {
+       r++;
+       u >>= 1;
+   }
+   return r;
+#endif
+}
+
+/**
+ * Find last bit set in a word.  The least significant bit is 1.
+ * Return 0 if no bits are set.
+ */
+static INLINE unsigned
+util_last_bit64(uint64_t u)
+{
+#if defined(HAVE___BUILTIN_CLZLL)
+   return u == 0 ? 0 : 64 - __builtin_clzll(u);
 #else
    unsigned r = 0;
    while (u) {

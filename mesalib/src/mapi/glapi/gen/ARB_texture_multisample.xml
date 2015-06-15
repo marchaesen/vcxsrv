@@ -34,7 +34,7 @@
    <enum name="INT_SAMPLER_2D_MULTISAMPLE_ARRAY"            value="0x910C"/>
    <enum name="UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY"   value="0x910D"/>
 
-   <function name="TexImage2DMultisample" offset="assign">
+   <function name="TexImage2DMultisample">
       <param name="target" type="GLenum"/>
       <param name="samples" type="GLsizei"/>
       <param name="internalformat" type="GLenum"/>
@@ -43,7 +43,7 @@
       <param name="fixedsamplelocations" type="GLboolean"/>
    </function>
 
-   <function name="TexImage3DMultisample" offset="assign">
+   <function name="TexImage3DMultisample">
       <param name="target" type="GLenum"/>
       <param name="samples" type="GLsizei"/>
       <param name="internalformat" type="GLenum"/>
@@ -53,13 +53,13 @@
       <param name="fixedsamplelocations" type="GLboolean"/>
    </function>
 
-   <function name="GetMultisamplefv" offset="assign">
+   <function name="GetMultisamplefv" es2="3.1">
       <param name="pname" type="GLenum"/>
       <param name="index" type="GLuint"/>
       <param name="val" type="GLfloat *"/>
    </function>
 
-   <function name="SampleMaski" offset="assign">
+   <function name="SampleMaski" es2="3.1">
       <param name="index" type="GLuint"/>
       <param name="mask" type="GLbitfield"/>
    </function>

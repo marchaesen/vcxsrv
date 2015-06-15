@@ -141,7 +141,7 @@ check_uniforms(struct gl_context *ctx)
       if (shProg[j] == NULL || !shProg[j]->LinkStatus)
 	 continue;
 
-      for (i = 0; i < shProg[j]->NumUserUniformStorage; i++) {
+      for (i = 0; i < shProg[j]->NumUniformStorage; i++) {
          const struct gl_uniform_storage *u = &shProg[j]->UniformStorage[i];
          if (!u->initialized) {
             _mesa_warning(ctx,

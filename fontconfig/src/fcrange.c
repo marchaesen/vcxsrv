@@ -32,10 +32,8 @@ FcRangeCreateDouble (double begin, double end)
 
     if (ret)
     {
-	ret->is_double = FcTrue;
-	ret->is_inclusive = FcDoubleCmpEQ (begin, end);
-	ret->u.d.begin = begin;
-	ret->u.d.end = end;
+	ret->begin = begin;
+	ret->end = end;
     }
 
     return ret;
@@ -48,10 +46,8 @@ FcRangeCreateInteger (FcChar32 begin, FcChar32 end)
 
     if (ret)
     {
-	ret->is_double = FcFalse;
-	ret->is_inclusive = (begin == end);
-	ret->u.i.begin = begin;
-	ret->u.i.end = end;
+	ret->begin = begin;
+	ret->end = end;
     }
 
     return ret;
@@ -66,14 +62,7 @@ FcRangeDestroy (FcRange *range)
 FcRange *
 FcRangeCopy (const FcRange *range)
 {
-    FcRange *ret;
-
-    if (range->is_double)
-	ret = FcRangeCreateDouble (range->u.d.begin, range->u.d.end);
-    else
-	ret = FcRangeCreateInteger (range->u.i.begin, range->u.i.end);
-
-    return ret;
+    return FcRangeCreateDouble (range->begin, range->end);
 }
 
 FcBool
@@ -81,39 +70,12 @@ FcRangeGetDouble(const FcRange *range, double *begin, double *end)
 {
     if (!range)
 	return FcFalse;
-    if (range->is_double)
-    {
-	if (begin)
-	    *begin = range->u.d.begin;
-	if (end)
-	    *end = range->u.d.end;
-    }
-    else
-    {
-	if (begin)
-	    *begin = (double)range->u.i.begin;
-	if (end)
-	    *end = (double)range->u.i.end;
-    }
+    if (begin)
+	*begin = range->begin;
+    if (end)
+	*end = range->end;
 
     return FcTrue;
-}
-
-FcRange
-FcRangeCanonicalize (const FcRange *range)
-{
-    FcRange new;
-
-    if (range->is_double)
-	new = *range;
-    else
-    {
-	new.is_double = FcTrue;
-	new.is_inclusive = range->is_inclusive;
-	new.u.d.begin = (double)range->u.i.begin;
-	new.u.d.end = (double)range->u.i.end;
-    }
-    return new;
 }
 
 FcRange *
@@ -125,50 +87,24 @@ FcRangePromote (double v, FcValuePromotionBuffer *vbuf)
     FcRangePromotionBuffer *buf = (FcRangePromotionBuffer *) vbuf;
 
     FC_ASSERT_STATIC (sizeof (FcRangePromotionBuffer) <= sizeof (FcValuePromotionBuffer));
-    buf->r.is_double = FcTrue;
-    buf->r.is_inclusive = FcTrue;
-    buf->r.u.d.begin = v;
-    buf->r.u.d.end = v;
+    buf->r.begin = v;
+    buf->r.end = v;
 
     return &buf->r;
 }
 
 FcBool
-FcRangeIsZero (const FcRange *r)
-{
-    FcRange c;
-
-    if (!r)
-	return FcFalse;
-    c = FcRangeCanonicalize (r);
-
-    return FcDoubleIsZero (c.u.d.begin) && FcDoubleIsZero (c.u.d.end);
-}
-
-FcBool
 FcRangeIsInRange (const FcRange *a, const FcRange *b)
 {
-    FcRange ca, cb;
-    FcBool f;
-
     if (!a || !b)
 	return FcFalse;
 
-    ca = FcRangeCanonicalize (a);
-    cb = FcRangeCanonicalize (b);
-    if (ca.is_inclusive & cb.is_inclusive)
-	f = ca.u.d.end <= cb.u.d.end;
-    else
-	f = ca.u.d.end < cb.u.d.end;
-
-    return FcDoubleCmpGE (ca.u.d.begin, cb.u.d.begin) && f;
+    return a->begin >= b->begin && a->end <= b->end;
 }
 
 FcBool
 FcRangeCompare (FcOp op, const FcRange *a, const FcRange *b)
 {
-    FcRange ca, cb;
-
     switch ((int) op) {
     case FcOpEqual:
     case FcOpContains:
@@ -178,21 +114,13 @@ FcRangeCompare (FcOp op, const FcRange *a, const FcRange *b)
     case FcOpNotContains:
 	return !FcRangeIsInRange (a, b);
     case FcOpLess:
-	ca = FcRangeCanonicalize (a);
-	cb = FcRangeCanonicalize (b);
-	return ca.u.d.begin < cb.u.d.begin;
+	return a->begin < b->begin;
     case FcOpLessEqual:
-	ca = FcRangeCanonicalize (a);
-	cb = FcRangeCanonicalize (b);
-	return FcDoubleCmpLE (ca.u.d.begin, cb.u.d.begin);
+	return a->begin <= b->begin;
     case FcOpMore:
-	ca = FcRangeCanonicalize (a);
-	cb = FcRangeCanonicalize (b);
-	return ca.u.d.end > cb.u.d.end;
+	return a->end > b->end;
     case FcOpMoreEqual:
-	ca = FcRangeCanonicalize (a);
-	cb = FcRangeCanonicalize (b);
-	return FcDoubleCmpGE (ca.u.d.end, cb.u.d.end);
+	return a->end >= b->end;
     default:
 	break;
     }
@@ -202,9 +130,8 @@ FcRangeCompare (FcOp op, const FcRange *a, const FcRange *b)
 FcChar32
 FcRangeHash (const FcRange *r)
 {
-    FcRange c = FcRangeCanonicalize (r);
-    int b = (int) (c.u.d.begin * 100);
-    int e = FcDoubleCmpEQ (c.u.d.end, DBL_MAX) ? INT_MAX : (int) (c.u.d.end * 100);
+    int b = (int) (r->begin * 100);
+    int e = (int) (r->end * 100);
 
     return b ^ (b << 1) ^ (e << 9);
 }

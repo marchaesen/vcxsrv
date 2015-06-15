@@ -43,7 +43,6 @@
 #include "glapi/glapi.h"
 #include "math/m_matrix.h"	/* GLmatrix */
 #include "glsl/shader_enums.h"
-#include "util/simple_list.h"	/* struct simple_node */
 #include "main/formats.h"       /* MESA_FORMAT_COUNT */
 
 
@@ -398,7 +397,6 @@ struct gl_config
 {
    GLboolean rgbMode;
    GLboolean floatMode;
-   GLboolean colorIndexMode;  /* XXX is this used anywhere? */
    GLuint doubleBufferMode;
    GLuint stereoMode;
 
@@ -2275,16 +2273,10 @@ struct gl_vertex_program_state
  */
 struct gl_geometry_program_state
 {
-   GLboolean Enabled;               /**< GL_ARB_GEOMETRY_SHADER4 */
-   GLboolean _Enabled;              /**< Enabled and valid program? */
-   struct gl_geometry_program *Current;  /**< user-bound geometry program */
-
    /** Currently enabled and valid program (including internal programs
     * and compiled shader programs).
     */
    struct gl_geometry_program *_Current;
-
-   GLfloat Parameters[MAX_PROGRAM_ENV_PARAMS][4]; /**< Env params */
 };
 
 /**
@@ -2320,8 +2312,6 @@ struct gl_fragment_program_state
  */
 struct gl_compute_program_state
 {
-   struct gl_compute_program *Current;  /**< user-bound compute program */
-
    /** Currently enabled and valid program (including internal programs
     * and compiled shader programs).
     */
@@ -2728,7 +2718,7 @@ struct gl_shader_program
    } Comp;
 
    /* post-link info: */
-   unsigned NumUserUniformStorage;
+   unsigned NumUniformStorage;
    unsigned NumHiddenUniforms;
    struct gl_uniform_storage *UniformStorage;
 
@@ -3004,7 +2994,6 @@ struct gl_shared_state
    struct _mesa_HashTable *Programs; /**< All vertex/fragment programs */
    struct gl_vertex_program *DefaultVertexProgram;
    struct gl_fragment_program *DefaultFragmentProgram;
-   struct gl_geometry_program *DefaultGeometryProgram;
    /*@}*/
 
    /* GL_ATI_fragment_shader */
@@ -3621,7 +3610,6 @@ struct gl_extensions
    GLboolean ARB_depth_clamp;
    GLboolean ARB_depth_texture;
    GLboolean ARB_derivative_control;
-   GLboolean ARB_direct_state_access;
    GLboolean ARB_draw_buffers_blend;
    GLboolean ARB_draw_elements_base_vertex;
    GLboolean ARB_draw_indirect;

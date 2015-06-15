@@ -78,7 +78,7 @@
 	<return type="GLboolean"/>
     </function>
 
-    <function name="BindRenderbufferEXT" offset="assign" deprecated="3.1">
+    <function name="BindRenderbufferEXT" deprecated="3.1">
         <param name="target" type="GLenum"/>
         <param name="renderbuffer" type="GLuint"/>
         <glx rop="4316"/>
@@ -112,7 +112,7 @@
 	<return type="GLboolean"/>
     </function>
 
-    <function name="BindFramebufferEXT" offset="assign" deprecated="3.1">
+    <function name="BindFramebufferEXT" deprecated="3.1">
         <param name="target" type="GLenum"/>
         <param name="framebuffer" type="GLuint"/>
         <glx rop="4319"/>
@@ -186,7 +186,7 @@
     <enum name="READ_FRAMEBUFFER_BINDING_EXT" count="1" value="0x8CAA">
         <size name="Get" mode="get"/>
     </enum>
-    <function name="BlitFramebufferEXT" static_dispatch="false" alias="BlitFramebuffer">
+    <function name="BlitFramebufferEXT" alias="BlitFramebuffer">
         <param name="srcX0" type="GLint"/>
         <param name="srcY0" type="GLint"/>
         <param name="srcX1" type="GLint"/>

@@ -68,7 +68,16 @@ LOCAL_CFLAGS += \
 endif
 endif
 
+ifeq ($(MESA_ENABLE_LLVM),true)
+LOCAL_CFLAGS += \
+	-DHAVE_LLVM=0x0305 -DLLVM_VERSION_PATCH=2 \
+	-D__STDC_CONSTANT_MACROS \
+	-D__STDC_FORMAT_MACROS \
+	-D__STDC_LIMIT_MACROS
+endif
+
 LOCAL_CPPFLAGS += \
+	$(if $(filter true,$(MESA_LOLLIPOP_BUILD)),-D_USING_LIBCXX) \
 	-Wno-error=non-virtual-dtor \
 	-Wno-non-virtual-dtor
 

@@ -678,7 +678,7 @@ validate_assignment(struct _mesa_glsl_parse_state *state,
     * is handled by ir_dereference::is_lvalue.
     */
    if (lhs_type->is_unsized_array() && rhs->type->is_array()
-       && (lhs_type->element_type() == rhs->type->element_type())) {
+       && (lhs_type->fields.array == rhs->type->fields.array)) {
       if (is_initializer) {
          return rhs;
       } else {
@@ -820,7 +820,7 @@ do_assignment(exec_list *instructions, struct _mesa_glsl_parse_state *state,
                              var->data.max_array_access);
          }
 
-         var->type = glsl_type::get_array_instance(lhs->type->element_type(),
+         var->type = glsl_type::get_array_instance(lhs->type->fields.array,
                                                    rhs->type->array_size());
          d->type = var->type;
       }
@@ -2330,8 +2330,7 @@ apply_image_qualifier_to_variable(const struct ast_type_qualifier *qual,
                                   struct _mesa_glsl_parse_state *state,
                                   YYLTYPE *loc)
 {
-   const glsl_type *base_type =
-      (var->type->is_array() ? var->type->element_type() : var->type);
+   const glsl_type *base_type = var->type->without_array();
 
    if (base_type->is_image()) {
       if (var->data.mode != ir_var_uniform &&
@@ -2730,7 +2729,7 @@ apply_type_qualifier_to_variable(const struct ast_type_qualifier *qual,
     *    GL_ARB_conservative_depth
     *    GL_ARB_gpu_shader5
     *    GL_ARB_separate_shader_objects
-    *    GL_ARB_tesselation_shader
+    *    GL_ARB_tessellation_shader
     *    GL_ARB_transform_feedback3
     *    GL_ARB_uniform_buffer_object
     *
@@ -2855,7 +2854,7 @@ get_variable_being_redeclared(ir_variable *var, YYLTYPE loc,
     *  type and specify a size."
     */
    if (earlier->type->is_unsized_array() && var->type->is_array()
-       && (var->type->element_type() == earlier->type->element_type())) {
+       && (var->type->fields.array == earlier->type->fields.array)) {
       /* FINISHME: This doesn't match the qualifiers on the two
        * FINISHME: declarations.  It's not 100% clear whether this is
        * FINISHME: required or not.
@@ -3608,6 +3607,51 @@ ast_declarator_list::hir(exec_list *instructions,
             }
 
             handle_geometry_shader_input_decl(state, loc, var);
+         } else if (state->stage == MESA_SHADER_FRAGMENT) {
+            /* From section 4.3.4 (Input Variables) of the GLSL ES 3.10 spec:
+             *
+             *     It is a compile-time error to declare a fragment shader
+             *     input with, or that contains, any of the following types:
+             *
+             *     * A boolean type
+             *     * An opaque type
+             *     * An array of arrays
+             *     * An array of structures
+             *     * A structure containing an array
+             *     * A structure containing a structure
+             */
+            if (state->es_shader) {
+               const glsl_type *check_type = var->type->without_array();
+               if (check_type->is_boolean() ||
+                   check_type->contains_opaque()) {
+                  _mesa_glsl_error(&loc, state,
+                                   "fragment shader input cannot have type %s",
+                                   check_type->name);
+               }
+               if (var->type->is_array() &&
+                   var->type->fields.array->is_array()) {
+                  _mesa_glsl_error(&loc, state,
+                                   "%s shader output "
+                                   "cannot have an array of arrays",
+                                   _mesa_shader_stage_to_string(state->stage));
+               }
+               if (var->type->is_array() &&
+                   var->type->fields.array->is_record()) {
+                  _mesa_glsl_error(&loc, state,
+                                   "fragment shader input "
+                                   "cannot have an array of structs");
+               }
+               if (var->type->is_record()) {
+                  for (unsigned i = 0; i < var->type->length; i++) {
+                     if (var->type->fields.structure[i].type->is_array() ||
+                         var->type->fields.structure[i].type->is_record())
+                        _mesa_glsl_error(&loc, state,
+                                         "fragement shader input cannot have "
+                                         "a struct that contains an "
+                                         "array or struct");
+                  }
+               }
+            }
          }
       } else if (var->data.mode == ir_var_shader_out) {
          const glsl_type *check_type = var->type->without_array();
@@ -3642,7 +3686,7 @@ ast_declarator_list::hir(exec_list *instructions,
             if (check_type->is_record() || check_type->is_matrix())
                _mesa_glsl_error(&loc, state,
                                 "fragment shader output "
-                                "cannot have struct or array type");
+                                "cannot have struct or matrix type");
             switch (check_type->base_type) {
             case GLSL_TYPE_UINT:
             case GLSL_TYPE_INT:
@@ -3652,6 +3696,55 @@ ast_declarator_list::hir(exec_list *instructions,
                _mesa_glsl_error(&loc, state,
                                 "fragment shader output cannot have "
                                 "type %s", check_type->name);
+            }
+         }
+
+         /* From section 4.3.6 (Output Variables) of the GLSL ES 3.10 spec:
+          *
+          *     It is a compile-time error to declare a vertex shader output
+          *     with, or that contains, any of the following types:
+          *
+          *     * A boolean type
+          *     * An opaque type
+          *     * An array of arrays
+          *     * An array of structures
+          *     * A structure containing an array
+          *     * A structure containing a structure
+          *
+          *     It is a compile-time error to declare a fragment shader output
+          *     with, or that contains, any of the following types:
+          *
+          *     * A boolean type
+          *     * An opaque type
+          *     * A matrix
+          *     * A structure
+          *     * An array of array
+          */
+         if (state->es_shader) {
+            if (var->type->is_array() &&
+                var->type->fields.array->is_array()) {
+               _mesa_glsl_error(&loc, state,
+                                "%s shader output "
+                                "cannot have an array of arrays",
+                                _mesa_shader_stage_to_string(state->stage));
+            }
+            if (state->stage == MESA_SHADER_VERTEX) {
+               if (var->type->is_array() &&
+                   var->type->fields.array->is_record()) {
+                  _mesa_glsl_error(&loc, state,
+                                   "vertex shader output "
+                                   "cannot have an array of structs");
+               }
+               if (var->type->is_record()) {
+                  for (unsigned i = 0; i < var->type->length; i++) {
+                     if (var->type->fields.structure[i].type->is_array() ||
+                         var->type->fields.structure[i].type->is_record())
+                        _mesa_glsl_error(&loc, state,
+                                         "vertex shader output cannot have a "
+                                         "struct that contains an "
+                                         "array or struct");
+                  }
+               }
             }
          }
       }
@@ -3850,7 +3943,15 @@ ast_declarator_list::hir(exec_list *instructions,
                           decl->identifier);
       }
 
-      if (state->es_shader) {
+      /* GLSL ES 3.10 removes the restriction on unsized arrays.
+       *
+       * Section 4.1.9 (Arrays) of the GLSL ES 3.10 spec says:
+       *
+       *    "Variables of the same type can be aggregated into arrays by
+       *     declaring a name followed by brackets ([ ]) enclosing an
+       *     optional size."
+       */
+      if (state->es_shader && state->language_version < 310) {
          const glsl_type *const t = (earlier == NULL)
             ? var->type : earlier->type;
 
@@ -5745,6 +5846,17 @@ ast_interface_block::hir(exec_list *instructions,
 
          const glsl_type *block_array_type =
             process_array_type(&loc, block_type, this->array_specifier, state);
+
+          /* From section 4.3.9 (Interface Blocks) of the GLSL ES 3.10 spec:
+          *
+          *     * Arrays of arrays of blocks are not allowed
+          */
+         if (state->es_shader && block_array_type->is_array() &&
+             block_array_type->fields.array->is_array()) {
+            _mesa_glsl_error(&loc, state,
+                             "arrays of arrays interface blocks are "
+                             "not allowed");
+         }
 
          var = new(state) ir_variable(block_array_type,
                                       this->instance_name,

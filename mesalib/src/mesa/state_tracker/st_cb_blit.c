@@ -36,6 +36,7 @@
 
 #include "st_context.h"
 #include "st_texture.h"
+#include "st_cb_bitmap.h"
 #include "st_cb_blit.h"
 #include "st_cb_fbo.h"
 #include "st_atom.h"
@@ -92,6 +93,9 @@ st_BlitFramebuffer(struct gl_context *ctx,
    struct pipe_blit_info blit;
 
    st_validate_state(st);
+
+   /* Make sure bitmap rendering has landed in the framebuffers */
+   st_flush_bitmap_cache(st);
 
    clip.srcX0 = srcX0;
    clip.srcY0 = srcY0;

@@ -65,7 +65,7 @@ st_bind_program(struct gl_context *ctx, GLenum target, struct gl_program *prog)
    case GL_FRAGMENT_PROGRAM_ARB:
       st->dirty.st |= ST_NEW_FRAGMENT_PROGRAM;
       break;
-   case MESA_GEOMETRY_PROGRAM:
+   case GL_GEOMETRY_PROGRAM_NV:
       st->dirty.st |= ST_NEW_GEOMETRY_PROGRAM;
       break;
    }
@@ -105,7 +105,7 @@ st_new_program(struct gl_context *ctx, GLenum target, GLuint id)
       return _mesa_init_fragment_program(ctx, &prog->Base, target, id);
    }
 
-   case MESA_GEOMETRY_PROGRAM: {
+   case GL_GEOMETRY_PROGRAM_NV: {
       struct st_geometry_program *prog = ST_CALLOC_STRUCT(st_geometry_program);
       return _mesa_init_geometry_program(ctx, &prog->Base, target, id);
    }
@@ -135,7 +135,7 @@ st_delete_program(struct gl_context *ctx, struct gl_program *prog)
             free_glsl_to_tgsi_visitor(stvp->glsl_to_tgsi);
       }
       break;
-   case MESA_GEOMETRY_PROGRAM:
+   case GL_GEOMETRY_PROGRAM_NV:
       {
          struct st_geometry_program *stgp =
             (struct st_geometry_program *) prog;
@@ -198,7 +198,7 @@ st_program_string_notify( struct gl_context *ctx,
       if (st->fp == stfp)
 	 st->dirty.st |= ST_NEW_FRAGMENT_PROGRAM;
    }
-   else if (target == MESA_GEOMETRY_PROGRAM) {
+   else if (target == GL_GEOMETRY_PROGRAM_NV) {
       struct st_geometry_program *stgp = (struct st_geometry_program *) prog;
 
       st_release_gp_variants(st, stgp);

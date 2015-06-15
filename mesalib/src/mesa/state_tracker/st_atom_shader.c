@@ -189,7 +189,7 @@ update_gp( struct st_context *st )
    }
 
    stgp = st_geometry_program(st->ctx->GeometryProgram._Current);
-   assert(stgp->Base.Base.Target == MESA_GEOMETRY_PROGRAM);
+   assert(stgp->Base.Base.Target == GL_GEOMETRY_PROGRAM_NV);
 
    memset(&key, 0, sizeof(key));
    key.st = st;

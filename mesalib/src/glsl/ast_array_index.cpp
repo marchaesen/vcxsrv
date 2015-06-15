@@ -225,7 +225,7 @@ _mesa_ast_array_index_to_hir(void *mem_ctx,
        * values *do* diverge, then the behavior of the operation requiring a
        * dynamically uniform expression is undefined.
        */
-      if (array->type->element_type()->is_sampler()) {
+      if (array->type->without_array()->is_sampler()) {
 	 if (!state->is_version(130, 100)) {
 	    if (state->es_shader) {
 	       _mesa_glsl_warning(&loc, state,

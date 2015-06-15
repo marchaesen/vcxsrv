@@ -109,7 +109,7 @@ lower_instr(nir_intrinsic_instr *instr, nir_function_impl *impl)
    }
 
    new_instr->src[0].is_ssa = true;
-   new_instr->src[0].ssa = offset_def;;
+   new_instr->src[0].ssa = offset_def;
 
    if (instr->dest.is_ssa) {
       nir_ssa_dest_init(&new_instr->instr, &new_instr->dest,

@@ -34,6 +34,7 @@
 #include "macros.h"
 #include "meta.h"
 #include "pbo.h"
+#include "readpix.h"
 #include "shaderapi.h"
 #include "state.h"
 #include "teximage.h"
@@ -150,7 +151,8 @@ _mesa_meta_pbo_TexSubImage(struct gl_context *ctx, GLuint dims,
    bool success = false;
    int z;
 
-   if (!_mesa_is_bufferobj(packing->BufferObj) && !create_pbo)
+   if (!_mesa_is_bufferobj(packing->BufferObj) &&
+       (!create_pbo || pixels == NULL))
       return false;
 
    if (format == GL_DEPTH_COMPONENT ||
@@ -257,6 +259,7 @@ _mesa_meta_pbo_GetTexSubImage(struct gl_context *ctx, GLuint dims,
    GLuint pbo = 0, pbo_tex = 0, fbos[2] = { 0, 0 };
    int full_height, image_height;
    struct gl_texture_image *pbo_tex_image;
+   struct gl_renderbuffer *rb = NULL;
    GLenum status;
    bool success = false;
    int z;
@@ -272,6 +275,13 @@ _mesa_meta_pbo_GetTexSubImage(struct gl_context *ctx, GLuint dims,
 
    if (ctx->_ImageTransferState)
       return false;
+
+
+   if (!tex_image) {
+      rb = ctx->ReadBuffer->_ColorReadBuffer;
+      if (_mesa_need_rgb_to_luminance_conversion(rb->Format, format))
+         return false;
+   }
 
    /* For arrays, use a tall (height * depth) 2D texture but taking into
     * account the inter-image padding specified with the image height packing

@@ -65,11 +65,10 @@ util_format_etc1_rgb8_pack_rgba_float(uint8_t *dst_row, unsigned dst_stride, con
 void
 util_format_etc1_rgb8_fetch_rgba_float(float *dst, const uint8_t *src, unsigned i, unsigned j)
 {
-   const unsigned bw = 4, bh = 4;
    struct etc1_block block;
    uint8_t tmp[3];
 
-   assert(i < bw && j < bh);
+   assert(i < 4 && j < 4); /* check i, j against 4x4 block size */
 
    etc1_parse_block(&block, src);
    etc1_fetch_texel(&block, i, j, tmp);

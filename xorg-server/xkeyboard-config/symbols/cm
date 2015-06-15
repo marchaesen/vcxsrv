@@ -328,15 +328,25 @@ modifier_map Mod5	{ ISO_Level3_Latch };
 
 // ------- begin Mmuock keyboard map ------------------------------------------
 //   This layout is used for the Mmuock alphabet as described in the book
-//   _The Sound of Mmuock: Orthography_ [isbn: 978-9956-645-17-6]. Mmuock
-//   is the language of the Mmuock (local: Muòk) people of Western Cameroon.  
+//   _The Sound of Mmuock: Orthography (2. ed.)_ [isbn: 978-9956-645-28-1].
+//   Mmuock is the language of the Mmuock (local: Muòk) people of Western
+//   Cameroon.  
 // 
 //      Author: Tano Fotang <fotang at mmuock dot org>
 //     Created: 2014-06-24
-//     Version: 1.0
+//     Version: 1.1
 //
-// CHANGES:
+// CHANGES v 1.0:
 //	2014-07-06 corrected shifted level3 of <AC11> to quotedbl
+// CHANGES v 1.1:
+//  2015-05-23 1- added dead_tilde to key <TILDE>; this is needed to produce
+//               the letter <ñ> which was totally missing from the keyboard
+//             2- added letter <dz> to <AB01>; the letter had been missing.
+//             3- if we're not re-defining particular symbols from the included
+//               latin layout, then maintain the original latin mappings.
+//               Previously, we had set them to NoSymbol. Now, we want to
+//               keep the original latin mappings except for those few that we
+//               want to overwrite for our own keyboard.
 //
 // NOTES:
 // 0. This map is based on the Latin layout for the US keyboard.
@@ -361,7 +371,7 @@ modifier_map Mod5	{ ISO_Level3_Latch };
 //
 // 5. The 'Cameroon Multilingual' keyboard that is defined elsewhere, does not
 //    fit our needs because: (a) it is based on a different alphabet, (b) the
-//    vast majority of its symbols are not used in Mmuock, and (b) for the few
+//    vast majority of its symbols are not used in Mmuock, and (c) for the few
 //    symbols that are shared, the placing of the symbols is not egonomic for 
 //    typing Mmuock as the _PRIMARY_ language. The aim of this keyboard, is to
 //    give priority to symbols that are actually used in the Mmuock alphabet.
@@ -382,6 +392,9 @@ modifier_map Mod5	{ ISO_Level3_Latch };
 //   These fonts are all freely available.
 // 
 // ------the layout-----------
+// Note: this drawing does not show the symbols that are mapped by the included
+// latin sybols files. Shown are only the symbols that are requiired by the
+// Mmuock keyboard.
 //
 //   ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┲━━━━━━━━━┓
 //   │ ~   │ !   │ @   │ #   │ $   │ %   │ ^   │ &   | *   │ (   │ )   │ _   │ +   ┃ ⌫ Back- ┃
@@ -391,10 +404,10 @@ modifier_map Mod5	{ ISO_Level3_Latch };
 // AD┃Tab ↹  ┃ q   │ w   │ e ǝ │ š r │ t   │ y   │ u ω │ i ɛ │ o φ │ p π │ ø [ │ σ ] ┃   ⏎   ┃
 //   ┣━━━━━━━┻┱────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┺┓      ┃
 //   ┃        ┃ A   │ S   │ D   │ F   │ G   │  ̇ H │ J   │ K   │ L   │ Œ : │ " ” │ Æ | ┃      ┃
-// AC┃Caps ⇬  ┃ a   │ s   ̃| d   ̀| f   ̌| g   ̈|  ̣ h │ j   ̆│ k   ̏│ l   ̄│ Œ ; │ ' ’ │ æ \ ┃      ┃
+// AC┃Caps ⇬  ┃ a   │ s   ̃| d   ̀| f   ̌| g   ̈|  ̣ h │ j   ̆│ k   ̏│ l   ̄│ œ ; │ ' ’ │ æ \ ┃      ┃
 //   ┣━━━━━━━━┹────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┲┷━━━━━┻━━━━━━┫
-//   ┃             │ Z   │ X   │ C   │ V   │ B   │ N ŋ │ M   │ < « │ > » │ ?   ┃             ┃
-// AB┃Shift ⇧      │ z   │ x   │ c   │ v   │ b   │ n Ŋ │ m   │ , ‹ │ . › │   / ┃Shift ⇧      ┃
+//   ┃             │ Z ǲ │ X   │ C   │ V   │ B   │ N ŋ │ M   │ < « │ > » │ ?   ┃             ┃
+// AB┃Shift ⇧      │ z ǳ │ x   │ c   │ v   │ b   │ n Ŋ │ m   │ , ‹ │ . › │   / ┃Shift ⇧      ┃
 //   ┣━━━━━━━┳━━━━━┷━┳━━━┷━━━┱─┴─────┴─────┴─────┴─────┴─────┴───┲━┷━━━━━╈━━━━━┻━┳━━━━━━━┳━━━┛
 //   ┃       ┃       ┃       ┃                                   ┃       ┃       ┃       ┃
 // AA┃Ctrl   ┃Meta   ┃Alt    ┃             Space                 ┃AltGr ⇮┃Menu   ┃Ctrl   ┃
@@ -408,8 +421,8 @@ xkb_symbols "mmuock" {
    include "level3(ralt_switch)"
 
    name[Group1]= "Mmuock";
-   key <AE06> { [          6, asciicircum,          U0302,      NoSymbol ] }; // tone 10
-   key <AE07> { [          7,   ampersand,          U0311,      NoSymbol ] }; // tone 12
+   key <AE06> { [          6, asciicircum,          U0302                ] }; // tone 10
+   key <AE07> { [          7,   ampersand,          U0311                ] }; // tone 12
    key <AE08> { [          8,    asterisk,          U030D,     trademark ] }; // tone 13
    key <AE09> { [          9,   parenleft,          U0313,     plusminus ] }; // tone 14
    key <AE10> { [          0,  parenright,          U030A,        degree ] }; // tone 6
@@ -421,16 +434,18 @@ xkb_symbols "mmuock" {
    key <AD10> { [          p,           P,       Greek_pi,      Greek_PI ] };
    key <AD11> { [     oslash,    Ooblique,    bracketleft,     braceleft ] };
    key <AD12> { [Greek_sigma, Greek_SIGMA,   bracketright,    braceright ] }; 
-   key <AC02> { [          s,           S,          U0303,      NoSymbol ] }; // tone 1
-   key <AC03> { [          d,           D,          U0300,      NoSymbol ] }; // tone 4
-   key <AC04> { [          f,           F,          U030C,      NoSymbol ] }; // tone 5
-   key <AC05> { [          g,           G,          U0308,      NoSymbol ] }; // tone 7
+   key <AC02> { [          s,           S,          U0303                ] }; // tone 1
+   key <AC03> { [          d,           D,          U0300                ] }; // tone 4
+   key <AC04> { [          f,           F,          U030C                ] }; // tone 5
+   key <AC05> { [          g,           G,          U0308                ] }; // tone 7
    key <AC06> { [      U0323,       U0307,              h,             H ] }; // COMBINING DOT BELOW, ABOVE
-   key <AC07> { [          j,           J,          U0306,      NoSymbol ] }; // tone 9
-   key <AC08> { [          k,           K,          U030F,      NoSymbol ] }; // tone 11
-   key <AC09> { [          l,           L,          U0304,      NoSymbol ] }; // tone 0
+   key <AC07> { [          j,           J,          U0306                ] }; // tone 9
+   key <AC08> { [          k,           K,          U030F                ] }; // tone 11
+   key <AC09> { [          l,           L,          U0304                ] }; // tone 0
    key <AC10> { [         oe,          OE,      semicolon,         colon ] };
    key <AC11> { [      U0301,       U030B,     apostrophe,      quotedbl ] }; // tone 3, 8
+   key <TLDE> { [      grave,  dead_tilde                                ] };
+   key <AB01> { [          z,           Z,          U01F3,         U01F2 ] }; // U01F3 = letter dz
    key <AB06> { [          n,           N,            eng,           ENG ] };
    key <AB08> { [      comma,        less,  guillemotleft,         U2039 ] };
    key <AB09> { [     period,     greater, guillemotright,         U203A ] };
@@ -438,9 +453,8 @@ xkb_symbols "mmuock" {
 
    include "cm(solidus_switch)"
 };
-
 // use slash as special key for switching to level3
-partial hidden modifier_keys
+partial modifier_keys
 xkb_symbols "solidus_switch" {
    key <AB10> {
      symbols[Group1] = [ ISO_Level3_Latch, question, slash, NoSymbol ]

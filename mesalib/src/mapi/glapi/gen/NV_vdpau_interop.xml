@@ -5,14 +5,14 @@
 
 <category name="GL_NV_vdpau_interop" number="396">
 
-    <function name="VDPAUInitNV" offset="assign">
+    <function name="VDPAUInitNV">
 	<param name="vdpDevice" type="const GLvoid *"/>
 	<param name="getProcAddress" type="const GLvoid *"/>
     </function>
 
-    <function name="VDPAUFiniNV" offset="assign"/>
+    <function name="VDPAUFiniNV"/>
 
-    <function name="VDPAURegisterVideoSurfaceNV" offset="assign">
+    <function name="VDPAURegisterVideoSurfaceNV">
         <return type="GLintptr"/>
 	<param name="vdpSurface" type="const GLvoid *"/>
 	<param name="target" type="GLenum"/>
@@ -20,7 +20,7 @@
 	<param name="textureNames" type="const GLuint *"/>
     </function>
 
-    <function name="VDPAURegisterOutputSurfaceNV" offset="assign">
+    <function name="VDPAURegisterOutputSurfaceNV">
         <return type="GLintptr"/>
 	<param name="vdpSurface" type="const GLvoid *"/>
 	<param name="target" type="GLenum"/>
@@ -28,16 +28,16 @@
 	<param name="textureNames" type="const GLuint *"/>
     </function>
 
-    <function name="VDPAUIsSurfaceNV" offset="assign">
+    <function name="VDPAUIsSurfaceNV">
         <return type="GLboolean"/>
 	<param name="surface" type="GLintptr"/>
     </function>
 
-    <function name="VDPAUUnregisterSurfaceNV" offset="assign">
+    <function name="VDPAUUnregisterSurfaceNV">
 	<param name="surface" type="GLintptr"/>
     </function>
 
-    <function name="VDPAUGetSurfaceivNV" offset="assign">
+    <function name="VDPAUGetSurfaceivNV">
 	<param name="surface" type="GLintptr"/>
 	<param name="pname" type="GLenum"/>
 	<param name="bufSize" type="GLsizei"/>
@@ -45,17 +45,17 @@
 	<param name="values" type="GLint *"/>
     </function>
 
-    <function name="VDPAUSurfaceAccessNV" offset="assign">
+    <function name="VDPAUSurfaceAccessNV">
 	<param name="surface" type="GLintptr"/>
 	<param name="access" type="GLenum"/>
     </function>
 
-    <function name="VDPAUMapSurfacesNV" offset="assign">
+    <function name="VDPAUMapSurfacesNV">
 	<param name="numSurfaces" type="GLsizei"/>
 	<param name="surfaces" type="const GLintptr *"/>
     </function>
 
-    <function name="VDPAUUnmapSurfacesNV" offset="assign">
+    <function name="VDPAUUnmapSurfacesNV">
 	<param name="numSurfaces" type="GLsizei"/>
 	<param name="surfaces" type="const GLintptr *"/>
     </function>

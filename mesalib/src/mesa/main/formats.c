@@ -397,6 +397,11 @@ format_array_format_table_init(void)
    format_array_format_table = _mesa_hash_table_create(NULL, NULL,
                                                        array_formats_equal);
 
+   if (!format_array_format_table) {
+      _mesa_error_no_memory(__func__);
+      return;
+   }
+
    for (f = 1; f < MESA_FORMAT_COUNT; ++f) {
       info = _mesa_get_format_info(f);
       if (!info->ArrayFormat)
@@ -431,6 +436,12 @@ _mesa_format_from_array_format(uint32_t array_format)
    assert(_mesa_format_is_mesa_array_format(array_format));
 
    call_once(&format_array_format_table_exists, format_array_format_table_init);
+
+   if (!format_array_format_table) {
+      static const once_flag once_flag_init = ONCE_FLAG_INIT;
+      format_array_format_table_exists = once_flag_init;
+      return MESA_FORMAT_NONE;
+   }
 
    entry = _mesa_hash_table_search_pre_hashed(format_array_format_table,
                                               array_format,

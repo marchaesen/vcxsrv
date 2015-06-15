@@ -120,6 +120,7 @@ def generate(env):
             ])
         elif llvm_version >= distutils.version.LooseVersion('3.5'):
             env.Prepend(LIBS = [
+                'LLVMMCDisassembler',
                 'LLVMBitWriter', 'LLVMMCJIT', 'LLVMRuntimeDyld',
                 'LLVMX86Disassembler', 'LLVMX86AsmParser', 'LLVMX86CodeGen',
                 'LLVMSelectionDAG', 'LLVMAsmPrinter', 'LLVMX86Desc',
@@ -132,6 +133,7 @@ def generate(env):
             ])
         else:
             env.Prepend(LIBS = [
+                'LLVMMCDisassembler',
                 'LLVMBitWriter', 'LLVMX86Disassembler', 'LLVMX86AsmParser',
                 'LLVMX86CodeGen', 'LLVMX86Desc', 'LLVMSelectionDAG',
                 'LLVMAsmPrinter', 'LLVMMCParser', 'LLVMX86AsmPrinter',
@@ -189,7 +191,7 @@ def generate(env):
             if '-fno-rtti' in cxxflags:
                 env.Append(CXXFLAGS = ['-fno-rtti'])
 
-            components = ['engine', 'mcjit', 'bitwriter', 'x86asmprinter']
+            components = ['engine', 'mcjit', 'bitwriter', 'x86asmprinter', 'mcdisassembler']
 
             env.ParseConfig('llvm-config --libs ' + ' '.join(components))
             env.ParseConfig('llvm-config --ldflags')

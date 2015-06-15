@@ -47,6 +47,7 @@ struct ptn_compile {
    nir_builder build;
    bool error;
 
+   nir_variable *parameters;
    nir_variable *input_vars[VARYING_SLOT_MAX];
    nir_variable *output_vars[VARYING_SLOT_MAX];
    nir_register **output_regs;
@@ -112,21 +113,6 @@ ptn_get_dest(struct ptn_compile *c, const struct prog_dst_register *prog_dst)
    return dest;
 }
 
-/**
- * Multiply the contents of the ADDR register by 4 to convert from the number
- * of vec4s to the number of floating point components.
- */
-static nir_ssa_def *
-ptn_addr_reg_value(struct ptn_compile *c)
-{
-   nir_builder *b = &c->build;
-   nir_alu_src src;
-   memset(&src, 0, sizeof(src));
-   src.src = nir_src_for_reg(c->addr_reg);
-
-   return nir_imul(b, nir_fmov_alu(b, src, 1), nir_imm_int(b, 4));
-}
-
 static nir_ssa_def *
 ptn_get_src(struct ptn_compile *c, const struct prog_src_register *prog_src)
 {
@@ -180,27 +166,38 @@ ptn_get_src(struct ptn_compile *c, const struct prog_src_register *prog_src)
          }
          /* FALLTHROUGH */
       case PROGRAM_STATE_VAR: {
-         nir_intrinsic_op load_op =
-            prog_src->RelAddr ? nir_intrinsic_load_uniform_indirect :
-                                nir_intrinsic_load_uniform;
-         nir_intrinsic_instr *load = nir_intrinsic_instr_create(b->shader, load_op);
+         nir_intrinsic_instr *load =
+            nir_intrinsic_instr_create(b->shader, nir_intrinsic_load_var);
          nir_ssa_dest_init(&load->instr, &load->dest, 4, NULL);
          load->num_components = 4;
 
-         /* Multiply src->Index by 4 to scale from # of vec4s to components. */
-         load->const_index[0] = 4 * prog_src->Index;
-         load->const_index[1] = 1;
+         load->variables[0] = nir_deref_var_create(load, c->parameters);
+         nir_deref_array *deref_arr =
+            nir_deref_array_create(load->variables[0]);
+         deref_arr->deref.type = glsl_vec4_type();
+         load->variables[0]->deref.child = &deref_arr->deref;
 
          if (prog_src->RelAddr) {
-            nir_ssa_def *reladdr = ptn_addr_reg_value(c);
+            deref_arr->deref_array_type = nir_deref_array_type_indirect;
+
+            nir_alu_src addr_src = { NIR_SRC_INIT };
+            addr_src.src = nir_src_for_reg(c->addr_reg);
+            nir_ssa_def *reladdr = nir_imov_alu(b, addr_src, 1);
+
             if (prog_src->Index < 0) {
                /* This is a negative offset which should be added to the address
                 * register's value.
                 */
-               reladdr = nir_iadd(b, reladdr, nir_imm_int(b, load->const_index[0]));
-               load->const_index[0] = 0;
+               reladdr = nir_iadd(b, reladdr, nir_imm_int(b, prog_src->Index));
+
+               deref_arr->base_offset = 0;
+            } else {
+               deref_arr->base_offset = prog_src->Index;
             }
-            load->src[0] = nir_src_for_ssa(reladdr);
+            deref_arr->indirect = nir_src_for_ssa(reladdr);
+         } else {
+            deref_arr->deref_array_type = nir_deref_array_type_direct;
+            deref_arr->base_offset = prog_src->Index;
          }
 
          nir_instr_insert_after_cf_list(b->cf_node_list, &load->instr);
@@ -700,7 +697,7 @@ static const nir_op op_trans[MAX_OPCODE] = {
    [OPCODE_ADD] = nir_op_fadd,
    [OPCODE_ARL] = 0,
    [OPCODE_CMP] = 0,
-   [OPCODE_COS] = nir_op_fcos,
+   [OPCODE_COS] = 0,
    [OPCODE_DDX] = nir_op_fddx,
    [OPCODE_DDY] = nir_op_fddy,
    [OPCODE_DP2] = 0,
@@ -709,11 +706,11 @@ static const nir_op op_trans[MAX_OPCODE] = {
    [OPCODE_DPH] = 0,
    [OPCODE_DST] = 0,
    [OPCODE_END] = 0,
-   [OPCODE_EX2] = nir_op_fexp2,
+   [OPCODE_EX2] = 0,
    [OPCODE_EXP] = 0,
    [OPCODE_FLR] = nir_op_ffloor,
    [OPCODE_FRC] = nir_op_ffract,
-   [OPCODE_LG2] = nir_op_flog2,
+   [OPCODE_LG2] = 0,
    [OPCODE_LIT] = 0,
    [OPCODE_LOG] = 0,
    [OPCODE_LRP] = 0,
@@ -722,15 +719,15 @@ static const nir_op op_trans[MAX_OPCODE] = {
    [OPCODE_MIN] = nir_op_fmin,
    [OPCODE_MOV] = nir_op_fmov,
    [OPCODE_MUL] = nir_op_fmul,
-   [OPCODE_POW] = nir_op_fpow,
-   [OPCODE_RCP] = nir_op_frcp,
+   [OPCODE_POW] = 0,
+   [OPCODE_RCP] = 0,
 
-   [OPCODE_RSQ] = nir_op_frsq,
+   [OPCODE_RSQ] = 0,
    [OPCODE_SCS] = 0,
    [OPCODE_SEQ] = 0,
    [OPCODE_SGE] = 0,
    [OPCODE_SGT] = 0,
-   [OPCODE_SIN] = nir_op_fsin,
+   [OPCODE_SIN] = 0,
    [OPCODE_SLE] = 0,
    [OPCODE_SLT] = 0,
    [OPCODE_SNE] = 0,
@@ -767,7 +764,8 @@ ptn_emit_instruction(struct ptn_compile *c, struct prog_instruction *prog_inst)
 
    switch (op) {
    case OPCODE_RSQ:
-      ptn_move_dest(b, dest, nir_frsq(b, ptn_channel(b, src[0], X)));
+      ptn_move_dest(b, dest,
+                    nir_frsq(b, nir_fabs(b, ptn_channel(b, src[0], X))));
       break;
 
    case OPCODE_RCP:
@@ -894,7 +892,7 @@ ptn_emit_instruction(struct ptn_compile *c, struct prog_instruction *prog_inst)
       break;
 
    default:
-      if (op_trans[op] != 0 || op == OPCODE_MOV) {
+      if (op_trans[op] != 0) {
          ptn_alu(b, op_trans[op], dest, src);
       } else {
          fprintf(stderr, "unknown opcode: %s\n", _mesa_opcode_string(op));
@@ -903,8 +901,8 @@ ptn_emit_instruction(struct ptn_compile *c, struct prog_instruction *prog_inst)
       break;
    }
 
-   if (prog_inst->SaturateMode) {
-      assert(prog_inst->SaturateMode == SATURATE_ZERO_ONE);
+   if (prog_inst->Saturate) {
+      assert(prog_inst->Saturate);
       assert(!dest.dest.is_ssa);
       ptn_move_dest(b, dest, nir_fsat(b, ptn_src_for_dest(c, &dest)));
    }
@@ -926,10 +924,23 @@ ptn_add_output_stores(struct ptn_compile *c)
    foreach_list_typed(nir_variable, var, node, &b->shader->outputs) {
       nir_intrinsic_instr *store =
          nir_intrinsic_instr_create(b->shader, nir_intrinsic_store_var);
-      store->num_components = 4;
+      store->num_components = glsl_get_vector_elements(var->type);
       store->variables[0] =
          nir_deref_var_create(store, c->output_vars[var->data.location]);
-      store->src[0].reg.reg = c->output_regs[var->data.location];
+
+      if (c->prog->Target == GL_FRAGMENT_PROGRAM_ARB &&
+          var->data.location == FRAG_RESULT_DEPTH) {
+         /* result.depth has this strange convention of being the .z component of
+          * a vec4 with undefined .xyw components.  We resolve it to a scalar, to
+          * match GLSL's gl_FragDepth and the expectations of most backends.
+          */
+         nir_alu_src alu_src = { NIR_SRC_INIT };
+         alu_src.src = nir_src_for_reg(c->output_regs[FRAG_RESULT_DEPTH]);
+         alu_src.swizzle[0] = SWIZZLE_Z;
+         store->src[0] = nir_src_for_ssa(nir_fmov_alu(b, alu_src, 1));
+      } else {
+         store->src[0].reg.reg = c->output_regs[var->data.location];
+      }
       nir_instr_insert_after_cf_list(c->build.cf_node_list, &store->instr);
    }
 }
@@ -1022,7 +1033,10 @@ setup_registers_and_variables(struct ptn_compile *c)
       reg->num_components = 4;
 
       nir_variable *var = rzalloc(shader, nir_variable);
-      var->type = glsl_vec4_type();
+      if (c->prog->Target == GL_FRAGMENT_PROGRAM_ARB && i == FRAG_RESULT_DEPTH)
+         var->type = glsl_float_type();
+      else
+         var->type = glsl_vec4_type();
       var->data.mode = nir_var_shader_out;
       var->name = ralloc_asprintf(var, "out_%d", i);
 
@@ -1057,13 +1071,11 @@ setup_registers_and_variables(struct ptn_compile *c)
    }
    reg->num_components = 1;
    c->addr_reg = reg;
-
-   /* Set the number of uniforms */
-   shader->num_uniforms = 4 * c->prog->Parameters->NumParameters;
 }
 
 struct nir_shader *
-prog_to_nir(const struct gl_program *prog, const nir_shader_compiler_options *options)
+prog_to_nir(const struct gl_program *prog,
+            const nir_shader_compiler_options *options)
 {
    struct ptn_compile *c;
    struct nir_shader *s;
@@ -1075,6 +1087,14 @@ prog_to_nir(const struct gl_program *prog, const nir_shader_compiler_options *op
    if (!s)
       goto fail;
    c->prog = prog;
+
+   c->parameters = rzalloc(s, nir_variable);
+   c->parameters->type = glsl_array_type(glsl_vec4_type(),
+                                            prog->Parameters->NumParameters);
+   c->parameters->name = "parameters";
+   c->parameters->data.read_only = true;
+   c->parameters->data.mode = nir_var_uniform;
+   exec_list_push_tail(&s->uniforms, &c->parameters->node);
 
    nir_function *func = nir_function_create(s, "main");
    nir_function_overload *overload = nir_function_overload_create(func);

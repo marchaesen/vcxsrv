@@ -61,6 +61,7 @@ EXTRA_DIST= \
 	$(MESA_GLAPI_DIR)/glapi_x86-64.S \
 	$(MESA_GLAPI_DIR)/glapi_sparc.S \
 	$(COMMON_GLX) \
+	apiexec.py \
 	gl_apitemp.py \
 	gl_enums.py \
 	gl_genexec.py \
@@ -75,6 +76,7 @@ EXTRA_DIST= \
 	glX_proto_size.py \
 	glX_server_table.py \
 	remap_helper.py \
+	static_data.py \
 	SConscript \
 	gl_API.dtd
 
@@ -140,6 +142,7 @@ API_XML = \
 	ARB_map_buffer_range.xml \
 	ARB_multi_bind.xml \
 	ARB_pipeline_statistics_query.xml \
+	ARB_program_interface_query.xml \
 	ARB_robustness.xml \
 	ARB_sample_shading.xml \
 	ARB_sampler_objects.xml \
@@ -197,6 +200,7 @@ COMMON = $(API_XML) \
 	gl_XML.py \
 	glX_XML.py \
 	license.py \
+	static_data.py \
 	typeexpr.py
 
 COMMON_GLX = $(COMMON) glX_API.xml glX_XML.py glX_proto_common.py
@@ -264,7 +268,7 @@ $(MESA_GLAPI_DIR)/glapi_sparc.S: gl_SPARC_asm.py $(COMMON)
 $(MESA_DIR)/main/enums.c: gl_enums.py $(COMMON)
 	$(PYTHON_GEN) $< -f $(srcdir)/gl_and_es_API.xml > $@
 
-$(MESA_DIR)/main/api_exec.c: gl_genexec.py $(COMMON)
+$(MESA_DIR)/main/api_exec.c: gl_genexec.py apiexec.py $(COMMON)
 	$(PYTHON_GEN) $< -f $(srcdir)/gl_and_es_API.xml > $@
 
 $(MESA_DIR)/main/dispatch.h: gl_table.py $(COMMON)
@@ -287,7 +291,7 @@ $(MESA_GLX_DIR)/indirect_init.c: glX_proto_send.py $(COMMON_GLX)
 
 $(MESA_GLX_DIR)/indirect_size.h $(XORG_GLX_DIR)/indirect_size.h: glX_proto_size.py $(COMMON_GLX)
 	$(PYTHON_GEN) $< -f $(srcdir)/gl_API.xml -m size_h --only-set \
-	    -h _INDIRECT_SIZE_H_ \
+	    --header-tag _INDIRECT_SIZE_H_ \
 	  | $(INDENT) $(INDENT_FLAGS) > $@
 
 $(MESA_GLX_DIR)/indirect_size.c: glX_proto_size.py $(COMMON_GLX)

@@ -33,8 +33,6 @@
                    value               NMTOKEN #REQUIRED>
 <!ATTLIST function name                NMTOKEN #REQUIRED
                    alias               NMTOKEN #IMPLIED
-                   offset              CDATA   #IMPLIED
-                   static_dispatch     (true | false) "true"
                    vectorequiv         NMTOKEN #IMPLIED
                    es1                 CDATA   "none"
                    es2                 CDATA   "none"

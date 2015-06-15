@@ -397,7 +397,7 @@ store_vector4(const struct prog_instruction *inst,
               struct gl_program_machine *machine, const GLfloat value[4])
 {
    const struct prog_dst_register *dstReg = &(inst->DstReg);
-   const GLboolean clamp = inst->SaturateMode == SATURATE_ZERO_ONE;
+   const GLboolean clamp = inst->Saturate;
    GLuint writeMask = dstReg->WriteMask;
    GLfloat clampedValue[4];
    GLfloat *dst = get_dst_register_pointer(dstReg, machine);

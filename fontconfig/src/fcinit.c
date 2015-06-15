@@ -91,12 +91,23 @@ FcInitLoadOwnConfig (FcConfig *config)
     {
 	FcChar8 *prefix, *p;
 	size_t plen;
+	FcBool have_own = FcFalse;
+	char *env_file, *env_path;
 
-	fprintf (stderr,
-		 "Fontconfig warning: no <cachedir> elements found. Check configuration.\n");
-	fprintf (stderr,
-		 "Fontconfig warning: adding <cachedir>%s</cachedir>\n",
-		 FC_CACHEDIR);
+	env_file = getenv ("FONTCONFIG_FILE");
+	env_path = getenv ("FONTCONFIG_PATH");
+	if ((env_file != NULL && env_file[0] != 0) ||
+	    (env_path != NULL && env_path[0] != 0))
+	    have_own = FcTrue;
+
+	if (!have_own)
+	{
+	    fprintf (stderr,
+		     "Fontconfig warning: no <cachedir> elements found. Check configuration.\n");
+	    fprintf (stderr,
+		     "Fontconfig warning: adding <cachedir>%s</cachedir>\n",
+		     FC_CACHEDIR);
+	}
 	prefix = FcConfigXdgCacheHome ();
 	if (!prefix)
 	    goto bail;
@@ -107,8 +118,9 @@ FcInitLoadOwnConfig (FcConfig *config)
 	prefix = p;
 	memcpy (&prefix[plen], FC_DIR_SEPARATOR_S "fontconfig", 11);
 	prefix[plen + 11] = 0;
-	fprintf (stderr,
-		 "Fontconfig warning: adding <cachedir prefix=\"xdg\">fontconfig</cachedir>\n");
+	if (!have_own)
+	    fprintf (stderr,
+		     "Fontconfig warning: adding <cachedir prefix=\"xdg\">fontconfig</cachedir>\n");
 
 	if (!FcConfigAddCacheDir (config, (FcChar8 *) FC_CACHEDIR) ||
 	    !FcConfigAddCacheDir (config, (FcChar8 *) prefix))
@@ -180,6 +192,8 @@ FcFini (void)
     FcConfigFini ();
     FcCacheFini ();
     FcDefaultFini ();
+    FcObjectFini ();
+    FcConfigPathFini ();
 }
 
 /*

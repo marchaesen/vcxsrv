@@ -573,5 +573,10 @@ ir_print_visitor::visit(ir_end_primitive *ir)
    fprintf(f, "(end-primitive ");
    ir->stream->accept(this);
    fprintf(f, ")\n");
+}
 
+void
+ir_print_visitor::visit(ir_barrier *ir)
+{
+   fprintf(f, "(barrier)\n");
 }

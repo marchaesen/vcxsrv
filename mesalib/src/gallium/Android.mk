@@ -33,7 +33,9 @@ SUBDIRS := auxiliary
 #
 
 # swrast
-SUBDIRS += winsys/sw/android drivers/softpipe
+ifneq ($(filter swrast,$(MESA_GPU_DRIVERS)),)
+SUBDIRS += winsys/sw/dri winsys/sw/kms-dri drivers/softpipe
+endif
 
 # freedreno
 ifneq ($(filter freedreno, $(MESA_GPU_DRIVERS)),)
@@ -74,10 +76,17 @@ endif
 endif
 endif
 
+# vc4
+ifneq ($(filter vc4, $(MESA_GPU_DRIVERS)),)
+SUBDIRS += winsys/vc4/drm drivers/vc4
+endif
+
 # vmwgfx
 ifneq ($(filter vmwgfx, $(MESA_GPU_DRIVERS)),)
 SUBDIRS += winsys/svga/drm drivers/svga
 endif
 
-mkfiles := $(patsubst %,$(GALLIUM_TOP)/%/Android.mk,$(SUBDIRS))
-include $(mkfiles)
+# Gallium state trackers and target for dri
+SUBDIRS += state_trackers/dri targets/dri
+
+include $(call all-named-subdir-makefiles,$(SUBDIRS))

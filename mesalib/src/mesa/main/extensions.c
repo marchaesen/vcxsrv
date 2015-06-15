@@ -104,7 +104,7 @@ static const struct extension extension_table[] = {
    { "GL_ARB_depth_clamp",                         o(ARB_depth_clamp),                         GL,             2003 },
    { "GL_ARB_depth_texture",                       o(ARB_depth_texture),                       GLL,            2001 },
    { "GL_ARB_derivative_control",                  o(ARB_derivative_control),                  GL,             2014 },
-   { "GL_ARB_direct_state_access",                 o(ARB_direct_state_access),                 GL,             2014 },
+   { "GL_ARB_direct_state_access",                 o(dummy_true),                              GLC,            2014 },
    { "GL_ARB_draw_buffers",                        o(dummy_true),                              GL,             2002 },
    { "GL_ARB_draw_buffers_blend",                  o(ARB_draw_buffers_blend),                  GL,             2009 },
    { "GL_ARB_draw_elements_base_vertex",           o(ARB_draw_elements_base_vertex),           GL,             2009 },

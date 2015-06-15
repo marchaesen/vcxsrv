@@ -1,10 +1,10 @@
 /***************************************************************************/
 /*                                                                         */
-/*  svxf86nm.h                                                             */
+/*  ftfntfmt.c                                                             */
 /*                                                                         */
-/*    The FreeType XFree86 services (specification only).                  */
+/*    FreeType utility file for font formats (body).                       */
 /*                                                                         */
-/*  Copyright 2003 by                                                      */
+/*  Copyright 2002-2015 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -16,40 +16,40 @@
 /***************************************************************************/
 
 
-#ifndef __SVXF86NM_H__
-#define __SVXF86NM_H__
-
-#include <internal/ftserv.h>
-
-
-FT_BEGIN_HEADER
+#include <ft2build.h>
+#include FT_FONT_FORMATS_H
+#include <internal/ftobjs.h>
+#include FT_SERVICE_FONT_FORMAT_H
 
 
-  /*
-   *  A trivial service used to return the name of a face's font driver,
-   *  according to the XFree86 nomenclature.  Note that the service data
-   *  is a simple constant string pointer.
-   */
+  /* documentation is in ftfntfmt.h */
 
-#define FT_SERVICE_ID_XF86_NAME  "xf86-driver-name"
-
-#define FT_XF86_FORMAT_TRUETYPE  "TrueType"
-#define FT_XF86_FORMAT_TYPE_1    "Type 1"
-#define FT_XF86_FORMAT_BDF       "BDF"
-#define FT_XF86_FORMAT_PCF       "PCF"
-#define FT_XF86_FORMAT_TYPE_42   "Type 42"
-#define FT_XF86_FORMAT_CID       "CID Type 1"
-#define FT_XF86_FORMAT_CFF       "CFF"
-#define FT_XF86_FORMAT_PFR       "PFR"
-#define FT_XF86_FORMAT_WINFNT    "Windows FNT"
-
-  /* */
+  FT_EXPORT_DEF( const char* )
+  FT_Get_Font_Format( FT_Face  face )
+  {
+    const char*  result = NULL;
 
 
-FT_END_HEADER
+    if ( face )
+      FT_FACE_FIND_SERVICE( face, result, FONT_FORMAT );
+
+    return result;
+  }
 
 
-#endif /* __SVXF86NM_H__ */
+  /* deprecated function name; retained for ABI compatibility */
+
+  FT_EXPORT_DEF( const char* )
+  FT_Get_X11_Font_Format( FT_Face  face )
+  {
+    const char*  result = NULL;
+
+
+    if ( face )
+      FT_FACE_FIND_SERVICE( face, result, FONT_FORMAT );
+
+    return result;
+  }
 
 
 /* END */

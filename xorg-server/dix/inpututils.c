@@ -505,15 +505,23 @@ valuator_mask_isset(const ValuatorMask *mask, int valuator)
     return mask->last_bit >= valuator && BitIsOn(mask->mask, valuator);
 }
 
+static inline void
+_valuator_mask_set_double(ValuatorMask *mask, int valuator, double data)
+{
+    mask->last_bit = max(valuator, mask->last_bit);
+    SetBit(mask->mask, valuator);
+    mask->valuators[valuator] = data;
+}
+
 /**
  * Set the valuator to the given floating-point data.
  */
 void
 valuator_mask_set_double(ValuatorMask *mask, int valuator, double data)
 {
-    mask->last_bit = max(valuator, mask->last_bit);
-    SetBit(mask->mask, valuator);
-    mask->valuators[valuator] = data;
+    BUG_WARN_MSG(mask->has_unaccelerated,
+                 "Do not mix valuator types, zero mask first\n");
+    _valuator_mask_set_double(mask, valuator, data);
 }
 
 /**
@@ -594,11 +602,15 @@ valuator_mask_unset(ValuatorMask *mask, int valuator)
 
         ClearBit(mask->mask, valuator);
         mask->valuators[valuator] = 0.0;
+        mask->unaccelerated[valuator] = 0.0;
 
         for (i = 0; i <= mask->last_bit; i++)
             if (valuator_mask_isset(mask, i))
                 lastbit = max(lastbit, i);
         mask->last_bit = lastbit;
+
+        if (mask->last_bit == -1)
+            mask->has_unaccelerated = FALSE;
     }
 }
 
@@ -609,6 +621,66 @@ valuator_mask_copy(ValuatorMask *dest, const ValuatorMask *src)
         memcpy(dest, src, sizeof(*dest));
     else
         valuator_mask_zero(dest);
+}
+
+Bool
+valuator_mask_has_unaccelerated(const ValuatorMask *mask)
+{
+    return mask->has_unaccelerated;
+}
+
+void
+valuator_mask_drop_unaccelerated(ValuatorMask *mask)
+{
+    memset(mask->unaccelerated, 0, sizeof(mask->unaccelerated));
+    mask->has_unaccelerated = FALSE;
+}
+
+/**
+ * Set both accelerated and unaccelerated value for this mask.
+ */
+void
+valuator_mask_set_unaccelerated(ValuatorMask *mask,
+                                int valuator,
+                                double accel,
+                                double unaccel)
+{
+    BUG_WARN_MSG(mask->last_bit != -1 && !mask->has_unaccelerated,
+                 "Do not mix valuator types, zero mask first\n");
+    _valuator_mask_set_double(mask, valuator, accel);
+    mask->has_unaccelerated = TRUE;
+    mask->unaccelerated[valuator] = unaccel;
+}
+
+double
+valuator_mask_get_accelerated(const ValuatorMask *mask,
+                              int valuator)
+{
+    return valuator_mask_get_double(mask, valuator);
+}
+
+double
+valuator_mask_get_unaccelerated(const ValuatorMask *mask,
+                                int valuator)
+{
+    return mask->unaccelerated[valuator];
+}
+
+Bool
+valuator_mask_fetch_unaccelerated(const ValuatorMask *mask,
+                                  int valuator,
+                                  double *accel,
+                                  double *unaccel)
+{
+    if (valuator_mask_isset(mask, valuator)) {
+        if (accel)
+            *accel = valuator_mask_get_accelerated(mask, valuator);
+        if (unaccel)
+            *unaccel = valuator_mask_get_unaccelerated(mask, valuator);
+        return TRUE;
+    }
+    else
+        return FALSE;
 }
 
 int

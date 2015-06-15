@@ -655,7 +655,7 @@ FcDirCacheMapFd (FcConfig *config, int fd, struct stat *fd_stat, struct stat *di
 	allocated = FcTrue;
     }
     if (cache->magic != FC_CACHE_MAGIC_MMAP ||
-	cache->version < FC_CACHE_CONTENT_VERSION ||
+	cache->version < FC_CACHE_VERSION_NUMBER ||
 	cache->size != (intptr_t) fd_stat->st_size ||
 	!FcCacheTimeValid (config, cache, dir_stat) ||
 	!FcCacheDirsValid (config, cache) ||
@@ -751,7 +751,7 @@ FcDirCacheValidateHelper (FcConfig *config, int fd, struct stat *fd_stat, struct
 	ret = FcFalse;
     else if (c.magic != FC_CACHE_MAGIC_MMAP)
 	ret = FcFalse;
-    else if (c.version < FC_CACHE_CONTENT_VERSION)
+    else if (c.version < FC_CACHE_VERSION_NUMBER)
 	ret = FcFalse;
     else if (fd_stat->st_size != c.size)
 	ret = FcFalse;
@@ -828,7 +828,7 @@ FcDirCacheBuild (FcFontSet *set, const FcChar8 *dir, struct stat *dir_stat, FcSt
     serialize->linear = cache;
 
     cache->magic = FC_CACHE_MAGIC_ALLOC;
-    cache->version = FC_CACHE_CONTENT_VERSION;
+    cache->version = FC_CACHE_VERSION_NUMBER;
     cache->size = serialize->size;
     cache->checksum = (int) dir_stat->st_mtime;
 

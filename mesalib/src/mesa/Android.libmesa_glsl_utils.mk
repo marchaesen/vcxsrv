@@ -44,7 +44,8 @@ LOCAL_C_INCLUDES := \
 LOCAL_SRC_FILES := \
 	main/imports.c \
 	program/prog_hash_table.c \
-	program/symbol_table.c
+	program/symbol_table.c \
+	program/dummy_errors.c
 
 include $(MESA_COMMON_MK)
 include $(BUILD_STATIC_LIBRARY)
@@ -68,7 +69,8 @@ LOCAL_C_INCLUDES := \
 LOCAL_SRC_FILES := \
 	main/imports.c \
 	program/prog_hash_table.c \
-	program/symbol_table.c
+	program/symbol_table.c \
+	program/dummy_errors.c
 
 include $(MESA_COMMON_MK)
 include $(BUILD_HOST_STATIC_LIBRARY)

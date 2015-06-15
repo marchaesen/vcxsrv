@@ -102,7 +102,7 @@ struct blitter_context
    void *saved_dsa_state;     /**< depth stencil alpha state */
    void *saved_velem_state;   /**< vertex elements state */
    void *saved_rs_state;      /**< rasterizer state */
-   void *saved_fs, *saved_vs, *saved_gs; /**< shaders */
+   void *saved_fs, *saved_vs, *saved_gs, *saved_tcs, *saved_tes; /**< shaders */
 
    struct pipe_framebuffer_state saved_fb_state;  /**< framebuffer state */
    struct pipe_stencil_ref saved_stencil_ref;     /**< stencil ref */
@@ -425,6 +425,20 @@ void util_blitter_save_geometry_shader(struct blitter_context *blitter,
                                        void *gs)
 {
    blitter->saved_gs = gs;
+}
+
+static INLINE void
+util_blitter_save_tessctrl_shader(struct blitter_context *blitter,
+                                  void *sh)
+{
+   blitter->saved_tcs = sh;
+}
+
+static INLINE void
+util_blitter_save_tesseval_shader(struct blitter_context *blitter,
+                                  void *sh)
+{
+   blitter->saved_tes = sh;
 }
 
 static INLINE

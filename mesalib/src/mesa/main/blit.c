@@ -540,13 +540,6 @@ _mesa_BlitNamedFramebuffer(GLuint readFramebuffer, GLuint drawFramebuffer,
    GET_CURRENT_CONTEXT(ctx);
    struct gl_framebuffer *readFb, *drawFb;
 
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glBlitNamedFramebuffer(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
-
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx,
                   "glBlitNamedFramebuffer(%u %u %d, %d, %d, %d, "

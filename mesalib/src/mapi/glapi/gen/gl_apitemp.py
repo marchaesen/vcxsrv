@@ -25,9 +25,10 @@
 # Authors:
 #    Ian Romanick <idr@us.ibm.com>
 
+import argparse
+
 import gl_XML, glX_XML
 import license
-import sys, getopt
 
 class PrintGlOffsets(gl_XML.gl_print_base):
     def __init__(self, es=False):
@@ -301,27 +302,30 @@ _glapi_proc UNUSED_TABLE_NAME[] = {"""
         return
 
 
-def show_usage():
-    print "Usage: %s [-f input_file_name] [-c]" % sys.argv[0]
-    print "-c          Enable compatibility with OpenGL ES."
-    sys.exit(1)
+def _parser():
+    """Parser arguments and return a namespace."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f',
+                        metavar='<input file name>',
+                        dest='filename',
+                        default="gl_API.xml",
+                        help="An XML file describing the API.")
+    parser.add_argument('-c',
+                        action='store_true',
+                        dest='es',
+                        help="Enable OpenGL ES compatibility")
+    return parser.parse_args()
+
+
+def main():
+    """Main function."""
+    args = _parser()
+
+    api = gl_XML.parse_GL_API(args.filename, glX_XML.glx_item_factory())
+
+    printer = PrintGlOffsets(args.es)
+    printer.Print(api)
+
 
 if __name__ == '__main__':
-    file_name = "gl_API.xml"
-
-    try:
-        (args, trail) = getopt.getopt(sys.argv[1:], "f:c")
-    except Exception,e:
-        show_usage()
-
-    es = False
-    for (arg,val) in args:
-        if arg == "-f":
-            file_name = val
-        elif arg == "-c":
-            es = True
-
-    api = gl_XML.parse_GL_API(file_name, glX_XML.glx_item_factory())
-
-    printer = PrintGlOffsets(es)
-    printer.Print(api)
+    main()

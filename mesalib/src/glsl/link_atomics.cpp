@@ -207,7 +207,7 @@ link_assign_atomic_counter_resources(struct gl_context *ctx,
          storage->atomic_buffer_index = i;
          storage->offset = var->data.atomic.offset;
          storage->array_stride = (var->type->is_array() ?
-                                  var->type->element_type()->atomic_size() : 0);
+                                  var->type->without_array()->atomic_size() : 0);
       }
 
       /* Assign stage-specific fields. */

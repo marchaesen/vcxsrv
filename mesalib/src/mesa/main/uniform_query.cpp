@@ -237,6 +237,13 @@ validate_uniform_parameters(struct gl_context *ctx,
 
    struct gl_uniform_storage *const uni = shProg->UniformRemapTable[location];
 
+   /* Even though no location is assigned to a built-in uniform and this
+    * function should already have returned NULL, this test makes it explicit
+    * that we are not allowing to update the value of a built-in.
+    */
+   if (uni->builtin)
+      return NULL;
+
    if (uni->array_elements == 0) {
       if (count > 1) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
@@ -1028,6 +1035,10 @@ _mesa_get_uniform_location(struct gl_shader_program *shProg,
    if (!found)
       return GL_INVALID_INDEX;
 
+   /* If the uniform is built-in, fail. */
+   if (shProg->UniformStorage[location].builtin)
+      return GL_INVALID_INDEX;
+
    /* If the uniform is an array, fail if the index is out of bounds.
     * (A negative index is caught above.)  This also fails if the uniform
     * is not an array, but the user is trying to index it, because
@@ -1047,7 +1058,7 @@ _mesa_sampler_uniforms_are_valid(const struct gl_shader_program *shProg,
 				 char *errMsg, size_t errMsgLength)
 {
    /* Shader does not have samplers. */
-   if (shProg->NumUserUniformStorage == 0)
+   if (shProg->NumUniformStorage == 0)
       return true;
 
    if (!shProg->SamplersValidated) {
@@ -1087,7 +1098,7 @@ _mesa_sampler_uniforms_pipeline_are_valid(struct gl_pipeline_object *pipeline)
       if (!shProg[idx])
          continue;
 
-      for (unsigned i = 0; i < shProg[idx]->NumUserUniformStorage; i++) {
+      for (unsigned i = 0; i < shProg[idx]->NumUniformStorage; i++) {
          const struct gl_uniform_storage *const storage =
             &shProg[idx]->UniformStorage[i];
          const glsl_type *const t = (storage->type->is_array())

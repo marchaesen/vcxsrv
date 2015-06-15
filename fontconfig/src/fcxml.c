@@ -57,6 +57,9 @@
 extern FcChar8 fontconfig_instprefix[];
 #endif
 
+static FcChar8  *__fc_userdir = NULL;
+static FcChar8  *__fc_userconf = NULL;
+
 static void
 FcExprDestroy (FcExpr *e);
 
@@ -79,6 +82,7 @@ FcRuleDestroy (FcRule *rule)
     case FcRuleEdit:
 	FcEditDestroy (rule->u.edit);
 	break;
+    case FcRuleUnknown:
     default:
 	break;
     }
@@ -609,6 +613,7 @@ FcTypeName (FcType type)
 	return "langset";
     case FcTypeRange:
 	return "range";
+    case FcTypeUnknown:
     default:
 	return "unknown";
     }
@@ -806,6 +811,7 @@ FcRuleCreate (FcRuleType type,
     case FcRuleEdit:
 	r->u.edit = (FcEdit *) p;
 	break;
+    case FcRuleUnknown:
     default:
 	free (r);
 	r = NULL;
@@ -1255,7 +1261,6 @@ FcParseBlank (FcConfigParse *parse)
 {
     int		n = FcVStackElements (parse);
     FcChar32	i, begin, end;
-    FcRange	r;
 
     while (n-- > 0)
     {
@@ -1272,9 +1277,8 @@ FcParseBlank (FcConfigParse *parse)
 		goto bail;
 	    break;
 	case FcVStackRange:
-	    r = FcRangeCanonicalize (v->u.range);
-	    begin = (FcChar32)r.u.d.begin;
-	    end = (FcChar32)r.u.d.end;
+	    begin = (FcChar32) v->u.range->begin;
+	    end = (FcChar32) v->u.range->end;
 	    if (begin <= end)
 	    {
 	      for (i = begin; i <= end; i++)
@@ -1587,7 +1591,6 @@ FcParseCharSet (FcConfigParse *parse)
     FcVStack	*vstack;
     FcCharSet	*charset = FcCharSetCreate ();
     FcChar32	i, begin, end;
-    FcRange	r;
     int n = 0;
 
     while ((vstack = FcVStackPeek (parse)))
@@ -1602,9 +1605,8 @@ FcParseCharSet (FcConfigParse *parse)
 		n++;
 	    break;
 	case FcVStackRange:
-	    r = FcRangeCanonicalize (vstack->u.range);
-	    begin = (FcChar32)r.u.d.begin;
-	    end = (FcChar32)r.u.d.end;
+	    begin = (FcChar32) vstack->u.range->begin;
+	    end = (FcChar32) vstack->u.range->end;
 
 	    if (begin <= end)
 	    {
@@ -2263,6 +2265,24 @@ FcParseCacheDir (FcConfigParse *parse)
 	FcStrFree (data);
 }
 
+void
+FcConfigPathFini (void)
+{
+    FcChar8 *s;
+
+retry_dir:
+    s = fc_atomic_ptr_get (&__fc_userdir);
+    if (!fc_atomic_ptr_cmpexch (&__fc_userdir, s, NULL))
+	goto retry_dir;
+    free (s);
+
+retry_conf:
+    s = fc_atomic_ptr_get (&__fc_userconf);
+    if (!fc_atomic_ptr_cmpexch (&__fc_userconf, s, NULL))
+	goto retry_conf;
+    free (s);
+}
+
 static void
 FcParseInclude (FcConfigParse *parse)
 {
@@ -2273,8 +2293,7 @@ FcParseInclude (FcConfigParse *parse)
     FcBool	    deprecated = FcFalse;
 #endif
     FcChar8	    *prefix = NULL, *p;
-    static FcChar8  *userdir = NULL;
-    static FcChar8  *userconf = NULL;
+    FcChar8	    *userdir = NULL, *userconf = NULL;
 
     s = FcStrBufDoneStatic (&parse->pstack->str);
     if (!s)
@@ -2304,6 +2323,7 @@ FcParseInclude (FcConfigParse *parse)
     {
 	size_t plen = strlen ((const char *)prefix);
 	size_t dlen = strlen ((const char *)s);
+	FcChar8 *u;
 
 	p = realloc (prefix, plen + 1 + dlen + 1);
 	if (!p)
@@ -2319,14 +2339,32 @@ FcParseInclude (FcConfigParse *parse)
 	if (FcFileIsDir (s))
 	{
 	userdir:
+	    userdir = fc_atomic_ptr_get (&__fc_userdir);
 	    if (!userdir)
-		userdir = FcStrdup (s);
+	    {
+		u = FcStrdup (s);
+		if (!fc_atomic_ptr_cmpexch (&__fc_userdir, userdir, u))
+		{
+		    free (u);
+		    goto userdir;
+		}
+		userdir = u;
+	    }
 	}
 	else if (FcFileIsFile (s))
 	{
 	userconf:
+	    userconf = fc_atomic_ptr_get (&__fc_userconf);
 	    if (!userconf)
-		userconf = FcStrdup (s);
+	    {
+		u = FcStrdup (s);
+		if (!fc_atomic_ptr_cmpexch (&__fc_userconf, userconf, u))
+		{
+		    free (u);
+		    goto userconf;
+		}
+		userconf = u;
+	    }
 	}
 	else
 	{
@@ -2350,6 +2388,7 @@ FcParseInclude (FcConfigParse *parse)
         filename = FcConfigFilename(s);
 	if (deprecated == FcTrue &&
 	    filename != NULL &&
+	    userdir != NULL &&
 	    !FcFileIsLink (filename))
 	{
 	    if (FcFileIsDir (filename))

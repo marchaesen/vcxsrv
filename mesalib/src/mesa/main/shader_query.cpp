@@ -479,12 +479,20 @@ _mesa_GetFragDataLocation(GLuint program, const GLchar *name)
 const char*
 _mesa_program_resource_name(struct gl_program_resource *res)
 {
+   const ir_variable *var;
    switch (res->Type) {
    case GL_UNIFORM_BLOCK:
       return RESOURCE_UBO(res)->Name;
    case GL_TRANSFORM_FEEDBACK_VARYING:
       return RESOURCE_XFB(res)->Name;
    case GL_PROGRAM_INPUT:
+      var = RESOURCE_VAR(res);
+      /* Special case gl_VertexIDMESA -> gl_VertexID. */
+      if (var->data.mode == ir_var_system_value &&
+          var->data.location == SYSTEM_VALUE_VERTEX_ID_ZERO_BASE) {
+         return "gl_VertexID";
+      }
+   /* fallthrough */
    case GL_PROGRAM_OUTPUT:
       return RESOURCE_VAR(res)->name;
    case GL_UNIFORM:
@@ -539,6 +547,17 @@ struct gl_program_resource *
 _mesa_program_resource_find_name(struct gl_shader_program *shProg,
                                  GLenum programInterface, const char *name)
 {
+   GET_CURRENT_CONTEXT(ctx);
+   const char *full_name = name;
+
+   /* When context has 'VertexID_is_zero_based' set, gl_VertexID has been
+    * lowered to gl_VertexIDMESA.
+    */
+   if (name && ctx->Const.VertexID_is_zero_based) {
+      if (strcmp(name, "gl_VertexID") == 0)
+         full_name = "gl_VertexIDMESA";
+   }
+
    struct gl_program_resource *res = shProg->ProgramResourceList;
    for (unsigned i = 0; i < shProg->NumProgramResourceList; i++, res++) {
       if (res->Type != programInterface)
@@ -563,7 +582,7 @@ _mesa_program_resource_find_name(struct gl_shader_program *shProg,
          break;
       case GL_PROGRAM_INPUT:
       case GL_PROGRAM_OUTPUT:
-         if (array_index_of_resource(res, name) >= 0)
+         if (array_index_of_resource(res, full_name) >= 0)
             return res;
          break;
       default:
@@ -727,6 +746,10 @@ program_resource_location(struct gl_shader_program *shProg,
       if (array_index < 0)
          return -1;
    }
+
+   /* Built-in locations should report GL_INVALID_INDEX. */
+   if (is_gl_identifier(name))
+      return GL_INVALID_INDEX;
 
    /* VERT_ATTRIB_GENERIC0 and FRAG_RESULT_DATA0 are decremented as these
     * offsets are used internally to differentiate between built-in attributes

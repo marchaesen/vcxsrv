@@ -617,14 +617,6 @@ void GLAPIENTRY
 _mesa_CreateVertexArrays(GLsizei n, GLuint *arrays)
 {
    GET_CURRENT_CONTEXT(ctx);
-
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                   "glCreateVertexArrays(GL_ARB_direct_state_access "
-                   "is not supported");
-      return;
-   }
-
    gen_vertex_arrays(ctx, n, arrays, true, "glCreateVertexArrays");
 }
 
@@ -667,13 +659,6 @@ _mesa_VertexArrayElementBuffer(GLuint vaobj, GLuint buffer)
    struct gl_vertex_array_object *vao;
    struct gl_buffer_object *bufObj;
 
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                   "glVertexArrayElementBuffer(GL_ARB_direct_state_access "
-                   "is not supported");
-      return;
-   }
-
    ASSERT_OUTSIDE_BEGIN_END(ctx);
 
    /* The GL_ARB_direct_state_access specification says:
@@ -709,13 +694,6 @@ _mesa_GetVertexArrayiv(GLuint vaobj, GLenum pname, GLint *param)
    struct gl_vertex_array_object *vao;
 
    ASSERT_OUTSIDE_BEGIN_END(ctx);
-
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                   "glGetVertexArrayiv(GL_ARB_direct_state_access "
-                   "is not supported");
-      return;
-   }
 
    /* The GL_ARB_direct_state_access specification says:
     *

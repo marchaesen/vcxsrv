@@ -410,6 +410,13 @@ fp64(const _mesa_glsl_parse_state *state)
    return state->has_double();
 }
 
+static bool
+barrier_supported(const _mesa_glsl_parse_state *state)
+{
+   return state->stage == MESA_SHADER_COMPUTE;
+   /* TODO: || stage->state == MESA_SHADER_TESS_CTRL; */
+}
+
 /** @} */
 
 /******************************************************************************/
@@ -654,6 +661,7 @@ private:
                                             const glsl_type *stream_type);
    ir_function_signature *_EndStreamPrimitive(builtin_available_predicate avail,
                                               const glsl_type *stream_type);
+   B0(barrier)
 
    B2(textureQueryLod);
    B1(textureQueryLevels);
@@ -1933,6 +1941,7 @@ builtin_builder::create_builtins()
                 _EndStreamPrimitive(gs_streams, glsl_type::uint_type),
                 _EndStreamPrimitive(gs_streams, glsl_type::int_type),
                 NULL);
+   add_function("barrier", _barrier(), NULL);
 
    add_function("textureQueryLOD",
                 _textureQueryLod(glsl_type::sampler1D_type,  glsl_type::float_type),
@@ -4292,6 +4301,15 @@ builtin_builder::_EndStreamPrimitive(builtin_available_predicate avail,
 
    body.emit(new(mem_ctx) ir_end_primitive(var_ref(stream)));
 
+   return sig;
+}
+
+ir_function_signature *
+builtin_builder::_barrier()
+{
+   MAKE_SIG(glsl_type::void_type, barrier_supported, 0);
+
+   body.emit(new(mem_ctx) ir_barrier());
    return sig;
 }
 

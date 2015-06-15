@@ -2,6 +2,7 @@
 
 # (C) Copyright IBM Corporation 2004, 2005
 # (C) Copyright Apple Inc. 2011
+# Copyright (C) 2015 Intel Corporation
 # All Rights Reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
@@ -29,9 +30,10 @@
 # Based on code ogiginally by:
 #    Ian Romanick <idr@us.ibm.com>
 
+import argparse
+
 import license
 import gl_XML, glX_XML
-import sys, getopt
 
 header = """/* GLXEXT is the define used in the xserver when the GLX extension is being
  * built.  Hijack this to determine whether this file is being built for the
@@ -186,23 +188,27 @@ class PrintCode(gl_XML.gl_print_base):
                 print body_template % vars
         return
 
-def show_usage():
-    print "Usage: %s [-f input_file_name]" % sys.argv[0]
-    sys.exit(1)
 
-if __name__ == '__main__':
-    file_name = "gl_API.xml"
+def _parser():
+    """Parse arguments and return a namespace object."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f',
+                        dest='filename',
+                        default='gl_API.xml',
+                        help='An XML file description of an API')
 
-    try:
-        (args, trail) = getopt.getopt(sys.argv[1:], "m:f:")
-    except Exception,e:
-        show_usage()
+    return parser.parse_args()
 
-    for (arg,val) in args:
-        if arg == "-f":
-            file_name = val
+
+def main():
+    """Main function."""
+    args = _parser()
 
     printer = PrintCode()
 
-    api = gl_XML.parse_GL_API(file_name, glX_XML.glx_item_factory())
+    api = gl_XML.parse_GL_API(args.filename, glX_XML.glx_item_factory())
     printer.Print(api)
+
+
+if __name__ == '__main__':
+    main()

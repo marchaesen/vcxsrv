@@ -67,6 +67,9 @@
 #include "swrast/s_context.h"
 
 #include <sys/types.h>
+#ifdef HAVE_SYS_SYSCTL_H
+# include <sys/sysctl.h>
+#endif
 
 PUBLIC const __DRIextension **__driDriverGetExtensions_swrast(void);
 

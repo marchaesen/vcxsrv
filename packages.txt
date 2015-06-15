@@ -45,7 +45,7 @@ font-winitzki-cyrillic-1.0.3
 font-xfree86-type1-1.0.4
 fontconfig git version
 fontsproto-2.1.3
-freetype-2.5.5
+freetype-2.6
 glproto git version
 inputproto-2.3.1
 kbproto-1.0.6
@@ -67,7 +67,7 @@ libxcb git version
 libxkbfile-1.0.8
 mesa git version
 mkfontscale git version
-openssl-1.0.2a
+openssl-1.0.2c
 pixman git version
 presentproto-1.0
 pthreads-w32 cvs version

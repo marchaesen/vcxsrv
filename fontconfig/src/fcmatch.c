@@ -220,7 +220,7 @@ FcCompareSizeRange (FcValue *v1, FcValue *v2)
     if (FcRangeIsInRange (r1, r2))
 	ret = 0.0;
     else
-	ret = FC_MIN (fabs (r1->u.d.end - r2->u.d.begin), fabs (r1->u.d.begin - r2->u.d.end));
+	ret = FC_MIN (fabs (r1->end - r2->begin), fabs (r1->begin - r2->end));
 
 bail:
     if (r1)
@@ -292,6 +292,7 @@ typedef enum _FcMatcherPriority {
     PRI1(LANG),
     PRI_FAMILY_WEAK,
     PRI_POSTSCRIPT_NAME_WEAK,
+    PRI1(SYMBOL),
     PRI1(SPACING),
     PRI1(SIZE),
     PRI1(PIXEL_SIZE),
@@ -687,6 +688,47 @@ FcFontSetMatchInternal (FcFontSet   **sets,
 	    printf (" %g", bestscore[i]);
 	printf ("\n");
 	FcPatternPrint (best);
+    }
+    if (FcDebug () & FC_DBG_MATCH2)
+    {
+	char *env = getenv ("FC_DBG_MATCH_FILTER");
+	FcObjectSet *os = NULL;
+
+	if (env)
+	{
+	    char *ss, *s;
+	    char *p;
+	    FcBool f = FcTrue;
+
+	    ss = s = strdup (env);
+	    os = FcObjectSetCreate ();
+	    while (f)
+	    {
+		size_t len;
+		char *x;
+
+		if (!(p = strchr (s, ',')))
+		{
+		    f = FcFalse;
+		    len = strlen (s) + 1;
+		}
+		else
+		{
+		    len = (p - s) + 1;
+		}
+		x = malloc (sizeof (char) * len);
+		strncpy (x, s, len - 1);
+		x[len - 1] = 0;
+		if (FcObjectFromName (x) > 0)
+		    FcObjectSetAdd (os, x);
+		s = p + 1;
+		free (x);
+	    }
+	    free (ss);
+	}
+	FcPatternPrint2 (p, best, os);
+	if (os)
+	    FcObjectSetDestroy (os);
     }
     /* assuming that 'result' is initialized with FcResultNoMatch
      * outside this function */

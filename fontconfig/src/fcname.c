@@ -88,7 +88,9 @@ FcObjectValidType (FcObject object, FcType type)
 		return FcTrue;
 	    break;
 	case FcTypeRange:
-	    if (type == FcTypeRange || type == FcTypeDouble)
+	    if (type == FcTypeRange ||
+		type == FcTypeDouble ||
+		type == FcTypeInteger)
 		return FcTrue;
 	    break;
 	default:
@@ -316,7 +318,7 @@ FcNameConvert (FcType type, FcChar8 *string)
 	    v.type = FcTypeVoid;
 	break;
     case FcTypeRange:
-	if (sscanf ((char *) string, "(%lg %lg)", &b, &e) != 2)
+	if (sscanf ((char *) string, "[%lg %lg)", &b, &e) != 2)
 	{
 	    v.u.d = strtod ((char *) string, &p);
 	    if (p != NULL && p[0] != 0)
@@ -498,7 +500,6 @@ FcNameUnparseValue (FcStrBuf	*buf,
 {
     FcChar8	temp[1024];
     FcValue v = FcValueCanonicalize(v0);
-    FcRange r;
 
     switch (v.type) {
     case FcTypeUnknown:
@@ -525,17 +526,8 @@ FcNameUnparseValue (FcStrBuf	*buf,
     case FcTypeFTFace:
 	return FcTrue;
     case FcTypeRange:
-	r = FcRangeCanonicalize (v.u.r);
-	if (!FcDoubleIsZero (r.u.d.begin) || !FcDoubleIsZero (r.u.d.end))
-	{
-	    if (FcDoubleCmpEQ (r.u.d.begin, r.u.d.end))
-		sprintf ((char *) temp, "%g", r.u.d.begin);
-	    else
-		sprintf ((char *) temp, "(%g %g)", r.u.d.begin, r.u.d.end);
-	    return FcNameUnparseString (buf, temp, 0);
-	}
-	else
-	    return FcTrue;
+	sprintf ((char *) temp, "[%g %g)", v.u.r->begin, v.u.r->end);
+	return FcNameUnparseString (buf, temp, 0);
     }
     return FcFalse;
 }

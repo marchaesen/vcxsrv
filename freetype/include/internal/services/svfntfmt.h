@@ -1,10 +1,10 @@
 /***************************************************************************/
 /*                                                                         */
-/*  ftxf86.c                                                               */
+/*  svfntfmt.h                                                             */
 /*                                                                         */
-/*    FreeType utility file for X11 support (body).                        */
+/*    The FreeType font format service (specification only).               */
 /*                                                                         */
-/*  Copyright 2002, 2003, 2004 by                                          */
+/*  Copyright 2003-2015 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -16,25 +16,40 @@
 /***************************************************************************/
 
 
-#include <ft2build.h>
-#include FT_XFREE86_H
-#include <internal/ftobjs.h>
-#include FT_SERVICE_XFREE86_NAME_H
+#ifndef __SVFNTFMT_H__
+#define __SVFNTFMT_H__
+
+#include <internal/ftserv.h>
 
 
-  /* documentation is in ftxf86.h */
-
-  FT_EXPORT_DEF( const char* )
-  FT_Get_X11_Font_Format( FT_Face  face )
-  {
-    const char*  result = NULL;
+FT_BEGIN_HEADER
 
 
-    if ( face )
-      FT_FACE_FIND_SERVICE( face, result, XF86_NAME );
+  /*
+   *  A trivial service used to return the name of a face's font driver,
+   *  according to the XFree86 nomenclature.  Note that the service data
+   *  is a simple constant string pointer.
+   */
 
-    return result;
-  }
+#define FT_SERVICE_ID_FONT_FORMAT  "font-format"
+
+#define FT_FONT_FORMAT_TRUETYPE  "TrueType"
+#define FT_FONT_FORMAT_TYPE_1    "Type 1"
+#define FT_FONT_FORMAT_BDF       "BDF"
+#define FT_FONT_FORMAT_PCF       "PCF"
+#define FT_FONT_FORMAT_TYPE_42   "Type 42"
+#define FT_FONT_FORMAT_CID       "CID Type 1"
+#define FT_FONT_FORMAT_CFF       "CFF"
+#define FT_FONT_FORMAT_PFR       "PFR"
+#define FT_FONT_FORMAT_WINFNT    "Windows FNT"
+
+  /* */
+
+
+FT_END_HEADER
+
+
+#endif /* __SVFNTFMT_H__ */
 
 
 /* END */

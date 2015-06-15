@@ -71,6 +71,7 @@ env.Command('imports.c', '#src/mesa/main/imports.c', Copy('$TARGET', '$SOURCE'))
 env.Prepend(CPPPATH = ['#src/mesa/program'])
 env.Command('prog_hash_table.c', '#src/mesa/program/prog_hash_table.c', Copy('$TARGET', '$SOURCE'))
 env.Command('symbol_table.c', '#src/mesa/program/symbol_table.c', Copy('$TARGET', '$SOURCE'))
+env.Command('dummy_errors.c', '#src/mesa/program/dummy_errors.c', Copy('$TARGET', '$SOURCE'))
 
 compiler_objs = env.StaticObject(source_lists['GLSL_COMPILER_CXX_FILES'])
 
@@ -78,6 +79,7 @@ mesa_objs = env.StaticObject([
     'imports.c',
     'prog_hash_table.c',
     'symbol_table.c',
+    'dummy_errors.c',
 ])
 
 compiler_objs += mesa_objs
@@ -115,6 +117,6 @@ env.Alias('glsl_compiler', glsl_compiler)
 
 glcpp = env.Program(
     target = 'glcpp/glcpp',
-    source = ['glcpp/glcpp.c', 'tests/common.c'] + mesa_objs,
+    source = ['glcpp/glcpp.c'] + mesa_objs,
 )
 env.Alias('glcpp', glcpp)

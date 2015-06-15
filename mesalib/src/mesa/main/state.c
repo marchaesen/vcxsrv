@@ -225,7 +225,7 @@ update_program(struct gl_context *ctx)
    if (ctx->GeometryProgram._Current != prevGP) {
       new_state |= _NEW_PROGRAM;
       if (ctx->Driver.BindProgram) {
-         ctx->Driver.BindProgram(ctx, MESA_GEOMETRY_PROGRAM,
+         ctx->Driver.BindProgram(ctx, GL_GEOMETRY_PROGRAM_NV,
                             (struct gl_program *) ctx->GeometryProgram._Current);
       }
    }

@@ -178,9 +178,13 @@ authorization from the authors.
             <fieldref>len_data</fieldref>
         </list>
         <!-- padding -->
-        <list type="STRING8" name="doc_format" />
+        <list type="STRING8" name="doc_format">
+            <fieldref>len_fmt</fieldref>
+        </list>
         <!-- padding -->
-        <list type="STRING8" name="options" />
+        <list type="STRING8" name="options">
+            <fieldref>len_options</fieldref>
+        </list>
     </request>
 
     <request name="PrintGetDocumentData" opcode="12">

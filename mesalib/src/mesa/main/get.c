@@ -138,6 +138,7 @@ enum value_extra {
    EXTRA_API_GL_CORE,
    EXTRA_API_ES2,
    EXTRA_API_ES3,
+   EXTRA_API_ES31,
    EXTRA_NEW_BUFFERS, 
    EXTRA_NEW_FRAG_CLAMP,
    EXTRA_VALID_DRAW_BUFFER,
@@ -345,6 +346,12 @@ static const int extra_ARB_shader_atomic_counters_and_geometry_shader[] = {
 
 static const int extra_ARB_shader_image_load_store_and_geometry_shader[] = {
    EXTRA_EXT_SHADER_IMAGE_GS4,
+   EXTRA_END
+};
+
+static const int extra_ARB_draw_indirect_es31[] = {
+   EXT(ARB_draw_indirect),
+   EXTRA_API_ES31,
    EXTRA_END
 };
 
@@ -1076,6 +1083,11 @@ check_extra(struct gl_context *ctx, const char *func, const struct value_desc *d
       case EXTRA_API_ES3:
          api_check = GL_TRUE;
          if (_mesa_is_gles3(ctx))
+            api_found = GL_TRUE;
+	 break;
+      case EXTRA_API_ES31:
+         api_check = GL_TRUE;
+         if (_mesa_is_gles31(ctx))
             api_found = GL_TRUE;
 	 break;
       case EXTRA_API_GL:

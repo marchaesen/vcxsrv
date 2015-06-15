@@ -282,10 +282,10 @@ _mesa_clear_shader_program_data(struct gl_shader_program *shProg)
    unsigned i;
 
    if (shProg->UniformStorage) {
-      for (i = 0; i < shProg->NumUserUniformStorage; ++i)
+      for (i = 0; i < shProg->NumUniformStorage; ++i)
          _mesa_uniform_detach_all_driver_storage(&shProg->UniformStorage[i]);
       ralloc_free(shProg->UniformStorage);
-      shProg->NumUserUniformStorage = 0;
+      shProg->NumUniformStorage = 0;
       shProg->UniformStorage = NULL;
    }
 

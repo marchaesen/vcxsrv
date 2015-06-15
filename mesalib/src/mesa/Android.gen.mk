@@ -115,9 +115,11 @@ $(intermediates)/main/api_exec.c: $(dispatch_deps)
 
 GET_HASH_GEN := $(LOCAL_PATH)/main/get_hash_generator.py
 
+$(intermediates)/main/get_hash.h: PRIVATE_SCRIPT := $(MESA_PYTHON2) $(GET_HASH_GEN)
+$(intermediates)/main/get_hash.h: PRIVATE_XML := -f $(glapi)/gl_and_es_API.xml
 $(intermediates)/main/get_hash.h: $(glapi)/gl_and_es_API.xml \
                $(LOCAL_PATH)/main/get_hash_params.py $(GET_HASH_GEN)
-	@$(MESA_PYTHON2) $(GET_HASH_GEN) -f $< > $@
+	$(call es-gen)
 
 FORMAT_INFO := $(LOCAL_PATH)/main/format_info.py
 format_info_deps := \
@@ -125,8 +127,10 @@ format_info_deps := \
 	$(LOCAL_PATH)/main/format_parser.py \
 	$(FORMAT_INFO)
 
+$(intermediates)/main/format_info.h: PRIVATE_SCRIPT := $(MESA_PYTHON2) $(FORMAT_INFO)
+$(intermediates)/main/format_info.h: PRIVATE_XML :=
 $(intermediates)/main/format_info.h: $(format_info_deps)
-	@$(MESA_PYTHON2) $(FORMAT_INFO) $< > $@
+	$(call es-gen, $<)
 
 FORMAT_PACK := $(LOCAL_PATH)/main/format_pack.py
 format_pack_deps := \
@@ -134,8 +138,10 @@ format_pack_deps := \
 	$(LOCAL_PATH)/main/format_parser.py \
 	$(FORMAT_PACK)
 
+$(intermediates)/main/format_pack.c: PRIVATE_SCRIPT := $(MESA_PYTHON2) $(FORMAT_PACK)
+$(intermediates)/main/format_pack.c: PRIVATE_XML :=
 $(intermediates)/main/format_pack.c: $(format_pack_deps)
-	$(hide) $(MESA_PYTHON2) $(FORMAT_PACK) $< > $@
+	$(call es-gen, $<)
 
 FORMAT_UNPACK := $(LOCAL_PATH)/main/format_unpack.py
 format_unpack_deps := \
@@ -143,5 +149,7 @@ format_unpack_deps := \
 	$(LOCAL_PATH)/main/format_parser.py \
 	$(FORMAT_UNPACK)
 
+$(intermediates)/main/format_unpack.c: PRIVATE_SCRIPT := $(MESA_PYTHON2) $(FORMAT_UNPACK)
+$(intermediates)/main/format_unpack.c: PRIVATE_XML :=
 $(intermediates)/main/format_unpack.c: $(format_unpack_deps)
-	$(hide) $(MESA_PYTHON2) $(FORMAT_UNPACK) $< > $@
+	$(call es-gen, $<)

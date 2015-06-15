@@ -863,7 +863,7 @@ process_array_constructor(exec_list *instructions,
 
    if (is_unsized_array) {
       constructor_type =
-	 glsl_type::get_array_instance(constructor_type->element_type(),
+	 glsl_type::get_array_instance(constructor_type->fields.array,
 				       parameter_count);
       assert(constructor_type != NULL);
       assert(constructor_type->length == parameter_count);
@@ -876,7 +876,7 @@ process_array_constructor(exec_list *instructions,
       ir_rvalue *result = ir;
 
       const glsl_base_type element_base_type =
-         constructor_type->element_type()->base_type;
+         constructor_type->fields.array->base_type;
 
       /* Apply implicit conversions (not the scalar constructor rules!). See
        * the spec quote above. */
@@ -896,10 +896,10 @@ process_array_constructor(exec_list *instructions,
 	 }
       }
 
-      if (result->type != constructor_type->element_type()) {
+      if (result->type != constructor_type->fields.array) {
 	 _mesa_glsl_error(loc, state, "type error in array constructor: "
 			  "expected: %s, found %s",
-			  constructor_type->element_type()->name,
+			  constructor_type->fields.array->name,
 			  result->type->name);
          return ir_rvalue::error_value(ctx);
       }
@@ -993,10 +993,14 @@ emit_inline_vector_constructor(const glsl_type *type,
    ir_variable *var = new(ctx) ir_variable(type, "vec_ctor", ir_var_temporary);
    instructions->push_tail(var);
 
-   /* There are two kinds of vector constructors.
+   /* There are three kinds of vector constructors.
     *
     *  - Construct a vector from a single scalar by replicating that scalar to
     *    all components of the vector.
+    *
+    *  - Construct a vector from at least a matrix. This case should already
+    *    have been taken care of in ast_function_expression::hir by breaking
+    *    down the matrix into a series of column vectors.
     *
     *  - Construct a vector from an arbirary combination of vectors and
     *    scalars.  The components of the constructor parameters are assigned
@@ -1089,6 +1093,14 @@ emit_inline_vector_constructor(const glsl_type *type,
 	  */
 	 if ((rhs_components + base_component) > lhs_components) {
 	    rhs_components = lhs_components - base_component;
+	 }
+
+	 /* If we do not have any components left to copy, break out of the
+	  * loop. This can happen when initializing a vec4 with a mat3 as the
+	  * mat3 would have been broken into a series of column vectors.
+	  */
+	 if (rhs_components == 0) {
+	    break;
 	 }
 
 	 const ir_constant *const c = param->as_constant();
@@ -1681,11 +1693,11 @@ ast_function_expression::hir(exec_list *instructions,
 	 return ir_rvalue::error_value(ctx);
       }
 
-      /* Later, we cast each parameter to the same base type as the
-       * constructor.  Since there are no non-floating point matrices, we
-       * need to break them up into a series of column vectors.
+      /* Matrices can never be consumed as is by any constructor but matrix
+       * constructors. If the constructor type is not matrix, always break the
+       * matrix up into a series of column vectors.
        */
-      if (constructor_type->base_type != GLSL_TYPE_FLOAT) {
+      if (!constructor_type->is_matrix()) {
 	 foreach_in_list_safe(ir_rvalue, matrix, &actual_parameters) {
 	    if (!matrix->type->is_matrix())
 	       continue;

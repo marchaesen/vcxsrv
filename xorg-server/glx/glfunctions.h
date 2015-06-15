@@ -714,7 +714,6 @@
 #define glIsRenderbuffer(a1) CALL_IsRenderbuffer(GET_DISPATCH(), (a1))
 #define glRenderbufferStorage(a1, a2, a3, a4) CALL_RenderbufferStorage(GET_DISPATCH(), (a1, a2, a3, a4))
 #define glRenderbufferStorageMultisample(a1, a2, a3, a4, a5) CALL_RenderbufferStorageMultisample(GET_DISPATCH(), (a1, a2, a3, a4, a5))
-#define glFramebufferTextureFaceARB(a1, a2, a3, a4, a5) CALL_FramebufferTextureFaceARB(GET_DISPATCH(), (a1, a2, a3, a4, a5))
 #define glFlushMappedBufferRange(a1, a2, a3) CALL_FlushMappedBufferRange(GET_DISPATCH(), (a1, a2, a3))
 #define glMapBufferRange(a1, a2, a3, a4) CALL_MapBufferRange(GET_DISPATCH(), (a1, a2, a3, a4))
 #define glBindVertexArray(a1) CALL_BindVertexArray(GET_DISPATCH(), (a1))

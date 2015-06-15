@@ -115,12 +115,14 @@ struct xwl_seat {
     struct wl_pointer *wl_pointer;
     struct wl_keyboard *wl_keyboard;
     struct wl_array keys;
-    struct wl_surface *cursor;
     struct xwl_window *focus_window;
     uint32_t id;
     uint32_t pointer_enter_serial;
     struct xorg_list link;
     CursorPtr x_cursor;
+    struct wl_surface *cursor;
+    struct wl_callback *cursor_frame_cb;
+    Bool cursor_needs_update;
 
     size_t keymap_size;
     char *keymap;

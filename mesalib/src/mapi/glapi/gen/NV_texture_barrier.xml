@@ -7,7 +7,7 @@
 <OpenGLAPI>
 
 <category name="GL_NV_texture_barrier" number="381">
-    <function name="TextureBarrierNV" offset="assign" />
+    <function name="TextureBarrierNV"/>
 </category>
 
 </OpenGLAPI>

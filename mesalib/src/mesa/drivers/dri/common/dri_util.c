@@ -116,8 +116,10 @@ driCreateNewScreen2(int scrn, int fd,
 {
     static const __DRIextension *emptyExtensionList[] = { NULL };
     __DRIscreen *psp;
-	  int gl_version_override;
-	  int i;
+    struct gl_constants consts = { 0 };
+    gl_api api;
+    unsigned version;
+    int i;
 
     psp = calloc(1, sizeof(*psp));
     if (!psp)
@@ -164,13 +166,17 @@ driCreateNewScreen2(int scrn, int fd,
 	return NULL;
     }
 
-    gl_version_override = _mesa_get_gl_version_override();
-    if (gl_version_override >= 31) {
-       psp->max_gl_core_version = MAX2(psp->max_gl_core_version,
-                                       gl_version_override);
-    } else {
-       psp->max_gl_compat_version = MAX2(psp->max_gl_compat_version,
-                                         gl_version_override);
+    api = API_OPENGLES2;
+    if (_mesa_override_gl_version_contextless(&consts, &api, &version))
+       psp->max_gl_es2_version = version;
+
+    api = API_OPENGL_COMPAT;
+    if (_mesa_override_gl_version_contextless(&consts, &api, &version)) {
+       if (api == API_OPENGL_CORE) {
+          psp->max_gl_core_version = version;
+       } else {
+          psp->max_gl_compat_version = version;
+       }
     }
 
     psp->api_mask = (1 << __DRI_API_OPENGL);

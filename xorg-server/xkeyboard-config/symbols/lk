@@ -88,16 +88,16 @@ xkb_symbols "tam_TAB" {
     name[Group1]= "Tamil (Sri Lanka, TAB Typewriter)";
 };
 
-// SINGHALA - US, SUBSTITUTES SOME AND ADDS SOME
+// SINHALA - US, SUBSTITUTES SOME AND ADDS SOME
 // =============================================
 //
 // This started as an upgrade to the first romanized version of
-// Singhala called PTS Pali created in the 1860s. PTS requires
+// Sinhala called PTS Pali created in the 1860s. PTS requires
 // dots and bars on letters that are rare in fonts, and impossible
 // to type. Its singular purpose was to print Tripitaka, the
 // collection of Buddhist discourses.
 //
-// This version covers the entire newer Singhala phoneme chart
+// This version covers the entire newer Sinhala phoneme chart
 // (Hodiya) that became standard just before the end of the 19th
 // century. All the phonemes map to the SBCS. It is easy and
 // faster than English to type. It overcomes the setback of
@@ -106,10 +106,10 @@ xkb_symbols "tam_TAB" {
 // the SLS1134 specification matching shape and morpheme sets
 // violating Sanskrit orthography.
 //
-// Most importantly, this romanized version of Singhala has a
+// Most importantly, this romanized version of Sinhala has a
 // companion orthographic font that displays the text in the
 // native script and a JavaScript converts it to Unicode Sinhala
-// and back dramatically increasing Singhala seen on the web due
+// and back dramatically increasing Sinhala seen on the web due
 // to its ease of use
 //
 // Dedication:
@@ -123,7 +123,7 @@ xkb_symbols "tam_TAB" {
 partial alphanumeric_keys modifier_keys
 xkb_symbols "us" {
   include "us(basic)"
-  name[Group1]= "Singhala (US keyboard with Singhala letters)";
+  name[Group1]= "Sinhala (US keyboard with Sinhala letters)";
 //
 //                   UNSHIFTED,         SHIFT,           ALT
 //                   --------------------------------------------

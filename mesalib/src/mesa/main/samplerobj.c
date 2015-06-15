@@ -221,13 +221,6 @@ void GLAPIENTRY
 _mesa_CreateSamplers(GLsizei count, GLuint *samplers)
 {
    GET_CURRENT_CONTEXT(ctx);
-
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glCreateSamplers("
-                  "GL_ARB_direct_state_access is not supported)");
-      return;
-   }
-
    create_samplers(ctx, count, samplers, "glCreateSamplers");
 }
 

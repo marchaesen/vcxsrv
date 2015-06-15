@@ -35,7 +35,7 @@
 <enum name="UNSIGNED_INT_ATOMIC_COUNTER" value="0x92DB"/>
 <enum name="MAX_ATOMIC_COUNTER_BUFFER_BINDINGS" value="0x92DC"/>
 
-<function name="GetActiveAtomicCounterBufferiv" offset="assign">
+<function name="GetActiveAtomicCounterBufferiv">
     <param name="program" type="GLuint" />
     <param name="bufferIndex" type="GLuint" />
     <param name="pname" type="GLenum" />

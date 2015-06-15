@@ -305,7 +305,7 @@ _mesa_append_fog_code(struct gl_context *ctx,
          /* change the instruction to write to colorTemp w/ clamping */
          inst->DstReg.File = PROGRAM_TEMPORARY;
          inst->DstReg.Index = colorTemp;
-         inst->SaturateMode = saturate;
+         inst->Saturate = saturate;
          /* don't break (may be several writes to result.color) */
       }
       inst++;
@@ -331,7 +331,7 @@ _mesa_append_fog_code(struct gl_context *ctx,
       inst->SrcReg[2].File = PROGRAM_STATE_VAR;
       inst->SrcReg[2].Index = fogPRefOpt;
       inst->SrcReg[2].Swizzle = SWIZZLE_YYYY;
-      inst->SaturateMode = SATURATE_ZERO_ONE;
+      inst->Saturate = GL_TRUE;
       inst++;
    }
    else {
@@ -374,7 +374,7 @@ _mesa_append_fog_code(struct gl_context *ctx,
       inst->SrcReg[0].Index = fogFactorTemp;
       inst->SrcReg[0].Negate = NEGATE_XYZW;
       inst->SrcReg[0].Swizzle = SWIZZLE_XXXX;
-      inst->SaturateMode = SATURATE_ZERO_ONE;
+      inst->Saturate = GL_TRUE;
       inst++;
    }
    /* LRP result.color.xyz, fogFactorTemp.xxxx, colorTemp, fogColorRef; */

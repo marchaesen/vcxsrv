@@ -32,7 +32,7 @@
     <param name="size" type="GLsizeiptr"/>
   </function>
 
-  <function name="BindBufferOffsetEXT" offset="assign">
+  <function name="BindBufferOffsetEXT">
     <param name="target" type="GLenum"/>
     <param name="index" type="GLuint"/>
     <param name="buffer" type="GLuint"/>
@@ -82,33 +82,33 @@
   <enum name="TRANSFORM_FEEDBACK_BUFFER_ACTIVE"    value="0x8E24"/>
   <enum name="TRANSFORM_FEEDBACK_BINDING"          value="0x8E25"/>
 
-  <function name="BindTransformFeedback" offset="assign" es2="3.0">
+  <function name="BindTransformFeedback" es2="3.0">
     <param name="target" type="GLenum"/>
     <param name="id" type="GLuint"/>
   </function>
 
-  <function name="DeleteTransformFeedbacks" offset="assign" es2="3.0">
+  <function name="DeleteTransformFeedbacks" es2="3.0">
     <param name="n" type="GLsizei"/>
     <param name="ids" type="const GLuint *"/>
   </function>
 
-  <function name="GenTransformFeedbacks" offset="assign" es2="3.0">
+  <function name="GenTransformFeedbacks" es2="3.0">
     <param name="n" type="GLsizei"/>
     <param name="ids" type="GLuint *"/>
   </function>
 
-  <function name="IsTransformFeedback" offset="assign" es2="3.0">
+  <function name="IsTransformFeedback" es2="3.0">
     <param name="id" type="GLuint"/>
     <return type="GLboolean"/>
   </function>
 
-  <function name="PauseTransformFeedback" offset="assign" es2="3.0">
+  <function name="PauseTransformFeedback" es2="3.0">
   </function>
 
-  <function name="ResumeTransformFeedback" offset="assign" es2="3.0">
+  <function name="ResumeTransformFeedback" es2="3.0">
   </function>
 
-  <function name="DrawTransformFeedback" offset="assign" exec="dynamic">
+  <function name="DrawTransformFeedback" exec="dynamic">
     <param name="mode" type="GLenum"/>
     <param name="id" type="GLuint"/>
   </function>

@@ -181,6 +181,11 @@ struct gl_uniform_storage {
     * via the API.
     */
    bool hidden;
+
+   /**
+    * This is a built-in uniform that should not be modified through any gl API.
+    */
+   bool builtin;
 };
 
 #ifdef __cplusplus

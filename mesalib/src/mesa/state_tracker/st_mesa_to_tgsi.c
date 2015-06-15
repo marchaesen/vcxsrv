@@ -665,7 +665,7 @@ compile_instruction(
    if (num_dst) 
       dst[0] = translate_dst( t, 
                               &inst->DstReg,
-                              inst->SaturateMode,
+                              inst->Saturate,
                               clamp_dst_color_output);
 
    for (i = 0; i < num_src; i++) 
@@ -1095,10 +1095,9 @@ st_translate_mesa_program(
    }
    else if (procType == TGSI_PROCESSOR_GEOMETRY) {
       for (i = 0; i < numInputs; i++) {
-         t->inputs[i] = ureg_DECL_gs_input(ureg,
-                                           i,
-                                           inputSemanticName[i],
-                                           inputSemanticIndex[i]);
+         t->inputs[i] = ureg_DECL_input(ureg,
+                                        inputSemanticName[i],
+                                        inputSemanticIndex[i], 0, 1);
       }
 
       for (i = 0; i < numOutputs; i++) {

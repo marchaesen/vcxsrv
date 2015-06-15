@@ -65,6 +65,7 @@ public:
    virtual void visit(ir_dereference_variable *);
    virtual void visit(ir_dereference_record *);
    virtual void visit(ir_dereference_array *);
+   virtual void visit(ir_barrier *);
 
    void create_function(ir_function *ir);
 
@@ -930,13 +931,9 @@ nir_visitor::evaluate_rvalue(ir_rvalue* ir)
    }
 
    nir_dest *dest = get_instr_dest(this->result);
-
    assert(dest->is_ssa);
-   nir_src src = NIR_SRC_INIT;
-   src.is_ssa = true;
-   src.ssa = &dest->ssa;
 
-   return src;
+   return nir_src_for_ssa(&dest->ssa);
 }
 
 nir_alu_instr *
@@ -1892,4 +1889,12 @@ nir_visitor::visit(ir_dereference_array *ir)
    this->deref_tail->child = &deref->deref;
    ralloc_steal(this->deref_tail, deref);
    this->deref_tail = &deref->deref;
+}
+
+void
+nir_visitor::visit(ir_barrier *ir)
+{
+   nir_intrinsic_instr *instr =
+      nir_intrinsic_instr_create(this->shader, nir_intrinsic_barrier);
+   nir_instr_insert_after_cf_list(this->cf_node_list, &instr->instr);
 }

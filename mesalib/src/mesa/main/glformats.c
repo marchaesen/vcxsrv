@@ -1200,7 +1200,7 @@ _mesa_is_depth_or_stencil_format(GLenum format)
  * \return GL_TRUE if compressed, GL_FALSE if uncompressed
  */
 GLboolean
-_mesa_is_compressed_format(struct gl_context *ctx, GLenum format)
+_mesa_is_compressed_format(const struct gl_context *ctx, GLenum format)
 {
    switch (format) {
    case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
@@ -1678,6 +1678,10 @@ _mesa_error_check_format_and_type(const struct gl_context *ctx,
       case GL_LUMINANCE:
       case GL_ALPHA:
          return GL_NO_ERROR;
+      case GL_RG:
+      case GL_RED:
+	 if (_mesa_is_gles3(ctx) || ctx->Extensions.ARB_texture_rg)
+            return GL_NO_ERROR;
       default:
          return GL_INVALID_OPERATION;
       }
@@ -2292,8 +2296,18 @@ _mesa_es3_error_check_format_and_type(const struct gl_context *ctx,
          break;
 
       case GL_HALF_FLOAT:
-         if (internalFormat != GL_RG16F)
-            return GL_INVALID_OPERATION;
+      case GL_HALF_FLOAT_OES:
+         switch (internalFormat) {
+            case GL_RG16F:
+               break;
+            case GL_RG:
+               if (ctx->Extensions.ARB_texture_rg &&
+                   ctx->Extensions.OES_texture_half_float)
+                  break;
+            /* fallthrough */
+            default:
+               return GL_INVALID_OPERATION;
+         }
          break;
 
       case GL_FLOAT:
@@ -2301,6 +2315,11 @@ _mesa_es3_error_check_format_and_type(const struct gl_context *ctx,
          case GL_RG16F:
          case GL_RG32F:
             break;
+         case GL_RG:
+            if (ctx->Extensions.ARB_texture_rg &&
+                ctx->Extensions.OES_texture_float)
+               break;
+            /* fallthrough */
          default:
             return GL_INVALID_OPERATION;
          }
@@ -2361,8 +2380,19 @@ _mesa_es3_error_check_format_and_type(const struct gl_context *ctx,
          break;
 
       case GL_HALF_FLOAT:
-         if (internalFormat != GL_R16F)
+      case GL_HALF_FLOAT_OES:
+         switch (internalFormat) {
+         case GL_R16F:
+            break;
+         case GL_RG:
+         case GL_RED:
+            if (ctx->Extensions.ARB_texture_rg &&
+                ctx->Extensions.OES_texture_half_float)
+               break;
+            /* fallthrough */
+         default:
             return GL_INVALID_OPERATION;
+         }
          break;
 
       case GL_FLOAT:
@@ -2370,6 +2400,11 @@ _mesa_es3_error_check_format_and_type(const struct gl_context *ctx,
          case GL_R16F:
          case GL_R32F:
             break;
+         case GL_RED:
+            if (ctx->Extensions.ARB_texture_rg &&
+                ctx->Extensions.OES_texture_float)
+               break;
+            /* fallthrough */
          default:
             return GL_INVALID_OPERATION;
          }
