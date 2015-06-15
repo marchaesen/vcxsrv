@@ -177,6 +177,10 @@ struct texture_state
 };
 
 
+/** An unused GL_*_BIT value */
+#define DUMMY_BIT 0x10000000
+
+
 /**
  * Allocate new attribute node of given type/kind.  Attach payload data.
  * Insert it into the linked list named by 'head'.
@@ -252,6 +256,15 @@ _mesa_PushAttrib(GLbitfield mask)
    /* Build linked list of attribute nodes which save all attribute */
    /* groups specified by the mask. */
    head = NULL;
+
+   if (mask == 0) {
+      /* if mask is zero we still need to push something so that we
+       * don't get a GL_STACK_UNDERFLOW error in glPopAttrib().
+       */
+      GLuint dummy = 0;
+      if (!push_attrib(ctx, &head, DUMMY_BIT, sizeof(dummy), &dummy))
+         goto end;
+   }
 
    if (mask & GL_ACCUM_BUFFER_BIT) {
       if (!push_attrib(ctx, &head, GL_ACCUM_BUFFER_BIT,
@@ -928,6 +941,10 @@ _mesa_PopAttrib(void)
       }
 
       switch (attr->kind) {
+         case DUMMY_BIT:
+            /* do nothing */
+            break;
+
          case GL_ACCUM_BUFFER_BIT:
             {
                const struct gl_accum_attrib *accum;
@@ -1074,6 +1091,11 @@ _mesa_PopAttrib(void)
                _mesa_ClearDepth(depth->Clear);
                _mesa_set_enable(ctx, GL_DEPTH_TEST, depth->Test);
                _mesa_DepthMask(depth->Mask);
+               if (ctx->Extensions.EXT_depth_bounds_test) {
+                  _mesa_set_enable(ctx, GL_DEPTH_BOUNDS_TEST_EXT,
+                                   depth->BoundsTest);
+                  _mesa_DepthBoundsEXT(depth->BoundsMin, depth->BoundsMax);
+               }
             }
             break;
          case GL_ENABLE_BIT:

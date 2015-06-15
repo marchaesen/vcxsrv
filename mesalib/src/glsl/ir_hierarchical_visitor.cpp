@@ -80,6 +80,15 @@ ir_hierarchical_visitor::visit(ir_dereference_variable *ir)
 }
 
 ir_visitor_status
+ir_hierarchical_visitor::visit(ir_barrier *ir)
+{
+   if (this->callback_enter != NULL)
+      this->callback_enter(ir, this->data_enter);
+
+   return visit_continue;
+}
+
+ir_visitor_status
 ir_hierarchical_visitor::visit_enter(ir_loop *ir)
 {
    if (this->callback_enter != NULL)

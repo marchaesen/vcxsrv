@@ -303,13 +303,6 @@ _mesa_NamedFramebufferDrawBuffer(GLuint framebuffer, GLenum buf)
    GET_CURRENT_CONTEXT(ctx);
    struct gl_framebuffer *fb;
 
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glNamedFramebufferDrawBuffer(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
-
    if (framebuffer) {
       fb = _mesa_lookup_framebuffer_err(ctx, framebuffer,
                                         "glNamedFramebufferDrawBuffer");
@@ -519,13 +512,6 @@ _mesa_NamedFramebufferDrawBuffers(GLuint framebuffer, GLsizei n,
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_framebuffer *fb;
-
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glNamedFramebufferDrawBuffers(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
 
    if (framebuffer) {
       fb = _mesa_lookup_framebuffer_err(ctx, framebuffer,
@@ -763,13 +749,6 @@ _mesa_NamedFramebufferReadBuffer(GLuint framebuffer, GLenum src)
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_framebuffer *fb;
-
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glNamedFramebufferReadBuffer(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
 
    if (framebuffer) {
       fb = _mesa_lookup_framebuffer_err(ctx, framebuffer,

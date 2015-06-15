@@ -218,13 +218,6 @@ enum; the value is restricted to one of the constants named in the enum.
   of the list in terms of other fields in the structure.  See the section
   "Expressions" for details on the expression representation.
 
-<localfield type="identifier" name="identifier" />
-
-  This element represents a parameter in a request that is not sent over the
-  wire.  The field can be referenced in the length expressions of lists or in
-  an exprfield.  The type attribute declares the data type of the field, and
-  the name attribute gives the name of the field.
-
 <exprfield type="identifier" name="identifier">expression</exprfield>
 
   This element represents a field in a request that is calculated rather than
@@ -244,8 +237,8 @@ enum; the value is restricted to one of the constants named in the enum.
   <switch> instead for new protocol definitions.
 
 <switch name="identifier"> switch expression
-    <bitcase> bitcase expression(s), fields </bitcase>
-    <case> case expression(s), fields </case>
+    <bitcase [name="identifier"]> bitcase expression(s), fields </bitcase>
+    <case [name="identifier"]> case expression(s), fields </case>
 </switch>
 
   This element represents conditional inclusion of fields. It can be viewed

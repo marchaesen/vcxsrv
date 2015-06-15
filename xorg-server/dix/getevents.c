@@ -208,14 +208,25 @@ init_raw(DeviceIntPtr dev, RawDeviceEvent *event, Time ms, int type, int detail)
 }
 
 static void
-set_raw_valuators(RawDeviceEvent *event, ValuatorMask *mask, double *data)
+set_raw_valuators(RawDeviceEvent *event, ValuatorMask *mask,
+                  BOOL use_unaccel, double *data)
 {
     int i;
 
+    use_unaccel = use_unaccel && valuator_mask_has_unaccelerated(mask);
+
     for (i = 0; i < valuator_mask_size(mask); i++) {
         if (valuator_mask_isset(mask, i)) {
+            double v;
+
             SetBit(event->valuators.mask, i);
-            data[i] = valuator_mask_get_double(mask, i);
+
+            if (use_unaccel)
+                v = valuator_mask_get_unaccelerated(mask, i);
+            else
+                v = valuator_mask_get_double(mask, i);
+
+            data[i] = v;
         }
     }
 }
@@ -1388,8 +1399,10 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
         num_events++;
 
         init_raw(pDev, raw, ms, type, buttons);
-        set_raw_valuators(raw, &mask, raw->valuators.data_raw);
+        set_raw_valuators(raw, &mask, TRUE, raw->valuators.data_raw);
     }
+
+    valuator_mask_drop_unaccelerated(&mask);
 
     /* valuators are in driver-native format (rel or abs) */
 
@@ -1403,7 +1416,7 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
         transformAbsolute(pDev, &mask);
         clipAbsolute(pDev, &mask);
         if ((flags & POINTER_NORAW) == 0 && raw)
-            set_raw_valuators(raw, &mask, raw->valuators.data);
+            set_raw_valuators(raw, &mask, FALSE, raw->valuators.data);
     }
     else {
         transformRelative(pDev, &mask);
@@ -1411,7 +1424,7 @@ fill_pointer_events(InternalEvent *events, DeviceIntPtr pDev, int type,
         if (flags & POINTER_ACCELERATE)
             accelPointer(pDev, &mask, ms);
         if ((flags & POINTER_NORAW) == 0 && raw)
-            set_raw_valuators(raw, &mask, raw->valuators.data);
+            set_raw_valuators(raw, &mask, FALSE, raw->valuators.data);
 
         moveRelative(pDev, flags, &mask);
     }
@@ -1916,7 +1929,7 @@ GetTouchEvents(InternalEvent *events, DeviceIntPtr dev, uint32_t ddx_touchid,
         events++;
         num_events++;
         init_raw(dev, raw, ms, type, client_id);
-        set_raw_valuators(raw, &mask, raw->valuators.data_raw);
+        set_raw_valuators(raw, &mask, TRUE, raw->valuators.data_raw);
     }
 
     event = &events->device_event;
@@ -1978,7 +1991,7 @@ GetTouchEvents(InternalEvent *events, DeviceIntPtr dev, uint32_t ddx_touchid,
         screeny = dev->spriteInfo->sprite->hotPhys.y;
     }
     if (need_rawevent)
-        set_raw_valuators(raw, &mask, raw->valuators.data);
+        set_raw_valuators(raw, &mask, FALSE, raw->valuators.data);
 
     /* Indirect device touch coordinates are not used for cursor positioning.
      * They are merely informational, and are provided in device coordinates.

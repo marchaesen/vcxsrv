@@ -7,7 +7,7 @@
 
     <enum name="CLEAR_TEXTURE" value="0x9365"/>
 
-    <function name ="ClearTexImage" offset="assign">
+    <function name ="ClearTexImage">
         <param name="texture" type="GLuint"/>
         <param name="level" type="GLint"/>
         <param name="format" type="GLenum"/>
@@ -15,7 +15,7 @@
         <param name="data" type="const GLvoid *"/>
     </function>
 
-    <function name ="ClearTexSubImage" offset="assign">
+    <function name ="ClearTexSubImage">
         <param name="texture" type="GLuint"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>

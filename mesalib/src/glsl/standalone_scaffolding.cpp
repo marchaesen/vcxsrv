@@ -89,7 +89,7 @@ _mesa_clear_shader_program_data(struct gl_shader_program *shProg)
 {
    unsigned i;
 
-   shProg->NumUserUniformStorage = 0;
+   shProg->NumUniformStorage = 0;
    shProg->UniformStorage = NULL;
    shProg->NumUniformRemapTable = 0;
    shProg->UniformRemapTable = NULL;

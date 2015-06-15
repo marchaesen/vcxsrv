@@ -2,6 +2,7 @@
 
 # (C) Copyright IBM Corporation 2004
 # All Rights Reserved.
+# Copyright (c) 2014 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -25,9 +26,11 @@
 # Authors:
 #    Ian Romanick <idr@us.ibm.com>
 
+import argparse
+
 import gl_XML
 import license
-import sys, getopt
+
 
 class PrintGlTable(gl_XML.gl_print_base):
     def __init__(self, es=False):
@@ -39,9 +42,8 @@ class PrintGlTable(gl_XML.gl_print_base):
         self.license = license.bsd_license_template % ( \
 """Copyright (C) 1999-2003  Brian Paul   All Rights Reserved.
 (C) Copyright IBM Corporation 2004""", "BRIAN PAUL, IBM")
-        self.ifdef_emitted = False;
+        self.ifdef_emitted = False
         return
-
 
     def printBody(self, api):
         for f in api.functionIterateByOffset():
@@ -49,10 +51,10 @@ class PrintGlTable(gl_XML.gl_print_base):
                 print '#if !defined HAVE_SHARED_GLAPI'
                 self.ifdef_emitted = True
             arg_string = f.get_parameter_string()
-            print '   %s (GLAPIENTRYP %s)(%s); /* %d */' % (f.return_type, f.name, arg_string, f.offset)
+            print '   %s (GLAPIENTRYP %s)(%s); /* %d */' % (
+                f.return_type, f.name, arg_string, f.offset)
 
         print '#endif /* !defined HAVE_SHARED_GLAPI */'
-
 
     def printRealHeader(self):
         print '#ifndef GLAPIENTRYP'
@@ -68,7 +70,6 @@ class PrintGlTable(gl_XML.gl_print_base):
         print '{'
         return
 
-
     def printRealFooter(self):
         print '};'
         return
@@ -81,7 +82,8 @@ class PrintRemapTable(gl_XML.gl_print_base):
         self.es = es
         self.header_tag = '_DISPATCH_H_'
         self.name = "gl_table.py (from Mesa)"
-        self.license = license.bsd_license_template % ("(C) Copyright IBM Corporation 2005", "IBM")
+        self.license = license.bsd_license_template % (
+            "(C) Copyright IBM Corporation 2005", "IBM")
         return
 
 
@@ -99,6 +101,7 @@ class PrintRemapTable(gl_XML.gl_print_base):
  */
 """
         return
+
 
     def printBody(self, api):
         print '#define CALL_by_offset(disp, cast, offset, parameters) \\'
@@ -124,10 +127,10 @@ class PrintRemapTable(gl_XML.gl_print_base):
         count = 0
         for f in api.functionIterateByOffset():
             if not f.is_abi():
-                functions.append( [f, count] )
+                functions.append([f, count])
                 count += 1
             else:
-                abi_functions.append( [f, -1] )
+                abi_functions.append([f, -1])
 
             if self.es:
                 # remember functions with aliases
@@ -165,7 +168,7 @@ class PrintRemapTable(gl_XML.gl_print_base):
         print ''
 
         for f, index in abi_functions + functions:
-            arg_string = gl_XML.create_parameter_string( f.parameters, 0 )
+            arg_string = gl_XML.create_parameter_string(f.parameters, 0)
 
             print 'typedef %s (GLAPIENTRYP _glptr_%s)(%s);' % (f.return_type, f.name, arg_string)
             print '#define CALL_%s(disp, parameters) \\' % (f.name)
@@ -199,40 +202,44 @@ class PrintRemapTable(gl_XML.gl_print_base):
         return
 
 
-def show_usage():
-    print "Usage: %s [-f input_file_name] [-m mode] [-c ver]" % sys.argv[0]
-    print "    -m mode   Mode can be 'table' or 'remap_table'."
-    print "    -c ver    Version can be 'es1' or 'es2'."
-    sys.exit(1)
+def _parser():
+    """Parse arguments and return a namespace."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f', '--filename',
+                        default='gl_API.xml',
+                        metavar="input_file_name",
+                        dest='file_name',
+                        help="Path to an XML description of OpenGL API.")
+    parser.add_argument('-m', '--mode',
+                        choices=['table', 'remap_table'],
+                        default='table',
+                        metavar="mode",
+                        help="Generate either a table or a remap_table")
+    parser.add_argument('-c', '--es-version',
+                        choices=[None, 'es1', 'es2'],
+                        default=None,
+                        metavar="ver",
+                        dest='es',
+                        help="filter functions for es")
+    return parser.parse_args()
+
+
+def main():
+    """Main function."""
+    args = _parser()
+
+    api = gl_XML.parse_GL_API(args.file_name)
+
+    if args.mode == "table":
+        printer = PrintGlTable(args.es)
+    elif args.mode == "remap_table":
+        printer = PrintRemapTable(args.es)
+
+    if args.es is not None:
+        api.filter_functions_by_api(args.es)
+
+    printer.Print(api)
+
 
 if __name__ == '__main__':
-    file_name = "gl_API.xml"
-
-    try:
-        (args, trail) = getopt.getopt(sys.argv[1:], "f:m:c:")
-    except Exception,e:
-        show_usage()
-
-    mode = "table"
-    es = None
-    for (arg,val) in args:
-        if arg == "-f":
-            file_name = val
-        elif arg == "-m":
-            mode = val
-        elif arg == "-c":
-            es = val
-
-    if mode == "table":
-        printer = PrintGlTable(es)
-    elif mode == "remap_table":
-        printer = PrintRemapTable(es)
-    else:
-        show_usage()
-
-    api = gl_XML.parse_GL_API( file_name )
-
-    if es is not None:
-        api.filter_functions_by_api(es)
-
-    printer.Print( api )
+    main()

@@ -589,12 +589,13 @@ private:
       handle_samplers(base_type, &this->uniforms[id]);
       handle_images(base_type, &this->uniforms[id]);
 
-      /* If there is already storage associated with this uniform, it means
-       * that it was set while processing an earlier shader stage.  For
-       * example, we may be processing the uniform in the fragment shader, but
-       * the uniform was already processed in the vertex shader.
+      /* If there is already storage associated with this uniform or if the
+       * uniform is set as builtin, it means that it was set while processing
+       * an earlier shader stage.  For example, we may be processing the
+       * uniform in the fragment shader, but the uniform was already processed
+       * in the vertex shader.
        */
-      if (this->uniforms[id].storage != NULL) {
+      if (this->uniforms[id].storage != NULL || this->uniforms[id].builtin) {
          return;
       }
 
@@ -619,10 +620,15 @@ private:
       this->uniforms[id].initialized = 0;
       this->uniforms[id].num_driver_storage = 0;
       this->uniforms[id].driver_storage = NULL;
-      this->uniforms[id].storage = this->values;
       this->uniforms[id].atomic_buffer_index = -1;
       this->uniforms[id].hidden =
          current_var->data.how_declared == ir_var_hidden;
+      this->uniforms[id].builtin = is_gl_identifier(name);
+
+      /* Do not assign storage if the uniform is builtin */
+      if (!this->uniforms[id].builtin)
+         this->uniforms[id].storage = this->values;
+
       if (this->ubo_block_index != -1) {
 	 this->uniforms[id].block_index = this->ubo_block_index;
 
@@ -894,7 +900,7 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
 {
    ralloc_free(prog->UniformStorage);
    prog->UniformStorage = NULL;
-   prog->NumUserUniformStorage = 0;
+   prog->NumUniformStorage = 0;
 
    if (prog->UniformHash != NULL) {
       prog->UniformHash->clear();
@@ -940,14 +946,6 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
 	 if ((var == NULL) || (var->data.mode != ir_var_uniform))
 	    continue;
 
-	 /* FINISHME: Update code to process built-in uniforms!
-	  */
-	 if (is_gl_identifier(var->name)) {
-	    uniform_size.num_shader_uniform_components +=
-	       var->type->component_slots();
-	    continue;
-	 }
-
 	 uniform_size.process(var);
       }
 
@@ -962,16 +960,16 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
       }
    }
 
-   const unsigned num_user_uniforms = uniform_size.num_active_uniforms;
+   const unsigned num_uniforms = uniform_size.num_active_uniforms;
    const unsigned num_data_slots = uniform_size.num_values;
 
    /* On the outside chance that there were no uniforms, bail out.
     */
-   if (num_user_uniforms == 0)
+   if (num_uniforms == 0)
       return;
 
    struct gl_uniform_storage *uniforms =
-      rzalloc_array(prog, struct gl_uniform_storage, num_user_uniforms);
+      rzalloc_array(prog, struct gl_uniform_storage, num_uniforms);
    union gl_constant_value *data =
       rzalloc_array(uniforms, union gl_constant_value, num_data_slots);
 #ifndef NDEBUG
@@ -992,11 +990,6 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
 	 if ((var == NULL) || (var->data.mode != ir_var_uniform))
 	    continue;
 
-	 /* FINISHME: Update code to process built-in uniforms!
-	  */
-	 if (is_gl_identifier(var->name))
-	    continue;
-
 	 parcel.set_and_process(prog, var);
       }
 
@@ -1009,10 +1002,10 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
    }
 
    const unsigned hidden_uniforms =
-      move_hidden_uniforms_to_end(prog, uniforms, num_user_uniforms);
+      move_hidden_uniforms_to_end(prog, uniforms, num_uniforms);
 
    /* Reserve all the explicit locations of the active uniforms. */
-   for (unsigned i = 0; i < num_user_uniforms; i++) {
+   for (unsigned i = 0; i < num_uniforms; i++) {
       if (uniforms[i].remap_location != UNMAPPED_UNIFORM_LOC) {
          /* How many new entries for this uniform? */
          const unsigned entries = MAX2(1, uniforms[i].array_elements);
@@ -1028,7 +1021,11 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
    }
 
    /* Reserve locations for rest of the uniforms. */
-   for (unsigned i = 0; i < num_user_uniforms; i++) {
+   for (unsigned i = 0; i < num_uniforms; i++) {
+
+      /* Built-in uniforms should not get any location. */
+      if (uniforms[i].builtin)
+         continue;
 
       /* Explicit ones have been set already. */
       if (uniforms[i].remap_location != UNMAPPED_UNIFORM_LOC)
@@ -1055,14 +1052,14 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
    }
 
 #ifndef NDEBUG
-   for (unsigned i = 0; i < num_user_uniforms; i++) {
-      assert(uniforms[i].storage != NULL);
+   for (unsigned i = 0; i < num_uniforms; i++) {
+      assert(uniforms[i].storage != NULL || uniforms[i].builtin);
    }
 
    assert(parcel.values == data_end);
 #endif
 
-   prog->NumUserUniformStorage = num_user_uniforms;
+   prog->NumUniformStorage = num_uniforms;
    prog->NumHiddenUniforms = hidden_uniforms;
    prog->UniformStorage = uniforms;
 

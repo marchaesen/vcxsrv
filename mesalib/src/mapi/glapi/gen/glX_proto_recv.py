@@ -25,8 +25,10 @@
 # Authors:
 #    Ian Romanick <idr@us.ibm.com>
 
+import argparse
+import string
+
 import gl_XML, glX_XML, glX_proto_common, license
-import sys, getopt, string
 
 
 class PrintGlxDispatch_h(gl_XML.gl_print_base):
@@ -524,31 +526,39 @@ class PrintGlxDispatchFunctions(glX_proto_common.glx_print_proto):
         return
 
 
-if __name__ == '__main__':
-    file_name = "gl_API.xml"
+def _parser():
+    """Parse any arguments passed and return a namespace."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f',
+                        dest='filename',
+                        default='gl_API.xml',
+                        help='an xml file describing an OpenGL API')
+    parser.add_argument('-m',
+                        dest='mode',
+                        default='dispatch_c',
+                        choices=['dispatch_c', 'dispatch_h'],
+                        help='what file to generate')
+    parser.add_argument('-s',
+                        dest='swap',
+                        action='store_true',
+                        help='emit swap in GlXDispatchFunctions')
+    return parser.parse_args()
 
-    try:
-        (args, trail) = getopt.getopt(sys.argv[1:], "f:m:s")
-    except Exception,e:
-        show_usage()
 
-    mode = "dispatch_c"
-    do_swap = 0
-    for (arg,val) in args:
-        if arg == "-f":
-            file_name = val
-        elif arg == "-m":
-            mode = val
-        elif arg == "-s":
-            do_swap = 1
+def main():
+    """Main function."""
+    args = _parser()
 
-    if mode == "dispatch_c":
-        printer = PrintGlxDispatchFunctions(do_swap)
-    elif mode == "dispatch_h":
+    if args._mode == "dispatch_c":
+        printer = PrintGlxDispatchFunctions(args.swap)
+    elif args._mode == "dispatch_h":
         printer = PrintGlxDispatch_h()
-    else:
-        show_usage()
 
-    api = gl_XML.parse_GL_API( file_name, glX_proto_common.glx_proto_item_factory() )
+    api = gl_XML.parse_GL_API(
+        args.filename, glX_proto_common.glx_proto_item_factory())
 
-    printer.Print( api )
+    printer.Print(api)
+
+
+if __name__ == '__main__':
+    main()

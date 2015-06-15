@@ -924,8 +924,7 @@ static unsigned get_version(struct pipe_screen *screen,
    struct gl_extensions extensions = {0};
    GLuint version;
 
-   if ((api == API_OPENGL_COMPAT || api == API_OPENGL_CORE) &&
-       _mesa_override_gl_version_contextless(&consts, &api, &version)) {
+   if (_mesa_override_gl_version_contextless(&consts, &api, &version)) {
       return version;
    }
 

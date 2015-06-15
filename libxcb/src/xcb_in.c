@@ -761,6 +761,7 @@ xcb_generic_event_t *xcb_wait_for_special_event(xcb_connection_t *c,
         if(!_xcb_conn_wait(c, &se->special_event_cond, 0, 0))
             break;
 
+    _xcb_in_wake_up_next_reader(c);
     pthread_mutex_unlock(&c->iolock);
     return event;
 }

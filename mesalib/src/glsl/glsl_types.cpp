@@ -217,7 +217,7 @@ glsl_type::contains_opaque() const {
    case GLSL_TYPE_ATOMIC_UINT:
       return true;
    case GLSL_TYPE_ARRAY:
-      return element_type()->contains_opaque();
+      return fields.array->contains_opaque();
    case GLSL_TYPE_STRUCT:
       for (unsigned int i = 0; i < length; i++) {
          if (fields.structure[i].type->contains_opaque())

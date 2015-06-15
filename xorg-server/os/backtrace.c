@@ -87,7 +87,7 @@ xorg_backtrace(void)
             procname[1] = 0;
         }
 
-        if (dladdr((void *)(pip.start_ip + off), &dlinfo) && dlinfo.dli_fname &&
+        if (dladdr((void *)(uintptr_t)(pip.start_ip + off), &dlinfo) && dlinfo.dli_fname &&
                 *dlinfo.dli_fname)
             filename = dlinfo.dli_fname;
         else
@@ -95,7 +95,7 @@ xorg_backtrace(void)
 
         ErrorFSigSafe("%u: %s (%s%s+0x%x) [%p]\n", i++, filename, procname,
             ret == -UNW_ENOMEM ? "..." : "", (int)off,
-            (void *)(pip.start_ip + off));
+            (void *)(uintptr_t)(pip.start_ip + off));
 
         ret = unw_step(&cursor);
         if (ret < 0)

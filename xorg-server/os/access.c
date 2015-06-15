@@ -102,6 +102,10 @@ SOFTWARE.
 #include <sys/ioctl.h>
 #include <ctype.h>
 
+#ifndef NO_LOCAL_CLIENT_CRED
+#include <pwd.h>
+#endif
+
 #if defined(TCPCONN) || defined(STREAMSCONN)
 #include <netinet/in.h>
 #endif                          /* TCPCONN || STREAMSCONN */
@@ -225,6 +229,13 @@ static int LocalHostEnabled = FALSE;
 static int LocalHostRequested = FALSE;
 static int UsingXdmcp = FALSE;
 
+static enum {
+    LOCAL_ACCESS_SCOPE_HOST = 0,
+#ifndef NO_LOCAL_CLIENT_CRED
+    LOCAL_ACCESS_SCOPE_USER,
+#endif
+} LocalAccessScope;
+
 /* FamilyServerInterpreted implementation */
 static Bool siAddrMatch(int family, void *addr, int len, HOST * host,
                         ClientPtr client);
@@ -235,6 +246,21 @@ static void siTypesInitialize(void);
  * called when authorization is not enabled to add the
  * local host to the access list
  */
+
+void
+EnableLocalAccess(void)
+{
+    switch (LocalAccessScope) {
+        case LOCAL_ACCESS_SCOPE_HOST:
+            EnableLocalHost();
+            break;
+#ifndef NO_LOCAL_CLIENT_CRED
+        case LOCAL_ACCESS_SCOPE_USER:
+            EnableLocalUser();
+            break;
+#endif
+    }
+}
 
 void
 EnableLocalHost(void)
@@ -249,6 +275,21 @@ EnableLocalHost(void)
  * called when authorization is enabled to keep us secure
  */
 void
+DisableLocalAccess(void)
+{
+    switch (LocalAccessScope) {
+        case LOCAL_ACCESS_SCOPE_HOST:
+            DisableLocalHost();
+            break;
+#ifndef NO_LOCAL_CLIENT_CRED
+        case LOCAL_ACCESS_SCOPE_USER:
+            DisableLocalUser();
+            break;
+#endif
+    }
+}
+
+void
 DisableLocalHost(void)
 {
     HOST *self;
@@ -261,6 +302,74 @@ DisableLocalHost(void)
                               (void *) self->addr);
     }
 }
+
+#ifndef NO_LOCAL_CLIENT_CRED
+static int GetLocalUserAddr(char **addr)
+{
+    static const char *type = "localuser";
+    static const char delimiter = '\0';
+    static const char *value;
+    struct passwd *pw;
+    int length = -1;
+
+    pw = getpwuid(getuid());
+
+    if (pw == NULL || pw->pw_name == NULL)
+        goto out;
+
+    value = pw->pw_name;
+
+    length = asprintf(addr, "%s%c%s", type, delimiter, value);
+
+    if (length == -1) {
+        goto out;
+    }
+
+    /* Trailing NUL */
+    length++;
+
+out:
+    return length;
+}
+
+void
+EnableLocalUser(void)
+{
+    char *addr = NULL;
+    int length = -1;
+
+    length = GetLocalUserAddr(&addr);
+
+    if (length == -1)
+        return;
+
+    NewHost(FamilyServerInterpreted, addr, length, TRUE);
+
+    free(addr);
+}
+
+void
+DisableLocalUser(void)
+{
+    char *addr = NULL;
+    int length = -1;
+
+    length = GetLocalUserAddr(&addr);
+
+    if (length == -1)
+        return;
+
+    RemoveHost(NULL, FamilyServerInterpreted, length, addr);
+
+    free(addr);
+}
+
+void
+LocalAccessScopeUser(void)
+{
+    LocalAccessScope = LOCAL_ACCESS_SCOPE_USER;
+}
+#endif
 
 /*
  * called at init time when XDMCP will be used; xdmcp always

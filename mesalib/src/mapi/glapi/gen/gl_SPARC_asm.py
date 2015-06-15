@@ -25,9 +25,10 @@
 # Authors:
 #    Ian Romanick <idr@us.ibm.com>
 
+import argparse
+
 import license
 import gl_XML, glX_XML
-import sys, getopt
 
 class PrintGenericStubs(gl_XML.gl_print_base):
     def __init__(self):
@@ -244,30 +245,24 @@ class PrintGenericStubs(gl_XML.gl_print_base):
         return
 
 
-def show_usage():
-    print "Usage: %s [-f input_file_name] [-m output_mode]" % sys.argv[0]
-    sys.exit(1)
+def _parser():
+    """Parse arguments and return a namespace."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f',
+                        dest='filename',
+                        default='gl_API.xml',
+                        help='An XML description of an API.')
+    return parser.parse_args()
+
+
+def main():
+    """Main function."""
+    args = _parser()
+    printer = PrintGenericStubs()
+
+    api = gl_XML.parse_GL_API(args.filename, glX_XML.glx_item_factory())
+    printer.Print(api)
+
 
 if __name__ == '__main__':
-    file_name = "gl_API.xml"
-    mode = "generic"
-
-    try:
-        (args, trail) = getopt.getopt(sys.argv[1:], "m:f:")
-    except Exception,e:
-        show_usage()
-
-    for (arg,val) in args:
-        if arg == '-m':
-            mode = val
-        elif arg == "-f":
-            file_name = val
-
-    if mode == "generic":
-        printer = PrintGenericStubs()
-    else:
-        print "ERROR: Invalid mode \"%s\" specified." % mode
-        show_usage()
-
-    api = gl_XML.parse_GL_API(file_name, glX_XML.glx_item_factory())
-    printer.Print(api)
+    main()

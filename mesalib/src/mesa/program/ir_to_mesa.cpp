@@ -262,6 +262,7 @@ public:
    virtual void visit(ir_if *);
    virtual void visit(ir_emit_vertex *);
    virtual void visit(ir_end_primitive *);
+   virtual void visit(ir_barrier *);
    /*@}*/
 
    src_reg result;
@@ -405,7 +406,7 @@ ir_to_mesa_visitor::emit_dp(ir_instruction *ir,
 			    dst_reg dst, src_reg src0, src_reg src1,
 			    unsigned elements)
 {
-   static const gl_inst_opcode dot_opcodes[] = {
+   static const enum prog_opcode dot_opcodes[] = {
       OPCODE_DP2, OPCODE_DP3, OPCODE_DP4
    };
 
@@ -2117,6 +2118,12 @@ ir_to_mesa_visitor::visit(ir_end_primitive *)
    assert(!"Geometry shaders not supported.");
 }
 
+void
+ir_to_mesa_visitor::visit(ir_barrier *)
+{
+   unreachable("GLSL barrier() not supported.");
+}
+
 ir_to_mesa_visitor::ir_to_mesa_visitor()
 {
    result.file = PROGRAM_UNDEFINED;
@@ -2406,9 +2413,14 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
       if (!found)
 	 continue;
 
+      struct gl_uniform_storage *storage =
+         &shader_program->UniformStorage[location];
+
+      /* Do not associate any uniform storage to built-in uniforms */
+      if (storage->builtin)
+         continue;
+
       if (location != last_location) {
-	 struct gl_uniform_storage *storage =
-	    &shader_program->UniformStorage[location];
 	 enum gl_uniform_driver_format format = uniform_native;
 
 	 unsigned columns = 0;
@@ -2720,7 +2732,7 @@ get_mesa_program(struct gl_context *ctx,
       mesa_inst->Opcode = inst->op;
       mesa_inst->CondUpdate = inst->cond_update;
       if (inst->saturate)
-	 mesa_inst->SaturateMode = SATURATE_ZERO_ONE;
+	 mesa_inst->Saturate = GL_TRUE;
       mesa_inst->DstReg.File = inst->dst.file;
       mesa_inst->DstReg.Index = inst->dst.index;
       mesa_inst->DstReg.CondMask = inst->dst.cond_mask;

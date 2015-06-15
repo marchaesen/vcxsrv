@@ -237,7 +237,7 @@ create_solid_image (const pixman_format_code_t *allowed_formats,
         pixman_image_unref (dummy_img);
 
         /* Now set the bitmap contents to a random value */
-        *buffer = prng_rand ();
+        prng_randmemset (buffer, 4, 0);
         image_endian_swap (img);
 
         if (used_fmt)
@@ -251,7 +251,10 @@ create_solid_image (const pixman_format_code_t *allowed_formats,
         pixman_color_t color;
         pixman_image_t *img;
 
-        prng_randmemset (&color, sizeof color, 0);
+        color.alpha = prng_rand_n (UINT16_MAX + 1);
+        color.red   = prng_rand_n (UINT16_MAX + 1);
+        color.green = prng_rand_n (UINT16_MAX + 1);
+        color.blue  = prng_rand_n (UINT16_MAX + 1);
         img = pixman_image_create_solid_fill (&color);
 
         if (used_fmt)
@@ -345,6 +348,6 @@ main (int argc, const char *argv[])
     }
 
     return fuzzer_test_main ("solid", 500000,
-			     0x1B6DFF8D,
+                             0xC30FD380,
 			     test_solid, argc, argv);
 }

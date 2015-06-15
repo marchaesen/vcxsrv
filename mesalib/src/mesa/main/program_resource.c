@@ -220,12 +220,12 @@ _mesa_GetProgramResourceIndex(GLuint program, GLenum programInterface,
    case GL_PROGRAM_INPUT:
    case GL_PROGRAM_OUTPUT:
    case GL_UNIFORM:
-   case GL_UNIFORM_BLOCK:
    case GL_TRANSFORM_FEEDBACK_VARYING:
-      /* Validate name syntax for arrays. */
+      /* Validate name syntax for array variables */
       if (!valid_program_resource_index_name(name))
          return GL_INVALID_INDEX;
-
+      /* fall-through */
+   case GL_UNIFORM_BLOCK:
       res = _mesa_program_resource_find_name(shProg, programInterface, name);
       if (!res)
          return GL_INVALID_INDEX;

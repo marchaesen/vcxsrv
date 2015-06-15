@@ -130,6 +130,7 @@ struct blitter_context_priv
    unsigned dst_height;
 
    boolean has_geometry_shader;
+   boolean has_tessellation;
    boolean has_layered;
    boolean has_stream_out;
    boolean has_stencil_export;
@@ -183,6 +184,11 @@ struct blitter_context *util_blitter_create(struct pipe_context *pipe)
    ctx->has_geometry_shader =
       pipe->screen->get_shader_param(pipe->screen, PIPE_SHADER_GEOMETRY,
                                      PIPE_SHADER_CAP_MAX_INSTRUCTIONS) > 0;
+
+   ctx->has_tessellation =
+      pipe->screen->get_shader_param(pipe->screen, PIPE_SHADER_TESS_CTRL,
+                                     PIPE_SHADER_CAP_MAX_INSTRUCTIONS) > 0;
+
    ctx->has_stream_out =
       pipe->screen->get_param(pipe->screen,
                               PIPE_CAP_MAX_STREAM_OUTPUT_BUFFERS) != 0;
@@ -510,6 +516,8 @@ static void blitter_check_saved_vertex_states(struct blitter_context_priv *ctx)
    assert(ctx->base.saved_velem_state != INVALID_PTR);
    assert(ctx->base.saved_vs != INVALID_PTR);
    assert(!ctx->has_geometry_shader || ctx->base.saved_gs != INVALID_PTR);
+   assert(!ctx->has_tessellation || ctx->base.saved_tcs != INVALID_PTR);
+   assert(!ctx->has_tessellation || ctx->base.saved_tes != INVALID_PTR);
    assert(!ctx->has_stream_out || ctx->base.saved_num_so_targets != ~0);
    assert(ctx->base.saved_rs_state != INVALID_PTR);
 }
@@ -536,6 +544,13 @@ static void blitter_restore_vertex_states(struct blitter_context_priv *ctx)
    if (ctx->has_geometry_shader) {
       pipe->bind_gs_state(pipe, ctx->base.saved_gs);
       ctx->base.saved_gs = INVALID_PTR;
+   }
+
+   if (ctx->has_tessellation) {
+      pipe->bind_tcs_state(pipe, ctx->base.saved_tcs);
+      pipe->bind_tes_state(pipe, ctx->base.saved_tes);
+      ctx->base.saved_tcs = INVALID_PTR;
+      ctx->base.saved_tes = INVALID_PTR;
    }
 
    /* Stream outputs. */
@@ -1108,6 +1123,10 @@ static void blitter_set_common_draw_rect_state(struct blitter_context_priv *ctx,
 
    if (ctx->has_geometry_shader)
       pipe->bind_gs_state(pipe, NULL);
+   if (ctx->has_tessellation) {
+      pipe->bind_tcs_state(pipe, NULL);
+      pipe->bind_tes_state(pipe, NULL);
+   }
    if (ctx->has_stream_out)
       pipe->set_stream_output_targets(pipe, 0, NULL, NULL);
 }
@@ -1967,6 +1986,10 @@ void util_blitter_copy_buffer(struct blitter_context *blitter,
    bind_vs_pos_only(ctx);
    if (ctx->has_geometry_shader)
       pipe->bind_gs_state(pipe, NULL);
+   if (ctx->has_tessellation) {
+      pipe->bind_tcs_state(pipe, NULL);
+      pipe->bind_tes_state(pipe, NULL);
+   }
    pipe->bind_rasterizer_state(pipe, ctx->rs_discard_state);
 
    so_target = pipe->create_stream_output_target(pipe, dst, dstx, size);
@@ -2027,6 +2050,10 @@ void util_blitter_clear_buffer(struct blitter_context *blitter,
    bind_vs_pos_only(ctx);
    if (ctx->has_geometry_shader)
       pipe->bind_gs_state(pipe, NULL);
+   if (ctx->has_tessellation) {
+      pipe->bind_tcs_state(pipe, NULL);
+      pipe->bind_tes_state(pipe, NULL);
+   }
    pipe->bind_rasterizer_state(pipe, ctx->rs_discard_state);
 
    so_target = pipe->create_stream_output_target(pipe, dst, offset, size);

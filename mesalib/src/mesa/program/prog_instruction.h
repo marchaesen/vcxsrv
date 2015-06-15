@@ -118,15 +118,6 @@
 
 
 /**
- * Saturation modes when storing values.
- */
-/*@{*/
-#define SATURATE_OFF            0
-#define SATURATE_ZERO_ONE       1
-/*@}*/
-
-
-/**
  * Per-component negation masks
  */
 /*@{*/
@@ -143,7 +134,7 @@
 /**
  * Program instruction opcodes for vertex, fragment and geometry programs.
  */
-typedef enum prog_opcode {
+enum prog_opcode {
                      /* ARB_vp   ARB_fp   NV_vp   NV_fp     GLSL */
                      /*------------------------------------------*/
    OPCODE_NOP = 0,   /*                                      X   */
@@ -213,7 +204,7 @@ typedef enum prog_opcode {
    OPCODE_TRUNC,     /*                                      X   */
    OPCODE_XPD,       /*   X        X                             */
    MAX_OPCODE
-} gl_inst_opcode;
+};
 
 
 /**
@@ -300,7 +291,7 @@ struct prog_dst_register
  */
 struct prog_instruction
 {
-   gl_inst_opcode Opcode;
+   enum prog_opcode Opcode;
    struct prog_src_register SrcReg[3];
    struct prog_dst_register DstReg;
 
@@ -327,15 +318,12 @@ struct prog_instruction
    GLuint CondDst:1;
 
    /**
-    * Saturate each value of the vectored result to the range [0,1] or the
-    * range [-1,1].  \c SSAT mode (i.e., saturation to the range [-1,1]) is
-    * only available in NV_fragment_program2 mode.
-    * Value is one of the SATURATE_* tokens.
+    * Saturate each value of the vectored result to the range [0,1].
     *
     * \since
     * NV_fragment_program_option, NV_vertex_program3.
     */
-   GLuint SaturateMode:2;
+   GLuint Saturate:1;
 
    /**
     * Per-instruction selectable precision: FLOAT32, FLOAT16, FIXED12.
@@ -368,9 +356,6 @@ struct prog_instruction
     */
    GLint BranchTarget;
 
-   /** for driver use (try to remove someday) */
-   GLint Aux;
-
    /** for debugging purposes */
    const char *Comment;
 };
@@ -394,19 +379,19 @@ extern void
 _mesa_free_instructions(struct prog_instruction *inst, GLuint count);
 
 extern GLuint
-_mesa_num_inst_src_regs(gl_inst_opcode opcode);
+_mesa_num_inst_src_regs(enum prog_opcode opcode);
 
 extern GLuint
-_mesa_num_inst_dst_regs(gl_inst_opcode opcode);
+_mesa_num_inst_dst_regs(enum prog_opcode opcode);
 
 extern GLboolean
-_mesa_is_tex_instruction(gl_inst_opcode opcode);
+_mesa_is_tex_instruction(enum prog_opcode opcode);
 
 extern GLboolean
 _mesa_check_soa_dependencies(const struct prog_instruction *inst);
 
 extern const char *
-_mesa_opcode_string(gl_inst_opcode opcode);
+_mesa_opcode_string(enum prog_opcode opcode);
 
 
 #ifdef __cplusplus

@@ -706,13 +706,6 @@ _mesa_TransformFeedbackBufferBase(GLuint xfb, GLuint index, GLuint buffer)
    struct gl_transform_feedback_object *obj;
    struct gl_buffer_object *bufObj;
 
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glTransformFeedbackBufferBase(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
-
    obj = lookup_transform_feedback_object_err(ctx, xfb,
                                               "glTransformFeedbackBufferBase");
    if(!obj) {
@@ -735,13 +728,6 @@ _mesa_TransformFeedbackBufferRange(GLuint xfb, GLuint index, GLuint buffer,
    GET_CURRENT_CONTEXT(ctx);
    struct gl_transform_feedback_object *obj;
    struct gl_buffer_object *bufObj;
-
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glTransformFeedbackBufferRange(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
 
    obj = lookup_transform_feedback_object_err(ctx, xfb,
                                               "glTransformFeedbackBufferRange");
@@ -1059,13 +1045,6 @@ _mesa_CreateTransformFeedbacks(GLsizei n, GLuint *names)
 {
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glCreateTransformFeedbacks(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
-
    create_transform_feedbacks(ctx, n, names, true);
 }
 
@@ -1236,13 +1215,6 @@ _mesa_GetTransformFeedbackiv(GLuint xfb, GLenum pname, GLint *param)
     struct gl_transform_feedback_object *obj;
     GET_CURRENT_CONTEXT(ctx);
 
-    if (!ctx->Extensions.ARB_direct_state_access) {
-       _mesa_error(ctx, GL_INVALID_OPERATION,
-                   "glGetTransformFeedbackiv(GL_ARB_direct_state_access "
-                   "is not supported)");
-       return;
-    }
-
     obj = lookup_transform_feedback_object_err(ctx, xfb,
                                                "glGetTransformFeedbackiv");
     if(!obj) {
@@ -1268,13 +1240,6 @@ _mesa_GetTransformFeedbacki_v(GLuint xfb, GLenum pname, GLuint index,
 {
    struct gl_transform_feedback_object *obj;
    GET_CURRENT_CONTEXT(ctx);
-
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glGetTransformFeedbacki_v(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
 
    obj = lookup_transform_feedback_object_err(ctx, xfb,
                                               "glGetTransformFeedbacki_v");
@@ -1304,13 +1269,6 @@ _mesa_GetTransformFeedbacki64_v(GLuint xfb, GLenum pname, GLuint index,
 {
    struct gl_transform_feedback_object *obj;
    GET_CURRENT_CONTEXT(ctx);
-
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glGetTransformFeedbacki64_v(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
 
    obj = lookup_transform_feedback_object_err(ctx, xfb,
                                               "glGetTransformFeedbacki64_v");

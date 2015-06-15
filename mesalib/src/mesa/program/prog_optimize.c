@@ -478,7 +478,7 @@ can_upward_mov_be_modifed(const struct prog_instruction *mov)
    return
       can_downward_mov_be_modifed(mov) &&
       mov->DstReg.File == PROGRAM_TEMPORARY &&
-      mov->SaturateMode == SATURATE_OFF;
+      !mov->Saturate;
 }
 
 
@@ -653,7 +653,7 @@ _mesa_merge_mov_into_inst(struct prog_instruction *inst,
    if (mask != (inst->DstReg.WriteMask & mask))
       return GL_FALSE;
 
-   inst->SaturateMode |= mov->SaturateMode;
+   inst->Saturate |= mov->Saturate;
 
    /* Depending on the instruction, we may need to recompute the swizzles.
     * Also, some other instructions (like TEX) are not linear. We will only

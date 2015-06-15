@@ -215,6 +215,7 @@ st_prepare_vertex_program(struct gl_context *ctx,
          unsigned slot = stvp->num_outputs++;
 
          stvp->result_to_output[attr] = slot;
+         stvp->output_slot_to_attr[slot] = attr;
 
          switch (attr) {
          case VARYING_SLOT_POS:
@@ -321,7 +322,7 @@ st_translate_vertex_program(struct st_context *st,
       _mesa_remove_output_reads(&stvp->Base.Base, PROGRAM_OUTPUT);
    }
 
-   ureg = ureg_create( TGSI_PROCESSOR_VERTEX );
+   ureg = ureg_create_with_screen(TGSI_PROCESSOR_VERTEX, st->pipe->screen);
    if (ureg == NULL) {
       free(vpv);
       return NULL;
@@ -351,6 +352,7 @@ st_translate_vertex_program(struct st_context *st,
                                    /* inputs */
                                    vpv->num_inputs,
                                    stvp->input_to_index,
+                                   NULL, /* inputSlotToAttr */
                                    NULL, /* input semantic name */
                                    NULL, /* input semantic index */
                                    NULL, /* interp mode */
@@ -358,6 +360,7 @@ st_translate_vertex_program(struct st_context *st,
                                    /* outputs */
                                    num_outputs,
                                    stvp->result_to_output,
+                                   stvp->output_slot_to_attr,
                                    stvp->output_semantic_name,
                                    stvp->output_semantic_index,
                                    key->passthrough_edgeflags,
@@ -482,6 +485,7 @@ st_translate_fragment_program(struct st_context *st,
 
    GLuint outputMapping[FRAG_RESULT_MAX];
    GLuint inputMapping[VARYING_SLOT_MAX];
+   GLuint inputSlotToAttr[VARYING_SLOT_MAX];
    GLuint interpMode[PIPE_MAX_SHADER_INPUTS];  /* XXX size? */
    GLuint interpLocation[PIPE_MAX_SHADER_INPUTS];
    GLuint attr;
@@ -502,6 +506,7 @@ st_translate_fragment_program(struct st_context *st,
       return NULL;
 
    assert(!(key->bitmap && key->drawpixels));
+   memset(inputSlotToAttr, ~0, sizeof(inputSlotToAttr));
 
    if (key->bitmap) {
       /* glBitmap drawing */
@@ -543,6 +548,7 @@ st_translate_fragment_program(struct st_context *st,
          const GLuint slot = fs_num_inputs++;
 
          inputMapping[attr] = slot;
+         inputSlotToAttr[slot] = attr;
          if (stfp->Base.IsCentroid & BITFIELD64_BIT(attr))
             interpLocation[slot] = TGSI_INTERPOLATE_LOC_CENTROID;
          else if (stfp->Base.IsSample & BITFIELD64_BIT(attr))
@@ -732,7 +738,7 @@ st_translate_fragment_program(struct st_context *st,
       }
    }
 
-   ureg = ureg_create( TGSI_PROCESSOR_FRAGMENT );
+   ureg = ureg_create_with_screen(TGSI_PROCESSOR_FRAGMENT, st->pipe->screen);
    if (ureg == NULL) {
       free(variant);
       return NULL;
@@ -778,6 +784,7 @@ st_translate_fragment_program(struct st_context *st,
                            /* inputs */
                            fs_num_inputs,
                            inputMapping,
+                           inputSlotToAttr,
                            input_semantic_name,
                            input_semantic_index,
                            interpMode,
@@ -785,6 +792,7 @@ st_translate_fragment_program(struct st_context *st,
                            /* outputs */
                            fs_num_outputs,
                            outputMapping,
+                           NULL,
                            fs_output_semantic_name,
                            fs_output_semantic_index, FALSE,
                            key->clamp_color );
@@ -867,7 +875,9 @@ st_translate_geometry_program(struct st_context *st,
                               struct st_geometry_program *stgp,
                               const struct st_gp_variant_key *key)
 {
+   GLuint inputSlotToAttr[VARYING_SLOT_MAX];
    GLuint inputMapping[VARYING_SLOT_MAX];
+   GLuint outputSlotToAttr[VARYING_SLOT_MAX];
    GLuint outputMapping[VARYING_SLOT_MAX];
    struct pipe_context *pipe = st->pipe;
    GLuint attr;
@@ -890,13 +900,15 @@ st_translate_geometry_program(struct st_context *st,
    if (!gpv)
       return NULL;
 
-   ureg = ureg_create(TGSI_PROCESSOR_GEOMETRY);
+   ureg = ureg_create_with_screen(TGSI_PROCESSOR_GEOMETRY, st->pipe->screen);
    if (ureg == NULL) {
       free(gpv);
       return NULL;
    }
 
+   memset(inputSlotToAttr, 0, sizeof(inputSlotToAttr));
    memset(inputMapping, 0, sizeof(inputMapping));
+   memset(outputSlotToAttr, 0, sizeof(outputSlotToAttr));
    memset(outputMapping, 0, sizeof(outputMapping));
 
    /*
@@ -907,6 +919,7 @@ st_translate_geometry_program(struct st_context *st,
          const GLuint slot = gs_num_inputs++;
 
          inputMapping[attr] = slot;
+         inputSlotToAttr[slot] = attr;
 
          switch (attr) {
          case VARYING_SLOT_PRIMITIVE_ID:
@@ -985,6 +998,7 @@ st_translate_geometry_program(struct st_context *st,
          GLuint slot = gs_num_outputs++;
 
          outputMapping[attr] = slot;
+         outputSlotToAttr[slot] = attr;
 
          switch (attr) {
          case VARYING_SLOT_POS:
@@ -1080,6 +1094,7 @@ st_translate_geometry_program(struct st_context *st,
                         /* inputs */
                         gs_num_inputs,
                         inputMapping,
+                        inputSlotToAttr,
                         input_semantic_name,
                         input_semantic_index,
                         NULL,
@@ -1087,6 +1102,7 @@ st_translate_geometry_program(struct st_context *st,
                         /* outputs */
                         gs_num_outputs,
                         outputMapping,
+                        outputSlotToAttr,
                         gs_output_semantic_name,
                         gs_output_semantic_index,
                         FALSE,
@@ -1201,7 +1217,7 @@ destroy_program_variants(struct st_context *st, struct gl_program *program)
          }
       }
       break;
-   case MESA_GEOMETRY_PROGRAM:
+   case GL_GEOMETRY_PROGRAM_NV:
       {
          struct st_geometry_program *stgp =
             (struct st_geometry_program *) program;

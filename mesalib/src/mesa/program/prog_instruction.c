@@ -55,7 +55,7 @@ _mesa_init_instructions(struct prog_instruction *inst, GLuint count)
       inst[i].DstReg.CondMask = COND_TR;
       inst[i].DstReg.CondSwizzle = SWIZZLE_NOOP;
 
-      inst[i].SaturateMode = SATURATE_OFF;
+      inst[i].Saturate = GL_FALSE;
       inst[i].Precision = FLOAT32;
    }
 }
@@ -114,7 +114,7 @@ _mesa_free_instructions(struct prog_instruction *inst, GLuint count)
  */
 struct instruction_info
 {
-   gl_inst_opcode Opcode;
+   enum prog_opcode Opcode;
    const char *Name;
    GLuint NumSrcRegs;
    GLuint NumDstRegs;
@@ -198,7 +198,7 @@ static const struct instruction_info InstInfo[MAX_OPCODE] = {
  * Return the number of src registers for the given instruction/opcode.
  */
 GLuint
-_mesa_num_inst_src_regs(gl_inst_opcode opcode)
+_mesa_num_inst_src_regs(enum prog_opcode opcode)
 {
    assert(opcode < MAX_OPCODE);
    assert(opcode == InstInfo[opcode].Opcode);
@@ -211,7 +211,7 @@ _mesa_num_inst_src_regs(gl_inst_opcode opcode)
  * Return the number of dst registers for the given instruction/opcode.
  */
 GLuint
-_mesa_num_inst_dst_regs(gl_inst_opcode opcode)
+_mesa_num_inst_dst_regs(enum prog_opcode opcode)
 {
    assert(opcode < MAX_OPCODE);
    assert(opcode == InstInfo[opcode].Opcode);
@@ -221,7 +221,7 @@ _mesa_num_inst_dst_regs(gl_inst_opcode opcode)
 
 
 GLboolean
-_mesa_is_tex_instruction(gl_inst_opcode opcode)
+_mesa_is_tex_instruction(enum prog_opcode opcode)
 {
    return (opcode == OPCODE_TEX ||
            opcode == OPCODE_TXB ||
@@ -285,7 +285,7 @@ _mesa_check_soa_dependencies(const struct prog_instruction *inst)
  * Return string name for given program opcode.
  */
 const char *
-_mesa_opcode_string(gl_inst_opcode opcode)
+_mesa_opcode_string(enum prog_opcode opcode)
 {
    if (opcode < MAX_OPCODE)
       return InstInfo[opcode].Name;

@@ -1108,13 +1108,6 @@ _mesa_TextureParameterfv(GLuint texture, GLenum pname, const GLfloat *params)
    struct gl_texture_object *texObj;
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glTextureParameterfv(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
-
    texObj = get_texobj_by_name(ctx, texture, GL_FALSE);
    if (!texObj) {
       /* User passed a non-generated name. */
@@ -1131,13 +1124,6 @@ _mesa_TextureParameterf(GLuint texture, GLenum pname, GLfloat param)
    struct gl_texture_object *texObj;
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glTextureParameterf(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
-
    texObj = get_texobj_by_name(ctx, texture, GL_FALSE);
    if (!texObj) {
       /* User passed a non-generated name. */
@@ -1153,13 +1139,6 @@ _mesa_TextureParameteri(GLuint texture, GLenum pname, GLint param)
 {
    struct gl_texture_object *texObj;
    GET_CURRENT_CONTEXT(ctx);
-
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glTextureParameteri(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
 
    texObj = get_texobj_by_name(ctx, texture, GL_FALSE);
    if (!texObj) {
@@ -1178,13 +1157,6 @@ _mesa_TextureParameteriv(GLuint texture, GLenum pname,
    struct gl_texture_object *texObj;
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glTextureParameteriv(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
-
    texObj = get_texobj_by_name(ctx, texture, GL_FALSE);
    if (!texObj) {
       /* User passed a non-generated name. */
@@ -1202,13 +1174,6 @@ _mesa_TextureParameterIiv(GLuint texture, GLenum pname, const GLint *params)
    struct gl_texture_object *texObj;
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glTextureParameterIiv(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
-
    texObj = get_texobj_by_name(ctx, texture, GL_FALSE);
    if (!texObj) {
       /* User passed a non-generated name. */
@@ -1225,13 +1190,6 @@ _mesa_TextureParameterIuiv(GLuint texture, GLenum pname, const GLuint *params)
 {
    struct gl_texture_object *texObj;
    GET_CURRENT_CONTEXT(ctx);
-
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glTextureParameterIuiv(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
 
    texObj = get_texobj_by_name(ctx, texture, GL_FALSE);
    if (!texObj) {
@@ -1692,13 +1650,6 @@ _mesa_GetTextureLevelParameterfv(GLuint texture, GLint level,
    GLint iparam;
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glGetTextureLevelParameterfv(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
-
    texObj = _mesa_lookup_texture_err(ctx, texture,
                                      "glGetTextureLevelParameterfv");
    if (!texObj)
@@ -1716,13 +1667,6 @@ _mesa_GetTextureLevelParameteriv(GLuint texture, GLint level,
 {
    struct gl_texture_object *texObj;
    GET_CURRENT_CONTEXT(ctx);
-
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glGetTextureLevelParameteriv(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
 
    texObj = _mesa_lookup_texture_err(ctx, texture,
                                      "glGetTextureLevelParameteriv");
@@ -2283,13 +2227,6 @@ _mesa_GetTextureParameterfv(GLuint texture, GLenum pname, GLfloat *params)
    struct gl_texture_object *obj;
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glGetTextureParameterfv(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
-
    obj = get_texobj_by_name(ctx, texture, GL_TRUE);
    if (!obj) {
       /* User passed a non-generated name. */
@@ -2306,13 +2243,6 @@ _mesa_GetTextureParameteriv(GLuint texture, GLenum pname, GLint *params)
 {
    struct gl_texture_object *obj;
    GET_CURRENT_CONTEXT(ctx);
-
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glGetTextureParameteriv(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
 
    obj = get_texobj_by_name(ctx, texture, GL_TRUE);
    if (!obj) {
@@ -2331,13 +2261,6 @@ _mesa_GetTextureParameterIiv(GLuint texture, GLenum pname, GLint *params)
    struct gl_texture_object *texObj;
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glGetTextureParameterIiv(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
-
    texObj = get_texobj_by_name(ctx, texture, GL_TRUE);
    if (!texObj) {
       /* User passed a non-generated name. */
@@ -2355,13 +2278,6 @@ _mesa_GetTextureParameterIuiv(GLuint texture, GLenum pname, GLuint *params)
 {
    struct gl_texture_object *texObj;
    GET_CURRENT_CONTEXT(ctx);
-
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glGetTextureParameterIuiv(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
 
    texObj = get_texobj_by_name(ctx, texture, GL_TRUE);
    if (!texObj) {

@@ -87,45 +87,14 @@ typedef struct wl_buffer * (EGLAPIENTRYP PFNEGLCREATEWAYLANDBUFFERFROMIMAGEWL) (
 
 #endif
 
-#ifndef EGL_NOK_swap_region
-#define EGL_NOK_swap_region 1
-
-#ifdef EGL_EGLEXT_PROTOTYPES
-EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffersRegionNOK(EGLDisplay dpy, EGLSurface surface, EGLint numRects, const EGLint* rects);
-#endif
-
+/* remnant of EGL_NOK_swap_region kept for compatibility because of a non-standard type name */
 typedef EGLBoolean (EGLAPIENTRYP PFNEGLSWAPBUFFERSREGIONNOK) (EGLDisplay dpy, EGLSurface surface, EGLint numRects, const EGLint* rects);
-#endif
-
-#ifndef EGL_NOK_texture_from_pixmap
-#define EGL_NOK_texture_from_pixmap 1
-
-#define EGL_Y_INVERTED_NOK			0x307F
-#endif /* EGL_NOK_texture_from_pixmap */
-
-#ifndef EGL_ANDROID_image_native_buffer
-#define EGL_ANDROID_image_native_buffer 1
-#define EGL_NATIVE_BUFFER_ANDROID       0x3140  /* eglCreateImageKHR target */
-#endif
 
 #ifndef EGL_MESA_configless_context
 #define EGL_MESA_configless_context 1
 #define EGL_NO_CONFIG_MESA			((EGLConfig)0)
 #endif
 
-#if KHRONOS_SUPPORT_INT64
-#ifndef EGL_MESA_image_dma_buf_export
-#define EGL_MESA_image_dma_buf_export 1
-#ifdef EGL_EGLEXT_PROTOTYPES
-EGLAPI EGLBoolean EGLAPIENTRY eglExportDMABUFImageQueryMESA (EGLDisplay dpy, EGLImageKHR image, EGLint *fourcc, EGLint *nplanes, EGLuint64KHR *modifiers);
-EGLAPI EGLBoolean EGLAPIENTRY eglExportDMABUFImageMESA (EGLDisplay dpy, EGLImageKHR image, int *fds, EGLint *strides, EGLint *offsets);
-#endif
-#endif
-
-typedef EGLBoolean (EGLAPIENTRYP PFNEGLEXPORTDMABUFIMAGEQUERYMESA) (EGLDisplay dpy, EGLImageKHR image, EGLint *fourcc, EGLint *nplanes, EGLuint64KHR *modifiers);
-typedef EGLBoolean (EGLAPIENTRYP PFNEGLEXPORTDMABUFIMAGEMESA) (EGLDisplay dpy, EGLImageKHR image, int *fds, EGLint *strides, EGLint *offsets);
-
-#endif
 #ifdef __cplusplus
 }
 #endif

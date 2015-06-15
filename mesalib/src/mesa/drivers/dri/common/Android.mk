@@ -39,7 +39,9 @@ intermediates := $(call local-generated-sources-dir)
 LOCAL_C_INCLUDES := \
     $(MESA_DRI_C_INCLUDES)
 
-LOCAL_EXPORT_C_INCLUDE_DIRS := $(intermediates)
+LOCAL_EXPORT_C_INCLUDE_DIRS := \
+    $(LOCAL_PATH) \
+    $(intermediates)
 
 # swrast only
 ifeq ($(MESA_GPU_DRIVERS),swrast)
@@ -48,7 +50,9 @@ else
 LOCAL_SHARED_LIBRARIES := libdrm
 endif
 
-LOCAL_SRC_FILES := $(DRI_COMMON_FILES)
+LOCAL_SRC_FILES := \
+	$(DRI_COMMON_FILES) \
+	$(XMLCONFIG_FILES)
 
 MESA_DRI_OPTIONS_H := $(intermediates)/xmlpool/options.h
 LOCAL_GENERATED_SOURCES := $(MESA_DRI_OPTIONS_H)

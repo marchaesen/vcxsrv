@@ -2,7 +2,9 @@ DRI_COMMON_FILES := \
 	utils.c \
 	utils.h \
 	dri_util.c \
-	dri_util.h \
+	dri_util.h
+
+XMLCONFIG_FILES := \
 	xmlconfig.c \
 	xmlconfig.h
 

@@ -1817,9 +1817,12 @@ vbo_initialize_exec_dispatch(const struct gl_context *ctx,
       SET_DrawElementsInstancedBaseVertexBaseInstance(exec, vbo_exec_DrawElementsInstancedBaseVertexBaseInstance);
    }
 
-   if (ctx->API == API_OPENGL_CORE) {
+   if (ctx->API == API_OPENGL_CORE || _mesa_is_gles31(ctx)) {
       SET_DrawArraysIndirect(exec, vbo_exec_DrawArraysIndirect);
       SET_DrawElementsIndirect(exec, vbo_exec_DrawElementsIndirect);
+   }
+
+   if (ctx->API == API_OPENGL_CORE) {
       SET_MultiDrawArraysIndirect(exec, vbo_exec_MultiDrawArraysIndirect);
       SET_MultiDrawElementsIndirect(exec, vbo_exec_MultiDrawElementsIndirect);
    }

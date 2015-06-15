@@ -1,0 +1,103 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 10.5.7 Release Notes / June 07, 2015</h1>
+
+<p>
+Mesa 10.5.7 is a bug fix release which fixes bugs found since the 10.5.6 release.
+</p>
+<p>
+Mesa 10.5.7 implements the OpenGL 3.3 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 3.3.  OpenGL
+3.3 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+8f865ce497435fdf25d4e35f3b5551b2bcd5f9bc6570561183be82af20d18b82  mesa-10.5.7.tar.gz
+04d06890cd69af8089d6ca76f40e46dcf9cacfe4a9788b32be620574d4638818  mesa-10.5.7.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+<h2>Bug fixes</h2>
+
+<p>This list is likely incomplete.</p>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=89131">Bug 89131</a> - [Bisected] Graphical corruption in Weston,  shows old framebuffer pieces</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Ben Widawsky (1):</p>
+<ul>
+  <li>i965: Emit 3DSTATE_MULTISAMPLE before WM_HZ_OP (gen8+)</li>
+</ul>
+
+<p>Emil Velikov (4):</p>
+<ul>
+  <li>docs: Add sha256sums for the 10.5.6 release</li>
+  <li>get-pick-list.sh: Require explicit "10.5" for nominating stable patches</li>
+  <li>cherry-ignore: add clover build fix not applicable for 10.5</li>
+  <li>Update version to 10.5.7</li>
+</ul>
+
+<p>Ilia Mirkin (18):</p>
+<ul>
+  <li>nvc0/ir: set ftz when sources are floats, not just destinations</li>
+  <li>nv50/ir: guess that the constant offset is the starting slot of array</li>
+  <li>nvc0/ir: LOAD's can't be used for shader inputs</li>
+  <li>nvc0: a geometry shader can have up to 1024 vertices output</li>
+  <li>nv50/ir: avoid messing up arg1 of PFETCH</li>
+  <li>nv30: don't leak fragprog consts</li>
+  <li>nv30: avoid leaking render state and draw shaders</li>
+  <li>nv30: fix clip plane uploads and enable changes</li>
+  <li>nv30/draw: avoid leaving stale pointers in draw state</li>
+  <li>nv30/draw: draw expects constbuf size in bytes, not vec4 units</li>
+  <li>st/mesa: don't leak glsl_to_tgsi object on link failure</li>
+  <li>glsl: avoid leaking linked gl_shader when there's a late linker error</li>
+  <li>nv30/draw: fix indexed draws with swtnl path and a resource index buffer</li>
+  <li>nv30/draw: only use the DMA1 object (GART) if the bo is not in VRAM</li>
+  <li>nv30/draw: allocate vertex buffers in gart</li>
+  <li>nv30/draw: switch varying hookup logic to know about texcoords</li>
+  <li>nv30: falling back to draw path for edgeflag does no good</li>
+  <li>nv30: avoid doing extra work on clear and hitting unexpected states</li>
+</ul>
+
+<p>Jason Ekstrand (1):</p>
+<ul>
+  <li>i965/fs: Fix implied_mrf_writes for scratch writes</li>
+</ul>
+
+<p>Marek Olšák (1):</p>
+<ul>
+  <li>st/dri: fix postprocessing crash when there's no depth buffer</li>
+</ul>
+
+
+</div>
+</body>
+</html>

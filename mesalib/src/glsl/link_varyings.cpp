@@ -56,7 +56,7 @@ cross_validate_types_and_qualifiers(struct gl_shader_program *prog,
    const glsl_type *type_to_match = input->type;
    if (consumer_stage == MESA_SHADER_GEOMETRY) {
       assert(type_to_match->is_array()); /* Enforced by ast_to_hir */
-      type_to_match = type_to_match->element_type();
+      type_to_match = type_to_match->fields.array;
    }
    if (type_to_match != output->type) {
       /* There is a bit of a special case for gl_TexCoord.  This

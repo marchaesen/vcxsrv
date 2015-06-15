@@ -38,6 +38,7 @@ static const struct {
     { FC_GLOBAL_ADVANCE_OBJECT,    FcTrue	},  /* !FC_LOAD_IGNORE_GLOBAL_ADVANCE_WIDTH */
     { FC_EMBEDDED_BITMAP_OBJECT,   FcTrue 	},  /* !FC_LOAD_NO_BITMAP */
     { FC_DECORATIVE_OBJECT,	   FcFalse	},
+    { FC_SYMBOL_OBJECT,		   FcFalse	},
 };
 
 #define NUM_FC_BOOL_DEFAULTS	(int) (sizeof FcBoolDefaults / sizeof FcBoolDefaults[0])

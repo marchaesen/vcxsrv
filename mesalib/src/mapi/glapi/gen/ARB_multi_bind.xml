@@ -7,14 +7,14 @@
 
 <category name="GL_ARB_multi_bind" number="147">
 
-    <function name="BindBuffersBase" offset="assign">
+    <function name="BindBuffersBase">
         <param name="target" type="GLenum"/>
         <param name="first" type="GLuint"/>
         <param name="count" type="GLsizei"/>
         <param name="buffers" type="const GLuint *"/>
     </function>
 
-    <function name="BindBuffersRange" offset="assign">
+    <function name="BindBuffersRange">
         <param name="target" type="GLenum"/>
         <param name="first" type="GLuint"/>
         <param name="count" type="GLsizei"/>
@@ -23,25 +23,25 @@
         <param name="sizes" type="const GLsizeiptr *"/>
     </function>
 
-    <function name="BindTextures" offset="assign">
+    <function name="BindTextures">
         <param name="first" type="GLuint"/>
         <param name="count" type="GLsizei"/>
         <param name="textures" type="const GLuint *"/>
     </function>
 
-    <function name="BindSamplers" offset="assign">
+    <function name="BindSamplers">
         <param name="first" type="GLuint"/>
         <param name="count" type="GLsizei"/>
         <param name="samplers" type="const GLuint *"/>
     </function>
 
-    <function name="BindImageTextures" offset="assign">
+    <function name="BindImageTextures">
         <param name="first" type="GLuint"/>
         <param name="count" type="GLsizei"/>
         <param name="textures" type="const GLuint *"/>
     </function>
 
-    <function name="BindVertexBuffers" offset="assign">
+    <function name="BindVertexBuffers">
         <param name="first" type="GLuint"/>
         <param name="count" type="GLsizei"/>
         <param name="buffers" type="const GLuint *"/>

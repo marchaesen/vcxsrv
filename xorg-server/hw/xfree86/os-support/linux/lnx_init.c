@@ -190,18 +190,6 @@ xf86OpenConsole(void)
         else
             activeVT = vts.v_active;
 
-#if 0
-        if (!KeepTty) {
-            /*
-             * Detach from the controlling tty to avoid char loss
-             */
-            if ((i = open("/dev/tty", O_RDWR)) >= 0) {
-                SYSCALL(ioctl(i, TIOCNOTTY, 0));
-                close(i);
-            }
-        }
-#endif
-
         if (!xf86Info.ShareVTs) {
             struct termios nTty;
 

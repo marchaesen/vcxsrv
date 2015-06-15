@@ -258,7 +258,7 @@ debugging messages.
   MEMORY         512    Monitor fontconfig memory usage
   CONFIG        1024    Monitor which config files are loaded
   LANGSET       2048    Dump char sets used to construct lang values
-  OBJTYPES      4096    Display message when value typechecks fail
+  MATCH2        4096    Display font-matching transformation in patterns
   </programlisting>
   <para>
 Add the value of the desired debug levels together and assign that (in
@@ -785,6 +785,10 @@ is used to override the default configuration directory.
   <para>
 <emphasis>FC_DEBUG</emphasis>
 is used to output the detailed debugging messages. see <link linkend="debug">Debugging Applications</link> section for more details.
+  </para>
+  <para>
+<emphasis>FC_DBG_MATCH_FILTER</emphasis>
+is used to filter out the patterns. this takes a comma-separated list of object names and effects only when FC_DEBUG has MATCH2. see <link linkend="debug">Debugging Applications</link> section for more details.
   </para>
   <para>
 <emphasis>FONTCONFIG_USE_MMAP</emphasis>

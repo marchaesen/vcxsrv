@@ -181,11 +181,11 @@ CheckAuthorization(unsigned int name_length,
 
         /*
          * If the authorization file has at least one entry for this server,
-         * disable local host access. (loadauth > 0)
+         * disable local access. (loadauth > 0)
          *
          * If there are zero entries (either initially or when the
          * authorization file is later reloaded), or if a valid
-         * authorization file was never loaded, enable local host access.
+         * authorization file was never loaded, enable local access.
          * (loadauth == 0 || !loaded)
          *
          * If the authorization file was loaded initially (with valid
@@ -194,11 +194,11 @@ CheckAuthorization(unsigned int name_length,
          */
 
         if (loadauth > 0) {
-            DisableLocalHost(); /* got at least one */
+            DisableLocalAccess(); /* got at least one */
             loaded = TRUE;
         }
         else if (loadauth == 0 || !loaded)
-            EnableLocalHost();
+            EnableLocalAccess();
     }
     if (name_length) {
         for (i = 0; i < NUM_AUTHORIZATION; i++) {

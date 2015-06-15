@@ -163,6 +163,7 @@ struct st_vertex_program
 
    /** Maps VARYING_SLOT_x to slot */
    GLuint result_to_output[VARYING_SLOT_MAX];
+   GLuint output_slot_to_attr[VARYING_SLOT_MAX];
    ubyte output_semantic_name[VARYING_SLOT_MAX];
    ubyte output_semantic_index[VARYING_SLOT_MAX];
    GLuint num_outputs;

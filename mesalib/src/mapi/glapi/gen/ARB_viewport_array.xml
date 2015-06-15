@@ -21,54 +21,54 @@
     <enum name="PROVOKING_VERTEX" value="0x8E4F"/>
     <enum name="UNDEFINED_VERTEX" value="0x8260"/>
 
-    <function name="ViewportArrayv" offset="assign">
+    <function name="ViewportArrayv">
         <param name="first" type="GLuint"/>
         <param name="count" type="GLsizei"/>
         <param name="v" type="const GLfloat *"/>
     </function>
-    <function name="ViewportIndexedf" offset="assign">
+    <function name="ViewportIndexedf">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLfloat"/>
         <param name="y" type="GLfloat"/>
         <param name="w" type="GLfloat"/>
         <param name="h" type="GLfloat"/>
     </function>
-    <function name="ViewportIndexedfv" offset="assign">
+    <function name="ViewportIndexedfv">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLfloat *"/>
     </function>
-    <function name="ScissorArrayv" offset="assign">
+    <function name="ScissorArrayv">
         <param name="first" type="GLuint"/>
         <param name="count" type="GLsizei"/>
         <param name="v" type="const int *"/>
     </function>
-    <function name="ScissorIndexed" offset="assign">
+    <function name="ScissorIndexed">
         <param name="index" type="GLuint"/>
         <param name="left" type="GLint"/>
         <param name="bottom" type="GLint"/>
         <param name="width" type="GLsizei"/>
         <param name="height" type="GLsizei"/>
     </function>
-    <function name="ScissorIndexedv" offset="assign">
+    <function name="ScissorIndexedv">
         <param name="index" type="GLuint"/>
         <param name="v" type="const GLint *"/>
     </function>
-    <function name="DepthRangeArrayv" offset="assign">
+    <function name="DepthRangeArrayv">
         <param name="first" type="GLuint"/>
         <param name="count" type="GLsizei"/>
         <param name="v" type="const GLclampd *"/>
     </function>
-    <function name="DepthRangeIndexed" offset="assign">
+    <function name="DepthRangeIndexed">
         <param name="index" type="GLuint"/>
         <param name="n" type="GLclampd"/>
         <param name="f" type="GLclampd"/>
     </function>
-    <function name="GetFloati_v" offset="assign">
+    <function name="GetFloati_v">
         <param name="target" type="GLenum"/>
         <param name="index" type="GLuint"/>
         <param name="data" type="GLfloat *"/>
     </function>
-    <function name="GetDoublei_v" offset="assign">
+    <function name="GetDoublei_v">
         <param name="target" type="GLenum"/>
         <param name="index" type="GLuint"/>
         <param name="data" type="GLdouble *"/>

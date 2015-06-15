@@ -8,7 +8,7 @@
 
 <category name="GL_ARB_clear_buffer_object" number="121">
 
-    <function name ="ClearBufferData" offset="assign">
+    <function name ="ClearBufferData">
         <param name="target" type="GLenum"/>
         <param name="internalformat" type="GLenum"/>
         <param name="format" type="GLenum"/>
@@ -16,7 +16,7 @@
         <param name="data" type="const GLvoid *"/>
     </function>
 
-    <function name ="ClearBufferSubData" offset="assign">
+    <function name ="ClearBufferSubData">
         <param name="target" type="GLenum"/>
         <param name="internalformat" type="GLenum"/>
         <param name="offset" type="GLintptr"/>
@@ -26,7 +26,7 @@
         <param name="data" type="const GLvoid *"/>
     </function>
 
-<!--    <function name="ClearNamedBufferDataEXT" offset="assign">
+<!--    <function name="ClearNamedBufferDataEXT">
         <param name="buffer" type="GLuint"/>
         <param name="internalformat" type="GLenum"/>
         <param name="format" type="GLenum"/>
@@ -35,7 +35,7 @@
     </function>
 
 
-    <function name="ClearNamedBufferSubDataEXT" offset="assign">
+    <function name="ClearNamedBufferSubDataEXT">
         <param name="buffer" type="GLuint"/>
         <param name="internalformat" type="GLenum"/>
         <param name="offset" type="GLintptr"/>

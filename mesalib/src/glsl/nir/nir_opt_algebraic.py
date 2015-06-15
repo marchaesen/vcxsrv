@@ -156,6 +156,8 @@ optimizations = [
    (('fpow', a, 2.0), ('fmul', a, a)),
    (('fpow', a, 4.0), ('fmul', ('fmul', a, a), ('fmul', a, a))),
    (('fpow', 2.0, a), ('fexp2', a)),
+   (('fpow', ('fpow', a, 2.2), 0.454545), a),
+   (('fpow', ('fabs', ('fpow', a, 2.2)), 0.454545), ('fabs', a)),
    (('fsqrt', ('fexp2', a)), ('fexp2', ('fmul', 0.5, a))),
    (('frcp', ('fexp2', a)), ('fexp2', ('fneg', a))),
    (('frsq', ('fexp2', a)), ('fexp2', ('fmul', -0.5, a))),

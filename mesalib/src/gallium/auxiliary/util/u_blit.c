@@ -535,6 +535,8 @@ util_blit_pixels_tex(struct blit_state *ctx,
    cso_save_framebuffer(ctx->cso);
    cso_save_fragment_shader(ctx->cso);
    cso_save_vertex_shader(ctx->cso);
+   cso_save_tessctrl_shader(ctx->cso);
+   cso_save_tesseval_shader(ctx->cso);
    cso_save_geometry_shader(ctx->cso);
    cso_save_vertex_elements(ctx->cso);
    cso_save_aux_vertex_buffer_slot(ctx->cso);
@@ -571,6 +573,8 @@ util_blit_pixels_tex(struct blit_state *ctx,
    set_fragment_shader(ctx, TGSI_WRITEMASK_XYZW,
                        src_sampler_view->texture->target);
    set_vertex_shader(ctx);
+   cso_set_tessctrl_shader_handle(ctx->cso, NULL);
+   cso_set_tesseval_shader_handle(ctx->cso, NULL);
    cso_set_geometry_shader_handle(ctx->cso, NULL);
 
    /* drawing dest */
@@ -611,6 +615,8 @@ util_blit_pixels_tex(struct blit_state *ctx,
    cso_restore_framebuffer(ctx->cso);
    cso_restore_fragment_shader(ctx->cso);
    cso_restore_vertex_shader(ctx->cso);
+   cso_restore_tessctrl_shader(ctx->cso);
+   cso_restore_tesseval_shader(ctx->cso);
    cso_restore_geometry_shader(ctx->cso);
    cso_restore_vertex_elements(ctx->cso);
    cso_restore_aux_vertex_buffer_slot(ctx->cso);

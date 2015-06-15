@@ -1108,13 +1108,6 @@ _mesa_GetTextureImage(GLuint texture, GLint level, GLenum format,
    GLenum err;
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glGetTextureImage(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
-
    /*
     * This has been moved here because a format/type mismatch can cause a NULL
     * texImage object, which in turn causes the mismatch error to be
@@ -1350,13 +1343,6 @@ _mesa_GetCompressedTextureImage(GLuint texture, GLint level,
    int i;
    GLint image_stride;
    GET_CURRENT_CONTEXT(ctx);
-
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glGetCompressedTextureImage(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
 
    texObj = _mesa_lookup_texture_err(ctx, texture,
                                      "glGetCompressedTextureImage");

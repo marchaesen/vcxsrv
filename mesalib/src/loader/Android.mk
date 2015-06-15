@@ -40,6 +40,8 @@ else
 LOCAL_SHARED_LIBRARIES := libdrm
 endif
 
+LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)
+
 LOCAL_MODULE := libmesa_loader
 
 include $(MESA_COMMON_MK)

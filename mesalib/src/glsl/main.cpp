@@ -41,12 +41,6 @@
 
 static int glsl_version = 330;
 
-extern "C" void
-_mesa_error_no_memory(const char *caller)
-{
-   fprintf(stderr, "Mesa error: out of memory in %s", caller);
-}
-
 static void
 initialize_context(struct gl_context *ctx, gl_api api)
 {
@@ -282,7 +276,7 @@ usage_fail(const char *name)
       "usage: %s [options] <file.vert | file.geom | file.frag>\n"
       "\n"
       "Possible options are:\n";
-   printf(header, name, name);
+   printf(header, name);
    for (const struct option *o = compiler_opts; o->name != 0; ++o) {
       printf("    --%s\n", o->name);
    }

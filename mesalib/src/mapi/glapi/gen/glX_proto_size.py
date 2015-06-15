@@ -25,9 +25,11 @@
 # Authors:
 #    Ian Romanick <idr@us.ibm.com>
 
+import argparse
+import sys, string
+
 import gl_XML, glX_XML
 import license
-import sys, getopt, copy, string
 
 
 class glx_enum_function(object):
@@ -650,54 +652,57 @@ class PrintGlxReqSize_c(PrintGlxReqSize_common):
         return alias
 
 
-def show_usage():
-    print "Usage: %s [-f input_file_name] -m output_mode [--only-get | --only-set] [--get-alias-set]" % sys.argv[0]
-    print "    -m output_mode   Output mode can be one of 'size_c' or 'size_h'."
-    print "    --only-get       Only emit 'get'-type functions."
-    print "    --only-set       Only emit 'set'-type functions."
-    print ""
-    print "By default, both 'get' and 'set'-type functions are emitted."
-    sys.exit(1)
+def _parser():
+    """Parse arguments and return a namespace."""
+    parser = argparse.ArgumentParser()
+    parser.set_defaults(which_functions=(PrintGlxSizeStubs_common.do_get |
+                                         PrintGlxSizeStubs_common.do_set))
+    parser.add_argument('-f',
+                        dest='filename',
+                        default='gl_API.xml',
+                        help='an XML file describing an OpenGL API.')
+    parser.add_argument('-m',
+                        dest='mode',
+                        choices=['size_c', 'size_h', 'reqsize_c', 'reqsize_h'],
+                        help='Which file to generate')
+    getset = parser.add_mutually_exclusive_group()
+    getset.add_argument('--only-get',
+                        dest='which_functions',
+                        action='store_const',
+                        const=PrintGlxSizeStubs_common.do_get,
+                        help='only emit "get-type" functions')
+    getset.add_argument('--only-set',
+                        dest='which_functions',
+                        action='store_const',
+                        const=PrintGlxSizeStubs_common.do_set,
+                        help='only emit "set-type" functions')
+    parser.add_argument('--header-tag',
+                        dest='header_tag',
+                        action='store',
+                        default=None,
+                        help='set header tag value')
+    return parser.parse_args()
+
+
+def main():
+    """Main function."""
+    args = _parser()
+
+    if args.mode == "size_c":
+        printer = PrintGlxSizeStubs_c(args.which_functions)
+    elif args.mode == "size_h":
+        printer = PrintGlxSizeStubs_h(args.which_functions)
+        if args.header_tag is not None:
+            printer.header_tag = args.header_tag
+    elif args.mode == "reqsize_c":
+        printer = PrintGlxReqSize_c()
+    elif args.mode == "reqsize_h":
+        printer = PrintGlxReqSize_h()
+
+    api = gl_XML.parse_GL_API(args.filename, glX_XML.glx_item_factory())
+
+    printer.Print(api)
 
 
 if __name__ == '__main__':
-    file_name = "gl_API.xml"
-
-    try:
-        (args, trail) = getopt.getopt(sys.argv[1:], "f:m:h:", ["only-get", "only-set", "header-tag"])
-    except Exception,e:
-        show_usage()
-
-    mode = None
-    header_tag = None
-    which_functions = PrintGlxSizeStubs_common.do_get | PrintGlxSizeStubs_common.do_set
-
-    for (arg,val) in args:
-        if arg == "-f":
-            file_name = val
-        elif arg == "-m":
-            mode = val
-        elif arg == "--only-get":
-            which_functions = PrintGlxSizeStubs_common.do_get
-        elif arg == "--only-set":
-            which_functions = PrintGlxSizeStubs_common.do_set
-        elif (arg == '-h') or (arg == "--header-tag"):
-            header_tag = val
-
-    if mode == "size_c":
-        printer = PrintGlxSizeStubs_c( which_functions )
-    elif mode == "size_h":
-        printer = PrintGlxSizeStubs_h( which_functions )
-        if header_tag:
-            printer.header_tag = header_tag
-    elif mode == "reqsize_c":
-        printer = PrintGlxReqSize_c()
-    elif mode == "reqsize_h":
-        printer = PrintGlxReqSize_h()
-    else:
-        show_usage()
-
-    api = gl_XML.parse_GL_API( file_name, glX_XML.glx_item_factory() )
-
-
-    printer.Print( api )
+    main()

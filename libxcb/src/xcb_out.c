@@ -177,15 +177,59 @@ uint32_t xcb_get_maximum_request_length(xcb_connection_t *c)
     return c->out.maximum_request_length.value;
 }
 
-uint64_t xcb_send_request64(xcb_connection_t *c, int flags, struct iovec *vector, const xcb_protocol_request_t *req)
+static void close_fds(int *fds, unsigned int num_fds)
+{
+    for (unsigned int index = 0; index < num_fds; index++)
+        close(fds[index]);
+}
+
+static void send_fds(xcb_connection_t *c, int *fds, unsigned int num_fds)
+{
+#if HAVE_SENDMSG
+    /* Calling _xcb_out_flush_to() can drop the iolock and wait on a condition
+     * variable if another thread is currently writing (c->out.writing > 0).
+     * This call waits for writers to be done and thus _xcb_out_flush_to() will
+     * do the work itself (in which case we are a writer and
+     * prepare_socket_request() will wait for us to be done if another threads
+     * tries to send fds, too). Thanks to this, we can atomically write out FDs.
+     */
+    prepare_socket_request(c);
+
+    while (num_fds > 0) {
+        while (c->out.out_fd.nfd == XCB_MAX_PASS_FD && !c->has_error) {
+            /* XXX: if c->out.writing > 0, this releases the iolock and
+             * potentially allows other threads to interfere with their own fds.
+             */
+            _xcb_out_flush_to(c, c->out.request);
+
+            if (c->out.out_fd.nfd == XCB_MAX_PASS_FD) {
+                /* We need some request to send FDs with */
+                _xcb_out_send_sync(c);
+            }
+        }
+        if (c->has_error)
+            break;
+
+        c->out.out_fd.fd[c->out.out_fd.nfd++] = fds[0];
+        fds++;
+        num_fds--;
+    }
+#endif
+    close_fds(fds, num_fds);
+}
+
+uint64_t xcb_send_request_with_fds64(xcb_connection_t *c, int flags, struct iovec *vector,
+                const xcb_protocol_request_t *req, unsigned int num_fds, int *fds)
 {
     uint64_t request;
     uint32_t prefix[2];
     int veclen = req->count;
     enum workarounds workaround = WORKAROUND_NONE;
 
-    if(c->has_error)
+    if(c->has_error) {
+        close_fds(fds, num_fds);
         return 0;
+    }
 
     assert(c != 0);
     assert(vector != 0);
@@ -204,6 +248,7 @@ uint64_t xcb_send_request64(xcb_connection_t *c, int flags, struct iovec *vector
             const xcb_query_extension_reply_t *extension = xcb_get_extension_data(c, req->ext);
             if(!(extension && extension->present))
             {
+                close_fds(fds, num_fds);
                 _xcb_conn_shutdown(c, XCB_CONN_CLOSED_EXT_NOTSUPPORTED);
                 return 0;
             }
@@ -234,6 +279,7 @@ uint64_t xcb_send_request64(xcb_connection_t *c, int flags, struct iovec *vector
         }
         else if(longlen > xcb_get_maximum_request_length(c))
         {
+            close_fds(fds, num_fds);
             _xcb_conn_shutdown(c, XCB_CONN_CLOSED_REQ_LEN_EXCEED);
             return 0; /* server can't take this; maybe need BIGREQUESTS? */
         }
@@ -264,6 +310,11 @@ uint64_t xcb_send_request64(xcb_connection_t *c, int flags, struct iovec *vector
     /* get a sequence number and arrange for delivery. */
     pthread_mutex_lock(&c->iolock);
 
+    /* send FDs before establishing a good request number, because this might
+     * call send_sync(), too
+     */
+    send_fds(c, fds, num_fds);
+
     prepare_socket_request(c);
 
     /* send GetInputFocus (sync_req) when 64k-2 requests have been sent without
@@ -272,7 +323,7 @@ uint64_t xcb_send_request64(xcb_connection_t *c, int flags, struct iovec *vector
      * applications see sequence 0 as that is used to indicate
      * an error in sending the request
      */
-     
+
     while ((req->isvoid && c->out.request == c->in.request_expected + (1 << 16) - 2) ||
            (unsigned int) (c->out.request + 1) == 0)
     {
@@ -287,6 +338,18 @@ uint64_t xcb_send_request64(xcb_connection_t *c, int flags, struct iovec *vector
 }
 
 /* request number are actually uint64_t internally but keep API compat with unsigned int */
+unsigned int xcb_send_request_with_fds(xcb_connection_t *c, int flags, struct iovec *vector,
+        const xcb_protocol_request_t *req, unsigned int num_fds, int *fds)
+{
+    return xcb_send_request_with_fds64(c, flags, vector, req, num_fds, fds);
+}
+
+uint64_t xcb_send_request64(xcb_connection_t *c, int flags, struct iovec *vector, const xcb_protocol_request_t *req)
+{
+    return xcb_send_request_with_fds64(c, flags, vector, req, 0, NULL);
+}
+
+/* request number are actually uint64_t internally but keep API compat with unsigned int */
 unsigned int xcb_send_request(xcb_connection_t *c, int flags, struct iovec *vector, const xcb_protocol_request_t *req)
 {
     return xcb_send_request64(c, flags, vector, req);
@@ -295,19 +358,15 @@ unsigned int xcb_send_request(xcb_connection_t *c, int flags, struct iovec *vect
 void
 xcb_send_fd(xcb_connection_t *c, int fd)
 {
-#if HAVE_SENDMSG
-    if (c->has_error)
+    int fds[1] = { fd };
+
+    if (c->has_error) {
+        close(fd);
         return;
-    pthread_mutex_lock(&c->iolock);
-    while (c->out.out_fd.nfd == XCB_MAX_PASS_FD) {
-        _xcb_out_flush_to(c, c->out.request);
-        if (c->has_error)
-            break;
     }
-    if (!c->has_error)
-        c->out.out_fd.fd[c->out.out_fd.nfd++] = fd;
+    pthread_mutex_lock(&c->iolock);
+    send_fds(c, &fds[0], 1);
     pthread_mutex_unlock(&c->iolock);
-#endif
 }
 
 int xcb_take_socket(xcb_connection_t *c, void (*return_socket)(void *closure), void *closure, int flags, uint64_t *sent)

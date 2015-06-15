@@ -25,9 +25,12 @@
 # Authors:
 #    Ian Romanick <idr@us.ibm.com>
 
+import argparse
+
 import license
-import gl_XML, glX_XML
-import sys, getopt
+import gl_XML
+import glX_XML
+
 
 class PrintGlProcs(gl_XML.gl_print_base):
     def __init__(self, es=False):
@@ -38,7 +41,6 @@ class PrintGlProcs(gl_XML.gl_print_base):
         self.license = license.bsd_license_template % ( \
 """Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
 (C) Copyright IBM Corporation 2004, 2006""", "BRIAN PAUL, IBM")
-
 
     def printRealHeader(self):
         print """
@@ -161,26 +163,28 @@ typedef struct {
         return
 
 
-def show_usage():
-    print "Usage: %s [-f input_file_name] [-c]" % sys.argv[0]
-    print "-c          Enable compatibility with OpenGL ES."
-    sys.exit(1)
+def _parser():
+    """Parse arguments and return a namepsace."""
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f', '--filename',
+                        default='gl_API.xml',
+                        metavar="input_file_name",
+                        dest='file_name',
+                        help="Path to an XML description of OpenGL API.")
+    parser.add_argument('-c', '--es-version',
+                        dest='es',
+                        action="store_true",
+                        help="filter functions for es")
+    return parser.parse_args()
+
+
+def main():
+    """Main function."""
+    args = _parser()
+    api = gl_XML.parse_GL_API(args.file_name, glX_XML.glx_item_factory())
+    PrintGlProcs(args.es).Print(api)
+
 
 if __name__ == '__main__':
-    file_name = "gl_API.xml"
-
-    try:
-        (args, trail) = getopt.getopt(sys.argv[1:], "f:c")
-    except Exception,e:
-        show_usage()
-
-    es = False
-    for (arg,val) in args:
-        if arg == "-f":
-            file_name = val
-        elif arg == "-c":
-            es = True
-
-    api = gl_XML.parse_GL_API(file_name, glX_XML.glx_item_factory())
-    printer = PrintGlProcs(es)
-    printer.Print(api)
+    main()

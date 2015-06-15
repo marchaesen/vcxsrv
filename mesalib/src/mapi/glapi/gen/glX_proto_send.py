@@ -2,6 +2,7 @@
 
 # (C) Copyright IBM Corporation 2004, 2005
 # All Rights Reserved.
+# Copyright (c) 2015 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -26,8 +27,10 @@
 #    Ian Romanick <idr@us.ibm.com>
 #    Jeremy Kolb <jkolb@brandeis.edu>
 
+import argparse
+
 import gl_XML, glX_XML, glX_proto_common, license
-import sys, getopt, copy, string
+import copy, string
 
 def convertStringForXCB(str):
     tmp = ""
@@ -1085,42 +1088,41 @@ extern _X_HIDDEN NOINLINE FASTCALL GLubyte * __glXSetupVendorRequest(
         print '#endif'
 
 
-def show_usage():
-    print "Usage: %s [-f input_file_name] [-m output_mode] [-d]" % sys.argv[0]
-    print "    -m output_mode   Output mode can be one of 'proto', 'init_c' or 'init_h'."
-    print "    -d               Enable extra debug information in the generated code."
-    sys.exit(1)
+def _parser():
+    """Parse input and returned a parsed namespace."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f',
+                        default='gl_API.xml',
+                        dest='filename',
+                        help='An XML file describing an API')
+    parser.add_argument('-m',
+                        required=True,
+                        dest='mode',
+                        choices=frozenset(['proto', 'init_c', 'init_h']),
+                        help='which file to generate')
+    parser.add_argument('-d',
+                        action='store_true',
+                        dest='debug',
+                        help='turn debug mode on.')
+    return parser.parse_args()
+
+
+def main():
+    """Main function."""
+    args = _parser()
+
+    if args.mode == "proto":
+        printer = PrintGlxProtoStubs()
+    elif args.mode == "init_c":
+        printer = PrintGlxProtoInit_c()
+    elif args.mode == "init_h":
+        printer = PrintGlxProtoInit_h()
+
+    printer.debug = args.debug
+    api = gl_XML.parse_GL_API(args.filename, glX_XML.glx_item_factory())
+
+    printer.Print( api )
 
 
 if __name__ == '__main__':
-    file_name = "gl_API.xml"
-
-    try:
-        (args, trail) = getopt.getopt(sys.argv[1:], "f:m:d")
-    except Exception,e:
-        show_usage()
-
-    debug = 0
-    mode = "proto"
-    for (arg,val) in args:
-        if arg == "-f":
-            file_name = val
-        elif arg == "-m":
-            mode = val
-        elif arg == "-d":
-            debug = 1
-
-    if mode == "proto":
-        printer = PrintGlxProtoStubs()
-    elif mode == "init_c":
-        printer = PrintGlxProtoInit_c()
-    elif mode == "init_h":
-        printer = PrintGlxProtoInit_h()
-    else:
-        show_usage()
-
-
-    printer.debug = debug
-    api = gl_XML.parse_GL_API( file_name, glX_XML.glx_item_factory() )
-
-    printer.Print( api )
+    main()

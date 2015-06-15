@@ -96,7 +96,7 @@ extern GLboolean
 _mesa_is_depth_or_stencil_format(GLenum format);
 
 extern GLboolean
-_mesa_is_compressed_format(struct gl_context *ctx, GLenum format);
+_mesa_is_compressed_format(const struct gl_context *ctx, GLenum format);
 
 extern GLenum
 _mesa_base_format_to_integer_format(GLenum format);

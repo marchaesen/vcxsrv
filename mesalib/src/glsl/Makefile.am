@@ -89,8 +89,7 @@ tests_general_ir_test_SOURCES =		\
 	tests/builtin_variable_test.cpp			\
 	tests/invalidate_locations_test.cpp		\
 	tests/general_ir_test.cpp			\
-	tests/varyings_test.cpp				\
-	tests/common.c
+	tests/varyings_test.cpp
 tests_general_ir_test_CFLAGS =				\
 	$(PTHREAD_CFLAGS)
 tests_general_ir_test_LDADD =				\
@@ -103,8 +102,7 @@ tests_uniform_initializer_test_SOURCES =		\
 	tests/copy_constant_to_storage_tests.cpp	\
 	tests/set_uniform_initializer_tests.cpp		\
 	tests/uniform_initializer_utils.cpp		\
-	tests/uniform_initializer_utils.h		\
-	tests/common.c
+	tests/uniform_initializer_utils.h
 tests_uniform_initializer_test_CFLAGS =			\
 	$(PTHREAD_CFLAGS)
 tests_uniform_initializer_test_LDADD =			\
@@ -114,8 +112,7 @@ tests_uniform_initializer_test_LDADD =			\
 	$(PTHREAD_LIBS)
 
 tests_sampler_types_test_SOURCES =			\
-	tests/sampler_types_test.cpp			\
-	tests/common.c
+	tests/sampler_types_test.cpp
 tests_sampler_types_test_CFLAGS =			\
 	$(PTHREAD_CFLAGS)
 tests_sampler_types_test_LDADD =			\
@@ -133,8 +130,7 @@ libglcpp_la_SOURCES =					\
 	$(LIBGLCPP_FILES)
 
 glcpp_glcpp_SOURCES =					\
-	glcpp/glcpp.c					\
-	tests/common.c
+	glcpp/glcpp.c
 glcpp_glcpp_LDADD =					\
 	libglcpp.la					\
 	$(top_builddir)/src/libglsl_util.la		\
@@ -164,7 +160,6 @@ glsl_compiler_LDADD =					\
 
 glsl_test_SOURCES = \
 	standalone_scaffolding.cpp \
-	tests/common.c \
 	test.cpp \
 	test_optpass.cpp \
 	test_optpass.h
@@ -247,21 +242,21 @@ dist-hook:
 	$(RM) glcpp/tests/subtest*/*.out
 
 nir/nir_builder_opcodes.h: nir/nir_opcodes.py nir/nir_builder_opcodes_h.py
-	$(MKDIR_P) nir;							\
-	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/nir/nir_builder_opcodes_h.py > $@
+	$(AM_V_at)$(MKDIR_P) nir
+	$(AM_V_GEN)$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/nir/nir_builder_opcodes_h.py > $@
 
 nir/nir_constant_expressions.c: nir/nir_opcodes.py nir/nir_constant_expressions.py nir/nir_constant_expressions.h
-	$(MKDIR_P) nir;							\
-	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/nir/nir_constant_expressions.py > $@
+	$(AM_V_at)$(MKDIR_P) nir
+	$(AM_V_GEN)$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/nir/nir_constant_expressions.py > $@
 
 nir/nir_opcodes.h: nir/nir_opcodes.py nir/nir_opcodes_h.py
-	$(MKDIR_P) nir;							\
-	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/nir/nir_opcodes_h.py > $@
+	$(AM_V_at)$(MKDIR_P) nir
+	$(AM_V_GEN)$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/nir/nir_opcodes_h.py > $@
 
 nir/nir_opcodes.c: nir/nir_opcodes.py nir/nir_opcodes_c.py
-	$(MKDIR_P) nir;							\
-	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/nir/nir_opcodes_c.py > $@
+	$(AM_V_at)$(MKDIR_P) nir
+	$(AM_V_GEN)$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/nir/nir_opcodes_c.py > $@
 
 nir/nir_opt_algebraic.c: nir/nir_opt_algebraic.py nir/nir_algebraic.py
-	$(MKDIR_P) nir;							\
-	$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/nir/nir_opt_algebraic.py > $@
+	$(AM_V_at)$(MKDIR_P) nir
+	$(AM_V_GEN)$(PYTHON2) $(PYTHON_FLAGS) $(srcdir)/nir/nir_opt_algebraic.py > $@

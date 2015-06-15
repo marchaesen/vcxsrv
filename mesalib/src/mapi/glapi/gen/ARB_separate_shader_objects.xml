@@ -15,69 +15,69 @@
       <enum   name="ALL_SHADER_BITS"                              value="0xFFFFFFFF"/>
       <enum   name="PROGRAM_SEPARABLE"                            value="0x8258"/>
 
-      <function name="UseProgramStages" offset="assign" static_dispatch="false">
+      <function name="UseProgramStages" es2="3.1">
          <param name="pipeline" type="GLuint" />
          <param name="stages" type="GLbitfield" />
          <param name="program" type="GLuint" />
       </function>
-      <function name="ActiveShaderProgram" offset="assign" static_dispatch="false">
+      <function name="ActiveShaderProgram" es2="3.1">
          <param name="pipeline" type="GLuint" />
          <param name="program" type="GLuint" />
       </function>
-      <function name="CreateShaderProgramv" offset="assign" static_dispatch="false">
+      <function name="CreateShaderProgramv" es2="3.1">
          <param name="type" type="GLenum" />
          <param name="count" type="GLsizei" />
          <param name="strings" type="const GLchar * const *" />
          <return type="GLuint"/>
       </function>
-      <function name="BindProgramPipeline" offset="assign" static_dispatch="false">
+      <function name="BindProgramPipeline" es2="3.1">
          <param name="pipeline" type="GLuint" />
       </function>
-      <function name="DeleteProgramPipelines" offset="assign" static_dispatch="false">
+      <function name="DeleteProgramPipelines" es2="3.1">
          <param name="n" type="GLsizei" />
          <param name="pipelines" type="const GLuint *" />
       </function>
-      <function name="GenProgramPipelines" offset="assign" static_dispatch="false">
+      <function name="GenProgramPipelines" es2="3.1">
          <param name="n" type="GLsizei" />
          <param name="pipelines" type="GLuint *" />
       </function>
-      <function name="IsProgramPipeline" offset="assign" static_dispatch="false">
+      <function name="IsProgramPipeline" es2="3.1">
          <param name="pipeline" type="GLuint" />
          <return type="GLboolean"/>
       </function>
       <!-- Function already included on ARB_get_program_binary.xml. Keep a commented
       version here for completeness -->
       <!--
-      <function name="ProgramParameteri" offset="assign" es2="3.0" static_dispatch="false">
+      <function name="ProgramParameteri" es2="3.0">
          <param name="program" type="GLuint"/>
          <param name="pname" type="GLenum"/>
          <param name="value" type="GLint"/>
       </function>
       -->
-      <function name="GetProgramPipelineiv" offset="assign" static_dispatch="false">
+      <function name="GetProgramPipelineiv" es2="3.1">
          <param name="pipeline" type="GLuint" />
          <param name="pname" type="GLenum" />
          <param name="params" type="GLint *" />
       </function>
-      <function name="ProgramUniform1i" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform1i" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="x" type="GLint" />
       </function>
-      <function name="ProgramUniform2i" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform2i" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="x" type="GLint" />
          <param name="y" type="GLint" />
       </function>
-      <function name="ProgramUniform3i" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform3i" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="x" type="GLint" />
          <param name="y" type="GLint" />
          <param name="z" type="GLint" />
       </function>
-      <function name="ProgramUniform4i" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform4i" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="x" type="GLint" />
@@ -85,25 +85,25 @@
          <param name="z" type="GLint" />
          <param name="w" type="GLint" />
       </function>
-      <function name="ProgramUniform1ui" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform1ui" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="x" type="GLuint" />
       </function>
-      <function name="ProgramUniform2ui" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform2ui" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="x" type="GLuint" />
          <param name="y" type="GLuint" />
       </function>
-      <function name="ProgramUniform3ui" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform3ui" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="x" type="GLuint" />
          <param name="y" type="GLuint" />
          <param name="z" type="GLuint" />
       </function>
-      <function name="ProgramUniform4ui" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform4ui" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="x" type="GLuint" />
@@ -111,25 +111,25 @@
          <param name="z" type="GLuint" />
          <param name="w" type="GLuint" />
       </function>
-      <function name="ProgramUniform1f" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform1f" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="x" type="GLfloat" />
       </function>
-      <function name="ProgramUniform2f" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform2f" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="x" type="GLfloat" />
          <param name="y" type="GLfloat" />
       </function>
-      <function name="ProgramUniform3f" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform3f" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="x" type="GLfloat" />
          <param name="y" type="GLfloat" />
          <param name="z" type="GLfloat" />
       </function>
-      <function name="ProgramUniform4f" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform4f" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="x" type="GLfloat" />
@@ -137,170 +137,170 @@
          <param name="z" type="GLfloat" />
          <param name="w" type="GLfloat" />
       </function>
-      <function name="ProgramUniform1iv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform1iv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="value" type="const GLint *" />
       </function>
-      <function name="ProgramUniform2iv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform2iv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="value" type="const GLint *" />
       </function>
-      <function name="ProgramUniform3iv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform3iv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="value" type="const GLint *" />
       </function>
-      <function name="ProgramUniform4iv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform4iv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="value" type="const GLint *" />
       </function>
-      <function name="ProgramUniform1uiv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform1uiv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="value" type="const GLuint *" />
       </function>
-      <function name="ProgramUniform2uiv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform2uiv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="value" type="const GLuint *" />
       </function>
-      <function name="ProgramUniform3uiv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform3uiv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="value" type="const GLuint *" />
       </function>
-      <function name="ProgramUniform4uiv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform4uiv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="value" type="const GLuint *" />
       </function>
-      <function name="ProgramUniform1fv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform1fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="value" type="const GLfloat *" />
       </function>
-      <function name="ProgramUniform2fv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform2fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="value" type="const GLfloat *" />
       </function>
-      <function name="ProgramUniform3fv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform3fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="value" type="const GLfloat *" />
       </function>
-      <function name="ProgramUniform4fv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform4fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="value" type="const GLfloat *" />
       </function>
-      <function name="ProgramUniformMatrix2fv" offset="assign" static_dispatch="false">
-         <param name="program" type="GLuint" />
-         <param name="location" type="GLint" />
-         <param name="count" type="GLsizei" />
-         <param name="transpose" type="GLboolean" />
-         <param name="value" type="const GLfloat *" />
-      </function>
-      <function name="ProgramUniformMatrix3fv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniformMatrix2fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
          <param name="value" type="const GLfloat *" />
       </function>
-      <function name="ProgramUniformMatrix4fv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniformMatrix3fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
          <param name="value" type="const GLfloat *" />
       </function>
-      <function name="ProgramUniformMatrix2x3fv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniformMatrix4fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
          <param name="value" type="const GLfloat *" />
       </function>
-      <function name="ProgramUniformMatrix3x2fv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniformMatrix2x3fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
          <param name="value" type="const GLfloat *" />
       </function>
-      <function name="ProgramUniformMatrix2x4fv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniformMatrix3x2fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
          <param name="value" type="const GLfloat *" />
       </function>
-      <function name="ProgramUniformMatrix4x2fv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniformMatrix2x4fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
          <param name="value" type="const GLfloat *" />
       </function>
-      <function name="ProgramUniformMatrix3x4fv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniformMatrix4x2fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
          <param name="value" type="const GLfloat *" />
       </function>
-      <function name="ProgramUniformMatrix4x3fv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniformMatrix3x4fv" es2="3.1">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
          <param name="value" type="const GLfloat *" />
       </function>
-      <function name="ValidateProgramPipeline" offset="assign" static_dispatch="false">
+      <function name="ProgramUniformMatrix4x3fv" es2="3.1">
+         <param name="program" type="GLuint" />
+         <param name="location" type="GLint" />
+         <param name="count" type="GLsizei" />
+         <param name="transpose" type="GLboolean" />
+         <param name="value" type="const GLfloat *" />
+      </function>
+      <function name="ValidateProgramPipeline" es2="3.1">
          <param name="pipeline" type="GLuint" />
       </function>
-      <function name="GetProgramPipelineInfoLog" offset="assign" static_dispatch="false">
+      <function name="GetProgramPipelineInfoLog" es2="3.1">
          <param name="pipeline" type="GLuint" />
          <param name="bufSize" type="GLsizei" />
          <param name="length" type="GLsizei *" />
          <param name="infoLog" type="GLchar *" />
       </function>
 
-      <function name="ProgramUniform1d" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform1d">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="x" type="GLdouble" />
       </function>
-      <function name="ProgramUniform2d" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform2d">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="x" type="GLdouble" />
          <param name="y" type="GLdouble" />
       </function>
-      <function name="ProgramUniform3d" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform3d">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="x" type="GLdouble" />
          <param name="y" type="GLdouble" />
          <param name="z" type="GLdouble" />
       </function>
-      <function name="ProgramUniform4d" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform4d">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="x" type="GLdouble" />
@@ -308,88 +308,88 @@
          <param name="z" type="GLdouble" />
          <param name="w" type="GLdouble" />
       </function>
-      <function name="ProgramUniformMatrix2x3dv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniformMatrix2x3dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
          <param name="value" type="const GLdouble *" />
       </function>
-      <function name="ProgramUniformMatrix3x2dv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniformMatrix3x2dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
          <param name="value" type="const GLdouble *" />
       </function>
-      <function name="ProgramUniformMatrix2x4dv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniformMatrix2x4dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
          <param name="value" type="const GLdouble *" />
       </function>
-      <function name="ProgramUniformMatrix4x2dv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniformMatrix4x2dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
          <param name="value" type="const GLdouble *" />
       </function>
-      <function name="ProgramUniformMatrix3x4dv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniformMatrix3x4dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
          <param name="value" type="const GLdouble *" />
       </function>
-      <function name="ProgramUniformMatrix4x3dv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniformMatrix4x3dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
          <param name="value" type="const GLdouble *" />
       </function>
-      <function name="ProgramUniformMatrix2dv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniformMatrix2dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
          <param name="value" type="const GLdouble *" />
       </function>
-      <function name="ProgramUniformMatrix3dv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniformMatrix3dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
          <param name="value" type="const GLdouble *" />
       </function>
-      <function name="ProgramUniformMatrix4dv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniformMatrix4dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="transpose" type="GLboolean" />
          <param name="value" type="const GLdouble *" />
       </function>
-      <function name="ProgramUniform1dv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform1dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="value" type="const GLdouble *" />
       </function>
-      <function name="ProgramUniform2dv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform2dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="value" type="const GLdouble *" />
       </function>
-      <function name="ProgramUniform3dv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform3dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />
          <param name="value" type="const GLdouble *" />
       </function>
-      <function name="ProgramUniform4dv" offset="assign" static_dispatch="false">
+      <function name="ProgramUniform4dv">
          <param name="program" type="GLuint" />
          <param name="location" type="GLint" />
          <param name="count" type="GLsizei" />

@@ -266,13 +266,6 @@ FAST_NEAREST_MAINLOOP (cputype##_##name##_normal_##op,                        \
                        scaled_nearest_scanline_##cputype##_##name##_##op,     \
                        src_type, dst_type, NORMAL)
 
-/* Provide entries for the fast path table */
-#define PIXMAN_ARM_SIMPLE_NEAREST_FAST_PATH(op,s,d,func)                      \
-    SIMPLE_NEAREST_FAST_PATH_COVER (op,s,d,func),                             \
-    SIMPLE_NEAREST_FAST_PATH_NONE (op,s,d,func),                              \
-    SIMPLE_NEAREST_FAST_PATH_PAD (op,s,d,func),                               \
-    SIMPLE_NEAREST_FAST_PATH_NORMAL (op,s,d,func)
-
 #define PIXMAN_ARM_BIND_SCALED_NEAREST_SRC_A8_DST(flags, cputype, name, op,   \
                                                   src_type, dst_type)         \
 void                                                                          \
@@ -318,9 +311,7 @@ FAST_NEAREST_MAINLOOP_COMMON (cputype##_##name##_normal_##op,                 \
 
 /* Provide entries for the fast path table */
 #define PIXMAN_ARM_SIMPLE_NEAREST_A8_MASK_FAST_PATH(op,s,d,func)              \
-    SIMPLE_NEAREST_A8_MASK_FAST_PATH_COVER (op,s,d,func),                     \
-    SIMPLE_NEAREST_A8_MASK_FAST_PATH_NONE (op,s,d,func),                      \
-    SIMPLE_NEAREST_A8_MASK_FAST_PATH_PAD (op,s,d,func),                       \
+    SIMPLE_NEAREST_A8_MASK_FAST_PATH (op,s,d,func),                           \
     SIMPLE_NEAREST_A8_MASK_FAST_PATH_NORMAL (op,s,d,func)
 
 /*****************************************************************************/

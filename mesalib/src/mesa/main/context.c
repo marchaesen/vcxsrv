@@ -489,8 +489,8 @@ init_program_limits(struct gl_constants *consts, gl_shader_stage stage,
       prog->MaxOutputComponents = 16 * 4; /* old limit not to break tnl and swrast */
       break;
    case MESA_SHADER_FRAGMENT:
-      prog->MaxParameters = MAX_NV_FRAGMENT_PROGRAM_PARAMS;
-      prog->MaxAttribs = MAX_NV_FRAGMENT_PROGRAM_INPUTS;
+      prog->MaxParameters = MAX_FRAGMENT_PROGRAM_PARAMS;
+      prog->MaxAttribs = MAX_FRAGMENT_PROGRAM_INPUTS;
       prog->MaxAddressRegs = MAX_FRAGMENT_PROGRAM_ADDRESS_REGS;
       prog->MaxUniformComponents = 4 * MAX_UNIFORMS;
       prog->MaxInputComponents = 16 * 4; /* old limit not to break tnl and swrast */
@@ -883,6 +883,19 @@ update_default_objects(struct gl_context *ctx)
 }
 
 
+/* XXX this is temporary and should be removed at some point in the
+ * future when there's a reasonable expectation that the libGL library
+ * contains the _glapi_new_nop_table() and _glapi_set_nop_handler()
+ * functions which were added in Mesa 10.6.
+ */
+#if !defined(_WIN32)
+/* Avoid libGL / driver ABI break */
+#define USE_GLAPI_NOP_FEATURES 0
+#else
+#define USE_GLAPI_NOP_FEATURES 1
+#endif
+
+
 /**
  * This function is called by the glapi no-op functions.  For each OpenGL
  * function/entrypoint there's a simple no-op function.  These "no-op"
@@ -898,6 +911,7 @@ update_default_objects(struct gl_context *ctx)
  *
  * \param name  the name of the OpenGL function
  */
+#if USE_GLAPI_NOP_FEATURES
 static void
 nop_handler(const char *name)
 {
@@ -914,6 +928,7 @@ nop_handler(const char *name)
    }
 #endif
 }
+#endif
 
 
 /**
@@ -923,9 +938,49 @@ nop_handler(const char *name)
 static void GLAPIENTRY
 nop_glFlush(void)
 {
-   /* don't record an error like we do in _mesa_generic_nop() */
+   /* don't record an error like we do in nop_handler() */
 }
 #endif
+
+
+#if !USE_GLAPI_NOP_FEATURES
+static int
+generic_nop(void)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   _mesa_error(ctx, GL_INVALID_OPERATION,
+               "unsupported function called "
+               "(unsupported extension or deprecated function?)");
+   return 0;
+}
+#endif
+
+
+/**
+ * Create a new API dispatch table in which all entries point to the
+ * generic_nop() function.  This will not work on Windows because of
+ * the __stdcall convention which requires the callee to clean up the
+ * call stack.  That's impossible with one generic no-op function.
+ */
+struct _glapi_table *
+_mesa_new_nop_table(unsigned numEntries)
+{
+   struct _glapi_table *table;
+
+#if !USE_GLAPI_NOP_FEATURES
+   table = malloc(numEntries * sizeof(_glapi_proc));
+   if (table) {
+      _glapi_proc *entry = (_glapi_proc *) table;
+      unsigned i;
+      for (i = 0; i < numEntries; i++) {
+         entry[i] = (_glapi_proc) generic_nop;
+      }
+   }
+#else
+   table = _glapi_new_nop_table(numEntries);
+#endif
+   return table;
+}
 
 
 /**
@@ -941,8 +996,9 @@ alloc_dispatch_table(void)
     * Mesa we do this to accommodate different versions of libGL and various
     * DRI drivers.
     */
-   GLint numEntries = MAX2(_glapi_get_dispatch_table_size(), _gloffset_COUNT);
-   struct _glapi_table *table = _glapi_new_nop_table(numEntries);
+   int numEntries = MAX2(_glapi_get_dispatch_table_size(), _gloffset_COUNT);
+
+   struct _glapi_table *table = _mesa_new_nop_table(numEntries);
 
 #if defined(_WIN32)
    if (table) {
@@ -966,7 +1022,9 @@ alloc_dispatch_table(void)
    }
 #endif
 
+#if USE_GLAPI_NOP_FEATURES
    _glapi_set_nop_handler(nop_handler);
+#endif
 
    return table;
 }
@@ -1111,9 +1169,7 @@ _mesa_initialize_context(struct gl_context *ctx,
       ctx->HasConfig = GL_FALSE;
    }
 
-   if (_mesa_is_desktop_gl(ctx)) {
-      _mesa_override_gl_version(ctx);
-   }
+   _mesa_override_gl_version(ctx);
 
    /* misc one-time initializations */
    one_time_init(ctx);
@@ -1275,7 +1331,6 @@ _mesa_free_context_data( struct gl_context *ctx )
    _mesa_reference_vertprog(ctx, &ctx->VertexProgram._Current, NULL);
    _mesa_reference_vertprog(ctx, &ctx->VertexProgram._TnlProgram, NULL);
 
-   _mesa_reference_geomprog(ctx, &ctx->GeometryProgram.Current, NULL);
    _mesa_reference_geomprog(ctx, &ctx->GeometryProgram._Current, NULL);
 
    _mesa_reference_fragprog(ctx, &ctx->FragmentProgram.Current, NULL);

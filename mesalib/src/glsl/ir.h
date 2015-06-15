@@ -78,6 +78,7 @@ enum ir_node_type {
    ir_type_discard,
    ir_type_emit_vertex,
    ir_type_end_primitive,
+   ir_type_barrier,
    ir_type_max, /**< maximum ir_type enum number, for validation */
    ir_type_unset = ir_type_max
 };
@@ -2394,6 +2395,29 @@ public:
    }
 
    ir_rvalue *stream;
+};
+
+/**
+ * IR instruction for tessellation control and compute shader barrier.
+ */
+class ir_barrier : public ir_instruction {
+public:
+   ir_barrier()
+      : ir_instruction(ir_type_barrier)
+   {
+   }
+
+   virtual void accept(ir_visitor *v)
+   {
+      v->visit(this);
+   }
+
+   virtual ir_barrier *clone(void *mem_ctx, struct hash_table *) const
+   {
+      return new(mem_ctx) ir_barrier();
+   }
+
+   virtual ir_visitor_status accept(ir_hierarchical_visitor *);
 };
 
 /*@}*/

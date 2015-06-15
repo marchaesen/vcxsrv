@@ -912,7 +912,7 @@ ir_constant::zero(void *mem_ctx, const glsl_type *type)
       c->array_elements = ralloc_array(c, ir_constant *, type->length);
 
       for (unsigned i = 0; i < type->length; i++)
-	 c->array_elements[i] = ir_constant::zero(c, type->element_type());
+	 c->array_elements[i] = ir_constant::zero(c, type->fields.array);
    }
 
    if (type->is_record()) {
@@ -1341,7 +1341,7 @@ ir_dereference_array::set_array(ir_rvalue *value)
    const glsl_type *const vt = this->array->type;
 
    if (vt->is_array()) {
-      type = vt->element_type();
+      type = vt->fields.array;
    } else if (vt->is_matrix()) {
       type = vt->column_type();
    } else if (vt->is_vector()) {

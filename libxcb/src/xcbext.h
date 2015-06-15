@@ -68,19 +68,50 @@ enum xcb_send_request_flags_t {
  *
  * This function sends a new request to the X server. The data of the request is
  * given as an array of @c iovecs in the @p vector argument. The length of that
- * array and the neccessary management information are given in the @p request
+ * array and the necessary management information are given in the @p request
  * argument.
  *
  * When this function returns, the request might or might not be sent already.
  * Use xcb_flush() to make sure that it really was sent.
  *
- * Please note that this function is not the prefered way for sending requests.
+ * Please note that this function is not the preferred way for sending requests.
  * It's better to use the generated wrapper functions.
  *
  * Please note that xcb might use index -1 and -2 of the @p vector array internally,
  * so they must be valid!
  */
 unsigned int xcb_send_request(xcb_connection_t *c, int flags, struct iovec *vector, const xcb_protocol_request_t *request);
+
+/**
+ * @brief Send a request to the server.
+ * @param c: The connection to the X server.
+ * @param flags: A combination of flags from the xcb_send_request_flags_t enumeration.
+ * @param vector: Data to send; must have two iovecs before start for internal use.
+ * @param request: Information about the request to be sent.
+ * @param num_fds: Number of additional file descriptors to send to the server
+ * @param fds: Additional file descriptors that should be send to the server.
+ * @return The request's sequence number on success, 0 otherwise.
+ *
+ * This function sends a new request to the X server. The data of the request is
+ * given as an array of @c iovecs in the @p vector argument. The length of that
+ * array and the necessary management information are given in the @p request
+ * argument.
+ *
+ * If @p num_fds is non-zero, @p fds points to an array of file descriptors that
+ * will be sent to the X server along with this request. After this function
+ * returns, all file descriptors sent are owned by xcb and will be closed
+ * eventually.
+ *
+ * When this function returns, the request might or might not be sent already.
+ * Use xcb_flush() to make sure that it really was sent.
+ *
+ * Please note that this function is not the preferred way for sending requests.
+ *
+ * Please note that xcb might use index -1 and -2 of the @p vector array internally,
+ * so they must be valid!
+ */
+unsigned int xcb_send_request_with_fds(xcb_connection_t *c, int flags, struct iovec *vector,
+                const xcb_protocol_request_t *request, unsigned int num_fds, int *fds);
 
 /**
  * @brief Send a request to the server, with 64-bit sequence number returned.
@@ -92,19 +123,51 @@ unsigned int xcb_send_request(xcb_connection_t *c, int flags, struct iovec *vect
  *
  * This function sends a new request to the X server. The data of the request is
  * given as an array of @c iovecs in the @p vector argument. The length of that
- * array and the neccessary management information are given in the @p request
+ * array and the necessary management information are given in the @p request
  * argument.
  *
  * When this function returns, the request might or might not be sent already.
  * Use xcb_flush() to make sure that it really was sent.
  *
- * Please note that this function is not the prefered way for sending requests.
+ * Please note that this function is not the preferred way for sending requests.
  * It's better to use the generated wrapper functions.
  *
  * Please note that xcb might use index -1 and -2 of the @p vector array internally,
  * so they must be valid!
  */
 uint64_t xcb_send_request64(xcb_connection_t *c, int flags, struct iovec *vector, const xcb_protocol_request_t *request);
+
+/**
+ * @brief Send a request to the server, with 64-bit sequence number returned.
+ * @param c: The connection to the X server.
+ * @param flags: A combination of flags from the xcb_send_request_flags_t enumeration.
+ * @param vector: Data to send; must have two iovecs before start for internal use.
+ * @param request: Information about the request to be sent.
+ * @param num_fds: Number of additional file descriptors to send to the server
+ * @param fds: Additional file descriptors that should be send to the server.
+ * @return The request's sequence number on success, 0 otherwise.
+ *
+ * This function sends a new request to the X server. The data of the request is
+ * given as an array of @c iovecs in the @p vector argument. The length of that
+ * array and the necessary management information are given in the @p request
+ * argument.
+ *
+ * If @p num_fds is non-zero, @p fds points to an array of file descriptors that
+ * will be sent to the X server along with this request. After this function
+ * returns, all file descriptors sent are owned by xcb and will be closed
+ * eventually.
+ *
+ * When this function returns, the request might or might not be sent already.
+ * Use xcb_flush() to make sure that it really was sent.
+ *
+ * Please note that this function is not the preferred way for sending requests.
+ * It's better to use the generated wrapper functions.
+ *
+ * Please note that xcb might use index -1 and -2 of the @p vector array internally,
+ * so they must be valid!
+ */
+uint64_t xcb_send_request_with_fds64(xcb_connection_t *c, int flags, struct iovec *vector,
+                const xcb_protocol_request_t *request, unsigned int num_fds, int *fds);
 
 /**
  * @brief Send a file descriptor to the server in the next call to xcb_send_request.
@@ -114,9 +177,9 @@ uint64_t xcb_send_request64(xcb_connection_t *c, int flags, struct iovec *vector
  * After this function returns, the file descriptor given is owned by xcb and
  * will be closed eventually.
  *
- * FIXME: How the heck is this supposed to work in a thread-safe way? There is a
- * race between two threads doing xcb_send_fd(); xcb_send_request(); at the same
- * time.
+ * @deprecated This function cannot be used in a thread-safe way. Two threads
+ * that run xcb_send_fd(); xcb_send_request(); could mix up their file
+ * descriptors. Instead, xcb_send_request_with_fds() should be used.
  */
 void xcb_send_fd(xcb_connection_t *c, int fd);
 

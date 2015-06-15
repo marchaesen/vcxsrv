@@ -158,13 +158,6 @@ _mesa_GenerateTextureMipmap(GLuint texture)
    struct gl_texture_object *texObj;
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glGenerateTextureMipmap(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
-
    texObj = _mesa_lookup_texture_err(ctx, texture, "glGenerateTextureMipmap");
    if (!texObj)
       return;

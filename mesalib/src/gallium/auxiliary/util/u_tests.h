@@ -30,8 +30,16 @@
 
 #include "pipe/p_compiler.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct pipe_screen;
 
 void util_run_tests(struct pipe_screen *screen);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

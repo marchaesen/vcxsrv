@@ -1138,12 +1138,16 @@ xf86CheckMotionEvent4DGA(DeviceIntPtr device, int is_absolute,
                 dx = valuator_mask_get(mask, 0);
                 if (is_absolute)
                     dx -= device->last.valuators[0];
+                else if (valuator_mask_has_unaccelerated(mask))
+                    dx = valuator_mask_get_unaccelerated(mask, 0);
             }
 
             if (valuator_mask_isset(mask, 1)) {
                 dy = valuator_mask_get(mask, 1);
                 if (is_absolute)
                     dy -= device->last.valuators[1];
+                else if (valuator_mask_has_unaccelerated(mask))
+                    dy = valuator_mask_get_unaccelerated(mask, 1);
             }
 
             if (DGAStealMotionEvent(device, idx, dx, dy))

@@ -222,7 +222,7 @@ _mesa_base_tex_format( struct gl_context *ctx, GLint internalFormat )
       }
    }
 
-   if (ctx->Extensions.ARB_stencil_texturing) {
+   if (ctx->Extensions.ARB_texture_stencil8) {
       switch (internalFormat) {
       case GL_STENCIL_INDEX:
       case GL_STENCIL_INDEX1:
@@ -3624,13 +3624,6 @@ texturesubimage(struct gl_context *ctx, GLuint dims,
                   _mesa_lookup_enum_by_nr(format),
                   _mesa_lookup_enum_by_nr(type), pixels);
 
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glTextureSubImage%uD(GL_ARB_direct_state_access "
-                  "is not supported)", dims);
-      return;
-   }
-
    /* Get the texture object by Name. */
    texObj = _mesa_lookup_texture(ctx, texture);
    if (!texObj) {
@@ -4190,12 +4183,6 @@ _mesa_CopyTextureSubImage1D(GLuint texture, GLint level,
    const char *self = "glCopyTextureSubImage1D";
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "%s(GL_ARB_direct_state_access is not supported)", self);
-      return;
-   }
-
    texObj = _mesa_lookup_texture_err(ctx, texture, self);
    if (!texObj)
       return;
@@ -4219,12 +4206,6 @@ _mesa_CopyTextureSubImage2D(GLuint texture, GLint level,
    struct gl_texture_object* texObj;
    const char *self = "glCopyTextureSubImage2D";
    GET_CURRENT_CONTEXT(ctx);
-
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "%s(GL_ARB_direct_state_access is not supported)", self);
-      return;
-   }
 
    texObj = _mesa_lookup_texture_err(ctx, texture, self);
    if (!texObj)
@@ -4252,12 +4233,6 @@ _mesa_CopyTextureSubImage3D(GLuint texture, GLint level,
    struct gl_texture_object* texObj;
    const char *self = "glCopyTextureSubImage3D";
    GET_CURRENT_CONTEXT(ctx);
-
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "%s(GL_ARB_direct_state_access is not supported)", self);
-      return;
-   }
 
    texObj = _mesa_lookup_texture_err(ctx, texture, self);
    if (!texObj)
@@ -4854,13 +4829,6 @@ _mesa_CompressedTextureSubImage1D(GLuint texture, GLint level, GLint xoffset,
 
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glCompressedTextureSubImage1D(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
-
    texObj = _mesa_lookup_texture_err(ctx, texture,
                                      "glCompressedTextureSubImage1D");
    if (!texObj)
@@ -4939,13 +4907,6 @@ _mesa_CompressedTextureSubImage2D(GLuint texture, GLint level, GLint xoffset,
 
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glCompressedTextureSubImage2D(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
-
    texObj = _mesa_lookup_texture_err(ctx, texture,
                                  "glCompressedTextureSubImage2D");
    if (!texObj)
@@ -5023,13 +4984,6 @@ _mesa_CompressedTextureSubImage3D(GLuint texture, GLint level, GLint xoffset,
    struct gl_texture_image *texImage;
 
    GET_CURRENT_CONTEXT(ctx);
-
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glCompressedTextureSubImage3D(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
 
    texObj = _mesa_lookup_texture_err(ctx, texture,
                                      "glCompressedTextureSubImage3D");
@@ -5515,13 +5469,6 @@ _mesa_TextureBuffer(GLuint texture, GLenum internalFormat, GLuint buffer)
 
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glTextureBuffer(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
-
    if (buffer) {
       bufObj = _mesa_lookup_bufferobj_err(ctx, buffer, "glTextureBuffer");
       if (!bufObj)
@@ -5549,13 +5496,6 @@ _mesa_TextureBufferRange(GLuint texture, GLenum internalFormat, GLuint buffer,
    struct gl_buffer_object *bufObj;
 
    GET_CURRENT_CONTEXT(ctx);
-
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glTextureBufferRange(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
 
    if (buffer) {
       bufObj = _mesa_lookup_bufferobj_err(ctx, buffer,
@@ -5861,13 +5801,6 @@ _mesa_TextureStorage2DMultisample(GLuint texture, GLsizei samples,
    struct gl_texture_object *texObj;
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glTextureStorage2DMultisample(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
-
    texObj = _mesa_lookup_texture_err(ctx, texture,
                                      "glTextureStorage2DMultisample");
    if (!texObj)
@@ -5887,13 +5820,6 @@ _mesa_TextureStorage3DMultisample(GLuint texture, GLsizei samples,
 {
    struct gl_texture_object *texObj;
    GET_CURRENT_CONTEXT(ctx);
-
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glTextureStorage3DMultisample(GL_ARB_direct_state_access "
-                  "is not supported)");
-      return;
-   }
 
    /* Get the texture object by Name. */
    texObj = _mesa_lookup_texture_err(ctx, texture,

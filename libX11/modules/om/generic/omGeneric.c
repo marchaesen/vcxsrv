@@ -105,7 +105,7 @@ init_fontdata(
     if(fd == (FontData) NULL)
 	return False;
 
-    memset(fd, 0x00, sizeof(FontData) * font_data_count);
+    memset(fd, 0x00, sizeof(FontDataRec) * font_data_count);
     for(i = 0 ; i < font_data_count ; i++)
 	fd[i] = font_data[i];
 

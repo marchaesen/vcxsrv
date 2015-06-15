@@ -59,7 +59,7 @@ enum ir_visitor_status {
  * in the composite's \c accept method.  The \c accept method for a leaf-node
  * class will simply call the \c visit method, as usual, and pass its return
  * value on.  The \c accept method for internal-node classes will call the \c
- * visit_enter method, call the \c accpet method of each child node, and,
+ * visit_enter method, call the \c accept method of each child node, and,
  * finally, call the \c visit_leave method.  If any of these return a value
  * other that \c visit_continue, the correct action must be taken.
  *
@@ -87,6 +87,7 @@ public:
    virtual ir_visitor_status visit(class ir_variable *);
    virtual ir_visitor_status visit(class ir_constant *);
    virtual ir_visitor_status visit(class ir_loop_jump *);
+   virtual ir_visitor_status visit(class ir_barrier *);
 
    /**
     * ir_dereference_variable isn't technically a leaf, but it is treated as a

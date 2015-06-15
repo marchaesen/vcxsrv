@@ -29,8 +29,6 @@
 static void
 _FcValuePrintFile (FILE *f, const FcValue v)
 {
-    FcRange r;
-
     switch (v.type) {
     case FcTypeUnknown:
 	fprintf (f, "<unknown>");
@@ -64,8 +62,7 @@ _FcValuePrintFile (FILE *f, const FcValue v)
 	fprintf (f, "face");
 	break;
     case FcTypeRange:
-	r = FcRangeCanonicalize (v.u.r);
-	fprintf (f, "(%g, %g)", r.u.d.begin, r.u.d.end);
+	fprintf (f, "[%g %g)", v.u.r->begin, v.u.r->end);
 	break;
     }
 }
@@ -214,6 +211,84 @@ FcPatternPrint (const FcPattern *p)
     }
 
 void
+FcPatternPrint2 (FcPattern         *pp1,
+		 FcPattern         *pp2,
+		 const FcObjectSet *os)
+{
+    int i, j, k, pos;
+    FcPatternElt *e1, *e2;
+    FcPattern *p1, *p2;
+
+    if (os)
+    {
+	p1 = FcPatternFilter (pp1, os);
+	p2 = FcPatternFilter (pp2, os);
+    }
+    else
+    {
+	p1 = pp1;
+	p2 = pp2;
+    }
+    printf ("Pattern has %d elts (size %d), %d elts (size %d)\n",
+	    p1->num, p1->size, p2->num, p2->size);
+    for (i = 0, j = 0; i < p1->num; i++)
+    {
+	e1 = &FcPatternElts(p1)[i];
+	e2 = &FcPatternElts(p2)[j];
+	if (!e2 || e1->object != e2->object)
+	{
+	    pos = FcPatternPosition (p2, FcObjectName (e1->object));
+	    if (pos >= 0)
+	    {
+		for (k = j; k < pos; k++)
+		{
+		    e2 = &FcPatternElts(p2)[k];
+		    printf ("\t%s: (None) -> ", FcObjectName (e2->object));
+		    FcValueListPrint (FcPatternEltValues (e2));
+		    printf ("\n");
+		}
+		j = pos;
+		goto cont;
+	    }
+	    else
+	    {
+		printf ("\t%s:", FcObjectName (e1->object));
+		FcValueListPrint (FcPatternEltValues (e1));
+		printf (" -> (None)\n");
+	    }
+	}
+	else
+	{
+	cont:
+	    printf ("\t%s:", FcObjectName (e1->object));
+	    FcValueListPrint (FcPatternEltValues (e1));
+	    printf (" -> ");
+	    e2 = &FcPatternElts(p2)[j];
+	    FcValueListPrint (FcPatternEltValues (e2));
+	    printf ("\n");
+	    j++;
+	}
+    }
+    if (j < p2->num)
+    {
+	for (k = j; k < p2->num; k++)
+	{
+	    e2 = &FcPatternElts(p2)[k];
+	    if (FcObjectName (e2->object))
+	    {
+		printf ("\t%s: (None) -> ", FcObjectName (e2->object));
+		FcValueListPrint (FcPatternEltValues (e2));
+		printf ("\n");
+	    }
+	}
+    }
+    if (p1 != pp1)
+	FcPatternDestroy (p1);
+    if (p2 != pp2)
+	FcPatternDestroy (p2);
+}
+
+void
 FcOpPrint (FcOp op_)
 {
     FcOp op = FC_OP_GET_OP (op_);
@@ -267,8 +342,6 @@ FcOpPrint (FcOp op_)
 void
 FcExprPrint (const FcExpr *expr)
 {
-    FcRange r;
-
     if (!expr) printf ("none");
     else switch (FC_OP_GET_OP (expr->op)) {
     case FcOpInteger: printf ("%d", expr->u.ival); break;
@@ -286,8 +359,7 @@ FcExprPrint (const FcExpr *expr)
 	printf ("]");
 	break;
     case FcOpRange:
-	r = FcRangeCanonicalize (expr->u.rval);
-	printf ("(%g, %g)", r.u.d.begin, r.u.d.end);
+	printf ("(%g, %g)", expr->u.rval->begin, expr->u.rval->end);
 	break;
     case FcOpBool: printf ("%s", expr->u.bval ? "true" : "false"); break;
     case FcOpCharSet: printf ("charset\n"); break;

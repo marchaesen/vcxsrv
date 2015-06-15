@@ -37,7 +37,7 @@ drienv.PkgUseModules('DRM')
 # else
 #env.Append(CPPDEFINES = ['__NOT_HAVE_DRM_H'])
 
-sources = drienv.ParseSourceList('Makefile.sources', 'DRI_COMMON_FILES')
+sources = drienv.ParseSourceList('Makefile.sources', ['DRI_COMMON_FILES', 'XMLCONFIG_FILES' ])
 
 dri_common = drienv.ConvenienceLibrary(
 	target = 'dri_common',

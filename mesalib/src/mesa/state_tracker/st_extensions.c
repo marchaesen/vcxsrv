@@ -650,12 +650,6 @@ void st_init_extensions(struct pipe_screen *screen,
                           ARRAY_SIZE(vertex_mapping), PIPE_BUFFER,
                           PIPE_BIND_VERTEX_BUFFER);
 
-   /* ARB_direct_state_access requires OpenGL 2.0. Assume that all drivers
-    * that support NPOT textures are able to support GL 2.0.
-    */
-   if (extensions->ARB_texture_non_power_of_two)
-      extensions->ARB_direct_state_access = GL_TRUE;
-
    if (extensions->ARB_stencil_texturing)
       extensions->ARB_texture_stencil8 = GL_TRUE;
 

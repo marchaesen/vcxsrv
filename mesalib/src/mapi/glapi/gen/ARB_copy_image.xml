@@ -5,7 +5,7 @@
 
 <category name="GL_ARB_copy_image" number="123">
 
-    <function name="CopyImageSubData" offset="assign">
+    <function name="CopyImageSubData">
         <param name="srcName" type="GLuint"/>
         <param name="srcTarget" type="GLenum"/>
         <param name="srcLevel" type="GLint"/>

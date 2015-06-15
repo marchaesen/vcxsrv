@@ -1481,7 +1481,14 @@ glamor_composite_clipped_region(CARD8 op,
         }
     }
 
-    /*XXXXX, self copy? */
+    if (temp_src_pixmap == dest_pixmap) {
+        glamor_fallback("source and dest pixmaps are the same\n");
+        goto out;
+    }
+    if (temp_mask_pixmap == dest_pixmap) {
+        glamor_fallback("mask and dest pixmaps are the same\n");
+        goto out;
+    }
 
     x_dest += dest->pDrawable->x;
     y_dest += dest->pDrawable->y;

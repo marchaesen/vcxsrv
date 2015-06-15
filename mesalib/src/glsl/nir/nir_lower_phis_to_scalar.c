@@ -153,6 +153,11 @@ should_lower_phi(nir_phi_instr *phi, struct lower_phis_to_scalar_state *state)
          break;
    }
 
+   /* The hash table entry for 'phi' may have changed while recursing the
+    * dependence graph, so we need to reset it */
+   entry = _mesa_hash_table_search(state->phi_table, phi);
+   assert(entry);
+
    entry->data = (void *)(intptr_t)scalarizable;
 
    return scalarizable;

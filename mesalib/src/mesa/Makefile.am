@@ -60,7 +60,6 @@ main/git_sha1.h: main/git_sha1.h.tmp
 include Makefile.sources
 
 EXTRA_DIST = \
-	drivers/haiku \
 	drivers/SConscript \
 	main/format_info.py \
 	main/format_pack.py \

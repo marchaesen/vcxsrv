@@ -8,6 +8,3 @@ if env['dri']:
         'dri/common/xmlpool/SConscript',
         'dri/common/SConscript',
     ])
-
-if env['platform'] == 'haiku':
-    SConscript('haiku/swrast/SConscript')

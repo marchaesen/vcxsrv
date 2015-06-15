@@ -24,7 +24,7 @@
 # BOARD_GPU_DRIVERS should be defined.  The valid values are
 #
 #   classic drivers: i915 i965
-#   gallium drivers: swrast freedreno i915g ilo nouveau r300g r600g radeonsi vmwgfx
+#   gallium drivers: swrast freedreno i915g ilo nouveau r300g r600g radeonsi vc4 vmwgfx
 #
 # The main target is libGLES_mesa.  For each classic driver enabled, a DRI
 # module will also be built.  DRI modules will be loaded by libGLES_mesa.
@@ -48,7 +48,7 @@ MESA_PYTHON2 := python
 DRM_GRALLOC_TOP := hardware/drm_gralloc
 
 classic_drivers := i915 i965
-gallium_drivers := swrast freedreno i915g ilo nouveau r300g r600g radeonsi vmwgfx
+gallium_drivers := swrast freedreno i915g ilo nouveau r300g r600g radeonsi vmwgfx vc4
 
 MESA_GPU_DRIVERS := $(strip $(BOARD_GPU_DRIVERS))
 
@@ -80,6 +80,8 @@ else
 MESA_BUILD_GALLIUM := false
 endif
 
+MESA_ENABLE_LLVM := $(if $(filter radeonsi,$(MESA_GPU_DRIVERS)),true,false)
+
 # add subdirectories
 ifneq ($(strip $(MESA_GPU_DRIVERS)),)
 
@@ -89,13 +91,9 @@ SUBDIRS := \
 	src/glsl \
 	src/mesa \
 	src/util \
-	src/egl/main
-
-ifeq ($(strip $(MESA_BUILD_CLASSIC)),true)
-SUBDIRS += \
+	src/egl/main \
 	src/egl/drivers/dri2 \
 	src/mesa/drivers/dri
-endif
 
 ifeq ($(strip $(MESA_BUILD_GALLIUM)),true)
 SUBDIRS += src/gallium

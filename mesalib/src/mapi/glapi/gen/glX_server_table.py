@@ -25,8 +25,9 @@
 # Authors:
 #    Ian Romanick <idr@us.ibm.com>
 
+import argparse
+
 import gl_XML, glX_XML, glX_proto_common, license
-import sys, getopt
 
 
 def log2(value):
@@ -383,28 +384,19 @@ class PrintGlxDispatchTables(glX_proto_common.glx_print_proto):
         return
 
 
+def _parser():
+    """Parse arguments and return namespace."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f',
+                        dest='filename',
+                        default='gl_API.xml',
+                        help='An XML file describing an API.')
+    return parser.parse_args()
+
+
 if __name__ == '__main__':
-    file_name = "gl_API.xml"
+    args = _parser()
+    printer = PrintGlxDispatchTables()
+    api = gl_XML.parse_GL_API(args.filename, glX_XML.glx_item_factory())
 
-    try:
-        (args, trail) = getopt.getopt(sys.argv[1:], "f:m")
-    except Exception,e:
-        show_usage()
-
-    mode = "table_c"
-    for (arg,val) in args:
-        if arg == "-f":
-            file_name = val
-        elif arg == "-m":
-            mode = val
-
-    if mode == "table_c":
-        printer = PrintGlxDispatchTables()
-    else:
-        show_usage()
-
-
-    api = gl_XML.parse_GL_API( file_name, glX_XML.glx_item_factory() )
-
-
-    printer.Print( api )
+    printer.Print(api)

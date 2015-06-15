@@ -3,7 +3,7 @@
 
 <OpenGLAPI>
 <category name="GL_ARB_invalidate_subdata" number="666">
-  <function name="InvalidateTexSubImage" offset="assign">
+  <function name="InvalidateTexSubImage">
     <param name="texture" type="GLuint"/>
     <param name="level" type="GLint"/>
     <param name="xoffset" type="GLint"/>
@@ -14,22 +14,22 @@
     <param name="depth" type="GLsizei"/>
   </function>
 
-  <function name="InvalidateTexImage" offset="assign">
+  <function name="InvalidateTexImage">
     <param name="texture" type="GLuint"/>
     <param name="level" type="GLint"/>
   </function>
 
-  <function name="InvalidateBufferSubData" offset="assign">
+  <function name="InvalidateBufferSubData">
     <param name="buffer" type="GLuint"/>
     <param name="offset" type="GLintptr"/>
     <param name="length" type="GLsizeiptr"/>
   </function>
 
-  <function name="InvalidateBufferData" offset="assign">
+  <function name="InvalidateBufferData">
     <param name="buffer" type="GLuint"/>
   </function>
 
-  <function name="InvalidateSubFramebuffer" offset="assign" es2="3.0">
+  <function name="InvalidateSubFramebuffer" es2="3.0">
     <param name="target" type="GLenum"/>
     <param name="numAttachments" type="GLsizei" counter="true"/>
     <param name="attachments" type="const GLenum *" count="numAttachments"/>
@@ -39,7 +39,7 @@
     <param name="height" type="GLsizei"/>
   </function>
 
-  <function name="InvalidateFramebuffer" offset="assign" es2="3.0">
+  <function name="InvalidateFramebuffer" es2="3.0">
     <param name="target" type="GLenum"/>
     <param name="numAttachments" type="GLsizei" counter="true"/>
     <param name="attachments" type="const GLenum *" count="numAttachments"/>

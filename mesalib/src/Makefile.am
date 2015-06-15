@@ -72,4 +72,5 @@ noinst_LTLIBRARIES = libglsl_util.la
 libglsl_util_la_SOURCES = \
 	mesa/main/imports.c \
 	mesa/program/prog_hash_table.c \
-	mesa/program/symbol_table.c
+	mesa/program/symbol_table.c \
+	mesa/program/dummy_errors.c

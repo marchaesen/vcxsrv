@@ -84,7 +84,7 @@ static void asm_instruction_set_operands(struct asm_instruction *inst,
     const struct prog_dst_register *dst, const struct asm_src_register *src0,
     const struct asm_src_register *src1, const struct asm_src_register *src2);
 
-static struct asm_instruction *asm_instruction_ctor(gl_inst_opcode op,
+static struct asm_instruction *asm_instruction_ctor(enum prog_opcode op,
     const struct prog_dst_register *dst, const struct asm_src_register *src0,
     const struct asm_src_register *src1, const struct asm_src_register *src2);
 
@@ -139,7 +139,7 @@ static struct asm_instruction *asm_instruction_copy_ctor(
    gl_state_index state[STATE_LENGTH];
    int negate;
    struct asm_vector vector;
-   gl_inst_opcode opcode;
+   enum prog_opcode opcode;
 
    struct {
       unsigned swz;
@@ -2275,7 +2275,7 @@ asm_instruction_set_operands(struct asm_instruction *inst,
 
 
 struct asm_instruction *
-asm_instruction_ctor(gl_inst_opcode op,
+asm_instruction_ctor(enum prog_opcode op,
 		     const struct prog_dst_register *dst,
 		     const struct asm_src_register *src0,
 		     const struct asm_src_register *src1,
@@ -2308,7 +2308,7 @@ asm_instruction_copy_ctor(const struct prog_instruction *base,
       inst->Base.Opcode = base->Opcode;
       inst->Base.CondUpdate = base->CondUpdate;
       inst->Base.CondDst = base->CondDst;
-      inst->Base.SaturateMode = base->SaturateMode;
+      inst->Base.Saturate = base->Saturate;
       inst->Base.Precision = base->Precision;
 
       asm_instruction_set_operands(inst, dst, src0, src1, src2);

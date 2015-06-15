@@ -425,6 +425,12 @@ FcPatternObjectPosition (const FcPattern *p, FcObject object)
     return -(mid + 1);
 }
 
+int
+FcPatternPosition (const FcPattern *p, const char *object)
+{
+    return FcPatternObjectPosition (p, FcObjectFromName (object));
+}
+
 FcPatternElt *
 FcPatternObjectFindElt (const FcPattern *p, FcObject object)
 {

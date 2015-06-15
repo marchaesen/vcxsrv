@@ -60,6 +60,7 @@ mesa_dri_drivers_la_LIBADD = \
         ../../libmesa.la \
         common/libmegadriver_stub.la \
         common/libdricommon.la \
+        common/libxmlconfig.la \
         $(MEGADRIVERS_DEPS) \
         $(DRI_LIB_DEPS) \
         $()

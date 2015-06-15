@@ -1,11 +1,47 @@
                               Fontconfig
              Font configuration and customization library
-                      Version 2.11.93 (2.12 RC3)
-                              2015-03-09
+                      Version 2.11.94 (2.12 RC4)
+                              2015-06-02
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://bugs.freedesktop.org in the fontconfig module.
+
+2.11.94 (2.12 RC4)
+
+Akira TAGOH (16):
+      Remove the dead code
+      Bug 89617 - FcConfigAppFontAddFile() returns false on any font file
+      Fix unknown attribute in Win32
+      Fix SIGFPE
+      Fix a typo for the latest cache version
+      Fix a typo in fontconfig-user.sgml
+      Drop unmaintained code
+      Observe blanks to compute correct languages in fc-query/fc-scan
+      Add missing description for usage
+      Make FC_SCALE deprecated
+      Bug 90148 - Don't warn if cachedir isn't specified
+      Fix memory leaks after FcFini()
+      Fix a typo
+      Fix a crash
+      Detect the overflow for the object ID
+      Revert the previous change
+
+Behdad Esfahbod (11):
+      Fix bitmap scaling
+      Add su[pport for symbol fonts
+      Write ranges using a [start finish) format
+      Only set FC_SIZE for scalable fonts if OS/2 version 5 is present
+      Add bitmap-only font size as Double, not Range
+      Accept Integer for FC_SIZE
+      Don't set FC_SIZE for bitmap fonts
+      Fix compiler warnings
+      Simplify FcRange
+      Reduce number of places that cache version is specified to 1
+      Bump cache version number to 6, because of recent FcRange changes
+
+Руслан Ижбулатов (1):
+      W32: Support cache paths relative to the root directory
 
 2.11.93 (2.12 RC3)
 

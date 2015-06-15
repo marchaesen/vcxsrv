@@ -41,15 +41,11 @@ libloader_la_CPPFLAGS += \
 	-I$(top_builddir)/src/mesa/drivers/dri/common/ \
 	-I$(top_srcdir)/src/mesa/ \
 	-I$(top_srcdir)/src/mapi/ \
-	-DUSE_DRICONF \
-	$(EXPAT_CFLAGS)
+	-DUSE_DRICONF
 
-libloader_la_SOURCES += \
-	$(top_srcdir)/src/mesa/drivers/dri/common/xmlconfig.c
+ libloader_la_LIBADD += \
+	$(top_builddir)/src/mesa/drivers/dri/common/libxmlconfig.la
 
-libloader_la_LIBADD += \
-	-lm \
-	$(EXPAT_LIBS)
 endif
 
 if !HAVE_LIBDRM

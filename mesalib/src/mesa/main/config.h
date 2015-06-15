@@ -213,18 +213,9 @@
 /** For GL_ARB_fragment_program */
 /*@{*/
 #define MAX_FRAGMENT_PROGRAM_ADDRESS_REGS 0
+#define MAX_FRAGMENT_PROGRAM_PARAMS       64
+#define MAX_FRAGMENT_PROGRAM_INPUTS       12
 /*@}*/
-
-/** For GL_NV_fragment_program */
-/*@{*/
-#define MAX_NV_FRAGMENT_PROGRAM_INSTRUCTIONS 1024 /* 72 for GL_ARB_f_p */
-#define MAX_NV_FRAGMENT_PROGRAM_TEMPS         96
-#define MAX_NV_FRAGMENT_PROGRAM_PARAMS        64
-#define MAX_NV_FRAGMENT_PROGRAM_INPUTS        12
-#define MAX_NV_FRAGMENT_PROGRAM_OUTPUTS        3
-#define MAX_NV_FRAGMENT_PROGRAM_WRITE_ONLYS    2
-/*@}*/
-
 
 /** For GL_ARB_vertex_shader */
 /*@{*/

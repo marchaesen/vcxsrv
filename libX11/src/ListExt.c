@@ -42,7 +42,7 @@ char **XListExtensions(
 	register unsigned i;
 	register int length;
 	register xReq *req;
-	unsigned long rlen;
+	unsigned long rlen = 0;
 
 	LockDisplay(dpy);
 	GetEmptyReq (ListExtensions, req);

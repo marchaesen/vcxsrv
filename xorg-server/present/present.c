@@ -409,20 +409,20 @@ static void
 present_unflip(ScreenPtr screen)
 {
     present_screen_priv_ptr screen_priv = present_screen_priv(screen);
+    PixmapPtr pixmap = (*screen->GetScreenPixmap)(screen);
 
     assert (!screen_priv->unflip_event_id);
     assert (!screen_priv->flip_pending);
 
     if (screen_priv->flip_window)
-        present_set_tree_pixmap(screen_priv->flip_window,
-                                  (*screen->GetScreenPixmap)(screen));
+        present_set_tree_pixmap(screen_priv->flip_window, pixmap);
 
-    present_set_tree_pixmap(screen->root, (*screen->GetScreenPixmap)(screen));
+    present_set_tree_pixmap(screen->root, pixmap);
 
     /* Update the screen pixmap with the current flip pixmap contents
      */
     if (screen_priv->flip_pixmap && screen_priv->flip_window) {
-        present_copy_region(&screen_priv->flip_window->drawable,
+        present_copy_region(&pixmap->drawable,
                             screen_priv->flip_pixmap,
                             NULL, 0, 0);
     }

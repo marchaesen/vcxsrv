@@ -507,13 +507,6 @@ texturestorage(GLuint dims, GLuint texture, GLsizei levels,
                   _mesa_lookup_enum_by_nr(internalformat),
                   width, height, depth);
 
-   if (!ctx->Extensions.ARB_direct_state_access) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glTextureStorage%uD(GL_ARB_direct_state_access "
-                  "is not supported)", dims);
-      return;
-   }
-
    /* Check the format to make sure it is sized. */
    if (!_mesa_is_legal_tex_storage_format(ctx, internalformat)) {
       _mesa_error(ctx, GL_INVALID_ENUM,

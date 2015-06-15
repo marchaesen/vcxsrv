@@ -778,7 +778,7 @@ _mesa_ast_set_aggregate_type(const glsl_type *type,
 
    /* If the aggregate is an array, recursively set its elements' types. */
    if (type->is_array()) {
-      /* Each array element has the type type->element_type().
+      /* Each array element has the type type->fields.array.
        *
        * E.g., if <type> if struct S[2] we want to set each element's type to
        * struct S.
@@ -790,7 +790,7 @@ _mesa_ast_set_aggregate_type(const glsl_type *type,
                                                link);
 
          if (expr->oper == ast_aggregate)
-            _mesa_ast_set_aggregate_type(type->element_type(), expr);
+            _mesa_ast_set_aggregate_type(type->fields.array, expr);
       }
 
    /* If the aggregate is a struct, recursively set its fields' types. */

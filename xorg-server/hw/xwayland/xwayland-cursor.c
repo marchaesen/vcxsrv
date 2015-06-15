@@ -82,6 +82,23 @@ xwl_unrealize_cursor(DeviceIntPtr device, ScreenPtr screen, CursorPtr cursor)
     return xwl_shm_destroy_pixmap(pixmap);
 }
 
+static void
+frame_callback(void *data,
+               struct wl_callback *callback,
+               uint32_t time)
+{
+    struct xwl_seat *xwl_seat = data;
+    xwl_seat->cursor_frame_cb = NULL;
+    if (xwl_seat->cursor_needs_update) {
+        xwl_seat->cursor_needs_update = FALSE;
+        xwl_seat_set_cursor(xwl_seat);
+    }
+}
+
+static const struct wl_callback_listener frame_listener = {
+    frame_callback
+};
+
 void
 xwl_seat_set_cursor(struct xwl_seat *xwl_seat)
 {
@@ -95,6 +112,11 @@ xwl_seat_set_cursor(struct xwl_seat *xwl_seat)
     if (!xwl_seat->x_cursor) {
         wl_pointer_set_cursor(xwl_seat->wl_pointer,
                               xwl_seat->pointer_enter_serial, NULL, 0, 0);
+        return;
+    }
+
+    if (xwl_seat->cursor_frame_cb) {
+        xwl_seat->cursor_needs_update = TRUE;
         return;
     }
 
@@ -117,6 +139,10 @@ xwl_seat_set_cursor(struct xwl_seat *xwl_seat)
     wl_surface_damage(xwl_seat->cursor, 0, 0,
                       xwl_seat->x_cursor->bits->width,
                       xwl_seat->x_cursor->bits->height);
+
+    xwl_seat->cursor_frame_cb = wl_surface_frame(xwl_seat->cursor);
+    wl_callback_add_listener(xwl_seat->cursor_frame_cb, &frame_listener, xwl_seat);
+
     wl_surface_commit(xwl_seat->cursor);
 }
 

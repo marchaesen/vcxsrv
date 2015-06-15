@@ -73,7 +73,7 @@
   <!-- Compatibility Profile -->
   <enum name="DISPLAY_LIST"                               value="0x82E7"/>
 
-  <function name="DebugMessageControl" offset="assign">
+  <function name="DebugMessageControl">
     <param name="source" type="GLenum"/>
     <param name="type" type="GLenum"/>
     <param name="severity" type="GLenum"/>
@@ -82,7 +82,7 @@
     <param name="enabled" type="GLboolean"/>
   </function>
 
-  <function name="DebugMessageInsert" offset="assign">
+  <function name="DebugMessageInsert">
     <param name="source" type="GLenum"/>
     <param name="type" type="GLenum"/>
     <param name="id" type="GLuint"/>
@@ -91,12 +91,12 @@
     <param name="buf" type="const GLchar *"/>
   </function>
 
-  <function name="DebugMessageCallback" offset="assign">
+  <function name="DebugMessageCallback">
     <param name="callback" type="GLDEBUGPROC"/>
     <param name="userParam" type="const GLvoid *"/>
   </function>
 
-  <function name="GetDebugMessageLog" offset="assign">
+  <function name="GetDebugMessageLog">
     <return type="GLuint"/>
     <param name="count" type="GLuint"/>
     <param name="bufsize" type="GLsizei"/>
@@ -108,23 +108,23 @@
     <param name="messageLog" type="GLchar *" output="true"/>
   </function>
 
-  <function name="PushDebugGroup" offset="assign">
+  <function name="PushDebugGroup">
     <param name="source" type="GLenum"/>
     <param name="id" type="GLuint"/>
     <param name="length" type="GLsizei"/>
     <param name="message" type="const GLchar *"/>
   </function>
 
-  <function name="PopDebugGroup" offset="assign"/>
+  <function name="PopDebugGroup" />
 
-  <function name="ObjectLabel" offset="assign">
+  <function name="ObjectLabel">
     <param name="identifier" type="GLenum"/>
     <param name="name" type="GLuint"/>
     <param name="length" type="GLsizei"/>
     <param name="label" type="const GLchar *"/>
   </function>
 
-  <function name="GetObjectLabel" offset="assign">
+  <function name="GetObjectLabel">
     <param name="identifier" type="GLenum"/>
     <param name="name" type="GLuint"/>
     <param name="bufSize" type="GLsizei"/>
@@ -132,13 +132,13 @@
     <param name="label" type="GLchar *"/>
   </function>
 
-  <function name="ObjectPtrLabel" offset="assign">
+  <function name="ObjectPtrLabel">
     <param name="ptr" type="const GLvoid *"/>
     <param name="length" type="GLsizei"/>
     <param name="label" type="const GLchar *"/>
   </function>
 
-  <function name="GetObjectPtrLabel" offset="assign">
+  <function name="GetObjectPtrLabel">
     <param name="ptr" type="const GLvoid *"/>
     <param name="bufSize" type="GLsizei"/>
     <param name="length" type="GLsizei *"/>

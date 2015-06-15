@@ -224,7 +224,7 @@ public:
          return visit_continue;
       }
 
-      var->type = glsl_type::get_array_instance(var->type->element_type(),
+      var->type = glsl_type::get_array_instance(var->type->fields.array,
                                                 this->num_vertices);
       var->data.max_array_access = this->num_vertices - 1;
 
@@ -245,7 +245,7 @@ public:
    {
       const glsl_type *const vt = ir->array->type;
       if (vt->is_array())
-         ir->type = vt->element_type();
+         ir->type = vt->fields.array;
       return visit_continue;
    }
 };
@@ -1400,8 +1400,8 @@ link_fs_input_layout_qualifiers(struct gl_shader_program *prog,
                       "layout qualifiers for gl_FragCoord\n");
       }
 
-      /* Update the linked shader state.  Note that uses_gl_fragcoord should
-       * accumulate the results.  The other values should replace.  If there
+      /* Update the linked shader state.  Note that uses_gl_fragcoord should
+       * accumulate the results.  The other values should replace.  If there
        * are multiple redeclarations, all the fields except uses_gl_fragcoord
        * are already known to be the same.
        */
@@ -2693,13 +2693,23 @@ build_program_resource_list(struct gl_context *ctx,
    }
 
    /* Add uniforms from uniform storage. */
-   for (unsigned i = 0; i < shProg->NumUserUniformStorage; i++) {
+   for (unsigned i = 0; i < shProg->NumUniformStorage; i++) {
       /* Do not add uniforms internally used by Mesa. */
       if (shProg->UniformStorage[i].hidden)
          continue;
 
       uint8_t stageref =
          build_stageref(shProg, shProg->UniformStorage[i].name);
+
+      /* Add stagereferences for uniforms in a uniform block. */
+      int block_index = shProg->UniformStorage[i].block_index;
+      if (block_index != -1) {
+         for (unsigned j = 0; j < MESA_SHADER_STAGES; j++) {
+             if (shProg->UniformBlockStageIndex[j][block_index] != -1)
+                stageref |= (1 << j);
+         }
+      }
+
       if (!add_program_resource(shProg, GL_UNIFORM,
                                 &shProg->UniformStorage[i], stageref))
          return;
@@ -2819,8 +2829,11 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
             link_intrastage_shaders(mem_ctx, ctx, prog, shader_list[stage],
                                     num_shaders[stage]);
 
-         if (!prog->LinkStatus)
+         if (!prog->LinkStatus) {
+            if (sh)
+               ctx->Driver.DeleteShader(ctx, sh);
             goto done;
+         }
 
          switch (stage) {
          case MESA_SHADER_VERTEX:
@@ -2833,8 +2846,11 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
             validate_fragment_shader_executable(prog, sh);
             break;
          }
-         if (!prog->LinkStatus)
+         if (!prog->LinkStatus) {
+            if (sh)
+               ctx->Driver.DeleteShader(ctx, sh);
             goto done;
+         }
 
          _mesa_reference_shader(ctx, &prog->_LinkedShaders[stage], sh);
       }

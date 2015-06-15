@@ -44,6 +44,28 @@ struct FcObjectOtherTypeInfo {
     FcObject id;
 } *other_types;
 
+void
+FcObjectFini (void)
+{
+    struct FcObjectOtherTypeInfo *ots, *ot;
+
+retry:
+    ots = fc_atomic_ptr_get (&other_types);
+    if (!ots)
+	return;
+    if (!fc_atomic_ptr_cmpexch (&other_types, ots, NULL))
+	goto retry;
+
+    while (ots)
+    {
+	ot = ots->next;
+	if (ots->object.object)
+	    free (ots->object.object);
+	free (ots);
+	ots = ot;
+    }
+}
+
 static FcObjectType *
 _FcObjectLookupOtherTypeByName (const char *str, FcObject *id)
 {
@@ -62,12 +84,19 @@ retry:
 	if (!ot)
 	    return NULL;
 
-	ot->object.object = (const char *) FcStrdup (str);
+	ot->object.object = (char *) FcStrdup (str);
 	ot->object.type = FcTypeUnknown;
 	ot->id = fc_atomic_int_add (next_id, +1);
+	if (ot->id < (FC_MAX_BASE_OBJECT + FC_EXT_OBJ_INDEX))
+	{
+	    fprintf (stderr, "Fontconfig error: No object ID to assign\n");
+	    abort ();
+	}
 	ot->next = ots;
 
 	if (!fc_atomic_ptr_cmpexch (&other_types, ots, ot)) {
+	    if (ot->object.object)
+		free (ot->object.object);
 	    free (ot);
 	    goto retry;
 	}

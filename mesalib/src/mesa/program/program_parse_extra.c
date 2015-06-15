@@ -40,7 +40,7 @@ _mesa_parse_instruction_suffix(const struct asm_parser_state *state,
 {
    inst->CondUpdate = 0;
    inst->CondDst = 0;
-   inst->SaturateMode = SATURATE_OFF;
+   inst->Saturate = GL_FALSE;
    inst->Precision = FLOAT32;
 
 
@@ -82,7 +82,7 @@ _mesa_parse_instruction_suffix(const struct asm_parser_state *state,
     */
    if (state->mode == ARB_fragment) {
       if (strcmp(suffix, "_SAT") == 0) {
-	 inst->SaturateMode = SATURATE_ZERO_ONE;
+	 inst->Saturate = GL_TRUE;
 	 suffix += 4;
       }
    }
