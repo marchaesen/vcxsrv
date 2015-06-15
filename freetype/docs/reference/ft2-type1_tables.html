@@ -3,7 +3,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>FreeType-2.5.5 API Reference</title>
+<title>FreeType-2.6 API Reference</title>
 <style type="text/css">
   a:link { color: #0000EF; }
   a:visited { color: #51188E; }
@@ -100,7 +100,7 @@
 <body>
 
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table>
-<h1>FreeType-2.5.5 API Reference</h1>
+<h1>FreeType-2.6 API Reference</h1>
 
 <h1>Type 1 Tables</h1>
 <h2>Synopsis</h2>
@@ -362,7 +362,7 @@
 <p>FreeType error code. 0&nbsp;means success.</p>
 
 <h4>note</h4>
-<p>The string pointers within the font info structure are owned by the face and don't need to be freed by the caller.</p>
+<p>String pointers within the <a href="ft2-type1_tables.html#PS_FontInfoRec">PS_FontInfoRec</a> structure are owned by the face and don't need to be freed by the caller. Missing entries in the font's FontInfo dictionary are represented by NULL pointers.</p>
 <p>If the font's format is not PostScript-based, this function will return the &lsquo;FT_Err_Invalid_Argument&rsquo; error code.</p>
 
 <hr>

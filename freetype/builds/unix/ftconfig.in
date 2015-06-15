@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    UNIX-specific configuration file (specification only).               */
 /*                                                                         */
-/*  Copyright 1996-2004, 2006-2009, 2011, 2013, 2014 by                    */
+/*  Copyright 1996-2015 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -89,7 +89,7 @@ FT_BEGIN_HEADER
   /* is copied from default include/config/ftconfig.h.           */
   /* If any improvement is required for this file, it should be  */
   /* applied to the original header file for the builders that   */
-  /* does not use configure script.                              */
+  /* do not use configure script.                                */
 
   /* The size of an `int' type.  */
 #if                                 FT_UINT_MAX == 0xFFFFUL
@@ -349,9 +349,26 @@ FT_BEGIN_HEADER
 #endif
 
 
+  /*************************************************************************/
+  /*                                                                       */
+  /* miscellaneous                                                         */
+  /*                                                                       */
+  /*************************************************************************/
+
+
 #define FT_BEGIN_STMNT  do {
 #define FT_END_STMNT    } while ( 0 )
 #define FT_DUMMY_STMNT  FT_BEGIN_STMNT FT_END_STMNT
+
+
+  /* typeof condition taken from gnulib's `intprops.h' header file */
+#if ( __GNUC__ >= 2                         || \
+      defined( __IBM__TYPEOF__ )            || \
+      ( __SUNPRO_C >= 0x5110 && !__STDC__ ) )
+#define TYPEOF( type )  (__typeof__ (type))
+#else
+#define TYPEOF( type )  /* empty */
+#endif
 
 
 #ifdef FT_MAKE_OPTION_SINGLE_OBJECT

@@ -3,7 +3,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>FreeType-2.5.5 API Reference</title>
+<title>FreeType-2.6 API Reference</title>
 <style type="text/css">
   a:link { color: #0000EF; }
   a:visited { color: #51188E; }
@@ -100,7 +100,7 @@
 <body>
 
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table>
-<h1>FreeType-2.5.5 API Reference</h1>
+<h1>FreeType-2.6 API Reference</h1>
 
 <h1>Module Management</h1>
 <h2>Synopsis</h2>
@@ -510,7 +510,7 @@
                   <a href="ft2-base_interface.html#FT_Library">FT_Library</a>  *alibrary );
 </pre>
 
-<p>This function is used to create a new FreeType library instance from a given memory object. It is thus possible to use libraries with distinct memory allocators within the same program.</p>
+<p>This function is used to create a new FreeType library instance from a given memory object. It is thus possible to use libraries with distinct memory allocators within the same program. Note, however, that the used <a href="ft2-system_interface.html#FT_Memory">FT_Memory</a> structure is expected to remain valid for the life of the <a href="ft2-base_interface.html#FT_Library">FT_Library</a> object.</p>
 <p>Normally, you would call this function (followed by a call to <a href="ft2-module_management.html#FT_Add_Default_Modules">FT_Add_Default_Modules</a> or a series of calls to <a href="ft2-module_management.html#FT_Add_Module">FT_Add_Module</a>) instead of <a href="ft2-base_interface.html#FT_Init_FreeType">FT_Init_FreeType</a> to initialize the FreeType library.</p>
 <p>Don't use <a href="ft2-base_interface.html#FT_Done_FreeType">FT_Done_FreeType</a> but <a href="ft2-module_management.html#FT_Done_Library">FT_Done_Library</a> to destroy a library instance.</p>
 
@@ -722,7 +722,7 @@
 <h4>note</h4>
 <p>In case of success, the renderer will be used to convert glyph images in the renderer's known format into bitmaps.</p>
 <p>This doesn't change the current renderer for other formats.</p>
-<p>Currently, only the B/W renderer, if compiled with FT_RASTER_OPTION_ANTI_ALIASING (providing a 5-levels anti-aliasing mode; this option must be set directly in &lsquo;ftraster.c&rsquo; and is undefined by default) accepts a single tag &lsquo;pal5&rsquo; to set its gray palette as a character string with 5&nbsp;elements. Consequently, the third and fourth argument are zero normally.</p>
+<p>Currently, no FreeType renderer module uses &lsquo;parameters&rsquo;; you should thus always pass NULL as the value.</p>
 
 <hr>
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="middle">[<a href="#">Top</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table></div>

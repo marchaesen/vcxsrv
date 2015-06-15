@@ -3,7 +3,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>FreeType-2.5.5 API Reference</title>
+<title>FreeType-2.6 API Reference</title>
 <style type="text/css">
   a:link { color: #0000EF; }
   a:visited { color: #51188E; }
@@ -100,7 +100,7 @@
 <body>
 
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table>
-<h1>FreeType-2.5.5 API Reference</h1>
+<h1>FreeType-2.6 API Reference</h1>
 
 <h1>Multiple Masters</h1>
 <h2>Synopsis</h2>
@@ -284,10 +284,10 @@
 <p>The number of named styles; only meaningful for GX that allows certain design coordinates to have a string ID (in the &lsquo;name&rsquo; table) associated with them. The font can tell the user that, for example, Weight=1.5 is &lsquo;Bold&rsquo;.</p>
 </td></tr>
 <tr><td class="val" id="axis">axis</td><td class="desc">
-<p>A table of axis descriptors. GX fonts contain slightly more data than MM.</p>
+<p>An axis descriptor table. GX fonts contain slightly more data than MM.</p>
 </td></tr>
-<tr><td class="val" id="namedstyles">namedstyles</td><td class="desc">
-<p>A table of named styles. Only meaningful with GX.</p>
+<tr><td class="val" id="namedstyle">namedstyle</td><td class="desc">
+<p>A named style table. Only meaningful with GX.</p>
 </td></tr>
 </table>
 
@@ -380,7 +380,7 @@
 <h4>input</h4>
 <table class="fields">
 <tr><td class="val" id="num_coords">num_coords</td><td class="desc">
-<p>The number of design coordinates (must be equal to the number of axes in the font).</p>
+<p>The number of available design coordinates. If it is larger than the number of axes, ignore the excess values. If it is smaller than the number of axes, use default values for the remaining axes.</p>
 </td></tr>
 <tr><td class="val" id="coords">coords</td><td class="desc">
 <p>An array of design coordinates.</p>
@@ -415,7 +415,7 @@
 <h4>input</h4>
 <table class="fields">
 <tr><td class="val" id="num_coords">num_coords</td><td class="desc">
-<p>The number of design coordinates (must be equal to the number of axes in the font).</p>
+<p>The number of available design coordinates. If it is larger than the number of axes, ignore the excess values. If it is smaller than the number of axes, use default values for the remaining axes.</p>
 </td></tr>
 <tr><td class="val" id="coords">coords</td><td class="desc">
 <p>An array of design coordinates.</p>
@@ -450,7 +450,7 @@
 <h4>input</h4>
 <table class="fields">
 <tr><td class="val" id="num_coords">num_coords</td><td class="desc">
-<p>The number of design coordinates (must be equal to the number of axes in the font).</p>
+<p>The number of available design coordinates. If it is larger than the number of axes, ignore the excess values. If it is smaller than the number of axes, use default values for the remaining axes.</p>
 </td></tr>
 <tr><td class="val" id="coords">coords</td><td class="desc">
 <p>The design coordinates array (each element must be between 0 and 1.0).</p>

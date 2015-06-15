@@ -1,6 +1,6 @@
 # CMakeLists.txt
 #
-# Copyright 2013, 2014 by
+# Copyright 2013-2015 by
 # David Turner, Robert Wilhelm, and Werner Lemberg.
 #
 # Written by John Cary <cary@txcorp.com>
@@ -98,8 +98,8 @@ if (BUILD_FRAMEWORK)
 endif ()
 
 set(VERSION_MAJOR "2")
-set(VERSION_MINOR "5")
-set(VERSION_PATCH "5")
+set(VERSION_MINOR "6")
+set(VERSION_PATCH "0")
 set(PROJECT_VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 
 # Compiler definitions for building the library
@@ -135,6 +135,7 @@ set(BASE_SRCS
   src/base/ftcid.c
   src/base/ftdbgmem.c
   src/base/ftdebug.c
+  src/base/ftfntfmt.c
   src/base/ftfstype.c
   src/base/ftgasp.c
   src/base/ftgloadr.c
@@ -158,7 +159,6 @@ set(BASE_SRCS
   src/base/fttype1.c
   src/base/ftutil.c
   src/base/ftwinfnt.c
-  src/base/ftxf86.c
   src/bdf/bdf.c
   src/bzip2/ftbzip2.c
   src/cache/ftcache.c

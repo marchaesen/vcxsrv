@@ -3,7 +3,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>FreeType-2.5.5 API Reference</title>
+<title>FreeType-2.6 API Reference</title>
 <style type="text/css">
   a:link { color: #0000EF; }
   a:visited { color: #51188E; }
@@ -100,7 +100,7 @@
 <body>
 
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table>
-<h1>FreeType-2.5.5 API Reference</h1>
+<h1>FreeType-2.6 API Reference</h1>
 
 <h1>Cache Sub-System</h1>
 <h2>Synopsis</h2>
@@ -799,8 +799,8 @@
   <span class="keyword">typedef</span> <span class="keyword">struct</span>  FTC_ImageTypeRec_
   {
     <a href="ft2-cache_subsystem.html#FTC_FaceID">FTC_FaceID</a>  face_id;
-    <a href="ft2-basic_types.html#FT_Int">FT_Int</a>      width;
-    <a href="ft2-basic_types.html#FT_Int">FT_Int</a>      height;
+    <a href="ft2-basic_types.html#FT_UInt">FT_UInt</a>     width;
+    <a href="ft2-basic_types.html#FT_UInt">FT_UInt</a>     height;
     <a href="ft2-basic_types.html#FT_Int32">FT_Int32</a>    flags;
 
   } <b>FTC_ImageTypeRec</b>;

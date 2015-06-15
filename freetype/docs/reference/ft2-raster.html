@@ -3,7 +3,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>FreeType-2.5.5 API Reference</title>
+<title>FreeType-2.6 API Reference</title>
 <style type="text/css">
   a:link { color: #0000EF; }
   a:visited { color: #51188E; }
@@ -100,7 +100,7 @@
 <body>
 
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table>
-<h1>FreeType-2.5.5 API Reference</h1>
+<h1>FreeType-2.6 API Reference</h1>
 
 <h1>Scanline Converter</h1>
 <h2>Synopsis</h2>
@@ -372,7 +372,7 @@
 #define FT_Raster_Reset_Func  <b>FT_Raster_ResetFunc</b>
 </pre>
 
-<p>FreeType provides an area of memory called the &lsquo;render pool&rsquo;, available to all registered rasters. This pool can be freely used during a given scan-conversion but is shared by all rasters. Its content is thus transient.</p>
+<p>FreeType used to provide an area of memory called the &lsquo;render pool&rsquo; available to all registered rasters. This was not thread safe however and now FreeType never allocates this pool. NULL is always passed in as pool_base.</p>
 <p>This function is called each time the render pool changes, or just after a new raster object is created.</p>
 
 <h4>input</h4>
@@ -389,7 +389,7 @@
 </table>
 
 <h4>note</h4>
-<p>Rasters can ignore the render pool and rely on dynamic memory allocation if they want to (a handle to the memory allocator is passed to the raster constructor). However, this is not recommended for efficiency purposes.</p>
+<p>Rasters should ignore the render pool and rely on dynamic or stack allocation if they want to (a handle to the memory allocator is passed to the raster constructor).</p>
 
 <hr>
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="middle">[<a href="#">Top</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table></div>

@@ -3,7 +3,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>FreeType-2.5.5 API Reference</title>
+<title>FreeType-2.6 API Reference</title>
 <style type="text/css">
   a:link { color: #0000EF; }
   a:visited { color: #51188E; }
@@ -100,7 +100,7 @@
 <body>
 
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table>
-<h1>FreeType-2.5.5 API Reference</h1>
+<h1>FreeType-2.6 API Reference</h1>
 
 <h1>Header File Macros</h1>
 <h2>Synopsis</h2>
@@ -123,7 +123,7 @@
 <tr><td><a href="#FT_AUTOHINTER_H">FT_AUTOHINTER_H</a></td><td><a href="#FT_PFR_H">FT_PFR_H</a></td></tr>
 <tr><td><a href="#FT_CFF_DRIVER_H">FT_CFF_DRIVER_H</a></td><td><a href="#FT_STROKER_H">FT_STROKER_H</a></td></tr>
 <tr><td><a href="#FT_TRUETYPE_DRIVER_H">FT_TRUETYPE_DRIVER_H</a></td><td><a href="#FT_SYNTHESIS_H">FT_SYNTHESIS_H</a></td></tr>
-<tr><td><a href="#FT_TYPE1_TABLES_H">FT_TYPE1_TABLES_H</a></td><td><a href="#FT_XFREE86_H">FT_XFREE86_H</a></td></tr>
+<tr><td><a href="#FT_TYPE1_TABLES_H">FT_TYPE1_TABLES_H</a></td><td><a href="#FT_FONT_FORMATS_H">FT_FONT_FORMATS_H</a></td></tr>
 <tr><td><a href="#FT_TRUETYPE_IDS_H">FT_TRUETYPE_IDS_H</a></td><td><a href="#FT_TRIGONOMETRY_H">FT_TRIGONOMETRY_H</a></td></tr>
 <tr><td><a href="#FT_TRUETYPE_TABLES_H">FT_TRUETYPE_TABLES_H</a></td><td><a href="#FT_LCD_FILTER_H">FT_LCD_FILTER_H</a></td></tr>
 <tr><td><a href="#FT_TRUETYPE_TAGS_H">FT_TRUETYPE_TAGS_H</a></td><td><a href="#FT_UNPATENTED_HINTING_H">FT_UNPATENTED_HINTING_H</a></td></tr>
@@ -635,12 +635,15 @@
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="middle">[<a href="#">Top</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table></div>
 
 <div class="section">
-<h3 id="FT_XFREE86_H">FT_XFREE86_H</h3>
+<h3 id="FT_FONT_FORMATS_H">FT_FONT_FORMATS_H</h3>
 <pre>
-#define <b>FT_XFREE86_H</b>  &lt;ftxf86.h&gt;
+#define <b>FT_FONT_FORMATS_H</b>  &lt;ftfntfmt.h&gt;
+
+  /* deprecated */
+#define FT_XFREE86_H  <b>FT_FONT_FORMATS_H</b>
 </pre>
 
-<p>A macro used in #include statements to name the file containing the FreeType&nbsp;2 API which provides functions specific to the XFree86 and X.Org X11 servers.</p>
+<p>A macro used in #include statements to name the file containing the FreeType&nbsp;2 API which provides functions specific to font formats.</p>
 
 <hr>
 <table class="index-toc-link"><tr><td class="left">[<a href="ft2-index.html">Index</a>]</td><td class="middle">[<a href="#">Top</a>]</td><td class="right">[<a href="ft2-toc.html">TOC</a>]</td></tr></table></div>

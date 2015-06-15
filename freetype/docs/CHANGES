@@ -1,4 +1,110 @@
 
+CHANGES BETWEEN 2.5.5 and 2.6
+
+  I. IMPORTANT CHANGES
+
+    - Behdad  Esfahbod contributed  code  for improved  thread-safety,
+      which results in the following model.
+
+      * An `FT_Face' object can only be safely used from one thread at
+        a time.
+
+      * An `FT_Library'  object can  now be used  without modification
+        from multiple threads at the same time.
+
+      * `FT_Face' creation and destruction  with the same `FT_Library'
+        object can only be done from one thread at a time.
+
+      One can use a single  `FT_Library' object across threads as long
+      as a mutex lock is used around `FT_New_Face' and `FT_Done_Face'.
+      Any calls to `FT_Load_Glyph' and similar API are safe and do not
+      need the lock  to be held as  long as the same  `FT_Face' is not
+      used from multiple threads at the same time.
+
+    - Thai script support has been added to the auto-hinter.
+
+    - Arabic script support has been added to the auto-hinter.
+
+    - Following OpenType version 1.7,  advance widths and side bearing
+      values in  CFFs (wrapped  in an SFNT  structure) are  now always
+      taken from the `hmtx' table.
+
+    - Following OpenType  version 1.7, the  PostScript font name  of a
+      CFF font (wrapped in an SFNT structure) is now always taken from
+      the `name'  table.  This is  also true for  OpenType Collections
+      (i.e., TTCs using  CFFs subfonts instead of TTFs),  where it may
+      have a significant difference.
+
+    - Fonts natively hinted for  ClearType are now supported, properly
+      handling selector index 3 of the INSTCTRL bytecode instruction.
+
+    - Major improvements to the GX TrueType variation font handling.
+
+
+  II. MISCELLANEOUS
+
+    - A new auto-hinter  property `warping' can switch on  and off the
+      warping code  if this  experimental feature  is compiled  in (by
+      defining  the AF_CONFIG_OPTION_USE_WARPER  configuration option;
+      by default  this option is  now enabled but warping  is switched
+      off).
+
+      The AF_CONFIG_OPTION_USE_WARPER option itself is an old feature,
+      available   since  2006.    Warping   only   works  in   `light'
+      auto-hinting mode.   The idea of  the code is to  slightly scale
+      and  shift a  glyph  along the  non-hinted  dimension (which  is
+      usually the horizontal axis) so that as much of its segments are
+      aligned  (more or  less) to  the grid.   To find  out a  glyph's
+      optimal   scaling   and   shifting  value,   various   parameter
+      combinations are tried and scored.
+
+      See  file  `ftautoh.h' for  more;  the  demo programs  `ftdiff',
+      `ftview', and `ftgrid' can toggle warping with key `w'.
+
+    - Some  fields  in  the  `FTC_ImageTypeRec'  structure  have  been
+      changed from signed to unsigned  type, which better reflects the
+      actual usage.  It is also an additional means to protect against
+      malformed input.
+
+      This  change doesn't  break  the ABI;  however,  it might  cause
+      compiler warnings.
+
+    - Function `FT_Bitmap_New'  has been renamed  to `FT_Bitmap_Init',
+      since  this name  better reflects  its function.   For backwards
+      compatibility, the old function name is still available.
+
+    - Function   `FT_Get_X11_Font_Format'   has    been   renamed   to
+      `FT_Get_Font_Format',  since  this   name  better  reflects  its
+      function.  For backwards compatibility, the old function name is
+      still available.
+
+      Additionally, the header  file macro for this  function has been
+      renamed to  `FT_FONT_FORMATS_H' (the old name  `FT_XFREE86_H' is
+      retained for backwards compatibility).
+
+    - Various improvements to the `ftgrid' demo program.
+
+      . It  can  now  display  GX and  MM  fonts  while  interactively
+        manipulating the axes (with keys F2, F3, and F4).
+
+      . Anti-aliasing rendering  modes can now be  selected (with keys
+        F5 and F6).
+
+      . The display of point numbers can be toggled with key `D'.
+
+    - Various improvements to the `ftdump' demo program.
+
+      . It now displays information on MM and GX variation axes.
+
+      . New  command line option  `-u' makes  it output data  in utf-8
+        encoding.
+
+    - The `ftmulti'  demo program can  now handle up  to six MM  or GX
+      axes.
+
+
+======================================================================
+
 CHANGES BETWEEN 2.5.4 and 2.5.5
 
   I. IMPORTANT BUG FIXES
@@ -4159,7 +4265,7 @@ Extensions support:
 
 ------------------------------------------------------------------------
 
-Copyright 2000-2013 by
+Copyright 2000-2015 by
 David Turner, Robert Wilhelm, and Werner Lemberg.
 
 This  file  is  part  of the  FreeType  project, and may  only be  used,
