@@ -302,6 +302,7 @@ static void console_data_untrusted(HANDLE hout, const char *data, int len)
     DWORD dummy;
     /* FIXME: control-character filtering */
     WriteFile(hout, data, len, &dummy, NULL);
+    FlushFileBuffers(hout);
 }
 
 int console_get_userpass_input(prompts_t *p, unsigned char *in, int inlen)
@@ -407,6 +408,7 @@ int console_get_userpass_input(prompts_t *p, unsigned char *in, int inlen)
 	if (!pr->echo) {
 	    DWORD dummy;
 	    WriteFile(hout, "\r\n", 2, &dummy, NULL);
+	    FlushFileBuffers(hout);
 	}
 
         if (len < 0) {
