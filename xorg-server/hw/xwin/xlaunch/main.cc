@@ -54,14 +54,17 @@ static bool ContainPrintableChars(const char *Buf, unsigned Nbr)
   return false;
 }
 
+HANDLE g_hChildStdoutRd;
+int g_hStdOut;
+
 /*
  * Process messages for the prompt dialog.
  */
 
 static INT_PTR CALLBACK DisplayPromptDlgProc (HWND hwndDialog, UINT message, WPARAM wParam, LPARAM lParam)
 {
-  static LPARAM Param;
   static UINT PasswordChar;
+  static char *buf_p;
   switch (message)
   {
     case WM_INITDIALOG:
@@ -86,18 +89,39 @@ static INT_PTR CALLBACK DisplayPromptDlgProc (HWND hwndDialog, UINT message, WPA
       0, 0,
       SWP_NOSIZE | SWP_FRAMECHANGED);
 
-      Param=lParam;
-      SendDlgItemMessage(hwndDialog, IDC_PROMPT_DESC, WM_SETTEXT, 0, lParam);
+      buf_p=(char*)lParam;
+      SendDlgItemMessage(hwndDialog, IDC_PROMPT_DESC, WM_SETTEXT, 0, (LPARAM)buf_p);
+      SendDlgItemMessage(hwndDialog, IDC_PROMPT_DESC, EM_LINESCROLL, 0, 1000);
+      SendDlgItemMessage(hwndDialog, IDC_PROMPT_DESC, EM_SETSEL, -1, -1);
+      SetTimer(hwndDialog,1,20,NULL);
       return TRUE;
     }
     break;
+
+    case WM_TIMER:
+    {
+      DWORD nbrAvail=0;
+      PeekNamedPipe(g_hChildStdoutRd, NULL, NULL, NULL, &nbrAvail, NULL);
+      if (nbrAvail)
+      {
+        int curLen=strlen(buf_p);
+	buf_p=(char*)realloc(buf_p, curLen+nbrAvail+1);
+        size_t Nbr = _read(g_hStdOut, buf_p+curLen, nbrAvail);
+        buf_p[curLen+nbrAvail]=0;
+        SendDlgItemMessage(hwndDialog, IDC_PROMPT_DESC, WM_SETTEXT, 0, (LPARAM)buf_p);
+        SendDlgItemMessage(hwndDialog, IDC_PROMPT_DESC, EM_LINESCROLL, 0, 1000);
+        SendDlgItemMessage(hwndDialog, IDC_PROMPT_DESC, EM_SETSEL, -1, -1);
+      }
+      break;
+    }
 
     case WM_COMMAND:
       switch (LOWORD (wParam))
       {
         case IDOK:
-          SendDlgItemMessage(hwndDialog, IDC_INPUT, WM_GETTEXT, 128, Param);
-          EndDialog(hwndDialog, Param);
+	  buf_p=(char*)realloc(buf_p, 128);
+          SendDlgItemMessage(hwndDialog, IDC_INPUT, WM_GETTEXT, 128, (LPARAM)buf_p);
+          EndDialog(hwndDialog, (LPARAM)buf_p);
           return TRUE;
         case IDCANCEL:
           EndDialog(hwndDialog, NULL);
@@ -114,6 +138,11 @@ static INT_PTR CALLBACK DisplayPromptDlgProc (HWND hwndDialog, UINT message, WPA
           }
           InvalidateRect(hDlg, NULL, TRUE);
         }
+	return TRUE;
+	case IDC_PROMPT_DESC:
+	if (HIWORD(wParam)==EN_SETFOCUS)
+          SendDlgItemMessage(hwndDialog, IDC_PROMPT_DESC, EM_SETSEL, -1, -1);
+	
         return TRUE;
       }
       break;
@@ -128,23 +157,26 @@ static INT_PTR CALLBACK DisplayPromptDlgProc (HWND hwndDialog, UINT message, WPA
 
 static bool CheckOutput(HANDLE hChildStdoutRd, int hStdOut, int hStdIn)
 {
+  g_hChildStdoutRd = hChildStdoutRd;
+  g_hStdOut = hStdOut;
   DWORD NbrAvail=0;
   PeekNamedPipe(hChildStdoutRd, NULL, NULL, NULL, &NbrAvail, NULL);
   if (NbrAvail)
   {
-    char Buf[128];
-    size_t Nbr = _read(hStdOut, Buf, sizeof(Buf)-1);
-    if (ContainPrintableChars(Buf,Nbr))
+    char *buf_p=(char*)malloc(NbrAvail+1);
+    size_t Nbr = _read(hStdOut, buf_p, NbrAvail);
+    if (ContainPrintableChars(buf_p,Nbr))
     {
-      Buf[Nbr]=0;
-      INT_PTR Ret = DialogBoxParam (GetModuleHandle(NULL), "IDD_PROMPT", NULL, DisplayPromptDlgProc, (LPARAM)Buf);
+      buf_p[Nbr]=0;
+      INT_PTR Ret = DialogBoxParam (GetModuleHandle(NULL), "IDD_PROMPT", NULL, DisplayPromptDlgProc, (LPARAM)buf_p);
 
       if (Ret)
       {
         char *Data=(char*)Ret;
         // Write it to the client
         _write(hStdIn, Data, strlen(Data));
-        _write(hStdIn, "\x0d\x0a", 2);
+        _write(hStdIn, "\x0a", 1);
+        //_write(hStdIn, "\x0d\x0a", 2);
       }
 
       return true;
