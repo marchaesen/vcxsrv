@@ -113,7 +113,7 @@ miClearToBackground(WindowPtr pWin,
     if (generateExposures)
         (*pWin->drawable.pScreen->WindowExposures) (pWin, &reg);
     else if (pWin->backgroundState != None)
-        miPaintWindow(pWin, &reg, PW_BACKGROUND);
+        pWin->drawable.pScreen->PaintWindow(pWin, &reg, PW_BACKGROUND);
     RegionUninit(&reg);
 }
 
@@ -219,7 +219,9 @@ miHandleValidateExposures(WindowPtr pWin)
     while (1) {
         if ((val = pChild->valdata)) {
             if (RegionNotEmpty(&val->after.borderExposed))
-                miPaintWindow(pChild, &val->after.borderExposed, PW_BORDER);
+                pWin->drawable.pScreen->PaintWindow(pChild,
+                                                    &val->after.borderExposed,
+                                                    PW_BORDER);
             RegionUninit(&val->after.borderExposed);
             (*WindowExposures) (pChild, &val->after.exposed);
             RegionUninit(&val->after.exposed);
@@ -767,14 +769,11 @@ miSpriteTrace(SpritePtr pSprite, int x, int y)
                 RegionContainsPoint(wInputShape(pWin),
                                     x - pWin->drawable.x,
                                     y - pWin->drawable.y, &box))
-#ifdef ROOTLESS
             /* In rootless mode windows may be offscreen, even when
              * they're in X's stack. (E.g. if the native window system
              * implements some form of virtual desktop system).
              */
-            && !pWin->rootlessUnhittable
-#endif
-            ) {
+            && !pWin->unhittable) {
             if (pSprite->spriteTraceGood >= pSprite->spriteTraceSize) {
                 pSprite->spriteTraceSize += 10;
                 pSprite->spriteTrace = reallocarray(pSprite->spriteTrace,

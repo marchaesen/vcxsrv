@@ -41,44 +41,43 @@ typedef union {
 
 extern Bool VidModeExtensionInit(ScreenPtr pScreen);
 
-extern _X_EXPORT Bool VidModeAvailable(int scrnIndex);
-extern _X_EXPORT Bool VidModeGetCurrentModeline(int scrnIndex, void **mode,
-                                                int *dotClock);
-extern _X_EXPORT Bool VidModeGetFirstModeline(int scrnIndex, void **mode,
-                                              int *dotClock);
-extern _X_EXPORT Bool VidModeGetNextModeline(int scrnIndex, void **mode,
-                                             int *dotClock);
-extern _X_EXPORT Bool VidModeDeleteModeline(int scrnIndex, void *mode);
-extern _X_EXPORT Bool VidModeZoomViewport(int scrnIndex, int zoom);
-extern _X_EXPORT Bool VidModeGetViewPort(int scrnIndex, int *x, int *y);
-extern _X_EXPORT Bool VidModeSetViewPort(int scrnIndex, int x, int y);
-extern _X_EXPORT Bool VidModeSwitchMode(int scrnIndex, void *mode);
-extern _X_EXPORT Bool VidModeLockZoom(int scrnIndex, Bool lock);
-extern _X_EXPORT Bool VidModeGetMonitor(int scrnIndex, void **monitor);
-extern _X_EXPORT int VidModeGetNumOfClocks(int scrnIndex, Bool *progClock);
-extern _X_EXPORT Bool VidModeGetClocks(int scrnIndex, int *Clocks);
-extern _X_EXPORT ModeStatus VidModeCheckModeForMonitor(int scrnIndex,
-                                                       void *mode);
-extern _X_EXPORT ModeStatus VidModeCheckModeForDriver(int scrnIndex,
-                                                      void *mode);
-extern _X_EXPORT void VidModeSetCrtcForMode(int scrnIndex, void *mode);
-extern _X_EXPORT Bool VidModeAddModeline(int scrnIndex, void *mode);
-extern _X_EXPORT int VidModeGetDotClock(int scrnIndex, int Clock);
-extern _X_EXPORT int VidModeGetNumOfModes(int scrnIndex);
-extern _X_EXPORT Bool VidModeSetGamma(int scrnIndex, float red, float green,
-                                      float blue);
-extern _X_EXPORT Bool VidModeGetGamma(int scrnIndex, float *red, float *green,
-                                      float *blue);
-extern _X_EXPORT void *VidModeCreateMode(void);
-extern _X_EXPORT void VidModeCopyMode(void *modefrom, void *modeto);
-extern _X_EXPORT int VidModeGetModeValue(void *mode, int valtyp);
-extern _X_EXPORT void VidModeSetModeValue(void *mode, int valtyp, int val);
-extern _X_EXPORT vidMonitorValue VidModeGetMonitorValue(void *monitor,
-                                                        int valtyp, int indx);
-extern _X_EXPORT Bool VidModeSetGammaRamp(int, int, CARD16 *, CARD16 *,
-                                          CARD16 *);
-extern _X_EXPORT Bool VidModeGetGammaRamp(int, int, CARD16 *, CARD16 *,
-                                          CARD16 *);
-extern _X_EXPORT int VidModeGetGammaRampSize(int scrnIndex);
+extern Bool VidModeGetCurrentModeline(int scrnIndex, void **mode,
+                                      int *dotClock);
+extern Bool VidModeGetFirstModeline(int scrnIndex, void **mode,
+                                    int *dotClock);
+extern Bool VidModeGetNextModeline(int scrnIndex, void **mode,
+                                   int *dotClock);
+extern Bool VidModeDeleteModeline(int scrnIndex, void *mode);
+extern Bool VidModeZoomViewport(int scrnIndex, int zoom);
+extern Bool VidModeGetViewPort(int scrnIndex, int *x, int *y);
+extern Bool VidModeSetViewPort(int scrnIndex, int x, int y);
+extern Bool VidModeSwitchMode(int scrnIndex, void *mode);
+extern Bool VidModeLockZoom(int scrnIndex, Bool lock);
+extern Bool VidModeGetMonitor(int scrnIndex, void **monitor);
+extern int VidModeGetNumOfClocks(int scrnIndex, Bool *progClock);
+extern Bool VidModeGetClocks(int scrnIndex, int *Clocks);
+extern ModeStatus VidModeCheckModeForMonitor(int scrnIndex,
+                                             void *mode);
+extern ModeStatus VidModeCheckModeForDriver(int scrnIndex,
+                                            void *mode);
+extern void VidModeSetCrtcForMode(int scrnIndex, void *mode);
+extern Bool VidModeAddModeline(int scrnIndex, void *mode);
+extern int VidModeGetDotClock(int scrnIndex, int Clock);
+extern int VidModeGetNumOfModes(int scrnIndex);
+extern Bool VidModeSetGamma(int scrnIndex, float red, float green,
+                            float blue);
+extern Bool VidModeGetGamma(int scrnIndex, float *red, float *green,
+                            float *blue);
+extern void *VidModeCreateMode(void);
+extern void VidModeCopyMode(void *modefrom, void *modeto);
+extern int VidModeGetModeValue(void *mode, int valtyp);
+extern void VidModeSetModeValue(void *mode, int valtyp, int val);
+extern vidMonitorValue VidModeGetMonitorValue(void *monitor,
+                                              int valtyp, int indx);
+extern Bool VidModeSetGammaRamp(int, int, CARD16 *, CARD16 *,
+                                CARD16 *);
+extern Bool VidModeGetGammaRamp(int, int, CARD16 *, CARD16 *,
+                                CARD16 *);
+extern int VidModeGetGammaRampSize(int scrnIndex);
 
 #endif

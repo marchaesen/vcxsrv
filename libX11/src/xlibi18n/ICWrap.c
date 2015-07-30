@@ -169,7 +169,7 @@ XSetIMValues(XIM im, ...)
     va_list var;
     int     total_count;
     XIMArg *args;
-    char   *ret;
+    char   *ret = NULL;
 
     /*
      * so count the stuff dangling here
@@ -185,7 +185,8 @@ XSetIMValues(XIM im, ...)
     _XIMVaToNestedList(var, total_count, &args);
     va_end(var);
 
-    ret = (*im->methods->set_values) (im, args);
+    if (im && im->methods)
+	ret = (*im->methods->set_values) (im, args);
     Xfree(args);
     return ret;
 }
@@ -196,7 +197,7 @@ XGetIMValues(XIM im, ...)
     va_list var;
     int     total_count;
     XIMArg *args;
-    char   *ret;
+    char   *ret = NULL;
 
     /*
      * so count the stuff dangling here
@@ -212,7 +213,8 @@ XGetIMValues(XIM im, ...)
     _XIMVaToNestedList(var, total_count, &args);
     va_end(var);
 
-    ret = (*im->methods->get_values) (im, args);
+    if (im && im->methods)
+	ret = (*im->methods->get_values) (im, args);
     Xfree(args);
     return ret;
 }
@@ -228,7 +230,7 @@ XCreateIC(XIM im, ...)
     va_list var;
     int     total_count;
     XIMArg *args;
-    XIC     ic;
+    XIC     ic = NULL;
 
     /*
      * so count the stuff dangling here
@@ -244,7 +246,8 @@ XCreateIC(XIM im, ...)
     _XIMVaToNestedList(var, total_count, &args);
     va_end(var);
 
-    ic = (XIC) (*im->methods->create_ic) (im, args);
+    if (im && im->methods)
+	ic = (XIC) (*im->methods->create_ic) (im, args);
     Xfree(args);
     if (ic) {
 	ic->core.next = im->core.ic_chain;

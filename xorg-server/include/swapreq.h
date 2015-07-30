@@ -26,13 +26,13 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #ifndef SWAPREQ_H
 #define SWAPREQ_H 1
 
-extern _X_EXPORT void SwapColorItem(xColorItem * /* pItem */ );
+extern void SwapColorItem(xColorItem * /* pItem */ );
 
-extern _X_EXPORT void SwapConnClientPrefix(xConnClientPrefix * /* pCCP */ );
+extern void SwapConnClientPrefix(xConnClientPrefix * /* pCCP */ );
 
 #undef SWAPREQ_PROC
 
-#define SWAPREQ_PROC(func) extern _X_EXPORT int func(ClientPtr /* client */)
+#define SWAPREQ_PROC(func) extern int func(ClientPtr /* client */)
 
 SWAPREQ_PROC(SProcAllocColor);
 SWAPREQ_PROC(SProcAllocColorCells);

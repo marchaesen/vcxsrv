@@ -26,8 +26,9 @@
 #ifndef RGB9E5_H
 #define RGB9E5_H
 
-#include <math.h>
 #include <assert.h>
+
+#include "c99_math.h"
 
 #define RGB9E5_EXPONENT_BITS          5
 #define RGB9E5_MANTISSA_BITS          9
@@ -73,9 +74,9 @@ typedef union {
    } field;
 } rgb9e5;
 
-static INLINE float rgb9e5_ClampRange(float x)
+static inline float rgb9e5_ClampRange(float x)
 {
-   if (x > 0.0) {
+   if (x > 0.0f) {
       if (x >= MAX_RGB9E5) {
          return MAX_RGB9E5;
       } else {
@@ -90,7 +91,7 @@ static INLINE float rgb9e5_ClampRange(float x)
 /* Ok, FloorLog2 is not correct for the denorm and zero values, but we
    are going to do a max of this value with the minimum rgb9e5 exponent
    that will hide these problem cases. */
-static INLINE int rgb9e5_FloorLog2(float x)
+static inline int rgb9e5_FloorLog2(float x)
 {
    float754 f;
 
@@ -98,7 +99,7 @@ static INLINE int rgb9e5_FloorLog2(float x)
    return (f.field.biasedexponent - 127);
 }
 
-static INLINE unsigned float3_to_rgb9e5(const float rgb[3])
+static inline unsigned float3_to_rgb9e5(const float rgb[3])
 {
    rgb9e5 retval;
    float maxrgb;
@@ -115,8 +116,8 @@ static INLINE unsigned float3_to_rgb9e5(const float rgb[3])
    exp_shared = MAX2(-RGB9E5_EXP_BIAS-1, rgb9e5_FloorLog2(maxrgb)) + 1 + RGB9E5_EXP_BIAS;
    assert(exp_shared <= RGB9E5_MAX_VALID_BIASED_EXP);
    assert(exp_shared >= 0);
-   /* This pow function could be replaced by a table. */
-   denom = pow(2, exp_shared - RGB9E5_EXP_BIAS - RGB9E5_MANTISSA_BITS);
+   /* This exp2 function could be replaced by a table. */
+   denom = exp2(exp_shared - RGB9E5_EXP_BIAS - RGB9E5_MANTISSA_BITS);
 
    maxm = (int) floor(maxrgb / denom + 0.5);
    if (maxm == MAX_RGB9E5_MANTISSA+1) {
@@ -146,7 +147,7 @@ static INLINE unsigned float3_to_rgb9e5(const float rgb[3])
    return retval.raw;
 }
 
-static INLINE void rgb9e5_to_float3(unsigned rgb, float retval[3])
+static inline void rgb9e5_to_float3(unsigned rgb, float retval[3])
 {
    rgb9e5 v;
    int exponent;
@@ -154,7 +155,7 @@ static INLINE void rgb9e5_to_float3(unsigned rgb, float retval[3])
 
    v.raw = rgb;
    exponent = v.field.biasedexponent - RGB9E5_EXP_BIAS - RGB9E5_MANTISSA_BITS;
-   scale = (float) pow(2, exponent);
+   scale = exp2f(exponent);
 
    retval[0] = v.field.r * scale;
    retval[1] = v.field.g * scale;

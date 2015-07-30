@@ -8,6 +8,9 @@ import re
 
 # Jump to the bottom of this file for the main routine
 
+#config settings (can be changed with commandline options)
+config_server_side = False
+
 # Some hacks to make the API more readable, and to keep backwards compability
 _cname_re = re.compile('([A-Z0-9][a-z]+|[A-Z0-9]+(?![a-z])|[a-z]+)')
 _cname_special_cases = {'DECnet':'decnet'}
@@ -3103,7 +3106,8 @@ def c_request(self, name):
         if self.c_need_aux:
             _c_request_helper(self, name, void=True, regular=False, aux=True)
             _c_request_helper(self, name, void=True, regular=True, aux=True)
-        _c_accessors(self, name, name)
+        if config_server_side:
+            _c_accessors(self, name, name)
 
     # We generate the manpage afterwards because _c_type_setup has been called.
     # TODO: what about aux helpers?
@@ -3214,7 +3218,7 @@ output = {'open'    : c_open,
 
 # Check for the argument that specifies path to the xcbgen python package.
 try:
-    opts, args = getopt.getopt(sys.argv[1:], 'c:l:s:p:m')
+    opts, args = getopt.getopt(sys.argv[1:], 'c:l:s:p:m', ["server-side"])
 except getopt.GetoptError as err:
     print(err)
     print('Usage: c_client.py -c center_footer -l left_footer -s section [-p path] file.xml')
@@ -3229,6 +3233,8 @@ for (opt, arg) in opts:
         section=arg
     if opt == '-p':
         sys.path.insert(1, arg)
+    if opt == '--server-side':
+        config_server_side=True
     elif opt == '-m':
         manpaths = True
         sys.stdout.write('man_MANS = ')

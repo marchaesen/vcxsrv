@@ -335,12 +335,14 @@ struct switch_generator
 
 class variable_index_to_cond_assign_visitor : public ir_rvalue_visitor {
 public:
-   variable_index_to_cond_assign_visitor(bool lower_input,
-					 bool lower_output,
-					 bool lower_temp,
-					 bool lower_uniform)
+   variable_index_to_cond_assign_visitor(gl_shader_stage stage,
+                                         bool lower_input,
+                                         bool lower_output,
+                                         bool lower_temp,
+                                         bool lower_uniform)
    {
       this->progress = false;
+      this->stage = stage;
       this->lower_inputs = lower_input;
       this->lower_outputs = lower_output;
       this->lower_temps = lower_temp;
@@ -348,6 +350,8 @@ public:
    }
 
    bool progress;
+
+   gl_shader_stage stage;
    bool lower_inputs;
    bool lower_outputs;
    bool lower_temps;
@@ -369,17 +373,44 @@ public:
       case ir_var_auto:
       case ir_var_temporary:
 	 return this->lower_temps;
+
       case ir_var_uniform:
+      case ir_var_shader_storage:
 	 return this->lower_uniforms;
+
       case ir_var_function_in:
       case ir_var_const_in:
          return this->lower_temps;
+
       case ir_var_shader_in:
+         /* The input array size is unknown at compiler time for non-patch
+          * inputs in TCS and TES. The arrays are sized to
+          * the implementation-dependent limit "gl_MaxPatchVertices", but
+          * the real size is stored in the "gl_PatchVerticesIn" built-in
+          * uniform.
+          *
+          * The TCS input array size is specified by
+          * glPatchParameteri(GL_PATCH_VERTICES).
+          *
+          * The TES input array size is specified by the "vertices" output
+          * layout qualifier in TCS.
+          */
+         if ((stage == MESA_SHADER_TESS_CTRL ||
+              stage == MESA_SHADER_TESS_EVAL) && !var->data.patch)
+            return false;
          return this->lower_inputs;
+
       case ir_var_function_out:
+         /* TCS non-patch outputs can only be indexed with "gl_InvocationID".
+          * Other expressions are not allowed.
+          */
+         if (stage == MESA_SHADER_TESS_CTRL && !var->data.patch)
+            return false;
          return this->lower_temps;
+
       case ir_var_shader_out:
          return this->lower_outputs;
+
       case ir_var_function_inout:
 	 return this->lower_temps;
       }
@@ -522,16 +553,18 @@ public:
 } /* anonymous namespace */
 
 bool
-lower_variable_index_to_cond_assign(exec_list *instructions,
-				    bool lower_input,
-				    bool lower_output,
-				    bool lower_temp,
-				    bool lower_uniform)
+lower_variable_index_to_cond_assign(gl_shader_stage stage,
+                                    exec_list *instructions,
+                                    bool lower_input,
+                                    bool lower_output,
+                                    bool lower_temp,
+                                    bool lower_uniform)
 {
-   variable_index_to_cond_assign_visitor v(lower_input,
-					   lower_output,
-					   lower_temp,
-					   lower_uniform);
+   variable_index_to_cond_assign_visitor v(stage,
+                                           lower_input,
+                                           lower_output,
+                                           lower_temp,
+                                           lower_uniform);
 
    /* Continue lowering until no progress is made.  If there are multiple
     * levels of indirection (e.g., non-constant indexing of array elements and

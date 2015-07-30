@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "util/ralloc.h"
+#include "util/strtod.h"
 
 void
 _mesa_warning(struct gl_context *ctx, const char *fmt, ...)
@@ -132,9 +133,11 @@ void initialize_context_to_defaults(struct gl_context *ctx, gl_api api)
    ctx->Extensions.ARB_sample_shading = true;
    ctx->Extensions.ARB_shader_bit_encoding = true;
    ctx->Extensions.ARB_shader_stencil_export = true;
+   ctx->Extensions.ARB_shader_subroutine = true;
    ctx->Extensions.ARB_shader_texture_lod = true;
    ctx->Extensions.ARB_shading_language_420pack = true;
    ctx->Extensions.ARB_shading_language_packing = true;
+   ctx->Extensions.ARB_tessellation_shader = true;
    ctx->Extensions.ARB_texture_cube_map_array = true;
    ctx->Extensions.ARB_texture_gather = true;
    ctx->Extensions.ARB_texture_multisample = true;
@@ -191,4 +194,6 @@ void initialize_context_to_defaults(struct gl_context *ctx, gl_api api)
 
    for (int sh = 0; sh < MESA_SHADER_STAGES; ++sh)
       memcpy(&ctx->Const.ShaderCompilerOptions[sh], &options, sizeof(options));
+
+   _mesa_locale_init();
 }

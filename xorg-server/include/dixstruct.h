@@ -126,21 +126,18 @@ SetReqFds(ClientPtr client, int req_fds) {
 /*
  * Scheduling interface
  */
-extern _X_EXPORT long SmartScheduleTime;
-extern _X_EXPORT long SmartScheduleInterval;
-extern _X_EXPORT long SmartScheduleSlice;
-extern _X_EXPORT long SmartScheduleMaxSlice;
-extern _X_EXPORT Bool SmartScheduleDisable;
-extern _X_EXPORT void
-SmartScheduleStartTimer(void);
-extern _X_EXPORT void
-SmartScheduleStopTimer(void);
+extern long SmartScheduleTime;
+extern long SmartScheduleInterval;
+extern long SmartScheduleSlice;
+extern long SmartScheduleMaxSlice;
+extern Bool SmartScheduleDisable;
+extern void SmartScheduleStartTimer(void);
+extern void SmartScheduleStopTimer(void);
 
 #define SMART_MAX_PRIORITY  (20)
 #define SMART_MIN_PRIORITY  (-20)
 
-extern _X_EXPORT void
-SmartScheduleInit(void);
+extern void SmartScheduleInit(void);
 
 /* This prototype is used pervasively in Xext, dix */
 #define DISPATCH_PROC(func) int func(ClientPtr /* client */)
@@ -179,13 +176,13 @@ typedef struct _CallbackList {
 
 /* proc vectors */
 
-extern _X_EXPORT int (*InitialVector[3]) (ClientPtr /*client */ );
+extern int (*InitialVector[3]) (ClientPtr /*client */ );
 
 extern _X_EXPORT int (*ProcVector[256]) (ClientPtr /*client */ );
 
 extern _X_EXPORT int (*SwappedProcVector[256]) (ClientPtr /*client */ );
 
-extern _X_EXPORT ReplySwapPtr ReplySwapVector[256];
+extern ReplySwapPtr ReplySwapVector[256];
 
 extern _X_EXPORT int
 ProcBadRequest(ClientPtr /*client */ );

@@ -287,6 +287,11 @@ st_create_context_priv( struct gl_context *ctx, struct pipe_context *pipe,
    /* For vertex shaders, make sure not to emit saturate when SM 3.0 is not supported */
    ctx->Const.ShaderCompilerOptions[MESA_SHADER_VERTEX].EmitNoSat = !st->has_shader_model3;
 
+   if (!ctx->Extensions.ARB_gpu_shader5) {
+      for (i = 0; i < MESA_SHADER_STAGES; i++)
+         ctx->Const.ShaderCompilerOptions[i].EmitNoIndirectSampler = true;
+   }
+
    _mesa_compute_version(ctx);
 
    if (ctx->Version == 0) {
@@ -308,6 +313,8 @@ static void st_init_driver_flags(struct gl_driver_flags *f)
    f->NewArray = ST_NEW_VERTEX_ARRAYS;
    f->NewRasterizerDiscard = ST_NEW_RASTERIZER;
    f->NewUniformBuffer = ST_NEW_UNIFORM_BUFFER;
+   f->NewDefaultTessLevels = ST_NEW_TESS_STATE;
+   f->NewTextureBuffer = ST_NEW_SAMPLER_VIEWS;
 }
 
 struct st_context *st_create_context(gl_api api, struct pipe_context *pipe,
@@ -369,6 +376,8 @@ void st_destroy_context( struct st_context *st )
    st_reference_fragprog(st, &st->fp, NULL);
    st_reference_geomprog(st, &st->gp, NULL);
    st_reference_vertprog(st, &st->vp, NULL);
+   st_reference_tesscprog(st, &st->tcp, NULL);
+   st_reference_tesseprog(st, &st->tep, NULL);
 
    /* release framebuffer surfaces */
    for (i = 0; i < PIPE_MAX_COLOR_BUFS; i++) {

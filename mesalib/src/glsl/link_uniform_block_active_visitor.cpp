@@ -44,6 +44,7 @@ process_block(void *mem_ctx, struct hash_table *ht, ir_variable *var)
 
       b->type = block_type;
       b->has_instance_name = var->is_interface_instance();
+      b->is_shader_storage = var->data.mode == ir_var_shader_storage;
 
       if (var->data.explicit_binding) {
          b->has_binding = true;
@@ -73,7 +74,7 @@ process_block(void *mem_ctx, struct hash_table *ht, ir_variable *var)
 ir_visitor_status
 link_uniform_block_active_visitor::visit(ir_variable *var)
 {
-   if (!var->is_in_uniform_block())
+   if (!var->is_in_buffer_block())
       return visit_continue;
 
    const glsl_type *const block_type = var->is_interface_instance()
@@ -124,7 +125,7 @@ link_uniform_block_active_visitor::visit_enter(ir_dereference_array *ir)
     * function.
     */
    if (var == NULL
-       || !var->is_in_uniform_block()
+       || !var->is_in_buffer_block()
        || !var->is_interface_instance())
       return visit_continue;
 
@@ -194,7 +195,7 @@ link_uniform_block_active_visitor::visit(ir_dereference_variable *ir)
 {
    ir_variable *var = ir->var;
 
-   if (!var->is_in_uniform_block())
+   if (!var->is_in_buffer_block())
       return visit_continue;
 
    assert(!var->is_interface_instance() || !var->type->is_array());

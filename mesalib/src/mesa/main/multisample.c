@@ -43,7 +43,7 @@ _mesa_SampleCoverage(GLclampf value, GLboolean invert)
 
    FLUSH_VERTICES(ctx, 0);
 
-   ctx->Multisample.SampleCoverageValue = (GLfloat) CLAMP(value, 0.0, 1.0);
+   ctx->Multisample.SampleCoverageValue = CLAMP(value, 0.0f, 1.0f);
    ctx->Multisample.SampleCoverageInvert = invert;
    ctx->NewState |= _NEW_MULTISAMPLE;
 }
@@ -134,7 +134,7 @@ _mesa_MinSampleShading(GLclampf value)
 
    FLUSH_VERTICES(ctx, 0);
 
-   ctx->Multisample.MinSampleShadingValue = CLAMP(value, 0.0, 1.0);
+   ctx->Multisample.MinSampleShadingValue = CLAMP(value, 0.0f, 1.0f);
    ctx->NewState |= _NEW_MULTISAMPLE;
 }
 

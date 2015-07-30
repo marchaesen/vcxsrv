@@ -549,9 +549,9 @@ def main():
     """Main function."""
     args = _parser()
 
-    if args._mode == "dispatch_c":
+    if args.mode == "dispatch_c":
         printer = PrintGlxDispatchFunctions(args.swap)
-    elif args._mode == "dispatch_h":
+    elif args.mode == "dispatch_h":
         printer = PrintGlxDispatch_h()
 
     api = gl_XML.parse_GL_API(

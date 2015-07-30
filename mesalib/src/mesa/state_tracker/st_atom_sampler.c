@@ -245,6 +245,7 @@ update_shader_samplers(struct st_context *st,
    GLuint unit;
    GLbitfield samplers_used;
    const GLuint old_max = *num_samplers;
+   const struct pipe_sampler_state *states[PIPE_MAX_SAMPLERS];
 
    samplers_used = prog->SamplersUsed;
 
@@ -261,13 +262,11 @@ update_shader_samplers(struct st_context *st,
          const GLuint texUnit = prog->SamplerUnits[unit];
 
          convert_sampler(st, sampler, texUnit);
-
+         states[unit] = sampler;
          *num_samplers = unit + 1;
-
-         cso_single_sampler(st->cso_context, shader_stage, unit, sampler);
       }
       else if (samplers_used != 0 || unit < old_max) {
-         cso_single_sampler(st->cso_context, shader_stage, unit, NULL);
+         states[unit] = NULL;
       }
       else {
          /* if we've reset all the old samplers and we have no more new ones */
@@ -275,7 +274,7 @@ update_shader_samplers(struct st_context *st,
       }
    }
 
-   cso_single_sampler_done(st->cso_context, shader_stage);
+   cso_set_samplers(st->cso_context, shader_stage, *num_samplers, states);
 }
 
 
@@ -305,6 +304,22 @@ update_samplers(struct st_context *st)
                              ctx->Const.Program[MESA_SHADER_GEOMETRY].MaxTextureImageUnits,
                              st->state.samplers[PIPE_SHADER_GEOMETRY],
                              &st->state.num_samplers[PIPE_SHADER_GEOMETRY]);
+   }
+   if (ctx->TessCtrlProgram._Current) {
+      update_shader_samplers(st,
+                             PIPE_SHADER_TESS_CTRL,
+                             &ctx->TessCtrlProgram._Current->Base,
+                             ctx->Const.Program[MESA_SHADER_TESS_CTRL].MaxTextureImageUnits,
+                             st->state.samplers[PIPE_SHADER_TESS_CTRL],
+                             &st->state.num_samplers[PIPE_SHADER_TESS_CTRL]);
+   }
+   if (ctx->TessEvalProgram._Current) {
+      update_shader_samplers(st,
+                             PIPE_SHADER_TESS_EVAL,
+                             &ctx->TessEvalProgram._Current->Base,
+                             ctx->Const.Program[MESA_SHADER_TESS_EVAL].MaxTextureImageUnits,
+                             st->state.samplers[PIPE_SHADER_TESS_EVAL],
+                             &st->state.num_samplers[PIPE_SHADER_TESS_EVAL]);
    }
 }
 

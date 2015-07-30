@@ -781,10 +781,11 @@ u_vbuf_create_vertex_elements(struct u_vbuf *mgr, unsigned count,
    ve->compatible_vb_mask_all = ~ve->incompatible_vb_mask_any & used_buffers;
    ve->incompatible_vb_mask_all = ~ve->compatible_vb_mask_any & used_buffers;
 
-   /* Align the formats to the size of DWORD if needed. */
+   /* Align the formats and offsets to the size of DWORD if needed. */
    if (!mgr->caps.velem_src_offset_unaligned) {
       for (i = 0; i < count; i++) {
          ve->native_format_size[i] = align(ve->native_format_size[i], 4);
+         driver_attribs[i].src_offset = align(ve->ve[i].src_offset, 4);
       }
    }
 

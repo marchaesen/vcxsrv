@@ -360,8 +360,8 @@ winGetPaletteDIB(ScreenPtr pScreen, ColormapPtr pcmap)
         nBlue = rgbColors[i].rgbBlue << 8;
 
 #if CYGDEBUG
-        winDebug("winGetPaletteDIB - Allocating a color: %d; "
-                 "%d %d %d\n", pixel, nRed, nGreen, nBlue);
+        winDebug("winGetPaletteDIB - Allocating a color: %u; "
+                 "%d %d %d\n", (unsigned int)pixel, nRed, nGreen, nBlue);
 #endif
 
         /* Allocate a entry in the X colormap */
@@ -445,8 +445,8 @@ winGetPaletteDD(ScreenPtr pScreen, ColormapPtr pcmap)
         nGreen = ppeColors[i].peGreen << 8;
         nBlue = ppeColors[i].peBlue << 8;
 #if CYGDEBUG
-        winDebug("winGetPaletteDD - Allocating a color: %d; "
-                 "%d %d %d\n", pixel, nRed, nGreen, nBlue);
+        winDebug("winGetPaletteDD - Allocating a color: %u; "
+                 "%d %d %d\n", (unsigned int)pixel, nRed, nGreen, nBlue);
 #endif
         if (AllocColor(pcmap, &nRed, &nGreen, &nBlue, &pixel, 0) != Success) {
             ErrorF("winGetPaletteDD - AllocColor () failed, pixel %d\n", i);
@@ -515,7 +515,7 @@ winCreateDefColormap(ScreenPtr pScreen)
      */
 
 #if CYGDEBUG
-    winDebug("winCreateDefColormap - defColormap: %d\n", pScreen->defColormap);
+    winDebug("winCreateDefColormap - defColormap: %lu\n", pScreen->defColormap);
 #endif
 
     /* Allocate an X colormap, owned by client 0 */

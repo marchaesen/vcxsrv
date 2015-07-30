@@ -71,7 +71,7 @@ default_delete_func(const struct keymap *map,
 }
 
 
-static INLINE struct keymap_item *
+static inline struct keymap_item *
 hash_table_item(struct cso_hash_iter iter)
 {
    return (struct keymap_item *) cso_hash_iter_data(iter);
@@ -143,7 +143,7 @@ util_delete_keymap(struct keymap *map, void *user)
 }
 
 
-static INLINE struct cso_hash_iter
+static inline struct cso_hash_iter
 hash_table_find_iter(const struct keymap *map, const void *key,
                      unsigned key_hash)
 {
@@ -162,7 +162,7 @@ hash_table_find_iter(const struct keymap *map, const void *key,
 }
 
 
-static INLINE struct keymap_item *
+static inline struct keymap_item *
 hash_table_find_item(const struct keymap *map, const void *key,
                      unsigned key_hash)
 {

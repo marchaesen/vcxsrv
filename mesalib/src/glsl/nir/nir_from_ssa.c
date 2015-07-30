@@ -37,6 +37,7 @@
 struct from_ssa_state {
    void *mem_ctx;
    void *dead_ctx;
+   bool phi_webs_only;
    struct hash_table *merge_node_table;
    nir_instr *instr;
    nir_function_impl *impl;
@@ -482,6 +483,9 @@ rewrite_ssa_def(nir_ssa_def *def, void *void_state)
 
       reg = node->set->reg;
    } else {
+      if (state->phi_webs_only)
+         return true;
+
       /* We leave load_const SSA values alone.  They act as immediates to
        * the backend.  If it got coalesced into a phi, that's ok.
        */
@@ -492,21 +496,20 @@ rewrite_ssa_def(nir_ssa_def *def, void *void_state)
       reg->name = def->name;
       reg->num_components = def->num_components;
       reg->num_array_elems = 0;
-
-      /* This register comes from an SSA definition that is defined and not
-       * part of a phi-web.  Therefore, we know it has a single unique
-       * definition that dominates all of its uses; we can copy the
-       * parent_instr from the SSA def safely.
-       */
-      if (def->parent_instr->type != nir_instr_type_ssa_undef)
-         reg->parent_instr = def->parent_instr;
    }
 
    nir_ssa_def_rewrite_uses(def, nir_src_for_reg(reg), state->mem_ctx);
    assert(list_empty(&def->uses) && list_empty(&def->if_uses));
 
-   if (def->parent_instr->type == nir_instr_type_ssa_undef)
+   if (def->parent_instr->type == nir_instr_type_ssa_undef) {
+      /* If it's an ssa_undef instruction, remove it since we know we just got
+       * rid of all its uses.
+       */
+      nir_instr *parent_instr = def->parent_instr;
+      nir_instr_remove(parent_instr);
+      ralloc_steal(state->dead_ctx, parent_instr);
       return true;
+   }
 
    assert(def->parent_instr->type != nir_instr_type_load_const);
 
@@ -523,7 +526,7 @@ rewrite_ssa_def(nir_ssa_def *def, void *void_state)
 }
 
 /* Resolves ssa definitions to registers.  While we're at it, we also
- * remove phi nodes and ssa_undef instructions
+ * remove phi nodes.
  */
 static bool
 resolve_registers_block(nir_block *block, void *void_state)
@@ -534,8 +537,7 @@ resolve_registers_block(nir_block *block, void *void_state)
       state->instr = instr;
       nir_foreach_ssa_def(instr, rewrite_ssa_def, state);
 
-      if (instr->type == nir_instr_type_ssa_undef ||
-          instr->type == nir_instr_type_phi) {
+      if (instr->type == nir_instr_type_phi) {
          nir_instr_remove(instr);
          ralloc_steal(state->dead_ctx, instr);
       }
@@ -765,13 +767,14 @@ resolve_parallel_copies_block(nir_block *block, void *void_state)
 }
 
 static void
-nir_convert_from_ssa_impl(nir_function_impl *impl)
+nir_convert_from_ssa_impl(nir_function_impl *impl, bool phi_webs_only)
 {
    struct from_ssa_state state;
 
    state.mem_ctx = ralloc_parent(impl);
    state.dead_ctx = ralloc_context(NULL);
    state.impl = impl;
+   state.phi_webs_only = phi_webs_only;
    state.merge_node_table = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
                                                     _mesa_key_pointer_equal);
 
@@ -801,10 +804,10 @@ nir_convert_from_ssa_impl(nir_function_impl *impl)
 }
 
 void
-nir_convert_from_ssa(nir_shader *shader)
+nir_convert_from_ssa(nir_shader *shader, bool phi_webs_only)
 {
    nir_foreach_overload(shader, overload) {
       if (overload->impl)
-         nir_convert_from_ssa_impl(overload->impl);
+         nir_convert_from_ssa_impl(overload->impl, phi_webs_only);
    }
 }

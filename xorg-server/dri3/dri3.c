@@ -26,9 +26,8 @@
 
 #include "dri3_priv.h"
 
-int dri3_request;
+static int dri3_request;
 DevPrivateKeyRec dri3_screen_private_key;
-DevPrivateKeyRec dri3_window_private_key;
 
 static int dri3_screen_generation;
 

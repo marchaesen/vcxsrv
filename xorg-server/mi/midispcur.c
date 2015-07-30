@@ -46,9 +46,7 @@ in this Software without prior written authorization from The Open Group.
 #include   "misprite.h"
 #include   "gcstruct.h"
 
-#ifdef ARGB_CURSOR
 #include   "picturestr.h"
-#endif
 
 #include "inputstr.h"
 
@@ -68,9 +66,7 @@ typedef struct {
     GCPtr pSourceGC, pMaskGC;
     GCPtr pSaveGC, pRestoreGC;
     PixmapPtr pSave;
-#ifdef ARGB_CURSOR
     PicturePtr pRootPicture;
-#endif
 } miDCBufferRec, *miDCBufferPtr;
 
 #define miGetDCDevice(dev, screen) \
@@ -86,9 +82,7 @@ typedef struct {
     CloseScreenProcPtr CloseScreen;
     PixmapPtr sourceBits;       /* source bits */
     PixmapPtr maskBits;         /* mask bits */
-#ifdef ARGB_CURSOR
     PicturePtr pPicture;
-#endif
     CursorPtr pCursor;
 } miDCScreenRec, *miDCScreenPtr;
 
@@ -133,11 +127,9 @@ miDCSwitchScreenCursor(ScreenPtr pScreen, CursorPtr pCursor, PixmapPtr sourceBit
         (*pScreen->DestroyPixmap)(pScreenPriv->maskBits);
     pScreenPriv->maskBits = maskBits;
 
-#ifdef ARGB_CURSOR
     if (pScreenPriv->pPicture)
         FreePicture(pScreenPriv->pPicture, 0);
     pScreenPriv->pPicture = pPicture;
-#endif
 
     pScreenPriv->pCursor = pCursor;
 }
@@ -162,7 +154,6 @@ miDCRealizeCursor(ScreenPtr pScreen, CursorPtr pCursor)
     return TRUE;
 }
 
-#ifdef ARGB_CURSOR
 #define EnsurePicture(picture,draw,win) (picture || miDCMakePicture(&picture,draw,win))
 
 static PicturePtr
@@ -182,7 +173,6 @@ miDCMakePicture(PicturePtr * ppPicture, DrawablePtr pDraw, WindowPtr pWin)
     *ppPicture = pPicture;
     return pPicture;
 }
-#endif
 
 static Bool
 miDCRealize(ScreenPtr pScreen, CursorPtr pCursor)
@@ -194,8 +184,6 @@ miDCRealize(ScreenPtr pScreen, CursorPtr pCursor)
 
     if (pScreenPriv->pCursor == pCursor)
         return TRUE;
-
-#ifdef ARGB_CURSOR
 
     if (pCursor->bits->argb) {
         PixmapPtr pPixmap;
@@ -233,7 +221,7 @@ miDCRealize(ScreenPtr pScreen, CursorPtr pCursor)
         miDCSwitchScreenCursor(pScreen, pCursor, NULL, NULL, pPicture);
         return TRUE;
     }
-#endif
+
     sourceBits = (*pScreen->CreatePixmap) (pScreen, pCursor->bits->width,
                                            pCursor->bits->height, 1, 0);
     if (!sourceBits)
@@ -373,7 +361,6 @@ miDCPutUpCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor,
     pWin = pScreen->root;
     pBuffer = miGetDCDevice(pDev, pScreen);
 
-#ifdef ARGB_CURSOR
     if (pScreenPriv->pPicture) {
         if (!EnsurePicture(pBuffer->pRootPicture, &pWin->drawable, pWin))
             return FALSE;
@@ -385,7 +372,6 @@ miDCPutUpCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor,
                          x, y, pCursor->bits->width, pCursor->bits->height);
     }
     else
-#endif
     {
         miDCPutBits((DrawablePtr) pWin,
                     pBuffer->pSourceGC, pBuffer->pMaskGC,
@@ -486,9 +472,7 @@ miDCDeviceInitialize(DeviceIntPtr pDev, ScreenPtr pScreen)
         if (!pBuffer->pRestoreGC)
             goto failure;
 
-#ifdef ARGB_CURSOR
         pBuffer->pRootPicture = NULL;
-#endif
 
         /* (re)allocated lazily depending on the cursor size */
         pBuffer->pSave = NULL;
@@ -525,11 +509,9 @@ miDCDeviceCleanup(DeviceIntPtr pDev, ScreenPtr pScreen)
                 if (pBuffer->pRestoreGC)
                     FreeGC(pBuffer->pRestoreGC, (GContext) 0);
 
-#ifdef ARGB_CURSOR
                 /* If a pRootPicture was allocated for a root window, it
                  * is freed when that root window is destroyed, so don't
                  * free it again here. */
-#endif
 
                 if (pBuffer->pSave)
                     (*pScreen->DestroyPixmap) (pBuffer->pSave);

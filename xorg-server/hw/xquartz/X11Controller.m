@@ -364,7 +364,7 @@ extern char *bundle_id_prefix;
     }
 
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= 1080
-    if (asl_log_descriptor) {
+    if (&asl_log_descriptor) {
         char *asl_sender;
         aslmsg amsg = asl_new(ASL_TYPE_MSG);
         assert(amsg);
@@ -414,7 +414,7 @@ extern char *bundle_id_prefix;
 
         case 0:                                     /* child2 */
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= 1080
-            if (asl_log_descriptor) {
+            if (&asl_log_descriptor) {
                 /* Replace our stdout/stderr */
                 dup2(stdout_pipe[1], STDOUT_FILENO);
                 dup2(stderr_pipe[1], STDERR_FILENO);
@@ -443,7 +443,7 @@ extern char *bundle_id_prefix;
     }
 
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= 1080
-    if (asl_log_descriptor) {
+    if (&asl_log_descriptor) {
         /* Close the write ends of the pipe */
         close(stdout_pipe[1]);
         close(stderr_pipe[1]);
@@ -929,14 +929,13 @@ extern char *bundle_id_prefix;
      *        and then run the alert on a timer? It seems to work here, so..
      */
 
-    return (NSRunAlertPanel(title, msg, NSLocalizedString(@"Quit", @""),
-                            NSLocalizedString(@"Cancel", @""), nil)
-            == NSAlertDefaultReturn) ? NSTerminateNow : NSTerminateCancel;
+    NSInteger result = NSRunAlertPanel(title, @"%@", NSLocalizedString(@"Quit", @""),
+                                       NSLocalizedString(@"Cancel", @""), nil, msg);
+    return (result == NSAlertDefaultReturn) ? NSTerminateNow : NSTerminateCancel;
 }
 
 - (void) applicationWillTerminate:(NSNotification *)aNotification _X_NORETURN
 {
-    int remain;
     [X11App prefs_synchronize];
 
     /* shutdown the X server, it will exit () for us. */

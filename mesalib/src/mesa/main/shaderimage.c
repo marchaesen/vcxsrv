@@ -610,7 +610,7 @@ _mesa_BindImageTextures(GLuint first, GLsizei count, const GLuint *textures)
                         "glBindImageTextures(the internal format %s of "
                         "the level zero texture image of textures[%d]=%u "
                         "is not supported)",
-                        _mesa_lookup_enum_by_nr(tex_format),
+                        _mesa_enum_to_string(tex_format),
                         i, texture);
             continue;
          }

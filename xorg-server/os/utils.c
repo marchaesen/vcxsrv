@@ -81,6 +81,7 @@ __stdcall unsigned long GetTickCount(void);
 #include <X11/Xtrans/Xtrans.h>
 #include "input.h"
 #include "dixfont.h"
+#include <X11/fonts/fontutil.h>
 #include "osdep.h"
 #include "extension.h"
 #ifdef X_POSIX_C_SOURCE

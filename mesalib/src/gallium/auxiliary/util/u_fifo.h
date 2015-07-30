@@ -36,7 +36,7 @@ struct util_fifo
    size_t size;
 };
 
-static INLINE struct util_fifo *
+static inline struct util_fifo *
 u_fifo_create(size_t size)
 {
    struct util_fifo *fifo;
@@ -50,7 +50,7 @@ u_fifo_create(size_t size)
    return fifo;
 }
 
-static INLINE boolean
+static inline boolean
 u_fifo_add(struct util_fifo *fifo, void *ptr)
 {
    void **array = (void**)&fifo[1];
@@ -67,7 +67,7 @@ u_fifo_add(struct util_fifo *fifo, void *ptr)
    return TRUE;
 }
 
-static INLINE boolean
+static inline boolean
 u_fifo_pop(struct util_fifo *fifo, void **ptr)
 {
    void **array = (void**)&fifo[1];
@@ -85,7 +85,7 @@ u_fifo_pop(struct util_fifo *fifo, void **ptr)
    return TRUE;
 }
 
-static INLINE void
+static inline void
 u_fifo_destroy(struct util_fifo *fifo)
 {
    FREE(fifo);

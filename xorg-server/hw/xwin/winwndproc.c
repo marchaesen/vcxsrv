@@ -168,7 +168,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         ErrorF("winWindowProc - WM_DISPLAYCHANGE - new width: %d "
                "new height: %d new bpp: %d\n",
-               LOWORD(lParam), HIWORD(lParam), wParam);
+               LOWORD(lParam), HIWORD(lParam), (int)wParam);
 
         /* 0 bpp has no defined meaning, ignore this message */
         if (wParam == 0)

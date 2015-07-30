@@ -40,9 +40,6 @@ SRGB = 'srgb'
 YUV = 'yuv'
 ZS = 'zs'
 
-def is_power_of_two(x):
-   return not bool(x & (x - 1))
-
 VERY_LARGE = 99999999999999999999999
 
 class Channel:
@@ -99,10 +96,6 @@ class Channel:
          return (1 << (self.size - 1)) - 1
       else:
          return 1
-
-   def is_power_of_two(self):
-      """Returns true if the size of this channel is a power of two."""
-      return is_power_of_two(self.size)
 
    def datatype(self):
       """Returns the datatype corresponding to a channel type and size"""

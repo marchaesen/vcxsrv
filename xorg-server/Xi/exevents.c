@@ -1590,7 +1590,7 @@ ProcessTouchEvent(InternalEvent *ev, DeviceIntPtr dev)
     if (!ti) {
         DebugF("[Xi] %s: Failed to get event %d for touchpoint %d\n",
                dev->name, type, touchid);
-        return;
+        goto out;
     }
 
     /* if emulate_pointer is set, emulate the motion event right
@@ -1624,6 +1624,7 @@ ProcessTouchEvent(InternalEvent *ev, DeviceIntPtr dev)
     if (ev->any.type == ET_TouchEnd)
         TouchEndTouch(dev, ti);
 
+ out:
     if (emulate_pointer)
         UpdateDeviceState(dev, &ev->device_event);
 }
@@ -1728,6 +1729,18 @@ ProcessDeviceEvent(InternalEvent *ev, DeviceIntPtr device)
         break;
     default:
         break;
+    }
+
+    /* send KeyPress and KeyRelease events to XACE plugins */
+    if (XaceHookIsSet(XACE_KEY_AVAIL) &&
+            (event->type == ET_KeyPress || event->type == ET_KeyRelease)) {
+        xEvent *core;
+        int count;
+
+        if (EventToCore(ev, &core, &count) == Success && count > 0) {
+            XaceHook(XACE_KEY_AVAIL, core, device, 0);
+            free(core);
+        }
     }
 
     if (DeviceEventCallback && !syncEvents.playingEvents) {

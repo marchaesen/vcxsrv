@@ -46,7 +46,7 @@ miDestroyPicture(PicturePtr pPicture)
         RegionDestroy(pPicture->pCompositeClip);
 }
 
-void
+static void
 miDestroyPictureClip(PicturePtr pPicture)
 {
     if (pPicture->clientClip)
@@ -54,7 +54,7 @@ miDestroyPictureClip(PicturePtr pPicture)
     pPicture->clientClip = NULL;
 }
 
-int
+static int
 miChangePictureClip(PicturePtr pPicture, int type, void *value, int n)
 {
     ScreenPtr pScreen = pPicture->pDrawable->pScreen;
@@ -88,13 +88,13 @@ miChangePictureClip(PicturePtr pPicture, int type, void *value, int n)
     return Success;
 }
 
-void
+static void
 miChangePicture(PicturePtr pPicture, Mask mask)
 {
     return;
 }
 
-void
+static void
 miValidatePicture(PicturePtr pPicture, Mask mask)
 {
     DrawablePtr pDrawable = pPicture->pDrawable;
@@ -211,13 +211,13 @@ miValidatePicture(PicturePtr pPicture, Mask mask)
     }
 }
 
-int
+static int
 miChangePictureTransform(PicturePtr pPicture, PictTransform * transform)
 {
     return Success;
 }
 
-int
+static int
 miChangePictureFilter(PicturePtr pPicture,
                       int filter, xFixed * params, int nparams)
 {
@@ -499,7 +499,7 @@ miRenderPixelToColor(PictFormatPtr format, CARD32 pixel, xRenderColor * color)
     }
 }
 
-void
+static void
 miTriStrip(CARD8 op,
            PicturePtr pSrc,
            PicturePtr pDst,
@@ -523,7 +523,7 @@ miTriStrip(CARD8 op,
     free(tris);
 }
 
-void
+static void
 miTriFan(CARD8 op,
          PicturePtr pSrc,
          PicturePtr pDst,

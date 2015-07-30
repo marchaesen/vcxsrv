@@ -40,13 +40,9 @@
 
 
 #include <stdbool.h>
-#ifndef __NOT_HAVE_DRM_H
-#include <xf86drm.h>
-#endif
 #include "dri_util.h"
 #include "utils.h"
 #include "xmlpool.h"
-#include "../glsl/glsl_parser_extras.h"
 #include "main/mtypes.h"
 #include "main/version.h"
 #include "main/errors.h"
@@ -138,18 +134,6 @@ driCreateNewScreen2(int scrn, int fd,
 
     setupLoaderExtensions(psp, extensions);
 
-#ifndef __NOT_HAVE_DRM_H
-    if (fd != -1) {
-       drmVersionPtr version = drmGetVersion(fd);
-       if (version) {
-          psp->drm_version.major = version->version_major;
-          psp->drm_version.minor = version->version_minor;
-          psp->drm_version.patch = version->version_patchlevel;
-          drmFreeVersion(version);
-       }
-    }
-#endif
-
     psp->loaderPrivate = data;
 
     psp->extensions = emptyExtensionList;
@@ -237,8 +221,6 @@ static void driDestroyScreen(__DRIscreen *psp)
 	 * routine is called after XCloseDisplay, so there is no protocol
 	 * stream open to the X-server anymore.
 	 */
-
-       _mesa_destroy_shader_compiler();
 
 	psp->driver->DestroyScreen(psp);
 

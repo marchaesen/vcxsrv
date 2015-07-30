@@ -55,7 +55,7 @@
 #include "tgsi/tgsi_scan.h"
 
 /** Approx number of new tokens for instructions in pstip_transform_inst() */
-#define NUM_NEW_TOKENS 50
+#define NUM_NEW_TOKENS 53
 
 
 static void
@@ -262,6 +262,7 @@ pstip_transform_prolog(struct tgsi_transform_context *ctx)
       (struct pstip_transform_context *) ctx;
    int wincoordInput;
    int texTemp;
+   int sampIdx;
 
    /* find free texture sampler */
    pctx->freeSampler = free_bit(pctx->samplersUsed);
@@ -280,9 +281,21 @@ pstip_transform_prolog(struct tgsi_transform_context *ctx)
                                 TGSI_INTERPOLATE_LINEAR);
    }
 
+   sampIdx = pctx->hasFixedUnit ? pctx->fixedUnit : pctx->freeSampler;
+
    /* declare new sampler */
-   tgsi_transform_sampler_decl(ctx,
-         pctx->hasFixedUnit ? pctx->fixedUnit : pctx->freeSampler);
+   tgsi_transform_sampler_decl(ctx, sampIdx);
+
+   /* if the src shader has SVIEW decl's for each SAMP decl, we
+    * need to continue the trend and ensure there is a matching
+    * SVIEW for the new SAMP we just created
+    */
+   if (pctx->info.file_max[TGSI_FILE_SAMPLER_VIEW] != -1) {
+      tgsi_transform_sampler_view_decl(ctx,
+                                       sampIdx,
+                                       TGSI_TEXTURE_2D,
+                                       TGSI_RETURN_TYPE_FLOAT);
+   }
 
    /* Declare temp[0] reg if not already declared.
     * We can always use temp[0] since this code is before
@@ -321,8 +334,7 @@ pstip_transform_prolog(struct tgsi_transform_context *ctx)
    tgsi_transform_tex_2d_inst(ctx,
                               TGSI_FILE_TEMPORARY, texTemp,
                               TGSI_FILE_TEMPORARY, texTemp,
-                              pctx->hasFixedUnit ? pctx->fixedUnit
-                                                 : pctx->freeSampler);
+                              sampIdx);
 
    /* KILL_IF -texTemp;   # if -texTemp < 0, kill fragment */
    tgsi_transform_kill_inst(ctx,

@@ -2,6 +2,10 @@
 
 #include "glamor_priv.h"
 
+static void
+glamor_get_transform_extent_from_box(struct pixman_box32 *box,
+                                     struct pixman_transform *transform);
+
 static inline glamor_pixmap_private *
 __glamor_large(glamor_pixmap_private *pixmap_priv) {
     assert(glamor_pixmap_priv_is_large(pixmap_priv));
@@ -681,7 +685,7 @@ glamor_compute_clipped_regions(PixmapPtr pixmap,
 /* XXX overflow still exist. maybe we need to change to use region32.
  * by default. Or just use region32 for repeat cases?
  **/
-glamor_pixmap_clipped_regions *
+static glamor_pixmap_clipped_regions *
 glamor_compute_transform_clipped_regions(PixmapPtr pixmap,
                                          struct pixman_transform *transform,
                                          RegionPtr region, int *n_region,
@@ -755,7 +759,6 @@ glamor_merge_clipped_regions(PixmapPtr pixmap,
                              glamor_pixmap_clipped_regions *clipped_regions,
                              int *n_regions, int *need_clean_fbo)
 {
-    BoxPtr temp_extent;
     BoxRec temp_box, copy_box;
     RegionPtr temp_region;
     glamor_pixmap_private *temp_priv;
@@ -779,9 +782,8 @@ glamor_merge_clipped_regions(PixmapPtr pixmap,
     RegionValidate(temp_region, &overlap);
     DEBUGF("temp region: \n");
     DEBUGRegionPrint(temp_region);
-    temp_extent = RegionExtents(temp_region);
 
-    temp_box = *temp_extent;
+    temp_box = *RegionExtents(temp_region);
 
     DEBUGF("need copy region: \n");
     DEBUGF("%d %d %d %d \n", temp_box.x1, temp_box.y1, temp_box.x2,
@@ -801,16 +803,16 @@ glamor_merge_clipped_regions(PixmapPtr pixmap,
     assert(glamor_pixmap_priv_is_small(temp_priv));
 
     priv->box = temp_box;
-    if (temp_extent->x1 >= 0 && temp_extent->x2 <= pixmap_width
-        && temp_extent->y1 >= 0 && temp_extent->y2 <= pixmap_height) {
+    if (temp_box.x1 >= 0 && temp_box.x2 <= pixmap_width
+        && temp_box.y1 >= 0 && temp_box.y2 <= pixmap_height) {
         int dx, dy;
 
         copy_box.x1 = 0;
         copy_box.y1 = 0;
-        copy_box.x2 = temp_extent->x2 - temp_extent->x1;
-        copy_box.y2 = temp_extent->y2 - temp_extent->y1;
-        dx = temp_extent->x1;
-        dy = temp_extent->y1;
+        copy_box.x2 = temp_box.x2 - temp_box.x1;
+        copy_box.y2 = temp_box.y2 - temp_box.y1;
+        dx = temp_box.x1;
+        dy = temp_box.y1;
         glamor_copy(&pixmap->drawable,
                     &temp_pixmap->drawable,
                     NULL, &copy_box, 1, dx, dy, 0, 0, 0, NULL);
@@ -878,7 +880,7 @@ glamor_merge_clipped_regions(PixmapPtr pixmap,
  * boundary and can avoid some overhead.
  *
  **/
-Bool
+static Bool
 glamor_get_transform_block_size(struct pixman_transform *transform,
                                 int block_w, int block_h,
                                 int *transformed_block_w,
@@ -927,7 +929,7 @@ glamor_get_transform_block_size(struct pixman_transform *transform,
 	p.v[0] = x;  \
 	p.v[1] = y;  \
 	p.v[2] = 1.0; } while (0)
-void
+static void
 glamor_get_transform_extent_from_box(struct pixman_box32 *box,
                                      struct pixman_transform *transform)
 {

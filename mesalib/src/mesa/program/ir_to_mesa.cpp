@@ -534,6 +534,7 @@ type_size(const struct glsl_type *type)
       return size;
    case GLSL_TYPE_SAMPLER:
    case GLSL_TYPE_IMAGE:
+   case GLSL_TYPE_SUBROUTINE:
       /* Samplers take up one slot in UNIFORMS[], but they're baked in
        * at link time.
        */
@@ -1342,6 +1343,7 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
    case ir_unop_dFdx_fine:
    case ir_unop_dFdy_coarse:
    case ir_unop_dFdy_fine:
+   case ir_unop_subroutine_to_int:
       assert(!"not supported");
       break;
 
@@ -2384,7 +2386,7 @@ _mesa_generate_parameters_list_for_uniforms(struct gl_shader_program
       ir_variable *var = node->as_variable();
 
       if ((var == NULL) || (var->data.mode != ir_var_uniform)
-	  || var->is_in_uniform_block() || (strncmp(var->name, "gl_", 3) == 0))
+	  || var->is_in_buffer_block() || (strncmp(var->name, "gl_", 3) == 0))
 	 continue;
 
       add.process(var);
@@ -2451,6 +2453,7 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
 	    break;
 	 case GLSL_TYPE_SAMPLER:
 	 case GLSL_TYPE_IMAGE:
+         case GLSL_TYPE_SUBROUTINE:
 	    format = uniform_native;
 	    columns = 1;
 	    break;
@@ -2910,7 +2913,7 @@ _mesa_ir_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 	 if (options->EmitNoIndirectInput || options->EmitNoIndirectOutput
 	     || options->EmitNoIndirectTemp || options->EmitNoIndirectUniform)
 	   progress =
-	     lower_variable_index_to_cond_assign(ir,
+	     lower_variable_index_to_cond_assign(prog->_LinkedShaders[i]->Stage, ir,
 						 options->EmitNoIndirectInput,
 						 options->EmitNoIndirectOutput,
 						 options->EmitNoIndirectTemp,
@@ -2975,6 +2978,8 @@ _mesa_glsl_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
    if (prog->LinkStatus) {
       if (!ctx->Driver.LinkShader(ctx, prog)) {
 	 prog->LinkStatus = GL_FALSE;
+      } else {
+         build_program_resource_list(ctx, prog);
       }
    }
 

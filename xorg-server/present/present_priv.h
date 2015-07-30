@@ -147,8 +147,6 @@ present_window_priv(WindowPtr window)
 present_window_priv_ptr
 present_get_window_priv(WindowPtr window, Bool create);
 
-extern RESTYPE present_event_type;
-
 /*
  * present.c
  */

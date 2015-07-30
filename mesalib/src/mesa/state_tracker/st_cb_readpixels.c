@@ -43,6 +43,30 @@
 #include "state_tracker/st_format.h"
 #include "state_tracker/st_texture.h"
 
+static boolean
+needs_integer_signed_unsigned_conversion(const struct gl_context *ctx,
+                                         GLenum format, GLenum type)
+{
+   struct gl_renderbuffer *rb =
+      _mesa_get_read_renderbuffer_for_format(ctx, format);
+
+   assert(rb);
+
+   GLenum srcType = _mesa_get_format_datatype(rb->Format);
+
+    if ((srcType == GL_INT &&
+        (type == GL_UNSIGNED_INT ||
+         type == GL_UNSIGNED_SHORT ||
+         type == GL_UNSIGNED_BYTE)) ||
+       (srcType == GL_UNSIGNED_INT &&
+        (type == GL_INT ||
+         type == GL_SHORT ||
+         type == GL_BYTE))) {
+      return TRUE;
+   }
+
+   return FALSE;
+}
 
 /**
  * This uses a blit to copy the read buffer to a texture format which matches
@@ -120,6 +144,10 @@ st_readpixels(struct gl_context *ctx, GLint x, GLint y,
    }
 
    if (_mesa_readpixels_needs_slow_path(ctx, format, type, GL_TRUE)) {
+      goto fallback;
+   }
+
+   if (needs_integer_signed_unsigned_conversion(ctx, format, type)) {
       goto fallback;
    }
 

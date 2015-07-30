@@ -449,8 +449,9 @@ winXIconToHICON(Display * pDisplay, Window id, int iconSize)
 
         hints = XGetWMHints(pDisplay, id);
         if (hints) {
-            winDebug("winXIconToHICON: id 0x%x icon_pixmap hint %x\n", id,
-                     hints->icon_pixmap);
+            winDebug("winXIconToHICON: id 0x%x icon_pixmap hint 0x%x\n",
+                     (unsigned int)id,
+                     (unsigned int)hints->icon_pixmap);
 
             if (hints->icon_pixmap) {
                 Window root;
@@ -465,8 +466,8 @@ winXIconToHICON(Display * pDisplay, Window id, int iconSize)
                 xImageIcon =
                     XGetImage(pDisplay, hints->icon_pixmap, 0, 0, width, height,
                               0xFFFFFFFF, ZPixmap);
-                winDebug("winXIconToHICON: id 0x%x icon Ximage 0x%p\n", id,
-                         xImageIcon);
+                winDebug("winXIconToHICON: id 0x%x icon Ximage 0x%p\n",
+                         (unsigned int)id, xImageIcon);
 
                 if (hints->icon_mask)
                     xImageMask =

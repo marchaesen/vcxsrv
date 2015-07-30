@@ -111,7 +111,7 @@ VidModeClose(ScreenPtr pScreen)
     return pScreen->CloseScreen(pScreen);
 }
 
-Bool
+static Bool
 VidModeAvailable(int scrnIndex)
 {
     ScrnInfoPtr pScrn;

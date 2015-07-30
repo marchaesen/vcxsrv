@@ -338,6 +338,12 @@ sign(operand a)
    return expr(ir_unop_sign, a);
 }
 
+ir_expression *
+subr_to_int(operand a)
+{
+   return expr(ir_unop_subroutine_to_int, a);
+}
+
 ir_expression*
 equal(operand a, operand b)
 {

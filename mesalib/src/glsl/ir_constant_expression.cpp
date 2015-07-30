@@ -40,23 +40,11 @@
 #include "glsl_types.h"
 #include "program/hash_table.h"
 
-#if defined(_MSC_VER) && (_MSC_VER < 1800)
-static int isnormal(double x)
-{
-   return _fpclass(x) == _FPCLASS_NN || _fpclass(x) == _FPCLASS_PN;
-}
-#elif defined(__SUNPRO_CC) && !defined(isnormal)
+#if defined(__SUNPRO_CC) && !defined(isnormal)
 #include <ieeefp.h>
 static int isnormal(double x)
 {
    return fpclass(x) == FP_NORMAL;
-}
-#endif
-
-#if defined(_MSC_VER)
-static double copysign(double x, double y)
-{
-   return _copysign(x, y);
 }
 #endif
 
@@ -1674,10 +1662,10 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
             if (!isnormal(data.d[c]))
                data.d[c] = copysign(0.0, op[0]->value.d[c]);
          } else {
-            data.f[c] = ldexp(op[0]->value.f[c], op[1]->value.i[c]);
+            data.f[c] = ldexpf(op[0]->value.f[c], op[1]->value.i[c]);
             /* Flush subnormal values to zero. */
             if (!isnormal(data.f[c]))
-               data.f[c] = copysign(0.0f, op[0]->value.f[c]);
+               data.f[c] = copysignf(0.0f, op[0]->value.f[c]);
          }
       }
       break;

@@ -64,10 +64,10 @@ typedef XID RROutput;
 typedef XID RRCrtc;
 typedef XID RRProvider;
 
-extern _X_EXPORT int RREventBase, RRErrorBase;
+extern int RREventBase, RRErrorBase;
 
-extern _X_EXPORT int (*ProcRandrVector[RRNumberRequests]) (ClientPtr);
-extern _X_EXPORT int (*SProcRandrVector[RRNumberRequests]) (ClientPtr);
+extern int (*ProcRandrVector[RRNumberRequests]) (ClientPtr);
+extern int (*SProcRandrVector[RRNumberRequests]) (ClientPtr);
 
 /*
  * Modeline for a monitor. Name follows directly after this struct
@@ -397,8 +397,8 @@ typedef struct _RRClient {
 /*  RRTimesRec	times[0]; */
 } RRClientRec, *RRClientPtr;
 
-extern _X_EXPORT RESTYPE RRClientType, RREventType;     /* resource types for event masks */
-extern _X_EXPORT DevPrivateKeyRec RRClientPrivateKeyRec;
+extern RESTYPE RRClientType, RREventType;     /* resource types for event masks */
+extern DevPrivateKeyRec RRClientPrivateKeyRec;
 
 #define RRClientPrivateKey (&RRClientPrivateKeyRec)
 extern _X_EXPORT RESTYPE RRCrtcType, RRModeType, RROutputType, RRProviderType;

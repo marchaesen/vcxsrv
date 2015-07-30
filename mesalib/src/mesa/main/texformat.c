@@ -847,7 +847,7 @@ _mesa_choose_tex_format(struct gl_context *ctx, GLenum target,
    }
 
    _mesa_problem(ctx, "unexpected format %s in _mesa_choose_tex_format()",
-                 _mesa_lookup_enum_by_nr(internalFormat));
+                 _mesa_enum_to_string(internalFormat));
    return MESA_FORMAT_NONE;
 }
 

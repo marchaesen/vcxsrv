@@ -36,6 +36,9 @@ public:
       case ir_var_uniform:
          dest = &ibu;
          break;
+      case ir_var_shader_storage:
+         dest = &iss;
+         break;
       case ir_var_shader_in:
          dest = &ibi;
          break;
@@ -60,6 +63,8 @@ public:
       switch (mode) {
       case ir_var_uniform:
          return ibu;
+      case ir_var_shader_storage:
+         return iss;
       case ir_var_shader_in:
          return ibi;
       case ir_var_shader_out:
@@ -71,24 +76,25 @@ public:
    }
 
    symbol_table_entry(ir_variable *v)               :
-      v(v), f(0), t(0), ibu(0), ibi(0), ibo(0), a(0) {}
+      v(v), f(0), t(0), ibu(0), iss(0), ibi(0), ibo(0), a(0) {}
    symbol_table_entry(ir_function *f)               :
-      v(0), f(f), t(0), ibu(0), ibi(0), ibo(0), a(0) {}
+      v(0), f(f), t(0), ibu(0), iss(0), ibi(0), ibo(0), a(0) {}
    symbol_table_entry(const glsl_type *t)           :
-      v(0), f(0), t(t), ibu(0), ibi(0), ibo(0), a(0) {}
+      v(0), f(0), t(t), ibu(0), iss(0), ibi(0), ibo(0), a(0) {}
    symbol_table_entry(const glsl_type *t, enum ir_variable_mode mode) :
-      v(0), f(0), t(0), ibu(0), ibi(0), ibo(0), a(0)
+      v(0), f(0), t(0), ibu(0), iss(0), ibi(0), ibo(0), a(0)
    {
       assert(t->is_interface());
       add_interface(t, mode);
    }
    symbol_table_entry(const class ast_type_specifier *a):
-      v(0), f(0), t(0), ibu(0), ibi(0), ibo(0), a(a) {}
+      v(0), f(0), t(0), ibu(0), iss(0), ibi(0), ibo(0), a(a) {}
 
    ir_variable *v;
    ir_function *f;
    const glsl_type *t;
    const glsl_type *ibu;
+   const glsl_type *iss;
    const glsl_type *ibi;
    const glsl_type *ibo;
    const class ast_type_specifier *a;

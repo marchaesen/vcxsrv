@@ -139,9 +139,7 @@ xf86SetCursor(ScreenPtr pScreen, CursorPtr pCurs, int x, int y)
     x -= infoPtr->pScrn->frameX0 + ScreenPriv->HotX;
     y -= infoPtr->pScrn->frameY0 + ScreenPriv->HotY;
 
-#ifdef ARGB_CURSOR
     if (!pCurs->bits->argb || !xf86DriverHasLoadCursorARGB(infoPtr))
-#endif
         if (!bits) {
             bits = (*infoPtr->RealizeCursor) (infoPtr, pCurs);
             dixSetScreenPrivate(&pCurs->devPrivates, CursorScreenKey, pScreen,
@@ -151,12 +149,10 @@ xf86SetCursor(ScreenPtr pScreen, CursorPtr pCurs, int x, int y)
     if (!(infoPtr->Flags & HARDWARE_CURSOR_UPDATE_UNHIDDEN))
         (*infoPtr->HideCursor) (infoPtr->pScrn);
 
-#ifdef ARGB_CURSOR
     if (pCurs->bits->argb && xf86DriverHasLoadCursorARGB(infoPtr)) {
         if (!xf86DriverLoadCursorARGB (infoPtr, pCurs))
             return FALSE;
     } else
-#endif
     if (bits)
         if (!xf86DriverLoadCursorImage (infoPtr, bits))
             return FALSE;
@@ -213,12 +209,10 @@ xf86RecolorCursor(ScreenPtr pScreen, CursorPtr pCurs, Bool displayed)
                                                xf86CursorScreenKey);
     xf86CursorInfoPtr infoPtr = ScreenPriv->CursorInfoPtr;
 
-#ifdef ARGB_CURSOR
     /* recoloring isn't applicable to ARGB cursors and drivers
        shouldn't have to ignore SetCursorColors requests */
     if (pCurs->bits->argb)
         return;
-#endif
 
     if (ScreenPriv->PalettedCursor) {
         xColorItem sourceColor, maskColor;

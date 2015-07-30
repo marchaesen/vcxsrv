@@ -78,7 +78,7 @@ static int compar_nr( const int *a, enum_elt *b )
 
 static char token_tmp[20];
 
-const char *_mesa_lookup_enum_by_nr( int nr )
+const char *_mesa_enum_to_string( int nr )
 {
    enum_elt *elt;
 
@@ -118,6 +118,7 @@ static const char *prim_names[PRIM_MAX+3] = {
    "GL_LINE_STRIP_ADJACENCY",
    "GL_TRIANGLES_ADJACENCY",
    "GL_TRIANGLE_STRIP_ADJACENCY",
+   "GL_PATCHES",
    "outside begin/end",
    "unknown state"
 };

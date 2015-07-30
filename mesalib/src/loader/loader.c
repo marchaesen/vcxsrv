@@ -64,6 +64,8 @@
  *    Rob Clark <robclark@freedesktop.org>
  */
 
+#include <errno.h>
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -71,10 +73,8 @@
 #ifdef HAVE_LIBUDEV
 #include <assert.h>
 #include <dlfcn.h>
-#include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <errno.h>
 #ifdef USE_DRICONF
 #include "xmlconfig.h"
 #include "xmlpool.h"
@@ -85,7 +85,7 @@
 #endif
 #include "loader.h"
 
-#ifndef __NOT_HAVE_DRM_H
+#ifdef HAVE_LIBDRM
 #include <xf86drm.h>
 #endif
 
@@ -104,6 +104,22 @@ static void default_logger(int level, const char *fmt, ...)
 
 static void (*log_)(int level, const char *fmt, ...) = default_logger;
 
+int
+loader_open_device(const char *device_name)
+{
+   int fd;
+#ifdef O_CLOEXEC
+   fd = open(device_name, O_RDWR | O_CLOEXEC);
+   if (fd == -1 && errno == EINVAL)
+#endif
+   {
+      fd = open(device_name, O_RDWR);
+      if (fd != -1)
+         fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
+   }
+   return fd;
+}
+
 #ifdef HAVE_LIBUDEV
 #include <libudev.h>
 
@@ -112,26 +128,36 @@ static void *udev_handle = NULL;
 static void *
 udev_dlopen_handle(void)
 {
-   if (!udev_handle) {
-      udev_handle = dlopen("libudev.so.1", RTLD_LOCAL | RTLD_LAZY);
+   char name[80];
+   unsigned flags = RTLD_NOLOAD | RTLD_LOCAL | RTLD_LAZY;
+   int version;
 
-      if (!udev_handle) {
-         /* libudev.so.1 changed the return types of the two unref functions
-          * from voids to pointers.  We don't use those return values, and the
-          * only ABI I've heard that cares about this kind of change (calling
-          * a function with a void * return that actually only returns void)
-          * might be ia64.
-          */
-         udev_handle = dlopen("libudev.so.0", RTLD_LOCAL | RTLD_LAZY);
+   /* libudev.so.1 changed the return types of the two unref functions
+    * from voids to pointers.  We don't use those return values, and the
+    * only ABI I've heard that cares about this kind of change (calling
+    * a function with a void * return that actually only returns void)
+    * might be ia64.
+    */
 
-         if (!udev_handle) {
-            log_(_LOADER_WARNING, "Couldn't dlopen libudev.so.1 or "
-                 "libudev.so.0, driver detection may be broken.\n");
-         }
+   /* First try opening an already linked libudev, then try loading one */
+   do {
+      for (version = 1; version >= 0; version--) {
+         snprintf(name, sizeof(name), "libudev.so.%d", version);
+         udev_handle = dlopen(name, flags);
+         if (udev_handle)
+            return udev_handle;
       }
-   }
 
-   return udev_handle;
+      if ((flags & RTLD_NOLOAD) == 0)
+         break;
+
+      flags &= ~RTLD_NOLOAD;
+   } while (1);
+
+   log_(_LOADER_WARNING,
+        "Couldn't dlopen libudev.so.1 or "
+        "libudev.so.0, driver detection may be broken.\n");
+   return NULL;
 }
 
 static int dlsym_failed = 0;
@@ -247,6 +273,8 @@ get_render_node_from_id_path_tag(struct udev *udev,
                (struct udev_enumerate *));
    UDEV_SYMBOL(struct udev_list_entry *, udev_enumerate_get_list_entry,
                (struct udev_enumerate *));
+   UDEV_SYMBOL(void, udev_enumerate_unref,
+               (struct udev_enumerate *));
    UDEV_SYMBOL(struct udev_list_entry *, udev_list_entry_get_next,
                (struct udev_list_entry *));
    UDEV_SYMBOL(const char *, udev_list_entry_get_name,
@@ -281,6 +309,8 @@ get_render_node_from_id_path_tag(struct udev *udev,
       udev_device_unref(device);
    }
 
+   udev_enumerate_unref(e);
+
    if (found) {
       path_res = strdup(udev_device_get_devnode(device));
       udev_device_unref(device);
@@ -312,22 +342,6 @@ get_id_path_tag_from_fd(struct udev *udev, int fd)
 
    udev_device_unref(device);
    return id_path_tag;
-}
-
-static int
-drm_open_device(const char *device_name)
-{
-   int fd;
-#ifdef O_CLOEXEC
-   fd = open(device_name, O_RDWR | O_CLOEXEC);
-   if (fd == -1 && errno == EINVAL)
-#endif
-   {
-      fd = open(device_name, O_RDWR);
-      if (fd != -1)
-         fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
-   }
-   return fd;
 }
 
 #ifdef USE_DRICONF
@@ -404,7 +418,7 @@ int loader_get_user_preferred_fd(int default_fd, int *different_device)
       goto default_device_clean;
    }
 
-   fd = drm_open_device(device_name);
+   fd = loader_open_device(device_name);
    if (fd >= 0) {
       close(default_fd);
    } else {
@@ -491,7 +505,7 @@ sysfs_get_pci_id_for_fd(int fd, int *vendor_id, int *chip_id)
 }
 #endif
 
-#if !defined(__NOT_HAVE_DRM_H)
+#if defined(HAVE_LIBDRM)
 /* for i915 */
 #include <i915_drm.h>
 /* for radeon */
@@ -574,7 +588,7 @@ loader_get_pci_id_for_fd(int fd, int *vendor_id, int *chip_id)
    if (sysfs_get_pci_id_for_fd(fd, vendor_id, chip_id))
       return 1;
 #endif
-#if !defined(__NOT_HAVE_DRM_H)
+#if HAVE_LIBDRM
    if (drm_get_pci_id_for_fd(fd, vendor_id, chip_id))
       return 1;
 #endif
@@ -685,7 +699,7 @@ loader_get_driver_for_fd(int fd, unsigned driver_types)
 
    if (!loader_get_pci_id_for_fd(fd, &vendor_id, &chip_id)) {
 
-#ifndef __NOT_HAVE_DRM_H
+#if HAVE_LIBDRM
       /* fallback to drmGetVersion(): */
       drmVersionPtr version = drmGetVersion(fd);
 

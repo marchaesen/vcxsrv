@@ -83,7 +83,7 @@ _mesa_generate_texture_mipmap(struct gl_context *ctx,
 
    if (error) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glGenerate%sMipmap(target=%s)",
-                  suffix, _mesa_lookup_enum_by_nr(target));
+                  suffix, _mesa_enum_to_string(target));
       return;
    }
 

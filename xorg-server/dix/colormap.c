@@ -64,6 +64,9 @@ SOFTWARE.
 #include "privates.h"
 #include "xace.h"
 
+typedef int (*ColorCompareProcPtr) (EntryPtr /*pent */ ,
+                                    xrgb * /*prgb */ );
+
 static Pixel FindBestPixel(EntryPtr /*pentFirst */ ,
                            int /*size */ ,
                            xrgb * /*prgb */ ,
@@ -748,6 +751,173 @@ UpdateColors(ColormapPtr pmap)
     free(defs);
 }
 
+/* Tries to find a color in pmap that exactly matches the one requested in prgb
+ * if it can't it allocates one.
+ * Starts looking at pentFirst + *pPixel, so if you want a specific pixel,
+ * load *pPixel with that value, otherwise set it to 0
+ */
+static int
+FindColor(ColormapPtr pmap, EntryPtr pentFirst, int size, xrgb * prgb,
+          Pixel * pPixel, int channel, int client, ColorCompareProcPtr comp)
+{
+    EntryPtr pent;
+    Bool foundFree;
+    Pixel pixel, Free = 0;
+    int npix, count, *nump = NULL;
+    Pixel **pixp = NULL, *ppix;
+    xColorItem def;
+
+    foundFree = FALSE;
+
+    if ((pixel = *pPixel) >= size)
+        pixel = 0;
+    /* see if there is a match, and also look for a free entry */
+    for (pent = pentFirst + pixel, count = size; --count >= 0;) {
+        if (pent->refcnt > 0) {
+            if ((*comp) (pent, prgb)) {
+                if (client >= 0)
+                    pent->refcnt++;
+                *pPixel = pixel;
+                switch (channel) {
+                case REDMAP:
+                    *pPixel <<= pmap->pVisual->offsetRed;
+                case PSEUDOMAP:
+                    break;
+                case GREENMAP:
+                    *pPixel <<= pmap->pVisual->offsetGreen;
+                    break;
+                case BLUEMAP:
+                    *pPixel <<= pmap->pVisual->offsetBlue;
+                    break;
+                }
+                goto gotit;
+            }
+        }
+        else if (!foundFree && pent->refcnt == 0) {
+            Free = pixel;
+            foundFree = TRUE;
+            /* If we're initializing the colormap, then we are looking for
+             * the first free cell we can find, not to minimize the number
+             * of entries we use.  So don't look any further. */
+            if (pmap->flags & BeingCreated)
+                break;
+        }
+        pixel++;
+        if (pixel >= size) {
+            pent = pentFirst;
+            pixel = 0;
+        }
+        else
+            pent++;
+    }
+
+    /* If we got here, we didn't find a match.  If we also didn't find
+     * a free entry, we're out of luck.  Otherwise, we'll usurp a free
+     * entry and fill it in */
+    if (!foundFree)
+        return BadAlloc;
+    pent = pentFirst + Free;
+    pent->fShared = FALSE;
+    pent->refcnt = (client >= 0) ? 1 : AllocTemporary;
+
+    switch (channel) {
+    case PSEUDOMAP:
+        pent->co.local.red = prgb->red;
+        pent->co.local.green = prgb->green;
+        pent->co.local.blue = prgb->blue;
+        def.red = prgb->red;
+        def.green = prgb->green;
+        def.blue = prgb->blue;
+        def.flags = (DoRed | DoGreen | DoBlue);
+        if (client >= 0)
+            pmap->freeRed--;
+        def.pixel = Free;
+        break;
+
+    case REDMAP:
+        pent->co.local.red = prgb->red;
+        def.red = prgb->red;
+        def.green = pmap->green[0].co.local.green;
+        def.blue = pmap->blue[0].co.local.blue;
+        def.flags = DoRed;
+        if (client >= 0)
+            pmap->freeRed--;
+        def.pixel = Free << pmap->pVisual->offsetRed;
+        break;
+
+    case GREENMAP:
+        pent->co.local.green = prgb->green;
+        def.red = pmap->red[0].co.local.red;
+        def.green = prgb->green;
+        def.blue = pmap->blue[0].co.local.blue;
+        def.flags = DoGreen;
+        if (client >= 0)
+            pmap->freeGreen--;
+        def.pixel = Free << pmap->pVisual->offsetGreen;
+        break;
+
+    case BLUEMAP:
+        pent->co.local.blue = prgb->blue;
+        def.red = pmap->red[0].co.local.red;
+        def.green = pmap->green[0].co.local.green;
+        def.blue = prgb->blue;
+        def.flags = DoBlue;
+        if (client >= 0)
+            pmap->freeBlue--;
+        def.pixel = Free << pmap->pVisual->offsetBlue;
+        break;
+    }
+    (*pmap->pScreen->StoreColors) (pmap, 1, &def);
+    pixel = Free;
+    *pPixel = def.pixel;
+
+ gotit:
+    if (pmap->flags & BeingCreated || client == -1)
+        return Success;
+    /* Now remember the pixel, for freeing later */
+    switch (channel) {
+    case PSEUDOMAP:
+    case REDMAP:
+        nump = pmap->numPixelsRed;
+        pixp = pmap->clientPixelsRed;
+        break;
+
+    case GREENMAP:
+        nump = pmap->numPixelsGreen;
+        pixp = pmap->clientPixelsGreen;
+        break;
+
+    case BLUEMAP:
+        nump = pmap->numPixelsBlue;
+        pixp = pmap->clientPixelsBlue;
+        break;
+    }
+    npix = nump[client];
+    ppix = reallocarray(pixp[client], npix + 1, sizeof(Pixel));
+    if (!ppix) {
+        pent->refcnt--;
+        if (!pent->fShared)
+            switch (channel) {
+            case PSEUDOMAP:
+            case REDMAP:
+                pmap->freeRed++;
+                break;
+            case GREENMAP:
+                pmap->freeGreen++;
+                break;
+            case BLUEMAP:
+                pmap->freeBlue++;
+                break;
+            }
+        return BadAlloc;
+    }
+    ppix[npix] = pixel;
+    pixp[client] = ppix;
+    nump[client]++;
+
+    return Success;
+}
+
 /* Get a read-only color from a ColorMap (probably slow for large maps)
  * Returns by changing the value in pred, pgreen, pblue and pPix
  */
@@ -1135,173 +1305,6 @@ FindColorInRootCmap(ColormapPtr pmap, EntryPtr pentFirst, int size,
             *pPixel = pixel;
         }
     }
-}
-
-/* Tries to find a color in pmap that exactly matches the one requested in prgb
- * if it can't it allocates one.
- * Starts looking at pentFirst + *pPixel, so if you want a specific pixel,
- * load *pPixel with that value, otherwise set it to 0
- */
-int
-FindColor(ColormapPtr pmap, EntryPtr pentFirst, int size, xrgb * prgb,
-          Pixel * pPixel, int channel, int client, ColorCompareProcPtr comp)
-{
-    EntryPtr pent;
-    Bool foundFree;
-    Pixel pixel, Free = 0;
-    int npix, count, *nump = NULL;
-    Pixel **pixp = NULL, *ppix;
-    xColorItem def;
-
-    foundFree = FALSE;
-
-    if ((pixel = *pPixel) >= size)
-        pixel = 0;
-    /* see if there is a match, and also look for a free entry */
-    for (pent = pentFirst + pixel, count = size; --count >= 0;) {
-        if (pent->refcnt > 0) {
-            if ((*comp) (pent, prgb)) {
-                if (client >= 0)
-                    pent->refcnt++;
-                *pPixel = pixel;
-                switch (channel) {
-                case REDMAP:
-                    *pPixel <<= pmap->pVisual->offsetRed;
-                case PSEUDOMAP:
-                    break;
-                case GREENMAP:
-                    *pPixel <<= pmap->pVisual->offsetGreen;
-                    break;
-                case BLUEMAP:
-                    *pPixel <<= pmap->pVisual->offsetBlue;
-                    break;
-                }
-                goto gotit;
-            }
-        }
-        else if (!foundFree && pent->refcnt == 0) {
-            Free = pixel;
-            foundFree = TRUE;
-            /* If we're initializing the colormap, then we are looking for
-             * the first free cell we can find, not to minimize the number
-             * of entries we use.  So don't look any further. */
-            if (pmap->flags & BeingCreated)
-                break;
-        }
-        pixel++;
-        if (pixel >= size) {
-            pent = pentFirst;
-            pixel = 0;
-        }
-        else
-            pent++;
-    }
-
-    /* If we got here, we didn't find a match.  If we also didn't find
-     * a free entry, we're out of luck.  Otherwise, we'll usurp a free
-     * entry and fill it in */
-    if (!foundFree)
-        return BadAlloc;
-    pent = pentFirst + Free;
-    pent->fShared = FALSE;
-    pent->refcnt = (client >= 0) ? 1 : AllocTemporary;
-
-    switch (channel) {
-    case PSEUDOMAP:
-        pent->co.local.red = prgb->red;
-        pent->co.local.green = prgb->green;
-        pent->co.local.blue = prgb->blue;
-        def.red = prgb->red;
-        def.green = prgb->green;
-        def.blue = prgb->blue;
-        def.flags = (DoRed | DoGreen | DoBlue);
-        if (client >= 0)
-            pmap->freeRed--;
-        def.pixel = Free;
-        break;
-
-    case REDMAP:
-        pent->co.local.red = prgb->red;
-        def.red = prgb->red;
-        def.green = pmap->green[0].co.local.green;
-        def.blue = pmap->blue[0].co.local.blue;
-        def.flags = DoRed;
-        if (client >= 0)
-            pmap->freeRed--;
-        def.pixel = Free << pmap->pVisual->offsetRed;
-        break;
-
-    case GREENMAP:
-        pent->co.local.green = prgb->green;
-        def.red = pmap->red[0].co.local.red;
-        def.green = prgb->green;
-        def.blue = pmap->blue[0].co.local.blue;
-        def.flags = DoGreen;
-        if (client >= 0)
-            pmap->freeGreen--;
-        def.pixel = Free << pmap->pVisual->offsetGreen;
-        break;
-
-    case BLUEMAP:
-        pent->co.local.blue = prgb->blue;
-        def.red = pmap->red[0].co.local.red;
-        def.green = pmap->green[0].co.local.green;
-        def.blue = prgb->blue;
-        def.flags = DoBlue;
-        if (client >= 0)
-            pmap->freeBlue--;
-        def.pixel = Free << pmap->pVisual->offsetBlue;
-        break;
-    }
-    (*pmap->pScreen->StoreColors) (pmap, 1, &def);
-    pixel = Free;
-    *pPixel = def.pixel;
-
- gotit:
-    if (pmap->flags & BeingCreated || client == -1)
-        return Success;
-    /* Now remember the pixel, for freeing later */
-    switch (channel) {
-    case PSEUDOMAP:
-    case REDMAP:
-        nump = pmap->numPixelsRed;
-        pixp = pmap->clientPixelsRed;
-        break;
-
-    case GREENMAP:
-        nump = pmap->numPixelsGreen;
-        pixp = pmap->clientPixelsGreen;
-        break;
-
-    case BLUEMAP:
-        nump = pmap->numPixelsBlue;
-        pixp = pmap->clientPixelsBlue;
-        break;
-    }
-    npix = nump[client];
-    ppix = reallocarray(pixp[client], npix + 1, sizeof(Pixel));
-    if (!ppix) {
-        pent->refcnt--;
-        if (!pent->fShared)
-            switch (channel) {
-            case PSEUDOMAP:
-            case REDMAP:
-                pmap->freeRed++;
-                break;
-            case GREENMAP:
-                pmap->freeGreen++;
-                break;
-            case BLUEMAP:
-                pmap->freeBlue++;
-                break;
-            }
-        return BadAlloc;
-    }
-    ppix[npix] = pixel;
-    pixp[client] = ppix;
-    nump[client]++;
-
-    return Success;
 }
 
 /* Comparison functions -- passed to FindColor to determine if an

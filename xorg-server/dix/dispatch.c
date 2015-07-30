@@ -108,6 +108,7 @@ int ProcInitialConnection();
 
 #include "windowstr.h"
 #include <X11/fonts/fontstruct.h>
+#include <X11/fonts/fontutil.h>
 #include "dixfontstr.h"
 #include "gcstruct.h"
 #include "selection.h"

@@ -90,7 +90,7 @@ lower_vec_to_movs_block(nir_block *block, void *mem_ctx)
       if (instr->type != nir_instr_type_alu)
          continue;
 
-      nir_alu_instr *vec = (nir_alu_instr *)instr;
+      nir_alu_instr *vec = nir_instr_as_alu(instr);
 
       switch (vec->op) {
       case nir_op_vec2:

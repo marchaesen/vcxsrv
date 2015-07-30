@@ -580,7 +580,7 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
             continue;
 
          ir_expression *add_expr = floor_expr->operands[0]->as_expression();
-         if (!add_expr)
+         if (!add_expr || add_expr->operation != ir_binop_add)
             continue;
 
          for (int j = 0; j < 2; j++) {
@@ -589,7 +589,7 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
                continue;
 
             ir_constant *point_five = add_expr->operands[1 - j]->as_constant();
-            if (!point_five->is_value(0.5, 0))
+            if (!point_five || !point_five->is_value(0.5, 0))
                continue;
 
             if (abs_expr->operands[0]->equals(sign_expr->operands[0])) {

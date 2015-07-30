@@ -41,6 +41,7 @@ mkinstalldirs
 py-compile
 stamp-h?
 symlink-tree
+test-driver
 texinfo.tex
 ylwrap
 

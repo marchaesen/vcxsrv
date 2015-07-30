@@ -380,10 +380,7 @@ SetWindowToDefaults(WindowPtr pWin)
     pWin->forcedBS = FALSE;
     pWin->redirectDraw = RedirectDrawNone;
     pWin->forcedBG = FALSE;
-
-#ifdef ROOTLESS
-    pWin->rootlessUnhittable = FALSE;
-#endif
+    pWin->unhittable = FALSE;
 
 #ifdef COMPOSITE
     pWin->damagedDescendants = FALSE;
@@ -1470,7 +1467,7 @@ ChangeWindowAttributes(WindowPtr pWin, Mask vmask, XID *vlist, ClientPtr client)
 
         RegionNull(&exposed);
         RegionSubtract(&exposed, &pWin->borderClip, &pWin->winSize);
-        miPaintWindow(pWin, &exposed, PW_BORDER);
+        pWin->drawable.pScreen->PaintWindow(pWin, &exposed, PW_BORDER);
         RegionUninit(&exposed);
     }
     return error;
@@ -3037,7 +3034,7 @@ dixSaveScreens(ClientPtr client, int on, int mode)
 
                 /* make it look like screen saver is off, so that
                  * NotClippedByChildren will compute a clip list
-                 * for the root window, so miPaintWindow works
+                 * for the root window, so PaintWindow works
                  */
                 screenIsSaved = SCREEN_SAVER_OFF;
                 (*pWin->drawable.pScreen->MoveWindow) (pWin,

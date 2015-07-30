@@ -72,6 +72,7 @@ parameter_lists_match(_mesa_glsl_parse_state *state,
       switch ((enum ir_variable_mode)(param->data.mode)) {
       case ir_var_auto:
       case ir_var_uniform:
+      case ir_var_shader_storage:
       case ir_var_temporary:
 	 /* These are all error conditions.  It is invalid for a parameter to
 	  * a function to be declared as auto (not in, out, or inout) or
@@ -148,9 +149,11 @@ get_parameter_match_type(const ir_variable *param,
    if (from_type == to_type)
       return PARAMETER_EXACT_MATCH;
 
-   /* XXX: When ARB_gpu_shader_fp64 support is added, check for float->double,
-    * and int/uint->double conversions
-    */
+   if (to_type->base_type == GLSL_TYPE_DOUBLE) {
+      if (from_type->base_type == GLSL_TYPE_FLOAT)
+         return PARAMETER_FLOAT_TO_DOUBLE;
+      return PARAMETER_INT_TO_DOUBLE;
+   }
 
    if (to_type->base_type == GLSL_TYPE_FLOAT)
       return PARAMETER_INT_TO_FLOAT;

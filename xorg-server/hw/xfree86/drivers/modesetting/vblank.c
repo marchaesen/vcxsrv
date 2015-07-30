@@ -50,11 +50,6 @@
 static struct xorg_list ms_drm_queue;
 static uint32_t ms_drm_seq;
 
-struct ms_pageflip {
-    ScreenPtr screen;
-    Bool crtc_for_msc_ust;
-};
-
 static void ms_box_intersect(BoxPtr dest, BoxPtr a, BoxPtr b)
 {
     dest->x1 = a->x1 > b->x1 ? a->x1 : b->x1;
@@ -88,7 +83,7 @@ static int ms_box_area(BoxPtr box)
     return (int)(box->x2 - box->x1) * (int)(box->y2 - box->y1);
 }
 
-static Bool
+Bool
 ms_crtc_on(xf86CrtcPtr crtc)
 {
     drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
@@ -320,6 +315,22 @@ ms_drm_abort_scrn(ScrnInfoPtr scrn)
     xorg_list_for_each_entry_safe(q, tmp, &ms_drm_queue, list) {
         if (q->scrn == scrn)
             ms_drm_abort_one(q);
+    }
+}
+
+/**
+ * Abort by drm queue sequence number.
+ */
+void
+ms_drm_abort_seq(ScrnInfoPtr scrn, uint32_t seq)
+{
+    struct ms_drm_queue *q, *tmp;
+
+    xorg_list_for_each_entry_safe(q, tmp, &ms_drm_queue, list) {
+        if (q->seq == seq) {
+            ms_drm_abort_one(q);
+            break;
+        }
     }
 }
 

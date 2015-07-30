@@ -1255,7 +1255,7 @@ create_textures(struct gl_context *ctx, GLenum target,
          if (targetIndex < 0) { /* Bad Target */
             mtx_unlock(&ctx->Shared->Mutex);
             _mesa_error(ctx, GL_INVALID_ENUM, "gl%sTextures(target = %s)",
-                        func, _mesa_lookup_enum_by_nr(texObj->Target));
+                        func, _mesa_enum_to_string(texObj->Target));
             return;
          }
          assert(targetIndex < NUM_TEXTURE_TARGETS);
@@ -1642,7 +1642,7 @@ _mesa_BindTexture( GLenum target, GLuint texName )
 
    if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
       _mesa_debug(ctx, "glBindTexture %s %d\n",
-                  _mesa_lookup_enum_by_nr(target), (GLint) texName);
+                  _mesa_enum_to_string(target), (GLint) texName);
 
    targetIndex = _mesa_tex_target_to_index(ctx, target);
    if (targetIndex < 0) {
@@ -1806,7 +1806,7 @@ _mesa_BindTextureUnit(GLuint unit, GLuint texture)
 
    if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
       _mesa_debug(ctx, "glBindTextureUnit %s %d\n",
-                  _mesa_lookup_enum_by_nr(GL_TEXTURE0+unit), (GLint) texture);
+                  _mesa_enum_to_string(GL_TEXTURE0+unit), (GLint) texture);
 
    /* Section 8.1 (Texture Objects) of the OpenGL 4.5 core profile spec
     * (20141030) says:

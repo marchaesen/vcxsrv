@@ -251,7 +251,7 @@ _mesa_draw_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
    FLUSH_VERTICES(ctx, 0);
 
    if (MESA_VERBOSE & VERBOSE_API) {
-      _mesa_debug(ctx, "%s %s\n", caller, _mesa_lookup_enum_by_nr(buffer));
+      _mesa_debug(ctx, "%s %s\n", caller, _mesa_enum_to_string(buffer));
    }
 
    if (buffer == GL_NONE) {
@@ -264,14 +264,14 @@ _mesa_draw_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
       if (destMask == BAD_MASK) {
          /* totally bogus buffer */
          _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid buffer %s)", caller,
-                     _mesa_lookup_enum_by_nr(buffer));
+                     _mesa_enum_to_string(buffer));
          return;
       }
       destMask &= supportedMask;
       if (destMask == 0x0) {
          /* none of the named color buffers exist! */
          _mesa_error(ctx, GL_INVALID_OPERATION, "%s(invalid buffer %s)",
-                     caller, _mesa_lookup_enum_by_nr(buffer));
+                     caller, _mesa_enum_to_string(buffer));
          return;
       }
    }
@@ -411,7 +411,7 @@ _mesa_draw_buffers(struct gl_context *ctx, struct gl_framebuffer *fb,
           */
          if (destMask[output] == BAD_MASK) {
             _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid buffer %s)",
-                        caller, _mesa_lookup_enum_by_nr(buffers[output]));
+                        caller, _mesa_enum_to_string(buffers[output]));
             return;
          }
 
@@ -427,7 +427,7 @@ _mesa_draw_buffers(struct gl_context *ctx, struct gl_framebuffer *fb,
           */
          if (_mesa_bitcount(destMask[output]) > 1) {
             _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid buffer %s)",
-                        caller, _mesa_lookup_enum_by_nr(buffers[output]));
+                        caller, _mesa_enum_to_string(buffers[output]));
             return;
          }
 
@@ -445,7 +445,7 @@ _mesa_draw_buffers(struct gl_context *ctx, struct gl_framebuffer *fb,
          if (destMask[output] == 0) {
             _mesa_error(ctx, GL_INVALID_OPERATION,
                         "%s(unsupported buffer %s)",
-                        caller, _mesa_lookup_enum_by_nr(buffers[output]));
+                        caller, _mesa_enum_to_string(buffers[output]));
             return;
          }
 
@@ -459,7 +459,7 @@ _mesa_draw_buffers(struct gl_context *ctx, struct gl_framebuffer *fb,
              buffers[output] != GL_COLOR_ATTACHMENT0 + output) {
             _mesa_error(ctx, GL_INVALID_OPERATION,
                         "%s(unsupported buffer %s)",
-                        caller, _mesa_lookup_enum_by_nr(buffers[output]));
+                        caller, _mesa_enum_to_string(buffers[output]));
             return;
          }
 
@@ -471,7 +471,7 @@ _mesa_draw_buffers(struct gl_context *ctx, struct gl_framebuffer *fb,
          if (destMask[output] & usedBufferMask) {
             _mesa_error(ctx, GL_INVALID_OPERATION,
                         "%s(duplicated buffer %s)",
-                        caller, _mesa_lookup_enum_by_nr(buffers[output]));
+                        caller, _mesa_enum_to_string(buffers[output]));
             return;
          }
 
@@ -700,7 +700,7 @@ _mesa_read_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
    FLUSH_VERTICES(ctx, 0);
 
    if (MESA_VERBOSE & VERBOSE_API)
-      _mesa_debug(ctx, "%s %s\n", caller, _mesa_lookup_enum_by_nr(buffer));
+      _mesa_debug(ctx, "%s %s\n", caller, _mesa_enum_to_string(buffer));
 
    if (buffer == GL_NONE) {
       /* This is legal--it means that no buffer should be bound for reading. */
@@ -712,14 +712,14 @@ _mesa_read_buffer(struct gl_context *ctx, struct gl_framebuffer *fb,
       if (srcBuffer == -1) {
          _mesa_error(ctx, GL_INVALID_ENUM,
                      "%s(invalid buffer %s)", caller,
-                     _mesa_lookup_enum_by_nr(buffer));
+                     _mesa_enum_to_string(buffer));
          return;
       }
       supportedMask = supported_buffer_bitmask(ctx, fb);
       if (((1 << srcBuffer) & supportedMask) == 0) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "%s(invalid buffer %s)", caller,
-                     _mesa_lookup_enum_by_nr(buffer));
+                     _mesa_enum_to_string(buffer));
          return;
       }
    }

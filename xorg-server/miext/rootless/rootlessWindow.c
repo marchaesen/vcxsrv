@@ -92,7 +92,7 @@ RootlessNativeWindowStateChanged(WindowPtr pWin, unsigned int state)
 
     winRec->is_offscreen = ((state & XP_WINDOW_STATE_OFFSCREEN) != 0);
     winRec->is_obscured = ((state & XP_WINDOW_STATE_OBSCURED) != 0);
-    pWin->rootlessUnhittable = winRec->is_offscreen;
+    pWin->unhittable = winRec->is_offscreen;
 }
 
 void
@@ -569,7 +569,7 @@ RootlessReorderWindow(WindowPtr pWin)
         newPrevW = pWin->prevSib;
         while (newPrevW &&
                (WINREC(newPrevW) == NULL || !newPrevW->realized ||
-                newPrevW->rootlessUnhittable != pWin->rootlessUnhittable))
+                newPrevW->unhittable != pWin->unhittable))
             newPrevW = newPrevW->prevSib;
 
         newPrev = newPrevW != NULL ? WINREC(newPrevW) : NULL;
@@ -720,7 +720,7 @@ RootlessResizeCopyWindow(WindowPtr pWin, DDXPointRec ptOldOrg,
 /*
  * RootlessCopyWindow
  *  Update *new* location of window. Old location is redrawn with
- *  miPaintWindow. Cloned from fbCopyWindow.
+ *  PaintWindow. Cloned from fbCopyWindow.
  *  The original always draws on the root pixmap, which we don't have.
  *  Instead, draw on the parent window's pixmap.
  */
@@ -792,6 +792,27 @@ RootlessCopyWindow(WindowPtr pWin, DDXPointRec ptOldOrg, RegionPtr prgnSrc)
     SCREEN_WRAP(pScreen, CopyWindow);
 
     RL_DEBUG_MSG("copywindowFB end\n");
+}
+
+void
+RootlessPaintWindow(WindowPtr pWin, RegionPtr prgn, int what)
+{
+    ScreenPtr pScreen = pWin->drawable.pScreen;
+
+    if (IsFramedWindow(pWin)) {
+        RootlessStartDrawing(pWin);
+        RootlessDamageRegion(pWin, prgn);
+
+        if (pWin->backgroundState == ParentRelative) {
+            if ((what == PW_BACKGROUND) ||
+                (what == PW_BORDER && !pWin->borderIsPixel))
+                RootlessSetPixmapOfAncestors(pWin);
+        }
+    }
+
+    SCREEN_UNWRAP(pScreen, PaintWindow);
+    pScreen->PaintWindow(pWin, prgn, what);
+    SCREEN_WRAP(pScreen, PaintWindow);
 }
 
 /*
@@ -1365,7 +1386,7 @@ RootlessReparentWindow(WindowPtr pWin, WindowPtr pPriorParent)
     pTopWin = TopLevelParent(pWin);
     assert(pTopWin != pWin);
 
-    pWin->rootlessUnhittable = FALSE;
+    pWin->unhittable = FALSE;
 
     DeleteProperty(serverClient, pWin, xa_native_window_id());
 
@@ -1503,7 +1524,7 @@ RootlessOrderAllWindows(Bool include_unhitable)
                 continue;
             if (RootlessEnsureFrame(pWin) == NULL)
                 continue;
-            if (!include_unhitable && pWin->rootlessUnhittable)
+            if (!include_unhitable && pWin->unhittable)
                 continue;
             RootlessReorderWindow(pWin);
         }

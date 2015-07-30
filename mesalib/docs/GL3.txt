@@ -92,43 +92,43 @@ GL 3.3, GLSL 3.30 --- all DONE: i965, nv50, nvc0, r600, radeonsi, llvmpipe, soft
   GL_ARB_vertex_type_2_10_10_10_rev                     DONE ()
 
 
-GL 4.0, GLSL 4.00:
+GL 4.0, GLSL 4.00 --- all DONE: nvc0, radeonsi
 
-  GL_ARB_draw_buffers_blend                            DONE (i965, nv50, nvc0, r600, radeonsi, llvmpipe, softpipe)
-  GL_ARB_draw_indirect                                 DONE (i965, nvc0, r600, radeonsi, llvmpipe, softpipe)
-  GL_ARB_gpu_shader5                                   DONE (i965, nvc0)
+  GL_ARB_draw_buffers_blend                            DONE (i965, nv50, r600, llvmpipe, softpipe)
+  GL_ARB_draw_indirect                                 DONE (i965, r600, llvmpipe, softpipe)
+  GL_ARB_gpu_shader5                                   DONE (i965, radeonsi)
   - 'precise' qualifier                                DONE
-  - Dynamically uniform sampler array indices          DONE (r600)
+  - Dynamically uniform sampler array indices          DONE (r600, softpipe)
   - Dynamically uniform UBO array indices              DONE (r600)
   - Implicit signed -> unsigned conversions            DONE
   - Fused multiply-add                                 DONE ()
-  - Packing/bitfield/conversion functions              DONE (r600, radeonsi, softpipe)
-  - Enhanced textureGather                             DONE (r600, radeonsi, softpipe)
-  - Geometry shader instancing                         DONE (r600)
+  - Packing/bitfield/conversion functions              DONE (r600, softpipe)
+  - Enhanced textureGather                             DONE (r600, softpipe)
+  - Geometry shader instancing                         DONE (r600, llvmpipe, softpipe)
   - Geometry shader multiple streams                   DONE ()
-  - Enhanced per-sample shading                        DONE (r600, radeonsi)
+  - Enhanced per-sample shading                        DONE (r600)
   - Interpolation functions                            DONE (r600)
   - New overload resolution rules                      DONE
-  GL_ARB_gpu_shader_fp64                               DONE (nvc0, softpipe)
-  GL_ARB_sample_shading                                DONE (i965, nv50, nvc0, r600, radeonsi)
-  GL_ARB_shader_subroutine                             started (Dave)
-  GL_ARB_tessellation_shader                           started (Chris, Ilia)
-  GL_ARB_texture_buffer_object_rgb32                   DONE (i965, nvc0, r600, radeonsi, llvmpipe, softpipe)
-  GL_ARB_texture_cube_map_array                        DONE (i965, nv50, nvc0, r600, radeonsi, llvmpipe, softpipe)
-  GL_ARB_texture_gather                                DONE (i965, nv50, nvc0, r600, radeonsi, llvmpipe, softpipe)
-  GL_ARB_texture_query_lod                             DONE (i965, nv50, nvc0, r600, radeonsi)
-  GL_ARB_transform_feedback2                           DONE (i965, nv50, nvc0, r600, radeonsi, llvmpipe, softpipe)
-  GL_ARB_transform_feedback3                           DONE (i965, nv50, nvc0, r600, radeonsi, llvmpipe, softpipe)
+  GL_ARB_gpu_shader_fp64                               DONE (llvmpipe, softpipe)
+  GL_ARB_sample_shading                                DONE (i965, nv50, r600, radeonsi)
+  GL_ARB_shader_subroutine                             DONE (i965, nv50, r600, llvmpipe, softpipe)
+  GL_ARB_tessellation_shader                           DONE ()
+  GL_ARB_texture_buffer_object_rgb32                   DONE (i965, r600, llvmpipe, softpipe)
+  GL_ARB_texture_cube_map_array                        DONE (i965, nv50, r600, llvmpipe, softpipe)
+  GL_ARB_texture_gather                                DONE (i965, nv50, r600, llvmpipe, softpipe)
+  GL_ARB_texture_query_lod                             DONE (i965, nv50, r600)
+  GL_ARB_transform_feedback2                           DONE (i965, nv50, r600, llvmpipe, softpipe)
+  GL_ARB_transform_feedback3                           DONE (i965, nv50, r600, llvmpipe, softpipe)
 
 
-GL 4.1, GLSL 4.10:
+GL 4.1, GLSL 4.10 --- all DONE: nvc0, radeonsi
 
-  GL_ARB_ES2_compatibility                             DONE (i965, nv50, nvc0, r600, radeonsi, llvmpipe, softpipe)
+  GL_ARB_ES2_compatibility                             DONE (i965, nv50, r600, llvmpipe, softpipe)
   GL_ARB_get_program_binary                            DONE (0 binary formats)
   GL_ARB_separate_shader_objects                       DONE (all drivers)
-  GL_ARB_shader_precision                              started (Micah)
-  GL_ARB_vertex_attrib_64bit                           DONE (nvc0, softpipe)
-  GL_ARB_viewport_array                                DONE (i965, nv50, nvc0, r600, llvmpipe)
+  GL_ARB_shader_precision                              DONE (all drivers that support GLSL 4.10)
+  GL_ARB_vertex_attrib_64bit                           DONE (llvmpipe, softpipe)
+  GL_ARB_viewport_array                                DONE (i965, nv50, r600, llvmpipe)
 
 
 GL 4.2, GLSL 4.20:
@@ -156,8 +156,8 @@ GL 4.3, GLSL 4.30:
   GL_ARB_copy_image                                    DONE (i965) (gallium - in progress, VMware)
   GL_KHR_debug                                         DONE (all drivers)
   GL_ARB_explicit_uniform_location                     DONE (all drivers that support GLSL)
-  GL_ARB_fragment_layer_viewport                       DONE (nv50, nvc0, r600, llvmpipe)
-  GL_ARB_framebuffer_no_attachments                    not started
+  GL_ARB_fragment_layer_viewport                       DONE (nv50, nvc0, r600, radeonsi, llvmpipe)
+  GL_ARB_framebuffer_no_attachments                    DONE (i965)
   GL_ARB_internalformat_query2                         not started
   GL_ARB_invalidate_subdata                            DONE (all drivers)
   GL_ARB_multi_draw_indirect                           DONE (i965, nvc0, r600, radeonsi, llvmpipe, softpipe)
@@ -189,20 +189,11 @@ GL 4.5, GLSL 4.50:
 
   GL_ARB_ES3_1_compatibility                           not started
   GL_ARB_clip_control                                  DONE (i965, nv50, nvc0, r600, radeonsi, llvmpipe, softpipe)
-  GL_ARB_conditional_render_inverted                   DONE (i965, nv50, nvc0, llvmpipe, softpipe)
+  GL_ARB_conditional_render_inverted                   DONE (i965, nv50, nvc0, r600, radeonsi, llvmpipe, softpipe)
   GL_ARB_cull_distance                                 in progress (Tobias)
-  GL_ARB_derivative_control                            DONE (i965, nv50, nvc0, r600)
+  GL_ARB_derivative_control                            DONE (i965, nv50, nvc0, r600, radeonsi)
   GL_ARB_direct_state_access                           DONE (all drivers)
-  - Transform Feedback object                          DONE
-  - Buffer object                                      DONE
-  - Framebuffer object                                 DONE
-  - Renderbuffer object                                DONE
-  - Texture object                                     DONE
-  - Vertex array object                                DONE
-  - Sampler object                                     DONE
-  - Program Pipeline object                            DONE
-  - Query object                                       DONE (will require changes when GL_ARB_query_buffer_object lands)
-  GL_ARB_get_texture_sub_image                         started (Brian Paul)
+  GL_ARB_get_texture_sub_image                         DONE (all drivers)
   GL_ARB_shader_texture_image_samples                  not started
   GL_ARB_texture_barrier                               DONE (nv50, nvc0, r600, radeonsi)
   GL_KHR_context_flush_control                         DONE (all - but needs GLX/EXT extension to be useful)
@@ -216,7 +207,7 @@ GLES3.1, GLSL ES 3.1
   GL_ARB_compute_shader                                in progress (jljusten)
   GL_ARB_draw_indirect                                 DONE (i965, nvc0, r600, radeonsi, llvmpipe, softpipe)
   GL_ARB_explicit_uniform_location                     DONE (all drivers that support GLSL)
-  GL_ARB_framebuffer_no_attachments                    not started
+  GL_ARB_framebuffer_no_attachments                    DONE (i965)
   GL_ARB_program_interface_query                       DONE (all drivers)
   GL_ARB_shader_atomic_counters                        DONE (i965)
   GL_ARB_shader_image_load_store                       in progress (curro)

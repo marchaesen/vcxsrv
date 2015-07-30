@@ -88,7 +88,7 @@ static void
 glamor_put_image_bail(DrawablePtr drawable, GCPtr gc, int depth, int x, int y,
                       int w, int h, int leftPad, int format, char *bits)
 {
-    if (glamor_prepare_access(drawable, GLAMOR_ACCESS_RW))
+    if (glamor_prepare_access_box(drawable, GLAMOR_ACCESS_RW, x, y, w, h))
         fbPutImage(drawable, gc, depth, x, y, w, h, leftPad, format, bits);
     glamor_finish_access(drawable);
 }
@@ -137,7 +137,7 @@ static void
 glamor_get_image_bail(DrawablePtr drawable, int x, int y, int w, int h,
                       unsigned int format, unsigned long plane_mask, char *d)
 {
-    if (glamor_prepare_access(drawable, GLAMOR_ACCESS_RO))
+    if (glamor_prepare_access_box(drawable, GLAMOR_ACCESS_RO, x, y, w, h))
         fbGetImage(drawable, x, y, w, h, format, plane_mask, d);
     glamor_finish_access(drawable);
 }

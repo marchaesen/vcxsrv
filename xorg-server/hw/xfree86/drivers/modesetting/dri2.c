@@ -138,8 +138,8 @@ ms_dri2_create_buffer(DrawablePtr drawable, unsigned int attachment,
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     DRI2Buffer2Ptr buffer;
     PixmapPtr pixmap;
-    uint32_t size;
-    uint16_t pitch;
+    CARD32 size;
+    CARD16 pitch;
     ms_dri2_buffer_private_ptr private;
 
     buffer = calloc(1, sizeof *buffer);

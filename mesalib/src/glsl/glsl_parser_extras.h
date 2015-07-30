@@ -129,7 +129,7 @@ struct _mesa_glsl_parse_state {
    bool check_explicit_attrib_stream_allowed(YYLTYPE *locp)
    {
       if (!this->has_explicit_attrib_stream()) {
-         const char *const requirement = "GL_ARB_gpu_shader5 extension or GLSL 400";
+         const char *const requirement = "GL_ARB_gpu_shader5 extension or GLSL 4.00";
 
          _mesa_glsl_error(locp, this, "explicit stream requires %s",
                           requirement);
@@ -144,8 +144,8 @@ struct _mesa_glsl_parse_state {
    {
       if (!this->has_explicit_attrib_location()) {
          const char *const requirement = this->es_shader
-            ? "GLSL ES 300"
-            : "GL_ARB_explicit_attrib_location extension or GLSL 330";
+            ? "GLSL ES 3.00"
+            : "GL_ARB_explicit_attrib_location extension or GLSL 3.30";
 
          _mesa_glsl_error(locp, this, "%s explicit location requires %s",
                           mode_string(var), requirement);
@@ -160,8 +160,8 @@ struct _mesa_glsl_parse_state {
    {
       if (!this->has_separate_shader_objects()) {
          const char *const requirement = this->es_shader
-            ? "GL_EXT_separate_shader_objects extension or GLSL ES 310"
-            : "GL_ARB_separate_shader_objects extension or GLSL 420";
+            ? "GL_EXT_separate_shader_objects extension or GLSL ES 3.10"
+            : "GL_ARB_separate_shader_objects extension or GLSL 4.20";
 
          _mesa_glsl_error(locp, this, "%s explicit location requires %s",
                           mode_string(var), requirement);
@@ -177,9 +177,9 @@ struct _mesa_glsl_parse_state {
       if (!this->has_explicit_attrib_location() ||
           !this->has_explicit_uniform_location()) {
          const char *const requirement = this->es_shader
-            ? "GLSL ES 310"
+            ? "GLSL ES 3.10"
             : "GL_ARB_explicit_uniform_location and either "
-              "GL_ARB_explicit_attrib_location or GLSL 330.";
+              "GL_ARB_explicit_attrib_location or GLSL 3.30.";
 
          _mesa_glsl_error(locp, this,
                           "uniform explicit location requires %s",
@@ -215,6 +215,11 @@ struct _mesa_glsl_parse_state {
       return ARB_uniform_buffer_object_enable || is_version(140, 300);
    }
 
+   bool has_shader_storage_buffer_objects() const
+   {
+      return ARB_shader_storage_buffer_object_enable || is_version(430, 0);
+   }
+
    bool has_separate_shader_objects() const
    {
       return ARB_separate_shader_objects_enable || is_version(410, 310)
@@ -224,6 +229,11 @@ struct _mesa_glsl_parse_state {
    bool has_double() const
    {
       return ARB_gpu_shader_fp64_enable || is_version(400, 0);
+   }
+
+   bool has_420pack() const
+   {
+      return ARB_shading_language_420pack_enable || is_version(420, 0);
    }
 
    void process_version_directive(YYLTYPE *locp, int version,
@@ -272,15 +282,19 @@ struct _mesa_glsl_parse_state {
    bool fs_redeclares_gl_fragcoord_with_no_layout_qualifiers;
 
    /**
-    * True if a geometry shader input primitive type was specified using a
-    * layout directive.
+    * True if a geometry shader input primitive type or tessellation control
+    * output vertices were specified using a layout directive.
     *
-    * Note: this value is computed at ast_to_hir time rather than at parse
+    * Note: these values are computed at ast_to_hir time rather than at parse
     * time.
     */
    bool gs_input_prim_type_specified;
+   bool tcs_output_vertices_specified;
 
-   /** Input layout qualifiers from GLSL 1.50. (geometry shader controls)*/
+   /**
+    * Input layout qualifiers from GLSL 1.50 (geometry shader controls),
+    * and GLSL 4.00 (tessellation evaluation shader)
+    */
    struct ast_type_qualifier *in_qualifier;
 
    /**
@@ -298,7 +312,10 @@ struct _mesa_glsl_parse_state {
     */
    unsigned cs_input_local_size[3];
 
-   /** Output layout qualifiers from GLSL 1.50. (geometry shader controls)*/
+   /**
+    * Output layout qualifiers from GLSL 1.50 (geometry shader controls),
+    * and GLSL 4.00 (tessellation control shader).
+    */
    struct ast_type_qualifier *out_qualifier;
 
    /**
@@ -348,6 +365,8 @@ struct _mesa_glsl_parse_state {
 
       /* ARB_shader_atomic_counters */
       unsigned MaxVertexAtomicCounters;
+      unsigned MaxTessControlAtomicCounters;
+      unsigned MaxTessEvaluationAtomicCounters;
       unsigned MaxGeometryAtomicCounters;
       unsigned MaxFragmentAtomicCounters;
       unsigned MaxCombinedAtomicCounters;
@@ -358,6 +377,8 @@ struct _mesa_glsl_parse_state {
        * 3.10.
        */
       unsigned MaxVertexAtomicCounterBuffers;
+      unsigned MaxTessControlAtomicCounterBuffers;
+      unsigned MaxTessEvaluationAtomicCounterBuffers;
       unsigned MaxGeometryAtomicCounterBuffers;
       unsigned MaxFragmentAtomicCounterBuffers;
       unsigned MaxCombinedAtomicCounterBuffers;
@@ -372,12 +393,28 @@ struct _mesa_glsl_parse_state {
       unsigned MaxCombinedImageUnitsAndFragmentOutputs;
       unsigned MaxImageSamples;
       unsigned MaxVertexImageUniforms;
+      unsigned MaxTessControlImageUniforms;
+      unsigned MaxTessEvaluationImageUniforms;
       unsigned MaxGeometryImageUniforms;
       unsigned MaxFragmentImageUniforms;
       unsigned MaxCombinedImageUniforms;
 
       /* ARB_viewport_array */
       unsigned MaxViewports;
+
+      /* ARB_tessellation_shader */
+      unsigned MaxPatchVertices;
+      unsigned MaxTessGenLevel;
+      unsigned MaxTessControlInputComponents;
+      unsigned MaxTessControlOutputComponents;
+      unsigned MaxTessControlTextureImageUnits;
+      unsigned MaxTessEvaluationInputComponents;
+      unsigned MaxTessEvaluationOutputComponents;
+      unsigned MaxTessEvaluationTextureImageUnits;
+      unsigned MaxTessPatchComponents;
+      unsigned MaxTessControlTotalOutputComponents;
+      unsigned MaxTessControlUniformComponents;
+      unsigned MaxTessEvaluationUniformComponents;
    } Const;
 
    /**
@@ -462,12 +499,18 @@ struct _mesa_glsl_parse_state {
    bool ARB_shader_precision_warn;
    bool ARB_shader_stencil_export_enable;
    bool ARB_shader_stencil_export_warn;
+   bool ARB_shader_storage_buffer_object_enable;
+   bool ARB_shader_storage_buffer_object_warn;
+   bool ARB_shader_subroutine_enable;
+   bool ARB_shader_subroutine_warn;
    bool ARB_shader_texture_lod_enable;
    bool ARB_shader_texture_lod_warn;
    bool ARB_shading_language_420pack_enable;
    bool ARB_shading_language_420pack_warn;
    bool ARB_shading_language_packing_enable;
    bool ARB_shading_language_packing_warn;
+   bool ARB_tessellation_shader_enable;
+   bool ARB_tessellation_shader_warn;
    bool ARB_texture_cube_map_array_enable;
    bool ARB_texture_cube_map_array_warn;
    bool ARB_texture_gather_enable;
@@ -538,10 +581,38 @@ struct _mesa_glsl_parse_state {
 
    bool fs_early_fragment_tests;
 
+   /**
+    * For tessellation control shaders, size of the most recently seen output
+    * declaration that was a sized array, or 0 if no sized output array
+    * declarations have been seen.
+    *
+    * Unused for other shader types.
+    */
+   unsigned tcs_output_size;
+
    /** Atomic counter offsets by binding */
    unsigned atomic_counter_offsets[MAX_COMBINED_ATOMIC_BUFFERS];
 
    bool allow_extension_directive_midshader;
+
+   /**
+    * Known subroutine type declarations.
+    */
+   int num_subroutine_types;
+   ir_function **subroutine_types;
+
+   /**
+    * Functions that are associated with
+    * subroutine types.
+    */
+   int num_subroutines;
+   ir_function **subroutines;
+
+   /**
+    * field selection temporary parser storage -
+    * did the parser just parse a dot.
+    */
+   bool is_field;
 };
 
 # define YYLLOC_DEFAULT(Current, Rhs, N)			\

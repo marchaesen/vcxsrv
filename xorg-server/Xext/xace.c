@@ -213,6 +213,21 @@ XaceHook(int hook, ...)
     return prv ? *prv : Success;
 }
 
+/* XaceHookIsSet
+ *
+ * Utility function to determine whether there are any callbacks listening on a
+ * particular XACE hook.
+ *
+ * Returns non-zero if there is a callback, zero otherwise.
+ */
+int
+XaceHookIsSet(int hook)
+{
+    if (hook < 0 || hook >= XACE_NUM_HOOKS)
+        return 0;
+    return XaceHooks[hook] != NULL;
+}
+
 /* XaceCensorImage
  *
  * Called after pScreen->GetImage to prevent pieces or trusted windows from

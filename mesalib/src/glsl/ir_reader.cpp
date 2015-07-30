@@ -63,6 +63,7 @@ private:
    ir_texture *read_texture(s_expression *);
    ir_emit_vertex *read_emit_vertex(s_expression *);
    ir_end_primitive *read_end_primitive(s_expression *);
+   ir_barrier *read_barrier(s_expression *);
 
    ir_dereference *read_dereference(s_expression *);
    ir_dereference_variable *read_var_ref(s_expression *);
@@ -375,6 +376,8 @@ ir_reader::read_instruction(s_expression *expr, ir_loop *loop_ctx)
       inst = read_emit_vertex(list);
    } else if (strcmp(tag->value(), "end-primitive") == 0) {
       inst = read_end_primitive(list);
+   } else if (strcmp(tag->value(), "barrier") == 0) {
+      inst = read_barrier(list);
    } else {
       inst = read_rvalue(list);
       if (inst == NULL)
@@ -414,10 +417,14 @@ ir_reader::read_declaration(s_expression *expr)
 	 var->data.centroid = 1;
       } else if (strcmp(qualifier->value(), "sample") == 0) {
          var->data.sample = 1;
+      } else if (strcmp(qualifier->value(), "patch") == 0) {
+         var->data.patch = 1;
       } else if (strcmp(qualifier->value(), "invariant") == 0) {
 	 var->data.invariant = 1;
       } else if (strcmp(qualifier->value(), "uniform") == 0) {
 	 var->data.mode = ir_var_uniform;
+      } else if (strcmp(qualifier->value(), "shader_storage") == 0) {
+	 var->data.mode = ir_var_shader_storage;
       } else if (strcmp(qualifier->value(), "auto") == 0) {
 	 var->data.mode = ir_var_auto;
       } else if (strcmp(qualifier->value(), "in") == 0) {
@@ -1140,5 +1147,17 @@ ir_reader::read_end_primitive(s_expression *expr)
       return new(mem_ctx) ir_end_primitive(stream);
    }
    ir_read_error(NULL, "when reading end-primitive");
+   return NULL;
+}
+
+ir_barrier *
+ir_reader::read_barrier(s_expression *expr)
+{
+   s_pattern pat[] = { "barrier" };
+
+   if (MATCH(expr, pat)) {
+      return new(mem_ctx) ir_barrier();
+   }
+   ir_read_error(NULL, "when reading barrier");
    return NULL;
 }

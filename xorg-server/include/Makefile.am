@@ -52,8 +52,6 @@ sdk_HEADERS =		\
 	selection.h	\
 	servermd.h	\
 	site.h		\
-	swaprep.h	\
-	swapreq.h	\
 	validate.h	\
 	window.h	\
 	windowstr.h	\
@@ -74,5 +72,7 @@ EXTRA_DIST = 	\
 	dixfontstubs.h eventconvert.h eventstr.h inpututils.h \
 	probes.h \
 	protocol-versions.h \
+	swaprep.h \
+	swapreq.h \
 	systemd-logind.h \
 	xsha1.h

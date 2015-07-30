@@ -357,10 +357,11 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
     }
 
     winDebug("winCreateBoundingWindowWindowed - WindowClient "
-             "w %ld h %ld r %ld l %ld b %ld t %ld\n",
-             rcClient.right - rcClient.left,
-             rcClient.bottom - rcClient.top,
-             rcClient.right, rcClient.left, rcClient.bottom, rcClient.top);
+             "w %d  h %d r %d l %d b %d t %d\n",
+             (int)(rcClient.right - rcClient.left),
+             (int)(rcClient.bottom - rcClient.top),
+             (int)rcClient.right, (int)rcClient.left,
+             (int)rcClient.bottom, (int)rcClient.top);
 
     /* We adjust the visual size if the user did not specify it */
     if (!

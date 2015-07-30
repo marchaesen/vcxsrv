@@ -80,7 +80,7 @@ TAG(transform_normalize_normals)( const GLmatrix *mat,
       }
    }
    else {
-      if (scale != 1.0) {
+      if (scale != 1.0f) {
 	 m0 *= scale,  m4 *= scale,  m8 *= scale;
 	 m1 *= scale,  m5 *= scale,  m9 *= scale;
 	 m2 *= scale,  m6 *= scale,  m10 *= scale;

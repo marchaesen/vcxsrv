@@ -9,7 +9,7 @@
  * garbage that's there. Return a blend factor that will take that into
  * account.
  */
-static INLINE int
+static inline int
 util_blend_dst_alpha_to_one(int factor)
 {
    switch (factor) {

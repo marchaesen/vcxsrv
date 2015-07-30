@@ -89,8 +89,8 @@ winScreenInit(ScreenPtr pScreen, int argc, char **argv)
     DWORD dwInitialBPP;
 
 #if CYGDEBUG || YES
-    winDebug("winScreenInit - dwWidth: %ld dwHeight: %ld\n",
-             pScreenInfo->dwWidth, pScreenInfo->dwHeight);
+    winDebug("winScreenInit - dwWidth: %u dwHeight: %u\n",
+             (unsigned int)pScreenInfo->dwWidth, (unsigned int)pScreenInfo->dwHeight);
 #endif
 
     /* Allocate privates for this screen */

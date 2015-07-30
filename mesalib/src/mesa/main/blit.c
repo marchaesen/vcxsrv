@@ -37,6 +37,7 @@
 #include "framebuffer.h"
 #include "glformats.h"
 #include "mtypes.h"
+#include "macros.h"
 #include "state.h"
 
 
@@ -55,6 +56,31 @@ find_attachment(const struct gl_framebuffer *fb,
          return &fb->Attachment[i];
    }
    return NULL;
+}
+
+
+/**
+ * \return true if two regions overlap, false otherwise
+ */
+bool
+_mesa_regions_overlap(int srcX0, int srcY0,
+                      int srcX1, int srcY1,
+                      int dstX0, int dstY0,
+                      int dstX1, int dstY1)
+{
+   if (MAX2(srcX0, srcX1) < MIN2(dstX0, dstX1))
+      return false; /* dst completely right of src */
+
+   if (MAX2(dstX0, dstX1) < MIN2(srcX0, srcX1))
+      return false; /* dst completely left of src */
+
+   if (MAX2(srcY0, srcY1) < MIN2(dstY0, dstY1))
+      return false; /* dst completely above src */
+
+   if (MAX2(dstY0, dstY1) < MIN2(srcY0, srcY1))
+      return false; /* dst completely below src */
+
+   return true; /* some overlap */
 }
 
 
@@ -186,7 +212,7 @@ _mesa_blit_framebuffer(struct gl_context *ctx,
 
    if (!is_valid_blit_filter(ctx, filter)) {
       _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid filter %s)", func,
-                  _mesa_lookup_enum_by_nr(filter));
+                  _mesa_enum_to_string(filter));
       return;
    }
 
@@ -194,7 +220,7 @@ _mesa_blit_framebuffer(struct gl_context *ctx,
         filter == GL_SCALED_RESOLVE_NICEST_EXT) &&
         (readFb->Visual.samples == 0 || drawFb->Visual.samples > 0)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(%s: invalid samples)", func,
-                  _mesa_lookup_enum_by_nr(filter));
+                  _mesa_enum_to_string(filter));
       return;
    }
 
@@ -522,7 +548,7 @@ _mesa_BlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
                   " %d, %d, %d, %d, 0x%x, %s)\n",
                   srcX0, srcY0, srcX1, srcY1,
                   dstX0, dstY0, dstX1, dstY1,
-                  mask, _mesa_lookup_enum_by_nr(filter));
+                  mask, _mesa_enum_to_string(filter));
 
    _mesa_blit_framebuffer(ctx, ctx->ReadBuffer, ctx->DrawBuffer,
                           srcX0, srcY0, srcX1, srcY1,
@@ -547,7 +573,7 @@ _mesa_BlitNamedFramebuffer(GLuint readFramebuffer, GLuint drawFramebuffer,
                   readFramebuffer, drawFramebuffer,
                   srcX0, srcY0, srcX1, srcY1,
                   dstX0, dstY0, dstX1, dstY1,
-                  mask, _mesa_lookup_enum_by_nr(filter));
+                  mask, _mesa_enum_to_string(filter));
 
    /*
     * According to PDF page 533 of the OpenGL 4.5 core spec (30.10.2014,

@@ -271,9 +271,9 @@ is ignored if
 is anything other than \(oqPCI\(cq.
 .TP 8
 .B \-keeptty
-Prevent the server from detaching its initial controlling terminal.
-This option is only useful when debugging the server.  Not all platforms
-support (or can use) this option.
+Prevent the server from detaching its initial controlling terminal. If you
+want to use systemd-logind integration you must specify this option.
+Not all platforms support (or can use) this option.
 .TP 8
 .BI \-keyboard " keyboard-name"
 Use the xorg.conf(__filemansuffix__) file

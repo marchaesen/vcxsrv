@@ -64,7 +64,7 @@ update_viewport( struct st_context *st )
     */
    for (i = 0; i < ctx->Const.MaxViewports; i++)
    {
-      double scale[3], translate[3];
+      float scale[3], translate[3];
       _mesa_get_viewport_xform(ctx, i, scale, translate);
 
       st->state.viewport[i].scale[0] = scale[0];

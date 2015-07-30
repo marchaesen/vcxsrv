@@ -149,11 +149,6 @@ struct __DRIscreenRec {
     int fd;
 
     /**
-     * DRM (kernel module) version information.
-     */
-    __DRIversion drm_version;
-
-    /**
      * Device-dependent private information (not stored in the SAREA).
      * 
      * This pointer is never touched by the DRI layer.

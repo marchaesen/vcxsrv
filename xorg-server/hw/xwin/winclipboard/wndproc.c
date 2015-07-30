@@ -104,7 +104,7 @@ winProcessXEventsTimeout(HWND hwnd, Window iWindow, Display * pDisplay,
         remainingTime = dwStopTime - GetTickCount();
         tv.tv_sec = remainingTime / 1000;
         tv.tv_usec = (remainingTime % 1000) * 1000;
-        winDebug("winProcessXEventsTimeout () - %d milliseconds left\n",
+        winDebug("winProcessXEventsTimeout () - %ld milliseconds left\n",
                  remainingTime);
 
         /* Break out if no time left */
@@ -194,9 +194,9 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_CHANGECBCHAIN:
     {
-        winDebug("winClipboardWindowProc - WM_CHANGECBCHAIN: wParam(%x) "
-                 "lParam(%x) s_hwndNextViewer(%x)\n",
-                 wParam, lParam, s_hwndNextViewer);
+        winDebug("winClipboardWindowProc - WM_CHANGECBCHAIN: wParam(%p) "
+                 "lParam(%p) s_hwndNextViewer(%p)\n",
+                 (HWND)wParam, (HWND)lParam, s_hwndNextViewer);
 
         if ((HWND) wParam == s_hwndNextViewer) {
             s_hwndNextViewer = (HWND) lParam;
@@ -236,7 +236,7 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         first = GetClipboardViewer();   /* Get handle to first viewer in chain. */
         if (first == hwnd)
             return 0;           /* Make sure it's not us! */
-        winDebug("  WM_WM_REINIT: Replacing us(%x) with %x at head "
+        winDebug("  WM_WM_REINIT: Replacing us(%p) with %p at head "
                  "of chain\n", hwnd, s_hwndNextViewer);
         s_fCBCInitialized = FALSE;
         ChangeClipboardChain(hwnd, s_hwndNextViewer);
@@ -441,7 +441,7 @@ winClipboardWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         int best_target = 0;
 
         winDebug("winClipboardWindowProc - WM_RENDERFORMAT %d - Hello.\n",
-                 wParam);
+                 (int)wParam);
 
         /* Flag whether to convert to Unicode or not */
         fConvertToUnicode = (CF_UNICODETEXT == wParam);

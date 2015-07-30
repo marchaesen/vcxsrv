@@ -84,7 +84,7 @@ winKeyboardMessageHookLL(int iCode, WPARAM wParam, LPARAM lParam)
     /* Pass keystrokes on to our main message loop */
     if (iCode == HC_ACTION) {
         winDebug("winKeyboardMessageHook: vkCode: %08x scanCode: %08x\n",
-                 p->vkCode, p->scanCode);
+                 (unsigned int)p->vkCode, (unsigned int)p->scanCode);
 
         switch (wParam) {
         case WM_KEYDOWN:

@@ -25,8 +25,10 @@
  *    Jason Ekstrand <jason.ekstrand@intel.com>
  */
 
+#include "blend.h"
 #include "bufferobj.h"
 #include "buffers.h"
+#include "clear.h"
 #include "fbobject.h"
 #include "glformats.h"
 #include "glheader.h"
@@ -248,6 +250,24 @@ fail:
    return success;
 }
 
+static bool
+need_signed_unsigned_int_conversion(mesa_format rbFormat,
+                                    GLenum format, GLenum type)
+{
+   const GLenum srcType = _mesa_get_format_datatype(rbFormat);
+   const bool is_dst_format_integer = _mesa_is_enum_format_integer(format);
+   return (srcType == GL_INT &&
+           is_dst_format_integer &&
+           (type == GL_UNSIGNED_INT ||
+            type == GL_UNSIGNED_SHORT ||
+            type == GL_UNSIGNED_BYTE)) ||
+          (srcType == GL_UNSIGNED_INT &&
+           is_dst_format_integer &&
+           (type == GL_INT ||
+            type == GL_SHORT ||
+            type == GL_BYTE));
+}
+
 bool
 _mesa_meta_pbo_GetTexSubImage(struct gl_context *ctx, GLuint dims,
                               struct gl_texture_image *tex_image,
@@ -260,8 +280,10 @@ _mesa_meta_pbo_GetTexSubImage(struct gl_context *ctx, GLuint dims,
    int full_height, image_height;
    struct gl_texture_image *pbo_tex_image;
    struct gl_renderbuffer *rb = NULL;
-   GLenum status;
-   bool success = false;
+   GLenum dstBaseFormat = _mesa_unpack_format_to_base_format(format);
+   GLenum status, src_base_format;
+   bool success = false, clear_channels_to_zero = false;
+   float save_clear_color[4];
    int z;
 
    if (!_mesa_is_bufferobj(packing->BufferObj))
@@ -273,13 +295,27 @@ _mesa_meta_pbo_GetTexSubImage(struct gl_context *ctx, GLuint dims,
        format == GL_COLOR_INDEX)
       return false;
 
-   if (ctx->_ImageTransferState)
-      return false;
-
-
+   /* Don't use meta path for readpixels in below conditions. */
    if (!tex_image) {
       rb = ctx->ReadBuffer->_ColorReadBuffer;
-      if (_mesa_need_rgb_to_luminance_conversion(rb->Format, format))
+
+      /* _mesa_get_readpixels_transfer_ops() includes the cases of read
+       * color clamping along with the ctx->_ImageTransferState.
+       */
+      if (_mesa_get_readpixels_transfer_ops(ctx, rb->Format, format,
+                                            type, GL_FALSE))
+         return false;
+
+      if (_mesa_need_rgb_to_luminance_conversion(rb->_BaseFormat,
+                                                 dstBaseFormat))
+         return false;
+
+      /* This function rely on BlitFramebuffer to fill in the pixel data for
+       * ReadPixels. But, BlitFrameBuffer doesn't support signed to unsigned
+       * or unsigned to signed integer conversions. OpenGL spec expects an
+       * invalid operation in that case.
+       */
+      if (need_signed_unsigned_int_conversion(rb->Format, format, type))
          return false;
    }
 
@@ -299,6 +335,10 @@ _mesa_meta_pbo_GetTexSubImage(struct gl_context *ctx, GLuint dims,
 
    _mesa_meta_begin(ctx, ~(MESA_META_PIXEL_TRANSFER |
                            MESA_META_PIXEL_STORE));
+
+   /* GL_CLAMP_FRAGMENT_COLOR doesn't affect ReadPixels and GettexImage */
+   if (ctx->Extensions.ARB_color_buffer_float)
+      _mesa_ClampColor(GL_CLAMP_FRAGMENT_COLOR, GL_FALSE);
 
    _mesa_GenFramebuffers(2, fbos);
 
@@ -345,6 +385,27 @@ _mesa_meta_pbo_GetTexSubImage(struct gl_context *ctx, GLuint dims,
                                   GL_COLOR_BUFFER_BIT, GL_NEAREST))
       goto fail;
 
+   src_base_format = tex_image ?
+                     tex_image->_BaseFormat :
+                     ctx->ReadBuffer->_ColorReadBuffer->_BaseFormat;
+
+   /* Depending on the base formats involved we might need to rebase some
+    * values. For example if we download from a Luminance format to RGBA
+    * format, we want G=0 and B=0.
+    */
+   clear_channels_to_zero =
+      _mesa_need_luminance_to_rgb_conversion(src_base_format,
+                                             pbo_tex_image->_BaseFormat);
+
+   if (clear_channels_to_zero) {
+      memcpy(save_clear_color, ctx->Color.ClearColor.f, 4 * sizeof(float));
+      /* Clear the Green, Blue channels. */
+      _mesa_ColorMask(GL_FALSE, GL_TRUE, GL_TRUE,
+                      src_base_format != GL_LUMINANCE_ALPHA);
+      _mesa_ClearColor(0.0, 0.0, 0.0, 1.0);
+      _mesa_Clear(GL_COLOR_BUFFER_BIT);
+   }
+
    for (z = 1; z < depth; z++) {
       _mesa_meta_bind_fbo_image(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
                                 tex_image, zoffset + z);
@@ -357,6 +418,15 @@ _mesa_meta_pbo_GetTexSubImage(struct gl_context *ctx, GLuint dims,
                                  0, z * image_height,
                                  width, z * image_height + height,
                                  GL_COLOR_BUFFER_BIT, GL_NEAREST);
+      if (clear_channels_to_zero)
+         _mesa_Clear(GL_COLOR_BUFFER_BIT);
+   }
+
+   /* Unmask the color channels and restore the saved clear color values. */
+   if (clear_channels_to_zero) {
+      _mesa_ColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+      _mesa_ClearColor(save_clear_color[0], save_clear_color[1],
+                       save_clear_color[2], save_clear_color[3]);
    }
 
    success = true;

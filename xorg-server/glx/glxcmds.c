@@ -334,6 +334,19 @@ DoCreateContext(__GLXclientState * cl, GLXContextID gcId,
      */
     glxc->resetNotificationStrategy = GLX_NO_RESET_NOTIFICATION_ARB;
 
+#ifdef GLX_CONTEXT_RELEASE_BEHAVIOR_ARB
+    /* The GLX_ARB_context_flush_control spec says:
+     *
+     *     "The default value [for GLX_CONTEXT_RELEASE_BEHAVIOR] is
+     *     CONTEXT_RELEASE_BEHAVIOR_FLUSH, and may in some cases be changed
+     *     using platform-specific context creation extensions."
+     *
+     * Without using glXCreateContextAttribsARB, there is no way to specify a
+     * non-default release behavior.
+     */
+    glxc->releaseBehavior = GLX_CONTEXT_RELEASE_BEHAVIOR_FLUSH_ARB;
+#endif
+
     /* Add the new context to the various global tables of GLX contexts.
      */
     if (!__glXAddContext(glxc)) {
@@ -626,7 +639,12 @@ DoMakeCurrent(__GLXclientState * cl,
         /*
          ** Flush the previous context if needed.
          */
-        if (prevglxc->hasUnflushedCommands) {
+        Bool need_flush = GL_TRUE;
+#ifdef GLX_CONTEXT_RELEASE_BEHAVIOR_ARB
+        if (prevglxc->releaseBehavior == GLX_CONTEXT_RELEASE_BEHAVIOR_NONE_ARB)
+            need_flush = GL_FALSE;
+#endif
+        if (prevglxc->hasUnflushedCommands && need_flush) {
             if (__glXForceCurrent(cl, tag, (int *) &error)) {
                 glFlush();
                 prevglxc->hasUnflushedCommands = GL_FALSE;

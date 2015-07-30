@@ -108,6 +108,11 @@ struct __GLXcontext {
      */
     GLenum resetNotificationStrategy;
 
+    /**
+     * Context release behavior
+     */
+    GLenum releaseBehavior;
+
     /*
      ** Buffers for feedback and selection.
      */

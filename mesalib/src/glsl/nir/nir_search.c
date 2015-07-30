@@ -48,7 +48,7 @@ src_is_bool(nir_src src)
       return false;
    if (src.ssa->parent_instr->type != nir_instr_type_alu)
       return false;
-   return alu_instr_is_bool((nir_alu_instr *)src.ssa->parent_instr);
+   return alu_instr_is_bool(nir_instr_as_alu(src.ssa->parent_instr));
 }
 
 static bool

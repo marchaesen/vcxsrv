@@ -286,6 +286,38 @@ _mesa_init_compute_program(struct gl_context *ctx,
 
 
 /**
+ * Initialize a new tessellation control program object.
+ */
+struct gl_program *
+_mesa_init_tess_ctrl_program(struct gl_context *ctx,
+                             struct gl_tess_ctrl_program *prog,
+                             GLenum target, GLuint id)
+{
+   if (prog) {
+      init_program_struct(&prog->Base, target, id);
+      return &prog->Base;
+   }
+   return NULL;
+}
+
+
+/**
+ * Initialize a new tessellation evaluation program object.
+ */
+struct gl_program *
+_mesa_init_tess_eval_program(struct gl_context *ctx,
+                             struct gl_tess_eval_program *prog,
+                             GLenum target, GLuint id)
+{
+   if (prog) {
+      init_program_struct(&prog->Base, target, id);
+      return &prog->Base;
+   }
+   return NULL;
+}
+
+
+/**
  * Initialize a new geometry program object.
  */
 struct gl_program *
@@ -331,6 +363,16 @@ _mesa_new_program(struct gl_context *ctx, GLenum target, GLuint id)
    case GL_GEOMETRY_PROGRAM_NV:
       prog = _mesa_init_geometry_program(ctx,
                                          CALLOC_STRUCT(gl_geometry_program),
+                                         target, id);
+      break;
+   case GL_TESS_CONTROL_PROGRAM_NV:
+      prog = _mesa_init_tess_ctrl_program(ctx,
+                                          CALLOC_STRUCT(gl_tess_ctrl_program),
+                                          target, id);
+      break;
+   case GL_TESS_EVALUATION_PROGRAM_NV:
+      prog = _mesa_init_tess_eval_program(ctx,
+                                         CALLOC_STRUCT(gl_tess_eval_program),
                                          target, id);
       break;
    case GL_COMPUTE_PROGRAM_NV:
@@ -552,6 +594,23 @@ _mesa_clone_program(struct gl_context *ctx, const struct gl_program *prog)
          gpc->OutputType = gp->OutputType;
          gpc->UsesEndPrimitive = gp->UsesEndPrimitive;
          gpc->UsesStreams = gp->UsesStreams;
+      }
+      break;
+   case GL_TESS_CONTROL_PROGRAM_NV:
+      {
+         const struct gl_tess_ctrl_program *tcp = gl_tess_ctrl_program_const(prog);
+         struct gl_tess_ctrl_program *tcpc = gl_tess_ctrl_program(clone);
+         tcpc->VerticesOut = tcp->VerticesOut;
+      }
+      break;
+   case GL_TESS_EVALUATION_PROGRAM_NV:
+      {
+         const struct gl_tess_eval_program *tep = gl_tess_eval_program_const(prog);
+         struct gl_tess_eval_program *tepc = gl_tess_eval_program(clone);
+         tepc->PrimitiveMode = tep->PrimitiveMode;
+         tepc->Spacing = tep->Spacing;
+         tepc->VertexOrder = tep->VertexOrder;
+         tepc->PointMode = tep->PointMode;
       }
       break;
    default:

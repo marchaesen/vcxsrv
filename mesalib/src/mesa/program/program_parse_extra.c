@@ -163,6 +163,8 @@ _mesa_ARBvp_parse_option(struct asm_parser_state *state, const char *option)
 int
 _mesa_ARBfp_parse_option(struct asm_parser_state *state, const char *option)
 {
+   unsigned fog_option;
+
    /* All of the options currently supported start with "ARB_".  The code is
     * currently structured with nested if-statements because eventually options
     * that start with "NV_" will be supported.  This structure will result in
@@ -177,20 +179,42 @@ _mesa_ARBfp_parse_option(struct asm_parser_state *state, const char *option)
       if (strncmp(option, "fog_", 4) == 0) {
 	 option += 4;
 
-	 if (state->option.Fog == OPTION_NONE) {
-	    if (strcmp(option, "exp") == 0) {
-	       state->option.Fog = OPTION_FOG_EXP;
-	       return 1;
-	    } else if (strcmp(option, "exp2") == 0) {
-	       state->option.Fog = OPTION_FOG_EXP2;
-	       return 1;
-	    } else if (strcmp(option, "linear") == 0) {
-	       state->option.Fog = OPTION_FOG_LINEAR;
-	       return 1;
-	    }
-	 }
+         if (strcmp(option, "exp") == 0) {
+            fog_option = OPTION_FOG_EXP;
+         } else if (strcmp(option, "exp2") == 0) {
+            fog_option = OPTION_FOG_EXP2;
+         } else if (strcmp(option, "linear") == 0) {
+            fog_option = OPTION_FOG_LINEAR;
+         } else {
+            /* invalid option */
+            return 0;
+         }
 
-	 return 0;
+         if (state->option.Fog == OPTION_NONE) {
+            state->option.Fog = fog_option;
+            return 1;
+         }
+
+         /* The ARB_fragment_program specification instructs us to handle
+          * redundant options in two seemingly contradictory ways:
+          *
+          * Section 3.11.4.5.1 says:
+          * "Only one fog application option may be specified by any given
+          *  fragment program.  A fragment program that specifies more than one
+          *  of the program options "ARB_fog_exp", "ARB_fog_exp2", and
+          *  "ARB_fog_linear", will fail to load."
+          *
+          * Issue 27 says:
+          * "The three mandatory options are ARB_fog_exp, ARB_fog_exp2, and
+          *  ARB_fog_linear.  As these options are mutually exclusive by
+          *  nature, specifying more than one is not useful.  If more than one
+          *  is specified, the last one encountered in the <optionSequence>
+          *  will be the one to actually modify the execution environment."
+          *
+          * We choose to allow programs to specify the same OPTION redundantly,
+          * but fail to load programs that specify contradictory options.
+          */
+         return state->option.Fog == fog_option ? 1 : 0;
       } else if (strncmp(option, "precision_hint_", 15) == 0) {
 	 option += 15;
 

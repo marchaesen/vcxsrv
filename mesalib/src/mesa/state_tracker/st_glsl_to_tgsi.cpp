@@ -158,9 +158,12 @@ public:
    {
       this->file = file;
       this->index = index;
+      this->index2D = 0;
       this->writemask = writemask;
       this->cond_mask = COND_TR;
       this->reladdr = NULL;
+      this->reladdr2 = NULL;
+      this->has_index2 = false;
       this->type = type;
       this->array_id = 0;
    }
@@ -169,9 +172,12 @@ public:
    {
       this->file = file;
       this->index = 0;
+      this->index2D = 0;
       this->writemask = writemask;
       this->cond_mask = COND_TR;
       this->reladdr = NULL;
+      this->reladdr2 = NULL;
+      this->has_index2 = false;
       this->type = type;
       this->array_id = 0;
    }
@@ -181,9 +187,12 @@ public:
       this->type = GLSL_TYPE_ERROR;
       this->file = PROGRAM_UNDEFINED;
       this->index = 0;
+      this->index2D = 0;
       this->writemask = 0;
       this->cond_mask = COND_TR;
       this->reladdr = NULL;
+      this->reladdr2 = NULL;
+      this->has_index2 = false;
       this->array_id = 0;
    }
 
@@ -191,11 +200,14 @@ public:
 
    gl_register_file file; /**< PROGRAM_* from Mesa */
    int index; /**< temporary index, VERT_ATTRIB_*, VARYING_SLOT_*, etc. */
+   int index2D;
    int writemask; /**< Bitfield of WRITEMASK_[XYZW] */
    GLuint cond_mask:4;
    int type; /** GLSL_TYPE_* from GLSL IR (enum glsl_base_type) */
    /** Register index should be offset by the integer in this reg. */
    st_src_reg *reladdr;
+   st_src_reg *reladdr2;
+   bool has_index2;
    unsigned array_id;
 };
 
@@ -207,9 +219,9 @@ st_src_reg::st_src_reg(st_dst_reg reg)
    this->swizzle = SWIZZLE_XYZW;
    this->negate = 0;
    this->reladdr = reg.reladdr;
-   this->index2D = 0;
-   this->reladdr2 = NULL;
-   this->has_index2 = false;
+   this->index2D = reg.index2D;
+   this->reladdr2 = reg.reladdr2;
+   this->has_index2 = reg.has_index2;
    this->double_reg2 = false;
    this->array_id = reg.array_id;
 }
@@ -222,6 +234,9 @@ st_dst_reg::st_dst_reg(st_src_reg reg)
    this->writemask = WRITEMASK_XYZW;
    this->cond_mask = COND_TR;
    this->reladdr = reg.reladdr;
+   this->index2D = reg.index2D;
+   this->reladdr2 = reg.reladdr2;
+   this->has_index2 = reg.has_index2;
    this->array_id = reg.array_id;
 }
 
@@ -239,6 +254,7 @@ public:
    st_src_reg sampler; /**< sampler register */
    int sampler_array_size; /**< 1-based size of sampler array, 1 if not array */
    int tex_target; /**< One of TEXTURE_*_INDEX */
+   glsl_base_type tex_type;
    GLboolean tex_shadow;
 
    st_src_reg tex_offsets[MAX_GLSL_TEXTURE_OFFSET];
@@ -345,6 +361,8 @@ public:
 
    int num_address_regs;
    int samplers_used;
+   glsl_base_type sampler_types[PIPE_MAX_SAMPLERS];
+   int sampler_targets[PIPE_MAX_SAMPLERS];   /**< One of TGSI_TEXTURE_* */
    bool indirect_addr_consts;
    int wpos_transform_const;
 
@@ -548,8 +566,8 @@ glsl_to_tgsi_visitor::emit_asm(ir_instruction *ir, unsigned op,
     * reg directly for one of the regs, and preload the other reladdr
     * sources into temps.
     */
-   num_reladdr += dst.reladdr != NULL;
-   num_reladdr += dst1.reladdr != NULL;
+   num_reladdr += dst.reladdr != NULL || dst.reladdr2;
+   num_reladdr += dst1.reladdr != NULL || dst1.reladdr2;
    num_reladdr += src0.reladdr != NULL || src0.reladdr2 != NULL;
    num_reladdr += src1.reladdr != NULL || src1.reladdr2 != NULL;
    num_reladdr += src2.reladdr != NULL || src2.reladdr2 != NULL;
@@ -560,8 +578,11 @@ glsl_to_tgsi_visitor::emit_asm(ir_instruction *ir, unsigned op,
    reladdr_to_temp(ir, &src1, &num_reladdr);
    reladdr_to_temp(ir, &src0, &num_reladdr);
 
-   if (dst.reladdr) {
-      emit_arl(ir, address_reg, *dst.reladdr);
+   if (dst.reladdr || dst.reladdr2) {
+      if (dst.reladdr)
+         emit_arl(ir, address_reg, *dst.reladdr);
+      if (dst.reladdr2)
+         emit_arl(ir, address_reg2, *dst.reladdr2);
       num_reladdr--;
    }
    if (dst1.reladdr) {
@@ -579,11 +600,15 @@ glsl_to_tgsi_visitor::emit_asm(ir_instruction *ir, unsigned op,
    inst->src[3] = src3;
    inst->ir = ir;
    inst->dead_mask = 0;
+   /* default to float, for paths where this is not initialized
+    * (since 0==UINT which is likely wrong):
+    */
+   inst->tex_type = GLSL_TYPE_FLOAT;
 
    inst->function = NULL;
 
    /* Update indirect addressing status used by TGSI */
-   if (dst.reladdr) {
+   if (dst.reladdr || dst.reladdr2) {
       switch(dst.file) {
       case PROGRAM_STATE_VAR:
       case PROGRAM_CONSTANT:
@@ -790,7 +815,7 @@ glsl_to_tgsi_visitor::get_opcode(ir_instruction *ir, unsigned op,
    case TGSI_OPCODE_##c: \
       if (type == GLSL_TYPE_DOUBLE) \
          op = TGSI_OPCODE_##d; \
-      else if (type == GLSL_TYPE_INT)       \
+      else if (type == GLSL_TYPE_INT || type == GLSL_TYPE_SUBROUTINE)       \
          op = TGSI_OPCODE_##i; \
       else if (type == GLSL_TYPE_UINT) \
          op = TGSI_OPCODE_##u; \
@@ -1083,6 +1108,7 @@ type_size(const struct glsl_type *type)
       return size;
    case GLSL_TYPE_SAMPLER:
    case GLSL_TYPE_IMAGE:
+   case GLSL_TYPE_SUBROUTINE:
       /* Samplers take up one slot in UNIFORMS[], but they're baked in
        * at link time.
        */
@@ -1462,6 +1488,9 @@ glsl_to_tgsi_visitor::visit(ir_expression *ir)
          op[0].negate = ~op[0].negate;
          result_src = op[0];
       }
+      break;
+   case ir_unop_subroutine_to_int:
+      emit_asm(ir, TGSI_OPCODE_MOV, result_dst, op[0]);
       break;
    case ir_unop_abs:
       emit_asm(ir, TGSI_OPCODE_ABS, result_dst, op[0]);
@@ -2236,7 +2265,10 @@ is_inout_array(unsigned stage, ir_variable *var, bool *is_2d)
 
    *is_2d = false;
 
-   if (stage == MESA_SHADER_GEOMETRY && var->data.mode == ir_var_shader_in) {
+   if (((stage == MESA_SHADER_GEOMETRY && var->data.mode == ir_var_shader_in) ||
+        (stage == MESA_SHADER_TESS_EVAL && var->data.mode == ir_var_shader_in) ||
+        stage == MESA_SHADER_TESS_CTRL) &&
+       !var->data.patch) {
       if (!var->type->is_array())
          return false; /* a system value probably */
 
@@ -2348,7 +2380,8 @@ glsl_to_tgsi_visitor::visit(ir_dereference_variable *ir)
 
 static void
 shrink_array_declarations(struct array_decl *arrays, unsigned count,
-                          GLbitfield64 usage_mask)
+                          GLbitfield64 usage_mask,
+                          GLbitfield patch_usage_mask)
 {
    unsigned i, j;
 
@@ -2360,8 +2393,15 @@ shrink_array_declarations(struct array_decl *arrays, unsigned count,
 
       /* Shrink the beginning. */
       for (j = 0; j < decl->array_size; j++) {
-         if (usage_mask & BITFIELD64_BIT(decl->mesa_index+j))
-            break;
+         if (decl->mesa_index >= VARYING_SLOT_PATCH0) {
+            if (patch_usage_mask &
+                BITFIELD64_BIT(decl->mesa_index - VARYING_SLOT_PATCH0 + j))
+               break;
+         }
+         else {
+            if (usage_mask & BITFIELD64_BIT(decl->mesa_index+j))
+               break;
+         }
 
          decl->mesa_index++;
          decl->array_size--;
@@ -2370,8 +2410,15 @@ shrink_array_declarations(struct array_decl *arrays, unsigned count,
 
       /* Shrink the end. */
       for (j = decl->array_size-1; j >= 0; j--) {
-         if (usage_mask & BITFIELD64_BIT(decl->mesa_index+j))
-            break;
+         if (decl->mesa_index >= VARYING_SLOT_PATCH0) {
+            if (patch_usage_mask &
+                BITFIELD64_BIT(decl->mesa_index - VARYING_SLOT_PATCH0 + j))
+               break;
+         }
+         else {
+            if (usage_mask & BITFIELD64_BIT(decl->mesa_index+j))
+               break;
+         }
 
          decl->array_size--;
       }
@@ -2384,22 +2431,34 @@ glsl_to_tgsi_visitor::visit(ir_dereference_array *ir)
    ir_constant *index;
    st_src_reg src;
    int element_size = type_size(ir->type);
-   bool is_2D_input;
+   bool is_2D = false;
 
    index = ir->array_index->constant_expression_value();
 
    ir->array->accept(this);
    src = this->result;
 
-   is_2D_input = this->prog->Target == GL_GEOMETRY_PROGRAM_NV &&
-                 src.file == PROGRAM_INPUT &&
-                 ir->array->ir_type != ir_type_dereference_array;
+   if (ir->array->ir_type != ir_type_dereference_array) {
+      switch (this->prog->Target) {
+      case GL_TESS_CONTROL_PROGRAM_NV:
+         is_2D = (src.file == PROGRAM_INPUT || src.file == PROGRAM_OUTPUT) &&
+                 !ir->variable_referenced()->data.patch;
+         break;
+      case GL_TESS_EVALUATION_PROGRAM_NV:
+         is_2D = src.file == PROGRAM_INPUT &&
+                 !ir->variable_referenced()->data.patch;
+         break;
+      case GL_GEOMETRY_PROGRAM_NV:
+         is_2D = src.file == PROGRAM_INPUT;
+         break;
+      }
+   }
 
-   if (is_2D_input)
+   if (is_2D)
       element_size = 1;
 
    if (index) {
-      if (is_2D_input) {
+      if (is_2D) {
          src.index2D = index->value.i[0];
          src.has_index2 = true;
       } else
@@ -2426,7 +2485,7 @@ glsl_to_tgsi_visitor::visit(ir_dereference_array *ir)
       /* If there was already a relative address register involved, add the
        * new and the old together to get the new offset.
        */
-      if (!is_2D_input && src.reladdr != NULL) {
+      if (!is_2D && src.reladdr != NULL) {
          st_src_reg accum_reg = get_temp(native_integers ?
                                 glsl_type::int_type : glsl_type::float_type);
 
@@ -2436,7 +2495,7 @@ glsl_to_tgsi_visitor::visit(ir_dereference_array *ir)
          index_reg = accum_reg;
       }
 
-      if (is_2D_input) {
+      if (is_2D) {
          src.reladdr2 = ralloc(mem_ctx, st_src_reg);
          memcpy(src.reladdr2, &index_reg, sizeof(index_reg));
          src.index2D = 0;
@@ -3324,6 +3383,8 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
       assert(!"Should not get here.");
    }
 
+   inst->tex_type = ir->type->base_type;
+
    this->result = result_src;
 }
 
@@ -3421,7 +3482,10 @@ glsl_to_tgsi_visitor::visit(ir_end_primitive *ir)
 void
 glsl_to_tgsi_visitor::visit(ir_barrier *ir)
 {
-   unreachable("Not implemented!");
+   assert(this->prog->Target == GL_TESS_CONTROL_PROGRAM_NV ||
+          this->prog->Target == GL_COMPUTE_PROGRAM_NV);
+
+   emit_asm(ir, TGSI_OPCODE_BARRIER);
 }
 
 glsl_to_tgsi_visitor::glsl_to_tgsi_visitor()
@@ -3476,7 +3540,13 @@ count_resources(glsl_to_tgsi_visitor *v, gl_program *prog)
    foreach_in_list(glsl_to_tgsi_instruction, inst, &v->instructions) {
       if (is_tex_instruction(inst->op)) {
          for (int i = 0; i < inst->sampler_array_size; i++) {
-            v->samplers_used |= 1 << (inst->sampler.index + i);
+            unsigned idx = inst->sampler.index + i;
+            v->samplers_used |= 1 << idx;
+
+            debug_assert(idx < (int)ARRAY_SIZE(v->sampler_types));
+            v->sampler_types[idx] = inst->tex_type;
+            v->sampler_targets[idx] =
+               st_translate_texture_target(inst->tex_target, inst->tex_shadow);
 
             if (inst->tex_shadow) {
                prog->ShadowSamplers |= 1 << (inst->sampler.index + i);
@@ -3538,7 +3608,7 @@ glsl_to_tgsi_visitor::simplify_cmp(void)
 {
    int tempWritesSize = 0;
    unsigned *tempWrites = NULL;
-   unsigned outputWrites[MAX_PROGRAM_OUTPUTS];
+   unsigned outputWrites[VARYING_SLOT_TESS_MAX];
 
    memset(outputWrites, 0, sizeof(outputWrites));
 
@@ -3546,8 +3616,8 @@ glsl_to_tgsi_visitor::simplify_cmp(void)
       unsigned prevWriteMask = 0;
 
       /* Give up if we encounter relative addressing or flow control. */
-      if (inst->dst[0].reladdr ||
-          inst->dst[1].reladdr ||
+      if (inst->dst[0].reladdr || inst->dst[0].reladdr2 ||
+          inst->dst[1].reladdr || inst->dst[1].reladdr2 ||
           tgsi_get_opcode_info(inst->op)->is_branch ||
           inst->op == TGSI_OPCODE_BGNSUB ||
           inst->op == TGSI_OPCODE_CONT ||
@@ -3558,7 +3628,7 @@ glsl_to_tgsi_visitor::simplify_cmp(void)
       }
 
       if (inst->dst[0].file == PROGRAM_OUTPUT) {
-         assert(inst->dst[0].index < MAX_PROGRAM_OUTPUTS);
+         assert(inst->dst[0].index < (signed)ARRAY_SIZE(outputWrites));
          prevWriteMask = outputWrites[inst->dst[0].index];
          outputWrites[inst->dst[0].index] |= inst->dst[0].writemask;
       } else if (inst->dst[0].file == PROGRAM_TEMPORARY) {
@@ -3925,6 +3995,7 @@ glsl_to_tgsi_visitor::copy_propagate(void)
           !(inst->dst[0].file == inst->src[0].file &&
              inst->dst[0].index == inst->src[0].index) &&
           !inst->dst[0].reladdr &&
+          !inst->dst[0].reladdr2 &&
           !inst->saturate &&
           inst->src[0].file != PROGRAM_ARRAY &&
           !inst->src[0].reladdr &&
@@ -4512,6 +4583,14 @@ const unsigned _mesa_sysval_to_semantic[SYSTEM_VALUE_MAX] = {
    TGSI_SEMANTIC_SAMPLEID,
    TGSI_SEMANTIC_SAMPLEPOS,
    TGSI_SEMANTIC_SAMPLEMASK,
+
+   /* Tessellation shaders
+    */
+   TGSI_SEMANTIC_TESSCOORD,
+   TGSI_SEMANTIC_VERTICESIN,
+   TGSI_SEMANTIC_PRIMID,
+   TGSI_SEMANTIC_TESSOUTER,
+   TGSI_SEMANTIC_TESSINNER,
 };
 
 /**
@@ -4636,6 +4715,9 @@ dst_register(struct st_translate *t, gl_register_file file, unsigned index,
       if (!array_id) {
          if (t->procType == TGSI_PROCESSOR_FRAGMENT)
             assert(index < FRAG_RESULT_MAX);
+         else if (t->procType == TGSI_PROCESSOR_TESS_CTRL ||
+                  t->procType == TGSI_PROCESSOR_TESS_EVAL)
+            assert(index < VARYING_SLOT_TESS_MAX);
          else
             assert(index < VARYING_SLOT_MAX);
 
@@ -4773,6 +4855,14 @@ translate_dst(struct st_translate *t,
    if (dst_reg->reladdr != NULL) {
       assert(dst_reg->file != PROGRAM_TEMPORARY);
       dst = ureg_dst_indirect(dst, ureg_src(t->address[0]));
+   }
+
+   if (dst_reg->has_index2) {
+      if (dst_reg->reladdr2)
+         dst = ureg_dst_dimension_indirect(dst, ureg_src(t->address[1]),
+                                           dst_reg->index2D);
+      else
+         dst = ureg_dst_dimension(dst, dst_reg->index2D);
    }
 
    return dst;
@@ -5256,6 +5346,8 @@ st_translate_program(
           TGSI_SEMANTIC_VERTEXID_NOBASE);
    assert(_mesa_sysval_to_semantic[SYSTEM_VALUE_BASE_VERTEX] ==
           TGSI_SEMANTIC_BASEVERTEX);
+   assert(_mesa_sysval_to_semantic[SYSTEM_VALUE_TESS_COORD] ==
+          TGSI_SEMANTIC_TESSCOORD);
 
    t = CALLOC_STRUCT(st_translate);
    if (!t) {
@@ -5298,6 +5390,8 @@ st_translate_program(
       }
       break;
    case TGSI_PROCESSOR_GEOMETRY:
+   case TGSI_PROCESSOR_TESS_EVAL:
+   case TGSI_PROCESSOR_TESS_CTRL:
       for (i = 0; i < numInputs; i++) {
          unsigned array_id = 0;
          unsigned array_size;
@@ -5332,6 +5426,8 @@ st_translate_program(
    case TGSI_PROCESSOR_FRAGMENT:
       break;
    case TGSI_PROCESSOR_GEOMETRY:
+   case TGSI_PROCESSOR_TESS_EVAL:
+   case TGSI_PROCESSOR_TESS_CTRL:
    case TGSI_PROCESSOR_VERTEX:
       for (i = 0; i < numOutputs; i++) {
          unsigned array_id = 0;
@@ -5446,6 +5542,7 @@ st_translate_program(
                struct pipe_screen *pscreen = st->pipe->screen;
                assert(procType == TGSI_PROCESSOR_VERTEX);
                assert(pscreen->get_shader_param(pscreen, PIPE_SHADER_VERTEX, PIPE_SHADER_CAP_INTEGERS));
+               (void) pscreen;
                if (!ctx->Const.NativeIntegers) {
                   struct ureg_dst temp = ureg_DECL_local_temporary(t->ureg);
                   ureg_U2F( t->ureg, ureg_writemask(temp, TGSI_WRITEMASK_X), t->systemValues[i]);
@@ -5536,7 +5633,26 @@ st_translate_program(
    /* texture samplers */
    for (i = 0; i < ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxTextureImageUnits; i++) {
       if (program->samplers_used & (1 << i)) {
+         unsigned type;
+
          t->samplers[i] = ureg_DECL_sampler(ureg, i);
+
+         switch (program->sampler_types[i]) {
+         case GLSL_TYPE_INT:
+            type = TGSI_RETURN_TYPE_SINT;
+            break;
+         case GLSL_TYPE_UINT:
+            type = TGSI_RETURN_TYPE_UINT;
+            break;
+         case GLSL_TYPE_FLOAT:
+            type = TGSI_RETURN_TYPE_FLOAT;
+            break;
+         default:
+            unreachable("not reached");
+         }
+
+         ureg_DECL_sampler_view( ureg, i, program->sampler_targets[i],
+                                 type, type, type, type );
       }
    }
 
@@ -5577,25 +5693,6 @@ out:
 /* ----------------------------- End TGSI code ------------------------------ */
 
 
-static unsigned
-shader_stage_to_ptarget(gl_shader_stage stage)
-{
-   switch (stage) {
-   case MESA_SHADER_VERTEX:
-      return PIPE_SHADER_VERTEX;
-   case MESA_SHADER_FRAGMENT:
-      return PIPE_SHADER_FRAGMENT;
-   case MESA_SHADER_GEOMETRY:
-      return PIPE_SHADER_GEOMETRY;
-   case MESA_SHADER_COMPUTE:
-      return PIPE_SHADER_COMPUTE;
-   }
-
-   assert(!"should not be reached");
-   return PIPE_SHADER_VERTEX;
-}
-
-
 /**
  * Convert a shader's GLSL IR into a Mesa gl_program, although without
  * generating Mesa IR.
@@ -5612,7 +5709,7 @@ get_mesa_program(struct gl_context *ctx,
    struct gl_shader_compiler_options *options =
          &ctx->Const.ShaderCompilerOptions[_mesa_shader_enum_to_shader_stage(shader->Type)];
    struct pipe_screen *pscreen = ctx->st->pipe->screen;
-   unsigned ptarget = shader_stage_to_ptarget(shader->Stage);
+   unsigned ptarget = st_shader_stage_to_ptarget(shader->Stage);
 
    validate_ir_tree(shader->ir);
 
@@ -5639,7 +5736,7 @@ get_mesa_program(struct gl_context *ctx,
                                                prog->Parameters);
 
    /* Remove reads from output registers. */
-   lower_output_reads(shader->ir);
+   lower_output_reads(shader->Stage, shader->ir);
 
    /* Emit intermediate IR for main(). */
    visit_exec_list(shader->ir, v);
@@ -5687,7 +5784,11 @@ get_mesa_program(struct gl_context *ctx,
 
    /* Perform optimizations on the instructions in the glsl_to_tgsi_visitor. */
    v->simplify_cmp();
-   v->copy_propagate();
+
+   if (shader->Type != GL_TESS_CONTROL_SHADER &&
+       shader->Type != GL_TESS_EVALUATION_SHADER)
+      v->copy_propagate();
+
    while (v->eliminate_dead_code());
 
    v->merge_two_dsts();
@@ -5711,9 +5812,9 @@ get_mesa_program(struct gl_context *ctx,
 
    do_set_program_inouts(shader->ir, prog, shader->Stage);
    shrink_array_declarations(v->input_arrays, v->num_input_arrays,
-                             prog->InputsRead);
+                             prog->InputsRead, prog->PatchInputsRead);
    shrink_array_declarations(v->output_arrays, v->num_output_arrays,
-                             prog->OutputsWritten);
+                             prog->OutputsWritten, prog->PatchOutputsWritten);
    count_resources(v, prog);
 
    /* This must be done before the uniform storage is associated. */
@@ -5742,6 +5843,8 @@ get_mesa_program(struct gl_context *ctx,
    struct st_vertex_program *stvp;
    struct st_fragment_program *stfp;
    struct st_geometry_program *stgp;
+   struct st_tessctrl_program *sttcp;
+   struct st_tesseval_program *sttep;
 
    switch (shader->Type) {
    case GL_VERTEX_SHADER:
@@ -5756,6 +5859,14 @@ get_mesa_program(struct gl_context *ctx,
       stgp = (struct st_geometry_program *)prog;
       stgp->glsl_to_tgsi = v;
       break;
+   case GL_TESS_CONTROL_SHADER:
+      sttcp = (struct st_tessctrl_program *)prog;
+      sttcp->glsl_to_tgsi = v;
+      break;
+   case GL_TESS_EVALUATION_SHADER:
+      sttep = (struct st_tesseval_program *)prog;
+      sttep->glsl_to_tgsi = v;
+      break;
    default:
       assert(!"should not be reached");
       return NULL;
@@ -5765,6 +5876,71 @@ get_mesa_program(struct gl_context *ctx,
 }
 
 extern "C" {
+
+static void
+st_dump_program_for_shader_db(struct gl_context *ctx,
+                              struct gl_shader_program *prog)
+{
+   /* Dump only successfully compiled and linked shaders to the specified
+    * file. This is for shader-db.
+    *
+    * These options allow some pre-processing of shaders while dumping,
+    * because some apps have ill-formed shaders.
+    */
+   const char *dump_filename = os_get_option("ST_DUMP_SHADERS");
+   const char *insert_directives = os_get_option("ST_DUMP_INSERT");
+
+   if (dump_filename && prog->Name != 0) {
+      FILE *f = fopen(dump_filename, "a");
+
+      if (f) {
+         for (unsigned i = 0; i < prog->NumShaders; i++) {
+            const struct gl_shader *sh = prog->Shaders[i];
+            const char *source;
+            bool skip_version = false;
+
+            if (!sh)
+               continue;
+
+            source = sh->Source;
+
+            /* This string mustn't be changed. shader-db uses it to find
+             * where the shader begins.
+             */
+            fprintf(f, "GLSL %s shader %d source for linked program %d:\n",
+                    _mesa_shader_stage_to_string(sh->Stage),
+                    i, prog->Name);
+
+            /* Dump the forced version if set. */
+            if (ctx->Const.ForceGLSLVersion) {
+               fprintf(f, "#version %i\n", ctx->Const.ForceGLSLVersion);
+               skip_version = true;
+            }
+
+            /* Insert directives (optional). */
+            if (insert_directives) {
+               if (!ctx->Const.ForceGLSLVersion && prog->Version)
+                  fprintf(f, "#version %i\n", prog->Version);
+               fprintf(f, "%s\n", insert_directives);
+               skip_version = true;
+            }
+
+            if (skip_version && strncmp(source, "#version ", 9) == 0) {
+               const char *next_line = strstr(source, "\n");
+
+               if (next_line)
+                  source = next_line + 1;
+               else
+                  continue;
+            }
+
+            fprintf(f, "%s", source);
+            fprintf(f, "\n");
+         }
+         fclose(f);
+      }
+   }
+}
 
 /**
  * Link a shader.
@@ -5787,7 +5963,7 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
       gl_shader_stage stage = _mesa_shader_enum_to_shader_stage(prog->_LinkedShaders[i]->Type);
       const struct gl_shader_compiler_options *options =
             &ctx->Const.ShaderCompilerOptions[stage];
-      unsigned ptarget = shader_stage_to_ptarget(stage);
+      unsigned ptarget = st_shader_stage_to_ptarget(stage);
       bool have_dround = pscreen->get_shader_param(pscreen, ptarget,
                                                    PIPE_SHADER_CAP_TGSI_DROUND_SUPPORTED);
       bool have_dfrexp = pscreen->get_shader_param(pscreen, ptarget,
@@ -5798,7 +5974,7 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
        */
       if (options->EmitNoIndirectInput || options->EmitNoIndirectOutput ||
           options->EmitNoIndirectTemp || options->EmitNoIndirectUniform) {
-         lower_variable_index_to_cond_assign(ir,
+         lower_variable_index_to_cond_assign(prog->_LinkedShaders[i]->Stage, ir,
                                              options->EmitNoIndirectInput,
                                              options->EmitNoIndirectOutput,
                                              options->EmitNoIndirectTemp,
@@ -5886,6 +6062,7 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
       _mesa_reference_program(ctx, &linked_prog, NULL);
    }
 
+   st_dump_program_for_shader_db(ctx, prog);
    return GL_TRUE;
 }
 

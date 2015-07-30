@@ -174,12 +174,6 @@ def _parser():
                         metavar="input_file_name",
                         dest='file_name',
                         help="An xml description file.")
-    parser.add_argument('-c', '--es-version',
-                        choices=[None, 'es1', 'es2'],
-                        default=None,
-                        metavar='ver',
-                        dest='es',
-                        help='A GLES version to support')
     return parser.parse_args()
 
 
@@ -188,8 +182,6 @@ def main():
     args = _parser()
 
     api = gl_XML.parse_GL_API(args.file_name)
-    if args.es is not None:
-        api.filter_functions_by_api(args.es)
 
     printer = PrintGlRemap()
     printer.Print(api)

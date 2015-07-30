@@ -511,8 +511,6 @@ st_render_texture(struct gl_context *ctx,
    strb->rtt_layered = att->Layered;
    pipe_resource_reference(&strb->texture, pt);
 
-   pipe_surface_release(pipe, &strb->surface);
-
    st_update_renderbuffer_surface(st, strb);
 
    strb->Base.Format = st_pipe_format_to_mesa_format(pt->format);

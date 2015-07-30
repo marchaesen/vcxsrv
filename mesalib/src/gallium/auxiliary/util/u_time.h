@@ -60,7 +60,7 @@ struct util_time
    
 
 PIPE_DEPRECATED
-static INLINE void
+static inline void
 util_time_get(struct util_time *t)
 {
    t->counter = os_time_get();
@@ -71,7 +71,7 @@ util_time_get(struct util_time *t)
  * Return t2 = t1 + usecs
  */
 PIPE_DEPRECATED
-static INLINE void
+static inline void
 util_time_add(const struct util_time *t1,
               int64_t usecs,
               struct util_time *t2)
@@ -84,7 +84,7 @@ util_time_add(const struct util_time *t1,
  * Return difference between times, in microseconds
  */
 PIPE_DEPRECATED
-static INLINE int64_t
+static inline int64_t
 util_time_diff(const struct util_time *t1, 
                const struct util_time *t2)
 {
@@ -98,7 +98,7 @@ util_time_diff(const struct util_time *t1,
  * Not publicly available because it does not take in account wrap-arounds.
  * Use util_time_timeout instead.
  */
-static INLINE int
+static inline int
 _util_time_compare(const struct util_time *t1,
                    const struct util_time *t2)
 {
@@ -115,7 +115,7 @@ _util_time_compare(const struct util_time *t1,
  * Returns non-zero when the timeout expires.
  */
 PIPE_DEPRECATED
-static INLINE boolean
+static inline boolean
 util_time_timeout(const struct util_time *start, 
                   const struct util_time *end,
                   const struct util_time *curr)
@@ -128,7 +128,7 @@ util_time_timeout(const struct util_time *start,
  * Return current time in microseconds
  */
 PIPE_DEPRECATED
-static INLINE int64_t
+static inline int64_t
 util_time_micros(void)
 {
    return os_time_get();
@@ -136,7 +136,7 @@ util_time_micros(void)
 
 
 PIPE_DEPRECATED
-static INLINE void
+static inline void
 util_time_sleep(int64_t usecs)
 {
    os_time_sleep(usecs);

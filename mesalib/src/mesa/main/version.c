@@ -58,34 +58,44 @@ get_gl_override(gl_api api, int *version, bool *fwd_context,
       ? "MESA_GL_VERSION_OVERRIDE" : "MESA_GLES_VERSION_OVERRIDE";
    const char *version_str;
    int major, minor, n;
-   static int override_version = -1;
-   static bool fc_suffix = false;
-   static bool compat_suffix = false;
+   static struct override_info {
+      int version;
+      bool fc_suffix;
+      bool compat_suffix;
+   } override[] = {
+      { -1, false, false},
+      { -1, false, false},
+      { -1, false, false},
+      { -1, false, false},
+   };
+
+   STATIC_ASSERT(ARRAY_SIZE(override) == API_OPENGL_LAST + 1);
 
    if (api == API_OPENGLES)
       goto exit;
 
-   if (override_version < 0) {
-      override_version = 0;
+   if (override[api].version < 0) {
+      override[api].version = 0;
 
       version_str = getenv(env_var);
       if (version_str) {
-         fc_suffix = check_for_ending(version_str, "FC");
-         compat_suffix = check_for_ending(version_str, "COMPAT");
+         override[api].fc_suffix = check_for_ending(version_str, "FC");
+         override[api].compat_suffix = check_for_ending(version_str, "COMPAT");
 
          n = sscanf(version_str, "%u.%u", &major, &minor);
          if (n != 2) {
             fprintf(stderr, "error: invalid value for %s: %s\n",
                     env_var, version_str);
-            override_version = 0;
+            override[api].version = 0;
          } else {
-            override_version = major * 10 + minor;
+            override[api].version = major * 10 + minor;
 
             /* There is no such thing as compatibility or forward-compatible for
              * OpenGL ES 2.0 or 3.x APIs.
              */
-            if ((override_version < 30 && fc_suffix) ||
-                (api == API_OPENGLES2 && (fc_suffix || compat_suffix))) {
+            if ((override[api].version < 30 && override[api].fc_suffix) ||
+                (api == API_OPENGLES2 && (override[api].fc_suffix ||
+                                          override[api].compat_suffix))) {
                fprintf(stderr, "error: invalid value for %s: %s\n",
                        env_var, version_str);
             }
@@ -94,9 +104,9 @@ get_gl_override(gl_api api, int *version, bool *fwd_context,
    }
 
 exit:
-   *version = override_version;
-   *fwd_context = fc_suffix;
-   *compat_context = compat_suffix;
+   *version = override[api].version;
+   *fwd_context = override[api].fc_suffix;
+   *compat_context = override[api].compat_suffix;
 }
 
 /**
@@ -299,7 +309,7 @@ compute_version(const struct gl_extensions *extensions,
                          extensions->ARB_gpu_shader5 &&
                          extensions->ARB_gpu_shader_fp64 &&
                          extensions->ARB_sample_shading &&
-                         false /*extensions->ARB_shader_subroutine*/ &&
+                         extensions->ARB_shader_subroutine &&
                          extensions->ARB_tessellation_shader &&
                          extensions->ARB_texture_buffer_object_rgb32 &&
                          extensions->ARB_texture_cube_map_array &&

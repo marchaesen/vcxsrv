@@ -132,21 +132,21 @@ static void debug_op(GLint optype, GLuint arg_count, GLenum op, GLuint dst,
 
   op_name = atifs_ops[(arg_count-1)+(optype?3:0)];
   
-  fprintf(stderr, "%s(%s, %s", op_name, _mesa_lookup_enum_by_nr(op),
-	      _mesa_lookup_enum_by_nr(dst));
+  fprintf(stderr, "%s(%s, %s", op_name, _mesa_enum_to_string(op),
+	      _mesa_enum_to_string(dst));
   if (!optype)
     fprintf(stderr, ", %d", dstMask);
   
   fprintf(stderr, ", %s", create_dst_mod_str(dstMod));
   
-  fprintf(stderr, ", %s, %s, %d", _mesa_lookup_enum_by_nr(arg1),
-	      _mesa_lookup_enum_by_nr(arg1Rep), arg1Mod);
+  fprintf(stderr, ", %s, %s, %d", _mesa_enum_to_string(arg1),
+	      _mesa_enum_to_string(arg1Rep), arg1Mod);
   if (arg_count>1)
-    fprintf(stderr, ", %s, %s, %d", _mesa_lookup_enum_by_nr(arg2),
-	      _mesa_lookup_enum_by_nr(arg2Rep), arg2Mod);
+    fprintf(stderr, ", %s, %s, %d", _mesa_enum_to_string(arg2),
+	      _mesa_enum_to_string(arg2Rep), arg2Mod);
   if (arg_count>2)
-    fprintf(stderr, ", %s, %s, %d", _mesa_lookup_enum_by_nr(arg3),
-	      _mesa_lookup_enum_by_nr(arg3Rep), arg3Mod);
+    fprintf(stderr, ", %s, %s, %d", _mesa_enum_to_string(arg3),
+	      _mesa_enum_to_string(arg3Rep), arg3Mod);
 
   fprintf(stderr,")\n");
 
@@ -383,7 +383,7 @@ _mesa_EndFragmentShaderATI(void)
    for (j = 0; j < MAX_NUM_PASSES_ATI; j++) {
       for (i = 0; i < MAX_NUM_FRAGMENT_REGISTERS_ATI; i++) {
 	 GLuint op = curProg->SetupInst[j][i].Opcode;
-	 const char *op_enum = op > 5 ? _mesa_lookup_enum_by_nr(op) : "0";
+	 const char *op_enum = op > 5 ? _mesa_enum_to_string(op) : "0";
 	 GLuint src = curProg->SetupInst[j][i].src;
 	 GLuint swizzle = curProg->SetupInst[j][i].swizzle;
 	 fprintf(stderr, "%2d %04X %s %d %04X\n", i, op, op_enum, src,
@@ -392,8 +392,8 @@ _mesa_EndFragmentShaderATI(void)
       for (i = 0; i < curProg->numArithInstr[j]; i++) {
 	 GLuint op0 = curProg->Instructions[j][i].Opcode[0];
 	 GLuint op1 = curProg->Instructions[j][i].Opcode[1];
-	 const char *op0_enum = op0 > 5 ? _mesa_lookup_enum_by_nr(op0) : "0";
-	 const char *op1_enum = op1 > 5 ? _mesa_lookup_enum_by_nr(op1) : "0";
+	 const char *op0_enum = op0 > 5 ? _mesa_enum_to_string(op0) : "0";
+	 const char *op1_enum = op1 > 5 ? _mesa_enum_to_string(op1) : "0";
 	 GLuint count0 = curProg->Instructions[j][i].ArgCount[0];
 	 GLuint count1 = curProg->Instructions[j][i].ArgCount[1];
 	 fprintf(stderr, "%2d %04X %s %d %04X %s %d\n", i, op0, op0_enum, count0,
@@ -477,8 +477,8 @@ _mesa_PassTexCoordATI(GLuint dst, GLuint coord, GLenum swizzle)
 
 #if MESA_DEBUG_ATI_FS
    _mesa_debug(ctx, "%s(%s, %s, %s)\n", __func__,
-	       _mesa_lookup_enum_by_nr(dst), _mesa_lookup_enum_by_nr(coord),
-	       _mesa_lookup_enum_by_nr(swizzle));
+	       _mesa_enum_to_string(dst), _mesa_enum_to_string(coord),
+	       _mesa_enum_to_string(swizzle));
 #endif
 }
 
@@ -550,8 +550,8 @@ _mesa_SampleMapATI(GLuint dst, GLuint interp, GLenum swizzle)
 
 #if MESA_DEBUG_ATI_FS
    _mesa_debug(ctx, "%s(%s, %s, %s)\n", __func__,
-	       _mesa_lookup_enum_by_nr(dst), _mesa_lookup_enum_by_nr(interp),
-	       _mesa_lookup_enum_by_nr(swizzle));
+	       _mesa_enum_to_string(dst), _mesa_enum_to_string(interp),
+	       _mesa_enum_to_string(swizzle));
 #endif
 }
 

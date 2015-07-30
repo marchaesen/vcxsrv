@@ -56,7 +56,7 @@ void util_ringbuffer_destroy( struct util_ringbuffer *ring )
 /**
  * Return number of free entries in the ring
  */
-static INLINE unsigned util_ringbuffer_space( const struct util_ringbuffer *ring )
+static inline unsigned util_ringbuffer_space( const struct util_ringbuffer *ring )
 {
    return (ring->tail - (ring->head + 1)) & ring->mask;
 }
@@ -64,7 +64,7 @@ static INLINE unsigned util_ringbuffer_space( const struct util_ringbuffer *ring
 /**
  * Is the ring buffer empty?
  */
-static INLINE boolean util_ringbuffer_empty( const struct util_ringbuffer *ring )
+static inline boolean util_ringbuffer_empty( const struct util_ringbuffer *ring )
 {
    return util_ringbuffer_space(ring) == ring->mask;
 }

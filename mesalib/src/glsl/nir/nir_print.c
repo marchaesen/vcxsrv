@@ -214,7 +214,7 @@ print_var_decl(nir_variable *var, print_var_state *state, FILE *fp)
    const char *const samp = (var->data.sample) ? "sample " : "";
    const char *const inv = (var->data.invariant) ? "invariant " : "";
    const char *const mode[] = { "shader_in ", "shader_out ", "", "",
-                                "uniform ", "system " };
+                                "uniform ", "shader_storage", "system " };
    const char *const interp[] = { "", "smooth", "flat", "noperspective" };
 
    fprintf(fp, "%s%s%s%s%s ",
@@ -239,7 +239,8 @@ print_var_decl(nir_variable *var, print_var_state *state, FILE *fp)
 
    if (var->data.mode == nir_var_shader_in ||
        var->data.mode == nir_var_shader_out ||
-       var->data.mode == nir_var_uniform) {
+       var->data.mode == nir_var_uniform ||
+       var->data.mode == nir_var_shader_storage) {
       fprintf(fp, " (%u, %u)", var->data.location, var->data.driver_location);
    }
 

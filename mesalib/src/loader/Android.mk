@@ -33,10 +33,8 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES := \
 	$(LOADER_C_FILES)
 
-# swrast only
-ifeq ($(MESA_GPU_DRIVERS),swrast)
-LOCAL_CFLAGS += -D__NOT_HAVE_DRM_H
-else
+ifneq ($(filter-out swrast,$(MESA_GPU_DRIVERS)),)
+LOCAL_CFLAGS += -DHAVE_LIBDRM
 LOCAL_SHARED_LIBRARIES := libdrm
 endif
 

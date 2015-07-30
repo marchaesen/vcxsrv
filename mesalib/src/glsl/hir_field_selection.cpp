@@ -56,45 +56,6 @@ _mesa_ast_field_selection_to_hir(const ast_expression *expr,
 			  "structure",
 			  expr->primary_expression.identifier);
       }
-   } else if (expr->subexpressions[1] != NULL) {
-      /* Handle "method calls" in GLSL 1.20 - namely, array.length() */
-      state->check_version(120, 300, &loc, "methods not supported");
-
-      ast_expression *call = expr->subexpressions[1];
-      assert(call->oper == ast_function_call);
-
-      const char *method;
-      method = call->subexpressions[0]->primary_expression.identifier;
-
-      if (strcmp(method, "length") == 0) {
-         if (!call->expressions.is_empty())
-            _mesa_glsl_error(&loc, state, "length method takes no arguments");
-
-         if (op->type->is_array()) {
-            if (op->type->is_unsized_array())
-               _mesa_glsl_error(&loc, state, "length called on unsized array");
-
-            result = new(ctx) ir_constant(op->type->array_size());
-         } else if (op->type->is_vector()) {
-            if (state->ARB_shading_language_420pack_enable) {
-               /* .length() returns int. */
-               result = new(ctx) ir_constant((int) op->type->vector_elements);
-            } else {
-               _mesa_glsl_error(&loc, state, "length method on matrix only available"
-                                             "with ARB_shading_language_420pack");
-            }
-         } else if (op->type->is_matrix()) {
-            if (state->ARB_shading_language_420pack_enable) {
-               /* .length() returns int. */
-               result = new(ctx) ir_constant((int) op->type->matrix_columns);
-            } else {
-               _mesa_glsl_error(&loc, state, "length method on matrix only available"
-                                             "with ARB_shading_language_420pack");
-            }
-         }
-      } else {
-	 _mesa_glsl_error(&loc, state, "unknown method: `%s'", method);
-      }
    } else if (op->type->is_vector() ||
               (state->ARB_shading_language_420pack_enable &&
                op->type->is_scalar())) {

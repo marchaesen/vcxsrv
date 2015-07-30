@@ -101,11 +101,10 @@ init_fontdata(
     FontData	fd;
     int		i;
 
-    fd = Xmalloc(sizeof(FontDataRec) * font_data_count);
+    fd = Xcalloc(font_data_count, sizeof(FontDataRec));
     if(fd == (FontData) NULL)
 	return False;
 
-    memset(fd, 0x00, sizeof(FontDataRec) * font_data_count);
     for(i = 0 ; i < font_data_count ; i++)
 	fd[i] = font_data[i];
 
@@ -126,11 +125,10 @@ init_vrotate(
     if(type == VROTATE_NONE)
 	return (VRotate)NULL;
 
-    vrotate = Xmalloc(sizeof(VRotateRec) * font_data_count);
+    vrotate = Xcalloc(font_data_count, sizeof(VRotateRec));
     if(vrotate == (VRotate) NULL)
 	return False;
 
-    memset(vrotate, 0x00, sizeof(VRotateRec) * font_data_count);
     for(i = 0 ; i < font_data_count ; i++) {
 	vrotate[i].charset_name = font_data[i].name;
 	vrotate[i].side = font_data[i].side;
@@ -155,10 +153,9 @@ init_fontset(
     count = XOM_GENERIC(oc->core.om)->data_num;
     data = XOM_GENERIC(oc->core.om)->data;
 
-    font_set = Xmalloc(sizeof(FontSetRec) * count);
+    font_set = Xcalloc(count, sizeof(FontSetRec));
     if (font_set == NULL)
 	return False;
-    memset((char *) font_set, 0x00, sizeof(FontSetRec) * count);
 
     gen = XOC_GENERIC(oc);
     gen->font_set_num = count;
@@ -1094,11 +1091,10 @@ parse_vw(
 	    Xfree(vrotate);
 
 	    if(sub_num > 0) {
-		vrotate = font_set->vrotate = Xmalloc
-						(sizeof(VRotateRec) * sub_num);
+		vrotate = font_set->vrotate = Xcalloc(sub_num,
+                                                      sizeof(VRotateRec));
 		if(font_set->vrotate == (VRotate)NULL)
 		    return (-1);
-		memset(font_set->vrotate, 0x00, sizeof(VRotateRec) * sub_num);
 
 		for(i = 0 ; i < sub_num ; i++) {
 		    vrotate[i].charset_name = font_set->substitute[i].name;

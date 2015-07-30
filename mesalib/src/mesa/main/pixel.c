@@ -455,12 +455,12 @@ _mesa_GetnPixelMapusvARB( GLenum map, GLsizei bufSize, GLushort *values )
    /* special cases */
    case GL_PIXEL_MAP_I_TO_I:
       for (i = 0; i < mapsize; i++) {
-         values[i] = (GLushort) CLAMP(ctx->PixelMaps.ItoI.Map[i], 0.0, 65535.);
+         values[i] = (GLushort) CLAMP(ctx->PixelMaps.ItoI.Map[i], 0.0F, 65535.0F);
       }
       break;
    case GL_PIXEL_MAP_S_TO_S:
       for (i = 0; i < mapsize; i++) {
-         values[i] = (GLushort) CLAMP(ctx->PixelMaps.StoS.Map[i], 0.0, 65535.);
+         values[i] = (GLushort) CLAMP(ctx->PixelMaps.StoS.Map[i], 0.0F, 65535.0F);
       }
       break;
    default:

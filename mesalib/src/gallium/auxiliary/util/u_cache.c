@@ -155,7 +155,7 @@ util_cache_entry_get(struct util_cache *cache,
    return NULL;
 }
 
-static INLINE void
+static inline void
 util_cache_entry_destroy(struct util_cache *cache,
                          struct util_cache_entry *entry)
 {

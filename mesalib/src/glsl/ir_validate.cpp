@@ -35,7 +35,8 @@
 
 #include "ir.h"
 #include "ir_hierarchical_visitor.h"
-#include "program/hash_table.h"
+#include "util/hash_table.h"
+#include "util/set.h"
 #include "glsl_types.h"
 
 namespace {
@@ -44,18 +45,18 @@ class ir_validate : public ir_hierarchical_visitor {
 public:
    ir_validate()
    {
-      this->ht = hash_table_ctor(0, hash_table_pointer_hash,
-				 hash_table_pointer_compare);
+      this->ir_set = _mesa_set_create(NULL, _mesa_hash_pointer,
+                                      _mesa_key_pointer_equal);
 
       this->current_function = NULL;
 
       this->callback_enter = ir_validate::validate_ir;
-      this->data_enter = ht;
+      this->data_enter = ir_set;
    }
 
    ~ir_validate()
    {
-      hash_table_dtor(this->ht);
+      _mesa_set_destroy(this->ir_set, NULL);
    }
 
    virtual ir_visitor_status visit(ir_variable *v);
@@ -80,7 +81,7 @@ public:
 
    ir_function *current_function;
 
-   struct hash_table *ht;
+   struct set *ir_set;
 };
 
 } /* anonymous namespace */
@@ -94,7 +95,7 @@ ir_validate::visit(ir_dereference_variable *ir)
       abort();
    }
 
-   if (hash_table_find(ht, ir->var) == NULL) {
+   if (_mesa_set_search(ir_set, ir->var) == NULL) {
       printf("ir_dereference_variable @ %p specifies undeclared variable "
 	     "`%s' @ %p\n",
 	     (void *) ir, ir->var->name, (void *) ir->var);
@@ -447,6 +448,10 @@ ir_validate::visit_leave(ir_expression *ir)
              ir->operands[0]->type->base_type == GLSL_TYPE_DOUBLE);
       assert(ir->type->base_type == GLSL_TYPE_INT);
       break;
+   case ir_unop_subroutine_to_int:
+      assert(ir->operands[0]->type->base_type == GLSL_TYPE_SUBROUTINE);
+      assert(ir->type->base_type == GLSL_TYPE_INT);
+      break;
    case ir_binop_add:
    case ir_binop_sub:
    case ir_binop_mul:
@@ -730,8 +735,7 @@ ir_validate::visit(ir_variable *ir)
    if (ir->name && ir->is_name_ralloced())
       assert(ralloc_parent(ir->name) == ir);
 
-   hash_table_insert(ht, ir, ir);
-
+   _mesa_set_add(ir_set, ir);
 
    /* If a variable is an array, verify that the maximum array index is in
     * bounds.  There was once an error in AST-to-HIR conversion that set this
@@ -885,15 +889,15 @@ dump_ir:
 void
 ir_validate::validate_ir(ir_instruction *ir, void *data)
 {
-   struct hash_table *ht = (struct hash_table *) data;
+   struct set *ir_set = (struct set *) data;
 
-   if (hash_table_find(ht, ir)) {
+   if (_mesa_set_search(ir_set, ir)) {
       printf("Instruction node present twice in ir tree:\n");
       ir->print();
       printf("\n");
       abort();
    }
-   hash_table_insert(ht, ir, ir);
+   _mesa_set_add(ir_set, ir);
 }
 
 void

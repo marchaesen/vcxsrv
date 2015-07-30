@@ -1,0 +1,112 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 10.5.8 Release Notes / June 20, 2015</h1>
+
+<p>
+Mesa 10.5.8 is a bug fix release which fixes bugs found since the 10.5.7 release.
+</p>
+<p>
+Mesa 10.5.8 implements the OpenGL 3.3 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 3.3.  OpenGL
+3.3 is <strong>only</strong> available if requested at context creation
+because compatibility contexts are not supported.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+611ddcfa3c1bf13f7e6ccac785c8749c3b74c9a78452bac70f8372cf6b209aa0  mesa-10.5.8.tar.gz
+2866b855c5299a4aed066338c77ff6467c389b2c30ada7647be8758663da2b54  mesa-10.5.8.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+<h2>Bug fixes</h2>
+
+<p>This list is likely incomplete.</p>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90310">Bug 90310</a> - Fails to build gallium_dri.so at linking stage with clang because of multiple redefinitions</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90347">Bug 90347</a> - [NVE0+] Failure to insert texbar under some circumstances (causing bad colors in Terasology)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90520">Bug 90520</a> - Register spilling clobbers registers used elsewhere in the shader</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=90905">Bug 90905</a> - mesa: Finish subdir-objects transition</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Ben Widawsky (1):</p>
+<ul>
+  <li>i965: Disable compaction for EOT send messages</li>
+</ul>
+
+<p>Boyan Ding (1):</p>
+<ul>
+  <li>egl/x11: Set version of swrastLoader to 2</li>
+</ul>
+
+<p>Emil Velikov (2):</p>
+<ul>
+  <li>docs: Add sha256sums for the 10.5.7 release</li>
+  <li>Update version to 10.5.8</li>
+</ul>
+
+<p>Erik Faye-Lund (1):</p>
+<ul>
+  <li>mesa: build xmlconfig to a separate static library</li>
+</ul>
+
+<p>Francisco Jerez (1):</p>
+<ul>
+  <li>i965: Don't compact instructions with unmapped bits.</li>
+</ul>
+
+<p>Ilia Mirkin (3):</p>
+<ul>
+  <li>nvc0/ir: fix collection of first uses for texture barrier insertion</li>
+  <li>nv50,nvc0: clamp uniform size to 64k</li>
+  <li>nvc0/ir: can't have a join on a load with an indirect source</li>
+</ul>
+
+<p>Jason Ekstrand (1):</p>
+<ul>
+  <li>i965/fs: Don't let the EOT send message interfere with the MRF hack</li>
+</ul>
+
+<p>Marek Olšák (1):</p>
+<ul>
+  <li>egl: fix setting context flags</li>
+</ul>
+
+<p>Roland Scheidegger (1):</p>
+<ul>
+  <li>draw: (trivial) fix NULL pointer dereference</li>
+</ul>
+
+
+</div>
+</body>
+</html>

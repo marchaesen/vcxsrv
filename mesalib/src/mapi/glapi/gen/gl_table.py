@@ -33,10 +33,9 @@ import license
 
 
 class PrintGlTable(gl_XML.gl_print_base):
-    def __init__(self, es=False):
+    def __init__(self):
         gl_XML.gl_print_base.__init__(self)
 
-        self.es = es
         self.header_tag = '_GLAPI_TABLE_H_'
         self.name = "gl_table.py (from Mesa)"
         self.license = license.bsd_license_template % ( \
@@ -76,10 +75,9 @@ class PrintGlTable(gl_XML.gl_print_base):
 
 
 class PrintRemapTable(gl_XML.gl_print_base):
-    def __init__(self, es=False):
+    def __init__(self):
         gl_XML.gl_print_base.__init__(self)
 
-        self.es = es
         self.header_tag = '_DISPATCH_H_'
         self.name = "gl_table.py (from Mesa)"
         self.license = license.bsd_license_template % (
@@ -123,7 +121,6 @@ class PrintRemapTable(gl_XML.gl_print_base):
 
         functions = []
         abi_functions = []
-        alias_functions = []
         count = 0
         for f in api.functionIterateByOffset():
             if not f.is_abi():
@@ -132,11 +129,6 @@ class PrintRemapTable(gl_XML.gl_print_base):
             else:
                 abi_functions.append([f, -1])
 
-            if self.es:
-                # remember functions with aliases
-                if len(f.entry_points) > 1:
-                    alias_functions.append(f)
-
         print '/* total number of offsets below */'
         print '#define _gloffset_COUNT %d' % (len(abi_functions + functions))
         print ''
@@ -144,18 +136,11 @@ class PrintRemapTable(gl_XML.gl_print_base):
         for f, index in abi_functions:
             print '#define _gloffset_%s %d' % (f.name, f.offset)
 
-        if self.es:
-            remap_table = "esLocalRemapTable"
+        remap_table = "driDispatchRemapTable"
 
-            print '#define %s_size %u' % (remap_table, count)
-            print 'static int %s[ %s_size ];' % (remap_table, remap_table)
-            print ''
-        else:
-            remap_table = "driDispatchRemapTable"
-
-            print '#define %s_size %u' % (remap_table, count)
-            print 'extern int %s[ %s_size ];' % (remap_table, remap_table)
-            print ''
+        print '#define %s_size %u' % (remap_table, count)
+        print 'extern int %s[ %s_size ];' % (remap_table, remap_table)
+        print ''
 
         for f, index in functions:
             print '#define %s_remap_index %u' % (f.name, index)
@@ -182,23 +167,6 @@ class PrintRemapTable(gl_XML.gl_print_base):
             print '}'
             print
 
-        if alias_functions:
-            print ''
-            print '/* define aliases for compatibility */'
-            for f in alias_functions:
-                for name in f.entry_points:
-                    if name != f.name:
-                        print '#define CALL_%s(disp, parameters) CALL_%s(disp, parameters)' % (name, f.name)
-                        print '#define GET_%s(disp) GET_%s(disp)' % (name, f.name)
-                        print '#define SET_%s(disp, fn) SET_%s(disp, fn)' % (name, f.name)
-            print ''
-
-            for f in alias_functions:
-                for name in f.entry_points:
-                    if name != f.name:
-                        print '#define %s_remap_index %s_remap_index' % (name, f.name)
-            print ''
-
         return
 
 
@@ -215,12 +183,6 @@ def _parser():
                         default='table',
                         metavar="mode",
                         help="Generate either a table or a remap_table")
-    parser.add_argument('-c', '--es-version',
-                        choices=[None, 'es1', 'es2'],
-                        default=None,
-                        metavar="ver",
-                        dest='es',
-                        help="filter functions for es")
     return parser.parse_args()
 
 
@@ -231,12 +193,9 @@ def main():
     api = gl_XML.parse_GL_API(args.file_name)
 
     if args.mode == "table":
-        printer = PrintGlTable(args.es)
+        printer = PrintGlTable()
     elif args.mode == "remap_table":
-        printer = PrintRemapTable(args.es)
-
-    if args.es is not None:
-        api.filter_functions_by_api(args.es)
+        printer = PrintRemapTable()
 
     printer.Print(api)
 

@@ -46,7 +46,7 @@ struct st_perf_counter_object
 /**
  * Cast wrapper
  */
-static INLINE struct st_perf_monitor_object *
+static inline struct st_perf_monitor_object *
 st_perf_monitor_object(struct gl_perf_monitor_object *q)
 {
    return (struct st_perf_monitor_object *)q;

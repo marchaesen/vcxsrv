@@ -171,8 +171,10 @@
 #define MAX_PROGRAM_LOCAL_PARAMS       4096
 #define MAX_UNIFORMS                   4096
 #define MAX_UNIFORM_BUFFERS            15 /* + 1 default uniform buffer */
+#define MAX_SHADER_STORAGE_BUFFERS     7  /* + 1 default shader storage buffer */
 /* 6 is for vertex, hull, domain, geometry, fragment, and compute shader. */
 #define MAX_COMBINED_UNIFORM_BUFFERS   (MAX_UNIFORM_BUFFERS * 6)
+#define MAX_COMBINED_SHADER_STORAGE_BUFFERS   (MAX_SHADER_STORAGE_BUFFERS * 6)
 #define MAX_ATOMIC_COUNTERS            4096
 /* 6 is for vertex, hull, domain, geometry, fragment, and compute shader. */
 #define MAX_COMBINED_ATOMIC_BUFFERS    (MAX_UNIFORM_BUFFERS * 6)
@@ -272,6 +274,12 @@
 #define MAX_VERTEX_STREAMS                  4
 /*@}*/
 
+/** For GL_ARB_shader_subroutine */
+/*@{*/
+#define MAX_SUBROUTINES                   256
+#define MAX_SUBROUTINE_UNIFORM_LOCATIONS  1024
+/*@}*/
+
 /** For GL_INTEL_performance_query */
 /*@{*/
 #define MAX_PERFQUERY_QUERY_NAME_LENGTH     256
@@ -293,6 +301,14 @@
 
 /** For GL_ARB_pipeline_statistics_query */
 #define MAX_PIPELINE_STATISTICS             11
+
+/** For GL_ARB_tessellation_shader */
+/*@{*/
+#define MAX_TESS_GEN_LEVEL 64
+#define MAX_PATCH_VERTICES 32
+#define MAX_TESS_PATCH_COMPONENTS 120
+#define MAX_TESS_CONTROL_TOTAL_OUTPUT_COMPONENTS 4096
+/*@}*/
 
 /*
  * Color channel component order
