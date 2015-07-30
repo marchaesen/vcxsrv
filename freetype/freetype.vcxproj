@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug Multithreaded|Win32">
@@ -534,7 +534,6 @@
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="src\base\fttype1.c" />
-    <ClCompile Include="src\base\ftxf86.c" />
     <ClCompile Include="src\pcf\pcfdrivr.c" />
     <ClCompile Include="src\pcf\pcfread.c" />
     <ClCompile Include="src\pfr\pfrcmap.c" />
