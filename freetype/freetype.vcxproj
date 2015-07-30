@@ -393,8 +393,10 @@
     <ClCompile Include="src\autofit\afloader.c" />
     <ClCompile Include="src\autofit\afmodule.c" />
     <ClCompile Include="src\autofit\afranges.c" />
+    <ClCompile Include="src\autofit\afwarp.c" />
     <ClCompile Include="src\autofit\hbshim.c" />
     <ClCompile Include="src\base\ftbitmap.c" />
+    <ClCompile Include="src\base\ftfntfmt.c" />
     <ClCompile Include="src\base\ftlcdfil.c" />
     <ClCompile Include="src\base\ftsynth.c" />
     <ClCompile Include="src\pcf\pcfutil.c" />

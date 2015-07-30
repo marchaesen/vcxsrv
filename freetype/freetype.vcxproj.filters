@@ -206,6 +206,12 @@
     <ClCompile Include="src\autofit\afranges.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\autofit\afwarp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\base\ftfntfmt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\freetype\freetype.h">
