@@ -75,6 +75,7 @@ is_phi_src_scalarizable(nir_phi_src *src,
       return should_lower_phi(nir_instr_as_phi(src_instr), state);
 
    case nir_instr_type_load_const:
+   case nir_instr_type_ssa_undef:
       /* These are trivially scalarizable */
       return true;
 

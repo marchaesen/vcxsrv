@@ -153,6 +153,7 @@ ir_expression *sqrt(operand a);
 ir_expression *log(operand a);
 ir_expression *sign(operand a);
 
+ir_expression *subr_to_int(operand a);
 ir_expression *equal(operand a, operand b);
 ir_expression *nequal(operand a, operand b);
 ir_expression *less(operand a, operand b);

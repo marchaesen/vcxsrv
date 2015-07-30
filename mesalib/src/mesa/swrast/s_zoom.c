@@ -114,7 +114,7 @@ unzoom_x(GLfloat zoomX, GLint imageX, GLint zx)
    (zx - imageX) / zoomX = x - imageX;
    */
    GLint x;
-   if (zoomX < 0.0)
+   if (zoomX < 0.0F)
       zx++;
    x = imageX + (GLint) ((zx - imageX) / zoomX);
    return x;

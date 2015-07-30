@@ -243,9 +243,9 @@ run_program(struct gl_context *ctx, SWspan *span, GLuint start, GLuint end)
             /* Store result depth/z */
             if (outputsWritten & BITFIELD64_BIT(FRAG_RESULT_DEPTH)) {
                const GLfloat depth = machine->Outputs[FRAG_RESULT_DEPTH][2];
-               if (depth <= 0.0)
+               if (depth <= 0.0F)
                   span->array->z[i] = 0;
-               else if (depth >= 1.0)
+               else if (depth >= 1.0F)
                   span->array->z[i] = ctx->DrawBuffer->_DepthMax;
                else
                   span->array->z[i] =

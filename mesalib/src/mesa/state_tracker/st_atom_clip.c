@@ -59,8 +59,11 @@ static void update_clip( struct st_context *st )
    memcpy(clip.ucp,
           use_eye ? ctx->Transform.EyeUserPlane
                   : ctx->Transform._ClipUserPlane, sizeof(clip.ucp));
-   st->state.clip = clip;
-   cso_set_clip(st->cso_context, &clip);
+
+   if (memcmp(&st->state.clip, &clip, sizeof(clip)) != 0) {
+      st->state.clip = clip;
+      st->pipe->set_clip_state(st->pipe, &clip);
+   }
 }
 
 

@@ -472,13 +472,8 @@ typedef struct {
 #define fbGetWindowPixmap(pWin)	((PixmapPtr)\
 				 dixLookupPrivate(&((WindowPtr)(pWin))->devPrivates, fbGetWinPrivateKey(pWin)))
 
-#ifdef ROOTLESS
 #define __fbPixDrawableX(pPix)	((pPix)->drawable.x)
 #define __fbPixDrawableY(pPix)	((pPix)->drawable.y)
-#else
-#define __fbPixDrawableX(pPix)	0
-#define __fbPixDrawableY(pPix)	0
-#endif
 
 #ifdef COMPOSITE
 #define __fbPixOffXWin(pPix)	(__fbPixDrawableX(pPix) - (pPix)->screen_x)

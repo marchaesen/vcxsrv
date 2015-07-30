@@ -103,6 +103,17 @@ do {                       \
 #define assume(expr) assert(expr)
 #endif
 
+/* Attribute const is used for functions that have no effects other than their
+ * return value, and only rely on the argument values to compute the return
+ * value.  As a result, calls to it can be CSEed.  Note that using memory
+ * pointed to by the arguments is not allowed for const functions.
+ */
+#ifdef HAVE_FUNC_ATTRIBUTE_CONST
+#define ATTRIBUTE_CONST __attribute__((__const__))
+#else
+#define ATTRIBUTE_CONST
+#endif
+
 #ifdef HAVE_FUNC_ATTRIBUTE_FLATTEN
 #define FLATTEN __attribute__((__flatten__))
 #else
@@ -128,6 +139,15 @@ do {                       \
 #define PACKED __attribute__((__packed__))
 #else
 #define PACKED
+#endif
+
+/* Attribute pure is used for functions that have no effects other than their
+ * return value.  As a result, calls to it can be dead code eliminated.
+ */
+#ifdef HAVE_FUNC_ATTRIBUTE_PURE
+#define PURE __attribute__((__pure__))
+#else
+#define PURE
 #endif
 
 #ifdef __cplusplus
@@ -180,6 +200,12 @@ do {                       \
 #define UNUSED __attribute__((unused))
 #else
 #define UNUSED
+#endif
+
+#ifdef HAVE_FUNC_ATTRIBUTE_WARN_UNUSED_RESULT
+#define MUST_CHECK __attribute__((warn_unused_result))
+#else
+#define MUST_CHECK
 #endif
 
 /** Compute ceiling of integer quotient of A divided by B. */

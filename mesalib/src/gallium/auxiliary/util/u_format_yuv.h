@@ -54,7 +54,7 @@
  * precision in the coefficients.
  */
 
-static INLINE void
+static inline void
 util_format_rgb_float_to_yuv(float r, float g, float b,
                              uint8_t *y, uint8_t *u, uint8_t *v)
 {
@@ -74,7 +74,7 @@ util_format_rgb_float_to_yuv(float r, float g, float b,
 }
 
 
-static INLINE void
+static inline void
 util_format_yuv_to_rgb_float(uint8_t y, uint8_t u, uint8_t v,
                              float *r, float *g, float *b)
 {
@@ -92,7 +92,7 @@ util_format_yuv_to_rgb_float(uint8_t y, uint8_t u, uint8_t v,
 }
 
 
-static INLINE void
+static inline void
 util_format_rgb_8unorm_to_yuv(uint8_t r, uint8_t g, uint8_t b,
                 	      uint8_t *y, uint8_t *u, uint8_t *v)
 {
@@ -102,7 +102,7 @@ util_format_rgb_8unorm_to_yuv(uint8_t r, uint8_t g, uint8_t b,
 }
 
 
-static INLINE void
+static inline void
 util_format_yuv_to_rgb_8unorm(uint8_t y, uint8_t u, uint8_t v,
                               uint8_t *r, uint8_t *g, uint8_t *b)
 {

@@ -39,7 +39,7 @@
 #include "st_cb_bitmap.h"
 #include "st_cb_blit.h"
 #include "st_cb_fbo.h"
-#include "st_atom.h"
+#include "st_manager.h"
 
 #include "util/u_format.h"
 
@@ -92,7 +92,7 @@ st_BlitFramebuffer(struct gl_context *ctx,
    } clip;
    struct pipe_blit_info blit;
 
-   st_validate_state(st);
+   st_manager_validate_framebuffers(st);
 
    /* Make sure bitmap rendering has landed in the framebuffers */
    st_flush_bitmap_cache(st);

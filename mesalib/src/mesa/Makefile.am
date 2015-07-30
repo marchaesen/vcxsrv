@@ -19,8 +19,6 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-AUTOMAKE_OPTIONS = subdir-objects
-
 SUBDIRS = . main/tests
 
 if HAVE_X11_DRIVER
@@ -40,8 +38,11 @@ gl_HEADERS = $(top_srcdir)/include/GL/*.h
 
 .PHONY: main/git_sha1.h.tmp
 main/git_sha1.h.tmp:
+	@# Don't assume that $(top_srcdir)/.git is a directory. It may be
+	@# a gitlink file if $(top_srcdir) is a submodule checkout or a linked
+	@# worktree.
 	@touch main/git_sha1.h.tmp
-	@if test -d $(top_srcdir)/.git; then \
+	@if test -e $(top_srcdir)/.git; then \
 		if which git > /dev/null; then \
 		    git --git-dir=$(top_srcdir)/.git log -n 1 --oneline | \
 			sed 's/^\([^ ]*\) .*/#define MESA_GIT_SHA1 "git-\1"/' \

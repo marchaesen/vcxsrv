@@ -138,8 +138,8 @@ _mesa_meta_CopyImageSubData_uncompressed(struct gl_context *ctx,
          goto cleanup;
    }
 
-   /* We really only need to stash the bound framebuffers. */
-   _mesa_meta_begin(ctx, 0);
+   /* We really only need to stash the bound framebuffers and scissor. */
+   _mesa_meta_begin(ctx, MESA_META_SCISSOR);
 
    _mesa_GenFramebuffers(2, fbos);
    _mesa_BindFramebuffer(GL_READ_FRAMEBUFFER, fbos[0]);

@@ -107,6 +107,33 @@ update_max_array_access(ir_rvalue *ir, int idx, YYLTYPE *loc,
 }
 
 
+static int
+get_implicit_array_size(struct _mesa_glsl_parse_state *state,
+                        ir_rvalue *array)
+{
+   ir_variable *var = array->variable_referenced();
+
+   /* Inputs in control shader are implicitly sized
+    * to the maximum patch size.
+    */
+   if (state->stage == MESA_SHADER_TESS_CTRL &&
+       var->data.mode == ir_var_shader_in) {
+      return state->Const.MaxPatchVertices;
+   }
+
+   /* Non-patch inputs in evaluation shader are implicitly sized
+    * to the maximum patch size.
+    */
+   if (state->stage == MESA_SHADER_TESS_EVAL &&
+       var->data.mode == ir_var_shader_in &&
+       !var->data.patch) {
+      return state->Const.MaxPatchVertices;
+   }
+
+   return 0;
+}
+
+
 ir_rvalue *
 _mesa_ast_array_index_to_hir(void *mem_ctx,
 			     struct _mesa_glsl_parse_state *state,
@@ -183,7 +210,25 @@ _mesa_ast_array_index_to_hir(void *mem_ctx,
          update_max_array_access(array, idx, &loc, state);
    } else if (const_index == NULL && array->type->is_array()) {
       if (array->type->is_unsized_array()) {
-	 _mesa_glsl_error(&loc, state, "unsized array index must be constant");
+         int implicit_size = get_implicit_array_size(state, array);
+         if (implicit_size) {
+            ir_variable *v = array->whole_variable_referenced();
+            if (v != NULL)
+               v->data.max_array_access = implicit_size - 1;
+         }
+         else if (state->stage == MESA_SHADER_TESS_CTRL &&
+                  array->variable_referenced()->data.mode == ir_var_shader_out &&
+                  !array->variable_referenced()->data.patch) {
+            /* Tessellation control shader output non-patch arrays are
+             * initially unsized. Despite that, they are allowed to be
+             * indexed with a non-constant expression (typically
+             * "gl_InvocationID"). The array size will be determined
+             * by the linker.
+             */
+         }
+         else {
+            _mesa_glsl_error(&loc, state, "unsized array index must be constant");
+         }
       } else if (array->type->fields.array->is_interface()
                  && array->variable_referenced()->data.mode == ir_var_uniform
                  && !state->is_version(400, 0) && !state->ARB_gpu_shader5_enable) {
@@ -226,24 +271,24 @@ _mesa_ast_array_index_to_hir(void *mem_ctx,
        * dynamically uniform expression is undefined.
        */
       if (array->type->without_array()->is_sampler()) {
-	 if (!state->is_version(130, 100)) {
-	    if (state->es_shader) {
-	       _mesa_glsl_warning(&loc, state,
-				  "sampler arrays indexed with non-constant "
-				  "expressions is optional in %s",
-				  state->get_version_string());
-	    } else {
-	       _mesa_glsl_warning(&loc, state,
-				  "sampler arrays indexed with non-constant "
-				  "expressions will be forbidden in GLSL 1.30 "
-				  "and later");
-	    }
-	 } else if (!state->is_version(400, 0) && !state->ARB_gpu_shader5_enable) {
-	    _mesa_glsl_error(&loc, state,
-			     "sampler arrays indexed with non-constant "
-			     "expressions is forbidden in GLSL 1.30 and "
-			     "later");
-	 }
+         if (!state->is_version(400, 0) && !state->ARB_gpu_shader5_enable) {
+            if (state->is_version(130, 300))
+               _mesa_glsl_error(&loc, state,
+                                "sampler arrays indexed with non-constant "
+                                "expressions are forbidden in GLSL %s "
+                                "and later",
+                                state->es_shader ? "ES 3.00" : "1.30");
+            else if (state->es_shader)
+               _mesa_glsl_warning(&loc, state,
+                                  "sampler arrays indexed with non-constant "
+                                  "expressions will be forbidden in GLSL "
+                                  "3.00 and later");
+            else
+               _mesa_glsl_warning(&loc, state,
+                                  "sampler arrays indexed with non-constant "
+                                  "expressions will be forbidden in GLSL "
+                                  "1.30 and later");
+         }
       }
    }
 

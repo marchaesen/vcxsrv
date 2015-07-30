@@ -42,7 +42,7 @@
 
 
 #define TE_ERROR(errCode, msg, value)				\
-   _mesa_error(ctx, errCode, msg, _mesa_lookup_enum_by_nr(value));
+   _mesa_error(ctx, errCode, msg, _mesa_enum_to_string(value));
 
 
 /** Set texture env mode */
@@ -482,16 +482,16 @@ _mesa_TexEnvfv( GLenum target, GLenum pname, const GLfloat *param )
    }
    else {
       _mesa_error(ctx, GL_INVALID_ENUM, "glTexEnv(target=%s)",
-                  _mesa_lookup_enum_by_nr(target));
+                  _mesa_enum_to_string(target));
       return;
    }
 
    if (MESA_VERBOSE&(VERBOSE_API|VERBOSE_TEXTURE))
       _mesa_debug(ctx, "glTexEnv %s %s %.1f(%s) ...\n",
-                  _mesa_lookup_enum_by_nr(target),
-                  _mesa_lookup_enum_by_nr(pname),
+                  _mesa_enum_to_string(target),
+                  _mesa_enum_to_string(pname),
                   *param,
-                  _mesa_lookup_enum_by_nr((GLenum) iparam0));
+                  _mesa_enum_to_string((GLenum) iparam0));
 
    /* Tell device driver about the new texture environment */
    if (ctx->Driver.TexEnv) {

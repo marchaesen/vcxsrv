@@ -77,7 +77,7 @@ _mesa_get_tex_unit_err(struct gl_context *ctx, GLuint unit, const char *func)
     *     implementation."
     */
    _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unit=%s)", func,
-               _mesa_lookup_enum_by_nr(GL_TEXTURE0+unit));
+               _mesa_enum_to_string(GL_TEXTURE0+unit));
    return NULL;
 }
 

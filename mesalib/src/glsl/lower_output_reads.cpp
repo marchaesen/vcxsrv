@@ -48,8 +48,10 @@ protected:
    hash_table *replacements;
 
    void *mem_ctx;
+
+   unsigned stage;
 public:
-   output_read_remover();
+   output_read_remover(unsigned stage);
    ~output_read_remover();
    virtual ir_visitor_status visit(class ir_dereference_variable *);
    virtual ir_visitor_status visit_leave(class ir_emit_vertex *);
@@ -75,8 +77,9 @@ hash_table_var_hash(const void *key)
    return hash_table_string_hash(var->name);
 }
 
-output_read_remover::output_read_remover()
+output_read_remover::output_read_remover(unsigned stage)
 {
+   this->stage = stage;
    mem_ctx = ralloc_context(NULL);
    replacements =
       hash_table_ctor(0, hash_table_var_hash, hash_table_pointer_compare);
@@ -92,6 +95,8 @@ ir_visitor_status
 output_read_remover::visit(ir_dereference_variable *ir)
 {
    if (ir->var->data.mode != ir_var_shader_out)
+      return visit_continue;
+   if (stage == MESA_SHADER_TESS_CTRL)
       return visit_continue;
 
    ir_variable *temp = (ir_variable *) hash_table_find(replacements, ir->var);
@@ -166,8 +171,8 @@ output_read_remover::visit_leave(ir_function_signature *sig)
 }
 
 void
-lower_output_reads(exec_list *instructions)
+lower_output_reads(unsigned stage, exec_list *instructions)
 {
-   output_read_remover v;
+   output_read_remover v(stage);
    visit_list_elements(&v, instructions);
 }

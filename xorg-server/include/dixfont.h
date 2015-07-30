@@ -36,14 +36,6 @@ typedef struct _DIXFontProp *DIXFontPropPtr;
 
 extern _X_EXPORT Bool SetDefaultFont(const char * /*defaultfontname */ );
 
-extern _X_EXPORT void QueueFontWakeup(FontPathElementPtr /*fpe */ );
-
-extern _X_EXPORT void RemoveFontWakeup(FontPathElementPtr /*fpe */ );
-
-extern _X_EXPORT void FontWakeup(void *data,
-                                 int count,
-                                 void *LastSelectMask);
-
 extern _X_EXPORT int OpenFont(ClientPtr /*client */ ,
                               XID /*fid */ ,
                               Mask /*flags */ ,
@@ -64,14 +56,6 @@ extern _X_EXPORT int ListFonts(ClientPtr /*client */ ,
                                unsigned int /*length */ ,
                                unsigned int /*max_names */ );
 
-extern _X_EXPORT int
- doListFontsWithInfo(ClientPtr /*client */ ,
-                     LFWIclosurePtr /*c */ );
-
-extern _X_EXPORT int doPolyText(ClientPtr /*client */ ,
-                                PTclosurePtr    /*c */
-    );
-
 extern _X_EXPORT int PolyText(ClientPtr /*client */ ,
                               DrawablePtr /*pDraw */ ,
                               GCPtr /*pGC */ ,
@@ -81,9 +65,6 @@ extern _X_EXPORT int PolyText(ClientPtr /*client */ ,
                               int /*yorg */ ,
                               int /*reqType */ ,
                               XID /*did */ );
-
-extern _X_EXPORT int doImageText(ClientPtr /*client */ ,
-                                 ITclosurePtr /*c */ );
 
 extern _X_EXPORT int ImageText(ClientPtr /*client */ ,
                                DrawablePtr /*pDraw */ ,
@@ -125,22 +106,6 @@ extern _X_EXPORT void dixGetGlyphs(FontPtr /*font */ ,
                                    FontEncoding /*fontEncoding */ ,
                                    unsigned long * /*glyphcount */ ,
                                    CharInfoPtr * /*glyphs */ );
-
-extern _X_EXPORT void QueryGlyphExtents(FontPtr /*pFont */ ,
-                                        CharInfoPtr * /*charinfo */ ,
-                                        unsigned long /*count */ ,
-                                        ExtentInfoPtr /*info */ );
-
-extern _X_EXPORT Bool QueryTextExtents(FontPtr /*pFont */ ,
-                                       unsigned long /*count */ ,
-                                       unsigned char * /*chars */ ,
-                                       ExtentInfoPtr /*info */ );
-
-extern _X_EXPORT Bool ParseGlyphCachingMode(char * /*str */ );
-
-extern _X_EXPORT void InitGlyphCaching(void);
-
-extern _X_EXPORT void SetGlyphCachingMode(int /*newmode */ );
 
 extern _X_EXPORT void register_fpe_functions(void);
 

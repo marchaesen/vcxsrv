@@ -77,11 +77,13 @@ do_dead_code(exec_list *instructions, bool uniform_locations_assigned)
 
       if (entry->assign) {
 	 /* Remove a single dead assignment to the variable we found.
-	  * Don't do so if it's a shader or function output, though.
+	  * Don't do so if it's a shader or function output or a shader
+	  * storage variable though.
 	  */
 	 if (entry->var->data.mode != ir_var_function_out &&
 	     entry->var->data.mode != ir_var_function_inout &&
-             entry->var->data.mode != ir_var_shader_out) {
+             entry->var->data.mode != ir_var_shader_out &&
+             entry->var->data.mode != ir_var_shader_storage) {
 	    entry->assign->remove();
 	    progress = true;
 
@@ -99,7 +101,8 @@ do_dead_code(exec_list *instructions, bool uniform_locations_assigned)
 	  * stage.  Also, once uniform locations have been assigned, the
 	  * declaration cannot be deleted.
 	  */
-         if (entry->var->data.mode == ir_var_uniform) {
+         if (entry->var->data.mode == ir_var_uniform ||
+             entry->var->data.mode == ir_var_shader_storage) {
             if (uniform_locations_assigned || entry->var->constant_value)
                continue;
 
@@ -115,7 +118,7 @@ do_dead_code(exec_list *instructions, bool uniform_locations_assigned)
              * If the variable is in a uniform block with one of those
              * layouts, do not eliminate it.
              */
-            if (entry->var->is_in_uniform_block()) {
+            if (entry->var->is_in_buffer_block()) {
                const glsl_type *const block_type =
                   entry->var->is_interface_instance()
                   ? entry->var->type : entry->var->get_interface_type();
@@ -123,6 +126,9 @@ do_dead_code(exec_list *instructions, bool uniform_locations_assigned)
                if (block_type->interface_packing != GLSL_INTERFACE_PACKING_PACKED)
                   continue;
             }
+
+            if (entry->var->type->is_subroutine())
+               continue;
          }
 
 	 entry->var->remove();

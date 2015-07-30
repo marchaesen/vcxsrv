@@ -763,20 +763,20 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             winDebug ("\nCYGWINDOWING Dump:\n"
                    "\tdrawable: (%hd, %hd) - %hdx%hd\n", pDraw->x,
                    pDraw->y, pDraw->width, pDraw->height);
-            winDebug ("\twindPlace: (%ld, %ld) - %ldx%ld\n", pRect->left,
-                      pRect->top, pRect->right - pRect->left,
-                      pRect->bottom - pRect->top);
+            winDebug("\twindPlace: (%d, %d) - %dx%d\n", (int)pRect->left,
+                   (int)pRect->top, (int)(pRect->right - pRect->left),
+                   (int)(pRect->bottom - pRect->top));
             if (GetClientRect(hwnd, &rc)) {
                 pRect = &rc;
-                winDebug ("\tClientRect: (%ld, %ld) - %ldx%ld\n", pRect->left,
-                          pRect->top, pRect->right - pRect->left,
-                          pRect->bottom - pRect->top);
+                winDebug("\tClientRect: (%d, %d) - %dx%d\n", (int)pRect->left,
+                       (int)pRect->top, (int)(pRect->right - pRect->left),
+                       (int)(pRect->bottom - pRect->top));
             }
             if (GetWindowRect(hwnd, &rc)) {
                 pRect = &rc;
-                winDebug ("\tWindowRect: (%ld, %ld) - %ldx%ld\n", pRect->left,
-                          pRect->top, pRect->right - pRect->left,
-                          pRect->bottom - pRect->top);
+                winDebug("\tWindowRect: (%d, %d) - %dx%d\n", (int)pRect->left,
+                       (int)pRect->top, (int)(pRect->right - pRect->left),
+                       (int)(pRect->bottom - pRect->top));
             }
             winDebug ("\n");
         }
@@ -1047,9 +1047,8 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         default:
             strcpy(buf, "UNKNOWN_FLAG");
         }
-        winDebug ("winTopLevelWindowProc - WM_SIZE to %dx%d (%s) - %d ms\n",
-                  (int) LOWORD(lParam), (int) HIWORD(lParam), buf,
-                  (int) (GetTickCount()));
+        winDebug("winTopLevelWindowProc - WM_SIZE to %dx%d (%s)\n",
+               (int) LOWORD(lParam), (int) HIWORD(lParam), buf);
     }
 #endif
         if (!hasEnteredSizeMove)

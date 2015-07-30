@@ -503,6 +503,9 @@
 /* Build glamor's GBM-based EGL support */
 #undef GLAMOR_HAS_GBM
 
+/* Build glamor/gbm has linear support */
+#undef GLAMOR_HAS_GBM_LINEAR
+
 /* byte order */
 #undef X_BYTE_ORDER
 

@@ -54,57 +54,15 @@ typedef struct {
 
 /* DDX interface */
 
-extern _X_EXPORT int
- DGASetMode(int Index, int num, XDGAModePtr mode, PixmapPtr *pPix);
+extern Bool DGAScreenAvailable(ScreenPtr pScreen);
+extern Bool DGAActive(int Index);
+extern void DGAShutdown(void);
 
-extern _X_EXPORT void
- DGASetInputMode(int Index, Bool keyboard, Bool mouse);
-
-extern _X_EXPORT void
- DGASelectInput(int Index, ClientPtr client, long mask);
-
-extern _X_EXPORT Bool DGAAvailable(int Index);
-extern _X_EXPORT Bool DGAScreenAvailable(ScreenPtr pScreen);
-extern _X_EXPORT Bool DGAActive(int Index);
-extern _X_EXPORT void DGAShutdown(void);
-extern _X_EXPORT void DGAInstallCmap(ColormapPtr cmap);
-extern _X_EXPORT int DGAGetViewportStatus(int Index);
-extern _X_EXPORT int DGASync(int Index);
-
-extern _X_EXPORT int
- DGAFillRect(int Index, int x, int y, int w, int h, unsigned long color);
-
-extern _X_EXPORT int
- DGABlitRect(int Index, int srcx, int srcy, int w, int h, int dstx, int dsty);
-
-extern _X_EXPORT int
-
-DGABlitTransRect(int Index,
-                 int srcx, int srcy,
-                 int w, int h, int dstx, int dsty, unsigned long color);
-
-extern _X_EXPORT int
- DGASetViewport(int Index, int x, int y, int mode);
-
-extern _X_EXPORT int DGAGetModes(int Index);
-extern _X_EXPORT int DGAGetOldDGAMode(int Index);
-
-extern _X_EXPORT int DGAGetModeInfo(int Index, XDGAModePtr mode, int num);
-
-extern _X_EXPORT Bool DGAVTSwitch(void);
-extern _X_EXPORT Bool DGAStealButtonEvent(DeviceIntPtr dev, int Index,
-                                          int button, int is_down);
-extern _X_EXPORT Bool DGAStealMotionEvent(DeviceIntPtr dev, int Index, int dx,
-                                          int dy);
-extern _X_EXPORT Bool DGAStealKeyEvent(DeviceIntPtr dev, int Index,
-                                       int key_code, int is_down);
-
-extern _X_EXPORT Bool DGAOpenFramebuffer(int Index, char **name,
-                                         unsigned char **mem, int *size,
-                                         int *offset, int *flags);
-extern _X_EXPORT void DGACloseFramebuffer(int Index);
-extern _X_EXPORT Bool DGAChangePixmapMode(int Index, int *x, int *y, int mode);
-extern _X_EXPORT int DGACreateColormap(int Index, ClientPtr client, int id,
-                                       int mode, int alloc);
+extern Bool DGAVTSwitch(void);
+extern Bool DGAStealButtonEvent(DeviceIntPtr dev, int Index,
+                                int button, int is_down);
+extern Bool DGAStealMotionEvent(DeviceIntPtr dev, int Index, int dx, int dy);
+extern Bool DGAStealKeyEvent(DeviceIntPtr dev, int Index,
+                             int key_code, int is_down);
 
 #endif                          /* __DGAPROC_H */

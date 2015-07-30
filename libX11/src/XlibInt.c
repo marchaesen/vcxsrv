@@ -1276,7 +1276,7 @@ int _XDefaultIOError(
 
 	}
 	exit(1);
-        return(0); /* dummy - function should never return */
+	/*NOTREACHED*/
 }
 
 
@@ -1485,7 +1485,7 @@ _XIOError (
     else
 	_XDefaultIOError(dpy);
     exit (1);
-    return 0;
+    /*NOTREACHED*/
 }
 
 

@@ -474,10 +474,10 @@ else
 """)
 
 opcode("ldexp", 0, tfloat, [0, 0], [tfloat, tint], "", """
-dst = ldexp(src0, src1);
+dst = ldexpf(src0, src1);
 /* flush denormals to zero. */
 if (!isnormal(dst))
-   dst = copysign(0.0f, src0);
+   dst = copysignf(0.0f, src0);
 """)
 
 # Combines the first component of each input to make a 2-component vector.

@@ -24,7 +24,7 @@ HWND
 winGetWindowInfo(WindowPtr pWin)
 {
     HWND hwnd = NULL;
-    winDebug("%s:%d pWin %p XID 0x%x\n", __FUNCTION__, __LINE__, pWin, pWin->drawable.id);
+    winDebug("%s:%d pWin %p XID 0x%x\n", __FUNCTION__, __LINE__, pWin, (unsigned int)pWin->drawable.id);
 
     /* a real window was requested */
     if (pWin != NULL) {

@@ -15,17 +15,14 @@
 # $ DRYRUN=yes bin/bugzilla_mesa.sh mesa-9.0.2..mesa-9.0.3 | wc -l
 
 
-# regex pattern: trim before url
-trim_before='s/.*\(http\)/\1/'
+# regex pattern: trim before bug number
+trim_before='s/.*show_bug.cgi?id=\([0-9]*\).*/\1/'
 
-# regex pattern: trim after url
-trim_after='s/\(show_bug.cgi?id=[0-9]*\).*/\1/'
-
-# regex pattern: always use https
-use_https='s/http:/https:/'
+# regex pattern: reconstruct the url
+use_after='s,^,https://bugs.freedesktop.org/show_bug.cgi?id=,'
 
 # extract fdo urls from commit log
-urls=$(git log $* | grep 'bugs.freedesktop.org/show_bug' | sed -e $trim_before -e $trim_after -e $use_https | sort | uniq)
+urls=$(git log $* | grep 'bugs.freedesktop.org/show_bug' | sed -e $trim_before | sort -n -u | sed -e $use_after)
 
 # if DRYRUN is set to "yes", simply print the URLs and don't fetch the
 # details from fdo bugzilla.

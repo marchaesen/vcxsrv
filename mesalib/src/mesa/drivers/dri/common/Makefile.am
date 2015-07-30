@@ -32,6 +32,7 @@ AM_CFLAGS = \
 	-I$(top_srcdir)/src/mesa/ \
 	-I$(top_srcdir)/src/gallium/include \
 	-I$(top_srcdir)/src/gallium/auxiliary \
+	$(LIBDRM_CFLAGS) \
 	$(DEFINES) \
 	$(VISIBILITY_CFLAGS)
 
@@ -53,10 +54,3 @@ libdri_test_stubs_la_CFLAGS = $(AM_CFLAGS) -DNO_MAIN
 libmegadriver_stub_la_SOURCES = $(megadriver_stub_FILES)
 
 sysconf_DATA = drirc
-
-if DRICOMMON_NEED_LIBDRM
-AM_CFLAGS += $(LIBDRM_CFLAGS)
-libdricommon_la_LIBADD = $(LIBDRM_LIBS)
-else
-AM_CFLAGS += -D__NOT_HAVE_DRM_H
-endif

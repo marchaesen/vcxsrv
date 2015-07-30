@@ -738,8 +738,8 @@ winMultiWindowWMProc(void *pArg)
             pthread_exit(NULL);
         }
 
-        winDebug ("winMultiWindowWMProc - %d ms MSG: %d ID: %d\n",
-                  GetTickCount(), (int) pNode->msg.msg, (int) pNode->msg.dwID);
+        winDebug("winMultiWindowWMProc - MSG: %d ID: %d\n",
+               (int) pNode->msg.msg, (int) pNode->msg.dwID);
 
         /* Branch on the message type */
         switch (pNode->msg.msg) {

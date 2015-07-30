@@ -13,8 +13,6 @@ headers in general, should strictly follow these guidelines to ensure
 
 * Include the p_compiler.h.
 
-* Don't use the 'inline' keyword, use the INLINE macro in p_compiler.h instead.
-
 * Cast explicitly when converting to integer types of smaller sizes.
 
 * Cast explicitly when converting between float, double and integral types.

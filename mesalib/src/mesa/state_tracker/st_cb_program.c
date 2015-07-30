@@ -68,6 +68,12 @@ st_bind_program(struct gl_context *ctx, GLenum target, struct gl_program *prog)
    case GL_GEOMETRY_PROGRAM_NV:
       st->dirty.st |= ST_NEW_GEOMETRY_PROGRAM;
       break;
+   case GL_TESS_CONTROL_PROGRAM_NV:
+      st->dirty.st |= ST_NEW_TESSCTRL_PROGRAM;
+      break;
+   case GL_TESS_EVALUATION_PROGRAM_NV:
+      st->dirty.st |= ST_NEW_TESSEVAL_PROGRAM;
+      break;
    }
 }
 
@@ -84,6 +90,8 @@ st_use_program(struct gl_context *ctx, struct gl_shader_program *shProg)
    st->dirty.st |= ST_NEW_FRAGMENT_PROGRAM;
    st->dirty.st |= ST_NEW_VERTEX_PROGRAM;
    st->dirty.st |= ST_NEW_GEOMETRY_PROGRAM;
+   st->dirty.st |= ST_NEW_TESSCTRL_PROGRAM;
+   st->dirty.st |= ST_NEW_TESSEVAL_PROGRAM;
 }
 
 
@@ -108,6 +116,16 @@ st_new_program(struct gl_context *ctx, GLenum target, GLuint id)
    case GL_GEOMETRY_PROGRAM_NV: {
       struct st_geometry_program *prog = ST_CALLOC_STRUCT(st_geometry_program);
       return _mesa_init_geometry_program(ctx, &prog->Base, target, id);
+   }
+
+   case GL_TESS_CONTROL_PROGRAM_NV: {
+      struct st_tessctrl_program *prog = ST_CALLOC_STRUCT(st_tessctrl_program);
+      return _mesa_init_tess_ctrl_program(ctx, &prog->Base, target, id);
+   }
+
+   case GL_TESS_EVALUATION_PROGRAM_NV: {
+      struct st_tesseval_program *prog = ST_CALLOC_STRUCT(st_tesseval_program);
+      return _mesa_init_tess_eval_program(ctx, &prog->Base, target, id);
    }
 
    default:
@@ -155,6 +173,28 @@ st_delete_program(struct gl_context *ctx, struct gl_program *prog)
          
          if (stfp->glsl_to_tgsi)
             free_glsl_to_tgsi_visitor(stfp->glsl_to_tgsi);
+      }
+      break;
+   case GL_TESS_CONTROL_PROGRAM_NV:
+      {
+         struct st_tessctrl_program *sttcp =
+            (struct st_tessctrl_program *) prog;
+
+         st_release_tcp_variants(st, sttcp);
+
+         if (sttcp->glsl_to_tgsi)
+            free_glsl_to_tgsi_visitor(sttcp->glsl_to_tgsi);
+      }
+      break;
+   case GL_TESS_EVALUATION_PROGRAM_NV:
+      {
+         struct st_tesseval_program *sttep =
+            (struct st_tesseval_program *) prog;
+
+         st_release_tep_variants(st, sttep);
+
+         if (sttep->glsl_to_tgsi)
+            free_glsl_to_tgsi_visitor(sttep->glsl_to_tgsi);
       }
       break;
    default:
@@ -213,6 +253,24 @@ st_program_string_notify( struct gl_context *ctx,
 
       if (st->vp == stvp)
 	 st->dirty.st |= ST_NEW_VERTEX_PROGRAM;
+   }
+   else if (target == GL_TESS_CONTROL_PROGRAM_NV) {
+      struct st_tessctrl_program *sttcp =
+         (struct st_tessctrl_program *) prog;
+
+      st_release_tcp_variants(st, sttcp);
+
+      if (st->tcp == sttcp)
+         st->dirty.st |= ST_NEW_TESSCTRL_PROGRAM;
+   }
+   else if (target == GL_TESS_EVALUATION_PROGRAM_NV) {
+      struct st_tesseval_program *sttep =
+         (struct st_tesseval_program *) prog;
+
+      st_release_tep_variants(st, sttep);
+
+      if (st->tep == sttep)
+         st->dirty.st |= ST_NEW_TESSEVAL_PROGRAM;
    }
 
    if (ST_DEBUG & DEBUG_PRECOMPILE)

@@ -787,6 +787,7 @@ texstore_rgba(TEXSTORE_PARAMS)
       srcType = GL_FLOAT;
       srcRowStride = srcWidth * 4 * sizeof(float);
       srcMesaFormat = RGBA32_FLOAT;
+      srcPacking = &ctx->DefaultPacking;
    }
 
    src = (GLubyte *)

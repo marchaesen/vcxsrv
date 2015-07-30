@@ -31,13 +31,8 @@ SConscript('mesa/SConscript')
 if not env['embedded']:
     if env['platform'] not in ('cygwin', 'darwin', 'freebsd', 'haiku', 'windows'):
         SConscript('glx/SConscript')
-    if env['platform'] not in ['darwin', 'haiku', 'sunos', 'windows']:
-        if env['dri']:
-            SConscript('egl/drivers/dri2/SConscript')
-        SConscript('egl/main/SConscript')
     if env['platform'] == 'haiku':
-        SConscript('egl/drivers/haiku/SConscript')
-        SConscript('egl/main/SConscript')
+        SConscript('egl/SConscript')
 
     if env['gles']:
         SConscript('mapi/shared-glapi/SConscript')

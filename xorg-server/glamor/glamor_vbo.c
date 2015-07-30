@@ -171,7 +171,6 @@ glamor_fini_vbo(ScreenPtr screen)
 
     glamor_make_current(glamor_priv);
 
-    glDeleteBuffers(1, &glamor_priv->vbo);
     if (!glamor_priv->has_map_buffer_range)
         free(glamor_priv->vb);
 }

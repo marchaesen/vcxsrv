@@ -48,6 +48,7 @@ Bool RootlessUnrealizeWindow(WindowPtr pWin);
 void RootlessRestackWindow(WindowPtr pWin, WindowPtr pOldNextSib);
 void RootlessCopyWindow(WindowPtr pWin, DDXPointRec ptOldOrg,
                         RegionPtr prgnSrc);
+void RootlessPaintWindow(WindowPtr pWin, RegionPtr prgn, int what);
 void RootlessMoveWindow(WindowPtr pWin, int x, int y, WindowPtr pSib,
                         VTKind kind);
 void RootlessResizeWindow(WindowPtr pWin, int x, int y, unsigned int w,

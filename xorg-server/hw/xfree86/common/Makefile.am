@@ -16,7 +16,6 @@ endif
 
 if XF86VIDMODE
 XF86VMODESOURCES = xf86vmode.c
-XF86VMODE_SDK = vidmodeproc.h
 endif
 
 if DGA

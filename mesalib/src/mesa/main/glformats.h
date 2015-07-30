@@ -101,6 +101,9 @@ _mesa_is_compressed_format(const struct gl_context *ctx, GLenum format);
 extern GLenum
 _mesa_base_format_to_integer_format(GLenum format);
 
+extern GLenum
+_mesa_unpack_format_to_base_format(GLenum format);
+
 extern GLboolean
 _mesa_base_format_has_channel(GLenum base_format, GLenum pname);
 

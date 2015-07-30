@@ -213,6 +213,7 @@ driCreateConfigs(mesa_format format,
       masks = masks_table[0];
       break;
    case MESA_FORMAT_B8G8R8X8_UNORM:
+   case MESA_FORMAT_B8G8R8X8_SRGB:
       masks = masks_table[1];
       break;
    case MESA_FORMAT_B8G8R8A8_UNORM:

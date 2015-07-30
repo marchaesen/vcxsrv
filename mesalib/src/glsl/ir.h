@@ -324,6 +324,7 @@ protected:
 enum ir_variable_mode {
    ir_var_auto = 0,     /**< Function local variables and globals. */
    ir_var_uniform,      /**< Variable declared as a uniform. */
+   ir_var_shader_storage,   /**< Variable declared as an ssbo. */
    ir_var_shader_in,
    ir_var_shader_out,
    ir_var_function_in,
@@ -441,11 +442,14 @@ public:
    glsl_interp_qualifier determine_interpolation_mode(bool flat_shade);
 
    /**
-    * Determine whether or not a variable is part of a uniform block.
+    * Determine whether or not a variable is part of a uniform or
+    * shader storage block.
     */
-   inline bool is_in_uniform_block() const
+   inline bool is_in_buffer_block() const
    {
-      return this->data.mode == ir_var_uniform && this->interface_type != NULL;
+      return (this->data.mode == ir_var_uniform ||
+              this->data.mode == ir_var_shader_storage) &&
+             this->interface_type != NULL;
    }
 
    /**
@@ -618,6 +622,7 @@ public:
       unsigned read_only:1;
       unsigned centroid:1;
       unsigned sample:1;
+      unsigned patch:1;
       unsigned invariant:1;
       unsigned precise:1;
 
@@ -1121,6 +1126,21 @@ public:
     * List of ir_function_signature for each overloaded function with this name.
     */
    struct exec_list signatures;
+
+   /**
+    * is this function a subroutine type declaration
+    * e.g. subroutine void type1(float arg1);
+    */
+   bool is_subroutine;
+
+   /**
+    * is this function associated to a subroutine type
+    * e.g. subroutine (type1, type2) function_name { function_body };
+    * would have num_subroutine_types 2,
+    * and pointers to the type1 and type2 types.
+    */
+   int num_subroutine_types;
+   const struct glsl_type **subroutine_types;
 };
 
 inline const char *ir_function_signature::function_name() const
@@ -1380,6 +1400,7 @@ enum ir_expression_operation {
 
    ir_unop_noise,
 
+   ir_unop_subroutine_to_int,
    /**
     * Interpolate fs input at centroid
     *
@@ -1691,7 +1712,18 @@ public:
    ir_call(ir_function_signature *callee,
 	   ir_dereference_variable *return_deref,
 	   exec_list *actual_parameters)
-      : ir_instruction(ir_type_call), return_deref(return_deref), callee(callee)
+      : ir_instruction(ir_type_call), return_deref(return_deref), callee(callee), sub_var(NULL), array_idx(NULL)
+   {
+      assert(callee->return_type != NULL);
+      actual_parameters->move_nodes_to(& this->actual_parameters);
+      this->use_builtin = callee->is_builtin();
+   }
+
+   ir_call(ir_function_signature *callee,
+	   ir_dereference_variable *return_deref,
+	   exec_list *actual_parameters,
+	   ir_variable *var, ir_rvalue *array_idx)
+      : ir_instruction(ir_type_call), return_deref(return_deref), callee(callee), sub_var(var), array_idx(array_idx)
    {
       assert(callee->return_type != NULL);
       actual_parameters->move_nodes_to(& this->actual_parameters);
@@ -1739,6 +1771,14 @@ public:
 
    /** Should this call only bind to a built-in function? */
    bool use_builtin;
+
+   /*
+    * ARB_shader_subroutine support -
+    * the subroutine uniform variable and array index
+    * rvalue to be used in the lowering pass later.
+    */
+   ir_variable *sub_var;
+   ir_rvalue *array_idx;
 };
 
 

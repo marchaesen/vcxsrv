@@ -32,8 +32,6 @@
 #include <randrstr.h>
 #include "dri3.h"
 
-extern int dri3_request;
-
 extern DevPrivateKeyRec dri3_screen_private_key;
 
 typedef struct dri3_screen_priv {

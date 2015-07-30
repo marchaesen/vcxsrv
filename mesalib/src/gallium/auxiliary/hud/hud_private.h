@@ -66,7 +66,7 @@ struct hud_pane {
    uint64_t ceiling;
    unsigned dyn_ceil_last_ran;
    boolean dyn_ceiling;
-   boolean uses_byte_units;
+   enum pipe_driver_query_type type;
    uint64_t period; /* in microseconds */
 
    struct list_head graph_list;
@@ -89,7 +89,8 @@ void hud_cpu_graph_install(struct hud_pane *pane, unsigned cpu_index);
 void hud_pipe_query_install(struct hud_pane *pane, struct pipe_context *pipe,
                             const char *name, unsigned query_type,
                             unsigned result_index,
-                            uint64_t max_value, boolean uses_byte_units);
+                            uint64_t max_value,
+                            enum pipe_driver_query_type type);
 boolean hud_driver_query_install(struct hud_pane *pane,
                                  struct pipe_context *pipe, const char *name);
 

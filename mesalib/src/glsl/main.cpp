@@ -215,6 +215,8 @@ initialize_context(struct gl_context *ctx, gl_api api)
    }
 
    ctx->Const.GenerateTemporaryNames = true;
+   ctx->Const.MaxPatchVertices = 32;
+
    ctx->Driver.NewShader = _mesa_new_shader;
 }
 
@@ -284,7 +286,7 @@ usage_fail(const char *name)
 {
 
    const char *header =
-      "usage: %s [options] <file.vert | file.geom | file.frag>\n"
+      "usage: %s [options] <file.vert | file.tesc | file.tese | file.geom | file.frag | file.comp>\n"
       "\n"
       "Possible options are:\n";
    printf(header, name);
@@ -384,6 +386,10 @@ main(int argc, char **argv)
       const char *const ext = & argv[optind][len - 5];
       if (strncmp(".vert", ext, 5) == 0 || strncmp(".glsl", ext, 5) == 0)
 	 shader->Type = GL_VERTEX_SHADER;
+      else if (strncmp(".tesc", ext, 5) == 0)
+	 shader->Type = GL_TESS_CONTROL_SHADER;
+      else if (strncmp(".tese", ext, 5) == 0)
+	 shader->Type = GL_TESS_EVALUATION_SHADER;
       else if (strncmp(".geom", ext, 5) == 0)
 	 shader->Type = GL_GEOMETRY_SHADER;
       else if (strncmp(".frag", ext, 5) == 0)

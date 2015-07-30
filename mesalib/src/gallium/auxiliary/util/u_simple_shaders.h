@@ -68,15 +68,16 @@ extern void *
 util_make_layered_clear_geometry_shader(struct pipe_context *pipe);
 
 extern void *
-util_make_fragment_tex_shader_writemask(struct pipe_context *pipe, 
+util_make_fragment_tex_shader_writemask(struct pipe_context *pipe,
                                         unsigned tex_target,
                                         unsigned interp_mode,
-                                        unsigned writemask);
+                                        unsigned writemask,
+                                        enum tgsi_return_type stype);
 
 extern void *
 util_make_fragment_tex_shader(struct pipe_context *pipe, unsigned tex_target,
-                              unsigned interp_mode);
-
+                              unsigned interp_mode,
+                              enum tgsi_return_type stype);
 
 extern void *
 util_make_fragment_tex_shader_writedepth(struct pipe_context *pipe,
@@ -115,7 +116,8 @@ util_make_fragment_cloneinput_shader(struct pipe_context *pipe, int num_cbufs,
 
 extern void *
 util_make_fs_blit_msaa_color(struct pipe_context *pipe,
-                             unsigned tgsi_tex);
+                             unsigned tgsi_tex,
+                             enum tgsi_return_type stype);
 
 
 extern void *
@@ -136,13 +138,13 @@ util_make_fs_blit_msaa_stencil(struct pipe_context *pipe,
 void *
 util_make_fs_msaa_resolve(struct pipe_context *pipe,
                           unsigned tgsi_tex, unsigned nr_samples,
-                          boolean is_uint, boolean is_sint);
+                          enum tgsi_return_type stype);
 
 
 void *
 util_make_fs_msaa_resolve_bilinear(struct pipe_context *pipe,
                                    unsigned tgsi_tex, unsigned nr_samples,
-                                   boolean is_uint, boolean is_sint);
+                                   enum tgsi_return_type stype);
 
 #ifdef __cplusplus
 }

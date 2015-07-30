@@ -45,7 +45,7 @@
 
 #define F32_INFINITY         0x7f800000
 
-static INLINE unsigned f32_to_uf11(float val)
+static inline unsigned f32_to_uf11(float val)
 {
    union {
       float f;
@@ -94,7 +94,7 @@ static INLINE unsigned f32_to_uf11(float val)
    return uf11;
 }
 
-static INLINE float uf11_to_f32(uint16_t val)
+static inline float uf11_to_f32(uint16_t val)
 {
    union {
       float f;
@@ -131,7 +131,7 @@ static INLINE float uf11_to_f32(uint16_t val)
    return f32.f;
 }
 
-static INLINE unsigned f32_to_uf10(float val)
+static inline unsigned f32_to_uf10(float val)
 {
    union {
       float f;
@@ -180,7 +180,7 @@ static INLINE unsigned f32_to_uf10(float val)
    return uf10;
 }
 
-static INLINE float uf10_to_f32(uint16_t val)
+static inline float uf10_to_f32(uint16_t val)
 {
    union {
       float f;
@@ -217,14 +217,14 @@ static INLINE float uf10_to_f32(uint16_t val)
    return f32.f;
 }
 
-static INLINE unsigned float3_to_r11g11b10f(const float rgb[3])
+static inline unsigned float3_to_r11g11b10f(const float rgb[3])
 {
    return ( f32_to_uf11(rgb[0]) & 0x7ff) |
           ((f32_to_uf11(rgb[1]) & 0x7ff) << 11) |
           ((f32_to_uf10(rgb[2]) & 0x3ff) << 22);
 }
 
-static INLINE void r11g11b10f_to_float3(unsigned rgb, float retval[3])
+static inline void r11g11b10f_to_float3(unsigned rgb, float retval[3])
 {
    retval[0] = uf11_to_f32( rgb        & 0x7ff);
    retval[1] = uf11_to_f32((rgb >> 11) & 0x7ff);

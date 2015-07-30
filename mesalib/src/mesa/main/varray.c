@@ -300,7 +300,7 @@ update_array_format(struct gl_context *ctx,
    typeBit = type_to_bit(ctx, type);
    if (typeBit == 0x0 || (typeBit & legalTypesMask) == 0x0) {
       _mesa_error(ctx, GL_INVALID_ENUM, "%s(type = %s)",
-                  func, _mesa_lookup_enum_by_nr(type));
+                  func, _mesa_enum_to_string(type));
       return false;
    }
 
@@ -333,7 +333,7 @@ update_array_format(struct gl_context *ctx,
 
       if (bgra_error) {
          _mesa_error(ctx, GL_INVALID_OPERATION, "%s(size=GL_BGRA and type=%s)",
-                     func, _mesa_lookup_enum_by_nr(type));
+                     func, _mesa_enum_to_string(type));
          return false;
       }
 
@@ -2309,10 +2309,10 @@ print_array(const char *name, GLint index, const struct gl_client_array *array)
       fprintf(stderr, "  %s[%d]: ", name, index);
    else
       fprintf(stderr, "  %s: ", name);
-   fprintf(stderr, "Ptr=%p, Type=0x%x, Size=%d, ElemSize=%u, Stride=%d, Buffer=%u(Size %lu)\n",
-	  array->Ptr, array->Type, array->Size,
-	  array->_ElementSize, array->StrideB,
-	  array->BufferObj->Name, (unsigned long) array->BufferObj->Size);
+   fprintf(stderr, "Ptr=%p, Type=%s, Size=%d, ElemSize=%u, Stride=%d, Buffer=%u(Size %lu)\n",
+           array->Ptr, _mesa_enum_to_string(array->Type), array->Size,
+           array->_ElementSize, array->StrideB, array->BufferObj->Name,
+           (unsigned long) array->BufferObj->Size);
 }
 
 

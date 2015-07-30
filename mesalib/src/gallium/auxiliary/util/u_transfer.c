@@ -90,7 +90,7 @@ void u_default_transfer_unmap( struct pipe_context *pipe,
 }
 
 
-static INLINE struct u_resource *
+static inline struct u_resource *
 u_resource( struct pipe_resource *res )
 {
    return (struct u_resource *)res;

@@ -854,8 +854,7 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_MOVE:
 #if CYGMULTIWINDOW_DEBUG
-        winDebug("winMWExtWMWindowProc - WM_MOVE - %d ms\n",
-                 (unsigned int) GetTickCount());
+        winDebug("winMWExtWMWindowProc - WM_MOVE\n");
 #endif
         if (g_fNoConfigureWindow)
             break;
@@ -896,8 +895,7 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         return 0;
 
     case WM_SHOWWINDOW:
-        winDebug("winMWExtWMWindowProc - WM_SHOWWINDOW - %d ms\n",
-                 (unsigned int) GetTickCount());
+        winDebug("winMWExtWMWindowProc - WM_SHOWWINDOW\n");
 
         /* Bail out if the window is being hidden */
         if (!wParam)
@@ -1145,8 +1143,7 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_SIZE:
         /* see dix/window.c */
         /* FIXME: Maximize/Restore? */
-        winDebug("winMWExtWMWindowProc - WM_SIZE - %d ms\n",
-                 (unsigned int) GetTickCount());
+        winDebug("winMWExtWMWindowProc - WM_SIZE\n");
 
         winDebug("\t(%d, %d) %d\n", (short) LOWORD(lParam),
                  (short) HIWORD(lParam), g_fNoConfigureWindow);
@@ -1213,8 +1210,7 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_ACTIVATEAPP:
 #if CYGMULTIWINDOW_DEBUG
-        winDebug("winMWExtWMWindowProc - WM_ACTIVATEAPP - %d ms\n",
-                 (unsigned int) GetTickCount());
+        winDebug("winMWExtWMWindowProc - WM_ACTIVATEAPP\n");
 #endif
         if (wParam) {
             if (winIsInternalWMRunning(pScreenInfo)) {
@@ -1247,15 +1243,13 @@ winMWExtWMWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_ENTERSIZEMOVE:
-        winDebug("winMWExtWMWindowProc - WM_ENTERSIZEMOVE - %d ms\n",
-                 (unsigned int) GetTickCount());
+        winDebug("winMWExtWMWindowProc - WM_ENTERSIZEMOVE\n");
 
         pRLWinPriv->fMovingOrSizing = TRUE;
         break;
 
     case WM_EXITSIZEMOVE:
-        winDebug("winMWExtWMWindowProc - WM_EXITSIZEMOVE - %d ms\n",
-                 (unsigned int) GetTickCount());
+        winDebug("winMWExtWMWindowProc - WM_EXITSIZEMOVE\n");
 
         pRLWinPriv->fMovingOrSizing = FALSE;
 

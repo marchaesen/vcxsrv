@@ -9000,7 +9000,7 @@ _mesa_NewList(GLuint name, GLenum mode)
 
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glNewList %u %s\n", name,
-                  _mesa_lookup_enum_by_nr(mode));
+                  _mesa_enum_to_string(mode));
 
    if (name == 0) {
       _mesa_error(ctx, GL_INVALID_VALUE, "glNewList");
@@ -9688,7 +9688,7 @@ _mesa_initialize_save_table(const struct gl_context *ctx)
 static const char *
 enum_string(GLenum k)
 {
-   return _mesa_lookup_enum_by_nr(k);
+   return _mesa_enum_to_string(k);
 }
 
 
@@ -9827,19 +9827,19 @@ print_list(struct gl_context *ctx, GLuint list, const char *fname)
             break;
          case OPCODE_BIND_TEXTURE:
             fprintf(f, "BindTexture %s %d\n",
-                         _mesa_lookup_enum_by_nr(n[1].ui), n[2].ui);
+                         _mesa_enum_to_string(n[1].ui), n[2].ui);
             break;
          case OPCODE_SHADE_MODEL:
-            fprintf(f, "ShadeModel %s\n", _mesa_lookup_enum_by_nr(n[1].ui));
+            fprintf(f, "ShadeModel %s\n", _mesa_enum_to_string(n[1].ui));
             break;
          case OPCODE_MAP1:
             fprintf(f, "Map1 %s %.3f %.3f %d %d\n",
-                         _mesa_lookup_enum_by_nr(n[1].ui),
+                         _mesa_enum_to_string(n[1].ui),
                          n[2].f, n[3].f, n[4].i, n[5].i);
             break;
          case OPCODE_MAP2:
             fprintf(f, "Map2 %s %.3f %.3f %.3f %.3f %d %d %d %d\n",
-                         _mesa_lookup_enum_by_nr(n[1].ui),
+                         _mesa_enum_to_string(n[1].ui),
                          n[2].f, n[3].f, n[4].f, n[5].f,
                          n[6].i, n[7].i, n[8].i, n[9].i);
             break;
@@ -9918,7 +9918,7 @@ print_list(struct gl_context *ctx, GLuint list, const char *fname)
 
          case OPCODE_PROVOKING_VERTEX:
             fprintf(f, "ProvokingVertex %s\n",
-                         _mesa_lookup_enum_by_nr(n[1].ui));
+                         _mesa_enum_to_string(n[1].ui));
             break;
 
             /*

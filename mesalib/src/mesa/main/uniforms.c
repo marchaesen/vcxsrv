@@ -952,7 +952,7 @@ _mesa_GetUniformBlockIndex(GLuint program,
 
    struct gl_program_resource *res =
       _mesa_program_resource_find_name(shProg, GL_UNIFORM_BLOCK,
-                                       uniformBlockName);
+                                       uniformBlockName, NULL);
    if (!res)
       return GL_INVALID_INDEX;
 
@@ -987,7 +987,8 @@ _mesa_GetUniformIndices(GLuint program,
 
    for (i = 0; i < uniformCount; i++) {
       struct gl_program_resource *res =
-         _mesa_program_resource_find_name(shProg, GL_UNIFORM, uniformNames[i]);
+         _mesa_program_resource_find_name(shProg, GL_UNIFORM, uniformNames[i],
+                                          NULL);
       uniformIndices[i] = _mesa_program_resource_index(shProg, res);
    }
 }
@@ -1092,6 +1093,21 @@ mesa_bufferiv(struct gl_shader_program *shProg, GLenum type,
                                   GL_REFERENCED_BY_VERTEX_SHADER, params,
                                   caller);
       return;
+
+   case GL_UNIFORM_BLOCK_REFERENCED_BY_TESS_CONTROL_SHADER:
+   case GL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_TESS_CONTROL_SHADER:
+      _mesa_program_resource_prop(shProg, res, index,
+                                  GL_REFERENCED_BY_TESS_CONTROL_SHADER, params,
+                                  caller);
+      return;
+
+   case GL_UNIFORM_BLOCK_REFERENCED_BY_TESS_EVALUATION_SHADER:
+   case GL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_TESS_EVALUATION_SHADER:
+      _mesa_program_resource_prop(shProg, res, index,
+                                  GL_REFERENCED_BY_TESS_EVALUATION_SHADER, params,
+                                  caller);
+      return;
+
    case GL_UNIFORM_BLOCK_REFERENCED_BY_GEOMETRY_SHADER:
    case GL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_GEOMETRY_SHADER:
       _mesa_program_resource_prop(shProg, res, index,
@@ -1104,16 +1120,10 @@ mesa_bufferiv(struct gl_shader_program *shProg, GLenum type,
                                   GL_REFERENCED_BY_FRAGMENT_SHADER, params,
                                   caller);
       return;
-   case GL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_TESS_CONTROL_SHADER:
-      params[0] = GL_FALSE;
-      return;
-   case GL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_TESS_EVALUATION_SHADER:
-      params[0] = GL_FALSE;
-      return;
    default:
       _mesa_error(ctx, GL_INVALID_ENUM,
                   "%s(pname 0x%x (%s))", caller, pname,
-                  _mesa_lookup_enum_by_nr(pname));
+                  _mesa_enum_to_string(pname));
       return;
    }
 }

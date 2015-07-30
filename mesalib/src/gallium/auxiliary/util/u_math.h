@@ -92,7 +92,7 @@ union di {
 /**
  * Extract the IEEE float32 exponent.
  */
-static INLINE signed
+static inline signed
 util_get_float32_exponent(float x)
 {
    union fi f;
@@ -112,7 +112,7 @@ util_get_float32_exponent(float x)
  * Compute exp2(ipart) with i << ipart
  * Compute exp2(fpart) with lookup table.
  */
-static INLINE float
+static inline float
 util_fast_exp2(float x)
 {
    int32_t ipart;
@@ -143,7 +143,7 @@ util_fast_exp2(float x)
 /**
  * Fast approximation to exp(x).
  */
-static INLINE float
+static inline float
 util_fast_exp(float x)
 {
    const float k = 1.44269f; /* = log2(e) */
@@ -160,7 +160,7 @@ extern float log2_table[LOG2_TABLE_SIZE];
 /**
  * Fast approximation to log2(x).
  */
-static INLINE float
+static inline float
 util_fast_log2(float x)
 {
    union fi num;
@@ -176,7 +176,7 @@ util_fast_log2(float x)
 /**
  * Fast approximation to x^y.
  */
-static INLINE float
+static inline float
 util_fast_pow(float x, float y)
 {
    return util_fast_exp2(util_fast_log2(x) * y);
@@ -184,7 +184,7 @@ util_fast_pow(float x, float y)
 
 /* Note that this counts zero as a power of two.
  */
-static INLINE boolean
+static inline boolean
 util_is_power_of_two( unsigned v )
 {
    return (v & (v-1)) == 0;
@@ -194,7 +194,7 @@ util_is_power_of_two( unsigned v )
 /**
  * Floor(x), returned as int.
  */
-static INLINE int
+static inline int
 util_ifloor(float f)
 {
    int ai, bi;
@@ -211,7 +211,7 @@ util_ifloor(float f)
 /**
  * Round float to nearest int.
  */
-static INLINE int
+static inline int
 util_iround(float f)
 {
 #if defined(PIPE_CC_GCC) && defined(PIPE_ARCH_X86) 
@@ -237,10 +237,10 @@ util_iround(float f)
 /**
  * Approximate floating point comparison
  */
-static INLINE boolean
+static inline boolean
 util_is_approx(float a, float b, float tol)
 {
-   return fabs(b - a) <= tol;
+   return fabsf(b - a) <= tol;
 }
 
 
@@ -256,7 +256,7 @@ util_is_approx(float a, float b, float tol)
 /**
  * Single-float
  */
-static INLINE boolean
+static inline boolean
 util_is_inf_or_nan(float x)
 {
    union fi tmp;
@@ -265,7 +265,7 @@ util_is_inf_or_nan(float x)
 }
 
 
-static INLINE boolean
+static inline boolean
 util_is_nan(float x)
 {
    union fi tmp;
@@ -274,7 +274,7 @@ util_is_nan(float x)
 }
 
 
-static INLINE int
+static inline int
 util_inf_sign(float x)
 {
    union fi tmp;
@@ -290,7 +290,7 @@ util_inf_sign(float x)
 /**
  * Double-float
  */
-static INLINE boolean
+static inline boolean
 util_is_double_inf_or_nan(double x)
 {
    union di tmp;
@@ -299,7 +299,7 @@ util_is_double_inf_or_nan(double x)
 }
 
 
-static INLINE boolean
+static inline boolean
 util_is_double_nan(double x)
 {
    union di tmp;
@@ -308,7 +308,7 @@ util_is_double_nan(double x)
 }
 
 
-static INLINE int
+static inline int
 util_double_inf_sign(double x)
 {
    union di tmp;
@@ -324,21 +324,21 @@ util_double_inf_sign(double x)
 /**
  * Half-float
  */
-static INLINE boolean
+static inline boolean
 util_is_half_inf_or_nan(int16_t x)
 {
    return (x & 0x7c00) == 0x7c00;
 }
 
 
-static INLINE boolean
+static inline boolean
 util_is_half_nan(int16_t x)
 {
    return (x & 0x7fff) > 0x7c00;
 }
 
 
-static INLINE int
+static inline int
 util_half_inf_sign(int16_t x)
 {
    if ((x & 0x7fff) != 0x7c00) {
@@ -359,7 +359,7 @@ util_half_inf_sign(int16_t x)
 #if defined(_MSC_VER) && (_M_IX86 || _M_AMD64 || _M_IA64)
 unsigned char _BitScanForward(unsigned long* Index, unsigned long Mask);
 #pragma intrinsic(_BitScanForward)
-static INLINE
+static inline
 unsigned long ffs( unsigned long u )
 {
    unsigned long i;
@@ -369,7 +369,7 @@ unsigned long ffs( unsigned long u )
       return 0;
 }
 #elif defined(PIPE_CC_MSVC) && defined(PIPE_ARCH_X86)
-static INLINE
+static inline
 unsigned ffs( unsigned u )
 {
    unsigned i;
@@ -409,7 +409,7 @@ unsigned ffs( unsigned u )
  * Find last bit set in a word.  The least significant bit is 1.
  * Return 0 if no bits are set.
  */
-static INLINE unsigned
+static inline unsigned
 util_last_bit(unsigned u)
 {
 #if defined(HAVE___BUILTIN_CLZ)
@@ -428,7 +428,7 @@ util_last_bit(unsigned u)
  * Find last bit set in a word.  The least significant bit is 1.
  * Return 0 if no bits are set.
  */
-static INLINE unsigned
+static inline unsigned
 util_last_bit64(uint64_t u)
 {
 #if defined(HAVE___BUILTIN_CLZLL)
@@ -448,7 +448,7 @@ util_last_bit64(uint64_t u)
  * significant bit is 1.
  * Return 0 if no bits are set.
  */
-static INLINE unsigned
+static inline unsigned
 util_last_bit_signed(int i)
 {
    if (i >= 0)
@@ -465,7 +465,7 @@ util_last_bit_signed(int i)
  * }
  *
  */
-static INLINE int
+static inline int
 u_bit_scan(unsigned *mask)
 {
    int i = ffs(*mask) - 1;
@@ -474,7 +474,7 @@ u_bit_scan(unsigned *mask)
 }
 
 #ifndef _MSC_VER
-static INLINE int
+static inline int
 u_bit_scan64(uint64_t *mask)
 {
    int i = ffsll(*mask) - 1;
@@ -486,7 +486,7 @@ u_bit_scan64(uint64_t *mask)
 /**
  * Return float bits.
  */
-static INLINE unsigned
+static inline unsigned
 fui( float f )
 {
    union fi fi;
@@ -494,7 +494,7 @@ fui( float f )
    return fi.ui;
 }
 
-static INLINE float
+static inline float
 uif(uint32_t ui)
 {
    union fi fi;
@@ -507,7 +507,7 @@ uif(uint32_t ui)
  * Convert ubyte to float in [0, 1].
  * XXX a 256-entry lookup table would be slightly faster.
  */
-static INLINE float
+static inline float
 ubyte_to_float(ubyte ub)
 {
    return (float) ub * (1.0f / 255.0f);
@@ -517,7 +517,7 @@ ubyte_to_float(ubyte ub)
 /**
  * Convert float in [0,1] to ubyte in [0,255] with clamping.
  */
-static INLINE ubyte
+static inline ubyte
 float_to_ubyte(float f)
 {
    union fi tmp;
@@ -535,13 +535,13 @@ float_to_ubyte(float f)
    }
 }
 
-static INLINE float
+static inline float
 byte_to_float_tex(int8_t b)
 {
    return (b == -128) ? -1.0F : b * 1.0F / 127.0F;
 }
 
-static INLINE int8_t
+static inline int8_t
 float_to_byte_tex(float f)
 {
    return (int8_t) (127.0F * f);
@@ -550,7 +550,7 @@ float_to_byte_tex(float f)
 /**
  * Calc log base 2
  */
-static INLINE unsigned
+static inline unsigned
 util_logbase2(unsigned n)
 {
 #if defined(HAVE___BUILTIN_CLZ)
@@ -570,7 +570,7 @@ util_logbase2(unsigned n)
 /**
  * Returns the smallest power of two >= x
  */
-static INLINE unsigned
+static inline unsigned
 util_next_power_of_two(unsigned x)
 {
 #if defined(HAVE___BUILTIN_CLZ)
@@ -602,7 +602,7 @@ util_next_power_of_two(unsigned x)
 /**
  * Return number of bits set in n.
  */
-static INLINE unsigned
+static inline unsigned
 util_bitcount(unsigned n)
 {
 #if defined(HAVE___BUILTIN_POPCOUNT)
@@ -623,7 +623,7 @@ util_bitcount(unsigned n)
 }
 
 
-static INLINE unsigned
+static inline unsigned
 util_bitcount64(uint64_t n)
 {
 #ifdef HAVE___BUILTIN_POPCOUNTLL
@@ -639,7 +639,7 @@ util_bitcount64(uint64_t n)
  * Algorithm taken from:
  * http://stackoverflow.com/questions/9144800/c-reverse-bits-in-unsigned-integer
  */
-static INLINE unsigned
+static inline unsigned
 util_bitreverse(unsigned n)
 {
     n = ((n >> 1) & 0x55555555u) | ((n & 0x55555555u) << 1);
@@ -671,7 +671,7 @@ util_bitreverse(unsigned n)
 /**
  * Reverse byte order of a 32 bit word.
  */
-static INLINE uint32_t
+static inline uint32_t
 util_bswap32(uint32_t n)
 {
 #if defined(HAVE___BUILTIN_BSWAP32)
@@ -687,7 +687,7 @@ util_bswap32(uint32_t n)
 /**
  * Reverse byte order of a 64bit word.
  */
-static INLINE uint64_t
+static inline uint64_t
 util_bswap64(uint64_t n)
 {
 #if defined(HAVE___BUILTIN_BSWAP64)
@@ -702,14 +702,14 @@ util_bswap64(uint64_t n)
 /**
  * Reverse byte order of a 16 bit word.
  */
-static INLINE uint16_t
+static inline uint16_t
 util_bswap16(uint16_t n)
 {
    return (n >> 8) |
           (n << 8);
 }
 
-static INLINE void*
+static inline void*
 util_memcpy_cpu_to_le32(void * restrict dest, const void * restrict src, size_t n)
 {
 #ifdef PIPE_ARCH_BIG_ENDIAN
@@ -746,7 +746,7 @@ util_memcpy_cpu_to_le32(void * restrict dest, const void * restrict src, size_t 
 /**
  * Align a value, only works pot alignemnts.
  */
-static INLINE int
+static inline int
 align(int value, int alignment)
 {
    return (value + alignment - 1) & ~(alignment - 1);
@@ -755,7 +755,7 @@ align(int value, int alignment)
 /**
  * Works like align but on npot alignments.
  */
-static INLINE size_t
+static inline size_t
 util_align_npot(size_t value, size_t alignment)
 {
    if (value % alignment)
@@ -763,7 +763,7 @@ util_align_npot(size_t value, size_t alignment)
    return value;
 }
 
-static INLINE unsigned
+static inline unsigned
 u_minify(unsigned value, unsigned levels)
 {
     return MAX2(1, value >> levels);
@@ -796,13 +796,13 @@ do {                                     \
 #endif
 
 
-static INLINE uint32_t
+static inline uint32_t
 util_unsigned_fixed(float value, unsigned frac_bits)
 {
    return value < 0 ? 0 : (uint32_t)(value * (1<<frac_bits));
 }
 
-static INLINE int32_t
+static inline int32_t
 util_signed_fixed(float value, unsigned frac_bits)
 {
    return (int32_t)(value * (1<<frac_bits));

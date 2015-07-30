@@ -59,6 +59,8 @@ type_size(const struct glsl_type *type)
          size += type_size(glsl_get_struct_field(type, i));
       }
       return size;
+   case GLSL_TYPE_SUBROUTINE:
+      return 1;
    case GLSL_TYPE_SAMPLER:
       return 0;
    case GLSL_TYPE_ATOMIC_UINT:
@@ -86,7 +88,8 @@ nir_assign_var_locations_scalar(struct exec_list *var_list, unsigned *size)
        * UBO's have their own address spaces, so don't count them towards the
        * number of global uniforms
        */
-      if (var->data.mode == nir_var_uniform && var->interface_type != NULL)
+      if ((var->data.mode == nir_var_uniform || var->data.mode == nir_var_shader_storage) &&
+          var->interface_type != NULL)
          continue;
 
       var->data.driver_location = location;
@@ -153,7 +156,8 @@ nir_assign_var_locations_scalar_direct_first(nir_shader *shader,
    unsigned location = 0;
 
    foreach_list_typed(nir_variable, var, node, var_list) {
-      if (var->data.mode == nir_var_uniform && var->interface_type != NULL)
+      if ((var->data.mode == nir_var_uniform || var->data.mode == nir_var_shader_storage) &&
+          var->interface_type != NULL)
          continue;
 
       if (_mesa_set_search(indirect_set, var))
@@ -166,7 +170,8 @@ nir_assign_var_locations_scalar_direct_first(nir_shader *shader,
    *direct_size = location;
 
    foreach_list_typed(nir_variable, var, node, var_list) {
-      if (var->data.mode == nir_var_uniform && var->interface_type != NULL)
+      if ((var->data.mode == nir_var_uniform || var->data.mode == nir_var_shader_storage) &&
+          var->interface_type != NULL)
          continue;
 
       if (!_mesa_set_search(indirect_set, var))

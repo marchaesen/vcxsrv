@@ -340,12 +340,10 @@ xf86CursorSetCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCurs,
         if (infoPtr->pScrn->vtSema && xorg_list_is_empty(&pScreen->pixmap_dirty_list) &&
             (ScreenPriv->ForceHWCursorCount ||
              ((
-#ifdef ARGB_CURSOR
                cursor->bits->argb &&
                infoPtr->UseHWCursorARGB &&
                (*infoPtr->UseHWCursorARGB)(pScreen, cursor)) ||
               (cursor->bits->argb == 0 &&
-#endif
                (cursor->bits->height <= infoPtr->MaxHeight) &&
                (cursor->bits->width <= infoPtr->MaxWidth) &&
                (!infoPtr->UseHWCursor || (*infoPtr->UseHWCursor) (pScreen, cursor)))))) {

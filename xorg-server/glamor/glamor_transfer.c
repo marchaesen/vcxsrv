@@ -186,6 +186,8 @@ glamor_download_boxes(PixmapPtr pixmap, BoxPtr in_boxes, int in_nbox,
         BoxPtr                  boxes = in_boxes;
         int                     nbox = in_nbox;
 
+        /* This should not be called on GLAMOR_FBO_NO_FBO-allocated pixmaps. */
+        assert(fbo->fb);
         glBindFramebuffer(GL_FRAMEBUFFER, fbo->fb);
 
         while (nbox--) {

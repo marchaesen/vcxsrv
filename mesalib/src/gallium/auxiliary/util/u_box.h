@@ -4,7 +4,7 @@
 #include "pipe/p_state.h"
 #include "util/u_math.h"
 
-static INLINE
+static inline
 void u_box_1d( unsigned x,
 	       unsigned w,
 	       struct pipe_box *box )
@@ -17,7 +17,7 @@ void u_box_1d( unsigned x,
    box->depth = 1;
 }
 
-static INLINE
+static inline
 void u_box_2d( unsigned x,
 	       unsigned y,
 	       unsigned w,
@@ -32,7 +32,7 @@ void u_box_2d( unsigned x,
    box->depth = 1;
 }
 
-static INLINE
+static inline
 void u_box_origin_2d( unsigned w,
 		      unsigned h,
 		      struct pipe_box *box )
@@ -45,7 +45,7 @@ void u_box_origin_2d( unsigned w,
    box->depth = 1;
 }
 
-static INLINE
+static inline
 void u_box_2d_zslice( unsigned x,
 		      unsigned y,
 		      unsigned z,
@@ -61,7 +61,7 @@ void u_box_2d_zslice( unsigned x,
    box->depth = 1;
 }
 
-static INLINE
+static inline
 void u_box_3d( unsigned x,
 	       unsigned y,
 	       unsigned z,
@@ -86,7 +86,7 @@ void u_box_3d( unsigned x,
  *          3 if both width and height have been reduced.
  * Aliasing permitted.
  */
-static INLINE int
+static inline int
 u_box_clip_2d(struct pipe_box *dst,
               const struct pipe_box *box, int w, int h)
 {
@@ -129,14 +129,14 @@ u_box_clip_2d(struct pipe_box *dst,
    return res;
 }
 
-static INLINE int64_t
+static inline int64_t
 u_box_volume_3d(const struct pipe_box *box)
 {
    return (int64_t)box->width * box->height * box->depth;
 }
 
 /* Aliasing of @dst permitted. */
-static INLINE void
+static inline void
 u_box_union_2d(struct pipe_box *dst,
                const struct pipe_box *a, const struct pipe_box *b)
 {
@@ -148,7 +148,7 @@ u_box_union_2d(struct pipe_box *dst,
 }
 
 /* Aliasing of @dst permitted. */
-static INLINE void
+static inline void
 u_box_union_3d(struct pipe_box *dst,
                const struct pipe_box *a, const struct pipe_box *b)
 {
@@ -161,7 +161,7 @@ u_box_union_3d(struct pipe_box *dst,
    dst->depth = MAX2(a->z + a->depth, b->z + b->depth) - dst->z;
 }
 
-static INLINE boolean
+static inline boolean
 u_box_test_intersection_2d(const struct pipe_box *a,
                            const struct pipe_box *b)
 {
@@ -185,7 +185,7 @@ u_box_test_intersection_2d(const struct pipe_box *a,
    return TRUE;
 }
 
-static INLINE void
+static inline void
 u_box_minify_2d(struct pipe_box *dst,
                 const struct pipe_box *src, unsigned l)
 {

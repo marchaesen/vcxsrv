@@ -64,9 +64,7 @@ typedef struct _CursorBits {
     unsigned short width, height, xhot, yhot;   /* metrics */
     int refcnt;                 /* can be shared */
     PrivateRec *devPrivates;    /* set by pScr->RealizeCursor */
-#ifdef ARGB_CURSOR
     CARD32 *argb;               /* full-color alpha blended */
-#endif
 } CursorBits, *CursorBitsPtr;
 
 #define CURSOR_BITS_SIZE (sizeof(CursorBits) + dixPrivatesSize(PRIVATE_CURSOR_BITS))

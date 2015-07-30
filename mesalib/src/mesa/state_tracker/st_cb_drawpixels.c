@@ -33,6 +33,7 @@
 #include "main/imports.h"
 #include "main/image.h"
 #include "main/bufferobj.h"
+#include "main/blit.h"
 #include "main/format_pack.h"
 #include "main/macros.h"
 #include "main/mtypes.h"
@@ -688,8 +689,8 @@ draw_textured_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
 
    cso_save_rasterizer(cso);
    cso_save_viewport(cso);
-   cso_save_samplers(cso, PIPE_SHADER_FRAGMENT);
-   cso_save_sampler_views(cso, PIPE_SHADER_FRAGMENT);
+   cso_save_fragment_samplers(cso);
+   cso_save_fragment_sampler_views(cso);
    cso_save_fragment_shader(cso);
    cso_save_stream_outputs(cso);
    cso_save_vertex_shader(cso);
@@ -756,6 +757,8 @@ draw_textured_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
    /* texture sampling state: */
    {
       struct pipe_sampler_state sampler;
+      const struct pipe_sampler_state *states[2] = {&sampler, &sampler};
+
       memset(&sampler, 0, sizeof(sampler));
       sampler.wrap_s = PIPE_TEX_WRAP_CLAMP;
       sampler.wrap_t = PIPE_TEX_WRAP_CLAMP;
@@ -765,11 +768,8 @@ draw_textured_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
       sampler.mag_img_filter = PIPE_TEX_FILTER_NEAREST;
       sampler.normalized_coords = normalized;
 
-      cso_single_sampler(cso, PIPE_SHADER_FRAGMENT, 0, &sampler);
-      if (num_sampler_view > 1) {
-         cso_single_sampler(cso, PIPE_SHADER_FRAGMENT, 1, &sampler);
-      }
-      cso_single_sampler_done(cso, PIPE_SHADER_FRAGMENT);
+      cso_set_samplers(cso, PIPE_SHADER_FRAGMENT,
+                       num_sampler_view > 1 ? 2 : 1, states);
    }
 
    /* viewport state: viewport matching window dims */
@@ -816,8 +816,8 @@ draw_textured_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
    /* restore state */
    cso_restore_rasterizer(cso);
    cso_restore_viewport(cso);
-   cso_restore_samplers(cso, PIPE_SHADER_FRAGMENT);
-   cso_restore_sampler_views(cso, PIPE_SHADER_FRAGMENT);
+   cso_restore_fragment_samplers(cso);
+   cso_restore_fragment_sampler_views(cso);
    cso_restore_fragment_shader(cso);
    cso_restore_vertex_shader(cso);
    cso_restore_tessctrl_shader(cso);
@@ -1313,31 +1313,6 @@ st_get_color_read_renderbuffer(struct gl_context *ctx)
 
 
 /**
- * \return TRUE if two regions overlap, FALSE otherwise
- */
-static boolean
-regions_overlap(int srcX0, int srcY0,
-                int srcX1, int srcY1,
-                int dstX0, int dstY0,
-                int dstX1, int dstY1)
-{
-   if (MAX2(srcX0, srcX1) < MIN2(dstX0, dstX1))
-      return FALSE; /* src completely left of dst */
-
-   if (MAX2(dstX0, dstX1) < MIN2(srcX0, srcX1))
-      return FALSE; /* dst completely left of src */
-
-   if (MAX2(srcY0, srcY1) < MIN2(dstY0, dstY1))
-      return FALSE; /* src completely above dst */
-
-   if (MAX2(dstY0, dstY1) < MIN2(srcY0, srcY1))
-      return FALSE; /* dst completely above src */
-
-   return TRUE; /* some overlap */
-}
-
-
-/**
  * Try to do a glCopyPixels for simple cases with a blit by calling
  * pipe->blit().
  *
@@ -1420,8 +1395,8 @@ blit_copy_pixels(struct gl_context *ctx, GLint srcx, GLint srcy,
       }
 
       if (rbRead != rbDraw ||
-          !regions_overlap(readX, readY, readX + readW, readY + readH,
-                           drawX, drawY, drawX + drawW, drawY + drawH)) {
+          !_mesa_regions_overlap(readX, readY, readX + readW, readY + readH,
+                                 drawX, drawY, drawX + drawW, drawY + drawH)) {
          struct pipe_blit_info blit;
 
          memset(&blit, 0, sizeof(blit));

@@ -61,6 +61,10 @@ _mesa_shader_enum_to_shader_stage(GLenum v)
       return MESA_SHADER_FRAGMENT;
    case GL_GEOMETRY_SHADER:
       return MESA_SHADER_GEOMETRY;
+   case GL_TESS_CONTROL_SHADER:
+      return MESA_SHADER_TESS_CTRL;
+   case GL_TESS_EVALUATION_SHADER:
+      return MESA_SHADER_TESS_EVAL;
    case GL_COMPUTE_SHADER:
       return MESA_SHADER_COMPUTE;
    default:

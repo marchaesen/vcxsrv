@@ -56,7 +56,7 @@ _mesa_CullFace( GLenum mode )
    GET_CURRENT_CONTEXT(ctx);
 
    if (MESA_VERBOSE&VERBOSE_API)
-      _mesa_debug(ctx, "glCullFace %s\n", _mesa_lookup_enum_by_nr(mode));
+      _mesa_debug(ctx, "glCullFace %s\n", _mesa_enum_to_string(mode));
 
    if (mode!=GL_FRONT && mode!=GL_BACK && mode!=GL_FRONT_AND_BACK) {
       _mesa_error( ctx, GL_INVALID_ENUM, "glCullFace" );
@@ -91,15 +91,15 @@ _mesa_FrontFace( GLenum mode )
    GET_CURRENT_CONTEXT(ctx);
 
    if (MESA_VERBOSE&VERBOSE_API)
-      _mesa_debug(ctx, "glFrontFace %s\n", _mesa_lookup_enum_by_nr(mode));
+      _mesa_debug(ctx, "glFrontFace %s\n", _mesa_enum_to_string(mode));
+
+   if (ctx->Polygon.FrontFace == mode)
+      return;
 
    if (mode!=GL_CW && mode!=GL_CCW) {
       _mesa_error( ctx, GL_INVALID_ENUM, "glFrontFace" );
       return;
    }
-
-   if (ctx->Polygon.FrontFace == mode)
-      return;
 
    FLUSH_VERTICES(ctx, _NEW_POLYGON);
    ctx->Polygon.FrontFace = mode;
@@ -128,8 +128,8 @@ _mesa_PolygonMode( GLenum face, GLenum mode )
 
    if (MESA_VERBOSE&VERBOSE_API)
       _mesa_debug(ctx, "glPolygonMode %s %s\n",
-                  _mesa_lookup_enum_by_nr(face),
-                  _mesa_lookup_enum_by_nr(mode));
+                  _mesa_enum_to_string(face),
+                  _mesa_enum_to_string(mode));
 
    if (mode!=GL_POINT && mode!=GL_LINE && mode!=GL_FILL) {
       _mesa_error( ctx, GL_INVALID_ENUM, "glPolygonMode(mode)" );

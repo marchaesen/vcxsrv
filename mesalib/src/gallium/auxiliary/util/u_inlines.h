@@ -51,13 +51,13 @@ extern "C" {
  */
 
 
-static INLINE void
+static inline void
 pipe_reference_init(struct pipe_reference *reference, unsigned count)
 {
    p_atomic_set(&reference->count, count);
 }
 
-static INLINE boolean
+static inline boolean
 pipe_is_referenced(struct pipe_reference *reference)
 {
    return p_atomic_read(&reference->count) != 0;
@@ -69,7 +69,7 @@ pipe_is_referenced(struct pipe_reference *reference)
  * Both 'ptr' and 'reference' may be NULL.
  * \return TRUE if the object's refcount hits zero and should be destroyed.
  */
-static INLINE boolean
+static inline boolean
 pipe_reference_described(struct pipe_reference *ptr, 
                          struct pipe_reference *reference, 
                          debug_reference_descriptor get_desc)
@@ -96,14 +96,14 @@ pipe_reference_described(struct pipe_reference *ptr,
    return destroy;
 }
 
-static INLINE boolean
+static inline boolean
 pipe_reference(struct pipe_reference *ptr, struct pipe_reference *reference)
 {
    return pipe_reference_described(ptr, reference, 
                                    (debug_reference_descriptor)debug_describe_reference);
 }
 
-static INLINE void
+static inline void
 pipe_surface_reference(struct pipe_surface **ptr, struct pipe_surface *surf)
 {
    struct pipe_surface *old_surf = *ptr;
@@ -120,7 +120,7 @@ pipe_surface_reference(struct pipe_surface **ptr, struct pipe_surface *surf)
  * of using a deleted context's surface_destroy() method when freeing a surface
  * that's shared by multiple contexts.
  */
-static INLINE void
+static inline void
 pipe_surface_release(struct pipe_context *pipe, struct pipe_surface **ptr)
 {
    if (pipe_reference_described(&(*ptr)->reference, NULL,
@@ -130,7 +130,7 @@ pipe_surface_release(struct pipe_context *pipe, struct pipe_surface **ptr)
 }
 
 
-static INLINE void
+static inline void
 pipe_resource_reference(struct pipe_resource **ptr, struct pipe_resource *tex)
 {
    struct pipe_resource *old_tex = *ptr;
@@ -141,7 +141,7 @@ pipe_resource_reference(struct pipe_resource **ptr, struct pipe_resource *tex)
    *ptr = tex;
 }
 
-static INLINE void
+static inline void
 pipe_sampler_view_reference(struct pipe_sampler_view **ptr, struct pipe_sampler_view *view)
 {
    struct pipe_sampler_view *old_view = *ptr;
@@ -158,7 +158,7 @@ pipe_sampler_view_reference(struct pipe_sampler_view **ptr, struct pipe_sampler_
  * work-around for fixing a dangling context pointer problem when textures
  * are shared by multiple contexts.  XXX fix this someday.
  */
-static INLINE void
+static inline void
 pipe_sampler_view_release(struct pipe_context *ctx,
                           struct pipe_sampler_view **ptr)
 {
@@ -173,8 +173,18 @@ pipe_sampler_view_release(struct pipe_context *ctx,
    *ptr = NULL;
 }
 
+static inline void
+pipe_image_view_reference(struct pipe_image_view **ptr, struct pipe_image_view *view)
+{
+   struct pipe_image_view *old_view = *ptr;
 
-static INLINE void
+   if (pipe_reference_described(&(*ptr)->reference, &view->reference,
+                                (debug_reference_descriptor)debug_describe_image_view))
+      old_view->context->image_view_destroy(old_view->context, old_view);
+   *ptr = view;
+}
+
+static inline void
 pipe_so_target_reference(struct pipe_stream_output_target **ptr,
                          struct pipe_stream_output_target *target)
 {
@@ -186,7 +196,7 @@ pipe_so_target_reference(struct pipe_stream_output_target **ptr,
    *ptr = target;
 }
 
-static INLINE void
+static inline void
 pipe_surface_reset(struct pipe_context *ctx, struct pipe_surface* ps,
                    struct pipe_resource *pt, unsigned level, unsigned layer)
 {
@@ -199,7 +209,7 @@ pipe_surface_reset(struct pipe_context *ctx, struct pipe_surface* ps,
    ps->context = ctx;
 }
 
-static INLINE void
+static inline void
 pipe_surface_init(struct pipe_context *ctx, struct pipe_surface* ps,
                   struct pipe_resource *pt, unsigned level, unsigned layer)
 {
@@ -209,7 +219,7 @@ pipe_surface_init(struct pipe_context *ctx, struct pipe_surface* ps,
 }
 
 /* Return true if the surfaces are equal. */
-static INLINE boolean
+static inline boolean
 pipe_surface_equal(struct pipe_surface *s1, struct pipe_surface *s2)
 {
    return s1->texture == s2->texture &&
@@ -233,7 +243,7 @@ pipe_surface_equal(struct pipe_surface *s1, struct pipe_surface *s2)
  * \param bind  bitmask of PIPE_BIND_x flags
  * \param usage  bitmask of PIPE_USAGE_x flags
  */
-static INLINE struct pipe_resource *
+static inline struct pipe_resource *
 pipe_buffer_create( struct pipe_screen *screen,
 		    unsigned bind,
 		    unsigned usage,
@@ -261,7 +271,7 @@ pipe_buffer_create( struct pipe_screen *screen,
  * \param access  bitmask of PIPE_TRANSFER_x flags
  * \param transfer  returns a transfer object
  */
-static INLINE void *
+static inline void *
 pipe_buffer_map_range(struct pipe_context *pipe,
 		      struct pipe_resource *buffer,
 		      unsigned offset,
@@ -292,7 +302,7 @@ pipe_buffer_map_range(struct pipe_context *pipe,
  * \param access  bitmask of PIPE_TRANSFER_x flags
  * \param transfer  returns a transfer object
  */
-static INLINE void *
+static inline void *
 pipe_buffer_map(struct pipe_context *pipe,
                 struct pipe_resource *buffer,
                 unsigned access,
@@ -302,14 +312,14 @@ pipe_buffer_map(struct pipe_context *pipe,
 }
 
 
-static INLINE void
+static inline void
 pipe_buffer_unmap(struct pipe_context *pipe,
                   struct pipe_transfer *transfer)
 {
    pipe->transfer_unmap(pipe, transfer);
 }
 
-static INLINE void
+static inline void
 pipe_buffer_flush_mapped_range(struct pipe_context *pipe,
                                struct pipe_transfer *transfer,
                                unsigned offset,
@@ -333,7 +343,7 @@ pipe_buffer_flush_mapped_range(struct pipe_context *pipe,
    pipe->transfer_flush_region(pipe, transfer, &box);
 }
 
-static INLINE void
+static inline void
 pipe_buffer_write(struct pipe_context *pipe,
                   struct pipe_resource *buf,
                   unsigned offset,
@@ -367,7 +377,7 @@ pipe_buffer_write(struct pipe_context *pipe,
  * We can avoid GPU/CPU synchronization when writing range that has never
  * been written before.
  */
-static INLINE void
+static inline void
 pipe_buffer_write_nooverlap(struct pipe_context *pipe,
                             struct pipe_resource *buf,
                             unsigned offset, unsigned size,
@@ -393,7 +403,7 @@ pipe_buffer_write_nooverlap(struct pipe_context *pipe,
  * \param bind  bitmask of PIPE_BIND_x flags
  * \param usage  bitmask of PIPE_USAGE_x flags
  */
-static INLINE struct pipe_resource *
+static inline struct pipe_resource *
 pipe_buffer_create_with_data(struct pipe_context *pipe,
                              unsigned bind,
                              unsigned usage,
@@ -406,7 +416,7 @@ pipe_buffer_create_with_data(struct pipe_context *pipe,
    return res;
 }
 
-static INLINE void
+static inline void
 pipe_buffer_read(struct pipe_context *pipe,
                  struct pipe_resource *buf,
                  unsigned offset,
@@ -433,7 +443,7 @@ pipe_buffer_read(struct pipe_context *pipe,
  * Map a resource for reading/writing.
  * \param access  bitmask of PIPE_TRANSFER_x flags
  */
-static INLINE void *
+static inline void *
 pipe_transfer_map(struct pipe_context *context,
                   struct pipe_resource *resource,
                   unsigned level, unsigned layer,
@@ -456,7 +466,7 @@ pipe_transfer_map(struct pipe_context *context,
  * Map a 3D (texture) resource for reading/writing.
  * \param access  bitmask of PIPE_TRANSFER_x flags
  */
-static INLINE void *
+static inline void *
 pipe_transfer_map_3d(struct pipe_context *context,
                      struct pipe_resource *resource,
                      unsigned level,
@@ -474,14 +484,14 @@ pipe_transfer_map_3d(struct pipe_context *context,
                                 &box, transfer);
 }
 
-static INLINE void
+static inline void
 pipe_transfer_unmap( struct pipe_context *context,
                      struct pipe_transfer *transfer )
 {
    context->transfer_unmap( context, transfer );
 }
 
-static INLINE void
+static inline void
 pipe_set_constant_buffer(struct pipe_context *pipe, uint shader, uint index,
                          struct pipe_resource *buf)
 {
@@ -502,7 +512,7 @@ pipe_set_constant_buffer(struct pipe_context *pipe, uint shader, uint index,
  * Get the polygon offset enable/disable flag for the given polygon fill mode.
  * \param fill_mode  one of PIPE_POLYGON_MODE_POINT/LINE/FILL
  */
-static INLINE boolean
+static inline boolean
 util_get_offset(const struct pipe_rasterizer_state *templ,
                 unsigned fill_mode)
 {
@@ -519,7 +529,7 @@ util_get_offset(const struct pipe_rasterizer_state *templ,
    }
 }
 
-static INLINE float
+static inline float
 util_get_min_point_size(const struct pipe_rasterizer_state *state)
 {
    /* The point size should be clamped to this value at the rasterizer stage.
@@ -529,7 +539,7 @@ util_get_min_point_size(const struct pipe_rasterizer_state *state)
           !state->multisample ? 1.0f : 0.0f;
 }
 
-static INLINE void
+static inline void
 util_query_clear_result(union pipe_query_result *result, unsigned type)
 {
    switch (type) {
@@ -560,7 +570,7 @@ util_query_clear_result(union pipe_query_result *result, unsigned type)
 }
 
 /** Convert PIPE_TEXTURE_x to TGSI_TEXTURE_x */
-static INLINE unsigned
+static inline unsigned
 util_pipe_tex_to_tgsi_tex(enum pipe_texture_target pipe_tex_target,
                           unsigned nr_samples)
 {
@@ -605,7 +615,7 @@ util_pipe_tex_to_tgsi_tex(enum pipe_texture_target pipe_tex_target,
 }
 
 
-static INLINE void
+static inline void
 util_copy_constant_buffer(struct pipe_constant_buffer *dst,
                           const struct pipe_constant_buffer *src)
 {
@@ -623,7 +633,7 @@ util_copy_constant_buffer(struct pipe_constant_buffer *dst,
    }
 }
 
-static INLINE unsigned
+static inline unsigned
 util_max_layer(const struct pipe_resource *r, unsigned level)
 {
    switch (r->target) {

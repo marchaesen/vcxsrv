@@ -55,9 +55,9 @@ namespace {
 class lower_clip_distance_visitor : public ir_rvalue_visitor {
 public:
    explicit lower_clip_distance_visitor(gl_shader_stage shader_stage)
-      : progress(false), old_clip_distance_1d_var(NULL),
-        old_clip_distance_2d_var(NULL), new_clip_distance_1d_var(NULL),
-        new_clip_distance_2d_var(NULL), shader_stage(shader_stage)
+      : progress(false), old_clip_distance_out_var(NULL),
+        old_clip_distance_in_var(NULL), new_clip_distance_out_var(NULL),
+        new_clip_distance_in_var(NULL), shader_stage(shader_stage)
    {
    }
 
@@ -80,20 +80,21 @@ public:
     *
     * Note:
     *
-    * - the 2d_var is for geometry shader input only.
+    * - the in_var is for geometry and both tessellation shader inputs only.
     *
-    * - since gl_ClipDistance is available in geometry shaders as both an
-    *   input and an output, it's possible for both old_clip_distance_1d_var
-    *   and old_clip_distance_2d_var to be non-null.
+    * - since gl_ClipDistance is available in tessellation control,
+    *   tessellation evaluation and geometry shaders as both an input
+    *   and an output, it's possible for both old_clip_distance_out_var
+    *   and old_clip_distance_in_var to be non-null.
     */
-   ir_variable *old_clip_distance_1d_var;
-   ir_variable *old_clip_distance_2d_var;
+   ir_variable *old_clip_distance_out_var;
+   ir_variable *old_clip_distance_in_var;
 
    /**
     * Pointer to the newly-created gl_ClipDistanceMESA variable.
     */
-   ir_variable *new_clip_distance_1d_var;
-   ir_variable *new_clip_distance_2d_var;
+   ir_variable *new_clip_distance_out_var;
+   ir_variable *new_clip_distance_in_var;
 
    /**
     * Type of shader we are compiling (e.g. MESA_SHADER_VERTEX)
@@ -110,62 +111,81 @@ public:
 ir_visitor_status
 lower_clip_distance_visitor::visit(ir_variable *ir)
 {
+   ir_variable **old_var;
+   ir_variable **new_var;
+
    if (!ir->name || strcmp(ir->name, "gl_ClipDistance") != 0)
       return visit_continue;
    assert (ir->type->is_array());
 
-   if (!ir->type->fields.array->is_array()) {
-      /* 1D gl_ClipDistance (used for vertex and geometry output, and fragment
-       * input).
-       */
-      if (this->old_clip_distance_1d_var)
+   if (ir->data.mode == ir_var_shader_out) {
+      if (this->old_clip_distance_out_var)
          return visit_continue;
+      old_var = &old_clip_distance_out_var;
+      new_var = &new_clip_distance_out_var;
+   } else if (ir->data.mode == ir_var_shader_in) {
+      if (this->old_clip_distance_in_var)
+         return visit_continue;
+      old_var = &old_clip_distance_in_var;
+      new_var = &new_clip_distance_in_var;
+   } else {
+      unreachable("not reached");
+   }
 
-      this->progress = true;
-      this->old_clip_distance_1d_var = ir;
+   this->progress = true;
+
+   if (!ir->type->fields.array->is_array()) {
+      /* gl_ClipDistance (used for vertex, tessellation evaluation and
+       * geometry output, and fragment input).
+       */
+      assert((ir->data.mode == ir_var_shader_in &&
+              this->shader_stage == MESA_SHADER_FRAGMENT) ||
+             (ir->data.mode == ir_var_shader_out &&
+              (this->shader_stage == MESA_SHADER_VERTEX ||
+               this->shader_stage == MESA_SHADER_TESS_EVAL ||
+               this->shader_stage == MESA_SHADER_GEOMETRY)));
+
+      *old_var = ir;
       assert (ir->type->fields.array == glsl_type::float_type);
       unsigned new_size = (ir->type->array_size() + 3) / 4;
 
       /* Clone the old var so that we inherit all of its properties */
-      this->new_clip_distance_1d_var = ir->clone(ralloc_parent(ir), NULL);
+      *new_var = ir->clone(ralloc_parent(ir), NULL);
 
       /* And change the properties that we need to change */
-      this->new_clip_distance_1d_var->name
-         = ralloc_strdup(this->new_clip_distance_1d_var,
-                         "gl_ClipDistanceMESA");
-      this->new_clip_distance_1d_var->type
-         = glsl_type::get_array_instance(glsl_type::vec4_type, new_size);
-      this->new_clip_distance_1d_var->data.max_array_access
-         = ir->data.max_array_access / 4;
+      (*new_var)->name = ralloc_strdup(*new_var, "gl_ClipDistanceMESA");
+      (*new_var)->type = glsl_type::get_array_instance(glsl_type::vec4_type,
+                                                       new_size);
+      (*new_var)->data.max_array_access = ir->data.max_array_access / 4;
 
-      ir->replace_with(this->new_clip_distance_1d_var);
+      ir->replace_with(*new_var);
    } else {
-      /* 2D gl_ClipDistance (used for geometry input). */
-      assert(ir->data.mode == ir_var_shader_in &&
-             this->shader_stage == MESA_SHADER_GEOMETRY);
-      if (this->old_clip_distance_2d_var)
-         return visit_continue;
+      /* 2D gl_ClipDistance (used for tessellation control, tessellation
+       * evaluation and geometry input, and tessellation control output).
+       */
+      assert((ir->data.mode == ir_var_shader_in &&
+              (this->shader_stage == MESA_SHADER_GEOMETRY ||
+               this->shader_stage == MESA_SHADER_TESS_EVAL)) ||
+             this->shader_stage == MESA_SHADER_TESS_CTRL);
 
-      this->progress = true;
-      this->old_clip_distance_2d_var = ir;
+      *old_var = ir;
       assert (ir->type->fields.array->fields.array == glsl_type::float_type);
       unsigned new_size = (ir->type->fields.array->array_size() + 3) / 4;
 
       /* Clone the old var so that we inherit all of its properties */
-      this->new_clip_distance_2d_var = ir->clone(ralloc_parent(ir), NULL);
+      *new_var = ir->clone(ralloc_parent(ir), NULL);
 
       /* And change the properties that we need to change */
-      this->new_clip_distance_2d_var->name
-         = ralloc_strdup(this->new_clip_distance_2d_var, "gl_ClipDistanceMESA");
-      this->new_clip_distance_2d_var->type = glsl_type::get_array_instance(
+      (*new_var)->name = ralloc_strdup(*new_var, "gl_ClipDistanceMESA");
+      (*new_var)->type = glsl_type::get_array_instance(
          glsl_type::get_array_instance(glsl_type::vec4_type,
             new_size),
          ir->type->array_size());
-      this->new_clip_distance_2d_var->data.max_array_access
-         = ir->data.max_array_access / 4;
+      (*new_var)->data.max_array_access = ir->data.max_array_access / 4;
 
-      ir->replace_with(this->new_clip_distance_2d_var);
+      ir->replace_with(*new_var);
    }
+
    return visit_continue;
 }
 
@@ -242,26 +262,27 @@ lower_clip_distance_visitor::is_clip_distance_vec8(ir_rvalue *ir)
 {
    /* Note that geometry shaders contain gl_ClipDistance both as an input
     * (which is a 2D array) and an output (which is a 1D array), so it's
-    * possible for both this->old_clip_distance_1d_var and
-    * this->old_clip_distance_2d_var to be non-NULL in the same shader.
+    * possible for both this->old_clip_distance_out_var and
+    * this->old_clip_distance_in_var to be non-NULL in the same shader.
     */
 
-   if (this->old_clip_distance_1d_var) {
-      ir_dereference_variable *var_ref = ir->as_dereference_variable();
-      if (var_ref && var_ref->var == this->old_clip_distance_1d_var)
+   if (!ir->type->is_array())
+      return false;
+   if (ir->type->fields.array != glsl_type::float_type)
+      return false;
+
+   if (this->old_clip_distance_out_var) {
+      if (ir->variable_referenced() == this->old_clip_distance_out_var)
          return true;
    }
-   if (this->old_clip_distance_2d_var) {
-      /* 2D clip distance is only possible as a geometry input */
-      assert(this->shader_stage == MESA_SHADER_GEOMETRY);
+   if (this->old_clip_distance_in_var) {
+      assert(this->shader_stage == MESA_SHADER_TESS_CTRL ||
+             this->shader_stage == MESA_SHADER_TESS_EVAL ||
+             this->shader_stage == MESA_SHADER_GEOMETRY ||
+             this->shader_stage == MESA_SHADER_FRAGMENT);
 
-      ir_dereference_array *array_ref = ir->as_dereference_array();
-      if (array_ref) {
-         ir_dereference_variable *var_ref =
-            array_ref->array->as_dereference_variable();
-         if (var_ref && var_ref->var == this->old_clip_distance_2d_var)
-            return true;
-      }
+      if (ir->variable_referenced() == this->old_clip_distance_in_var)
+         return true;
    }
    return false;
 }
@@ -279,29 +300,33 @@ lower_clip_distance_visitor::is_clip_distance_vec8(ir_rvalue *ir)
 ir_rvalue *
 lower_clip_distance_visitor::lower_clip_distance_vec8(ir_rvalue *ir)
 {
-   if (this->old_clip_distance_1d_var) {
-      ir_dereference_variable *var_ref = ir->as_dereference_variable();
-      if (var_ref && var_ref->var == this->old_clip_distance_1d_var) {
-         return new(ralloc_parent(ir))
-            ir_dereference_variable(this->new_clip_distance_1d_var);
-      }
-   }
-   if (this->old_clip_distance_2d_var) {
-      /* 2D clip distance is only possible as a geometry input */
-      assert(this->shader_stage == MESA_SHADER_GEOMETRY);
+   if (!ir->type->is_array())
+      return NULL;
+   if (ir->type->fields.array != glsl_type::float_type)
+      return NULL;
 
-      ir_dereference_array *array_ref = ir->as_dereference_array();
-      if (array_ref) {
-         ir_dereference_variable *var_ref =
-            array_ref->array->as_dereference_variable();
-         if (var_ref && var_ref->var == this->old_clip_distance_2d_var) {
-            return new(ralloc_parent(ir))
-               ir_dereference_array(this->new_clip_distance_2d_var,
-                                    array_ref->array_index);
-         }
-      }
+   ir_variable **new_var = NULL;
+   if (this->old_clip_distance_out_var) {
+      if (ir->variable_referenced() == this->old_clip_distance_out_var)
+         new_var = &this->new_clip_distance_out_var;
    }
-   return NULL;
+   if (this->old_clip_distance_in_var) {
+      if (ir->variable_referenced() == this->old_clip_distance_in_var)
+         new_var = &this->new_clip_distance_in_var;
+   }
+   if (new_var == NULL)
+      return NULL;
+
+   if (ir->as_dereference_variable()) {
+      return new(ralloc_parent(ir)) ir_dereference_variable(*new_var);
+   } else {
+      ir_dereference_array *array_ref = ir->as_dereference_array();
+      assert(array_ref);
+      assert(array_ref->array->as_dereference_variable());
+
+      return new(ralloc_parent(ir))
+         ir_dereference_array(*new_var, array_ref->array_index);
+   }
 }
 
 
@@ -540,10 +565,10 @@ lower_clip_distance(gl_shader *shader)
 
    visit_list_elements(&v, shader->ir);
 
-   if (v.new_clip_distance_1d_var)
-      shader->symbols->add_variable(v.new_clip_distance_1d_var);
-   if (v.new_clip_distance_2d_var)
-      shader->symbols->add_variable(v.new_clip_distance_2d_var);
+   if (v.new_clip_distance_out_var)
+      shader->symbols->add_variable(v.new_clip_distance_out_var);
+   if (v.new_clip_distance_in_var)
+      shader->symbols->add_variable(v.new_clip_distance_in_var);
 
    return v.progress;
 }

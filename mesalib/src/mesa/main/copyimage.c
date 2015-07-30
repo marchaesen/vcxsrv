@@ -93,7 +93,7 @@ prepare_target(struct gl_context *ctx, GLuint name, GLenum *target, int level,
    default:
       _mesa_error(ctx, GL_INVALID_ENUM,
                   "glCopyImageSubData(%sTarget = %s)", dbg_prefix,
-                  _mesa_lookup_enum_by_nr(*target));
+                  _mesa_enum_to_string(*target));
       return false;
    }
 
@@ -159,7 +159,7 @@ prepare_target(struct gl_context *ctx, GLuint name, GLenum *target, int level,
       if ((*tex_obj)->Target != *target) {
          _mesa_error(ctx, GL_INVALID_ENUM,
                      "glCopyImageSubData(%sTarget = %s)", dbg_prefix,
-                     _mesa_lookup_enum_by_nr(*target));
+                     _mesa_enum_to_string(*target));
          return false;
       }
 
@@ -416,9 +416,9 @@ _mesa_CopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel,
       _mesa_debug(ctx, "glCopyImageSubData(%u, %s, %d, %d, %d, %d, "
                                           "%u, %s, %d, %d, %d, %d, "
                                           "%d, %d, %d)\n",
-                  srcName, _mesa_lookup_enum_by_nr(srcTarget), srcLevel,
+                  srcName, _mesa_enum_to_string(srcTarget), srcLevel,
                   srcX, srcY, srcZ,
-                  dstName, _mesa_lookup_enum_by_nr(dstTarget), dstLevel,
+                  dstName, _mesa_enum_to_string(dstTarget), dstLevel,
                   dstX, dstY, dstZ,
                   srcWidth, srcHeight, srcWidth);
 

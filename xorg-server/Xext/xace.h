@@ -65,6 +65,9 @@ extern _X_EXPORT int XaceHook(int /*hook */ ,
                               ...       /*appropriate args for hook */
     );
 
+/* determine whether any callbacks are present for the XACE hook */
+extern _X_EXPORT int XaceHookIsSet(int hook);
+
 /* Special-cased hook functions
  */
 extern _X_EXPORT int XaceHookDispatch(ClientPtr ptr, int major);

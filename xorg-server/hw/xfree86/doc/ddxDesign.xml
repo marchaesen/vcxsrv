@@ -6957,86 +6957,11 @@ use of some of these secondary mode helper functions.
 
       <blockquote><para>
 	  <programlisting>
-    int xf86GetNearestClock(ScrnInfoPtr scrp, int freq, Bool allowDiv2,
-                            int *divider);
-	  </programlisting>
-	  <blockquote><para>
-      This function returns the index of the closest clock to the
-      frequency <parameter>freq</parameter> given (in kHz).  It assumes that
-      the number of clocks is greater than zero.  It requires that the
-      <structfield>numClocks</structfield> and <structfield>clock</structfield> fields of the
-      <structname>ScrnInfoRec</structname> are initialised.  The
-      <structfield>allowDiv2</structfield> field determines if the clocks can be
-      halved.  The <parameter>*divider</parameter> return value indicates
-      whether clock division is used when determining the clock returned.
-	    </para>
-
-	    <para>
-      This function is only for non-programmable clocks.
-	    </para>
-
-	  </blockquote></para></blockquote>
-
-      <blockquote><para>
-	  <programlisting>
     const char *xf86ModeStatusToString(ModeStatus status);
 	  </programlisting>
 	  <blockquote><para>
       This function converts the <parameter>status</parameter> value to a
       descriptive printable string.
-	    </para>
-
-	  </blockquote></para></blockquote>
-
-      <blockquote><para>
-	  <programlisting>
-    ModeStatus xf86LookupMode(ScrnInfoPtr scrp, DisplayModePtr modep,
-                     ClockRangePtr clockRanges, LookupModeFlags strategy);
-	  </programlisting>
-	  <blockquote><para>
-      This function takes a pointer to a mode with the name filled in,
-      and looks for a mode in the <structfield>modePool</structfield> list which
-      matches.  The parameters of the matching mode are filled in to
-      <parameter>*modep</parameter>.  The <parameter>clockRanges</parameter> and
-      <parameter>strategy</parameter> parameters are as for the
-      <function>xf86ValidateModes()</function> function above.
-	    </para>
-
-	    <para>
-      This function requires the <structfield>modePool</structfield>,
-      <structfield>clock[]</structfield>, <structfield>numClocks</structfield> and
-      <structfield>progClock</structfield> fields of the <structname>ScrnInfoRec</structname>
-      to be initialised before being called.
-	    </para>
-
-	    <para>
-      The return value is <constant>MODE_OK</constant> if a mode was found.
-      Otherwise it indicates why a matching mode could not be found.
-	    </para>
-
-	  </blockquote></para></blockquote>
-
-      <blockquote><para>
-	  <programlisting>
-    ModeStatus xf86InitialCheckModeForDriver(ScrnInfoPtr scrp,
-                                DisplayModePtr mode, ClockRangePtr clockRanges,
-                                LookupModeFlags strategy, int maxPitch,
-                                int virtualX, int virtualY);
-	  </programlisting>
-	  <blockquote><para>
-      This function checks the passed mode against some basic driver
-      constraints.  Apart from the ones passed explicitly, the
-      <structfield>maxHValue</structfield> and <structfield>maxVValue</structfield> fields of
-      the <structname>ScrnInfoRec</structname> are also used.  If the
-      <structfield>ValidMode</structfield> field of the <structname>ScrnInfoRec</structname>
-      is set, that function is also called to check the mode.  Next, the
-      mode is checked against the monitor's constraints.
-	    </para>
-
-	    <para>
-      If the mode is consistent with all constraints, the return value
-      is <constant>MODE_OK</constant>.  Otherwise the return value indicates
-      which constraint wasn't met.
 	    </para>
 
 	  </blockquote></para></blockquote>

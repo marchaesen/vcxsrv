@@ -43,7 +43,7 @@ struct u_rect {
 
 /* Do two rectangles intersect?
  */
-static INLINE boolean
+static inline boolean
 u_rect_test_intersection(const struct u_rect *a,
                          const struct u_rect *b)
 {
@@ -55,7 +55,7 @@ u_rect_test_intersection(const struct u_rect *a,
 
 /* Find the intersection of two rectangles known to intersect.
  */
-static INLINE void
+static inline void
 u_rect_find_intersection(const struct u_rect *a,
                          struct u_rect *b)
 {
@@ -68,13 +68,13 @@ u_rect_find_intersection(const struct u_rect *a,
 }
 
 
-static INLINE int
+static inline int
 u_rect_area(const struct u_rect *r)
 {
    return (r->x1 - r->x0) * (r->y1 - r->y0);
 }
 
-static INLINE void
+static inline void
 u_rect_possible_intersection(const struct u_rect *a,
                              struct u_rect *b)
 {
@@ -88,7 +88,7 @@ u_rect_possible_intersection(const struct u_rect *a,
 
 /* Set @d to a rectangle that covers both @a and @b.
  */
-static INLINE void
+static inline void
 u_rect_union(struct u_rect *d, const struct u_rect *a, const struct u_rect *b)
 {
    d->x0 = MIN2(a->x0, b->x0);

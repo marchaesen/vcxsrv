@@ -33,6 +33,7 @@
 #define __GLAMOR_UTILS_H__
 
 #include "glamor_prepare.h"
+#include "mipict.h"
 
 #define v_from_x_coord_x(_xscale_, _x_)          ( 2 * (_x_) * (_xscale_) - 1.0)
 #define v_from_x_coord_y(_yscale_, _y_)          (-2 * (_y_) * (_yscale_) + 1.0)
@@ -696,45 +697,6 @@
         (c)[1] = (float)y;				\
     } while(0)
 
-inline static void
-glamor_calculate_boxes_bound(BoxPtr bound, BoxPtr boxes, int nbox)
-{
-    int x_min, y_min;
-    int x_max, y_max;
-    int i;
-
-    x_min = y_min = MAXSHORT;
-    x_max = y_max = MINSHORT;
-    for (i = 0; i < nbox; i++) {
-        if (x_min > boxes[i].x1)
-            x_min = boxes[i].x1;
-        if (y_min > boxes[i].y1)
-            y_min = boxes[i].y1;
-
-        if (x_max < boxes[i].x2)
-            x_max = boxes[i].x2;
-        if (y_max < boxes[i].y2)
-            y_max = boxes[i].y2;
-    }
-    bound->x1 = x_min;
-    bound->y1 = y_min;
-    bound->x2 = x_max;
-    bound->y2 = y_max;
-}
-
-inline static void
-glamor_translate_boxes(BoxPtr boxes, int nbox, int dx, int dy)
-{
-    int i;
-
-    for (i = 0; i < nbox; i++) {
-        boxes[i].x1 += dx;
-        boxes[i].y1 += dy;
-        boxes[i].x2 += dx;
-        boxes[i].y2 += dy;
-    }
-}
-
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 #endif
@@ -756,9 +718,7 @@ glamor_translate_boxes(BoxPtr boxes, int nbox, int dx, int dy)
 						|| _depth_ == 30	\
 						|| _depth_ == 32)
 
-#define GLAMOR_PIXMAP_PRIV_IS_PICTURE(pixmap_priv) (pixmap_priv && pixmap_priv->is_picture == 1)
-#define GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv)    (pixmap_priv && pixmap_priv->gl_fbo == GLAMOR_FBO_NORMAL)
-#define GLAMOR_PIXMAP_PRIV_HAS_FBO_DOWNLOADED(pixmap_priv)    (pixmap_priv && (pixmap_priv->gl_fbo == GLAMOR_FBO_DOWNLOADED))
+#define GLAMOR_PIXMAP_PRIV_HAS_FBO(pixmap_priv)    (pixmap_priv->gl_fbo == GLAMOR_FBO_NORMAL)
 
 /**
  * Borrow from uxa.
@@ -806,16 +766,7 @@ gl_iformat_for_pixmap(PixmapPtr pixmap)
 static inline CARD32
 format_for_pixmap(PixmapPtr pixmap)
 {
-    glamor_pixmap_private *pixmap_priv;
-    PictFormatShort pict_format;
-
-    pixmap_priv = glamor_get_pixmap_private(pixmap);
-    if (GLAMOR_PIXMAP_PRIV_IS_PICTURE(pixmap_priv))
-        pict_format = pixmap_priv->picture->format;
-    else
-        pict_format = format_for_depth((pixmap)->drawable.depth);
-
-    return pict_format;
+    return format_for_depth((pixmap)->drawable.depth);
 }
 
 #define REVERT_NONE       		0
@@ -833,21 +784,6 @@ format_for_pixmap(PixmapPtr pixmap)
 #define SWAP_DOWNLOADING  	1
 #define SWAP_UPLOADING	  	2
 #define SWAP_NONE_UPLOADING	3
-
-inline static int
-cache_format(GLenum format)
-{
-    switch (format) {
-    case GL_ALPHA:
-        return 2;
-    case GL_RGB:
-        return 1;
-    case GL_RGBA:
-        return 0;
-    default:
-        return -1;
-    }
-}
 
 /* borrowed from uxa */
 static inline Bool
@@ -944,25 +880,6 @@ glamor_is_large_pixmap(PixmapPtr pixmap)
 
     priv = glamor_get_pixmap_private(pixmap);
     return (glamor_pixmap_priv_is_large(priv));
-}
-
-inline static Bool
-glamor_is_large_picture(PicturePtr picture)
-{
-    PixmapPtr pixmap;
-
-    if (picture->pDrawable) {
-        pixmap = glamor_get_drawable_pixmap(picture->pDrawable);
-        return glamor_is_large_pixmap(pixmap);
-    }
-    return FALSE;
-}
-
-inline static Bool
-glamor_tex_format_is_readable(GLenum format)
-{
-    return ((format == GL_RGBA || format == GL_RGB || format == GL_ALPHA));
-
 }
 
 static inline void
@@ -1309,9 +1226,9 @@ glamor_compare_pictures(ScreenPtr screen,
 
     if (fst_pixmap->drawable.depth != snd_pixmap->drawable.depth) {
         if (fst_generated)
-            glamor_destroy_picture(fst_picture);
+            miDestroyPicture(fst_picture);
         if (snd_generated)
-            glamor_destroy_picture(snd_picture);
+            miDestroyPicture(snd_picture);
 
         ErrorF("Different pixmap depth can not compare!\n");
         return;
@@ -1337,9 +1254,9 @@ glamor_compare_pictures(ScreenPtr screen,
     glamor_finish_access(&snd_pixmap->drawable);
 
     if (fst_generated)
-        glamor_destroy_picture(fst_picture);
+        miDestroyPicture(fst_picture);
     if (snd_generated)
-        glamor_destroy_picture(snd_picture);
+        miDestroyPicture(snd_picture);
 
     return;
 }
@@ -1400,12 +1317,10 @@ glamor_make_current(glamor_screen_private *glamor_priv)
 static inline void
 glamor_glDrawArrays_GL_QUADS(glamor_screen_private *glamor_priv, unsigned count)
 {
-    if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
+    if (glamor_priv->use_quads) {
         glDrawArrays(GL_QUADS, 0, count * 4);
     } else {
-        unsigned i;
-        for (i = 0; i < count; i++)
-            glDrawArrays(GL_TRIANGLE_FAN, i * 4, 4);
+        glamor_gldrawarrays_quads_using_indices(glamor_priv, count);
     }
 }
 

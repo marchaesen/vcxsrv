@@ -218,8 +218,8 @@ winPositionWindowMultiWindow(WindowPtr pWin, int x, int y)
 
 #if CYGMULTIWINDOW_DEBUG
     lpRc = &rcNew;
-    winDebug ("winPositionWindowMultiWindow - (%d ms)drawable (%d, %d)-(%d, %d)\n",
-           GetTickCount(), lpRc->left, lpRc->top, lpRc->right, lpRc->bottom);
+    winDebug("winPositionWindowMultiWindow - drawable (%d, %d)-(%d, %d)\n",
+           (int)lpRc->left, (int)lpRc->top, (int)lpRc->right, (int)lpRc->bottom);
 #endif
 
     /*
@@ -236,23 +236,23 @@ winPositionWindowMultiWindow(WindowPtr pWin, int x, int y)
     GetClientRect(hWnd, &rcClient);
 
     lpRc = &rcNew;
-    winDebug ("winPositionWindowMultiWindow - (%d ms)rcNew (%d, %d)-(%d, %d)\n",
-           GetTickCount(), lpRc->left, lpRc->top, lpRc->right, lpRc->bottom);
+    winDebug("winPositionWindowMultiWindow - rcNew (%d, %d)-(%d, %d)\n",
+           (int)lpRc->left, (int)lpRc->top, (int)lpRc->right, (int)lpRc->bottom);
 
     lpRc = &rcOld;
-    winDebug ("winPositionWindowMultiWindow - (%d ms)rcOld (%d, %d)-(%d, %d)\n",
-           GetTickCount(), lpRc->left, lpRc->top, lpRc->right, lpRc->bottom);
+    winDebug("winPositionWindowMultiWindow - rcOld (%d, %d)-(%d, %d)\n",
+           (int)lpRc->left, (int)lpRc->top, (int)lpRc->right, (int)lpRc->bottom);
 
     lpRc = &rcClient;
-    winDebug ("(%d ms)rcClient (%d, %d)-(%d, %d)\n",
-           GetTickCount(), lpRc->left, lpRc->top, lpRc->right, lpRc->bottom);
+    winDebug("rcClient (%d, %d)-(%d, %d)\n",
+           (int)lpRc->left, (int)lpRc->top, (int)lpRc->right, (int)lpRc->bottom);
 #endif
 
     /* Check if the old rectangle and new rectangle are the same */
     if (!EqualRect(&rcNew, &rcOld)) {
       winDebug ("winPositionWindowMultiWindow - Need to move\n");
-      winDebug ("\tMoveWindow to (%ld, %ld) - %ldx%ld\n", rcNew.left, rcNew.top,
-               rcNew.right - rcNew.left, rcNew.bottom - rcNew.top);
+        winDebug("\tMoveWindow to (%d, %d) - %dx%d\n", (int)rcNew.left, (int)rcNew.top,
+               (int)(rcNew.right - rcNew.left), (int)(rcNew.bottom - rcNew.top));
 
         /* Change the position and dimensions of the Windows window */
       if (pWinPriv->fWglUsed)
@@ -380,8 +380,9 @@ winReparentWindowMultiWindow(WindowPtr pWin, WindowPtr pPriorParent)
 
     winDebug
         ("winReparentMultiWindow - pWin:%p XID:0x%x, reparent from pWin:%p XID:0x%x to pWin:%p XID:0x%x\n",
-         pWin, pWin->drawable.id, pPriorParent, pPriorParent->drawable.id,
-         pWin->parent, pWin->parent->drawable.id);
+         pWin, (unsigned int)pWin->drawable.id,
+         pPriorParent, (unsigned int)pPriorParent->drawable.id,
+         pWin->parent, (unsigned int)pWin->parent->drawable.id);
 
     WIN_UNWRAP(ReparentWindow);
     if (pScreen->ReparentWindow)
@@ -441,7 +442,7 @@ winCreateWindowsWindow(WindowPtr pWin)
     winInitMultiWindowClass();
 
     winDebug("winCreateWindowsTopLevelWindow - pWin:%p XID:0x%x \n", pWin,
-             pWin->drawable.id);
+             (unsigned int)pWin->drawable.id);
 
     iX = pWin->drawable.x + GetSystemMetrics(SM_XVIRTUALSCREEN);
     iY = pWin->drawable.y + GetSystemMetrics(SM_YVIRTUALSCREEN);
@@ -592,7 +593,7 @@ winDestroyWindowsWindow(WindowPtr pWin)
     HICON hIconSm;
 
     winDebug("winDestroyWindowsWindow - pWin:%p XID:0x%x \n", pWin,
-             pWin->drawable.id);
+             (unsigned int)pWin->drawable.id);
 
     /* Bail out if the Windows window handle is invalid */
     if (pWinPriv->hWnd == NULL)
@@ -717,7 +718,7 @@ winGetWindowID(WindowPtr pWin)
     FindClientResourcesByType(c, RT_WINDOW, winFindWindow, &wi);
 
 #if CYGMULTIWINDOW_DEBUG
-    winDebug("winGetWindowID - Window ID: %d\n", wi.id);
+    winDebug("winGetWindowID - Window ID: %u\n", (unsigned int)wi.id);
 #endif
 
     return wi.id;
@@ -936,21 +937,21 @@ winAdjustXWindow(WindowPtr pWin, HWND hwnd)
     y = pDraw->y + GetSystemMetrics(SM_YVIRTUALSCREEN);
     SetRect(&rcDraw, x, y, x + pDraw->width, y + pDraw->height);
     winDebug("\tDrawable extend {%d, %d, %d, %d}, {%d, %d}\n",
-             rcDraw.left, rcDraw.top, rcDraw.right, rcDraw.bottom,
-             rcDraw.right - rcDraw.left, rcDraw.bottom - rcDraw.top);
+             (int)rcDraw.left, (int)rcDraw.top, (int)rcDraw.right, (int)rcDraw.bottom,
+             (int)(rcDraw.right - rcDraw.left), (int)(rcDraw.bottom - rcDraw.top));
     dwExStyle = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
     dwStyle = GetWindowLongPtr(hwnd, GWL_STYLE);
-    winDebug("\tWindowStyle: %08x %08x\n", dwStyle, dwExStyle);
+    winDebug("\tWindowStyle: %08x %08x\n", (unsigned int)dwStyle, (unsigned int)dwExStyle);
     AdjustWindowRectEx(&rcDraw, dwStyle, FALSE, dwExStyle);
 
     /* The source of adjust */
     GetWindowRect(hwnd, &rcWin);
     winDebug("\tWindow extend {%d, %d, %d, %d}, {%d, %d}\n",
-             rcWin.left, rcWin.top, rcWin.right, rcWin.bottom,
-             rcWin.right - rcWin.left, rcWin.bottom - rcWin.top);
+             (int)rcWin.left, (int)rcWin.top, (int)rcWin.right, (int)rcWin.bottom,
+             (int)(rcWin.right - rcWin.left), (int)(rcWin.bottom - rcWin.top));
     winDebug("\tDraw extend {%d, %d, %d, %d}, {%d, %d}\n",
-             rcDraw.left, rcDraw.top, rcDraw.right, rcDraw.bottom,
-             rcDraw.right - rcDraw.left, rcDraw.bottom - rcDraw.top);
+             (int)rcDraw.left, (int)rcDraw.top, (int)rcDraw.right, (int)rcDraw.bottom,
+             (int)(rcDraw.right - rcDraw.left), (int)(rcDraw.bottom - rcDraw.top));
 
     if (EqualRect(&rcDraw, &rcWin)) {
         /* Bail if no adjust is needed */
@@ -974,8 +975,10 @@ winAdjustXWindow(WindowPtr pWin, HWND hwnd)
     vlist[1] = pDraw->y + dY - wBorderWidth(pWin);
     vlist[2] = pDraw->width + dW;
     vlist[3] = pDraw->height + dH;
-    winDebug("\tConfigureWindow to (%ld, %ld) - %ldx%ld\n", vlist[0], vlist[1],
-              vlist[2], vlist[3]);
+
+    winDebug("\tConfigureWindow to (%u, %u) - %ux%u\n",
+           (unsigned int)vlist[0], (unsigned int)vlist[1],
+           (unsigned int)vlist[2], (unsigned int)vlist[3]);
     return ConfigureWindow(pWin, CWX | CWY | CWWidth | CWHeight,
                            vlist, wClient(pWin));
 

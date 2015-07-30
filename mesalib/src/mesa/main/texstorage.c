@@ -308,7 +308,8 @@ tex_storage_error_check(struct gl_context *ctx,
       _mesa_error(ctx, _mesa_is_desktop_gl(ctx)?
                   GL_INVALID_ENUM : GL_INVALID_OPERATION,
                   "glTex%sStorage%dD(internalformat = %s)", suffix, dims,
-                  _mesa_lookup_enum_by_nr(internalformat));
+                  _mesa_enum_to_string(internalformat));
+      return GL_TRUE;
    }
 
    /* levels check */
@@ -464,21 +465,21 @@ texstorage(GLuint dims, GLenum target, GLsizei levels, GLenum internalformat,
    if (!legal_texobj_target(ctx, dims, target)) {
       _mesa_error(ctx, GL_INVALID_ENUM,
                   "glTexStorage%uD(illegal target=%s)",
-                  dims, _mesa_lookup_enum_by_nr(target));
+                  dims, _mesa_enum_to_string(target));
       return;
    }
 
    if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
       _mesa_debug(ctx, "glTexStorage%uD %s %d %s %d %d %d\n",
                   dims,
-                  _mesa_lookup_enum_by_nr(target), levels,
-                  _mesa_lookup_enum_by_nr(internalformat),
+                  _mesa_enum_to_string(target), levels,
+                  _mesa_enum_to_string(internalformat),
                   width, height, depth);
    /* Check the format to make sure it is sized. */
    if (!_mesa_is_legal_tex_storage_format(ctx, internalformat)) {
       _mesa_error(ctx, GL_INVALID_ENUM,
                   "glTexStorage%uD(internalformat = %s)", dims,
-                  _mesa_lookup_enum_by_nr(internalformat));
+                  _mesa_enum_to_string(internalformat));
       return;
    }
 
@@ -504,14 +505,14 @@ texturestorage(GLuint dims, GLuint texture, GLsizei levels,
    if (MESA_VERBOSE & (VERBOSE_API|VERBOSE_TEXTURE))
       _mesa_debug(ctx, "glTextureStorage%uD %d %d %s %d %d %d\n",
                   dims, texture, levels,
-                  _mesa_lookup_enum_by_nr(internalformat),
+                  _mesa_enum_to_string(internalformat),
                   width, height, depth);
 
    /* Check the format to make sure it is sized. */
    if (!_mesa_is_legal_tex_storage_format(ctx, internalformat)) {
       _mesa_error(ctx, GL_INVALID_ENUM,
                   "glTextureStorage%uD(internalformat = %s)", dims,
-                  _mesa_lookup_enum_by_nr(internalformat));
+                  _mesa_enum_to_string(internalformat));
       return;
    }
 
@@ -529,7 +530,7 @@ texturestorage(GLuint dims, GLuint texture, GLsizei levels,
    if (!legal_texobj_target(ctx, dims, texObj->Target)) {
       _mesa_error(ctx, GL_INVALID_ENUM,
                   "glTextureStorage%uD(illegal target=%s)",
-                  dims, _mesa_lookup_enum_by_nr(texObj->Target));
+                  dims, _mesa_enum_to_string(texObj->Target));
       return;
    }
 

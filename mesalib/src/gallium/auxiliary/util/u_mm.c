@@ -224,7 +224,7 @@ u_mmFindBlock(struct mem_block *heap, int start)
 }
 
 
-static INLINE int
+static inline int
 Join2Blocks(struct mem_block *p)
 {
    /* XXX there should be some assertions here */

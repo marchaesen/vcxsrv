@@ -37,22 +37,19 @@ extern GLenum
 _mesa_base_pack_format(GLenum format);
 
 extern void
-_mesa_GetTexImage_sw(struct gl_context *ctx,
-                     GLenum format, GLenum type, GLvoid *pixels,
-                     struct gl_texture_image *texImage);
-
-
-extern void
-_mesa_GetCompressedTexImage_sw(struct gl_context *ctx,
-                               struct gl_texture_image *texImage,
-                               GLvoid *data);
+_mesa_GetTexSubImage_sw(struct gl_context *ctx,
+                        GLint xoffset, GLint yoffset, GLint zoffset,
+                        GLsizei width, GLsizei height, GLint depth,
+                        GLenum format, GLenum type, GLvoid *pixels,
+                        struct gl_texture_image *texImage);
 
 extern void
-_mesa_get_texture_image(struct gl_context *ctx,
-                        struct gl_texture_object *texObj,
-                        struct gl_texture_image *texImage, GLenum target,
-                        GLint level, GLenum format, GLenum type,
-                        GLsizei bufSize, GLvoid *pixels, bool dsa);
+_mesa_GetCompressedTexSubImage_sw(struct gl_context *ctx,
+                                  struct gl_texture_image *texImage,
+                                  GLint xoffset, GLint yoffset,
+                                  GLint zoffset, GLsizei width,
+                                  GLint height, GLint depth,
+                                  GLvoid *data);
 
 extern void
 _mesa_get_compressed_texture_image( struct gl_context *ctx,
@@ -74,6 +71,14 @@ _mesa_GetTextureImage(GLuint texture, GLint level, GLenum format,
                       GLenum type, GLsizei bufSize, GLvoid *pixels);
 
 extern void GLAPIENTRY
+_mesa_GetTextureSubImage(GLuint texture, GLint level,
+                         GLint xoffset, GLint yoffset, GLint zoffset,
+                         GLsizei width, GLsizei height, GLsizei depth,
+                         GLenum format, GLenum type, GLsizei bufSize,
+                         void *pixels);
+
+
+extern void GLAPIENTRY
 _mesa_GetCompressedTexImage(GLenum target, GLint lod, GLvoid *img);
 
 extern void GLAPIENTRY
@@ -83,5 +88,12 @@ _mesa_GetnCompressedTexImageARB(GLenum target, GLint level, GLsizei bufSize,
 extern void GLAPIENTRY
 _mesa_GetCompressedTextureImage(GLuint texture, GLint level, GLsizei bufSize,
                                 GLvoid *pixels);
+
+extern void APIENTRY
+_mesa_GetCompressedTextureSubImage(GLuint texture, GLint level,
+                                   GLint xoffset, GLint yoffset,
+                                   GLint zoffset, GLsizei width,
+                                   GLsizei height, GLsizei depth,
+                                   GLsizei bufSize, void *pixels);
 
 #endif /* TEXGETIMAGE_H */

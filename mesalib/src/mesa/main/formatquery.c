@@ -80,7 +80,7 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
    default:
       _mesa_error(ctx, GL_INVALID_ENUM,
                   "glGetInternalformativ(target=%s)",
-                  _mesa_lookup_enum_by_nr(target));
+                  _mesa_enum_to_string(target));
       return;
    }
 
@@ -107,7 +107,7 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
        _mesa_base_fbo_format(ctx, internalformat) == 0) {
       _mesa_error(ctx, GL_INVALID_ENUM,
                   "glGetInternalformativ(internalformat=%s)",
-                  _mesa_lookup_enum_by_nr(internalformat));
+                  _mesa_enum_to_string(internalformat));
       return;
    }
 
@@ -119,7 +119,7 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
    if (bufSize < 0) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "glGetInternalformativ(target=%s)",
-                  _mesa_lookup_enum_by_nr(target));
+                  _mesa_enum_to_string(target));
       return;
    }
 
@@ -168,7 +168,7 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
    default:
       _mesa_error(ctx, GL_INVALID_ENUM,
                   "glGetInternalformativ(pname=%s)",
-                  _mesa_lookup_enum_by_nr(pname));
+                  _mesa_enum_to_string(pname));
       return;
    }
 

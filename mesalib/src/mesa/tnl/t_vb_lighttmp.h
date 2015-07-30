@@ -112,7 +112,7 @@ static void TAG(light_rgba_spec)( struct gl_context *ctx,
 	 GLint side;
 	 GLfloat contrib[3];
 	 GLfloat attenuation;
-	 GLfloat VP[3];  /* unit vector from vertex to light */
+	 GLfloat VP[3];          /* unit vector from vertex to light */
 	 GLfloat n_dot_VP;       /* n dot VP */
 	 GLfloat *h;
 
@@ -129,7 +129,7 @@ static void TAG(light_rgba_spec)( struct gl_context *ctx,
 
 	    d = (GLfloat) LEN_3FV( VP );
 
-	    if (d > 1e-6) {
+	    if (d > 1e-6F) {
 	       GLfloat invd = 1.0F / d;
 	       SELF_SCALE_SCALAR_3V(VP, invd);
 	    }
@@ -152,7 +152,7 @@ static void TAG(light_rgba_spec)( struct gl_context *ctx,
 	    }
 	 }
 
-	 if (attenuation < 1e-3)
+	 if (attenuation < 1e-3F)
 	    continue;		/* this light makes no contribution */
 
 	 /* Compute dot product or normal and vector from V to light pos */
@@ -204,7 +204,7 @@ static void TAG(light_rgba_spec)( struct gl_context *ctx,
 
 	 if (n_dot_h > 0.0F) {
 	    GLfloat spec_coef = lookup_shininess(ctx, side, n_dot_h);
-	    if (spec_coef > 1.0e-10) {
+	    if (spec_coef > 1.0e-10F) {
 	       spec_coef *= attenuation;
 	       ACC_SCALE_SCALAR_3V( spec[side], spec_coef,
 				    light->_MatSpecular[side]);
@@ -283,12 +283,11 @@ static void TAG(light_rgba)( struct gl_context *ctx,
 
       /* Add contribution from each enabled light source */
       foreach (light, &ctx->Light.EnabledList) {
-
 	 GLfloat n_dot_h;
 	 GLfloat correction;
 	 GLint side;
 	 GLfloat contrib[3];
-	 GLfloat attenuation = 1.0;
+	 GLfloat attenuation;
 	 GLfloat VP[3];          /* unit vector from vertex to light */
 	 GLfloat n_dot_VP;       /* n dot VP */
 	 GLfloat *h;
@@ -302,12 +301,11 @@ static void TAG(light_rgba)( struct gl_context *ctx,
 	 else {
 	    GLfloat d;     /* distance from vertex to light */
 
-
 	    SUB_3V(VP, light->_Position, vertex);
 
 	    d = (GLfloat) LEN_3FV( VP );
 
-	    if ( d > 1e-6) {
+	    if (d > 1e-6F) {
 	       GLfloat invd = 1.0F / d;
 	       SELF_SCALE_SCALAR_3V(VP, invd);
 	    }
@@ -330,7 +328,7 @@ static void TAG(light_rgba)( struct gl_context *ctx,
 	    }
 	 }
 
-	 if (attenuation < 1e-3)
+	 if (attenuation < 1e-3F)
 	    continue;		/* this light makes no contribution */
 
 	 /* Compute dot product or normal and vector from V to light pos */

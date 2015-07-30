@@ -40,7 +40,7 @@ extern "C" {
 #include "util/u_debug.h"
 #include "util/u_math.h"
 
-static INLINE enum pipe_video_format
+static inline enum pipe_video_format
 u_reduce_video_profile(enum pipe_video_profile profile)
 {
    switch (profile)
@@ -73,7 +73,7 @@ u_reduce_video_profile(enum pipe_video_profile profile)
    }
 }
 
-static INLINE void
+static inline void
 u_copy_nv12_to_yv12(void *const *destination_data,
                     uint32_t const *destination_pitches,
                     int src_plane, int src_field,
@@ -99,7 +99,7 @@ u_copy_nv12_to_yv12(void *const *destination_data,
    }
 }
 
-static INLINE void
+static inline void
 u_copy_yv12_to_nv12(void *const *destination_data,
                     uint32_t const *destination_pitches,
                     int src_plane, int src_field,
@@ -122,7 +122,7 @@ u_copy_yv12_to_nv12(void *const *destination_data,
    }
 }
 
-static INLINE void
+static inline void
 u_copy_swap422_packed(void *const *destination_data,
                        uint32_t const *destination_pitches,
                        int src_plane, int src_field,
@@ -147,7 +147,7 @@ u_copy_swap422_packed(void *const *destination_data,
    }
 }
 
-static INLINE uint32_t
+static inline uint32_t
 u_get_h264_level(uint32_t width, uint32_t height, uint32_t *max_reference)
 {
    uint32_t max_dpb_mbs;

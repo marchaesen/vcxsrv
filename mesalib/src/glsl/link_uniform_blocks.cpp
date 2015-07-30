@@ -293,6 +293,8 @@ link_uniform_blocks(void *mem_ctx,
             blocks[i].NumUniforms =
                (unsigned)(ptrdiff_t)(&variables[parcel.index] - blocks[i].Uniforms);
 
+            blocks[i].IsShaderStorage = b->is_shader_storage;
+
             i++;
          }
       } else {
@@ -310,6 +312,8 @@ link_uniform_blocks(void *mem_ctx,
 
          blocks[i].NumUniforms =
             (unsigned)(ptrdiff_t)(&variables[parcel.index] - blocks[i].Uniforms);
+
+         blocks[i].IsShaderStorage = b->is_shader_storage;
 
          i++;
       }

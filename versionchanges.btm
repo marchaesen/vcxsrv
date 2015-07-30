@@ -1,6 +1,6 @@
-e include/dix-config.h
-e xorg-server/hw/xwin/XWin.rc
-e xorg-server/installer/vcxsrv.nsi
-e xorg-server/installer/vcxsrv-debug.nsi
-e xorg-server/installer/vcxsrv-64.nsi
-e xorg-server/installer/vcxsrv-64-debug.nsi
+vim include/dix-config.h
+vim xorg-server/hw/xwin/XWin.rc
+vim xorg-server/installer/vcxsrv.nsi
+vim xorg-server/installer/vcxsrv-debug.nsi
+vim xorg-server/installer/vcxsrv-64.nsi
+vim xorg-server/installer/vcxsrv-64-debug.nsi

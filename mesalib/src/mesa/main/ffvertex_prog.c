@@ -189,15 +189,15 @@ static void make_state_key( struct gl_context *ctx, struct state_key *key )
 	 if (light->Enabled) {
 	    key->unit[i].light_enabled = 1;
 
-	    if (light->EyePosition[3] == 0.0)
+	    if (light->EyePosition[3] == 0.0F)
 	       key->unit[i].light_eyepos3_is_zero = 1;
 
-	    if (light->SpotCutoff == 180.0)
+	    if (light->SpotCutoff == 180.0F)
 	       key->unit[i].light_spotcutoff_is_180 = 1;
 
-	    if (light->ConstantAttenuation != 1.0 ||
-		light->LinearAttenuation != 0.0 ||
-		light->QuadraticAttenuation != 0.0)
+	    if (light->ConstantAttenuation != 1.0F ||
+		light->LinearAttenuation != 0.0F ||
+		light->QuadraticAttenuation != 0.0F)
 	       key->unit[i].light_attenuated = 1;
 	 }
       }

@@ -63,7 +63,7 @@ _mesa_DepthFunc( GLenum func )
    GET_CURRENT_CONTEXT(ctx);
 
    if (MESA_VERBOSE & VERBOSE_API)
-      _mesa_debug(ctx, "glDepthFunc %s\n", _mesa_lookup_enum_by_nr(func));
+      _mesa_debug(ctx, "glDepthFunc %s\n", _mesa_enum_to_string(func));
 
    if (ctx->Depth.Func == func)
       return;

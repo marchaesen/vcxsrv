@@ -47,8 +47,8 @@ winAllocatePrivates(ScreenPtr pScreen)
 {
     winPrivScreenPtr pScreenPriv;
 
-    winDebug("winAllocateScreenPrivates - g_ulServerGeneration: %d "
-             "serverGeneration: %d\n", g_ulServerGeneration, serverGeneration);
+    winDebug("winAllocateScreenPrivates - g_ulServerGeneration: %lu "
+             "serverGeneration: %lu\n", g_ulServerGeneration, serverGeneration);
 
     /* We need a new slot for our privates if the screen gen has changed */
     if (g_ulServerGeneration != serverGeneration) {

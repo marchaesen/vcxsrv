@@ -1878,6 +1878,8 @@ FcFreeTypeQueryFace (const FT_Face  face,
      * Drop our reference to the charset
      */
     FcCharSetDestroy (cs);
+    if (foundry_)
+	free (foundry_);
 
     return pat;
 

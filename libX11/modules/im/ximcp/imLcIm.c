@@ -447,7 +447,7 @@ _XimWriteCachedDefaultTree(
 		   + XIM_CACHE_TREE_ALIGNMENT-1) & -XIM_CACHE_TREE_ALIGNMENT;
     DefTreeBase *b = &im->private.local.base;
 
-    if (! b->tree && ! (b->tree = Xmalloc (sizeof(DefTree))) )
+    if (! b->tree && ! (b->tree = Xcalloc (1, sizeof(DefTree))) )
 	return;
     if (! b->mb   && ! (b->mb   = Xmalloc (1)) )
 	return;
@@ -457,13 +457,11 @@ _XimWriteCachedDefaultTree(
 	return;
 
     /* First entry is always unused */
-    memset (b->tree, 0, sizeof(DefTree));
     b->mb[0]   = 0;
     b->wc[0]   = 0;
     b->utf8[0] = 0;
 
-    m = Xmalloc (msize);
-    memset (m, 0, msize);
+    m = Xcalloc (1, msize);
     m->id       = XIM_CACHE_MAGIC;
     m->version  = XIM_CACHE_VERSION;
     m->top      = im->private.local.top;

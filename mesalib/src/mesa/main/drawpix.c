@@ -53,10 +53,10 @@ _mesa_DrawPixels( GLsizei width, GLsizei height,
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glDrawPixels(%d, %d, %s, %s, %p) // to %s at %d, %d\n",
                   width, height,
-                  _mesa_lookup_enum_by_nr(format),
-                  _mesa_lookup_enum_by_nr(type),
+                  _mesa_enum_to_string(format),
+                  _mesa_enum_to_string(type),
                   pixels,
-                  _mesa_lookup_enum_by_nr(ctx->DrawBuffer->ColorDrawBuffer[0]),
+                  _mesa_enum_to_string(ctx->DrawBuffer->ColorDrawBuffer[0]),
                   IROUND(ctx->Current.RasterPos[0]),
                   IROUND(ctx->Current.RasterPos[1]));
 
@@ -96,8 +96,8 @@ _mesa_DrawPixels( GLsizei width, GLsizei height,
    err = _mesa_error_check_format_and_type(ctx, format, type);
    if (err != GL_NO_ERROR) {
       _mesa_error(ctx, err, "glDrawPixels(invalid format %s and/or type %s)",
-                  _mesa_lookup_enum_by_nr(format),
-                  _mesa_lookup_enum_by_nr(type));
+                  _mesa_enum_to_string(format),
+                  _mesa_enum_to_string(type));
       goto end;
    }
 
@@ -198,9 +198,9 @@ _mesa_CopyPixels( GLint srcx, GLint srcy, GLsizei width, GLsizei height,
       _mesa_debug(ctx,
                   "glCopyPixels(%d, %d, %d, %d, %s) // from %s to %s at %d, %d\n",
                   srcx, srcy, width, height,
-                  _mesa_lookup_enum_by_nr(type),
-                  _mesa_lookup_enum_by_nr(ctx->ReadBuffer->ColorReadBuffer),
-                  _mesa_lookup_enum_by_nr(ctx->DrawBuffer->ColorDrawBuffer[0]),
+                  _mesa_enum_to_string(type),
+                  _mesa_enum_to_string(ctx->ReadBuffer->ColorReadBuffer),
+                  _mesa_enum_to_string(ctx->DrawBuffer->ColorDrawBuffer[0]),
                   IROUND(ctx->Current.RasterPos[0]),
                   IROUND(ctx->Current.RasterPos[1]));
 
@@ -218,7 +218,7 @@ _mesa_CopyPixels( GLint srcx, GLint srcy, GLsizei width, GLsizei height,
        type != GL_STENCIL &&
        type != GL_DEPTH_STENCIL) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glCopyPixels(type=%s)",
-                  _mesa_lookup_enum_by_nr(type));
+                  _mesa_enum_to_string(type));
       return;
    }
 

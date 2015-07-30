@@ -280,6 +280,9 @@ nir_visitor::visit(ir_variable *ir)
       var->data.mode = nir_var_uniform;
       break;
 
+   case ir_var_shader_storage:
+      var->data.mode = nir_var_shader_storage;
+      break;
 
    case ir_var_system_value:
       var->data.mode = nir_var_system_value;
@@ -371,6 +374,7 @@ nir_visitor::visit(ir_variable *ir)
       break;
 
    case nir_var_uniform:
+   case nir_var_shader_storage:
       exec_list_push_tail(&shader->uniforms, &var->node);
       break;
 
@@ -1167,6 +1171,7 @@ nir_visitor::visit(ir_expression *ir)
    case ir_unop_bitcast_f2i:
    case ir_unop_bitcast_u2f:
    case ir_unop_bitcast_f2u:
+   case ir_unop_subroutine_to_int:
       /* no-op */
       emit(nir_op_imov, dest_size, srcs);
       break;

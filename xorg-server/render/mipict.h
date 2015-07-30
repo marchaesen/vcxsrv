@@ -54,26 +54,6 @@ extern _X_EXPORT void
  miDestroyPicture(PicturePtr pPicture);
 
 extern _X_EXPORT void
- miDestroyPictureClip(PicturePtr pPicture);
-
-extern _X_EXPORT int
- miChangePictureClip(PicturePtr pPicture, int type, void *value, int n);
-
-extern _X_EXPORT void
- miChangePicture(PicturePtr pPicture, Mask mask);
-
-extern _X_EXPORT void
- miValidatePicture(PicturePtr pPicture, Mask mask);
-
-extern _X_EXPORT int
- miChangePictureTransform(PicturePtr pPicture, PictTransform * transform);
-
-extern _X_EXPORT int
-
-miChangePictureFilter(PicturePtr pPicture,
-                      int filter, xFixed * params, int nparams);
-
-extern _X_EXPORT void
  miCompositeSourceValidate(PicturePtr pPicture);
 
 extern _X_EXPORT Bool
@@ -120,22 +100,6 @@ extern _X_EXPORT void
 miCompositeRects(CARD8 op,
                  PicturePtr pDst,
                  xRenderColor * color, int nRect, xRectangle *rects);
-
-extern _X_EXPORT void
-
-miTriStrip(CARD8 op,
-           PicturePtr pSrc,
-           PicturePtr pDst,
-           PictFormatPtr maskFormat,
-           INT16 xSrc, INT16 ySrc, int npoints, xPointFixed * points);
-
-extern _X_EXPORT void
-
-miTriFan(CARD8 op,
-         PicturePtr pSrc,
-         PicturePtr pDst,
-         PictFormatPtr maskFormat,
-         INT16 xSrc, INT16 ySrc, int npoints, xPointFixed * points);
 
 extern _X_EXPORT void
  miTrapezoidBounds(int ntrap, xTrapezoid * traps, BoxPtr box);

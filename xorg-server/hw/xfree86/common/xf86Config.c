@@ -123,7 +123,7 @@ static ModuleDefault ModuleDefaults[] = {
 
 /* Forward declarations */
 static Bool configScreen(confScreenPtr screenp, XF86ConfScreenPtr conf_screen,
-                         int scrnum, MessageType from);
+                         int scrnum, MessageType from, Bool auto_gpu_device);
 static Bool configMonitor(MonPtr monitorp, XF86ConfMonitorPtr conf_monitor);
 static Bool configDevice(GDevPtr devicep, XF86ConfDevicePtr conf_device,
                          Bool active, Bool gpu);
@@ -1524,7 +1524,7 @@ configLayout(serverLayoutPtr servlayoutp, XF86ConfLayoutPtr conf_layout,
         else
             scrnum = adjp->adj_scrnum;
         if (!configScreen(slp[count].screen, adjp->adj_screen, scrnum,
-                          X_CONFIG)) {
+                          X_CONFIG, (scrnum == 0 && !adjp->list.next))) {
             do {
                 free(slp[count].screen);
             } while (count--);
@@ -1574,7 +1574,7 @@ configLayout(serverLayoutPtr servlayoutp, XF86ConfLayoutPtr conf_layout,
         FIND_SUITABLE (XF86ConfScreenPtr, xf86configptr->conf_screen_lst, screen);
         slp[0].screen = xnfcalloc(1, sizeof(confScreenRec));
         if (!configScreen(slp[0].screen, screen,
-                          0, X_CONFIG)) {
+                          0, X_CONFIG, TRUE)) {
             free(slp[0].screen);
             free(slp);
             return FALSE;
@@ -1703,7 +1703,7 @@ configImpliedLayout(serverLayoutPtr servlayoutp, XF86ConfScreenPtr conf_screen,
     slp = xnfcalloc(1, 2 * sizeof(screenLayoutRec));
     slp[0].screen = xnfcalloc(1, sizeof(confScreenRec));
     slp[1].screen = NULL;
-    if (!configScreen(slp[0].screen, conf_screen, 0, from)) {
+    if (!configScreen(slp[0].screen, conf_screen, 0, from, TRUE)) {
         free(slp);
         return FALSE;
     }
@@ -1768,7 +1768,7 @@ configXvAdaptor(confXvAdaptorPtr adaptor, XF86ConfVideoAdaptorPtr conf_adaptor)
 
 static Bool
 configScreen(confScreenPtr screenp, XF86ConfScreenPtr conf_screen, int scrnum,
-             MessageType from)
+             MessageType from, Bool auto_gpu_device)
 {
     int count = 0;
     XF86ConfDisplayPtr dispptr;
@@ -1825,7 +1825,8 @@ configScreen(confScreenPtr screenp, XF86ConfScreenPtr conf_screen, int scrnum,
         screenp->device = NULL;
     }
 
-    if (conf_screen->num_gpu_devices == 0 && xf86configptr->conf_device_lst) {
+    if (auto_gpu_device && conf_screen->num_gpu_devices == 0 &&
+        xf86configptr->conf_device_lst) {
         XF86ConfDevicePtr sdevice = xf86configptr->conf_device_lst->list.next;
 
         for (i = 0; i < MAX_GPUDEVICES; i++) {

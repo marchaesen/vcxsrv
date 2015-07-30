@@ -188,7 +188,7 @@ struct st_gp_variant_key
  */
 struct st_gp_variant
 {
-   /* Parameters which generated this translated version of a vertex */
+   /* Parameters which generated this variant. */
    struct st_gp_variant_key key;
 
    void *driver_shader;
@@ -210,6 +210,76 @@ struct st_geometry_program
 
 
 
+/** Tessellation control program variant key */
+struct st_tcp_variant_key
+{
+   struct st_context *st;          /**< variants are per-context */
+   /* no other fields yet */
+};
+
+
+/**
+ * Tessellation control program variant.
+ */
+struct st_tcp_variant
+{
+   /* Parameters which generated this variant. */
+   struct st_tcp_variant_key key;
+
+   void *driver_shader;
+
+   struct st_tcp_variant *next;
+};
+
+
+/**
+ * Derived from Mesa gl_tess_ctrl_program:
+ */
+struct st_tessctrl_program
+{
+   struct gl_tess_ctrl_program Base;  /**< The Mesa tess ctrl program */
+   struct glsl_to_tgsi_visitor* glsl_to_tgsi;
+
+   struct st_tcp_variant *variants;
+};
+
+
+
+/** Tessellation evaluation program variant key */
+struct st_tep_variant_key
+{
+   struct st_context *st;          /**< variants are per-context */
+   /* no other fields yet */
+};
+
+
+/**
+ * Tessellation evaluation program variant.
+ */
+struct st_tep_variant
+{
+   /* Parameters which generated this variant. */
+   struct st_tep_variant_key key;
+
+   void *driver_shader;
+
+   struct st_tep_variant *next;
+};
+
+
+/**
+ * Derived from Mesa gl_tess_eval_program:
+ */
+struct st_tesseval_program
+{
+   struct gl_tess_eval_program Base;  /**< The Mesa tess eval program */
+   struct glsl_to_tgsi_visitor* glsl_to_tgsi;
+
+   struct st_tep_variant *variants;
+};
+
+
+
 static inline struct st_fragment_program *
 st_fragment_program( struct gl_fragment_program *fp )
 {
@@ -227,6 +297,18 @@ static inline struct st_geometry_program *
 st_geometry_program( struct gl_geometry_program *gp )
 {
    return (struct st_geometry_program *)gp;
+}
+
+static inline struct st_tessctrl_program *
+st_tessctrl_program( struct gl_tess_ctrl_program *tcp )
+{
+   return (struct st_tessctrl_program *)tcp;
+}
+
+static inline struct st_tesseval_program *
+st_tesseval_program( struct gl_tess_eval_program *tep )
+{
+   return (struct st_tesseval_program *)tep;
 }
 
 static inline void
@@ -253,6 +335,26 @@ static inline void
 st_reference_fragprog(struct st_context *st,
                       struct st_fragment_program **ptr,
                       struct st_fragment_program *prog)
+{
+   _mesa_reference_program(st->ctx,
+                           (struct gl_program **) ptr,
+                           (struct gl_program *) prog);
+}
+
+static inline void
+st_reference_tesscprog(struct st_context *st,
+                       struct st_tessctrl_program **ptr,
+                       struct st_tessctrl_program *prog)
+{
+   _mesa_reference_program(st->ctx,
+                           (struct gl_program **) ptr,
+                           (struct gl_program *) prog);
+}
+
+static inline void
+st_reference_tesseprog(struct st_context *st,
+                       struct st_tesseval_program **ptr,
+                       struct st_tesseval_program *prog)
 {
    _mesa_reference_program(st->ctx,
                            (struct gl_program **) ptr,
@@ -302,6 +404,16 @@ st_get_gp_variant(struct st_context *st,
                   struct st_geometry_program *stgp,
                   const struct st_gp_variant_key *key);
 
+extern struct st_tcp_variant *
+st_get_tcp_variant(struct st_context *st,
+                   struct st_tessctrl_program *stgp,
+                   const struct st_tcp_variant_key *key);
+
+extern struct st_tep_variant *
+st_get_tep_variant(struct st_context *st,
+                   struct st_tesseval_program *stgp,
+                   const struct st_tep_variant_key *key);
+
 
 extern void
 st_prepare_vertex_program(struct gl_context *ctx,
@@ -323,6 +435,14 @@ st_release_fp_variants( struct st_context *st,
 extern void
 st_release_gp_variants(struct st_context *st,
                        struct st_geometry_program *stgp);
+
+extern void
+st_release_tcp_variants(struct st_context *st,
+                        struct st_tessctrl_program *stgp);
+
+extern void
+st_release_tep_variants(struct st_context *st,
+                        struct st_tesseval_program *stgp);
 
 extern void
 st_destroy_program_variants(struct st_context *st);

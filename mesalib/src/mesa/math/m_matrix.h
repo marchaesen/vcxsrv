@@ -122,8 +122,8 @@ _math_matrix_frustum( GLmatrix *mat,
 		      GLfloat nearval, GLfloat farval );
 
 extern void
-_math_matrix_viewport( GLmatrix *m, const double scale[3],
-                       const double translate[3], double depthMax );
+_math_matrix_viewport( GLmatrix *m, const float scale[3],
+                       const float translate[3], double depthMax );
 
 extern void
 _math_matrix_set_identity( GLmatrix *dest );

@@ -380,7 +380,7 @@ static GLboolean invert_matrix_general( GLmatrix *mat )
    if (fabsf(r3[0])>fabsf(r2[0])) SWAP_ROWS(r3, r2);
    if (fabsf(r2[0])>fabsf(r1[0])) SWAP_ROWS(r2, r1);
    if (fabsf(r1[0])>fabsf(r0[0])) SWAP_ROWS(r1, r0);
-   if (0.0 == r0[0])  return GL_FALSE;
+   if (0.0F == r0[0])  return GL_FALSE;
 
    /* eliminate first variable     */
    m1 = r1[0]/r0[0]; m2 = r2[0]/r0[0]; m3 = r3[0]/r0[0];
@@ -388,31 +388,31 @@ static GLboolean invert_matrix_general( GLmatrix *mat )
    s = r0[2]; r1[2] -= m1 * s; r2[2] -= m2 * s; r3[2] -= m3 * s;
    s = r0[3]; r1[3] -= m1 * s; r2[3] -= m2 * s; r3[3] -= m3 * s;
    s = r0[4];
-   if (s != 0.0) { r1[4] -= m1 * s; r2[4] -= m2 * s; r3[4] -= m3 * s; }
+   if (s != 0.0F) { r1[4] -= m1 * s; r2[4] -= m2 * s; r3[4] -= m3 * s; }
    s = r0[5];
-   if (s != 0.0) { r1[5] -= m1 * s; r2[5] -= m2 * s; r3[5] -= m3 * s; }
+   if (s != 0.0F) { r1[5] -= m1 * s; r2[5] -= m2 * s; r3[5] -= m3 * s; }
    s = r0[6];
-   if (s != 0.0) { r1[6] -= m1 * s; r2[6] -= m2 * s; r3[6] -= m3 * s; }
+   if (s != 0.0F) { r1[6] -= m1 * s; r2[6] -= m2 * s; r3[6] -= m3 * s; }
    s = r0[7];
-   if (s != 0.0) { r1[7] -= m1 * s; r2[7] -= m2 * s; r3[7] -= m3 * s; }
+   if (s != 0.0F) { r1[7] -= m1 * s; r2[7] -= m2 * s; r3[7] -= m3 * s; }
 
    /* choose pivot - or die */
    if (fabsf(r3[1])>fabsf(r2[1])) SWAP_ROWS(r3, r2);
    if (fabsf(r2[1])>fabsf(r1[1])) SWAP_ROWS(r2, r1);
-   if (0.0 == r1[1])  return GL_FALSE;
+   if (0.0F == r1[1])  return GL_FALSE;
 
    /* eliminate second variable */
    m2 = r2[1]/r1[1]; m3 = r3[1]/r1[1];
    r2[2] -= m2 * r1[2]; r3[2] -= m3 * r1[2];
    r2[3] -= m2 * r1[3]; r3[3] -= m3 * r1[3];
-   s = r1[4]; if (0.0 != s) { r2[4] -= m2 * s; r3[4] -= m3 * s; }
-   s = r1[5]; if (0.0 != s) { r2[5] -= m2 * s; r3[5] -= m3 * s; }
-   s = r1[6]; if (0.0 != s) { r2[6] -= m2 * s; r3[6] -= m3 * s; }
-   s = r1[7]; if (0.0 != s) { r2[7] -= m2 * s; r3[7] -= m3 * s; }
+   s = r1[4]; if (0.0F != s) { r2[4] -= m2 * s; r3[4] -= m3 * s; }
+   s = r1[5]; if (0.0F != s) { r2[5] -= m2 * s; r3[5] -= m3 * s; }
+   s = r1[6]; if (0.0F != s) { r2[6] -= m2 * s; r3[6] -= m3 * s; }
+   s = r1[7]; if (0.0F != s) { r2[7] -= m2 * s; r3[7] -= m3 * s; }
 
    /* choose pivot - or die */
    if (fabsf(r3[2])>fabsf(r2[2])) SWAP_ROWS(r3, r2);
-   if (0.0 == r2[2])  return GL_FALSE;
+   if (0.0F == r2[2])  return GL_FALSE;
 
    /* eliminate third variable */
    m3 = r3[2]/r2[2];
@@ -421,7 +421,7 @@ static GLboolean invert_matrix_general( GLmatrix *mat )
    r3[7] -= m3 * r2[7];
 
    /* last check */
-   if (0.0 == r3[3]) return GL_FALSE;
+   if (0.0F == r3[3]) return GL_FALSE;
 
    s = 1.0F/r3[3];             /* now back substitute row 3 */
    r3[4] *= s; r3[5] *= s; r3[6] *= s; r3[7] *= s;
@@ -490,26 +490,26 @@ static GLboolean invert_matrix_3d_general( GLmatrix *mat )
     */
    pos = neg = 0.0;
    t =  MAT(in,0,0) * MAT(in,1,1) * MAT(in,2,2);
-   if (t >= 0.0) pos += t; else neg += t;
+   if (t >= 0.0F) pos += t; else neg += t;
 
    t =  MAT(in,1,0) * MAT(in,2,1) * MAT(in,0,2);
-   if (t >= 0.0) pos += t; else neg += t;
+   if (t >= 0.0F) pos += t; else neg += t;
 
    t =  MAT(in,2,0) * MAT(in,0,1) * MAT(in,1,2);
-   if (t >= 0.0) pos += t; else neg += t;
+   if (t >= 0.0F) pos += t; else neg += t;
 
    t = -MAT(in,2,0) * MAT(in,1,1) * MAT(in,0,2);
-   if (t >= 0.0) pos += t; else neg += t;
+   if (t >= 0.0F) pos += t; else neg += t;
 
    t = -MAT(in,1,0) * MAT(in,0,1) * MAT(in,2,2);
-   if (t >= 0.0) pos += t; else neg += t;
+   if (t >= 0.0F) pos += t; else neg += t;
 
    t = -MAT(in,0,0) * MAT(in,2,1) * MAT(in,1,2);
-   if (t >= 0.0) pos += t; else neg += t;
+   if (t >= 0.0F) pos += t; else neg += t;
 
    det = pos + neg;
 
-   if (fabsf(det) < 1e-25)
+   if (fabsf(det) < 1e-25F)
       return GL_FALSE;
 
    det = 1.0F / det;
@@ -564,7 +564,7 @@ static GLboolean invert_matrix_3d( GLmatrix *mat )
                        MAT(in,0,1) * MAT(in,0,1) +
                        MAT(in,0,2) * MAT(in,0,2));
 
-      if (scale == 0.0)
+      if (scale == 0.0F)
          return GL_FALSE;
 
       scale = 1.0F / scale;
@@ -799,8 +799,8 @@ _math_matrix_rotate( GLmatrix *mat,
    GLfloat m[16];
    GLboolean optimized;
 
-   s = (GLfloat) sin( angle * M_PI / 180.0 );
-   c = (GLfloat) cos( angle * M_PI / 180.0 );
+   s = sinf( angle * M_PI / 180.0 );
+   c = cosf( angle * M_PI / 180.0 );
 
    memcpy(m, Identity, sizeof(GLfloat)*16);
    optimized = GL_FALSE;
@@ -859,7 +859,7 @@ _math_matrix_rotate( GLmatrix *mat,
    if (!optimized) {
       const GLfloat mag = sqrtf(x * x + y * y + z * z);
 
-      if (mag <= 1.0e-4) {
+      if (mag <= 1.0e-4F) {
          /* no rotation, leave mat as-is */
          return;
       }
@@ -1070,7 +1070,7 @@ _math_matrix_scale( GLmatrix *mat, GLfloat x, GLfloat y, GLfloat z )
    m[2] *= x;   m[6] *= y;   m[10] *= z;
    m[3] *= x;   m[7] *= y;   m[11] *= z;
 
-   if (fabsf(x - y) < 1e-8 && fabsf(x - z) < 1e-8)
+   if (fabsf(x - y) < 1e-8F && fabsf(x - z) < 1e-8F)
       mat->flags |= MAT_FLAG_UNIFORM_SCALE;
    else
       mat->flags |= MAT_FLAG_GENERAL_SCALE;
@@ -1111,8 +1111,8 @@ _math_matrix_translate( GLmatrix *mat, GLfloat x, GLfloat y, GLfloat z )
  * Transforms Normalized Device Coords to window/Z values.
  */
 void
-_math_matrix_viewport(GLmatrix *m, const double scale[3],
-                      const double translate[3], double depthMax)
+_math_matrix_viewport(GLmatrix *m, const float scale[3],
+                      const float translate[3], double depthMax)
 {
    m->m[MAT_SX] = scale[0];
    m->m[MAT_TX] = translate[0];
@@ -1206,7 +1206,7 @@ static void analyse_from_scratch( GLmatrix *mat )
    GLuint i;
 
    for (i = 0 ; i < 16 ; i++) {
-      if (m[i] == 0.0) mask |= (1<<i);
+      if (m[i] == 0.0F) mask |= (1<<i);
    }
 
    if (m[0] == 1.0F) mask |= (1<<16);
@@ -1240,12 +1240,12 @@ static void analyse_from_scratch( GLmatrix *mat )
       mat->type = MATRIX_2D;
 
       /* Check for scale */
-      if (SQ(mm-1) > SQ(1e-6) ||
-	  SQ(m4m4-1) > SQ(1e-6))
+      if (SQ(mm-1) > SQ(1e-6F) ||
+	  SQ(m4m4-1) > SQ(1e-6F))
 	 mat->flags |= MAT_FLAG_GENERAL_SCALE;
 
       /* Check for rotation */
-      if (SQ(mm4) > SQ(1e-6))
+      if (SQ(mm4) > SQ(1e-6F))
 	 mat->flags |= MAT_FLAG_GENERAL_3D;
       else
 	 mat->flags |= MAT_FLAG_ROTATION;
@@ -1255,9 +1255,9 @@ static void analyse_from_scratch( GLmatrix *mat )
       mat->type = MATRIX_3D_NO_ROT;
 
       /* Check for scale */
-      if (SQ(m[0]-m[5]) < SQ(1e-6) &&
-	  SQ(m[0]-m[10]) < SQ(1e-6)) {
-	 if (SQ(m[0]-1.0) > SQ(1e-6)) {
+      if (SQ(m[0]-m[5]) < SQ(1e-6F) &&
+	  SQ(m[0]-m[10]) < SQ(1e-6F)) {
+	 if (SQ(m[0]-1.0F) > SQ(1e-6F)) {
 	    mat->flags |= MAT_FLAG_UNIFORM_SCALE;
          }
       }
@@ -1275,8 +1275,8 @@ static void analyse_from_scratch( GLmatrix *mat )
       mat->type = MATRIX_3D;
 
       /* Check for scale */
-      if (SQ(c1-c2) < SQ(1e-6) && SQ(c1-c3) < SQ(1e-6)) {
-	 if (SQ(c1-1.0) > SQ(1e-6))
+      if (SQ(c1-c2) < SQ(1e-6F) && SQ(c1-c3) < SQ(1e-6F)) {
+	 if (SQ(c1-1.0F) > SQ(1e-6F))
 	    mat->flags |= MAT_FLAG_UNIFORM_SCALE;
 	 /* else no scale at all */
       }
@@ -1285,10 +1285,10 @@ static void analyse_from_scratch( GLmatrix *mat )
       }
 
       /* Check for rotation */
-      if (SQ(d1) < SQ(1e-6)) {
+      if (SQ(d1) < SQ(1e-6F)) {
 	 CROSS3( cp, m, m+4 );
 	 SUB_3V( cp, cp, (m+8) );
-	 if (LEN_SQUARED_3FV(cp) < SQ(1e-6))
+	 if (LEN_SQUARED_3FV(cp) < SQ(1e-6F))
 	    mat->flags |= MAT_FLAG_ROTATION;
 	 else
 	    mat->flags |= MAT_FLAG_GENERAL_3D;

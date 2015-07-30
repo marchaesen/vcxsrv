@@ -100,6 +100,18 @@ public:
 
    virtual ir_visitor_status visit_enter(ir_dereference_array *ir)
    {
+      /* Force unroll in case of dynamic indexing with sampler arrays
+       * when EmitNoIndirectSampler is set.
+       */
+      if (options->EmitNoIndirectSampler) {
+         if ((ir->array->type->is_array() &&
+              ir->array->type->contains_sampler()) &&
+             !ir->array_index->constant_expression_value()) {
+            unsupported_variable_indexing = true;
+            return visit_continue;
+         }
+      }
+
       /* Check for arrays variably-indexed by a loop induction variable.
        * Unrolling the loop may convert that access into constant-indexing.
        *
@@ -133,6 +145,7 @@ public:
                   unsupported_variable_indexing = true;
                break;
             case ir_var_uniform:
+            case ir_var_shader_storage:
                if (options->EmitNoIndirectUniform)
                   unsupported_variable_indexing = true;
                break;

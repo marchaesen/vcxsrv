@@ -23,7 +23,7 @@ LOGIND_SRCS = systemd-logind.c
 XORG_CFLAGS += $(DBUS_CFLAGS)
 endif
 
-liblinux_la_SOURCES = lnx_init.c lnx_video.c \
+liblinux_la_SOURCES = linux.h lnx_init.c lnx_video.c \
                      lnx_agp.c lnx_kmod.c lnx_bell.c lnx_platform.c \
 		     $(srcdir)/../shared/VTsw_usl.c \
 		     $(srcdir)/../shared/posix_tty.c \

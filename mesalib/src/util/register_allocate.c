@@ -648,7 +648,7 @@ ra_get_best_spill_node(struct ra_graph *g)
       float cost = g->nodes[n].spill_cost;
       float benefit;
 
-      if (cost <= 0.0)
+      if (cost <= 0.0f)
 	 continue;
 
       if (g->nodes[n].in_stack)

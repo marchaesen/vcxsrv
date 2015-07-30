@@ -234,7 +234,7 @@ proc_present_query_capabilities (ClientPtr client)
     return Success;
 }
 
-int (*proc_present_vector[PresentNumberRequests]) (ClientPtr) = {
+static int (*proc_present_vector[PresentNumberRequests]) (ClientPtr) = {
     proc_present_query_version,            /* 0 */
     proc_present_pixmap,                   /* 1 */
     proc_present_notify_msc,               /* 2 */
@@ -319,7 +319,7 @@ sproc_present_query_capabilities (ClientPtr client)
     return (*proc_present_vector[stuff->presentReqType]) (client);
 }
 
-int (*sproc_present_vector[PresentNumberRequests]) (ClientPtr) = {
+static int (*sproc_present_vector[PresentNumberRequests]) (ClientPtr) = {
     sproc_present_query_version,           /* 0 */
     sproc_present_pixmap,                  /* 1 */
     sproc_present_notify_msc,              /* 2 */
